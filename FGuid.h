@@ -1,15 +1,13 @@
 ﻿#pragma once
 
-#include "pch.h"
-
-#include <cstdint>
+#include "Common.h"
 
 struct FGuid
 {
-    uint32_t A = 0;
-    uint32_t B = 0;
-    uint32_t C = 0;
-    uint32_t D = 0;
+    uint32 A = 0;
+    uint32 B = 0;
+    uint32 C = 0;
+    uint32 D = 0;
 
     static FGuid NewGuid();
     FString ToString() const;
