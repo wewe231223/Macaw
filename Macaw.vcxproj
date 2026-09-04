@@ -129,8 +129,6 @@
       <PreprocessorDefinitions>NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <PrecompiledHeader>Use</PrecompiledHeader>
-      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -141,20 +139,23 @@
     </Manifest>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="Common.h" />
     <ClInclude Include="FGuid.h" />
+    <ClInclude Include="FObjectHandle.h" />
+    <ClInclude Include="FObjectItem.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="Macaw.h" />
+    <ClInclude Include="ObjectSystem.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="targetver.h" />
+    <ClInclude Include="UObject.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="FGuid.cpp" />
     <ClCompile Include="Macaw.cpp" />
-    <ClCompile Include="pch.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
-    </ClCompile>
+    <ClCompile Include="ObjectSystem.cpp" />
+    <ClCompile Include="pch.cpp" />
+    <ClCompile Include="UObject.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Macaw.rc" />
