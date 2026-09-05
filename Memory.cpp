@@ -134,7 +134,7 @@ void Memory::Free(void* Ptr) noexcept
 	Header->~FAllocationHeader();
 
 	// Header가 차지한 메모리를 해제한다.
-	::operator delete(Header->RawPointer);
+	::operator delete(RawPointer);
 }
 
 Memory::FMemoryStats Memory::GetStats()
