@@ -9,32 +9,18 @@
 #include <string>
 #include <vector>
 
-enum class EShaderStage {
-    Vertex,
-    Pixel,
-    Geometry,
-    Hull,
-    Domain,
-    Compute
-};
+#include "Defines.h"
 
-struct FShaderDescription {
-    std::filesystem::path Source;
-    std::string EntryPoint;
-    std::string Profile;
-    EShaderStage Stage = EShaderStage::Vertex;
-};
-
-class Shader {
+class FShader {
 public:
-    Shader() = default;
-    ~Shader() = default;
+    FShader() = default;
+    ~FShader() = default;
 
-    Shader(const Shader&) = delete;
-    Shader& operator=(const Shader&) = delete;
+    FShader(const FShader&) = delete;
+    FShader& operator=(const FShader&) = delete;
 
-    Shader(Shader&&) noexcept = default;
-    Shader& operator=(Shader&&) noexcept = default;
+    FShader(FShader&&) noexcept = default;
+    FShader& operator=(FShader&&) noexcept = default;
 
 public:
     bool Initialize(ID3D11Device* Device, const FShaderDescription& Description);

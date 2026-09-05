@@ -35,6 +35,9 @@
     <Filter Include="Imgui">
       <UniqueIdentifier>{c60b77dd-82f0-4925-acf5-d3375809e190}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Core\Asset">
+      <UniqueIdentifier>{43e6b1bc-0755-4251-9234-11107f9fdd3b}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Macaw.rc">
@@ -74,10 +77,10 @@
     <ClCompile Include="Core\Memory\Memory.cpp">
       <Filter>Core\Memory</Filter>
     </ClCompile>
-    <ClCompile Include="Render\Pipeline\Pipeline.cpp">
+    <ClCompile Include="Render\Pipeline\UPipeline.cpp">
       <Filter>Render\Pipeline</Filter>
     </ClCompile>
-    <ClCompile Include="Render\Pipeline\Shader.cpp">
+    <ClCompile Include="Render\Pipeline\FShader.cpp">
       <Filter>Render\Pipeline</Filter>
     </ClCompile>
     <ClCompile Include="Render\Console\ConsoleWindow.cpp">
@@ -87,9 +90,6 @@
       <Filter>Render</Filter>
     </ClCompile>
     <ClCompile Include="ErrorHandler.cpp" />
-    <ClCompile Include="Core\Base\UObject.cpp">
-      <Filter>Core\Base\UObject</Filter>
-    </ClCompile>
     <ClCompile Include="Core\Base\UObjectSystem.cpp">
       <Filter>Core\Base\UObject</Filter>
     </ClCompile>
@@ -122,15 +122,33 @@
       <Filter>Imgui</Filter>
     </ClCompile>
     <ClCompile Include="Macaw.cpp" />
+    <ClCompile Include="Core\Asset\FAssetHandle.cpp">
+      <Filter>Core\Asset</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Asset\FAssetRegistry.cpp">
+      <Filter>Core\Asset</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Base\FRenderProbe.cpp">
+      <Filter>Core\Base</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Asset\UMaterial.cpp">
+      <Filter>Core\Asset</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Asset\UMesh.cpp">
+      <Filter>Core\Asset</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Base\UObject.cpp">
+      <Filter>Core\Base\UObject</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Base\TypeInfo.cpp">
+      <Filter>Core\Base</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Base\FVertexAttribute.cpp">
+      <Filter>Core\Base</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Core\Base\FGuid.h">
-      <Filter>Core\Base</Filter>
-    </ClInclude>
-    <ClInclude Include="Core\Base\FObjectHandle.h">
-      <Filter>Core\Base</Filter>
-    </ClInclude>
-    <ClInclude Include="Core\Base\FObjectItem.h">
       <Filter>Core\Base</Filter>
     </ClInclude>
     <ClInclude Include="Core\Base\FRecordObjectState.h">
@@ -142,7 +160,7 @@
     <ClInclude Include="Core\Base\IUndoRecord.h">
       <Filter>Core\Base</Filter>
     </ClInclude>
-    <ClInclude Include="Core\Base\TypeInfo.hpp">
+    <ClInclude Include="Core\Base\TypeInfo.h">
       <Filter>Core\Base</Filter>
     </ClInclude>
     <ClInclude Include="Core\Base\UUndoSystem.h">
@@ -169,10 +187,10 @@
     <ClInclude Include="Render\Pipeline\Defines.h">
       <Filter>Render\Pipeline</Filter>
     </ClInclude>
-    <ClInclude Include="Render\Pipeline\Pipeline.h">
+    <ClInclude Include="Render\Pipeline\UPipeline.h">
       <Filter>Render\Pipeline</Filter>
     </ClInclude>
-    <ClInclude Include="Render\Pipeline\Shader.h">
+    <ClInclude Include="Render\Pipeline\FShader.h">
       <Filter>Render\Pipeline</Filter>
     </ClInclude>
     <ClInclude Include="Render\Pipeline\Wrapper.h">
@@ -189,9 +207,6 @@
     <ClInclude Include="FMath.h" />
     <ClInclude Include="PCH.h" />
     <ClInclude Include="STL.h" />
-    <ClInclude Include="Core\Base\UObject.h">
-      <Filter>Core\Base\UObject</Filter>
-    </ClInclude>
     <ClInclude Include="Core\Base\UObjectSystem.h">
       <Filter>Core\Base\UObject</Filter>
     </ClInclude>
@@ -224,6 +239,33 @@
     </ClInclude>
     <ClInclude Include="ImGui\stb_image.h">
       <Filter>Imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Asset\FAssetHandle.h">
+      <Filter>Core\Asset</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Asset\FAssetRegistry.h">
+      <Filter>Core\Asset</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Base\FRenderProbe.h">
+      <Filter>Core\Base</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Asset\UMaterial.h">
+      <Filter>Core\Asset</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Asset\UMesh.h">
+      <Filter>Core\Asset</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Base\FObjectItem.h">
+      <Filter>Core\Base\UObject</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Base\FObjectHandle.h">
+      <Filter>Core\Base\UObject</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Base\UObject.h">
+      <Filter>Core\Base\UObject</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Base\FVertexAttribute.h">
+      <Filter>Core\Base</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

@@ -2,6 +2,7 @@
 
 #include "FGuid.h"
 #include "FObjectHandle.h"
+#include "TypeInfo.h"
 
 #include <cstddef>
 #include <new>
@@ -30,6 +31,11 @@ public:
 
 	static void* operator new(std::size_t Size, std::align_val_t Alignment);
 	static void operator delete(void* Ptr, std::align_val_t Alignment) noexcept;
+
+	// RTTI
+	//static const FTypeInfo* StaticTypeInfo();
+	//virtual const FTypeInfo* GetTypeInfo() const = 0;
+
 
 private:
 	friend FObjectHandle UObjectSystem::Register(UObject* Object);
