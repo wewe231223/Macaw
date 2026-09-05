@@ -27,22 +27,40 @@
     <ClInclude Include="Macaw.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
-    <ClInclude Include="UObject.h">
+    <ClInclude Include="Core\Base\FGuid.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
-    <ClInclude Include="FObjectHandle.h">
+    <ClInclude Include="Core\Base\FObjectHandle.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
-    <ClInclude Include="FObjectItem.h">
+    <ClInclude Include="Core\Base\FObjectItem.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
-    <ClInclude Include="ObjectSystem.h">
+    <ClInclude Include="Core\Base\FRecordObjectState.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
-    <ClInclude Include="FGuid.h">
+    <ClInclude Include="Core\Base\FUndoTransaction.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
-    <ClInclude Include="pch.h">
+    <ClInclude Include="Core\Base\IUndoRecord.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Base\ObjectSystem.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Base\UndoSystem.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Base\UObject.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="PCH.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="STL.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="Common.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
   </ItemGroup>
@@ -50,16 +68,25 @@
     <ClCompile Include="Macaw.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
-    <ClCompile Include="UObject.cpp">
+    <ClCompile Include="Core\Base\FGuid.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
-    <ClCompile Include="FGuid.cpp">
+    <ClCompile Include="Core\Base\FRecordObjectState.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
-    <ClCompile Include="ObjectSystem.cpp">
+    <ClCompile Include="Core\Base\FUndoTransaction.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
-    <ClCompile Include="pch.cpp">
+    <ClCompile Include="Core\Base\ObjectSystem.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Base\UndoSystem.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Base\UObject.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="PCH.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
   </ItemGroup>

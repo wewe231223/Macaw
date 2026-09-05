@@ -1,4 +1,5 @@
-﻿#include "UObject.h"
+﻿#include "PCH.h"
+#include "UObject.h"
 
 UObject::UObject()
 	: Guid(FGuid::NewGuid())
