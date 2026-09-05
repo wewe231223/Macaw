@@ -45,5 +45,6 @@
     <ClCompile Include="Core\Channel\FMessageHandler.cpp">
       <Filter>Channel</Filter>
     </ClCompile>
+    <ClCompile Include="ErrorHandler.cpp" />
   </ItemGroup>
 </Project>
