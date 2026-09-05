@@ -1,11 +1,11 @@
 ﻿#pragma once
 
-#include <cassert>
 #include <concepts>
 #include <functional>
 #include <type_traits>
 #include <utility>
 
+#include "../../ErrorHandler.h"
 #include "FMessage.h"
 
 class FMessageHandler
@@ -31,7 +31,9 @@ public:
         Result.mMessageType = &TMessage::StaticTypeInfo();
         Result.mFunction = [Callable = FCallable(std::forward<TCallable>(Callable))](const FMessage& Message) mutable {
             const TMessage* TypedMessage = Message.Get<TMessage>();
-            assert(TypedMessage != nullptr); // Message.Get<TMessage>() 가 실패한 경우 < 잘못된 타입을 넣은 경우 > 
+            if (TypedMessage == nullptr) {
+                ErrorHandler::Report("FMessageHandler::Create", "The message type does not match the handler's registered type.", ErrorHandler::EErrorLevel::Critical);
+            }
 
             std::invoke(Callable, *TypedMessage);
             };

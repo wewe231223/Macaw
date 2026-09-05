@@ -1,5 +1,7 @@
 ﻿#include "FMessage.h"
 
+#include "../../ErrorHandler.h"
+
 FMessage::FMessage(FMessage&& Other) noexcept {
 	FMessage::MoveFrom(std::move(Other));
 }
@@ -22,13 +24,19 @@ bool FMessage::IsValid() const noexcept {
 }
 
 const FTypeInfo& FMessage::GetTypeInfo() const noexcept {
-	assert(mType != nullptr); // ? 컴파일이 안될텐데 
+	if (mType == nullptr) {
+		ErrorHandler::Report("FMessage::GetTypeInfo", "Cannot get type information from an invalid message.", ErrorHandler::EErrorLevel::Critical);
+	}
+
 	return *mType;
 }
 
 void FMessage::Reset() noexcept {
 	if (mData != nullptr) {
-		assert(mDestroyFunction != nullptr);
+		if (mDestroyFunction == nullptr) {
+			ErrorHandler::Report("FMessage::Reset", "A valid message does not have a destroy function.", ErrorHandler::EErrorLevel::Critical);
+		}
+
 		mDestroyFunction(*this);
 	}
 
@@ -51,7 +59,10 @@ void FMessage::MoveFrom(FMessage&& Other) noexcept {
         return;
     }
 
-    assert(mMoveFunction != nullptr);
+    if (mMoveFunction == nullptr) {
+        ErrorHandler::Report("FMessage::MoveFrom", "An inline message does not have a move function.", ErrorHandler::EErrorLevel::Critical);
+    }
+
     mMoveFunction(*this, Other);
     Other.ClearMetadata();
 }

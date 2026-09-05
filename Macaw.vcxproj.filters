@@ -28,6 +28,9 @@
     <Filter Include="Core\Memory">
       <UniqueIdentifier>{7fc417b4-ff8b-45fe-96c1-d1ad76589ea9}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Render\Pipeline">
+      <UniqueIdentifier>{6e666080-651f-4e86-95b1-1e77c8137aef}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="framework.h">
@@ -81,6 +84,24 @@
     <ClInclude Include="doctest.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
+    <ClInclude Include="Render\Pipeline\Defines.h">
+      <Filter>Render\Pipeline</Filter>
+    </ClInclude>
+    <ClInclude Include="Render\Pipeline\Pipeline.h">
+      <Filter>Render\Pipeline</Filter>
+    </ClInclude>
+    <ClInclude Include="Render\Pipeline\Shader.h">
+      <Filter>Render\Pipeline</Filter>
+    </ClInclude>
+    <ClInclude Include="Render\Pipeline\Wrapper.h">
+      <Filter>Render\Pipeline</Filter>
+    </ClInclude>
+    <ClInclude Include="ErrorHandler.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="Render\Renderer.h">
+      <Filter>Render</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Core\Base\FGuid.cpp">
@@ -106,6 +127,18 @@
     </ClCompile>
     <ClCompile Include="Tests\TestUndo.cpp">
       <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="Render\Pipeline\Pipeline.cpp">
+      <Filter>Render\Pipeline</Filter>
+    </ClCompile>
+    <ClCompile Include="Render\Pipeline\Shader.cpp">
+      <Filter>Render\Pipeline</Filter>
+    </ClCompile>
+    <ClCompile Include="ErrorHandler.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="Render\Renderer.cpp">
+      <Filter>Render</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

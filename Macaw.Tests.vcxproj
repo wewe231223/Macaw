@@ -84,6 +84,7 @@
     <ClCompile Include="Core\Channel\FMessage.cpp" />
     <ClCompile Include="Core\Channel\FMessageChannel.cpp" />
     <ClCompile Include="Core\Channel\FMessageHandler.cpp" />
+    <ClCompile Include="ErrorHandler.cpp" />
     <ClCompile Include="SimpleMath\SimpleMath.cpp" />
     <ClCompile Include="Tests\DoctestMain.cpp" />
     <ClCompile Include="Tests\MemoryTests.cpp" />
