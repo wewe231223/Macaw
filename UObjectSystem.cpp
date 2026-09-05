@@ -1,9 +1,9 @@
 ﻿#include "PCH.h"
-#include "ObjectSystem.h"
+#include "UObjectSystem.h"
 
-#include "FGuid.h"
-#include "FObjectItem.h"
-#include "UObject.h"
+#include "Core/Base/FGuid.h"
+#include "Core/Base/FObjectItem.h"
+#include "Core/Base/UObject.h"
 
 namespace
 {

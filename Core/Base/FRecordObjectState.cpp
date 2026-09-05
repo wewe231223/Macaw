@@ -1,12 +1,12 @@
 ﻿#include "PCH.h"
 #include "FRecordObjectState.h"
 
-#include "ObjectSystem.h" 
+#include "UObjectSystem.h"
 #include "UObject.h"   
 
 void FRecordObjectState::ApplyUndo() 
 {
-    UObject* TargetObject = ObjectSystem::Resolve(ObjectSystem::FindHandleByGuid(TargetGuid));
+    UObject* TargetObject = UObjectSystem::Resolve(UObjectSystem::FindHandleByGuid(TargetGuid));
     if (TargetObject == nullptr)
         return;
 
@@ -20,7 +20,7 @@ void FRecordObjectState::ApplyUndo()
 
 void FRecordObjectState::ApplyRedo() 
 {
-    UObject* TargetObject = ObjectSystem::Resolve(ObjectSystem::FindHandleByGuid(TargetGuid));
+    UObject* TargetObject = UObjectSystem::Resolve(UObjectSystem::FindHandleByGuid(TargetGuid));
     if (TargetObject == nullptr)
         return;
 

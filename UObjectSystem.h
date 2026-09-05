@@ -1,7 +1,7 @@
 ﻿#pragma once
 
 #include <cstdint>
-#include "FObjectHandle.h"
+#include "Core/Base/FObjectHandle.h"
 
 class UObject;
 struct FGuid;

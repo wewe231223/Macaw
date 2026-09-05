@@ -162,13 +162,13 @@
     <ClInclude Include="Core\Base\FRecordObjectState.h" />
     <ClInclude Include="Core\Base\FUndoTransaction.h" />
     <ClInclude Include="Core\Base\IUndoRecord.h" />
-    <ClInclude Include="Core\Base\ObjectSystem.h" />
+    <ClInclude Include="UObjectSystem.h" />
     <ClInclude Include="Core\Base\UndoSystem.h" />
     <ClInclude Include="Core\Base\UObject.h" />
-    <ClInclude Include="doctest.h" />
+    <ClInclude Include="Tests\doctest.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="Macaw.h" />
-    <ClInclude Include="PCH.h" />
+    <ClInclude Include="pch.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="STL.h" />
     <ClInclude Include="targetver.h" />
@@ -177,10 +177,10 @@
     <ClCompile Include="Core\Base\FGuid.cpp" />
     <ClCompile Include="Core\Base\FRecordObjectState.cpp" />
     <ClCompile Include="Core\Base\FUndoTransaction.cpp" />
-    <ClCompile Include="Core\Base\ObjectSystem.cpp" />
+    <ClCompile Include="UObjectSystem.cpp" />
     <ClCompile Include="Core\Base\UndoSystem.cpp" />
     <ClCompile Include="Core\Base\UObject.cpp" />
-    <ClCompile Include="PCH.cpp">
+    <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
@@ -190,9 +190,6 @@
     <ClCompile Include="Render\Pipeline\Pipeline.cpp" />
     <ClCompile Include="Render\Pipeline\Shader.cpp" />
     <ClCompile Include="Render\Renderer.cpp" />
-    <ClCompile Include="pch.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
-    </ClCompile>
     <ClCompile Include="Renderer\ConsoleWindow.cpp" />
     <ClCompile Include="Renderer\URenderer.cpp" />
   </ItemGroup>
