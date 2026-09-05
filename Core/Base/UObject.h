@@ -2,6 +2,7 @@
 
 #include "FGuid.h"
 #include "FObjectHandle.h"
+#include "TypeInfo.h"
 
 #include <cstddef>
 #include <new>

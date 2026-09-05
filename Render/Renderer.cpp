@@ -3,7 +3,7 @@
 #include "Renderer.h"
 #include "../ErrorHandler.h"
 
-#include "Pipeline/Pipeline.h"
+#include "Pipeline/UPipeline.h"
 
 FRenderer::~FRenderer() {
 
@@ -17,8 +17,7 @@ void FRenderer::Create(HWND WindowHandle, UINT width, UINT height) {
 	FRenderer::CreateRTV();
 	FRenderer::CreateDSV();
 
-	Pipeline t{};
-	ErrorHandler::Report(not t.Initialize(Device.Get(), "./Pipeline/Base.json"), "[ FRenderer ]", "Failed to initialize pipeline.", ErrorHandler::EErrorLevel::Critical);
+	UPipeline t{};
 }
 
 void FRenderer::BeginFrame() {

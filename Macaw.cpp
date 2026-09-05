@@ -18,6 +18,11 @@
 #include "Render/Renderer.h"
 #include "Core/Console/Console.h"
 #include "Render/Console/ConsoleWindow.h"
+#include "Core/Asset/FAssetRegistry.h"
+
+//test
+#include "Render/Pipeline/UPipeline.h"
+#include "Core/Asset/UMesh.h"
 
 #define MAX_LOADSTRING 100
 
@@ -72,12 +77,46 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
 	FRenderer Renderer;
 	Renderer.Create(gHWND, DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT);
+	
+    FAssetRegistry AssetRegistry;
+	AssetRegistry.EmplaceAsset<UPipeline>(Renderer.GetDevice(), EAssetType::Pipeline, "BasePipeline", "./Pipeline/Base.json");
+
+    std::vector<FVector3> Positions{
+    { -0.5f, -0.5f, 0.0f },
+    {  0.0f,  0.5f, 0.0f },
+    {  0.5f, -0.5f, 0.0f }
+    };
+
+    std::vector<FVector3> Normals{
+        { 0.0f, 0.0f, -1.0f },
+        { 0.0f, 0.0f, -1.0f },
+        { 0.0f, 0.0f, -1.0f }
+    };
+
+    std::vector<FVector2D> UVs{
+        { 0.0f, 1.0f },
+        { 0.5f, 0.0f },
+        { 1.0f, 1.0f }
+    };
+
+    TArray<uint32> Indices{
+        0, 1, 2
+    };
+
+    
+	AssetRegistry.EmplaceAsset<UMesh>(Renderer.GetDevice(), EAssetType::Mesh, "TriangleMesh",
+        Indices, 
+        MakeVertexAttribute<EVertexAttribute::Position>(Positions), 
+        MakeVertexAttribute<EVertexAttribute::Normal>(Normals), 
+        MakeVertexAttribute<EVertexAttribute::UV>(UVs)
+    );
+
+
 
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGui_ImplWin32_Init((void*)hWnd);
     ImGui_ImplDX11_Init(Renderer.GetDevice(), Renderer.GetDeviceContext());
-
 
     while (true) {
         if (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE)) {

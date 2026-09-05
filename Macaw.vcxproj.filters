@@ -74,10 +74,10 @@
     <ClCompile Include="Core\Memory\Memory.cpp">
       <Filter>Core\Memory</Filter>
     </ClCompile>
-    <ClCompile Include="Render\Pipeline\Pipeline.cpp">
+    <ClCompile Include="Render\Pipeline\UPipeline.cpp">
       <Filter>Render\Pipeline</Filter>
     </ClCompile>
-    <ClCompile Include="Render\Pipeline\Shader.cpp">
+    <ClCompile Include="Render\Pipeline\FShader.cpp">
       <Filter>Render\Pipeline</Filter>
     </ClCompile>
     <ClCompile Include="Render\Console\ConsoleWindow.cpp">
@@ -87,9 +87,6 @@
       <Filter>Render</Filter>
     </ClCompile>
     <ClCompile Include="ErrorHandler.cpp" />
-    <ClCompile Include="Core\Base\UObject.cpp">
-      <Filter>Core\Base\UObject</Filter>
-    </ClCompile>
     <ClCompile Include="Core\Base\UObjectSystem.cpp">
       <Filter>Core\Base\UObject</Filter>
     </ClCompile>
@@ -171,10 +168,10 @@
     <ClInclude Include="Render\Pipeline\Defines.h">
       <Filter>Render\Pipeline</Filter>
     </ClInclude>
-    <ClInclude Include="Render\Pipeline\Pipeline.h">
+    <ClInclude Include="Render\Pipeline\UPipeline.h">
       <Filter>Render\Pipeline</Filter>
     </ClInclude>
-    <ClInclude Include="Render\Pipeline\Shader.h">
+    <ClInclude Include="Render\Pipeline\FShader.h">
       <Filter>Render\Pipeline</Filter>
     </ClInclude>
     <ClInclude Include="Render\Pipeline\Wrapper.h">
@@ -191,9 +188,6 @@
     <ClInclude Include="FMath.h" />
     <ClInclude Include="PCH.h" />
     <ClInclude Include="STL.h" />
-    <ClInclude Include="Core\Base\UObject.h">
-      <Filter>Core\Base\UObject</Filter>
-    </ClInclude>
     <ClInclude Include="Core\Base\UObjectSystem.h">
       <Filter>Core\Base\UObject</Filter>
     </ClInclude>

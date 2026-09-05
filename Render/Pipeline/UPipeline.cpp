@@ -1,12 +1,12 @@
 ﻿#include "PCH.h"
-#include "Pipeline.h"
+#include "UPipeline.h"
 
 #include "../../ErrorHandler.h"
 
 #include <memory>
 
 
-bool Pipeline::Initialize(ID3D11Device* Device, const FPipelineDescription& Description) {
+bool UPipeline::Initialize(ID3D11Device* Device, const FPipelineDescription& Description) {
     if (Device == nullptr) {
         ErrorHandler::Report("Pipeline::Initialize", "A valid Direct3D device is required to initialize a pipeline.", ErrorHandler::EErrorLevel::Error);
         return false;
@@ -102,17 +102,17 @@ bool Pipeline::Initialize(ID3D11Device* Device, const FPipelineDescription& Desc
     return true;
 }
 
-bool Pipeline::Initialize(ID3D11Device* Device, const std::filesystem::path& OptionFile) {
+bool UPipeline::Initialize(ID3D11Device* Device, const std::filesystem::path& OptionFile) {
     FPipelineDescription Description;
 
-    if (!Pipeline::LoadPipelineDescription(OptionFile, Description)) {
+    if (!UPipeline::LoadPipelineDescription(OptionFile, Description)) {
         return false;
     }
 
     return Initialize(Device, Description);
 }
 
-void Pipeline::Bind(ID3D11DeviceContext* Context) const {
+void UPipeline::Bind(ID3D11DeviceContext* Context) const {
     if (Context == nullptr) {
         ErrorHandler::Report("Pipeline::Bind", "A valid Direct3D device context is required to bind a pipeline.", ErrorHandler::EErrorLevel::Error);
         return;
@@ -133,7 +133,7 @@ void Pipeline::Bind(ID3D11DeviceContext* Context) const {
     Context->OMSetDepthStencilState(DepthStencilState.Get(), 0);
 }
 
-void Pipeline::Reset() {
+void UPipeline::Reset() {
     VertexShader.Reset();
     PixelShader.Reset();
 
@@ -145,7 +145,7 @@ void Pipeline::Reset() {
     PrimitiveTopology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 }
 
-bool Pipeline::LoadPipelineDescription(const std::filesystem::path& Path, FPipelineDescription& OutDescription) {
+bool UPipeline::LoadPipelineDescription(const std::filesystem::path& Path, FPipelineDescription& OutDescription) {
     FILE* File = nullptr;
 
 #ifdef _WIN32
