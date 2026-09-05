@@ -2,10 +2,22 @@
 //
 #include "PCH.h"
 
+#include "pch.h"  
 #include "framework.h"
 #include "Macaw.h"
 
 #include "Render/Renderer.h"
+
+#include <d3d11.h>
+#pragma comment(lib, "d3d11.lib")
+
+#include "ImGui/imgui.h"
+#include "ImGui/imgui_internal.h"
+#include "ImGui/imgui_impl_dx11.h"
+#include "ImGui/imgui_impl_win32.h"
+  
+#include "URenderer.h"
+#include "Console.h"
 
 #define MAX_LOADSTRING 100
 
@@ -19,12 +31,16 @@ HINSTANCE hInst;                                // 현재 인스턴스입니다.
 WCHAR szTitle[MAX_LOADSTRING];                  // 제목 표시줄 텍스트입니다.
 WCHAR szWindowClass[MAX_LOADSTRING];            // 기본 창 클래스 이름입니다.
 
+HWND hWnd = nullptr;
+
 // 이 코드 모듈에 포함된 함수의 선언을 전달합니다:
 ATOM                MyRegisterClass(HINSTANCE hInstance);
 BOOL                InitInstance(HINSTANCE, int);
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
 HWND gHWND;
+
+void DrawConsole(FConsoleOutputHandle Handle);
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
                      _In_opt_ HINSTANCE hPrevInstance,
@@ -67,6 +83,13 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
         Renderer.BeginFrame();
         Renderer.EndFrame(); 
     }
+
+    // ImGui 소멸
+    ImGui_ImplDX11_Shutdown();
+    ImGui_ImplWin32_Shutdown();
+    ImGui::DestroyContext();
+
+    Renderer.Release();
 
     return (int) msg.wParam;
 }
@@ -112,7 +135,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 {
    hInst = hInstance; // 인스턴스 핸들을 전역 변수에 저장합니다.
 
-   HWND hWnd = CreateWindowW(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
+   hWnd = CreateWindowW(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
       CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, nullptr, nullptr, hInstance, nullptr);
 
    if (!hWnd)
@@ -137,9 +160,16 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 //  WM_PAINT    - 주 창을 그립니다.
 //  WM_DESTROY  - 종료 메시지를 게시하고 반환합니다.
 //
-//
+
+extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
+
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
+    if (ImGui_ImplWin32_WndProcHandler(hWnd, message, wParam, lParam))
+    {
+        return true;
+    }
+
     switch (message)
     {
     case WM_COMMAND:
@@ -186,4 +216,19 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
         break;
     }
     return (INT_PTR)FALSE;
+}
+
+void DrawConsole(FConsoleOutputHandle Handle)
+{
+    ImGui::Begin("Console");
+    const size_t Count = Console::GetMessageCount(Handle);
+
+    for (size_t Index = 0; Index < Count; ++Index)
+    {
+        const FString& Message = Console::GetMessageAt(Handle, Index);
+     
+        ImGui::TextUnformatted(Message.c_str());
+    }
+
+    ImGui::End();
 }
