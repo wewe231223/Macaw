@@ -6,6 +6,8 @@
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 #include <combaseapi.h>
+#include <format>
+#include <string>
 
 
 FGuid FGuid::NewGuid()
@@ -23,12 +25,14 @@ FGuid FGuid::NewGuid()
 
 FString FGuid::ToString() const
 {
-    // Conforming RFC 4122
-    return std::format("{:08X}-{:04X}-{:04X}-{:04X}-{:04X}{:08X}",
+    const std::string Formatted = std::format(
+        "{:08X}-{:04X}-{:04X}-{:04X}-{:04X}{:08X}",
         A,
-        B >> 16,        
-        B & 0xFFFF,     
-        C >> 16,       
-        C & 0xFFFF,     
+        B >> 16,
+        B & 0xFFFF,
+        C >> 16,
+        C & 0xFFFF,
         D);
+
+    return FString(Formatted.begin(), Formatted.end());
 }

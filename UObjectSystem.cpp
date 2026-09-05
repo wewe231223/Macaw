@@ -21,7 +21,7 @@ namespace
     }
 }
 
-FObjectHandle ObjectSystem::Register(UObject* Object)
+FObjectHandle UObjectSystem::Register(UObject* Object)
 {
     if (Object == nullptr)
     {
@@ -61,7 +61,7 @@ FObjectHandle ObjectSystem::Register(UObject* Object)
     return Handle;
 }
 
-void ObjectSystem::Unregister(
+void UObjectSystem::Unregister(
     UObject* Object,
     FObjectHandle Handle)
 {
@@ -104,7 +104,7 @@ void ObjectSystem::Unregister(
     --State.ObjectCount;
 }
 
-UObject* ObjectSystem::Resolve(FObjectHandle Handle)
+UObject* UObjectSystem::Resolve(FObjectHandle Handle)
 {
     if (!Handle.IsValid())
     {
@@ -133,7 +133,7 @@ UObject* ObjectSystem::Resolve(FObjectHandle Handle)
     return Item.Object;
 }
 
-FObjectHandle ObjectSystem::FindHandleByGuid(
+FObjectHandle UObjectSystem::FindHandleByGuid(
     const FGuid& Guid)
 {
     FObjectRegistryState& State = GetRegistryState();
@@ -162,7 +162,7 @@ FObjectHandle ObjectSystem::FindHandleByGuid(
     return {};
 }
 
-FObjectHandle ObjectSystem::GetHandle(
+FObjectHandle UObjectSystem::GetHandle(
     const UObject* Object)
 {
     if (Object == nullptr)
@@ -173,7 +173,7 @@ FObjectHandle ObjectSystem::GetHandle(
     return Object->GetHandle();
 }
 
-std::uint32_t ObjectSystem::GetObjectCount()
+std::uint32_t UObjectSystem::GetObjectCount()
 {
     return GetRegistryState().ObjectCount;
 }

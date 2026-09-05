@@ -3,9 +3,12 @@
 #include "FGuid.h"
 #include "FObjectHandle.h"
 
+#include <cstddef>
+#include <new>
+
 class UObject;
 
-namespace ObjectSystem
+namespace UObjectSystem
 {
 	FObjectHandle Register(UObject* Object);
 }
@@ -22,8 +25,14 @@ public:
 	const FGuid& GetGuid() const;
 	FObjectHandle GetHandle() const;
 
+	static void* operator new(std::size_t Size);
+	static void operator delete(void* Ptr) noexcept;
+
+	static void* operator new(std::size_t Size, std::align_val_t Alignment);
+	static void operator delete(void* Ptr, std::align_val_t Alignment) noexcept;
+
 private:
-	friend FObjectHandle ObjectSystem::Register(UObject* Object);
+	friend FObjectHandle UObjectSystem::Register(UObject* Object);
 
 	void SetHandle(FObjectHandle InHandle);
 

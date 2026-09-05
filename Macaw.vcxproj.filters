@@ -13,6 +13,21 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="doctest">
+      <UniqueIdentifier>{489fd2de-e431-400e-858f-4d17d61ea8df}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Core">
+      <UniqueIdentifier>{5a64a9e9-f148-4ec5-818b-bc3bdd61f595}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Core\Base">
+      <UniqueIdentifier>{01c6f6cf-443d-4f65-b2dd-e1f38d39e100}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Core\Channel">
+      <UniqueIdentifier>{f06468fe-7796-4c56-ae39-3d3d897eb05b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Core\Memory">
+      <UniqueIdentifier>{7fc417b4-ff8b-45fe-96c1-d1ad76589ea9}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="framework.h">
