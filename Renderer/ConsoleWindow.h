@@ -4,4 +4,3 @@
 #include "Console.h"
 
 void DrawConsole(FConsoleOutputHandle Handle);
-
