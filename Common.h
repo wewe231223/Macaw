@@ -2,5 +2,5 @@
 
 #include "STL.h"
 
-using int32 = int;
-using uint32 = unsigned int;
+typedef int int32;
+typedef unsigned int uint32;
