@@ -1,4 +1,5 @@
-﻿#include "FMessageChannel.h"
+﻿#include "PCH.h"
+#include "FMessageChannel.h"
 
 FMessageChannel::FSender FMessageChannel::GetSender() noexcept {
 	return FMessageChannel::FSender{ *this };

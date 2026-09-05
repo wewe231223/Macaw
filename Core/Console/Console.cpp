@@ -15,7 +15,7 @@ namespace
     class FConsoleMessageStorage
     {
     public:
-        explicit FConsoleMessageStorage(size_t InCapacity)
+        FConsoleMessageStorage(size_t InCapacity)
             : Capacity(InCapacity)
         {
             Messages.resize(Capacity);

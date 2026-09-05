@@ -25,6 +25,9 @@
 #pragma comment(lib, "d3dcompiler.lib")
 #pragma comment(lib, "d3d11.lib")
 
+constexpr bool WINDOWED = false;
+constexpr uint32 DEFAULT_WINDOW_WIDTH = 1920;
+constexpr uint32 DEFAULT_WINDOW_HEIGHT = 1080;
 
 // 전역 변수:
 HINSTANCE hInst;                                // 현재 인스턴스입니다.
@@ -37,10 +40,8 @@ HWND hWnd = nullptr;
 ATOM                MyRegisterClass(HINSTANCE hInstance);
 BOOL                InitInstance(HINSTANCE, int);
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
-INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
 HWND gHWND;
 
-void DrawConsole(FConsoleOutputHandle Handle);
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
                      _In_opt_ HINSTANCE hPrevInstance,
@@ -70,7 +71,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	Console::AddLog(Console::STDOutHandle, ELogLevel::Log, ELogCategory::Etc, "Macaw Engine Initialized.");
 
 	FRenderer Renderer;
-	Renderer.Create(gHWND, 800, 600);
+	Renderer.Create(gHWND, DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT);
 
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
@@ -123,7 +124,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 //
 ATOM MyRegisterClass(HINSTANCE hInstance)
 {
-    WNDCLASSEXW wcex;
+    WNDCLASSEXW wcex{};
 
     wcex.cbSize = sizeof(WNDCLASSEX);
 
@@ -135,7 +136,6 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
     wcex.hIcon          = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_MACAW));
     wcex.hCursor        = LoadCursor(nullptr, IDC_ARROW);
     wcex.hbrBackground  = (HBRUSH)(COLOR_WINDOW+1);
-    wcex.lpszMenuName   = MAKEINTRESOURCEW(IDC_MACAW);
     wcex.lpszClassName  = szWindowClass;
     wcex.hIconSm        = LoadIcon(wcex.hInstance, MAKEINTRESOURCE(IDI_SMALL));
 
@@ -154,22 +154,64 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
 //
 BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 {
-   hInst = hInstance; // 인스턴스 핸들을 전역 변수에 저장합니다.
+    hInst = hInstance; // 인스턴스 핸들을 전역 변수에 저장합니다.
 
-   hWnd = CreateWindowW(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
-      CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, nullptr, nullptr, hInstance, nullptr);
 
-   if (!hWnd)
-   {
-      return FALSE;
-   }
+    if (WINDOWED) {
+        DWORD style = WS_OVERLAPPEDWINDOW & ~WS_THICKFRAME;
+        DWORD exStyle = WS_EX_OVERLAPPEDWINDOW;
 
-   ShowWindow(hWnd, nCmdShow);
-   UpdateWindow(hWnd);
+        int posX = (GetSystemMetrics(SM_CXSCREEN) / 2) - (static_cast<int>(DEFAULT_WINDOW_WIDTH) / 2);
+        int posY = (GetSystemMetrics(SM_CYSCREEN) / 2) - (static_cast<int>(DEFAULT_WINDOW_HEIGHT) / 2);
 
-   gHWND = hWnd;
+        RECT adjustedRect{ 0, 0, DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT };
+        ::AdjustWindowRectEx(std::addressof(adjustedRect), style, FALSE, exStyle);
 
-   return TRUE;
+        hWnd = CreateWindowEx(
+            exStyle,                                // 확장 스타일
+            szWindowClass,                          // 윈도우 클래스 이름
+            szTitle,                                // 윈도우 타이틀 
+            style,                                  // 윈도우 스타일
+            posX, posY,                             // 위치
+            adjustedRect.right - adjustedRect.left,
+            adjustedRect.bottom - adjustedRect.top, // 크기
+            nullptr,                                // 부모 윈도우
+            nullptr,                                // 메뉴
+            hInstance,                              // 인스턴스 핸들
+            nullptr                                 // 추가 매개변수
+        );
+    }
+    else {
+        DWORD style = WS_POPUP;
+        DWORD exStyle = NULL;
+
+        int posX = (GetSystemMetrics(SM_CXSCREEN) / 2) - (static_cast<int>(DEFAULT_WINDOW_WIDTH) / 2);
+        int posY = (GetSystemMetrics(SM_CYSCREEN) / 2) - (static_cast<int>(DEFAULT_WINDOW_HEIGHT) / 2);
+
+        hWnd = CreateWindowEx(
+            exStyle,                                // 확장 스타일
+            szWindowClass,                          // 윈도우 클래스 이름
+            szTitle,                                // 윈도우 타이틀 
+            style,                                  // 윈도우 스타일
+            posX, posY,                             // 위치 
+            DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT, // 크기
+            nullptr,                                // 부모 윈도우
+            nullptr,                                // 메뉴
+            hInstance,                              // 인스턴스 핸들
+            nullptr                                 // 추가 매개변수
+        );
+    }
+
+    if (!hWnd) {
+        return FALSE;
+    }
+
+    ShowWindow(hWnd, nCmdShow);
+    UpdateWindow(hWnd);
+
+	gHWND = hWnd;
+
+    return TRUE;
 }
 
 //
@@ -186,30 +228,11 @@ extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND hwnd, UINT msg, WPARAM wParam
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
-    if (ImGui_ImplWin32_WndProcHandler(hWnd, message, wParam, lParam))
-    {
-        return true;
-    }
+    ImGui_ImplWin32_WndProcHandler(hWnd, message, wParam, lParam);
+
 
     switch (message)
     {
-    case WM_COMMAND:
-        {
-            int wmId = LOWORD(wParam);
-            // 메뉴 선택을 구문 분석합니다:
-            switch (wmId)
-            {
-            case IDM_ABOUT:
-                DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
-                break;
-            case IDM_EXIT:
-                DestroyWindow(hWnd);
-                break;
-            default:
-                return DefWindowProc(hWnd, message, wParam, lParam);
-            }
-        }
-        break;
     case WM_DESTROY:
         PostQuitMessage(0);
         break;
@@ -217,26 +240,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         return DefWindowProc(hWnd, message, wParam, lParam);
     }
     return 0;
-}
-
-// 정보 대화 상자의 메시지 처리기입니다.
-INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
-{
-    UNREFERENCED_PARAMETER(lParam);
-    switch (message)
-    {
-    case WM_INITDIALOG:
-        return (INT_PTR)TRUE;
-
-    case WM_COMMAND:
-        if (LOWORD(wParam) == IDOK || LOWORD(wParam) == IDCANCEL)
-        {
-            EndDialog(hDlg, LOWORD(wParam));
-            return (INT_PTR)TRUE;
-        }
-        break;
-    }
-    return (INT_PTR)FALSE;
 }
 
 
