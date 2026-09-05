@@ -35,6 +35,9 @@
     <Filter Include="Imgui">
       <UniqueIdentifier>{c60b77dd-82f0-4925-acf5-d3375809e190}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Scene">
+      <UniqueIdentifier>{d941dab7-6bab-4cbd-aeeb-94c5551175da}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Macaw.rc">
@@ -122,6 +125,15 @@
       <Filter>Imgui</Filter>
     </ClCompile>
     <ClCompile Include="Macaw.cpp" />
+    <ClCompile Include="Scene\UCamera.cpp">
+      <Filter>Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="Scene\USceneObject.cpp">
+      <Filter>Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Base\FTreansform.cpp">
+      <Filter>Core\Base</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Core\Base\FGuid.h">
@@ -224,6 +236,15 @@
     </ClInclude>
     <ClInclude Include="ImGui\stb_image.h">
       <Filter>Imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="Scene\UCamera.h">
+      <Filter>Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="Scene\USceneObject.h">
+      <Filter>Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Base\FTransform.h">
+      <Filter>Core\Base</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

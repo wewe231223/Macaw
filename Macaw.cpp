@@ -1,6 +1,7 @@
 ﻿// Macaw.cpp : 애플리케이션에 대한 진입점을 정의합니다.
 //
 #include "PCH.h"
+#include "FMath.h"
  
 #include "framework.h"
 #include "Macaw.h"
@@ -14,10 +15,12 @@
 #include "ImGui/imgui_internal.h"
 #include "ImGui/imgui_impl_dx11.h"
 #include "ImGui/imgui_impl_win32.h"
-  
-#include "Render/Renderer.h"
+
 #include "Core/Console/Console.h"
 #include "Render/Console/ConsoleWindow.h"
+
+#include "Scene/UCamera.h"
+#include "Core/Base/FTransform.h"
 
 #define MAX_LOADSTRING 100
 
@@ -67,6 +70,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     HACCEL hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_MACAW));
 
     MSG msg;
+    UCamera Camera;
 
 	Console::AddLog(Console::STDOutHandle, ELogLevel::Log, ELogCategory::Etc, "Macaw Engine Initialized.");
 
@@ -78,6 +82,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     ImGui_ImplWin32_Init((void*)hWnd);
     ImGui_ImplDX11_Init(Renderer.GetDevice(), Renderer.GetDeviceContext());
 
+    Camera.GetTransform().SetPosition(FVector3(0.0f, 0.0f, -5.0f));
 
     while (true) {
         if (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE)) {
