@@ -59,7 +59,7 @@
     <ClCompile Include="Core\Base\FUndoTransaction.cpp">
       <Filter>Core\Base</Filter>
     </ClCompile>
-    <ClCompile Include="Core\Base\UndoSystem.cpp">
+    <ClCompile Include="Core\Base\UUndoSystem.cpp">
       <Filter>Core\Base</Filter>
     </ClCompile>
     <ClCompile Include="Core\Channel\FMessage.cpp">
@@ -145,7 +145,7 @@
     <ClInclude Include="Core\Base\TypeInfo.hpp">
       <Filter>Core\Base</Filter>
     </ClInclude>
-    <ClInclude Include="Core\Base\UndoSystem.h">
+    <ClInclude Include="Core\Base\UUndoSystem.h">
       <Filter>Core\Base</Filter>
     </ClInclude>
     <ClInclude Include="Core\Channel\FMessage.h">

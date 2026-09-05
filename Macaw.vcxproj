@@ -165,7 +165,7 @@
     <ClCompile Include="Core\Base\FGuid.cpp" />
     <ClCompile Include="Core\Base\FRecordObjectState.cpp" />
     <ClCompile Include="Core\Base\FUndoTransaction.cpp" />
-    <ClCompile Include="Core\Base\UndoSystem.cpp" />
+    <ClCompile Include="Core\Base\UUndoSystem.cpp" />
     <ClCompile Include="Core\Base\UObject.cpp" />
     <ClCompile Include="Core\Base\UObjectSystem.cpp" />
     <ClCompile Include="Core\Channel\FMessage.cpp" />
@@ -226,7 +226,7 @@
     <ClInclude Include="Core\Base\FUndoTransaction.h" />
     <ClInclude Include="Core\Base\IUndoRecord.h" />
     <ClInclude Include="Core\Base\TypeInfo.hpp" />
-    <ClInclude Include="Core\Base\UndoSystem.h" />
+    <ClInclude Include="Core\Base\UUndoSystem.h" />
     <ClInclude Include="Core\Base\UObject.h" />
     <ClInclude Include="Core\Base\UObjectSystem.h" />
     <ClInclude Include="Core\Channel\FMessage.h" />
