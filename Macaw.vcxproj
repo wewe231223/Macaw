@@ -144,6 +144,7 @@
     <ClInclude Include="FObjectItem.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="Macaw.h" />
+    <ClInclude Include="Memory.h" />
     <ClInclude Include="ObjectSystem.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="Resource.h" />
@@ -153,6 +154,7 @@
   <ItemGroup>
     <ClCompile Include="FGuid.cpp" />
     <ClCompile Include="Macaw.cpp" />
+    <ClCompile Include="Memory.cpp" />
     <ClCompile Include="ObjectSystem.cpp" />
     <ClCompile Include="pch.cpp" />
     <ClCompile Include="UObject.cpp" />
