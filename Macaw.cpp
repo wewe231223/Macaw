@@ -18,6 +18,7 @@
   
 #include "URenderer.h"
 #include "Console.h"
+#include "ConsoleWindow.h"
 
 #define MAX_LOADSTRING 100
 
@@ -218,17 +219,4 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
     return (INT_PTR)FALSE;
 }
 
-void DrawConsole(FConsoleOutputHandle Handle)
-{
-    ImGui::Begin("Console");
-    const size_t Count = Console::GetMessageCount(Handle);
 
-    for (size_t Index = 0; Index < Count; ++Index)
-    {
-        const FString& Message = Console::GetMessageAt(Handle, Index);
-     
-        ImGui::TextUnformatted(Message.c_str());
-    }
-
-    ImGui::End();
-}

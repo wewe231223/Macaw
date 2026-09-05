@@ -193,8 +193,8 @@
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="URenderer.cpp" />
-    <ClInclude Include="URenderer.h" />
+    <ClCompile Include="Renderer\ConsoleWindow.cpp" />
+    <ClCompile Include="Renderer\URenderer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Macaw.rc" />
