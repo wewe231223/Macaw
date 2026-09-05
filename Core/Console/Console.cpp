@@ -1,6 +1,12 @@
 #include "pch.h"
 #include "Console.h"
 
+#include <chrono>
+#include <ctime>
+#include <iomanip>
+#include <sstream>
+#include <locale>
+
 namespace
 {
     class FConsoleMessageStorage
@@ -12,15 +18,8 @@ namespace
             Messages.resize(Capacity);
         }
 
-        void Push(FString Message)
+        void Push(FConsoleMessage Message)
         {
-            /*if (Messages.size() >= Capacity)
-            {
-                Messages.pop_front();
-            }
-
-            Messages.push_back(std::move(Message));*/
-
             if (Count < Capacity)
             {
                 size_t Index = (Front + Count) % Capacity;
@@ -47,7 +46,7 @@ namespace
             return Count;
         }
 
-        const FString& GetMessage(size_t Index) const
+        const FConsoleMessage& GetMessage(size_t Index) const
         {
             size_t CircleIndex = (Front + Index) % Capacity;
             return Messages[CircleIndex];
@@ -57,7 +56,7 @@ namespace
         size_t Capacity;
         size_t Front = 0;
         size_t Count = 0;
-        std::vector<FString> Messages;
+        std::vector<FConsoleMessage> Messages;
     };
 
     struct FConsoleState
@@ -93,12 +92,29 @@ namespace
 
         return &State.OutputStorages[Handle.Index];
     }
+
+    FString GetCurrentTimeString()
+    {
+        auto Now = std::chrono::system_clock::now();
+        std::time_t NowTime = std::chrono::system_clock::to_time_t(Now);
+
+        std::tm LocalTime{};
+        localtime_s(&LocalTime, &NowTime);
+
+        std::ostringstream Stream;
+        Stream.imbue(std::locale(""));
+        Stream << std::put_time(&LocalTime, "%H:%M:%S");
+
+        return Stream.str();
+    }
 }
 
 namespace Console
 {
-    void Print(FConsoleOutputHandle Handle, FString Message)
+    void Print(FConsoleOutputHandle Handle, FConsoleMessage Message)
     {
+        Message.Time = GetCurrentTimeString();
+
         FConsoleMessageStorage* Storage = ResolveStorage(Handle);
 
         if (Storage == nullptr)
@@ -109,6 +125,49 @@ namespace Console
         Storage->Push(std::move(Message));
     }
 
+    void AddLog(
+        FConsoleOutputHandle Handle,
+        ELogLevel Level,
+        ELogCategory Category,
+        const char* Format,
+        ...)
+    {
+        va_list Args;
+        va_start(Args, Format);
+
+        va_list ArgsCopy;
+        va_copy(ArgsCopy, Args);
+
+        int Length = vsnprintf(nullptr, 0, Format, ArgsCopy);
+
+        va_end(ArgsCopy);
+
+        if (Length < 0)
+        {
+            va_end(Args);
+            return;
+        }
+
+        FString Text(Length + 1, '\0');
+
+        vsnprintf(
+            Text.data(),
+            Text.size(),
+            Format,
+            Args);
+
+        va_end(Args);
+
+        Text.resize(Length);
+
+        FConsoleMessage Message;
+        Message.Category = Category;
+        Message.Level = Level;
+        Message.Text = std::move(Text);
+
+        Print(Handle, std::move(Message));
+    }
+
     size_t GetMessageCount(FConsoleOutputHandle Handle)
     {
         const FConsoleMessageStorage* Storage = ResolveStorage(Handle);
@@ -116,7 +175,7 @@ namespace Console
         return Storage ? Storage->GetMessageCount() : 0;
     }
 
-    const FString& GetMessageAt(
+    const FConsoleMessage& GetMessageAt(
         FConsoleOutputHandle Handle,
         size_t Index)
     {
