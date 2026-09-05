@@ -1,7 +1,6 @@
-#pragma once
+﻿#pragma once
 
-#include <string>
-using FString = std::string;
+#include "STL.h"
 
-typedef int int32;
-typedef unsigned int uint32;
+using int32 = int;
+using uint32 = unsigned int;
