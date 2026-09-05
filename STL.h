@@ -1,5 +1,7 @@
 ﻿#pragma once
 
+#include "TEngineAllocator.h"
+
 // 1. C/C++ 표준 수학 라이브러리 
 #include <cmath>
 #include <cstdlib>
@@ -21,11 +23,11 @@
 // ----------------------------------------------------
 
 // 문자열
-using FString = std::string;
+using FString = std::basic_string<char, std::char_traits<char>, TEngineAllocator<char, Memory::EMemoryTag::String>>;
 
 // 동적 배열
 template <typename T>
-using TArray = std::vector<T>;
+using TArray = std::vector<T, TEngineAllocator<T, Memory::EMemoryTag::Container>>;
 
 // 해시 기반 맵/셋 (언리얼의 TMap/TSet은 내부적으로 해시를 사용함)
 template <typename Key, typename Value>

@@ -36,7 +36,7 @@
     <ClInclude Include="FObjectItem.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
-    <ClInclude Include="ObjectSystem.h">
+    <ClInclude Include="UObjectSystem.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
     <ClInclude Include="FGuid.h">
@@ -46,6 +46,15 @@
       <Filter>헤더 파일</Filter>
     </ClInclude>
     <ClInclude Include="Memory.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="TEngineAllocator.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="Common.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="STL.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
   </ItemGroup>
@@ -59,7 +68,7 @@
     <ClCompile Include="FGuid.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
-    <ClCompile Include="ObjectSystem.cpp">
+    <ClCompile Include="UObjectSystem.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
     <ClCompile Include="pch.cpp">
