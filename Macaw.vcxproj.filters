@@ -13,6 +13,18 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="doctest">
+      <UniqueIdentifier>{489fd2de-e431-400e-858f-4d17d61ea8df}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Core">
+      <UniqueIdentifier>{5a64a9e9-f148-4ec5-818b-bc3bdd61f595}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Core\Base">
+      <UniqueIdentifier>{01c6f6cf-443d-4f65-b2dd-e1f38d39e100}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Core\Channel">
+      <UniqueIdentifier>{f06468fe-7796-4c56-ae39-3d3d897eb05b}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="framework.h">
@@ -57,6 +69,24 @@
     <ClInclude Include="STL.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
+    <ClInclude Include="Core\Base\TypeInfo.hpp">
+      <Filter>Core\Base</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Channel\FMessage.h">
+      <Filter>Core\Channel</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Channel\FMessageChannel.h">
+      <Filter>Core\Channel</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Channel\FMessageHandler.h">
+      <Filter>Core\Channel</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Channel\FStateChannel.h">
+      <Filter>Core\Channel</Filter>
+    </ClInclude>
+    <ClInclude Include="Math.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Macaw.cpp">
@@ -76,6 +106,15 @@
     </ClCompile>
     <ClCompile Include="Memory.cpp">
       <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Channel\FMessage.cpp">
+      <Filter>Core\Channel</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Channel\FMessageChannel.cpp">
+      <Filter>Core\Channel</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Channel\FMessageHandler.cpp">
+      <Filter>Core\Channel</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
