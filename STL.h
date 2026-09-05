@@ -1,0 +1,45 @@
+﻿#pragma once
+
+// 1. C/C++ 표준 수학 라이브러리 
+#include <cmath>
+#include <cstdlib>
+
+// 2. STL 컨테이너 및 메모리
+#include <vector>
+#include <string>
+#include <memory>
+#include <unordered_map>
+#include <unordered_set>
+#include <map>
+#include <set>
+#include <functional>
+#include <array>
+#include <algorithm>
+
+// ----------------------------------------------------
+// [ 언리얼 엔진(UE) 스타일 Aliasing ]
+// ----------------------------------------------------
+
+// 문자열
+using FString = std::string;
+
+// 동적 배열
+template <typename T>
+using TArray = std::vector<T>;
+
+// 해시 기반 맵/셋 (언리얼의 TMap/TSet은 내부적으로 해시를 사용함)
+template <typename Key, typename Value>
+using TMap = std::unordered_map<Key, Value>;
+
+template <typename T>
+using TSet = std::unordered_set<T>;
+
+// 스마트 포인터
+template <typename T>
+using TSharedPtr = std::shared_ptr<T>;
+
+template <typename T>
+using TUniquePtr = std::unique_ptr<T>;
+
+template <typename T>
+using TWeakPtr = std::weak_ptr<T>;
