@@ -1,4 +1,7 @@
-﻿#include "pch.h"
+﻿#include "PCH.h"
+#include "FGuid.h"
+
+#include <format>
 
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
@@ -6,7 +9,6 @@
 #include <format>
 #include <string>
 
-#include "FGuid.h"
 
 FGuid FGuid::NewGuid()
 {

@@ -1,4 +1,5 @@
-﻿#include "UObject.h"
+﻿#include "PCH.h"
+#include "UObject.h"
 #include "Memory.h"
 
 UObject::UObject()

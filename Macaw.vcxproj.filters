@@ -42,82 +42,70 @@
     <ClInclude Include="Macaw.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
-    <ClInclude Include="pch.h">
+    <ClInclude Include="Core\Base\FGuid.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
-    <ClInclude Include="Common.h">
+    <ClInclude Include="Core\Base\FObjectHandle.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Base\FObjectItem.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Base\FRecordObjectState.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Base\FUndoTransaction.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Base\IUndoRecord.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Base\ObjectSystem.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Base\UndoSystem.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Base\UObject.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="PCH.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
     <ClInclude Include="STL.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
-    <ClInclude Include="Core\Base\TypeInfo.hpp">
-      <Filter>Core\Base</Filter>
-    </ClInclude>
-    <ClInclude Include="Core\Channel\FMessage.h">
-      <Filter>Core\Channel</Filter>
-    </ClInclude>
-    <ClInclude Include="Core\Channel\FMessageChannel.h">
-      <Filter>Core\Channel</Filter>
-    </ClInclude>
-    <ClInclude Include="Core\Channel\FMessageHandler.h">
-      <Filter>Core\Channel</Filter>
-    </ClInclude>
-    <ClInclude Include="Core\Channel\FStateChannel.h">
-      <Filter>Core\Channel</Filter>
-    </ClInclude>
-    <ClInclude Include="Math.h">
+    <ClInclude Include="Common.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
-    <ClInclude Include="Memory.h">
-      <Filter>Core\Memory</Filter>
-    </ClInclude>
-    <ClInclude Include="UObject.h">
-      <Filter>Core\Base</Filter>
-    </ClInclude>
-    <ClInclude Include="UObjectSystem.h">
-      <Filter>Core\Base</Filter>
-    </ClInclude>
-    <ClInclude Include="FGuid.h">
-      <Filter>Core\Base</Filter>
-    </ClInclude>
-    <ClInclude Include="FObjectHandle.h">
-      <Filter>Core\Base</Filter>
-    </ClInclude>
-    <ClInclude Include="FObjectItem.h">
-      <Filter>Core\Base</Filter>
-    </ClInclude>
-    <ClInclude Include="TEngineAllocator.h">
-      <Filter>Core\Memory</Filter>
+    <ClInclude Include="doctest.h">
+      <Filter>헤더 파일</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Macaw.cpp">
+    <ClCompile Include="Core\Base\FGuid.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
-    <ClCompile Include="pch.cpp">
+    <ClCompile Include="Core\Base\FRecordObjectState.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
-    <ClCompile Include="Core\Channel\FMessage.cpp">
-      <Filter>Core\Channel</Filter>
+    <ClCompile Include="Core\Base\FUndoTransaction.cpp">
+      <Filter>소스 파일</Filter>
     </ClCompile>
-    <ClCompile Include="Core\Channel\FMessageChannel.cpp">
-      <Filter>Core\Channel</Filter>
+    <ClCompile Include="Core\Base\ObjectSystem.cpp">
+      <Filter>소스 파일</Filter>
     </ClCompile>
-    <ClCompile Include="Core\Channel\FMessageHandler.cpp">
-      <Filter>Core\Channel</Filter>
+    <ClCompile Include="Core\Base\UndoSystem.cpp">
+      <Filter>소스 파일</Filter>
     </ClCompile>
-    <ClCompile Include="Memory.cpp">
-      <Filter>Core\Memory</Filter>
+    <ClCompile Include="Core\Base\UObject.cpp">
+      <Filter>소스 파일</Filter>
     </ClCompile>
-    <ClCompile Include="UObject.cpp">
-      <Filter>Core\Base</Filter>
+    <ClCompile Include="PCH.cpp">
+      <Filter>소스 파일</Filter>
     </ClCompile>
-    <ClCompile Include="UObjectSystem.cpp">
-      <Filter>Core\Base</Filter>
-    </ClCompile>
-    <ClCompile Include="FGuid.cpp">
-      <Filter>Core\Base</Filter>
+    <ClCompile Include="Tests\TestUndo.cpp">
+      <Filter>소스 파일</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

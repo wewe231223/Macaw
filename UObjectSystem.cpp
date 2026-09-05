@@ -1,6 +1,5 @@
-﻿#include "UObjectSystem.h"
-
-#include <vector>
+﻿#include "PCH.h"
+#include "ObjectSystem.h"
 
 #include "FGuid.h"
 #include "FObjectItem.h"

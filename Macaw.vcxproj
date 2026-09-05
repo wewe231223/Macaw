@@ -77,9 +77,13 @@
       <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
+      <AdditionalIncludeDirectories>$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>PCH.h</PrecompiledHeaderFile>
+      <ShowIncludes>false</ShowIncludes>
     </ClCompile>
     <Link>
-      <SubSystem>Windows</SubSystem>
+      <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <Manifest>
@@ -95,9 +99,13 @@
       <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
+      <AdditionalIncludeDirectories>$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>PCH.h</PrecompiledHeaderFile>
+      <ShowIncludes>false</ShowIncludes>
     </ClCompile>
     <Link>
-      <SubSystem>Windows</SubSystem>
+      <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <Manifest>
@@ -111,9 +119,13 @@
       <PreprocessorDefinitions>_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
+      <AdditionalIncludeDirectories>$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>PCH.h</PrecompiledHeaderFile>
+      <ShowIncludes>false</ShowIncludes>
     </ClCompile>
     <Link>
-      <SubSystem>Windows</SubSystem>
+      <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <Manifest>
@@ -129,9 +141,13 @@
       <PreprocessorDefinitions>NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>PCH.h</PrecompiledHeaderFile>
+      <AdditionalIncludeDirectories>$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ShowIncludes>false</ShowIncludes>
     </ClCompile>
     <Link>
-      <SubSystem>Windows</SubSystem>
+      <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <Manifest>
@@ -140,36 +156,37 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="Common.h" />
-    <ClInclude Include="FGuid.h" />
-    <ClInclude Include="FObjectHandle.h" />
-    <ClInclude Include="FObjectItem.h" />
-    <ClInclude Include="Memory.h" />
-    <ClInclude Include="STL.h" />
-    <ClInclude Include="TEngineAllocator.h" />
-    <ClInclude Include="UObjectSystem.h" />
-    <ClInclude Include="pch.h" />
-    <ClInclude Include="Core\Base\TypeInfo.hpp" />
-    <ClInclude Include="Core\Channel\FMessage.h" />
-    <ClInclude Include="Core\Channel\FMessageChannel.h" />
-    <ClInclude Include="Core\Channel\FMessageHandler.h" />
-    <ClInclude Include="Core\Channel\FStateChannel.h" />
+    <ClInclude Include="Core\Base\FGuid.h" />
+    <ClInclude Include="Core\Base\FObjectHandle.h" />
+    <ClInclude Include="Core\Base\FObjectItem.h" />
+    <ClInclude Include="Core\Base\FRecordObjectState.h" />
+    <ClInclude Include="Core\Base\FUndoTransaction.h" />
+    <ClInclude Include="Core\Base\IUndoRecord.h" />
+    <ClInclude Include="Core\Base\ObjectSystem.h" />
+    <ClInclude Include="Core\Base\UndoSystem.h" />
+    <ClInclude Include="Core\Base\UObject.h" />
+    <ClInclude Include="doctest.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="Macaw.h" />
-    <ClInclude Include="Math.h" />
+    <ClInclude Include="PCH.h" />
     <ClInclude Include="Resource.h" />
+    <ClInclude Include="STL.h" />
     <ClInclude Include="targetver.h" />
-    <ClInclude Include="UObject.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="FGuid.cpp" />
-    <ClCompile Include="Core\Channel\FMessage.cpp" />
-    <ClCompile Include="Core\Channel\FMessageChannel.cpp" />
-    <ClCompile Include="Core\Channel\FMessageHandler.cpp" />
-    <ClCompile Include="Macaw.cpp" />
-    <ClCompile Include="Memory.cpp" />
-    <ClCompile Include="UObjectSystem.cpp" />
-    <ClCompile Include="pch.cpp" />
-    <ClCompile Include="UObject.cpp" />
+    <ClCompile Include="Core\Base\FGuid.cpp" />
+    <ClCompile Include="Core\Base\FRecordObjectState.cpp" />
+    <ClCompile Include="Core\Base\FUndoTransaction.cpp" />
+    <ClCompile Include="Core\Base\ObjectSystem.cpp" />
+    <ClCompile Include="Core\Base\UndoSystem.cpp" />
+    <ClCompile Include="Core\Base\UObject.cpp" />
+    <ClCompile Include="PCH.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="Tests\TestUndo.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Macaw.rc" />

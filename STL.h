@@ -6,7 +6,7 @@
 #include <cmath>
 #include <cstdlib>
 
-// 2. STL 컨테이너 및 메모리
+// STL 컨테이너 및 메모리
 #include <vector>
 #include <string>
 #include <memory>
