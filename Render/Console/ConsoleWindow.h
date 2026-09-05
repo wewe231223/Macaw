@@ -1,6 +1,6 @@
 #pragma once
 
 #include "pch.h"
-#include "Console.h"
+#include "../../Core/Console/Console.h"
 
 void DrawConsole(FConsoleOutputHandle Handle);

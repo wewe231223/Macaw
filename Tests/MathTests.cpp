@@ -3,7 +3,7 @@
 #include <concepts>
 #include <numbers>
 
-#include "../Math.h"
+#include "../FMath.h"
 
 static_assert(std::same_as<FVector2D, DirectX::SimpleMath::Vector2>);
 static_assert(std::same_as<FVector3, DirectX::SimpleMath::Vector3>);

@@ -1,4 +1,5 @@
-﻿#include "FMessageHandler.h"
+﻿#include "PCH.h"
+#include "FMessageHandler.h"
 
 #include "../../ErrorHandler.h"
 
@@ -21,3 +22,6 @@ void FMessageHandler::Invoke(const FMessage& Message) {
 
     mFunction(Message);
 }
+
+
+

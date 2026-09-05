@@ -1,4 +1,6 @@
-﻿#include "Renderer.h"
+﻿#include "PCH.h"
+
+#include "Renderer.h"
 #include "../ErrorHandler.h"
 
 #include "Pipeline/Pipeline.h"

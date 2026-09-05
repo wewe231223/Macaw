@@ -18,6 +18,9 @@ public:
 
 	void BeginFrame();
 	void EndFrame();
+
+	ID3D11Device* GetDevice() const { return Device.Get(); }
+	ID3D11DeviceContext* GetDeviceContext() const { return DeviceContext.Get(); }
 private:
 	void CreateDeviceAndSwapChain(HWND WindowHandle);
 	

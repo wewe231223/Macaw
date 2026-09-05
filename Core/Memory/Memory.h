@@ -10,6 +10,7 @@ namespace Memory
 		UObject,
 		Container,
 		String,
+		Message,
 		Count
 	};
 

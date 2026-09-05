@@ -1,17 +1,10 @@
-﻿#include "Pipeline.h"
+﻿#include "PCH.h"
+#include "Pipeline.h"
 
 #include "../../ErrorHandler.h"
 
 #include <memory>
 
-#define _SILENCE_CXX17_ITERATOR_BASE_CLASS_DEPRECATION_WARNING
-#ifdef max 
-#undef max
-#endif 
-
-#ifdef min
-#undef min
-#endif 
 
 bool Pipeline::Initialize(ID3D11Device* Device, const FPipelineDescription& Description) {
     if (Device == nullptr) {

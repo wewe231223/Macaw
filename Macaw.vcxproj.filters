@@ -1,20 +1,9 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <Filter Include="소스 파일">
-      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
-      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
-    </Filter>
-    <Filter Include="헤더 파일">
-      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
-      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
-    </Filter>
     <Filter Include="리소스 파일">
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
-    </Filter>
-    <Filter Include="doctest">
-      <UniqueIdentifier>{489fd2de-e431-400e-858f-4d17d61ea8df}</UniqueIdentifier>
     </Filter>
     <Filter Include="Core">
       <UniqueIdentifier>{5a64a9e9-f148-4ec5-818b-bc3bdd61f595}</UniqueIdentifier>
@@ -28,127 +17,24 @@
     <Filter Include="Core\Memory">
       <UniqueIdentifier>{7fc417b4-ff8b-45fe-96c1-d1ad76589ea9}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Render\Pipeline">
-      <UniqueIdentifier>{6e666080-651f-4e86-95b1-1e77c8137aef}</UniqueIdentifier>
+    <Filter Include="Render">
+      <UniqueIdentifier>{6ccf005e-f9b0-4b25-95a2-6e7e27f596ef}</UniqueIdentifier>
     </Filter>
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="framework.h">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
-    <ClInclude Include="targetver.h">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
-    <ClInclude Include="Resource.h">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
-    <ClInclude Include="Macaw.h">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
-    <ClInclude Include="Core\Base\FGuid.h">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
-    <ClInclude Include="Core\Base\FObjectHandle.h">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
-    <ClInclude Include="Core\Base\FObjectItem.h">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
-    <ClInclude Include="Core\Base\FRecordObjectState.h">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
-    <ClInclude Include="Core\Base\FUndoTransaction.h">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
-    <ClInclude Include="Core\Base\IUndoRecord.h">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
-    <ClInclude Include="UObjectSystem.h">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
-    <ClInclude Include="Core\Base\UndoSystem.h">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
-    <ClInclude Include="Core\Base\UObject.h">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
-    <ClInclude Include="pch.h">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
-    <ClInclude Include="STL.h">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
-    <ClInclude Include="Renderer\URenderer.h">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
-    <ClInclude Include="Tests\doctest.h">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
-    <ClInclude Include="Render\Pipeline\Defines.h">
-      <Filter>Render\Pipeline</Filter>
-    </ClInclude>
-    <ClInclude Include="Render\Pipeline\Pipeline.h">
-      <Filter>Render\Pipeline</Filter>
-    </ClInclude>
-    <ClInclude Include="Render\Pipeline\Shader.h">
-      <Filter>Render\Pipeline</Filter>
-    </ClInclude>
-    <ClInclude Include="Render\Pipeline\Wrapper.h">
-      <Filter>Render\Pipeline</Filter>
-    </ClInclude>
-    <ClInclude Include="ErrorHandler.h">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
-    <ClInclude Include="Render\Renderer.h">
-      <Filter>Render</Filter>
-    </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="Core\Base\FGuid.cpp">
-      <Filter>소스 파일</Filter>
-    </ClCompile>
-    <ClCompile Include="Core\Base\FRecordObjectState.cpp">
-      <Filter>소스 파일</Filter>
-    </ClCompile>
-    <ClCompile Include="Core\Base\FUndoTransaction.cpp">
-      <Filter>소스 파일</Filter>
-    </ClCompile>
-    <ClCompile Include="UObjectSystem.cpp">
-      <Filter>소스 파일</Filter>
-    </ClCompile>
-    <ClCompile Include="Core\Base\UndoSystem.cpp">
-      <Filter>소스 파일</Filter>
-    </ClCompile>
-    <ClCompile Include="Core\Base\UObject.cpp">
-      <Filter>소스 파일</Filter>
-    </ClCompile>
-    <ClCompile Include="pch.cpp">
-      <Filter>소스 파일</Filter>
-    </ClCompile>
-    <ClCompile Include="Tests\TestUndo.cpp">
-      <Filter>소스 파일</Filter>
-    </ClCompile>
-    <ClCompile Include="Render\Pipeline\Pipeline.cpp">
-      <Filter>Render\Pipeline</Filter>
-    </ClCompile>
-    <ClCompile Include="Render\Pipeline\Shader.cpp">
-      <Filter>Render\Pipeline</Filter>
-    </ClCompile>
-    <ClCompile Include="ErrorHandler.cpp">
-      <Filter>소스 파일</Filter>
-    </ClCompile>
-    <ClCompile Include="Render\Renderer.cpp">
-      <Filter>Render</Filter>
-    </ClCompile>
-    <ClCompile Include="Renderer\URenderer.cpp">
-      <Filter>소스 파일</Filter>
-    </ClCompile>
-    <ClCompile Include="Core\Console\Console.cpp">
-      <Filter>소스 파일</Filter>
-    </ClCompile>
-    <ClCompile Include="Renderer\ConsoleWindow.cpp">
-      <Filter>소스 파일</Filter>
-    </ClCompile>
+    <Filter Include="Render\Pipeline">
+      <UniqueIdentifier>{c9860bf1-6bc6-4530-aeb6-6657f10bce02}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Render\Console">
+      <UniqueIdentifier>{ba43d83e-4853-4559-96aa-24a0497feae1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Core\Base\UObject">
+      <UniqueIdentifier>{3ff75d73-22b7-4fe1-a4bc-482401744d7e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Core\Console">
+      <UniqueIdentifier>{04bc1b20-3b40-432b-873c-e254b260a303}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Imgui">
+      <UniqueIdentifier>{c60b77dd-82f0-4925-acf5-d3375809e190}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Macaw.rc">
@@ -162,5 +48,182 @@
     <Image Include="Macaw.ico">
       <Filter>리소스 파일</Filter>
     </Image>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Core\Base\FGuid.cpp">
+      <Filter>Core\Base</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Base\FRecordObjectState.cpp">
+      <Filter>Core\Base</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Base\FUndoTransaction.cpp">
+      <Filter>Core\Base</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Base\UndoSystem.cpp">
+      <Filter>Core\Base</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Channel\FMessage.cpp">
+      <Filter>Core\Channel</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Channel\FMessageChannel.cpp">
+      <Filter>Core\Channel</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Channel\FMessageHandler.cpp">
+      <Filter>Core\Channel</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Memory\Memory.cpp">
+      <Filter>Core\Memory</Filter>
+    </ClCompile>
+    <ClCompile Include="Render\Pipeline\Pipeline.cpp">
+      <Filter>Render\Pipeline</Filter>
+    </ClCompile>
+    <ClCompile Include="Render\Pipeline\Shader.cpp">
+      <Filter>Render\Pipeline</Filter>
+    </ClCompile>
+    <ClCompile Include="Render\Console\ConsoleWindow.cpp">
+      <Filter>Render\Console</Filter>
+    </ClCompile>
+    <ClCompile Include="Render\Renderer.cpp">
+      <Filter>Render</Filter>
+    </ClCompile>
+    <ClCompile Include="ErrorHandler.cpp" />
+    <ClCompile Include="Core\Base\UObject.cpp">
+      <Filter>Core\Base\UObject</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Base\UObjectSystem.cpp">
+      <Filter>Core\Base\UObject</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Console\Console.cpp">
+      <Filter>Core\Console</Filter>
+    </ClCompile>
+    <ClCompile Include="PCH.cpp" />
+    <ClCompile Include="ImGui\imgui.cpp">
+      <Filter>Imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="ImGui\imgui_demo.cpp">
+      <Filter>Imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="ImGui\imgui_draw.cpp">
+      <Filter>Imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="ImGui\imgui_impl_dx11.cpp">
+      <Filter>Imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="ImGui\imgui_impl_win32.cpp">
+      <Filter>Imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="ImGui\imgui_tables.cpp">
+      <Filter>Imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="ImGui\imgui_widgets.cpp">
+      <Filter>Imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="ImGui\stb_image.cpp">
+      <Filter>Imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="Macaw.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Core\Base\FGuid.h">
+      <Filter>Core\Base</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Base\FObjectHandle.h">
+      <Filter>Core\Base</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Base\FObjectItem.h">
+      <Filter>Core\Base</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Base\FRecordObjectState.h">
+      <Filter>Core\Base</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Base\FUndoTransaction.h">
+      <Filter>Core\Base</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Base\IUndoRecord.h">
+      <Filter>Core\Base</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Base\TypeInfo.hpp">
+      <Filter>Core\Base</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Base\UndoSystem.h">
+      <Filter>Core\Base</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Channel\FMessage.h">
+      <Filter>Core\Channel</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Channel\FMessageChannel.h">
+      <Filter>Core\Channel</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Channel\FMessageHandler.h">
+      <Filter>Core\Channel</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Channel\FStateChannel.h">
+      <Filter>Core\Channel</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Memory\TEngineAllocator.h">
+      <Filter>Core\Memory</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Memory\Memory.h">
+      <Filter>Core\Memory</Filter>
+    </ClInclude>
+    <ClInclude Include="Render\Pipeline\Defines.h">
+      <Filter>Render\Pipeline</Filter>
+    </ClInclude>
+    <ClInclude Include="Render\Pipeline\Pipeline.h">
+      <Filter>Render\Pipeline</Filter>
+    </ClInclude>
+    <ClInclude Include="Render\Pipeline\Shader.h">
+      <Filter>Render\Pipeline</Filter>
+    </ClInclude>
+    <ClInclude Include="Render\Pipeline\Wrapper.h">
+      <Filter>Render\Pipeline</Filter>
+    </ClInclude>
+    <ClInclude Include="Render\Console\ConsoleWindow.h">
+      <Filter>Render\Console</Filter>
+    </ClInclude>
+    <ClInclude Include="Render\Renderer.h">
+      <Filter>Render</Filter>
+    </ClInclude>
+    <ClInclude Include="Common.h" />
+    <ClInclude Include="ErrorHandler.h" />
+    <ClInclude Include="FMath.h" />
+    <ClInclude Include="PCH.h" />
+    <ClInclude Include="STL.h" />
+    <ClInclude Include="Core\Base\UObject.h">
+      <Filter>Core\Base\UObject</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Base\UObjectSystem.h">
+      <Filter>Core\Base\UObject</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Console\Console.h">
+      <Filter>Core\Console</Filter>
+    </ClInclude>
+    <ClInclude Include="ImGui\imconfig.h">
+      <Filter>Imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="ImGui\imgui.h">
+      <Filter>Imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="ImGui\imgui_impl_dx11.h">
+      <Filter>Imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="ImGui\imgui_impl_win32.h">
+      <Filter>Imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="ImGui\imgui_internal.h">
+      <Filter>Imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="ImGui\imstb_rectpack.h">
+      <Filter>Imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="ImGui\imstb_textedit.h">
+      <Filter>Imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="ImGui\imstb_truetype.h">
+      <Filter>Imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="ImGui\stb_image.h">
+      <Filter>Imgui</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

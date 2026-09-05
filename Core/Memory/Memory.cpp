@@ -44,7 +44,7 @@ void* Memory::Allocate(std::size_t Size, std::size_t Alignment, EMemoryTag Tag)
 
 		const std::size_t PayloadSize = Size == 0 ? 1 : Size; // 0바이트 할당을 방지
 
-		const std::size_t MaxSize = (std::numeric_limits<std::size_t>::max)();
+		const std::size_t MaxSize = std::numeric_limits<std::size_t>::max();
 
 		//header 크기와 정렬 여유 공간 계산 시 오버플로 검사
 		if (EffectiveAlignment - 1 > MaxSize - sizeof(FAllocationHeader))

@@ -8,22 +8,23 @@
 #include <utility>
 
 #include "../Base/TypeInfo.hpp"
+#include "../Memory/Memory.h"
 // #include "Memory/Memory.h" -- until heap 
 
 // Memory Placeholders
-namespace Memory {
-    inline void* Allocate(std::size_t Size, std::size_t Alignment, int /*EMemoryTag*/) noexcept {
-		return ::operator new(Size, std::align_val_t(Alignment));
-	}
-
-	inline void Free(void* Ptr, std::size_t Alignment) noexcept {
-		::operator delete(Ptr, std::align_val_t(Alignment));
-	}
-
-	enum EMemoryTag {
-		Message
-	};
-}
+//namespace Memory {
+//    inline void* Allocate(std::size_t Size, std::size_t Alignment, int /*EMemoryTag*/) noexcept {
+//		return ::operator new(Size, std::align_val_t(Alignment));
+//	}
+//
+//	inline void Free(void* Ptr, std::size_t Alignment) noexcept {
+//		::operator delete(Ptr, std::align_val_t(Alignment));
+//	}
+//
+//	enum EMemoryTag {
+//		Message
+//	};
+//}
 
 template<typename T>
 concept CMessageType = requires {
@@ -116,7 +117,7 @@ private:
     static void DestroyHeap(FMessage& Message) noexcept {
         T* Value = static_cast<T*>(Message.mData);
         std::destroy_at(Value);
-        Memory::Free(Value, alignof(T));
+        Memory::Free(Value);
     }
 
     template<typename T>

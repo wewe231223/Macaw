@@ -1,4 +1,5 @@
-#include "pch.h"
+﻿#include "PCH.h"
+
 #include "Console.h"
 
 #include <chrono>
@@ -7,6 +8,7 @@
 #include <sstream>
 #include <locale>
 #include <mutex>
+#include <cstdarg>
 
 namespace
 {
@@ -79,9 +81,9 @@ namespace
         size_t Capacity;
         size_t Front = 0;
         size_t Count = 0;
-        std::vector<FConsoleMessage> Messages;
+        TArray<FConsoleMessage> Messages;
 
-        std::vector<FConsoleMessage> PendingBuffers[2];
+        TArray<FConsoleMessage> PendingBuffers[2];
 
         size_t WriteBufferIndex = 0;
         size_t ReadBufferIndex = 1;
@@ -134,7 +136,7 @@ namespace
         Stream.imbue(std::locale(""));
         Stream << std::put_time(&LocalTime, "%H:%M:%S");
 
-        return Stream.str();
+        return FString{ Stream.str() };
     }
 }
 

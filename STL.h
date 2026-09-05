@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-#include "TEngineAllocator.h"
+#include "Core/Memory/TEngineAllocator.h"
 
 // 1. C/C++ 표준 수학 라이브러리 
 #include <cmath>

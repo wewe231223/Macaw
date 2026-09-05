@@ -1,8 +1,7 @@
 ﻿// Macaw.cpp : 애플리케이션에 대한 진입점을 정의합니다.
 //
 #include "PCH.h"
-
-#include "pch.h"  
+ 
 #include "framework.h"
 #include "Macaw.h"
 
@@ -16,9 +15,9 @@
 #include "ImGui/imgui_impl_dx11.h"
 #include "ImGui/imgui_impl_win32.h"
   
-#include "URenderer.h"
-#include "Console.h"
-#include "ConsoleWindow.h"
+#include "Render/Renderer.h"
+#include "Core/Console/Console.h"
+#include "Render/Console/ConsoleWindow.h"
 
 #define MAX_LOADSTRING 100
 
@@ -68,29 +67,50 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
     MSG msg;
 
+	Console::AddLog(Console::STDOutHandle, ELogLevel::Log, ELogCategory::Etc, "Macaw Engine Initialized.");
+
 	FRenderer Renderer;
 	Renderer.Create(gHWND, 800, 600);
 
-   
-    // 기본 메시지 루프입니다:
-    while (GetMessage(&msg, nullptr, 0, 0))
-    {
-        if (!TranslateAccelerator(msg.hwnd, hAccelTable, &msg))
-        {
-            TranslateMessage(&msg);
-            DispatchMessage(&msg);
-        }
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGui_ImplWin32_Init((void*)hWnd);
+    ImGui_ImplDX11_Init(Renderer.GetDevice(), Renderer.GetDeviceContext());
 
-        Renderer.BeginFrame();
-        Renderer.EndFrame(); 
+
+    while (true) {
+        if (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE)) {
+            if (msg.message == WM_QUIT) {
+                break;
+            }
+            if (!TranslateAccelerator(msg.hwnd, hAccelTable, &msg)) {
+                TranslateMessage(&msg);
+                DispatchMessage(&msg);
+            }
+        }
+        else {
+            Renderer.BeginFrame();
+
+
+            ImGui_ImplDX11_NewFrame();
+            ImGui_ImplWin32_NewFrame();
+            ImGui::NewFrame();
+
+            DrawConsole(Console::STDOutHandle);
+
+            ImGui::Render();
+            ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
+
+            Renderer.EndFrame();
+        }
     }
+   
 
     // ImGui 소멸
     ImGui_ImplDX11_Shutdown();
     ImGui_ImplWin32_Shutdown();
     ImGui::DestroyContext();
 
-    Renderer.Release();
 
     return (int) msg.wParam;
 }

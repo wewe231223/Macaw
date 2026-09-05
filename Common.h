@@ -1,7 +1,7 @@
 ﻿#pragma once
 
 #include "STL.h"
-//#include "Math.h"
+#include "Math.h"
 
 // -----------------------------------------------------------------
 // 1. 고정 크기 정수형 타입 (Fixed-Width Integer Types)
