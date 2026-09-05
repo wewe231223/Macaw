@@ -15,6 +15,7 @@
   
 #include "URenderer.h"
 #include "Console.h"
+#include "ConsoleWindow.h"
 
 #define MAX_LOADSTRING 100
 
@@ -71,7 +72,19 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     ImGui_ImplWin32_Init((void*)hWnd);
     ImGui_ImplDX11_Init(Renderer.Device, Renderer.DeviceContext);
 
-    Console::Print(Console::STDOutHandle, "Hello Console");
+    Console::AddLog(
+        Console::STDOutHandle,
+        ELogLevel::Log,
+        ELogCategory::Core,
+        "Engine Started");
+
+    Console::AddLog(
+        Console::STDErrorHandle,
+        ELogLevel::Error,
+        ELogCategory::Render,
+        "Object Count: %d, FPS: %.1f",
+        128,
+        59.7f);
 
     // 기본 메시지 루프입니다:
     while (GetMessage(&msg, nullptr, 0, 0))
@@ -89,6 +102,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
         ImGui::NewFrame();
 
         DrawConsole(Console::STDOutHandle);
+        DrawConsole(Console::STDErrorHandle);
 
         ImGui::Render();
         ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
@@ -235,17 +249,4 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
     return (INT_PTR)FALSE;
 }
 
-void DrawConsole(FConsoleOutputHandle Handle)
-{
-    ImGui::Begin("Console");
-    const size_t Count = Console::GetMessageCount(Handle);
 
-    for (size_t Index = 0; Index < Count; ++Index)
-    {
-        const FString& Message = Console::GetMessageAt(Handle, Index);
-     
-        ImGui::TextUnformatted(Message.c_str());
-    }
-
-    ImGui::End();
-}
