@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include <cstdint>
 #include "FObjectHandle.h"
@@ -6,7 +6,7 @@
 class UObject;
 struct FGuid;
 
-namespace ObjectSystem
+namespace UObjectSystem
 {
 	FObjectHandle Register(UObject* Object);
 	
