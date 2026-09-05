@@ -13,14 +13,23 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
-    <Filter Include="Channel">
-      <UniqueIdentifier>{49b0f5a3-57e9-4d34-98de-c6159cdc1a70}</UniqueIdentifier>
+    <Filter Include="Core">
+      <UniqueIdentifier>{5a64a9e9-f148-4ec5-818b-bc3bdd61f595}</UniqueIdentifier>
     </Filter>
-    <Filter Include="RTTI">
-      <UniqueIdentifier>{80044c77-15b5-4a73-be44-cca8aa7a35f0}</UniqueIdentifier>
+    <Filter Include="Render">
+      <UniqueIdentifier>{a31239c7-652b-462f-b7c7-917d7a19bb24}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Math">
-      <UniqueIdentifier>{0427a9d1-7682-4bdf-8957-0620561cfc4f}</UniqueIdentifier>
+    <Filter Include="Core\Console">
+      <UniqueIdentifier>{f689a439-51ce-4733-90d7-3e8225fdce13}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Core\Base">
+      <UniqueIdentifier>{01c6f6cf-443d-4f65-b2dd-e1f38d39e100}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Core\Memory">
+      <UniqueIdentifier>{c07235ac-286f-48a7-b72d-9ce649daf0f8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Core\Channel">
+      <UniqueIdentifier>{f06468fe-7796-4c56-ae39-3d3d897eb05b}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -36,43 +45,37 @@
     <ClInclude Include="Macaw.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
-    <ClInclude Include="RTTI\TypeInfo.hpp">
-      <Filter>RTTI</Filter>
+    <ClInclude Include="Core\Base\TypeInfo.hpp">
+      <Filter>Core\Base</Filter>
     </ClInclude>
-    <ClInclude Include="Channel\FMessageChannel.h">
-      <Filter>Channel</Filter>
+    <ClInclude Include="Core\Channel\FMessage.h">
+      <Filter>Core\Channel</Filter>
     </ClInclude>
-    <ClInclude Include="Channel\FStateChannel.h">
-      <Filter>Channel</Filter>
+    <ClInclude Include="Core\Channel\FMessageChannel.h">
+      <Filter>Core\Channel</Filter>
     </ClInclude>
-    <ClInclude Include="Channel\FMessage.h">
-      <Filter>Channel</Filter>
+    <ClInclude Include="Core\Channel\FMessageHandler.h">
+      <Filter>Core\Channel</Filter>
     </ClInclude>
-    <ClInclude Include="Channel\FMessageHandler.h">
-      <Filter>Channel</Filter>
+    <ClInclude Include="Core\Channel\FStateChannel.h">
+      <Filter>Core\Channel</Filter>
     </ClInclude>
-    <ClInclude Include="Math\SimpleMath.h">
-      <Filter>Math</Filter>
-    </ClInclude>
-    <ClInclude Include="Math\Math.h">
-      <Filter>Math</Filter>
+    <ClInclude Include="Math.h">
+      <Filter>헤더 파일</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Macaw.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
-    <ClCompile Include="Channel\FMessageChannel.cpp">
-      <Filter>Channel</Filter>
+    <ClCompile Include="Core\Channel\FMessage.cpp">
+      <Filter>Core\Channel</Filter>
     </ClCompile>
-    <ClCompile Include="Channel\FMessage.cpp">
-      <Filter>Channel</Filter>
+    <ClCompile Include="Core\Channel\FMessageChannel.cpp">
+      <Filter>Core\Channel</Filter>
     </ClCompile>
-    <ClCompile Include="Channel\FMessageHandler.cpp">
-      <Filter>Channel</Filter>
-    </ClCompile>
-    <ClCompile Include="Math\SimpleMath.cpp">
-      <Filter>Math</Filter>
+    <ClCompile Include="Core\Channel\FMessageHandler.cpp">
+      <Filter>Core\Channel</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -87,10 +90,5 @@
     <Image Include="Macaw.ico">
       <Filter>리소스 파일</Filter>
     </Image>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Math\SimpleMath.inl">
-      <Filter>Math</Filter>
-    </None>
   </ItemGroup>
 </Project>

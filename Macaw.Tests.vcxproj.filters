@@ -7,6 +7,9 @@
     <Filter Include="Channel">
       <UniqueIdentifier>{49b0f5a3-57e9-4d34-98de-c6159cdc1a70}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Math">
+      <UniqueIdentifier>{eeea2bea-9094-48a8-8131-909e830c458f}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Tests\DoctestMain.cpp">
@@ -18,13 +21,19 @@
     <ClCompile Include="Tests\FStateChannelTests.cpp">
       <Filter>Tests</Filter>
     </ClCompile>
-    <ClCompile Include="Channel\FMessage.cpp">
+    <ClCompile Include="Tests\MathTests.cpp">
+      <Filter>Tests</Filter>
+    </ClCompile>
+    <ClCompile Include="SimpleMath\SimpleMath.cpp">
+      <Filter>Math</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Channel\FMessage.cpp">
       <Filter>Channel</Filter>
     </ClCompile>
-    <ClCompile Include="Channel\FMessageChannel.cpp">
+    <ClCompile Include="Core\Channel\FMessageChannel.cpp">
       <Filter>Channel</Filter>
     </ClCompile>
-    <ClCompile Include="Channel\FMessageHandler.cpp">
+    <ClCompile Include="Core\Channel\FMessageHandler.cpp">
       <Filter>Channel</Filter>
     </ClCompile>
   </ItemGroup>

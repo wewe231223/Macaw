@@ -81,12 +81,14 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="Channel\FMessage.cpp" />
-    <ClCompile Include="Channel\FMessageChannel.cpp" />
-    <ClCompile Include="Channel\FMessageHandler.cpp" />
+    <ClCompile Include="Core\Channel\FMessage.cpp" />
+    <ClCompile Include="Core\Channel\FMessageChannel.cpp" />
+    <ClCompile Include="Core\Channel\FMessageHandler.cpp" />
+    <ClCompile Include="SimpleMath\SimpleMath.cpp" />
     <ClCompile Include="Tests\DoctestMain.cpp" />
     <ClCompile Include="Tests\FMessageChannelTests.cpp" />
     <ClCompile Include="Tests\FStateChannelTests.cpp" />
+    <ClCompile Include="Tests\MathTests.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets" />

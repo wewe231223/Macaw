@@ -3,7 +3,7 @@
 #include <memory>
 #include <string>
 
-#include "../Channel/FStateChannel.h"
+#include "../Core/Channel/FStateChannel.h"
 
 TEST_SUITE("TStateChannel") {
     TEST_CASE("a default channel has no value and no unread change") {

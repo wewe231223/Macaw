@@ -139,24 +139,22 @@
     </Manifest>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="Channel\FMessageChannel.h" />
-    <ClInclude Include="Channel\FStateChannel.h" />
-    <ClInclude Include="Channel\FMessage.h" />
-    <ClInclude Include="Channel\FMessageHandler.h" />
+    <ClInclude Include="Core\Base\TypeInfo.hpp" />
+    <ClInclude Include="Core\Channel\FMessage.h" />
+    <ClInclude Include="Core\Channel\FMessageChannel.h" />
+    <ClInclude Include="Core\Channel\FMessageHandler.h" />
+    <ClInclude Include="Core\Channel\FStateChannel.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="Macaw.h" />
-    <ClInclude Include="Math\Math.h" />
-    <ClInclude Include="Math\SimpleMath.h" />
+    <ClInclude Include="Math.h" />
     <ClInclude Include="Resource.h" />
-    <ClInclude Include="RTTI\TypeInfo.hpp" />
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Channel\FMessageChannel.cpp" />
-    <ClCompile Include="Channel\FMessage.cpp" />
-    <ClCompile Include="Channel\FMessageHandler.cpp" />
+    <ClCompile Include="Core\Channel\FMessage.cpp" />
+    <ClCompile Include="Core\Channel\FMessageChannel.cpp" />
+    <ClCompile Include="Core\Channel\FMessageHandler.cpp" />
     <ClCompile Include="Macaw.cpp" />
-    <ClCompile Include="Math\SimpleMath.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Macaw.rc" />
@@ -164,9 +162,6 @@
   <ItemGroup>
     <Image Include="Macaw.ico" />
     <Image Include="small.ico" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Math\SimpleMath.inl" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

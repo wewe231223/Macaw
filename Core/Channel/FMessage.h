@@ -8,7 +8,7 @@
 #include <type_traits>
 #include <utility>
 
-#include "../RTTI/TypeInfo.hpp"
+#include "../Base/TypeInfo.hpp"
 // #include "Memory/Memory.h" -- until heap 
 
 // Memory Placeholders

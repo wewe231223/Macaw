@@ -6,7 +6,8 @@
 #include <utility>
 #include <vector>
 
-#include "../Channel/FMessageChannel.h"
+#include "../Core/Base/TypeInfo.hpp"
+#include "../Core/Channel/FMessageChannel.h"
 
 namespace {
     struct FNumberMessage {
