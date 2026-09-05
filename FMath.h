@@ -18,15 +18,3 @@ using FMatrix = DirectX::SimpleMath::Matrix;
 using FPlane = DirectX::SimpleMath::Plane;
 using FRay = DirectX::SimpleMath::Ray;
 
-namespace FMath
-{
-    inline float DegreesToRadians(float Degrees)
-    {
-        return DirectX::XMConvertToRadians(Degrees);
-    }
-
-    inline float RadiansToDegrees(float Radians)
-    {
-        return DirectX::XMConvertToDegrees(Radians);
-    }
-}

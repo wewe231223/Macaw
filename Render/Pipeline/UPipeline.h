@@ -1,7 +1,5 @@
 ﻿#pragma once
 
-#include "Shader.h"
-
 #include <d3d11.h>
 #include <wrl/client.h>
 
@@ -9,19 +7,22 @@
 #include <string>
 #include <vector>
 
+#include "FShader.h"
+
 #include "Defines.h"
+#include "../../Core/Base/TypeInfo.h"
 #include "Wrapper.h"
 
-class Pipeline {
+class UPipeline : public UObject {
 public:
-    Pipeline() = default;
-    ~Pipeline() = default;
+    UPipeline() = default;
+    ~UPipeline() = default;
 
-    Pipeline(const Pipeline&) = delete;
-    Pipeline& operator=(const Pipeline&) = delete;
+    UPipeline(const UPipeline&) = delete;
+    UPipeline& operator=(const UPipeline&) = delete;
 
-    Pipeline(Pipeline&&) noexcept = default;
-    Pipeline& operator=(Pipeline&&) noexcept = default;
+    UPipeline(UPipeline&&) noexcept = default;
+    UPipeline& operator=(UPipeline&&) noexcept = default;
 
 public:
     bool Initialize(ID3D11Device* Device, const FPipelineDescription& Description);
@@ -34,8 +35,8 @@ private:
     bool LoadPipelineDescription(const std::filesystem::path& Path, FPipelineDescription& OutDescription);
 
 private:
-    Shader VertexShader{};
-    Shader PixelShader{};
+    FShader VertexShader{};
+    FShader PixelShader{};
 
     Microsoft::WRL::ComPtr<ID3D11InputLayout> InputLayout;
     Microsoft::WRL::ComPtr<ID3D11RasterizerState> RasterizerState;

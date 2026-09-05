@@ -1,4 +1,5 @@
 ﻿#pragma once 
+#include <filesystem>
 
 enum class EVertexFormat {
     Float2,
@@ -94,6 +95,22 @@ struct FBlendDescription {
     EBlend SrcBlendAlpha{ EBlend::One };
     EBlend DestBlendAlpha{ EBlend::Zero };
     EBlendOp BlendOpAlpha{ EBlendOp::Add };
+};
+
+enum class EShaderStage {
+    Vertex,
+    Pixel,
+    Geometry,
+    Hull,
+    Domain,
+    Compute
+};
+
+struct FShaderDescription {
+    std::filesystem::path Source;
+    std::string EntryPoint;
+    std::string Profile;
+    EShaderStage Stage = EShaderStage::Vertex;
 };
 
 struct FPipelineDescription {

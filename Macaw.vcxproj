@@ -162,13 +162,20 @@
     <Image Include="small.ico" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Core\Asset\FAssetHandle.cpp" />
+    <ClCompile Include="Core\Asset\FAssetRegistry.cpp" />
+    <ClCompile Include="Core\Asset\UMaterial.cpp" />
+    <ClCompile Include="Core\Asset\UMesh.cpp" />
     <ClCompile Include="Core\Base\FGuid.cpp" />
     <ClCompile Include="Core\Base\FRecordObjectState.cpp" />
+    <ClCompile Include="Core\Base\FRenderProbe.cpp" />
     <ClCompile Include="Core\Base\FTreansform.cpp" />
     <ClCompile Include="Core\Base\FUndoTransaction.cpp" />
+    <ClCompile Include="Core\Base\TypeInfo.cpp" />
     <ClCompile Include="Core\Base\UUndoSystem.cpp" />
     <ClCompile Include="Core\Base\UObject.cpp" />
     <ClCompile Include="Core\Base\UObjectSystem.cpp" />
+    <ClCompile Include="Core\Base\FVertexAttribute.cpp" />
     <ClCompile Include="Core\Channel\FMessage.cpp" />
     <ClCompile Include="Core\Channel\FMessageChannel.cpp" />
     <ClCompile Include="Core\Channel\FMessageHandler.cpp" />
@@ -214,25 +221,29 @@
     <ClCompile Include="Render\Console\ConsoleWindow.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Use</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="Render\Pipeline\Pipeline.cpp" />
-    <ClCompile Include="Render\Pipeline\Shader.cpp" />
+    <ClCompile Include="Render\Pipeline\UPipeline.cpp" />
+    <ClCompile Include="Render\Pipeline\FShader.cpp" />
     <ClCompile Include="Render\Renderer.cpp" />
-    <ClCompile Include="Scene\UCamera.cpp" />
-    <ClCompile Include="Scene\USceneObject.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Common.h" />
+    <ClInclude Include="Core\Asset\FAssetHandle.h" />
+    <ClInclude Include="Core\Asset\FAssetRegistry.h" />
+    <ClInclude Include="Core\Asset\UMaterial.h" />
+    <ClInclude Include="Core\Asset\UMesh.h" />
     <ClInclude Include="Core\Base\FGuid.h" />
     <ClInclude Include="Core\Base\FObjectHandle.h" />
     <ClInclude Include="Core\Base\FObjectItem.h" />
     <ClInclude Include="Core\Base\FRecordObjectState.h" />
+    <ClInclude Include="Core\Base\FRenderProbe.h" />
     <ClInclude Include="Core\Base\FTransform.h" />
     <ClInclude Include="Core\Base\FUndoTransaction.h" />
     <ClInclude Include="Core\Base\IUndoRecord.h" />
-    <ClInclude Include="Core\Base\TypeInfo.hpp" />
+    <ClInclude Include="Core\Base\TypeInfo.h" />
     <ClInclude Include="Core\Base\UUndoSystem.h" />
     <ClInclude Include="Core\Base\UObject.h" />
     <ClInclude Include="Core\Base\UObjectSystem.h" />
+    <ClInclude Include="Core\Base\FVertexAttribute.h" />
     <ClInclude Include="Core\Channel\FMessage.h" />
     <ClInclude Include="Core\Channel\FMessageChannel.h" />
     <ClInclude Include="Core\Channel\FMessageHandler.h" />
@@ -254,11 +265,13 @@
     <ClInclude Include="PCH.h" />
     <ClInclude Include="Render\Console\ConsoleWindow.h" />
     <ClInclude Include="Render\Pipeline\Defines.h" />
-    <ClInclude Include="Render\Pipeline\Pipeline.h" />
-    <ClInclude Include="Render\Pipeline\Shader.h" />
+    <ClInclude Include="Render\Pipeline\UPipeline.h" />
+    <ClInclude Include="Render\Pipeline\FShader.h" />
     <ClInclude Include="Render\Pipeline\Wrapper.h" />
     <ClInclude Include="Render\Renderer.h" />
     <ClInclude Include="Scene\UCamera.h" />
+    <ClInclude Include="Scene\UCube.h" />
+    <ClInclude Include="Scene\URenderableObject.h" />
     <ClInclude Include="Scene\USceneObject.h" />
     <ClInclude Include="STL.h" />
   </ItemGroup>

@@ -1,7 +1,5 @@
 ﻿#pragma once
 
-#include "PCH.h"
-
 struct FGuid
 {
     uint32 A = 0;

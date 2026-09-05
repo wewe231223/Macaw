@@ -1,5 +1,5 @@
 ﻿#include "PCH.h"
-#include "Shader.h"
+#include "FShader.h"
 
 #include "../../ErrorHandler.h"
 
@@ -9,13 +9,13 @@
 
 using Microsoft::WRL::ComPtr;
 
-bool Shader::Initialize(ID3D11Device* Device, const FShaderDescription& Description) {
+bool FShader::Initialize(ID3D11Device* Device, const FShaderDescription& Description) {
     if (Device == nullptr) {
         ErrorHandler::Report("Shader::Initialize", "A valid Direct3D device is required to initialize a shader.", ErrorHandler::EErrorLevel::Error);
         return false;
     }
 
-    Shader::Reset();
+    FShader::Reset();
 
     UINT CompileFlags = D3DCOMPILE_ENABLE_STRICTNESS;
 
@@ -75,14 +75,14 @@ bool Shader::Initialize(ID3D11Device* Device, const FShaderDescription& Descript
 
     if (FAILED(Result)) {
         ErrorHandler::ReportHRESULT(Result, "Shader::Initialize", "Failed to create the Direct3D shader.", ErrorHandler::EErrorLevel::Error);
-        Shader::Reset();
+        FShader::Reset();
         return false;
     }
 
     return true;
 }
 
-void Shader::Reset() {
+void FShader::Reset() {
     ByteCode.clear();
 
     VertexShader.Reset();
