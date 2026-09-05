@@ -78,7 +78,7 @@
     <ClInclude Include="STL.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
-    <ClInclude Include="Common.h">
+    <ClInclude Include="Renderer\URenderer.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
     <ClInclude Include="doctest.h">
@@ -139,6 +139,15 @@
     </ClCompile>
     <ClCompile Include="Render\Renderer.cpp">
       <Filter>Render</Filter>
+    </ClCompile>
+    <ClCompile Include="Renderer\URenderer.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Console\Console.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="Renderer\ConsoleWindow.cpp">
+      <Filter>소스 파일</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
