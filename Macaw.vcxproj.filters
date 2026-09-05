@@ -149,14 +149,20 @@
     <ClCompile Include="Core\Base\FVertexAttribute.cpp">
       <Filter>Core\Base</Filter>
     </ClCompile>
+    <ClCompile Include="Core\Base\FTreansform.cpp">
+      <Filter>Core\Base</Filter>
+    </ClCompile>
     <ClCompile Include="Scene\UCamera.cpp">
+      <Filter>Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="Scene\UWorld.cpp">
       <Filter>Scene</Filter>
     </ClCompile>
     <ClCompile Include="Scene\USceneObject.cpp">
       <Filter>Scene</Filter>
     </ClCompile>
-    <ClCompile Include="Core\Base\FTreansform.cpp">
-      <Filter>Core\Base</Filter>
+    <ClCompile Include="Scene\URenderableObject.cpp">
+      <Filter>Scene</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -292,6 +298,12 @@
       <Filter>Scene</Filter>
     </ClInclude>
     <ClInclude Include="Scene\URenderableObject.h">
+      <Filter>Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="Scene\UWorld.h">
+      <Filter>Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="Scene\USphere.h">
       <Filter>Scene</Filter>
     </ClInclude>
   </ItemGroup>

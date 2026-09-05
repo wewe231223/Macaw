@@ -3,7 +3,7 @@
 #include "UCamera.h"
 
 UCamera::UCamera()
-    : FOV(FMath::DegreesToRadians(60.0f)),
+    : FOV(1.0472),  // degree -> rad 변환 구현
     AspectRatio(16.0f / 9.0f),
     NearPlane(0.1f),
     FarPlane(1000.0f)

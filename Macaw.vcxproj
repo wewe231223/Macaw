@@ -224,6 +224,10 @@
     <ClCompile Include="Render\Pipeline\UPipeline.cpp" />
     <ClCompile Include="Render\Pipeline\FShader.cpp" />
     <ClCompile Include="Render\Renderer.cpp" />
+    <ClCompile Include="Scene\UCamera.cpp" />
+    <ClCompile Include="Scene\URenderableObject.cpp" />
+    <ClCompile Include="Scene\USceneObject.cpp" />
+    <ClCompile Include="Scene\UWorld.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Common.h" />
@@ -273,6 +277,8 @@
     <ClInclude Include="Scene\UCube.h" />
     <ClInclude Include="Scene\URenderableObject.h" />
     <ClInclude Include="Scene\USceneObject.h" />
+    <ClInclude Include="Scene\USphere.h" />
+    <ClInclude Include="Scene\UWorld.h" />
     <ClInclude Include="STL.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

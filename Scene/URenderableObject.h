@@ -1,11 +1,24 @@
 #pragma once
 
-#include "Core/Base/TypeInfo.h"
 #include "USceneObject.h"
+#include "Core/Asset/FAssetHandle.h"
 
 class URenderableObject : public USceneObject
 {
 public:
-	virtual ~URenderableObject() override = default;public:
-	// JG_DECLARE_DERIVED_TYPEINFO(URenderableObject, UObject);
+    URenderableObject() = default;
+    ~URenderableObject() override = default;
+
+    FAssetHandle GetMeshHandle() const;
+    FAssetHandle GetMaterialHandle() const;
+    FAssetHandle GetPipelineHandle() const;
+
+    void SetMeshHandle(FAssetHandle InHandle);
+    void SetMaterialHandle(FAssetHandle InHandle);
+    void SetPipelineHandle(FAssetHandle InHandle);
+
+private:
+    FAssetHandle MeshHandle;
+    FAssetHandle MaterialHandle;
+    FAssetHandle PipelineHandle;
 };

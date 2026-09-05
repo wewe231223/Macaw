@@ -25,9 +25,10 @@
 #include "Core/Asset/UMesh.h"
 
 #include "Scene/UCube.h"
+#include "Scene/USphere.h"
 #include "Scene/UCamera.h"
 #include "Core/Base/FTransform.h"
-#include <iostream>
+#include "Scene/UWorld.h"
 
 #define MAX_LOADSTRING 100
 
@@ -80,18 +81,19 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
 	Console::AddLog(Console::STDOutHandle, ELogLevel::Log, ELogCategory::Etc, "Macaw Engine Initialized.");
 
-    std::vector<std::unique_ptr<UObject>> Objects;
+    // test
+    UWorld World;
+  
 
-    Objects.push_back(std::make_unique<UCube>());
+    World.SpawnObject<UCube>();
+    World.SpawnObject<USphere>();
 
-    for (const auto& Object : Objects)
-    {
-        if (dynamic_cast<UCube*>(Object.get()))
-        {
-            OutputDebugStringA("\n===== UCube FOUND =====\n");
-        }
+    FRenderProbe Probe = World.BuildRenderProbe();
 
-    }
+    std::string DebugText =
+        "Actor Count = " + std::to_string(Probe.ActorProbes.size()) + "\n";
+
+    OutputDebugStringA(DebugText.c_str());
 
 	FRenderer Renderer;
 	Renderer.Create(gHWND, DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT);
