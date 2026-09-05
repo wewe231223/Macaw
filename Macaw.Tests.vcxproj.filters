@@ -10,6 +10,9 @@
     <Filter Include="Math">
       <UniqueIdentifier>{eeea2bea-9094-48a8-8131-909e830c458f}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Memory">
+      <UniqueIdentifier>{3d773fb6-4a7a-4640-a38c-0f32f3d94151}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Tests\DoctestMain.cpp">
@@ -23,6 +26,12 @@
     </ClCompile>
     <ClCompile Include="Tests\MathTests.cpp">
       <Filter>Tests</Filter>
+    </ClCompile>
+    <ClCompile Include="Tests\MemoryTests.cpp">
+      <Filter>Tests</Filter>
+    </ClCompile>
+    <ClCompile Include="Memory.cpp">
+      <Filter>Memory</Filter>
     </ClCompile>
     <ClCompile Include="SimpleMath\SimpleMath.cpp">
       <Filter>Math</Filter>

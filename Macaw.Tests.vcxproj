@@ -86,9 +86,11 @@
     <ClCompile Include="Core\Channel\FMessageHandler.cpp" />
     <ClCompile Include="SimpleMath\SimpleMath.cpp" />
     <ClCompile Include="Tests\DoctestMain.cpp" />
+    <ClCompile Include="Tests\MemoryTests.cpp" />
     <ClCompile Include="Tests\FMessageChannelTests.cpp" />
     <ClCompile Include="Tests\FStateChannelTests.cpp" />
     <ClCompile Include="Tests\MathTests.cpp" />
+    <ClCompile Include="Memory.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets" />
