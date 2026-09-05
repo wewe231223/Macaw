@@ -78,14 +78,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
         ELogCategory::Core,
         "Engine Started");
 
-    Console::AddLog(
-        Console::STDErrorHandle,
-        ELogLevel::Error,
-        ELogCategory::Render,
-        "Object Count: %d, FPS: %.1f",
-        128,
-        59.7f);
-
     // 기본 메시지 루프입니다:
     while (GetMessage(&msg, nullptr, 0, 0))
     {
@@ -102,7 +94,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
         ImGui::NewFrame();
 
         DrawConsole(Console::STDOutHandle);
-        DrawConsole(Console::STDErrorHandle);
 
         ImGui::Render();
         ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());

@@ -6,6 +6,7 @@
 #include <iomanip>
 #include <sstream>
 #include <locale>
+#include <mutex>
 
 namespace
 {
@@ -18,7 +19,7 @@ namespace
             Messages.resize(Capacity);
         }
 
-        void Push(FConsoleMessage Message)
+        void PushHistory(FConsoleMessage Message)
         {
             if (Count < Capacity)
             {
@@ -33,11 +34,9 @@ namespace
             }
         }
 
-        void Clear()
+        void PushPending(FConsoleMessage Message)
         {
-            // Messages.clear();
-            Front = 0;
-            Count = 0;
+            PendingBuffers[WriteBufferIndex].push_back(std::move(Message));
         }
 
         size_t GetMessageCount() const
@@ -52,16 +51,46 @@ namespace
             return Messages[CircleIndex];
         }
 
+        void Clear()
+        {
+            Front = 0;
+            Count = 0;
+        }
+
+        void SwapPendingBuffers()
+        {
+            std::swap(WriteBufferIndex, ReadBufferIndex);
+        }
+
+        void FlushReadBuffer()
+        {
+            // 원본 직접 참조
+            auto& ReadBuffer = PendingBuffers[ReadBufferIndex];
+
+            for (FConsoleMessage& Message : ReadBuffer)
+            {
+                PushHistory(std::move(Message));
+            }
+
+            ReadBuffer.clear();
+        }
+
     private:
         size_t Capacity;
         size_t Front = 0;
         size_t Count = 0;
         std::vector<FConsoleMessage> Messages;
+
+        std::vector<FConsoleMessage> PendingBuffers[2];
+
+        size_t WriteBufferIndex = 0;
+        size_t ReadBufferIndex = 1;
     };
 
     struct FConsoleState
     {
         std::vector<FConsoleMessageStorage> OutputStorages;
+        std::mutex PendingMutex;
 
         FConsoleState()
         {
@@ -122,7 +151,17 @@ namespace Console
             return;
         }
 
-        Storage->Push(std::move(Message));
+        Storage->PushHistory(std::move(Message));
+    }
+
+    void Clear(FConsoleOutputHandle Handle)
+    {
+        FConsoleMessageStorage* Storage = ResolveStorage(Handle);
+
+        if (Storage == nullptr)
+            return;
+
+        Storage->Clear();
     }
 
     void AddLog(
@@ -165,7 +204,38 @@ namespace Console
         Message.Level = Level;
         Message.Text = std::move(Text);
 
-        Print(Handle, std::move(Message));
+        Message.Time = GetCurrentTimeString();
+
+        // Print(Handle, std::move(Message));
+
+        FConsoleState& State = GetConsoleState();
+
+        {
+            std::lock_guard<std::mutex> Lock(State.PendingMutex);
+
+            FConsoleMessageStorage* Storage = ResolveStorage(Handle);
+
+            if (Storage == nullptr)
+                return;
+
+            Storage->PushPending(std::move(Message));
+        }
+    }
+
+    void Flush(FConsoleOutputHandle Handle)
+    {
+        FConsoleState& State = GetConsoleState();
+        FConsoleMessageStorage* Storage = ResolveStorage(Handle);
+
+        if (Storage == nullptr)
+            return;
+        // lock 수명 짧게
+        {
+            std::lock_guard<std::mutex> Lock(State.PendingMutex);
+            Storage->SwapPendingBuffers();
+        }
+
+        Storage->FlushReadBuffer();
     }
 
     size_t GetMessageCount(FConsoleOutputHandle Handle)

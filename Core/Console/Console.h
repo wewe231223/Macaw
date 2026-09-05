@@ -29,12 +29,15 @@ namespace Console
     inline constexpr FConsoleOutputHandle STDErrorHandle{ 1 };
 
     void Print(FConsoleOutputHandle Handle, FConsoleMessage Message);
+    void Clear(FConsoleOutputHandle Handle);
     void AddLog(
         FConsoleOutputHandle Handle,
         ELogLevel Level,
         ELogCategory Categor,
         const char* Format,
         ...);
+    void Flush(FConsoleOutputHandle Handle);
+
     size_t GetMessageCount(FConsoleOutputHandle Handle);
     const FConsoleMessage& GetMessageAt(FConsoleOutputHandle Handle, size_t Index);
 }
