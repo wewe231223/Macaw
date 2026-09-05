@@ -50,8 +50,8 @@ namespace
         {
             if (!CanRedo()) 
                 return nullptr;
-            ++Current;
             uint32 TargetIndex = (Head + Current) % Capacity;
+            ++Current;
             return &Buffer[TargetIndex].value();
         }
 
@@ -110,8 +110,28 @@ namespace UndoSystem
         // TODO
         // Serialize가 구현되면, 현재 target object의 값을 serialize해서 이를 before data 에 저장해야함
         // TargetObject->Serialize(BeforeData);
+        // test
+        BeforeData.emplace_back(TargetObject->Data);
+
 
         // "마우스를 뗐을 때 할 일"을 람다로 정의해서 큐에 넣음
+        // test
+        State.PendingFinalizers.push_back(
+            [TargetObject, BeforeData](FUndoTransaction& Transaction)
+            {
+                std::vector<uint8_t> AfterData;
+                AfterData.emplace_back(TargetObject->Data);
+                // TODO
+                // Serialize가 구현되면, 현재 target object의 값을 serialize해서 이를 이번에는 after data 에 저장해야함
+                // TargetObject->Serialize(AfterData);
+
+                auto Record = std::make_unique<FRecordObjectState>(
+                    TargetObject->GetGuid(), BeforeData, AfterData);
+
+                Transaction.AddRecord(std::move(Record));
+            }
+        );
+        /*
         State.PendingFinalizers.push_back(
             [TargetObject, BeforeData](FUndoTransaction& Transaction)
             {
@@ -126,6 +146,8 @@ namespace UndoSystem
                 Transaction.AddRecord(std::move(Record));
             }
         );
+        */
+
     }
 
     void EndTransaction()

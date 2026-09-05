@@ -1,10 +1,10 @@
 ﻿#pragma once
 
-// 1. C/C++ 표준 수학 라이브러리 
+// C/C++ 표준 수학 라이브러리 
 #include <cmath>
 #include <cstdlib>
 
-// 2. STL 컨테이너 및 메모리
+// STL 컨테이너 및 메모리
 #include <vector>
 #include <string>
 #include <memory>

@@ -22,6 +22,14 @@ public:
 	const FGuid& GetGuid() const;
 	FObjectHandle GetHandle() const;
 
+
+// test
+/////
+public:
+	unsigned char Data = 3;
+/////
+
+
 private:
 	friend FObjectHandle ObjectSystem::Register(UObject* Object);
 
