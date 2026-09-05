@@ -3,7 +3,7 @@
 
 class UObject; 
 
-namespace UndoSystem
+namespace UUndoSystem
 {
     void BeginTransaction(const FString& TransactionName);
     void EndTransaction();

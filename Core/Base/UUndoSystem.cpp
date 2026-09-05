@@ -1,5 +1,5 @@
 ﻿#include "PCH.h"
-#include "UndoSystem.h"
+#include "UUndoSystem.h"
 
 #include <optional>
 
@@ -84,7 +84,7 @@ namespace
     }
 }
 
-namespace UndoSystem
+namespace UUndoSystem
 {
     void BeginTransaction(const FString& TransactionName)
     {
