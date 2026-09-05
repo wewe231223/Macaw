@@ -7,7 +7,6 @@
 #include "FRecordObjectState.h" 
 #include "UObject.h"
 
-
 namespace
 {
     template<uint32 Capacity = 64>
@@ -109,29 +108,9 @@ namespace UndoSystem
         std::vector<uint8_t> BeforeData;
         // TODO
         // Serialize가 구현되면, 현재 target object의 값을 serialize해서 이를 before data 에 저장해야함
-        // TargetObject->Serialize(BeforeData);
-        // test
-        BeforeData.emplace_back(TargetObject->Data);
+        // 예시: TargetObject->Serialize(BeforeData);
 
-
-        // "마우스를 뗐을 때 할 일"을 람다로 정의해서 큐에 넣음
-        // test
-        State.PendingFinalizers.push_back(
-            [TargetObject, BeforeData](FUndoTransaction& Transaction)
-            {
-                std::vector<uint8_t> AfterData;
-                AfterData.emplace_back(TargetObject->Data);
-                // TODO
-                // Serialize가 구현되면, 현재 target object의 값을 serialize해서 이를 이번에는 after data 에 저장해야함
-                // TargetObject->Serialize(AfterData);
-
-                auto Record = std::make_unique<FRecordObjectState>(
-                    TargetObject->GetGuid(), BeforeData, AfterData);
-
-                Transaction.AddRecord(std::move(Record));
-            }
-        );
-        /*
+        // 트랜잭션이 끝난 뒤의 상태를 저장하는 람다
         State.PendingFinalizers.push_back(
             [TargetObject, BeforeData](FUndoTransaction& Transaction)
             {
@@ -146,8 +125,6 @@ namespace UndoSystem
                 Transaction.AddRecord(std::move(Record));
             }
         );
-        */
-
     }
 
     void EndTransaction()
