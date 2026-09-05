@@ -25,6 +25,9 @@
     <Filter Include="Core\Channel">
       <UniqueIdentifier>{f06468fe-7796-4c56-ae39-3d3d897eb05b}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Core\Memory">
+      <UniqueIdentifier>{7fc417b4-ff8b-45fe-96c1-d1ad76589ea9}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="framework.h">
@@ -39,28 +42,7 @@
     <ClInclude Include="Macaw.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
-    <ClInclude Include="UObject.h">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
-    <ClInclude Include="FObjectHandle.h">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
-    <ClInclude Include="FObjectItem.h">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
-    <ClInclude Include="UObjectSystem.h">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
-    <ClInclude Include="FGuid.h">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
     <ClInclude Include="pch.h">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
-    <ClInclude Include="Memory.h">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
-    <ClInclude Include="TEngineAllocator.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
     <ClInclude Include="Common.h">
@@ -87,24 +69,33 @@
     <ClInclude Include="Math.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
+    <ClInclude Include="Memory.h">
+      <Filter>Core\Memory</Filter>
+    </ClInclude>
+    <ClInclude Include="UObject.h">
+      <Filter>Core\Base</Filter>
+    </ClInclude>
+    <ClInclude Include="UObjectSystem.h">
+      <Filter>Core\Base</Filter>
+    </ClInclude>
+    <ClInclude Include="FGuid.h">
+      <Filter>Core\Base</Filter>
+    </ClInclude>
+    <ClInclude Include="FObjectHandle.h">
+      <Filter>Core\Base</Filter>
+    </ClInclude>
+    <ClInclude Include="FObjectItem.h">
+      <Filter>Core\Base</Filter>
+    </ClInclude>
+    <ClInclude Include="TEngineAllocator.h">
+      <Filter>Core\Memory</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Macaw.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
-    <ClCompile Include="UObject.cpp">
-      <Filter>소스 파일</Filter>
-    </ClCompile>
-    <ClCompile Include="FGuid.cpp">
-      <Filter>소스 파일</Filter>
-    </ClCompile>
-    <ClCompile Include="UObjectSystem.cpp">
-      <Filter>소스 파일</Filter>
-    </ClCompile>
     <ClCompile Include="pch.cpp">
-      <Filter>소스 파일</Filter>
-    </ClCompile>
-    <ClCompile Include="Memory.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
     <ClCompile Include="Core\Channel\FMessage.cpp">
@@ -115,6 +106,18 @@
     </ClCompile>
     <ClCompile Include="Core\Channel\FMessageHandler.cpp">
       <Filter>Core\Channel</Filter>
+    </ClCompile>
+    <ClCompile Include="Memory.cpp">
+      <Filter>Core\Memory</Filter>
+    </ClCompile>
+    <ClCompile Include="UObject.cpp">
+      <Filter>Core\Base</Filter>
+    </ClCompile>
+    <ClCompile Include="UObjectSystem.cpp">
+      <Filter>Core\Base</Filter>
+    </ClCompile>
+    <ClCompile Include="FGuid.cpp">
+      <Filter>Core\Base</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
