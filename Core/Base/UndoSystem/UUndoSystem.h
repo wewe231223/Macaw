@@ -1,14 +1,14 @@
 ﻿#pragma once
 #include "../../../Common.h" 
+#include "../../Channel/FMessageChannel.h"
 
 class UObject;
-class FMessageChannel;
 namespace UUndoSystem
 {
     // =================================================================
     // Message Sender 관리 API
     // =================================================================
-    void InitializeSenderToWorldChannel(FMessageChannel& WorldChannel);
+    void InitializeSenderToWorldChannel(FMessageChannel::FSender&& SenderToWorldChannel);
 
     // =================================================================
     // Undo/Redo API

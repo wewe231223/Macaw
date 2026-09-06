@@ -38,7 +38,7 @@ TEST_SUITE("Undo System Tests")
 
         // 2. 메시지 채널과 Undo 시스템 연결
         FMessageChannel WorldChannel(100);
-        UUndoSystem::InitializeSenderToWorldChannel(WorldChannel);
+        UUndoSystem::InitializeSenderToWorldChannel(WorldChannel.GetSender());
 
         // 메시지 처리용 람다 바인드
         WorldChannel.TryBind<FObjectStateChangedMessage>([](const FObjectStateChangedMessage& Payload)

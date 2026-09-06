@@ -143,10 +143,10 @@ namespace UUndoSystem
     // =================================================================
     // Message Sender 관리 API
     // =================================================================
-    void InitializeSenderToWorldChannel(FMessageChannel& WorldChannel)
+    void InitializeSenderToWorldChannel(FMessageChannel::FSender&& SenderToWorldChannel)
     {
         FUndoSystemState& State = GetState();
-        State.MessageSender.emplace(WorldChannel.GetSender());
+        State.MessageSender.emplace(std::move(SenderToWorldChannel));
     }
 
     // =================================================================
