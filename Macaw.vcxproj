@@ -70,6 +70,12 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);$(SolutionDir)\range_v_3;</IncludePath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);$(SolutionDir)\range_v_3;</IncludePath>
+  </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
@@ -177,7 +183,10 @@
     <ClCompile Include="Core\Base\UUndoSystem.cpp" />
     <ClCompile Include="Core\Base\UObject.cpp" />
     <ClCompile Include="Core\Base\UObjectSystem.cpp" />
-    <ClCompile Include="Core\Base\UndoSystem\UUndoSystem.cpp" />
+    <ClCompile Include="Core\Base\FVertexAttribute.cpp" />
+    <ClCompile Include="Core\Buffer\FGraphicsBuffer.cpp" />
+    <ClCompile Include="Core\Buffer\TGraphicsArray.cpp" />
+    <ClCompile Include="Core\Buffer\FGraphicsConstant.cpp" />
     <ClCompile Include="Core\Channel\FMessage.cpp" />
     <ClCompile Include="Core\Channel\FMessageChannel.cpp" />
     <ClCompile Include="Core\Channel\FMessageHandler.cpp" />
@@ -252,7 +261,10 @@
     <ClInclude Include="Core\Base\UUndoSystem.h" />
     <ClInclude Include="Core\Base\UObject.h" />
     <ClInclude Include="Core\Base\UObjectSystem.h" />
-    <ClInclude Include="Core\Base\UndoSystem\UUndoSystem.h" />
+    <ClInclude Include="Core\Base\FVertexAttribute.h" />
+    <ClInclude Include="Core\Buffer\FGraphicsBuffer.h" />
+    <ClInclude Include="Core\Buffer\TGraphicsArray.h" />
+    <ClInclude Include="Core\Buffer\FGraphicsConstant.h" />
     <ClInclude Include="Core\Channel\FMessage.h" />
     <ClInclude Include="Core\Channel\FMessageChannel.h" />
     <ClInclude Include="Core\Channel\FMessageHandler.h" />

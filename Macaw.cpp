@@ -96,6 +96,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	
     FAssetRegistry AssetRegistry;
 	AssetRegistry.Initialize(Renderer.GetDevice(), 128);
+	Renderer.BindAssetRegistry(&AssetRegistry);
 
 	AssetRegistry.EmplaceAsset<UPipeline>(Renderer.GetDevice(), EAssetType::Pipeline, "BasePipeline", "./Pipeline/Base.json");
 
@@ -137,9 +138,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
 	AssetRegistry.GetMaterialBuffer().Flush(Renderer.GetDeviceContext());
 
-	FRenderProbe RenderProbe;
-	Renderer.AcceptRenderProbe(RenderProbe);
-
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGui_ImplWin32_Init((void*)hWnd);
@@ -162,6 +160,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
             ImGui_ImplDX11_NewFrame();
             ImGui_ImplWin32_NewFrame();
             ImGui::NewFrame();
+
+            FRenderProbe RenderProbe;
+            Renderer.Render(RenderProbe);
 
             DrawConsole(Console::STDOutHandle);
 

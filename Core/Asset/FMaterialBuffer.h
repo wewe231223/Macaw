@@ -27,7 +27,7 @@ public:
     void Flush(ID3D11DeviceContext* DeviceContext);
 
     ID3D11Buffer* GetBuffer() const { return Buffer.Get(); }
-    ID3D11ShaderResourceView* GetSRV() const { return SRV.Get(); }
+    ID3D11ShaderResourceView* const* GetSRV() const { return SRV.GetAddressOf(); }
 
     uint32 GetMaxMaterialCount() const { return MaxMaterialCount; }
 

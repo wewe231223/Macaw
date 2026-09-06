@@ -41,6 +41,9 @@
     <Filter Include="Core\Base\RTTI">
       <UniqueIdentifier>{41f9510c-7de0-4e8b-9d5e-963f5767a333}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Core\Buffer">
+      <UniqueIdentifier>{7db4d6ca-7e35-45dc-8d48-d3c0d16905aa}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Macaw.rc">
