@@ -180,7 +180,7 @@
     <ClCompile Include="Core\Base\UndoSystem\FUndoTransaction.cpp" />
     <ClCompile Include="Core\Base\TypeInfo.cpp" />
     <ClCompile Include="Core\Base\TypeRegistry.cpp" />
-    <ClCompile Include="Core\Base\UUndoSystem.cpp" />
+    <ClCompile Include="Core\Base\UndoSystem\UUndoSystem.cpp" />
     <ClCompile Include="Core\Base\UObject.cpp" />
     <ClCompile Include="Core\Base\UObjectSystem.cpp" />
     <ClCompile Include="Core\Base\FVertexAttribute.cpp" />
@@ -258,7 +258,7 @@
     <ClInclude Include="Core\Base\UndoSystem\IUndoRecord.h" />
     <ClInclude Include="Core\Base\TypeInfo.h" />
     <ClInclude Include="Core\Base\TypeRegistry.h" />
-    <ClInclude Include="Core\Base\UUndoSystem.h" />
+    <ClInclude Include="Core\Base\UndoSystem\UUndoSystem.h" />
     <ClInclude Include="Core\Base\UObject.h" />
     <ClInclude Include="Core\Base\UObjectSystem.h" />
     <ClInclude Include="Core\Base\FVertexAttribute.h" />

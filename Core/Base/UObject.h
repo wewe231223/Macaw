@@ -49,13 +49,10 @@ public:
 	static void operator delete(void* Ptr, std::align_val_t Alignment) noexcept;
 
 	// RTTI
-	static const FTypeInfo* StaticTypeInfo();
-	virtual const FTypeInfo* GetTypeInfo() const = 0;
 
-	
 	void RestoreGuid(const FGuid& InGuid); // for testing
 
-
+	JG_DECLARE_ROOT_TYPEINFO(UObject)
 protected:
 	virtual void Serialize(FArchive& Archive)
 	{

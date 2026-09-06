@@ -125,14 +125,24 @@
       <Filter>Imgui</Filter>
     </ClCompile>
     <ClCompile Include="Macaw.cpp" />
-    <ClCompile Include="Core\Base\UndoSystem\UUndoSystem.cpp">
-      <Filter>Core\Base</Filter>
-    </ClCompile>
     <ClCompile Include="Serialize\FArchive.cpp" />
     <ClCompile Include="Serialize\FArchiveJson.cpp" />
     <ClCompile Include="Core\Base\TypeInfo.cpp" />
     <ClCompile Include="Core\Base\TypeRegistry.cpp" />
     <ClCompile Include="Serialize\FArchiveMemory.cpp" />
+    <ClCompile Include="Core\Asset\FAssetHandle.cpp" />
+    <ClCompile Include="Core\Asset\FAssetRegistry.cpp" />
+    <ClCompile Include="Core\Asset\FMaterialBuffer.cpp" />
+    <ClCompile Include="Core\Asset\FMaterialGPUData.cpp" />
+    <ClCompile Include="Core\Asset\UColorMaterial.cpp" />
+    <ClCompile Include="Core\Asset\UMaterial.cpp" />
+    <ClCompile Include="Core\Asset\UMesh.cpp" />
+    <ClCompile Include="Core\Base\UObject.cpp" />
+    <ClCompile Include="Core\Base\FVertexAttribute.cpp" />
+    <ClCompile Include="Core\Buffer\FGraphicsBuffer.cpp" />
+    <ClCompile Include="Core\Buffer\TGraphicsArray.cpp" />
+    <ClCompile Include="Core\Buffer\FGraphicsConstant.cpp" />
+    <ClCompile Include="Core\Base\UndoSystem\UUndoSystem.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Core\Base\FGuid.h">
@@ -230,14 +240,24 @@
     <ClInclude Include="Serialize\FArchive.h">
       <Filter>Core\Serialize</Filter>
     </ClInclude>
-    <ClInclude Include="Core\Base\UndoSystem\UUndoSystem.h">
-      <Filter>Core\Base</Filter>
-    </ClInclude>
     <ClInclude Include="Serialize\FArchiveJson.h" />
     <ClInclude Include="Core\Base\TypeInfo.h" />
     <ClInclude Include="Core\Base\TypeRegistry.h" />
     <ClInclude Include="Serialize\FArchiveMemory.h" />
     <ClInclude Include="Core\Base\UndoSystem\IUndoContext.h" />
     <ClInclude Include="Core\Base\UndoSystem\FObjectStateChangedMessage.h" />
+    <ClInclude Include="Core\Asset\FAssetHandle.h" />
+    <ClInclude Include="Core\Asset\FAssetRegistry.h" />
+    <ClInclude Include="Core\Asset\FMaterialBuffer.h" />
+    <ClInclude Include="Core\Asset\FMaterialGPUData.h" />
+    <ClInclude Include="Core\Asset\UColorMaterial.h" />
+    <ClInclude Include="Core\Asset\UMaterial.h" />
+    <ClInclude Include="Core\Asset\UMesh.h" />
+    <ClInclude Include="Core\Base\UObject.h" />
+    <ClInclude Include="Core\Base\FVertexAttribute.h" />
+    <ClInclude Include="Core\Buffer\FGraphicsBuffer.h" />
+    <ClInclude Include="Core\Buffer\TGraphicsArray.h" />
+    <ClInclude Include="Core\Buffer\FGraphicsConstant.h" />
+    <ClInclude Include="Core\Base\UndoSystem\UUndoSystem.h" />
   </ItemGroup>
 </Project>
