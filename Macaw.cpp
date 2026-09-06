@@ -83,17 +83,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
     // test
     UWorld World;
-  
-
-    World.SpawnObject<UCube>();
-    World.SpawnObject<USphere>();
-
-    FRenderProbe Probe = World.BuildRenderProbe();
-
-    std::string DebugText =
-        "Actor Count = " + std::to_string(Probe.ActorProbes.size()) + "\n";
-
-    OutputDebugStringA(DebugText.c_str());
 
 	FRenderer Renderer;
 	Renderer.Create(gHWND, DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT);
@@ -131,7 +120,24 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
         MakeVertexAttribute<EVertexAttribute::UV>(UVs)
     );
 
+    UCube* Cube = World.SpawnObject<UCube>();
+    Cube->SetMeshHandle(
+        AssetRegistry.GetAsset(
+            EAssetType::Mesh,
+            "TriangleMesh"));
 
+    FRenderProbe Probe = World.BuildRenderProbe();
+
+    std::string DebugText =
+        "Actor Count = " + std::to_string(Probe.ActorProbes.size()) + "\n";
+
+    OutputDebugStringA(DebugText.c_str());
+
+    if (!Probe.ActorProbes.empty() &&
+        Probe.ActorProbes[0].MeshHandle == Cube->GetMeshHandle())
+    {
+        OutputDebugStringA("MeshHandle passed to Probe\n");
+    }
 
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
