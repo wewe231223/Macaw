@@ -6,7 +6,7 @@
 #include "Core/Base/FRenderProbe.h"
 class AActor;
 class UCameraComponent;
-class UPrimitiveComponent;
+class UStaticMeshComponent;
 
 class UWorld : public UObject
 {
@@ -34,13 +34,13 @@ public:
     FRenderProbe BuildRenderProbe() const;
     void Tick(float DeltaTime);
 
-    void RegisterRenderable(UPrimitiveComponent* Component);
-    void UnregisterRenderable(UPrimitiveComponent* Component);
+    void RegisterRenderable(UStaticMeshComponent* Component);
+    void UnregisterRenderable(UStaticMeshComponent* Component);
     void SetMainCamera(UCameraComponent* InCamera);
     void ClearMainCamera(UCameraComponent* InCamera);
 
 private:
     std::vector<std::unique_ptr<AActor>> Actors;
-    std::vector<UPrimitiveComponent*> RenderableComponents;
+    std::vector<UStaticMeshComponent*> RenderableComponents;
     UCameraComponent* Camera = nullptr;
 };

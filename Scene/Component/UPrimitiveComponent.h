@@ -14,8 +14,6 @@ public:
     bool IsVisible() const;
     void SetVisible(bool bInVisible);
 
-    void OnCreate() override;
-    void OnDestroy() override;
     virtual void MakeRender(FRenderProbe& OutProbe) const = 0;
 
 private:

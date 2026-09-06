@@ -17,6 +17,8 @@ public:
     void SetMaterialHandle(FAssetHandle InHandle);
     void SetPipelineHandle(FAssetHandle InHandle);
 
+    void OnCreate() override;
+    void OnDestroy() override;
     void MakeRender(FRenderProbe& OutProbe) const override;
 
 private:

@@ -5,7 +5,7 @@
 
 #include "AActor.h"
 #include "Component/UCameraComponent.h"
-#include "Component/UPrimitiveComponent.h"
+#include "Component/UStaticMeshComponent.h"
 
 UWorld::~UWorld()
 {
@@ -26,7 +26,7 @@ FRenderProbe UWorld::BuildRenderProbe() const
 {
     FRenderProbe Probe;
 
-    for (const UPrimitiveComponent* Component : RenderableComponents)
+    for (const UStaticMeshComponent* Component : RenderableComponents)
     {
         Component->MakeRender(Probe);
     }
@@ -53,7 +53,7 @@ void UWorld::Tick(float DeltaTime)
     }
 }
 
-void UWorld::RegisterRenderable(UPrimitiveComponent* Component)
+void UWorld::RegisterRenderable(UStaticMeshComponent* Component)
 {
     if (Component == nullptr || std::ranges::find(RenderableComponents, Component) != RenderableComponents.end())
     {
@@ -63,7 +63,7 @@ void UWorld::RegisterRenderable(UPrimitiveComponent* Component)
     RenderableComponents.push_back(Component);
 }
 
-void UWorld::UnregisterRenderable(UPrimitiveComponent* Component)
+void UWorld::UnregisterRenderable(UStaticMeshComponent* Component)
 {
     std::erase(RenderableComponents, Component);
 }
