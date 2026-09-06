@@ -12,10 +12,8 @@ public:
 
     AActor* GetOwner() const;
 
-    // Called after the owner and initial settings are ready.
     virtual void OnCreate();
     virtual void Tick(float DeltaTime);
-    // Called before deletion, while the owner is still alive.
     virtual void OnDestroy();
 
     bool IsTickEnabled() const;
@@ -26,6 +24,6 @@ private:
 
     void SetOwner(AActor* InOwner);
 
-    AActor* Owner = nullptr; // Non-owning reference.
+    AActor* Owner = nullptr; 
     bool bTickEnabled = false;
 };
