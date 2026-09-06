@@ -224,6 +224,7 @@
     <ClCompile Include="Render\Pipeline\UPipeline.cpp" />
     <ClCompile Include="Render\Pipeline\FShader.cpp" />
     <ClCompile Include="Render\Renderer.cpp" />
+    <ClCompile Include="Scene\Components\UActorComponent.cpp" />
     <ClCompile Include="Scene\UCamera.cpp" />
     <ClCompile Include="Scene\URenderableObject.cpp" />
     <ClCompile Include="Scene\USceneObject.cpp" />
@@ -273,6 +274,7 @@
     <ClInclude Include="Render\Pipeline\FShader.h" />
     <ClInclude Include="Render\Pipeline\Wrapper.h" />
     <ClInclude Include="Render\Renderer.h" />
+    <ClInclude Include="Scene\Components\UActorComponent.h" />
     <ClInclude Include="Scene\UCamera.h" />
     <ClInclude Include="Scene\UCube.h" />
     <ClInclude Include="Scene\URenderableObject.h" />
