@@ -113,8 +113,8 @@ public:
     [[nodiscard]] std::size_t GetCapacity() const noexcept;
 
 private:
-    FMessageHandler* FindHandler(const FTypeInfo& Type) noexcept;
-    FMessageHandler* FindPendingHandler(const FTypeInfo& Type) noexcept;
+    FMessageHandler* FindHandler(const FTypeInfo* Type) noexcept;
+    FMessageHandler* FindPendingHandler(const FTypeInfo* Type) noexcept;
 
     void CommitPendingHandlers();
 

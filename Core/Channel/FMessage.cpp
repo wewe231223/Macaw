@@ -24,12 +24,12 @@ bool FMessage::IsValid() const noexcept {
 	return mData != nullptr;
 }
 
-const FTypeInfo& FMessage::GetTypeInfo() const noexcept {
+const FTypeInfo* FMessage::GetTypeInfo() const noexcept {
 	if (mType == nullptr) {
 		ErrorHandler::Report("FMessage::GetTypeInfo", "Cannot get type information from an invalid message.", ErrorHandler::EErrorLevel::Critical);
 	}
 
-	return *mType;
+	return mType;
 }
 
 void FMessage::Reset() noexcept {
