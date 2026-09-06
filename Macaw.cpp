@@ -8,6 +8,7 @@
 #include "Render/Renderer.h"
 
 #include <d3d11.h>
+#include <chrono>
 #pragma comment(lib, "d3d11.lib")
 
 #include "ImGui/imgui.h"
@@ -15,7 +16,6 @@
 #include "ImGui/imgui_impl_dx11.h"
 #include "ImGui/imgui_impl_win32.h"
   
-#include "Render/Renderer.h"
 #include "Core/Console/Console.h"
 #include "Render/Console/ConsoleWindow.h"
 #include "Core/Asset/FAssetRegistry.h"
@@ -24,11 +24,11 @@
 #include "Render/Pipeline/UPipeline.h"
 #include "Core/Asset/UMesh.h"
 
-#include "Scene/UCube.h"
-#include "Scene/USphere.h"
-#include "Scene/UCamera.h"
 #include "Core/Base/FTransform.h"
 #include "Scene/UWorld.h"
+#include "Scene/AActor.h"
+#include "Scene/Component/UCameraComponent.h"
+#include "Scene/Component/UStaticMeshComponent.h"
 
 #define MAX_LOADSTRING 100
 
@@ -120,11 +120,22 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
         MakeVertexAttribute<EVertexAttribute::UV>(UVs)
     );
 
-    UCube* Cube = World.SpawnObject<UCube>();
-    Cube->SetMeshHandle(
-        AssetRegistry.GetAsset(
-            EAssetType::Mesh,
-            "TriangleMesh"));
+    AActor* Actor = World.SpawnActor<AActor>();
+    AActor* CameraActor = World.SpawnActor<AActor>();
+
+    UStaticMeshComponent* RenderComponent = Actor->AddComponent<UStaticMeshComponent>();
+    UCameraComponent* Camera = CameraActor->AddComponent<UCameraComponent>();
+
+    Actor->SetRootComponent(RenderComponent);
+    CameraActor->SetRootComponent(Camera);
+
+    RenderComponent->GetTransform().SetPosition({ 1.0f, 2.0f, 3.0f });
+    RenderComponent->GetTransform().SetRotation({ 0.0f, 0.0f, 0.0f });
+    RenderComponent->GetTransform().SetScale({ 1.0f, 1.0f, 1.0f });
+
+    RenderComponent->SetMeshHandle(AssetRegistry.GetAsset(EAssetType::Mesh, "TriangleMesh"));
+    RenderComponent->SetPipelineHandle(
+        AssetRegistry.GetAsset(EAssetType::Pipeline, "BasePipeline"));
 
     FRenderProbe Probe = World.BuildRenderProbe();
 
@@ -133,16 +144,12 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
     OutputDebugStringA(DebugText.c_str());
 
-    if (!Probe.ActorProbes.empty() &&
-        Probe.ActorProbes[0].MeshHandle == Cube->GetMeshHandle())
-    {
-        OutputDebugStringA("MeshHandle passed to Probe\n");
-    }
-
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGui_ImplWin32_Init((void*)hWnd);
     ImGui_ImplDX11_Init(Renderer.GetDevice(), Renderer.GetDeviceContext());
+
+    auto LastTickTime = std::chrono::steady_clock::now();
 
     while (true) {
         if (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE)) {
@@ -155,6 +162,11 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
             }
         }
         else {
+            const auto CurrentTickTime = std::chrono::steady_clock::now();
+            const float DeltaTime = std::chrono::duration<float>(CurrentTickTime - LastTickTime).count();
+            LastTickTime = CurrentTickTime;
+
+            World.Tick(DeltaTime);
             Renderer.BeginFrame();
 
 

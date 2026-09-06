@@ -1,43 +1,46 @@
-#pragma once
+﻿#pragma once
 
 #include "Common.h"
 #include "Core/Base/UObject.h"
 #include "Core/Base/UObjectSystem.h"
 #include "Core/Base/FRenderProbe.h"
-#include "URenderableObject.h"
-#include "UCamera.h"
+class AActor;
+class UCameraComponent;
+class UPrimitiveComponent;
 
 class UWorld : public UObject
 {
 public:
     UWorld() = default;
-    ~UWorld() override = default;
+    ~UWorld() override;
 
     template<typename T>
-    T* SpawnObject()
+     requires std::is_base_of_v<AActor, T>
+    T* SpawnActor()
     {
-        std::unique_ptr<T> NewObject = std::make_unique<T>();
+        std::unique_ptr<T> NewActor = std::make_unique<T>();
 
-        T* ObjectPtr = NewObject.get();
+        T* ActorPtr = NewActor.get();
 
-        UObjectSystem::Register(ObjectPtr);
+        UObjectSystem::Register(ActorPtr);
 
-        Objects.push_back(std::move(NewObject));
+        ActorPtr->SetWorld(this);
+        Actors.push_back(std::move(NewActor));
 
-        if constexpr (std::is_base_of_v<URenderableObject, T>)
-        {
-            RenderableObjects.push_back(ObjectPtr);
-        }
-
-        return ObjectPtr;
+        return ActorPtr;
     }
 
-    const std::vector<std::unique_ptr<UObject>>& GetObjects() const;
+    const std::vector<std::unique_ptr<AActor>>& GetActors() const;
     FRenderProbe BuildRenderProbe() const;
+    void Tick(float DeltaTime);
+
+    void RegisterRenderable(UPrimitiveComponent* Component);
+    void UnregisterRenderable(UPrimitiveComponent* Component);
+    void SetMainCamera(UCameraComponent* InCamera);
+    void ClearMainCamera(UCameraComponent* InCamera);
 
 private:
-    std::vector<std::unique_ptr<UObject>> Objects;
-    std::vector<URenderableObject*> RenderableObjects;
-
-    UCamera* Camera = nullptr;
+    std::vector<std::unique_ptr<AActor>> Actors;
+    std::vector<UPrimitiveComponent*> RenderableComponents;
+    UCameraComponent* Camera = nullptr;
 };

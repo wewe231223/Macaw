@@ -38,11 +38,11 @@
     <Filter Include="Core\Asset">
       <UniqueIdentifier>{43e6b1bc-0755-4251-9234-11107f9fdd3b}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Scene\Components">
-      <UniqueIdentifier>{0c7f8d2e-662f-4a37-ae79-27b8b63d1219}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Scene">
       <UniqueIdentifier>{d941dab7-6bab-4cbd-aeeb-94c5551175da}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Scene\Component">
+      <UniqueIdentifier>{5a9cab8f-2ea3-4509-bbc3-792ec9a4e364}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -155,20 +155,26 @@
     <ClCompile Include="Core\Base\FTreansform.cpp">
       <Filter>Core\Base</Filter>
     </ClCompile>
-    <ClCompile Include="Scene\Components\UActorComponent.cpp">
-      <Filter>Scene\Components</Filter>
-    </ClCompile>
-    <ClCompile Include="Scene\UCamera.cpp">
-      <Filter>Scene</Filter>
-    </ClCompile>
     <ClCompile Include="Scene\UWorld.cpp">
       <Filter>Scene</Filter>
     </ClCompile>
-    <ClCompile Include="Scene\USceneObject.cpp">
+    <ClCompile Include="Scene\AActor.cpp">
       <Filter>Scene</Filter>
     </ClCompile>
-    <ClCompile Include="Scene\URenderableObject.cpp">
-      <Filter>Scene</Filter>
+    <ClCompile Include="Scene\Component\UActorComponent.cpp">
+      <Filter>Scene\Component</Filter>
+    </ClCompile>
+    <ClCompile Include="Scene\Component\UCameraComponent.cpp">
+      <Filter>Scene\Component</Filter>
+    </ClCompile>
+    <ClCompile Include="Scene\Component\UPrimitiveComponent.cpp">
+      <Filter>Scene\Component</Filter>
+    </ClCompile>
+    <ClCompile Include="Scene\Component\USceneComponent.cpp">
+      <Filter>Scene\Component</Filter>
+    </ClCompile>
+    <ClCompile Include="Scene\Component\UStaticMeshComponent.cpp">
+      <Filter>Scene\Component</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -291,29 +297,29 @@
     <ClInclude Include="Core\Base\FVertexAttribute.h">
       <Filter>Core\Base</Filter>
     </ClInclude>
-    <ClInclude Include="Scene\Components\UActorComponent.h">
-      <Filter>Scene\Components</Filter>
-    </ClInclude>
-    <ClInclude Include="Scene\UCamera.h">
-      <Filter>Scene</Filter>
-    </ClInclude>
-    <ClInclude Include="Scene\USceneObject.h">
-      <Filter>Scene</Filter>
-    </ClInclude>
     <ClInclude Include="Core\Base\FTransform.h">
       <Filter>Core\Base</Filter>
-    </ClInclude>
-    <ClInclude Include="Scene\UCube.h">
-      <Filter>Scene</Filter>
-    </ClInclude>
-    <ClInclude Include="Scene\URenderableObject.h">
-      <Filter>Scene</Filter>
     </ClInclude>
     <ClInclude Include="Scene\UWorld.h">
       <Filter>Scene</Filter>
     </ClInclude>
-    <ClInclude Include="Scene\USphere.h">
+    <ClInclude Include="Scene\AActor.h">
       <Filter>Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="Scene\Component\UActorComponent.h">
+      <Filter>Scene\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="Scene\Component\UCameraComponent.h">
+      <Filter>Scene\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="Scene\Component\UPrimitiveComponent.h">
+      <Filter>Scene\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="Scene\Component\USceneComponent.h">
+      <Filter>Scene\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="Scene\Component\UStaticMeshComponent.h">
+      <Filter>Scene\Component</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

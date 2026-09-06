@@ -23,12 +23,12 @@ void UActorComponent::OnDestroy()
 {
 }
 
-bool UActorComponent::IsTickEnabled() const
+bool UActorComponent::IsActive() const
 {
-    return bTickEnabled;
+    return bActive;
 }
 
-void UActorComponent::SetTickEnabled(bool bInTickEnabled)
+void UActorComponent::SetActive(bool bInActive)
 {
-    bTickEnabled = bInTickEnabled;
+    bActive = bInActive;
 }

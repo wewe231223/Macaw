@@ -1,13 +1,13 @@
-#pragma once
+﻿#pragma once
 
-#include "USceneObject.h"
+#include "UPrimitiveComponent.h"
 #include "Core/Asset/FAssetHandle.h"
 
-class URenderableObject : public USceneObject
+class UStaticMeshComponent : public UPrimitiveComponent
 {
 public:
-    URenderableObject() = default;
-    ~URenderableObject() override = default;
+    UStaticMeshComponent() = default;
+    ~UStaticMeshComponent() override = default;
 
     FAssetHandle GetMeshHandle() const;
     FAssetHandle GetMaterialHandle() const;
@@ -16,6 +16,8 @@ public:
     void SetMeshHandle(FAssetHandle InHandle);
     void SetMaterialHandle(FAssetHandle InHandle);
     void SetPipelineHandle(FAssetHandle InHandle);
+
+    void MakeRender(FRenderProbe& OutProbe) const override;
 
 private:
     FAssetHandle MeshHandle;

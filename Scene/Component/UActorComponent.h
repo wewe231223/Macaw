@@ -16,14 +16,15 @@ public:
     virtual void Tick(float DeltaTime);
     virtual void OnDestroy();
 
-    bool IsTickEnabled() const;
-    void SetTickEnabled(bool bInTickEnabled);
+    bool IsActive() const;
+    void SetActive(bool bInActive);
 
 private:
     friend class AActor;
 
     void SetOwner(AActor* InOwner);
 
-    AActor* Owner = nullptr; 
-    bool bTickEnabled = false;
+private:
+    AActor* Owner = nullptr;
+    bool bActive = true;
 };
