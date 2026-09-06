@@ -30,7 +30,7 @@
     <ClCompile Include="Tests\MemoryTests.cpp">
       <Filter>Tests</Filter>
     </ClCompile>
-    <ClCompile Include="Memory.cpp">
+    <ClCompile Include="Core\Memory\Memory.cpp">
       <Filter>Memory</Filter>
     </ClCompile>
     <ClCompile Include="SimpleMath\SimpleMath.cpp">

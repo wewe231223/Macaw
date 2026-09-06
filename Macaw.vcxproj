@@ -169,6 +169,7 @@
     <ClCompile Include="Core\Base\FGuid.cpp" />
     <ClCompile Include="Core\Base\FRecordObjectState.cpp" />
     <ClCompile Include="Core\Base\FRenderProbe.cpp" />
+    <ClCompile Include="Core\Base\FTreansform.cpp" />
     <ClCompile Include="Core\Base\FUndoTransaction.cpp" />
     <ClCompile Include="Core\Base\TypeInfo.cpp" />
     <ClCompile Include="Core\Base\UUndoSystem.cpp" />
@@ -223,6 +224,10 @@
     <ClCompile Include="Render\Pipeline\UPipeline.cpp" />
     <ClCompile Include="Render\Pipeline\FShader.cpp" />
     <ClCompile Include="Render\Renderer.cpp" />
+    <ClCompile Include="Scene\UCamera.cpp" />
+    <ClCompile Include="Scene\URenderableObject.cpp" />
+    <ClCompile Include="Scene\USceneObject.cpp" />
+    <ClCompile Include="Scene\UWorld.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Common.h" />
@@ -235,6 +240,7 @@
     <ClInclude Include="Core\Base\FObjectItem.h" />
     <ClInclude Include="Core\Base\FRecordObjectState.h" />
     <ClInclude Include="Core\Base\FRenderProbe.h" />
+    <ClInclude Include="Core\Base\FTransform.h" />
     <ClInclude Include="Core\Base\FUndoTransaction.h" />
     <ClInclude Include="Core\Base\IUndoRecord.h" />
     <ClInclude Include="Core\Base\TypeInfo.h" />
@@ -267,6 +273,12 @@
     <ClInclude Include="Render\Pipeline\FShader.h" />
     <ClInclude Include="Render\Pipeline\Wrapper.h" />
     <ClInclude Include="Render\Renderer.h" />
+    <ClInclude Include="Scene\UCamera.h" />
+    <ClInclude Include="Scene\UCube.h" />
+    <ClInclude Include="Scene\URenderableObject.h" />
+    <ClInclude Include="Scene\USceneObject.h" />
+    <ClInclude Include="Scene\USphere.h" />
+    <ClInclude Include="Scene\UWorld.h" />
     <ClInclude Include="STL.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

@@ -38,6 +38,9 @@
     <Filter Include="Core\Asset">
       <UniqueIdentifier>{43e6b1bc-0755-4251-9234-11107f9fdd3b}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Scene">
+      <UniqueIdentifier>{d941dab7-6bab-4cbd-aeeb-94c5551175da}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Macaw.rc">
@@ -145,6 +148,21 @@
     </ClCompile>
     <ClCompile Include="Core\Base\FVertexAttribute.cpp">
       <Filter>Core\Base</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Base\FTreansform.cpp">
+      <Filter>Core\Base</Filter>
+    </ClCompile>
+    <ClCompile Include="Scene\UCamera.cpp">
+      <Filter>Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="Scene\UWorld.cpp">
+      <Filter>Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="Scene\USceneObject.cpp">
+      <Filter>Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="Scene\URenderableObject.cpp">
+      <Filter>Scene</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -266,6 +284,27 @@
     </ClInclude>
     <ClInclude Include="Core\Base\FVertexAttribute.h">
       <Filter>Core\Base</Filter>
+    </ClInclude>
+    <ClInclude Include="Scene\UCamera.h">
+      <Filter>Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="Scene\USceneObject.h">
+      <Filter>Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Base\FTransform.h">
+      <Filter>Core\Base</Filter>
+    </ClInclude>
+    <ClInclude Include="Scene\UCube.h">
+      <Filter>Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="Scene\URenderableObject.h">
+      <Filter>Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="Scene\UWorld.h">
+      <Filter>Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="Scene\USphere.h">
+      <Filter>Scene</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

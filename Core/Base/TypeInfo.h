@@ -1,5 +1,6 @@
 ﻿#pragma once
 
+#include <memory>
 #include <string_view>
 
 using FObjectCreator = std::unique_ptr<class UObject>(*)(); 
@@ -27,6 +28,7 @@ struct FTypeInfo {
 #define JG_DECLARE_ROOT_TYPEINFO(Type) \
     inline static const FTypeInfo TypeInfo{ #Type, nullptr }; \
     static const FTypeInfo& StaticTypeInfo() noexcept { return TypeInfo; }
+
 
 #define JG_DECLARE_DERIVED_TYPEINFO(Type, ParentType) \
     inline static const FTypeInfo TypeInfo{ #Type, &ParentType::StaticTypeInfo() }; \
