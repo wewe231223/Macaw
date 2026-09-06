@@ -224,6 +224,12 @@
     <ClCompile Include="Render\Pipeline\UPipeline.cpp" />
     <ClCompile Include="Render\Pipeline\FShader.cpp" />
     <ClCompile Include="Render\Renderer.cpp" />
+    <ClCompile Include="Scene\AActor.cpp" />
+    <ClCompile Include="Scene\Component\UActorComponent.cpp" />
+    <ClCompile Include="Scene\Component\UCameraComponent.cpp" />
+    <ClCompile Include="Scene\Component\UPrimitiveComponent.cpp" />
+    <ClCompile Include="Scene\Component\USceneComponent.cpp" />
+    <ClCompile Include="Scene\Component\UStaticMeshComponent.cpp" />
     <ClCompile Include="Scene\UCamera.cpp" />
     <ClCompile Include="Scene\URenderableObject.cpp" />
     <ClCompile Include="Scene\USceneObject.cpp" />
@@ -273,6 +279,12 @@
     <ClInclude Include="Render\Pipeline\FShader.h" />
     <ClInclude Include="Render\Pipeline\Wrapper.h" />
     <ClInclude Include="Render\Renderer.h" />
+    <ClInclude Include="Scene\AActor.h" />
+    <ClInclude Include="Scene\Component\UActorComponent.h" />
+    <ClInclude Include="Scene\Component\UCameraComponent.h" />
+    <ClInclude Include="Scene\Component\UPrimitiveComponent.h" />
+    <ClInclude Include="Scene\Component\USceneComponent.h" />
+    <ClInclude Include="Scene\Component\UStaticMeshComponent.h" />
     <ClInclude Include="Scene\UCamera.h" />
     <ClInclude Include="Scene\UCube.h" />
     <ClInclude Include="Scene\URenderableObject.h" />
