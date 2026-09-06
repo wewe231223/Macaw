@@ -283,13 +283,12 @@
     <ClInclude Include="Core\Base\UndoSystem\FRecordObjectState.h" />
     <ClInclude Include="Core\Base\UndoSystem\FUndoTransaction.h" />
     <ClInclude Include="Core\Base\UndoSystem\IUndoContext.h" />
-    <ClInclude Include="Core\Base\UndoSystem\IUndoRecord.h" />
     <ClInclude Include="Core\Base\TypeInfo.h" />
     <ClInclude Include="Core\Base\TypeRegistry.h" />
+    <ClInclude Include="Core\Base\UndoSystem\IUndoRecord.h" />
     <ClInclude Include="Core\Base\UndoSystem\UUndoSystem.h" />
     <ClInclude Include="Core\Base\FRenderProbe.h" />
     <ClInclude Include="Core\Base\FTransform.h" />
-    <ClInclude Include="Core\Base\IUndoRecord.h" />
     <ClInclude Include="Core\Base\UObject.h" />
     <ClInclude Include="Core\Base\UObjectSystem.h" />
     <ClInclude Include="Core\Base\FVertexAttribute.h" />
