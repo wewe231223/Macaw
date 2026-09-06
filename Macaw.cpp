@@ -15,7 +15,6 @@
 #include "ImGui/imgui_impl_dx11.h"
 #include "ImGui/imgui_impl_win32.h"
   
-#include "Render/Renderer.h"
 #include "Core/Console/Console.h"
 #include "Render/Console/ConsoleWindow.h"
 #include "Core/Asset/FAssetRegistry.h"
@@ -29,6 +28,8 @@
 #include "Scene/UCamera.h"
 #include "Core/Base/FTransform.h"
 #include "Scene/UWorld.h"
+#include "Scene/AActor.h"
+#include "Scene/Component/UStaticMeshComponent.h"
 
 #define MAX_LOADSTRING 100
 
@@ -120,11 +121,21 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
         MakeVertexAttribute<EVertexAttribute::UV>(UVs)
     );
 
-    UCube* Cube = World.SpawnObject<UCube>();
-    Cube->SetMeshHandle(
-        AssetRegistry.GetAsset(
-            EAssetType::Mesh,
-            "TriangleMesh"));
+    AActor* Actor = World.SpawnActor<AActor>();
+    AActor* CameraActor = World.SpawnActor<AActor>();
+
+    UStaticMeshComponent* RenderComponent = Actor->AddComponent<UStaticMeshComponent>();
+    UCameraComponent* Camera = CameraActor->AddComponent<UCameraComponent>();
+
+    Actor->SetRootComponent(RenderComponent);
+
+    RenderComponent->GetTransform().SetPosition({ 1.0f, 2.0f, 3.0f });
+    RenderComponent->GetTransform().SetRotation({ 0.0f, 0.0f, 0.0f });
+    RenderComponent->GetTransform().SetScale({ 1.0f, 1.0f, 1.0f });
+
+    RenderComponent->SetMeshHandle(AssetRegistry.GetAsset(EAssetType::Mesh, "TriangleMesh"));
+    RenderComponent->SetMaterialHandle({ 20, 2 });
+    RenderComponent->SetPipelineHandle({ 30, 3 });
 
     FRenderProbe Probe = World.BuildRenderProbe();
 
@@ -132,12 +143,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
         "Actor Count = " + std::to_string(Probe.ActorProbes.size()) + "\n";
 
     OutputDebugStringA(DebugText.c_str());
-
-    if (!Probe.ActorProbes.empty() &&
-        Probe.ActorProbes[0].MeshHandle == Cube->GetMeshHandle())
-    {
-        OutputDebugStringA("MeshHandle passed to Probe\n");
-    }
 
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();

@@ -1,32 +1,30 @@
 #include "PCH.h"
 #include "UWorld.h"
-#include "UCamera.h"
-#include "URenderableObject.h"
 
-const std::vector<std::unique_ptr<UObject>>& UWorld::GetObjects() const
+const std::vector<std::unique_ptr<AActor>>& UWorld::GetObjects() const
 {
-    return Objects;
+    return Actors;
 }
 
 FRenderProbe UWorld::BuildRenderProbe() const
 {
     FRenderProbe Probe;
 
-    for (const URenderableObject* Renderable : RenderableObjects)
+    for (const UStaticMeshComponent* MeshComponent : StaticMeshComponents)
     {
             ActorProbe Actor;
 
             Actor.World =
-                Renderable->GetTransform().GetWorldMatrix();
+                MeshComponent->GetTransform().GetWorldMatrix();
 
             Actor.MeshHandle =
-                Renderable->GetMeshHandle();
+                MeshComponent->GetMeshHandle();
 
             Actor.MaterialHandle =
-                Renderable->GetMaterialHandle();
+                MeshComponent->GetMaterialHandle();
 
             Actor.PipelineHandle =
-                Renderable->GetPipelineHandle();
+                MeshComponent->GetPipelineHandle();
 
             Probe.ActorProbes.push_back(Actor);
         
@@ -45,6 +43,19 @@ FRenderProbe UWorld::BuildRenderProbe() const
     }
 
 
-
     return Probe;
 }
+
+void UWorld::RegisterComponent(UActorComponent* Component)
+{
+    if (auto* Mesh = dynamic_cast<UStaticMeshComponent*>(Component))
+    {
+        StaticMeshComponents.push_back(Mesh);
+    }
+
+    if (auto* CameraComponent = dynamic_cast<UCameraComponent*>(Component))
+    {
+        Camera = CameraComponent;
+    }
+}
+

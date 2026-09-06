@@ -4,8 +4,8 @@
 #include "Core/Base/UObject.h"
 #include "Core/Base/UObjectSystem.h"
 #include "Core/Base/FRenderProbe.h"
-#include "URenderableObject.h"
-#include "UCamera.h"
+#include "Component/UCameraComponent.h"
+#include "Component/UStaticMeshComponent.h"
 
 class UWorld : public UObject
 {
@@ -14,30 +14,29 @@ public:
     ~UWorld() override = default;
 
     template<typename T>
-    T* SpawnObject()
+     requires std::is_base_of_v<AActor, T>
+    T* SpawnActor()
     {
-        std::unique_ptr<T> NewObject = std::make_unique<T>();
+        std::unique_ptr<T> NewActor = std::make_unique<T>();
 
-        T* ObjectPtr = NewObject.get();
+        T* ActorPtr = NewActor.get();
 
-        UObjectSystem::Register(ObjectPtr);
+        UObjectSystem::Register(ActorPtr);
 
-        Objects.push_back(std::move(NewObject));
+        ActorPtr->SetWorld(this);
+        Actors.push_back(std::move(NewActor));
 
-        if constexpr (std::is_base_of_v<URenderableObject, T>)
-        {
-            RenderableObjects.push_back(ObjectPtr);
-        }
-
-        return ObjectPtr;
+        return ActorPtr;
     }
 
-    const std::vector<std::unique_ptr<UObject>>& GetObjects() const;
+    const std::vector<std::unique_ptr<AActor>>& GetObjects() const;
     FRenderProbe BuildRenderProbe() const;
+    void RegisterComponent(UActorComponent* Component);
 
 private:
-    std::vector<std::unique_ptr<UObject>> Objects;
-    std::vector<URenderableObject*> RenderableObjects;
+    std::vector<std::unique_ptr<AActor>> Actors;
+    std::vector<UStaticMeshComponent*> StaticMeshComponents;
 
-    UCamera* Camera = nullptr;
+    UCameraComponent* Camera = nullptr;
+    
 };
