@@ -7,6 +7,7 @@
 bool FAssetRegistry::Initialize(ID3D11Device* Device, uint32 MaxMaterialCount) {
     return MaterialBuffer.Initialize(Device, MaxMaterialCount);
 }
+	ErrorHandler::Report("[ AssetRegistry ]", "Asset not found, Invalid Handle Returned for : " + Name, ErrorHandler::EErrorLevel::Warning);
 
 FAssetHandle FAssetRegistry::GetAsset(EAssetType Type, FString Name) const {
     const auto& NameMap = AssetNameToHandle[Type];

@@ -8,6 +8,7 @@
 #include "Render/Renderer.h"
 
 #include <d3d11.h>
+#include <chrono>
 #pragma comment(lib, "d3d11.lib")
 
 #include "ImGui/imgui.h"
@@ -15,10 +16,19 @@
 #include "ImGui/imgui_impl_dx11.h"
 #include "ImGui/imgui_impl_win32.h"
   
-#include "Render/Renderer.h"
 #include "Core/Console/Console.h"
 #include "Render/Console/ConsoleWindow.h"
 #include "Core/Asset/FAssetRegistry.h"
+
+//test
+#include "Render/Pipeline/UPipeline.h"
+#include "Core/Asset/UMesh.h"
+
+#include "Core/Base/FTransform.h"
+#include "Scene/UWorld.h"
+#include "Scene/AActor.h"
+#include "Scene/Component/UCameraComponent.h"
+#include "Scene/Component/UStaticMeshComponent.h"
 
 #include "Core/Base/TypeRegistry.h"
 
@@ -91,13 +101,13 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
 	Console::AddLog(Console::STDOutHandle, ELogLevel::Log, ELogCategory::Etc, "Macaw Engine Initialized.");
 
+    // test
+    UWorld World;
+
 	FRenderer Renderer;
 	Renderer.Create(gHWND, DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT);
 	
     FAssetRegistry AssetRegistry;
-	AssetRegistry.Initialize(Renderer.GetDevice(), 128);
-	Renderer.BindAssetRegistry(&AssetRegistry);
-
 	AssetRegistry.EmplaceAsset<UPipeline>(Renderer.GetDevice(), EAssetType::Pipeline, "BasePipeline", "./Pipeline/Base.json");
 
     std::vector<FVector3> Positions{
@@ -130,18 +140,36 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
         MakeVertexAttribute<EVertexAttribute::UV>(UVs)
     );
 
-	auto handle = AssetRegistry.EmplaceAsset<UColorMaterial>(Renderer.GetDevice(), EAssetType::Material, "BaseMaterial", FVector4{ 1.0f, 0.0f, 0.0f, 1.0f });
+    AActor* Actor = World.SpawnActor<AActor>();
+    AActor* CameraActor = World.SpawnActor<AActor>();
 
-	AssetRegistry.ModifyAsset<UColorMaterial>(EAssetType::Material, handle, [](UColorMaterial& Material) {
-		Material.SetColor(FVector4{ 0.0f, 1.0f, 0.0f, 1.0f });
-	});
+    UStaticMeshComponent* RenderComponent = Actor->AddComponent<UStaticMeshComponent>();
+    UCameraComponent* Camera = CameraActor->AddComponent<UCameraComponent>();
 
-	AssetRegistry.GetMaterialBuffer().Flush(Renderer.GetDeviceContext());
+    Actor->SetRootComponent(RenderComponent);
+    CameraActor->SetRootComponent(Camera);
+
+    RenderComponent->GetTransform().SetPosition({ 1.0f, 2.0f, 3.0f });
+    RenderComponent->GetTransform().SetRotation({ 0.0f, 0.0f, 0.0f });
+    RenderComponent->GetTransform().SetScale({ 1.0f, 1.0f, 1.0f });
+
+    RenderComponent->SetMeshHandle(AssetRegistry.GetAsset(EAssetType::Mesh, "TriangleMesh"));
+    RenderComponent->SetPipelineHandle(
+        AssetRegistry.GetAsset(EAssetType::Pipeline, "BasePipeline"));
+
+    FRenderProbe Probe = World.BuildRenderProbe();
+
+    std::string DebugText =
+        "Actor Count = " + std::to_string(Probe.ActorProbes.size()) + "\n";
+
+    OutputDebugStringA(DebugText.c_str());
 
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGui_ImplWin32_Init((void*)hWnd);
     ImGui_ImplDX11_Init(Renderer.GetDevice(), Renderer.GetDeviceContext());
+
+    auto LastTickTime = std::chrono::steady_clock::now();
 
     while (true) {
         if (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE)) {
@@ -154,6 +182,11 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
             }
         }
         else {
+            const auto CurrentTickTime = std::chrono::steady_clock::now();
+            const float DeltaTime = std::chrono::duration<float>(CurrentTickTime - LastTickTime).count();
+            LastTickTime = CurrentTickTime;
+
+            World.Tick(DeltaTime);
             Renderer.BeginFrame();
 
 

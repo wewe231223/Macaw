@@ -4,7 +4,7 @@
 #include <cstdint>
 #include <stdexcept>
 
-//#include "../Memory.h"
+#include "../Core/Memory/Memory.h"
 #include "../STL.h"
 
 TEST_SUITE("Memory") {

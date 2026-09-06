@@ -31,6 +31,7 @@ public:
     template<typename T, typename... Args> requires std::is_base_of_v<UObject, T>
     inline FAssetHandle EmplaceAsset(ID3D11Device* Device, EAssetType Type, FString Name, Args&&... args) {
         std::unique_ptr<T> NewAsset = std::make_unique<T>();
+		NewAsset->Initialize(Device, std::forward<Args>(args)...);
 
         if (!NewAsset->Initialize(Device, std::forward<Args>(args)...)) {
             return {};

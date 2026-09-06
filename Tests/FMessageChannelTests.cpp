@@ -6,7 +6,7 @@
 #include <utility>
 #include <vector>
 
-#include "../Core/Base/TypeInfo.hpp"
+#include "../Core/Base/TypeInfo.h"
 #include "../Core/Channel/FMessageChannel.h"
 
 namespace {

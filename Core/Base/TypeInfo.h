@@ -1,5 +1,6 @@
 ﻿#pragma once
 
+#include <memory>
 #include <string_view>
 
 using FObjectCreator = std::unique_ptr<class UObject>(*)(); 
