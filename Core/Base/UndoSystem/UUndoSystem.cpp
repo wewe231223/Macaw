@@ -3,9 +3,15 @@
 
 #include <optional>
 
+#include "IUndoContext.h"
 #include "FUndoTransaction.h"
 #include "FRecordObjectState.h" 
-#include "UObject.h"
+#include "../../../Serialize/FArchiveMemory.h"
+#include "../../Channel/FMessageChannel.h"
+#include "../../Channel/FMessage.h"
+#include "FObjectStateChangedMessage.h"
+
+class UObject;
 
 namespace
 {
@@ -75,6 +81,8 @@ namespace
         std::unique_ptr<FUndoTransaction> CurrentTransaction = nullptr;
         std::vector<std::function<void(FUndoTransaction&)>> PendingFinalizers;
         std::unordered_set<UObject*> ModifiedObjectsThisTransaction;
+
+        std::optional<FMessageChannel::FSender> MessageSender;
     };
 
     static FUndoSystemState& GetState()
@@ -82,10 +90,68 @@ namespace
         static FUndoSystemState State;
         return State;
     }
+
+
+    template<typename TMessage> requires CMessageType<std::remove_cvref_t<TMessage>>
+    bool SendMessageToWorldChannel(TMessage&& Message)
+    {
+        FUndoSystemState& State = GetState();
+        if (State.MessageSender.has_value())
+        {
+            return State.MessageSender->TryPush(std::forward<TMessage>(Message));
+        }
+        return false;
+    }
+    template<CMessageType TMessage, typename... Args> requires CMessageConstructible<TMessage, Args...>
+    bool EmplaceMessageToWorldChannel(Args&&... Arguments)
+    {
+        FUndoSystemState& State = GetState();
+        if (State.MessageSender.has_value())
+        {
+            return State.MessageSender->TryEmplace<TMessage>(std::forward<Args>(Arguments)...);
+        }
+        return false;
+    }
+
+
+    class FUndoContextImpl : public IUndoContext
+    {
+    public:
+        virtual void NotifyObjectChanged(const FGuid& Guid, const std::vector<uint8>& Data) override
+        {
+            EmplaceMessageToWorldChannel<FObjectStateChangedMessage>(Guid, std::vector<uint8>(Data));
+        }
+
+        virtual void NotifyObjectDeleted(const FGuid& Guid) override
+        {
+            // 나중에 FObjectDeletedMessage 메시지가 생기면 여기서 쏴주면 됨
+            // EmplaceMessageToWorldChannel<FObjectDeletedMessage>(Guid, ...);
+        }
+
+        virtual void NotifyObjectSpawned(const FGuid& Guid) override
+        {
+            // 나중에 FObjectSpawnedMessage 메시지가 생기면 여기서 쏴주면 됨
+            // EmplaceMessageToWorldChannel<FObjectSpawnedMessage>(Guid, ...);
+        }
+    };
+
+
 }
 
 namespace UUndoSystem
 {
+    // =================================================================
+    // Message Sender 관리 API
+    // =================================================================
+    void InitializeSenderToWorldChannel(FMessageChannel::FSender&& SenderToWorldChannel)
+    {
+        FUndoSystemState& State = GetState();
+        State.MessageSender.emplace(std::move(SenderToWorldChannel));
+    }
+
+    // =================================================================
+    // Undo/Redo API
+    // =================================================================
     void BeginTransaction(const FString& TransactionName)
     {
         FUndoSystemState& State = GetState();
@@ -99,25 +165,24 @@ namespace UUndoSystem
     void Modify(UObject* TargetObject)
     {
         FUndoSystemState& State = GetState();
-        if (!State.CurrentTransaction || !TargetObject) return;
+        if (!State.CurrentTransaction || !TargetObject)
+            return;
 
         if (State.ModifiedObjectsThisTransaction.contains(TargetObject))
             return;
+
         State.ModifiedObjectsThisTransaction.insert(TargetObject);
 
-        std::vector<uint8_t> BeforeData;
-        // TODO
-        // Serialize가 구현되면, 현재 target object의 값을 serialize해서 이를 before data 에 저장해야함
-        // 예시: TargetObject->Serialize(BeforeData);
+        std::vector<uint8> BeforeData;
+        FArchiveMemory MemoryArchiveBefore(BeforeData);
+        TargetObject->Save(MemoryArchiveBefore); 
 
-        // 트랜잭션이 끝난 뒤의 상태를 저장하는 람다
         State.PendingFinalizers.push_back(
-            [TargetObject, BeforeData](FUndoTransaction& Transaction)
+            [TargetObject, BeforeData = std::move(BeforeData)](FUndoTransaction& Transaction)
             {
-                std::vector<uint8_t> AfterData;
-                // TODO
-                // Serialize가 구현되면, 현재 target object의 값을 serialize해서 이를 이번에는 after data 에 저장해야함
-                // TargetObject->Serialize(AfterData);
+                std::vector<uint8> AfterData;
+                FArchiveMemory MemoryArchiveAfter(AfterData);
+                TargetObject->Save(MemoryArchiveAfter);
 
                 auto Record = std::make_unique<FRecordObjectState>(
                     TargetObject->GetGuid(), BeforeData, AfterData);
@@ -149,7 +214,8 @@ namespace UUndoSystem
     {
         if (FUndoTransaction* Transactions = GetState().History.Undo())
         {
-            Transactions->Undo();
+            FUndoContextImpl UndoContext;
+            Transactions->Undo(UndoContext);
         }
     }
 
@@ -157,7 +223,8 @@ namespace UUndoSystem
     {
         if (FUndoTransaction* Transactions = GetState().History.Redo())
         {
-            Transactions->Redo();
+            FUndoContextImpl RedoContext;
+            Transactions->Redo(RedoContext);
         }
     }
 }

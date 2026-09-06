@@ -1,8 +1,8 @@
 ﻿#pragma once
-#include "../../STL.h" 
+#include "../../../STL.h" 
 
-class IUndoRecord; 
-
+class IUndoContext;
+class IUndoRecord;
 class FUndoTransaction
 {
 public:
@@ -23,8 +23,8 @@ public:
         Records.push_back(std::move(Record));
     }
 
-    void Undo();
-    void Redo();
+    void Undo(IUndoContext& Context);
+    void Redo(IUndoContext& Context);
 
 private:
     FString TransactionName;

@@ -4,7 +4,7 @@
 #include "../../ErrorHandler.h"
 
 bool FMessageHandler::Handles(const FTypeInfo& Type) const noexcept {
-	return mMessageType->isExactlyA(Type);
+	return mMessageType->isExactlyA(&Type);
 }
 
 const FTypeInfo& FMessageHandler::GetMessageType() const noexcept {
@@ -22,6 +22,3 @@ void FMessageHandler::Invoke(const FMessage& Message) {
 
     mFunction(Message);
 }
-
-
-
