@@ -164,6 +164,9 @@
   <ItemGroup>
     <ClCompile Include="Core\Asset\FAssetHandle.cpp" />
     <ClCompile Include="Core\Asset\FAssetRegistry.cpp" />
+    <ClCompile Include="Core\Asset\FMaterialBuffer.cpp" />
+    <ClCompile Include="Core\Asset\FMaterialGPUData.cpp" />
+    <ClCompile Include="Core\Asset\UColorMaterial.cpp" />
     <ClCompile Include="Core\Asset\UMaterial.cpp" />
     <ClCompile Include="Core\Asset\UMesh.cpp" />
     <ClCompile Include="Core\Base\FGuid.cpp" />
@@ -171,6 +174,7 @@
     <ClCompile Include="Core\Base\UndoSystem\FUndoTransaction.cpp" />
     <ClCompile Include="Core\Base\TypeInfo.cpp" />
     <ClCompile Include="Core\Base\TypeRegistry.cpp" />
+    <ClCompile Include="Core\Base\UUndoSystem.cpp" />
     <ClCompile Include="Core\Base\UObject.cpp" />
     <ClCompile Include="Core\Base\UObjectSystem.cpp" />
     <ClCompile Include="Core\Base\UndoSystem\UUndoSystem.cpp" />
@@ -230,6 +234,9 @@
     <ClInclude Include="Common.h" />
     <ClInclude Include="Core\Asset\FAssetHandle.h" />
     <ClInclude Include="Core\Asset\FAssetRegistry.h" />
+    <ClInclude Include="Core\Asset\FMaterialBuffer.h" />
+    <ClInclude Include="Core\Asset\FMaterialGPUData.h" />
+    <ClInclude Include="Core\Asset\UColorMaterial.h" />
     <ClInclude Include="Core\Asset\UMaterial.h" />
     <ClInclude Include="Core\Asset\UMesh.h" />
     <ClInclude Include="Core\Base\FGuid.h" />
@@ -242,6 +249,7 @@
     <ClInclude Include="Core\Base\UndoSystem\IUndoRecord.h" />
     <ClInclude Include="Core\Base\TypeInfo.h" />
     <ClInclude Include="Core\Base\TypeRegistry.h" />
+    <ClInclude Include="Core\Base\UUndoSystem.h" />
     <ClInclude Include="Core\Base\UObject.h" />
     <ClInclude Include="Core\Base\UObjectSystem.h" />
     <ClInclude Include="Core\Base\UndoSystem\UUndoSystem.h" />

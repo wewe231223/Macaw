@@ -20,9 +20,12 @@
 #include "Render/Console/ConsoleWindow.h"
 #include "Core/Asset/FAssetRegistry.h"
 
+#include "Core/Base/TypeRegistry.h"
+
 //test
 #include "Render/Pipeline/UPipeline.h"
 #include "Core/Asset/UMesh.h"
+#include "Core/Asset/UColorMaterial.h"
 
 #define MAX_LOADSTRING 100
 
@@ -57,6 +60,19 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     UNREFERENCED_PARAMETER(lpCmdLine);
 
     // TODO: 여기에 코드를 입력합니다.
+	TypeRegistry::Register(UObject::StaticTypeInfo());
+    TypeRegistry::Register(UMesh::StaticTypeInfo());
+    TypeRegistry::Register(UPipeline::StaticTypeInfo());
+
+
+    auto res = TypeRegistry::Find("UMesh")->Creator();
+	if (res->GetTypeInfo()->IsA(UMesh::StaticTypeInfo())) {
+		Console::AddLog(Console::STDOutHandle, ELogLevel::Log, ELogCategory::Etc, "UMesh instance created successfully.");
+	}
+	else {
+		Console::AddLog(Console::STDOutHandle, ELogLevel::Error, ELogCategory::Etc, "Failed to create UMesh instance.");
+	}
+
 
     // 전역 문자열을 초기화합니다.
     LoadStringW(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
@@ -79,6 +95,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	Renderer.Create(gHWND, DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT);
 	
     FAssetRegistry AssetRegistry;
+	AssetRegistry.Initialize(Renderer.GetDevice(), 128);
+
 	AssetRegistry.EmplaceAsset<UPipeline>(Renderer.GetDevice(), EAssetType::Pipeline, "BasePipeline", "./Pipeline/Base.json");
 
     std::vector<FVector3> Positions{
@@ -111,7 +129,16 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
         MakeVertexAttribute<EVertexAttribute::UV>(UVs)
     );
 
+	auto handle = AssetRegistry.EmplaceAsset<UColorMaterial>(Renderer.GetDevice(), EAssetType::Material, "BaseMaterial", FVector4{ 1.0f, 0.0f, 0.0f, 1.0f });
 
+	AssetRegistry.ModifyAsset<UColorMaterial>(EAssetType::Material, handle, [](UColorMaterial& Material) {
+		Material.SetColor(FVector4{ 0.0f, 1.0f, 0.0f, 1.0f });
+	});
+
+	AssetRegistry.GetMaterialBuffer().Flush(Renderer.GetDeviceContext());
+
+	FRenderProbe RenderProbe;
+	Renderer.AcceptRenderProbe(RenderProbe);
 
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();

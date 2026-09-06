@@ -42,7 +42,7 @@ public:
     }
 
 public:
-    [[nodiscard]] bool Handles(const FTypeInfo& Type) const noexcept;
+    [[nodiscard]] bool Handles(const FTypeInfo* Type) const noexcept;
     [[nodiscard]] const FTypeInfo& GetMessageType() const noexcept;
 
     void Invoke(const FMessage& Message);

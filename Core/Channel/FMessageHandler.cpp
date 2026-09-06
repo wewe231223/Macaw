@@ -3,8 +3,8 @@
 
 #include "../../ErrorHandler.h"
 
-bool FMessageHandler::Handles(const FTypeInfo& Type) const noexcept {
-	return mMessageType->isExactlyA(&Type);
+bool FMessageHandler::Handles(const FTypeInfo* Type) const noexcept {
+	return mMessageType->isExactlyA(Type);
 }
 
 const FTypeInfo& FMessageHandler::GetMessageType() const noexcept {

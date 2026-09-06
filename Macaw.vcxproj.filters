@@ -38,6 +38,9 @@
     <Filter Include="Core\Serialize">
       <UniqueIdentifier>{0c2250c5-0ae4-482a-ba54-ddd866def366}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Core\Base\RTTI">
+      <UniqueIdentifier>{41f9510c-7de0-4e8b-9d5e-963f5767a333}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Macaw.rc">

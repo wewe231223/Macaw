@@ -33,6 +33,10 @@ void FRenderer::EndFrame() {
 	SwapChain->Present(1, 0);
 }
 
+void FRenderer::AcceptRenderProbe(const FRenderProbe& Probe)
+{
+}
+
 void FRenderer::CreateDeviceAndSwapChain(HWND WindowHandle) {
 	// 지원하는 Direct3D 기능 레벨을 정의
 	D3D_FEATURE_LEVEL featurelevels[] = { D3D_FEATURE_LEVEL_11_0 };
