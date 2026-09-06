@@ -5,6 +5,7 @@
 #include "Core/Base/UObjectSystem.h"
 #include "Core/Base/FRenderProbe.h"
 #include "URenderableObject.h"
+#include "UCamera.h"
 
 class UWorld : public UObject
 {
@@ -37,4 +38,6 @@ public:
 private:
     std::vector<std::unique_ptr<UObject>> Objects;
     std::vector<URenderableObject*> RenderableObjects;
+
+    UCamera* Camera = nullptr;
 };

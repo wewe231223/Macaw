@@ -32,5 +32,19 @@ FRenderProbe UWorld::BuildRenderProbe() const
         
     }
 
+    if (Camera != nullptr)
+    {
+        Probe.MainCameraProbe.View =
+            Camera->GetViewMatrix();
+
+        Probe.MainCameraProbe.Projection =
+            Camera->GetProjectionMatrix();
+
+        Probe.MainCameraProbe.ViewProjection =
+            Camera->GetViewProjectionMatrix();
+    }
+
+
+
     return Probe;
 }
