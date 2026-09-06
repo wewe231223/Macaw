@@ -30,7 +30,7 @@ public:
     }
 
     const std::vector<std::unique_ptr<AActor>>& GetObjects() const;
-    FRenderProbe BuildRenderProbe() const;
+    const FRenderProbe& BuildRenderProbe();
     void RegisterComponent(UActorComponent* Component);
 
 private:
@@ -38,5 +38,6 @@ private:
     std::vector<UStaticMeshComponent*> StaticMeshComponents;
 
     UCameraComponent* Camera = nullptr;
+    FRenderProbe RenderProbe;
     
 };

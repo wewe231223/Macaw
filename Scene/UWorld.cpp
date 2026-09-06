@@ -1,49 +1,36 @@
 #include "PCH.h"
 #include "UWorld.h"
+#include "Core/Base/TypeInfo.h"
+#include "Scene/Component/UStaticMeshComponent.h"
 
 const std::vector<std::unique_ptr<AActor>>& UWorld::GetObjects() const
 {
     return Actors;
 }
 
-FRenderProbe UWorld::BuildRenderProbe() const
+const FRenderProbe& UWorld::BuildRenderProbe()
 {
-    FRenderProbe Probe;
+    RenderProbe.ActorProbes.clear();
 
     for (const UStaticMeshComponent* MeshComponent : StaticMeshComponents)
     {
-            ActorProbe Actor;
+        ActorProbe Actor;
 
-            Actor.World =
-                MeshComponent->GetTransform().GetWorldMatrix();
+        Actor.World = MeshComponent->GetTransform().GetWorldMatrix();
+        Actor.MeshHandle = MeshComponent->GetMeshHandle();
+        Actor.MaterialHandle = MeshComponent->GetMaterialHandle();
+        Actor.PipelineHandle = MeshComponent->GetPipelineHandle();
 
-            Actor.MeshHandle =
-                MeshComponent->GetMeshHandle();
-
-            Actor.MaterialHandle =
-                MeshComponent->GetMaterialHandle();
-
-            Actor.PipelineHandle =
-                MeshComponent->GetPipelineHandle();
-
-            Probe.ActorProbes.push_back(Actor);
-        
+        RenderProbe.ActorProbes.push_back(Actor);
     }
 
     if (Camera != nullptr)
     {
-        Probe.MainCameraProbe.View =
-            Camera->GetViewMatrix();
-
-        Probe.MainCameraProbe.Projection =
-            Camera->GetProjectionMatrix();
-
-        Probe.MainCameraProbe.ViewProjection =
-            Camera->GetViewProjectionMatrix();
+        RenderProbe.MainCameraProbe.View = Camera->GetViewMatrix();
+        RenderProbe.MainCameraProbe.Projection = Camera->GetProjectionMatrix();
+        RenderProbe.MainCameraProbe.ViewProjection = Camera->GetViewProjectionMatrix();
     }
-
-
-    return Probe;
+    return RenderProbe;
 }
 
 void UWorld::RegisterComponent(UActorComponent* Component)
@@ -59,3 +46,15 @@ void UWorld::RegisterComponent(UActorComponent* Component)
     }
 }
 
+//void UWorld::RegisterComponent(UActorComponent* Component)
+//{
+//    if (Component->GetTypeInfo()->IsA(UStaticMeshComponent::StaticTypeInfo()))
+//    {
+//        StaticMeshComponents.push_back(static_cast<UStaticMeshComponent*>(Component));
+//    }
+//
+//    if (Component->GetTypeInfo()->IsA(UCameraComponent::StaticTypeInfo()))
+//    {
+//        Camera = static_cast<UCameraComponent*>(Component);
+//    }
+//}
