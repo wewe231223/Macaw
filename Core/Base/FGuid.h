@@ -9,6 +9,8 @@ struct FGuid
 
     static FGuid NewGuid();
     FString ToString() const;
+    bool Parse(const FString& GuidString);
+
 
     inline bool IsValid() const
     {
@@ -24,4 +26,5 @@ struct FGuid
     {
         return !(*this == Other);
     }
+
 };

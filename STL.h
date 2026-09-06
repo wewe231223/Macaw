@@ -51,3 +51,6 @@ using TFixedArray = std::array<T, N>;
 
 template <typename T, typename K> 
 using TPair = std::pair<T, K>;
+
+template<typename... Types> 
+using TTuple = std::tuple<Types...>;

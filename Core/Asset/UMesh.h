@@ -15,6 +15,8 @@
 #include <d3d11.h>
 #include <wrl/client.h>
 
+#include "../Base/TypeInfo.h"
+
 class UMesh : public UObject {
 private:
 	struct FVertexAttributeStorageBase {
@@ -57,6 +59,9 @@ public:
 	UMesh& operator=(UMesh&&) noexcept = default;
 
 public:
+	JG_DECLARE_DERIVED_TYPEINFO(UMesh, UObject);
+
+
 	template<CVertexAttributeView... TAttributes>
 	bool Initialize(ID3D11Device* Device, const TArray<uint32>& InIndices, const TAttributes&... InAttributes) {
 		static_assert(sizeof...(TAttributes) > 0, "UMesh requires at least one vertex attribute.");
@@ -96,7 +101,7 @@ public:
 			if (!CreateVertexBuffer(Device, InAttribute)) {
 				bSuccess = false;
 			}
-			};
+		};
 
 		(ProcessAttribute(InAttributes), ...);
 
@@ -222,3 +227,4 @@ private:
 	uint32 VertexCount = 0;
 	uint32 IndexCount = 0;
 };
+

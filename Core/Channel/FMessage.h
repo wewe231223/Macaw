@@ -82,7 +82,7 @@ public:
     }
 
     [[nodiscard]] bool IsValid() const noexcept;
-    [[nodiscard]] const FTypeInfo& GetTypeInfo() const noexcept;
+    [[nodiscard]] const FTypeInfo* GetTypeInfo() const noexcept;
 
     template<CMessageType T>
     [[nodiscard]] inline bool Is() const noexcept {

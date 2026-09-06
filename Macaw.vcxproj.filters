@@ -35,14 +35,14 @@
     <Filter Include="Imgui">
       <UniqueIdentifier>{c60b77dd-82f0-4925-acf5-d3375809e190}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Core\Asset">
-      <UniqueIdentifier>{43e6b1bc-0755-4251-9234-11107f9fdd3b}</UniqueIdentifier>
+    <Filter Include="Core\Serialize">
+      <UniqueIdentifier>{0c2250c5-0ae4-482a-ba54-ddd866def366}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Scene">
-      <UniqueIdentifier>{d941dab7-6bab-4cbd-aeeb-94c5551175da}</UniqueIdentifier>
+    <Filter Include="Core\Base\RTTI">
+      <UniqueIdentifier>{41f9510c-7de0-4e8b-9d5e-963f5767a333}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Scene\Component">
-      <UniqueIdentifier>{5a9cab8f-2ea3-4509-bbc3-792ec9a4e364}</UniqueIdentifier>
+    <Filter Include="Core\Buffer">
+      <UniqueIdentifier>{7db4d6ca-7e35-45dc-8d48-d3c0d16905aa}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -62,13 +62,10 @@
     <ClCompile Include="Core\Base\FGuid.cpp">
       <Filter>Core\Base</Filter>
     </ClCompile>
-    <ClCompile Include="Core\Base\FRecordObjectState.cpp">
+    <ClCompile Include="Core\Base\UndoSystem\FRecordObjectState.cpp">
       <Filter>Core\Base</Filter>
     </ClCompile>
-    <ClCompile Include="Core\Base\FUndoTransaction.cpp">
-      <Filter>Core\Base</Filter>
-    </ClCompile>
-    <ClCompile Include="Core\Base\UUndoSystem.cpp">
+    <ClCompile Include="Core\Base\UndoSystem\FUndoTransaction.cpp">
       <Filter>Core\Base</Filter>
     </ClCompile>
     <ClCompile Include="Core\Channel\FMessage.cpp">
@@ -128,72 +125,42 @@
       <Filter>Imgui</Filter>
     </ClCompile>
     <ClCompile Include="Macaw.cpp" />
-    <ClCompile Include="Core\Asset\FAssetHandle.cpp">
-      <Filter>Core\Asset</Filter>
-    </ClCompile>
-    <ClCompile Include="Core\Asset\FAssetRegistry.cpp">
-      <Filter>Core\Asset</Filter>
-    </ClCompile>
-    <ClCompile Include="Core\Base\FRenderProbe.cpp">
-      <Filter>Core\Base</Filter>
-    </ClCompile>
-    <ClCompile Include="Core\Asset\UMaterial.cpp">
-      <Filter>Core\Asset</Filter>
-    </ClCompile>
-    <ClCompile Include="Core\Asset\UMesh.cpp">
-      <Filter>Core\Asset</Filter>
-    </ClCompile>
-    <ClCompile Include="Core\Base\UObject.cpp">
-      <Filter>Core\Base\UObject</Filter>
-    </ClCompile>
-    <ClCompile Include="Core\Base\TypeInfo.cpp">
-      <Filter>Core\Base</Filter>
-    </ClCompile>
-    <ClCompile Include="Core\Base\FVertexAttribute.cpp">
-      <Filter>Core\Base</Filter>
-    </ClCompile>
-    <ClCompile Include="Core\Base\FTreansform.cpp">
-      <Filter>Core\Base</Filter>
-    </ClCompile>
-    <ClCompile Include="Scene\UWorld.cpp">
-      <Filter>Scene</Filter>
-    </ClCompile>
-    <ClCompile Include="Scene\AActor.cpp">
-      <Filter>Scene</Filter>
-    </ClCompile>
-    <ClCompile Include="Scene\Component\UActorComponent.cpp">
-      <Filter>Scene\Component</Filter>
-    </ClCompile>
-    <ClCompile Include="Scene\Component\UCameraComponent.cpp">
-      <Filter>Scene\Component</Filter>
-    </ClCompile>
-    <ClCompile Include="Scene\Component\UPrimitiveComponent.cpp">
-      <Filter>Scene\Component</Filter>
-    </ClCompile>
-    <ClCompile Include="Scene\Component\USceneComponent.cpp">
-      <Filter>Scene\Component</Filter>
-    </ClCompile>
-    <ClCompile Include="Scene\Component\UStaticMeshComponent.cpp">
-      <Filter>Scene\Component</Filter>
-    </ClCompile>
+    <ClCompile Include="Serialize\FArchive.cpp" />
+    <ClCompile Include="Serialize\FArchiveJson.cpp" />
+    <ClCompile Include="Core\Base\TypeInfo.cpp" />
+    <ClCompile Include="Core\Base\TypeRegistry.cpp" />
+    <ClCompile Include="Serialize\FArchiveMemory.cpp" />
+    <ClCompile Include="Core\Asset\FAssetHandle.cpp" />
+    <ClCompile Include="Core\Asset\FAssetRegistry.cpp" />
+    <ClCompile Include="Core\Asset\FMaterialBuffer.cpp" />
+    <ClCompile Include="Core\Asset\FMaterialGPUData.cpp" />
+    <ClCompile Include="Core\Asset\UColorMaterial.cpp" />
+    <ClCompile Include="Core\Asset\UMaterial.cpp" />
+    <ClCompile Include="Core\Asset\UMesh.cpp" />
+    <ClCompile Include="Core\Base\UObject.cpp" />
+    <ClCompile Include="Core\Base\FVertexAttribute.cpp" />
+    <ClCompile Include="Core\Buffer\FGraphicsBuffer.cpp" />
+    <ClCompile Include="Core\Buffer\TGraphicsArray.cpp" />
+    <ClCompile Include="Core\Buffer\FGraphicsConstant.cpp" />
+    <ClCompile Include="Core\Base\UndoSystem\UUndoSystem.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Core\Base\FGuid.h">
       <Filter>Core\Base</Filter>
     </ClInclude>
-    <ClInclude Include="Core\Base\FRecordObjectState.h">
+    <ClInclude Include="Core\Base\FObjectHandle.h">
       <Filter>Core\Base</Filter>
     </ClInclude>
-    <ClInclude Include="Core\Base\FUndoTransaction.h">
+    <ClInclude Include="Core\Base\FObjectItem.h">
       <Filter>Core\Base</Filter>
     </ClInclude>
-    <ClInclude Include="Core\Base\IUndoRecord.h">
+    <ClInclude Include="Core\Base\UndoSystem\FRecordObjectState.h">
       <Filter>Core\Base</Filter>
     </ClInclude>
-    <ClInclude Include="Core\Base\TypeInfo.h">
+    <ClInclude Include="Core\Base\UndoSystem\FUndoTransaction.h">
       <Filter>Core\Base</Filter>
     </ClInclude>
-    <ClInclude Include="Core\Base\UUndoSystem.h">
+    <ClInclude Include="Core\Base\UndoSystem\IUndoRecord.h">
       <Filter>Core\Base</Filter>
     </ClInclude>
     <ClInclude Include="Core\Channel\FMessage.h">
@@ -270,56 +237,27 @@
     <ClInclude Include="ImGui\stb_image.h">
       <Filter>Imgui</Filter>
     </ClInclude>
-    <ClInclude Include="Core\Asset\FAssetHandle.h">
-      <Filter>Core\Asset</Filter>
+    <ClInclude Include="Serialize\FArchive.h">
+      <Filter>Core\Serialize</Filter>
     </ClInclude>
-    <ClInclude Include="Core\Asset\FAssetRegistry.h">
-      <Filter>Core\Asset</Filter>
-    </ClInclude>
-    <ClInclude Include="Core\Base\FRenderProbe.h">
-      <Filter>Core\Base</Filter>
-    </ClInclude>
-    <ClInclude Include="Core\Asset\UMaterial.h">
-      <Filter>Core\Asset</Filter>
-    </ClInclude>
-    <ClInclude Include="Core\Asset\UMesh.h">
-      <Filter>Core\Asset</Filter>
-    </ClInclude>
-    <ClInclude Include="Core\Base\FObjectItem.h">
-      <Filter>Core\Base\UObject</Filter>
-    </ClInclude>
-    <ClInclude Include="Core\Base\FObjectHandle.h">
-      <Filter>Core\Base\UObject</Filter>
-    </ClInclude>
-    <ClInclude Include="Core\Base\UObject.h">
-      <Filter>Core\Base\UObject</Filter>
-    </ClInclude>
-    <ClInclude Include="Core\Base\FVertexAttribute.h">
-      <Filter>Core\Base</Filter>
-    </ClInclude>
-    <ClInclude Include="Core\Base\FTransform.h">
-      <Filter>Core\Base</Filter>
-    </ClInclude>
-    <ClInclude Include="Scene\UWorld.h">
-      <Filter>Scene</Filter>
-    </ClInclude>
-    <ClInclude Include="Scene\AActor.h">
-      <Filter>Scene</Filter>
-    </ClInclude>
-    <ClInclude Include="Scene\Component\UActorComponent.h">
-      <Filter>Scene\Component</Filter>
-    </ClInclude>
-    <ClInclude Include="Scene\Component\UCameraComponent.h">
-      <Filter>Scene\Component</Filter>
-    </ClInclude>
-    <ClInclude Include="Scene\Component\UPrimitiveComponent.h">
-      <Filter>Scene\Component</Filter>
-    </ClInclude>
-    <ClInclude Include="Scene\Component\USceneComponent.h">
-      <Filter>Scene\Component</Filter>
-    </ClInclude>
-    <ClInclude Include="Scene\Component\UStaticMeshComponent.h">
-      <Filter>Scene\Component</Filter>
-    </ClInclude>
+    <ClInclude Include="Serialize\FArchiveJson.h" />
+    <ClInclude Include="Core\Base\TypeInfo.h" />
+    <ClInclude Include="Core\Base\TypeRegistry.h" />
+    <ClInclude Include="Serialize\FArchiveMemory.h" />
+    <ClInclude Include="Core\Base\UndoSystem\IUndoContext.h" />
+    <ClInclude Include="Core\Base\UndoSystem\FObjectStateChangedMessage.h" />
+    <ClInclude Include="Core\Asset\FAssetHandle.h" />
+    <ClInclude Include="Core\Asset\FAssetRegistry.h" />
+    <ClInclude Include="Core\Asset\FMaterialBuffer.h" />
+    <ClInclude Include="Core\Asset\FMaterialGPUData.h" />
+    <ClInclude Include="Core\Asset\UColorMaterial.h" />
+    <ClInclude Include="Core\Asset\UMaterial.h" />
+    <ClInclude Include="Core\Asset\UMesh.h" />
+    <ClInclude Include="Core\Base\UObject.h" />
+    <ClInclude Include="Core\Base\FVertexAttribute.h" />
+    <ClInclude Include="Core\Buffer\FGraphicsBuffer.h" />
+    <ClInclude Include="Core\Buffer\TGraphicsArray.h" />
+    <ClInclude Include="Core\Buffer\FGraphicsConstant.h" />
+    <ClInclude Include="Core\Base\UndoSystem\UUndoSystem.h" />
   </ItemGroup>
 </Project>

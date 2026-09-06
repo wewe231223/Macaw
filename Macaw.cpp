@@ -30,13 +30,20 @@
 #include "Scene/Component/UCameraComponent.h"
 #include "Scene/Component/UStaticMeshComponent.h"
 
+#include "Core/Base/TypeRegistry.h"
+
+//test
+#include "Render/Pipeline/UPipeline.h"
+#include "Core/Asset/UMesh.h"
+#include "Core/Asset/UColorMaterial.h"
+
 #define MAX_LOADSTRING 100
 
 
 #pragma comment(lib, "d3dcompiler.lib")
 #pragma comment(lib, "d3d11.lib")
 
-constexpr bool WINDOWED = false;
+constexpr bool WINDOWED = true;
 constexpr uint32 DEFAULT_WINDOW_WIDTH = 1920;
 constexpr uint32 DEFAULT_WINDOW_HEIGHT = 1080;
 
@@ -63,6 +70,19 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     UNREFERENCED_PARAMETER(lpCmdLine);
 
     // TODO: 여기에 코드를 입력합니다.
+	TypeRegistry::Register(UObject::StaticTypeInfo());
+    TypeRegistry::Register(UMesh::StaticTypeInfo());
+    TypeRegistry::Register(UPipeline::StaticTypeInfo());
+
+
+    auto res = TypeRegistry::Find("UMesh")->Creator();
+	if (res->GetTypeInfo()->IsA(UMesh::StaticTypeInfo())) {
+		Console::AddLog(Console::STDOutHandle, ELogLevel::Log, ELogCategory::Etc, "UMesh instance created successfully.");
+	}
+	else {
+		Console::AddLog(Console::STDOutHandle, ELogLevel::Error, ELogCategory::Etc, "Failed to create UMesh instance.");
+	}
+
 
     // 전역 문자열을 초기화합니다.
     LoadStringW(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
@@ -173,6 +193,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
             ImGui_ImplDX11_NewFrame();
             ImGui_ImplWin32_NewFrame();
             ImGui::NewFrame();
+
+            FRenderProbe RenderProbe;
+            Renderer.Render(RenderProbe);
 
             DrawConsole(Console::STDOutHandle);
 

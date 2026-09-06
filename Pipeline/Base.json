@@ -25,7 +25,7 @@
       "SemanticName": "NORMAL",
       "SemanticIndex": 0,
       "Format": "Float3",
-      "InputSlot": 0,
+      "InputSlot": 1,
       "AlignedByteOffset": 12,
       "InputClassification": "PerVertex",
       "InstanceDataStepRate": 0

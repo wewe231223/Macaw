@@ -5,6 +5,9 @@
 
 #include "Pipeline/UPipeline.h"
 
+#include <ranges>
+#include <range/v3/view/chunk_by.hpp>
+
 FRenderer::~FRenderer() {
 
 }
@@ -17,7 +20,7 @@ void FRenderer::Create(HWND WindowHandle, UINT width, UINT height) {
 	FRenderer::CreateRTV();
 	FRenderer::CreateDSV();
 
-	UPipeline t{};
+	ModelContextArray.Initialize(Device.Get(), DeviceContext.Get(), 128);
 }
 
 void FRenderer::BeginFrame() {
@@ -31,6 +34,57 @@ void FRenderer::BeginFrame() {
 
 void FRenderer::EndFrame() {
 	SwapChain->Present(1, 0);
+}
+
+void FRenderer::Render(FRenderProbe& Probe) {
+	// 1. MeshHandle + PipelineHandle 로 정렬
+	// 2. 정렬한 뒤 MeshHandle + PipelineHandle 이 같은 것 끼리 Batch 생성 
+	// 3. Batch 순서대로 SRV Push Back  
+	// 4. Batch 순서대로 InstanceDraw 호출
+
+	std::ranges::sort(Probe.ActorProbes, {}, [](const ActorProbe& Data){ return TTuple{Data.MeshHandle.ID, Data.MeshHandle.Generation, Data.PipelineHandle.ID, Data.PipelineHandle.Generation}; });
+
+	auto Groups = Probe.ActorProbes | ranges::views::chunk_by([](const ActorProbe& A, const ActorProbe& B) {
+		return A.MeshHandle == B.MeshHandle && A.PipelineHandle == B.PipelineHandle;
+		});
+
+	ModelContextArray.Reset();
+
+	TArray<ModelContext> Contexts;
+	Contexts.reserve(Probe.ActorProbes.size());
+
+	std::ranges::transform(Groups | std::views::join, std::back_inserter(Contexts), [&](const auto& AC) {
+		return ModelContext{
+			.World = AC.World,
+			.MaterialIndex = AssetRegistry->ResolveAsset<UMaterial>(EAssetType::Material, AC.MaterialHandle)->GetGPUIndex()
+		};
+	});
+
+	ModelContextArray.AddRange(Device.Get(), DeviceContext.Get(), Contexts);
+
+	for (auto g : Groups) {
+		const ActorProbe& First = g.front();
+		UPipeline* Pipeline = AssetRegistry->ResolveAsset<UPipeline>(EAssetType::Pipeline, First.PipelineHandle);
+		UMesh* Mesh = AssetRegistry->ResolveAsset<UMesh>(EAssetType::Mesh, First.MeshHandle);
+		
+		Pipeline->Bind(DeviceContext.Get());
+
+		ID3D11Buffer* VertexBuffers[] = { 
+			Mesh->GetVertexBuffer(EVertexAttribute::Position),
+			Mesh->GetVertexBuffer(EVertexAttribute::Normal),
+			Mesh->GetVertexBuffer(EVertexAttribute::UV)
+		};
+
+		ID3D11Buffer* IndexBuffer { Mesh->GetIndexBuffer() };
+
+		DeviceContext->IASetVertexBuffers(0, 3, VertexBuffers, nullptr, nullptr);
+		DeviceContext->IASetIndexBuffer(IndexBuffer, DXGI_FORMAT_R32_UINT, 0);
+
+		DeviceContext->VSSetShaderResources(0, 1, AssetRegistry->GetMaterialBuffer().GetSRV());
+		DeviceContext->PSSetShaderResources(0, 1, AssetRegistry->GetMaterialBuffer().GetSRV());
+
+		DeviceContext->DrawIndexedInstanced(Mesh->GetIndexCount(), static_cast<uint32>(g.size()), 0, 0, 0);
+	}
 }
 
 void FRenderer::CreateDeviceAndSwapChain(HWND WindowHandle) {

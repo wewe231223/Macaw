@@ -25,6 +25,8 @@ public:
     UPipeline& operator=(UPipeline&&) noexcept = default;
 
 public:
+	JG_DECLARE_DERIVED_TYPEINFO(UPipeline, UObject);
+
     bool Initialize(ID3D11Device* Device, const FPipelineDescription& Description);
     bool Initialize(ID3D11Device* Device, const std::filesystem::path& OptionFile);
 

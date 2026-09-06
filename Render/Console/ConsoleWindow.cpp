@@ -154,6 +154,8 @@ void DrawConsole(FConsoleOutputHandle Handle)
         }
 
     }
+
+
     ImGui::End();
 }
 

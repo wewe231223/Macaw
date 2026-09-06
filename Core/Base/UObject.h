@@ -7,6 +7,10 @@
 #include <cstddef>
 #include <new>
 
+#include "../../Serialize/FArchive.h"
+#include "TypeInfo.h"
+#include "../../ErrorHandler.h"
+
 class UObject;
 
 namespace UObjectSystem
@@ -26,6 +30,18 @@ public:
 	const FGuid& GetGuid() const;
 	FObjectHandle GetHandle() const;
 
+
+	void Save(FArchive& Archive) 
+	{
+		ErrorHandler::Report(Archive.IsSaving() == false, "Save Error", "Given archive is not set as saving mode", ErrorHandler::EErrorLevel::Error);
+		Serialize(Archive);
+	}
+	void Load(FArchive& Archive) 
+	{
+		ErrorHandler::Report(Archive.IsLoading() == false, "Load Error", "Given archive is not set as loading mode", ErrorHandler::EErrorLevel::Error);
+		Serialize(Archive);
+	}
+
 	static void* operator new(std::size_t Size);
 	static void operator delete(void* Ptr) noexcept;
 
@@ -33,16 +49,24 @@ public:
 	static void operator delete(void* Ptr, std::align_val_t Alignment) noexcept;
 
 	// RTTI
-	//static const FTypeInfo* StaticTypeInfo();
-	//virtual const FTypeInfo* GetTypeInfo() const = 0;
 
+	void RestoreGuid(const FGuid& InGuid); // for testing
+
+	JG_DECLARE_ROOT_TYPEINFO(UObject)
+protected:
+	virtual void Serialize(FArchive& Archive)
+	{
+		Archive.Serialize("Guid", Guid);
+		FString TypeNameStr(GetTypeInfo()->TypeName);
+		Archive.Serialize("Name", TypeNameStr);
+	}
 
 private:
 	friend FObjectHandle UObjectSystem::Register(UObject* Object);
 
 	void SetHandle(FObjectHandle InHandle);
 
-	void RestoreGuid(const FGuid& InGuid);
+
 
 
 private:
