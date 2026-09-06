@@ -31,7 +31,7 @@ public:
     }
 
     const std::vector<std::unique_ptr<AActor>>& GetActors() const;
-    FRenderProbe BuildRenderProbe() const;
+    FRenderProbe& BuildRenderProbe() ;
     void Tick(float DeltaTime);
 
     void RegisterRenderable(UStaticMeshComponent* Component);
@@ -43,4 +43,5 @@ private:
     std::vector<std::unique_ptr<AActor>> Actors;
     std::vector<UStaticMeshComponent*> RenderableComponents;
     UCameraComponent* Camera = nullptr;
+    FRenderProbe Probe{};
 };

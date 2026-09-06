@@ -108,7 +108,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	Renderer.Create(gHWND, DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT);
 	
     FAssetRegistry AssetRegistry;
-	AssetRegistry.EmplaceAsset<UPipeline>(Renderer.GetDevice(), EAssetType::Pipeline, "BasePipeline", "./Pipeline/Base.json");
+	AssetRegistry.Initialize(Renderer.GetDevice(), 128);
+	Renderer.BindAssetRegistry(&AssetRegistry);
+
 
     std::vector<FVector3> Positions{
     { -0.5f, -0.5f, 0.0f },
@@ -133,29 +135,79 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     };
 
     
+	AssetRegistry.EmplaceAsset<UPipeline>(Renderer.GetDevice(), EAssetType::Pipeline, "BasePipeline", "./Pipeline/Base.json");
+	AssetRegistry.EmplaceAsset<UPipeline>(Renderer.GetDevice(), EAssetType::Pipeline, "AlternatePipeline", "./Pipeline/Alternate.json");
 	AssetRegistry.EmplaceAsset<UMesh>(Renderer.GetDevice(), EAssetType::Mesh, "TriangleMesh",
         Indices, 
         MakeVertexAttribute<EVertexAttribute::Position>(Positions), 
         MakeVertexAttribute<EVertexAttribute::Normal>(Normals), 
         MakeVertexAttribute<EVertexAttribute::UV>(UVs)
     );
+	AssetRegistry.EmplaceAsset<UColorMaterial>(Renderer.GetDevice(), EAssetType::Material, "RedMaterial", FVector4(1.0f, 0.0f, 0.0f, 1.0f));
 
-    AActor* Actor = World.SpawnActor<AActor>();
+
+
     AActor* CameraActor = World.SpawnActor<AActor>();
-
-    UStaticMeshComponent* RenderComponent = Actor->AddComponent<UStaticMeshComponent>();
     UCameraComponent* Camera = CameraActor->AddComponent<UCameraComponent>();
-
-    Actor->SetRootComponent(RenderComponent);
     CameraActor->SetRootComponent(Camera);
 
-    RenderComponent->GetTransform().SetPosition({ 1.0f, 2.0f, 3.0f });
-    RenderComponent->GetTransform().SetRotation({ 0.0f, 0.0f, 0.0f });
-    RenderComponent->GetTransform().SetScale({ 1.0f, 1.0f, 1.0f });
+    {
+        constexpr uint32 InstanceColumnCount = 10;
+        constexpr uint32 InstanceRowCount = 6;
+        constexpr float HorizontalSpacing = 0.9f;
+        constexpr float VerticalSpacing = 0.85f;
+        constexpr float NearInstanceDepth = 4.5f;
+        constexpr float FarInstanceDepth = 9.0f;
 
-    RenderComponent->SetMeshHandle(AssetRegistry.GetAsset(EAssetType::Mesh, "TriangleMesh"));
-    RenderComponent->SetPipelineHandle(
-        AssetRegistry.GetAsset(EAssetType::Pipeline, "BasePipeline"));
+        const FAssetHandle MeshHandle = AssetRegistry.GetAsset(EAssetType::Mesh, "TriangleMesh");
+        const FAssetHandle BasePipelineHandle = AssetRegistry.GetAsset(EAssetType::Pipeline, "BasePipeline");
+        const FAssetHandle AlternatePipelineHandle = AssetRegistry.GetAsset(EAssetType::Pipeline, "AlternatePipeline");
+        const FAssetHandle MaterialHandle = AssetRegistry.GetAsset(EAssetType::Material, "RedMaterial");
+
+        const float StartX = -0.5f * static_cast<float>(InstanceColumnCount - 1) * HorizontalSpacing;
+        const float StartY = 0.5f * static_cast<float>(InstanceRowCount - 1) * VerticalSpacing;
+
+        const auto Random01 = [](uint32 Seed) {
+            Seed ^= Seed >> 16;
+            Seed *= 0x7feb352dU;
+            Seed ^= Seed >> 15;
+            Seed *= 0x846ca68bU;
+            Seed ^= Seed >> 16;
+
+            return static_cast<float>(Seed & 0x00ffffffU) / static_cast<float>(0x00ffffffU);
+            };
+
+        for (uint32 Row = 0; Row < InstanceRowCount; ++Row) {
+            for (uint32 Column = 0; Column < InstanceColumnCount; ++Column) {
+                const uint32 InstanceIndex = Row * InstanceColumnCount + Column;
+                const float DepthFactor = Random01(InstanceIndex * 7U + 1U);
+                const float ScaleFactor = 0.65f + Random01(InstanceIndex * 7U + 2U) * 0.7f;
+                const float PositionJitterX = (Random01(InstanceIndex * 7U + 3U) - 0.5f) * 0.35f;
+                const float PositionJitterY = (Random01(InstanceIndex * 7U + 4U) - 0.5f) * 0.25f;
+                const float Pitch = (Random01(InstanceIndex * 7U + 5U) - 0.5f) * 0.5f;
+                const float Yaw = (Random01(InstanceIndex * 7U + 6U) - 0.5f) * 0.5f;
+                const float Roll = (Random01(InstanceIndex * 7U + 7U) - 0.5f) * 1.3f;
+
+                AActor* InstanceActor = World.SpawnActor<AActor>();
+                UStaticMeshComponent* InstanceComponent = InstanceActor->AddComponent<UStaticMeshComponent>();
+
+                InstanceActor->SetRootComponent(InstanceComponent);
+
+                InstanceComponent->GetTransform().SetPosition({
+                    StartX + static_cast<float>(Column) * HorizontalSpacing + PositionJitterX,
+                    StartY - static_cast<float>(Row) * VerticalSpacing + PositionJitterY,
+                    NearInstanceDepth + DepthFactor * (FarInstanceDepth - NearInstanceDepth)
+                    });
+                InstanceComponent->GetTransform().SetRotation({ Pitch, Yaw, Roll });
+                InstanceComponent->GetTransform().SetScale({ ScaleFactor, ScaleFactor, ScaleFactor });
+
+                InstanceComponent->SetMeshHandle(MeshHandle);
+                const bool bUseAlternatePipeline = (Row + Column) % 2 == 1;
+                InstanceComponent->SetPipelineHandle(bUseAlternatePipeline ? AlternatePipelineHandle : BasePipelineHandle);
+                InstanceComponent->SetMaterialHandle(MaterialHandle);
+            }
+        }
+    }
 
     FRenderProbe Probe = World.BuildRenderProbe();
 
@@ -194,14 +246,13 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
             ImGui_ImplWin32_NewFrame();
             ImGui::NewFrame();
 
-            FRenderProbe RenderProbe;
-            Renderer.Render(RenderProbe);
+            Renderer.Render(World.BuildRenderProbe());
 
             DrawConsole(Console::STDOutHandle);
 
             ImGui::Render();
             ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
-
+            
             Renderer.EndFrame();
         }
     }

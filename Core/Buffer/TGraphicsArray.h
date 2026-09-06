@@ -152,7 +152,7 @@ public:
 
 public:
 	[[nodiscard]] ID3D11Buffer* GetBuffer() const { return Buffer.GetBuffer(); }
-	[[nodiscard]] ID3D11ShaderResourceView* GetSRV() const { return SRV.Get(); }
+	[[nodiscard]] ID3D11ShaderResourceView* const* GetSRV() const { return SRV.GetAddressOf(); }
 
 	[[nodiscard]] uint32 GetCount() const { return Count; }
 	[[nodiscard]] uint32 GetCapacity() const { return Capacity; }

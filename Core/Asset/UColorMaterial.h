@@ -31,10 +31,10 @@ public:
 public:
 	JG_DECLARE_DERIVED_TYPEINFO(UColorMaterial, UMaterial);
 
-    bool Initialize(ID3D11Device* Device);
+    virtual bool Initialize(ID3D11Device* Device);
     bool Initialize(ID3D11Device* Device, const FVector4& InColor);
 
-    void BuildGPUData(FMaterialGPUSlot& OutSlot) const override;
+    virtual void BuildGPUData(FMaterialGPUSlot& OutSlot) const override;
 
 public:
     void SetColor(const FVector4& InColor);

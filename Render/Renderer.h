@@ -10,6 +10,7 @@
 #include "../Core/Asset/UMesh.h"
 
 #include "../Core/Buffer/TGraphicsArray.h"
+#include "../Core/Buffer/TGraphicsRootConstants.h" 
 
 class FRenderer {
 	struct FRenderBatch {
@@ -70,8 +71,8 @@ private:
 	FAssetRegistry* AssetRegistry{ nullptr };
 
 	TArray<FRenderBatch> RenderBatches{};
-
 	TGraphicsArray<ModelContext> ModelContextArray{};
+	TGraphicsRootConstants<64> RootConstants{};
 
 	const float ClearColor[4] = { 0.2f, 0.2f, 0.7f, 1.0f };
 	D3D11_VIEWPORT Viewport{};

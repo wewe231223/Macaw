@@ -1,12 +1,12 @@
 {
   "VertexShader": {
-    "Source": "./Pipeline/Base.hlsl",
+    "Source": "./Pipeline/Alternate.hlsl",
     "EntryPoint": "mainVS",
     "Profile": "vs_5_0"
   },
 
   "PixelShader": {
-    "Source": "./Pipeline/Base.hlsl",
+    "Source": "./Pipeline/Alternate.hlsl",
     "EntryPoint": "mainPS",
     "Profile": "ps_5_0"
   },
@@ -45,7 +45,7 @@
 
   "Rasterizer": {
     "FillMode": "Solid",
-    "CullMode": "Back",
+    "CullMode": "None",
     "FrontCounterClockwise": false,
     "DepthClipEnable": true,
     "ScissorEnable": false

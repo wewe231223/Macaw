@@ -22,9 +22,9 @@ const std::vector<std::unique_ptr<AActor>>& UWorld::GetActors() const
     return Actors;
 }
 
-FRenderProbe UWorld::BuildRenderProbe() const
+FRenderProbe& UWorld::BuildRenderProbe() 
 {
-    FRenderProbe Probe;
+	Probe.ActorProbes.clear();
 
     for (const UStaticMeshComponent* Component : RenderableComponents)
     {

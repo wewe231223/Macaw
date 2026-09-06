@@ -21,6 +21,9 @@ void FRenderer::Create(HWND WindowHandle, UINT width, UINT height) {
 	FRenderer::CreateDSV();
 
 	ModelContextArray.Initialize(Device.Get(), DeviceContext.Get(), 128);
+
+	RootConstants.Initialize(Device.Get());
+	RootConstants.Bind(DeviceContext.Get(), 0, EGraphicsShaderStage::Graphics);
 }
 
 void FRenderer::BeginFrame() {
@@ -48,7 +51,7 @@ void FRenderer::Render(FRenderProbe& Probe) {
 		return A.MeshHandle == B.MeshHandle && A.PipelineHandle == B.PipelineHandle;
 		});
 
-	ModelContextArray.Reset();
+	ModelContextArray.Clear();
 
 	TArray<ModelContext> Contexts;
 	Contexts.reserve(Probe.ActorProbes.size());
@@ -62,6 +65,27 @@ void FRenderer::Render(FRenderProbe& Probe) {
 
 	ModelContextArray.AddRange(Device.Get(), DeviceContext.Get(), Contexts);
 
+	DeviceContext->VSSetShaderResources(0, 1, ModelContextArray.GetSRV());
+	DeviceContext->PSSetShaderResources(0, 1, ModelContextArray.GetSRV());
+
+	DeviceContext->VSSetShaderResources(1, 1, AssetRegistry->GetMaterialBuffer().GetSRV());
+	DeviceContext->PSSetShaderResources(1, 1, AssetRegistry->GetMaterialBuffer().GetSRV());
+
+	struct CameraData {
+		FMatrix View;
+		FMatrix Projection;
+		FMatrix ViewProjection;
+	};
+
+	RootConstants.SetGraphicsRoot32BitConstants(CameraData{
+		.View = Probe.MainCameraProbe.View,
+		.Projection = Probe.MainCameraProbe.Projection,
+		.ViewProjection = Probe.MainCameraProbe.ViewProjection
+		}, 0);
+
+	uint32 InstanceCount{ 0 };
+
+	AssetRegistry->GetMaterialBuffer().Flush(DeviceContext.Get());
 	for (auto g : Groups) {
 		const ActorProbe& First = g.front();
 		UPipeline* Pipeline = AssetRegistry->ResolveAsset<UPipeline>(EAssetType::Pipeline, First.PipelineHandle);
@@ -75,15 +99,26 @@ void FRenderer::Render(FRenderProbe& Probe) {
 			Mesh->GetVertexBuffer(EVertexAttribute::UV)
 		};
 
+		uint32 Strides[] = { 
+			Mesh->GetVertexStride(EVertexAttribute::Position),
+			Mesh->GetVertexStride(EVertexAttribute::Normal),
+			Mesh->GetVertexStride(EVertexAttribute::UV)
+		};
+
+		uint32 Offsets[] = { 0, 0, 0 };
+
 		ID3D11Buffer* IndexBuffer { Mesh->GetIndexBuffer() };
 
-		DeviceContext->IASetVertexBuffers(0, 3, VertexBuffers, nullptr, nullptr);
+		DeviceContext->IASetVertexBuffers(0, _countof(VertexBuffers), VertexBuffers, Strides, Offsets);
 		DeviceContext->IASetIndexBuffer(IndexBuffer, DXGI_FORMAT_R32_UINT, 0);
 
-		DeviceContext->VSSetShaderResources(0, 1, AssetRegistry->GetMaterialBuffer().GetSRV());
-		DeviceContext->PSSetShaderResources(0, 1, AssetRegistry->GetMaterialBuffer().GetSRV());
+		RootConstants.SetGraphicsRoot32BitConstant(InstanceCount, 48);
+
+		RootConstants.Commit(DeviceContext.Get());
 
 		DeviceContext->DrawIndexedInstanced(Mesh->GetIndexCount(), static_cast<uint32>(g.size()), 0, 0, 0);
+
+		InstanceCount += static_cast<uint32>(g.size());
 	}
 }
 

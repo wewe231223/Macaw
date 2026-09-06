@@ -188,7 +188,7 @@
     <ClCompile Include="Core\Base\FVertexAttribute.cpp" />
     <ClCompile Include="Core\Buffer\FGraphicsBuffer.cpp" />
     <ClCompile Include="Core\Buffer\TGraphicsArray.cpp" />
-    <ClCompile Include="Core\Buffer\FGraphicsConstant.cpp" />
+    <ClCompile Include="Core\Buffer\TGraphicsRootConstants.cpp" />
     <ClCompile Include="Core\Channel\FMessage.cpp" />
     <ClCompile Include="Core\Channel\FMessageChannel.cpp" />
     <ClCompile Include="Core\Channel\FMessageHandler.cpp" />
@@ -294,7 +294,7 @@
     <ClInclude Include="Core\Base\FVertexAttribute.h" />
     <ClInclude Include="Core\Buffer\FGraphicsBuffer.h" />
     <ClInclude Include="Core\Buffer\TGraphicsArray.h" />
-    <ClInclude Include="Core\Buffer\FGraphicsConstant.h" />
+    <ClInclude Include="Core\Buffer\TGraphicsRootConstants.h" />
     <ClInclude Include="Core\Channel\FMessage.h" />
     <ClInclude Include="Core\Channel\FMessageChannel.h" />
     <ClInclude Include="Core\Channel\FMessageHandler.h" />
@@ -331,6 +331,20 @@
     <ClInclude Include="Scene\Component\UStaticMeshComponent.h" />
     <ClInclude Include="Scene\UWorld.h" />
     <ClInclude Include="STL.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="Pipeline\Alternate.hlsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </FxCompile>
+    <FxCompile Include="Pipeline\Base.hlsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </FxCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Pipeline\Alternate.json" />
+    <None Include="Pipeline\Base.json" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

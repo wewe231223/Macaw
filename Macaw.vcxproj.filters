@@ -56,6 +56,9 @@
     <Filter Include="Core\Base\UndoSystem">
       <UniqueIdentifier>{5c8cf912-a5bf-4bb6-93e4-a5eaed950ded}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Shader">
+      <UniqueIdentifier>{5c0d347a-8cee-4a03-b8c3-23cf46688be5}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Macaw.rc">
@@ -185,7 +188,7 @@
     <ClCompile Include="Core\Buffer\FGraphicsBuffer.cpp">
       <Filter>Core\Buffer</Filter>
     </ClCompile>
-    <ClCompile Include="Core\Buffer\FGraphicsConstant.cpp">
+    <ClCompile Include="Core\Buffer\TGraphicsRootConstants.cpp">
       <Filter>Core\Buffer</Filter>
     </ClCompile>
     <ClCompile Include="Core\Asset\FMaterialBuffer.cpp">
@@ -357,7 +360,7 @@
     <ClInclude Include="Core\Buffer\FGraphicsBuffer.h">
       <Filter>Core\Buffer</Filter>
     </ClInclude>
-    <ClInclude Include="Core\Buffer\FGraphicsConstant.h">
+    <ClInclude Include="Core\Buffer\TGraphicsRootConstants.h">
       <Filter>Core\Buffer</Filter>
     </ClInclude>
     <ClInclude Include="Core\Asset\FMaterialBuffer.h">
@@ -399,5 +402,21 @@
     <ClInclude Include="Core\Base\FRenderProbe.h">
       <Filter>Core\Base</Filter>
     </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="Pipeline\Alternate.hlsl">
+      <Filter>Shader</Filter>
+    </FxCompile>
+    <FxCompile Include="Pipeline\Base.hlsl">
+      <Filter>Shader</Filter>
+    </FxCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Pipeline\Alternate.json">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="Pipeline\Base.json">
+      <Filter>Shader</Filter>
+    </None>
   </ItemGroup>
 </Project>
