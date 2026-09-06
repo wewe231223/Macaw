@@ -2,12 +2,12 @@
 
 #include <string_view>
 
-using FObjectCreator = std::unique_ptr<class UObject>(*)();
+using FObjectCreator = std::unique_ptr<class UObject>(*)(); 
 
 struct FTypeInfo {
     std::string_view TypeName;
     const FTypeInfo* Parent{ nullptr };
-    FObjectCreator Creator{ nullptr };
+	FObjectCreator Creator{ nullptr };
 
     [[nodiscard]] bool IsA(const FTypeInfo* Type) const noexcept {
         for (const FTypeInfo* Current = this; Current != nullptr; Current = Current->Parent) {
@@ -21,7 +21,7 @@ struct FTypeInfo {
 
     [[nodiscard]] bool isExactlyA(const FTypeInfo* Type) const noexcept {
         return this == Type;
-    }
+	}
 };
 
 #define JG_DECLARE_ROOT_TYPEINFO(Type) \

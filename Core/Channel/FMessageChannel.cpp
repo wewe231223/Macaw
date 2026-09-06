@@ -72,7 +72,7 @@ std::size_t FMessageChannel::GetCapacity() const noexcept {
 	return Capacity;
 }
 
-FMessageHandler* FMessageChannel::FindHandler(const FTypeInfo& Type) noexcept {
+FMessageHandler* FMessageChannel::FindHandler(const FTypeInfo* Type) noexcept {
 	const auto Iterator = std::ranges::find_if(Handlers, [&Type](const FMessageHandler& Handler)
 		{
 			return Handler.Handles(Type);
@@ -81,7 +81,7 @@ FMessageHandler* FMessageChannel::FindHandler(const FTypeInfo& Type) noexcept {
 	return Iterator != Handlers.end() ? &(*Iterator) : nullptr;
 }
 
-FMessageHandler* FMessageChannel::FindPendingHandler(const FTypeInfo& Type) noexcept {
+FMessageHandler* FMessageChannel::FindPendingHandler(const FTypeInfo* Type) noexcept {
 	const auto Iterator = std::ranges::find_if(PendingHandlers, [&Type](const FMessageHandler& Handler)
 		{
 			return Handler.Handles(Type);
