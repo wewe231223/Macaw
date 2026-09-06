@@ -147,7 +147,7 @@
       <PreprocessorDefinitions>NDEBUG;_WINDOWS;%(PreprocessorDefinitions);NOMINMAX</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <PrecompiledHeader>Create</PrecompiledHeader>
+      <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>PCH.h</PrecompiledHeaderFile>
       <AdditionalIncludeDirectories>$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <ShowIncludes>false</ShowIncludes>
@@ -175,29 +175,20 @@
     <ClCompile Include="Core\Asset\UColorMaterial.cpp" />
     <ClCompile Include="Core\Asset\UMaterial.cpp" />
     <ClCompile Include="Core\Asset\UMesh.cpp" />
-    <ClCompile Include="Core\Asset\FAssetHandle.cpp" />
-    <ClCompile Include="Core\Asset\FAssetRegistry.cpp" />
-    <ClCompile Include="Core\Asset\UMaterial.cpp" />
-    <ClCompile Include="Core\Asset\UMesh.cpp" />
     <ClCompile Include="Core\Base\FGuid.cpp" />
     <ClCompile Include="Core\Base\UndoSystem\FRecordObjectState.cpp" />
     <ClCompile Include="Core\Base\UndoSystem\FUndoTransaction.cpp" />
     <ClCompile Include="Core\Base\TypeInfo.cpp" />
     <ClCompile Include="Core\Base\TypeRegistry.cpp" />
     <ClCompile Include="Core\Base\UndoSystem\UUndoSystem.cpp" />
-    <ClCompile Include="Core\Base\FRecordObjectState.cpp" />
     <ClCompile Include="Core\Base\FRenderProbe.cpp" />
     <ClCompile Include="Core\Base\FTreansform.cpp" />
-    <ClCompile Include="Core\Base\FUndoTransaction.cpp" />
-    <ClCompile Include="Core\Base\TypeInfo.cpp" />
-    <ClCompile Include="Core\Base\UUndoSystem.cpp" />
     <ClCompile Include="Core\Base\UObject.cpp" />
     <ClCompile Include="Core\Base\UObjectSystem.cpp" />
     <ClCompile Include="Core\Base\FVertexAttribute.cpp" />
     <ClCompile Include="Core\Buffer\FGraphicsBuffer.cpp" />
     <ClCompile Include="Core\Buffer\TGraphicsArray.cpp" />
     <ClCompile Include="Core\Buffer\FGraphicsConstant.cpp" />
-    <ClCompile Include="Core\Base\FVertexAttribute.cpp" />
     <ClCompile Include="Core\Channel\FMessage.cpp" />
     <ClCompile Include="Core\Channel\FMessageChannel.cpp" />
     <ClCompile Include="Core\Channel\FMessageHandler.cpp" />
@@ -205,40 +196,59 @@
     <ClCompile Include="Core\Memory\Memory.cpp" />
     <ClCompile Include="ErrorHandler.cpp" />
     <ClCompile Include="ImGui\imgui.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="ImGui\imgui_demo.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="ImGui\imgui_draw.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="ImGui\imgui_impl_dx11.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="ImGui\imgui_impl_win32.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="ImGui\imgui_tables.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="ImGui\imgui_widgets.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="ImGui\stb_image.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="Macaw.cpp" />
     <ClCompile Include="PCH.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="Render\Console\ConsoleWindow.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Use</PrecompiledHeader>
@@ -266,10 +276,6 @@
     <ClInclude Include="Core\Asset\UColorMaterial.h" />
     <ClInclude Include="Core\Asset\UMaterial.h" />
     <ClInclude Include="Core\Asset\UMesh.h" />
-    <ClInclude Include="Core\Asset\FAssetHandle.h" />
-    <ClInclude Include="Core\Asset\FAssetRegistry.h" />
-    <ClInclude Include="Core\Asset\UMaterial.h" />
-    <ClInclude Include="Core\Asset\UMesh.h" />
     <ClInclude Include="Core\Base\FGuid.h" />
     <ClInclude Include="Core\Base\FObjectHandle.h" />
     <ClInclude Include="Core\Base\FObjectItem.h" />
@@ -281,20 +287,15 @@
     <ClInclude Include="Core\Base\TypeInfo.h" />
     <ClInclude Include="Core\Base\TypeRegistry.h" />
     <ClInclude Include="Core\Base\UndoSystem\UUndoSystem.h" />
-    <ClInclude Include="Core\Base\FRecordObjectState.h" />
     <ClInclude Include="Core\Base\FRenderProbe.h" />
     <ClInclude Include="Core\Base\FTransform.h" />
-    <ClInclude Include="Core\Base\FUndoTransaction.h" />
     <ClInclude Include="Core\Base\IUndoRecord.h" />
-    <ClInclude Include="Core\Base\TypeInfo.h" />
-    <ClInclude Include="Core\Base\UUndoSystem.h" />
     <ClInclude Include="Core\Base\UObject.h" />
     <ClInclude Include="Core\Base\UObjectSystem.h" />
     <ClInclude Include="Core\Base\FVertexAttribute.h" />
     <ClInclude Include="Core\Buffer\FGraphicsBuffer.h" />
     <ClInclude Include="Core\Buffer\TGraphicsArray.h" />
     <ClInclude Include="Core\Buffer\FGraphicsConstant.h" />
-    <ClInclude Include="Core\Base\FVertexAttribute.h" />
     <ClInclude Include="Core\Channel\FMessage.h" />
     <ClInclude Include="Core\Channel\FMessageChannel.h" />
     <ClInclude Include="Core\Channel\FMessageHandler.h" />

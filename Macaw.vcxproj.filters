@@ -143,6 +143,15 @@
     <ClCompile Include="Core\Buffer\TGraphicsArray.cpp" />
     <ClCompile Include="Core\Buffer\FGraphicsConstant.cpp" />
     <ClCompile Include="Core\Base\UndoSystem\UUndoSystem.cpp" />
+    <ClCompile Include="Core\Base\FRenderProbe.cpp" />
+    <ClCompile Include="Core\Base\FTreansform.cpp" />
+    <ClCompile Include="Scene\AActor.cpp" />
+    <ClCompile Include="Scene\Component\UActorComponent.cpp" />
+    <ClCompile Include="Scene\Component\UCameraComponent.cpp" />
+    <ClCompile Include="Scene\Component\UPrimitiveComponent.cpp" />
+    <ClCompile Include="Scene\Component\USceneComponent.cpp" />
+    <ClCompile Include="Scene\Component\UStaticMeshComponent.cpp" />
+    <ClCompile Include="Scene\UWorld.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Core\Base\FGuid.h">
@@ -259,5 +268,15 @@
     <ClInclude Include="Core\Buffer\TGraphicsArray.h" />
     <ClInclude Include="Core\Buffer\FGraphicsConstant.h" />
     <ClInclude Include="Core\Base\UndoSystem\UUndoSystem.h" />
+    <ClInclude Include="Core\Base\FRenderProbe.h" />
+    <ClInclude Include="Core\Base\FTransform.h" />
+    <ClInclude Include="Core\Base\IUndoRecord.h" />
+    <ClInclude Include="Scene\AActor.h" />
+    <ClInclude Include="Scene\Component\UActorComponent.h" />
+    <ClInclude Include="Scene\Component\UCameraComponent.h" />
+    <ClInclude Include="Scene\Component\UPrimitiveComponent.h" />
+    <ClInclude Include="Scene\Component\USceneComponent.h" />
+    <ClInclude Include="Scene\Component\UStaticMeshComponent.h" />
+    <ClInclude Include="Scene\UWorld.h" />
   </ItemGroup>
 </Project>

@@ -67,7 +67,7 @@ public:
     bool TryBind(TCallable&& Callable) {
         const FTypeInfo& Type = TMessage::StaticTypeInfo();
 
-        if (FindHandler(Type) != nullptr || FindPendingHandler(Type) != nullptr) {
+        if (FindHandler(&Type) != nullptr || FindPendingHandler(&Type) != nullptr) {
             return false;
         }
 

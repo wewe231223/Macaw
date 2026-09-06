@@ -7,12 +7,13 @@
 #include "../Serialize/FArchiveMemory.h"
 #include "../Serialize/FArchiveJson.h"
 
-
 #include <fstream>
 #include <sstream>
 #include "../rapidjson/document.h"
 #include "../rapidjson/stringbuffer.h"
 #include "../rapidjson/writer.h"
+
+#include <filesystem>
 
 TEST_SUITE("Serialize Tests") {
     // =================================================================
@@ -26,7 +27,7 @@ TEST_SUITE("Serialize Tests") {
         FVector3 Location = { 10.5f, -20.0f, 3.14f };
         std::vector<int32> Inventory = { 101, 202, 303, 404 };
 
-        const FTypeInfo* GetTypeInfo() const override
+        const FTypeInfo* GetTypeInfo() const noexcept override
         {
             static FTypeInfo Info = []() {
                 FTypeInfo InitInfo;
@@ -136,7 +137,7 @@ TEST_SUITE("Serialize Tests") {
 
             std::string JsonString = Buffer.GetString();
 
-            std::ofstream OutFile(FilePath);
+            std::ofstream OutFile(std::filesystem::current_path() / "test.json");
             REQUIRE(OutFile.is_open());
             OutFile << JsonString;
             OutFile.close();
@@ -158,7 +159,7 @@ TEST_SUITE("Serialize Tests") {
 
         // --- LOAD ---
         {
-            std::ifstream InFile(FilePath);
+            std::ifstream InFile(std::filesystem::current_path() / "test.json");
             REQUIRE(InFile.is_open());
 
             std::stringstream Buffer;

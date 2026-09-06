@@ -61,7 +61,7 @@
     <ClCompile Include="Core\Base\TypeRegistry.cpp">
       <Filter>Core\Base</Filter>
     </ClCompile>
-    <ClCompile Include="pch.cpp" />
+    <ClCompile Include="PCH.cpp" />
     <ClCompile Include="Core\Base\UObjectSystem.cpp">
       <Filter>Core\Base</Filter>
     </ClCompile>
@@ -126,7 +126,6 @@
     </ClInclude>
     <ClInclude Include="Common.h" />
     <ClInclude Include="ErrorHandler.h" />
-    <ClInclude Include="pch.h" />
     <ClInclude Include="STL.h" />
     <ClInclude Include="Core\Base\UObjectSystem.h">
       <Filter>Core\Base</Filter>
@@ -276,5 +275,6 @@
     <ClInclude Include="rapidjson\msinttypes\stdint.h">
       <Filter>rapidjson\msinttypes</Filter>
     </ClInclude>
+    <ClInclude Include="PCH.h" />
   </ItemGroup>
 </Project>
