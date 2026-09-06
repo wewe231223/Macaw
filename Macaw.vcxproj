@@ -163,11 +163,13 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Core\Base\FGuid.cpp" />
-    <ClCompile Include="Core\Base\FRecordObjectState.cpp" />
-    <ClCompile Include="Core\Base\FUndoTransaction.cpp" />
-    <ClCompile Include="Core\Base\UndoSystem.cpp" />
+    <ClCompile Include="Core\Base\UndoSystem\FRecordObjectState.cpp" />
+    <ClCompile Include="Core\Base\UndoSystem\FUndoTransaction.cpp" />
+    <ClCompile Include="Core\Base\TypeInfo.cpp" />
+    <ClCompile Include="Core\Base\TypeRegistry.cpp" />
     <ClCompile Include="Core\Base\UObject.cpp" />
     <ClCompile Include="Core\Base\UObjectSystem.cpp" />
+    <ClCompile Include="Core\Base\UndoSystem\UUndoSystem.cpp" />
     <ClCompile Include="Core\Channel\FMessage.cpp" />
     <ClCompile Include="Core\Channel\FMessageChannel.cpp" />
     <ClCompile Include="Core\Channel\FMessageHandler.cpp" />
@@ -216,19 +218,25 @@
     <ClCompile Include="Render\Pipeline\Pipeline.cpp" />
     <ClCompile Include="Render\Pipeline\Shader.cpp" />
     <ClCompile Include="Render\Renderer.cpp" />
+    <ClCompile Include="Serialize\FArchive.cpp" />
+    <ClCompile Include="Serialize\FArchiveJson.cpp" />
+    <ClCompile Include="Serialize\FArchiveMemory.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Common.h" />
     <ClInclude Include="Core\Base\FGuid.h" />
     <ClInclude Include="Core\Base\FObjectHandle.h" />
     <ClInclude Include="Core\Base\FObjectItem.h" />
-    <ClInclude Include="Core\Base\FRecordObjectState.h" />
-    <ClInclude Include="Core\Base\FUndoTransaction.h" />
-    <ClInclude Include="Core\Base\IUndoRecord.h" />
-    <ClInclude Include="Core\Base\TypeInfo.hpp" />
-    <ClInclude Include="Core\Base\UndoSystem.h" />
+    <ClInclude Include="Core\Base\UndoSystem\FObjectStateChangedMessage.h" />
+    <ClInclude Include="Core\Base\UndoSystem\FRecordObjectState.h" />
+    <ClInclude Include="Core\Base\UndoSystem\FUndoTransaction.h" />
+    <ClInclude Include="Core\Base\UndoSystem\IUndoContext.h" />
+    <ClInclude Include="Core\Base\UndoSystem\IUndoRecord.h" />
+    <ClInclude Include="Core\Base\TypeInfo.h" />
+    <ClInclude Include="Core\Base\TypeRegistry.h" />
     <ClInclude Include="Core\Base\UObject.h" />
     <ClInclude Include="Core\Base\UObjectSystem.h" />
+    <ClInclude Include="Core\Base\UndoSystem\UUndoSystem.h" />
     <ClInclude Include="Core\Channel\FMessage.h" />
     <ClInclude Include="Core\Channel\FMessageChannel.h" />
     <ClInclude Include="Core\Channel\FMessageHandler.h" />
@@ -254,6 +262,9 @@
     <ClInclude Include="Render\Pipeline\Shader.h" />
     <ClInclude Include="Render\Pipeline\Wrapper.h" />
     <ClInclude Include="Render\Renderer.h" />
+    <ClInclude Include="Serialize\FArchive.h" />
+    <ClInclude Include="Serialize\FArchiveJson.h" />
+    <ClInclude Include="Serialize\FArchiveMemory.h" />
     <ClInclude Include="STL.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

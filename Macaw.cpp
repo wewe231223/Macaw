@@ -25,7 +25,7 @@
 #pragma comment(lib, "d3dcompiler.lib")
 #pragma comment(lib, "d3d11.lib")
 
-constexpr bool WINDOWED = false;
+constexpr bool WINDOWED = true;
 constexpr uint32 DEFAULT_WINDOW_WIDTH = 1920;
 constexpr uint32 DEFAULT_WINDOW_HEIGHT = 1080;
 

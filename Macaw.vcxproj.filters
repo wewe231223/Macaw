@@ -35,6 +35,9 @@
     <Filter Include="Imgui">
       <UniqueIdentifier>{c60b77dd-82f0-4925-acf5-d3375809e190}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Core\Serialize">
+      <UniqueIdentifier>{0c2250c5-0ae4-482a-ba54-ddd866def366}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Macaw.rc">
@@ -53,13 +56,10 @@
     <ClCompile Include="Core\Base\FGuid.cpp">
       <Filter>Core\Base</Filter>
     </ClCompile>
-    <ClCompile Include="Core\Base\FRecordObjectState.cpp">
+    <ClCompile Include="Core\Base\UndoSystem\FRecordObjectState.cpp">
       <Filter>Core\Base</Filter>
     </ClCompile>
-    <ClCompile Include="Core\Base\FUndoTransaction.cpp">
-      <Filter>Core\Base</Filter>
-    </ClCompile>
-    <ClCompile Include="Core\Base\UndoSystem.cpp">
+    <ClCompile Include="Core\Base\UndoSystem\FUndoTransaction.cpp">
       <Filter>Core\Base</Filter>
     </ClCompile>
     <ClCompile Include="Core\Channel\FMessage.cpp">
@@ -122,6 +122,14 @@
       <Filter>Imgui</Filter>
     </ClCompile>
     <ClCompile Include="Macaw.cpp" />
+    <ClCompile Include="Core\Base\UndoSystem\UUndoSystem.cpp">
+      <Filter>Core\Base</Filter>
+    </ClCompile>
+    <ClCompile Include="Serialize\FArchive.cpp" />
+    <ClCompile Include="Serialize\FArchiveJson.cpp" />
+    <ClCompile Include="Core\Base\TypeInfo.cpp" />
+    <ClCompile Include="Core\Base\TypeRegistry.cpp" />
+    <ClCompile Include="Serialize\FArchiveMemory.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Core\Base\FGuid.h">
@@ -133,19 +141,13 @@
     <ClInclude Include="Core\Base\FObjectItem.h">
       <Filter>Core\Base</Filter>
     </ClInclude>
-    <ClInclude Include="Core\Base\FRecordObjectState.h">
+    <ClInclude Include="Core\Base\UndoSystem\FRecordObjectState.h">
       <Filter>Core\Base</Filter>
     </ClInclude>
-    <ClInclude Include="Core\Base\FUndoTransaction.h">
+    <ClInclude Include="Core\Base\UndoSystem\FUndoTransaction.h">
       <Filter>Core\Base</Filter>
     </ClInclude>
-    <ClInclude Include="Core\Base\IUndoRecord.h">
-      <Filter>Core\Base</Filter>
-    </ClInclude>
-    <ClInclude Include="Core\Base\TypeInfo.hpp">
-      <Filter>Core\Base</Filter>
-    </ClInclude>
-    <ClInclude Include="Core\Base\UndoSystem.h">
+    <ClInclude Include="Core\Base\UndoSystem\IUndoRecord.h">
       <Filter>Core\Base</Filter>
     </ClInclude>
     <ClInclude Include="Core\Channel\FMessage.h">
@@ -225,5 +227,17 @@
     <ClInclude Include="ImGui\stb_image.h">
       <Filter>Imgui</Filter>
     </ClInclude>
+    <ClInclude Include="Serialize\FArchive.h">
+      <Filter>Core\Serialize</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Base\UndoSystem\UUndoSystem.h">
+      <Filter>Core\Base</Filter>
+    </ClInclude>
+    <ClInclude Include="Serialize\FArchiveJson.h" />
+    <ClInclude Include="Core\Base\TypeInfo.h" />
+    <ClInclude Include="Core\Base\TypeRegistry.h" />
+    <ClInclude Include="Serialize\FArchiveMemory.h" />
+    <ClInclude Include="Core\Base\UndoSystem\IUndoContext.h" />
+    <ClInclude Include="Core\Base\UndoSystem\FObjectStateChangedMessage.h" />
   </ItemGroup>
 </Project>
