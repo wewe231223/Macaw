@@ -23,9 +23,6 @@
 #include "Render/Pipeline/UPipeline.h"
 #include "Core/Asset/UMesh.h"
 
-#include "Scene/UCube.h"
-#include "Scene/USphere.h"
-#include "Scene/UCamera.h"
 #include "Core/Base/FTransform.h"
 #include "Scene/UWorld.h"
 #include "Scene/AActor.h"
@@ -134,7 +131,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     RenderComponent->GetTransform().SetScale({ 1.0f, 1.0f, 1.0f });
 
     RenderComponent->SetMeshHandle(AssetRegistry.GetAsset(EAssetType::Mesh, "TriangleMesh"));
-    RenderComponent->SetMaterialHandle({ 20, 2 });
+    RenderComponent->SetMaterialHandle(AssetRegistry.GetAsset(EAssetType::Pipeline, "BasePipeline"));
     RenderComponent->SetPipelineHandle({ 30, 3 });
 
     FRenderProbe Probe = World.BuildRenderProbe();
