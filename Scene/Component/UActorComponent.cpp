@@ -21,6 +21,8 @@ void UActorComponent::Tick(float /*DeltaTime*/)
 
 void UActorComponent::OnDestroy()
 {
+    bActive = false;
+    Owner = nullptr;
 }
 
 bool UActorComponent::IsActive() const
