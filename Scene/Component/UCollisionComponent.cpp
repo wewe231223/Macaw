@@ -18,11 +18,21 @@ void UCollisionComponent::SetCollisionEnabled(bool bEnabled)
 void UCollisionComponent::OnCreate()
 {
     AActor* Owner = GetOwner();
+
+    if (Owner != nullptr && Owner->GetWorld() != nullptr)
+    {
+        Owner->GetWorld()->RegisterCollision(this);
+    }
 }
 
 void UCollisionComponent::OnDestroy()
 {
     AActor* Owner = GetOwner();
+
+    if (Owner != nullptr && Owner->GetWorld() != nullptr)
+    {
+        Owner->GetWorld()->UnregisterCollision(this);
+    }
 
     UPrimitiveComponent::OnDestroy();
 }
