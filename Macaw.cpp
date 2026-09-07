@@ -232,8 +232,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
                 {
                     TestCollision = CollisionComponent;
                 }
-
-
             }
         }
 
@@ -243,6 +241,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
     std::string DebugText =
         "Actor Count = " + std::to_string(Probe.ActorProbes.size()) + "\n";
+
+    OutputDebugStringA(DebugText.c_str());
 
     if (TestCollision != nullptr)
     {
@@ -280,7 +280,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
         }
     }
     
-    OutputDebugStringA(DebugText.c_str());
 
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
