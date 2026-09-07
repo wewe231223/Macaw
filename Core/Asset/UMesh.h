@@ -153,6 +153,11 @@ public:
 		return std::span<const ElementType>{ Storage->Data.data(), Storage->Data.size() };
 	}
 
+	const TArray<uint32>& GetIndices() const
+	{
+		return Indices;
+	}
+
 	const FVector3& GetBoundsCenter() const;
 	const FVector3& GetBoundsExtent() const;
 

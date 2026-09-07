@@ -85,6 +85,16 @@ void UWorld::ClearMainCamera(UCameraComponent* InCamera)
     }
 }
 
+void UWorld::SetAssetRegistry(FAssetRegistry* InAssetRegistry)
+{
+    AssetRegistry = InAssetRegistry;
+}
+
+FAssetRegistry* UWorld::GetAssetRegistry() const
+{
+    return AssetRegistry;
+}
+
 void UWorld::InitializeEditorEventSender(
     FMessageChannel::FSender&& InSender)
 {
@@ -161,6 +171,10 @@ void UWorld::HandleMousePickRequest(
                     }
                 }
             }
+            else
+            {
+                SelectedComponentHandle = {};
+            }
         }
     }
 
@@ -171,8 +185,7 @@ void UWorld::HandleMousePickRequest(
     }
 }
 
-void UWorld::HandleMouseCameraRotateRequest(
-    const FMouseCameraRotateRequestMessage& Message)
+void UWorld::HandleMouseCameraRotateRequest(const FMouseCameraRotateRequestMessage& Message)
 {
     if (Camera == nullptr)
     {
@@ -195,7 +208,8 @@ void UWorld::HandleMouseCameraRotateRequest(
     CameraTransform.SetRotation(Rotation);
 }
 
-AActor* UWorld::AddActor(std::unique_ptr<AActor> InActor) {
+AActor* UWorld::AddActor(std::unique_ptr<AActor> InActor) 
+{
     if (!InActor)
     {
         return nullptr;
