@@ -19,6 +19,7 @@ public:
 
     const FVector3& GetExtent() const;
     void SetExtent(const FVector3& InExtent);
+    void MakeRender(FRenderProbe& OutProbe) const override;
 
 public:
     JG_DECLARE_DERIVED_TYPEINFO(UCollisionComponent, UPrimitiveComponent);

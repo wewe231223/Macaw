@@ -71,3 +71,8 @@ void UCollisionComponent::SetExtent(const FVector3& InExtent)
     Extent = InExtent;
 }
 
+void UCollisionComponent::MakeRender(FRenderProbe& Probe) const
+{
+    // 일반 렌더링 패스에는 아무것도 전달하지 않음
+    // 선택 사항: 디버그 모드일 때만 Probe에 와이어프레임 박스 렌더링 요청 추가
+}
