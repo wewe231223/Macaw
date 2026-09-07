@@ -4,6 +4,8 @@
 #include "Core/Base/FRenderProbe.h"
 #include "Scene/AActor.h"
 #include "Scene/UWorld.h"
+#include "../../Serialize/FArchive.h"
+#include "../../Core/Asset/FAssetRegistry.h"
 
 FAssetHandle UStaticMeshComponent::GetMeshHandle() const { return MeshHandle; }
 
@@ -68,43 +70,37 @@ void UStaticMeshComponent::Serialize(FArchive& Archive)
 
     FString GuidMeshHandle;
     if (MeshHandle.ID != std::numeric_limits<uint32>::max())
-        ; // todo this function is not updated yet
-        // GuidMeshHandle = Archive.GetAssetRegistry()->ResolveAsset<UObject>(MeshHandle)->GetGuid().ToString();
+        GuidMeshHandle = Archive.GetAssetRegistry()->ResolveAsset<UAsset>(MeshHandle)->GetGuid().ToString();
     Archive.Serialize("GuidMeshHandle", GuidMeshHandle);
     if (Archive.IsLoading())
     {
         FGuid Guid;
         Guid.Parse(GuidMeshHandle);
 
-        // TODO function is not updated yet
-        // MeshHandle = Archive.GetAssetRegistry()->GetAsset(Guid);
+        MeshHandle = Archive.GetAssetRegistry()->GetAsset(Guid);
     }
 
     FString GuidMaterialHandle;
     if (MaterialHandle.ID != std::numeric_limits<uint32>::max())
-        ; // todo this function is not updated yet
-        // GuidMaterialHandle = Archive.GetAssetRegistry()->ResolveAsset<UObject>(MaterialHandle)->GetGuid().ToString();
+        GuidMaterialHandle = Archive.GetAssetRegistry()->ResolveAsset<UAsset>(MaterialHandle)->GetGuid().ToString();
     Archive.Serialize("GuidMaterialHandle", GuidMaterialHandle);
     if (Archive.IsLoading())
     {
         FGuid Guid;
         Guid.Parse(GuidMaterialHandle);
 
-        // TODO function is not updated yet
-        // MaterialHandle = Archive.GetAssetRegistry()->GetAsset(Guid);
+        MaterialHandle = Archive.GetAssetRegistry()->GetAsset(Guid);
     }
 
     FString GuidPipelineHandle;
     if (PipelineHandle.ID != std::numeric_limits<uint32>::max())
-        ; // todo this function is not updated yet
-        // GuidPipelineHandle = Archive.GetAssetRegistry()->ResolveAsset<UObject>(PipelineHandle)->GetGuid().ToString();
+        GuidPipelineHandle = Archive.GetAssetRegistry()->ResolveAsset<UAsset>(PipelineHandle)->GetGuid().ToString();
     Archive.Serialize("GuidPipelineHandle", GuidPipelineHandle);
     if (Archive.IsLoading())
     {
         FGuid Guid;
         Guid.Parse(GuidPipelineHandle);
 
-        // TODO function is not updated yet
-        // PipelineHandle = Archive.GetAssetRegistry()->GetAsset(Guid);
+        PipelineHandle = Archive.GetAssetRegistry()->GetAsset(Guid);
     }
 }

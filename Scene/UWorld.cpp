@@ -15,6 +15,7 @@
 #include <d3d11.h>
 #include <filesystem>
 #include <fstream>
+#include <ranges>
 #include <rapidjson/document.h>
 #include <rapidjson/ostreamwrapper.h>
 #include <rapidjson/prettywriter.h>
@@ -96,24 +97,6 @@ void UWorld::ClearMainCamera(UCameraComponent* InCamera)
 
 bool UWorld::SaveScene(const FString& SceneName, FAssetRegistry* AssetRegistry)
 {
-    // ==================================================================
-//  serialize
-// 
-// 1. get assets from asset registry (GetAssetList())
-// 2. serialize asset
-//     2-1. [Guid, type, "name", "path"]
-//      - Asset.Save(ArchiveJson)
-// 3. serialize actors
-//     3-1. [uobject, [static mesh component] ]
-//      - Actor.Save(ArchiveJson)
-// 
-// 
-// final output
-//  Assets : { asset_1 : { ~ } , ~ },
-//  Actors : { Actor1 : { ~ } , ~ }
-// ==================================================================
-
-
     std::filesystem::path CurrentPath = std::filesystem::current_path();
     std::filesystem::path SceneDir = CurrentPath / "scenes";
     if (!std::filesystem::exists(SceneDir))
@@ -126,19 +109,30 @@ bool UWorld::SaveScene(const FString& SceneName, FAssetRegistry* AssetRegistry)
 
 
     FArchiveJson ArchiveSave(Document, Allocator);
+	ArchiveSave.SetAssetRegistry(AssetRegistry);
 
-    // TODO function is not developed yet
-    //TArray<std::unique_ptr<UObject>> AssetList = AssetRegistry->GetAssetList();
-    TArray<std::unique_ptr<UObject>> AssetList;
+    // ***** TODO function is not developed yet
+	auto AssetList = AssetRegistry->GetAssetList();
+    // TArray<std::unique_ptr<UObject>> AssetList;
 
     size_t ArraySize = static_cast<size_t>(AssetList.size());
     ArchiveSave.BeginArrayScope("Assets", ArraySize);
-    for (size_t CurrentIndex = 0, EndIndex = AssetList.size(); CurrentIndex < EndIndex; ++CurrentIndex)
-    {
-        ArchiveSave.BeginObjectScope(std::to_string(CurrentIndex));
-        AssetList[CurrentIndex]->Save(ArchiveSave);
+
+    for (size_t Index : std::views::iota(size_t{ 0 }, std::ranges::size(AssetList))) {
+        UObject* Asset = AssetList[Index];
+
+        ArchiveSave.BeginObjectScope(std::to_string(Index));
+        Asset->Save(ArchiveSave);
         ArchiveSave.EndObjectScope();
     }
+
+
+    //for (size_t CurrentIndex = 0, EndIndex = AssetList.size(); CurrentIndex < EndIndex; ++CurrentIndex)
+    //{
+    //    ArchiveSave.BeginObjectScope(std::to_string(CurrentIndex));
+    //    AssetList[CurrentIndex]->Save(ArchiveSave);
+    //    ArchiveSave.EndObjectScope();
+    //}
     ArchiveSave.EndArrayScope();
 
     ArraySize = static_cast<size_t>(Actors.size());
@@ -165,29 +159,6 @@ bool UWorld::SaveScene(const FString& SceneName, FAssetRegistry* AssetRegistry)
 
 bool UWorld::LoadScene(const std::filesystem::path& ScenePath, ID3D11Device* Device, FAssetRegistry* AssetRegistry)
 {
-    // ==================================================================
-    //  deserialize
-    // 
-    // 1. traverse assets
-    //      1-0. read asset [guid, typename, assetname, metadatapath]
-    //      1-1. create empty asset object by calling factory creator of uobject (it's feasible since the typename has been serialized)
-    //      1-2. emplace asset (call Adopt.Asset(guid, assetname, metadatapath, ptr from creator)
-    // 2. traverse actors
-    //      2-1. read actor [guid, tyupename, [component ]
-    //      2-2. create empty uobject by calling factory creator of uobject 
-    //      2-3. restore guid
-    //          - do not call Actor.Load() at this time since the proper guid set up is not complete
-    //      2-4. register uobject
-    // 3. traverse actors again
-    //      3-1. read actor [guid, tyupename, [component ]
-    //      3-2. find the uobject by guid
-    //      3-3. call load for the object
-    //          - Actor.Load(ArchiveJson)
-    //      3-4. cast uobject to uactor
-    //      3-5. move uactor to uworld (the function is not developed yet)
-    // ==================================================================
-
-
     std::ifstream InputFileStream(ScenePath);
     if (!InputFileStream.is_open())
         return false;
@@ -219,8 +190,7 @@ bool UWorld::LoadScene(const std::filesystem::path& ScenePath, ID3D11Device* Dev
             auto EmptyAsset = TypeRegistry::Find(TypeName)->Creator();
             UObjectSystem::RegisterWithGuid(EmptyAsset.get(), AssetGuid);
 
-            // TODO function is not developed yet
-            // AssetRegistry->AdoptAsset(Device, AssetGuid, AssetName, MetadataPath, EmptyAsset.release());
+            AssetRegistry->AdoptAsset(Device, AssetGuid, AssetName, MetadataPath, std::move(EmptyAsset));
         }
     }
     else

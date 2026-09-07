@@ -1,6 +1,7 @@
 ﻿#pragma once 
 #include <filesystem>
 #include <d3d11.h>
+#include "../../Serialize/FArchive.h"
 
 class UAsset : public UObject {
 public:
@@ -19,6 +20,7 @@ public:
 	virtual void Initialize(ID3D11Device* device, const std::filesystem::path& metaData) { AssetMetaDataPath = metaData; };
 
 	void SetAssetName(const FString& InName) { AssetName = InName; }
+	FString GetAssetName() const { return AssetName; }
 
 protected:
 	virtual void Serialize(FArchive& Ar) override;

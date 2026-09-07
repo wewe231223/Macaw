@@ -12,6 +12,7 @@
 #include <memory>
 #include <type_traits>
 #include <utility>
+#include <ranges>
 
 class FAssetRegistry {
 public:
@@ -27,14 +28,14 @@ public:
 public:
     bool Initialize(ID3D11Device* Device, uint32 MaxMaterialCount = 4096);
 
-    FAssetHandle AdoptAsset(ID3D11Device* Device, const FGuid& ID, const FString& Name, const std::filesystem::path& MetadataPath, std::unique_ptr<UObject>& Asset);
+    FAssetHandle AdoptAsset(ID3D11Device* Device, const FGuid& ID, const FString& Name, const std::filesystem::path& MetadataPath, std::unique_ptr<UObject>&& Asset);
 
     template<typename T> requires std::is_base_of_v<UAsset, T>
     FAssetHandle EmplaceAsset(ID3D11Device* Device, const FString& Name, const std::filesystem::path& MetadataPath = {}) {
         std::unique_ptr<T> NewAsset = std::make_unique<T>();
         std::unique_ptr<UObject> Asset = std::move(NewAsset);
 
-        return AdoptAsset(Device, FGuid::NewGuid(), Name, MetadataPath, Asset);
+        return AdoptAsset(Device, FGuid::NewGuid(), Name, MetadataPath, std::move(Asset));
     }
 
     FAssetHandle GetAsset(const FString& Name) const;
@@ -99,6 +100,11 @@ public:
         return MaterialBuffer;
     }
 
+    auto GetAssetList() {
+        return Assets | std::ranges::views::transform([](auto& Pair) -> UObject* {
+            return Pair.second.get();
+            });
+    }
 private:
     FAssetHandle AllocateHandle();
     void RemoveHandleMappings(FAssetHandle Handle);

@@ -4,6 +4,9 @@
 
 #include "FAssetRegistry.h"
 
+#include <ranges>
+
+
 bool FAssetRegistry::Initialize(ID3D11Device* Device, uint32 MaxMaterialCount) {
     if (Device == nullptr) {
         return false;
@@ -12,7 +15,7 @@ bool FAssetRegistry::Initialize(ID3D11Device* Device, uint32 MaxMaterialCount) {
     return MaterialBuffer.Initialize(Device, MaxMaterialCount);
 }
 
-FAssetHandle FAssetRegistry::AdoptAsset(ID3D11Device* Device, const FGuid& ID, const FString& Name, const std::filesystem::path& MetadataPath, std::unique_ptr<UObject>& Asset) {
+FAssetHandle FAssetRegistry::AdoptAsset(ID3D11Device* Device, const FGuid& ID, const FString& Name, const std::filesystem::path& MetadataPath, std::unique_ptr<UObject>&& Asset) {
     if (Device == nullptr || Asset == nullptr || !ID.IsValid()) {
         return {};
     }
@@ -107,6 +110,7 @@ bool FAssetRegistry::RemoveAsset(FAssetHandle Handle) {
 
     return true;
 }
+
 
 FAssetHandle FAssetRegistry::AllocateHandle() {
     if (!FreeHandles.empty()) {

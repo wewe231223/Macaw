@@ -2201,7 +2201,13 @@ public:
     }
 
     // Changed by PR #1393
-    // TODO should this return a UriType& ?
+    
+    
+    
+    
+    
+    
+    should this return a UriType& ?
     bool HandleRefSchema(const PointerType& source, const SchemaType** schema, const ValueType& v, const ValueType& document, const UriType& id) {
         typename ValueType::ConstMemberIterator itr = v.FindMember(SchemaType::GetRefString());
         if (itr == v.MemberEnd())
