@@ -114,23 +114,6 @@ public:
         std::invoke(std::forward<Func>(Modifier), *Asset);
     }
 
-    /*template<typename T>
-    T* GetAsset(EAssetType Type, FAssetHandle Handle) const
-    {
-        const auto& Container = Assets[Type];
-
-        if (Handle.ID >= Container.size())
-            return nullptr;
-
-        const auto& Entry = Container[Handle.ID];
-
-        if (Entry.first.Generation != Handle.Generation || Entry.second == nullptr)
-            return nullptr;
-
-        return static_cast<T*>(Entry.second.get());
-    }*/
-
-
     FMaterialBuffer& GetMaterialBuffer() {
         return MaterialBuffer;
     }

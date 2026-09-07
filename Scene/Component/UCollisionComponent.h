@@ -4,6 +4,8 @@
 #include "Core/Base/TypeInfo.h"
 #include "Serialize/FArchive.h"
 
+class UStaticMeshComponent;
+
 class UCollisionComponent : public UPrimitiveComponent
 {
 public:
