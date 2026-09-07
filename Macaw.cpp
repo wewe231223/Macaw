@@ -76,6 +76,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	TypeRegistry::Register(UObject::StaticTypeInfo());
     TypeRegistry::Register(UMesh::StaticTypeInfo());
     TypeRegistry::Register(UPipeline::StaticTypeInfo());
+    TypeRegistry::Register(AActor::StaticTypeInfo());
 
 
     auto res = TypeRegistry::Find("UMesh")->Creator();
