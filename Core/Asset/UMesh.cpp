@@ -114,4 +114,52 @@ void UMesh::Reset() {
 
 	VertexCount = 0;
 	IndexCount = 0;
+
+	BoundsCenter = {};
+	BoundsExtent = {};
+}
+
+const FVector3& UMesh::GetBoundsCenter() const
+{
+	return BoundsCenter;
+}
+
+const FVector3& UMesh::GetBoundsExtent() const
+{
+	return BoundsExtent;
+}
+
+void UMesh::CalculateBounds()
+{
+	const auto Positions = GetVertexAttributeData<EVertexAttribute::Position>();
+
+	if (Positions.empty())
+	{
+		BoundsCenter = {};
+		BoundsExtent = {};
+		return;
+	}
+
+	FVector3 Min = Positions[0];
+	FVector3 Max = Positions[0];
+
+	for (const FVector3& Position : Positions)
+	{
+		Min.x = std::min(Min.x, Position.x);
+		Min.y = std::min(Min.y, Position.y);
+		Min.z = std::min(Min.z, Position.z);
+
+		Max.x = std::max(Max.x, Position.x);
+		Max.y = std::max(Max.y, Position.y);
+		Max.z = std::max(Max.z, Position.z);
+	}
+
+	BoundsCenter = (Min + Max) * 0.5f;
+	BoundsExtent = (Max - Min) * 0.5f;
+
+	constexpr float MinExtent = 0.01f;
+
+	BoundsExtent.x = std::max(BoundsExtent.x, MinExtent);
+	BoundsExtent.y = std::max(BoundsExtent.y, MinExtent);
+	BoundsExtent.z = std::max(BoundsExtent.z, MinExtent);
 }

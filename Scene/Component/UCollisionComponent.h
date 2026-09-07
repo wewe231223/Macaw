@@ -24,10 +24,13 @@ public:
 
     JG_DECLARE_DERIVED_TYPEINFO(UCollisionComponent, UPrimitiveComponent);
 
+    void SetBounds(const FVector3& InCenter, const FVector3& InExtent);
+
 protected:
     void Serialize(FArchive& Archive) override;
 
 private:
+    FVector3 LocalCenter{ 0.0f, 0.0f, 0.0f };
     FVector3 Extent{ 0.5f, 0.5f, 0.5f };
     bool bCollisionEnabled = true;
 };

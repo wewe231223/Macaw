@@ -27,6 +27,12 @@ void UCollisionComponent::OnDestroy()
     UPrimitiveComponent::OnDestroy();
 }
 
+void UCollisionComponent::SetBounds(const FVector3& InCenter, const FVector3& InExtent)
+{
+    LocalCenter = InCenter;
+    Extent = InExtent;
+}
+
 bool UCollisionComponent::Raycast(const FRay& Ray, float& OutDistance) const
 {
     if (!bCollisionEnabled)
@@ -35,7 +41,8 @@ bool UCollisionComponent::Raycast(const FRay& Ray, float& OutDistance) const
     }
 
     DirectX::BoundingOrientedBox LocalBox;
-    LocalBox.Center = FVector3(0.0f, 0.0f, 0.0f);
+
+    LocalBox.Center = LocalCenter;
     LocalBox.Extents = Extent;
     LocalBox.Orientation = FQuat(0.0f, 0.0f, 0.0f, 1.0f);
 

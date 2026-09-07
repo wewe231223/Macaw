@@ -185,6 +185,11 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
             return static_cast<float>(Seed & 0x00ffffffU) / static_cast<float>(0x00ffffffU);
             };
 
+        UMesh* Mesh =
+            AssetRegistry.ResolveAsset<UMesh>(
+                EAssetType::Mesh,
+                MeshHandle);
+
         for (uint32 Row = 0; Row < InstanceRowCount; ++Row) {
             for (uint32 Column = 0; Column < InstanceColumnCount; ++Column) {
                 const uint32 InstanceIndex = Row * InstanceColumnCount + Column;
@@ -211,15 +216,12 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
                 InstanceComponent->GetTransform().SetRotation({ Pitch, Yaw, Roll });
                 InstanceComponent->GetTransform().SetScale({ ScaleFactor, ScaleFactor, ScaleFactor });
 
-                CollisionComponent->GetTransform().SetPosition({
-                    StartX + static_cast<float>(Column) * HorizontalSpacing + PositionJitterX,
-                    StartY - static_cast<float>(Row) * VerticalSpacing + PositionJitterY,
-                    NearInstanceDepth + DepthFactor * (FarInstanceDepth - NearInstanceDepth)
-                    });
-                CollisionComponent->GetTransform().SetRotation({ Pitch, Yaw, Roll });
-                CollisionComponent->GetTransform().SetScale({ ScaleFactor, ScaleFactor, ScaleFactor });
-
-                CollisionComponent->SetExtent({ 0.5f, 0.5f, 0.05f });
+                if (Mesh != nullptr)
+                {
+                    CollisionComponent->SetBounds(
+                        Mesh->GetBoundsCenter(),
+                        Mesh->GetBoundsExtent());
+                }
 
                 InstanceComponent->SetMeshHandle(MeshHandle);
                 const bool bUseAlternatePipeline = (Row + Column) % 2 == 1;
@@ -230,6 +232,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
                 {
                     TestCollision = CollisionComponent;
                 }
+
+
             }
         }
 
