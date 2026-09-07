@@ -42,6 +42,8 @@ public:
 private:
     std::vector<std::unique_ptr<AActor>> Actors;
     std::vector<UStaticMeshComponent*> RenderableComponents;
+    std::vector<UStaticMeshComponent*> CollisionComponents;
+ 
     UCameraComponent* Camera = nullptr;
     FRenderProbe Probe{};
 };

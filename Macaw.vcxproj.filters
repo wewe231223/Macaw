@@ -224,8 +224,8 @@
     <ClCompile Include="Core\Base\FRenderProbe.cpp">
       <Filter>Core\Base</Filter>
     </ClCompile>
-    <ClCompile Include="StatWindow.cpp">
-      <Filter>Render\Stats</Filter>
+    <ClCompile Include="Scene\Component\UCollisionComponent.cpp">
+      <Filter>Scene\Component</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -411,8 +411,8 @@
     <ClInclude Include="Core\Base\FRenderProbe.h">
       <Filter>Core\Base</Filter>
     </ClInclude>
-    <ClInclude Include="StatWindow.h">
-      <Filter>Render\Stats</Filter>
+    <ClInclude Include="Scene\Component\UCollisionComponent.h">
+      <Filter>Scene\Component</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

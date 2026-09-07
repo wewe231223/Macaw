@@ -31,6 +31,7 @@
 #include "Scene/AActor.h"
 #include "Scene/Component/UCameraComponent.h"
 #include "Scene/Component/UStaticMeshComponent.h"
+#include "Scene/Component/UCollisionComponent.h"
 
 #include "Core/Base/TypeRegistry.h"
 
@@ -153,6 +154,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
     AActor* CameraActor = World.SpawnActor<AActor>();
     UCameraComponent* Camera = CameraActor->AddComponent<UCameraComponent>();
+
+    UCollisionComponent* TestCollision = nullptr;
+
     CameraActor->SetRootComponent(Camera);
 
     {
@@ -194,8 +198,10 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
                 AActor* InstanceActor = World.SpawnActor<AActor>();
                 UStaticMeshComponent* InstanceComponent = InstanceActor->AddComponent<UStaticMeshComponent>();
+                UCollisionComponent* CollisionComponent = InstanceActor->AddComponent<UCollisionComponent>();
 
                 InstanceActor->SetRootComponent(InstanceComponent);
+                CollisionComponent->AttachTo(InstanceComponent);
 
                 InstanceComponent->GetTransform().SetPosition({
                     StartX + static_cast<float>(Column) * HorizontalSpacing + PositionJitterX,
@@ -205,12 +211,28 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
                 InstanceComponent->GetTransform().SetRotation({ Pitch, Yaw, Roll });
                 InstanceComponent->GetTransform().SetScale({ ScaleFactor, ScaleFactor, ScaleFactor });
 
+                CollisionComponent->GetTransform().SetPosition({
+                    StartX + static_cast<float>(Column) * HorizontalSpacing + PositionJitterX,
+                    StartY - static_cast<float>(Row) * VerticalSpacing + PositionJitterY,
+                    NearInstanceDepth + DepthFactor * (FarInstanceDepth - NearInstanceDepth)
+                    });
+                CollisionComponent->GetTransform().SetRotation({ Pitch, Yaw, Roll });
+                CollisionComponent->GetTransform().SetScale({ ScaleFactor, ScaleFactor, ScaleFactor });
+
+                CollisionComponent->SetExtent({ 0.5f, 0.5f, 0.05f });
+
                 InstanceComponent->SetMeshHandle(MeshHandle);
                 const bool bUseAlternatePipeline = (Row + Column) % 2 == 1;
                 InstanceComponent->SetPipelineHandle(bUseAlternatePipeline ? AlternatePipelineHandle : BasePipelineHandle);
                 InstanceComponent->SetMaterialHandle(MaterialHandle);
+
+                if (InstanceIndex == 0)
+                {
+                    TestCollision = CollisionComponent;
+                }
             }
         }
+
     }
 
     FRenderProbe Probe = World.BuildRenderProbe();
@@ -218,6 +240,42 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     std::string DebugText =
         "Actor Count = " + std::to_string(Probe.ActorProbes.size()) + "\n";
 
+    if (TestCollision != nullptr)
+    {
+        const FMatrix Target = TestCollision->GetWorldMatrix();
+
+        FVector3 TargetWorldPos{
+            Target._41,
+            Target._42,
+            Target._43
+        };
+
+        FVector3 RayOrigin{
+            TargetWorldPos.x,
+            TargetWorldPos.y,
+            TargetWorldPos.z - 1000.0f
+        };
+
+        FVector3 RayDirection{
+            0.0f,
+            0.0f,
+            1.0f
+        };
+
+        FRay TestRay(RayOrigin, RayDirection);
+
+        float Distance = 0.0f;
+
+        if (TestCollision->Raycast(TestRay, Distance))
+        {
+            OutputDebugStringA("Collision Hit\n");
+        }
+        else
+        {
+            OutputDebugStringA("Collision Miss\n");
+        }
+    }
+    
     OutputDebugStringA(DebugText.c_str());
 
     IMGUI_CHECKVERSION();

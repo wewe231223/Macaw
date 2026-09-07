@@ -16,7 +16,7 @@ public:
     bool IsVisible() const;
     void SetVisible(bool bInVisible);
 
-    virtual void MakeRender(FRenderProbe& OutProbe) const = 0;
+    virtual void MakeRender(FRenderProbe& OutProbe) const {}
 
 protected:
     void Serialize(FArchive& Archive) override;

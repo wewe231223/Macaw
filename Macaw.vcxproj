@@ -256,6 +256,7 @@
     <ClCompile Include="Render\Pipeline\UPipeline.cpp" />
     <ClCompile Include="Render\Pipeline\FShader.cpp" />
     <ClCompile Include="Render\Renderer.cpp" />
+    <ClCompile Include="Scene\Component\UCollisionComponent.cpp" />
     <ClCompile Include="Serialize\FArchive.cpp" />
     <ClCompile Include="Serialize\FArchiveJson.cpp" />
     <ClCompile Include="Serialize\FArchiveMemory.cpp" />
@@ -322,6 +323,7 @@
     <ClInclude Include="Render\Pipeline\FShader.h" />
     <ClInclude Include="Render\Pipeline\Wrapper.h" />
     <ClInclude Include="Render\Renderer.h" />
+    <ClInclude Include="Scene\Component\UCollisionComponent.h" />
     <ClInclude Include="Serialize\FArchive.h" />
     <ClInclude Include="Serialize\FArchiveJson.h" />
     <ClInclude Include="Serialize\FArchiveMemory.h" />
