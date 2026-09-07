@@ -20,6 +20,8 @@
 #include "Render/Console/ConsoleWindow.h"
 #include "Core/Asset/FAssetRegistry.h"
 
+#include "Render/Stats/StatWindow.h"
+
 //test
 #include "Render/Pipeline/UPipeline.h"
 #include "Core/Asset/UMesh.h"
@@ -248,9 +250,10 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
             ImGui_ImplWin32_NewFrame();
             ImGui::NewFrame();
 
-            Renderer.Render(World.BuildRenderProbe());
+            //Renderer.Render(World.BuildRenderProbe());
 
             DrawConsole(Console::STDOutHandle);
+            DrawStatWindow();
 
             ImGui::Render();
             ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());

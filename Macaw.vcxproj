@@ -266,6 +266,7 @@
     <ClCompile Include="Scene\Component\USceneComponent.cpp" />
     <ClCompile Include="Scene\Component\UStaticMeshComponent.cpp" />
     <ClCompile Include="Scene\UWorld.cpp" />
+    <ClCompile Include="StatWindow.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Common.h" />
@@ -331,6 +332,7 @@
     <ClInclude Include="Scene\Component\USceneComponent.h" />
     <ClInclude Include="Scene\Component\UStaticMeshComponent.h" />
     <ClInclude Include="Scene\UWorld.h" />
+    <ClInclude Include="StatWindow.h" />
     <ClInclude Include="STL.h" />
   </ItemGroup>
   <ItemGroup>

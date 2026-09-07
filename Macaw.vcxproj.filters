@@ -59,6 +59,9 @@
     <Filter Include="Shader">
       <UniqueIdentifier>{5c0d347a-8cee-4a03-b8c3-23cf46688be5}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Render\Stats">
+      <UniqueIdentifier>{a2e8dc00-6199-4081-b719-bb7d9227c2d4}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Macaw.rc">
@@ -220,6 +223,9 @@
     </ClCompile>
     <ClCompile Include="Core\Base\FRenderProbe.cpp">
       <Filter>Core\Base</Filter>
+    </ClCompile>
+    <ClCompile Include="StatWindow.cpp">
+      <Filter>Render\Stats</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -404,6 +410,9 @@
     </ClInclude>
     <ClInclude Include="Core\Base\FRenderProbe.h">
       <Filter>Core\Base</Filter>
+    </ClInclude>
+    <ClInclude Include="StatWindow.h">
+      <Filter>Render\Stats</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
