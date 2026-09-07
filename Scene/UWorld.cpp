@@ -193,7 +193,7 @@ void UWorld::HandleMouseCameraRotateRequest(const FMouseCameraRotateRequestMessa
         return;
     }
 
-    constexpr float RotationSensitivity = 0.005f;
+    constexpr float RotationSensitivity = 0.003f;
     constexpr float MaximumPitch = 1.5f;
 
     FTransform& CameraTransform = Camera->GetTransform();
