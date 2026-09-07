@@ -62,9 +62,6 @@
     <Filter Include="Render\Stats">
       <UniqueIdentifier>{a2e8dc00-6199-4081-b719-bb7d9227c2d4}</UniqueIdentifier>
     </Filter>
-    <Filter Include="InputSystem">
-      <UniqueIdentifier>{6a992a80-eb66-49e5-9b7d-b955a6f142fc}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Macaw.rc">
