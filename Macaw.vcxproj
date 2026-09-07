@@ -279,6 +279,7 @@
     <ClInclude Include="Core\Base\FGuid.h" />
     <ClInclude Include="Core\Base\FObjectHandle.h" />
     <ClInclude Include="Core\Base\FObjectItem.h" />
+    <ClInclude Include="Core\Base\TObjectRef.h" />
     <ClInclude Include="Core\Base\UndoSystem\FObjectStateChangedMessage.h" />
     <ClInclude Include="Core\Base\UndoSystem\FRecordObjectState.h" />
     <ClInclude Include="Core\Base\UndoSystem\FUndoTransaction.h" />

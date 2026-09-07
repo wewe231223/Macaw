@@ -92,6 +92,9 @@
     <ClCompile Include="Tests\UndoSystemTests.cpp">
       <Filter>Tests</Filter>
     </ClCompile>
+    <ClCompile Include="Tests\TObjectRefTests.cpp">
+      <Filter>Tests</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Core\Base\UndoSystem\FRecordObjectState.h">
@@ -122,6 +125,9 @@
       <Filter>Core\Base</Filter>
     </ClInclude>
     <ClInclude Include="Core\Base\FObjectItem.h">
+      <Filter>Core\Base</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Base\TObjectRef.h">
       <Filter>Core\Base</Filter>
     </ClInclude>
     <ClInclude Include="Common.h" />

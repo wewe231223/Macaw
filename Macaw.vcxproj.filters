@@ -232,6 +232,9 @@
     <ClInclude Include="Core\Base\FObjectItem.h">
       <Filter>Core\Base</Filter>
     </ClInclude>
+    <ClInclude Include="Core\Base\TObjectRef.h">
+      <Filter>Core\Base</Filter>
+    </ClInclude>
     <ClInclude Include="Core\Channel\FMessage.h">
       <Filter>Core\Channel</Filter>
     </ClInclude>

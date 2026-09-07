@@ -9,6 +9,8 @@ public:
     UStaticMeshComponent() = default;
     ~UStaticMeshComponent() override = default;
 
+    JG_DECLARE_DERIVED_TYPEINFO(UStaticMeshComponent, UPrimitiveComponent)
+
     FAssetHandle GetMeshHandle() const;
     FAssetHandle GetMaterialHandle() const;
     FAssetHandle GetPipelineHandle() const;

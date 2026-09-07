@@ -120,6 +120,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="Tests\SerializeTests.cpp" />
+    <ClCompile Include="Tests\TObjectRefTests.cpp" />
     <ClCompile Include="Tests\UndoSystemTests.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -127,6 +128,7 @@
     <ClInclude Include="Core\Base\FGuid.h" />
     <ClInclude Include="Core\Base\FObjectHandle.h" />
     <ClInclude Include="Core\Base\FObjectItem.h" />
+    <ClInclude Include="Core\Base\TObjectRef.h" />
     <ClInclude Include="Core\Base\TypeInfo.h" />
     <ClInclude Include="Core\Base\TypeRegistry.h" />
     <ClInclude Include="Core\Base\UndoSystem\FRecordObjectState.h" />
