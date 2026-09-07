@@ -114,7 +114,7 @@ public:
         std::invoke(std::forward<Func>(Modifier), *Asset);
     }
 
-    template<typename T>
+    /*template<typename T>
     T* GetAsset(EAssetType Type, FAssetHandle Handle) const
     {
         const auto& Container = Assets[Type];
@@ -128,7 +128,7 @@ public:
             return nullptr;
 
         return static_cast<T*>(Entry.second.get());
-    }
+    }*/
 
 
     FMaterialBuffer& GetMaterialBuffer() {
