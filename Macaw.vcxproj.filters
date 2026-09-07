@@ -245,6 +245,9 @@
     <ClCompile Include="FEditorSelection.cpp">
       <Filter>Editor</Filter>
     </ClCompile>
+    <ClCompile Include="FKeyboardInput.cpp">
+      <Filter>InputSystem</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Core\Base\FGuid.h">
@@ -449,6 +452,12 @@
     </ClInclude>
     <ClInclude Include="FEditorSelection.h">
       <Filter>Editor</Filter>
+    </ClInclude>
+    <ClInclude Include="FKeyboardInput.h">
+      <Filter>InputSystem</Filter>
+    </ClInclude>
+    <ClInclude Include="FKeyboardCameraMoveRequestMessage.h">
+      <Filter>Scene\Message</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

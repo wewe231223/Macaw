@@ -41,6 +41,8 @@
 #include "FMousePickRequestMessage.h"
 #include "FMouseCameraRotateRequestMessage.h"
 #include "FWorldSelectionChangedMessage.h"
+#include "FKeyboardInput.h"
+#include "FKeyboardCameraMoveRequestMessage.h"
 #include "FEditorSelection.h"
 
 //test
@@ -66,6 +68,7 @@ WCHAR szWindowClass[MAX_LOADSTRING];            // 기본 창 클래스 이름�
 HWND hWnd = nullptr;
 
 FMouseInput GMouseInput;
+FKeyboardInput GKeyboardInput;
 
 // 이 코드 모듈에 포함된 함수의 선언을 전달합니다:
 ATOM                MyRegisterClass(HINSTANCE hInstance);
@@ -125,6 +128,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     FEditorSelection EditorSelection;
 
     GMouseInput.InitializeWorldCommandSender(WorldCommandChannel.GetSender());
+    GKeyboardInput.InitializeWorldCommandSender(WorldCommandChannel.GetSender());
     World.InitializeEditorEventSender(EditorEventChannel.GetSender());
 
     WorldCommandChannel.TryBind<FMousePickRequestMessage>(
@@ -144,6 +148,14 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
         {
             EditorSelection.HandleSelectionChanged(Message);
         });
+
+    WorldCommandChannel.TryBind<
+        FKeyboardCameraMoveRequestMessage>(
+            [&World](
+                const FKeyboardCameraMoveRequestMessage& Message)
+            {
+                World.HandleKeyboardCameraMoveRequest(Message);
+            });
 
 	FRenderer Renderer;
 	Renderer.Create(gHWND, DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT);
@@ -352,6 +364,10 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
                 DEFAULT_WINDOW_HEIGHT,
                 ImGui::GetIO().WantCaptureMouse);
 
+            GKeyboardInput.DispatchPendingWorldCommands(
+                DeltaTime,
+                ImGui::GetIO().WantCaptureKeyboard);
+
             WorldCommandChannel.Dispatch();
             EditorEventChannel.Dispatch();
 
@@ -499,6 +515,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     ImGui_ImplWin32_WndProcHandler(hWnd, message, wParam, lParam);
 
     GMouseInput.ProcessWindowMessage(
+        message,
+        wParam,
+        lParam);
+
+    GKeyboardInput.ProcessWindowMessage(
         message,
         wParam,
         lParam);

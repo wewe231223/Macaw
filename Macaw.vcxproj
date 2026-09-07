@@ -196,6 +196,7 @@
     <ClCompile Include="Core\Memory\Memory.cpp" />
     <ClCompile Include="ErrorHandler.cpp" />
     <ClCompile Include="FEditorSelection.cpp" />
+    <ClCompile Include="FKeyboardInput.cpp" />
     <ClCompile Include="FMouseInput.cpp" />
     <ClCompile Include="ImGui\imgui.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
@@ -309,6 +310,8 @@
     <ClInclude Include="Core\Memory\TEngineAllocator.h" />
     <ClInclude Include="ErrorHandler.h" />
     <ClInclude Include="FEditorSelection.h" />
+    <ClInclude Include="FKeyboardCameraMoveRequestMessage.h" />
+    <ClInclude Include="FKeyboardInput.h" />
     <ClInclude Include="FMath.h" />
     <ClInclude Include="FMouseCameraRotateRequestMessage.h" />
     <ClInclude Include="FMouseInput.h" />
