@@ -85,8 +85,10 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
 
     // 전역 문자열을 초기화합니다.
-    LoadStringW(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
-    LoadStringW(hInstance, IDC_MACAW, szWindowClass, MAX_LOADSTRING);
+    //LoadStringW(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
+    //LoadStringW(hInstance, IDC_MACAW, szWindowClass, MAX_LOADSTRING);
+    wcscpy_s(szTitle, MAX_LOADSTRING, L"Macaw Engine");
+    wcscpy_s(szWindowClass, MAX_LOADSTRING, L"MacawEngineClass");
     MyRegisterClass(hInstance);
 
     // 애플리케이션 초기화를 수행합니다:
@@ -354,6 +356,13 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
     }
 
     if (!hWnd) {
+        // GetLastError()는 실패한 원인의 에러 코드를 반환합니다.
+        DWORD errorCode = GetLastError();
+
+        // errorCode가 1407 이면 -> "클래스를 찾을 수 없습니다" (1번 원인)
+        // errorCode가 1400 이면 -> "잘못된 윈도우 핸들입니다"
+        // errorCode를 구글이나 MS 공식 문서에 검색하면 원인이 바로 나옵니다.
+        OutputDebugStringA(("Window Creation Failed! Error Code: " + std::to_string(errorCode) + "\n").c_str());
         return FALSE;
     }
 
