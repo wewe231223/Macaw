@@ -23,6 +23,8 @@ void UCollisionComponent::OnCreate()
 void UCollisionComponent::OnDestroy()
 {
     AActor* Owner = GetOwner();
+
+    UPrimitiveComponent::OnDestroy();
 }
 
 bool UCollisionComponent::Raycast(const FRay& Ray, float& OutDistance) const
@@ -32,33 +34,17 @@ bool UCollisionComponent::Raycast(const FRay& Ray, float& OutDistance) const
         return false;
     }
 
-    const FTransform& Transform = GetTransform();
+    DirectX::BoundingOrientedBox LocalBox;
+    LocalBox.Center = FVector3(0.0f, 0.0f, 0.0f);
+    LocalBox.Extents = Extent;
+    LocalBox.Orientation = FQuat(0.0f, 0.0f, 0.0f, 1.0f);
 
-    const FVector3& Position = Transform.GetPosition();
-    const FRotator& Rotation = Transform.GetRotation();
-    const FVector3& Scale = Transform.GetScale();
-    
-    DirectX::BoundingOrientedBox Box;
+    FMatrix WorldMatrix = GetWorldMatrix();
 
-    Box.Center = Position;
+    DirectX::BoundingOrientedBox WorldBox;
+    LocalBox.Transform(WorldBox, WorldMatrix);
 
-    Box.Extents =
-    {
-        Extent.x * std::abs(Scale.x),
-        Extent.y * std::abs(Scale.y),
-        Extent.z * std::abs(Scale.z)
-    };
-
-    FQuat Orientation =
-        FQuat::CreateFromYawPitchRoll(
-            Rotation.y,
-            Rotation.x,
-            Rotation.z
-        );
-
-    Box.Orientation = Orientation;
-
-    return Box.Intersects(Ray.position, Ray.direction, OutDistance);
+    return WorldBox.Intersects(Ray.position, Ray.direction, OutDistance);
 }
 
 const FVector3& UCollisionComponent::GetExtent() const
@@ -73,6 +59,5 @@ void UCollisionComponent::SetExtent(const FVector3& InExtent)
 
 void UCollisionComponent::MakeRender(FRenderProbe& Probe) const
 {
-    // 일반 렌더링 패스에는 아무것도 전달하지 않음
     // 선택 사항: 디버그 모드일 때만 Probe에 와이어프레임 박스 렌더링 요청 추가
 }

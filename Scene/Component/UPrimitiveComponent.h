@@ -14,7 +14,7 @@ public:
     bool IsVisible() const;
     void SetVisible(bool bInVisible);
 
-    virtual void MakeRender(FRenderProbe& OutProbe) const = 0;
+    virtual void MakeRender(FRenderProbe& OutProbe) const {}
 
 private:
     bool bVisible = true;

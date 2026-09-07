@@ -183,8 +183,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
             return static_cast<float>(Seed & 0x00ffffffU) / static_cast<float>(0x00ffffffU);
             };
 
-
-
         for (uint32 Row = 0; Row < InstanceRowCount; ++Row) {
             for (uint32 Column = 0; Column < InstanceColumnCount; ++Column) {
                 const uint32 InstanceIndex = Row * InstanceColumnCount + Column;
@@ -201,6 +199,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
                 UCollisionComponent* CollisionComponent = InstanceActor->AddComponent<UCollisionComponent>();
 
                 InstanceActor->SetRootComponent(InstanceComponent);
+                CollisionComponent->AttachTo(InstanceComponent);
 
                 InstanceComponent->GetTransform().SetPosition({
                     StartX + static_cast<float>(Column) * HorizontalSpacing + PositionJitterX,
@@ -241,13 +240,18 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
     if (TestCollision != nullptr)
     {
-        const FVector3 Target =
-            TestCollision->GetTransform().GetPosition();
+        const FMatrix Target = TestCollision->GetWorldMatrix();
+
+        FVector3 TargetWorldPos{
+            Target._41,
+            Target._42,
+            Target._43
+        };
 
         FVector3 RayOrigin{
-            Target.x,
-            Target.y,
-            0.0f
+            TargetWorldPos.x,
+            TargetWorldPos.y,
+            TargetWorldPos.z - 1000.0f
         };
 
         FVector3 RayDirection{

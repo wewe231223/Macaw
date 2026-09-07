@@ -6,7 +6,7 @@
 
 FMatrix UCameraComponent::GetViewMatrix() const
 {
-    return GetTransform().GetWorldMatrix().Invert();
+    return GetWorldMatrix().Invert();
 }
 
 FMatrix UCameraComponent::GetProjectionMatrix() const
