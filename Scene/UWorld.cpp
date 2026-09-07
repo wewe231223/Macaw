@@ -61,6 +61,7 @@ void UWorld::RegisterRenderable(UStaticMeshComponent* Component)
     }
 
     RenderableComponents.push_back(Component);
+    CollisionComponents.push_back(Component);
 }
 
 void UWorld::UnregisterRenderable(UStaticMeshComponent* Component)

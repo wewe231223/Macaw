@@ -221,6 +221,9 @@
     <ClCompile Include="Core\Base\FRenderProbe.cpp">
       <Filter>Core\Base</Filter>
     </ClCompile>
+    <ClCompile Include="Scene\Component\UCollisionComponent.cpp">
+      <Filter>Scene\Component</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Core\Base\FGuid.h">
@@ -401,6 +404,9 @@
     </ClInclude>
     <ClInclude Include="Core\Base\FRenderProbe.h">
       <Filter>Core\Base</Filter>
+    </ClInclude>
+    <ClInclude Include="Scene\Component\UCollisionComponent.h">
+      <Filter>Scene\Component</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
