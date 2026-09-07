@@ -10,6 +10,8 @@ public:
     UActorComponent() = default;
     ~UActorComponent() override = default;
 
+    JG_DECLARE_DERIVED_TYPEINFO(UActorComponent, UObject)
+
     AActor* GetOwner() const;
 
     virtual void OnCreate();

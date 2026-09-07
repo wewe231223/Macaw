@@ -1,5 +1,7 @@
 ﻿#pragma once 
 
+class FArchive;
+
 struct FAssetHandle {
 	uint32 ID { std::numeric_limits<uint32>::max() };
 	uint32 Generation { 0 };
@@ -15,4 +17,6 @@ struct FAssetHandle {
 	operator bool() const {
 		return ID != std::numeric_limits<uint32>::max();
 	}
+
+	void Serialize(FArchive& Archive);
 };

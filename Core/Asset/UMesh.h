@@ -122,6 +122,8 @@ public:
 		VertexCount = ExpectedVertexCount;
 		IndexCount = static_cast<uint32>(Indices.size());
 
+		CalculateBounds();
+
 		return true;
 	}
 
@@ -155,6 +157,14 @@ public:
 
 protected:
 	virtual void Serialize(FArchive& Ar) override;
+
+	const TArray<uint32>& GetIndices() const
+	{
+		return Indices;
+	}
+
+	const FVector3& GetBoundsCenter() const;
+	const FVector3& GetBoundsExtent() const;
 
 private:
 	template<typename... TAttributes>
@@ -221,6 +231,8 @@ private:
 		return static_cast<size_t>(EVertexAttribute::MAX);
 	}
 
+	void CalculateBounds();
+
 private:
 	TFixedArray<Microsoft::WRL::ComPtr<ID3D11Buffer>, static_cast<size_t>(EVertexAttribute::MAX)> VertexBuffers{};
 	TFixedArray<std::unique_ptr<FVertexAttributeStorageBase>, static_cast<size_t>(EVertexAttribute::MAX)> AttributeStorage{};
@@ -231,5 +243,8 @@ private:
 
 	uint32 VertexCount = 0;
 	uint32 IndexCount = 0;
+
+	FVector3 BoundsCenter{ 0.0f, 0.0f, 0.0f };
+	FVector3 BoundsExtent{ 0.0f, 0.0f, 0.0f };
 };
 

@@ -11,6 +11,8 @@ public:
     UPrimitiveComponent() = default;
     ~UPrimitiveComponent() override = default;
 
+    JG_DECLARE_ABSTRACT_DERIVED_TYPEINFO(UPrimitiveComponent, USceneComponent)
+
     bool IsVisible() const;
     void SetVisible(bool bInVisible);
 

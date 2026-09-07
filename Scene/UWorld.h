@@ -1,6 +1,11 @@
 ﻿#pragma once
 
 #include <filesystem>
+#include <optional>
+
+#include "Core/Base/TObjectRef.h"
+#include "Core/Channel/FMessageChannel.h"
+
 #include "Common.h"
 #include "Core/Base/UObject.h"
 #include "Core/Base/UObjectSystem.h"
@@ -12,24 +17,33 @@ class UStaticMeshComponent;
 struct ID3D11Device;
 class FAssetRegistry;
 
+class UCollisionComponent;
+class FAssetRegistry;
+
+struct FMousePickRequestMessage;
+struct FMouseCameraRotateRequestMessage;
+struct FKeyboardCameraMoveRequestMessage;
+
 class UWorld : public UObject
 {
 public:
     UWorld() = default;
     ~UWorld() override;
 
+    AActor* AddActor(std::unique_ptr<AActor> InActor);
+
     template<typename T>
-     requires std::is_base_of_v<AActor, T>
+    requires std::is_base_of_v<AActor, T>
     T* SpawnActor()
     {
         std::unique_ptr<T> NewActor = std::make_unique<T>();
 
         T* ActorPtr = NewActor.get();
 
-        UObjectSystem::Register(ActorPtr);
-
-        ActorPtr->SetWorld(this);
-        Actors.push_back(std::move(NewActor));
+        if (AddActor(std::move(NewActor)) == nullptr)
+        {
+            return nullptr;
+        }
 
         return ActorPtr;
     }
@@ -47,9 +61,34 @@ public:
     bool LoadScene(const std::filesystem::path& ScenePath, ID3D11Device* Device, FAssetRegistry* AssetRegistry);
 
 	JG_DECLARE_DERIVED_TYPEINFO(UWorld, UObject);
+    void InitializeEditorEventSender(
+        FMessageChannel::FSender&& InSender);
+
+    void HandleMousePickRequest(
+        const FMousePickRequestMessage& Message);
+
+    void HandleMouseCameraRotateRequest(
+        const FMouseCameraRotateRequestMessage& Message);
+
+    void HandleKeyboardCameraMoveRequest(
+        const FKeyboardCameraMoveRequestMessage& Message);
+
+    void RegisterCollision(UCollisionComponent* Component);
+    void UnregisterCollision(UCollisionComponent* Component);
+
+    void SetAssetRegistry(FAssetRegistry* InAssetRegistry);
+    FAssetRegistry* GetAssetRegistry() const;
+
+
 private:
     std::vector<std::unique_ptr<AActor>> Actors;
     std::vector<UStaticMeshComponent*> RenderableComponents;
+    std::vector<TObjectRef<UCollisionComponent>> CollisionComponents;
+
+    std::optional<FMessageChannel::FSender> EditorEventSender;
+
+    FAssetRegistry* AssetRegistry = nullptr;
+
     UCameraComponent* Camera = nullptr;
     FRenderProbe Probe{};
 };

@@ -46,6 +46,8 @@ void UStaticMeshComponent::OnDestroy()
     {
         Owner->GetWorld()->UnregisterRenderable(this);
     }
+
+    UPrimitiveComponent::OnDestroy();
 }
 
 void UStaticMeshComponent::MakeRender(FRenderProbe& OutProbe) const
@@ -56,7 +58,7 @@ void UStaticMeshComponent::MakeRender(FRenderProbe& OutProbe) const
     }
 
     OutProbe.ActorProbes.push_back({
-        GetTransform().GetWorldMatrix(),
+        GetWorldMatrix(),
         MeshHandle,
         MaterialHandle,
         PipelineHandle

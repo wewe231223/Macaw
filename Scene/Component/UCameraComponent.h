@@ -9,6 +9,8 @@ public:
     UCameraComponent() = default;
     ~UCameraComponent() override = default;
 
+    JG_DECLARE_DERIVED_TYPEINFO(UCameraComponent, USceneComponent)
+
     FMatrix GetViewMatrix() const;
     FMatrix GetProjectionMatrix() const;
     FMatrix GetViewProjectionMatrix() const;

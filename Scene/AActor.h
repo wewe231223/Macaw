@@ -14,6 +14,8 @@ public:
     AActor() = default;
     ~AActor() override;
 
+    JG_DECLARE_DERIVED_TYPEINFO(AActor, UObject)
+
     template<typename T>
     requires std::is_base_of_v<UActorComponent, T>
     T* AddComponent()
@@ -34,7 +36,22 @@ public:
         return ComponentPtr;
     }
 
-    const TArray<std::unique_ptr<UActorComponent>>& GetComponents() const;
+    template<typename T>
+    requires std::is_base_of_v<UActorComponent, T>
+    T* GetComponent()
+    {
+        for (const auto& Component : Components)
+        {
+            if (Component->GetTypeInfo()->IsA(T::StaticTypeInfo()))
+            {
+                return static_cast<T*>(Component.get());
+            }
+        }
+
+        return nullptr;
+    }
+
+    const std::vector<std::unique_ptr<UActorComponent>>& GetComponents() const;
 
     USceneComponent* GetRootComponent();
     const USceneComponent* GetRootComponent() const;

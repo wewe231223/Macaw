@@ -205,6 +205,9 @@
     <ClCompile Include="Core\Console\Console.cpp" />
     <ClCompile Include="Core\Memory\Memory.cpp" />
     <ClCompile Include="ErrorHandler.cpp" />
+    <ClCompile Include="FEditorSelection.cpp" />
+    <ClCompile Include="FKeyboardInput.cpp" />
+    <ClCompile Include="FMouseInput.cpp" />
     <ClCompile Include="ImGui\imgui.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
@@ -266,6 +269,7 @@
     <ClCompile Include="Render\Pipeline\UPipeline.cpp" />
     <ClCompile Include="Render\Pipeline\FShader.cpp" />
     <ClCompile Include="Render\Renderer.cpp" />
+    <ClCompile Include="Scene\Component\UCollisionComponent.cpp" />
     <ClCompile Include="Serialize\FArchive.cpp" />
     <ClCompile Include="Serialize\FArchiveJson.cpp" />
     <ClCompile Include="Serialize\FArchiveMemory.cpp" />
@@ -276,6 +280,7 @@
     <ClCompile Include="Scene\Component\USceneComponent.cpp" />
     <ClCompile Include="Scene\Component\UStaticMeshComponent.cpp" />
     <ClCompile Include="Scene\UWorld.cpp" />
+    <ClCompile Include="Render\Stats\StatWindow.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Common.h" />
@@ -299,6 +304,7 @@
     <ClInclude Include="Core\Base\FGuid.h" />
     <ClInclude Include="Core\Base\FObjectHandle.h" />
     <ClInclude Include="Core\Base\FObjectItem.h" />
+    <ClInclude Include="Core\Base\TObjectRef.h" />
     <ClInclude Include="Core\Base\UndoSystem\FObjectStateChangedMessage.h" />
     <ClInclude Include="Core\Base\UndoSystem\FRecordObjectState.h" />
     <ClInclude Include="Core\Base\UndoSystem\FUndoTransaction.h" />
@@ -323,7 +329,14 @@
     <ClInclude Include="Core\Memory\Memory.h" />
     <ClInclude Include="Core\Memory\TEngineAllocator.h" />
     <ClInclude Include="ErrorHandler.h" />
+    <ClInclude Include="FEditorSelection.h" />
+    <ClInclude Include="FKeyboardCameraMoveRequestMessage.h" />
+    <ClInclude Include="FKeyboardInput.h" />
     <ClInclude Include="FMath.h" />
+    <ClInclude Include="FMouseCameraRotateRequestMessage.h" />
+    <ClInclude Include="FMouseInput.h" />
+    <ClInclude Include="FMousePickRequestMessage.h" />
+    <ClInclude Include="FWorldSelectionChangedMessage.h" />
     <ClInclude Include="ImGui\imconfig.h" />
     <ClInclude Include="ImGui\imgui.h" />
     <ClInclude Include="ImGui\imgui_impl_dx11.h" />
@@ -340,6 +353,7 @@
     <ClInclude Include="Render\Pipeline\FShader.h" />
     <ClInclude Include="Render\Pipeline\Wrapper.h" />
     <ClInclude Include="Render\Renderer.h" />
+    <ClInclude Include="Scene\Component\UCollisionComponent.h" />
     <ClInclude Include="Serialize\FArchive.h" />
     <ClInclude Include="Serialize\FArchiveJson.h" />
     <ClInclude Include="Serialize\FArchiveMemory.h" />
@@ -350,6 +364,7 @@
     <ClInclude Include="Scene\Component\USceneComponent.h" />
     <ClInclude Include="Scene\Component\UStaticMeshComponent.h" />
     <ClInclude Include="Scene\UWorld.h" />
+    <ClInclude Include="Render\Stats\StatWindow.h" />
     <ClInclude Include="STL.h" />
   </ItemGroup>
   <ItemGroup>

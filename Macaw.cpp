@@ -20,6 +20,8 @@
 #include "Render/Console/ConsoleWindow.h"
 #include "Core/Asset/FAssetRegistry.h"
 
+#include "Render/Stats/StatWindow.h"
+
 //test
 #include "Render/Pipeline/UPipeline.h"
 #include "Core/Asset/UMesh.h"
@@ -29,8 +31,19 @@
 #include "Scene/AActor.h"
 #include "Scene/Component/UCameraComponent.h"
 #include "Scene/Component/UStaticMeshComponent.h"
+#include "Scene/Component/UCollisionComponent.h"
 
 #include "Core/Base/TypeRegistry.h"
+
+#include "Core/Channel/FMessageChannel.h"
+#include "FMouseInput.h"
+
+#include "FMousePickRequestMessage.h"
+#include "FMouseCameraRotateRequestMessage.h"
+#include "FWorldSelectionChangedMessage.h"
+#include "FKeyboardInput.h"
+#include "FKeyboardCameraMoveRequestMessage.h"
+#include "FEditorSelection.h"
 
 //test
 #include "Render/Pipeline/UPipeline.h"
@@ -53,6 +66,9 @@ WCHAR szTitle[MAX_LOADSTRING];                  // 제목 표시줄 텍스트입
 WCHAR szWindowClass[MAX_LOADSTRING];            // 기본 창 클래스 이름입니다.
 
 HWND hWnd = nullptr;
+
+FMouseInput GMouseInput;
+FKeyboardInput GKeyboardInput;
 
 // 이 코드 모듈에 포함된 함수의 선언을 전달합니다:
 ATOM                MyRegisterClass(HINSTANCE hInstance);
@@ -78,6 +94,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     TypeRegistry::Register(UMesh::StaticTypeInfo());
     TypeRegistry::Register(UPipeline::StaticTypeInfo());
 	TypeRegistry::Register(UColorMaterial::StaticTypeInfo());
+    TypeRegistry::Register(AActor::StaticTypeInfo());
 
 	TypeRegistry::Register(UWorld::StaticTypeInfo());
 	TypeRegistry::Register(AActor::StaticTypeInfo());
@@ -119,6 +136,40 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     // test
     UWorld World{};
 
+    FMessageChannel WorldCommandChannel{ 64 };
+    FMessageChannel EditorEventChannel{ 64 };
+    FEditorSelection EditorSelection;
+
+    GMouseInput.InitializeWorldCommandSender(WorldCommandChannel.GetSender());
+    GKeyboardInput.InitializeWorldCommandSender(WorldCommandChannel.GetSender());
+    World.InitializeEditorEventSender(EditorEventChannel.GetSender());
+
+    WorldCommandChannel.TryBind<FMousePickRequestMessage>(
+        [&World](const FMousePickRequestMessage& Message)
+        {
+            World.HandleMousePickRequest(Message);
+        });
+
+    WorldCommandChannel.TryBind<FMouseCameraRotateRequestMessage>(
+        [&World](const FMouseCameraRotateRequestMessage& Message)
+        {
+            World.HandleMouseCameraRotateRequest(Message);
+        });
+
+    EditorEventChannel.TryBind<FWorldSelectionChangedMessage>(
+        [&EditorSelection](const FWorldSelectionChangedMessage& Message)
+        {
+            EditorSelection.HandleSelectionChanged(Message);
+        });
+
+    WorldCommandChannel.TryBind<
+        FKeyboardCameraMoveRequestMessage>(
+            [&World](
+                const FKeyboardCameraMoveRequestMessage& Message)
+            {
+                World.HandleKeyboardCameraMoveRequest(Message);
+            });
+
 	FRenderer Renderer;
 	Renderer.Create(gHWND, DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT);
 	
@@ -129,6 +180,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 #ifdef LOAD
 	World.LoadScene("./scenes/test.json", Renderer.GetDevice(), &AssetRegistry);
 #else 
+    World.SetAssetRegistry(&AssetRegistry);
 
 	AssetRegistry.EmplaceAsset<UPipeline>(Renderer.GetDevice(), "BasePipeline", "./Content/Metadata/BasePipeline.meta");
 	AssetRegistry.EmplaceAsset<UPipeline>(Renderer.GetDevice(), "AlternatePipeline", "./Content/Metadata/AlternatePipeline.meta");
@@ -139,6 +191,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
     AActor* CameraActor = World.SpawnActor<AActor>();
     UCameraComponent* Camera = CameraActor->AddComponent<UCameraComponent>();
+
+    UCollisionComponent* TestCollision = nullptr;
+
     CameraActor->SetRootComponent(Camera);
 
     {
@@ -168,6 +223,11 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
             return static_cast<float>(Seed & 0x00ffffffU) / static_cast<float>(0x00ffffffU);
             };
 
+        UMesh* Mesh =
+            AssetRegistry.ResolveAsset<UMesh>(
+                EAssetType::Mesh,
+                MeshHandle);
+
         for (uint32 Row = 0; Row < InstanceRowCount; ++Row) {
             for (uint32 Column = 0; Column < InstanceColumnCount; ++Column) {
                 const uint32 InstanceIndex = Row * InstanceColumnCount + Column;
@@ -181,8 +241,10 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
                 AActor* InstanceActor = World.SpawnActor<AActor>();
                 UStaticMeshComponent* InstanceComponent = InstanceActor->AddComponent<UStaticMeshComponent>();
+                UCollisionComponent* CollisionComponent = InstanceActor->AddComponent<UCollisionComponent>();
 
                 InstanceActor->SetRootComponent(InstanceComponent);
+                CollisionComponent->AttachTo(InstanceComponent);
 
                 InstanceComponent->GetTransform().SetPosition({
                     StartX + static_cast<float>(Column) * HorizontalSpacing + PositionJitterX,
@@ -192,17 +254,70 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
                 InstanceComponent->GetTransform().SetRotation({ Pitch, Yaw, Roll });
                 InstanceComponent->GetTransform().SetScale({ ScaleFactor, ScaleFactor, ScaleFactor });
 
+                if (Mesh != nullptr)
+                {
+                    CollisionComponent->SetBounds(
+                        Mesh->GetBoundsCenter(),
+                        Mesh->GetBoundsExtent());
+                }
+
                 InstanceComponent->SetMeshHandle(MeshHandle);
                 const bool bUseAlternatePipeline = (Row + Column) % 2 == 1;
                 InstanceComponent->SetPipelineHandle(bUseAlternatePipeline ? AlternatePipelineHandle : BasePipelineHandle);
                 InstanceComponent->SetMaterialHandle(MaterialHandle);
+
+                if (InstanceIndex == 0)
+                {
+                    TestCollision = CollisionComponent;
+                }
             }
         }
-    }
 
 	World.SaveScene("test", &AssetRegistry);
 #endif 
+    }
 
+    FRenderProbe Probe = World.BuildRenderProbe();
+
+    std::string DebugText =
+        "Actor Count = " + std::to_string(Probe.ActorProbes.size()) + "\n";
+
+
+    if (TestCollision != nullptr)
+    {
+        const FMatrix Target = TestCollision->GetWorldMatrix();
+
+        FVector3 TargetWorldPos{
+            Target._41,
+            Target._42,
+            Target._43
+        };
+
+        FVector3 RayOrigin{
+            TargetWorldPos.x,
+            TargetWorldPos.y,
+            TargetWorldPos.z - 1000.0f
+        };
+
+        FVector3 RayDirection{
+            0.0f,
+            0.0f,
+            1.0f
+        };
+
+        FRay TestRay(RayOrigin, RayDirection);
+
+        float Distance = 0.0f;
+
+        if (TestCollision->Raycast(TestRay, Distance))
+        {
+            OutputDebugStringA("Collision Hit\n");
+        }
+        else
+        {
+            OutputDebugStringA("Collision Miss\n");
+        }
+    }
 
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
@@ -234,9 +349,22 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
             ImGui_ImplWin32_NewFrame();
             ImGui::NewFrame();
 
+            GMouseInput.DispatchPendingWorldCommands(
+                DEFAULT_WINDOW_WIDTH,
+                DEFAULT_WINDOW_HEIGHT,
+                ImGui::GetIO().WantCaptureMouse);
+
+            GKeyboardInput.DispatchPendingWorldCommands(
+                DeltaTime,
+                ImGui::GetIO().WantCaptureKeyboard);
+
+            WorldCommandChannel.Dispatch();
+            EditorEventChannel.Dispatch();
+
             Renderer.Render(World.BuildRenderProbe());
 
             DrawConsole(Console::STDOutHandle);
+            DrawStatWindow(World);
 
             ImGui::Render();
             ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
@@ -376,6 +504,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     ImGui_ImplWin32_WndProcHandler(hWnd, message, wParam, lParam);
 
+    GMouseInput.ProcessWindowMessage(
+        message,
+        wParam,
+        lParam);
+
+    GKeyboardInput.ProcessWindowMessage(
+        message,
+        wParam,
+        lParam);
 
     switch (message)
     {

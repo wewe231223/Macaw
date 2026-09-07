@@ -2,6 +2,8 @@
 
 #include "FMath.h"
 
+class FArchive;
+
 struct FTransform
 {
 public:
@@ -26,6 +28,7 @@ public:
     void SetScale(const FVector3& InScale) { Scale = InScale; }
 
     FMatrix GetWorldMatrix() const;
+    void Serialize(FArchive& Archive);
 
     void Serialize(FArchive& Archive)
     {
