@@ -65,6 +65,12 @@
     <Filter Include="InputSystem">
       <UniqueIdentifier>{6a992a80-eb66-49e5-9b7d-b955a6f142fc}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Scene\Message">
+      <UniqueIdentifier>{477e5083-35fc-4a2b-9b2b-9b88ed9e2819}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Editor">
+      <UniqueIdentifier>{8d0d0f5b-2e80-4137-8d5f-bf86fa390ff8}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Macaw.rc">
@@ -232,6 +238,12 @@
     </ClCompile>
     <ClCompile Include="Render\Stats\StatWindow.cpp">
       <Filter>Render\Stats</Filter>
+    </ClCompile>
+    <ClCompile Include="FMouseInput.cpp">
+      <Filter>InputSystem</Filter>
+    </ClCompile>
+    <ClCompile Include="FEditorSelection.cpp">
+      <Filter>Editor</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -422,6 +434,21 @@
     </ClInclude>
     <ClInclude Include="Render\Stats\StatWindow.h">
       <Filter>Render\Stats</Filter>
+    </ClInclude>
+    <ClInclude Include="FMouseInput.h">
+      <Filter>InputSystem</Filter>
+    </ClInclude>
+    <ClInclude Include="FMousePickRequestMessage.h">
+      <Filter>Scene\Message</Filter>
+    </ClInclude>
+    <ClInclude Include="FMouseCameraRotateRequestMessage.h">
+      <Filter>Scene\Message</Filter>
+    </ClInclude>
+    <ClInclude Include="FWorldSelectionChangedMessage.h">
+      <Filter>Scene\Message</Filter>
+    </ClInclude>
+    <ClInclude Include="FEditorSelection.h">
+      <Filter>Editor</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

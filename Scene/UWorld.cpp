@@ -6,6 +6,10 @@
 #include "AActor.h"
 #include "Component/UCameraComponent.h"
 #include "Component/UStaticMeshComponent.h"
+#include "Component/UCollisionComponent.h"
+#include "FMouseCameraRotateRequestMessage.h"
+#include "FMousePickRequestMessage.h"
+#include "FWorldSelectionChangedMessage.h"
 
 UWorld::~UWorld()
 {
@@ -61,7 +65,6 @@ void UWorld::RegisterRenderable(UStaticMeshComponent* Component)
     }
 
     RenderableComponents.push_back(Component);
-    CollisionComponents.push_back(Component);
 }
 
 void UWorld::UnregisterRenderable(UStaticMeshComponent* Component)
@@ -80,6 +83,116 @@ void UWorld::ClearMainCamera(UCameraComponent* InCamera)
     {
         Camera = nullptr;
     }
+}
+
+void UWorld::InitializeEditorEventSender(
+    FMessageChannel::FSender&& InSender)
+{
+    EditorEventSender.emplace(std::move(InSender));
+}
+
+void UWorld::HandleMousePickRequest(
+    const FMousePickRequestMessage& Message)
+{
+    FObjectHandle SelectedComponentHandle{};
+
+    if (Camera != nullptr &&
+        Message.ViewportWidth != 0 &&
+        Message.ViewportHeight != 0)
+    {
+        const float NdcX =
+            (2.0f * static_cast<float>(Message.ScreenX) /
+                static_cast<float>(Message.ViewportWidth)) -
+            1.0f;
+
+        const float NdcY =
+            1.0f -
+            (2.0f * static_cast<float>(Message.ScreenY) /
+                static_cast<float>(Message.ViewportHeight));
+
+        const FMatrix InverseViewProjection =
+            Camera->GetViewProjectionMatrix().Invert();
+
+        const FVector3 RayOrigin = FVector3::Transform(
+            FVector3{ NdcX, NdcY, 0.0f },
+            InverseViewProjection);
+
+        FVector3 RayDirection = FVector3::Transform(
+            FVector3{ NdcX, NdcY, 1.0f },
+            InverseViewProjection) - RayOrigin;
+
+        if (RayDirection.LengthSquared() > 0.0f)
+        {
+            RayDirection.Normalize();
+
+            float NearestDistance = std::numeric_limits<float>::max();
+            UCollisionComponent* NearestCollision = nullptr;
+
+            for (const TObjectRef<UCollisionComponent>& CollisionRef : CollisionComponents)
+            {
+                UCollisionComponent* CollisionComponent = CollisionRef.Get();
+
+                if (CollisionComponent == nullptr)
+                {
+                    continue;
+                }
+
+                float HitDistance = 0.0f;
+
+                if (CollisionComponent->Raycast(
+                    FRay{ RayOrigin, RayDirection },
+                    HitDistance) &&
+                    HitDistance < NearestDistance)
+                {
+                    NearestDistance = HitDistance;
+                    NearestCollision = CollisionComponent;
+                }
+            }
+
+            if (NearestCollision != nullptr)
+            {
+                AActor* Owner = NearestCollision->GetOwner();
+
+                if (Owner != nullptr)
+                {
+                    if (USceneComponent* RootComponent = Owner->GetRootComponent())
+                    {
+                        SelectedComponentHandle = RootComponent->GetHandle();
+                    }
+                }
+            }
+        }
+    }
+
+    if (EditorEventSender.has_value())
+    {
+        EditorEventSender->TryEmplace<FWorldSelectionChangedMessage>(
+            SelectedComponentHandle);
+    }
+}
+
+void UWorld::HandleMouseCameraRotateRequest(
+    const FMouseCameraRotateRequestMessage& Message)
+{
+    if (Camera == nullptr)
+    {
+        return;
+    }
+
+    constexpr float RotationSensitivity = 0.005f;
+    constexpr float MaximumPitch = 1.5f;
+
+    FTransform& CameraTransform = Camera->GetTransform();
+    FRotator Rotation = CameraTransform.GetRotation();
+
+    Rotation.y += Message.DeltaX * RotationSensitivity;
+
+    Rotation.x = std::clamp(
+        Rotation.x - Message.DeltaY * RotationSensitivity,
+        -MaximumPitch,
+        MaximumPitch);
+
+    CameraTransform.SetRotation(Rotation);
 }
 
 AActor* UWorld::AddActor(std::unique_ptr<AActor> InActor) {
@@ -103,4 +216,40 @@ AActor* UWorld::AddActor(std::unique_ptr<AActor> InActor) {
     Actor->SetWorld(this);
 
     return Actor;
+}
+
+void UWorld::RegisterCollision(UCollisionComponent* Component)
+{
+    if (Component == nullptr)
+    {
+        return;
+    }
+
+    const auto FoundComponent = std::ranges::find_if(
+        CollisionComponents,
+        [Component](const TObjectRef<UCollisionComponent>& ComponentRef)
+        {
+            return ComponentRef.Get() == Component;
+        });
+
+    if (FoundComponent != CollisionComponents.end())
+    {
+        return;
+    }
+
+    CollisionComponents.emplace_back(Component);
+}
+
+void UWorld::UnregisterCollision(UCollisionComponent* Component)
+{
+    std::erase_if(
+        CollisionComponents,
+        [Component](const TObjectRef<UCollisionComponent>& ComponentRef)
+        {
+            UCollisionComponent* RegisteredComponent =
+                ComponentRef.Get();
+
+            return RegisteredComponent == nullptr ||
+                RegisteredComponent == Component;
+        });
 }
