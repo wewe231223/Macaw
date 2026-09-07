@@ -61,3 +61,10 @@ void UCollisionComponent::MakeRender(FRenderProbe& Probe) const
 {
     // 선택 사항: 디버그 모드일 때만 Probe에 와이어프레임 박스 렌더링 요청 추가
 }
+
+void UCollisionComponent::Serialize(FArchive& Archive)
+{
+    UPrimitiveComponent::Serialize(Archive);
+    Archive.Serialize("Extent", Extent);
+    Archive.Serialize("bCollisionEnabled", bCollisionEnabled);
+}

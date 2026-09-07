@@ -2,6 +2,7 @@
 
 #include "UPrimitiveComponent.h"
 #include "Core/Base/TypeInfo.h"
+#include "Serialize/FArchive.h"
 
 class UCollisionComponent : public UPrimitiveComponent
 {
@@ -21,8 +22,10 @@ public:
     void SetExtent(const FVector3& InExtent);
     void MakeRender(FRenderProbe& OutProbe) const override;
 
-public:
     JG_DECLARE_DERIVED_TYPEINFO(UCollisionComponent, UPrimitiveComponent);
+
+protected:
+    void Serialize(FArchive& Archive) override;
 
 private:
     FVector3 Extent{ 0.5f, 0.5f, 0.5f };
