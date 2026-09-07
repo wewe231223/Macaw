@@ -23,6 +23,9 @@ public:
     void OnDestroy() override;
     void MakeRender(FRenderProbe& OutProbe) const override;
 
+protected:
+    void Serialize(FArchive& Archive) override;
+
 private:
     FAssetHandle MeshHandle;
     FAssetHandle MaterialHandle;

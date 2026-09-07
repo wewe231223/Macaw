@@ -24,6 +24,46 @@ FMatrix UCameraComponent::GetViewProjectionMatrix() const
     return GetViewMatrix() * GetProjectionMatrix();
 }
 
+float UCameraComponent::GetFOV() const
+{
+    return FOV;
+}
+
+float UCameraComponent::GetAspectRatio() const
+{
+    return AspectRatio;
+}
+
+float UCameraComponent::GetNearPlane() const
+{
+    return NearPlane;
+}
+
+float UCameraComponent::GetFarPlane() const
+{
+    return FarPlane;
+}
+
+void UCameraComponent::SetFOV(float InFOV)
+{
+    FOV = InFOV;
+}
+
+void UCameraComponent::SetAspectRatio(float InAspectRatio)
+{
+    AspectRatio = InAspectRatio;
+}
+
+void UCameraComponent::SetNearPlane(float InNearPlane)
+{
+    NearPlane = InNearPlane;
+}
+
+void UCameraComponent::SetFarPlane(float InFarPlane)
+{
+    FarPlane = InFarPlane;
+}
+
 void UCameraComponent::OnCreate()
 {
     AActor* Owner = GetOwner();
@@ -42,4 +82,13 @@ void UCameraComponent::OnDestroy()
     {
         Owner->GetWorld()->ClearMainCamera(this);
     }
+}
+
+void UCameraComponent::Serialize(FArchive& Archive)
+{
+    USceneComponent::Serialize(Archive);
+    Archive.Serialize("FOV", FOV);
+    Archive.Serialize("AspectRatio", AspectRatio);
+    Archive.Serialize("NearPlane", NearPlane);
+    Archive.Serialize("FarPlane", FarPlane);
 }

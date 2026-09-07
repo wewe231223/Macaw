@@ -60,3 +60,11 @@ void UStaticMeshComponent::MakeRender(FRenderProbe& OutProbe) const
         PipelineHandle
     });
 }
+
+void UStaticMeshComponent::Serialize(FArchive& Archive)
+{
+    UPrimitiveComponent::Serialize(Archive);
+    Archive.SerializeStruct("MeshHandle", MeshHandle);
+    Archive.SerializeStruct("MaterialHandle", MaterialHandle);
+    Archive.SerializeStruct("PipelineHandle", PipelineHandle);
+}

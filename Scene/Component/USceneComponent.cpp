@@ -11,3 +11,9 @@ const FTransform& USceneComponent::GetTransform() const
 {
     return Transform;
 }
+
+void USceneComponent::Serialize(FArchive& Archive)
+{
+	UActorComponent::Serialize(Archive);
+	Archive.SerializeStruct("Transform", Transform);
+}

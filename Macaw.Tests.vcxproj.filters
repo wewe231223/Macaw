@@ -22,6 +22,15 @@
     <Filter Include="Core\Memory">
       <UniqueIdentifier>{3d773fb6-4a7a-4640-a38c-0f32f3d94151}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Core\Asset">
+      <UniqueIdentifier>{ea046360-b0a7-4f37-9f50-dc467a6c9e8e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Scene">
+      <UniqueIdentifier>{52221cb8-22b5-4451-a683-14819e36f97e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Scene\Component">
+      <UniqueIdentifier>{f130e4cb-9742-427c-a000-b7021d87806d}</UniqueIdentifier>
+    </Filter>
     <Filter Include="rapidjson">
       <UniqueIdentifier>{6b536554-21d6-4b05-8d3a-47161a2a1439}</UniqueIdentifier>
     </Filter>
@@ -36,6 +45,39 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Core\Asset\FAssetHandle.cpp">
+      <Filter>Core\Asset</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Base\FRenderProbe.cpp">
+      <Filter>Core\Base</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Base\FTreansform.cpp">
+      <Filter>Core\Base</Filter>
+    </ClCompile>
+    <ClCompile Include="Scene\AActor.cpp">
+      <Filter>Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="Scene\Component\UActorComponent.cpp">
+      <Filter>Scene\Component</Filter>
+    </ClCompile>
+    <ClCompile Include="Scene\Component\UCameraComponent.cpp">
+      <Filter>Scene\Component</Filter>
+    </ClCompile>
+    <ClCompile Include="Scene\Component\UPrimitiveComponent.cpp">
+      <Filter>Scene\Component</Filter>
+    </ClCompile>
+    <ClCompile Include="Scene\Component\USceneComponent.cpp">
+      <Filter>Scene\Component</Filter>
+    </ClCompile>
+    <ClCompile Include="Scene\Component\UStaticMeshComponent.cpp">
+      <Filter>Scene\Component</Filter>
+    </ClCompile>
+    <ClCompile Include="Scene\UWorld.cpp">
+      <Filter>Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="Tests\ComponentSerializationTests.cpp">
+      <Filter>Tests</Filter>
+    </ClCompile>
     <ClCompile Include="Tests\DoctestMain.cpp">
       <Filter>Tests</Filter>
     </ClCompile>

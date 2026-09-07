@@ -21,6 +21,9 @@ public:
     bool IsActive() const;
     void SetActive(bool bInActive);
 
+protected:
+    void Serialize(FArchive& Archive) override;
+
 private:
     friend class AActor;
 

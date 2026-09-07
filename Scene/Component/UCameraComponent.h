@@ -27,6 +27,9 @@ public:
     void OnCreate() override;
     void OnDestroy() override;
 
+protected:
+    void Serialize(FArchive& Archive) override;
+
 private:
     float FOV = 1.0472f;       // 약 60도, 라디안
     float AspectRatio = 16.0f / 9.0f;

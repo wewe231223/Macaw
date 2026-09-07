@@ -74,6 +74,7 @@
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
+      <AdditionalIncludeDirectories>$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Use</PrecompiledHeader>
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">PCH.h</PrecompiledHeaderFile>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Use</PrecompiledHeader>
@@ -93,7 +94,10 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Core\Asset\FAssetHandle.cpp" />
     <ClCompile Include="Core\Base\FGuid.cpp" />
+    <ClCompile Include="Core\Base\FRenderProbe.cpp" />
+    <ClCompile Include="Core\Base\FTreansform.cpp" />
     <ClCompile Include="Core\Base\TypeInfo.cpp" />
     <ClCompile Include="Core\Base\TypeRegistry.cpp" />
     <ClCompile Include="Core\Base\UndoSystem\FRecordObjectState.cpp" />
@@ -115,6 +119,14 @@
     <ClCompile Include="Serialize\FArchive.cpp" />
     <ClCompile Include="Serialize\FArchiveJson.cpp" />
     <ClCompile Include="Serialize\FArchiveMemory.cpp" />
+    <ClCompile Include="Scene\AActor.cpp" />
+    <ClCompile Include="Scene\Component\UActorComponent.cpp" />
+    <ClCompile Include="Scene\Component\UCameraComponent.cpp" />
+    <ClCompile Include="Scene\Component\UPrimitiveComponent.cpp" />
+    <ClCompile Include="Scene\Component\USceneComponent.cpp" />
+    <ClCompile Include="Scene\Component\UStaticMeshComponent.cpp" />
+    <ClCompile Include="Scene\UWorld.cpp" />
+    <ClCompile Include="Tests\ComponentSerializationTests.cpp" />
     <ClCompile Include="Tests\DoctestMain.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
