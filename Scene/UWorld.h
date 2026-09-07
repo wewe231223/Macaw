@@ -41,6 +41,7 @@ public:
     void SetMainCamera(UCameraComponent* InCamera);
     void ClearMainCamera(UCameraComponent* InCamera);
 
+    AActor* PickActor(int MouseX, int MouseY, int ScreenWidth, int ScreenHeight, const UCameraComponent* Camera);
 
 private:
     std::vector<std::unique_ptr<AActor>> Actors;

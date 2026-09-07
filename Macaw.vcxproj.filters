@@ -233,6 +233,9 @@
     <ClCompile Include="Render\Stats\StatWindow.cpp">
       <Filter>Render\Stats</Filter>
     </ClCompile>
+    <ClCompile Include="InputSystem\FMouseInput.cpp">
+      <Filter>InputSystem</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Core\Base\FGuid.h">
@@ -422,6 +425,9 @@
     </ClInclude>
     <ClInclude Include="Render\Stats\StatWindow.h">
       <Filter>Render\Stats</Filter>
+    </ClInclude>
+    <ClInclude Include="InputSystem\FMouseInput.h">
+      <Filter>InputSystem</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
