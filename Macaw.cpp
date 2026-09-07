@@ -136,18 +136,23 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
         0, 1, 2
     };
 
+
+	AssetRegistry.EmplaceAsset<UPipeline>(Renderer.GetDevice(), "BasePipeline", "./Content/Metadata/BasePipeline.meta");
+	AssetRegistry.EmplaceAsset<UPipeline>(Renderer.GetDevice(), "AlternatePipeline", "./Content/Metadata/AlternatePipeline.meta");
+
+	AssetRegistry.EmplaceAsset<UMesh>(Renderer.GetDevice(), "SphereMesh", "./Content/Metadata/SphereMesh.meta");
     
-	AssetRegistry.EmplaceAsset<UPipeline>(Renderer.GetDevice(), EAssetType::Pipeline, "BasePipeline", "./Pipeline/Base.json");
-	AssetRegistry.EmplaceAsset<UPipeline>(Renderer.GetDevice(), EAssetType::Pipeline, "AlternatePipeline", "./Pipeline/Alternate.json");
-	AssetRegistry.EmplaceAsset<UMesh>(Renderer.GetDevice(), EAssetType::Mesh, "TriangleMesh",
-        Indices, 
-        MakeVertexAttribute<EVertexAttribute::Position>(Positions), 
-        MakeVertexAttribute<EVertexAttribute::Normal>(Normals), 
-        MakeVertexAttribute<EVertexAttribute::UV>(UVs)
-    );
-	AssetRegistry.EmplaceAsset<UColorMaterial>(Renderer.GetDevice(), EAssetType::Material, "RedMaterial", FVector4(1.0f, 0.0f, 0.0f, 1.0f));
+	AssetRegistry.EmplaceAsset<UColorMaterial>(Renderer.GetDevice(), "RedMaterial", "./Content/Metadata/RedMaterial.meta");
 
-
+	//AssetRegistry.EmplaceAsset<UPipeline>(Renderer.GetDevice(), EAssetType::Pipeline, "BasePipeline", "./Pipeline/Base.json");
+	//AssetRegistry.EmplaceAsset<UPipeline>(Renderer.GetDevice(), EAssetType::Pipeline, "AlternatePipeline", "./Pipeline/Alternate.json");
+	//AssetRegistry.EmplaceAsset<UMesh>(Renderer.GetDevice(), EAssetType::Mesh, "TriangleMesh",
+ //       Indices, 
+ //       MakeVertexAttribute<EVertexAttribute::Position>(Positions), 
+ //       MakeVertexAttribute<EVertexAttribute::Normal>(Normals), 
+ //       MakeVertexAttribute<EVertexAttribute::UV>(UVs)
+ //   );
+	//AssetRegistry.EmplaceAsset<UColorMaterial>(Renderer.GetDevice(), EAssetType::Material, "RedMaterial", FVector4(1.0f, 0.0f, 0.0f, 1.0f));
 
     AActor* CameraActor = World.SpawnActor<AActor>();
     UCameraComponent* Camera = CameraActor->AddComponent<UCameraComponent>();
@@ -161,10 +166,11 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
         constexpr float NearInstanceDepth = 4.5f;
         constexpr float FarInstanceDepth = 9.0f;
 
-        const FAssetHandle MeshHandle = AssetRegistry.GetAsset(EAssetType::Mesh, "TriangleMesh");
-        const FAssetHandle BasePipelineHandle = AssetRegistry.GetAsset(EAssetType::Pipeline, "BasePipeline");
-        const FAssetHandle AlternatePipelineHandle = AssetRegistry.GetAsset(EAssetType::Pipeline, "AlternatePipeline");
-        const FAssetHandle MaterialHandle = AssetRegistry.GetAsset(EAssetType::Material, "RedMaterial");
+        const FAssetHandle MeshHandle = AssetRegistry.GetAsset("SphereMesh");
+        const FAssetHandle BasePipelineHandle = AssetRegistry.GetAsset("BasePipeline");
+        const FAssetHandle AlternatePipelineHandle = AssetRegistry.GetAsset("AlternatePipeline");
+        const FAssetHandle MaterialHandle = AssetRegistry.GetAsset("RedMaterial");
+
 
         const float StartX = -0.5f * static_cast<float>(InstanceColumnCount - 1) * HorizontalSpacing;
         const float StartY = 0.5f * static_cast<float>(InstanceRowCount - 1) * VerticalSpacing;

@@ -56,8 +56,20 @@
     <Filter Include="Core\Base\UndoSystem">
       <UniqueIdentifier>{5c8cf912-a5bf-4bb6-93e4-a5eaed950ded}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Shader">
-      <UniqueIdentifier>{5c0d347a-8cee-4a03-b8c3-23cf46688be5}</UniqueIdentifier>
+    <Filter Include="Core\Asset\BasicGeometry">
+      <UniqueIdentifier>{6597e410-6762-4170-9e93-b843e644fb08}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Content">
+      <UniqueIdentifier>{e413355e-140e-454f-b8c7-a8a2f0031a8e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Content\Metadata">
+      <UniqueIdentifier>{baf4ea2b-0fc2-4de2-aa4d-b165d2a6665c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Content\Pipeline">
+      <UniqueIdentifier>{0b8c7fe9-7da9-4aa2-8e4e-0c641200e8c7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Content\Shader">
+      <UniqueIdentifier>{6466299b-d8c0-45b1-ba1c-00c2e6c8b106}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -220,6 +232,36 @@
     </ClCompile>
     <ClCompile Include="Core\Base\FRenderProbe.cpp">
       <Filter>Core\Base</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Asset\UAsset.cpp">
+      <Filter>Core\Asset</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Asset\BasicGeometry\Sphere.cpp">
+      <Filter>Core\Asset\BasicGeometry</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Asset\BasicGeometry\Capsule.cpp">
+      <Filter>Core\Asset\BasicGeometry</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Asset\BasicGeometry\Corn.cpp">
+      <Filter>Core\Asset\BasicGeometry</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Asset\BasicGeometry\Cube.cpp">
+      <Filter>Core\Asset\BasicGeometry</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Asset\BasicGeometry\Cylinder.cpp">
+      <Filter>Core\Asset\BasicGeometry</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Asset\BasicGeometry\Plane.cpp">
+      <Filter>Core\Asset\BasicGeometry</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Asset\BasicGeometry\Pyramid.cpp">
+      <Filter>Core\Asset\BasicGeometry</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Asset\BasicGeometry\Torus.cpp">
+      <Filter>Core\Asset\BasicGeometry</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Asset\FAssetMetadataParser.cpp">
+      <Filter>Core\Asset</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -402,21 +444,84 @@
     <ClInclude Include="Core\Base\FRenderProbe.h">
       <Filter>Core\Base</Filter>
     </ClInclude>
+    <ClInclude Include="Core\Asset\UAsset.h">
+      <Filter>Core\Asset</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Asset\BasicGeometry\Sphere.h">
+      <Filter>Core\Asset\BasicGeometry</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Asset\BasicGeometry\Capsule.h">
+      <Filter>Core\Asset\BasicGeometry</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Asset\BasicGeometry\Corn.h">
+      <Filter>Core\Asset\BasicGeometry</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Asset\BasicGeometry\Cube.h">
+      <Filter>Core\Asset\BasicGeometry</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Asset\BasicGeometry\Cylinder.h">
+      <Filter>Core\Asset\BasicGeometry</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Asset\BasicGeometry\Plane.h">
+      <Filter>Core\Asset\BasicGeometry</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Asset\BasicGeometry\Pyramid.h">
+      <Filter>Core\Asset\BasicGeometry</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Asset\BasicGeometry\Torus.h">
+      <Filter>Core\Asset\BasicGeometry</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Asset\FAssetMetadataParser.h">
+      <Filter>Core\Asset</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="Pipeline\Alternate.hlsl">
-      <Filter>Shader</Filter>
-    </FxCompile>
-    <FxCompile Include="Pipeline\Base.hlsl">
-      <Filter>Shader</Filter>
-    </FxCompile>
+    <None Include="Content\Metadata\AlternatePipeline.meta">
+      <Filter>Content\Metadata</Filter>
+    </None>
+    <None Include="Content\Metadata\BasePipeline.meta">
+      <Filter>Content\Metadata</Filter>
+    </None>
+    <None Include="Content\Metadata\CapsuleMesh.meta">
+      <Filter>Content\Metadata</Filter>
+    </None>
+    <None Include="Content\Metadata\ConeMesh.meta">
+      <Filter>Content\Metadata</Filter>
+    </None>
+    <None Include="Content\Metadata\CubeMesh.meta">
+      <Filter>Content\Metadata</Filter>
+    </None>
+    <None Include="Content\Metadata\CylinderMesh.meta">
+      <Filter>Content\Metadata</Filter>
+    </None>
+    <None Include="Content\Metadata\PlaneMesh.meta">
+      <Filter>Content\Metadata</Filter>
+    </None>
+    <None Include="Content\Metadata\PyramidMesh.meta">
+      <Filter>Content\Metadata</Filter>
+    </None>
+    <None Include="Content\Metadata\RedMaterial.meta">
+      <Filter>Content\Metadata</Filter>
+    </None>
+    <None Include="Content\Metadata\SphereMesh.meta">
+      <Filter>Content\Metadata</Filter>
+    </None>
+    <None Include="Content\Metadata\TorusMesh.meta">
+      <Filter>Content\Metadata</Filter>
+    </None>
+    <None Include="Content\Pipeline\Alternate.json">
+      <Filter>Content\Pipeline</Filter>
+    </None>
+    <None Include="Content\Pipeline\Base.json">
+      <Filter>Content\Pipeline</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
-    <None Include="Pipeline\Alternate.json">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="Pipeline\Base.json">
-      <Filter>Shader</Filter>
-    </None>
+    <FxCompile Include="Content\Shader\Alternate.hlsl">
+      <Filter>Content\Shader</Filter>
+    </FxCompile>
+    <FxCompile Include="Content\Shader\Base.hlsl">
+      <Filter>Content\Shader</Filter>
+    </FxCompile>
   </ItemGroup>
 </Project>

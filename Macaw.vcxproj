@@ -168,10 +168,20 @@
     <Image Include="small.ico" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Core\Asset\BasicGeometry\Capsule.cpp" />
+    <ClCompile Include="Core\Asset\BasicGeometry\Corn.cpp" />
+    <ClCompile Include="Core\Asset\BasicGeometry\Cube.cpp" />
+    <ClCompile Include="Core\Asset\BasicGeometry\Cylinder.cpp" />
+    <ClCompile Include="Core\Asset\BasicGeometry\Plane.cpp" />
+    <ClCompile Include="Core\Asset\BasicGeometry\Pyramid.cpp" />
+    <ClCompile Include="Core\Asset\BasicGeometry\Sphere.cpp" />
+    <ClCompile Include="Core\Asset\BasicGeometry\Torus.cpp" />
     <ClCompile Include="Core\Asset\FAssetHandle.cpp" />
+    <ClCompile Include="Core\Asset\FAssetMetadataParser.cpp" />
     <ClCompile Include="Core\Asset\FAssetRegistry.cpp" />
     <ClCompile Include="Core\Asset\FMaterialBuffer.cpp" />
     <ClCompile Include="Core\Asset\FMaterialGPUData.cpp" />
+    <ClCompile Include="Core\Asset\UAsset.cpp" />
     <ClCompile Include="Core\Asset\UColorMaterial.cpp" />
     <ClCompile Include="Core\Asset\UMaterial.cpp" />
     <ClCompile Include="Core\Asset\UMesh.cpp" />
@@ -269,10 +279,20 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Common.h" />
+    <ClInclude Include="Core\Asset\BasicGeometry\Capsule.h" />
+    <ClInclude Include="Core\Asset\BasicGeometry\Corn.h" />
+    <ClInclude Include="Core\Asset\BasicGeometry\Cube.h" />
+    <ClInclude Include="Core\Asset\BasicGeometry\Cylinder.h" />
+    <ClInclude Include="Core\Asset\BasicGeometry\Plane.h" />
+    <ClInclude Include="Core\Asset\BasicGeometry\Pyramid.h" />
+    <ClInclude Include="Core\Asset\BasicGeometry\Sphere.h" />
+    <ClInclude Include="Core\Asset\BasicGeometry\Torus.h" />
     <ClInclude Include="Core\Asset\FAssetHandle.h" />
+    <ClInclude Include="Core\Asset\FAssetMetadataParser.h" />
     <ClInclude Include="Core\Asset\FAssetRegistry.h" />
     <ClInclude Include="Core\Asset\FMaterialBuffer.h" />
     <ClInclude Include="Core\Asset\FMaterialGPUData.h" />
+    <ClInclude Include="Core\Asset\UAsset.h" />
     <ClInclude Include="Core\Asset\UColorMaterial.h" />
     <ClInclude Include="Core\Asset\UMaterial.h" />
     <ClInclude Include="Core\Asset\UMesh.h" />
@@ -333,18 +353,28 @@
     <ClInclude Include="STL.h" />
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="Pipeline\Alternate.hlsl">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-    </FxCompile>
-    <FxCompile Include="Pipeline\Base.hlsl">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-    </FxCompile>
+    <None Include="Content\Metadata\AlternatePipeline.meta" />
+    <None Include="Content\Metadata\BasePipeline.meta" />
+    <None Include="Content\Metadata\CapsuleMesh.meta" />
+    <None Include="Content\Metadata\ConeMesh.meta" />
+    <None Include="Content\Metadata\CubeMesh.meta" />
+    <None Include="Content\Metadata\CylinderMesh.meta" />
+    <None Include="Content\Metadata\PlaneMesh.meta" />
+    <None Include="Content\Metadata\PyramidMesh.meta" />
+    <None Include="Content\Metadata\RedMaterial.meta" />
+    <None Include="Content\Metadata\SphereMesh.meta" />
+    <None Include="Content\Metadata\TorusMesh.meta" />
+    <None Include="Content\Pipeline\Alternate.json" />
+    <None Include="Content\Pipeline\Base.json" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="Pipeline\Alternate.json" />
-    <None Include="Pipeline\Base.json" />
+    <FxCompile Include="Content\Shader\Alternate.hlsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </FxCompile>
+    <FxCompile Include="Content\Shader\Base.hlsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </FxCompile>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
