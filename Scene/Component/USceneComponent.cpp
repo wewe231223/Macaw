@@ -77,7 +77,6 @@ FMatrix USceneComponent::GetWorldMatrix() const
     return LocalMatrix * Parent->GetWorldMatrix();
 }
 
-}
 
 void USceneComponent::Serialize(FArchive& Archive)
 {

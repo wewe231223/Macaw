@@ -308,10 +308,10 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
             ImGui_ImplWin32_NewFrame();
             ImGui::NewFrame();
 
-            //Renderer.Render(World.BuildRenderProbe());
+            Renderer.Render(World.BuildRenderProbe());
 
             DrawConsole(Console::STDOutHandle);
-            DrawStatWindow();
+            DrawStatWindow(World);
 
             ImGui::Render();
             ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
