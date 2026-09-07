@@ -129,6 +129,7 @@ void Memory::Free(void* Ptr) noexcept
 	// 현재 살아 있는 메모리와 할당 개수를 감소시킴
 	State.Stats.AllocatedBytes -= Size;
 	--State.Stats.ActiveAllocationCount;
+	++State.Stats.TotalDeallocationCount;
 
 	// Header 객체의 수명을 끝낸다.
 	Header->~FAllocationHeader();

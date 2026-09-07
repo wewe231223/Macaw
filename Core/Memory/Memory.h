@@ -20,6 +20,7 @@ namespace Memory
 		std::size_t PeakAllocatedBytes = 0;
 		std::size_t ActiveAllocationCount = 0;
 		std::size_t TotalAllocationCount = 0;
+		std::size_t TotalDeallocationCount = 0;
 	};
 
 	void* Allocate(std::size_t Size, std::size_t Alignment, EMemoryTag Tag = EMemoryTag::Unknown);

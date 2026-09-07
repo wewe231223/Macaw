@@ -183,7 +183,7 @@ bool UMesh::CreateIndexBuffer(ID3D11Device* Device, const std::span<const uint32
 
 	IndexBuffer = std::move(Buffer);
 
-	Indices = InIndices;
+	Indices.assign(InIndices.begin(), InIndices.end());
 	IndexCount = static_cast<uint32>(Indices.size());
 
 	return true;

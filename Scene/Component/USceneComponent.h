@@ -19,19 +19,15 @@ public:
 	FTransform& GetTransform();
 	const FTransform& GetTransform() const;
 
-	JG_DECLARE_DERIVED_TYPEINFO(USceneComponent, UActorComponent);
-protected:
-	void Serialize(FArchive& Archive) override;
-
 	void AttachTo(USceneComponent* InParent);
-
+	FMatrix GetWorldMatrix() const;
 	USceneComponent* GetParent() const;
 	const std::vector<TObjectRef<USceneComponent>>& GetChildren() const;
 
-	FMatrix GetWorldMatrix() const;
-
 protected:
 	void Serialize(FArchive& Archive) override;
+
+
 
 private:
 	FTransform Transform;

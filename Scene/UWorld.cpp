@@ -248,7 +248,7 @@ bool UWorld::LoadScene(const std::filesystem::path& ScenePath, ID3D11Device* Dev
 
     return true;
 }
-}
+
 
 void UWorld::SetAssetRegistry(FAssetRegistry* InAssetRegistry)
 {
@@ -441,9 +441,11 @@ void UWorld::HandleKeyboardCameraMoveRequest(
 
     const FMatrix CameraWorldMatrix = Camera->GetWorldMatrix();
 
-    const FVector3 ForwardDirection = CameraWorldMatrix.Backward();
-
+    const FVector3 ForwardDirection = CameraWorldMatrix.Forward();
     const FVector3 RightDirection = CameraWorldMatrix.Right();
+
+
+	const FVector3 Forward = ForwardDirection * Message.ForwardAxis;
 
     FVector3 MoveDirection = ForwardDirection * Message.ForwardAxis + RightDirection * Message.RightAxis;
 

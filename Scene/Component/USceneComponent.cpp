@@ -18,7 +18,7 @@ void USceneComponent::Serialize(FArchive& Archive)
 
     Archive.SerializeStruct("Transform", Transform);
 }
-}
+
 
 void USceneComponent::OnDestroy()
 {
@@ -110,8 +110,3 @@ FMatrix USceneComponent::GetWorldMatrix() const
 }
 
 
-void USceneComponent::Serialize(FArchive& Archive)
-{
-	UActorComponent::Serialize(Archive);
-	Archive.SerializeStruct("Transform", Transform);
-}

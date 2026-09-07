@@ -563,11 +563,11 @@ namespace DirectX
             Vector3 Left() const noexcept { return Vector3(-_11, -_12, -_13); }
             void Left(const Vector3& v) noexcept { _11 = -v.x; _12 = -v.y; _13 = -v.z; }
 
-            Vector3 Forward() const noexcept { return Vector3(-_31, -_32, -_33); }
-            void Forward(const Vector3& v) noexcept { _31 = -v.x; _32 = -v.y; _33 = -v.z; }
+            Vector3 Forward() const noexcept { return Vector3(_31, _32, _33); }
+            void Forward(const Vector3& v) noexcept { _31 = v.x; _32 = v.y; _33 = v.z; }
 
-            Vector3 Backward() const noexcept { return Vector3(_31, _32, _33); }
-            void Backward(const Vector3& v) noexcept { _31 = v.x; _32 = v.y; _33 = v.z; }
+            Vector3 Backward() const noexcept { return Vector3(-_31, -_32, -_33); }
+            void Backward(const Vector3& v) noexcept { _31 = -v.x; _32 = -v.y; _33 = -v.z; }
 
             Vector3 Translation() const noexcept { return Vector3(_41, _42, _43); }
             void Translation(const Vector3& v) noexcept { _41 = v.x; _42 = v.y; _43 = v.z; }

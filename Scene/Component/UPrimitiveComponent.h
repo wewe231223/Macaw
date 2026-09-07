@@ -18,7 +18,6 @@ public:
 
     virtual void MakeRender(FRenderProbe& OutProbe) const {};
 
-	JG_DECLARE_DERIVED_TYPEINFO(UPrimitiveComponent, USceneComponent);
 protected:
     void Serialize(FArchive& Archive) override;
 

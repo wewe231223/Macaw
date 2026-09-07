@@ -63,12 +63,11 @@ public:
 
     void PreLoadComponents(FArchive& Archive);
 
-	JG_DECLARE_DERIVED_TYPEINFO(AActor, UObject);
 protected:
     void Serialize(FArchive& Archive) override;
 
 private:
-    TArray<std::unique_ptr<UActorComponent>> Components{};
+    std::vector<std::unique_ptr<UActorComponent>> Components{};
     USceneComponent* RootComponent = nullptr;
 
     UWorld* World = nullptr;

@@ -77,7 +77,7 @@ LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 HWND gHWND;
 
 
-#define LOAD 
+//#define LOAD 
 
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
@@ -224,9 +224,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
             };
 
         UMesh* Mesh =
-            AssetRegistry.ResolveAsset<UMesh>(
-                EAssetType::Mesh,
-                MeshHandle);
+            AssetRegistry.ResolveAsset<UMesh>( MeshHandle);
 
         for (uint32 Row = 0; Row < InstanceRowCount; ++Row) {
             for (uint32 Column = 0; Column < InstanceColumnCount; ++Column) {

@@ -71,6 +71,9 @@
     <Filter Include="Content\Shader">
       <UniqueIdentifier>{6466299b-d8c0-45b1-ba1c-00c2e6c8b106}</UniqueIdentifier>
     </Filter>
+    <Filter Include="SimpleMath">
+      <UniqueIdentifier>{106fee09-1c43-4673-961e-825b49e084ae}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Macaw.rc">
@@ -262,6 +265,14 @@
     </ClCompile>
     <ClCompile Include="Core\Asset\FAssetMetadataParser.cpp">
       <Filter>Core\Asset</Filter>
+    </ClCompile>
+    <ClCompile Include="FEditorSelection.cpp" />
+    <ClCompile Include="FKeyboardInput.cpp" />
+    <ClCompile Include="FMouseInput.cpp" />
+    <ClCompile Include="Scene\Component\UCollisionComponent.cpp" />
+    <ClCompile Include="Render\Stats\StatWindow.cpp" />
+    <ClCompile Include="SimpleMath\SimpleMath.cpp">
+      <Filter>SimpleMath</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -477,6 +488,18 @@
     <ClInclude Include="Core\Asset\FAssetMetadataParser.h">
       <Filter>Core\Asset</Filter>
     </ClInclude>
+    <ClInclude Include="FEditorSelection.h" />
+    <ClInclude Include="FKeyboardCameraMoveRequestMessage.h" />
+    <ClInclude Include="FKeyboardInput.h" />
+    <ClInclude Include="FMouseCameraRotateRequestMessage.h" />
+    <ClInclude Include="FMouseInput.h" />
+    <ClInclude Include="FMousePickRequestMessage.h" />
+    <ClInclude Include="FWorldSelectionChangedMessage.h" />
+    <ClInclude Include="Scene\Component\UCollisionComponent.h" />
+    <ClInclude Include="Render\Stats\StatWindow.h" />
+    <ClInclude Include="SimpleMath\SimpleMath.h">
+      <Filter>SimpleMath</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Content\Metadata\AlternatePipeline.meta">
@@ -517,6 +540,9 @@
     </None>
     <None Include="Content\Pipeline\Base.json">
       <Filter>Content\Pipeline</Filter>
+    </None>
+    <None Include="SimpleMath\SimpleMath.inl">
+      <Filter>SimpleMath</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>

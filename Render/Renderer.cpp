@@ -36,7 +36,7 @@ void FRenderer::BeginFrame() {
 }
 
 void FRenderer::EndFrame() {
-	SwapChain->Present(1, 0);
+	SwapChain->Present(0, DXGI_PRESENT_ALLOW_TEARING);
 }
 
 void FRenderer::Render(FRenderProbe& Probe) {
@@ -137,6 +137,7 @@ void FRenderer::CreateDeviceAndSwapChain(HWND WindowHandle) {
 	swapchaindesc.OutputWindow = WindowHandle; // 렌더링할 창 핸들
 	swapchaindesc.Windowed = TRUE; // 창 모드
 	swapchaindesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD; // 스왑 방식
+	swapchaindesc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH | DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING; // 모드 전환 허용
 
 	// Direct3D 장치와 스왑 체인을 생성
 	ErrorHandler::ReportHRESULT(D3D11CreateDeviceAndSwapChain(nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr,

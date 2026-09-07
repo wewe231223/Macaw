@@ -4,7 +4,7 @@
 #include "Component/USceneComponent.h"
 #include "../Core/Base/TypeRegistry.h"
 
-const TArray<std::unique_ptr<UActorComponent>>& AActor::GetComponents() const
+const std::vector<std::unique_ptr<UActorComponent>>& AActor::GetComponents() const
 {
     return Components;
 }
@@ -107,7 +107,7 @@ void AActor::PreLoadComponents(FArchive& Archive)
 
 
 
-	Components = TArray<std::unique_ptr<UActorComponent>>(ArraySize);
+	Components = std::vector<std::unique_ptr<UActorComponent>>(ArraySize);
     
     Components.clear();
     Components.resize(ArraySize);

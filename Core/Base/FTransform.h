@@ -30,13 +30,6 @@ public:
     FMatrix GetWorldMatrix() const;
     void Serialize(FArchive& Archive);
 
-    void Serialize(FArchive& Archive)
-    {
-        Archive.Serialize("Position", Position);
-        Archive.Serialize("Rotation", Rotation);
-        Archive.Serialize("Scale", Scale);
-    }
-
 private:
     FVector3 Position{ 0.0f, 0.0f, 0.0f };
     FRotator Rotation{ 0.0f, 0.0f, 0.0f };

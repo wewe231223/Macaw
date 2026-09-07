@@ -68,7 +68,7 @@ void FMouseInput::ProcessWindowMessage(
             PendingRotateDeltaX +=
                 static_cast<float>(CurrentMouseX - LastMouseX);
 
-            PendingRotateDeltaY +=
+            PendingRotateDeltaY -=
                 static_cast<float>(CurrentMouseY - LastMouseY);
         }
 

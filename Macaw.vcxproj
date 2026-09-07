@@ -281,6 +281,10 @@
     <ClCompile Include="Scene\Component\UStaticMeshComponent.cpp" />
     <ClCompile Include="Scene\UWorld.cpp" />
     <ClCompile Include="Render\Stats\StatWindow.cpp" />
+    <ClCompile Include="SimpleMath\SimpleMath.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Common.h" />
@@ -365,6 +369,7 @@
     <ClInclude Include="Scene\Component\UStaticMeshComponent.h" />
     <ClInclude Include="Scene\UWorld.h" />
     <ClInclude Include="Render\Stats\StatWindow.h" />
+    <ClInclude Include="SimpleMath\SimpleMath.h" />
     <ClInclude Include="STL.h" />
   </ItemGroup>
   <ItemGroup>
@@ -381,10 +386,12 @@
     <None Include="Content\Metadata\TorusMesh.meta" />
     <None Include="Content\Pipeline\Alternate.json" />
     <None Include="Content\Pipeline\Base.json" />
+    <None Include="SimpleMath\SimpleMath.inl" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Content\Shader\Alternate.hlsl">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </FxCompile>
     <FxCompile Include="Content\Shader\Base.hlsl">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>

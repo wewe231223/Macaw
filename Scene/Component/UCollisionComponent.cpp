@@ -102,7 +102,6 @@ bool UCollisionComponent::RaycastMesh(
         return false;
 
     UMesh* Mesh = Registry->ResolveAsset<UMesh>(
-        EAssetType::Mesh,
         MeshComponent.GetMeshHandle());
 
     if (Mesh == nullptr)
@@ -119,7 +118,7 @@ bool UCollisionComponent::RaycastMesh(
         return false;
     }
 
-    const FMatrix WorldMatrix = MeshComponent.GetWorldMatrix();
+    const FMatrix WorldMatrix = FMatrix::Identity; 
 
     bool bHit = false;
     float ClosestDistance = std::numeric_limits<float>::max();
