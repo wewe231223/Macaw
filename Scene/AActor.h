@@ -14,6 +14,8 @@ public:
     AActor() = default;
     ~AActor() override;
 
+    JG_DECLARE_DERIVED_TYPEINFO(AActor, UObject)
+
     template<typename T>
     requires std::is_base_of_v<UActorComponent, T>
     T* AddComponent()

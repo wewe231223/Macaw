@@ -14,18 +14,20 @@ public:
     UWorld() = default;
     ~UWorld() override;
 
+    AActor* AddActor(std::unique_ptr<AActor> InActor);
+
     template<typename T>
-     requires std::is_base_of_v<AActor, T>
+    requires std::is_base_of_v<AActor, T>
     T* SpawnActor()
     {
         std::unique_ptr<T> NewActor = std::make_unique<T>();
 
         T* ActorPtr = NewActor.get();
 
-        UObjectSystem::Register(ActorPtr);
-
-        ActorPtr->SetWorld(this);
-        Actors.push_back(std::move(NewActor));
+        if (AddActor(std::move(NewActor)) == nullptr)
+        {
+            return nullptr;
+        }
 
         return ActorPtr;
     }
@@ -38,6 +40,7 @@ public:
     void UnregisterRenderable(UStaticMeshComponent* Component);
     void SetMainCamera(UCameraComponent* InCamera);
     void ClearMainCamera(UCameraComponent* InCamera);
+
 
 private:
     std::vector<std::unique_ptr<AActor>> Actors;

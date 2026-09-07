@@ -81,3 +81,26 @@ void UWorld::ClearMainCamera(UCameraComponent* InCamera)
         Camera = nullptr;
     }
 }
+
+AActor* UWorld::AddActor(std::unique_ptr<AActor> InActor) {
+    if (!InActor)
+    {
+        return nullptr;
+    }
+
+    AActor* Actor = InActor.get();
+
+    // 아직 등록되지 않은 Actor만 등록
+    if (UObjectSystem::Resolve(Actor->GetHandle()) != Actor)
+    {
+        UObjectSystem::Register(Actor);
+    }
+
+    // 먼저 World가 소유권을 확보
+    Actors.push_back(std::move(InActor));
+
+    // 컴포넌트 OnCreate 호출보다 먼저 World가 소유하고 있어야 함
+    Actor->SetWorld(this);
+
+    return Actor;
+}
