@@ -243,7 +243,6 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="InputSystem\FMouseInput.cpp" />
     <ClCompile Include="Macaw.cpp" />
     <ClCompile Include="PCH.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
@@ -317,7 +316,6 @@
     <ClInclude Include="ImGui\imstb_textedit.h" />
     <ClInclude Include="ImGui\imstb_truetype.h" />
     <ClInclude Include="ImGui\stb_image.h" />
-    <ClInclude Include="InputSystem\FMouseInput.h" />
     <ClInclude Include="PCH.h" />
     <ClInclude Include="Render\Console\ConsoleWindow.h" />
     <ClInclude Include="Render\Pipeline\Defines.h" />

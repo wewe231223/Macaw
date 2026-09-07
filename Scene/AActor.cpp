@@ -3,7 +3,8 @@
 #include "Scene/UWorld.h"
 #include "Component/USceneComponent.h"
 
-const std::vector<std::unique_ptr<UActorComponent>>& AActor::GetComponents() const
+const std::vector<std::unique_ptr<UActorComponent>>&
+AActor::GetComponents() const
 {
     return Components;
 }

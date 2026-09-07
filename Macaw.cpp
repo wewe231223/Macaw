@@ -40,8 +40,6 @@
 #include "Core/Asset/UMesh.h"
 #include "Core/Asset/UColorMaterial.h"
 
-#include "InputSystem/FMouseInput.h"
-
 #define MAX_LOADSTRING 100
 
 
@@ -56,8 +54,6 @@ constexpr uint32 DEFAULT_WINDOW_HEIGHT = 1080;
 HINSTANCE hInst;                                // 현재 인스턴스입니다.
 WCHAR szTitle[MAX_LOADSTRING];                  // 제목 표시줄 텍스트입니다.
 WCHAR szWindowClass[MAX_LOADSTRING];            // 기본 창 클래스 이름입니다.
-
-FMouseInput* gMouseInput = nullptr;
 
 HWND hWnd = nullptr;
 
@@ -109,14 +105,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
     MSG msg;
 
-    // test
-
 	Console::AddLog(Console::STDOutHandle, ELogLevel::Log, ELogCategory::Etc, "Macaw Engine Initialized.");
 
-    FMessageChannel InputMessageChannel(1024, 8);
-    FMouseInput MouseInput{ InputMessageChannel.GetSender() };
-    gMouseInput = &MouseInput;
-
+    // test
     UWorld World;
 
 	FRenderer Renderer;
@@ -244,24 +235,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
                 }
             }
         }
+
     }
-
-    InputMessageChannel.TryBind<FMouseInputMessage>([&](const FMouseInputMessage& Message)
-        {
-            if (Message.Button == EMouseButton::Left && Message.State == EButtonState::Pressed)
-            {
-                AActor* PickedActor = World.PickActor(
-                    Message.X, Message.Y,
-                    1920, 1080, // 해상도
-                    Camera 
-                );
-
-                if (PickedActor != nullptr)
-                {
-                    OutputDebugStringA("Actor Picked Success!\n");
-                }
-            }
-        });
 
     FRenderProbe Probe = World.BuildRenderProbe();
 
@@ -329,7 +304,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
             const float DeltaTime = std::chrono::duration<float>(CurrentTickTime - LastTickTime).count();
             LastTickTime = CurrentTickTime;
 
+            World.Tick(DeltaTime);
             Renderer.BeginFrame();
+
 
             ImGui_ImplDX11_NewFrame();
             ImGui_ImplWin32_NewFrame();
@@ -339,18 +316,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
             DrawConsole(Console::STDOutHandle);
             DrawStatWindow(World);
-
-            MouseInput.Update();
-            FMessageDispatchResult Result = InputMessageChannel.Dispatch();
-
-            if (Result.DispatchedCount > 0)
-                 {
-                     char Buf[64];
-                     sprintf_s(Buf, "Dispatched Input Messages: %zu\n", Result.DispatchedCount);
-                     OutputDebugStringA(Buf);
-                 }
-
-            World.Tick(DeltaTime);
 
             ImGui::Render();
             ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
@@ -488,32 +453,9 @@ extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND hwnd, UINT msg, WPARAM wParam
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
-    if (ImGui::GetCurrentContext() != nullptr)
-    {
-        if (ImGui_ImplWin32_WndProcHandler(hWnd, message, wParam, lParam))
-        {
-            return true;
-        }
+    ImGui_ImplWin32_WndProcHandler(hWnd, message, wParam, lParam);
 
-        ImGuiIO& io = ImGui::GetIO();
-        if (io.WantCaptureMouse)
-        {
-            switch (message)
-            {
-            case WM_LBUTTONDOWN: case WM_LBUTTONUP:
-            case WM_RBUTTONDOWN: case WM_RBUTTONUP:
-            case WM_MBUTTONDOWN: case WM_MBUTTONUP:
-            case WM_MOUSEMOVE:   case WM_MOUSEWHEEL:
-                return 0;
-            }
-        }
-    }
-    
-    if (gMouseInput != nullptr)
-    {
-        gMouseInput->ProcessMouseMessage(message, wParam, lParam);
-    }
-    
+
     switch (message)
     {
     case WM_DESTROY:
