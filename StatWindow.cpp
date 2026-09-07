@@ -2,15 +2,29 @@
 #include "Render/Stats/StatWindow.h"
 
 #include "Core/Memory/Memory.h"
+#include "Core/Base/UObjectSystem.h"
+#include "Scene/UWorld.h"
 #include "ImGui/imgui.h"
 
-void DrawStatWindow()
+void DrawStatWindow(const UWorld& World)
 {
 	if (!ImGui::Begin("Stats"))
 	{
 		ImGui::End();
 		return;
 	}
+
+	const uint32 ObjectCount = UObjectSystem::GetObjectCount();
+
+
+	ImGui::TextUnformatted("Object System");
+	ImGui::Separator();
+
+	ImGui::Text("Registered UObjects: %u", ObjectCount);
+
+	ImGui::Text("Actors : %llu", static_cast<unsigned long long>(World.GetActors().size()));
+
+	ImGui::Spacing();
 
 	const Memory::FMemoryStats Stats = Memory::GetStats();
 

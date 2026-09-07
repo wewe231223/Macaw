@@ -1,3 +1,5 @@
 #pragma once
 
-void DrawStatWindow();
+class UWorld;
+
+void DrawStatWindow(const UWorld& World);
