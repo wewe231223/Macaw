@@ -1,6 +1,7 @@
 #pragma once
 
 #include "UPrimitiveComponent.h"
+#include "UStaticMeshComponent.h"
 #include "Core/Base/TypeInfo.h"
 #include "Serialize/FArchive.h"
 

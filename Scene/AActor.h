@@ -42,7 +42,7 @@ public:
     {
         for (const auto& Component : Components)
         {
-            if (Component->GetTypeInfo().IsA(T::StaticTypeInfo()))
+            if (Component->GetTypeInfo()->IsA(T::StaticTypeInfo()))
             {
                 return static_cast<T*>(Component.get());
             }
