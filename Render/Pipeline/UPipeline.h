@@ -10,10 +10,11 @@
 #include "FShader.h"
 
 #include "Defines.h"
+#include "../../Core/Asset/UAsset.h"
 #include "../../Core/Base/TypeInfo.h"
 #include "Wrapper.h"
 
-class UPipeline : public UObject {
+class UPipeline : public UAsset {
 public:
     UPipeline() = default;
     ~UPipeline() = default;
@@ -25,10 +26,9 @@ public:
     UPipeline& operator=(UPipeline&&) noexcept = default;
 
 public:
-	JG_DECLARE_DERIVED_TYPEINFO(UPipeline, UObject);
+	JG_DECLARE_DERIVED_TYPEINFO(UPipeline, UAsset);
 
-    bool Initialize(ID3D11Device* Device, const FPipelineDescription& Description);
-    bool Initialize(ID3D11Device* Device, const std::filesystem::path& OptionFile);
+	virtual void Initialize(ID3D11Device* Device, const std::filesystem::path& metaData) override;
 
     void Bind(ID3D11DeviceContext* Context) const;
     void Reset();
@@ -36,7 +36,13 @@ public:
 private:
     bool LoadPipelineDescription(const std::filesystem::path& Path, FPipelineDescription& OutDescription);
 
+	bool Make(ID3D11Device* Device, const FPipelineDescription& Description);
+protected:
+	virtual void Serialize(FArchive& Ar) override;
+
 private:
+	std::filesystem::path OptionFilePath{};
+    
     FShader VertexShader{};
     FShader PixelShader{};
 

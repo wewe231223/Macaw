@@ -31,15 +31,16 @@ public:
 public:
 	JG_DECLARE_DERIVED_TYPEINFO(UColorMaterial, UMaterial);
 
-    virtual bool Initialize(ID3D11Device* Device);
+    virtual void Initialize(ID3D11Device* Device, const std::filesystem::path& metaData) override;
     bool Initialize(ID3D11Device* Device, const FVector4& InColor);
 
     virtual void BuildGPUData(FMaterialGPUSlot& OutSlot) const override;
 
+	virtual void Serialize(FArchive& Ar) override;
 public:
     void SetColor(const FVector4& InColor);
     const FVector4& GetColor() const { return Color; }
 
 private:
-    FVector4 Color{ 1.0f, 1.0f, 1.0f, 1.0f };
+    FColor4 Color{ 1.0f, 1.0f, 1.0f, 1.0f };
 };
