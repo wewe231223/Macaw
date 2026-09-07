@@ -227,6 +227,9 @@
     <ClCompile Include="Scene\Component\UCollisionComponent.cpp">
       <Filter>Scene\Component</Filter>
     </ClCompile>
+    <ClCompile Include="Render\Stats\StatWindow.cpp">
+      <Filter>Render\Stats</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Core\Base\FGuid.h">
@@ -413,6 +416,9 @@
     </ClInclude>
     <ClInclude Include="Scene\Component\UCollisionComponent.h">
       <Filter>Scene\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="Render\Stats\StatWindow.h">
+      <Filter>Render\Stats</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -14,21 +14,20 @@ const FTransform& USceneComponent::GetTransform() const
 
 void USceneComponent::OnDestroy()
 {
-    for (USceneComponent* Child : Children)
+    for (TObjectRef<USceneComponent>& ChildRef : Children)
     {
-        if (Child)
+        if (USceneComponent* Child = ChildRef.Get())
         {
-            Child->Parent = nullptr;
-            Child->OnDestroy();
+            Child->Parent.Reset();
         }
     }
     Children.clear();
 
-    if (Parent)
+    if (USceneComponent* ParentComponent = Parent.Get())
     {
-        Parent->RemoveChild(this);
-        Parent = nullptr;
+        ParentComponent->RemoveChild(this);
     }
+    Parent.Reset();
 
     UActorComponent::OnDestroy();
 }
@@ -37,30 +36,54 @@ void USceneComponent::RemoveChild(USceneComponent* InChild)
 {
     if (!InChild) return;
 
-    auto It = std::find(Children.begin(), Children.end(), InChild);
-    if (It != Children.end())
+    std::erase_if(Children,
+        [InChild](const TObjectRef<USceneComponent>& ChildRef)
+        {
+            return ChildRef.Get() == InChild;
+        });
+
+    if (InChild->Parent.Get() == this)
     {
-        Children.erase(It);
-        InChild->Parent = nullptr; 
+        InChild->Parent.Reset();
     }
 }
 
 void USceneComponent::AttachTo(USceneComponent* InParent)
 {
-    Parent = InParent;
-
-    if (Parent != nullptr)
+    if (InParent == this || Parent.Get() == InParent)
     {
-        Parent->Children.push_back(this);
+        return;
+    }
+
+    for (USceneComponent* Ancestor = InParent;
+        Ancestor != nullptr;
+        Ancestor = Ancestor->GetParent())
+    {
+        if (Ancestor == this)
+        {
+            return;
+        }
+    }
+
+    if (USceneComponent* PreviousParent = Parent.Get())
+    {
+        PreviousParent->RemoveChild(this);
+    }
+
+    Parent.Set(InParent);
+
+    if (InParent != nullptr)
+    {
+        InParent->Children.emplace_back(this);
     }
 }
 
 USceneComponent* USceneComponent::GetParent() const
 {
-    return Parent;
+    return Parent.Get();
 }
 
-const std::vector<USceneComponent*>& USceneComponent::GetChildren() const
+const std::vector<TObjectRef<USceneComponent>>& USceneComponent::GetChildren() const
 {
     return Children;
 }
@@ -69,12 +92,13 @@ FMatrix USceneComponent::GetWorldMatrix() const
 {
     FMatrix LocalMatrix = Transform.GetWorldMatrix();
 
-    if (Parent == nullptr)
+    USceneComponent* ParentComponent = Parent.Get();
+    if (ParentComponent == nullptr)
     {
         return LocalMatrix;
     }
 
-    return LocalMatrix * Parent->GetWorldMatrix();
+    return LocalMatrix * ParentComponent->GetWorldMatrix();
 }
 
 

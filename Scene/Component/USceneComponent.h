@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include "Core/Base/FTransform.h"
+#include "Core/Base/TObjectRef.h"
 #include "UActorComponent.h"
 
 class USceneComponent : public UActorComponent
@@ -20,7 +21,7 @@ public:
 	void AttachTo(USceneComponent* InParent);
 
 	USceneComponent* GetParent() const;
-	const std::vector<USceneComponent*>& GetChildren() const;
+	const std::vector<TObjectRef<USceneComponent>>& GetChildren() const;
 
 	FMatrix GetWorldMatrix() const;
 
@@ -30,6 +31,6 @@ protected:
 private:
 	FTransform Transform;
 
-	USceneComponent* Parent = nullptr;
-	std::vector<USceneComponent*> Children;
+	TObjectRef<USceneComponent> Parent;
+	std::vector<TObjectRef<USceneComponent>> Children;
 };
