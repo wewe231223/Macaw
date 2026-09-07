@@ -2,9 +2,9 @@
 #include "AActor.h"
 #include "Scene/UWorld.h"
 #include "Component/USceneComponent.h"
+#include "../Core/Base/TypeRegistry.h"
 
-const std::vector<std::unique_ptr<UActorComponent>>&
-AActor::GetComponents() const
+const TArray<std::unique_ptr<UActorComponent>>& AActor::GetComponents() const
 {
     return Components;
 }
@@ -62,4 +62,75 @@ void AActor::Tick(float DeltaTime)
             Component->Tick(DeltaTime);
         }
     }
+}
+
+void AActor::Serialize(FArchive& Archive)
+{
+    UObject::Serialize(Archive);
+
+    // components
+    size_t ArraySize = Components.size();
+    Archive.BeginArrayScope("Components", ArraySize);
+
+    for (size_t i = 0; i < ArraySize; ++i)
+    {
+        Archive.BeginObjectScope(std::to_string(i));
+        Components[i]->Serialize(Archive);
+        Archive.EndObjectScope();
+    }
+
+    Archive.EndArrayScope();
+
+
+
+    // root component
+    FString GuidRootComponent;
+    if (RootComponent != nullptr)
+        GuidRootComponent = RootComponent->GetGuid().ToString();
+
+    Archive.Serialize("GuidRootComponent", GuidRootComponent);
+
+    if (Archive.IsLoading() && !GuidRootComponent.empty())
+    {
+        FGuid Guid;
+        Guid.Parse(GuidRootComponent);
+        RootComponent = static_cast<USceneComponent*>(UObjectSystem::Resolve(UObjectSystem::FindHandleByGuid(Guid)));
+    }
+}
+
+
+void AActor::PreLoadComponents(FArchive& Archive)
+{
+    size_t ArraySize = 0;
+    
+    Archive.BeginArrayScope("Components", ArraySize);
+
+
+
+	Components = TArray<std::unique_ptr<UActorComponent>>(ArraySize);
+    
+    Components.clear();
+    Components.resize(ArraySize);
+
+
+    for (size_t i = 0; i < ArraySize; ++i)
+    {
+        Archive.BeginObjectScope(std::to_string(i));
+
+        FString TypeName;
+        Archive.Serialize("TypeName", TypeName);
+
+        Components[i] = std::unique_ptr<UActorComponent>(
+            static_cast<UActorComponent*>(TypeRegistry::Find(TypeName)->Creator().release())
+        );
+        Components[i]->SetOwner(this);
+
+        FGuid ComponentGuid;
+        Archive.Serialize("Guid", ComponentGuid);
+        UObjectSystem::RegisterWithGuid(Components[i].get(), ComponentGuid);
+
+        Archive.EndObjectScope();
+    }
+
+    Archive.EndArrayScope();
 }

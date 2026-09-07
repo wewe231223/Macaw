@@ -3,7 +3,7 @@
 #include "Core/Base/UObject.h"
 
 class AActor;
-
+class FArchive;
 class UActorComponent : public UObject
 {
 public:
@@ -21,6 +21,7 @@ public:
     bool IsActive() const;
     void SetActive(bool bInActive);
 
+	JG_DECLARE_DERIVED_TYPEINFO(UActorComponent, UObject);
 protected:
     void Serialize(FArchive& Archive) override;
 

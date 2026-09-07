@@ -15,9 +15,10 @@
 #include <d3d11.h>
 #include <wrl/client.h>
 
+#include "UAsset.h"
 #include "../Base/TypeInfo.h"
 
-class UMesh : public UObject {
+class UMesh : public UAsset {
 private:
 	struct FVertexAttributeStorageBase {
 		virtual ~FVertexAttributeStorageBase() = default;
@@ -49,7 +50,7 @@ private:
 	};
 
 public:
-	UMesh() = default;
+	UMesh() = default; 
 	~UMesh() = default;
 
 	UMesh(const UMesh&) = delete;
@@ -59,11 +60,12 @@ public:
 	UMesh& operator=(UMesh&&) noexcept = default;
 
 public:
-	JG_DECLARE_DERIVED_TYPEINFO(UMesh, UObject);
-
+	JG_DECLARE_DERIVED_TYPEINFO(UMesh, UAsset);
+	
+	virtual void Initialize(ID3D11Device* device, const std::filesystem::path& metaData) override;
 
 	template<CVertexAttributeView... TAttributes>
-	bool Initialize(ID3D11Device* Device, const TArray<uint32>& InIndices, const TAttributes&... InAttributes) {
+	bool Make(ID3D11Device* Device, const std::span<const uint32>& InIndices, const TAttributes&... InAttributes) {
 		static_assert(sizeof...(TAttributes) > 0, "UMesh requires at least one vertex attribute.");
 		static_assert(AreVertexAttributesUnique<TAttributes...>(), "Duplicate vertex attributes are not allowed.");
 
@@ -153,6 +155,9 @@ public:
 		return std::span<const ElementType>{ Storage->Data.data(), Storage->Data.size() };
 	}
 
+protected:
+	virtual void Serialize(FArchive& Ar) override;
+
 	const TArray<uint32>& GetIndices() const
 	{
 		return Indices;
@@ -214,7 +219,7 @@ private:
 		return true;
 	}
 
-	bool CreateIndexBuffer(ID3D11Device* Device, const TArray<uint32>& InIndices);
+	bool CreateIndexBuffer(ID3D11Device* Device, const std::span<const uint32>& InIndices);
 
 	void Reset();
 

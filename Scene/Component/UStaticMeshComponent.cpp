@@ -4,6 +4,8 @@
 #include "Core/Base/FRenderProbe.h"
 #include "Scene/AActor.h"
 #include "Scene/UWorld.h"
+#include "../../Serialize/FArchive.h"
+#include "../../Core/Asset/FAssetRegistry.h"
 
 FAssetHandle UStaticMeshComponent::GetMeshHandle() const { return MeshHandle; }
 
@@ -63,10 +65,44 @@ void UStaticMeshComponent::MakeRender(FRenderProbe& OutProbe) const
     });
 }
 
+
 void UStaticMeshComponent::Serialize(FArchive& Archive)
 {
     UPrimitiveComponent::Serialize(Archive);
-    Archive.SerializeStruct("MeshHandle", MeshHandle);
-    Archive.SerializeStruct("MaterialHandle", MaterialHandle);
-    Archive.SerializeStruct("PipelineHandle", PipelineHandle);
+
+    FString GuidMeshHandle;
+    if (MeshHandle.ID != std::numeric_limits<uint32>::max())
+        GuidMeshHandle = Archive.GetAssetRegistry()->ResolveAsset<UAsset>(MeshHandle)->GetGuid().ToString();
+    Archive.Serialize("GuidMeshHandle", GuidMeshHandle);
+    if (Archive.IsLoading())
+    {
+        FGuid Guid;
+        Guid.Parse(GuidMeshHandle);
+
+        MeshHandle = Archive.GetAssetRegistry()->GetAsset(Guid);
+    }
+
+    FString GuidMaterialHandle;
+    if (MaterialHandle.ID != std::numeric_limits<uint32>::max())
+        GuidMaterialHandle = Archive.GetAssetRegistry()->ResolveAsset<UAsset>(MaterialHandle)->GetGuid().ToString();
+    Archive.Serialize("GuidMaterialHandle", GuidMaterialHandle);
+    if (Archive.IsLoading())
+    {
+        FGuid Guid;
+        Guid.Parse(GuidMaterialHandle);
+
+        MaterialHandle = Archive.GetAssetRegistry()->GetAsset(Guid);
+    }
+
+    FString GuidPipelineHandle;
+    if (PipelineHandle.ID != std::numeric_limits<uint32>::max())
+        GuidPipelineHandle = Archive.GetAssetRegistry()->ResolveAsset<UAsset>(PipelineHandle)->GetGuid().ToString();
+    Archive.Serialize("GuidPipelineHandle", GuidPipelineHandle);
+    if (Archive.IsLoading())
+    {
+        FGuid Guid;
+        Guid.Parse(GuidPipelineHandle);
+
+        PipelineHandle = Archive.GetAssetRegistry()->GetAsset(Guid);
+    }
 }

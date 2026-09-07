@@ -61,8 +61,14 @@ public:
     void SetRootComponent(USceneComponent* InRootComponent);
     void Tick(float DeltaTime);
 
+    void PreLoadComponents(FArchive& Archive);
+
+	JG_DECLARE_DERIVED_TYPEINFO(AActor, UObject);
+protected:
+    void Serialize(FArchive& Archive) override;
+
 private:
-    std::vector<std::unique_ptr<UActorComponent>> Components;
+    TArray<std::unique_ptr<UActorComponent>> Components{};
     USceneComponent* RootComponent = nullptr;
 
     UWorld* World = nullptr;

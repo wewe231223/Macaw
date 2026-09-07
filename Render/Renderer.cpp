@@ -59,7 +59,7 @@ void FRenderer::Render(FRenderProbe& Probe) {
 	std::ranges::transform(Groups | std::views::join, std::back_inserter(Contexts), [&](const auto& AC) {
 		return ModelContext{
 			.World = AC.World,
-			.MaterialIndex = AssetRegistry->ResolveAsset<UMaterial>(EAssetType::Material, AC.MaterialHandle)->GetGPUIndex()
+			.MaterialIndex = AssetRegistry->ResolveAsset<UMaterial>(AC.MaterialHandle)->GetGPUIndex()
 		};
 	});
 
@@ -88,8 +88,8 @@ void FRenderer::Render(FRenderProbe& Probe) {
 	AssetRegistry->GetMaterialBuffer().Flush(DeviceContext.Get());
 	for (auto g : Groups) {
 		const ActorProbe& First = g.front();
-		UPipeline* Pipeline = AssetRegistry->ResolveAsset<UPipeline>(EAssetType::Pipeline, First.PipelineHandle);
-		UMesh* Mesh = AssetRegistry->ResolveAsset<UMesh>(EAssetType::Mesh, First.MeshHandle);
+		UPipeline* Pipeline = AssetRegistry->ResolveAsset<UPipeline>(First.PipelineHandle);
+		UMesh* Mesh = AssetRegistry->ResolveAsset<UMesh>(First.MeshHandle);
 		
 		Pipeline->Bind(DeviceContext.Get());
 

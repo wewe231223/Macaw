@@ -14,5 +14,6 @@ void UPrimitiveComponent::SetVisible(bool bInVisible)
 void UPrimitiveComponent::Serialize(FArchive& Archive)
 {
     USceneComponent::Serialize(Archive);
-    Archive.Serialize("Visible", bVisible);
+
+    Archive.Serialize("bVisible", bVisible);
 }

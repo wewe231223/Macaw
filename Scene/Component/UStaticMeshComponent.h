@@ -3,6 +3,7 @@
 #include "UPrimitiveComponent.h"
 #include "Core/Asset/FAssetHandle.h"
 
+class FArchive;
 class UStaticMeshComponent : public UPrimitiveComponent
 {
 public:
@@ -23,6 +24,7 @@ public:
     void OnDestroy() override;
     void MakeRender(FRenderProbe& OutProbe) const override;
 
+	JG_DECLARE_DERIVED_TYPEINFO(UStaticMeshComponent, UPrimitiveComponent);
 protected:
     void Serialize(FArchive& Archive) override;
 

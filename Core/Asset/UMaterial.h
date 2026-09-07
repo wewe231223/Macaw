@@ -3,11 +3,13 @@
 #include "../Base/UObject.h"
 #include "FMaterialGPUData.h"
 
+#include "UAsset.h"
+
 #include <d3d11.h>
 
 class FMaterialBuffer;
 
-class UMaterial : public UObject {
+class UMaterial : public UAsset {
 public:
     UMaterial() = default;
     virtual ~UMaterial() = default;
@@ -19,16 +21,17 @@ public:
     UMaterial& operator=(UMaterial&&) noexcept = default;
 
 public:
-	JG_DECLARE_DERIVED_TYPEINFO(UMaterial, UObject);
+	JG_DECLARE_DERIVED_TYPEINFO(UMaterial, UAsset);
 
-    virtual bool Initialize(ID3D11Device* Device);
+    virtual void Initialize(ID3D11Device* Device, const std::filesystem::path& metaData) override;
     virtual void BuildGPUData(FMaterialGPUSlot& OutSlot) const;
 
     uint32 GetGPUIndex() const { return GPUIndex; }
 
 protected:
-    void MarkGPUDataDirty() { bGPUDataDirty = true; }
+	virtual void Serialize(FArchive& Ar) override;
 
+    void MarkGPUDataDirty() { bGPUDataDirty = true; }
 private:
     friend class FMaterialBuffer;
 
