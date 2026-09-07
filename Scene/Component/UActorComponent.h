@@ -19,6 +19,7 @@ public:
     bool IsActive() const;
     void SetActive(bool bInActive);
 
+	JG_DECLARE_DERIVED_TYPEINFO(UActorComponent, UObject);
 protected:
     void Serialize(FArchive& Archive) override;
 

@@ -185,7 +185,7 @@ bool UWorld::LoadScene(const std::filesystem::path& ScenePath, ID3D11Device* Dev
             FString TypeName = AssetJson["TypeName"].GetString();
 
             FString AssetName = AssetJson["AssetName"].GetString();
-            FString MetadataPath = AssetJson["MetadataPath"].GetString();
+            FString MetadataPath = AssetJson["AssetMetaDataPath"].GetString();
 
             auto EmptyAsset = TypeRegistry::Find(TypeName)->Creator();
             UObjectSystem::RegisterWithGuid(EmptyAsset.get(), AssetGuid);
@@ -205,20 +205,23 @@ bool UWorld::LoadScene(const std::filesystem::path& ScenePath, ID3D11Device* Dev
         // ==================================================================
         size_t ActorIndex = 0;
 
-        for (const auto& ActorJson : LoadDocument["Actors"].GetArray())
+        for (auto& ActorJson : LoadDocument["Actors"].GetArray())
         {
             FGuid ActorGuid;
             ActorGuid.Parse(ActorJson["Guid"].GetString());
             FString TypeName = ActorJson["TypeName"].GetString();
 
             std::unique_ptr<UObject> CreatedObject = TypeRegistry::Find(TypeName)->Creator();
-            Actors.push_back(std::unique_ptr<AActor>(static_cast<AActor*>(CreatedObject.release())));
+			std::unique_ptr<AActor> ActorPtr(static_cast<AActor*>(CreatedObject.release()));
+//            Actors.push_back(std::unique_ptr<AActor>(static_cast<AActor*>(CreatedObject.release())));
 
-            Actors.back()->SetWorld(this);
-            UObjectSystem::RegisterWithGuid(Actors.back().get(), ActorGuid);
+            UObjectSystem::RegisterWithGuid(ActorPtr.get(), ActorGuid);
 
-            FArchiveJson ArchiveLoad(const_cast<rapidjson::Value&>(ActorJson));
-            Actors[ActorIndex]->PreLoadComponents(ArchiveLoad);
+            FArchiveJson ArchiveLoad(static_cast<rapidjson::Value&>(ActorJson));
+            ActorPtr->PreLoadComponents(ArchiveLoad);
+            ActorPtr->SetWorld(this);
+
+            Actors.emplace_back(std::move(ActorPtr));
             ++ActorIndex;
         }
 
@@ -229,7 +232,8 @@ bool UWorld::LoadScene(const std::filesystem::path& ScenePath, ID3D11Device* Dev
         ActorIndex = 0;
         for (auto& ActorJson : LoadDocument["Actors"].GetArray())
         {
-            FArchiveJson ArchiveLoad(const_cast<rapidjson::Value&>(ActorJson));
+            FArchiveJson ArchiveLoad(static_cast<rapidjson::Value&>(ActorJson));
+            ArchiveLoad.SetAssetRegistry(AssetRegistry);
             Actors[ActorIndex]->Load(ArchiveLoad); 
             ++ActorIndex;
         }

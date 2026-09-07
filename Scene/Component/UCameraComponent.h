@@ -26,6 +26,7 @@ public:
     void OnCreate() override;
     void OnDestroy() override;
 
+	JG_DECLARE_DERIVED_TYPEINFO(UCameraComponent, USceneComponent);
 protected:
     void Serialize(FArchive& Archive) override;
 

@@ -45,7 +45,7 @@ private:
 
 public:
     FArchiveJson(rapidjson::Value& RootNode, rapidjson::Document::AllocatorType& InAllocator);
-    FArchiveJson(const rapidjson::Value& RootNode);
+    FArchiveJson(rapidjson::Value& RootNode);
 
     // Primitives
     virtual void Serialize(std::string_view Name, bool& Value) override;

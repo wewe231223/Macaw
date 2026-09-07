@@ -9,11 +9,11 @@ FArchiveJson::FArchiveJson(rapidjson::Value& RootNode, rapidjson::Document::Allo
     NodeStack.push_back(&RootNode);
 }
 
-FArchiveJson::FArchiveJson(const rapidjson::Value& RootNode)
+FArchiveJson::FArchiveJson(rapidjson::Value& RootNode)
     : FArchive(EArchiveMode::Loading)
     , Allocator(nullptr)
 {
-    NodeStack.push_back(const_cast<rapidjson::Value*>(&RootNode));
+    NodeStack.push_back(&RootNode);
 }
 
 

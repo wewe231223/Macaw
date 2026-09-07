@@ -46,6 +46,7 @@ public:
     bool SaveScene(const FString& SceneName, FAssetRegistry* AssetRegistry);
     bool LoadScene(const std::filesystem::path& ScenePath, ID3D11Device* Device, FAssetRegistry* AssetRegistry);
 
+	JG_DECLARE_DERIVED_TYPEINFO(UWorld, UObject);
 private:
     std::vector<std::unique_ptr<AActor>> Actors;
     std::vector<UStaticMeshComponent*> RenderableComponents;

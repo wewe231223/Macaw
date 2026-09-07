@@ -13,6 +13,7 @@ public:
 	FTransform& GetTransform();
 	const FTransform& GetTransform() const;
 
+	JG_DECLARE_DERIVED_TYPEINFO(USceneComponent, UActorComponent);
 protected:
 	void Serialize(FArchive& Archive) override;
 

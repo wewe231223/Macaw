@@ -146,25 +146,17 @@ FObjectHandle UObjectSystem::FindHandleByGuid(
 {
     FObjectRegistryState& State = GetRegistryState();
 
-    for (std::uint32_t Index = 0;
-        Index < State.ObjectItems.size();
-        ++Index)
+    auto It = std::find_if(State.ObjectItems.begin(), State.ObjectItems.end(), [Guid](const FObjectItem& item) {
+		return item.Object->GetGuid() == Guid;
+	});
+
+    if (It != State.ObjectItems.end())
     {
-        const FObjectItem& Item = State.ObjectItems[Index];
-
-        if (Item.Object == nullptr)
+        return FObjectHandle
         {
-            continue;
-        }
-
-        if (Item.Object->GetGuid() == Guid)
-        {
-            return FObjectHandle
-            {
-                Index,
-                Item.Generation
-            };
-        }
+            static_cast<std::uint32_t>(std::distance(State.ObjectItems.begin(), It)),
+            It->Generation
+        };
     }
 
     return {};

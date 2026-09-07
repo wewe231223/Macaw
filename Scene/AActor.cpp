@@ -4,8 +4,7 @@
 #include "Component/USceneComponent.h"
 #include "../Core/Base/TypeRegistry.h"
 
-const std::vector<std::unique_ptr<UActorComponent>>&
-AActor::GetComponents() const
+const TArray<std::unique_ptr<UActorComponent>>& AActor::GetComponents() const
 {
     return Components;
 }
@@ -103,10 +102,16 @@ void AActor::Serialize(FArchive& Archive)
 void AActor::PreLoadComponents(FArchive& Archive)
 {
     size_t ArraySize = 0;
+    
     Archive.BeginArrayScope("Components", ArraySize);
 
+
+
+	Components = TArray<std::unique_ptr<UActorComponent>>(ArraySize);
+    
     Components.clear();
     Components.resize(ArraySize);
+
 
     for (size_t i = 0; i < ArraySize; ++i)
     {

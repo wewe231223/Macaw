@@ -14,8 +14,9 @@ public:
     bool IsVisible() const;
     void SetVisible(bool bInVisible);
 
-    virtual void MakeRender(FRenderProbe& OutProbe) const = 0;
+    virtual void MakeRender(FRenderProbe& OutProbe) const {};
 
+	JG_DECLARE_DERIVED_TYPEINFO(UPrimitiveComponent, USceneComponent);
 protected:
     void Serialize(FArchive& Archive) override;
 

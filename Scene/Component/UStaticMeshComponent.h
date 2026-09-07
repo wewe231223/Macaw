@@ -22,6 +22,7 @@ public:
     void OnDestroy() override;
     void MakeRender(FRenderProbe& OutProbe) const override;
 
+	JG_DECLARE_DERIVED_TYPEINFO(UStaticMeshComponent, UPrimitiveComponent);
 protected:
     void Serialize(FArchive& Archive) override;
 

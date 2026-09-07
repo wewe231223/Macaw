@@ -61,6 +61,9 @@ LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 HWND gHWND;
 
 
+#define LOAD 
+
+
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
                      _In_opt_ HINSTANCE hPrevInstance,
                      _In_ LPWSTR    lpCmdLine,
@@ -71,8 +74,18 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
     // TODO: 여기에 코드를 입력합니다.
 	TypeRegistry::Register(UObject::StaticTypeInfo());
+	TypeRegistry::Register(UAsset::StaticTypeInfo());
     TypeRegistry::Register(UMesh::StaticTypeInfo());
     TypeRegistry::Register(UPipeline::StaticTypeInfo());
+	TypeRegistry::Register(UColorMaterial::StaticTypeInfo());
+
+	TypeRegistry::Register(UWorld::StaticTypeInfo());
+	TypeRegistry::Register(AActor::StaticTypeInfo());
+	TypeRegistry::Register(UCameraComponent::StaticTypeInfo());
+	TypeRegistry::Register(UStaticMeshComponent::StaticTypeInfo());
+	TypeRegistry::Register(UActorComponent::StaticTypeInfo());
+	TypeRegistry::Register(USceneComponent::StaticTypeInfo());
+	
 
 
     auto res = TypeRegistry::Find("UMesh")->Creator();
@@ -104,7 +117,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	Console::AddLog(Console::STDOutHandle, ELogLevel::Log, ELogCategory::Etc, "Macaw Engine Initialized.");
 
     // test
-    UWorld World;
+    UWorld World{};
 
 	FRenderer Renderer;
 	Renderer.Create(gHWND, DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT);
@@ -113,29 +126,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	AssetRegistry.Initialize(Renderer.GetDevice(), 128);
 	Renderer.BindAssetRegistry(&AssetRegistry);
 
-
-    std::vector<FVector3> Positions{
-    { -0.5f, -0.5f, 0.0f },
-    {  0.0f,  0.5f, 0.0f },
-    {  0.5f, -0.5f, 0.0f }
-    };
-
-    std::vector<FVector3> Normals{
-        { 0.0f, 0.0f, -1.0f },
-        { 0.0f, 0.0f, -1.0f },
-        { 0.0f, 0.0f, -1.0f }
-    };
-
-    std::vector<FVector2D> UVs{
-        { 0.0f, 1.0f },
-        { 0.5f, 0.0f },
-        { 1.0f, 1.0f }
-    };
-
-    TArray<uint32> Indices{
-        0, 1, 2
-    };
-
+#ifdef LOAD
+	World.LoadScene("./scenes/test.json", Renderer.GetDevice(), &AssetRegistry);
+#else 
 
 	AssetRegistry.EmplaceAsset<UPipeline>(Renderer.GetDevice(), "BasePipeline", "./Content/Metadata/BasePipeline.meta");
 	AssetRegistry.EmplaceAsset<UPipeline>(Renderer.GetDevice(), "AlternatePipeline", "./Content/Metadata/AlternatePipeline.meta");
@@ -143,16 +136,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	AssetRegistry.EmplaceAsset<UMesh>(Renderer.GetDevice(), "SphereMesh", "./Content/Metadata/SphereMesh.meta");
     
 	AssetRegistry.EmplaceAsset<UColorMaterial>(Renderer.GetDevice(), "RedMaterial", "./Content/Metadata/RedMaterial.meta");
-
-	//AssetRegistry.EmplaceAsset<UPipeline>(Renderer.GetDevice(), EAssetType::Pipeline, "BasePipeline", "./Pipeline/Base.json");
-	//AssetRegistry.EmplaceAsset<UPipeline>(Renderer.GetDevice(), EAssetType::Pipeline, "AlternatePipeline", "./Pipeline/Alternate.json");
-	//AssetRegistry.EmplaceAsset<UMesh>(Renderer.GetDevice(), EAssetType::Mesh, "TriangleMesh",
- //       Indices, 
- //       MakeVertexAttribute<EVertexAttribute::Position>(Positions), 
- //       MakeVertexAttribute<EVertexAttribute::Normal>(Normals), 
- //       MakeVertexAttribute<EVertexAttribute::UV>(UVs)
- //   );
-	//AssetRegistry.EmplaceAsset<UColorMaterial>(Renderer.GetDevice(), EAssetType::Material, "RedMaterial", FVector4(1.0f, 0.0f, 0.0f, 1.0f));
 
     AActor* CameraActor = World.SpawnActor<AActor>();
     UCameraComponent* Camera = CameraActor->AddComponent<UCameraComponent>();
@@ -217,12 +200,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
         }
     }
 
-    FRenderProbe Probe = World.BuildRenderProbe();
+	World.SaveScene("test", &AssetRegistry);
+#endif 
 
-    std::string DebugText =
-        "Actor Count = " + std::to_string(Probe.ActorProbes.size()) + "\n";
-
-    OutputDebugStringA(DebugText.c_str());
 
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
@@ -230,9 +210,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     ImGui_ImplDX11_Init(Renderer.GetDevice(), Renderer.GetDeviceContext());
 
     auto LastTickTime = std::chrono::steady_clock::now();
-
-    // TEST
-    World.SaveScene("test", &AssetRegistry);
 
     while (true) {
         if (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE)) {
