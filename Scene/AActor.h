@@ -36,6 +36,21 @@ public:
         return ComponentPtr;
     }
 
+    template<typename T>
+    requires std::is_base_of_v<UActorComponent, T>
+    T* GetComponent()
+    {
+        for (const auto& Component : Components)
+        {
+            if (Component->GetTypeInfo().IsA(T::StaticTypeInfo()))
+            {
+                return static_cast<T*>(Component.get());
+            }
+        }
+
+        return nullptr;
+    }
+
     const std::vector<std::unique_ptr<UActorComponent>>& GetComponents() const;
 
     USceneComponent* GetRootComponent();

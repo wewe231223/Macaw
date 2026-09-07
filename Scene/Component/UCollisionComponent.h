@@ -33,4 +33,7 @@ private:
     FVector3 LocalCenter{ 0.0f, 0.0f, 0.0f };
     FVector3 Extent{ 0.5f, 0.5f, 0.5f };
     bool bCollisionEnabled = true;
+
+    bool RaycastBounds(const FRay& Ray, float& OutDistance) const;
+    bool RaycastMesh(const FRay& Ray, const UStaticMeshComponent& MeshComponent, float& OutDistance) const;
 };

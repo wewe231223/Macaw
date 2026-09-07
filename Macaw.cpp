@@ -164,6 +164,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	AssetRegistry.Initialize(Renderer.GetDevice(), 128);
 	Renderer.BindAssetRegistry(&AssetRegistry);
 
+    World.SetAssetRegistry(&AssetRegistry);
 
     std::vector<FVector3> Positions{
     { -0.5f, -0.5f, 0.0f },
@@ -327,7 +328,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
             OutputDebugStringA("Collision Miss\n");
         }
     }
-    
 
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();

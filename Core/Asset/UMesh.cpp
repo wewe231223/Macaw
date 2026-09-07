@@ -97,6 +97,9 @@ bool UMesh::CreateIndexBuffer(ID3D11Device* Device, const TArray<uint32>& InIndi
 
 	IndexBuffer = std::move(Buffer);
 
+	Indices = InIndices;
+	IndexCount = static_cast<uint32>(Indices.size());
+
 	return true;
 }
 

@@ -39,18 +39,7 @@ namespace
                 Handle,
                 Log,
                 Core,
-                "Commands: clear, echo, error");
-        }
-        else if (Command == "error")
-        {
-            FString Text;
-            std::getline(Stream >> std::ws, Text);
-
-            Console::AddLog(
-                Handle,
-                Error,
-                Etc,
-                "Error Test");
+                "Commands: clear, help, echo");
         }
         else if (Command == "echo")
         {
@@ -60,7 +49,7 @@ namespace
             Console::AddLog(
                 Handle,
                 Log,
-                Render,
+                Core,
                 "> %s",
                 Text.c_str());
         }
@@ -81,7 +70,9 @@ void DrawConsole(FConsoleOutputHandle Handle)
     ImGui::Begin("Console");
     const size_t Count = Console::GetMessageCount(Handle);
 
-    float FooterHeight = ImGui::GetFrameHeightWithSpacing() * 2.0f;
+    // 로그 영역
+    float FooterHeight =
+        ImGui::GetFrameHeightWithSpacing();
 
     ImGui::BeginChild(
         "LogRegion",
@@ -161,9 +152,10 @@ void DrawConsole(FConsoleOutputHandle Handle)
 
             ImGui::SetKeyboardFocusHere(-1);
         }
+
     }
 
-    ImGui::TextDisabled("Type 'help' and press ENTER for available commands.");
+
     ImGui::End();
 }
 

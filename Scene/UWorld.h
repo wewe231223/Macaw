@@ -14,6 +14,7 @@ class UCameraComponent;
 class UStaticMeshComponent;
 
 class UCollisionComponent;
+class FAssetRegistry;
 
 struct FMousePickRequestMessage;
 struct FMouseCameraRotateRequestMessage;
@@ -67,6 +68,9 @@ public:
     void RegisterCollision(UCollisionComponent* Component);
     void UnregisterCollision(UCollisionComponent* Component);
 
+    void SetAssetRegistry(FAssetRegistry* InAssetRegistry);
+    FAssetRegistry* GetAssetRegistry() const;
+
 
 private:
     std::vector<std::unique_ptr<AActor>> Actors;
@@ -74,6 +78,8 @@ private:
     std::vector<TObjectRef<UCollisionComponent>> CollisionComponents;
 
     std::optional<FMessageChannel::FSender> EditorEventSender;
+
+    FAssetRegistry* AssetRegistry = nullptr;
 
     UCameraComponent* Camera = nullptr;
     FRenderProbe Probe{};
