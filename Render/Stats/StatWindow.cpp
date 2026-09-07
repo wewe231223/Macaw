@@ -14,6 +14,15 @@ void DrawStatWindow(const UWorld& World)
 		return;
 	}
 
+	const float FPS = ImGui::GetIO().Framerate;
+	const float FrameTimeMs = FPS > 0.0f
+		? 1000.0f / FPS
+		: 0.0f;
+
+	ImGui::Text("FPS: %.1f", FPS);
+
+	ImGui::Spacing();
+
 	const uint32 ObjectCount = UObjectSystem::GetObjectCount();
 
 	ImGui::TextUnformatted("Object System");
@@ -35,7 +44,7 @@ void DrawStatWindow(const UWorld& World)
 	ImGui::Text("Allocated : %llu bytes (%.2f Kib)", static_cast<unsigned long long>(Stats.AllocatedBytes), AllocatedKiB);
 	ImGui::Text("Peak Allocated: %llu bytes (%.2f Kib)", static_cast<unsigned long long>(Stats.PeakAllocatedBytes), PeakKiB);
 	ImGui::Text("Active allocations: %llu", static_cast<unsigned long long>(Stats.ActiveAllocationCount));
-	ImGui::Text("Total allcations: %llu", static_cast<unsigned long long>(Stats.TotalAllocationCount));
+	ImGui::Text("Total allcation calls: %llu", static_cast<unsigned long long>(Stats.TotalAllocationCount));
 
 	float UsageRatio = 0.0f;
 
