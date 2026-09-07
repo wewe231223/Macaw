@@ -44,6 +44,10 @@ public:
     void SetRootComponent(USceneComponent* InRootComponent);
     void Tick(float DeltaTime);
 
+    void PreLoadComponents(FArchive& Archive);
+protected:
+    void Serialize(FArchive& Archive) override;
+
 private:
     std::vector<std::unique_ptr<UActorComponent>> Components;
     USceneComponent* RootComponent = nullptr;

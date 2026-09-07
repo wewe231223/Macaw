@@ -3,6 +3,7 @@
 #include "Core/Base/FTransform.h"
 #include "UActorComponent.h"
 
+class FArchive;
 class USceneComponent : public UActorComponent
 {
 public:
@@ -11,6 +12,9 @@ public:
 
 	FTransform& GetTransform();
 	const FTransform& GetTransform() const;
+
+protected:
+	void Serialize(FArchive& Archive) override;
 
 private:
 	FTransform Transform;

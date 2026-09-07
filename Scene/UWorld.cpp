@@ -7,6 +7,18 @@
 #include "Component/UCameraComponent.h"
 #include "Component/UStaticMeshComponent.h"
 
+#include "../Serialize/FArchiveJson.h"
+#include "../Core/Base/TypeRegistry.h"
+#include "../Core/Base/UObjectSystem.h"
+#include "../Core/Asset/FAssetRegistry.h"
+
+#include <d3d11.h>
+#include <filesystem>
+#include <fstream>
+#include <rapidjson/document.h>
+#include <rapidjson/ostreamwrapper.h>
+#include <rapidjson/prettywriter.h>
+
 UWorld::~UWorld()
 {
     for (const std::unique_ptr<AActor>& Actor : Actors)
@@ -79,4 +91,181 @@ void UWorld::ClearMainCamera(UCameraComponent* InCamera)
     {
         Camera = nullptr;
     }
+}
+
+
+bool UWorld::SaveScene(const FString& SceneName, FAssetRegistry* AssetRegistry)
+{
+    // ==================================================================
+//  serialize
+// 
+// 1. get assets from asset registry (GetAssetList())
+// 2. serialize asset
+//     2-1. [Guid, type, "name", "path"]
+//      - Asset.Save(ArchiveJson)
+// 3. serialize actors
+//     3-1. [uobject, [static mesh component] ]
+//      - Actor.Save(ArchiveJson)
+// 
+// 
+// final output
+//  Assets : { asset_1 : { ~ } , ~ },
+//  Actors : { Actor1 : { ~ } , ~ }
+// ==================================================================
+
+
+    std::filesystem::path CurrentPath = std::filesystem::current_path();
+    std::filesystem::path SceneDir = CurrentPath / "scenes";
+    if (!std::filesystem::exists(SceneDir))
+        std::filesystem::create_directories(SceneDir);
+    std::filesystem::path FilePath = SceneDir / (SceneName.c_str() + std::string(".json"));
+
+    rapidjson::Document Document;
+    Document.SetObject();
+    rapidjson::Document::AllocatorType& Allocator = Document.GetAllocator();
+
+
+    FArchiveJson ArchiveSave(Document, Allocator);
+
+    // TODO function is not developed yet
+    //TArray<std::unique_ptr<UObject>> AssetList = AssetRegistry->GetAssetList();
+    TArray<std::unique_ptr<UObject>> AssetList;
+
+    size_t ArraySize = static_cast<size_t>(AssetList.size());
+    ArchiveSave.BeginArrayScope("Assets", ArraySize);
+    for (size_t CurrentIndex = 0, EndIndex = AssetList.size(); CurrentIndex < EndIndex; ++CurrentIndex)
+    {
+        ArchiveSave.BeginObjectScope(std::to_string(CurrentIndex));
+        AssetList[CurrentIndex]->Save(ArchiveSave);
+        ArchiveSave.EndObjectScope();
+    }
+    ArchiveSave.EndArrayScope();
+
+    ArraySize = static_cast<size_t>(Actors.size());
+    ArchiveSave.BeginArrayScope("Actors", ArraySize);
+    for (size_t CurrentIndex = 0, EndIndex = Actors.size(); CurrentIndex < EndIndex; ++CurrentIndex)
+    {
+        ArchiveSave.BeginObjectScope(std::to_string(CurrentIndex));
+        Actors[CurrentIndex]->Save(ArchiveSave);
+        ArchiveSave.EndObjectScope();
+    }
+    ArchiveSave.EndArrayScope();
+
+    std::ofstream OutputFileStream(FilePath);
+    if (!OutputFileStream.is_open())
+        return false;
+
+    rapidjson::OStreamWrapper StreamWrapper(OutputFileStream);
+    rapidjson::PrettyWriter<rapidjson::OStreamWrapper> Writer(StreamWrapper);
+    Document.Accept(Writer);
+    OutputFileStream.close();
+
+    return true;
+}
+
+bool UWorld::LoadScene(const std::filesystem::path& ScenePath, ID3D11Device* Device, FAssetRegistry* AssetRegistry)
+{
+    // ==================================================================
+    //  deserialize
+    // 
+    // 1. traverse assets
+    //      1-0. read asset [guid, typename, assetname, metadatapath]
+    //      1-1. create empty asset object by calling factory creator of uobject (it's feasible since the typename has been serialized)
+    //      1-2. emplace asset (call Adopt.Asset(guid, assetname, metadatapath, ptr from creator)
+    // 2. traverse actors
+    //      2-1. read actor [guid, tyupename, [component ]
+    //      2-2. create empty uobject by calling factory creator of uobject 
+    //      2-3. restore guid
+    //          - do not call Actor.Load() at this time since the proper guid set up is not complete
+    //      2-4. register uobject
+    // 3. traverse actors again
+    //      3-1. read actor [guid, tyupename, [component ]
+    //      3-2. find the uobject by guid
+    //      3-3. call load for the object
+    //          - Actor.Load(ArchiveJson)
+    //      3-4. cast uobject to uactor
+    //      3-5. move uactor to uworld (the function is not developed yet)
+    // ==================================================================
+
+
+    std::ifstream InputFileStream(ScenePath);
+    if (!InputFileStream.is_open())
+        return false;
+
+    std::stringstream Buffer;
+    Buffer << InputFileStream.rdbuf();
+    std::string LoadedJsonString = Buffer.str();
+    InputFileStream.close();
+
+    rapidjson::Document LoadDocument;
+    LoadDocument.Parse(LoadedJsonString.c_str());
+
+    if (LoadDocument.HasParseError())
+        return false;
+
+
+
+    if (LoadDocument.HasMember("Assets") && LoadDocument["Assets"].IsArray())
+    {
+        for (const auto& AssetJson : LoadDocument["Assets"].GetArray())
+        {
+            FGuid AssetGuid;
+            AssetGuid.Parse(AssetJson["Guid"].GetString());
+            FString TypeName = AssetJson["TypeName"].GetString();
+
+            FString AssetName = AssetJson["AssetName"].GetString();
+            FString MetadataPath = AssetJson["MetadataPath"].GetString();
+
+            auto EmptyAsset = TypeRegistry::Find(TypeName)->Creator();
+            UObjectSystem::RegisterWithGuid(EmptyAsset.get(), AssetGuid);
+
+            // TODO function is not developed yet
+            // AssetRegistry->AdoptAsset(Device, AssetGuid, AssetName, MetadataPath, EmptyAsset.release());
+        }
+    }
+    else
+        return false;
+
+
+    if (LoadDocument.HasMember("Actors") && LoadDocument["Actors"].IsArray())
+    {
+        // ==================================================================
+        // 모든 AActor 껍데기 생성 및 GUID 등록, World 설정
+        // 이후 모든 액터 내부의 "컴포넌트 껍데기" 생성 및 GUID 등록
+        // ==================================================================
+        size_t ActorIndex = 0;
+
+        for (const auto& ActorJson : LoadDocument["Actors"].GetArray())
+        {
+            FGuid ActorGuid;
+            ActorGuid.Parse(ActorJson["Guid"].GetString());
+            FString TypeName = ActorJson["TypeName"].GetString();
+
+            std::unique_ptr<UObject> CreatedObject = TypeRegistry::Find(TypeName)->Creator();
+            Actors.push_back(std::unique_ptr<AActor>(static_cast<AActor*>(CreatedObject.release())));
+
+            Actors.back()->SetWorld(this);
+            UObjectSystem::RegisterWithGuid(Actors.back().get(), ActorGuid);
+
+            FArchiveJson ArchiveLoad(const_cast<rapidjson::Value&>(ActorJson));
+            Actors[ActorIndex]->PreLoadComponents(ArchiveLoad);
+            ++ActorIndex;
+        }
+
+
+        // ==================================================================
+        // 진짜 직렬화
+        // ==================================================================
+        ActorIndex = 0;
+        for (auto& ActorJson : LoadDocument["Actors"].GetArray())
+        {
+            FArchiveJson ArchiveLoad(const_cast<rapidjson::Value&>(ActorJson));
+            Actors[ActorIndex]->Load(ArchiveLoad); 
+            ++ActorIndex;
+        }
+    }
+    else
+        return false;
+
+    return true;
 }

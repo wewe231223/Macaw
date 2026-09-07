@@ -1,12 +1,16 @@
 ﻿#pragma once
 
+#include <filesystem>
 #include "Common.h"
 #include "Core/Base/UObject.h"
 #include "Core/Base/UObjectSystem.h"
 #include "Core/Base/FRenderProbe.h"
+
 class AActor;
 class UCameraComponent;
 class UStaticMeshComponent;
+struct ID3D11Device;
+class FAssetRegistry;
 
 class UWorld : public UObject
 {
@@ -38,6 +42,9 @@ public:
     void UnregisterRenderable(UStaticMeshComponent* Component);
     void SetMainCamera(UCameraComponent* InCamera);
     void ClearMainCamera(UCameraComponent* InCamera);
+
+    bool SaveScene(const FString& SceneName, FAssetRegistry* AssetRegistry);
+    bool LoadScene(const std::filesystem::path& ScenePath, ID3D11Device* Device, FAssetRegistry* AssetRegistry);
 
 private:
     std::vector<std::unique_ptr<AActor>> Actors;

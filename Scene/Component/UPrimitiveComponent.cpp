@@ -10,3 +10,10 @@ void UPrimitiveComponent::SetVisible(bool bInVisible)
 {
     bVisible = bInVisible;
 }
+
+void UPrimitiveComponent::Serialize(FArchive& Archive)
+{
+    USceneComponent::Serialize(Archive);
+
+    Archive.Serialize("bVisible", bVisible);
+}
