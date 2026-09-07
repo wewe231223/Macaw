@@ -37,11 +37,12 @@ void DrawStatWindow(const UWorld& World)
 
 	ImGui::Text("Allocated : %llu bytes (%.2f Kib)", static_cast<unsigned long long>(Stats.AllocatedBytes), AllocatedKiB);
 
+	ImGui::Text("Peak Allocated: %llu bytes (%.2f Kib)", static_cast<unsigned long long>(Stats.PeakAllocatedBytes), PeakKiB);
+
 	ImGui::Text("Active allocations: %llu", static_cast<unsigned long long>(Stats.ActiveAllocationCount));
 
 	ImGui::Text("Total allcations: %llu", static_cast<unsigned long long>(Stats.TotalAllocationCount));
 
-	//ImGui::Text("Peak Allocated: %llu bytes (%.2f Kib)", static_cast<unsigned long long>(Stats.PeakAllocatedBytes), PeakKiB);
 
 	float UsageRatio = 0.0f;
 
