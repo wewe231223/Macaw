@@ -10,6 +10,7 @@
 #include "FMouseCameraRotateRequestMessage.h"
 #include "FMousePickRequestMessage.h"
 #include "FWorldSelectionChangedMessage.h"
+#include "FKeyboardCameraMoveRequestMessage.h"
 
 UWorld::~UWorld()
 {
@@ -246,10 +247,38 @@ void UWorld::UnregisterCollision(UCollisionComponent* Component)
         CollisionComponents,
         [Component](const TObjectRef<UCollisionComponent>& ComponentRef)
         {
-            UCollisionComponent* RegisteredComponent =
-                ComponentRef.Get();
+            UCollisionComponent* RegisteredComponent = ComponentRef.Get();
 
-            return RegisteredComponent == nullptr ||
-                RegisteredComponent == Component;
+            return RegisteredComponent == nullptr || RegisteredComponent == Component;
         });
+}
+
+void UWorld::HandleKeyboardCameraMoveRequest(
+    const FKeyboardCameraMoveRequestMessage& Message)
+{
+    if (Camera == nullptr || Message.DeltaTime <= 0.0f)
+    {
+        return;
+    }
+
+    const FMatrix CameraWorldMatrix = Camera->GetWorldMatrix();
+
+    const FVector3 ForwardDirection = CameraWorldMatrix.Backward();
+
+    const FVector3 RightDirection = CameraWorldMatrix.Right();
+
+    FVector3 MoveDirection = ForwardDirection * Message.ForwardAxis + RightDirection * Message.RightAxis;
+
+    if (MoveDirection.LengthSquared() <= 0.0f)
+    {
+        return;
+    }
+
+    MoveDirection.Normalize();
+
+    constexpr float CameraMoveSpeed = 5.0f;
+
+    FTransform& CameraTransform = Camera->GetTransform();
+
+    CameraTransform.SetPosition(CameraTransform.GetPosition() + MoveDirection * CameraMoveSpeed * Message.DeltaTime);
 }

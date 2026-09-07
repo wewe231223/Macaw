@@ -17,6 +17,7 @@ class UCollisionComponent;
 
 struct FMousePickRequestMessage;
 struct FMouseCameraRotateRequestMessage;
+struct FKeyboardCameraMoveRequestMessage;
 
 class UWorld : public UObject
 {
@@ -59,6 +60,9 @@ public:
 
     void HandleMouseCameraRotateRequest(
         const FMouseCameraRotateRequestMessage& Message);
+
+    void HandleKeyboardCameraMoveRequest(
+        const FKeyboardCameraMoveRequestMessage& Message);
 
     void RegisterCollision(UCollisionComponent* Component);
     void UnregisterCollision(UCollisionComponent* Component);
