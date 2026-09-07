@@ -225,6 +225,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
     auto LastTickTime = std::chrono::steady_clock::now();
 
+    // TEST
+    World.SaveScene("test", &AssetRegistry);
+
     while (true) {
         if (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE)) {
             if (msg.message == WM_QUIT) {

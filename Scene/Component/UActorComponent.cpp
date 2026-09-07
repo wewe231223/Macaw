@@ -32,3 +32,10 @@ void UActorComponent::SetActive(bool bInActive)
 {
     bActive = bInActive;
 }
+
+void UActorComponent::Serialize(FArchive& Archive)
+{
+    UObject::Serialize(Archive);
+
+    Archive.Serialize("bActive", bActive);
+}

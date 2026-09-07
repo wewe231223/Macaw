@@ -16,6 +16,9 @@ public:
 
     virtual void MakeRender(FRenderProbe& OutProbe) const = 0;
 
+protected:
+    void Serialize(FArchive& Archive) override;
+
 private:
     bool bVisible = true;
 };

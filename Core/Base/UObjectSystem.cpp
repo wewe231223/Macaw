@@ -61,6 +61,14 @@ FObjectHandle UObjectSystem::Register(UObject* Object)
     return Handle;
 }
 
+FObjectHandle UObjectSystem::RegisterWithGuid(UObject* Object, const FGuid& InGuid)
+{
+    Object->RestoreGuid(InGuid);
+
+    return Register(Object);
+}
+
+
 void UObjectSystem::Unregister(
     UObject* Object,
     FObjectHandle Handle)

@@ -60,3 +60,51 @@ void UStaticMeshComponent::MakeRender(FRenderProbe& OutProbe) const
         PipelineHandle
     });
 }
+
+
+void UStaticMeshComponent::Serialize(FArchive& Archive)
+{
+    UPrimitiveComponent::Serialize(Archive);
+
+    FString GuidMeshHandle;
+    if (MeshHandle.ID != std::numeric_limits<uint32>::max())
+        ; // todo this function is not updated yet
+        // GuidMeshHandle = Archive.GetAssetRegistry()->ResolveAsset<UObject>(MeshHandle)->GetGuid().ToString();
+    Archive.Serialize("GuidMeshHandle", GuidMeshHandle);
+    if (Archive.IsLoading())
+    {
+        FGuid Guid;
+        Guid.Parse(GuidMeshHandle);
+
+        // TODO function is not updated yet
+        // MeshHandle = Archive.GetAssetRegistry()->GetAsset(Guid);
+    }
+
+    FString GuidMaterialHandle;
+    if (MaterialHandle.ID != std::numeric_limits<uint32>::max())
+        ; // todo this function is not updated yet
+        // GuidMaterialHandle = Archive.GetAssetRegistry()->ResolveAsset<UObject>(MaterialHandle)->GetGuid().ToString();
+    Archive.Serialize("GuidMaterialHandle", GuidMaterialHandle);
+    if (Archive.IsLoading())
+    {
+        FGuid Guid;
+        Guid.Parse(GuidMaterialHandle);
+
+        // TODO function is not updated yet
+        // MaterialHandle = Archive.GetAssetRegistry()->GetAsset(Guid);
+    }
+
+    FString GuidPipelineHandle;
+    if (PipelineHandle.ID != std::numeric_limits<uint32>::max())
+        ; // todo this function is not updated yet
+        // GuidPipelineHandle = Archive.GetAssetRegistry()->ResolveAsset<UObject>(PipelineHandle)->GetGuid().ToString();
+    Archive.Serialize("GuidPipelineHandle", GuidPipelineHandle);
+    if (Archive.IsLoading())
+    {
+        FGuid Guid;
+        Guid.Parse(GuidPipelineHandle);
+
+        // TODO function is not updated yet
+        // PipelineHandle = Archive.GetAssetRegistry()->GetAsset(Guid);
+    }
+}

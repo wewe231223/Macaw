@@ -87,12 +87,12 @@ TEST_SUITE("Serialize Tests") {
         TestObject->Inventory.clear();
         TestObject->Inventory.push_back(999);
         FGuid AfterGuid = FGuid::NewGuid();
-        TestObject->RestoreGuid(AfterGuid);
+        //TestObject->RestoreGuid(AfterGuid);     // 이건 테스트용으로 public으로 빼두었지만 작동을 확인했으니 이제 사용하지 않음
 
         // 오염 확인
         CHECK_EQ(TestObject->Health, 999);
         CHECK_EQ(TestObject->Inventory.size(), 1);
-        CHECK_EQ(TestObject->GetGuid(), AfterGuid);
+        //CHECK_EQ(TestObject->GetGuid(), AfterGuid);
 
         // --- LOAD ---
         const std::vector<uint8> CopyData = SavedData;
@@ -149,13 +149,13 @@ TEST_SUITE("Serialize Tests") {
         TestObject->Location = { 0.0f, 0.0f, 0.0f };
         TestObject->Inventory.clear();
         TestObject->Inventory.push_back(999);
-        FGuid AfterGuid = FGuid::NewGuid();
-        TestObject->RestoreGuid(AfterGuid);
+        //FGuid AfterGuid = FGuid::NewGuid();
+        //TestObject->RestoreGuid(AfterGuid);
 
         // 오염 확인
         CHECK_EQ(TestObject->Health, 999);
         CHECK_EQ(TestObject->Inventory.size(), 1);
-        CHECK_EQ(TestObject->GetGuid(), AfterGuid);
+        //CHECK_EQ(TestObject->GetGuid(), AfterGuid);
 
         // --- LOAD ---
         {

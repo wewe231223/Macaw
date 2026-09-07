@@ -3,7 +3,7 @@
 #include "Core/Base/UObject.h"
 
 class AActor;
-
+class FArchive;
 class UActorComponent : public UObject
 {
 public:
@@ -18,6 +18,9 @@ public:
 
     bool IsActive() const;
     void SetActive(bool bInActive);
+
+protected:
+    void Serialize(FArchive& Archive) override;
 
 private:
     friend class AActor;

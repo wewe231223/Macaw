@@ -2,6 +2,7 @@
 
 #include "USceneComponent.h"
 
+class FArchive;
 class UCameraComponent : public USceneComponent
 {
 public:
@@ -24,6 +25,9 @@ public:
 
     void OnCreate() override;
     void OnDestroy() override;
+
+protected:
+    void Serialize(FArchive& Archive) override;
 
 private:
     float FOV = 1.0472f;       // 약 60도, 라디안

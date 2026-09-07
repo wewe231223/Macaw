@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include "../Core/Base/FGuid.h"
+#include "../Core/Asset/FAssetRegistry.h"
 
 enum class EArchiveMode : uint8
 {
@@ -12,7 +13,7 @@ enum class EArchiveMode : uint8
 class FArchive
 {
 public:
-    explicit FArchive(EArchiveMode InMode) : Mode(InMode) {}
+    explicit FArchive(EArchiveMode InMode) : Mode(InMode), AssetRegistry(nullptr) {}
 
     virtual ~FArchive() = default;
 
@@ -91,6 +92,21 @@ public:
         EndObjectScope();
     }
 
+    // ---------------------------------------------------
+    // 7. Asset Registry 처리
+    // ---------------------------------------------------
+    void SetAssetRegistry(FAssetRegistry* InputAssetRegistry)
+    {
+        AssetRegistry = InputAssetRegistry;
+    }
+    FAssetRegistry* GetAssetRegistry()
+    {
+        return AssetRegistry;
+    }
+
 protected:
     const EArchiveMode Mode;
+
+private:
+    FAssetRegistry* AssetRegistry;
 };
