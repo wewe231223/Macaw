@@ -19,5 +19,5 @@ void FEditorSelection::HandleSelectionChanged(const FWorldSelectionChangedMessag
 
 USceneComponent* FEditorSelection::GetSelectedComponent() const
 {
-	return SelectedComponent.Get();
+	return nullptr;
 }

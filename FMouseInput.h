@@ -48,10 +48,4 @@ private:
     };
 
 	TFixedArray<DragCapture, static_cast<size_t>(EMouseSide::MAX)> ClickCaptures{};
-
-
-	DragCapture[Left].start = ....;
-    ClickCaptures[Left].current = .....;
-
-
 };

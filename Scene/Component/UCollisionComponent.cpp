@@ -157,11 +157,27 @@ void UCollisionComponent::MakeRender(FActorProbe& Probe) const
 {
 }
 
-void UCollisionComponent::Serialize(FArchive& Archive)
+void UCollisionComponent::Serialize(FArchive& Archive) 
 {
     UPrimitiveComponent::Serialize(Archive);
+
+    FGuid GuidParent{};
+    if (Archive.IsSaving()) {
+        GuidParent = GetParent()->GetGuid(); 
+    }
+
+
+    Archive.Serialize("Parent", GuidParent);
     Archive.Serialize("OBB_Center", static_cast<FVector3&>(OBB.Center));
     Archive.Serialize("OBB_Extent", static_cast<FVector3&>(OBB.Extents));
     Archive.Serialize("OBB_Orientation", static_cast<FQuat&>(OBB.Orientation));
     Archive.Serialize("bCollisionEnabled", bCollisionEnabled);
+
+    if (Archive.IsLoading() && GuidParent.IsValid())
+    {
+        FGuid Guid;
+        Guid.Parse(GuidParent.ToString());
+		UObjectSystem::FindHandleByGuid(Guid);
+        AttachTo(static_cast<USceneComponent*>(UObjectSystem::Resolve(UObjectSystem::FindHandleByGuid(Guid)))); 
+    }
 }

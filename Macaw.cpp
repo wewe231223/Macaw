@@ -77,7 +77,7 @@ LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 HWND gHWND;
 
 
-//#define LOAD 
+#define LOAD 
 
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
@@ -102,6 +102,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	TypeRegistry::Register(UStaticMeshComponent::StaticTypeInfo());
 	TypeRegistry::Register(UActorComponent::StaticTypeInfo());
 	TypeRegistry::Register(USceneComponent::StaticTypeInfo());
+	TypeRegistry::Register(UCollisionComponent::StaticTypeInfo());
 	
 
 
@@ -186,6 +187,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
 #ifdef LOAD
 	World.LoadScene("./scenes/test.json", Renderer.GetDevice(), &AssetRegistry);
+	World.SetAssetRegistry(&AssetRegistry);
+
 #else 
     World.SetAssetRegistry(&AssetRegistry);
 
@@ -261,6 +264,11 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
             }
 
             InstanceComponent->SetMeshHandle(MeshHandle);
+
+
+
+
+
             const bool bUseAlternatePipeline = InstanceIndex % 2 == 1;
             InstanceComponent->SetPipelineHandle(bUseAlternatePipeline ? AlternatePipelineHandle : BasePipelineHandle);
             InstanceComponent->SetMaterialHandle(MaterialHandle);
@@ -271,9 +279,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
             }
         }
 
-	World.SaveScene("test", &AssetRegistry);
-#endif 
+	    World.SaveScene("test", &AssetRegistry);
     }
+#endif 
 
     FRenderProbe Probe = World.BuildRenderProbe();
 
@@ -281,41 +289,41 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
         "Actor Count = " + std::to_string(Probe.ActorProbes.size()) + "\n";
 
 
-    if (TestCollision != nullptr)
-    {
-        const FMatrix Target = TestCollision->GetWorldMatrix();
+    //if (TestCollision != nullptr)
+    //{
+    //    const FMatrix Target = TestCollision->GetWorldMatrix();
 
-        FVector3 TargetWorldPos{
-            Target._41,
-            Target._42,
-            Target._43
-        };
+    //    FVector3 TargetWorldPos{
+    //        Target._41,
+    //        Target._42,
+    //        Target._43
+    //    };
 
-        FVector3 RayOrigin{
-            TargetWorldPos.x,
-            TargetWorldPos.y,
-            TargetWorldPos.z - 1000.0f
-        };
+    //    FVector3 RayOrigin{
+    //        TargetWorldPos.x,
+    //        TargetWorldPos.y,
+    //        TargetWorldPos.z - 1000.0f
+    //    };
 
-        FVector3 RayDirection{
-            0.0f,
-            0.0f,
-            1.0f
-        };
+    //    FVector3 RayDirection{
+    //        0.0f,
+    //        0.0f,
+    //        1.0f
+    //    };
 
-        FRay TestRay(RayOrigin, RayDirection);
+    //    FRay TestRay(RayOrigin, RayDirection);
 
-        float Distance = 0.0f;
+    //    float Distance = 0.0f;
 
-        if (TestCollision->Raycast(TestRay, Distance))
-        {
-            OutputDebugStringA("Collision Hit\n");
-        }
-        else
-        {
-            OutputDebugStringA("Collision Miss\n");
-        }
-    }
+    //    if (TestCollision->Raycast(TestRay, Distance))
+    //    {
+    //        OutputDebugStringA("Collision Hit\n");
+    //    }
+    //    else
+    //    {
+    //        OutputDebugStringA("Collision Miss\n");
+    //    }
+    //}
 
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
