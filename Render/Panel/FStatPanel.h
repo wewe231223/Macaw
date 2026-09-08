@@ -1,4 +1,7 @@
-#pragme once
+#pragma once
+
+#include "Render/Panel/IEditorPanel.h"
+#include "Render/Panel/Stats/StatWindow.h"
 
 class FStatPanel : public IEditorPanel
 {

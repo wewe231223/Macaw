@@ -22,10 +22,6 @@
 
 #include "Render/Panel/Stats/StatWindow.h"
 
-//test
-#include "Render/Pipeline/UPipeline.h"
-#include "Core/Asset/UMesh.h"
-
 #include "Core/Base/FTransform.h"
 #include "Scene/UWorld.h"
 #include "Scene/AActor.h"
@@ -163,6 +159,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     FEditorUIManager EditorUIManager;
 
     EditorUIManager.Initialize(
+        World,
+
         EditorCameraStateChannel.GetWriter(),
         EditorCameraStateChannel.GetReader(),
 
@@ -440,9 +438,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
             GizmoCommandChannel.Dispatch();
 
             Renderer.Render(World.BuildRenderProbe());
-
-            DrawConsole(Console::STDOutHandle);
-            DrawStatWindow(World);
 
             ImGui::Render();
             ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());

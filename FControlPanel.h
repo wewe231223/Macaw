@@ -2,8 +2,8 @@
 
 #include "PCH.h"
 #include "ImGui/imgui.h"
-#include "IEditorPanel.h"
-#include "FEditorInfo.h"
+#include "Render/Panel/IEditorPanel.h"
+#include "Render/Panel/FEditorInfo.h"
 #include "Core/Channel/FStateChannel.h"
 #include "Core/Channel/FMessageChannel.h"
 

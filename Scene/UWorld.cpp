@@ -2,6 +2,7 @@
 #include "UWorld.h"
 
 #include <algorithm>
+#include <random>
 
 #include "AActor.h"
 #include "Component/UCameraComponent.h"
@@ -562,6 +563,14 @@ void UWorld::HandleSpawnPrimitive(
         return;
     }
 
+    static std::mt19937 RandomEngine{ std::random_device{}() };
+
+    std::uniform_real_distribution<float> RandomX(-5.0f, 5.0f);
+    std::uniform_real_distribution<float> RandomY(-5.0f, 5.0f);
+    std::uniform_real_distribution<float> RandomZ(-3.0f, 3.0f);
+
+    constexpr FVector3 SpawnCenter{ 0.0f, 0.0f, 5.0f };
+
     for (uint32 Index = 0; Index < Message.SpawnCount;  ++Index)
     {
         AActor* Actor = SpawnActor<AActor>();
@@ -579,9 +588,9 @@ void UWorld::HandleSpawnPrimitive(
 
         MeshComponent->GetTransform().SetPosition(
             FVector3{
-                static_cast<float>(Index),
-                0.0f,
-                5.0f
+                SpawnCenter.x + RandomX(RandomEngine),
+                SpawnCenter.y + RandomY(RandomEngine),
+                SpawnCenter.z + RandomZ(RandomEngine)
             });
 
         CollisionComponent->SetBounds(Mesh->GetBoundsCenter(), Mesh->GetBoundsExtent());
