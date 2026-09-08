@@ -120,9 +120,9 @@ namespace
             EmplaceMessageToWorldChannel<FMessageUndoObjectStateChanged>(Guid, TArray<uint8>(Data));
         }
 
-        virtual void NotifyObjectSpawned(const FGuid& Guid, const TArray<uint8>& Data) override
+        virtual void NotifyObjectSpawned(const FGuid& Guid, const TArray<uint8>& Data, FString&& TypeName) override
         {
-            EmplaceMessageToWorldChannel<FMessageUndoObjectSpawned>(Guid, TArray<uint8>(Data));
+            EmplaceMessageToWorldChannel<FMessageUndoObjectSpawned>(Guid, TArray<uint8>(Data), std::move(TypeName));
         }
 
         virtual void NotifyObjectDeleted(const FGuid& Guid) override
@@ -157,7 +157,7 @@ namespace FUndoSystem
         State.CurrentTransaction = std::make_unique<FUndoTransaction>(TransactionName);
     }
 
-    void RecordObject(UObject* TargetObject, EUndoType UndoType)
+    void RecordObject(UObject* TargetObject, EUndoType UndoType, FAssetRegistry* AssetRegistry)
     {
         FUndoSystemState& State = GetState();
         if (!State.CurrentTransaction || !TargetObject)
@@ -173,6 +173,7 @@ namespace FUndoSystem
 
         TArray<uint8> CurrentData;
         FArchiveMemory MemoryArchive(CurrentData);
+        MemoryArchive.SetAssetRegistry(AssetRegistry);
         TargetObject->Save(MemoryArchive);
 
         if (UndoType == EUndoType::StateChange)
@@ -196,8 +197,8 @@ namespace FUndoSystem
             std::unique_ptr<IUndoRecord> Record = nullptr;
             switch (UndoType)
             {
-                case EUndoType::Spawn:      Record = std::make_unique<FRecordObjectSpawned>(TargetObject->GetGuid(), std::move(CurrentData)); break;
-                case EUndoType::Destroy:    Record = std::make_unique<FRecordObjectDestroyed>(TargetObject->GetGuid(), std::move(CurrentData)); break;
+                case EUndoType::Spawn:      Record = std::make_unique<FRecordObjectSpawned>(TargetObject->GetGuid(), std::move(CurrentData), TargetObject->GetTypeInfo()->TypeName); break;
+                case EUndoType::Destroy:    Record = std::make_unique<FRecordObjectDestroyed>(TargetObject->GetGuid(), std::move(CurrentData), TargetObject->GetTypeInfo()->TypeName); break;
             }
 
             if (Record)
@@ -211,11 +212,6 @@ namespace FUndoSystem
         FUndoSystemState& State = GetState();
         if (!State.CurrentTransaction)
             return;
-        if (State.PendingFinalizers.size() == 0)
-        {
-            State.CurrentTransaction.reset();
-            return;
-        }
 
         for (const auto& Finalizer : State.PendingFinalizers)
         {

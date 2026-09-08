@@ -3,18 +3,26 @@
 #include "../../Base/TypeInfo.h"
 #include "../../../Common.h"
 
+struct FMessageUndoApply
+{
+    JG_DECLARE_CHANNEL_MESSAGE(FMessageUndoApply); 
+
+    bool bIsUndo; // true = undo, false = redo
+
+    FMessageUndoApply(const bool InputType) noexcept
+        : bIsUndo(InputType){}
+};
+
+
 struct FMessageUndoObjectStateChanged
 {
     JG_DECLARE_CHANNEL_MESSAGE(FMessageUndoObjectStateChanged);
 
     FGuid TargetGuid;
-    TArray<uint8> StateData;
-
-    FMessageUndoObjectStateChanged(const FGuid& InputGuid, const TArray<uint8>& InputData)
-        : TargetGuid(InputGuid), StateData(InputData) {}
+    TArray<uint8> SavedData;
 
     FMessageUndoObjectStateChanged(const FGuid& InputGuid, TArray<uint8>&& InputData) noexcept
-        : TargetGuid(InputGuid), StateData(std::move(InputData)) {}
+        : TargetGuid(InputGuid), SavedData(std::move(InputData)) {}
 };
 
 
@@ -24,12 +32,10 @@ struct FMessageUndoObjectSpawned
 
     FGuid TargetGuid;
     TArray<uint8> SavedData;
+    FString TargetTypeName;
 
-    FMessageUndoObjectSpawned(const FGuid& InputGuid, const TArray<uint8>& InputData)
-        : TargetGuid(InputGuid), SavedData(InputData) {}
-
-    FMessageUndoObjectSpawned(const FGuid& InputGuid, TArray<uint8>&& InputData) noexcept
-        : TargetGuid(InputGuid), SavedData(std::move(InputData)) {}
+    FMessageUndoObjectSpawned(const FGuid& InputGuid, TArray<uint8>&& InputData, FString&& InputTargetTypeName) noexcept
+        : TargetGuid(InputGuid), SavedData(std::move(InputData)), TargetTypeName(InputTargetTypeName) {}
 };
 
 
@@ -39,6 +45,6 @@ struct FMessageUndoObjectDestroyed
 
     FGuid TargetGuid;
 
-    FMessageUndoObjectDestroyed(const FGuid& InputGuid)
+    FMessageUndoObjectDestroyed(const FGuid& InputGuid) noexcept
         : TargetGuid(InputGuid) {}
 };

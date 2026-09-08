@@ -22,26 +22,28 @@ private:
 class FRecordObjectSpawned : public IUndoRecord
 {
 public:
-    FRecordObjectSpawned(FGuid InputGuid, TArray<uint8> InputSavedData)
-        : TargetGuid(InputGuid), SavedData(std::move(InputSavedData)) {}
+    FRecordObjectSpawned(FGuid InputGuid, const TArray<uint8>& InputSavedData, std::string_view InputTargetTypeName)
+        : TargetGuid(InputGuid), SavedData(std::move(InputSavedData)), TargetTypeName(InputTargetTypeName){}
     
     virtual void ApplyUndo(IUndoContext& Context) override;
     virtual void ApplyRedo(IUndoContext& Context) override;
 private:
     FGuid TargetGuid;
     TArray<uint8> SavedData;
+    FString TargetTypeName;
 };
 
 
 class FRecordObjectDestroyed : public IUndoRecord
 {
 public:
-    FRecordObjectDestroyed(FGuid InputGuid, TArray<uint8> InputSavedData)
-        : TargetGuid(InputGuid), SavedData(std::move(InputSavedData)) {}
+    FRecordObjectDestroyed(FGuid InputGuid, TArray<uint8> InputSavedData, std::string_view InputTargetTypeName)
+        : TargetGuid(InputGuid), SavedData(std::move(InputSavedData)), TargetTypeName(InputTargetTypeName) {}
 
     virtual void ApplyUndo(IUndoContext& Context) override;
     virtual void ApplyRedo(IUndoContext& Context) override;
 private:
     FGuid TargetGuid;
     TArray<uint8> SavedData;
+    FString TargetTypeName;
 };

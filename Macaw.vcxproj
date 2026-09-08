@@ -263,6 +263,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="Render\Panel\Console\ConsoleWindow.cpp" />
+    <ClCompile Include="Render\Panel\FControlPanel.cpp" />
     <ClCompile Include="Render\Panel\FEditorSelection.cpp" />
     <ClCompile Include="Render\Panel\Stats\StatWindow.cpp" />
     <ClCompile Include="Render\Pipeline\UPipeline.cpp" />
@@ -352,6 +353,7 @@
     <ClInclude Include="PCH.h" />
     <ClInclude Include="Render\Panel\Console\ConsoleWindow.h" />
     <ClInclude Include="Render\Panel\FConsolePanel.h" />
+    <ClInclude Include="Render\Panel\FControlPanel.h" />
     <ClInclude Include="Render\Panel\FEditorInfo.h" />
     <ClInclude Include="Render\Panel\FEditorSelection.h" />
     <ClInclude Include="Render\Panel\FEditorUIManager.h" />

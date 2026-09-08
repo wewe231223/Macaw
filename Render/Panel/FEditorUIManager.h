@@ -19,6 +19,8 @@ public:
         FStateChannel<FMessageEditorCameraState>::FWriter CamWriter,
         FStateChannel<FMessageEditorCameraState>::FReader CamReader,
 
+        HWND WindowHandle,
+
         FStateChannel<FMessageEditorTransformState>::FWriter TransformWriter,
         FStateChannel<FMessageEditorTransformState>::FReader TransformReader,
 
@@ -31,6 +33,7 @@ public:
             std::make_unique<FControlPanel>(
                 std::move(CamWriter),
                 std::move(CamReader),
+                WindowHandle,
                 std::move(SpawnSender),
                 std::move(SceneSender)
             )

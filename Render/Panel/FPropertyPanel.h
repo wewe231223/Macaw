@@ -65,7 +65,6 @@ public:
         if (bTransformModifiedByUI)
         {
             TransformWriter.Write(CachedState);
-            TransformReader.Read(); // 무한 루프 방지
         }
 
         ImGui::End();

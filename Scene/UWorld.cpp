@@ -19,6 +19,7 @@
 #include "../Core/Base/TypeRegistry.h"
 #include "../Core/Base/UObjectSystem.h"
 #include "../Core/Asset/FAssetRegistry.h"
+#include "../Core/Base/UndoSystem/FUndoSystem.h"
 
 #include <d3d11.h>
 #include <filesystem>
@@ -41,6 +42,39 @@ UWorld::~UWorld()
     }
 
     Actors.clear();
+}
+
+bool UWorld::SpawnActor(const FAssetHandle& MeshHandle, const FAssetHandle& PipelineHandle, const FAssetHandle& MaterialHandle, 
+                        const FVector3& Position, UMesh *Mesh, FAssetRegistry* AssetRegistry)
+{
+    std::unique_ptr<AActor> Actor;
+    Actor.reset(AdoptActor<AActor>());
+
+    UStaticMeshComponent* MeshComponent = Actor->AddComponent<UStaticMeshComponent>();
+    UCollisionComponent* CollisionComponent = Actor->AddComponent<UCollisionComponent>();
+
+    Actor->SetRootComponent(MeshComponent);
+
+    CollisionComponent->AttachTo(MeshComponent);
+
+    MeshComponent->SetMeshHandle(MeshHandle);
+    MeshComponent->SetPipelineHandle(PipelineHandle);
+    MeshComponent->SetMaterialHandle(MaterialHandle);
+
+    MeshComponent->GetTransform().SetPosition(
+        FVector3{
+            Position.x,
+            Position.y,
+            Position.z
+        });
+
+    CollisionComponent->SetBounds(Mesh->GetBoundsCenter(), Mesh->GetBoundsExtent());
+    FGuid Guid = Actor->GetGuid();
+    AddActor(std::move(Actor));
+    
+    //FUndoSystem::RecordObject(UObjectSystem::Resolve(UObjectSystem::FindHandleByGuid(Guid)), EUndoType::Spawn, AssetRegistry);
+
+    return true;
 }
 
 bool UWorld::DestroyActor(AActor* Actor)
@@ -253,7 +287,7 @@ bool UWorld::LoadScene(const std::filesystem::path& ScenePath, ID3D11Device* Dev
     if (LoadDocument.HasParseError())
         return false;
 
-
+    ResetWorld(AssetRegistry, Device);
 
     if (LoadDocument.HasMember("Assets") && LoadDocument["Assets"].IsArray())
     {
@@ -292,8 +326,6 @@ bool UWorld::LoadScene(const std::filesystem::path& ScenePath, ID3D11Device* Dev
 
             std::unique_ptr<UObject> CreatedObject = TypeRegistry::Find(TypeName)->Creator();
 			std::unique_ptr<AActor> ActorPtr(static_cast<AActor*>(CreatedObject.release()));
-//            Actors.push_back(std::unique_ptr<AActor>(static_cast<AActor*>(CreatedObject.release())));
-
             UObjectSystem::RegisterWithGuid(ActorPtr.get(), ActorGuid);
 
             FArchiveJson ArchiveLoad(static_cast<rapidjson::Value&>(ActorJson));
@@ -304,11 +336,10 @@ bool UWorld::LoadScene(const std::filesystem::path& ScenePath, ID3D11Device* Dev
             ++ActorIndex;
         }
 
-
         // ==================================================================
         // 진짜 직렬화
         // ==================================================================
-        ActorIndex = 0;
+        ActorIndex = 0; 
         for (auto& ActorJson : LoadDocument["Actors"].GetArray())
         {
             FArchiveJson ArchiveLoad(static_cast<rapidjson::Value&>(ActorJson));
@@ -562,28 +593,22 @@ void UWorld::HandleSpawnPrimitive(
 
     for (uint32 Index = 0; Index < Message.SpawnCount;  ++Index)
     {
-        AActor* Actor = SpawnActor<AActor>();
-
-        UStaticMeshComponent* MeshComponent =  Actor->AddComponent<UStaticMeshComponent>();
-        UCollisionComponent* CollisionComponent = Actor->AddComponent<UCollisionComponent>();
-
-        Actor->SetRootComponent(MeshComponent);
-
-        CollisionComponent->AttachTo(MeshComponent);
-
-        MeshComponent->SetMeshHandle(MeshHandle);
-        MeshComponent->SetPipelineHandle(PipelineHandle);
-        MeshComponent->SetMaterialHandle(MaterialHandle);
-
-        MeshComponent->GetTransform().SetPosition(
-            FVector3{
-                SpawnCenter.x + RandomX(RandomEngine),
-                SpawnCenter.y + RandomY(RandomEngine),
-                SpawnCenter.z + RandomZ(RandomEngine)
-            });
-
-        CollisionComponent->SetBounds(Mesh->GetBoundsCenter(), Mesh->GetBoundsExtent());
+        SpawnActor(MeshHandle, PipelineHandle, MaterialHandle,
+            FVector3{ SpawnCenter.x + RandomX(RandomEngine),SpawnCenter.y + RandomY(RandomEngine), SpawnCenter.z + RandomZ(RandomEngine) }, Mesh, &AssetRegistry);
     }
+}
+
+
+void UWorld::ResetWorld(FAssetRegistry* AssetRegistry, ID3D11Device* Device)
+{
+    for (auto &CurrentActor : Actors)
+    {
+        DestroyActor(CurrentActor.release());
+    }
+    FlushPendingDestroyActors();
+
+    AssetRegistry->Reset();
+    AssetRegistry->Initialize(Device);
 }
 
 void UWorld::HandleNewScene(

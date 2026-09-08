@@ -44,6 +44,10 @@
 #include "FKeyboardCameraMoveRequestMessage.h"
 #include "Render/Panel/FEditorSelection.h"
 
+#include "Core/Base/UndoSystem/FUndoSystem.h"
+#include "Core/Base/UndoSystem/FUndoMessages.h"
+#include "Serialize/FArchiveMemory.h"
+
 //test
 #include "Render/Pipeline/UPipeline.h"
 #include "Core/Asset/UMesh.h"
@@ -76,7 +80,7 @@ LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 HWND gHWND;
 
 
-//#define LOAD 
+#define LOAD 
 
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
@@ -156,6 +160,77 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     FMessageChannel SceneCommandChannel{ 64 };
     FMessageChannel GizmoCommandChannel{ 64 };
 
+    
+    
+    /*
+    FMessageChannel UndoCommandChannel{ 64 };
+    FUndoSystem::InitializeSenderToWorldChannel(UndoCommandChannel.GetSender());
+    UndoCommandChannel.TryBind<FMessageUndoObjectStateChanged>(
+        [&World, &AssetRegistry](const FMessageUndoObjectStateChanged& Message)
+        {
+            UObject* Target = UObjectSystem::Resolve(UObjectSystem::FindHandleByGuid(Message.TargetGuid));
+            if (Target)
+            {
+                FArchiveMemory ArchiveLoad(Message.SavedData);
+                Target->Load(ArchiveLoad);
+
+            }
+        });
+    UndoCommandChannel.TryBind<FMessageUndoObjectSpawned>(
+        [&World, &AssetRegistry](const FMessageUndoObjectSpawned& Message)
+        {
+            FGuid ActorGuid;
+            ActorGuid.Parse(Message.TargetGuid.ToString());
+            FString TypeName = Message.TargetTypeName;
+
+            std::unique_ptr<UObject> CreatedObject = TypeRegistry::Find(TypeName)->Creator();
+            std::unique_ptr<AActor> ActorPointer(static_cast<AActor*>(CreatedObject.release()));
+            UObjectSystem::RegisterWithGuid(ActorPointer.get(), ActorGuid);
+
+            const auto SavedData = Message.SavedData;
+            FArchiveMemory ArchiveLoad(SavedData);
+            ArchiveLoad.SetAssetRegistry(&AssetRegistry);
+            ActorPointer->Load(ArchiveLoad);
+            ActorPointer->SetWorld(&World);
+
+            World.AddActor(std::move(ActorPointer));
+        });
+    UndoCommandChannel.TryBind<FMessageUndoObjectDestroyed>(
+        [&World](const FMessageUndoObjectDestroyed& Message)
+        {
+            World.DestroyActor(static_cast<AActor*>(UObjectSystem::Resolve(UObjectSystem::FindHandleByGuid(Message.TargetGuid))));
+            World.FlushPendingDestroyActors();
+        });
+    WorldCommandChannel.TryBind<FMessageUndoApply>(
+        [](const FMessageUndoApply& Message)
+        {
+            if (Message.bIsUndo)
+                FUndoSystem::Undo();
+            else
+                FUndoSystem::Redo();
+        });
+
+        */
+
+
+    SpawnCommandChannel.TryBind<FMessageSpawnPrimitive>(
+        [&World, &AssetRegistry](const FMessageSpawnPrimitive& Message)
+        {
+            /*
+            FString TransactionName;
+            // "Spawn "(6자) + 32비트 정수 최대 길이(11자) + PrimitiveType 길이
+            TransactionName.reserve(17 + Message.PrimitiveType.size());
+            std::format_to(std::back_inserter(TransactionName), "Spawn {}{}(es)", Message.SpawnCount, Message.PrimitiveType);
+
+            FUndoSystem::BeginTransaction(TransactionName);
+            FUndoSystem::EndTransaction();
+            */
+            World.HandleSpawnPrimitive(Message, AssetRegistry);
+        }
+    );
+
+
+
     FEditorUIManager EditorUIManager;
 
     EditorUIManager.Initialize(
@@ -163,6 +238,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
         EditorCameraStateChannel.GetWriter(),
         EditorCameraStateChannel.GetReader(),
+
+        gHWND,
 
         EditorTransformStateChannel.GetWriter(),
         EditorTransformStateChannel.GetReader(),
@@ -207,13 +284,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
                 World.HandleKeyboardCameraMoveRequest(Message);
             });
 
-    SpawnCommandChannel.TryBind<FMessageSpawnPrimitive>(
-        [&World, &AssetRegistry](const FMessageSpawnPrimitive& Message)
-        {
-            World.HandleSpawnPrimitive(Message, AssetRegistry);
-        }
-    );
-
     SceneCommandChannel.TryBind<FMessageNewScene>(
         [&World](const FMessageNewScene& Message)
         {
@@ -250,7 +320,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     );
 	
 #ifdef LOAD
-	World.LoadScene("./scenes/test.json", Renderer.GetDevice(), &AssetRegistry);
+	//World.LoadScene("./scenes/test.json", Renderer.GetDevice(), &AssetRegistry);
 #else 
 	AssetRegistry.EmplaceAsset<UPipeline>(Renderer.GetDevice(), "BasePipeline", "./Content/Metadata/BasePipeline.meta");
 	AssetRegistry.EmplaceAsset<UPipeline>(Renderer.GetDevice(), "AlternatePipeline", "./Content/Metadata/AlternatePipeline.meta");
@@ -259,7 +329,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     
 	AssetRegistry.EmplaceAsset<UColorMaterial>(Renderer.GetDevice(), "RedMaterial", "./Content/Metadata/RedMaterial.meta");
 
-    AActor* CameraActor = World.SpawnActor<AActor>();
+    AActor* CameraActor = World.AdoptActor<AActor>();
     UCameraComponent* Camera = CameraActor->AddComponent<UCameraComponent>();
 
     UCollisionComponent* TestCollision = nullptr;
@@ -309,7 +379,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
                 const float Yaw = (Random01(InstanceIndex * 7U + 6U) - 0.5f) * 0.5f;
                 const float Roll = (Random01(InstanceIndex * 7U + 7U) - 0.5f) * 1.3f;
 
-                AActor* InstanceActor = World.SpawnActor<AActor>();
+                AActor* InstanceActor = World.AdoptActor<AActor>();
                 UStaticMeshComponent* InstanceComponent = InstanceActor->AddComponent<UStaticMeshComponent>();
                 UCollisionComponent* CollisionComponent = InstanceActor->AddComponent<UCollisionComponent>();
 
@@ -343,9 +413,10 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
             }
         }
 
-	World.SaveScene("test", &AssetRegistry);
-#endif 
     }
+    World.SaveScene("test", &AssetRegistry);
+
+#endif 
 
     FRenderProbe Probe = World.BuildRenderProbe();
 
@@ -353,41 +424,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
         "Actor Count = " + std::to_string(Probe.ActorProbes.size()) + "\n";
 
 
-    if (TestCollision != nullptr)
-    {
-        const FMatrix Target = TestCollision->GetWorldMatrix();
-
-        FVector3 TargetWorldPos{
-            Target._41,
-            Target._42,
-            Target._43
-        };
-
-        FVector3 RayOrigin{
-            TargetWorldPos.x,
-            TargetWorldPos.y,
-            TargetWorldPos.z - 1000.0f
-        };
-
-        FVector3 RayDirection{
-            0.0f,
-            0.0f,
-            1.0f
-        };
-
-        FRay TestRay(RayOrigin, RayDirection);
-
-        float Distance = 0.0f;
-
-        if (TestCollision->Raycast(TestRay, Distance))
-        {
-            OutputDebugStringA("Collision Hit\n");
-        }
-        else
-        {
-            OutputDebugStringA("Collision Miss\n");
-        }
-    }
 
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
@@ -436,6 +472,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
             SpawnCommandChannel.Dispatch();
             SceneCommandChannel.Dispatch();
             GizmoCommandChannel.Dispatch();
+
+            //UndoCommandChannel.Dispatch();
 
             Renderer.Render(World.BuildRenderProbe());
 

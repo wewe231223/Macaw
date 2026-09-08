@@ -285,6 +285,7 @@
     <ClCompile Include="Render\Panel\Console\ConsoleWindow.cpp">
       <Filter>Render\Panel\Console</Filter>
     </ClCompile>
+    <ClCompile Include="Render\Panel\FControlPanel.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Core\Base\FGuid.h">
@@ -541,6 +542,7 @@
     <ClInclude Include="Render\Panel\Console\ConsoleWindow.h">
       <Filter>Render\Panel\Console</Filter>
     </ClInclude>
+    <ClInclude Include="Render\Panel\FControlPanel.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Content\Metadata\AlternatePipeline.meta">

@@ -21,6 +21,8 @@ class FAssetRegistry;
 
 class UCollisionComponent;
 class FAssetRegistry;
+class UMesh;
+
 
 struct FMousePickRequestMessage;
 struct FMouseCameraRotateRequestMessage;
@@ -32,6 +34,7 @@ struct FMessageSaveScene;
 struct FMessageLoadScene;
 struct FMessageChangeGizmoMode;
 
+
 class UWorld : public UObject
 {
 public:
@@ -42,7 +45,7 @@ public:
 
     template<typename T>
     requires std::is_base_of_v<AActor, T>
-    T* SpawnActor()
+    T* AdoptActor()
     {
         std::unique_ptr<T> NewActor = std::make_unique<T>();
 
@@ -56,6 +59,8 @@ public:
         return ActorPtr;
     }
 
+    bool SpawnActor(const FAssetHandle& MeshHandle, const FAssetHandle& PipelineHandle, const FAssetHandle& MaterialHandle,
+        const FVector3& Position, UMesh* Mesh, FAssetRegistry* AssetRegistry);
     bool DestroyActor(AActor* Actor);
     void FlushPendingDestroyActors();
 
@@ -100,6 +105,8 @@ public:
     std::optional<FStateChannel<FMessageEditorCameraState>::FReader> EditorCameraReader;
 
     void UpdateEditorCameraState();
+
+    void ResetWorld(FAssetRegistry* AssetRegistry, ID3D11Device* Device);
 
 private:
     std::vector<std::unique_ptr<AActor>> Actors;
