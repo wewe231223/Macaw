@@ -596,6 +596,12 @@
     <None Include="Content\Metadata\OverlayLine.meta">
       <Filter>Content\Metadata</Filter>
     </None>
+    <None Include="Content\Metadata\BlueMaterial.meta">
+      <Filter>Content\Metadata</Filter>
+    </None>
+    <None Include="Content\Metadata\GreenMaterial.meta">
+      <Filter>Content\Metadata</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Content\Shader\Alternate.hlsl">

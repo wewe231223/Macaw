@@ -2,9 +2,14 @@
 
 #include <d3d11.h>
 #include "../Core/Channel/FStateChannel.h"
-#include "../RenderWindowInfo.h"
-#include "FLineRenderer.h"
+#include "../../Core/Asset/FAssetRegistry.h"
 #include "../../Core/Base/FRenderProbe.h"
+#include "../../Scene/Component/UCollisionComponent.h"
+#include "../../Core/Base/TObjectRef.h"
+#include "../RenderWindowInfo.h"
+
+#include "FLineRenderer.h"
+#include "FTransformGizmo.h"
 
 class EditorViewport {
 	constexpr static float  OrientationAxisSize = 200.0f;
@@ -19,9 +24,10 @@ public:
 	EditorViewport& operator=(EditorViewport&&) noexcept = default;
 
 public:
-	void Initialize(ID3D11Device* Device, TStateChannel<RenderWindowInfo>::FReader WindowReader);
+	void Initialize(ID3D11Device* Device, FAssetRegistry& AssetRegistry, TStateChannel<RenderWindowInfo>::FReader WindowReader, TStateChannel<TObjectRef<UCollisionComponent>>::FReader SelectedActorReader);
 
-	void Render(ID3D11DeviceContext* Context, CameraProbe& Probe);
+	void RenderInProbe(FRenderProbe& Probe);
+	void Render(ID3D11DeviceContext* Context, FRenderProbe& Probe);
 private:
 	void RenderGrid(ELineDepthMode DepthMode);
 	void RenderAxis(ELineDepthMode DepthMode); 
@@ -29,7 +35,10 @@ private:
 
 private:
 	TStateChannel<RenderWindowInfo>::FReader WindowInfoReader{};
+	TStateChannel<TObjectRef<UCollisionComponent>>::FReader SelectedActorReader{};
+
 	FLineRenderer LineRenderer{};
+	FTransformGizmo TransformGizmo{};
 
 	D3D11_VIEWPORT OrientationAxisViewport{ 5.0f, 5.0f, OrientationAxisSize, OrientationAxisSize, 0.0f, 1.0f };
 };

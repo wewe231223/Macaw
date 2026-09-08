@@ -9,8 +9,8 @@ namespace BasicGeometry {
 		inline constexpr uint32 Segments = 32;
 		inline constexpr uint32 HemisphereRings = 8;
 
-		inline constexpr float Radius = 0.5f;
-		inline constexpr float HalfCylinderHeight = 0.5f;
+		inline constexpr float Radius = 0.25f;
+		inline constexpr float HalfCylinderHeight = 0.25f;
 
 		inline constexpr uint32 RingCount = HemisphereRings * 2 + 2;
 		inline constexpr uint32 VertexCount = RingCount * (Segments + 1);

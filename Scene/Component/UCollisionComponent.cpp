@@ -61,6 +61,15 @@ bool UCollisionComponent::Raycast(const FRay& Ray, float& OutDistance) const
     return cast;
 }
 
+const FVector3 UCollisionComponent::GetExtent() const {
+	return FVector3{ OBB.Extents.x, OBB.Extents.y, OBB.Extents.z };
+}
+
+void UCollisionComponent::SetExtent(const FVector3& InExtent)
+{
+	OBB.Extents = DirectX::XMFLOAT3(InExtent.x, InExtent.y, InExtent.z);
+}
+
 bool UCollisionComponent::RaycastBounds(const FRay& Ray, float& OutDistance) const {
     DirectX::BoundingOrientedBox WorldBox;
     OBB.Transform(WorldBox, GetWorldMatrix());

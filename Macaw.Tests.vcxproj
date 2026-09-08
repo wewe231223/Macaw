@@ -126,6 +126,7 @@
     <ClCompile Include="Scene\Component\USceneComponent.cpp" />
     <ClCompile Include="Scene\Component\UStaticMeshComponent.cpp" />
     <ClCompile Include="Scene\UWorld.cpp" />
+    <ClCompile Include="Tests\BasicGeometryTests.cpp" />
     <ClCompile Include="Tests\ComponentSerializationTests.cpp" />
     <ClCompile Include="Tests\DoctestMain.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>

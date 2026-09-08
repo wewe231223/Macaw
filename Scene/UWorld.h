@@ -70,6 +70,12 @@ public:
 
     const std::vector<std::unique_ptr<AActor>>& GetActors() const;
     FRenderProbe& BuildRenderProbe();
+    
+    TStateChannel<TObjectRef<UCollisionComponent>>::FReader GetSelectedActorCollider() const noexcept {
+		return SelectedCollider.GetReader();
+    }
+
+    FRenderProbe& BuildRenderProbe();
     void Tick(float DeltaTime);
 
     void RegisterRenderable(UStaticMeshComponent* Component);
@@ -125,13 +131,15 @@ private:
     std::vector<UStaticMeshComponent*> RenderableComponents;
     std::vector<TObjectRef<UCollisionComponent>> CollisionComponents;
 
+
+    TStateChannel<TObjectRef<UCollisionComponent>> SelectedCollider;
 	TStateChannel<RenderWindowInfo>::FReader WindowInfoReader;
 
     std::optional<FMessageChannel::FSender> EditorEventSender;
 
     FAssetRegistry* AssetRegistry = nullptr;
 
-	AActor* SelectedActor = nullptr;
+	//AActor* SelectedActor = nullptr;
 
     UCameraComponent* Camera = nullptr;
     FRenderProbe Probe{};

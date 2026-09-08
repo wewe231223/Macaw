@@ -394,11 +394,13 @@
   <ItemGroup>
     <None Include="Content\Metadata\AlternatePipeline.meta" />
     <None Include="Content\Metadata\BasePipeline.meta" />
+    <None Include="Content\Metadata\BlueMaterial.meta" />
     <None Include="Content\Metadata\CapsuleMesh.meta" />
     <None Include="Content\Metadata\ConeMesh.meta" />
     <None Include="Content\Metadata\CubeMesh.meta" />
     <None Include="Content\Metadata\CylinderMesh.meta" />
     <None Include="Content\Metadata\DepthTestedLine.meta" />
+    <None Include="Content\Metadata\GreenMaterial.meta" />
     <None Include="Content\Metadata\OverlayLine.meta" />
     <None Include="Content\Metadata\PlaneMesh.meta" />
     <None Include="Content\Metadata\PyramidMesh.meta" />

@@ -39,13 +39,14 @@ public:
             return Channel->State.has_value();
         }
 
-        [[nodiscard]] const T* Peek() const noexcept {
-            return Channel->State ? std::addressof(*Channel->State) : nullptr;
+        [[nodiscard]] const T& Peek() const {
+            return Channel->State.value();
         }
 
-        [[nodiscard]] const T* Read() noexcept {
+        [[nodiscard]] const T& Read() {
+            const T& Value = Channel->State.value();
             LastReadVersion = Channel->Version;
-            return Channel->State ? std::addressof(*Channel->State) : nullptr;
+            return Value;
         }
 
         [[nodiscard]] FReadResult ReadIfChanged() noexcept {
@@ -130,13 +131,14 @@ public:
             return Channel->State.has_value();
         }
 
-        [[nodiscard]] const T* Peek() const noexcept {
-            return Channel->State ? std::addressof(*Channel->State) : nullptr;
+        [[nodiscard]] const T& Peek() const {
+            return Channel->State.value();
         }
 
-        [[nodiscard]] const T* Read() noexcept {
+        [[nodiscard]] const T& Read() {
+            const T& Value = Channel->State.value();
             LastReadVersion = Channel->Version;
-            return Channel->State ? std::addressof(*Channel->State) : nullptr;
+            return Value;
         }
 
         [[nodiscard]] FReadResult ReadIfChanged() noexcept {

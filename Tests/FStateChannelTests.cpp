@@ -6,6 +6,11 @@
 #include "../Core/Channel/FStateChannel.h"
 
 TEST_SUITE("TStateChannel") {
+    static_assert(std::same_as<decltype(std::declval<TStateChannel<int>::FReader&>().Read()), const int&>);
+    static_assert(std::same_as<decltype(std::declval<const TStateChannel<int>::FReader&>().Peek()), const int&>);
+    static_assert(std::same_as<decltype(std::declval<TStateChannel<int>::FReadWriter&>().Read()), const int&>);
+    static_assert(std::same_as<decltype(std::declval<const TStateChannel<int>::FReadWriter&>().Peek()), const int&>);
+
     TEST_CASE("a default channel has no value and no unread change") {
         TStateChannel<int> Channel;
         auto Reader = Channel.GetReader();
@@ -14,9 +19,8 @@ TEST_SUITE("TStateChannel") {
         CHECK_FALSE(Reader.HasValue());
         CHECK_FALSE(Writer.HasValue());
         CHECK_FALSE(Reader.HasChanged());
-        CHECK_EQ(Reader.Peek(), nullptr);
-        CHECK_EQ(Reader.Read(), nullptr);
-
+        CHECK_THROWS_AS(static_cast<void>(Reader.Peek()), std::bad_optional_access);
+        CHECK_THROWS_AS(static_cast<void>(Reader.Read()), std::bad_optional_access);
         const auto Result = Reader.ReadIfChanged();
         CHECK_FALSE(Result.Changed);
         CHECK_EQ(Result.Value, nullptr);
@@ -40,9 +44,8 @@ TEST_SUITE("TStateChannel") {
         CHECK_FALSE(FirstReader.HasChanged());
         CHECK(SecondReader.HasChanged());
 
-        const int* SecondValue = SecondReader.Read();
-        REQUIRE(SecondValue != nullptr);
-        CHECK_EQ(*SecondValue, 42);
+        const int& SecondValue = SecondReader.Read();
+        CHECK_EQ(SecondValue, 42);
         CHECK_FALSE(SecondReader.HasChanged());
     }
 
@@ -59,9 +62,8 @@ TEST_SUITE("TStateChannel") {
             State += " Channel";
         }));
 
-        const std::string* ModifiedValue = Reader.Read();
-        REQUIRE(ModifiedValue != nullptr);
-        CHECK_EQ(*ModifiedValue, "Macaw Channel");
+        const std::string& ModifiedValue = Reader.Read();
+        CHECK_EQ(ModifiedValue, "Macaw Channel");
         CHECK_FALSE(Reader.HasChanged());
     }
 
@@ -70,7 +72,7 @@ TEST_SUITE("TStateChannel") {
         auto Reader = Channel.GetReader();
         auto Writer = Channel.GetWriter();
 
-        REQUIRE(Reader.Read() != nullptr);
+        CHECK_EQ(Reader.Read(), 7);
         CHECK_FALSE(Reader.HasChanged());
 
         Writer.Clear();
@@ -93,8 +95,7 @@ TEST_SUITE("TStateChannel") {
 
         CHECK(Reader.HasValue());
         CHECK(Reader.HasChanged());
-        REQUIRE(Reader.Peek() != nullptr);
-        CHECK_EQ(*Reader.Peek(), "xxx");
+        CHECK_EQ(Reader.Peek(), "xxx");
         CHECK(Reader.HasChanged());
 
         const auto Result = Reader.ReadIfChanged();
@@ -112,11 +113,10 @@ TEST_SUITE("TStateChannel") {
 
         Writer.Write(5);
 
-        REQUIRE(Reader.Peek() != nullptr);
-        CHECK_EQ(*Reader.Peek(), 5);
+        CHECK_EQ(Reader.Peek(), 5);
         CHECK(Reader.HasChanged());
 
-        REQUIRE(Reader.Read() != nullptr);
+        CHECK_EQ(Reader.Read(), 5);
         CHECK_FALSE(Reader.HasChanged());
     }
 
@@ -125,7 +125,7 @@ TEST_SUITE("TStateChannel") {
         auto Reader = Channel.GetReader();
         auto Writer = Channel.GetWriter();
 
-        REQUIRE(Reader.Read() != nullptr);
+        CHECK_EQ(Reader.Read(), 10);
         CHECK_FALSE(Reader.HasChanged());
 
         Writer.Write(10);
@@ -142,10 +142,12 @@ TEST_SUITE("TStateChannel") {
         auto Reader = Channel.GetReader();
         auto Writer = Channel.GetWriter();
 
-        REQUIRE(Reader.Read() != nullptr);
+        CHECK_EQ(Reader.Read(), 1);
         Writer.Clear();
         CHECK(Reader.HasChanged());
-        CHECK_EQ(Reader.Read(), nullptr);
+        const auto ClearedResult = Reader.ReadIfChanged();
+        CHECK(ClearedResult.Changed);
+        CHECK_EQ(ClearedResult.Value, nullptr);
         CHECK_FALSE(Reader.HasChanged());
 
         Writer.Clear();
@@ -159,7 +161,7 @@ TEST_SUITE("TStateChannel") {
         auto OriginalReader = Channel.GetReader();
         auto Writer = Channel.GetWriter();
 
-        REQUIRE(OriginalReader.Read() != nullptr);
+        CHECK_EQ(OriginalReader.Read(), 3);
         auto CopiedReader = OriginalReader;
 
         CHECK_FALSE(OriginalReader.HasChanged());
@@ -169,7 +171,7 @@ TEST_SUITE("TStateChannel") {
 
         CHECK(OriginalReader.HasChanged());
         CHECK(CopiedReader.HasChanged());
-        REQUIRE(OriginalReader.Read() != nullptr);
+        CHECK_EQ(OriginalReader.Read(), 4);
         CHECK_FALSE(OriginalReader.HasChanged());
         CHECK(CopiedReader.HasChanged());
     }
@@ -181,20 +183,18 @@ TEST_SUITE("TStateChannel") {
 
         Writer.Write(std::make_unique<int>(12));
 
-        const std::unique_ptr<int>* WrittenValue = Reader.Read();
+        const std::unique_ptr<int>& WrittenValue = Reader.Read();
         REQUIRE(WrittenValue != nullptr);
-        REQUIRE(*WrittenValue != nullptr);
-        CHECK_EQ(**WrittenValue, 12);
+        CHECK_EQ(*WrittenValue, 12);
 
         CHECK(Writer.Modify([](std::unique_ptr<int>& State) {
             *State = 24;
         }));
         CHECK(Reader.HasChanged());
 
-        const std::unique_ptr<int>* ModifiedValue = Reader.Read();
+        const std::unique_ptr<int>& ModifiedValue = Reader.Read();
         REQUIRE(ModifiedValue != nullptr);
-        REQUIRE(*ModifiedValue != nullptr);
-        CHECK_EQ(**ModifiedValue, 24);
+        CHECK_EQ(*ModifiedValue, 24);
     }
 
     TEST_CASE("a read writer can observe its own writes") {
@@ -208,8 +208,7 @@ TEST_SUITE("TStateChannel") {
 
         CHECK(ReadWriter.HasValue());
         CHECK(ReadWriter.HasChanged());
-        REQUIRE(ReadWriter.Peek() != nullptr);
-        CHECK_EQ(*ReadWriter.Peek(), 42);
+        CHECK_EQ(ReadWriter.Peek(), 42);
         CHECK(ReadWriter.HasChanged());
 
         const auto Result = ReadWriter.ReadIfChanged();
@@ -224,19 +223,21 @@ TEST_SUITE("TStateChannel") {
         auto ReadWriter = Channel.GetReadWriter();
 
         CHECK_EQ(ReadWriter.Emplace("Macaw"), "Macaw");
-        REQUIRE(ReadWriter.Read() != nullptr);
+        CHECK_EQ(ReadWriter.Read(), "Macaw");
         CHECK_FALSE(ReadWriter.HasChanged());
 
         CHECK(ReadWriter.Modify([](std::string& State) {
             State += " Channel";
         }));
         CHECK(ReadWriter.HasChanged());
-        REQUIRE(ReadWriter.Read() != nullptr);
-        CHECK_EQ(*ReadWriter.Peek(), "Macaw Channel");
+        CHECK_EQ(ReadWriter.Read(), "Macaw Channel");
+        CHECK_EQ(ReadWriter.Peek(), "Macaw Channel");
 
         ReadWriter.Clear();
         CHECK(ReadWriter.HasChanged());
-        CHECK_EQ(ReadWriter.Read(), nullptr);
+        const auto ClearedResult = ReadWriter.ReadIfChanged();
+        CHECK(ClearedResult.Changed);
+        CHECK_EQ(ClearedResult.Value, nullptr);
         CHECK_FALSE(ReadWriter.HasChanged());
     }
 
@@ -244,14 +245,14 @@ TEST_SUITE("TStateChannel") {
         TStateChannel<int> Channel{ 1 };
         auto Original = Channel.GetReadWriter();
 
-        REQUIRE(Original.Read() != nullptr);
+        CHECK_EQ(Original.Read(), 1);
         auto Copy = Original;
 
         Original.Write(2);
 
         CHECK(Original.HasChanged());
         CHECK(Copy.HasChanged());
-        REQUIRE(Original.Read() != nullptr);
+        CHECK_EQ(Original.Read(), 2);
         CHECK_FALSE(Original.HasChanged());
         CHECK(Copy.HasChanged());
     }

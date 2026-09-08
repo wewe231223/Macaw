@@ -3,23 +3,42 @@
 
 #include <ranges>
 
-void EditorViewport::Initialize(ID3D11Device* Device, TStateChannel<RenderWindowInfo>::FReader windowReader) {
+void EditorViewport::Initialize(ID3D11Device* Device, FAssetRegistry& AssetRegistry, TStateChannel<RenderWindowInfo>::FReader windowReader, TStateChannel<TObjectRef<UCollisionComponent>>::FReader selectedActorReader) {
 	LineRenderer.Initialize(Device);
+	TransformGizmo.Initialize(Device, AssetRegistry);
 	WindowInfoReader = windowReader;
+	SelectedActorReader = selectedActorReader;
 }
 
-void EditorViewport::Render(ID3D11DeviceContext* Context, CameraProbe& Probe) {
+void EditorViewport::RenderInProbe(FRenderProbe& Probe) {
+	if (SelectedActorReader.HasValue()) {
+		if (SelectedActorReader.Peek().Get() != nullptr) {
+			if (SelectedActorReader.HasChanged()) {
+				FMatrix TargetTransform = SelectedActorReader.Read().Get()->GetWorldMatrix();
+				TransformGizmo.SetGizmoWorldTransform(TargetTransform, SelectedActorReader.Read().Get()->GetExtent());
+			}
+		 
+			TransformGizmo.Render(Probe);
+		}
+		else {
+			// 비활성화 
+		}
+
+	}
+}
+
+void EditorViewport::Render(ID3D11DeviceContext* Context, FRenderProbe& Probe) {
 	ELineDepthMode DepthMode = ELineDepthMode::DepthTested;
 
 	RenderGrid(DepthMode);
 	RenderAxis(DepthMode); 
 	
 	LineRenderer.Render(Context, FLineViewData{
-		.ViewProjection = Probe.ViewProjection,
-		.ViewportSize = FVector2D { WindowInfoReader.Read()->Viewport.Width, WindowInfoReader.Read()->Viewport.Height }
+		.ViewProjection = Probe.MainCameraProbe.ViewProjection,
+		.ViewportSize = FVector2D { WindowInfoReader.Read().Viewport.Width, WindowInfoReader.Read().Viewport.Height }
 	});
 
-	RenderOrientationAxis(Context, Probe);
+	RenderOrientationAxis(Context, Probe.MainCameraProbe);
 }
 
 void EditorViewport::RenderGrid(ELineDepthMode DepthMode) {

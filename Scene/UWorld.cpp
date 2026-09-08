@@ -161,7 +161,8 @@ FRenderProbe& UWorld::BuildRenderProbe()
 		FActorProbe ActorProbe{};
 		Component->MakeRender(ActorProbe);
 
-		if (Component->GetOwner() == SelectedActor and SelectedActor != nullptr) {
+		
+		if (SelectedCollider.GetReader().HasValue() and Component->GetOwner() == SelectedCollider.GetReader().Read().Get()->GetOwner() and SelectedCollider.GetReader().Read().Get() != nullptr) {
 			ActorProbe.Flags |= 0x0000'0001; 
 		}
 
@@ -185,7 +186,7 @@ FRenderProbe& UWorld::BuildRenderProbe()
 void UWorld::Tick(float DeltaTime)
 {
     if (WindowInfoReader.HasChanged()) {
-		Camera->SetAspectRatio(static_cast<float>(WindowInfoReader.Read()->ScreenWidth) / static_cast<float>(WindowInfoReader.Read()->ScreenHeight));
+		Camera->SetAspectRatio(static_cast<float>(WindowInfoReader.Read().ScreenWidth) / static_cast<float>(WindowInfoReader.Read().ScreenHeight));
     }
 
     ApplyEditorCameraState();
@@ -372,18 +373,18 @@ void UWorld::HandleMousePickRequest(
     FObjectHandle SelectedComponentHandle{};
 
     if (Camera != nullptr &&
-        WindowInfoReader.Read()->Viewport.Width != 0 &&
-        WindowInfoReader.Read()->Viewport.Height != 0)
+        WindowInfoReader.Read().Viewport.Width != 0 &&
+        WindowInfoReader.Read().Viewport.Height != 0)
     {
         const float NdcX =
             (2.0f * static_cast<float>(Message.ScreenX) /
-                static_cast<float>(WindowInfoReader.Read()->Viewport.Width)) -
+                static_cast<float>(WindowInfoReader.Read().Viewport.Width)) -
             1.0f;
 
         const float NdcY =
             1.0f -
             (2.0f * static_cast<float>(Message.ScreenY) /
-                static_cast<float>(WindowInfoReader.Read()->Viewport.Height));
+                static_cast<float>(WindowInfoReader.Read().Viewport.Height));
 
         const FMatrix InverseViewProjection =
             Camera->GetViewProjectionMatrix().Invert();
@@ -428,14 +429,14 @@ void UWorld::HandleMousePickRequest(
 
             if (NearestCollision != nullptr)
             {
-                SelectedActor = NearestCollision->GetOwner();
+                SelectedCollider.GetWriter().Emplace(TObjectRef<UCollisionComponent>(NearestCollision));
             }
             else {
-				SelectedActor = nullptr;
+				// SelectedCollider.GetWriter().Emplace(nullptr);
             }
         }
 
-
+            
         
     }
 
@@ -448,7 +449,7 @@ void UWorld::HandleMousePickRequest(
 
 void UWorld::HandleMousePickReleaseRequest(const FMousePickReleaseRequestMessage& Message)
 {
-    SelectedActor = nullptr;
+   // SelectedCollider.GetWriter().Emplace(nullptr);
 
 }
 

@@ -33,7 +33,7 @@ void FRenderer::BeginFrame() {
 
 	DeviceContext->OMSetRenderTargets(1, RenderTargetView.GetAddressOf(), DepthStencilView.Get());
 	
-	DeviceContext->RSSetViewports(1, &WindowInfoReader.Read()->Viewport);
+	DeviceContext->RSSetViewports(1, &WindowInfoReader.Read().Viewport);
 }
 
 void FRenderer::EndFrame() {
@@ -180,8 +180,8 @@ void FRenderer::CreateDeviceAndSwapChain(HWND WindowHandle) {
 
 	// 스왑 체인 설정 구조체 초기화
 	DXGI_SWAP_CHAIN_DESC swapchaindesc = {};
-	swapchaindesc.BufferDesc.Width = WindowInfoReader.Read()->ScreenWidth; // 창 크기에 맞게 자동으로 설정
-	swapchaindesc.BufferDesc.Height = WindowInfoReader.Read()->ScreenHeight; // 창 크기에 맞게 자동으로 설정
+	swapchaindesc.BufferDesc.Width = WindowInfoReader.Read().ScreenWidth; // 창 크기에 맞게 자동으로 설정
+	swapchaindesc.BufferDesc.Height = WindowInfoReader.Read().ScreenHeight; // 창 크기에 맞게 자동으로 설정
 	swapchaindesc.BufferDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM; // 색상 포맷
 	swapchaindesc.SampleDesc.Count = 1; // 멀티 샘플링 비활성화
 	swapchaindesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT; // 렌더 타겟으로 사용
@@ -220,8 +220,8 @@ void FRenderer::CreateRTV() {
 
 void FRenderer::CreateDSV() {
 	D3D11_TEXTURE2D_DESC TextureDesc{};
-	TextureDesc.Width = WindowInfoReader.Read()->ScreenWidth;
-	TextureDesc.Height = WindowInfoReader.Read()->ScreenHeight;
+	TextureDesc.Width = WindowInfoReader.Read().ScreenWidth;
+	TextureDesc.Height = WindowInfoReader.Read().ScreenHeight;
 	TextureDesc.MipLevels = 1;
 	TextureDesc.ArraySize = 1;
 	TextureDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;

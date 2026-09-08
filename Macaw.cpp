@@ -340,9 +340,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	AssetRegistry.EmplaceAsset<UPipeline>(Renderer.GetDevice(), "BasePipeline", "./Content/Metadata/BasePipeline.meta");
 	AssetRegistry.EmplaceAsset<UPipeline>(Renderer.GetDevice(), "AlternatePipeline", "./Content/Metadata/AlternatePipeline.meta");
 
-	AssetRegistry.EmplaceAsset<UMesh>(Renderer.GetDevice(), "SphereMesh", "./Content/Metadata/SphereMesh.meta");
+	AssetRegistry.EmplaceAsset<UMesh>(Renderer.GetDevice(), "SphereMesh", "./Content/Metadata/CapsuleMesh.meta");
     
-	AssetRegistry.EmplaceAsset<UColorMaterial>(Renderer.GetDevice(), "RedMaterial", "./Content/Metadata/RedMaterial.meta");
+	AssetRegistry.EmplaceAsset<UColorMaterial>(Renderer.GetDevice(), "GreyMaterial", "./Content/Metadata/GreyMaterial.meta");
 
     AActor* CameraActor = World.AdoptActor<AActor>();
     UCameraComponent* Camera = CameraActor->AddComponent<UCameraComponent>();
@@ -363,7 +363,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
         const FAssetHandle MeshHandle = AssetRegistry.GetAsset("SphereMesh");
         const FAssetHandle BasePipelineHandle = AssetRegistry.GetAsset("BasePipeline");
         const FAssetHandle AlternatePipelineHandle = AssetRegistry.GetAsset("AlternatePipeline");
-        const FAssetHandle MaterialHandle = AssetRegistry.GetAsset("RedMaterial");
+        const FAssetHandle MaterialHandle = AssetRegistry.GetAsset("GreyMaterial");
 
 
         const auto Random01 = [](uint32 Seed) {
@@ -489,8 +489,10 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
             Renderer.Render(World.BuildRenderProbe());
 			FRenderProbe& Probe{ World.BuildRenderProbe() };
+            
+			EditorView.RenderInProbe(Probe);
             Renderer.Render(Probe);
-            EditorView.Render(Renderer.GetDeviceContext(), Probe.MainCameraProbe);
+            EditorView.Render(Renderer.GetDeviceContext(), Probe);
 
             ImGui::Render();
             ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
