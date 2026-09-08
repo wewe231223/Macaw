@@ -36,7 +36,10 @@
 #include "Core/Base/TypeRegistry.h"
 
 #include "Core/Channel/FMessageChannel.h"
+#include "Core/Channel/FStateChannel.h"
 #include "FMouseInput.h"
+#include "FEditorInfo.h"
+#include "FEditorUIManager.h"
 
 #include "FMousePickRequestMessage.h"
 #include "FMouseCameraRotateRequestMessage.h"
@@ -100,6 +103,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	TypeRegistry::Register(AActor::StaticTypeInfo());
 	TypeRegistry::Register(UCameraComponent::StaticTypeInfo());
 	TypeRegistry::Register(UStaticMeshComponent::StaticTypeInfo());
+    TypeRegistry::Register(UCollisionComponent::StaticTypeInfo());
 	TypeRegistry::Register(UActorComponent::StaticTypeInfo());
 	TypeRegistry::Register(USceneComponent::StaticTypeInfo());
 	
@@ -136,9 +140,44 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     // test
     UWorld World{};
 
+    FRenderer Renderer;
+    Renderer.Create(gHWND, DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT);
+
+
+    FAssetRegistry AssetRegistry;
+    AssetRegistry.Initialize(Renderer.GetDevice(), 128);
+    Renderer.BindAssetRegistry(&AssetRegistry);
+
+
     FMessageChannel WorldCommandChannel{ 64 };
     FMessageChannel EditorEventChannel{ 64 };
     FEditorSelection EditorSelection;
+
+    FStateChannel<FMessageEditorCameraState> EditorCameraStateChannel;
+    FStateChannel<FMessageEditorTransformState> EditorTransformStateChannel;
+
+    FMessageChannel SpawnCommandChannel{ 64 };
+    FMessageChannel SceneCommandChannel{ 64 };
+    FMessageChannel GizmoCommandChannel{ 64 };
+
+    FEditorUIManager EditorUIManager;
+
+    EditorUIManager.Initialize(
+        EditorCameraStateChannel.GetWriter(),
+        EditorCameraStateChannel.GetReader(),
+
+        EditorTransformStateChannel.GetWriter(),
+        EditorTransformStateChannel.GetReader(),
+
+        SpawnCommandChannel.GetSender(),
+        SceneCommandChannel.GetSender(),
+        GizmoCommandChannel.GetSender()
+    );
+
+    World.InitializeEditorCameraState(
+        EditorCameraStateChannel.GetWriter(),
+        EditorCameraStateChannel.GetReader()
+    );
 
     GMouseInput.InitializeWorldCommandSender(WorldCommandChannel.GetSender());
     GKeyboardInput.InitializeWorldCommandSender(WorldCommandChannel.GetSender());
@@ -170,18 +209,51 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
                 World.HandleKeyboardCameraMoveRequest(Message);
             });
 
-	FRenderer Renderer;
-	Renderer.Create(gHWND, DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT);
-	
-    FAssetRegistry AssetRegistry;
-	AssetRegistry.Initialize(Renderer.GetDevice(), 128);
-	Renderer.BindAssetRegistry(&AssetRegistry);
+    SpawnCommandChannel.TryBind<FMessageSpawnPrimitive>(
+        [&World, &AssetRegistry](const FMessageSpawnPrimitive& Message)
+        {
+            World.HandleSpawnPrimitive(Message, AssetRegistry);
+        }
+    );
 
+    SceneCommandChannel.TryBind<FMessageNewScene>(
+        [&World](const FMessageNewScene& Message)
+        {
+            World.HandleNewScene(Message);
+        }
+    );
+
+    SceneCommandChannel.TryBind<FMessageSaveScene>(
+        [&World, &AssetRegistry](const FMessageSaveScene& Message)
+        {
+            World.SaveScene(
+                Message.SceneName,
+                &AssetRegistry
+            );
+        }
+    );
+
+    SceneCommandChannel.TryBind<FMessageLoadScene>(
+        [&World, &Renderer, &AssetRegistry](const FMessageLoadScene& Message)
+        {
+            World.LoadScene(
+                std::filesystem::path(Message.FilePath.c_str()),
+                Renderer.GetDevice(),
+                &AssetRegistry
+            );
+        }
+    );
+
+    GizmoCommandChannel.TryBind<FMessageChangeGizmoMode>(
+        [&World](const FMessageChangeGizmoMode& Message)
+        {
+            World.HandleChangeGizmoMode(Message);
+        }
+    );
+	
 #ifdef LOAD
 	World.LoadScene("./scenes/test.json", Renderer.GetDevice(), &AssetRegistry);
 #else 
-    World.SetAssetRegistry(&AssetRegistry);
-
 	AssetRegistry.EmplaceAsset<UPipeline>(Renderer.GetDevice(), "BasePipeline", "./Content/Metadata/BasePipeline.meta");
 	AssetRegistry.EmplaceAsset<UPipeline>(Renderer.GetDevice(), "AlternatePipeline", "./Content/Metadata/AlternatePipeline.meta");
 
@@ -349,6 +421,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
             ImGui_ImplWin32_NewFrame();
             ImGui::NewFrame();
 
+            EditorUIManager.Tick();
+
             GMouseInput.DispatchPendingWorldCommands(
                 DEFAULT_WINDOW_WIDTH,
                 DEFAULT_WINDOW_HEIGHT,
@@ -360,6 +434,10 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
             WorldCommandChannel.Dispatch();
             EditorEventChannel.Dispatch();
+
+            SpawnCommandChannel.Dispatch();
+            SceneCommandChannel.Dispatch();
+            GizmoCommandChannel.Dispatch();
 
             Renderer.Render(World.BuildRenderProbe());
 

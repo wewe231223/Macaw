@@ -205,7 +205,7 @@
     <ClCompile Include="Core\Console\Console.cpp" />
     <ClCompile Include="Core\Memory\Memory.cpp" />
     <ClCompile Include="ErrorHandler.cpp" />
-    <ClCompile Include="FEditorStateInfo.cpp" />
+    <ClCompile Include="FEditorInfo.cpp" />
     <ClCompile Include="FEditorSelection.cpp" />
     <ClCompile Include="FKeyboardInput.cpp" />
     <ClCompile Include="FMouseInput.cpp" />
@@ -334,7 +334,8 @@
     <ClInclude Include="Core\Memory\Memory.h" />
     <ClInclude Include="Core\Memory\TEngineAllocator.h" />
     <ClInclude Include="ErrorHandler.h" />
-    <ClInclude Include="FEditorStateInfo.h" />
+    <ClInclude Include="FControlPanel.h" />
+    <ClInclude Include="FEditorInfo.h" />
     <ClInclude Include="FEditorSelection.h" />
     <ClInclude Include="FKeyboardCameraMoveRequestMessage.h" />
     <ClInclude Include="FKeyboardInput.h" />
@@ -342,7 +343,9 @@
     <ClInclude Include="FMouseCameraRotateRequestMessage.h" />
     <ClInclude Include="FMouseInput.h" />
     <ClInclude Include="FMousePickRequestMessage.h" />
+    <ClInclude Include="FPropertyPanel.h" />
     <ClInclude Include="FWorldSelectionChangedMessage.h" />
+    <ClInclude Include="IEditorPanel.h" />
     <ClInclude Include="ImGui\imconfig.h" />
     <ClInclude Include="ImGui\imgui.h" />
     <ClInclude Include="ImGui\imgui_impl_dx11.h" />

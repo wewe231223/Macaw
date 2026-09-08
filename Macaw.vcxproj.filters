@@ -280,6 +280,7 @@
     <ClCompile Include="FEditorStateInfo.cpp">
       <Filter>Render\Editor</Filter>
     </ClCompile>
+    <ClCompile Include="FEditorInfo.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Core\Base\FGuid.h">
@@ -509,6 +510,10 @@
     <ClInclude Include="FEditorStateInfo.h">
       <Filter>Render\Editor</Filter>
     </ClInclude>
+    <ClInclude Include="FEditorInfo.h" />
+    <ClInclude Include="FControlPanel.h" />
+    <ClInclude Include="IEditorPanel.h" />
+    <ClInclude Include="FPropertyPanel.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Content\Metadata\AlternatePipeline.meta">
