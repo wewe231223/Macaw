@@ -10,6 +10,7 @@ namespace
     struct FObjectRegistryState
     {
         std::vector<FObjectItem> ObjectItems;
+        TMap<FGuid, std::uint32_t> GuidToIndexMap;
         std::vector<std::uint32_t> FreeIndices;
         std::uint32_t ObjectCount = 0;
     };
@@ -58,6 +59,8 @@ FObjectHandle UObjectSystem::Register(UObject* Object)
 
     ++State.ObjectCount;
 
+    State.GuidToIndexMap[Object->GetGuid()] = Index;
+
     return Handle;
 }
 
@@ -96,6 +99,8 @@ void UObjectSystem::Unregister(
     {
         return;
     }
+
+    State.GuidToIndexMap.erase(Object->GetGuid());
 
     Item.Object = nullptr;
 
@@ -141,21 +146,19 @@ UObject* UObjectSystem::Resolve(FObjectHandle Handle)
     return Item.Object;
 }
 
-FObjectHandle UObjectSystem::FindHandleByGuid(
-    const FGuid& Guid)
+FObjectHandle UObjectSystem::FindHandleByGuid(const FGuid& Guid)
 {
     FObjectRegistryState& State = GetRegistryState();
 
-    auto It = std::find_if(State.ObjectItems.begin(), State.ObjectItems.end(), [Guid](const FObjectItem& item) {
-		return item.Object->GetGuid() == Guid;
-	});
-
-    if (It != State.ObjectItems.end())
+    auto It = State.GuidToIndexMap.find(Guid);
+    if (It != State.GuidToIndexMap.end())
     {
+        std::uint32_t Index = It->second;
+
         return FObjectHandle
         {
-            static_cast<std::uint32_t>(std::distance(State.ObjectItems.begin(), It)),
-            It->Generation
+            Index,
+            State.ObjectItems[Index].Generation
         };
     }
 
