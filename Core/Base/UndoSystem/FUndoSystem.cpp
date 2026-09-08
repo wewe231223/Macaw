@@ -1,15 +1,13 @@
 ﻿#include "PCH.h"
 #include "FUndoSystem.h"
 
-#include <optional>
-
 #include "IUndoContext.h"
 #include "FUndoTransaction.h"
-#include "FRecordObjectState.h" 
+#include "FUndoRecords.h" 
+#include "FUndoMessages.h"
 #include "../../../Serialize/FArchiveMemory.h"
 #include "../../Channel/FMessageChannel.h"
 #include "../../Channel/FMessage.h"
-#include "FMessageUndo.h"
 
 class UObject;
 
@@ -119,19 +117,17 @@ namespace
     public:
         virtual void NotifyObjectChanged(const FGuid& Guid, const TArray<uint8>& Data) override
         {
-            EmplaceMessageToWorldChannel<FMessageObjectStateChanged>(Guid, TArray<uint8>(Data));
+            EmplaceMessageToWorldChannel<FMessageUndoObjectStateChanged>(Guid, TArray<uint8>(Data));
+        }
+
+        virtual void NotifyObjectSpawned(const FGuid& Guid, const TArray<uint8>& Data) override
+        {
+            EmplaceMessageToWorldChannel<FMessageUndoObjectSpawned>(Guid, TArray<uint8>(Data));
         }
 
         virtual void NotifyObjectDeleted(const FGuid& Guid) override
         {
-            // 나중에 FObjectDeletedMessage 메시지가 생기면 여기서 쏴주면 됨
-            // EmplaceMessageToWorldChannel<FObjectDeletedMessage>(Guid, ...);
-        }
-
-        virtual void NotifyObjectSpawned(const FGuid& Guid) override
-        {
-            // 나중에 FObjectSpawnedMessage 메시지가 생기면 여기서 쏴주면 됨
-            // EmplaceMessageToWorldChannel<FObjectSpawnedMessage>(Guid, ...);
+            EmplaceMessageToWorldChannel<FMessageUndoObjectDestroyed>(FMessageUndoObjectDestroyed(Guid));
         }
     };
 
@@ -161,35 +157,54 @@ namespace FUndoSystem
         State.CurrentTransaction = std::make_unique<FUndoTransaction>(TransactionName);
     }
 
-    void Modify(UObject* TargetObject)
+    void RecordObject(UObject* TargetObject, EUndoType UndoType)
     {
         FUndoSystemState& State = GetState();
         if (!State.CurrentTransaction || !TargetObject)
             return;
 
-        if (State.ModifiedObjectsThisTransaction.contains(TargetObject))
-            return;
+        if (UndoType == EUndoType::StateChange)
+        {
+            if (State.ModifiedObjectsThisTransaction.contains(TargetObject))
+                return;
 
-        State.ModifiedObjectsThisTransaction.insert(TargetObject);
+            State.ModifiedObjectsThisTransaction.insert(TargetObject);
+        }
 
-        TArray<uint8> BeforeData;
-        FArchiveMemory MemoryArchiveBefore(BeforeData);
-        TargetObject->Save(MemoryArchiveBefore); 
+        TArray<uint8> CurrentData;
+        FArchiveMemory MemoryArchive(CurrentData);
+        TargetObject->Save(MemoryArchive);
 
-        State.PendingFinalizers.push_back(
-            [TargetObject, BeforeData = std::move(BeforeData)](FUndoTransaction& Transaction)
+        if (UndoType == EUndoType::StateChange)
+        {
+            State.PendingFinalizers.push_back(
+                [TargetObject, CurrentData = std::move(CurrentData)](FUndoTransaction& Transaction)
+                {
+                    TArray<uint8> AfterData;
+                    FArchiveMemory MemoryArchiveAfter(AfterData);
+                    TargetObject->Save(MemoryArchiveAfter);
+
+                    auto Record = std::make_unique<FRecordObjectState>(
+                        TargetObject->GetGuid(), CurrentData, AfterData);
+
+                    Transaction.AddRecord(std::move(Record));
+                }
+            );
+        }
+        else
+        {
+            std::unique_ptr<IUndoRecord> Record = nullptr;
+            switch (UndoType)
             {
-                TArray<uint8> AfterData;
-                FArchiveMemory MemoryArchiveAfter(AfterData);
-                TargetObject->Save(MemoryArchiveAfter);
-
-                auto Record = std::make_unique<FRecordObjectState>(
-                    TargetObject->GetGuid(), BeforeData, AfterData);
-
-                Transaction.AddRecord(std::move(Record));
+                case EUndoType::Spawn:      Record = std::make_unique<FRecordObjectSpawned>(TargetObject->GetGuid(), std::move(CurrentData)); break;
+                case EUndoType::Destroy:    Record = std::make_unique<FRecordObjectDestroyed>(TargetObject->GetGuid(), std::move(CurrentData)); break;
             }
-        );
+
+            if (Record)
+                State.CurrentTransaction->AddRecord(std::move(Record));
+        }
     }
+
 
     void EndTransaction()
     {

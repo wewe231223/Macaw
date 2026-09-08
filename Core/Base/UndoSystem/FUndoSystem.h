@@ -1,12 +1,20 @@
 ﻿#pragma once
-#include "../../../Common.h" 
 #include "../../Channel/FMessageChannel.h"
+
+enum class EUndoType
+{
+    StateChange,
+    Spawn,
+    Destroy,
+
+    End
+};
 
 class UObject;
 namespace FUndoSystem
 {
     // =================================================================
-    // Message Sender 관리 API
+    // Message Sender
     // =================================================================
     void InitializeSenderToWorldChannel(FMessageChannel::FSender&& SenderToWorldChannel);
 
@@ -14,9 +22,8 @@ namespace FUndoSystem
     // Undo/Redo API
     // =================================================================
     void BeginTransaction(const FString& TransactionName);
+    void RecordObject(UObject* TargetObject, EUndoType UndoType);
     void EndTransaction();
-
-    void Modify(UObject* TargetObject);
 
     void Undo();
     void Redo();
