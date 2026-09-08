@@ -25,7 +25,6 @@ void FRenderer::Create(HWND WindowHandle, UINT width, UINT height) {
 
 	ModelContextArray.Initialize(Device.Get(), DeviceContext.Get(), 128);
 	RootConstants.Initialize(Device.Get());
-	LineRenderer.Initialize(Device.Get(), 1024);
 }
 
 void FRenderer::BeginFrame() {
@@ -125,17 +124,6 @@ void FRenderer::Render(FRenderProbe& Probe) {
 
 		InstanceCount += static_cast<uint32>(g.size());
 	}
-
-
-	LineRenderer.AddRay(FVector3{ 0.0f, 0.0f, 0.0f }, FVector3{ 1.0f, 0.0f, 0.0f }, 1000.0f, FVector4{ 1.0f, 0.0f, 0.0f, 1.0f }, 3.0f, ELineDepthMode::Overlay);
-	LineRenderer.AddRay(FVector3{ 0.0f, 0.0f, 0.0f }, FVector3{ 0.0f, 1.0f, 0.0f }, 1000.0f, FVector4{ 0.0f, 1.0f, 0.0f, 1.0f }, 3.0f, ELineDepthMode::Overlay);
-	LineRenderer.AddRay(FVector3{ 0.0f, 0.0f, 0.0f }, FVector3{ 0.0f, 0.0f, 1.0f }, 1000.0f, FVector4{ 0.0f, 0.0f, 1.0f, 1.0f }, 3.0f, ELineDepthMode::Overlay);
-
-	LineRenderer.Render(DeviceContext.Get(), FLineViewData{
-			.ViewProjection = Probe.MainCameraProbe.ViewProjection,
-			.ViewportSize = FVector2D{ WindowInfoReader.Read()->Viewport.Width, WindowInfoReader.Read()->Viewport.Height }
-		}
-	);
 }
 
 void FRenderer::ReSize(uint32 width, uint32 height) {

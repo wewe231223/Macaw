@@ -403,6 +403,8 @@ void UWorld::HandleMousePickRequest(
             float NearestDistance = std::numeric_limits<float>::max();
             UCollisionComponent* NearestCollision = nullptr;
 
+
+
             for (const TObjectRef<UCollisionComponent>& CollisionRef : CollisionComponents)
             {
                 UCollisionComponent* CollisionComponent = CollisionRef.Get();

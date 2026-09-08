@@ -53,6 +53,8 @@
 #include "Core/Asset/UMesh.h"
 #include "Core/Asset/UColorMaterial.h"
 
+#include "Render/EditorView/EditorViewport.h"
+
 #define MAX_LOADSTRING 100
 
 
@@ -486,6 +488,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
             //UndoCommandChannel.Dispatch();
 
             Renderer.Render(World.BuildRenderProbe());
+			FRenderProbe& Probe{ World.BuildRenderProbe() };
+            Renderer.Render(Probe);
+            EditorView.Render(Renderer.GetDeviceContext(), Probe.MainCameraProbe);
 
             ImGui::Render();
             ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());

@@ -262,10 +262,19 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="Render\Console\ConsoleWindow.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Use</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="Render\EditorView\EditorViewport.cpp" />
+    <ClCompile Include="Render\EditorView\FLineRenderer.cpp" />
+    <ClCompile Include="Render\EditorView\FTransformGizmo.cpp" />
     <ClCompile Include="Render\Panel\Console\ConsoleWindow.cpp" />
     <ClCompile Include="Render\Panel\FControlPanel.cpp" />
     <ClCompile Include="Render\Panel\FEditorSelection.cpp" />
     <ClCompile Include="Render\Panel\Stats\StatWindow.cpp" />
+    <ClCompile Include="Render\EditorView\FOrientationWidget.cpp" />
+    <ClCompile Include="Render\EditorView\FTransformGizmo.cpp" />
+    <ClCompile Include="Render\EditorView\FWorldAxis.cpp" />
     <ClCompile Include="Render\Pipeline\UPipeline.cpp" />
     <ClCompile Include="Render\Pipeline\FShader.cpp" />
     <ClCompile Include="Render\Renderer.cpp" />

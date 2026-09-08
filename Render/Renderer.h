@@ -12,8 +12,6 @@
 #include "../Core/Buffer/TGraphicsArray.h"
 #include "../Core/Buffer/TGraphicsRootConstants.h" 
 
-#include "EditorView/FLineRenderer.h"
-
 #include "../Core/Channel/FStateChannel.h"
 #include "RenderWindowInfo.h"
 
@@ -71,7 +69,6 @@ private:
 	TStateChannel<RenderWindowInfo>::FWriter WindowInfoWriter{ WindowInfoChannel.GetWriter() };
 	TStateChannel<RenderWindowInfo>::FReader WindowInfoReader{ WindowInfoChannel.GetReader() };
 
-	FLineRenderer LineRenderer{};
 	FAssetRegistry* AssetRegistry{ nullptr };
 
 	TGraphicsArray<ModelContext> ModelContextArray{};

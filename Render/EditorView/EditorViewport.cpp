@@ -1,2 +1,52 @@
 ﻿#include "PCH.h"
 #include "EditorViewport.h"
+
+#include <ranges>
+
+void EditorViewport::Initialize(ID3D11Device* Device, TStateChannel<RenderWindowInfo>::FReader windowReader) {
+	LineRenderer.Initialize(Device);
+	WindowInfoReader = windowReader;
+}
+
+void EditorViewport::Render(ID3D11DeviceContext* Context, CameraProbe& Probe) {
+	ELineDepthMode DepthMode = ELineDepthMode::DepthTested;
+	RenderGrid(DepthMode);
+	RenderAxis(DepthMode); 
+	RenderOrientationAxis(); 
+
+	LineRenderer.Render(Context, FLineViewData{
+		.ViewProjection = Probe.ViewProjection,
+		.ViewportSize = FVector2D { WindowInfoReader.Read()->Viewport.Width, WindowInfoReader.Read()->Viewport.Height }
+	});
+}
+
+void EditorViewport::RenderGrid(ELineDepthMode DepthMode) {
+	constexpr int GridSize = 50;
+	constexpr float LineLength = static_cast<float>(GridSize); 
+
+	for (auto x : std::views::iota(-GridSize, GridSize + 1)) {
+		if (x == 0) continue; 
+		LineRenderer.AddLine(FVector3{ static_cast<float>(x), 0.f, -LineLength }, FVector3{ static_cast<float>(x), 0.f, LineLength }, FVector4{ 0.5f, 0.5f, 0.5f, 1.0f }, 1.0f, DepthMode);
+	}
+
+	for (auto z : std::views::iota(-GridSize, GridSize + 1)) {
+		if (z == 0) continue;
+		LineRenderer.AddLine(FVector3{ -LineLength, 0.f, static_cast<float>(z) }, FVector3{ LineLength, 0.f, static_cast<float>(z) }, FVector4{ 0.5f, 0.5f, 0.5f, 1.0f }, 1.0f, DepthMode);
+	}
+}
+
+void EditorViewport::RenderAxis(ELineDepthMode DepthMode) {
+	LineRenderer.AddRay(FVector3{ 0.0f, 0.0f, 0.0f }, FVector3{ 1.0f, 0.0f, 0.0f }, 1000.0f, FVector4{ 1.0f, 0.0f, 0.0f, 1.0f }, 3.0f, DepthMode);
+	LineRenderer.AddRay(FVector3{ 0.0f, 0.0f, 0.0f }, FVector3{ -1.0f, 0.0f, 0.0f }, 1000.0f, FVector4{ 1.0f, 0.0f, 0.0f, 1.0f }, 3.0f, DepthMode);
+																																	   
+	LineRenderer.AddRay(FVector3{ 0.0f, 0.0f, 0.0f }, FVector3{ 0.0f, 1.0f, 0.0f }, 1000.0f, FVector4{ 0.0f, 1.0f, 0.0f, 1.0f }, 3.0f, DepthMode);
+	LineRenderer.AddRay(FVector3{ 0.0f, 0.0f, 0.0f }, FVector3{ 0.0f, -1.0f, 0.0f }, 1000.0f, FVector4{ 0.0f, 1.0f, 0.0f, 1.0f }, 3.0f, DepthMode);
+																																	   
+	LineRenderer.AddRay(FVector3{ 0.0f, 0.0f, 0.0f }, FVector3{ 0.0f, 0.0f, 1.0f }, 1000.0f, FVector4{ 0.0f, 0.0f, 1.0f, 1.0f }, 3.0f, DepthMode);
+	LineRenderer.AddRay(FVector3{ 0.0f, 0.0f, 0.0f }, FVector3{ 0.0f, 0.0f, -1.0f }, 1000.0f, FVector4{ 0.0f, 0.0f, 1.0f, 1.0f }, 3.0f, DepthMode);
+}
+
+void EditorViewport::RenderOrientationAxis() {
+
+}
+
