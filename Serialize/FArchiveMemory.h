@@ -6,9 +6,9 @@ class FArchiveMemory : public FArchive
 {
 public:
     // Save 
-    FArchiveMemory(std::vector<uint8>& InBytes);
+    FArchiveMemory(TArray<uint8>& InBytes);
     // Load 
-    FArchiveMemory(const std::vector<uint8>& InBytes);
+    FArchiveMemory(const TArray<uint8>& InBytes);
 
 
     // Primitives
@@ -40,9 +40,9 @@ public:
 
 private:
     // Save 
-    std::vector<uint8>* WriteBytes;
+    TArray<uint8>* WriteBytes;
 
     // Load 
-    const std::vector<uint8>* ReadBytes;
+    const TArray<uint8>* ReadBytes;
     size_t ReadOffset;
 };

@@ -6,8 +6,8 @@ class FRecordObjectState: public IUndoRecord
 {
 public:
     FRecordObjectState(const FGuid& InGuid,
-        const std::vector<uint8>& InBefore,
-        const std::vector<uint8>& InAfter)
+        const TArray<uint8>& InBefore,
+        const TArray<uint8>& InAfter)
         : TargetGuid(InGuid), BeforeData(InBefore), AfterData(InAfter) {
     }
 
@@ -17,6 +17,6 @@ public:
 private:
     FGuid TargetGuid;
 
-    std::vector<uint8> BeforeData;
-    std::vector<uint8> AfterData;
+    TArray<uint8> BeforeData;
+    TArray<uint8> AfterData;
 };
