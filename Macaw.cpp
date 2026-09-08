@@ -226,6 +226,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
         UMesh* Mesh =
             AssetRegistry.ResolveAsset<UMesh>( MeshHandle);
 
+        Mesh->CalculateBounds();
+
         for (uint32 Row = 0; Row < InstanceRowCount; ++Row) {
             for (uint32 Column = 0; Column < InstanceColumnCount; ++Column) {
                 const uint32 InstanceIndex = Row * InstanceColumnCount + Column;

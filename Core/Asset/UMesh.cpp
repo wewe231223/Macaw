@@ -243,10 +243,12 @@ void UMesh::CalculateBounds()
 		Max.z = std::max(Max.z, Position.z);
 	}
 
+	constexpr float BoundsScale = 0.8f;
+
 	BoundsCenter = (Min + Max) * 0.5f;
 	BoundsExtent = (Max - Min) * 0.5f;
 
-	constexpr float MinExtent = 0.01f;
+	constexpr float MinExtent = 0.01f * BoundsScale;
 
 	BoundsExtent.x = std::max(BoundsExtent.x, MinExtent);
 	BoundsExtent.y = std::max(BoundsExtent.y, MinExtent);
