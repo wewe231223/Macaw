@@ -116,9 +116,7 @@ bool UWorld::SaveScene(const FString& SceneName, FAssetRegistry* AssetRegistry)
     FArchiveJson ArchiveSave(Document, Allocator);
 	ArchiveSave.SetAssetRegistry(AssetRegistry);
 
-    // ***** TODO function is not developed yet
 	auto AssetList = AssetRegistry->GetAssetList();
-    // TArray<std::unique_ptr<UObject>> AssetList;
 
     size_t ArraySize = static_cast<size_t>(AssetList.size());
     ArchiveSave.BeginArrayScope("Assets", ArraySize);
@@ -131,13 +129,6 @@ bool UWorld::SaveScene(const FString& SceneName, FAssetRegistry* AssetRegistry)
         ArchiveSave.EndObjectScope();
     }
 
-
-    //for (size_t CurrentIndex = 0, EndIndex = AssetList.size(); CurrentIndex < EndIndex; ++CurrentIndex)
-    //{
-    //    ArchiveSave.BeginObjectScope(std::to_string(CurrentIndex));
-    //    AssetList[CurrentIndex]->Save(ArchiveSave);
-    //    ArchiveSave.EndObjectScope();
-    //}
     ArchiveSave.EndArrayScope();
 
     ArraySize = static_cast<size_t>(Actors.size());
