@@ -346,9 +346,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
             ImGui_ImplWin32_NewFrame();
             ImGui::NewFrame();
 
-            // Input states are updated by ProcessWindowMessage in WndProc.
-            // Future gizmo input handling belongs here, before world commands.
-            // Call GMouseInput.Consume(Left) when the gizmo takes the press.
+            // 입력 상태는 WndProc의 ProcessWindowMessage에서 갱신한다.
+            // 기즈모 입력 처리는 World 명령을 보내기 전인 이 위치에 추가한다.
+            // 기즈모가 왼쪽 버튼 누름을 처리하면 GMouseInput.Consume(Left)를 호출한다.
             GMouseInput.DispatchPendingWorldCommands(
                 DEFAULT_WINDOW_WIDTH,
                 DEFAULT_WINDOW_HEIGHT,
