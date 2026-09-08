@@ -10,14 +10,16 @@ void EditorViewport::Initialize(ID3D11Device* Device, TStateChannel<RenderWindow
 
 void EditorViewport::Render(ID3D11DeviceContext* Context, CameraProbe& Probe) {
 	ELineDepthMode DepthMode = ELineDepthMode::DepthTested;
+
 	RenderGrid(DepthMode);
 	RenderAxis(DepthMode); 
-	RenderOrientationAxis(); 
-
+	
 	LineRenderer.Render(Context, FLineViewData{
 		.ViewProjection = Probe.ViewProjection,
 		.ViewportSize = FVector2D { WindowInfoReader.Read()->Viewport.Width, WindowInfoReader.Read()->Viewport.Height }
 	});
+
+	RenderOrientationAxis(Context, Probe);
 }
 
 void EditorViewport::RenderGrid(ELineDepthMode DepthMode) {
@@ -46,7 +48,23 @@ void EditorViewport::RenderAxis(ELineDepthMode DepthMode) {
 	LineRenderer.AddRay(FVector3{ 0.0f, 0.0f, 0.0f }, FVector3{ 0.0f, 0.0f, -1.0f }, 1000.0f, FVector4{ 0.0f, 0.0f, 1.0f, 1.0f }, 3.0f, DepthMode);
 }
 
-void EditorViewport::RenderOrientationAxis() {
+void EditorViewport::RenderOrientationAxis(ID3D11DeviceContext* Context, CameraProbe& Probe) {
+	FMatrix view = Probe.View;
+	view.Translation(FVector3{ 0.0f, 0.0f, 3.0f });
 
+	FMatrix proj = FMatrix::CreateOrthographic(2.5f, 2.5f, 0.1f, 10.f);
+
+	Context->RSSetViewports(1, &OrientationAxisViewport);
+
+	LineRenderer.AddRay(FVector3{ 0.0f, 0.0f, 0.0f }, FVector3{ 1.0f, 0.0f, 0.0f }, 1.0f, FVector4{ 1.0f, 0.0f, 0.0f, 1.0f }, 3.0f, ELineDepthMode::Overlay);
+	LineRenderer.AddRay(FVector3{ 0.0f, 0.0f, 0.0f }, FVector3{ 0.0f, 1.0f, 0.0f }, 1.0f, FVector4{ 0.0f, 1.0f, 0.0f, 1.0f }, 3.0f, ELineDepthMode::Overlay);
+	LineRenderer.AddRay(FVector3{ 0.0f, 0.0f, 0.0f }, FVector3{ 0.0f, 0.0f, 1.0f }, 1.0f, FVector4{ 0.0f, 0.0f, 1.0f, 1.0f }, 3.0f, ELineDepthMode::Overlay);
+	
+	
+	LineRenderer.Render(Context, FLineViewData{
+		.ViewProjection = view * proj,
+		.ViewportSize = FVector2D{ OrientationAxisViewport.Width, OrientationAxisViewport.Height }
+		}
+	);
 }
 
