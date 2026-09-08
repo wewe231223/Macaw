@@ -119,9 +119,6 @@ public:
 
 		Indices.assign(InIndices.begin(), InIndices.end());
 
-		VertexCount = ExpectedVertexCount;
-		IndexCount = static_cast<uint32>(Indices.size());
-
 		CalculateBounds();
 
 		return true;
@@ -132,8 +129,6 @@ public:
 
 	bool HasVertexAttribute(EVertexAttribute Attribute) const;
 
-	uint32 GetVertexCount() const;
-	uint32 GetIndexCount() const;
 	uint32 GetVertexStride(EVertexAttribute Attribute) const;
 	uint32 GetVertexAttributeCount(EVertexAttribute Attribute) const;
 
@@ -155,13 +150,13 @@ public:
 		return std::span<const ElementType>{ Storage->Data.data(), Storage->Data.size() };
 	}
 
-	const TArray<uint32>& GetIndices() const
-	{
+	const TArray<uint32>& GetIndices() const {
 		return Indices;
 	}
 
-	const FVector3& GetBoundsCenter() const;
-	const FVector3& GetBoundsExtent() const;
+	const DirectX::BoundingBox& GetLocalBoundingBox() const {
+		return LocalBoundingBox;
+	}
 
 	void CalculateBounds();
 
@@ -241,10 +236,6 @@ private:
 
 	TArray<uint32> Indices{};
 
-	uint32 VertexCount = 0;
-	uint32 IndexCount = 0;
-
-	FVector3 BoundsCenter{ 0.0f, 0.0f, 0.0f };
-	FVector3 BoundsExtent{ 0.0f, 0.0f, 0.0f };
+	DirectX::BoundingBox LocalBoundingBox{}; 
 };
 

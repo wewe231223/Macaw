@@ -23,6 +23,7 @@ class FAssetRegistry;
 struct FMousePickRequestMessage;
 struct FMouseCameraRotateRequestMessage;
 struct FKeyboardCameraMoveRequestMessage;
+struct FMousePickReleaseRequestMessage;
 
 class UWorld : public UObject
 {
@@ -67,6 +68,9 @@ public:
     void HandleMousePickRequest(
         const FMousePickRequestMessage& Message);
 
+	void HandleMousePickReleaseRequest(
+		const FMousePickReleaseRequestMessage& Message);
+
     void HandleMouseCameraRotateRequest(
         const FMouseCameraRotateRequestMessage& Message);
 
@@ -88,6 +92,8 @@ private:
     std::optional<FMessageChannel::FSender> EditorEventSender;
 
     FAssetRegistry* AssetRegistry = nullptr;
+
+	AActor* SelectedActor = nullptr;
 
     UCameraComponent* Camera = nullptr;
     FRenderProbe Probe{};

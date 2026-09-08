@@ -13,19 +13,10 @@
 #include "../Core/Buffer/TGraphicsRootConstants.h" 
 
 class FRenderer {
-	struct FRenderBatch {
-		// key
-		UMesh* Mesh{ nullptr };
-		UPipeline* Pipeline{ nullptr };
-
-		// Data 
-		TArray<FMatrix> World{}; 
-		TArray<uint32> MaterialIndices{};
-	};
-
 	struct ModelContext {
 		FMatrix World{};
 		uint32 MaterialIndex{ UINT32_MAX };
+		uint32 Flags{ 0x0000'0000 };
 	};
 
 public:
@@ -70,7 +61,6 @@ private:
 
 	FAssetRegistry* AssetRegistry{ nullptr };
 
-	TArray<FRenderBatch> RenderBatches{};
 	TGraphicsArray<ModelContext> ModelContextArray{};
 	TGraphicsRootConstants<64> RootConstants{};
 

@@ -7,6 +7,10 @@
 
 #include "Core/Channel/FMessageChannel.h"
 
+enum EMouseSide : uint32 {
+    Left, Right, MAX
+};
+
 class FMouseInput
 {
 public:
@@ -19,7 +23,10 @@ public:
 private:
     std::optional<FMessageChannel::FSender> WorldCommandSender;
 
+	bool bLeftButtonDown = false;
     bool bLeftClickPending = false;
+    bool bLeftClickReleasedPending = false; 
+
     std::int32_t LeftClickX = 0;
     std::int32_t LeftClickY = 0;
 
@@ -34,4 +41,17 @@ private:
 
     float PendingRotateDeltaX = 0.0f;
     float PendingRotateDeltaY = 0.0f;
+
+    struct DragCapture {
+        POINT start;
+        POINT current; 
+    };
+
+	TFixedArray<DragCapture, static_cast<size_t>(EMouseSide::MAX)> ClickCaptures{};
+
+
+	DragCapture[Left].start = ....;
+    ClickCaptures[Left].current = .....;
+
+
 };

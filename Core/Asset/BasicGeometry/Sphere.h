@@ -56,12 +56,12 @@ namespace BasicGeometry {
 					const uint32 BottomRight = BottomLeft + 1;
 
 					Geometry.Indices[Index++] = TopLeft;
-					Geometry.Indices[Index++] = BottomLeft;
 					Geometry.Indices[Index++] = TopRight;
+					Geometry.Indices[Index++] = BottomLeft;
 
 					Geometry.Indices[Index++] = TopRight;
-					Geometry.Indices[Index++] = BottomLeft;
 					Geometry.Indices[Index++] = BottomRight;
+					Geometry.Indices[Index++] = BottomLeft;
 				}
 			}
 

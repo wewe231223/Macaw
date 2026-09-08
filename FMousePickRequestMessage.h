@@ -36,3 +36,17 @@ struct FMousePickRequestMessage
 	{
 	}
 };
+
+
+struct FMousePickReleaseRequestMessage
+{
+	inline static const FTypeInfo TypeInfo{
+		"FMousePickReleaseRequestMessage",
+		nullptr,
+		nullptr
+	};
+	static const FTypeInfo& StaticTypeInfo() noexcept
+	{
+		return TypeInfo;
+	}
+};
