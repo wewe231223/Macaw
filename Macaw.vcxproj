@@ -205,6 +205,7 @@
     <ClCompile Include="Core\Console\Console.cpp" />
     <ClCompile Include="Core\Memory\Memory.cpp" />
     <ClCompile Include="ErrorHandler.cpp" />
+    <ClCompile Include="FEditorStateInfo.cpp" />
     <ClCompile Include="FEditorSelection.cpp" />
     <ClCompile Include="FKeyboardInput.cpp" />
     <ClCompile Include="FMouseInput.cpp" />
@@ -333,6 +334,7 @@
     <ClInclude Include="Core\Memory\Memory.h" />
     <ClInclude Include="Core\Memory\TEngineAllocator.h" />
     <ClInclude Include="ErrorHandler.h" />
+    <ClInclude Include="FEditorStateInfo.h" />
     <ClInclude Include="FEditorSelection.h" />
     <ClInclude Include="FKeyboardCameraMoveRequestMessage.h" />
     <ClInclude Include="FKeyboardInput.h" />
