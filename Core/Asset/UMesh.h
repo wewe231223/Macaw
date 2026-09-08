@@ -161,6 +161,8 @@ public:
 	const FVector3& GetBoundsCenter() const;
 	const FVector3& GetBoundsExtent() const;
 
+	void CalculateBounds();
+
 private:
 	template<typename... TAttributes>
 	static consteval bool AreVertexAttributesUnique() {
@@ -225,8 +227,6 @@ private:
 	static constexpr size_t GetAttributeCount() {
 		return static_cast<size_t>(EVertexAttribute::MAX);
 	}
-
-	void CalculateBounds();
 
 private:
 	TFixedArray<Microsoft::WRL::ComPtr<ID3D11Buffer>, static_cast<size_t>(EVertexAttribute::MAX)> VertexBuffers{};

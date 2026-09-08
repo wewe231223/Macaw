@@ -156,9 +156,11 @@ void UMesh::CalculateBounds()
 		Max.y = std::max(Max.y, Position.y);
 		Max.z = std::max(Max.z, Position.z);
 	}
+	
+	constexpr float BoundsScale = 0.8f;
 
 	BoundsCenter = (Min + Max) * 0.5f;
-	BoundsExtent = (Max - Min) * 0.5f;
+	BoundsExtent = (Max - Min) * 0.5f * BoundsScale;
 
 	constexpr float MinExtent = 0.01f;
 

@@ -164,7 +164,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	AssetRegistry.Initialize(Renderer.GetDevice(), 128);
 	Renderer.BindAssetRegistry(&AssetRegistry);
 
-    World.SetAssetRegistry(&AssetRegistry);
 
     std::vector<FVector3> Positions{
     { -0.5f, -0.5f, 0.0f },
@@ -238,6 +237,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
             AssetRegistry.ResolveAsset<UMesh>(
                 EAssetType::Mesh,
                 MeshHandle);
+
+        Mesh->CalculateBounds();
 
         for (uint32 Row = 0; Row < InstanceRowCount; ++Row) {
             for (uint32 Column = 0; Column < InstanceColumnCount; ++Column) {
