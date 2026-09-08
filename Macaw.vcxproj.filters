@@ -74,6 +74,9 @@
     <Filter Include="SimpleMath">
       <UniqueIdentifier>{106fee09-1c43-4673-961e-825b49e084ae}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Render\Editor">
+      <UniqueIdentifier>{3cd3bcce-bf51-4c9a-bea6-3cf9ca14da4f}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Macaw.rc">
@@ -273,6 +276,9 @@
     <ClCompile Include="Render\Stats\StatWindow.cpp" />
     <ClCompile Include="SimpleMath\SimpleMath.cpp">
       <Filter>SimpleMath</Filter>
+    </ClCompile>
+    <ClCompile Include="FEditorStateInfo.cpp">
+      <Filter>Render\Editor</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -499,6 +505,9 @@
     <ClInclude Include="Render\Stats\StatWindow.h" />
     <ClInclude Include="SimpleMath\SimpleMath.h">
       <Filter>SimpleMath</Filter>
+    </ClInclude>
+    <ClInclude Include="FEditorStateInfo.h">
+      <Filter>Render\Editor</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
