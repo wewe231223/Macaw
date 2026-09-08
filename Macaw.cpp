@@ -105,6 +105,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     TypeRegistry::Register(UCollisionComponent::StaticTypeInfo());
 	TypeRegistry::Register(UActorComponent::StaticTypeInfo());
 	TypeRegistry::Register(USceneComponent::StaticTypeInfo());
+	TypeRegistry::Register(UCollisionComponent::StaticTypeInfo());
 	
 
 
@@ -406,6 +407,11 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
             }
 
             InstanceComponent->SetMeshHandle(MeshHandle);
+
+
+
+
+
             const bool bUseAlternatePipeline = InstanceIndex % 2 == 1;
             InstanceComponent->SetPipelineHandle(bUseAlternatePipeline ? AlternatePipelineHandle : BasePipelineHandle);
             InstanceComponent->SetMaterialHandle(MaterialHandle);
