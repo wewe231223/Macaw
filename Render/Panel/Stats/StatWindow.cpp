@@ -1,11 +1,11 @@
 #include "PCH.h"
-#include "Render/Stats/StatWindow.h"
+#include "Render/Panel/Stats/StatWindow.h"
 
 #include "Core/Memory/Memory.h"
 #include "Core/Base/UObjectSystem.h"
 #include "Scene/UWorld.h"
 #include "ImGui/imgui.h"
-#include "../../Scene/AActor.h"
+#include "Scene/AActor.h"
 
 void DrawStatWindow(const UWorld& World)
 {

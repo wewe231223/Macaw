@@ -11,7 +11,7 @@
 #include "Core/Base/UObject.h"
 #include "Core/Base/UObjectSystem.h"
 #include "Core/Base/FRenderProbe.h"
-#include "FEditorInfo.h"
+#include "Render/Panel/FEditorInfo.h"
 
 class AActor;
 class UCameraComponent;
@@ -56,8 +56,11 @@ public:
         return ActorPtr;
     }
 
+    bool DestroyActor(AActor* Actor);
+    void FlushPendingDestroyActors();
+
     const std::vector<std::unique_ptr<AActor>>& GetActors() const;
-    FRenderProbe& BuildRenderProbe() ;
+    FRenderProbe& BuildRenderProbe();
     void Tick(float DeltaTime);
 
     void RegisterRenderable(UStaticMeshComponent* Component);
@@ -100,6 +103,7 @@ public:
 
 private:
     std::vector<std::unique_ptr<AActor>> Actors;
+    std::vector<AActor*> PendingDestroyActors;
     std::vector<UStaticMeshComponent*> RenderableComponents;
     std::vector<TObjectRef<UCollisionComponent>> CollisionComponents;
 

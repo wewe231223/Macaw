@@ -23,9 +23,6 @@
     <Filter Include="Render\Pipeline">
       <UniqueIdentifier>{c9860bf1-6bc6-4530-aeb6-6657f10bce02}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Render\Console">
-      <UniqueIdentifier>{ba43d83e-4853-4559-96aa-24a0497feae1}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Core\Base\UObject">
       <UniqueIdentifier>{3ff75d73-22b7-4fe1-a4bc-482401744d7e}</UniqueIdentifier>
     </Filter>
@@ -77,6 +74,15 @@
     <Filter Include="Render\Editor">
       <UniqueIdentifier>{3cd3bcce-bf51-4c9a-bea6-3cf9ca14da4f}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Render\Panel">
+      <UniqueIdentifier>{4e3ce944-6ea8-4c9f-901a-29c6726b4798}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Render\Panel\Console">
+      <UniqueIdentifier>{ba43d83e-4853-4559-96aa-24a0497feae1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Render\Panel\Stats">
+      <UniqueIdentifier>{61c3ed3a-ede4-40bb-b3ca-c1773bb281f1}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Macaw.rc">
@@ -112,9 +118,6 @@
     </ClCompile>
     <ClCompile Include="Render\Pipeline\FShader.cpp">
       <Filter>Render\Pipeline</Filter>
-    </ClCompile>
-    <ClCompile Include="Render\Console\ConsoleWindow.cpp">
-      <Filter>Render\Console</Filter>
     </ClCompile>
     <ClCompile Include="Render\Renderer.cpp">
       <Filter>Render</Filter>
@@ -269,18 +272,23 @@
     <ClCompile Include="Core\Asset\FAssetMetadataParser.cpp">
       <Filter>Core\Asset</Filter>
     </ClCompile>
-    <ClCompile Include="FEditorSelection.cpp" />
     <ClCompile Include="FKeyboardInput.cpp" />
     <ClCompile Include="FMouseInput.cpp" />
-    <ClCompile Include="Scene\Component\UCollisionComponent.cpp" />
-    <ClCompile Include="Render\Stats\StatWindow.cpp" />
     <ClCompile Include="SimpleMath\SimpleMath.cpp">
       <Filter>SimpleMath</Filter>
     </ClCompile>
-    <ClCompile Include="FEditorStateInfo.cpp">
-      <Filter>Render\Editor</Filter>
+    <ClCompile Include="Render\Panel\Stats\StatWindow.cpp">
+      <Filter>Render\Panel\Stats</Filter>
     </ClCompile>
-    <ClCompile Include="FEditorInfo.cpp" />
+    <ClCompile Include="Scene\Component\UCollisionComponent.cpp">
+      <Filter>Scene\Component</Filter>
+    </ClCompile>
+    <ClCompile Include="Render\Panel\FEditorSelection.cpp">
+      <Filter>Render\Panel</Filter>
+    </ClCompile>
+    <ClCompile Include="Render\Panel\Console\ConsoleWindow.cpp">
+      <Filter>Render\Panel\Console</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Core\Base\FGuid.h">
@@ -324,9 +332,6 @@
     </ClInclude>
     <ClInclude Include="Render\Pipeline\Wrapper.h">
       <Filter>Render\Pipeline</Filter>
-    </ClInclude>
-    <ClInclude Include="Render\Console\ConsoleWindow.h">
-      <Filter>Render\Console</Filter>
     </ClInclude>
     <ClInclude Include="Render\Renderer.h">
       <Filter>Render</Filter>
@@ -495,25 +500,48 @@
     <ClInclude Include="Core\Asset\FAssetMetadataParser.h">
       <Filter>Core\Asset</Filter>
     </ClInclude>
-    <ClInclude Include="FEditorSelection.h" />
     <ClInclude Include="FKeyboardCameraMoveRequestMessage.h" />
     <ClInclude Include="FKeyboardInput.h" />
     <ClInclude Include="FMouseCameraRotateRequestMessage.h" />
     <ClInclude Include="FMouseInput.h" />
     <ClInclude Include="FMousePickRequestMessage.h" />
     <ClInclude Include="FWorldSelectionChangedMessage.h" />
-    <ClInclude Include="Scene\Component\UCollisionComponent.h" />
-    <ClInclude Include="Render\Stats\StatWindow.h" />
     <ClInclude Include="SimpleMath\SimpleMath.h">
       <Filter>SimpleMath</Filter>
     </ClInclude>
-    <ClInclude Include="FEditorStateInfo.h">
-      <Filter>Render\Editor</Filter>
+    <ClInclude Include="Render\Panel\Stats\StatWindow.h">
+      <Filter>Render\Panel\Stats</Filter>
     </ClInclude>
-    <ClInclude Include="FEditorInfo.h" />
-    <ClInclude Include="FControlPanel.h" />
-    <ClInclude Include="IEditorPanel.h" />
-    <ClInclude Include="FPropertyPanel.h" />
+    <ClInclude Include="FControlPanel.h">
+      <Filter>Render\Panel</Filter>
+    </ClInclude>
+    <ClInclude Include="Scene\Component\UCollisionComponent.h">
+      <Filter>Scene\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="Render\Panel\FConsolePanel.h">
+      <Filter>Render\Panel</Filter>
+    </ClInclude>
+    <ClInclude Include="Render\Panel\FStatPanel.h">
+      <Filter>Render\Panel</Filter>
+    </ClInclude>
+    <ClInclude Include="Render\Panel\FEditorUIManager.h">
+      <Filter>Render\Panel</Filter>
+    </ClInclude>
+    <ClInclude Include="Render\Panel\FEditorInfo.h">
+      <Filter>Render\Panel</Filter>
+    </ClInclude>
+    <ClInclude Include="Render\Panel\FEditorSelection.h">
+      <Filter>Render\Panel</Filter>
+    </ClInclude>
+    <ClInclude Include="Render\Panel\FPropertyPanel.h">
+      <Filter>Render\Panel</Filter>
+    </ClInclude>
+    <ClInclude Include="Render\Panel\IEditorPanel.h">
+      <Filter>Render\Panel</Filter>
+    </ClInclude>
+    <ClInclude Include="Render\Panel\Console\ConsoleWindow.h">
+      <Filter>Render\Panel\Console</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Content\Metadata\AlternatePipeline.meta">

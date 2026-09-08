@@ -51,6 +51,8 @@ public:
         return nullptr;
     }
 
+    bool DestroyComponent(UActorComponent* component);
+
     const std::vector<std::unique_ptr<UActorComponent>>& GetComponents() const;
 
     USceneComponent* GetRootComponent();

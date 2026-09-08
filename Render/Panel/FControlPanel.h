@@ -38,6 +38,9 @@ public:
 
         ImGui::Begin("Control Panel");
 
+        ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
+        ImGui::Separator();
+
         // 2. 단방향 채널: 스폰 이벤트 전송 (UI -> Engine)
         ImGui::Text("Spawn Primitive");
 

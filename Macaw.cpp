@@ -17,10 +17,10 @@
 #include "ImGui/imgui_impl_win32.h"
   
 #include "Core/Console/Console.h"
-#include "Render/Console/ConsoleWindow.h"
+#include "Render/Panel/Console/ConsoleWindow.h"
 #include "Core/Asset/FAssetRegistry.h"
 
-#include "Render/Stats/StatWindow.h"
+#include "Render/Panel/Stats/StatWindow.h"
 
 //test
 #include "Render/Pipeline/UPipeline.h"
@@ -38,15 +38,15 @@
 #include "Core/Channel/FMessageChannel.h"
 #include "Core/Channel/FStateChannel.h"
 #include "FMouseInput.h"
-#include "FEditorInfo.h"
-#include "FEditorUIManager.h"
+#include "Render/Panel/FEditorInfo.h"
+#include "Render/Panel/FEditorUIManager.h"
 
 #include "FMousePickRequestMessage.h"
 #include "FMouseCameraRotateRequestMessage.h"
 #include "FWorldSelectionChangedMessage.h"
 #include "FKeyboardInput.h"
 #include "FKeyboardCameraMoveRequestMessage.h"
-#include "FEditorSelection.h"
+#include "Render/Panel/FEditorSelection.h"
 
 //test
 #include "Render/Pipeline/UPipeline.h"

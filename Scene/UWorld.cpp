@@ -11,7 +11,7 @@
 #include "FMousePickRequestMessage.h"
 #include "FWorldSelectionChangedMessage.h"
 #include "FKeyboardCameraMoveRequestMessage.h"
-#include "FEditorInfo.h"
+#include "Render/Panel/FEditorInfo.h"
 #include "Core/Asset/UMesh.h"
 
 #include "../Serialize/FArchiveJson.h"
@@ -40,6 +40,56 @@ UWorld::~UWorld()
     }
 
     Actors.clear();
+}
+
+bool UWorld::DestroyActor(AActor* Actor)
+{
+    if (Actor == nullptr)
+    {
+        return false;
+    }
+
+    auto It = std::ranges::find_if(Actors, [Actor](const std::unique_ptr<AActor>& Ptr)
+    {
+        return Ptr.get() == Actor;
+    });
+
+    if (It == Actors.end())
+    {
+        return false;
+    }
+
+    PendingDestroyActors.push_back(Actor);
+    return true;
+}
+
+void UWorld::FlushPendingDestroyActors()
+{
+    for (AActor* Actor : PendingDestroyActors)
+    {
+        if (Actor == nullptr)
+        {
+            continue;
+        }
+
+        auto It = std::ranges::find_if(Actors, [Actor](const std::unique_ptr<AActor>& Ptr)
+        {
+            return Ptr.get() == Actor;
+        });
+
+        if (It == Actors.end())
+        {
+            continue;
+        }
+
+        UObjectSystem::Unregister(
+            Actor,
+            Actor->GetHandle());
+
+        Actors.erase(It); 
+    }
+
+    PendingDestroyActors.clear();
 }
 
 const std::vector<std::unique_ptr<AActor>>& UWorld::GetActors() const
@@ -97,6 +147,8 @@ void UWorld::Tick(float DeltaTime)
     {
         Actor->Tick(DeltaTime);
     }
+
+    FlushPendingDestroyActors();
 }
 
 void UWorld::RegisterRenderable(UStaticMeshComponent* Component)
