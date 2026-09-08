@@ -205,8 +205,6 @@
     <ClCompile Include="Core\Console\Console.cpp" />
     <ClCompile Include="Core\Memory\Memory.cpp" />
     <ClCompile Include="ErrorHandler.cpp" />
-    <ClCompile Include="FEditorStateInfo.cpp" />
-    <ClCompile Include="FEditorSelection.cpp" />
     <ClCompile Include="FKeyboardInput.cpp" />
     <ClCompile Include="FMouseInput.cpp" />
     <ClCompile Include="ImGui\imgui.cpp">
@@ -264,9 +262,9 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="Render\Console\ConsoleWindow.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Use</PrecompiledHeader>
-    </ClCompile>
+    <ClCompile Include="Render\Panel\Console\ConsoleWindow.cpp" />
+    <ClCompile Include="Render\Panel\FEditorSelection.cpp" />
+    <ClCompile Include="Render\Panel\Stats\StatWindow.cpp" />
     <ClCompile Include="Render\Pipeline\UPipeline.cpp" />
     <ClCompile Include="Render\Pipeline\FShader.cpp" />
     <ClCompile Include="Render\Renderer.cpp" />
@@ -281,7 +279,6 @@
     <ClCompile Include="Scene\Component\USceneComponent.cpp" />
     <ClCompile Include="Scene\Component\UStaticMeshComponent.cpp" />
     <ClCompile Include="Scene\UWorld.cpp" />
-    <ClCompile Include="Render\Stats\StatWindow.cpp" />
     <ClCompile Include="SimpleMath\SimpleMath.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
@@ -334,8 +331,7 @@
     <ClInclude Include="Core\Memory\Memory.h" />
     <ClInclude Include="Core\Memory\TEngineAllocator.h" />
     <ClInclude Include="ErrorHandler.h" />
-    <ClInclude Include="FEditorStateInfo.h" />
-    <ClInclude Include="FEditorSelection.h" />
+    <ClInclude Include="FControlPanel.h" />
     <ClInclude Include="FKeyboardCameraMoveRequestMessage.h" />
     <ClInclude Include="FKeyboardInput.h" />
     <ClInclude Include="FMath.h" />
@@ -353,7 +349,15 @@
     <ClInclude Include="ImGui\imstb_truetype.h" />
     <ClInclude Include="ImGui\stb_image.h" />
     <ClInclude Include="PCH.h" />
-    <ClInclude Include="Render\Console\ConsoleWindow.h" />
+    <ClInclude Include="Render\Panel\Console\ConsoleWindow.h" />
+    <ClInclude Include="Render\Panel\FConsolePanel.h" />
+    <ClInclude Include="Render\Panel\FEditorInfo.h" />
+    <ClInclude Include="Render\Panel\FEditorSelection.h" />
+    <ClInclude Include="Render\Panel\FEditorUIManager.h" />
+    <ClInclude Include="Render\Panel\FPropertyPanel.h" />
+    <ClInclude Include="Render\Panel\FStatPanel.h" />
+    <ClInclude Include="Render\Panel\IEditorPanel.h" />
+    <ClInclude Include="Render\Panel\Stats\StatWindow.h" />
     <ClInclude Include="Render\Pipeline\Defines.h" />
     <ClInclude Include="Render\Pipeline\UPipeline.h" />
     <ClInclude Include="Render\Pipeline\FShader.h" />
@@ -370,7 +374,6 @@
     <ClInclude Include="Scene\Component\USceneComponent.h" />
     <ClInclude Include="Scene\Component\UStaticMeshComponent.h" />
     <ClInclude Include="Scene\UWorld.h" />
-    <ClInclude Include="Render\Stats\StatWindow.h" />
     <ClInclude Include="SimpleMath\SimpleMath.h" />
     <ClInclude Include="STL.h" />
   </ItemGroup>

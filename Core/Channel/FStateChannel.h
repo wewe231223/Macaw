@@ -8,7 +8,7 @@
 #include <utility>
 
 template<typename T>
-class TStateChannel {
+class FStateChannel {
 public:
     using VersionType = std::uint64_t;
 
@@ -20,7 +20,7 @@ public:
 public:
     class FReader {
     public:
-        explicit FReader(const TStateChannel& InChannel) noexcept : Channel(&InChannel) {}
+        explicit FReader(const FStateChannel& InChannel) noexcept : Channel(&InChannel) {}
         ~FReader() noexcept = default;
 
         FReader(const FReader&) = default;
@@ -61,13 +61,13 @@ public:
         }
 
     private:
-        const TStateChannel* Channel{ nullptr };
+        const FStateChannel* Channel{ nullptr };
         VersionType LastReadVersion{ 0 };
     };
 
     class FWriter {
     public:
-        explicit FWriter(TStateChannel& InChannel) noexcept : Channel(&InChannel) {}
+        explicit FWriter(FStateChannel& InChannel) noexcept : Channel(&InChannel) {}
 		~FWriter() noexcept = default;
 
 		FWriter(const FWriter&) = default;
@@ -104,23 +104,23 @@ public:
         }
 
     private:
-        TStateChannel* Channel{ nullptr };
+        FStateChannel* Channel{ nullptr };
     };
 
 public:
-    TStateChannel() = default;
+    FStateChannel() = default;
 
-    explicit TStateChannel(const T& InitialState) requires std::copy_constructible<T> : State(InitialState), Version(1) {}
-    explicit TStateChannel(T&& InitialState) requires std::move_constructible<T> : State(std::move(InitialState)), Version(1) {}
+    explicit FStateChannel(const T& InitialState) requires std::copy_constructible<T> : State(InitialState), Version(1) {}
+    explicit FStateChannel(T&& InitialState) requires std::move_constructible<T> : State(std::move(InitialState)), Version(1) {}
 
     template<typename... Args> requires std::constructible_from<T, Args...>
-    explicit TStateChannel(std::in_place_t, Args&&... Arguments) : State(std::in_place, std::forward<Args>(Arguments)...), Version(1) {}
+    explicit FStateChannel(std::in_place_t, Args&&... Arguments) : State(std::in_place, std::forward<Args>(Arguments)...), Version(1) {}
 
-	TStateChannel(const TStateChannel&) = delete;
-	TStateChannel& operator=(const TStateChannel&) = delete;
+	FStateChannel(const FStateChannel&) = delete;
+	FStateChannel& operator=(const FStateChannel&) = delete;
 
-	TStateChannel(TStateChannel&&) = delete;
-	TStateChannel& operator=(TStateChannel&&) = delete;
+	FStateChannel(FStateChannel&&) = delete;
+	FStateChannel& operator=(FStateChannel&&) = delete;
 
 public:
     [[nodiscard]] FReader GetReader() const noexcept {

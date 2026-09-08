@@ -2,8 +2,8 @@
 
 #include "PCH.h"
 #include "ImGui/imgui.h"
-#include "Render/Panel/IEditorPanel.h"
-#include "Render/Panel/FEditorInfo.h"
+#include "IEditorPanel.h"
+#include "FEditorInfo.h"
 #include "Core/Channel/FStateChannel.h"
 #include "Core/Channel/FMessageChannel.h"
 
@@ -37,6 +37,9 @@ public:
         }
 
         ImGui::Begin("Control Panel");
+
+        ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
+        ImGui::Separator();
 
         // 2. 단방향 채널: 스폰 이벤트 전송 (UI -> Engine)
         ImGui::Text("Spawn Primitive");

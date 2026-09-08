@@ -1,5 +1,8 @@
-﻿#include "PCH.h"
-#include "FEditorInfo.h"
+﻿#pragma once
+
+#include "PCH.h"
+
+#include "Core/Base/TypeInfo.h"
 
 // =========================================================
 // [State] 양방향 상태 데이터 (TStateChannel 용)
@@ -14,6 +17,7 @@ struct FMessageEditorCameraState
 struct FMessageEditorTransformState
 {
     bool bIsSelected = false;
+
     FVector3 Position;
     FRotator Rotation;
     FVector3 Scale;
@@ -39,9 +43,15 @@ struct FMessageSpawnPrimitive
 
     JG_DECLARE_EDITOR_MESSAGE(FMessageSpawnPrimitive);
 
-    FMessageSpawnPrimitive(FString InputType, uint32 InputCount)
+    FMessageSpawnPrimitive(FString InputType, uint32 InputCount) noexcept
         : PrimitiveType(std::move(InputType)), SpawnCount(InputCount)
-    {}
+    {
+    }
+};
+
+struct FMessageNewScene
+{
+    JG_DECLARE_EDITOR_MESSAGE(FMessageNewScene);
 };
 
 struct FMessageSaveScene
@@ -50,9 +60,10 @@ struct FMessageSaveScene
 
     JG_DECLARE_EDITOR_MESSAGE(FMessageSaveScene);
 
-    FMessageSaveScene(FString InputSceneName)
+    FMessageSaveScene(FString InputSceneName) noexcept
         : SceneName(std::move(InputSceneName))
-    {}
+    {
+    }
 };
 
 struct FMessageLoadScene
@@ -61,9 +72,10 @@ struct FMessageLoadScene
 
     JG_DECLARE_EDITOR_MESSAGE(FMessageLoadScene);
 
-    FMessageLoadScene(FString InputFilePath)
+    FMessageLoadScene(FString InputFilePath) noexcept
         : FilePath(std::move(InputFilePath))
-    {}
+    {
+    }
 };
 
 enum class EGizmoMode
@@ -78,7 +90,8 @@ struct FMessageChangeGizmoMode
     EGizmoMode Mode;
 
     JG_DECLARE_EDITOR_MESSAGE(FMessageChangeGizmoMode);
-    FMessageChangeGizmoMode(EGizmoMode InputMode)
+    FMessageChangeGizmoMode(EGizmoMode InputMode) noexcept
         : Mode(InputMode)
-    {}
+    {
+    }
 };

@@ -5,11 +5,13 @@
 
 #include "Core/Base/TObjectRef.h"
 #include "Core/Channel/FMessageChannel.h"
+#include "Core/Channel/FStateChannel.h"
 
 #include "Common.h"
 #include "Core/Base/UObject.h"
 #include "Core/Base/UObjectSystem.h"
 #include "Core/Base/FRenderProbe.h"
+#include "Render/Panel/FEditorInfo.h"
 
 class AActor;
 class UCameraComponent;
@@ -23,6 +25,12 @@ class FAssetRegistry;
 struct FMousePickRequestMessage;
 struct FMouseCameraRotateRequestMessage;
 struct FKeyboardCameraMoveRequestMessage;
+
+struct FMessageSpawnPrimitive;
+struct FMessageNewScene;
+struct FMessageSaveScene;
+struct FMessageLoadScene;
+struct FMessageChangeGizmoMode;
 
 class UWorld : public UObject
 {
@@ -48,8 +56,11 @@ public:
         return ActorPtr;
     }
 
+    bool DestroyActor(AActor* Actor);
+    void FlushPendingDestroyActors();
+
     const std::vector<std::unique_ptr<AActor>>& GetActors() const;
-    FRenderProbe& BuildRenderProbe() ;
+    FRenderProbe& BuildRenderProbe();
     void Tick(float DeltaTime);
 
     void RegisterRenderable(UStaticMeshComponent* Component);
@@ -61,8 +72,11 @@ public:
     bool LoadScene(const std::filesystem::path& ScenePath, ID3D11Device* Device, FAssetRegistry* AssetRegistry);
 
 	JG_DECLARE_DERIVED_TYPEINFO(UWorld, UObject);
-    void InitializeEditorEventSender(
-        FMessageChannel::FSender&& InSender);
+
+    void InitializeEditorEventSender(FMessageChannel::FSender&& InSender);
+    void InitializeEditorCameraState(
+        FStateChannel<FMessageEditorCameraState>::FWriter InWriter,
+        FStateChannel<FMessageEditorCameraState>::FReader InReader);
 
     void HandleMousePickRequest(
         const FMousePickRequestMessage& Message);
@@ -76,19 +90,34 @@ public:
     void RegisterCollision(UCollisionComponent* Component);
     void UnregisterCollision(UCollisionComponent* Component);
 
-    void SetAssetRegistry(FAssetRegistry* InAssetRegistry);
-    FAssetRegistry* GetAssetRegistry() const;
+    void HandleSpawnPrimitive(const FMessageSpawnPrimitive& Message, FAssetRegistry& AssetRegistry);
+    void HandleNewScene(const FMessageNewScene& Message);
+    void HandleLoadScene(const FMessageLoadScene& Message);
 
+    void HandleChangeGizmoMode(const FMessageChangeGizmoMode& Message);
+
+    std::optional<FStateChannel<FMessageEditorCameraState>::FWriter> EditorCameraWriter;
+    std::optional<FStateChannel<FMessageEditorCameraState>::FReader> EditorCameraReader;
+
+    void UpdateEditorCameraState();
 
 private:
     std::vector<std::unique_ptr<AActor>> Actors;
+    std::vector<AActor*> PendingDestroyActors;
     std::vector<UStaticMeshComponent*> RenderableComponents;
     std::vector<TObjectRef<UCollisionComponent>> CollisionComponents;
 
     std::optional<FMessageChannel::FSender> EditorEventSender;
 
-    FAssetRegistry* AssetRegistry = nullptr;
-
     UCameraComponent* Camera = nullptr;
     FRenderProbe Probe{};
+
+    void ApplyEditorCameraState();
+    void PublishEditorCameraState();
+
+    std::optional<FStateChannel<FMessageEditorCameraState>::FWriter>
+        EditorCameraStateWriter;
+
+    std::optional<FStateChannel<FMessageEditorCameraState>::FReader>
+        EditorCameraStateReader;
 };
