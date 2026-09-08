@@ -184,6 +184,10 @@ FRenderProbe& UWorld::BuildRenderProbe()
 
 void UWorld::Tick(float DeltaTime)
 {
+    if (WindowInfoReader.HasChanged()) {
+		Camera->SetAspectRatio(static_cast<float>(WindowInfoReader.Read()->ScreenWidth) / static_cast<float>(WindowInfoReader.Read()->ScreenHeight));
+    }
+
     ApplyEditorCameraState();
 
     for (const std::unique_ptr<AActor>& Actor : Actors)
@@ -368,18 +372,18 @@ void UWorld::HandleMousePickRequest(
     FObjectHandle SelectedComponentHandle{};
 
     if (Camera != nullptr &&
-        Message.ViewportWidth != 0 &&
-        Message.ViewportHeight != 0)
+        WindowInfoReader.Read()->Viewport.Width != 0 &&
+        WindowInfoReader.Read()->Viewport.Height != 0)
     {
         const float NdcX =
             (2.0f * static_cast<float>(Message.ScreenX) /
-                static_cast<float>(Message.ViewportWidth)) -
+                static_cast<float>(WindowInfoReader.Read()->Viewport.Width)) -
             1.0f;
 
         const float NdcY =
             1.0f -
             (2.0f * static_cast<float>(Message.ScreenY) /
-                static_cast<float>(Message.ViewportHeight));
+                static_cast<float>(WindowInfoReader.Read()->Viewport.Height));
 
         const FMatrix InverseViewProjection =
             Camera->GetViewProjectionMatrix().Invert();

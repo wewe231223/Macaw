@@ -78,6 +78,7 @@ ATOM                MyRegisterClass(HINSTANCE hInstance);
 BOOL                InitInstance(HINSTANCE, int);
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 HWND gHWND;
+FRenderer Renderer;
 
 #define LOAD 
 
@@ -307,7 +308,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 		});
 
 
-	FRenderer Renderer;
 	Renderer.Create(gHWND, DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT);
 	
     FAssetRegistry AssetRegistry;
@@ -548,7 +548,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 
 
     if (WINDOWED) {
-        DWORD style = WS_OVERLAPPEDWINDOW & ~WS_THICKFRAME;
+        DWORD style = WS_OVERLAPPEDWINDOW;
         DWORD exStyle = WS_EX_OVERLAPPEDWINDOW;
 
         int posX = (GetSystemMetrics(SM_CXSCREEN) / 2) - (static_cast<int>(DEFAULT_WINDOW_WIDTH) / 2);
@@ -642,6 +642,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     case WM_DESTROY:
         PostQuitMessage(0);
         break;
+	case WM_SIZE:
+		if (wParam != SIZE_MINIMIZED) {
+			uint32 width = LOWORD(lParam);
+			uint32 height = HIWORD(lParam);
+			Renderer.ReSize(width, height);
+		}
+		break;
     default:
         return DefWindowProc(hWnd, message, wParam, lParam);
     }

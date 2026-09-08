@@ -13,17 +13,19 @@ FRenderer::~FRenderer() {
 }
 
 void FRenderer::Create(HWND WindowHandle, UINT width, UINT height) {
-	Width = width;
-	Height = height;
+	WindowInfoWriter.Emplace(RenderWindowInfo{
+		.ScreenWidth = width,
+		.ScreenHeight = height,
+		.Viewport = {}
+	});
 
 	FRenderer::CreateDeviceAndSwapChain(WindowHandle);
 	FRenderer::CreateRTV();
 	FRenderer::CreateDSV();
 
 	ModelContextArray.Initialize(Device.Get(), DeviceContext.Get(), 128);
-
 	RootConstants.Initialize(Device.Get());
-	RootConstants.Bind(DeviceContext.Get(), 0, EGraphicsShaderStage::Graphics);
+	LineRenderer.Initialize(Device.Get(), 1024);
 }
 
 void FRenderer::BeginFrame() {
@@ -32,7 +34,7 @@ void FRenderer::BeginFrame() {
 
 	DeviceContext->OMSetRenderTargets(1, RenderTargetView.GetAddressOf(), DepthStencilView.Get());
 	
-	DeviceContext->RSSetViewports(1, &Viewport);
+	DeviceContext->RSSetViewports(1, &WindowInfoReader.Read()->Viewport);
 }
 
 void FRenderer::EndFrame() {
@@ -86,7 +88,9 @@ void FRenderer::Render(FRenderProbe& Probe) {
 
 	uint32 InstanceCount{ 0 };
 
+	RootConstants.Bind(DeviceContext.Get(), 0, EGraphicsShaderStage::Graphics);
 	AssetRegistry->GetMaterialBuffer().Flush(DeviceContext.Get());
+
 	for (auto g : Groups) {
 		const FActorProbe& First = g.front();
 		UPipeline* Pipeline = AssetRegistry->ResolveAsset<UPipeline>(First.PipelineHandle);
@@ -121,6 +125,65 @@ void FRenderer::Render(FRenderProbe& Probe) {
 
 		InstanceCount += static_cast<uint32>(g.size());
 	}
+
+
+	LineRenderer.AddRay(FVector3{ 0.0f, 0.0f, 0.0f }, FVector3{ 1.0f, 0.0f, 0.0f }, 1000.0f, FVector4{ 1.0f, 0.0f, 0.0f, 1.0f }, 3.0f, ELineDepthMode::Overlay);
+	LineRenderer.AddRay(FVector3{ 0.0f, 0.0f, 0.0f }, FVector3{ 0.0f, 1.0f, 0.0f }, 1000.0f, FVector4{ 0.0f, 1.0f, 0.0f, 1.0f }, 3.0f, ELineDepthMode::Overlay);
+	LineRenderer.AddRay(FVector3{ 0.0f, 0.0f, 0.0f }, FVector3{ 0.0f, 0.0f, 1.0f }, 1000.0f, FVector4{ 0.0f, 0.0f, 1.0f, 1.0f }, 3.0f, ELineDepthMode::Overlay);
+
+	LineRenderer.Render(DeviceContext.Get(), FLineViewData{
+			.ViewProjection = Probe.MainCameraProbe.ViewProjection,
+			.ViewportSize = FVector2D{ WindowInfoReader.Read()->Viewport.Width, WindowInfoReader.Read()->Viewport.Height }
+		}
+	);
+}
+
+void FRenderer::ReSize(uint32 width, uint32 height) {
+	WindowInfoWriter.Modify([&](RenderWindowInfo& Info) {
+		Info.ScreenWidth = width;
+		Info.ScreenHeight = height;
+		Info.Viewport = { 0.0f, 0.0f, (float)width, (float)height, 0.0f, 1.0f };
+		}
+	);
+
+	// 최소화되었을 때는 0x0이 들어올 수 있음
+	if (!SwapChain || width == 0 || height == 0) {
+		return;
+	}
+
+	// ResizeBuffers 전에 백 버퍼를 참조하는 모든 리소스를 해제해야 함
+	DeviceContext->OMSetRenderTargets(0, nullptr, nullptr);
+
+	RenderTargetView.Reset();
+	BackBuffer.Reset();
+
+	DepthStencilView.Reset();
+	DepthStencilBuffer.Reset();
+
+	DXGI_SWAP_CHAIN_DESC SwapChainDesc{};
+	ErrorHandler::ReportHRESULT(SwapChain->GetDesc(&SwapChainDesc), "[ FRenderer ]", "Failed to get swap chain description.", ErrorHandler::EErrorLevel::Critical);
+
+	ErrorHandler::ReportHRESULT(SwapChain->ResizeBuffers(0, width, height, DXGI_FORMAT_UNKNOWN, SwapChainDesc.Flags), "[ FRenderer ]", "Failed to resize swap chain buffers.", ErrorHandler::EErrorLevel::Critical);
+
+	const D3D11_VIEWPORT Viewport{
+		0.0f,
+		0.0f,
+		static_cast<float>(width),
+		static_cast<float>(height),
+		0.0f,
+		1.0f
+	};
+
+	WindowInfoWriter.Modify([&](RenderWindowInfo& Info) {
+		Info.ScreenWidth = width;
+		Info.ScreenHeight = height;
+		Info.Viewport = Viewport;
+		});
+
+	CreateRTV();
+	CreateDSV();
+
+	DeviceContext->RSSetViewports(1, &Viewport);
 }
 
 void FRenderer::CreateDeviceAndSwapChain(HWND WindowHandle) {
@@ -129,8 +192,8 @@ void FRenderer::CreateDeviceAndSwapChain(HWND WindowHandle) {
 
 	// 스왑 체인 설정 구조체 초기화
 	DXGI_SWAP_CHAIN_DESC swapchaindesc = {};
-	swapchaindesc.BufferDesc.Width = Width; // 창 크기에 맞게 자동으로 설정
-	swapchaindesc.BufferDesc.Height = Height; // 창 크기에 맞게 자동으로 설정
+	swapchaindesc.BufferDesc.Width = WindowInfoReader.Read()->ScreenWidth; // 창 크기에 맞게 자동으로 설정
+	swapchaindesc.BufferDesc.Height = WindowInfoReader.Read()->ScreenHeight; // 창 크기에 맞게 자동으로 설정
 	swapchaindesc.BufferDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM; // 색상 포맷
 	swapchaindesc.SampleDesc.Count = 1; // 멀티 샘플링 비활성화
 	swapchaindesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT; // 렌더 타겟으로 사용
@@ -150,7 +213,9 @@ void FRenderer::CreateDeviceAndSwapChain(HWND WindowHandle) {
 	SwapChain->GetDesc(&swapchaindesc);
 
 	// 뷰포트 정보 설정
-	Viewport = { 0.0f, 0.0f, (float)swapchaindesc.BufferDesc.Width, (float)swapchaindesc.BufferDesc.Height, 0.0f, 1.0f };
+	WindowInfoWriter.Modify([&](RenderWindowInfo& Info) {
+		Info.Viewport = { 0.0f, 0.0f, (float)swapchaindesc.BufferDesc.Width, (float)swapchaindesc.BufferDesc.Height, 0.0f, 1.0f };
+	});
 }
 
 void FRenderer::CreateRTV() {
@@ -167,8 +232,8 @@ void FRenderer::CreateRTV() {
 
 void FRenderer::CreateDSV() {
 	D3D11_TEXTURE2D_DESC TextureDesc{};
-	TextureDesc.Width = Width;
-	TextureDesc.Height = Height;
+	TextureDesc.Width = WindowInfoReader.Read()->ScreenWidth;
+	TextureDesc.Height = WindowInfoReader.Read()->ScreenHeight;
 	TextureDesc.MipLevels = 1;
 	TextureDesc.ArraySize = 1;
 	TextureDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;

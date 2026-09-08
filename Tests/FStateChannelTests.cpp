@@ -196,4 +196,63 @@ TEST_SUITE("TStateChannel") {
         REQUIRE(*ModifiedValue != nullptr);
         CHECK_EQ(**ModifiedValue, 24);
     }
+
+    TEST_CASE("a read writer can observe its own writes") {
+        TStateChannel<int> Channel;
+        auto ReadWriter = Channel.GetReadWriter();
+
+        CHECK_FALSE(ReadWriter.HasValue());
+        CHECK_FALSE(ReadWriter.HasChanged());
+
+        ReadWriter.Write(42);
+
+        CHECK(ReadWriter.HasValue());
+        CHECK(ReadWriter.HasChanged());
+        REQUIRE(ReadWriter.Peek() != nullptr);
+        CHECK_EQ(*ReadWriter.Peek(), 42);
+        CHECK(ReadWriter.HasChanged());
+
+        const auto Result = ReadWriter.ReadIfChanged();
+        REQUIRE(Result.Value != nullptr);
+        CHECK(Result.Changed);
+        CHECK_EQ(*Result.Value, 42);
+        CHECK_FALSE(ReadWriter.HasChanged());
+    }
+
+    TEST_CASE("a read writer supports all write operations") {
+        TStateChannel<std::string> Channel;
+        auto ReadWriter = Channel.GetReadWriter();
+
+        CHECK_EQ(ReadWriter.Emplace("Macaw"), "Macaw");
+        REQUIRE(ReadWriter.Read() != nullptr);
+        CHECK_FALSE(ReadWriter.HasChanged());
+
+        CHECK(ReadWriter.Modify([](std::string& State) {
+            State += " Channel";
+        }));
+        CHECK(ReadWriter.HasChanged());
+        REQUIRE(ReadWriter.Read() != nullptr);
+        CHECK_EQ(*ReadWriter.Peek(), "Macaw Channel");
+
+        ReadWriter.Clear();
+        CHECK(ReadWriter.HasChanged());
+        CHECK_EQ(ReadWriter.Read(), nullptr);
+        CHECK_FALSE(ReadWriter.HasChanged());
+    }
+
+    TEST_CASE("copied read writers retain their own read position") {
+        TStateChannel<int> Channel{ 1 };
+        auto Original = Channel.GetReadWriter();
+
+        REQUIRE(Original.Read() != nullptr);
+        auto Copy = Original;
+
+        Original.Write(2);
+
+        CHECK(Original.HasChanged());
+        CHECK(Copy.HasChanged());
+        REQUIRE(Original.Read() != nullptr);
+        CHECK_FALSE(Original.HasChanged());
+        CHECK(Copy.HasChanged());
+    }
 }

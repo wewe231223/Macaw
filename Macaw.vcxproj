@@ -269,6 +269,7 @@
     <ClCompile Include="Render\Pipeline\UPipeline.cpp" />
     <ClCompile Include="Render\Pipeline\FShader.cpp" />
     <ClCompile Include="Render\Renderer.cpp" />
+    <ClCompile Include="Render\RenderWindowInfo.cpp" />
     <ClCompile Include="Scene\Component\UCollisionComponent.cpp" />
     <ClCompile Include="Serialize\FArchive.cpp" />
     <ClCompile Include="Serialize\FArchiveJson.cpp" />
@@ -366,6 +367,7 @@
     <ClInclude Include="Render\Pipeline\FShader.h" />
     <ClInclude Include="Render\Pipeline\Wrapper.h" />
     <ClInclude Include="Render\Renderer.h" />
+    <ClInclude Include="Render\RenderWindowInfo.h" />
     <ClInclude Include="Scene\Component\UCollisionComponent.h" />
     <ClInclude Include="Serialize\FArchive.h" />
     <ClInclude Include="Serialize\FArchiveJson.h" />
@@ -387,6 +389,8 @@
     <None Include="Content\Metadata\ConeMesh.meta" />
     <None Include="Content\Metadata\CubeMesh.meta" />
     <None Include="Content\Metadata\CylinderMesh.meta" />
+    <None Include="Content\Metadata\DepthTestedLine.meta" />
+    <None Include="Content\Metadata\OverlayLine.meta" />
     <None Include="Content\Metadata\PlaneMesh.meta" />
     <None Include="Content\Metadata\PyramidMesh.meta" />
     <None Include="Content\Metadata\RedMaterial.meta" />
@@ -394,6 +398,8 @@
     <None Include="Content\Metadata\TorusMesh.meta" />
     <None Include="Content\Pipeline\Alternate.json" />
     <None Include="Content\Pipeline\Base.json" />
+    <None Include="Content\Pipeline\LineDepthTested.json" />
+    <None Include="Content\Pipeline\LineOverlay.json" />
     <None Include="SimpleMath\SimpleMath.inl" />
   </ItemGroup>
   <ItemGroup>
@@ -402,6 +408,10 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </FxCompile>
     <FxCompile Include="Content\Shader\Base.hlsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </FxCompile>
+    <FxCompile Include="Content\Shader\Line.hlsl">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </FxCompile>

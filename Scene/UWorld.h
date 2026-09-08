@@ -13,6 +13,9 @@
 #include "Core/Base/FRenderProbe.h"
 #include "Render/Panel/FEditorInfo.h"
 
+#include "../Render/RenderWindowInfo.h"
+#include "../Core/Channel/FStateChannel.h"
+
 class AActor;
 class UCameraComponent;
 class UStaticMeshComponent;
@@ -109,6 +112,10 @@ public:
     std::optional<FStateChannel<FMessageEditorCameraState>::FReader> EditorCameraReader;
 
     void UpdateEditorCameraState();
+    void SetAssetRegistry(FAssetRegistry* InAssetRegistry);
+	void SetWindowInfoReader(TStateChannel<RenderWindowInfo>::FReader InReader) { WindowInfoReader = InReader; }
+
+    FAssetRegistry* GetAssetRegistry() const;
 
     void ResetWorld(FAssetRegistry* AssetRegistry, ID3D11Device* Device);
 
@@ -117,6 +124,8 @@ private:
     std::vector<AActor*> PendingDestroyActors;
     std::vector<UStaticMeshComponent*> RenderableComponents;
     std::vector<TObjectRef<UCollisionComponent>> CollisionComponents;
+
+	TStateChannel<RenderWindowInfo>::FReader WindowInfoReader;
 
     std::optional<FMessageChannel::FSender> EditorEventSender;
 
