@@ -50,19 +50,20 @@ void UStaticMeshComponent::OnDestroy()
     UPrimitiveComponent::OnDestroy();
 }
 
-void UStaticMeshComponent::MakeRender(FRenderProbe& OutProbe) const
+void UStaticMeshComponent::MakeRender(FActorProbe& OutProbe) const
 {
     if (!IsActive() || !IsVisible())
     {
         return;
     }
 
-    OutProbe.ActorProbes.push_back({
+    OutProbe = FActorProbe{
         GetWorldMatrix(),
         MeshHandle,
         MaterialHandle,
-        PipelineHandle
-    });
+        PipelineHandle,
+		0x0000'0000
+    };
 }
 
 

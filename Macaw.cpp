@@ -299,6 +299,19 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
             );
         }
     );
+	WorldCommandChannel.TryBind<FMousePickReleaseRequestMessage>(
+		[&World](const FMousePickReleaseRequestMessage& Message)
+		{
+			World.HandleMousePickReleaseRequest(Message);
+		});
+
+
+	FRenderer Renderer;
+	Renderer.Create(gHWND, DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT);
+	
+    FAssetRegistry AssetRegistry;
+	AssetRegistry.Initialize(Renderer.GetDevice(), 128);
+	Renderer.BindAssetRegistry(&AssetRegistry);
 
     SceneCommandChannel.TryBind<FMessageLoadScene>(
         [&World, &Renderer, &AssetRegistry](const FMessageLoadScene& Message)
@@ -336,21 +349,19 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     CameraActor->SetRootComponent(Camera);
 
     {
-        constexpr uint32 InstanceColumnCount = 10;
-        constexpr uint32 InstanceRowCount = 6;
-        constexpr float HorizontalSpacing = 0.9f;
-        constexpr float VerticalSpacing = 0.85f;
-        constexpr float NearInstanceDepth = 4.5f;
-        constexpr float FarInstanceDepth = 9.0f;
+        constexpr uint32 InstanceCount = 120;
+        constexpr float MinInstanceX = -30.0f;
+        constexpr float MaxInstanceX = 30.0f;
+        constexpr float MinInstanceY = -12.0f;
+        constexpr float MaxInstanceY = 12.0f;
+        constexpr float NearInstanceDepth = 6.0f;
+        constexpr float FarInstanceDepth = 70.0f;
 
         const FAssetHandle MeshHandle = AssetRegistry.GetAsset("SphereMesh");
         const FAssetHandle BasePipelineHandle = AssetRegistry.GetAsset("BasePipeline");
         const FAssetHandle AlternatePipelineHandle = AssetRegistry.GetAsset("AlternatePipeline");
         const FAssetHandle MaterialHandle = AssetRegistry.GetAsset("RedMaterial");
 
-
-        const float StartX = -0.5f * static_cast<float>(InstanceColumnCount - 1) * HorizontalSpacing;
-        const float StartY = 0.5f * static_cast<float>(InstanceRowCount - 1) * VerticalSpacing;
 
         const auto Random01 = [](uint32 Seed) {
             Seed ^= Seed >> 16;
@@ -365,50 +376,43 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
         UMesh* Mesh =
             AssetRegistry.ResolveAsset<UMesh>( MeshHandle);
 
-        Mesh->CalculateBounds();
-
-        for (uint32 Row = 0; Row < InstanceRowCount; ++Row) {
-            for (uint32 Column = 0; Column < InstanceColumnCount; ++Column) {
-                const uint32 InstanceIndex = Row * InstanceColumnCount + Column;
-                const float DepthFactor = Random01(InstanceIndex * 7U + 1U);
-                const float ScaleFactor = 0.65f + Random01(InstanceIndex * 7U + 2U) * 0.7f;
-                const float PositionJitterX = (Random01(InstanceIndex * 7U + 3U) - 0.5f) * 0.35f;
-                const float PositionJitterY = (Random01(InstanceIndex * 7U + 4U) - 0.5f) * 0.25f;
-                const float Pitch = (Random01(InstanceIndex * 7U + 5U) - 0.5f) * 0.5f;
-                const float Yaw = (Random01(InstanceIndex * 7U + 6U) - 0.5f) * 0.5f;
-                const float Roll = (Random01(InstanceIndex * 7U + 7U) - 0.5f) * 1.3f;
+        for (uint32 InstanceIndex = 0; InstanceIndex < InstanceCount; ++InstanceIndex) {
+            const float PositionX = MinInstanceX + Random01(InstanceIndex * 7U + 1U) * (MaxInstanceX - MinInstanceX);
+            const float PositionY = MinInstanceY + Random01(InstanceIndex * 7U + 2U) * (MaxInstanceY - MinInstanceY);
+            const float PositionZ = NearInstanceDepth + Random01(InstanceIndex * 7U + 3U) * (FarInstanceDepth - NearInstanceDepth);
+            const float ScaleFactor = 0.65f + Random01(InstanceIndex * 7U + 4U) * 0.7f;
+            const float Pitch = (Random01(InstanceIndex * 7U + 5U) - 0.5f) * 0.5f;
+            const float Yaw = (Random01(InstanceIndex * 7U + 6U) - 0.5f) * 0.5f;
+            const float Roll = (Random01(InstanceIndex * 7U + 7U) - 0.5f) * 1.3f;
 
                 AActor* InstanceActor = World.AdoptActor<AActor>();
                 UStaticMeshComponent* InstanceComponent = InstanceActor->AddComponent<UStaticMeshComponent>();
                 UCollisionComponent* CollisionComponent = InstanceActor->AddComponent<UCollisionComponent>();
 
-                InstanceActor->SetRootComponent(InstanceComponent);
-                CollisionComponent->AttachTo(InstanceComponent);
+            InstanceActor->SetRootComponent(InstanceComponent);
+            CollisionComponent->AttachTo(InstanceComponent);
 
-                InstanceComponent->GetTransform().SetPosition({
-                    StartX + static_cast<float>(Column) * HorizontalSpacing + PositionJitterX,
-                    StartY - static_cast<float>(Row) * VerticalSpacing + PositionJitterY,
-                    NearInstanceDepth + DepthFactor * (FarInstanceDepth - NearInstanceDepth)
-                    });
-                InstanceComponent->GetTransform().SetRotation({ Pitch, Yaw, Roll });
-                InstanceComponent->GetTransform().SetScale({ ScaleFactor, ScaleFactor, ScaleFactor });
+            InstanceComponent->GetTransform().SetPosition({
+                PositionX,
+                PositionY,
+                PositionZ
+                });
+            InstanceComponent->GetTransform().SetRotation({ Pitch, Yaw, Roll });
+            InstanceComponent->GetTransform().SetScale({ ScaleFactor, ScaleFactor, ScaleFactor });
 
-                if (Mesh != nullptr)
-                {
-                    CollisionComponent->SetBounds(
-                        Mesh->GetBoundsCenter(),
-                        Mesh->GetBoundsExtent());
-                }
+            if (Mesh != nullptr)
+            {
+                CollisionComponent->SetBounds(Mesh->GetLocalBoundingBox());
+            }
 
-                InstanceComponent->SetMeshHandle(MeshHandle);
-                const bool bUseAlternatePipeline = (Row + Column) % 2 == 1;
-                InstanceComponent->SetPipelineHandle(bUseAlternatePipeline ? AlternatePipelineHandle : BasePipelineHandle);
-                InstanceComponent->SetMaterialHandle(MaterialHandle);
+            InstanceComponent->SetMeshHandle(MeshHandle);
+            const bool bUseAlternatePipeline = InstanceIndex % 2 == 1;
+            InstanceComponent->SetPipelineHandle(bUseAlternatePipeline ? AlternatePipelineHandle : BasePipelineHandle);
+            InstanceComponent->SetMaterialHandle(MaterialHandle);
 
-                if (InstanceIndex == 0)
-                {
-                    TestCollision = CollisionComponent;
-                }
+            if (InstanceIndex == 0)
+            {
+                TestCollision = CollisionComponent;
             }
         }
 
@@ -465,8 +469,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
                 DeltaTime,
                 ImGui::GetIO().WantCaptureKeyboard);
 
-            WorldCommandChannel.Dispatch();
             EditorEventChannel.Dispatch();
+            
+            WorldCommandChannel.Dispatch();
 
             SpawnCommandChannel.Dispatch();
             SceneCommandChannel.Dispatch();

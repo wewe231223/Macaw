@@ -19,7 +19,10 @@ public:
 private:
     std::optional<FMessageChannel::FSender> WorldCommandSender;
 
+	bool bLeftButtonDown = false;
     bool bLeftClickPending = false;
+    bool bLeftClickReleasedPending = false; 
+
     std::int32_t LeftClickX = 0;
     std::int32_t LeftClickY = 0;
 

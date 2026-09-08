@@ -3,7 +3,7 @@
 #include "UActorComponent.h"
 #include "USceneComponent.h"
 
-struct FRenderProbe;
+#include "../../Core/Base/FRenderProbe.h"
 
 class UPrimitiveComponent : public USceneComponent
 {
@@ -16,7 +16,7 @@ public:
     bool IsVisible() const;
     void SetVisible(bool bInVisible);
 
-    virtual void MakeRender(FRenderProbe& OutProbe) const {};
+    virtual void MakeRender(FActorProbe& OutProbe) const {};
 
 protected:
     void Serialize(FArchive& Archive) override;

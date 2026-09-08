@@ -2,7 +2,9 @@ struct FModelContext
 {
     row_major float4x4 World;
     uint MaterialIndex;
+    uint Flags;
 };
+
 
 struct FMaterial
 {
@@ -41,7 +43,8 @@ struct PS_INPUT
     float4 Position : SV_POSITION;
     float3 Normal : NORMAL;
     float2 UV : TEXCOORD0;
-    nointerpolation uint MaterialIndex : TEXCOORD1;
+    nointerpolation uint MaterialIndex : Jungle1;
+    nointerpolation float3 ColorCoefficient : Jungle2;
 };
 
 PS_INPUT mainVS(VS_INPUT Input, uint InstanceID : SV_InstanceID)
@@ -54,7 +57,17 @@ PS_INPUT mainVS(VS_INPUT Input, uint InstanceID : SV_InstanceID)
     Output.Normal = mul(Input.Normal, (float3x3) ModelContext.World);
     Output.UV = Input.UV;
     Output.MaterialIndex = ModelContext.MaterialIndex;
-
+    
+    if ((ModelContext.Flags & 1) != 0)
+    {
+        Output.ColorCoefficient = float3(1.0f, 0.0f, 0.0f);
+    }
+    else
+    {
+        Output.ColorCoefficient = float3(1.0f, 1.0f, 1.0f);
+    }
+    
+    
     return Output;
 }
 
@@ -64,6 +77,10 @@ float4 mainPS(PS_INPUT Input) : SV_TARGET
     float Stripe = step(0.5f, frac((Input.UV.x + Input.UV.y) * 6.0f));
     float3 AlternateColor = lerp(MaterialColor.bgr, float3(0.1f, 0.85f, 1.0f), 0.7f);
     float Brightness = lerp(0.4f, 1.0f, Stripe);
+    
+    float4 FinalColor = float4(saturate(AlternateColor * Brightness), MaterialColor.a);
 
-    return float4(saturate(AlternateColor * Brightness), MaterialColor.a);
+    FinalColor.rgb *= Input.ColorCoefficient;
+    
+    return FinalColor;
 }
