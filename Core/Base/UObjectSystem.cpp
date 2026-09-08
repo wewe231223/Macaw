@@ -10,6 +10,7 @@ namespace
     struct FObjectRegistryState
     {
         std::vector<FObjectItem> ObjectItems;
+        TMap<FGuid, std::uint32_t> GuidToIndexMap;
         std::vector<std::uint32_t> FreeIndices;
         std::uint32_t ObjectCount = 0;
     };
@@ -58,8 +59,18 @@ FObjectHandle UObjectSystem::Register(UObject* Object)
 
     ++State.ObjectCount;
 
+    State.GuidToIndexMap[Object->GetGuid()] = Index;
+
     return Handle;
 }
+
+FObjectHandle UObjectSystem::RegisterWithGuid(UObject* Object, const FGuid& InGuid)
+{
+    Object->RestoreGuid(InGuid);
+
+    return Register(Object);
+}
+
 
 void UObjectSystem::Unregister(
     UObject* Object,
@@ -88,6 +99,8 @@ void UObjectSystem::Unregister(
     {
         return;
     }
+
+    State.GuidToIndexMap.erase(Object->GetGuid());
 
     Item.Object = nullptr;
 
@@ -133,30 +146,20 @@ UObject* UObjectSystem::Resolve(FObjectHandle Handle)
     return Item.Object;
 }
 
-FObjectHandle UObjectSystem::FindHandleByGuid(
-    const FGuid& Guid)
+FObjectHandle UObjectSystem::FindHandleByGuid(const FGuid& Guid)
 {
     FObjectRegistryState& State = GetRegistryState();
 
-    for (std::uint32_t Index = 0;
-        Index < State.ObjectItems.size();
-        ++Index)
+    auto It = State.GuidToIndexMap.find(Guid);
+    if (It != State.GuidToIndexMap.end())
     {
-        const FObjectItem& Item = State.ObjectItems[Index];
+        std::uint32_t Index = It->second;
 
-        if (Item.Object == nullptr)
+        return FObjectHandle
         {
-            continue;
-        }
-
-        if (Item.Object->GetGuid() == Guid)
-        {
-            return FObjectHandle
-            {
-                Index,
-                Item.Generation
-            };
-        }
+            Index,
+            State.ObjectItems[Index].Generation
+        };
     }
 
     return {};

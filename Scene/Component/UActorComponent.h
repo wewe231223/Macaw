@@ -3,7 +3,7 @@
 #include "Core/Base/UObject.h"
 
 class AActor;
-
+class FArchive;
 class UActorComponent : public UObject
 {
 public:

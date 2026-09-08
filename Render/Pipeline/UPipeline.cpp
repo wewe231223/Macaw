@@ -5,8 +5,25 @@
 
 #include <memory>
 
+#include "../../Core/Asset/FAssetMetadataParser.h"
 
-bool UPipeline::Initialize(ID3D11Device* Device, const FPipelineDescription& Description) {
+
+void UPipeline::Initialize(ID3D11Device* Device, const std::filesystem::path& metaData) {
+	UAsset::Initialize(Device, metaData);
+
+	FAssetMetadataParser MetadataParser{};
+	ErrorHandler::Report(not MetadataParser.Load(AssetMetaDataPath), " [ UPipeline ]", "Failed to load metadata", ErrorHandler::EErrorLevel::Critical);
+
+    auto path = MetadataParser.ResolvePath("FilePath");
+
+    FPipelineDescription Description{};
+	ErrorHandler::Report(not UPipeline::LoadPipelineDescription(path, Description), " [ UPipeline ]", "Failed to load pipeline description", ErrorHandler::EErrorLevel::Critical);
+	
+    ErrorHandler::Report(not UPipeline::Make(Device, Description), " [ UPipeline ]", "Failed to create pipeline", ErrorHandler::EErrorLevel::Critical);
+}
+
+
+bool UPipeline::Make(ID3D11Device* Device, const FPipelineDescription& Description) {
     if (Device == nullptr) {
         ErrorHandler::Report("Pipeline::Initialize", "A valid Direct3D device is required to initialize a pipeline.", ErrorHandler::EErrorLevel::Error);
         return false;
@@ -102,16 +119,6 @@ bool UPipeline::Initialize(ID3D11Device* Device, const FPipelineDescription& Des
     return true;
 }
 
-bool UPipeline::Initialize(ID3D11Device* Device, const std::filesystem::path& OptionFile) {
-    FPipelineDescription Description;
-
-    if (!UPipeline::LoadPipelineDescription(OptionFile, Description)) {
-        return false;
-    }
-
-    return Initialize(Device, Description);
-}
-
 void UPipeline::Bind(ID3D11DeviceContext* Context) const {
     if (Context == nullptr) {
         ErrorHandler::Report("Pipeline::Bind", "A valid Direct3D device context is required to bind a pipeline.", ErrorHandler::EErrorLevel::Error);
@@ -155,7 +162,7 @@ bool UPipeline::LoadPipelineDescription(const std::filesystem::path& Path, FPipe
 #endif
 
     if (File == nullptr) {
-        ErrorHandler::Report("Pipeline::LoadPipelineDescription", "Failed to open the pipeline option file.", ErrorHandler::EErrorLevel::Error);
+        ErrorHandler::Report("Pipeline::LoadPipelineDescription", "Failed to open the pipeline option file.", ErrorHandler::EErrorLevel::Critical);
         return false;
     }
 
@@ -300,3 +307,8 @@ bool UPipeline::LoadPipelineDescription(const std::filesystem::path& Path, FPipe
 
     return true;
 }
+
+void UPipeline::Serialize(FArchive& Ar) {
+	UAsset::Serialize(Ar);
+}
+

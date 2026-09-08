@@ -5,6 +5,7 @@
 #include "Core/Base/UObjectSystem.h"
 #include "Scene/UWorld.h"
 #include "ImGui/imgui.h"
+#include "../../Scene/AActor.h"
 
 void DrawStatWindow(const UWorld& World)
 {
@@ -44,7 +45,8 @@ void DrawStatWindow(const UWorld& World)
 	ImGui::Text("Allocated : %llu bytes (%.2f Kib)", static_cast<unsigned long long>(Stats.AllocatedBytes), AllocatedKiB);
 	ImGui::Text("Peak Allocated: %llu bytes (%.2f Kib)", static_cast<unsigned long long>(Stats.PeakAllocatedBytes), PeakKiB);
 	ImGui::Text("Active allocations: %llu", static_cast<unsigned long long>(Stats.ActiveAllocationCount));
-	ImGui::Text("Total allcation calls: %llu", static_cast<unsigned long long>(Stats.TotalAllocationCount));
+	ImGui::Text("Total allocation calls: %llu", static_cast<unsigned long long>(Stats.TotalAllocationCount));
+	ImGui::Text("Total deallocation calls: %llu", static_cast<unsigned long long>(Stats.TotalDeallocationCount));
 
 	float UsageRatio = 0.0f;
 

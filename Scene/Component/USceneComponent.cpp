@@ -12,6 +12,14 @@ const FTransform& USceneComponent::GetTransform() const
     return Transform;
 }
 
+void USceneComponent::Serialize(FArchive& Archive)
+{
+    UActorComponent::Serialize(Archive);
+
+    Archive.SerializeStruct("Transform", Transform);
+}
+
+
 void USceneComponent::OnDestroy()
 {
     for (TObjectRef<USceneComponent>& ChildRef : Children)
@@ -102,8 +110,3 @@ FMatrix USceneComponent::GetWorldMatrix() const
 }
 
 
-void USceneComponent::Serialize(FArchive& Archive)
-{
-	UActorComponent::Serialize(Archive);
-	Archive.SerializeStruct("Transform", Transform);
-}

@@ -12,10 +12,10 @@
 #include "../../ErrorHandler.h"
 
 class UObject;
-
 namespace UObjectSystem
 {
 	FObjectHandle Register(UObject* Object);
+	FObjectHandle RegisterWithGuid(UObject* Object, const FGuid& InGuid);
 }
 
 class UObject
@@ -49,25 +49,21 @@ public:
 	static void operator delete(void* Ptr, std::align_val_t Alignment) noexcept;
 
 	// RTTI
-
-	void RestoreGuid(const FGuid& InGuid); // for testing
-
 	JG_DECLARE_ROOT_TYPEINFO(UObject)
 protected:
 	virtual void Serialize(FArchive& Archive)
 	{
 		Archive.Serialize("Guid", Guid);
 		FString TypeNameStr(GetTypeInfo()->TypeName);
-		Archive.Serialize("Name", TypeNameStr);
+		Archive.Serialize("TypeName", TypeNameStr);
 	}
 
 private:
 	friend FObjectHandle UObjectSystem::Register(UObject* Object);
+	friend FObjectHandle UObjectSystem::RegisterWithGuid(UObject* Object, const FGuid& InGuid);
 
 	void SetHandle(FObjectHandle InHandle);
-
-
-
+	void RestoreGuid(const FGuid& InGuid); 
 
 private:
 	FGuid Guid;

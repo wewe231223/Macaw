@@ -4,6 +4,7 @@
 #include "Core/Base/TObjectRef.h"
 #include "UActorComponent.h"
 
+class FArchive;
 class USceneComponent : public UActorComponent
 {
 public:
@@ -19,14 +20,14 @@ public:
 	const FTransform& GetTransform() const;
 
 	void AttachTo(USceneComponent* InParent);
-
+	FMatrix GetWorldMatrix() const;
 	USceneComponent* GetParent() const;
 	const std::vector<TObjectRef<USceneComponent>>& GetChildren() const;
 
-	FMatrix GetWorldMatrix() const;
-
 protected:
 	void Serialize(FArchive& Archive) override;
+
+
 
 private:
 	FTransform Transform;

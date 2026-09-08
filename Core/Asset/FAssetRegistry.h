@@ -1,18 +1,18 @@
 ﻿#pragma once
 
 #include "../Base/UObject.h"
+#include "UAsset.h"
 #include "FAssetHandle.h"
 #include "FMaterialBuffer.h"
 #include "UMaterial.h"
 
 #include <d3d11.h>
-
-enum EAssetType {
-    Mesh = 0,
-    Pipeline = 1,
-    Material = 2,
-    END
-};
+#include <filesystem>
+#include <functional>
+#include <memory>
+#include <type_traits>
+#include <utility>
+#include <ranges>
 
 class FAssetRegistry {
 public:
@@ -28,84 +28,62 @@ public:
 public:
     bool Initialize(ID3D11Device* Device, uint32 MaxMaterialCount = 4096);
 
-    template<typename T, typename... Args> requires std::is_base_of_v<UObject, T>
-    inline FAssetHandle EmplaceAsset(ID3D11Device* Device, EAssetType Type, FString Name, Args&&... args) {
+    FAssetHandle AdoptAsset(ID3D11Device* Device, const FGuid& ID, const FString& Name, const std::filesystem::path& MetadataPath, std::unique_ptr<UObject>&& Asset);
+
+    template<typename T> requires std::is_base_of_v<UAsset, T>
+    FAssetHandle EmplaceAsset(ID3D11Device* Device, const FString& Name, const std::filesystem::path& MetadataPath = {}) {
         std::unique_ptr<T> NewAsset = std::make_unique<T>();
-		NewAsset->Initialize(Device, std::forward<Args>(args)...);
+        std::unique_ptr<UObject> Asset = std::move(NewAsset);
 
-        if (!NewAsset->Initialize(Device, std::forward<Args>(args)...)) {
-            return {};
-        }
-
-        if constexpr (std::is_base_of_v<UMaterial, T>) {
-            const uint32 GPUIndex = MaterialBuffer.RegisterMaterial(NewAsset.get());
-
-            if (GPUIndex == UINT32_MAX) {
-                return {};
-            }
-        }
-
-        auto& Container = Assets[Type];
-
-        size_t NewAssetIndex = Container.size();
-
-        auto It = std::find_if(Container.begin(), Container.end(), [](const TPair<FAssetHandle, std::unique_ptr<UObject>>& Pair) {
-            return Pair.second == nullptr;
-            });
-
-        FAssetHandle NewHandle{};
-
-        if (It != Container.end()) {
-            NewAssetIndex = static_cast<size_t>(std::distance(Container.begin(), It));
-
-            NewHandle = FAssetHandle{
-                static_cast<uint32>(NewAssetIndex),
-                It->first.Generation + 1
-            };
-
-            Container[NewAssetIndex] = TPair<FAssetHandle, std::unique_ptr<UObject>>{
-                NewHandle,
-                std::move(NewAsset)
-            };
-        }
-        else {
-            NewHandle = FAssetHandle{
-                static_cast<uint32>(NewAssetIndex),
-                0
-            };
-
-            Container.emplace_back(NewHandle, std::move(NewAsset));
-        }
-
-        AssetNameToHandle[Type][Name] = NewHandle;
-
-        return NewHandle;
+        return AdoptAsset(Device, FGuid::NewGuid(), Name, MetadataPath, std::move(Asset));
     }
 
-    FAssetHandle GetAsset(EAssetType Type, FString Name) const;
+    FAssetHandle GetAsset(const FString& Name) const;
+    FAssetHandle GetAsset(const FGuid& ID) const;
 
-    bool RemoveAsset(EAssetType Type, FAssetHandle Handle);
+    bool RemoveAsset(FAssetHandle Handle);
 
-    template<typename T> requires std::is_base_of_v<UObject, T>
-    inline T* ResolveAsset(EAssetType Type, FAssetHandle Handle) {
-        auto& Container = Assets[Type];
-
-        if (Handle.ID >= Container.size()) {
+    template<typename T> requires std::is_base_of_v<UAsset, T>
+    T* ResolveAsset(FAssetHandle Handle) {
+        if (Handle.ID >= Assets.size()) {
             return nullptr;
         }
 
-        auto& Entry = Container[Handle.ID];
+        auto& Entry = Assets[Handle.ID];
 
-        if (Entry.first.Generation != Handle.Generation || Entry.second == nullptr) {
+        if (Entry.first != Handle || Entry.second == nullptr) {
+            return nullptr;
+        }
+
+        if (!Entry.second->GetTypeInfo()->IsA(T::StaticTypeInfo())) {
             return nullptr;
         }
 
         return static_cast<T*>(Entry.second.get());
     }
 
-    template<typename T, typename Func>
-    void ModifyAsset(EAssetType Type, FAssetHandle Handle, Func&& Modifier) {
-        T* Asset = ResolveAsset<T>(Type, Handle);
+    template<typename T> requires std::is_base_of_v<UAsset, T>
+    const T* ResolveAsset(FAssetHandle Handle) const {
+        if (Handle.ID >= Assets.size()) {
+            return nullptr;
+        }
+
+        const auto& Entry = Assets[Handle.ID];
+
+        if (Entry.first != Handle || Entry.second == nullptr) {
+            return nullptr;
+        }
+
+        if (!Entry.second->GetTypeInfo().IsA(T::StaticTypeInfo())) {
+            return nullptr;
+        }
+
+        return static_cast<const T*>(Entry.second.get());
+    }
+
+    template<typename T, typename Func> requires std::is_base_of_v<UAsset, T>
+    void ModifyAsset(FAssetHandle Handle, Func&& Modifier) {
+        T* Asset = ResolveAsset<T>(Handle);
 
         if (Asset == nullptr) {
             return;
@@ -122,9 +100,21 @@ public:
         return MaterialBuffer;
     }
 
+    auto GetAssetList() {
+        return Assets | std::ranges::views::transform([](auto& Pair) -> UObject* {
+            return Pair.second.get();
+            });
+    }
 private:
-    TFixedArray<TArray<TPair<FAssetHandle, std::unique_ptr<UObject>>>, EAssetType::END> Assets{};
-    TFixedArray<TMap<FString, FAssetHandle>, EAssetType::END> AssetNameToHandle{};
+    FAssetHandle AllocateHandle();
+    void RemoveHandleMappings(FAssetHandle Handle);
+
+private:
+    TArray<TPair<FAssetHandle, std::unique_ptr<UObject>>> Assets{};
+    TArray<FAssetHandle> FreeHandles{};
+
+    TMap<FString, FAssetHandle> AssetNameToHandle{};
+    TMap<FGuid, FAssetHandle> AssetIDToHandle{};
 
     FMaterialBuffer MaterialBuffer{};
 };

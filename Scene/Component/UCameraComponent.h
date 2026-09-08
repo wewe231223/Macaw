@@ -2,6 +2,7 @@
 
 #include "USceneComponent.h"
 
+class FArchive;
 class UCameraComponent : public USceneComponent
 {
 public:

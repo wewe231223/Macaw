@@ -36,7 +36,7 @@ void FRenderer::BeginFrame() {
 }
 
 void FRenderer::EndFrame() {
-	SwapChain->Present(1, 0);
+	SwapChain->Present(0, DXGI_PRESENT_ALLOW_TEARING);
 }
 
 void FRenderer::Render(FRenderProbe& Probe) {
@@ -59,7 +59,7 @@ void FRenderer::Render(FRenderProbe& Probe) {
 	std::ranges::transform(Groups | std::views::join, std::back_inserter(Contexts), [&](const auto& AC) {
 		return ModelContext{
 			.World = AC.World,
-			.MaterialIndex = AssetRegistry->ResolveAsset<UMaterial>(EAssetType::Material, AC.MaterialHandle)->GetGPUIndex()
+			.MaterialIndex = AssetRegistry->ResolveAsset<UMaterial>(AC.MaterialHandle)->GetGPUIndex()
 		};
 	});
 
@@ -88,8 +88,8 @@ void FRenderer::Render(FRenderProbe& Probe) {
 	AssetRegistry->GetMaterialBuffer().Flush(DeviceContext.Get());
 	for (auto g : Groups) {
 		const ActorProbe& First = g.front();
-		UPipeline* Pipeline = AssetRegistry->ResolveAsset<UPipeline>(EAssetType::Pipeline, First.PipelineHandle);
-		UMesh* Mesh = AssetRegistry->ResolveAsset<UMesh>(EAssetType::Mesh, First.MeshHandle);
+		UPipeline* Pipeline = AssetRegistry->ResolveAsset<UPipeline>(First.PipelineHandle);
+		UMesh* Mesh = AssetRegistry->ResolveAsset<UMesh>(First.MeshHandle);
 		
 		Pipeline->Bind(DeviceContext.Get());
 
@@ -137,6 +137,7 @@ void FRenderer::CreateDeviceAndSwapChain(HWND WindowHandle) {
 	swapchaindesc.OutputWindow = WindowHandle; // 렌더링할 창 핸들
 	swapchaindesc.Windowed = TRUE; // 창 모드
 	swapchaindesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD; // 스왑 방식
+	swapchaindesc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH | DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING; // 모드 전환 허용
 
 	// Direct3D 장치와 스왑 체인을 생성
 	ErrorHandler::ReportHRESULT(D3D11CreateDeviceAndSwapChain(nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr,

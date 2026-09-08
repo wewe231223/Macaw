@@ -9,10 +9,12 @@ enum class EArchiveMode : uint8
     Counting 
 };
 
+class FAssetRegistry;
+
 class FArchive
 {
 public:
-    explicit FArchive(EArchiveMode InMode) : Mode(InMode) {}
+    explicit FArchive(EArchiveMode InMode);
 
     virtual ~FArchive() = default;
 
@@ -91,6 +93,18 @@ public:
         EndObjectScope();
     }
 
+    // ---------------------------------------------------
+    // 7. Asset Registry 처리
+    // ---------------------------------------------------
+    void SetAssetRegistry(FAssetRegistry* InputAssetRegistry);
+
+
+    FAssetRegistry* GetAssetRegistry();
+
+
 protected:
     const EArchiveMode Mode;
+
+private:
+    FAssetRegistry* AssetRegistry;
 };

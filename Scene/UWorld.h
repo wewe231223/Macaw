@@ -1,5 +1,6 @@
 ﻿#pragma once
 
+#include <filesystem>
 #include <optional>
 
 #include "Core/Base/TObjectRef.h"
@@ -9,9 +10,12 @@
 #include "Core/Base/UObject.h"
 #include "Core/Base/UObjectSystem.h"
 #include "Core/Base/FRenderProbe.h"
+
 class AActor;
 class UCameraComponent;
 class UStaticMeshComponent;
+struct ID3D11Device;
+class FAssetRegistry;
 
 class UCollisionComponent;
 class FAssetRegistry;
@@ -53,6 +57,10 @@ public:
     void SetMainCamera(UCameraComponent* InCamera);
     void ClearMainCamera(UCameraComponent* InCamera);
 
+    bool SaveScene(const FString& SceneName, FAssetRegistry* AssetRegistry);
+    bool LoadScene(const std::filesystem::path& ScenePath, ID3D11Device* Device, FAssetRegistry* AssetRegistry);
+
+	JG_DECLARE_DERIVED_TYPEINFO(UWorld, UObject);
     void InitializeEditorEventSender(
         FMessageChannel::FSender&& InSender);
 

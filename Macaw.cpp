@@ -77,6 +77,9 @@ LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 HWND gHWND;
 
 
+//#define LOAD 
+
+
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
                      _In_opt_ HINSTANCE hPrevInstance,
                      _In_ LPWSTR    lpCmdLine,
@@ -87,9 +90,19 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
     // TODO: 여기에 코드를 입력합니다.
 	TypeRegistry::Register(UObject::StaticTypeInfo());
+	TypeRegistry::Register(UAsset::StaticTypeInfo());
     TypeRegistry::Register(UMesh::StaticTypeInfo());
     TypeRegistry::Register(UPipeline::StaticTypeInfo());
+	TypeRegistry::Register(UColorMaterial::StaticTypeInfo());
     TypeRegistry::Register(AActor::StaticTypeInfo());
+
+	TypeRegistry::Register(UWorld::StaticTypeInfo());
+	TypeRegistry::Register(AActor::StaticTypeInfo());
+	TypeRegistry::Register(UCameraComponent::StaticTypeInfo());
+	TypeRegistry::Register(UStaticMeshComponent::StaticTypeInfo());
+	TypeRegistry::Register(UActorComponent::StaticTypeInfo());
+	TypeRegistry::Register(USceneComponent::StaticTypeInfo());
+	
 
 
     auto res = TypeRegistry::Find("UMesh")->Creator();
@@ -121,7 +134,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	Console::AddLog(Console::STDOutHandle, ELogLevel::Log, ELogCategory::Etc, "Macaw Engine Initialized.");
 
     // test
-    UWorld World;
+    UWorld World{};
 
     FMessageChannel WorldCommandChannel{ 64 };
     FMessageChannel EditorEventChannel{ 64 };
@@ -164,41 +177,17 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	AssetRegistry.Initialize(Renderer.GetDevice(), 128);
 	Renderer.BindAssetRegistry(&AssetRegistry);
 
+#ifdef LOAD
+	World.LoadScene("./scenes/test.json", Renderer.GetDevice(), &AssetRegistry);
+#else 
+    World.SetAssetRegistry(&AssetRegistry);
 
-    std::vector<FVector3> Positions{
-    { -0.5f, -0.5f, 0.0f },
-    {  0.0f,  0.5f, 0.0f },
-    {  0.5f, -0.5f, 0.0f }
-    };
+	AssetRegistry.EmplaceAsset<UPipeline>(Renderer.GetDevice(), "BasePipeline", "./Content/Metadata/BasePipeline.meta");
+	AssetRegistry.EmplaceAsset<UPipeline>(Renderer.GetDevice(), "AlternatePipeline", "./Content/Metadata/AlternatePipeline.meta");
 
-    std::vector<FVector3> Normals{
-        { 0.0f, 0.0f, -1.0f },
-        { 0.0f, 0.0f, -1.0f },
-        { 0.0f, 0.0f, -1.0f }
-    };
-
-    std::vector<FVector2D> UVs{
-        { 0.0f, 1.0f },
-        { 0.5f, 0.0f },
-        { 1.0f, 1.0f }
-    };
-
-    TArray<uint32> Indices{
-        0, 1, 2
-    };
-
+	AssetRegistry.EmplaceAsset<UMesh>(Renderer.GetDevice(), "SphereMesh", "./Content/Metadata/SphereMesh.meta");
     
-	AssetRegistry.EmplaceAsset<UPipeline>(Renderer.GetDevice(), EAssetType::Pipeline, "BasePipeline", "./Pipeline/Base.json");
-	AssetRegistry.EmplaceAsset<UPipeline>(Renderer.GetDevice(), EAssetType::Pipeline, "AlternatePipeline", "./Pipeline/Alternate.json");
-	AssetRegistry.EmplaceAsset<UMesh>(Renderer.GetDevice(), EAssetType::Mesh, "TriangleMesh",
-        Indices, 
-        MakeVertexAttribute<EVertexAttribute::Position>(Positions), 
-        MakeVertexAttribute<EVertexAttribute::Normal>(Normals), 
-        MakeVertexAttribute<EVertexAttribute::UV>(UVs)
-    );
-	AssetRegistry.EmplaceAsset<UColorMaterial>(Renderer.GetDevice(), EAssetType::Material, "RedMaterial", FVector4(1.0f, 0.0f, 0.0f, 1.0f));
-
-
+	AssetRegistry.EmplaceAsset<UColorMaterial>(Renderer.GetDevice(), "RedMaterial", "./Content/Metadata/RedMaterial.meta");
 
     AActor* CameraActor = World.SpawnActor<AActor>();
     UCameraComponent* Camera = CameraActor->AddComponent<UCameraComponent>();
@@ -215,10 +204,11 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
         constexpr float NearInstanceDepth = 4.5f;
         constexpr float FarInstanceDepth = 9.0f;
 
-        const FAssetHandle MeshHandle = AssetRegistry.GetAsset(EAssetType::Mesh, "TriangleMesh");
-        const FAssetHandle BasePipelineHandle = AssetRegistry.GetAsset(EAssetType::Pipeline, "BasePipeline");
-        const FAssetHandle AlternatePipelineHandle = AssetRegistry.GetAsset(EAssetType::Pipeline, "AlternatePipeline");
-        const FAssetHandle MaterialHandle = AssetRegistry.GetAsset(EAssetType::Material, "RedMaterial");
+        const FAssetHandle MeshHandle = AssetRegistry.GetAsset("SphereMesh");
+        const FAssetHandle BasePipelineHandle = AssetRegistry.GetAsset("BasePipeline");
+        const FAssetHandle AlternatePipelineHandle = AssetRegistry.GetAsset("AlternatePipeline");
+        const FAssetHandle MaterialHandle = AssetRegistry.GetAsset("RedMaterial");
+
 
         const float StartX = -0.5f * static_cast<float>(InstanceColumnCount - 1) * HorizontalSpacing;
         const float StartY = 0.5f * static_cast<float>(InstanceRowCount - 1) * VerticalSpacing;
@@ -234,9 +224,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
             };
 
         UMesh* Mesh =
-            AssetRegistry.ResolveAsset<UMesh>(
-                EAssetType::Mesh,
-                MeshHandle);
+            AssetRegistry.ResolveAsset<UMesh>( MeshHandle);
 
         Mesh->CalculateBounds();
 
@@ -285,6 +273,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
             }
         }
 
+	World.SaveScene("test", &AssetRegistry);
+#endif 
     }
 
     FRenderProbe Probe = World.BuildRenderProbe();
@@ -292,7 +282,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     std::string DebugText =
         "Actor Count = " + std::to_string(Probe.ActorProbes.size()) + "\n";
 
-    OutputDebugStringA(DebugText.c_str());
 
     if (TestCollision != nullptr)
     {

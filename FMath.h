@@ -6,6 +6,7 @@
 using FVector2D = DirectX::SimpleMath::Vector2;
 using FVector3 = DirectX::SimpleMath::Vector3;
 using FVector4 = DirectX::SimpleMath::Vector4;
+using FColor4 = DirectX::SimpleMath::Color;
 
 // rotate
 using FRotator = DirectX::SimpleMath::Vector3;

@@ -92,3 +92,4 @@ void UCameraComponent::Serialize(FArchive& Archive)
     Archive.Serialize("NearPlane", NearPlane);
     Archive.Serialize("FarPlane", FarPlane);
 }
+
