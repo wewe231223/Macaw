@@ -74,6 +74,12 @@
     <Filter Include="SimpleMath">
       <UniqueIdentifier>{106fee09-1c43-4673-961e-825b49e084ae}</UniqueIdentifier>
     </Filter>
+    <Filter Include="InputSystem">
+      <UniqueIdentifier>{0e87339f-ad22-4c95-8448-f478a90dbd37}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Scene\Message">
+      <UniqueIdentifier>{580e0660-3a89-4dd9-a037-b5334af9a0c3}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Macaw.rc">
@@ -267,11 +273,15 @@
       <Filter>Core\Asset</Filter>
     </ClCompile>
     <ClCompile Include="FEditorSelection.cpp" />
-    <ClCompile Include="FKeyboardInput.cpp" />
-    <ClCompile Include="FMouseInput.cpp" />
     <ClCompile Include="Render\Stats\StatWindow.cpp" />
     <ClCompile Include="SimpleMath\SimpleMath.cpp">
       <Filter>SimpleMath</Filter>
+    </ClCompile>
+    <ClCompile Include="FKeyboardInput.cpp">
+      <Filter>InputSystem</Filter>
+    </ClCompile>
+    <ClCompile Include="FMouseInput.cpp">
+      <Filter>InputSystem</Filter>
     </ClCompile>
     <ClCompile Include="Scene\Component\UCollisionComponent.cpp">
       <Filter>Scene\Component</Filter>
@@ -491,18 +501,33 @@
       <Filter>Core\Asset</Filter>
     </ClInclude>
     <ClInclude Include="FEditorSelection.h" />
-    <ClInclude Include="FKeyboardCameraMoveRequestMessage.h" />
-    <ClInclude Include="FKeyboardInput.h" />
-    <ClInclude Include="FMouseCameraRotateRequestMessage.h" />
-    <ClInclude Include="FMouseInput.h" />
-    <ClInclude Include="FMousePickRequestMessage.h" />
-    <ClInclude Include="FWorldSelectionChangedMessage.h" />
     <ClInclude Include="Render\Stats\StatWindow.h" />
     <ClInclude Include="SimpleMath\SimpleMath.h">
       <Filter>SimpleMath</Filter>
     </ClInclude>
+    <ClInclude Include="FKeyboardInput.h">
+      <Filter>InputSystem</Filter>
+    </ClInclude>
+    <ClInclude Include="FMouseInput.h">
+      <Filter>InputSystem</Filter>
+    </ClInclude>
+    <ClInclude Include="FKeyboardCameraMoveRequestMessage.h">
+      <Filter>Scene\Message</Filter>
+    </ClInclude>
+    <ClInclude Include="FMouseCameraRotateRequestMessage.h">
+      <Filter>Scene\Message</Filter>
+    </ClInclude>
+    <ClInclude Include="FMousePickRequestMessage.h">
+      <Filter>Scene\Message</Filter>
+    </ClInclude>
+    <ClInclude Include="FWorldSelectionChangedMessage.h">
+      <Filter>Scene\Message</Filter>
+    </ClInclude>
     <ClInclude Include="Scene\Component\UCollisionComponent.h">
       <Filter>Scene\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="EKeyState.h">
+      <Filter>InputSystem</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

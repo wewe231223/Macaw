@@ -339,7 +339,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
             const float DeltaTime = std::chrono::duration<float>(CurrentTickTime - LastTickTime).count();
             LastTickTime = CurrentTickTime;
 
-            World.Tick(DeltaTime);
             Renderer.BeginFrame();
 
 
@@ -347,6 +346,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
             ImGui_ImplWin32_NewFrame();
             ImGui::NewFrame();
 
+            // Input states are updated by ProcessWindowMessage in WndProc.
+            // Future gizmo input handling belongs here, before world commands.
+            // Call GMouseInput.Consume(Left) when the gizmo takes the press.
             GMouseInput.DispatchPendingWorldCommands(
                 DEFAULT_WINDOW_WIDTH,
                 DEFAULT_WINDOW_HEIGHT,
@@ -356,9 +358,10 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
                 DeltaTime,
                 ImGui::GetIO().WantCaptureKeyboard);
 
-            EditorEventChannel.Dispatch();
-            
             WorldCommandChannel.Dispatch();
+            World.Tick(DeltaTime);
+
+            EditorEventChannel.Dispatch();
 
             Renderer.Render(World.BuildRenderProbe());
 
@@ -369,6 +372,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
             ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
             
             Renderer.EndFrame();
+
+            GMouseInput.EndFrame();
         }
     }
    

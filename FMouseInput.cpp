@@ -25,6 +25,17 @@ void FMouseInput::InitializeWorldCommandSender(
     WorldCommandSender.emplace(std::move(InSender));
 }
 
+EKeyState FMouseInput::GetKeyState(EMouseSide Side) const
+{
+    return KeyStates[Side];
+}
+
+const FMouseInput::DragCapture&
+FMouseInput::GetDragCapture(EMouseSide Side) const
+{
+    return ClickCaptures[Side];
+}
+
 void FMouseInput::ProcessWindowMessage(
     UINT Message,
     WPARAM WParam,
@@ -35,78 +46,117 @@ void FMouseInput::ProcessWindowMessage(
     switch (Message)
     {
     case WM_LBUTTONDOWN:
-    {
-        bLeftClickPending = true;
-        LeftClickX = GetMouseX(LParam);
-        LeftClickY = GetMouseY(LParam);
-        break;
-    }
-
     case WM_RBUTTONDOWN:
     {
-        bRightButtonDown = true;
-        bRightButtonPressedPending = true;
-        bRightButtonReleasedPending = false;
-        bRightDragAuthorized = false;
+        const EMouseSide Side =
+            Message == WM_LBUTTONDOWN ? Left : Right;
 
-        PendingRotateDeltaX = 0.0f;
-        PendingRotateDeltaY = 0.0f;
+        EKeyState& State = KeyStates[Side];
 
-        LastMouseX = GetMouseX(LParam);
-        LastMouseY = GetMouseY(LParam);
-        bHasLastMousePosition = true;
+        if (State == EKeyState::None ||
+            State == EKeyState::Released)
+        {
+            State = EKeyState::Pressed;
+            DragOwners[Side] = EDragOwner::None;
+
+            DragCapture& Capture = ClickCaptures[Side];
+
+            Capture.start = {
+                GetMouseX(LParam),
+                GetMouseY(LParam)
+            };
+
+            Capture.current = Capture.start;
+
+            if (Side == Right)
+            {
+                PendingRotateDeltaX = 0.0f;
+                PendingRotateDeltaY = 0.0f;
+            }
+        }
+
         break;
     }
 
     case WM_MOUSEMOVE:
     {
-        const std::int32_t CurrentMouseX = GetMouseX(LParam);
-        const std::int32_t CurrentMouseY = GetMouseY(LParam);
+        const POINT Position{
+            GetMouseX(LParam),
+            GetMouseY(LParam)
+        };
 
-        if (bRightButtonDown && bHasLastMousePosition)
+        for (std::size_t Side = 0; Side < MAX; ++Side)
         {
-            PendingRotateDeltaX +=
-                static_cast<float>(CurrentMouseX - LastMouseX);
+            if (KeyStates[Side] != EKeyState::Pressed &&
+                KeyStates[Side] != EKeyState::Down)
+            {
+                continue;
+            }
 
-            PendingRotateDeltaY -=
-                static_cast<float>(CurrentMouseY - LastMouseY);
+            DragCapture& Capture = ClickCaptures[Side];
+
+            if (Side == Right)
+            {
+                PendingRotateDeltaX += static_cast<float>(
+                    Position.x - Capture.current.x);
+
+                PendingRotateDeltaY -= static_cast<float>(
+                    Position.y - Capture.current.y);
+            }
+
+            Capture.current = Position;
         }
 
-        LastMouseX = CurrentMouseX;
-        LastMouseY = CurrentMouseY;
-        bHasLastMousePosition = true;
         break;
     }
 
+    case WM_LBUTTONUP:
     case WM_RBUTTONUP:
     {
-        bRightButtonDown = false;
-        bRightButtonReleasedPending = true;
-        bHasLastMousePosition = false;
+        const EMouseSide Side =
+            Message == WM_LBUTTONUP ? Left : Right;
+
+        EKeyState& State = KeyStates[Side];
+
+        if (State == EKeyState::Pressed ||
+            State == EKeyState::Down)
+        {
+            DragCapture& Capture = ClickCaptures[Side];
+
+            const POINT Position{
+                GetMouseX(LParam),
+                GetMouseY(LParam)
+            };
+
+            if (Side == Right)
+            {
+                PendingRotateDeltaX += static_cast<float>(
+                    Position.x - Capture.current.x);
+
+                PendingRotateDeltaY -= static_cast<float>(
+                    Position.y - Capture.current.y);
+            }
+
+            Capture.current = Position;
+            State = EKeyState::Released;
+        }
+
         break;
     }
-	case WM_LBUTTONUP:
-	{
-		bLeftClickReleasedPending = true;
-		bLeftButtonDown = false;
-		break;
-	}
 
     case WM_KILLFOCUS:
-    {
-        bLeftClickPending = false;
-        bRightButtonDown = false;
-        bRightButtonPressedPending = false;
-        bRightButtonReleasedPending = false;
-        bRightDragAuthorized = false;
-        bHasLastMousePosition = false;
-        PendingRotateDeltaX = 0.0f;
-        PendingRotateDeltaY = 0.0f;
+    case WM_CANCELMODE:
+    case WM_CAPTURECHANGED:
+        ResetKeyStates();
         break;
     }
+}
 
-    default:
-        break;
+void FMouseInput::Consume(EMouseSide Side)
+{
+    if (KeyStates[Side] == EKeyState::Pressed)
+    {
+        DragOwners[Side] = EDragOwner::Gizmo;
     }
 }
 
@@ -115,64 +165,90 @@ void FMouseInput::DispatchPendingWorldCommands(
     std::uint32_t ViewportHeight,
     bool bMouseCapturedByUI)
 {
+    // 누르기 시작한 시점에 입력 소유권을 결정한다.
+    // 기즈모가 Consume한 버튼은 그대로 유지한다.
+    for (std::size_t Side = 0; Side < MAX; ++Side)
+    {
+        if (KeyStates[Side] == EKeyState::Pressed &&
+            DragOwners[Side] == EDragOwner::None)
+        {
+            DragOwners[Side] = bMouseCapturedByUI
+                ? EDragOwner::UI
+                : EDragOwner::World;
+        }
+    }
+
     if (!WorldCommandSender.has_value())
     {
         return;
     }
 
-    if (bLeftClickPending)
+    if (DragOwners[Left] == EDragOwner::World)
     {
-        if (!bMouseCapturedByUI)
+        if (KeyStates[Left] == EKeyState::Pressed)
         {
+            const DragCapture& Capture = ClickCaptures[Left];
+
             WorldCommandSender->TryEmplace<FMousePickRequestMessage>(
-                LeftClickX,
-                LeftClickY,
+                Capture.start.x,
+                Capture.start.y,
                 ViewportWidth,
                 ViewportHeight);
         }
-
-        bLeftClickPending = false;
-    }
-    
-
-    if (bLeftClickReleasedPending) {
-        if (not bMouseCapturedByUI) {
-			WorldCommandSender->TryEmplace<FMousePickReleaseRequestMessage>();
-        }
-		bLeftClickReleasedPending = false;
-    }
-    
-
-    if (bRightButtonPressedPending)
-    {
-        bRightDragAuthorized = !bMouseCapturedByUI;
-        bRightButtonPressedPending = false;
-
-        if (!bRightDragAuthorized)
+        else if (KeyStates[Left] == EKeyState::Released)
         {
-            PendingRotateDeltaX = 0.0f;
-            PendingRotateDeltaY = 0.0f;
+            WorldCommandSender
+                ->TryEmplace<FMousePickReleaseRequestMessage>();
         }
     }
 
-    if (bRightDragAuthorized &&
+    if (DragOwners[Right] == EDragOwner::World &&
         (PendingRotateDeltaX != 0.0f ||
             PendingRotateDeltaY != 0.0f))
     {
-        WorldCommandSender->TryEmplace<
-            FMouseCameraRotateRequestMessage>(
+        WorldCommandSender
+            ->TryEmplace<FMouseCameraRotateRequestMessage>(
                 PendingRotateDeltaX,
                 PendingRotateDeltaY);
-
-        PendingRotateDeltaX = 0.0f;
-        PendingRotateDeltaY = 0.0f;
     }
 
-    if (bRightButtonReleasedPending)
+    PendingRotateDeltaX = 0.0f;
+    PendingRotateDeltaY = 0.0f;
+}
+
+void FMouseInput::EndFrame()
+{
+    for (std::size_t Side = 0; Side < MAX; ++Side)
     {
-        bRightDragAuthorized = false;
-        bRightButtonReleasedPending = false;
-        PendingRotateDeltaX = 0.0f;
-        PendingRotateDeltaY = 0.0f;
+        EKeyState& State = KeyStates[Side];
+
+        if (State == EKeyState::Pressed)
+        {
+            State = EKeyState::Down;
+        }
+        else if (State == EKeyState::Released)
+        {
+            State = EKeyState::None;
+            DragOwners[Side] = EDragOwner::None;
+        }
     }
+
+    PendingRotateDeltaX = 0.0f;
+    PendingRotateDeltaY = 0.0f;
+}
+
+void FMouseInput::ResetKeyStates()
+{
+    for (EKeyState& State : KeyStates)
+    {
+        // 드래그를 종료할 수 있도록 Released를 한 프레임 유지한다.
+        if (State == EKeyState::Pressed ||
+            State == EKeyState::Down)
+        {
+            State = EKeyState::Released;
+        }
+    }
+
+    PendingRotateDeltaX = 0.0f;
+    PendingRotateDeltaY = 0.0f;
 }
