@@ -85,6 +85,21 @@ void FControlPanel::DrawPanel()
             SceneSender.TryEmplace<FMessageLoadScene>(
                 FString(FilePath));
         }
+        
+        size_t SlashPos = FilePath.find_last_of("\\/");
+
+        std::string FileName;
+        if (SlashPos != std::string::npos)
+            FileName = FilePath.substr(SlashPos + 1);
+        else
+            FileName = FilePath;
+
+        size_t DotPos = FileName.find_last_of('.');
+        if (DotPos != std::string::npos)
+            FileName = FileName.substr(0, DotPos);
+
+        if (FileName.size() < sizeof(SceneNameBuffer))
+            std::memcpy(SceneNameBuffer, FileName.data(), FileName.size() + 1);
     }
 
     ImGui::Separator();
@@ -157,6 +172,8 @@ void FControlPanel::DrawPanel()
     ImGui::End();
 }
 
+
+
 FString FControlPanel::OpenFileDialog()
 {
     char FileName[MAX_PATH] = { 0 };
@@ -169,16 +186,17 @@ FString FControlPanel::OpenFileDialog()
     OpenFileName.lpstrFile = FileName;
     OpenFileName.nMaxFile = MAX_PATH;
 
-    OpenFileName.Flags = OFN_EXPLORER | OFN_FILEMUSTEXIST | OFN_HIDEREADONLY;
+    OpenFileName.Flags = OFN_EXPLORER | OFN_FILEMUSTEXIST | OFN_HIDEREADONLY | OFN_NOCHANGEDIR;
     OpenFileName.lpstrDefExt = "json";
 
     std::string InitialDirectoryPath = std::filesystem::absolute("./scenes").string();
-    OpenFileName.lpstrInitialDir = InitialDirectoryPath.c_str();
 
     if (!std::filesystem::exists(InitialDirectoryPath))
     {
         std::filesystem::create_directories(InitialDirectoryPath);
     }
+
+    OpenFileName.lpstrInitialDir = InitialDirectoryPath.c_str();
 
     if (GetOpenFileNameA(&OpenFileName))
     {
