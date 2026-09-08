@@ -488,9 +488,6 @@
     <ClInclude Include="Render\Panel\Stats\StatWindow.h">
       <Filter>Render\Panel\Stats</Filter>
     </ClInclude>
-    <ClInclude Include="FControlPanel.h">
-      <Filter>Render\Panel</Filter>
-    </ClInclude>
     <ClInclude Include="Scene\Component\UCollisionComponent.h">
       <Filter>Scene\Component</Filter>
     </ClInclude>

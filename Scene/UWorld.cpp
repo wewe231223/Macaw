@@ -124,6 +124,7 @@ void UWorld::FlushPendingDestroyActors()
         Actors.erase(It); 
     }
 
+    Actors.clear();
     PendingDestroyActors.clear();
 }
 
@@ -607,8 +608,8 @@ void UWorld::ResetWorld(FAssetRegistry* AssetRegistry, ID3D11Device* Device)
     }
     FlushPendingDestroyActors();
 
-    AssetRegistry->Reset();
-    AssetRegistry->Initialize(Device);
+    //AssetRegistry->Reset();
+    //AssetRegistry->Initialize(Device);
 }
 
 void UWorld::HandleNewScene(
