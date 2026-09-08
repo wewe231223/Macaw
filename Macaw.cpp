@@ -79,7 +79,6 @@ BOOL                InitInstance(HINSTANCE, int);
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 HWND gHWND;
 
-
 #define LOAD 
 
 
@@ -320,7 +319,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     );
 	
 #ifdef LOAD
-	World.LoadScene("./scenes/NewScene000.json", Renderer.GetDevice(), &AssetRegistry);
+	World.LoadScene("./scenes/t123.json", Renderer.GetDevice(), &AssetRegistry);
 #else 
 	AssetRegistry.EmplaceAsset<UPipeline>(Renderer.GetDevice(), "BasePipeline", "./Content/Metadata/BasePipeline.meta");
 	AssetRegistry.EmplaceAsset<UPipeline>(Renderer.GetDevice(), "AlternatePipeline", "./Content/Metadata/AlternatePipeline.meta");

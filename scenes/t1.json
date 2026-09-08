@@ -1,0 +1,29 @@
+{
+    "Assets": [
+        {
+            "Guid": "2BAB779B-4FC3-734F-A887-7BBF75AA906B",
+            "TypeName": "UPipeline",
+            "AssetName": "BasePipeline",
+            "AssetMetaDataPath": "./Content/Metadata/BasePipeline.meta"
+        },
+        {
+            "Guid": "83AD8E4C-45A0-0C89-4D45-6CB8B217E8A5",
+            "TypeName": "UPipeline",
+            "AssetName": "AlternatePipeline",
+            "AssetMetaDataPath": "./Content/Metadata/AlternatePipeline.meta"
+        },
+        {
+            "Guid": "7D622D25-4F77-9119-BEBB-7297CCE00CBD",
+            "TypeName": "UMesh",
+            "AssetName": "SphereMesh",
+            "AssetMetaDataPath": "./Content/Metadata/SphereMesh.meta"
+        },
+        {
+            "Guid": "F1117FE7-4B7C-8908-B1D1-37BD5C654A60",
+            "TypeName": "UColorMaterial",
+            "AssetName": "RedMaterial",
+            "AssetMetaDataPath": "./Content/Metadata/RedMaterial.meta"
+        }
+    ],
+    "Actors": []
+}
