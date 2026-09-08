@@ -441,8 +441,6 @@ void UWorld::HandleMouseCameraRotateRequest(const FMouseCameraRotateRequestMessa
                 Camera->GetFOV()
             }
         );
-
-        EditorCameraReader->Read();
     }
 }
 
@@ -671,9 +669,4 @@ void UWorld::PublishEditorCameraState()
             Camera->GetFOV()
         }
     );
-
-    if (EditorCameraStateReader.has_value())
-    {
-        EditorCameraStateReader->Read();
-    }
 }

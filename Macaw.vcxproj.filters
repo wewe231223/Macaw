@@ -26,9 +26,6 @@
     <Filter Include="Core\Base\UObject">
       <UniqueIdentifier>{3ff75d73-22b7-4fe1-a4bc-482401744d7e}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Core\Console">
-      <UniqueIdentifier>{04bc1b20-3b40-432b-873c-e254b260a303}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Imgui">
       <UniqueIdentifier>{c60b77dd-82f0-4925-acf5-d3375809e190}</UniqueIdentifier>
     </Filter>
@@ -71,9 +68,6 @@
     <Filter Include="SimpleMath">
       <UniqueIdentifier>{106fee09-1c43-4673-961e-825b49e084ae}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Render\Editor">
-      <UniqueIdentifier>{3cd3bcce-bf51-4c9a-bea6-3cf9ca14da4f}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Render\Panel">
       <UniqueIdentifier>{4e3ce944-6ea8-4c9f-901a-29c6726b4798}</UniqueIdentifier>
     </Filter>
@@ -82,6 +76,12 @@
     </Filter>
     <Filter Include="Render\Panel\Stats">
       <UniqueIdentifier>{61c3ed3a-ede4-40bb-b3ca-c1773bb281f1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Core\Console">
+      <UniqueIdentifier>{9da7b994-4ee8-4cb6-8a57-2978baa13764}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Serialize">
+      <UniqueIdentifier>{ac3c3dd3-84b0-4af9-997e-b43b888c1ef0}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -125,9 +125,6 @@
     <ClCompile Include="ErrorHandler.cpp" />
     <ClCompile Include="Core\Base\UObjectSystem.cpp">
       <Filter>Core\Base\UObject</Filter>
-    </ClCompile>
-    <ClCompile Include="Core\Console\Console.cpp">
-      <Filter>Core\Console</Filter>
     </ClCompile>
     <ClCompile Include="PCH.cpp" />
     <ClCompile Include="ImGui\imgui.cpp">
@@ -215,15 +212,6 @@
     <ClCompile Include="Core\Asset\FMaterialBuffer.cpp">
       <Filter>Core\Buffer</Filter>
     </ClCompile>
-    <ClCompile Include="Core\Base\UndoSystem\UUndoSystem.cpp">
-      <Filter>Core\Base\UndoSystem</Filter>
-    </ClCompile>
-    <ClCompile Include="Core\Base\UndoSystem\FUndoTransaction.cpp">
-      <Filter>Core\Base\UndoSystem</Filter>
-    </ClCompile>
-    <ClCompile Include="Core\Base\UndoSystem\FRecordObjectState.cpp">
-      <Filter>Core\Base\UndoSystem</Filter>
-    </ClCompile>
     <ClCompile Include="Core\Buffer\TGraphicsArray.cpp">
       <Filter>Core\Buffer</Filter>
     </ClCompile>
@@ -286,6 +274,14 @@
     <ClCompile Include="Render\Panel\FEditorSelection.cpp">
       <Filter>Render\Panel</Filter>
     </ClCompile>
+    <ClCompile Include="Core\Base\UndoSystem\FUndoRecords.cpp" />
+    <ClCompile Include="Core\Base\UndoSystem\FUndoSystem.cpp">
+      <Filter>Core\Base\UndoSystem</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Base\UndoSystem\FUndoTransaction.cpp">
+      <Filter>Core\Base\UndoSystem</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Console\Console.cpp" />
     <ClCompile Include="Render\Panel\Console\ConsoleWindow.cpp">
       <Filter>Render\Panel\Console</Filter>
     </ClCompile>
@@ -343,9 +339,6 @@
     <ClInclude Include="STL.h" />
     <ClInclude Include="Core\Base\UObjectSystem.h">
       <Filter>Core\Base\UObject</Filter>
-    </ClInclude>
-    <ClInclude Include="Core\Console\Console.h">
-      <Filter>Core\Console</Filter>
     </ClInclude>
     <ClInclude Include="ImGui\imconfig.h">
       <Filter>Imgui</Filter>
@@ -434,24 +427,6 @@
     <ClInclude Include="Core\Asset\FMaterialBuffer.h">
       <Filter>Core\Buffer</Filter>
     </ClInclude>
-    <ClInclude Include="Core\Base\UndoSystem\UUndoSystem.h">
-      <Filter>Core\Base\UndoSystem</Filter>
-    </ClInclude>
-    <ClInclude Include="Core\Base\UndoSystem\FObjectStateChangedMessage.h">
-      <Filter>Core\Base\UndoSystem</Filter>
-    </ClInclude>
-    <ClInclude Include="Core\Base\UndoSystem\IUndoContext.h">
-      <Filter>Core\Base\UndoSystem</Filter>
-    </ClInclude>
-    <ClInclude Include="Core\Base\UndoSystem\IUndoRecord.h">
-      <Filter>Core\Base\UndoSystem</Filter>
-    </ClInclude>
-    <ClInclude Include="Core\Base\UndoSystem\FUndoTransaction.h">
-      <Filter>Core\Base\UndoSystem</Filter>
-    </ClInclude>
-    <ClInclude Include="Core\Base\UndoSystem\FRecordObjectState.h">
-      <Filter>Core\Base\UndoSystem</Filter>
-    </ClInclude>
     <ClInclude Include="Core\Buffer\TGraphicsArray.h">
       <Filter>Core\Buffer</Filter>
     </ClInclude>
@@ -538,6 +513,30 @@
     </ClInclude>
     <ClInclude Include="Render\Panel\IEditorPanel.h">
       <Filter>Render\Panel</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Base\UndoSystem\FUndoMessages.h">
+      <Filter>Core\Base\UndoSystem</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Base\UndoSystem\IUndoContext.h">
+      <Filter>Core\Base\UndoSystem</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Base\UndoSystem\IUndoRecord.h">
+      <Filter>Core\Base\UndoSystem</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Base\UndoSystem\FUndoRecords.h">
+      <Filter>Core\Base\UndoSystem</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Base\UndoSystem\FUndoSystem.h">
+      <Filter>Core\Base\UndoSystem</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Base\UndoSystem\FUndoTransaction.h">
+      <Filter>Core\Base\UndoSystem</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Base\UndoSystem\FUndoInfo.h">
+      <Filter>Core\Base\UndoSystem</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Console\Console.h">
+      <Filter>Core\Console</Filter>
     </ClInclude>
     <ClInclude Include="Render\Panel\Console\ConsoleWindow.h">
       <Filter>Render\Panel\Console</Filter>

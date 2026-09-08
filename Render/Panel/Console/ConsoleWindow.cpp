@@ -1,5 +1,5 @@
-﻿#include "pch.h"
-#include "ConsoleWindow.h"
+﻿#include "PCH.h"
+#include "../Console/ConsoleWindow.h"
 #include "ImGui/imgui.h"
 
 #include <sstream>
