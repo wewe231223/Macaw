@@ -332,6 +332,7 @@
     <ClInclude Include="Core\Console\Console.h" />
     <ClInclude Include="Core\Memory\Memory.h" />
     <ClInclude Include="Core\Memory\TEngineAllocator.h" />
+    <ClInclude Include="EKeyState.h" />
     <ClInclude Include="ErrorHandler.h" />
     <ClInclude Include="FKeyboardCameraMoveRequestMessage.h" />
     <ClInclude Include="FKeyboardInput.h" />

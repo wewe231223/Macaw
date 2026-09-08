@@ -450,7 +450,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
             const float DeltaTime = std::chrono::duration<float>(CurrentTickTime - LastTickTime).count();
             LastTickTime = CurrentTickTime;
 
-            World.Tick(DeltaTime);
             Renderer.BeginFrame();
 
 
@@ -469,9 +468,10 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
                 DeltaTime,
                 ImGui::GetIO().WantCaptureKeyboard);
 
-            EditorEventChannel.Dispatch();
-            
             WorldCommandChannel.Dispatch();
+            World.Tick(DeltaTime);
+
+            EditorEventChannel.Dispatch();
 
             SpawnCommandChannel.Dispatch();
             SceneCommandChannel.Dispatch();
@@ -485,6 +485,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
             ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
             
             Renderer.EndFrame();
+
+            GMouseInput.EndFrame();
         }
     }
    

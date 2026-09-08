@@ -7,14 +7,7 @@
 #include <Windows.h>
 
 #include "Core/Channel/FMessageChannel.h"
-
-enum class EKeyState : std::uint8_t
-{
-    Pressed,
-    Down,
-    Released,
-    None
-};
+#include "EKeyState.h"
 
 class FKeyboardInput
 {
