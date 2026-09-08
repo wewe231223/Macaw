@@ -3,7 +3,7 @@
 #include "../../Channel/FMessageChannel.h"
 
 class UObject;
-namespace UUndoSystem
+namespace FUndoSystem
 {
     // =================================================================
     // Message Sender 관리 API

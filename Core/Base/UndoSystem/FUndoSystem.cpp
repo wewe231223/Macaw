@@ -1,5 +1,5 @@
 ﻿#include "PCH.h"
-#include "UUndoSystem.h"
+#include "FUndoSystem.h"
 
 #include <optional>
 
@@ -9,7 +9,7 @@
 #include "../../../Serialize/FArchiveMemory.h"
 #include "../../Channel/FMessageChannel.h"
 #include "../../Channel/FMessage.h"
-#include "FObjectStateChangedMessage.h"
+#include "FMessageUndo.h"
 
 class UObject;
 
@@ -71,7 +71,7 @@ namespace
         uint32 Head;
         uint32 Size;
         uint32 Current;
-        std::array<std::optional<FUndoTransaction>, Capacity> Buffer;
+        TFixedArray<std::optional<FUndoTransaction>, Capacity> Buffer;
     };
 
     struct FUndoSystemState 
@@ -79,8 +79,8 @@ namespace
         FUndoHistoryStack<64> History;
 
         std::unique_ptr<FUndoTransaction> CurrentTransaction = nullptr;
-        std::vector<std::function<void(FUndoTransaction&)>> PendingFinalizers;
-        std::unordered_set<UObject*> ModifiedObjectsThisTransaction;
+        TArray<std::function<void(FUndoTransaction&)>> PendingFinalizers;
+        TSet<UObject*> ModifiedObjectsThisTransaction;
 
         std::optional<FMessageChannel::FSender> MessageSender;
     };
@@ -117,9 +117,9 @@ namespace
     class FUndoContextImpl : public IUndoContext
     {
     public:
-        virtual void NotifyObjectChanged(const FGuid& Guid, const std::vector<uint8>& Data) override
+        virtual void NotifyObjectChanged(const FGuid& Guid, const TArray<uint8>& Data) override
         {
-            EmplaceMessageToWorldChannel<FObjectStateChangedMessage>(Guid, std::vector<uint8>(Data));
+            EmplaceMessageToWorldChannel<FMessageObjectStateChanged>(Guid, TArray<uint8>(Data));
         }
 
         virtual void NotifyObjectDeleted(const FGuid& Guid) override
@@ -138,7 +138,7 @@ namespace
 
 }
 
-namespace UUndoSystem
+namespace FUndoSystem
 {
     // =================================================================
     // Message Sender 관리 API
@@ -159,7 +159,6 @@ namespace UUndoSystem
             return;
 
         State.CurrentTransaction = std::make_unique<FUndoTransaction>(TransactionName);
-        State.ModifiedObjectsThisTransaction.clear();
     }
 
     void Modify(UObject* TargetObject)
@@ -173,14 +172,14 @@ namespace UUndoSystem
 
         State.ModifiedObjectsThisTransaction.insert(TargetObject);
 
-        std::vector<uint8> BeforeData;
+        TArray<uint8> BeforeData;
         FArchiveMemory MemoryArchiveBefore(BeforeData);
         TargetObject->Save(MemoryArchiveBefore); 
 
         State.PendingFinalizers.push_back(
             [TargetObject, BeforeData = std::move(BeforeData)](FUndoTransaction& Transaction)
             {
-                std::vector<uint8> AfterData;
+                TArray<uint8> AfterData;
                 FArchiveMemory MemoryArchiveAfter(AfterData);
                 TargetObject->Save(MemoryArchiveAfter);
 
@@ -195,19 +194,24 @@ namespace UUndoSystem
     void EndTransaction()
     {
         FUndoSystemState& State = GetState();
-        if (!State.CurrentTransaction) 
+        if (!State.CurrentTransaction)
             return;
+        if (State.PendingFinalizers.size() == 0)
+        {
+            State.CurrentTransaction.reset();
+            return;
+        }
 
         for (const auto& Finalizer : State.PendingFinalizers)
         {
             Finalizer(*State.CurrentTransaction);
         }
 
-        // 트랜잭션이 끝날 때, 그동안 큐에 쌓여있던 Record들을 모두 저장함
         State.History.Push(std::move(*State.CurrentTransaction));
 
         State.CurrentTransaction.reset();
         State.PendingFinalizers.clear();
+        State.ModifiedObjectsThisTransaction.clear();
     }
 
     void Undo()
