@@ -85,6 +85,12 @@ void FMouseInput::ProcessWindowMessage(
         bHasLastMousePosition = false;
         break;
     }
+	case WM_LBUTTONUP:
+	{
+		bLeftClickReleasedPending = true;
+		bLeftButtonDown = false;
+		break;
+	}
 
     case WM_KILLFOCUS:
     {
@@ -127,6 +133,15 @@ void FMouseInput::DispatchPendingWorldCommands(
 
         bLeftClickPending = false;
     }
+    
+
+    if (bLeftClickReleasedPending) {
+        if (not bMouseCapturedByUI) {
+			WorldCommandSender->TryEmplace<FMousePickReleaseRequestMessage>();
+        }
+		bLeftClickReleasedPending = false;
+    }
+    
 
     if (bRightButtonPressedPending)
     {

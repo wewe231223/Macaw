@@ -46,7 +46,7 @@
   "Rasterizer": {
     "FillMode": "Solid",
     "CullMode": "Back",
-    "FrontCounterClockwise": true,
+    "FrontCounterClockwise": false,
     "DepthClipEnable": true,
     "ScissorEnable": false
   },

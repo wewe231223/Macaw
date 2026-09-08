@@ -8,6 +8,8 @@
 #include "Core/Asset/UMesh.h"
 #include "Core/Asset/FAssetRegistry.h"
 
+#include "../../Core/Console/Console.h"
+
 
 bool UCollisionComponent::IsCollisionEnabled() const
 {
@@ -41,10 +43,8 @@ void UCollisionComponent::OnDestroy()
     UPrimitiveComponent::OnDestroy();
 }
 
-void UCollisionComponent::SetBounds(const FVector3& InCenter, const FVector3& InExtent)
-{
-    LocalCenter = InCenter;
-    Extent = InExtent;
+void UCollisionComponent::SetBounds(const DirectX::BoundingBox& InBounds) {
+	DirectX::BoundingOrientedBox::CreateFromBoundingBox(OBB, InBounds);
 }
 
 bool UCollisionComponent::Raycast(const FRay& Ray, float& OutDistance) const
@@ -52,47 +52,23 @@ bool UCollisionComponent::Raycast(const FRay& Ray, float& OutDistance) const
     if (!bCollisionEnabled)
         return false;
 
-    float BoundsDistance = 0.0f;
+	auto cast = RaycastBounds(Ray, OutDistance);
 
-    if (!RaycastBounds(Ray, BoundsDistance))
-        return false;
-
-    AActor* Owner = GetOwner();
-    if (Owner == nullptr)
-    {
-        OutDistance = BoundsDistance;
-        return true;
+    if (cast) {
+		cast = RaycastMesh(Ray, *GetOwner()->GetComponent<UStaticMeshComponent>(), OutDistance);
     }
 
-    UStaticMeshComponent* MeshComponent = Owner->GetComponent<UStaticMeshComponent>();
-    if (MeshComponent == nullptr)
-    {
-        OutDistance = BoundsDistance;
-        return true;
-    }
-
-    return RaycastMesh(Ray, *MeshComponent, OutDistance);
+    return cast;
 }
 
-bool UCollisionComponent::RaycastBounds(const FRay& Ray, float& OutDistance) const
-{
-    DirectX::BoundingOrientedBox LocalBox;
-
-    LocalBox.Center = LocalCenter;
-    LocalBox.Extents = Extent;
-    LocalBox.Orientation = FQuat(0.f, 0.f, 0.f, 1.f);
-
+bool UCollisionComponent::RaycastBounds(const FRay& Ray, float& OutDistance) const {
     DirectX::BoundingOrientedBox WorldBox;
-    LocalBox.Transform(WorldBox, GetWorldMatrix());
+    OBB.Transform(WorldBox, GetWorldMatrix());
 
     return WorldBox.Intersects(Ray.position, Ray.direction, OutDistance);
 }
 
-bool UCollisionComponent::RaycastMesh(
-    const FRay& Ray,
-    const UStaticMeshComponent& MeshComponent,
-    float& OutDistance) const
-{
+bool UCollisionComponent::RaycastMesh(const FRay& Ray, const UStaticMeshComponent& MeshComponent, float& OutDistance) const {
     AActor* Owner = MeshComponent.GetOwner();
     if (Owner == nullptr || Owner->GetWorld() == nullptr)
         return false;
@@ -118,7 +94,7 @@ bool UCollisionComponent::RaycastMesh(
         return false;
     }
 
-    const FMatrix WorldMatrix = FMatrix::Identity; 
+    const FMatrix WorldMatrix = GetWorldMatrix(); 
 
     bool bHit = false;
     float ClosestDistance = std::numeric_limits<float>::max();
@@ -177,23 +153,15 @@ bool UCollisionComponent::RaycastMesh(
     return bHit;
 }
 
-const FVector3& UCollisionComponent::GetExtent() const
-{
-    return Extent;
-}
-
-void UCollisionComponent::SetExtent(const FVector3& InExtent)
-{
-    Extent = InExtent;
-}
-
-void UCollisionComponent::MakeRender(FRenderProbe& Probe) const
+void UCollisionComponent::MakeRender(FActorProbe& Probe) const
 {
 }
 
 void UCollisionComponent::Serialize(FArchive& Archive)
 {
     UPrimitiveComponent::Serialize(Archive);
-    Archive.Serialize("Extent", Extent);
+    Archive.Serialize("OBB_Center", static_cast<FVector3&>(OBB.Center));
+    Archive.Serialize("OBB_Extent", static_cast<FVector3&>(OBB.Extents));
+    Archive.Serialize("OBB_Orientation", static_cast<FQuat&>(OBB.Orientation));
     Archive.Serialize("bCollisionEnabled", bCollisionEnabled);
 }

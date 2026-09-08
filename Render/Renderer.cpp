@@ -45,9 +45,9 @@ void FRenderer::Render(FRenderProbe& Probe) {
 	// 3. Batch 순서대로 SRV Push Back  
 	// 4. Batch 순서대로 InstanceDraw 호출
 
-	std::ranges::sort(Probe.ActorProbes, {}, [](const ActorProbe& Data){ return TTuple{Data.MeshHandle.ID, Data.MeshHandle.Generation, Data.PipelineHandle.ID, Data.PipelineHandle.Generation}; });
+	std::ranges::sort(Probe.ActorProbes, {}, [](const FActorProbe& Data){ return TTuple{Data.MeshHandle.ID, Data.MeshHandle.Generation, Data.PipelineHandle.ID, Data.PipelineHandle.Generation}; });
 
-	auto Groups = Probe.ActorProbes | ranges::views::chunk_by([](const ActorProbe& A, const ActorProbe& B) {
+	auto Groups = Probe.ActorProbes | ranges::views::chunk_by([](const FActorProbe& A, const FActorProbe& B) {
 		return A.MeshHandle == B.MeshHandle && A.PipelineHandle == B.PipelineHandle;
 		});
 
@@ -59,7 +59,8 @@ void FRenderer::Render(FRenderProbe& Probe) {
 	std::ranges::transform(Groups | std::views::join, std::back_inserter(Contexts), [&](const auto& AC) {
 		return ModelContext{
 			.World = AC.World,
-			.MaterialIndex = AssetRegistry->ResolveAsset<UMaterial>(AC.MaterialHandle)->GetGPUIndex()
+			.MaterialIndex = AssetRegistry->ResolveAsset<UMaterial>(AC.MaterialHandle)->GetGPUIndex(),
+			.Flags = AC.Flags
 		};
 	});
 
@@ -87,7 +88,7 @@ void FRenderer::Render(FRenderProbe& Probe) {
 
 	AssetRegistry->GetMaterialBuffer().Flush(DeviceContext.Get());
 	for (auto g : Groups) {
-		const ActorProbe& First = g.front();
+		const FActorProbe& First = g.front();
 		UPipeline* Pipeline = AssetRegistry->ResolveAsset<UPipeline>(First.PipelineHandle);
 		UMesh* Mesh = AssetRegistry->ResolveAsset<UMesh>(First.MeshHandle);
 		
@@ -116,7 +117,7 @@ void FRenderer::Render(FRenderProbe& Probe) {
 
 		RootConstants.Commit(DeviceContext.Get());
 
-		DeviceContext->DrawIndexedInstanced(Mesh->GetIndexCount(), static_cast<uint32>(g.size()), 0, 0, 0);
+		DeviceContext->DrawIndexedInstanced(static_cast<uint32>(Mesh->GetIndices().size()), static_cast<uint32>(g.size()), 0, 0, 0);
 
 		InstanceCount += static_cast<uint32>(g.size());
 	}

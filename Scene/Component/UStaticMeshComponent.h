@@ -22,7 +22,7 @@ public:
 
     void OnCreate() override;
     void OnDestroy() override;
-    void MakeRender(FRenderProbe& OutProbe) const override;
+    virtual void MakeRender(FActorProbe& OutProbe) const override;
 
 protected:
     void Serialize(FArchive& Archive) override;

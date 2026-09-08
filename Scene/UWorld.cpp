@@ -16,6 +16,7 @@
 #include "../Core/Base/TypeRegistry.h"
 #include "../Core/Base/UObjectSystem.h"
 #include "../Core/Asset/FAssetRegistry.h"
+#include "../Core/Console/Console.h"
 
 #include <d3d11.h>
 #include <filesystem>
@@ -46,7 +47,14 @@ FRenderProbe& UWorld::BuildRenderProbe()
 
     for (const UStaticMeshComponent* Component : RenderableComponents)
     {
-        Component->MakeRender(Probe);
+		FActorProbe ActorProbe{};
+		Component->MakeRender(ActorProbe);
+
+		if (Component->GetOwner() == SelectedActor and SelectedActor != nullptr) {
+			ActorProbe.Flags |= 0x0000'0001; 
+		}
+
+		Probe.ActorProbes.push_back(ActorProbe);
     }
 
     if (Camera != nullptr)
@@ -312,35 +320,29 @@ void UWorld::HandleMousePickRequest(
                     continue;
                 }
 
-                float HitDistance = 0.0f;
-
-                if (CollisionComponent->Raycast(
-                    FRay{ RayOrigin, RayDirection },
-                    HitDistance) &&
-                    HitDistance < NearestDistance)
+				float dist = 0.0f;
+                if (CollisionComponent->Raycast(FRay{ RayOrigin, RayDirection }, dist))
                 {
-                    NearestDistance = HitDistance;
-                    NearestCollision = CollisionComponent;
+                    if (dist < NearestDistance)
+                    {
+                        NearestDistance = dist;
+                        NearestCollision = CollisionComponent;
+                        Console::AddLog(Console::STDOutHandle, ELogLevel::Log, ELogCategory::Etc, "Raycast hit bounds of collision component %f", dist);
+                    }
                 }
             }
 
             if (NearestCollision != nullptr)
             {
-                AActor* Owner = NearestCollision->GetOwner();
-
-                if (Owner != nullptr)
-                {
-                    if (USceneComponent* RootComponent = Owner->GetRootComponent())
-                    {
-                        SelectedComponentHandle = RootComponent->GetHandle();
-                    }
-                }
+                SelectedActor = NearestCollision->GetOwner();
             }
-            else
-            {
-                SelectedComponentHandle = {};
+            else {
+				SelectedActor = nullptr;
             }
         }
+
+
+        
     }
 
     if (EditorEventSender.has_value())
@@ -349,6 +351,13 @@ void UWorld::HandleMousePickRequest(
             SelectedComponentHandle);
     }
 }
+
+void UWorld::HandleMousePickReleaseRequest(const FMousePickReleaseRequestMessage& Message)
+{
+    SelectedActor = nullptr;
+
+}
+
 
 void UWorld::HandleMouseCameraRotateRequest(const FMouseCameraRotateRequestMessage& Message)
 {
