@@ -6,7 +6,7 @@ class FArchiveJson : public FArchive
 {
 private:
     rapidjson::Document::AllocatorType* Allocator;
-    std::vector<rapidjson::Value*> NodeStack;
+    TArray<rapidjson::Value*> NodeStack;
 
     // called when saving in progress
     inline void AddChildNode(rapidjson::Value* Parent, std::string_view Name, rapidjson::Value& Child)

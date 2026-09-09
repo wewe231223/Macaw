@@ -30,6 +30,15 @@ public:
     ID3D11ShaderResourceView* const* GetSRV() const { return SRV.GetAddressOf(); }
 
     uint32 GetMaxMaterialCount() const { return MaxMaterialCount; }
+    void Reset()
+    {
+        MaxMaterialCount = 0;
+        Slots.clear();
+        Materials.clear();
+        FreeIndices.clear();
+        Buffer.Reset();
+        SRV.Reset();
+    }
 
 private:
     uint32 AllocateSlot();

@@ -75,6 +75,9 @@
     <ClCompile Include="Scene\UWorld.cpp">
       <Filter>Scene</Filter>
     </ClCompile>
+    <ClCompile Include="Tests\BasicGeometryTests.cpp">
+      <Filter>Tests</Filter>
+    </ClCompile>
     <ClCompile Include="Tests\ComponentSerializationTests.cpp">
       <Filter>Tests</Filter>
     </ClCompile>

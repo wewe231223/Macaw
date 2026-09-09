@@ -6,7 +6,7 @@ class FArchive;
 class UCameraComponent : public USceneComponent
 {
 public:
-    UCameraComponent() = default;
+    UCameraComponent();
     ~UCameraComponent() override = default;
 
     JG_DECLARE_DERIVED_TYPEINFO(UCameraComponent, USceneComponent)

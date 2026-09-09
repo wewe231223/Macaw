@@ -23,14 +23,8 @@
     <Filter Include="Render\Pipeline">
       <UniqueIdentifier>{c9860bf1-6bc6-4530-aeb6-6657f10bce02}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Render\Console">
-      <UniqueIdentifier>{ba43d83e-4853-4559-96aa-24a0497feae1}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Core\Base\UObject">
       <UniqueIdentifier>{3ff75d73-22b7-4fe1-a4bc-482401744d7e}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Core\Console">
-      <UniqueIdentifier>{04bc1b20-3b40-432b-873c-e254b260a303}</UniqueIdentifier>
     </Filter>
     <Filter Include="Imgui">
       <UniqueIdentifier>{c60b77dd-82f0-4925-acf5-d3375809e190}</UniqueIdentifier>
@@ -74,11 +68,20 @@
     <Filter Include="SimpleMath">
       <UniqueIdentifier>{106fee09-1c43-4673-961e-825b49e084ae}</UniqueIdentifier>
     </Filter>
-    <Filter Include="InputSystem">
-      <UniqueIdentifier>{0e87339f-ad22-4c95-8448-f478a90dbd37}</UniqueIdentifier>
+    <Filter Include="Render\Panel">
+      <UniqueIdentifier>{4e3ce944-6ea8-4c9f-901a-29c6726b4798}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Scene\Message">
-      <UniqueIdentifier>{580e0660-3a89-4dd9-a037-b5334af9a0c3}</UniqueIdentifier>
+    <Filter Include="Render\Panel\Console">
+      <UniqueIdentifier>{ba43d83e-4853-4559-96aa-24a0497feae1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Render\Panel\Stats">
+      <UniqueIdentifier>{61c3ed3a-ede4-40bb-b3ca-c1773bb281f1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Core\Console">
+      <UniqueIdentifier>{9da7b994-4ee8-4cb6-8a57-2978baa13764}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Serialize">
+      <UniqueIdentifier>{ac3c3dd3-84b0-4af9-997e-b43b888c1ef0}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -116,18 +119,12 @@
     <ClCompile Include="Render\Pipeline\FShader.cpp">
       <Filter>Render\Pipeline</Filter>
     </ClCompile>
-    <ClCompile Include="Render\Console\ConsoleWindow.cpp">
-      <Filter>Render\Console</Filter>
-    </ClCompile>
     <ClCompile Include="Render\Renderer.cpp">
       <Filter>Render</Filter>
     </ClCompile>
     <ClCompile Include="ErrorHandler.cpp" />
     <ClCompile Include="Core\Base\UObjectSystem.cpp">
       <Filter>Core\Base\UObject</Filter>
-    </ClCompile>
-    <ClCompile Include="Core\Console\Console.cpp">
-      <Filter>Core\Console</Filter>
     </ClCompile>
     <ClCompile Include="PCH.cpp" />
     <ClCompile Include="ImGui\imgui.cpp">
@@ -215,15 +212,6 @@
     <ClCompile Include="Core\Asset\FMaterialBuffer.cpp">
       <Filter>Core\Buffer</Filter>
     </ClCompile>
-    <ClCompile Include="Core\Base\UndoSystem\UUndoSystem.cpp">
-      <Filter>Core\Base\UndoSystem</Filter>
-    </ClCompile>
-    <ClCompile Include="Core\Base\UndoSystem\FUndoTransaction.cpp">
-      <Filter>Core\Base\UndoSystem</Filter>
-    </ClCompile>
-    <ClCompile Include="Core\Base\UndoSystem\FRecordObjectState.cpp">
-      <Filter>Core\Base\UndoSystem</Filter>
-    </ClCompile>
     <ClCompile Include="Core\Buffer\TGraphicsArray.cpp">
       <Filter>Core\Buffer</Filter>
     </ClCompile>
@@ -272,20 +260,32 @@
     <ClCompile Include="Core\Asset\FAssetMetadataParser.cpp">
       <Filter>Core\Asset</Filter>
     </ClCompile>
-    <ClCompile Include="FEditorSelection.cpp" />
-    <ClCompile Include="Render\Stats\StatWindow.cpp" />
+    <ClCompile Include="FKeyboardInput.cpp" />
+    <ClCompile Include="FMouseInput.cpp" />
     <ClCompile Include="SimpleMath\SimpleMath.cpp">
       <Filter>SimpleMath</Filter>
     </ClCompile>
-    <ClCompile Include="FKeyboardInput.cpp">
-      <Filter>InputSystem</Filter>
-    </ClCompile>
-    <ClCompile Include="FMouseInput.cpp">
-      <Filter>InputSystem</Filter>
+    <ClCompile Include="Render\Panel\Stats\StatWindow.cpp">
+      <Filter>Render\Panel\Stats</Filter>
     </ClCompile>
     <ClCompile Include="Scene\Component\UCollisionComponent.cpp">
       <Filter>Scene\Component</Filter>
     </ClCompile>
+    <ClCompile Include="Render\Panel\FEditorSelection.cpp">
+      <Filter>Render\Panel</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Base\UndoSystem\FUndoRecords.cpp" />
+    <ClCompile Include="Core\Base\UndoSystem\FUndoSystem.cpp">
+      <Filter>Core\Base\UndoSystem</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Base\UndoSystem\FUndoTransaction.cpp">
+      <Filter>Core\Base\UndoSystem</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Console\Console.cpp" />
+    <ClCompile Include="Render\Panel\Console\ConsoleWindow.cpp">
+      <Filter>Render\Panel\Console</Filter>
+    </ClCompile>
+    <ClCompile Include="Render\Panel\FControlPanel.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Core\Base\FGuid.h">
@@ -330,9 +330,6 @@
     <ClInclude Include="Render\Pipeline\Wrapper.h">
       <Filter>Render\Pipeline</Filter>
     </ClInclude>
-    <ClInclude Include="Render\Console\ConsoleWindow.h">
-      <Filter>Render\Console</Filter>
-    </ClInclude>
     <ClInclude Include="Render\Renderer.h">
       <Filter>Render</Filter>
     </ClInclude>
@@ -343,9 +340,6 @@
     <ClInclude Include="STL.h" />
     <ClInclude Include="Core\Base\UObjectSystem.h">
       <Filter>Core\Base\UObject</Filter>
-    </ClInclude>
-    <ClInclude Include="Core\Console\Console.h">
-      <Filter>Core\Console</Filter>
     </ClInclude>
     <ClInclude Include="ImGui\imconfig.h">
       <Filter>Imgui</Filter>
@@ -434,24 +428,6 @@
     <ClInclude Include="Core\Asset\FMaterialBuffer.h">
       <Filter>Core\Buffer</Filter>
     </ClInclude>
-    <ClInclude Include="Core\Base\UndoSystem\UUndoSystem.h">
-      <Filter>Core\Base\UndoSystem</Filter>
-    </ClInclude>
-    <ClInclude Include="Core\Base\UndoSystem\FObjectStateChangedMessage.h">
-      <Filter>Core\Base\UndoSystem</Filter>
-    </ClInclude>
-    <ClInclude Include="Core\Base\UndoSystem\IUndoContext.h">
-      <Filter>Core\Base\UndoSystem</Filter>
-    </ClInclude>
-    <ClInclude Include="Core\Base\UndoSystem\IUndoRecord.h">
-      <Filter>Core\Base\UndoSystem</Filter>
-    </ClInclude>
-    <ClInclude Include="Core\Base\UndoSystem\FUndoTransaction.h">
-      <Filter>Core\Base\UndoSystem</Filter>
-    </ClInclude>
-    <ClInclude Include="Core\Base\UndoSystem\FRecordObjectState.h">
-      <Filter>Core\Base\UndoSystem</Filter>
-    </ClInclude>
     <ClInclude Include="Core\Buffer\TGraphicsArray.h">
       <Filter>Core\Buffer</Filter>
     </ClInclude>
@@ -500,35 +476,76 @@
     <ClInclude Include="Core\Asset\FAssetMetadataParser.h">
       <Filter>Core\Asset</Filter>
     </ClInclude>
-    <ClInclude Include="FEditorSelection.h" />
-    <ClInclude Include="Render\Stats\StatWindow.h" />
+    <ClInclude Include="FKeyboardCameraMoveRequestMessage.h" />
+    <ClInclude Include="FKeyboardInput.h" />
+    <ClInclude Include="FMouseCameraRotateRequestMessage.h" />
+    <ClInclude Include="FMouseInput.h" />
+    <ClInclude Include="FMousePickRequestMessage.h" />
+    <ClInclude Include="FWorldSelectionChangedMessage.h" />
     <ClInclude Include="SimpleMath\SimpleMath.h">
       <Filter>SimpleMath</Filter>
     </ClInclude>
-    <ClInclude Include="FKeyboardInput.h">
-      <Filter>InputSystem</Filter>
+    <ClInclude Include="Render\Panel\Stats\StatWindow.h">
+      <Filter>Render\Panel\Stats</Filter>
     </ClInclude>
-    <ClInclude Include="FMouseInput.h">
-      <Filter>InputSystem</Filter>
-    </ClInclude>
-    <ClInclude Include="FKeyboardCameraMoveRequestMessage.h">
+    <ClInclude Include="FTransformEditRequestMessage.h">
       <Filter>Scene\Message</Filter>
     </ClInclude>
-    <ClInclude Include="FMouseCameraRotateRequestMessage.h">
-      <Filter>Scene\Message</Filter>
-    </ClInclude>
-    <ClInclude Include="FMousePickRequestMessage.h">
-      <Filter>Scene\Message</Filter>
-    </ClInclude>
-    <ClInclude Include="FWorldSelectionChangedMessage.h">
+    <ClInclude Include="FEditorSelectionState.h">
       <Filter>Scene\Message</Filter>
     </ClInclude>
     <ClInclude Include="Scene\Component\UCollisionComponent.h">
       <Filter>Scene\Component</Filter>
     </ClInclude>
-    <ClInclude Include="EKeyState.h">
-      <Filter>InputSystem</Filter>
+    <ClInclude Include="Render\Panel\FConsolePanel.h">
+      <Filter>Render\Panel</Filter>
     </ClInclude>
+    <ClInclude Include="Render\Panel\FStatPanel.h">
+      <Filter>Render\Panel</Filter>
+    </ClInclude>
+    <ClInclude Include="Render\Panel\FEditorUIManager.h">
+      <Filter>Render\Panel</Filter>
+    </ClInclude>
+    <ClInclude Include="Render\Panel\FEditorInfo.h">
+      <Filter>Render\Panel</Filter>
+    </ClInclude>
+    <ClInclude Include="Render\Panel\FEditorSelection.h">
+      <Filter>Render\Panel</Filter>
+    </ClInclude>
+    <ClInclude Include="Render\Panel\FPropertyPanel.h">
+      <Filter>Render\Panel</Filter>
+    </ClInclude>
+    <ClInclude Include="Render\Panel\IEditorPanel.h">
+      <Filter>Render\Panel</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Base\UndoSystem\FUndoMessages.h">
+      <Filter>Core\Base\UndoSystem</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Base\UndoSystem\IUndoContext.h">
+      <Filter>Core\Base\UndoSystem</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Base\UndoSystem\IUndoRecord.h">
+      <Filter>Core\Base\UndoSystem</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Base\UndoSystem\FUndoRecords.h">
+      <Filter>Core\Base\UndoSystem</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Base\UndoSystem\FUndoSystem.h">
+      <Filter>Core\Base\UndoSystem</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Base\UndoSystem\FUndoTransaction.h">
+      <Filter>Core\Base\UndoSystem</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Base\UndoSystem\FUndoInfo.h">
+      <Filter>Core\Base\UndoSystem</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Console\Console.h">
+      <Filter>Core\Console</Filter>
+    </ClInclude>
+    <ClInclude Include="Render\Panel\Console\ConsoleWindow.h">
+      <Filter>Render\Panel\Console</Filter>
+    </ClInclude>
+    <ClInclude Include="Render\Panel\FControlPanel.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Content\Metadata\AlternatePipeline.meta">
@@ -573,12 +590,33 @@
     <None Include="SimpleMath\SimpleMath.inl">
       <Filter>SimpleMath</Filter>
     </None>
+    <None Include="Content\Pipeline\LineDepthTested.json">
+      <Filter>Content\Pipeline</Filter>
+    </None>
+    <None Include="Content\Pipeline\LineOverlay.json">
+      <Filter>Content\Pipeline</Filter>
+    </None>
+    <None Include="Content\Metadata\DepthTestedLine.meta">
+      <Filter>Content\Metadata</Filter>
+    </None>
+    <None Include="Content\Metadata\OverlayLine.meta">
+      <Filter>Content\Metadata</Filter>
+    </None>
+    <None Include="Content\Metadata\BlueMaterial.meta">
+      <Filter>Content\Metadata</Filter>
+    </None>
+    <None Include="Content\Metadata\GreenMaterial.meta">
+      <Filter>Content\Metadata</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Content\Shader\Alternate.hlsl">
       <Filter>Content\Shader</Filter>
     </FxCompile>
     <FxCompile Include="Content\Shader\Base.hlsl">
+      <Filter>Content\Shader</Filter>
+    </FxCompile>
+    <FxCompile Include="Content\Shader\Line.hlsl">
       <Filter>Content\Shader</Filter>
     </FxCompile>
   </ItemGroup>

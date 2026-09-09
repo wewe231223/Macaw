@@ -4,6 +4,10 @@
 #include "Scene/AActor.h"
 #include "Scene/UWorld.h"
 
+UCameraComponent::UCameraComponent() {
+	GetTransform().SetPosition({ 5.0f, 5.0f, 5.0f });
+}
+
 FMatrix UCameraComponent::GetViewMatrix() const
 {
     return GetWorldMatrix().Invert();

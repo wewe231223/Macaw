@@ -17,14 +17,10 @@
 #include "ImGui/imgui_impl_win32.h"
   
 #include "Core/Console/Console.h"
-#include "Render/Console/ConsoleWindow.h"
+#include "Render/Panel/Console/ConsoleWindow.h"
 #include "Core/Asset/FAssetRegistry.h"
 
-#include "Render/Stats/StatWindow.h"
-
-//test
-#include "Render/Pipeline/UPipeline.h"
-#include "Core/Asset/UMesh.h"
+#include "Render/Panel/Stats/StatWindow.h"
 
 #include "Core/Base/FTransform.h"
 #include "Scene/UWorld.h"
@@ -36,19 +32,29 @@
 #include "Core/Base/TypeRegistry.h"
 
 #include "Core/Channel/FMessageChannel.h"
+#include "Core/Channel/FStateChannel.h"
 #include "FMouseInput.h"
+#include "Render/Panel/FEditorInfo.h"
+#include "Render/Panel/FEditorUIManager.h"
 
 #include "FMousePickRequestMessage.h"
 #include "FMouseCameraRotateRequestMessage.h"
 #include "FWorldSelectionChangedMessage.h"
+#include "FTransformEditRequestMessage.h"
 #include "FKeyboardInput.h"
 #include "FKeyboardCameraMoveRequestMessage.h"
-#include "FEditorSelection.h"
+#include "Render/Panel/FEditorSelection.h"
+
+#include "Core/Base/UndoSystem/FUndoSystem.h"
+#include "Core/Base/UndoSystem/FUndoMessages.h"
+#include "Serialize/FArchiveMemory.h"
 
 //test
 #include "Render/Pipeline/UPipeline.h"
 #include "Core/Asset/UMesh.h"
 #include "Core/Asset/UColorMaterial.h"
+
+#include "Render/EditorView/EditorViewport.h"
 
 #define MAX_LOADSTRING 100
 
@@ -75,10 +81,9 @@ ATOM                MyRegisterClass(HINSTANCE hInstance);
 BOOL                InitInstance(HINSTANCE, int);
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 HWND gHWND;
-
+FRenderer Renderer;
 
 #define LOAD 
-
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
                      _In_opt_ HINSTANCE hPrevInstance,
@@ -100,6 +105,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	TypeRegistry::Register(AActor::StaticTypeInfo());
 	TypeRegistry::Register(UCameraComponent::StaticTypeInfo());
 	TypeRegistry::Register(UStaticMeshComponent::StaticTypeInfo());
+    TypeRegistry::Register(UCollisionComponent::StaticTypeInfo());
 	TypeRegistry::Register(UActorComponent::StaticTypeInfo());
 	TypeRegistry::Register(USceneComponent::StaticTypeInfo());
 	TypeRegistry::Register(UCollisionComponent::StaticTypeInfo());
@@ -137,9 +143,119 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     // test
     UWorld World{};
 
+    FRenderer Renderer;
+    Renderer.Create(gHWND, DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT);
+
+
+    FAssetRegistry AssetRegistry;
+    AssetRegistry.Initialize(Renderer.GetDevice(), 128);
+    Renderer.BindAssetRegistry(&AssetRegistry);
+
+
     FMessageChannel WorldCommandChannel{ 64 };
     FMessageChannel EditorEventChannel{ 64 };
     FEditorSelection EditorSelection;
+
+    FStateChannel<FMessageEditorCameraState> EditorCameraStateChannel;
+    FStateChannel<FMessageEditorTransformState> EditorTransformStateChannel;
+
+    FMessageChannel SpawnCommandChannel{ 64 };
+    FMessageChannel SceneCommandChannel{ 64 };
+    FMessageChannel GizmoCommandChannel{ 64 };
+
+    
+    
+    /*
+    FMessageChannel UndoCommandChannel{ 64 };
+    FUndoSystem::InitializeSenderToWorldChannel(UndoCommandChannel.GetSender());
+    UndoCommandChannel.TryBind<FMessageUndoObjectStateChanged>(
+        [&World, &AssetRegistry](const FMessageUndoObjectStateChanged& Message)
+        {
+            UObject* Target = UObjectSystem::Resolve(UObjectSystem::FindHandleByGuid(Message.TargetGuid));
+            if (Target)
+            {
+                FArchiveMemory ArchiveLoad(Message.SavedData);
+                Target->Load(ArchiveLoad);
+
+            }
+        });
+    UndoCommandChannel.TryBind<FMessageUndoObjectSpawned>(
+        [&World, &AssetRegistry](const FMessageUndoObjectSpawned& Message)
+        {
+            FGuid ActorGuid;
+            ActorGuid.Parse(Message.TargetGuid.ToString());
+            FString TypeName = Message.TargetTypeName;
+
+            std::unique_ptr<UObject> CreatedObject = TypeRegistry::Find(TypeName)->Creator();
+            std::unique_ptr<AActor> ActorPointer(static_cast<AActor*>(CreatedObject.release()));
+            UObjectSystem::RegisterWithGuid(ActorPointer.get(), ActorGuid);
+
+            const auto SavedData = Message.SavedData;
+            FArchiveMemory ArchiveLoad(SavedData);
+            ArchiveLoad.SetAssetRegistry(&AssetRegistry);
+            ActorPointer->Load(ArchiveLoad);
+            ActorPointer->SetWorld(&World);
+
+            World.AddActor(std::move(ActorPointer));
+        });
+    UndoCommandChannel.TryBind<FMessageUndoObjectDestroyed>(
+        [&World](const FMessageUndoObjectDestroyed& Message)
+        {
+            World.DestroyActor(static_cast<AActor*>(UObjectSystem::Resolve(UObjectSystem::FindHandleByGuid(Message.TargetGuid))));
+            World.FlushPendingDestroyActors();
+        });
+    WorldCommandChannel.TryBind<FMessageUndoApply>(
+        [](const FMessageUndoApply& Message)
+        {
+            if (Message.bIsUndo)
+                FUndoSystem::Undo();
+            else
+                FUndoSystem::Redo();
+        });
+
+        */
+
+
+    SpawnCommandChannel.TryBind<FMessageSpawnPrimitive>(
+        [&World, &AssetRegistry](const FMessageSpawnPrimitive& Message)
+        {
+            /*
+            FString TransactionName;
+            // "Spawn "(6자) + 32비트 정수 최대 길이(11자) + PrimitiveType 길이
+            TransactionName.reserve(17 + Message.PrimitiveType.size());
+            std::format_to(std::back_inserter(TransactionName), "Spawn {}{}(es)", Message.SpawnCount, Message.PrimitiveType);
+
+            FUndoSystem::BeginTransaction(TransactionName);
+            FUndoSystem::EndTransaction();
+            */
+            World.HandleSpawnPrimitive(Message, AssetRegistry);
+        }
+    );
+
+
+
+    FEditorUIManager EditorUIManager;
+
+    EditorUIManager.Initialize(
+        World,
+
+        EditorCameraStateChannel.GetWriter(),
+        EditorCameraStateChannel.GetReader(),
+
+        gHWND,
+
+        EditorTransformStateChannel.GetWriter(),
+        EditorTransformStateChannel.GetReader(),
+
+        SpawnCommandChannel.GetSender(),
+        SceneCommandChannel.GetSender(),
+        GizmoCommandChannel.GetSender()
+    );
+
+    World.InitializeEditorCameraState(
+        EditorCameraStateChannel.GetWriter(),
+        EditorCameraStateChannel.GetReader()
+    );
 
     GMouseInput.InitializeWorldCommandSender(WorldCommandChannel.GetSender());
     GKeyboardInput.InitializeWorldCommandSender(WorldCommandChannel.GetSender());
@@ -171,35 +287,71 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
                 World.HandleKeyboardCameraMoveRequest(Message);
             });
 
+    SceneCommandChannel.TryBind<FMessageNewScene>(
+        [&World](const FMessageNewScene& Message)
+        {
+            World.HandleNewScene(Message);
+        }
+    );
+
+    SceneCommandChannel.TryBind<FMessageSaveScene>(
+        [&World, &AssetRegistry](const FMessageSaveScene& Message)
+        {
+            World.SaveScene(
+                Message.SceneName,
+                &AssetRegistry
+            );
+        }
+    );
 	WorldCommandChannel.TryBind<FMousePickReleaseRequestMessage>(
 		[&World](const FMousePickReleaseRequestMessage& Message)
 		{
 			World.HandleMousePickReleaseRequest(Message);
 		});
 
+	WorldCommandChannel.TryBind<FTransformEditRequestMessage>(
+		[&World](const FTransformEditRequestMessage& Message) {
+			World.HandleTransformEditRequest(Message);
+		});
 
-	FRenderer Renderer;
+
 	Renderer.Create(gHWND, DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT);
 	
     FAssetRegistry AssetRegistry;
 	AssetRegistry.Initialize(Renderer.GetDevice(), 128);
 	Renderer.BindAssetRegistry(&AssetRegistry);
 
+    EditorViewport EditorView{}; 
+	EditorView.Initialize(Renderer.GetDevice(), AssetRegistry, Renderer.GetWindowInfoReader(), World.GetEditorSelectionStateReader(), WorldCommandChannel.GetSender());
+    SceneCommandChannel.TryBind<FMessageLoadScene>(
+        [&World, &Renderer, &AssetRegistry](const FMessageLoadScene& Message)
+        {
+            World.LoadScene(
+                std::filesystem::path(Message.FilePath.c_str()),
+                Renderer.GetDevice(),
+                &AssetRegistry
+            );
+        }
+    );
+
+    GizmoCommandChannel.TryBind<FMessageChangeGizmoMode>(
+        [&World](const FMessageChangeGizmoMode& Message)
+        {
+            World.HandleChangeGizmoMode(Message);
+        }
+    );
+	
 #ifdef LOAD
-	World.LoadScene("./scenes/test.json", Renderer.GetDevice(), &AssetRegistry);
-	World.SetAssetRegistry(&AssetRegistry);
-
+	World.LoadScene("./scenes/NewScene111.json", Renderer.GetDevice(), &AssetRegistry);
 #else 
-    World.SetAssetRegistry(&AssetRegistry);
-
 	AssetRegistry.EmplaceAsset<UPipeline>(Renderer.GetDevice(), "BasePipeline", "./Content/Metadata/BasePipeline.meta");
 	AssetRegistry.EmplaceAsset<UPipeline>(Renderer.GetDevice(), "AlternatePipeline", "./Content/Metadata/AlternatePipeline.meta");
-
-	AssetRegistry.EmplaceAsset<UMesh>(Renderer.GetDevice(), "SphereMesh", "./Content/Metadata/SphereMesh.meta");
+    // Triangle
+	AssetRegistry.EmplaceAsset<UMesh>(Renderer.GetDevice(), "SphereMesh", "./Content/Metadata/TorusMesh.meta");
     
-	AssetRegistry.EmplaceAsset<UColorMaterial>(Renderer.GetDevice(), "RedMaterial", "./Content/Metadata/RedMaterial.meta");
+	AssetRegistry.EmplaceAsset<UColorMaterial>(Renderer.GetDevice(), "GreyMaterial", "./Content/Metadata/GreyMaterial.meta");
 
-    AActor* CameraActor = World.SpawnActor<AActor>();
+    AActor* CameraActor = World.AdoptActor<AActor>();
     UCameraComponent* Camera = CameraActor->AddComponent<UCameraComponent>();
 
     UCollisionComponent* TestCollision = nullptr;
@@ -218,7 +370,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
         const FAssetHandle MeshHandle = AssetRegistry.GetAsset("SphereMesh");
         const FAssetHandle BasePipelineHandle = AssetRegistry.GetAsset("BasePipeline");
         const FAssetHandle AlternatePipelineHandle = AssetRegistry.GetAsset("AlternatePipeline");
-        const FAssetHandle MaterialHandle = AssetRegistry.GetAsset("RedMaterial");
+        const FAssetHandle MaterialHandle = AssetRegistry.GetAsset("GreyMaterial");
 
 
         const auto Random01 = [](uint32 Seed) {
@@ -243,9 +395,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
             const float Yaw = (Random01(InstanceIndex * 7U + 6U) - 0.5f) * 0.5f;
             const float Roll = (Random01(InstanceIndex * 7U + 7U) - 0.5f) * 1.3f;
 
-            AActor* InstanceActor = World.SpawnActor<AActor>();
-            UStaticMeshComponent* InstanceComponent = InstanceActor->AddComponent<UStaticMeshComponent>();
-            UCollisionComponent* CollisionComponent = InstanceActor->AddComponent<UCollisionComponent>();
+                AActor* InstanceActor = World.AdoptActor<AActor>();
+                UStaticMeshComponent* InstanceComponent = InstanceActor->AddComponent<UStaticMeshComponent>();
+                UCollisionComponent* CollisionComponent = InstanceActor->AddComponent<UCollisionComponent>();
 
             InstanceActor->SetRootComponent(InstanceComponent);
             CollisionComponent->AttachTo(InstanceComponent);
@@ -279,8 +431,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
             }
         }
 
-	    World.SaveScene("test", &AssetRegistry);
     }
+    World.SaveScene("test", &AssetRegistry);
+
 #endif 
 
     FRenderProbe Probe = World.BuildRenderProbe();
@@ -289,41 +442,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
         "Actor Count = " + std::to_string(Probe.ActorProbes.size()) + "\n";
 
 
-    //if (TestCollision != nullptr)
-    //{
-    //    const FMatrix Target = TestCollision->GetWorldMatrix();
-
-    //    FVector3 TargetWorldPos{
-    //        Target._41,
-    //        Target._42,
-    //        Target._43
-    //    };
-
-    //    FVector3 RayOrigin{
-    //        TargetWorldPos.x,
-    //        TargetWorldPos.y,
-    //        TargetWorldPos.z - 1000.0f
-    //    };
-
-    //    FVector3 RayDirection{
-    //        0.0f,
-    //        0.0f,
-    //        1.0f
-    //    };
-
-    //    FRay TestRay(RayOrigin, RayDirection);
-
-    //    float Distance = 0.0f;
-
-    //    if (TestCollision->Raycast(TestRay, Distance))
-    //    {
-    //        OutputDebugStringA("Collision Hit\n");
-    //    }
-    //    else
-    //    {
-    //        OutputDebugStringA("Collision Miss\n");
-    //    }
-    //}
 
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
@@ -355,8 +473,10 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
             ImGui::NewFrame();
 
             // 입력 상태는 WndProc의 ProcessWindowMessage에서 갱신한다.
-            // 기즈모 입력 처리는 World 명령을 보내기 전인 이 위치에 추가한다.
-            // 기즈모가 왼쪽 버튼 누름을 처리하면 GMouseInput.Consume(Left)를 호출한다.
+			EditorView.ProcessInput(GKeyboardInput, GMouseInput, ImGui::GetIO().WantCaptureMouse);
+
+            EditorUIManager.Tick();
+
             GMouseInput.DispatchPendingWorldCommands(
                 DEFAULT_WINDOW_WIDTH,
                 DEFAULT_WINDOW_HEIGHT,
@@ -371,10 +491,18 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
             EditorEventChannel.Dispatch();
 
-            Renderer.Render(World.BuildRenderProbe());
+            SpawnCommandChannel.Dispatch();
+            SceneCommandChannel.Dispatch();
+            GizmoCommandChannel.Dispatch();
 
-            DrawConsole(Console::STDOutHandle);
-            DrawStatWindow(World);
+            //UndoCommandChannel.Dispatch();
+
+            Renderer.Render(World.BuildRenderProbe());
+			FRenderProbe& Probe{ World.BuildRenderProbe() };
+            
+			EditorView.RenderInProbe(Probe);
+            Renderer.Render(Probe);
+            EditorView.Render(Renderer.GetDeviceContext(), Probe);
 
             ImGui::Render();
             ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
@@ -391,6 +519,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     ImGui_ImplWin32_Shutdown();
     ImGui::DestroyContext();
 
+	World.SaveScene("test", &AssetRegistry);
 
     return (int) msg.wParam;
 }
@@ -437,7 +566,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 
 
     if (WINDOWED) {
-        DWORD style = WS_OVERLAPPEDWINDOW & ~WS_THICKFRAME;
+        DWORD style = WS_OVERLAPPEDWINDOW;
         DWORD exStyle = WS_EX_OVERLAPPEDWINDOW;
 
         int posX = (GetSystemMetrics(SM_CXSCREEN) / 2) - (static_cast<int>(DEFAULT_WINDOW_WIDTH) / 2);
@@ -531,6 +660,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     case WM_DESTROY:
         PostQuitMessage(0);
         break;
+	case WM_SIZE:
+		if (wParam != SIZE_MINIMIZED) {
+			uint32 width = LOWORD(lParam);
+			uint32 height = HIWORD(lParam);
+			Renderer.ReSize(width, height);
+		}
+		break;
     default:
         return DefWindowProc(hWnd, message, wParam, lParam);
     }

@@ -105,6 +105,14 @@ public:
             return Pair.second.get();
             });
     }
+    void Reset()
+    {
+        Assets.clear();
+        FreeHandles.clear();
+        AssetNameToHandle.clear();
+        AssetIDToHandle.clear();
+        MaterialBuffer.Reset();
+    }
 private:
     FAssetHandle AllocateHandle();
     void RemoveHandleMappings(FAssetHandle Handle);

@@ -12,6 +12,9 @@
 #include "../Core/Buffer/TGraphicsArray.h"
 #include "../Core/Buffer/TGraphicsRootConstants.h" 
 
+#include "../Core/Channel/FStateChannel.h"
+#include "RenderWindowInfo.h"
+
 class FRenderer {
 	struct ModelContext {
 		FMatrix World{};
@@ -41,6 +44,9 @@ public:
 
 	void BindAssetRegistry(FAssetRegistry* InAssetRegistry) { AssetRegistry = InAssetRegistry; }
 
+	TStateChannel<RenderWindowInfo>::FReader GetWindowInfoReader() const { return WindowInfoChannel.GetReader(); }
+
+	void ReSize(uint32 width, uint32 height);
 private:
 	void CreateDeviceAndSwapChain(HWND WindowHandle);
 	
@@ -59,14 +65,14 @@ private:
 	Microsoft::WRL::ComPtr<ID3D11Texture2D> DepthStencilBuffer;
 	Microsoft::WRL::ComPtr<ID3D11DepthStencilView> DepthStencilView;
 
+	TStateChannel<RenderWindowInfo> WindowInfoChannel{};
+	TStateChannel<RenderWindowInfo>::FWriter WindowInfoWriter{ WindowInfoChannel.GetWriter() };
+	TStateChannel<RenderWindowInfo>::FReader WindowInfoReader{ WindowInfoChannel.GetReader() };
+
 	FAssetRegistry* AssetRegistry{ nullptr };
 
 	TGraphicsArray<ModelContext> ModelContextArray{};
 	TGraphicsRootConstants<64> RootConstants{};
 
 	const float ClearColor[4] = { 0.2f, 0.2f, 0.7f, 1.0f };
-	D3D11_VIEWPORT Viewport{};
-
-	UINT Width{ 0 };
-	UINT Height{ 0 };
 };

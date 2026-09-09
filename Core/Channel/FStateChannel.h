@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include <concepts>
 #include <cstdint>
@@ -8,7 +8,7 @@
 #include <utility>
 
 template<typename T>
-class TStateChannel {
+class FStateChannel {
 public:
     using VersionType = std::uint64_t;
 
@@ -21,6 +21,7 @@ public:
     class FReader {
     public:
         explicit FReader(const TStateChannel& InChannel) noexcept : Channel(&InChannel) {}
+		FReader() noexcept = default;
         ~FReader() noexcept = default;
 
         FReader(const FReader&) = default;
@@ -38,13 +39,14 @@ public:
             return Channel->State.has_value();
         }
 
-        [[nodiscard]] const T* Peek() const noexcept {
-            return Channel->State ? std::addressof(*Channel->State) : nullptr;
+        [[nodiscard]] const T& Peek() const {
+            return Channel->State.value();
         }
 
-        [[nodiscard]] const T* Read() noexcept {
+        [[nodiscard]] const T& Read() {
+            const T& Value = Channel->State.value();
             LastReadVersion = Channel->Version;
-            return Channel->State ? std::addressof(*Channel->State) : nullptr;
+            return Value;
         }
 
         [[nodiscard]] FReadResult ReadIfChanged() noexcept {
@@ -61,13 +63,15 @@ public:
         }
 
     private:
-        const TStateChannel* Channel{ nullptr };
+        const FStateChannel* Channel{ nullptr };
         VersionType LastReadVersion{ 0 };
     };
 
     class FWriter {
     public:
         explicit FWriter(TStateChannel& InChannel) noexcept : Channel(&InChannel) {}
+		FWriter() noexcept = default;
+
 		~FWriter() noexcept = default;
 
 		FWriter(const FWriter&) = default;
@@ -107,20 +111,90 @@ public:
         TStateChannel* Channel{ nullptr };
     };
 
-public:
-    TStateChannel() = default;
+    class FReadWriter {
+    public:
+        explicit FReadWriter(TStateChannel& InChannel) noexcept : Channel(&InChannel) {}
+        ~FReadWriter() noexcept = default;
 
-    explicit TStateChannel(const T& InitialState) requires std::copy_constructible<T> : State(InitialState), Version(1) {}
-    explicit TStateChannel(T&& InitialState) requires std::move_constructible<T> : State(std::move(InitialState)), Version(1) {}
+        FReadWriter(const FReadWriter&) = default;
+        FReadWriter& operator=(const FReadWriter&) = default;
+
+        FReadWriter(FReadWriter&&) = default;
+        FReadWriter& operator=(FReadWriter&&) = default;
+
+    public:
+        [[nodiscard]] bool HasChanged() const noexcept {
+            return LastReadVersion != Channel->Version;
+        }
+
+        [[nodiscard]] bool HasValue() const noexcept {
+            return Channel->State.has_value();
+        }
+
+        [[nodiscard]] const T& Peek() const {
+            return Channel->State.value();
+        }
+
+        [[nodiscard]] const T& Read() {
+            const T& Value = Channel->State.value();
+            LastReadVersion = Channel->Version;
+            return Value;
+        }
+
+        [[nodiscard]] FReadResult ReadIfChanged() noexcept {
+            if (!HasChanged()) {
+                return {};
+            }
+
+            LastReadVersion = Channel->Version;
+
+            return {
+                .Value = Channel->State ? std::addressof(*Channel->State) : nullptr,
+                .Changed = true
+            };
+        }
+
+        void Write(const T& NewState) requires std::copy_constructible<T>&& std::assignable_from<T&, const T&> {
+            Channel->Write(NewState);
+        }
+
+        void Write(T&& NewState) requires std::move_constructible<T>&& std::assignable_from<T&, T> {
+            Channel->Write(std::move(NewState));
+        }
+
+        template<typename... Args> requires std::constructible_from<T, Args...>
+        const T& Emplace(Args&&... Arguments) {
+            return Channel->Emplace(std::forward<Args>(Arguments)...);
+        }
+
+        template<typename TCallable> requires std::invocable<TCallable&, T&>
+        bool Modify(TCallable&& Callable) {
+            return Channel->TryModify(std::forward<TCallable>(Callable));
+        }
+
+        void Clear() noexcept {
+            Channel->Clear();
+        }
+
+    private:
+        TStateChannel* Channel{ nullptr };
+        VersionType LastReadVersion{ 0 };
+    };
+
+public:
+    FStateChannel() = default;
+
+    explicit FStateChannel(const T& InitialState) requires std::copy_constructible<T> : State(InitialState), Version(1) {}
+    explicit FStateChannel(T&& InitialState) requires std::move_constructible<T> : State(std::move(InitialState)), Version(1) {}
 
     template<typename... Args> requires std::constructible_from<T, Args...>
-    explicit TStateChannel(std::in_place_t, Args&&... Arguments) : State(std::in_place, std::forward<Args>(Arguments)...), Version(1) {}
+    explicit FStateChannel(std::in_place_t, Args&&... Arguments) : State(std::in_place, std::forward<Args>(Arguments)...), Version(1) {}
 
-	TStateChannel(const TStateChannel&) = delete;
-	TStateChannel& operator=(const TStateChannel&) = delete;
+	FStateChannel(const FStateChannel&) = delete;
+	FStateChannel& operator=(const FStateChannel&) = delete;
 
-	TStateChannel(TStateChannel&&) = delete;
-	TStateChannel& operator=(TStateChannel&&) = delete;
+	FStateChannel(FStateChannel&&) = delete;
+	FStateChannel& operator=(FStateChannel&&) = delete;
 
 public:
     [[nodiscard]] FReader GetReader() const noexcept {
@@ -129,6 +203,10 @@ public:
 
     [[nodiscard]] FWriter GetWriter() noexcept {
         return FWriter{ *this };
+    }
+
+    [[nodiscard]] FReadWriter GetReadWriter() noexcept {
+        return FReadWriter{ *this };
     }
 
 private:

@@ -42,3 +42,13 @@ struct FTypeInfo {
     inline static const FTypeInfo TypeInfo{ #Type, ParentType::StaticTypeInfo(), nullptr }; \
     static const FTypeInfo* StaticTypeInfo() noexcept { return &TypeInfo; } \
     virtual const FTypeInfo* GetTypeInfo() const noexcept override { return &TypeInfo; }
+
+#define JG_DECLARE_CHANNEL_MESSAGE(MessageType) \
+    inline static const FTypeInfo TypeInfo{ #MessageType, nullptr, nullptr }; \
+    static const FTypeInfo& StaticTypeInfo() noexcept { return TypeInfo; } \
+    MessageType() = default; \
+    ~MessageType() = default; \
+    MessageType(const MessageType&) = default; \
+    MessageType& operator=(const MessageType&) = default; \
+    MessageType(MessageType&&) noexcept = default; \
+    MessageType& operator=(MessageType&&) noexcept = default

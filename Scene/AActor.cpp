@@ -18,6 +18,37 @@ AActor::~AActor()
     }
 }
 
+bool AActor::DestroyComponent(UActorComponent* Component)
+{
+    if (Component == nullptr)
+    {
+        return false;
+    }
+
+    auto It = std::ranges::find_if(Components, [Component](const std::unique_ptr<UActorComponent>& Ptr)
+        {
+            return Ptr.get() == Component;
+        });
+
+    if (It == Components.end())
+    {
+        return false;
+    }
+
+    Component->OnDestroy();
+
+    UObjectSystem::Unregister(Component, Component->GetHandle());
+
+    if (RootComponent == Component)
+    {
+        RootComponent = nullptr;
+    }
+
+    Components.erase(It);
+
+    return true;
+}
+
 USceneComponent* AActor::GetRootComponent()
 {
     return RootComponent;
@@ -64,6 +95,8 @@ void AActor::Tick(float DeltaTime)
     }
 }
 
+
+
 void AActor::Serialize(FArchive& Archive)
 {
     UObject::Serialize(Archive);
@@ -71,25 +104,20 @@ void AActor::Serialize(FArchive& Archive)
     // components
     size_t ArraySize = Components.size();
     Archive.BeginArrayScope("Components", ArraySize);
-
     for (size_t i = 0; i < ArraySize; ++i)
     {
         Archive.BeginObjectScope(std::to_string(i));
         Components[i]->Serialize(Archive);
         Archive.EndObjectScope();
     }
-
     Archive.EndArrayScope();
-
 
 
     // root component
     FString GuidRootComponent;
     if (RootComponent != nullptr)
         GuidRootComponent = RootComponent->GetGuid().ToString();
-
     Archive.Serialize("GuidRootComponent", GuidRootComponent);
-
     if (Archive.IsLoading() && !GuidRootComponent.empty())
     {
         FGuid Guid;
@@ -98,20 +126,16 @@ void AActor::Serialize(FArchive& Archive)
     }
 }
 
-
 void AActor::PreLoadComponents(FArchive& Archive)
 {
     size_t ArraySize = 0;
     
     Archive.BeginArrayScope("Components", ArraySize);
 
-
-
 	Components = std::vector<std::unique_ptr<UActorComponent>>(ArraySize);
     
     Components.clear();
     Components.resize(ArraySize);
-
 
     for (size_t i = 0; i < ArraySize; ++i)
     {

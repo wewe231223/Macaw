@@ -1,5 +1,5 @@
-﻿#include "pch.h"
-#include "ConsoleWindow.h"
+﻿#include "PCH.h"
+#include "../Console/ConsoleWindow.h"
 #include "ImGui/imgui.h"
 
 #include <sstream>
@@ -39,7 +39,18 @@ namespace
                 Handle,
                 Log,
                 Core,
-                "Commands: clear, help, echo");
+                "Commands: clear, echo, error");
+        }
+        else if (Command == "error")
+        {
+            FString Text;
+            std::getline(Stream >> std::ws, Text);
+
+            Console::AddLog(
+                Handle,
+                Error,
+                Etc,
+                "Error Test");
         }
         else if (Command == "echo")
         {
@@ -71,8 +82,7 @@ void DrawConsole(FConsoleOutputHandle Handle)
     const size_t Count = Console::GetMessageCount(Handle);
 
     // 로그 영역
-    float FooterHeight =
-        ImGui::GetFrameHeightWithSpacing();
+    float FooterHeight = ImGui::GetFrameHeightWithSpacing() * 2.0f;
 
     ImGui::BeginChild(
         "LogRegion",
@@ -140,21 +150,14 @@ void DrawConsole(FConsoleOutputHandle Handle)
     {
         if (InputBuf[0] != '\0')
         {
-            /*Console::AddLog(
-                Console::STDOutHandle,
-                ELogLevel::Log,
-                ELogCategory::Core,
-                "> %s",
-                InputBuf);*/
-
             ExecuteCommand(Console::STDOutHandle, InputBuf);
             InputBuf[0] = '\0';
 
             ImGui::SetKeyboardFocusHere(-1);
         }
-
     }
 
+    ImGui::TextDisabled("Type 'help' and press ENTER for available commands.");
 
     ImGui::End();
 }

@@ -186,13 +186,13 @@
     <ClCompile Include="Core\Asset\UMaterial.cpp" />
     <ClCompile Include="Core\Asset\UMesh.cpp" />
     <ClCompile Include="Core\Base\FGuid.cpp" />
-    <ClCompile Include="Core\Base\UndoSystem\FRecordObjectState.cpp" />
-    <ClCompile Include="Core\Base\UndoSystem\FUndoTransaction.cpp" />
+    <ClCompile Include="Core\Base\UndoSystem\FUndoRecords.cpp" />
     <ClCompile Include="Core\Base\TypeInfo.cpp" />
     <ClCompile Include="Core\Base\TypeRegistry.cpp" />
-    <ClCompile Include="Core\Base\UndoSystem\UUndoSystem.cpp" />
     <ClCompile Include="Core\Base\FRenderProbe.cpp" />
     <ClCompile Include="Core\Base\FTreansform.cpp" />
+    <ClCompile Include="Core\Base\UndoSystem\FUndoSystem.cpp" />
+    <ClCompile Include="Core\Base\UndoSystem\FUndoTransaction.cpp" />
     <ClCompile Include="Core\Base\UObject.cpp" />
     <ClCompile Include="Core\Base\UObjectSystem.cpp" />
     <ClCompile Include="Core\Base\FVertexAttribute.cpp" />
@@ -205,7 +205,6 @@
     <ClCompile Include="Core\Console\Console.cpp" />
     <ClCompile Include="Core\Memory\Memory.cpp" />
     <ClCompile Include="ErrorHandler.cpp" />
-    <ClCompile Include="FEditorSelection.cpp" />
     <ClCompile Include="FKeyboardInput.cpp" />
     <ClCompile Include="FMouseInput.cpp" />
     <ClCompile Include="ImGui\imgui.cpp">
@@ -266,9 +265,20 @@
     <ClCompile Include="Render\Console\ConsoleWindow.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Use</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="Render\EditorView\EditorViewport.cpp" />
+    <ClCompile Include="Render\EditorView\FLineRenderer.cpp" />
+    <ClCompile Include="Render\EditorView\FTransformGizmo.cpp" />
+    <ClCompile Include="Render\Panel\Console\ConsoleWindow.cpp" />
+    <ClCompile Include="Render\Panel\FControlPanel.cpp" />
+    <ClCompile Include="Render\Panel\FEditorSelection.cpp" />
+    <ClCompile Include="Render\Panel\Stats\StatWindow.cpp" />
+    <ClCompile Include="Render\EditorView\FOrientationWidget.cpp" />
+    <ClCompile Include="Render\EditorView\FTransformGizmo.cpp" />
+    <ClCompile Include="Render\EditorView\FWorldAxis.cpp" />
     <ClCompile Include="Render\Pipeline\UPipeline.cpp" />
     <ClCompile Include="Render\Pipeline\FShader.cpp" />
     <ClCompile Include="Render\Renderer.cpp" />
+    <ClCompile Include="Render\RenderWindowInfo.cpp" />
     <ClCompile Include="Scene\Component\UCollisionComponent.cpp" />
     <ClCompile Include="Serialize\FArchive.cpp" />
     <ClCompile Include="Serialize\FArchiveJson.cpp" />
@@ -280,7 +290,6 @@
     <ClCompile Include="Scene\Component\USceneComponent.cpp" />
     <ClCompile Include="Scene\Component\UStaticMeshComponent.cpp" />
     <ClCompile Include="Scene\UWorld.cpp" />
-    <ClCompile Include="Render\Stats\StatWindow.cpp" />
     <ClCompile Include="SimpleMath\SimpleMath.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
@@ -309,16 +318,17 @@
     <ClInclude Include="Core\Base\FObjectHandle.h" />
     <ClInclude Include="Core\Base\FObjectItem.h" />
     <ClInclude Include="Core\Base\TObjectRef.h" />
-    <ClInclude Include="Core\Base\UndoSystem\FObjectStateChangedMessage.h" />
-    <ClInclude Include="Core\Base\UndoSystem\FRecordObjectState.h" />
-    <ClInclude Include="Core\Base\UndoSystem\FUndoTransaction.h" />
-    <ClInclude Include="Core\Base\UndoSystem\IUndoContext.h" />
     <ClInclude Include="Core\Base\TypeInfo.h" />
     <ClInclude Include="Core\Base\TypeRegistry.h" />
-    <ClInclude Include="Core\Base\UndoSystem\IUndoRecord.h" />
-    <ClInclude Include="Core\Base\UndoSystem\UUndoSystem.h" />
     <ClInclude Include="Core\Base\FRenderProbe.h" />
     <ClInclude Include="Core\Base\FTransform.h" />
+    <ClInclude Include="Core\Base\UndoSystem\FUndoInfo.h" />
+    <ClInclude Include="Core\Base\UndoSystem\FUndoMessages.h" />
+    <ClInclude Include="Core\Base\UndoSystem\FUndoRecords.h" />
+    <ClInclude Include="Core\Base\UndoSystem\FUndoSystem.h" />
+    <ClInclude Include="Core\Base\UndoSystem\FUndoTransaction.h" />
+    <ClInclude Include="Core\Base\UndoSystem\IUndoContext.h" />
+    <ClInclude Include="Core\Base\UndoSystem\IUndoRecord.h" />
     <ClInclude Include="Core\Base\UObject.h" />
     <ClInclude Include="Core\Base\UObjectSystem.h" />
     <ClInclude Include="Core\Base\FVertexAttribute.h" />
@@ -334,13 +344,13 @@
     <ClInclude Include="Core\Memory\TEngineAllocator.h" />
     <ClInclude Include="EKeyState.h" />
     <ClInclude Include="ErrorHandler.h" />
-    <ClInclude Include="FEditorSelection.h" />
     <ClInclude Include="FKeyboardCameraMoveRequestMessage.h" />
     <ClInclude Include="FKeyboardInput.h" />
     <ClInclude Include="FMath.h" />
     <ClInclude Include="FMouseCameraRotateRequestMessage.h" />
     <ClInclude Include="FMouseInput.h" />
     <ClInclude Include="FMousePickRequestMessage.h" />
+    <ClInclude Include="FTransformEditRequestMessage.h" />
     <ClInclude Include="FWorldSelectionChangedMessage.h" />
     <ClInclude Include="ImGui\imconfig.h" />
     <ClInclude Include="ImGui\imgui.h" />
@@ -352,12 +362,22 @@
     <ClInclude Include="ImGui\imstb_truetype.h" />
     <ClInclude Include="ImGui\stb_image.h" />
     <ClInclude Include="PCH.h" />
-    <ClInclude Include="Render\Console\ConsoleWindow.h" />
+    <ClInclude Include="Render\Panel\Console\ConsoleWindow.h" />
+    <ClInclude Include="Render\Panel\FConsolePanel.h" />
+    <ClInclude Include="Render\Panel\FControlPanel.h" />
+    <ClInclude Include="Render\Panel\FEditorInfo.h" />
+    <ClInclude Include="Render\Panel\FEditorSelection.h" />
+    <ClInclude Include="Render\Panel\FEditorUIManager.h" />
+    <ClInclude Include="Render\Panel\FPropertyPanel.h" />
+    <ClInclude Include="Render\Panel\FStatPanel.h" />
+    <ClInclude Include="Render\Panel\IEditorPanel.h" />
+    <ClInclude Include="Render\Panel\Stats\StatWindow.h" />
     <ClInclude Include="Render\Pipeline\Defines.h" />
     <ClInclude Include="Render\Pipeline\UPipeline.h" />
     <ClInclude Include="Render\Pipeline\FShader.h" />
     <ClInclude Include="Render\Pipeline\Wrapper.h" />
     <ClInclude Include="Render\Renderer.h" />
+    <ClInclude Include="Render\RenderWindowInfo.h" />
     <ClInclude Include="Scene\Component\UCollisionComponent.h" />
     <ClInclude Include="Serialize\FArchive.h" />
     <ClInclude Include="Serialize\FArchiveJson.h" />
@@ -369,17 +389,20 @@
     <ClInclude Include="Scene\Component\USceneComponent.h" />
     <ClInclude Include="Scene\Component\UStaticMeshComponent.h" />
     <ClInclude Include="Scene\UWorld.h" />
-    <ClInclude Include="Render\Stats\StatWindow.h" />
     <ClInclude Include="SimpleMath\SimpleMath.h" />
     <ClInclude Include="STL.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Content\Metadata\AlternatePipeline.meta" />
     <None Include="Content\Metadata\BasePipeline.meta" />
+    <None Include="Content\Metadata\BlueMaterial.meta" />
     <None Include="Content\Metadata\CapsuleMesh.meta" />
     <None Include="Content\Metadata\ConeMesh.meta" />
     <None Include="Content\Metadata\CubeMesh.meta" />
     <None Include="Content\Metadata\CylinderMesh.meta" />
+    <None Include="Content\Metadata\DepthTestedLine.meta" />
+    <None Include="Content\Metadata\GreenMaterial.meta" />
+    <None Include="Content\Metadata\OverlayLine.meta" />
     <None Include="Content\Metadata\PlaneMesh.meta" />
     <None Include="Content\Metadata\PyramidMesh.meta" />
     <None Include="Content\Metadata\RedMaterial.meta" />
@@ -387,6 +410,8 @@
     <None Include="Content\Metadata\TorusMesh.meta" />
     <None Include="Content\Pipeline\Alternate.json" />
     <None Include="Content\Pipeline\Base.json" />
+    <None Include="Content\Pipeline\LineDepthTested.json" />
+    <None Include="Content\Pipeline\LineOverlay.json" />
     <None Include="SimpleMath\SimpleMath.inl" />
   </ItemGroup>
   <ItemGroup>
@@ -395,6 +420,10 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </FxCompile>
     <FxCompile Include="Content\Shader\Base.hlsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </FxCompile>
+    <FxCompile Include="Content\Shader\Line.hlsl">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </FxCompile>
