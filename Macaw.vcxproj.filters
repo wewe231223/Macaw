@@ -286,6 +286,10 @@
       <Filter>Render\Panel\Console</Filter>
     </ClCompile>
     <ClCompile Include="Render\Panel\FControlPanel.cpp" />
+    <ClCompile Include="Render\EditorView\EditorViewport.cpp" />
+    <ClCompile Include="Render\EditorView\FLineRenderer.cpp" />
+    <ClCompile Include="Render\EditorView\FTransformGizmo.cpp" />
+    <ClCompile Include="Render\RenderWindowInfo.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Core\Base\FGuid.h">
@@ -488,12 +492,6 @@
     <ClInclude Include="Render\Panel\Stats\StatWindow.h">
       <Filter>Render\Panel\Stats</Filter>
     </ClInclude>
-    <ClInclude Include="FTransformEditRequestMessage.h">
-      <Filter>Scene\Message</Filter>
-    </ClInclude>
-    <ClInclude Include="FEditorSelectionState.h">
-      <Filter>Scene\Message</Filter>
-    </ClInclude>
     <ClInclude Include="Scene\Component\UCollisionComponent.h">
       <Filter>Scene\Component</Filter>
     </ClInclude>
@@ -546,6 +544,9 @@
       <Filter>Render\Panel\Console</Filter>
     </ClInclude>
     <ClInclude Include="Render\Panel\FControlPanel.h" />
+    <ClInclude Include="EKeyState.h" />
+    <ClInclude Include="FTransformEditRequestMessage.h" />
+    <ClInclude Include="Render\RenderWindowInfo.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Content\Metadata\AlternatePipeline.meta">
@@ -606,6 +607,9 @@
       <Filter>Content\Metadata</Filter>
     </None>
     <None Include="Content\Metadata\GreenMaterial.meta">
+      <Filter>Content\Metadata</Filter>
+    </None>
+    <None Include="Content\Metadata\GreyMaterial.meta">
       <Filter>Content\Metadata</Filter>
     </None>
   </ItemGroup>

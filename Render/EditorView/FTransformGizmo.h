@@ -66,7 +66,7 @@ public:
 	FTransformGizmo& operator=(FTransformGizmo&&) = default;
 
 public:
-	void Initialize(ID3D11Device* Device, FAssetRegistry& AssetRegistry, TStateChannel<RenderWindowInfo>::FReader InWindowInfoReader, TStateChannel<FEditorSelectionState>::FReader InSelectionReader, FMessageChannel::FSender InWorldCommandSender);
+	void Initialize(ID3D11Device* Device, FAssetRegistry& AssetRegistry, FStateChannel<RenderWindowInfo>::FReader InWindowInfoReader, FStateChannel<FEditorSelectionState>::FReader InSelectionReader, FMessageChannel::FSender InWorldCommandSender);
 
 	void ProcessInput(FKeyboardInput& KeyboardInput, FMouseInput& MouseInput, bool bMouseCapturedByUI);
 	void Update(const CameraProbe& Camera);
@@ -116,8 +116,8 @@ private:
 	FVector3 BoundsCenterInGizmoSpace{};
 	std::array<FAxisHitProxy, 3> AxisHitProxies{};
 
-	TStateChannel<RenderWindowInfo>::FReader WindowInfoReader{};
-	TStateChannel<FEditorSelectionState>::FReader SelectionReader{};
+	FStateChannel<RenderWindowInfo>::FReader WindowInfoReader{};
+	FStateChannel<FEditorSelectionState>::FReader SelectionReader{};
 	std::optional<FMessageChannel::FSender> WorldCommandSender;
 
 	FEditorSelectionState CurrentSelection{};
@@ -129,6 +129,6 @@ private:
 	bool bVisible = false;
 	bool bHasCamera = false;
 
-	EModifyMode CurrentModifyMode{ EModifyMode::Scale };
+	EModifyMode CurrentModifyMode{ EModifyMode::Translate };
 	float CurrentWorkUnitsPerPixel{ 1.0f };
 };

@@ -260,6 +260,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     GMouseInput.InitializeWorldCommandSender(WorldCommandChannel.GetSender());
     GKeyboardInput.InitializeWorldCommandSender(WorldCommandChannel.GetSender());
     World.InitializeEditorEventSender(EditorEventChannel.GetSender());
+	World.SetWindowInfoReader(Renderer.GetWindowInfoReader());
+	World.SetAssetRegistry(&AssetRegistry);
 
     WorldCommandChannel.TryBind<FMousePickRequestMessage>(
         [&World](const FMousePickRequestMessage& Message)
@@ -315,11 +317,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 		});
 
 
-	Renderer.Create(gHWND, DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT);
-	
-    FAssetRegistry AssetRegistry;
-	AssetRegistry.Initialize(Renderer.GetDevice(), 128);
-	Renderer.BindAssetRegistry(&AssetRegistry);
 
     EditorViewport EditorView{}; 
 	EditorView.Initialize(Renderer.GetDevice(), AssetRegistry, Renderer.GetWindowInfoReader(), World.GetEditorSelectionStateReader(), WorldCommandChannel.GetSender());
@@ -342,7 +339,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     );
 	
 #ifdef LOAD
-	World.LoadScene("./scenes/NewScene111.json", Renderer.GetDevice(), &AssetRegistry);
+	World.LoadScene("./scenes/NewScene1234.json", Renderer.GetDevice(), &AssetRegistry);
 #else 
 	AssetRegistry.EmplaceAsset<UPipeline>(Renderer.GetDevice(), "BasePipeline", "./Content/Metadata/BasePipeline.meta");
 	AssetRegistry.EmplaceAsset<UPipeline>(Renderer.GetDevice(), "AlternatePipeline", "./Content/Metadata/AlternatePipeline.meta");
@@ -395,9 +392,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
             const float Yaw = (Random01(InstanceIndex * 7U + 6U) - 0.5f) * 0.5f;
             const float Roll = (Random01(InstanceIndex * 7U + 7U) - 0.5f) * 1.3f;
 
-                AActor* InstanceActor = World.AdoptActor<AActor>();
-                UStaticMeshComponent* InstanceComponent = InstanceActor->AddComponent<UStaticMeshComponent>();
-                UCollisionComponent* CollisionComponent = InstanceActor->AddComponent<UCollisionComponent>();
+            AActor* InstanceActor = World.AdoptActor<AActor>();
+            UStaticMeshComponent* InstanceComponent = InstanceActor->AddComponent<UStaticMeshComponent>();
+            UCollisionComponent* CollisionComponent = InstanceActor->AddComponent<UCollisionComponent>();
 
             InstanceActor->SetRootComponent(InstanceComponent);
             CollisionComponent->AttachTo(InstanceComponent);
@@ -497,7 +494,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
             //UndoCommandChannel.Dispatch();
 
-            Renderer.Render(World.BuildRenderProbe());
 			FRenderProbe& Probe{ World.BuildRenderProbe() };
             
 			EditorView.RenderInProbe(Probe);
