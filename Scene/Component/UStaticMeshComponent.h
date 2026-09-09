@@ -2,8 +2,7 @@
 
 #include "UPrimitiveComponent.h"
 #include "Core/Asset/FAssetHandle.h"
-
-class FArchive;
+#include "Serialize/FArchive.h"
 class UStaticMeshComponent : public UPrimitiveComponent
 {
 public:

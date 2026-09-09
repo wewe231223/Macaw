@@ -2,9 +2,8 @@
 
 #include "Core/Base/FTransform.h"
 #include "Core/Base/TObjectRef.h"
+#include "Serialize/FArchive.h"
 #include "UActorComponent.h"
-
-class FArchive;
 class USceneComponent : public UActorComponent
 {
 public:

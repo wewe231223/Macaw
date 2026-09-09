@@ -1,10 +1,9 @@
 ﻿#pragma once
 
 #include <cstdint>
+#include "FGuid.h"
 #include "FObjectHandle.h"
-
-class UObject;
-struct FGuid;
+#include "UObject.h"
 
 namespace UObjectSystem
 {

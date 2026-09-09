@@ -283,6 +283,15 @@
     <ClCompile Include="Scene\Component\UPrimitiveComponent.cpp" />
     <ClCompile Include="Scene\Component\USceneComponent.cpp" />
     <ClCompile Include="Scene\Component\UStaticMeshComponent.cpp" />
+    <ClCompile Include="Scene\Subsystem\FActorScene.cpp" />
+    <ClCompile Include="Scene\Subsystem\FCollisionScene.cpp" />
+    <ClCompile Include="Scene\Subsystem\FEditorCameraSubsystem.cpp" />
+    <ClCompile Include="Scene\Subsystem\FEditorSceneController.cpp" />
+    <ClCompile Include="Scene\Subsystem\FEditorWorldCommandRouter.cpp" />
+    <ClCompile Include="Scene\Subsystem\FRenderScene.cpp" />
+    <ClCompile Include="Scene\Subsystem\FSceneSerializer.cpp" />
+    <ClCompile Include="Scene\Subsystem\FWorldComponentRegistry.cpp" />
+    <ClCompile Include="Scene\Subsystem\FWorldContext.cpp" />
     <ClCompile Include="Scene\UWorld.cpp" />
     <ClCompile Include="SimpleMath\SimpleMath.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
@@ -387,6 +396,16 @@
     <ClInclude Include="Scene\Component\UPrimitiveComponent.h" />
     <ClInclude Include="Scene\Component\USceneComponent.h" />
     <ClInclude Include="Scene\Component\UStaticMeshComponent.h" />
+    <ClInclude Include="Scene\Subsystem\FActorScene.h" />
+    <ClInclude Include="Scene\Subsystem\FCollisionScene.h" />
+    <ClInclude Include="Scene\Subsystem\FEditorCameraSubsystem.h" />
+    <ClInclude Include="Scene\Subsystem\FEditorSceneController.h" />
+    <ClInclude Include="Scene\Subsystem\FEditorWorldCommandRouter.h" />
+    <ClInclude Include="Scene\Subsystem\FRenderScene.h" />
+    <ClInclude Include="Scene\Subsystem\FSceneSerializer.h" />
+    <ClInclude Include="Scene\Subsystem\FWorldComponentRegistry.h" />
+    <ClInclude Include="Scene\Subsystem\FWorldContext.h" />
+    <ClInclude Include="Scene\Subsystem\IWorldSceneAccess.h" />
     <ClInclude Include="Scene\UWorld.h" />
     <ClInclude Include="SimpleMath\SimpleMath.h" />
     <ClInclude Include="STL.h" />

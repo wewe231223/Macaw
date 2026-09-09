@@ -44,6 +44,9 @@
     <Filter Include="Scene\Component">
       <UniqueIdentifier>{bbdbea4a-a0cf-410a-917f-782a852bc3d3}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Scene\Subsystem">
+      <UniqueIdentifier>{47fca607-4328-46d8-83d9-8f81cfe89ec8}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Core\Asset">
       <UniqueIdentifier>{fae2d890-5d55-43be-b047-61240edc22eb}</UniqueIdentifier>
     </Filter>
@@ -184,6 +187,33 @@
     </ClCompile>
     <ClCompile Include="Scene\UWorld.cpp">
       <Filter>Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="Scene\Subsystem\FActorScene.cpp">
+      <Filter>Scene\Subsystem</Filter>
+    </ClCompile>
+    <ClCompile Include="Scene\Subsystem\FCollisionScene.cpp">
+      <Filter>Scene\Subsystem</Filter>
+    </ClCompile>
+    <ClCompile Include="Scene\Subsystem\FEditorCameraSubsystem.cpp">
+      <Filter>Scene\Subsystem</Filter>
+    </ClCompile>
+    <ClCompile Include="Scene\Subsystem\FEditorSceneController.cpp">
+      <Filter>Scene\Subsystem</Filter>
+    </ClCompile>
+    <ClCompile Include="Scene\Subsystem\FEditorWorldCommandRouter.cpp">
+      <Filter>Scene\Subsystem</Filter>
+    </ClCompile>
+    <ClCompile Include="Scene\Subsystem\FRenderScene.cpp">
+      <Filter>Scene\Subsystem</Filter>
+    </ClCompile>
+    <ClCompile Include="Scene\Subsystem\FSceneSerializer.cpp">
+      <Filter>Scene\Subsystem</Filter>
+    </ClCompile>
+    <ClCompile Include="Scene\Subsystem\FWorldComponentRegistry.cpp">
+      <Filter>Scene\Subsystem</Filter>
+    </ClCompile>
+    <ClCompile Include="Scene\Subsystem\FWorldContext.cpp">
+      <Filter>Scene\Subsystem</Filter>
     </ClCompile>
     <ClCompile Include="Serialize\FArchiveMemory.cpp">
       <Filter>Core\Serialize</Filter>
@@ -392,6 +422,36 @@
     </ClInclude>
     <ClInclude Include="Scene\UWorld.h">
       <Filter>Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="Scene\Subsystem\FActorScene.h">
+      <Filter>Scene\Subsystem</Filter>
+    </ClInclude>
+    <ClInclude Include="Scene\Subsystem\FCollisionScene.h">
+      <Filter>Scene\Subsystem</Filter>
+    </ClInclude>
+    <ClInclude Include="Scene\Subsystem\FEditorCameraSubsystem.h">
+      <Filter>Scene\Subsystem</Filter>
+    </ClInclude>
+    <ClInclude Include="Scene\Subsystem\FEditorSceneController.h">
+      <Filter>Scene\Subsystem</Filter>
+    </ClInclude>
+    <ClInclude Include="Scene\Subsystem\FEditorWorldCommandRouter.h">
+      <Filter>Scene\Subsystem</Filter>
+    </ClInclude>
+    <ClInclude Include="Scene\Subsystem\FRenderScene.h">
+      <Filter>Scene\Subsystem</Filter>
+    </ClInclude>
+    <ClInclude Include="Scene\Subsystem\FSceneSerializer.h">
+      <Filter>Scene\Subsystem</Filter>
+    </ClInclude>
+    <ClInclude Include="Scene\Subsystem\FWorldComponentRegistry.h">
+      <Filter>Scene\Subsystem</Filter>
+    </ClInclude>
+    <ClInclude Include="Scene\Subsystem\FWorldContext.h">
+      <Filter>Scene\Subsystem</Filter>
+    </ClInclude>
+    <ClInclude Include="Scene\Subsystem\IWorldSceneAccess.h">
+      <Filter>Scene\Subsystem</Filter>
     </ClInclude>
     <ClInclude Include="Scene\Component\UCameraComponent.h">
       <Filter>Scene\Component</Filter>

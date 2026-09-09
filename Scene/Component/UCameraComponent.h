@@ -1,8 +1,7 @@
 ﻿#pragma once
 
 #include "USceneComponent.h"
-
-class FArchive;
+#include "Serialize/FArchive.h"
 class UCameraComponent : public USceneComponent
 {
 public:

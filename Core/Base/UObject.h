@@ -11,7 +11,6 @@
 #include "TypeInfo.h"
 #include "../../ErrorHandler.h"
 
-class UObject;
 namespace UObjectSystem
 {
 	FObjectHandle Register(UObject* Object);

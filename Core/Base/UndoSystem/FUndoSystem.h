@@ -1,5 +1,7 @@
 ﻿#pragma once
+#include "../../Asset/FAssetRegistry.h"
 #include "../../Channel/FMessageChannel.h"
+#include "../UObject.h"
 
 enum class EUndoType
 {
@@ -10,7 +12,6 @@ enum class EUndoType
     End
 };
 
-class UObject;
 namespace FUndoSystem
 {
     // =================================================================

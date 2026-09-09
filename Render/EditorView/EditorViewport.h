@@ -12,7 +12,7 @@
 #include "FLineRenderer.h"
 #include "FTransformGizmo.h"
 
-class FMouseInput;
+#include "../../FMouseInput.h"
 
 class EditorViewport {
 	constexpr static float OrientationAxisSize = 200.0f;

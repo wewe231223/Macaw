@@ -1,9 +1,9 @@
 ﻿#pragma once
 
 #include "Core/Base/UObject.h"
+#include "Serialize/FArchive.h"
 
 class AActor;
-class FArchive;
 class UActorComponent : public UObject
 {
 public:

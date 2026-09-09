@@ -2,7 +2,7 @@
 
 #include "FMath.h"
 
-class FArchive;
+#include "Serialize/FArchive.h"
 
 struct FTransform
 {
