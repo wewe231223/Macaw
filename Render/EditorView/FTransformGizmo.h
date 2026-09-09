@@ -72,7 +72,7 @@ public:
 	void Update(const CameraProbe& Camera);
 	void Render(FRenderProbe& Probe);
 
-	FStateChannel<uint8>::FReadWriter GetGizmoMode() { return GizmoMode; }
+	FStateChannel<uint8>::FReadWriter GetGizmoMode() { return GizmoModeChannel.GetReadWriter(); }
 private:
 	void SetArrow(const FVector3& BoundsCenter, const FVector3& BoundsExtent, float WorldUnitsPerPixel);
 	void UpdateBoundsInGizmoSpace(const FEditorSelectionState& Selection, FVector3& OutCenter, FVector3& OutExtent) const;
@@ -127,7 +127,6 @@ private:
 	CameraProbe LastCamera{};
 
 	std::optional<FDragSession> DragSession;
-	std::uint64_t NextSessionId = 1;
 
 	bool bVisible = false;
 	bool bHasCamera = false;

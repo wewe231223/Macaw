@@ -1,5 +1,6 @@
 ﻿#pragma once
 
+#include <atomic>
 #include <cstdint>
 
 #include "Core/Base/FObjectHandle.h"
@@ -12,6 +13,11 @@ enum class ETransformEditPhase : std::uint8_t {
 	Commit,
 	Cancel
 };
+
+inline std::uint64_t AcquireTransformEditSessionId() noexcept {
+	static std::atomic_uint64_t NextSessionId{ 1 };
+	return NextSessionId.fetch_add(1, std::memory_order_relaxed);
+}
 
 struct FTransformEditRequestMessage {
 	inline static const FTypeInfo TypeInfo{

@@ -9,6 +9,7 @@
 
 #include "Core/Channel/FStateChannel.h"
 #include "Core/Channel/FMessageChannel.h"
+#include "../../FEditorSelectionState.h"
 
 class FEditorUIManager
 {
@@ -21,12 +22,12 @@ public:
 
         HWND WindowHandle,
 
-        FStateChannel<FMessageEditorTransformState>::FWriter TransformWriter,
-        FStateChannel<FMessageEditorTransformState>::FReader TransformReader,
+        FStateChannel<FEditorSelectionState>::FReader SelectionReader,
+        FMessageChannel::FSender WorldCommandSender,
 
         FMessageChannel::FSender SpawnSender,
         FMessageChannel::FSender SceneSender,
-        FMessageChannel::FSender GizmoSender
+        FStateChannel<uint8>::FReadWriter GizmoSender
     )
     {
         Panels.emplace_back(
@@ -41,9 +42,9 @@ public:
 
         Panels.emplace_back(
             std::make_unique<FPropertyPanel>(
-                std::move(TransformWriter),
-                std::move(TransformReader),
-                std::move(GizmoSender)
+                std::move(SelectionReader),
+                std::move(GizmoSender),
+                std::move(WorldCommandSender)
             )
         );
 

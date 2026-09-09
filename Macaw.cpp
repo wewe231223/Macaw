@@ -156,7 +156,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     FEditorSelection EditorSelection;
 
     FStateChannel<FMessageEditorCameraState> EditorCameraStateChannel;
-    FStateChannel<FMessageEditorTransformState> EditorTransformStateChannel;
 
     FMessageChannel SpawnCommandChannel{ 64 };
     FMessageChannel SceneCommandChannel{ 64 };
@@ -245,7 +244,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
     
 
-
+    EditorViewport EditorView{};
+    EditorView.Initialize(Renderer.GetDevice(), AssetRegistry, Renderer.GetWindowInfoReader(), World.GetEditorSelectionStateReader(), WorldCommandChannel.GetSender());
 
     FEditorUIManager EditorUIManager;
 
@@ -257,12 +257,12 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
         gHWND,
 
-        EditorTransformStateChannel.GetWriter(),
-        EditorTransformStateChannel.GetReader(),
+        World.GetEditorSelectionStateReader(),
+        WorldCommandChannel.GetSender(),
 
         SpawnCommandChannel.GetSender(),
         SceneCommandChannel.GetSender(),
-        GizmoCommandChannel.GetSender()
+        EditorView.GetGizmoMode()
     );
 
     World.InitializeEditorCameraState(
@@ -273,7 +273,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     GMouseInput.InitializeWorldCommandSender(WorldCommandChannel.GetSender());
     GKeyboardInput.InitializeWorldCommandSender(WorldCommandChannel.GetSender());
     World.InitializeEditorEventSender(EditorEventChannel.GetSender());
-    World.SetEditorTransformStateWriter(EditorTransformStateChannel.GetWriter());
 	World.SetWindowInfoReader(Renderer.GetWindowInfoReader());
 	World.SetAssetRegistry(&AssetRegistry);
 
@@ -332,8 +331,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
 
 
-    EditorViewport EditorView{}; 
-	EditorView.Initialize(Renderer.GetDevice(), AssetRegistry, Renderer.GetWindowInfoReader(), World.GetEditorSelectionStateReader(), WorldCommandChannel.GetSender());
+  
     SceneCommandChannel.TryBind<FMessageLoadScene>(
         [&World, &AssetRegistry](const FMessageLoadScene& Message)
         {

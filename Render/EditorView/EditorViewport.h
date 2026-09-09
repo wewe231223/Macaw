@@ -34,7 +34,7 @@ public:
 	void RenderInProbe(FRenderProbe& Probe);
 	void Render(ID3D11DeviceContext* Context, FRenderProbe& Probe);
 
-	FStateChannel<uint8>::FReader GetGizmoode() const { return TransformGizmo,.; }
+	FStateChannel<uint8>::FReadWriter GetGizmoMode() { return TransformGizmo.GetGizmoMode(); }
 private:
 	void RenderGrid(ELineDepthMode DepthMode);
 	void RenderAxis(ELineDepthMode DepthMode);

@@ -459,15 +459,7 @@ void UWorld::HandleMousePickRequest(
 				{
 					if (USceneComponent* RootComponent = Owner->GetRootComponent())
 					{
-						auto& transform = RootComponent->GetTransform();
 						SelectedComponentHandle = RootComponent->GetHandle();
-                        EditorTransformStateWriter.Emplace(FMessageEditorTransformState{
-                            .bIsSelected = true,
-                            .Position = transform.GetPosition(),
-                            .Rotation = transform.GetRotation(),
-                            .Scale = transform.GetScale(),
-                            });
-                        
 					}
 				}
             }
@@ -505,6 +497,10 @@ void UWorld::HandleTransformEditRequest(const FTransformEditRequestMessage& Mess
 	switch (Message.Phase) {
 	case ETransformEditPhase::Begin:
 		if (Message.ExpectedTransformRevision != TransformRevision) {
+			return;
+		}
+
+		if (ActiveTransformEdit.has_value()) {
 			return;
 		}
 

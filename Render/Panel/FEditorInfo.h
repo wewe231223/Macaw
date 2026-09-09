@@ -14,15 +14,6 @@ struct FMessageEditorCameraState
     float FOV;
 };
 
-struct FMessageEditorTransformState
-{
-    bool bIsSelected = false;
-
-    FVector3 Position;
-    FRotator Rotation;
-    FVector3 Scale;
-};
-
 #define JG_DECLARE_EDITOR_MESSAGE(MessageType) \
     inline static const FTypeInfo TypeInfo{ #MessageType, nullptr, nullptr }; \
     static const FTypeInfo& StaticTypeInfo() noexcept { return TypeInfo; } \
@@ -83,7 +74,7 @@ struct FMessageLoadScene
     }
 };
 
-enum class EGizmoMode
+enum class EGizmoMode : uint8
 {
     Translate,
     Rotate,

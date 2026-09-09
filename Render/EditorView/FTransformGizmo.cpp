@@ -300,7 +300,7 @@ bool FTransformGizmo::BeginDrag(EAxis Axis, const FRay& WorldRay) {
 	PlaneNormal.Normalize();
 
 	FDragSession NewSession{
-		.SessionId = NextSessionId++,
+		.SessionId = AcquireTransformEditSessionId(),
 		.TargetHandle = CurrentSelection.TransformTargetHandle,
 		.InitialWorld = CurrentSelection.TargetWorld,
 		.AxisWorld = AxisWorld,

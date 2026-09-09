@@ -1,82 +1,201 @@
 ﻿#pragma once
 
+#include <optional>
+
 #include "PCH.h"
 #include "ImGui/imgui.h"
 #include "IEditorPanel.h"
 #include "FEditorInfo.h"
-#include "Core/Channel/FStateChannel.h"
 #include "Core/Channel/FMessageChannel.h"
+#include "Core/Channel/FStateChannel.h"
+#include "../../FEditorSelectionState.h"
+#include "../../FTransformEditRequestMessage.h"
 
-class FPropertyPanel : public IEditorPanel
-{
+class FPropertyPanel : public IEditorPanel {
+	struct FTransformEditSession {
+		std::uint64_t SessionId = 0;
+		FObjectHandle TargetHandle{};
+		FMatrix InitialWorld{ FMatrix::Identity };
+		std::uint64_t InitialTransformRevision = 0;
+	};
+
 public:
-    FPropertyPanel(
-        FStateChannel<FMessageEditorTransformState>::FWriter InTransformWriter,
-        FStateChannel<FMessageEditorTransformState>::FReader InTransformReader,
-        FMessageChannel::FSender InEventSender
-    )
-        : TransformWriter(std::move(InTransformWriter))
-        , TransformReader(std::move(InTransformReader))
-        , EventSender(std::move(InEventSender))
-    {
-    }
+	FPropertyPanel(
+		FStateChannel<FEditorSelectionState>::FReader InSelectionReader,
+		FStateChannel<uint8>::FReadWriter InGizmoMode,
+		FMessageChannel::FSender InWorldCommandSender)
+		: SelectionReader(std::move(InSelectionReader))
+		, WorldCommandSender(std::move(InWorldCommandSender))
+		, GizmoMode(std::move(InGizmoMode)) {
+	}
 
-    void DrawPanel() override {
-        // 1. 상태 채널에서 트랜스폼 및 선택 정보 읽기 (Engine -> UI)
-        
-        if (TransformReader.HasValue()) {
-			auto& res = TransformReader.Read();
-			CachedState = res;
-        }
+	void DrawPanel() override {
+		if (!SelectionReader.HasValue()) {
+			CancelTransformEdit();
+			return;
+		}
 
-        // 선택된 객체가 없으면 패널 자체를 그리지 않음
-        if (!CachedState.bIsSelected)
-        {
-            return;
-        }
+		const FEditorSelectionState& Selection = SelectionReader.Read();
+		if (!Selection.TransformTargetHandle.IsValid()) {
+			CancelTransformEdit();
+			return;
+		}
 
-        ImGui::Begin("Property Window");
+		if (ActiveTransformEdit.has_value() && ActiveTransformEdit->TargetHandle != Selection.TransformTargetHandle) {
+			CancelTransformEdit();
+		}
 
-        // 2. 단방향 채널: 기즈모 변경 이벤트 전송 (UI -> Engine)
-        ImGui::Text("Gizmo Mode");
-        int ModeIndex = static_cast<int>(CurrentGizmoMode);
-        bool bGizmoChanged = false;
+		if (!ActiveTransformEdit.has_value() && !UpdateTransformFields(Selection.TargetWorld)) {
+			return;
+		}
 
-        bGizmoChanged |= ImGui::RadioButton("Translate", &ModeIndex, 0);
-        ImGui::SameLine();
-        bGizmoChanged |= ImGui::RadioButton("Rotate", &ModeIndex, 1);
-        ImGui::SameLine();
-        bGizmoChanged |= ImGui::RadioButton("Scale", &ModeIndex, 2);
+		ImGui::Begin("Property Window");
 
-        if (bGizmoChanged)
-        {
-            CurrentGizmoMode = static_cast<EGizmoMode>(ModeIndex);
-            EventSender.TryEmplace<FMessageChangeGizmoMode>(CurrentGizmoMode);
-        }
-        ImGui::Separator();
+		ImGui::Text("Gizmo Mode");
+		CurrentGizmoMode = static_cast<EGizmoMode>(GizmoMode.Read());
+		int ModeIndex = static_cast<int>(CurrentGizmoMode);
+		bool bGizmoChanged = false;
 
-        // 3. 상태 채널: 조작된 트랜스폼 쓰기 (UI -> Engine)
-        ImGui::Text("Transform");
-        bool bTransformModifiedByUI = false;
+		bGizmoChanged |= ImGui::RadioButton("Translate", &ModeIndex, 0);
+		ImGui::SameLine();
+		bGizmoChanged |= ImGui::RadioButton("Rotate", &ModeIndex, 1);
+		ImGui::SameLine();
+		bGizmoChanged |= ImGui::RadioButton("Scale", &ModeIndex, 2);
 
-        bTransformModifiedByUI |= ImGui::DragFloat3("Position", &CachedState.Position.x, 0.1f);
-        bTransformModifiedByUI |= ImGui::DragFloat3("Rotation", &CachedState.Rotation.x, 0.5f);
-        bTransformModifiedByUI |= ImGui::DragFloat3("Scale", &CachedState.Scale.x, 0.05f);
+		if (bGizmoChanged) {
+			CurrentGizmoMode = static_cast<EGizmoMode>(ModeIndex);
+			GizmoMode.Emplace(static_cast<uint8>(CurrentGizmoMode));
+		}
+		ImGui::Separator();
 
-        if (bTransformModifiedByUI)
-        {
-            TransformWriter.Write(CachedState);
-        }
+		ImGui::Text("Transform");
 
-        ImGui::End();
-    }
+		const bool bPositionModified = ImGui::DragFloat3("Position", &EditPosition.x, 0.1f);
+		const bool bPositionActivated = ImGui::IsItemActivated();
+		const bool bPositionDeactivated = ImGui::IsItemDeactivatedAfterEdit();
+
+		const bool bRotationModified = ImGui::DragFloat3("Rotation", &EditRotation.x, 0.5f);
+		const bool bRotationActivated = ImGui::IsItemActivated();
+		const bool bRotationDeactivated = ImGui::IsItemDeactivatedAfterEdit();
+
+		const bool bScaleModified = ImGui::DragFloat3("Scale", &EditScale.x, 0.05f);
+		const bool bScaleActivated = ImGui::IsItemActivated();
+		const bool bScaleDeactivated = ImGui::IsItemDeactivatedAfterEdit();
+
+		const bool bTransformActivated = bPositionActivated || bRotationActivated || bScaleActivated;
+		const bool bTransformModified = bPositionModified || bRotationModified || bScaleModified;
+		const bool bTransformDeactivated = bPositionDeactivated || bRotationDeactivated || bScaleDeactivated;
+
+		if (bTransformActivated && !ActiveTransformEdit.has_value()) {
+			BeginTransformEdit(Selection);
+		}
+
+		if (bTransformModified && ActiveTransformEdit.has_value()) {
+			UpdateTransformEdit();
+		}
+
+		if (bTransformDeactivated && ActiveTransformEdit.has_value()) {
+			CommitTransformEdit();
+		}
+
+		ImGui::End();
+	}
 
 private:
-    FStateChannel<FMessageEditorTransformState>::FWriter TransformWriter;
-    FStateChannel<FMessageEditorTransformState>::FReader TransformReader;
+	bool UpdateTransformFields(FMatrix WorldTransform) {
+		FQuat Rotation{};
+		if (!WorldTransform.Decompose(EditScale, Rotation, EditPosition)) {
+			return false;
+		}
 
-    FMessageChannel::FSender EventSender;
+		auto euler = Rotation.ToEuler();
+		EditRotation = FVector3(euler.x, euler.y, euler.z);
+		return true;
+	}
 
-    FMessageEditorTransformState CachedState;
-    EGizmoMode CurrentGizmoMode = EGizmoMode::Translate;
+	FMatrix BuildDesiredWorld() const {
+		return FMatrix::CreateScale(EditScale)
+			* FMatrix::CreateFromYawPitchRoll(EditRotation.y, EditRotation.x, EditRotation.z)
+			* FMatrix::CreateTranslation(EditPosition);
+	}
+
+	bool SendTransformEdit(
+		std::uint64_t SessionId,
+		ETransformEditPhase Phase,
+		FObjectHandle TargetHandle,
+		const FMatrix& DesiredWorld,
+		std::uint64_t ExpectedTransformRevision) {
+		return WorldCommandSender.TryEmplace<FTransformEditRequestMessage>(
+			SessionId,
+			Phase,
+			TargetHandle,
+			DesiredWorld,
+			ExpectedTransformRevision);
+	}
+
+	void BeginTransformEdit(const FEditorSelectionState& Selection) {
+		const std::uint64_t SessionId = AcquireTransformEditSessionId();
+		if (!SendTransformEdit(
+			SessionId,
+			ETransformEditPhase::Begin,
+			Selection.TransformTargetHandle,
+			Selection.TargetWorld,
+			Selection.TransformRevision)) {
+			return;
+		}
+
+		ActiveTransformEdit = FTransformEditSession{
+			.SessionId = SessionId,
+			.TargetHandle = Selection.TransformTargetHandle,
+			.InitialWorld = Selection.TargetWorld,
+			.InitialTransformRevision = Selection.TransformRevision
+		};
+	}
+
+	void UpdateTransformEdit() {
+		const FTransformEditSession& Session = *ActiveTransformEdit;
+		SendTransformEdit(
+			Session.SessionId,
+			ETransformEditPhase::Update,
+			Session.TargetHandle,
+			BuildDesiredWorld(),
+			Session.InitialTransformRevision);
+	}
+
+	void CommitTransformEdit() {
+		const FTransformEditSession& Session = *ActiveTransformEdit;
+		SendTransformEdit(
+			Session.SessionId,
+			ETransformEditPhase::Commit,
+			Session.TargetHandle,
+			BuildDesiredWorld(),
+			Session.InitialTransformRevision);
+		ActiveTransformEdit.reset();
+	}
+
+	void CancelTransformEdit() {
+		if (!ActiveTransformEdit.has_value()) {
+			return;
+		}
+
+		const FTransformEditSession& Session = *ActiveTransformEdit;
+		SendTransformEdit(
+			Session.SessionId,
+			ETransformEditPhase::Cancel,
+			Session.TargetHandle,
+			Session.InitialWorld,
+			Session.InitialTransformRevision);
+		ActiveTransformEdit.reset();
+	}
+
+private:
+	FStateChannel<FEditorSelectionState>::FReader SelectionReader;
+	FStateChannel<uint8>::FReadWriter GizmoMode;
+	FMessageChannel::FSender WorldCommandSender;
+
+	std::optional<FTransformEditSession> ActiveTransformEdit;
+	FVector3 EditPosition{};
+	FVector3 EditRotation{};
+	FVector3 EditScale{ 1.0f, 1.0f, 1.0f };
+	EGizmoMode CurrentGizmoMode = EGizmoMode::Translate;
 };

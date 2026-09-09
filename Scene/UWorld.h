@@ -116,10 +116,9 @@ public:
     std::optional<FStateChannel<FMessageEditorCameraState>::FWriter> EditorCameraWriter;
     std::optional<FStateChannel<FMessageEditorCameraState>::FReader> EditorCameraReader;
 
-    void UpdateEditorCameraState();
+	void UpdateEditorCameraState();
     void SetAssetRegistry(FAssetRegistry* InAssetRegistry);
 	void SetWindowInfoReader(FStateChannel<RenderWindowInfo>::FReader InReader) { WindowInfoReader = InReader; }
-	void SetEditorTransformStateWriter(FStateChannel<FMessageEditorTransformState>::FWriter InWriter) { EditorTransformStateWriter = InWriter; }
 
     FAssetRegistry* GetAssetRegistry() const;
 
@@ -143,7 +142,6 @@ private:
 	TObjectRef<UCollisionComponent> SelectedCollider;
 	FStateChannel<FEditorSelectionState> EditorSelectionState;
 	FStateChannel<RenderWindowInfo>::FReader WindowInfoReader;
-	FStateChannel<FMessageEditorTransformState>::FWriter EditorTransformStateWriter;
 
 	std::optional<FActiveTransformEdit> ActiveTransformEdit;
 	std::uint64_t TransformRevision = 1;
