@@ -350,6 +350,7 @@
     <ClInclude Include="FMouseCameraRotateRequestMessage.h" />
     <ClInclude Include="FMouseInput.h" />
     <ClInclude Include="FMousePickRequestMessage.h" />
+    <ClInclude Include="FTransformEditRequestMessage.h" />
     <ClInclude Include="FWorldSelectionChangedMessage.h" />
     <ClInclude Include="ImGui\imconfig.h" />
     <ClInclude Include="ImGui\imgui.h" />

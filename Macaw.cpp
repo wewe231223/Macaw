@@ -40,6 +40,7 @@
 #include "FMousePickRequestMessage.h"
 #include "FMouseCameraRotateRequestMessage.h"
 #include "FWorldSelectionChangedMessage.h"
+#include "FTransformEditRequestMessage.h"
 #include "FKeyboardInput.h"
 #include "FKeyboardCameraMoveRequestMessage.h"
 #include "Render/Panel/FEditorSelection.h"
@@ -83,7 +84,6 @@ HWND gHWND;
 FRenderer Renderer;
 
 #define LOAD 
-
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
                      _In_opt_ HINSTANCE hPrevInstance,
@@ -309,6 +309,11 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 			World.HandleMousePickReleaseRequest(Message);
 		});
 
+	WorldCommandChannel.TryBind<FTransformEditRequestMessage>(
+		[&World](const FTransformEditRequestMessage& Message) {
+			World.HandleTransformEditRequest(Message);
+		});
+
 
 	Renderer.Create(gHWND, DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT);
 	
@@ -316,6 +321,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	AssetRegistry.Initialize(Renderer.GetDevice(), 128);
 	Renderer.BindAssetRegistry(&AssetRegistry);
 
+    EditorViewport EditorView{}; 
+	EditorView.Initialize(Renderer.GetDevice(), AssetRegistry, Renderer.GetWindowInfoReader(), World.GetEditorSelectionStateReader(), WorldCommandChannel.GetSender());
     SceneCommandChannel.TryBind<FMessageLoadScene>(
         [&World, &Renderer, &AssetRegistry](const FMessageLoadScene& Message)
         {
@@ -339,8 +346,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 #else 
 	AssetRegistry.EmplaceAsset<UPipeline>(Renderer.GetDevice(), "BasePipeline", "./Content/Metadata/BasePipeline.meta");
 	AssetRegistry.EmplaceAsset<UPipeline>(Renderer.GetDevice(), "AlternatePipeline", "./Content/Metadata/AlternatePipeline.meta");
-
-	AssetRegistry.EmplaceAsset<UMesh>(Renderer.GetDevice(), "SphereMesh", "./Content/Metadata/CapsuleMesh.meta");
+    // Triangle
+	AssetRegistry.EmplaceAsset<UMesh>(Renderer.GetDevice(), "SphereMesh", "./Content/Metadata/TorusMesh.meta");
     
 	AssetRegistry.EmplaceAsset<UColorMaterial>(Renderer.GetDevice(), "GreyMaterial", "./Content/Metadata/GreyMaterial.meta");
 
@@ -465,6 +472,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
             ImGui_ImplWin32_NewFrame();
             ImGui::NewFrame();
 
+            // 입력 상태는 WndProc의 ProcessWindowMessage에서 갱신한다.
+			EditorView.ProcessInput(GKeyboardInput, GMouseInput, ImGui::GetIO().WantCaptureMouse);
+
             EditorUIManager.Tick();
 
             GMouseInput.DispatchPendingWorldCommands(
@@ -509,6 +519,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     ImGui_ImplWin32_Shutdown();
     ImGui::DestroyContext();
 
+	World.SaveScene("test", &AssetRegistry);
 
     return (int) msg.wParam;
 }

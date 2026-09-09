@@ -11,6 +11,7 @@
 #include "Core/Base/UObject.h"
 #include "Core/Base/UObjectSystem.h"
 #include "Core/Base/FRenderProbe.h"
+#include "FEditorSelectionState.h"
 #include "Render/Panel/FEditorInfo.h"
 
 #include "../Render/RenderWindowInfo.h"
@@ -31,6 +32,7 @@ struct FMousePickRequestMessage;
 struct FMouseCameraRotateRequestMessage;
 struct FKeyboardCameraMoveRequestMessage;
 struct FMousePickReleaseRequestMessage;
+struct FTransformEditRequestMessage;
 
 struct FMessageSpawnPrimitive;
 struct FMessageNewScene;
@@ -71,8 +73,8 @@ public:
     const std::vector<std::unique_ptr<AActor>>& GetActors() const;
     FRenderProbe& BuildRenderProbe();
     
-    TStateChannel<TObjectRef<UCollisionComponent>>::FReader GetSelectedActorCollider() const noexcept {
-		return SelectedCollider.GetReader();
+    TStateChannel<FEditorSelectionState>::FReader GetEditorSelectionStateReader() const noexcept {
+		return EditorSelectionState.GetReader();
     }
 
     FRenderProbe& BuildRenderProbe();
@@ -87,23 +89,22 @@ public:
     bool LoadScene(const std::filesystem::path& ScenePath, ID3D11Device* Device, FAssetRegistry* AssetRegistry);
 
 	JG_DECLARE_DERIVED_TYPEINFO(UWorld, UObject);
+    void InitializeEditorEventSender(FMessageChannel::FSender&& InSender);
 
     void InitializeEditorEventSender(FMessageChannel::FSender&& InSender);
     void InitializeEditorCameraState(
         FStateChannel<FMessageEditorCameraState>::FWriter InWriter,
         FStateChannel<FMessageEditorCameraState>::FReader InReader);
 
-    void HandleMousePickRequest(
-        const FMousePickRequestMessage& Message);
+    void HandleMousePickRequest(const FMousePickRequestMessage& Message);
 
-	void HandleMousePickReleaseRequest(
-		const FMousePickReleaseRequestMessage& Message);
+	void HandleMousePickReleaseRequest(const FMousePickReleaseRequestMessage& Message);
 
-    void HandleMouseCameraRotateRequest(
-        const FMouseCameraRotateRequestMessage& Message);
+	void HandleTransformEditRequest(const FTransformEditRequestMessage& Message);
 
-    void HandleKeyboardCameraMoveRequest(
-        const FKeyboardCameraMoveRequestMessage& Message);
+    void HandleMouseCameraRotateRequest(const FMouseCameraRotateRequestMessage& Message);
+
+    void HandleKeyboardCameraMoveRequest(const FKeyboardCameraMoveRequestMessage& Message);
 
     void RegisterCollision(UCollisionComponent* Component);
     void UnregisterCollision(UCollisionComponent* Component);
@@ -126,14 +127,25 @@ public:
     void ResetWorld(FAssetRegistry* AssetRegistry, ID3D11Device* Device);
 
 private:
+	struct FActiveTransformEdit {
+		std::uint64_t SessionId = 0;
+		FObjectHandle TargetHandle{};
+		FMatrix OriginalWorld{ FMatrix::Identity };
+	};
+
+	void PublishEditorSelectionState();
+
     std::vector<std::unique_ptr<AActor>> Actors;
     std::vector<AActor*> PendingDestroyActors;
     std::vector<UStaticMeshComponent*> RenderableComponents;
     std::vector<TObjectRef<UCollisionComponent>> CollisionComponents;
 
 
-    TStateChannel<TObjectRef<UCollisionComponent>> SelectedCollider;
+	TObjectRef<UCollisionComponent> SelectedCollider;
+	TStateChannel<FEditorSelectionState> EditorSelectionState;
 	TStateChannel<RenderWindowInfo>::FReader WindowInfoReader;
+	std::optional<FActiveTransformEdit> ActiveTransformEdit;
+	std::uint64_t TransformRevision = 1;
 
     std::optional<FMessageChannel::FSender> EditorEventSender;
 

@@ -488,6 +488,12 @@
     <ClInclude Include="Render\Panel\Stats\StatWindow.h">
       <Filter>Render\Panel\Stats</Filter>
     </ClInclude>
+    <ClInclude Include="FTransformEditRequestMessage.h">
+      <Filter>Scene\Message</Filter>
+    </ClInclude>
+    <ClInclude Include="FEditorSelectionState.h">
+      <Filter>Scene\Message</Filter>
+    </ClInclude>
     <ClInclude Include="Scene\Component\UCollisionComponent.h">
       <Filter>Scene\Component</Filter>
     </ClInclude>

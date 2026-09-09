@@ -1,4 +1,4 @@
-#include "PCH.h"
+﻿#include "PCH.h"
 #include <DirectXCollision.h>
 
 #include "UCollisionComponent.h"
@@ -63,6 +63,14 @@ bool UCollisionComponent::Raycast(const FRay& Ray, float& OutDistance) const
 
 const FVector3 UCollisionComponent::GetExtent() const {
 	return FVector3{ OBB.Extents.x, OBB.Extents.y, OBB.Extents.z };
+}
+
+const FVector3 UCollisionComponent::GetBoundsCenter() const {
+	return FVector3{ OBB.Center.x, OBB.Center.y, OBB.Center.z };
+}
+
+const FQuat UCollisionComponent::GetBoundsOrientation() const {
+	return FQuat{ OBB.Orientation.x, OBB.Orientation.y, OBB.Orientation.z, OBB.Orientation.w };
 }
 
 void UCollisionComponent::SetExtent(const FVector3& InExtent)

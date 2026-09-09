@@ -1,18 +1,22 @@
-﻿#pragma once 
+﻿#pragma once
 
 #include <d3d11.h>
-#include "../Core/Channel/FStateChannel.h"
+
 #include "../../Core/Asset/FAssetRegistry.h"
 #include "../../Core/Base/FRenderProbe.h"
-#include "../../Scene/Component/UCollisionComponent.h"
-#include "../../Core/Base/TObjectRef.h"
+#include "../../Core/Channel/FMessageChannel.h"
+#include "../../Core/Channel/FStateChannel.h"
+#include "../../FEditorSelectionState.h"
 #include "../RenderWindowInfo.h"
 
 #include "FLineRenderer.h"
 #include "FTransformGizmo.h"
 
+class FMouseInput;
+
 class EditorViewport {
-	constexpr static float  OrientationAxisSize = 200.0f;
+	constexpr static float OrientationAxisSize = 200.0f;
+
 public:
 	EditorViewport() = default;
 	~EditorViewport() = default;
@@ -24,18 +28,19 @@ public:
 	EditorViewport& operator=(EditorViewport&&) noexcept = default;
 
 public:
-	void Initialize(ID3D11Device* Device, FAssetRegistry& AssetRegistry, TStateChannel<RenderWindowInfo>::FReader WindowReader, TStateChannel<TObjectRef<UCollisionComponent>>::FReader SelectedActorReader);
+	void Initialize(ID3D11Device* Device, FAssetRegistry& AssetRegistry, TStateChannel<RenderWindowInfo>::FReader WindowReader, TStateChannel<FEditorSelectionState>::FReader SelectionReader, FMessageChannel::FSender WorldCommandSender);
 
+	void ProcessInput(FKeyboardInput& KeyboardInput, FMouseInput& MouseInput, bool bMouseCapturedByUI);
 	void RenderInProbe(FRenderProbe& Probe);
 	void Render(ID3D11DeviceContext* Context, FRenderProbe& Probe);
+
 private:
 	void RenderGrid(ELineDepthMode DepthMode);
-	void RenderAxis(ELineDepthMode DepthMode); 
-	void RenderOrientationAxis(ID3D11DeviceContext* Context, CameraProbe& Probe); 
+	void RenderAxis(ELineDepthMode DepthMode);
+	void RenderOrientationAxis(ID3D11DeviceContext* Context, CameraProbe& Probe);
 
 private:
 	TStateChannel<RenderWindowInfo>::FReader WindowInfoReader{};
-	TStateChannel<TObjectRef<UCollisionComponent>>::FReader SelectedActorReader{};
 
 	FLineRenderer LineRenderer{};
 	FTransformGizmo TransformGizmo{};

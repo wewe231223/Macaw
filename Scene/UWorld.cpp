@@ -12,6 +12,7 @@
 #include "FMousePickRequestMessage.h"
 #include "FWorldSelectionChangedMessage.h"
 #include "FKeyboardCameraMoveRequestMessage.h"
+#include "FTransformEditRequestMessage.h"
 #include "Render/Panel/FEditorInfo.h"
 #include "Core/Asset/UMesh.h"
 
@@ -28,6 +29,28 @@
 #include <rapidjson/document.h>
 #include <rapidjson/ostreamwrapper.h>
 #include <rapidjson/prettywriter.h>
+
+namespace {
+	bool ApplyWorldMatrix(USceneComponent& Component, const FMatrix& DesiredWorld) {
+		FMatrix LocalMatrix = DesiredWorld;
+		if (USceneComponent* Parent = Component.GetParent()) {
+			LocalMatrix = DesiredWorld * Parent->GetWorldMatrix().Invert();
+		}
+
+		FVector3 Scale{};
+		FQuat Rotation{};
+		FVector3 Translation{};
+		if (!LocalMatrix.Decompose(Scale, Rotation, Translation)) {
+			return false;
+		}
+
+		FTransform& Transform = Component.GetTransform();
+		Transform.SetPosition(Translation);
+		Transform.SetRotation(Rotation.ToEuler());
+		Transform.SetScale(Scale);
+		return true;
+	}
+}
 
 std::string GetFilePathFromExplorer()
 {
@@ -162,7 +185,8 @@ FRenderProbe& UWorld::BuildRenderProbe()
 		Component->MakeRender(ActorProbe);
 
 		
-		if (SelectedCollider.GetReader().HasValue() and Component->GetOwner() == SelectedCollider.GetReader().Read().Get()->GetOwner() and SelectedCollider.GetReader().Read().Get() != nullptr) {
+		UCollisionComponent* SelectedCollision = SelectedCollider.Get();
+		if (SelectedCollision != nullptr && Component->GetOwner() == SelectedCollision->GetOwner()) {
 			ActorProbe.Flags |= 0x0000'0001; 
 		}
 
@@ -429,10 +453,19 @@ void UWorld::HandleMousePickRequest(
 
             if (NearestCollision != nullptr)
             {
-                SelectedCollider.GetWriter().Emplace(TObjectRef<UCollisionComponent>(NearestCollision));
+				SelectedCollider.Set(NearestCollision);
+
+				if (AActor* Owner = NearestCollision->GetOwner())
+				{
+					if (USceneComponent* RootComponent = Owner->GetRootComponent())
+					{
+						SelectedComponentHandle = RootComponent->GetHandle();
+					}
+				}
             }
             else {
-				// SelectedCollider.GetWriter().Emplace(nullptr);
+				SelectedCollider.Reset();
+				EditorSelectionState.GetWriter().Clear();
             }
         }
 
@@ -451,6 +484,82 @@ void UWorld::HandleMousePickReleaseRequest(const FMousePickReleaseRequestMessage
 {
    // SelectedCollider.GetWriter().Emplace(nullptr);
 
+}
+
+void UWorld::HandleTransformEditRequest(const FTransformEditRequestMessage& Message) {
+	TObjectRef<USceneComponent> TargetRef{ Message.TargetHandle };
+	USceneComponent* Target = TargetRef.Get();
+	if (Target == nullptr) {
+		ActiveTransformEdit.reset();
+		return;
+	}
+
+	switch (Message.Phase) {
+	case ETransformEditPhase::Begin:
+		if (Message.ExpectedTransformRevision != TransformRevision) {
+			return;
+		}
+
+		ActiveTransformEdit = FActiveTransformEdit{
+			.SessionId = Message.SessionId,
+			.TargetHandle = Message.TargetHandle,
+			.OriginalWorld = Target->GetWorldMatrix()
+		};
+		break;
+
+	case ETransformEditPhase::Update:
+		if (!ActiveTransformEdit.has_value() || ActiveTransformEdit->SessionId != Message.SessionId || ActiveTransformEdit->TargetHandle != Message.TargetHandle) {
+			return;
+		}
+
+		if (ApplyWorldMatrix(*Target, Message.DesiredWorld)) {
+			++TransformRevision;
+		}
+		break;
+
+	case ETransformEditPhase::Commit:
+		if (ActiveTransformEdit.has_value() && ActiveTransformEdit->SessionId == Message.SessionId && ActiveTransformEdit->TargetHandle == Message.TargetHandle) {
+			ActiveTransformEdit.reset();
+		}
+		break;
+
+	case ETransformEditPhase::Cancel:
+		if (ActiveTransformEdit.has_value() && ActiveTransformEdit->SessionId == Message.SessionId && ActiveTransformEdit->TargetHandle == Message.TargetHandle) {
+			if (ApplyWorldMatrix(*Target, ActiveTransformEdit->OriginalWorld)) {
+				++TransformRevision;
+			}
+			ActiveTransformEdit.reset();
+		}
+		break;
+	}
+}
+
+void UWorld::PublishEditorSelectionState() {
+	UCollisionComponent* Collision = SelectedCollider.Get();
+	if (Collision == nullptr) {
+		SelectedCollider.Reset();
+		EditorSelectionState.GetWriter().Clear();
+		return;
+	}
+
+	AActor* Owner = Collision->GetOwner();
+	USceneComponent* Target = Owner != nullptr ? Owner->GetRootComponent() : nullptr;
+	if (Target == nullptr) {
+		SelectedCollider.Reset();
+		EditorSelectionState.GetWriter().Clear();
+		return;
+	}
+
+	EditorSelectionState.GetWriter().Emplace(FEditorSelectionState{
+		.TransformTargetHandle = Target->GetHandle(),
+		.PickedColliderHandle = Collision->GetHandle(),
+		.TargetWorld = Target->GetWorldMatrix(),
+		.ColliderWorld = Collision->GetWorldMatrix(),
+		.BoundsCenter = Collision->GetBoundsCenter(),
+		.BoundsExtent = Collision->GetExtent(),
+		.BoundsOrientation = Collision->GetBoundsOrientation(),
+		.TransformRevision = TransformRevision
+	});
 }
 
 

@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "UPrimitiveComponent.h"
 #include "Core/Base/TypeInfo.h"
@@ -20,7 +20,9 @@ public:
 
     bool Raycast(const FRay& Ray, float& OutDistance) const;
 
+    const FVector3 GetBoundsCenter() const;
     const FVector3 GetExtent() const;
+    const FQuat GetBoundsOrientation() const;
     void SetExtent(const FVector3& InExtent);
     void MakeRender(FActorProbe& OutProbe) const override;
 

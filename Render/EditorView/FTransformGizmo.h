@@ -1,12 +1,60 @@
-﻿#pragma once 
+﻿#pragma once
+
+#include <array>
+#include <cstdint>
 #include <d3d11.h>
+#include <optional>
+
 #include "../../Core/Asset/FAssetRegistry.h"
-#include "../../Core/Asset/UMesh.h"
 #include "../../Core/Asset/UMaterial.h"
-#include "../Pipeline/UPipeline.h"
+#include "../../Core/Asset/UMesh.h"
 #include "../../Core/Base/FRenderProbe.h"
+#include "../../Core/Channel/FMessageChannel.h"
+#include "../../Core/Channel/FStateChannel.h"
+#include "../../FEditorSelectionState.h"
+#include "../../FTransformEditRequestMessage.h"
+#include "../Pipeline/UPipeline.h"
+#include "../RenderWindowInfo.h"
+
+#include "../../FMouseInput.h"
+#include "../../FKeyboardInput.h"
 
 class FTransformGizmo {
+	enum class EAxis : std::uint8_t {
+		None,
+		X,
+		Y,
+		Z
+	};
+
+	enum EModifyMode {
+		Translate, Rotate, Scale
+	};
+
+	struct FAxisHitProxy {
+		EAxis Axis = EAxis::None;
+		FVector3 Center{};
+		FVector3 Extent{};
+	};
+
+	struct FAxisHit {
+		EAxis Axis = EAxis::None;
+		float Distance = 0.0f;
+	};
+
+	struct FDragSession {
+		std::uint64_t SessionId = 0;
+		FObjectHandle TargetHandle{};
+		FMatrix InitialWorld{ FMatrix::Identity };
+		FVector3 AxisWorld{};
+		FVector3 InteractionPivotWorld{};
+		FVector3 DragPlaneNormal{};
+		float InitialAxisParameter = 0.0f;
+		std::uint64_t InitialTransformRevision = 0;
+		EAxis DragAxis = EAxis::None;
+		float WorkUnitsPerPixel = 1.0f;
+	};
+
 public:
 	FTransformGizmo() = default;
 	~FTransformGizmo() = default;
@@ -18,18 +66,35 @@ public:
 	FTransformGizmo& operator=(FTransformGizmo&&) = default;
 
 public:
-	void Initialize(ID3D11Device* Device, FAssetRegistry& AssetRegistry);
+	void Initialize(ID3D11Device* Device, FAssetRegistry& AssetRegistry, TStateChannel<RenderWindowInfo>::FReader InWindowInfoReader, TStateChannel<FEditorSelectionState>::FReader InSelectionReader, FMessageChannel::FSender InWorldCommandSender);
 
-	// box 로 cyliner 의 y scale 을 정한다. cyliner 는 기본 3개로 각각 +1 만큼 y up 한 다음, box 의 각 축 길이만큼 y scale 을 정한다. 그 다음 마지막으로 표현하고자 하는 각 축의 방향으로 회전시킨다. 
-	// y 축을 표현하고자 하는 경우는 제외하고, x 축을 표현하고자 하는 경우 z 축을 기준으로 90 도 회전, z 축을 표현하고자 하는 경우 x 축을 기준으로 -90 도 회전시킨다. -> 이것을 결합하여 각 축의 cyliner 의 기본 변환으로 한다.  
-	void SetArrow(const FVector3& TargetExtent);
-
-	void SetGizmoWorldTransform(FMatrix& TargetWorld, const FVector3& TargetExtent);
-
-	// 각 cyliner 의 변환을 먼저 하고, 그 다음, 타겟의 월드 변환 중 회전만 추출하여 적용한다. 
+	void ProcessInput(FKeyboardInput& KeyboardInput, FMouseInput& MouseInput, bool bMouseCapturedByUI);
+	void Update(const CameraProbe& Camera);
 	void Render(FRenderProbe& Probe);
 
 private:
+	void SetArrow(const FVector3& BoundsCenter, const FVector3& BoundsExtent, float WorldUnitsPerPixel);
+	void UpdateBoundsInGizmoSpace(const FEditorSelectionState& Selection, FVector3& OutCenter, FVector3& OutExtent) const;
+
+	std::optional<FRay> MakeWorldRay(const POINT& ScreenPosition) const;
+	std::optional<FAxisHit> HitTest(const FRay& WorldRay) const;
+
+	bool BeginDrag(EAxis Axis, const FRay& WorldRay);
+	void UpdateDrag(const FRay& WorldRay);
+	void EndDrag(bool bCancel);
+	bool GetAxisParameterOnDragPlane(const FRay& WorldRay, const FDragSession& Session, float& OutParameter) const;
+	FVector3 GetWorldAxis(EAxis Axis) const;
+
+	void SendTransformEdit(std::uint64_t SessionId, ETransformEditPhase Phase, FObjectHandle TargetHandle, const FMatrix& DesiredWorld, std::uint64_t ExpectedTransformRevision);
+
+private:
+	static constexpr float ShaftLengthPixels = 72.0f;
+	static constexpr float ConeLengthPixels = 24.0f;
+	static constexpr float ShaftRadiusPixels = 4.0f;
+	static constexpr float ConeRadiusPixels = 9.0f;
+	static constexpr float PickRadiusPixels = 10.0f;
+	static constexpr float BoundsGapPixels = 2.0f;
+
 	FAssetHandle CylinderMesh{};
 	FAssetHandle ConeMesh{};
 
@@ -48,4 +113,22 @@ private:
 	FMatrix ConeZAxisTransform{ FMatrix::Identity };
 
 	FMatrix GizmoWorldTransform{ FMatrix::Identity };
+	FVector3 BoundsCenterInGizmoSpace{};
+	std::array<FAxisHitProxy, 3> AxisHitProxies{};
+
+	TStateChannel<RenderWindowInfo>::FReader WindowInfoReader{};
+	TStateChannel<FEditorSelectionState>::FReader SelectionReader{};
+	std::optional<FMessageChannel::FSender> WorldCommandSender;
+
+	FEditorSelectionState CurrentSelection{};
+	CameraProbe LastCamera{};
+
+	std::optional<FDragSession> DragSession;
+	std::uint64_t NextSessionId = 1;
+
+	bool bVisible = false;
+	bool bHasCamera = false;
+
+	EModifyMode CurrentModifyMode{ EModifyMode::Scale };
+	float CurrentWorkUnitsPerPixel{ 1.0f };
 };
