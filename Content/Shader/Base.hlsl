@@ -19,7 +19,7 @@ struct FMaterial
     float4 Parameters6;
 };
 
-StructuredBuffer<FModelContext> ModelContexts : register(t0);
+StructuredBuffer<FModelContext> ModelContexts : register(t0); // ModelContext[] 
 StructuredBuffer<FMaterial> MaterialBuffer : register(t1);
 
 cbuffer RootConstants : register(b0)

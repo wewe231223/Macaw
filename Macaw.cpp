@@ -73,6 +73,16 @@ WCHAR szWindowClass[MAX_LOADSTRING];            // 기본 창 클래스 이름�
 
 HWND hWnd = nullptr;
 
+struct FImGuiViewportMoveSnapshot
+{
+    HWND WindowHandle;
+    POINT Position;
+};
+
+POINT GMainWindowMoveStartPosition{};
+std::vector<FImGuiViewportMoveSnapshot> GImGuiViewportMoveSnapshots;
+bool GIsMovingMainWindow = false;
+
 FMouseInput GMouseInput;
 FKeyboardInput GKeyboardInput;
 
@@ -483,6 +493,12 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     ImGui_ImplWin32_Init((void*)hWnd);
     ImGui_ImplDX11_Init(Renderer.GetDevice(), Renderer.GetDeviceContext());
 
+    ImGuiIO& io = ImGui::GetIO();
+    io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+	io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
+    io.ConfigViewportsNoDefaultParent = false;
+
+
     auto LastTickTime = std::chrono::steady_clock::now();
 
     while (true) {
@@ -506,6 +522,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
             ImGui_ImplDX11_NewFrame();
             ImGui_ImplWin32_NewFrame();
             ImGui::NewFrame();
+			ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport(), ImGuiDockNodeFlags_PassthruCentralNode);
 
             // 입력 상태는 WndProc의 ProcessWindowMessage에서 갱신한다.
 			EditorView.ProcessInput(GKeyboardInput, GMouseInput, ImGui::GetIO().WantCaptureMouse);
@@ -540,6 +557,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
             ImGui::Render();
             ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
+
+            ImGui::UpdatePlatformWindows();
+            ImGui::RenderPlatformWindowsDefault();
             
             Renderer.EndFrame();
 
@@ -693,6 +713,61 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     {
     case WM_DESTROY:
         PostQuitMessage(0);
+        break;
+    case WM_ENTERSIZEMOVE:
+    {
+        RECT mainWindowRect{};
+        if (!GetWindowRect(hWnd, &mainWindowRect))
+            break;
+
+        GMainWindowMoveStartPosition = { mainWindowRect.left, mainWindowRect.top };
+        GImGuiViewportMoveSnapshots.clear();
+        GIsMovingMainWindow = true;
+
+        if (ImGui::GetCurrentContext() == nullptr)
+            break;
+
+        ImGuiViewport* mainViewport = ImGui::GetMainViewport();
+        for (ImGuiViewport* viewport : ImGui::GetPlatformIO().Viewports)
+        {
+            if (viewport == mainViewport || viewport->PlatformHandle == nullptr)
+                continue;
+
+            HWND viewportWindow = static_cast<HWND>(viewport->PlatformHandle);
+            RECT viewportRect{};
+            if (GetWindowRect(viewportWindow, &viewportRect))
+                GImGuiViewportMoveSnapshots.push_back({ viewportWindow, { viewportRect.left, viewportRect.top } });
+        }
+        break;
+    }
+    case WM_MOVING:
+    {
+        if (!GIsMovingMainWindow)
+            break;
+
+        const RECT* movingMainWindowRect = reinterpret_cast<const RECT*>(lParam);
+        const int deltaX = movingMainWindowRect->left - GMainWindowMoveStartPosition.x;
+        const int deltaY = movingMainWindowRect->top - GMainWindowMoveStartPosition.y;
+
+        for (const FImGuiViewportMoveSnapshot& snapshot : GImGuiViewportMoveSnapshots)
+        {
+            if (!IsWindow(snapshot.WindowHandle))
+                continue;
+
+            SetWindowPos(
+                snapshot.WindowHandle,
+                nullptr,
+                snapshot.Position.x + deltaX,
+                snapshot.Position.y + deltaY,
+                0,
+                0,
+                SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_NOACTIVATE);
+        }
+        break;
+    }
+    case WM_EXITSIZEMOVE:
+        GImGuiViewportMoveSnapshots.clear();
+        GIsMovingMainWindow = false;
         break;
 	case WM_SIZE:
 		if (wParam != SIZE_MINIMIZED) {

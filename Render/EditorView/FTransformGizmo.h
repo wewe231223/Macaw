@@ -114,6 +114,7 @@ private:
 	FMatrix ConeZAxisTransform{ FMatrix::Identity };
 
 	FMatrix GizmoWorldTransform{ FMatrix::Identity };
+
 	FVector3 BoundsCenterInGizmoSpace{};
 	std::array<FAxisHitProxy, 3> AxisHitProxies{};
 
