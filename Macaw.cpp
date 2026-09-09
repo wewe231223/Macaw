@@ -143,7 +143,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     // test
     UWorld World{};
 
-    FRenderer Renderer;
     Renderer.Create(gHWND, DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT);
 
 
@@ -321,7 +320,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     EditorViewport EditorView{}; 
 	EditorView.Initialize(Renderer.GetDevice(), AssetRegistry, Renderer.GetWindowInfoReader(), World.GetEditorSelectionStateReader(), WorldCommandChannel.GetSender());
     SceneCommandChannel.TryBind<FMessageLoadScene>(
-        [&World, &Renderer, &AssetRegistry](const FMessageLoadScene& Message)
+        [&World, &AssetRegistry](const FMessageLoadScene& Message)
         {
             World.LoadScene(
                 std::filesystem::path(Message.FilePath.c_str()),

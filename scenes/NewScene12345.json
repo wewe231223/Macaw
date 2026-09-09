@@ -72,13 +72,13 @@
                     "bActive": true,
                     "Transform": {
                         "Position": [
-                            5.0,
-                            5.0,
-                            5.0
+                            9.127692222595215,
+                            5.622396945953369,
+                            3.248852252960205
                         ],
                         "Rotation": [
-                            0.4289998412132263,
-                            -0.35699987411499023,
+                            0.1650000363588333,
+                            -1.557003140449524,
                             0.0
                         ],
                         "Scale": [
@@ -88,7 +88,7 @@
                         ]
                     },
                     "FOV": 1.0471999645233154,
-                    "AspectRatio": 0.4157407283782959,
+                    "AspectRatio": 1.7777777910232544,
                     "NearPlane": 0.10000000149011612,
                     "FarPlane": 1000.0
                 }
@@ -8974,6 +8974,2226 @@
                 }
             ],
             "GuidRootComponent": "FD024A82-4DF1-0CA9-F26F-ECB95D98B33B"
+        },
+        {
+            "Guid": "1CDE536D-42EC-7D08-39BD-66B403004EC7",
+            "TypeName": "AActor",
+            "Components": [
+                {
+                    "Guid": "F3820C2A-4428-F487-6E18-E994767740E0",
+                    "TypeName": "UStaticMeshComponent",
+                    "bActive": true,
+                    "Transform": {
+                        "Position": [
+                            -2.5213444232940674,
+                            2.6851372718811035,
+                            2.779656410217285
+                        ],
+                        "Rotation": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "Scale": [
+                            1.0,
+                            1.0,
+                            1.0
+                        ]
+                    },
+                    "bVisible": true,
+                    "GuidMeshHandle": "61ACB5DA-4F0E-7B16-75AC-D9917137D64B",
+                    "GuidMaterialHandle": "47297BEA-4AA8-36FE-B6E3-E48686305584",
+                    "GuidPipelineHandle": "E6CB1FFA-4784-35E1-81AD-A599E75C1786"
+                },
+                {
+                    "Guid": "94C944FF-4C7F-DB19-54CB-AFBD6C10E5FD",
+                    "TypeName": "UCollisionComponent",
+                    "bActive": true,
+                    "Transform": {
+                        "Position": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "Rotation": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "Scale": [
+                            1.0,
+                            1.0,
+                            1.0
+                        ]
+                    },
+                    "bVisible": true,
+                    "Parent": "F3820C2A-4428-F487-6E18-E994767740E0",
+                    "OBB_Center": [
+                        0.0,
+                        0.0,
+                        0.0
+                    ],
+                    "OBB_Extent": [
+                        0.5,
+                        0.5,
+                        0.5
+                    ],
+                    "OBB_Orientation": [
+                        0.0,
+                        0.0,
+                        0.0,
+                        1.0
+                    ],
+                    "bCollisionEnabled": true
+                }
+            ],
+            "GuidRootComponent": "F3820C2A-4428-F487-6E18-E994767740E0"
+        },
+        {
+            "Guid": "1CDE536D-42EC-7D08-39BD-66B403004EC7",
+            "TypeName": "AActor",
+            "Components": [
+                {
+                    "Guid": "F3820C2A-4428-F487-6E18-E994767740E0",
+                    "TypeName": "UStaticMeshComponent",
+                    "bActive": true,
+                    "Transform": {
+                        "Position": [
+                            -2.5213444232940674,
+                            2.6851372718811035,
+                            2.779656410217285
+                        ],
+                        "Rotation": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "Scale": [
+                            1.0,
+                            1.0,
+                            1.0
+                        ]
+                    },
+                    "bVisible": true,
+                    "GuidMeshHandle": "61ACB5DA-4F0E-7B16-75AC-D9917137D64B",
+                    "GuidMaterialHandle": "47297BEA-4AA8-36FE-B6E3-E48686305584",
+                    "GuidPipelineHandle": "E6CB1FFA-4784-35E1-81AD-A599E75C1786"
+                },
+                {
+                    "Guid": "94C944FF-4C7F-DB19-54CB-AFBD6C10E5FD",
+                    "TypeName": "UCollisionComponent",
+                    "bActive": true,
+                    "Transform": {
+                        "Position": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "Rotation": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "Scale": [
+                            1.0,
+                            1.0,
+                            1.0
+                        ]
+                    },
+                    "bVisible": true,
+                    "Parent": "F3820C2A-4428-F487-6E18-E994767740E0",
+                    "OBB_Center": [
+                        0.0,
+                        0.0,
+                        0.0
+                    ],
+                    "OBB_Extent": [
+                        0.5,
+                        0.5,
+                        0.5
+                    ],
+                    "OBB_Orientation": [
+                        0.0,
+                        0.0,
+                        0.0,
+                        1.0
+                    ],
+                    "bCollisionEnabled": true
+                }
+            ],
+            "GuidRootComponent": "F3820C2A-4428-F487-6E18-E994767740E0"
+        },
+        {
+            "Guid": "C130B4CC-40BB-9F00-4D0B-EA8833554856",
+            "TypeName": "AActor",
+            "Components": [
+                {
+                    "Guid": "78D6FAA3-48E4-ACFD-964A-D89F513E530D",
+                    "TypeName": "UStaticMeshComponent",
+                    "bActive": true,
+                    "Transform": {
+                        "Position": [
+                            -3.7803430557250977,
+                            -1.5112674236297607,
+                            6.740904808044434
+                        ],
+                        "Rotation": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "Scale": [
+                            1.0,
+                            1.0,
+                            1.0
+                        ]
+                    },
+                    "bVisible": true,
+                    "GuidMeshHandle": "61ACB5DA-4F0E-7B16-75AC-D9917137D64B",
+                    "GuidMaterialHandle": "47297BEA-4AA8-36FE-B6E3-E48686305584",
+                    "GuidPipelineHandle": "E6CB1FFA-4784-35E1-81AD-A599E75C1786"
+                },
+                {
+                    "Guid": "4CB924D9-4B03-16DC-98C5-8CAA04D32CC3",
+                    "TypeName": "UCollisionComponent",
+                    "bActive": true,
+                    "Transform": {
+                        "Position": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "Rotation": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "Scale": [
+                            1.0,
+                            1.0,
+                            1.0
+                        ]
+                    },
+                    "bVisible": true,
+                    "Parent": "78D6FAA3-48E4-ACFD-964A-D89F513E530D",
+                    "OBB_Center": [
+                        0.0,
+                        0.0,
+                        0.0
+                    ],
+                    "OBB_Extent": [
+                        0.5,
+                        0.5,
+                        0.5
+                    ],
+                    "OBB_Orientation": [
+                        0.0,
+                        0.0,
+                        0.0,
+                        1.0
+                    ],
+                    "bCollisionEnabled": true
+                }
+            ],
+            "GuidRootComponent": "78D6FAA3-48E4-ACFD-964A-D89F513E530D"
+        },
+        {
+            "Guid": "C130B4CC-40BB-9F00-4D0B-EA8833554856",
+            "TypeName": "AActor",
+            "Components": [
+                {
+                    "Guid": "78D6FAA3-48E4-ACFD-964A-D89F513E530D",
+                    "TypeName": "UStaticMeshComponent",
+                    "bActive": true,
+                    "Transform": {
+                        "Position": [
+                            -3.7803430557250977,
+                            -1.5112674236297607,
+                            6.740904808044434
+                        ],
+                        "Rotation": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "Scale": [
+                            1.0,
+                            1.0,
+                            1.0
+                        ]
+                    },
+                    "bVisible": true,
+                    "GuidMeshHandle": "61ACB5DA-4F0E-7B16-75AC-D9917137D64B",
+                    "GuidMaterialHandle": "47297BEA-4AA8-36FE-B6E3-E48686305584",
+                    "GuidPipelineHandle": "E6CB1FFA-4784-35E1-81AD-A599E75C1786"
+                },
+                {
+                    "Guid": "4CB924D9-4B03-16DC-98C5-8CAA04D32CC3",
+                    "TypeName": "UCollisionComponent",
+                    "bActive": true,
+                    "Transform": {
+                        "Position": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "Rotation": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "Scale": [
+                            1.0,
+                            1.0,
+                            1.0
+                        ]
+                    },
+                    "bVisible": true,
+                    "Parent": "78D6FAA3-48E4-ACFD-964A-D89F513E530D",
+                    "OBB_Center": [
+                        0.0,
+                        0.0,
+                        0.0
+                    ],
+                    "OBB_Extent": [
+                        0.5,
+                        0.5,
+                        0.5
+                    ],
+                    "OBB_Orientation": [
+                        0.0,
+                        0.0,
+                        0.0,
+                        1.0
+                    ],
+                    "bCollisionEnabled": true
+                }
+            ],
+            "GuidRootComponent": "78D6FAA3-48E4-ACFD-964A-D89F513E530D"
+        },
+        {
+            "Guid": "C54B78C7-4479-E98A-0579-94B5BFAD2A03",
+            "TypeName": "AActor",
+            "Components": [
+                {
+                    "Guid": "B9DFCCB7-4286-B2D0-FDF8-1F99B553AF1D",
+                    "TypeName": "UStaticMeshComponent",
+                    "bActive": true,
+                    "Transform": {
+                        "Position": [
+                            -4.846608638763428,
+                            -3.769062042236328,
+                            4.182126998901367
+                        ],
+                        "Rotation": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "Scale": [
+                            1.0,
+                            1.0,
+                            1.0
+                        ]
+                    },
+                    "bVisible": true,
+                    "GuidMeshHandle": "61ACB5DA-4F0E-7B16-75AC-D9917137D64B",
+                    "GuidMaterialHandle": "47297BEA-4AA8-36FE-B6E3-E48686305584",
+                    "GuidPipelineHandle": "E6CB1FFA-4784-35E1-81AD-A599E75C1786"
+                },
+                {
+                    "Guid": "61D28840-4697-1255-1D9E-9084A32489C5",
+                    "TypeName": "UCollisionComponent",
+                    "bActive": true,
+                    "Transform": {
+                        "Position": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "Rotation": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "Scale": [
+                            1.0,
+                            1.0,
+                            1.0
+                        ]
+                    },
+                    "bVisible": true,
+                    "Parent": "B9DFCCB7-4286-B2D0-FDF8-1F99B553AF1D",
+                    "OBB_Center": [
+                        0.0,
+                        0.0,
+                        0.0
+                    ],
+                    "OBB_Extent": [
+                        0.5,
+                        0.5,
+                        0.5
+                    ],
+                    "OBB_Orientation": [
+                        0.0,
+                        0.0,
+                        0.0,
+                        1.0
+                    ],
+                    "bCollisionEnabled": true
+                }
+            ],
+            "GuidRootComponent": "B9DFCCB7-4286-B2D0-FDF8-1F99B553AF1D"
+        },
+        {
+            "Guid": "C54B78C7-4479-E98A-0579-94B5BFAD2A03",
+            "TypeName": "AActor",
+            "Components": [
+                {
+                    "Guid": "B9DFCCB7-4286-B2D0-FDF8-1F99B553AF1D",
+                    "TypeName": "UStaticMeshComponent",
+                    "bActive": true,
+                    "Transform": {
+                        "Position": [
+                            -4.846608638763428,
+                            -3.769062042236328,
+                            4.182126998901367
+                        ],
+                        "Rotation": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "Scale": [
+                            1.0,
+                            1.0,
+                            1.0
+                        ]
+                    },
+                    "bVisible": true,
+                    "GuidMeshHandle": "61ACB5DA-4F0E-7B16-75AC-D9917137D64B",
+                    "GuidMaterialHandle": "47297BEA-4AA8-36FE-B6E3-E48686305584",
+                    "GuidPipelineHandle": "E6CB1FFA-4784-35E1-81AD-A599E75C1786"
+                },
+                {
+                    "Guid": "61D28840-4697-1255-1D9E-9084A32489C5",
+                    "TypeName": "UCollisionComponent",
+                    "bActive": true,
+                    "Transform": {
+                        "Position": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "Rotation": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "Scale": [
+                            1.0,
+                            1.0,
+                            1.0
+                        ]
+                    },
+                    "bVisible": true,
+                    "Parent": "B9DFCCB7-4286-B2D0-FDF8-1F99B553AF1D",
+                    "OBB_Center": [
+                        0.0,
+                        0.0,
+                        0.0
+                    ],
+                    "OBB_Extent": [
+                        0.5,
+                        0.5,
+                        0.5
+                    ],
+                    "OBB_Orientation": [
+                        0.0,
+                        0.0,
+                        0.0,
+                        1.0
+                    ],
+                    "bCollisionEnabled": true
+                }
+            ],
+            "GuidRootComponent": "B9DFCCB7-4286-B2D0-FDF8-1F99B553AF1D"
+        },
+        {
+            "Guid": "526BC058-4A8F-18F4-5B19-88BBA05A79DD",
+            "TypeName": "AActor",
+            "Components": [
+                {
+                    "Guid": "2244193B-473C-B89E-7467-D9B31366FEF3",
+                    "TypeName": "UStaticMeshComponent",
+                    "bActive": true,
+                    "Transform": {
+                        "Position": [
+                            -2.1634674072265625,
+                            3.195636749267578,
+                            2.4946951866149902
+                        ],
+                        "Rotation": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "Scale": [
+                            1.0,
+                            1.0,
+                            1.0
+                        ]
+                    },
+                    "bVisible": true,
+                    "GuidMeshHandle": "61ACB5DA-4F0E-7B16-75AC-D9917137D64B",
+                    "GuidMaterialHandle": "47297BEA-4AA8-36FE-B6E3-E48686305584",
+                    "GuidPipelineHandle": "E6CB1FFA-4784-35E1-81AD-A599E75C1786"
+                },
+                {
+                    "Guid": "2D071618-49F8-B971-E364-208214F1530B",
+                    "TypeName": "UCollisionComponent",
+                    "bActive": true,
+                    "Transform": {
+                        "Position": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "Rotation": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "Scale": [
+                            1.0,
+                            1.0,
+                            1.0
+                        ]
+                    },
+                    "bVisible": true,
+                    "Parent": "2244193B-473C-B89E-7467-D9B31366FEF3",
+                    "OBB_Center": [
+                        0.0,
+                        0.0,
+                        0.0
+                    ],
+                    "OBB_Extent": [
+                        0.5,
+                        0.5,
+                        0.5
+                    ],
+                    "OBB_Orientation": [
+                        0.0,
+                        0.0,
+                        0.0,
+                        1.0
+                    ],
+                    "bCollisionEnabled": true
+                }
+            ],
+            "GuidRootComponent": "2244193B-473C-B89E-7467-D9B31366FEF3"
+        },
+        {
+            "Guid": "526BC058-4A8F-18F4-5B19-88BBA05A79DD",
+            "TypeName": "AActor",
+            "Components": [
+                {
+                    "Guid": "2244193B-473C-B89E-7467-D9B31366FEF3",
+                    "TypeName": "UStaticMeshComponent",
+                    "bActive": true,
+                    "Transform": {
+                        "Position": [
+                            -2.1634674072265625,
+                            3.195636749267578,
+                            2.4946951866149902
+                        ],
+                        "Rotation": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "Scale": [
+                            1.0,
+                            1.0,
+                            1.0
+                        ]
+                    },
+                    "bVisible": true,
+                    "GuidMeshHandle": "61ACB5DA-4F0E-7B16-75AC-D9917137D64B",
+                    "GuidMaterialHandle": "47297BEA-4AA8-36FE-B6E3-E48686305584",
+                    "GuidPipelineHandle": "E6CB1FFA-4784-35E1-81AD-A599E75C1786"
+                },
+                {
+                    "Guid": "2D071618-49F8-B971-E364-208214F1530B",
+                    "TypeName": "UCollisionComponent",
+                    "bActive": true,
+                    "Transform": {
+                        "Position": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "Rotation": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "Scale": [
+                            1.0,
+                            1.0,
+                            1.0
+                        ]
+                    },
+                    "bVisible": true,
+                    "Parent": "2244193B-473C-B89E-7467-D9B31366FEF3",
+                    "OBB_Center": [
+                        0.0,
+                        0.0,
+                        0.0
+                    ],
+                    "OBB_Extent": [
+                        0.5,
+                        0.5,
+                        0.5
+                    ],
+                    "OBB_Orientation": [
+                        0.0,
+                        0.0,
+                        0.0,
+                        1.0
+                    ],
+                    "bCollisionEnabled": true
+                }
+            ],
+            "GuidRootComponent": "2244193B-473C-B89E-7467-D9B31366FEF3"
+        },
+        {
+            "Guid": "41A10182-46C3-DF9A-1D24-C789B3065606",
+            "TypeName": "AActor",
+            "Components": [
+                {
+                    "Guid": "6017A5F4-460F-E313-126F-BA9B3D60DFB9",
+                    "TypeName": "UStaticMeshComponent",
+                    "bActive": true,
+                    "Transform": {
+                        "Position": [
+                            1.7602901458740234,
+                            -2.7823233604431152,
+                            4.639615058898926
+                        ],
+                        "Rotation": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "Scale": [
+                            1.0,
+                            1.0,
+                            1.0
+                        ]
+                    },
+                    "bVisible": true,
+                    "GuidMeshHandle": "61ACB5DA-4F0E-7B16-75AC-D9917137D64B",
+                    "GuidMaterialHandle": "47297BEA-4AA8-36FE-B6E3-E48686305584",
+                    "GuidPipelineHandle": "E6CB1FFA-4784-35E1-81AD-A599E75C1786"
+                },
+                {
+                    "Guid": "038CFAF7-46BC-6045-B5DD-2DB877FD2A4E",
+                    "TypeName": "UCollisionComponent",
+                    "bActive": true,
+                    "Transform": {
+                        "Position": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "Rotation": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "Scale": [
+                            1.0,
+                            1.0,
+                            1.0
+                        ]
+                    },
+                    "bVisible": true,
+                    "Parent": "6017A5F4-460F-E313-126F-BA9B3D60DFB9",
+                    "OBB_Center": [
+                        0.0,
+                        0.0,
+                        0.0
+                    ],
+                    "OBB_Extent": [
+                        0.5,
+                        0.5,
+                        0.5
+                    ],
+                    "OBB_Orientation": [
+                        0.0,
+                        0.0,
+                        0.0,
+                        1.0
+                    ],
+                    "bCollisionEnabled": true
+                }
+            ],
+            "GuidRootComponent": "6017A5F4-460F-E313-126F-BA9B3D60DFB9"
+        },
+        {
+            "Guid": "41A10182-46C3-DF9A-1D24-C789B3065606",
+            "TypeName": "AActor",
+            "Components": [
+                {
+                    "Guid": "6017A5F4-460F-E313-126F-BA9B3D60DFB9",
+                    "TypeName": "UStaticMeshComponent",
+                    "bActive": true,
+                    "Transform": {
+                        "Position": [
+                            1.7602901458740234,
+                            -2.7823233604431152,
+                            4.639615058898926
+                        ],
+                        "Rotation": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "Scale": [
+                            1.0,
+                            1.0,
+                            1.0
+                        ]
+                    },
+                    "bVisible": true,
+                    "GuidMeshHandle": "61ACB5DA-4F0E-7B16-75AC-D9917137D64B",
+                    "GuidMaterialHandle": "47297BEA-4AA8-36FE-B6E3-E48686305584",
+                    "GuidPipelineHandle": "E6CB1FFA-4784-35E1-81AD-A599E75C1786"
+                },
+                {
+                    "Guid": "038CFAF7-46BC-6045-B5DD-2DB877FD2A4E",
+                    "TypeName": "UCollisionComponent",
+                    "bActive": true,
+                    "Transform": {
+                        "Position": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "Rotation": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "Scale": [
+                            1.0,
+                            1.0,
+                            1.0
+                        ]
+                    },
+                    "bVisible": true,
+                    "Parent": "6017A5F4-460F-E313-126F-BA9B3D60DFB9",
+                    "OBB_Center": [
+                        0.0,
+                        0.0,
+                        0.0
+                    ],
+                    "OBB_Extent": [
+                        0.5,
+                        0.5,
+                        0.5
+                    ],
+                    "OBB_Orientation": [
+                        0.0,
+                        0.0,
+                        0.0,
+                        1.0
+                    ],
+                    "bCollisionEnabled": true
+                }
+            ],
+            "GuidRootComponent": "6017A5F4-460F-E313-126F-BA9B3D60DFB9"
+        },
+        {
+            "Guid": "AB052792-4173-DF2F-3593-FD81F38F00C1",
+            "TypeName": "AActor",
+            "Components": [
+                {
+                    "Guid": "3F491E70-47D4-7915-5A08-9590BC798B6F",
+                    "TypeName": "UStaticMeshComponent",
+                    "bActive": true,
+                    "Transform": {
+                        "Position": [
+                            2.063436985015869,
+                            0.7712459564208984,
+                            4.756776809692383
+                        ],
+                        "Rotation": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "Scale": [
+                            1.0,
+                            1.0,
+                            1.0
+                        ]
+                    },
+                    "bVisible": true,
+                    "GuidMeshHandle": "61ACB5DA-4F0E-7B16-75AC-D9917137D64B",
+                    "GuidMaterialHandle": "47297BEA-4AA8-36FE-B6E3-E48686305584",
+                    "GuidPipelineHandle": "E6CB1FFA-4784-35E1-81AD-A599E75C1786"
+                },
+                {
+                    "Guid": "8494C917-4AB7-9A4B-D55C-FE9E3F1DDBB8",
+                    "TypeName": "UCollisionComponent",
+                    "bActive": true,
+                    "Transform": {
+                        "Position": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "Rotation": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "Scale": [
+                            1.0,
+                            1.0,
+                            1.0
+                        ]
+                    },
+                    "bVisible": true,
+                    "Parent": "3F491E70-47D4-7915-5A08-9590BC798B6F",
+                    "OBB_Center": [
+                        0.0,
+                        0.0,
+                        0.0
+                    ],
+                    "OBB_Extent": [
+                        0.5,
+                        0.5,
+                        0.5
+                    ],
+                    "OBB_Orientation": [
+                        0.0,
+                        0.0,
+                        0.0,
+                        1.0
+                    ],
+                    "bCollisionEnabled": true
+                }
+            ],
+            "GuidRootComponent": "3F491E70-47D4-7915-5A08-9590BC798B6F"
+        },
+        {
+            "Guid": "AB052792-4173-DF2F-3593-FD81F38F00C1",
+            "TypeName": "AActor",
+            "Components": [
+                {
+                    "Guid": "3F491E70-47D4-7915-5A08-9590BC798B6F",
+                    "TypeName": "UStaticMeshComponent",
+                    "bActive": true,
+                    "Transform": {
+                        "Position": [
+                            2.063436985015869,
+                            0.7712459564208984,
+                            4.756776809692383
+                        ],
+                        "Rotation": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "Scale": [
+                            1.0,
+                            1.0,
+                            1.0
+                        ]
+                    },
+                    "bVisible": true,
+                    "GuidMeshHandle": "61ACB5DA-4F0E-7B16-75AC-D9917137D64B",
+                    "GuidMaterialHandle": "47297BEA-4AA8-36FE-B6E3-E48686305584",
+                    "GuidPipelineHandle": "E6CB1FFA-4784-35E1-81AD-A599E75C1786"
+                },
+                {
+                    "Guid": "8494C917-4AB7-9A4B-D55C-FE9E3F1DDBB8",
+                    "TypeName": "UCollisionComponent",
+                    "bActive": true,
+                    "Transform": {
+                        "Position": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "Rotation": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "Scale": [
+                            1.0,
+                            1.0,
+                            1.0
+                        ]
+                    },
+                    "bVisible": true,
+                    "Parent": "3F491E70-47D4-7915-5A08-9590BC798B6F",
+                    "OBB_Center": [
+                        0.0,
+                        0.0,
+                        0.0
+                    ],
+                    "OBB_Extent": [
+                        0.5,
+                        0.5,
+                        0.5
+                    ],
+                    "OBB_Orientation": [
+                        0.0,
+                        0.0,
+                        0.0,
+                        1.0
+                    ],
+                    "bCollisionEnabled": true
+                }
+            ],
+            "GuidRootComponent": "3F491E70-47D4-7915-5A08-9590BC798B6F"
+        },
+        {
+            "Guid": "EE66EFC0-4046-B781-3427-7E9D094528C7",
+            "TypeName": "AActor",
+            "Components": [
+                {
+                    "Guid": "E13BA4EA-4358-29F2-E806-4FB01D09172D",
+                    "TypeName": "UStaticMeshComponent",
+                    "bActive": true,
+                    "Transform": {
+                        "Position": [
+                            -3.797985315322876,
+                            4.92880916595459,
+                            4.558242321014404
+                        ],
+                        "Rotation": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "Scale": [
+                            1.0,
+                            1.0,
+                            1.0
+                        ]
+                    },
+                    "bVisible": true,
+                    "GuidMeshHandle": "61ACB5DA-4F0E-7B16-75AC-D9917137D64B",
+                    "GuidMaterialHandle": "47297BEA-4AA8-36FE-B6E3-E48686305584",
+                    "GuidPipelineHandle": "E6CB1FFA-4784-35E1-81AD-A599E75C1786"
+                },
+                {
+                    "Guid": "5C053CDE-433E-DA60-8B22-669AFEA11FD6",
+                    "TypeName": "UCollisionComponent",
+                    "bActive": true,
+                    "Transform": {
+                        "Position": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "Rotation": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "Scale": [
+                            1.0,
+                            1.0,
+                            1.0
+                        ]
+                    },
+                    "bVisible": true,
+                    "Parent": "E13BA4EA-4358-29F2-E806-4FB01D09172D",
+                    "OBB_Center": [
+                        0.0,
+                        0.0,
+                        0.0
+                    ],
+                    "OBB_Extent": [
+                        0.5,
+                        0.5,
+                        0.5
+                    ],
+                    "OBB_Orientation": [
+                        0.0,
+                        0.0,
+                        0.0,
+                        1.0
+                    ],
+                    "bCollisionEnabled": true
+                }
+            ],
+            "GuidRootComponent": "E13BA4EA-4358-29F2-E806-4FB01D09172D"
+        },
+        {
+            "Guid": "EE66EFC0-4046-B781-3427-7E9D094528C7",
+            "TypeName": "AActor",
+            "Components": [
+                {
+                    "Guid": "E13BA4EA-4358-29F2-E806-4FB01D09172D",
+                    "TypeName": "UStaticMeshComponent",
+                    "bActive": true,
+                    "Transform": {
+                        "Position": [
+                            -3.797985315322876,
+                            4.92880916595459,
+                            4.558242321014404
+                        ],
+                        "Rotation": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "Scale": [
+                            1.0,
+                            1.0,
+                            1.0
+                        ]
+                    },
+                    "bVisible": true,
+                    "GuidMeshHandle": "61ACB5DA-4F0E-7B16-75AC-D9917137D64B",
+                    "GuidMaterialHandle": "47297BEA-4AA8-36FE-B6E3-E48686305584",
+                    "GuidPipelineHandle": "E6CB1FFA-4784-35E1-81AD-A599E75C1786"
+                },
+                {
+                    "Guid": "5C053CDE-433E-DA60-8B22-669AFEA11FD6",
+                    "TypeName": "UCollisionComponent",
+                    "bActive": true,
+                    "Transform": {
+                        "Position": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "Rotation": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "Scale": [
+                            1.0,
+                            1.0,
+                            1.0
+                        ]
+                    },
+                    "bVisible": true,
+                    "Parent": "E13BA4EA-4358-29F2-E806-4FB01D09172D",
+                    "OBB_Center": [
+                        0.0,
+                        0.0,
+                        0.0
+                    ],
+                    "OBB_Extent": [
+                        0.5,
+                        0.5,
+                        0.5
+                    ],
+                    "OBB_Orientation": [
+                        0.0,
+                        0.0,
+                        0.0,
+                        1.0
+                    ],
+                    "bCollisionEnabled": true
+                }
+            ],
+            "GuidRootComponent": "E13BA4EA-4358-29F2-E806-4FB01D09172D"
+        },
+        {
+            "Guid": "D227B1A2-4B18-4BED-380A-A9A7CC72A775",
+            "TypeName": "AActor",
+            "Components": [
+                {
+                    "Guid": "F6237655-4E92-F881-5DE0-E9860BDB0EC3",
+                    "TypeName": "UStaticMeshComponent",
+                    "bActive": true,
+                    "Transform": {
+                        "Position": [
+                            3.04544734954834,
+                            4.464319229125977,
+                            7.378152370452881
+                        ],
+                        "Rotation": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "Scale": [
+                            1.0,
+                            1.0,
+                            1.0
+                        ]
+                    },
+                    "bVisible": true,
+                    "GuidMeshHandle": "61ACB5DA-4F0E-7B16-75AC-D9917137D64B",
+                    "GuidMaterialHandle": "47297BEA-4AA8-36FE-B6E3-E48686305584",
+                    "GuidPipelineHandle": "E6CB1FFA-4784-35E1-81AD-A599E75C1786"
+                },
+                {
+                    "Guid": "F8F75F10-4EAE-3165-64C8-06B1BAD90691",
+                    "TypeName": "UCollisionComponent",
+                    "bActive": true,
+                    "Transform": {
+                        "Position": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "Rotation": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "Scale": [
+                            1.0,
+                            1.0,
+                            1.0
+                        ]
+                    },
+                    "bVisible": true,
+                    "Parent": "F6237655-4E92-F881-5DE0-E9860BDB0EC3",
+                    "OBB_Center": [
+                        0.0,
+                        0.0,
+                        0.0
+                    ],
+                    "OBB_Extent": [
+                        0.5,
+                        0.5,
+                        0.5
+                    ],
+                    "OBB_Orientation": [
+                        0.0,
+                        0.0,
+                        0.0,
+                        1.0
+                    ],
+                    "bCollisionEnabled": true
+                }
+            ],
+            "GuidRootComponent": "F6237655-4E92-F881-5DE0-E9860BDB0EC3"
+        },
+        {
+            "Guid": "D227B1A2-4B18-4BED-380A-A9A7CC72A775",
+            "TypeName": "AActor",
+            "Components": [
+                {
+                    "Guid": "F6237655-4E92-F881-5DE0-E9860BDB0EC3",
+                    "TypeName": "UStaticMeshComponent",
+                    "bActive": true,
+                    "Transform": {
+                        "Position": [
+                            3.04544734954834,
+                            4.464319229125977,
+                            7.378152370452881
+                        ],
+                        "Rotation": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "Scale": [
+                            1.0,
+                            1.0,
+                            1.0
+                        ]
+                    },
+                    "bVisible": true,
+                    "GuidMeshHandle": "61ACB5DA-4F0E-7B16-75AC-D9917137D64B",
+                    "GuidMaterialHandle": "47297BEA-4AA8-36FE-B6E3-E48686305584",
+                    "GuidPipelineHandle": "E6CB1FFA-4784-35E1-81AD-A599E75C1786"
+                },
+                {
+                    "Guid": "F8F75F10-4EAE-3165-64C8-06B1BAD90691",
+                    "TypeName": "UCollisionComponent",
+                    "bActive": true,
+                    "Transform": {
+                        "Position": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "Rotation": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "Scale": [
+                            1.0,
+                            1.0,
+                            1.0
+                        ]
+                    },
+                    "bVisible": true,
+                    "Parent": "F6237655-4E92-F881-5DE0-E9860BDB0EC3",
+                    "OBB_Center": [
+                        0.0,
+                        0.0,
+                        0.0
+                    ],
+                    "OBB_Extent": [
+                        0.5,
+                        0.5,
+                        0.5
+                    ],
+                    "OBB_Orientation": [
+                        0.0,
+                        0.0,
+                        0.0,
+                        1.0
+                    ],
+                    "bCollisionEnabled": true
+                }
+            ],
+            "GuidRootComponent": "F6237655-4E92-F881-5DE0-E9860BDB0EC3"
+        },
+        {
+            "Guid": "5EE5C987-4F6A-003E-60DC-619C03411DBE",
+            "TypeName": "AActor",
+            "Components": [
+                {
+                    "Guid": "9FEE07CF-46B3-A9E7-6ADB-9E96B084E9C2",
+                    "TypeName": "UStaticMeshComponent",
+                    "bActive": true,
+                    "Transform": {
+                        "Position": [
+                            -0.8900618553161621,
+                            -1.1217951774597168,
+                            7.560892105102539
+                        ],
+                        "Rotation": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "Scale": [
+                            1.0,
+                            1.0,
+                            1.0
+                        ]
+                    },
+                    "bVisible": true,
+                    "GuidMeshHandle": "61ACB5DA-4F0E-7B16-75AC-D9917137D64B",
+                    "GuidMaterialHandle": "47297BEA-4AA8-36FE-B6E3-E48686305584",
+                    "GuidPipelineHandle": "E6CB1FFA-4784-35E1-81AD-A599E75C1786"
+                },
+                {
+                    "Guid": "C2BE601C-44B8-F4C4-EDE3-71A68077BE35",
+                    "TypeName": "UCollisionComponent",
+                    "bActive": true,
+                    "Transform": {
+                        "Position": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "Rotation": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "Scale": [
+                            1.0,
+                            1.0,
+                            1.0
+                        ]
+                    },
+                    "bVisible": true,
+                    "Parent": "9FEE07CF-46B3-A9E7-6ADB-9E96B084E9C2",
+                    "OBB_Center": [
+                        0.0,
+                        0.0,
+                        0.0
+                    ],
+                    "OBB_Extent": [
+                        0.5,
+                        0.5,
+                        0.5
+                    ],
+                    "OBB_Orientation": [
+                        0.0,
+                        0.0,
+                        0.0,
+                        1.0
+                    ],
+                    "bCollisionEnabled": true
+                }
+            ],
+            "GuidRootComponent": "9FEE07CF-46B3-A9E7-6ADB-9E96B084E9C2"
+        },
+        {
+            "Guid": "5EE5C987-4F6A-003E-60DC-619C03411DBE",
+            "TypeName": "AActor",
+            "Components": [
+                {
+                    "Guid": "9FEE07CF-46B3-A9E7-6ADB-9E96B084E9C2",
+                    "TypeName": "UStaticMeshComponent",
+                    "bActive": true,
+                    "Transform": {
+                        "Position": [
+                            -0.8900618553161621,
+                            -1.1217951774597168,
+                            7.560892105102539
+                        ],
+                        "Rotation": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "Scale": [
+                            1.0,
+                            1.0,
+                            1.0
+                        ]
+                    },
+                    "bVisible": true,
+                    "GuidMeshHandle": "61ACB5DA-4F0E-7B16-75AC-D9917137D64B",
+                    "GuidMaterialHandle": "47297BEA-4AA8-36FE-B6E3-E48686305584",
+                    "GuidPipelineHandle": "E6CB1FFA-4784-35E1-81AD-A599E75C1786"
+                },
+                {
+                    "Guid": "C2BE601C-44B8-F4C4-EDE3-71A68077BE35",
+                    "TypeName": "UCollisionComponent",
+                    "bActive": true,
+                    "Transform": {
+                        "Position": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "Rotation": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "Scale": [
+                            1.0,
+                            1.0,
+                            1.0
+                        ]
+                    },
+                    "bVisible": true,
+                    "Parent": "9FEE07CF-46B3-A9E7-6ADB-9E96B084E9C2",
+                    "OBB_Center": [
+                        0.0,
+                        0.0,
+                        0.0
+                    ],
+                    "OBB_Extent": [
+                        0.5,
+                        0.5,
+                        0.5
+                    ],
+                    "OBB_Orientation": [
+                        0.0,
+                        0.0,
+                        0.0,
+                        1.0
+                    ],
+                    "bCollisionEnabled": true
+                }
+            ],
+            "GuidRootComponent": "9FEE07CF-46B3-A9E7-6ADB-9E96B084E9C2"
+        },
+        {
+            "Guid": "F6E42640-4E54-B488-0CB2-D68294CACD16",
+            "TypeName": "AActor",
+            "Components": [
+                {
+                    "Guid": "CF55F774-4CEE-03EC-26E2-798CA7AE79B3",
+                    "TypeName": "UStaticMeshComponent",
+                    "bActive": true,
+                    "Transform": {
+                        "Position": [
+                            0.9617576599121094,
+                            3.4075851440429688,
+                            6.541627407073975
+                        ],
+                        "Rotation": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "Scale": [
+                            1.0,
+                            1.0,
+                            1.0
+                        ]
+                    },
+                    "bVisible": true,
+                    "GuidMeshHandle": "61ACB5DA-4F0E-7B16-75AC-D9917137D64B",
+                    "GuidMaterialHandle": "47297BEA-4AA8-36FE-B6E3-E48686305584",
+                    "GuidPipelineHandle": "E6CB1FFA-4784-35E1-81AD-A599E75C1786"
+                },
+                {
+                    "Guid": "3D9B78A8-477B-F01A-B7DA-7690FE6B520D",
+                    "TypeName": "UCollisionComponent",
+                    "bActive": true,
+                    "Transform": {
+                        "Position": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "Rotation": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "Scale": [
+                            1.0,
+                            1.0,
+                            1.0
+                        ]
+                    },
+                    "bVisible": true,
+                    "Parent": "CF55F774-4CEE-03EC-26E2-798CA7AE79B3",
+                    "OBB_Center": [
+                        0.0,
+                        0.0,
+                        0.0
+                    ],
+                    "OBB_Extent": [
+                        0.5,
+                        0.5,
+                        0.5
+                    ],
+                    "OBB_Orientation": [
+                        0.0,
+                        0.0,
+                        0.0,
+                        1.0
+                    ],
+                    "bCollisionEnabled": true
+                }
+            ],
+            "GuidRootComponent": "CF55F774-4CEE-03EC-26E2-798CA7AE79B3"
+        },
+        {
+            "Guid": "F6E42640-4E54-B488-0CB2-D68294CACD16",
+            "TypeName": "AActor",
+            "Components": [
+                {
+                    "Guid": "CF55F774-4CEE-03EC-26E2-798CA7AE79B3",
+                    "TypeName": "UStaticMeshComponent",
+                    "bActive": true,
+                    "Transform": {
+                        "Position": [
+                            0.9617576599121094,
+                            3.4075851440429688,
+                            6.541627407073975
+                        ],
+                        "Rotation": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "Scale": [
+                            1.0,
+                            1.0,
+                            1.0
+                        ]
+                    },
+                    "bVisible": true,
+                    "GuidMeshHandle": "61ACB5DA-4F0E-7B16-75AC-D9917137D64B",
+                    "GuidMaterialHandle": "47297BEA-4AA8-36FE-B6E3-E48686305584",
+                    "GuidPipelineHandle": "E6CB1FFA-4784-35E1-81AD-A599E75C1786"
+                },
+                {
+                    "Guid": "3D9B78A8-477B-F01A-B7DA-7690FE6B520D",
+                    "TypeName": "UCollisionComponent",
+                    "bActive": true,
+                    "Transform": {
+                        "Position": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "Rotation": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "Scale": [
+                            1.0,
+                            1.0,
+                            1.0
+                        ]
+                    },
+                    "bVisible": true,
+                    "Parent": "CF55F774-4CEE-03EC-26E2-798CA7AE79B3",
+                    "OBB_Center": [
+                        0.0,
+                        0.0,
+                        0.0
+                    ],
+                    "OBB_Extent": [
+                        0.5,
+                        0.5,
+                        0.5
+                    ],
+                    "OBB_Orientation": [
+                        0.0,
+                        0.0,
+                        0.0,
+                        1.0
+                    ],
+                    "bCollisionEnabled": true
+                }
+            ],
+            "GuidRootComponent": "CF55F774-4CEE-03EC-26E2-798CA7AE79B3"
+        },
+        {
+            "Guid": "AFB88BBF-4660-8A94-E2EE-F59360F2F418",
+            "TypeName": "AActor",
+            "Components": [
+                {
+                    "Guid": "8D1E3C69-46D7-4CD9-4C8A-8599D7D74BC0",
+                    "TypeName": "UStaticMeshComponent",
+                    "bActive": true,
+                    "Transform": {
+                        "Position": [
+                            -1.3885421752929688,
+                            3.4780778884887695,
+                            2.354663133621216
+                        ],
+                        "Rotation": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "Scale": [
+                            1.0,
+                            1.0,
+                            1.0
+                        ]
+                    },
+                    "bVisible": true,
+                    "GuidMeshHandle": "61ACB5DA-4F0E-7B16-75AC-D9917137D64B",
+                    "GuidMaterialHandle": "47297BEA-4AA8-36FE-B6E3-E48686305584",
+                    "GuidPipelineHandle": "E6CB1FFA-4784-35E1-81AD-A599E75C1786"
+                },
+                {
+                    "Guid": "A3349FB8-43C1-8F6F-1D1C-A687555A7BD4",
+                    "TypeName": "UCollisionComponent",
+                    "bActive": true,
+                    "Transform": {
+                        "Position": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "Rotation": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "Scale": [
+                            1.0,
+                            1.0,
+                            1.0
+                        ]
+                    },
+                    "bVisible": true,
+                    "Parent": "8D1E3C69-46D7-4CD9-4C8A-8599D7D74BC0",
+                    "OBB_Center": [
+                        0.0,
+                        0.0,
+                        0.0
+                    ],
+                    "OBB_Extent": [
+                        0.5,
+                        0.5,
+                        0.5
+                    ],
+                    "OBB_Orientation": [
+                        0.0,
+                        0.0,
+                        0.0,
+                        1.0
+                    ],
+                    "bCollisionEnabled": true
+                }
+            ],
+            "GuidRootComponent": "8D1E3C69-46D7-4CD9-4C8A-8599D7D74BC0"
+        },
+        {
+            "Guid": "AFB88BBF-4660-8A94-E2EE-F59360F2F418",
+            "TypeName": "AActor",
+            "Components": [
+                {
+                    "Guid": "8D1E3C69-46D7-4CD9-4C8A-8599D7D74BC0",
+                    "TypeName": "UStaticMeshComponent",
+                    "bActive": true,
+                    "Transform": {
+                        "Position": [
+                            -1.3885421752929688,
+                            3.4780778884887695,
+                            2.354663133621216
+                        ],
+                        "Rotation": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "Scale": [
+                            1.0,
+                            1.0,
+                            1.0
+                        ]
+                    },
+                    "bVisible": true,
+                    "GuidMeshHandle": "61ACB5DA-4F0E-7B16-75AC-D9917137D64B",
+                    "GuidMaterialHandle": "47297BEA-4AA8-36FE-B6E3-E48686305584",
+                    "GuidPipelineHandle": "E6CB1FFA-4784-35E1-81AD-A599E75C1786"
+                },
+                {
+                    "Guid": "A3349FB8-43C1-8F6F-1D1C-A687555A7BD4",
+                    "TypeName": "UCollisionComponent",
+                    "bActive": true,
+                    "Transform": {
+                        "Position": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "Rotation": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "Scale": [
+                            1.0,
+                            1.0,
+                            1.0
+                        ]
+                    },
+                    "bVisible": true,
+                    "Parent": "8D1E3C69-46D7-4CD9-4C8A-8599D7D74BC0",
+                    "OBB_Center": [
+                        0.0,
+                        0.0,
+                        0.0
+                    ],
+                    "OBB_Extent": [
+                        0.5,
+                        0.5,
+                        0.5
+                    ],
+                    "OBB_Orientation": [
+                        0.0,
+                        0.0,
+                        0.0,
+                        1.0
+                    ],
+                    "bCollisionEnabled": true
+                }
+            ],
+            "GuidRootComponent": "8D1E3C69-46D7-4CD9-4C8A-8599D7D74BC0"
+        },
+        {
+            "Guid": "E1B3530D-4494-FBEC-D5A0-05A2FCB75E12",
+            "TypeName": "AActor",
+            "Components": [
+                {
+                    "Guid": "206638E5-40FD-A931-8BF6-A89C52DC9AD1",
+                    "TypeName": "UStaticMeshComponent",
+                    "bActive": true,
+                    "Transform": {
+                        "Position": [
+                            -0.759894847869873,
+                            -3.0702109336853027,
+                            5.4160027503967285
+                        ],
+                        "Rotation": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "Scale": [
+                            1.0,
+                            1.0,
+                            1.0
+                        ]
+                    },
+                    "bVisible": true,
+                    "GuidMeshHandle": "61ACB5DA-4F0E-7B16-75AC-D9917137D64B",
+                    "GuidMaterialHandle": "47297BEA-4AA8-36FE-B6E3-E48686305584",
+                    "GuidPipelineHandle": "E6CB1FFA-4784-35E1-81AD-A599E75C1786"
+                },
+                {
+                    "Guid": "0FFBBD28-4D94-32A6-A077-8EA98AC61A8C",
+                    "TypeName": "UCollisionComponent",
+                    "bActive": true,
+                    "Transform": {
+                        "Position": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "Rotation": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "Scale": [
+                            1.0,
+                            1.0,
+                            1.0
+                        ]
+                    },
+                    "bVisible": true,
+                    "Parent": "206638E5-40FD-A931-8BF6-A89C52DC9AD1",
+                    "OBB_Center": [
+                        0.0,
+                        0.0,
+                        0.0
+                    ],
+                    "OBB_Extent": [
+                        0.5,
+                        0.5,
+                        0.5
+                    ],
+                    "OBB_Orientation": [
+                        0.0,
+                        0.0,
+                        0.0,
+                        1.0
+                    ],
+                    "bCollisionEnabled": true
+                }
+            ],
+            "GuidRootComponent": "206638E5-40FD-A931-8BF6-A89C52DC9AD1"
+        },
+        {
+            "Guid": "E1B3530D-4494-FBEC-D5A0-05A2FCB75E12",
+            "TypeName": "AActor",
+            "Components": [
+                {
+                    "Guid": "206638E5-40FD-A931-8BF6-A89C52DC9AD1",
+                    "TypeName": "UStaticMeshComponent",
+                    "bActive": true,
+                    "Transform": {
+                        "Position": [
+                            -0.759894847869873,
+                            -3.0702109336853027,
+                            5.4160027503967285
+                        ],
+                        "Rotation": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "Scale": [
+                            1.0,
+                            1.0,
+                            1.0
+                        ]
+                    },
+                    "bVisible": true,
+                    "GuidMeshHandle": "61ACB5DA-4F0E-7B16-75AC-D9917137D64B",
+                    "GuidMaterialHandle": "47297BEA-4AA8-36FE-B6E3-E48686305584",
+                    "GuidPipelineHandle": "E6CB1FFA-4784-35E1-81AD-A599E75C1786"
+                },
+                {
+                    "Guid": "0FFBBD28-4D94-32A6-A077-8EA98AC61A8C",
+                    "TypeName": "UCollisionComponent",
+                    "bActive": true,
+                    "Transform": {
+                        "Position": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "Rotation": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "Scale": [
+                            1.0,
+                            1.0,
+                            1.0
+                        ]
+                    },
+                    "bVisible": true,
+                    "Parent": "206638E5-40FD-A931-8BF6-A89C52DC9AD1",
+                    "OBB_Center": [
+                        0.0,
+                        0.0,
+                        0.0
+                    ],
+                    "OBB_Extent": [
+                        0.5,
+                        0.5,
+                        0.5
+                    ],
+                    "OBB_Orientation": [
+                        0.0,
+                        0.0,
+                        0.0,
+                        1.0
+                    ],
+                    "bCollisionEnabled": true
+                }
+            ],
+            "GuidRootComponent": "206638E5-40FD-A931-8BF6-A89C52DC9AD1"
+        },
+        {
+            "Guid": "A9A36F20-47B3-70FF-A17D-90BBEDCB02EB",
+            "TypeName": "AActor",
+            "Components": [
+                {
+                    "Guid": "BA13908D-4EC4-5E6C-B678-81992007217E",
+                    "TypeName": "UStaticMeshComponent",
+                    "bActive": true,
+                    "Transform": {
+                        "Position": [
+                            -4.456340789794922,
+                            -0.8919363021850586,
+                            4.27022647857666
+                        ],
+                        "Rotation": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "Scale": [
+                            1.0,
+                            1.0,
+                            1.0
+                        ]
+                    },
+                    "bVisible": true,
+                    "GuidMeshHandle": "61ACB5DA-4F0E-7B16-75AC-D9917137D64B",
+                    "GuidMaterialHandle": "47297BEA-4AA8-36FE-B6E3-E48686305584",
+                    "GuidPipelineHandle": "E6CB1FFA-4784-35E1-81AD-A599E75C1786"
+                },
+                {
+                    "Guid": "A1991834-4876-BD00-39CF-5DA40B34AEE9",
+                    "TypeName": "UCollisionComponent",
+                    "bActive": true,
+                    "Transform": {
+                        "Position": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "Rotation": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "Scale": [
+                            1.0,
+                            1.0,
+                            1.0
+                        ]
+                    },
+                    "bVisible": true,
+                    "Parent": "BA13908D-4EC4-5E6C-B678-81992007217E",
+                    "OBB_Center": [
+                        0.0,
+                        0.0,
+                        0.0
+                    ],
+                    "OBB_Extent": [
+                        0.5,
+                        0.5,
+                        0.5
+                    ],
+                    "OBB_Orientation": [
+                        0.0,
+                        0.0,
+                        0.0,
+                        1.0
+                    ],
+                    "bCollisionEnabled": true
+                }
+            ],
+            "GuidRootComponent": "BA13908D-4EC4-5E6C-B678-81992007217E"
+        },
+        {
+            "Guid": "A9A36F20-47B3-70FF-A17D-90BBEDCB02EB",
+            "TypeName": "AActor",
+            "Components": [
+                {
+                    "Guid": "BA13908D-4EC4-5E6C-B678-81992007217E",
+                    "TypeName": "UStaticMeshComponent",
+                    "bActive": true,
+                    "Transform": {
+                        "Position": [
+                            -4.456340789794922,
+                            -0.8919363021850586,
+                            4.27022647857666
+                        ],
+                        "Rotation": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "Scale": [
+                            1.0,
+                            1.0,
+                            1.0
+                        ]
+                    },
+                    "bVisible": true,
+                    "GuidMeshHandle": "61ACB5DA-4F0E-7B16-75AC-D9917137D64B",
+                    "GuidMaterialHandle": "47297BEA-4AA8-36FE-B6E3-E48686305584",
+                    "GuidPipelineHandle": "E6CB1FFA-4784-35E1-81AD-A599E75C1786"
+                },
+                {
+                    "Guid": "A1991834-4876-BD00-39CF-5DA40B34AEE9",
+                    "TypeName": "UCollisionComponent",
+                    "bActive": true,
+                    "Transform": {
+                        "Position": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "Rotation": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "Scale": [
+                            1.0,
+                            1.0,
+                            1.0
+                        ]
+                    },
+                    "bVisible": true,
+                    "Parent": "BA13908D-4EC4-5E6C-B678-81992007217E",
+                    "OBB_Center": [
+                        0.0,
+                        0.0,
+                        0.0
+                    ],
+                    "OBB_Extent": [
+                        0.5,
+                        0.5,
+                        0.5
+                    ],
+                    "OBB_Orientation": [
+                        0.0,
+                        0.0,
+                        0.0,
+                        1.0
+                    ],
+                    "bCollisionEnabled": true
+                }
+            ],
+            "GuidRootComponent": "BA13908D-4EC4-5E6C-B678-81992007217E"
+        },
+        {
+            "Guid": "8381DC02-4BFF-3EC8-79DC-2BA6EDA5452A",
+            "TypeName": "AActor",
+            "Components": [
+                {
+                    "Guid": "0614F3FE-48A5-18FA-71BC-C09956054BB0",
+                    "TypeName": "UStaticMeshComponent",
+                    "bActive": true,
+                    "Transform": {
+                        "Position": [
+                            3.618703842163086,
+                            4.408967018127441,
+                            3.4323673248291016
+                        ],
+                        "Rotation": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "Scale": [
+                            1.0,
+                            1.0,
+                            1.0
+                        ]
+                    },
+                    "bVisible": true,
+                    "GuidMeshHandle": "61ACB5DA-4F0E-7B16-75AC-D9917137D64B",
+                    "GuidMaterialHandle": "47297BEA-4AA8-36FE-B6E3-E48686305584",
+                    "GuidPipelineHandle": "E6CB1FFA-4784-35E1-81AD-A599E75C1786"
+                },
+                {
+                    "Guid": "F72667D3-4034-10F6-F063-988F7291F38C",
+                    "TypeName": "UCollisionComponent",
+                    "bActive": true,
+                    "Transform": {
+                        "Position": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "Rotation": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "Scale": [
+                            1.0,
+                            1.0,
+                            1.0
+                        ]
+                    },
+                    "bVisible": true,
+                    "Parent": "0614F3FE-48A5-18FA-71BC-C09956054BB0",
+                    "OBB_Center": [
+                        0.0,
+                        0.0,
+                        0.0
+                    ],
+                    "OBB_Extent": [
+                        0.5,
+                        0.5,
+                        0.5
+                    ],
+                    "OBB_Orientation": [
+                        0.0,
+                        0.0,
+                        0.0,
+                        1.0
+                    ],
+                    "bCollisionEnabled": true
+                }
+            ],
+            "GuidRootComponent": "0614F3FE-48A5-18FA-71BC-C09956054BB0"
+        },
+        {
+            "Guid": "8381DC02-4BFF-3EC8-79DC-2BA6EDA5452A",
+            "TypeName": "AActor",
+            "Components": [
+                {
+                    "Guid": "0614F3FE-48A5-18FA-71BC-C09956054BB0",
+                    "TypeName": "UStaticMeshComponent",
+                    "bActive": true,
+                    "Transform": {
+                        "Position": [
+                            3.618703842163086,
+                            4.408967018127441,
+                            3.4323673248291016
+                        ],
+                        "Rotation": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "Scale": [
+                            1.0,
+                            1.0,
+                            1.0
+                        ]
+                    },
+                    "bVisible": true,
+                    "GuidMeshHandle": "61ACB5DA-4F0E-7B16-75AC-D9917137D64B",
+                    "GuidMaterialHandle": "47297BEA-4AA8-36FE-B6E3-E48686305584",
+                    "GuidPipelineHandle": "E6CB1FFA-4784-35E1-81AD-A599E75C1786"
+                },
+                {
+                    "Guid": "F72667D3-4034-10F6-F063-988F7291F38C",
+                    "TypeName": "UCollisionComponent",
+                    "bActive": true,
+                    "Transform": {
+                        "Position": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "Rotation": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "Scale": [
+                            1.0,
+                            1.0,
+                            1.0
+                        ]
+                    },
+                    "bVisible": true,
+                    "Parent": "0614F3FE-48A5-18FA-71BC-C09956054BB0",
+                    "OBB_Center": [
+                        0.0,
+                        0.0,
+                        0.0
+                    ],
+                    "OBB_Extent": [
+                        0.5,
+                        0.5,
+                        0.5
+                    ],
+                    "OBB_Orientation": [
+                        0.0,
+                        0.0,
+                        0.0,
+                        1.0
+                    ],
+                    "bCollisionEnabled": true
+                }
+            ],
+            "GuidRootComponent": "0614F3FE-48A5-18FA-71BC-C09956054BB0"
+        },
+        {
+            "Guid": "5AB8C077-49B5-3C77-6FC0-5291E1B61B80",
+            "TypeName": "AActor",
+            "Components": [
+                {
+                    "Guid": "525B2592-4A8A-DD82-412A-728B77BAB194",
+                    "TypeName": "UStaticMeshComponent",
+                    "bActive": true,
+                    "Transform": {
+                        "Position": [
+                            -1.2113184928894043,
+                            1.3150634765625,
+                            3.942963123321533
+                        ],
+                        "Rotation": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "Scale": [
+                            1.0,
+                            1.0,
+                            1.0
+                        ]
+                    },
+                    "bVisible": true,
+                    "GuidMeshHandle": "61ACB5DA-4F0E-7B16-75AC-D9917137D64B",
+                    "GuidMaterialHandle": "47297BEA-4AA8-36FE-B6E3-E48686305584",
+                    "GuidPipelineHandle": "E6CB1FFA-4784-35E1-81AD-A599E75C1786"
+                },
+                {
+                    "Guid": "029D4503-40EC-E037-4738-8587BB63E10D",
+                    "TypeName": "UCollisionComponent",
+                    "bActive": true,
+                    "Transform": {
+                        "Position": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "Rotation": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "Scale": [
+                            1.0,
+                            1.0,
+                            1.0
+                        ]
+                    },
+                    "bVisible": true,
+                    "Parent": "525B2592-4A8A-DD82-412A-728B77BAB194",
+                    "OBB_Center": [
+                        0.0,
+                        0.0,
+                        0.0
+                    ],
+                    "OBB_Extent": [
+                        0.5,
+                        0.5,
+                        0.5
+                    ],
+                    "OBB_Orientation": [
+                        0.0,
+                        0.0,
+                        0.0,
+                        1.0
+                    ],
+                    "bCollisionEnabled": true
+                }
+            ],
+            "GuidRootComponent": "525B2592-4A8A-DD82-412A-728B77BAB194"
+        },
+        {
+            "Guid": "5AB8C077-49B5-3C77-6FC0-5291E1B61B80",
+            "TypeName": "AActor",
+            "Components": [
+                {
+                    "Guid": "525B2592-4A8A-DD82-412A-728B77BAB194",
+                    "TypeName": "UStaticMeshComponent",
+                    "bActive": true,
+                    "Transform": {
+                        "Position": [
+                            -1.2113184928894043,
+                            1.3150634765625,
+                            3.942963123321533
+                        ],
+                        "Rotation": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "Scale": [
+                            1.0,
+                            1.0,
+                            1.0
+                        ]
+                    },
+                    "bVisible": true,
+                    "GuidMeshHandle": "61ACB5DA-4F0E-7B16-75AC-D9917137D64B",
+                    "GuidMaterialHandle": "47297BEA-4AA8-36FE-B6E3-E48686305584",
+                    "GuidPipelineHandle": "E6CB1FFA-4784-35E1-81AD-A599E75C1786"
+                },
+                {
+                    "Guid": "029D4503-40EC-E037-4738-8587BB63E10D",
+                    "TypeName": "UCollisionComponent",
+                    "bActive": true,
+                    "Transform": {
+                        "Position": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "Rotation": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "Scale": [
+                            1.0,
+                            1.0,
+                            1.0
+                        ]
+                    },
+                    "bVisible": true,
+                    "Parent": "525B2592-4A8A-DD82-412A-728B77BAB194",
+                    "OBB_Center": [
+                        0.0,
+                        0.0,
+                        0.0
+                    ],
+                    "OBB_Extent": [
+                        0.5,
+                        0.5,
+                        0.5
+                    ],
+                    "OBB_Orientation": [
+                        0.0,
+                        0.0,
+                        0.0,
+                        1.0
+                    ],
+                    "bCollisionEnabled": true
+                }
+            ],
+            "GuidRootComponent": "525B2592-4A8A-DD82-412A-728B77BAB194"
         }
     ]
 }

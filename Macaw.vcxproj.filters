@@ -547,6 +547,9 @@
     <ClInclude Include="EKeyState.h" />
     <ClInclude Include="FTransformEditRequestMessage.h" />
     <ClInclude Include="Render\RenderWindowInfo.h" />
+    <ClInclude Include="Render\EditorView\EditorViewport.h" />
+    <ClInclude Include="Render\EditorView\FLineRenderer.h" />
+    <ClInclude Include="Render\EditorView\FTransformGizmo.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Content\Metadata\AlternatePipeline.meta">

@@ -70,7 +70,7 @@ public:
     bool DestroyActor(AActor* Actor);
     void FlushPendingDestroyActors();
 
-    const std::vector<std::unique_ptr<AActor>>& GetActors() const;
+    const TArray<std::unique_ptr<AActor>>& GetActors() const;
     FRenderProbe& BuildRenderProbe();
     
     FStateChannel<FEditorSelectionState>::FReader GetEditorSelectionStateReader() const noexcept {
@@ -133,10 +133,10 @@ private:
 
 	void PublishEditorSelectionState();
 
-    std::vector<std::unique_ptr<AActor>> Actors;
-    std::vector<AActor*> PendingDestroyActors;
-    std::vector<UStaticMeshComponent*> RenderableComponents;
-    std::vector<TObjectRef<UCollisionComponent>> CollisionComponents;
+    TArray<std::unique_ptr<AActor>> Actors;
+    TArray<AActor*> PendingDestroyActors;
+    TArray<UStaticMeshComponent*> RenderableComponents;
+    TArray<TObjectRef<UCollisionComponent>> CollisionComponents;
 
 
 	TObjectRef<UCollisionComponent> SelectedCollider;
