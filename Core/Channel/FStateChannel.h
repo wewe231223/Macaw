@@ -114,6 +114,7 @@ public:
     class FReadWriter {
     public:
         explicit FReadWriter(FStateChannel& InChannel) noexcept : Channel(&InChannel) {}
+		explicit FReadWriter() noexcept = default;
         ~FReadWriter() noexcept = default;
 
         FReadWriter(const FReadWriter&) = default;

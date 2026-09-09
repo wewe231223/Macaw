@@ -273,6 +273,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     GMouseInput.InitializeWorldCommandSender(WorldCommandChannel.GetSender());
     GKeyboardInput.InitializeWorldCommandSender(WorldCommandChannel.GetSender());
     World.InitializeEditorEventSender(EditorEventChannel.GetSender());
+    World.SetEditorTransformStateWriter(EditorTransformStateChannel.GetWriter());
 	World.SetWindowInfoReader(Renderer.GetWindowInfoReader());
 	World.SetAssetRegistry(&AssetRegistry);
 

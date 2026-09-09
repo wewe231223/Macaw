@@ -27,8 +27,8 @@ class FTransformGizmo {
 		Z
 	};
 
-	enum EModifyMode {
-		Translate, Rotate, Scale
+	enum class EModifyMode : uint8 {
+		Translate, Rotate, Scale, None
 	};
 
 	struct FAxisHitProxy {
@@ -72,6 +72,7 @@ public:
 	void Update(const CameraProbe& Camera);
 	void Render(FRenderProbe& Probe);
 
+	FStateChannel<uint8>::FReadWriter GetGizmoMode() { return GizmoMode; }
 private:
 	void SetArrow(const FVector3& BoundsCenter, const FVector3& BoundsExtent, float WorldUnitsPerPixel);
 	void UpdateBoundsInGizmoSpace(const FEditorSelectionState& Selection, FVector3& OutCenter, FVector3& OutExtent) const;
@@ -118,6 +119,8 @@ private:
 
 	FStateChannel<RenderWindowInfo>::FReader WindowInfoReader{};
 	FStateChannel<FEditorSelectionState>::FReader SelectionReader{};
+	FStateChannel<uint8> GizmoModeChannel{};
+	FStateChannel<uint8>::FReadWriter GizmoMode{};
 	std::optional<FMessageChannel::FSender> WorldCommandSender;
 
 	FEditorSelectionState CurrentSelection{};
@@ -129,6 +132,5 @@ private:
 	bool bVisible = false;
 	bool bHasCamera = false;
 
-	EModifyMode CurrentModifyMode{ EModifyMode::Translate };
 	float CurrentWorkUnitsPerPixel{ 1.0f };
 };

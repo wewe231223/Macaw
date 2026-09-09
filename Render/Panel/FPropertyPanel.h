@@ -23,9 +23,10 @@ public:
 
     void DrawPanel() override {
         // 1. 상태 채널에서 트랜스폼 및 선택 정보 읽기 (Engine -> UI)
-        if (auto Result = TransformReader.ReadIfChanged(); Result.Changed && Result.Value != nullptr)
-        {
-            CachedState = *Result.Value;
+        
+        if (TransformReader.HasValue()) {
+			auto& res = TransformReader.Read();
+			CachedState = res;
         }
 
         // 선택된 객체가 없으면 패널 자체를 그리지 않음

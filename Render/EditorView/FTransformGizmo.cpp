@@ -26,19 +26,22 @@ void FTransformGizmo::Initialize(ID3D11Device* Device, FAssetRegistry& AssetRegi
 	WindowInfoReader = InWindowInfoReader;
 	SelectionReader = InSelectionReader;
 	WorldCommandSender.emplace(std::move(InWorldCommandSender));
+
+	GizmoMode = GizmoModeChannel.GetReadWriter();
+	GizmoMode.Emplace(static_cast<uint8>(EModifyMode::Translate));
 }
 
 void FTransformGizmo::ProcessInput(FKeyboardInput& KeyboardInput, FMouseInput& MouseInput, bool bMouseCapturedByUI) {
 	if (KeyboardInput.GetKeyState('T') == EKeyState::Pressed) {
- 		CurrentModifyMode = EModifyMode::Translate;
+ 		GizmoMode.Emplace(static_cast<uint8>(EModifyMode::Translate));
 	}
 
 	if (KeyboardInput.GetKeyState('R') == EKeyState::Pressed) {
-		CurrentModifyMode = EModifyMode::Rotate;
+		GizmoMode.Emplace(static_cast<uint8>(EModifyMode::Rotate));
 	}
 
 	if (KeyboardInput.GetKeyState('Y') == EKeyState::Pressed) {
-		CurrentModifyMode = EModifyMode::Scale;
+		GizmoMode.Emplace(static_cast<uint8>(EModifyMode::Scale));
 	}
 
 	const EKeyState LeftState = MouseInput.GetKeyState(Left);
@@ -334,6 +337,8 @@ void FTransformGizmo::UpdateDrag(const FRay& WorldRay) {
 	
 	const float Delta = CurrentAxisParameter - DragSession->InitialAxisParameter;
 	FMatrix DesiredWorld = DragSession->InitialWorld;
+
+	const EModifyMode CurrentModifyMode = GizmoMode.HasValue() ? static_cast<EModifyMode>(GizmoMode.Peek()) : EModifyMode::None;
 
 	if (CurrentModifyMode == EModifyMode::Translate) {
 		DesiredWorld.Translation(DragSession->InitialWorld.Translation() + DragSession->AxisWorld * Delta);

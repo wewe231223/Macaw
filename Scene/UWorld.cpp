@@ -459,7 +459,15 @@ void UWorld::HandleMousePickRequest(
 				{
 					if (USceneComponent* RootComponent = Owner->GetRootComponent())
 					{
+						auto& transform = RootComponent->GetTransform();
 						SelectedComponentHandle = RootComponent->GetHandle();
+                        EditorTransformStateWriter.Emplace(FMessageEditorTransformState{
+                            .bIsSelected = true,
+                            .Position = transform.GetPosition(),
+                            .Rotation = transform.GetRotation(),
+                            .Scale = transform.GetScale(),
+                            });
+                        
 					}
 				}
             }

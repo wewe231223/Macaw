@@ -27,6 +27,8 @@ namespace
 		static FMemoryState State;
 		return State;
 	}
+
+	FString str; 
 }
 
 const char* Memory::GetMemoryTagName(EMemoryTag Tag)
