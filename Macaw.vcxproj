@@ -393,21 +393,33 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="Content\Metadata\AlternatePipeline.meta" />
+    <None Include="Content\Metadata\AmberMaterial.meta" />
     <None Include="Content\Metadata\BasePipeline.meta" />
     <None Include="Content\Metadata\BlueMaterial.meta" />
+    <None Include="Content\Metadata\BrownMaterial.meta" />
     <None Include="Content\Metadata\CapsuleMesh.meta" />
     <None Include="Content\Metadata\ConeMesh.meta" />
     <None Include="Content\Metadata\CubeMesh.meta" />
     <None Include="Content\Metadata\CylinderMesh.meta" />
+    <None Include="Content\Metadata\CyanMaterial.meta" />
     <None Include="Content\Metadata\DepthTestedLine.meta" />
     <None Include="Content\Metadata\GreenMaterial.meta" />
     <None Include="Content\Metadata\GreyMaterial.meta" />
+    <None Include="Content\Metadata\LimeMaterial.meta" />
+    <None Include="Content\Metadata\MagentaMaterial.meta" />
+    <None Include="Content\Metadata\NavyMaterial.meta" />
+    <None Include="Content\Metadata\OrangeMaterial.meta" />
     <None Include="Content\Metadata\OverlayLine.meta" />
     <None Include="Content\Metadata\PlaneMesh.meta" />
+    <None Include="Content\Metadata\PinkMaterial.meta" />
     <None Include="Content\Metadata\PyramidMesh.meta" />
+    <None Include="Content\Metadata\PurpleMaterial.meta" />
     <None Include="Content\Metadata\RedMaterial.meta" />
     <None Include="Content\Metadata\SphereMesh.meta" />
     <None Include="Content\Metadata\TorusMesh.meta" />
+    <None Include="Content\Metadata\TealMaterial.meta" />
+    <None Include="Content\Metadata\WhiteMaterial.meta" />
+    <None Include="Content\Metadata\YellowMaterial.meta" />
     <None Include="Content\Pipeline\Alternate.json" />
     <None Include="Content\Pipeline\Base.json" />
     <None Include="Content\Pipeline\LineDepthTested.json" />

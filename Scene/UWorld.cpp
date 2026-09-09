@@ -696,10 +696,37 @@ void UWorld::HandleKeyboardCameraMoveRequest(
 void UWorld::HandleSpawnPrimitive(
     const FMessageSpawnPrimitive& Message, FAssetRegistry& AssetRegistry)
 {
+    static std::mt19937 RandomEngine{ std::random_device{}() };
     // test
-    const FAssetHandle MeshHandle = AssetRegistry.GetAsset("CylinderMesh");
+    const FAssetHandle MeshHandle = AssetRegistry.GetAsset(Message.PrimitiveType);
     const FAssetHandle PipelineHandle = AssetRegistry.GetAsset("BasePipeline");
-    const FAssetHandle MaterialHandle = AssetRegistry.GetAsset("Red");
+    
+
+    const FAssetHandle Materials[] = {
+        AssetRegistry.GetAsset("GreyMaterial"),
+        AssetRegistry.GetAsset("RedMaterial"),
+        AssetRegistry.GetAsset("GreenMaterial"),
+        AssetRegistry.GetAsset("BlueMaterial"),
+        AssetRegistry.GetAsset("YellowMaterial"),
+
+        AssetRegistry.GetAsset("AmberMaterial"),
+        AssetRegistry.GetAsset("BrownMaterial"),
+        AssetRegistry.GetAsset("CyanMaterial"),
+        AssetRegistry.GetAsset("LimeMaterial"),
+        AssetRegistry.GetAsset("MagentaMaterial"),
+        AssetRegistry.GetAsset("NavyMaterial"),
+        AssetRegistry.GetAsset("OrangeMaterial"),
+        AssetRegistry.GetAsset("PinkMaterial"),
+        AssetRegistry.GetAsset("PurpleMaterial"),
+        AssetRegistry.GetAsset("TealMaterial"),
+        AssetRegistry.GetAsset("WhiteMaterial"),
+    };
+
+    int count = _countof(Materials); 
+
+    std::uniform_int_distribution<decltype(count)> r(0, count - 1); 
+
+    const FAssetHandle MaterialHandle = Materials[r(RandomEngine)];
 
     UMesh* Mesh = AssetRegistry.ResolveAsset<UMesh>(MeshHandle);
 
@@ -708,7 +735,6 @@ void UWorld::HandleSpawnPrimitive(
         return;
     }
 
-    static std::mt19937 RandomEngine{ std::random_device{}() };
 
     std::uniform_real_distribution<float> RandomX(-5.0f, 5.0f);
     std::uniform_real_distribution<float> RandomY(-5.0f, 5.0f);

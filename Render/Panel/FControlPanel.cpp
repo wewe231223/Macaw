@@ -25,10 +25,14 @@ void FControlPanel::DrawPanel()
 
     const char* PrimitiveTypes[] =
     {
-        "Cube",
-        "Sphere",
-        "Plane",
-        "Cylinder"
+        "CubeMesh",
+        "SphereMesh",
+        "PlaneMesh",
+        "CylinderMesh",
+        "CapsuleMesh",
+        "ConeMesh",
+        "TorusMesh",
+        "PyrimidMesh"
     };
 
     ImGui::Combo(

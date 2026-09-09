@@ -86,6 +86,15 @@
     <Filter Include="Math">
       <UniqueIdentifier>{e8f9e0cc-c433-40ba-bdb7-6870bb0b6686}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Content\Metadata\Mesh">
+      <UniqueIdentifier>{5d328c33-e847-499b-b42f-145e755159f3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Content\Metadata\Mateiral">
+      <UniqueIdentifier>{eee22032-65b2-4a82-adb2-6e41927c32a2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Content\Metadata\Pipeline">
+      <UniqueIdentifier>{29702d87-fb48-4e8e-9ef4-dc57fdfd4d2e}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Macaw.rc">
@@ -561,39 +570,6 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="Content\Metadata\AlternatePipeline.meta">
-      <Filter>Content\Metadata</Filter>
-    </None>
-    <None Include="Content\Metadata\BasePipeline.meta">
-      <Filter>Content\Metadata</Filter>
-    </None>
-    <None Include="Content\Metadata\CapsuleMesh.meta">
-      <Filter>Content\Metadata</Filter>
-    </None>
-    <None Include="Content\Metadata\ConeMesh.meta">
-      <Filter>Content\Metadata</Filter>
-    </None>
-    <None Include="Content\Metadata\CubeMesh.meta">
-      <Filter>Content\Metadata</Filter>
-    </None>
-    <None Include="Content\Metadata\CylinderMesh.meta">
-      <Filter>Content\Metadata</Filter>
-    </None>
-    <None Include="Content\Metadata\PlaneMesh.meta">
-      <Filter>Content\Metadata</Filter>
-    </None>
-    <None Include="Content\Metadata\PyramidMesh.meta">
-      <Filter>Content\Metadata</Filter>
-    </None>
-    <None Include="Content\Metadata\RedMaterial.meta">
-      <Filter>Content\Metadata</Filter>
-    </None>
-    <None Include="Content\Metadata\SphereMesh.meta">
-      <Filter>Content\Metadata</Filter>
-    </None>
-    <None Include="Content\Metadata\TorusMesh.meta">
-      <Filter>Content\Metadata</Filter>
-    </None>
     <None Include="Content\Pipeline\Alternate.json">
       <Filter>Content\Pipeline</Filter>
     </None>
@@ -609,20 +585,89 @@
     <None Include="Content\Pipeline\LineOverlay.json">
       <Filter>Content\Pipeline</Filter>
     </None>
-    <None Include="Content\Metadata\DepthTestedLine.meta">
-      <Filter>Content\Metadata</Filter>
+    <None Include="Content\Metadata\AlternatePipeline.meta">
+      <Filter>Content\Metadata\Pipeline</Filter>
     </None>
-    <None Include="Content\Metadata\OverlayLine.meta">
-      <Filter>Content\Metadata</Filter>
+    <None Include="Content\Metadata\AmberMaterial.meta">
+      <Filter>Content\Metadata\Mateiral</Filter>
+    </None>
+    <None Include="Content\Metadata\BasePipeline.meta">
+      <Filter>Content\Metadata\Pipeline</Filter>
     </None>
     <None Include="Content\Metadata\BlueMaterial.meta">
-      <Filter>Content\Metadata</Filter>
+      <Filter>Content\Metadata\Mateiral</Filter>
+    </None>
+    <None Include="Content\Metadata\BrownMaterial.meta">
+      <Filter>Content\Metadata\Mateiral</Filter>
     </None>
     <None Include="Content\Metadata\GreenMaterial.meta">
-      <Filter>Content\Metadata</Filter>
+      <Filter>Content\Metadata\Mateiral</Filter>
     </None>
     <None Include="Content\Metadata\GreyMaterial.meta">
-      <Filter>Content\Metadata</Filter>
+      <Filter>Content\Metadata\Mateiral</Filter>
+    </None>
+    <None Include="Content\Metadata\LimeMaterial.meta">
+      <Filter>Content\Metadata\Mateiral</Filter>
+    </None>
+    <None Include="Content\Metadata\MagentaMaterial.meta">
+      <Filter>Content\Metadata\Mateiral</Filter>
+    </None>
+    <None Include="Content\Metadata\NavyMaterial.meta">
+      <Filter>Content\Metadata\Mateiral</Filter>
+    </None>
+    <None Include="Content\Metadata\OrangeMaterial.meta">
+      <Filter>Content\Metadata\Mateiral</Filter>
+    </None>
+    <None Include="Content\Metadata\PinkMaterial.meta">
+      <Filter>Content\Metadata\Mateiral</Filter>
+    </None>
+    <None Include="Content\Metadata\PurpleMaterial.meta">
+      <Filter>Content\Metadata\Mateiral</Filter>
+    </None>
+    <None Include="Content\Metadata\RedMaterial.meta">
+      <Filter>Content\Metadata\Mateiral</Filter>
+    </None>
+    <None Include="Content\Metadata\TealMaterial.meta">
+      <Filter>Content\Metadata\Mateiral</Filter>
+    </None>
+    <None Include="Content\Metadata\WhiteMaterial.meta">
+      <Filter>Content\Metadata\Mateiral</Filter>
+    </None>
+    <None Include="Content\Metadata\YellowMaterial.meta">
+      <Filter>Content\Metadata\Mateiral</Filter>
+    </None>
+    <None Include="Content\Metadata\CapsuleMesh.meta">
+      <Filter>Content\Metadata\Mesh</Filter>
+    </None>
+    <None Include="Content\Metadata\ConeMesh.meta">
+      <Filter>Content\Metadata\Mesh</Filter>
+    </None>
+    <None Include="Content\Metadata\CubeMesh.meta">
+      <Filter>Content\Metadata\Mesh</Filter>
+    </None>
+    <None Include="Content\Metadata\CylinderMesh.meta">
+      <Filter>Content\Metadata\Mesh</Filter>
+    </None>
+    <None Include="Content\Metadata\PyramidMesh.meta">
+      <Filter>Content\Metadata\Mesh</Filter>
+    </None>
+    <None Include="Content\Metadata\SphereMesh.meta">
+      <Filter>Content\Metadata\Mesh</Filter>
+    </None>
+    <None Include="Content\Metadata\TorusMesh.meta">
+      <Filter>Content\Metadata\Mesh</Filter>
+    </None>
+    <None Include="Content\Metadata\PlaneMesh.meta">
+      <Filter>Content\Metadata\Mesh</Filter>
+    </None>
+    <None Include="Content\Metadata\CyanMaterial.meta">
+      <Filter>Content\Metadata\Mateiral</Filter>
+    </None>
+    <None Include="Content\Metadata\DepthTestedLine.meta">
+      <Filter>Content\Metadata\Pipeline</Filter>
+    </None>
+    <None Include="Content\Metadata\OverlayLine.meta">
+      <Filter>Content\Metadata\Pipeline</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>

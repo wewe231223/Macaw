@@ -89,10 +89,10 @@ private:
 	void SendTransformEdit(std::uint64_t SessionId, ETransformEditPhase Phase, FObjectHandle TargetHandle, const FMatrix& DesiredWorld, std::uint64_t ExpectedTransformRevision);
 
 private:
-	static constexpr float ShaftLengthPixels = 72.0f;
-	static constexpr float ConeLengthPixels = 24.0f;
-	static constexpr float ShaftRadiusPixels = 4.0f;
-	static constexpr float ConeRadiusPixels = 9.0f;
+	static constexpr float ShaftLengthPixels = 66.0f;
+	static constexpr float ConeLengthPixels = 22.0f;
+	static constexpr float ShaftRadiusPixels = 6.0f;
+	static constexpr float ConeRadiusPixels = 13.0f;
 	static constexpr float PickRadiusPixels = 10.0f;
 	static constexpr float BoundsGapPixels = 2.0f;
 

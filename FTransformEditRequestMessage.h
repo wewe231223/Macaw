@@ -19,6 +19,7 @@ inline std::uint64_t AcquireTransformEditSessionId() noexcept {
 	return NextSessionId.fetch_add(1, std::memory_order_relaxed);
 }
 
+
 struct FTransformEditRequestMessage {
 	inline static const FTypeInfo TypeInfo{
 		"FTransformEditRequestMessage",
