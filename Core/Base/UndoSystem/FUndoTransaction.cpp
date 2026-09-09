@@ -2,21 +2,22 @@
 #include "FUndoTransaction.h"
 
 #include "IUndoRecord.h"
+#include <ranges>
 
 FUndoTransaction::~FUndoTransaction() = default;
 
 void FUndoTransaction::Undo(IUndoContext& Context)
 {
-    for (auto CurrentRecord = Records.rbegin(), EndRecord = Records.rend(); CurrentRecord != EndRecord; ++CurrentRecord)
+    for (const auto& Record : std::views::reverse(Records))
     {
-        (*CurrentRecord)->ApplyUndo(Context);
+        Record->ApplyUndo(Context);
     }
 }
 
 void FUndoTransaction::Redo(IUndoContext& Context)
 {
-    for (auto CurrentRecord = Records.begin(), EndRecord = Records.end(); CurrentRecord != EndRecord; ++CurrentRecord)
+    for (const auto& Record : Records)
     {
-        (*CurrentRecord)->ApplyRedo(Context);
+        Record->ApplyRedo(Context);
     }
 }

@@ -2,6 +2,7 @@
 #include "UWorld.h"
 
 #include <algorithm>
+#include <random>
 
 #include "AActor.h"
 #include "Component/UCameraComponent.h"
@@ -11,11 +12,14 @@
 #include "FMousePickRequestMessage.h"
 #include "FWorldSelectionChangedMessage.h"
 #include "FKeyboardCameraMoveRequestMessage.h"
+#include "Render/Panel/FEditorInfo.h"
+#include "Core/Asset/UMesh.h"
 
 #include "../Serialize/FArchiveJson.h"
 #include "../Core/Base/TypeRegistry.h"
 #include "../Core/Base/UObjectSystem.h"
 #include "../Core/Asset/FAssetRegistry.h"
+#include "../Core/Base/UndoSystem/FUndoSystem.h"
 
 #include <d3d11.h>
 #include <filesystem>
@@ -24,6 +28,11 @@
 #include <rapidjson/document.h>
 #include <rapidjson/ostreamwrapper.h>
 #include <rapidjson/prettywriter.h>
+
+std::string GetFilePathFromExplorer()
+{
+    return "./scenes/test.json";
+}
 
 UWorld::~UWorld()
 {
@@ -35,9 +44,112 @@ UWorld::~UWorld()
     Actors.clear();
 }
 
+bool UWorld::SpawnActor(const FAssetHandle& MeshHandle, const FAssetHandle& PipelineHandle, const FAssetHandle& MaterialHandle, 
+                        const FVector3& Position, UMesh *Mesh, FAssetRegistry* AssetRegistry)
+{
+    std::unique_ptr<AActor> Actor;
+    Actor.reset(AdoptActor<AActor>());
+
+    UStaticMeshComponent* MeshComponent = Actor->AddComponent<UStaticMeshComponent>();
+    UCollisionComponent* CollisionComponent = Actor->AddComponent<UCollisionComponent>();
+
+    Actor->SetRootComponent(MeshComponent);
+
+    CollisionComponent->AttachTo(MeshComponent);
+
+    MeshComponent->SetMeshHandle(MeshHandle);
+    MeshComponent->SetPipelineHandle(PipelineHandle);
+    MeshComponent->SetMaterialHandle(MaterialHandle);
+
+    MeshComponent->GetTransform().SetPosition(
+        FVector3{
+            Position.x,
+            Position.y,
+            Position.z
+        });
+
+    CollisionComponent->SetBounds(Mesh->GetBoundsCenter(), Mesh->GetBoundsExtent());
+    FGuid Guid = Actor->GetGuid();
+    AddActor(std::move(Actor));
+    
+    //FUndoSystem::RecordObject(UObjectSystem::Resolve(UObjectSystem::FindHandleByGuid(Guid)), EUndoType::Spawn, AssetRegistry);
+
+    return true;
+}
+
+bool UWorld::DestroyActor(AActor* Actor)
+{
+    if (Actor == nullptr)
+    {
+        return false;
+    }
+
+    auto It = std::ranges::find_if(Actors, [Actor](const std::unique_ptr<AActor>& Ptr)
+    {
+        return Ptr.get() == Actor;
+    });
+
+    if (It == Actors.end())
+    {
+        return false;
+    }
+
+    PendingDestroyActors.push_back(Actor);
+    return true;
+}
+
+void UWorld::FlushPendingDestroyActors()
+{
+    for (AActor* Actor : PendingDestroyActors)
+    {
+        if (Actor == nullptr)
+        {
+            continue;
+        }
+
+        auto It = std::ranges::find_if(Actors, [Actor](const std::unique_ptr<AActor>& Ptr)
+        {
+            return Ptr.get() == Actor;
+        });
+
+        if (It == Actors.end())
+        {
+            continue;
+        }
+
+        UObjectSystem::Unregister(
+            Actor,
+            Actor->GetHandle());
+
+        Actors.erase(It); 
+    }
+
+    Actors.clear();
+    PendingDestroyActors.clear();
+}
+
 const std::vector<std::unique_ptr<AActor>>& UWorld::GetActors() const
 {
     return Actors;
+}
+
+void UWorld::InitializeEditorEventSender(
+    FMessageChannel::FSender&& InSender)
+{
+    EditorEventSender.emplace(std::move(InSender));
+}
+
+void UWorld::InitializeEditorCameraState(
+    FStateChannel<FMessageEditorCameraState>::FWriter InWriter,
+    FStateChannel<FMessageEditorCameraState>::FReader InReader)
+{
+    EditorCameraStateWriter.emplace(std::move(InWriter));
+    EditorCameraStateReader.emplace(std::move(InReader));
+
+    if (Camera != nullptr)
+    {
+        PublishEditorCameraState();
+    }
 }
 
 FRenderProbe& UWorld::BuildRenderProbe() 
@@ -65,10 +177,14 @@ FRenderProbe& UWorld::BuildRenderProbe()
 
 void UWorld::Tick(float DeltaTime)
 {
+    ApplyEditorCameraState();
+
     for (const std::unique_ptr<AActor>& Actor : Actors)
     {
         Actor->Tick(DeltaTime);
     }
+
+    // FlushPendingDestroyActors();
 }
 
 void UWorld::RegisterRenderable(UStaticMeshComponent* Component)
@@ -89,6 +205,8 @@ void UWorld::UnregisterRenderable(UStaticMeshComponent* Component)
 void UWorld::SetMainCamera(UCameraComponent* InCamera)
 {
     Camera = InCamera;
+
+    PublishEditorCameraState();
 }
 
 void UWorld::ClearMainCamera(UCameraComponent* InCamera)
@@ -116,9 +234,7 @@ bool UWorld::SaveScene(const FString& SceneName, FAssetRegistry* AssetRegistry)
     FArchiveJson ArchiveSave(Document, Allocator);
 	ArchiveSave.SetAssetRegistry(AssetRegistry);
 
-    // ***** TODO function is not developed yet
 	auto AssetList = AssetRegistry->GetAssetList();
-    // TArray<std::unique_ptr<UObject>> AssetList;
 
     size_t ArraySize = static_cast<size_t>(AssetList.size());
     ArchiveSave.BeginArrayScope("Assets", ArraySize);
@@ -131,13 +247,6 @@ bool UWorld::SaveScene(const FString& SceneName, FAssetRegistry* AssetRegistry)
         ArchiveSave.EndObjectScope();
     }
 
-
-    //for (size_t CurrentIndex = 0, EndIndex = AssetList.size(); CurrentIndex < EndIndex; ++CurrentIndex)
-    //{
-    //    ArchiveSave.BeginObjectScope(std::to_string(CurrentIndex));
-    //    AssetList[CurrentIndex]->Save(ArchiveSave);
-    //    ArchiveSave.EndObjectScope();
-    //}
     ArchiveSave.EndArrayScope();
 
     ArraySize = static_cast<size_t>(Actors.size());
@@ -179,7 +288,7 @@ bool UWorld::LoadScene(const std::filesystem::path& ScenePath, ID3D11Device* Dev
     if (LoadDocument.HasParseError())
         return false;
 
-
+    ResetWorld(AssetRegistry, Device);
 
     if (LoadDocument.HasMember("Assets") && LoadDocument["Assets"].IsArray())
     {
@@ -218,8 +327,6 @@ bool UWorld::LoadScene(const std::filesystem::path& ScenePath, ID3D11Device* Dev
 
             std::unique_ptr<UObject> CreatedObject = TypeRegistry::Find(TypeName)->Creator();
 			std::unique_ptr<AActor> ActorPtr(static_cast<AActor*>(CreatedObject.release()));
-//            Actors.push_back(std::unique_ptr<AActor>(static_cast<AActor*>(CreatedObject.release())));
-
             UObjectSystem::RegisterWithGuid(ActorPtr.get(), ActorGuid);
 
             FArchiveJson ArchiveLoad(static_cast<rapidjson::Value&>(ActorJson));
@@ -230,11 +337,10 @@ bool UWorld::LoadScene(const std::filesystem::path& ScenePath, ID3D11Device* Dev
             ++ActorIndex;
         }
 
-
         // ==================================================================
         // 진짜 직렬화
         // ==================================================================
-        ActorIndex = 0;
+        ActorIndex = 0; 
         for (auto& ActorJson : LoadDocument["Actors"].GetArray())
         {
             FArchiveJson ArchiveLoad(static_cast<rapidjson::Value&>(ActorJson));
@@ -247,23 +353,6 @@ bool UWorld::LoadScene(const std::filesystem::path& ScenePath, ID3D11Device* Dev
         return false;
 
     return true;
-}
-
-
-void UWorld::SetAssetRegistry(FAssetRegistry* InAssetRegistry)
-{
-    AssetRegistry = InAssetRegistry;
-}
-
-FAssetRegistry* UWorld::GetAssetRegistry() const
-{
-    return AssetRegistry;
-}
-
-void UWorld::InitializeEditorEventSender(
-    FMessageChannel::FSender&& InSender)
-{
-    EditorEventSender.emplace(std::move(InSender));
 }
 
 void UWorld::HandleMousePickRequest(
@@ -371,6 +460,20 @@ void UWorld::HandleMouseCameraRotateRequest(const FMouseCameraRotateRequestMessa
         MaximumPitch);
 
     CameraTransform.SetRotation(Rotation);
+
+    PublishEditorCameraState();
+
+    if (EditorCameraWriter.has_value())
+    {
+        EditorCameraWriter->Write(
+            FMessageEditorCameraState
+            {
+                CameraTransform.GetPosition(),
+                CameraTransform.GetRotation(),
+                Camera->GetFOV()
+            }
+        );
+    }
 }
 
 AActor* UWorld::AddActor(std::unique_ptr<AActor> InActor) 
@@ -461,4 +564,135 @@ void UWorld::HandleKeyboardCameraMoveRequest(
     FTransform& CameraTransform = Camera->GetTransform();
 
     CameraTransform.SetPosition(CameraTransform.GetPosition() + MoveDirection * CameraMoveSpeed * Message.DeltaTime);
+
+    PublishEditorCameraState();
+}
+
+
+void UWorld::HandleSpawnPrimitive(
+    const FMessageSpawnPrimitive& Message, FAssetRegistry& AssetRegistry)
+{
+    // test
+    const FAssetHandle MeshHandle = AssetRegistry.GetAsset("SphereMesh");
+    const FAssetHandle PipelineHandle = AssetRegistry.GetAsset("BasePipeline");
+    const FAssetHandle MaterialHandle = AssetRegistry.GetAsset("RedMaterial");
+
+    UMesh* Mesh = AssetRegistry.ResolveAsset<UMesh>(MeshHandle);
+
+    if (Mesh == nullptr)
+    {
+        return;
+    }
+
+    static std::mt19937 RandomEngine{ std::random_device{}() };
+
+    std::uniform_real_distribution<float> RandomX(-5.0f, 5.0f);
+    std::uniform_real_distribution<float> RandomY(-5.0f, 5.0f);
+    std::uniform_real_distribution<float> RandomZ(-3.0f, 3.0f);
+
+    constexpr FVector3 SpawnCenter{ 0.0f, 0.0f, 5.0f };
+
+    for (uint32 Index = 0; Index < Message.SpawnCount;  ++Index)
+    {
+        SpawnActor(MeshHandle, PipelineHandle, MaterialHandle,
+            FVector3{ SpawnCenter.x + RandomX(RandomEngine),SpawnCenter.y + RandomY(RandomEngine), SpawnCenter.z + RandomZ(RandomEngine) }, Mesh, &AssetRegistry);
+    }
+}
+
+
+void UWorld::ResetWorld(FAssetRegistry* AssetRegistry, ID3D11Device* Device)
+{
+    for (auto &CurrentActor : Actors)
+    {
+        DestroyActor(CurrentActor.release());
+    }
+    FlushPendingDestroyActors();
+
+    AssetRegistry->Reset();
+    AssetRegistry->Initialize(Device);
+}
+
+void UWorld::HandleNewScene(
+    const FMessageNewScene& Message)
+{
+    // 현재 Scene 초기화
+}
+
+void UWorld::HandleChangeGizmoMode(
+    const FMessageChangeGizmoMode& Message)
+{
+    // Gizmo mode 변경
+}
+
+void UWorld::UpdateEditorCameraState()
+{
+    if (!EditorCameraReader.has_value() ||
+        Camera == nullptr)
+    {
+        return;
+    }
+
+    auto Result =
+        EditorCameraReader->ReadIfChanged();
+
+    if (!Result.Changed ||
+        Result.Value == nullptr)
+    {
+        return;
+    }
+
+    FTransform& Transform =
+        Camera->GetTransform();
+
+    Transform.SetPosition(
+        Result.Value->Position);
+
+    Transform.SetRotation(
+        Result.Value->Rotation);
+
+    Camera->SetFOV(
+        Result.Value->FOV);
+}
+
+void UWorld::ApplyEditorCameraState()
+{
+    if (!EditorCameraStateReader.has_value() || Camera == nullptr)
+    {
+        return;
+    }
+
+    auto Result = EditorCameraStateReader->ReadIfChanged();
+
+    if (!Result.Changed ||
+        Result.Value == nullptr)
+    {
+        return;
+    }
+
+    FTransform& CameraTransform = Camera->GetTransform();
+
+    CameraTransform.SetPosition(Result.Value->Position);
+    CameraTransform.SetRotation(Result.Value->Rotation);
+
+    Camera->SetFOV(Result.Value->FOV);
+}
+
+void UWorld::PublishEditorCameraState()
+{
+    if (!EditorCameraStateWriter.has_value() || Camera == nullptr)
+    {
+        return;
+    }
+
+    const FTransform& CameraTransform =
+        Camera->GetTransform();
+
+    EditorCameraStateWriter->Write(
+        FMessageEditorCameraState
+        {
+            CameraTransform.GetPosition(),
+            CameraTransform.GetRotation(),
+            Camera->GetFOV()
+        }
+    );
 }

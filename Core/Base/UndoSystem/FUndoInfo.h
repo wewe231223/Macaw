@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "../FGuid.h" 
 #include "../../Base/TypeInfo.h"
 
@@ -10,9 +10,9 @@ public:
 
 
     inline static const FTypeInfo TypeInfo{
-        "FObjectStateChangedMessage", 
-        nullptr,                      
-        nullptr                       
+        "FObjectStateChangedMessage",
+        nullptr,
+        nullptr
     };
     static const FTypeInfo& StaticTypeInfo() noexcept { return TypeInfo; }
 

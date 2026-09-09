@@ -1,14 +1,14 @@
 ﻿#include "PCH.h"
 #include "FArchiveMemory.h"
 
-FArchiveMemory::FArchiveMemory(std::vector<uint8>& InBytes)
+FArchiveMemory::FArchiveMemory(TArray<uint8>& InBytes)
     : FArchive(EArchiveMode::Saving)
     , WriteBytes(&InBytes)
     , ReadBytes(nullptr)
     , ReadOffset(0)
 {
 }
-FArchiveMemory::FArchiveMemory(const std::vector<uint8>& InBytes)
+FArchiveMemory::FArchiveMemory(const TArray<uint8>& InBytes)
     : FArchive(EArchiveMode::Loading)
     , WriteBytes(nullptr)
     , ReadBytes(&InBytes)

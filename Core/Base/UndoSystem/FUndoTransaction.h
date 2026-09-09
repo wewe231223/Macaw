@@ -28,5 +28,5 @@ public:
 
 private:
     FString TransactionName;
-    std::vector<std::unique_ptr<IUndoRecord>> Records;
+    TArray<std::unique_ptr<IUndoRecord>> Records;
 };
