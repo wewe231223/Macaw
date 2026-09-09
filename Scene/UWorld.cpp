@@ -735,7 +735,7 @@ void UWorld::ResetWorld(FAssetRegistry* AssetRegistry, ID3D11Device* Device)
 {
     for (auto &CurrentActor : Actors)
     {
-        DestroyActor(CurrentActor.release());
+        DestroyActor(CurrentActor.get());
     }
     FlushPendingDestroyActors();
 
