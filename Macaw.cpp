@@ -83,7 +83,7 @@ LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 HWND gHWND;
 FRenderer Renderer;
 
-#define LOAD 
+//#define LOAD 
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
                      _In_opt_ HINSTANCE hPrevInstance,
@@ -354,6 +354,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
     CameraActor->SetRootComponent(Camera);
 
+    /*
     {
         constexpr uint32 InstanceCount = 120;
         constexpr float MinInstanceX = -30.0f;
@@ -429,6 +430,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
     }
     World.SaveScene("test", &AssetRegistry);
+    */
 
 #endif 
 
