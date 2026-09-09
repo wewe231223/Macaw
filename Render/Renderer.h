@@ -44,7 +44,7 @@ public:
 
 	void BindAssetRegistry(FAssetRegistry* InAssetRegistry) { AssetRegistry = InAssetRegistry; }
 
-	TStateChannel<RenderWindowInfo>::FReader GetWindowInfoReader() const { return WindowInfoChannel.GetReader(); }
+	FStateChannel<RenderWindowInfo>::FReader GetWindowInfoReader() const { return WindowInfoChannel.GetReader(); }
 
 	void ReSize(uint32 width, uint32 height);
 private:
@@ -65,9 +65,9 @@ private:
 	Microsoft::WRL::ComPtr<ID3D11Texture2D> DepthStencilBuffer;
 	Microsoft::WRL::ComPtr<ID3D11DepthStencilView> DepthStencilView;
 
-	TStateChannel<RenderWindowInfo> WindowInfoChannel{};
-	TStateChannel<RenderWindowInfo>::FWriter WindowInfoWriter{ WindowInfoChannel.GetWriter() };
-	TStateChannel<RenderWindowInfo>::FReader WindowInfoReader{ WindowInfoChannel.GetReader() };
+	FStateChannel<RenderWindowInfo> WindowInfoChannel{};
+	FStateChannel<RenderWindowInfo>::FWriter WindowInfoWriter{ WindowInfoChannel.GetWriter() };
+	FStateChannel<RenderWindowInfo>::FReader WindowInfoReader{ WindowInfoChannel.GetReader() };
 
 	FAssetRegistry* AssetRegistry{ nullptr };
 

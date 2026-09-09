@@ -20,7 +20,7 @@ public:
 public:
     class FReader {
     public:
-        explicit FReader(const TStateChannel& InChannel) noexcept : Channel(&InChannel) {}
+        explicit FReader(const FStateChannel& InChannel) noexcept : Channel(&InChannel) {}
 		FReader() noexcept = default;
         ~FReader() noexcept = default;
 
@@ -69,7 +69,7 @@ public:
 
     class FWriter {
     public:
-        explicit FWriter(TStateChannel& InChannel) noexcept : Channel(&InChannel) {}
+        explicit FWriter(FStateChannel& InChannel) noexcept : Channel(&InChannel) {}
 		FWriter() noexcept = default;
 
 		~FWriter() noexcept = default;
@@ -108,12 +108,12 @@ public:
         }
 
     private:
-        TStateChannel* Channel{ nullptr };
+        FStateChannel<T>* Channel{ nullptr };
     };
 
     class FReadWriter {
     public:
-        explicit FReadWriter(TStateChannel& InChannel) noexcept : Channel(&InChannel) {}
+        explicit FReadWriter(FStateChannel& InChannel) noexcept : Channel(&InChannel) {}
         ~FReadWriter() noexcept = default;
 
         FReadWriter(const FReadWriter&) = default;
@@ -177,7 +177,7 @@ public:
         }
 
     private:
-        TStateChannel* Channel{ nullptr };
+        FStateChannel<T>* Channel{ nullptr };
         VersionType LastReadVersion{ 0 };
     };
 

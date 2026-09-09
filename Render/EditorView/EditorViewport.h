@@ -28,7 +28,7 @@ public:
 	EditorViewport& operator=(EditorViewport&&) noexcept = default;
 
 public:
-	void Initialize(ID3D11Device* Device, FAssetRegistry& AssetRegistry, TStateChannel<RenderWindowInfo>::FReader WindowReader, TStateChannel<FEditorSelectionState>::FReader SelectionReader, FMessageChannel::FSender WorldCommandSender);
+	void Initialize(ID3D11Device* Device, FAssetRegistry& AssetRegistry, FStateChannel<RenderWindowInfo>::FReader WindowReader, FStateChannel<FEditorSelectionState>::FReader SelectionReader, FMessageChannel::FSender WorldCommandSender);
 
 	void ProcessInput(FKeyboardInput& KeyboardInput, FMouseInput& MouseInput, bool bMouseCapturedByUI);
 	void RenderInProbe(FRenderProbe& Probe);
@@ -40,7 +40,7 @@ private:
 	void RenderOrientationAxis(ID3D11DeviceContext* Context, CameraProbe& Probe);
 
 private:
-	TStateChannel<RenderWindowInfo>::FReader WindowInfoReader{};
+	FStateChannel<RenderWindowInfo>::FReader WindowInfoReader{};
 
 	FLineRenderer LineRenderer{};
 	FTransformGizmo TransformGizmo{};

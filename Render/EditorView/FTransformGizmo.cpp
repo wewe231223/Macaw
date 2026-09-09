@@ -12,7 +12,8 @@
 #include "../../Core/Asset/BasicGeometry/Cylinder.h"
 #include "../../Core/Asset/UColorMaterial.h"
 
-void FTransformGizmo::Initialize(ID3D11Device* Device, FAssetRegistry& AssetRegistry, TStateChannel<RenderWindowInfo>::FReader InWindowInfoReader, TStateChannel<FEditorSelectionState>::FReader InSelectionReader, FMessageChannel::FSender InWorldCommandSender) {
+void FTransformGizmo::Initialize(ID3D11Device* Device, FAssetRegistry& AssetRegistry, FStateChannel<RenderWindowInfo>::FReader InWindowInfoReader, FStateChannel<FEditorSelectionState>::FReader InSelectionReader, FMessageChannel::FSender InWorldCommandSender) {
+
 	CylinderMesh = AssetRegistry.EmplaceAsset<UMesh>(Device, "CylinderMesh", "./Content/Metadata/CylinderMesh.meta");
 	ConeMesh = AssetRegistry.EmplaceAsset<UMesh>(Device, "ConeMesh", "./Content/Metadata/ConeMesh.meta");
 

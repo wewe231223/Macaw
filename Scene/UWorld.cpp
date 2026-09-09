@@ -91,7 +91,7 @@ bool UWorld::SpawnActor(const FAssetHandle& MeshHandle, const FAssetHandle& Pipe
             Position.z
         });
 
-    CollisionComponent->SetBounds(Mesh->GetBoundsCenter(), Mesh->GetBoundsExtent());
+    CollisionComponent->SetBounds(Mesh->GetLocalBoundingBox());
     FGuid Guid = Actor->GetGuid();
     AddActor(std::move(Actor));
     
@@ -214,6 +214,7 @@ void UWorld::Tick(float DeltaTime)
     }
 
     ApplyEditorCameraState();
+    PublishEditorSelectionState(); 
 
     for (const std::unique_ptr<AActor>& Actor : Actors)
     {
@@ -724,6 +725,10 @@ void UWorld::HandleSpawnPrimitive(
 }
 
 
+FAssetRegistry* UWorld::GetAssetRegistry() const {
+    return AssetRegistry;
+}
+
 void UWorld::ResetWorld(FAssetRegistry* AssetRegistry, ID3D11Device* Device)
 {
     for (auto &CurrentActor : Actors)
@@ -776,6 +781,10 @@ void UWorld::UpdateEditorCameraState()
 
     Camera->SetFOV(
         Result.Value->FOV);
+}
+
+void UWorld::SetAssetRegistry(FAssetRegistry* InAssetRegistry) {
+	AssetRegistry = InAssetRegistry;
 }
 
 void UWorld::ApplyEditorCameraState()

@@ -73,11 +73,10 @@ public:
     const std::vector<std::unique_ptr<AActor>>& GetActors() const;
     FRenderProbe& BuildRenderProbe();
     
-    TStateChannel<FEditorSelectionState>::FReader GetEditorSelectionStateReader() const noexcept {
+    FStateChannel<FEditorSelectionState>::FReader GetEditorSelectionStateReader() const noexcept {
 		return EditorSelectionState.GetReader();
     }
 
-    FRenderProbe& BuildRenderProbe();
     void Tick(float DeltaTime);
 
     void RegisterRenderable(UStaticMeshComponent* Component);
@@ -89,7 +88,6 @@ public:
     bool LoadScene(const std::filesystem::path& ScenePath, ID3D11Device* Device, FAssetRegistry* AssetRegistry);
 
 	JG_DECLARE_DERIVED_TYPEINFO(UWorld, UObject);
-    void InitializeEditorEventSender(FMessageChannel::FSender&& InSender);
 
     void InitializeEditorEventSender(FMessageChannel::FSender&& InSender);
     void InitializeEditorCameraState(
@@ -120,7 +118,7 @@ public:
 
     void UpdateEditorCameraState();
     void SetAssetRegistry(FAssetRegistry* InAssetRegistry);
-	void SetWindowInfoReader(TStateChannel<RenderWindowInfo>::FReader InReader) { WindowInfoReader = InReader; }
+	void SetWindowInfoReader(FStateChannel<RenderWindowInfo>::FReader InReader) { WindowInfoReader = InReader; }
 
     FAssetRegistry* GetAssetRegistry() const;
 
@@ -142,8 +140,8 @@ private:
 
 
 	TObjectRef<UCollisionComponent> SelectedCollider;
-	TStateChannel<FEditorSelectionState> EditorSelectionState;
-	TStateChannel<RenderWindowInfo>::FReader WindowInfoReader;
+	FStateChannel<FEditorSelectionState> EditorSelectionState;
+	FStateChannel<RenderWindowInfo>::FReader WindowInfoReader;
 	std::optional<FActiveTransformEdit> ActiveTransformEdit;
 	std::uint64_t TransformRevision = 1;
 

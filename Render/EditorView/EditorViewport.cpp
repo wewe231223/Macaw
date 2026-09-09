@@ -7,7 +7,7 @@
 
 #include "../../FMouseInput.h"
 
-void EditorViewport::Initialize(ID3D11Device* Device, FAssetRegistry& AssetRegistry, TStateChannel<RenderWindowInfo>::FReader windowReader, TStateChannel<FEditorSelectionState>::FReader selectionReader, FMessageChannel::FSender worldCommandSender) {
+void EditorViewport::Initialize(ID3D11Device* Device, FAssetRegistry& AssetRegistry, FStateChannel<RenderWindowInfo>::FReader windowReader, FStateChannel<FEditorSelectionState>::FReader selectionReader, FMessageChannel::FSender worldCommandSender) {
 	LineRenderer.Initialize(Device);
 	TransformGizmo.Initialize(Device, AssetRegistry, windowReader, selectionReader, std::move(worldCommandSender));
 	WindowInfoReader = windowReader;
