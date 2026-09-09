@@ -29,6 +29,18 @@ void FTransformGizmo::Initialize(ID3D11Device* Device, FAssetRegistry& AssetRegi
 }
 
 void FTransformGizmo::ProcessInput(FKeyboardInput& KeyboardInput, FMouseInput& MouseInput, bool bMouseCapturedByUI) {
+	if (KeyboardInput.GetKeyState('T') == EKeyState::Pressed) {
+ 		CurrentModifyMode = EModifyMode::Translate;
+	}
+
+	if (KeyboardInput.GetKeyState('R') == EKeyState::Pressed) {
+		CurrentModifyMode = EModifyMode::Rotate;
+	}
+
+	if (KeyboardInput.GetKeyState('Y') == EKeyState::Pressed) {
+		CurrentModifyMode = EModifyMode::Scale;
+	}
+
 	const EKeyState LeftState = MouseInput.GetKeyState(Left);
 	const FMouseInput::DragCapture& Capture = MouseInput.GetDragCapture(Left);
 
@@ -44,17 +56,6 @@ void FTransformGizmo::ProcessInput(FKeyboardInput& KeyboardInput, FMouseInput& M
 			EndDrag(false);
 		}
 
-		if (KeyboardInput.GetKeyState('T') == EKeyState::Pressed) {
- 			CurrentModifyMode = EModifyMode::Translate;
-		}
-
-		if (KeyboardInput.GetKeyState('R') == EKeyState::Pressed) {
-			CurrentModifyMode = EModifyMode::Rotate;
-		}
-
-		if (KeyboardInput.GetKeyState('Y') == EKeyState::Pressed) {
-			CurrentModifyMode = EModifyMode::Scale;
-		}
 
 		return;
 	}

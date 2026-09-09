@@ -129,6 +129,6 @@ private:
 	bool bVisible = false;
 	bool bHasCamera = false;
 
-	EModifyMode CurrentModifyMode{ EModifyMode::Scale };
+	EModifyMode CurrentModifyMode{ EModifyMode::Translate };
 	float CurrentWorkUnitsPerPixel{ 1.0f };
 };
