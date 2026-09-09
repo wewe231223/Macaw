@@ -356,6 +356,9 @@
     <ClInclude Include="ImGui\imstb_truetype.h" />
     <ClInclude Include="ImGui\stb_image.h" />
     <ClInclude Include="PCH.h" />
+    <ClInclude Include="Render\EditorView\EditorViewport.h" />
+    <ClInclude Include="Render\EditorView\FLineRenderer.h" />
+    <ClInclude Include="Render\EditorView\FTransformGizmo.h" />
     <ClInclude Include="Render\Panel\Console\ConsoleWindow.h" />
     <ClInclude Include="Render\Panel\FConsolePanel.h" />
     <ClInclude Include="Render\Panel\FControlPanel.h" />

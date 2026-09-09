@@ -61,7 +61,7 @@ UWorld::~UWorld()
 {
     for (const std::unique_ptr<AActor>& Actor : Actors)
     {
-        UObjectSystem::Unregister(Actor.get(), Actor->GetHandle());
+        UObjectSystem::Unregister (Actor.get(), Actor->GetHandle());
     }
 
     Actors.clear();
@@ -70,8 +70,8 @@ UWorld::~UWorld()
 bool UWorld::SpawnActor(const FAssetHandle& MeshHandle, const FAssetHandle& PipelineHandle, const FAssetHandle& MaterialHandle, 
                         const FVector3& Position, UMesh *Mesh, FAssetRegistry* AssetRegistry)
 {
-    std::unique_ptr<AActor> Actor;
-    Actor.reset(AdoptActor<AActor>());
+    //std::unique_ptr<AActor> Actor;
+    auto Actor = UWorld::AdoptActor<AActor>();
 
     UStaticMeshComponent* MeshComponent = Actor->AddComponent<UStaticMeshComponent>();
     UCollisionComponent* CollisionComponent = Actor->AddComponent<UCollisionComponent>();
@@ -93,7 +93,9 @@ bool UWorld::SpawnActor(const FAssetHandle& MeshHandle, const FAssetHandle& Pipe
 
     CollisionComponent->SetBounds(Mesh->GetLocalBoundingBox());
     FGuid Guid = Actor->GetGuid();
-    AddActor(std::move(Actor));
+	UObjectSystem::RegisterWithGuid(Actor, Guid);
+    //AddActor(std::move(Actor));
+
     
     //FUndoSystem::RecordObject(UObjectSystem::Resolve(UObjectSystem::FindHandleByGuid(Guid)), EUndoType::Spawn, AssetRegistry);
 
@@ -151,7 +153,7 @@ void UWorld::FlushPendingDestroyActors()
     PendingDestroyActors.clear();
 }
 
-const std::vector<std::unique_ptr<AActor>>& UWorld::GetActors() const
+const TArray<std::unique_ptr<AActor>>& UWorld::GetActors() const
 {
     return Actors;
 }
@@ -698,9 +700,9 @@ void UWorld::HandleSpawnPrimitive(
     const FMessageSpawnPrimitive& Message, FAssetRegistry& AssetRegistry)
 {
     // test
-    const FAssetHandle MeshHandle = AssetRegistry.GetAsset("SphereMesh");
+    const FAssetHandle MeshHandle = AssetRegistry.GetAsset("CylinderMesh");
     const FAssetHandle PipelineHandle = AssetRegistry.GetAsset("BasePipeline");
-    const FAssetHandle MaterialHandle = AssetRegistry.GetAsset("RedMaterial");
+    const FAssetHandle MaterialHandle = AssetRegistry.GetAsset("Red");
 
     UMesh* Mesh = AssetRegistry.ResolveAsset<UMesh>(MeshHandle);
 
