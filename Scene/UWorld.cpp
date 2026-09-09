@@ -34,7 +34,9 @@ namespace {
 	bool ApplyWorldMatrix(USceneComponent& Component, const FMatrix& DesiredWorld) {
 		FMatrix LocalMatrix = DesiredWorld;
 		if (USceneComponent* Parent = Component.GetParent()) {
-			LocalMatrix = DesiredWorld * Parent->GetWorldMatrix().Invert();
+			FMatrix parentInverse;
+            if (!Parent->GetWorldMatrix().TryInverse(parentInverse)) return false;
+            LocalMatrix = DesiredWorld * parentInverse;
 		}
 
 		FVector3 Scale{};
@@ -46,7 +48,7 @@ namespace {
 
 		FTransform& Transform = Component.GetTransform();
 		Transform.SetPosition(Translation);
-		Transform.SetRotation(Rotation.ToEuler());
+		Transform.SetRotation(FVector3(Rotation.ToEuler()));
 		Transform.SetScale(Scale);
 		return true;
 	}
@@ -413,16 +415,12 @@ void UWorld::HandleMousePickRequest(
             (2.0f * static_cast<float>(Message.ScreenY) /
                 static_cast<float>(WindowInfoReader.Read().Viewport.Height));
 
-        const FMatrix InverseViewProjection =
-            Camera->GetViewProjectionMatrix().Invert();
-
-        const FVector3 RayOrigin = FVector3::Transform(
-            FVector3{ NdcX, NdcY, 0.0f },
-            InverseViewProjection);
-
-        FVector3 RayDirection = FVector3::Transform(
-            FVector3{ NdcX, NdcY, 1.0f },
-            InverseViewProjection) - RayOrigin;
+        FMatrix InverseViewProjection;
+        if (!Camera->GetViewProjectionMatrix().TryInverse(InverseViewProjection)) return;
+        FVector3 RayOrigin, RayEnd;
+        if (!InverseViewProjection.TransformCoord({NdcX, NdcY, 0.0f}, RayOrigin)
+            || !InverseViewProjection.TransformCoord({NdcX, NdcY, 1.0f}, RayEnd)) return;
+        FVector3 RayDirection = RayEnd - RayOrigin;
 
         if (RayDirection.LengthSquared() > 0.0f)
         {
@@ -443,7 +441,7 @@ void UWorld::HandleMousePickRequest(
                 }
 
 				float dist = 0.0f;
-                if (CollisionComponent->Raycast(FRay{ RayOrigin, RayDirection }, dist))
+                if (CollisionComponent->Raycast(FRay{ RayOrigin.ToSimpleMath(), RayDirection.ToSimpleMath() }, dist))
                 {
                     if (dist < NearestDistance)
                     {

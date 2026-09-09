@@ -83,6 +83,9 @@
     <Filter Include="Serialize">
       <UniqueIdentifier>{ac3c3dd3-84b0-4af9-997e-b43b888c1ef0}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Math">
+      <UniqueIdentifier>{e8f9e0cc-c433-40ba-bdb7-6870bb0b6686}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Macaw.rc">
@@ -550,6 +553,12 @@
     <ClInclude Include="Render\EditorView\EditorViewport.h" />
     <ClInclude Include="Render\EditorView\FLineRenderer.h" />
     <ClInclude Include="Render\EditorView\FTransformGizmo.h" />
+    <ClInclude Include="FVector.h">
+      <Filter>Math</Filter>
+    </ClInclude>
+    <ClInclude Include="FMatrix.h">
+      <Filter>Math</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Content\Metadata\AlternatePipeline.meta">

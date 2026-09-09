@@ -80,7 +80,7 @@ void UCollisionComponent::SetExtent(const FVector3& InExtent)
 
 bool UCollisionComponent::RaycastBounds(const FRay& Ray, float& OutDistance) const {
     DirectX::BoundingOrientedBox WorldBox;
-    OBB.Transform(WorldBox, GetWorldMatrix());
+    OBB.Transform(WorldBox, GetWorldMatrix().ToSimpleMath());
 
     return WorldBox.Intersects(Ray.position, Ray.direction, OutDistance);
 }
@@ -131,18 +131,18 @@ bool UCollisionComponent::RaycastMesh(const FRay& Ray, const UStaticMeshComponen
 
         const DirectX::XMVECTOR V0 =
             DirectX::XMVector3TransformCoord(
-                DirectX::XMLoadFloat3(&Positions[I0]),
-                WorldMatrix);
+                Positions[I0].ToSimpleMath(),
+                WorldMatrix.ToSimpleMath());
 
         const DirectX::XMVECTOR V1 =
             DirectX::XMVector3TransformCoord(
-                DirectX::XMLoadFloat3(&Positions[I1]),
-                WorldMatrix);
+                Positions[I1].ToSimpleMath(),
+                WorldMatrix.ToSimpleMath());
 
         const DirectX::XMVECTOR V2 =
             DirectX::XMVector3TransformCoord(
-                DirectX::XMLoadFloat3(&Positions[I2]),
-                WorldMatrix);
+                Positions[I2].ToSimpleMath(),
+                WorldMatrix.ToSimpleMath());
 
         float Distance = 0.0f;
 
@@ -185,9 +185,17 @@ void UCollisionComponent::Serialize(FArchive& Archive)
 
 
     Archive.Serialize("Parent", GuidParent);
-    Archive.Serialize("OBB_Center", static_cast<FVector3&>(OBB.Center));
-    Archive.Serialize("OBB_Extent", static_cast<FVector3&>(OBB.Extents));
-    Archive.Serialize("OBB_Orientation", static_cast<FQuat&>(OBB.Orientation));
+    FVector3 center(OBB.Center), extent(OBB.Extents);
+    FQuat orientation(OBB.Orientation);
+    Archive.Serialize("OBB_Center", center);
+    Archive.Serialize("OBB_Extent", extent);
+    Archive.Serialize("OBB_Orientation", orientation);
+    if (Archive.IsLoading())
+    {
+        OBB.Center = center.ToSimpleMath();
+        OBB.Extents = extent.ToSimpleMath();
+        OBB.Orientation = orientation;
+    }
     Archive.Serialize("bCollisionEnabled", bCollisionEnabled);
 
     if (Archive.IsLoading() && GuidParent.IsValid())

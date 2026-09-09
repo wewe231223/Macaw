@@ -198,5 +198,11 @@ void UMesh::Reset() {
 void UMesh::CalculateBounds() {
 	const auto Positions = GetVertexAttributeData<EVertexAttribute::Position>();
 
-	DirectX::BoundingBox::CreateFromPoints(LocalBoundingBox, static_cast<size_t>(Positions.size()), Positions.data(), sizeof(FVector3));
+	std::vector<DirectX::XMFLOAT3> boundsPoints;
+    boundsPoints.reserve(Positions.size());
+    for (const FVector3& position : Positions)
+        boundsPoints.emplace_back(position.x, position.y, position.z);
+    LocalBoundingBox = {};
+    if (!boundsPoints.empty())
+        DirectX::BoundingBox::CreateFromPoints(LocalBoundingBox, boundsPoints.size(), boundsPoints.data(), sizeof(DirectX::XMFLOAT3));
 }
