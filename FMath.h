@@ -1,21 +1,15 @@
 ﻿#pragma once 
-#include <cmath>
+#include "FVector.h"
+#include "FMatrix.h"
 #include "SimpleMath/SimpleMath.h"
 
-// vector 
+using FVector3 = FVector;
+using FRotator = FVector;
+
 using FVector2D = DirectX::SimpleMath::Vector2;
-using FVector3 = DirectX::SimpleMath::Vector3;
 using FVector4 = DirectX::SimpleMath::Vector4;
 using FColor4 = DirectX::SimpleMath::Color;
 
-// rotate
-using FRotator = DirectX::SimpleMath::Vector3;
-using FQuat = DirectX::SimpleMath::Quaternion;
-
-// matrix
-using FMatrix = DirectX::SimpleMath::Matrix;
-
-// geometry
 using FPlane = DirectX::SimpleMath::Plane;
+using FQuat = DirectX::SimpleMath::Quaternion;
 using FRay = DirectX::SimpleMath::Ray;
-

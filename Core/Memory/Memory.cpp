@@ -1,6 +1,5 @@
 ﻿#include "pch.h"
 #include "Memory.h"
-
 #include <algorithm>
 #include <cstddef>
 #include <limits>
@@ -30,84 +29,82 @@ namespace
 	}
 }
 
+const char* Memory::GetMemoryTagName(EMemoryTag Tag)
+{
+	switch (Tag)
+	{
+	case EMemoryTag::Unknown:   return "Unknown";
+	case EMemoryTag::UObject:   return "UObject";
+	case EMemoryTag::Container: return "Container";
+	case EMemoryTag::String:    return "String";
+	case EMemoryTag::Message:   return "Message";
+	default:                    return "Invalid";
+	}
+}
 
 void* Memory::Allocate(std::size_t Size, std::size_t Alignment, EMemoryTag Tag)
 {
-		//Alignment는 0이 아닌 2의 거듭제곱이어야 한다.
-		if (Alignment == 0 || (Alignment & (Alignment - 1)) != 0)
-		{
-			throw std::invalid_argument("Invalid memory alignment");
-		}
+	if (Alignment == 0 || (Alignment & (Alignment - 1)) != 0)
+	{
+		throw std::invalid_argument("Invalid memory alignment");
+	}
 
-		// 사용자 메모리와 Header 양쪽의 정렬 조건을 만족시킨다.
-		const std::size_t EffectiveAlignment = (std::max)(Alignment, alignof(FAllocationHeader));
+	const std::size_t EffectiveAlignment = (std::max)(Alignment, alignof(FAllocationHeader));
+	const std::size_t PayloadSize = Size == 0 ? 1 : Size;
+	const std::size_t MaxSize = std::numeric_limits<std::size_t>::max();
 
-		const std::size_t PayloadSize = Size == 0 ? 1 : Size; // 0바이트 할당을 방지
+	if (EffectiveAlignment - 1 > MaxSize - sizeof(FAllocationHeader))
+	{
+		throw std::bad_alloc();
+	}
 
-		const std::size_t MaxSize = std::numeric_limits<std::size_t>::max();
+	const std::size_t Overhead = sizeof(FAllocationHeader) + (EffectiveAlignment - 1);
 
-		//header 크기와 정렬 여유 공간 계산 시 오버플로 검사
-		if (EffectiveAlignment - 1 > MaxSize - sizeof(FAllocationHeader))
-		{
-			throw std::bad_alloc();
-		}
+	if (PayloadSize > MaxSize - Overhead)
+	{
+		throw std::bad_alloc();
+	}
 
-		const std::size_t Overhead = sizeof(FAllocationHeader) + (EffectiveAlignment - 1);
+	const std::size_t TotalSize = Overhead + PayloadSize;
+	void* RawPointer = ::operator new(TotalSize);
+	void* UserPointer = static_cast<std::byte*>(RawPointer) + sizeof(FAllocationHeader);
 
-		// 사용자 공간을 더했을 때 오버플로 검사
-		if (PayloadSize > MaxSize - Overhead)
-		{
-			throw std::bad_alloc();
-		}
-		
-		const std::size_t TotalSize = Overhead + PayloadSize;
+	std::size_t Space = TotalSize - sizeof(FAllocationHeader);
 
-		//실제 메모리를 넉넉하게 확보
-		void* RawPointer = ::operator new(TotalSize);
+	if (std::align(EffectiveAlignment, PayloadSize, UserPointer, Space) == nullptr)
+	{
+		::operator delete(RawPointer);
+		throw std::bad_alloc();
+	}
 
-		// header가 들어갈 공간을 먼저 건너뜀
-		void* UserPointer = static_cast<std::byte*>(RawPointer) + sizeof(FAllocationHeader);
+	void* HeaderAddress = static_cast<std::byte*>(UserPointer) - sizeof(FAllocationHeader);
 
-		std::size_t Space =
-			TotalSize - sizeof(FAllocationHeader);
+	::new (HeaderAddress) FAllocationHeader
+	{
+		RawPointer,
+		Size,
+		Alignment,
+		Tag
+	};
 
-		// UserPointer를 요구된 Alignment에 맞는 주소로 이동시킨다.
-		if (std::align(
-			EffectiveAlignment,
-			PayloadSize,
-			UserPointer,
-			Space) == nullptr)
-		{
-			::operator delete(RawPointer);
-			throw std::bad_alloc();
-		}
+	FMemoryState& State = GetMemoryState();
 
-		// 사용자 메모리 바로 앞의 주소를 Header 위치로 사용한다.
-		void* HeaderAddress =
-			static_cast<std::byte*>(UserPointer)
-			- sizeof(FAllocationHeader);
+	// 전체 메모리 통계 갱신
+	State.Stats.AllocatedBytes += Size;
+	++State.Stats.ActiveAllocationCount;
+	++State.Stats.TotalAllocationCount;
 
-		// 이미 확보한 메모리 위에 Header 객체를 생성한다.
-		::new (HeaderAddress) FAllocationHeader
-		{
-			RawPointer,
-			Size,
-			Alignment,
-			Tag
-		};
+	State.Stats.PeakAllocatedBytes = (std::max)(State.Stats.PeakAllocatedBytes, State.Stats.AllocatedBytes);
 
-		FMemoryState& State = GetMemoryState();
+	// 태그별 메모리 통계 갱신
+	const std::size_t TagIndex = static_cast<std::size_t>(Tag);
+	if (TagIndex < static_cast<std::size_t>(EMemoryTag::Count))
+	{
+		State.Stats.TagStats[TagIndex].AllocatedBytes += Size;
+		++State.Stats.TagStats[TagIndex].ActiveAllocationCount;
+	}
 
-		State.Stats.AllocatedBytes += Size;
-		++State.Stats.ActiveAllocationCount;
-		++State.Stats.TotalAllocationCount;
-
-		State.Stats.PeakAllocatedBytes =
-			(std::max)(
-				State.Stats.PeakAllocatedBytes,
-				State.Stats.AllocatedBytes);
-
-		return UserPointer;
+	return UserPointer;
 }
 
 void Memory::Free(void* Ptr) noexcept
@@ -117,24 +114,28 @@ void Memory::Free(void* Ptr) noexcept
 		return;
 	}
 
-	// 사용자 주소 바로 앞에 저장된 Header를 찾는다.
 	auto* Header = reinterpret_cast<FAllocationHeader*>(static_cast<std::byte*>(Ptr) - sizeof(FAllocationHeader));
 
-	//메모리를 해제하기 전에 필요한 정보를 복사
 	void* RawPointer = Header->RawPointer;
 	const std::size_t Size = Header->Size;
+	const EMemoryTag Tag = Header->Tag;
 
 	FMemoryState& State = GetMemoryState();
 
-	// 현재 살아 있는 메모리와 할당 개수를 감소시킴
+	// 전체 메모리 통계 감소
 	State.Stats.AllocatedBytes -= Size;
 	--State.Stats.ActiveAllocationCount;
 	++State.Stats.TotalDeallocationCount;
 
-	// Header 객체의 수명을 끝낸다.
-	Header->~FAllocationHeader();
+	// 태그별 메모리 통계 감소
+	const std::size_t TagIndex = static_cast<std::size_t>(Tag);
+	if (TagIndex < static_cast<std::size_t>(EMemoryTag::Count))
+	{
+		State.Stats.TagStats[TagIndex].AllocatedBytes -= Size;
+		--State.Stats.TagStats[TagIndex].ActiveAllocationCount;
+	}
 
-	// Header가 차지한 메모리를 해제한다.
+	Header->~FAllocationHeader();
 	::operator delete(RawPointer);
 }
 

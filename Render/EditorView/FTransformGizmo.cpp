@@ -123,7 +123,7 @@ void FTransformGizmo::Update(const CameraProbe& Camera) {
 
 	const RenderWindowInfo& WindowInfo = WindowInfoReader.Read();
 	const float ViewportHeight = WindowInfo.Viewport.Height;
-	const float ProjectionYScale = Camera.Projection._22;
+	const float ProjectionYScale = Camera.Projection.m[1][1];
 	const FVector3 BoundsCenterWorld = FVector3::Transform(BoundsCenterInGizmoSpace, GizmoWorldTransform);
 	const float ViewDepth = FVector3::Transform(BoundsCenterWorld, Camera.View).z;
 
@@ -188,8 +188,8 @@ void FTransformGizmo::SetArrow(const FVector3& BoundsCenter, const FVector3& Bou
 
 void FTransformGizmo::UpdateBoundsInGizmoSpace(const FEditorSelectionState& Selection, FVector3& OutCenter, FVector3& OutExtent) const {
 	DirectX::BoundingOrientedBox LocalBounds{};
-	LocalBounds.Center = Selection.BoundsCenter;
-	LocalBounds.Extents = Selection.BoundsExtent;
+	LocalBounds.Center = Selection.BoundsCenter.ToSimpleMath();
+	LocalBounds.Extents = Selection.BoundsExtent.ToSimpleMath();
 	LocalBounds.Orientation = Selection.BoundsOrientation;
 
 	std::array<DirectX::XMFLOAT3, DirectX::BoundingOrientedBox::CORNER_COUNT> Corners{};
@@ -241,23 +241,23 @@ std::optional<FRay> FTransformGizmo::MakeWorldRay(const POINT& ScreenPosition) c
 	}
 
 	RayDirection.Normalize();
-	return FRay{ RayOrigin, RayDirection };
+	return FRay{ RayOrigin.ToSimpleMath(), RayDirection.ToSimpleMath() };
 }
 
 std::optional<FTransformGizmo::FAxisHit> FTransformGizmo::HitTest(const FRay& WorldRay) const {
 	const FMatrix InverseGizmoWorld = GizmoWorldTransform.Invert();
-	const FVector3 LocalOrigin = FVector3::Transform(WorldRay.position, InverseGizmoWorld);
-	FVector3 LocalDirection = FVector3::TransformNormal(WorldRay.direction, InverseGizmoWorld);
+	const FVector3 LocalOrigin = FVector3::Transform(FVector3(WorldRay.position), InverseGizmoWorld);
+	FVector3 LocalDirection = FVector3::TransformNormal(FVector3(WorldRay.direction), InverseGizmoWorld);
 	if (LocalDirection.LengthSquared() <= std::numeric_limits<float>::epsilon()) {
 		return std::nullopt;
 	}
 	LocalDirection.Normalize();
 
-	const FRay LocalRay{ LocalOrigin, LocalDirection };
+	const FRay LocalRay{ LocalOrigin.ToSimpleMath(), LocalDirection.ToSimpleMath() };
 	std::optional<FAxisHit> NearestHit;
 
 	for (const FAxisHitProxy& Proxy : AxisHitProxies) {
-		const DirectX::BoundingBox Box{ Proxy.Center, Proxy.Extent };
+		const DirectX::BoundingBox Box{ Proxy.Center.ToSimpleMath(), Proxy.Extent.ToSimpleMath() };
 		float Distance = 0.0f;
 		if (Box.Intersects(LocalRay.position, LocalRay.direction, Distance) && (!NearestHit.has_value() || Distance < NearestHit->Distance)) {
 			NearestHit = FAxisHit{
@@ -341,7 +341,7 @@ void FTransformGizmo::UpdateDrag(const FRay& WorldRay) {
 	else if (CurrentModifyMode == EModifyMode::Rotate) {
 		const float RotationSpeed = std::max(120.f * Session.WorkUnitsPerPixel, 0.0001f);
 		const float AngleDelta = Delta / RotationSpeed;
-		const FMatrix RotationMatrix = FMatrix::CreateFromQuaternion(FQuat::CreateFromAxisAngle(DragSession->AxisWorld, AngleDelta));
+		const FMatrix RotationMatrix = FMatrix::CreateFromQuaternion(FQuat::CreateFromAxisAngle(DragSession->AxisWorld.ToSimpleMath(), AngleDelta));
 		const FVector3 Pivot = DragSession->InteractionPivotWorld;
 
 		DesiredWorld = Session.InitialWorld * FMatrix::CreateTranslation(-Pivot) * RotationMatrix * FMatrix::CreateTranslation(Pivot);
@@ -389,13 +389,13 @@ void FTransformGizmo::EndDrag(bool bCancel) {
 }
 
 bool FTransformGizmo::GetAxisParameterOnDragPlane(const FRay& WorldRay, const FDragSession& Session, float& OutParameter) const {
-	const FPlane DragPlane{ Session.InteractionPivotWorld, Session.DragPlaneNormal };
+	const FPlane DragPlane{ Session.InteractionPivotWorld.ToSimpleMath(), Session.DragPlaneNormal.ToSimpleMath() };
 	float Distance = 0.0f;
 	if (!WorldRay.Intersects(DragPlane, Distance)) {
 		return false;
 	}
 
-	const FVector3 HitPosition = WorldRay.position + WorldRay.direction * Distance;
+	const FVector3 HitPosition(WorldRay.position + WorldRay.direction * Distance);
 	OutParameter = (HitPosition - Session.InteractionPivotWorld).Dot(Session.AxisWorld);
 	return true;
 }
