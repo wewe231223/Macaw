@@ -149,7 +149,6 @@ void UWorld::FlushPendingDestroyActors()
         Actors.erase(It); 
     }
 
-    Actors.clear();
     PendingDestroyActors.clear();
 }
 

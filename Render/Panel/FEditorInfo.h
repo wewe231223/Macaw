@@ -49,6 +49,11 @@ struct FMessageSpawnPrimitive
     }
 };
 
+struct FMessageDeletePrimitive
+{
+    JG_DECLARE_EDITOR_MESSAGE(FMessageDeletePrimitive);
+};
+
 struct FMessageNewScene
 {
     JG_DECLARE_EDITOR_MESSAGE(FMessageNewScene);

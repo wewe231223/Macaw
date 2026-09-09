@@ -230,6 +230,20 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
             World.HandleSpawnPrimitive(Message, AssetRegistry);
         }
     );
+    SpawnCommandChannel.TryBind<FMessageDeletePrimitive>(
+        [&World](const FMessageDeletePrimitive& Message)
+        {
+            if (World.GetEditorSelectionStateReader().HasValue())
+            {
+                UCollisionComponent* SelectedActor = static_cast<UCollisionComponent*>(UObjectSystem::Resolve(World.GetEditorSelectionStateReader().Read().PickedColliderHandle));
+                World.DestroyActor(SelectedActor->GetOwner());
+                World.FlushPendingDestroyActors();
+            }
+
+        }
+    );
+
+    
 
 
 

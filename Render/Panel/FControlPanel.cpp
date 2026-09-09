@@ -53,6 +53,11 @@ void FControlPanel::DrawPanel()
             static_cast<uint32>(SpawnCountToRequest));
     }
 
+    if (ImGui::Button("Delete Object"))
+    {
+        SpawnSender.TryEmplace<FMessageDeletePrimitive>();
+    }
+
     ImGui::Separator();
 
     // =====================================================
