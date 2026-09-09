@@ -95,9 +95,6 @@ bool UWorld::SpawnActor(const FAssetHandle& MeshHandle, const FAssetHandle& Pipe
 
     CollisionComponent->SetBounds(Mesh->GetLocalBoundingBox());
     FGuid Guid = Actor->GetGuid();
-	UObjectSystem::RegisterWithGuid(Actor, Guid);
-    //AddActor(std::move(Actor));
-
     
     //FUndoSystem::RecordObject(UObjectSystem::Resolve(UObjectSystem::FindHandleByGuid(Guid)), EUndoType::Spawn, AssetRegistry);
 
@@ -342,7 +339,6 @@ bool UWorld::LoadScene(const std::filesystem::path& ScenePath, ID3D11Device* Dev
             FString MetadataPath = AssetJson["AssetMetaDataPath"].GetString();
 
             auto EmptyAsset = TypeRegistry::Find(TypeName)->Creator();
-            UObjectSystem::RegisterWithGuid(EmptyAsset.get(), AssetGuid);
 
             AssetRegistry->AdoptAsset(Device, AssetGuid, AssetName, MetadataPath, std::move(EmptyAsset));
         }
