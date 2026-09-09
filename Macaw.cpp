@@ -40,6 +40,7 @@
 #include "FMousePickRequestMessage.h"
 #include "FMouseCameraRotateRequestMessage.h"
 #include "FWorldSelectionChangedMessage.h"
+#include "FTransformEditRequestMessage.h"
 #include "FKeyboardInput.h"
 #include "FKeyboardCameraMoveRequestMessage.h"
 #include "Render/Panel/FEditorSelection.h"
@@ -52,6 +53,8 @@
 #include "Render/Pipeline/UPipeline.h"
 #include "Core/Asset/UMesh.h"
 #include "Core/Asset/UColorMaterial.h"
+
+#include "Render/EditorView/EditorViewport.h"
 
 #define MAX_LOADSTRING 100
 
@@ -78,9 +81,9 @@ ATOM                MyRegisterClass(HINSTANCE hInstance);
 BOOL                InitInstance(HINSTANCE, int);
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 HWND gHWND;
+FRenderer Renderer;
 
 #define LOAD 
-
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
                      _In_opt_ HINSTANCE hPrevInstance,
@@ -105,6 +108,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     TypeRegistry::Register(UCollisionComponent::StaticTypeInfo());
 	TypeRegistry::Register(UActorComponent::StaticTypeInfo());
 	TypeRegistry::Register(USceneComponent::StaticTypeInfo());
+	TypeRegistry::Register(UCollisionComponent::StaticTypeInfo());
 	
 
 
@@ -299,7 +303,26 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
             );
         }
     );
+	WorldCommandChannel.TryBind<FMousePickReleaseRequestMessage>(
+		[&World](const FMousePickReleaseRequestMessage& Message)
+		{
+			World.HandleMousePickReleaseRequest(Message);
+		});
 
+	WorldCommandChannel.TryBind<FTransformEditRequestMessage>(
+		[&World](const FTransformEditRequestMessage& Message) {
+			World.HandleTransformEditRequest(Message);
+		});
+
+
+	Renderer.Create(gHWND, DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT);
+	
+    FAssetRegistry AssetRegistry;
+	AssetRegistry.Initialize(Renderer.GetDevice(), 128);
+	Renderer.BindAssetRegistry(&AssetRegistry);
+
+    EditorViewport EditorView{}; 
+	EditorView.Initialize(Renderer.GetDevice(), AssetRegistry, Renderer.GetWindowInfoReader(), World.GetEditorSelectionStateReader(), WorldCommandChannel.GetSender());
     SceneCommandChannel.TryBind<FMessageLoadScene>(
         [&World, &Renderer, &AssetRegistry](const FMessageLoadScene& Message)
         {
@@ -323,10 +346,10 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 #else 
 	AssetRegistry.EmplaceAsset<UPipeline>(Renderer.GetDevice(), "BasePipeline", "./Content/Metadata/BasePipeline.meta");
 	AssetRegistry.EmplaceAsset<UPipeline>(Renderer.GetDevice(), "AlternatePipeline", "./Content/Metadata/AlternatePipeline.meta");
-
-	AssetRegistry.EmplaceAsset<UMesh>(Renderer.GetDevice(), "SphereMesh", "./Content/Metadata/SphereMesh.meta");
+    // Triangle
+	AssetRegistry.EmplaceAsset<UMesh>(Renderer.GetDevice(), "SphereMesh", "./Content/Metadata/TorusMesh.meta");
     
-	AssetRegistry.EmplaceAsset<UColorMaterial>(Renderer.GetDevice(), "RedMaterial", "./Content/Metadata/RedMaterial.meta");
+	AssetRegistry.EmplaceAsset<UColorMaterial>(Renderer.GetDevice(), "GreyMaterial", "./Content/Metadata/GreyMaterial.meta");
 
     AActor* CameraActor = World.AdoptActor<AActor>();
     UCameraComponent* Camera = CameraActor->AddComponent<UCameraComponent>();
@@ -336,21 +359,19 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     CameraActor->SetRootComponent(Camera);
 
     {
-        constexpr uint32 InstanceColumnCount = 10;
-        constexpr uint32 InstanceRowCount = 6;
-        constexpr float HorizontalSpacing = 0.9f;
-        constexpr float VerticalSpacing = 0.85f;
-        constexpr float NearInstanceDepth = 4.5f;
-        constexpr float FarInstanceDepth = 9.0f;
+        constexpr uint32 InstanceCount = 120;
+        constexpr float MinInstanceX = -30.0f;
+        constexpr float MaxInstanceX = 30.0f;
+        constexpr float MinInstanceY = -12.0f;
+        constexpr float MaxInstanceY = 12.0f;
+        constexpr float NearInstanceDepth = 6.0f;
+        constexpr float FarInstanceDepth = 70.0f;
 
         const FAssetHandle MeshHandle = AssetRegistry.GetAsset("SphereMesh");
         const FAssetHandle BasePipelineHandle = AssetRegistry.GetAsset("BasePipeline");
         const FAssetHandle AlternatePipelineHandle = AssetRegistry.GetAsset("AlternatePipeline");
-        const FAssetHandle MaterialHandle = AssetRegistry.GetAsset("RedMaterial");
+        const FAssetHandle MaterialHandle = AssetRegistry.GetAsset("GreyMaterial");
 
-
-        const float StartX = -0.5f * static_cast<float>(InstanceColumnCount - 1) * HorizontalSpacing;
-        const float StartY = 0.5f * static_cast<float>(InstanceRowCount - 1) * VerticalSpacing;
 
         const auto Random01 = [](uint32 Seed) {
             Seed ^= Seed >> 16;
@@ -365,50 +386,48 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
         UMesh* Mesh =
             AssetRegistry.ResolveAsset<UMesh>( MeshHandle);
 
-        Mesh->CalculateBounds();
-
-        for (uint32 Row = 0; Row < InstanceRowCount; ++Row) {
-            for (uint32 Column = 0; Column < InstanceColumnCount; ++Column) {
-                const uint32 InstanceIndex = Row * InstanceColumnCount + Column;
-                const float DepthFactor = Random01(InstanceIndex * 7U + 1U);
-                const float ScaleFactor = 0.65f + Random01(InstanceIndex * 7U + 2U) * 0.7f;
-                const float PositionJitterX = (Random01(InstanceIndex * 7U + 3U) - 0.5f) * 0.35f;
-                const float PositionJitterY = (Random01(InstanceIndex * 7U + 4U) - 0.5f) * 0.25f;
-                const float Pitch = (Random01(InstanceIndex * 7U + 5U) - 0.5f) * 0.5f;
-                const float Yaw = (Random01(InstanceIndex * 7U + 6U) - 0.5f) * 0.5f;
-                const float Roll = (Random01(InstanceIndex * 7U + 7U) - 0.5f) * 1.3f;
+        for (uint32 InstanceIndex = 0; InstanceIndex < InstanceCount; ++InstanceIndex) {
+            const float PositionX = MinInstanceX + Random01(InstanceIndex * 7U + 1U) * (MaxInstanceX - MinInstanceX);
+            const float PositionY = MinInstanceY + Random01(InstanceIndex * 7U + 2U) * (MaxInstanceY - MinInstanceY);
+            const float PositionZ = NearInstanceDepth + Random01(InstanceIndex * 7U + 3U) * (FarInstanceDepth - NearInstanceDepth);
+            const float ScaleFactor = 0.65f + Random01(InstanceIndex * 7U + 4U) * 0.7f;
+            const float Pitch = (Random01(InstanceIndex * 7U + 5U) - 0.5f) * 0.5f;
+            const float Yaw = (Random01(InstanceIndex * 7U + 6U) - 0.5f) * 0.5f;
+            const float Roll = (Random01(InstanceIndex * 7U + 7U) - 0.5f) * 1.3f;
 
                 AActor* InstanceActor = World.AdoptActor<AActor>();
                 UStaticMeshComponent* InstanceComponent = InstanceActor->AddComponent<UStaticMeshComponent>();
                 UCollisionComponent* CollisionComponent = InstanceActor->AddComponent<UCollisionComponent>();
 
-                InstanceActor->SetRootComponent(InstanceComponent);
-                CollisionComponent->AttachTo(InstanceComponent);
+            InstanceActor->SetRootComponent(InstanceComponent);
+            CollisionComponent->AttachTo(InstanceComponent);
 
-                InstanceComponent->GetTransform().SetPosition({
-                    StartX + static_cast<float>(Column) * HorizontalSpacing + PositionJitterX,
-                    StartY - static_cast<float>(Row) * VerticalSpacing + PositionJitterY,
-                    NearInstanceDepth + DepthFactor * (FarInstanceDepth - NearInstanceDepth)
-                    });
-                InstanceComponent->GetTransform().SetRotation({ Pitch, Yaw, Roll });
-                InstanceComponent->GetTransform().SetScale({ ScaleFactor, ScaleFactor, ScaleFactor });
+            InstanceComponent->GetTransform().SetPosition({
+                PositionX,
+                PositionY,
+                PositionZ
+                });
+            InstanceComponent->GetTransform().SetRotation({ Pitch, Yaw, Roll });
+            InstanceComponent->GetTransform().SetScale({ ScaleFactor, ScaleFactor, ScaleFactor });
 
-                if (Mesh != nullptr)
-                {
-                    CollisionComponent->SetBounds(
-                        Mesh->GetBoundsCenter(),
-                        Mesh->GetBoundsExtent());
-                }
+            if (Mesh != nullptr)
+            {
+                CollisionComponent->SetBounds(Mesh->GetLocalBoundingBox());
+            }
 
-                InstanceComponent->SetMeshHandle(MeshHandle);
-                const bool bUseAlternatePipeline = (Row + Column) % 2 == 1;
-                InstanceComponent->SetPipelineHandle(bUseAlternatePipeline ? AlternatePipelineHandle : BasePipelineHandle);
-                InstanceComponent->SetMaterialHandle(MaterialHandle);
+            InstanceComponent->SetMeshHandle(MeshHandle);
 
-                if (InstanceIndex == 0)
-                {
-                    TestCollision = CollisionComponent;
-                }
+
+
+
+
+            const bool bUseAlternatePipeline = InstanceIndex % 2 == 1;
+            InstanceComponent->SetPipelineHandle(bUseAlternatePipeline ? AlternatePipelineHandle : BasePipelineHandle);
+            InstanceComponent->SetMaterialHandle(MaterialHandle);
+
+            if (InstanceIndex == 0)
+            {
+                TestCollision = CollisionComponent;
             }
         }
 
@@ -446,13 +465,15 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
             const float DeltaTime = std::chrono::duration<float>(CurrentTickTime - LastTickTime).count();
             LastTickTime = CurrentTickTime;
 
-            World.Tick(DeltaTime);
             Renderer.BeginFrame();
 
 
             ImGui_ImplDX11_NewFrame();
             ImGui_ImplWin32_NewFrame();
             ImGui::NewFrame();
+
+            // 입력 상태는 WndProc의 ProcessWindowMessage에서 갱신한다.
+			EditorView.ProcessInput(GKeyboardInput, GMouseInput, ImGui::GetIO().WantCaptureMouse);
 
             EditorUIManager.Tick();
 
@@ -466,6 +487,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
                 ImGui::GetIO().WantCaptureKeyboard);
 
             WorldCommandChannel.Dispatch();
+            World.Tick(DeltaTime);
+
             EditorEventChannel.Dispatch();
 
             SpawnCommandChannel.Dispatch();
@@ -475,11 +498,18 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
             //UndoCommandChannel.Dispatch();
 
             Renderer.Render(World.BuildRenderProbe());
+			FRenderProbe& Probe{ World.BuildRenderProbe() };
+            
+			EditorView.RenderInProbe(Probe);
+            Renderer.Render(Probe);
+            EditorView.Render(Renderer.GetDeviceContext(), Probe);
 
             ImGui::Render();
             ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
             
             Renderer.EndFrame();
+
+            GMouseInput.EndFrame();
         }
     }
    
@@ -489,6 +519,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     ImGui_ImplWin32_Shutdown();
     ImGui::DestroyContext();
 
+	World.SaveScene("test", &AssetRegistry);
 
     return (int) msg.wParam;
 }
@@ -535,7 +566,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 
 
     if (WINDOWED) {
-        DWORD style = WS_OVERLAPPEDWINDOW & ~WS_THICKFRAME;
+        DWORD style = WS_OVERLAPPEDWINDOW;
         DWORD exStyle = WS_EX_OVERLAPPEDWINDOW;
 
         int posX = (GetSystemMetrics(SM_CXSCREEN) / 2) - (static_cast<int>(DEFAULT_WINDOW_WIDTH) / 2);
@@ -629,6 +660,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     case WM_DESTROY:
         PostQuitMessage(0);
         break;
+	case WM_SIZE:
+		if (wParam != SIZE_MINIMIZED) {
+			uint32 width = LOWORD(lParam);
+			uint32 height = HIWORD(lParam);
+			Renderer.ReSize(width, height);
+		}
+		break;
     default:
         return DefWindowProc(hWnd, message, wParam, lParam);
     }

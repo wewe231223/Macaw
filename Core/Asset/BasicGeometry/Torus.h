@@ -9,8 +9,8 @@ namespace BasicGeometry {
 		inline constexpr uint32 MajorSegments = 32;
 		inline constexpr uint32 MinorSegments = 16;
 
-		inline constexpr float MajorRadius = 0.5f;
-		inline constexpr float MinorRadius = 0.15f;
+		inline constexpr float MajorRadius = 5.0f / 13.0f;
+		inline constexpr float MinorRadius = 1.5f / 13.0f;
 
 		inline constexpr uint32 VertexCount = (MajorSegments + 1) * (MinorSegments + 1);
 		inline constexpr uint32 IndexCount = MajorSegments * MinorSegments * 6;

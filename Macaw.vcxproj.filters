@@ -488,6 +488,12 @@
     <ClInclude Include="Render\Panel\Stats\StatWindow.h">
       <Filter>Render\Panel\Stats</Filter>
     </ClInclude>
+    <ClInclude Include="FTransformEditRequestMessage.h">
+      <Filter>Scene\Message</Filter>
+    </ClInclude>
+    <ClInclude Include="FEditorSelectionState.h">
+      <Filter>Scene\Message</Filter>
+    </ClInclude>
     <ClInclude Include="Scene\Component\UCollisionComponent.h">
       <Filter>Scene\Component</Filter>
     </ClInclude>
@@ -584,12 +590,33 @@
     <None Include="SimpleMath\SimpleMath.inl">
       <Filter>SimpleMath</Filter>
     </None>
+    <None Include="Content\Pipeline\LineDepthTested.json">
+      <Filter>Content\Pipeline</Filter>
+    </None>
+    <None Include="Content\Pipeline\LineOverlay.json">
+      <Filter>Content\Pipeline</Filter>
+    </None>
+    <None Include="Content\Metadata\DepthTestedLine.meta">
+      <Filter>Content\Metadata</Filter>
+    </None>
+    <None Include="Content\Metadata\OverlayLine.meta">
+      <Filter>Content\Metadata</Filter>
+    </None>
+    <None Include="Content\Metadata\BlueMaterial.meta">
+      <Filter>Content\Metadata</Filter>
+    </None>
+    <None Include="Content\Metadata\GreenMaterial.meta">
+      <Filter>Content\Metadata</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Content\Shader\Alternate.hlsl">
       <Filter>Content\Shader</Filter>
     </FxCompile>
     <FxCompile Include="Content\Shader\Base.hlsl">
+      <Filter>Content\Shader</Filter>
+    </FxCompile>
+    <FxCompile Include="Content\Shader\Line.hlsl">
       <Filter>Content\Shader</Filter>
     </FxCompile>
   </ItemGroup>

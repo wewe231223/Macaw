@@ -8,6 +8,7 @@ namespace BasicGeometry {
 	namespace Sphere {
 		constexpr uint32 Segments = 32;
 		constexpr uint32 Rings = 16;
+		constexpr float Radius = 0.5f;
 
 		constexpr uint32 VertexCount = (Rings + 1) * (Segments + 1);
 		constexpr uint32 IndexCount = Rings * Segments * 6;
@@ -29,16 +30,16 @@ namespace BasicGeometry {
 				const float Phi = V * std::numbers::pi_v<float>;
 
 				const float Y = std::cos(Phi);
-				const float Radius = std::sin(Phi);
+				const float RingRadius = std::sin(Phi);
 
 				for (uint32 Segment = 0; Segment <= Segments; ++Segment) {
 					const float U = static_cast<float>(Segment) / Segments;
 					const float Theta = U * std::numbers::pi_v<float> *2.0f;
 
-					const float X = Radius * std::cos(Theta);
-					const float Z = Radius * std::sin(Theta);
+					const float X = RingRadius * std::cos(Theta);
+					const float Z = RingRadius * std::sin(Theta);
 
-					Geometry.Positions[VertexIndex] = FVector3{ X, Y, Z };
+					Geometry.Positions[VertexIndex] = FVector3{ X * Radius, Y * Radius, Z * Radius };
 					Geometry.Normals[VertexIndex] = FVector3{ X, Y, Z };
 					Geometry.TexCoords[VertexIndex] = FVector2D{ U, V };
 
@@ -56,12 +57,12 @@ namespace BasicGeometry {
 					const uint32 BottomRight = BottomLeft + 1;
 
 					Geometry.Indices[Index++] = TopLeft;
-					Geometry.Indices[Index++] = BottomLeft;
 					Geometry.Indices[Index++] = TopRight;
+					Geometry.Indices[Index++] = BottomLeft;
 
 					Geometry.Indices[Index++] = TopRight;
-					Geometry.Indices[Index++] = BottomLeft;
 					Geometry.Indices[Index++] = BottomRight;
+					Geometry.Indices[Index++] = BottomLeft;
 				}
 			}
 

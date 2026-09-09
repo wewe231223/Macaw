@@ -2,6 +2,7 @@ struct FModelContext
 {
     row_major float4x4 World;
     uint MaterialIndex;
+    uint Flags;
 };
 
 struct FMaterial
@@ -42,7 +43,8 @@ struct PS_INPUT
     float4 Position : SV_POSITION;
     float3 Normal : NORMAL;
     float2 UV : TEXCOORD0;
-    nointerpolation uint MaterialIndex : TEXCOORD1;
+    nointerpolation uint MaterialIndex : Jungle1;
+    nointerpolation float3 ColorCoefficient : Jungle2;
 };
 
 PS_INPUT mainVS(VS_INPUT Input, uint InstanceID : SV_InstanceID)
@@ -57,6 +59,17 @@ PS_INPUT mainVS(VS_INPUT Input, uint InstanceID : SV_InstanceID)
     Output.Normal = mul(Input.Normal, (float3x3) ModelContext.World);
     Output.UV = Input.UV;
     Output.MaterialIndex = ModelContext.MaterialIndex;
+   
+    if ((ModelContext.Flags & 1) != 0)
+    {
+        Output.ColorCoefficient = float3(1.0f, 0.0f, 0.0f);
+    }
+    else
+    {
+        Output.ColorCoefficient = float3(1.0f, 1.0f, 1.0f);
+    }
+    
+    
 
     return Output;
 }
@@ -64,5 +77,6 @@ PS_INPUT mainVS(VS_INPUT Input, uint InstanceID : SV_InstanceID)
 float4 mainPS(PS_INPUT Input) : SV_TARGET
 {
     float4 Color = MaterialBuffer[Input.MaterialIndex].BaseColor;
+    Color.rgb *= Input.ColorCoefficient;
     return Color;
 }

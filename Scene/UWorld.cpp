@@ -12,6 +12,7 @@
 #include "FMousePickRequestMessage.h"
 #include "FWorldSelectionChangedMessage.h"
 #include "FKeyboardCameraMoveRequestMessage.h"
+#include "FTransformEditRequestMessage.h"
 #include "Render/Panel/FEditorInfo.h"
 #include "Core/Asset/UMesh.h"
 
@@ -19,7 +20,7 @@
 #include "../Core/Base/TypeRegistry.h"
 #include "../Core/Base/UObjectSystem.h"
 #include "../Core/Asset/FAssetRegistry.h"
-#include "../Core/Base/UndoSystem/FUndoSystem.h"
+#include "../Core/Console/Console.h"
 
 #include <d3d11.h>
 #include <filesystem>
@@ -28,6 +29,28 @@
 #include <rapidjson/document.h>
 #include <rapidjson/ostreamwrapper.h>
 #include <rapidjson/prettywriter.h>
+
+namespace {
+	bool ApplyWorldMatrix(USceneComponent& Component, const FMatrix& DesiredWorld) {
+		FMatrix LocalMatrix = DesiredWorld;
+		if (USceneComponent* Parent = Component.GetParent()) {
+			LocalMatrix = DesiredWorld * Parent->GetWorldMatrix().Invert();
+		}
+
+		FVector3 Scale{};
+		FQuat Rotation{};
+		FVector3 Translation{};
+		if (!LocalMatrix.Decompose(Scale, Rotation, Translation)) {
+			return false;
+		}
+
+		FTransform& Transform = Component.GetTransform();
+		Transform.SetPosition(Translation);
+		Transform.SetRotation(Rotation.ToEuler());
+		Transform.SetScale(Scale);
+		return true;
+	}
+}
 
 std::string GetFilePathFromExplorer()
 {
@@ -158,7 +181,16 @@ FRenderProbe& UWorld::BuildRenderProbe()
 
     for (const UStaticMeshComponent* Component : RenderableComponents)
     {
-        Component->MakeRender(Probe);
+		FActorProbe ActorProbe{};
+		Component->MakeRender(ActorProbe);
+
+		
+		UCollisionComponent* SelectedCollision = SelectedCollider.Get();
+		if (SelectedCollision != nullptr && Component->GetOwner() == SelectedCollision->GetOwner()) {
+			ActorProbe.Flags |= 0x0000'0001; 
+		}
+
+		Probe.ActorProbes.push_back(ActorProbe);
     }
 
     if (Camera != nullptr)
@@ -177,6 +209,10 @@ FRenderProbe& UWorld::BuildRenderProbe()
 
 void UWorld::Tick(float DeltaTime)
 {
+    if (WindowInfoReader.HasChanged()) {
+		Camera->SetAspectRatio(static_cast<float>(WindowInfoReader.Read().ScreenWidth) / static_cast<float>(WindowInfoReader.Read().ScreenHeight));
+    }
+
     ApplyEditorCameraState();
 
     for (const std::unique_ptr<AActor>& Actor : Actors)
@@ -361,18 +397,18 @@ void UWorld::HandleMousePickRequest(
     FObjectHandle SelectedComponentHandle{};
 
     if (Camera != nullptr &&
-        Message.ViewportWidth != 0 &&
-        Message.ViewportHeight != 0)
+        WindowInfoReader.Read().Viewport.Width != 0 &&
+        WindowInfoReader.Read().Viewport.Height != 0)
     {
         const float NdcX =
             (2.0f * static_cast<float>(Message.ScreenX) /
-                static_cast<float>(Message.ViewportWidth)) -
+                static_cast<float>(WindowInfoReader.Read().Viewport.Width)) -
             1.0f;
 
         const float NdcY =
             1.0f -
             (2.0f * static_cast<float>(Message.ScreenY) /
-                static_cast<float>(Message.ViewportHeight));
+                static_cast<float>(WindowInfoReader.Read().Viewport.Height));
 
         const FMatrix InverseViewProjection =
             Camera->GetViewProjectionMatrix().Invert();
@@ -392,6 +428,8 @@ void UWorld::HandleMousePickRequest(
             float NearestDistance = std::numeric_limits<float>::max();
             UCollisionComponent* NearestCollision = nullptr;
 
+
+
             for (const TObjectRef<UCollisionComponent>& CollisionRef : CollisionComponents)
             {
                 UCollisionComponent* CollisionComponent = CollisionRef.Get();
@@ -401,35 +439,38 @@ void UWorld::HandleMousePickRequest(
                     continue;
                 }
 
-                float HitDistance = 0.0f;
-
-                if (CollisionComponent->Raycast(
-                    FRay{ RayOrigin, RayDirection },
-                    HitDistance) &&
-                    HitDistance < NearestDistance)
+				float dist = 0.0f;
+                if (CollisionComponent->Raycast(FRay{ RayOrigin, RayDirection }, dist))
                 {
-                    NearestDistance = HitDistance;
-                    NearestCollision = CollisionComponent;
+                    if (dist < NearestDistance)
+                    {
+                        NearestDistance = dist;
+                        NearestCollision = CollisionComponent;
+                        Console::AddLog(Console::STDOutHandle, ELogLevel::Log, ELogCategory::Etc, "Raycast hit bounds of collision component %f", dist);
+                    }
                 }
             }
 
             if (NearestCollision != nullptr)
             {
-                AActor* Owner = NearestCollision->GetOwner();
+				SelectedCollider.Set(NearestCollision);
 
-                if (Owner != nullptr)
-                {
-                    if (USceneComponent* RootComponent = Owner->GetRootComponent())
-                    {
-                        SelectedComponentHandle = RootComponent->GetHandle();
-                    }
-                }
+				if (AActor* Owner = NearestCollision->GetOwner())
+				{
+					if (USceneComponent* RootComponent = Owner->GetRootComponent())
+					{
+						SelectedComponentHandle = RootComponent->GetHandle();
+					}
+				}
             }
-            else
-            {
-                SelectedComponentHandle = {};
+            else {
+				SelectedCollider.Reset();
+				EditorSelectionState.GetWriter().Clear();
             }
         }
+
+            
+        
     }
 
     if (EditorEventSender.has_value())
@@ -438,6 +479,89 @@ void UWorld::HandleMousePickRequest(
             SelectedComponentHandle);
     }
 }
+
+void UWorld::HandleMousePickReleaseRequest(const FMousePickReleaseRequestMessage& Message)
+{
+   // SelectedCollider.GetWriter().Emplace(nullptr);
+
+}
+
+void UWorld::HandleTransformEditRequest(const FTransformEditRequestMessage& Message) {
+	TObjectRef<USceneComponent> TargetRef{ Message.TargetHandle };
+	USceneComponent* Target = TargetRef.Get();
+	if (Target == nullptr) {
+		ActiveTransformEdit.reset();
+		return;
+	}
+
+	switch (Message.Phase) {
+	case ETransformEditPhase::Begin:
+		if (Message.ExpectedTransformRevision != TransformRevision) {
+			return;
+		}
+
+		ActiveTransformEdit = FActiveTransformEdit{
+			.SessionId = Message.SessionId,
+			.TargetHandle = Message.TargetHandle,
+			.OriginalWorld = Target->GetWorldMatrix()
+		};
+		break;
+
+	case ETransformEditPhase::Update:
+		if (!ActiveTransformEdit.has_value() || ActiveTransformEdit->SessionId != Message.SessionId || ActiveTransformEdit->TargetHandle != Message.TargetHandle) {
+			return;
+		}
+
+		if (ApplyWorldMatrix(*Target, Message.DesiredWorld)) {
+			++TransformRevision;
+		}
+		break;
+
+	case ETransformEditPhase::Commit:
+		if (ActiveTransformEdit.has_value() && ActiveTransformEdit->SessionId == Message.SessionId && ActiveTransformEdit->TargetHandle == Message.TargetHandle) {
+			ActiveTransformEdit.reset();
+		}
+		break;
+
+	case ETransformEditPhase::Cancel:
+		if (ActiveTransformEdit.has_value() && ActiveTransformEdit->SessionId == Message.SessionId && ActiveTransformEdit->TargetHandle == Message.TargetHandle) {
+			if (ApplyWorldMatrix(*Target, ActiveTransformEdit->OriginalWorld)) {
+				++TransformRevision;
+			}
+			ActiveTransformEdit.reset();
+		}
+		break;
+	}
+}
+
+void UWorld::PublishEditorSelectionState() {
+	UCollisionComponent* Collision = SelectedCollider.Get();
+	if (Collision == nullptr) {
+		SelectedCollider.Reset();
+		EditorSelectionState.GetWriter().Clear();
+		return;
+	}
+
+	AActor* Owner = Collision->GetOwner();
+	USceneComponent* Target = Owner != nullptr ? Owner->GetRootComponent() : nullptr;
+	if (Target == nullptr) {
+		SelectedCollider.Reset();
+		EditorSelectionState.GetWriter().Clear();
+		return;
+	}
+
+	EditorSelectionState.GetWriter().Emplace(FEditorSelectionState{
+		.TransformTargetHandle = Target->GetHandle(),
+		.PickedColliderHandle = Collision->GetHandle(),
+		.TargetWorld = Target->GetWorldMatrix(),
+		.ColliderWorld = Collision->GetWorldMatrix(),
+		.BoundsCenter = Collision->GetBoundsCenter(),
+		.BoundsExtent = Collision->GetExtent(),
+		.BoundsOrientation = Collision->GetBoundsOrientation(),
+		.TransformRevision = TransformRevision
+	});
+}
+
 
 void UWorld::HandleMouseCameraRotateRequest(const FMouseCameraRotateRequestMessage& Message)
 {

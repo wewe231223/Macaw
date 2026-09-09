@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include <concepts>
 #include <cstdint>
@@ -20,7 +20,8 @@ public:
 public:
     class FReader {
     public:
-        explicit FReader(const FStateChannel& InChannel) noexcept : Channel(&InChannel) {}
+        explicit FReader(const TStateChannel& InChannel) noexcept : Channel(&InChannel) {}
+		FReader() noexcept = default;
         ~FReader() noexcept = default;
 
         FReader(const FReader&) = default;
@@ -38,13 +39,14 @@ public:
             return Channel->State.has_value();
         }
 
-        [[nodiscard]] const T* Peek() const noexcept {
-            return Channel->State ? std::addressof(*Channel->State) : nullptr;
+        [[nodiscard]] const T& Peek() const {
+            return Channel->State.value();
         }
 
-        [[nodiscard]] const T* Read() noexcept {
+        [[nodiscard]] const T& Read() {
+            const T& Value = Channel->State.value();
             LastReadVersion = Channel->Version;
-            return Channel->State ? std::addressof(*Channel->State) : nullptr;
+            return Value;
         }
 
         [[nodiscard]] FReadResult ReadIfChanged() noexcept {
@@ -67,7 +69,9 @@ public:
 
     class FWriter {
     public:
-        explicit FWriter(FStateChannel& InChannel) noexcept : Channel(&InChannel) {}
+        explicit FWriter(TStateChannel& InChannel) noexcept : Channel(&InChannel) {}
+		FWriter() noexcept = default;
+
 		~FWriter() noexcept = default;
 
 		FWriter(const FWriter&) = default;
@@ -104,7 +108,77 @@ public:
         }
 
     private:
-        FStateChannel* Channel{ nullptr };
+        TStateChannel* Channel{ nullptr };
+    };
+
+    class FReadWriter {
+    public:
+        explicit FReadWriter(TStateChannel& InChannel) noexcept : Channel(&InChannel) {}
+        ~FReadWriter() noexcept = default;
+
+        FReadWriter(const FReadWriter&) = default;
+        FReadWriter& operator=(const FReadWriter&) = default;
+
+        FReadWriter(FReadWriter&&) = default;
+        FReadWriter& operator=(FReadWriter&&) = default;
+
+    public:
+        [[nodiscard]] bool HasChanged() const noexcept {
+            return LastReadVersion != Channel->Version;
+        }
+
+        [[nodiscard]] bool HasValue() const noexcept {
+            return Channel->State.has_value();
+        }
+
+        [[nodiscard]] const T& Peek() const {
+            return Channel->State.value();
+        }
+
+        [[nodiscard]] const T& Read() {
+            const T& Value = Channel->State.value();
+            LastReadVersion = Channel->Version;
+            return Value;
+        }
+
+        [[nodiscard]] FReadResult ReadIfChanged() noexcept {
+            if (!HasChanged()) {
+                return {};
+            }
+
+            LastReadVersion = Channel->Version;
+
+            return {
+                .Value = Channel->State ? std::addressof(*Channel->State) : nullptr,
+                .Changed = true
+            };
+        }
+
+        void Write(const T& NewState) requires std::copy_constructible<T>&& std::assignable_from<T&, const T&> {
+            Channel->Write(NewState);
+        }
+
+        void Write(T&& NewState) requires std::move_constructible<T>&& std::assignable_from<T&, T> {
+            Channel->Write(std::move(NewState));
+        }
+
+        template<typename... Args> requires std::constructible_from<T, Args...>
+        const T& Emplace(Args&&... Arguments) {
+            return Channel->Emplace(std::forward<Args>(Arguments)...);
+        }
+
+        template<typename TCallable> requires std::invocable<TCallable&, T&>
+        bool Modify(TCallable&& Callable) {
+            return Channel->TryModify(std::forward<TCallable>(Callable));
+        }
+
+        void Clear() noexcept {
+            Channel->Clear();
+        }
+
+    private:
+        TStateChannel* Channel{ nullptr };
+        VersionType LastReadVersion{ 0 };
     };
 
 public:
@@ -129,6 +203,10 @@ public:
 
     [[nodiscard]] FWriter GetWriter() noexcept {
         return FWriter{ *this };
+    }
+
+    [[nodiscard]] FReadWriter GetReadWriter() noexcept {
+        return FReadWriter{ *this };
     }
 
 private:
