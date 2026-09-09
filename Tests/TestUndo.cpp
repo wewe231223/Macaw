@@ -6,14 +6,14 @@
 
 #include "../Core/Base/UObject.h"
 #include "../Core/Base/UndoSystem.h"
-#include "../Core/Base/ObjectSystem.h"
+#include "../UObjectSystem.h"
 
 
 TEST_CASE("Undo Test") 
 {
     /*
     std::unique_ptr<UObject> TestObject = std::make_unique<UObject>();
-    FObjectHandle Handle = ObjectSystem::Register(TestObject.get());
+    FObjectHandle Handle = UObjectSystem::Register(TestObject.get());
 
  
     CHECK(TestObject->Data == 3);
@@ -46,6 +46,6 @@ TEST_CASE("Undo Test")
     UndoSystem::Redo();
     CHECK(TestObject->Data == 4);
 
-    ObjectSystem::Unregister(TestObject.get(), Handle);
+    UObjectSystem::Unregister(TestObject.get(), Handle);
     */
 }

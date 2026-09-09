@@ -61,3 +61,13 @@
 #*.PDF   diff=astextplain
 #*.rtf   diff=astextplain
 #*.RTF   diff=astextplain
+
+###############################################################################
+# Keep Windows project text files on CRLF. Shader source keeps its own EOL.
+###############################################################################
+* text eol=crlf
+*.ico binary
+*.hlsl -text
+*.hlsli -text
+*.fx -text
+*.fxh -text

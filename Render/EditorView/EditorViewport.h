@@ -1,0 +1,50 @@
+﻿#pragma once
+
+#include <d3d11.h>
+
+#include "../../Core/Asset/FAssetRegistry.h"
+#include "../../Core/Base/FRenderProbe.h"
+#include "../../Core/Channel/FMessageChannel.h"
+#include "../../Core/Channel/FStateChannel.h"
+#include "../../FEditorSelectionState.h"
+#include "../RenderWindowInfo.h"
+
+#include "FLineRenderer.h"
+#include "FTransformGizmo.h"
+
+class FMouseInput;
+
+class EditorViewport {
+	constexpr static float OrientationAxisSize = 200.0f;
+
+public:
+	EditorViewport() = default;
+	~EditorViewport() = default;
+
+	EditorViewport(const EditorViewport&) = delete;
+	EditorViewport& operator=(const EditorViewport&) = delete;
+
+	EditorViewport(EditorViewport&&) noexcept = default;
+	EditorViewport& operator=(EditorViewport&&) noexcept = default;
+
+public:
+	void Initialize(ID3D11Device* Device, FAssetRegistry& AssetRegistry, FStateChannel<RenderWindowInfo>::FReader WindowReader, FStateChannel<FEditorSelectionState>::FReader SelectionReader, FMessageChannel::FSender WorldCommandSender);
+
+	void ProcessInput(FKeyboardInput& KeyboardInput, FMouseInput& MouseInput, bool bMouseCapturedByUI);
+	void RenderInProbe(FRenderProbe& Probe);
+	void Render(ID3D11DeviceContext* Context, FRenderProbe& Probe);
+
+	FStateChannel<uint8>::FReadWriter GetGizmoMode() { return TransformGizmo.GetGizmoMode(); }
+private:
+	void RenderGrid(ELineDepthMode DepthMode);
+	void RenderAxis(ELineDepthMode DepthMode);
+	void RenderOrientationAxis(ID3D11DeviceContext* Context, CameraProbe& Probe);
+
+private:
+	FStateChannel<RenderWindowInfo>::FReader WindowInfoReader{};
+
+	FLineRenderer LineRenderer{};
+	FTransformGizmo TransformGizmo{};
+
+	D3D11_VIEWPORT OrientationAxisViewport{ 5.0f, 5.0f, OrientationAxisSize, OrientationAxisSize, 0.0f, 1.0f };
+};
