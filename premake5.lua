@@ -72,7 +72,7 @@ project "Macaw"
     }
 
     pchheader "PCH.h"
-    pchsource "pch.cpp"
+    pchsource "PCH.cpp"
 
     links {
         "DirectXTex",
@@ -142,7 +142,7 @@ project "MacawTests"
         "ImGui/imgui_draw.cpp",
         "ImGui/imgui_tables.cpp",
         "ImGui/imgui_widgets.cpp",
-        "pch.cpp",
+        "PCH.cpp",
         "Tests/**.cpp",
     }
 
@@ -152,7 +152,7 @@ project "MacawTests"
     }
 
     pchheader "PCH.h"
-    pchsource "pch.cpp"
+    pchsource "PCH.cpp"
 
     links {
         "DirectXTex",
