@@ -2,7 +2,7 @@
 
 #include "PCH.h"
 #include "ImGui/imgui.h"
-#include "IEditorPanel.h"
+#include "FEditorWindow.h"
 #include "FEditorInfo.h"
 #include "FPropertyEditorContext.h"
 #include "Core/Channel/FStateChannel.h"
@@ -18,26 +18,25 @@
 #include "Scene/Component/UStaticMeshComponent.h"
 #include "Scene/Component/UBillboardTextComponent.h"
 #include "Scene/Component/UNameTagComponent.h"
+#include "../EditorView/FAssetThumbnailRenderer.h"
 // 목록, 선택, 구조 변경만 담당합니다. 타입별 Details는 Component::DrawPanels()로 위임합니다.
-class FPropertyPanel : public IEditorPanel {
+class FPropertyPanel : public FEditorWindow {
 public:
-    FPropertyPanel(
-        FWorldEditorContext& InEditorContext,
-        FStateChannel<uint8>::FReadWriter InGizmoMode,
-        FStateChannel<uint8>::FReadWriter InGizmoCoordinateSpace)
-        : EditorContext(&InEditorContext)
+    FPropertyPanel(FWorldEditorContext& InEditorContext, FStateChannel<uint8>::FReadWriter InGizmoMode, FStateChannel<uint8>::FReadWriter InGizmoCoordinateSpace, FAssetThumbnailRenderer* InThumbnailRenderer)
+        : FEditorWindow("Property Window")
+        , EditorContext(&InEditorContext)
         , GizmoMode(std::move(InGizmoMode))
         , GizmoCoordinateSpace(std::move(InGizmoCoordinateSpace)) {
+		PropertyEditor.BindThumbnailRenderer(InThumbnailRenderer);
     }
 
-    void DrawPanel() override {
+private:
+    void DrawContents() override {
         if (EditorContext == nullptr) return;
 
-        ImGui::Begin("Property Window");
         AActor* Actor = EditorContext->GetSelectedActor();
         if (Actor == nullptr) {
             ImGui::TextDisabled("Select an actor to inspect its components.");
-            ImGui::End();
             return;
         }
 
@@ -56,10 +55,8 @@ public:
         else {
             ImGui::TextDisabled("Select a component.");
         }
-        ImGui::End();
     }
 
-private:
     static const char* GetComponentTypeName(const UActorComponent& Component) {
         return Component.GetTypeInfo()->TypeName.data();
     }

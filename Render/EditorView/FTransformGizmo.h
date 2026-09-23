@@ -14,7 +14,6 @@
 #include "../../Scene/FWorldEditorContext.h"
 #include "../../Scene/Component/USceneComponent.h"
 #include "../Pipeline/UPipeline.h"
-#include "../RenderWindowInfo.h"
 
 #include "../../FMouseInput.h"
 #include "../../FKeyboardInput.h"
@@ -69,10 +68,10 @@ public:
 	FTransformGizmo& operator=(FTransformGizmo&&) = default;
 
 public:
-	void Initialize(ID3D11Device* Device, FAssetRegistry& AssetRegistry, FStateChannel<RenderWindowInfo>::FReader InWindowInfoReader, FWorldEditorContext& InEditorContext);
+	void Initialize(ID3D11Device* Device, FAssetRegistry& AssetRegistry, FWorldEditorContext& InEditorContext);
 
 	void ProcessInput(FKeyboardInput& KeyboardInput, FMouseInput& MouseInput, bool bMouseCapturedByUI);
-	void Update(const CameraProbe& Camera);
+	void Update(const CameraProbe& Camera, const D3D11_VIEWPORT& Viewport);
 	void Render(FRenderProbe& Probe);
 
 	FStateChannel<uint8>::FReadWriter GetGizmoMode() { return GizmoModeChannel.GetReadWriter(); }
@@ -94,6 +93,7 @@ private:
 	bool BeginDrag(EAxis Axis, const FRay& WorldRay);
 	void UpdateDrag(const FRay& WorldRay);
 	void EndDrag();
+	void RefreshAssetHandles();
 	bool GetAxisParameterOnDragPlane(const FRay& WorldRay, const FDragSession& Session, float& OutParameter) const;
 	FVector3 GetWorldAxis(EAxis Axis) const;
 
@@ -136,10 +136,11 @@ private:
 	FMatrix TorusZAxisTransform{ FMatrix::Identity };
 
 	FMatrix GizmoWorldTransform{ FMatrix::Identity };
+
 	FVector3 BoundsCenterInGizmoSpace{};
 	std::array<FAxisHitProxy, 3> AxisHitProxies{};
 
-	FStateChannel<RenderWindowInfo>::FReader WindowInfoReader{};
+	FAssetRegistry* AssetRegistry{ nullptr };
 	FWorldEditorContext* EditorContext = nullptr;
 	FStateChannel<uint8> GizmoModeChannel{};
 	FStateChannel<uint8>::FReadWriter GizmoMode{};
@@ -147,6 +148,7 @@ private:
 	FStateChannel<uint8>::FReadWriter GizmoCoordinateSpace{};
 
 	CameraProbe LastCamera{};
+	D3D11_VIEWPORT LastViewport{};
 
 	std::optional<FDragSession> DragSession;
 

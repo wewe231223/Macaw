@@ -1,20 +1,21 @@
 ﻿#pragma once
 
-#include "Render/Panel/IEditorPanel.h"
+#include "Render/Panel/FEditorWindow.h"
 #include "Render/Panel/Console/ConsoleWindow.h"
+#include "FEditorInfo.h"
 
-class FConsolePanel : public IEditorPanel
-{
+class FConsolePanel : public FEditorWindow {
 public:
-    explicit FConsolePanel(FConsoleOutputHandle InHandle) : Handle(InHandle)
-    {
-    }
-
-    void DrawPanel() override
-    {
-        DrawConsole(Console::STDOutHandle);
+    explicit FConsolePanel(FConsoleOutputHandle InHandle, FStateChannel<FStatDisplayFlags>::FWriter Writer)
+        : FEditorWindow("Console"), Handle(InHandle), ModeWriter(std::move(Writer)) {
     }
 
 private:
+    void DrawContents() override {
+        DrawConsoleContents(Handle, ModeWriter);
+    }
+
     FConsoleOutputHandle Handle;
+
+    FStateChannel<FStatDisplayFlags>::FWriter ModeWriter;
 };

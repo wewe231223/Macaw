@@ -18,10 +18,16 @@
 #include "Subsystem/ULightSubsystem.h"
 #include "Component/UCollisionComponent.h"
 #include "Component/UBillboardTextComponent.h"
-#include "FMouseCameraRotateRequestMessage.h"
+#include "Component/UBillboardComponent.h"
+#include "Component/ULightComponent.h"
 #include "FMousePickRequestMessage.h"
 #include "FWorldEditorContext.h"
+#ifdef OBJ_VIEWER
 #include "FKeyboardCameraMoveRequestMessage.h"
+#include "FMouseCameraDollyRequestMessage.h"
+#include "FMouseCameraMoveRequestMessage.h"
+#include "FMouseCameraRotateRequestMessage.h"
+#endif
 #include "Render/Panel/FEditorInfo.h"
 #include "Render/Pipeline/UPipeline.h"
 #include "Core/Asset/UMesh.h"
@@ -40,7 +46,6 @@
 #include <rapidjson/ostreamwrapper.h>
 #include <rapidjson/prettywriter.h>
 
-#include "../Serialize/FEditorConfigManager.h"
 #include "Component/UNameTagComponent.h"
 
 UWorld::UWorld() {
@@ -58,12 +63,21 @@ UWorld::~UWorld() {
 	DeinitializeSubsystems();
 }
 
-bool UWorld::SpawnActor(const FAssetHandle& MeshHandle, const FAssetHandle& PipelineHandle, const FAssetHandle& MaterialHandle, 
-						const FVector3& Position)
-{
-	auto Actor = UWorld::AdoptActor<AActor>();
+AActor* UWorld::SpawnActor(const FAssetHandle& MeshHandle, const FAssetHandle& PipelineHandle, const FAssetHandle& MaterialHandle, const FVector3& Position) {
+	if (AssetRegistry == nullptr || AssetRegistry->ResolveAsset<UMesh>(MeshHandle) == nullptr) {
+		return nullptr;
+	}
 
-	UStaticMeshComponent* MeshComponent = Actor->AddComponent<UStaticMeshComponent>();
+	AActor* Actor{ UWorld::AdoptActor<AActor>() };
+	if (Actor == nullptr) {
+		return nullptr;
+	}
+
+	UStaticMeshComponent* MeshComponent{ Actor->AddComponent<UStaticMeshComponent>() };
+	if (MeshComponent == nullptr) {
+		DestroyActor(Actor);
+		return nullptr;
+	}
 	Actor->SetRootComponent(MeshComponent);
 
 	MeshComponent->SetMeshHandle(MeshHandle);
@@ -77,19 +91,18 @@ bool UWorld::SpawnActor(const FAssetHandle& MeshHandle, const FAssetHandle& Pipe
 			Position.z
 		});
 	
-	UNameTagComponent* NameTagComponent = Actor->AddComponent<UNameTagComponent>();
+	UNameTagComponent* NameTagComponent{ Actor->AddComponent<UNameTagComponent>() };
 	NameTagComponent->AttachToComponent(MeshComponent);
 	NameTagComponent->SetTargetActor(nullptr);
 	NameTagComponent->SetTargetLocalOffset(NameTagComponent->GetTargetLocalOffset());
 	NameTagComponent->SetVisible(true);
 	NameTagComponent->SetActive(false);
-	if (AssetRegistry != nullptr)
-	{
-		NameTagComponent->SetPipelineHandle(AssetRegistry->GetAsset("TextPipeline"));
-		NameTagComponent->SetFontHandle(AssetRegistry->GetAsset("DefaultFont"));
+	if (AssetRegistry != nullptr) {
+		NameTagComponent->SetPipelineHandle(AssetRegistry->FindAsset(FAssetPath{ "/Game/Pipeline/Text.json" }));
+		NameTagComponent->SetFontHandle(AssetRegistry->FindAsset(FAssetPath{ "/Game/Font/NotoSansKR-Medium.ttf" }));
 	}
 
-	return true;
+	return Actor;
 }
 
 bool UWorld::DestroyActor(AActor* Actor)
@@ -170,11 +183,6 @@ void UWorld::InitializeSubsystems() {
 	TextSubsystem->Initialize(this);
 	LightSubsystem->Initialize(this);
 
-	if (!FEditorConfigManager::Load(Settings))
-	{
-		FEditorConfigManager::Save(Settings);
-	}
-
 	BillboardSubsystem->Initialize(this);
 }
 
@@ -229,25 +237,11 @@ FRenderProbe& UWorld::BuildRenderProbe() {
 	Probe.LightProbes.clear();
 	Probe.bForceUnlit = EditorContext != nullptr &&
 		(EditorContext->GetRenderModeState() == static_cast<size_t>(ERenderMode::Unlit) ||
-		 EditorContext->GetRenderModeState() == static_cast<size_t>(ERenderMode::LitWireframe));
+		 EditorContext->GetRenderModeState() == static_cast<size_t>(ERenderMode::Wireframe));
 
 	RenderSubsystem->BuildRenderProbes(AssetRegistry, Probe);
 	LightSubsystem->BuildLightProbes(Probe);
 	TextSubsystem->BuildTextProbes(Probe);
-	
-    if (CameraSubsystem->GetMainCamera() != nullptr)
-    {
-		auto Camera = CameraSubsystem->GetMainCamera();
-
-        Probe.MainCameraProbe.View =
-            Camera->GetViewMatrix();
-
-        Probe.MainCameraProbe.Projection =
-            Camera->GetProjectionMatrix();
-
-		Probe.MainCameraProbe.ViewProjection =
-			Camera->GetViewProjectionMatrix();
-	}
 
 	BillboardSubsystem->BuildRenderProbes(AssetRegistry, Probe);
 	return Probe;
@@ -266,14 +260,6 @@ FWorldEditorContext* UWorld::GetEditorContext() const noexcept {
 }
 
 void UWorld::Tick(float DeltaTime) {
-	if (UCameraComponent* Camera = GetCameraSubsystem().GetMainCamera(); Camera != nullptr && WindowInfoReader.HasChanged()) {
-		Camera->SetAspectRatio(static_cast<float>(WindowInfoReader.Read().ScreenWidth) / static_cast<float>(WindowInfoReader.Read().ScreenHeight));
-	}
-
-	if (EditorContext != nullptr && EditorContext->GetCameraState() == nullptr) {
-		PublishEditorCameraState();
-	}
-
 	for (const std::unique_ptr<AActor>& Actor : Actors) {
 		Actor->Tick(DeltaTime);
 	}
@@ -340,22 +326,10 @@ bool UWorld::SaveScene(const FString& SceneName, FAssetRegistry* AssetRegistry)
 	FArchiveJson ArchiveSave(Document, Allocator);
 	ArchiveSave.SetAssetRegistry(AssetRegistry);
 
-	auto AssetList = AssetRegistry->GetAssetList();
+	uint32 FormatVersion = 2;
+	ArchiveSave.Serialize("FormatVersion", FormatVersion);
 
-	size_t ArraySize = static_cast<size_t>(AssetList.size());
-	ArchiveSave.BeginArrayScope("Assets", ArraySize);
-
-	for (size_t Index : std::views::iota(size_t{ 0 }, std::ranges::size(AssetList))) {
-		UObject* Asset = AssetList[Index];
-
-		ArchiveSave.BeginObjectScope(std::to_string(Index));
-		Asset->Save(ArchiveSave);
-		ArchiveSave.EndObjectScope();
-	}
-
-	ArchiveSave.EndArrayScope();
-
-	ArraySize = static_cast<size_t>(Actors.size());
+	size_t ArraySize = static_cast<size_t>(Actors.size());
 	ArchiveSave.BeginArrayScope("Actors", ArraySize);
 	for (size_t CurrentIndex = 0, EndIndex = Actors.size(); CurrentIndex < EndIndex; ++CurrentIndex)
 	{
@@ -393,8 +367,9 @@ bool UWorld::LoadScene(const std::filesystem::path& ScenePath, ID3D11Device* Dev
 
 	if (LoadDocument.HasParseError() ||
 		!LoadDocument.IsObject() ||
-		!LoadDocument.HasMember("Assets") ||
-		!LoadDocument["Assets"].IsArray() ||
+		!LoadDocument.HasMember("FormatVersion") ||
+		!LoadDocument["FormatVersion"].IsUint() ||
+		LoadDocument["FormatVersion"].GetUint() != 2 ||
 		!LoadDocument.HasMember("Actors") ||
 		!LoadDocument["Actors"].IsArray()) {
 		return false;
@@ -412,44 +387,6 @@ bool UWorld::LoadScene(const std::filesystem::path& ScenePath, ID3D11Device* Dev
 		return false;
 	};
 
-	// assets
-	for (const rapidjson::Value& AssetJson : LoadDocument["Assets"].GetArray()) {
-		if (!AssetJson.IsObject() ||
-			!AssetJson.HasMember("Guid") || !AssetJson["Guid"].IsString() ||
-			!AssetJson.HasMember("TypeName") || !AssetJson["TypeName"].IsString() ||
-			!AssetJson.HasMember("AssetName") || !AssetJson["AssetName"].IsString() ||
-			!AssetJson.HasMember("AssetMetaDataPath") || !AssetJson["AssetMetaDataPath"].IsString()) {
-			return FailLoad();
-		}
-
-		FGuid AssetGuid;
-		if (!AssetGuid.Parse(AssetJson["Guid"].GetString())) {
-			return FailLoad();
-		}
-
-		FString TypeName = AssetJson["TypeName"].GetString();
-		const FTypeInfo* Type = TypeRegistry::Find(TypeName);
-		if (Type == nullptr || Type->Creator == nullptr) {
-			return FailLoad();
-		}
-
-		FString AssetName = AssetJson["AssetName"].GetString();
-		FString MetadataPath = AssetJson["AssetMetaDataPath"].GetString();
-		std::unique_ptr<UObject> EmptyAsset = Type->Creator();
-
-		if (!AssetRegistry->AdoptAsset(
-			Device,
-			AssetGuid,
-			AssetName,
-			MetadataPath,
-			std::move(EmptyAsset))) {
-			return FailLoad();
-		}
-	}
-
-	AssetRegistry->Finalize();
-
-	// actor and component shells
 	for (rapidjson::Value& ActorJson : LoadDocument["Actors"].GetArray()) {
 		if (!ActorJson.IsObject() ||
 			!ActorJson.HasMember("Guid") || !ActorJson["Guid"].IsString() ||
@@ -486,7 +423,6 @@ bool UWorld::LoadScene(const std::filesystem::path& ScenePath, ID3D11Device* Dev
 		Actors.emplace_back(std::move(ActorPtr));
 	}
 
-	// serialized data
 	for (size_t ActorIndex = 0; ActorIndex < Actors.size(); ++ActorIndex) {
 		rapidjson::Value& ActorJson = LoadDocument["Actors"][static_cast<rapidjson::SizeType>(ActorIndex)];
 		FArchiveJson ArchiveLoad(ActorJson);
@@ -494,14 +430,12 @@ bool UWorld::LoadScene(const std::filesystem::path& ScenePath, ID3D11Device* Dev
 		Actors[ActorIndex]->Load(ArchiveLoad);
 	}
 
-	// object references
 	for (const std::unique_ptr<AActor>& Actor : Actors) {
 		if (!Actor->ResolveLoadedReferences()) {
 			return FailLoad();
 		}
 	}
 
-	// component registration
 	for (const std::unique_ptr<AActor>& Actor : Actors) {
 		Actor->SetWorld(this);
 	}
@@ -510,15 +444,12 @@ bool UWorld::LoadScene(const std::filesystem::path& ScenePath, ID3D11Device* Dev
 }
 
 void UWorld::HandleMousePickRequest(const FMousePickRequestMessage& Message) {
-	UCameraComponent* Camera = GetCameraSubsystem().GetMainCamera();
-
-	const RenderWindowInfo& WindowInfo = WindowInfoReader.Read();
-	if (Camera != nullptr && Message.ViewportWidth != 0 && Message.ViewportHeight != 0 && WindowInfo.Viewport.Width != 0.0f && WindowInfo.Viewport.Height != 0.0f) {
-		const float NdcX = (2.0f * (static_cast<float>(Message.ScreenX) - WindowInfo.Viewport.TopLeftX) / static_cast<float>(Message.ViewportWidth)) - 1.0f;
-		const float NdcY = 1.0f - (2.0f * (static_cast<float>(Message.ScreenY) - WindowInfo.Viewport.TopLeftY) / static_cast<float>(Message.ViewportHeight));
+	if (Message.ViewportWidth != 0 && Message.ViewportHeight != 0) {
+		const float NdcX = (2.0f * (static_cast<float>(Message.ScreenX) - static_cast<float>(Message.ViewportLeft)) / static_cast<float>(Message.ViewportWidth)) - 1.0f;
+		const float NdcY = 1.0f - (2.0f * (static_cast<float>(Message.ScreenY) - static_cast<float>(Message.ViewportTop)) / static_cast<float>(Message.ViewportHeight));
 
 		FMatrix InverseViewProjection;
-		if (!Camera->GetViewProjectionMatrix().TryInverse(InverseViewProjection)) return;
+		if (!Message.ViewProjection.TryInverse(InverseViewProjection)) return;
 		FVector3 RayOrigin, RayEnd;
 		if (!InverseViewProjection.TransformCoord({NdcX, NdcY, 0.0f}, RayOrigin) || !InverseViewProjection.TransformCoord({NdcX, NdcY, 1.0f}, RayEnd)) return;
 		FVector3 RayDirection = RayEnd - RayOrigin;
@@ -528,7 +459,9 @@ void UWorld::HandleMousePickRequest(const FMousePickRequestMessage& Message) {
 
 			UPrimitiveComponent* NearestPrimitive = nullptr;
 			float NearestDistance = 0.0f;
-			if (GetPickingSubsystem().Raycast(FRay{ RayOrigin.ToSimpleMath(), RayDirection.ToSimpleMath() }, NearestPrimitive, NearestDistance)) {
+			FMatrix CameraWorld{};
+			if (!Message.View.TryInverse(CameraWorld)) return;
+			if (GetPickingSubsystem().Raycast(FRay{ RayOrigin.ToSimpleMath(), RayDirection.ToSimpleMath() }, NearestPrimitive, NearestDistance, &CameraWorld)) {
 				Console::AddLog(Console::STDOutHandle, ELogLevel::Log, ELogCategory::Etc, "Raycast hit primitive component %f", NearestDistance);
 			}
 
@@ -562,66 +495,95 @@ void UWorld::HandleMousePickRequest(const FMousePickRequestMessage& Message) {
 
 }
 
+#ifdef OBJ_VIEWER
+void UWorld::HandleMouseCameraRotateRequest(const FMouseCameraRotateRequestMessage& Message) {
+    UCameraComponent* Camera = GetCameraSubsystem().GetMainCamera();
+    if (Camera == nullptr) {
+        return;
+    }
 
-void UWorld::HandleMouseCameraRotateRequest(const FMouseCameraRotateRequestMessage& Message)
-{
-	UCameraComponent* Camera = GetCameraSubsystem().GetMainCamera();
-	if (Camera == nullptr)
-	{
-		return;
-	}
+    const FEditorSettings Settings = EditorContext != nullptr ? EditorContext->GetEditorSettings() : FEditorSettings{};
+    const float RotationSensitivity = Settings.RotationSensitivity * 0.001f;
+    constexpr float MaximumPitch = 0.99f;
+    FTransform& CameraTransform = Camera->GetRelativeTransform();
+    const FQuat CurrentRotation = CameraTransform.GetRotationQuaternion();
+    FQuat YawDelta = FQuat::CreateFromAxisAngle(FVector3::UnitZ, Message.DeltaX * RotationSensitivity);
+    YawDelta.Normalize();
 
-	float RotationSensitivity = EditorContext->GetWorld()->GetSettings().RotationSensitivity * 0.001f;
-	constexpr float MaximumPitch = 0.99f;
+    FQuat YawedRotation = FQuat::Concatenate(YawDelta, CurrentRotation);
+    YawedRotation.Normalize();
+    FTransform YawedTransform;
+    YawedTransform.SetRotation(YawedRotation);
+    const FMatrix YawMatrix = YawedTransform.ToMatrixWithScale();
+    FVector3 Right = YawMatrix.Right();
+    FVector3 Forward = YawMatrix.Forward();
+    Right.Normalize();
+    Forward.Normalize();
 
-	FTransform& CameraTransform = Camera->GetRelativeTransform();
-	const FQuat CurrentRotation = CameraTransform.GetRotationQuaternion();
-	const FMatrix CurrentWorld = Camera->GetComponentToWorld();
+    float PitchAngle = Message.DeltaY * RotationSensitivity;
+    const float ForwardUp = Forward.Dot(FVector3::UnitZ);
+    if ((ForwardUp > MaximumPitch && Message.DeltaY > 0.0f) || (ForwardUp < -MaximumPitch && Message.DeltaY < 0.0f)) {
+        PitchAngle = 0.0f;
+    }
 
-	FQuat YawDelta = FQuat::CreateFromAxisAngle(FVector3::UnitZ, Message.DeltaX * RotationSensitivity);
-	YawDelta.Normalize();
-
-	// Yaw 적용
-	FQuat YawedRotation = FQuat::Concatenate(YawDelta, CurrentRotation);
-	YawedRotation.Normalize();
-
-	// Yaw 적용 후의 축을 행렬에서 가져옴
-	FTransform YawedTransform;
-	YawedTransform.SetRotation(YawedRotation);
-
-	FMatrix YawMatrix = YawedTransform.ToMatrixWithScale();
-
-	FVector Right = YawMatrix.Right();
-	Right.Normalize();
-
-	FVector Forward = YawMatrix.Forward();
-	Forward.Normalize();
-
-	FVector Up = FVector(0, 0, 1);
-	FQuat PitchDelta;
-
-	if (Forward.Dot(Up) > MaximumPitch && Message.DeltaY > 0.0f) {
-		PitchDelta = FQuat::CreateFromAxisAngle(Right, 0 * RotationSensitivity);
-	}
-	else if (Forward.Dot(Up) < -MaximumPitch && Message.DeltaY < 0.0f) {
-		PitchDelta = FQuat::CreateFromAxisAngle(Right, 0 * RotationSensitivity);
-	}
-	else {
-		PitchDelta = FQuat::CreateFromAxisAngle(Right, -Message.DeltaY * RotationSensitivity);
-	}
-
-	PitchDelta.Normalize();
-
-	FQuat FinalRotation;
-	auto worldDelta = FQuat::Concatenate(PitchDelta, YawDelta);
-
-	worldDelta.Normalize();
-	CameraTransform.SetRotation(FQuat::Concatenate(worldDelta, CurrentRotation));
-
-	// CameraTransform.SetRotation(FQuat::Concatenate(CurrentRotation, PitchDelta));
-
-	PublishEditorCameraState();
+    FQuat PitchDelta = FQuat::CreateFromAxisAngle(Right, PitchAngle);
+    PitchDelta.Normalize();
+    FQuat WorldDelta = FQuat::Concatenate(PitchDelta, YawDelta);
+    WorldDelta.Normalize();
+    CameraTransform.SetRotation(FQuat::Concatenate(WorldDelta, CurrentRotation));
 }
+
+void UWorld::HandleKeyboardCameraMoveRequest(const FKeyboardCameraMoveRequestMessage& Message) {
+    UCameraComponent* Camera = GetCameraSubsystem().GetMainCamera();
+    if (Camera == nullptr || Message.DeltaTime <= 0.0f) {
+        return;
+    }
+
+    const FMatrix CameraWorldMatrix = Camera->GetComponentToWorld();
+    FVector3 MoveDirection = CameraWorldMatrix.Forward() * Message.ForwardAxis - CameraWorldMatrix.Right() * Message.RightAxis;
+    if (MoveDirection.LengthSquared() <= 0.0f) {
+        return;
+    }
+
+    MoveDirection.Normalize();
+    const FEditorSettings Settings = EditorContext != nullptr ? EditorContext->GetEditorSettings() : FEditorSettings{};
+    FTransform& CameraTransform = Camera->GetRelativeTransform();
+    CameraTransform.SetPosition(CameraTransform.GetPosition() + MoveDirection * Settings.MoveSensitivity * Message.DeltaTime);
+}
+
+void UWorld::HandleMouseCameraMoveRequestMessage(const FMouseCameraMoveRequestMessage& Message) {
+    UCameraComponent* Camera = GetCameraSubsystem().GetMainCamera();
+    if (Camera == nullptr) {
+        return;
+    }
+
+    const FMatrix CameraWorld = Camera->GetComponentToWorld();
+    FVector3 Right = CameraWorld.Right();
+    FVector3 Up = CameraWorld.Up();
+    Right.Normalize();
+    Up.Normalize();
+    const FEditorSettings Settings = EditorContext != nullptr ? EditorContext->GetEditorSettings() : FEditorSettings{};
+    const float PanScale = Settings.MoveSensitivity * 0.01f;
+    FTransform& CameraTransform = Camera->GetRelativeTransform();
+    const FVector3 Offset = Right * (-Message.DeltaX * PanScale) + Up * (-Message.DeltaY * PanScale);
+    CameraTransform.SetPosition(CameraTransform.GetPosition() + Offset);
+}
+
+void UWorld::HandleMouseCameraDollyRequestMessage(const FMouseCameraDollyRequestMessage& Message) {
+    UCameraComponent* Camera = GetCameraSubsystem().GetMainCamera();
+    if (Camera == nullptr) {
+        return;
+    }
+
+    FVector3 ForwardDirection = Camera->GetComponentToWorld().Forward();
+    ForwardDirection.Normalize();
+    const FEditorSettings Settings = EditorContext != nullptr ? EditorContext->GetEditorSettings() : FEditorSettings{};
+    const float DollySpeed = Settings.MoveSensitivity * 0.3f;
+    FTransform& CameraTransform = Camera->GetRelativeTransform();
+    CameraTransform.SetPosition(CameraTransform.GetPosition() + ForwardDirection * (Message.Steps * DollySpeed));
+}
+#endif
+
 
 AActor* UWorld::AddActor(std::unique_ptr<AActor> InActor) 
 {
@@ -632,57 +594,17 @@ AActor* UWorld::AddActor(std::unique_ptr<AActor> InActor)
 
 	AActor* Actor = InActor.get();
 
-	// 아직 등록되지 않은 Actor만 등록
 	if (UObjectSystem::Resolve(Actor->GetHandle()) != Actor)
 	{
 		UObjectSystem::Register(Actor);
 	}
 
-	// 먼저 World가 소유권을 확보
 	Actors.push_back(std::move(InActor));
 
-	// 컴포넌트 OnCreate 호출보다 먼저 World가 소유하고 있어야 함
 	Actor->SetWorld(this);
 
 	return Actor;
 }
-
-void UWorld::HandleKeyboardCameraMoveRequest(
-	const FKeyboardCameraMoveRequestMessage& Message)
-{
-	UCameraComponent* Camera = GetCameraSubsystem().GetMainCamera();
-	if (Camera == nullptr || Message.DeltaTime <= 0.0f)
-	{
-		return;
-	}
-
-	const FMatrix CameraWorldMatrix = Camera->GetComponentToWorld();
-
-	const FVector3 ForwardDirection = CameraWorldMatrix.Forward();
-	const FVector3 RightDirection = CameraWorldMatrix.Right();
-
-
-	const FVector3 Forward = ForwardDirection * Message.ForwardAxis;
-
-	FVector3 MoveDirection = ForwardDirection * Message.ForwardAxis + RightDirection * Message.RightAxis;
-
-	if (MoveDirection.LengthSquared() <= 0.0f)
-	{
-		return;
-	}
-
-	MoveDirection.Normalize();
-
-	float CameraMoveSpeed = Settings.MoveSensitivity;
-
-
-	FTransform& CameraTransform = Camera->GetRelativeTransform();
-
-	CameraTransform.SetPosition(CameraTransform.GetPosition() + MoveDirection * CameraMoveSpeed * Message.DeltaTime);
-
-	PublishEditorCameraState();
-}
-
 
 void UWorld::HandleSpawnComponent(
 	const FMessageSpawnComponent& Message, FAssetRegistry& AssetRegistry)
@@ -695,29 +617,23 @@ void UWorld::HandleSpawnComponent(
 	}
 
 	const bool bIsStaticMesh = ComponentType->IsA(UStaticMeshComponent::StaticTypeInfo());
-	const FAssetHandle MeshHandle = bIsStaticMesh ? AssetRegistry.GetAsset(Message.MeshType) : FAssetHandle{};
+	const FAssetHandle MeshHandle = bIsStaticMesh ? AssetRegistry.FindAsset(FAssetPath{ Message.MeshType }) : FAssetHandle{};
 	if (bIsStaticMesh && AssetRegistry.ResolveAsset<UMesh>(MeshHandle) == nullptr) {
 		return;
 	}
-	const FAssetHandle PipelineHandle = bIsStaticMesh ? AssetRegistry.GetAsset("BasePipeline") : FAssetHandle{};
+	const FAssetHandle PipelineHandle = bIsStaticMesh ? AssetRegistry.FindAsset(FAssetPath{ "/Game/Pipeline/Base" }) : FAssetHandle{};
 	const FAssetHandle Materials[] = {
-		AssetRegistry.GetAsset("GreyMaterial"),
-		AssetRegistry.GetAsset("RedMaterial"),
-		AssetRegistry.GetAsset("GreenMaterial"),
-		AssetRegistry.GetAsset("BlueMaterial"),
-		AssetRegistry.GetAsset("YellowMaterial"),
-		AssetRegistry.GetAsset("AmberMaterial"),
-		AssetRegistry.GetAsset("BrownMaterial"),
-		AssetRegistry.GetAsset("CyanMaterial"),
-		AssetRegistry.GetAsset("LimeMaterial"),
-		AssetRegistry.GetAsset("MagentaMaterial"),
-		AssetRegistry.GetAsset("NavyMaterial"),
-		AssetRegistry.GetAsset("OrangeMaterial"),
-		AssetRegistry.GetAsset("PinkMaterial"),
-		AssetRegistry.GetAsset("PurpleMaterial"),
-		AssetRegistry.GetAsset("TealMaterial"),
-		AssetRegistry.GetAsset("WhiteMaterial"),
+		AssetRegistry.FindAsset(FAssetPath{ "/Game/System/Material/Default.mtl" }),
+		AssetRegistry.FindAsset(FAssetPath{ "/Game/System/Material/Red.mtl" }),
+		AssetRegistry.FindAsset(FAssetPath{ "/Game/System/Material/Green.mtl" }),
+		AssetRegistry.FindAsset(FAssetPath{ "/Game/System/Material/Blue.mtl" })
 	};
+	const bool IsBillboard{ ComponentType->IsA(UBillboardComponent::StaticTypeInfo()) };
+	const bool IsLight{ ComponentType->IsA(ULightComponent::StaticTypeInfo()) };
+	const FAssetHandle BillboardPipeline{ IsBillboard || IsLight ? AssetRegistry.FindAsset(FAssetPath{ "/Game/Pipeline/Billboard.json" }) : FAssetHandle{} };
+	const FAssetHandle BillboardTexture{ IsBillboard ? AssetRegistry.FindAsset(FAssetPath{ "/Game/Texture/Fire+Sparks-Sheet.png" }) : FAssetHandle{} };
+	const FAssetHandle LightProxyTexture{ IsLight ? AssetRegistry.FindAsset(FAssetPath{ "/Game/System/Light.png" }) : FAssetHandle{} };
+
 	std::uniform_int_distribution<size_t> MaterialIndex(0, std::size(Materials) - 1);
 	const FAssetHandle MaterialHandle = bIsStaticMesh ? Materials[MaterialIndex(RandomEngine)] : FAssetHandle{};
 
@@ -735,6 +651,17 @@ void UWorld::HandleSpawnComponent(
 			continue;
 		}
 
+		UBillboardComponent* LightProxy{};
+		if (IsLight) {
+			LightProxy = Actor->AddComponent<UBillboardComponent>();
+			if (LightProxy == nullptr || !Actor->SetRootComponent(LightProxy)) {
+				DestroyActor(Actor);
+				continue;
+			}
+			LightProxy->SetPipelineHandle(BillboardPipeline);
+			LightProxy->SetTextureHandle(LightProxyTexture);
+		}
+
 		UActorComponent* Component = Actor->AddComponent(*ComponentType);
 		if (Component == nullptr) {
 			DestroyActor(Actor);
@@ -742,9 +669,18 @@ void UWorld::HandleSpawnComponent(
 		}
 
 		if (ComponentType->IsA(USceneComponent::StaticTypeInfo())) {
-			auto* SceneComponent = static_cast<USceneComponent*>(Component);
-			Actor->SetRootComponent(SceneComponent);
-			SceneComponent->SetRelativeLocation(FVector3{
+			USceneComponent* SceneComponent{ static_cast<USceneComponent*>(Component) };
+			if (IsLight) {
+				if (!SceneComponent->AttachToComponent(LightProxy)) {
+					DestroyActor(Actor);
+					continue;
+				}
+			}
+			else {
+				Actor->SetRootComponent(SceneComponent);
+			}
+			USceneComponent* SpawnRoot{ IsLight ? LightProxy : SceneComponent };
+			SpawnRoot->SetRelativeLocation(FVector3{
 				SpawnCenter.x + RandomX(RandomEngine),
 				SpawnCenter.y + RandomY(RandomEngine),
 				SpawnCenter.z + RandomZ(RandomEngine)
@@ -757,6 +693,11 @@ void UWorld::HandleSpawnComponent(
 			StaticMeshComponent->SetPipelineHandle(PipelineHandle);
 			StaticMeshComponent->SetMaterialHandle(MaterialHandle);
 		}
+		if (IsBillboard) {
+			auto* Billboard = static_cast<UBillboardComponent*>(Component);
+			Billboard->SetPipelineHandle(BillboardPipeline);
+			Billboard->SetTextureHandle(BillboardTexture);
+		}
 
 		auto tag = Actor->AddComponent<UNameTagComponent>();
 		tag->SetActive(false);
@@ -766,6 +707,8 @@ void UWorld::HandleSpawnComponent(
 
 	FlushPendingDestroyActors();
 }
+
+
 
 
 FAssetRegistry* UWorld::GetAssetRegistry() const {
@@ -826,30 +769,6 @@ AActor* UWorld::FindActorByName(FName InName) const
 	return nullptr;
 }
 
-void UWorld::UpdateEditorCameraState() {
-
-}
-
 void UWorld::SetAssetRegistry(FAssetRegistry* InAssetRegistry) {
 	AssetRegistry = InAssetRegistry;
-}
-
-void UWorld::PublishEditorCameraState()
-{
-	UCameraComponent* Camera = GetCameraSubsystem().GetMainCamera();
-	if (EditorContext == nullptr || Camera == nullptr)
-	{
-		return;
-	}
-
-	const FTransform& CameraTransform =
-		Camera->GetRelativeTransform();
-
-	const FCameraSnapshot CameraState{
-		CameraTransform.GetPosition(),
-		CameraTransform.GetRotation(),
-		Camera->GetFOV()
-	};
-
-	EditorContext->PublishCameraState(CameraState);
 }

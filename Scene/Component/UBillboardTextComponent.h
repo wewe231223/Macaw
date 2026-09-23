@@ -3,6 +3,7 @@
 #include "UPrimitiveComponent.h"
 
 #include "Core/Asset/FAssetHandle.h"
+#include "Core/Asset/FAssetPath.h"
 #include "Core/Base/FRenderProbe.h"
 #include "STL.h"
 
@@ -14,7 +15,6 @@ class UBillboardTextComponent : public UPrimitiveComponent
 public:
     UBillboardTextComponent() = default;
     ~UBillboardTextComponent() override = default;
-
     // UNameTagComponent가 상속해야 하므로 final을 붙이지 않는다.
     JG_DECLARE_DERIVED_TYPEINFO(UBillboardTextComponent, UPrimitiveComponent);
 
@@ -39,10 +39,9 @@ public:
     float GetLineSpacing() const;
 
     const TArray<FTextVertex>& GetVertices() const;
+    virtual bool MakeTextRender(FTextProbe& OutProbe) const;
 
     // 기존 FTextProbe를 직접 생성한다.
-    bool MakeTextRender(FTextProbe& OutProbe) const;
-
     void OnRegister() override;
     void OnUnregister() override;
 
@@ -57,6 +56,10 @@ protected:
 protected:
     FAssetHandle FontHandle{};
     FAssetHandle PipelineHandle{};
+    FAssetPath FontAssetPath{};
+    FAssetPath PipelineAssetPath{};
+    FGuid FontAssetGuid{};
+    FGuid PipelineAssetGuid{};
 
     FString Text{};
 

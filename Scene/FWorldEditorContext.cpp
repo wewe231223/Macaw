@@ -1,4 +1,4 @@
-﻿#include "PCH.h"
+#include "PCH.h"
 #include "FWorldEditorContext.h"
 
 #include "AActor.h"
@@ -6,6 +6,54 @@
 #include "Component/USceneComponent.h"
 #include "Core/Asset/FAssetRegistry.h"
 #include "UWorld.h"
+
+#include <fstream>
+#include <rapidjson/document.h>
+#include <rapidjson/istreamwrapper.h>
+#include <rapidjson/ostreamwrapper.h>
+#include <rapidjson/prettywriter.h>
+
+namespace
+{
+    bool ReWriteObjFilePath(const std::filesystem::path& MetaPath, const FString& NewObjFilePath)
+    {
+        std::ifstream InputStream(MetaPath, std::ios::binary);
+        if (!InputStream.is_open())
+        {
+            return false;
+        }
+
+        rapidjson::IStreamWrapper InStreamWrapper(InputStream);
+
+        rapidjson::Document Document;
+        Document.ParseStream<rapidjson::kParseCommentsFlag | rapidjson::kParseTrailingCommasFlag>(InStreamWrapper);
+
+        //읽기 닫기
+        InputStream.close();
+
+        if (Document.HasParseError() || !Document.IsObject()) return false;
+
+        rapidjson::Document::AllocatorType& Allocator = Document.GetAllocator();
+
+        if (Document.HasMember("FilePath"))
+        {
+            Document["FilePath"].SetString(NewObjFilePath.c_str(), Allocator);
+        }
+        else
+        {
+            Document.AddMember("FilePath", rapidjson::Value(NewObjFilePath.c_str(), Allocator), Allocator);
+        }
+
+        std::ofstream OutputStream(MetaPath);
+        if (!OutputStream.is_open()) return false;
+
+        rapidjson::OStreamWrapper OutStreamWrapper(OutputStream);
+        rapidjson::PrettyWriter<rapidjson::OStreamWrapper> Writer(OutStreamWrapper);
+        Document.Accept(Writer);
+
+        return true;
+    }
+}
 
 void FWorldEditorContext::SetWorld(UWorld* InWorld) {
     World = InWorld;
@@ -23,6 +71,7 @@ void FWorldEditorContext::InitializeChannels(FAssetRegistry& AssetRegistry, ID3D
     EditorToWorld.TryBind<FMessageLoadScene>([this, &AssetRegistry, Device](const FMessageLoadScene& Message) {
         World->LoadScene(std::filesystem::path(Message.FilePath.c_str()), Device, &AssetRegistry);
     });
+
 }
 
 void FWorldEditorContext::Dispatch() {
@@ -33,13 +82,50 @@ void FWorldEditorContext::Dispatch() {
 FMessageChannel::FSender FWorldEditorContext::GetEditorToWorldSender() { return EditorToWorld.GetSender(); }
 FMessageChannel::FSender FWorldEditorContext::GetWorldToEditorSender() { return WorldToEditor.GetSender(); }
 
-const FCameraSnapshot* FWorldEditorContext::GetCameraState() const noexcept {
-    const auto Reader = SharedState.GetReader();
-    return Reader.Peek().Camera ? &*Reader.Peek().Camera : nullptr;
+FEditorSettings FWorldEditorContext::GetEditorSettings() const {
+    return SharedState.GetReader().Peek().EditorSettings;
 }
 
-void FWorldEditorContext::PublishCameraState(const FCameraSnapshot& State) {
-    SharedState.GetWriter().Modify([&State](FWorldEditorSharedState& Shared) { Shared.Camera = State; });
+void FWorldEditorContext::SetEditorSettings(const FEditorSettings& Settings) {
+    SharedState.GetWriter().Modify([&Settings](FWorldEditorSharedState& Shared) {
+        Shared.EditorSettings = Settings;
+    });
+}
+
+void FWorldEditorContext::SetMoveSensitivity(float Value) {
+    SharedState.GetWriter().Modify([Value](FWorldEditorSharedState& Shared) {
+        Shared.EditorSettings.MoveSensitivity = Value;
+    });
+}
+
+void FWorldEditorContext::SetRotationSensitivity(float Value) {
+    SharedState.GetWriter().Modify([Value](FWorldEditorSharedState& Shared) {
+        Shared.EditorSettings.RotationSensitivity = Value;
+    });
+}
+
+void FWorldEditorContext::SetGridSize(float Value) {
+    SharedState.GetWriter().Modify([Value](FWorldEditorSharedState& Shared) {
+        Shared.EditorSettings.GridSize = Value;
+    });
+}
+
+void FWorldEditorContext::SetGridSnapEnabled(bool Enabled) {
+    SharedState.GetWriter().Modify([Enabled](FWorldEditorSharedState& Shared) {
+        Shared.EditorSettings.mGridSnapEnabled = Enabled;
+    });
+}
+
+void FWorldEditorContext::SetGridVisible(bool Visible) {
+    SharedState.GetWriter().Modify([Visible](FWorldEditorSharedState& Shared) {
+        Shared.EditorSettings.mGridVisible = Visible;
+    });
+}
+
+void FWorldEditorContext::SetAxisVisible(bool Visible) {
+    SharedState.GetWriter().Modify([Visible](FWorldEditorSharedState& Shared) {
+        Shared.EditorSettings.mAxisVisible = Visible;
+    });
 }
 
 const size_t FWorldEditorContext::GetRenderModeState() const noexcept
@@ -88,4 +174,29 @@ USceneComponent* FWorldEditorContext::GetSelectedTransformTarget() const noexcep
 
     AActor* Actor = SelectedActor.Get();
     return Actor != nullptr ? Actor->GetRootComponent() : nullptr;
+}
+
+UWorld* FWorldEditorContext::GetWorld() const {
+    return World;
+}
+
+void FWorldEditorContext::SetPreviewMesh(const FAssetHandle& Handle) {
+    PreviewMesh = Handle;
+    bPreviewOpenRequested = true;
+}
+
+FAssetHandle FWorldEditorContext::GetPreviewMesh() const noexcept {
+    return PreviewMesh;
+}
+
+FAssetHandle FWorldEditorContext::ConsumePreviewMesh() noexcept {
+    const FAssetHandle Handle{ PreviewMesh };
+    PreviewMesh = {};
+    return Handle;
+}
+
+bool FWorldEditorContext::ConsumePreviewOpenRequest() noexcept {
+    const bool Requested{ bPreviewOpenRequested };
+    bPreviewOpenRequested = false;
+    return Requested;
 }

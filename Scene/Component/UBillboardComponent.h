@@ -1,6 +1,8 @@
 #pragma once
 
 #include "UPrimitiveComponent.h"
+#include "Core/Asset/FAssetPath.h"
+#include <array>
 
 struct FMatrix;
 
@@ -41,6 +43,7 @@ public:
     const FVector4& GetColor() const;
 
     bool MakeBillboardRender(FBillboardProbe& OutProbe) const;
+    bool GetWorldCorners(const FMatrix& CameraWorld, std::array<FVector3, 4>& OutCorners) const;
     void DrawPanels(FPropertyEditorContext& Context) override;
 
     void OnRegister() override;
@@ -55,12 +58,15 @@ protected:
     // Billboard 렌더링에 사용할 World Transform을 반환한다.
     // 기본 구현 : 자신의 ComponentToWorld 사용
     // UNameTagComponent: Target Actor Transform + Offset 사용
-    virtual bool TryGetBillBoardWorld(
-        FMatrix& OutWorld) const;
+    virtual bool TryGetBillBoardWorld(FMatrix& OutWorld) const;
 
 private:
     FAssetHandle TextureHandle{};
     FAssetHandle PipelineHandle{};
+    FAssetPath TextureAssetPath{};
+    FAssetPath PipelineAssetPath{};
+    FGuid TextureAssetGuid{};
+    FGuid PipelineAssetGuid{};
 
     FVector2 Size{ 1.0f, 1.0f };
     FVector2 UVMin{ 0.0f, 0.0f };

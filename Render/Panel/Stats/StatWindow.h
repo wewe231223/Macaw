@@ -1,5 +1,6 @@
 ﻿#pragma once
 
 #include "Scene/UWorld.h"
+#include "../FEditorInfo.h"
 
-void DrawStatWindow(const UWorld& World);
+void DrawStatContents(const UWorld& World, FStatDisplayFlags StatFlags);

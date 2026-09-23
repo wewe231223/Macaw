@@ -8,6 +8,8 @@ cbuffer TextConstants : register(b0)
     row_major float4x4 CameraWorld;
     
     float4 TextColor;
+    float3 ScreenBoundsExtent;
+    float ScreenUpPadding;
 };
 
 struct VS_INPUT
@@ -52,6 +54,8 @@ void mainGS(point VS_OUTPUT Input[1], inout TriangleStream<PS_INPUT> Stream) // 
     float3 Origin = mul(float4(0.0f, 0.0f, 0.0f, 1.0f), World).xyz;
     float3 CameraRight = normalize(CameraWorld[0].xyz);
     float3 CameraUp = normalize(CameraWorld[1].xyz);
+    float BoundsScreenHalfHeight = dot(abs(CameraUp), ScreenBoundsExtent);
+    Origin += CameraUp * (BoundsScreenHalfHeight + ScreenUpPadding);
    
     float Left = Glyph.LocalPosition.x;
     float Right = Left + Glyph.Size.x;

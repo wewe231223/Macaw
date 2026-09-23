@@ -1,7 +1,8 @@
-﻿#pragma once
+#pragma once
 
 #include <cstdint>
 
+#include "FMath.h"
 #include "Core/Base/TypeInfo.h"
 
 struct FMousePickRequestMessage
@@ -12,27 +13,18 @@ struct FMousePickRequestMessage
 		nullptr
 	};
 
-	static const FTypeInfo& StaticTypeInfo() noexcept
-	{
-		return TypeInfo;
-	}
+	static const FTypeInfo& StaticTypeInfo() noexcept;
 
 	std::int32_t ScreenX = 0;
 	std::int32_t ScreenY = 0;
+	std::int32_t ViewportLeft = 0;
+	std::int32_t ViewportTop = 0;
 	std::uint32_t ViewportWidth = 0;
 	std::uint32_t ViewportHeight = 0;
+	FMatrix ViewProjection{};
+	FMatrix View{};
 
 	FMousePickRequestMessage() = default;
 
-	FMousePickRequestMessage(
-		std::int32_t InScreenX,
-		std::int32_t InScreenY,
-		std::uint32_t InViewportWidth,
-		std::uint32_t InViewportHeight) noexcept
-		: ScreenX(InScreenX)
-		, ScreenY(InScreenY)
-		, ViewportWidth(InViewportWidth)
-		, ViewportHeight(InViewportHeight)
-	{
-	}
+	FMousePickRequestMessage(std::int32_t InScreenX, std::int32_t InScreenY, std::int32_t InViewportLeft, std::int32_t InViewportTop, std::uint32_t InViewportWidth, std::uint32_t InViewportHeight, const FMatrix& InViewProjection, const FMatrix& InView) noexcept;
 };

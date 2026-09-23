@@ -1,110 +1,130 @@
-﻿#include "PCH.h"
+#include "PCH.h"
 #include "UMesh.h"
 
-#include "../../ErrorHandler.h"
-#include "FAssetMetadataParser.h"
+#include "../Console/Console.h"
 
-#include "BasicGeometry/Capsule.h"
-#include "BasicGeometry/Corn.h"
-#include "BasicGeometry/Cube.h"
-#include "BasicGeometry/Cylinder.h"
-#include "BasicGeometry/Pyramid.h"
-#include "BasicGeometry/Plane.h"
-#include "BasicGeometry/Sphere.h"
-#include "BasicGeometry/Torus.h"
-#include "BasicGeometry/InverseSphere.h"
+#include "FObjImporter.h"
+#include "../../Serialize/FObjSerializer.h"
 
-void UMesh::Initialize(ID3D11Device* Device, const std::filesystem::path& metaData) {
-	UAsset::Initialize(Device, metaData);
+bool UMesh::Initialize(ID3D11Device* Device, const std::filesystem::path& SourceObjPath, const std::filesystem::path& BinaryPath, const FMaterialResolver& MaterialResolver, const FMaterialGroupResolver& MaterialGroupResolver, bool FlipUV) {
+	if (Device == nullptr || (SourceObjPath.empty() && BinaryPath.empty())) {
+		Console::AddLog(Console::STDOutHandle, ELogLevel::Error, ELogCategory::Etc, "Model load rejected: device or asset path is invalid.");
+		return false;
+	}
 
-	FAssetMetadataParser MetadataParser{};
+	FObjImporter ObjImporter{};
+	FGeometry Geometry{};
 
-	ErrorHandler::Report(not MetadataParser.Load(AssetMetaDataPath), " [ UMesh ]", "Failed to load metadata", ErrorHandler::EErrorLevel::Critical);
+	std::error_code FileSystemError{};
+	const bool bHasBinary = !BinaryPath.empty() && std::filesystem::is_regular_file(BinaryPath, FileSystemError);
+	const bool bLoadedFromBinary = bHasBinary && FObjSerializer::LoadBinary(BinaryPath.string().c_str(), Geometry);
 
-	if (MetadataParser.GetOr("BasicMesh", false)) {
-		const FString MeshType = MetadataParser.GetOr("MeshType", FString{});
-		
-		if (MeshType == "Plane") {
-			UMesh::Make(Device, BasicGeometry::Plane::Indices,
-				MakeVertexAttribute<EVertexAttribute::Position>(BasicGeometry::Plane::Positions),
-				MakeVertexAttribute<EVertexAttribute::Normal>(BasicGeometry::Plane::Normals),
-				MakeVertexAttribute<EVertexAttribute::UV>(BasicGeometry::Plane::TexCoords)
-			);	
-		} 
-		else if (MeshType == "Cube") {
-			UMesh::Make(Device, BasicGeometry::Cube::Indices,
-				MakeVertexAttribute<EVertexAttribute::Position>(BasicGeometry::Cube::Positions),
-				MakeVertexAttribute<EVertexAttribute::Normal>(BasicGeometry::Cube::Normals),
-				MakeVertexAttribute<EVertexAttribute::UV>(BasicGeometry::Cube::TexCoords)
-			);
-		} 
-		else if (MeshType == "Sphere") {
-			UMesh::Make(Device, BasicGeometry::Sphere::Indices,
-				MakeVertexAttribute<EVertexAttribute::Position>(BasicGeometry::Sphere::Positions),
-				MakeVertexAttribute<EVertexAttribute::Normal>(BasicGeometry::Sphere::Normals),
-				MakeVertexAttribute<EVertexAttribute::UV>(BasicGeometry::Sphere::TexCoords)
-			);
-		} 
-		else if (MeshType == "Capsule") {
-			UMesh::Make(Device, BasicGeometry::Capsule::Indices,
-				MakeVertexAttribute<EVertexAttribute::Position>(BasicGeometry::Capsule::Positions),
-				MakeVertexAttribute<EVertexAttribute::Normal>(BasicGeometry::Capsule::Normals),
-				MakeVertexAttribute<EVertexAttribute::UV>(BasicGeometry::Capsule::TexCoords)
-			);
+	if (bLoadedFromBinary) {
+		Console::AddLog(Console::STDOutHandle, ELogLevel::Log, ELogCategory::Etc, "Loaded model binary: %s", BinaryPath.generic_string().c_str());
+	}
+	else {
+		if (SourceObjPath.empty()) {
+			Console::AddLog(Console::STDOutHandle, ELogLevel::Error, ELogCategory::Etc, "Failed to load standalone model binary: %s", BinaryPath.generic_string().c_str());
+			return false;
 		}
-		else if (MeshType == "Cone") {
-			UMesh::Make(Device, BasicGeometry::Cone::Indices,
-				MakeVertexAttribute<EVertexAttribute::Position>(BasicGeometry::Cone::Positions),
-				MakeVertexAttribute<EVertexAttribute::Normal>(BasicGeometry::Cone::Normals),
-				MakeVertexAttribute<EVertexAttribute::UV>(BasicGeometry::Cone::TexCoords)
-			);
-		}
-		else if (MeshType == "Cylinder") {
-			UMesh::Make(Device, BasicGeometry::Cylinder::Indices,
-				MakeVertexAttribute<EVertexAttribute::Position>(BasicGeometry::Cylinder::Positions),
-				MakeVertexAttribute<EVertexAttribute::Normal>(BasicGeometry::Cylinder::Normals),
-				MakeVertexAttribute<EVertexAttribute::UV>(BasicGeometry::Cylinder::TexCoords)
-			);
-		}
-		else if (MeshType == "Pyramid") {
-			UMesh::Make(Device, BasicGeometry::Pyramid::Indices,
-				MakeVertexAttribute<EVertexAttribute::Position>(BasicGeometry::Pyramid::Positions),
-				MakeVertexAttribute<EVertexAttribute::Normal>(BasicGeometry::Pyramid::Normals),
-				MakeVertexAttribute<EVertexAttribute::UV>(BasicGeometry::Pyramid::TexCoords)
-			);
-		}
-		else if (MeshType == "Torus") {
-			float MajorRadius = MetadataParser.GetOr("MajorRadius",BasicGeometry::Torus::MajorRadius);
-			float MinorRadius = MetadataParser.GetOr("MinorRadius",BasicGeometry::Torus::MinorRadius);
 
-			if (MajorRadius <= 0.0f) 
-			{
-				MajorRadius = BasicGeometry::Torus::MajorRadius;
-			}
-
-			if (MinorRadius <= 0.0f)
-			{
-				MinorRadius = BasicGeometry::Torus::MinorRadius;
-			}
-
-			const BasicGeometry::Torus::FGeometry Geometry =BasicGeometry::Torus::GenerateGeometry(MajorRadius,MinorRadius);
-			UMesh::Make(Device, BasicGeometry::Torus::Indices,
-				MakeVertexAttribute<EVertexAttribute::Position>(Geometry.Positions),
-				MakeVertexAttribute<EVertexAttribute::Normal>(Geometry.Normals),
-				MakeVertexAttribute<EVertexAttribute::UV>(Geometry.TexCoords)
-			);
+		if (bHasBinary) {
+			Console::AddLog(Console::STDOutHandle, ELogLevel::Warning, ELogCategory::Etc, "[UMesh] Failed to load model binary; Maybe Different Version. falling back to OBJ: %s", BinaryPath.generic_string().c_str());
 		}
-		else if (MeshType == "SkyDome") {
-			UMesh::Make(Device, BasicGeometry::SkyDome::Indices,
-				MakeVertexAttribute<EVertexAttribute::Position>(BasicGeometry::SkyDome::Positions),
-				MakeVertexAttribute<EVertexAttribute::Normal>(BasicGeometry::SkyDome::Normals),
-				MakeVertexAttribute<EVertexAttribute::UV>(BasicGeometry::SkyDome::TexCoords)
-			);
+
+		if (!ObjImporter.LoadObjFile(SourceObjPath.string().c_str(), Geometry, FlipUV)) {
+			Console::AddLog(Console::STDOutHandle, ELogLevel::Error, ELogCategory::Etc, "[UMesh] Failed to import OBJ geometry: %s", SourceObjPath.generic_string().c_str());
+			Console::AddLog(Console::STDOutHandle, ELogLevel::Error, ELogCategory::Etc, "[UMesh] Import Failed. Check Obj File Path : %s", SourceObjPath.generic_string().c_str());
+			return false;
 		}
-		else {
-			ErrorHandler::Report(false, " [ UMesh ]", "Unsupported BasicMesh type: " + MeshType, ErrorHandler::EErrorLevel::Critical);
+
+		if (!BinaryPath.empty() && !FObjSerializer::SaveBinary(Geometry, BinaryPath.string().c_str())) {
+			Console::AddLog(Console::STDOutHandle, ELogLevel::Warning, ELogCategory::Etc, "[UMesh] Failed to create model binary: %s", BinaryPath.generic_string().c_str());
+		}
+		else if (!BinaryPath.empty()) {
+			Console::AddLog(Console::STDOutHandle, ELogLevel::Log, ELogCategory::Etc, "[UMesh] Created model binary: %s", BinaryPath.generic_string().c_str());
 		}
 	}
+
+	const std::filesystem::path AssetPath{ bLoadedFromBinary ? BinaryPath : SourceObjPath };
+	if (!UAsset::Initialize(Device, AssetPath)) {
+		return false;
+	}
+
+	if (bLoadedFromBinary && Geometry.SubMeshIndexCounts.empty() && !Geometry.Indices.empty()) {
+		Geometry.SubMeshIndexCounts.push_back(static_cast<uint32>(Geometry.Indices.size()));
+	}
+
+	if (Geometry.MaterialNames.empty() && Geometry.SubMeshIndexCounts.size() == 1) {
+		Geometry.MaterialNames.push_back({});
+	}
+
+	FAssetHandle ImportedMaterial{};
+
+	if (!Geometry.MaterialFileName.empty()) {
+		const std::filesystem::path MaterialPath = (AssetPath.parent_path() / std::filesystem::path(Geometry.MaterialFileName.c_str())).lexically_normal();
+		if (MaterialResolver) {
+			ImportedMaterial = MaterialResolver(MaterialPath);
+		}
+
+		if (!ImportedMaterial) {
+			Console::AddLog(Console::STDOutHandle, ELogLevel::Warning, ELogCategory::Etc, "Model MTL asset was not found; using material group 0: %s", MaterialPath.generic_string().c_str());
+		}
+	}
+
+	TArray<FSubMesh> ImportedSubMeshes{};
+	ImportedSubMeshes.reserve(Geometry.SubMeshIndexCounts.size());
+
+	if (Geometry.MaterialNames.size() != Geometry.SubMeshIndexCounts.size()) {
+		Console::AddLog(Console::STDOutHandle, ELogLevel::Error, ELogCategory::Etc, "Model material group count does not match submesh count: %s", AssetPath.generic_string().c_str());
+		return false;
+	}
+
+	uint32 FirstIndex = 0;
+
+	for (uint32 SubMeshIndex = 0; SubMeshIndex < Geometry.SubMeshIndexCounts.size(); ++SubMeshIndex) {
+		FSubMesh SubMesh{};
+		SubMesh.FirstIndex = FirstIndex;
+		SubMesh.IndexCount = Geometry.SubMeshIndexCounts[SubMeshIndex];
+
+		if (SubMesh.FirstIndex > Geometry.Indices.size() || SubMesh.IndexCount > Geometry.Indices.size() - SubMesh.FirstIndex) {
+			Console::AddLog(Console::STDOutHandle, ELogLevel::Error, ELogCategory::Etc, "Model submesh index range is invalid: %s", AssetPath.generic_string().c_str());
+			return false;
+		}
+
+		FirstIndex += SubMesh.IndexCount;
+
+		const FString& MaterialName = Geometry.MaterialNames[SubMeshIndex];
+		if (!MaterialName.empty()) {
+			if (ImportedMaterial && MaterialGroupResolver) {
+				const std::optional<uint32> MaterialGroupIndex = MaterialGroupResolver(ImportedMaterial, MaterialName);
+				if (MaterialGroupIndex.has_value()) {
+					SubMesh.MaterialGroupIndex = *MaterialGroupIndex;
+				}
+				else {
+					Console::AddLog(Console::STDOutHandle, ELogLevel::Warning, ELogCategory::Etc, "Model MTL group was not found; using material group 0: %s in %s", MaterialName.c_str(), AssetPath.generic_string().c_str());
+				}
+			}
+			else {
+				Console::AddLog(Console::STDOutHandle, ELogLevel::Warning, ELogCategory::Etc, "Model has no usable MTL; using material group 0: %s", AssetPath.generic_string().c_str());
+			}
+		}
+
+		ImportedSubMeshes.push_back(SubMesh);
+	}
+
+	if (FirstIndex != Geometry.Indices.size() || !Make(Device, Geometry.Indices,
+		MakeVertexAttribute<EVertexAttribute::Position>(Geometry.Positions),
+		MakeVertexAttribute<EVertexAttribute::Normal>(Geometry.Normals),
+		MakeVertexAttribute<EVertexAttribute::UV>(Geometry.TexCoords),
+		MakeVertexAttribute<EVertexAttribute::Color>(Geometry.Colors))) {
+		Console::AddLog(Console::STDOutHandle, ELogLevel::Error, ELogCategory::Etc, "Failed to create GPU buffers for model: %s", AssetPath.generic_string().c_str());
+		return false;
+	}
+
+	SubMeshes = std::move(ImportedSubMeshes);
+
+	return true;
 }
 
 ID3D11Buffer* UMesh::GetVertexBuffer(EVertexAttribute Attribute) const {
@@ -170,7 +190,7 @@ bool UMesh::CreateIndexBuffer(ID3D11Device* Device, const std::span<const uint32
 		return false;
 	}
 
-	const size_t ByteSize = InIndices.size_bytes(); 
+	const size_t ByteSize = InIndices.size_bytes();
 
 	if (ByteSize > std::numeric_limits<UINT>::max()) {
 		return false;
@@ -213,5 +233,6 @@ void UMesh::Reset() {
 
 	IndexBuffer.Reset();
 	Indices.clear();
+	SubMeshes.clear();
 
 }

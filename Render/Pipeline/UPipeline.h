@@ -4,6 +4,7 @@
 #include <wrl/client.h>
 
 #include <filesystem>
+#include <array>
 #include <string>
 #include <vector>
 
@@ -33,10 +34,10 @@ struct PipelineUnit {
 
 enum class ERenderMode : size_t {
     Lit,
+    Outline,
     Unlit,
     Wireframe,
     LitWireframe,
-    Outline,
     Max
 };
 
@@ -54,27 +55,30 @@ public:
 public:
 	JG_DECLARE_DERIVED_TYPEINFO(UPipeline, UAsset);
 
-	virtual void Initialize(ID3D11Device* Device, const std::filesystem::path& metaData) override;
+	bool Initialize(ID3D11Device* Device, const std::filesystem::path& PipelinePath);
 
     void Bind(ID3D11DeviceContext* Context) const;
+    void Bind(ID3D11DeviceContext* Context, ERenderMode Mode) const;
     void Reset();
 
-    void SetRenderMode(ERenderMode mode);
-    bool RenderModeSettable(ERenderMode mode);
+    void SetRenderMode(ERenderMode Mode);
+    bool RenderModeSettable(ERenderMode Mode);
+    ERenderMode GetRenderMode() const;
 
 private:
+	bool InitializeFamily(ID3D11Device* Device, const std::filesystem::path& FamilyDirectory);
+    bool InitializeModes(ID3D11Device* Device, const std::array<std::filesystem::path, static_cast<size_t>(ERenderMode::Max)>& ModePaths);
     bool LoadPipelineDescription(const std::filesystem::path& Path, FPipelineDescription& OutDescription);
 
 	bool Make(ID3D11Device* Device, const FPipelineDescription& Description, PipelineUnit& PipelineUnit);
-protected:
 	virtual void Serialize(FArchive& Ar) override;
 
 private:
 	std::filesystem::path OptionFilePath{};
     
-    ERenderMode Mode{ ERenderMode::Lit };
+    size_t ModeIndex{ 0 };
 
-    TFixedArray<PipelineUnit, static_cast<size_t>(ERenderMode::Max)> Pipelines{};
+    std::vector<PipelineUnit> Pipelines{};
 
     size_t PrimaryIndex{ 0 };
 };

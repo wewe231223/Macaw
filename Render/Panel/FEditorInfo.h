@@ -1,18 +1,8 @@
-﻿#pragma once
+#pragma once
 
 #include "PCH.h"
 
 #include "Core/Base/TypeInfo.h"
-
-// =========================================================
-// [State] 양방향 상태 데이터 (TStateChannel 용)
-// =========================================================
-struct FCameraSnapshot
-{
-    FVector3 Position;
-    FRotator Rotation;
-    float FOV;
-};
 
 #define JG_DECLARE_EDITOR_MESSAGE(MessageType) \
     inline static const FTypeInfo TypeInfo{ #MessageType, nullptr, nullptr }; \
@@ -23,25 +13,6 @@ struct FCameraSnapshot
     MessageType& operator=(const MessageType&) = default; \
     MessageType(MessageType&&) noexcept = default; \
     MessageType& operator=(MessageType&&) noexcept = default
-
-struct FMessageSetEditorCameraRequest
-{
-    FVector3 Position;
-    FRotator Rotation;
-    float FOV;
-
-    JG_DECLARE_EDITOR_MESSAGE(FMessageSetEditorCameraRequest);
-
-    FMessageSetEditorCameraRequest(
-        const FVector3& InPosition,
-        const FRotator& InRotation,
-        float InFOV) noexcept
-        : Position(InPosition)
-        , Rotation(InRotation)
-        , FOV(InFOV)
-    {
-    }
-};
 
 // =========================================================
 // [Event] 단방향 메시지 데이터 (FMessageChannel 용)
@@ -86,6 +57,20 @@ struct FMessageLoadScene
     }
 };
 
+struct FMessageImportMesh
+{
+    FString AssetName;
+    FString FilePath;
+    FString MetaPath;
+
+    JG_DECLARE_EDITOR_MESSAGE(FMessageImportMesh);
+
+    FMessageImportMesh(FString InputAssetName, FString InputFilePath, FString InputMetaPath) noexcept
+        : AssetName(std::move(InputAssetName)), FilePath(std::move(InputFilePath)), MetaPath(std::move(InputMetaPath))
+    {
+    }
+};
+
 enum class EGizmoMode : uint8
 {
     Translate,
@@ -97,4 +82,18 @@ enum class EGizmoCoordinateSpace : uint8
 {
     World,
     Local
+};
+
+enum class EStatDisplayMode : uint8
+{
+    Fps,
+    Memory,
+    None
+};
+
+struct FStatDisplayFlags
+{
+    bool bShowFps = false;
+    bool bShowMemory = false;
+    bool bObjectSystem = false;
 };

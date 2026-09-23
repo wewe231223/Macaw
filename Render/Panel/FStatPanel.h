@@ -1,21 +1,31 @@
 ﻿#pragma once
 
-#include "Render/Panel/IEditorPanel.h"
+#include "Render/Panel/FEditorWindow.h"
 #include "Render/Panel/Stats/StatWindow.h"
+#include "FEditorInfo.h"
+#include "../../Core/Console/Console.h"
+#include "../../Core/Channel/FStateChannel.h"
 
-class FStatPanel : public IEditorPanel
-{
+class FStatPanel : public FEditorWindow {
 public:
-    explicit FStatPanel(UWorld& InWorld)
-        : World(&InWorld)
-    {
+    explicit FStatPanel(UWorld& InWorld, FStateChannel<FStatDisplayFlags>::FReader InReader) :
+        FEditorWindow("Stats"), World(&InWorld), ModeReader(std::move(InReader)){
+        //bVisible = false;
     }
 
-    void DrawPanel() override
+    bool CheckVisible()
     {
-        DrawStatWindow(*World);
+        return !(ModeReader.Peek().bShowFps || ModeReader.Peek().bShowMemory || ModeReader.Peek().bObjectSystem);
     }
 
 private:
+    void DrawContents() override {
+        DrawStatContents(*World, ModeReader.Peek());
+    }
+
     UWorld* World = nullptr;
+
+    FStateChannel<FStatDisplayFlags>::FReader ModeReader;
+    FStatDisplayFlags StatFlags;
+
 };

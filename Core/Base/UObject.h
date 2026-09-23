@@ -18,6 +18,8 @@ namespace UObjectSystem
 {
 	FObjectHandle Register(UObject* Object);
 	FObjectHandle RegisterWithGuid(UObject* Object, const FGuid& InGuid);
+	bool TryGet(uint32 index, FObjectHandle& out);
+	uint32 GetItemCount();
 }
 
 class UObject
@@ -53,6 +55,9 @@ public:
 
 	// RTTI
 	JG_DECLARE_ROOT_TYPEINFO(UObject)
+
+	void SetHandle(FObjectHandle InHandle);
+	void RestoreGuid(const FGuid& InGuid); 
 protected:
 	virtual void Serialize(FArchive& Archive) {
 		Archive.Serialize("Guid", Guid);
@@ -65,8 +70,6 @@ private:
 	friend FObjectHandle UObjectSystem::Register(UObject* Object);
 	friend FObjectHandle UObjectSystem::RegisterWithGuid(UObject* Object, const FGuid& InGuid);
 
-	void SetHandle(FObjectHandle InHandle);
-	void RestoreGuid(const FGuid& InGuid); 
 
 private:
 	FGuid Guid;

@@ -24,6 +24,7 @@ public:
     void DrawPanel() override;
 
     FString OpenFileDialog();
+    FString OpenFileDialog(const FString& FilePath, const OPENFILENAMEA& OFN);
 
 private:
     FWorldEditorContext* EditorContext = nullptr;
@@ -35,14 +36,6 @@ private:
     int SelectedComponentIndex = -1;
     int SelectedMeshIndex = 0;
     int SpawnCountToRequest = 1;
-
-    FVector3 CachedCamPos{};
-    FRotator CachedCamRot{};
-
-    // UCameraComponent와 동일하게 radians
-    float CachedFOV = 1.0472f;
-
-    float GridSize{};
 
     size_t RenderModeIndex = 0;
 
