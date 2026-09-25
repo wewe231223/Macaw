@@ -1,29 +1,30 @@
-#include "PCH.h"
+﻿#include "pch.h"
 
 #include "Render/EditorView/SSplitter.h"
 
-FSplitterRatio::FSplitterRatio(float InValue) : Value(std::make_shared<float>(std::clamp(InValue, 0.0f, 1.0f))) {
+FSplitterRatio::FSplitterRatio(float InValue)
+    : mValue(std::make_shared<float>(std::clamp(InValue, 0.0f, 1.0f))) {
 }
 
 float FSplitterRatio::GetValue() const {
-    return *Value;
+    return *mValue;
 }
 
 void FSplitterRatio::SetValue(float InValue) {
-    *Value = std::clamp(InValue, 0.0f, 1.0f);
+    *mValue = std::clamp(InValue, 0.0f, 1.0f);
 }
 
 bool FSplitterRatio::SharesStateWith(const FSplitterRatio& Other) const {
-    return Value == Other.Value;
+    return mValue == Other.mValue;
 }
 
 void SSplitter::SetRatio(float InRatio) {
-    Ratio.SetValue(InRatio);
+    mRatio.SetValue(InRatio);
     UpdateLayout();
 }
 
 void SSplitter::SetRatioState(const FSplitterRatio& InRatio) {
-    Ratio = InRatio;
+    mRatio = InRatio;
 }
 
 void SSplitterH::SetRect(const FRect& InRect) {
@@ -32,31 +33,31 @@ void SSplitterH::SetRect(const FRect& InRect) {
 }
 
 void SSplitterH::DragTo(FPoint Point) {
-    const int32 AvailableHeight = std::max(0, Rect.GetHeight() - HandleThickness);
+    const Int32 AvailableHeight{std::max(0, mRect.GetHeight() - mHandleThickness)};
     if (AvailableHeight == 0) {
         return;
     }
 
-    Ratio.SetValue((static_cast<float>(Point.Y - Rect.Min.Y) - HandleThickness * 0.5f) / static_cast<float>(AvailableHeight));
+    mRatio.SetValue((static_cast<float>(Point.mY - mRect.mMin.mY) - mHandleThickness * 0.5f) / static_cast<float>(AvailableHeight));
     UpdateLayout();
 }
 
 void SSplitterH::UpdateLayout() {
-    if (First == nullptr || Second == nullptr) {
-        HandleRect = {};
+    if (mFirst == nullptr || mSecond == nullptr) {
+        mHandleRect = {};
         return;
     }
 
-    const int32 Thickness = std::clamp(HandleThickness, 0, std::max(0, Rect.GetHeight()));
-    const int32 AvailableHeight = std::max(0, Rect.GetHeight() - Thickness);
-    const int32 Minimum = std::min(MinimumSideSize, AvailableHeight / 2);
-    const int32 FirstHeight = std::clamp(static_cast<int32>(std::round(AvailableHeight * Ratio.GetValue())), Minimum, AvailableHeight - Minimum);
-    Ratio.SetValue(AvailableHeight > 0 ? static_cast<float>(FirstHeight) / AvailableHeight : 0.5f);
+    const Int32 Thickness{std::clamp(mHandleThickness, 0, std::max(0, mRect.GetHeight()))};
+    const Int32 AvailableHeight{std::max(0, mRect.GetHeight() - Thickness)};
+    const Int32 Minimum{std::min(mMinimumSideSize, AvailableHeight / 2)};
+    const Int32 FirstHeight{std::clamp(static_cast<Int32>(std::round(AvailableHeight * mRatio.GetValue())), Minimum, AvailableHeight - Minimum)};
+    mRatio.SetValue(AvailableHeight > 0 ? static_cast<float>(FirstHeight) / AvailableHeight : 0.5f);
 
-    const int32 SplitY = Rect.Min.Y + FirstHeight;
-    HandleRect = { { Rect.Min.X, SplitY }, { Rect.Max.X, SplitY + Thickness } };
-    First->SetRect({ Rect.Min, { Rect.Max.X, HandleRect.Min.Y } });
-    Second->SetRect({ { Rect.Min.X, HandleRect.Max.Y }, Rect.Max });
+    const Int32 SplitY{mRect.mMin.mY + FirstHeight};
+    mHandleRect = {{mRect.mMin.mX, SplitY}, {mRect.mMax.mX, SplitY + Thickness}};
+    mFirst->SetRect({mRect.mMin, {mRect.mMax.mX, mHandleRect.mMin.mY}});
+    mSecond->SetRect({{mRect.mMin.mX, mHandleRect.mMax.mY}, mRect.mMax});
 }
 
 void SSplitterV::SetRect(const FRect& InRect) {
@@ -65,29 +66,46 @@ void SSplitterV::SetRect(const FRect& InRect) {
 }
 
 void SSplitterV::DragTo(FPoint Point) {
-    const int32 AvailableWidth = std::max(0, Rect.GetWidth() - HandleThickness);
+    const Int32 AvailableWidth{std::max(0, mRect.GetWidth() - mHandleThickness)};
     if (AvailableWidth == 0) {
         return;
     }
 
-    Ratio.SetValue((static_cast<float>(Point.X - Rect.Min.X) - HandleThickness * 0.5f) / static_cast<float>(AvailableWidth));
+    mRatio.SetValue((static_cast<float>(Point.mX - mRect.mMin.mX) - mHandleThickness * 0.5f) / static_cast<float>(AvailableWidth));
     UpdateLayout();
 }
 
 void SSplitterV::UpdateLayout() {
-    if (First == nullptr || Second == nullptr) {
-        HandleRect = {};
+    if (mFirst == nullptr || mSecond == nullptr) {
+        mHandleRect = {};
         return;
     }
 
-    const int32 Thickness = std::clamp(HandleThickness, 0, std::max(0, Rect.GetWidth()));
-    const int32 AvailableWidth = std::max(0, Rect.GetWidth() - Thickness);
-    const int32 Minimum = std::min(MinimumSideSize, AvailableWidth / 2);
-    const int32 FirstWidth = std::clamp(static_cast<int32>(std::round(AvailableWidth * Ratio.GetValue())), Minimum, AvailableWidth - Minimum);
-    Ratio.SetValue(AvailableWidth > 0 ? static_cast<float>(FirstWidth) / AvailableWidth : 0.5f);
+    const Int32 Thickness{std::clamp(mHandleThickness, 0, std::max(0, mRect.GetWidth()))};
+    const Int32 AvailableWidth{std::max(0, mRect.GetWidth() - Thickness)};
+    const Int32 Minimum{std::min(mMinimumSideSize, AvailableWidth / 2)};
+    const Int32 FirstWidth{std::clamp(static_cast<Int32>(std::round(AvailableWidth * mRatio.GetValue())), Minimum, AvailableWidth - Minimum)};
+    mRatio.SetValue(AvailableWidth > 0 ? static_cast<float>(FirstWidth) / AvailableWidth : 0.5f);
 
-    const int32 SplitX = Rect.Min.X + FirstWidth;
-    HandleRect = { { SplitX, Rect.Min.Y }, { SplitX + Thickness, Rect.Max.Y } };
-    First->SetRect({ Rect.Min, { HandleRect.Min.X, Rect.Max.Y } });
-    Second->SetRect({ { HandleRect.Max.X, Rect.Min.Y }, Rect.Max });
+    const Int32 SplitX{mRect.mMin.mX + FirstWidth};
+    mHandleRect = {{SplitX, mRect.mMin.mY}, {SplitX + Thickness, mRect.mMax.mY}};
+    mFirst->SetRect({mRect.mMin, {mHandleRect.mMin.mX, mRect.mMax.mY}});
+    mSecond->SetRect({{mHandleRect.mMax.mX, mRect.mMin.mY}, mRect.mMax});
+}
+
+void SSplitter::SetChildren(SWindow* InFirst, SWindow* InSecond) {
+    mFirst = InFirst;
+    mSecond = InSecond;
+}
+
+float SSplitter::GetRatio() const {
+    return mRatio.GetValue();
+}
+
+const FSplitterRatio& SSplitter::GetRatioState() const {
+    return mRatio;
+}
+
+const FRect& SSplitter::GetHandleRect() const {
+    return mHandleRect;
 }

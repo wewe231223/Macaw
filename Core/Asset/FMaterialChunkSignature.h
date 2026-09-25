@@ -5,34 +5,31 @@
 #include <array>
 #include <functional>
 
-inline constexpr uint8 MAX_MATERIAL_TEXTURE_FIELDS = 12;
+inline constexpr Uint8 MaxMaterialTextureFields{12};
 
 struct FMaterialChunkSignature {
-	std::array<FAssetHandle, MAX_MATERIAL_TEXTURE_FIELDS> TextureHandles{};
-	uint8 TextureFieldCount{ 0 };
+    std::array<FAssetHandle, MaxMaterialTextureFields> mTextureHandles{};
+    Uint8 mTextureFieldCount{0};
 
-	bool IsValid() const;
-	FAssetHandle GetTextureHandle(uint8 TextureFieldIndex) const;
-	size_t GetHash() const noexcept;
+    bool IsValid() const;
+    FAssetHandle GetTextureHandle(Uint8 TextureFieldIndex) const;
+    std::size_t GetHash() const noexcept;
 
-	bool operator==(const FMaterialChunkSignature& Other) const = default;
-	bool operator!=(const FMaterialChunkSignature& Other) const = default;
+    bool operator==(const FMaterialChunkSignature& Other) const = default;
+    bool operator!=(const FMaterialChunkSignature& Other) const = default;
 };
 
 class FMaterialChunkSignatureBuilder {
 public:
-	bool AddTexture(FAssetHandle TextureHandle);
+    bool AddTexture(FAssetHandle TextureHandle);
 
-	FMaterialChunkSignature Build() const;
-	void Reset();
+    FMaterialChunkSignature Build() const;
+    void Reset();
 
 private:
-	FMaterialChunkSignature mSignature{};
+    FMaterialChunkSignature mSignature{};
 };
 
 namespace std {
-	template<>
-	struct hash<FMaterialChunkSignature> {
-		size_t operator()(const FMaterialChunkSignature& Signature) const noexcept;
-	};
+template <> struct hash<FMaterialChunkSignature> { std::size_t operator()(const FMaterialChunkSignature& Signature) const noexcept; };
 }

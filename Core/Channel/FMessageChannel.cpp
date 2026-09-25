@@ -1,105 +1,114 @@
-﻿#include "PCH.h"
+﻿#include "pch.h"
 #include "FMessageChannel.h"
 
 FMessageChannel::FSender FMessageChannel::GetSender() noexcept {
-	return FMessageChannel::FSender{ *this };
+    return FMessageChannel::FSender{*this};
 }
 
 FMessageDispatchResult FMessageChannel::Dispatch() {
-    if (IsDispatching) {
-        RedispatchRequested = true;
-        return { .Deferred = true };
+    if (mIsDispatching) {
+        mRedispatchRequested = true;
+        return {.mDeferred = true};
     }
 
     struct FDispatchScope {
-        explicit FDispatchScope(bool& InIsDispatching) noexcept : IsDispatching(InIsDispatching) {
-            IsDispatching = true;
+        explicit FDispatchScope(bool& InIsDispatching) noexcept
+            : mIsDispatching(InIsDispatching) {
+            mIsDispatching = true;
         }
 
         ~FDispatchScope() noexcept {
-            IsDispatching = false;
+            mIsDispatching = false;
         }
 
-        bool& IsDispatching;
+        bool& mIsDispatching;
     };
 
-    FDispatchScope Scope{ IsDispatching };
-    FMessageDispatchResult Result;
+    FDispatchScope Scope{mIsDispatching};
+    FMessageDispatchResult Result{};
 
     do {
-        RedispatchRequested = false;
+        mRedispatchRequested = false;
 
-        const std::size_t DispatchCount = Messages.size();
+        const std::size_t DispatchCount{mMessages.size()};
 
-        for (std::size_t Index = 0; Index < DispatchCount; ++Index) {
-            FMessage Message = std::move(Messages.front());
-            Messages.pop_front();
+        for (std::size_t Index{0}; Index < DispatchCount; ++Index) {
+            FMessage Message{std::move(mMessages.front())};
+            mMessages.pop_front();
 
-            FMessageHandler* Handler = FindHandler(Message.GetTypeInfo());
+            FMessageHandler* Handler{FindHandler(Message.GetTypeInfo())};
 
             if (Handler == nullptr) {
-                ++Result.UnhandledCount;
+                ++Result.mUnhandledCount;
                 continue;
             }
 
             Handler->Invoke(Message);
-            ++Result.DispatchedCount;
+            ++Result.mDispatchedCount;
         }
 
         CommitPendingHandlers();
-    } while (RedispatchRequested);
+    } while (mRedispatchRequested);
 
     return Result;
 }
 
 void FMessageChannel::Clear() noexcept {
-	Messages.clear();
+    mMessages.clear();
 }
 
 bool FMessageChannel::IsEmpty() const noexcept {
-	return Messages.empty();
+    return mMessages.empty();
 }
 
 bool FMessageChannel::IsFull() const noexcept {
-	return Capacity != 0 && Messages.size() >= Capacity;
+    return mCapacity != 0 && mMessages.size() >= mCapacity;
 }
 
 std::size_t FMessageChannel::Size() const noexcept {
-	return Messages.size();
+    return mMessages.size();
 }
 
 std::size_t FMessageChannel::GetCapacity() const noexcept {
-	return Capacity;
+    return mCapacity;
 }
 
 FMessageHandler* FMessageChannel::FindHandler(const FTypeInfo* Type) noexcept {
-	const auto Iterator = std::ranges::find_if(Handlers, [&Type](const FMessageHandler& Handler)
-		{
-			return Handler.Handles(Type);
-		});
+    const auto Iterator{std::ranges::find_if(mHandlers, [&Type](const FMessageHandler& Handler) {
+        return Handler.Handles(Type);
+    })};
 
-	return Iterator != Handlers.end() ? &(*Iterator) : nullptr;
+    return Iterator != mHandlers.end() ? &(*Iterator) : nullptr;
 }
 
 FMessageHandler* FMessageChannel::FindPendingHandler(const FTypeInfo* Type) noexcept {
-	const auto Iterator = std::ranges::find_if(PendingHandlers, [&Type](const FMessageHandler& Handler)
-		{
-			return Handler.Handles(Type);
-		});
+    const auto Iterator{std::ranges::find_if(mPendingHandlers, [&Type](const FMessageHandler& Handler) {
+        return Handler.Handles(Type);
+    })};
 
-	return Iterator != PendingHandlers.end() ? &(*Iterator) : nullptr;
+    return Iterator != mPendingHandlers.end() ? &(*Iterator) : nullptr;
 }
 
 void FMessageChannel::CommitPendingHandlers() {
-	if (PendingHandlers.empty()) {
-		return;
-	}
+    if (mPendingHandlers.empty()) {
+        return;
+    }
 
-	Handlers.reserve(Handlers.size() + PendingHandlers.size());
+    mHandlers.reserve(mHandlers.size() + mPendingHandlers.size());
 
-	for (FMessageHandler& Handler : PendingHandlers) {
-		Handlers.emplace_back(std::move(Handler));
-	}
+    for (FMessageHandler& Handler : mPendingHandlers) {
+        mHandlers.emplace_back(std::move(Handler));
+    }
 
-	PendingHandlers.clear();
+    mPendingHandlers.clear();
+}
+
+FMessageChannel::FSender::FSender(FMessageChannel& InChannel) noexcept
+    : mChannel(&InChannel) {
+}
+
+FMessageChannel::FMessageChannel(std::size_t InCapacity, std::size_t ExpectedHandlerCount)
+    : mCapacity(InCapacity) {
+    mHandlers.reserve(ExpectedHandlerCount);
+    mPendingHandlers.reserve(ExpectedHandlerCount);
 }

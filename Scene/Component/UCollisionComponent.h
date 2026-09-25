@@ -5,7 +5,7 @@
 #include "Serialize/FArchive.h"
 
 class ILineRenderer;
-enum class ELineDepthMode : uint8;
+enum class ELineDepthMode : Uint8;
 
 class UCollisionComponent : public UPrimitiveComponent {
 public:
@@ -16,7 +16,7 @@ public:
     void OnUnregister() override;
 
     bool IsCollisionEnabled() const;
-    void SetCollisionEnabled(bool bEnabled);
+    void SetCollisionEnabled(bool BEnabled);
     void DrawPanels(FPropertyEditorContext& Context) override;
 
     bool Raycast(const FRay& Ray, float& OutDistance) const;
@@ -27,11 +27,12 @@ public:
     JG_DECLARE_ABSTRACT_DERIVED_TYPEINFO(UCollisionComponent, UPrimitiveComponent)
 
     virtual bool RaycastBounds(const FRay& Ray, float& OutDistance) const = 0;
-    virtual class UMeshComponent* GetMeshComponent() const { return nullptr; }
+
+    virtual class UMeshComponent* GetMeshComponent() const;
 
 protected:
     void Serialize(FArchive& Archive) override;
 
 private:
-    bool bCollisionEnabled = true;
+    bool mBCollisionEnabled{true};
 };

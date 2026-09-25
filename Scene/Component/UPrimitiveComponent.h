@@ -13,20 +13,21 @@ public:
     JG_DECLARE_ABSTRACT_DERIVED_TYPEINFO(UPrimitiveComponent, USceneComponent)
 
     bool IsVisible() const;
-    void SetVisible(bool bInVisible);
+    void SetVisible(bool BInVisible);
     void DrawPanels(FPropertyEditorContext& Context) override;
     void OnRegister() override;
     void OnUnregister() override;
 
-    virtual void MakeRender(FActorProbe& OutProbe) const {};
+    virtual void MakeRender(FActorProbe& OutProbe) const;
 
-    void SetPickingBox(const DirectX::BoundingOrientedBox& Box) { PickingBox = Box; }
-    const DirectX::BoundingOrientedBox& GetPickingBox() const { return PickingBox; }
+    void SetPickingBox(const DirectX::BoundingOrientedBox& Box);
+
+    const DirectX::BoundingOrientedBox& GetPickingBox() const;
 
 protected:
     void Serialize(FArchive& Archive) override;
 
 private:
-    bool bVisible = true;
-    DirectX::BoundingOrientedBox PickingBox{ DirectX::XMFLOAT3{0.f,0.f,0.f}, DirectX::XMFLOAT3{0.f,0.f,0.f}, DirectX::XMFLOAT4{0.f,0.f,0.f, 1.f} };
+    bool mBVisible{true};
+    DirectX::BoundingOrientedBox mPickingBox{DirectX::XMFLOAT3{0.f, 0.f, 0.f}, DirectX::XMFLOAT3{0.f, 0.f, 0.f}, DirectX::XMFLOAT4{0.f, 0.f, 0.f, 1.f}};
 };

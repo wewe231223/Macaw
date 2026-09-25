@@ -25,5 +25,5 @@ protected:
     void OnDeinitialize() override;
 
 private:
-    TArray<TObjectRef<UCollisionComponent>> Components;
+    TArray<TObjectRef<UCollisionComponent>> mComponents{};
 };

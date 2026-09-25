@@ -1,30 +1,50 @@
-﻿#include "PCH.h"
+﻿#include "pch.h"
 #include "UMaterial.h"
 
-void UMaterial::BuildGPUData(uint32 GroupIndex, FMaterialGPUSlot& OutSlot) const {
-	if (GroupIndex != 0) {
-		OutSlot = {};
-		return;
-	}
+void UMaterial::BuildGPUData(Uint32 GroupIndex, FMaterialGPUSlot& OutSlot) const {
+    if (GroupIndex != 0) {
+        OutSlot = {};
+        return;
+    }
 
-	BuildGPUData(OutSlot);
+    BuildGPUData(OutSlot);
 }
 
 FMaterialChunkSignature UMaterial::BuildChunkSignature() const {
-	return {};
+    return {};
 }
 
-FMaterialChunkSignature UMaterial::BuildChunkSignature(uint32 GroupIndex) const {
-	return GroupIndex == 0 ? BuildChunkSignature() : FMaterialChunkSignature{};
+FMaterialChunkSignature UMaterial::BuildChunkSignature(Uint32 GroupIndex) const {
+    return GroupIndex == 0 ? BuildChunkSignature() : FMaterialChunkSignature{};
 }
 
 void UMaterial::Finalize(IAssetQuery* Query) {
 }
 
-std::optional<uint32> UMaterial::FindGroupIndex(const FString& Name) const {
-	return std::nullopt;
+std::optional<Uint32> UMaterial::FindGroupIndex(const FString& Name) const {
+    return std::nullopt;
 }
 
 void UMaterial::Serialize(FArchive& Ar) {
-	UAsset::Serialize(Ar);
+    UAsset::Serialize(Ar);
+}
+
+Uint32 UMaterial::GetGPUIndex() const {
+    return mGpuIndices.empty() ? UINT32_MAX : mGpuIndices[0];
+}
+
+Uint32 UMaterial::GetGPUIndex(Uint32 GroupIndex) const {
+    return GroupIndex < mGpuIndices.size() ? mGpuIndices[GroupIndex] : UINT32_MAX;
+}
+
+std::span<const Uint32> UMaterial::GetMaterialIndices() const {
+    return mGpuIndices;
+}
+
+Uint32 UMaterial::GetGPUDataCount() const {
+    return 1;
+}
+
+void UMaterial::MarkGPUDataDirty() {
+    mBGpuDataDirty = true;
 }

@@ -4,72 +4,58 @@
 
 class FLineRenderer : public ILineRenderer {
 private:
-	struct FQuadVertex {
-		FVector2D Corner{};
-	};
+    struct FQuadVertex { FVector2D mCorner{}; };
 
-	struct FLineInstance {
-		FVector4 StartAndWidth{};
-		FVector4 EndAndPadding{};
-		FVector4 Color{};
-	};
+    struct FLineInstance { FVector4 mStartAndWidth{}; FVector4 mEndAndPadding{}; FVector4 mColor{}; };
 
-	struct FLineFrameConstants {
-		FMatrix ViewProjection{};
-		FVector4 Viewport{};
-		FVector4 GridFade{};
-	};
+    struct FLineFrameConstants { FMatrix mViewProjection{}; FVector4 mViewport{}; FVector4 mGridFade{}; };
 
-	static_assert(sizeof(FLineFrameConstants) == sizeof(uint32) * 24);
+    static_assert(sizeof(FLineFrameConstants) == sizeof(Uint32) * 24);
 
-	struct FLineBatch {
-		TArray<FLineInstance> Instances{};
-		FGraphicsBuffer InstanceBuffer{};
-		uint32 Capacity{ 0 };
-	};
+    struct FLineBatch { TArray<FLineInstance> mInstances{}; FGraphicsBuffer mInstanceBuffer{}; Uint32 mCapacity{0}; };
 
 public:
-	FLineRenderer() = default;
-	~FLineRenderer() = default;
+    FLineRenderer() = default;
+    ~FLineRenderer() = default;
 
-	FLineRenderer(const FLineRenderer&) = delete;
-	FLineRenderer& operator=(const FLineRenderer&) = delete;
+    FLineRenderer(const FLineRenderer&) = delete;
+    FLineRenderer& operator=(const FLineRenderer&) = delete;
 
-	FLineRenderer(FLineRenderer&&) noexcept = default;
-	FLineRenderer& operator=(FLineRenderer&&) noexcept = default;
+    FLineRenderer(FLineRenderer&&) noexcept = default;
+    FLineRenderer& operator=(FLineRenderer&&) noexcept = default;
 
 public:
-	void Initialize(ID3D11Device* InDevice, uint32 InitialLineCapacity = 1024);
-	void Reset();
+    void Initialize(ID3D11Device* InDevice, Uint32 InitialLineCapacity = 1024);
+    void Reset();
 
-	void AddLine(const FVector3& Start, const FVector3& End, const FVector4& Color, float WidthPixels = 1.0f, ELineDepthMode DepthMode = ELineDepthMode::DepthTested);
-	void AddGridLine(const FVector3& Start, const FVector3& End, const FVector4& Color, float WidthPixels, float GridSpacing, ELineDepthMode DepthMode);
-	void AddRay(const FVector3& Origin, const FVector3& Direction, float Length, const FVector4& Color, float WidthPixels = 1.0f, ELineDepthMode DepthMode = ELineDepthMode::DepthTested);
+    void AddLine(const FVector3& Start, const FVector3& End, const FVector4& Color, float WidthPixels = 1.0f, ELineDepthMode DepthMode = ELineDepthMode::DepthTested);
+    void AddGridLine(const FVector3& Start, const FVector3& End, const FVector4& Color, float WidthPixels, float GridSpacing, ELineDepthMode DepthMode);
+    void AddRay(const FVector3& Origin, const FVector3& Direction, float Length, const FVector4& Color, float WidthPixels = 1.0f, ELineDepthMode DepthMode = ELineDepthMode::DepthTested);
 
-	void Render(ID3D11DeviceContext* Context, const FLineViewData& ViewData);
-	void Clear();
+    void Render(ID3D11DeviceContext* Context, const FLineViewData& ViewData);
+    void Clear();
 
-	[[nodiscard]] uint32 GetLineCount() const;
-	[[nodiscard]] bool IsEmpty() const;
-
-private:
-	void AddLineInternal(const FVector3& Start, const FVector3& End, const FVector4& Color, float WidthPixels, ELineDepthMode DepthMode, float GridSpacing);
-	bool CreateQuadGeometry(ID3D11Device* Device);
-	bool CreateInstanceBuffer(ID3D11Device* Device, FLineBatch& Batch, uint32 Capacity);
-	bool EnsureCapacity(ID3D11Device* Device, FLineBatch& Batch, uint32 RequiredCapacity);
-	bool RenderBatch(ID3D11Device* Device, ID3D11DeviceContext* Context, FLineBatch& Batch, const UPipeline* Pipeline);
+    [[nodiscard]] Uint32 GetLineCount() const;
+    [[nodiscard]] bool IsEmpty() const;
 
 private:
-	ID3D11Device* Device{ nullptr };
+    void AddLineInternal(const FVector3& Start, const FVector3& End, const FVector4& Color, float WidthPixels, ELineDepthMode DepthMode, float GridSpacing);
+    bool CreateQuadGeometry(ID3D11Device* Device);
+    bool CreateInstanceBuffer(ID3D11Device* Device, FLineBatch& Batch, Uint32 Capacity);
+    bool EnsureCapacity(ID3D11Device* Device, FLineBatch& Batch, Uint32 RequiredCapacity);
+    bool RenderBatch(ID3D11Device* Device, ID3D11DeviceContext* Context, FLineBatch& Batch, const UPipeline* Pipeline);
 
-	std::unique_ptr<UPipeline> DepthTestedPipeline{};
-	std::unique_ptr<UPipeline> OverlayPipeline{};
+private:
+    ID3D11Device* mDevice{nullptr};
 
-	FGraphicsBuffer QuadVertexBuffer{};
-	FGraphicsBuffer QuadIndexBuffer{};
+    std::unique_ptr<UPipeline> mDepthTestedPipeline{};
+    std::unique_ptr<UPipeline> mOverlayPipeline{};
 
-	FLineBatch DepthTestedBatch{};
-	FLineBatch OverlayBatch{};
+    FGraphicsBuffer mQuadVertexBuffer{};
+    FGraphicsBuffer mQuadIndexBuffer{};
 
-	TGraphicsRootConstants<24> FrameConstants{};
+    FLineBatch mDepthTestedBatch{};
+    FLineBatch mOverlayBatch{};
+
+    TGraphicsRootConstants<24> mFrameConstants{};
 };

@@ -8,8 +8,8 @@
 class UMaterial;
 
 struct FMaterialBufferEntry {
-	UMaterial* Material{ nullptr };
-	uint32 GroupIndex{ 0 };
+    UMaterial* mMaterial{nullptr};
+    Uint32 mGroupIndex{0};
 };
 
 class FMaterialBuffer {
@@ -24,38 +24,32 @@ public:
     FMaterialBuffer& operator=(FMaterialBuffer&&) = delete;
 
 public:
-    bool Initialize(ID3D11Device* Device, uint32 MaxMaterialCount);
+    bool Initialize(ID3D11Device* Device, Uint32 MaxMaterialCount);
 
     bool RegisterMaterial(UMaterial* Material);
     void UnregisterMaterial(UMaterial* Material);
 
     void Flush(ID3D11DeviceContext* DeviceContext);
 
-    ID3D11Buffer* GetBuffer() const { return Buffer.Get(); }
-    ID3D11ShaderResourceView* const* GetSRV() const { return SRV.GetAddressOf(); }
+    ID3D11Buffer* GetBuffer() const;
 
-    uint32 GetMaxMaterialCount() const { return MaxMaterialCount; }
-    void Reset()
-    {
-        MaxMaterialCount = 0;
-        Slots.clear();
-        Materials.clear();
-        FreeIndices.clear();
-        Buffer.Reset();
-        SRV.Reset();
-    }
+    ID3D11ShaderResourceView* const* GetSRV() const;
+
+    Uint32 GetMaxMaterialCount() const;
+
+    void Reset();
 
 private:
-    uint32 AllocateSlot();
-    void ReleaseSlot(uint32 Index);
+    Uint32 AllocateSlot();
+    void ReleaseSlot(Uint32 Index);
 
 private:
-    uint32 MaxMaterialCount{ 0 };
+    Uint32 mMaxMaterialCount{0};
 
-    TArray<FMaterialGPUSlot> Slots{};
-    TArray<FMaterialBufferEntry> Materials{};
-    TArray<uint32> FreeIndices{};
+    TArray<FMaterialGPUSlot> mSlots{};
+    TArray<FMaterialBufferEntry> mMaterials{};
+    TArray<Uint32> mFreeIndices{};
 
-    Microsoft::WRL::ComPtr<ID3D11Buffer> Buffer{};
-    Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> SRV{};
+    Microsoft::WRL::ComPtr<ID3D11Buffer> mBuffer{};
+    Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> mSrv{};
 };

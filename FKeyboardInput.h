@@ -10,14 +10,13 @@
 #include "EKeyState.h"
 
 struct FViewportKeyboardNavigationInput {
-    float ForwardAxis = 0.0f;
-    float RightAxis = 0.0f;
-    float UpAxis = 0.0f;
-    float DeltaTime = 0.0f;
+    float mForwardAxis{0.0f};
+    float mRightAxis{0.0f};
+    float mUpAxis{0.0f};
+    float mDeltaTime{0.0f};
 };
 
-class FKeyboardInput
-{
+class FKeyboardInput {
 public:
     FKeyboardInput();
 
@@ -25,18 +24,17 @@ public:
 
     void ProcessWindowMessage(UINT Message, WPARAM WParam, LPARAM LParam);
 
-    FViewportKeyboardNavigationInput ConsumeViewportNavigation(float DeltaTime, bool bKeyboardCaptureByUI);
+    FViewportKeyboardNavigationInput ConsumeViewportNavigation(float DeltaTime, bool BKeyboardCaptureByUi);
 
     EKeyState GetKeyState(std::uint8_t VirtualKey) const;
 
 private:
-    static constexpr std::size_t KeyCount = 256;
+    static constexpr std::size_t KeyCount{256};
 
     bool IsHeld(std::uint8_t VirtualKey) const;
     void AdvanceKeyStates();
     void ResetKeyStates();
 
-    std::array<EKeyState, KeyCount> KeyStates;
-    std::optional<FMessageChannel::FSender> WorldCommandSender;
-
+    std::array<EKeyState, KeyCount> mKeyStates{};
+    std::optional<FMessageChannel::FSender> mWorldCommandSender{};
 };

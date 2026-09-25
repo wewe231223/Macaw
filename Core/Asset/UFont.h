@@ -8,34 +8,31 @@
 struct ID3D11DeviceContext;
 struct ID3D11ShaderResourceView;
 
-struct FFontGlyph
-{
-    uint32 GlyphIndex = 0;
+struct FFontGlyph {
+    Uint32 mGlyphIndex{0};
 
-    uint32 AtlasX = 0;
-    uint32 AtlasY = 0;
-    uint32 BitmapWidth = 0;
-    uint32 BitmapHeight = 0;
+    Uint32 mAtlasX{0};
+    Uint32 mAtlasY{0};
+    Uint32 mBitmapWidth{0};
+    Uint32 mBitmapHeight{0};
 
-    int32 BearingX = 0;
-    int32 BearingY = 0;
-    float AdvanceX = 0.0f;
-    float AdvanceY = 0.0f;
+    Int32 mBearingX{0};
+    Int32 mBearingY{0};
+    float mAdvanceX{0.0f};
+    float mAdvanceY{0.0f};
 
-    FVector2 UVMin{};
-    FVector2 UVMax{};
+    FVector2 mUvMin{};
+    FVector2 mUvMax{};
 };
 
-struct FFontMetrics
-{
-    float BakePixelHeight = 0.0f;
-    float Ascender = 0.0f;
-    float Descender = 0.0f;
-    float LineHeight = 0.0f;
+struct FFontMetrics {
+    float mBakePixelHeight{0.0f};
+    float mAscender{0.0f};
+    float mDescender{0.0f};
+    float mLineHeight{0.0f};
 };
 
-class UFont : public UAsset
-{
+class UFont : public UAsset {
 public:
     UFont() = default;
     ~UFont() override = default;

@@ -1,33 +1,33 @@
-﻿#include "PCH.h"
+﻿#include "pch.h"
 
 #include "UWorldSubsystem.h"
 
 void UWorldSubsystem::Initialize(UWorld* World) {
-    if (bInitialized || World == nullptr) {
+    if (mBInitialized || World == nullptr) {
         return;
     }
 
-    this->World = World;
-    bInitialized = true;
+    this->mWorld = World;
+    mBInitialized = true;
     OnInitialize();
 }
 
 void UWorldSubsystem::Deinitialize() {
-    if (!bInitialized) {
+    if (!mBInitialized) {
         return;
     }
 
     OnDeinitialize();
-    bInitialized = false;
-    World = nullptr;
+    mBInitialized = false;
+    mWorld = nullptr;
 }
 
 UWorld* UWorldSubsystem::GetWorld() const {
-    return World;
+    return mWorld;
 }
 
 bool UWorldSubsystem::IsInitialized() const {
-    return bInitialized;
+    return mBInitialized;
 }
 
 void UWorldSubsystem::OnInitialize() {

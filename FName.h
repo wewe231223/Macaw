@@ -4,114 +4,78 @@
 #include <string_view>
 
 // Max size of name, including the null terminator
-enum {NAME_SIZE = 1024};
-
-struct FNameEntryId
-{
-	constexpr FNameEntryId() : Value(0) {}
-	
-	constexpr uint32 ToUnstableInt() const { return Value; }
-	static FNameEntryId FromUnstableInt(uint32 UnstableInt)
-	{
-		FNameEntryId Id;
-		Id.Value = UnstableInt;
-		return Id;
-	}
-
-	// operator
-	bool operator==(const FNameEntryId& Rhs) const
-	{
-		return this->Value == Rhs.Value;
-	}
-
-	bool operator!=(const FNameEntryId& Rhs) const
-	{
-		return this->Value != Rhs.Value;
-	}
-
-private:
-	uint32 Value;
+enum {
+    NameSize = 1024
 };
 
-struct FNameEntryHeader
-{
-	uint16 bIsWide : 1;
-	uint16 Len : 15;
+struct FNameEntryId {
+    FNameEntryId();
+
+    Uint32 ToUnstableInt() const;
+
+    static FNameEntryId FromUnstableInt(Uint32 UnstableInt);
+
+    // operator
+    bool operator==(const FNameEntryId& Rhs) const;
+
+    bool operator!=(const FNameEntryId& Rhs) const;
+
+private:
+    Uint32 mValue{};
 };
 
-struct FNameEntry
-{
-private:
-	FNameEntryHeader Header;
-	FNameEntryId ComparisonId;
-	uint8 NameData[0];
+struct FNameEntryHeader {
+    Uint16 mBIsWide : 1 {0};
+    Uint16 mLen : 15 {0};
+};
 
+struct FNameEntry {
 public:
-	FNameEntry(const FNameEntry&) = delete;
-	FNameEntry(FNameEntry&&) = delete;
-	FNameEntry& operator=(const FNameEntry&) = delete;
-	FNameEntry& operator=(FNameEntry&&) = delete;
+    FNameEntry(const FNameEntry&) = delete;
+    FNameEntry(FNameEntry&&) = delete;
+    FNameEntry& operator=(const FNameEntry&) = delete;
+    FNameEntry& operator=(FNameEntry&&) = delete;
 
-	bool IsWide() const { return Header.bIsWide; }
-	int32 GetNameLength() const { return Header.Len; }
-	FNameEntryId GetComparisonId() const { return ComparisonId; }
-	void SetComparisonId(FNameEntryId NewId) { ComparisonId = NewId; }
+    bool IsWide() const;
 
-	const char* GetName() const { return (char*)NameData; }
-};
+    Int32 GetNameLength() const;
 
-class FName
-{
-public:
-	constexpr FName() = default;
-	FName(std::string_view str);
-	FName(const char* pStr);
-	FName(FString str);
-	FName(std::string_view BaseName, int32 InNumber);
+    FNameEntryId GetComparisonId() const;
 
-	int32 Compare(const FName& Rhs) const;
-	bool operator==(const FName& Rhs) const;
-	bool operator<(const FName& Rhs) const;
+    void SetComparisonId(FNameEntryId NewId);
 
-	FString ToString() const;
-	
-	FNameEntryId GetDisplayId() const { return DisplayId; }
-	FNameEntryId GetComparisonId() const { return ComparisonId; }
-	int32 GetNumber() const { return Number; }
+    const char* GetName() const;
 
 private:
-	FNameEntryId DisplayId;
-	FNameEntryId ComparisonId;
-	int32 Number = 0;
+    FNameEntryHeader mHeader{};
+    FNameEntryId mComparisonId{};
+    Uint8 mNameData[0]{};
 };
 
-inline void SplitNameAndNumber(std::string_view InString, std::string_view& OutString, int32& OutNumber)
-{
-	if (InString.empty())
-	{
-		return;
-	}
+class FName {
+public:
+    constexpr FName() = default;
+    FName(std::string_view Str);
+    FName(const char* PStr);
+    FName(FString Str);
+    FName(std::string_view BaseName, Int32 InNumber);
 
-	OutString = InString;
-	OutNumber = 0;
+    Int32 Compare(const FName& Rhs) const;
+    bool operator==(const FName& Rhs) const;
+    bool operator<(const FName& Rhs) const;
 
-	const size_t Sep = InString.rfind('_');
-	if (Sep == std::string_view::npos || Sep == 0 || Sep + 1 == InString.length())
-	{
-		return;
-	}
+    FString ToString() const;
 
-	int32 Num = 0;
-	for (size_t i = Sep + 1; i < InString.length(); ++i)
-	{
-		if (!std::isdigit(static_cast<unsigned char>(InString[i])))
-		{
-			return;
-		}
+    FNameEntryId GetDisplayId() const;
 
-		Num = Num * 10 + (InString[i] - '0');
-	}
+    FNameEntryId GetComparisonId() const;
 
-	OutString = InString.substr(0, Sep);
-	OutNumber = Num + 1;
-}
+    Int32 GetNumber() const;
+
+private:
+    FNameEntryId mDisplayId{};
+    FNameEntryId mComparisonId{};
+    Int32 mNumber{0};
+};
+
+void SplitNameAndNumber(std::string_view InString, std::string_view& OutString, Int32& OutNumber);

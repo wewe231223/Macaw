@@ -3,40 +3,48 @@
 #include "FMath.h"
 #include "Serialize/FArchive.h"
 
-struct FTransform
-{
+struct FTransform {
 public:
     FTransform() = default;
 
-    FTransform(const FVector3& InPosition, const FRotator& InRotation, const FVector3& InScale)
-        : Position(InPosition), Rotation(FQuat::FromRotator(InRotation)), RotationEuler(InRotation), Scale(InScale) {}
+    FTransform(const FVector3& InPosition, const FRotator& InRotation, const FVector3& InScale);
 
-    FTransform(const FVector3& InPosition, const FQuat& InRotation, const FVector3& InScale)
-        : Position(InPosition), Rotation(InRotation), Scale(InScale) {
-        Rotation.Normalize();
-        RotationEuler = Rotation.ToRotator();
-    }
+    FTransform(const FVector3& InPosition, const FQuat& InRotation, const FVector3& InScale);
 
-    const FVector3& GetPosition() const { return Position; }
-    const FVector3& GetLocation() const { return Position; }
-    const FRotator& GetRotation() const { return RotationEuler; }
-    const FQuat& GetRotationQuaternion() const { return Rotation; }
-    const FVector3& GetScale() const { return Scale; }
-    const FVector3& GetScale3D() const { return Scale; }
-    bool IsAbsoluteLocation() const { return bAbsoluteLocation; }
-    bool IsAbsoluteRotation() const { return bAbsoluteRotation; }
-    bool IsAbsoluteScale() const { return bAbsoluteScale; }
+    const FVector3& GetPosition() const;
 
-    void SetPosition(const FVector3& InPosition) { Position = InPosition; }
-    void SetLocation(const FVector3& Location) { Position = Location; }
+    const FVector3& GetLocation() const;
+
+    const FRotator& GetRotation() const;
+
+    const FQuat& GetRotationQuaternion() const;
+
+    const FVector3& GetScale() const;
+
+    const FVector3& GetScale3D() const;
+
+    bool IsAbsoluteLocation() const;
+
+    bool IsAbsoluteRotation() const;
+
+    bool IsAbsoluteScale() const;
+
+    void SetPosition(const FVector3& InPosition);
+
+    void SetLocation(const FVector3& Location);
+
     void SetRotation(const FRotator& InRotation);
-    void SetRotation(const FQuat& InRotation); 
+    void SetRotation(const FQuat& InRotation);
 
-    void SetScale(const FVector3& InScale) { Scale = InScale; }
-    void SetScale3D(const FVector3& Scale) { this->Scale = Scale; }
-    void SetAbsoluteLocation(bool bInAbsoluteLocation) { bAbsoluteLocation = bInAbsoluteLocation; }
-    void SetAbsoluteRotation(bool bInAbsoluteRotation) { bAbsoluteRotation = bInAbsoluteRotation; }
-    void SetAbsoluteScale(bool bInAbsoluteScale) { bAbsoluteScale = bInAbsoluteScale; }
+    void SetScale(const FVector3& InScale);
+
+    void SetScale3D(const FVector3& Scale);
+
+    void SetAbsoluteLocation(bool BInAbsoluteLocation);
+
+    void SetAbsoluteRotation(bool BInAbsoluteRotation);
+
+    void SetAbsoluteScale(bool BInAbsoluteScale);
 
     FMatrix ToMatrixWithScale() const;
     FMatrix ToMatrixNoScale() const;
@@ -46,11 +54,11 @@ public:
     void Serialize(FArchive& Archive);
 
 private:
-    FVector3 Position{ 0.0f, 0.0f, 0.0f };
-    FQuat Rotation{};
-    FRotator RotationEuler{};
-    FVector3 Scale{ 1.0f, 1.0f, 1.0f };
-    bool bAbsoluteLocation = false;
-    bool bAbsoluteRotation = false;
-    bool bAbsoluteScale = false;
+    FVector3 mPosition{0.0f, 0.0f, 0.0f};
+    FQuat mRotation{};
+    FRotator mRotationEuler{};
+    FVector3 mScale{1.0f, 1.0f, 1.0f};
+    bool mBAbsoluteLocation{false};
+    bool mBAbsoluteRotation{false};
+    bool mBAbsoluteScale{false};
 };

@@ -23,6 +23,6 @@ protected:
     virtual void OnDeinitialize();
 
 private:
-    UWorld* World = nullptr;
-    bool bInitialized = false;
+    UWorld* mWorld{nullptr};
+    bool mBInitialized{false};
 };

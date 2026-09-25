@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include <memory>
 
@@ -13,33 +13,34 @@ public:
     bool SharesStateWith(const FSplitterRatio& Other) const;
 
 private:
-    std::shared_ptr<float> Value;
+    std::shared_ptr<float> mValue{};
 };
 
 class SSplitter : public SWindow {
 public:
-    void SetChildren(SWindow* InFirst, SWindow* InSecond) {
-        First = InFirst;
-        Second = InSecond;
-    }
+    void SetChildren(SWindow* InFirst, SWindow* InSecond);
 
     void SetRatio(float InRatio);
-    float GetRatio() const { return Ratio.GetValue(); }
+
+    float GetRatio() const;
+
     void SetRatioState(const FSplitterRatio& InRatio);
-    const FSplitterRatio& GetRatioState() const { return Ratio; }
-    const FRect& GetHandleRect() const { return HandleRect; }
+
+    const FSplitterRatio& GetRatioState() const;
+
+    const FRect& GetHandleRect() const;
 
     virtual void DragTo(FPoint Point) = 0;
 
 protected:
     virtual void UpdateLayout() = 0;
 
-    SWindow* First{ nullptr };
-    SWindow* Second{ nullptr };
-    FRect HandleRect{};
-    int32 HandleThickness{ 6 };
-    FSplitterRatio Ratio{};
-    int32 MinimumSideSize{ 100 };
+    SWindow* mFirst{nullptr};
+    SWindow* mSecond{nullptr};
+    FRect mHandleRect{};
+    Int32 mHandleThickness{6};
+    FSplitterRatio mRatio{};
+    Int32 mMinimumSideSize{100};
 };
 
 // 수평 분할: 첫 번째 자식은 위, 두 번째 자식은 아래에 배치한다.

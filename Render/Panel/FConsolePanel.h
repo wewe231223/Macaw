@@ -6,16 +6,12 @@
 
 class FConsolePanel : public FEditorWindow {
 public:
-    explicit FConsolePanel(FConsoleOutputHandle InHandle, FStateChannel<FStatDisplayFlags>::FWriter Writer)
-        : FEditorWindow("Console"), Handle(InHandle), ModeWriter(std::move(Writer)) {
-    }
+    explicit FConsolePanel(FConsoleOutputHandle InHandle, FStateChannel<FStatDisplayFlags>::FWriter Writer);
 
 private:
-    void DrawContents() override {
-        DrawConsoleContents(Handle, ModeWriter);
-    }
+    void DrawContents() override;
 
-    FConsoleOutputHandle Handle;
+    FConsoleOutputHandle mHandle{};
 
-    FStateChannel<FStatDisplayFlags>::FWriter ModeWriter;
+    FStateChannel<FStatDisplayFlags>::FWriter mModeWriter{};
 };

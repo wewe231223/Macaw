@@ -16,23 +16,23 @@
 #include "Wrapper.h"
 
 struct PipelineUnit {
-    FShader VertexShader{};
-    FShader PixelShader{};
-    FShader GeometryShader{};
+    FShader mVertexShader{};
+    FShader mPixelShader{};
+    FShader mGeometryShader{};
 
-    Microsoft::WRL::ComPtr<ID3D11InputLayout> InputLayout;
-    Microsoft::WRL::ComPtr<ID3D11RasterizerState> RasterizerState;
-    Microsoft::WRL::ComPtr<ID3D11BlendState> BlendState;
-    Microsoft::WRL::ComPtr<ID3D11DepthStencilState> DepthStencilState;
+    Microsoft::WRL::ComPtr<ID3D11InputLayout> mInputLayout{};
+    Microsoft::WRL::ComPtr<ID3D11RasterizerState> mRasterizerState{};
+    Microsoft::WRL::ComPtr<ID3D11BlendState> mBlendState{};
+    Microsoft::WRL::ComPtr<ID3D11DepthStencilState> mDepthStencilState{};
 
-    D3D11_PRIMITIVE_TOPOLOGY PrimitiveTopology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+    D3D11_PRIMITIVE_TOPOLOGY mPrimitiveTopology{D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST};
 
-    bool Initialized{ false };
+    bool mInitialized{false};
 
-    UINT StencilRef{ 0 };
+    UINT mStencilRef{0};
 };
 
-enum class ERenderMode : size_t {
+enum class ERenderMode : std::size_t {
     Lit,
     Outline,
     Unlit,
@@ -53,9 +53,9 @@ public:
     UPipeline& operator=(UPipeline&&) noexcept = default;
 
 public:
-	JG_DECLARE_DERIVED_TYPEINFO(UPipeline, UAsset);
+    JG_DECLARE_DERIVED_TYPEINFO(UPipeline, UAsset);
 
-	bool Initialize(ID3D11Device* Device, const std::filesystem::path& PipelinePath);
+    bool Initialize(ID3D11Device* Device, const std::filesystem::path& PipelinePath);
 
     void Bind(ID3D11DeviceContext* Context) const;
     void Bind(ID3D11DeviceContext* Context, ERenderMode Mode) const;
@@ -66,21 +66,19 @@ public:
     ERenderMode GetRenderMode() const;
 
 private:
-	bool InitializeFamily(ID3D11Device* Device, const std::filesystem::path& FamilyDirectory);
-    bool InitializeModes(ID3D11Device* Device, const std::array<std::filesystem::path, static_cast<size_t>(ERenderMode::Max)>& ModePaths);
+    bool InitializeFamily(ID3D11Device* Device, const std::filesystem::path& FamilyDirectory);
+    bool InitializeModes(ID3D11Device* Device, const std::array<std::filesystem::path, static_cast<std::size_t>(ERenderMode::Max)>& ModePaths);
     bool LoadPipelineDescription(const std::filesystem::path& Path, FPipelineDescription& OutDescription);
 
-	bool Make(ID3D11Device* Device, const FPipelineDescription& Description, PipelineUnit& PipelineUnit);
-	virtual void Serialize(FArchive& Ar) override;
+    bool Make(ID3D11Device* Device, const FPipelineDescription& Description, PipelineUnit& PipelineUnit);
+    virtual void Serialize(FArchive& Ar) override;
 
 private:
-	std::filesystem::path OptionFilePath{};
-    
-    size_t ModeIndex{ 0 };
+    std::filesystem::path mOptionFilePath{};
 
-    std::vector<PipelineUnit> Pipelines{};
+    std::size_t mModeIndex{0};
 
-    size_t PrimaryIndex{ 0 };
+    std::vector<PipelineUnit> mPipelines{};
+
+    std::size_t mPrimaryIndex{0};
 };
-
-

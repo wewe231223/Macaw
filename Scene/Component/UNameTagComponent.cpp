@@ -1,4 +1,4 @@
-#include "PCH.h"
+﻿#include "pch.h"
 #include "UNameTagComponent.h"
 #include "Core/Asset/UFont.h"
 
@@ -16,8 +16,7 @@ void UNameTagComponent::SetTargetActor(AActor* InTargetActor) {
     if (InTargetActor == nullptr || InTargetActor == GetOwner()) {
         mTargetActor.Reset();
         mExplicitTargetGuid = {};
-    }
-    else {
+    } else {
         mTargetActor.Set(InTargetActor);
         mExplicitTargetGuid = InTargetActor->GetGuid();
     }
@@ -53,13 +52,13 @@ FGuid UNameTagComponent::GetObjectGuid() const {
         return mExplicitTargetGuid;
     }
 
-    const AActor* Owner{ GetOwner() };
+    const AActor* Owner{GetOwner()};
 
     return Owner != nullptr ? Owner->GetGuid() : FGuid{};
 }
 
 bool UNameTagComponent::MakeTextRender(FTextProbe& OutProbe) const {
-    AActor* Target{ GetTargetActor() };
+    AActor* Target{GetTargetActor()};
 
     if (Target == nullptr || Target->GetRootComponent() == nullptr) {
         return false;
@@ -69,18 +68,18 @@ bool UNameTagComponent::MakeTextRender(FTextProbe& OutProbe) const {
         return false;
     }
 
-    const FMatrix TargetWorld{ Target->GetActorTransform().ToMatrixWithScale() };
-    const FVector3 TargetOrigin{ TargetWorld.Translation() };
-    FVector3 Minimum{ TargetOrigin };
-    FVector3 Maximum{ TargetOrigin };
-    bool HasMeshBounds{ false };
+    const FMatrix TargetWorld{Target->GetActorTransform().ToMatrixWithScale()};
+    const FVector3 TargetOrigin{TargetWorld.Translation()};
+    FVector3 Minimum{TargetOrigin};
+    FVector3 Maximum{TargetOrigin};
+    bool HasMeshBounds{false};
 
     for (const std::unique_ptr<UActorComponent>& Component : Target->GetComponents()) {
         if (!Component->GetTypeInfo()->IsA(UMeshComponent::StaticTypeInfo())) {
             continue;
         }
 
-        const UMeshComponent* MeshComponent{ static_cast<const UMeshComponent*>(Component.get()) };
+        const UMeshComponent* MeshComponent{static_cast<const UMeshComponent*>(Component.get())};
         if (!MeshComponent->GetMeshHandle()) {
             continue;
         }
@@ -91,29 +90,28 @@ bool UNameTagComponent::MakeTextRender(FTextProbe& OutProbe) const {
         WorldBox.GetCorners(Corners);
 
         for (const DirectX::XMFLOAT3& Corner : Corners) {
-            const FVector3 Position{ Corner };
+            const FVector3 Position{Corner};
             if (!HasMeshBounds) {
                 Minimum = Position;
                 Maximum = Position;
                 HasMeshBounds = true;
-            }
-            else {
-                Minimum.x = std::min(Minimum.x, Position.x);
-                Minimum.y = std::min(Minimum.y, Position.y);
-                Minimum.z = std::min(Minimum.z, Position.z);
-                Maximum.x = std::max(Maximum.x, Position.x);
-                Maximum.y = std::max(Maximum.y, Position.y);
-                Maximum.z = std::max(Maximum.z, Position.z);
+            } else {
+                Minimum.mX = std::min(Minimum.mX, Position.mX);
+                Minimum.mY = std::min(Minimum.mY, Position.mY);
+                Minimum.mZ = std::min(Minimum.mZ, Position.mZ);
+                Maximum.mX = std::max(Maximum.mX, Position.mX);
+                Maximum.mY = std::max(Maximum.mY, Position.mY);
+                Maximum.mZ = std::max(Maximum.mZ, Position.mZ);
             }
         }
     }
 
-    const FVector3 Center{ HasMeshBounds ? (Minimum + Maximum) * 0.5f : TargetOrigin };
-    // TargetLocalOffset이 Target의 로컬 공간 Offset이므로 Target의 회전과 scale까지 적용한다.    
-    const FVector3 Offset{ TargetWorld.TransformPosition(mTargetLocalOffset) - TargetOrigin };
+    const FVector3 Center{HasMeshBounds ? (Minimum + Maximum) * 0.5f : TargetOrigin};
+    // TargetLocalOffset이 Target의 로컬 공간 Offset이므로 Target의 회전과 scale까지 적용한다.
+    const FVector3 Offset{TargetWorld.TransformPosition(mTargetLocalOffset) - TargetOrigin};
     // NameTag 컴포넌트 자신의 scale 등은 유지하고, 렌더링 원점만 Target 위치로 교체한다.
     // 현재 Text Shader는 World에서 translation만 사용하므로 실질적으로 AnchorWorld가 Billboard 원점이 된다.
-    OutProbe.World.Translation(Center + Offset);
+    OutProbe.mWorld.Translation(Center + Offset);
     OutProbe.mScreenBoundsExtent = HasMeshBounds ? (Maximum - Minimum) * 0.5f : FVector3{};
     OutProbe.mScreenUpPadding = GetCharacterHeight() * 0.5f + 0.2f;
     return true;
@@ -135,8 +133,8 @@ bool UNameTagComponent::ResolveLoadedReferences() {
     if (!mExplicitTargetGuid.IsValid()) {
         return GetOwner() != nullptr;
     }
-    const FObjectHandle TargetHandle{ UObjectSystem::FindHandleByGuid(mExplicitTargetGuid) };
-    UObject* Object{ UObjectSystem::Resolve(TargetHandle) };
+    const FObjectHandle TargetHandle{UObjectSystem::FindHandleByGuid(mExplicitTargetGuid)};
+    UObject* Object{UObjectSystem::Resolve(TargetHandle)};
     if (Object == nullptr || !Object->GetTypeInfo()->IsA(AActor::StaticTypeInfo())) {
         return false;
     }
@@ -145,12 +143,11 @@ bool UNameTagComponent::ResolveLoadedReferences() {
 }
 
 void UNameTagComponent::RefreshGuidText() {
-    const FGuid TargetGuid{ GetObjectGuid() };
+    const FGuid TargetGuid{GetObjectGuid()};
 
     if (TargetGuid.IsValid()) {
         SetText(TargetGuid.ToString());
-    }
-    else {
+    } else {
         SetText("");
     }
 }
@@ -160,20 +157,32 @@ void UNameTagComponent::DrawPanels(FPropertyEditorContext& Context) {
         return;
     }
 
-    Context.DrawColor("Color", GetColor(), [this](const FVector4& NewColor) { SetColor(NewColor);});
-    Context.DrawFloat("Character Height", GetCharacterHeight(), 0.01f, 0.001f, 1000.0f, [this](float NewHeight) {SetCharacterHeight(NewHeight);});
-    Context.DrawFloat("Letter Spacing", GetLetterSpacing(), 0.01f, -100.0f, 100.0f, [this](float NewSpacing) {SetLetterSpacing(NewSpacing);});
-    Context.DrawFloat("Line Spacing", GetLineSpacing(), 0.01f, -100.0f, 100.0f, [this](float NewSpacing) {SetLineSpacing(NewSpacing); });
+    Context.DrawColor("Color", GetColor(), [this](const FVector4& NewColor) {
+        SetColor(NewColor);
+    });
+    Context.DrawFloat("Character Height", GetCharacterHeight(), 0.01f, 0.001f, 1000.0f, [this](float NewHeight) {
+        SetCharacterHeight(NewHeight);
+    });
+    Context.DrawFloat("Letter Spacing", GetLetterSpacing(), 0.01f, -100.0f, 100.0f, [this](float NewSpacing) {
+        SetLetterSpacing(NewSpacing);
+    });
+    Context.DrawFloat("Line Spacing", GetLineSpacing(), 0.01f, -100.0f, 100.0f, [this](float NewSpacing) {
+        SetLineSpacing(NewSpacing);
+    });
 
-    AActor* Owner{ GetOwner() };
-    UWorld* World{ Owner != nullptr ? Owner->GetWorld() : nullptr };
-    FAssetRegistry* Registry{ World != nullptr ? World->GetAssetRegistry() : nullptr };
+    AActor* Owner{GetOwner()};
+    UWorld* World{Owner != nullptr ? Owner->GetWorld() : nullptr};
+    FAssetRegistry* Registry{World != nullptr ? World->GetAssetRegistry() : nullptr};
 
     if (Registry == nullptr) {
         Context.DrawDisabledText("Font/Pipeline: Asset registry unavailable");
         return;
     }
 
-    Context.DrawAssetPicker("Font", *Registry, *UFont::StaticTypeInfo(), GetFontHandle(), [this](FAssetHandle NewHandle) {SetFontHandle(NewHandle);});
-    Context.DrawAssetPicker("Pipeline", *Registry, *UPipeline::StaticTypeInfo(), GetPipelineHandle(), [this](FAssetHandle NewHandle) {SetPipelineHandle(NewHandle); });
+    Context.DrawAssetPicker("Font", *Registry, *UFont::StaticTypeInfo(), GetFontHandle(), [this](FAssetHandle NewHandle) {
+        SetFontHandle(NewHandle);
+    });
+    Context.DrawAssetPicker("Pipeline", *Registry, *UPipeline::StaticTypeInfo(), GetPipelineHandle(), [this](FAssetHandle NewHandle) {
+        SetPipelineHandle(NewHandle);
+    });
 }

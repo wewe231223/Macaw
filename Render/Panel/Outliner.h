@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "ImGui/imgui.h"
 #include "Render/Panel/FEditorWindow.h"
@@ -26,7 +26,7 @@ private:
     void DrawActor(AActor& Actor);
     void DrawRootActors();
 
-    UWorld* World;
-    FWorldEditorContext* EditorContext;
-    ImGuiTextFilter ActorFilter;
+    UWorld* mWorld{};
+    FWorldEditorContext* mEditorContext{};
+    ImGuiTextFilter mActorFilter{};
 };

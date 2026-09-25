@@ -1,269 +1,254 @@
-#include "PCH.h"
+﻿#include "pch.h"
 
 #include "FAssetThumbnailRenderer.h"
 #include "../Renderer.h"
 
-#include "../Core/Asset/UMaterial.h"
-#include "../Core/Asset/UMesh.h"
+#include "../../Core/Asset/UMaterial.h"
+#include "../../Core/Asset/UMesh.h"
 
 #include <algorithm>
 
 namespace {
-	constexpr uint32 ThumbnailSize = 256;
+constexpr Uint32 ThumbnailSize{256};
 
-	constexpr const char* DefaultMaterialPath = "/Game/System/Material/Default.mtl";
-	constexpr const char* SphereMeshPath = "/Game/System/Mesh/Sphere.bin";
-	constexpr const char* StaticMeshPipelinePath = "/Game/Pipeline/Base";
-	constexpr const char* MaterialPipelinePath = "/Game/Pipeline/TexturedBase.json";
+constexpr const char* DefaultMaterialPath{"/Game/System/Material/Default.mtl"};
+constexpr const char* SphereMeshPath{"/Game/System/Mesh/Sphere.bin"};
+constexpr const char* StaticMeshPipelinePath{"/Game/Pipeline/Base"};
+constexpr const char* MaterialPipelinePath{"/Game/Pipeline/TexturedBase.json"};
 }
 
 void FAssetThumbnailRenderer::Create(FRenderer* InRenderer, FAssetRegistry* InAssetRegistry) {
-	Renderer = InRenderer;
-	AssetRegistry = InAssetRegistry;
+    mRenderer = InRenderer;
+    mAssetRegistry = InAssetRegistry;
 
-	if (Renderer == nullptr || AssetRegistry == nullptr) {
-		return;
-	}
+    if (mRenderer == nullptr || mAssetRegistry == nullptr) {
+        return;
+    }
 
-	mPendingAssetHandles.clear();
-	mPendingAssetIndex = 0;
+    mPendingAssetHandles.clear();
+    mPendingAssetIndex = 0;
 
-	for (const FAssetEntry& Entry : AssetRegistry->GetAssetEntries()) {
-		if (Entry.Asset == nullptr) {
-			continue;
-		}
+    for (const FAssetEntry& Entry : mAssetRegistry->GetAssetEntries()) {
+        if (Entry.mAsset == nullptr) {
+            continue;
+        }
 
-		if (Entry.AssetType != EAssetType::Mesh && Entry.AssetType != EAssetType::Material) {
-			continue;
-		}
+        if (Entry.mAssetType != EAssetType::Mesh && Entry.mAssetType != EAssetType::Material) {
+            continue;
+        }
 
-		mPendingAssetHandles.push_back(Entry.Handle);
-	}
+        mPendingAssetHandles.push_back(Entry.mHandle);
+    }
 }
 
-void FAssetThumbnailRenderer::Tick(uint32 MaxThumbnailCount) {
-	uint32 RenderedThumbnailCount{};
+void FAssetThumbnailRenderer::Tick(Uint32 MaxThumbnailCount) {
+    Uint32 RenderedThumbnailCount{};
 
-	while (mPendingAssetIndex < mPendingAssetHandles.size() && RenderedThumbnailCount < MaxThumbnailCount) {
-		RenderThumbnail(mPendingAssetHandles[mPendingAssetIndex]);
-		++mPendingAssetIndex;
-		++RenderedThumbnailCount;
-	}
+    while (mPendingAssetIndex < mPendingAssetHandles.size() && RenderedThumbnailCount < MaxThumbnailCount) {
+        RenderThumbnail(mPendingAssetHandles[mPendingAssetIndex]);
+        ++mPendingAssetIndex;
+        ++RenderedThumbnailCount;
+    }
 
-	if (mPendingAssetIndex == mPendingAssetHandles.size()) {
-		mPendingAssetHandles.clear();
-		mPendingAssetIndex = 0;
-	}
+    if (mPendingAssetIndex == mPendingAssetHandles.size()) {
+        mPendingAssetHandles.clear();
+        mPendingAssetIndex = 0;
+    }
 }
 
 void FAssetThumbnailRenderer::RenderThumbnail(FAssetHandle AssetHandle) {
-	const FAssetEntry* Entry = FindAssetEntry(AssetHandle);
+    const FAssetEntry* Entry{FindAssetEntry(AssetHandle)};
 
-	if (Entry == nullptr) {
-		return;
-	}
+    if (Entry == nullptr) {
+        return;
+    }
 
-	RenderThumbnail(*Entry);
+    RenderThumbnail(*Entry);
 }
 
 void FAssetThumbnailRenderer::RenderMaterialPreview(FAssetHandle MaterialHandle, FSceneRenderSurface& Surface) {
-	const FAssetEntry* Entry{ FindAssetEntry(MaterialHandle) };
-	if (Entry == nullptr || Entry->AssetType != EAssetType::Material || !Surface.IsValid()) {
-		return;
-	}
+    const FAssetEntry* Entry{FindAssetEntry(MaterialHandle)};
+    if (Entry == nullptr || Entry->mAssetType != EAssetType::Material || !Surface.IsValid()) {
+        return;
+    }
 
-	RenderThumbnail(*Entry, &Surface);
+    RenderThumbnail(*Entry, &Surface);
 }
 
 void FAssetThumbnailRenderer::RenderThumbnail(const FAssetEntry& Entry, FSceneRenderSurface* PreviewSurface) {
-	if (Renderer == nullptr || AssetRegistry == nullptr || Entry.Asset == nullptr) {
-		return;
-	}
+    if (mRenderer == nullptr || mAssetRegistry == nullptr || Entry.mAsset == nullptr) {
+        return;
+    }
 
-	FActorProbe ActorProbe{};
+    FActorProbe ActorProbe{};
 
-	if (Entry.AssetType == EAssetType::Mesh) {
-		ActorProbe.MeshHandle = Entry.Handle;
-		ActorProbe.MaterialHandle = AssetRegistry->FindAsset(FAssetPath{DefaultMaterialPath});
-		ActorProbe.PipelineHandle = AssetRegistry->FindAsset(FAssetPath{StaticMeshPipelinePath});
-	}
-	else if (Entry.AssetType == EAssetType::Material) {
-		ActorProbe.MeshHandle = AssetRegistry->FindAsset(FAssetPath{SphereMeshPath});
-		ActorProbe.MaterialHandle = Entry.Handle;
-		ActorProbe.PipelineHandle = AssetRegistry->FindAsset(FAssetPath{MaterialPipelinePath});
-	}
-	else {
-		return;
-	}
+    if (Entry.mAssetType == EAssetType::Mesh) {
+        ActorProbe.mMeshHandle = Entry.mHandle;
+        ActorProbe.mMaterialHandle = mAssetRegistry->FindAsset(FAssetPath{DefaultMaterialPath});
+        ActorProbe.mPipelineHandle = mAssetRegistry->FindAsset(FAssetPath{StaticMeshPipelinePath});
+    } else if (Entry.mAssetType == EAssetType::Material) {
+        ActorProbe.mMeshHandle = mAssetRegistry->FindAsset(FAssetPath{SphereMeshPath});
+        ActorProbe.mMaterialHandle = Entry.mHandle;
+        ActorProbe.mPipelineHandle = mAssetRegistry->FindAsset(FAssetPath{MaterialPipelinePath});
+    } else {
+        return;
+    }
 
-	UMesh* Mesh = AssetRegistry->ResolveAsset<UMesh>(ActorProbe.MeshHandle);
+    UMesh* Mesh{mAssetRegistry->ResolveAsset<UMesh>(ActorProbe.mMeshHandle)};
 
-	UMaterial* Material = AssetRegistry->ResolveAsset<UMaterial>(ActorProbe.MaterialHandle);
+    UMaterial* Material{mAssetRegistry->ResolveAsset<UMaterial>(ActorProbe.mMaterialHandle)};
 
-	if (Mesh == nullptr || Material == nullptr || !ActorProbe.PipelineHandle) {
-		return;
-	}
+    if (Mesh == nullptr || Material == nullptr || !ActorProbe.mPipelineHandle) {
+        return;
+    }
 
-	ActorProbe.World = BuildMeshTransform(*Mesh);
+    ActorProbe.mWorld = BuildMeshTransform(*Mesh);
 
-	FRenderProbe Probe{};
-	Probe.ActorProbes.push_back(ActorProbe);
+    FRenderProbe Probe{};
+    Probe.mActorProbes.push_back(ActorProbe);
 
-	FLightProbe LightProbe{};
-	LightProbe.Type = ELightType::Directional;
-	LightProbe.Direction = FVector{ -0.5f, -0.5f, -1.0f };
-	LightProbe.Color = FVector{ 1.0f, 1.0f, 1.0f };
-	LightProbe.Intensity = 1.0f;
+    FLightProbe LightProbe{};
+    LightProbe.mType = ELightType::Directional;
+    LightProbe.mDirection = FVector{-0.5f, -0.5f, -1.0f};
+    LightProbe.mColor = FVector{1.0f, 1.0f, 1.0f};
+    LightProbe.mIntensity = 1.0f;
 
-	Probe.LightProbes.push_back(LightProbe);
+    Probe.mLightProbes.push_back(LightProbe);
 
-	FSceneRenderSurface* Surface{ PreviewSurface };
-	if (Surface == nullptr) {
-		const uint64 ThumbnailKey{ MakeThumbnailKey(Entry.Handle) };
-		FThumbnail& Thumbnail{ Thumbnails[ThumbnailKey] };
-		if (Thumbnail.Surface == nullptr) {
-			Thumbnail.Surface = std::make_unique<FSceneRenderSurface>();
-		}
-		Thumbnail.Surface->InitializeOffscreen(Renderer->GetDevice(), ThumbnailSize, ThumbnailSize);
-		if (!Thumbnail.Surface->IsValid()) {
-			Thumbnail.Surface.reset();
-			return;
-		}
-		Surface = Thumbnail.Surface.get();
-	}
+    FSceneRenderSurface* Surface{PreviewSurface};
+    if (Surface == nullptr) {
+        const Uint64 ThumbnailKey{MakeThumbnailKey(Entry.mHandle)};
+        FThumbnail& Thumbnail{mThumbnails[ThumbnailKey]};
+        if (Thumbnail.mSurface == nullptr) {
+            Thumbnail.mSurface = std::make_unique<FSceneRenderSurface>();
+        }
+        Thumbnail.mSurface->InitializeOffscreen(mRenderer->GetDevice(), ThumbnailSize, ThumbnailSize);
+        if (!Thumbnail.mSurface->IsValid()) {
+            Thumbnail.mSurface.reset();
+            return;
+        }
+        Surface = Thumbnail.mSurface.get();
+    }
 
-	FRenderSettings RenderSettings{};
-	RenderSettings.ClearColor = FVector4{
-		0.075f,
-		0.080f,
-		0.095f,
-		1.0f
-	};
-	RenderSettings.bRenderSky = false;
+    FRenderSettings RenderSettings{};
+    RenderSettings.mClearColor = FVector4{ 0.075f, 0.080f, 0.095f, 1.0f};
+    RenderSettings.mBRenderSky = false;
 
-	Renderer->RenderScene(*Surface, Probe, BuildCamera(), RenderSettings);
+    mRenderer->RenderScene(*Surface, Probe, BuildCamera(), RenderSettings);
 }
 
 ID3D11ShaderResourceView* FAssetThumbnailRenderer::GetThumbnail(FAssetHandle AssetHandle) const {
-	const auto It = Thumbnails.find(MakeThumbnailKey(AssetHandle));
+    const auto It{mThumbnails.find(MakeThumbnailKey(AssetHandle))};
 
-	if (It == Thumbnails.end() || It->second.Surface == nullptr) {
-		return nullptr;
-	}
+    if (It == mThumbnails.end() || It->second.mSurface == nullptr) {
+        return nullptr;
+    }
 
-	return It->second.Surface->GetShaderResourceView();
+    return It->second.mSurface->GetShaderResourceView();
 }
 
 void FAssetThumbnailRenderer::Terminate() {
-	for (auto& [Key, Thumbnail] : Thumbnails) {
-		if (Thumbnail.Surface != nullptr) {
-			Thumbnail.Surface->Reset();
-		}
-	}
+    for (auto& [Key, Thumbnail] : mThumbnails) {
+        if (Thumbnail.mSurface != nullptr) {
+            Thumbnail.mSurface->Reset();
+        }
+    }
 
-	Thumbnails.clear();
-	mPendingAssetHandles.clear();
-	mPendingAssetIndex = 0;
+    mThumbnails.clear();
+    mPendingAssetHandles.clear();
+    mPendingAssetIndex = 0;
 
-	Renderer = nullptr;
-	AssetRegistry = nullptr;
+    mRenderer = nullptr;
+    mAssetRegistry = nullptr;
 }
 
 FMatrix FAssetThumbnailRenderer::BuildMeshTransform(const UMesh& Mesh) const {
-	const std::span<const FVector> Positions = Mesh.GetVertexAttributeData<EVertexAttribute::Position>();
+    const std::span<const FVector> Positions{Mesh.GetVertexAttributeData<EVertexAttribute::Position>()};
 
-	if (Positions.empty()) {
-		return FMatrix::Identity;
-	}
+    if (Positions.empty()) {
+        return FMatrix::Identity;
+    }
 
-	FVector BoundsMin = Positions.front();
-	FVector BoundsMax = Positions.front();
+    FVector BoundsMin{Positions.front()};
+    FVector BoundsMax{Positions.front()};
 
-	for (const FVector& Position : Positions) {
-		BoundsMin = FVector::Min(BoundsMin, Position);
-		BoundsMax = FVector::Max(BoundsMax, Position);
-	}
+    for (const FVector& Position : Positions) {
+        BoundsMin = FVector::Min(BoundsMin, Position);
+        BoundsMax = FVector::Max(BoundsMax, Position);
+    }
 
-	const FVector Center = (BoundsMin + BoundsMax) * 0.5f;
-	const FVector Size = BoundsMax - BoundsMin;
+    const FVector Center{(BoundsMin + BoundsMax) * 0.5f};
+    const FVector Size{BoundsMax - BoundsMin};
 
-	const float LargestExtent = std::max({
-		Size.x,
-		Size.y,
-		Size.z
-		});
+    const float LargestExtent{std::max({Size.mX, Size.mY, Size.mZ})};
 
-	if (LargestExtent <= 0.0001f) {
-		return FMatrix::Identity;
-	}
+    if (LargestExtent <= 0.0001f) {
+        return FMatrix::Identity;
+    }
 
-	const float UniformScale = 1.6f / LargestExtent;
+    const float UniformScale{1.6f / LargestExtent};
 
-	return FMatrix::CreateTranslation(-Center) * FMatrix::CreateScale( UniformScale, UniformScale, UniformScale);
+    return FMatrix::CreateTranslation(-Center) * FMatrix::CreateScale(UniformScale, UniformScale, UniformScale);
 }
 
 CameraProbe FAssetThumbnailRenderer::BuildCamera() const {
-	const FVector Target{ 0.0f, 0.0f, 0.0f };
-	const FVector Eye{ 3.0f, -3.0f, 2.25f };
+    const FVector Target{0.0f, 0.0f, 0.0f};
+    const FVector Eye{3.0f, -3.0f, 2.25f};
 
-	CameraProbe Camera{};
-	Camera.View = MakeCameraWorldMatrix(Eye, Target).Invert();
-	Camera.Projection = FMatrix::CreatePerspectiveFieldOfView(
-		0.610865f,
-		1.0f,
-		0.1f,
-		100.0f);
+    CameraProbe Camera{};
+    Camera.mView = MakeCameraWorldMatrix(Eye, Target).Invert();
+    Camera.mProjection = FMatrix::CreatePerspectiveFieldOfView(0.610865f, 1.0f, 0.1f, 100.0f);
 
-	Camera.ViewProjection = Camera.View * Camera.Projection;
+    Camera.mViewProjection = Camera.mView * Camera.mProjection;
 
-	return Camera;
+    return Camera;
 }
 
 FMatrix FAssetThumbnailRenderer::MakeCameraWorldMatrix(const FVector& Eye, const FVector& Target) const {
-	FVector Forward = Target - Eye;
-	Forward.Normalize();
+    FVector Forward{Target - Eye};
+    Forward.Normalize();
 
-	FVector Right = FVector::UnitZ.Cross(Forward);
-	Right.Normalize();
+    FVector Right{FVector::UnitZ.Cross(Forward)};
+    Right.Normalize();
 
-	FVector Up = Forward.Cross(Right);
-	Up.Normalize();
+    FVector Up{Forward.Cross(Right)};
+    Up.Normalize();
 
-	FMatrix Result = FMatrix::Identity;
+    FMatrix Result{FMatrix::Identity};
 
-	Result.m[0][0] = Right.x;
-	Result.m[0][1] = Right.y;
-	Result.m[0][2] = Right.z;
+    Result.m_[0][0] = Right.mX;
+    Result.m_[0][1] = Right.mY;
+    Result.m_[0][2] = Right.mZ;
 
-	Result.m[1][0] = Up.x;
-	Result.m[1][1] = Up.y;
-	Result.m[1][2] = Up.z;
+    Result.m_[1][0] = Up.mX;
+    Result.m_[1][1] = Up.mY;
+    Result.m_[1][2] = Up.mZ;
 
-	Result.m[2][0] = Forward.x;
-	Result.m[2][1] = Forward.y;
-	Result.m[2][2] = Forward.z;
+    Result.m_[2][0] = Forward.mX;
+    Result.m_[2][1] = Forward.mY;
+    Result.m_[2][2] = Forward.mZ;
 
-	Result.m[3][0] = Eye.x;
-	Result.m[3][1] = Eye.y;
-	Result.m[3][2] = Eye.z;
+    Result.m_[3][0] = Eye.mX;
+    Result.m_[3][1] = Eye.mY;
+    Result.m_[3][2] = Eye.mZ;
 
-	return Result;
+    return Result;
 }
 
 const FAssetEntry* FAssetThumbnailRenderer::FindAssetEntry(FAssetHandle AssetHandle) const {
-	if (AssetRegistry == nullptr) {
-		return nullptr;
-	}
+    if (mAssetRegistry == nullptr) {
+        return nullptr;
+    }
 
-	for (const FAssetEntry& Entry : AssetRegistry->GetAssetEntries()) {
-		if (Entry.Handle == AssetHandle) {
-			return &Entry;
-		}
-	}
+    for (const FAssetEntry& Entry : mAssetRegistry->GetAssetEntries()) {
+        if (Entry.mHandle == AssetHandle) {
+            return &Entry;
+        }
+    }
 
-	return nullptr;
+    return nullptr;
 }
 
-uint64 FAssetThumbnailRenderer::MakeThumbnailKey(FAssetHandle AssetHandle) {
-	return (static_cast<uint64>(AssetHandle.Generation) << 32) | static_cast<uint64>(AssetHandle.ID);
+Uint64 FAssetThumbnailRenderer::MakeThumbnailKey(FAssetHandle AssetHandle) {
+    return (static_cast<Uint64>(AssetHandle.mGeneration) << 32) | static_cast<Uint64>(AssetHandle.mId);
 }

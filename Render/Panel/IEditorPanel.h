@@ -3,28 +3,20 @@
 class FRenderer;
 class FAssetRegistry;
 
-class IEditorPanel
-{
+class IEditorPanel {
 public:
     virtual ~IEditorPanel() = default;
 
-
     virtual void DrawPanel() = 0;
 
+    virtual void RenderOffscreen(FRenderer&, FAssetRegistry&);
 
-    virtual void RenderOffscreen(FRenderer& , FAssetRegistry&) {}
-    virtual void ReleaseRenderResources() {}
+    virtual void ReleaseRenderResources();
 
-    bool IsVisible() const 
-    {
-        return bVisible;
-    }
+    bool IsVisible() const;
 
-    void SetVisible(bool bInVisible) 
-    {
-        bVisible = bInVisible;
-    }
+    void SetVisible(bool BInVisible);
 
 protected:
-    bool bVisible = true;
+    bool mBVisible{true};
 };

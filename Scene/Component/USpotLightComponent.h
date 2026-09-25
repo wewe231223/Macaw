@@ -23,6 +23,6 @@ protected:
     void Serialize(FArchive& Archive) override;
 
 private:
-    float InnerConeAngle{ 30.0f };
-    float OuterConeAngle{ 45.0f };
+    float mInnerConeAngle{30.0f};
+    float mOuterConeAngle{45.0f};
 };

@@ -1,4 +1,4 @@
-﻿#include "PCH.h"
+﻿#include "pch.h"
 
 #include "UCollisionSubsystem.h"
 
@@ -11,11 +11,11 @@ void UCollisionSubsystem::RegisterComponent(UCollisionComponent* Component) {
         return;
     }
 
-    Components.emplace_back(Component);
+    mComponents.emplace_back(Component);
 }
 
 void UCollisionSubsystem::UnregisterComponent(UCollisionComponent* Component) {
-    std::erase_if(Components, [Component](const TObjectRef<UCollisionComponent>& ComponentRef) {
+    std::erase_if(mComponents, [Component](const TObjectRef<UCollisionComponent>& ComponentRef) {
         return ComponentRef.Get() == Component;
     });
 }
@@ -24,13 +24,13 @@ bool UCollisionSubsystem::Raycast(const FRay& Ray, UCollisionComponent*& OutComp
     OutComponent = nullptr;
     OutDistance = std::numeric_limits<float>::max();
 
-    for (const TObjectRef<UCollisionComponent>& ComponentRef : Components) {
-        UCollisionComponent* Component = ComponentRef.Get();
+    for (const TObjectRef<UCollisionComponent>& ComponentRef : mComponents) {
+        UCollisionComponent* Component{ComponentRef.Get()};
         if (Component == nullptr or not ComponentRef->IsActive()) {
             continue;
         }
 
-        float Distance = 0.0f;
+        float Distance{0.0f};
         if (Component->Raycast(Ray, Distance) && Distance < OutDistance) {
             OutDistance = Distance;
             OutComponent = Component;
@@ -41,15 +41,15 @@ bool UCollisionSubsystem::Raycast(const FRay& Ray, UCollisionComponent*& OutComp
 }
 
 bool UCollisionSubsystem::ContainsComponent(const UCollisionComponent* Component) const {
-    return std::ranges::any_of(Components, [Component](const TObjectRef<UCollisionComponent>& ComponentRef) {
+    return std::ranges::any_of(mComponents, [Component](const TObjectRef<UCollisionComponent>& ComponentRef) {
         return ComponentRef.Get() == Component;
     });
 }
 
 const TArray<TObjectRef<UCollisionComponent>>& UCollisionSubsystem::GetRegisteredComponents() const {
-    return Components;
+    return mComponents;
 }
 
 void UCollisionSubsystem::OnDeinitialize() {
-    Components.clear();
+    mComponents.clear();
 }

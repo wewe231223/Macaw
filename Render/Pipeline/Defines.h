@@ -1,4 +1,4 @@
-﻿#pragma once 
+﻿#pragma once
 #include <filesystem>
 
 enum class EVertexFormat {
@@ -76,46 +76,46 @@ enum class EStencillOp {
 };
 
 struct FInputElementDescription {
-    std::string SemanticName{};
-    UINT SemanticIndex{ 0 };
-    EVertexFormat Format{ EVertexFormat::Float3 };
-    UINT InputSlot{ 0 };
-    UINT AlignedByteOffset{ 0 };
-    EInputClassification InputClassification{ EInputClassification::PerVertex };
-    UINT InstanceDataStepRate{ 0 };
+    std::string mSemanticName{};
+    UINT mSemanticIndex{0};
+    EVertexFormat mFormat{EVertexFormat::Float3};
+    UINT mInputSlot{0};
+    UINT mAlignedByteOffset{0};
+    EInputClassification mInputClassification{EInputClassification::PerVertex};
+    UINT mInstanceDataStepRate{0};
 };
 
 struct FRasterizerDescription {
-    EFillMode FillMode{ EFillMode::Solid };
-    ECullMode CullMode{ ECullMode::Back };
-    bool FrontCounterClockwise{ false };
-    bool DepthClipEnable{ true };
-    bool ScissorEnable{ false };
+    EFillMode mFillMode{EFillMode::Solid};
+    ECullMode mCullMode{ECullMode::Back};
+    bool mFrontCounterClockwise{false};
+    bool mDepthClipEnable{true};
+    bool mScissorEnable{false};
 };
 
 struct FDepthStencilDescription {
-    bool DepthEnable{ true };
-    bool DepthWriteEnable{ true };
-    ECompareFunc DepthFunc{ ECompareFunc::LessEqual };
+    bool mDepthEnable{true};
+    bool mDepthWriteEnable{true};
+    ECompareFunc mDepthFunc{ECompareFunc::LessEqual};
 
-    bool StencilEnable{ true };
-    uint8 StencilReadMask{ 255 };
-    uint8 StencilWriteMask{ 255 };
+    bool mStencilEnable{true};
+    Uint8 mStencilReadMask{255};
+    Uint8 mStencilWriteMask{255};
 
-    ECompareFunc StencilFunc{ ECompareFunc::Always };
-    EStencillOp StencilPassOp{ EStencillOp::Replace };
-    EStencillOp StencilFailOp{ EStencillOp::Keep };
-    EStencillOp StencilDepthFailOp{ EStencillOp::Keep };
+    ECompareFunc mStencilFunc{ECompareFunc::Always};
+    EStencillOp mStencilPassOp{EStencillOp::Replace};
+    EStencillOp mStencilFailOp{EStencillOp::Keep};
+    EStencillOp mStencilDepthFailOp{EStencillOp::Keep};
 };
 
 struct FBlendDescription {
-    bool BlendEnable{ false };
-    EBlend SrcBlend{ EBlend::One };
-    EBlend DestBlend{ EBlend::Zero };
-    EBlendOp BlendOp{ EBlendOp::Add };
-    EBlend SrcBlendAlpha{ EBlend::One };
-    EBlend DestBlendAlpha{ EBlend::Zero };
-    EBlendOp BlendOpAlpha{ EBlendOp::Add };
+    bool mBlendEnable{false};
+    EBlend mSrcBlend{EBlend::One};
+    EBlend mDestBlend{EBlend::Zero};
+    EBlendOp mBlendOp{EBlendOp::Add};
+    EBlend mSrcBlendAlpha{EBlend::One};
+    EBlend mDestBlendAlpha{EBlend::Zero};
+    EBlendOp mBlendOpAlpha{EBlendOp::Add};
 };
 
 enum class EShaderStage {
@@ -128,24 +128,24 @@ enum class EShaderStage {
 };
 
 struct FShaderDescription {
-    std::filesystem::path Source;
-    std::string EntryPoint;
-    std::string Profile;
-    EShaderStage Stage = EShaderStage::Vertex;
+    std::filesystem::path mSource{};
+    std::string mEntryPoint{};
+    std::string mProfile{};
+    EShaderStage mStage{EShaderStage::Vertex};
 };
 
 struct FPipelineDescription {
-    FShaderDescription VertexShader{};
-    FShaderDescription PixelShader{};
+    FShaderDescription mVertexShader{};
+    FShaderDescription mPixelShader{};
 
-    FShaderDescription GeometryShader{};
-    bool bHasGeometryShader = false;
+    FShaderDescription mGeometryShader{};
+    bool mBHasGeometryShader{false};
 
-    std::vector<FInputElementDescription> InputLayout{};
+    std::vector<FInputElementDescription> mInputLayout{};
 
-    EPrimitiveTopology PrimitiveTopology{ EPrimitiveTopology::TriangleList };
+    EPrimitiveTopology mPrimitiveTopology{EPrimitiveTopology::TriangleList};
 
-    FRasterizerDescription Rasterizer{};
-    FDepthStencilDescription DepthStencil{};
-    FBlendDescription Blend{};
+    FRasterizerDescription mRasterizer{};
+    FDepthStencilDescription mDepthStencil{};
+    FBlendDescription mBlend{};
 };

@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include <filesystem>
 #include <memory>
@@ -39,29 +39,16 @@ struct FMouseCameraRotateRequestMessage;
 struct FMouseCameraMoveRequestMessage;
 struct FMouseCameraDollyRequestMessage;
 
-class UWorld : public UObject
-{
+class UWorld : public UObject {
 public:
     UWorld();
     ~UWorld() override;
 
     AActor* AddActor(std::unique_ptr<AActor> InActor);
 
-    template<typename T>
+    template <typename T>
     requires std::is_base_of_v<AActor, T>
-    T* AdoptActor() {
-        std::unique_ptr<T> NewActor = std::make_unique<T>();
-
-        T* ActorPtr = NewActor.get();
-
-        if (AddActor(std::move(NewActor)) == nullptr) {
-            return nullptr;
-        }
-
-        ActorPtr->SetName(MakeUniqueObjectName(ActorPtr->GetTypeInfo()->TypeName));
-
-        return ActorPtr;
-    }
+    T* AdoptActor();
 
     AActor* SpawnActor(const FAssetHandle& MeshHandle, const FAssetHandle& PipelineHandle, const FAssetHandle& MaterialHandle, const FVector3& Position);
     bool DestroyActor(AActor* Actor);
@@ -69,7 +56,7 @@ public:
 
     const TArray<std::unique_ptr<AActor>>& GetActors() const;
     FRenderProbe& BuildRenderProbe();
-    
+
     void SetEditorContext(FWorldEditorContext* InEditorContext);
     FWorldEditorContext* GetEditorContext() const noexcept;
 
@@ -94,7 +81,7 @@ public:
     bool SaveScene(const FString& SceneName, FAssetRegistry* AssetRegistry);
     bool LoadScene(const std::filesystem::path& ScenePath, ID3D11Device* Device, FAssetRegistry* AssetRegistry);
 
-	JG_DECLARE_DERIVED_TYPEINFO(UWorld, UObject);
+    JG_DECLARE_DERIVED_TYPEINFO(UWorld, UObject);
 
     void HandleMousePickRequest(const FMousePickRequestMessage& Message);
     void HandleSpawnComponent(const FMessageSpawnComponent& Message, FAssetRegistry& AssetRegistry);
@@ -114,27 +101,41 @@ public:
     AActor* FindActorByName(FName InName) const;
 
 private:
-	void InitializeSubsystems();
-	void DeinitializeSubsystems();
+    void InitializeSubsystems();
+    void DeinitializeSubsystems();
 
 private:
-    TArray<std::unique_ptr<AActor>> Actors;
-    TArray<AActor*> PendingDestroyActors;
-   
-    TArray<UStaticMeshComponent*> RenderableComponents;
-    TArray<TObjectRef<UCollisionComponent>> CollisionComponents;
+    TArray<std::unique_ptr<AActor>> mActors{};
+    TArray<AActor*> mPendingDestroyActors{};
 
-    FWorldEditorContext* EditorContext{ nullptr };
-    FAssetRegistry* AssetRegistry{ nullptr };
+    TArray<UStaticMeshComponent*> mRenderableComponents{};
+    TArray<TObjectRef<UCollisionComponent>> mCollisionComponents{};
 
-    std::unique_ptr<URenderSubsystem> RenderSubsystem;
-    std::unique_ptr<UCollisionSubsystem> CollisionSubsystem;
-    std::unique_ptr<UPickingSubsystem> PickingSubsystem;
-    std::unique_ptr<UCameraSubsystem> CameraSubsystem;
+    FWorldEditorContext* mEditorContext{nullptr};
+    FAssetRegistry* mAssetRegistry{nullptr};
 
-    std::unique_ptr<UBillboardSubsystem> BillboardSubsystem;
-	std::unique_ptr<UTextSubsystem> TextSubsystem;
-    std::unique_ptr<ULightSubsystem> LightSubsystem;
+    std::unique_ptr<URenderSubsystem> mRenderSubsystem{};
+    std::unique_ptr<UCollisionSubsystem> mCollisionSubsystem{};
+    std::unique_ptr<UPickingSubsystem> mPickingSubsystem{};
+    std::unique_ptr<UCameraSubsystem> mCameraSubsystem{};
 
-    FRenderProbe Probe{};
+    std::unique_ptr<UBillboardSubsystem> mBillboardSubsystem{};
+    std::unique_ptr<UTextSubsystem> mTextSubsystem{};
+    std::unique_ptr<ULightSubsystem> mLightSubsystem{};
+
+    FRenderProbe mProbe{};
 };
+
+template <typename T> requires std::is_base_of_v<AActor, T> T* UWorld::AdoptActor() {
+    std::unique_ptr<T> NewActor{std::make_unique<T>()};
+
+    T* ActorPtr{NewActor.get()};
+
+    if (AddActor(std::move(NewActor)) == nullptr) {
+        return nullptr;
+    }
+
+    ActorPtr->SetName(MakeUniqueObjectName(ActorPtr->GetTypeInfo()->mTypeName));
+
+    return ActorPtr;
+}

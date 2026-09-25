@@ -21,139 +21,114 @@
 class UPrimitiveComponent;
 
 class FTransformGizmo {
-	enum class EAxis : std::uint8_t {
-		None,
-		X,
-		Y,
-		Z
-	};
+    enum class EAxis : std::uint8_t { None, X, Y, Z };
 
-	enum class EModifyMode : uint8 {
-		Translate, Rotate, Scale, None
-	};
+    enum class EModifyMode : Uint8 { Translate, Rotate, Scale, None };
 
-	struct FAxisHitProxy {
-		EAxis Axis = EAxis::None;
-		FVector3 Center{};
-		FVector3 Extent{};
-	};
+    struct FAxisHitProxy { EAxis mAxis{EAxis::None}; FVector3 mCenter{}; FVector3 mExtent{}; };
 
-	struct FAxisHit {
-		EAxis Axis = EAxis::None;
-		float Distance = 0.0f;
-	};
+    struct FAxisHit { EAxis mAxis{EAxis::None}; float mDistance{0.0f}; };
 
-	struct FDragSession {
-		TObjectRef<USceneComponent> Target;
-		FVector3 AxisWorld{};
-		FVector3 InteractionPivotWorld{};
-		FVector3 DragPlaneNormal{};
-		float PreviousAxisParameter = 0.0f;
-		EAxis DragAxis = EAxis::None;
-		EModifyMode ModifyMode = EModifyMode::None;
-		EGizmoCoordinateSpace CoordinateSpace = EGizmoCoordinateSpace::World;
-		FVector3 PreviousRotationDirection{};
-		float WorkUnitsPerPixel = 1.0f;
-		float AccumulatedDelta = 0.0f;
-	};
+    struct FDragSession { TObjectRef<USceneComponent> mTarget{}; FVector3 mAxisWorld{}; FVector3 mInteractionPivotWorld{}; FVector3 mDragPlaneNormal{}; float mPreviousAxisParameter{0.0f}; EAxis mDragAxis{EAxis::None}; EModifyMode mModifyMode{EModifyMode::None}; EGizmoCoordinateSpace mCoordinateSpace{EGizmoCoordinateSpace::World}; FVector3 mPreviousRotationDirection{}; float mWorkUnitsPerPixel{1.0f}; float mAccumulatedDelta{0.0f}; };
 
 public:
-	FTransformGizmo() = default;
-	~FTransformGizmo() = default;
+    FTransformGizmo() = default;
+    ~FTransformGizmo() = default;
 
-	FTransformGizmo(const FTransformGizmo&) = delete;
-	FTransformGizmo& operator=(const FTransformGizmo&) = delete;
+    FTransformGizmo(const FTransformGizmo&) = delete;
+    FTransformGizmo& operator=(const FTransformGizmo&) = delete;
 
-	FTransformGizmo(FTransformGizmo&&) = default;
-	FTransformGizmo& operator=(FTransformGizmo&&) = default;
+    FTransformGizmo(FTransformGizmo&&) = default;
+    FTransformGizmo& operator=(FTransformGizmo&&) = default;
 
 public:
-	void Initialize(ID3D11Device* Device, FAssetRegistry& AssetRegistry, FWorldEditorContext& InEditorContext);
+    void Initialize(ID3D11Device* Device, FAssetRegistry& AssetRegistry, FWorldEditorContext& InEditorContext);
 
-	void ProcessInput(FKeyboardInput& KeyboardInput, FMouseInput& MouseInput, bool bMouseCapturedByUI);
-	void Update(const CameraProbe& Camera, const D3D11_VIEWPORT& Viewport);
-	void Render(FRenderProbe& Probe);
+    void ProcessInput(FKeyboardInput& KeyboardInput, FMouseInput& MouseInput, bool BMouseCapturedByUi);
+    void Update(const CameraProbe& Camera, const D3D11_VIEWPORT& Viewport);
+    void Render(FRenderProbe& Probe);
 
-	FStateChannel<uint8>::FReadWriter GetGizmoMode() { return GizmoModeChannel.GetReadWriter(); }
-	FStateChannel<uint8>::FReadWriter GetGizmoCoordinateSpace() { return GizmoCoordinateSpaceChannel.GetReadWriter(); }
-private:
+    FStateChannel<Uint8>::FReadWriter GetGizmoMode();
 
-	void SetTranslate(const FVector3& Pivot, float WorldUnitsPerPixel);
-	void SetScale(const FVector3& Pivot, float WorldUnitsPerPixel);
-	void SetRotate(const FVector3& Pivot, float WorldUnitsPerPixel);
-
-	FAssetHandle GetAxisMaterial(EAxis Axis) const;
-	void AddRenderPart(EAxis Axis,const FMatrix& LocalTransform,FAssetHandle MeshHandle);
-
-	void UpdateBoundsInGizmoSpace(const UPrimitiveComponent& Primitive, FVector3& OutCenter, FVector3& OutExtent) const;
-
-	std::optional<FRay> MakeWorldRay(const POINT& ScreenPosition) const;
-	std::optional<FAxisHit> HitTest(const FRay& WorldRay) const;
-
-	bool BeginDrag(EAxis Axis, const FRay& WorldRay);
-	void UpdateDrag(const FRay& WorldRay);
-	void EndDrag();
-	void RefreshAssetHandles();
-	bool GetAxisParameterOnDragPlane(const FRay& WorldRay, const FDragSession& Session, float& OutParameter) const;
-	FVector3 GetWorldAxis(EAxis Axis) const;
+    FStateChannel<Uint8>::FReadWriter GetGizmoCoordinateSpace();
 
 private:
-	static constexpr float ShaftLengthPixels = 66.0f;
-	static constexpr float ConeLengthPixels = 22.0f;
-	static constexpr float ShaftRadiusPixels = 6.0f;
-	static constexpr float ConeRadiusPixels = 13.0f;
-	static constexpr float PickRadiusPixels = 10.0f;
-	static constexpr float BoundsGapPixels = 5.0f;
+    void SetTranslate(const FVector3& Pivot, float WorldUnitsPerPixel);
+    void SetScale(const FVector3& Pivot, float WorldUnitsPerPixel);
+    void SetRotate(const FVector3& Pivot, float WorldUnitsPerPixel);
 
-	float CurrentRingRadius = 0.0f;
-	float CurrentRingPickHalfWidth = 0.0f;
+    FAssetHandle GetAxisMaterial(EAxis Axis) const;
+    void AddRenderPart(EAxis Axis, const FMatrix& LocalTransform, FAssetHandle MeshHandle);
 
-	FAssetHandle CylinderMesh{};
-	FAssetHandle ConeMesh{};
-	FAssetHandle CubeMesh{};
-	FAssetHandle GizmoTorusMesh{};
+    void UpdateBoundsInGizmoSpace(const UPrimitiveComponent& Primitive, FVector3& OutCenter, FVector3& OutExtent) const;
 
-	FAssetHandle RedMaterial{};
-	FAssetHandle GreenMaterial{};
-	FAssetHandle BlueMaterial{};
+    std::optional<FRay> MakeWorldRay(const POINT& ScreenPosition) const;
+    std::optional<FAxisHit> HitTest(const FRay& WorldRay) const;
 
-	FAssetHandle GizmoPipeline{};
+    bool BeginDrag(EAxis Axis, const FRay& WorldRay);
+    void UpdateDrag(const FRay& WorldRay);
+    void EndDrag();
+    void RefreshAssetHandles();
+    bool GetAxisParameterOnDragPlane(const FRay& WorldRay, const FDragSession& Session, float& OutParameter) const;
+    FVector3 GetWorldAxis(EAxis Axis) const;
 
-	FMatrix CylinderXAxisTransform{ FMatrix::Identity };
-	FMatrix CylinderYAxisTransform{ FMatrix::Identity };
-	FMatrix CylinderZAxisTransform{ FMatrix::Identity };
+private:
+    static constexpr float ShaftLengthPixels{66.0f};
+    static constexpr float ConeLengthPixels{22.0f};
+    static constexpr float ShaftRadiusPixels{6.0f};
+    static constexpr float ConeRadiusPixels{13.0f};
+    static constexpr float PickRadiusPixels{10.0f};
+    static constexpr float BoundsGapPixels{5.0f};
 
-	FMatrix ConeXAxisTransform{ FMatrix::Identity };
-	FMatrix ConeYAxisTransform{ FMatrix::Identity };
-	FMatrix ConeZAxisTransform{ FMatrix::Identity };
+    float mCurrentRingRadius{0.0f};
+    float mCurrentRingPickHalfWidth{0.0f};
 
-	FMatrix CubeXAxisTransform{ FMatrix::Identity };
-	FMatrix CubeYAxisTransform{ FMatrix::Identity };
-	FMatrix CubeZAxisTransform{ FMatrix::Identity };
+    FAssetHandle mCylinderMesh{};
+    FAssetHandle mConeMesh{};
+    FAssetHandle mCubeMesh{};
+    FAssetHandle mGizmoTorusMesh{};
 
-	FMatrix TorusXAxisTransform{ FMatrix::Identity };
-	FMatrix TorusYAxisTransform{ FMatrix::Identity };
-	FMatrix TorusZAxisTransform{ FMatrix::Identity };
+    FAssetHandle mRedMaterial{};
+    FAssetHandle mGreenMaterial{};
+    FAssetHandle mBlueMaterial{};
 
-	FMatrix GizmoWorldTransform{ FMatrix::Identity };
+    FAssetHandle mGizmoPipeline{};
 
-	FVector3 BoundsCenterInGizmoSpace{};
-	std::array<FAxisHitProxy, 3> AxisHitProxies{};
+    FMatrix mCylinderXAxisTransform{FMatrix::Identity};
+    FMatrix mCylinderYAxisTransform{FMatrix::Identity};
+    FMatrix mCylinderZAxisTransform{FMatrix::Identity};
 
-	FAssetRegistry* AssetRegistry{ nullptr };
-	FWorldEditorContext* EditorContext = nullptr;
-	FStateChannel<uint8> GizmoModeChannel{};
-	FStateChannel<uint8>::FReadWriter GizmoMode{};
-	FStateChannel<uint8> GizmoCoordinateSpaceChannel{};
-	FStateChannel<uint8>::FReadWriter GizmoCoordinateSpace{};
+    FMatrix mConeXAxisTransform{FMatrix::Identity};
+    FMatrix mConeYAxisTransform{FMatrix::Identity};
+    FMatrix mConeZAxisTransform{FMatrix::Identity};
 
-	CameraProbe LastCamera{};
-	D3D11_VIEWPORT LastViewport{};
+    FMatrix mCubeXAxisTransform{FMatrix::Identity};
+    FMatrix mCubeYAxisTransform{FMatrix::Identity};
+    FMatrix mCubeZAxisTransform{FMatrix::Identity};
 
-	std::optional<FDragSession> DragSession;
+    FMatrix mTorusXAxisTransform{FMatrix::Identity};
+    FMatrix mTorusYAxisTransform{FMatrix::Identity};
+    FMatrix mTorusZAxisTransform{FMatrix::Identity};
 
-	bool bVisible = false;
-	bool bHasCamera = false;
+    FMatrix mGizmoWorldTransform{FMatrix::Identity};
 
-	float CurrentWorkUnitsPerPixel{ 1.0f };
+    FVector3 mBoundsCenterInGizmoSpace{};
+    std::array<FAxisHitProxy, 3> mAxisHitProxies{};
+
+    FAssetRegistry* mAssetRegistry{nullptr};
+    FWorldEditorContext* mEditorContext{nullptr};
+    FStateChannel<Uint8> mGizmoModeChannel{};
+    FStateChannel<Uint8>::FReadWriter mGizmoMode{};
+    FStateChannel<Uint8> mGizmoCoordinateSpaceChannel{};
+    FStateChannel<Uint8>::FReadWriter mGizmoCoordinateSpace{};
+
+    CameraProbe mLastCamera{};
+    D3D11_VIEWPORT mLastViewport{};
+
+    std::optional<FDragSession> mDragSession{};
+
+    bool mBVisible{false};
+    bool mBHasCamera{false};
+
+    float mCurrentWorkUnitsPerPixel{1.0f};
 };

@@ -3,34 +3,21 @@
 #include "STL.h"
 
 struct FAssetPath {
-    FString Path{};
+    FString mPath{};
 
     FAssetPath() = default;
 
-    explicit FAssetPath(const FString& InPath)
-        : Path(InPath) {
-    }
+    explicit FAssetPath(const FString& InPath);
 
-    explicit FAssetPath(FString&& InPath)
-        : Path(std::move(InPath)) {
-    }
+    explicit FAssetPath(FString&& InPath);
 
-    bool IsValid() const {
-        return !Path.empty();
-    }
+    bool IsValid() const;
 
-    explicit operator bool() const {
-        return IsValid();
-    }
+    explicit operator bool() const;
 
     bool operator==(const FAssetPath& Other) const = default;
 };
 
 namespace std {
-template<>
-struct hash<FAssetPath> {
-    size_t operator()(const FAssetPath& AssetPath) const noexcept {
-        return hash<FString>{}(AssetPath.Path);
-    }
-};
+template <> struct hash<FAssetPath> { std::size_t operator()(const FAssetPath& AssetPath) const noexcept; };
 }

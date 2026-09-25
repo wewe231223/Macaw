@@ -1,4 +1,4 @@
-#include "PCH.h"
+﻿#include "pch.h"
 #include "UBillboardSubsystem.h"
 
 #include "Scene/AActor.h"
@@ -8,54 +8,49 @@
 
 #include "../../Render/Pipeline/UPipeline.h"
 
-void UBillboardSubsystem::RegisterComponent(UBillboardComponent* Component)
-{
-	if (Component == nullptr || ContainsComponent(Component))
-	{
-		return;
-	}
+void UBillboardSubsystem::RegisterComponent(UBillboardComponent* Component) {
+    if (Component == nullptr || ContainsComponent(Component)) {
+        return;
+    }
 
-	Components.push_back(Component);
+    mComponents.push_back(Component);
 }
 
-void UBillboardSubsystem::UnregisterComponent(UBillboardComponent* Component)
-{
-	std::erase(Components, Component);
+void UBillboardSubsystem::UnregisterComponent(UBillboardComponent* Component) {
+    std::erase(mComponents, Component);
 }
 
-void UBillboardSubsystem::BuildRenderProbes(FAssetRegistry* AssetRegistry, FRenderProbe& Probe) const
-{
-	Probe.BillboardProbes.clear();
+void UBillboardSubsystem::BuildRenderProbes(FAssetRegistry* AssetRegistry, FRenderProbe& Probe) const {
+    Probe.mBillboardProbes.clear();
 
-	const FWorldEditorContext* EditorContext = GetWorld()->GetEditorContext();
-	const AActor* SelectedActor = EditorContext != nullptr ? EditorContext->GetSelectedActor() : nullptr;
-    for (const UBillboardComponent* Component : Components) {
+    const FWorldEditorContext* EditorContext{GetWorld()->GetEditorContext()};
+    const AActor* SelectedActor{EditorContext != nullptr ? EditorContext->GetSelectedActor() : nullptr};
+    for (const UBillboardComponent* Component : mComponents) {
         FBillboardProbe BillboardProbe{};
-        if (!Component->MakeBillboardRender(BillboardProbe)) continue;
+        if (!Component->MakeBillboardRender(BillboardProbe))
+            continue;
 
-        if (not Component->IsActive() or not Component->IsVisible()) continue;
+        if (not Component->IsActive() or not Component->IsVisible())
+            continue;
 
         if (AssetRegistry != nullptr) {
-            if (UPipeline* Pipeline = AssetRegistry->ResolveAsset<UPipeline>(Component->GetPipelineHandle())) {
+            if (UPipeline * Pipeline{AssetRegistry->ResolveAsset<UPipeline>(Component->GetPipelineHandle())}) {
                 Pipeline->SetRenderMode(static_cast<ERenderMode>(EditorContext->GetRenderModeState()));
             }
-        }  
+        }
 
-        Probe.BillboardProbes.push_back(BillboardProbe);
+        Probe.mBillboardProbes.push_back(BillboardProbe);
     }
 }
 
-bool UBillboardSubsystem::ContainsComponent(const UBillboardComponent* Component)
-{
-    return std::ranges::find(Components, Component) != Components.end();
+bool UBillboardSubsystem::ContainsComponent(const UBillboardComponent* Component) {
+    return std::ranges::find(mComponents, Component) != mComponents.end();
 }
 
-const TArray<UBillboardComponent*>& UBillboardSubsystem::GetRegisteredComponents() const
-{
-    return Components;
+const TArray<UBillboardComponent*>& UBillboardSubsystem::GetRegisteredComponents() const {
+    return mComponents;
 }
 
-void UBillboardSubsystem::OnDeinitialize()
-{
-    Components.clear();
+void UBillboardSubsystem::OnDeinitialize() {
+    mComponents.clear();
 }

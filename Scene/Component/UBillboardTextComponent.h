@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "UPrimitiveComponent.h"
 
@@ -10,8 +10,7 @@
 class UFont;
 class FPropertyEditorContext;
 
-class UBillboardTextComponent : public UPrimitiveComponent
-{
+class UBillboardTextComponent : public UPrimitiveComponent {
 public:
     UBillboardTextComponent() = default;
     ~UBillboardTextComponent() override = default;
@@ -54,20 +53,20 @@ protected:
     void RebuildTextGeometry();
 
 protected:
-    FAssetHandle FontHandle{};
-    FAssetHandle PipelineHandle{};
-    FAssetPath FontAssetPath{};
-    FAssetPath PipelineAssetPath{};
-    FGuid FontAssetGuid{};
-    FGuid PipelineAssetGuid{};
+    FAssetHandle mFontHandle{};
+    FAssetHandle mPipelineHandle{};
+    FAssetPath mFontAssetPath{};
+    FAssetPath mPipelineAssetPath{};
+    FGuid mFontAssetGuid{};
+    FGuid mPipelineAssetGuid{};
 
-    FString Text{};
+    FString mText{};
 
-    FVector4 Color{1.0f,1.0f,1.0f,1.0f};
+    FVector4 mColor{1.0f, 1.0f, 1.0f, 1.0f};
 
-    float CharacterHeight = 1.0f;
-    float LetterSpacing = 0.0f;
-    float LineSpacing = 0.0f;
+    float mCharacterHeight{1.0f};
+    float mLetterSpacing{0.0f};
+    float mLineSpacing{0.0f};
 
-    TArray<FTextVertex> Vertices{};
+    TArray<FTextVertex> mVertices{};
 };

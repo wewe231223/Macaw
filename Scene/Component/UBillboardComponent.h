@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "UPrimitiveComponent.h"
 #include "Core/Asset/FAssetPath.h"
@@ -6,29 +6,27 @@
 
 struct FMatrix;
 
-struct FBillboardData
-{
-    FMatrix World;
-    FVector2 Size;
-    FVector2 UVMin;
-    FVector2 UVMax;
-    FVector2 Pad;
-    FVector4 Color{ 1.0f, 1.0f, 1.0f, 1.0f };
+struct FBillboardData {
+    FMatrix mWorld{};
+    FVector2 mSize{};
+    FVector2 mUvMin{};
+    FVector2 mUvMax{};
+    FVector2 mPad{};
+    FVector4 mColor{1.0f, 1.0f, 1.0f, 1.0f};
 };
 
 // 카메라를 향하는 Primitive의 공통 기반 클래스.
 // Billboard의 실제 방향 계산은 Shader에서 수행한다.
 // 이 클래스는 렌더링 여부와 Billboard 원점만 제공한다.
 
-class UBillboardComponent : public UPrimitiveComponent
-{
+class UBillboardComponent : public UPrimitiveComponent {
 public:
     UBillboardComponent() = default;
     ~UBillboardComponent() override = default;
 
     JG_DECLARE_ABSTRACT_DERIVED_TYPEINFO(UBillboardComponent, UPrimitiveComponent);
 
-    // Sprite 
+    // Sprite
     void SetTextureHandle(FAssetHandle InTextureHandle);
     void SetPipelineHandle(FAssetHandle InPipelineHandle);
     void SetSize(const FVector2& InSize);
@@ -61,15 +59,15 @@ protected:
     virtual bool TryGetBillBoardWorld(FMatrix& OutWorld) const;
 
 private:
-    FAssetHandle TextureHandle{};
-    FAssetHandle PipelineHandle{};
-    FAssetPath TextureAssetPath{};
-    FAssetPath PipelineAssetPath{};
-    FGuid TextureAssetGuid{};
-    FGuid PipelineAssetGuid{};
+    FAssetHandle mTextureHandle{};
+    FAssetHandle mPipelineHandle{};
+    FAssetPath mTextureAssetPath{};
+    FAssetPath mPipelineAssetPath{};
+    FGuid mTextureAssetGuid{};
+    FGuid mPipelineAssetGuid{};
 
-    FVector2 Size{ 1.0f, 1.0f };
-    FVector2 UVMin{ 0.0f, 0.0f };
-    FVector2 UVMax{ 1.0f, 1.0f };
-    FVector4 Color{ 1.0f, 1.0f, 1.0f, 1.0f };
+    FVector2 mSize{1.0f, 1.0f};
+    FVector2 mUvMin{0.0f, 0.0f};
+    FVector2 mUvMax{1.0f, 1.0f};
+    FVector4 mColor{1.0f, 1.0f, 1.0f, 1.0f};
 };

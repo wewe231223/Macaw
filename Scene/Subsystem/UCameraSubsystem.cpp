@@ -1,21 +1,21 @@
-﻿#include "PCH.h"
+﻿#include "pch.h"
 
 #include "UCameraSubsystem.h"
 
 void UCameraSubsystem::SetMainCamera(UCameraComponent* Camera) {
-    MainCamera = Camera;
+    mMainCamera = Camera;
 }
 
 void UCameraSubsystem::ClearMainCamera(UCameraComponent* Camera) {
-    if (MainCamera == Camera) {
-        MainCamera = nullptr;
+    if (mMainCamera == Camera) {
+        mMainCamera = nullptr;
     }
 }
 
 UCameraComponent* UCameraSubsystem::GetMainCamera() const {
-    return MainCamera;
+    return mMainCamera;
 }
 
 void UCameraSubsystem::OnDeinitialize() {
-    MainCamera = nullptr;
+    mMainCamera = nullptr;
 }

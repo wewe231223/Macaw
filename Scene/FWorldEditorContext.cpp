@@ -1,4 +1,4 @@
-#include "PCH.h"
+﻿#include "pch.h"
 #include "FWorldEditorContext.h"
 
 #include "AActor.h"
@@ -13,129 +13,130 @@
 #include <rapidjson/ostreamwrapper.h>
 #include <rapidjson/prettywriter.h>
 
-namespace
-{
-    bool ReWriteObjFilePath(const std::filesystem::path& MetaPath, const FString& NewObjFilePath)
-    {
-        std::ifstream InputStream(MetaPath, std::ios::binary);
-        if (!InputStream.is_open())
-        {
-            return false;
-        }
-
-        rapidjson::IStreamWrapper InStreamWrapper(InputStream);
-
-        rapidjson::Document Document;
-        Document.ParseStream<rapidjson::kParseCommentsFlag | rapidjson::kParseTrailingCommasFlag>(InStreamWrapper);
-
-        //읽기 닫기
-        InputStream.close();
-
-        if (Document.HasParseError() || !Document.IsObject()) return false;
-
-        rapidjson::Document::AllocatorType& Allocator = Document.GetAllocator();
-
-        if (Document.HasMember("FilePath"))
-        {
-            Document["FilePath"].SetString(NewObjFilePath.c_str(), Allocator);
-        }
-        else
-        {
-            Document.AddMember("FilePath", rapidjson::Value(NewObjFilePath.c_str(), Allocator), Allocator);
-        }
-
-        std::ofstream OutputStream(MetaPath);
-        if (!OutputStream.is_open()) return false;
-
-        rapidjson::OStreamWrapper OutStreamWrapper(OutputStream);
-        rapidjson::PrettyWriter<rapidjson::OStreamWrapper> Writer(OutStreamWrapper);
-        Document.Accept(Writer);
-
-        return true;
+namespace {
+bool ReWriteObjFilePath(const std::filesystem::path& MetaPath, const FString& NewObjFilePath) {
+    std::ifstream InputStream{MetaPath, std::ios::binary};
+    if (!InputStream.is_open()) {
+        return false;
     }
+
+    rapidjson::IStreamWrapper InStreamWrapper{InputStream};
+
+    rapidjson::Document Document{};
+    Document.ParseStream<rapidjson::kParseCommentsFlag | rapidjson::kParseTrailingCommasFlag>(InStreamWrapper);
+
+    //읽기 닫기
+    InputStream.close();
+
+    if (Document.HasParseError() || !Document.IsObject())
+        return false;
+
+    rapidjson::Document::AllocatorType& Allocator{Document.GetAllocator()};
+
+    if (Document.HasMember("FilePath")) {
+        Document["FilePath"].SetString(NewObjFilePath.c_str(), Allocator);
+    } else {
+        Document.AddMember("FilePath", rapidjson::Value(NewObjFilePath.c_str(), Allocator), Allocator);
+    }
+
+    std::ofstream OutputStream{MetaPath};
+    if (!OutputStream.is_open())
+        return false;
+
+    rapidjson::OStreamWrapper OutStreamWrapper{OutputStream};
+    rapidjson::PrettyWriter<rapidjson::OStreamWrapper> Writer{OutStreamWrapper};
+    Document.Accept(Writer);
+
+    return true;
+}
 }
 
 void FWorldEditorContext::SetWorld(UWorld* InWorld) {
-    World = InWorld;
+    mWorld = InWorld;
 }
 
 void FWorldEditorContext::InitializeChannels(FAssetRegistry& AssetRegistry, ID3D11Device* Device) {
-    if (World == nullptr) return;
+    if (mWorld == nullptr)
+        return;
 
-    EditorToWorld.TryBind<FMessageSpawnComponent>([this, &AssetRegistry](const FMessageSpawnComponent& Message) {
-        World->HandleSpawnComponent(Message, AssetRegistry);
+    mEditorToWorld.TryBind<FMessageSpawnComponent>([this, &AssetRegistry](const FMessageSpawnComponent& Message) {
+        mWorld->HandleSpawnComponent(Message, AssetRegistry);
     });
-    EditorToWorld.TryBind<FMessageSaveScene>([this, &AssetRegistry](const FMessageSaveScene& Message) {
-        World->SaveScene(Message.SceneName, &AssetRegistry);
+    mEditorToWorld.TryBind<FMessageSaveScene>([this, &AssetRegistry](const FMessageSaveScene& Message) {
+        mWorld->SaveScene(Message.mSceneName, &AssetRegistry);
     });
-    EditorToWorld.TryBind<FMessageLoadScene>([this, &AssetRegistry, Device](const FMessageLoadScene& Message) {
-        World->LoadScene(std::filesystem::path(Message.FilePath.c_str()), Device, &AssetRegistry);
+    mEditorToWorld.TryBind<FMessageLoadScene>([this, &AssetRegistry, Device](const FMessageLoadScene& Message) {
+        mWorld->LoadScene(std::filesystem::path(Message.mFilePath.c_str()), Device, &AssetRegistry);
     });
-
 }
 
 void FWorldEditorContext::Dispatch() {
-    EditorToWorld.Dispatch();
-    WorldToEditor.Dispatch();
+    mEditorToWorld.Dispatch();
+    mWorldToEditor.Dispatch();
 }
 
-FMessageChannel::FSender FWorldEditorContext::GetEditorToWorldSender() { return EditorToWorld.GetSender(); }
-FMessageChannel::FSender FWorldEditorContext::GetWorldToEditorSender() { return WorldToEditor.GetSender(); }
+FMessageChannel::FSender FWorldEditorContext::GetEditorToWorldSender() {
+    return mEditorToWorld.GetSender();
+}
+
+FMessageChannel::FSender FWorldEditorContext::GetWorldToEditorSender() {
+    return mWorldToEditor.GetSender();
+}
 
 FEditorSettings FWorldEditorContext::GetEditorSettings() const {
-    return SharedState.GetReader().Peek().EditorSettings;
+    return mSharedState.GetReader().Peek().mEditorSettings;
 }
 
 void FWorldEditorContext::SetEditorSettings(const FEditorSettings& Settings) {
-    SharedState.GetWriter().Modify([&Settings](FWorldEditorSharedState& Shared) {
-        Shared.EditorSettings = Settings;
+    mSharedState.GetWriter().Modify([&Settings](FWorldEditorSharedState& Shared) {
+        Shared.mEditorSettings = Settings;
     });
 }
 
 void FWorldEditorContext::SetMoveSensitivity(float Value) {
-    SharedState.GetWriter().Modify([Value](FWorldEditorSharedState& Shared) {
-        Shared.EditorSettings.MoveSensitivity = Value;
+    mSharedState.GetWriter().Modify([Value](FWorldEditorSharedState& Shared) {
+        Shared.mEditorSettings.mMoveSensitivity = Value;
     });
 }
 
 void FWorldEditorContext::SetRotationSensitivity(float Value) {
-    SharedState.GetWriter().Modify([Value](FWorldEditorSharedState& Shared) {
-        Shared.EditorSettings.RotationSensitivity = Value;
+    mSharedState.GetWriter().Modify([Value](FWorldEditorSharedState& Shared) {
+        Shared.mEditorSettings.mRotationSensitivity = Value;
     });
 }
 
 void FWorldEditorContext::SetGridSize(float Value) {
-    SharedState.GetWriter().Modify([Value](FWorldEditorSharedState& Shared) {
-        Shared.EditorSettings.GridSize = Value;
+    mSharedState.GetWriter().Modify([Value](FWorldEditorSharedState& Shared) {
+        Shared.mEditorSettings.mGridSize = Value;
     });
 }
 
 void FWorldEditorContext::SetGridSnapEnabled(bool Enabled) {
-    SharedState.GetWriter().Modify([Enabled](FWorldEditorSharedState& Shared) {
-        Shared.EditorSettings.mGridSnapEnabled = Enabled;
+    mSharedState.GetWriter().Modify([Enabled](FWorldEditorSharedState& Shared) {
+        Shared.mEditorSettings.mGridSnapEnabled = Enabled;
     });
 }
 
 void FWorldEditorContext::SetGridVisible(bool Visible) {
-    SharedState.GetWriter().Modify([Visible](FWorldEditorSharedState& Shared) {
-        Shared.EditorSettings.mGridVisible = Visible;
+    mSharedState.GetWriter().Modify([Visible](FWorldEditorSharedState& Shared) {
+        Shared.mEditorSettings.mGridVisible = Visible;
     });
 }
 
 void FWorldEditorContext::SetAxisVisible(bool Visible) {
-    SharedState.GetWriter().Modify([Visible](FWorldEditorSharedState& Shared) {
-        Shared.EditorSettings.mAxisVisible = Visible;
+    mSharedState.GetWriter().Modify([Visible](FWorldEditorSharedState& Shared) {
+        Shared.mEditorSettings.mAxisVisible = Visible;
     });
 }
 
-const size_t FWorldEditorContext::GetRenderModeState() const noexcept
-{
-    return SharedState.GetReader().Peek().ModeIndex;
+const std::size_t FWorldEditorContext::GetRenderModeState() const noexcept {
+    return mSharedState.GetReader().Peek().mModeIndex;
 }
 
-void FWorldEditorContext::SetRenderModeState(const size_t State)
-{
-    SharedState.GetWriter().Modify([&State](FWorldEditorSharedState& Shared) {Shared.ModeIndex = State;});
+void FWorldEditorContext::SetRenderModeState(const std::size_t State) {
+    mSharedState.GetWriter().Modify([&State](FWorldEditorSharedState& Shared) {
+        Shared.mModeIndex = State;
+    });
 }
 
 void FWorldEditorContext::SetSelectedActor(AActor* Actor) {
@@ -144,8 +145,8 @@ void FWorldEditorContext::SetSelectedActor(AActor* Actor) {
         return;
     }
 
-    SelectedActor.Set(Actor);
-    SelectedComponent.Set(Actor->GetRootComponent());
+    mSelectedActor.Set(Actor);
+    mSelectedComponent.Set(Actor->GetRootComponent());
 }
 
 void FWorldEditorContext::SetSelectedComponent(UActorComponent* Component) {
@@ -154,49 +155,54 @@ void FWorldEditorContext::SetSelectedComponent(UActorComponent* Component) {
         return;
     }
 
-    SelectedActor.Set(Component->GetOwner());
-    SelectedComponent.Set(Component);
+    mSelectedActor.Set(Component->GetOwner());
+    mSelectedComponent.Set(Component);
 }
 
 void FWorldEditorContext::ClearSelection() {
-    SelectedComponent.Reset();
-    SelectedActor.Reset();
+    mSelectedComponent.Reset();
+    mSelectedActor.Reset();
 }
 
-AActor* FWorldEditorContext::GetSelectedActor() const noexcept { return SelectedActor.Get(); }
-UActorComponent* FWorldEditorContext::GetSelectedComponent() const noexcept { return SelectedComponent.Get(); }
+AActor* FWorldEditorContext::GetSelectedActor() const noexcept {
+    return mSelectedActor.Get();
+}
+
+UActorComponent* FWorldEditorContext::GetSelectedComponent() const noexcept {
+    return mSelectedComponent.Get();
+}
 
 USceneComponent* FWorldEditorContext::GetSelectedTransformTarget() const noexcept {
-    UActorComponent* Component = SelectedComponent.Get();
+    UActorComponent* Component{mSelectedComponent.Get()};
     if (Component != nullptr && Component->GetTypeInfo()->IsA(USceneComponent::StaticTypeInfo())) {
         return static_cast<USceneComponent*>(Component);
     }
 
-    AActor* Actor = SelectedActor.Get();
+    AActor* Actor{mSelectedActor.Get()};
     return Actor != nullptr ? Actor->GetRootComponent() : nullptr;
 }
 
 UWorld* FWorldEditorContext::GetWorld() const {
-    return World;
+    return mWorld;
 }
 
 void FWorldEditorContext::SetPreviewMesh(const FAssetHandle& Handle) {
-    PreviewMesh = Handle;
-    bPreviewOpenRequested = true;
+    mPreviewMesh = Handle;
+    mBPreviewOpenRequested = true;
 }
 
 FAssetHandle FWorldEditorContext::GetPreviewMesh() const noexcept {
-    return PreviewMesh;
+    return mPreviewMesh;
 }
 
 FAssetHandle FWorldEditorContext::ConsumePreviewMesh() noexcept {
-    const FAssetHandle Handle{ PreviewMesh };
-    PreviewMesh = {};
+    const FAssetHandle Handle{mPreviewMesh};
+    mPreviewMesh = {};
     return Handle;
 }
 
 bool FWorldEditorContext::ConsumePreviewOpenRequest() noexcept {
-    const bool Requested{ bPreviewOpenRequested };
-    bPreviewOpenRequested = false;
+    const bool Requested{mBPreviewOpenRequested};
+    mBPreviewOpenRequested = false;
     return Requested;
 }

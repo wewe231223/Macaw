@@ -1,30 +1,30 @@
-﻿#include "PCH.h"
+﻿#include "pch.h"
 #include "UActorComponent.h"
 #include "../AActor.h"
 #include "Render/Panel/FPropertyEditorContext.h"
 #include "../../ErrorHandler.h"
 
 AActor* UActorComponent::GetOwner() const {
-    return Owner;
+    return mOwner;
 }
 
 void UActorComponent::SetOwner(AActor* InOwner) {
-    Owner = InOwner;
+    mOwner = InOwner;
 }
 
 void UActorComponent::OnRegister() {
 }
 
 void UActorComponent::InitializeComponent() {
-    bInitialized = true;
+    mBInitialized = true;
 }
 
 void UActorComponent::BeginPlay() {
-    bHasBegunPlay = true;
+    mBHasBegunPlay = true;
 }
 
 void UActorComponent::EndPlay() {
-    bHasBegunPlay = false;
+    mBHasBegunPlay = false;
 }
 
 void UActorComponent::Tick(float /*DeltaTime*/) {
@@ -34,72 +34,73 @@ void UActorComponent::OnUnregister() {
 }
 
 void UActorComponent::DrawPanels(FPropertyEditorContext& Context) {
-    Context.DrawBool("Active", IsActive(), [this](bool bActive) {
-        SetActive(bActive);
+    Context.DrawBool("Active", IsActive(), [this](bool BActive) {
+        SetActive(BActive);
     });
 }
 
 bool UActorComponent::IsActive() const {
-    return bActive;
+    return mBActive;
 }
 
-void UActorComponent::SetActive(bool bInActive) {
-    bActive = bInActive;
+void UActorComponent::SetActive(bool BInActive) {
+    mBActive = BInActive;
 }
 
 bool UActorComponent::IsRegistered() const {
-    return bRegistered;
+    return mBRegistered;
 }
 
 bool UActorComponent::IsInitialized() const {
-    return bInitialized;
+    return mBInitialized;
 }
 
 bool UActorComponent::HasBegunPlay() const {
-    return bHasBegunPlay;
+    return mBHasBegunPlay;
 }
 
 UWorld* UActorComponent::GetBelongingWorld() const {
-    return ParentWorld;
+    return mParentWorld;
 }
 
-void UActorComponent::RegisterComponent(UWorld* world) {
-    ErrorHandler::Report(Owner == nullptr and ParentWorld == nullptr, "[ UActorComponent ]", "Owner and ParentWorld must not be null.", ErrorHandler::EErrorLevel::Critical);
-    ErrorHandler::Report(world != Owner->GetWorld(), "[ UActorComponent ]", "World must match Owner's world.", ErrorHandler::EErrorLevel::Critical);
-    if (bRegistered) return;
+void UActorComponent::RegisterComponent(UWorld* World) {
+    ErrorHandler::Report(mOwner == nullptr and mParentWorld == nullptr, "[ UActorComponent ]", "Owner and ParentWorld must not be null.", ErrorHandler::EErrorLevel::Critical);
+    ErrorHandler::Report(World != mOwner->GetWorld(), "[ UActorComponent ]", "World must match Owner's world.", ErrorHandler::EErrorLevel::Critical);
+    if (mBRegistered)
+        return;
 
-    ParentWorld = world;
-    bRegistered = true;
+    mParentWorld = World;
+    mBRegistered = true;
 
     this->OnRegister();
 }
 
 void UActorComponent::UnregisterComponent() {
-    if (not bRegistered) {
+    if (not mBRegistered) {
         return;
     }
 
-    ErrorHandler::Report(Owner == nullptr or ParentWorld == nullptr, "[ UActorComponent ]", "Owner and ParentWorld must not be null.", ErrorHandler::EErrorLevel::Critical);
+    ErrorHandler::Report(mOwner == nullptr or mParentWorld == nullptr, "[ UActorComponent ]", "Owner and ParentWorld must not be null.", ErrorHandler::EErrorLevel::Critical);
 
-    if (bHasBegunPlay) {
+    if (mBHasBegunPlay) {
         EndPlay();
     }
 
     this->OnUnregister();
-    bRegistered = false;
-    ParentWorld = nullptr;
+    mBRegistered = false;
+    mParentWorld = nullptr;
 }
 
 void UActorComponent::DestroyComponent(bool /*bPromoteChildren*/) {
-    if (bIsBeingDestroyed) {
+    if (mBIsBeingDestroyed) {
         return;
     }
 
-    bIsBeingDestroyed = true;
+    mBIsBeingDestroyed = true;
     UnregisterComponent();
 
-    if (Owner != nullptr) {
-        Owner->RemoveOwnedComponent(this);
+    if (mOwner != nullptr) {
+        mOwner->RemoveOwnedComponent(this);
     }
 }
 
@@ -110,5 +111,5 @@ bool UActorComponent::ResolveLoadedReferences() {
 void UActorComponent::Serialize(FArchive& Archive) {
     UObject::Serialize(Archive);
 
-    Archive.Serialize("bActive", bActive);
+    Archive.Serialize("bActive", mBActive);
 }

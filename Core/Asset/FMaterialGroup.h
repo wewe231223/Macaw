@@ -1,38 +1,38 @@
-#pragma once
+﻿#pragma once
 
 #include "FAssetHandle.h"
 
 struct FMaterialTextureMap {
-	FString SourcePath{};
-	FAssetHandle Texture{};
+    FString mSourcePath{};
+    FAssetHandle mTexture{};
 };
 
 struct FMaterialGroup {
-	FString Name{};
+    FString mName{};
 
-	FVector3 Ambient{ 0.0f, 0.0f, 0.0f };
-	FVector3 Diffuse{ 1.0f, 1.0f, 1.0f };
-	FVector3 Specular{ 0.0f, 0.0f, 0.0f };
-	FVector3 Emissive{ 0.0f, 0.0f, 0.0f };
-	FVector3 TransmissionFilter{ 1.0f, 1.0f, 1.0f };
+    FVector3 mAmbient{0.0f, 0.0f, 0.0f};
+    FVector3 mDiffuse{1.0f, 1.0f, 1.0f};
+    FVector3 mSpecular{0.0f, 0.0f, 0.0f};
+    FVector3 mEmissive{0.0f, 0.0f, 0.0f};
+    FVector3 mTransmissionFilter{1.0f, 1.0f, 1.0f};
 
-	float Shininess{ 0.0f };
-	float RefractionIndex{ 1.0f };
-	float Opacity{ 1.0f };
-	float Sharpness{ 60.0f };
-	int32 IlluminationModel{ 2 };
-	bool bDissolveHalo{ false };
+    float mShininess{0.0f};
+    float mRefractionIndex{1.0f};
+    float mOpacity{1.0f};
+    float mSharpness{60.0f};
+    Int32 mIlluminationModel{2};
+    bool mBDissolveHalo{false};
 
-	FMaterialTextureMap AmbientTexture{};
-	FMaterialTextureMap DiffuseTexture{};
-	FMaterialTextureMap SpecularTexture{};
-	FMaterialTextureMap EmissiveTexture{};
-	FMaterialTextureMap TransmissionTexture{};
-	FMaterialTextureMap ShininessTexture{};
-	FMaterialTextureMap OpacityTexture{};
-	FMaterialTextureMap BumpTexture{};
-	FMaterialTextureMap NormalTexture{};
-	FMaterialTextureMap DisplacementTexture{};
-	FMaterialTextureMap DecalTexture{};
-	FMaterialTextureMap ReflectionTexture{};
+    FMaterialTextureMap mAmbientTexture{};
+    FMaterialTextureMap mDiffuseTexture{};
+    FMaterialTextureMap mSpecularTexture{};
+    FMaterialTextureMap mEmissiveTexture{};
+    FMaterialTextureMap mTransmissionTexture{};
+    FMaterialTextureMap mShininessTexture{};
+    FMaterialTextureMap mOpacityTexture{};
+    FMaterialTextureMap mBumpTexture{};
+    FMaterialTextureMap mNormalTexture{};
+    FMaterialTextureMap mDisplacementTexture{};
+    FMaterialTextureMap mDecalTexture{};
+    FMaterialTextureMap mReflectionTexture{};
 };

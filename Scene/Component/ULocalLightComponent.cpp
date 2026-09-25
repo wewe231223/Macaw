@@ -1,20 +1,20 @@
-﻿#include "PCH.h"
+﻿#include "pch.h"
 
 #include "ULocalLightComponent.h"
 
 #include "Render/Panel/FPropertyEditorContext.h"
 
 float ULocalLightComponent::GetAttenuationRadius() const {
-    return AttenuationRadius;
+    return mAttenuationRadius;
 }
 
 void ULocalLightComponent::SetAttenuationRadius(float InAttenuationRadius) {
-    AttenuationRadius = std::max(InAttenuationRadius, 0.0f);
+    mAttenuationRadius = std::max(InAttenuationRadius, 0.0f);
 }
 
 void ULocalLightComponent::MakeLightProbe(FLightProbe& OutProbe) const {
     ULightComponent::MakeLightProbe(OutProbe);
-    OutProbe.AttenuationRadius = GetAttenuationRadius();
+    OutProbe.mAttenuationRadius = GetAttenuationRadius();
 }
 
 void ULocalLightComponent::DrawPanels(FPropertyEditorContext& Context) {
@@ -31,5 +31,5 @@ void ULocalLightComponent::DrawPanels(FPropertyEditorContext& Context) {
 
 void ULocalLightComponent::Serialize(FArchive& Archive) {
     ULightComponent::Serialize(Archive);
-    Archive.Serialize("AttenuationRadius", AttenuationRadius);
+    Archive.Serialize("AttenuationRadius", mAttenuationRadius);
 }

@@ -20,5 +20,5 @@ protected:
     void OnDeinitialize() override;
 
 private:
-    UCameraComponent* MainCamera = nullptr;
+    UCameraComponent* mMainCamera{nullptr};
 };

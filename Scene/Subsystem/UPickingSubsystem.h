@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "UWorldSubsystem.h"
 
@@ -25,5 +25,5 @@ protected:
     void OnDeinitialize() override;
 
 private:
-    TArray<TObjectRef<UPrimitiveComponent>> Components;
+    TArray<TObjectRef<UPrimitiveComponent>> mComponents{};
 };

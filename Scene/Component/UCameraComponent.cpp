@@ -1,4 +1,4 @@
-﻿#include "PCH.h"
+﻿#include "pch.h"
 #include "UCameraComponent.h"
 #include "Render/Panel/FPropertyEditorContext.h"
 
@@ -7,11 +7,7 @@
 #include "Scene/Subsystem/UCameraSubsystem.h"
 
 UCameraComponent::UCameraComponent() {
-    SetRelativeLocation({ 5.0f, 5.0f, 5.0f });
-
-    
-
-
+    SetRelativeLocation({5.0f, 5.0f, 5.0f});
 }
 
 FMatrix UCameraComponent::GetViewMatrix() const {
@@ -19,12 +15,7 @@ FMatrix UCameraComponent::GetViewMatrix() const {
 }
 
 FMatrix UCameraComponent::GetProjectionMatrix() const {
-    return FMatrix::CreatePerspectiveFieldOfView(
-        FOV,
-        AspectRatio,
-        NearPlane,
-        FarPlane
-    );
+    return FMatrix::CreatePerspectiveFieldOfView(mFov, mAspectRatio, mNearPlane, mFarPlane);
 }
 
 FMatrix UCameraComponent::GetViewProjectionMatrix() const {
@@ -32,35 +23,35 @@ FMatrix UCameraComponent::GetViewProjectionMatrix() const {
 }
 
 float UCameraComponent::GetFOV() const {
-    return FOV;
+    return mFov;
 }
 
 float UCameraComponent::GetAspectRatio() const {
-    return AspectRatio;
+    return mAspectRatio;
 }
 
 float UCameraComponent::GetNearPlane() const {
-    return NearPlane;
+    return mNearPlane;
 }
 
 float UCameraComponent::GetFarPlane() const {
-    return FarPlane;
+    return mFarPlane;
 }
 
 void UCameraComponent::SetFOV(float InFOV) {
-    FOV = InFOV;
+    mFov = InFOV;
 }
 
 void UCameraComponent::SetAspectRatio(float InAspectRatio) {
-    AspectRatio = InAspectRatio;
+    mAspectRatio = InAspectRatio;
 }
 
 void UCameraComponent::SetNearPlane(float InNearPlane) {
-    NearPlane = InNearPlane;
+    mNearPlane = InNearPlane;
 }
 
 void UCameraComponent::SetFarPlane(float InFarPlane) {
-    FarPlane = InFarPlane;
+    mFarPlane = InFarPlane;
 }
 
 void UCameraComponent::DrawPanels(FPropertyEditorContext& Context) {
@@ -81,7 +72,7 @@ void UCameraComponent::DrawPanels(FPropertyEditorContext& Context) {
 
 void UCameraComponent::OnRegister() {
     UActorComponent::OnRegister();
-    AActor* Owner = GetOwner();
+    AActor* Owner{GetOwner()};
 
     if (Owner != nullptr && Owner->GetWorld() != nullptr) {
         Owner->GetWorld()->GetCameraSubsystem().SetMainCamera(this);
@@ -89,40 +80,35 @@ void UCameraComponent::OnRegister() {
 }
 
 void UCameraComponent::OnUnregister() {
-	UActorComponent::OnUnregister();
+    UActorComponent::OnUnregister();
 
-    AActor* Owner = GetOwner();
+    AActor* Owner{GetOwner()};
 
     if (Owner != nullptr && Owner->GetWorld() != nullptr) {
         Owner->GetWorld()->GetCameraSubsystem().ClearMainCamera(this);
     }
 }
 
-void UCameraComponent::SetMoveSensitivity(float InMoveSensitivity)
-{
-    MoveSensitivity = InMoveSensitivity;
+void UCameraComponent::SetMoveSensitivity(float InMoveSensitivity) {
+    mMoveSensitivity = InMoveSensitivity;
 }
 
-void UCameraComponent::SetRotationSensitivity(float InRotationSensitivity)
-{
-    RotationSensitivity = InRotationSensitivity;
+void UCameraComponent::SetRotationSensitivity(float InRotationSensitivity) {
+    mRotationSensitivity = InRotationSensitivity;
 }
 
-float UCameraComponent::GetRotationSensitivity() const
-{
-    return RotationSensitivity;
+float UCameraComponent::GetRotationSensitivity() const {
+    return mRotationSensitivity;
 }
 
-float UCameraComponent::GetMoveSensitivity() const
-{
-    return MoveSensitivity;
+float UCameraComponent::GetMoveSensitivity() const {
+    return mMoveSensitivity;
 }
 
 void UCameraComponent::Serialize(FArchive& Archive) {
     USceneComponent::Serialize(Archive);
-    Archive.Serialize("FOV", FOV);
-    Archive.Serialize("AspectRatio", AspectRatio);
-    Archive.Serialize("NearPlane", NearPlane);
-    Archive.Serialize("FarPlane", FarPlane);
+    Archive.Serialize("FOV", mFov);
+    Archive.Serialize("AspectRatio", mAspectRatio);
+    Archive.Serialize("NearPlane", mNearPlane);
+    Archive.Serialize("FarPlane", mFarPlane);
 }
-

@@ -16,7 +16,7 @@ struct ID3D11Device;
 class FViewportHostWindow final : public FEditorWindow {
 public:
     using FViewportId = ::FViewportId;
-    static constexpr uint32 MaximumViewportCount = FViewportPresetLayout::MaximumViewportCount;
+    static constexpr Uint32 MaximumViewportCount{FViewportPresetLayout::MaximumViewportCount};
 
     FViewportHostWindow(ID3D11Device* Device, FWorldEditorContext& EditorContext);
     ~FViewportHostWindow() override;
@@ -25,7 +25,7 @@ public:
     void ProcessInput(EditorViewport& Viewport, FKeyboardInput& KeyboardInput, FMouseInput& MouseInput, float DeltaTime);
     void ReleaseRenderResources() override;
     FEditorViewport* PrepareViewportForRender(FViewportId Id);
-    uint32 GetViewportCount() const;
+    Uint32 GetViewportCount() const;
 
     void ApplyLayoutSettings(const FEditorSettings& Settings);
     void CaptureLayoutSettings(FEditorSettings& Settings) const;
@@ -37,12 +37,12 @@ private:
     bool DrawSplitterHandle(SSplitter& Splitter);
     FEditorViewport* GetViewport(FViewportId Id) const;
 
-    FViewportPresetLayout Layout;
-    std::array<std::unique_ptr<FEditorViewport>, MaximumViewportCount> Viewports{};
-    FViewportId ActiveViewportId = 0;
-    ImGuiID DockSpaceId = 0;
-    bool bSplitterActive = false;
+    FViewportPresetLayout mLayout{};
+    std::array<std::unique_ptr<FEditorViewport>, MaximumViewportCount> mViewports{};
+    FViewportId mActiveViewportId{0};
+    ImGuiID mDockSpaceId{0};
+    bool mBSplitterActive{false};
 
-    FEditorSettings PendingLayoutSettings{};
-    bool bHasPendingLayoutSettings = true;
+    FEditorSettings mPendingLayoutSettings{};
+    bool mBHasPendingLayoutSettings{true};
 };

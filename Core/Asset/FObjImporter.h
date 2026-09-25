@@ -1,16 +1,17 @@
-#pragma once
+﻿#pragma once
 #include <d3d11.h>
 
 #include "FObjInfo.h"
 
 class FAssetRegistry;
 class UMesh;
+
 ////OBJ의 v/vt/vn 인덱스 조합 하나 = GPU 정점 하나. 같은 조합이 또 나오면 새 정점을 만들지 않고 재사용한다.
 //struct FFaceVertexKey
 //{
-//    int32 PositionIndex;
-//    int32 UVIndex;
-//    int32 NormalIndex;
+//    Int32 PositionIndex;
+//    Int32 UVIndex;
+//    Int32 NormalIndex;
 //
 //    bool operator==(const FFaceVertexKey& Other) const noexcept
 //    {
@@ -25,9 +26,9 @@ class UMesh;
 //{
 //    size_t operator()(const FFaceVertexKey& Key) const noexcept
 //    {
-//        size_t Hash = std::hash<int32>{}(Key.PositionIndex);
-//        Hash = Hash * 31 + std::hash<int32>{}(Key.UVIndex);
-//        Hash = Hash * 31 + std::hash<int32>{}(Key.NormalIndex);
+//        size_t Hash = std::hash<Int32>{}(Key.PositionIndex);
+//        Hash = Hash * 31 + std::hash<Int32>{}(Key.UVIndex);
+//        Hash = Hash * 31 + std::hash<Int32>{}(Key.NormalIndex);
 //        return Hash;
 //    }
 //};
@@ -54,7 +55,7 @@ class UMesh;
 //    //동일한 머티리얼을 쓰는 정점들의 개수
 //    //MaterialNames와 인덱스 매칭한다.
 //    //MaterialNames[0]를 쓰는 정점의 개수는 SubMesh[0]개
-//    TArray<int32> SubMesh;
+//    TArray<Int32> SubMesh;
 //};
 //
 //struct FGeometry
@@ -62,14 +63,13 @@ class UMesh;
 //    TArray<FVector>  Positions;
 //    TArray<FVector>  Normals;
 //    TArray<FVector2> TexCoords;
-//    TArray<uint32>    Indices;
+//    TArray<Uint32>    Indices;
 //
 //    FString MaterialFileName;
 //    TArray<FString> MaterialNames;
-//    TArray<uint32> SubMeshIndexCounts;
+//    TArray<Uint32> SubMeshIndexCounts;
 //};
-class FObjImporter
-{
+class FObjImporter {
 public:
     FObjImporter() = default;
     ~FObjImporter() = default;
@@ -88,10 +88,9 @@ public:
 
     //obj의 f값을 인덱스로 바꾸기 위해 1을 뺍니다.
     //음수값이라면 뒤에서부터 가져옵니다.
-    int32 NormalizeIndex(int32 RawIndex, int32 ArraySize) const;
+    Int32 NormalizeIndex(Int32 RawIndex, Int32 ArraySize) const;
 
 private:
-
     //파싱된 ObjInfo로 Vertex Position, Index, Normal, TexCoord 배열을 만든다.
     bool BuildGeometry(const FObjInfo& ObjInfo, FGeometry& OutGeometry) const;
 
@@ -99,15 +98,14 @@ private:
     bool BuildPolygonGeometry(const FObjInfo& ObjInfo, FGeometry& OutGeometry) const;
 
     //1개 버텍스 데이터 저장
-    void AddPNTIArray(const FFaceVertex& TargetVertex, const FObjInfo& ObjInfo, FGeometry& OutGeometry,
-                      std::unordered_map<FFaceVertexKey, uint32, FFaceVertexKeyHash>& CacheMap) const;
+    void AddPNTIArray(const FFaceVertex& TargetVertex, const FObjInfo& ObjInfo, FGeometry& OutGeometry, std::unordered_map<FFaceVertexKey, Uint32, FFaceVertexKeyHash>& CacheMap) const;
 
     //정점들의 Normal 평균 구하기
-    FVector ComputeFaceNormal(const TArray<FFaceVertex>& PolygonVertices, const TArray<FVector>& Positions, int32 PositionCount)const;
+    FVector ComputeFaceNormal(const TArray<FFaceVertex>& PolygonVertices, const TArray<FVector>& Positions, Int32 PositionCount) const;
 
 private:
-    FString LastError{};
-    FVector PositionCoordTrans_X = FVector(0.f, 0.f, -1.f);
-    FVector PositionCoordTrans_Y = FVector(1.f, 0.f, 0.f);
-    FVector PositionCoordTrans_Z = FVector(0.f, 1.f, 0.f);
+    FString mLastError{};
+    FVector mPositionCoordTransX{FVector{0.f, 0.f, -1.f}};
+    FVector mPositionCoordTransY{FVector{1.f, 0.f, 0.f}};
+    FVector mPositionCoordTransZ{FVector{0.f, 1.f, 0.f}};
 };

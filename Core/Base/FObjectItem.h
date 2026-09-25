@@ -4,8 +4,7 @@
 
 #include "UObject.h"
 
-struct FObjectItem
-{
-	UObject* Object = nullptr;
-	std::uint32_t Generation = 1;
+struct FObjectItem {
+    UObject* mObject{nullptr};
+    std::uint32_t mGeneration{1};
 };

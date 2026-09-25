@@ -1,4 +1,4 @@
-﻿#include "PCH.h"
+﻿#include "pch.h"
 #include "UMeshComponent.h"
 #include "Render/Panel/FPropertyEditorContext.h"
 
@@ -8,24 +8,24 @@
 #include "Core/Asset/UMesh.h"
 
 FAssetHandle UMeshComponent::GetMeshHandle() const {
-    return MeshHandle;
+    return mMeshHandle;
 }
 
 void UMeshComponent::SetMeshHandle(FAssetHandle InHandle) {
-    MeshHandle = InHandle;
-    AActor* Owner = GetOwner();
-    UWorld* World = Owner != nullptr ? Owner->GetWorld() : nullptr;
-    FAssetRegistry* Registry = World != nullptr ? World->GetAssetRegistry() : nullptr;
-    MeshAssetPath = Registry != nullptr && Registry->GetAssetPath(MeshHandle) != nullptr ? *Registry->GetAssetPath(MeshHandle) : FAssetPath{};
-    MeshAssetGuid = Registry != nullptr && Registry->GetAssetGuid(MeshHandle) != nullptr ? *Registry->GetAssetGuid(MeshHandle) : FGuid{};
+    mMeshHandle = InHandle;
+    AActor* Owner{GetOwner()};
+    UWorld* World{Owner != nullptr ? Owner->GetWorld() : nullptr};
+    FAssetRegistry* Registry{World != nullptr ? World->GetAssetRegistry() : nullptr};
+    mMeshAssetPath = Registry != nullptr && Registry->GetAssetPath(mMeshHandle) != nullptr ? *Registry->GetAssetPath(mMeshHandle) : FAssetPath{};
+    mMeshAssetGuid = Registry != nullptr && Registry->GetAssetGuid(mMeshHandle) != nullptr ? *Registry->GetAssetGuid(mMeshHandle) : FGuid{};
     BuildPickingBoxFromMesh();
 }
 
 void UMeshComponent::DrawPanels(FPropertyEditorContext& Context) {
     UPrimitiveComponent::DrawPanels(Context);
-    AActor* Owner = GetOwner();
-    UWorld* World = Owner != nullptr ? Owner->GetWorld() : nullptr;
-    FAssetRegistry* Registry = World != nullptr ? World->GetAssetRegistry() : nullptr;
+    AActor* Owner{GetOwner()};
+    UWorld* World{Owner != nullptr ? Owner->GetWorld() : nullptr};
+    FAssetRegistry* Registry{World != nullptr ? World->GetAssetRegistry() : nullptr};
     if (Registry == nullptr) {
         Context.DrawDisabledText("Mesh: Asset registry unavailable");
         return;
@@ -36,10 +36,10 @@ void UMeshComponent::DrawPanels(FPropertyEditorContext& Context) {
 }
 
 UMesh* UMeshComponent::ResolveMesh() const {
-    AActor* Owner = GetOwner();
-    UWorld* World = Owner != nullptr ? Owner->GetWorld() : nullptr;
-    FAssetRegistry* Registry = World != nullptr ? World->GetAssetRegistry() : nullptr;
-    return Registry != nullptr ? Registry->ResolveAsset<UMesh>(MeshHandle) : nullptr;
+    AActor* Owner{GetOwner()};
+    UWorld* World{Owner != nullptr ? Owner->GetWorld() : nullptr};
+    FAssetRegistry* Registry{World != nullptr ? World->GetAssetRegistry() : nullptr};
+    return Registry != nullptr ? Registry->ResolveAsset<UMesh>(mMeshHandle) : nullptr;
 }
 
 void UMeshComponent::OnRegister() {
@@ -48,88 +48,88 @@ void UMeshComponent::OnRegister() {
 }
 
 bool UMeshComponent::BuildPickingBoxFromMesh() {
-    UMesh* Mesh = ResolveMesh();
+    UMesh* Mesh{ResolveMesh()};
     if (Mesh == nullptr) {
         return false;
     }
 
-    const auto Positions = Mesh->GetVertexAttributeData<EVertexAttribute::Position>();
+    const auto Positions{Mesh->GetVertexAttributeData<EVertexAttribute::Position>()};
     if (Positions.empty()) {
         return false;
     }
 
-    std::vector<DirectX::XMFLOAT3> Points;
+    std::vector<DirectX::XMFLOAT3> Points{};
     Points.reserve(Positions.size());
     for (const FVector3& Position : Positions) {
-        Points.emplace_back(Position.x, Position.y, Position.z);
+        Points.emplace_back(Position.mX, Position.mY, Position.mZ);
     }
 
-    DirectX::BoundingBox Bounds;
+    DirectX::BoundingBox Bounds{};
     DirectX::BoundingBox::CreateFromPoints(Bounds, Points.size(), Points.data(), sizeof(DirectX::XMFLOAT3));
-    DirectX::BoundingOrientedBox Box;
+    DirectX::BoundingOrientedBox Box{};
     DirectX::BoundingOrientedBox::CreateFromBoundingBox(Box, Bounds);
     SetPickingBox(Box);
     return true;
 }
 
 bool UMeshComponent::RaycastMesh(const FRay& Ray, float& OutDistance) const {
-    UMesh* Mesh = ResolveMesh();
+    UMesh* Mesh{ResolveMesh()};
     if (Mesh == nullptr) {
         return false;
     }
 
-    const auto Positions = Mesh->GetVertexAttributeData<EVertexAttribute::Position>();
-    const TArray<uint32>& Indices = Mesh->GetIndices();
+    const auto Positions{Mesh->GetVertexAttributeData<EVertexAttribute::Position>()};
+    const TArray<Uint32>& Indices{Mesh->GetIndices()};
     if (Positions.empty() || Indices.size() < 3) {
         return false;
     }
 
-    bool bHit = false;
-    float ClosestDistance = std::numeric_limits<float>::max();
-    const FMatrix WorldMatrix = GetComponentToWorld();
-    for (size_t Index = 0; Index + 2 < Indices.size(); Index += 3) {
-        const uint32 I0 = Indices[Index];
-        const uint32 I1 = Indices[Index + 1];
-        const uint32 I2 = Indices[Index + 2];
+    bool BHit{false};
+    float ClosestDistance{std::numeric_limits<float>::max()};
+    const FMatrix WorldMatrix{GetComponentToWorld()};
+    for (std::size_t Index{0}; Index + 2 < Indices.size(); Index += 3) {
+        const Uint32 I0{Indices[Index]};
+        const Uint32 I1{Indices[Index + 1]};
+        const Uint32 I2{Indices[Index + 2]};
         if (I0 >= Positions.size() || I1 >= Positions.size() || I2 >= Positions.size()) {
             continue;
         }
 
-        const DirectX::XMVECTOR V0 = DirectX::XMVector3TransformCoord(Positions[I0].ToSimpleMath(), WorldMatrix.ToSimpleMath());
-        const DirectX::XMVECTOR V1 = DirectX::XMVector3TransformCoord(Positions[I1].ToSimpleMath(), WorldMatrix.ToSimpleMath());
-        const DirectX::XMVECTOR V2 = DirectX::XMVector3TransformCoord(Positions[I2].ToSimpleMath(), WorldMatrix.ToSimpleMath());
-        float Distance = 0.0f;
+        const DirectX::XMVECTOR V0{DirectX::XMVector3TransformCoord(Positions[I0].ToSimpleMath(), WorldMatrix.ToSimpleMath())};
+        const DirectX::XMVECTOR V1{DirectX::XMVector3TransformCoord(Positions[I1].ToSimpleMath(), WorldMatrix.ToSimpleMath())};
+        const DirectX::XMVECTOR V2{DirectX::XMVector3TransformCoord(Positions[I2].ToSimpleMath(), WorldMatrix.ToSimpleMath())};
+        float Distance{0.0f};
         if (DirectX::TriangleTests::Intersects(Ray.position, Ray.direction, V0, V1, V2, Distance) && Distance < ClosestDistance) {
             ClosestDistance = Distance;
-            bHit = true;
+            BHit = true;
         }
     }
 
-    if (bHit) {
+    if (BHit) {
         OutDistance = ClosestDistance;
     }
-    return bHit;
+    return BHit;
 }
 
 void UMeshComponent::Serialize(FArchive& Archive) {
     UPrimitiveComponent::Serialize(Archive);
 
-    FAssetRegistry* Registry = Archive.GetAssetRegistry();
+    FAssetRegistry* Registry{Archive.GetAssetRegistry()};
     if (Archive.IsSaving() && Registry != nullptr) {
-        if (const FAssetPath* AssetPath = Registry->GetAssetPath(MeshHandle)) {
-            MeshAssetPath = *AssetPath;
+        if (const FAssetPath* AssetPath{Registry->GetAssetPath(mMeshHandle)}) {
+            mMeshAssetPath = *AssetPath;
         }
-        if (const FGuid* AssetGuid = Registry->GetAssetGuid(MeshHandle)) {
-            MeshAssetGuid = *AssetGuid;
+        if (const FGuid* AssetGuid{Registry->GetAssetGuid(mMeshHandle)}) {
+            mMeshAssetGuid = *AssetGuid;
         }
     }
 
-    Archive.Serialize("MeshAssetGuid", MeshAssetGuid);
-    Archive.Serialize("MeshAssetPath", MeshAssetPath.Path);
+    Archive.Serialize("MeshAssetGuid", mMeshAssetGuid);
+    Archive.Serialize("MeshAssetPath", mMeshAssetPath.mPath);
     if (Archive.IsLoading()) {
-        MeshHandle = Registry != nullptr ? Registry->FindAsset(MeshAssetGuid) : FAssetHandle{};
-        if (!MeshHandle && Registry != nullptr) {
-            MeshHandle = Registry->FindAsset(MeshAssetPath);
+        mMeshHandle = Registry != nullptr ? Registry->FindAsset(mMeshAssetGuid) : FAssetHandle{};
+        if (!mMeshHandle && Registry != nullptr) {
+            mMeshHandle = Registry->FindAsset(mMeshAssetPath);
         }
     }
 }

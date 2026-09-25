@@ -1,21 +1,22 @@
-#pragma once
+﻿#pragma once
 
 #include "FArchive.h"
 #include "../Common.h"
 #include "../FMath.h"
+
 struct FEditorSettings {
-	float32 MoveSensitivity{ 5.0f };
-	float32 RotationSensitivity{ 1.0f };
-	FVector CameraStartPosition{ 0.0f, 0.0f, 0.0f };
-	float32 GridSize{ 1.0f };
-	bool mGridVisible{ true };
-	bool mGridSnapEnabled{ true };
-	bool mAxisVisible{ true };
-	FString LastLoadedScenePath{};
-	uint8 ViewportLayoutPreset{ 7U };
-	uint32 ViewportSplitterCount{ 3U };
-	float32 ViewportSplitterRatio0{ 0.5f };
-	float32 ViewportSplitterRatio1{ 0.5f };
-	float32 ViewportSplitterRatio2{ 0.5f };
-	void Serialize(FArchive& Ar);
+    Float32 mMoveSensitivity{5.0f};
+    Float32 mRotationSensitivity{1.0f};
+    FVector mCameraStartPosition{0.0f, 0.0f, 0.0f};
+    Float32 mGridSize{1.0f};
+    bool mGridVisible{true};
+    bool mGridSnapEnabled{true};
+    bool mAxisVisible{true};
+    FString mLastLoadedScenePath{};
+    Uint8 mViewportLayoutPreset{7U};
+    Uint32 mViewportSplitterCount{3U};
+    Float32 mViewportSplitterRatio0{0.5f};
+    Float32 mViewportSplitterRatio1{0.5f};
+    Float32 mViewportSplitterRatio2{0.5f};
+    void Serialize(FArchive& Ar);
 };

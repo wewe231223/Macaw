@@ -5,12 +5,8 @@
 
 class UCameraComponent : public USceneComponent {
 public:
-	constexpr static FMatrix CameraBasis = {
-		{   -1.0f, 0.0f, 0.0f, 0.0f,
-		    0.0f, 0.0f, 1.0f, 0.0f,
-		    0.0f, 1.0f, 0.0f, 0.0f,
-		    0.0f, 0.0f, 0.0f, 1.0f }
-	};
+    constexpr static FMatrix CameraBasis{ {-1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f}};
+
 public:
     UCameraComponent();
     ~UCameraComponent() override = default;
@@ -45,10 +41,10 @@ protected:
     void Serialize(FArchive& Archive) override;
 
 private:
-    float FOV = 1.0472f;       // 약 60도, 라디안
-    float AspectRatio = 16.0f / 9.0f;
-    float NearPlane = 0.1f;
-    float FarPlane = 1000.0f;
-    float MoveSensitivity{ 5.0f };
-    float RotationSensitivity{ 0.1f };
+    float mFov{1.0472f}; // 약 60도, 라디안
+    float mAspectRatio{16.0f / 9.0f};
+    float mNearPlane{0.1f};
+    float mFarPlane{1000.0f};
+    float mMoveSensitivity{5.0f};
+    float mRotationSensitivity{0.1f};
 };

@@ -71,8 +71,8 @@ project "Macaw"
         "vcpkg_installed/**",
     }
 
-    pchheader "PCH.h"
-    pchsource "PCH.cpp"
+    pchheader "pch.h"
+    pchsource "pch.cpp"
 
     links {
         "DirectXTex",
@@ -151,8 +151,8 @@ project "MacawTests"
         "Externals/**",
     }
 
-    pchheader "PCH.h"
-    pchsource "PCH.cpp"
+    pchheader "pch.h"
+    pchsource "pch.cpp"
 
     links {
         "DirectXTex",
@@ -192,9 +192,9 @@ project "Macaw"
 
 -- ImGui와 SimpleMath는 PCH를 사용하지 않는다.
 filter "files:ImGui/**.cpp"
-    flags { "NoPCH" }
+    enablepch "Off"
 
 filter "files:SimpleMath/SimpleMath.cpp"
-    flags { "NoPCH" }
+    enablepch "Off"
 
 filter {}

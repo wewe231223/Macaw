@@ -25,5 +25,5 @@ protected:
     void OnDeinitialize() override;
 
 private:
-    TArray<UStaticMeshComponent*> Components;
+    TArray<UStaticMeshComponent*> mComponents{};
 };

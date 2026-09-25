@@ -1,4 +1,4 @@
-﻿#include "PCH.h"
+﻿#include "pch.h"
 #include "UBoxColliderComponent.h"
 #include "Render/EditorView/ILineRenderer.h"
 #include "Render/Panel/FPropertyEditorContext.h"
@@ -11,67 +11,67 @@
 #include <array>
 
 void UBoxColliderComponent::SetMeshComponent(UMeshComponent* InMeshComponent) {
-    MeshComponent.Set(InMeshComponent);
-    PendingMeshComponentGuid = {};
+    mMeshComponent.Set(InMeshComponent);
+    mPendingMeshComponentGuid = {};
     BuildBoundsFromMesh();
 }
 
 UMeshComponent* UBoxColliderComponent::GetMeshComponent() const {
-    return MeshComponent.Get();
+    return mMeshComponent.Get();
 }
 
 bool UBoxColliderComponent::BuildBoundsFromMesh() {
-    UMeshComponent* Mesh = MeshComponent.Get();
-    UMesh* Asset = Mesh != nullptr ? Mesh->ResolveMesh() : nullptr;
+    UMeshComponent* Mesh{mMeshComponent.Get()};
+    UMesh* Asset{Mesh != nullptr ? Mesh->ResolveMesh() : nullptr};
     if (Asset == nullptr) {
         return false;
     }
 
-    const auto Positions = Asset->GetVertexAttributeData<EVertexAttribute::Position>();
+    const auto Positions{Asset->GetVertexAttributeData<EVertexAttribute::Position>()};
     if (Positions.empty()) {
         return false;
     }
 
-    std::vector<DirectX::XMFLOAT3> Points;
+    std::vector<DirectX::XMFLOAT3> Points{};
     Points.reserve(Positions.size());
     for (const FVector3& Position : Positions) {
-        Points.emplace_back(Position.x, Position.y, Position.z);
+        Points.emplace_back(Position.mX, Position.mY, Position.mZ);
     }
 
-    DirectX::BoundingBox Bounds;
+    DirectX::BoundingBox Bounds{};
     DirectX::BoundingBox::CreateFromPoints(Bounds, Points.size(), Points.data(), sizeof(DirectX::XMFLOAT3));
-    DirectX::BoundingOrientedBox::CreateFromBoundingBox(OBB, Bounds);
-    SetPickingBox(OBB);
+    DirectX::BoundingOrientedBox::CreateFromBoundingBox(mObb, Bounds);
+    SetPickingBox(mObb);
     return true;
 }
 
 bool UBoxColliderComponent::RaycastBounds(const FRay& Ray, float& OutDistance) const {
-    DirectX::BoundingOrientedBox WorldBox;
-    OBB.Transform(WorldBox, GetComponentToWorld().ToSimpleMath());
+    DirectX::BoundingOrientedBox WorldBox{};
+    mObb.Transform(WorldBox, GetComponentToWorld().ToSimpleMath());
     return WorldBox.Intersects(Ray.position, Ray.direction, OutDistance);
 }
 
 FVector3 UBoxColliderComponent::GetExtent() const {
-    return FVector3{ OBB.Extents.x, OBB.Extents.y, OBB.Extents.z };
+    return FVector3{mObb.Extents.x, mObb.Extents.y, mObb.Extents.z};
 }
 
 void UBoxColliderComponent::SetExtent(const FVector3& InExtent) {
-    OBB.Extents = DirectX::XMFLOAT3(InExtent.x, InExtent.y, InExtent.z);
-    SetPickingBox(OBB);
+    mObb.Extents = DirectX::XMFLOAT3(InExtent.mX, InExtent.mY, InExtent.mZ);
+    SetPickingBox(mObb);
 }
 
 void UBoxColliderComponent::DrawEditorBounds(ILineRenderer& LineRenderer, ELineDepthMode DepthMode) const {
-    DirectX::BoundingOrientedBox WorldBox;
-    OBB.Transform(WorldBox, GetComponentToWorld().ToSimpleMath());
+    DirectX::BoundingOrientedBox WorldBox{};
+    mObb.Transform(WorldBox, GetComponentToWorld().ToSimpleMath());
 
     std::array<DirectX::XMFLOAT3, DirectX::BoundingOrientedBox::CORNER_COUNT> Corners{};
     WorldBox.GetCorners(Corners.data());
 
-    const FVector4 LineColor = FVector4{ 1.0f, 1.0f, 0.0f, 1.0f };
-    const float Thickness = 1.0f;
-    const auto AddEdge = [&LineRenderer, &Corners, LineColor, Thickness, DepthMode](size_t Start, size_t End) {
-        LineRenderer.AddLine(FVector3{ Corners[Start] }, FVector3{ Corners[End] }, LineColor, Thickness, DepthMode);
-    };
+    const FVector4 LineColor{FVector4{1.0f, 1.0f, 0.0f, 1.0f}};
+    const float Thickness{1.0f};
+    const auto AddEdge{[&LineRenderer, &Corners, LineColor, Thickness, DepthMode](std::size_t Start, std::size_t End) {
+        LineRenderer.AddLine(FVector3{Corners[Start]}, FVector3{Corners[End]}, LineColor, Thickness, DepthMode);
+    }};
 
     AddEdge(0, 1);
     AddEdge(1, 2);
@@ -93,27 +93,28 @@ void UBoxColliderComponent::DrawPanels(FPropertyEditorContext& Context) {
         SetExtent(Extent);
     });
 
-    AActor* Actor = GetOwner();
+    AActor* Actor{GetOwner()};
     if (Actor == nullptr) {
         return;
     }
-    UMeshComponent* CurrentMesh = GetMeshComponent();
-    const char* Preview = CurrentMesh != nullptr ? CurrentMesh->GetTypeInfo()->TypeName.data() : "None";
-    std::vector<FPropertyReferenceOption> Candidates;
+    UMeshComponent* CurrentMesh{GetMeshComponent()};
+    const char* Preview{CurrentMesh != nullptr ? CurrentMesh->GetTypeInfo()->mTypeName.data() : "None"};
+    std::vector<FPropertyReferenceOption> Candidates{};
     for (const std::unique_ptr<UActorComponent>& Candidate : Actor->GetComponents()) {
-        UActorComponent* CandidateComponent = Candidate.get();
+        UActorComponent* CandidateComponent{Candidate.get()};
         if (CandidateComponent == nullptr || !CandidateComponent->GetTypeInfo()->IsA<UMeshComponent>()) {
             continue;
         }
 
-        auto* Mesh = static_cast<UMeshComponent*>(CandidateComponent);
-        Candidates.push_back({ Mesh, FString(Mesh->GetTypeInfo()->TypeName), Mesh == CurrentMesh, [this, Mesh] {
-            SetMeshComponent(Mesh);
-        } });
+        auto* Mesh{static_cast<UMeshComponent*>(CandidateComponent)};
+        Candidates.push_back({Mesh, FString{Mesh->GetTypeInfo()->mTypeName}, Mesh == CurrentMesh, [this, Mesh] {
+                                  SetMeshComponent(Mesh);
+                              }});
     }
     Context.DrawReferencePicker("Source Mesh Component", Preview, CurrentMesh == nullptr, [this] {
         SetMeshComponent(nullptr);
-    }, Candidates);
+    },
+                                Candidates);
     Context.DrawButton("Build Bounds From Mesh", [this] {
         BuildBoundsFromMesh();
     });
@@ -123,13 +124,13 @@ bool UBoxColliderComponent::ResolveLoadedReferences() {
     if (!UCollisionComponent::ResolveLoadedReferences()) {
         return false;
     }
-    if (PendingMeshComponentGuid.IsValid()) {
-        UObject* Object = UObjectSystem::Resolve(UObjectSystem::FindHandleByGuid(PendingMeshComponentGuid));
+    if (mPendingMeshComponentGuid.IsValid()) {
+        UObject* Object{UObjectSystem::Resolve(UObjectSystem::FindHandleByGuid(mPendingMeshComponentGuid))};
         if (Object == nullptr || !Object->GetTypeInfo()->IsA(UMeshComponent::StaticTypeInfo())) {
             return false;
         }
-        MeshComponent.Set(static_cast<UMeshComponent*>(Object));
-        PendingMeshComponentGuid = {};
+        mMeshComponent.Set(static_cast<UMeshComponent*>(Object));
+        mPendingMeshComponentGuid = {};
     }
     BuildBoundsFromMesh();
     return true;
@@ -143,25 +144,25 @@ void UBoxColliderComponent::InitializeComponent() {
 void UBoxColliderComponent::Serialize(FArchive& Archive) {
     UCollisionComponent::Serialize(Archive);
 
-    FString MeshComponentGuid;
-    if (UMeshComponent* Mesh = MeshComponent.Get()) {
+    FString MeshComponentGuid{};
+    if (UMeshComponent * Mesh{mMeshComponent.Get()}) {
         MeshComponentGuid = Mesh->GetGuid().ToString();
     }
     Archive.Serialize("GuidMeshComponent", MeshComponentGuid);
-    if (Archive.IsLoading() && !MeshComponentGuid.empty() && !PendingMeshComponentGuid.Parse(MeshComponentGuid)) {
-        PendingMeshComponentGuid = {};
+    if (Archive.IsLoading() && !MeshComponentGuid.empty() && !mPendingMeshComponentGuid.Parse(MeshComponentGuid)) {
+        mPendingMeshComponentGuid = {};
     }
 
-    FVector3 Center(OBB.Center);
-    FVector3 Extent(OBB.Extents);
-    FQuat Orientation(OBB.Orientation);
+    FVector3 Center{mObb.Center};
+    FVector3 Extent{mObb.Extents};
+    FQuat Orientation{mObb.Orientation};
     Archive.Serialize("OBB_Center", Center);
     Archive.Serialize("OBB_Extent", Extent);
     Archive.Serialize("OBB_Orientation", Orientation);
     if (Archive.IsLoading()) {
-        OBB.Center = Center.ToSimpleMath();
-        OBB.Extents = Extent.ToSimpleMath();
-        OBB.Orientation = Orientation.ToSimpleMath();
-        SetPickingBox(OBB);
+        mObb.Center = Center.ToSimpleMath();
+        mObb.Extents = Extent.ToSimpleMath();
+        mObb.Orientation = Orientation.ToSimpleMath();
+        SetPickingBox(mObb);
     }
 }

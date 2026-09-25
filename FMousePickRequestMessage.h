@@ -1,30 +1,25 @@
-#pragma once
+﻿#pragma once
 
 #include <cstdint>
 
 #include "FMath.h"
 #include "Core/Base/TypeInfo.h"
 
-struct FMousePickRequestMessage
-{
-	inline static const FTypeInfo TypeInfo{
-		"FMousePickRequestMessage",
-		nullptr,
-		nullptr
-	};
+struct FMousePickRequestMessage {
+    inline static const FTypeInfo TypeInfo{ "FMousePickRequestMessage", nullptr, nullptr};
 
-	static const FTypeInfo& StaticTypeInfo() noexcept;
+    static const FTypeInfo& StaticTypeInfo() noexcept;
 
-	std::int32_t ScreenX = 0;
-	std::int32_t ScreenY = 0;
-	std::int32_t ViewportLeft = 0;
-	std::int32_t ViewportTop = 0;
-	std::uint32_t ViewportWidth = 0;
-	std::uint32_t ViewportHeight = 0;
-	FMatrix ViewProjection{};
-	FMatrix View{};
+    std::int32_t mScreenX{0};
+    std::int32_t mScreenY{0};
+    std::int32_t mViewportLeft{0};
+    std::int32_t mViewportTop{0};
+    std::uint32_t mViewportWidth{0};
+    std::uint32_t mViewportHeight{0};
+    FMatrix mViewProjection{};
+    FMatrix mView{};
 
-	FMousePickRequestMessage() = default;
+    FMousePickRequestMessage() = default;
 
-	FMousePickRequestMessage(std::int32_t InScreenX, std::int32_t InScreenY, std::int32_t InViewportLeft, std::int32_t InViewportTop, std::uint32_t InViewportWidth, std::uint32_t InViewportHeight, const FMatrix& InViewProjection, const FMatrix& InView) noexcept;
+    FMousePickRequestMessage(std::int32_t InScreenX, std::int32_t InScreenY, std::int32_t InViewportLeft, std::int32_t InViewportTop, std::uint32_t InViewportWidth, std::uint32_t InViewportHeight, const FMatrix& InViewProjection, const FMatrix& InView) noexcept;
 };

@@ -2,24 +2,22 @@
 
 #include "FArchive.h"
 
-class FArchiveMemory : public FArchive
-{
+class FArchiveMemory : public FArchive {
 public:
-    // Save 
-    FArchiveMemory(TArray<uint8>& InBytes);
-    // Load 
-    FArchiveMemory(const TArray<uint8>& InBytes);
-
+    // Save
+    FArchiveMemory(TArray<Uint8>& InBytes);
+    // Load
+    FArchiveMemory(const TArray<Uint8>& InBytes);
 
     // Primitives
     virtual void Serialize(std::string_view Name, bool& Value) override;
-    virtual void Serialize(std::string_view Name, uint8& Value) override;
-    virtual void Serialize(std::string_view Name, int32& Value) override;
-    virtual void Serialize(std::string_view Name, uint32& Value) override;
-    virtual void Serialize(std::string_view Name, int64& Value) override;
-    virtual void Serialize(std::string_view Name, uint64& Value) override;
-    virtual void Serialize(std::string_view Name, float32& Value) override;
-    virtual void Serialize(std::string_view Name, float64& Value) override;
+    virtual void Serialize(std::string_view Name, Uint8& Value) override;
+    virtual void Serialize(std::string_view Name, Int32& Value) override;
+    virtual void Serialize(std::string_view Name, Uint32& Value) override;
+    virtual void Serialize(std::string_view Name, Int64& Value) override;
+    virtual void Serialize(std::string_view Name, Uint64& Value) override;
+    virtual void Serialize(std::string_view Name, Float32& Value) override;
+    virtual void Serialize(std::string_view Name, Float64& Value) override;
 
     // Engine Core
     virtual void Serialize(std::string_view Name, FString& Value) override;
@@ -35,14 +33,14 @@ public:
     // Scope
     virtual void BeginObjectScope(std::string_view Name) override;
     virtual void EndObjectScope() override;
-    virtual void BeginArrayScope(std::string_view Name, size_t& ArraySize) override;
+    virtual void BeginArrayScope(std::string_view Name, std::size_t& ArraySize) override;
     virtual void EndArrayScope() override;
 
 private:
-    // Save 
-    TArray<uint8>* WriteBytes;
+    // Save
+    TArray<Uint8>* mWriteBytes{};
 
-    // Load 
-    const TArray<uint8>* ReadBytes;
-    size_t ReadOffset;
+    // Load
+    const TArray<Uint8>* mReadBytes{};
+    std::size_t mReadOffset{};
 };

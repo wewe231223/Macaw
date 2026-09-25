@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "../Base/UObject.h"
 #include "Common.h"
@@ -18,7 +18,7 @@
 
 class FAssetRegistry : public IAssetQuery {
 public:
-	using FProgressCallback = std::function<void(float, const std::string&)>;
+    using FProgressCallback = std::function<void(float, const std::string&)>;
 
 public:
     FAssetRegistry() = default;
@@ -31,18 +31,14 @@ public:
     FAssetRegistry& operator=(FAssetRegistry&&) = delete;
 
 public:
-    bool Initialize(ID3D11Device* Device, uint32 MaxMaterialCount = 4096, const FProgressCallback& ProgressCallback = {});
+    bool Initialize(ID3D11Device* Device, Uint32 MaxMaterialCount = 4096, const FProgressCallback& ProgressCallback = {});
 
-	bool DiscoverAssets(const std::filesystem::path& Directory);
-	bool LoadAssetsOfType(ID3D11Device* Device, EAssetType AssetType);
+    bool DiscoverAssets(const std::filesystem::path& Directory);
+    bool LoadAssetsOfType(ID3D11Device* Device, EAssetType AssetType);
 
-    const std::filesystem::path& GetContentRoot() const {
-        return ContentRoot;
-    }
+    const std::filesystem::path& GetContentRoot() const;
 
-    const TArray<FAssetEntry>& GetAssetEntries() const {
-        return Assets;
-    }
+    const TArray<FAssetEntry>& GetAssetEntries() const;
 
     FAssetHandle FindAsset(const FAssetPath& AssetPath) const override;
     FAssetHandle FindAsset(const FGuid& PersistentGuid) const;
@@ -54,57 +50,21 @@ public:
     FAssetHandle ImportMesh(const std::filesystem::path& SourceObjPath, const FString& TargetVirtualFolder);
     FAssetHandle LoadViewerAsset(const std::filesystem::path& SourcePath);
 
-    template<typename T>
+    template <typename T>
     requires std::is_base_of_v<UAsset, T>
-    T* ResolveAsset(FAssetHandle Handle) {
-        FAssetEntry* Entry = FindEntry(Handle);
+    T* ResolveAsset(FAssetHandle Handle);
 
-        if (Entry == nullptr || Entry->Asset == nullptr || !Entry->Asset->GetTypeInfo()->IsA(T::StaticTypeInfo())) {
-            return nullptr;
-        }
-
-        return static_cast<T*>(Entry->Asset.get());
-    }
-
-    template<typename T>
+    template <typename T>
     requires std::is_base_of_v<UAsset, T>
-    const T* ResolveAsset(FAssetHandle Handle) const {
-        const FAssetEntry* Entry = FindEntry(Handle);
+    const T* ResolveAsset(FAssetHandle Handle) const;
 
-        if (Entry == nullptr || Entry->Asset == nullptr || !Entry->Asset->GetTypeInfo()->IsA(T::StaticTypeInfo())) {
-            return nullptr;
-        }
+    template <typename T, typename Func> requires std::is_base_of_v<UAsset, T> void ModifyAsset(FAssetHandle Handle, Func&& Modifier);
 
-        return static_cast<const T*>(Entry->Asset.get());
-    }
+    FMaterialBuffer& GetMaterialBuffer();
 
-    template<typename T, typename Func>
-    requires std::is_base_of_v<UAsset, T>
-    void ModifyAsset(FAssetHandle Handle, Func&& Modifier) {
-        T* Asset = ResolveAsset<T>(Handle);
+    const FMaterialBuffer& GetMaterialBuffer() const;
 
-        if (Asset == nullptr) {
-            return;
-        }
-
-        std::invoke(std::forward<Func>(Modifier), *Asset);
-    }
-
-    FMaterialBuffer& GetMaterialBuffer() {
-        return MaterialBuffer;
-    }
-
-    const FMaterialBuffer& GetMaterialBuffer() const {
-        return MaterialBuffer;
-    }
-
-    auto GetAssetList() const {
-        return Assets | std::ranges::views::filter([](const FAssetEntry& Entry) {
-            return Entry.Asset != nullptr;
-        }) | std::ranges::views::transform([](const FAssetEntry& Entry) -> UObject* {
-            return Entry.Asset.get();
-        });
-    }
+    auto GetAssetList() const;
 
     void Reset();
     void Finalize();
@@ -113,16 +73,16 @@ public:
     FAssetHandle EnsureDefaultStaticMeshPipeline();
 
 private:
-	std::filesystem::path ResolveContentFolder(const FString& VirtualFolder) const;
-	bool LoadAssetsOfType(ID3D11Device* Device, EAssetType AssetType, size_t& LoadedAssetCount, size_t TotalAssetCount, const FProgressCallback& ProgressCallback);
-	bool EnsureSystemAssets();
-	bool DiscoverAssetFile(const std::filesystem::path& FilePath);
-	bool LoadTexture(FAssetEntry& Entry, ID3D11Device* Device);
-	bool LoadFont(FAssetEntry& Entry, ID3D11Device* Device);
-	bool LoadPipeline(FAssetEntry& Entry, ID3D11Device* Device);
-	bool LoadMaterial(FAssetEntry& Entry, ID3D11Device* Device);
-	bool LoadMesh(FAssetEntry& Entry, ID3D11Device* Device);
-	bool RegisterDiscoveredAsset(const FAssetPath& AssetPath, const std::filesystem::path& PhysicalPath, const std::filesystem::path& SidecarPath, const FGuid& PersistentGuid, EAssetType AssetType, FAssetEntry& Entry);
+    std::filesystem::path ResolveContentFolder(const FString& VirtualFolder) const;
+    bool LoadAssetsOfType(ID3D11Device* Device, EAssetType AssetType, std::size_t& LoadedAssetCount, std::size_t TotalAssetCount, const FProgressCallback& ProgressCallback);
+    bool EnsureSystemAssets();
+    bool DiscoverAssetFile(const std::filesystem::path& FilePath);
+    bool LoadTexture(FAssetEntry& Entry, ID3D11Device* Device);
+    bool LoadFont(FAssetEntry& Entry, ID3D11Device* Device);
+    bool LoadPipeline(FAssetEntry& Entry, ID3D11Device* Device);
+    bool LoadMaterial(FAssetEntry& Entry, ID3D11Device* Device);
+    bool LoadMesh(FAssetEntry& Entry, ID3D11Device* Device);
+    bool RegisterDiscoveredAsset(const FAssetPath& AssetPath, const std::filesystem::path& PhysicalPath, const std::filesystem::path& SidecarPath, const FGuid& PersistentGuid, EAssetType AssetType, FAssetEntry& Entry);
 
     FAssetPath MakeAssetPath(const std::filesystem::path& PhysicalPath) const;
     static EAssetType GetAssetType(const std::filesystem::path& FilePath);
@@ -137,13 +97,43 @@ private:
     void RemoveHandleMappings(FAssetHandle Handle);
 
 private:
-    TArray<FAssetEntry> Assets{};
-    TArray<FAssetHandle> FreeHandles{};
+    TArray<FAssetEntry> mAssets{};
+    TArray<FAssetHandle> mFreeHandles{};
 
-    TMap<FAssetPath, FAssetHandle> PathToHandle{};
-    TMap<FGuid, FAssetHandle> GuidToHandle{};
+    TMap<FAssetPath, FAssetHandle> mPathToHandle{};
+    TMap<FGuid, FAssetHandle> mGuidToHandle{};
 
-    FMaterialBuffer MaterialBuffer{};
-    ID3D11Device* Device{ nullptr };
-    std::filesystem::path ContentRoot{};
+    FMaterialBuffer mMaterialBuffer{};
+    ID3D11Device* mDevice{nullptr};
+    std::filesystem::path mContentRoot{};
 };
+
+template <typename T> requires std::is_base_of_v<UAsset, T> T* FAssetRegistry::ResolveAsset(FAssetHandle Handle) {
+    FAssetEntry* Entry{FindEntry(Handle)};
+
+    if (Entry == nullptr || Entry->mAsset == nullptr || !Entry->mAsset->GetTypeInfo()->IsA(T::StaticTypeInfo())) {
+        return nullptr;
+    }
+
+    return static_cast<T*>(Entry->mAsset.get());
+}
+
+template <typename T> requires std::is_base_of_v<UAsset, T> const T* FAssetRegistry::ResolveAsset(FAssetHandle Handle) const {
+    const FAssetEntry* Entry{FindEntry(Handle)};
+
+    if (Entry == nullptr || Entry->mAsset == nullptr || !Entry->mAsset->GetTypeInfo()->IsA(T::StaticTypeInfo())) {
+        return nullptr;
+    }
+
+    return static_cast<const T*>(Entry->mAsset.get());
+}
+
+template <typename T, typename Func> requires std::is_base_of_v<UAsset, T> void FAssetRegistry::ModifyAsset(FAssetHandle Handle, Func&& Modifier) {
+    T* Asset{ResolveAsset<T>(Handle)};
+
+    if (Asset == nullptr) {
+        return;
+    }
+
+    std::invoke(std::forward<Func>(Modifier), *Asset);
+}

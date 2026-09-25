@@ -1,49 +1,49 @@
-﻿#include "PCH.h"
+﻿#include "pch.h"
 #include "FMaterialChunkSignature.h"
 
 bool FMaterialChunkSignature::IsValid() const {
-	return TextureFieldCount <= MAX_MATERIAL_TEXTURE_FIELDS;
+    return mTextureFieldCount <= MaxMaterialTextureFields;
 }
 
-FAssetHandle FMaterialChunkSignature::GetTextureHandle(uint8 TextureFieldIndex) const {
-	if (TextureFieldIndex >= TextureFieldCount) {
-		return {};
-	}
+FAssetHandle FMaterialChunkSignature::GetTextureHandle(Uint8 TextureFieldIndex) const {
+    if (TextureFieldIndex >= mTextureFieldCount) {
+        return {};
+    }
 
-	return TextureHandles[TextureFieldIndex];
+    return mTextureHandles[TextureFieldIndex];
 }
 
-size_t FMaterialChunkSignature::GetHash() const noexcept {
-	size_t Hash{ std::hash<uint8>{}(TextureFieldCount) };
+std::size_t FMaterialChunkSignature::GetHash() const noexcept {
+    std::size_t Hash{std::hash<Uint8>{}(mTextureFieldCount)};
 
-	for (uint8 TextureFieldIndex{}; TextureFieldIndex < TextureFieldCount; ++TextureFieldIndex) {
-		const FAssetHandle Handle{ TextureHandles[TextureFieldIndex] };
-		Hash ^= std::hash<uint32>{}(Handle.ID) + static_cast<size_t>(0x9e3779b9u) + (Hash << 6) + (Hash >> 2);
-		Hash ^= std::hash<uint32>{}(Handle.Generation) + static_cast<size_t>(0x9e3779b9u) + (Hash << 6) + (Hash >> 2);
-	}
+    for (Uint8 TextureFieldIndex{}; TextureFieldIndex < mTextureFieldCount; ++TextureFieldIndex) {
+        const FAssetHandle Handle{mTextureHandles[TextureFieldIndex]};
+        Hash ^= std::hash<Uint32>{}(Handle.mId) + static_cast<std::size_t>(0x9e3779b9u) + (Hash << 6) + (Hash >> 2);
+        Hash ^= std::hash<Uint32>{}(Handle.mGeneration) + static_cast<std::size_t>(0x9e3779b9u) + (Hash << 6) + (Hash >> 2);
+    }
 
-	return Hash;
+    return Hash;
 }
 
 bool FMaterialChunkSignatureBuilder::AddTexture(FAssetHandle TextureHandle) {
-	if (mSignature.TextureFieldCount >= MAX_MATERIAL_TEXTURE_FIELDS) {
-		return false;
-	}
+    if (mSignature.mTextureFieldCount >= MaxMaterialTextureFields) {
+        return false;
+    }
 
-	mSignature.TextureHandles[mSignature.TextureFieldCount] = TextureHandle;
-	++mSignature.TextureFieldCount;
+    mSignature.mTextureHandles[mSignature.mTextureFieldCount] = TextureHandle;
+    ++mSignature.mTextureFieldCount;
 
-	return true;
+    return true;
 }
 
 FMaterialChunkSignature FMaterialChunkSignatureBuilder::Build() const {
-	return mSignature;
+    return mSignature;
 }
 
 void FMaterialChunkSignatureBuilder::Reset() {
-	mSignature = {};
+    mSignature = {};
 }
 
-size_t std::hash<FMaterialChunkSignature>::operator()(const FMaterialChunkSignature& Signature) const noexcept {
-	return Signature.GetHash();
+std::size_t std::hash<FMaterialChunkSignature>::operator()(const FMaterialChunkSignature& Signature) const noexcept {
+    return Signature.GetHash();
 }

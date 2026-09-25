@@ -27,10 +27,10 @@ protected:
 private:
     void EnsureDefaultRenderAssets();
 
-    FAssetHandle MaterialHandle;
-    FAssetHandle PipelineHandle;
-    FAssetPath MaterialAssetPath{};
-    FAssetPath PipelineAssetPath{};
-    FGuid MaterialAssetGuid{};
-    FGuid PipelineAssetGuid{};
+    FAssetHandle mMaterialHandle{};
+    FAssetHandle mPipelineHandle{};
+    FAssetPath mMaterialAssetPath{};
+    FAssetPath mPipelineAssetPath{};
+    FGuid mMaterialAssetGuid{};
+    FGuid mPipelineAssetGuid{};
 };

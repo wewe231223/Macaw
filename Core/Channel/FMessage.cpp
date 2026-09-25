@@ -1,47 +1,47 @@
-﻿#include "PCH.h"
+﻿#include "pch.h"
 #include "FMessage.h"
 
 #include "../../ErrorHandler.h"
 
 FMessage::FMessage(FMessage&& Other) noexcept {
-	FMessage::MoveFrom(std::move(Other));
+    FMessage::MoveFrom(std::move(Other));
 }
 
 FMessage& FMessage::operator=(FMessage&& Other) noexcept {
-	if (this != &Other) {
-		FMessage::Reset();
-		FMessage::MoveFrom(std::move(Other));
-	}
+    if (this != &Other) {
+        FMessage::Reset();
+        FMessage::MoveFrom(std::move(Other));
+    }
 
-	return *this; 
+    return *this;
 }
 
 FMessage::~FMessage() noexcept {
-	FMessage::Reset(); 
+    FMessage::Reset();
 }
 
 bool FMessage::IsValid() const noexcept {
-	return mData != nullptr;
+    return mData != nullptr;
 }
 
 const FTypeInfo* FMessage::GetTypeInfo() const noexcept {
-	if (mType == nullptr) {
-		ErrorHandler::Report("FMessage::GetTypeInfo", "Cannot get type information from an invalid message.", ErrorHandler::EErrorLevel::Critical);
-	}
+    if (mType == nullptr) {
+        ErrorHandler::Report("FMessage::GetTypeInfo", "Cannot get type information from an invalid message.", ErrorHandler::EErrorLevel::Critical);
+    }
 
-	return mType;
+    return mType;
 }
 
 void FMessage::Reset() noexcept {
-	if (mData != nullptr) {
-		if (mDestroyFunction == nullptr) {
-			ErrorHandler::Report("FMessage::Reset", "A valid message does not have a destroy function.", ErrorHandler::EErrorLevel::Critical);
-		}
+    if (mData != nullptr) {
+        if (mDestroyFunction == nullptr) {
+            ErrorHandler::Report("FMessage::Reset", "A valid message does not have a destroy function.", ErrorHandler::EErrorLevel::Critical);
+        }
 
-		mDestroyFunction(*this);
-	}
+        mDestroyFunction(*this);
+    }
 
-	ClearMetadata();
+    ClearMetadata();
 }
 
 void FMessage::MoveFrom(FMessage&& Other) noexcept {
@@ -69,17 +69,9 @@ void FMessage::MoveFrom(FMessage&& Other) noexcept {
 }
 
 void FMessage::ClearMetadata() noexcept {
-	mType = nullptr;
-	mData = nullptr;
-	mDestroyFunction = nullptr;
-	mMoveFunction = nullptr;
-	mHeapAllocated = false;
+    mType = nullptr;
+    mData = nullptr;
+    mDestroyFunction = nullptr;
+    mMoveFunction = nullptr;
+    mHeapAllocated = false;
 }
-
-
-
-
-
-
-
-

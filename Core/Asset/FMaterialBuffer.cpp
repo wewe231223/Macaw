@@ -1,35 +1,35 @@
-﻿#include "PCH.h"
+﻿#include "pch.h"
 #include "FMaterialBuffer.h"
 #include "UMaterial.h"
 
-bool FMaterialBuffer::Initialize(ID3D11Device* Device, uint32 InMaxMaterialCount) {
+bool FMaterialBuffer::Initialize(ID3D11Device* Device, Uint32 InMaxMaterialCount) {
     if (Device == nullptr || InMaxMaterialCount == 0) {
         return false;
     }
 
-    MaxMaterialCount = InMaxMaterialCount;
+    mMaxMaterialCount = InMaxMaterialCount;
 
-    Slots.resize(MaxMaterialCount);
-    Materials.resize(MaxMaterialCount);
+    mSlots.resize(mMaxMaterialCount);
+    mMaterials.resize(mMaxMaterialCount);
 
-    FreeIndices.reserve(MaxMaterialCount);
+    mFreeIndices.reserve(mMaxMaterialCount);
 
-    for (uint32 Index = 0; Index < MaxMaterialCount; ++Index) {
-        FreeIndices.push_back(MaxMaterialCount - Index - 1);
+    for (Uint32 Index{0}; Index < mMaxMaterialCount; ++Index) {
+        mFreeIndices.push_back(mMaxMaterialCount - Index - 1);
     }
 
     D3D11_BUFFER_DESC BufferDesc{};
-    BufferDesc.ByteWidth = MATERIAL_GPU_STRIDE * MaxMaterialCount;
+    BufferDesc.ByteWidth = MaterialGpuStride * mMaxMaterialCount;
     BufferDesc.Usage = D3D11_USAGE_DEFAULT;
     BufferDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
     BufferDesc.CPUAccessFlags = 0;
     BufferDesc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
-    BufferDesc.StructureByteStride = MATERIAL_GPU_STRIDE;
+    BufferDesc.StructureByteStride = MaterialGpuStride;
 
     D3D11_SUBRESOURCE_DATA InitialData{};
-    InitialData.pSysMem = Slots.data();
+    InitialData.pSysMem = mSlots.data();
 
-    HRESULT Result = Device->CreateBuffer(&BufferDesc, &InitialData, Buffer.GetAddressOf());
+    HRESULT Result{Device->CreateBuffer(&BufferDesc, &InitialData, mBuffer.GetAddressOf())};
 
     if (FAILED(Result)) {
         return false;
@@ -39,93 +39,114 @@ bool FMaterialBuffer::Initialize(ID3D11Device* Device, uint32 InMaxMaterialCount
     SRVDesc.Format = DXGI_FORMAT_UNKNOWN;
     SRVDesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
     SRVDesc.Buffer.FirstElement = 0;
-    SRVDesc.Buffer.NumElements = MaxMaterialCount;
+    SRVDesc.Buffer.NumElements = mMaxMaterialCount;
 
-    Result = Device->CreateShaderResourceView(Buffer.Get(), &SRVDesc, SRV.GetAddressOf());
+    Result = Device->CreateShaderResourceView(mBuffer.Get(), &SRVDesc, mSrv.GetAddressOf());
 
     return SUCCEEDED(Result);
 }
 
 bool FMaterialBuffer::RegisterMaterial(UMaterial* Material) {
-	if (Material == nullptr || Material->GetGPUDataCount() > FreeIndices.size()) {
+    if (Material == nullptr || Material->GetGPUDataCount() > mFreeIndices.size()) {
         return false;
     }
 
-	Material->GPUIndices.clear();
-	Material->GPUIndices.reserve(Material->GetGPUDataCount());
+    Material->mGpuIndices.clear();
+    Material->mGpuIndices.reserve(Material->GetGPUDataCount());
 
-	for (uint32 GroupIndex = 0; GroupIndex < Material->GetGPUDataCount(); ++GroupIndex) {
-		const uint32 Index = AllocateSlot();
-		Materials[Index] = FMaterialBufferEntry{ Material, GroupIndex };
-		Material->GPUIndices.push_back(Index);
-	}
+    for (Uint32 GroupIndex{0}; GroupIndex < Material->GetGPUDataCount(); ++GroupIndex) {
+        const Uint32 Index{AllocateSlot()};
+        mMaterials[Index] = FMaterialBufferEntry{Material, GroupIndex};
+        Material->mGpuIndices.push_back(Index);
+    }
 
-	Material->bGPUDataDirty = true;
+    Material->mBGpuDataDirty = true;
 
     return true;
 }
 
 void FMaterialBuffer::UnregisterMaterial(UMaterial* Material) {
-	if (Material == nullptr || Material->GPUIndices.empty()) {
+    if (Material == nullptr || Material->mGpuIndices.empty()) {
         return;
     }
 
-	for (const uint32 Index : Material->GPUIndices) {
-		if (Index >= Materials.size() || Materials[Index].Material != Material) {
-			continue;
-		}
-
-		Materials[Index] = {};
-		Slots[Index] = {};
-		ReleaseSlot(Index);
-	}
-
-	Material->GPUIndices.clear();
-    Material->bGPUDataDirty = false;
-}
-
-void FMaterialBuffer::Flush(ID3D11DeviceContext* DeviceContext) {
-    if (DeviceContext == nullptr || Buffer == nullptr) {
-        return;
-    }
-
-    for (uint32 Index = 0; Index < MaxMaterialCount; ++Index) {
-        const FMaterialBufferEntry& Entry = Materials[Index];
-        UMaterial* Material = Entry.Material;
-
-        if (Material == nullptr || !Material->bGPUDataDirty) {
+    for (const Uint32 Index : Material->mGpuIndices) {
+        if (Index >= mMaterials.size() || mMaterials[Index].mMaterial != Material) {
             continue;
         }
 
-        Material->BuildGPUData(Entry.GroupIndex, Slots[Index]);
+        mMaterials[Index] = {};
+        mSlots[Index] = {};
+        ReleaseSlot(Index);
+    }
 
-        const uint32 Offset = Index * MATERIAL_GPU_STRIDE;
+    Material->mGpuIndices.clear();
+    Material->mBGpuDataDirty = false;
+}
+
+void FMaterialBuffer::Flush(ID3D11DeviceContext* DeviceContext) {
+    if (DeviceContext == nullptr || mBuffer == nullptr) {
+        return;
+    }
+
+    for (Uint32 Index{0}; Index < mMaxMaterialCount; ++Index) {
+        const FMaterialBufferEntry& Entry{mMaterials[Index]};
+        UMaterial* Material{Entry.mMaterial};
+
+        if (Material == nullptr || !Material->mBGpuDataDirty) {
+            continue;
+        }
+
+        Material->BuildGPUData(Entry.mGroupIndex, mSlots[Index]);
+
+        const Uint32 Offset{Index * MaterialGpuStride};
 
         D3D11_BOX Box{};
         Box.left = Offset;
-        Box.right = Offset + MATERIAL_GPU_STRIDE;
+        Box.right = Offset + MaterialGpuStride;
         Box.top = 0;
         Box.bottom = 1;
         Box.front = 0;
         Box.back = 1;
 
-        DeviceContext->UpdateSubresource(Buffer.Get(), 0, &Box, Slots[Index].Data.data(), 0, 0);
+        DeviceContext->UpdateSubresource(mBuffer.Get(), 0, &Box, mSlots[Index].mData.data(), 0, 0);
     }
 
-    for (const FMaterialBufferEntry& Entry : Materials) {
-        if (Entry.Material != nullptr) {
-            Entry.Material->bGPUDataDirty = false;
+    for (const FMaterialBufferEntry& Entry : mMaterials) {
+        if (Entry.mMaterial != nullptr) {
+            Entry.mMaterial->mBGpuDataDirty = false;
         }
     }
 }
 
-uint32 FMaterialBuffer::AllocateSlot() {
-    const uint32 Index = FreeIndices.back();
-    FreeIndices.pop_back();
+Uint32 FMaterialBuffer::AllocateSlot() {
+    const Uint32 Index{mFreeIndices.back()};
+    mFreeIndices.pop_back();
 
     return Index;
 }
 
-void FMaterialBuffer::ReleaseSlot(uint32 Index) {
-    FreeIndices.push_back(Index);
+void FMaterialBuffer::ReleaseSlot(Uint32 Index) {
+    mFreeIndices.push_back(Index);
+}
+
+ID3D11Buffer* FMaterialBuffer::GetBuffer() const {
+    return mBuffer.Get();
+}
+
+ID3D11ShaderResourceView* const* FMaterialBuffer::GetSRV() const {
+    return mSrv.GetAddressOf();
+}
+
+Uint32 FMaterialBuffer::GetMaxMaterialCount() const {
+    return mMaxMaterialCount;
+}
+
+void FMaterialBuffer::Reset() {
+    mMaxMaterialCount = 0;
+    mSlots.clear();
+    mMaterials.clear();
+    mFreeIndices.clear();
+    mBuffer.Reset();
+    mSrv.Reset();
 }

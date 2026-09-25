@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #pragma once
 
 #include "Common.h"
@@ -20,11 +20,11 @@ public:
     /// <summary>World 및 소유 Component와의 수명 관계를 정리합니다.</summary>
     ~AActor() override;
 
-	AActor(const AActor&) = delete;
-	AActor& operator=(const AActor&) = delete;
+    AActor(const AActor&) = delete;
+    AActor& operator=(const AActor&) = delete;
 
-	AActor(AActor&&) = default;
-	AActor& operator=(AActor&&) = default;
+    AActor(AActor&&) = default;
+    AActor& operator=(AActor&&) = default;
 
 public:
     JG_DECLARE_DERIVED_TYPEINFO(AActor, UObject)
@@ -32,47 +32,18 @@ public:
     /// <summary>Actor가 소유하는 새 Component를 생성하고 추가합니다.</summary>
     /// <typeparam name="T">생성할 UActorComponent 파생 타입입니다.</typeparam>
     /// <returns>Actor가 소유하는 새 Component입니다.</returns>
-    template<typename T>
+    template <typename T>
     requires std::is_base_of_v<UActorComponent, T>
-    T* AddComponent() {
-        std::unique_ptr<T> NewComponent = std::make_unique<T>();
-        T* ComponentPtr = NewComponent.get();
-
-        ComponentPtr->SetOwner(this);
-        UObjectSystem::Register(ComponentPtr);
-
-        Components.push_back(std::move(NewComponent));
-
-        if (World != nullptr) {
-            ComponentPtr->RegisterComponent(World);
-
-            if (bHasBegunPlay) {
-                ComponentPtr->InitializeComponent();
-                ComponentPtr->BeginPlay();
-            }
-        }
-
-        return ComponentPtr;
-    }
+    T* AddComponent();
 
     UActorComponent* AddComponent(const FTypeInfo& Type);
 
     /// <summary>지정한 타입과 호환되는 첫 번째 소유 Component를 찾습니다.</summary>
     /// <typeparam name="T">찾을 UActorComponent 파생 타입입니다.</typeparam>
     /// <returns>찾은 Component 또는 없으면 nullptr입니다.</returns>
-    template<typename T>
+    template <typename T>
     requires std::is_base_of_v<UActorComponent, T>
-    T* GetComponent() {
-        for (const auto& Component : Components)
-        {
-            if (Component->GetTypeInfo()->IsA(T::StaticTypeInfo()))
-            {
-                return static_cast<T*>(Component.get());
-            }
-        }
-
-        return nullptr;
-    }
+    T* GetComponent();
 
     /// <summary>Actor가 RAII 방식으로 소유하는 모든 Component를 반환합니다.</summary>
     const std::vector<std::unique_ptr<UActorComponent>>& GetComponents() const;
@@ -188,11 +159,42 @@ private:
 
     void RemoveOwnedComponent(UActorComponent* Component);
 
-    std::vector<std::unique_ptr<UActorComponent>> Components{};
-    USceneComponent* RootComponent = nullptr;
+    std::vector<std::unique_ptr<UActorComponent>> mComponents{};
+    USceneComponent* mRootComponent{nullptr};
 
-    FGuid PendingRootComponentGuid{};
+    FGuid mPendingRootComponentGuid{};
 
-    UWorld* World = nullptr;
-    bool bHasBegunPlay = false;
+    UWorld* mWorld{nullptr};
+    bool mBHasBegunPlay{false};
 };
+
+template <typename T> requires std::is_base_of_v<UActorComponent, T> T* AActor::AddComponent() {
+    std::unique_ptr<T> NewComponent{std::make_unique<T>()};
+    T* ComponentPtr{NewComponent.get()};
+
+    ComponentPtr->SetOwner(this);
+    UObjectSystem::Register(ComponentPtr);
+
+    mComponents.push_back(std::move(NewComponent));
+
+    if (mWorld != nullptr) {
+        ComponentPtr->RegisterComponent(mWorld);
+
+        if (mBHasBegunPlay) {
+            ComponentPtr->InitializeComponent();
+            ComponentPtr->BeginPlay();
+        }
+    }
+
+    return ComponentPtr;
+}
+
+template <typename T> requires std::is_base_of_v<UActorComponent, T> T* AActor::GetComponent() {
+    for (const auto& Component : mComponents) {
+        if (Component->GetTypeInfo()->IsA(T::StaticTypeInfo())) {
+            return static_cast<T*>(Component.get());
+        }
+    }
+
+    return nullptr;
+}

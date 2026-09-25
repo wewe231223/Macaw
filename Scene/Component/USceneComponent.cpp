@@ -1,49 +1,49 @@
-﻿#include "PCH.h"
+﻿#include "pch.h"
 
 #include "USceneComponent.h"
 #include "Render/Panel/FPropertyEditorContext.h"
 #include "Scene/AActor.h"
 
 namespace {
-    bool DecomposeWorldTransform(const FMatrix& WorldMatrix, FVector3& OutScale, FQuat& OutRotation, FVector3& OutTranslation) {
-        FMatrix TransformMatrix = WorldMatrix;
+bool DecomposeWorldTransform(const FMatrix& WorldMatrix, FVector3& OutScale, FQuat& OutRotation, FVector3& OutTranslation) {
+    FMatrix TransformMatrix{WorldMatrix};
 
-        // Undo FTransform's mesh-source basis before extracting the Z-up
-        // transform quaternion and scale.  The basis is its own inverse.
-        const float Row0[3]{ TransformMatrix.m[0][0], TransformMatrix.m[0][1], TransformMatrix.m[0][2] };
-        const float Row1[3]{ TransformMatrix.m[1][0], TransformMatrix.m[1][1], TransformMatrix.m[1][2] };
-        const float Row2[3]{ TransformMatrix.m[2][0], TransformMatrix.m[2][1], TransformMatrix.m[2][2] };
-        for (uint32 Column = 0; Column < 3; ++Column) {
-            TransformMatrix.m[0][Column] = -Row0[Column];
-            TransformMatrix.m[1][Column] = Row2[Column];
-            TransformMatrix.m[2][Column] = Row1[Column];
-        }
-
-        return TransformMatrix.Decompose(OutScale, OutRotation, OutTranslation);
+    // Undo FTransform's mesh-source basis before extracting the Z-up
+    // transform quaternion and scale.  The basis is its own inverse.
+    const float Row0[3]{TransformMatrix.m_[0][0], TransformMatrix.m_[0][1], TransformMatrix.m_[0][2]};
+    const float Row1[3]{TransformMatrix.m_[1][0], TransformMatrix.m_[1][1], TransformMatrix.m_[1][2]};
+    const float Row2[3]{TransformMatrix.m_[2][0], TransformMatrix.m_[2][1], TransformMatrix.m_[2][2]};
+    for (Uint32 Column{0}; Column < 3; ++Column) {
+        TransformMatrix.m_[0][Column] = -Row0[Column];
+        TransformMatrix.m_[1][Column] = Row2[Column];
+        TransformMatrix.m_[2][Column] = Row1[Column];
     }
 
-    bool ApplyWorldMatrix(USceneComponent& Component, const FMatrix& DesiredWorld) {
-        FVector3 Scale{};
-        FQuat Rotation{};
-        FVector3 Translation{};
-        if (!DecomposeWorldTransform(DesiredWorld, Scale, Rotation, Translation)) {
-            return false;
-        }
+    return TransformMatrix.Decompose(OutScale, OutRotation, OutTranslation);
+}
 
-        return Component.SetWorldTransform(FTransform{ Translation, Rotation, Scale });
+bool ApplyWorldMatrix(USceneComponent& Component, const FMatrix& DesiredWorld) {
+    FVector3 Scale{};
+    FQuat Rotation{};
+    FVector3 Translation{};
+    if (!DecomposeWorldTransform(DesiredWorld, Scale, Rotation, Translation)) {
+        return false;
     }
+
+    return Component.SetWorldTransform(FTransform{Translation, Rotation, Scale});
+}
 }
 
 FTransform& USceneComponent::GetRelativeTransform() {
-    return Transform;
+    return mTransform;
 }
 
 const FTransform& USceneComponent::GetRelativeTransform() const {
-    return Transform;
+    return mTransform;
 }
 
 void USceneComponent::SetRelativeTransform(const FTransform& Transform) {
-    this->Transform = Transform;
+    this->mTransform = Transform;
 }
 
 void USceneComponent::DrawPanels(FPropertyEditorContext& Context) {
@@ -55,7 +55,7 @@ void USceneComponent::DrawPanels(FPropertyEditorContext& Context) {
         });
     }
 
-    AActor* Actor = GetOwner();
+    AActor* Actor{GetOwner()};
     if (Actor == nullptr || !Context.BeginCategory("Attachment")) {
         return;
     }
@@ -64,25 +64,27 @@ void USceneComponent::DrawPanels(FPropertyEditorContext& Context) {
         return;
     }
 
-    USceneComponent* CurrentParent = GetParent();
-    const char* Preview = CurrentParent != nullptr ? CurrentParent->GetTypeInfo()->TypeName.data() : "None";
-    std::vector<FPropertyReferenceOption> Candidates;
+    USceneComponent* CurrentParent{GetParent()};
+    const char* Preview{CurrentParent != nullptr ? CurrentParent->GetTypeInfo()->mTypeName.data() : "None"};
+    std::vector<FPropertyReferenceOption> Candidates{};
     for (const std::unique_ptr<UActorComponent>& Candidate : Actor->GetComponents()) {
-        UActorComponent* CandidateComponent = Candidate.get();
+        UActorComponent* CandidateComponent{Candidate.get()};
         if (CandidateComponent == nullptr || !CandidateComponent->GetTypeInfo()->IsA<USceneComponent>()) {
             continue;
         }
 
-        auto* Parent = static_cast<USceneComponent*>(CandidateComponent);
-        if (Parent == this) continue;
+        auto* Parent{static_cast<USceneComponent*>(CandidateComponent)};
+        if (Parent == this)
+            continue;
 
-        Candidates.push_back({ Parent, FString(Parent->GetTypeInfo()->TypeName), Parent == CurrentParent, [this, Parent] {
-            AttachToComponent(Parent, EAttachmentTransformRule::KeepWorldTransform);
-        } });
+        Candidates.push_back({Parent, FString{Parent->GetTypeInfo()->mTypeName}, Parent == CurrentParent, [this, Parent] {
+                                  AttachToComponent(Parent, EAttachmentTransformRule::KeepWorldTransform);
+                              }});
     }
     Context.DrawReferencePicker("Parent", Preview, CurrentParent == nullptr, [this] {
         DetachFromComponent(EAttachmentTransformRule::KeepWorldTransform);
-    }, Candidates);
+    },
+                                Candidates);
     Context.DrawButton("Make Root Component", [this, Actor] {
         DetachFromComponent(EAttachmentTransformRule::KeepWorldTransform);
         Actor->SetRootComponent(this);
@@ -90,38 +92,38 @@ void USceneComponent::DrawPanels(FPropertyEditorContext& Context) {
 }
 
 void USceneComponent::SetRelativeLocation(const FVector3& Location) {
-    Transform.SetPosition(Location);
+    mTransform.SetPosition(Location);
 }
 
 void USceneComponent::SetRelativeLocationAndRotation(const FVector3& Location, const FRotator& Rotation) {
-    Transform.SetPosition(Location);
-    Transform.SetRotation(Rotation);
+    mTransform.SetPosition(Location);
+    mTransform.SetRotation(Rotation);
 }
 
 FVector3 USceneComponent::GetRelativeLocation() const {
-    return Transform.GetPosition();
+    return mTransform.GetPosition();
 }
 
 void USceneComponent::SetRelativeRotation(const FRotator& Rotation) {
-    Transform.SetRotation(Rotation);
+    mTransform.SetRotation(Rotation);
 }
 
 FRotator USceneComponent::GetRelativeRotation() const {
-    return Transform.GetRotation();
+    return mTransform.GetRotation();
 }
 
 void USceneComponent::SetRelativeScale3D(const FVector3& Scale) {
-    Transform.SetScale(Scale);
+    mTransform.SetScale(Scale);
 }
 
 FVector3 USceneComponent::GetRelativeScale3D() const {
-    return Transform.GetScale();
+    return mTransform.GetScale();
 }
 
 void USceneComponent::Serialize(FArchive& Archive) {
     UActorComponent::Serialize(Archive);
 
-    Archive.SerializeStruct("Transform", Transform);
+    Archive.SerializeStruct("Transform", mTransform);
 
     FGuid ParentGuid{};
     if (Archive.IsSaving() && GetParent() != nullptr) {
@@ -130,71 +132,71 @@ void USceneComponent::Serialize(FArchive& Archive) {
 
     Archive.Serialize("Parent", ParentGuid);
     if (Archive.IsLoading()) {
-        PendingParentGuid = ParentGuid;
+        mPendingParentGuid = ParentGuid;
     }
 }
-
 
 void USceneComponent::OnUnregister() {
     UActorComponent::OnUnregister();
 }
 
-void USceneComponent::DestroyComponent(bool bPromoteChildren) {
-    AActor* Actor = GetOwner();
+void USceneComponent::DestroyComponent(bool BPromoteChildren) {
+    AActor* Actor{GetOwner()};
     if (Actor != nullptr && Actor->GetRootComponent() == this && Actor->Destroy()) {
         return;
     }
 
-    USceneComponent* ParentComponent = GetParent();
-    std::vector<USceneComponent*> ChildrenToDetach;
-    ChildrenToDetach.reserve(Children.size());
-    for (const TObjectRef<USceneComponent>& ChildRef : Children) {
-        if (USceneComponent* Child = ChildRef.Get()) {
+    USceneComponent* ParentComponent{GetParent()};
+    std::vector<USceneComponent*> ChildrenToDetach{};
+    ChildrenToDetach.reserve(mChildren.size());
+    for (const TObjectRef<USceneComponent>& ChildRef : mChildren) {
+        if (USceneComponent * Child{ChildRef.Get()}) {
             ChildrenToDetach.push_back(Child);
         }
     }
 
     for (USceneComponent* Child : ChildrenToDetach) {
-        Child->AttachToComponent(bPromoteChildren ? ParentComponent : nullptr,EAttachmentTransformRule::KeepWorldTransform);
+        Child->AttachToComponent(BPromoteChildren ? ParentComponent : nullptr, EAttachmentTransformRule::KeepWorldTransform);
     }
 
     DetachFromComponent(EAttachmentTransformRule::KeepWorldTransform);
-    UActorComponent::DestroyComponent(bPromoteChildren);
+    UActorComponent::DestroyComponent(BPromoteChildren);
 }
 
 void USceneComponent::RemoveChild(USceneComponent* InChild) {
-    if (!InChild) return;
+    if (!InChild)
+        return;
 
-    std::erase_if(Children, [InChild](const TObjectRef<USceneComponent>& ChildRef) {
+    std::erase_if(mChildren, [InChild](const TObjectRef<USceneComponent>& ChildRef) {
         return ChildRef.Get() == InChild;
     });
 
-    if (InChild->Parent.Get() == this) {
-        InChild->Parent.Reset();
+    if (InChild->mParent.Get() == this) {
+        InChild->mParent.Reset();
     }
 }
 
 bool USceneComponent::AttachToComponent(USceneComponent* ParentComponent, EAttachmentTransformRule Rule) {
-    if (ParentComponent == this || Parent.Get() == ParentComponent) {
+    if (ParentComponent == this || mParent.Get() == ParentComponent) {
         return false;
     }
 
-    for (USceneComponent* Ancestor = ParentComponent; Ancestor != nullptr; Ancestor = Ancestor->GetParent()) {
+    for (USceneComponent* Ancestor{ParentComponent}; Ancestor != nullptr; Ancestor = Ancestor->GetParent()) {
         if (Ancestor == this) {
             return false;
         }
     }
 
-    const FTransform PreviousWorldTransform = GetComponentTransform();
+    const FTransform PreviousWorldTransform{GetComponentTransform()};
 
-    if (USceneComponent* PreviousParent = Parent.Get()) {
+    if (USceneComponent * PreviousParent{mParent.Get()}) {
         PreviousParent->RemoveChild(this);
     }
 
-    Parent.Set(ParentComponent);
+    mParent.Set(ParentComponent);
 
     if (ParentComponent != nullptr) {
-        ParentComponent->Children.emplace_back(this);
+        ParentComponent->mChildren.emplace_back(this);
     }
 
     if (Rule == EAttachmentTransformRule::KeepWorldTransform) {
@@ -209,22 +211,22 @@ bool USceneComponent::DetachFromComponent(EAttachmentTransformRule Rule) {
 }
 
 bool USceneComponent::SetWorldTransform(const FTransform& WorldTransform) {
-    FTransform DesiredWorldTransform = WorldTransform;
-    DesiredWorldTransform.SetAbsoluteLocation(Transform.IsAbsoluteLocation());
-    DesiredWorldTransform.SetAbsoluteRotation(Transform.IsAbsoluteRotation());
-    DesiredWorldTransform.SetAbsoluteScale(Transform.IsAbsoluteScale());
+    FTransform DesiredWorldTransform{WorldTransform};
+    DesiredWorldTransform.SetAbsoluteLocation(mTransform.IsAbsoluteLocation());
+    DesiredWorldTransform.SetAbsoluteRotation(mTransform.IsAbsoluteRotation());
+    DesiredWorldTransform.SetAbsoluteScale(mTransform.IsAbsoluteScale());
 
-    if (USceneComponent* ParentComponent = Parent.Get()) {
-        FTransform RelativeTransform;
+    if (USceneComponent * ParentComponent{mParent.Get()}) {
+        FTransform RelativeTransform{};
         if (!DesiredWorldTransform.MakeRelativeTo(ParentComponent->GetComponentTransform(), RelativeTransform)) {
             return false;
         }
 
-        Transform = RelativeTransform;
+        mTransform = RelativeTransform;
         return true;
     }
 
-    Transform = DesiredWorldTransform;
+    mTransform = DesiredWorldTransform;
     return true;
 }
 
@@ -233,44 +235,44 @@ bool USceneComponent::SetWorldTransform(const FMatrix& WorldTransform) {
 }
 
 bool USceneComponent::SetWorldLocation(const FVector3& Location) {
-    FTransform DesiredWorldTransform = GetComponentTransform();
+    FTransform DesiredWorldTransform{GetComponentTransform()};
     DesiredWorldTransform.SetPosition(Location);
     return SetWorldTransform(DesiredWorldTransform);
 }
 
 bool USceneComponent::SetWorldLocationAndRotation(const FVector3& Location, const FRotator& Rotation) {
-    FTransform DesiredWorldTransform = GetComponentTransform();
+    FTransform DesiredWorldTransform{GetComponentTransform()};
     DesiredWorldTransform.SetPosition(Location);
     DesiredWorldTransform.SetRotation(Rotation);
     return SetWorldTransform(DesiredWorldTransform);
 }
 
 bool USceneComponent::SetWorldRotation(const FRotator& Rotation) {
-    FTransform DesiredWorldTransform = GetComponentTransform();
+    FTransform DesiredWorldTransform{GetComponentTransform()};
     DesiredWorldTransform.SetRotation(Rotation);
     return SetWorldTransform(DesiredWorldTransform);
 }
 
 bool USceneComponent::SetWorldScale3D(const FVector3& Scale) {
-    FTransform DesiredWorldTransform = GetComponentTransform();
+    FTransform DesiredWorldTransform{GetComponentTransform()};
     DesiredWorldTransform.SetScale(Scale);
     return SetWorldTransform(DesiredWorldTransform);
 }
 
 USceneComponent* USceneComponent::GetParent() const {
-    return Parent.Get();
+    return mParent.Get();
 }
 
 const std::vector<TObjectRef<USceneComponent>>& USceneComponent::GetChildren() const {
-    return Children;
+    return mChildren;
 }
 
 FTransform USceneComponent::GetComponentTransform() const {
-    if (USceneComponent* ParentComponent = Parent.Get()) {
-        return Transform.Compose(ParentComponent->GetComponentTransform());
+    if (USceneComponent * ParentComponent{mParent.Get()}) {
+        return mTransform.Compose(ParentComponent->GetComponentTransform());
     }
 
-    return Transform;
+    return mTransform;
 }
 
 FMatrix USceneComponent::GetComponentToWorld() const {
@@ -294,23 +296,21 @@ bool USceneComponent::ResolveLoadedReferences() {
         return false;
     }
 
-    if (!PendingParentGuid.IsValid()) {
+    if (!mPendingParentGuid.IsValid()) {
         return true;
     }
 
-    UObject* ResolvedObject = UObjectSystem::Resolve(UObjectSystem::FindHandleByGuid(PendingParentGuid));
+    UObject* ResolvedObject{UObjectSystem::Resolve(UObjectSystem::FindHandleByGuid(mPendingParentGuid))};
     if (ResolvedObject == nullptr ||
         !ResolvedObject->GetTypeInfo()->IsA(USceneComponent::StaticTypeInfo())) {
         return false;
     }
 
-    USceneComponent* ParentComponent = static_cast<USceneComponent*>(ResolvedObject);
+    USceneComponent* ParentComponent{static_cast<USceneComponent*>(ResolvedObject)};
     if (!AttachToComponent(ParentComponent)) {
         return false;
     }
 
-    PendingParentGuid = {};
+    mPendingParentGuid = {};
     return true;
 }
-
-

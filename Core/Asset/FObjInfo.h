@@ -1,77 +1,61 @@
-﻿#pragma once 
+﻿#pragma once
 #include "PCH.h"
 
 //OBJ의 v/vt/vn 인덱스 조합 하나 = GPU 정점 하나. 같은 조합이 또 나오면 새 정점을 만들지 않고 재사용한다.
-struct FFaceVertexKey
-{
-    int32 PositionIndex;
-    int32 UVIndex;
-    int32 NormalIndex;
+struct FFaceVertexKey {
+    Int32 mPositionIndex{};
+    Int32 mUvIndex{};
+    Int32 mNormalIndex{};
 
-    bool operator==(const FFaceVertexKey& Other) const noexcept
-    {
-        return PositionIndex == Other.PositionIndex
-            && UVIndex == Other.UVIndex
-            && NormalIndex == Other.NormalIndex;
-    }
+    bool operator==(const FFaceVertexKey& Other) const noexcept;
 };
 
-struct FFaceVertexKeyHash
-{
-    size_t operator()(const FFaceVertexKey& Key) const noexcept
-    {
-        size_t Hash = std::hash<int32>{}(Key.PositionIndex);
-        Hash = Hash * 31 + std::hash<int32>{}(Key.UVIndex);
-        Hash = Hash * 31 + std::hash<int32>{}(Key.NormalIndex);
-        return Hash;
-    }
+struct FFaceVertexKeyHash {
+    std::size_t operator()(const FFaceVertexKey& Key) const noexcept;
 };
 
-struct FFaceVertex
-{
-    int32 PositionIndex = -1;
-    int32 UVIndex = -1;
-    int32 NormalIndex = -1;
+struct FFaceVertex {
+    Int32 mPositionIndex{-1};
+    Int32 mUvIndex{-1};
+    Int32 mNormalIndex{-1};
 };
 
-struct FObjInfo
-{
-    FString AssetName;
+struct FObjInfo {
+    FString mAssetName{};
     //이 오브젝트의 머티리얼 정보가 담긴 mtl 파일 이름
-    FString MaterialFileName;
+    FString mMaterialFileName{};
 
-    TArray<FVector>  Positions;
-    TArray<FVector2> UVs;
-    TArray<FVector>  Normals;
+    TArray<FVector> mPositions{};
+    TArray<FVector2> mUVs{};
+    TArray<FVector> mNormals{};
 
     // face 하나를 구성하는 정점 순서대로 : 나중에 인덱스 버퍼의 순서가 된다.
     // v/vt/vn 조합
     //다각형에 대응하기 위해서 1개 면이 저장하는 버텍스들을 TArray로 한번 더 감쌉니다.
-    TArray<TArray<FFaceVertex>> FaceVertices_Polygon;
+    TArray<TArray<FFaceVertex>> mFaceVerticesPolygon{};
 
     //머티리얼 이름들
     //SubMesh와 인덱스 매칭한다.
-    TArray<FString> MaterialNames;
+    TArray<FString> mMaterialNames{};
 
     //동일한 머티리얼을 쓰는 정점들의 개수
     //MaterialNames와 인덱스 매칭한다.
     //MaterialNames[0]를 쓰는 정점의 개수는 SubMesh[0]개
-    TArray<int32> SubMesh;
+    TArray<Int32> mSubMesh{};
 
     //버텍스 컬러
-    TArray<FColor4> Colors;
+    TArray<FColor4> mColors{};
 };
 
-struct FGeometry
-{
-    TArray<FVector> Positions;
-    TArray<FVector> Normals;
-    TArray<FVector2> TexCoords;
-    TArray<uint32> Indices;
+struct FGeometry {
+    TArray<FVector> mPositions{};
+    TArray<FVector> mNormals{};
+    TArray<FVector2> mTexCoords{};
+    TArray<Uint32> mIndices{};
 
-    FString MaterialFileName;
-    TArray<FString> MaterialNames;
-    TArray<uint32> SubMeshIndexCounts;
+    FString mMaterialFileName{};
+    TArray<FString> mMaterialNames{};
+    TArray<Uint32> mSubMeshIndexCounts{};
 
-    TArray<FColor4> Colors;
+    TArray<FColor4> mColors{};
 };

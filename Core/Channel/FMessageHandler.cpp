@@ -1,10 +1,10 @@
-﻿#include "PCH.h"
+﻿#include "pch.h"
 #include "FMessageHandler.h"
 
 #include "../../ErrorHandler.h"
 
 bool FMessageHandler::Handles(const FTypeInfo* Type) const noexcept {
-	return mMessageType->isExactlyA(Type);
+    return mMessageType->IsExactlyA(Type);
 }
 
 const FTypeInfo& FMessageHandler::GetMessageType() const noexcept {

@@ -8,24 +8,15 @@
 
 class FStatPanel : public FEditorWindow {
 public:
-    explicit FStatPanel(UWorld& InWorld, FStateChannel<FStatDisplayFlags>::FReader InReader) :
-        FEditorWindow("Stats"), World(&InWorld), ModeReader(std::move(InReader)){
-        //bVisible = false;
-    }
+    explicit FStatPanel(UWorld& InWorld, FStateChannel<FStatDisplayFlags>::FReader InReader);
 
-    bool CheckVisible()
-    {
-        return !(ModeReader.Peek().bShowFps || ModeReader.Peek().bShowMemory || ModeReader.Peek().bObjectSystem);
-    }
+    bool CheckVisible();
 
 private:
-    void DrawContents() override {
-        DrawStatContents(*World, ModeReader.Peek());
-    }
+    void DrawContents() override;
 
-    UWorld* World = nullptr;
+    UWorld* mWorld{nullptr};
 
-    FStateChannel<FStatDisplayFlags>::FReader ModeReader;
-    FStatDisplayFlags StatFlags;
-
+    FStateChannel<FStatDisplayFlags>::FReader mModeReader{};
+    FStatDisplayFlags mStatFlags{};
 };

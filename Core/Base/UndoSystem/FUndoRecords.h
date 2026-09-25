@@ -1,49 +1,43 @@
 ﻿#pragma once
-#include "IUndoRecord.h" 
-#include "../FGuid.h"    
+#include "IUndoRecord.h"
+#include "../FGuid.h"
 
-class FRecordObjectState: public IUndoRecord
-{
+class FRecordObjectState : public IUndoRecord {
 public:
-    FRecordObjectState(const FGuid& InGuid, const TArray<uint8>& InBefore, const TArray<uint8>& InAfter)
-        : TargetGuid(InGuid), BeforeData(InBefore), AfterData(InAfter) {}
+    FRecordObjectState(const FGuid& InGuid, const TArray<Uint8>& InBefore, const TArray<Uint8>& InAfter);
 
     virtual void ApplyUndo(IUndoContext& Context) override;
     virtual void ApplyRedo(IUndoContext& Context) override;
 
 private:
-    FGuid TargetGuid;
+    FGuid mTargetGuid{};
 
-    TArray<uint8> BeforeData;
-    TArray<uint8> AfterData;
+    TArray<Uint8> mBeforeData{};
+    TArray<Uint8> mAfterData{};
 };
 
-
-class FRecordObjectSpawned : public IUndoRecord
-{
+class FRecordObjectSpawned : public IUndoRecord {
 public:
-    FRecordObjectSpawned(FGuid InputGuid, const TArray<uint8>& InputSavedData, std::string_view InputTargetTypeName)
-        : TargetGuid(InputGuid), SavedData(std::move(InputSavedData)), TargetTypeName(InputTargetTypeName){}
-    
+    FRecordObjectSpawned(FGuid InputGuid, const TArray<Uint8>& InputSavedData, std::string_view InputTargetTypeName);
+
     virtual void ApplyUndo(IUndoContext& Context) override;
     virtual void ApplyRedo(IUndoContext& Context) override;
+
 private:
-    FGuid TargetGuid;
-    TArray<uint8> SavedData;
-    FString TargetTypeName;
+    FGuid mTargetGuid{};
+    TArray<Uint8> mSavedData{};
+    FString mTargetTypeName{};
 };
 
-
-class FRecordObjectDestroyed : public IUndoRecord
-{
+class FRecordObjectDestroyed : public IUndoRecord {
 public:
-    FRecordObjectDestroyed(FGuid InputGuid, TArray<uint8> InputSavedData, std::string_view InputTargetTypeName)
-        : TargetGuid(InputGuid), SavedData(std::move(InputSavedData)), TargetTypeName(InputTargetTypeName) {}
+    FRecordObjectDestroyed(FGuid InputGuid, TArray<Uint8> InputSavedData, std::string_view InputTargetTypeName);
 
     virtual void ApplyUndo(IUndoContext& Context) override;
     virtual void ApplyRedo(IUndoContext& Context) override;
+
 private:
-    FGuid TargetGuid;
-    TArray<uint8> SavedData;
-    FString TargetTypeName;
+    FGuid mTargetGuid{};
+    TArray<Uint8> mSavedData{};
+    FString mTargetTypeName{};
 };

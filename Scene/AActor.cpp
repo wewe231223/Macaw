@@ -1,46 +1,44 @@
-#include "PCH.h"
+﻿#include "pch.h"
 #include "AActor.h"
 #include "Scene/UWorld.h"
 #include "Component/USceneComponent.h"
 #include "../Core/Base/TypeRegistry.h"
 
 const std::vector<std::unique_ptr<UActorComponent>>& AActor::GetComponents() const {
-    return Components;
+    return mComponents;
 }
 
 AActor::~AActor() {
     SetWorld(nullptr);
 
-    for (std::unique_ptr<UActorComponent>& Component : Components) {
+    for (std::unique_ptr<UActorComponent>& Component : mComponents) {
         Component->UnregisterComponent();
         UObjectSystem::Unregister(Component.get(), Component->GetHandle());
     }
 }
 
 UActorComponent* AActor::AddComponent(const FTypeInfo& Type) {
-    if (Type.Creator == nullptr) {
+    if (Type.mCreator == nullptr) {
         return nullptr;
     }
 
-    std::unique_ptr<UObject> CreatedObject = Type.Creator();
+    std::unique_ptr<UObject> CreatedObject{Type.mCreator()};
     if (CreatedObject == nullptr ||
         !CreatedObject->GetTypeInfo()->IsA(UActorComponent::StaticTypeInfo())) {
         return nullptr;
     }
 
-    std::unique_ptr<UActorComponent> NewComponent(
-        static_cast<UActorComponent*>(CreatedObject.release())
-    );
-    UActorComponent* ComponentPtr = NewComponent.get();
+    std::unique_ptr<UActorComponent> NewComponent{ static_cast<UActorComponent*>(CreatedObject.release())};
+    UActorComponent* ComponentPtr{NewComponent.get()};
 
     ComponentPtr->SetOwner(this);
     UObjectSystem::Register(ComponentPtr);
-    Components.push_back(std::move(NewComponent));
+    mComponents.push_back(std::move(NewComponent));
 
-    if (World != nullptr) {
-        ComponentPtr->RegisterComponent(World);
+    if (mWorld != nullptr) {
+        ComponentPtr->RegisterComponent(mWorld);
 
-        if (bHasBegunPlay) {
+        if (mBHasBegunPlay) {
             ComponentPtr->InitializeComponent();
             ComponentPtr->BeginPlay();
         }
@@ -50,257 +48,252 @@ UActorComponent* AActor::AddComponent(const FTypeInfo& Type) {
 }
 
 void AActor::RemoveOwnedComponent(UActorComponent* Component) {
-    auto It = std::ranges::find_if(Components, [Component](const std::unique_ptr<UActorComponent>& Ptr) {
-            return Ptr.get() == Component;
-        }
-    );
+    auto It{std::ranges::find_if(mComponents, [Component](const std::unique_ptr<UActorComponent>& Ptr) {
+        return Ptr.get() == Component;
+    })};
 
-    if (It == Components.end()) {
+    if (It == mComponents.end()) {
         return;
     }
 
-    if (RootComponent == Component) {
-        RootComponent = nullptr;
+    if (mRootComponent == Component) {
+        mRootComponent = nullptr;
     }
 
     UObjectSystem::Unregister(Component, Component->GetHandle());
-    Components.erase(It);
+    mComponents.erase(It);
 }
 
 USceneComponent* AActor::GetRootComponent() {
-    return RootComponent;
+    return mRootComponent;
 }
 
 const USceneComponent* AActor::GetRootComponent() const {
-    return RootComponent;
+    return mRootComponent;
 }
 
 bool AActor::SetRootComponent(USceneComponent* InRootComponent) {
     if (InRootComponent != nullptr) {
-        const bool bIsOwnedComponent = std::ranges::any_of(Components, [InRootComponent](const std::unique_ptr<UActorComponent>& Component) {
+        const bool BIsOwnedComponent{std::ranges::any_of(mComponents, [InRootComponent](const std::unique_ptr<UActorComponent>& Component) {
             return Component.get() == InRootComponent;
-        }
-        );
+        })};
 
-        if (!bIsOwnedComponent) {
+        if (!BIsOwnedComponent) {
             return false;
         }
     }
 
-    RootComponent = InRootComponent;
+    mRootComponent = InRootComponent;
     return true;
 }
 
 void AActor::SetWorld(UWorld* InWorld) {
-    if (World == InWorld) {
+    if (mWorld == InWorld) {
         return;
     }
 
-    if (World != nullptr) {
-        if (bHasBegunPlay) {
+    if (mWorld != nullptr) {
+        if (mBHasBegunPlay) {
             EndPlay();
-            bHasBegunPlay = false;
+            mBHasBegunPlay = false;
         }
 
-        for (const std::unique_ptr<UActorComponent>& Component : Components) {
+        for (const std::unique_ptr<UActorComponent>& Component : mComponents) {
             Component->UnregisterComponent();
         }
 
         OnRemovedFromWorld();
-        World = nullptr;
+        mWorld = nullptr;
     }
 
     if (InWorld == nullptr) {
         return;
     }
 
-    World = InWorld;
+    mWorld = InWorld;
     OnAddedToWorld();
 
-    for (const std::unique_ptr<UActorComponent>& Component : Components) {
-        Component->RegisterComponent(World);
+    for (const std::unique_ptr<UActorComponent>& Component : mComponents) {
+        Component->RegisterComponent(mWorld);
     }
 
     InitializeComponents();
     BeginPlay();
-    bHasBegunPlay = true;
+    mBHasBegunPlay = true;
 }
 
 UWorld* AActor::GetWorld() const {
-    return World;
+    return mWorld;
 }
 
 bool AActor::Destroy() {
-    return World != nullptr && World->DestroyActor(this);
+    return mWorld != nullptr && mWorld->DestroyActor(this);
 }
 
 FTransform AActor::GetActorTransform() const {
-    if (RootComponent == nullptr) {
+    if (mRootComponent == nullptr) {
         return {};
     }
 
-    return RootComponent->GetComponentTransform();
+    return mRootComponent->GetComponentTransform();
 }
 
 bool AActor::SetActorTransform(const FTransform& Transform) {
-    if (RootComponent == nullptr) {
+    if (mRootComponent == nullptr) {
         return false;
     }
 
-    return RootComponent->SetWorldTransform(Transform);
+    return mRootComponent->SetWorldTransform(Transform);
 }
 
 FVector3 AActor::GetActorLocation() const {
-    if (RootComponent == nullptr) {
+    if (mRootComponent == nullptr) {
         return FVector3::Zero;
     }
 
-    return RootComponent->GetComponentLocation();
+    return mRootComponent->GetComponentLocation();
 }
 
 bool AActor::SetActorLocation(const FVector3& Location) {
-    if (RootComponent == nullptr) {
+    if (mRootComponent == nullptr) {
         return false;
     }
 
-    return RootComponent->SetWorldLocation(Location);
+    return mRootComponent->SetWorldLocation(Location);
 }
 
 bool AActor::SetActorLocationAndRotation(const FVector3& Location, const FRotator& Rotation) {
-    return RootComponent != nullptr && RootComponent->SetWorldLocationAndRotation(Location, Rotation);
+    return mRootComponent != nullptr && mRootComponent->SetWorldLocationAndRotation(Location, Rotation);
 }
 
 FRotator AActor::GetActorRotation() const {
-    if (RootComponent == nullptr) {
+    if (mRootComponent == nullptr) {
         return FRotator::Zero;
     }
 
-    return RootComponent->GetComponentRotation();
+    return mRootComponent->GetComponentRotation();
 }
 
 bool AActor::SetActorRotation(const FRotator& Rotation) {
-    return RootComponent != nullptr && RootComponent->SetWorldRotation(Rotation);
+    return mRootComponent != nullptr && mRootComponent->SetWorldRotation(Rotation);
 }
 
 FVector3 AActor::GetActorScale3D() const {
-    if (RootComponent == nullptr) {
-        return { 1.0f, 1.0f, 1.0f };
+    if (mRootComponent == nullptr) {
+        return {1.0f, 1.0f, 1.0f};
     }
 
-    return RootComponent->GetComponentScale();
+    return mRootComponent->GetComponentScale();
 }
 
 bool AActor::SetActorScale3D(const FVector3& Scale) {
-    return RootComponent != nullptr && RootComponent->SetWorldScale3D(Scale);
+    return mRootComponent != nullptr && mRootComponent->SetWorldScale3D(Scale);
 }
 
 FTransform AActor::GetActorRelativeTransform() const {
-    return RootComponent != nullptr ? RootComponent->GetRelativeTransform() : FTransform{};
+    return mRootComponent != nullptr ? mRootComponent->GetRelativeTransform() : FTransform{};
 }
 
 bool AActor::SetActorRelativeTransform(const FTransform& Transform) {
-    if (RootComponent == nullptr) {
+    if (mRootComponent == nullptr) {
         return false;
     }
 
-    RootComponent->SetRelativeTransform(Transform);
+    mRootComponent->SetRelativeTransform(Transform);
     return true;
 }
 
 FVector3 AActor::GetActorRelativeLocation() const {
-    return RootComponent != nullptr ? RootComponent->GetRelativeLocation() : FVector3::Zero;
+    return mRootComponent != nullptr ? mRootComponent->GetRelativeLocation() : FVector3::Zero;
 }
 
 bool AActor::SetActorRelativeLocation(const FVector3& Location) {
-    if (RootComponent == nullptr) {
+    if (mRootComponent == nullptr) {
         return false;
     }
 
-    RootComponent->SetRelativeLocation(Location);
+    mRootComponent->SetRelativeLocation(Location);
     return true;
 }
 
 bool AActor::SetActorRelativeLocationAndRotation(const FVector3& Location, const FRotator& Rotation) {
-    if (RootComponent == nullptr) {
+    if (mRootComponent == nullptr) {
         return false;
     }
 
-    RootComponent->SetRelativeLocationAndRotation(Location, Rotation);
+    mRootComponent->SetRelativeLocationAndRotation(Location, Rotation);
     return true;
 }
 
 FRotator AActor::GetActorRelativeRotation() const {
-    return RootComponent != nullptr ? RootComponent->GetRelativeRotation() : FRotator::Zero;
+    return mRootComponent != nullptr ? mRootComponent->GetRelativeRotation() : FRotator::Zero;
 }
 
 bool AActor::SetActorRelativeRotation(const FRotator& Rotation) {
-    if (RootComponent == nullptr) {
+    if (mRootComponent == nullptr) {
         return false;
     }
 
-    RootComponent->SetRelativeRotation(Rotation);
+    mRootComponent->SetRelativeRotation(Rotation);
     return true;
 }
 
 FVector3 AActor::GetActorRelativeScale3D() const {
-    return RootComponent != nullptr ? RootComponent->GetRelativeScale3D() : FVector3{ 1.0f, 1.0f, 1.0f };
+    return mRootComponent != nullptr ? mRootComponent->GetRelativeScale3D() : FVector3{1.0f, 1.0f, 1.0f};
 }
 
 bool AActor::SetActorRelativeScale3D(const FVector3& Scale) {
-    if (RootComponent == nullptr) {
+    if (mRootComponent == nullptr) {
         return false;
     }
 
-    RootComponent->SetRelativeScale3D(Scale);
+    mRootComponent->SetRelativeScale3D(Scale);
     return true;
 }
 
 bool AActor::HasBegunPlay() const {
-    return bHasBegunPlay;
+    return mBHasBegunPlay;
 }
 
 void AActor::Tick(float DeltaTime) {
-    if (!bHasBegunPlay) {
+    if (!mBHasBegunPlay) {
         return;
     }
 
-    for (const std::unique_ptr<UActorComponent>& Component : Components) {
+    for (const std::unique_ptr<UActorComponent>& Component : mComponents) {
         if (Component->IsActive()) {
             Component->Tick(DeltaTime);
         }
     }
 }
 
-
-
 void AActor::Serialize(FArchive& Archive) {
     UObject::Serialize(Archive);
 
-    
     // components
-    size_t ArraySize = Components.size();
+    std::size_t ArraySize{mComponents.size()};
     Archive.BeginArrayScope("Components", ArraySize);
 
-    for (size_t i = 0; i < ArraySize; ++i) {
-        Archive.BeginObjectScope(std::to_string(i));
-        Components[i]->Serialize(Archive);
+    for (std::size_t I{0}; I < ArraySize; ++I) {
+        Archive.BeginObjectScope(std::to_string(I));
+        mComponents[I]->Serialize(Archive);
         Archive.EndObjectScope();
     }
     Archive.EndArrayScope();
 
     // root component
-    FString GuidRootComponent;
-    if (RootComponent != nullptr) {
-        GuidRootComponent = RootComponent->GetGuid().ToString();
+    FString GuidRootComponent{};
+    if (mRootComponent != nullptr) {
+        GuidRootComponent = mRootComponent->GetGuid().ToString();
     }
 
     Archive.Serialize("GuidRootComponent", GuidRootComponent);
     if (Archive.IsLoading()) {
-        RootComponent = nullptr;
-        PendingRootComponentGuid = {};
+        mRootComponent = nullptr;
+        mPendingRootComponentGuid = {};
 
-        if (!GuidRootComponent.empty() && !PendingRootComponentGuid.Parse(GuidRootComponent)) {
-            PendingRootComponentGuid = {};
+        if (!GuidRootComponent.empty() && !mPendingRootComponentGuid.Parse(GuidRootComponent)) {
+            mPendingRootComponentGuid = {};
         }
     }
 }
@@ -309,7 +302,7 @@ void AActor::OnAddedToWorld() {
 }
 
 void AActor::InitializeComponents() {
-    for (const std::unique_ptr<UActorComponent>& Component : Components) {
+    for (const std::unique_ptr<UActorComponent>& Component : mComponents) {
         if (Component->IsRegistered() && !Component->IsInitialized()) {
             Component->InitializeComponent();
         }
@@ -317,7 +310,7 @@ void AActor::InitializeComponents() {
 }
 
 void AActor::BeginPlay() {
-    for (const std::unique_ptr<UActorComponent>& Component : Components) {
+    for (const std::unique_ptr<UActorComponent>& Component : mComponents) {
         if (Component->IsRegistered() && !Component->HasBegunPlay()) {
             Component->BeginPlay();
         }
@@ -325,8 +318,8 @@ void AActor::BeginPlay() {
 }
 
 void AActor::EndPlay() {
-    for (auto It = Components.rbegin(); It != Components.rend(); ++It) {
-        UActorComponent* Component = It->get();
+    for (auto It{mComponents.rbegin()}; It != mComponents.rend(); ++It) {
+        UActorComponent* Component{It->get()};
         if (Component->HasBegunPlay()) {
             Component->EndPlay();
         }
@@ -337,26 +330,26 @@ void AActor::OnRemovedFromWorld() {
 }
 
 bool AActor::PreLoadComponents(FArchive& Archive) {
-    size_t ArraySize = 0;
+    std::size_t ArraySize{0};
     Archive.BeginArrayScope("Components", ArraySize);
 
-    Components.clear();
-    Components.reserve(ArraySize);
+    mComponents.clear();
+    mComponents.reserve(ArraySize);
 
-    for (size_t i = 0; i < ArraySize; ++i) {
-        Archive.BeginObjectScope(std::to_string(i));
+    for (std::size_t I{0}; I < ArraySize; ++I) {
+        Archive.BeginObjectScope(std::to_string(I));
 
-        FString TypeName;
+        FString TypeName{};
         Archive.Serialize("TypeName", TypeName);
 
-        const FTypeInfo* Type = TypeRegistry::Find(TypeName);
-        if (Type == nullptr || Type->Creator == nullptr) {
+        const FTypeInfo* Type{TypeRegistry::Find(TypeName)};
+        if (Type == nullptr || Type->mCreator == nullptr) {
             Archive.EndObjectScope();
             Archive.EndArrayScope();
             return false;
         }
 
-        std::unique_ptr<UObject> CreatedObject = Type->Creator();
+        std::unique_ptr<UObject> CreatedObject{Type->mCreator()};
         if (CreatedObject == nullptr ||
             !CreatedObject->GetTypeInfo()->IsA(UActorComponent::StaticTypeInfo())) {
             Archive.EndObjectScope();
@@ -364,15 +357,13 @@ bool AActor::PreLoadComponents(FArchive& Archive) {
             return false;
         }
 
-        std::unique_ptr<UActorComponent> Component(
-            static_cast<UActorComponent*>(CreatedObject.release())
-        );
+        std::unique_ptr<UActorComponent> Component{ static_cast<UActorComponent*>(CreatedObject.release())};
         Component->SetOwner(this);
 
-        FGuid ComponentGuid;
+        FGuid ComponentGuid{};
         Archive.Serialize("Guid", ComponentGuid);
         UObjectSystem::RegisterWithGuid(Component.get(), ComponentGuid);
-        Components.push_back(std::move(Component));
+        mComponents.push_back(std::move(Component));
 
         Archive.EndObjectScope();
     }
@@ -382,20 +373,18 @@ bool AActor::PreLoadComponents(FArchive& Archive) {
 }
 
 bool AActor::ResolveLoadedReferences() {
-    if (PendingRootComponentGuid.IsValid()) {
-        UObject* ResolvedObject = UObjectSystem::Resolve(
-            UObjectSystem::FindHandleByGuid(PendingRootComponentGuid)
-        );
+    if (mPendingRootComponentGuid.IsValid()) {
+        UObject* ResolvedObject{UObjectSystem::Resolve(UObjectSystem::FindHandleByGuid(mPendingRootComponentGuid))};
 
         if (ResolvedObject == nullptr ||
             !ResolvedObject->GetTypeInfo()->IsA(USceneComponent::StaticTypeInfo())) {
             return false;
         }
 
-        RootComponent = static_cast<USceneComponent*>(ResolvedObject);
+        mRootComponent = static_cast<USceneComponent*>(ResolvedObject);
     }
 
-    for (const std::unique_ptr<UActorComponent>& Component : Components) {
+    for (const std::unique_ptr<UActorComponent>& Component : mComponents) {
         if (!Component->ResolveLoadedReferences()) {
             return false;
         }

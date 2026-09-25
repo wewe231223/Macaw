@@ -1,4 +1,4 @@
-﻿#include "PCH.h"
+﻿#include "pch.h"
 
 #include "ULightSubsystem.h"
 
@@ -9,36 +9,36 @@ void ULightSubsystem::RegisterComponent(ULightComponent* Component) {
         return;
     }
 
-    Components.push_back(Component);
+    mComponents.push_back(Component);
 }
 
 void ULightSubsystem::UnregisterComponent(ULightComponent* Component) {
-    std::erase(Components, Component);
+    std::erase(mComponents, Component);
 }
 
 void ULightSubsystem::BuildLightProbes(FRenderProbe& Probe) const {
-    Probe.LightProbes.clear();
-    Probe.LightProbes.reserve(Components.size());
+    Probe.mLightProbes.clear();
+    Probe.mLightProbes.reserve(mComponents.size());
 
-    for (const ULightComponent* Component : Components) {
+    for (const ULightComponent* Component : mComponents) {
         if (Component == nullptr || !Component->IsActive() || !Component->IsVisible()) {
             continue;
         }
 
         FLightProbe LightProbe{};
         Component->MakeLightProbe(LightProbe);
-        Probe.LightProbes.push_back(LightProbe);
+        Probe.mLightProbes.push_back(LightProbe);
     }
 }
 
 bool ULightSubsystem::ContainsComponent(const ULightComponent* Component) const {
-    return std::ranges::find(Components, Component) != Components.end();
+    return std::ranges::find(mComponents, Component) != mComponents.end();
 }
 
 const TArray<ULightComponent*>& ULightSubsystem::GetRegisteredComponents() const {
-    return Components;
+    return mComponents;
 }
 
 void ULightSubsystem::OnDeinitialize() {
-    Components.clear();
+    mComponents.clear();
 }

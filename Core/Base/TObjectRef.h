@@ -7,74 +7,99 @@
 #include "UObject.h"
 #include "UObjectSystem.h"
 
-template<typename T>
+template <typename T>
 class TObjectRef {
 public:
     TObjectRef() = default;
 
+    TObjectRef(std::nullptr_t) noexcept;
 
-    TObjectRef(std::nullptr_t) noexcept {
-    }
+    TObjectRef(T* Object) noexcept;
 
-    TObjectRef(T* Object) noexcept {
-        Set(Object);
-    }
+    explicit TObjectRef(FObjectHandle InHandle) noexcept;
 
-    explicit TObjectRef(FObjectHandle InHandle) noexcept
-        : Handle(InHandle) {
-    }
+    T* Get() const noexcept;
 
-    T* Get() const noexcept {
-        ValidateType();
+    T* operator->() const noexcept;
 
-        UObject* Object = UObjectSystem::Resolve(Handle);
+    T& operator*() const noexcept;
 
-        if (Object == nullptr || !Object->GetTypeInfo()->IsA(T::StaticTypeInfo())) {
-            return nullptr;
-        }
+    explicit operator bool() const noexcept;
 
-        return static_cast<T*>(Object);
-    }
+    bool IsValid() const noexcept;
 
-    T* operator->() const noexcept {
-        return Get();
-    }
+    void Set(T* Object) noexcept;
 
-    T& operator*() const noexcept {
-        return *Get();
-    }
+    void SetHandle(FObjectHandle InHandle) noexcept;
 
-    explicit operator bool() const noexcept {
-        return IsValid();
-    }
+    void Reset() noexcept;
 
-    bool IsValid() const noexcept {
-        return Get() != nullptr;
-    }
-
-    void Set(T* Object) noexcept {
-        ValidateType();
-
-        Handle = Object != nullptr ? Object->GetHandle() : FObjectHandle{};
-    }
-
-    void SetHandle(FObjectHandle InHandle) noexcept {
-        Handle = InHandle;
-    }
-
-    void Reset() noexcept {
-        Handle = {};
-    }
-
-    FObjectHandle GetHandle() const noexcept {
-        return Handle;
-    }
+    FObjectHandle GetHandle() const noexcept;
 
 private:
-    static constexpr void ValidateType() noexcept {
-        static_assert(std::is_base_of_v<UObject, T>, "TObjectRef<T> requires T to derive from UObject.");
-        static_assert(std::is_same_v<typename T::TypeInfoOwner, T>, "TObjectRef<T> requires T to declare its own type information.");
+    static constexpr void ValidateType() noexcept;
+
+    FObjectHandle mHandle{};
+};
+
+template <typename T> TObjectRef<T>::TObjectRef(std::nullptr_t) noexcept {
+}
+
+template <typename T> TObjectRef<T>::TObjectRef(T* Object) noexcept {
+    Set(Object);
+}
+
+template <typename T> TObjectRef<T>::TObjectRef(FObjectHandle InHandle) noexcept
+                          : mHandle(InHandle) {
+}
+
+template <typename T> T* TObjectRef<T>::Get() const noexcept {
+    ValidateType();
+
+    UObject* Object{UObjectSystem::Resolve(mHandle)};
+
+    if (Object == nullptr || !Object->GetTypeInfo()->IsA(T::StaticTypeInfo())) {
+        return nullptr;
     }
 
-    FObjectHandle Handle;
-};
+    return static_cast<T*>(Object);
+}
+
+template <typename T> T* TObjectRef<T>::operator->() const noexcept {
+    return Get();
+}
+
+template <typename T> T& TObjectRef<T>::operator*() const noexcept {
+    return *Get();
+}
+
+template <typename T> TObjectRef<T>::operator bool() const noexcept {
+    return IsValid();
+}
+
+template <typename T> bool TObjectRef<T>::IsValid() const noexcept {
+    return Get() != nullptr;
+}
+
+template <typename T> void TObjectRef<T>::Set(T* Object) noexcept {
+    ValidateType();
+
+    mHandle = Object != nullptr ? Object->GetHandle() : FObjectHandle{};
+}
+
+template <typename T> void TObjectRef<T>::SetHandle(FObjectHandle InHandle) noexcept {
+    mHandle = InHandle;
+}
+
+template <typename T> void TObjectRef<T>::Reset() noexcept {
+    mHandle = {};
+}
+
+template <typename T> FObjectHandle TObjectRef<T>::GetHandle() const noexcept {
+    return mHandle;
+}
+
+template <typename T> constexpr void TObjectRef<T>::ValidateType() noexcept {
+    static_assert(std::is_base_of_v<UObject, T>, "TObjectRef<T> requires T to derive from UObject.");
+    static_assert(std::is_same_v<typename T::TypeInfoOwner, T>, "TObjectRef<T> requires T to declare its own type information.");
+}

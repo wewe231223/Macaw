@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "Scene/Component/UBillboardComponent.h"
 
 #include "Core/Asset/FAssetHandle.h"
@@ -8,44 +8,43 @@
 
 class FPropertyEditorContext;
 
-class USubUVComponent : public UBillboardComponent
-{
+class USubUVComponent : public UBillboardComponent {
 public:
-	USubUVComponent() = default;
-	~USubUVComponent() override = default;
+    USubUVComponent() = default;
+    ~USubUVComponent() override = default;
 
-	JG_DECLARE_DERIVED_TYPEINFO(USubUVComponent, UBillboardComponent);	
+    JG_DECLARE_DERIVED_TYPEINFO(USubUVComponent, UBillboardComponent);
 
-	// SubUV
-	void SetSubImage(int32 InHorizontal, int32 InVertical, int32 InTotalFrame, float InFrameRate, bool bInLooping);
-	void SetFrameRate(float InFrameRate);
-	void SetCurrentFrame(int32 inFrame);
+    // SubUV
+    void SetSubImage(Int32 InHorizontal, Int32 InVertical, Int32 InTotalFrame, float InFrameRate, bool BInLooping);
+    void SetFrameRate(float InFrameRate);
+    void SetCurrentFrame(Int32 InFrame);
 
-	void PlaySubUV();
-	void PauseSubUV();
-	void StopSubUV();
-	void RestartSubUV();
+    void PlaySubUV();
+    void PauseSubUV();
+    void StopSubUV();
+    void RestartSubUV();
 
-	bool IsPlaying() const;
-	bool IsLooping() const;
+    bool IsPlaying() const;
+    bool IsLooping() const;
 
-	void UpdateUVFromCurrentFrame();
+    void UpdateUVFromCurrentFrame();
 
-	void Tick(float DeltaTime) override;
+    void Tick(float DeltaTime) override;
 
-	void DrawPanels(FPropertyEditorContext& Context) override;
+    void DrawPanels(FPropertyEditorContext& Context) override;
 
 protected:
-	void Serialize(FArchive& Archive) override;
+    void Serialize(FArchive& Archive) override;
 
 private:
-	int32 SubImageHorizontal = 1;
-	int32 SubImageVertical = 1;
-	int32 TotalFrame = 1;
-	float FrameRate = 30.0f;
-	bool bLooping = true;
-	bool bPlaying = true;
+    Int32 mSubImageHorizontal{1};
+    Int32 mSubImageVertical{1};
+    Int32 mTotalFrame{1};
+    float mFrameRate{30.0f};
+    bool mBLooping{true};
+    bool mBPlaying{true};
 
-	float ElapsedTime = 0.0f;
-	int32 CurrentFrameIndex = 0;
+    float mElapsedTime{0.0f};
+    Int32 mCurrentFrameIndex{0};
 };

@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "Render/Panel/FEditorWindow.h"
 #include "Core/Asset/FAssetEntry.h"
@@ -29,16 +29,16 @@ private:
     void DrawFolderTree(const FString& FolderPath, const char* FolderName);
     void DrawAssetTile(const FAssetEntry& Entry);
 
-    FWorldEditorContext& EditorContext;
-    FAssetRegistry* AssetRegistry{ nullptr };
-    FString SelectedFolder{ "/Game" };
-    FAssetHandle SelectedAsset{};
-    ImGuiTextFilter AssetFilter{};
-    EAssetType mSelectedAssetType{ EAssetType::END };
-    ImVec2 DropTargetMin{};
-    ImVec2 DropTargetMax{};
-    bool bDropTargetActive{ false };
+    FWorldEditorContext& mEditorContext;
+    FAssetRegistry* mAssetRegistry{nullptr};
+    FString mSelectedFolder{"/Game"};
+    FAssetHandle mSelectedAsset{};
+    ImGuiTextFilter mAssetFilter{};
+    EAssetType mSelectedAssetType{EAssetType::END};
+    ImVec2 mDropTargetMin{};
+    ImVec2 mDropTargetMax{};
+    bool mBDropTargetActive{false};
 
-	FAssetThumbnailRenderer* ThumbnailRenderer{ nullptr };
-	std::function<void(FAssetHandle)> mOpenMaterialEditor{};
+    FAssetThumbnailRenderer* mThumbnailRenderer{nullptr};
+    std::function<void(FAssetHandle)> mOpenMaterialEditor{};
 };

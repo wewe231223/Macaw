@@ -1,4 +1,4 @@
-#include "PCH.h"
+﻿#include "pch.h"
 #include "USubUVComponent.h"
 
 #include "Core/Asset/FAssetRegistry.h"
@@ -11,126 +11,110 @@
 #include "Scene/UWorld.h"
 #include "Scene/Subsystem/URenderSubsystem.h"
 
-void USubUVComponent::SetSubImage(int32 InHorizontal, int32 InVertical, int32 InTotalFrame, float InFrameRate, bool bInLooping)
-{
-	SubImageHorizontal = InHorizontal;
-	SubImageVertical = InVertical;
-	TotalFrame = InTotalFrame;
-	FrameRate = InFrameRate;
-	bLooping = bInLooping;
-}
-void USubUVComponent::SetFrameRate(float InFrameRate)
-{
-	FrameRate = InFrameRate;
+void USubUVComponent::SetSubImage(Int32 InHorizontal, Int32 InVertical, Int32 InTotalFrame, float InFrameRate, bool BInLooping) {
+    mSubImageHorizontal = InHorizontal;
+    mSubImageVertical = InVertical;
+    mTotalFrame = InTotalFrame;
+    mFrameRate = InFrameRate;
+    mBLooping = BInLooping;
 }
 
-void USubUVComponent::SetCurrentFrame(int32 inFrame)
-{
-	CurrentFrameIndex = inFrame;
+void USubUVComponent::SetFrameRate(float InFrameRate) {
+    mFrameRate = InFrameRate;
 }
 
-void USubUVComponent::PlaySubUV()
-{
-	bPlaying = true;
+void USubUVComponent::SetCurrentFrame(Int32 InFrame) {
+    mCurrentFrameIndex = InFrame;
 }
 
-void USubUVComponent::PauseSubUV()
-{
-	bPlaying = false;
+void USubUVComponent::PlaySubUV() {
+    mBPlaying = true;
 }
 
-void USubUVComponent::StopSubUV()
-{
-	bPlaying = false;
-	SetCurrentFrame(0);
+void USubUVComponent::PauseSubUV() {
+    mBPlaying = false;
 }
 
-void USubUVComponent::RestartSubUV()
-{
-	ElapsedTime = 0.0f;
-	CurrentFrameIndex = 0;
-	bPlaying = true;
+void USubUVComponent::StopSubUV() {
+    mBPlaying = false;
+    SetCurrentFrame(0);
 }
 
-bool USubUVComponent::IsPlaying() const
-{
-	return bPlaying;
+void USubUVComponent::RestartSubUV() {
+    mElapsedTime = 0.0f;
+    mCurrentFrameIndex = 0;
+    mBPlaying = true;
 }
 
-bool USubUVComponent::IsLooping() const
-{
-	return bLooping;
+bool USubUVComponent::IsPlaying() const {
+    return mBPlaying;
 }
 
-void USubUVComponent::UpdateUVFromCurrentFrame()
-{
-	if (SubImageHorizontal <= 0 || SubImageVertical <= 0)
-	{
-		return;
-	}
-
-	const int32 Col = CurrentFrameIndex % SubImageHorizontal;
-	const int32 Row = CurrentFrameIndex / SubImageHorizontal;
-
-	const float UWidth = 1.0f / static_cast<float>(SubImageHorizontal);
-	const float VHeight = 1.0f / static_cast<float>(SubImageVertical);
-
-	FVector2 NewUVMin = FVector2{ Col * UWidth, Row * VHeight };
-	FVector2 NewUVMax = FVector2{ (Col + 1) * UWidth, (Row + 1) * VHeight };
-	UBillboardComponent::SetUV(NewUVMin, NewUVMax);
+bool USubUVComponent::IsLooping() const {
+    return mBLooping;
 }
 
-void USubUVComponent::Tick(float DeltaTime)
-{
-	UBillboardComponent::Tick(DeltaTime);
+void USubUVComponent::UpdateUVFromCurrentFrame() {
+    if (mSubImageHorizontal <= 0 || mSubImageVertical <= 0) {
+        return;
+    }
 
-	if (!bPlaying || TotalFrame <= 1 || FrameRate <= 0.0f || DeltaTime <= 0.0f)
-	{
-		return;
-	}
+    const Int32 Col{mCurrentFrameIndex % mSubImageHorizontal};
+    const Int32 Row{mCurrentFrameIndex / mSubImageHorizontal};
 
-	ElapsedTime += DeltaTime;
+    const float UWidth{1.0f / static_cast<float>(mSubImageHorizontal)};
+    const float VHeight{1.0f / static_cast<float>(mSubImageVertical)};
 
-	const int32 TargetFrame = static_cast<int32>(ElapsedTime * FrameRate);
-	if (bLooping)
-	{
-		CurrentFrameIndex = TargetFrame % TotalFrame;
-	}
-	else
-	{
-		CurrentFrameIndex = std::min(TargetFrame, TotalFrame - 1);
-		if (TargetFrame >= TotalFrame)
-		{
-			bPlaying = false;
-		}
-	}
-
-	UpdateUVFromCurrentFrame();
+    FVector2 NewUVMin{FVector2{Col * UWidth, Row * VHeight}};
+    FVector2 NewUVMax{FVector2{(Col + 1) * UWidth, (Row + 1) * VHeight}};
+    UBillboardComponent::SetUV(NewUVMin, NewUVMax);
 }
 
-void USubUVComponent::DrawPanels(FPropertyEditorContext& Context)
-{
-	UBillboardComponent::DrawPanels(Context);
-	
-	Context.DrawFloat("FrameRate", FrameRate, 1.0f, 0.0f, 240.0f, [this](float NewRate) { SetFrameRate(NewRate); });
-	Context.DrawVector2("SubImage", FVector2{ static_cast<float>(SubImageHorizontal), static_cast<float>(SubImageVertical) }, 1.0f, 1.0f, 100.0f, [this](const FVector2& NewValue) {
-		SetSubImage(static_cast<int32>(NewValue.x), static_cast<int32>(NewValue.y), TotalFrame, FrameRate, bLooping);
-		});
+void USubUVComponent::Tick(float DeltaTime) {
+    UBillboardComponent::Tick(DeltaTime);
+
+    if (!mBPlaying || mTotalFrame <= 1 || mFrameRate <= 0.0f || DeltaTime <= 0.0f) {
+        return;
+    }
+
+    mElapsedTime += DeltaTime;
+
+    const Int32 TargetFrame{static_cast<Int32>(mElapsedTime * mFrameRate)};
+    if (mBLooping) {
+        mCurrentFrameIndex = TargetFrame % mTotalFrame;
+    } else {
+        mCurrentFrameIndex = std::min(TargetFrame, mTotalFrame - 1);
+        if (TargetFrame >= mTotalFrame) {
+            mBPlaying = false;
+        }
+    }
+
+    UpdateUVFromCurrentFrame();
+}
+
+void USubUVComponent::DrawPanels(FPropertyEditorContext& Context) {
+    UBillboardComponent::DrawPanels(Context);
+
+    Context.DrawFloat("FrameRate", mFrameRate, 1.0f, 0.0f, 240.0f, [this](float NewRate) {
+        SetFrameRate(NewRate);
+    });
+    Context.DrawVector2("SubImage", FVector2{static_cast<float>(mSubImageHorizontal), static_cast<float>(mSubImageVertical)}, 1.0f, 1.0f, 100.0f, [this](const FVector2& NewValue) {
+        SetSubImage(static_cast<Int32>(NewValue.mX), static_cast<Int32>(NewValue.mY), mTotalFrame, mFrameRate, mBLooping);
+    });
 }
 
 void USubUVComponent::Serialize(FArchive& Archive) {
-	UBillboardComponent::Serialize(Archive);
-	Archive.Serialize("TotalFrame", TotalFrame);
-	Archive.Serialize("SubImageHorizontal", SubImageHorizontal);
-	Archive.Serialize("SubImageVertical", SubImageVertical);
-	Archive.Serialize("FrameRate", FrameRate);
-	Archive.Serialize("bLooping", bLooping);
-	Archive.Serialize("bPlaying", bPlaying);
-	
-	if (Archive.IsLoading())
-	{
-		ElapsedTime = 0.0f;
-		CurrentFrameIndex = 0;
-		UpdateUVFromCurrentFrame();
-	}
+    UBillboardComponent::Serialize(Archive);
+    Archive.Serialize("TotalFrame", mTotalFrame);
+    Archive.Serialize("SubImageHorizontal", mSubImageHorizontal);
+    Archive.Serialize("SubImageVertical", mSubImageVertical);
+    Archive.Serialize("FrameRate", mFrameRate);
+    Archive.Serialize("bLooping", mBLooping);
+    Archive.Serialize("bPlaying", mBPlaying);
+
+    if (Archive.IsLoading()) {
+        mElapsedTime = 0.0f;
+        mCurrentFrameIndex = 0;
+        UpdateUVFromCurrentFrame();
+    }
 }

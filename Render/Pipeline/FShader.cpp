@@ -1,4 +1,4 @@
-﻿#include "PCH.h"
+﻿#include "pch.h"
 #include "FShader.h"
 
 #include "../../ErrorHandler.h"
@@ -17,7 +17,7 @@ bool FShader::Initialize(ID3D11Device* Device, const FShaderDescription& Descrip
 
     FShader::Reset();
 
-    UINT CompileFlags = D3DCOMPILE_ENABLE_STRICTNESS;
+    UINT CompileFlags{D3DCOMPILE_ENABLE_STRICTNESS};
 
 #ifdef _DEBUG
     CompileFlags |= D3DCOMPILE_DEBUG;
@@ -27,7 +27,7 @@ bool FShader::Initialize(ID3D11Device* Device, const FShaderDescription& Descrip
     ComPtr<ID3DBlob> ShaderBlob{};
     ComPtr<ID3DBlob> ErrorBlob{};
 
-    HRESULT Result = D3DCompileFromFile(Description.Source.c_str(), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, Description.EntryPoint.c_str(), Description.Profile.c_str(), CompileFlags, 0, ShaderBlob.GetAddressOf(), ErrorBlob.GetAddressOf());
+    HRESULT Result{D3DCompileFromFile(Description.mSource.c_str(), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, Description.mEntryPoint.c_str(), Description.mProfile.c_str(), CompileFlags, 0, ShaderBlob.GetAddressOf(), ErrorBlob.GetAddressOf())};
 
     if (FAILED(Result)) {
         if (ErrorBlob) {
@@ -38,39 +38,39 @@ bool FShader::Initialize(ID3D11Device* Device, const FShaderDescription& Descrip
         return false;
     }
 
-    Stage = Description.Stage;
+    mStage = Description.mStage;
 
-    ByteCode.resize(ShaderBlob->GetBufferSize());
-    std::memcpy(ByteCode.data(), ShaderBlob->GetBufferPointer(), ShaderBlob->GetBufferSize());
+    mByteCode.resize(ShaderBlob->GetBufferSize());
+    std::memcpy(mByteCode.data(), ShaderBlob->GetBufferPointer(), ShaderBlob->GetBufferSize());
 
-    switch (Stage) {
-    case EShaderStage::Vertex:
-        Result = Device->CreateVertexShader(ShaderBlob->GetBufferPointer(), ShaderBlob->GetBufferSize(), nullptr, VertexShader.GetAddressOf());
-        break;
+    switch (mStage) {
+        case EShaderStage::Vertex:
+            Result = Device->CreateVertexShader(ShaderBlob->GetBufferPointer(), ShaderBlob->GetBufferSize(), nullptr, mVertexShader.GetAddressOf());
+            break;
 
-    case EShaderStage::Pixel:
-        Result = Device->CreatePixelShader(ShaderBlob->GetBufferPointer(), ShaderBlob->GetBufferSize(), nullptr, PixelShader.GetAddressOf());
-        break;
+        case EShaderStage::Pixel:
+            Result = Device->CreatePixelShader(ShaderBlob->GetBufferPointer(), ShaderBlob->GetBufferSize(), nullptr, mPixelShader.GetAddressOf());
+            break;
 
-    case EShaderStage::Geometry:
-        Result = Device->CreateGeometryShader(ShaderBlob->GetBufferPointer(), ShaderBlob->GetBufferSize(), nullptr, GeometryShader.GetAddressOf());
-        break;
+        case EShaderStage::Geometry:
+            Result = Device->CreateGeometryShader(ShaderBlob->GetBufferPointer(), ShaderBlob->GetBufferSize(), nullptr, mGeometryShader.GetAddressOf());
+            break;
 
-    case EShaderStage::Hull:
-        Result = Device->CreateHullShader(ShaderBlob->GetBufferPointer(), ShaderBlob->GetBufferSize(), nullptr, HullShader.GetAddressOf());
-        break;
+        case EShaderStage::Hull:
+            Result = Device->CreateHullShader(ShaderBlob->GetBufferPointer(), ShaderBlob->GetBufferSize(), nullptr, mHullShader.GetAddressOf());
+            break;
 
-    case EShaderStage::Domain:
-        Result = Device->CreateDomainShader(ShaderBlob->GetBufferPointer(), ShaderBlob->GetBufferSize(), nullptr, DomainShader.GetAddressOf());
-        break;
+        case EShaderStage::Domain:
+            Result = Device->CreateDomainShader(ShaderBlob->GetBufferPointer(), ShaderBlob->GetBufferSize(), nullptr, mDomainShader.GetAddressOf());
+            break;
 
-    case EShaderStage::Compute:
-        Result = Device->CreateComputeShader(ShaderBlob->GetBufferPointer(), ShaderBlob->GetBufferSize(), nullptr, ComputeShader.GetAddressOf());
-        break;
+        case EShaderStage::Compute:
+            Result = Device->CreateComputeShader(ShaderBlob->GetBufferPointer(), ShaderBlob->GetBufferSize(), nullptr, mComputeShader.GetAddressOf());
+            break;
 
-    default:
-        ErrorHandler::Report("Shader::Initialize", "The shader description contains an invalid shader stage.", ErrorHandler::EErrorLevel::Error);
-        return false;
+        default:
+            ErrorHandler::Report("Shader::Initialize", "The shader description contains an invalid shader stage.", ErrorHandler::EErrorLevel::Error);
+            return false;
     }
 
     if (FAILED(Result)) {
@@ -83,12 +83,48 @@ bool FShader::Initialize(ID3D11Device* Device, const FShaderDescription& Descrip
 }
 
 void FShader::Reset() {
-    ByteCode.clear();
+    mByteCode.clear();
 
-    VertexShader.Reset();
-    PixelShader.Reset();
-    GeometryShader.Reset();
-    HullShader.Reset();
-    DomainShader.Reset();
-    ComputeShader.Reset();
+    mVertexShader.Reset();
+    mPixelShader.Reset();
+    mGeometryShader.Reset();
+    mHullShader.Reset();
+    mDomainShader.Reset();
+    mComputeShader.Reset();
+}
+
+EShaderStage FShader::GetStage() const noexcept {
+    return mStage;
+}
+
+const void* FShader::GetByteCodeData() const noexcept {
+    return mByteCode.data();
+}
+
+std::size_t FShader::GetByteCodeSize() const noexcept {
+    return mByteCode.size();
+}
+
+ID3D11VertexShader* FShader::GetVertexShader() const noexcept {
+    return mVertexShader.Get();
+}
+
+ID3D11PixelShader* FShader::GetPixelShader() const noexcept {
+    return mPixelShader.Get();
+}
+
+ID3D11GeometryShader* FShader::GetGeometryShader() const noexcept {
+    return mGeometryShader.Get();
+}
+
+ID3D11HullShader* FShader::GetHullShader() const noexcept {
+    return mHullShader.Get();
+}
+
+ID3D11DomainShader* FShader::GetDomainShader() const noexcept {
+    return mDomainShader.Get();
+}
+
+ID3D11ComputeShader* FShader::GetComputeShader() const noexcept {
+    return mComputeShader.Get();
 }

@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include <atomic>
 #include <functional>
@@ -13,38 +13,38 @@ class FRenderer;
 
 class FLoadingProgress {
 public:
-	FLoadingProgress();
-	~FLoadingProgress();
+    FLoadingProgress();
+    ~FLoadingProgress();
 
 public:
-	void SetProgress(float Progress, const std::string& Status);
-	float GetProgress() const;
-	std::string GetStatus() const;
+    void SetProgress(float Progress, const std::string& Status);
+    float GetProgress() const;
+    std::string GetStatus() const;
 
 private:
-	std::atomic<float> mProgress{};
-	mutable std::mutex mStatusMutex{};
-	std::string mStatus{};
+    std::atomic<float> mProgress{};
+    mutable std::mutex mStatusMutex{};
+    std::string mStatus{};
 };
 
 class FLoadingScreen {
 public:
-	using FLoadingTask = std::function<bool(FLoadingProgress&)>;
+    using FLoadingTask = std::function<bool(FLoadingProgress&)>;
 
 public:
-	FLoadingScreen();
-	~FLoadingScreen();
+    FLoadingScreen();
+    ~FLoadingScreen();
 
 public:
-	bool Run(FRenderer& Renderer, HACCEL AcceleratorTable, const FLoadingTask& LoadingTask);
-	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> TakeLogoShaderResourceView();
+    bool Run(FRenderer& Renderer, HACCEL AcceleratorTable, const FLoadingTask& LoadingTask);
+    Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> TakeLogoShaderResourceView();
 
 private:
-	bool LoadLogo(ID3D11Device* Device);
-	void Render(FRenderer& Renderer, const FLoadingProgress& Progress);
+    bool LoadLogo(ID3D11Device* Device);
+    void Render(FRenderer& Renderer, const FLoadingProgress& Progress);
 
 private:
-	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> mLogoShaderResourceView{};
-	int mLogoWidth{};
-	int mLogoHeight{};
+    Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> mLogoShaderResourceView{};
+    int mLogoWidth{};
+    int mLogoHeight{};
 };

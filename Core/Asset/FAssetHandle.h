@@ -1,22 +1,16 @@
-﻿#pragma once 
+﻿#pragma once
 
 #include "Serialize/FArchive.h"
 
 struct FAssetHandle {
-	uint32 ID { std::numeric_limits<uint32>::max() };
-	uint32 Generation { 0 };
+    Uint32 mId{std::numeric_limits<Uint32>::max()};
+    Uint32 mGeneration{0};
 
-	bool operator==(const FAssetHandle& Other) const {
-		return ID == Other.ID && Generation == Other.Generation;
-	}
+    bool operator==(const FAssetHandle& Other) const;
 
-	bool operator!=(const FAssetHandle& Other) const {
-		return !(*this == Other);
-	}
+    bool operator!=(const FAssetHandle& Other) const;
 
-	operator bool() const {
-		return ID != std::numeric_limits<uint32>::max();
-	}
+    operator bool() const;
 
-	void Serialize(FArchive& Archive);
+    void Serialize(FArchive& Archive);
 };

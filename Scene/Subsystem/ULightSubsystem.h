@@ -24,5 +24,5 @@ protected:
     void OnDeinitialize() override;
 
 private:
-    TArray<ULightComponent*> Components;
+    TArray<ULightComponent*> mComponents{};
 };

@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include <d3d11.h>
 #include "Core/Asset/FAssetHandle.h"
@@ -15,8 +15,8 @@ class USceneComponent;
 class UWorld;
 
 struct FWorldEditorSharedState {
-    FEditorSettings EditorSettings{};
-    size_t ModeIndex{ 0 };
+    FEditorSettings mEditorSettings{};
+    std::size_t mModeIndex{0};
 };
 
 class FWorldEditorContext {
@@ -37,8 +37,8 @@ public:
     void SetGridVisible(bool Visible);
     void SetAxisVisible(bool Visible);
 
-    const size_t GetRenderModeState() const noexcept;
-    void SetRenderModeState(const size_t State);
+    const std::size_t GetRenderModeState() const noexcept;
+    void SetRenderModeState(const std::size_t State);
 
     void SetSelectedActor(AActor* Actor);
     void SetSelectedComponent(UActorComponent* Component);
@@ -56,14 +56,15 @@ public:
     FAssetHandle ConsumePreviewMesh() noexcept;
     // 요청을 한 번만 처리하도록 읽으면서 내린다.
     bool ConsumePreviewOpenRequest() noexcept;
-private:
-    UWorld* World = nullptr;
-    TObjectRef<AActor> SelectedActor;
-    TObjectRef<UActorComponent> SelectedComponent;
-    FStateChannel<FWorldEditorSharedState> SharedState{ std::in_place };
-    FMessageChannel EditorToWorld{ 64 };
-    FMessageChannel WorldToEditor{ 64 };
 
-    FAssetHandle PreviewMesh{};
-    bool bPreviewOpenRequested = false;
+private:
+    UWorld* mWorld{nullptr};
+    TObjectRef<AActor> mSelectedActor{};
+    TObjectRef<UActorComponent> mSelectedComponent{};
+    FStateChannel<FWorldEditorSharedState> mSharedState{std::in_place};
+    FMessageChannel mEditorToWorld{64};
+    FMessageChannel mWorldToEditor{64};
+
+    FAssetHandle mPreviewMesh{};
+    bool mBPreviewOpenRequested{false};
 };

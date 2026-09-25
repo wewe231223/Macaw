@@ -2,8 +2,7 @@
 
 #include "IUndoContext.h"
 
-class IUndoRecord
-{
+class IUndoRecord {
 public:
     virtual ~IUndoRecord() = default;
 

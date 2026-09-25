@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "UWorldSubsystem.h"
 
@@ -14,7 +14,7 @@ public:
 
     JG_DECLARE_DERIVED_TYPEINFO(UTextSubsystem, UWorldSubsystem)
 
-        void RegisterComponent(UBillboardTextComponent* Component);
+    void RegisterComponent(UBillboardTextComponent* Component);
     void UnregisterComponent(UBillboardTextComponent* Component);
     void BuildTextProbes(FRenderProbe& Probe) const;
 
@@ -25,5 +25,5 @@ protected:
     void OnDeinitialize() override;
 
 private:
-    TArray<UBillboardTextComponent*> Components;
+    TArray<UBillboardTextComponent*> mComponents{};
 };

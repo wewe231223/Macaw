@@ -7,19 +7,9 @@
 #include "Core/Channel/FMessageChannel.h"
 #include "../../Scene/FWorldEditorContext.h"
 
-class FControlPanel : public IEditorPanel
-{
+class FControlPanel : public IEditorPanel {
 public:
-    FControlPanel(
-        FWorldEditorContext& InEditorContext,
-        HWND InputWindowHandle,
-        FMessageChannel::FSender InEditorToWorldSender
-    )
-        : EditorContext(&InEditorContext)
-        , WindowHandle(InputWindowHandle)
-        , EditorToWorldSender(std::move(InEditorToWorldSender))
-    {
-    }
+    FControlPanel(FWorldEditorContext& InEditorContext, HWND InputWindowHandle, FMessageChannel::FSender InEditorToWorldSender);
 
     void DrawPanel() override;
 
@@ -27,20 +17,20 @@ public:
     FString OpenFileDialog(const FString& FilePath, const OPENFILENAMEA& OFN);
 
 private:
-    FWorldEditorContext* EditorContext = nullptr;
-    FMessageChannel::FSender EditorToWorldSender;
+    FWorldEditorContext* mEditorContext{nullptr};
+    FMessageChannel::FSender mEditorToWorldSender;
 
 private:
-    char SceneNameBuffer[256] = "NewScene";
+    char mSceneNameBuffer[256]{"NewScene"};
 
-    int SelectedComponentIndex = -1;
-    int SelectedMeshIndex = 0;
-    int SpawnCountToRequest = 1;
+    int mSelectedComponentIndex{-1};
+    int mSelectedMeshIndex{0};
+    int mSpawnCountToRequest{1};
 
-    size_t RenderModeIndex = 0;
+    std::size_t mRenderModeIndex{0};
 
     // Components 체크리스트에서 컴포넌트 타입을 검색한다.
-    ImGuiTextFilter ComponentFilter;
+    ImGuiTextFilter mComponentFilter{};
 
-    HWND WindowHandle;
+    HWND mWindowHandle{};
 };

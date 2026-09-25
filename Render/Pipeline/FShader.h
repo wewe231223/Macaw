@@ -27,26 +27,32 @@ public:
     void Reset();
 
 public:
-    EShaderStage GetStage() const noexcept { return Stage; }
+    EShaderStage GetStage() const noexcept;
 
-    const void* GetByteCodeData() const noexcept { return ByteCode.data(); }
-    std::size_t GetByteCodeSize() const noexcept { return ByteCode.size(); }
+    const void* GetByteCodeData() const noexcept;
 
-    ID3D11VertexShader* GetVertexShader() const noexcept { return VertexShader.Get(); }
-    ID3D11PixelShader* GetPixelShader() const noexcept { return PixelShader.Get(); }
-    ID3D11GeometryShader* GetGeometryShader() const noexcept { return GeometryShader.Get(); }
-    ID3D11HullShader* GetHullShader() const noexcept { return HullShader.Get(); }
-    ID3D11DomainShader* GetDomainShader() const noexcept { return DomainShader.Get(); }
-    ID3D11ComputeShader* GetComputeShader() const noexcept { return ComputeShader.Get(); }
+    std::size_t GetByteCodeSize() const noexcept;
+
+    ID3D11VertexShader* GetVertexShader() const noexcept;
+
+    ID3D11PixelShader* GetPixelShader() const noexcept;
+
+    ID3D11GeometryShader* GetGeometryShader() const noexcept;
+
+    ID3D11HullShader* GetHullShader() const noexcept;
+
+    ID3D11DomainShader* GetDomainShader() const noexcept;
+
+    ID3D11ComputeShader* GetComputeShader() const noexcept;
 
 private:
-    EShaderStage Stage = EShaderStage::Vertex;
-    std::vector<std::uint8_t> ByteCode;
+    EShaderStage mStage{EShaderStage::Vertex};
+    std::vector<std::uint8_t> mByteCode{};
 
-    Microsoft::WRL::ComPtr<ID3D11VertexShader> VertexShader;
-    Microsoft::WRL::ComPtr<ID3D11PixelShader> PixelShader;
-    Microsoft::WRL::ComPtr<ID3D11GeometryShader> GeometryShader;
-    Microsoft::WRL::ComPtr<ID3D11HullShader> HullShader;
-    Microsoft::WRL::ComPtr<ID3D11DomainShader> DomainShader;
-    Microsoft::WRL::ComPtr<ID3D11ComputeShader> ComputeShader;
+    Microsoft::WRL::ComPtr<ID3D11VertexShader> mVertexShader{};
+    Microsoft::WRL::ComPtr<ID3D11PixelShader> mPixelShader{};
+    Microsoft::WRL::ComPtr<ID3D11GeometryShader> mGeometryShader{};
+    Microsoft::WRL::ComPtr<ID3D11HullShader> mHullShader{};
+    Microsoft::WRL::ComPtr<ID3D11DomainShader> mDomainShader{};
+    Microsoft::WRL::ComPtr<ID3D11ComputeShader> mComputeShader{};
 };

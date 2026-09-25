@@ -25,9 +25,9 @@ public:
     FViewportId GetViewportId() const;
 
     void BeginFrame();
-    bool Draw(const FRect& Rect, const ImVec2& MainViewportPosition, bool bInputBlocked);
-    void SetFocused(bool bInFocused);
-    void ProcessInput(EditorViewport& SharedEditorViewport, FKeyboardInput& KeyboardInput, FMouseInput& MouseInput, float DeltaTime, bool bInputBlocked);
+    bool Draw(const FRect& Rect, const ImVec2& MainViewportPosition, bool BInputBlocked);
+    void SetFocused(bool BInFocused);
+    void ProcessInput(EditorViewport& SharedEditorViewport, FKeyboardInput& KeyboardInput, FMouseInput& MouseInput, float DeltaTime, bool BInputBlocked);
     bool PrepareForRender();
     bool BuildCameraProbe(CameraProbe& OutCamera);
 
@@ -53,32 +53,32 @@ private:
     void ApplyKeyboardNavigation(const FViewportKeyboardNavigationInput& NavigationInput);
     D3D11_VIEWPORT BuildInputViewport() const;
 
-    ID3D11Device* Device = nullptr;
-    FWorldEditorContext* EditorContext = nullptr;
-    FSceneRenderSurface RenderSurface;
-    FRenderSettings RenderSettings;
-    FViewportId ViewportId = 0;
+    ID3D11Device* mDevice{nullptr};
+    FWorldEditorContext* mEditorContext{nullptr};
+    FSceneRenderSurface mRenderSurface{};
+    FRenderSettings mRenderSettings{};
+    FViewportId mViewportId{0};
 
-    EProjectionType ProjectionType = EProjectionType::Perspective;
-    EOrthographicView OrthographicView = EOrthographicView::Front;
+    EProjectionType mProjectionType{EProjectionType::Perspective};
+    EOrthographicView mOrthographicView{EOrthographicView::Front};
 
-    FVector3 CameraPosition{ -13.567042f, -26.165287f, 31.506821f };
-    FQuat CameraRotation{ -0.205543f, 0.040122f, -0.187332f, 0.959713f };
-    FVector3 PerspectiveCameraPosition = CameraPosition;
-    FQuat PerspectiveCameraRotation = CameraRotation;
-    FVector3 OrthographicTarget{};
+    FVector3 mCameraPosition{-13.567042f, -26.165287f, 31.506821f};
+    FQuat mCameraRotation{-0.205543f, 0.040122f, -0.187332f, 0.959713f};
+    FVector3 mPerspectiveCameraPosition{mCameraPosition};
+    FQuat mPerspectiveCameraRotation{mCameraRotation};
+    FVector3 mOrthographicTarget{};
 
-    float FieldOfView = 1.0472f;
-    float OrthographicWidth = 50.0f;
-    float NearPlane = 0.1f;
-    float FarPlane = 1000.0f;
+    float mFieldOfView{1.0472f};
+    float mOrthographicWidth{50.0f};
+    float mNearPlane{0.1f};
+    float mFarPlane{1000.0f};
 
-    FRect DisplayRect{};
-    uint32 Width = 0;
-    uint32 Height = 0;
-    float RenderLeft = 0.0f;
-    float RenderTop = 0.0f;
-    bool bVisible = false;
-    bool bHovered = false;
-    bool bFocused = false;
+    FRect mDisplayRect{};
+    Uint32 mWidth{0};
+    Uint32 mHeight{0};
+    float mRenderLeft{0.0f};
+    float mRenderTop{0.0f};
+    bool mBVisible{false};
+    bool mBHovered{false};
+    bool mBFocused{false};
 };

@@ -2,14 +2,14 @@
 
 #include "Common.h"
 
-using FViewportId = uint32;
+using FViewportId = Uint32;
 
-enum class EProjectionType : uint8 {
+enum class EProjectionType : Uint8 {
     Perspective,
     Orthographic
 };
 
-enum class EOrthographicView : uint8 {
+enum class EOrthographicView : Uint8 {
     Front,
     Back,
     Left,

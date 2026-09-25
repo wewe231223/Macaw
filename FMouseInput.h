@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include <array>
 #include <cstdint>
@@ -10,34 +10,30 @@
 #include "Core/Channel/FMessageChannel.h"
 #include "EKeyState.h"
 
-
-enum EMouseSide : uint32 {
-    Left, Right, MAX
+enum EMouseSide : Uint32 {
+    Left,
+    Right,
+    MAX
 };
 
 struct FViewportMouseNavigationInput {
-    float DragDeltaX = 0.0f;
-    float DragDeltaY = 0.0f;
-    float WheelSteps = 0.0f;
+    float mDragDeltaX{0.0f};
+    float mDragDeltaY{0.0f};
+    float mWheelSteps{0.0f};
 };
 
-class FMouseInput
-{
+class FMouseInput {
 public:
-	void InitializeWorldCommandSender(FMessageChannel::FSender&& InSender);
+    void InitializeWorldCommandSender(FMessageChannel::FSender&& InSender);
 
-	void ProcessWindowMessage(UINT Message, WPARAM WParam, LPARAM LParam);
+    void ProcessWindowMessage(UINT Message, WPARAM WParam, LPARAM LParam);
 
-	FViewportMouseNavigationInput DispatchPendingViewportCommands(std::int32_t ViewportLeft, std::int32_t ViewportTop, std::uint32_t ViewportWidth, std::uint32_t ViewportHeight, const FMatrix& ViewProjection, const FMatrix& View, bool bMouseCaptureByUI);
+    FViewportMouseNavigationInput DispatchPendingViewportCommands(std::int32_t ViewportLeft, std::int32_t ViewportTop, std::uint32_t ViewportWidth, std::uint32_t ViewportHeight, const FMatrix& ViewProjection, const FMatrix& View, bool BMouseCaptureByUi);
 
     EKeyState GetKeyState(EMouseSide Side) const;
     bool IsWorldDragActive(EMouseSide Side) const;
 
-    struct DragCapture
-    {
-        POINT start{};
-        POINT current{};
-    };
+    struct DragCapture { POINT mStart{}; POINT mCurrent{}; };
 
     const DragCapture& GetDragCapture(EMouseSide Side) const;
 
@@ -45,33 +41,20 @@ public:
     void EndFrame();
 
 private:
-    enum class EDragOwner : std::uint8_t
-    {
-        None,
-        World,
-        UI,
-        Gizmo
-    };
+    enum class EDragOwner : std::uint8_t { None, World, UI, Gizmo };
 
     void ResetKeyStates();
 
-    std::optional<FMessageChannel::FSender> WorldCommandSender;
+    std::optional<FMessageChannel::FSender> mWorldCommandSender{};
 
-    std::array<EKeyState, MAX> KeyStates{
-        EKeyState::None,
-        EKeyState::None
-    };
+    std::array<EKeyState, MAX> mKeyStates{ EKeyState::None, EKeyState::None};
 
-    std::array<DragCapture, MAX> ClickCaptures{};
+    std::array<DragCapture, MAX> mClickCaptures{};
 
-    std::array<EDragOwner, MAX> DragOwners{
-        EDragOwner::None,
-        EDragOwner::None
-    };
+    std::array<EDragOwner, MAX> mDragOwners{ EDragOwner::None, EDragOwner::None};
 
-    float PendingDeltaX = 0.0f;
-    float PendingDeltaY = 0.0f;
-        
-    float PendingWheelSteps = 0.0f;
+    float mPendingDeltaX{0.0f};
+    float mPendingDeltaY{0.0f};
 
+    float mPendingWheelSteps{0.0f};
 };

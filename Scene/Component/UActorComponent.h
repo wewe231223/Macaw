@@ -12,11 +12,11 @@ public:
     UActorComponent() = default;
     ~UActorComponent() override = default;
 
-	UActorComponent(const UActorComponent&) = delete;
-	UActorComponent& operator=(const UActorComponent&) = delete;
+    UActorComponent(const UActorComponent&) = delete;
+    UActorComponent& operator=(const UActorComponent&) = delete;
 
-	UActorComponent(UActorComponent&&) = default;
-	UActorComponent& operator=(UActorComponent&&) = default;
+    UActorComponent(UActorComponent&&) = default;
+    UActorComponent& operator=(UActorComponent&&) = default;
 
 public:
     JG_DECLARE_DERIVED_TYPEINFO(UActorComponent, UObject)
@@ -32,20 +32,21 @@ public:
     virtual void DrawPanels(FPropertyEditorContext& Context);
 
     bool IsActive() const;
-    void SetActive(bool bInActive);
+    void SetActive(bool BInActive);
 
-	bool IsRegistered() const;
-	bool IsInitialized() const;
-	bool HasBegunPlay() const;
-	UWorld* GetBelongingWorld() const;
+    bool IsRegistered() const;
+    bool IsInitialized() const;
+    bool HasBegunPlay() const;
+    UWorld* GetBelongingWorld() const;
 
-    void RegisterComponent(UWorld* world);
-	void UnregisterComponent();
+    void RegisterComponent(UWorld* World);
+    void UnregisterComponent();
     /// <summary>Component를 등록 해제하고 소유 Actor에서 제거합니다.</summary>
     /// <param name="bPromoteChildren">SceneComponent 자식을 부모에게 승격할지 여부입니다.</param>
-    virtual void DestroyComponent(bool bPromoteChildren = false);
+    virtual void DestroyComponent(bool BPromoteChildren = false);
 
     virtual bool ResolveLoadedReferences();
+
 protected:
     void Serialize(FArchive& Archive) override;
 
@@ -55,12 +56,12 @@ private:
     void SetOwner(AActor* InOwner);
 
 private:
-	AActor* Owner{ nullptr };
-	UWorld* ParentWorld{ nullptr };
+    AActor* mOwner{nullptr};
+    UWorld* mParentWorld{nullptr};
 
-	bool bActive{ true };
-	bool bRegistered{ false };
-	bool bInitialized{ false };
-	bool bHasBegunPlay{ false };
-    bool bIsBeingDestroyed{ false };
+    bool mBActive{true};
+    bool mBRegistered{false};
+    bool mBInitialized{false};
+    bool mBHasBegunPlay{false};
+    bool mBIsBeingDestroyed{false};
 };

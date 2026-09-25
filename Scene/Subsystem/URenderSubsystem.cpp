@@ -1,4 +1,4 @@
-﻿#include "PCH.h"
+﻿#include "pch.h"
 
 #include "URenderSubsystem.h"
 
@@ -14,49 +14,48 @@ void URenderSubsystem::RegisterComponent(UStaticMeshComponent* Component) {
         return;
     }
 
-    Components.push_back(Component);
+    mComponents.push_back(Component);
 }
 
 void URenderSubsystem::UnregisterComponent(UStaticMeshComponent* Component) {
-    std::erase(Components, Component);
+    std::erase(mComponents, Component);
 }
 
 void URenderSubsystem::BuildRenderProbes(FAssetRegistry* AssetRegistry, FRenderProbe& Probe) const {
-    Probe.ActorProbes.clear();
-    Probe.GizmoProbes.clear();
+    Probe.mActorProbes.clear();
+    Probe.mGizmoProbes.clear();
 
-    const FWorldEditorContext* EditorContext = GetWorld()->GetEditorContext();
-    const AActor* SelectedActor = EditorContext != nullptr ? EditorContext->GetSelectedActor() : nullptr;
-    for (const UStaticMeshComponent* Component : Components) {
+    const FWorldEditorContext* EditorContext{GetWorld()->GetEditorContext()};
+    const AActor* SelectedActor{EditorContext != nullptr ? EditorContext->GetSelectedActor() : nullptr};
+    for (const UStaticMeshComponent* Component : mComponents) {
         FActorProbe ActorProbe{};
         Component->MakeRender(ActorProbe);
 
-
-        if (not Component->IsActive() or not Component->IsVisible()) continue;
+        if (not Component->IsActive() or not Component->IsVisible())
+            continue;
 
         if (AssetRegistry != nullptr && EditorContext != nullptr) {
-            if (UPipeline* Pipeline = AssetRegistry->ResolveAsset<UPipeline>(Component->GetPipelineHandle())) {
+            if (UPipeline * Pipeline{AssetRegistry->ResolveAsset<UPipeline>(Component->GetPipelineHandle())}) {
                 Pipeline->SetRenderMode(static_cast<ERenderMode>(EditorContext->GetRenderModeState()));
             }
         }
 
-
         if (SelectedActor != nullptr && Component->GetOwner() == SelectedActor) {
-            ActorProbe.Flags |= static_cast<uint32>(ERenderObjectFlags::Selected);
+            ActorProbe.mFlags |= static_cast<Uint32>(ERenderObjectFlags::Selected);
         }
 
-        Probe.ActorProbes.push_back(ActorProbe);
+        Probe.mActorProbes.push_back(ActorProbe);
     }
 }
 
 bool URenderSubsystem::ContainsComponent(const UStaticMeshComponent* Component) const {
-    return std::ranges::find(Components, Component) != Components.end();
+    return std::ranges::find(mComponents, Component) != mComponents.end();
 }
 
 const TArray<UStaticMeshComponent*>& URenderSubsystem::GetRegisteredComponents() const {
-    return Components;
+    return mComponents;
 }
 
 void URenderSubsystem::OnDeinitialize() {
-    Components.clear();
+    mComponents.clear();
 }

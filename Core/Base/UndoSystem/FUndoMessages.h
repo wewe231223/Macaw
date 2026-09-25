@@ -1,50 +1,39 @@
 ﻿#pragma once
-#include "../FGuid.h" 
+#include "../FGuid.h"
 #include "../../Base/TypeInfo.h"
 #include "../../../Common.h"
 
-struct FMessageUndoApply
-{
-    JG_DECLARE_CHANNEL_MESSAGE(FMessageUndoApply); 
+struct FMessageUndoApply {
+    JG_DECLARE_CHANNEL_MESSAGE(FMessageUndoApply);
 
-    bool bIsUndo; // true = undo, false = redo
+    bool mBIsUndo{}; // true = undo, false = redo
 
-    FMessageUndoApply(const bool InputType) noexcept
-        : bIsUndo(InputType){}
+    FMessageUndoApply(const bool InputType) noexcept;
 };
 
-
-struct FMessageUndoObjectStateChanged
-{
+struct FMessageUndoObjectStateChanged {
     JG_DECLARE_CHANNEL_MESSAGE(FMessageUndoObjectStateChanged);
 
-    FGuid TargetGuid;
-    TArray<uint8> SavedData;
+    FGuid mTargetGuid{};
+    TArray<Uint8> mSavedData{};
 
-    FMessageUndoObjectStateChanged(const FGuid& InputGuid, TArray<uint8>&& InputData) noexcept
-        : TargetGuid(InputGuid), SavedData(std::move(InputData)) {}
+    FMessageUndoObjectStateChanged(const FGuid& InputGuid, TArray<Uint8>&& InputData) noexcept;
 };
 
-
-struct FMessageUndoObjectSpawned
-{
+struct FMessageUndoObjectSpawned {
     JG_DECLARE_CHANNEL_MESSAGE(FMessageUndoObjectSpawned);
 
-    FGuid TargetGuid;
-    TArray<uint8> SavedData;
-    FString TargetTypeName;
+    FGuid mTargetGuid{};
+    TArray<Uint8> mSavedData{};
+    FString mTargetTypeName{};
 
-    FMessageUndoObjectSpawned(const FGuid& InputGuid, TArray<uint8>&& InputData, FString&& InputTargetTypeName) noexcept
-        : TargetGuid(InputGuid), SavedData(std::move(InputData)), TargetTypeName(InputTargetTypeName) {}
+    FMessageUndoObjectSpawned(const FGuid& InputGuid, TArray<Uint8>&& InputData, FString&& InputTargetTypeName) noexcept;
 };
 
-
-struct FMessageUndoObjectDestroyed
-{
+struct FMessageUndoObjectDestroyed {
     JG_DECLARE_CHANNEL_MESSAGE(FMessageUndoObjectDestroyed);
 
-    FGuid TargetGuid;
+    FGuid mTargetGuid{};
 
-    FMessageUndoObjectDestroyed(const FGuid& InputGuid) noexcept
-        : TargetGuid(InputGuid) {}
+    FMessageUndoObjectDestroyed(const FGuid& InputGuid) noexcept;
 };

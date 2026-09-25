@@ -1,4 +1,4 @@
-#include "PCH.h"
+﻿#include "pch.h"
 #include "UStaticMeshComponent.h"
 #include "Render/Panel/FPropertyEditorContext.h"
 
@@ -12,43 +12,44 @@
 #include "Render/Pipeline/UPipeline.h"
 
 namespace {
-    constexpr char BasePipelinePath[]{ "/Game/Pipeline/Base" };
-    constexpr char TextureBasePipelinePath[]{ "/Game/Pipeline/TexturedBase.json" };
+constexpr char BasePipelinePath[]{"/Game/Pipeline/Base"};
+constexpr char TextureBasePipelinePath[]{"/Game/Pipeline/TexturedBase.json"};
 }
 
-FAssetHandle UStaticMeshComponent::GetMaterialHandle() const { return MaterialHandle; }
+FAssetHandle UStaticMeshComponent::GetMaterialHandle() const {
+    return mMaterialHandle;
+}
 
-FAssetHandle UStaticMeshComponent::GetPipelineHandle() const { return PipelineHandle; }
+FAssetHandle UStaticMeshComponent::GetPipelineHandle() const {
+    return mPipelineHandle;
+}
 
-void UStaticMeshComponent::SetMaterialHandle(FAssetHandle InHandle)
-{
-    MaterialHandle = InHandle;
-    AActor* Owner = GetOwner();
-    UWorld* World = Owner != nullptr ? Owner->GetWorld() : nullptr;
-    FAssetRegistry* Registry = World != nullptr ? World->GetAssetRegistry() : nullptr;
-    MaterialAssetPath = Registry != nullptr && Registry->GetAssetPath(MaterialHandle) != nullptr ? *Registry->GetAssetPath(MaterialHandle) : FAssetPath{};
-    MaterialAssetGuid = Registry != nullptr && Registry->GetAssetGuid(MaterialHandle) != nullptr ? *Registry->GetAssetGuid(MaterialHandle) : FGuid{};
+void UStaticMeshComponent::SetMaterialHandle(FAssetHandle InHandle) {
+    mMaterialHandle = InHandle;
+    AActor* Owner{GetOwner()};
+    UWorld* World{Owner != nullptr ? Owner->GetWorld() : nullptr};
+    FAssetRegistry* Registry{World != nullptr ? World->GetAssetRegistry() : nullptr};
+    mMaterialAssetPath = Registry != nullptr && Registry->GetAssetPath(mMaterialHandle) != nullptr ? *Registry->GetAssetPath(mMaterialHandle) : FAssetPath{};
+    mMaterialAssetGuid = Registry != nullptr && Registry->GetAssetGuid(mMaterialHandle) != nullptr ? *Registry->GetAssetGuid(mMaterialHandle) : FGuid{};
     EnsureDefaultRenderAssets();
 }
 
-void UStaticMeshComponent::SetPipelineHandle(FAssetHandle InHandle)
-{
-    PipelineHandle = InHandle;
-    AActor* Owner = GetOwner();
-    UWorld* World = Owner != nullptr ? Owner->GetWorld() : nullptr;
-    FAssetRegistry* Registry = World != nullptr ? World->GetAssetRegistry() : nullptr;
-    PipelineAssetPath = Registry != nullptr && Registry->GetAssetPath(PipelineHandle) != nullptr ? *Registry->GetAssetPath(PipelineHandle) : FAssetPath{};
-    PipelineAssetGuid = Registry != nullptr && Registry->GetAssetGuid(PipelineHandle) != nullptr ? *Registry->GetAssetGuid(PipelineHandle) : FGuid{};
+void UStaticMeshComponent::SetPipelineHandle(FAssetHandle InHandle) {
+    mPipelineHandle = InHandle;
+    AActor* Owner{GetOwner()};
+    UWorld* World{Owner != nullptr ? Owner->GetWorld() : nullptr};
+    FAssetRegistry* Registry{World != nullptr ? World->GetAssetRegistry() : nullptr};
+    mPipelineAssetPath = Registry != nullptr && Registry->GetAssetPath(mPipelineHandle) != nullptr ? *Registry->GetAssetPath(mPipelineHandle) : FAssetPath{};
+    mPipelineAssetGuid = Registry != nullptr && Registry->GetAssetGuid(mPipelineHandle) != nullptr ? *Registry->GetAssetGuid(mPipelineHandle) : FGuid{};
     EnsureDefaultRenderAssets();
 }
 
-void UStaticMeshComponent::DrawPanels(FPropertyEditorContext& Context)
-{
+void UStaticMeshComponent::DrawPanels(FPropertyEditorContext& Context) {
     UMeshComponent::DrawPanels(Context);
-    AActor* Owner = GetOwner();
+    AActor* Owner{GetOwner()};
 
-    UWorld* World = Owner != nullptr ? Owner->GetWorld() : nullptr;
-    FAssetRegistry* Registry = World != nullptr ? World->GetAssetRegistry() : nullptr;
+    UWorld* World{Owner != nullptr ? Owner->GetWorld() : nullptr};
+    FAssetRegistry* Registry{World != nullptr ? World->GetAssetRegistry() : nullptr};
 
     if (Registry == nullptr) {
         Context.DrawDisabledText("Material/Pipeline: Asset registry unavailable");
@@ -57,12 +58,12 @@ void UStaticMeshComponent::DrawPanels(FPropertyEditorContext& Context)
     Context.DrawAssetPicker("Material", *Registry, *UMaterial::StaticTypeInfo(), GetMaterialHandle(), [this, Registry](FAssetHandle Handle) {
         SetMaterialHandle(Handle);
 
-        const UMaterial* Material{ Registry->ResolveAsset<UMaterial>(GetMaterialHandle()) };
+        const UMaterial* Material{Registry->ResolveAsset<UMaterial>(GetMaterialHandle())};
         bool HasTexture{};
         if (Material != nullptr) {
-            for (uint32 GroupIndex{}; GroupIndex < Material->GetGPUDataCount() && !HasTexture; ++GroupIndex) {
-                const FMaterialChunkSignature Signature{ Material->BuildChunkSignature(GroupIndex) };
-                for (uint8 TextureFieldIndex{}; TextureFieldIndex < Signature.TextureFieldCount; ++TextureFieldIndex) {
+            for (Uint32 GroupIndex{}; GroupIndex < Material->GetGPUDataCount() && !HasTexture; ++GroupIndex) {
+                const FMaterialChunkSignature Signature{Material->BuildChunkSignature(GroupIndex)};
+                for (Uint8 TextureFieldIndex{}; TextureFieldIndex < Signature.mTextureFieldCount; ++TextureFieldIndex) {
                     if (Signature.GetTextureHandle(TextureFieldIndex)) {
                         HasTexture = true;
                         break;
@@ -71,7 +72,7 @@ void UStaticMeshComponent::DrawPanels(FPropertyEditorContext& Context)
             }
         }
 
-        const FAssetHandle DesiredPipelineHandle{ Registry->FindAsset(FAssetPath{ HasTexture ? TextureBasePipelinePath : BasePipelinePath }) };
+        const FAssetHandle DesiredPipelineHandle{Registry->FindAsset(FAssetPath{HasTexture ? TextureBasePipelinePath : BasePipelinePath})};
         if (DesiredPipelineHandle != GetPipelineHandle() && Registry->ResolveAsset<UPipeline>(DesiredPipelineHandle) != nullptr) {
             SetPipelineHandle(DesiredPipelineHandle);
         }
@@ -81,99 +82,84 @@ void UStaticMeshComponent::DrawPanels(FPropertyEditorContext& Context)
     });
 }
 
-void UStaticMeshComponent::OnRegister()
-{
+void UStaticMeshComponent::OnRegister() {
     UMeshComponent::OnRegister();
 
     EnsureDefaultRenderAssets();
 
-    AActor* Owner = GetOwner();
+    AActor* Owner{GetOwner()};
 
-    if (Owner != nullptr && Owner->GetWorld() != nullptr)
-    {
+    if (Owner != nullptr && Owner->GetWorld() != nullptr) {
         Owner->GetWorld()->GetRenderSubsystem().RegisterComponent(this);
     }
 }
 
-void UStaticMeshComponent::EnsureDefaultRenderAssets()
-{
-    AActor* Owner = GetOwner();
-    UWorld* World = Owner != nullptr ? Owner->GetWorld() : nullptr;
-    FAssetRegistry* Registry = World != nullptr ? World->GetAssetRegistry() : nullptr;
+void UStaticMeshComponent::EnsureDefaultRenderAssets() {
+    AActor* Owner{GetOwner()};
+    UWorld* World{Owner != nullptr ? Owner->GetWorld() : nullptr};
+    FAssetRegistry* Registry{World != nullptr ? World->GetAssetRegistry() : nullptr};
     if (Registry == nullptr) {
         return;
     }
 
-    if (Registry->ResolveAsset<UMaterial>(MaterialHandle) == nullptr) {
-        MaterialHandle = Registry->EnsureDefaultStaticMeshMaterial();
+    if (Registry->ResolveAsset<UMaterial>(mMaterialHandle) == nullptr) {
+        mMaterialHandle = Registry->EnsureDefaultStaticMeshMaterial();
     }
 
-    if (Registry->ResolveAsset<UPipeline>(PipelineHandle) == nullptr) {
-        PipelineHandle = Registry->EnsureDefaultStaticMeshPipeline();
+    if (Registry->ResolveAsset<UPipeline>(mPipelineHandle) == nullptr) {
+        mPipelineHandle = Registry->EnsureDefaultStaticMeshPipeline();
     }
 }
 
-void UStaticMeshComponent::OnUnregister()
-{
-    AActor* Owner = GetOwner();
+void UStaticMeshComponent::OnUnregister() {
+    AActor* Owner{GetOwner()};
 
-    if (Owner != nullptr && Owner->GetWorld() != nullptr)
-    {
+    if (Owner != nullptr && Owner->GetWorld() != nullptr) {
         Owner->GetWorld()->GetRenderSubsystem().UnregisterComponent(this);
     }
 
     UMeshComponent::OnUnregister();
 }
 
-void UStaticMeshComponent::MakeRender(FActorProbe& OutProbe) const
-{
-    if (!IsActive() || !IsVisible())
-    {
+void UStaticMeshComponent::MakeRender(FActorProbe& OutProbe) const {
+    if (!IsActive() || !IsVisible()) {
         return;
     }
 
-    OutProbe = FActorProbe{
-        GetComponentToWorld(),
-        GetMeshHandle(),
-        MaterialHandle,
-        PipelineHandle,
-		0x0000'0000
-    };
+    OutProbe = FActorProbe{ GetComponentToWorld(), GetMeshHandle(), mMaterialHandle, mPipelineHandle, 0x0000'0000};
 }
 
-
-void UStaticMeshComponent::Serialize(FArchive& Archive)
-{
+void UStaticMeshComponent::Serialize(FArchive& Archive) {
     UMeshComponent::Serialize(Archive);
 
-    FAssetRegistry* Registry = Archive.GetAssetRegistry();
+    FAssetRegistry* Registry{Archive.GetAssetRegistry()};
     if (Archive.IsSaving() && Registry != nullptr) {
-        if (const FAssetPath* AssetPath = Registry->GetAssetPath(MaterialHandle)) {
-            MaterialAssetPath = *AssetPath;
+        if (const FAssetPath* AssetPath{Registry->GetAssetPath(mMaterialHandle)}) {
+            mMaterialAssetPath = *AssetPath;
         }
-        if (const FGuid* AssetGuid = Registry->GetAssetGuid(MaterialHandle)) {
-            MaterialAssetGuid = *AssetGuid;
+        if (const FGuid* AssetGuid{Registry->GetAssetGuid(mMaterialHandle)}) {
+            mMaterialAssetGuid = *AssetGuid;
         }
-        if (const FAssetPath* AssetPath = Registry->GetAssetPath(PipelineHandle)) {
-            PipelineAssetPath = *AssetPath;
+        if (const FAssetPath* AssetPath{Registry->GetAssetPath(mPipelineHandle)}) {
+            mPipelineAssetPath = *AssetPath;
         }
-        if (const FGuid* AssetGuid = Registry->GetAssetGuid(PipelineHandle)) {
-            PipelineAssetGuid = *AssetGuid;
+        if (const FGuid* AssetGuid{Registry->GetAssetGuid(mPipelineHandle)}) {
+            mPipelineAssetGuid = *AssetGuid;
         }
     }
 
-    Archive.Serialize("MaterialAssetGuid", MaterialAssetGuid);
-    Archive.Serialize("MaterialAssetPath", MaterialAssetPath.Path);
-    Archive.Serialize("PipelineAssetGuid", PipelineAssetGuid);
-    Archive.Serialize("PipelineAssetPath", PipelineAssetPath.Path);
+    Archive.Serialize("MaterialAssetGuid", mMaterialAssetGuid);
+    Archive.Serialize("MaterialAssetPath", mMaterialAssetPath.mPath);
+    Archive.Serialize("PipelineAssetGuid", mPipelineAssetGuid);
+    Archive.Serialize("PipelineAssetPath", mPipelineAssetPath.mPath);
     if (Archive.IsLoading()) {
-        MaterialHandle = Registry != nullptr ? Registry->FindAsset(MaterialAssetGuid) : FAssetHandle{};
-        if (!MaterialHandle && Registry != nullptr) {
-            MaterialHandle = Registry->FindAsset(MaterialAssetPath);
+        mMaterialHandle = Registry != nullptr ? Registry->FindAsset(mMaterialAssetGuid) : FAssetHandle{};
+        if (!mMaterialHandle && Registry != nullptr) {
+            mMaterialHandle = Registry->FindAsset(mMaterialAssetPath);
         }
-        PipelineHandle = Registry != nullptr ? Registry->FindAsset(PipelineAssetGuid) : FAssetHandle{};
-        if (!PipelineHandle && Registry != nullptr) {
-            PipelineHandle = Registry->FindAsset(PipelineAssetPath);
+        mPipelineHandle = Registry != nullptr ? Registry->FindAsset(mPipelineAssetGuid) : FAssetHandle{};
+        if (!mPipelineHandle && Registry != nullptr) {
+            mPipelineHandle = Registry->FindAsset(mPipelineAssetPath);
         }
     }
 }

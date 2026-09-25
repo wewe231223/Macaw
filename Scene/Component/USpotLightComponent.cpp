@@ -1,4 +1,4 @@
-﻿#include "PCH.h"
+﻿#include "pch.h"
 
 #include "USpotLightComponent.h"
 
@@ -7,12 +7,12 @@
 #include <numbers>
 
 namespace {
-    constexpr float MinimumConeAngle = 0.0f;
-    constexpr float MaximumConeAngle = 89.9f;
+constexpr float MinimumConeAngle{0.0f};
+constexpr float MaximumConeAngle{89.9f};
 
-    float ToRadians(float Degrees) {
-        return Degrees * (std::numbers::pi_v<float> / 180.0f);
-    }
+float ToRadians(float Degrees) {
+    return Degrees * (std::numbers::pi_v<float> / 180.0f);
+}
 }
 
 ELightType USpotLightComponent::GetLightType() const {
@@ -20,25 +20,25 @@ ELightType USpotLightComponent::GetLightType() const {
 }
 
 float USpotLightComponent::GetInnerConeAngle() const {
-    return InnerConeAngle;
+    return mInnerConeAngle;
 }
 
 float USpotLightComponent::GetOuterConeAngle() const {
-    return OuterConeAngle;
+    return mOuterConeAngle;
 }
 
 void USpotLightComponent::SetInnerConeAngle(float InInnerConeAngle) {
-    InnerConeAngle = std::clamp(InInnerConeAngle, MinimumConeAngle, OuterConeAngle);
+    mInnerConeAngle = std::clamp(InInnerConeAngle, MinimumConeAngle, mOuterConeAngle);
 }
 
 void USpotLightComponent::SetOuterConeAngle(float InOuterConeAngle) {
-    OuterConeAngle = std::clamp(InOuterConeAngle, InnerConeAngle, MaximumConeAngle);
+    mOuterConeAngle = std::clamp(InOuterConeAngle, mInnerConeAngle, MaximumConeAngle);
 }
 
 void USpotLightComponent::MakeLightProbe(FLightProbe& OutProbe) const {
     UPointLightComponent::MakeLightProbe(OutProbe);
-    OutProbe.InnerConeCos = std::cos(ToRadians(InnerConeAngle));
-    OutProbe.OuterConeCos = std::cos(ToRadians(OuterConeAngle));
+    OutProbe.mInnerConeCos = std::cos(ToRadians(mInnerConeAngle));
+    OutProbe.mOuterConeCos = std::cos(ToRadians(mOuterConeAngle));
 }
 
 void USpotLightComponent::DrawPanels(FPropertyEditorContext& Context) {
@@ -58,11 +58,11 @@ void USpotLightComponent::DrawPanels(FPropertyEditorContext& Context) {
 
 void USpotLightComponent::Serialize(FArchive& Archive) {
     UPointLightComponent::Serialize(Archive);
-    Archive.Serialize("InnerConeAngle", InnerConeAngle);
-    Archive.Serialize("OuterConeAngle", OuterConeAngle);
+    Archive.Serialize("InnerConeAngle", mInnerConeAngle);
+    Archive.Serialize("OuterConeAngle", mOuterConeAngle);
 
     if (Archive.IsLoading()) {
-        SetInnerConeAngle(InnerConeAngle);
-        SetOuterConeAngle(OuterConeAngle);
+        SetInnerConeAngle(mInnerConeAngle);
+        SetOuterConeAngle(mOuterConeAngle);
     }
 }

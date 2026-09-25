@@ -19,5 +19,5 @@ protected:
     void Serialize(FArchive& Archive) override;
 
 private:
-    float AttenuationRadius{ 1000.0f };
+    float mAttenuationRadius{1000.0f};
 };

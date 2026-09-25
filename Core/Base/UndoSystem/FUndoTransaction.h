@@ -1,12 +1,11 @@
 ﻿#pragma once
-#include "../../../STL.h" 
+#include "../../../STL.h"
 #include "IUndoContext.h"
 #include "IUndoRecord.h"
-class FUndoTransaction
-{
+
+class FUndoTransaction {
 public:
-    explicit FUndoTransaction(const FString& InName)
-        : TransactionName(InName) {}
+    explicit FUndoTransaction(const FString& InName);
 
     ~FUndoTransaction();
 
@@ -17,15 +16,12 @@ public:
     FUndoTransaction(const FUndoTransaction&) = delete;
     FUndoTransaction& operator=(const FUndoTransaction&) = delete;
 
-    void AddRecord(std::unique_ptr<IUndoRecord> Record)
-    {
-        Records.push_back(std::move(Record));
-    }
+    void AddRecord(std::unique_ptr<IUndoRecord> Record);
 
     void Undo(IUndoContext& Context);
     void Redo(IUndoContext& Context);
 
 private:
-    FString TransactionName;
-    TArray<std::unique_ptr<IUndoRecord>> Records;
+    FString mTransactionName{};
+    TArray<std::unique_ptr<IUndoRecord>> mRecords{};
 };

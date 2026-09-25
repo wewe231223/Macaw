@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include <d3d11.h>
 #include <wrl/client.h>
 
@@ -10,32 +10,27 @@
 
 class FAssetRegistry;
 
-class FBillboardRenderer
-{
+class FBillboardRenderer {
 private:
-	struct FBillboardViewConstans
-	{
-		FMatrix ViewProjection{};
-		FMatrix CameraWorld{};
-	};
+    struct FBillboardViewConstans { FMatrix mViewProjection{}; FMatrix mCameraWorld{}; };
 
-	static_assert(sizeof(FBillboardViewConstans) == sizeof(uint32) * 32);
+    static_assert(sizeof(FBillboardViewConstans) == sizeof(Uint32) * 32);
 
 public:
-	FBillboardRenderer() = default;
-	~FBillboardRenderer() = default;
+    FBillboardRenderer() = default;
+    ~FBillboardRenderer() = default;
 
-	bool Initialize(ID3D11Device* InDevice, uint32_t InitialCapacity = 256);
-	void Render(ID3D11DeviceContext* Context, const TArray<FBillboardProbe>& BillboardProbe, const CameraProbe& Camera, FAssetRegistry* AssetRegistry);
-
-private:
-	bool EnsureCapacity(uint32 RequiredCapacity);
+    bool Initialize(ID3D11Device* InDevice, std::uint32_t InitialCapacity = 256);
+    void Render(ID3D11DeviceContext* Context, const TArray<FBillboardProbe>& BillboardProbe, const CameraProbe& Camera, FAssetRegistry* AssetRegistry);
 
 private:
-	ID3D11Device* Device = nullptr;
+    bool EnsureCapacity(Uint32 RequiredCapacity);
 
-	FGraphicsBuffer InstanceBuffer{};
-	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> InstanceBufferSRV;
-	uint32 InstanceCapacity = 0;
-	TGraphicsRootConstants<32> ViewConstantBuffer;
+private:
+    ID3D11Device* mDevice{nullptr};
+
+    FGraphicsBuffer mInstanceBuffer{};
+    Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> mInstanceBufferSrv{};
+    Uint32 mInstanceCapacity{0};
+    TGraphicsRootConstants<32> mViewConstantBuffer{};
 };

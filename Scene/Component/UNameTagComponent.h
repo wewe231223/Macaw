@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "UBillboardTextComponent.h"
 
@@ -15,7 +15,7 @@ public:
 public:
     JG_DECLARE_DERIVED_TYPEINFO(UNameTagComponent, UBillboardTextComponent);
 
-   //nullptr을 지정하면 Owner Actor를 Target으로 사용한다.
+    //nullptr을 지정하면 Owner Actor를 Target으로 사용한다.
     void SetTargetActor(AActor* InTargetActor);
 
     AActor* GetTargetActor() const;

@@ -5,19 +5,18 @@
 #include "FGuid.h"
 #include "UObject.h"
 
-namespace UObjectSystem
-{
-	FObjectHandle Register(UObject* Object);
+namespace UObjectSystem {
+FObjectHandle Register(UObject* Object);
 
-	FObjectHandle RegisterWithGuid(UObject* Object, const FGuid& InGuid);
-	
-	void Unregister(UObject* Object, FObjectHandle Handle);
+FObjectHandle RegisterWithGuid(UObject* Object, const FGuid& InGuid);
 
-	UObject* Resolve(FObjectHandle Handle);
+void Unregister(UObject* Object, FObjectHandle Handle);
 
-	FObjectHandle FindHandleByGuid(const FGuid& Guid);
-	
-	FObjectHandle GetHandle(const UObject* Object);
+UObject* Resolve(FObjectHandle Handle);
 
-	std::uint32_t GetObjectCount();
+FObjectHandle FindHandleByGuid(const FGuid& Guid);
+
+FObjectHandle GetHandle(const UObject* Object);
+
+std::uint32_t GetObjectCount();
 }

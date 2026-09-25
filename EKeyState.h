@@ -2,10 +2,9 @@
 
 #include <cstdint>
 
-enum class EKeyState : std::uint8_t
-{
-	Pressed,
-	Down,
-	Released,
-	None
+enum class EKeyState : std::uint8_t {
+    Pressed,
+    Down,
+    Released,
+    None
 };

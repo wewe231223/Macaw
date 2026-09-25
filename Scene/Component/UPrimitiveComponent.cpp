@@ -1,4 +1,4 @@
-﻿#include "PCH.h"
+﻿#include "pch.h"
 #include "UPrimitiveComponent.h"
 #include "Render/Panel/FPropertyEditorContext.h"
 
@@ -6,25 +6,28 @@
 #include "Scene/Subsystem/UPickingSubsystem.h"
 #include "Scene/UWorld.h"
 
-bool UPrimitiveComponent::IsVisible() const {
-    return bVisible;
+void UPrimitiveComponent::MakeRender(FActorProbe& OutProbe) const {
 }
 
-void UPrimitiveComponent::SetVisible(bool bInVisible) {
-    bVisible = bInVisible;
+bool UPrimitiveComponent::IsVisible() const {
+    return mBVisible;
+}
+
+void UPrimitiveComponent::SetVisible(bool BInVisible) {
+    mBVisible = BInVisible;
 }
 
 void UPrimitiveComponent::OnRegister() {
     USceneComponent::OnRegister();
 
-    AActor* Owner = GetOwner();
+    AActor* Owner{GetOwner()};
     if (Owner != nullptr && Owner->GetWorld() != nullptr) {
         Owner->GetWorld()->GetPickingSubsystem().RegisterComponent(this);
     }
 }
 
 void UPrimitiveComponent::OnUnregister() {
-    AActor* Owner = GetOwner();
+    AActor* Owner{GetOwner()};
     if (Owner != nullptr && Owner->GetWorld() != nullptr) {
         Owner->GetWorld()->GetPickingSubsystem().UnregisterComponent(this);
     }
@@ -35,12 +38,20 @@ void UPrimitiveComponent::OnUnregister() {
 void UPrimitiveComponent::Serialize(FArchive& Archive) {
     USceneComponent::Serialize(Archive);
 
-    Archive.Serialize("bVisible", bVisible);
+    Archive.Serialize("bVisible", mBVisible);
 }
 
 void UPrimitiveComponent::DrawPanels(FPropertyEditorContext& Context) {
     USceneComponent::DrawPanels(Context);
-    Context.DrawBool("Visible", IsVisible(), [this](bool bVisible) {
-        SetVisible(bVisible);
+    Context.DrawBool("Visible", IsVisible(), [this](bool BVisible) {
+        SetVisible(BVisible);
     });
+}
+
+void UPrimitiveComponent::SetPickingBox(const DirectX::BoundingOrientedBox& Box) {
+    mPickingBox = Box;
+}
+
+const DirectX::BoundingOrientedBox& UPrimitiveComponent::GetPickingBox() const {
+    return mPickingBox;
 }
