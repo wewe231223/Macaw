@@ -1,9 +1,9 @@
 ﻿#include "PCH.h"
 #include "doctest.h"
 
-#include "../Scene/AActor.h"
-#include "../Scene/Component/USceneComponent.h"
-#include "../Scene/UWorld.h"
+#include "World/AActor.h"
+#include "World/Component/USceneComponent.h"
+#include "World/UWorld.h"
 
 namespace
 {

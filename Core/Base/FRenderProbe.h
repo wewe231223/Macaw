@@ -1,5 +1,5 @@
 ﻿#pragma once
-#include "../Asset/FAssetHandle.h"
+#include "Core/Base/FAssetHandle.h"
 
 struct FTextVertex {
     // 텍스트 원점으로부터 글자의 상대 위치

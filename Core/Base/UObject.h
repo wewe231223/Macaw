@@ -7,13 +7,13 @@
 #include <cstddef>
 #include <new>
 
-#include "../../Serialize/FArchive.h"
 #include "TypeInfo.h"
-#include "../../ErrorHandler.h"
+#include "Core/Base/ErrorHandler.h"
 
-#include "../../FName.h"
+#include "Core/Base/FName.h"
 
 class UObject;
+class FArchive;
 
 namespace UObjectSystem {
 FObjectHandle Register(UObject* Object);

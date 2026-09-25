@@ -1,8 +1,8 @@
 ﻿#pragma once
 
-#include "STL.h"
-#include "Common.h"
-#include "FMath.h"
+#include "Core/STL.h"
+#include "Core/Common.h"
+#include "Math/FMath.h"
 #include "Core/Base/UObject.h"
 
 #pragma comment(lib, "dxgi.lib")

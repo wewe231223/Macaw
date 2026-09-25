@@ -9,7 +9,7 @@
 #include <locale>
 #include <mutex>
 #include <cstdarg>
-#include "../../ErrorHandler.h"
+#include "Core/Base/ErrorHandler.h"
 
 namespace {
 class FConsoleMessageStorage {

@@ -1,4 +1,4 @@
-#include "PCH.h"
+﻿#include "PCH.h"
 #include "doctest.h"
 
 #include <fstream>
@@ -7,13 +7,13 @@
 #include <rapidjson/ostreamwrapper.h>
 #include <rapidjson/writer.h>
 
-#include "../Core/Asset/FAssetRegistry.h"
+#include "Asset/FAssetRegistry.h"
 #include "../Core/Base/TypeRegistry.h"
 #include "../Core/Base/UObjectSystem.h"
-#include "../Scene/AActor.h"
-#include "../Scene/Component/USceneComponent.h"
-#include "../Scene/UWorld.h"
-#include "../Serialize/FArchiveJson.h"
+#include "World/AActor.h"
+#include "World/Component/USceneComponent.h"
+#include "World/UWorld.h"
+#include "Serialization/FArchiveJson.h"
 
 namespace
 {

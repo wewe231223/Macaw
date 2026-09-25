@@ -1,10 +1,9 @@
 ﻿#include "pch.h"
 #include "FBillboardRenderer.h"
 
-#include "Render/Pipeline/UPipeline.h"
-#include "Core/Asset/FAssetRegistry.h"
-#include "Core/Asset/UTexture.h"
-#include "Scene/Component/UBillboardComponent.h"
+#include "Asset/Pipeline/UPipeline.h"
+#include "Asset/FAssetRegistry.h"
+#include "Asset/UTexture.h"
 #include <algorithm>
 #include <unordered_map>
 

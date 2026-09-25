@@ -1,10 +1,10 @@
 ﻿#include "pch.h"
 
 #include "Renderer.h"
-#include "../ErrorHandler.h"
+#include "Core/Base/ErrorHandler.h"
 
-#include "Pipeline/UPipeline.h"
-#include "../Core/Asset/UTexture.h"
+#include "Asset/Pipeline/UPipeline.h"
+#include "Asset/UTexture.h"
 
 #include <ranges>
 #include <range/v3/view/chunk_by.hpp>

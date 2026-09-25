@@ -5,19 +5,17 @@
 #include <memory>
 
 #include "../Core/Base/FRenderProbe.h"
-#include "../Core/Asset/FAssetRegistry.h"
+#include "Asset/FAssetRegistry.h"
 
-#include "Pipeline/UPipeline.h"
-#include "../Core/Asset/UMaterial.h"
-#include "../Core/Asset/UMesh.h"
+#include "Asset/Pipeline/UPipeline.h"
+#include "Asset/UMaterial.h"
+#include "Asset/UMesh.h"
 
-#include "../Core/Buffer/TGraphicsArray.h"
-#include "../Core/Buffer/TGraphicsRootConstants.h"
+#include "Render/Buffer/TGraphicsArray.h"
+#include "Render/Buffer/TGraphicsRootConstants.h"
 
 #include "FTextRenderer.h"
 #include "FSceneRenderSurface.h"
-
-#include "../../Scene/FWorldEditorContext.h"
 
 #include "FBillboardRenderer.h"
 

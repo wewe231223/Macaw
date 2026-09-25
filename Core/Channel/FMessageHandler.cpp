@@ -1,7 +1,7 @@
 ﻿#include "pch.h"
 #include "FMessageHandler.h"
 
-#include "../../ErrorHandler.h"
+#include "Core/Base/ErrorHandler.h"
 
 bool FMessageHandler::Handles(const FTypeInfo* Type) const noexcept {
     return mMessageType->IsExactlyA(Type);

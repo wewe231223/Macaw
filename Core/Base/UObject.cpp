@@ -1,6 +1,7 @@
 ﻿#include "pch.h"
 #include "UObject.h"
 #include "Memory.h"
+#include "Core/Archive/FArchive.h"
 
 UObject::UObject()
     : mGuid(FGuid::NewGuid()),

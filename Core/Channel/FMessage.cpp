@@ -1,7 +1,7 @@
 ﻿#include "pch.h"
 #include "FMessage.h"
 
-#include "../../ErrorHandler.h"
+#include "Core/Base/ErrorHandler.h"
 
 FMessage::FMessage(FMessage&& Other) noexcept {
     FMessage::MoveFrom(std::move(Other));

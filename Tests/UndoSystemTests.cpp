@@ -3,10 +3,10 @@
 
 #include "../Core/Base/UObject.h"
 #include "../Core/Base/UObjectSystem.h"
-#include "../Serialize/FArchiveMemory.h"
-#include "../Core/Base/UndoSystem/FUndoSystem.h"
+#include "Serialization/FArchiveMemory.h"
+#include "Editor/UndoSystem/FUndoSystem.h"
 #include "../Core/Channel/FMessageChannel.h"
-#include "../Core/Base/UndoSystem/FUndoMessages.h"
+#include "Editor/UndoSystem/FUndoMessages.h"
 
 TEST_SUITE("Undo System Tests")
 {

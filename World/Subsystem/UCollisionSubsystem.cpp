@@ -1,0 +1,55 @@
+﻿#include "pch.h"
+
+#include "UCollisionSubsystem.h"
+
+#include "World/Component/UCollisionComponent.h"
+
+#include "../AActor.h"
+
+void UCollisionSubsystem::RegisterComponent(UCollisionComponent* Component) {
+    if (Component == nullptr || ContainsComponent(Component)) {
+        return;
+    }
+
+    mComponents.emplace_back(Component);
+}
+
+void UCollisionSubsystem::UnregisterComponent(UCollisionComponent* Component) {
+    std::erase_if(mComponents, [Component](const TObjectRef<UCollisionComponent>& ComponentRef) {
+        return ComponentRef.Get() == Component;
+    });
+}
+
+bool UCollisionSubsystem::Raycast(const FRay& Ray, UCollisionComponent*& OutComponent, float& OutDistance) const {
+    OutComponent = nullptr;
+    OutDistance = std::numeric_limits<float>::max();
+
+    for (const TObjectRef<UCollisionComponent>& ComponentRef : mComponents) {
+        UCollisionComponent* Component{ComponentRef.Get()};
+        if (Component == nullptr or not ComponentRef->IsActive()) {
+            continue;
+        }
+
+        float Distance{0.0f};
+        if (Component->Raycast(Ray, Distance) && Distance < OutDistance) {
+            OutDistance = Distance;
+            OutComponent = Component;
+        }
+    }
+
+    return OutComponent != nullptr;
+}
+
+bool UCollisionSubsystem::ContainsComponent(const UCollisionComponent* Component) const {
+    return std::ranges::any_of(mComponents, [Component](const TObjectRef<UCollisionComponent>& ComponentRef) {
+        return ComponentRef.Get() == Component;
+    });
+}
+
+const TArray<TObjectRef<UCollisionComponent>>& UCollisionSubsystem::GetRegisteredComponents() const {
+    return mComponents;
+}
+
+void UCollisionSubsystem::OnDeinitialize() {
+    mComponents.clear();
+}

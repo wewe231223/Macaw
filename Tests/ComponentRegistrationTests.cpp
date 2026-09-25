@@ -2,9 +2,9 @@
 #include "doctest.h"
 
 #include "../Core/Base/UObjectSystem.h"
-#include "../Scene/AActor.h"
-#include "../Scene/Component/UActorComponent.h"
-#include "../Scene/UWorld.h"
+#include "World/AActor.h"
+#include "World/Component/UActorComponent.h"
+#include "World/UWorld.h"
 
 namespace
 {

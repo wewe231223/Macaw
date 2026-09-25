@@ -6,7 +6,7 @@
 #include <stdexcept>
 
 #include "../Core/Memory/Memory.h"
-#include "../STL.h"
+#include "Core/STL.h"
 
 TEST_SUITE("Memory") {
     TEST_CASE("Allocate returns an aligned pointer and tracks its lifetime") {

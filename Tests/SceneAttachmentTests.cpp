@@ -4,10 +4,10 @@
 #include <rapidjson/document.h>
 
 #include "../Core/Base/TypeRegistry.h"
-#include "../Scene/AActor.h"
-#include "../Scene/Component/USceneComponent.h"
-#include "../Scene/UWorld.h"
-#include "../Serialize/FArchiveJson.h"
+#include "World/AActor.h"
+#include "World/Component/USceneComponent.h"
+#include "World/UWorld.h"
+#include "Serialization/FArchiveJson.h"
 
 namespace {
     void RegisterSceneAttachmentTypes() {

@@ -2,7 +2,7 @@
 
 #include "FSceneRenderSurface.h"
 
-#include "../ErrorHandler.h"
+#include "Core/Base/ErrorHandler.h"
 
 void FSceneRenderSurface::InitializeSwapChain(ID3D11Device* Device, IDXGISwapChain* InSwapChain) {
     Reset();

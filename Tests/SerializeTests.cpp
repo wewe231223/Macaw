@@ -4,8 +4,8 @@
 #include <memory>
 #include "../Core/Base/UObject.h"
 #include "../Core/Base/UObjectSystem.h"
-#include "../Serialize/FArchiveMemory.h"
-#include "../Serialize/FArchiveJson.h"
+#include "Serialization/FArchiveMemory.h"
+#include "Serialization/FArchiveJson.h"
 
 #include <fstream>
 #include <sstream>

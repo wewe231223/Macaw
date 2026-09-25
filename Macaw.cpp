@@ -22,65 +22,65 @@
 #include "ImGui/imgui_impl_win32.h"
 
 #include "Core/Console/Console.h"
-#include "Render/Panel/Console/ConsoleWindow.h"
-#include "Core/Asset/FAssetRegistry.h"
+#include "Editor/Panel/Console/ConsoleWindow.h"
+#include "Asset/FAssetRegistry.h"
 
-#include "Render/Panel/Stats/StatWindow.h"
+#include "Editor/Panel/Stats/StatWindow.h"
 
 #include "Core/Base/FTransform.h"
-#include "Scene/UWorld.h"
-#include "Scene/AActor.h"
-#include "Scene/Component/UCameraComponent.h"
-#include "Scene/Component/UStaticMeshComponent.h"
-#include "Scene/Component/UBoxColliderComponent.h"
-#include "Scene/Component/UDirectionalLightComponent.h"
-#include "Scene/Component/UPointLightComponent.h"
-#include "Scene/Component/USpotLightComponent.h"
-#include "Scene/FWorldEditorContext.h"
+#include "World/UWorld.h"
+#include "World/AActor.h"
+#include "World/Component/UCameraComponent.h"
+#include "World/Component/UStaticMeshComponent.h"
+#include "World/Component/UBoxColliderComponent.h"
+#include "World/Component/UDirectionalLightComponent.h"
+#include "World/Component/UPointLightComponent.h"
+#include "World/Component/USpotLightComponent.h"
+#include "World/FWorldEditorContext.h"
 
 #include "Core/Base/TypeRegistry.h"
 
 #include "Core/Channel/FMessageChannel.h"
 #include "Core/Channel/FStateChannel.h"
-#include "FMouseInput.h"
-#include "Render/Panel/FEditorInfo.h"
-#include "Render/Panel/FEditorUIManager.h"
-#include "Render/Panel/FControlPanel.h"
-#include "Render/Panel/FViewerToolBar.h"
+#include "Editor/Input/FMouseInput.h"
+#include "Core/Channel/FEditorInfo.h"
+#include "Editor/Panel/FEditorUIManager.h"
+#include "Editor/Panel/FControlPanel.h"
+#include "Editor/Panel/FViewerToolBar.h"
 
-#include "FMousePickRequestMessage.h"
+#include "Core/Channel/Messages/FMousePickRequestMessage.h"
 #ifdef OBJ_VIEWER
-#include "FMouseCameraRotateRequestMessage.h"
-#include "FKeyboardCameraMoveRequestMessage.h"
-#include "FMouseCameraMoveRequestMessage.h"
-#include "FMouseCameraDollyRequestMessage.h"
+#include "Core/Channel/Messages/FMouseCameraRotateRequestMessage.h"
+#include "Core/Channel/Messages/FKeyboardCameraMoveRequestMessage.h"
+#include "Core/Channel/Messages/FMouseCameraMoveRequestMessage.h"
+#include "Core/Channel/Messages/FMouseCameraDollyRequestMessage.h"
 #endif
-#include "FKeyboardInput.h"
+#include "Editor/Input/FKeyboardInput.h"
 
-#include "Core/Base/UndoSystem/FUndoSystem.h"
-#include "Core/Base/UndoSystem/FUndoMessages.h"
-#include "Serialize/FArchiveMemory.h"
+#include "Editor/UndoSystem/FUndoSystem.h"
+#include "Editor/UndoSystem/FUndoMessages.h"
+#include "Serialization/FArchiveMemory.h"
 
-#include "Render/Pipeline/UPipeline.h"
-#include "Core/Asset/UMesh.h"
-#include "Core/Asset/UTexture.h"
+#include "Asset/Pipeline/UPipeline.h"
+#include "Asset/UMesh.h"
+#include "Asset/UTexture.h"
 
-#include "Render/EditorView/EditorViewport.h"
-#include "Render/EditorView/FEditorViewport.h"
+#include "Editor/View/EditorViewport.h"
+#include "Editor/View/FEditorViewport.h"
 
-#include "Core/Asset/UFont.h"
-#include "Core/Asset/UFreeTypeFont.h"
-#include "Scene/Component/UBillBoardComponent.h"
-#include "Scene/Component/UBillBoardTextComponent.h"
-#include "Scene/Component/UNameTagComponent.h"
-#include "Scene/Component/UScrollUVComponent.h"
+#include "Asset/UFont.h"
+#include "Asset/UFreeTypeFont.h"
+#include "World/Component/UBillboardComponent.h"
+#include "World/Component/UBillboardTextComponent.h"
+#include "World/Component/UNameTagComponent.h"
+#include "World/Component/UScrollUVComponent.h"
 
-#include "Serialize/FEditorConfigManager.h"
-#include "Render/EditorView/FAssetThumbnailRenderer.h"
+#include "Editor/Settings/FEditorConfigManager.h"
+#include "Editor/View/FAssetThumbnailRenderer.h"
 
-#include "Scene/Component/UBillboardComponent.h"
-#include "Scene/Component/USubUVComponent.h"
-#include "TObjectIterator.h"
+#include "World/Component/UBillboardComponent.h"
+#include "World/Component/USubUVComponent.h"
+#include "Core/Base/TObjectIterator.h"
 
 #define MAX_LOADSTRING 100
 
@@ -372,7 +372,7 @@ bool InitializeApplication(FApplicationObjects& Application, FLoadingProgress& P
 
 #ifdef OBJ_VIEWER
     Application.mMenuPanel = std::make_unique<FViewerToolBar>(*Application.mEditorContext);
-    Application.mEditorUIManager->InitializeViewer(*Application.mAssetRegistry, gHWND, *Application.mEditorContext, Application.mThumbnailRenderer.get());
+    Application.mEditorUIManager->InitializeViewer(*Application.mAssetRegistry, GHwnd, *Application.mEditorContext, Application.mThumbnailRenderer.get());
 #else
     Application.mMenuPanel = std::make_unique<FControlPanel>(*Application.mEditorContext, GHwnd, Application.mEditorContext->GetEditorToWorldSender());
     Application.mEditorUIManager->Initialize(*Application.mWorld, Renderer, *Application.mAssetRegistry, *Application.mEditorContext, GHwnd, Application.mEditorView->GetGizmoMode(), Application.mEditorView->GetGizmoCoordinateSpace(), Application.mThumbnailRenderer.get());

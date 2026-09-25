@@ -2,13 +2,22 @@
 #include <d3d11.h>
 #include <wrl/client.h>
 
-#include "FMath.h"
-#include "STL.h"
+#include "Math/FMath.h"
+#include "Core/STL.h"
 #include "Core/Base/FRenderProbe.h"
-#include "Core/Buffer/FGraphicsBuffer.h"
-#include "Core/Buffer/TGraphicsRootConstants.h"
+#include "Render/Buffer/FGraphicsBuffer.h"
+#include "Render/Buffer/TGraphicsRootConstants.h"
 
 class FAssetRegistry;
+
+struct FBillboardData {
+    FMatrix mWorld{};
+    FVector2 mSize{};
+    FVector2 mUvMin{};
+    FVector2 mUvMax{};
+    FVector2 mPad{};
+    FVector4 mColor{1.0f, 1.0f, 1.0f, 1.0f};
+};
 
 class FBillboardRenderer {
 private:
