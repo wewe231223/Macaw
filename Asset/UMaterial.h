@@ -3,7 +3,7 @@
 #include "FMaterialChunkSignature.h"
 #include "FMaterialGPUData.h"
 #include "UAsset.h"
-#include "Common.h"
+#include "Core/Asset/IAssetRegistry.h"
 
 #include <optional>
 #include <span>
@@ -26,7 +26,7 @@ public:
     virtual void BuildGPUData(Uint32 GroupIndex, FMaterialGPUSlot& OutSlot) const;
     virtual FMaterialChunkSignature BuildChunkSignature() const;
     virtual FMaterialChunkSignature BuildChunkSignature(Uint32 GroupIndex) const;
-    virtual void Finalize(IAssetQuery* Query);
+    virtual void Finalize(const IAssetRegistry* Query);
 
     Uint32 GetGPUIndex() const;
 

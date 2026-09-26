@@ -4,7 +4,7 @@
 #include "AActor.h"
 #include "Component/UActorComponent.h"
 #include "Component/USceneComponent.h"
-#include "Asset/FAssetRegistry.h"
+#include "Core/Asset/IAssetRegistry.h"
 #include "UWorld.h"
 
 #include <fstream>
@@ -55,7 +55,7 @@ void FWorldEditorContext::SetWorld(UWorld* InWorld) {
     mWorld = InWorld;
 }
 
-void FWorldEditorContext::InitializeChannels(FAssetRegistry& AssetRegistry) {
+void FWorldEditorContext::InitializeChannels(const IAssetRegistry& AssetRegistry) {
     if (mWorld == nullptr)
         return;
 

@@ -2,7 +2,7 @@
 #include "Core/Property/IPropertyEditorContext.h"
 #include "USubUVComponent.h"
 
-#include "Asset/FAssetRegistry.h"
+#include "Core/Asset/IAssetRegistry.h"
 #include "Asset/UTexture.h"
 
 #include "Asset/Pipeline/UPipeline.h"

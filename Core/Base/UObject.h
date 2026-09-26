@@ -1,5 +1,6 @@
 ﻿#pragma once
 
+#include "Core/Common.h"
 #include "FGuid.h"
 #include "FObjectHandle.h"
 #include "TypeInfo.h"
@@ -11,7 +12,7 @@
 #include "Core/Base/ErrorHandler.h"
 
 #include "Core/Base/FName.h"
-#include "Core/Archive/FArchive.h"
+class FArchive;
 
 class UObject;
 

@@ -3,6 +3,7 @@
 #include "Math/FMath.h"
 #include "Core/Base/FGuid.h"
 #include "Core/Base/FName.h"
+#include "Core/Asset/IAssetRegistry.h"
 
 enum class EArchiveMode : Uint8 {
     Loading,
@@ -10,8 +11,6 @@ enum class EArchiveMode : Uint8 {
     Hashing,
     Counting
 };
-
-class FAssetRegistry;
 
 class FArchive {
 public:
@@ -78,15 +77,15 @@ public:
     // ---------------------------------------------------
     // 7. Asset Registry 처리
     // ---------------------------------------------------
-    void SetAssetRegistry(FAssetRegistry* InputAssetRegistry);
+    void SetAssetRegistry(const IAssetRegistry* InputAssetRegistry);
 
-    FAssetRegistry* GetAssetRegistry();
+    const IAssetRegistry* GetAssetRegistry();
 
 protected:
     const EArchiveMode Mode{};
 
 private:
-    FAssetRegistry* mAssetRegistry{};
+    const IAssetRegistry* mAssetRegistry{};
 };
 
 template <typename T> void FArchive::Serialize(std::string_view Name, TArray<T>& ArrayValue) {

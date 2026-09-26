@@ -6,11 +6,11 @@ FArchive::FArchive(EArchiveMode InMode)
       mAssetRegistry(nullptr) {
 }
 
-void FArchive::SetAssetRegistry(FAssetRegistry* InputAssetRegistry) {
+void FArchive::SetAssetRegistry(const IAssetRegistry* InputAssetRegistry) {
     mAssetRegistry = InputAssetRegistry;
 }
 
-FAssetRegistry* FArchive::GetAssetRegistry() {
+const IAssetRegistry* FArchive::GetAssetRegistry() {
     return mAssetRegistry;
 }
 

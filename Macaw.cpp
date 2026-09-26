@@ -342,7 +342,7 @@ bool InitializeApplication(FApplicationObjects& Application, FLoadingProgress& P
     }
 
     Renderer.BindAssetRegistry(Application.mAssetRegistry.get());
-    Application.mWorld->SetAssetRegistry(Application.mAssetRegistry.get());
+    Application.mWorld->SetAssetRegistry(Application.mAssetRegistry.get(), Application.mAssetRegistry.get());
 
     Progress.SetProgress(0.73f, "Initializing editor channels");
     Application.mEditorContext->InitializeChannels(*Application.mAssetRegistry);

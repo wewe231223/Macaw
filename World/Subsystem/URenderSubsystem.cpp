@@ -21,7 +21,7 @@ void URenderSubsystem::UnregisterComponent(UStaticMeshComponent* Component) {
     std::erase(mComponents, Component);
 }
 
-void URenderSubsystem::BuildRenderProbes(FAssetRegistry* AssetRegistry, FRenderProbe& Probe) const {
+void URenderSubsystem::BuildRenderProbes(IAssetRegistryMutator* AssetRegistryMutator, FRenderProbe& Probe) const {
     Probe.mActorProbes.clear();
     Probe.mGizmoProbes.clear();
 
@@ -34,10 +34,8 @@ void URenderSubsystem::BuildRenderProbes(FAssetRegistry* AssetRegistry, FRenderP
         if (not Component->IsActive() or not Component->IsVisible())
             continue;
 
-        if (AssetRegistry != nullptr && EditorContext != nullptr) {
-            if (UPipeline * Pipeline{AssetRegistry->ResolveAsset<UPipeline>(Component->GetPipelineHandle())}) {
-                Pipeline->SetRenderMode(static_cast<ERenderMode>(EditorContext->GetRenderModeState()));
-            }
+        if (AssetRegistryMutator != nullptr && EditorContext != nullptr) {
+            AssetRegistryMutator->SetPipelineRenderMode(Component->GetPipelineHandle(), static_cast<ERenderMode>(EditorContext->GetRenderModeState()));
         }
 
         if (SelectedActor != nullptr && Component->GetOwner() == SelectedActor) {

@@ -20,7 +20,7 @@ void UBillboardSubsystem::UnregisterComponent(UBillboardComponent* Component) {
     std::erase(mComponents, Component);
 }
 
-void UBillboardSubsystem::BuildRenderProbes(FAssetRegistry* AssetRegistry, FRenderProbe& Probe) const {
+void UBillboardSubsystem::BuildRenderProbes(IAssetRegistryMutator* AssetRegistryMutator, FRenderProbe& Probe) const {
     Probe.mBillboardProbes.clear();
 
     const FWorldEditorContext* EditorContext{GetWorld()->GetEditorContext()};
@@ -33,10 +33,8 @@ void UBillboardSubsystem::BuildRenderProbes(FAssetRegistry* AssetRegistry, FRend
         if (not Component->IsActive() or not Component->IsVisible())
             continue;
 
-        if (AssetRegistry != nullptr) {
-            if (UPipeline * Pipeline{AssetRegistry->ResolveAsset<UPipeline>(Component->GetPipelineHandle())}) {
-                Pipeline->SetRenderMode(static_cast<ERenderMode>(EditorContext->GetRenderModeState()));
-            }
+        if (AssetRegistryMutator != nullptr && EditorContext != nullptr) {
+            AssetRegistryMutator->SetPipelineRenderMode(Component->GetPipelineHandle(), static_cast<ERenderMode>(EditorContext->GetRenderModeState()));
         }
 
         Probe.mBillboardProbes.push_back(BillboardProbe);

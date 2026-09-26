@@ -2,7 +2,7 @@
 
 #include "Core/Property/IPropertyEditorContext.h"
 #include "ImGui/imgui.h"
-#include "Asset/FAssetRegistry.h"
+#include "Core/Asset/IAssetRegistry.h"
 #include "Editor/View/FAssetThumbnailRenderer.h"
 #include <d3d11.h>
 
@@ -27,7 +27,7 @@ public:
     void DrawReferencePicker(const char* Label, const char* Preview, bool BNoneSelected, const std::function<void()>& ClearSelection, const std::vector<FPropertyReferenceOption>& Options) const override;
     void DrawAssetPicker(const char* Label, const FTypeInfo& AssetType, FAssetHandle CurrentHandle, const std::function<void(FAssetHandle)>& Setter) const override;
 
-    void BindAssetRegistry(FAssetRegistry* InAssetRegistry);
+    void BindAssetRegistry(const IAssetRegistry* InAssetRegistry);
     void BindThumbnailRenderer(FAssetThumbnailRenderer* InThumbnailRenderer);
 
 private:
@@ -36,12 +36,12 @@ private:
 
     bool SupportsAssetThumbnail(const FTypeInfo& AssetType) const;
 
-    ID3D11ShaderResourceView* GetAssetThumbnail(FAssetRegistry& Registry, FAssetHandle AssetHandle) const;
+    ID3D11ShaderResourceView* GetAssetThumbnail(const IAssetRegistry& Registry, FAssetHandle AssetHandle) const;
 
     bool DrawAssetOption(const char* Label, ID3D11ShaderResourceView* Thumbnail, bool BSelected) const;
 
 private:
-    FAssetRegistry* mAssetRegistry{nullptr};
+    const IAssetRegistry* mAssetRegistry{nullptr};
     FAssetThumbnailRenderer* mThumbnailRenderer{nullptr};
 
     ImGuiID mEditingTransformId{0};

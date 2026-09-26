@@ -361,7 +361,7 @@ void FAssetRegistry::Finalize() {
     }
 }
 
-FAssetHandle FAssetRegistry::EnsureDefaultStaticMeshMaterial() {
+FAssetHandle FAssetRegistry::EnsureDefaultStaticMeshMaterial() const {
     const FAssetHandle DefaultMaterialHandle{FindAsset(FAssetPath{DefaultStaticMeshMaterialAssetPath})};
     if (ResolveAsset<UMaterial>(DefaultMaterialHandle) == nullptr) {
         return {};
@@ -370,7 +370,7 @@ FAssetHandle FAssetRegistry::EnsureDefaultStaticMeshMaterial() {
     return DefaultMaterialHandle;
 }
 
-FAssetHandle FAssetRegistry::EnsureDefaultStaticMeshPipeline() {
+FAssetHandle FAssetRegistry::EnsureDefaultStaticMeshPipeline() const {
     const FAssetHandle DefaultPipelineHandle{FindAsset(FAssetPath{DefaultStaticMeshPipelineAssetPath})};
     if (ResolveAsset<UPipeline>(DefaultPipelineHandle) == nullptr) {
         return {};
@@ -803,4 +803,30 @@ auto FAssetRegistry::GetAssetList() const {
            std::ranges::views::transform([](const FAssetEntry& Entry) -> UObject* {
                return Entry.mAsset.get();
            });
+}
+
+const UObject* FAssetRegistry::ResolveAssetObject(FAssetHandle Handle) const {
+    const FAssetEntry* Entry{FindEntry(Handle)};
+    return Entry != nullptr ? Entry->mAsset.get() : nullptr;
+}
+
+TArray<FAssetHandle> FAssetRegistry::GetAssetHandles(const FTypeInfo& AssetType) const {
+    TArray<FAssetHandle> Handles{};
+    for (const FAssetEntry& Entry : mAssets) {
+        if (Entry.mAsset != nullptr && Entry.mAsset->GetTypeInfo()->IsA(&AssetType)) {
+            Handles.push_back(Entry.mHandle);
+        }
+    }
+    return Handles;
+}
+
+void FAssetRegistry::SetPipelineRenderMode(FAssetHandle Handle, ERenderMode Mode) {
+    if (UPipeline* Pipeline{ResolveAsset<UPipeline>(Handle)}) {
+        Pipeline->SetRenderMode(Mode);
+    }
+}
+
+const FFontGlyph* FAssetRegistry::GetOrCreateFontGlyph(FAssetHandle Handle, char32_t CodePoint) {
+    UFont* Font{ResolveAsset<UFont>(Handle)};
+    return Font != nullptr ? Font->GetOrCreateGlyph(CodePoint) : nullptr;
 }

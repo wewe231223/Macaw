@@ -35,7 +35,7 @@
 #include "Serialization/FArchiveJson.h"
 #include "../Core/Base/TypeRegistry.h"
 #include "../Core/Base/UObjectSystem.h"
-#include "Asset/FAssetRegistry.h"
+#include "Core/Asset/IAssetRegistry.h"
 #include "../Core/Console/Console.h"
 
 #include <filesystem>
@@ -216,11 +216,11 @@ FRenderProbe& UWorld::BuildRenderProbe() {
     mProbe.mLightProbes.clear();
     mProbe.mBForceUnlit = mEditorContext != nullptr && (mEditorContext->GetRenderModeState() == static_cast<std::size_t>(ERenderMode::Unlit) || mEditorContext->GetRenderModeState() == static_cast<std::size_t>(ERenderMode::Wireframe));
 
-    mRenderSubsystem->BuildRenderProbes(mAssetRegistry, mProbe);
+    mRenderSubsystem->BuildRenderProbes(mAssetRegistryMutator, mProbe);
     mLightSubsystem->BuildLightProbes(mProbe);
     mTextSubsystem->BuildTextProbes(mProbe);
 
-    mBillboardSubsystem->BuildRenderProbes(mAssetRegistry, mProbe);
+    mBillboardSubsystem->BuildRenderProbes(mAssetRegistryMutator, mProbe);
     return mProbe;
 }
 
@@ -284,7 +284,7 @@ const UBillboardSubsystem& UWorld::GetBillboardSubsystem() const {
     return *mBillboardSubsystem;
 }
 
-bool UWorld::SaveScene(const FString& SceneName, FAssetRegistry* AssetRegistry) {
+bool UWorld::SaveScene(const FString& SceneName, const IAssetRegistry* AssetRegistry) {
     std::filesystem::path CurrentPath{std::filesystem::current_path()};
     std::filesystem::path SceneDir{CurrentPath / "scenes"};
     if (!std::filesystem::exists(SceneDir))
@@ -568,7 +568,7 @@ AActor* UWorld::AddActor(std::unique_ptr<AActor> InActor) {
     return Actor;
 }
 
-void UWorld::HandleSpawnComponent(const FMessageSpawnComponent& Message, FAssetRegistry& AssetRegistry) {
+void UWorld::HandleSpawnComponent(const FMessageSpawnComponent& Message, const IAssetRegistry& AssetRegistry) {
     static std::mt19937 RandomEngine{std::random_device{}()};
     const FTypeInfo* ComponentType{TypeRegistry::Find(Message.mComponentType)};
     if (ComponentType == nullptr || ComponentType->mCreator == nullptr ||
@@ -654,7 +654,7 @@ void UWorld::HandleSpawnComponent(const FMessageSpawnComponent& Message, FAssetR
     FlushPendingDestroyActors();
 }
 
-FAssetRegistry* UWorld::GetAssetRegistry() const {
+const IAssetRegistry* UWorld::GetAssetRegistry() const {
     return mAssetRegistry;
 }
 
@@ -700,6 +700,11 @@ AActor* UWorld::FindActorByName(FName InName) const {
     return nullptr;
 }
 
-void UWorld::SetAssetRegistry(FAssetRegistry* InAssetRegistry) {
+void UWorld::SetAssetRegistry(const IAssetRegistry* InAssetRegistry, IAssetRegistryMutator* InAssetRegistryMutator) {
     mAssetRegistry = InAssetRegistry;
+    mAssetRegistryMutator = InAssetRegistryMutator;
+}
+
+IAssetRegistryMutator* UWorld::GetAssetRegistryMutator() const {
+    return mAssetRegistryMutator;
 }

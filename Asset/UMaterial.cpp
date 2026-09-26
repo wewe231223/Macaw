@@ -18,7 +18,7 @@ FMaterialChunkSignature UMaterial::BuildChunkSignature(Uint32 GroupIndex) const 
     return GroupIndex == 0 ? BuildChunkSignature() : FMaterialChunkSignature{};
 }
 
-void UMaterial::Finalize(IAssetQuery* Query) {
+void UMaterial::Finalize(const IAssetRegistry* Query) {
 }
 
 std::optional<Uint32> UMaterial::FindGroupIndex(const FString& Name) const {

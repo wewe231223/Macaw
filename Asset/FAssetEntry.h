@@ -1,7 +1,7 @@
 ﻿#pragma once
 
 #include "Core/Base/FAssetHandle.h"
-#include "FAssetPath.h"
+#include "Core/Asset/FAssetPath.h"
 #include "UAsset.h"
 
 #include <filesystem>

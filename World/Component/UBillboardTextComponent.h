@@ -3,7 +3,7 @@
 #include "UPrimitiveComponent.h"
 
 #include "Core/Base/FAssetHandle.h"
-#include "Asset/FAssetPath.h"
+#include "Core/Asset/FAssetPath.h"
 #include "Core/Base/FRenderProbe.h"
 #include "Core/STL.h"
 #include "Asset/UFont.h"

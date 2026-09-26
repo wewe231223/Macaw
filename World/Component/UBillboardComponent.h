@@ -1,7 +1,7 @@
 ﻿#pragma once
 
 #include "UPrimitiveComponent.h"
-#include "Asset/FAssetPath.h"
+#include "Core/Asset/FAssetPath.h"
 #include <array>
 #include "Math/FMath.h"
 

@@ -2,7 +2,7 @@
 #include "FPropertyEditorContext.h"
 
 #include "ImGui/imgui.h"
-#include "Asset/FAssetRegistry.h"
+#include "Core/Asset/IAssetRegistry.h"
 #include "Asset/UAsset.h"
 #include "Core/Base/TypeInfo.h"
 
@@ -21,7 +21,7 @@ constexpr char StaticMeshAssetPayloadType[]{"MACAW_STATIC_MESH_ASSET"};
 constexpr char MaterialAssetPayloadType[]{"MACAW_MATERIAL_ASSET"};
 constexpr char TextureAssetPayloadType[]{"MACAW_TEXTURE_ASSET"};
 
-void ApplyAssetBrowserDrop(FAssetRegistry& Registry, const FTypeInfo& AssetType, FAssetHandle CurrentHandle, const std::function<void(FAssetHandle)>& Setter) {
+void ApplyAssetBrowserDrop(const IAssetRegistry& Registry, const FTypeInfo& AssetType, FAssetHandle CurrentHandle, const std::function<void(FAssetHandle)>& Setter) {
     const char* PayloadType{};
     if (AssetType.IsA(UMesh::StaticTypeInfo())) {
         PayloadType = StaticMeshAssetPayloadType;
@@ -150,8 +150,8 @@ void FPropertyEditorContext::DrawAssetPicker(const char* Label, const FTypeInfo&
         return;
     }
 
-    FAssetRegistry& Registry{*mAssetRegistry};
-    UAsset* Current{Registry.ResolveAsset<UAsset>(CurrentHandle)};
+    const IAssetRegistry& Registry{*mAssetRegistry};
+    const UAsset* Current{Registry.ResolveAsset<UAsset>(CurrentHandle)};
 
     if (Current != nullptr && !Current->GetTypeInfo()->IsA(&AssetType)) {
         Current = nullptr;
@@ -184,31 +184,23 @@ void FPropertyEditorContext::DrawAssetPicker(const char* Label, const FTypeInfo&
 
         ImGui::PopID();
 
-        std::vector<const FAssetEntry*> MatchingAssets{};
-        for (const FAssetEntry& Entry : Registry.GetAssetEntries()) {
-            if (Entry.mAsset == nullptr || !Entry.mAsset->GetTypeInfo()->IsA(&AssetType)) {
-                continue;
-            }
-
-            MatchingAssets.push_back(&Entry);
-        }
-
-        std::ranges::sort(MatchingAssets, [](const FAssetEntry* Left, const FAssetEntry* Right) {
-            return Left->mAssetPath.mPath < Right->mAssetPath.mPath;
+        TArray<FAssetHandle> MatchingAssets{Registry.GetAssetHandles(AssetType)};
+        std::ranges::sort(MatchingAssets, [&Registry](FAssetHandle Left, FAssetHandle Right) {
+            return Registry.GetAssetPath(Left)->mPath < Registry.GetAssetPath(Right)->mPath;
         });
 
-        for (const FAssetEntry* Entry : MatchingAssets) {
-            const FString& AssetPath{Entry->mAssetPath.mPath};
+        for (FAssetHandle Handle : MatchingAssets) {
+            const FString& AssetPath{Registry.GetAssetPath(Handle)->mPath};
             const std::size_t NameOffset{AssetPath.find_last_of('/') + 1};
             const char* AssetName{AssetPath.c_str() + NameOffset};
-            ID3D11ShaderResourceView* Thumbnail{GetAssetThumbnail(Registry, Entry->mHandle)};
+            ID3D11ShaderResourceView* Thumbnail{GetAssetThumbnail(Registry, Handle)};
 
-            ImGui::PushID(Entry->mAsset.get());
+            ImGui::PushID(Registry.ResolveAsset<UObject>(Handle));
 
-            if (DrawAssetOption(AssetName, Thumbnail, Entry->mHandle == CurrentHandle) && Entry->mHandle != CurrentHandle) {
-                Setter(Entry->mHandle);
+            if (DrawAssetOption(AssetName, Thumbnail, Handle == CurrentHandle) && Handle != CurrentHandle) {
+                Setter(Handle);
             }
-            if (Entry->mHandle == CurrentHandle) {
+            if (Handle == CurrentHandle) {
                 ImGui::SetItemDefaultFocus();
             }
             if (ImGui::IsItemHovered()) {
@@ -245,15 +237,15 @@ bool FPropertyEditorContext::SupportsAssetThumbnail(const FTypeInfo& AssetType) 
     return UMesh::StaticTypeInfo()->IsA(&AssetType) || UMaterial::StaticTypeInfo()->IsA(&AssetType) || UTexture::StaticTypeInfo()->IsA(&AssetType);
 }
 
-ID3D11ShaderResourceView* FPropertyEditorContext::GetAssetThumbnail(FAssetRegistry& Registry, FAssetHandle AssetHandle) const {
-    UAsset* Asset{Registry.ResolveAsset<UAsset>(AssetHandle)};
+ID3D11ShaderResourceView* FPropertyEditorContext::GetAssetThumbnail(const IAssetRegistry& Registry, FAssetHandle AssetHandle) const {
+    const UAsset* Asset{Registry.ResolveAsset<UAsset>(AssetHandle)};
 
     if (Asset == nullptr) {
         return nullptr;
     }
 
     if (Asset->GetTypeInfo()->IsA(UTexture::StaticTypeInfo())) {
-        return static_cast<UTexture*>(Asset)->GetSRV();
+        return static_cast<const UTexture*>(Asset)->GetSRV();
     }
 
     if (mThumbnailRenderer == nullptr) {
@@ -296,6 +288,6 @@ void FPropertyEditorContext::BindThumbnailRenderer(FAssetThumbnailRenderer* InTh
     mThumbnailRenderer = InThumbnailRenderer;
 }
 
-void FPropertyEditorContext::BindAssetRegistry(FAssetRegistry* InAssetRegistry) {
+void FPropertyEditorContext::BindAssetRegistry(const IAssetRegistry* InAssetRegistry) {
     mAssetRegistry = InAssetRegistry;
 }

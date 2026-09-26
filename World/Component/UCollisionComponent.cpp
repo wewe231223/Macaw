@@ -6,7 +6,7 @@
 #include "World/UWorld.h"
 #include "World/Subsystem/UCollisionSubsystem.h"
 #include "Asset/UMesh.h"
-#include "Asset/FAssetRegistry.h"
+#include "Core/Asset/IAssetRegistry.h"
 
 #include "../../Core/Console/Console.h"
 

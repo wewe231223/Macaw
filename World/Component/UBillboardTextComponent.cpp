@@ -2,7 +2,7 @@
 #include "Core/Property/IPropertyEditorContext.h"
 #include "UBillboardTextComponent.h"
 
-#include "Asset/FAssetRegistry.h"
+#include "Core/Asset/IAssetRegistry.h"
 #include "Asset/UFont.h"
 
 #include "Asset/Pipeline/UPipeline.h"
@@ -49,7 +49,7 @@ void UBillboardTextComponent::SetFontHandle(FAssetHandle InFontHandle) {
 
     mFontHandle = InFontHandle;
     UWorld* World{GetBelongingWorld()};
-    FAssetRegistry* AssetRegistry{World != nullptr ? World->GetAssetRegistry() : nullptr};
+    const IAssetRegistry* AssetRegistry{World != nullptr ? World->GetAssetRegistry() : nullptr};
     mFontAssetPath = AssetRegistry != nullptr && AssetRegistry->GetAssetPath(mFontHandle) != nullptr ? *AssetRegistry->GetAssetPath(mFontHandle) : FAssetPath{};
     mFontAssetGuid = AssetRegistry != nullptr && AssetRegistry->GetAssetGuid(mFontHandle) != nullptr ? *AssetRegistry->GetAssetGuid(mFontHandle) : FGuid{};
     RebuildTextGeometry();
@@ -58,7 +58,7 @@ void UBillboardTextComponent::SetFontHandle(FAssetHandle InFontHandle) {
 void UBillboardTextComponent::SetPipelineHandle(FAssetHandle InPipelineHandle) {
     mPipelineHandle = InPipelineHandle;
     UWorld* World{GetBelongingWorld()};
-    FAssetRegistry* AssetRegistry{World != nullptr ? World->GetAssetRegistry() : nullptr};
+    const IAssetRegistry* AssetRegistry{World != nullptr ? World->GetAssetRegistry() : nullptr};
     mPipelineAssetPath = AssetRegistry != nullptr && AssetRegistry->GetAssetPath(mPipelineHandle) != nullptr ? *AssetRegistry->GetAssetPath(mPipelineHandle) : FAssetPath{};
     mPipelineAssetGuid = AssetRegistry != nullptr && AssetRegistry->GetAssetGuid(mPipelineHandle) != nullptr ? *AssetRegistry->GetAssetGuid(mPipelineHandle) : FGuid{};
 }
@@ -168,15 +168,16 @@ void UBillboardTextComponent::RebuildTextGeometry() {
         return;
     }
 
-    FAssetRegistry* AssetRegistry{Owner->GetWorld()->GetAssetRegistry()};
+    const IAssetRegistry* AssetRegistry{Owner->GetWorld()->GetAssetRegistry()};
 
     if (AssetRegistry == nullptr) {
         return;
     }
 
-    UFont* Font{AssetRegistry->ResolveAsset<UFont>(mFontHandle)};
+    const UFont* Font{AssetRegistry->ResolveAsset<UFont>(mFontHandle)};
+    IAssetRegistryMutator* AssetRegistryMutator{Owner->GetWorld()->GetAssetRegistryMutator()};
 
-    if (Font == nullptr) {
+    if (Font == nullptr || AssetRegistryMutator == nullptr) {
         return;
     }
 
@@ -210,10 +211,10 @@ void UBillboardTextComponent::RebuildTextGeometry() {
             continue;
         }
 
-        const FFontGlyph* Glyph{Font->GetOrCreateGlyph(CodePoint)};
+        const FFontGlyph* Glyph{AssetRegistryMutator->GetOrCreateFontGlyph(mFontHandle, CodePoint)};
 
         if (Glyph == nullptr) {
-            Glyph = Font->GetOrCreateGlyph(U'\uFFFD');
+            Glyph = AssetRegistryMutator->GetOrCreateFontGlyph(mFontHandle, U'\uFFFD');
         }
 
         if (Glyph == nullptr) {
@@ -268,7 +269,7 @@ void UBillboardTextComponent::OnRegister() {
     UWorld* World{GetBelongingWorld()};
 
     if (World != nullptr) {
-        FAssetRegistry* AssetRegistry{World->GetAssetRegistry()};
+        const IAssetRegistry* AssetRegistry{World->GetAssetRegistry()};
         if (AssetRegistry != nullptr) {
             if (AssetRegistry->ResolveAsset<UFont>(mFontHandle) == nullptr) {
                 mFontHandle = AssetRegistry->FindAsset(FAssetPath{"/Game/Font/NotoSansKR-Medium.ttf"});
@@ -296,7 +297,7 @@ void UBillboardTextComponent::OnUnregister() {
 
 void UBillboardTextComponent::Serialize(FArchive& Archive) {
     UPrimitiveComponent::Serialize(Archive);
-    FAssetRegistry* AssetRegistry{Archive.GetAssetRegistry()};
+    const IAssetRegistry* AssetRegistry{Archive.GetAssetRegistry()};
     if (Archive.IsSaving() && AssetRegistry != nullptr) {
         if (const FAssetPath* AssetPath{AssetRegistry->GetAssetPath(mFontHandle)}) {
             mFontAssetPath = *AssetPath;

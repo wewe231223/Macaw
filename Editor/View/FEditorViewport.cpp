@@ -6,7 +6,7 @@
 #include "Editor/Input/FKeyboardInput.h"
 #include "Editor/Input/FMouseInput.h"
 #include "ImGui/imgui.h"
-#include "Asset/FAssetRegistry.h"
+#include "Core/Asset/IAssetRegistry.h"
 #include "Asset/UMesh.h"
 #include "Core/Base/FTransform.h"
 #include "World/AActor.h"
@@ -193,7 +193,7 @@ bool FEditorViewport::DrawMenuBar() {
 
 bool FEditorViewport::SpawnDroppedStaticMesh(FAssetHandle MeshHandle, const ImVec2& ScreenPosition) {
     UWorld* World{mEditorContext != nullptr ? mEditorContext->GetWorld() : nullptr};
-    FAssetRegistry* AssetRegistry{World != nullptr ? World->GetAssetRegistry() : nullptr};
+    const IAssetRegistry* AssetRegistry{World != nullptr ? World->GetAssetRegistry() : nullptr};
     if (World == nullptr || AssetRegistry == nullptr || AssetRegistry->ResolveAsset<UMesh>(MeshHandle) == nullptr) {
         return false;
     }

@@ -8,7 +8,8 @@
 #include "Component/UCameraComponent.h"
 #include "Component/UStaticMeshComponent.h"
 #include "Component/UCollisionComponent.h"
-#include "Asset/FAssetRegistry.h"
+#include "Core/Asset/IAssetRegistry.h"
+#include "Asset/IAssetRegistryMutator.h"
 #include "Asset/UMesh.h"
 #include "Core/Base/TObjectRef.h"
 
@@ -70,22 +71,23 @@ public:
     ULightSubsystem& GetLightSubsystem();
     const ULightSubsystem& GetLightSubsystem() const;
 
-    bool SaveScene(const FString& SceneName, FAssetRegistry* AssetRegistry);
+    bool SaveScene(const FString& SceneName, const IAssetRegistry* AssetRegistry);
     bool LoadScene(const std::filesystem::path& ScenePath);
 
     JG_DECLARE_DERIVED_TYPEINFO(UWorld, UObject);
 
     void HandleMousePickRequest(const FMousePickRequestMessage& Message);
-    void HandleSpawnComponent(const FMessageSpawnComponent& Message, FAssetRegistry& AssetRegistry);
+    void HandleSpawnComponent(const FMessageSpawnComponent& Message, const IAssetRegistry& AssetRegistry);
 #ifdef OBJ_VIEWER
     void HandleMouseCameraRotateRequest(const FMouseCameraRotateRequestMessage& Message);
     void HandleKeyboardCameraMoveRequest(const FKeyboardCameraMoveRequestMessage& Message);
     void HandleMouseCameraMoveRequestMessage(const FMouseCameraMoveRequestMessage& Message);
     void HandleMouseCameraDollyRequestMessage(const FMouseCameraDollyRequestMessage& Message);
 #endif
-    void SetAssetRegistry(FAssetRegistry* InAssetRegistry);
+    void SetAssetRegistry(const IAssetRegistry* InAssetRegistry, IAssetRegistryMutator* InAssetRegistryMutator = nullptr);
 
-    FAssetRegistry* GetAssetRegistry() const;
+    const IAssetRegistry* GetAssetRegistry() const;
+    IAssetRegistryMutator* GetAssetRegistryMutator() const;
 
     FName MakeUniqueObjectName(std::string_view SourceName);
     AActor* FindActorByName(FName InName) const;
@@ -103,7 +105,8 @@ private:
     TArray<TObjectRef<UCollisionComponent>> mCollisionComponents{};
 
     FWorldEditorContext* mEditorContext{nullptr};
-    FAssetRegistry* mAssetRegistry{nullptr};
+    const IAssetRegistry* mAssetRegistry{nullptr};
+    IAssetRegistryMutator* mAssetRegistryMutator{nullptr};
 
     std::unique_ptr<URenderSubsystem> mRenderSubsystem{};
     std::unique_ptr<UCollisionSubsystem> mCollisionSubsystem{};

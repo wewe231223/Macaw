@@ -7,7 +7,7 @@
 #include "World/UWorld.h"
 #include "World/Subsystem/URenderSubsystem.h"
 #include "Core/Archive/FArchive.h"
-#include "Asset/FAssetRegistry.h"
+#include "Core/Asset/IAssetRegistry.h"
 #include "Asset/UMaterial.h"
 #include "Asset/Pipeline/UPipeline.h"
 
@@ -28,7 +28,7 @@ void UStaticMeshComponent::SetMaterialHandle(FAssetHandle InHandle) {
     mMaterialHandle = InHandle;
     AActor* Owner{GetOwner()};
     UWorld* World{Owner != nullptr ? Owner->GetWorld() : nullptr};
-    FAssetRegistry* Registry{World != nullptr ? World->GetAssetRegistry() : nullptr};
+    const IAssetRegistry* Registry{World != nullptr ? World->GetAssetRegistry() : nullptr};
     mMaterialAssetPath = Registry != nullptr && Registry->GetAssetPath(mMaterialHandle) != nullptr ? *Registry->GetAssetPath(mMaterialHandle) : FAssetPath{};
     mMaterialAssetGuid = Registry != nullptr && Registry->GetAssetGuid(mMaterialHandle) != nullptr ? *Registry->GetAssetGuid(mMaterialHandle) : FGuid{};
     EnsureDefaultRenderAssets();
@@ -38,7 +38,7 @@ void UStaticMeshComponent::SetPipelineHandle(FAssetHandle InHandle) {
     mPipelineHandle = InHandle;
     AActor* Owner{GetOwner()};
     UWorld* World{Owner != nullptr ? Owner->GetWorld() : nullptr};
-    FAssetRegistry* Registry{World != nullptr ? World->GetAssetRegistry() : nullptr};
+    const IAssetRegistry* Registry{World != nullptr ? World->GetAssetRegistry() : nullptr};
     mPipelineAssetPath = Registry != nullptr && Registry->GetAssetPath(mPipelineHandle) != nullptr ? *Registry->GetAssetPath(mPipelineHandle) : FAssetPath{};
     mPipelineAssetGuid = Registry != nullptr && Registry->GetAssetGuid(mPipelineHandle) != nullptr ? *Registry->GetAssetGuid(mPipelineHandle) : FGuid{};
     EnsureDefaultRenderAssets();
@@ -59,7 +59,7 @@ void UStaticMeshComponent::OnRegister() {
 void UStaticMeshComponent::EnsureDefaultRenderAssets() {
     AActor* Owner{GetOwner()};
     UWorld* World{Owner != nullptr ? Owner->GetWorld() : nullptr};
-    FAssetRegistry* Registry{World != nullptr ? World->GetAssetRegistry() : nullptr};
+    const IAssetRegistry* Registry{World != nullptr ? World->GetAssetRegistry() : nullptr};
     if (Registry == nullptr) {
         return;
     }
@@ -94,7 +94,7 @@ void UStaticMeshComponent::MakeRender(FActorProbe& OutProbe) const {
 void UStaticMeshComponent::Serialize(FArchive& Archive) {
     UMeshComponent::Serialize(Archive);
 
-    FAssetRegistry* Registry{Archive.GetAssetRegistry()};
+    const IAssetRegistry* Registry{Archive.GetAssetRegistry()};
     if (Archive.IsSaving() && Registry != nullptr) {
         if (const FAssetPath* AssetPath{Registry->GetAssetPath(mMaterialHandle)}) {
             mMaterialAssetPath = *AssetPath;
@@ -134,7 +134,7 @@ void UStaticMeshComponent::DrawPanels(IPropertyEditorContext& Context) {
 
         AActor* Owner{GetOwner()};
         UWorld* World{Owner != nullptr ? Owner->GetWorld() : nullptr};
-        FAssetRegistry* Registry{World != nullptr ? World->GetAssetRegistry() : nullptr};
+        const IAssetRegistry* Registry{World != nullptr ? World->GetAssetRegistry() : nullptr};
         if (Registry == nullptr) {
             return;
         }

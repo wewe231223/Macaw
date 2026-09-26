@@ -2,7 +2,7 @@
 
 #include "UPrimitiveComponent.h"
 #include "Core/Base/FAssetHandle.h"
-#include "Asset/FAssetPath.h"
+#include "Core/Asset/FAssetPath.h"
 #include "Core/Base/FGuid.h"
 #include "Asset/UMesh.h"
 
@@ -18,7 +18,7 @@ public:
     void DrawPanels(IPropertyEditorContext& Context) override;
     void OnRegister() override;
 
-    virtual UMesh* ResolveMesh() const;
+    virtual const UMesh* ResolveMesh() const;
     bool BuildPickingBoxFromMesh();
     bool RaycastMesh(const FRay& Ray, float& OutDistance) const;
 

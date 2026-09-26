@@ -23,7 +23,7 @@ UMeshComponent* UBoxColliderComponent::GetMeshComponent() const {
 
 bool UBoxColliderComponent::BuildBoundsFromMesh() {
     UMeshComponent* Mesh{mMeshComponent.Get()};
-    UMesh* Asset{Mesh != nullptr ? Mesh->ResolveMesh() : nullptr};
+    const UMesh* Asset{Mesh != nullptr ? Mesh->ResolveMesh() : nullptr};
     if (Asset == nullptr) {
         return false;
     }

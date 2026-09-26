@@ -3,7 +3,7 @@
 
 #include "Core/Base//FRenderProbe.h"
 #include "World/Component/UBillboardComponent.h"
-#include "Asset/FAssetRegistry.h"
+#include "Asset/IAssetRegistryMutator.h"
 
 class UBillboardSubsystem : public UWorldSubsystem {
 public:
@@ -14,7 +14,7 @@ public:
 
     void RegisterComponent(UBillboardComponent* Component);
     void UnregisterComponent(UBillboardComponent* Component);
-    void BuildRenderProbes(FAssetRegistry* AssetRegistry, FRenderProbe& Probe) const;
+    void BuildRenderProbes(IAssetRegistryMutator* AssetRegistryMutator, FRenderProbe& Probe) const;
 
     bool ContainsComponent(const UBillboardComponent* Component);
     const TArray<UBillboardComponent*>& GetRegisteredComponents() const;

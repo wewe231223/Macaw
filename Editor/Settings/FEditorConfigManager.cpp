@@ -9,7 +9,7 @@
 #include "rapidjson/prettywriter.h"
 #include "rapidjson/ostreamwrapper.h"
 
-bool FEditorConfigManager::Save(FEditorSettings& Settings, FAssetRegistry* AssetRegistry, const std::filesystem::path& ConfigPath) {
+bool FEditorConfigManager::Save(FEditorSettings& Settings, const IAssetRegistry* AssetRegistry, const std::filesystem::path& ConfigPath) {
     std::filesystem::path CurrentPath{std::filesystem::current_path()};
     std::filesystem::path FilePath{CurrentPath / ConfigPath};
 
@@ -37,7 +37,7 @@ bool FEditorConfigManager::Save(FEditorSettings& Settings, FAssetRegistry* Asset
     return true;
 }
 
-bool FEditorConfigManager::Load(FEditorSettings& OutSettings, FAssetRegistry* AssetRegistry, const std::filesystem::path& ConfigPath) {
+bool FEditorConfigManager::Load(FEditorSettings& OutSettings, const IAssetRegistry* AssetRegistry, const std::filesystem::path& ConfigPath) {
     std::filesystem::path CurrentPath{std::filesystem::current_path()};
     std::filesystem::path FilePath{CurrentPath / ConfigPath};
 

@@ -143,7 +143,7 @@ void BeginTransaction(const FString& TransactionName) {
     State.mCurrentTransaction = std::make_unique<FUndoTransaction>(TransactionName);
 }
 
-void RecordObject(UObject* TargetObject, EUndoType UndoType, FAssetRegistry* AssetRegistry) {
+void RecordObject(UObject* TargetObject, EUndoType UndoType, const IAssetRegistry* AssetRegistry) {
     FUndoSystemState& State{GetState()};
     if (!State.mCurrentTransaction || !TargetObject)
         return;

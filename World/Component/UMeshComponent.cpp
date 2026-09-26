@@ -4,7 +4,7 @@
 
 #include "World/AActor.h"
 #include "World/UWorld.h"
-#include "Asset/FAssetRegistry.h"
+#include "Core/Asset/IAssetRegistry.h"
 #include "Asset/UMesh.h"
 
 FAssetHandle UMeshComponent::GetMeshHandle() const {
@@ -15,16 +15,16 @@ void UMeshComponent::SetMeshHandle(FAssetHandle InHandle) {
     mMeshHandle = InHandle;
     AActor* Owner{GetOwner()};
     UWorld* World{Owner != nullptr ? Owner->GetWorld() : nullptr};
-    FAssetRegistry* Registry{World != nullptr ? World->GetAssetRegistry() : nullptr};
+    const IAssetRegistry* Registry{World != nullptr ? World->GetAssetRegistry() : nullptr};
     mMeshAssetPath = Registry != nullptr && Registry->GetAssetPath(mMeshHandle) != nullptr ? *Registry->GetAssetPath(mMeshHandle) : FAssetPath{};
     mMeshAssetGuid = Registry != nullptr && Registry->GetAssetGuid(mMeshHandle) != nullptr ? *Registry->GetAssetGuid(mMeshHandle) : FGuid{};
     BuildPickingBoxFromMesh();
 }
 
-UMesh* UMeshComponent::ResolveMesh() const {
+const UMesh* UMeshComponent::ResolveMesh() const {
     AActor* Owner{GetOwner()};
     UWorld* World{Owner != nullptr ? Owner->GetWorld() : nullptr};
-    FAssetRegistry* Registry{World != nullptr ? World->GetAssetRegistry() : nullptr};
+    const IAssetRegistry* Registry{World != nullptr ? World->GetAssetRegistry() : nullptr};
     return Registry != nullptr ? Registry->ResolveAsset<UMesh>(mMeshHandle) : nullptr;
 }
 
@@ -34,7 +34,7 @@ void UMeshComponent::OnRegister() {
 }
 
 bool UMeshComponent::BuildPickingBoxFromMesh() {
-    UMesh* Mesh{ResolveMesh()};
+    const UMesh* Mesh{ResolveMesh()};
     if (Mesh == nullptr) {
         return false;
     }
@@ -59,7 +59,7 @@ bool UMeshComponent::BuildPickingBoxFromMesh() {
 }
 
 bool UMeshComponent::RaycastMesh(const FRay& Ray, float& OutDistance) const {
-    UMesh* Mesh{ResolveMesh()};
+    const UMesh* Mesh{ResolveMesh()};
     if (Mesh == nullptr) {
         return false;
     }
@@ -100,7 +100,7 @@ bool UMeshComponent::RaycastMesh(const FRay& Ray, float& OutDistance) const {
 void UMeshComponent::Serialize(FArchive& Archive) {
     UPrimitiveComponent::Serialize(Archive);
 
-    FAssetRegistry* Registry{Archive.GetAssetRegistry()};
+    const IAssetRegistry* Registry{Archive.GetAssetRegistry()};
     if (Archive.IsSaving() && Registry != nullptr) {
         if (const FAssetPath* AssetPath{Registry->GetAssetPath(mMeshHandle)}) {
             mMeshAssetPath = *AssetPath;

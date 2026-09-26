@@ -7,7 +7,7 @@
 #include "Core/Channel/FEditorInfo.h"
 #include "Core/Channel/FEditorSettings.h"
 #include "World/AActor.h"
-#include "Asset/FAssetRegistry.h"
+#include "Core/Asset/IAssetRegistry.h"
 #include "World/Component/UActorComponent.h"
 #include "World/Component/USceneComponent.h"
 
@@ -21,7 +21,7 @@ struct FWorldEditorSharedState {
 class FWorldEditorContext {
 public:
     void SetWorld(UWorld* InWorld);
-    void InitializeChannels(FAssetRegistry& AssetRegistry);
+    void InitializeChannels(const IAssetRegistry& AssetRegistry);
     void Dispatch();
 
     FMessageChannel::FSender GetEditorToWorldSender();
