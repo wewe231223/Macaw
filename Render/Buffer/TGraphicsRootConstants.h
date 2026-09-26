@@ -36,7 +36,7 @@ template <Uint32 N>
 concept CGraphicsRootConstantCount = N > 0 && (N % 4) == 0;
 
 template <Uint32 ConstantCount>
-requires CGraphicsRootConstantCount<ConstantCount>
+    requires CGraphicsRootConstantCount<ConstantCount>
 class TGraphicsRootConstants {
 private:
     static constexpr Uint32 DataByteSize{ConstantCount * sizeof(Uint32)};
@@ -117,7 +117,7 @@ template <Uint32 ConstantCount> requires CGraphicsRootConstantCount<ConstantCoun
 }
 
 template <Uint32 ConstantCount>
-requires CGraphicsRootConstantCount<ConstantCount>
+    requires CGraphicsRootConstantCount<ConstantCount>
 template <typename T> bool TGraphicsRootConstants<ConstantCount>::SetGraphicsRoot32BitConstant(const T& SrcData, Uint32 DestOffsetIn32BitValues) {
     static_assert(std::is_trivially_copyable_v<T>, "Graphics root constant data must be trivially copyable.");
     static_assert(sizeof(T) == sizeof(Uint32), "SetGraphicsRoot32BitConstant requires exactly one 32-bit value.");
@@ -134,7 +134,7 @@ template <typename T> bool TGraphicsRootConstants<ConstantCount>::SetGraphicsRoo
 }
 
 template <Uint32 ConstantCount>
-requires CGraphicsRootConstantCount<ConstantCount>
+    requires CGraphicsRootConstantCount<ConstantCount>
 template <typename T> bool TGraphicsRootConstants<ConstantCount>::SetGraphicsRoot32BitConstants(const T& SrcData, Uint32 DestOffsetIn32BitValues) {
     static_assert(std::is_trivially_copyable_v<T>, "Graphics root constant data must be trivially copyable.");
     static_assert(sizeof(T) % sizeof(Uint32) == 0, "Graphics root constant data size must be a multiple of 32 bits.");

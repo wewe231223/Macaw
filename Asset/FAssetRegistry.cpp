@@ -21,18 +21,18 @@
 #include <rapidjson/stringbuffer.h>
 
 namespace {
-constexpr const char* DefaultStaticMeshMaterialAssetPath{"/Game/System/Material/Default.mtl"};
-constexpr const char* DefaultStaticMeshPipelineAssetPath{"/Game/Pipeline/Base"};
-constexpr const char* DefaultCheckerboardTexturePath{"/Game/Texture/checkerboard.png"};
-constexpr const char* GizmoPipelineAssetPath{"/Game/Pipeline/Gizmo.json"};
+    constexpr const char* DefaultStaticMeshMaterialAssetPath{"/Game/System/Material/Default.mtl"};
+    constexpr const char* DefaultStaticMeshPipelineAssetPath{"/Game/Pipeline/Base"};
+    constexpr const char* DefaultCheckerboardTexturePath{"/Game/Texture/checkerboard.png"};
+    constexpr const char* GizmoPipelineAssetPath{"/Game/Pipeline/Gizmo.json"};
 
-FString GetLowercaseExtension(const std::filesystem::path& FilePath) {
-    FString Extension{FilePath.extension().generic_string().c_str()};
-    std::ranges::transform(Extension, Extension.begin(), [](unsigned char Character) {
-        return static_cast<char>(std::tolower(Character));
-    });
-    return Extension;
-}
+    FString GetLowercaseExtension(const std::filesystem::path& FilePath) {
+        FString Extension{FilePath.extension().generic_string().c_str()};
+        std::ranges::transform(Extension, Extension.begin(), [](unsigned char Character) {
+            return static_cast<char>(std::tolower(Character));
+        });
+        return Extension;
+    }
 }
 
 bool FAssetRegistry::Initialize(ID3D11Device* Device, Uint32 MaxMaterialCount, const FProgressCallback& ProgressCallback) {

@@ -14,41 +14,41 @@
 #include <rapidjson/prettywriter.h>
 
 namespace {
-bool ReWriteObjFilePath(const std::filesystem::path& MetaPath, const FString& NewObjFilePath) {
-    std::ifstream InputStream{MetaPath, std::ios::binary};
-    if (!InputStream.is_open()) {
-        return false;
+    bool ReWriteObjFilePath(const std::filesystem::path& MetaPath, const FString& NewObjFilePath) {
+        std::ifstream InputStream{MetaPath, std::ios::binary};
+        if (!InputStream.is_open()) {
+            return false;
+        }
+
+        rapidjson::IStreamWrapper InStreamWrapper{InputStream};
+
+        rapidjson::Document Document{};
+        Document.ParseStream<rapidjson::kParseCommentsFlag | rapidjson::kParseTrailingCommasFlag>(InStreamWrapper);
+
+        //읽기 닫기
+        InputStream.close();
+
+        if (Document.HasParseError() || !Document.IsObject())
+            return false;
+
+        rapidjson::Document::AllocatorType& Allocator{Document.GetAllocator()};
+
+        if (Document.HasMember("FilePath")) {
+            Document["FilePath"].SetString(NewObjFilePath.c_str(), Allocator);
+        } else {
+            Document.AddMember("FilePath", rapidjson::Value(NewObjFilePath.c_str(), Allocator), Allocator);
+        }
+
+        std::ofstream OutputStream{MetaPath};
+        if (!OutputStream.is_open())
+            return false;
+
+        rapidjson::OStreamWrapper OutStreamWrapper{OutputStream};
+        rapidjson::PrettyWriter<rapidjson::OStreamWrapper> Writer{OutStreamWrapper};
+        Document.Accept(Writer);
+
+        return true;
     }
-
-    rapidjson::IStreamWrapper InStreamWrapper{InputStream};
-
-    rapidjson::Document Document{};
-    Document.ParseStream<rapidjson::kParseCommentsFlag | rapidjson::kParseTrailingCommasFlag>(InStreamWrapper);
-
-    //읽기 닫기
-    InputStream.close();
-
-    if (Document.HasParseError() || !Document.IsObject())
-        return false;
-
-    rapidjson::Document::AllocatorType& Allocator{Document.GetAllocator()};
-
-    if (Document.HasMember("FilePath")) {
-        Document["FilePath"].SetString(NewObjFilePath.c_str(), Allocator);
-    } else {
-        Document.AddMember("FilePath", rapidjson::Value(NewObjFilePath.c_str(), Allocator), Allocator);
-    }
-
-    std::ofstream OutputStream{MetaPath};
-    if (!OutputStream.is_open())
-        return false;
-
-    rapidjson::OStreamWrapper OutStreamWrapper{OutputStream};
-    rapidjson::PrettyWriter<rapidjson::OStreamWrapper> Writer{OutStreamWrapper};
-    Document.Accept(Writer);
-
-    return true;
-}
 }
 
 void FWorldEditorContext::SetWorld(UWorld* InWorld) {

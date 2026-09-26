@@ -13,33 +13,33 @@
 #include "World/Subsystem/UTextSubsystem.h"
 
 namespace {
-bool DecodeKoreanUTF8(const FString& Text, TArray<char32_t>& OutCodePoints) {
-    OutCodePoints.clear();
+    bool DecodeKoreanUTF8(const FString& Text, TArray<char32_t>& OutCodePoints) {
+        OutCodePoints.clear();
 
-    if (Text.empty()) {
+        if (Text.empty()) {
+            return true;
+        }
+
+        const int WideLength{MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, Text.data(), static_cast<int>(Text.size()), nullptr, 0)};
+
+        if (WideLength <= 0) {
+            return false;
+        }
+
+        std::wstring WideText{};
+        WideText.resize(WideLength);
+
+        const int ConvertedLength{MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, Text.data(), static_cast<int>(Text.size()), WideText.data(), WideLength)};
+
+        if (ConvertedLength != WideLength) {
+            return false;
+        }
+        // 현대 한글 U+AC00~U+D7A3은 UTF-16 한 칸에 들어간다.
+        for (wchar_t Character : WideText) {
+            OutCodePoints.push_back(static_cast<char32_t>(Character));
+        }
         return true;
     }
-
-    const int WideLength{MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, Text.data(), static_cast<int>(Text.size()), nullptr, 0)};
-
-    if (WideLength <= 0) {
-        return false;
-    }
-
-    std::wstring WideText{};
-    WideText.resize(WideLength);
-
-    const int ConvertedLength{MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, Text.data(), static_cast<int>(Text.size()), WideText.data(), WideLength)};
-
-    if (ConvertedLength != WideLength) {
-        return false;
-    }
-    // 현대 한글 U+AC00~U+D7A3은 UTF-16 한 칸에 들어간다.
-    for (wchar_t Character : WideText) {
-        OutCodePoints.push_back(static_cast<char32_t>(Character));
-    }
-    return true;
-}
 }
 
 void UBillboardTextComponent::SetFontHandle(FAssetHandle InFontHandle) {

@@ -6,12 +6,12 @@
 #include <numbers>
 
 namespace {
-constexpr float MinimumConeAngle{0.0f};
-constexpr float MaximumConeAngle{89.9f};
+    constexpr float MinimumConeAngle{0.0f};
+    constexpr float MaximumConeAngle{89.9f};
 
-float ToRadians(float Degrees) {
-    return Degrees * (std::numbers::pi_v<float> / 180.0f);
-}
+    float ToRadians(float Degrees) {
+        return Degrees * (std::numbers::pi_v<float> / 180.0f);
+    }
 }
 
 ELightType USpotLightComponent::GetLightType() const {

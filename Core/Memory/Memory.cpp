@@ -8,23 +8,23 @@
 #include <stdexcept>
 
 namespace {
-struct FAllocationHeader {
-    void* mRawPointer{nullptr};
-    std::size_t mSize{0};
-    std::size_t mAlignment{0};
-    Memory::EMemoryTag mTag{Memory::EMemoryTag::Unknown};
-};
+    struct FAllocationHeader {
+        void* mRawPointer{nullptr};
+        std::size_t mSize{0};
+        std::size_t mAlignment{0};
+        Memory::EMemoryTag mTag{Memory::EMemoryTag::Unknown};
+    };
 
-struct FMemoryState {
-    Memory::FMemoryStats mStats{};
-};
+    struct FMemoryState {
+        Memory::FMemoryStats mStats{};
+    };
 
-FMemoryState& GetMemoryState() {
-    static FMemoryState State{};
-    return State;
-}
+    FMemoryState& GetMemoryState() {
+        static FMemoryState State{};
+        return State;
+    }
 
-FString Str{};
+    FString Str{};
 }
 
 const char* Memory::GetMemoryTagName(EMemoryTag Tag) {

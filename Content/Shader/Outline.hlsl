@@ -8,7 +8,7 @@ struct FModelContext
 struct FMaterial
 {
     float4 BaseColor;
-    
+
     // Paddings
     float4 Parameters0;
     float4 Parameters1;
@@ -54,9 +54,9 @@ PS_INPUT mainVS(VS_INPUT Input, uint InstanceID : SV_InstanceID)
     FModelContext ModelContext = ModelContexts[ModelContextStart + InstanceID];
 
     const float OutlineWidth = 1.03f;
-    
+
     float3 ExpandedPosition = Input.Position * OutlineWidth;
-    
+
     float4 WorldPosition = mul(float4(ExpandedPosition, 1.0f), ModelContext.World);
 
     Output.Position = mul(WorldPosition, ViewProjection);

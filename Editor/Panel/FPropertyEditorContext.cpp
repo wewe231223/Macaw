@@ -17,36 +17,36 @@
 #include <vector>
 
 namespace {
-constexpr char StaticMeshAssetPayloadType[]{"MACAW_STATIC_MESH_ASSET"};
-constexpr char MaterialAssetPayloadType[]{"MACAW_MATERIAL_ASSET"};
-constexpr char TextureAssetPayloadType[]{"MACAW_TEXTURE_ASSET"};
+    constexpr char StaticMeshAssetPayloadType[]{"MACAW_STATIC_MESH_ASSET"};
+    constexpr char MaterialAssetPayloadType[]{"MACAW_MATERIAL_ASSET"};
+    constexpr char TextureAssetPayloadType[]{"MACAW_TEXTURE_ASSET"};
 
-void ApplyAssetBrowserDrop(const IAssetRegistry& Registry, const FTypeInfo& AssetType, FAssetHandle CurrentHandle, const std::function<void(FAssetHandle)>& Setter) {
-    const char* PayloadType{};
-    if (AssetType.IsA(UMesh::StaticTypeInfo())) {
-        PayloadType = StaticMeshAssetPayloadType;
-    } else if (AssetType.IsA(UMaterial::StaticTypeInfo())) {
-        PayloadType = MaterialAssetPayloadType;
-    } else if (AssetType.IsA(UTexture::StaticTypeInfo())) {
-        PayloadType = TextureAssetPayloadType;
-    }
-
-    if (PayloadType == nullptr || !ImGui::BeginDragDropTarget()) {
-        return;
-    }
-
-    const ImGuiPayload* Payload{ImGui::AcceptDragDropPayload(PayloadType)};
-    if (Payload != nullptr && Payload->DataSize == sizeof(FAssetHandle)) {
-        FAssetHandle DroppedHandle{};
-        std::memcpy(&DroppedHandle, Payload->Data, sizeof(DroppedHandle));
-        const UAsset* DroppedAsset{Registry.ResolveAsset<UAsset>(DroppedHandle)};
-        if (DroppedAsset != nullptr && DroppedAsset->GetTypeInfo()->IsA(&AssetType) && DroppedHandle != CurrentHandle) {
-            Setter(DroppedHandle);
+    void ApplyAssetBrowserDrop(const IAssetRegistry& Registry, const FTypeInfo& AssetType, FAssetHandle CurrentHandle, const std::function<void(FAssetHandle)>& Setter) {
+        const char* PayloadType{};
+        if (AssetType.IsA(UMesh::StaticTypeInfo())) {
+            PayloadType = StaticMeshAssetPayloadType;
+        } else if (AssetType.IsA(UMaterial::StaticTypeInfo())) {
+            PayloadType = MaterialAssetPayloadType;
+        } else if (AssetType.IsA(UTexture::StaticTypeInfo())) {
+            PayloadType = TextureAssetPayloadType;
         }
-    }
 
-    ImGui::EndDragDropTarget();
-}
+        if (PayloadType == nullptr || !ImGui::BeginDragDropTarget()) {
+            return;
+        }
+
+        const ImGuiPayload* Payload{ImGui::AcceptDragDropPayload(PayloadType)};
+        if (Payload != nullptr && Payload->DataSize == sizeof(FAssetHandle)) {
+            FAssetHandle DroppedHandle{};
+            std::memcpy(&DroppedHandle, Payload->Data, sizeof(DroppedHandle));
+            const UAsset* DroppedAsset{Registry.ResolveAsset<UAsset>(DroppedHandle)};
+            if (DroppedAsset != nullptr && DroppedAsset->GetTypeInfo()->IsA(&AssetType) && DroppedHandle != CurrentHandle) {
+                Setter(DroppedHandle);
+            }
+        }
+
+        ImGui::EndDragDropTarget();
+    }
 }
 
 bool FPropertyEditorContext::BeginCategory(const char* Label, bool BDefaultOpen) const {

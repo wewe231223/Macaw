@@ -22,7 +22,7 @@ PS_INPUT mainVS(VS_INPUT Input)
 
     Output.Position = mul(float4(Input.Position, 1.0f), ViewProjection);
     Output.Color = Input.Color;
-    
+
     return Output;
 }
 

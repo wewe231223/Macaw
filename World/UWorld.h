@@ -40,7 +40,7 @@ public:
     AActor* AddActor(std::unique_ptr<AActor> InActor);
 
     template <typename T>
-    requires std::is_base_of_v<AActor, T>
+        requires std::is_base_of_v<AActor, T>
     T* AdoptActor();
 
     AActor* SpawnActor(const FAssetHandle& MeshHandle, const FAssetHandle& PipelineHandle, const FAssetHandle& MaterialHandle, const FVector3& Position);

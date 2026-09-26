@@ -45,9 +45,9 @@ PS_INPUT mainVS(VS_INPUT Input, uint InstanceID : SV_InstanceID)
     view[3][0] = 0.0f;
     view[3][1] = 0.0f;
     view[3][2] = 0.0f;
-    
+
     float4x4 vp = mul(view, Projection);
-    
+
     Output.Position = mul(WorldPosition, vp);
     Output.Normal = mul(Input.Normal, (float3x3)ModelContext.World);
     Output.UV = Input.UV;

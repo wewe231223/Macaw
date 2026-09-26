@@ -15,12 +15,12 @@
 #include <cmath>
 
 namespace {
-constexpr float MinimumDistance{0.10f};
-constexpr float MaximumDistance{1000000.0f};
-constexpr char DefaultMeshPath[]{"/Game/System/Mesh/Cube.bin"};
-constexpr char DefaultMaterialPath[]{"/Game/System/Material/Green.mtl"};
-constexpr char DefaultPipelinePath[]{"/Game/Pipeline/Base"};
-constexpr char TexturedPipelinePath[]{"/Game/Pipeline/TexturedBase.json"};
+    constexpr float MinimumDistance{0.10f};
+    constexpr float MaximumDistance{1000000.0f};
+    constexpr char DefaultMeshPath[]{"/Game/System/Mesh/Cube.bin"};
+    constexpr char DefaultMaterialPath[]{"/Game/System/Material/Green.mtl"};
+    constexpr char DefaultPipelinePath[]{"/Game/Pipeline/Base"};
+    constexpr char TexturedPipelinePath[]{"/Game/Pipeline/TexturedBase.json"};
 }
 
 FViewerPanel::FViewerPanel(FAssetRegistry& InRegistry, HWND InputWindowHandle, FMessageChannel::FSender InEditorToWorldSender, FWorldEditorContext& InEditorContext, FAssetThumbnailRenderer* InThumbnailRenderer)

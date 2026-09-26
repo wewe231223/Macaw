@@ -57,11 +57,11 @@ public:
     FAssetHandle LoadViewerAsset(const std::filesystem::path& SourcePath);
 
     template <typename T>
-    requires std::is_base_of_v<UAsset, T>
+        requires std::is_base_of_v<UAsset, T>
     T* ResolveAsset(FAssetHandle Handle);
 
     template <typename T>
-    requires std::is_base_of_v<UAsset, T>
+        requires std::is_base_of_v<UAsset, T>
     const T* ResolveAsset(FAssetHandle Handle) const;
 
     template <typename T, typename Func> requires std::is_base_of_v<UAsset, T> void ModifyAsset(FAssetHandle Handle, Func&& Modifier);

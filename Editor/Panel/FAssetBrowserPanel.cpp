@@ -14,34 +14,34 @@
 #include <string_view>
 
 namespace {
-constexpr float FolderPaneWidth{190.0f};
-constexpr float ThumbnailSize{96.0f};
-constexpr float TileWidth{ThumbnailSize + 18.0f};
-constexpr char StaticMeshAssetPayloadType[]{"MACAW_STATIC_MESH_ASSET"};
-constexpr char MaterialAssetPayloadType[]{"MACAW_MATERIAL_ASSET"};
-constexpr char TextureAssetPayloadType[]{"MACAW_TEXTURE_ASSET"};
+    constexpr float FolderPaneWidth{190.0f};
+    constexpr float ThumbnailSize{96.0f};
+    constexpr float TileWidth{ThumbnailSize + 18.0f};
+    constexpr char StaticMeshAssetPayloadType[]{"MACAW_STATIC_MESH_ASSET"};
+    constexpr char MaterialAssetPayloadType[]{"MACAW_MATERIAL_ASSET"};
+    constexpr char TextureAssetPayloadType[]{"MACAW_TEXTURE_ASSET"};
 
-FString OpenFileDialog(const FString& FilePath, const OPENFILENAMEA& OFN) {
-    char FileName[MAX_PATH]{0};
+    FString OpenFileDialog(const FString& FilePath, const OPENFILENAMEA& OFN) {
+        char FileName[MAX_PATH]{0};
 
-    OPENFILENAMEA OpenFileName{OFN};
+        OPENFILENAMEA OpenFileName{OFN};
 
-    OpenFileName.lpstrFile = FileName;
+        OpenFileName.lpstrFile = FileName;
 
-    std::string InitialDirectoryPath{std::filesystem::absolute(FilePath.c_str()).string()};
+        std::string InitialDirectoryPath{std::filesystem::absolute(FilePath.c_str()).string()};
 
-    if (!std::filesystem::exists(InitialDirectoryPath)) {
-        std::filesystem::create_directories(InitialDirectoryPath);
+        if (!std::filesystem::exists(InitialDirectoryPath)) {
+            std::filesystem::create_directories(InitialDirectoryPath);
+        }
+
+        OpenFileName.lpstrInitialDir = InitialDirectoryPath.c_str();
+
+        if (GetOpenFileNameA(&OpenFileName)) {
+            return FString{FileName};
+        }
+
+        return "";
     }
-
-    OpenFileName.lpstrInitialDir = InitialDirectoryPath.c_str();
-
-    if (GetOpenFileNameA(&OpenFileName)) {
-        return FString{FileName};
-    }
-
-    return "";
-}
 
 }
 

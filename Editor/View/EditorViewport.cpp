@@ -14,53 +14,53 @@
 #include "World/Component/UMeshComponent.h"
 
 namespace {
-bool GetVisibleGridBounds(const CameraProbe& Camera, float& MinimumX, float& MaximumX, float& MinimumY, float& MaximumY) {
-    FMatrix InverseViewProjection{};
-    if (!Camera.mViewProjection.TryInverse(InverseViewProjection)) {
-        return false;
-    }
-
-    const std::array<FVector3, 8> ClipCorners{ FVector3{-1.0f, -1.0f, 0.0f}, FVector3{1.0f, -1.0f, 0.0f}, FVector3{1.0f, 1.0f, 0.0f}, FVector3{-1.0f, 1.0f, 0.0f}, FVector3{-1.0f, -1.0f, 1.0f}, FVector3{1.0f, -1.0f, 1.0f}, FVector3{1.0f, 1.0f, 1.0f}, FVector3{-1.0f, 1.0f, 1.0f}};
-    constexpr std::array<std::array<int, 2>, 12> Edges{ std::array<int, 2>{0, 1}, std::array<int, 2>{1, 2}, std::array<int, 2>{2, 3}, std::array<int, 2>{3, 0}, std::array<int, 2>{4, 5}, std::array<int, 2>{5, 6}, std::array<int, 2>{6, 7}, std::array<int, 2>{7, 4}, std::array<int, 2>{0, 4}, std::array<int, 2>{1, 5}, std::array<int, 2>{2, 6}, std::array<int, 2>{3, 7}};
-    std::array<FVector3, 8> WorldCorners{};
-    for (std::size_t Index{0}; Index < ClipCorners.size(); ++Index) {
-        if (!InverseViewProjection.TransformCoord(ClipCorners[Index], WorldCorners[Index])) {
+    bool GetVisibleGridBounds(const CameraProbe& Camera, float& MinimumX, float& MaximumX, float& MinimumY, float& MaximumY) {
+        FMatrix InverseViewProjection{};
+        if (!Camera.mViewProjection.TryInverse(InverseViewProjection)) {
             return false;
         }
-    }
 
-    bool HasPoint{false};
-    const auto IncludePoint{[&MinimumX, &MaximumX, &MinimumY, &MaximumY, &HasPoint](const FVector3& Point) {
-        if (!HasPoint) {
-            MinimumX = MaximumX = Point.mX;
-            MinimumY = MaximumY = Point.mY;
-            HasPoint = true;
-            return;
+        const std::array<FVector3, 8> ClipCorners{ FVector3{-1.0f, -1.0f, 0.0f}, FVector3{1.0f, -1.0f, 0.0f}, FVector3{1.0f, 1.0f, 0.0f}, FVector3{-1.0f, 1.0f, 0.0f}, FVector3{-1.0f, -1.0f, 1.0f}, FVector3{1.0f, -1.0f, 1.0f}, FVector3{1.0f, 1.0f, 1.0f}, FVector3{-1.0f, 1.0f, 1.0f}};
+        constexpr std::array<std::array<int, 2>, 12> Edges{ std::array<int, 2>{0, 1}, std::array<int, 2>{1, 2}, std::array<int, 2>{2, 3}, std::array<int, 2>{3, 0}, std::array<int, 2>{4, 5}, std::array<int, 2>{5, 6}, std::array<int, 2>{6, 7}, std::array<int, 2>{7, 4}, std::array<int, 2>{0, 4}, std::array<int, 2>{1, 5}, std::array<int, 2>{2, 6}, std::array<int, 2>{3, 7}};
+        std::array<FVector3, 8> WorldCorners{};
+        for (std::size_t Index{0}; Index < ClipCorners.size(); ++Index) {
+            if (!InverseViewProjection.TransformCoord(ClipCorners[Index], WorldCorners[Index])) {
+                return false;
+            }
         }
-        MinimumX = std::min(MinimumX, Point.mX);
-        MaximumX = std::max(MaximumX, Point.mX);
-        MinimumY = std::min(MinimumY, Point.mY);
-        MaximumY = std::max(MaximumY, Point.mY);
-    }};
-    constexpr float PlaneEpsilon{0.0001f};
-    for (const std::array<int, 2>& Edge : Edges) {
-        const FVector3& Start{WorldCorners[Edge[0]]};
-        const FVector3& End{WorldCorners[Edge[1]]};
-        const bool StartOnPlane{std::abs(Start.mZ) <= PlaneEpsilon};
-        const bool EndOnPlane{std::abs(End.mZ) <= PlaneEpsilon};
-        if (StartOnPlane) {
-            IncludePoint(Start);
+
+        bool HasPoint{false};
+        const auto IncludePoint{[&MinimumX, &MaximumX, &MinimumY, &MaximumY, &HasPoint](const FVector3& Point) {
+            if (!HasPoint) {
+                MinimumX = MaximumX = Point.mX;
+                MinimumY = MaximumY = Point.mY;
+                HasPoint = true;
+                return;
+            }
+            MinimumX = std::min(MinimumX, Point.mX);
+            MaximumX = std::max(MaximumX, Point.mX);
+            MinimumY = std::min(MinimumY, Point.mY);
+            MaximumY = std::max(MaximumY, Point.mY);
+        }};
+        constexpr float PlaneEpsilon{0.0001f};
+        for (const std::array<int, 2>& Edge : Edges) {
+            const FVector3& Start{WorldCorners[Edge[0]]};
+            const FVector3& End{WorldCorners[Edge[1]]};
+            const bool StartOnPlane{std::abs(Start.mZ) <= PlaneEpsilon};
+            const bool EndOnPlane{std::abs(End.mZ) <= PlaneEpsilon};
+            if (StartOnPlane) {
+                IncludePoint(Start);
+            }
+            if (EndOnPlane) {
+                IncludePoint(End);
+            }
+            if ((Start.mZ < -PlaneEpsilon && End.mZ > PlaneEpsilon) || (Start.mZ > PlaneEpsilon && End.mZ < -PlaneEpsilon)) {
+                const float Fraction{-Start.mZ / (End.mZ - Start.mZ)};
+                IncludePoint(FVector3{Start.mX + (End.mX - Start.mX) * Fraction, Start.mY + (End.mY - Start.mY) * Fraction, 0.0f});
+            }
         }
-        if (EndOnPlane) {
-            IncludePoint(End);
-        }
-        if ((Start.mZ < -PlaneEpsilon && End.mZ > PlaneEpsilon) || (Start.mZ > PlaneEpsilon && End.mZ < -PlaneEpsilon)) {
-            const float Fraction{-Start.mZ / (End.mZ - Start.mZ)};
-            IncludePoint(FVector3{Start.mX + (End.mX - Start.mX) * Fraction, Start.mY + (End.mY - Start.mY) * Fraction, 0.0f});
-        }
+        return HasPoint;
     }
-    return HasPoint;
-}
 }
 
 void EditorViewport::Initialize(ID3D11Device* Device, FAssetRegistry& AssetRegistry, FWorldEditorContext& InEditorContext) {

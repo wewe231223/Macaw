@@ -63,7 +63,7 @@ PS_INPUT mainVS(VS_INPUT Input, uint InstanceID : SV_InstanceID)
     Output.WorldPosition = WorldPosition.xyz;
     Output.MaterialIndex = ModelContext.MaterialIndex;
     Output.Flags = ModelContext.Flags;
-    
+
     if ((ModelContext.Flags & 1) != 0)
     {
         Output.ColorCoefficient = float3(0.5f, 0.5f, 0.5f);
@@ -83,7 +83,7 @@ float4 mainPS(PS_INPUT Input) : SV_TARGET
     float Stripe = step(0.5f, frac((Input.UV.x + Input.UV.y) * 6.0f));
     float3 AlternateColor = lerp(MaterialColor.bgr, float3(0.1f, 0.85f, 1.0f), 0.7f);
     float Brightness = lerp(0.4f, 1.0f, Stripe);
-    
+
     float4 FinalColor = float4(saturate(AlternateColor * Brightness), MaterialColor.a);
 
     FinalColor.rgb *= Input.ColorCoefficient;
@@ -91,6 +91,6 @@ float4 mainPS(PS_INPUT Input) : SV_TARGET
     {
         FinalColor.rgb *= CalculateDirectLighting(Input.WorldPosition, Input.Normal, LightCount);
     }
-    
+
     return FinalColor;
 }

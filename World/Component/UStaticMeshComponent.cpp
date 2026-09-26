@@ -12,8 +12,8 @@
 #include "Asset/Pipeline/UPipeline.h"
 
 namespace {
-constexpr char BasePipelinePath[]{"/Game/Pipeline/Base"};
-constexpr char TextureBasePipelinePath[]{"/Game/Pipeline/TexturedBase.json"};
+    constexpr char BasePipelinePath[]{"/Game/Pipeline/Base"};
+    constexpr char TextureBasePipelinePath[]{"/Game/Pipeline/TexturedBase.json"};
 }
 
 FAssetHandle UStaticMeshComponent::GetMaterialHandle() const {
