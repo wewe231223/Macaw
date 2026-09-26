@@ -55,7 +55,7 @@ void FWorldEditorContext::SetWorld(UWorld* InWorld) {
     mWorld = InWorld;
 }
 
-void FWorldEditorContext::InitializeChannels(FAssetRegistry& AssetRegistry, ID3D11Device* Device) {
+void FWorldEditorContext::InitializeChannels(FAssetRegistry& AssetRegistry) {
     if (mWorld == nullptr)
         return;
 
@@ -65,8 +65,8 @@ void FWorldEditorContext::InitializeChannels(FAssetRegistry& AssetRegistry, ID3D
     mEditorToWorld.TryBind<FMessageSaveScene>([this, &AssetRegistry](const FMessageSaveScene& Message) {
         mWorld->SaveScene(Message.mSceneName, &AssetRegistry);
     });
-    mEditorToWorld.TryBind<FMessageLoadScene>([this, &AssetRegistry, Device](const FMessageLoadScene& Message) {
-        mWorld->LoadScene(std::filesystem::path(Message.mFilePath.c_str()), Device, &AssetRegistry);
+    mEditorToWorld.TryBind<FMessageLoadScene>([this](const FMessageLoadScene& Message) {
+        mWorld->LoadScene(std::filesystem::path(Message.mFilePath.c_str()));
     });
 }
 

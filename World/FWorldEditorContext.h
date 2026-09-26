@@ -1,6 +1,5 @@
 ﻿#pragma once
 
-#include <d3d11.h>
 #include "Core/Base/FAssetHandle.h"
 #include "Core/Base/TObjectRef.h"
 #include "Core/Channel/FMessageChannel.h"
@@ -22,7 +21,7 @@ struct FWorldEditorSharedState {
 class FWorldEditorContext {
 public:
     void SetWorld(UWorld* InWorld);
-    void InitializeChannels(FAssetRegistry& AssetRegistry, ID3D11Device* Device);
+    void InitializeChannels(FAssetRegistry& AssetRegistry);
     void Dispatch();
 
     FMessageChannel::FSender GetEditorToWorldSender();

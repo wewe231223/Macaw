@@ -4,8 +4,6 @@
 #include <memory>
 #include <optional>
 
-#include <d3d11.h>
-
 #include "AActor.h"
 #include "Component/UCameraComponent.h"
 #include "Component/UStaticMeshComponent.h"
@@ -25,7 +23,6 @@
 class AActor;
 class UCameraComponent;
 class UStaticMeshComponent;
-struct ID3D11Device;
 class FAssetRegistry;
 class UCameraSubsystem;
 class UCollisionSubsystem;
@@ -79,7 +76,7 @@ public:
     const ULightSubsystem& GetLightSubsystem() const;
 
     bool SaveScene(const FString& SceneName, FAssetRegistry* AssetRegistry);
-    bool LoadScene(const std::filesystem::path& ScenePath, ID3D11Device* Device, FAssetRegistry* AssetRegistry);
+    bool LoadScene(const std::filesystem::path& ScenePath);
 
     JG_DECLARE_DERIVED_TYPEINFO(UWorld, UObject);
 
@@ -95,12 +92,11 @@ public:
 
     FAssetRegistry* GetAssetRegistry() const;
 
-    void ResetWorld(FAssetRegistry* AssetRegistry, ID3D11Device* Device);
-
     FName MakeUniqueObjectName(std::string_view SourceName);
     AActor* FindActorByName(FName InName) const;
 
 private:
+    void ClearActors();
     void InitializeSubsystems();
     void DeinitializeSubsystems();
 

@@ -345,7 +345,7 @@ bool InitializeApplication(FApplicationObjects& Application, FLoadingProgress& P
     Application.mWorld->SetAssetRegistry(Application.mAssetRegistry.get());
 
     Progress.SetProgress(0.73f, "Initializing editor channels");
-    Application.mEditorContext->InitializeChannels(*Application.mAssetRegistry, Renderer.GetDevice());
+    Application.mEditorContext->InitializeChannels(*Application.mAssetRegistry);
     GMouseInput.InitializeWorldCommandSender(Application.mWorldCommandChannel->GetSender());
     GKeyboardInput.InitializeWorldCommandSender(Application.mWorldCommandChannel->GetSender());
     Application.mWorldCommandChannel->TryBind<FMousePickRequestMessage>([&Application](const FMousePickRequestMessage& Message) {
@@ -379,7 +379,7 @@ bool InitializeApplication(FApplicationObjects& Application, FLoadingProgress& P
 #endif
 
     Progress.SetProgress(0.86f, "Loading scene");
-    const bool SceneLoaded{Application.mWorld->LoadScene("./scenes/MainScene1.json", Renderer.GetDevice(), Application.mAssetRegistry.get())};
+    const bool SceneLoaded{Application.mWorld->LoadScene("./scenes/MainScene1.json")};
     if (!SceneLoaded) {
         Console::AddLog(Console::STDOutHandle, ELogLevel::Warning, ELogCategory::Etc, "The startup scene failed to load. Initialization will continue with an empty world.");
     }

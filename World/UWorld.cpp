@@ -38,7 +38,6 @@
 #include "Asset/FAssetRegistry.h"
 #include "../Core/Console/Console.h"
 
-#include <d3d11.h>
 #include <filesystem>
 #include <fstream>
 #include <ranges>
@@ -323,7 +322,7 @@ bool UWorld::SaveScene(const FString& SceneName, FAssetRegistry* AssetRegistry) 
     return true;
 }
 
-bool UWorld::LoadScene(const std::filesystem::path& ScenePath, ID3D11Device* Device, FAssetRegistry* AssetRegistry) {
+bool UWorld::LoadScene(const std::filesystem::path& ScenePath) {
     std::ifstream InputFileStream{ScenePath};
     if (!InputFileStream.is_open()) {
         return false;
@@ -347,15 +346,14 @@ bool UWorld::LoadScene(const std::filesystem::path& ScenePath, ID3D11Device* Dev
         return false;
     }
 
-    if (AssetRegistry == nullptr) {
+    if (mAssetRegistry == nullptr) {
         return false;
     }
 
-    SetAssetRegistry(AssetRegistry);
-    ResetWorld(AssetRegistry, Device);
+    ClearActors();
 
-    const auto FailLoad{[this, AssetRegistry, Device]() {
-        ResetWorld(AssetRegistry, Device);
+    const auto FailLoad{[this]() {
+        ClearActors();
         return false;
     }};
 
@@ -398,7 +396,7 @@ bool UWorld::LoadScene(const std::filesystem::path& ScenePath, ID3D11Device* Dev
     for (std::size_t ActorIndex{0}; ActorIndex < mActors.size(); ++ActorIndex) {
         rapidjson::Value& ActorJson{LoadDocument["Actors"][static_cast<rapidjson::SizeType>(ActorIndex)]};
         FArchiveJson ArchiveLoad{ActorJson};
-        ArchiveLoad.SetAssetRegistry(AssetRegistry);
+        ArchiveLoad.SetAssetRegistry(mAssetRegistry);
         mActors[ActorIndex]->Load(ArchiveLoad);
     }
 
@@ -660,14 +658,11 @@ FAssetRegistry* UWorld::GetAssetRegistry() const {
     return mAssetRegistry;
 }
 
-void UWorld::ResetWorld(FAssetRegistry* AssetRegistry, ID3D11Device* Device) {
+void UWorld::ClearActors() {
     for (auto& CurrentActor : mActors) {
         DestroyActor(CurrentActor.get());
     }
     FlushPendingDestroyActors();
-
-    AssetRegistry->Reset();
-    AssetRegistry->Initialize(Device);
 }
 
 FName UWorld::MakeUniqueObjectName(std::string_view SourceName) {
