@@ -8,8 +8,7 @@
 #include <Windows.h>
 #include <d3d11.h>
 #include <wrl/client.h>
-
-class FRenderer;
+#include "Render/Renderer.h"
 
 class FLoadingProgress {
 public:

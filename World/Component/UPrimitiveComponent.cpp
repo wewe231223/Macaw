@@ -1,4 +1,5 @@
 ﻿#include "pch.h"
+#include "Core/Property/IPropertyEditorContext.h"
 #include "UPrimitiveComponent.h"
 
 #include "World/AActor.h"
@@ -46,4 +47,11 @@ void UPrimitiveComponent::SetPickingBox(const DirectX::BoundingOrientedBox& Box)
 
 const DirectX::BoundingOrientedBox& UPrimitiveComponent::GetPickingBox() const {
     return mPickingBox;
+}
+
+void UPrimitiveComponent::DrawPanels(IPropertyEditorContext& Context) {
+    USceneComponent::DrawPanels(Context);
+    Context.DrawBool("Visible", IsVisible(), [this](bool BVisible) {
+        SetVisible(BVisible);
+    });
 }

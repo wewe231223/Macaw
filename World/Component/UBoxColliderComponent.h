@@ -1,14 +1,14 @@
 ﻿#pragma once
 
 #include "UCollisionComponent.h"
-
-class UMeshComponent;
+#include "World/Component/UMeshComponent.h"
 
 class UBoxColliderComponent final : public UCollisionComponent {
 public:
     UBoxColliderComponent() = default;
     ~UBoxColliderComponent() override = default;
 
+public:
     JG_DECLARE_DERIVED_TYPEINFO(UBoxColliderComponent, UCollisionComponent)
 
     void SetMeshComponent(UMeshComponent* InMeshComponent);
@@ -16,10 +16,10 @@ public:
     bool BuildBoundsFromMesh();
 
     bool RaycastBounds(const FRay& Ray, float& OutDistance) const override;
-    void DrawEditorBounds(ILineRenderer& LineRenderer, ELineDepthMode DepthMode) const override;
+    void DrawEditorBounds(ILineDrawContext& LineContext, ELineDepthMode DepthMode) const override;
     FVector3 GetExtent() const;
     void SetExtent(const FVector3& InExtent);
-    void DrawPanels(FPropertyEditorContext& Context) override;
+    void DrawPanels(IPropertyEditorContext& Context) override;
 
     bool ResolveLoadedReferences() override;
     void InitializeComponent() override;

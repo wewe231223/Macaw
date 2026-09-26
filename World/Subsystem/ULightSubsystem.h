@@ -3,8 +3,7 @@
 #include "UWorldSubsystem.h"
 
 #include "Core/Base/FRenderProbe.h"
-
-class ULightComponent;
+#include "World/Component/ULightComponent.h"
 
 class ULightSubsystem : public UWorldSubsystem {
 public:

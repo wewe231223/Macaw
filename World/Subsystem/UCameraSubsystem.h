@@ -1,8 +1,7 @@
 ﻿#pragma once
 
 #include "UWorldSubsystem.h"
-
-class UCameraComponent;
+#include "World/Component/UCameraComponent.h"
 
 /// <summary>Maintains the World's active main camera.</summary>
 class UCameraSubsystem : public UWorldSubsystem {

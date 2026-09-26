@@ -1,8 +1,7 @@
 ﻿#pragma once
 #include "Core/Channel/FMessageChannel.h"
 #include "Core/Base/UObject.h"
-
-class FAssetRegistry;
+#include "Asset/FAssetRegistry.h"
 
 enum class EUndoType {
     StateChange,

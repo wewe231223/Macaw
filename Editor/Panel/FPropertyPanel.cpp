@@ -1,5 +1,6 @@
 ﻿#include "pch.h"
 #include "FPropertyPanel.h"
+#include "World/UWorld.h"
 
 FPropertyPanel::FPropertyPanel(FWorldEditorContext& InEditorContext, FStateChannel<Uint8>::FReadWriter InGizmoMode, FStateChannel<Uint8>::FReadWriter InGizmoCoordinateSpace, FAssetThumbnailRenderer* InThumbnailRenderer)
     : FEditorWindow("Property Window"),
@@ -26,6 +27,8 @@ void FPropertyPanel::DrawContents() {
     if (UActorComponent* Component{mEditorContext->GetSelectedComponent()}; Component != nullptr && Component->GetOwner() == Actor) {
         ImGui::Text("Details: %s", GetComponentTypeName(*Component));
         ImGui::PushID(Component);
+        UWorld* World{Actor->GetWorld()};
+        mPropertyEditor.BindAssetRegistry(World != nullptr ? World->GetAssetRegistry() : nullptr);
         Component->DrawPanels(mPropertyEditor);
         ImGui::Separator();
         HandleDeleteShortcut(*Actor, *Component);

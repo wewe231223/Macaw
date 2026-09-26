@@ -1,4 +1,5 @@
 ﻿#include "pch.h"
+#include "Core/Property/IPropertyEditorContext.h"
 
 #include "USpotLightComponent.h"
 
@@ -48,4 +49,19 @@ void USpotLightComponent::Serialize(FArchive& Archive) {
         SetInnerConeAngle(mInnerConeAngle);
         SetOuterConeAngle(mOuterConeAngle);
     }
+}
+
+void USpotLightComponent::DrawPanels(IPropertyEditorContext& Context) {
+    UPointLightComponent::DrawPanels(Context);
+
+    if (!Context.BeginCategory("Spot Light")) {
+        return;
+    }
+
+    Context.DrawFloat("Inner Cone Angle", GetInnerConeAngle(), 0.1f, MinimumConeAngle, GetOuterConeAngle(), [this](float InInnerConeAngle) {
+        SetInnerConeAngle(InInnerConeAngle);
+    });
+    Context.DrawFloat("Outer Cone Angle", GetOuterConeAngle(), 0.1f, GetInnerConeAngle(), MaximumConeAngle, [this](float InOuterConeAngle) {
+        SetOuterConeAngle(InOuterConeAngle);
+    });
 }

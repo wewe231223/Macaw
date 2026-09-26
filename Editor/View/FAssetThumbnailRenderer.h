@@ -8,9 +8,8 @@
 #include "../../Core/Base/FRenderProbe.h"
 
 #include "Render/FSceneRenderSurface.h"
-
-class FRenderer;
-class UMesh;
+#include "Render/Renderer.h"
+#include "Asset/UMesh.h"
 
 class FAssetThumbnailRenderer {
     struct FThumbnail { std::unique_ptr<FSceneRenderSurface> mSurface{}; };

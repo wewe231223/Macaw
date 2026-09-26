@@ -3,8 +3,7 @@
 #include "UWorldSubsystem.h"
 
 #include "Core/Base/FRenderProbe.h"
-
-class UBillboardTextComponent;
+#include "World/Component/UBillboardTextComponent.h"
 
 /// <summary>Builds render probes from registered BillboardTextComponents.</summary>
 class UTextSubsystem : public UWorldSubsystem {

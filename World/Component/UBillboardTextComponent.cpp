@@ -1,4 +1,5 @@
 ﻿#include "pch.h"
+#include "Core/Property/IPropertyEditorContext.h"
 #include "UBillboardTextComponent.h"
 
 #include "Asset/FAssetRegistry.h"
@@ -334,4 +335,35 @@ void UBillboardTextComponent::Serialize(FArchive& Archive) {
 bool UBillboardTextComponent::TryGetTextWorld(FMatrix& OutWorld) const {
     OutWorld = GetComponentToWorld();
     return true;
+}
+
+void UBillboardTextComponent::DrawPanels(IPropertyEditorContext& Context) {
+    UPrimitiveComponent::DrawPanels(Context);
+
+    if (!Context.BeginCategory("Billboard Text")) {
+        return;
+    }
+
+    Context.DrawText("Text", GetText(), [this](const FString& NewText) {
+        SetText(NewText);
+    });
+    Context.DrawColor("Color", GetColor(), [this](const FVector4& NewColor) {
+        SetColor(NewColor);
+    });
+    Context.DrawFloat("Character Height", GetCharacterHeight(), 0.01f, 0.001f, 1000.0f, [this](float NewHeight) {
+        SetCharacterHeight(NewHeight);
+    });
+    Context.DrawFloat("Letter Spacing", GetLetterSpacing(), 0.01f, -100.0f, 100.0f, [this](float NewSpacing) {
+        SetLetterSpacing(NewSpacing);
+    });
+    Context.DrawFloat("Line Spacing", GetLineSpacing(), 0.01f, -100.0f, 100.0f, [this](float NewSpacing) {
+        SetLineSpacing(NewSpacing);
+    });
+
+    Context.DrawAssetPicker("Font", *UFont::StaticTypeInfo(), GetFontHandle(), [this](FAssetHandle NewHandle) {
+        SetFontHandle(NewHandle);
+    });
+    Context.DrawAssetPicker("Pipeline", *UPipeline::StaticTypeInfo(), GetPipelineHandle(), [this](FAssetHandle NewHandle) {
+        SetPipelineHandle(NewHandle);
+    });
 }

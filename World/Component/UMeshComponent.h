@@ -4,8 +4,7 @@
 #include "Core/Base/FAssetHandle.h"
 #include "Asset/FAssetPath.h"
 #include "Core/Base/FGuid.h"
-
-class UMesh;
+#include "Asset/UMesh.h"
 
 class UMeshComponent : public UPrimitiveComponent {
 public:
@@ -16,7 +15,7 @@ public:
 
     FAssetHandle GetMeshHandle() const;
     void SetMeshHandle(FAssetHandle InHandle);
-    void DrawPanels(FPropertyEditorContext& Context) override;
+    void DrawPanels(IPropertyEditorContext& Context) override;
     void OnRegister() override;
 
     virtual UMesh* ResolveMesh() const;

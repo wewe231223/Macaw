@@ -6,19 +6,17 @@
 #include "FViewportHostWindow.h"
 #include "Core/Channel/FStateChannel.h"
 #include <filesystem>
-
-class UWorld;
-class FRenderer;
-class FAssetRegistry;
-class FWorldEditorContext;
-class FAssetThumbnailRenderer;
-class FAssetBrowserPanel;
-class FMaterialEditorPanel;
-class FViewerPanel;
-class FViewportHostWindow;
-class FStatPanel;
-class FEditorWindow;
-class IEditorPanel;
+#include "World/UWorld.h"
+#include "Render/Renderer.h"
+#include "Asset/FAssetRegistry.h"
+#include "World/FWorldEditorContext.h"
+#include "Editor/View/FAssetThumbnailRenderer.h"
+#include "Editor/Panel/FAssetBrowserPanel.h"
+#include "Editor/Panel/FMaterialEditorPanel.h"
+#include "Editor/Panel/FViewerPanel.h"
+#include "Editor/Panel/FStatPanel.h"
+#include "Editor/Panel/FEditorWindow.h"
+#include "Editor/Panel/IEditorPanel.h"
 
 class FEditorUIManager {
 public:

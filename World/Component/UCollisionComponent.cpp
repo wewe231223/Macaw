@@ -1,4 +1,5 @@
 ﻿#include "pch.h"
+#include "Core/Property/IPropertyEditorContext.h"
 #include "UCollisionComponent.h"
 #include "UMeshComponent.h"
 #include "World/AActor.h"
@@ -50,4 +51,11 @@ void UCollisionComponent::Serialize(FArchive& Archive) {
 
 class UMeshComponent* UCollisionComponent::GetMeshComponent() const {
     return nullptr;
+}
+
+void UCollisionComponent::DrawPanels(IPropertyEditorContext& Context) {
+    UPrimitiveComponent::DrawPanels(Context);
+    Context.DrawBool("Collision Enabled", IsCollisionEnabled(), [this](bool BEnabled) {
+        SetCollisionEnabled(BEnabled);
+    });
 }

@@ -1,4 +1,4 @@
-﻿#include "pch.h"
+#include "pch.h"
 #include "FPropertyEditorContext.h"
 
 #include "ImGui/imgui.h"
@@ -8,6 +8,8 @@
 
 #include "Asset/UTexture.h"
 #include "Asset/UMesh.h"
+#include "Asset/UMaterial.h"
+#include "Editor/View/FAssetThumbnailRenderer.h"
 
 #include <array>
 #include <algorithm>
@@ -142,7 +144,13 @@ void FPropertyEditorContext::DrawReferencePicker(const char* Label, const char* 
     ImGui::EndCombo();
 }
 
-void FPropertyEditorContext::DrawAssetPicker(const char* Label, FAssetRegistry& Registry, const FTypeInfo& AssetType, FAssetHandle CurrentHandle, const std::function<void(FAssetHandle)>& Setter) const {
+void FPropertyEditorContext::DrawAssetPicker(const char* Label, const FTypeInfo& AssetType, FAssetHandle CurrentHandle, const std::function<void(FAssetHandle)>& Setter) const {
+    if (mAssetRegistry == nullptr) {
+        ImGui::TextDisabled("%s: Asset registry unavailable", Label);
+        return;
+    }
+
+    FAssetRegistry& Registry{*mAssetRegistry};
     UAsset* Current{Registry.ResolveAsset<UAsset>(CurrentHandle)};
 
     if (Current != nullptr && !Current->GetTypeInfo()->IsA(&AssetType)) {
@@ -286,4 +294,8 @@ bool FPropertyEditorContext::DrawAssetOption(const char* Label, ID3D11ShaderReso
 
 void FPropertyEditorContext::BindThumbnailRenderer(FAssetThumbnailRenderer* InThumbnailRenderer) {
     mThumbnailRenderer = InThumbnailRenderer;
+}
+
+void FPropertyEditorContext::BindAssetRegistry(FAssetRegistry* InAssetRegistry) {
+    mAssetRegistry = InAssetRegistry;
 }

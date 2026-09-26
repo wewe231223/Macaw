@@ -1,4 +1,5 @@
 ﻿#include "pch.h"
+#include "Core/Property/IPropertyEditorContext.h"
 #include "UActorComponent.h"
 #include "../AActor.h"
 #include "Core/Base/ErrorHandler.h"
@@ -105,4 +106,10 @@ void UActorComponent::Serialize(FArchive& Archive) {
     UObject::Serialize(Archive);
 
     Archive.Serialize("bActive", mBActive);
+}
+
+void UActorComponent::DrawPanels(IPropertyEditorContext& Context) {
+    Context.DrawBool("Active", IsActive(), [this](bool BActive) {
+        SetActive(BActive);
+    });
 }

@@ -4,8 +4,7 @@
 
 #include <d3d11.h>
 #include <wrl/client.h>
-
-class UMaterial;
+#include "Asset/UMaterial.h"
 
 struct FMaterialBufferEntry {
     UMaterial* mMaterial{nullptr};

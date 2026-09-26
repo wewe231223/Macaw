@@ -1,4 +1,6 @@
 ﻿#pragma once
+#include "Core/Common.h"
+#include "Math/FMath.h"
 #include "Core/Base/FGuid.h"
 #include "Core/Base/FName.h"
 

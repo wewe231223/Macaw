@@ -5,8 +5,7 @@
 #include "Core/Base/FRenderProbe.h"
 
 #include "Core/Archive/FArchive.h"
-
-class FPropertyEditorContext;
+#include "Core/Property/IPropertyEditorContext.h"
 
 class USubUVComponent : public UBillboardComponent {
 public:
@@ -32,7 +31,7 @@ public:
 
     void Tick(float DeltaTime) override;
 
-    void DrawPanels(FPropertyEditorContext& Context) override;
+    void DrawPanels(IPropertyEditorContext& Context) override;
 
 protected:
     void Serialize(FArchive& Archive) override;

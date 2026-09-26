@@ -3,24 +3,24 @@
 #include "UPrimitiveComponent.h"
 #include "Core/Base/TypeInfo.h"
 #include "Core/Archive/FArchive.h"
-
-class ILineRenderer;
-enum class ELineDepthMode : Uint8;
+#include "Core/Render/ILineDrawContext.h"
+#include "World/Component/UMeshComponent.h"
 
 class UCollisionComponent : public UPrimitiveComponent {
 public:
     UCollisionComponent() = default;
     ~UCollisionComponent() override = default;
 
+public:
     void OnRegister() override;
     void OnUnregister() override;
 
     bool IsCollisionEnabled() const;
     void SetCollisionEnabled(bool BEnabled);
-    void DrawPanels(FPropertyEditorContext& Context) override;
+    void DrawPanels(IPropertyEditorContext& Context) override;
 
     bool Raycast(const FRay& Ray, float& OutDistance) const;
-    virtual void DrawEditorBounds(ILineRenderer& LineRenderer, ELineDepthMode DepthMode) const = 0;
+    virtual void DrawEditorBounds(ILineDrawContext& LineContext, ELineDepthMode DepthMode) const = 0;
 
     void MakeRender(FActorProbe& OutProbe) const override;
 
@@ -28,7 +28,7 @@ public:
 
     virtual bool RaycastBounds(const FRay& Ray, float& OutDistance) const = 0;
 
-    virtual class UMeshComponent* GetMeshComponent() const;
+    virtual UMeshComponent* GetMeshComponent() const;
 
 protected:
     void Serialize(FArchive& Archive) override;

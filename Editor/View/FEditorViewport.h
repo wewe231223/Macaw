@@ -4,14 +4,11 @@
 #include "FViewportGeometry.h"
 #include "Core/Base/FRenderProbe.h"
 #include "Render/FSceneRenderSurface.h"
-
-class EditorViewport;
-class FKeyboardInput;
-class FMouseInput;
-class FWorldEditorContext;
-struct FViewportKeyboardNavigationInput;
-struct FViewportMouseNavigationInput;
-struct ImVec2;
+#include "Editor/View/EditorViewport.h"
+#include "Editor/Input/FKeyboardInput.h"
+#include "Editor/Input/FMouseInput.h"
+#include "World/FWorldEditorContext.h"
+#include "ImGui/imgui.h"
 
 class FEditorViewport {
 public:

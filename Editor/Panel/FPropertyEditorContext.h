@@ -1,38 +1,33 @@
-﻿#pragma once
+#pragma once
 
-#include "PCH.h"
+#include "Core/Property/IPropertyEditorContext.h"
 #include "ImGui/imgui.h"
-#include "Core/Base/FAssetHandle.h"
-#include "Core/Base/FTransform.h"
+#include "Asset/FAssetRegistry.h"
 #include "Editor/View/FAssetThumbnailRenderer.h"
+#include <d3d11.h>
 
-class FAssetRegistry;
-struct FTypeInfo;
-
-struct FPropertyReferenceOption {
-    const void* mId{nullptr};
-    FString mLabel{};
-    bool mBSelected{false};
-    std::function<void()> mOnSelected{};
-};
-
-class FPropertyEditorContext {
+class FPropertyEditorContext final : public IPropertyEditorContext {
 public:
-    bool BeginCategory(const char* Label, bool BDefaultOpen = true) const;
-    void DrawDisabledText(const char* Text) const;
-    void DrawButton(const char* Label, const std::function<void()>& OnClicked) const;
+    FPropertyEditorContext() = default;
+    ~FPropertyEditorContext() override = default;
 
-    void DrawBool(const char* Label, bool Value, const std::function<void(bool)>& Setter) const;
-    void DrawFloat(const char* Label, float Value, float Speed, float Min, float Max, const std::function<void(float)>& Setter) const;
-    void DrawVector2(const char* Label, const FVector2& Value, float Speed, float Min, float Max, const std::function<void(const FVector2&)>& Setter) const;
-    void DrawVector3(const char* Label, const FVector3& Value, float Speed, float Min, float Max, const std::function<void(const FVector3&)>& Setter) const;
-    void DrawColor(const char* Label, const FVector4& Value, const std::function<void(const FVector4&)>& Setter) const;
-    void DrawText(const char* Label, const FString& Value, const std::function<void(const FString&)>& Setter) const;
-    void DrawTransform(const char* Label, const FTransform& Value, const std::function<void(const FTransform&)>& Setter);
+public:
+    bool BeginCategory(const char* Label, bool BDefaultOpen = true) const override;
+    void DrawDisabledText(const char* Text) const override;
+    void DrawButton(const char* Label, const std::function<void()>& OnClicked) const override;
 
-    void DrawReferencePicker(const char* Label, const char* Preview, bool BNoneSelected, const std::function<void()>& ClearSelection, const std::vector<FPropertyReferenceOption>& Options) const;
-    void DrawAssetPicker(const char* Label, FAssetRegistry& Registry, const FTypeInfo& AssetType, FAssetHandle CurrentHandle, const std::function<void(FAssetHandle)>& Setter) const;
+    void DrawBool(const char* Label, bool Value, const std::function<void(bool)>& Setter) const override;
+    void DrawFloat(const char* Label, float Value, float Speed, float Min, float Max, const std::function<void(float)>& Setter) const override;
+    void DrawVector2(const char* Label, const FVector2& Value, float Speed, float Min, float Max, const std::function<void(const FVector2&)>& Setter) const override;
+    void DrawVector3(const char* Label, const FVector3& Value, float Speed, float Min, float Max, const std::function<void(const FVector3&)>& Setter) const override;
+    void DrawColor(const char* Label, const FVector4& Value, const std::function<void(const FVector4&)>& Setter) const override;
+    void DrawText(const char* Label, const FString& Value, const std::function<void(const FString&)>& Setter) const override;
+    void DrawTransform(const char* Label, const FTransform& Value, const std::function<void(const FTransform&)>& Setter) override;
 
+    void DrawReferencePicker(const char* Label, const char* Preview, bool BNoneSelected, const std::function<void()>& ClearSelection, const std::vector<FPropertyReferenceOption>& Options) const override;
+    void DrawAssetPicker(const char* Label, const FTypeInfo& AssetType, FAssetHandle CurrentHandle, const std::function<void(FAssetHandle)>& Setter) const override;
+
+    void BindAssetRegistry(FAssetRegistry* InAssetRegistry);
     void BindThumbnailRenderer(FAssetThumbnailRenderer* InThumbnailRenderer);
 
 private:
@@ -46,6 +41,7 @@ private:
     bool DrawAssetOption(const char* Label, ID3D11ShaderResourceView* Thumbnail, bool BSelected) const;
 
 private:
+    FAssetRegistry* mAssetRegistry{nullptr};
     FAssetThumbnailRenderer* mThumbnailRenderer{nullptr};
 
     ImGuiID mEditingTransformId{0};

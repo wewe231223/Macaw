@@ -1,8 +1,7 @@
 ﻿#pragma once
 #include "UBillboardComponent.h"
-
-class FPropertyEditorContext;
-class FArchive;
+#include "Core/Property/IPropertyEditorContext.h"
+#include "Core/Archive/FArchive.h"
 
 class UScrollUVComponent final : public UBillboardComponent {
 public:
@@ -28,7 +27,7 @@ public:
     void SetScrollSpeed(FVector2 InScrollSpeed);
 
     void Tick(float DeltaTime) override;
-    void DrawPanels(FPropertyEditorContext& Context) override;
+    void DrawPanels(IPropertyEditorContext& Context) override;
     void UpdateUVFromCurrentFrame();
 
 protected:

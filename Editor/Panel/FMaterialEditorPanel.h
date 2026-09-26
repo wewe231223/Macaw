@@ -6,11 +6,10 @@
 #include "Core/Base/FAssetHandle.h"
 #include "Asset/FMaterialGroup.h"
 #include <functional>
-
-class FAssetRegistry;
-class FAssetThumbnailRenderer;
-class FRenderer;
-class USurfaceOpaque;
+#include "Asset/FAssetRegistry.h"
+#include "Editor/View/FAssetThumbnailRenderer.h"
+#include "Render/Renderer.h"
+#include "Asset/USurfaceOpaque.h"
 
 class FMaterialEditorPanel final : public FEditorWindow {
 public:

@@ -6,9 +6,8 @@
 
 #include "ImGui/imgui.h"
 #include <functional>
-
-class FWorldEditorContext;
-class FAssetRegistry;
+#include "World/FWorldEditorContext.h"
+#include "Asset/FAssetRegistry.h"
 
 class FAssetBrowserPanel : public FEditorWindow {
 public:

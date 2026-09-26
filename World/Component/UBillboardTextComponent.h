@@ -6,9 +6,8 @@
 #include "Asset/FAssetPath.h"
 #include "Core/Base/FRenderProbe.h"
 #include "Core/STL.h"
-
-class UFont;
-class FPropertyEditorContext;
+#include "Asset/UFont.h"
+#include "Core/Property/IPropertyEditorContext.h"
 
 class UBillboardTextComponent : public UPrimitiveComponent {
 public:
@@ -44,7 +43,7 @@ public:
     void OnRegister() override;
     void OnUnregister() override;
 
-    void DrawPanels(FPropertyEditorContext& Context) override;
+    void DrawPanels(IPropertyEditorContext& Context) override;
 
 protected:
     virtual bool TryGetTextWorld(FMatrix& OutWorld) const;

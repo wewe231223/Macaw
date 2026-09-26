@@ -5,13 +5,12 @@
 #include "FEditorWindow.h"
 #include "Editor/View/FViewportPresetLayout.h"
 #include "Core/Channel/FEditorSettings.h"
-
-class EditorViewport;
-class FEditorViewport;
-class FKeyboardInput;
-class FMouseInput;
-class FWorldEditorContext;
-struct ID3D11Device;
+#include "Editor/View/EditorViewport.h"
+#include "Editor/View/FEditorViewport.h"
+#include "Editor/Input/FKeyboardInput.h"
+#include "Editor/Input/FMouseInput.h"
+#include "World/FWorldEditorContext.h"
+#include <d3d11.h>
 
 class FViewportHostWindow final : public FEditorWindow {
 public:

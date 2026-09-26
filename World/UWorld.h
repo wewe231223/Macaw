@@ -19,22 +19,17 @@
 #include "FWorldEditorContext.h"
 #include "Core/Channel/Messages/FMousePickRequestMessage.h"
 #include "Core/Channel/FEditorInfo.h"
-
-class AActor;
-class UCameraComponent;
-class UStaticMeshComponent;
-class FAssetRegistry;
-class UCameraSubsystem;
-class UCollisionSubsystem;
-class UPickingSubsystem;
-class URenderSubsystem;
-class UBillboardSubsystem;
-class UTextSubsystem;
-class ULightSubsystem;
-struct FKeyboardCameraMoveRequestMessage;
-struct FMouseCameraRotateRequestMessage;
-struct FMouseCameraMoveRequestMessage;
-struct FMouseCameraDollyRequestMessage;
+#include "World/Subsystem/UCameraSubsystem.h"
+#include "World/Subsystem/UCollisionSubsystem.h"
+#include "World/Subsystem/UPickingSubsystem.h"
+#include "World/Subsystem/URenderSubsystem.h"
+#include "World/Subsystem/UBillboardSubsystem.h"
+#include "World/Subsystem/UTextSubsystem.h"
+#include "World/Subsystem/ULightSubsystem.h"
+#include "Core/Channel/Messages/FKeyboardCameraMoveRequestMessage.h"
+#include "Core/Channel/Messages/FMouseCameraRotateRequestMessage.h"
+#include "Core/Channel/Messages/FMouseCameraMoveRequestMessage.h"
+#include "Core/Channel/Messages/FMouseCameraDollyRequestMessage.h"
 
 class UWorld : public UObject {
 public:

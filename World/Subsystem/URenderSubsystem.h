@@ -3,9 +3,8 @@
 #include "UWorldSubsystem.h"
 
 #include "Core/Base/FRenderProbe.h"
-
-class UStaticMeshComponent;
-class FAssetRegistry;
+#include "World/Component/UStaticMeshComponent.h"
+#include "Asset/FAssetRegistry.h"
 
 /// <summary>Builds render probes from registered StaticMeshComponents.</summary>
 class URenderSubsystem : public UWorldSubsystem {

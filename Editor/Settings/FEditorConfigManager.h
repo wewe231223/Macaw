@@ -1,8 +1,7 @@
 ﻿#pragma once
 #include <filesystem>
 #include "Core/Channel/FEditorSettings.h"
-
-class FAssetRegistry;
+#include "Asset/FAssetRegistry.h"
 
 class FEditorConfigManager {
 public:

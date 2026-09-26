@@ -2,9 +2,9 @@
 
 #include "Core/Base/UObject.h"
 #include "Core/Archive/FArchive.h"
+#include "Core/Property/IPropertyEditorContext.h"
 
 class AActor;
-class FPropertyEditorContext;
 class UWorld;
 
 class UActorComponent : public UObject {
@@ -29,7 +29,7 @@ public:
     virtual void EndPlay();
     virtual void Tick(float DeltaTime);
     virtual void OnUnregister();
-    virtual void DrawPanels(FPropertyEditorContext& Context);
+    virtual void DrawPanels(IPropertyEditorContext& Context);
 
     bool IsActive() const;
     void SetActive(bool BInActive);

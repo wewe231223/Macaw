@@ -1,4 +1,6 @@
 ﻿#include "pch.h"
+#include <cfloat>
+#include "Core/Property/IPropertyEditorContext.h"
 
 #include "ULightComponentBase.h"
 
@@ -32,4 +34,22 @@ void ULightComponentBase::Serialize(FArchive& Archive) {
     Archive.Serialize("LightColor", mLightColor);
     Archive.Serialize("Intensity", mIntensity);
     Archive.Serialize("bVisible", mBVisible);
+}
+
+void ULightComponentBase::DrawPanels(IPropertyEditorContext& Context) {
+    USceneComponent::DrawPanels(Context);
+
+    if (!Context.BeginCategory("Light")) {
+        return;
+    }
+
+    Context.DrawColor("Color", FVector4{mLightColor, 1.0f}, [this](const FVector4& Color) {
+        SetLightColor(FVector3{Color.mX, Color.mY, Color.mZ});
+    });
+    Context.DrawFloat("Intensity", GetIntensity(), 0.1f, 0.0f, FLT_MAX, [this](float InIntensity) {
+        SetIntensity(InIntensity);
+    });
+    Context.DrawBool("Visible", IsVisible(), [this](bool BInVisible) {
+        SetVisible(BInVisible);
+    });
 }

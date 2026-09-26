@@ -4,8 +4,7 @@
 
 #include "Core/Base/FGuid.h"
 #include "Core/Base/TObjectRef.h"
-
-class AActor;
+#include "World/AActor.h"
 
 class UNameTagComponent final : public UBillboardTextComponent {
 public:
@@ -31,7 +30,7 @@ public:
     bool ResolveLoadedReferences() override;
     void RefreshGuidText();
     void OnRegister() override;
-    void DrawPanels(FPropertyEditorContext& Context) override;
+    void DrawPanels(IPropertyEditorContext& Context) override;
 
 private:
     void Serialize(FArchive& Archive) override;

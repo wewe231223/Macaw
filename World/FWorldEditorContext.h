@@ -6,11 +6,11 @@
 #include "Core/Channel/FStateChannel.h"
 #include "Core/Channel/FEditorInfo.h"
 #include "Core/Channel/FEditorSettings.h"
+#include "World/AActor.h"
+#include "Asset/FAssetRegistry.h"
+#include "World/Component/UActorComponent.h"
+#include "World/Component/USceneComponent.h"
 
-class AActor;
-class FAssetRegistry;
-class UActorComponent;
-class USceneComponent;
 class UWorld;
 
 struct FWorldEditorSharedState {

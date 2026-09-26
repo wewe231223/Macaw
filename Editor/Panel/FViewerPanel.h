@@ -8,11 +8,10 @@
 #include "Core/Channel/FMessageChannel.h"
 #include "Core/Base/FAssetHandle.h"
 #include "Editor/View/FLineRenderer.h"
-
-class FWorldEditorContext;
-class FRenderer;
-class FAssetRegistry;
-class FAssetThumbnailRenderer;
+#include "World/FWorldEditorContext.h"
+#include "Render/Renderer.h"
+#include "Asset/FAssetRegistry.h"
+#include "Editor/View/FAssetThumbnailRenderer.h"
 
 class FViewerPanel final : public FEditorWindow {
 public:

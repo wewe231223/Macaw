@@ -1,8 +1,7 @@
 ﻿#pragma once
 
 #include "Math/FMath.h"
-
-class FArchive;
+#include "Core/Archive/FArchive.h"
 
 struct FTransform {
 public:

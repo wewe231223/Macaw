@@ -2,8 +2,7 @@
 
 #include "../Common.h"
 #include "Math/FMath.h"
-
-class FArchive;
+#include "Core/Archive/FArchive.h"
 
 struct FEditorSettings {
     Float32 mMoveSensitivity{5.0f};

@@ -3,8 +3,7 @@
 #include "UPrimitiveComponent.h"
 #include "Asset/FAssetPath.h"
 #include <array>
-
-struct FMatrix;
+#include "Math/FMath.h"
 
 // 카메라를 향하는 Primitive의 공통 기반 클래스.
 // Billboard의 실제 방향 계산은 Shader에서 수행한다.
@@ -33,7 +32,7 @@ public:
 
     bool MakeBillboardRender(FBillboardProbe& OutProbe) const;
     bool GetWorldCorners(const FMatrix& CameraWorld, std::array<FVector3, 4>& OutCorners) const;
-    void DrawPanels(FPropertyEditorContext& Context) override;
+    void DrawPanels(IPropertyEditorContext& Context) override;
 
     void OnRegister() override;
     void OnUnregister() override;

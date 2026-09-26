@@ -11,9 +11,9 @@
 #include "Core/Base/ErrorHandler.h"
 
 #include "Core/Base/FName.h"
+#include "Core/Archive/FArchive.h"
 
 class UObject;
-class FArchive;
 
 namespace UObjectSystem {
 FObjectHandle Register(UObject* Object);

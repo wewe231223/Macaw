@@ -3,8 +3,7 @@
 #include "UWorldSubsystem.h"
 
 #include "Core/Base/TObjectRef.h"
-
-class UPrimitiveComponent;
+#include "World/Component/UPrimitiveComponent.h"
 
 /// <summary>Provides editor picking over registered primitive component volumes.</summary>
 class UPickingSubsystem : public UWorldSubsystem {

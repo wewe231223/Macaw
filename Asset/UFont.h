@@ -4,9 +4,7 @@
 #include "Math/FVector.h"
 #include <array>
 #include <cstdint>
-
-struct ID3D11DeviceContext;
-struct ID3D11ShaderResourceView;
+#include <d3d11.h>
 
 struct FFontGlyph {
     Uint32 mGlyphIndex{0};

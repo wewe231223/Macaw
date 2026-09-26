@@ -7,8 +7,7 @@
 #include "Core/Base/FRenderProbe.h"
 #include "Render/Buffer/FGraphicsBuffer.h"
 #include "Render/Buffer/TGraphicsRootConstants.h"
-
-class FAssetRegistry;
+#include "Asset/FAssetRegistry.h"
 
 struct FBillboardData {
     FMatrix mWorld{};

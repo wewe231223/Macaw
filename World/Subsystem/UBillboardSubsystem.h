@@ -2,9 +2,8 @@
 #include "World/Subsystem/UWorldSubsystem.h"
 
 #include "Core/Base//FRenderProbe.h"
-
-class UBillboardComponent;
-class FAssetRegistry;
+#include "World/Component/UBillboardComponent.h"
+#include "Asset/FAssetRegistry.h"
 
 class UBillboardSubsystem : public UWorldSubsystem {
 public:

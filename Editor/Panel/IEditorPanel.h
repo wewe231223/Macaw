@@ -1,7 +1,6 @@
 ﻿#pragma once
-
-class FRenderer;
-class FAssetRegistry;
+#include "Render/Renderer.h"
+#include "Asset/FAssetRegistry.h"
 
 class IEditorPanel {
 public:

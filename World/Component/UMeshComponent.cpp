@@ -1,4 +1,5 @@
 ﻿#include "pch.h"
+#include "Core/Property/IPropertyEditorContext.h"
 #include "UMeshComponent.h"
 
 #include "World/AActor.h"
@@ -117,4 +118,11 @@ void UMeshComponent::Serialize(FArchive& Archive) {
             mMeshHandle = Registry->FindAsset(mMeshAssetPath);
         }
     }
+}
+
+void UMeshComponent::DrawPanels(IPropertyEditorContext& Context) {
+    UPrimitiveComponent::DrawPanels(Context);
+    Context.DrawAssetPicker("Mesh", *UMesh::StaticTypeInfo(), GetMeshHandle(), [this](FAssetHandle Handle) {
+        SetMeshHandle(Handle);
+    });
 }

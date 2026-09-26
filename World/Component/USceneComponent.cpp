@@ -1,4 +1,5 @@
 ﻿#include "pch.h"
+#include "Core/Property/IPropertyEditorContext.h"
 
 #include "USceneComponent.h"
 #include "World/AActor.h"
@@ -267,4 +268,48 @@ bool USceneComponent::ResolveLoadedReferences() {
 
     mPendingParentGuid = {};
     return true;
+}
+
+void USceneComponent::DrawPanels(IPropertyEditorContext& Context) {
+    UActorComponent::DrawPanels(Context);
+
+    if (Context.BeginCategory("Transform")) {
+        Context.DrawTransform("Relative Transform", GetRelativeTransform(), [this](const FTransform& Transform) {
+            SetRelativeTransform(Transform);
+        });
+    }
+
+    AActor* Actor{GetOwner()};
+    if (Actor == nullptr || !Context.BeginCategory("Attachment")) {
+        return;
+    }
+    if (Actor->GetRootComponent() == this) {
+        Context.DrawDisabledText("Root Component");
+        return;
+    }
+
+    USceneComponent* CurrentParent{GetParent()};
+    const char* Preview{CurrentParent != nullptr ? CurrentParent->GetTypeInfo()->mTypeName.data() : "None"};
+    std::vector<FPropertyReferenceOption> Candidates{};
+    for (const std::unique_ptr<UActorComponent>& Candidate : Actor->GetComponents()) {
+        UActorComponent* CandidateComponent{Candidate.get()};
+        if (CandidateComponent == nullptr || !CandidateComponent->GetTypeInfo()->IsA<USceneComponent>()) {
+            continue;
+        }
+
+        auto* Parent{static_cast<USceneComponent*>(CandidateComponent)};
+        if (Parent == this)
+            continue;
+
+        Candidates.push_back({Parent, FString{Parent->GetTypeInfo()->mTypeName}, Parent == CurrentParent, [this, Parent] {
+                                  AttachToComponent(Parent, EAttachmentTransformRule::KeepWorldTransform);
+                              }});
+    }
+    Context.DrawReferencePicker("Parent", Preview, CurrentParent == nullptr, [this] {
+        DetachFromComponent(EAttachmentTransformRule::KeepWorldTransform);
+    }, Candidates);
+    Context.DrawButton("Make Root Component", [this, Actor] {
+        DetachFromComponent(EAttachmentTransformRule::KeepWorldTransform);
+        Actor->SetRootComponent(this);
+    });
 }

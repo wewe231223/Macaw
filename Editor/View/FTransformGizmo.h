@@ -17,8 +17,7 @@
 
 #include "Editor/Input/FMouseInput.h"
 #include "Editor/Input/FKeyboardInput.h"
-
-class UPrimitiveComponent;
+#include "World/Component/UPrimitiveComponent.h"
 
 class FTransformGizmo {
     enum class EAxis : std::uint8_t { None, X, Y, Z };

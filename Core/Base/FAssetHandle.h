@@ -3,8 +3,7 @@
 #include "Core/Common.h"
 
 #include <limits>
-
-class FArchive;
+#include "Core/Archive/FArchive.h"
 
 struct FAssetHandle {
     Uint32 mId{std::numeric_limits<Uint32>::max()};

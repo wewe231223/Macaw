@@ -26,6 +26,7 @@ FMaterialEditorPanel::FMaterialEditorPanel(FAssetRegistry& InRegistry, FAssetThu
       mRegistry(InRegistry),
       mThumbnailRenderer(InThumbnailRenderer) {
     SetVisible(false);
+    mPropertyEditor.BindAssetRegistry(&InRegistry);
     mPropertyEditor.BindThumbnailRenderer(&InThumbnailRenderer);
 }
 
@@ -148,7 +149,7 @@ void FMaterialEditorPanel::DrawGroup(USurfaceOpaque& Material, Uint32 GroupIndex
 
 void FMaterialEditorPanel::DrawTexture(USurfaceOpaque& Material, Uint32 GroupIndex, const char* Label, FMaterialTextureMap FMaterialGroup::* Member) {
     const FAssetHandle CurrentHandle{(Material.GetGroups()[GroupIndex].*Member).mTexture};
-    mPropertyEditor.DrawAssetPicker(Label, mRegistry, *UTexture::StaticTypeInfo(), CurrentHandle, [this, &Material, GroupIndex, Member](FAssetHandle NewHandle) {
+    mPropertyEditor.DrawAssetPicker(Label, *UTexture::StaticTypeInfo(), CurrentHandle, [this, &Material, GroupIndex, Member](FAssetHandle NewHandle) {
         ModifyGroup(Material, GroupIndex, [Member, NewHandle](FMaterialGroup& Group) {
             FMaterialTextureMap& Map{Group.*Member};
             Map.mTexture = NewHandle;

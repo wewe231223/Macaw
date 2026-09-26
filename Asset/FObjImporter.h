@@ -2,9 +2,8 @@
 #include <d3d11.h>
 
 #include "FObjInfo.h"
-
-class FAssetRegistry;
-class UMesh;
+#include "Asset/FAssetRegistry.h"
+#include "Asset/UMesh.h"
 
 ////OBJ의 v/vt/vn 인덱스 조합 하나 = GPU 정점 하나. 같은 조합이 또 나오면 새 정점을 만들지 않고 재사용한다.
 //struct FFaceVertexKey

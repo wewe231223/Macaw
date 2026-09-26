@@ -29,6 +29,7 @@ FViewerPanel::FViewerPanel(FAssetRegistry& InRegistry, HWND InputWindowHandle, F
       mEditorToWorldSender(std::move(InEditorToWorldSender)),
       mWindowHandle(InputWindowHandle),
       mEditorContext(InEditorContext) {
+    mPropertyEditor.BindAssetRegistry(&InRegistry);
     mPropertyEditor.BindThumbnailRenderer(InThumbnailRenderer);
     SetMesh({});
     SetMaterial({});
@@ -155,10 +156,10 @@ void FViewerPanel::DrawProperties() {
     }
 
     ImGui::TextUnformatted("Preview Assets");
-    mPropertyEditor.DrawAssetPicker("StaticMesh", *mRegistry, *UMesh::StaticTypeInfo(), mMeshHandle, [this](FAssetHandle Handle) {
+    mPropertyEditor.DrawAssetPicker("StaticMesh", *UMesh::StaticTypeInfo(), mMeshHandle, [this](FAssetHandle Handle) {
         SetMesh(Handle);
     });
-    mPropertyEditor.DrawAssetPicker("Material", *mRegistry, *UMaterial::StaticTypeInfo(), mMaterialHandle, [this](FAssetHandle Handle) {
+    mPropertyEditor.DrawAssetPicker("Material", *UMaterial::StaticTypeInfo(), mMaterialHandle, [this](FAssetHandle Handle) {
         SetMaterial(Handle);
     });
 }

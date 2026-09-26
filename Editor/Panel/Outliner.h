@@ -3,8 +3,7 @@
 #include "ImGui/imgui.h"
 #include "Editor/Panel/FEditorWindow.h"
 #include "World/UWorld.h"
-
-class FWorldEditorContext;
+#include "World/FWorldEditorContext.h"
 
 class FOutlinerPanel : public FEditorWindow {
 public:

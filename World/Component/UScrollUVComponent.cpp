@@ -1,4 +1,5 @@
 ﻿#include "pch.h"
+#include "Core/Property/IPropertyEditorContext.h"
 #include "UScrollUVComponent.h"
 
 #include "Core/Archive/FArchive.h"
@@ -57,4 +58,12 @@ void UScrollUVComponent::PauseScrollUV() {
 
 void UScrollUVComponent::SetScrollSpeed(FVector2 InScrollSpeed) {
     mScrollSpeed.mX = InScrollSpeed.mX, mScrollSpeed.mY = InScrollSpeed.mY;
+}
+
+void UScrollUVComponent::DrawPanels(IPropertyEditorContext& Context) {
+    UBillboardComponent::DrawPanels(Context);
+
+    Context.DrawVector2("ScrollSpeed", mScrollSpeed, 0.01f, -5.0f, 5.0f, [this](FVector2 NewSpeed) {
+        SetScrollSpeed(NewSpeed);
+    });
 }

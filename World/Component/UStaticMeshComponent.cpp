@@ -1,4 +1,5 @@
 ﻿#include "pch.h"
+#include "Core/Property/IPropertyEditorContext.h"
 #include "UStaticMeshComponent.h"
 
 #include "Core/Base/FRenderProbe.h"
@@ -123,4 +124,41 @@ void UStaticMeshComponent::Serialize(FArchive& Archive) {
             mPipelineHandle = Registry->FindAsset(mPipelineAssetPath);
         }
     }
+}
+
+void UStaticMeshComponent::DrawPanels(IPropertyEditorContext& Context) {
+    UMeshComponent::DrawPanels(Context);
+
+    Context.DrawAssetPicker("Material", *UMaterial::StaticTypeInfo(), GetMaterialHandle(), [this](FAssetHandle Handle) {
+        SetMaterialHandle(Handle);
+
+        AActor* Owner{GetOwner()};
+        UWorld* World{Owner != nullptr ? Owner->GetWorld() : nullptr};
+        FAssetRegistry* Registry{World != nullptr ? World->GetAssetRegistry() : nullptr};
+        if (Registry == nullptr) {
+            return;
+        }
+
+        const UMaterial* Material{Registry->ResolveAsset<UMaterial>(GetMaterialHandle())};
+        bool HasTexture{};
+        if (Material != nullptr) {
+            for (Uint32 GroupIndex{}; GroupIndex < Material->GetGPUDataCount() && !HasTexture; ++GroupIndex) {
+                const FMaterialChunkSignature Signature{Material->BuildChunkSignature(GroupIndex)};
+                for (Uint8 TextureFieldIndex{}; TextureFieldIndex < Signature.mTextureFieldCount; ++TextureFieldIndex) {
+                    if (Signature.GetTextureHandle(TextureFieldIndex)) {
+                        HasTexture = true;
+                        break;
+                    }
+                }
+            }
+        }
+
+        const FAssetHandle DesiredPipelineHandle{Registry->FindAsset(FAssetPath{HasTexture ? TextureBasePipelinePath : BasePipelinePath})};
+        if (DesiredPipelineHandle != GetPipelineHandle() && Registry->ResolveAsset<UPipeline>(DesiredPipelineHandle) != nullptr) {
+            SetPipelineHandle(DesiredPipelineHandle);
+        }
+    });
+    Context.DrawAssetPicker("Pipeline", *UPipeline::StaticTypeInfo(), GetPipelineHandle(), [this](FAssetHandle Handle) {
+        SetPipelineHandle(Handle);
+    });
 }

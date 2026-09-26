@@ -3,8 +3,7 @@
 #include "UWorldSubsystem.h"
 
 #include "Core/Base/TObjectRef.h"
-
-class UCollisionComponent;
+#include "World/Component/UCollisionComponent.h"
 
 /// <summary>Provides world-space raycasts over registered CollisionComponents.</summary>
 class UCollisionSubsystem : public UWorldSubsystem {
