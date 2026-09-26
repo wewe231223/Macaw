@@ -113,15 +113,6 @@ ConfigureProject("Macaw", "WindowedApp")
     files { "Macaw.cpp", "Macaw.h", "framework.h", "targetver.h", "Resource.h", "Macaw.rc", "Scripts/GenerateGizmoTorus.cpp" }
     ConfigureExecutableLinks()
 
-ConfigureProject("MacawTests", "ConsoleApp")
-    -- 테스트는 실제 엔진 소스를 함께 링크하되, Win32/ImGui 에디터 진입점은 제외한다.
-    files { "Tests/**.h", "Tests/**.cpp" }
-    removefiles { "Tests/TestUndo.cpp" }
-    ConfigureExecutableLinks()
-
--- MacawTests 설정 이후 Macaw 전용 파일 필터를 다시 선택한다.
-project "Macaw"
-
 -- ImGui와 SimpleMath는 PCH를 사용하지 않는다.
 project "Render"
 filter "files:ImGui/**.cpp"
@@ -129,10 +120,6 @@ filter "files:ImGui/**.cpp"
 
 project "Math"
 filter "files:Math/SimpleMath/SimpleMath.cpp"
-    enablepch "Off"
-
-project "MacawTests"
-filter "files:Tests/**.cpp"
     enablepch "Off"
 
 project "Macaw"
