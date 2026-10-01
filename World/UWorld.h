@@ -47,29 +47,40 @@ public:
     bool DestroyActor(AActor* Actor);
     void FlushPendingDestroyActors();
 
+    void AttachActor(AActor* Child, AActor* Parent);
+    void DetachActor(AActor* Actor);
+    bool RenameActor(AActor* Actor, const FName& NewName);
+
     const TArray<std::unique_ptr<AActor>>& GetActors() const;
-    void BuildSceneRenderData(FSceneRenderData& Scene) const;
+
+    void BuildSceneRenderData(FSceneRenderData& Scene);
 
     void SetEditorContext(FWorldEditorContext* InEditorContext);
     FWorldEditorContext* GetEditorContext() const noexcept;
 
     void Tick(float DeltaTime);
+
     FWorldTime& GetTime();
     const FWorldTime& GetTime() const;
 
     URenderSubsystem& GetRenderSubsystem();
     const URenderSubsystem& GetRenderSubsystem() const;
+
     UCollisionSubsystem& GetCollisionSubsystem();
     const UCollisionSubsystem& GetCollisionSubsystem() const;
+
     UPickingSubsystem& GetPickingSubsystem();
     const UPickingSubsystem& GetPickingSubsystem() const;
+
     UCameraSubsystem& GetCameraSubsystem();
     const UCameraSubsystem& GetCameraSubsystem() const;
+
     UBillboardSubsystem& GetBillboardSubsystem();
     const UBillboardSubsystem& GetBillboardSubsystem() const;
 
     UTextSubsystem& GetTextSubsystem();
     const UTextSubsystem& GetTextSubsystem() const;
+
     ULightSubsystem& GetLightSubsystem();
     const ULightSubsystem& GetLightSubsystem() const;
 
@@ -94,15 +105,30 @@ public:
     FName MakeUniqueObjectName(std::string_view SourceName);
     AActor* FindActorByName(FName InName) const;
 
+    void MarkOutlinerDirty();
+    uint64 GetOutlinerRevision() const;
+
 private:
+    friend class FTemporarySceneLoader;
+    friend class AActor;
+
     void ClearActors();
+    void RegisterTickActor(AActor* Actor);
+    void UnregisterTickActor(AActor* Actor);
+    void FinishActorTicks(bool WasTicking);
     void InitializeSubsystems();
     void DeinitializeSubsystems();
 
 private:
+    uint64 mOutlinerRevision{};
+
     FWorldTime mTime{};
+
     TArray<std::unique_ptr<AActor>> mActors{};
     TArray<AActor*> mPendingDestroyActors{};
+    TArray<AActor*> mTickActors{};
+    bool mBTickingActors{};
+    bool mTickActorsNeedCompaction{};
 
     TArray<UStaticMeshComponent*> mRenderableComponents{};
     TArray<TObjectRef<UCollisionComponent>> mCollisionComponents{};

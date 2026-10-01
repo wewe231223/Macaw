@@ -1,7 +1,10 @@
 #include "pch.h"
 #include "UWorld.h"
+#include "FTemporarySceneLoader.h"
+#include "Core/Stat/Stat.h"
 
 #include <algorithm>
+#include <cmath>
 #include <random>
 
 #include "AActor.h"
@@ -31,6 +34,7 @@
 #include "Core/Channel/FEditorInfo.h"
 #include "Asset/Pipeline/UPipeline.h"
 #include "Asset/UMesh.h"
+#include "Asset/FAssetRegistry.h"
 
 #include "Serialization/FArchiveJson.h"
 #include "../Core/Base/TypeRegistry.h"
@@ -119,30 +123,106 @@ bool UWorld::DestroyActor(AActor* Actor) {
     return true;
 }
 
-void UWorld::FlushPendingDestroyActors() {
-    for (AActor* Actor : mPendingDestroyActors) {
-        if (Actor == nullptr) {
-            continue;
-        }
+void UWorld::FlushPendingDestroyActors() 
+{
+    if (mBTickingActors) {
+        return;
+    }
+
+    bool bRemovedAnyActor = false;
+
+    for (AActor* Actor : mPendingDestroyActors) 
+    {
+        if (Actor == nullptr) {continue;}
 
         auto It{std::ranges::find_if(mActors, [Actor](const std::unique_ptr<AActor>& Ptr) {
             return Ptr.get() == Actor;
         })};
 
-        if (It == mActors.end()) {
-            continue;
-        }
+        if (It == mActors.end()) { continue; }
 
         if (mEditorContext != nullptr && mEditorContext->GetSelectedActor() == Actor) {
             mEditorContext->ClearSelection();
         }
+
         Actor->SetWorld(nullptr);
         UObjectSystem::Unregister(Actor, Actor->GetHandle());
 
         mActors.erase(It);
+        bRemovedAnyActor = true;
     }
 
     mPendingDestroyActors.clear();
+    if (bRemovedAnyActor) { MarkOutlinerDirty(); }
+}
+
+void UWorld::AttachActor(AActor* Child, AActor* Parent)
+{
+    if (Child == nullptr || Parent == nullptr || Child == Parent)
+    {
+        return;
+    }
+
+    USceneComponent* ChildRoot = Child->GetRootComponent();
+    USceneComponent* ParentRoot = Parent->GetRootComponent();
+
+    if (ChildRoot == nullptr || ParentRoot == nullptr)
+    {
+        return;
+    }
+
+    // 이미 같은 부모라면 변경 없음
+    if (ChildRoot->GetParent() == ParentRoot)
+    {
+        return;
+    }
+
+    ChildRoot->AttachToComponent(ParentRoot);
+    MarkOutlinerDirty();
+}
+
+void UWorld::DetachActor(AActor* Actor)
+{
+    if (Actor == nullptr)
+    {
+        return;
+    }
+
+    USceneComponent* RootComponent = Actor->GetRootComponent();
+
+    if (RootComponent == nullptr)
+    {
+        return;
+    }
+
+    if (RootComponent->DetachFromComponent(EAttachmentTransformRule::KeepWorldTransform))
+    {
+        MarkOutlinerDirty();
+    }
+}
+
+bool UWorld::RenameActor(AActor* Actor, const FName& NewName)
+{
+    if (Actor == nullptr)
+    {
+        return false;
+    }
+
+    if (Actor->GetWorld() != this)
+    {
+        return false;
+    }
+
+    if (Actor->GetName() == NewName)
+    {
+        return false;
+    }
+
+    Actor->SetName(NewName);
+
+    MarkOutlinerDirty();
+
+    return true;
 }
 
 const TArray<std::unique_ptr<AActor>>& UWorld::GetActors() const {
@@ -208,11 +288,20 @@ const ULightSubsystem& UWorld::GetLightSubsystem() const {
     return *mLightSubsystem;
 }
 
-void UWorld::BuildSceneRenderData(FSceneRenderData& Scene) const {
+void UWorld::BuildSceneRenderData(FSceneRenderData& Scene) {
     mRenderSubsystem->BuildRenderProbes(Scene);
+
     mLightSubsystem->BuildLightProbes(Scene);
     mTextSubsystem->BuildTextProbes(Scene);
     mBillboardSubsystem->BuildRenderProbes(Scene);
+}
+
+void UWorld::MarkOutlinerDirty() {
+    ++mOutlinerRevision;
+}
+
+uint64 UWorld::GetOutlinerRevision() const {
+    return mOutlinerRevision;
 }
 
 void UWorld::SetEditorContext(FWorldEditorContext* InEditorContext) {
@@ -230,13 +319,77 @@ FWorldEditorContext* UWorld::GetEditorContext() const noexcept {
 void UWorld::Tick(float DeltaTime) {
     mTime.Tick(static_cast<double>(DeltaTime));
     const float WorldDeltaTime{static_cast<float>(mTime.GetDeltaSeconds())};
-    if (WorldDeltaTime > 0.0f) {
-        for (const std::unique_ptr<AActor>& Actor : mActors) {
-            Actor->Tick(WorldDeltaTime);
+    if (WorldDeltaTime > 0.0f && !mTickActors.empty()) {
+        const Stat::FScopedWorldTickStatTimer TickStat{0};
+        Stat::FWorldTickStats* TickStats{Stat::GetActiveWorldTickStats()};
+        const bool WasTicking{mBTickingActors};
+        mBTickingActors = true;
+        const std::size_t ActorCount{mTickActors.size()};
+        try {
+            for (std::size_t Index{}; Index < ActorCount && Index < mTickActors.size(); ++Index) {
+                AActor* Actor{mTickActors[Index]};
+                if (Actor == nullptr) {
+                    continue;
+                }
+                if (TickStats != nullptr) {
+                    ++TickStats->mActorTickCount;
+                }
+                if (Actor->IsTickEnabled()) {
+                    Actor->Tick(WorldDeltaTime);
+                } else {
+                    Actor->AActor::Tick(WorldDeltaTime);
+                }
+            }
+        } catch (...) {
+            FinishActorTicks(WasTicking);
+            throw;
         }
+        FinishActorTicks(WasTicking);
     }
 
     FlushPendingDestroyActors();
+}
+
+void UWorld::RegisterTickActor(AActor* Actor) {
+    if (Actor->mTickIndex != std::numeric_limits<std::size_t>::max()) {
+        return;
+    }
+
+    mTickActors.push_back(Actor);
+    Actor->mTickIndex = mTickActors.size() - 1;
+}
+
+void UWorld::UnregisterTickActor(AActor* Actor) {
+    const std::size_t Index{Actor->mTickIndex};
+    if (Index == std::numeric_limits<std::size_t>::max()) {
+        return;
+    }
+
+    Actor->mTickIndex = std::numeric_limits<std::size_t>::max();
+    if (mBTickingActors) {
+        mTickActors[Index] = nullptr;
+        mTickActorsNeedCompaction = true;
+    } else {
+        if (Index + 1 < mTickActors.size()) {
+            AActor* LastActor{mTickActors.back()};
+            mTickActors[Index] = LastActor;
+            LastActor->mTickIndex = Index;
+        }
+        mTickActors.pop_back();
+    }
+}
+
+void UWorld::FinishActorTicks(bool WasTicking) {
+    mBTickingActors = WasTicking;
+    if (WasTicking || !mTickActorsNeedCompaction) {
+        return;
+    }
+
+    std::erase(mTickActors, nullptr);
+    for (std::size_t Index{}; Index < mTickActors.size(); ++Index) {
+        mTickActors[Index]->mTickIndex = Index;
+    }
+    mTickActorsNeedCompaction = false;
 }
 
 FWorldTime& UWorld::GetTime() {
@@ -326,6 +479,24 @@ bool UWorld::SaveScene(const FString& SceneName, const IAssetRegistry* AssetRegi
 }
 
 bool UWorld::LoadScene(const std::filesystem::path& ScenePath) {
+    const auto FinishLoad = [this]() {
+        if (!GetPickingSubsystem().RebuildAccelerationStructure()) Console::AddLog(Console::STDOutHandle, ELogLevel::Warning, ELogCategory::Etc, "Failed to rebuild the picking acceleration structure after loading the scene.");
+        return true;
+    };
+    if (ScenePath.extension() == ".scene") {
+        FAssetRegistry* Registry{dynamic_cast<FAssetRegistry*>(mAssetRegistryMutator)};
+        if (Registry == nullptr) {
+            return false;
+        }
+
+        FTemporarySceneLoader Loader{};
+        const bool Loaded{Loader.Load(ScenePath, *this, *Registry)};
+        if (!Loaded) {
+            Console::AddLog(Console::STDOutHandle, ELogLevel::Error, ELogCategory::Etc, "Failed to load temporary scene: %s", ScenePath.generic_string().c_str());
+        }
+        return Loaded ? FinishLoad() : false;
+    }
+
     std::ifstream InputFileStream{ScenePath};
     if (!InputFileStream.is_open()) {
         return false;
@@ -413,11 +584,12 @@ bool UWorld::LoadScene(const std::filesystem::path& ScenePath) {
         Actor->SetWorld(this);
     }
 
-    return true;
+    return FinishLoad();
 }
 
 void UWorld::HandleMousePickRequest(const FMousePickRequestMessage& Message) {
     if (Message.mViewportWidth != 0 && Message.mViewportHeight != 0) {
+        const Stat::FScopedPickingStatTimer PickingTimer{};
         const float NdcX{(2.0f * (static_cast<float>(Message.mScreenX) - static_cast<float>(Message.mViewportLeft)) / static_cast<float>(Message.mViewportWidth)) - 1.0f};
         const float NdcY{1.0f - (2.0f * (static_cast<float>(Message.mScreenY) - static_cast<float>(Message.mViewportTop)) / static_cast<float>(Message.mViewportHeight))};
 
@@ -437,9 +609,12 @@ void UWorld::HandleMousePickRequest(const FMousePickRequestMessage& Message) {
             FMatrix CameraWorld{};
             if (!Message.mView.TryInverse(CameraWorld))
                 return;
-            if (GetPickingSubsystem().Raycast(FRay{RayOrigin.ToSimpleMath(), RayDirection.ToSimpleMath()}, NearestPrimitive, NearestDistance, &CameraWorld)) {
+            GetPickingSubsystem().Raycast(FRay{RayOrigin.ToSimpleMath(), RayDirection.ToSimpleMath()}, NearestPrimitive, NearestDistance, &CameraWorld);
+#if defined(MacawEnablePickingLog) && MacawEnablePickingLog
+            if (NearestPrimitive != nullptr) {
                 Console::AddLog(Console::STDOutHandle, ELogLevel::Log, ELogCategory::Etc, "Raycast hit primitive component %f", NearestDistance);
             }
+#endif
 
             AActor* PreviousActor{mEditorContext != nullptr ? mEditorContext->GetSelectedActor() : nullptr};
             AActor* SelectedActor{NearestPrimitive != nullptr ? NearestPrimitive->GetOwner() : nullptr};
@@ -473,33 +648,24 @@ void UWorld::HandleMouseCameraRotateRequest(const FMouseCameraRotateRequestMessa
 
     const FEditorSettings Settings{mEditorContext != nullptr ? mEditorContext->GetEditorSettings() : FEditorSettings{}};
     const float RotationSensitivity{Settings.mRotationSensitivity * 0.001f};
-    constexpr float MaximumPitch{0.99f};
-    FTransform& CameraTransform{Camera->GetRelativeTransform()};
-    const FQuat CurrentRotation{CameraTransform.GetRotationQuaternion()};
-    FQuat YawDelta{FQuat::CreateFromAxisAngle(FVector3::UnitZ, Message.DeltaX * RotationSensitivity)};
-    YawDelta.Normalize();
-
-    FQuat YawedRotation{FQuat::Concatenate(YawDelta, CurrentRotation)};
-    YawedRotation.Normalize();
-    FTransform YawedTransform{};
-    YawedTransform.SetRotation(YawedRotation);
-    const FMatrix YawMatrix{YawedTransform.ToMatrixWithScale()};
-    FVector3 Right{YawMatrix.Right()};
-    FVector3 Forward{YawMatrix.Forward()};
-    Right.Normalize();
+    constexpr float MaximumForwardUp{0.99f};
+    FTransform CameraTransform{Camera->GetRelativeTransform()};
+    FVector3 Forward{CameraTransform.ToMatrixNoScale().Forward()};
     Forward.Normalize();
 
-    float PitchAngle{Message.DeltaY * RotationSensitivity};
-    const float ForwardUp{Forward.Dot(FVector3::UnitZ)};
-    if ((ForwardUp > MaximumPitch && Message.DeltaY > 0.0f) || (ForwardUp < -MaximumPitch && Message.DeltaY < 0.0f)) {
-        PitchAngle = 0.0f;
-    }
+    const float CurrentYaw{std::atan2(Forward.mY, Forward.mX)};
+    const float CurrentElevation{std::asin(std::clamp(Forward.mZ, -1.0f, 1.0f))};
+    const float MaximumElevation{std::asin(MaximumForwardUp)};
+    const float NewYaw{CurrentYaw + Message.DeltaX * RotationSensitivity};
+    const float NewElevation{std::clamp(CurrentElevation + Message.DeltaY * RotationSensitivity, -MaximumElevation, MaximumElevation)};
 
-    FQuat PitchDelta{FQuat::CreateFromAxisAngle(Right, PitchAngle)};
-    PitchDelta.Normalize();
-    FQuat WorldDelta{FQuat::Concatenate(PitchDelta, YawDelta)};
-    WorldDelta.Normalize();
-    CameraTransform.SetRotation(FQuat::Concatenate(WorldDelta, CurrentRotation));
+    const FQuat YawRotation{FQuat::CreateFromAxisAngle(FVector3::UnitZ, NewYaw)};
+    const FQuat PitchRotation{FQuat::CreateFromAxisAngle(FVector3::UnitY, -NewElevation)};
+    FQuat NewRotation{FQuat::Concatenate(YawRotation, PitchRotation)};
+    NewRotation.Normalize();
+    CameraTransform.SetRotation(NewRotation);
+
+    Camera->SetRelativeTransform(CameraTransform);
 }
 
 void UWorld::HandleKeyboardCameraMoveRequest(const FKeyboardCameraMoveRequestMessage& Message) {
@@ -509,15 +675,15 @@ void UWorld::HandleKeyboardCameraMoveRequest(const FKeyboardCameraMoveRequestMes
     }
 
     const FMatrix CameraWorldMatrix{Camera->GetComponentToWorld()};
-    FVector3 MoveDirection{CameraWorldMatrix.Forward() * Message.ForwardAxis - CameraWorldMatrix.Right() * Message.RightAxis};
+    FVector3 MoveDirection{CameraWorldMatrix.Forward() * Message.ForwardAxis + CameraWorldMatrix.Right() * Message.RightAxis};
     if (MoveDirection.LengthSquared() <= 0.0f) {
         return;
     }
 
     MoveDirection.Normalize();
     const FEditorSettings Settings{mEditorContext != nullptr ? mEditorContext->GetEditorSettings() : FEditorSettings{}};
-    FTransform& CameraTransform{Camera->GetRelativeTransform()};
-    CameraTransform.SetPosition(CameraTransform.GetPosition() + MoveDirection * Settings.mMoveSensitivity * Message.DeltaTime);
+
+    Camera->SetRelativeLocation(Camera->GetRelativeLocation() + MoveDirection * Settings.mMoveSensitivity * Message.DeltaTime);
 }
 
 void UWorld::HandleMouseCameraMoveRequestMessage(const FMouseCameraMoveRequestMessage& Message) {
@@ -533,9 +699,9 @@ void UWorld::HandleMouseCameraMoveRequestMessage(const FMouseCameraMoveRequestMe
     Up.Normalize();
     const FEditorSettings Settings{mEditorContext != nullptr ? mEditorContext->GetEditorSettings() : FEditorSettings{}};
     const float PanScale{Settings.mMoveSensitivity * 0.01f};
-    FTransform& CameraTransform{Camera->GetRelativeTransform()};
     const FVector3 Offset{Right * (-Message.DeltaX * PanScale) + Up * (-Message.DeltaY * PanScale)};
-    CameraTransform.SetPosition(CameraTransform.GetPosition() + Offset);
+
+    Camera->SetRelativeLocation(Camera->GetRelativeLocation() + Offset);
 }
 
 void UWorld::HandleMouseCameraDollyRequestMessage(const FMouseCameraDollyRequestMessage& Message) {
@@ -548,8 +714,8 @@ void UWorld::HandleMouseCameraDollyRequestMessage(const FMouseCameraDollyRequest
     ForwardDirection.Normalize();
     const FEditorSettings Settings{mEditorContext != nullptr ? mEditorContext->GetEditorSettings() : FEditorSettings{}};
     const float DollySpeed{Settings.mMoveSensitivity * 0.3f};
-    FTransform& CameraTransform{Camera->GetRelativeTransform()};
-    CameraTransform.SetPosition(CameraTransform.GetPosition() + ForwardDirection * (Message.Steps * DollySpeed));
+
+    Camera->SetRelativeLocation(Camera->GetRelativeLocation() + ForwardDirection * (Message.Steps * DollySpeed));
 }
 #endif
 
@@ -567,6 +733,8 @@ AActor* UWorld::AddActor(std::unique_ptr<AActor> InActor) {
     mActors.push_back(std::move(InActor));
 
     Actor->SetWorld(this);
+
+    MarkOutlinerDirty();
 
     return Actor;
 }

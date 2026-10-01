@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include "UPrimitiveComponent.h"
+#include "FMeshPickingProxy.h"
 #include "Core/Base/FAssetHandle.h"
 #include "Core/Asset/FAssetPath.h"
 #include "Core/Base/FGuid.h"
@@ -21,12 +22,15 @@ public:
 
     virtual const UMesh* ResolveMesh() const;
     bool BuildPickingBoxFromMesh();
-    bool RaycastMesh(const FRay& Ray, float& OutDistance) const;
+    bool RaycastMesh(const FRay& Ray, float& OutDistance, float MaxDistance = std::numeric_limits<float>::max()) const;
 
 protected:
     void Serialize(FArchive& Archive) override;
 
 private:
+    mutable FMeshPickingProxy mRaycastProxy;
+    mutable Uint64 mRaycastTransformRevision = 0;
+    mutable bool mRaycastTransformInitialized = false;
     FAssetHandle mMeshHandle{};
     FAssetPath mMeshAssetPath{};
     FGuid mMeshAssetGuid{};

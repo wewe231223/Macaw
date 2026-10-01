@@ -2,6 +2,7 @@
 
 #include "FAssetThumbnailRenderer.h"
 #include "Render/Renderer.h"
+#include "Core/Stat/Stat.h"
 
 #include "Asset/UMaterial.h"
 #include "Asset/UMesh.h"
@@ -56,6 +57,10 @@ void FAssetThumbnailRenderer::Tick(Uint32 MaxThumbnailCount) {
     }
 }
 
+float FAssetThumbnailRenderer::GetGenerationProgress() const {
+    return mPendingAssetHandles.empty() ? 1.0f : static_cast<float>(mPendingAssetIndex) / static_cast<float>(mPendingAssetHandles.size());
+}
+
 void FAssetThumbnailRenderer::RenderThumbnail(FAssetHandle AssetHandle) {
     const FAssetEntry* Entry{FindAssetEntry(AssetHandle)};
 
@@ -76,6 +81,7 @@ void FAssetThumbnailRenderer::RenderMaterialPreview(FAssetHandle MaterialHandle,
 }
 
 void FAssetThumbnailRenderer::RenderThumbnail(const FAssetEntry& Entry, FSceneRenderSurface* PreviewSurface) {
+    const Stat::FScopedSystemStatTimer StageStat{ Stat::ESystemStatStage::PreviewRender };
     if (mRenderer == nullptr || mAssetRegistry == nullptr || Entry.mAsset == nullptr) {
         return;
     }
@@ -103,9 +109,13 @@ void FAssetThumbnailRenderer::RenderThumbnail(const FAssetEntry& Entry, FSceneRe
     }
 
     ActorProbe.mWorld = BuildMeshTransform(*Mesh);
+    Mesh->GetBoundingBox().Transform(ActorProbe.mWorldOBB, ActorProbe.mWorld.ToSimpleMath());
+    DirectX::BoundingSphere::CreateFromBoundingBox(ActorProbe.mWorldSphereBounds, ActorProbe.mWorldOBB);
+    DirectX::BoundingBox::CreateFromSphere(ActorProbe.mWorldAABB, ActorProbe.mWorldSphereBounds);
 
     FSceneRenderData Scene{};
-    Scene.mActorProbes.push_back(ActorProbe);
+    Scene.mSceneId = mRenderSceneId;
+    Scene.mObjectUpdates.push_back(FRenderObjectUpdate{FObjectHandle{0, 1}, ActorProbe, false});
 
     FLightProbe LightProbe{};
     LightProbe.mType = ELightType::Directional;
@@ -137,9 +147,11 @@ void FAssetThumbnailRenderer::RenderThumbnail(const FAssetEntry& Entry, FSceneRe
     FRenderView View{};
     View.mTarget = Surface;
     View.mCamera = BuildCamera();
+    View.mUseLOD = true;
     View.mSettings = RenderSettings;
     View.mPasses.reset();
     View.SetPassEnabled(ERenderPass::SceneGeometry, true);
+    Scene.mRevision = ++mRenderSceneRevision;
     mRenderer->RenderView(View, Scene);
 }
 
@@ -206,6 +218,10 @@ CameraProbe FAssetThumbnailRenderer::BuildCamera() const {
     Camera.mProjection = FMatrix::CreatePerspectiveFieldOfView(0.610865f, 1.0f, 0.1f, 100.0f);
 
     Camera.mViewProjection = Camera.mView * Camera.mProjection;
+
+    FFrustum LocalFrustum{};
+    FFrustum::CreateFromMatrix(LocalFrustum, Camera.mProjection.ToSimpleMath());
+    LocalFrustum.Transform(Camera.mViewFrustum, Camera.mView.Inverse().ToSimpleMath());
 
     return Camera;
 }

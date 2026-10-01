@@ -1,8 +1,4 @@
-struct FModelContext {
-    row_major float4x4 World;
-    uint MaterialIndex;
-    uint Flags;
-};
+#include "ModelResource.hlsli"
 
 struct FSurfaceOpaqueMaterial {
     float4 DiffuseColorAndOpacity;
@@ -17,12 +13,10 @@ struct FSurfaceOpaqueMaterial {
     float4 Reserved2;
 };
 
-StructuredBuffer<FModelContext> ModelContexts : register(t0);
 StructuredBuffer<FSurfaceOpaqueMaterial> MaterialBuffer : register(t1);
 #include "Lighting.hlsli"
 
 #include "FrameResource.hlsli"
-#include "MeshDraw.hlsli"
 
 struct VS_INPUT {
     float3 Position : POSITION;
@@ -36,36 +30,34 @@ struct PS_INPUT {
     float2 UV : TEXCOORD0;
     float3 WorldPosition : TEXCOORD1;
     nointerpolation uint MaterialIndex : Jungle1;
+    nointerpolation float LODDither : TEXCOORD7;
     nointerpolation float3 ColorCoefficient : Jungle2;
-    nointerpolation uint Flags : Jungle3;
 };
 
-PS_INPUT mainVS(VS_INPUT Input, uint InstanceID : SV_InstanceID) {
+PS_INPUT mainVS(VS_INPUT Input, uint DrawRecordIndex : MODEL_INDEX) {
     PS_INPUT Output;
 
-    FModelContext ModelContext = ModelContexts[ModelContextStart + InstanceID];
+    FModelContext ModelContext = {GetModelContext(DrawRecordIndex)};
 
-    float4 WorldPosition = mul(float4(Input.Position, 1.0f), ModelContext.World);
+    float4 WorldPosition = mul(float4(Input.Position, 1.0f), ModelContext.mWorld);
 
     Output.Position = mul(WorldPosition, ViewProjection);
-    Output.Normal = mul(Input.Normal, (float3x3) ModelContext.World);
+    Output.Normal = mul(Input.Normal, (float3x3) ModelContext.mWorld);
     Output.UV = Input.UV;
     Output.WorldPosition = WorldPosition.xyz;
-    Output.MaterialIndex = ModelContext.MaterialIndex;
-    Output.Flags = ModelContext.Flags;
+    Output.MaterialIndex = ModelContext.mMaterialIndex;
+    Output.LODDither = ModelContext.mLODDither;
     Output.ColorCoefficient = float3(1.0f, 1.0f, 1.0f);
+
     return Output;
 }
 
 float4 mainPS(PS_INPUT Input) : SV_TARGET {
+    ApplyLODDither(Input.Position.xy, Input.LODDither);
     FSurfaceOpaqueMaterial Material = MaterialBuffer[Input.MaterialIndex];
     float4 BaseColor = Material.DiffuseColorAndOpacity;
 
-    if ((Input.Flags & 2u) != 0) {
-        BaseColor.rgb *= Input.ColorCoefficient;
-    }
-    else {
-        BaseColor.rgb *= Input.ColorCoefficient * CalculateDirectLighting(Input.WorldPosition, Input.Normal, LightCount);
-    }
+    BaseColor.rgb *= Input.ColorCoefficient * CalculateDirectLighting(Input.WorldPosition, Input.Normal, LightCount);
+    
     return BaseColor;
 }

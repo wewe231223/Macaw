@@ -2,6 +2,7 @@
 #include "FAssetRegistry.h"
 
 #include "UFreeTypeFont.h"
+#include "FLODSettings.h"
 #include "UMesh.h"
 #include "USurfaceOpaque.h"
 #include "UTexture.h"
@@ -40,7 +41,7 @@ bool FAssetRegistry::Initialize(ID3D11Device* Device, Uint32 MaxMaterialCount, c
         return false;
     }
 
-    this->mDevice = mDevice;
+    mDevice = Device;
     if (ProgressCallback) {
         ProgressCallback(0.0f, "Discovering assets");
     }
@@ -238,7 +239,7 @@ FAssetHandle FAssetRegistry::ImportMesh(const std::filesystem::path& SourceObjPa
 
     FObjImporter Importer{};
     FGeometry Geometry{};
-    if (!Importer.LoadObjFile(AbsoluteSourcePath.string().c_str(), Geometry, ImportEntry.mMeshMetadata.mFlipUV) || !FObjSerializer::SaveBinary(Geometry, TargetBinaryPath.string().c_str())) {
+    if (!Importer.LoadObjFile(AbsoluteSourcePath.string().c_str(), Geometry) || !FObjSerializer::SaveBinary(Geometry, TargetBinaryPath.string().c_str())) {
         std::filesystem::remove(TargetBinaryPath, ErrorCode);
         if (!SidecarExists) {
             std::filesystem::remove(TargetSidecarPath, ErrorCode);
@@ -307,8 +308,31 @@ FAssetHandle FAssetRegistry::LoadViewerAsset(const std::filesystem::path& Source
         Asset = std::move(Material);
     } else {
         std::unique_ptr<UMesh> Mesh{std::make_unique<UMesh>()};
-        const std::filesystem::path ObjPath{Extension == ".obj" ? AbsolutePath : std::filesystem::path{}};
+        std::filesystem::path ObjPath{Extension == ".obj" ? AbsolutePath : std::filesystem::path{}};
         const std::filesystem::path BinPath{Extension == ".bin" ? AbsolutePath : std::filesystem::path{}};
+        bool FlipUV{false};
+        if (Extension == ".bin") {
+            ObjPath = AbsolutePath;
+            ObjPath.replace_extension(".obj");
+            if (!std::filesystem::is_regular_file(ObjPath, ErrorCode)) {
+                ObjPath.clear();
+            }
+            if (ErrorCode) {
+                return {};
+            }
+
+            const std::filesystem::path SidecarPath{MakeSidecarPath(AbsolutePath)};
+            if (std::filesystem::is_regular_file(SidecarPath, ErrorCode)) {
+                FAssetEntry Metadata{};
+                if (!LoadOrCreateMetadata(SidecarPath, EAssetType::Mesh, Metadata)) {
+                    return {};
+                }
+                FlipUV = Metadata.mMeshMetadata.mFlipUV;
+            }
+            if (ErrorCode) {
+                return {};
+            }
+        }
         if (!Mesh->Initialize(mDevice, ObjPath, BinPath, [this](const std::filesystem::path& MaterialPath) {
                 return LoadViewerAsset(MaterialPath);
             },
@@ -316,7 +340,7 @@ FAssetHandle FAssetRegistry::LoadViewerAsset(const std::filesystem::path& Source
                                   const UMaterial* Material{ResolveAsset<UMaterial>(MaterialHandle)};
                                   return Material != nullptr ? Material->FindGroupIndex(GroupName) : std::nullopt;
                               },
-                              false)) {
+                              FlipUV)) {
             return {};
         }
         Asset = std::move(Mesh);
@@ -532,8 +556,12 @@ bool FAssetRegistry::LoadMesh(FAssetEntry& Entry, ID3D11Device* Device) {
 
     const bool BBinaryAsset{GetLowercaseExtension(Entry.mPhysicalPath) == ".bin"};
 
-    std::filesystem::path SourceObjPath{std::filesystem::current_path() / "OBJFiles" / Entry.mPhysicalPath.filename()};
+    std::filesystem::path SourceObjPath{Entry.mPhysicalPath};
     SourceObjPath.replace_extension(".obj");
+    if (!std::filesystem::is_regular_file(SourceObjPath)) {
+        SourceObjPath = std::filesystem::current_path() / "OBJFiles" / Entry.mPhysicalPath.filename();
+        SourceObjPath.replace_extension(".obj");
+    }
 
     std::filesystem::path BinaryPath{Entry.mPhysicalPath};
     if (!BBinaryAsset) {
@@ -556,6 +584,26 @@ bool FAssetRegistry::LoadMesh(FAssetEntry& Entry, ID3D11Device* Device) {
     if (!BInitialized) {
         Console::AddLog(Console::STDOutHandle, ELogLevel::Error, ELogCategory::Etc, "Failed to load model: %s", Entry.mPhysicalPath.generic_string().c_str());
         return false;
+    }
+
+    // 설정된 비율로 LOD1부터 마지막 LOD까지 생성한다.
+    for (Uint32 Level{ 1 }; Level < GLODCount; ++Level)
+    {
+        const float TargetRatio{ GLODSettings[Level].mTargetRatio };
+
+        if (!Mesh->GenerateLOD(Device, Level, TargetRatio))
+        {
+            Console::AddLog(Console::STDOutHandle, ELogLevel::Warning, ELogCategory::Etc,
+                "Failed to generate LOD%u: %s", Level, Entry.mPhysicalPath.generic_string().c_str());
+            continue;
+        }
+
+        Console::AddLog(Console::STDOutHandle, ELogLevel::Log, ELogCategory::Etc,
+            "Generated LOD%u: %s (%u -> %u triangles)", Level,
+            Entry.mPhysicalPath.generic_string().c_str(),
+            Mesh->GetIndexCount(0) / 3,
+            Mesh->GetIndexCount(Level) / 3
+        );
     }
 
     Console::AddLog(Console::STDOutHandle, ELogLevel::Log, ELogCategory::Etc, "Loaded model: %s", Entry.mPhysicalPath.generic_string().c_str());

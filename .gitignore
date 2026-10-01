@@ -76,6 +76,7 @@ StyleCopReport.xml
 *.ilk
 *.obj
 !OBJFiles/**/*.obj
+!Content/**/*.obj
 *.bin
 !Content/**/*.bin
 *.iobj
@@ -387,3 +388,5 @@ FodyWeavers.xsd
 # Locally restored vcpkg tool and packages
 /.tools/
 /vcpkg_installed/
+imgui.ini
+Tests

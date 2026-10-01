@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "FApplication.h"
 #include "Core/Stat/Stat.h"
+#include "Core/Spatial/FBVH8.h"
 
 #include "Resource.h"
 #include "Render/FLoadingScreen.h"
@@ -30,6 +31,7 @@ FApplication::~FApplication() {
 }
 
 int FApplication::Run(HINSTANCE Instance, int ShowCommand) {
+    BVH8::Initialize();
     if (!RegisterWindowClass(Instance) || !CreateApplicationWindow(Instance, ShowCommand)) {
         return FALSE;
     }
@@ -51,7 +53,14 @@ int FApplication::Run(HINSTANCE Instance, int ShowCommand) {
     const HWND WindowHandle{mWindowState.mWindowHandle};
     const bool Loaded{LoadingScreen.Run(mContext.mRenderer, AcceleratorTable, [this, WindowHandle](FLoadingProgress& Progress) {
         return InitializeApplication(Progress, WindowHandle);
+    }, [this](FLoadingProgress& Progress) {
+        mContext.mThumbnailRenderer->Tick();
+        const float ThumbnailProgress{mContext.mThumbnailRenderer->GetGenerationProgress()};
+        const bool Finished{ThumbnailProgress >= 1.0f};
+        Progress.SetProgress(0.96f + ThumbnailProgress * 0.04f, Finished ? "Ready" : "Generating thumbnails");
+        return Finished;
     })};
+
     mEditorLogo = LoadingScreen.TakeLogoShaderResourceView();
     if (!Loaded) {
         Shutdown();
@@ -64,11 +73,14 @@ int FApplication::Run(HINSTANCE Instance, int ShowCommand) {
     mFrameTimer.Reset();
     Stat::ResetFrameStats();
     mWindowState.mFrameEnabled = true;
+    
     const int ExitCode{RunMessageLoop(AcceleratorTable)};
+    
     mWindowState.mFrameEnabled = false;
     SaveState();
     Shutdown();
     mContext.mRenderer.ReportLiveObjects();
+    
     return ExitCode;
 }
 
@@ -151,7 +163,7 @@ bool FApplication::InitializeApplication(FLoadingProgress& Progress, HWND Window
     InitializeMode(mContext, WindowHandle);
 
     Progress.SetProgress(0.86f, "Loading scene");
-    const bool SceneLoaded{mContext.mWorld->LoadScene("./scenes/MainScene1.json")};
+    const bool SceneLoaded{mContext.mWorld->LoadScene("./scenes/Default.scene")};
     if (!SceneLoaded) {
         Console::AddLog(Console::STDOutHandle, ELogLevel::Warning, ELogCategory::Etc, "The startup scene failed to load. Initialization will continue with an empty world.");
     }
@@ -159,7 +171,7 @@ bool FApplication::InitializeApplication(FLoadingProgress& Progress, HWND Window
     Progress.SetProgress(0.96f, "Finalizing assets");
     mContext.mAssetRegistry->Finalize();
     mContext.mThumbnailRenderer->Create(&mContext.mRenderer, mContext.mAssetRegistry.get());
-    Progress.SetProgress(1.0f, "Ready");
+    Progress.SetProgress(0.96f, "Generating thumbnails");
     return true;
 }
 
@@ -186,17 +198,15 @@ void FApplication::RenderFrame() {
     mWindowState.mRenderingFrame = true;
     mFrameTimer.Tick();
     const float DeltaTime{static_cast<float>(mFrameTimer.GetUpdateDeltaSeconds())};
-    Stat::BeginFrame(mFrameTimer.GetDeltaSeconds());
+    Stat::BeginFrame();
     {
-        const Stat::FScopedSystemStatTimer FrameStat{Stat::ESystemStatStage::Frame};
-        Stat::RecordObjectCounts(UObjectSystem::GetObjectCount(), mContext.mWorld->GetActors().size());
-        mContext.mRenderer.BeginFrame(DeltaTime);
         {
-            const Stat::FScopedSystemStatTimer StageStat{Stat::ESystemStatStage::Thumbnails};
-            mContext.mThumbnailRenderer->Tick();
+            const Stat::FScopedSystemStatTimer StageStat{ Stat::ESystemStatStage::FrameSetup };
+            Stat::RecordObjectCounts(UObjectSystem::GetObjectCount(), mContext.mWorld->GetActors().size());
+            mContext.mRenderer.BeginFrame(DeltaTime);
         }
         {
-            const Stat::FScopedSystemStatTimer StageStat{Stat::ESystemStatStage::Offscreen};
+            const Stat::FScopedSystemStatTimer StageStat{ Stat::ESystemStatStage::PreviewRender };
             mContext.mEditorUIManager->RenderOffscreen(mContext.mRenderer, *mContext.mAssetRegistry);
         }
         {
@@ -243,7 +253,7 @@ void FApplication::SaveState() {
         Host->CaptureLayoutSettings(mContext.mEditorSettings);
     }
     FEditorConfigManager::Save(mContext.mEditorSettings);
-    mContext.mWorld->SaveScene("test", mContext.mAssetRegistry.get());
+    // mContext.mWorld->SaveScene("test", mContext.mAssetRegistry.get());
 }
 
 void FApplication::Shutdown() {

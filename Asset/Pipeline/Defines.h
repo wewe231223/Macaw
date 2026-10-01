@@ -4,7 +4,8 @@
 enum class EVertexFormat {
     Float2,
     Float3,
-    Float4
+    Float4,
+    Uint
 };
 
 enum class EInputClassification {
@@ -148,4 +149,6 @@ struct FPipelineDescription {
     FRasterizerDescription mRasterizer{};
     FDepthStencilDescription mDepthStencil{};
     FBlendDescription mBlend{};
+    bool mOcclusionCullable{};
+    bool mOcclusionOccluder{};
 };

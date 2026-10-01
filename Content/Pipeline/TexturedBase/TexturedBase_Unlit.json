@@ -1,12 +1,14 @@
 {
+  "OcclusionCullable": true,
+  "OcclusionOccluder": true,
   "VertexShader": {
-    "Source": "./Content/Shader/TexturedBase.hlsl",
+    "Source": "./Content/Shader/TexturedBase_Unlit.hlsl",
     "EntryPoint": "mainVS",
     "Profile": "vs_5_0"
   },
 
   "PixelShader": {
-    "Source": "./Content/Shader/TexturedBase.hlsl",
+    "Source": "./Content/Shader/TexturedBase_Unlit.hlsl",
     "EntryPoint": "mainPS",
     "Profile": "ps_5_0"
   },
@@ -22,6 +24,15 @@
       "InstanceDataStepRate": 0
     },
     {
+      "SemanticName": "NORMAL",
+      "SemanticIndex": 0,
+      "Format": "Float3",
+      "InputSlot": 1,
+      "AlignedByteOffset": 0,
+      "InputClassification": "PerVertex",
+      "InstanceDataStepRate": 0
+    },
+    {
       "SemanticName": "TEXCOORD",
       "SemanticIndex": 0,
       "Format": "Float2",
@@ -29,6 +40,15 @@
       "AlignedByteOffset": 0,
       "InputClassification": "PerVertex",
       "InstanceDataStepRate": 0
+    },
+    {
+      "SemanticName": "MODEL_INDEX",
+      "SemanticIndex": 0,
+      "Format": "Uint",
+      "InputSlot": 4,
+      "AlignedByteOffset": 0,
+      "InputClassification": "PerInstance",
+      "InstanceDataStepRate": 1
     }
   ],
 

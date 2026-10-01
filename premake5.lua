@@ -14,6 +14,7 @@ filter "system:windows"
 filter "configurations:Debug"
     defines { "_DEBUG" }
     symbols "On"
+    editandcontinue "Off"
     runtime "Debug"
 
 filter "configurations:Release"
@@ -56,6 +57,7 @@ function ConfigureExecutableLinks()
         "Core",
         "Math",
         "DirectXTex",
+        "nvapi64",
         "d3d11",
         "dxgi",
         "d3dcompiler",
@@ -87,6 +89,10 @@ ConfigureProject("Math", "StaticLib")
 ConfigureProject("Core", "StaticLib")
     files { "Core/**.h", "Core/**.cpp", "Core/**.cc" }
     dependson { "Math" }
+    filter "files:Core/Spatial/FBVH8AVX.cpp"
+        enablepch "Off"
+        vectorextensions "AVX"
+    filter {}
 
 ConfigureProject("Serialization", "StaticLib")
     files { "Serialization/**.h", "Serialization/**.cpp" }

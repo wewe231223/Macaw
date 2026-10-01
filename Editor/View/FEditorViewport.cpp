@@ -1,5 +1,8 @@
 ﻿#include "pch.h"
 
+#include <algorithm>
+#include <cmath>
+
 #include "FEditorViewport.h"
 #include "Editor/Panel/FStatPanel.h"
 
@@ -10,6 +13,7 @@
 #include "Core/Asset/IAssetRegistry.h"
 #include "Asset/UMesh.h"
 #include "Core/Base/FTransform.h"
+#include "Core/Stat/Stat.h"
 #include "World/AActor.h"
 #include "World/Component/UCameraComponent.h"
 #include "World/FWorldEditorContext.h"
@@ -54,9 +58,9 @@ namespace {
             case EOrthographicView::Right:
                 return {0.0f, 0.0f, HalfSqrtTwo, HalfSqrtTwo};
             case EOrthographicView::Top:
-                return {-HalfSqrtTwo, 0.0f, 0.0f, HalfSqrtTwo};
+                return {0.0f, HalfSqrtTwo, 0.0f, HalfSqrtTwo};
             case EOrthographicView::Bottom:
-                return {HalfSqrtTwo, 0.0f, 0.0f, HalfSqrtTwo};
+                return {0.0f, -HalfSqrtTwo, 0.0f, HalfSqrtTwo};
             default:
                 return {};
         }
@@ -64,10 +68,10 @@ namespace {
 }
 
 FEditorViewport::FEditorViewport(FViewportId InViewportId, ID3D11Device* InDevice, FWorldEditorContext& InEditorContext)
-    : mDevice(InDevice),
-      mEditorContext(&InEditorContext),
-      mViewportId(InViewportId),
-      mProjectionType(InViewportId == 0 ? EProjectionType::Perspective : EProjectionType::Orthographic) {
+    :	mDevice{InDevice},
+		mEditorContext{&InEditorContext},
+		mViewportId{InViewportId},
+		mProjectionType{InViewportId == 0 ? EProjectionType::Perspective : EProjectionType::Orthographic} {
     mCameraRotation.Normalize();
     mRenderSettings.mBRenderSky = mProjectionType == EProjectionType::Perspective;
 
@@ -192,6 +196,11 @@ bool FEditorViewport::DrawMenuBar() {
         ImGui::EndCombo();
     }
 
+    ImGui::SameLine();
+    if (ImGui::Checkbox("Occlusion", &mRenderSettings.mOcclusionCulling)) {
+        BActivated = true;
+    }
+    BActivated = BActivated || ImGui::IsItemActivated();
     ImGui::EndMenuBar();
     return BActivated;
 }
@@ -224,6 +233,7 @@ bool FEditorViewport::TryCalculateDropPosition(const ImVec2& ScreenPosition, FVe
         return false;
     }
 
+    const Stat::FScopedPickingStatTimer PickingTimer{};
     CameraProbe Camera{};
     if (!BuildCameraProbe(Camera)) {
         return false;
@@ -336,18 +346,46 @@ bool FEditorViewport::BuildCameraProbe(CameraProbe& OutCamera) {
         return false;
     }
 
-    const FTransform CameraTransform{mCameraPosition, mCameraRotation, FVector3{1.0f, 1.0f, 1.0f}};
-    const float AspectRatio{static_cast<float>(mWidth) / static_cast<float>(mHeight)};
-    OutCamera.mView = (UCameraComponent::CameraBasis * CameraTransform.ToMatrixNoScale()).Invert();
+    if (!IsCameraProbeCurrent()) {
+        const FTransform CameraTransform{mCameraPosition, mCameraRotation, FVector3{1.0f, 1.0f, 1.0f}};
+        const FMatrix CameraWorld{UCameraComponent::CameraBasis * CameraTransform.ToMatrixNoScale()};
+        const float AspectRatio{static_cast<float>(mWidth) / static_cast<float>(mHeight)};
+        mCachedCameraProbe.mView = CameraWorld.Inverse();
 
-    if (mProjectionType == EProjectionType::Perspective) {
-        OutCamera.mProjection = FMatrix::CreatePerspectiveFieldOfView(mFieldOfView, AspectRatio, mNearPlane, mFarPlane);
-    } else {
-        OutCamera.mProjection = FMatrix::CreateOrthographic(mOrthographicWidth, mOrthographicWidth / AspectRatio, mNearPlane, mFarPlane);
+        if (mProjectionType == EProjectionType::Perspective) {
+            mCachedCameraProbe.mProjection = FMatrix::CreatePerspectiveFieldOfView(mFieldOfView, AspectRatio, mNearPlane, mFarPlane);
+
+            FFrustum LocalFrustum{};
+            FFrustum::CreateFromMatrix(LocalFrustum, mCachedCameraProbe.mProjection.ToSimpleMath());
+            LocalFrustum.Transform(mCachedCameraProbe.mViewFrustum, CameraWorld.ToSimpleMath());
+        } else {
+            mCachedCameraProbe.mProjection = FMatrix::CreateOrthographic(mOrthographicWidth, mOrthographicWidth / AspectRatio, mNearPlane, mFarPlane);
+            mCachedCameraProbe.mViewFrustum = {};
+        }
+
+        mCachedCameraProbe.mViewProjection = mCachedCameraProbe.mView * mCachedCameraProbe.mProjection;
+        mCachedCameraPosition = mCameraPosition;
+        mCachedCameraRotation = mCameraRotation;
+        mCachedProjectionType = mProjectionType;
+        mCachedFieldOfView = mFieldOfView;
+        mCachedOrthographicWidth = mOrthographicWidth;
+        mCachedNearPlane = mNearPlane;
+        mCachedFarPlane = mFarPlane;
+        mCachedWidth = mWidth;
+        mCachedHeight = mHeight;
+        mHasCachedCameraProbe = true;
     }
 
-    OutCamera.mViewProjection = OutCamera.mView * OutCamera.mProjection;
+    OutCamera = mCachedCameraProbe;
     return true;
+}
+
+bool FEditorViewport::IsCameraProbeCurrent() const {
+    const bool PositionMatches{mCachedCameraPosition == mCameraPosition};
+    const bool RotationMatches{mCachedCameraRotation.mX == mCameraRotation.mX && mCachedCameraRotation.mY == mCameraRotation.mY && mCachedCameraRotation.mZ == mCameraRotation.mZ && mCachedCameraRotation.mW == mCameraRotation.mW};
+    const bool ProjectionMatches{mCachedProjectionType == mProjectionType && mCachedFieldOfView == mFieldOfView && mCachedOrthographicWidth == mOrthographicWidth && mCachedNearPlane == mNearPlane && mCachedFarPlane == mFarPlane};
+    const bool SizeMatches{mCachedWidth == mWidth && mCachedHeight == mHeight};
+    return mHasCachedCameraProbe && PositionMatches && RotationMatches && ProjectionMatches && SizeMatches;
 }
 
 void FEditorViewport::ApplyMouseNavigation(const FViewportMouseNavigationInput& NavigationInput) {
@@ -382,37 +420,20 @@ void FEditorViewport::ApplyMouseNavigation(const FViewportMouseNavigationInput& 
 
     const FEditorSettings Settings{mEditorContext != nullptr ? mEditorContext->GetEditorSettings() : FEditorSettings{}};
     const float RotationSensitivity{Settings.mRotationSensitivity * 0.001f};
-    constexpr float MaximumPitch{0.99f};
-
-    FQuat YawDelta{FQuat::CreateFromAxisAngle(FVector3::UnitZ, NavigationInput.mDragDeltaX * RotationSensitivity)};
-    YawDelta.Normalize();
-
-    //Console::AddLog(Console::STDOutHandle, ELogLevel::Log, ELogCategory::Etc, "DeltaX %f", NavigationInput.DragDeltaX);
-
-    FQuat YawedRotation{FQuat::Concatenate(YawDelta, mCameraRotation)};
-    YawedRotation.Normalize();
-
-    FTransform YawedTransform{};
-    YawedTransform.SetRotation(YawedRotation);
-    const FMatrix YawMatrix{YawedTransform.ToMatrixWithScale()};
-    FVector3 Right{YawMatrix.Right()};
-    FVector3 Forward{YawMatrix.Forward()};
-
-    Right.Normalize();
+    constexpr float MaximumForwardUp{0.99f};
+    const FTransform CameraTransform{FVector3{}, mCameraRotation, FVector3{1.0f, 1.0f, 1.0f}};
+    FVector3 Forward{CameraTransform.ToMatrixNoScale().Forward()};
     Forward.Normalize();
 
-    const float ForwardUp{Forward.Dot(FVector3::UnitZ)};
-    float PitchAngle{NavigationInput.mDragDeltaY * RotationSensitivity};
-    if ((ForwardUp > MaximumPitch && NavigationInput.mDragDeltaY > 0.0f) || (ForwardUp < -MaximumPitch && NavigationInput.mDragDeltaY < 0.0f)) {
-        PitchAngle = 0.0f;
-    }
+    const float CurrentYaw{std::atan2(Forward.mY, Forward.mX)};
+    const float CurrentElevation{std::asin(std::clamp(Forward.mZ, -1.0f, 1.0f))};
+    const float MaximumElevation{std::asin(MaximumForwardUp)};
+    const float NewYaw{CurrentYaw + NavigationInput.mDragDeltaX * RotationSensitivity};
+    const float NewElevation{std::clamp(CurrentElevation + NavigationInput.mDragDeltaY * RotationSensitivity, -MaximumElevation, MaximumElevation)};
 
-    FQuat PitchDelta{FQuat::CreateFromAxisAngle(Right, PitchAngle)};
-    PitchDelta.Normalize();
-
-    FQuat WorldDelta{FQuat::Concatenate(PitchDelta, YawDelta)};
-    WorldDelta.Normalize();
-    mCameraRotation = FQuat::Concatenate(WorldDelta, mCameraRotation);
+    const FQuat YawRotation{FQuat::CreateFromAxisAngle(FVector3::UnitZ, NewYaw)};
+    const FQuat PitchRotation{FQuat::CreateFromAxisAngle(FVector3::UnitY, -NewElevation)};
+    mCameraRotation = FQuat::Concatenate(YawRotation, PitchRotation);
     mCameraRotation.Normalize();
 }
 
@@ -424,7 +445,7 @@ void FEditorViewport::ApplyKeyboardNavigation(const FViewportKeyboardNavigationI
 
     const FTransform CameraTransform{mCameraPosition, mCameraRotation, FVector3{1.0f, 1.0f, 1.0f}};
     const FMatrix CameraWorldMatrix{CameraTransform.ToMatrixNoScale()};
-    FVector3 MoveDirection{CameraWorldMatrix.Forward() * NavigationInput.mForwardAxis - CameraWorldMatrix.Right() * NavigationInput.mRightAxis + CameraWorldMatrix.Up() * NavigationInput.mUpAxis};
+    FVector3 MoveDirection{CameraWorldMatrix.Forward() * NavigationInput.mForwardAxis + CameraWorldMatrix.Right() * NavigationInput.mRightAxis + CameraWorldMatrix.Up() * NavigationInput.mUpAxis};
 
     if (MoveDirection.LengthSquared() <= 0.0f) {
         return;

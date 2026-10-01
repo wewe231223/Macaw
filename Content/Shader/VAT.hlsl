@@ -1,9 +1,4 @@
-struct FModelContext
-{
-    row_major float4x4 World;
-    uint MaterialIndex;
-    uint Flags;
-};
+#include "ModelResource.hlsli"
 
 struct FMaterial
 {
@@ -19,7 +14,6 @@ struct FMaterial
     float4 Parameters6;
 };
 
-StructuredBuffer<FModelContext> ModelContexts : register(t0); // ModelContext[] 
 StructuredBuffer<FMaterial> MaterialBuffer : register(t1);
 #include "Lighting.hlsli"
 
@@ -30,7 +24,6 @@ SamplerState LinearWrap : register(s0);
 SamplerState PointClamp : register(s2);
 
 #include "FrameResource.hlsli"
-#include "MeshDraw.hlsli"
 
 struct VS_INPUT
 {
@@ -48,11 +41,11 @@ struct PS_INPUT
     float4 Color : COLOR;
     float3 WorldPosition : TEXCOORD1;
     nointerpolation uint MaterialIndex : Jungle1;
+    nointerpolation float LODDither : TEXCOORD7;
     nointerpolation float3 ColorCoefficient : Jungle2;
-    nointerpolation uint Flags : Jungle3;
 };
 
-PS_INPUT mainVS(VS_INPUT Input, uint InstanceID : SV_InstanceID)
+PS_INPUT mainVS(VS_INPUT Input, uint DrawRecordIndex : MODEL_INDEX)
 {
     PS_INPUT Output;
 
@@ -62,7 +55,6 @@ PS_INPUT mainVS(VS_INPUT Input, uint InstanceID : SV_InstanceID)
 
     float3 BoundsSize = MaxBound - MinBound;
            
-    
     float TotalFrame = 250.0;
 
     //버텍스 컬러에 0 ~ 1로 저장된 인덱스 값
@@ -73,7 +65,6 @@ PS_INPUT mainVS(VS_INPUT Input, uint InstanceID : SV_InstanceID)
 
     //VAT 텍스처 샘플링 할 uv
     float2 VATUV = float2(IndexNormalize, FrameNormalize);   
-    
     
     //VATTexture에서 버텍스의 위치값을 산출한다.
     //float3 VATPosition = VATTexture.Sample(LinearWrap, VATUV).rgb;
@@ -87,19 +78,19 @@ PS_INPUT mainVS(VS_INPUT Input, uint InstanceID : SV_InstanceID)
     //좌표계 변환
     float3 VATPosition = float3(-BlenderLocalPos.z, BlenderLocalPos.x, BlenderLocalPos.y);
     
-    
-    FModelContext ModelContext = ModelContexts[ModelContextStart + InstanceID];
+    FModelContext ModelContext = {GetModelContext(DrawRecordIndex)};
 
     //VAT에서 뽑은 위치값에 World 행렬 곱해주기
-    float4 WorldPosition = mul(float4(VATPosition, 1.0f), ModelContext.World);
+
+    float4 WorldPosition = mul(float4(VATPosition, 1.0f), ModelContext.mWorld);
 
     Output.Position = mul(WorldPosition, ViewProjection);
-    Output.Normal = mul(Input.Normal, (float3x3) ModelContext.World);
+    Output.Normal = mul(Input.Normal, (float3x3) ModelContext.mWorld);
     Output.UV = Input.UV;
     Output.Color = Input.Color;
     Output.WorldPosition = WorldPosition.xyz;
-    Output.MaterialIndex = ModelContext.MaterialIndex;
-    Output.Flags = ModelContext.Flags;
+    Output.MaterialIndex = ModelContext.mMaterialIndex;
+    Output.LODDither = ModelContext.mLODDither;
     Output.ColorCoefficient = float3(1.0f, 1.0f, 1.0f);
 
     return Output;
@@ -107,8 +98,9 @@ PS_INPUT mainVS(VS_INPUT Input, uint InstanceID : SV_InstanceID)
 
 float4 mainPS(PS_INPUT Input) : SV_TARGET
 {
+    ApplyLODDither(Input.Position.xy, Input.LODDither);
     float4 Color = BaseColorTexture.Sample(LinearWrap, Input.UV);
+
     return Color;
  
-
 }

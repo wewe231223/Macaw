@@ -1,4 +1,7 @@
-﻿#pragma once
+#pragma once
+
+#include <cstddef>
+#include <limits>
 
 #include "Core/Base/UObject.h"
 #include "Core/Archive/FArchive.h"
@@ -29,10 +32,16 @@ public:
     virtual void EndPlay();
     virtual void Tick(float DeltaTime);
     virtual void OnUnregister();
+
+    virtual void OnRenderStateChanged();
+
     virtual void DrawPanels(IPropertyEditorContext* Context);
 
     bool IsActive() const;
     void SetActive(bool BInActive);
+
+    bool IsTickEnabled() const;
+    void SetTickEnabled(bool TickEnabled);
 
     bool IsRegistered() const;
     bool IsInitialized() const;
@@ -48,19 +57,21 @@ public:
 
     virtual bool ResolveLoadedReferences();
 
-protected:
     void Serialize(FArchive& Archive) override;
 
 private:
     friend class AActor;
 
     void SetOwner(AActor* InOwner);
+    void UpdateTickRegistration();
 
 private:
     AActor* mOwner{nullptr};
     UWorld* mParentWorld{nullptr};
+    std::size_t mTickIndex{std::numeric_limits<std::size_t>::max()};
 
     bool mBActive{true};
+    bool mBTickEnabled{};
     bool mBRegistered{false};
     bool mBInitialized{false};
     bool mBHasBegunPlay{false};

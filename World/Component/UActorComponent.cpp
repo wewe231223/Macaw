@@ -1,4 +1,4 @@
-﻿#include "pch.h"
+#include "pch.h"
 #include "Core/Property/IPropertyEditorContext.h"
 #include "UActorComponent.h"
 #include "../AActor.h"
@@ -9,7 +9,14 @@ AActor* UActorComponent::GetOwner() const {
 }
 
 void UActorComponent::SetOwner(AActor* InOwner) {
+    if (mOwner == InOwner) {
+        return;
+    }
+    if (mOwner != nullptr) {
+        mOwner->UnregisterTickComponent(this);
+    }
     mOwner = InOwner;
+    UpdateTickRegistration();
 }
 
 void UActorComponent::OnRegister() {
@@ -21,10 +28,12 @@ void UActorComponent::InitializeComponent() {
 
 void UActorComponent::BeginPlay() {
     mBHasBegunPlay = true;
+    UpdateTickRegistration();
 }
 
 void UActorComponent::EndPlay() {
     mBHasBegunPlay = false;
+    UpdateTickRegistration();
 }
 
 void UActorComponent::Tick(float /*DeltaTime*/  ) {
@@ -33,12 +42,40 @@ void UActorComponent::Tick(float /*DeltaTime*/  ) {
 void UActorComponent::OnUnregister() {
 }
 
+void UActorComponent::OnRenderStateChanged() {
+}
+
 bool UActorComponent::IsActive() const {
     return mBActive;
 }
 
 void UActorComponent::SetActive(bool BInActive) {
+    if (mBActive == BInActive) {
+        return;
+    }
+
     mBActive = BInActive;
+    UpdateTickRegistration();
+    OnRenderStateChanged();
+}
+
+bool UActorComponent::IsTickEnabled() const {
+    return mBTickEnabled;
+}
+
+void UActorComponent::SetTickEnabled(bool TickEnabled) {
+    if (mBTickEnabled == TickEnabled) {
+        return;
+    }
+
+    mBTickEnabled = TickEnabled;
+    UpdateTickRegistration();
+}
+
+void UActorComponent::UpdateTickRegistration() {
+    if (mOwner != nullptr) {
+        mOwner->UpdateComponentTickRegistration(this);
+    }
 }
 
 bool UActorComponent::IsRegistered() const {
@@ -60,6 +97,7 @@ UWorld* UActorComponent::GetBelongingWorld() const {
 void UActorComponent::RegisterComponent(UWorld* World) {
     ErrorHandler::Report(mOwner == nullptr and mParentWorld == nullptr, "[ UActorComponent ]", "Owner and ParentWorld must not be null.", ErrorHandler::EErrorLevel::Critical);
     ErrorHandler::Report(World != mOwner->GetWorld(), "[ UActorComponent ]", "World must match Owner's world.", ErrorHandler::EErrorLevel::Critical);
+
     if (mBRegistered)
         return;
 
@@ -67,6 +105,7 @@ void UActorComponent::RegisterComponent(UWorld* World) {
     mBRegistered = true;
 
     this->OnRegister();
+    UpdateTickRegistration();
 }
 
 void UActorComponent::UnregisterComponent() {
@@ -81,8 +120,10 @@ void UActorComponent::UnregisterComponent() {
     }
 
     this->OnUnregister();
+
     mBRegistered = false;
     mParentWorld = nullptr;
+    UpdateTickRegistration();
 }
 
 void UActorComponent::DestroyComponent(bool /*bPromoteChildren*/  ) {
@@ -91,6 +132,7 @@ void UActorComponent::DestroyComponent(bool /*bPromoteChildren*/  ) {
     }
 
     mBIsBeingDestroyed = true;
+
     UnregisterComponent();
 
     if (mOwner != nullptr) {
@@ -106,6 +148,11 @@ void UActorComponent::Serialize(FArchive& Archive) {
     UObject::Serialize(Archive);
 
     Archive.Serialize("bActive", mBActive);
+
+    if (Archive.IsLoading()) {
+        UpdateTickRegistration();
+        OnRenderStateChanged();
+    }
 }
 
 void UActorComponent::DrawPanels(IPropertyEditorContext* Context) {

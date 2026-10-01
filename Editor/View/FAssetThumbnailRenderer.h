@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include <d3d11.h>
 #include <cstddef>
@@ -12,7 +12,10 @@
 #include "Asset/UMesh.h"
 
 class FAssetThumbnailRenderer {
-    struct FThumbnail { std::unique_ptr<FSceneRenderSurface> mSurface{}; };
+private:
+    struct FThumbnail {
+        std::unique_ptr<FSceneRenderSurface> mSurface{};
+    };
 
 public:
     FAssetThumbnailRenderer() = default;
@@ -27,6 +30,8 @@ public:
 public:
     void Create(FRenderer* InRenderer, FAssetRegistry* InAssetRegistry);
     void Tick(Uint32 MaxThumbnailCount = 1);
+    float GetGenerationProgress() const;
+
     void RenderThumbnail(FAssetHandle AssetHandle);
     void RenderMaterialPreview(FAssetHandle MaterialHandle, FSceneRenderSurface& Surface);
 
@@ -48,6 +53,8 @@ private:
 private:
     FRenderer* mRenderer{nullptr};
     FAssetRegistry* mAssetRegistry{nullptr};
+    Uint64 mRenderSceneId{AllocateRenderSceneId()};
+    Uint64 mRenderSceneRevision{};
 
     TMap<Uint64, FThumbnail> mThumbnails{};
     TArray<FAssetHandle> mPendingAssetHandles{};

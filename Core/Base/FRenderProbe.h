@@ -1,4 +1,5 @@
 #pragma once
+
 #include "Core/Base/FAssetHandle.h"
 #include "Core/Base/FObjectHandle.h"
 
@@ -37,8 +38,7 @@ struct FBillboardProbe {
 
 enum class ERenderObjectFlags : Uint32 {
     None = 0,
-    Selected = 1u << 0,
-    Unlit = 1u << 1
+    Selected = 1u << 0
 };
 
 enum class ELightType : Uint32 {
@@ -51,22 +51,37 @@ Uint32 operator|(ERenderObjectFlags Left, ERenderObjectFlags Right);
 
 struct FActorProbe {
     FMatrix mWorld{};
+
     FAssetHandle mMeshHandle{};
     FAssetHandle mMaterialHandle{};
     FAssetHandle mPipelineHandle{};
     Uint32 mFlags{0x0000'0000};
     FObjectHandle mOwnerHandle{};
+
+    DirectX::BoundingSphere mWorldSphereBounds{};
+    DirectX::BoundingOrientedBox mWorldOBB{};
+    DirectX::BoundingBox mWorldAABB{};
 };
+
+struct FRenderObjectUpdate {
+    FObjectHandle mComponentHandle{};
+    FActorProbe mProbe{};
+    bool mRemoved{};
+};
+
+Uint64 AllocateRenderSceneId();
 
 struct CameraProbe {
     FMatrix mViewProjection{};
     FMatrix mView{};
     FMatrix mProjection{};
+    FFrustum mViewFrustum{};
 };
 
 struct FRenderSettings {
     FVector4 mClearColor{0.2f, 0.2f, 0.7f, 1.0f};
     bool mBRenderSky{true};
+    bool mOcclusionCulling{true};
 };
 
 struct FLightProbe {
@@ -84,7 +99,11 @@ struct FLightProbe {
 static_assert(sizeof(FLightProbe) == 64);
 
 struct FSceneRenderData {
-    TArray<FActorProbe> mActorProbes{};
+    Uint64 mSceneId{};
+    Uint64 mRevision{};
+
+    TArray<FRenderObjectUpdate> mObjectUpdates{};
+
     TArray<FTextProbe> mTextProbes{};
     TArray<FBillboardProbe> mBillboardProbes{};
     TArray<FLightProbe> mLightProbes{};
