@@ -1,5 +1,4 @@
 #pragma once
-#include <d3d11.h>
 #include "Asset/FObjInfo.h"
 #include "Asset/FAssetRegistry.h"
 #include "Asset/UMesh.h"

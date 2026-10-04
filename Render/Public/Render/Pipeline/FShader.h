@@ -8,7 +8,7 @@
 #include <filesystem>
 #include <string>
 #include <vector>
-#include "Asset/Pipeline/Defines.h"
+#include "RenderCore/Pipeline/FPipelineDescription.h"
 
 class FShader {
 public:

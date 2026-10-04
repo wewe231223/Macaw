@@ -77,7 +77,7 @@ namespace {
     }
 }
 
-bool UTexture::Initialize(ID3D11Device* Device, const std::filesystem::path& ImagePath, bool MakeDDS, ETextureFormat TextureFormat, bool BGenerateMipMap) {
+bool UTexture::Initialize(const std::filesystem::path& ImagePath, bool MakeDDS, ETextureFormat TextureFormat, bool BGenerateMipMap) {
     ETextureExtension TextureExtension{};
     const bool BValidExtension{GetTextureExtension(ImagePath, TextureExtension)};
     ErrorHandler::Report(!BValidExtension, "[ UTexture ]", "Unsupported texture extension: " + ImagePath.string(), ErrorHandler::EErrorLevel::Critical);
@@ -86,12 +86,12 @@ bool UTexture::Initialize(ID3D11Device* Device, const std::filesystem::path& Ima
         return false;
     }
 
-    return InitializeInternal(Device, ImagePath, TextureFormat, TextureExtension, BGenerateMipMap, MakeDDS);
+    return InitializeInternal(ImagePath, TextureFormat, TextureExtension, BGenerateMipMap, MakeDDS);
 }
 
-bool UTexture::InitializeInternal(ID3D11Device* Device, const std::filesystem::path& ImagePath, ETextureFormat TextureFormat, ETextureExtension TextureExtension, bool BGenerateMipMap, bool MakeDDS) {
-    if (!UAsset::Initialize(Device, ImagePath)) {
-        ErrorHandler::Report("[ UTexture ]", "Texture device or image path is invalid: " + ImagePath.string(), ErrorHandler::EErrorLevel::Critical);
+bool UTexture::InitializeInternal(const std::filesystem::path& ImagePath, ETextureFormat TextureFormat, ETextureExtension TextureExtension, bool BGenerateMipMap, bool MakeDDS) {
+    if (!UAsset::Initialize(ImagePath)) {
+        ErrorHandler::Report("[ UTexture ]", "Texture image path is invalid: " + ImagePath.string(), ErrorHandler::EErrorLevel::Critical);
         return false;
     }
 
@@ -106,7 +106,6 @@ bool UTexture::InitializeInternal(ID3D11Device* Device, const std::filesystem::p
     DirectX::ScratchImage SourceImage{};
     DirectX::ScratchImage ConvertedImage{};
     DirectX::ScratchImage GeneratedMipChain{};
-    DirectX::ScratchImage DDSImage{};
     DirectX::TexMetadata SourceImageMetaData{};
     HRESULT Result{S_OK};
 
@@ -127,54 +126,29 @@ bool UTexture::InitializeInternal(ID3D11Device* Device, const std::filesystem::p
         return false;
     }
 
-    if (MakeDDS == false) {
-        const DirectX::Image* Images{SourceImage.GetImages()};
-
-        std::size_t ImageCount{SourceImage.GetImageCount()};
-        const DirectX::TexMetadata* ImageMetaData{&SourceImageMetaData};
-
-        Result = DirectX::CreateShaderResourceView(Device, Images, ImageCount, *ImageMetaData, mShaderResourceView.ReleaseAndGetAddressOf());
-    } else {
-        const DirectX::Image* Images{SourceImage.GetImages()};
-
-        std::size_t ImageCount{SourceImage.GetImageCount()};
-        const DirectX::TexMetadata* ImageMetaData{&SourceImageMetaData};
-
-        if (TextureExtension != ETextureExtension::DDS and ImageMetaData->format != TargetFormat) {
-            Result = DirectX::Convert(Images, ImageCount, *ImageMetaData, TargetFormat, DirectX::TEX_FILTER_FANT, DirectX::TEX_THRESHOLD_DEFAULT, ConvertedImage);
-            ErrorHandler::ReportHRESULT(Result, "[ UTexture ]", "Failed to convert image to DDS pixel format: " + Path.string(), ErrorHandler::EErrorLevel::Critical);
-
-            Images = ConvertedImage.GetImages();
-            ImageCount = ConvertedImage.GetImageCount();
-            ImageMetaData = &ConvertedImage.GetMetadata();
-        }
-
-        if (BGenerateMipMap && ImageMetaData->mipLevels == 1) {
-            Result = DirectX::GenerateMipMaps(Images, ImageCount, *ImageMetaData, DirectX::TEX_FILTER_FANT, 0, GeneratedMipChain);
-            ErrorHandler::ReportHRESULT(Result, "[ UTexture ]", "Failed to generate mip maps: " + Path.string(), ErrorHandler::EErrorLevel::Critical);
-
-            Images = GeneratedMipChain.GetImages();
-            ImageCount = GeneratedMipChain.GetImageCount();
-            ImageMetaData = &GeneratedMipChain.GetMetadata();
-        }
-
-        if (TextureExtension != ETextureExtension::DDS) {
-            DirectX::Blob DDSData{};
-            Result = DirectX::SaveToDDSMemory(Images, ImageCount, *ImageMetaData, DirectX::DDS_FLAGS_FORCE_DX10_EXT, DDSData);
-            ErrorHandler::ReportHRESULT(Result, "[ UTexture ]", "Failed to convert image to DDS: " + Path.string(), ErrorHandler::EErrorLevel::Critical);
-
-            Result = DirectX::LoadFromDDSMemory(DDSData.GetConstBufferPointer(), DDSData.GetBufferSize(), DirectX::DDS_FLAGS_NONE, &SourceImageMetaData, DDSImage);
-            ErrorHandler::ReportHRESULT(Result, "[ UTexture ]", "Failed to load converted DDS texture: " + Path.string(), ErrorHandler::EErrorLevel::Critical);
-
-            Images = DDSImage.GetImages();
-            ImageCount = DDSImage.GetImageCount();
-            ImageMetaData = &DDSImage.GetMetadata();
-        }
-
-        Result = DirectX::CreateShaderResourceView(Device, Images, ImageCount, *ImageMetaData, mShaderResourceView.ReleaseAndGetAddressOf());
+    if (FAILED(Result) || SourceImage.GetImageCount() == 0) {
+        return false;
     }
-    ErrorHandler::ReportHRESULT(Result, "[ UTexture ]", "Failed to create texture shader resource view: " + Path.string(), ErrorHandler::EErrorLevel::Critical);
-    return SUCCEEDED(Result) && mShaderResourceView != nullptr;
+
+    if (MakeDDS && TextureExtension != ETextureExtension::DDS && SourceImage.GetMetadata().format != TargetFormat) {
+        Result = DirectX::Convert(SourceImage.GetImages(), SourceImage.GetImageCount(), SourceImage.GetMetadata(), TargetFormat, DirectX::TEX_FILTER_FANT, DirectX::TEX_THRESHOLD_DEFAULT, ConvertedImage);
+        if (FAILED(Result)) {
+            return false;
+        }
+        SourceImage = std::move(ConvertedImage);
+    }
+
+    if (MakeDDS && BGenerateMipMap && SourceImage.GetMetadata().mipLevels == 1) {
+        Result = DirectX::GenerateMipMaps(SourceImage.GetImages(), SourceImage.GetImageCount(), SourceImage.GetMetadata(), DirectX::TEX_FILTER_FANT, 0, GeneratedMipChain);
+        if (FAILED(Result)) {
+            return false;
+        }
+        SourceImage = std::move(GeneratedMipChain);
+    }
+
+    mSourceImage = std::make_unique<DirectX::ScratchImage>(std::move(SourceImage));
+    ++mRenderRevision;
+    return true;
 }
 
 void UTexture::Serialize(FArchive& Ar) {
@@ -187,6 +161,10 @@ UTexture::UTexture() {
 UTexture::~UTexture() {
 }
 
-ID3D11ShaderResourceView* UTexture::GetSRV() const {
-    return mShaderResourceView.Get();
+const DirectX::ScratchImage* UTexture::GetSourceImage() const {
+    return mSourceImage.get();
+}
+
+Uint64 UTexture::GetRenderRevision() const {
+    return mRenderRevision;
 }

@@ -1,6 +1,6 @@
 #pragma once
-#include "Asset/FMaterialChunkSignature.h"
-#include "Asset/FMaterialGPUData.h"
+#include "RenderCore/FMaterialChunkSignature.h"
+#include "RenderCore/FMaterialGPUData.h"
 #include "Asset/UAsset.h"
 #include "CoreUObject/Asset/IAssetRegistry.h"
 
@@ -27,12 +27,6 @@ public:
     virtual FMaterialChunkSignature BuildChunkSignature(Uint32 GroupIndex) const;
     virtual void Finalize(const IAssetRegistry* Query);
 
-    Uint32 GetGPUIndex() const;
-
-    Uint32 GetGPUIndex(Uint32 GroupIndex) const;
-
-    std::span<const Uint32> GetMaterialIndices() const;
-
     virtual Uint32 GetGPUDataCount() const;
 
     virtual std::optional<Uint32> FindGroupIndex(const FString& Name) const;
@@ -44,9 +38,5 @@ protected:
     void Serialize(FArchive& Ar) override;
 
 private:
-    friend class FMaterialBuffer;
-
-    TArray<Uint32> mGpuIndices{};
     Uint64 mRenderRevision{1};
-    bool mBGpuDataDirty{true};
 };

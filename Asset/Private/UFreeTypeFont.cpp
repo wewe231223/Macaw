@@ -6,10 +6,6 @@ UFreeTypeFont::~UFreeTypeFont() {
 }
 
 void UFreeTypeFont::Reset() {
-    // SRV가 AtlasTexture를 참조하므로 View를 먼저 해제하고 Texture를 해제한다.
-    mAtlasSrv.Reset();
-    mAtlasTexture.Reset();
-
     if (mFace != nullptr) {
         FT_Done_Face(mFace);
         mFace = nullptr;
@@ -34,22 +30,22 @@ void UFreeTypeFont::Reset() {
     mNextAtlasY = 0;
     mCurrentRowHeight = 0;
 
-    mBAtlasDirty = false;
+    ++mAtlasRevision;
     mBInitialized = false;
 }
 
-bool UFreeTypeFont::Initialize(ID3D11Device* Device, const std::filesystem::path& FontPath, Uint32 BakePixelHeight, Uint32 AtlasWidth, Uint32 AtlasHeight) {
-    if (!UAsset::Initialize(Device, FontPath)) {
+bool UFreeTypeFont::Initialize(const std::filesystem::path& FontPath, Uint32 BakePixelHeight, Uint32 AtlasWidth, Uint32 AtlasHeight) {
+    if (!UAsset::Initialize(FontPath)) {
         return false;
     }
 
-    return InitializeFont(Device, FontPath, BakePixelHeight, AtlasWidth, AtlasHeight);
+    return InitializeFont(FontPath, BakePixelHeight, AtlasWidth, AtlasHeight);
 }
 
-bool UFreeTypeFont::InitializeFont(ID3D11Device* Device, const std::filesystem::path& FontPath, Uint32 BakePixelHeight, Uint32 InAtlasWidth, Uint32 InAtlasHeight) {
+bool UFreeTypeFont::InitializeFont(const std::filesystem::path& FontPath, Uint32 BakePixelHeight, Uint32 InAtlasWidth, Uint32 InAtlasHeight) {
     Reset();
 
-    if (Device == nullptr || FontPath.empty() || BakePixelHeight == 0 || InAtlasWidth == 0 || InAtlasHeight == 0) {
+    if (FontPath.empty() || BakePixelHeight == 0 || InAtlasWidth == 0 || InAtlasHeight == 0) {
         return false;
     }
 
@@ -80,70 +76,9 @@ bool UFreeTypeFont::InitializeFont(ID3D11Device* Device, const std::filesystem::
     // 빈 CPU Atlas 생성
     const std::size_t AtlasPixelCount{static_cast<std::size_t>(mAtlasWidth) * static_cast<std::size_t>(mAtlasHeight)};
     mAtlasPixels.assign(AtlasPixelCount, std::uint8_t{0});
-    if (!CreateAtlasTexture(Device)) {
-        Reset();
-        return false;
-    }
-    mBAtlasDirty = false;
+    ++mAtlasRevision;
     mBInitialized = true;
     return true;
-}
-
-bool UFreeTypeFont::CreateAtlasTexture(ID3D11Device* Device) {
-    if (Device == nullptr || mAtlasPixels.empty()) {
-        return false;
-    }
-
-    mAtlasSrv.Reset();
-    mAtlasTexture.Reset();
-
-    D3D11_TEXTURE2D_DESC TextureDesc{};
-    TextureDesc.Width = mAtlasWidth;
-    TextureDesc.Height = mAtlasHeight;
-    TextureDesc.MipLevels = 1;
-    TextureDesc.ArraySize = 1;
-    TextureDesc.Format = DXGI_FORMAT_R8_UNORM;
-    TextureDesc.SampleDesc.Count = 1;
-    TextureDesc.Usage = D3D11_USAGE_DEFAULT;
-    TextureDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-    TextureDesc.CPUAccessFlags = 0;
-    TextureDesc.MiscFlags = 0;
-
-    D3D11_SUBRESOURCE_DATA InitialData{};
-    InitialData.pSysMem = mAtlasPixels.data();
-    InitialData.SysMemPitch = mAtlasWidth * sizeof(std::uint8_t);
-    InitialData.SysMemSlicePitch = 0;
-
-    HRESULT Result{Device->CreateTexture2D(&TextureDesc, &InitialData, mAtlasTexture.GetAddressOf())};
-
-    if (FAILED(Result)) {
-        return false;
-    }
-
-    Result = Device->CreateShaderResourceView(mAtlasTexture.Get(), nullptr, mAtlasSrv.GetAddressOf());
-
-    if (FAILED(Result)) {
-        mAtlasTexture.Reset();
-        return false;
-    }
-
-    return true;
-}
-
-void UFreeTypeFont::FlushAtlas(ID3D11DeviceContext* Context) {
-    if (!mBInitialized || !mBAtlasDirty || Context == nullptr || mAtlasTexture == nullptr || mAtlasPixels.empty()) {
-        return;
-    }
-
-    Context->UpdateSubresource(
-        mAtlasTexture.Get(),                // 갱신할 GPU Texture
-        0,                                  // 첫번째 mip level
-        nullptr,                            // Texture 전체 갱신
-        mAtlasPixels.data(),                // CPU 픽셀 시작 주소
-        mAtlasWidth * sizeof(std::uint8_t), // CPU 한 행의 바이트 수
-        0);                                 // 2D Texture 이므로 사용 X
-
-    mBAtlasDirty = false;
 }
 
 const FFontGlyph* UFreeTypeFont::FindGlyph(char32_t CodePoint) const {
@@ -235,7 +170,7 @@ const FFontGlyph* UFreeTypeFont::GetOrCreateGlyph(char32_t CodePoint) {
         NewGlyph.mAtlasY = AtlasY;
         NewGlyph.mUvMin = FVector2{static_cast<float>(AtlasX) / static_cast<float>(mAtlasWidth), static_cast<float>(AtlasY) / static_cast<float>(mAtlasHeight)};
         NewGlyph.mUvMax = FVector2{static_cast<float>(AtlasX + Bitmap.width) / static_cast<float>(mAtlasWidth), static_cast<float>(AtlasY + Bitmap.rows) / static_cast<float>(mAtlasHeight)};
-        mBAtlasDirty = true;
+        ++mAtlasRevision;
     }
     // 캐시에 저장
     // emplace는 (Iterator, bool) 로 반환함, move -> Glyph를 복사하기보단 이동
@@ -314,10 +249,22 @@ bool UFreeTypeFont::CopyBitmapToAtlas(FT_Bitmap& Bitmap, std::uint32_t AtlasX, s
         std::memcpy(DestinationRow, SourceRow, Bitmap.width);
     }
     // Atlas 정보 업데이트됨
-    mBAtlasDirty = true;
+    ++mAtlasRevision;
     return true;
 }
 
-ID3D11ShaderResourceView* UFreeTypeFont::GetAtlasSRV() const {
-    return mAtlasSrv.Get();
+std::span<const Uint8> UFreeTypeFont::GetAtlasPixels() const {
+    return mAtlasPixels;
+}
+
+Uint32 UFreeTypeFont::GetAtlasWidth() const {
+    return mAtlasWidth;
+}
+
+Uint32 UFreeTypeFont::GetAtlasHeight() const {
+    return mAtlasHeight;
+}
+
+Uint64 UFreeTypeFont::GetAtlasRevision() const {
+    return mAtlasRevision;
 }

@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Render/FRenderAssetResources.h"
 #include "Render/FMeshRenderer.h"
 #include "CoreUObject/Asset/IAssetRegistry.h"
 #include "Asset/UMesh.h"
@@ -41,7 +42,7 @@ void FMeshRenderer::DrawOccluded(const FRenderContext& Context, const FRenderVie
 
 void FMeshRenderer::Execute(const FRenderContext& Context, const TArray<FMeshDrawBatch>& Items, ERenderMode Mode, const FGpuOcclusionCulling* Occlusion, bool RecordStatistics) {
     mLastDrawStats = {};
-    if (Items.empty() || Context.mDeviceContext == nullptr || Context.mAssetRegistry == nullptr || Context.mFrameResource == nullptr) {
+    if (Items.empty() || Context.mDeviceContext == nullptr || Context.mAssetRegistry == nullptr || Context.mAssetResources == nullptr || Context.mFrameResource == nullptr) {
         return;
     }
 
@@ -74,6 +75,12 @@ void FMeshRenderer::Execute(const FRenderContext& Context, const TArray<FMeshDra
             continue;
         }
 
+        const FPipelineRenderResource* PipelineResource{Context.mAssetResources->GetPipeline(*Pipeline)};
+        const FMeshRenderResource* MeshResource{Context.mAssetResources->GetMesh(*Mesh)};
+        if (PipelineResource == nullptr || MeshResource == nullptr) {
+            continue;
+        }
+
         const ERenderMode ResolvedMode{Pipeline->ResolveRenderMode(Mode)};
         if (!Pipeline->RenderModeSettable(ResolvedMode)) {
             continue;
@@ -81,7 +88,7 @@ void FMeshRenderer::Execute(const FRenderContext& Context, const TArray<FMeshDra
 
         const Uint32 StencilReference{ResolvedMode == ERenderMode::Outline || (Item.mFlags & static_cast<Uint32>(ERenderObjectFlags::Selected)) != 0 ? 1u : 0u};
         if (BoundPipeline != Pipeline || BoundMode != ResolvedMode || BoundStencilReference != StencilReference) {
-            Pipeline->Bind(DeviceContext, ResolvedMode, StencilReference);
+            PipelineResource->Bind(DeviceContext, ResolvedMode, StencilReference);
             BoundPipeline = Pipeline;
             BoundMode = ResolvedMode;
             BoundStencilReference = StencilReference;
@@ -92,7 +99,7 @@ void FMeshRenderer::Execute(const FRenderContext& Context, const TArray<FMeshDra
             std::array<ID3D11ShaderResourceView*, MaxMaterialTextureFields> TextureResources{};
             for (Uint8 Index{}; Index < State.mTextureSignature.mTextureFieldCount; ++Index) {
                 const UTexture* Texture{Context.mAssetRegistry->ResolveAsset<UTexture>(State.mTextureSignature.GetTextureHandle(Index))};
-                TextureResources[Index] = Texture != nullptr ? Texture->GetSRV() : nullptr;
+                TextureResources[Index] = Texture != nullptr ? Context.mAssetResources->GetTexture(*Texture) : nullptr;
             }
 
             DeviceContext->VSSetShaderResources(3, static_cast<UINT>(TextureResources.size()), TextureResources.data());
@@ -103,11 +110,11 @@ void FMeshRenderer::Execute(const FRenderContext& Context, const TArray<FMeshDra
 
         const int LODLevel{static_cast<int>(State.mLODLevel)};
         if (BoundMesh != Mesh || BoundLOD != State.mLODLevel) {
-            ID3D11Buffer* VertexBuffers[]{Mesh->GetVertexBuffer(EVertexAttribute::Position, LODLevel), Mesh->GetVertexBuffer(EVertexAttribute::Normal, LODLevel), Mesh->GetVertexBuffer(EVertexAttribute::UV, LODLevel), Mesh->GetVertexBuffer(EVertexAttribute::Color, LODLevel)};
+            ID3D11Buffer* VertexBuffers[]{MeshResource->GetVertexBuffer(EVertexAttribute::Position, LODLevel), MeshResource->GetVertexBuffer(EVertexAttribute::Normal, LODLevel), MeshResource->GetVertexBuffer(EVertexAttribute::UV, LODLevel), MeshResource->GetVertexBuffer(EVertexAttribute::Color, LODLevel)};
             const Uint32 Strides[]{Mesh->GetVertexStride(EVertexAttribute::Position), Mesh->GetVertexStride(EVertexAttribute::Normal), Mesh->GetVertexStride(EVertexAttribute::UV), Mesh->GetVertexStride(EVertexAttribute::Color)};
             const Uint32 Offsets[]{0, 0, 0, 0};
             DeviceContext->IASetVertexBuffers(0, _countof(VertexBuffers), VertexBuffers, Strides, Offsets);
-            DeviceContext->IASetIndexBuffer(Mesh->GetIndexBuffer(LODLevel), DXGI_FORMAT_R32_UINT, 0);
+            DeviceContext->IASetIndexBuffer(MeshResource->GetIndexBuffer(LODLevel), DXGI_FORMAT_R32_UINT, 0);
             BoundMesh = Mesh;
             BoundLOD = State.mLODLevel;
             ++mLastDrawStats.mMeshBindCount;

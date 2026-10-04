@@ -1,5 +1,6 @@
 #pragma once
 #include "Render/ILineRenderer.h"
+#include "Render/Pipeline/FPipelineRenderResource.h"
 
 class FLineRenderer : public ILineRenderer {
 private:
@@ -46,13 +47,13 @@ private:
     void RenderLines(ID3D11DeviceContext* Context, FFrameResource& FrameResource, bool OrientationAxis);
     void AddLineInternal(const FVector3& Start, const FVector3& End, const FVector4& Color, float WidthPixels, ELineDepthMode DepthMode, float GridSpacing);
     bool CreateQuadGeometry(ID3D11Device* Device);
-    bool RenderBatch(ID3D11DeviceContext* Context, FFrameResource& FrameResource, FLineBatch& Batch, const UPipeline* Pipeline, EFrameStream Stream);
+    bool RenderBatch(ID3D11DeviceContext* Context, FFrameResource& FrameResource, FLineBatch& Batch, const FPipelineRenderResource* Pipeline, EFrameStream Stream);
 
 private:
     ID3D11Device* mDevice{nullptr};
 
-    std::unique_ptr<UPipeline> mDepthTestedPipeline{};
-    std::unique_ptr<UPipeline> mOverlayPipeline{};
+    std::unique_ptr<FPipelineRenderResource> mDepthTestedPipeline{};
+    std::unique_ptr<FPipelineRenderResource> mOverlayPipeline{};
 
     FGraphicsBuffer mQuadVertexBuffer{};
     FGraphicsBuffer mQuadIndexBuffer{};

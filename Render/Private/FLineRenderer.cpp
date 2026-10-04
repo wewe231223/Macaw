@@ -14,11 +14,13 @@ void FLineRenderer::Initialize(ID3D11Device* InDevice, Uint32 InitialLineCapacit
     Reset();
 
     mDevice = InDevice;
-    mDepthTestedPipeline = std::make_unique<UPipeline>();
-    mOverlayPipeline = std::make_unique<UPipeline>();
+    mDepthTestedPipeline = std::make_unique<FPipelineRenderResource>();
+    mOverlayPipeline = std::make_unique<FPipelineRenderResource>();
 
-    ErrorHandler::Report(!mDepthTestedPipeline->Initialize(mDevice, "./Content/Pipeline/LineDepthTested.json"), "[ FLineRenderer ]", "Failed to initialize the depth-tested line pipeline.", ErrorHandler::EErrorLevel::Critical);
-    ErrorHandler::Report(!mOverlayPipeline->Initialize(mDevice, "./Content/Pipeline/LineOverlay.json"), "[ FLineRenderer ]", "Failed to initialize the overlay line pipeline.", ErrorHandler::EErrorLevel::Critical);
+    UPipeline DepthPipeline{};
+    ErrorHandler::Report(!DepthPipeline.Initialize("./Content/Pipeline/LineDepthTested.json") || !mDepthTestedPipeline->Initialize(mDevice, DepthPipeline), "[ FLineRenderer ]", "Failed to initialize the depth-tested line pipeline.", ErrorHandler::EErrorLevel::Critical);
+    UPipeline OverlayPipeline{};
+    ErrorHandler::Report(!OverlayPipeline.Initialize("./Content/Pipeline/LineOverlay.json") || !mOverlayPipeline->Initialize(mDevice, OverlayPipeline), "[ FLineRenderer ]", "Failed to initialize the overlay line pipeline.", ErrorHandler::EErrorLevel::Critical);
 
     InitialLineCapacity = std::max(InitialLineCapacity, 1u);
 
@@ -126,7 +128,7 @@ bool FLineRenderer::CreateQuadGeometry(ID3D11Device* InDevice) {
     return mQuadIndexBuffer.Initialize(InDevice, IndexBufferDescription, Indices.data());
 }
 
-bool FLineRenderer::RenderBatch(ID3D11DeviceContext* Context, FFrameResource& FrameResource, FLineBatch& Batch, const UPipeline* Pipeline, EFrameStream Stream) {
+bool FLineRenderer::RenderBatch(ID3D11DeviceContext* Context, FFrameResource& FrameResource, FLineBatch& Batch, const FPipelineRenderResource* Pipeline, EFrameStream Stream) {
     if (Batch.mInstances.empty()) {
         return true;
     }
@@ -140,7 +142,7 @@ bool FLineRenderer::RenderBatch(ID3D11DeviceContext* Context, FFrameResource& Fr
         return false;
     }
 
-    Pipeline->Bind(Context);
+    Pipeline->Bind(Context, ERenderMode::Lit);
 
     ID3D11Buffer* VertexBuffers[]{ mQuadVertexBuffer.GetBuffer(), FrameResource.GetStreamBuffer(Stream)};
 

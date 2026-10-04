@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Asset/Pipeline/UPipeline.h"
 #include "Core/Base/ErrorHandler.h"
+#include "Pipeline/FPipelineParser.h"
 
 #include <memory>
 
@@ -17,22 +18,22 @@ namespace {
     }
 }
 
-bool UPipeline::Initialize(ID3D11Device* Device, const std::filesystem::path& PipelinePath) {
+bool UPipeline::Initialize(const std::filesystem::path& PipelinePath) {
     if (std::filesystem::is_directory(PipelinePath)) {
-        return InitializeFamily(Device, PipelinePath);
+        return InitializeFamily(PipelinePath);
     }
 
-    if (!UAsset::Initialize(Device, PipelinePath)) {
+    if (!UAsset::Initialize(PipelinePath)) {
         return false;
     }
 
     std::array<std::filesystem::path, static_cast<std::size_t>(ERenderMode::Max)> ModePaths{};
     ModePaths[static_cast<std::size_t>(ERenderMode::Lit)] = PipelinePath;
-    return InitializeModes(Device, ModePaths);
+    return InitializeModes(ModePaths);
 }
 
-bool UPipeline::InitializeFamily(ID3D11Device* Device, const std::filesystem::path& FamilyDirectory) {
-    if (!UAsset::Initialize(Device, FamilyDirectory) || !std::filesystem::is_directory(FamilyDirectory)) {
+bool UPipeline::InitializeFamily(const std::filesystem::path& FamilyDirectory) {
+    if (!UAsset::Initialize(FamilyDirectory) || !std::filesystem::is_directory(FamilyDirectory)) {
         return false;
     }
 
@@ -48,10 +49,10 @@ bool UPipeline::InitializeFamily(ID3D11Device* Device, const std::filesystem::pa
     if (ModePaths[static_cast<std::size_t>(ERenderMode::Lit)].empty()) {
         return false;
     }
-    return InitializeModes(Device, ModePaths);
+    return InitializeModes(ModePaths);
 }
 
-bool UPipeline::InitializeModes(ID3D11Device* Device, const std::array<std::filesystem::path, static_cast<std::size_t>(ERenderMode::Max)>& ModePaths) {
+bool UPipeline::InitializeModes(const std::array<std::filesystem::path, static_cast<std::size_t>(ERenderMode::Max)>& ModePaths) {
     std::array<FPipelineDescription, static_cast<std::size_t>(ERenderMode::Max)> Descriptions{};
     std::array<bool, static_cast<std::size_t>(ERenderMode::Max)> EnabledModes{};
     EnabledModes.fill(true);
@@ -104,206 +105,40 @@ bool UPipeline::InitializeModes(ID3D11Device* Device, const std::array<std::file
     }
 
     Reset();
-    mPipelines.resize(Descriptions.size());
-    for (std::size_t Index{0}; Index < Descriptions.size(); ++Index) {
-        if (!EnabledModes[Index]) {
-            continue;
-        }
-        if (!Make(Device, Descriptions[Index], mPipelines[Index])) {
-            Reset();
-            return false;
-        }
-    }
+    mDescriptions = std::move(Descriptions);
+    mEnabledModes = EnabledModes;
     mOptionFilePath = ModePaths[LitIndex];
     mPrimaryIndex = LitIndex;
     mModeIndex = LitIndex;
     return true;
 }
 
-bool UPipeline::Make(ID3D11Device* Device, const FPipelineDescription& Description, PipelineUnit& Pipeline) {
-    if (Device == nullptr) {
-        ErrorHandler::Report("Pipeline::Initialize", "A valid Direct3D device is required to initialize a pipeline.", ErrorHandler::EErrorLevel::Error);
-        return false;
-    }
-
-    if (!Pipeline.mVertexShader.Initialize(Device, Description.mVertexShader)) {
-        return false;
-    }
-
-    if (!Pipeline.mPixelShader.Initialize(Device, Description.mPixelShader)) {
-        return false;
-    }
-
-    if (Description.mBHasGeometryShader) {
-        if (!Pipeline.mGeometryShader.Initialize(Device, Description.mGeometryShader)) {
-            return false;
-        }
-    }
-
-    std::vector<D3D11_INPUT_ELEMENT_DESC> NativeInputLayout{};
-    NativeInputLayout.reserve(Description.mInputLayout.size());
-
-    for (const FInputElementDescription& Source : Description.mInputLayout) {
-        D3D11_INPUT_ELEMENT_DESC Element{};
-        Element.SemanticName = Source.mSemanticName.c_str();
-        Element.SemanticIndex = Source.mSemanticIndex;
-        Element.Format = ConvertVertexFormat(Source.mFormat);
-        Element.InputSlot = Source.mInputSlot;
-        Element.AlignedByteOffset = Source.mAlignedByteOffset;
-        Element.InputSlotClass = Source.mInputClassification == EInputClassification::PerInstance ? D3D11_INPUT_PER_INSTANCE_DATA : D3D11_INPUT_PER_VERTEX_DATA;
-        Element.InstanceDataStepRate = Source.mInstanceDataStepRate;
-
-        NativeInputLayout.emplace_back(Element);
-    }
-
-    HRESULT Result{S_OK};
-    if (!NativeInputLayout.empty()) {
-        Result = Device->CreateInputLayout(NativeInputLayout.data(), static_cast<UINT>(NativeInputLayout.size()), Pipeline.mVertexShader.GetByteCodeData(), Pipeline.mVertexShader.GetByteCodeSize(), Pipeline.mInputLayout.GetAddressOf());
-
-        if (FAILED(Result)) {
-            ErrorHandler::ReportHRESULT(Result, "Pipeline::Initialize", "Failed to create the input layout.", ErrorHandler::EErrorLevel::Error);
-            Reset();
-            return false;
-        }
-    } else {
-        Pipeline.mInputLayout.Reset();
-    }
-
-    D3D11_RASTERIZER_DESC RasterizerDesc{};
-    RasterizerDesc.FillMode = ConvertFillMode(Description.mRasterizer.mFillMode);
-    RasterizerDesc.CullMode = ConvertCullMode(Description.mRasterizer.mCullMode);
-    RasterizerDesc.FrontCounterClockwise = Description.mRasterizer.mFrontCounterClockwise;
-    RasterizerDesc.DepthClipEnable = Description.mRasterizer.mDepthClipEnable;
-    RasterizerDesc.ScissorEnable = Description.mRasterizer.mScissorEnable;
-
-    Result = Device->CreateRasterizerState(&RasterizerDesc, Pipeline.mRasterizerState.GetAddressOf());
-
-    if (FAILED(Result)) {
-        ErrorHandler::ReportHRESULT(Result, "Pipeline::Initialize", "Failed to create the rasterizer state.", ErrorHandler::EErrorLevel::Error);
-        Reset();
-        return false;
-    }
-
-    D3D11_DEPTH_STENCIL_DESC DepthStencilDesc{};
-    DepthStencilDesc.DepthEnable = Description.mDepthStencil.mDepthEnable;
-    DepthStencilDesc.DepthWriteMask = Description.mDepthStencil.mDepthWriteEnable ? D3D11_DEPTH_WRITE_MASK_ALL : D3D11_DEPTH_WRITE_MASK_ZERO;
-    DepthStencilDesc.DepthFunc = ConvertCompareFunc(Description.mDepthStencil.mDepthFunc);
-    DepthStencilDesc.StencilEnable = Description.mDepthStencil.mStencilEnable;
-    DepthStencilDesc.StencilReadMask = Description.mDepthStencil.mStencilReadMask;
-    DepthStencilDesc.StencilWriteMask = Description.mDepthStencil.mStencilWriteMask;
-    DepthStencilDesc.FrontFace.StencilFunc = ConvertCompareFunc(Description.mDepthStencil.mStencilFunc);
-    DepthStencilDesc.FrontFace.StencilPassOp = ConvertStencillOp(Description.mDepthStencil.mStencilPassOp);
-    DepthStencilDesc.FrontFace.StencilFailOp = ConvertStencillOp(Description.mDepthStencil.mStencilFailOp);
-    DepthStencilDesc.FrontFace.StencilDepthFailOp = ConvertStencillOp(Description.mDepthStencil.mStencilDepthFailOp);
-
-    DepthStencilDesc.BackFace = DepthStencilDesc.FrontFace;
-
-    Result = Device->CreateDepthStencilState(&DepthStencilDesc, Pipeline.mDepthStencilState.GetAddressOf());
-
-    if (FAILED(Result)) {
-        ErrorHandler::ReportHRESULT(Result, "Pipeline::Initialize", "Failed to create the depth-stencil state.", ErrorHandler::EErrorLevel::Error);
-        Reset();
-        return false;
-    }
-
-    D3D11_BLEND_DESC BlendDesc{};
-    BlendDesc.AlphaToCoverageEnable = false;
-    BlendDesc.IndependentBlendEnable = false;
-
-    D3D11_RENDER_TARGET_BLEND_DESC& RenderTarget{BlendDesc.RenderTarget[0]};
-    RenderTarget.BlendEnable = Description.mBlend.mBlendEnable;
-    RenderTarget.SrcBlend = ConvertBlend(Description.mBlend.mSrcBlend);
-    RenderTarget.DestBlend = ConvertBlend(Description.mBlend.mDestBlend);
-    RenderTarget.BlendOp = ConvertBlendOp(Description.mBlend.mBlendOp);
-    RenderTarget.SrcBlendAlpha = ConvertBlend(Description.mBlend.mSrcBlendAlpha);
-    RenderTarget.DestBlendAlpha = ConvertBlend(Description.mBlend.mDestBlendAlpha);
-    RenderTarget.BlendOpAlpha = ConvertBlendOp(Description.mBlend.mBlendOpAlpha);
-    RenderTarget.RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
-
-    Result = Device->CreateBlendState(&BlendDesc, Pipeline.mBlendState.GetAddressOf());
-
-    if (FAILED(Result)) {
-        ErrorHandler::ReportHRESULT(Result, "Pipeline::Initialize", "Failed to create the blend state.", ErrorHandler::EErrorLevel::Error);
-        Reset();
-        return false;
-    }
-
-    Pipeline.mPrimitiveTopology = ConvertPrimitiveTopology(Description.mPrimitiveTopology);
-
-    Pipeline.mOcclusionCullable = Description.mOcclusionCullable && !Description.mBHasGeometryShader && Description.mDepthStencil.mDepthEnable && (Description.mDepthStencil.mDepthFunc == ECompareFunc::Less || Description.mDepthStencil.mDepthFunc == ECompareFunc::LessEqual) && Description.mRasterizer.mFillMode == EFillMode::Solid && (Description.mPrimitiveTopology == EPrimitiveTopology::TriangleList || Description.mPrimitiveTopology == EPrimitiveTopology::TriangleStrip);
-    Pipeline.mOcclusionOccluder = Pipeline.mOcclusionCullable && Description.mOcclusionOccluder && !Description.mBlend.mBlendEnable && Description.mDepthStencil.mDepthWriteEnable;
-    Pipeline.mOcclusionDepthReusable = !Description.mBlend.mBlendEnable && (!Description.mDepthStencil.mDepthEnable || Description.mDepthStencil.mDepthFunc == ECompareFunc::LessEqual) && (!Description.mDepthStencil.mStencilEnable || (Description.mDepthStencil.mStencilFunc == ECompareFunc::Always && Description.mDepthStencil.mStencilFailOp == EStencillOp::Keep && Description.mDepthStencil.mStencilDepthFailOp == EStencillOp::Keep && (Description.mDepthStencil.mStencilPassOp == EStencillOp::Keep || Description.mDepthStencil.mStencilPassOp == EStencillOp::Zero || Description.mDepthStencil.mStencilPassOp == EStencillOp::Replace)));
-    Pipeline.mInitialized = true;
-    return true;
-}
-
-void UPipeline::Bind(ID3D11DeviceContext* Context) const {
-    Bind(Context, static_cast<ERenderMode>(mModeIndex));
-}
-
-void UPipeline::Bind(ID3D11DeviceContext* Context, ERenderMode Mode, UINT StencilReference) const {
-    if (Context == nullptr) {
-        ErrorHandler::Report("Pipeline::Bind", "A valid Direct3D device context is required to bind a pipeline.", ErrorHandler::EErrorLevel::Error);
-        return;
-    }
-
-    const std::size_t Index{static_cast<std::size_t>(Mode)};
-    if (Index >= mPipelines.size() || !mPipelines[Index].mInitialized) {
-        return;
-    }
-
-    Context->IASetInputLayout(mPipelines[Index].mInputLayout.Get());
-    Context->IASetPrimitiveTopology(mPipelines[Index].mPrimitiveTopology);
-
-    Context->VSSetShader(mPipelines[Index].mVertexShader.GetVertexShader(), nullptr, 0);
-    Context->PSSetShader(mPipelines[Index].mPixelShader.GetPixelShader(), nullptr, 0);
-
-    Context->GSSetShader(mPipelines[Index].mGeometryShader.GetGeometryShader(), nullptr, 0);
-    Context->HSSetShader(nullptr, nullptr, 0);
-    Context->DSSetShader(nullptr, nullptr, 0);
-
-    Context->RSSetState(mPipelines[Index].mRasterizerState.Get());
-    Context->OMSetBlendState(mPipelines[Index].mBlendState.Get(), nullptr, 0xffffffff);
-    Context->OMSetDepthStencilState(mPipelines[Index].mDepthStencilState.Get(), StencilReference);
-}
-
 void UPipeline::Reset() {
-    for (auto& Pipelines : mPipelines) {
-        Pipelines.mVertexShader.Reset();
-        Pipelines.mPixelShader.Reset();
-        Pipelines.mGeometryShader.Reset();
-
-        Pipelines.mInputLayout.Reset();
-        Pipelines.mRasterizerState.Reset();
-        Pipelines.mBlendState.Reset();
-        Pipelines.mDepthStencilState.Reset();
-
-        Pipelines.mPrimitiveTopology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-        Pipelines.mInitialized = false;
-    }
-    mPipelines.clear();
+    mDescriptions = {};
+    mEnabledModes = {};
     mPrimaryIndex = 0;
     mModeIndex = 0;
+    ++mRenderRevision;
 }
 
 bool UPipeline::IsOcclusionCullable(ERenderMode Mode) const {
-    const std::size_t Index{static_cast<std::size_t>(ResolveRenderMode(Mode))};
-    return Index < mPipelines.size() && mPipelines[Index].mInitialized && mPipelines[Index].mOcclusionCullable;
+    const FPipelineDescription* Description{GetDescription(ResolveRenderMode(Mode))};
+    return Description != nullptr && Description->mOcclusionCullable && !Description->mBHasGeometryShader && Description->mDepthStencil.mDepthEnable && (Description->mDepthStencil.mDepthFunc == ECompareFunc::Less || Description->mDepthStencil.mDepthFunc == ECompareFunc::LessEqual) && Description->mRasterizer.mFillMode == EFillMode::Solid && (Description->mPrimitiveTopology == EPrimitiveTopology::TriangleList || Description->mPrimitiveTopology == EPrimitiveTopology::TriangleStrip);
 }
 
 bool UPipeline::CanWriteOcclusionDepth(ERenderMode Mode) const {
-    const std::size_t Index{static_cast<std::size_t>(ResolveRenderMode(Mode))};
-    return Index < mPipelines.size() && mPipelines[Index].mInitialized && mPipelines[Index].mOcclusionOccluder;
+    const FPipelineDescription* Description{GetDescription(ResolveRenderMode(Mode))};
+    return Description != nullptr && IsOcclusionCullable(Mode) && Description->mOcclusionOccluder && !Description->mBlend.mBlendEnable && Description->mDepthStencil.mDepthWriteEnable;
 }
 
 bool UPipeline::CanReuseOcclusionDepth(ERenderMode Mode) const {
-    const std::size_t Index{static_cast<std::size_t>(ResolveRenderMode(Mode))};
-    return Index < mPipelines.size() && mPipelines[Index].mInitialized && mPipelines[Index].mOcclusionDepthReusable;
+    const FPipelineDescription* Description{GetDescription(ResolveRenderMode(Mode))};
+    return Description != nullptr && !Description->mBlend.mBlendEnable && (!Description->mDepthStencil.mDepthEnable || Description->mDepthStencil.mDepthFunc == ECompareFunc::LessEqual) && (!Description->mDepthStencil.mStencilEnable || (Description->mDepthStencil.mStencilFunc == ECompareFunc::Always && Description->mDepthStencil.mStencilFailOp == EStencillOp::Keep && Description->mDepthStencil.mStencilDepthFailOp == EStencillOp::Keep && (Description->mDepthStencil.mStencilPassOp == EStencillOp::Keep || Description->mDepthStencil.mStencilPassOp == EStencillOp::Zero || Description->mDepthStencil.mStencilPassOp == EStencillOp::Replace)));
 }
 
 void UPipeline::SetRenderMode(ERenderMode Mode) {
     const std::size_t RequestedIndex{static_cast<std::size_t>(Mode)};
-    if (RequestedIndex < mPipelines.size() && mPipelines[RequestedIndex].mInitialized) {
+    if (RequestedIndex < mDescriptions.size() && mEnabledModes[RequestedIndex]) {
         mModeIndex = RequestedIndex;
     } else {
         mModeIndex = mPrimaryIndex;
@@ -312,7 +147,7 @@ void UPipeline::SetRenderMode(ERenderMode Mode) {
 
 bool UPipeline::RenderModeSettable(ERenderMode Mode) const {
     const std::size_t RequestedIndex{static_cast<std::size_t>(Mode)};
-    return RequestedIndex < mPipelines.size() && mPipelines[RequestedIndex].mInitialized;
+    return RequestedIndex < mDescriptions.size() && mEnabledModes[RequestedIndex];
 }
 
 ERenderMode UPipeline::GetRenderMode() const {
@@ -513,5 +348,14 @@ void UPipeline::Serialize(FArchive& Ar) {
 
 ERenderMode UPipeline::ResolveRenderMode(ERenderMode Mode) const {
     const std::size_t Index{static_cast<std::size_t>(Mode)};
-    return Index < mPipelines.size() && mPipelines[Index].mInitialized ? Mode : static_cast<ERenderMode>(mPrimaryIndex);
+    return Index < mDescriptions.size() && mEnabledModes[Index] ? Mode : static_cast<ERenderMode>(mPrimaryIndex);
+}
+
+const FPipelineDescription* UPipeline::GetDescription(ERenderMode Mode) const {
+    const std::size_t Index{static_cast<std::size_t>(Mode)};
+    return Index < mDescriptions.size() && mEnabledModes[Index] ? &mDescriptions[Index] : nullptr;
+}
+
+Uint64 UPipeline::GetRenderRevision() const {
+    return mRenderRevision;
 }

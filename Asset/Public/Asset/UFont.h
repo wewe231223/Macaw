@@ -4,7 +4,7 @@
 #include "Math/FVector.h"
 #include <array>
 #include <cstdint>
-#include <d3d11.h>
+#include <span>
 
 struct FFontGlyph {
     Uint32 mGlyphIndex{0};
@@ -35,10 +35,13 @@ public:
     UFont() = default;
     ~UFont() override = default;
 
+public:
     JG_DECLARE_ABSTRACT_DERIVED_TYPEINFO(UFont, UAsset)
 
     virtual const FFontGlyph* GetOrCreateGlyph(char32_t CodePoint) = 0;
     virtual const FFontMetrics& GetFontMetrics() const = 0;
-    virtual void FlushAtlas(ID3D11DeviceContext* Context) = 0;
-    virtual ID3D11ShaderResourceView* GetAtlasSRV() const = 0;
+    virtual std::span<const Uint8> GetAtlasPixels() const = 0;
+    virtual Uint32 GetAtlasWidth() const = 0;
+    virtual Uint32 GetAtlasHeight() const = 0;
+    virtual Uint64 GetAtlasRevision() const = 0;
 };

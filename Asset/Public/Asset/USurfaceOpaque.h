@@ -20,7 +20,7 @@ public:
 public:
     JG_DECLARE_DERIVED_TYPEINFO(USurfaceOpaque, UMaterial);
 
-    bool Initialize(ID3D11Device* Device, const std::filesystem::path& MtlPath, const FTextureResolver& TextureResolver);
+    bool Initialize(const std::filesystem::path& MtlPath, const FTextureResolver& TextureResolver);
     void BuildGPUData(FMaterialGPUSlot& OutSlot) const override;
     void BuildGPUData(Uint32 GroupIndex, FMaterialGPUSlot& OutSlot) const override;
     FMaterialChunkSignature BuildChunkSignature() const override;

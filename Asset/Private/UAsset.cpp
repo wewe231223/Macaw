@@ -17,8 +17,8 @@ FString UAsset::GetAssetName() const {
     return mAssetName;
 }
 
-bool UAsset::Initialize(ID3D11Device* Device, const std::filesystem::path& InAssetPath) {
-    if (Device == nullptr || InAssetPath.empty()) {
+bool UAsset::Initialize(const std::filesystem::path& InAssetPath) {
+    if (InAssetPath.empty()) {
         return false;
     }
 

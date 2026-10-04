@@ -35,12 +35,7 @@ namespace {
     }
 }
 
-bool FAssetRegistry::Initialize(ID3D11Device* Device, Uint32 MaxMaterialCount, const FProgressCallback& ProgressCallback) {
-    if (Device == nullptr || !mMaterialBuffer.Initialize(Device, MaxMaterialCount)) {
-        return false;
-    }
-
-    mDevice = Device;
+bool FAssetRegistry::Initialize(const FProgressCallback& ProgressCallback) {
     if (ProgressCallback) {
         ProgressCallback(0.0f, "Discovering assets");
     }
@@ -57,7 +52,7 @@ bool FAssetRegistry::Initialize(ID3D11Device* Device, Uint32 MaxMaterialCount, c
     bool LoadedAllAssets{true};
 
     for (const EAssetType AssetType : AssetTypes) {
-        LoadedAllAssets = LoadAssetsOfType(Device, AssetType, LoadedAssetCount, TotalAssetCount, ProgressCallback) && LoadedAllAssets;
+        LoadedAllAssets = LoadAssetsOfType(AssetType, LoadedAssetCount, TotalAssetCount, ProgressCallback) && LoadedAllAssets;
     }
 
     if (ProgressCallback) {
@@ -99,16 +94,12 @@ bool FAssetRegistry::DiscoverAssets(const std::filesystem::path& Directory) {
     return BDiscoveredAll;
 }
 
-bool FAssetRegistry::LoadAssetsOfType(ID3D11Device* Device, EAssetType AssetType) {
+bool FAssetRegistry::LoadAssetsOfType(EAssetType AssetType) {
     std::size_t LoadedAssetCount{};
-    return LoadAssetsOfType(Device, AssetType, LoadedAssetCount, 0, {});
+    return LoadAssetsOfType(AssetType, LoadedAssetCount, 0, {});
 }
 
-bool FAssetRegistry::LoadAssetsOfType(ID3D11Device* Device, EAssetType AssetType, std::size_t& LoadedAssetCount, std::size_t TotalAssetCount, const FProgressCallback& ProgressCallback) {
-    if (Device == nullptr) {
-        return false;
-    }
-
+bool FAssetRegistry::LoadAssetsOfType(EAssetType AssetType, std::size_t& LoadedAssetCount, std::size_t TotalAssetCount, const FProgressCallback& ProgressCallback) {
     bool BLoadedAll{true};
 
     for (FAssetEntry& Entry : mAssets) {
@@ -126,15 +117,15 @@ bool FAssetRegistry::LoadAssetsOfType(ID3D11Device* Device, EAssetType AssetType
         bool BLoaded{false};
 
         if (AssetType == EAssetType::Texture) {
-            BLoaded = LoadTexture(Entry, Device);
+            BLoaded = LoadTexture(Entry);
         } else if (AssetType == EAssetType::Font) {
-            BLoaded = LoadFont(Entry, Device);
+            BLoaded = LoadFont(Entry);
         } else if (AssetType == EAssetType::Pipeline) {
-            BLoaded = LoadPipeline(Entry, Device);
+            BLoaded = LoadPipeline(Entry);
         } else if (AssetType == EAssetType::Material) {
-            BLoaded = LoadMaterial(Entry, Device);
+            BLoaded = LoadMaterial(Entry);
         } else if (AssetType == EAssetType::Mesh) {
-            BLoaded = LoadMesh(Entry, Device);
+            BLoaded = LoadMesh(Entry);
         }
 
         BLoadedAll = BLoadedAll && BLoaded;
@@ -179,10 +170,6 @@ bool FAssetRegistry::RemoveAsset(FAssetHandle Handle) {
 
     if (Entry == nullptr) {
         return false;
-    }
-
-    if (Entry->mAsset != nullptr && Entry->mAsset->GetTypeInfo()->IsA(UMaterial::StaticTypeInfo())) {
-        mMaterialBuffer.UnregisterMaterial(static_cast<UMaterial*>(Entry->mAsset.get()));
     }
 
     RemoveHandleMappings(Handle);
@@ -256,7 +243,7 @@ FAssetHandle FAssetRegistry::ImportMesh(const std::filesystem::path& SourceObjPa
 
     const FAssetHandle Handle{FindAsset(MakeAssetPath(TargetBinaryPath))};
     FAssetEntry* Entry{FindEntry(Handle)};
-    if (Entry == nullptr || Entry->mAssetType != EAssetType::Mesh || !LoadMesh(*Entry, mDevice)) {
+    if (Entry == nullptr || Entry->mAssetType != EAssetType::Mesh || !LoadMesh(*Entry)) {
         if (Handle) {
             RemoveAsset(Handle);
         }
@@ -273,7 +260,7 @@ FAssetHandle FAssetRegistry::ImportMesh(const std::filesystem::path& SourceObjPa
 FAssetHandle FAssetRegistry::LoadViewerAsset(const std::filesystem::path& SourcePath) {
     std::error_code ErrorCode{};
     const std::filesystem::path AbsolutePath{std::filesystem::absolute(SourcePath, ErrorCode).lexically_normal()};
-    if (ErrorCode || mDevice == nullptr || !std::filesystem::is_regular_file(AbsolutePath, ErrorCode)) {
+    if (ErrorCode || !std::filesystem::is_regular_file(AbsolutePath, ErrorCode)) {
         return {};
     }
 
@@ -292,16 +279,15 @@ FAssetHandle FAssetRegistry::LoadViewerAsset(const std::filesystem::path& Source
     std::unique_ptr<UAsset> Asset{};
     if (AssetType == EAssetType::Texture) {
         std::unique_ptr<UTexture> Texture{std::make_unique<UTexture>()};
-        if (!Texture->Initialize(mDevice, AbsolutePath, false, ETextureFormat::UNORM, true) || Texture->GetSRV() == nullptr) {
+        if (!Texture->Initialize(AbsolutePath, false, ETextureFormat::UNORM, true)) {
             return {};
         }
         Asset = std::move(Texture);
     } else if (AssetType == EAssetType::Material) {
         std::unique_ptr<USurfaceOpaque> Material{std::make_unique<USurfaceOpaque>()};
-        if (!Material->Initialize(mDevice, AbsolutePath, [this](const std::filesystem::path& TexturePath) {
+        if (!Material->Initialize(AbsolutePath, [this](const std::filesystem::path& TexturePath) {
                 return LoadViewerAsset(TexturePath);
-            }) ||
-            !mMaterialBuffer.RegisterMaterial(Material.get())) {
+            })) {
             return {};
         }
         Asset = std::move(Material);
@@ -332,7 +318,7 @@ FAssetHandle FAssetRegistry::LoadViewerAsset(const std::filesystem::path& Source
                 return {};
             }
         }
-        if (!Mesh->Initialize(mDevice, ObjPath, BinPath, [this](const std::filesystem::path& MaterialPath) {
+        if (!Mesh->Initialize(ObjPath, BinPath, [this](const std::filesystem::path& MaterialPath) {
                 return LoadViewerAsset(MaterialPath);
             },
                               [this](FAssetHandle MaterialHandle, const FString& GroupName) -> std::optional<Uint32> {
@@ -367,8 +353,6 @@ void FAssetRegistry::Reset() {
     mFreeHandles.clear();
     mPathToHandle.clear();
     mGuidToHandle.clear();
-    mMaterialBuffer.Reset();
-    mDevice = nullptr;
     mContentRoot.clear();
 }
 
@@ -484,12 +468,10 @@ bool FAssetRegistry::DiscoverAssetFile(const std::filesystem::path& FilePath) {
     return RegisterDiscoveredAsset(MakeAssetPath(FilePath), FilePath, SidecarPath, Entry.mPersistentGuid, AssetType, Entry);
 }
 
-bool FAssetRegistry::LoadTexture(FAssetEntry& Entry, ID3D11Device* Device) {
+bool FAssetRegistry::LoadTexture(FAssetEntry& Entry) {
     std::unique_ptr<UTexture> Texture{std::make_unique<UTexture>()};
     Texture->SetAssetName(Entry.mAssetPath.mPath);
-    Texture->Initialize(Device, Entry.mPhysicalPath, Entry.mTextureMetadata.mMakeDDS, ETextureFormat::UNORM, Entry.mTextureMetadata.mGenerateMipMap);
-
-    if (Texture->GetSRV() == nullptr) {
+    if (!Texture->Initialize(Entry.mPhysicalPath, Entry.mTextureMetadata.mMakeDDS, ETextureFormat::UNORM, Entry.mTextureMetadata.mGenerateMipMap)) {
         return false;
     }
 
@@ -498,11 +480,11 @@ bool FAssetRegistry::LoadTexture(FAssetEntry& Entry, ID3D11Device* Device) {
     return true;
 }
 
-bool FAssetRegistry::LoadFont(FAssetEntry& Entry, ID3D11Device* Device) {
+bool FAssetRegistry::LoadFont(FAssetEntry& Entry) {
     std::unique_ptr<UFreeTypeFont> Font{std::make_unique<UFreeTypeFont>()};
     Font->SetAssetName(Entry.mAssetPath.mPath);
 
-    if (!Font->Initialize(Device, Entry.mPhysicalPath) || Font->GetAtlasSRV() == nullptr) {
+    if (!Font->Initialize(Entry.mPhysicalPath)) {
         return false;
     }
 
@@ -511,11 +493,11 @@ bool FAssetRegistry::LoadFont(FAssetEntry& Entry, ID3D11Device* Device) {
     return true;
 }
 
-bool FAssetRegistry::LoadPipeline(FAssetEntry& Entry, ID3D11Device* Device) {
+bool FAssetRegistry::LoadPipeline(FAssetEntry& Entry) {
     std::unique_ptr<UPipeline> Pipeline{std::make_unique<UPipeline>()};
     Pipeline->SetAssetName(Entry.mAssetPath.mPath);
 
-    const bool BInitialized{Pipeline->Initialize(Device, Entry.mPhysicalPath)};
+    const bool BInitialized{Pipeline->Initialize(Entry.mPhysicalPath)};
 
     if (!BInitialized) {
         return false;
@@ -526,7 +508,7 @@ bool FAssetRegistry::LoadPipeline(FAssetEntry& Entry, ID3D11Device* Device) {
     return true;
 }
 
-bool FAssetRegistry::LoadMaterial(FAssetEntry& Entry, ID3D11Device* Device) {
+bool FAssetRegistry::LoadMaterial(FAssetEntry& Entry) {
     std::unique_ptr<USurfaceOpaque> Material{std::make_unique<USurfaceOpaque>()};
     Material->SetAssetName(Entry.mAssetPath.mPath);
 
@@ -535,12 +517,12 @@ bool FAssetRegistry::LoadMaterial(FAssetEntry& Entry, ID3D11Device* Device) {
         return false;
     }
 
-    const bool BInitialized{Material->Initialize(Device, Entry.mPhysicalPath, [this, CheckerboardHandle](const std::filesystem::path& TexturePath) {
+    const bool BInitialized{Material->Initialize(Entry.mPhysicalPath, [this, CheckerboardHandle](const std::filesystem::path& TexturePath) {
         const FAssetHandle TextureHandle{FindAsset(MakeAssetPath(TexturePath))};
         return ResolveAsset<UTexture>(TextureHandle) != nullptr ? TextureHandle : CheckerboardHandle;
     })};
 
-    if (!BInitialized || !mMaterialBuffer.RegisterMaterial(Material.get())) {
+    if (!BInitialized) {
         return false;
     }
 
@@ -549,7 +531,7 @@ bool FAssetRegistry::LoadMaterial(FAssetEntry& Entry, ID3D11Device* Device) {
     return true;
 }
 
-bool FAssetRegistry::LoadMesh(FAssetEntry& Entry, ID3D11Device* Device) {
+bool FAssetRegistry::LoadMesh(FAssetEntry& Entry) {
     std::unique_ptr<UMesh> Mesh{std::make_unique<UMesh>()};
     Mesh->SetAssetName(Entry.mAssetPath.mPath);
 
@@ -568,7 +550,6 @@ bool FAssetRegistry::LoadMesh(FAssetEntry& Entry, ID3D11Device* Device) {
     }
 
     const bool BInitialized{Mesh->Initialize(
-        Device,
         SourceObjPath,
         BinaryPath,
         [this](const std::filesystem::path& MaterialPath) {
@@ -590,7 +571,7 @@ bool FAssetRegistry::LoadMesh(FAssetEntry& Entry, ID3D11Device* Device) {
     {
         const float TargetRatio{ GLODSettings[Level].mTargetRatio };
 
-        if (!Mesh->GenerateLOD(Device, Level, TargetRatio))
+        if (!Mesh->GenerateLOD(Level, TargetRatio))
         {
             Console::AddLog(Console::STDOutHandle, ELogLevel::Warning, ELogCategory::Etc,
                 "Failed to generate LOD%u: %s", Level, Entry.mPhysicalPath.generic_string().c_str());
@@ -833,29 +814,6 @@ const std::filesystem::path& FAssetRegistry::GetContentRoot() const {
 
 const TArray<FAssetEntry>& FAssetRegistry::GetAssetEntries() const {
     return mAssets;
-}
-
-FMaterialBuffer& FAssetRegistry::GetMaterialBuffer() {
-    return mMaterialBuffer;
-}
-
-const FMaterialBuffer& FAssetRegistry::GetMaterialBuffer() const {
-    return mMaterialBuffer;
-}
-
-void FAssetRegistry::FlushMaterialBuffer(ID3D11DeviceContext* Context) {
-    mMaterialBuffer.Flush(Context);
-}
-
-ID3D11ShaderResourceView* FAssetRegistry::GetMaterialBufferSRV() const {
-    return *mMaterialBuffer.GetSRV();
-}
-
-void FAssetRegistry::FlushFontAtlas(FAssetHandle Handle, ID3D11DeviceContext* Context) {
-    UFont* Font{ResolveAsset<UFont>(Handle)};
-    if (Font != nullptr) {
-        Font->FlushAtlas(Context);
-    }
 }
 
 auto FAssetRegistry::GetAssetList() const {

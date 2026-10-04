@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Render/FTextRenderer.h"
 #include "Asset/Pipeline/UPipeline.h"
-#include "Asset/IRenderAssetRegistry.h"
+#include "Render/FRenderAssetResources.h"
 #include "Asset/UFont.h"
 #include "Render/FFrameResource.h"
 
@@ -16,7 +16,7 @@ bool FTextRenderer::Initialize(ID3D11Device* InDevice, std::uint32_t InitialCapa
     return true;
 }
 
-void FTextRenderer::Render(ID3D11DeviceContext* Context, FFrameResource& FrameResource, const TArray<FTextProbe>& TextProbes, IRenderAssetRegistry* AssetRegistry) {
+void FTextRenderer::Render(ID3D11DeviceContext* Context, FFrameResource& FrameResource, const TArray<FTextProbe>& TextProbes, const IAssetRegistry* AssetRegistry, FRenderAssetResources& Resources) {
     if (Context == nullptr || mDevice == nullptr || AssetRegistry == nullptr || TextProbes.empty() || !FrameResource.HasCameraWorld() || !FrameResource.BindCommon(Context)) {
         return;
     }
@@ -33,8 +33,7 @@ void FTextRenderer::Render(ID3D11DeviceContext* Context, FFrameResource& FrameRe
         if (Font == nullptr) {
             continue;
         }
-        AssetRegistry->FlushFontAtlas(Probe.mFontHandle, Context);
-        ID3D11ShaderResourceView* AtlasSRV{Font->GetAtlasSRV()};
+        ID3D11ShaderResourceView* AtlasSRV{Resources.GetFontAtlas(*Font, Context)};
         if (AtlasSRV == nullptr) {
             continue;
         }
@@ -68,7 +67,11 @@ void FTextRenderer::Render(ID3D11DeviceContext* Context, FFrameResource& FrameRe
     Context->IASetIndexBuffer(nullptr, DXGI_FORMAT_UNKNOWN, 0);
     Context->GSSetShaderResources(0, 1, &TextContexts);
     for (const FTextDraw& Draw : mDraws) {
-        Draw.mPipeline->Bind(Context);
+        const FPipelineRenderResource* Pipeline{Resources.GetPipeline(*Draw.mPipeline)};
+        if (Pipeline == nullptr) {
+            continue;
+        }
+        Pipeline->Bind(Context, Draw.mPipeline->GetRenderMode());
         Context->PSSetShaderResources(3, 1, &Draw.mAtlas);
         Context->Draw(Draw.mVertexCount, Draw.mFirstVertex);
     }

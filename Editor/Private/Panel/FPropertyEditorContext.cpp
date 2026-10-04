@@ -243,15 +243,11 @@ ID3D11ShaderResourceView* FPropertyEditorContext::GetAssetThumbnail(const IAsset
         return nullptr;
     }
 
-    if (Asset->GetTypeInfo()->IsA(UTexture::StaticTypeInfo())) {
-        return static_cast<const UTexture*>(Asset)->GetSRV();
-    }
-
     if (mThumbnailRenderer == nullptr) {
         return nullptr;
     }
 
-    if (Asset->GetTypeInfo()->IsA(UMesh::StaticTypeInfo()) || Asset->GetTypeInfo()->IsA(UMaterial::StaticTypeInfo())) {
+    if (Asset->GetTypeInfo()->IsA(UMesh::StaticTypeInfo()) || Asset->GetTypeInfo()->IsA(UMaterial::StaticTypeInfo()) || Asset->GetTypeInfo()->IsA(UTexture::StaticTypeInfo())) {
         return mThumbnailRenderer->GetThumbnail(AssetHandle);
     }
 

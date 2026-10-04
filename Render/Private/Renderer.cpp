@@ -1,5 +1,7 @@
 #include "pch.h"
 #include "Render/Renderer.h"
+#include "Asset/UTexture.h"
+#include "Asset/UMesh.h"
 #include "Core/Base/ErrorHandler.h"
 #include "Core/Stat/Stat.h"
 
@@ -99,8 +101,19 @@ ID3D11DeviceContext* FRenderer::GetDeviceContext() const {
     return mDeviceContext.Get();
 }
 
-void FRenderer::BindAssetRegistry(IRenderAssetRegistry* InAssetRegistry) {
+bool FRenderer::BindAssetRegistry(const IAssetRegistry* InAssetRegistry) {
+    if (mAssetRegistry == InAssetRegistry) {
+        return true;
+    }
+    mRenderScenes.clear();
+    mRenderQueues.clear();
+    mAssetResources.Reset();
+    mAssetRegistry = nullptr;
+    if (InAssetRegistry != nullptr && !mAssetResources.Initialize(mDevice.Get())) {
+        return false;
+    }
     mAssetRegistry = InAssetRegistry;
+    return true;
 }
 
 void FRenderer::BeginFrame(float DeltaTime) {
@@ -145,6 +158,9 @@ void FRenderer::BeginFrame(float DeltaTime) {
     ++mFrameSerial;
     mOcclusionCulling.BeginFrame(mFrameSerial);
     PruneRenderQueues();
+    if (mAssetRegistry != nullptr) {
+        mAssetResources.Prune(*mAssetRegistry);
+    }
 }
 
 const FRenderScene& FRenderer::SynchronizeScene(FSceneRenderData& Scene) {
@@ -155,7 +171,10 @@ const FRenderScene& FRenderer::SynchronizeScene(FSceneRenderData& Scene) {
         RenderScene = std::make_unique<FRenderScene>(SceneId);
     }
 
-    RenderScene->Synchronize(mAssetRegistry, Scene);
+    if (mAssetRegistry != nullptr) {
+        mAssetResources.GetMaterialBuffer().Synchronize(*mAssetRegistry, mDeviceContext.Get());
+    }
+    RenderScene->Synchronize(mAssetRegistry, Scene, mAssetResources.GetMaterialBuffer());
     return *RenderScene;
 }
 
@@ -184,14 +203,14 @@ void FRenderer::RenderView(const FRenderView& View, const FRenderScene& Scene) {
 
     {
         const Stat::FScopedRenderPreparationStatTimer StageStat{Stat::ERenderPreparationStage::MaterialBuffer};
-        mAssetRegistry->FlushMaterialBuffer(mDeviceContext.Get());
+        mAssetResources.GetMaterialBuffer().Synchronize(*mAssetRegistry, mDeviceContext.Get());
     }
     FViewRenderQueue& ViewQueue{mRenderQueues[View.mTarget]};
     ViewQueue.mLastUsedFrame = mFrameSerial;
     FRenderQueue& Queue{ViewQueue.mQueue};
     {
         const Stat::FScopedRenderPreparationStatTimer StageStat{Stat::ERenderPreparationStage::RenderQueue};
-        Queue.Build(mAssetRegistry, Scene, View);
+        Queue.Build(mAssetRegistry, Scene, View, mAssetResources.GetMaterialBuffer());
     }
     {
         const Stat::FScopedRenderPreparationStatTimer StageStat{Stat::ERenderPreparationStage::ViewBuffers};
@@ -200,7 +219,7 @@ void FRenderer::RenderView(const FRenderView& View, const FRenderScene& Scene) {
         }
     }
 
-    const FRenderContext Context{mDeviceContext.Get(), mAssetRegistry, mAssetRegistry->GetMaterialBufferSRV(), mCurrentFrameResource};
+    const FRenderContext Context{mDeviceContext.Get(), mAssetRegistry, &mAssetResources, mAssetResources.GetMaterialBuffer().GetSRV(), mCurrentFrameResource};
     if (View.IsPassEnabled(ERenderPass::SceneGeometry)) {
         const Stat::FScopedSystemStatTimer StageStat{ Stat::ESystemStatStage::Geometry };
         ExecutePass(ERenderPass::SceneGeometry, Context, View, Scene, Queue);
@@ -244,10 +263,10 @@ void FRenderer::ExecutePass(ERenderPass Pass, const FRenderContext& Context, con
             }
             break;
         case ERenderPass::Text:
-            mTextRenderer.Render(mDeviceContext.Get(), *mCurrentFrameResource, Scene.GetTextProbes(), mAssetRegistry);
+            mTextRenderer.Render(mDeviceContext.Get(), *mCurrentFrameResource, Scene.GetTextProbes(), mAssetRegistry, mAssetResources);
             break;
         case ERenderPass::Billboard:
-            mBillboardRenderer.Render(mDeviceContext.Get(), *mCurrentFrameResource, Scene.GetBillboardProbes(), mAssetRegistry, View.mRenderMode);
+            mBillboardRenderer.Render(mDeviceContext.Get(), *mCurrentFrameResource, Scene.GetBillboardProbes(), mAssetRegistry, mAssetResources, View.mRenderMode);
             break;
         case ERenderPass::OrientationAxis:
             DrawOrientationAxis(View);
@@ -315,6 +334,8 @@ void FRenderer::ReSize(Uint32 Width, Uint32 Height) {
 }
 
 void FRenderer::Terminate() {
+    mAssetResources.Reset();
+    mAssetRegistry = nullptr;
     mDeviceContext->ClearState();
 
     mLineRenderer.Reset();
@@ -450,4 +471,29 @@ bool FRenderer::CreateSamplerStates() {
     Succeeded = CreateSampler(5, ShadowDescription, "ShadowCompare") && Succeeded;
 
     return Succeeded;
+}
+
+ID3D11ShaderResourceView* FRenderer::GetTextureResource(FAssetHandle Handle) {
+    const UTexture* Texture{mAssetRegistry != nullptr ? mAssetRegistry->ResolveAsset<UTexture>(Handle) : nullptr};
+    return Texture != nullptr ? mAssetResources.GetTexture(*Texture) : nullptr;
+}
+
+bool FRenderer::PrepareAssetResources() {
+    if (mAssetRegistry == nullptr) {
+        return false;
+    }
+    bool Complete{true};
+    for (FAssetHandle Handle : mAssetRegistry->GetAssetHandles(*UTexture::StaticTypeInfo())) {
+        const UTexture* Texture{mAssetRegistry->ResolveAsset<UTexture>(Handle)};
+        Complete = Texture != nullptr && mAssetResources.GetTexture(*Texture) != nullptr && Complete;
+    }
+    for (FAssetHandle Handle : mAssetRegistry->GetAssetHandles(*UMesh::StaticTypeInfo())) {
+        const UMesh* Mesh{mAssetRegistry->ResolveAsset<UMesh>(Handle)};
+        Complete = Mesh != nullptr && mAssetResources.GetMesh(*Mesh) != nullptr && Complete;
+    }
+    for (FAssetHandle Handle : mAssetRegistry->GetAssetHandles(*UPipeline::StaticTypeInfo())) {
+        const UPipeline* Pipeline{mAssetRegistry->ResolveAsset<UPipeline>(Handle)};
+        Complete = Pipeline != nullptr && mAssetResources.GetPipeline(*Pipeline) != nullptr && Complete;
+    }
+    return Complete;
 }

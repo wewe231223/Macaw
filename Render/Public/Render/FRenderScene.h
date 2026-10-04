@@ -73,7 +73,7 @@ public:
     explicit FRenderScene(Uint64 SceneId);
 
 public:
-    void Synchronize(const IAssetRegistry* Registry, FSceneRenderData& Scene);
+    void Synchronize(const IAssetRegistry* Registry, FSceneRenderData& Scene, const FMaterialBuffer& Materials);
 
     Uint64 GetId() const;
     Uint64 GetRevision() const;
@@ -105,7 +105,7 @@ private:
     void RecordObjectChange(Uint32 ObjectIndex);
     void CommitObjectChanges();
 
-    void RefreshTemplates(const IAssetRegistry* Registry);
+    void RefreshTemplates(const IAssetRegistry* Registry, const FMaterialBuffer& Materials);
     void UpdateBounds();
     void RebuildBounds();
 
@@ -113,6 +113,7 @@ private:
     Uint64 mSceneId{};
     Uint64 mRevision{1};
     Uint64 mTemplateRevision{};
+    Uint64 mMaterialBufferRevision{};
     FRevisionCursor mSourceRevision{};
     Uint64 mJournalFloor{};
 

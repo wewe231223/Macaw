@@ -9,11 +9,13 @@ void FBatchLineRenderer::Initialize(ID3D11Device* InDevice, Uint32 InitialLineCa
     Reset();
 
     mDevice = InDevice;
-    mDepthTestedPipeline = std::make_unique<UPipeline>();
-    mOverlayPipeline = std::make_unique<UPipeline>();
+    mDepthTestedPipeline = std::make_unique<FPipelineRenderResource>();
+    mOverlayPipeline = std::make_unique<FPipelineRenderResource>();
 
-    ErrorHandler::Report(!mDepthTestedPipeline->Initialize(mDevice, "./Content/Pipeline/BatchLineDepthTested.json"), "[ FBatchLineRenderer ]", "Failed to initialize the depth-tested batch line pipeline.", ErrorHandler::EErrorLevel::Critical);
-    ErrorHandler::Report(!mOverlayPipeline->Initialize(mDevice, "./Content/Pipeline/BatchLineOverlay.json"), "[ FBatchLineRenderer ]", "Failed to initialize the overlay batch line pipeline.", ErrorHandler::EErrorLevel::Critical);
+    UPipeline DepthPipeline{};
+    ErrorHandler::Report(!DepthPipeline.Initialize("./Content/Pipeline/BatchLineDepthTested.json") || !mDepthTestedPipeline->Initialize(mDevice, DepthPipeline), "[ FBatchLineRenderer ]", "Failed to initialize the depth-tested batch line pipeline.", ErrorHandler::EErrorLevel::Critical);
+    UPipeline OverlayPipeline{};
+    ErrorHandler::Report(!OverlayPipeline.Initialize("./Content/Pipeline/BatchLineOverlay.json") || !mOverlayPipeline->Initialize(mDevice, OverlayPipeline), "[ FBatchLineRenderer ]", "Failed to initialize the overlay batch line pipeline.", ErrorHandler::EErrorLevel::Critical);
 
     InitialLineCapacity = std::max(InitialLineCapacity * 2, 2u);
 
@@ -80,7 +82,7 @@ bool FBatchLineRenderer::IsEmpty() const {
     return mDepthTestedBatch.mVertices.empty() && mOverlayBatch.mVertices.empty();
 }
 
-bool FBatchLineRenderer::RenderBatch(ID3D11DeviceContext* Context, FFrameResource& FrameResource, FLineBatch& Batch, const UPipeline* Pipeline, EFrameStream Stream) {
+bool FBatchLineRenderer::RenderBatch(ID3D11DeviceContext* Context, FFrameResource& FrameResource, FLineBatch& Batch, const FPipelineRenderResource* Pipeline, EFrameStream Stream) {
     if (Batch.mVertices.empty()) {
         return true;
     }
@@ -94,7 +96,7 @@ bool FBatchLineRenderer::RenderBatch(ID3D11DeviceContext* Context, FFrameResourc
         return false;
     }
 
-    Pipeline->Bind(Context);
+    Pipeline->Bind(Context, ERenderMode::Lit);
 
     ID3D11Buffer* VertexBuffers[]{FrameResource.GetStreamBuffer(Stream)};
     const Uint32 Strides[]{static_cast<Uint32>(sizeof(FBatchLineInstance))};

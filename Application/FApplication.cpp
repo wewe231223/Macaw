@@ -104,12 +104,19 @@ bool FApplication::InitializeApplication(FLoadingProgress& Progress, HWND Window
         Progress.SetProgress(0.15f + AssetProgress * 0.55f, Status);
     }};
 
-    const bool AssetsInitialized{mContext.mEngine.GetAssetRegistry().Initialize(mContext.mRenderer.GetDevice(), 128, AssetProgressCallback)};
+    const bool AssetsInitialized{mContext.mEngine.GetAssetRegistry().Initialize(AssetProgressCallback)};
     if (!AssetsInitialized) {
         Console::AddLog(Console::STDOutHandle, ELogLevel::Warning, ELogCategory::Etc, "Some optional assets failed to load. Initialization will continue.");
     }
 
-    mContext.mRenderer.BindAssetRegistry(&mContext.mEngine.GetAssetRegistry());
+    if (!mContext.mRenderer.BindAssetRegistry(&mContext.mEngine.GetAssetRegistry())) {
+        return false;
+    }
+
+    Progress.SetProgress(0.71f, "Preparing render resources");
+    if (!mContext.mRenderer.PrepareAssetResources()) {
+        Console::AddLog(Console::STDOutHandle, ELogLevel::Warning, ELogCategory::Etc, "Some asset render resources failed to initialize.");
+    }
 
     Progress.SetProgress(0.73f, "Initializing editor channels");
     mContext.mEditorContext->InitializeChannels(&mContext.mEngine.GetAssetRegistry());

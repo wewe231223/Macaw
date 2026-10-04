@@ -1,7 +1,6 @@
 #pragma once
 #include "CoreUObject/UObject.h"
 #include <filesystem>
-#include <d3d11.h>
 #include "Core/Archive/FArchive.h"
 
 class UAsset : public UObject {
@@ -23,7 +22,7 @@ public:
     FString GetAssetName() const;
 
 protected:
-    bool Initialize(ID3D11Device* Device, const std::filesystem::path& InAssetPath);
+    bool Initialize(const std::filesystem::path& InAssetPath);
 
     virtual void Serialize(FArchive& Ar) override;
 

@@ -1,5 +1,6 @@
 #pragma once
-#include "Asset/FMaterialChunkSignature.h"
+#include "Render/FMaterialBuffer.h"
+#include "RenderCore/FMaterialChunkSignature.h"
 
 class UMaterial;
 class UMesh;
@@ -21,4 +22,4 @@ struct FRenderBatchTemplate {
     Uint32 mMaterialIndex{};
 };
 
-void AppendMeshDrawTemplates(const UMesh& Mesh, const UMaterial& Material, FAssetHandle PipelineHandle, FAssetHandle MeshHandle, Uint32 LODLevel, TArray<FRenderBatchTemplate>& OutTemplates);
+void AppendMeshDrawTemplates(const UMesh& Mesh, const UMaterial& Material, const FMaterialBuffer& Materials, FAssetHandle PipelineHandle, FAssetHandle MeshHandle, Uint32 LODLevel, TArray<FRenderBatchTemplate>& OutTemplates);

@@ -1,4 +1,5 @@
 #pragma once
+#include "Render/FRenderAssetResources.h"
 #include <d3d11.h>
 #include <wrl/client.h>
 #include "Math/FMath.h"
@@ -54,7 +55,7 @@ public:
 
 public:
     bool Initialize(ID3D11Device* InDevice, std::uint32_t InitialCapacity = 256);
-    void Render(ID3D11DeviceContext* Context, FFrameResource& FrameResource, const TArray<FBillboardProbe>& BillboardProbe, const IAssetRegistry* AssetRegistry, ERenderMode Mode);
+    void Render(ID3D11DeviceContext* Context, FFrameResource& FrameResource, const TArray<FBillboardProbe>& BillboardProbe, const IAssetRegistry* AssetRegistry, FRenderAssetResources& Resources, ERenderMode Mode);
 
 private:
     ID3D11Device* mDevice{nullptr};

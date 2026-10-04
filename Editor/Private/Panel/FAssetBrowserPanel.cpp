@@ -258,13 +258,7 @@ void FAssetBrowserPanel::DrawAssetTile(const FAssetEntry& Entry) {
 
     ID3D11ShaderResourceView* ThumbnailSRV{nullptr};
 
-    if (Entry.mAssetType == EAssetType::Texture) {
-        const UTexture* Texture{mAssetRegistry->ResolveAsset<UTexture>(Entry.mHandle)};
-
-        if (Texture != nullptr) {
-            ThumbnailSRV = Texture->GetSRV();
-        }
-    } else if (Entry.mAssetType == EAssetType::Mesh || Entry.mAssetType == EAssetType::Material) {
+    if (mThumbnailRenderer != nullptr && (Entry.mAssetType == EAssetType::Texture || Entry.mAssetType == EAssetType::Mesh || Entry.mAssetType == EAssetType::Material)) {
         ThumbnailSRV = mThumbnailRenderer->GetThumbnail(Entry.mHandle);
     }
 

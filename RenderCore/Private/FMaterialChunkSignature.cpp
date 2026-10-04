@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "Asset/FMaterialChunkSignature.h"
+#include "RenderCore/FMaterialChunkSignature.h"
 
 bool FMaterialChunkSignature::IsValid() const {
     return mTextureFieldCount <= MaxMaterialTextureFields;

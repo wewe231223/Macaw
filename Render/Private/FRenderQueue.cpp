@@ -18,7 +18,7 @@ namespace {
     }
 }
 
-void FRenderQueue::Build(const IAssetRegistry* Registry, const FRenderScene& Scene, const FRenderView& View) {
+void FRenderQueue::Build(const IAssetRegistry* Registry, const FRenderScene& Scene, const FRenderView& View, const FMaterialBuffer& Materials) {
     mGizmoItems.clear();
     mGizmoTransforms.clear();
 
@@ -46,7 +46,7 @@ void FRenderQueue::Build(const IAssetRegistry* Registry, const FRenderScene& Sce
 
     mDrawRecords.resize(mSceneRecordCount);
     if (View.IsPassEnabled(ERenderPass::Gizmo)) {
-        BuildGizmoItems(Registry, View.mGizmoProbes);
+        BuildGizmoItems(Registry, View.mGizmoProbes, Materials);
     }
 }
 
@@ -167,7 +167,7 @@ void FRenderQueue::BuildSceneItems(const FRenderScene& Scene, const FRenderView&
     }
 }
 
-void FRenderQueue::BuildGizmoItems(const IAssetRegistry* Registry, const TArray<FActorProbe>& Probes) {
+void FRenderQueue::BuildGizmoItems(const IAssetRegistry* Registry, const TArray<FActorProbe>& Probes, const FMaterialBuffer& Materials) {
     if (Registry == nullptr) {
         return;
     }
@@ -181,7 +181,7 @@ void FRenderQueue::BuildGizmoItems(const IAssetRegistry* Registry, const TArray<
         }
 
         mGizmoTemplates.clear();
-        AppendMeshDrawTemplates(*Mesh, *Material, Probe.mPipelineHandle, Probe.mMeshHandle, 0, mGizmoTemplates);
+        AppendMeshDrawTemplates(*Mesh, *Material, Materials, Probe.mPipelineHandle, Probe.mMeshHandle, 0, mGizmoTemplates);
         if (mGizmoTemplates.empty()) {
             continue;
         }

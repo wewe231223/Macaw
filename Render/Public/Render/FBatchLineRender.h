@@ -1,5 +1,6 @@
 #pragma once
 #include "Render/ILineRenderer.h"
+#include "Render/Pipeline/FPipelineRenderResource.h"
 
 class FBatchLineRenderer : public ILineRenderer {
 private:
@@ -36,13 +37,13 @@ public:
     [[nodiscard]] bool IsEmpty() const;
 
 private:
-    bool RenderBatch(ID3D11DeviceContext* Context, FFrameResource& FrameResource, FLineBatch& Batch, const UPipeline* Pipeline, EFrameStream Stream);
+    bool RenderBatch(ID3D11DeviceContext* Context, FFrameResource& FrameResource, FLineBatch& Batch, const FPipelineRenderResource* Pipeline, EFrameStream Stream);
 
 private:
     ID3D11Device* mDevice{nullptr};
 
-    std::unique_ptr<UPipeline> mDepthTestedPipeline{};
-    std::unique_ptr<UPipeline> mOverlayPipeline{};
+    std::unique_ptr<FPipelineRenderResource> mDepthTestedPipeline{};
+    std::unique_ptr<FPipelineRenderResource> mOverlayPipeline{};
 
     FLineBatch mDepthTestedBatch{};
     FLineBatch mOverlayBatch{};

@@ -29,7 +29,7 @@ FRenderScene::FRenderScene(Uint64 SceneId)
 	: mSceneId{SceneId} {
 }
 
-void FRenderScene::Synchronize(const IAssetRegistry* Registry, FSceneRenderData& Scene) {
+void FRenderScene::Synchronize(const IAssetRegistry* Registry, FSceneRenderData& Scene, const FMaterialBuffer& Materials) {
     mLightProbes.swap(Scene.mLightProbes);
     mTextProbes.swap(Scene.mTextProbes);
     mBillboardProbes.swap(Scene.mBillboardProbes);
@@ -50,7 +50,7 @@ void FRenderScene::Synchronize(const IAssetRegistry* Registry, FSceneRenderData&
 
     UpdateBounds();
 
-    RefreshTemplates(Registry);
+    RefreshTemplates(Registry, Materials);
 }
 
 Uint64 FRenderScene::GetId() const {
@@ -300,7 +300,11 @@ void FRenderScene::CommitObjectChanges() {
     }
 }
 
-void FRenderScene::RefreshTemplates(const IAssetRegistry* Registry) {
+void FRenderScene::RefreshTemplates(const IAssetRegistry* Registry, const FMaterialBuffer& Materials) {
+    if (mMaterialBufferRevision != Materials.GetRevision()) {
+        mMaterialBufferRevision = Materials.GetRevision();
+        mTemplatesDirty = true;
+    }
     const FAssetHandle SkyPipeline{Registry != nullptr ? Registry->FindAsset(FAssetPath{"/Game/Pipeline/SkyDome.json"}) : FAssetHandle{}};
 
     for (FRenderTemplateGroup& Group : mTemplateGroups) {
@@ -350,7 +354,7 @@ void FRenderScene::RefreshTemplates(const IAssetRegistry* Registry) {
             }
 
             const Uint32 FirstTemplateIndex{static_cast<Uint32>(mTemplates.size())};
-            AppendMeshDrawTemplates(*Mesh, *Material, Group.mKey.mPipelineHandle, Group.mKey.mMeshHandle, Level, mTemplates);
+            AppendMeshDrawTemplates(*Mesh, *Material, Materials, Group.mKey.mPipelineHandle, Group.mKey.mMeshHandle, Level, mTemplates);
 
             FRenderTemplateRange& TemplateRange{Group.mTemplateRangesByLOD[Level]};
             TemplateRange = FRenderTemplateRange{FirstTemplateIndex, static_cast<Uint32>(mTemplates.size()) - FirstTemplateIndex};

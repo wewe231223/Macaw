@@ -1,33 +1,12 @@
 #pragma once
 
-#include <d3d11.h>
-#include <wrl/client.h>
-
 #include <filesystem>
 #include <array>
 #include <string>
 #include <vector>
-#include "Asset/Pipeline/FShader.h"
-#include "Asset/Pipeline/Defines.h"
+#include "RenderCore/Pipeline/FPipelineDescription.h"
 #include "Asset/UAsset.h"
 #include "CoreUObject/TypeInfo.h"
-#include "Asset/Pipeline/Wrapper.h"
-
-struct PipelineUnit {
-    FShader mVertexShader{};
-    FShader mPixelShader{};
-    FShader mGeometryShader{};
-    Microsoft::WRL::ComPtr<ID3D11InputLayout> mInputLayout{};
-    Microsoft::WRL::ComPtr<ID3D11RasterizerState> mRasterizerState{};
-    Microsoft::WRL::ComPtr<ID3D11BlendState> mBlendState{};
-    Microsoft::WRL::ComPtr<ID3D11DepthStencilState> mDepthStencilState{};
-    D3D11_PRIMITIVE_TOPOLOGY mPrimitiveTopology{D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST};
-    bool mInitialized{false};
-    UINT mStencilRef{0};
-    bool mOcclusionCullable{};
-    bool mOcclusionOccluder{};
-    bool mOcclusionDepthReusable{};
-};
 
 enum class ERenderMode : std::size_t {
     Lit,
@@ -51,10 +30,8 @@ public:
 public:
     JG_DECLARE_DERIVED_TYPEINFO(UPipeline, UAsset);
 
-    bool Initialize(ID3D11Device* Device, const std::filesystem::path& PipelinePath);
+    bool Initialize(const std::filesystem::path& PipelinePath);
 
-    void Bind(ID3D11DeviceContext* Context) const;
-    void Bind(ID3D11DeviceContext* Context, ERenderMode Mode, UINT StencilReference = 1) const;
     void Reset();
 
     void SetRenderMode(ERenderMode Mode);
@@ -62,16 +39,18 @@ public:
     ERenderMode GetRenderMode() const;
     ERenderMode ResolveRenderMode(ERenderMode Mode) const;
 
+    const FPipelineDescription* GetDescription(ERenderMode Mode) const;
+    Uint64 GetRenderRevision() const;
+
     bool IsOcclusionCullable(ERenderMode Mode) const;
     bool CanWriteOcclusionDepth(ERenderMode Mode) const;
     bool CanReuseOcclusionDepth(ERenderMode Mode) const;
 
 private:
-    bool InitializeFamily(ID3D11Device* Device, const std::filesystem::path& FamilyDirectory);
-    bool InitializeModes(ID3D11Device* Device, const std::array<std::filesystem::path, static_cast<std::size_t>(ERenderMode::Max)>& ModePaths);
+    bool InitializeFamily(const std::filesystem::path& FamilyDirectory);
+    bool InitializeModes(const std::array<std::filesystem::path, static_cast<std::size_t>(ERenderMode::Max)>& ModePaths);
     bool LoadPipelineDescription(const std::filesystem::path& Path, FPipelineDescription& OutDescription);
 
-    bool Make(ID3D11Device* Device, const FPipelineDescription& Description, PipelineUnit& PipelineUnit);
     virtual void Serialize(FArchive& Ar) override;
 
 private:
@@ -79,7 +58,9 @@ private:
 
     std::size_t mModeIndex{0};
 
-    std::vector<PipelineUnit> mPipelines{};
+    std::array<FPipelineDescription, static_cast<std::size_t>(ERenderMode::Max)> mDescriptions{};
+    std::array<bool, static_cast<std::size_t>(ERenderMode::Max)> mEnabledModes{};
+    Uint64 mRenderRevision{1};
 
     std::size_t mPrimaryIndex{0};
 };

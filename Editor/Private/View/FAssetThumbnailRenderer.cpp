@@ -4,6 +4,7 @@
 #include "Core/Stat/Stat.h"
 #include "Asset/UMaterial.h"
 #include "Asset/UMesh.h"
+#include "Asset/UTexture.h"
 
 #include <algorithm>
 
@@ -154,6 +155,9 @@ void FAssetThumbnailRenderer::RenderThumbnail(const FAssetEntry& Entry, FSceneRe
 }
 
 ID3D11ShaderResourceView* FAssetThumbnailRenderer::GetThumbnail(FAssetHandle AssetHandle) const {
+    if (mRenderer != nullptr && mAssetRegistry != nullptr && mAssetRegistry->ResolveAsset<UTexture>(AssetHandle) != nullptr) {
+        return mRenderer->GetTextureResource(AssetHandle);
+    }
     const auto It{mThumbnails.find(MakeThumbnailKey(AssetHandle))};
 
     if (It == mThumbnails.end() || It->second.mSurface == nullptr) {

@@ -24,7 +24,7 @@ bool FBillboardRenderer::Initialize(ID3D11Device* InDevice, std::uint32_t Initia
     return true;
 }
 
-void FBillboardRenderer::Render(ID3D11DeviceContext* Context, FFrameResource& FrameResource, const TArray<FBillboardProbe>& BillboardProbe, const IAssetRegistry* AssetRegistry, ERenderMode Mode) {
+void FBillboardRenderer::Render(ID3D11DeviceContext* Context, FFrameResource& FrameResource, const TArray<FBillboardProbe>& BillboardProbe, const IAssetRegistry* AssetRegistry, FRenderAssetResources& Resources, ERenderMode Mode) {
     if (Context == nullptr || mDevice == nullptr || AssetRegistry == nullptr || BillboardProbe.empty() || !FrameResource.HasCameraWorld() || !FrameResource.BindCommon(Context)) {
         return;
     }
@@ -74,8 +74,12 @@ void FBillboardRenderer::Render(ID3D11DeviceContext* Context, FFrameResource& Fr
     Context->IASetVertexBuffers(0, 1, &Buffer, &Stride, &Offset);
     Context->IASetIndexBuffer(nullptr, DXGI_FORMAT_UNKNOWN, 0);
     for (const FBillboardDraw& Draw : mDraws) {
-        Draw.mPipeline->Bind(Context, Draw.mPipeline->ResolveRenderMode(Mode));
-        ID3D11ShaderResourceView* TextureSRV{Draw.mTexture->GetSRV()};
+        const FPipelineRenderResource* Pipeline{Resources.GetPipeline(*Draw.mPipeline)};
+        ID3D11ShaderResourceView* TextureSRV{Resources.GetTexture(*Draw.mTexture)};
+        if (Pipeline == nullptr || TextureSRV == nullptr) {
+            continue;
+        }
+        Pipeline->Bind(Context, Draw.mPipeline->ResolveRenderMode(Mode));
         Context->PSSetShaderResources(3, 1, &TextureSRV);
         Context->DrawInstanced(1, Draw.mInstanceCount, 0, Draw.mFirstInstance);
     }

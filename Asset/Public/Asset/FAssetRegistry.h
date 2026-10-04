@@ -1,12 +1,10 @@
 #pragma once
 #include "CoreUObject/UObject.h"
-#include "Asset/IRenderAssetRegistry.h"
+#include "CoreUObject/Asset/IAssetRegistry.h"
 #include "Asset/IAssetRegistryMutator.h"
 #include "Asset/FAssetEntry.h"
-#include "Asset/FMaterialBuffer.h"
 #include "Asset/UMaterial.h"
 
-#include <d3d11.h>
 #include <cstddef>
 #include <filesystem>
 #include <functional>
@@ -16,7 +14,7 @@
 #include <type_traits>
 #include <utility>
 
-class FAssetRegistry : public IRenderAssetRegistry, public IAssetRegistryMutator {
+class FAssetRegistry : public IAssetRegistry, public IAssetRegistryMutator {
 public:
     using FProgressCallback = std::function<void(float, const std::string&)>;
 
@@ -31,10 +29,10 @@ public:
     FAssetRegistry& operator=(FAssetRegistry&&) = delete;
 
 public:
-    bool Initialize(ID3D11Device* Device, Uint32 MaxMaterialCount = 4096, const FProgressCallback& ProgressCallback = {});
+    bool Initialize(const FProgressCallback& ProgressCallback = {});
 
     bool DiscoverAssets(const std::filesystem::path& Directory);
-    bool LoadAssetsOfType(ID3D11Device* Device, EAssetType AssetType);
+    bool LoadAssetsOfType(EAssetType AssetType);
 
     const std::filesystem::path& GetContentRoot() const;
 
@@ -67,14 +65,6 @@ public:
         requires std::is_base_of_v<UAsset, T>
     void ModifyAsset(FAssetHandle Handle, Func&& Modifier);
 
-    FMaterialBuffer& GetMaterialBuffer();
-
-    const FMaterialBuffer& GetMaterialBuffer() const;
-
-    void FlushMaterialBuffer(ID3D11DeviceContext* Context) override;
-    ID3D11ShaderResourceView* GetMaterialBufferSRV() const override;
-    void FlushFontAtlas(FAssetHandle Handle, ID3D11DeviceContext* Context) override;
-
     auto GetAssetList() const;
 
     void Reset();
@@ -87,14 +77,14 @@ private:
     const UObject* ResolveAssetObject(FAssetHandle Handle) const override;
 
     std::filesystem::path ResolveContentFolder(const FString& VirtualFolder) const;
-    bool LoadAssetsOfType(ID3D11Device* Device, EAssetType AssetType, std::size_t& LoadedAssetCount, std::size_t TotalAssetCount, const FProgressCallback& ProgressCallback);
+    bool LoadAssetsOfType(EAssetType AssetType, std::size_t& LoadedAssetCount, std::size_t TotalAssetCount, const FProgressCallback& ProgressCallback);
     bool EnsureSystemAssets();
     bool DiscoverAssetFile(const std::filesystem::path& FilePath);
-    bool LoadTexture(FAssetEntry& Entry, ID3D11Device* Device);
-    bool LoadFont(FAssetEntry& Entry, ID3D11Device* Device);
-    bool LoadPipeline(FAssetEntry& Entry, ID3D11Device* Device);
-    bool LoadMaterial(FAssetEntry& Entry, ID3D11Device* Device);
-    bool LoadMesh(FAssetEntry& Entry, ID3D11Device* Device);
+    bool LoadTexture(FAssetEntry& Entry);
+    bool LoadFont(FAssetEntry& Entry);
+    bool LoadPipeline(FAssetEntry& Entry);
+    bool LoadMaterial(FAssetEntry& Entry);
+    bool LoadMesh(FAssetEntry& Entry);
     bool RegisterDiscoveredAsset(const FAssetPath& AssetPath, const std::filesystem::path& PhysicalPath, const std::filesystem::path& SidecarPath, const FGuid& PersistentGuid, EAssetType AssetType, FAssetEntry& Entry);
 
     FAssetPath MakeAssetPath(const std::filesystem::path& PhysicalPath) const;
@@ -116,8 +106,6 @@ private:
     TMap<FAssetPath, FAssetHandle> mPathToHandle{};
     TMap<FGuid, FAssetHandle> mGuidToHandle{};
 
-    FMaterialBuffer mMaterialBuffer{};
-    ID3D11Device* mDevice{nullptr};
     std::filesystem::path mContentRoot{};
 };
 

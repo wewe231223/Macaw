@@ -45,7 +45,7 @@ private:
     };
 
 public:
-    void Build(const IAssetRegistry* Registry, const FRenderScene& Scene, const FRenderView& View);
+    void Build(const IAssetRegistry* Registry, const FRenderScene& Scene, const FRenderView& View, const FMaterialBuffer& Materials);
 
     const TArray<FMeshDrawBatch>& GetItems(ERenderPass Pass) const;
     const TArray<FMeshDrawRecord>& GetDrawRecords() const;
@@ -56,7 +56,7 @@ private:
     void CommitSceneCache(const FRenderScene& Scene, const FRenderView& View);
 
     void BuildSceneItems(const FRenderScene& Scene, const FRenderView& View);
-    void BuildGizmoItems(const IAssetRegistry* Registry, const TArray<FActorProbe>& Probes);
+    void BuildGizmoItems(const IAssetRegistry* Registry, const TArray<FActorProbe>& Probes, const FMaterialBuffer& Materials);
 
     float CalculateScreenSize(const FRenderSceneObject& Object, const CameraProbe& Camera, float ProjectionScale, bool Perspective) const;
 

@@ -1,6 +1,6 @@
 #pragma once
 #include "CoreUObject/UObject.h"
-#include "Asset/Pipeline/Defines.h"
+#include "RenderCore/Pipeline/FPipelineDescription.h"
 #include "RenderCore/FVertexAttribute.h"
 #include "Core/Spatial/FBVH8.h"
 #include "Core/Spatial/FBVH8TrianglePackets.h"
@@ -16,8 +16,6 @@
 #include <unordered_map>
 #include <vector>
 
-#include <d3d11.h>
-#include <wrl/client.h>
 #include "Asset/UAsset.h"
 #include "Core/Base/FAssetHandle.h"
 #include "CoreUObject/TypeInfo.h"
@@ -146,9 +144,7 @@ public:
 
 public:
     UMesh() = default;
-    ~UMesh() override { mPickingSource->Mesh = nullptr; }
-    std::shared_ptr<const FMeshPickingSource> GetPickingSource() const { return mPickingSource; }
-    bool RebuildPickingStructure();
+    ~UMesh() override;
 
     UMesh(const UMesh&) = delete;
     UMesh& operator=(const UMesh&) = delete;
@@ -159,31 +155,31 @@ public:
 public:
     JG_DECLARE_DERIVED_TYPEINFO(UMesh, UAsset);
 
-    bool Initialize(ID3D11Device* Device, const std::filesystem::path& SourceObjPath, const std::filesystem::path& BinaryPath, const FMaterialResolver& MaterialResolver, const FMaterialGroupResolver& MaterialGroupResolver, bool FlipUV);
+    std::shared_ptr<const FMeshPickingSource> GetPickingSource() const;
+    bool RebuildPickingStructure();
+
+    bool Initialize(const std::filesystem::path& SourceObjPath, const std::filesystem::path& BinaryPath, const FMaterialResolver& MaterialResolver, const FMaterialGroupResolver& MaterialGroupResolver, bool FlipUV);
 
     template <CVertexAttributeView... TAttributes>
-    bool Make(ID3D11Device* Device, const std::span<const Uint32>& InIndices, const TAttributes&... InAttributes);
+    bool Make(const std::span<const Uint32>& InIndices, const TAttributes&... InAttributes);
 
-    ID3D11Buffer* GetVertexBuffer(EVertexAttribute Attribute) const;
-    ID3D11Buffer* GetVertexBuffer(EVertexAttribute Attribute, int Level) const;
-    ID3D11Buffer* GetIndexBuffer() const;
-    ID3D11Buffer* GetIndexBuffer(int Level) const;
     Uint32 GetIndexCount(int Level = 0) const;
     bool HasLOD(int Level) const;
+    Uint32 GetLODCount() const;
 
     Uint64 GetRenderRevision() const;
 
     bool HasVertexAttribute(EVertexAttribute Attribute) const;
 
     Uint32 GetVertexStride(EVertexAttribute Attribute) const;
-    Uint32 GetVertexAttributeCount(EVertexAttribute Attribute) const;
+    Uint32 GetVertexAttributeCount(EVertexAttribute Attribute, int Level = 0) const;
 
-    const void* GetVertexData(EVertexAttribute Attribute) const;
+    const void* GetVertexData(EVertexAttribute Attribute, int Level = 0) const;
 
     template <EVertexAttribute Attribute>
     std::span<const TVertexAttributeElementType<Attribute>> GetVertexAttributeData() const;
 
-    const TArray<Uint32>& GetIndices() const;
+    const TArray<Uint32>& GetIndices(int Level = 0) const;
 
     const TArray<FSubMesh>& GetSubMeshes(int Level = 0) const;
 
@@ -191,10 +187,10 @@ public:
 
     bool Raycast(const FRay& Ray, float& OutDistance, float MaxDistance = std::numeric_limits<float>::max(), bool ReverseWinding = false) const;
 
-    const inline DirectX::BoundingOrientedBox GetBoundingBox() const { return mBoundingBox; }
+    DirectX::BoundingOrientedBox GetBoundingBox() const;
 
     /* LOD */
-    bool GenerateLOD(ID3D11Device* Device, Uint32 Level, float TargetRatio);
+    bool GenerateLOD(Uint32 Level, float TargetRatio);
 
     TArray<FEdge> BuildEdges(const TArray<Uint32>& Indices);
 	FEdge FindShortestEdge(const TArray<FEdge>& Edges, const TArray<FVector3>& Positions);
@@ -302,30 +298,12 @@ private:
         TArray<Uint32> mIndices{};
     };
 
-    struct FGeneratedLOD
-    {
-        Uint32 mIndexCount{};
+    struct FGeneratedLOD {
+        FLODRenderData mData{};
         TArray<FSubMesh> mSubMeshes{};
+        bool mUsesBaseData{};
 
-        Microsoft::WRL::ComPtr<ID3D11Buffer> mVertexBuffer{};
-        Microsoft::WRL::ComPtr<ID3D11Buffer> mNormalBuffer{};
-        Microsoft::WRL::ComPtr<ID3D11Buffer> mUVBuffer{};
-        Microsoft::WRL::ComPtr<ID3D11Buffer> mIndexBuffer{};
-
-        bool IsValid() const
-        {
-            return mVertexBuffer != nullptr && mIndexBuffer != nullptr && mIndexCount != 0;
-        }
-
-        void Reset()
-        {
-            mVertexBuffer.Reset();
-            mNormalBuffer.Reset();
-            mUVBuffer.Reset();
-            mIndexBuffer.Reset();
-            mIndexCount = 0;
-            mSubMeshes.clear();
-        }
+        bool IsValid() const;
     };
 
     FGeneratedLOD* GetGeneratedLOD(int Level);
@@ -346,7 +324,6 @@ private:
     bool CanCollapseEdge(const FLODCollapse& Collapse, const FLODGeometry& Geometry, FLODSimplification& State) const;
     void ApplyLODCollapse(const FLODCollapse& Collapse, FLODGeometry& Geometry, FLODSimplification& State);
     FLODRenderData BuildLODRenderData(const FLODGeometry& Geometry) const;
-    bool CreateLODBuffers(ID3D11Device* Device, const FLODRenderData& RenderData, FGeneratedLOD& LOD);
 
     // Level 1은 index 0, Level 2는 index 1
     TArray<FGeneratedLOD> mGeneratedLODs{};
@@ -359,9 +336,8 @@ private:
     static consteval bool AreVertexAttributesUnique();
 
     template <CVertexAttributeView TAttribute>
-    bool CreateVertexBuffer(ID3D11Device* Device, const TAttribute& InAttribute);
+    bool StoreVertexAttribute(const TAttribute& InAttribute);
 
-    bool CreateIndexBuffer(ID3D11Device* Device, const std::span<const Uint32>& InIndices);
 
     void Reset();
 
@@ -372,10 +348,8 @@ private:
     bool BuildBoundingBoxFromMesh();
 
 private:
-    TFixedArray<Microsoft::WRL::ComPtr<ID3D11Buffer>, static_cast<std::size_t>(EVertexAttribute::MAX)> mVertexBuffers{};
     TFixedArray<std::unique_ptr<FVertexAttributeStorageBase>, static_cast<std::size_t>(EVertexAttribute::MAX)> mAttributeStorage{};
 
-    Microsoft::WRL::ComPtr<ID3D11Buffer> mIndexBuffer{nullptr};
 
     TArray<Uint32> mIndices{};
 
@@ -409,13 +383,13 @@ Uint32 UMesh::TVertexAttributeStorage<T>::GetStride() const {
 }
 
 template <CVertexAttributeView... TAttributes>
-bool UMesh::Make(ID3D11Device* Device, const std::span<const Uint32>& InIndices, const TAttributes&... InAttributes) {
+bool UMesh::Make(const std::span<const Uint32>& InIndices, const TAttributes&... InAttributes) {
     static_assert(sizeof...(TAttributes) > 0, "UMesh requires at least one vertex attribute.");
     static_assert(AreVertexAttributesUnique<TAttributes...>(), "Duplicate vertex attributes are not allowed.");
 
     Reset();
 
-    if (Device == nullptr || InIndices.empty()) {
+    if (InIndices.empty() || InIndices.size_bytes() > std::numeric_limits<Uint32>::max()) {
         return false;
     }
 
@@ -443,7 +417,7 @@ bool UMesh::Make(ID3D11Device* Device, const std::span<const Uint32>& InIndices,
             return;
         }
 
-        if (!CreateVertexBuffer(Device, InAttribute)) {
+        if (!StoreVertexAttribute(InAttribute)) {
             BSuccess = false;
         }
     }};
@@ -451,11 +425,6 @@ bool UMesh::Make(ID3D11Device* Device, const std::span<const Uint32>& InIndices,
     (ProcessAttribute(InAttributes), ...);
 
     if (!BSuccess) {
-        Reset();
-        return false;
-    }
-
-    if (!CreateIndexBuffer(Device, InIndices)) {
         Reset();
         return false;
     }
@@ -497,37 +466,17 @@ consteval bool UMesh::AreVertexAttributesUnique() {
 }
 
 template <CVertexAttributeView TAttribute>
-bool UMesh::CreateVertexBuffer(ID3D11Device* Device, const TAttribute& InAttribute) {
+bool UMesh::StoreVertexAttribute(const TAttribute& InAttribute) {
     using AttributeType = std::remove_cvref_t<TAttribute>;
     using ElementType = typename AttributeType::ElementType;
 
     constexpr EVertexAttribute Attribute{AttributeType::AttributeType};
     constexpr std::size_t AttributeIndex{static_cast<std::size_t>(Attribute)};
 
-    if (InAttribute.mData.empty() || InAttribute.mData.size_bytes() > std::numeric_limits<UINT>::max()) {
+    if (InAttribute.mData.empty() || InAttribute.mData.size_bytes() > std::numeric_limits<Uint32>::max()) {
         return false;
     }
 
-    D3D11_BUFFER_DESC BufferDesc{};
-    BufferDesc.ByteWidth = static_cast<UINT>(InAttribute.mData.size_bytes());
-    BufferDesc.Usage = D3D11_USAGE_DEFAULT;
-    BufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-    BufferDesc.CPUAccessFlags = 0;
-    BufferDesc.MiscFlags = 0;
-    BufferDesc.StructureByteStride = 0;
-
-    D3D11_SUBRESOURCE_DATA InitialData{};
-    InitialData.pSysMem = InAttribute.mData.data();
-
-    Microsoft::WRL::ComPtr<ID3D11Buffer> Buffer{};
-
-    const HRESULT Result{Device->CreateBuffer(&BufferDesc, &InitialData, Buffer.GetAddressOf())};
-
-    if (FAILED(Result)) {
-        return false;
-    }
-
-    mVertexBuffers[AttributeIndex] = std::move(Buffer);
     mAttributeStorage[AttributeIndex] = std::make_unique<TVertexAttributeStorage<ElementType>>(InAttribute.mData);
 
     return true;

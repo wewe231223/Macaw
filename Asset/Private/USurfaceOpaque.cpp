@@ -68,8 +68,8 @@ void USurfaceOpaque::Reset() {
     MarkGPUDataDirty();
 }
 
-bool USurfaceOpaque::Initialize(ID3D11Device* Device, const std::filesystem::path& MtlPath, const FTextureResolver& TextureResolver) {
-    if (!TextureResolver || !UAsset::Initialize(Device, MtlPath)) {
+bool USurfaceOpaque::Initialize(const std::filesystem::path& MtlPath, const FTextureResolver& TextureResolver) {
+    if (!TextureResolver || !UAsset::Initialize(MtlPath)) {
         return false;
     }
 
