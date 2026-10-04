@@ -1,0 +1,334 @@
+#include "pch.h"
+#include "Editor/Panel/Outliner.h"
+#include "World/Component/UNameTagComponent.h"
+#include "World/Component/UMeshComponent.h"
+#include "Editor/World/FWorldEditorContext.h"
+
+#include <algorithm>
+#include <ranges>
+
+namespace {
+    constexpr const char* ActorDragDropPayloadType{"OUTLINER_ACTOR"};
+}
+
+FOutlinerPanel::FOutlinerPanel(UWorld& InWorld, FWorldEditorContext& InEditorContext)
+    : FEditorWindow("Outliner###OutlinerPanel"),
+      mWorld(&InWorld),
+      mEditorContext(&InEditorContext) {
+}
+
+void FOutlinerPanel::DrawContents() {
+
+    // Dirty 구현
+    const Uint64 WorldRevision{mWorld->GetStructureRevision()};
+
+    if (mCachedRevision != WorldRevision){ bHierarchyDirty = true;}
+
+    if (bHierarchyDirty)
+    {
+        RebuildHierarchy();
+
+        mCachedRevision = WorldRevision;
+        bHierarchyDirty = false;
+        bVisibleDirty = true;
+    }
+
+    ImGui::SetNextItemWidth(-FLT_MIN);
+    if (ImGui::InputTextWithHint("##ActorFilter", "Search", mActorFilter.InputBuf, IM_ARRAYSIZE(mActorFilter.InputBuf))) {
+        mActorFilter.Build();
+    }
+
+    if (bVisibleDirty)
+    {
+        RebuildVisibleItems();
+        bVisibleDirty = false;
+    }
+
+    const ImGuiTableFlags TableFlags{ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_SizingStretchProp | ImGuiTableFlags_ScrollY};
+    if (ImGui::BeginTable("OutlinerActorList", 2, TableFlags, ImVec2(0.0f, -ImGui::GetFrameHeightWithSpacing()))) {
+        ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthStretch, 0.70f);
+        ImGui::TableSetupColumn("Type", ImGuiTableColumnFlags_WidthStretch, 0.24f);
+        ImGui::TableHeadersRow();
+        DrawRootActors();
+        DrawRootActorDropTarget();
+        ImGui::EndTable();
+    }
+
+    HandleDeleteShortcut();
+    ImGui::TextDisabled("%zu Actors", mWorld->GetActors().size());
+}
+
+void FOutlinerPanel::PushWindowStyle() {
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8.0f, 8.0f));
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 2.0f);
+    ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.075f, 0.080f, 0.095f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(0.165f, 0.215f, 0.285f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_HeaderHovered, ImVec4(0.215f, 0.310f, 0.425f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_HeaderActive, ImVec4(0.255f, 0.385f, 0.540f, 1.0f));
+}
+
+void FOutlinerPanel::PopWindowStyle() {
+    ImGui::PopStyleColor(4);
+    ImGui::PopStyleVar(2);
+}
+
+bool FOutlinerPanel::MatchesActor(const AActor& Actor) const {
+    const FString Label{Actor.GetName().ToString()};
+    const std::string_view TypeName{Actor.GetTypeInfo()->mTypeName};
+
+    if (mActorFilter.PassFilter(Label.c_str()) || mActorFilter.PassFilter(TypeName.data(), TypeName.data() + TypeName.size())) {
+        return true;
+    }
+
+     auto It = mChildrenByParent.find(const_cast<AActor*>(&Actor));
+
+    if (It == mChildrenByParent.end()){
+        return false;
+    }
+
+    //return std::ranges::any_of(mWorld->GetActors(), [this, &Actor](const std::unique_ptr<AActor>& ChildActor) {
+    //    return IsActorAttachedTo(*ChildActor, Actor) && MatchesActor(*ChildActor);
+    //});
+
+    return std::ranges::any_of(It->second, [this](const AActor* ChildActor) {
+            return ChildActor != nullptr && MatchesActor(*ChildActor);
+        });
+}
+
+bool FOutlinerPanel::IsActorAttachedTo(const AActor& Actor, const AActor& ParentActor) const {
+    const USceneComponent* RootComponent{Actor.GetRootComponent()};
+    const USceneComponent* ParentComponent{RootComponent != nullptr ? RootComponent->GetParent() : nullptr};
+    return ParentComponent != nullptr && ParentComponent->GetOwner() == &ParentActor && &Actor != &ParentActor;
+}
+
+bool FOutlinerPanel::IsRootActor(const AActor& Actor) const {
+    const USceneComponent* RootComponent{Actor.GetRootComponent()};
+    const USceneComponent* ParentComponent{RootComponent != nullptr ? RootComponent->GetParent() : nullptr};
+    const AActor* ParentActor{ParentComponent != nullptr ? ParentComponent->GetOwner() : nullptr};
+    return ParentActor == nullptr || ParentActor == &Actor;
+}
+
+bool FOutlinerPanel::HasActorChildren(const AActor& Actor) const {
+    //return std::ranges::any_of(mWorld->GetActors(), [this, &Actor](const std::unique_ptr<AActor>& ChildActor) {
+    //    return IsActorAttachedTo(*ChildActor, Actor);
+    //});
+
+    auto It = mChildrenByParent.find(const_cast<AActor*>(&Actor));
+
+    return It != mChildrenByParent.end() && !It->second.empty();
+}
+
+void FOutlinerPanel::DrawActorDragSource(AActor& Actor) {
+    if (ImGui::BeginDragDropSource()) {
+        AActor* DraggedActor{&Actor};
+        ImGui::SetDragDropPayload(ActorDragDropPayloadType, &DraggedActor, sizeof(DraggedActor));
+        ImGui::TextUnformatted(Actor.GetName().ToString().c_str());
+        ImGui::EndDragDropSource();
+    }
+}
+
+void FOutlinerPanel::AcceptActorChildDrop(AActor& ParentActor) {
+    if (!ImGui::BeginDragDropTarget()) {
+        return;
+    }
+
+    if (const ImGuiPayload* Payload{ImGui::AcceptDragDropPayload(ActorDragDropPayloadType)};
+        Payload != nullptr && Payload->Delivery && Payload->DataSize == sizeof(AActor*)) {
+        AActor* DraggedActor{*static_cast<AActor* const*>(Payload->Data)};
+        USceneComponent* DraggedRoot{DraggedActor != nullptr ? DraggedActor->GetRootComponent() : nullptr};
+        USceneComponent* ParentRoot{ParentActor.GetRootComponent()};
+
+        if (DraggedActor != nullptr && DraggedActor != &ParentActor && DraggedActor->GetWorld() == mWorld &&
+            ParentActor.GetWorld() == mWorld && DraggedRoot != nullptr && ParentRoot != nullptr) {
+            DraggedRoot->AttachToComponent(ParentRoot, EAttachmentTransformRule::KeepWorldTransform);
+        }
+    }
+
+    ImGui::EndDragDropTarget();
+}
+
+void FOutlinerPanel::DrawRootActorDropTarget() {
+    const float AvailableHeight{std::max(ImGui::GetFrameHeight(), ImGui::GetContentRegionAvail().y)};
+    ImGui::TableNextRow(ImGuiTableRowFlags_None, AvailableHeight);
+    ImGui::TableSetColumnIndex(0);
+    ImGui::PushID("OutlinerRootActorDropTarget");
+    ImGui::Selectable("##RootActorDropTarget", false, ImGuiSelectableFlags_SpanAllColumns, ImVec2(0.0f, AvailableHeight));
+
+    if (ImGui::BeginDragDropTarget()) {
+        if (const ImGuiPayload* Payload{ImGui::AcceptDragDropPayload(ActorDragDropPayloadType)};
+            Payload != nullptr && Payload->Delivery && Payload->DataSize == sizeof(AActor*)) {
+            AActor* DraggedActor{*static_cast<AActor* const*>(Payload->Data)};
+            USceneComponent* DraggedRoot{DraggedActor != nullptr ? DraggedActor->GetRootComponent() : nullptr};
+
+            if (DraggedActor != nullptr && DraggedActor->GetWorld() == mWorld && DraggedRoot != nullptr) {
+                DraggedRoot->DetachFromComponent(EAttachmentTransformRule::KeepWorldTransform);
+            }
+        }
+        ImGui::EndDragDropTarget();
+    }
+
+    ImGui::PopID();
+}
+
+void FOutlinerPanel::HandleDeleteShortcut() {
+    const ImGuiIO& IO{ImGui::GetIO()};
+    if (!ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) || IO.WantTextInput || ImGui::IsAnyItemActive() || !ImGui::IsKeyPressed(ImGuiKey_Delete, false)) {
+        return;
+    }
+
+    AActor* Actor{mEditorContext->GetSelectedActor()};
+    if (Actor != nullptr && mWorld->DestroyActor(Actor)) {
+        mWorld->FlushPendingDestroyActors();
+    }
+}
+
+void FOutlinerPanel::DrawActor(AActor& Actor) 
+{
+    const FString Label{Actor.GetName().ToString()};
+    const std::string_view TypeName{Actor.GetTypeInfo()->mTypeName};
+    const bool BHasChildren{HasActorChildren(Actor)};
+    const bool BExpanded{ mExpandedActors.contains(&Actor) };
+
+    ImGui::TableNextRow();
+    ImGui::TableSetColumnIndex(0);
+
+    ImGui::PushID(Label.c_str());
+    // ImGui::PushID(&Actor);
+
+    ImGuiTreeNodeFlags Flags{
+        ImGuiTreeNodeFlags_OpenOnArrow |
+        ImGuiTreeNodeFlags_SpanAllColumns |
+        ImGuiTreeNodeFlags_NoTreePushOnOpen
+    };
+
+    if (!BHasChildren) {
+        Flags |= ImGuiTreeNodeFlags_Leaf;
+    }
+    if (mEditorContext->GetSelectedActor() == &Actor) {
+        Flags |= ImGuiTreeNodeFlags_Selected;
+    }
+    if (BHasChildren)
+    {
+        ImGui::SetNextItemOpen(BExpanded, ImGuiCond_Always);
+    }
+
+    const bool BOpen{ImGui::TreeNodeEx("Actor", Flags, "%s", Label.c_str())};
+
+    /* Outliner Visible Items */
+    if (BHasChildren && ImGui::IsItemToggledOpen())
+    {
+        if (BOpen) { mExpandedActors.insert(&Actor); }
+        else { mExpandedActors.erase(&Actor); }
+
+        bVisibleDirty = true;
+    }
+
+    if (ImGui::IsItemClicked()) {
+        auto Prev{mEditorContext->GetSelectedActor()};
+
+        if (Prev != nullptr) {
+            if (UNameTagComponent * NameTag{Prev->GetComponent<UNameTagComponent>()}) {
+                NameTag->SetActive(false);
+            }
+        }
+
+        mEditorContext->SetSelectedActor(&Actor);
+
+        if (UNameTagComponent * NameTag{Actor.GetComponent<UNameTagComponent>()}) {
+            NameTag->SetActive(true);
+        }
+    }
+
+    DrawActorDragSource(Actor);
+    AcceptActorChildDrop(Actor);
+
+    ImGui::TableSetColumnIndex(1);
+    ImGui::TextDisabled("%.*s", static_cast<int>(TypeName.size()), TypeName.data());
+    
+    ImGui::PopID();
+}
+
+void FOutlinerPanel::DrawRootActors() {
+
+    ImGuiListClipper Clipper;
+    Clipper.Begin(static_cast<int>(mVisibleItems.size()));
+
+    while (Clipper.Step())
+    {
+        for (int Index = Clipper.DisplayStart; Index < Clipper.DisplayEnd; ++Index)
+        {
+            const FOutlinerVisibleItem& Item = mVisibleItems[Index];
+
+            if (Item.Actor == nullptr)
+            {
+                continue;
+            }
+
+            ImGui::Indent(static_cast<float>(Item.Depth) * 16.0f);
+
+            DrawActor(*Item.Actor);
+
+            ImGui::Unindent(static_cast<float>(Item.Depth) * 16.0f);
+        }
+    }
+}
+
+void FOutlinerPanel::RebuildHierarchy()
+{
+    mChildrenByParent.clear();
+
+    const auto& Actors = mWorld->GetActors();
+
+    for (const std::unique_ptr<AActor>& ActorPtr : Actors)
+    {
+        AActor* Actor = ActorPtr.get();
+
+        if (Actor == nullptr)
+        {
+            continue;
+        }
+
+        USceneComponent* RootComponent = Actor->GetRootComponent();
+        USceneComponent* ParentComponent = RootComponent != nullptr ? RootComponent->GetParent() : nullptr;
+
+        AActor* ParentActor = ParentComponent != nullptr ? ParentComponent->GetOwner() : nullptr;
+
+        if (ParentActor == Actor)
+        {
+            ParentActor = nullptr;
+        }
+
+        mChildrenByParent[ParentActor].push_back(Actor);
+    }
+}
+
+void FOutlinerPanel::RebuildVisibleItems()
+{
+    mVisibleItems.clear();
+
+    auto RootIt = mChildrenByParent.find(nullptr);
+    if (RootIt == mChildrenByParent.end()) { return; }
+
+    for (AActor* RootActor : RootIt->second)
+    {
+        AddVisibleActor(RootActor, 0);
+    }
+
+}
+
+void FOutlinerPanel::AddVisibleActor(AActor* Actor, uint32 Depth)
+{
+    if (Actor == nullptr || !MatchesActor(*Actor)) { return; }
+
+    mVisibleItems.push_back({ Actor, Depth });
+
+    if (!mExpandedActors.contains(Actor)) { return; }
+
+    auto It = mChildrenByParent.find(Actor);
+    if (It == mChildrenByParent.end()) { return; }
+
+    for (AActor* ChildActor : It->second)
+    {
+        AddVisibleActor(ChildActor, Depth + 1);
+    }
+}

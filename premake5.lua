@@ -29,7 +29,20 @@ filter "configurations:Viewer"
 
 filter {}
 
-function ConfigureProject(ProjectName, ProjectKind)
+local Modules = json.decode(io.readfile("ModuleDependencies.json"))
+
+local function AddPublicIncludes(ModuleName, Visited)
+    if Visited[ModuleName] then
+        return
+    end
+    Visited[ModuleName] = true
+    includedirs { ModuleName .. "/Public" }
+    for _, Dependency in ipairs(Modules[ModuleName].Public) do
+        AddPublicIncludes(Dependency, Visited)
+    end
+end
+
+local function ConfigureProject(ProjectName, ProjectKind)
     project(ProjectName)
         kind(ProjectKind)
         language "C++"
@@ -39,99 +52,75 @@ function ConfigureProject(ProjectName, ProjectKind)
         toolset "msc-v145"
         targetdir "bin/%{cfg.buildcfg}/%{cfg.platform}"
         objdir "bin-int/%{prj.name}/%{cfg.buildcfg}/%{cfg.platform}"
-        includedirs { ".", "range_v_3", "Externals/Include" }
+        externalincludedirs { "Externals/Include" }
         defines { "NOMINMAX" }
         buildoptions { "/utf-8" }
-        pchheader "pch.h"
-        pchsource "pch.cpp"
-        files { "pch.cpp" }
 end
 
-function ConfigureExecutableLinks()
-    links {
-        "Editor",
-        "Render",
-        "World",
-        "Asset",
-        "Serialization",
-        "Core",
-        "Math",
-        "DirectXTex",
-        "nvapi64",
-        "d3d11",
-        "dxgi",
-        "d3dcompiler",
-        "dwmapi",
-        "gdi32",
-        "imm32",
-        "shell32",
-        "user32",
-        "kernel32",
-    }
+local function ConfigureModule(ModuleName)
+    ConfigureProject(ModuleName, "StaticLib")
+    files { ModuleName .. "/Public/**.h", ModuleName .. "/Public/**.inl", ModuleName .. "/Private/**.h", ModuleName .. "/Private/**.cpp", ModuleName .. "/Private/**.cc" }
+    includedirs { ModuleName .. "/Private" }
+    local Visited = {}
+    AddPublicIncludes(ModuleName, Visited)
+    for _, Dependency in ipairs(Modules[ModuleName].Private) do
+        AddPublicIncludes(Dependency, Visited)
+    end
+    links(Modules[ModuleName].Public)
+    links(Modules[ModuleName].Private)
+    if ModuleName == "ImGui" then
+        includedirs { "ImGui/Public/ImGui" }
+        enablepch "Off"
+    else
+        pchheader "pch.h"
+        pchsource(ModuleName .. "/Private/pch.cpp")
+    end
+end
 
+local function ConfigureSystemLinks()
+    links { "DirectXTex", "nvapi64", "d3d11", "dxgi", "d3dcompiler", "dwmapi", "gdi32", "imm32", "shell32", "user32", "kernel32", "ole32" }
     filter "configurations:Debug"
         libdirs { "Externals/bin/debug" }
-
-    filter "configurations:Release"
+    filter "configurations:Release or Viewer"
         libdirs { "Externals/bin/release" }
-
-    filter "configurations:Viewer"
-        libdirs { "Externals/bin/release" }
-
     filter {}
 end
 
-ConfigureProject("Math", "StaticLib")
-    files { "Math/**.h", "Math/**.cpp" }
-    removefiles { "pch.cpp" }
-    enablepch "Off"
+for _, ModuleName in ipairs({ "Core", "CoreUObject", "RenderCore", "Serialization", "ImGui", "Asset", "World", "Render", "Editor" }) do
+    ConfigureModule(ModuleName)
+end
 
-ConfigureProject("Core", "StaticLib")
-    files { "Core/**.h", "Core/**.cpp", "Core/**.cc" }
-    dependson { "Math" }
-    filter "files:Core/Spatial/FBVH8AVX.cpp"
+project "Core"
+    filter "files:Core/Private/Spatial/FBVH8AVX.cpp"
         enablepch "Off"
         vectorextensions "AVX"
+    filter "files:Core/Private/Math/**.cpp"
+        enablepch "Off"
     filter {}
 
-ConfigureProject("Serialization", "StaticLib")
-    files { "Serialization/**.h", "Serialization/**.cpp" }
-    dependson { "Core" }
-
-ConfigureProject("Asset", "StaticLib")
-    files { "Asset/**.h", "Asset/**.cpp", "Asset/**.cc" }
-    dependson { "Serialization" }
-
-ConfigureProject("World", "StaticLib")
-    files { "World/**.h", "World/**.cpp" }
-    dependson { "Asset" }
-
-ConfigureProject("Render", "StaticLib")
-    files { "Render/**.h", "Render/**.cpp", "ImGui/**.h", "ImGui/**.cpp" }
-    dependson { "Asset" }
-
-ConfigureProject("Editor", "StaticLib")
-    files { "Editor/**.h", "Editor/**.cpp" }
-    dependson { "World", "Render" }
-
 ConfigureProject("Macaw", "WindowedApp")
-    -- 파일은 보존하되 생성되는 Macaw 프로젝트에는 포함하지 않는다.
-    files { "Application/**.h", "Application/**.cpp", "Macaw.cpp", "Macaw.h", "framework.h", "targetver.h", "Resource.h", "Macaw.rc" }
+    files { "Application/**.h", "Application/**.cpp", "Macaw.cpp", "Macaw.h", "framework.h", "targetver.h", "Resource.h", "Macaw.rc", "pch.h", "pch.cpp" }
+    includedirs { "." }
+    AddPublicIncludes("Editor", {})
+    links { "Editor", "World", "Render", "Asset", "Serialization", "RenderCore", "CoreUObject", "Core", "ImGui" }
+    pchheader "pch.h"
+    pchsource "pch.cpp"
     filter "configurations:Viewer"
         removefiles { "Application/FEditorApplication.cpp" }
     filter "configurations:Debug or Release"
         removefiles { "Application/FViewApplication.cpp" }
     filter {}
-    ConfigureExecutableLinks()
+    ConfigureSystemLinks()
 
--- ImGui와 SimpleMath는 PCH를 사용하지 않는다.
-project "Render"
-filter "files:ImGui/**.cpp"
+local function ConfigureValidation(ProjectName, ModuleName, Source)
+    ConfigureProject(ProjectName, "ConsoleApp")
+    files { Source }
+    AddPublicIncludes(ModuleName, {})
+    links { ModuleName }
     enablepch "Off"
+    ConfigureSystemLinks()
+end
 
-project "Math"
-filter "files:Math/SimpleMath/SimpleMath.cpp"
-    enablepch "Off"
-
-project "Macaw"
-filter {}
+ConfigureValidation("CoreBoundaryTests", "Core", "Validation/CoreBoundaryTests.cpp")
+ConfigureValidation("RuntimeBoundaryTests", "World", "Validation/RuntimeBoundaryTests.cpp")
+ConfigureValidation("EditorBoundaryTests", "Editor", "Validation/EditorBoundaryTests.cpp")

@@ -3,7 +3,6 @@
 #include <cwchar>
 #include <filesystem>
 #include <nvapi/nvapi.h>
-
 #include "Application/IApplication.h"
 #ifdef OBJ_VIEWER
 #include "Application/FViewApplication.h"

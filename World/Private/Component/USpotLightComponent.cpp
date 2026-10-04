@@ -1,0 +1,62 @@
+#include "pch.h"
+#include "World/Component/USpotLightComponent.h"
+
+#include <numbers>
+
+namespace {
+    constexpr float MinimumConeAngle{0.0f};
+    constexpr float MaximumConeAngle{89.9f};
+
+    float ToRadians(float Degrees) {
+        return Degrees * (std::numbers::pi_v<float> / 180.0f);
+    }
+}
+
+ELightType USpotLightComponent::GetLightType() const {
+    return ELightType::Spot;
+}
+
+float USpotLightComponent::GetInnerConeAngle() const {
+    return mInnerConeAngle;
+}
+
+float USpotLightComponent::GetOuterConeAngle() const {
+    return mOuterConeAngle;
+}
+
+void USpotLightComponent::SetInnerConeAngle(float InInnerConeAngle) {
+    mInnerConeAngle = std::clamp(InInnerConeAngle, MinimumConeAngle, mOuterConeAngle);
+}
+
+void USpotLightComponent::SetOuterConeAngle(float InOuterConeAngle) {
+    mOuterConeAngle = std::clamp(InOuterConeAngle, mInnerConeAngle, MaximumConeAngle);
+}
+
+void USpotLightComponent::MakeLightProbe(FLightProbe& OutProbe) const {
+    UPointLightComponent::MakeLightProbe(OutProbe);
+    OutProbe.mInnerConeCos = std::cos(ToRadians(mInnerConeAngle));
+    OutProbe.mOuterConeCos = std::cos(ToRadians(mOuterConeAngle));
+}
+
+void USpotLightComponent::Serialize(FArchive& Archive) {
+    UPointLightComponent::Serialize(Archive);
+    Archive.Serialize("InnerConeAngle", mInnerConeAngle);
+    Archive.Serialize("OuterConeAngle", mOuterConeAngle);
+
+    if (Archive.IsLoading()) {
+        SetInnerConeAngle(mInnerConeAngle);
+        SetOuterConeAngle(mOuterConeAngle);
+    }
+}
+
+
+const FTypeInfo* USpotLightComponent::StaticTypeInfo() noexcept {
+    static const FTypeInfo Information{"USpotLightComponent", UPointLightComponent::StaticTypeInfo(), +[]() -> std::unique_ptr<UObject> {
+        return std::make_unique<USpotLightComponent>();
+    }};
+    return &Information;
+}
+
+const FTypeInfo* USpotLightComponent::GetTypeInfo() const noexcept {
+    return StaticTypeInfo();
+}

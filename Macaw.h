@@ -1,3 +1,2 @@
-﻿#pragma once
-
+#pragma once
 #include "Resource.h"

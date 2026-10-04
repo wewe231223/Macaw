@@ -4,9 +4,8 @@
 #include <filesystem>
 #include <vector>
 #include <shellapi.h>
-
-#include "IApplication.h"
-#include "FApplicationContext.h"
+#include "Application/IApplication.h"
+#include "Application/FApplicationContext.h"
 #include "Core/Time/FFrameTimer.h"
 
 class FLoadingProgress;

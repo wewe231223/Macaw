@@ -1,6 +1,5 @@
 #pragma once
-
-#include "FApplication.h"
+#include "Application/FApplication.h"
 
 class FEditorApplication final : public FApplication {
 public:

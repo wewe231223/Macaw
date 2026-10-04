@@ -1,9 +1,8 @@
 #include "pch.h"
-#include "FApplication.h"
+#include "Application/FApplication.h"
 #include "Core/Stat/Stat.h"
 
 #include <cstdio>
-
 #include "Resource.h"
 #include "ImGui/imgui.h"
 #include "ImGui/imgui_internal.h"

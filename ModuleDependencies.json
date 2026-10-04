@@ -1,0 +1,11 @@
+{
+  "Core": { "Public": [], "Private": [] },
+  "CoreUObject": { "Public": ["Core"], "Private": [] },
+  "RenderCore": { "Public": ["CoreUObject"], "Private": [] },
+  "Serialization": { "Public": ["Core"], "Private": [] },
+  "ImGui": { "Public": [], "Private": [], "External": true },
+  "Asset": { "Public": ["CoreUObject", "RenderCore"], "Private": ["Serialization"] },
+  "World": { "Public": ["Asset", "RenderCore"], "Private": ["Serialization"] },
+  "Render": { "Public": ["Asset", "RenderCore"], "Private": [] },
+  "Editor": { "Public": ["World", "Render", "ImGui"], "Private": ["Serialization"] }
+}

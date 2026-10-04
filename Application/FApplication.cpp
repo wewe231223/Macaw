@@ -1,13 +1,12 @@
 #include "pch.h"
-#include "FApplication.h"
+#include "Application/FApplication.h"
 #include "Core/Stat/Stat.h"
 #include "Core/Spatial/FBVH8.h"
-
 #include "Resource.h"
-#include "Render/FLoadingScreen.h"
+#include "Editor/Platform/FLoadingScreen.h"
 #include "Core/Console/Console.h"
-#include "Core/Base/TypeRegistry.h"
-#include "Core/Channel/Messages/FMousePickRequestMessage.h"
+#include "CoreUObject/TypeRegistry.h"
+#include "Editor/Input/Messages/FMousePickRequestMessage.h"
 #include "Asset/UTexture.h"
 #include "Asset/UFont.h"
 #include "Asset/UFreeTypeFont.h"
@@ -134,7 +133,6 @@ bool FApplication::InitializeApplication(FLoadingProgress& Progress, HWND Window
     }
 
     mContext.mEditorContext->SetEditorSettings(mContext.mEditorSettings);
-    mContext.mWorld->SetEditorContext(mContext.mEditorContext.get());
     mContext.mEditorContext->SetWorld(mContext.mWorld.get());
 
     const FAssetRegistry::FProgressCallback AssetProgressCallback{[&Progress](float AssetProgress, const std::string& Status) {
@@ -154,7 +152,7 @@ bool FApplication::InitializeApplication(FLoadingProgress& Progress, HWND Window
     mContext.mMouseInput.InitializeWorldCommandSender(mContext.mWorldCommandChannel->GetSender());
     mContext.mKeyboardInput.InitializeWorldCommandSender(mContext.mWorldCommandChannel->GetSender());
     mContext.mWorldCommandChannel->TryBind<FMousePickRequestMessage>([this](const FMousePickRequestMessage& Message) {
-        mContext.mWorld->HandleMousePickRequest(Message);
+        mContext.mEditorContext->HandleMousePickRequest(Message);
     });
 
     Progress.SetProgress(0.78f, "Initializing editor view");

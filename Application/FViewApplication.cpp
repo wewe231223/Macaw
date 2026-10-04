@@ -1,10 +1,9 @@
 #include "pch.h"
-#include "FViewApplication.h"
-
-#include "Core/Channel/Messages/FMouseCameraRotateRequestMessage.h"
-#include "Core/Channel/Messages/FKeyboardCameraMoveRequestMessage.h"
-#include "Core/Channel/Messages/FMouseCameraMoveRequestMessage.h"
-#include "Core/Channel/Messages/FMouseCameraDollyRequestMessage.h"
+#include "Application/FViewApplication.h"
+#include "Editor/Input/Messages/FMouseCameraRotateRequestMessage.h"
+#include "Editor/Input/Messages/FKeyboardCameraMoveRequestMessage.h"
+#include "Editor/Input/Messages/FMouseCameraMoveRequestMessage.h"
+#include "Editor/Input/Messages/FMouseCameraDollyRequestMessage.h"
 #include "Editor/Panel/FViewerToolBar.h"
 
 FViewApplication::FViewApplication() = default;
@@ -13,16 +12,16 @@ FViewApplication::~FViewApplication() = default;
 
 void FViewApplication::InitializeMode(FApplicationContext& Context, HWND WindowHandle) {
     Context.mWorldCommandChannel->TryBind<FMouseCameraRotateRequestMessage>([&Context](const FMouseCameraRotateRequestMessage& Message) {
-        Context.mWorld->HandleMouseCameraRotateRequest(Message);
+        Context.mEditorContext->HandleMouseCameraRotateRequest(Message);
     });
     Context.mWorldCommandChannel->TryBind<FKeyboardCameraMoveRequestMessage>([&Context](const FKeyboardCameraMoveRequestMessage& Message) {
-        Context.mWorld->HandleKeyboardCameraMoveRequest(Message);
+        Context.mEditorContext->HandleKeyboardCameraMoveRequest(Message);
     });
     Context.mWorldCommandChannel->TryBind<FMouseCameraMoveRequestMessage>([&Context](const FMouseCameraMoveRequestMessage& Message) {
-        Context.mWorld->HandleMouseCameraMoveRequestMessage(Message);
+        Context.mEditorContext->HandleMouseCameraMoveRequestMessage(Message);
     });
     Context.mWorldCommandChannel->TryBind<FMouseCameraDollyRequestMessage>([&Context](const FMouseCameraDollyRequestMessage& Message) {
-        Context.mWorld->HandleMouseCameraDollyRequestMessage(Message);
+        Context.mEditorContext->HandleMouseCameraDollyRequestMessage(Message);
     });
 
     Context.mMenuPanel = std::make_unique<FViewerToolBar>(*Context.mEditorContext);

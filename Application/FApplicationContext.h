@@ -1,7 +1,6 @@
 #pragma once
 
 #include <memory>
-
 #include "Asset/FAssetRegistry.h"
 #include "Core/Channel/FMessageChannel.h"
 #include "Editor/Input/FKeyboardInput.h"
@@ -12,7 +11,7 @@
 #include "Editor/View/EditorViewport.h"
 #include "Editor/View/FAssetThumbnailRenderer.h"
 #include "Render/Renderer.h"
-#include "World/FWorldEditorContext.h"
+#include "Editor/World/FWorldEditorContext.h"
 #include "World/UWorld.h"
 
 struct FApplicationContext {
