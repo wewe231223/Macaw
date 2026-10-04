@@ -26,7 +26,7 @@ FWorldRaycastAccelerationStructure::FProxy FWorldRaycastAccelerationStructure::M
     FProxy Proxy{};
 
     Proxy.Component.Set(Component);
-    Proxy.Enabled = Component->IsActive() && Component->IsVisible();
+    Proxy.Enabled = Component->IsRegistered() && Component->IsVisible();
 
     const Uint64 Key = ComponentKey(Component->GetHandle());
 

@@ -1,7 +1,7 @@
 #pragma once
 
 #ifndef ENABLE_INSTANCE
-#define ENABLE_INSTANCE 0
+#define ENABLE_INSTANCE 1
 #endif
 
 #ifndef EnableFrameResourceFence

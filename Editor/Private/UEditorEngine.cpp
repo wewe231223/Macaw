@@ -63,21 +63,8 @@ bool UEditorEngine::LoadStartupScene() {
     }
 
     const FString LastScenePath{mEditorContext->GetEditorSettings().mLastLoadedScenePath};
-    const std::filesystem::path DefaultPath{"scenes/Default.scene"};
 
-    if (!LastScenePath.empty()) {
-        const std::filesystem::path LastPath{LastScenePath.c_str()};
-
-        if (LoadScene(LastPath)) {
-            return true;
-        }
-
-        if (LastPath.lexically_normal() == DefaultPath) {
-            return false;
-        }
-    }
-
-    return LoadScene(DefaultPath);
+    return !LastScenePath.empty() && LoadScene(std::filesystem::path{LastScenePath.c_str()});
 }
 
 bool UEditorEngine::LoadScene(const std::filesystem::path& ScenePath) {

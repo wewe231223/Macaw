@@ -31,6 +31,19 @@
 #include <ranges>
 #include "World/Component/UNameTagComponent.h"
 
+UWorld::FActorDispatchScope::FActorDispatchScope(UWorld* World)
+	: mWorld{World} {
+    if (mWorld != nullptr) {
+        ++mWorld->mActorDispatchDepth;
+    }
+}
+
+UWorld::FActorDispatchScope::~FActorDispatchScope() {
+    if (mWorld != nullptr) {
+        --mWorld->mActorDispatchDepth;
+    }
+}
+
 UWorld::UWorld() = default;
 
 UWorld::~UWorld() {
@@ -60,7 +73,7 @@ void UWorld::CleanupWorld() {
     }
 
     mCleaningUp = true;
-    EndPlay();
+    EndPlay(EEndPlayReason::Quit);
     NotifyWorldChanged(EWorldChange::Destroying);
     mObservers.clear();
     ClearActors();
@@ -69,6 +82,8 @@ void UWorld::CleanupWorld() {
     mPersistentLevel.reset();
     mPendingDestroyActors.clear();
     mTickActors.clear();
+    mTickComponents.clear();
+    mTickComponentsNeedCompaction = false;
     mTickActorsNeedCompaction = false;
     mEndPlayRequested = false;
     mAssetRegistry = nullptr;
@@ -109,10 +124,10 @@ void UWorld::BeginPlay() {
     mTime.Reset();
     mBeginningPlay = true;
 
-    for (std::size_t Index{}; Index < mPersistentLevel->mActors.size(); ++Index) {
+    for (std::size_t Index{}; Index < mPersistentLevel->mActors.size() && !mEndPlayRequested; ++Index) {
         AActor* Actor{mPersistentLevel->mActors[Index].get()};
 
-        if (std::ranges::find(mPendingDestroyActors, Actor) == mPendingDestroyActors.end()) {
+        if (!Actor->IsBeingDestroyed()) {
             Actor->InitializeComponents();
         }
     }
@@ -121,10 +136,10 @@ void UWorld::BeginPlay() {
 
     const std::size_t Count{mPersistentLevel->mActors.size()};
 
-    for (std::size_t Index{}; Index < Count; ++Index) {
+    for (std::size_t Index{}; Index < Count && !mEndPlayRequested; ++Index) {
         AActor* Actor{mPersistentLevel->mActors[Index].get()};
 
-        if (std::ranges::find(mPendingDestroyActors, Actor) == mPendingDestroyActors.end()) {
+        if (!Actor->IsBeingDestroyed()) {
             Actor->DispatchBeginPlay();
         }
     }
@@ -132,17 +147,18 @@ void UWorld::BeginPlay() {
     mBeginningPlay = false;
 
     if (mEndPlayRequested) {
-        EndPlay();
+        EndPlay(mEndPlayReason);
     }
 }
 
-void UWorld::EndPlay() {
-    if (!mHasBegunPlay || mEndingPlay) {
+void UWorld::EndPlay(EEndPlayReason Reason) {
+    if (mEndingPlay || (!mHasBegunPlay && !mBeginningPlay)) {
         return;
     }
 
-    if (mBeginningPlay || mActorDispatchDepth > 0) {
+    if (mBeginningPlay || mBTickingActors || mActorDispatchDepth > 0) {
         mEndPlayRequested = true;
+        mEndPlayReason = Reason;
         return;
     }
 
@@ -151,7 +167,7 @@ void UWorld::EndPlay() {
     mHasBegunPlay = false;
 
     for (std::size_t Index{mPersistentLevel->mActors.size()}; Index > 0; --Index) {
-        mPersistentLevel->mActors[Index - 1]->DispatchEndPlay();
+        mPersistentLevel->mActors[Index - 1]->DispatchEndPlay(Reason);
     }
 
     mEndingPlay = false;
@@ -168,26 +184,28 @@ TSubsystemCollection<UWorldSubsystem, UWorld>& UWorld::GetSubsystems() {
 void UWorld::RefreshActorTicks() {
     for (const std::unique_ptr<AActor>& Actor : mPersistentLevel->mActors) {
         for (const std::unique_ptr<UActorComponent>& Component : Actor->GetComponents()) {
-            Actor->UpdateComponentTickRegistration(Component.get());
+            Component->UpdateTickRegistration();
         }
 
         Actor->UpdateTickRegistration();
     }
 }
 
-AActor* UWorld::SpawnActor(const FAssetHandle& MeshHandle, const FAssetHandle& PipelineHandle, const FAssetHandle& MaterialHandle, const FVector3& Position) {
+AActor* UWorld::SpawnStaticMeshActor(const FAssetHandle& MeshHandle, const FAssetHandle& PipelineHandle, const FAssetHandle& MaterialHandle, const FVector3& Position) {
     if (mAssetRegistry == nullptr || mAssetRegistry->ResolveAsset<UMesh>(MeshHandle) == nullptr) {
         return nullptr;
     }
 
-    std::unique_ptr<AActor> NewActor{std::make_unique<AActor>()};
-    AActor* Actor{NewActor.get()};
+    AActor* Actor{SpawnActorDeferred<AActor>()};
 
-    Actor->SetName(MakeUniqueObjectName(Actor->GetTypeInfo()->mTypeName));
+    if (Actor == nullptr) {
+        return nullptr;
+    }
 
     UStaticMeshComponent* MeshComponent{Actor->AddComponent<UStaticMeshComponent>()};
 
     if (MeshComponent == nullptr) {
+        DestroyActor(Actor);
         return nullptr;
     }
 
@@ -204,35 +222,70 @@ AActor* UWorld::SpawnActor(const FAssetHandle& MeshHandle, const FAssetHandle& P
     NameTagComponent->AttachToComponent(MeshComponent);
     NameTagComponent->SetTargetActor(nullptr);
     NameTagComponent->SetTargetLocalOffset(NameTagComponent->GetTargetLocalOffset());
-    NameTagComponent->SetVisible(true);
-    NameTagComponent->SetActive(false);
+    NameTagComponent->SetVisible(false);
 
     if (mAssetRegistry != nullptr) {
         NameTagComponent->SetPipelineHandle(mAssetRegistry->FindAsset(FAssetPath{"/Game/Pipeline/Text.json"}));
         NameTagComponent->SetFontHandle(mAssetRegistry->FindAsset(FAssetPath{"/Game/Font/NotoSansKR-Medium.ttf"}));
     }
 
-    return AddActor(std::move(NewActor));
+    return FinishSpawningActor(Actor, Actor->GetActorTransform()) ? Actor : nullptr;
 }
 
 bool UWorld::DestroyActor(AActor* Actor) {
-    if (!mInitialized || Actor == nullptr) {
+    return DestroyActorInternal(Actor, EEndPlayReason::Destroyed);
+}
+
+bool UWorld::DestroyActorInternal(AActor* Actor, EEndPlayReason Reason) {
+    if (!mInitialized || Actor == nullptr || Actor->GetWorld() != this) {
         return false;
     }
 
-    auto It{std::ranges::find_if(mPersistentLevel->mActors, [Actor](const std::unique_ptr<AActor>& Ptr) {
-        return Ptr.get() == Actor;
-    })};
-
-    if (It == mPersistentLevel->mActors.end()) {
-        return false;
-    }
-
-    if (std::ranges::find(mPendingDestroyActors, Actor) != mPendingDestroyActors.end()) {
+    if (Actor->mBIsBeingDestroyed) {
         return true;
     }
 
+    const FActorDispatchScope Dispatch{this};
+
+    Actor->mBIsBeingDestroyed = true;
     mPendingDestroyActors.push_back(Actor);
+    Actor->UpdateTickRegistration();
+    NotifyWorldChanged(EWorldChange::ActorRemoving, Actor);
+    Actor->DispatchEndPlay(Reason);
+
+    if (Reason == EEndPlayReason::Destroyed) {
+        Actor->Destroyed();
+    }
+
+    const TArray<UActorComponent*> Components{Actor->GetComponentSnapshot()};
+
+    for (UActorComponent* Component : Components) {
+        if (!Component->IsBeingDestroyed() && Component->GetTypeInfo()->IsA(USceneComponent::StaticTypeInfo())) {
+            USceneComponent* SceneComponent{static_cast<USceneComponent*>(Component)};
+            const std::vector<TObjectRef<USceneComponent>> Children{SceneComponent->GetChildren()};
+
+            for (const TObjectRef<USceneComponent>& ChildReference : Children) {
+                USceneComponent* Child{ChildReference.Get()};
+
+                if (Child != nullptr && Child->GetOwner() != Actor) {
+                    Child->DetachFromComponent(EAttachmentTransformRule::KeepWorldTransform);
+                }
+            }
+
+            if (SceneComponent->GetParent() != nullptr && SceneComponent->GetParent()->GetOwner() != Actor) {
+                SceneComponent->DetachFromComponent(EAttachmentTransformRule::KeepWorldTransform);
+            }
+        }
+
+        Component->UnregisterComponent();
+    }
+
+    for (UActorComponent* Component : Components) {
+        UObjectSystem::Unregister(Component, Component->GetHandle());
+    }
+
+    UObjectSystem::Unregister(Actor, Actor->GetHandle());
+    MarkStructureDirty();
 
     return true;
 }
@@ -262,10 +315,15 @@ void UWorld::FlushPendingDestroyActors() {
         std::unique_ptr<AActor> RemovedActor{std::move(*Iterator)};
 
         mPersistentLevel->mActors.erase(std::prev(Iterator.base()));
-        NotifyWorldChanged(EWorldChange::ActorRemoving, Actor);
         Actor->SetWorld(nullptr);
         UObjectSystem::Unregister(Actor, Actor->GetHandle());
         RemovedAnyActor = true;
+    }
+
+    const std::size_t ActorCount{mPersistentLevel->mActors.size()};
+
+    for (std::size_t Index{}; Index < ActorCount; ++Index) {
+        std::vector<std::unique_ptr<UActorComponent>> RetiredComponents{std::move(mPersistentLevel->mActors[Index]->mPendingDestroyComponents)};
     }
 
     mFlushingActors = false;
@@ -389,6 +447,10 @@ void UWorld::Tick(float DeltaTime) {
         return;
     }
 
+    if (mEndPlayRequested) {
+        EndPlay(mEndPlayReason);
+    }
+
     if (mWorldType == EWorldType::Game && !mHasBegunPlay) {
         FlushPendingDestroyActors();
         return;
@@ -398,19 +460,18 @@ void UWorld::Tick(float DeltaTime) {
 
     const float WorldDeltaTime{static_cast<float>(mTime.GetDeltaSeconds())};
 
-    if (WorldDeltaTime > 0.0f && !mTickActors.empty()) {
+    if (WorldDeltaTime > 0.0f) {
         const Stat::FScopedWorldTickStatTimer TickStat{0};
         Stat::FWorldTickStats* TickStats{Stat::GetActiveWorldTickStats()};
-        const bool WasTicking{mBTickingActors};
+        const std::size_t ActorCount{mTickActors.size()};
+        const std::size_t ComponentCount{mTickComponents.size()};
 
         mBTickingActors = true;
 
-        const std::size_t ActorCount{mTickActors.size()};
-
-        for (std::size_t Index{}; Index < ActorCount && Index < mTickActors.size(); ++Index) {
+        for (std::size_t Index{}; Index < ActorCount && !mEndPlayRequested; ++Index) {
             AActor* Actor{mTickActors[Index]};
 
-            if (Actor == nullptr || std::ranges::find(mPendingDestroyActors, Actor) != mPendingDestroyActors.end()) {
+            if (Actor == nullptr || Actor->IsBeingDestroyed()) {
                 continue;
             }
 
@@ -418,14 +479,29 @@ void UWorld::Tick(float DeltaTime) {
                 ++TickStats->mActorTickCount;
             }
 
-            if (Actor->IsTickEnabled() && (Actor->HasBegunPlay() || Actor->IsTickInEditor())) {
-                Actor->Tick(WorldDeltaTime);
-            } else {
-                Actor->AActor::Tick(WorldDeltaTime);
-            }
+            Actor->Tick(WorldDeltaTime);
         }
 
-        FinishActorTicks(WasTicking);
+        for (std::size_t Index{}; Index < ComponentCount && !mEndPlayRequested; ++Index) {
+            UActorComponent* Component{mTickComponents[Index]};
+
+            if (Component == nullptr || Component->IsBeingDestroyed() || Component->GetOwner()->IsBeingDestroyed()) {
+                continue;
+            }
+
+            if (TickStats != nullptr) {
+                ++TickStats->mComponentVisitCount;
+                ++TickStats->mComponentTickCount;
+            }
+
+            Component->TickComponent(WorldDeltaTime);
+        }
+
+        FinishTicks();
+    }
+
+    if (mEndPlayRequested) {
+        EndPlay(mEndPlayReason);
     }
 
     FlushPendingDestroyActors();
@@ -464,20 +540,61 @@ void UWorld::UnregisterTickActor(AActor* Actor) {
     }
 }
 
-void UWorld::FinishActorTicks(bool WasTicking) {
-    mBTickingActors = WasTicking;
-
-    if (WasTicking || !mTickActorsNeedCompaction) {
+void UWorld::RegisterTickComponent(UActorComponent* Component) {
+    if (Component->mTickIndex != std::numeric_limits<std::size_t>::max()) {
         return;
     }
 
-    std::erase(mTickActors, nullptr);
+    mTickComponents.push_back(Component);
+    Component->mTickIndex = mTickComponents.size() - 1;
+}
 
-    for (std::size_t Index{}; Index < mTickActors.size(); ++Index) {
-        mTickActors[Index]->mTickIndex = Index;
+void UWorld::UnregisterTickComponent(UActorComponent* Component) {
+    const std::size_t Index{Component->mTickIndex};
+
+    if (Index == std::numeric_limits<std::size_t>::max()) {
+        return;
     }
 
-    mTickActorsNeedCompaction = false;
+    Component->mTickIndex = std::numeric_limits<std::size_t>::max();
+
+    if (mBTickingActors) {
+        mTickComponents[Index] = nullptr;
+        mTickComponentsNeedCompaction = true;
+    } else {
+        if (Index + 1 < mTickComponents.size()) {
+            UActorComponent* LastComponent{mTickComponents.back()};
+
+            mTickComponents[Index] = LastComponent;
+            LastComponent->mTickIndex = Index;
+        }
+
+        mTickComponents.pop_back();
+    }
+}
+
+void UWorld::FinishTicks() {
+    mBTickingActors = false;
+
+    if (mTickActorsNeedCompaction) {
+        std::erase(mTickActors, nullptr);
+
+        for (std::size_t Index{}; Index < mTickActors.size(); ++Index) {
+            mTickActors[Index]->mTickIndex = Index;
+        }
+
+        mTickActorsNeedCompaction = false;
+    }
+
+    if (mTickComponentsNeedCompaction) {
+        std::erase(mTickComponents, nullptr);
+
+        for (std::size_t Index{}; Index < mTickComponents.size(); ++Index) {
+            mTickComponents[Index]->mTickIndex = Index;
+        }
+
+        mTickComponentsNeedCompaction = false;
+    }
 }
 
 FWorldTime& UWorld::GetTime() {
@@ -528,35 +645,139 @@ const UBillboardSubsystem& UWorld::GetBillboardSubsystem() const {
     return *mSubsystems.Get<UBillboardSubsystem>();
 }
 
-AActor* UWorld::AddActor(std::unique_ptr<AActor> InActor) {
-    if (!mInitialized || mCleaningUp || !InActor || InActor->GetWorld() != nullptr) {
+AActor* UWorld::AddActorInternal(std::unique_ptr<AActor> InActor) {
+    if (!mInitialized || mCleaningUp || mEndingPlay || !InActor || InActor->GetWorld() != nullptr || InActor->IsBeingDestroyed()) {
         return nullptr;
     }
 
+    const FActorDispatchScope Dispatch{this};
     AActor* Actor{InActor.get()};
 
     if (UObjectSystem::Resolve(Actor->GetHandle()) != Actor) {
         UObjectSystem::Register(Actor);
     }
 
-    mPersistentLevel->mActors.push_back(std::move(InActor));
+    if (Actor->GetName() == FName{}) {
+        Actor->SetName(MakeUniqueObjectName(Actor->GetTypeInfo()->mTypeName));
+    }
 
-    ++mActorDispatchDepth;
+    mPersistentLevel->mActors.push_back(std::move(InActor));
     Actor->SetWorld(this);
+
+    return Actor->IsBeingDestroyed() ? nullptr : Actor;
+}
+
+AActor* UWorld::AddActor(std::unique_ptr<AActor> InActor) {
+    const FActorDispatchScope Dispatch{this};
+    const FTransform Transform{InActor != nullptr ? InActor->GetActorTransform() : FTransform{}};
+    AActor* Actor{AddActorInternal(std::move(InActor))};
+
+    if (Actor == nullptr) {
+        return nullptr;
+    }
+
+    Actor->PostActorCreated();
+
+    return FinishSpawningActor(Actor, Transform) ? Actor : nullptr;
+}
+
+AActor* UWorld::SpawnActor(const FTypeInfo& Type, const FTransform& Transform) {
+    const FActorDispatchScope Dispatch{this};
+    AActor* Actor{SpawnActorDeferred(Type, Transform)};
+
+    return Actor != nullptr && FinishSpawningActor(Actor, Transform) ? Actor : nullptr;
+}
+
+AActor* UWorld::SpawnActorDeferred(const FTypeInfo& Type, const FTransform& Transform) {
+    if (!mInitialized || mCleaningUp || mEndingPlay || Type.mCreator == nullptr || !Type.IsA(AActor::StaticTypeInfo())) {
+        return nullptr;
+    }
+
+    const FActorDispatchScope Dispatch{this};
+    std::unique_ptr<UObject> Object{Type.mCreator()};
+
+    if (Object == nullptr || !Object->GetTypeInfo()->IsA(AActor::StaticTypeInfo())) {
+        return nullptr;
+    }
+
+    std::unique_ptr<AActor> Owner{static_cast<AActor*>(Object.release())};
+    AActor* Actor{AddActorInternal(std::move(Owner))};
+
+    if (Actor == nullptr) {
+        return nullptr;
+    }
+
+    Actor->SetActorTransform(Transform);
+    Actor->PostActorCreated();
+
+    return Actor->IsBeingDestroyed() ? nullptr : Actor;
+}
+
+bool UWorld::FinishSpawningActor(AActor* Actor, const FTransform& Transform) {
+    if (Actor == nullptr || Actor->GetWorld() != this || Actor->mHasFinishedSpawning || Actor->mFinishingSpawning || Actor->IsBeingDestroyed()) {
+        return false;
+    }
+
+    const FActorDispatchScope Dispatch{this};
+    const bool HadRootComponent{Actor->GetRootComponent() != nullptr};
+
+    Actor->mFinishingSpawning = true;
+    Actor->SetActorTransform(Transform);
+    Actor->OnConstruction(Transform);
+
+    if (!HadRootComponent) {
+        Actor->SetActorTransform(Transform);
+    }
+
+    Actor->mFinishingSpawning = false;
+
+    if (Actor->IsBeingDestroyed()) {
+        return false;
+    }
+
+    Actor->mHasFinishedSpawning = true;
+    Actor->RegisterAllComponents();
 
     if (mHasBegunPlay && !mLoadingScene) {
         Actor->DispatchBeginPlay();
     }
 
-    NotifyWorldChanged(EWorldChange::ActorAdded, Actor);
-    MarkStructureDirty();
-    --mActorDispatchDepth;
-
-    if (mEndPlayRequested) {
-        EndPlay();
+    if (Actor->IsBeingDestroyed()) {
+        return false;
     }
 
-    return Actor;
+    NotifyWorldChanged(EWorldChange::ActorAdded, Actor);
+    MarkStructureDirty();
+
+    return !Actor->IsBeingDestroyed();
+}
+
+void UWorld::InitializeLoadedActor(AActor& Actor) {
+    const FActorDispatchScope Dispatch{this};
+
+    Actor.SetWorld(this);
+
+    if (Actor.IsBeingDestroyed()) {
+        return;
+    }
+
+    Actor.PostLoad();
+
+    if (Actor.IsBeingDestroyed()) {
+        return;
+    }
+
+    Actor.mHasFinishedSpawning = true;
+    Actor.RegisterAllComponents();
+
+    if (mHasBegunPlay && !mLoadingScene) {
+        Actor.DispatchBeginPlay();
+    }
+
+    if (!Actor.IsBeingDestroyed()) {
+        NotifyWorldChanged(EWorldChange::ActorAdded, &Actor);
+        MarkStructureDirty();
+    }
 }
 
 const IAssetRegistry* UWorld::GetAssetRegistry() const {
@@ -564,11 +785,19 @@ const IAssetRegistry* UWorld::GetAssetRegistry() const {
 }
 
 void UWorld::ClearActors() {
-    mPendingDestroyActors.clear();
     mPendingDestroyActors.reserve(mPersistentLevel->mActors.size());
 
-    for (const std::unique_ptr<AActor>& Actor : mPersistentLevel->mActors) {
-        mPendingDestroyActors.push_back(Actor.get());
+    const std::size_t Count{mPersistentLevel->mActors.size()};
+
+    for (std::size_t Index{}; Index < Count; ++Index) {
+        AActor* Actor{mPersistentLevel->mActors[Index].get()};
+
+        if (Actor->GetWorld() == this) {
+            DestroyActorInternal(Actor, mCleaningUp ? EEndPlayReason::Quit : EEndPlayReason::LevelTransition);
+        } else if (!Actor->mBIsBeingDestroyed) {
+            Actor->mBIsBeingDestroyed = true;
+            mPendingDestroyActors.push_back(Actor);
+        }
     }
 
     FlushPendingDestroyActors();
@@ -605,7 +834,7 @@ AActor* UWorld::FindActorByName(FName InName) const {
     }
 
     for (const auto& Actor : mPersistentLevel->mActors) {
-        if (Actor && Actor->GetName() == InName) {
+        if (Actor && !Actor->IsBeingDestroyed() && Actor->GetName() == InName) {
             return Actor.get();
         }
     }
@@ -633,6 +862,7 @@ void UWorld::RemoveObserver(IWorldObserver& Observer) {
 }
 
 void UWorld::NotifyWorldChanged(EWorldChange Change, AActor* Actor) {
+    const FActorDispatchScope Dispatch{this};
     const std::vector<IWorldObserver*> Observers{mObservers};
 
     for (IWorldObserver* Observer : Observers) {

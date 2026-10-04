@@ -4,7 +4,8 @@
 
 class UBoxColliderComponent final : public UCollisionComponent {
 public:
-    UBoxColliderComponent() = default;
+    /// <summary>플레이 초기화에서 메시 기준 충돌 경계를 구성하도록 초기화 호출을 요청합니다.</summary>
+    UBoxColliderComponent();
     ~UBoxColliderComponent() override = default;
 
 public:

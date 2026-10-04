@@ -26,7 +26,7 @@ void UBillboardSubsystem::BuildRenderProbes(FSceneRenderData& Scene) const {
         if (!Component->MakeBillboardRender(BillboardProbe))
             continue;
 
-        if (not Component->IsActive() or not Component->IsVisible())
+        if (!Component->IsRegistered() || !Component->IsVisible())
             continue;
 
         Scene.mBillboardProbes.push_back(BillboardProbe);

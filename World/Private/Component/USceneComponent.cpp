@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "World/Component/USceneComponent.h"
 #include "World/AActor.h"
+#include "World/UWorld.h"
 
 namespace {
     bool ApplyWorldMatrix(USceneComponent& Component, const FMatrix& DesiredWorld) {
@@ -108,25 +109,40 @@ void USceneComponent::OnUnregister() {
 }
 
 void USceneComponent::DestroyComponent(bool BPromoteChildren) {
-    AActor* Actor{GetOwner()};
-
-    if (Actor != nullptr && Actor->GetRootComponent() == this && Actor->Destroy()) {
+    if (IsBeingDestroyed() || mDestroyingHierarchy) {
         return;
     }
 
+    mDestroyingHierarchy = true;
+
+    AActor* Actor{GetOwner()};
+    const UWorld::FActorDispatchScope Dispatch{Actor != nullptr ? Actor->GetWorld() : nullptr};
     USceneComponent* ParentComponent{GetParent()};
+    USceneComponent* PromotedComponent{};
+    const bool WasRoot{Actor != nullptr && Actor->GetRootComponent() == this};
     std::vector<USceneComponent*> ChildrenToDetach{};
 
     ChildrenToDetach.reserve(mChildren.size());
 
     for (const TObjectRef<USceneComponent>& ChildRef : mChildren) {
-        if (USceneComponent * Child{ChildRef.Get()}) {
+        if (USceneComponent* Child{ChildRef.Get()}) {
             ChildrenToDetach.push_back(Child);
+
+            if (BPromoteChildren && WasRoot && PromotedComponent == nullptr && Child->GetOwner() == Actor) {
+                PromotedComponent = Child;
+            }
         }
     }
 
+    if (PromotedComponent != nullptr) {
+        PromotedComponent->AttachToComponent(ParentComponent, EAttachmentTransformRule::KeepWorldTransform);
+        Actor->SetRootComponent(PromotedComponent);
+    }
+
     for (USceneComponent* Child : ChildrenToDetach) {
-        Child->AttachToComponent(BPromoteChildren ? ParentComponent : nullptr, EAttachmentTransformRule::KeepWorldTransform);
+        if (Child != PromotedComponent) {
+            Child->AttachToComponent(PromotedComponent != nullptr ? PromotedComponent : ParentComponent, EAttachmentTransformRule::KeepWorldTransform);
+        }
     }
 
     DetachFromComponent(EAttachmentTransformRule::KeepWorldTransform);
@@ -149,7 +165,7 @@ void USceneComponent::RemoveChild(USceneComponent* InChild) {
 }
 
 bool USceneComponent::AttachToComponent(USceneComponent* ParentComponent, EAttachmentTransformRule Rule) {
-    if (ParentComponent == this || mParent.Get() == ParentComponent) {
+    if (IsBeingDestroyed() || (ParentComponent != nullptr && (ParentComponent->IsBeingDestroyed() || (ParentComponent->GetOwner() != nullptr && ParentComponent->GetOwner()->IsBeingDestroyed()))) || ParentComponent == this || mParent.Get() == ParentComponent) {
         return false;
     }
 

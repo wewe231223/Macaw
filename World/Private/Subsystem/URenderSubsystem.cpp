@@ -67,7 +67,7 @@ void URenderSubsystem::BuildRenderProbes(FSceneRenderData& Scene) {
         const auto Position{mComponentIndices.find(GetComponentKey(Handle))};
         const UStaticMeshComponent* Component{Position != mComponentIndices.end() ? mComponents[Position->second] : nullptr};
 
-        Update.mRemoved = Component == nullptr || !Component->IsActive() || !Component->IsVisible();
+        Update.mRemoved = Component == nullptr || !Component->IsRegistered() || !Component->IsVisible();
 
         if (!Update.mRemoved) {
             Component->MakeRender(Update.mProbe);

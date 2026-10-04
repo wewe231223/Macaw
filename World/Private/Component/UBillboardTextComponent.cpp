@@ -140,7 +140,7 @@ const TArray<FTextVertex>& UBillboardTextComponent::GetVertices() const {
 }
 
 bool UBillboardTextComponent::MakeTextRender(FTextProbe& OutProbe) const {
-    if (!IsActive() || !IsVisible() || !mFontHandle || !mPipelineHandle || mVertices.empty()) {
+    if (!IsRegistered() || !IsVisible() || !mFontHandle || !mPipelineHandle || mVertices.empty()) {
         return false;
     }
 

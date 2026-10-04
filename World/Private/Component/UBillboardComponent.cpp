@@ -8,7 +8,7 @@
 #include "World/Subsystem/UBillboardSubsystem.h"
 
 bool UBillboardComponent::CanRenderBillBoard() const {
-    return IsActive() && IsVisible();
+    return IsRegistered() && IsVisible();
 }
 
 void UBillboardComponent::Serialize(FArchive& Archive) {

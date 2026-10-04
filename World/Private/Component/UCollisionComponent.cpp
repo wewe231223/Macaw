@@ -17,6 +17,8 @@ void UCollisionComponent::SetCollisionEnabled(bool BEnabled) {
 }
 
 void UCollisionComponent::OnRegister() {
+    UPrimitiveComponent::OnRegister();
+    GetBelongingWorld()->GetCollisionSubsystem().RegisterComponent(this);
 }
 
 void UCollisionComponent::OnUnregister() {
@@ -30,7 +32,7 @@ void UCollisionComponent::OnUnregister() {
 }
 
 bool UCollisionComponent::Raycast(const FRay& Ray, float& OutDistance) const {
-    if (!mBCollisionEnabled || !RaycastBounds(Ray, OutDistance)) {
+    if (!IsRegistered() || IsBeingDestroyed() || !mBCollisionEnabled || !RaycastBounds(Ray, OutDistance)) {
         return false;
     }
 

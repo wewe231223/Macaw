@@ -10,19 +10,20 @@ const std::vector<std::unique_ptr<UActorComponent>>& AActor::GetComponents() con
 }
 
 AActor::~AActor() {
+    mBIsBeingDestroyed = true;
     SetWorld(nullptr);
 
-    for (std::unique_ptr<UActorComponent>& Component : mComponents) {
-        Component->UnregisterComponent();
-        UObjectSystem::Unregister(Component.get(), Component->GetHandle());
+    while (!mComponents.empty()) {
+        mComponents.back()->DestroyComponent();
     }
 }
 
 UActorComponent* AActor::AddComponent(const FTypeInfo& Type) {
-    if (Type.mCreator == nullptr) {
+    if (mBIsBeingDestroyed || Type.mCreator == nullptr || !Type.IsA(UActorComponent::StaticTypeInfo())) {
         return nullptr;
     }
 
+    const UWorld::FActorDispatchScope Dispatch{mWorld};
     std::unique_ptr<UObject> CreatedObject{Type.mCreator()};
 
     if (CreatedObject == nullptr ||
@@ -39,15 +40,19 @@ UActorComponent* AActor::AddComponent(const FTypeInfo& Type) {
 
     FinishAddingComponent(*ComponentPtr);
 
-    return ComponentPtr;
+    if (mWorld != nullptr && mHasFinishedSpawning && !mBIsBeingDestroyed) {
+        mWorld->MarkStructureDirty();
+    }
+
+    return ComponentPtr->IsBeingDestroyed() || mBIsBeingDestroyed ? nullptr : ComponentPtr;
 }
 
 void AActor::RemoveOwnedComponent(UActorComponent* Component) {
-    auto It{std::ranges::find_if(mComponents, [Component](const std::unique_ptr<UActorComponent>& Ptr) {
-        return Ptr.get() == Component;
+    const auto Iterator{std::ranges::find_if(mComponents, [Component](const std::unique_ptr<UActorComponent>& Candidate) {
+        return Candidate.get() == Component;
     })};
 
-    if (It == mComponents.end()) {
+    if (Iterator == mComponents.end()) {
         return;
     }
 
@@ -55,9 +60,13 @@ void AActor::RemoveOwnedComponent(UActorComponent* Component) {
         mRootComponent = nullptr;
     }
 
-    UnregisterTickComponent(Component);
     UObjectSystem::Unregister(Component, Component->GetHandle());
-    mComponents.erase(It);
+    mPendingDestroyComponents.push_back(std::move(*Iterator));
+    mComponents.erase(Iterator);
+
+    if (mWorld != nullptr && !mBIsBeingDestroyed) {
+        mWorld->MarkStructureDirty();
+    }
 }
 
 USceneComponent* AActor::GetRootComponent() {
@@ -69,6 +78,10 @@ const USceneComponent* AActor::GetRootComponent() const {
 }
 
 bool AActor::SetRootComponent(USceneComponent* InRootComponent) {
+    if (mBIsBeingDestroyed || (InRootComponent != nullptr && InRootComponent->IsBeingDestroyed())) {
+        return false;
+    }
+
     if (InRootComponent != nullptr) {
         const bool BIsOwnedComponent{std::ranges::any_of(mComponents, [InRootComponent](const std::unique_ptr<UActorComponent>& Component) {
             return Component.get() == InRootComponent;
@@ -89,12 +102,14 @@ void AActor::SetWorld(UWorld* InWorld) {
         return;
     }
 
-    if (mWorld != nullptr) {
-        DispatchEndPlay();
+    const UWorld::FActorDispatchScope PreviousDispatch{mWorld};
+    const UWorld::FActorDispatchScope NextDispatch{InWorld};
 
+    if (mWorld != nullptr) {
+        DispatchEndPlay(EEndPlayReason::RemovedFromWorld);
         mWorld->UnregisterTickActor(this);
 
-        for (const std::unique_ptr<UActorComponent>& Component : mComponents) {
+        for (UActorComponent* Component : GetComponentSnapshot()) {
             Component->UnregisterComponent();
         }
 
@@ -102,18 +117,10 @@ void AActor::SetWorld(UWorld* InWorld) {
         mWorld = nullptr;
     }
 
-    if (InWorld == nullptr) {
-        return;
+    if (InWorld != nullptr && !mBIsBeingDestroyed) {
+        mWorld = InWorld;
+        OnAddedToWorld();
     }
-
-    mWorld = InWorld;
-    OnAddedToWorld();
-
-    for (const std::unique_ptr<UActorComponent>& Component : mComponents) {
-        Component->RegisterComponent(mWorld);
-    }
-
-    UpdateTickRegistration();
 }
 
 UWorld* AActor::GetWorld() const {
@@ -125,62 +132,105 @@ ULevel* AActor::GetLevel() const {
 }
 
 void AActor::FinishAddingComponent(UActorComponent& Component) {
-    if (mWorld == nullptr) {
-        return;
+    if (mWorld != nullptr && mHasFinishedSpawning && !mBIsBeingDestroyed) {
+        Component.RegisterComponent(mWorld);
+    }
+}
+
+TArray<UActorComponent*> AActor::GetComponentSnapshot() const {
+    TArray<UActorComponent*> Components{};
+
+    Components.reserve(mComponents.size());
+
+    for (const std::unique_ptr<UActorComponent>& Component : mComponents) {
+        Components.push_back(Component.get());
     }
 
-    Component.RegisterComponent(mWorld);
+    return Components;
+}
 
-    if (mBHasBegunPlay && !mInitializingComponents) {
-        Component.mBInitialized = true;
-        Component.InitializeComponent();
-        Component.mBHasBegunPlay = true;
-        Component.BeginPlay();
-        UpdateComponentTickRegistration(&Component);
+void AActor::RegisterAllComponents() {
+    const UWorld::FActorDispatchScope Dispatch{mWorld};
+
+    for (UActorComponent* Component : GetComponentSnapshot()) {
+        if (mBIsBeingDestroyed) {
+            break;
+        }
+
+        if (!Component->IsBeingDestroyed()) {
+            Component->RegisterComponent(mWorld);
+        }
     }
+
+    UpdateTickRegistration();
 }
 
 void AActor::DispatchBeginPlay() {
-    if (mWorld == nullptr || !mWorld->HasBegunPlay() || mBHasBegunPlay) {
+    if (mWorld == nullptr || !mWorld->HasBegunPlay() || mWorld->mEndPlayRequested || mBHasBegunPlay || mBeginningPlay || mEndingPlay || mBIsBeingDestroyed || !mHasFinishedSpawning) {
         return;
     }
 
-    mBHasBegunPlay = true;
+    const UWorld::FActorDispatchScope Dispatch{mWorld};
+
     InitializeComponents();
 
-    for (std::size_t Index{}; Index < mComponents.size(); ++Index) {
-        UActorComponent* Component{mComponents[Index].get()};
-
-        if (Component->IsRegistered() && !Component->HasBegunPlay()) {
-            Component->mBHasBegunPlay = true;
-            Component->BeginPlay();
-            UpdateComponentTickRegistration(Component);
-        }
-    }
-
-    BeginPlay();
-    UpdateTickRegistration();
-}
-
-void AActor::DispatchEndPlay() {
-    if (!mBHasBegunPlay) {
+    if (mBIsBeingDestroyed || !mWorld->HasBegunPlay() || mWorld->mEndPlayRequested || !mActorInitialized) {
         return;
     }
 
-    mBHasBegunPlay = false;
-    EndPlay();
+    mBeginningPlay = true;
+    mBHasBegunPlay = true;
 
-    for (std::size_t Index{mComponents.size()}; Index > 0; --Index) {
-        UActorComponent* Component{mComponents[Index - 1].get()};
-
-        if (Component->HasBegunPlay()) {
-            Component->mBHasBegunPlay = false;
-            Component->EndPlay();
-            UpdateComponentTickRegistration(Component);
+    for (UActorComponent* Component : GetComponentSnapshot()) {
+        if (mBIsBeingDestroyed || mEndPlayRequested) {
+            break;
         }
+
+        Component->DispatchBeginPlay();
     }
 
+    if (!mBIsBeingDestroyed && !mEndPlayRequested && !mWorld->mEndPlayRequested) {
+        BeginPlay();
+    }
+
+    mBeginningPlay = false;
     UpdateTickRegistration();
+
+    if (mEndPlayRequested) {
+        DispatchEndPlay(mEndPlayReason);
+    }
+}
+
+void AActor::DispatchEndPlay(EEndPlayReason Reason) {
+    if (mEndingPlay) {
+        return;
+    }
+
+    if (mBeginningPlay || mInitializingComponents) {
+        mEndPlayRequested = true;
+        mEndPlayReason = Reason;
+        return;
+    }
+
+    const UWorld::FActorDispatchScope Dispatch{mWorld};
+    const bool HadBegunPlay{mBHasBegunPlay};
+
+    mEndingPlay = true;
+    mEndPlayRequested = false;
+    mBHasBegunPlay = false;
+    mActorInitialized = false;
+    UpdateTickRegistration();
+
+    if (HadBegunPlay) {
+        EndPlay(Reason);
+    }
+
+    for (UActorComponent* Component : GetComponentSnapshot()) {
+        Component->DispatchEndPlay(Reason);
+        Component->DispatchUninitializeComponent();
+    }
+
+    mEndingPlay = false;
 }
 
 bool AActor::Destroy() {
@@ -317,6 +367,23 @@ bool AActor::HasBegunPlay() const {
     return mBHasBegunPlay;
 }
 
+bool AActor::IsBeingDestroyed() const {
+    return mBIsBeingDestroyed;
+}
+
+bool AActor::HasFinishedSpawning() const {
+    return mHasFinishedSpawning;
+}
+
+bool AActor::CanEverTick() const {
+    return mCanEverTick;
+}
+
+void AActor::SetCanEverTick(bool CanEverTick) {
+    mCanEverTick = CanEverTick;
+    UpdateTickRegistration();
+}
+
 bool AActor::IsTickEnabled() const {
     return mBTickEnabled;
 }
@@ -344,100 +411,14 @@ void AActor::UpdateTickRegistration() {
         return;
     }
 
-    if ((mBTickEnabled && (mBHasBegunPlay || (mTickInEditor && mWorld->GetWorldType() != EWorldType::Game))) || mTickComponentCount > 0) {
+    if (mCanEverTick && mBTickEnabled && !mBIsBeingDestroyed && mHasFinishedSpawning && (mBHasBegunPlay || (mTickInEditor && mWorld->GetWorldType() != EWorldType::Game))) {
         mWorld->RegisterTickActor(this);
     } else {
         mWorld->UnregisterTickActor(this);
     }
 }
 
-void AActor::UpdateComponentTickRegistration(UActorComponent* Component) {
-    if (Component->mOwner != this || !Component->mBTickEnabled || !Component->mBActive || !Component->mBRegistered || (!Component->mBHasBegunPlay && !(Component->mTickInEditor && mWorld != nullptr && mWorld->GetWorldType() != EWorldType::Game)) || Component->mBIsBeingDestroyed) {
-        UnregisterTickComponent(Component);
-        return;
-    }
-
-    if (Component->mTickIndex != std::numeric_limits<std::size_t>::max()) {
-        return;
-    }
-
-    mTickComponents.push_back(Component);
-    Component->mTickIndex = mTickComponents.size() - 1;
-    ++mTickComponentCount;
-    UpdateTickRegistration();
-}
-
-void AActor::UnregisterTickComponent(UActorComponent* Component) {
-    const std::size_t Index{Component->mTickIndex};
-
-    if (Index == std::numeric_limits<std::size_t>::max()) {
-        return;
-    }
-
-    Component->mTickIndex = std::numeric_limits<std::size_t>::max();
-    --mTickComponentCount;
-
-    if (mBTickingComponents) {
-        mTickComponents[Index] = nullptr;
-        mTickComponentsNeedCompaction = true;
-    } else {
-        if (Index + 1 < mTickComponents.size()) {
-            UActorComponent* LastComponent{mTickComponents.back()};
-
-            mTickComponents[Index] = LastComponent;
-            LastComponent->mTickIndex = Index;
-        }
-
-        mTickComponents.pop_back();
-    }
-
-    UpdateTickRegistration();
-}
-
-void AActor::FinishComponentTicks(bool WasTicking) {
-    mBTickingComponents = WasTicking;
-
-    if (WasTicking || !mTickComponentsNeedCompaction) {
-        return;
-    }
-
-    std::erase(mTickComponents, nullptr);
-
-    for (std::size_t Index{}; Index < mTickComponents.size(); ++Index) {
-        mTickComponents[Index]->mTickIndex = Index;
-    }
-
-    mTickComponentsNeedCompaction = false;
-}
-
 void AActor::Tick(float DeltaTime) {
-    if (mWorld == nullptr || (!mBHasBegunPlay && mWorld->GetWorldType() == EWorldType::Game)) {
-        return;
-    }
-
-    Stat::FWorldTickStats* TickStats{Stat::GetActiveWorldTickStats()};
-    const bool WasTicking{mBTickingComponents};
-
-    mBTickingComponents = true;
-
-    const std::size_t ComponentCount{mTickComponents.size()};
-
-    for (std::size_t Index{}; Index < ComponentCount && Index < mTickComponents.size(); ++Index) {
-        UActorComponent* Component{mTickComponents[Index]};
-
-        if (Component == nullptr) {
-            continue;
-        }
-
-        if (TickStats != nullptr) {
-            ++TickStats->mComponentVisitCount;
-            ++TickStats->mComponentTickCount;
-        }
-
-        Component->Tick(DeltaTime);
-    }
-
-    FinishComponentTicks(WasTicking);
 }
 
 void AActor::Serialize(FArchive& Archive) {
@@ -479,31 +460,72 @@ void AActor::OnAddedToWorld() {
 }
 
 void AActor::InitializeComponents() {
+    if (mActorInitialized || mInitializingComponents || mBIsBeingDestroyed || !mHasFinishedSpawning) {
+        return;
+    }
+
+    const UWorld::FActorDispatchScope Dispatch{mWorld};
+
     mInitializingComponents = true;
+    PreInitializeComponents();
 
-    for (std::size_t Index{}; Index < mComponents.size(); ++Index) {
-        UActorComponent* Component{mComponents[Index].get()};
+    while (!mBIsBeingDestroyed && !mEndPlayRequested && !mWorld->mEndPlayRequested) {
+        const auto Pending{std::ranges::find_if(mComponents, [](const std::unique_ptr<UActorComponent>& Component) {
+            return Component->mWantsInitializeComponent && Component->IsRegistered() && !Component->IsInitialized() && !Component->IsBeingDestroyed();
+        })};
 
-        if (Component->IsRegistered() && !Component->IsInitialized()) {
-            Component->mBInitialized = true;
-            Component->InitializeComponent();
+        if (Pending == mComponents.end()) {
+            break;
         }
+
+        (*Pending)->DispatchInitializeComponent();
+    }
+
+    if (!mBIsBeingDestroyed && !mEndPlayRequested && !mWorld->mEndPlayRequested) {
+        mActorInitialized = true;
+        PostInitializeComponents();
     }
 
     mInitializingComponents = false;
+
+    if (mEndPlayRequested) {
+        DispatchEndPlay(mEndPlayReason);
+    }
 }
 
 void AActor::BeginPlay() {
 }
 
-void AActor::EndPlay() {
+void AActor::EndPlay(EEndPlayReason Reason) {
+}
+
+void AActor::PostActorCreated() {
+}
+
+void AActor::PostLoad() {
+}
+
+void AActor::OnConstruction(const FTransform& Transform) {
+}
+
+void AActor::PreInitializeComponents() {
+}
+
+void AActor::PostInitializeComponents() {
+}
+
+void AActor::Destroyed() {
 }
 
 void AActor::OnRemovedFromWorld() {
 }
 
 bool AActor::PreLoadComponents(FArchive& Archive, bool RegisterComponents) {
-    std::size_t ArraySize{0};
+    if (mWorld != nullptr || mBIsBeingDestroyed) {
+        return false;
+    }
+
+    std::size_t ArraySize{};
 
     Archive.BeginArrayScope("Components", ArraySize);
 
@@ -513,9 +535,6 @@ bool AActor::PreLoadComponents(FArchive& Archive, bool RegisterComponents) {
     }
 
     mRootComponent = nullptr;
-    mTickComponents.clear();
-    mTickComponentCount = 0;
-    mTickComponentsNeedCompaction = false;
     UpdateTickRegistration();
     mComponents.clear();
     mComponents.reserve(ArraySize);
@@ -537,8 +556,7 @@ bool AActor::PreLoadComponents(FArchive& Archive, bool RegisterComponents) {
 
         std::unique_ptr<UObject> CreatedObject{Type->mCreator()};
 
-        if (CreatedObject == nullptr ||
-            !CreatedObject->GetTypeInfo()->IsA(UActorComponent::StaticTypeInfo())) {
+        if (CreatedObject == nullptr || !CreatedObject->GetTypeInfo()->IsA(UActorComponent::StaticTypeInfo())) {
             Archive.EndObjectScope();
             Archive.EndArrayScope();
             return false;

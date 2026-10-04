@@ -8,12 +8,13 @@
 #include "World/Subsystem/URenderSubsystem.h"
 
 USubUVComponent::USubUVComponent() {
+    SetCanEverTick(true);
     SetTickInEditor(true);
     UpdateTickEnabled();
 }
 
 void USubUVComponent::UpdateTickEnabled() {
-    SetTickEnabled(mBPlaying && mTotalFrame > 1 && mFrameRate > 0.0f);
+    SetTickEnabled(IsActive() && mBPlaying && mTotalFrame > 1 && mFrameRate > 0.0f);
 }
 
 void USubUVComponent::SetSubImage(Int32 InHorizontal, Int32 InVertical, Int32 InTotalFrame, float InFrameRate, bool BInLooping) {
@@ -82,8 +83,8 @@ void USubUVComponent::UpdateUVFromCurrentFrame() {
     UBillboardComponent::SetUV(NewUVMin, NewUVMax);
 }
 
-void USubUVComponent::Tick(float DeltaTime) {
-    UBillboardComponent::Tick(DeltaTime);
+void USubUVComponent::TickComponent(float DeltaTime) {
+    UBillboardComponent::TickComponent(DeltaTime);
 
     if (!mBPlaying || mTotalFrame <= 1 || mFrameRate <= 0.0f || DeltaTime <= 0.0f) {
         return;

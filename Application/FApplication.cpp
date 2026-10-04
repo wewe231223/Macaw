@@ -143,11 +143,7 @@ bool FApplication::InitializeApplication(FLoadingProgress& Progress, HWND Window
 
     Progress.SetProgress(0.86f, "Loading scene");
 
-    const bool SceneLoaded{mContext.mEngine.LoadStartupScene()};
-
-    if (!SceneLoaded) {
-        Console::AddLog(Console::STDOutHandle, ELogLevel::Warning, ELogCategory::Etc, "The startup scene failed to load. Initialization will continue with an empty world.");
-    }
+    mContext.mEngine.LoadStartupScene();
 
     Progress.SetProgress(0.96f, "Finalizing assets");
     mContext.mEngine.GetAssetRegistry().Finalize();

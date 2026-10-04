@@ -280,7 +280,7 @@ void FWorldEditorContext::HandleMousePickRequest(const FMousePickRequestMessage&
 
             if (PreviousActor != nullptr && PreviousActor != SelectedActor) {
                 if (UNameTagComponent * NameTag{PreviousActor->GetComponent<UNameTagComponent>()}) {
-                    NameTag->SetActive(false);
+                    NameTag->SetVisible(false);
                 }
             }
 
@@ -290,7 +290,7 @@ void FWorldEditorContext::HandleMousePickRequest(const FMousePickRequestMessage&
                 }
 
                 if (UNameTagComponent * NameTag{SelectedActor->GetComponent<UNameTagComponent>()}) {
-                    NameTag->SetActive(true);
+                    NameTag->SetVisible(true);
                 }
             } else if (mWorld != nullptr) {
                 ClearSelection();
@@ -445,7 +445,7 @@ void FWorldEditorContext::HandleSpawnComponent(const FMessageSpawnComponent& Mes
     const FVector3 SpawnCenter{0.0f, 0.0f, 5.0f};
 
     for (Uint32 Index{0}; Index < Message.mSpawnCount; ++Index) {
-        AActor* Actor{mWorld->AdoptActor<AActor>()};
+        AActor* Actor{mWorld->SpawnActorDeferred<AActor>()};
 
         if (Actor == nullptr) {
             continue;
@@ -506,7 +506,8 @@ void FWorldEditorContext::HandleSpawnComponent(const FMessageSpawnComponent& Mes
 
         auto Tag{Actor->AddComponent<UNameTagComponent>()};
 
-        Tag->SetActive(false);
+        Tag->SetVisible(false);
+        mWorld->FinishSpawningActor(Actor, Actor->GetActorTransform());
     }
 
     mWorld->FlushPendingDestroyActors();

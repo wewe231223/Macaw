@@ -3,16 +3,17 @@
 #include "Core/Archive/FArchive.h"
 
 UScrollUVComponent::UScrollUVComponent() {
+    SetCanEverTick(true);
     SetTickInEditor(true);
     UpdateTickEnabled();
 }
 
 void UScrollUVComponent::UpdateTickEnabled() {
-    SetTickEnabled(mBPlaying && (mScrollSpeed.mX != 0.0f || mScrollSpeed.mY != 0.0f));
+    SetTickEnabled(IsActive() && mBPlaying && (mScrollSpeed.mX != 0.0f || mScrollSpeed.mY != 0.0f));
 }
 
-void UScrollUVComponent::Tick(float DeltaTime) {
-    UBillboardComponent::Tick(DeltaTime);
+void UScrollUVComponent::TickComponent(float DeltaTime) {
+    UBillboardComponent::TickComponent(DeltaTime);
 
     if (!mBPlaying) {
         return;

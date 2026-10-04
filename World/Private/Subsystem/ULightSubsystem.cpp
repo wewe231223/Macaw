@@ -19,7 +19,7 @@ void ULightSubsystem::BuildLightProbes(FSceneRenderData& Scene) const {
     Scene.mLightProbes.reserve(mComponents.size());
 
     for (const ULightComponent* Component : mComponents) {
-        if (Component == nullptr || !Component->IsActive() || !Component->IsVisible()) {
+        if (Component == nullptr || !Component->IsRegistered() || !Component->IsVisible()) {
             continue;
         }
 

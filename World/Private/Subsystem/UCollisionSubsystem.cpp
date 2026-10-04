@@ -24,7 +24,7 @@ bool UCollisionSubsystem::Raycast(const FRay& Ray, UCollisionComponent*& OutComp
     for (const TObjectRef<UCollisionComponent>& ComponentRef : mComponents) {
         UCollisionComponent* Component{ComponentRef.Get()};
 
-        if (Component == nullptr or not ComponentRef->IsActive()) {
+        if (Component == nullptr || !Component->IsRegistered() || !Component->IsCollisionEnabled()) {
             continue;
         }
 

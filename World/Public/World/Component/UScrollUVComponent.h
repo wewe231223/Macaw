@@ -28,7 +28,8 @@ public:
 
     void SetScrollSpeed(FVector2 InScrollSpeed);
 
-    void Tick(float DeltaTime) override;
+    /// <summary>재생 중인 UV 스크롤의 이동량을 누적하고 표시 좌표를 갱신합니다.</summary>
+    void TickComponent(float DeltaTime) override;
     void UpdateUVFromCurrentFrame();
 
 protected:

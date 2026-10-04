@@ -32,7 +32,8 @@ public:
 
     void UpdateUVFromCurrentFrame();
 
-    void Tick(float DeltaTime) override;
+    /// <summary>경과 시간에 따라 스프라이트 시트의 재생 프레임과 UV를 갱신합니다.</summary>
+    void TickComponent(float DeltaTime) override;
 
 protected:
     void Serialize(FArchive& Archive) override;

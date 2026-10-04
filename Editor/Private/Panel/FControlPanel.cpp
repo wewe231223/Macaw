@@ -111,7 +111,7 @@ void FControlPanel::DrawPanel() {
         ImGui::SameLine();
 
         if (ImGui::Button("Load Scene")) {
-            const FString FilePath{OpenFileDialog(mWindowHandle, "./scenes", "Scene Files (*.json;*.scene)\0*.json;*.scene\0All Files (*.*)\0*.*\0", "json")};
+            const FString FilePath{OpenFileDialog(mWindowHandle, "./scenes", "Scene Files (*.json)\0*.json\0All Files (*.*)\0*.*\0", "json")};
 
             if (!FilePath.empty()) {
                 mEditorToWorldSender.TryEmplace<FMessageLoadScene>(FString{FilePath});
@@ -167,13 +167,13 @@ void FControlPanel::DrawPanel() {
                 }
             }};
 
-            if (ImGui::Button("Enable filtered")) {
+            if (ImGui::Button("Activate filtered")) {
                 SetVisibleTypesActive(true);
             }
 
             ImGui::SameLine();
 
-            if (ImGui::Button("Disable filtered")) {
+            if (ImGui::Button("Deactivate filtered")) {
                 SetVisibleTypesActive(false);
             }
 

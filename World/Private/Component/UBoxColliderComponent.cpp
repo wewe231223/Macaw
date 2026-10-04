@@ -9,6 +9,10 @@
 
 #include <array>
 
+UBoxColliderComponent::UBoxColliderComponent() {
+    SetWantsInitializeComponent(true);
+}
+
 void UBoxColliderComponent::SetMeshComponent(UMeshComponent* InMeshComponent) {
     mMeshComponent.Set(InMeshComponent);
     mPendingMeshComponentGuid = {};

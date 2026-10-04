@@ -124,7 +124,7 @@ void UStaticMeshComponent::OnUnregister() {
 }
 
 void UStaticMeshComponent::MakeRender(FActorProbe& OutProbe) const {
-    if (!IsActive() || !IsVisible()) {
+    if (!IsRegistered() || !IsVisible()) {
         return;
     }
 

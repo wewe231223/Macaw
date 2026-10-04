@@ -65,6 +65,8 @@ private:
     void NotifyTransformUpdate();
 
 private:
+    // 부모와 자식 연결을 정리하는 동안 파괴 처리의 중복 진입을 막습니다.
+    bool mDestroyingHierarchy{};
     FTransform mTransform{};
     mutable FTransform mWorldTransform{};
     mutable FObjectHandle mCachedParentHandle{};

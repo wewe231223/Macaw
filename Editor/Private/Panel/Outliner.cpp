@@ -237,14 +237,14 @@ void FOutlinerPanel::DrawActor(AActor& Actor) {
 
         if (Prev != nullptr) {
             if (UNameTagComponent * NameTag{Prev->GetComponent<UNameTagComponent>()}) {
-                NameTag->SetActive(false);
+                NameTag->SetVisible(false);
             }
         }
 
         mEditorContext->SetSelectedActor(&Actor);
 
         if (UNameTagComponent * NameTag{Actor.GetComponent<UNameTagComponent>()}) {
-            NameTag->SetActive(true);
+            NameTag->SetVisible(true);
         }
     }
 

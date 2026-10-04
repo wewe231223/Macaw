@@ -2,9 +2,7 @@
 #include "Engine/Serialization/FSceneSerializer.h"
 #include "Serialization/FArchiveJson.h"
 #include "Serialization/FJsonFile.h"
-#include "FTemporarySceneLoader.h"
 #include "World/UWorld.h"
-#include "Asset/FAssetRegistry.h"
 #include "CoreUObject/TypeRegistry.h"
 #include "Core/Console/Console.h"
 
@@ -153,6 +151,16 @@ bool FSceneSerializer::Save(UWorld& World, const std::filesystem::path& ScenePat
         return false;
     }
 
+    World.FlushPendingDestroyActors();
+
+    TArray<AActor*> Actors{};
+
+    for (const std::unique_ptr<AActor>& Actor : World.GetActors()) {
+        if (Actor->HasFinishedSpawning() && !Actor->IsBeingDestroyed()) {
+            Actors.push_back(Actor.get());
+        }
+    }
+
     rapidjson::Document Document{};
 
     Document.SetObject();
@@ -163,17 +171,17 @@ bool FSceneSerializer::Save(UWorld& World, const std::filesystem::path& ScenePat
 
     ArchiveSave.SetAssetResolver(World.GetAssetRegistry());
 
-    Uint32 FormatVersion{2};
+    Uint32 FormatVersion{3};
 
     ArchiveSave.Serialize("FormatVersion", FormatVersion);
 
-    std::size_t ArraySize{static_cast<std::size_t>(World.mPersistentLevel->mActors.size())};
+    std::size_t ArraySize{Actors.size()};
 
     ArchiveSave.BeginArrayScope("Actors", ArraySize);
 
-    for (std::size_t CurrentIndex{0}, EndIndex{World.mPersistentLevel->mActors.size()}; CurrentIndex < EndIndex; ++CurrentIndex) {
+    for (std::size_t CurrentIndex{0}, EndIndex{Actors.size()}; CurrentIndex < EndIndex; ++CurrentIndex) {
         ArchiveSave.BeginObjectScope(std::to_string(CurrentIndex));
-        World.mPersistentLevel->mActors[CurrentIndex]->Save(ArchiveSave);
+        Actors[CurrentIndex]->Save(ArchiveSave);
         ArchiveSave.EndObjectScope();
     }
 
@@ -189,7 +197,7 @@ bool FSceneSerializer::Load(UWorld& World, const std::filesystem::path& ScenePat
 
     const bool WasPlaying{World.mHasBegunPlay};
 
-    World.EndPlay();
+    World.EndPlay(EEndPlayReason::LevelTransition);
     World.mLoadingScene = true;
 
     const bool Loaded{LoadInternal(World, ScenePath)};
@@ -215,30 +223,13 @@ bool FSceneSerializer::LoadInternal(UWorld& World, const std::filesystem::path& 
         return true;
     }};
 
-    if (ScenePath.extension() == ".scene") {
-        FAssetRegistry* Registry{dynamic_cast<FAssetRegistry*>(World.mAssetRegistryMutator)};
-
-        if (Registry == nullptr) {
-            return false;
-        }
-
-        FTemporarySceneLoader Loader{};
-        const bool Loaded{Loader.Load(ScenePath, World, *Registry)};
-
-        if (!Loaded) {
-            Console::AddLog(Console::STDOutHandle, ELogLevel::Error, ELogCategory::Etc, "Failed to load temporary scene: %s", ScenePath.generic_string().c_str());
-        }
-
-        return Loaded ? FinishLoad() : false;
-    }
-
     rapidjson::Document LoadDocument{};
 
     if (!FJsonFile::Load(ScenePath, LoadDocument)) {
         return false;
     }
 
-    if (LoadDocument.HasParseError() || !LoadDocument.IsObject() || !LoadDocument.HasMember("FormatVersion") || !LoadDocument["FormatVersion"].IsUint() || LoadDocument["FormatVersion"].GetUint() != 2 || !LoadDocument.HasMember("Actors") || !LoadDocument["Actors"].IsArray()) {
+    if (LoadDocument.HasParseError() || !LoadDocument.IsObject() || !LoadDocument.HasMember("FormatVersion") || !LoadDocument["FormatVersion"].IsUint() || LoadDocument["FormatVersion"].GetUint() != 3 || !LoadDocument.HasMember("Actors") || !LoadDocument["Actors"].IsArray()) {
         return false;
     }
 
@@ -301,7 +292,7 @@ bool FSceneSerializer::LoadInternal(UWorld& World, const std::filesystem::path& 
     ++World.mActorDispatchDepth;
 
     for (std::size_t Index{}; Index < World.mPersistentLevel->mActors.size(); ++Index) {
-        World.mPersistentLevel->mActors[Index]->SetWorld(&World);
+        World.InitializeLoadedActor(*World.mPersistentLevel->mActors[Index]);
     }
 
     --World.mActorDispatchDepth;
