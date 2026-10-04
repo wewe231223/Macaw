@@ -25,8 +25,8 @@ void FViewApplication::InitializeMode(FApplicationContext& Context, HWND WindowH
     });
 
     Context.mMenuPanel = std::make_unique<FViewerToolBar>(*Context.mEditorContext);
-    Context.mEditorUIManager->InitializeViewer(*Context.mAssetRegistry, WindowHandle, *Context.mEditorContext, Context.mThumbnailRenderer.get());
+    Context.mEditorUIManager->InitializeViewer(Context.mEngine.GetAssetRegistry(), WindowHandle, *Context.mEditorContext, Context.mThumbnailRenderer.get());
 }
 
-void FViewApplication::TickMode(FApplicationContext&, float) {
+void FViewApplication::RenderMode(FApplicationContext&, float) {
 }

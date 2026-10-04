@@ -129,7 +129,8 @@ class UMesh : public UAsset {
 private:
     struct FVertexAttributeStorageBase { virtual ~FVertexAttributeStorageBase() = default; virtual const void* GetData() const = 0; virtual Uint32 GetCount() const = 0; virtual Uint32 GetStride() const = 0; };
 
-    template <typename T> struct TVertexAttributeStorage final : FVertexAttributeStorageBase { explicit TVertexAttributeStorage(std::span<const T> InData); const void* GetData() const override; Uint32 GetCount() const override; Uint32 GetStride() const override; std::vector<T> mData{}; };
+    template <typename T>
+    struct TVertexAttributeStorage final : FVertexAttributeStorageBase { explicit TVertexAttributeStorage(std::span<const T> InData); const void* GetData() const override; Uint32 GetCount() const override; Uint32 GetStride() const override; std::vector<T> mData{}; };
 
 public:
     struct FSubMesh {
@@ -160,7 +161,8 @@ public:
 
     bool Initialize(ID3D11Device* Device, const std::filesystem::path& SourceObjPath, const std::filesystem::path& BinaryPath, const FMaterialResolver& MaterialResolver, const FMaterialGroupResolver& MaterialGroupResolver, bool FlipUV);
 
-    template <CVertexAttributeView... TAttributes> bool Make(ID3D11Device* Device, const std::span<const Uint32>& InIndices, const TAttributes&... InAttributes);
+    template <CVertexAttributeView... TAttributes>
+    bool Make(ID3D11Device* Device, const std::span<const Uint32>& InIndices, const TAttributes&... InAttributes);
 
     ID3D11Buffer* GetVertexBuffer(EVertexAttribute Attribute) const;
     ID3D11Buffer* GetVertexBuffer(EVertexAttribute Attribute, int Level) const;
@@ -178,7 +180,8 @@ public:
 
     const void* GetVertexData(EVertexAttribute Attribute) const;
 
-    template <EVertexAttribute Attribute> std::span<const TVertexAttributeElementType<Attribute>> GetVertexAttributeData() const;
+    template <EVertexAttribute Attribute>
+    std::span<const TVertexAttributeElementType<Attribute>> GetVertexAttributeData() const;
 
     const TArray<Uint32>& GetIndices() const;
 
@@ -352,9 +355,11 @@ protected:
     virtual void Serialize(FArchive& Ar) override;
 
 private:
-    template <typename... TAttributes> static consteval bool AreVertexAttributesUnique();
+    template <typename... TAttributes>
+    static consteval bool AreVertexAttributesUnique();
 
-    template <CVertexAttributeView TAttribute> bool CreateVertexBuffer(ID3D11Device* Device, const TAttribute& InAttribute);
+    template <CVertexAttributeView TAttribute>
+    bool CreateVertexBuffer(ID3D11Device* Device, const TAttribute& InAttribute);
 
     bool CreateIndexBuffer(ID3D11Device* Device, const std::span<const Uint32>& InIndices);
 
@@ -383,23 +388,28 @@ private:
     FMeshRaycastAccelerationStructure RaycastAccelerationStructure{};
 };
 
-template <typename T> UMesh::TVertexAttributeStorage<T>::TVertexAttributeStorage(std::span<const T> InData)
+template <typename T>
+UMesh::TVertexAttributeStorage<T>::TVertexAttributeStorage(std::span<const T> InData)
     : mData(InData.begin(), InData.end()) {
 }
 
-template <typename T> const void* UMesh::TVertexAttributeStorage<T>::GetData() const {
+template <typename T>
+const void* UMesh::TVertexAttributeStorage<T>::GetData() const {
     return mData.data();
 }
 
-template <typename T> Uint32 UMesh::TVertexAttributeStorage<T>::GetCount() const {
+template <typename T>
+Uint32 UMesh::TVertexAttributeStorage<T>::GetCount() const {
     return static_cast<Uint32>(mData.size());
 }
 
-template <typename T> Uint32 UMesh::TVertexAttributeStorage<T>::GetStride() const {
+template <typename T>
+Uint32 UMesh::TVertexAttributeStorage<T>::GetStride() const {
     return static_cast<Uint32>(sizeof(T));
 }
 
-template <CVertexAttributeView... TAttributes> bool UMesh::Make(ID3D11Device* Device, const std::span<const Uint32>& InIndices, const TAttributes&... InAttributes) {
+template <CVertexAttributeView... TAttributes>
+bool UMesh::Make(ID3D11Device* Device, const std::span<const Uint32>& InIndices, const TAttributes&... InAttributes) {
     static_assert(sizeof...(TAttributes) > 0, "UMesh requires at least one vertex attribute.");
     static_assert(AreVertexAttributesUnique<TAttributes...>(), "Duplicate vertex attributes are not allowed.");
 
@@ -455,7 +465,8 @@ template <CVertexAttributeView... TAttributes> bool UMesh::Make(ID3D11Device* De
     return true;
 }
 
-template <EVertexAttribute Attribute> std::span<const TVertexAttributeElementType<Attribute>> UMesh::GetVertexAttributeData() const {
+template <EVertexAttribute Attribute>
+std::span<const TVertexAttributeElementType<Attribute>> UMesh::GetVertexAttributeData() const {
     using ElementType = TVertexAttributeElementType<Attribute>;
     using StorageType = TVertexAttributeStorage<ElementType>;
 
@@ -470,7 +481,8 @@ template <EVertexAttribute Attribute> std::span<const TVertexAttributeElementTyp
     return std::span<const ElementType>{Storage->mData.data(), Storage->mData.size()};
 }
 
-template <typename... TAttributes> consteval bool UMesh::AreVertexAttributesUnique() {
+template <typename... TAttributes>
+consteval bool UMesh::AreVertexAttributesUnique() {
     constexpr std::array<EVertexAttribute, sizeof...(TAttributes)> Attributes{std::remove_cvref_t<TAttributes>::AttributeType...};
 
     for (std::size_t I{0}; I < Attributes.size(); ++I) {
@@ -484,7 +496,8 @@ template <typename... TAttributes> consteval bool UMesh::AreVertexAttributesUniq
     return true;
 }
 
-template <CVertexAttributeView TAttribute> bool UMesh::CreateVertexBuffer(ID3D11Device* Device, const TAttribute& InAttribute) {
+template <CVertexAttributeView TAttribute>
+bool UMesh::CreateVertexBuffer(ID3D11Device* Device, const TAttribute& InAttribute) {
     using AttributeType = std::remove_cvref_t<TAttribute>;
     using ElementType = typename AttributeType::ElementType;
 

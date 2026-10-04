@@ -43,18 +43,22 @@ private:
     FObjectHandle mHandle{};
 };
 
-template <typename T> TObjectRef<T>::TObjectRef(std::nullptr_t) noexcept {
+template <typename T>
+TObjectRef<T>::TObjectRef(std::nullptr_t) noexcept {
 }
 
-template <typename T> TObjectRef<T>::TObjectRef(T* Object) noexcept {
+template <typename T>
+TObjectRef<T>::TObjectRef(T* Object) noexcept {
     Set(Object);
 }
 
-template <typename T> TObjectRef<T>::TObjectRef(FObjectHandle InHandle) noexcept
+template <typename T>
+TObjectRef<T>::TObjectRef(FObjectHandle InHandle) noexcept
     : mHandle(InHandle) {
 }
 
-template <typename T> T* TObjectRef<T>::Get() const noexcept {
+template <typename T>
+T* TObjectRef<T>::Get() const noexcept {
     ValidateType();
 
     UObject* Object{UObjectSystem::Resolve(mHandle)};
@@ -66,41 +70,50 @@ template <typename T> T* TObjectRef<T>::Get() const noexcept {
     return static_cast<T*>(Object);
 }
 
-template <typename T> T* TObjectRef<T>::operator->() const noexcept {
+template <typename T>
+T* TObjectRef<T>::operator->() const noexcept {
     return Get();
 }
 
-template <typename T> T& TObjectRef<T>::operator*() const noexcept {
+template <typename T>
+T& TObjectRef<T>::operator*() const noexcept {
     return *Get();
 }
 
-template <typename T> TObjectRef<T>::operator bool() const noexcept {
+template <typename T>
+TObjectRef<T>::operator bool() const noexcept {
     return IsValid();
 }
 
-template <typename T> bool TObjectRef<T>::IsValid() const noexcept {
+template <typename T>
+bool TObjectRef<T>::IsValid() const noexcept {
     return Get() != nullptr;
 }
 
-template <typename T> void TObjectRef<T>::Set(T* Object) noexcept {
+template <typename T>
+void TObjectRef<T>::Set(T* Object) noexcept {
     ValidateType();
 
     mHandle = Object != nullptr ? Object->GetHandle() : FObjectHandle{};
 }
 
-template <typename T> void TObjectRef<T>::SetHandle(FObjectHandle InHandle) noexcept {
+template <typename T>
+void TObjectRef<T>::SetHandle(FObjectHandle InHandle) noexcept {
     mHandle = InHandle;
 }
 
-template <typename T> void TObjectRef<T>::Reset() noexcept {
+template <typename T>
+void TObjectRef<T>::Reset() noexcept {
     mHandle = {};
 }
 
-template <typename T> FObjectHandle TObjectRef<T>::GetHandle() const noexcept {
+template <typename T>
+FObjectHandle TObjectRef<T>::GetHandle() const noexcept {
     return mHandle;
 }
 
-template <typename T> constexpr void TObjectRef<T>::ValidateType() noexcept {
+template <typename T>
+constexpr void TObjectRef<T>::ValidateType() noexcept {
     static_assert(std::is_base_of_v<UObject, T>, "TObjectRef<T> requires T to derive from UObject.");
     static_assert(std::is_same_v<typename T::TypeInfoOwner, T>, "TObjectRef<T> requires T to declare its own type information.");
 }

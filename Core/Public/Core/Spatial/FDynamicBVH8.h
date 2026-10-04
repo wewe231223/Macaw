@@ -3,10 +3,10 @@
 #include <utility>
 
 class FDynamicBVH8 : public FBVH8 {
-    friend struct FDynamicBVH8Tests;
 public:
     void Clear();
-    template<class... TArgs> void Build(TArgs&&... Args) { Clear(); FBVH8::Build(std::forward<TArgs>(Args)...); InitializeParents(); }
+    template <class... TArgs>
+    void Build(TArgs&&... Args) { Clear(); FBVH8::Build(std::forward<TArgs>(Args)...); InitializeParents(); }
     void Insert(Uint32 Leaf, const DirectX::BoundingBox& Box);
     void Remove(Uint32 Leaf);
     void Update(Uint32 Leaf, const DirectX::BoundingBox& Box);

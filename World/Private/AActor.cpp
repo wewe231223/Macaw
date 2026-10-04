@@ -36,14 +36,7 @@ UActorComponent* AActor::AddComponent(const FTypeInfo& Type) {
     UObjectSystem::Register(ComponentPtr);
     mComponents.push_back(std::move(NewComponent));
 
-    if (mWorld != nullptr) {
-        ComponentPtr->RegisterComponent(mWorld);
-
-        if (mBHasBegunPlay) {
-            ComponentPtr->InitializeComponent();
-            ComponentPtr->BeginPlay();
-        }
-    }
+    FinishAddingComponent(*ComponentPtr);
 
     return ComponentPtr;
 }
@@ -95,10 +88,7 @@ void AActor::SetWorld(UWorld* InWorld) {
     }
 
     if (mWorld != nullptr) {
-        if (mBHasBegunPlay) {
-            EndPlay();
-            mBHasBegunPlay = false;
-        }
+        DispatchEndPlay();
 
         mWorld->UnregisterTickActor(this);
         for (const std::unique_ptr<UActorComponent>& Component : mComponents) {
@@ -120,14 +110,64 @@ void AActor::SetWorld(UWorld* InWorld) {
         Component->RegisterComponent(mWorld);
     }
 
-    InitializeComponents();
-    BeginPlay();
-    mBHasBegunPlay = true;
     UpdateTickRegistration();
 }
 
 UWorld* AActor::GetWorld() const {
     return mWorld;
+}
+
+ULevel* AActor::GetLevel() const {
+    return mWorld != nullptr ? &mWorld->GetPersistentLevel() : nullptr;
+}
+
+void AActor::FinishAddingComponent(UActorComponent& Component) {
+    if (mWorld == nullptr) {
+        return;
+    }
+    Component.RegisterComponent(mWorld);
+    if (mBHasBegunPlay && !mInitializingComponents) {
+        Component.mBInitialized = true;
+        Component.InitializeComponent();
+        Component.mBHasBegunPlay = true;
+        Component.BeginPlay();
+        UpdateComponentTickRegistration(&Component);
+    }
+}
+
+void AActor::DispatchBeginPlay() {
+    if (mWorld == nullptr || !mWorld->HasBegunPlay() || mBHasBegunPlay) {
+        return;
+    }
+    mBHasBegunPlay = true;
+    InitializeComponents();
+    for (std::size_t Index{}; Index < mComponents.size(); ++Index) {
+        UActorComponent* Component{mComponents[Index].get()};
+        if (Component->IsRegistered() && !Component->HasBegunPlay()) {
+            Component->mBHasBegunPlay = true;
+            Component->BeginPlay();
+            UpdateComponentTickRegistration(Component);
+        }
+    }
+    BeginPlay();
+    UpdateTickRegistration();
+}
+
+void AActor::DispatchEndPlay() {
+    if (!mBHasBegunPlay) {
+        return;
+    }
+    mBHasBegunPlay = false;
+    EndPlay();
+    for (std::size_t Index{mComponents.size()}; Index > 0; --Index) {
+        UActorComponent* Component{mComponents[Index - 1].get()};
+        if (Component->HasBegunPlay()) {
+            Component->mBHasBegunPlay = false;
+            Component->EndPlay();
+            UpdateComponentTickRegistration(Component);
+        }
+    }
+    UpdateTickRegistration();
 }
 
 bool AActor::Destroy() {
@@ -272,12 +312,21 @@ void AActor::SetTickEnabled(bool TickEnabled) {
     UpdateTickRegistration();
 }
 
+bool AActor::IsTickInEditor() const {
+    return mTickInEditor;
+}
+
+void AActor::SetTickInEditor(bool TickInEditor) {
+    mTickInEditor = TickInEditor;
+    UpdateTickRegistration();
+}
+
 void AActor::UpdateTickRegistration() {
     if (mWorld == nullptr) {
         return;
     }
 
-    if (mBHasBegunPlay && (mBTickEnabled || mTickComponentCount > 0)) {
+    if ((mBTickEnabled && (mBHasBegunPlay || (mTickInEditor && mWorld->GetWorldType() != EWorldType::Game))) || mTickComponentCount > 0) {
         mWorld->RegisterTickActor(this);
     } else {
         mWorld->UnregisterTickActor(this);
@@ -285,7 +334,7 @@ void AActor::UpdateTickRegistration() {
 }
 
 void AActor::UpdateComponentTickRegistration(UActorComponent* Component) {
-    if (Component->mOwner != this || !Component->mBTickEnabled || !Component->mBActive || !Component->mBRegistered || !Component->mBHasBegunPlay || Component->mBIsBeingDestroyed) {
+    if (Component->mOwner != this || !Component->mBTickEnabled || !Component->mBActive || !Component->mBRegistered || (!Component->mBHasBegunPlay && !(Component->mTickInEditor && mWorld != nullptr && mWorld->GetWorldType() != EWorldType::Game)) || Component->mBIsBeingDestroyed) {
         UnregisterTickComponent(Component);
         return;
     }
@@ -336,7 +385,7 @@ void AActor::FinishComponentTicks(bool WasTicking) {
 }
 
 void AActor::Tick(float DeltaTime) {
-    if (!mBHasBegunPlay) {
+    if (mWorld == nullptr || (!mBHasBegunPlay && mWorld->GetWorldType() == EWorldType::Game)) {
         return;
     }
 
@@ -398,28 +447,26 @@ void AActor::OnAddedToWorld() {
 }
 
 void AActor::InitializeComponents() {
-    for (const std::unique_ptr<UActorComponent>& Component : mComponents) {
-        if (Component->IsRegistered() && !Component->IsInitialized()) {
-            Component->InitializeComponent();
+    mInitializingComponents = true;
+    try {
+        for (std::size_t Index{}; Index < mComponents.size(); ++Index) {
+            UActorComponent* Component{mComponents[Index].get()};
+            if (Component->IsRegistered() && !Component->IsInitialized()) {
+                Component->mBInitialized = true;
+                Component->InitializeComponent();
+            }
         }
+    } catch (...) {
+        mInitializingComponents = false;
+        throw;
     }
+    mInitializingComponents = false;
 }
 
 void AActor::BeginPlay() {
-    for (const std::unique_ptr<UActorComponent>& Component : mComponents) {
-        if (Component->IsRegistered() && !Component->HasBegunPlay()) {
-            Component->BeginPlay();
-        }
-    }
 }
 
 void AActor::EndPlay() {
-    for (auto It{mComponents.rbegin()}; It != mComponents.rend(); ++It) {
-        UActorComponent* Component{It->get()};
-        if (Component->HasBegunPlay()) {
-            Component->EndPlay();
-        }
-    }
 }
 
 void AActor::OnRemovedFromWorld() {
@@ -429,6 +476,11 @@ bool AActor::PreLoadComponents(FArchive& Archive) {
     std::size_t ArraySize{0};
     Archive.BeginArrayScope("Components", ArraySize);
 
+    for (const std::unique_ptr<UActorComponent>& Component : mComponents) {
+        Component->UnregisterComponent();
+        UObjectSystem::Unregister(Component.get(), Component->GetHandle());
+    }
+    mRootComponent = nullptr;
     mTickComponents.clear();
     mTickComponentCount = 0;
     mTickComponentsNeedCompaction = false;

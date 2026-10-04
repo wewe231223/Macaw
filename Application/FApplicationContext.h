@@ -13,14 +13,15 @@
 #include "Render/Renderer.h"
 #include "Editor/World/FWorldEditorContext.h"
 #include "World/UWorld.h"
+#include "Engine/UEngine.h"
 
 struct FApplicationContext {
     FRenderer mRenderer{};
     FMouseInput mMouseInput{};
     FKeyboardInput mKeyboardInput{};
-    std::unique_ptr<UWorld> mWorld{};
+    UEngine mEngine{};
+    FWorldContext* mWorldContext{};
     std::unique_ptr<FWorldEditorContext> mEditorContext{};
-    std::unique_ptr<FAssetRegistry> mAssetRegistry{};
     std::unique_ptr<FAssetThumbnailRenderer> mThumbnailRenderer{};
     std::unique_ptr<FMessageChannel> mWorldCommandChannel{};
     std::unique_ptr<EditorViewport> mEditorView{};

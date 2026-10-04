@@ -19,7 +19,8 @@ namespace BVH8 {
         return {{Center[0], Center[1], Center[2]}, {Extents[0], Extents[1], Extents[2]}};
     }
 
-    template<class TNode> double EstimateWideBuildCost(const TArray<TNode>& Nodes) {
+    template <class TNode>
+    double EstimateWideBuildCost(const TArray<TNode>& Nodes) {
         const auto Evaluate = [&](auto&& Self, Uint32 Index) -> std::array<double, 9> {
             std::array<double, 9> Cost; Cost.fill(std::numeric_limits<double>::infinity());
             const auto& Node = Nodes[Index];
@@ -36,7 +37,8 @@ namespace BVH8 {
         return Nodes.empty() ? 0.0 : Evaluate(Evaluate, 0)[1];
     }
 
-    template<class TNode> bool OptimizeBuildTreelets(TArray<TNode>& Nodes) {
+    template <class TNode>
+    bool OptimizeBuildTreelets(TArray<TNode>& Nodes) {
         if (Nodes.size() < 15) return false;
         const double OriginalCost = EstimateWideBuildCost(Nodes);
         if (!std::isfinite(OriginalCost) || OriginalCost <= 0) return false;

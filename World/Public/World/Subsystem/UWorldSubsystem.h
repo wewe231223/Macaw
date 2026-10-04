@@ -9,6 +9,7 @@ public:
     UWorldSubsystem() = default;
     ~UWorldSubsystem() override = default;
 
+public:
     JG_DECLARE_ABSTRACT_DERIVED_TYPEINFO(UWorldSubsystem, UObject)
 
     void Initialize(UWorld* World);
@@ -17,7 +18,7 @@ public:
     UWorld* GetWorld() const;
     bool IsInitialized() const;
 
-protected:
+private:
     virtual void OnInitialize();
     virtual void OnDeinitialize();
 

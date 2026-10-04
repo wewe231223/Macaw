@@ -1,5 +1,4 @@
 #pragma once
-#pragma once
 #include "Core/Common.h"
 #include <limits>
 #include "CoreUObject/UObject.h"
@@ -7,6 +6,7 @@
 #include "World/Component/USceneComponent.h"
 
 class UWorld;
+class ULevel;
 
 /// <summary>
 /// World에 소속되며 UActorComponent를 RAII 방식으로 소유하는 게임플레이 객체입니다.
@@ -22,8 +22,8 @@ public:
     AActor(const AActor&) = delete;
     AActor& operator=(const AActor&) = delete;
 
-    AActor(AActor&&) = default;
-    AActor& operator=(AActor&&) = default;
+    AActor(AActor&&) = delete;
+    AActor& operator=(AActor&&) = delete;
 
 public:
     JG_DECLARE_DERIVED_TYPEINFO(AActor, UObject)
@@ -52,11 +52,9 @@ public:
     /// <summary>Actor의 RootComponent를 읽기 전용으로 반환합니다.</summary>
     const USceneComponent* GetRootComponent() const;
 
-    /// <summary>Actor를 World에 연결하거나 nullptr로 제거합니다. 연결 중 Component 수명 주기도 진행됩니다.</summary>
-    /// <param name="InWorld">새 소속 World 또는 제거를 위한 nullptr입니다.</param>
-    void SetWorld(UWorld* InWorld);
     /// <summary>현재 소속된 World를 반환합니다.</summary>
     UWorld* GetWorld() const;
+    ULevel* GetLevel() const;
     /// <summary>소속 World에 Actor의 지연 파괴를 요청합니다.</summary>
     /// <returns>파괴 요청이 수락되었으면 true입니다.</returns>
     bool Destroy();
@@ -129,6 +127,8 @@ public:
     bool HasBegunPlay() const;
     bool IsTickEnabled() const;
     void SetTickEnabled(bool TickEnabled);
+    bool IsTickInEditor() const;
+    void SetTickInEditor(bool TickInEditor);
     /// <summary>활성 Component에 프레임 Tick을 전달합니다.</summary>
     /// <param name="DeltaTime">이전 프레임 이후 경과 시간입니다.</param>
     virtual void Tick(float DeltaTime);
@@ -141,11 +141,11 @@ public:
     /// <returns>모든 참조를 해석했으면 true입니다.</returns>
     bool ResolveLoadedReferences();
 
-protected:
+private:
     /// <summary>Actor가 World에 추가된 직후 호출됩니다.</summary>
     virtual void OnAddedToWorld();
     /// <summary>등록된 Component를 초기화할 때 호출됩니다.</summary>
-    virtual void InitializeComponents();
+    void InitializeComponents();
     /// <summary>Actor와 Component의 플레이 시작 시점에 호출됩니다.</summary>
     virtual void BeginPlay();
     /// <summary>Actor와 Component의 플레이 종료 시점에 호출됩니다.</summary>
@@ -159,6 +159,10 @@ private:
     friend class UActorComponent;
     friend class UWorld;
 
+    void SetWorld(UWorld* InWorld);
+    void DispatchBeginPlay();
+    void DispatchEndPlay();
+    void FinishAddingComponent(UActorComponent& Component);
     void RemoveOwnedComponent(UActorComponent* Component);
     void UpdateTickRegistration();
     void UpdateComponentTickRegistration(UActorComponent* Component);
@@ -176,12 +180,16 @@ private:
 
     UWorld* mWorld{nullptr};
     bool mBHasBegunPlay{false};
+    bool mInitializingComponents{};
     bool mBTickEnabled{};
+    bool mTickInEditor{};
     bool mBTickingComponents{};
     bool mTickComponentsNeedCompaction{};
 };
 
-template <typename T> requires std::is_base_of_v<UActorComponent, T> T* AActor::AddComponent() {
+template <typename T>
+    requires std::is_base_of_v<UActorComponent, T>
+T* AActor::AddComponent() {
     std::unique_ptr<T> NewComponent{std::make_unique<T>()};
     T* ComponentPtr{NewComponent.get()};
 
@@ -190,19 +198,14 @@ template <typename T> requires std::is_base_of_v<UActorComponent, T> T* AActor::
 
     mComponents.push_back(std::move(NewComponent));
 
-    if (mWorld != nullptr) {
-        ComponentPtr->RegisterComponent(mWorld);
-
-        if (mBHasBegunPlay) {
-            ComponentPtr->InitializeComponent();
-            ComponentPtr->BeginPlay();
-        }
-    }
+    FinishAddingComponent(*ComponentPtr);
 
     return ComponentPtr;
 }
 
-template <typename T> requires std::is_base_of_v<UActorComponent, T> T* AActor::GetComponent() {
+template <typename T>
+    requires std::is_base_of_v<UActorComponent, T>
+T* AActor::GetComponent() {
     for (const auto& Component : mComponents) {
         if (Component->GetTypeInfo()->IsA(T::StaticTypeInfo())) {
             return static_cast<T*>(Component.get());

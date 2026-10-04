@@ -16,8 +16,8 @@ public:
     UActorComponent(const UActorComponent&) = delete;
     UActorComponent& operator=(const UActorComponent&) = delete;
 
-    UActorComponent(UActorComponent&&) = default;
-    UActorComponent& operator=(UActorComponent&&) = default;
+    UActorComponent(UActorComponent&&) = delete;
+    UActorComponent& operator=(UActorComponent&&) = delete;
 
 public:
     JG_DECLARE_DERIVED_TYPEINFO(UActorComponent, UObject)
@@ -39,6 +39,8 @@ public:
 
     bool IsTickEnabled() const;
     void SetTickEnabled(bool TickEnabled);
+    bool IsTickInEditor() const;
+    void SetTickInEditor(bool TickInEditor);
 
     bool IsRegistered() const;
     bool IsInitialized() const;
@@ -69,6 +71,7 @@ private:
 
     bool mBActive{true};
     bool mBTickEnabled{};
+    bool mTickInEditor{};
     bool mBRegistered{false};
     bool mBInitialized{false};
     bool mBHasBegunPlay{false};

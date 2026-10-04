@@ -1,24 +1,10 @@
 #include "pch.h"
 #include "Application/FApplication.h"
 #include "Core/Stat/Stat.h"
-#include "Core/Spatial/FBVH8.h"
 #include "Resource.h"
 #include "Editor/Platform/FLoadingScreen.h"
 #include "Core/Console/Console.h"
-#include "CoreUObject/TypeRegistry.h"
 #include "Editor/Input/Messages/FMousePickRequestMessage.h"
-#include "Asset/UTexture.h"
-#include "Asset/UFont.h"
-#include "Asset/UFreeTypeFont.h"
-#include "World/Component/UBoxColliderComponent.h"
-#include "World/Component/UDirectionalLightComponent.h"
-#include "World/Component/UPointLightComponent.h"
-#include "World/Component/USpotLightComponent.h"
-#include "World/Component/UBillboardComponent.h"
-#include "World/Component/UBillboardTextComponent.h"
-#include "World/Component/UNameTagComponent.h"
-#include "World/Component/UScrollUVComponent.h"
-#include "World/Component/USubUVComponent.h"
 #include "ImGui/imgui.h"
 #include "ImGui/imgui_impl_dx11.h"
 #include "ImGui/imgui_impl_win32.h"
@@ -30,27 +16,41 @@ FApplication::~FApplication() {
 }
 
 int FApplication::Run(HINSTANCE Instance, int ShowCommand) {
-    BVH8::Initialize();
-    if (!RegisterWindowClass(Instance) || !CreateApplicationWindow(Instance, ShowCommand)) {
-        return FALSE;
+    mInstance = Instance;
+    mShowCommand = ShowCommand;
+    return mEngineLoop.Run(*this, mPlatform);
+}
+
+bool FApplication::Initialize() {
+    const HACCEL AcceleratorTable{LoadAccelerators(mInstance, MAKEINTRESOURCE(IDC_MACAW))};
+    if (!mPlatform.Initialize(mInstance, mShowCommand, *this, LoadIcon(mInstance, MAKEINTRESOURCE(IDI_MACAW)), LoadIcon(mInstance, MAKEINTRESOURCE(IDI_SMALL)), AcceleratorTable, static_cast<int>(mLoadingWindowWidth), static_cast<int>(mLoadingWindowHeight))) {
+        return false;
     }
 
-    mContext.mRenderer.Create(mWindowState.mWindowHandle, mLoadingWindowWidth, mLoadingWindowHeight);
+    mContext.mRenderer.Create(mPlatform.GetWindowHandle(), mLoadingWindowWidth, mLoadingWindowHeight);
+    if (mContext.mRenderer.GetDevice() == nullptr || mContext.mRenderer.GetDeviceContext() == nullptr) {
+        return false;
+    }
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
-    ImGui_ImplWin32_Init(static_cast<void*>(mWindowState.mWindowHandle));
-    ImGui_ImplDX11_Init(mContext.mRenderer.GetDevice(), mContext.mRenderer.GetDeviceContext());
     mWindowState.mImGuiInitialized = true;
+    if (!ImGui_ImplWin32_Init(static_cast<void*>(mPlatform.GetWindowHandle()))) {
+        return false;
+    }
+    mWindowState.mImGuiPlatformInitialized = true;
+    if (!ImGui_ImplDX11_Init(mContext.mRenderer.GetDevice(), mContext.mRenderer.GetDeviceContext())) {
+        return false;
+    }
+    mWindowState.mImGuiRendererInitialized = true;
     ImGui::StyleColorsDark();
 
     ImGuiIO& Io{ImGui::GetIO()};
     Io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
     Io.Fonts->AddFontFromFileTTF("./Content/Font/NotoSansKR-Medium.ttf", 16.0f, nullptr, Io.Fonts->GetGlyphRangesKorean());
 
-    const HACCEL AcceleratorTable{LoadAccelerators(Instance, MAKEINTRESOURCE(IDC_MACAW))};
     FLoadingScreen LoadingScreen{};
-    const HWND WindowHandle{mWindowState.mWindowHandle};
-    const bool Loaded{LoadingScreen.Run(mContext.mRenderer, AcceleratorTable, [this, WindowHandle](FLoadingProgress& Progress) {
+    const HWND WindowHandle{mPlatform.GetWindowHandle()};
+    const bool Loaded{LoadingScreen.Run(mContext.mRenderer, mPlatform, [this, WindowHandle](FLoadingProgress& Progress) {
         return InitializeApplication(Progress, WindowHandle);
     }, [this](FLoadingProgress& Progress) {
         mContext.mThumbnailRenderer->Tick();
@@ -62,56 +62,22 @@ int FApplication::Run(HINSTANCE Instance, int ShowCommand) {
 
     mEditorLogo = LoadingScreen.TakeLogoShaderResourceView();
     if (!Loaded) {
-        Shutdown();
-        return FALSE;
+        return false;
     }
 
     RestoreGameWindow();
     mAcceptGameInput.store(true, std::memory_order_release);
     Console::AddLog(Console::STDOutHandle, ELogLevel::Log, ELogCategory::Etc, "Macaw Engine Initialized.");
-    mFrameTimer.Reset();
     Stat::ResetFrameStats();
     mWindowState.mFrameEnabled = true;
-    
-    const int ExitCode{RunMessageLoop(AcceleratorTable)};
-    
-    mWindowState.mFrameEnabled = false;
-    SaveState();
-    Shutdown();
-    mContext.mRenderer.ReportLiveObjects();
-    
-    return ExitCode;
+    mInitialized = true;
+    return true;
 }
 
-void FApplication::RegisterObjectTypes() {
-    TypeRegistry::Register(UObject::StaticTypeInfo());
-    TypeRegistry::Register(UAsset::StaticTypeInfo());
-    TypeRegistry::Register(UMesh::StaticTypeInfo());
-    TypeRegistry::Register(UPipeline::StaticTypeInfo());
-    TypeRegistry::Register(UTexture::StaticTypeInfo());
-    TypeRegistry::Register(AActor::StaticTypeInfo());
-    TypeRegistry::Register(UFont::StaticTypeInfo());
-    TypeRegistry::Register(UFreeTypeFont::StaticTypeInfo());
-    TypeRegistry::Register(UWorld::StaticTypeInfo());
-    TypeRegistry::Register(UCameraComponent::StaticTypeInfo());
-    TypeRegistry::Register(UStaticMeshComponent::StaticTypeInfo());
-    TypeRegistry::Register(UCollisionComponent::StaticTypeInfo());
-    TypeRegistry::Register(UBoxColliderComponent::StaticTypeInfo());
-    TypeRegistry::Register(UDirectionalLightComponent::StaticTypeInfo());
-    TypeRegistry::Register(UPointLightComponent::StaticTypeInfo());
-    TypeRegistry::Register(USpotLightComponent::StaticTypeInfo());
-    TypeRegistry::Register(UActorComponent::StaticTypeInfo());
-    TypeRegistry::Register(USceneComponent::StaticTypeInfo());
-    TypeRegistry::Register(UBillboardTextComponent::StaticTypeInfo());
-    TypeRegistry::Register(UNameTagComponent::StaticTypeInfo());
-    TypeRegistry::Register(UBillboardComponent::StaticTypeInfo());
-    TypeRegistry::Register(USubUVComponent::StaticTypeInfo());
-    TypeRegistry::Register(UScrollUVComponent::StaticTypeInfo());
-}
 
 bool FApplication::InitializeApplication(FLoadingProgress& Progress, HWND WindowHandle) {
     Progress.SetProgress(0.02f, "Registering object types");
-    RegisterObjectTypes();
+    mContext.mEngine.Initialize();
 
     Progress.SetProgress(0.06f, "Initializing renderer resources");
     if (!mContext.mRenderer.Initialize()) {
@@ -119,9 +85,8 @@ bool FApplication::InitializeApplication(FLoadingProgress& Progress, HWND Window
     }
 
     Progress.SetProgress(0.10f, "Creating world services");
-    mContext.mWorld = std::make_unique<UWorld>();
+    mContext.mWorldContext = &mContext.mEngine.CreateWorldContext(EWorldType::Editor);
     mContext.mEditorContext = std::make_unique<FWorldEditorContext>();
-    mContext.mAssetRegistry = std::make_unique<FAssetRegistry>();
     mContext.mThumbnailRenderer = std::make_unique<FAssetThumbnailRenderer>();
     mContext.mWorldCommandChannel = std::make_unique<FMessageChannel>(64);
     mContext.mEditorView = std::make_unique<EditorViewport>();
@@ -133,22 +98,21 @@ bool FApplication::InitializeApplication(FLoadingProgress& Progress, HWND Window
     }
 
     mContext.mEditorContext->SetEditorSettings(mContext.mEditorSettings);
-    mContext.mEditorContext->SetWorld(mContext.mWorld.get());
+    mContext.mEditorContext->SetWorld(&mContext.mWorldContext->GetWorld());
 
     const FAssetRegistry::FProgressCallback AssetProgressCallback{[&Progress](float AssetProgress, const std::string& Status) {
         Progress.SetProgress(0.15f + AssetProgress * 0.55f, Status);
     }};
 
-    const bool AssetsInitialized{mContext.mAssetRegistry->Initialize(mContext.mRenderer.GetDevice(), 128, AssetProgressCallback)};
+    const bool AssetsInitialized{mContext.mEngine.GetAssetRegistry().Initialize(mContext.mRenderer.GetDevice(), 128, AssetProgressCallback)};
     if (!AssetsInitialized) {
         Console::AddLog(Console::STDOutHandle, ELogLevel::Warning, ELogCategory::Etc, "Some optional assets failed to load. Initialization will continue.");
     }
 
-    mContext.mRenderer.BindAssetRegistry(mContext.mAssetRegistry.get());
-    mContext.mWorld->SetAssetRegistry(mContext.mAssetRegistry.get(), mContext.mAssetRegistry.get());
+    mContext.mRenderer.BindAssetRegistry(&mContext.mEngine.GetAssetRegistry());
 
     Progress.SetProgress(0.73f, "Initializing editor channels");
-    mContext.mEditorContext->InitializeChannels(mContext.mAssetRegistry.get());
+    mContext.mEditorContext->InitializeChannels(&mContext.mEngine.GetAssetRegistry());
     mContext.mMouseInput.InitializeWorldCommandSender(mContext.mWorldCommandChannel->GetSender());
     mContext.mKeyboardInput.InitializeWorldCommandSender(mContext.mWorldCommandChannel->GetSender());
     mContext.mWorldCommandChannel->TryBind<FMousePickRequestMessage>([this](const FMousePickRequestMessage& Message) {
@@ -156,56 +120,40 @@ bool FApplication::InitializeApplication(FLoadingProgress& Progress, HWND Window
     });
 
     Progress.SetProgress(0.78f, "Initializing editor view");
-    mContext.mEditorView->Initialize(mContext.mRenderer.GetDevice(), *mContext.mAssetRegistry, *mContext.mEditorContext);
+    mContext.mEditorView->Initialize(mContext.mRenderer.GetDevice(), mContext.mEngine.GetAssetRegistry(), *mContext.mEditorContext);
 
     InitializeMode(mContext, WindowHandle);
 
     Progress.SetProgress(0.86f, "Loading scene");
-    const bool SceneLoaded{mContext.mWorld->LoadScene("./scenes/Default.scene")};
+    const bool SceneLoaded{mContext.mWorldContext->GetWorld().LoadScene("./scenes/Default.scene")};
     if (!SceneLoaded) {
         Console::AddLog(Console::STDOutHandle, ELogLevel::Warning, ELogCategory::Etc, "The startup scene failed to load. Initialization will continue with an empty world.");
     }
 
     Progress.SetProgress(0.96f, "Finalizing assets");
-    mContext.mAssetRegistry->Finalize();
-    mContext.mThumbnailRenderer->Create(&mContext.mRenderer, mContext.mAssetRegistry.get());
+    mContext.mEngine.GetAssetRegistry().Finalize();
+    mContext.mThumbnailRenderer->Create(&mContext.mRenderer, &mContext.mEngine.GetAssetRegistry());
     Progress.SetProgress(0.96f, "Generating thumbnails");
     return true;
 }
 
-int FApplication::RunMessageLoop(HACCEL AcceleratorTable) {
-    MSG Message{};
-    while (true) {
-        while (PeekMessage(&Message, nullptr, 0, 0, PM_REMOVE)) {
-            if (Message.message == WM_QUIT) {
-                return static_cast<int>(Message.wParam);
-            }
-            if (!TranslateAccelerator(Message.hwnd, AcceleratorTable, &Message)) {
-                TranslateMessage(&Message);
-                DispatchMessage(&Message);
-            }
-        }
-        RenderFrame();
-    }
+void FApplication::ProcessInput(FApplicationContext&, float) {
 }
 
-void FApplication::RenderFrame() {
-    if (!mWindowState.mFrameEnabled || mWindowState.mRenderingFrame) {
+void FApplication::Tick(float DeltaTime) {
+    if (!mWindowState.mFrameEnabled) {
         return;
     }
-    mWindowState.mRenderingFrame = true;
-    mFrameTimer.Tick();
-    const float DeltaTime{static_cast<float>(mFrameTimer.GetUpdateDeltaSeconds())};
     Stat::BeginFrame();
     {
         {
             const Stat::FScopedSystemStatTimer StageStat{ Stat::ESystemStatStage::FrameSetup };
-            Stat::RecordObjectCounts(UObjectSystem::GetObjectCount(), mContext.mWorld->GetActors().size());
+            Stat::RecordObjectCounts(UObjectSystem::GetObjectCount(), mContext.mWorldContext->GetWorld().GetActors().size());
             mContext.mRenderer.BeginFrame(DeltaTime);
         }
         {
             const Stat::FScopedSystemStatTimer StageStat{ Stat::ESystemStatStage::PreviewRender };
-            mContext.mEditorUIManager->RenderOffscreen(mContext.mRenderer, *mContext.mAssetRegistry);
+            mContext.mEditorUIManager->RenderOffscreen(mContext.mRenderer, mContext.mEngine.GetAssetRegistry());
         }
         {
             const Stat::FScopedSystemStatTimer StageStat{Stat::ESystemStatStage::EditorUi};
@@ -221,7 +169,14 @@ void FApplication::RenderFrame() {
             mPendingExternalFileDrops.clear();
         }
 
-        TickMode(mContext, DeltaTime);
+        {
+            const Stat::FScopedSystemStatTimer StageStat{Stat::ESystemStatStage::WorldUpdate};
+            ProcessInput(mContext, DeltaTime);
+            mContext.mWorldCommandChannel->Dispatch();
+            mContext.mEngine.Tick(DeltaTime);
+            mContext.mEditorContext->Dispatch();
+        }
+        RenderMode(mContext, DeltaTime);
 
         {
             const Stat::FScopedSystemStatTimer StageStat{Stat::ESystemStatStage::UiRender};
@@ -242,7 +197,6 @@ void FApplication::RenderFrame() {
         mContext.mMouseInput.EndFrame();
     }
     Stat::EndFrame();
-    mWindowState.mRenderingFrame = false;
 }
 
 void FApplication::SaveState() {
@@ -251,10 +205,13 @@ void FApplication::SaveState() {
         Host->CaptureLayoutSettings(mContext.mEditorSettings);
     }
     FEditorConfigManager::Save(mContext.mEditorSettings);
-    // mContext.mWorld->SaveScene("test", mContext.mAssetRegistry.get());
 }
 
 void FApplication::Shutdown() {
+    if (mInitialized) {
+        SaveState();
+        mInitialized = false;
+    }
     mWindowState.mFrameEnabled = false;
     mAcceptGameInput.store(false, std::memory_order_release);
     if (mContext.mThumbnailRenderer != nullptr) {
@@ -264,8 +221,14 @@ void FApplication::Shutdown() {
         mContext.mEditorUIManager->ReleaseRenderResources();
     }
     if (mWindowState.mImGuiInitialized) {
-        ImGui_ImplDX11_Shutdown();
-        ImGui_ImplWin32_Shutdown();
+        if (mWindowState.mImGuiRendererInitialized) {
+            ImGui_ImplDX11_Shutdown();
+            mWindowState.mImGuiRendererInitialized = false;
+        }
+        if (mWindowState.mImGuiPlatformInitialized) {
+            ImGui_ImplWin32_Shutdown();
+            mWindowState.mImGuiPlatformInitialized = false;
+        }
         ImGui::DestroyContext();
         mWindowState.mImGuiInitialized = false;
     }
@@ -275,16 +238,14 @@ void FApplication::Shutdown() {
     mContext.mEditorView.reset();
     mContext.mThumbnailRenderer.reset();
     mContext.mWorldCommandChannel.reset();
-    mContext.mWorld.reset();
-    mContext.mAssetRegistry.reset();
     mContext.mEditorContext.reset();
+    mContext.mWorldContext = nullptr;
+    mContext.mEngine.Shutdown();
     mEditorLogo.Reset();
     mPendingExternalFileDrops.clear();
-    if (mWindowState.mWindowHandle != nullptr) {
-        DestroyWindow(mWindowState.mWindowHandle);
-        mWindowState.mWindowHandle = nullptr;
-    }
+    mPlatform.Shutdown();
     if (mContext.mRenderer.GetDeviceContext() != nullptr) {
         mContext.mRenderer.Terminate();
+        mContext.mRenderer.ReportLiveObjects();
     }
 }

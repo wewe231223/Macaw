@@ -90,7 +90,9 @@ namespace {
         return State;
     }
 
-    template <typename TMessage> requires CMessageType<std::remove_cvref_t<TMessage>> bool SendMessageToWorldChannel(TMessage&& Message) {
+    template <typename TMessage>
+        requires CMessageType<std::remove_cvref_t<TMessage>>
+    bool SendMessageToWorldChannel(TMessage&& Message) {
         FUndoSystemState& State{GetState()};
         if (State.mMessageSender.has_value()) {
             return State.mMessageSender->TryPush(std::forward<TMessage>(Message));
@@ -98,7 +100,9 @@ namespace {
         return false;
     }
 
-    template <CMessageType TMessage, typename... Args> requires CMessageConstructible<TMessage, Args...> bool EmplaceMessageToWorldChannel(Args&&... Arguments) {
+    template <CMessageType TMessage, typename... Args>
+        requires CMessageConstructible<TMessage, Args...>
+    bool EmplaceMessageToWorldChannel(Args&&... Arguments) {
         FUndoSystemState& State{GetState()};
         if (State.mMessageSender.has_value()) {
             return State.mMessageSender->TryEmplace<TMessage>(std::forward<Args>(Arguments)...);

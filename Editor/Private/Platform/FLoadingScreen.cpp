@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Platform/IPlatformApplication.h"
 #include "Editor/Platform/FLoadingScreen.h"
 #include "Render/Renderer.h"
 
@@ -85,7 +86,7 @@ bool FLoadingScreen::LoadLogo(ID3D11Device* Device) {
     return true;
 }
 
-bool FLoadingScreen::Run(FRenderer& Renderer, HACCEL AcceleratorTable, const FLoadingTask& LoadingTask, const FLoadingFrameTask& LoadingFrameTask) {
+bool FLoadingScreen::Run(FRenderer& Renderer, IPlatformApplication& Platform, const FLoadingTask& LoadingTask, const FLoadingFrameTask& LoadingFrameTask) {
     LoadLogo(Renderer.GetDevice());
 
     FLoadingProgress Progress{};
@@ -114,17 +115,8 @@ bool FLoadingScreen::Run(FRenderer& Renderer, HACCEL AcceleratorTable, const FLo
     bool FrameTaskFinished{};
 
     while (true) {
-        MSG Message{};
-        while (PeekMessage(&Message, nullptr, 0, 0, PM_REMOVE)) {
-            if (Message.message == WM_QUIT) {
-                QuitRequested = true;
-                continue;
-            }
-
-            if (!TranslateAccelerator(Message.hwnd, AcceleratorTable, &Message)) {
-                TranslateMessage(&Message);
-                DispatchMessage(&Message);
-            }
+        if (!Platform.PumpMessages()) {
+            QuitRequested = true;
         }
 
         const bool LoadingFinished{Finished.load(std::memory_order_acquire)};

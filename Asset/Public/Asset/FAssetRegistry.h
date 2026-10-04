@@ -63,7 +63,9 @@ public:
         requires std::is_base_of_v<UAsset, T>
     const T* ResolveAsset(FAssetHandle Handle) const;
 
-    template <typename T, typename Func> requires std::is_base_of_v<UAsset, T> void ModifyAsset(FAssetHandle Handle, Func&& Modifier);
+    template <typename T, typename Func>
+        requires std::is_base_of_v<UAsset, T>
+    void ModifyAsset(FAssetHandle Handle, Func&& Modifier);
 
     FMaterialBuffer& GetMaterialBuffer();
 
@@ -119,7 +121,9 @@ private:
     std::filesystem::path mContentRoot{};
 };
 
-template <typename T> requires std::is_base_of_v<UAsset, T> T* FAssetRegistry::ResolveAsset(FAssetHandle Handle) {
+template <typename T>
+    requires std::is_base_of_v<UAsset, T>
+T* FAssetRegistry::ResolveAsset(FAssetHandle Handle) {
     FAssetEntry* Entry{FindEntry(Handle)};
 
     if (Entry == nullptr || Entry->mAsset == nullptr || !Entry->mAsset->GetTypeInfo()->IsA(T::StaticTypeInfo())) {
@@ -129,7 +133,9 @@ template <typename T> requires std::is_base_of_v<UAsset, T> T* FAssetRegistry::R
     return static_cast<T*>(Entry->mAsset.get());
 }
 
-template <typename T> requires std::is_base_of_v<UAsset, T> const T* FAssetRegistry::ResolveAsset(FAssetHandle Handle) const {
+template <typename T>
+    requires std::is_base_of_v<UAsset, T>
+const T* FAssetRegistry::ResolveAsset(FAssetHandle Handle) const {
     const FAssetEntry* Entry{FindEntry(Handle)};
 
     if (Entry == nullptr || Entry->mAsset == nullptr || !Entry->mAsset->GetTypeInfo()->IsA(T::StaticTypeInfo())) {
@@ -139,7 +145,9 @@ template <typename T> requires std::is_base_of_v<UAsset, T> const T* FAssetRegis
     return static_cast<const T*>(Entry->mAsset.get());
 }
 
-template <typename T, typename Func> requires std::is_base_of_v<UAsset, T> void FAssetRegistry::ModifyAsset(FAssetHandle Handle, Func&& Modifier) {
+template <typename T, typename Func>
+    requires std::is_base_of_v<UAsset, T>
+void FAssetRegistry::ModifyAsset(FAssetHandle Handle, Func&& Modifier) {
     T* Asset{ResolveAsset<T>(Handle)};
 
     if (Asset == nullptr) {

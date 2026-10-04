@@ -10,6 +10,8 @@
 #include <wrl/client.h>
 #include "Render/Renderer.h"
 
+class IPlatformApplication;
+
 class FLoadingProgress {
 public:
     FLoadingProgress();
@@ -36,7 +38,7 @@ public:
     ~FLoadingScreen();
 
 public:
-    bool Run(FRenderer& Renderer, HACCEL AcceleratorTable, const FLoadingTask& LoadingTask, const FLoadingFrameTask& LoadingFrameTask);
+    bool Run(FRenderer& Renderer, IPlatformApplication& Platform, const FLoadingTask& LoadingTask, const FLoadingFrameTask& LoadingFrameTask);
     Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> TakeLogoShaderResourceView();
 
 private:

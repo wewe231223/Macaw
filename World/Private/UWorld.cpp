@@ -4,6 +4,7 @@
 #include "Core/Stat/Stat.h"
 
 #include <algorithm>
+#include <stdexcept>
 #include <cmath>
 #include <random>
 #include "World/AActor.h"
@@ -39,20 +40,134 @@
 #include <rapidjson/prettywriter.h>
 #include "World/Component/UNameTagComponent.h"
 
-UWorld::UWorld() {
+UWorld::UWorld() = default;
+
+UWorld::~UWorld() {
+    CleanupWorld();
+}
+
+void UWorld::Initialize(EWorldType WorldType) {
+    if (mInitialized || mCleaningUp) {
+        return;
+    }
+    mWorldType = WorldType;
+    mTime.Reset();
+    mPersistentLevel = std::make_unique<ULevel>(*this);
+    UObjectSystem::Register(mPersistentLevel.get());
+    mInitialized = true;
     InitializeSubsystems();
 }
 
-UWorld::~UWorld() {
+void UWorld::CleanupWorld() {
+    if (!mInitialized || mCleaningUp) {
+        return;
+    }
+    if (mBTickingActors || mBeginningPlay || mEndingPlay || mActorDispatchDepth > 0 || mFlushingActors) {
+        throw std::logic_error{"Cannot clean up a world during actor callbacks"};
+    }
+    mCleaningUp = true;
+    EndPlay();
     NotifyWorldChanged(EWorldChange::Destroying);
     mObservers.clear();
-    for (const std::unique_ptr<AActor>& Actor : mActors) {
-        Actor->SetWorld(nullptr);
-        UObjectSystem::Unregister(Actor.get(), Actor->GetHandle());
-    }
-
-    mActors.clear();
+    ClearActors();
     DeinitializeSubsystems();
+    UObjectSystem::Unregister(mPersistentLevel.get(), mPersistentLevel->GetHandle());
+    mPersistentLevel.reset();
+    mPendingDestroyActors.clear();
+    mTickActors.clear();
+    mTickActorsNeedCompaction = false;
+    mEndPlayRequested = false;
+    mAssetRegistry = nullptr;
+    mAssetRegistryMutator = nullptr;
+    mInitialized = false;
+    mCleaningUp = false;
+}
+
+bool UWorld::IsInitialized() const {
+    return mInitialized;
+}
+
+EWorldType UWorld::GetWorldType() const {
+    return mWorldType;
+}
+
+ULevel& UWorld::GetPersistentLevel() {
+    if (mPersistentLevel == nullptr) {
+        throw std::logic_error{"World is not initialized"};
+    }
+    return *mPersistentLevel;
+}
+
+const ULevel& UWorld::GetPersistentLevel() const {
+    if (mPersistentLevel == nullptr) {
+        throw std::logic_error{"World is not initialized"};
+    }
+    return *mPersistentLevel;
+}
+
+void UWorld::BeginPlay() {
+    if (!mInitialized || mHasBegunPlay || mBeginningPlay || mWorldType != EWorldType::Game || mCleaningUp || mLoadingScene || mEndingPlay) {
+        return;
+    }
+    mTime.Reset();
+    mBeginningPlay = true;
+    try {
+        for (std::size_t Index{}; Index < mPersistentLevel->mActors.size(); ++Index) {
+            AActor* Actor{mPersistentLevel->mActors[Index].get()};
+            if (std::ranges::find(mPendingDestroyActors, Actor) == mPendingDestroyActors.end()) {
+                Actor->InitializeComponents();
+            }
+        }
+        mHasBegunPlay = true;
+        const std::size_t Count{mPersistentLevel->mActors.size()};
+        for (std::size_t Index{}; Index < Count; ++Index) {
+            AActor* Actor{mPersistentLevel->mActors[Index].get()};
+            if (std::ranges::find(mPendingDestroyActors, Actor) == mPendingDestroyActors.end()) {
+                Actor->DispatchBeginPlay();
+            }
+        }
+    } catch (...) {
+        mBeginningPlay = false;
+        throw;
+    }
+    mBeginningPlay = false;
+    if (mEndPlayRequested) {
+        EndPlay();
+    }
+}
+
+void UWorld::EndPlay() {
+    if (!mHasBegunPlay || mEndingPlay) {
+        return;
+    }
+    if (mBeginningPlay || mActorDispatchDepth > 0) {
+        mEndPlayRequested = true;
+        return;
+    }
+    mEndPlayRequested = false;
+    mEndingPlay = true;
+    mHasBegunPlay = false;
+    for (std::size_t Index{mPersistentLevel->mActors.size()}; Index > 0; --Index) {
+        mPersistentLevel->mActors[Index - 1]->DispatchEndPlay();
+    }
+    mEndingPlay = false;
+}
+
+bool UWorld::HasBegunPlay() const {
+    return mHasBegunPlay;
+}
+
+TSubsystemCollection<UWorldSubsystem, UWorld>& UWorld::GetSubsystems() {
+    return mSubsystems;
+}
+
+void UWorld::RefreshActorTicks() {
+    for (const std::unique_ptr<AActor>& Actor : mPersistentLevel->mActors) {
+        for (const std::unique_ptr<UActorComponent>& Component : Actor->GetComponents()) {
+            Actor->UpdateComponentTickRegistration(Component.get());
+        }
+        Actor->UpdateTickRegistration();
+    }
 }
 
 AActor* UWorld::SpawnActor(const FAssetHandle& MeshHandle, const FAssetHandle& PipelineHandle, const FAssetHandle& MaterialHandle, const FVector3& Position) {
@@ -60,14 +175,12 @@ AActor* UWorld::SpawnActor(const FAssetHandle& MeshHandle, const FAssetHandle& P
         return nullptr;
     }
 
-    AActor* Actor{UWorld::AdoptActor<AActor>()};
-    if (Actor == nullptr) {
-        return nullptr;
-    }
+    std::unique_ptr<AActor> NewActor{std::make_unique<AActor>()};
+    AActor* Actor{NewActor.get()};
+    Actor->SetName(MakeUniqueObjectName(Actor->GetTypeInfo()->mTypeName));
 
     UStaticMeshComponent* MeshComponent{Actor->AddComponent<UStaticMeshComponent>()};
     if (MeshComponent == nullptr) {
-        DestroyActor(Actor);
         return nullptr;
     }
     Actor->SetRootComponent(MeshComponent);
@@ -89,19 +202,19 @@ AActor* UWorld::SpawnActor(const FAssetHandle& MeshHandle, const FAssetHandle& P
         NameTagComponent->SetFontHandle(mAssetRegistry->FindAsset(FAssetPath{"/Game/Font/NotoSansKR-Medium.ttf"}));
     }
 
-    return Actor;
+    return AddActor(std::move(NewActor));
 }
 
 bool UWorld::DestroyActor(AActor* Actor) {
-    if (Actor == nullptr) {
+    if (!mInitialized || Actor == nullptr) {
         return false;
     }
 
-    auto It{std::ranges::find_if(mActors, [Actor](const std::unique_ptr<AActor>& Ptr) {
+    auto It{std::ranges::find_if(mPersistentLevel->mActors, [Actor](const std::unique_ptr<AActor>& Ptr) {
         return Ptr.get() == Actor;
     })};
 
-    if (It == mActors.end()) {
+    if (It == mPersistentLevel->mActors.end()) {
         return false;
     }
 
@@ -114,35 +227,28 @@ bool UWorld::DestroyActor(AActor* Actor) {
 }
 
 void UWorld::FlushPendingDestroyActors() {
-    if (mBTickingActors) {
+    if (!mInitialized || mBTickingActors || mBeginningPlay || mEndingPlay || mFlushingActors || mActorDispatchDepth > 0) {
         return;
     }
-
+    mFlushingActors = true;
     bool RemovedAnyActor{};
-
-    for (AActor* Actor : mPendingDestroyActors) {
-        if (Actor == nullptr) {
-            continue;
-        }
-
-        auto It{std::ranges::find_if(mActors, [Actor](const std::unique_ptr<AActor>& Ptr) {
-            return Ptr.get() == Actor;
+    while (!mPendingDestroyActors.empty()) {
+        AActor* Actor{mPendingDestroyActors.back()};
+        mPendingDestroyActors.pop_back();
+        auto Iterator{std::ranges::find_if(mPersistentLevel->mActors, [Actor](const std::unique_ptr<AActor>& Candidate) {
+            return Candidate.get() == Actor;
         })};
-
-        if (It == mActors.end()) {
+        if (Iterator == mPersistentLevel->mActors.end()) {
             continue;
         }
-
+        std::unique_ptr<AActor> RemovedActor{std::move(*Iterator)};
+        mPersistentLevel->mActors.erase(Iterator);
         NotifyWorldChanged(EWorldChange::ActorRemoving, Actor);
-
         Actor->SetWorld(nullptr);
         UObjectSystem::Unregister(Actor, Actor->GetHandle());
-
-        mActors.erase(It);
         RemovedAnyActor = true;
     }
-
-    mPendingDestroyActors.clear();
+    mFlushingActors = false;
     if (RemovedAnyActor) {
         MarkStructureDirty();
     }
@@ -206,74 +312,46 @@ bool UWorld::RenameActor(AActor* Actor, const FName& NewName) {
 }
 
 const TArray<std::unique_ptr<AActor>>& UWorld::GetActors() const {
-    return mActors;
+    return GetPersistentLevel().GetActors();
 }
 
 void UWorld::InitializeSubsystems() {
-    mRenderSubsystem = std::make_unique<URenderSubsystem>();
-    mCollisionSubsystem = std::make_unique<UCollisionSubsystem>();
-    mPickingSubsystem = std::make_unique<UPickingSubsystem>();
-    mCameraSubsystem = std::make_unique<UCameraSubsystem>();
-    mTextSubsystem = std::make_unique<UTextSubsystem>();
-    mBillboardSubsystem = std::make_unique<UBillboardSubsystem>();
-    mLightSubsystem = std::make_unique<ULightSubsystem>();
-
-    mRenderSubsystem->Initialize(this);
-    mCollisionSubsystem->Initialize(this);
-    mPickingSubsystem->Initialize(this);
-    mCameraSubsystem->Initialize(this);
-    mTextSubsystem->Initialize(this);
-    mLightSubsystem->Initialize(this);
-
-    mBillboardSubsystem->Initialize(this);
+    mSubsystems.Initialize(*this);
+    mSubsystems.Add<URenderSubsystem>();
+    mSubsystems.Add<UCollisionSubsystem>();
+    mSubsystems.Add<UPickingSubsystem>();
+    mSubsystems.Add<UCameraSubsystem>();
+    mSubsystems.Add<UTextSubsystem>();
+    mSubsystems.Add<UBillboardSubsystem>();
+    mSubsystems.Add<ULightSubsystem>();
 }
 
 void UWorld::DeinitializeSubsystems() {
-    if (mCameraSubsystem != nullptr) {
-        mCameraSubsystem->Deinitialize();
-    }
-    if (mCollisionSubsystem != nullptr) {
-        mCollisionSubsystem->Deinitialize();
-    }
-    if (mPickingSubsystem != nullptr) {
-        mPickingSubsystem->Deinitialize();
-    }
-    if (mRenderSubsystem != nullptr) {
-        mRenderSubsystem->Deinitialize();
-    }
-    if (mTextSubsystem != nullptr) {
-        mTextSubsystem->Deinitialize();
-    }
-    if (mBillboardSubsystem != nullptr) {
-        mBillboardSubsystem->Deinitialize();
-    }
-    if (mLightSubsystem != nullptr) {
-        mLightSubsystem->Deinitialize();
-    }
+    mSubsystems.Deinitialize();
 }
 
 UTextSubsystem& UWorld::GetTextSubsystem() {
-    return *mTextSubsystem;
+    return *mSubsystems.Get<UTextSubsystem>();
 }
 
 const UTextSubsystem& UWorld::GetTextSubsystem() const {
-    return *mTextSubsystem;
+    return *mSubsystems.Get<UTextSubsystem>();
 }
 
 ULightSubsystem& UWorld::GetLightSubsystem() {
-    return *mLightSubsystem;
+    return *mSubsystems.Get<ULightSubsystem>();
 }
 
 const ULightSubsystem& UWorld::GetLightSubsystem() const {
-    return *mLightSubsystem;
+    return *mSubsystems.Get<ULightSubsystem>();
 }
 
 void UWorld::BuildSceneRenderData(FSceneRenderData& Scene) {
-    mRenderSubsystem->BuildRenderProbes(Scene);
+    mSubsystems.Get<URenderSubsystem>()->BuildRenderProbes(Scene);
 
-    mLightSubsystem->BuildLightProbes(Scene);
-    mTextSubsystem->BuildTextProbes(Scene);
-    mBillboardSubsystem->BuildRenderProbes(Scene);
+    mSubsystems.Get<ULightSubsystem>()->BuildLightProbes(Scene);
+    mSubsystems.Get<UTextSubsystem>()->BuildTextProbes(Scene);
+    mSubsystems.Get<UBillboardSubsystem>()->BuildRenderProbes(Scene);
 }
 
 void UWorld::MarkStructureDirty() {
@@ -286,6 +364,13 @@ Uint64 UWorld::GetStructureRevision() const {
 }
 
 void UWorld::Tick(float DeltaTime) {
+    if (!mInitialized || mBTickingActors || mCleaningUp || mLoadingScene || mBeginningPlay || mEndingPlay || mActorDispatchDepth > 0) {
+        return;
+    }
+    if (mWorldType == EWorldType::Game && !mHasBegunPlay) {
+        FlushPendingDestroyActors();
+        return;
+    }
     mTime.Tick(static_cast<double>(DeltaTime));
     const float WorldDeltaTime{static_cast<float>(mTime.GetDeltaSeconds())};
     if (WorldDeltaTime > 0.0f && !mTickActors.empty()) {
@@ -297,13 +382,13 @@ void UWorld::Tick(float DeltaTime) {
         try {
             for (std::size_t Index{}; Index < ActorCount && Index < mTickActors.size(); ++Index) {
                 AActor* Actor{mTickActors[Index]};
-                if (Actor == nullptr) {
+                if (Actor == nullptr || std::ranges::find(mPendingDestroyActors, Actor) != mPendingDestroyActors.end()) {
                     continue;
                 }
                 if (TickStats != nullptr) {
                     ++TickStats->mActorTickCount;
                 }
-                if (Actor->IsTickEnabled()) {
+                if (Actor->IsTickEnabled() && (Actor->HasBegunPlay() || Actor->IsTickInEditor())) {
                     Actor->Tick(WorldDeltaTime);
                 } else {
                     Actor->AActor::Tick(WorldDeltaTime);
@@ -370,46 +455,49 @@ const FWorldTime& UWorld::GetTime() const {
 }
 
 URenderSubsystem& UWorld::GetRenderSubsystem() {
-    return *mRenderSubsystem;
+    return *mSubsystems.Get<URenderSubsystem>();
 }
 
 const URenderSubsystem& UWorld::GetRenderSubsystem() const {
-    return *mRenderSubsystem;
+    return *mSubsystems.Get<URenderSubsystem>();
 }
 
 UCollisionSubsystem& UWorld::GetCollisionSubsystem() {
-    return *mCollisionSubsystem;
+    return *mSubsystems.Get<UCollisionSubsystem>();
 }
 
 const UCollisionSubsystem& UWorld::GetCollisionSubsystem() const {
-    return *mCollisionSubsystem;
+    return *mSubsystems.Get<UCollisionSubsystem>();
 }
 
 UPickingSubsystem& UWorld::GetPickingSubsystem() {
-    return *mPickingSubsystem;
+    return *mSubsystems.Get<UPickingSubsystem>();
 }
 
 const UPickingSubsystem& UWorld::GetPickingSubsystem() const {
-    return *mPickingSubsystem;
+    return *mSubsystems.Get<UPickingSubsystem>();
 }
 
 UCameraSubsystem& UWorld::GetCameraSubsystem() {
-    return *mCameraSubsystem;
+    return *mSubsystems.Get<UCameraSubsystem>();
 }
 
 const UCameraSubsystem& UWorld::GetCameraSubsystem() const {
-    return *mCameraSubsystem;
+    return *mSubsystems.Get<UCameraSubsystem>();
 }
 
 UBillboardSubsystem& UWorld::GetBillboardSubsystem() {
-    return *mBillboardSubsystem;
+    return *mSubsystems.Get<UBillboardSubsystem>();
 }
 
 const UBillboardSubsystem& UWorld::GetBillboardSubsystem() const {
-    return *mBillboardSubsystem;
+    return *mSubsystems.Get<UBillboardSubsystem>();
 }
 
 bool UWorld::SaveScene(const FString& SceneName, const IAssetRegistry* AssetRegistry) {
+    if (!mInitialized) {
+        return false;
+    }
     std::filesystem::path CurrentPath{std::filesystem::current_path()};
     std::filesystem::path SceneDir{CurrentPath / "scenes"};
     if (!std::filesystem::exists(SceneDir))
@@ -426,11 +514,11 @@ bool UWorld::SaveScene(const FString& SceneName, const IAssetRegistry* AssetRegi
     Uint32 FormatVersion{2};
     ArchiveSave.Serialize("FormatVersion", FormatVersion);
 
-    std::size_t ArraySize{static_cast<std::size_t>(mActors.size())};
+    std::size_t ArraySize{static_cast<std::size_t>(mPersistentLevel->mActors.size())};
     ArchiveSave.BeginArrayScope("Actors", ArraySize);
-    for (std::size_t CurrentIndex{0}, EndIndex{mActors.size()}; CurrentIndex < EndIndex; ++CurrentIndex) {
+    for (std::size_t CurrentIndex{0}, EndIndex{mPersistentLevel->mActors.size()}; CurrentIndex < EndIndex; ++CurrentIndex) {
         ArchiveSave.BeginObjectScope(std::to_string(CurrentIndex));
-        mActors[CurrentIndex]->Save(ArchiveSave);
+        mPersistentLevel->mActors[CurrentIndex]->Save(ArchiveSave);
         ArchiveSave.EndObjectScope();
     }
     ArchiveSave.EndArrayScope();
@@ -448,10 +536,33 @@ bool UWorld::SaveScene(const FString& SceneName, const IAssetRegistry* AssetRegi
 }
 
 bool UWorld::LoadScene(const std::filesystem::path& ScenePath) {
-    const auto FinishLoad = [this]() {
+    if (!mInitialized || mLoadingScene || mBTickingActors || mCleaningUp || mBeginningPlay || mEndingPlay || mActorDispatchDepth > 0 || mFlushingActors) {
+        return false;
+    }
+    const bool WasPlaying{mHasBegunPlay};
+    EndPlay();
+    mLoadingScene = true;
+    bool Loaded{};
+    try {
+        Loaded = LoadSceneInternal(ScenePath);
+    } catch (...) {
+        mLoadingScene = false;
+        throw;
+    }
+    mLoadingScene = false;
+    RefreshActorTicks();
+    if (WasPlaying) {
+        BeginPlay();
+    }
+    return Loaded;
+}
+
+bool UWorld::LoadSceneInternal(const std::filesystem::path& ScenePath) {
+    const auto FinishLoad{[this]() {
         if (!GetPickingSubsystem().RebuildAccelerationStructure()) Console::AddLog(Console::STDOutHandle, ELogLevel::Warning, ELogCategory::Etc, "Failed to rebuild the picking acceleration structure after loading the scene.");
+        MarkStructureDirty();
         return true;
-    };
+    }};
     if (ScenePath.extension() == ".scene") {
         FAssetRegistry* Registry{dynamic_cast<FAssetRegistry*>(mAssetRegistryMutator)};
         if (Registry == nullptr) {
@@ -533,32 +644,39 @@ bool UWorld::LoadScene(const std::filesystem::path& ScenePath) {
             return FailLoad();
         }
 
-        mActors.emplace_back(std::move(ActorPtr));
+        mPersistentLevel->mActors.emplace_back(std::move(ActorPtr));
     }
 
-    for (std::size_t ActorIndex{0}; ActorIndex < mActors.size(); ++ActorIndex) {
+    for (std::size_t ActorIndex{0}; ActorIndex < mPersistentLevel->mActors.size(); ++ActorIndex) {
         rapidjson::Value& ActorJson{LoadDocument["Actors"][static_cast<rapidjson::SizeType>(ActorIndex)]};
         FArchiveJson ArchiveLoad{ActorJson};
         ArchiveLoad.SetAssetResolver(mAssetRegistry);
-        mActors[ActorIndex]->Load(ArchiveLoad);
+        mPersistentLevel->mActors[ActorIndex]->Load(ArchiveLoad);
     }
 
-    for (const std::unique_ptr<AActor>& Actor : mActors) {
+    for (const std::unique_ptr<AActor>& Actor : mPersistentLevel->mActors) {
         if (!Actor->ResolveLoadedReferences()) {
             return FailLoad();
         }
     }
 
-    for (const std::unique_ptr<AActor>& Actor : mActors) {
-        Actor->SetWorld(this);
+    ++mActorDispatchDepth;
+    try {
+        for (std::size_t Index{}; Index < mPersistentLevel->mActors.size(); ++Index) {
+            mPersistentLevel->mActors[Index]->SetWorld(this);
+        }
+    } catch (...) {
+        --mActorDispatchDepth;
+        throw;
     }
+    --mActorDispatchDepth;
 
     return FinishLoad();
 }
 
 
 AActor* UWorld::AddActor(std::unique_ptr<AActor> InActor) {
-    if (!InActor) {
+    if (!mInitialized || mCleaningUp || !InActor || InActor->GetWorld() != nullptr) {
         return nullptr;
     }
 
@@ -568,12 +686,24 @@ AActor* UWorld::AddActor(std::unique_ptr<AActor> InActor) {
         UObjectSystem::Register(Actor);
     }
 
-    mActors.push_back(std::move(InActor));
+    mPersistentLevel->mActors.push_back(std::move(InActor));
 
-    Actor->SetWorld(this);
-    NotifyWorldChanged(EWorldChange::ActorAdded, Actor);
-
-    MarkStructureDirty();
+    ++mActorDispatchDepth;
+    try {
+        Actor->SetWorld(this);
+        if (mHasBegunPlay && !mLoadingScene) {
+            Actor->DispatchBeginPlay();
+        }
+        NotifyWorldChanged(EWorldChange::ActorAdded, Actor);
+        MarkStructureDirty();
+    } catch (...) {
+        --mActorDispatchDepth;
+        throw;
+    }
+    --mActorDispatchDepth;
+    if (mEndPlayRequested) {
+        EndPlay();
+    }
 
     return Actor;
 }
@@ -583,7 +713,7 @@ const IAssetRegistry* UWorld::GetAssetRegistry() const {
 }
 
 void UWorld::ClearActors() {
-    for (auto& CurrentActor : mActors) {
+    for (auto& CurrentActor : mPersistentLevel->mActors) {
         DestroyActor(CurrentActor.get());
     }
     FlushPendingDestroyActors();
@@ -615,7 +745,10 @@ FName UWorld::MakeUniqueObjectName(std::string_view SourceName) {
 }
 
 AActor* UWorld::FindActorByName(FName InName) const {
-    for (const auto& Actor : mActors) {
+    if (!mInitialized) {
+        return nullptr;
+    }
+    for (const auto& Actor : mPersistentLevel->mActors) {
         if (Actor && Actor->GetName() == InName) {
             return Actor.get();
         }

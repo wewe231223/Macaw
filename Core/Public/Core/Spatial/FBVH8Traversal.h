@@ -2,7 +2,8 @@
 #include "Core/Spatial/FBVH8.h"
 
 namespace BVH8 {
-    template<class TPreparedRay, bool HasParallel, class TVisitLeaf> bool Traverse(const FNode* Nodes, Uint32 RootReference, const FRayData& Ray, float& ClosestDistance, TVisitLeaf VisitLeaf) {
+    template <class TPreparedRay, bool HasParallel, class TVisitLeaf>
+    bool Traverse(const FNode* Nodes, Uint32 RootReference, const FRayData& Ray, float& ClosestDistance, TVisitLeaf VisitLeaf) {
         const TPreparedRay Prepared{Ray};
         struct FEntry { Uint32 Reference; float Distance; };
         FEntry Stack[64];

@@ -53,7 +53,8 @@ public:
     virtual void Serialize(std::string_view Name, FString& Value) = 0;
     virtual void Serialize(std::string_view Name, FGuid& Value) = 0;
 
-    template <typename T> void Serialize(std::string_view Name, TArray<T>& ArrayValue);
+    template <typename T>
+    void Serialize(std::string_view Name, TArray<T>& ArrayValue);
 
     void Serialize(std::string_view Name, FName& Value);
 
@@ -72,7 +73,8 @@ public:
     // ---------------------------------------------------
     // 6. 구조체 직렬화 헬퍼 (UObject 자식들이나 커스텀 구조체)
     // ---------------------------------------------------
-    template <typename T> void SerializeStruct(std::string_view Name, T& StructValue);
+    template <typename T>
+    void SerializeStruct(std::string_view Name, T& StructValue);
 
     // ---------------------------------------------------
     // 7. Asset Registry 처리
@@ -86,7 +88,8 @@ private:
     const IAssetResolver* mAssetResolver{};
 };
 
-template <typename T> void FArchive::Serialize(std::string_view Name, TArray<T>& ArrayValue) {
+template <typename T>
+void FArchive::Serialize(std::string_view Name, TArray<T>& ArrayValue) {
     std::size_t Size{ArrayValue.size()};
 
     BeginArrayScope(Name, Size);
@@ -103,7 +106,8 @@ template <typename T> void FArchive::Serialize(std::string_view Name, TArray<T>&
     EndArrayScope();
 }
 
-template <typename T> void FArchive::SerializeStruct(std::string_view Name, T& StructValue) {
+template <typename T>
+void FArchive::SerializeStruct(std::string_view Name, T& StructValue) {
     BeginObjectScope(Name);
     StructValue.Serialize(*this);
     EndObjectScope();

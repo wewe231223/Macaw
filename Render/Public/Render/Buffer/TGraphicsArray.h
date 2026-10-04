@@ -78,7 +78,8 @@ private:
     Uint32 mCapacity{0};
 };
 
-template <typename T, bool BAutoResize, bool BDynamic> bool TGraphicsArray<T, BAutoResize, BDynamic>::Initialize(ID3D11Device* Device, ID3D11DeviceContext* Context, Uint32 InCapacity, std::span<const T> InitialData) {
+template <typename T, bool BAutoResize, bool BDynamic>
+bool TGraphicsArray<T, BAutoResize, BDynamic>::Initialize(ID3D11Device* Device, ID3D11DeviceContext* Context, Uint32 InCapacity, std::span<const T> InitialData) {
     if (!Device || !Context || InCapacity == 0 || InitialData.size() > InCapacity) {
         return false;
     }
@@ -117,7 +118,8 @@ template <typename T, bool BAutoResize, bool BDynamic> bool TGraphicsArray<T, BA
     return true;
 }
 
-template <typename T, bool BAutoResize, bool BDynamic> bool TGraphicsArray<T, BAutoResize, BDynamic>::UploadDiscard(ID3D11Device* Device, ID3D11DeviceContext* Context, std::span<const T> Values) requires(BDynamic) {
+template <typename T, bool BAutoResize, bool BDynamic>
+bool TGraphicsArray<T, BAutoResize, BDynamic>::UploadDiscard(ID3D11Device* Device, ID3D11DeviceContext* Context, std::span<const T> Values) requires(BDynamic) {
     if (Values.empty()) {
         mCount = 0;
         return true;
@@ -135,7 +137,8 @@ template <typename T, bool BAutoResize, bool BDynamic> bool TGraphicsArray<T, BA
     return true;
 }
 
-template <typename T, bool BAutoResize, bool BDynamic> bool TGraphicsArray<T, BAutoResize, BDynamic>::UploadNoOverwrite(ID3D11Device* Device, ID3D11DeviceContext* Context, std::span<const T> Values) requires(BDynamic) {
+template <typename T, bool BAutoResize, bool BDynamic>
+bool TGraphicsArray<T, BAutoResize, BDynamic>::UploadNoOverwrite(ID3D11Device* Device, ID3D11DeviceContext* Context, std::span<const T> Values) requires(BDynamic) {
     if (Device == nullptr || Context == nullptr || Values.size() > UINT32_MAX / sizeof(T)) {
         return false;
     }
@@ -150,7 +153,8 @@ template <typename T, bool BAutoResize, bool BDynamic> bool TGraphicsArray<T, BA
     return true;
 }
 
-template <typename T, bool BAutoResize, bool BDynamic> bool TGraphicsArray<T, BAutoResize, BDynamic>::Add(ID3D11Device* Device, ID3D11DeviceContext* Context, const T& Value) {
+template <typename T, bool BAutoResize, bool BDynamic>
+bool TGraphicsArray<T, BAutoResize, BDynamic>::Add(ID3D11Device* Device, ID3D11DeviceContext* Context, const T& Value) {
     if (!EnsureCapacity(Device, Context, mCount + 1)) {
         return false;
     }
@@ -164,7 +168,8 @@ template <typename T, bool BAutoResize, bool BDynamic> bool TGraphicsArray<T, BA
     return true;
 }
 
-template <typename T, bool BAutoResize, bool BDynamic> bool TGraphicsArray<T, BAutoResize, BDynamic>::AddRange(ID3D11Device* Device, ID3D11DeviceContext* Context, std::span<const T> Values) {
+template <typename T, bool BAutoResize, bool BDynamic>
+bool TGraphicsArray<T, BAutoResize, BDynamic>::AddRange(ID3D11Device* Device, ID3D11DeviceContext* Context, std::span<const T> Values) {
     if (Values.empty()) {
         return true;
     }
@@ -190,7 +195,8 @@ template <typename T, bool BAutoResize, bool BDynamic> bool TGraphicsArray<T, BA
     return true;
 }
 
-template <typename T, bool BAutoResize, bool BDynamic> bool TGraphicsArray<T, BAutoResize, BDynamic>::Update(ID3D11DeviceContext* Context, Uint32 Index, const T& Value) {
+template <typename T, bool BAutoResize, bool BDynamic>
+bool TGraphicsArray<T, BAutoResize, BDynamic>::Update(ID3D11DeviceContext* Context, Uint32 Index, const T& Value) {
     if (Index >= mCount) {
         return false;
     }
@@ -198,7 +204,8 @@ template <typename T, bool BAutoResize, bool BDynamic> bool TGraphicsArray<T, BA
     return mBuffer.Update(Context, &Value, sizeof(T), Index * sizeof(T));
 }
 
-template <typename T, bool BAutoResize, bool BDynamic> bool TGraphicsArray<T, BAutoResize, BDynamic>::UpdateRange(ID3D11DeviceContext* Context, Uint32 StartIndex, std::span<const T> Values) {
+template <typename T, bool BAutoResize, bool BDynamic>
+bool TGraphicsArray<T, BAutoResize, BDynamic>::UpdateRange(ID3D11DeviceContext* Context, Uint32 StartIndex, std::span<const T> Values) {
     if (Values.empty()) {
         return true;
     }
@@ -210,7 +217,8 @@ template <typename T, bool BAutoResize, bool BDynamic> bool TGraphicsArray<T, BA
     return mBuffer.Update(Context, Values.data(), static_cast<Uint32>(Values.size_bytes()), StartIndex * sizeof(T));
 }
 
-template <typename T, bool BAutoResize, bool BDynamic> bool TGraphicsArray<T, BAutoResize, BDynamic>::Reserve(ID3D11Device* Device, ID3D11DeviceContext* Context, Uint32 NewCapacity) {
+template <typename T, bool BAutoResize, bool BDynamic>
+bool TGraphicsArray<T, BAutoResize, BDynamic>::Reserve(ID3D11Device* Device, ID3D11DeviceContext* Context, Uint32 NewCapacity) {
     if (NewCapacity <= mCapacity) {
         return true;
     }
@@ -218,7 +226,8 @@ template <typename T, bool BAutoResize, bool BDynamic> bool TGraphicsArray<T, BA
     return Resize(Device, Context, NewCapacity);
 }
 
-template <typename T, bool BAutoResize, bool BDynamic> bool TGraphicsArray<T, BAutoResize, BDynamic>::PopBack() {
+template <typename T, bool BAutoResize, bool BDynamic>
+bool TGraphicsArray<T, BAutoResize, BDynamic>::PopBack() {
     if (mCount == 0) {
         return false;
     }
@@ -228,11 +237,13 @@ template <typename T, bool BAutoResize, bool BDynamic> bool TGraphicsArray<T, BA
     return true;
 }
 
-template <typename T, bool BAutoResize, bool BDynamic> void TGraphicsArray<T, BAutoResize, BDynamic>::Clear() {
+template <typename T, bool BAutoResize, bool BDynamic>
+void TGraphicsArray<T, BAutoResize, BDynamic>::Clear() {
     mCount = 0;
 }
 
-template <typename T, bool BAutoResize, bool BDynamic> void TGraphicsArray<T, BAutoResize, BDynamic>::Reset() {
+template <typename T, bool BAutoResize, bool BDynamic>
+void TGraphicsArray<T, BAutoResize, BDynamic>::Reset() {
     mBuffer.Reset();
     mSrv.Reset();
 
@@ -240,43 +251,53 @@ template <typename T, bool BAutoResize, bool BDynamic> void TGraphicsArray<T, BA
     mCapacity = 0;
 }
 
-template <typename T, bool BAutoResize, bool BDynamic> [[nodiscard]] ID3D11Buffer* TGraphicsArray<T, BAutoResize, BDynamic>::GetBuffer() const {
+template <typename T, bool BAutoResize, bool BDynamic>
+[[nodiscard]] ID3D11Buffer* TGraphicsArray<T, BAutoResize, BDynamic>::GetBuffer() const {
     return mBuffer.GetBuffer();
 }
 
-template <typename T, bool BAutoResize, bool BDynamic> [[nodiscard]] ID3D11ShaderResourceView* const* TGraphicsArray<T, BAutoResize, BDynamic>::GetSRV() const {
+template <typename T, bool BAutoResize, bool BDynamic>
+[[nodiscard]] ID3D11ShaderResourceView* const* TGraphicsArray<T, BAutoResize, BDynamic>::GetSRV() const {
     return mSrv.GetAddressOf();
 }
 
-template <typename T, bool BAutoResize, bool BDynamic> [[nodiscard]] Uint32 TGraphicsArray<T, BAutoResize, BDynamic>::GetCount() const {
+template <typename T, bool BAutoResize, bool BDynamic>
+[[nodiscard]] Uint32 TGraphicsArray<T, BAutoResize, BDynamic>::GetCount() const {
     return mCount;
 }
 
-template <typename T, bool BAutoResize, bool BDynamic> [[nodiscard]] Uint32 TGraphicsArray<T, BAutoResize, BDynamic>::GetCapacity() const {
+template <typename T, bool BAutoResize, bool BDynamic>
+[[nodiscard]] Uint32 TGraphicsArray<T, BAutoResize, BDynamic>::GetCapacity() const {
     return mCapacity;
 }
 
-template <typename T, bool BAutoResize, bool BDynamic> [[nodiscard]] Uint32 TGraphicsArray<T, BAutoResize, BDynamic>::GetStride() const {
+template <typename T, bool BAutoResize, bool BDynamic>
+[[nodiscard]] Uint32 TGraphicsArray<T, BAutoResize, BDynamic>::GetStride() const {
     return sizeof(T);
 }
 
-template <typename T, bool BAutoResize, bool BDynamic> [[nodiscard]] Uint32 TGraphicsArray<T, BAutoResize, BDynamic>::GetByteSize() const {
+template <typename T, bool BAutoResize, bool BDynamic>
+[[nodiscard]] Uint32 TGraphicsArray<T, BAutoResize, BDynamic>::GetByteSize() const {
     return mCapacity * sizeof(T);
 }
 
-template <typename T, bool BAutoResize, bool BDynamic> [[nodiscard]] bool TGraphicsArray<T, BAutoResize, BDynamic>::IsEmpty() const {
+template <typename T, bool BAutoResize, bool BDynamic>
+[[nodiscard]] bool TGraphicsArray<T, BAutoResize, BDynamic>::IsEmpty() const {
     return mCount == 0;
 }
 
-template <typename T, bool BAutoResize, bool BDynamic> [[nodiscard]] bool TGraphicsArray<T, BAutoResize, BDynamic>::IsFull() const {
+template <typename T, bool BAutoResize, bool BDynamic>
+[[nodiscard]] bool TGraphicsArray<T, BAutoResize, BDynamic>::IsFull() const {
     return mCount >= mCapacity;
 }
 
-template <typename T, bool BAutoResize, bool BDynamic> [[nodiscard]] bool TGraphicsArray<T, BAutoResize, BDynamic>::IsValid() const {
+template <typename T, bool BAutoResize, bool BDynamic>
+[[nodiscard]] bool TGraphicsArray<T, BAutoResize, BDynamic>::IsValid() const {
     return mBuffer.IsValid() && mSrv != nullptr;
 }
 
-template <typename T, bool BAutoResize, bool BDynamic> bool TGraphicsArray<T, BAutoResize, BDynamic>::EnsureCapacity(ID3D11Device* Device, ID3D11DeviceContext* Context, Uint32 RequiredCapacity) {
+template <typename T, bool BAutoResize, bool BDynamic>
+bool TGraphicsArray<T, BAutoResize, BDynamic>::EnsureCapacity(ID3D11Device* Device, ID3D11DeviceContext* Context, Uint32 RequiredCapacity) {
     if (RequiredCapacity <= mCapacity) {
         return true;
     }
@@ -299,7 +320,8 @@ template <typename T, bool BAutoResize, bool BDynamic> bool TGraphicsArray<T, BA
     return Resize(Device, Context, NewCapacity);
 }
 
-template <typename T, bool BAutoResize, bool BDynamic> bool TGraphicsArray<T, BAutoResize, BDynamic>::Resize(ID3D11Device* Device, ID3D11DeviceContext* Context, Uint32 NewCapacity) {
+template <typename T, bool BAutoResize, bool BDynamic>
+bool TGraphicsArray<T, BAutoResize, BDynamic>::Resize(ID3D11Device* Device, ID3D11DeviceContext* Context, Uint32 NewCapacity) {
     if (!Device || !Context || NewCapacity <= mCapacity || NewCapacity < mCount) {
         return false;
     }
@@ -343,7 +365,8 @@ template <typename T, bool BAutoResize, bool BDynamic> bool TGraphicsArray<T, BA
     return true;
 }
 
-template <typename T, bool BAutoResize, bool BDynamic> bool TGraphicsArray<T, BAutoResize, BDynamic>::CreateSRV(ID3D11Device* Device, ID3D11Buffer* InBuffer, Uint32 InCapacity, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>& OutSRV) {
+template <typename T, bool BAutoResize, bool BDynamic>
+bool TGraphicsArray<T, BAutoResize, BDynamic>::CreateSRV(ID3D11Device* Device, ID3D11Buffer* InBuffer, Uint32 InCapacity, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>& OutSRV) {
     if (!Device || !InBuffer || InCapacity == 0) {
         return false;
     }

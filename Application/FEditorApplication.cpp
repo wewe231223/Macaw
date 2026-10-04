@@ -13,22 +13,17 @@ void FEditorApplication::InitializeMode(FApplicationContext& Context, HWND Windo
         Context.mMenuPanel = std::make_unique<FControlPanel>(*Context.mEditorContext, WindowHandle, Context.mEditorContext->GetEditorToWorldSender());
     }
 
-    Context.mEditorUIManager->Initialize(*Context.mWorld, Context.mRenderer, *Context.mAssetRegistry, *Context.mEditorContext, WindowHandle, Context.mEditorView->GetGizmoMode(), Context.mEditorView->GetGizmoCoordinateSpace(), Context.mThumbnailRenderer.get());
+    Context.mEditorUIManager->Initialize(Context.mWorldContext->GetWorld(), Context.mRenderer, Context.mEngine.GetAssetRegistry(), *Context.mEditorContext, WindowHandle, Context.mEditorView->GetGizmoMode(), Context.mEditorView->GetGizmoCoordinateSpace(), Context.mThumbnailRenderer.get());
 }
 
-void FEditorApplication::TickMode(FApplicationContext& Context, float DeltaTime) {
-    FViewportHostWindow* ViewportHostWindow{ Context.mEditorUIManager->GetViewportHostWindow() };
-    {
-        const Stat::FScopedSystemStatTimer StageStat{ Stat::ESystemStatStage::WorldUpdate };
-        if (ViewportHostWindow != nullptr) {
-            ViewportHostWindow->ProcessInput(*Context.mEditorView, Context.mKeyboardInput, Context.mMouseInput, DeltaTime);
-        }
-
-        Context.mWorldCommandChannel->Dispatch();
-        Context.mWorld->Tick(DeltaTime);
-        Context.mEditorContext->Dispatch();
+void FEditorApplication::ProcessInput(FApplicationContext& Context, float DeltaTime) {
+    if (FViewportHostWindow* Host{Context.mEditorUIManager->GetViewportHostWindow()}) {
+        Host->ProcessInput(*Context.mEditorView, Context.mKeyboardInput, Context.mMouseInput, DeltaTime);
     }
+}
 
+void FEditorApplication::RenderMode(FApplicationContext& Context, float DeltaTime) {
+    FViewportHostWindow* ViewportHostWindow{Context.mEditorUIManager->GetViewportHostWindow()};
     if (ViewportHostWindow == nullptr) {
         return;
     }
@@ -39,7 +34,7 @@ void FEditorApplication::TickMode(FApplicationContext& Context, float DeltaTime)
 
     {
         const Stat::FScopedRenderPreparationStatTimer StageStat{Stat::ERenderPreparationStage::SceneData};
-        Context.mWorld->BuildSceneRenderData(mSceneData);
+        Context.mWorldContext->GetWorld().BuildSceneRenderData(mSceneData);
     }
     const FRenderScene& RenderScene{Context.mRenderer.SynchronizeScene(mSceneData)};
 

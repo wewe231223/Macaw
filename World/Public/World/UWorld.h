@@ -4,6 +4,9 @@
 #include <memory>
 #include <optional>
 #include "World/AActor.h"
+#include "World/EWorldType.h"
+#include "World/ULevel.h"
+#include "CoreUObject/TSubsystemCollection.h"
 #include "World/Component/UCameraComponent.h"
 #include "World/Component/UStaticMeshComponent.h"
 #include "World/Component/UCollisionComponent.h"
@@ -31,9 +34,24 @@ public:
     ~UWorld() override;
 
 public:
+    void Initialize(EWorldType WorldType = EWorldType::Editor);
+    void CleanupWorld();
+    bool IsInitialized() const;
+    EWorldType GetWorldType() const;
+    ULevel& GetPersistentLevel();
+    const ULevel& GetPersistentLevel() const;
+
+    void BeginPlay();
+    void EndPlay();
+    bool HasBegunPlay() const;
+
+    TSubsystemCollection<UWorldSubsystem, UWorld>& GetSubsystems();
+
     AActor* AddActor(std::unique_ptr<AActor> InActor);
 
-    template <typename T> requires std::is_base_of_v<AActor, T> T* AdoptActor();
+    template <typename T>
+        requires std::is_base_of_v<AActor, T>
+    T* AdoptActor();
 
     AActor* SpawnActor(const FAssetHandle& MeshHandle, const FAssetHandle& PipelineHandle, const FAssetHandle& MaterialHandle, const FVector3& Position);
     bool DestroyActor(AActor* Actor);
@@ -103,6 +121,8 @@ private:
     void FinishActorTicks(bool WasTicking);
     void InitializeSubsystems();
     void DeinitializeSubsystems();
+    void RefreshActorTicks();
+    bool LoadSceneInternal(const std::filesystem::path& ScenePath);
 
 private:
     Uint64 mStructureRevision{};
@@ -110,39 +130,39 @@ private:
 
     FWorldTime mTime{};
 
-    TArray<std::unique_ptr<AActor>> mActors{};
+    std::unique_ptr<ULevel> mPersistentLevel{};
+    EWorldType mWorldType{EWorldType::Editor};
+    bool mInitialized{};
+    bool mHasBegunPlay{};
+    bool mEndingPlay{};
+    bool mBeginningPlay{};
+    bool mEndPlayRequested{};
+    std::size_t mActorDispatchDepth{};
+    bool mCleaningUp{};
+    bool mLoadingScene{};
+    bool mFlushingActors{};
     TArray<AActor*> mPendingDestroyActors{};
     TArray<AActor*> mTickActors{};
     bool mBTickingActors{};
     bool mTickActorsNeedCompaction{};
 
-    TArray<UStaticMeshComponent*> mRenderableComponents{};
-    TArray<TObjectRef<UCollisionComponent>> mCollisionComponents{};
-
     const IAssetRegistry* mAssetRegistry{nullptr};
     IAssetRegistryMutator* mAssetRegistryMutator{nullptr};
 
-    std::unique_ptr<URenderSubsystem> mRenderSubsystem{};
-    std::unique_ptr<UCollisionSubsystem> mCollisionSubsystem{};
-    std::unique_ptr<UPickingSubsystem> mPickingSubsystem{};
-    std::unique_ptr<UCameraSubsystem> mCameraSubsystem{};
-
-    std::unique_ptr<UBillboardSubsystem> mBillboardSubsystem{};
-    std::unique_ptr<UTextSubsystem> mTextSubsystem{};
-    std::unique_ptr<ULightSubsystem> mLightSubsystem{};
+    TSubsystemCollection<UWorldSubsystem, UWorld> mSubsystems{};
 
 };
 
-template <typename T> requires std::is_base_of_v<AActor, T> T* UWorld::AdoptActor() {
+template <typename T>
+    requires std::is_base_of_v<AActor, T>
+T* UWorld::AdoptActor() {
+    if (!mInitialized || mCleaningUp) {
+        return nullptr;
+    }
     std::unique_ptr<T> NewActor{std::make_unique<T>()};
 
     T* ActorPtr{NewActor.get()};
 
-    if (AddActor(std::move(NewActor)) == nullptr) {
-        return nullptr;
-    }
-
     ActorPtr->SetName(MakeUniqueObjectName(ActorPtr->GetTypeInfo()->mTypeName));
-
-    return ActorPtr;
+    return static_cast<T*>(AddActor(std::move(NewActor)));
 }

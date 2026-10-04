@@ -8,6 +8,7 @@
 #include "World/Subsystem/URenderSubsystem.h"
 
 USubUVComponent::USubUVComponent() {
+    SetTickInEditor(true);
     UpdateTickEnabled();
 }
 

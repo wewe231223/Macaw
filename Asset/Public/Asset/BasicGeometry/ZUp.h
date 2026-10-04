@@ -7,7 +7,8 @@
 
 namespace BasicGeometry {
     // Rotate the former Y-up mesh basis +90 degrees around X while preserving winding.
-    template <std::size_t Count> constexpr std::array<FVector3, Count> ToZUp(const std::array<FVector3, Count>& Vectors) {
+    template <std::size_t Count>
+    constexpr std::array<FVector3, Count> ToZUp(const std::array<FVector3, Count>& Vectors) {
         std::array<FVector3, Count> Result{};
 
         for (std::size_t Index{0}; Index < Count; ++Index) {

@@ -12,7 +12,8 @@ struct FTypeInfo {
 
     [[nodiscard]] bool IsA(const FTypeInfo* Type) const noexcept;
 
-    template <typename T> [[nodiscard]] bool IsA() const noexcept;
+    template <typename T>
+    [[nodiscard]] bool IsA() const noexcept;
 
     [[nodiscard]] bool IsExactlyA(const FTypeInfo* Type) const noexcept;
 };
@@ -35,7 +36,8 @@ struct FTypeInfo {
     virtual const FTypeInfo* GetTypeInfo() const noexcept override;
 
 
-template <typename T> [[nodiscard]] bool FTypeInfo::IsA() const noexcept {
+template <typename T>
+[[nodiscard]] bool FTypeInfo::IsA() const noexcept {
     const auto TypeInfo{T::StaticTypeInfo()};
     return IsA(TypeInfo);
 }

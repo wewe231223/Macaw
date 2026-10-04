@@ -3,6 +3,7 @@
 #include "Core/Archive/FArchive.h"
 
 UScrollUVComponent::UScrollUVComponent() {
+    SetTickInEditor(true);
     UpdateTickEnabled();
 }
 

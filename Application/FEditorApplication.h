@@ -8,7 +8,8 @@ public:
 
 private:
     void InitializeMode(FApplicationContext& Context, HWND WindowHandle) override;
-    void TickMode(FApplicationContext& Context, float DeltaTime) override;
+    void ProcessInput(FApplicationContext& Context, float DeltaTime) override;
+    void RenderMode(FApplicationContext& Context, float DeltaTime) override;
 
 private:
     FSceneRenderData mSceneData{};

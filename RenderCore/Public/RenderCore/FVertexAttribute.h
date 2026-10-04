@@ -62,7 +62,9 @@ struct TIsVertexAttributeView<TVertexAttributeView<Attribute>> : std::true_type 
 template <typename T>
 concept CVertexAttributeView = TIsVertexAttributeView<std::remove_cvref_t<T>>::value;
 
-template <EVertexAttribute Attribute, std::ranges::contiguous_range Range> requires std::ranges::sized_range<Range> && std::same_as<std::ranges::range_value_t<Range>, TVertexAttributeElementType<Attribute>> TVertexAttributeView<Attribute> MakeVertexAttribute(const Range& Data) {
+template <EVertexAttribute Attribute, std::ranges::contiguous_range Range>
+    requires std::ranges::sized_range<Range> && std::same_as<std::ranges::range_value_t<Range>, TVertexAttributeElementType<Attribute>>
+TVertexAttributeView<Attribute> MakeVertexAttribute(const Range& Data) {
     using ElementType = TVertexAttributeElementType<Attribute>;
 
     return TVertexAttributeView<Attribute>{std::span<const ElementType>{std::ranges::data(Data), std::ranges::size(Data)}};

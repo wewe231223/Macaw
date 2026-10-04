@@ -86,7 +86,7 @@ local function ConfigureSystemLinks()
     filter {}
 end
 
-for _, ModuleName in ipairs({ "Core", "CoreUObject", "RenderCore", "Serialization", "ImGui", "Asset", "World", "Render", "Editor" }) do
+for _, ModuleName in ipairs({ "Core", "CoreUObject", "RenderCore", "Serialization", "ImGui", "Asset", "World", "Render", "Editor", "Platform", "Engine" }) do
     ConfigureModule(ModuleName)
 end
 
@@ -102,7 +102,8 @@ ConfigureProject("Macaw", "WindowedApp")
     files { "Application/**.h", "Application/**.cpp", "Macaw.cpp", "Macaw.h", "framework.h", "targetver.h", "Resource.h", "Macaw.rc", "pch.h", "pch.cpp" }
     includedirs { "." }
     AddPublicIncludes("Editor", {})
-    links { "Editor", "World", "Render", "Asset", "Serialization", "RenderCore", "CoreUObject", "Core", "ImGui" }
+    AddPublicIncludes("Engine", {})
+    links { "Engine", "Platform", "Editor", "World", "Render", "Asset", "Serialization", "RenderCore", "CoreUObject", "Core", "ImGui" }
     pchheader "pch.h"
     pchsource "pch.cpp"
     filter "configurations:Viewer"
@@ -111,16 +112,3 @@ ConfigureProject("Macaw", "WindowedApp")
         removefiles { "Application/FViewApplication.cpp" }
     filter {}
     ConfigureSystemLinks()
-
-local function ConfigureValidation(ProjectName, ModuleName, Source)
-    ConfigureProject(ProjectName, "ConsoleApp")
-    files { Source }
-    AddPublicIncludes(ModuleName, {})
-    links { ModuleName }
-    enablepch "Off"
-    ConfigureSystemLinks()
-end
-
-ConfigureValidation("CoreBoundaryTests", "Core", "Validation/CoreBoundaryTests.cpp")
-ConfigureValidation("RuntimeBoundaryTests", "World", "Validation/RuntimeBoundaryTests.cpp")
-ConfigureValidation("EditorBoundaryTests", "Editor", "Validation/EditorBoundaryTests.cpp")

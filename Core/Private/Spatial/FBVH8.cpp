@@ -50,7 +50,8 @@ namespace {
             }
         }
 
-        template<bool HasParallel> __forceinline Uint32 Intersect(const BVH8::FNode& Node, float MaxDistance, float* EntryDistances, Uint32 Count) const {
+        template <bool HasParallel>
+        __forceinline Uint32 Intersect(const BVH8::FNode& Node, float MaxDistance, float* EntryDistances, Uint32 Count) const {
             const float* Min[]{Node.MinX, Node.MinY, Node.MinZ};
             const float* Max[]{Node.MaxX, Node.MaxY, Node.MaxZ};
             Uint32 Mask = 0;

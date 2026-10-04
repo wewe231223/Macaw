@@ -56,12 +56,15 @@ public:
     ~FMessage() noexcept;
 
 public:
-    template <typename T, typename... Args> requires CMessageConstructible<T, Args...> void TryEmplace(Args&&... Arguments);
+    template <typename T, typename... Args>
+        requires CMessageConstructible<T, Args...>
+    void TryEmplace(Args&&... Arguments);
 
     [[nodiscard]] bool IsValid() const noexcept;
     [[nodiscard]] const FMessageTypeInfo* GetTypeInfo() const noexcept;
 
-    template <CMessageType T> [[nodiscard]] bool Is() const noexcept;
+    template <CMessageType T>
+    [[nodiscard]] bool Is() const noexcept;
 
     template <CMessageType T>
     [[nodiscard]] T* Get() noexcept;
@@ -72,13 +75,17 @@ public:
     void Reset() noexcept;
 
 private:
-    template <typename T> static constexpr bool CanStoreInline() noexcept;
+    template <typename T>
+    static constexpr bool CanStoreInline() noexcept;
 
-    template <typename T> static void DestroyInline(FMessage& Message) noexcept;
+    template <typename T>
+    static void DestroyInline(FMessage& Message) noexcept;
 
-    template <typename T> static void DestroyHeap(FMessage& Message) noexcept;
+    template <typename T>
+    static void DestroyHeap(FMessage& Message) noexcept;
 
-    template <typename T> static void MoveInline(FMessage& Destination, FMessage& Source) noexcept;
+    template <typename T>
+    static void MoveInline(FMessage& Destination, FMessage& Source) noexcept;
 
     void MoveFrom(FMessage&& Other) noexcept;
     void ClearMetadata() noexcept;
@@ -93,7 +100,9 @@ private:
     alignas(InlineAlignment) std::byte mInlineStorage[InlineSize]{};
 };
 
-template <typename T, typename... Args> requires CMessageConstructible<T, Args...> void FMessage::TryEmplace(Args&&... Arguments) {
+template <typename T, typename... Args>
+    requires CMessageConstructible<T, Args...>
+void FMessage::TryEmplace(Args&&... Arguments) {
     FMessage::Reset();
 
     if constexpr (CanStoreInline<T>()) {
@@ -117,33 +126,40 @@ template <typename T, typename... Args> requires CMessageConstructible<T, Args..
     }
 }
 
-template <CMessageType T> [[nodiscard]] bool FMessage::Is() const noexcept {
+template <CMessageType T>
+[[nodiscard]] bool FMessage::Is() const noexcept {
     return mType == &T::StaticTypeInfo();
 }
 
-template <CMessageType T> [[nodiscard]] T* FMessage::Get() noexcept {
+template <CMessageType T>
+[[nodiscard]] T* FMessage::Get() noexcept {
     return Is<T>() ? static_cast<T*>(mData) : nullptr;
 }
 
-template <CMessageType T> [[nodiscard]] const T* FMessage::Get() const noexcept {
+template <CMessageType T>
+[[nodiscard]] const T* FMessage::Get() const noexcept {
     return Is<T>() ? static_cast<const T*>(mData) : nullptr;
 }
 
-template <typename T> constexpr bool FMessage::CanStoreInline() noexcept {
+template <typename T>
+constexpr bool FMessage::CanStoreInline() noexcept {
     return sizeof(T) <= InlineSize && alignof(T) <= InlineAlignment;
 }
 
-template <typename T> void FMessage::DestroyInline(FMessage& Message) noexcept {
+template <typename T>
+void FMessage::DestroyInline(FMessage& Message) noexcept {
     std::destroy_at(static_cast<T*>(Message.mData));
 }
 
-template <typename T> void FMessage::DestroyHeap(FMessage& Message) noexcept {
+template <typename T>
+void FMessage::DestroyHeap(FMessage& Message) noexcept {
     T* Value{static_cast<T*>(Message.mData)};
     std::destroy_at(Value);
     Memory::Free(Value);
 }
 
-template <typename T> void FMessage::MoveInline(FMessage& Destination, FMessage& Source) noexcept {
+template <typename T>
+void FMessage::MoveInline(FMessage& Destination, FMessage& Source) noexcept {
     T* SourceValue{static_cast<T*>(Source.mData)};
     T* DestinationValue{std::construct_at(reinterpret_cast<T*>(Destination.mInlineStorage), std::move(*SourceValue))};
 

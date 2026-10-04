@@ -7,7 +7,8 @@ namespace BVH8 {
     };
     static_assert(sizeof(FTrianglePacket) == 288);
 
-    template<class S> struct TTrianglePacketVisitor {
+    template <class S>
+    struct TTrianglePacketVisitor {
         using V = typename S::V;
         const FTrianglePacket* Packets;
         V Origin[3], Direction[3], Sign;

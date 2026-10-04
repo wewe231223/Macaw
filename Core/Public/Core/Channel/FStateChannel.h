@@ -53,8 +53,12 @@ public:
     public:
         void Write(const T& NewState) requires std::copy_constructible<T> && std::assignable_from<T&, const T&>;
         void Write(T&& NewState) requires std::move_constructible<T> && std::assignable_from<T&, T>;
-        template <typename... Args> requires std::constructible_from<T, Args...> const T& Emplace(Args&&... Arguments);
-        template <typename TCallable> requires std::invocable<TCallable&, T&> bool Modify(TCallable&& Callable);
+        template <typename... Args>
+            requires std::constructible_from<T, Args...>
+        const T& Emplace(Args&&... Arguments);
+        template <typename TCallable>
+            requires std::invocable<TCallable&, T&>
+        bool Modify(TCallable&& Callable);
         void Clear() noexcept;
         [[nodiscard]] bool HasValue() const noexcept;
 
@@ -80,8 +84,12 @@ public:
         [[nodiscard]] FReadResult ReadIfChanged() noexcept;
         void Write(const T& NewState) requires std::copy_constructible<T> && std::assignable_from<T&, const T&>;
         void Write(T&& NewState) requires std::move_constructible<T> && std::assignable_from<T&, T>;
-        template <typename... Args> requires std::constructible_from<T, Args...> const T& Emplace(Args&&... Arguments);
-        template <typename TCallable> requires std::invocable<TCallable&, T&> bool Modify(TCallable&& Callable);
+        template <typename... Args>
+            requires std::constructible_from<T, Args...>
+        const T& Emplace(Args&&... Arguments);
+        template <typename TCallable>
+            requires std::invocable<TCallable&, T&>
+        bool Modify(TCallable&& Callable);
         void Clear() noexcept;
 
     private:
@@ -93,7 +101,9 @@ public:
     FStateChannel() = default;
     explicit FStateChannel(const T& InitialState) requires std::copy_constructible<T>;
     explicit FStateChannel(T&& InitialState) requires std::move_constructible<T>;
-    template <typename... Args> requires std::constructible_from<T, Args...> explicit FStateChannel(std::in_place_t, Args&&... Arguments);
+    template <typename... Args>
+        requires std::constructible_from<T, Args...>
+    explicit FStateChannel(std::in_place_t, Args&&... Arguments);
     FStateChannel(const FStateChannel&) = delete;
     FStateChannel& operator=(const FStateChannel&) = delete;
     FStateChannel(FStateChannel&&) = delete;
@@ -107,8 +117,12 @@ public:
 private:
     void Write(const T& NewState) requires std::copy_constructible<T> && std::assignable_from<T&, const T&>;
     void Write(T&& NewState) requires std::move_constructible<T> && std::assignable_from<T&, T>;
-    template <typename... Args> requires std::constructible_from<T, Args...> const T& Emplace(Args&&... Arguments);
-    template <typename TCallable> requires std::invocable<TCallable&, T&> bool TryModify(TCallable&& Callable);
+    template <typename... Args>
+        requires std::constructible_from<T, Args...>
+    const T& Emplace(Args&&... Arguments);
+    template <typename TCallable>
+        requires std::invocable<TCallable&, T&>
+    bool TryModify(TCallable&& Callable);
     void Clear() noexcept;
 
 private:
@@ -116,30 +130,36 @@ private:
     VersionType mVersion{0};
 };
 
-template <typename T> FStateChannel<T>::FReader::FReader(const FStateChannel& InChannel) noexcept
+template <typename T>
+FStateChannel<T>::FReader::FReader(const FStateChannel& InChannel) noexcept
     : mChannel(&InChannel) {
 }
 
-template <typename T> [[nodiscard]] bool FStateChannel<T>::FReader::HasChanged() const noexcept {
+template <typename T>
+[[nodiscard]] bool FStateChannel<T>::FReader::HasChanged() const noexcept {
     return mLastReadVersion != mChannel->mVersion;
 }
 
-template <typename T> [[nodiscard]] bool FStateChannel<T>::FReader::HasValue() const noexcept {
+template <typename T>
+[[nodiscard]] bool FStateChannel<T>::FReader::HasValue() const noexcept {
     return mChannel->mState.has_value();
 }
 
-template <typename T> [[nodiscard]] const T& FStateChannel<T>::FReader::Peek() const {
+template <typename T>
+[[nodiscard]] const T& FStateChannel<T>::FReader::Peek() const {
     return mChannel->mState.value();
 }
 
-template <typename T> [[nodiscard]] const T& FStateChannel<T>::FReader::Read() {
+template <typename T>
+[[nodiscard]] const T& FStateChannel<T>::FReader::Read() {
     const T& Value{mChannel->mState.value()};
     mLastReadVersion = mChannel->mVersion;
 
     return Value;
 }
 
-template <typename T> [[nodiscard]] typename FStateChannel<T>::FReadResult FStateChannel<T>::FReader::ReadIfChanged() noexcept {
+template <typename T>
+[[nodiscard]] typename FStateChannel<T>::FReadResult FStateChannel<T>::FReader::ReadIfChanged() noexcept {
     if (!HasChanged()) {
         return {};
     }
@@ -149,58 +169,75 @@ template <typename T> [[nodiscard]] typename FStateChannel<T>::FReadResult FStat
     return {.mValue = mChannel->mState ? std::addressof(*mChannel->mState) : nullptr, .mChanged = true};
 }
 
-template <typename T> FStateChannel<T>::FWriter::FWriter(FStateChannel& InChannel) noexcept
+template <typename T>
+FStateChannel<T>::FWriter::FWriter(FStateChannel& InChannel) noexcept
     : mChannel(&InChannel) {
 }
 
-template <typename T> void FStateChannel<T>::FWriter::Write(const T& NewState) requires std::copy_constructible<T> && std::assignable_from<T&, const T&> {
+template <typename T>
+void FStateChannel<T>::FWriter::Write(const T& NewState) requires std::copy_constructible<T> && std::assignable_from<T&, const T&> {
     mChannel->Write(NewState);
 }
 
-template <typename T> void FStateChannel<T>::FWriter::Write(T&& NewState) requires std::move_constructible<T> && std::assignable_from<T&, T> {
+template <typename T>
+void FStateChannel<T>::FWriter::Write(T&& NewState) requires std::move_constructible<T> && std::assignable_from<T&, T> {
     mChannel->Write(std::move(NewState));
 }
 
-template <typename T> template <typename... Args> requires std::constructible_from<T, Args...> const T& FStateChannel<T>::FWriter::Emplace(Args&&... Arguments) {
+template <typename T>
+template <typename... Args>
+    requires std::constructible_from<T, Args...>
+const T& FStateChannel<T>::FWriter::Emplace(Args&&... Arguments) {
     return mChannel->Emplace(std::forward<Args>(Arguments)...);
 }
 
-template <typename T> template <typename TCallable> requires std::invocable<TCallable&, T&> bool FStateChannel<T>::FWriter::Modify(TCallable&& Callable) {
+template <typename T>
+template <typename TCallable>
+    requires std::invocable<TCallable&, T&>
+bool FStateChannel<T>::FWriter::Modify(TCallable&& Callable) {
     return mChannel->TryModify(std::forward<TCallable>(Callable));
 }
 
-template <typename T> void FStateChannel<T>::FWriter::Clear() noexcept {
+template <typename T>
+void FStateChannel<T>::FWriter::Clear() noexcept {
     mChannel->Clear();
 }
 
-template <typename T> [[nodiscard]] bool FStateChannel<T>::FWriter::HasValue() const noexcept {
+template <typename T>
+[[nodiscard]] bool FStateChannel<T>::FWriter::HasValue() const noexcept {
     return mChannel->mState.has_value();
 }
 
-template <typename T> FStateChannel<T>::FReadWriter::FReadWriter(FStateChannel& InChannel) noexcept
+template <typename T>
+FStateChannel<T>::FReadWriter::FReadWriter(FStateChannel& InChannel) noexcept
     : mChannel(&InChannel) {
 }
 
-template <typename T> [[nodiscard]] bool FStateChannel<T>::FReadWriter::HasChanged() const noexcept {
+template <typename T>
+[[nodiscard]] bool FStateChannel<T>::FReadWriter::HasChanged() const noexcept {
     return mLastReadVersion != mChannel->mVersion;
 }
 
-template <typename T> [[nodiscard]] bool FStateChannel<T>::FReadWriter::HasValue() const noexcept {
+template <typename T>
+[[nodiscard]] bool FStateChannel<T>::FReadWriter::HasValue() const noexcept {
     return mChannel->mState.has_value();
 }
 
-template <typename T> [[nodiscard]] const T& FStateChannel<T>::FReadWriter::Peek() const {
+template <typename T>
+[[nodiscard]] const T& FStateChannel<T>::FReadWriter::Peek() const {
     return mChannel->mState.value();
 }
 
-template <typename T> [[nodiscard]] const T& FStateChannel<T>::FReadWriter::Read() {
+template <typename T>
+[[nodiscard]] const T& FStateChannel<T>::FReadWriter::Read() {
     const T& Value{mChannel->mState.value()};
     mLastReadVersion = mChannel->mVersion;
 
     return Value;
 }
 
-template <typename T> [[nodiscard]] typename FStateChannel<T>::FReadResult FStateChannel<T>::FReadWriter::ReadIfChanged() noexcept {
+template <typename T>
+[[nodiscard]] typename FStateChannel<T>::FReadResult FStateChannel<T>::FReadWriter::ReadIfChanged() noexcept {
     if (!HasChanged()) {
         return {};
     }
@@ -210,54 +247,72 @@ template <typename T> [[nodiscard]] typename FStateChannel<T>::FReadResult FStat
     return {.mValue = mChannel->mState ? std::addressof(*mChannel->mState) : nullptr, .mChanged = true};
 }
 
-template <typename T> void FStateChannel<T>::FReadWriter::Write(const T& NewState) requires std::copy_constructible<T> && std::assignable_from<T&, const T&> {
+template <typename T>
+void FStateChannel<T>::FReadWriter::Write(const T& NewState) requires std::copy_constructible<T> && std::assignable_from<T&, const T&> {
     mChannel->Write(NewState);
 }
 
-template <typename T> void FStateChannel<T>::FReadWriter::Write(T&& NewState) requires std::move_constructible<T> && std::assignable_from<T&, T> {
+template <typename T>
+void FStateChannel<T>::FReadWriter::Write(T&& NewState) requires std::move_constructible<T> && std::assignable_from<T&, T> {
     mChannel->Write(std::move(NewState));
 }
 
-template <typename T> template <typename... Args> requires std::constructible_from<T, Args...> const T& FStateChannel<T>::FReadWriter::Emplace(Args&&... Arguments) {
+template <typename T>
+template <typename... Args>
+    requires std::constructible_from<T, Args...>
+const T& FStateChannel<T>::FReadWriter::Emplace(Args&&... Arguments) {
     return mChannel->Emplace(std::forward<Args>(Arguments)...);
 }
 
-template <typename T> template <typename TCallable> requires std::invocable<TCallable&, T&> bool FStateChannel<T>::FReadWriter::Modify(TCallable&& Callable) {
+template <typename T>
+template <typename TCallable>
+    requires std::invocable<TCallable&, T&>
+bool FStateChannel<T>::FReadWriter::Modify(TCallable&& Callable) {
     return mChannel->TryModify(std::forward<TCallable>(Callable));
 }
 
-template <typename T> void FStateChannel<T>::FReadWriter::Clear() noexcept {
+template <typename T>
+void FStateChannel<T>::FReadWriter::Clear() noexcept {
     mChannel->Clear();
 }
 
-template <typename T> FStateChannel<T>::FStateChannel(const T& InitialState) requires std::copy_constructible<T>
+template <typename T>
+FStateChannel<T>::FStateChannel(const T& InitialState) requires std::copy_constructible<T>
     : mState(InitialState),
       mVersion(1) {
 }
 
-template <typename T> FStateChannel<T>::FStateChannel(T&& InitialState) requires std::move_constructible<T>
+template <typename T>
+FStateChannel<T>::FStateChannel(T&& InitialState) requires std::move_constructible<T>
     : mState(std::move(InitialState)),
       mVersion(1) {
 }
 
-template <typename T> template <typename... Args> requires std::constructible_from<T, Args...> FStateChannel<T>::FStateChannel(std::in_place_t, Args&&... Arguments)
+template <typename T>
+template <typename... Args>
+    requires std::constructible_from<T, Args...>
+FStateChannel<T>::FStateChannel(std::in_place_t, Args&&... Arguments)
     : mState(std::in_place, std::forward<Args>(Arguments)...),
       mVersion(1) {
 }
 
-template <typename T> [[nodiscard]] typename FStateChannel<T>::FReader FStateChannel<T>::GetReader() const noexcept {
+template <typename T>
+[[nodiscard]] typename FStateChannel<T>::FReader FStateChannel<T>::GetReader() const noexcept {
     return FReader{*this};
 }
 
-template <typename T> [[nodiscard]] typename FStateChannel<T>::FWriter FStateChannel<T>::GetWriter() noexcept {
+template <typename T>
+[[nodiscard]] typename FStateChannel<T>::FWriter FStateChannel<T>::GetWriter() noexcept {
     return FWriter{*this};
 }
 
-template <typename T> [[nodiscard]] typename FStateChannel<T>::FReadWriter FStateChannel<T>::GetReadWriter() noexcept {
+template <typename T>
+[[nodiscard]] typename FStateChannel<T>::FReadWriter FStateChannel<T>::GetReadWriter() noexcept {
     return FReadWriter{*this};
 }
 
-template <typename T> void FStateChannel<T>::Write(const T& NewState) requires std::copy_constructible<T> && std::assignable_from<T&, const T&> {
+template <typename T>
+void FStateChannel<T>::Write(const T& NewState) requires std::copy_constructible<T> && std::assignable_from<T&, const T&> {
     if (mState) {
         *mState = NewState;
     } else {
@@ -267,7 +322,8 @@ template <typename T> void FStateChannel<T>::Write(const T& NewState) requires s
     ++mVersion;
 }
 
-template <typename T> void FStateChannel<T>::Write(T&& NewState) requires std::move_constructible<T> && std::assignable_from<T&, T> {
+template <typename T>
+void FStateChannel<T>::Write(T&& NewState) requires std::move_constructible<T> && std::assignable_from<T&, T> {
     if (mState) {
         *mState = std::move(NewState);
     } else {
@@ -277,14 +333,20 @@ template <typename T> void FStateChannel<T>::Write(T&& NewState) requires std::m
     ++mVersion;
 }
 
-template <typename T> template <typename... Args> requires std::constructible_from<T, Args...> const T& FStateChannel<T>::Emplace(Args&&... Arguments) {
+template <typename T>
+template <typename... Args>
+    requires std::constructible_from<T, Args...>
+const T& FStateChannel<T>::Emplace(Args&&... Arguments) {
     mState.emplace(std::forward<Args>(Arguments)...);
     ++mVersion;
 
     return *mState;
 }
 
-template <typename T> template <typename TCallable> requires std::invocable<TCallable&, T&> bool FStateChannel<T>::TryModify(TCallable&& Callable) {
+template <typename T>
+template <typename TCallable>
+    requires std::invocable<TCallable&, T&>
+bool FStateChannel<T>::TryModify(TCallable&& Callable) {
     if (!mState) {
         return false;
     }
@@ -295,7 +357,8 @@ template <typename T> template <typename TCallable> requires std::invocable<TCal
     return true;
 }
 
-template <typename T> void FStateChannel<T>::Clear() noexcept {
+template <typename T>
+void FStateChannel<T>::Clear() noexcept {
     if (!mState) {
         return;
     }

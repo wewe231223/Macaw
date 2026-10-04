@@ -36,7 +36,8 @@ private:
 
     void DrawComponentNode(UActorComponent& Component, ImGuiTreeNodeFlags Flags);
 
-    template <typename T> void AddSceneComponent(AActor& Actor);
+    template <typename T>
+    void AddSceneComponent(AActor& Actor);
 
     void HandleDeleteShortcut(AActor& Actor, UActorComponent& Component);
 
@@ -47,7 +48,8 @@ private:
     FStateChannel<Uint8>::FReadWriter mGizmoCoordinateSpace{};
 };
 
-template <typename T> void FPropertyPanel::AddSceneComponent(AActor& Actor) {
+template <typename T>
+void FPropertyPanel::AddSceneComponent(AActor& Actor) {
     static_assert(std::is_base_of_v<USceneComponent, T>);
     T* NewComponent{Actor.AddComponent<T>()};
     if (USceneComponent * Root{Actor.GetRootComponent()})

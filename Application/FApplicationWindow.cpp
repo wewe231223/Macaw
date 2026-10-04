@@ -14,8 +14,6 @@ namespace {
     constexpr int CaptionButtonWidth{46};
     constexpr int ResizeBorderWidth{7};
     constexpr int MenuStartX{50};
-    constexpr wchar_t WindowTitle[]{L"Macaw Engine"};
-    constexpr wchar_t WindowClass[]{L"MacawEngineClass"};
     constexpr wchar_t ExternalDropOriginalWndProcProperty[]{L"Macaw.ExternalDropOriginalWndProc"};
     constexpr wchar_t ExternalDropApplicationProperty[]{L"Macaw.ExternalDropApplication"};
 }
@@ -66,7 +64,7 @@ void FApplication::EnableExternalDropsForImGuiViewports() {
 
         DragAcceptFiles(ViewportWindow, TRUE);
 
-        if (ViewportWindow == mWindowState.mWindowHandle || GetPropW(ViewportWindow, ExternalDropOriginalWndProcProperty) != nullptr) {
+        if (ViewportWindow == mPlatform.GetWindowHandle() || GetPropW(ViewportWindow, ExternalDropOriginalWndProcProperty) != nullptr) {
             continue;
         }
 
@@ -87,17 +85,17 @@ void FApplication::RestoreGameWindow() {
     const DWORD Style{WS_OVERLAPPEDWINDOW};
     const DWORD ExtendedStyle{WS_EX_APPWINDOW};
     MONITORINFO MonitorInformation{sizeof(MONITORINFO)};
-    GetMonitorInfoW(MonitorFromWindow(mWindowState.mWindowHandle, MONITOR_DEFAULTTONEAREST), &MonitorInformation);
+    GetMonitorInfoW(MonitorFromWindow(mPlatform.GetWindowHandle(), MONITOR_DEFAULTTONEAREST), &MonitorInformation);
     const RECT WorkArea{MonitorInformation.rcWork};
     const int WindowWidth{std::min(static_cast<int>(DefaultWindowWidth), static_cast<int>(WorkArea.right - WorkArea.left))};
     const int WindowHeight{std::min(static_cast<int>(DefaultWindowHeight), static_cast<int>(WorkArea.bottom - WorkArea.top))};
     const int PositionX{WorkArea.left + (WorkArea.right - WorkArea.left - WindowWidth) / 2};
     const int PositionY{WorkArea.top + (WorkArea.bottom - WorkArea.top - WindowHeight) / 2};
 
-    SetWindowLongPtrW(mWindowState.mWindowHandle, GWL_STYLE, static_cast<LONG_PTR>(Style));
-    SetWindowLongPtrW(mWindowState.mWindowHandle, GWL_EXSTYLE, static_cast<LONG_PTR>(ExtendedStyle));
-    SetWindowPos(mWindowState.mWindowHandle, nullptr, PositionX, PositionY, WindowWidth, WindowHeight, SWP_FRAMECHANGED | SWP_NOZORDER | SWP_SHOWWINDOW);
-    DragAcceptFiles(mWindowState.mWindowHandle, TRUE);
+    SetWindowLongPtrW(mPlatform.GetWindowHandle(), GWL_STYLE, static_cast<LONG_PTR>(Style));
+    SetWindowLongPtrW(mPlatform.GetWindowHandle(), GWL_EXSTYLE, static_cast<LONG_PTR>(ExtendedStyle));
+    SetWindowPos(mPlatform.GetWindowHandle(), nullptr, PositionX, PositionY, WindowWidth, WindowHeight, SWP_FRAMECHANGED | SWP_NOZORDER | SWP_SHOWWINDOW);
+    DragAcceptFiles(mPlatform.GetWindowHandle(), TRUE);
 }
 
 void FApplication::DrawCaptionButton(const char* Identifier, int Index, UINT Command) {
@@ -120,7 +118,7 @@ void FApplication::DrawCaptionButton(const char* Identifier, int Index, UINT Com
     const ImU32 IconColor{IM_COL32(225, 228, 232, 255)};
     if (Index == 0) {
         DrawList->AddLine(ImVec2{CenterX - 6.0f, CenterY + 4.0f}, ImVec2{CenterX + 6.0f, CenterY + 4.0f}, IconColor, 1.5f);
-    } else if (Index == 1 && IsZoomed(mWindowState.mWindowHandle)) {
+    } else if (Index == 1 && IsZoomed(mPlatform.GetWindowHandle())) {
         DrawList->AddRect(ImVec2{CenterX - 4.0f, CenterY - 3.0f}, ImVec2{CenterX + 6.0f, CenterY + 5.0f}, IconColor, 0.0f, 0, 1.5f);
         DrawList->AddLine(ImVec2{CenterX - 6.0f, CenterY + 2.0f}, ImVec2{CenterX - 6.0f, CenterY - 5.0f}, IconColor, 1.5f);
         DrawList->AddLine(ImVec2{CenterX - 6.0f, CenterY - 5.0f}, ImVec2{CenterX + 3.0f, CenterY - 5.0f}, IconColor, 1.5f);
@@ -132,7 +130,7 @@ void FApplication::DrawCaptionButton(const char* Identifier, int Index, UINT Com
     }
 
     if (Pressed) {
-        PostMessageW(mWindowState.mWindowHandle, WM_SYSCOMMAND, Command, 0);
+        PostMessageW(mPlatform.GetWindowHandle(), WM_SYSCOMMAND, Command, 0);
     }
 }
 
@@ -164,7 +162,7 @@ void FApplication::DrawTitleBar() {
                 DrawList->AddText(ImVec2{FpsX, Position.y + 7.0f}, IM_COL32(152, 156, 163, 255), FpsText);
             }
             DrawCaptionButton("##MinimizeWindow", 0, SC_MINIMIZE);
-            DrawCaptionButton("##MaximizeWindow", 1, IsZoomed(mWindowState.mWindowHandle) ? SC_RESTORE : SC_MAXIMIZE);
+            DrawCaptionButton("##MaximizeWindow", 1, IsZoomed(mPlatform.GetWindowHandle()) ? SC_RESTORE : SC_MAXIMIZE);
             DrawCaptionButton("##CloseWindow", 2, SC_CLOSE);
             ImGui::EndMenuBar();
         }
@@ -172,63 +170,6 @@ void FApplication::DrawTitleBar() {
     ImGui::End();
     ImGui::PopStyleColor(2);
     ImGui::PopStyleVar(2);
-}
-
-ATOM FApplication::RegisterWindowClass(HINSTANCE HInstance) {
-    WNDCLASSEXW Wcex{};
-
-    Wcex.cbSize = sizeof(WNDCLASSEX);
-
-    Wcex.style = CS_HREDRAW | CS_VREDRAW;
-    Wcex.lpfnWndProc = WindowProcedure;
-    Wcex.cbClsExtra = 0;
-    Wcex.cbWndExtra = 0;
-    Wcex.hInstance = HInstance;
-    Wcex.hIcon = LoadIcon(HInstance, MAKEINTRESOURCE(IDI_MACAW));
-    Wcex.hCursor = LoadCursor(nullptr, IDC_ARROW);
-    Wcex.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
-    Wcex.lpszClassName = WindowClass;
-    Wcex.hIconSm = LoadIcon(Wcex.hInstance, MAKEINTRESOURCE(IDI_SMALL));
-
-    return RegisterClassExW(&Wcex);
-}
-
-bool FApplication::CreateApplicationWindow(HINSTANCE HInstance, int ShowCommand) {
-    const DWORD Style{WS_POPUP};
-    const DWORD ExtendedStyle{WS_EX_APPWINDOW};
-    const int PositionX{(GetSystemMetrics(SM_CXSCREEN) - static_cast<int>(mLoadingWindowWidth)) / 2};
-    const int PositionY{(GetSystemMetrics(SM_CYSCREEN) - static_cast<int>(mLoadingWindowHeight)) / 2};
-
-    mWindowState.mWindowHandle = CreateWindowExW(ExtendedStyle, WindowClass, WindowTitle, Style, PositionX, PositionY, static_cast<int>(mLoadingWindowWidth), static_cast<int>(mLoadingWindowHeight), nullptr, nullptr, HInstance, this);
-
-    if (mWindowState.mWindowHandle == nullptr) {
-        const DWORD ErrorCode{GetLastError()};
-        OutputDebugStringA(("Window Creation Failed! Error Code: " + std::to_string(ErrorCode) + "\n").c_str());
-        return FALSE;
-    }
-
-    ShowWindow(mWindowState.mWindowHandle, ShowCommand);
-    UpdateWindow(mWindowState.mWindowHandle);
-    DragAcceptFiles(mWindowState.mWindowHandle, TRUE);
-    return TRUE;
-}
-
-LRESULT CALLBACK FApplication::WindowProcedure(HWND WindowHandle, UINT Message, WPARAM WParam, LPARAM LParam) {
-    FApplication* Application{reinterpret_cast<FApplication*>(GetWindowLongPtrW(WindowHandle, GWLP_USERDATA))};
-    if (Message == WM_NCCREATE) {
-        const CREATESTRUCTW* Creation{reinterpret_cast<const CREATESTRUCTW*>(LParam)};
-        Application = static_cast<FApplication*>(Creation->lpCreateParams);
-        SetWindowLongPtrW(WindowHandle, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(Application));
-    }
-    if (Application == nullptr) {
-        return DefWindowProcW(WindowHandle, Message, WParam, LParam);
-    }
-    const LRESULT Result{Application->ProcessWindowMessage(WindowHandle, Message, WParam, LParam)};
-    if (Message == WM_NCDESTROY) {
-        SetWindowLongPtrW(WindowHandle, GWLP_USERDATA, 0);
-        Application->mWindowState.mWindowHandle = nullptr;
-    }
-    return Result;
 }
 
 extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND Hwnd, UINT Msg, WPARAM WParam, LPARAM LParam);
@@ -251,7 +192,7 @@ LRESULT FApplication::ProcessWindowMessage(HWND WindowHandle, UINT Message, WPAR
         case WM_EXITSIZEMOVE: {
             mWindowState.mInMoveLoop = false;
             if (mWindowState.mFrameEnabled) {
-                RenderFrame();
+                mEngineLoop.Tick();
             }
             return 0;
         }
@@ -260,7 +201,7 @@ LRESULT FApplication::ProcessWindowMessage(HWND WindowHandle, UINT Message, WPAR
             const bool SizeChanged{(WindowPosition->flags & SWP_NOSIZE) == 0};
             const LRESULT Result{DefWindowProcW(WindowHandle, Message, WParam, LParam)};
             if (mWindowState.mInMoveLoop && SizeChanged && mWindowState.mFrameEnabled) {
-                RenderFrame();
+                mEngineLoop.Tick();
             }
             return Result;
         }
@@ -334,8 +275,7 @@ LRESULT FApplication::ProcessWindowMessage(HWND WindowHandle, UINT Message, WPAR
             return 0;
         }
         case WM_DESTROY:
-            PostQuitMessage(0);
-            break;
+            return 0;
         case WM_SIZE:
             if (WParam != SIZE_MINIMIZED) {
                 Uint32 Width{LOWORD(LParam)};

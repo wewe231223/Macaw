@@ -17,7 +17,25 @@ struct FMessageDispatchResult {
 
 class FMessageChannel {
 public:
-    class FSender { friend class FMessageChannel; public: explicit FSender(FMessageChannel& InChannel) noexcept; ~FSender() noexcept = default; FSender(const FSender&) = default; FSender& operator=(const FSender&) = default; FSender(FSender&&) = default; FSender& operator=(FSender&&) = default; public: template <CMessageType TMessage, typename... Args> requires CMessageConstructible<TMessage, Args...> bool TryEmplace(Args&&... Arguments); template <typename TMessage> requires CMessageType<std::remove_cvref_t<TMessage>> bool TryPush(TMessage&& Message); private: FMessageChannel* mChannel{nullptr}; };
+    class FSender {
+        friend class FMessageChannel;
+    public:
+        explicit FSender(FMessageChannel& InChannel) noexcept;
+        ~FSender() noexcept = default;
+        FSender(const FSender&) = default;
+        FSender& operator=(const FSender&) = default;
+        FSender(FSender&&) = default;
+        FSender& operator=(FSender&&) = default;
+    public:
+        template <CMessageType TMessage, typename... Args>
+            requires CMessageConstructible<TMessage, Args...>
+        bool TryEmplace(Args&&... Arguments);
+        template <typename TMessage>
+            requires CMessageType<std::remove_cvref_t<TMessage>>
+        bool TryPush(TMessage&& Message);
+    private:
+        FMessageChannel* mChannel{nullptr};
+    };
 
 public:
     explicit FMessageChannel(std::size_t InCapacity = 0, std::size_t ExpectedHandlerCount = 8);
@@ -31,11 +49,17 @@ public:
 public:
     [[nodiscard]] FSender GetSender() noexcept;
 
-    template <CMessageType TMessage, typename TCallable> requires std::copy_constructible<std::decay_t<TCallable>> && std::invocable<std::decay_t<TCallable>&, const TMessage&> bool TryBind(TCallable&& Callable);
+    template <CMessageType TMessage, typename TCallable>
+        requires std::copy_constructible<std::decay_t<TCallable>> && std::invocable<std::decay_t<TCallable>&, const TMessage&>
+    bool TryBind(TCallable&& Callable);
 
-    template <CMessageType TMessage, typename... Args> requires CMessageConstructible<TMessage, Args...> bool TryEmplace(Args&&... Arguments);
+    template <CMessageType TMessage, typename... Args>
+        requires CMessageConstructible<TMessage, Args...>
+    bool TryEmplace(Args&&... Arguments);
 
-    template <typename TMessage> requires CMessageType<std::remove_cvref_t<TMessage>> bool TryPush(TMessage&& Message);
+    template <typename TMessage>
+        requires CMessageType<std::remove_cvref_t<TMessage>>
+    bool TryPush(TMessage&& Message);
 
     FMessageDispatchResult Dispatch();
     void Clear() noexcept;
@@ -65,16 +89,22 @@ private:
     bool mRedispatchRequested{false};
 };
 
-template <CMessageType TMessage, typename... Args> requires CMessageConstructible<TMessage, Args...> bool FMessageChannel::FSender::TryEmplace(Args&&... Arguments) {
+template <CMessageType TMessage, typename... Args>
+    requires CMessageConstructible<TMessage, Args...>
+bool FMessageChannel::FSender::TryEmplace(Args&&... Arguments) {
     return mChannel->TryEmplace<TMessage>(std::forward<Args>(Arguments)...);
 }
 
-template <typename TMessage> requires CMessageType<std::remove_cvref_t<TMessage>> bool FMessageChannel::FSender::TryPush(TMessage&& Message) {
+template <typename TMessage>
+    requires CMessageType<std::remove_cvref_t<TMessage>>
+bool FMessageChannel::FSender::TryPush(TMessage&& Message) {
     using FMessageType = std::remove_cvref_t<TMessage>;
     return TryEmplace<FMessageType>(std::forward<TMessage>(Message));
 }
 
-template <CMessageType TMessage, typename TCallable> requires std::copy_constructible<std::decay_t<TCallable>> && std::invocable<std::decay_t<TCallable>&, const TMessage&> bool FMessageChannel::TryBind(TCallable&& Callable) {
+template <CMessageType TMessage, typename TCallable>
+    requires std::copy_constructible<std::decay_t<TCallable>> && std::invocable<std::decay_t<TCallable>&, const TMessage&>
+bool FMessageChannel::TryBind(TCallable&& Callable) {
     const FMessageTypeInfo& Type{TMessage::StaticTypeInfo()};
 
     if (FindHandler(&Type) != nullptr || FindPendingHandler(&Type) != nullptr) {
@@ -92,7 +122,9 @@ template <CMessageType TMessage, typename TCallable> requires std::copy_construc
     return true;
 }
 
-template <CMessageType TMessage, typename... Args> requires CMessageConstructible<TMessage, Args...> bool FMessageChannel::TryEmplace(Args&&... Arguments) {
+template <CMessageType TMessage, typename... Args>
+    requires CMessageConstructible<TMessage, Args...>
+bool FMessageChannel::TryEmplace(Args&&... Arguments) {
     if (IsFull()) {
         return false;
     }
@@ -104,7 +136,9 @@ template <CMessageType TMessage, typename... Args> requires CMessageConstructibl
     return true;
 }
 
-template <typename TMessage> requires CMessageType<std::remove_cvref_t<TMessage>> bool FMessageChannel::TryPush(TMessage&& Message) {
+template <typename TMessage>
+    requires CMessageType<std::remove_cvref_t<TMessage>>
+bool FMessageChannel::TryPush(TMessage&& Message) {
     using FMessageType = std::remove_cvref_t<TMessage>;
     return TryEmplace<FMessageType>(std::forward<TMessage>(Message));
 }

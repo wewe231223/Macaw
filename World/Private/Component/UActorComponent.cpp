@@ -71,6 +71,15 @@ void UActorComponent::SetTickEnabled(bool TickEnabled) {
     UpdateTickRegistration();
 }
 
+bool UActorComponent::IsTickInEditor() const {
+    return mTickInEditor;
+}
+
+void UActorComponent::SetTickInEditor(bool TickInEditor) {
+    mTickInEditor = TickInEditor;
+    UpdateTickRegistration();
+}
+
 void UActorComponent::UpdateTickRegistration() {
     if (mOwner != nullptr) {
         mOwner->UpdateComponentTickRegistration(this);
@@ -94,11 +103,12 @@ UWorld* UActorComponent::GetBelongingWorld() const {
 }
 
 void UActorComponent::RegisterComponent(UWorld* World) {
-    ErrorHandler::Report(mOwner == nullptr and mParentWorld == nullptr, "[ UActorComponent ]", "Owner and ParentWorld must not be null.", ErrorHandler::EErrorLevel::Critical);
+    ErrorHandler::Report(mOwner == nullptr || World == nullptr, "[ UActorComponent ]", "Owner and ParentWorld must not be null.", ErrorHandler::EErrorLevel::Critical);
     ErrorHandler::Report(World != mOwner->GetWorld(), "[ UActorComponent ]", "World must match Owner's world.", ErrorHandler::EErrorLevel::Critical);
 
-    if (mBRegistered)
+    if (mBRegistered) {
         return;
+    }
 
     mParentWorld = World;
     mBRegistered = true;
@@ -115,11 +125,13 @@ void UActorComponent::UnregisterComponent() {
     ErrorHandler::Report(mOwner == nullptr or mParentWorld == nullptr, "[ UActorComponent ]", "Owner and ParentWorld must not be null.", ErrorHandler::EErrorLevel::Critical);
 
     if (mBHasBegunPlay) {
+        mBHasBegunPlay = false;
         EndPlay();
     }
 
     this->OnUnregister();
 
+    mBInitialized = false;
     mBRegistered = false;
     mParentWorld = nullptr;
     UpdateTickRegistration();

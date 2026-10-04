@@ -59,11 +59,13 @@ public:
         return BVH8::RaycastTrianglePackets(mNodes.data(), mRootReference, BVH8::FRayData{Ray}, Ray, ClosestDistance, Packets, ReverseWinding);
     }
 
-    template<class TNode, class TIsLeaf, class TAddLeaf> void Build(const TArray<TNode>& BinaryNodes, TIsLeaf IsLeaf, TAddLeaf AddLeaf) {
+    template <class TNode, class TIsLeaf, class TAddLeaf>
+    void Build(const TArray<TNode>& BinaryNodes, TIsLeaf IsLeaf, TAddLeaf AddLeaf) {
         Build(BinaryNodes, IsLeaf, AddLeaf, [](const TNode&) { return false; });
     }
 
-    template<class TNode, class TIsLeaf, class TAddLeaf, class TCanMakeLeaf> void Build(const TArray<TNode>& BinaryNodes, TIsLeaf IsLeaf, TAddLeaf AddLeaf, TCanMakeLeaf CanMakeLeaf, double LeafCost = 1.0) {
+    template <class TNode, class TIsLeaf, class TAddLeaf, class TCanMakeLeaf>
+    void Build(const TArray<TNode>& BinaryNodes, TIsLeaf IsLeaf, TAddLeaf AddLeaf, TCanMakeLeaf CanMakeLeaf, double LeafCost = 1.0) {
         Clear();
         if (BinaryNodes.empty()) return;
         const auto Area = [](const DirectX::BoundingBox& Box) { return static_cast<double>(Box.Extents.x) * Box.Extents.y + static_cast<double>(Box.Extents.y) * Box.Extents.z + static_cast<double>(Box.Extents.z) * Box.Extents.x; };
@@ -117,7 +119,8 @@ public:
         mNodes.shrink_to_fit();
     }
 
-    template<class TVisitLeaf> bool Raycast(const FRay& Ray, float& ClosestDistance, TVisitLeaf VisitLeaf) const {
+    template <class TVisitLeaf>
+    bool Raycast(const FRay& Ray, float& ClosestDistance, TVisitLeaf VisitLeaf) const {
         if (mNodes.empty() || !(ClosestDistance >= 0.0f)) return false;
         const BVH8::FRayData RayData{Ray};
         return BVH8::Raycast(mNodes.data(), mRootReference, RayData, ClosestDistance, &VisitLeaf, [](void* Context, Uint32 Leaf, float& Distance) {

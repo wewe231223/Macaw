@@ -19,7 +19,9 @@ public:
     FMessageHandler& operator=(FMessageHandler&&) = default;
 
 public:
-    template <CMessageType TMessage, typename TCallable> requires std::copy_constructible<std::decay_t<TCallable>> && std::invocable<std::decay_t<TCallable>&, const TMessage&> static FMessageHandler Create(TCallable&& Callable);
+    template <CMessageType TMessage, typename TCallable>
+        requires std::copy_constructible<std::decay_t<TCallable>> && std::invocable<std::decay_t<TCallable>&, const TMessage&>
+    static FMessageHandler Create(TCallable&& Callable);
 
 public:
     [[nodiscard]] bool Handles(const FMessageTypeInfo* Type) const noexcept;
@@ -32,7 +34,9 @@ private:
     std::function<void(const FMessage&)> mFunction{};
 };
 
-template <CMessageType TMessage, typename TCallable> requires std::copy_constructible<std::decay_t<TCallable>> && std::invocable<std::decay_t<TCallable>&, const TMessage&> FMessageHandler FMessageHandler::Create(TCallable&& Callable) {
+template <CMessageType TMessage, typename TCallable>
+    requires std::copy_constructible<std::decay_t<TCallable>> && std::invocable<std::decay_t<TCallable>&, const TMessage&>
+FMessageHandler FMessageHandler::Create(TCallable&& Callable) {
     using FCallable = std::decay_t<TCallable>;
 
     FMessageHandler Result{};

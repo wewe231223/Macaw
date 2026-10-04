@@ -115,14 +115,14 @@ namespace VectorSIMD
 
 	// 데이터 재배치 (외적 구현 시 필수)
 	// 셔플은 매크로를 사용해야 하므로 템플릿으로 감싸는 것이 일반적
-	template<int X, int Y, int Z, int W>
+	template <int X, int Y, int Z, int W>
 	inline FVectorRegister Shuffle(FVectorRegister A, FVectorRegister B)
 	{
 		return _mm_shuffle_ps(A, B, _MM_SHUFFLE(W, Z, Y, X));
 		// 입력: Shuffle<0, 1, 2, 3>(A, B)  결과: [A0, A1, B2, B3]
 	}
 
-	template<int X, int Y, int Z, int W>
+	template <int X, int Y, int Z, int W>
 	inline FVectorRegister Swizzle(FVectorRegister A)
 	{
 		return _mm_shuffle_ps(A, A, _MM_SHUFFLE(W, Z, Y, X));

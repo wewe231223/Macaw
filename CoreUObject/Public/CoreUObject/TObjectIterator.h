@@ -64,16 +64,22 @@ namespace UObjectSystem {
         Uint32 mEndIndex{};
     };
 
-    template <typename TObject> requires std::derived_from<TObject, UObject> class TObjectRange { public: TObjectRange(Uint32 End); TObjectIterator<TObject> begin() const; TObjectIterator<TObject> end() const; private: Uint32 mEnd{}; };
+    template <typename TObject>
+        requires std::derived_from<TObject, UObject>
+    class TObjectRange { public: TObjectRange(Uint32 End); TObjectIterator<TObject> begin() const; TObjectIterator<TObject> end() const; private: Uint32 mEnd{}; };
 
-    template <typename TObject> requires std::derived_from<TObject, UObject> TObjectRange<TObject> Objects() {
+    template <typename TObject>
+        requires std::derived_from<TObject, UObject>
+    TObjectRange<TObject> Objects() {
         return TObjectRange<TObject>(UObjectSystem::GetItemCount());
     }
 
 }
 
 namespace UObjectSystem {
-    template <typename TObject> requires std::derived_from<TObject, UObject> TObjectIterator<TObject>::TObjectIterator(Uint32 Start, Uint32 End)
+    template <typename TObject>
+        requires std::derived_from<TObject, UObject>
+    TObjectIterator<TObject>::TObjectIterator(Uint32 Start, Uint32 End)
         : mCurrentIndex(Start),
           mEndIndex(End) {
         if (Start > End)
@@ -84,7 +90,9 @@ namespace UObjectSystem {
 }
 
 namespace UObjectSystem {
-    template <typename TObject> requires std::derived_from<TObject, UObject> TObject& TObjectIterator<TObject>::operator*() const {
+    template <typename TObject>
+        requires std::derived_from<TObject, UObject>
+    TObject& TObjectIterator<TObject>::operator*() const {
         UObject* Object{UObjectSystem::Resolve(mHandle)};
 
         if (mCurrentIndex == mEndIndex || Object == nullptr ||
@@ -97,13 +105,17 @@ namespace UObjectSystem {
 }
 
 namespace UObjectSystem {
-    template <typename TObject> requires std::derived_from<TObject, UObject> TObject* TObjectIterator<TObject>::operator->() const {
+    template <typename TObject>
+        requires std::derived_from<TObject, UObject>
+    TObject* TObjectIterator<TObject>::operator->() const {
         return &operator*();
     }
 }
 
 namespace UObjectSystem {
-    template <typename TObject> requires std::derived_from<TObject, UObject> TObjectIterator<TObject>& TObjectIterator<TObject>::operator++() {
+    template <typename TObject>
+        requires std::derived_from<TObject, UObject>
+    TObjectIterator<TObject>& TObjectIterator<TObject>::operator++() {
         if (mCurrentIndex < mEndIndex) {
             ++mCurrentIndex;
             AdvanceToNextValidObject();
@@ -113,7 +125,9 @@ namespace UObjectSystem {
 }
 
 namespace UObjectSystem {
-    template <typename TObject> requires std::derived_from<TObject, UObject> TObjectIterator<TObject>& TObjectIterator<TObject>::operator--() {
+    template <typename TObject>
+        requires std::derived_from<TObject, UObject>
+    TObjectIterator<TObject>& TObjectIterator<TObject>::operator--() {
         for (Uint32 Index{mCurrentIndex}; Index > 0;) {
             --Index;
 
@@ -136,14 +150,18 @@ namespace UObjectSystem {
 }
 
 namespace UObjectSystem {
-    template <typename TObject> requires std::derived_from<TObject, UObject> TObjectIterator<TObject>::operator bool() const {
+    template <typename TObject>
+        requires std::derived_from<TObject, UObject>
+    TObjectIterator<TObject>::operator bool() const {
         // return UObjectSystem::TryGet(_CurrentIndex, _handle);
         return mCurrentIndex < mEndIndex;
     }
 }
 
 namespace UObjectSystem {
-    template <typename TObject> requires std::derived_from<TObject, UObject> TObject& TObjectIterator<TObject>::operator[](std::size_t Index) {
+    template <typename TObject>
+        requires std::derived_from<TObject, UObject>
+    TObject& TObjectIterator<TObject>::operator[](std::size_t Index) {
         TObjectIterator It{*this};
 
         for (std::size_t I{0}; I < Index; ++I) {
@@ -155,7 +173,9 @@ namespace UObjectSystem {
 }
 
 namespace UObjectSystem {
-    template <typename TObject> requires std::derived_from<TObject, UObject> TObject& TObjectIterator<TObject>::operator[](std::size_t Index) const {
+    template <typename TObject>
+        requires std::derived_from<TObject, UObject>
+    TObject& TObjectIterator<TObject>::operator[](std::size_t Index) const {
         TObjectIterator It{*this};
 
         for (std::size_t I{0}; I < Index; ++I)
@@ -166,19 +186,25 @@ namespace UObjectSystem {
 }
 
 namespace UObjectSystem {
-    template <typename TObject> requires std::derived_from<TObject, UObject> bool TObjectIterator<TObject>::operator==(const TObjectIterator& Other) const {
+    template <typename TObject>
+        requires std::derived_from<TObject, UObject>
+    bool TObjectIterator<TObject>::operator==(const TObjectIterator& Other) const {
         return mCurrentIndex == Other.mCurrentIndex && mEndIndex == Other.mEndIndex;
     }
 }
 
 namespace UObjectSystem {
-    template <typename TObject> requires std::derived_from<TObject, UObject> bool TObjectIterator<TObject>::operator!=(const TObjectIterator& Other) const {
+    template <typename TObject>
+        requires std::derived_from<TObject, UObject>
+    bool TObjectIterator<TObject>::operator!=(const TObjectIterator& Other) const {
         return !(*this == Other);
     }
 }
 
 namespace UObjectSystem {
-    template <typename TObject> requires std::derived_from<TObject, UObject> bool TObjectIterator<TObject>::AdvanceToNextValidObject() {
+    template <typename TObject>
+        requires std::derived_from<TObject, UObject>
+    bool TObjectIterator<TObject>::AdvanceToNextValidObject() {
         while (Advance()) {
             UObject* Object{UObjectSystem::Resolve(mHandle)};
 
@@ -194,7 +220,9 @@ namespace UObjectSystem {
 }
 
 namespace UObjectSystem {
-    template <typename TObject> requires std::derived_from<TObject, UObject> bool TObjectIterator<TObject>::Advance() {
+    template <typename TObject>
+        requires std::derived_from<TObject, UObject>
+    bool TObjectIterator<TObject>::Advance() {
         while (mCurrentIndex < mEndIndex) {
             if (UObjectSystem::TryGet(mCurrentIndex, mHandle))
                 return true; // 이 슬롯은 타입 검사를 해볼 수 있음
@@ -208,19 +236,25 @@ namespace UObjectSystem {
 }
 
 namespace UObjectSystem {
-    template <typename TObject> requires std::derived_from<TObject, UObject> TObjectRange<TObject>::TObjectRange(Uint32 End)
+    template <typename TObject>
+        requires std::derived_from<TObject, UObject>
+    TObjectRange<TObject>::TObjectRange(Uint32 End)
         : mEnd(End) {
     }
 }
 
 namespace UObjectSystem {
-    template <typename TObject> requires std::derived_from<TObject, UObject> TObjectIterator<TObject> TObjectRange<TObject>::begin() const {
+    template <typename TObject>
+        requires std::derived_from<TObject, UObject>
+    TObjectIterator<TObject> TObjectRange<TObject>::begin() const {
         return {0, mEnd};
     }
 }
 
 namespace UObjectSystem {
-    template <typename TObject> requires std::derived_from<TObject, UObject> TObjectIterator<TObject> TObjectRange<TObject>::end() const {
+    template <typename TObject>
+        requires std::derived_from<TObject, UObject>
+    TObjectIterator<TObject> TObjectRange<TObject>::end() const {
         return {mEnd, mEnd};
     }
 }
