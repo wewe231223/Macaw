@@ -108,17 +108,6 @@ TSubsystemCollection<UEngineSubsystem, UEngine>& UEngine::GetSubsystems() {
     return mSubsystems;
 }
 
-const FTypeInfo* UEngine::StaticTypeInfo() noexcept {
-    static const FTypeInfo Information{"UEngine", UObject::StaticTypeInfo(), +[]() -> std::unique_ptr<UObject> {
-        return std::make_unique<UEngine>();
-    }};
-    return &Information;
-}
-
-const FTypeInfo* UEngine::GetTypeInfo() const noexcept {
-    return StaticTypeInfo();
-}
-
 void UEngine::RegisterObjectTypes() {
     TypeRegistry::Register(UObject::StaticTypeInfo());
     TypeRegistry::Register(UAsset::StaticTypeInfo());
@@ -146,4 +135,3 @@ void UEngine::RegisterObjectTypes() {
     TypeRegistry::Register(USubUVComponent::StaticTypeInfo());
     TypeRegistry::Register(UScrollUVComponent::StaticTypeInfo());
 }
-

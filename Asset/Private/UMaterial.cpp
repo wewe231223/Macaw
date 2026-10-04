@@ -53,12 +53,3 @@ void UMaterial::MarkGPUDataDirty() {
 Uint64 UMaterial::GetRenderRevision() const {
     return mRenderRevision;
 }
-
-const FTypeInfo* UMaterial::StaticTypeInfo() noexcept {
-    static const FTypeInfo Information{"UMaterial", UAsset::StaticTypeInfo(), nullptr};
-    return &Information;
-}
-
-const FTypeInfo* UMaterial::GetTypeInfo() const noexcept {
-    return StaticTypeInfo();
-}

@@ -318,15 +318,3 @@ void USceneComponent::NotifyTransformUpdate() {
         }
     }
 }
-
-
-const FTypeInfo* USceneComponent::StaticTypeInfo() noexcept {
-    static const FTypeInfo Information{"USceneComponent", UActorComponent::StaticTypeInfo(), +[]() -> std::unique_ptr<UObject> {
-        return std::make_unique<USceneComponent>();
-    }};
-    return &Information;
-}
-
-const FTypeInfo* USceneComponent::GetTypeInfo() const noexcept {
-    return StaticTypeInfo();
-}

@@ -9,7 +9,10 @@ struct FMessageTypeInfo {
 };
 
 #define JG_DECLARE_CHANNEL_MESSAGE(MessageType) \
-    static const FMessageTypeInfo& StaticTypeInfo() noexcept; \
+    static const FMessageTypeInfo& StaticTypeInfo() noexcept { \
+        static const FMessageTypeInfo Information{#MessageType}; \
+        return Information; \
+    } \
     MessageType() = default; \
     ~MessageType() = default; \
     MessageType(const MessageType&) = default; \

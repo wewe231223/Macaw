@@ -64,14 +64,3 @@ void UObject::Serialize(FArchive& Archive) {
     Archive.Serialize("TypeName", TypeNameStr);
     Archive.Serialize("Name", mName);
 }
-
-const FTypeInfo* UObject::StaticTypeInfo() noexcept {
-    static const FTypeInfo Information{"UObject", nullptr, +[]() -> std::unique_ptr<UObject> {
-        return std::make_unique<UObject>();
-    }};
-    return &Information;
-}
-
-const FTypeInfo* UObject::GetTypeInfo() const noexcept {
-    return StaticTypeInfo();
-}

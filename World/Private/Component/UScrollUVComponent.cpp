@@ -77,14 +77,3 @@ void UScrollUVComponent::SetScrollSpeed(FVector2 InScrollSpeed) {
 FVector2 UScrollUVComponent::GetScrollSpeed() const {
     return mScrollSpeed;
 }
-
-const FTypeInfo* UScrollUVComponent::StaticTypeInfo() noexcept {
-    static const FTypeInfo Information{"UScrollUVComponent", UBillboardComponent::StaticTypeInfo(), +[]() -> std::unique_ptr<UObject> {
-        return std::make_unique<UScrollUVComponent>();
-    }};
-    return &Information;
-}
-
-const FTypeInfo* UScrollUVComponent::GetTypeInfo() const noexcept {
-    return StaticTypeInfo();
-}

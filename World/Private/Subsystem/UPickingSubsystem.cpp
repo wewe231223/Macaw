@@ -392,14 +392,3 @@ void UPickingSubsystem::OnDeinitialize() {
     mDirtyComponentKeys.clear();
     RaycastAccelerationStructure.Clear();
 }
-
-const FTypeInfo* UPickingSubsystem::StaticTypeInfo() noexcept {
-    static const FTypeInfo Information{"UPickingSubsystem", UWorldSubsystem::StaticTypeInfo(), +[]() -> std::unique_ptr<UObject> {
-        return std::make_unique<UPickingSubsystem>();
-    }};
-    return &Information;
-}
-
-const FTypeInfo* UPickingSubsystem::GetTypeInfo() const noexcept {
-    return StaticTypeInfo();
-}

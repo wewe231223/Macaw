@@ -137,14 +137,3 @@ Int32 USubUVComponent::GetSubImageVertical() const {
 Int32 USubUVComponent::GetTotalFrame() const {
     return mTotalFrame;
 }
-
-const FTypeInfo* USubUVComponent::StaticTypeInfo() noexcept {
-    static const FTypeInfo Information{"USubUVComponent", UBillboardComponent::StaticTypeInfo(), +[]() -> std::unique_ptr<UObject> {
-        return std::make_unique<USubUVComponent>();
-    }};
-    return &Information;
-}
-
-const FTypeInfo* USubUVComponent::GetTypeInfo() const noexcept {
-    return StaticTypeInfo();
-}

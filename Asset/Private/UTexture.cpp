@@ -190,14 +190,3 @@ UTexture::~UTexture() {
 ID3D11ShaderResourceView* UTexture::GetSRV() const {
     return mShaderResourceView.Get();
 }
-
-const FTypeInfo* UTexture::StaticTypeInfo() noexcept {
-    static const FTypeInfo Information{"UTexture", UAsset::StaticTypeInfo(), +[]() -> std::unique_ptr<UObject> {
-        return std::make_unique<UTexture>();
-    }};
-    return &Information;
-}
-
-const FTypeInfo* UTexture::GetTypeInfo() const noexcept {
-    return StaticTypeInfo();
-}

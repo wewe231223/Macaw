@@ -276,14 +276,3 @@ void USurfaceOpaque::Serialize(FArchive& Ar) {
 Uint32 USurfaceOpaque::GetGPUDataCount() const {
     return mGroups.empty() ? 1u : static_cast<Uint32>(mGroups.size());
 }
-
-const FTypeInfo* USurfaceOpaque::StaticTypeInfo() noexcept {
-    static const FTypeInfo Information{"USurfaceOpaque", UMaterial::StaticTypeInfo(), +[]() -> std::unique_ptr<UObject> {
-        return std::make_unique<USurfaceOpaque>();
-    }};
-    return &Information;
-}
-
-const FTypeInfo* USurfaceOpaque::GetTypeInfo() const noexcept {
-    return StaticTypeInfo();
-}

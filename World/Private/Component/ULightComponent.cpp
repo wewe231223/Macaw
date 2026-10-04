@@ -25,12 +25,3 @@ void ULightComponent::OnUnregister() {
 
     ULightComponentBase::OnUnregister();
 }
-
-const FTypeInfo* ULightComponent::StaticTypeInfo() noexcept {
-    static const FTypeInfo Information{"ULightComponent", ULightComponentBase::StaticTypeInfo(), nullptr};
-    return &Information;
-}
-
-const FTypeInfo* ULightComponent::GetTypeInfo() const noexcept {
-    return StaticTypeInfo();
-}

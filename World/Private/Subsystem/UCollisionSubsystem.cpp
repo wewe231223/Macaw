@@ -50,14 +50,3 @@ const TArray<TObjectRef<UCollisionComponent>>& UCollisionSubsystem::GetRegistere
 void UCollisionSubsystem::OnDeinitialize() {
     mComponents.clear();
 }
-
-const FTypeInfo* UCollisionSubsystem::StaticTypeInfo() noexcept {
-    static const FTypeInfo Information{"UCollisionSubsystem", UWorldSubsystem::StaticTypeInfo(), +[]() -> std::unique_ptr<UObject> {
-        return std::make_unique<UCollisionSubsystem>();
-    }};
-    return &Information;
-}
-
-const FTypeInfo* UCollisionSubsystem::GetTypeInfo() const noexcept {
-    return StaticTypeInfo();
-}

@@ -30,12 +30,3 @@ void UEngineSubsystem::OnInitialize() {
 
 void UEngineSubsystem::OnDeinitialize() {
 }
-
-const FTypeInfo* UEngineSubsystem::StaticTypeInfo() noexcept {
-    static const FTypeInfo Information{"UEngineSubsystem", UObject::StaticTypeInfo(), nullptr};
-    return &Information;
-}
-
-const FTypeInfo* UEngineSubsystem::GetTypeInfo() const noexcept {
-    return StaticTypeInfo();
-}

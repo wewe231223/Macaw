@@ -119,13 +119,3 @@ void UMeshComponent::Serialize(FArchive& Archive) {
         OnRenderStateChanged();
     }
 }
-
-
-const FTypeInfo* UMeshComponent::StaticTypeInfo() noexcept {
-    static const FTypeInfo Information{"UMeshComponent", UPrimitiveComponent::StaticTypeInfo(), nullptr};
-    return &Information;
-}
-
-const FTypeInfo* UMeshComponent::GetTypeInfo() const noexcept {
-    return StaticTypeInfo();
-}

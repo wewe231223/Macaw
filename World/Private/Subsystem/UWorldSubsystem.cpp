@@ -34,12 +34,3 @@ void UWorldSubsystem::OnInitialize() {
 
 void UWorldSubsystem::OnDeinitialize() {
 }
-
-const FTypeInfo* UWorldSubsystem::StaticTypeInfo() noexcept {
-    static const FTypeInfo Information{"UWorldSubsystem", UObject::StaticTypeInfo(), nullptr};
-    return &Information;
-}
-
-const FTypeInfo* UWorldSubsystem::GetTypeInfo() const noexcept {
-    return StaticTypeInfo();
-}

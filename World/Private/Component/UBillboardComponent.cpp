@@ -173,13 +173,3 @@ void UBillboardComponent::OnUnregister() {
 
     UPrimitiveComponent::OnUnregister();
 }
-
-
-const FTypeInfo* UBillboardComponent::StaticTypeInfo() noexcept {
-    static const FTypeInfo Information{"UBillboardComponent", UPrimitiveComponent::StaticTypeInfo(), nullptr};
-    return &Information;
-}
-
-const FTypeInfo* UBillboardComponent::GetTypeInfo() const noexcept {
-    return StaticTypeInfo();
-}

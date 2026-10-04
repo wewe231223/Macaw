@@ -13,7 +13,7 @@ public:
     ~ULevel() override;
 
 public:
-    JG_DECLARE_DERIVED_TYPEINFO(ULevel, UObject)
+    JG_DECLARE_NON_CREATABLE_DERIVED_TYPEINFO(ULevel, UObject)
 
     UWorld& GetWorld() const;
     const TArray<std::unique_ptr<AActor>>& GetActors() const;

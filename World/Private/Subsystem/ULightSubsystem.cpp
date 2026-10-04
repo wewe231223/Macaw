@@ -40,14 +40,3 @@ const TArray<ULightComponent*>& ULightSubsystem::GetRegisteredComponents() const
 void ULightSubsystem::OnDeinitialize() {
     mComponents.clear();
 }
-
-const FTypeInfo* ULightSubsystem::StaticTypeInfo() noexcept {
-    static const FTypeInfo Information{"ULightSubsystem", UWorldSubsystem::StaticTypeInfo(), +[]() -> std::unique_ptr<UObject> {
-        return std::make_unique<ULightSubsystem>();
-    }};
-    return &Information;
-}
-
-const FTypeInfo* ULightSubsystem::GetTypeInfo() const noexcept {
-    return StaticTypeInfo();
-}

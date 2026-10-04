@@ -43,14 +43,3 @@ const TArray<UBillboardComponent*>& UBillboardSubsystem::GetRegisteredComponents
 void UBillboardSubsystem::OnDeinitialize() {
     mComponents.clear();
 }
-
-const FTypeInfo* UBillboardSubsystem::StaticTypeInfo() noexcept {
-    static const FTypeInfo Information{"UBillboardSubsystem", UWorldSubsystem::StaticTypeInfo(), +[]() -> std::unique_ptr<UObject> {
-        return std::make_unique<UBillboardSubsystem>();
-    }};
-    return &Information;
-}
-
-const FTypeInfo* UBillboardSubsystem::GetTypeInfo() const noexcept {
-    return StaticTypeInfo();
-}

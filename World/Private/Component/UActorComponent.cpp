@@ -165,15 +165,3 @@ void UActorComponent::Serialize(FArchive& Archive) {
         OnRenderStateChanged();
     }
 }
-
-
-const FTypeInfo* UActorComponent::StaticTypeInfo() noexcept {
-    static const FTypeInfo Information{"UActorComponent", UObject::StaticTypeInfo(), +[]() -> std::unique_ptr<UObject> {
-        return std::make_unique<UActorComponent>();
-    }};
-    return &Information;
-}
-
-const FTypeInfo* UActorComponent::GetTypeInfo() const noexcept {
-    return StaticTypeInfo();
-}

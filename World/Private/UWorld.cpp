@@ -784,14 +784,3 @@ void UWorld::NotifyWorldChanged(EWorldChange Change, AActor* Actor) {
         }
     }
 }
-
-const FTypeInfo* UWorld::StaticTypeInfo() noexcept {
-    static const FTypeInfo Information{"UWorld", UObject::StaticTypeInfo(), +[]() -> std::unique_ptr<UObject> {
-        return std::make_unique<UWorld>();
-    }};
-    return &Information;
-}
-
-const FTypeInfo* UWorld::GetTypeInfo() const noexcept {
-    return StaticTypeInfo();
-}

@@ -41,14 +41,3 @@ const TArray<UBillboardTextComponent*>& UTextSubsystem::GetRegisteredComponents(
 void UTextSubsystem::OnDeinitialize() {
     mComponents.clear();
 }
-
-const FTypeInfo* UTextSubsystem::StaticTypeInfo() noexcept {
-    static const FTypeInfo Information{"UTextSubsystem", UWorldSubsystem::StaticTypeInfo(), +[]() -> std::unique_ptr<UObject> {
-        return std::make_unique<UTextSubsystem>();
-    }};
-    return &Information;
-}
-
-const FTypeInfo* UTextSubsystem::GetTypeInfo() const noexcept {
-    return StaticTypeInfo();
-}

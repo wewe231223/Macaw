@@ -33,13 +33,3 @@ void ULightComponentBase::Serialize(FArchive& Archive) {
     Archive.Serialize("Intensity", mIntensity);
     Archive.Serialize("bVisible", mBVisible);
 }
-
-
-const FTypeInfo* ULightComponentBase::StaticTypeInfo() noexcept {
-    static const FTypeInfo Information{"ULightComponentBase", USceneComponent::StaticTypeInfo(), nullptr};
-    return &Information;
-}
-
-const FTypeInfo* ULightComponentBase::GetTypeInfo() const noexcept {
-    return StaticTypeInfo();
-}

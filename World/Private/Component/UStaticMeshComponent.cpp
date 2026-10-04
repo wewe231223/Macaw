@@ -172,15 +172,3 @@ void UStaticMeshComponent::Serialize(FArchive& Archive) {
         OnRenderStateChanged();
     }
 }
-
-
-const FTypeInfo* UStaticMeshComponent::StaticTypeInfo() noexcept {
-    static const FTypeInfo Information{"UStaticMeshComponent", UMeshComponent::StaticTypeInfo(), +[]() -> std::unique_ptr<UObject> {
-        return std::make_unique<UStaticMeshComponent>();
-    }};
-    return &Information;
-}
-
-const FTypeInfo* UStaticMeshComponent::GetTypeInfo() const noexcept {
-    return StaticTypeInfo();
-}

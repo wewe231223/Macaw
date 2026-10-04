@@ -321,14 +321,3 @@ bool UFreeTypeFont::CopyBitmapToAtlas(FT_Bitmap& Bitmap, std::uint32_t AtlasX, s
 ID3D11ShaderResourceView* UFreeTypeFont::GetAtlasSRV() const {
     return mAtlasSrv.Get();
 }
-
-const FTypeInfo* UFreeTypeFont::StaticTypeInfo() noexcept {
-    static const FTypeInfo Information{"UFreeTypeFont", UFont::StaticTypeInfo(), +[]() -> std::unique_ptr<UObject> {
-        return std::make_unique<UFreeTypeFont>();
-    }};
-    return &Information;
-}
-
-const FTypeInfo* UFreeTypeFont::GetTypeInfo() const noexcept {
-    return StaticTypeInfo();
-}

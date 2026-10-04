@@ -1506,14 +1506,3 @@ bool FMeshRaycastAccelerationStructure::Raycast(const FRay& Ray, float& OutDista
     if (Hit) OutDistance = ClosestDistance;
     return Hit;
 }
-
-const FTypeInfo* UMesh::StaticTypeInfo() noexcept {
-    static const FTypeInfo Information{"UMesh", UAsset::StaticTypeInfo(), +[]() -> std::unique_ptr<UObject> {
-        return std::make_unique<UMesh>();
-    }};
-    return &Information;
-}
-
-const FTypeInfo* UMesh::GetTypeInfo() const noexcept {
-    return StaticTypeInfo();
-}

@@ -121,14 +121,3 @@ void URenderSubsystem::OnDeinitialize() {
     mSceneId = AllocateRenderSceneId();
     mRevision = {};
 }
-
-const FTypeInfo* URenderSubsystem::StaticTypeInfo() noexcept {
-    static const FTypeInfo Information{"URenderSubsystem", UWorldSubsystem::StaticTypeInfo(), +[]() -> std::unique_ptr<UObject> {
-        return std::make_unique<URenderSubsystem>();
-    }};
-    return &Information;
-}
-
-const FTypeInfo* URenderSubsystem::GetTypeInfo() const noexcept {
-    return StaticTypeInfo();
-}

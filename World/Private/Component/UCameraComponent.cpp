@@ -96,15 +96,3 @@ void UCameraComponent::Serialize(FArchive& Archive) {
     Archive.Serialize("NearPlane", mNearPlane);
     Archive.Serialize("FarPlane", mFarPlane);
 }
-
-
-const FTypeInfo* UCameraComponent::StaticTypeInfo() noexcept {
-    static const FTypeInfo Information{"UCameraComponent", USceneComponent::StaticTypeInfo(), +[]() -> std::unique_ptr<UObject> {
-        return std::make_unique<UCameraComponent>();
-    }};
-    return &Information;
-}
-
-const FTypeInfo* UCameraComponent::GetTypeInfo() const noexcept {
-    return StaticTypeInfo();
-}

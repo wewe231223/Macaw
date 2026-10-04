@@ -48,15 +48,3 @@ void USpotLightComponent::Serialize(FArchive& Archive) {
         SetOuterConeAngle(mOuterConeAngle);
     }
 }
-
-
-const FTypeInfo* USpotLightComponent::StaticTypeInfo() noexcept {
-    static const FTypeInfo Information{"USpotLightComponent", UPointLightComponent::StaticTypeInfo(), +[]() -> std::unique_ptr<UObject> {
-        return std::make_unique<USpotLightComponent>();
-    }};
-    return &Information;
-}
-
-const FTypeInfo* USpotLightComponent::GetTypeInfo() const noexcept {
-    return StaticTypeInfo();
-}

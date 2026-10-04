@@ -544,14 +544,3 @@ bool AActor::ResolveLoadedReferences() {
 
     return true;
 }
-
-const FTypeInfo* AActor::StaticTypeInfo() noexcept {
-    static const FTypeInfo Information{"AActor", UObject::StaticTypeInfo(), +[]() -> std::unique_ptr<UObject> {
-        return std::make_unique<AActor>();
-    }};
-    return &Information;
-}
-
-const FTypeInfo* AActor::GetTypeInfo() const noexcept {
-    return StaticTypeInfo();
-}

@@ -19,13 +19,3 @@ void ULocalLightComponent::Serialize(FArchive& Archive) {
     ULightComponent::Serialize(Archive);
     Archive.Serialize("AttenuationRadius", mAttenuationRadius);
 }
-
-
-const FTypeInfo* ULocalLightComponent::StaticTypeInfo() noexcept {
-    static const FTypeInfo Information{"ULocalLightComponent", ULightComponent::StaticTypeInfo(), nullptr};
-    return &Information;
-}
-
-const FTypeInfo* ULocalLightComponent::GetTypeInfo() const noexcept {
-    return StaticTypeInfo();
-}

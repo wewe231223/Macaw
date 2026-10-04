@@ -150,15 +150,3 @@ void UNameTagComponent::RefreshGuidText() {
         SetText("");
     }
 }
-
-
-const FTypeInfo* UNameTagComponent::StaticTypeInfo() noexcept {
-    static const FTypeInfo Information{"UNameTagComponent", UBillboardTextComponent::StaticTypeInfo(), +[]() -> std::unique_ptr<UObject> {
-        return std::make_unique<UNameTagComponent>();
-    }};
-    return &Information;
-}
-
-const FTypeInfo* UNameTagComponent::GetTypeInfo() const noexcept {
-    return StaticTypeInfo();
-}

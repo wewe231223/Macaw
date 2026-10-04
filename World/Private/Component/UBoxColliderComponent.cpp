@@ -132,14 +132,3 @@ void UBoxColliderComponent::DrawEditorBounds(ILineDrawContext* LineContext, ELin
     AddEdge(2, 6);
     AddEdge(3, 7);
 }
-
-const FTypeInfo* UBoxColliderComponent::StaticTypeInfo() noexcept {
-    static const FTypeInfo Information{"UBoxColliderComponent", UCollisionComponent::StaticTypeInfo(), +[]() -> std::unique_ptr<UObject> {
-        return std::make_unique<UBoxColliderComponent>();
-    }};
-    return &Information;
-}
-
-const FTypeInfo* UBoxColliderComponent::GetTypeInfo() const noexcept {
-    return StaticTypeInfo();
-}

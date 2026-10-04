@@ -119,13 +119,3 @@ void UPrimitiveComponent::OnTransformUpdate() {
     mWorldBoundsDirty = true;
     OnRenderStateChanged();
 }
-
-
-const FTypeInfo* UPrimitiveComponent::StaticTypeInfo() noexcept {
-    static const FTypeInfo Information{"UPrimitiveComponent", USceneComponent::StaticTypeInfo(), nullptr};
-    return &Information;
-}
-
-const FTypeInfo* UPrimitiveComponent::GetTypeInfo() const noexcept {
-    return StaticTypeInfo();
-}

@@ -515,14 +515,3 @@ ERenderMode UPipeline::ResolveRenderMode(ERenderMode Mode) const {
     const std::size_t Index{static_cast<std::size_t>(Mode)};
     return Index < mPipelines.size() && mPipelines[Index].mInitialized ? Mode : static_cast<ERenderMode>(mPrimaryIndex);
 }
-
-const FTypeInfo* UPipeline::StaticTypeInfo() noexcept {
-    static const FTypeInfo Information{"UPipeline", UAsset::StaticTypeInfo(), +[]() -> std::unique_ptr<UObject> {
-        return std::make_unique<UPipeline>();
-    }};
-    return &Information;
-}
-
-const FTypeInfo* UPipeline::GetTypeInfo() const noexcept {
-    return StaticTypeInfo();
-}

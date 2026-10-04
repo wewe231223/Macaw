@@ -15,12 +15,3 @@ UWorld& ULevel::GetWorld() const {
 const TArray<std::unique_ptr<AActor>>& ULevel::GetActors() const {
     return mActors;
 }
-
-const FTypeInfo* ULevel::StaticTypeInfo() noexcept {
-    static const FTypeInfo Information{"ULevel", UObject::StaticTypeInfo(), nullptr};
-    return &Information;
-}
-
-const FTypeInfo* ULevel::GetTypeInfo() const noexcept {
-    return StaticTypeInfo();
-}

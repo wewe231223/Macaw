@@ -50,13 +50,3 @@ void UCollisionComponent::Serialize(FArchive& Archive) {
 class UMeshComponent* UCollisionComponent::GetMeshComponent() const {
     return nullptr;
 }
-
-
-const FTypeInfo* UCollisionComponent::StaticTypeInfo() noexcept {
-    static const FTypeInfo Information{"UCollisionComponent", UPrimitiveComponent::StaticTypeInfo(), nullptr};
-    return &Information;
-}
-
-const FTypeInfo* UCollisionComponent::GetTypeInfo() const noexcept {
-    return StaticTypeInfo();
-}

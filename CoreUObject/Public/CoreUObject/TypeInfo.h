@@ -20,20 +20,43 @@ struct FTypeInfo {
 
 #define JG_DECLARE_ROOT_TYPEINFO(Type) \
     using TypeInfoOwner = Type; \
-    static const FTypeInfo* StaticTypeInfo() noexcept; \
-    virtual const FTypeInfo* GetTypeInfo() const noexcept;
+    static const FTypeInfo* StaticTypeInfo() noexcept { \
+        static const FTypeInfo Information{#Type, nullptr, +[]() -> std::unique_ptr<UObject> { \
+            return std::make_unique<Type>(); \
+        }}; \
+        return &Information; \
+    } \
+    virtual const FTypeInfo* GetTypeInfo() const noexcept { \
+        return StaticTypeInfo(); \
+    }
 
 
 #define JG_DECLARE_DERIVED_TYPEINFO(Type, ParentType) \
     using TypeInfoOwner = Type; \
-    static const FTypeInfo* StaticTypeInfo() noexcept; \
-    virtual const FTypeInfo* GetTypeInfo() const noexcept override;
+    static const FTypeInfo* StaticTypeInfo() noexcept { \
+        static const FTypeInfo Information{#Type, ParentType::StaticTypeInfo(), +[]() -> std::unique_ptr<UObject> { \
+            return std::make_unique<Type>(); \
+        }}; \
+        return &Information; \
+    } \
+    virtual const FTypeInfo* GetTypeInfo() const noexcept override { \
+        return StaticTypeInfo(); \
+    }
+
+
+#define JG_DECLARE_NON_CREATABLE_DERIVED_TYPEINFO(Type, ParentType) \
+    using TypeInfoOwner = Type; \
+    static const FTypeInfo* StaticTypeInfo() noexcept { \
+        static const FTypeInfo Information{#Type, ParentType::StaticTypeInfo(), nullptr}; \
+        return &Information; \
+    } \
+    virtual const FTypeInfo* GetTypeInfo() const noexcept override { \
+        return StaticTypeInfo(); \
+    }
 
 
 #define JG_DECLARE_ABSTRACT_DERIVED_TYPEINFO(Type, ParentType) \
-    using TypeInfoOwner = Type; \
-    static const FTypeInfo* StaticTypeInfo() noexcept; \
-    virtual const FTypeInfo* GetTypeInfo() const noexcept override;
+    JG_DECLARE_NON_CREATABLE_DERIVED_TYPEINFO(Type, ParentType)
 
 
 template <typename T>

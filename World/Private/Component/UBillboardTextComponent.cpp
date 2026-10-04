@@ -335,15 +335,3 @@ bool UBillboardTextComponent::TryGetTextWorld(FMatrix& OutWorld) const {
     OutWorld = GetComponentToWorld();
     return true;
 }
-
-
-const FTypeInfo* UBillboardTextComponent::StaticTypeInfo() noexcept {
-    static const FTypeInfo Information{"UBillboardTextComponent", UPrimitiveComponent::StaticTypeInfo(), +[]() -> std::unique_ptr<UObject> {
-        return std::make_unique<UBillboardTextComponent>();
-    }};
-    return &Information;
-}
-
-const FTypeInfo* UBillboardTextComponent::GetTypeInfo() const noexcept {
-    return StaticTypeInfo();
-}

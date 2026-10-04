@@ -25,14 +25,3 @@ bool UAsset::Initialize(ID3D11Device* Device, const std::filesystem::path& InAss
     mAssetPath = InAssetPath;
     return true;
 }
-
-const FTypeInfo* UAsset::StaticTypeInfo() noexcept {
-    static const FTypeInfo Information{"UAsset", UObject::StaticTypeInfo(), +[]() -> std::unique_ptr<UObject> {
-        return std::make_unique<UAsset>();
-    }};
-    return &Information;
-}
-
-const FTypeInfo* UAsset::GetTypeInfo() const noexcept {
-    return StaticTypeInfo();
-}
