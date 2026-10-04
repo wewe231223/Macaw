@@ -51,10 +51,12 @@ bool FAssetBrowserPanel::HandleExternalFileDrop(const std::filesystem::path& Fil
     }
 
     const FAssetHandle ImportedHandle{mAssetRegistry->ImportMesh(FilePath, mSelectedFolder)};
+
     if (ImportedHandle) {
         if (mThumbnailRenderer != nullptr) {
             mThumbnailRenderer->RenderThumbnail(ImportedHandle);
         }
+
         mSelectedAsset = ImportedHandle;
         Console::AddLog(Console::STDOutHandle, ELogLevel::Log, ELogCategory::Etc, "Imported dropped OBJ into %s: %s", mSelectedFolder.c_str(), FilePath.generic_string().c_str());
     } else {
@@ -67,6 +69,7 @@ bool FAssetBrowserPanel::HandleExternalFileDrop(const std::filesystem::path& Fil
 void FAssetBrowserPanel::DrawContents() {
     const ImVec2 WindowPosition{ImGui::GetWindowPos()};
     const ImVec2 WindowSize{ImGui::GetWindowSize()};
+
     mDropTargetMin = WindowPosition;
     mDropTargetMax = ImVec2(WindowPosition.x + WindowSize.x, WindowPosition.y + WindowSize.y);
     mBDropTargetActive = true;
@@ -82,6 +85,7 @@ void FAssetBrowserPanel::DrawContents() {
         if (!FilePath.empty()) {
             const std::filesystem::path SourcePath{FilePath};
             const FAssetHandle ImportedHandle{mAssetRegistry->ImportMesh(SourcePath, mSelectedFolder)};
+
             if (ImportedHandle && mThumbnailRenderer != nullptr) {
                 mThumbnailRenderer->RenderThumbnail(ImportedHandle);
             }
@@ -91,47 +95,60 @@ void FAssetBrowserPanel::DrawContents() {
     ImGui::TextUnformatted("Type");
     ImGui::SameLine();
     ImGui::SetNextItemWidth(130.0f);
+
     if (ImGui::BeginCombo("##AssetTypeFilter", mSelectedAssetType == EAssetType::END ? "All Types" : GetAssetTypeLabel(mSelectedAssetType))) {
         if (ImGui::Selectable("All Types", mSelectedAssetType == EAssetType::END)) {
             mSelectedAssetType = EAssetType::END;
         }
+
         if (ImGui::Selectable("Static Mesh", mSelectedAssetType == EAssetType::Mesh)) {
             mSelectedAssetType = EAssetType::Mesh;
         }
+
         if (ImGui::Selectable("Texture", mSelectedAssetType == EAssetType::Texture)) {
             mSelectedAssetType = EAssetType::Texture;
         }
+
         if (ImGui::Selectable("Material", mSelectedAssetType == EAssetType::Material)) {
             mSelectedAssetType = EAssetType::Material;
         }
+
         if (ImGui::Selectable("Pipeline", mSelectedAssetType == EAssetType::Pipeline)) {
             mSelectedAssetType = EAssetType::Pipeline;
         }
+
         ImGui::EndCombo();
     }
 
     ImGui::SameLine();
     ImGui::SetNextItemWidth(-FLT_MIN);
+
     if (ImGui::InputTextWithHint("##AssetFilter", "Search assets", mAssetFilter.InputBuf, IM_ARRAYSIZE(mAssetFilter.InputBuf))) {
         mAssetFilter.Build();
     }
+
     ImGui::Separator();
 
     const float ContentHeight{ImGui::GetContentRegionAvail().y};
+
     if (ImGui::BeginChild("AssetFolders", ImVec2(FolderPaneWidth, ContentHeight), ImGuiChildFlags_Borders)) {
         DrawFolderTree("/Game", "Content");
     }
+
     ImGui::EndChild();
 
     ImGui::SameLine();
+
     if (ImGui::BeginChild("AssetTiles", ImVec2(0.0f, ContentHeight), ImGuiChildFlags_Borders)) {
         std::vector<const FAssetEntry*> VisibleAssets{};
+
         for (const FAssetEntry& Entry : mAssetRegistry->GetAssetEntries()) {
             if (!IsInSelectedFolder(Entry) || (mSelectedAssetType != EAssetType::END && Entry.mAssetType != mSelectedAssetType)) {
                 continue;
             }
 
             const std::string_view AssetPath{Entry.mAssetPath.mPath.data(), Entry.mAssetPath.mPath.size()};
+
             if (!mAssetFilter.PassFilter(AssetPath.data(), AssetPath.data() + AssetPath.size())) {
                 continue;
             }
@@ -144,11 +161,13 @@ void FAssetBrowserPanel::DrawContents() {
         });
 
         const int ColumnCount{std::max(1, static_cast<int>(ImGui::GetContentRegionAvail().x / TileWidth))};
+
         if (ImGui::BeginTable("AssetGrid", ColumnCount, ImGuiTableFlags_SizingFixedFit)) {
             for (int AssetIndex{0}; AssetIndex < static_cast<int>(VisibleAssets.size()); ++AssetIndex) {
                 ImGui::TableNextColumn();
                 DrawAssetTile(*VisibleAssets[AssetIndex]);
             }
+
             ImGui::EndTable();
         }
 
@@ -172,6 +191,7 @@ void FAssetBrowserPanel::PopWindowStyle() {
 
 FString FAssetBrowserPanel::GetParentFolder(const FString& AssetPath) {
     const std::size_t SlashIndex{AssetPath.find_last_of('/')};
+
     return SlashIndex == FString::npos ? FString{} : AssetPath.substr(0, SlashIndex);
 }
 
@@ -179,14 +199,19 @@ const char* FAssetBrowserPanel::GetAssetTypeLabel(EAssetType AssetType) {
     switch (AssetType) {
         case EAssetType::Texture:
             return "Texture";
+
         case EAssetType::Pipeline:
             return "Pipeline";
+
         case EAssetType::Material:
             return "Material";
+
         case EAssetType::Mesh:
             return "Static Mesh";
+
         case EAssetType::Font:
             return "Font";
+
         default:
             return "Asset";
     }
@@ -206,33 +231,40 @@ void FAssetBrowserPanel::DrawFolderTree(const FString& FolderPath, const char* F
 
     for (const FAssetEntry& Entry : mAssetRegistry->GetAssetEntries()) {
         const std::string_view AssetPath{Entry.mAssetPath.mPath.data(), Entry.mAssetPath.mPath.size()};
+
         if (!AssetPath.starts_with(FolderPathView) || AssetPath.size() <= FolderPathView.size() || AssetPath[FolderPathView.size()] != '/') {
             continue;
         }
 
         const std::string_view RemainingPath{AssetPath.substr(FolderPathView.size() + 1)};
         const std::size_t SeparatorIndex{RemainingPath.find('/')};
+
         if (SeparatorIndex == std::string_view::npos) {
             continue;
         }
 
         const FString ChildName{RemainingPath.substr(0, SeparatorIndex).data(), SeparatorIndex};
+
         if (std::ranges::find(ChildFolderNames, ChildName) == ChildFolderNames.end()) {
             ChildFolderNames.push_back(ChildName);
         }
     }
 
     std::ranges::sort(ChildFolderNames);
+
     const bool BHasChildren{!ChildFolderNames.empty()};
     ImGuiTreeNodeFlags Flags{ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_OpenOnArrow};
+
     if (!BHasChildren) {
         Flags |= ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
     }
+
     if (mSelectedFolder == FolderPath) {
         Flags |= ImGuiTreeNodeFlags_Selected;
     }
 
     const bool BOpen{ImGui::TreeNodeEx(FolderPath.c_str(), Flags, "%s", FolderName)};
+
     if (ImGui::IsItemClicked()) {
         mSelectedFolder = FolderPath;
     }
@@ -241,6 +273,7 @@ void FAssetBrowserPanel::DrawFolderTree(const FString& FolderPath, const char* F
         for (const FString& ChildName : ChildFolderNames) {
             DrawFolderTree(FolderPath + "/" + ChildName, ChildName.c_str());
         }
+
         ImGui::TreePop();
     }
 }
@@ -252,6 +285,7 @@ void FAssetBrowserPanel::DrawAssetTile(const FAssetEntry& Entry) {
     const bool BSelected{mSelectedAsset == Entry.mHandle};
 
     ImGui::PushID(static_cast<int>(Entry.mHandle.mId));
+
     if (BSelected) {
         ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.16f, 0.36f, 0.66f, 1.0f));
     }
@@ -273,6 +307,7 @@ void FAssetBrowserPanel::DrawAssetTile(const FAssetEntry& Entry) {
     if (BSelected) {
         ImGui::PopStyleColor();
     }
+
     if (BClicked) {
         mSelectedAsset = Entry.mHandle;
     }
@@ -291,18 +326,21 @@ void FAssetBrowserPanel::DrawAssetTile(const FAssetEntry& Entry) {
 
     if (Entry.mAssetType == EAssetType::Mesh && ImGui::BeginDragDropSource()) {
         const FAssetHandle MeshHandle{Entry.mHandle};
+
         ImGui::SetDragDropPayload(StaticMeshAssetPayloadType, &MeshHandle, sizeof(MeshHandle));
         ImGui::TextUnformatted(AssetName);
         ImGui::TextDisabled("Static Mesh");
         ImGui::EndDragDropSource();
     } else if (Entry.mAssetType == EAssetType::Material && ImGui::BeginDragDropSource()) {
         const FAssetHandle MaterialHandle{Entry.mHandle};
+
         ImGui::SetDragDropPayload(MaterialAssetPayloadType, &MaterialHandle, sizeof(MaterialHandle));
         ImGui::TextUnformatted(AssetName);
         ImGui::TextDisabled("Material");
         ImGui::EndDragDropSource();
     } else if (Entry.mAssetType == EAssetType::Texture && ImGui::BeginDragDropSource()) {
         const FAssetHandle TextureHandle{Entry.mHandle};
+
         ImGui::SetDragDropPayload(TextureAssetPayloadType, &TextureHandle, sizeof(TextureHandle));
         ImGui::TextUnformatted(AssetName);
         ImGui::TextDisabled("Texture");

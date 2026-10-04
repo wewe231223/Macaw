@@ -31,5 +31,7 @@ private:
 
 namespace std {
     template <>
-    struct hash<FMaterialChunkSignature> { std::size_t operator()(const FMaterialChunkSignature& Signature) const noexcept; };
+    struct hash<FMaterialChunkSignature> {
+        std::size_t operator()(const FMaterialChunkSignature& Signature) const noexcept;
+    };
 }

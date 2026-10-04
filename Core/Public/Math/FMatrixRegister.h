@@ -2,25 +2,24 @@
 #include "Math/FMatrix.h"
 #include "Math/FVectorRegister.h"
 
-struct FMatrixRegister 
-{
-	FVectorRegister R[4];
+struct FMatrixRegister {
+    FVectorRegister R[4];
+
 public:
-	FMatrixRegister();
-	FMatrixRegister(FVectorRegister R0, FVectorRegister R1, FVectorRegister R2, FVectorRegister R3);
+    FMatrixRegister();
+    FMatrixRegister(FVectorRegister R0, FVectorRegister R1, FVectorRegister R2, FVectorRegister R3);
 
-	FMatrix ToFMatrix() const;
-	FMatrixRegister Transpose() const;
-	
-	float Determinant3x3(FVectorRegister A, FVectorRegister B, FVectorRegister C) const;
+    FMatrix ToFMatrix() const;
+    FMatrixRegister Transpose() const;
 
-	// 행렬식
-	float Determinant() const;
-	// 역행렬
-	FMatrixRegister Inverse() const;
+    float Determinant3x3(FVectorRegister A, FVectorRegister B, FVectorRegister C) const;
 
-	static FMatrixRegister Load(const FMatrix& M);
+    // 행렬식
+    float Determinant() const;
+    // 역행렬
+    FMatrixRegister Inverse() const;
 
-	inline static FMatrixRegister Identity();
+    static FMatrixRegister Load(const FMatrix& M);
 
+    inline static FMatrixRegister Identity();
 };

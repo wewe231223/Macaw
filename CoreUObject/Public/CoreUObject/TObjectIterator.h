@@ -66,7 +66,15 @@ namespace UObjectSystem {
 
     template <typename TObject>
         requires std::derived_from<TObject, UObject>
-    class TObjectRange { public: TObjectRange(Uint32 End); TObjectIterator<TObject> begin() const; TObjectIterator<TObject> end() const; private: Uint32 mEnd{}; };
+    class TObjectRange {
+    public:
+        TObjectRange(Uint32 End);
+        TObjectIterator<TObject> begin() const;
+        TObjectIterator<TObject> end() const;
+
+    private:
+        Uint32 mEnd{};
+    };
 
     template <typename TObject>
         requires std::derived_from<TObject, UObject>
@@ -120,6 +128,7 @@ namespace UObjectSystem {
             ++mCurrentIndex;
             AdvanceToNextValidObject();
         }
+
         return *this;
     }
 }
@@ -144,7 +153,9 @@ namespace UObjectSystem {
                 }
             }
         }
+
         ErrorHandler::Report("Invalid decrement!", "No previous object", ErrorHandler::EErrorLevel::Critical);
+
         return *this;
     }
 }
@@ -214,7 +225,9 @@ namespace UObjectSystem {
 
             ++mCurrentIndex; // 핵심: 타입이 다르거나 빈 슬롯이면 다음 인덱스로
         }
+
         mCurrentIndex = mEndIndex;
+
         return false;
     }
 }

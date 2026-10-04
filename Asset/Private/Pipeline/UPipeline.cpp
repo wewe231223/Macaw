@@ -8,12 +8,15 @@
 namespace {
     EStencillOp ParseStencilOperation(const char* Value) {
         constexpr std::array Names{"Keep", "Zero", "Replace", "IncrementClamp", "IncrementWrap", "DecrementClamp", "DecrementWrap", "Invert"};
+
         for (std::size_t Index{}; Index < Names.size(); ++Index) {
             if (std::strcmp(Value, Names[Index]) == 0) {
                 return static_cast<EStencillOp>(Index);
             }
         }
+
         ErrorHandler::Report("ParseStencilOperation", "The stencil operation is invalid.", ErrorHandler::EErrorLevel::Error);
+
         return EStencillOp::Keep;
     }
 }
@@ -28,7 +31,9 @@ bool UPipeline::Initialize(const std::filesystem::path& PipelinePath) {
     }
 
     std::array<std::filesystem::path, static_cast<std::size_t>(ERenderMode::Max)> ModePaths{};
+
     ModePaths[static_cast<std::size_t>(ERenderMode::Lit)] = PipelinePath;
+
     return InitializeModes(ModePaths);
 }
 
@@ -40,48 +45,63 @@ bool UPipeline::InitializeFamily(const std::filesystem::path& FamilyDirectory) {
     constexpr std::array<const char*, static_cast<std::size_t>(ERenderMode::Max)> ModeNames{"Lit", "Outline", "Unlit", "Wireframe"};
     std::array<std::filesystem::path, static_cast<std::size_t>(ERenderMode::Max)> ModePaths{};
     const std::string FamilyName{FamilyDirectory.filename().generic_string()};
+
     for (std::size_t Index{0}; Index < ModeNames.size(); ++Index) {
         const std::filesystem::path Path{FamilyDirectory / (FamilyName + "_" + ModeNames[Index] + ".json")};
+
         if (std::filesystem::is_regular_file(Path)) {
             ModePaths[Index] = Path;
         }
     }
+
     if (ModePaths[static_cast<std::size_t>(ERenderMode::Lit)].empty()) {
         return false;
     }
+
     return InitializeModes(ModePaths);
 }
 
 bool UPipeline::InitializeModes(const std::array<std::filesystem::path, static_cast<std::size_t>(ERenderMode::Max)>& ModePaths) {
     std::array<FPipelineDescription, static_cast<std::size_t>(ERenderMode::Max)> Descriptions{};
     std::array<bool, static_cast<std::size_t>(ERenderMode::Max)> EnabledModes{};
+
     EnabledModes.fill(true);
+
     const std::size_t LitIndex{static_cast<std::size_t>(ERenderMode::Lit)};
+
     if (!LoadPipelineDescription(ModePaths[LitIndex], Descriptions[LitIndex])) {
         return false;
     }
+
     for (std::size_t Index{0}; Index < Descriptions.size(); ++Index) {
         if (Index == LitIndex) {
             continue;
         }
+
         if (!ModePaths[Index].empty()) {
             if (!LoadPipelineDescription(ModePaths[Index], Descriptions[Index])) {
                 return false;
             }
+
             continue;
         }
+
         Descriptions[Index] = Descriptions[LitIndex];
+
         if (Descriptions[Index].mPrimitiveTopology != EPrimitiveTopology::TriangleList && Descriptions[Index].mPrimitiveTopology != EPrimitiveTopology::TriangleStrip) {
             continue;
         }
+
         if (Index == static_cast<std::size_t>(ERenderMode::Outline)) {
             const bool HasNormal{std::ranges::any_of(Descriptions[Index].mInputLayout, [](const FInputElementDescription& Element) {
                 return Element.mSemanticName == "NORMAL" && Element.mSemanticIndex == 0;
             })};
+
             if (!HasNormal) {
                 EnabledModes[Index] = false;
                 continue;
             }
+
             Descriptions[Index].mGeometryShader.mSource = "./Content/Shader/Outline.hlsl";
             Descriptions[Index].mGeometryShader.mEntryPoint = "MainGS";
             Descriptions[Index].mGeometryShader.mProfile = "gs_5_0";
@@ -110,6 +130,7 @@ bool UPipeline::InitializeModes(const std::array<std::filesystem::path, static_c
     mOptionFilePath = ModePaths[LitIndex];
     mPrimaryIndex = LitIndex;
     mModeIndex = LitIndex;
+
     return true;
 }
 
@@ -123,21 +144,25 @@ void UPipeline::Reset() {
 
 bool UPipeline::IsOcclusionCullable(ERenderMode Mode) const {
     const FPipelineDescription* Description{GetDescription(ResolveRenderMode(Mode))};
+
     return Description != nullptr && Description->mOcclusionCullable && !Description->mBHasGeometryShader && Description->mDepthStencil.mDepthEnable && (Description->mDepthStencil.mDepthFunc == ECompareFunc::Less || Description->mDepthStencil.mDepthFunc == ECompareFunc::LessEqual) && Description->mRasterizer.mFillMode == EFillMode::Solid && (Description->mPrimitiveTopology == EPrimitiveTopology::TriangleList || Description->mPrimitiveTopology == EPrimitiveTopology::TriangleStrip);
 }
 
 bool UPipeline::CanWriteOcclusionDepth(ERenderMode Mode) const {
     const FPipelineDescription* Description{GetDescription(ResolveRenderMode(Mode))};
+
     return Description != nullptr && IsOcclusionCullable(Mode) && Description->mOcclusionOccluder && !Description->mBlend.mBlendEnable && Description->mDepthStencil.mDepthWriteEnable;
 }
 
 bool UPipeline::CanReuseOcclusionDepth(ERenderMode Mode) const {
     const FPipelineDescription* Description{GetDescription(ResolveRenderMode(Mode))};
+
     return Description != nullptr && !Description->mBlend.mBlendEnable && (!Description->mDepthStencil.mDepthEnable || Description->mDepthStencil.mDepthFunc == ECompareFunc::LessEqual) && (!Description->mDepthStencil.mStencilEnable || (Description->mDepthStencil.mStencilFunc == ECompareFunc::Always && Description->mDepthStencil.mStencilFailOp == EStencillOp::Keep && Description->mDepthStencil.mStencilDepthFailOp == EStencillOp::Keep && (Description->mDepthStencil.mStencilPassOp == EStencillOp::Keep || Description->mDepthStencil.mStencilPassOp == EStencillOp::Zero || Description->mDepthStencil.mStencilPassOp == EStencillOp::Replace)));
 }
 
 void UPipeline::SetRenderMode(ERenderMode Mode) {
     const std::size_t RequestedIndex{static_cast<std::size_t>(Mode)};
+
     if (RequestedIndex < mDescriptions.size() && mEnabledModes[RequestedIndex]) {
         mModeIndex = RequestedIndex;
     } else {
@@ -147,6 +172,7 @@ void UPipeline::SetRenderMode(ERenderMode Mode) {
 
 bool UPipeline::RenderModeSettable(ERenderMode Mode) const {
     const std::size_t RequestedIndex{static_cast<std::size_t>(Mode)};
+
     return RequestedIndex < mDescriptions.size() && mEnabledModes[RequestedIndex];
 }
 
@@ -172,6 +198,7 @@ bool UPipeline::LoadPipelineDescription(const std::filesystem::path& Path, FPipe
     rapidjson::FileReadStream Stream{File, ReadBufferPtr.get(), sizeof(ReadBufferPtr.get())};
 
     rapidjson::Document Root{};
+
     Root.ParseStream(Stream);
 
     std::fclose(File);
@@ -268,6 +295,7 @@ bool UPipeline::LoadPipelineDescription(const std::filesystem::path& Path, FPipe
         }
 
         FInputElementDescription Input{};
+
         Input.mSemanticName = SemanticName;
         Input.mSemanticIndex = GetUint(Element, "SemanticIndex", 0);
         Input.mFormat = ParseVertexFormat(Format);
@@ -348,11 +376,13 @@ void UPipeline::Serialize(FArchive& Ar) {
 
 ERenderMode UPipeline::ResolveRenderMode(ERenderMode Mode) const {
     const std::size_t Index{static_cast<std::size_t>(Mode)};
+
     return Index < mDescriptions.size() && mEnabledModes[Index] ? Mode : static_cast<ERenderMode>(mPrimaryIndex);
 }
 
 const FPipelineDescription* UPipeline::GetDescription(ERenderMode Mode) const {
     const std::size_t Index{static_cast<std::size_t>(Mode)};
+
     return Index < mDescriptions.size() && mEnabledModes[Index] ? &mDescriptions[Index] : nullptr;
 }
 

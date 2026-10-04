@@ -14,11 +14,10 @@ public:
     bool IsVisible() const;
     void SetVisible(bool BInVisible);
 
-
     void OnRenderStateChanged() override;
     void OnRegister() override;
     void OnUnregister() override;
-    
+
     void UpdateBounds();
 
     virtual void MakeRender(FActorProbe& OutProbe) const;
@@ -51,5 +50,5 @@ private:
     DirectX::BoundingSphere mWorldSphere{};
 
     Uint64 mWorldBoundsTransformRevision{};
-    bool mWorldBoundsDirty{ true };
+    bool mWorldBoundsDirty{true};
 };

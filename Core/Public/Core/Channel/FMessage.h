@@ -154,6 +154,7 @@ void FMessage::DestroyInline(FMessage& Message) noexcept {
 template <typename T>
 void FMessage::DestroyHeap(FMessage& Message) noexcept {
     T* Value{static_cast<T*>(Message.mData)};
+
     std::destroy_at(Value);
     Memory::Free(Value);
 }

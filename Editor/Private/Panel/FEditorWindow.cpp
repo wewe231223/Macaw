@@ -2,14 +2,15 @@
 #include "Editor/Panel/FEditorWindow.h"
 
 FEditorWindow::FEditorWindow(const char* InWindowName, ImGuiWindowFlags InWindowFlags)
-    : mWindowName(InWindowName),
-      mWindowFlags(InWindowFlags) {
+	: mWindowName(InWindowName),
+	  mWindowFlags(InWindowFlags) {
 }
 
 void FEditorWindow::DrawPanel() {
     PushWindowStyle();
 
     const bool BDrawContents{ImGui::Begin(mWindowName, &mBVisible, mWindowFlags)};
+
     if (BDrawContents) {
         DrawContents();
     }

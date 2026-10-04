@@ -21,5 +21,7 @@ struct FAssetPath {
 
 namespace std {
     template <>
-    struct hash<FAssetPath> { std::size_t operator()(const FAssetPath& AssetPath) const noexcept; };
+    struct hash<FAssetPath> {
+        std::size_t operator()(const FAssetPath& AssetPath) const noexcept;
+    };
 }

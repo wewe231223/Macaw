@@ -5,7 +5,6 @@
 #include "Core/Channel/FMessageTypeInfo.h"
 
 struct FMousePickRequestMessage {
-
     static const FMessageTypeInfo& StaticTypeInfo() noexcept;
 
     std::int32_t mScreenX{0};

@@ -23,6 +23,7 @@ FTransform& FTransform::operator=(const FTransform& Other) {
 
     const bool PositionOrRotationChanged{mPosition != Other.mPosition || mRotation.X != Other.mRotation.X || mRotation.Y != Other.mRotation.Y || mRotation.Z != Other.mRotation.Z || mRotation.W != Other.mRotation.W};
     const bool ScaleChanged{mScale != Other.mScale};
+
     mPosition = Other.mPosition;
     mRotation = Other.mRotation;
     mRotationEuler = Other.mRotationEuler;
@@ -30,10 +31,13 @@ FTransform& FTransform::operator=(const FTransform& Other) {
     mBAbsoluteLocation = Other.mBAbsoluteLocation;
     mBAbsoluteRotation = Other.mBAbsoluteRotation;
     mBAbsoluteScale = Other.mBAbsoluteScale;
+
     if (PositionOrRotationChanged || ScaleChanged) {
         InvalidateMatrices(PositionOrRotationChanged);
     }
+
     ++mRevision;
+
     return *this;
 }
 
@@ -143,6 +147,7 @@ bool FTransform::HasSameState(const FTransform& Other) const {
 void FTransform::InvalidateMatrices(bool IncludeNoScale) {
     mMatrixWithScaleDirty = true;
     mInverseMatrixWithScaleDirty = true;
+
     if (IncludeNoScale) {
         mMatrixNoScaleDirty = true;
     }

@@ -6,11 +6,11 @@ const FTypeInfo& FObjectStateChangedMessage::StaticTypeInfo() noexcept {
 }
 
 FObjectStateChangedMessage::FObjectStateChangedMessage(const FGuid& InGuid, const std::vector<Uint8>& InData)
-    : TargetGuid(InGuid),
-      StateData(InData) {
+	: TargetGuid(InGuid),
+	  StateData(InData) {
 }
 
 FObjectStateChangedMessage::FObjectStateChangedMessage(const FGuid& InGuid, std::vector<Uint8>&& InData) noexcept
-    : TargetGuid(InGuid),
-      StateData(std::move(InData)) {
+	: TargetGuid(InGuid),
+	  StateData(std::move(InData)) {
 }

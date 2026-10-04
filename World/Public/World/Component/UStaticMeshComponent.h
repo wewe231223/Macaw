@@ -17,7 +17,6 @@ public:
     void SetMaterialHandle(FAssetHandle InHandle);
     void SetPipelineHandle(FAssetHandle InHandle);
 
-
     void OnRegister() override;
     void OnUnregister() override;
 

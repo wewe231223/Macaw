@@ -22,6 +22,7 @@ void UBillboardSubsystem::BuildRenderProbes(FSceneRenderData& Scene) const {
 
     for (const UBillboardComponent* Component : mComponents) {
         FBillboardProbe BillboardProbe{};
+
         if (!Component->MakeBillboardRender(BillboardProbe))
             continue;
 

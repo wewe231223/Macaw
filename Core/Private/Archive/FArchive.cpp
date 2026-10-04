@@ -2,8 +2,8 @@
 #include "Core/Archive/FArchive.h"
 
 FArchive::FArchive(EArchiveMode InMode)
-    : mMode(InMode),
-      mAssetResolver(nullptr) {
+	: mMode(InMode),
+	  mAssetResolver(nullptr) {
 }
 
 void FArchive::SetAssetResolver(const IAssetResolver* InAssetResolver) {
@@ -32,6 +32,7 @@ bool FArchive::IsCounting() const {
 
 void FArchive::Serialize(std::string_view Name, FName& Value) {
     FString Str{Value.ToString()};
+
     Serialize(Name, Str);
 
     if (IsLoading()) {

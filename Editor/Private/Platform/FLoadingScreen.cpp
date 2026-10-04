@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Core/Base/ErrorHandler.h"
 #include "Platform/IPlatformApplication.h"
 #include "Editor/Platform/FLoadingScreen.h"
 #include "Render/Renderer.h"
@@ -15,7 +16,7 @@
 #include <thread>
 
 FLoadingProgress::FLoadingProgress()
-    : mStatus{"Preparing"} {
+	: mStatus{"Preparing"} {
 }
 
 FLoadingProgress::~FLoadingProgress() = default;
@@ -23,6 +24,7 @@ FLoadingProgress::~FLoadingProgress() = default;
 void FLoadingProgress::SetProgress(float Progress, const std::string& Status) {
     {
         const std::lock_guard<std::mutex> Lock{mStatusMutex};
+
         mStatus = Status;
     }
 
@@ -35,6 +37,7 @@ float FLoadingProgress::GetProgress() const {
 
 std::string FLoadingProgress::GetStatus() const {
     const std::lock_guard<std::mutex> Lock{mStatusMutex};
+
     return mStatus;
 }
 
@@ -51,12 +54,14 @@ bool FLoadingScreen::LoadLogo(ID3D11Device* Device) {
     int Height{};
     int Channels{};
     stbi_uc* Pixels{stbi_load("./Content/Macaw.png", &Width, &Height, &Channels, STBI_rgb_alpha)};
+
     if (Pixels == nullptr || Width <= 0 || Height <= 0) {
         stbi_image_free(Pixels);
         return false;
     }
 
     D3D11_TEXTURE2D_DESC TextureDescription{};
+
     TextureDescription.Width = static_cast<UINT>(Width);
     TextureDescription.Height = static_cast<UINT>(Height);
     TextureDescription.MipLevels = 1;
@@ -67,12 +72,15 @@ bool FLoadingScreen::LoadLogo(ID3D11Device* Device) {
     TextureDescription.BindFlags = D3D11_BIND_SHADER_RESOURCE;
 
     D3D11_SUBRESOURCE_DATA TextureData{};
+
     TextureData.pSysMem = Pixels;
     TextureData.SysMemPitch = static_cast<UINT>(Width) * 4;
 
     Microsoft::WRL::ComPtr<ID3D11Texture2D> Texture{};
     const HRESULT TextureResult{Device->CreateTexture2D(&TextureDescription, &TextureData, Texture.GetAddressOf())};
+
     stbi_image_free(Pixels);
+
     if (FAILED(TextureResult)) {
         return false;
     }
@@ -83,10 +91,12 @@ bool FLoadingScreen::LoadLogo(ID3D11Device* Device) {
 
     mLogoWidth = Width;
     mLogoHeight = Height;
+
     return true;
 }
 
 bool FLoadingScreen::Run(FRenderer& Renderer, IPlatformApplication& Platform, const FLoadingTask& LoadingTask, const FLoadingFrameTask& LoadingFrameTask) {
+    ErrorHandler::Report(!LoadingTask || !LoadingFrameTask, "FLoadingScreen::Run", "Loading callbacks must be valid.", ErrorHandler::EErrorLevel::Critical);
     LoadLogo(Renderer.GetDevice());
 
     FLoadingProgress Progress{};
@@ -95,14 +105,12 @@ bool FLoadingScreen::Run(FRenderer& Renderer, IPlatformApplication& Platform, co
 
     std::thread LoadingThread{[&Progress, &LoadingTask, &Finished, &Succeeded]() {
         const HRESULT ComResult{CoInitializeEx(nullptr, COINIT_MULTITHREADED)};
+
+        ErrorHandler::ReportHRESULT(ComResult, "FLoadingScreen::Run", "Failed to initialize COM for the loading thread.", ErrorHandler::EErrorLevel::Critical);
+
         const bool UninitializeCom{SUCCEEDED(ComResult)};
 
-        try {
-            Succeeded.store(LoadingTask(Progress), std::memory_order_release);
-        } catch (...) {
-            Progress.SetProgress(Progress.GetProgress(), "Loading failed");
-            Succeeded.store(false, std::memory_order_release);
-        }
+        Succeeded.store(LoadingTask(Progress), std::memory_order_release);
 
         if (UninitializeCom) {
             CoUninitialize();
@@ -120,26 +128,25 @@ bool FLoadingScreen::Run(FRenderer& Renderer, IPlatformApplication& Platform, co
         }
 
         const bool LoadingFinished{Finished.load(std::memory_order_acquire)};
+
         if (!QuitRequested) {
             if (LoadingFinished && Succeeded.load(std::memory_order_acquire)) {
-                try {
-                    Renderer.BeginFrame(0.0f);
-                    FrameTaskFinished = LoadingFrameTask(Progress);
-                } catch (...) {
-                    Progress.SetProgress(Progress.GetProgress(), "Loading failed");
-                    Succeeded.store(false, std::memory_order_release);
-                }
+                Renderer.BeginFrame(0.0f);
+                FrameTaskFinished = LoadingFrameTask(Progress);
             }
+
             Render(Renderer, Progress);
         }
 
         if (LoadingFinished && (QuitRequested || !Succeeded.load(std::memory_order_acquire) || FrameTaskFinished)) {
             break;
         }
+
         std::this_thread::sleep_for(std::chrono::milliseconds{8});
     }
 
     LoadingThread.join();
+
     return !QuitRequested && Succeeded.load(std::memory_order_acquire);
 }
 
@@ -184,6 +191,7 @@ void FLoadingScreen::Render(FRenderer& Renderer, const FLoadingProgress& Progres
     ImGui::SetCursorPos(ImVec2{(DisplaySize.x - PanelWidth) * 0.5f, HasLogo ? CenterY + 79.0f : CenterY + 12.0f});
 
     char Percentage[16]{};
+
     sprintf_s(Percentage, "%.0f%%", LoadingValue * 100.0f);
     ImGui::PushStyleColor(ImGuiCol_PlotHistogram, ImVec4{0.12f, 0.55f, 0.92f, 1.0f});
     ImGui::ProgressBar(LoadingValue, ImVec2{PanelWidth, 24.0f}, Percentage);
@@ -199,6 +207,7 @@ void FLoadingScreen::Render(FRenderer& Renderer, const FLoadingProgress& Progres
     Renderer.EndFrame();
 
     auto& Io{ImGui::GetIO()};
+
     if (Io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
         ImGui::UpdatePlatformWindows();
         ImGui::RenderPlatformWindowsDefault();

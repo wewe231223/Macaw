@@ -11,17 +11,17 @@ struct FVector4;
 struct FMatrix;
 struct FRotator;
 
-struct FQuat
-{
-    union
-    {
+struct FQuat {
+    union {
         float V[4];
+
         struct {
             float X;
             float Y;
             float Z;
             float W;
         };
+
         struct {
             float mX;
             float mY;
@@ -39,7 +39,7 @@ struct FQuat
     DirectX::SimpleMath::Quaternion ToSimpleMath() const;
 
     /* Function */
-    FQuat operator * (const FQuat& Other) const;
+    FQuat operator*(const FQuat& Other) const;
     FQuat Conjugate() const;
     FQuat UnitInverse() const;
     FQuat Inverse() const;
@@ -48,7 +48,6 @@ struct FQuat
 
     FMatrix ToFMatrix() const;
 
-
     static FQuat FromRotator(const FRotator& Rotation);
     static FQuat Concatenate(const FQuat& First, const FQuat& Second);
     FRotator ToRotator() const;
@@ -56,7 +55,6 @@ struct FQuat
     FVector GetForwardVector() const;
     FVector GetRightVector() const;
     FVector GetUpVector() const;
-
 
     /* Static */
     static FQuat Identity();

@@ -95,119 +95,155 @@ EVertexFormat ParseVertexFormat(const char* Value) {
     if (std::strcmp(Value, "Float2") == 0) {
         return EVertexFormat::Float2;
     }
+
     if (std::strcmp(Value, "Float3") == 0) {
         return EVertexFormat::Float3;
     }
+
     if (std::strcmp(Value, "Float4") == 0) {
         return EVertexFormat::Float4;
     }
+
     if (std::strcmp(Value, "Uint") == 0) {
         return EVertexFormat::Uint;
     }
 
     ErrorHandler::Report("ParseVertexFormat", "The vertex format is invalid.", ErrorHandler::EErrorLevel::Error);
+
     return EVertexFormat::Float3;
 }
 
 EPrimitiveTopology ParsePrimitiveTopology(const char* Value) {
     if (std::strcmp(Value, "PointList") == 0)
         return EPrimitiveTopology::PointList;
+
     if (std::strcmp(Value, "LineList") == 0)
         return EPrimitiveTopology::LineList;
+
     if (std::strcmp(Value, "LineStrip") == 0)
         return EPrimitiveTopology::LineStrip;
+
     if (std::strcmp(Value, "TriangleList") == 0)
         return EPrimitiveTopology::TriangleList;
+
     if (std::strcmp(Value, "TriangleStrip") == 0)
         return EPrimitiveTopology::TriangleStrip;
 
     ErrorHandler::Report("ParsePrimitiveTopology", "The primitive topology is invalid.", ErrorHandler::EErrorLevel::Error);
+
     return EPrimitiveTopology::TriangleList;
 }
 
 EFillMode ParseFillMode(const char* Value) {
     if (std::strcmp(Value, "Solid") == 0)
         return EFillMode::Solid;
+
     if (std::strcmp(Value, "Wireframe") == 0)
         return EFillMode::Wireframe;
 
     ErrorHandler::Report("ParseFillMode", "The fill mode is invalid.", ErrorHandler::EErrorLevel::Error);
+
     return EFillMode::Solid;
 }
 
 ECullMode ParseCullMode(const char* Value) {
     if (std::strcmp(Value, "None") == 0)
         return ECullMode::None;
+
     if (std::strcmp(Value, "Front") == 0)
         return ECullMode::Front;
+
     if (std::strcmp(Value, "Back") == 0)
         return ECullMode::Back;
 
     ErrorHandler::Report("ParseCullMode", "The cull mode is invalid.", ErrorHandler::EErrorLevel::Error);
+
     return ECullMode::Back;
 }
 
 ECompareFunc ParseCompareFunc(const char* Value) {
     if (std::strcmp(Value, "Never") == 0)
         return ECompareFunc::Never;
+
     if (std::strcmp(Value, "Less") == 0)
         return ECompareFunc::Less;
+
     if (std::strcmp(Value, "Equal") == 0)
         return ECompareFunc::Equal;
+
     if (std::strcmp(Value, "LessEqual") == 0)
         return ECompareFunc::LessEqual;
+
     if (std::strcmp(Value, "Greater") == 0)
         return ECompareFunc::Greater;
+
     if (std::strcmp(Value, "NotEqual") == 0)
         return ECompareFunc::NotEqual;
+
     if (std::strcmp(Value, "GreaterEqual") == 0)
         return ECompareFunc::GreaterEqual;
+
     if (std::strcmp(Value, "Always") == 0)
         return ECompareFunc::Always;
 
     ErrorHandler::Report("ParseCompareFunc", "The comparison function is invalid.", ErrorHandler::EErrorLevel::Error);
+
     return ECompareFunc::Always;
 }
 
 EBlend ParseBlend(const char* Value) {
     if (std::strcmp(Value, "Zero") == 0)
         return EBlend::Zero;
+
     if (std::strcmp(Value, "One") == 0)
         return EBlend::One;
+
     if (std::strcmp(Value, "SrcAlpha") == 0)
         return EBlend::SrcAlpha;
+
     if (std::strcmp(Value, "InvSrcAlpha") == 0)
         return EBlend::InvSrcAlpha;
+
     if (std::strcmp(Value, "DestAlpha") == 0)
         return EBlend::DestAlpha;
+
     if (std::strcmp(Value, "InvDestAlpha") == 0)
         return EBlend::InvDestAlpha;
+
     if (std::strcmp(Value, "SrcColor") == 0)
         return EBlend::SrcColor;
+
     if (std::strcmp(Value, "InvSrcColor") == 0)
         return EBlend::InvSrcColor;
+
     if (std::strcmp(Value, "DestColor") == 0)
         return EBlend::DestColor;
+
     if (std::strcmp(Value, "InvDestColor") == 0)
         return EBlend::InvDestColor;
 
     ErrorHandler::Report("ParseBlend", "The blend value is invalid.", ErrorHandler::EErrorLevel::Error);
+
     return EBlend::One;
 }
 
 EBlendOp ParseBlendOp(const char* Value) {
     if (std::strcmp(Value, "Add") == 0)
         return EBlendOp::Add;
+
     if (std::strcmp(Value, "Subtract") == 0)
         return EBlendOp::Subtract;
+
     if (std::strcmp(Value, "RevSubtract") == 0)
         return EBlendOp::RevSubtract;
+
     if (std::strcmp(Value, "Min") == 0)
         return EBlendOp::Min;
+
     if (std::strcmp(Value, "Max") == 0)
         return EBlendOp::Max;
 
     ErrorHandler::Report("ParseBlendOp", "The blend operation is invalid.", ErrorHandler::EErrorLevel::Error);
+
     return EBlendOp::Add;
 }
-

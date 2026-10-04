@@ -17,6 +17,7 @@ private:
     FWorldEditorContext* mEditorContext{nullptr};
     FMessageChannel::FSender mEditorToWorldSender;
 
+    FString mDisplayedScenePath{};
     char mSceneNameBuffer[256]{"NewScene"};
 
     int mSelectedComponentIndex{-1};

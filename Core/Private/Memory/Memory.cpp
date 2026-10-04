@@ -1,11 +1,11 @@
 #include "pch.h"
+#include "Core/Base/ErrorHandler.h"
 #include "Core/Memory/Memory.h"
 #include <algorithm>
 #include <cstddef>
 #include <limits>
 #include <memory>
 #include <new>
-#include <stdexcept>
 
 namespace {
     struct FAllocationHeader {
@@ -24,7 +24,7 @@ const char* Memory::GetMemoryTagName(EMemoryTag Tag) {
 
 void* Memory::Allocate(std::size_t Size, std::size_t Alignment, EMemoryTag Tag) {
     if (Alignment == 0 || (Alignment & (Alignment - 1)) != 0) {
-        throw std::invalid_argument("Invalid memory alignment");
+        ErrorHandler::Report("Memory", "Invalid memory alignment", ErrorHandler::EErrorLevel::Critical);
     }
 
     const std::size_t EffectiveAlignment{(std::max)(Alignment, alignof(FAllocationHeader))};
@@ -32,29 +32,32 @@ void* Memory::Allocate(std::size_t Size, std::size_t Alignment, EMemoryTag Tag) 
     const std::size_t MaxSize{std::numeric_limits<std::size_t>::max()};
 
     if (EffectiveAlignment - 1 > MaxSize - sizeof(FAllocationHeader)) {
-        throw std::bad_alloc();
+        ErrorHandler::Report("Memory::Allocate", "Allocation alignment exceeds the addressable size.", ErrorHandler::EErrorLevel::Critical);
     }
 
     const std::size_t Overhead{sizeof(FAllocationHeader) + (EffectiveAlignment - 1)};
 
     if (PayloadSize > MaxSize - Overhead) {
-        throw std::bad_alloc();
+        ErrorHandler::Report("Memory::Allocate", "Allocation size exceeds the addressable size.", ErrorHandler::EErrorLevel::Critical);
     }
 
     const std::size_t TotalSize{Overhead + PayloadSize};
-    void* RawPointer{::operator new(TotalSize)};
+    void* RawPointer{::operator new(TotalSize, std::nothrow)};
+
+    ErrorHandler::Report(RawPointer == nullptr, "Memory::Allocate", "Failed to allocate memory.", ErrorHandler::EErrorLevel::Critical);
+
     void* UserPointer{static_cast<std::byte*>(RawPointer) + sizeof(FAllocationHeader)};
 
     std::size_t Space{TotalSize - sizeof(FAllocationHeader)};
 
     if (std::align(EffectiveAlignment, PayloadSize, UserPointer, Space) == nullptr) {
         ::operator delete(RawPointer);
-        throw std::bad_alloc();
+        ErrorHandler::Report("Memory::Allocate", "Failed to align allocated memory.", ErrorHandler::EErrorLevel::Critical);
     }
 
     void* HeaderAddress{static_cast<std::byte*>(UserPointer) - sizeof(FAllocationHeader)};
 
-    ::new (HeaderAddress) FAllocationHeader{ RawPointer, Size, Alignment, Tag};
+    ::new (HeaderAddress) FAllocationHeader{RawPointer, Size, Alignment, Tag};
 
     Stat::RecordAllocation(Size, Tag);
 

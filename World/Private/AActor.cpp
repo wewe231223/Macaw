@@ -24,12 +24,13 @@ UActorComponent* AActor::AddComponent(const FTypeInfo& Type) {
     }
 
     std::unique_ptr<UObject> CreatedObject{Type.mCreator()};
+
     if (CreatedObject == nullptr ||
         !CreatedObject->GetTypeInfo()->IsA(UActorComponent::StaticTypeInfo())) {
         return nullptr;
     }
 
-    std::unique_ptr<UActorComponent> NewComponent{ static_cast<UActorComponent*>(CreatedObject.release())};
+    std::unique_ptr<UActorComponent> NewComponent{static_cast<UActorComponent*>(CreatedObject.release())};
     UActorComponent* ComponentPtr{NewComponent.get()};
 
     ComponentPtr->SetOwner(this);
@@ -79,6 +80,7 @@ bool AActor::SetRootComponent(USceneComponent* InRootComponent) {
     }
 
     mRootComponent = InRootComponent;
+
     return true;
 }
 
@@ -91,6 +93,7 @@ void AActor::SetWorld(UWorld* InWorld) {
         DispatchEndPlay();
 
         mWorld->UnregisterTickActor(this);
+
         for (const std::unique_ptr<UActorComponent>& Component : mComponents) {
             Component->UnregisterComponent();
         }
@@ -125,7 +128,9 @@ void AActor::FinishAddingComponent(UActorComponent& Component) {
     if (mWorld == nullptr) {
         return;
     }
+
     Component.RegisterComponent(mWorld);
+
     if (mBHasBegunPlay && !mInitializingComponents) {
         Component.mBInitialized = true;
         Component.InitializeComponent();
@@ -139,16 +144,20 @@ void AActor::DispatchBeginPlay() {
     if (mWorld == nullptr || !mWorld->HasBegunPlay() || mBHasBegunPlay) {
         return;
     }
+
     mBHasBegunPlay = true;
     InitializeComponents();
+
     for (std::size_t Index{}; Index < mComponents.size(); ++Index) {
         UActorComponent* Component{mComponents[Index].get()};
+
         if (Component->IsRegistered() && !Component->HasBegunPlay()) {
             Component->mBHasBegunPlay = true;
             Component->BeginPlay();
             UpdateComponentTickRegistration(Component);
         }
     }
+
     BeginPlay();
     UpdateTickRegistration();
 }
@@ -157,16 +166,20 @@ void AActor::DispatchEndPlay() {
     if (!mBHasBegunPlay) {
         return;
     }
+
     mBHasBegunPlay = false;
     EndPlay();
+
     for (std::size_t Index{mComponents.size()}; Index > 0; --Index) {
         UActorComponent* Component{mComponents[Index - 1].get()};
+
         if (Component->HasBegunPlay()) {
             Component->mBHasBegunPlay = false;
             Component->EndPlay();
             UpdateComponentTickRegistration(Component);
         }
     }
+
     UpdateTickRegistration();
 }
 
@@ -244,6 +257,7 @@ bool AActor::SetActorRelativeTransform(const FTransform& Transform) {
     }
 
     mRootComponent->SetRelativeTransform(Transform);
+
     return true;
 }
 
@@ -257,6 +271,7 @@ bool AActor::SetActorRelativeLocation(const FVector3& Location) {
     }
 
     mRootComponent->SetRelativeLocation(Location);
+
     return true;
 }
 
@@ -266,6 +281,7 @@ bool AActor::SetActorRelativeLocationAndRotation(const FVector3& Location, const
     }
 
     mRootComponent->SetRelativeLocationAndRotation(Location, Rotation);
+
     return true;
 }
 
@@ -279,6 +295,7 @@ bool AActor::SetActorRelativeRotation(const FRotator& Rotation) {
     }
 
     mRootComponent->SetRelativeRotation(Rotation);
+
     return true;
 }
 
@@ -292,6 +309,7 @@ bool AActor::SetActorRelativeScale3D(const FVector3& Scale) {
     }
 
     mRootComponent->SetRelativeScale3D(Scale);
+
     return true;
 }
 
@@ -351,36 +369,44 @@ void AActor::UpdateComponentTickRegistration(UActorComponent* Component) {
 
 void AActor::UnregisterTickComponent(UActorComponent* Component) {
     const std::size_t Index{Component->mTickIndex};
+
     if (Index == std::numeric_limits<std::size_t>::max()) {
         return;
     }
 
     Component->mTickIndex = std::numeric_limits<std::size_t>::max();
     --mTickComponentCount;
+
     if (mBTickingComponents) {
         mTickComponents[Index] = nullptr;
         mTickComponentsNeedCompaction = true;
     } else {
         if (Index + 1 < mTickComponents.size()) {
             UActorComponent* LastComponent{mTickComponents.back()};
+
             mTickComponents[Index] = LastComponent;
             LastComponent->mTickIndex = Index;
         }
+
         mTickComponents.pop_back();
     }
+
     UpdateTickRegistration();
 }
 
 void AActor::FinishComponentTicks(bool WasTicking) {
     mBTickingComponents = WasTicking;
+
     if (WasTicking || !mTickComponentsNeedCompaction) {
         return;
     }
 
     std::erase(mTickComponents, nullptr);
+
     for (std::size_t Index{}; Index < mTickComponents.size(); ++Index) {
         mTickComponents[Index]->mTickIndex = Index;
     }
+
     mTickComponentsNeedCompaction = false;
 }
 
@@ -391,24 +417,26 @@ void AActor::Tick(float DeltaTime) {
 
     Stat::FWorldTickStats* TickStats{Stat::GetActiveWorldTickStats()};
     const bool WasTicking{mBTickingComponents};
+
     mBTickingComponents = true;
+
     const std::size_t ComponentCount{mTickComponents.size()};
-    try {
-        for (std::size_t Index{}; Index < ComponentCount && Index < mTickComponents.size(); ++Index) {
-            UActorComponent* Component{mTickComponents[Index]};
-            if (Component == nullptr) {
-                continue;
-            }
-            if (TickStats != nullptr) {
-                ++TickStats->mComponentVisitCount;
-                ++TickStats->mComponentTickCount;
-            }
-            Component->Tick(DeltaTime);
+
+    for (std::size_t Index{}; Index < ComponentCount && Index < mTickComponents.size(); ++Index) {
+        UActorComponent* Component{mTickComponents[Index]};
+
+        if (Component == nullptr) {
+            continue;
         }
-    } catch (...) {
-        FinishComponentTicks(WasTicking);
-        throw;
+
+        if (TickStats != nullptr) {
+            ++TickStats->mComponentVisitCount;
+            ++TickStats->mComponentTickCount;
+        }
+
+        Component->Tick(DeltaTime);
     }
+
     FinishComponentTicks(WasTicking);
 }
 
@@ -417,6 +445,7 @@ void AActor::Serialize(FArchive& Archive) {
 
     // components
     std::size_t ArraySize{mComponents.size()};
+
     Archive.BeginArrayScope("Components", ArraySize);
 
     for (std::size_t I{0}; I < ArraySize; ++I) {
@@ -424,15 +453,18 @@ void AActor::Serialize(FArchive& Archive) {
         mComponents[I]->Serialize(Archive);
         Archive.EndObjectScope();
     }
+
     Archive.EndArrayScope();
 
     // root component
     FString GuidRootComponent{};
+
     if (mRootComponent != nullptr) {
         GuidRootComponent = mRootComponent->GetGuid().ToString();
     }
 
     Archive.Serialize("GuidRootComponent", GuidRootComponent);
+
     if (Archive.IsLoading()) {
         mRootComponent = nullptr;
         mPendingRootComponentGuid = {};
@@ -448,18 +480,16 @@ void AActor::OnAddedToWorld() {
 
 void AActor::InitializeComponents() {
     mInitializingComponents = true;
-    try {
-        for (std::size_t Index{}; Index < mComponents.size(); ++Index) {
-            UActorComponent* Component{mComponents[Index].get()};
-            if (Component->IsRegistered() && !Component->IsInitialized()) {
-                Component->mBInitialized = true;
-                Component->InitializeComponent();
-            }
+
+    for (std::size_t Index{}; Index < mComponents.size(); ++Index) {
+        UActorComponent* Component{mComponents[Index].get()};
+
+        if (Component->IsRegistered() && !Component->IsInitialized()) {
+            Component->mBInitialized = true;
+            Component->InitializeComponent();
         }
-    } catch (...) {
-        mInitializingComponents = false;
-        throw;
     }
+
     mInitializingComponents = false;
 }
 
@@ -472,14 +502,16 @@ void AActor::EndPlay() {
 void AActor::OnRemovedFromWorld() {
 }
 
-bool AActor::PreLoadComponents(FArchive& Archive) {
+bool AActor::PreLoadComponents(FArchive& Archive, bool RegisterComponents) {
     std::size_t ArraySize{0};
+
     Archive.BeginArrayScope("Components", ArraySize);
 
     for (const std::unique_ptr<UActorComponent>& Component : mComponents) {
         Component->UnregisterComponent();
         UObjectSystem::Unregister(Component.get(), Component->GetHandle());
     }
+
     mRootComponent = nullptr;
     mTickComponents.clear();
     mTickComponentCount = 0;
@@ -492,9 +524,11 @@ bool AActor::PreLoadComponents(FArchive& Archive) {
         Archive.BeginObjectScope(std::to_string(I));
 
         FString TypeName{};
+
         Archive.Serialize("TypeName", TypeName);
 
         const FTypeInfo* Type{TypeRegistry::Find(TypeName)};
+
         if (Type == nullptr || Type->mCreator == nullptr) {
             Archive.EndObjectScope();
             Archive.EndArrayScope();
@@ -502,6 +536,7 @@ bool AActor::PreLoadComponents(FArchive& Archive) {
         }
 
         std::unique_ptr<UObject> CreatedObject{Type->mCreator()};
+
         if (CreatedObject == nullptr ||
             !CreatedObject->GetTypeInfo()->IsA(UActorComponent::StaticTypeInfo())) {
             Archive.EndObjectScope();
@@ -509,18 +544,27 @@ bool AActor::PreLoadComponents(FArchive& Archive) {
             return false;
         }
 
-        std::unique_ptr<UActorComponent> Component{ static_cast<UActorComponent*>(CreatedObject.release())};
+        std::unique_ptr<UActorComponent> Component{static_cast<UActorComponent*>(CreatedObject.release())};
+
         Component->SetOwner(this);
 
         FGuid ComponentGuid{};
+
         Archive.Serialize("Guid", ComponentGuid);
-        UObjectSystem::RegisterWithGuid(Component.get(), ComponentGuid);
+
+        if (RegisterComponents) {
+            UObjectSystem::RegisterWithGuid(Component.get(), ComponentGuid);
+        } else {
+            Component->RestoreGuid(ComponentGuid);
+        }
+
         mComponents.push_back(std::move(Component));
 
         Archive.EndObjectScope();
     }
 
     Archive.EndArrayScope();
+
     return true;
 }
 
@@ -529,7 +573,7 @@ bool AActor::ResolveLoadedReferences() {
         UObject* ResolvedObject{UObjectSystem::Resolve(UObjectSystem::FindHandleByGuid(mPendingRootComponentGuid))};
 
         if (ResolvedObject == nullptr ||
-            !ResolvedObject->GetTypeInfo()->IsA(USceneComponent::StaticTypeInfo())) {
+            !ResolvedObject->GetTypeInfo()->IsA(USceneComponent::StaticTypeInfo()) || static_cast<USceneComponent*>(ResolvedObject)->GetOwner() != this) {
             return false;
         }
 

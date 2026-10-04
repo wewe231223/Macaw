@@ -7,6 +7,9 @@ public:
     FArchiveJson(rapidjson::Value& RootNode, rapidjson::Document::AllocatorType& InAllocator);
     FArchiveJson(rapidjson::Value& RootNode);
 
+public:
+    bool HasError() const;
+
     // Primitives
     virtual void Serialize(std::string_view Name, bool& Value) override;
     virtual void Serialize(std::string_view Name, Uint8& Value) override;
@@ -48,4 +51,5 @@ private:
 private:
     rapidjson::Document::AllocatorType* mAllocator{};
     TArray<rapidjson::Value*> mNodeStack{};
+    bool mError{};
 };

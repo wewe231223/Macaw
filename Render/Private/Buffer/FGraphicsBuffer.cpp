@@ -9,6 +9,7 @@ bool FGraphicsBuffer::Initialize(ID3D11Device* Device, const FGraphicsBufferDesc
     }
 
     D3D11_BUFFER_DESC BufferDesc{};
+
     BufferDesc.ByteWidth = InDescription.mByteSize;
     BufferDesc.Usage = InDescription.mUsage;
     BufferDesc.BindFlags = InDescription.mBindFlags;
@@ -17,11 +18,13 @@ bool FGraphicsBuffer::Initialize(ID3D11Device* Device, const FGraphicsBufferDesc
     BufferDesc.StructureByteStride = InDescription.mStride;
 
     D3D11_SUBRESOURCE_DATA SubresourceData{};
+
     SubresourceData.pSysMem = InitialData;
 
     Microsoft::WRL::ComPtr<ID3D11Buffer> NewBuffer{};
 
     const HRESULT Result{Device->CreateBuffer(&BufferDesc, InitialData ? &SubresourceData : nullptr, NewBuffer.GetAddressOf())};
+
     if (FAILED(Result)) {
         return false;
     }
@@ -51,6 +54,7 @@ bool FGraphicsBuffer::Update(ID3D11DeviceContext* Context, const void* Data, Uin
     }
 
     D3D11_BOX Box{};
+
     Box.left = DestinationOffset;
     Box.right = DestinationOffset + InByteSize;
     Box.top = 0;
@@ -79,6 +83,7 @@ bool FGraphicsBuffer::WriteDiscard(ID3D11DeviceContext* Context, const void* Dat
     D3D11_MAPPED_SUBRESOURCE MappedResource{};
 
     const HRESULT Result{Context->Map(mBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &MappedResource)};
+
     if (FAILED(Result)) {
         return false;
     }
@@ -106,6 +111,7 @@ bool FGraphicsBuffer::WriteNoOverwrite(ID3D11DeviceContext* Context, const void*
     D3D11_MAPPED_SUBRESOURCE MappedResource{};
 
     const HRESULT Result{Context->Map(mBuffer.Get(), 0, D3D11_MAP_WRITE_NO_OVERWRITE, 0, &MappedResource)};
+
     if (FAILED(Result)) {
         return false;
     }
@@ -145,6 +151,7 @@ bool FGraphicsBuffer::CopyFrom(ID3D11DeviceContext* Context, Uint32 DestinationO
     }
 
     D3D11_BOX SourceBox{};
+
     SourceBox.left = SourceOffset;
     SourceBox.right = SourceOffset + InByteSize;
     SourceBox.top = 0;

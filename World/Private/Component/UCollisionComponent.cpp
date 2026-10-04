@@ -35,6 +35,7 @@ bool UCollisionComponent::Raycast(const FRay& Ray, float& OutDistance) const {
     }
 
     UMeshComponent* Mesh{GetMeshComponent()};
+
     return Mesh == nullptr || Mesh->RaycastMesh(Ray, OutDistance);
 }
 

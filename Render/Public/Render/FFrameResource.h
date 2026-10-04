@@ -68,6 +68,7 @@ private:
         Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> mSceneTransforms{};
 
         std::array<FStreamBuffer, static_cast<std::size_t>(EFrameStream::Count)> mStreams{};
+
         bool mOrientationAxisReady{};
     };
 

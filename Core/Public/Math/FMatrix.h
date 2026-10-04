@@ -10,8 +10,7 @@ struct FRotator;
 struct FQuat;
 
 struct FMatrix {
-    union
-    {
+    union {
         float M[4][4];
         float m_[4][4];
     };
@@ -23,8 +22,7 @@ public:
         const float& f00, const float& f01, const float& f02, const float& f03,
         const float& f10, const float& f11, const float& f12, const float& f13,
         const float& f20, const float& f21, const float& f22, const float& f23,
-        const float& f30, const float& f31, const float& f32, const float& f33
-    );
+        const float& f30, const float& f31, const float& f32, const float& f33);
 
 public:
     void SetAxes(const FVector4& Axis0, const FVector4& Axis1, const FVector4& Axis2, const FVector4& Axis3);
@@ -88,32 +86,32 @@ public:
     //static XMMATRIX FMatrixToXMMatrix(const FMatrix& M);
     //static FMatrix XMMatrixToFMatrix(const XMMATRIX& Matrix);
 
-/* Operator */
+    /* Operator */
 
-    FMatrix operator - ();
+    FMatrix operator-();
 
-    const float* operator[] (int32 Index) const;
-    float* operator[] (int32 Index);
+    const float* operator[](int32 Index) const;
+    float* operator[](int32 Index);
 
-    bool operator != (const FMatrix& Other) const;
-    bool operator == (const FMatrix& Other) const;
+    bool operator!=(const FMatrix& Other) const;
+    bool operator==(const FMatrix& Other) const;
 
-    FMatrix operator * (const FMatrix& Other) const;
-    FMatrix operator * (const float& Other) const;
-    FVector4 operator * (const FVector4& Other) const;
+    FMatrix operator*(const FMatrix& Other) const;
+    FMatrix operator*(const float& Other) const;
+    FVector4 operator*(const FVector4& Other) const;
 
-    FMatrix& operator *= (const FMatrix& Other);
-    FMatrix& operator *= (float Other);
+    FMatrix& operator*=(const FMatrix& Other);
+    FMatrix& operator*=(float Other);
 
-    FMatrix operator + (const FMatrix& Other) const;
-    FMatrix& operator += (const FMatrix& Other);
-    FMatrix operator - (const FMatrix& Other) const;
-    FMatrix& operator -= (const FMatrix& Other);
+    FMatrix operator+(const FMatrix& Other) const;
+    FMatrix& operator+=(const FMatrix& Other);
+    FMatrix operator-(const FMatrix& Other) const;
+    FMatrix& operator-=(const FMatrix& Other);
 
     static const FMatrix Identity;
 };
 
 /* Global Operator*/
-std::ostream& operator << (std::ostream& OS, const FMatrix& M);
+std::ostream& operator<<(std::ostream& OS, const FMatrix& M);
 
 FRotator MatrixToRotator(const FMatrix& M);

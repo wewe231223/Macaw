@@ -6,6 +6,7 @@ void FAssetHandle::Serialize(FArchive& Archive) {
     Archive.Serialize("ID", mId);
     Archive.Serialize("Generation", mGeneration);
 }
+
 bool FAssetHandle::operator==(const FAssetHandle& Other) const {
     return mId == Other.mId && mGeneration == Other.mGeneration;
 }

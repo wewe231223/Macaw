@@ -35,4 +35,3 @@ ECompareFunc ParseCompareFunc(const char* Value);
 EBlend ParseBlend(const char* Value);
 
 EBlendOp ParseBlendOp(const char* Value);
-

@@ -22,6 +22,7 @@ namespace {
         }
 
         std::wstring WideText{};
+
         WideText.resize(WideLength);
 
         const int ConvertedLength{MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, Text.data(), static_cast<int>(Text.size()), WideText.data(), WideLength)};
@@ -34,6 +35,7 @@ namespace {
         for (wchar_t Character : WideText) {
             OutCodePoints.push_back(static_cast<char32_t>(Character));
         }
+
         return true;
     }
 }
@@ -44,8 +46,10 @@ void UBillboardTextComponent::SetFontHandle(FAssetHandle InFontHandle) {
     }
 
     mFontHandle = InFontHandle;
+
     UWorld* World{GetBelongingWorld()};
     const IAssetRegistry* AssetRegistry{World != nullptr ? World->GetAssetRegistry() : nullptr};
+
     mFontAssetPath = AssetRegistry != nullptr && AssetRegistry->GetAssetPath(mFontHandle) != nullptr ? *AssetRegistry->GetAssetPath(mFontHandle) : FAssetPath{};
     mFontAssetGuid = AssetRegistry != nullptr && AssetRegistry->GetAssetGuid(mFontHandle) != nullptr ? *AssetRegistry->GetAssetGuid(mFontHandle) : FGuid{};
     RebuildTextGeometry();
@@ -53,8 +57,10 @@ void UBillboardTextComponent::SetFontHandle(FAssetHandle InFontHandle) {
 
 void UBillboardTextComponent::SetPipelineHandle(FAssetHandle InPipelineHandle) {
     mPipelineHandle = InPipelineHandle;
+
     UWorld* World{GetBelongingWorld()};
     const IAssetRegistry* AssetRegistry{World != nullptr ? World->GetAssetRegistry() : nullptr};
+
     mPipelineAssetPath = AssetRegistry != nullptr && AssetRegistry->GetAssetPath(mPipelineHandle) != nullptr ? *AssetRegistry->GetAssetPath(mPipelineHandle) : FAssetPath{};
     mPipelineAssetGuid = AssetRegistry != nullptr && AssetRegistry->GetAssetGuid(mPipelineHandle) != nullptr ? *AssetRegistry->GetAssetGuid(mPipelineHandle) : FGuid{};
 }
@@ -231,8 +237,10 @@ void UBillboardTextComponent::RebuildTextGeometry() {
 
             mVertices.push_back(Vertex);
         }
+
         PenX += Glyph->mAdvanceX * PixelToWorld + mLetterSpacing;
     }
+
     if (mVertices.empty()) {
         return;
     }
@@ -268,6 +276,7 @@ void UBillboardTextComponent::OnRegister() {
 
     if (World != nullptr) {
         const IAssetRegistry* AssetRegistry{World->GetAssetRegistry()};
+
         if (AssetRegistry != nullptr) {
             if (AssetRegistry->ResolveAsset<UFont>(mFontHandle) == nullptr) {
                 mFontHandle = AssetRegistry->FindAsset(FAssetPath{"/Game/Font/NotoSansKR-Medium.ttf"});
@@ -280,6 +289,7 @@ void UBillboardTextComponent::OnRegister() {
 
         World->GetTextSubsystem().RegisterComponent(this);
     }
+
     RebuildTextGeometry();
 }
 
@@ -295,35 +305,46 @@ void UBillboardTextComponent::OnUnregister() {
 
 void UBillboardTextComponent::Serialize(FArchive& Archive) {
     UPrimitiveComponent::Serialize(Archive);
+
     const IAssetResolver* AssetRegistry{Archive.GetAssetResolver()};
+
     if (Archive.IsSaving() && AssetRegistry != nullptr) {
         if (const FAssetPath* AssetPath{AssetRegistry->GetAssetPath(mFontHandle)}) {
             mFontAssetPath = *AssetPath;
         }
+
         if (const FGuid* AssetGuid{AssetRegistry->GetAssetGuid(mFontHandle)}) {
             mFontAssetGuid = *AssetGuid;
         }
+
         if (const FAssetPath* AssetPath{AssetRegistry->GetAssetPath(mPipelineHandle)}) {
             mPipelineAssetPath = *AssetPath;
         }
+
         if (const FGuid* AssetGuid{AssetRegistry->GetAssetGuid(mPipelineHandle)}) {
             mPipelineAssetGuid = *AssetGuid;
         }
     }
+
     Archive.Serialize("FontAssetGuid", mFontAssetGuid);
     Archive.Serialize("FontAssetPath", mFontAssetPath.mPath);
     Archive.Serialize("PipelineAssetGuid", mPipelineAssetGuid);
     Archive.Serialize("PipelineAssetPath", mPipelineAssetPath.mPath);
+
     if (Archive.IsLoading()) {
         mFontHandle = AssetRegistry != nullptr ? AssetRegistry->FindAsset(mFontAssetGuid) : FAssetHandle{};
+
         if (!mFontHandle && AssetRegistry != nullptr) {
             mFontHandle = AssetRegistry->FindAsset(mFontAssetPath);
         }
+
         mPipelineHandle = AssetRegistry != nullptr ? AssetRegistry->FindAsset(mPipelineAssetGuid) : FAssetHandle{};
+
         if (!mPipelineHandle && AssetRegistry != nullptr) {
             mPipelineHandle = AssetRegistry->FindAsset(mPipelineAssetPath);
         }
     }
+
     Archive.Serialize("Text", mText);
     Archive.Serialize("Color", mColor);
     Archive.Serialize("CharacterHeight", mCharacterHeight);
@@ -333,5 +354,6 @@ void UBillboardTextComponent::Serialize(FArchive& Archive) {
 
 bool UBillboardTextComponent::TryGetTextWorld(FMatrix& OutWorld) const {
     OutWorld = GetComponentToWorld();
+
     return true;
 }

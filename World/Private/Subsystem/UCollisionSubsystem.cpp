@@ -23,11 +23,13 @@ bool UCollisionSubsystem::Raycast(const FRay& Ray, UCollisionComponent*& OutComp
 
     for (const TObjectRef<UCollisionComponent>& ComponentRef : mComponents) {
         UCollisionComponent* Component{ComponentRef.Get()};
+
         if (Component == nullptr or not ComponentRef->IsActive()) {
             continue;
         }
 
         float Distance{0.0f};
+
         if (Component->Raycast(Ray, Distance) && Distance < OutDistance) {
             OutDistance = Distance;
             OutComponent = Component;

@@ -21,11 +21,11 @@ namespace BasicGeometry::SkyDome {
                 const float X{std::cos(Theta) * RingRadius};
                 const float Y{-std::sin(Theta) * RingRadius};
 
-                Result.mPositions[Vertex] = FVector3{ X * Radius, Y * Radius, Z * Radius};
+                Result.mPositions[Vertex] = FVector3{X * Radius, Y * Radius, Z * Radius};
 
-                Result.mNormals[Vertex] = FVector3{ -X, -Y, -Z};
+                Result.mNormals[Vertex] = FVector3{-X, -Y, -Z};
 
-                Result.mTexCoords[Vertex++] = FVector2D{ U, V};
+                Result.mTexCoords[Vertex++] = FVector2D{U, V};
             }
         }
 

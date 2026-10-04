@@ -34,6 +34,7 @@ FMessageDispatchResult FMessageChannel::Dispatch() {
 
         for (std::size_t Index{0}; Index < DispatchCount; ++Index) {
             FMessage Message{std::move(mMessages.front())};
+
             mMessages.pop_front();
 
             FMessageHandler* Handler{FindHandler(Message.GetTypeInfo())};
@@ -104,11 +105,11 @@ void FMessageChannel::CommitPendingHandlers() {
 }
 
 FMessageChannel::FSender::FSender(FMessageChannel& InChannel) noexcept
-    : mChannel(&InChannel) {
+	: mChannel(&InChannel) {
 }
 
 FMessageChannel::FMessageChannel(std::size_t InCapacity, std::size_t ExpectedHandlerCount)
-    : mCapacity(InCapacity) {
+	: mCapacity(InCapacity) {
     mHandlers.reserve(ExpectedHandlerCount);
     mPendingHandlers.reserve(ExpectedHandlerCount);
 }

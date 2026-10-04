@@ -33,6 +33,7 @@ void FKeyboardInput::ProcessWindowMessage(UINT Message, WPARAM WParam, LPARAM LP
                 State == EKeyState::Released) {
                 State = EKeyState::Pressed;
             }
+
             break;
 
         case WM_KEYUP:
@@ -40,6 +41,7 @@ void FKeyboardInput::ProcessWindowMessage(UINT Message, WPARAM WParam, LPARAM LP
             if (State != EKeyState::None) {
                 State = EKeyState::Released;
             }
+
             break;
 
         default:
@@ -88,5 +90,6 @@ FViewportKeyboardNavigationInput FKeyboardInput::ConsumeViewportNavigation(float
     }
 
     AdvanceKeyStates();
+
     return NavigationInput;
 }

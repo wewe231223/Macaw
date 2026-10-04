@@ -2,7 +2,6 @@
 #include "Core/Channel/FMessageTypeInfo.h"
 
 struct FKeyboardCameraMoveRequestMessage {
-
     static const FMessageTypeInfo& StaticTypeInfo() noexcept;
 
     float ForwardAxis{0.0f};

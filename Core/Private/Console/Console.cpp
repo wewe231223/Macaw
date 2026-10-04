@@ -20,8 +20,10 @@ namespace {
 
         void PushHistory(FConsoleMessage Message) {
             ErrorHandler::Report(Message.mLevel == ELogLevel::Error, "Console Log", std::format("[{}] [{}] {}", Message.mTime, static_cast<int>(Message.mLevel), Message.mText), ErrorHandler::EErrorLevel::Warning);
+
             if (mCount < mCapacity) {
                 std::size_t Index{(mFront + mCount) % mCapacity};
+
                 mMessages[Index] = std::move(Message);
                 ++mCount;
             } else {
@@ -41,6 +43,7 @@ namespace {
 
         const FConsoleMessage& GetMessage(std::size_t Index) const {
             std::size_t CircleIndex{(mFront + Index) % mCapacity};
+
             return mMessages[CircleIndex];
         }
 
@@ -88,6 +91,7 @@ namespace {
 
     FConsoleState& GetConsoleState() {
         static FConsoleState State{};
+
         return State;
     }
 
@@ -110,9 +114,11 @@ namespace {
         std::time_t NowTime{std::chrono::system_clock::to_time_t(Now)};
 
         std::tm LocalTime{};
+
         localtime_s(&LocalTime, &NowTime);
 
         std::ostringstream Stream{};
+
         Stream.imbue(std::locale(""));
         Stream << std::put_time(&LocalTime, "%H:%M:%S");
 
@@ -144,9 +150,11 @@ namespace Console {
 
     void AddLog(FConsoleOutputHandle Handle, ELogLevel Level, ELogCategory Category, const char* Format, ...) {
         va_list Args{};
+
         va_start(Args, Format);
 
         va_list ArgsCopy{};
+
         va_copy(ArgsCopy, Args);
 
         int Length{vsnprintf(nullptr, 0, Format, ArgsCopy)};
@@ -159,6 +167,7 @@ namespace Console {
         }
 
         FString Text{};
+
         Text.resize(static_cast<std::size_t>(Length + 1), '\0');
 
         vsnprintf(Text.data(), Text.size(), Format, Args);
@@ -168,6 +177,7 @@ namespace Console {
         Text.resize(Length);
 
         FConsoleMessage Message{};
+
         Message.mCategory = Category;
         Message.mLevel = Level;
         Message.mText = std::move(Text);
@@ -199,6 +209,7 @@ namespace Console {
         // lock 수명 짧게
         {
             std::lock_guard<std::mutex> Lock{State.mPendingMutex};
+
             Storage->SwapPendingBuffers();
         }
 

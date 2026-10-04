@@ -19,6 +19,7 @@ namespace {
         //    Result.m[2][Column] = Row1[Column];
         //}
         Result.Translation(Position);
+
         return Result;
     }
 }
@@ -40,7 +41,9 @@ void FTransform::SetRotation(const FQuat& InRotation) {
     }
 
     FQuat Rotation{InRotation};
+
     Rotation.Normalize();
+
     if (mRotation.X == Rotation.X && mRotation.Y == Rotation.Y && mRotation.Z == Rotation.Z && mRotation.W == Rotation.W) {
         return;
     }
@@ -79,40 +82,47 @@ FMatrix FTransform::ToInverseMatrixWithScale() const {
 }
 
 FTransform FTransform::Compose(const FTransform& Parent) const {
-    const FVector3 ScaledPosition{ mPosition.mX * Parent.mScale.mX, mPosition.mY * Parent.mScale.mY, mPosition.mZ * Parent.mScale.mZ};
+    const FVector3 ScaledPosition{mPosition.mX * Parent.mScale.mX, mPosition.mY * Parent.mScale.mY, mPosition.mZ * Parent.mScale.mZ};
 
     const FVector3 WorldPosition{mBAbsoluteLocation ? mPosition : FMatrix::CreateFromQuaternion(Parent.mRotation).TransformDirection(ScaledPosition) + Parent.mPosition};
 
-    const FVector3 WorldScale{ mScale.mX * Parent.mScale.mX, mScale.mY * Parent.mScale.mY, mScale.mZ * Parent.mScale.mZ};
+    const FVector3 WorldScale{mScale.mX * Parent.mScale.mX, mScale.mY * Parent.mScale.mY, mScale.mZ * Parent.mScale.mZ};
 
-    FTransform WorldTransform{ WorldPosition, mBAbsoluteRotation ? mRotation : FQuat::Concatenate(Parent.mRotation, mRotation), mBAbsoluteScale ? mScale : WorldScale};
+    FTransform WorldTransform{WorldPosition, mBAbsoluteRotation ? mRotation : FQuat::Concatenate(Parent.mRotation, mRotation), mBAbsoluteScale ? mScale : WorldScale};
+
     WorldTransform.SetAbsoluteLocation(mBAbsoluteLocation);
     WorldTransform.SetAbsoluteRotation(mBAbsoluteRotation);
     WorldTransform.SetAbsoluteScale(mBAbsoluteScale);
+
     return WorldTransform;
 }
 
 bool FTransform::MakeRelativeTo(const FTransform& Parent, FTransform& OutRelative) const {
     constexpr float Epsilon{1e-6f};
+
     if ((!mBAbsoluteLocation || !mBAbsoluteScale) && (std::abs(Parent.mScale.mX) <= Epsilon || std::abs(Parent.mScale.mY) <= Epsilon || std::abs(Parent.mScale.mZ) <= Epsilon)) {
         return false;
     }
 
     FVector3 RelativePosition{mPosition};
+
     if (!mBAbsoluteLocation) {
         const FVector3 ParentSpacePosition{FMatrix::CreateFromQuaternion(Parent.mRotation.Inverse()).TransformDirection(mPosition - Parent.mPosition)};
-        RelativePosition = { ParentSpacePosition.mX / Parent.mScale.mX, ParentSpacePosition.mY / Parent.mScale.mY, ParentSpacePosition.mZ / Parent.mScale.mZ};
+
+        RelativePosition = {ParentSpacePosition.mX / Parent.mScale.mX, ParentSpacePosition.mY / Parent.mScale.mY, ParentSpacePosition.mZ / Parent.mScale.mZ};
     }
 
     FVector3 RelativeScale{mScale};
+
     if (!mBAbsoluteScale) {
-        RelativeScale = { mScale.mX / Parent.mScale.mX, mScale.mY / Parent.mScale.mY, mScale.mZ / Parent.mScale.mZ};
+        RelativeScale = {mScale.mX / Parent.mScale.mX, mScale.mY / Parent.mScale.mY, mScale.mZ / Parent.mScale.mZ};
     }
 
-    OutRelative = { RelativePosition, mBAbsoluteRotation ? mRotation : FQuat::Concatenate(mRotation, Parent.mRotation.Inverse()), RelativeScale};
+    OutRelative = {RelativePosition, mBAbsoluteRotation ? mRotation : FQuat::Concatenate(mRotation, Parent.mRotation.Inverse()), RelativeScale};
     OutRelative.SetAbsoluteLocation(mBAbsoluteLocation);
     OutRelative.SetAbsoluteRotation(mBAbsoluteRotation);
     OutRelative.SetAbsoluteScale(mBAbsoluteScale);
+
     return true;
 }
 
@@ -123,6 +133,7 @@ void FTransform::Serialize(FArchive& Archive) {
     bool AbsoluteLocation{mBAbsoluteLocation};
     bool AbsoluteRotation{mBAbsoluteRotation};
     bool AbsoluteScale{mBAbsoluteScale};
+
     Archive.Serialize("Position", Position);
     Archive.Serialize("Rotation", Rotation);
     Archive.Serialize("Scale", Scale);
@@ -132,6 +143,7 @@ void FTransform::Serialize(FArchive& Archive) {
 
     if (Archive.IsLoading()) {
         FTransform LoadedTransform{Position, Rotation, Scale};
+
         LoadedTransform.SetAbsoluteLocation(AbsoluteLocation);
         LoadedTransform.SetAbsoluteRotation(AbsoluteRotation);
         LoadedTransform.SetAbsoluteScale(AbsoluteScale);

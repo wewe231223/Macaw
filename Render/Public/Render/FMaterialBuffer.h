@@ -13,6 +13,20 @@ private:
         FAssetHandle mHandle{};
         Uint64 mRevision{};
         TArray<Uint32> mIndices{};
+    };
+
+public:
+    FMaterialBuffer() = default;
+    ~FMaterialBuffer() = default;
+
+    FMaterialBuffer(const FMaterialBuffer&) = delete;
+    FMaterialBuffer& operator=(const FMaterialBuffer&) = delete;
+    FMaterialBuffer(FMaterialBuffer&&) = delete;
+    FMaterialBuffer& operator=(FMaterialBuffer&&) = delete;
+
+public:
+    bool Initialize(ID3D11Device* Device, Uint32 MaxMaterialCount = 4096);
+    bool Synchronize(const IAssetRegistry& Registry, ID3D11DeviceContext* Context);
     Uint32 GetMaterialIndex(const UMaterial& Material, Uint32 GroupIndex = 0) const;
     Uint64 GetRevision() const;
     ID3D11ShaderResourceView* GetSRV() const;

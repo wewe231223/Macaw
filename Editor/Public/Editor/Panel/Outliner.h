@@ -5,8 +5,7 @@
 #include "World/UWorld.h"
 #include "Editor/World/FWorldEditorContext.h"
 
-struct FOutlinerVisibleItem
-{
+struct FOutlinerVisibleItem {
     AActor* Actor = nullptr;
     uint32 Depth = 0;
 };
@@ -14,7 +13,10 @@ struct FOutlinerVisibleItem
 class FOutlinerPanel : public FEditorWindow {
 public:
     FOutlinerPanel(UWorld& InWorld, FWorldEditorContext& InEditorContext);
-    void MarkDirty(){ bHierarchyDirty = true;}
+
+    void MarkDirty() {
+        bHierarchyDirty = true;
+    }
 
 private:
     void DrawContents() override;
@@ -51,4 +53,3 @@ private:
     bool bHierarchyDirty = true;
     bool bVisibleDirty = true;
 };
-

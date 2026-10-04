@@ -4,17 +4,22 @@
 
 bool FPipelineRenderResource::Initialize(ID3D11Device* Device, const UPipeline& Pipeline) {
     Reset();
+
     if (Device == nullptr) {
         return false;
     }
+
     mPipelines.resize(static_cast<std::size_t>(ERenderMode::Max));
+
     for (std::size_t Index{}; Index < mPipelines.size(); ++Index) {
         const FPipelineDescription* Description{Pipeline.GetDescription(static_cast<ERenderMode>(Index))};
+
         if (Description != nullptr && !Make(Device, *Description, mPipelines[Index])) {
             Reset();
             return false;
         }
     }
+
     return Pipeline.RenderModeSettable(ERenderMode::Lit);
 }
 
@@ -39,10 +44,12 @@ bool FPipelineRenderResource::Make(ID3D11Device* Device, const FPipelineDescript
     }
 
     std::vector<D3D11_INPUT_ELEMENT_DESC> NativeInputLayout{};
+
     NativeInputLayout.reserve(Description.mInputLayout.size());
 
     for (const FInputElementDescription& Source : Description.mInputLayout) {
         D3D11_INPUT_ELEMENT_DESC Element{};
+
         Element.SemanticName = Source.mSemanticName.c_str();
         Element.SemanticIndex = Source.mSemanticIndex;
         Element.Format = ConvertVertexFormat(Source.mFormat);
@@ -55,6 +62,7 @@ bool FPipelineRenderResource::Make(ID3D11Device* Device, const FPipelineDescript
     }
 
     HRESULT Result{S_OK};
+
     if (!NativeInputLayout.empty()) {
         Result = Device->CreateInputLayout(NativeInputLayout.data(), static_cast<UINT>(NativeInputLayout.size()), Pipeline.mVertexShader.GetByteCodeData(), Pipeline.mVertexShader.GetByteCodeSize(), Pipeline.mInputLayout.GetAddressOf());
 
@@ -68,6 +76,7 @@ bool FPipelineRenderResource::Make(ID3D11Device* Device, const FPipelineDescript
     }
 
     D3D11_RASTERIZER_DESC RasterizerDesc{};
+
     RasterizerDesc.FillMode = ConvertFillMode(Description.mRasterizer.mFillMode);
     RasterizerDesc.CullMode = ConvertCullMode(Description.mRasterizer.mCullMode);
     RasterizerDesc.FrontCounterClockwise = Description.mRasterizer.mFrontCounterClockwise;
@@ -83,6 +92,7 @@ bool FPipelineRenderResource::Make(ID3D11Device* Device, const FPipelineDescript
     }
 
     D3D11_DEPTH_STENCIL_DESC DepthStencilDesc{};
+
     DepthStencilDesc.DepthEnable = Description.mDepthStencil.mDepthEnable;
     DepthStencilDesc.DepthWriteMask = Description.mDepthStencil.mDepthWriteEnable ? D3D11_DEPTH_WRITE_MASK_ALL : D3D11_DEPTH_WRITE_MASK_ZERO;
     DepthStencilDesc.DepthFunc = ConvertCompareFunc(Description.mDepthStencil.mDepthFunc);
@@ -105,10 +115,12 @@ bool FPipelineRenderResource::Make(ID3D11Device* Device, const FPipelineDescript
     }
 
     D3D11_BLEND_DESC BlendDesc{};
+
     BlendDesc.AlphaToCoverageEnable = false;
     BlendDesc.IndependentBlendEnable = false;
 
     D3D11_RENDER_TARGET_BLEND_DESC& RenderTarget{BlendDesc.RenderTarget[0]};
+
     RenderTarget.BlendEnable = Description.mBlend.mBlendEnable;
     RenderTarget.SrcBlend = ConvertBlend(Description.mBlend.mSrcBlend);
     RenderTarget.DestBlend = ConvertBlend(Description.mBlend.mDestBlend);
@@ -129,6 +141,7 @@ bool FPipelineRenderResource::Make(ID3D11Device* Device, const FPipelineDescript
     Pipeline.mPrimitiveTopology = ConvertPrimitiveTopology(Description.mPrimitiveTopology);
 
     Pipeline.mInitialized = true;
+
     return true;
 }
 
@@ -139,6 +152,7 @@ void FPipelineRenderResource::Bind(ID3D11DeviceContext* Context, ERenderMode Mod
     }
 
     const std::size_t Index{static_cast<std::size_t>(Mode)};
+
     if (Index >= mPipelines.size() || !mPipelines[Index].mInitialized) {
         return;
     }

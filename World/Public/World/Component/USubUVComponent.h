@@ -34,7 +34,6 @@ public:
 
     void Tick(float DeltaTime) override;
 
-
 protected:
     void Serialize(FArchive& Archive) override;
 

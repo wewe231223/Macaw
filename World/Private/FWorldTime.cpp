@@ -13,19 +13,24 @@ void FWorldTime::Reset() {
 
 void FWorldTime::Tick(double DeltaSeconds) {
     mDeltaSeconds = 0.0;
+
     if (mPaused || !std::isfinite(DeltaSeconds) || DeltaSeconds <= 0.0) {
         return;
     }
+
     const double ScaledDeltaSeconds{DeltaSeconds * mTimeScale};
+
     if (!std::isfinite(ScaledDeltaSeconds) || ScaledDeltaSeconds > std::numeric_limits<float>::max() || !std::isfinite(mElapsedSeconds + ScaledDeltaSeconds)) {
         return;
     }
+
     mDeltaSeconds = ScaledDeltaSeconds;
     mElapsedSeconds += mDeltaSeconds;
 }
 
 void FWorldTime::SetPaused(bool Paused) {
     mPaused = Paused;
+
     if (mPaused) {
         mDeltaSeconds = 0.0;
     }

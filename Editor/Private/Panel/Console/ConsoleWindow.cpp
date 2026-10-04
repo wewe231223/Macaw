@@ -14,12 +14,16 @@ namespace {
         switch (Category) {
             case ELogCategory::Core:
                 return "[Core]";
+
             case ELogCategory::Render:
                 return "[Render]";
+
             case ELogCategory::Physics:
                 return "[Physics]";
+
             case ELogCategory::Etc:
                 return "[Etc]";
+
             default:
                 return "[Unknown]";
         }
@@ -39,11 +43,13 @@ namespace {
             Console::AddLog(Handle, Log, Core, "Commands: clear, echo, error, stat fps, stat render, stat lod, stat picking, stat memory, stat object system, stat none");
         } else if (Command == "error") {
             FString Text{};
+
             std::getline(Stream >> std::ws, Text);
 
             Console::AddLog(Handle, Error, Etc, "Error Test");
         } else if (Command == "echo") {
             FString Text{};
+
             std::getline(Stream >> std::ws, Text);
 
             Console::AddLog(Handle, Log, Core, "> %s", Text.c_str());
@@ -75,18 +81,23 @@ namespace {
             Writer.Modify([](FStatDisplayFlags& Flags) {
                 Flags.mBShowRender = false;
             });
+
             Writer.Modify([](FStatDisplayFlags& Flags) {
                 Flags.mBShowFps = false;
             });
+
             Writer.Modify([](FStatDisplayFlags& Flags) {
                 Flags.mBShowMemory = false;
             });
+
             Writer.Modify([](FStatDisplayFlags& Flags) {
                 Flags.mBObjectSystem = false;
             });
+
             Writer.Modify([](FStatDisplayFlags& Flags) {
                 Flags.mBShowPicking = false;
             });
+
             Writer.Modify([](FStatDisplayFlags& Flags) {
                 Flags.mBShowLOD = false;
             });

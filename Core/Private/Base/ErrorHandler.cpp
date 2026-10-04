@@ -1,12 +1,16 @@
 #include "pch.h"
 #include "Core/Base/ErrorHandler.h"
 
+#include <algorithm>
 #include <chrono>
 #include <cstdint>
+#include <cstdio>
 #include <cstdlib>
+#include <exception>
 #include <filesystem>
 #include <format>
 #include <fstream>
+#include <new>
 #include <sstream>
 #include <string>
 
@@ -21,13 +25,61 @@
 namespace ErrorHandler {
     namespace {
         std::ofstream GLogFile{};
+        thread_local bool ReportingCritical{};
+        thread_local char CriticalTitle[257]{};
+        thread_local char CriticalMessage[3501]{};
+
+        [[noreturn]] void ReportCriticalFallback() noexcept {
+            char Buffer[4096]{};
+            const int Length{std::snprintf(Buffer, sizeof(Buffer), "[CRITICAL] %s\n%s\n", CriticalTitle, CriticalMessage)};
+
+            if (Length > 0) {
+#ifdef _WIN32
+                OutputDebugStringA(Buffer);
+                CreateDirectoryW(L"Log", nullptr);
+
+                const HANDLE File{CreateFileW(L"Log/critical.log", FILE_APPEND_DATA, FILE_SHARE_READ | FILE_SHARE_WRITE, nullptr, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr)};
+
+                if (File != INVALID_HANDLE_VALUE) {
+                    DWORD Written{};
+
+                    WriteFile(File, Buffer, static_cast<DWORD>((std::min)(Length, static_cast<int>(sizeof(Buffer) - 1))), &Written, nullptr);
+                    FlushFileBuffers(File);
+                    CloseHandle(File);
+                }
+
+                MessageBoxA(nullptr, Buffer, "Critical error", MB_OK | MB_ICONERROR | MB_SYSTEMMODAL);
+#else
+                std::fputs(Buffer, stderr);
+                std::fflush(stderr);
+#endif
+            }
+
+            std::_Exit(EXIT_FAILURE);
+        }
+
+        [[noreturn]] void HandleUnexpectedTermination() noexcept {
+            Report("Unhandled exception", "An unhandled exception or invalid termination state prevents the program from continuing.", EErrorLevel::Critical);
+            std::_Exit(EXIT_FAILURE);
+        }
+
+        [[noreturn]] void HandleAllocationFailure() {
+            Report("Memory allocation", "The system could not allocate the requested memory.", EErrorLevel::Critical);
+            std::_Exit(EXIT_FAILURE);
+        }
 
         void EnsureLogFileOpen() {
             if (GLogFile.is_open()) {
                 return;
             }
 
-            std::filesystem::create_directories("Log");
+            std::error_code Error{};
+
+            std::filesystem::create_directories("Log", Error);
+
+            if (Error) {
+                return;
+            }
 
             auto Now{std::chrono::current_zone()->to_local(std::chrono::system_clock::now())};
             std::string FileName{std::format("Log/log_{:%Y%m%d_%H%M%S}.txt", Now)};
@@ -69,6 +121,7 @@ namespace ErrorHandler {
             }
 
             std::string Result{};
+
             Result.resize(static_cast<std::size_t>(RequiredSize), '\0');
 
             WideCharToMultiByte(CP_UTF8, 0, Text.data(), static_cast<int>(Text.size()), Result.data(), RequiredSize, nullptr, nullptr);
@@ -88,6 +141,7 @@ namespace ErrorHandler {
             }
 
             std::wstring Result{};
+
             Result.resize(static_cast<std::size_t>(RequiredSize), L'\0');
 
             MultiByteToWideChar(CP_UTF8, 0, Text.data(), static_cast<int>(Text.size()), Result.data(), RequiredSize);
@@ -158,7 +212,28 @@ namespace ErrorHandler {
 #endif
     }
 
+    void Initialize() {
+        std::set_terminate(HandleUnexpectedTermination);
+        std::set_new_handler(HandleAllocationFailure);
+    }
+
     void Report(std::string_view Title, std::string_view Message, EErrorLevel Level) {
+        if (Level == EErrorLevel::Critical) {
+            if (ReportingCritical) {
+                ReportCriticalFallback();
+            }
+
+            ReportingCritical = true;
+
+            const std::size_t TitleLength{(std::min)(Title.size(), sizeof(CriticalTitle) - 1)};
+            const std::size_t MessageLength{(std::min)(Message.size(), sizeof(CriticalMessage) - 1)};
+
+            std::copy_n(Title.data(), TitleLength, CriticalTitle);
+            std::copy_n(Message.data(), MessageLength, CriticalMessage);
+            CriticalTitle[TitleLength] = '\0';
+            CriticalMessage[MessageLength] = '\0';
+        }
+
         EnsureLogFileOpen();
 
         auto Now{std::chrono::current_zone()->to_local(std::chrono::system_clock::now())};
@@ -169,18 +244,24 @@ namespace ErrorHandler {
             case EErrorLevel::Warning:
                 LevelString = "WARNING";
                 break;
+
             case EErrorLevel::Error:
                 LevelString = "ERROR";
                 break;
+
             case EErrorLevel::Critical:
                 LevelString = "CRITICAL";
                 break;
+
             default:
                 LevelString = "UNKNOWN";
                 break;
         }
 
-        std::string LogContent{std::format("----------------------------------------\n" "[{:%H:%M:%S}] [{}] {}\n" "Message: {}\n", Now, LevelString, Title, Message)};
+        std::string LogContent{std::format("----------------------------------------\n"
+                                           "[{:%H:%M:%S}] [{}] {}\n"
+                                           "Message: {}\n",
+                                           Now, LevelString, Title, Message)};
 
         if (Level == EErrorLevel::Critical) {
             LogContent += GetDetailedStackTrace();
@@ -198,7 +279,7 @@ namespace ErrorHandler {
 #endif
 
         if (Level == EErrorLevel::Critical) {
-            std::exit(EXIT_FAILURE);
+            std::_Exit(EXIT_FAILURE);
         }
     }
 

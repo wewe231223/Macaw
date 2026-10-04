@@ -20,6 +20,7 @@ public:
 
 private:
     friend class UWorld;
+    friend class FSceneSerializer;
 
 private:
     UWorld& mWorld;

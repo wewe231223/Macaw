@@ -2,33 +2,33 @@
 #include "Serialization/FArchiveMemory.h"
 
 FArchiveMemory::FArchiveMemory(TArray<Uint8>& InBytes)
-    : FArchive(EArchiveMode::Saving),
-      mWriteBytes(&InBytes),
-      mReadBytes(nullptr),
-      mReadOffset(0) {
+	: FArchive(EArchiveMode::Saving),
+	  mWriteBytes(&InBytes),
+	  mReadBytes(nullptr),
+	  mReadOffset(0) {
 }
 
 FArchiveMemory::FArchiveMemory(const TArray<Uint8>& InBytes)
-    : FArchive(EArchiveMode::Loading),
-      mWriteBytes(nullptr),
-      mReadBytes(&InBytes),
-      mReadOffset(0) {
+	: FArchive(EArchiveMode::Loading),
+	  mWriteBytes(nullptr),
+	  mReadBytes(&InBytes),
+	  mReadOffset(0) {
 }
 
-#define IMPLEMENT_MEMORY_SERIALIZE(Type)                                     \
-    void FArchiveMemory::Serialize(std::string_view Name, Type& Value) {     \
-        if (IsSaving()) {                                                    \
-            std::size_t Size{sizeof(Type)};                                  \
-            std::size_t CurrentSize{mWriteBytes->size()};                    \
-            mWriteBytes->resize(CurrentSize + Size);                         \
-            std::memcpy(mWriteBytes->data() + CurrentSize, &Value, Size);    \
-        } else if (IsLoading()) {                                            \
-            std::size_t Size{sizeof(Type)};                                  \
-            if (mReadOffset + Size <= mReadBytes->size()) {                  \
+#define IMPLEMENT_MEMORY_SERIALIZE(Type) \
+    void FArchiveMemory::Serialize(std::string_view Name, Type& Value) { \
+        if (IsSaving()) { \
+            std::size_t Size{sizeof(Type)}; \
+            std::size_t CurrentSize{mWriteBytes->size()}; \
+            mWriteBytes->resize(CurrentSize + Size); \
+            std::memcpy(mWriteBytes->data() + CurrentSize, &Value, Size); \
+        } else if (IsLoading()) { \
+            std::size_t Size{sizeof(Type)}; \
+            if (mReadOffset + Size <= mReadBytes->size()) { \
                 std::memcpy(&Value, mReadBytes->data() + mReadOffset, Size); \
-                mReadOffset += Size;                                         \
-            }                                                                \
-        }                                                                    \
+                mReadOffset += Size; \
+            } \
+        } \
     }
 
 // Primitives
@@ -55,15 +55,18 @@ IMPLEMENT_MEMORY_SERIALIZE(FMatrix)
 void FArchiveMemory::Serialize(std::string_view Name, FString& Value) {
     if (IsSaving()) {
         Uint32 StringLen{static_cast<Uint32>(Value.size())};
+
         Serialize(Name, StringLen);
 
         if (StringLen > 0) {
             std::size_t CurrentSize{mWriteBytes->size()};
+
             mWriteBytes->resize(CurrentSize + StringLen);
             std::memcpy(mWriteBytes->data() + CurrentSize, Value.data(), StringLen);
         }
     } else if (IsLoading()) {
         Uint32 StringLen{0};
+
         Serialize(Name, StringLen);
 
         if (StringLen > 0 && (mReadOffset + StringLen) <= mReadBytes->size()) {

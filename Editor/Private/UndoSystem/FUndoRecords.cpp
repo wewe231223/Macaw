@@ -35,19 +35,19 @@ void FRecordObjectDestroyed::ApplyRedo(IUndoContext* Context) {
 }
 
 FRecordObjectState::FRecordObjectState(const FGuid& InGuid, const TArray<Uint8>& InBefore, const TArray<Uint8>& InAfter)
-    : mTargetGuid(InGuid),
-      mBeforeData(InBefore),
-      mAfterData(InAfter) {
+	: mTargetGuid(InGuid),
+	  mBeforeData(InBefore),
+	  mAfterData(InAfter) {
 }
 
 FRecordObjectSpawned::FRecordObjectSpawned(FGuid InputGuid, const TArray<Uint8>& InputSavedData, std::string_view InputTargetTypeName)
-    : mTargetGuid(InputGuid),
-      mSavedData(std::move(InputSavedData)),
-      mTargetTypeName(InputTargetTypeName) {
+	: mTargetGuid(InputGuid),
+	  mSavedData(std::move(InputSavedData)),
+	  mTargetTypeName(InputTargetTypeName) {
 }
 
 FRecordObjectDestroyed::FRecordObjectDestroyed(FGuid InputGuid, TArray<Uint8> InputSavedData, std::string_view InputTargetTypeName)
-    : mTargetGuid(InputGuid),
-      mSavedData(std::move(InputSavedData)),
-      mTargetTypeName(InputTargetTypeName) {
+	: mTargetGuid(InputGuid),
+	  mSavedData(std::move(InputSavedData)),
+	  mTargetTypeName(InputTargetTypeName) {
 }

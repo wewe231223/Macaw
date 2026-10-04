@@ -22,31 +22,39 @@ UMeshComponent* UBoxColliderComponent::GetMeshComponent() const {
 bool UBoxColliderComponent::BuildBoundsFromMesh() {
     UMeshComponent* Mesh{mMeshComponent.Get()};
     const UMesh* Asset{Mesh != nullptr ? Mesh->ResolveMesh() : nullptr};
+
     if (Asset == nullptr) {
         return false;
     }
 
     const auto Positions{Asset->GetVertexAttributeData<EVertexAttribute::Position>()};
+
     if (Positions.empty()) {
         return false;
     }
 
     std::vector<DirectX::XMFLOAT3> Points{};
+
     Points.reserve(Positions.size());
+
     for (const FVector3& Position : Positions) {
         Points.emplace_back(Position.mX, Position.mY, Position.mZ);
     }
 
     DirectX::BoundingBox Bounds{};
+
     DirectX::BoundingBox::CreateFromPoints(Bounds, Points.size(), Points.data(), sizeof(DirectX::XMFLOAT3));
     DirectX::BoundingOrientedBox::CreateFromBoundingBox(mObb, Bounds);
     SetPickingBox(mObb);
+
     return true;
 }
 
 bool UBoxColliderComponent::RaycastBounds(const FRay& Ray, float& OutDistance) const {
     DirectX::BoundingOrientedBox WorldBox{};
+
     mObb.Transform(WorldBox, GetComponentToWorld().ToSimpleMath());
+
     return WorldBox.Intersects(Ray.position, Ray.direction, OutDistance);
 }
 
@@ -63,15 +71,20 @@ bool UBoxColliderComponent::ResolveLoadedReferences() {
     if (!UCollisionComponent::ResolveLoadedReferences()) {
         return false;
     }
+
     if (mPendingMeshComponentGuid.IsValid()) {
         UObject* Object{UObjectSystem::Resolve(UObjectSystem::FindHandleByGuid(mPendingMeshComponentGuid))};
+
         if (Object == nullptr || !Object->GetTypeInfo()->IsA(UMeshComponent::StaticTypeInfo())) {
             return false;
         }
+
         mMeshComponent.Set(static_cast<UMeshComponent*>(Object));
         mPendingMeshComponentGuid = {};
     }
+
     BuildBoundsFromMesh();
+
     return true;
 }
 
@@ -84,10 +97,13 @@ void UBoxColliderComponent::Serialize(FArchive& Archive) {
     UCollisionComponent::Serialize(Archive);
 
     FString MeshComponentGuid{};
+
     if (UMeshComponent * Mesh{mMeshComponent.Get()}) {
         MeshComponentGuid = Mesh->GetGuid().ToString();
     }
+
     Archive.Serialize("GuidMeshComponent", MeshComponentGuid);
+
     if (Archive.IsLoading() && !MeshComponentGuid.empty() && !mPendingMeshComponentGuid.Parse(MeshComponentGuid)) {
         mPendingMeshComponentGuid = {};
     }
@@ -95,9 +111,11 @@ void UBoxColliderComponent::Serialize(FArchive& Archive) {
     FVector3 Center{mObb.Center};
     FVector3 Extent{mObb.Extents};
     FQuat Orientation{mObb.Orientation};
+
     Archive.Serialize("OBB_Center", Center);
     Archive.Serialize("OBB_Extent", Extent);
     Archive.Serialize("OBB_Orientation", Orientation);
+
     if (Archive.IsLoading()) {
         mObb.Center = Center.ToSimpleMath();
         mObb.Extents = Extent.ToSimpleMath();
@@ -108,13 +126,16 @@ void UBoxColliderComponent::Serialize(FArchive& Archive) {
 
 void UBoxColliderComponent::DrawEditorBounds(ILineDrawContext* LineContext, ELineDepthMode DepthMode) const {
     DirectX::BoundingOrientedBox WorldBox{};
+
     mObb.Transform(WorldBox, GetComponentToWorld().ToSimpleMath());
 
     std::array<DirectX::XMFLOAT3, DirectX::BoundingOrientedBox::CORNER_COUNT> Corners{};
+
     WorldBox.GetCorners(Corners.data());
 
     const FVector4 LineColor{FVector4{1.0f, 1.0f, 0.0f, 1.0f}};
     const float Thickness{1.0f};
+
     const auto AddEdge{[LineContext, &Corners, LineColor, Thickness, DepthMode](std::size_t Start, std::size_t End) {
         LineContext->AddLine(FVector3{Corners[Start]}, FVector3{Corners[End]}, LineColor, Thickness, DepthMode);
     }};

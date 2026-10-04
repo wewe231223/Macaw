@@ -2,11 +2,11 @@
 #include "Core/Asset/FAssetPath.h"
 
 FAssetPath::FAssetPath(const FString& InPath)
-    : mPath(InPath) {
+	: mPath(InPath) {
 }
 
 FAssetPath::FAssetPath(FString&& InPath)
-    : mPath(std::move(InPath)) {
+	: mPath(std::move(InPath)) {
 }
 
 bool FAssetPath::IsValid() const {

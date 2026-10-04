@@ -14,6 +14,7 @@ namespace {
 
     FObjectRegistryState& GetRegistryState() {
         static FObjectRegistryState State{};
+
         return State;
     }
 }
@@ -37,9 +38,10 @@ FObjectHandle UObjectSystem::Register(UObject* Object) {
     }
 
     FObjectItem& Item{State.mObjectItems[Index]};
+
     Item.mObject = Object;
 
-    const FObjectHandle Handle{ Index, Item.mGeneration};
+    const FObjectHandle Handle{Index, Item.mGeneration};
 
     Object->SetHandle(Handle);
 
@@ -65,7 +67,7 @@ bool UObjectSystem::TryGet(Uint32 Index, FObjectHandle& Out) {
 
     FObjectItem& Item{State.mObjectItems[Index]};
 
-    Out = FObjectHandle{ .mIndex = Index, .mGeneration = Item.mGeneration};
+    Out = FObjectHandle{.mIndex = Index, .mGeneration = Item.mGeneration};
 
     return true;
 }
@@ -135,10 +137,11 @@ FObjectHandle UObjectSystem::FindHandleByGuid(const FGuid& Guid) {
     FObjectRegistryState& State{GetRegistryState()};
 
     auto It{State.mGuidToIndexMap.find(Guid)};
+
     if (It != State.mGuidToIndexMap.end()) {
         std::uint32_t Index{It->second};
 
-        return FObjectHandle{ Index, State.mObjectItems[Index].mGeneration};
+        return FObjectHandle{Index, State.mObjectItems[Index].mGeneration};
     }
 
     return {};

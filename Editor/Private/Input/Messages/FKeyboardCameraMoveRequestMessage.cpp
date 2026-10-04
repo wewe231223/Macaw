@@ -3,11 +3,12 @@
 
 const FMessageTypeInfo& FKeyboardCameraMoveRequestMessage::StaticTypeInfo() noexcept {
     static const FMessageTypeInfo Information{"FKeyboardCameraMoveRequestMessage"};
+
     return Information;
 }
 
 FKeyboardCameraMoveRequestMessage::FKeyboardCameraMoveRequestMessage(float InForwardAxis, float InRightAxis, float InDeltaTime) noexcept
-    : ForwardAxis(InForwardAxis),
-      RightAxis(InRightAxis),
-      DeltaTime(InDeltaTime) {
+	: ForwardAxis(InForwardAxis),
+	  RightAxis(InRightAxis),
+	  DeltaTime(InDeltaTime) {
 }

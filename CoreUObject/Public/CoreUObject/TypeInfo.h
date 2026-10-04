@@ -30,7 +30,6 @@ struct FTypeInfo {
         return StaticTypeInfo(); \
     }
 
-
 #define JG_DECLARE_DERIVED_TYPEINFO(Type, ParentType) \
     using TypeInfoOwner = Type; \
     static const FTypeInfo* StaticTypeInfo() noexcept { \
@@ -43,7 +42,6 @@ struct FTypeInfo {
         return StaticTypeInfo(); \
     }
 
-
 #define JG_DECLARE_NON_CREATABLE_DERIVED_TYPEINFO(Type, ParentType) \
     using TypeInfoOwner = Type; \
     static const FTypeInfo* StaticTypeInfo() noexcept { \
@@ -54,13 +52,12 @@ struct FTypeInfo {
         return StaticTypeInfo(); \
     }
 
-
 #define JG_DECLARE_ABSTRACT_DERIVED_TYPEINFO(Type, ParentType) \
     JG_DECLARE_NON_CREATABLE_DERIVED_TYPEINFO(Type, ParentType)
-
 
 template <typename T>
 [[nodiscard]] bool FTypeInfo::IsA() const noexcept {
     const auto TypeInfo{T::StaticTypeInfo()};
+
     return IsA(TypeInfo);
 }

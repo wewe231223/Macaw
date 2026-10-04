@@ -60,5 +60,4 @@ private:
 
     FLineBatch mDepthTestedBatch{};
     FLineBatch mOverlayBatch{};
-
 };

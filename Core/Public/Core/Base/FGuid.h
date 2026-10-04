@@ -23,5 +23,7 @@ struct FGuid {
 
 namespace std {
     template <>
-    struct hash<FGuid> { std::size_t operator()(const FGuid& Guid) const noexcept; };
+    struct hash<FGuid> {
+        std::size_t operator()(const FGuid& Guid) const noexcept;
+    };
 }

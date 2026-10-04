@@ -21,9 +21,9 @@ namespace {
 }
 
 FMaterialEditorPanel::FMaterialEditorPanel(FAssetRegistry& InRegistry, FAssetThumbnailRenderer& InThumbnailRenderer)
-    : FEditorWindow("Material Editor###MaterialEditor", ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoDocking),
-      mRegistry(InRegistry),
-      mThumbnailRenderer(InThumbnailRenderer) {
+	: FEditorWindow("Material Editor###MaterialEditor", ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoDocking),
+	  mRegistry(InRegistry),
+	  mThumbnailRenderer(InThumbnailRenderer) {
     SetVisible(false);
     mPropertyEditor.BindAssetRegistry(&InRegistry);
     mPropertyEditor.BindThumbnailRenderer(&InThumbnailRenderer);
@@ -64,15 +64,18 @@ void FMaterialEditorPanel::ReleaseRenderResources() {
 
 void FMaterialEditorPanel::DrawContents() {
     USurfaceOpaque* Material{mRegistry.ResolveAsset<USurfaceOpaque>(mMaterialHandle)};
+
     if (Material == nullptr) {
         ImGui::TextDisabled("Material unavailable.");
         return;
     }
 
     const FAssetPath* AssetPath{mRegistry.GetAssetPath(mMaterialHandle)};
+
     ImGui::TextUnformatted(AssetPath != nullptr ? AssetPath->mPath.c_str() : Material->GetAssetName().c_str());
 
     const float PreviewWidth{std::min(ImGui::GetContentRegionAvail().x, 400.0f)};
+
     if (ID3D11ShaderResourceView* Preview{mPreviewSurface.GetShaderResourceView()}; Preview != nullptr) {
         ImGui::Image(ImTextureRef{reinterpret_cast<ImTextureID>(Preview)}, ImVec2{PreviewWidth, PreviewWidth});
     } else {
@@ -80,13 +83,18 @@ void FMaterialEditorPanel::DrawContents() {
     }
 
     ImGui::Separator();
+
     const TArray<FMaterialGroup>& Groups{Material->GetGroups()};
+
     for (Uint32 GroupIndex{}; GroupIndex < Groups.size(); ++GroupIndex) {
         ImGui::PushID(static_cast<int>(GroupIndex));
+
         const FString& GroupName{Groups[GroupIndex].mName};
+
         if (ImGui::CollapsingHeader(GroupName.c_str(), ImGuiTreeNodeFlags_DefaultOpen)) {
             DrawGroup(*Material, GroupIndex, Groups[GroupIndex]);
         }
+
         ImGui::PopID();
     }
 }
@@ -100,6 +108,7 @@ void FMaterialEditorPanel::DrawGroup(USurfaceOpaque& Material, Uint32 GroupIndex
             });
         });
     }};
+
     DrawColor3("Ambient", Group.mAmbient, &FMaterialGroup::mAmbient);
     DrawColor3("Diffuse", Group.mDiffuse, &FMaterialGroup::mDiffuse);
     DrawColor3("Specular", Group.mSpecular, &FMaterialGroup::mSpecular);
@@ -109,38 +118,47 @@ void FMaterialEditorPanel::DrawGroup(USurfaceOpaque& Material, Uint32 GroupIndex
             Target.mTransmissionFilter = Value;
         });
     });
+
     mPropertyEditor.DrawFloat("Shininess", Group.mShininess, 1.0f, 0.0f, 1000.0f, [this, &Material, GroupIndex](float Value) {
         ModifyGroup(Material, GroupIndex, [Value](FMaterialGroup& Target) {
             Target.mShininess = Value;
         });
     });
+
     mPropertyEditor.DrawFloat("Refraction Index", Group.mRefractionIndex, 0.01f, 0.0f, 10.0f, [this, &Material, GroupIndex](float Value) {
         ModifyGroup(Material, GroupIndex, [Value](FMaterialGroup& Target) {
             Target.mRefractionIndex = Value;
         });
     });
+
     mPropertyEditor.DrawFloat("Opacity", Group.mOpacity, 0.01f, 0.0f, 1.0f, [this, &Material, GroupIndex](float Value) {
         ModifyGroup(Material, GroupIndex, [Value](FMaterialGroup& Target) {
             Target.mOpacity = Value;
         });
     });
+
     mPropertyEditor.DrawFloat("Sharpness", Group.mSharpness, 1.0f, 0.0f, 1000.0f, [this, &Material, GroupIndex](float Value) {
         ModifyGroup(Material, GroupIndex, [Value](FMaterialGroup& Target) {
             Target.mSharpness = Value;
         });
     });
+
     int IlluminationModel{Group.mIlluminationModel};
+
     if (ImGui::InputInt("Illumination Model", &IlluminationModel)) {
         ModifyGroup(Material, GroupIndex, [IlluminationModel](FMaterialGroup& Target) {
             Target.mIlluminationModel = IlluminationModel;
         });
     }
+
     mPropertyEditor.DrawBool("Dissolve Halo", Group.mBDissolveHalo, [this, &Material, GroupIndex](bool Value) {
         ModifyGroup(Material, GroupIndex, [Value](FMaterialGroup& Target) {
             Target.mBDissolveHalo = Value;
         });
     });
+
     ImGui::SeparatorText("Textures");
+
     for (const FTextureField& Field : TextureFields) {
         DrawTexture(Material, GroupIndex, Field.mLabel, Field.mMember);
     }
@@ -151,6 +169,7 @@ void FMaterialEditorPanel::DrawTexture(USurfaceOpaque& Material, Uint32 GroupInd
     mPropertyEditor.DrawAssetPicker(Label, *UTexture::StaticTypeInfo(), CurrentHandle, [this, &Material, GroupIndex, Member](FAssetHandle NewHandle) {
         ModifyGroup(Material, GroupIndex, [Member, NewHandle](FMaterialGroup& Group) {
             FMaterialTextureMap& Map{Group.*Member};
+
             Map.mTexture = NewHandle;
             Map.mSourcePath.clear();
         });

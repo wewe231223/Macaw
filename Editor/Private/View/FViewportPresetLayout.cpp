@@ -29,7 +29,9 @@ void FViewportPresetLayout::SetPreset(EViewportLayoutPreset InPreset) {
 
         case EViewportLayoutPreset::ThreeLeftOneRightTwo: {
             mViewportCount = 3;
+
             SSplitter* Right{AddTopBottomSplitter(&mViewportRegions[1], &mViewportRegions[2])};
+
             mRoot = AddLeftRightSplitter(&mViewportRegions[0], Right);
             SetDrawOrder({static_cast<SSplitter*>(mRoot), Right});
             break;
@@ -37,7 +39,9 @@ void FViewportPresetLayout::SetPreset(EViewportLayoutPreset InPreset) {
 
         case EViewportLayoutPreset::ThreeLeftTwoRightOne: {
             mViewportCount = 3;
+
             SSplitter* Left{AddTopBottomSplitter(&mViewportRegions[0], &mViewportRegions[1])};
+
             mRoot = AddLeftRightSplitter(Left, &mViewportRegions[2]);
             SetDrawOrder({static_cast<SSplitter*>(mRoot), Left});
             break;
@@ -45,7 +49,9 @@ void FViewportPresetLayout::SetPreset(EViewportLayoutPreset InPreset) {
 
         case EViewportLayoutPreset::ThreeTopOneBottomTwo: {
             mViewportCount = 3;
+
             SSplitter* Bottom{AddLeftRightSplitter(&mViewportRegions[1], &mViewportRegions[2])};
+
             mRoot = AddTopBottomSplitter(&mViewportRegions[0], Bottom);
             SetDrawOrder({static_cast<SSplitter*>(mRoot), Bottom});
             break;
@@ -53,7 +59,9 @@ void FViewportPresetLayout::SetPreset(EViewportLayoutPreset InPreset) {
 
         case EViewportLayoutPreset::ThreeTopTwoBottomOne: {
             mViewportCount = 3;
+
             SSplitter* Top{AddLeftRightSplitter(&mViewportRegions[0], &mViewportRegions[1])};
+
             mRoot = AddTopBottomSplitter(Top, &mViewportRegions[2]);
             SetDrawOrder({static_cast<SSplitter*>(mRoot), Top});
             break;
@@ -62,8 +70,10 @@ void FViewportPresetLayout::SetPreset(EViewportLayoutPreset InPreset) {
         case EViewportLayoutPreset::FourGrid: {
             mViewportCount = 4;
             mSharedGridRatio = FSplitterRatio(0.5f);
+
             SSplitter* Top{AddLeftRightSplitter(&mViewportRegions[0], &mViewportRegions[1], 0.5f, &mSharedGridRatio)};
             SSplitter* Bottom{AddLeftRightSplitter(&mViewportRegions[2], &mViewportRegions[3], 0.5f, &mSharedGridRatio)};
+
             mRoot = AddTopBottomSplitter(Top, Bottom);
             SetDrawOrder({static_cast<SSplitter*>(mRoot), Top, Bottom});
             break;
@@ -71,7 +81,9 @@ void FViewportPresetLayout::SetPreset(EViewportLayoutPreset InPreset) {
 
         case EViewportLayoutPreset::FourLeftOneRightThree: {
             mViewportCount = 4;
+
             SWindow* Right{BuildTopBottomThree(1, 2, 3)};
+
             mRoot = AddLeftRightSplitter(&mViewportRegions[0], Right);
             SetDrawOrder({static_cast<SSplitter*>(mRoot), mSplitters[1].get(), mSplitters[0].get()});
             break;
@@ -79,7 +91,9 @@ void FViewportPresetLayout::SetPreset(EViewportLayoutPreset InPreset) {
 
         case EViewportLayoutPreset::FourLeftThreeRightOne: {
             mViewportCount = 4;
+
             SWindow* Left{BuildTopBottomThree(0, 1, 2)};
+
             mRoot = AddLeftRightSplitter(Left, &mViewportRegions[3]);
             SetDrawOrder({static_cast<SSplitter*>(mRoot), mSplitters[1].get(), mSplitters[0].get()});
             break;
@@ -87,7 +101,9 @@ void FViewportPresetLayout::SetPreset(EViewportLayoutPreset InPreset) {
 
         case EViewportLayoutPreset::FourTopOneBottomThree: {
             mViewportCount = 4;
+
             SWindow* Bottom{BuildLeftRightThree(1, 2, 3)};
+
             mRoot = AddTopBottomSplitter(&mViewportRegions[0], Bottom);
             SetDrawOrder({static_cast<SSplitter*>(mRoot), mSplitters[1].get(), mSplitters[0].get()});
             break;
@@ -95,7 +111,9 @@ void FViewportPresetLayout::SetPreset(EViewportLayoutPreset InPreset) {
 
         case EViewportLayoutPreset::FourTopThreeBottomOne: {
             mViewportCount = 4;
+
             SWindow* Top{BuildLeftRightThree(0, 1, 2)};
+
             mRoot = AddTopBottomSplitter(Top, &mViewportRegions[3]);
             SetDrawOrder({static_cast<SSplitter*>(mRoot), mSplitters[1].get(), mSplitters[0].get()});
             break;
@@ -122,28 +140,40 @@ const char* FViewportPresetLayout::GetPresetName(EViewportLayoutPreset InPreset)
     switch (InPreset) {
         case EViewportLayoutPreset::Single:
             return "1: Single";
+
         case EViewportLayoutPreset::TwoTopBottom:
             return "2: Top | Bottom";
+
         case EViewportLayoutPreset::TwoLeftRight:
             return "2: Left | Right";
+
         case EViewportLayoutPreset::ThreeLeftOneRightTwo:
             return "3: Left 1 | Right 2";
+
         case EViewportLayoutPreset::ThreeLeftTwoRightOne:
             return "3: Left 2 | Right 1";
+
         case EViewportLayoutPreset::ThreeTopOneBottomTwo:
             return "3: Top 1 | Bottom 2";
+
         case EViewportLayoutPreset::ThreeTopTwoBottomOne:
             return "3: Top 2 | Bottom 1";
+
         case EViewportLayoutPreset::FourGrid:
             return "4: Grid";
+
         case EViewportLayoutPreset::FourLeftOneRightThree:
             return "4: Left 1 | Right 3";
+
         case EViewportLayoutPreset::FourLeftThreeRightOne:
             return "4: Left 3 | Right 1";
+
         case EViewportLayoutPreset::FourTopOneBottomThree:
             return "4: Top 1 | Bottom 3";
+
         case EViewportLayoutPreset::FourTopThreeBottomOne:
             return "4: Top 3 | Bottom 1";
+
         default:
             return "Unknown";
     }
@@ -155,6 +185,7 @@ Uint32 FViewportPresetLayout::GetViewportCount() const {
 
 void FViewportPresetLayout::SetRect(const FRect& InRect) {
     mRect = InRect;
+
     if (mRoot != nullptr) {
         mRoot->SetRect(mRect);
     }
@@ -204,6 +235,7 @@ bool FViewportPresetLayout::RestoreSplitterRatios(const std::array<float, Maximu
     }
 
     RefreshLayout();
+
     return true;
 }
 
@@ -222,18 +254,23 @@ SSplitter* FViewportPresetLayout::AddSplitter(std::unique_ptr<SSplitter> Splitte
 
     Splitter->SetChildren(First, Second);
     Splitter->SetRatioState(SharedRatio != nullptr ? *SharedRatio : FSplitterRatio(Ratio));
+
     SSplitter* Result{Splitter.get()};
+
     mSplitters[mSplitterCount++] = std::move(Splitter);
+
     return Result;
 }
 
 SWindow* FViewportPresetLayout::BuildTopBottomThree(FViewportId FirstId, FViewportId SecondId, FViewportId ThirdId) {
     SSplitter* LastTwo{AddTopBottomSplitter(&mViewportRegions[SecondId], &mViewportRegions[ThirdId])};
+
     return AddTopBottomSplitter(&mViewportRegions[FirstId], LastTwo, 1.0f / 3.0f);
 }
 
 SWindow* FViewportPresetLayout::BuildLeftRightThree(FViewportId FirstId, FViewportId SecondId, FViewportId ThirdId) {
     SSplitter* LastTwo{AddLeftRightSplitter(&mViewportRegions[SecondId], &mViewportRegions[ThirdId])};
+
     return AddLeftRightSplitter(&mViewportRegions[FirstId], LastTwo, 1.0f / 3.0f);
 }
 
@@ -253,6 +290,7 @@ void FViewportPresetLayout::Reset() {
 
 void FViewportPresetLayout::SetDrawOrder(std::initializer_list<SSplitter*> InSplitters) {
     Uint32 Index{0};
+
     for (SSplitter* Splitter : InSplitters) {
         mSplitterDrawOrder[Index++] = Splitter;
     }

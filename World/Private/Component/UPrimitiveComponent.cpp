@@ -22,8 +22,11 @@ void UPrimitiveComponent::SetVisible(bool BInVisible) {
 
 void UPrimitiveComponent::OnRenderStateChanged() {
     USceneComponent::OnRenderStateChanged();
+
     UWorld* World = GetBelongingWorld();
-    if (World != nullptr) World->GetPickingSubsystem().UpdateComponent(this);
+
+    if (World != nullptr)
+        World->GetPickingSubsystem().UpdateComponent(this);
 }
 
 void UPrimitiveComponent::OnRegister() {
@@ -90,6 +93,7 @@ const DirectX::BoundingSphere& UPrimitiveComponent::GetBoundingSphere() const {
 
 const DirectX::BoundingBox& UPrimitiveComponent::GetWorldAABB() const {
     const Uint64 TransformRevision{GetTransformRevision()};
+
     if (mWorldBoundsDirty || mWorldBoundsTransformRevision != TransformRevision) {
         const_cast<UPrimitiveComponent*>(this)->UpdateBounds();
     }
@@ -99,6 +103,7 @@ const DirectX::BoundingBox& UPrimitiveComponent::GetWorldAABB() const {
 
 const DirectX::BoundingOrientedBox& UPrimitiveComponent::GetWorldOBB() const {
     const Uint64 TransformRevision{GetTransformRevision()};
+
     if (mWorldBoundsDirty || mWorldBoundsTransformRevision != TransformRevision) {
         const_cast<UPrimitiveComponent*>(this)->UpdateBounds();
     }
@@ -108,6 +113,7 @@ const DirectX::BoundingOrientedBox& UPrimitiveComponent::GetWorldOBB() const {
 
 const DirectX::BoundingSphere& UPrimitiveComponent::GetWorldSphere() const {
     const Uint64 TransformRevision{GetTransformRevision()};
+
     if (mWorldBoundsDirty || mWorldBoundsTransformRevision != TransformRevision) {
         const_cast<UPrimitiveComponent*>(this)->UpdateBounds();
     }

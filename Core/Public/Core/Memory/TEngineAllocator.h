@@ -1,4 +1,5 @@
 #pragma once
+#include "Core/Base/ErrorHandler.h"
 #include "Core/Memory/Memory.h"
 
 #include <cstddef>
@@ -50,7 +51,7 @@ constexpr TEngineAllocator<T, Tag>::TEngineAllocator(const TEngineAllocator<U, T
 template <typename T, Memory::EMemoryTag Tag>
 T* TEngineAllocator<T, Tag>::allocate(size_type Count) {
     if (Count > max_size()) {
-        throw std::bad_array_new_length();
+        ErrorHandler::Report("TEngineAllocator::allocate", "The requested element count exceeds the allocator capacity.", ErrorHandler::EErrorLevel::Critical);
     }
 
     return static_cast<T*>(Memory::Allocate(Count * sizeof(T), alignof(T), Tag));

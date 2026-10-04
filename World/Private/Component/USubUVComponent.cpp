@@ -78,6 +78,7 @@ void USubUVComponent::UpdateUVFromCurrentFrame() {
 
     FVector2 NewUVMin{FVector2{Col * UWidth, Row * VHeight}};
     FVector2 NewUVMax{FVector2{(Col + 1) * UWidth, (Row + 1) * VHeight}};
+
     UBillboardComponent::SetUV(NewUVMin, NewUVMax);
 }
 
@@ -91,10 +92,12 @@ void USubUVComponent::Tick(float DeltaTime) {
     mElapsedTime += DeltaTime;
 
     const Int32 TargetFrame{static_cast<Int32>(mElapsedTime * mFrameRate)};
+
     if (mBLooping) {
         mCurrentFrameIndex = TargetFrame % mTotalFrame;
     } else {
         mCurrentFrameIndex = std::min(TargetFrame, mTotalFrame - 1);
+
         if (TargetFrame >= mTotalFrame) {
             mBPlaying = false;
             UpdateTickEnabled();
@@ -120,7 +123,6 @@ void USubUVComponent::Serialize(FArchive& Archive) {
         UpdateTickEnabled();
     }
 }
-
 
 float USubUVComponent::GetFrameRate() const {
     return mFrameRate;

@@ -8,6 +8,7 @@
 
 bool FObjImporter::LoadObjFile(const FString& FilePath, FGeometry& OutGeometry) {
     std::ifstream File{FilePath.c_str()};
+
     if (!File.is_open()) {
         Console::AddLog(Console::STDOutHandle, ELogLevel::Error, ELogCategory::Etc, "[ObjImporter] Obj Load Failed. Can not Open File");
         return false;
@@ -65,14 +66,18 @@ bool FObjImporter::LoadObjFile(const FString& FilePath, FGeometry& OutGeometry) 
         {
             if (Tokens.size() != 4)
                 continue;
+
             FVector Normal{FVector{std::stof(Tokens[1].c_str()), std::stof(Tokens[2].c_str()), std::stof(Tokens[3].c_str())}};
+
             Normal = FVector{Normal.Dot(mPositionCoordTransX), Normal.Dot(mPositionCoordTransY), Normal.Dot(mPositionCoordTransZ)};
             ObjInfo.mNormals.push_back(Normal);
         } else if (Tag == "vt") // vt u v
         {
             if (Tokens.size() != 3)
                 continue;
+
             FVector2 UV{std::stof(Tokens[1].c_str()), std::stof(Tokens[2].c_str())};
+
             ObjInfo.mUVs.push_back(UV);
         } else if (Tag == "o") // o Name
         {
@@ -127,6 +132,7 @@ bool FObjImporter::LoadObjFile(const FString& FilePath, FGeometry& OutGeometry) 
 
                     //위에서 찾은 곳 다음 칸부터 '/'를 또 찾는다.
                     SecondIndex = VertexData.find('/', FirstIndex + 1);
+
                     if (SecondIndex == FString::npos) {
                         //두번째에 '/'가 없다면 vt만 있다. v/vt
                         //처음 찾은 PositionIndex 다음부터 끝까지(기본값 npos) 잘라내면 vt다
@@ -143,6 +149,7 @@ bool FObjImporter::LoadObjFile(const FString& FilePath, FGeometry& OutGeometry) 
                         Face.mNormalIndex = std::stoi(VertexData.substr(SecondIndex + 1).c_str());
                     }
                 }
+
                 Vertices.push_back(Face);
             }
 
@@ -202,6 +209,7 @@ bool FObjImporter::BuildGeometry(const FObjInfo& ObjInfo, FGeometry& OutGeometry
 	const Int32 NormalCount = static_cast<Int32>(ObjInfo.Normals.size());*/
     //(PositionIndex, UVIndex, NormalIndex) 조합 -> 이미 만들어둔 OutGeometry 상의 정점 인덱스
     std::unordered_map<FFaceVertexKey, Uint32, FFaceVertexKeyHash> VertexCache{};
+
     VertexCache.reserve(ObjInfo.mPositions.size());
 
     OutGeometry.mPositions.reserve(ObjInfo.mPositions.size());
@@ -269,6 +277,7 @@ bool FObjImporter::BuildPolygonGeometry(const FObjInfo& ObjInfo, FGeometry& OutG
 
     //(PositionIndex, UVIndex, NormalIndex) 조합 -> 이미 만들어둔 OutGeometry 상의 정점 인덱스
     std::unordered_map<FFaceVertexKey, Uint32, FFaceVertexKeyHash> VertexCache{};
+
     VertexCache.reserve(ObjInfo.mPositions.size());
 
     OutGeometry.mPositions.reserve(ObjInfo.mPositions.size());
@@ -305,6 +314,7 @@ bool FObjImporter::BuildPolygonGeometry(const FObjInfo& ObjInfo, FGeometry& OutG
         }
 
         const std::size_t FirstGeneratedIndex{OutGeometry.mIndices.size()};
+
         FaceVertexIndex = 0;
 
         Int32 FaceVerticesCount{static_cast<Int32>(FaceVertics.size())};
@@ -317,6 +327,7 @@ bool FObjImporter::BuildPolygonGeometry(const FObjInfo& ObjInfo, FGeometry& OutG
         //다각형 가운데 삼각형이 있다면 size가 3이므로 while문 종료
         while (FaceVertics.size() > 3 && FaceVertexIndex < FaceVertics.size()) {
             LoopCount++;
+
             if (LoopCount > FaceVerticesCount * FaceVerticesCount) {
                 break;
             }
@@ -350,6 +361,7 @@ bool FObjImporter::BuildPolygonGeometry(const FObjInfo& ObjInfo, FGeometry& OutG
             Vector2.Normalize();
 
             FVector CrossVector{Vector1.Cross(Vector2)};
+
             CrossVector.Normalize();
 
             //Vector_1 = Vector_1.Cross(Vector_2);
@@ -473,6 +485,7 @@ void FObjImporter::AddPNTIArray(const FFaceVertex& TargetVertex, const FObjInfo&
     const FFaceVertexKey Key{NormalizedPosition, NormalizedUV, NormalizedNormal};
 
     const auto ExistingEntry{CacheMap.find(Key)};
+
     if (ExistingEntry != CacheMap.end()) {
         //이미 같은 조합의 정점이 있다면 새로 만들지 않고 인덱스만 재사용한다.
         OutGeometry.mIndices.push_back(ExistingEntry->second);
@@ -507,6 +520,7 @@ FVector FObjImporter::ComputeFaceNormal(const TArray<FFaceVertex>& PolygonVertic
     }
 
     Normal.Normalize();
+
     return Normal;
 }
 
@@ -514,9 +528,11 @@ TArray<FString> FObjImporter::SplitTokens(const FString& Line) {
     TArray<FString> Tokens{};
     std::istringstream Stream{Line};
     std::string Token{};
+
     while (Stream >> Token) {
         Tokens.push_back(FString{Token.c_str()});
     }
+
     return Tokens;
 }
 

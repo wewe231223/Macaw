@@ -18,6 +18,7 @@ void FFrameTimer::Reset() {
 
 void FFrameTimer::Tick() {
     const auto CurrentTime{std::chrono::steady_clock::now()};
+
     mDeltaSeconds = std::chrono::duration<double>{CurrentTime - mLastTickTime}.count();
     mElapsedSeconds = std::chrono::duration<double>{CurrentTime - mStartTime}.count();
     mLastTickTime = CurrentTime;

@@ -1,6 +1,5 @@
 #pragma once
 
-#include <filesystem>
 #include <memory>
 #include <optional>
 #include "World/AActor.h"
@@ -94,9 +93,6 @@ public:
     ULightSubsystem& GetLightSubsystem();
     const ULightSubsystem& GetLightSubsystem() const;
 
-    bool SaveScene(const FString& SceneName, const IAssetRegistry* AssetRegistry);
-    bool LoadScene(const std::filesystem::path& ScenePath);
-
     JG_DECLARE_DERIVED_TYPEINFO(UWorld, UObject);
 
     void SetAssetRegistry(const IAssetRegistry* InAssetRegistry, IAssetRegistryMutator* InAssetRegistryMutator = nullptr);
@@ -112,6 +108,7 @@ public:
 
 private:
     friend class FTemporarySceneLoader;
+    friend class FSceneSerializer;
     friend class AActor;
 
     void NotifyWorldChanged(EWorldChange Change, AActor* Actor = nullptr);
@@ -122,7 +119,6 @@ private:
     void InitializeSubsystems();
     void DeinitializeSubsystems();
     void RefreshActorTicks();
-    bool LoadSceneInternal(const std::filesystem::path& ScenePath);
 
 private:
     Uint64 mStructureRevision{};
@@ -150,7 +146,6 @@ private:
     IAssetRegistryMutator* mAssetRegistryMutator{nullptr};
 
     TSubsystemCollection<UWorldSubsystem, UWorld> mSubsystems{};
-
 };
 
 template <typename T>
@@ -159,10 +154,12 @@ T* UWorld::AdoptActor() {
     if (!mInitialized || mCleaningUp) {
         return nullptr;
     }
+
     std::unique_ptr<T> NewActor{std::make_unique<T>()};
 
     T* ActorPtr{NewActor.get()};
 
     ActorPtr->SetName(MakeUniqueObjectName(ActorPtr->GetTypeInfo()->mTypeName));
+
     return static_cast<T*>(AddActor(std::move(NewActor)));
 }

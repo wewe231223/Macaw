@@ -4,106 +4,103 @@
 #include "Core/Types.h"
 #include "Math/SimpleMath/SimpleMath.h"
 
-
 struct FMatrix;
+
 struct FVector {
+    union {
+        float V[3];
 
-	union
-	{
-		float V[3];
+        struct
+        {
+            float X;
+            float Y;
+            float Z;
+        };
 
-		struct
-		{
-			float X;
-			float Y;
-			float Z;
-		};
-
-		struct
-		{
-			float mX;
-			float mY;
-			float mZ;
-		};
-	};
+        struct
+        {
+            float mX;
+            float mY;
+            float mZ;
+        };
+    };
 
 public:
-	/* Constructor */
-	FVector();
-	FVector(float x, float y, float z);
-	explicit FVector(float f);
-	explicit FVector(const DirectX::XMFLOAT3& Value);
-	// ~FVector();
+    /* Constructor */
+    FVector();
+    FVector(float x, float y, float z);
+    explicit FVector(float f);
+    explicit FVector(const DirectX::XMFLOAT3& Value);
+    // ~FVector();
 
 public:
-	/* Public Functions */
-	void Set(float x, float y, float z);
+    /* Public Functions */
+    void Set(float x, float y, float z);
 
-	float Size() const; // 길이 반환
-	float Length() const; // ==  size()
-	float Dot(const FVector& V1) const;
+    float Size() const;   // 길이 반환
+    float Length() const; // ==  size()
+    float Dot(const FVector& V1) const;
 
-	float& Component(int32 index);		// 참조자 반환으로 lvalue로 직접 값수정 가능
-	float Component(int32 index) const;
+    float& Component(int32 index); // 참조자 반환으로 lvalue로 직접 값수정 가능
+    float Component(int32 index) const;
 
-	FVector Add(const FVector& V1) const;
-	FVector Subtract(const FVector& V1) const;
+    FVector Add(const FVector& V1) const;
+    FVector Subtract(const FVector& V1) const;
 
-	FVector Cross(const FVector& V1) const;
-	FVector GetAbs() const;
-	void Normalize();
+    FVector Cross(const FVector& V1) const;
+    FVector GetAbs() const;
+    void Normalize();
 
-	static const FVector ZeroVector;    // (0, 0, 0)
-	static const FVector OneVector;     // (1, 1, 1)
+    static const FVector ZeroVector; // (0, 0, 0)
+    static const FVector OneVector;  // (1, 1, 1)
 
-	float LengthSquared() const;
-	DirectX::SimpleMath::Vector3 ToSimpleMath() const;
+    float LengthSquared() const;
+    DirectX::SimpleMath::Vector3 ToSimpleMath() const;
 
-	// float GetMax();
-	//// float GetMin();
-	// float GetAbsMax();
-	// float GetAbsMin();
+    // float GetMax();
+    //// float GetMin();
+    // float GetAbsMax();
+    // float GetAbsMin();
 
-	// GetSafeNormal
-	// IsNearlyZero
-	// Equals
-	// ClampSize
+    // GetSafeNormal
+    // IsNearlyZero
+    // Equals
+    // ClampSize
 
+    /* operator */
 
-/* operator */
+    FVector operator-();
+    FVector operator-() const;
 
-	FVector operator - ();
-	FVector operator - () const;
+    FVector operator-(const FVector& V1) const;
+    FVector& operator-=(const FVector& V1);
 
-	FVector operator - (const FVector& V1) const;
-	FVector& operator -= (const FVector& V1);
+    FVector operator+(const FVector& V1) const;
+    FVector& operator+=(const FVector& V1);
 
-	FVector operator + (const FVector& V1) const;
-	FVector& operator += (const FVector& V1);
+    FVector operator*(const FVector& V1) const;
+    FVector operator*(const float& f) const;
+    FVector& operator*=(const FVector& V1);
+    FVector& operator*=(const float& f);
 
-	FVector operator * (const FVector& V1) const;
-	FVector operator * (const float& f) const;
-	FVector& operator *= (const FVector& V1);
-	FVector& operator *= (const float& f);
+    FVector operator/(const FVector& V1) const;
+    FVector operator/(const float& f) const;
+    FVector& operator/=(const FVector& V1);
+    FVector& operator/=(const float& f);
 
-	FVector operator / (const FVector& V1) const;
-	FVector operator / (const float& f) const;
-	FVector& operator /= (const FVector& V1);
-	FVector& operator /= (const float& f);
+    FVector operator^(const FVector& V1) const;
 
-	FVector operator ^ (const FVector& V1) const;
+    bool operator==(const FVector& V1) const;
+    bool operator!=(const FVector& V1) const;
 
-	bool operator == (const FVector& V1) const;
-	bool operator != (const FVector& V1) const;
+    float operator[](int32 Index) const;
+    float& operator[](int32 Index);
 
-	float operator[] (int32 Index) const;
-	float& operator[] (int32 Index);
-
-	/* Static */
-	static float Dot(const FVector& V1, const FVector& V2);
-	static FVector Cross(const FVector& V1, const FVector& V2);
-	static float Distance(const FVector& V1, const FVector& V2); // == Dist()
-	/*static FVector DegreesToRadians(const FVector& V1);
+    /* Static */
+    static float Dot(const FVector& V1, const FVector& V2);
+    static FVector Cross(const FVector& V1, const FVector& V2);
+    static float Distance(const FVector& V1, const FVector& V2); // == Dist()
+    /*static FVector DegreesToRadians(const FVector& V1);
 	static FVector RadiansToDegrees(const FVector& V1);
 	static FVector Max(const FVector& V1, const FVector& V2);
 	static FVector Max3(const FVector& V1, const FVector& V2, const FVector& V3);
@@ -111,16 +108,15 @@ public:
 	static FVector Min3(const FVector& V1, const FVector& V2, const FVector& V3);
 	*/
 
-	static const FVector Zero;
-	static const FVector UnitX;
-	static const FVector UnitY;
-	static const FVector UnitZ;
+    static const FVector Zero;
+    static const FVector UnitX;
+    static const FVector UnitY;
+    static const FVector UnitZ;
 
-	static FVector Min(const FVector& A, const FVector& B);
-	static FVector Max(const FVector& A, const FVector& B);
-	static FVector Transform(const FVector& Position, const FMatrix& Matrix);
-	static FVector TransformNormal(const FVector& Direction, const FMatrix& Matrix);
-
+    static FVector Min(const FVector& A, const FVector& B);
+    static FVector Max(const FVector& A, const FVector& B);
+    static FVector Transform(const FVector& Position, const FMatrix& Matrix);
+    static FVector TransformNormal(const FVector& Direction, const FMatrix& Matrix);
 };
 
 using FVector3 = FVector;

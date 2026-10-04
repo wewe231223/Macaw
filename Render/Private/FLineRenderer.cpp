@@ -18,8 +18,11 @@ void FLineRenderer::Initialize(ID3D11Device* InDevice, Uint32 InitialLineCapacit
     mOverlayPipeline = std::make_unique<FPipelineRenderResource>();
 
     UPipeline DepthPipeline{};
+
     ErrorHandler::Report(!DepthPipeline.Initialize("./Content/Pipeline/LineDepthTested.json") || !mDepthTestedPipeline->Initialize(mDevice, DepthPipeline), "[ FLineRenderer ]", "Failed to initialize the depth-tested line pipeline.", ErrorHandler::EErrorLevel::Critical);
+
     UPipeline OverlayPipeline{};
+
     ErrorHandler::Report(!OverlayPipeline.Initialize("./Content/Pipeline/LineOverlay.json") || !mOverlayPipeline->Initialize(mDevice, OverlayPipeline), "[ FLineRenderer ]", "Failed to initialize the overlay line pipeline.", ErrorHandler::EErrorLevel::Critical);
 
     InitialLineCapacity = std::max(InitialLineCapacity, 1u);
@@ -58,7 +61,7 @@ void FLineRenderer::AddLineInternal(const FVector3& Start, const FVector3& End, 
 
     FLineBatch& Batch{DepthMode == ELineDepthMode::DepthTested ? mDepthTestedBatch : mOverlayBatch};
 
-    Batch.mInstances.emplace_back(FLineInstance{ .mStartAndWidth = FVector4{Start.mX, Start.mY, Start.mZ, WidthPixels}, .mEndAndPadding = FVector4{End.mX, End.mY, End.mZ, GridSpacing}, .mColor = Color});
+    Batch.mInstances.emplace_back(FLineInstance{.mStartAndWidth = FVector4{Start.mX, Start.mY, Start.mZ, WidthPixels}, .mEndAndPadding = FVector4{End.mX, End.mY, End.mZ, GridSpacing}, .mColor = Color});
 }
 
 void FLineRenderer::AddRay(const FVector3& Origin, const FVector3& Direction, float Length, const FVector4& Color, float WidthPixels, ELineDepthMode DepthMode) {
@@ -67,6 +70,7 @@ void FLineRenderer::AddRay(const FVector3& Origin, const FVector3& Direction, fl
     }
 
     FVector3 NormalizedDirection{Direction};
+
     NormalizedDirection.Normalize();
 
     AddLine(Origin, Origin + NormalizedDirection * Length, Color, WidthPixels, DepthMode);
@@ -107,11 +111,12 @@ bool FLineRenderer::IsEmpty() const {
 }
 
 bool FLineRenderer::CreateQuadGeometry(ID3D11Device* InDevice) {
-    const std::array<FQuadVertex, 4> Vertices{ FQuadVertex{FVector2D{0.0f, -1.0f}}, FQuadVertex{FVector2D{0.0f, 1.0f}}, FQuadVertex{FVector2D{1.0f, -1.0f}}, FQuadVertex{FVector2D{1.0f, 1.0f}}};
+    const std::array<FQuadVertex, 4> Vertices{FQuadVertex{FVector2D{0.0f, -1.0f}}, FQuadVertex{FVector2D{0.0f, 1.0f}}, FQuadVertex{FVector2D{1.0f, -1.0f}}, FQuadVertex{FVector2D{1.0f, 1.0f}}};
 
     constexpr std::array<Uint16, 6> Indices{0, 1, 2, 2, 1, 3};
 
     FGraphicsBufferDescription VertexBufferDescription{};
+
     VertexBufferDescription.mByteSize = static_cast<Uint32>(sizeof(Vertices));
     VertexBufferDescription.mUsage = D3D11_USAGE_IMMUTABLE;
     VertexBufferDescription.mBindFlags = D3D11_BIND_VERTEX_BUFFER;
@@ -121,6 +126,7 @@ bool FLineRenderer::CreateQuadGeometry(ID3D11Device* InDevice) {
     }
 
     FGraphicsBufferDescription IndexBufferDescription{};
+
     IndexBufferDescription.mByteSize = static_cast<Uint32>(sizeof(Indices));
     IndexBufferDescription.mUsage = D3D11_USAGE_IMMUTABLE;
     IndexBufferDescription.mBindFlags = D3D11_BIND_INDEX_BUFFER;
@@ -138,15 +144,16 @@ bool FLineRenderer::RenderBatch(ID3D11DeviceContext* Context, FFrameResource& Fr
     }
 
     const Uint32 InstanceCount{static_cast<Uint32>(Batch.mInstances.size())};
+
     if (not FrameResource.UploadStream(mDevice, Context, Stream, Batch.mInstances.data(), InstanceCount, sizeof(FLineInstance), D3D11_BIND_VERTEX_BUFFER)) {
         return false;
     }
 
     Pipeline->Bind(Context, ERenderMode::Lit);
 
-    ID3D11Buffer* VertexBuffers[]{ mQuadVertexBuffer.GetBuffer(), FrameResource.GetStreamBuffer(Stream)};
+    ID3D11Buffer* VertexBuffers[]{mQuadVertexBuffer.GetBuffer(), FrameResource.GetStreamBuffer(Stream)};
 
-    const Uint32 Strides[]{ static_cast<Uint32>(sizeof(FQuadVertex)), static_cast<Uint32>(sizeof(FLineInstance))};
+    const Uint32 Strides[]{static_cast<Uint32>(sizeof(FQuadVertex)), static_cast<Uint32>(sizeof(FLineInstance))};
 
     constexpr Uint32 Offsets[]{0, 0};
 

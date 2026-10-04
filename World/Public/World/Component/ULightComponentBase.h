@@ -6,7 +6,8 @@ public:
     ULightComponentBase() = default;
     ~ULightComponentBase() override = default;
 
-    JG_DECLARE_ABSTRACT_DERIVED_TYPEINFO(ULightComponentBase, USceneComponent) const FVector3& GetLightColor() const;
+    JG_DECLARE_ABSTRACT_DERIVED_TYPEINFO(ULightComponentBase, USceneComponent)
+    const FVector3& GetLightColor() const;
     void SetLightColor(const FVector3& InLightColor);
 
     float GetIntensity() const;
@@ -14,7 +15,6 @@ public:
 
     bool IsVisible() const;
     void SetVisible(bool BInVisible);
-
 
 protected:
     void Serialize(FArchive& Archive) override;

@@ -18,6 +18,7 @@ std::size_t FMaterialChunkSignature::GetHash() const noexcept {
 
     for (Uint8 TextureFieldIndex{}; TextureFieldIndex < mTextureFieldCount; ++TextureFieldIndex) {
         const FAssetHandle Handle{mTextureHandles[TextureFieldIndex]};
+
         Hash ^= std::hash<Uint32>{}(Handle.mId) + static_cast<std::size_t>(0x9e3779b9u) + (Hash << 6) + (Hash >> 2);
         Hash ^= std::hash<Uint32>{}(Handle.mGeneration) + static_cast<std::size_t>(0x9e3779b9u) + (Hash << 6) + (Hash >> 2);
     }

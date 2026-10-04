@@ -5,6 +5,7 @@ void UEngineSubsystem::Initialize(UEngine* Engine) {
     if (mEngine != nullptr || Engine == nullptr) {
         return;
     }
+
     mEngine = Engine;
     OnInitialize();
 }
@@ -13,6 +14,7 @@ void UEngineSubsystem::Deinitialize() {
     if (mEngine == nullptr) {
         return;
     }
+
     OnDeinitialize();
     mEngine = nullptr;
 }

@@ -5,10 +5,10 @@
 class UCameraComponent : public USceneComponent {
 public:
     inline static const FMatrix CameraBasis{
-         0.0f, 1.0f, 0.0f, 0.0f,
-         0.0f, 0.0f, 1.0f, 0.0f,
-         1.0f, 0.0f, 0.0f, 0.0f,
-         0.0f, 0.0f, 0.0f, 1.0f};
+        0.0f, 1.0f, 0.0f, 0.0f,
+        0.0f, 0.0f, 1.0f, 0.0f,
+        1.0f, 0.0f, 0.0f, 0.0f,
+        0.0f, 0.0f, 0.0f, 1.0f};
 
 public:
     UCameraComponent();

@@ -19,6 +19,7 @@ class FMessageChannel {
 public:
     class FSender {
         friend class FMessageChannel;
+
     public:
         explicit FSender(FMessageChannel& InChannel) noexcept;
         ~FSender() noexcept = default;
@@ -26,6 +27,7 @@ public:
         FSender& operator=(const FSender&) = default;
         FSender(FSender&&) = default;
         FSender& operator=(FSender&&) = default;
+
     public:
         template <CMessageType TMessage, typename... Args>
             requires CMessageConstructible<TMessage, Args...>
@@ -33,6 +35,7 @@ public:
         template <typename TMessage>
             requires CMessageType<std::remove_cvref_t<TMessage>>
         bool TryPush(TMessage&& Message);
+
     private:
         FMessageChannel* mChannel{nullptr};
     };
@@ -99,6 +102,7 @@ template <typename TMessage>
     requires CMessageType<std::remove_cvref_t<TMessage>>
 bool FMessageChannel::FSender::TryPush(TMessage&& Message) {
     using FMessageType = std::remove_cvref_t<TMessage>;
+
     return TryEmplace<FMessageType>(std::forward<TMessage>(Message));
 }
 
@@ -119,6 +123,7 @@ bool FMessageChannel::TryBind(TCallable&& Callable) {
     }
 
     mHandlers.emplace_back(std::move(Handler));
+
     return true;
 }
 
@@ -130,9 +135,11 @@ bool FMessageChannel::TryEmplace(Args&&... Arguments) {
     }
 
     FMessage Message{};
+
     Message.TryEmplace<TMessage>(std::forward<Args>(Arguments)...);
 
     mMessages.emplace_back(std::move(Message));
+
     return true;
 }
 
@@ -140,5 +147,6 @@ template <typename TMessage>
     requires CMessageType<std::remove_cvref_t<TMessage>>
 bool FMessageChannel::TryPush(TMessage&& Message) {
     using FMessageType = std::remove_cvref_t<TMessage>;
+
     return TryEmplace<FMessageType>(std::forward<TMessage>(Message));
 }

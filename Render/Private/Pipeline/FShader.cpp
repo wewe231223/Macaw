@@ -16,7 +16,7 @@ bool FShader::Initialize(ID3D11Device* Device, const FShaderDescription& Descrip
 
     FShader::Reset();
 
-    UINT CompileFlags{ D3DCOMPILE_OPTIMIZATION_LEVEL3 };
+    UINT CompileFlags{D3DCOMPILE_OPTIMIZATION_LEVEL3};
 
 #ifdef _DEBUG
     CompileFlags |= D3DCOMPILE_DEBUG;

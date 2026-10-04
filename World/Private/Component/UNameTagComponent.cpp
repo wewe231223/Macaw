@@ -17,6 +17,7 @@ void UNameTagComponent::SetTargetActor(AActor* InTargetActor) {
         mTargetActor.Set(InTargetActor);
         mExplicitTargetGuid = InTargetActor->GetGuid();
     }
+
     RefreshGuidText();
 }
 
@@ -29,6 +30,7 @@ AActor* UNameTagComponent::GetTargetActor() const {
     if (!mExplicitTargetGuid.IsValid()) {
         return GetOwner();
     }
+
     return mTargetActor.Get();
 }
 
@@ -77,17 +79,22 @@ bool UNameTagComponent::MakeTextRender(FTextProbe& OutProbe) const {
         }
 
         const UMeshComponent* MeshComponent{static_cast<const UMeshComponent*>(Component.get())};
+
         if (!MeshComponent->GetMeshHandle()) {
             continue;
         }
 
         DirectX::BoundingOrientedBox WorldBox{};
+
         MeshComponent->GetPickingBox().Transform(WorldBox, MeshComponent->GetComponentToWorld().ToSimpleMath());
+
         DirectX::XMFLOAT3 Corners[DirectX::BoundingOrientedBox::CORNER_COUNT]{};
+
         WorldBox.GetCorners(Corners);
 
         for (const DirectX::XMFLOAT3& Corner : Corners) {
             const FVector3 Position{Corner};
+
             if (!HasMeshBounds) {
                 Minimum = Position;
                 Maximum = Position;
@@ -113,6 +120,7 @@ bool UNameTagComponent::MakeTextRender(FTextProbe& OutProbe) const {
     OutProbe.mWorld.Translation(Center + Offset);
     OutProbe.mScreenBoundsExtent = HasMeshBounds ? (Maximum - Minimum) * 0.5f : FVector3{};
     OutProbe.mScreenUpPadding = GetCharacterHeight() * 0.5f + 0.2f;
+
     return true;
 }
 
@@ -120,6 +128,7 @@ void UNameTagComponent::Serialize(FArchive& Archive) {
     UBillboardTextComponent::Serialize(Archive);
     Archive.Serialize("TargetActorGuid", mExplicitTargetGuid);
     Archive.Serialize("TargetLocalOffset", mTargetLocalOffset);
+
     if (Archive.IsLoading()) {
         mTargetActor.Reset();
     }
@@ -129,15 +138,20 @@ bool UNameTagComponent::ResolveLoadedReferences() {
     if (!UBillboardTextComponent::ResolveLoadedReferences()) {
         return false;
     }
+
     if (!mExplicitTargetGuid.IsValid()) {
         return GetOwner() != nullptr;
     }
+
     const FObjectHandle TargetHandle{UObjectSystem::FindHandleByGuid(mExplicitTargetGuid)};
     UObject* Object{UObjectSystem::Resolve(TargetHandle)};
+
     if (Object == nullptr || !Object->GetTypeInfo()->IsA(AActor::StaticTypeInfo())) {
         return false;
     }
+
     mTargetActor.Set(static_cast<AActor*>(Object));
+
     return true;
 }
 

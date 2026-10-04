@@ -41,7 +41,6 @@ public:
     void OnRegister() override;
     void OnUnregister() override;
 
-
 protected:
     virtual bool TryGetTextWorld(FMatrix& OutWorld) const;
     void Serialize(FArchive& Archive) override;

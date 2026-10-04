@@ -1,33 +1,33 @@
 #include "pch.h"
+#include "Core/Base/ErrorHandler.h"
 #include "Engine/FEngineLoop.h"
 #include "Engine/IEngineLoopClient.h"
 #include "Platform/IPlatformApplication.h"
-#include <stdexcept>
 
 int FEngineLoop::Run(IEngineLoopClient& Client, IPlatformApplication& Platform) {
     if (mClient != nullptr) {
-        throw std::logic_error{"Engine loop is already active"};
+        ErrorHandler::Report("FEngineLoop", "Engine loop is already active", ErrorHandler::EErrorLevel::Critical);
     }
+
     mClient = &Client;
+
     int ExitCode{1};
-    try {
-        if (Client.Initialize()) {
-            mFrameTimer.Reset();
-            mRunning = true;
-            while (Platform.PumpMessages()) {
-                Tick();
-            }
-            ExitCode = Platform.GetExitCode();
+
+    if (Client.Initialize()) {
+        mFrameTimer.Reset();
+        mRunning = true;
+
+        while (Platform.PumpMessages()) {
+            Tick();
         }
-    } catch (...) {
-        mRunning = false;
-        mClient = nullptr;
-        Client.Shutdown();
-        throw;
+
+        ExitCode = Platform.GetExitCode();
     }
+
     mRunning = false;
     mClient = nullptr;
     Client.Shutdown();
+
     return ExitCode;
 }
 
@@ -35,14 +35,10 @@ void FEngineLoop::Tick() {
     if (!mRunning || mTicking) {
         return;
     }
+
     mTicking = true;
     mFrameTimer.Tick();
-    try {
-        mClient->Tick(static_cast<float>(mFrameTimer.GetUpdateDeltaSeconds()));
-    } catch (...) {
-        mTicking = false;
-        throw;
-    }
+    mClient->Tick(static_cast<float>(mFrameTimer.GetUpdateDeltaSeconds()));
     mTicking = false;
 }
 

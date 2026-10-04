@@ -20,7 +20,7 @@ template <typename T>
 using TSharedPtr = std::shared_ptr<T>;
 
 template <typename T>
-using TWeakPtr= std::weak_ptr<T>;
+using TWeakPtr = std::weak_ptr<T>;
 
 template <typename T, typename... Args>
 TSharedPtr<T> MakeShared(Args&&... args) {
@@ -33,40 +33,32 @@ TUniquePtr<T> MakeUnique(Args&&... args) {
 }
 
 #define DEFINE_ENUM_OPERATORS(EnumName) \
-    constexpr EnumName operator&(EnumName _a, EnumName _b) \
-    { \
+    constexpr EnumName operator&(EnumName _a, EnumName _b) { \
         using UnderlyingType = std::underlying_type_t<EnumName>; \
         return static_cast<EnumName>(static_cast<UnderlyingType>(_a) & static_cast<UnderlyingType>(_b)); \
     } \
-    constexpr EnumName operator|(EnumName _a, EnumName _b) \
-    { \
+    constexpr EnumName operator|(EnumName _a, EnumName _b) { \
         using UnderlyingType = std::underlying_type_t<EnumName>; \
         return static_cast<EnumName>(static_cast<UnderlyingType>(_a) | static_cast<UnderlyingType>(_b)); \
     } \
-    constexpr EnumName operator^(EnumName _a, EnumName _b) \
-    { \
+    constexpr EnumName operator^(EnumName _a, EnumName _b) { \
         using UnderlyingType = std::underlying_type_t<EnumName>; \
         return static_cast<EnumName>(static_cast<UnderlyingType>(_a) ^ static_cast<UnderlyingType>(_b)); \
     } \
-    constexpr EnumName operator~(EnumName _a) \
-    { \
+    constexpr EnumName operator~(EnumName _a) { \
         using UnderlyingType = std::underlying_type_t<EnumName>; \
         return static_cast<EnumName>(~static_cast<UnderlyingType>(_a)); \
     } \
-    inline EnumName& operator&=(EnumName& _a, EnumName _b) \
-    { \
+    inline EnumName& operator&=(EnumName& _a, EnumName _b) { \
         return _a = _a & _b; \
     } \
-    inline EnumName& operator|=(EnumName& _a, EnumName _b) \
-    { \
+    inline EnumName& operator|=(EnumName& _a, EnumName _b) { \
         return _a = _a | _b; \
     } \
-    inline EnumName& operator^=(EnumName& _a, EnumName _b) \
-    { \
+    inline EnumName& operator^=(EnumName& _a, EnumName _b) { \
         return _a = _a ^ _b; \
     } \
-    constexpr bool HasFlag(EnumName _bitMask, EnumName _flag) \
-    { \
+    constexpr bool HasFlag(EnumName _bitMask, EnumName _flag) { \
         using UnderlyingType = std::underlying_type_t<EnumName>; \
         return (static_cast<UnderlyingType>(_bitMask) & static_cast<UnderlyingType>(_flag)) != 0; \
     }

@@ -44,6 +44,7 @@ void FTransformGizmo::ProcessInput(FKeyboardInput& KeyboardInput, FMouseInput& M
             if (const std::optional<FRay> Ray{MakeWorldRay(Capture.mCurrent)}) {
                 UpdateDrag(*Ray);
             }
+
             EndDrag();
         }
 
@@ -55,11 +56,13 @@ void FTransformGizmo::ProcessInput(FKeyboardInput& KeyboardInput, FMouseInput& M
     }
 
     const std::optional<FRay> Ray{MakeWorldRay(Capture.mStart)};
+
     if (!Ray.has_value()) {
         return;
     }
 
     const std::optional<FAxisHit> Hit{HitTest(*Ray)};
+
     if (!Hit.has_value() || !BeginDrag(Hit->mAxis, *Ray)) {
         return;
     }
@@ -82,11 +85,13 @@ void FTransformGizmo::Update(const CameraProbe& Camera, const D3D11_VIEWPORT& Vi
         if (mDragSession.has_value()) {
             EndDrag();
         }
+
         mBVisible = false;
         return;
     }
 
     USceneComponent* Target{mEditorContext->GetSelectedTransformTarget()};
+
     if (Target == nullptr) {
         mBVisible = false;
         return;
@@ -103,8 +108,10 @@ void FTransformGizmo::Update(const CameraProbe& Camera, const D3D11_VIEWPORT& Vi
     // Gizmo는 scale 없이 회전 축과 위치만 사용한다. World 모드에서는
     // 축을 월드 그리드에 고정하고, Local 모드에서만 대상 회전을 따른다.
     mGizmoWorldTransform = FMatrix::Identity;
+
     if (CoordinateSpace == EGizmoCoordinateSpace::Local && CurrentMode == EModifyMode::Rotate) {
         const FMatrix TargetRotation{Target->GetComponentTransform().ToMatrixNoScale()};
+
         for (Uint32 Row{0}; Row < 3; ++Row) {
             for (Uint32 Column{0}; Column < 3; ++Column) {
                 mGizmoWorldTransform.m_[Row][Column] = TargetRotation.m_[Row][Column];
@@ -123,6 +130,7 @@ void FTransformGizmo::Update(const CameraProbe& Camera, const D3D11_VIEWPORT& Vi
     } else {
         mBoundsCenterInGizmoSpace = FVector3::Zero;
     }
+
     const float ViewportHeight{Viewport.Height};
     const float ProjectionYScale{Camera.mProjection.m_[1][1]};
     const FVector3 BoundsCenterWorld{FVector3::Transform(mBoundsCenterInGizmoSpace, mGizmoWorldTransform)};
@@ -135,10 +143,12 @@ void FTransformGizmo::Update(const CameraProbe& Camera, const D3D11_VIEWPORT& Vi
 
     const bool BPerspectiveProjection{std::abs(Camera.mProjection.m_[2][3]) > std::numeric_limits<float>::epsilon()};
     const float WorldUnitsPerPixel{BPerspectiveProjection ? (2.0f * ViewDepth) / (ViewportHeight * ProjectionYScale) : 2.0f / (ViewportHeight * ProjectionYScale)};
+
     if (!std::isfinite(WorldUnitsPerPixel) || WorldUnitsPerPixel <= 0.0f) {
         mBVisible = false;
         return;
     }
+
     mCurrentWorkUnitsPerPixel = WorldUnitsPerPixel;
 
     switch (CurrentMode) {
@@ -190,7 +200,7 @@ void FTransformGizmo::SetTranslate(const FVector3& Pivot, float WorldUnitsPerPix
 
     mConeZAxisTransform = FMatrix::CreateRotationY(DirectX::XMConvertToRadians(90.0f)) * FMatrix::CreateScale(ConeRadius, ConeLength, ConeRadius) * FMatrix::CreateRotationX(DirectX::XMConvertToRadians(0.f)) * FMatrix::CreateTranslation(Pivot.mX, Pivot.mY, StartZ + ShaftLength * 0.8f + HalfConeLength);
 
-    mAxisHitProxies = { FAxisHitProxy{ .mAxis = EAxis::X, .mCenter = FVector3{StartX + TotalLength * 0.5f, Pivot.mY, Pivot.mZ}, .mExtent = FVector3{TotalLength * 0.5f, PickRadius, PickRadius}}, FAxisHitProxy{ .mAxis = EAxis::Y, .mCenter = FVector3{Pivot.mX, StartY + TotalLength * 0.5f, Pivot.mZ}, .mExtent = FVector3{PickRadius, TotalLength * 0.5f, PickRadius}}, FAxisHitProxy{ .mAxis = EAxis::Z, .mCenter = FVector3{Pivot.mX, Pivot.mY, StartZ + TotalLength * 0.5f}, .mExtent = FVector3{PickRadius, PickRadius, TotalLength * 0.5f}}};
+    mAxisHitProxies = {FAxisHitProxy{.mAxis = EAxis::X, .mCenter = FVector3{StartX + TotalLength * 0.5f, Pivot.mY, Pivot.mZ}, .mExtent = FVector3{TotalLength * 0.5f, PickRadius, PickRadius}}, FAxisHitProxy{.mAxis = EAxis::Y, .mCenter = FVector3{Pivot.mX, StartY + TotalLength * 0.5f, Pivot.mZ}, .mExtent = FVector3{PickRadius, TotalLength * 0.5f, PickRadius}}, FAxisHitProxy{.mAxis = EAxis::Z, .mCenter = FVector3{Pivot.mX, Pivot.mY, StartZ + TotalLength * 0.5f}, .mExtent = FVector3{PickRadius, PickRadius, TotalLength * 0.5f}}};
 }
 
 void FTransformGizmo::SetRotate(const FVector3& Pivot, float WorldUnitsPerPixel) {
@@ -243,22 +253,25 @@ void FTransformGizmo::SetScale(const FVector3& Pivot, float WorldUnitsPerPixel) 
 
     mCubeZAxisTransform = FMatrix::CreateRotationY(DirectX::XMConvertToRadians(90.0f)) * FMatrix::CreateScale(BoxSize, BoxSize, BoxSize) * FMatrix::CreateTranslation(Pivot.mX, Pivot.mY, StartZ + ShaftLength + HalfBoxSize);
 
-    mAxisHitProxies = {FAxisHitProxy{ .mAxis = EAxis::X, .mCenter = FVector3{StartX + TotalLength * 0.5f, Pivot.mY, Pivot.mZ}, .mExtent = FVector3{TotalLength * 0.5f, PickRadius, PickRadius}}, FAxisHitProxy{ .mAxis = EAxis::Y, .mCenter = FVector3{Pivot.mX, StartY + TotalLength * 0.5f, Pivot.mZ}, .mExtent = FVector3{PickRadius, TotalLength * 0.5f, PickRadius}}, FAxisHitProxy{ .mAxis = EAxis::Z, .mCenter = FVector3{Pivot.mX, Pivot.mY, StartZ + TotalLength * 0.5f}, .mExtent = FVector3{PickRadius, PickRadius, TotalLength * 0.5f}}};
+    mAxisHitProxies = {FAxisHitProxy{.mAxis = EAxis::X, .mCenter = FVector3{StartX + TotalLength * 0.5f, Pivot.mY, Pivot.mZ}, .mExtent = FVector3{TotalLength * 0.5f, PickRadius, PickRadius}}, FAxisHitProxy{.mAxis = EAxis::Y, .mCenter = FVector3{Pivot.mX, StartY + TotalLength * 0.5f, Pivot.mZ}, .mExtent = FVector3{PickRadius, TotalLength * 0.5f, PickRadius}}, FAxisHitProxy{.mAxis = EAxis::Z, .mCenter = FVector3{Pivot.mX, Pivot.mY, StartZ + TotalLength * 0.5f}, .mExtent = FVector3{PickRadius, PickRadius, TotalLength * 0.5f}}};
 }
 
 void FTransformGizmo::UpdateBoundsInGizmoSpace(const UPrimitiveComponent& Primitive, FVector3& OutCenter, FVector3& OutExtent) const {
     DirectX::BoundingOrientedBox LocalBounds{};
+
     LocalBounds = Primitive.GetPickingBox();
 
     std::array<DirectX::XMFLOAT3, DirectX::BoundingOrientedBox::CORNER_COUNT> Corners{};
+
     LocalBounds.GetCorners(Corners.data());
 
     const FMatrix PrimitiveToGizmo{Primitive.GetComponentToWorld() * mGizmoWorldTransform.Invert()};
-    FVector3 Minimum{ std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), std::numeric_limits<float>::max()};
-    FVector3 Maximum{ std::numeric_limits<float>::lowest(), std::numeric_limits<float>::lowest(), std::numeric_limits<float>::lowest()};
+    FVector3 Minimum{std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), std::numeric_limits<float>::max()};
+    FVector3 Maximum{std::numeric_limits<float>::lowest(), std::numeric_limits<float>::lowest(), std::numeric_limits<float>::lowest()};
 
     for (const DirectX::XMFLOAT3& Corner : Corners) {
         const FVector3 PointInGizmoSpace{FVector3::Transform(FVector3{Corner}, PrimitiveToGizmo)};
+
         Minimum = FVector3::Min(Minimum, PointInGizmoSpace);
         Maximum = FVector3::Max(Maximum, PointInGizmoSpace);
     }
@@ -273,6 +286,7 @@ std::optional<FRay> FTransformGizmo::MakeWorldRay(const POINT& ScreenPosition) c
     }
 
     const D3D11_VIEWPORT& Viewport{mLastViewport};
+
     if (Viewport.Width <= 0.0f || Viewport.Height <= 0.0f) {
         return std::nullopt;
     }
@@ -291,6 +305,7 @@ std::optional<FRay> FTransformGizmo::MakeWorldRay(const POINT& ScreenPosition) c
     }
 
     RayDirection.Normalize();
+
     return FRay{RayOrigin.ToSimpleMath(), RayDirection.ToSimpleMath()};
 }
 
@@ -298,9 +313,11 @@ std::optional<FTransformGizmo::FAxisHit> FTransformGizmo::HitTest(const FRay& Wo
     const FMatrix InverseGizmoWorld{mGizmoWorldTransform.Invert()};
     const FVector3 LocalOrigin{FVector3::Transform(FVector3{WorldRay.position}, InverseGizmoWorld)};
     FVector3 LocalDirection{FVector3::TransformNormal(FVector3{WorldRay.direction}, InverseGizmoWorld)};
+
     if (LocalDirection.LengthSquared() <= std::numeric_limits<float>::epsilon()) {
         return std::nullopt;
     }
+
     LocalDirection.Normalize();
 
     const FRay LocalRay{LocalOrigin.ToSimpleMath(), LocalDirection.ToSimpleMath()};
@@ -310,33 +327,40 @@ std::optional<FTransformGizmo::FAxisHit> FTransformGizmo::HitTest(const FRay& Wo
     if (CurrentMode == EModifyMode::Rotate) {
         const EAxis Axis[3]{EAxis::X, EAxis::Y, EAxis::Z};
         const FVector3 PlaneNormals[3]{FVector3::UnitX, FVector3::UnitY, FVector3::UnitZ};
+
         for (int I{0}; I < 3; I++) {
             FVector3 PlaneNormal{PlaneNormals[I]};
             float Denominator{LocalDirection.Dot(PlaneNormal)};
+
             if (std::abs(Denominator) <= 0.000001f) { // 레이와 평면이 거의 평행한 경우 패스
                 continue;
             }
+
             float Distance{(mBoundsCenterInGizmoSpace - LocalOrigin).Dot(PlaneNormal) / Denominator};
+
             if (Distance < 0.0f) { // 교차점이 카메라 밖에 있는 경우
                 continue;
             }
+
             FVector3 HitPosition{LocalOrigin + LocalDirection * Distance};
             float DistanceFromPivot{(HitPosition - mBoundsCenterInGizmoSpace).Length()}; // 중심과 마우스를 클릭한 사이의 거리
-            float DistanceFromRadius{std::abs(DistanceFromPivot - mCurrentRingRadius)}; // 그 거리 - 현재 링 반지름 => 해당값이 허용 오차 사이에 있어야 인정
-            if (DistanceFromRadius <= mCurrentRingPickHalfWidth) { // CurrentRingPickHalfWidth = 허용 오차
-                if (!NearestHit.has_value() || Distance < NearestHit->mDistance) { // t가 가장 작은걸 선택
-                    NearestHit = FAxisHit{ .mAxis = Axis[I], .mDistance = Distance};
+            float DistanceFromRadius{std::abs(DistanceFromPivot - mCurrentRingRadius)};  // 그 거리 - 현재 링 반지름 => 해당값이 허용 오차 사이에 있어야 인정
+            if (DistanceFromRadius <= mCurrentRingPickHalfWidth) {                       // CurrentRingPickHalfWidth = 허용 오차
+                if (!NearestHit.has_value() || Distance < NearestHit->mDistance) {       // t가 가장 작은걸 선택
+                    NearestHit = FAxisHit{.mAxis = Axis[I], .mDistance = Distance};
                 }
             }
         }
+
         return NearestHit;
     }
 
     for (const FAxisHitProxy& Proxy : mAxisHitProxies) {
         const DirectX::BoundingBox Box{Proxy.mCenter.ToSimpleMath(), Proxy.mExtent.ToSimpleMath()};
         float Distance{0.0f};
+
         if (Box.Intersects(LocalRay.position, LocalRay.direction, Distance) && (!NearestHit.has_value() || Distance < NearestHit->mDistance)) {
-            NearestHit = FAxisHit{ .mAxis = Proxy.mAxis, .mDistance = Distance};
+            NearestHit = FAxisHit{.mAxis = Proxy.mAxis, .mDistance = Distance};
         }
     }
 
@@ -344,7 +368,6 @@ std::optional<FTransformGizmo::FAxisHit> FTransformGizmo::HitTest(const FRay& Wo
 }
 
 bool FTransformGizmo::BeginDrag(EAxis Axis, const FRay& WorldRay) {
-
     // 선택 대상이나 유효한 축이 없으면 드래그를 시작하지 않는다.
     if (mEditorContext == nullptr || Axis == EAxis::None) {
         return false;
@@ -374,6 +397,7 @@ bool FTransformGizmo::BeginDrag(EAxis Axis, const FRay& WorldRay) {
     FDragSession NewSession{};
 
     USceneComponent* Target{mEditorContext->GetSelectedTransformTarget()};
+
     if (Target == nullptr) {
         return false;
     }
@@ -389,11 +413,10 @@ bool FTransformGizmo::BeginDrag(EAxis Axis, const FRay& WorldRay) {
 
     // Rotation은 링 평면을 사용한다.
     if (CurrentMode == EModifyMode::Rotate) {
-
         // 회전 링 평면은 회전축에 수직이므로 평면 법선은 회전축과 같다.
         NewSession.mDragPlaneNormal = AxisWorld;
 
-        const FPlane RotationPlane{ InteractionPivotWorld.ToSimpleMath(), AxisWorld.ToSimpleMath()};
+        const FPlane RotationPlane{InteractionPivotWorld.ToSimpleMath(), AxisWorld.ToSimpleMath()};
 
         float Distance{0.0f};
 
@@ -401,7 +424,7 @@ bool FTransformGizmo::BeginDrag(EAxis Axis, const FRay& WorldRay) {
             return false;
         }
 
-        const FVector3 HitPosition{ WorldRay.position + WorldRay.direction * Distance};
+        const FVector3 HitPosition{WorldRay.position + WorldRay.direction * Distance};
 
         //Pivot에서 클릭점으로 향하는 방향이 회전 시작 방향이다.
         FVector3 InitialDirection{HitPosition - InteractionPivotWorld};
@@ -421,9 +444,11 @@ bool FTransformGizmo::BeginDrag(EAxis Axis, const FRay& WorldRay) {
     //Translate와 Scale은 기존 축 드래그 평면을 사용한다.
     else {
         FVector3 ViewDirection{WorldRay.direction};
+
         if (ViewDirection.LengthSquared() <= std::numeric_limits<float>::epsilon()) {
             return false;
         }
+
         ViewDirection.Normalize();
 
         // 선택 축을 포함하면서 카메라를 향하는 드래그 평면의 법선을 계산한다.
@@ -432,6 +457,7 @@ bool FTransformGizmo::BeginDrag(EAxis Axis, const FRay& WorldRay) {
         // 화면에서 거의 점으로 보이는 축은 안정적인 드래그 평면을 만들 수 없다.
         // 임의의 대체 평면을 사용하면 레이와 평면이 거의 평행해져 교차점이 폭주한다.
         constexpr float MinimumViewSeparation{0.05f};
+
         if (PlaneNormal.LengthSquared() <= MinimumViewSeparation * MinimumViewSeparation) {
             return false;
         }
@@ -459,6 +485,7 @@ void FTransformGizmo::UpdateDrag(const FRay& WorldRay) {
 
     auto& Session{*mDragSession};
     USceneComponent* Target{Session.mTarget.Get()};
+
     if (mEditorContext == nullptr || Target == nullptr || mEditorContext->GetSelectedTransformTarget() != Target) {
         EndDrag();
         return;
@@ -466,11 +493,10 @@ void FTransformGizmo::UpdateDrag(const FRay& WorldRay) {
 
     // Rotation은 방향 벡터 사이의 각도로 계산한다.
     if (Session.mModifyMode == EModifyMode::Rotate) {
-
         // BeginDrag에서 사용한 것과 동일한 회전 평면.
         // 평면 중심 = 기즈모 Pivot
         // 평면 법선 = 선택한 회전축
-        const FPlane RotationPlane{ Session.mInteractionPivotWorld.ToSimpleMath(), Session.mAxisWorld.ToSimpleMath()};
+        const FPlane RotationPlane{Session.mInteractionPivotWorld.ToSimpleMath(), Session.mAxisWorld.ToSimpleMath()};
 
         float Distance{0.0f};
 
@@ -479,7 +505,7 @@ void FTransformGizmo::UpdateDrag(const FRay& WorldRay) {
             return;
         }
 
-        const FVector3 HitPosition{ WorldRay.position + WorldRay.direction * Distance};
+        const FVector3 HitPosition{WorldRay.position + WorldRay.direction * Distance};
 
         // Pivot에서 현재 마우스 위치로 향하는 방향.
         FVector3 CurrentDirection{HitPosition - Session.mInteractionPivotWorld};
@@ -500,23 +526,29 @@ void FTransformGizmo::UpdateDrag(const FRay& WorldRay) {
         const float SinAngle{Session.mAxisWorld.Dot(Session.mPreviousRotationDirection.Cross(CurrentDirection))};
         const float CosAngle{std::clamp(Session.mPreviousRotationDirection.Dot(CurrentDirection), -1.0f, 1.0f)};
         const float AngleDelta{std::atan2(SinAngle, CosAngle)};
+
         if (Session.mCoordinateSpace == EGizmoCoordinateSpace::Local) {
             FVector3 LocalAxis{};
+
             switch (Session.mDragAxis) {
                 case EAxis::X:
                     LocalAxis = FVector3::UnitX;
                     break;
+
                 case EAxis::Y:
                     LocalAxis = FVector3::UnitY;
                     break;
+
                 case EAxis::Z:
                     LocalAxis = FVector3::UnitZ;
                     break;
+
                 default:
                     return;
             }
 
             FTransform RelativeTransform{Target->GetRelativeTransform()};
+
             RelativeTransform.SetRotation(FQuat::Concatenate(RelativeTransform.GetRotationQuaternion(), FQuat::CreateFromAxisAngle(LocalAxis, AngleDelta)));
             Target->SetRelativeTransform(RelativeTransform);
             Session.mPreviousRotationDirection = CurrentDirection;
@@ -526,6 +558,7 @@ void FTransformGizmo::UpdateDrag(const FRay& WorldRay) {
         // Transform과 gizmo는 동일한 Z-up 축을 사용한다.
         const FVector3 TransformSpaceAxis{Session.mAxisWorld};
         FTransform DesiredWorldTransform{Target->GetComponentTransform()};
+
         if (Session.mCoordinateSpace == EGizmoCoordinateSpace::Local) {
             DesiredWorldTransform.SetRotation(FQuat::Concatenate(DesiredWorldTransform.GetRotationQuaternion(), FQuat::CreateFromAxisAngle(TransformSpaceAxis, AngleDelta)));
         } else {
@@ -535,6 +568,7 @@ void FTransformGizmo::UpdateDrag(const FRay& WorldRay) {
         if (Target->SetWorldTransform(DesiredWorldTransform)) {
             Session.mPreviousRotationDirection = CurrentDirection;
         }
+
         return;
     }
 
@@ -548,11 +582,14 @@ void FTransformGizmo::UpdateDrag(const FRay& WorldRay) {
 
         const float Delta{CurrentAxisParameter - Session.mPreviousAxisParameter};
         const float MaximumFrameDelta{std::max(Session.mWorkUnitsPerPixel * std::max(mLastViewport.Width, mLastViewport.Height) * 2.0f, 1.0f)};
+
         if (!std::isfinite(Delta) || std::abs(Delta) > MaximumFrameDelta) {
             EndDrag();
             return;
         }
+
         Session.mPreviousAxisParameter = CurrentAxisParameter;
+
         FTransform DesiredWorldTransform{Target->GetComponentTransform()};
 
         if (Session.mModifyMode == EModifyMode::Translate) {
@@ -561,9 +598,11 @@ void FTransformGizmo::UpdateDrag(const FRay& WorldRay) {
 
             if (Settings.mGridSnapEnabled && GridSize > 0.0f) {
                 Session.mAccumulatedDelta += Delta;
+
                 if (std::abs(Session.mAccumulatedDelta) < GridSize) {
                     return;
                 }
+
                 const float Steps{truncf(Session.mAccumulatedDelta / GridSize)};
                 const float StepDelta{Steps * GridSize};
 
@@ -580,16 +619,20 @@ void FTransformGizmo::UpdateDrag(const FRay& WorldRay) {
 
             if (Session.mCoordinateSpace == EGizmoCoordinateSpace::Local) {
                 FVector3 RelativeScale{Target->GetRelativeScale3D()};
+
                 switch (Session.mDragAxis) {
                     case EAxis::X:
                         RelativeScale.mX *= ScaleFactor;
                         break;
+
                     case EAxis::Y:
                         RelativeScale.mY *= ScaleFactor;
                         break;
+
                     case EAxis::Z:
                         RelativeScale.mZ *= ScaleFactor;
                         break;
+
                     default:
                         return;
                 }
@@ -642,22 +685,26 @@ bool FTransformGizmo::GetAxisParameterOnDragPlane(const FRay& WorldRay, const FD
     const FVector3 RayDirection{WorldRay.direction};
     const float Denominator{RayDirection.Dot(Session.mDragPlaneNormal)};
     constexpr float MinimumRayPlaneAlignment{0.05f};
+
     if (!std::isfinite(Denominator) || std::abs(Denominator) < MinimumRayPlaneAlignment) {
         return false;
     }
 
     const float Distance{(Session.mInteractionPivotWorld - RayOrigin).Dot(Session.mDragPlaneNormal) / Denominator};
+
     if (!std::isfinite(Distance) || Distance < 0.0f) {
         return false;
     }
 
     const FVector3 HitPosition{RayOrigin + RayDirection * Distance};
     const float Parameter{(HitPosition - Session.mInteractionPivotWorld).Dot(Session.mAxisWorld)};
+
     if (!std::isfinite(Parameter)) {
         return false;
     }
 
     OutParameter = Parameter;
+
     return true;
 }
 
@@ -665,10 +712,13 @@ FVector3 FTransformGizmo::GetWorldAxis(EAxis Axis) const {
     switch (Axis) {
         case EAxis::X:
             return mGizmoWorldTransform.Forward();
+
         case EAxis::Y:
             return mGizmoWorldTransform.Right();
+
         case EAxis::Z:
             return mGizmoWorldTransform.Up();
+
         default:
             return FVector3::Zero;
     }
@@ -684,7 +734,7 @@ void FTransformGizmo::BuildGizmoProbes(TArray<FActorProbe>& GizmoProbes) {
     const EModifyMode CurrentMode{mGizmoMode.HasValue() ? static_cast<EModifyMode>(mGizmoMode.Peek()) : EModifyMode::None};
 
     const auto Submit{[&](const FMatrix& LocalTransform, FAssetHandle MeshHandle, FAssetHandle MaterialHandle) {
-        GizmoProbes.emplace_back(FActorProbe{ .mWorld = LocalTransform * mGizmoWorldTransform, .mMeshHandle = MeshHandle, .mMaterialHandle = MaterialHandle, .mPipelineHandle = mGizmoPipeline});
+        GizmoProbes.emplace_back(FActorProbe{.mWorld = LocalTransform * mGizmoWorldTransform, .mMeshHandle = MeshHandle, .mMaterialHandle = MaterialHandle, .mPipelineHandle = mGizmoPipeline});
     }};
 
     switch (CurrentMode) {

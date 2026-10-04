@@ -33,7 +33,6 @@ public:
 
     virtual void OnRenderStateChanged();
 
-
     bool IsActive() const;
     void SetActive(bool BInActive);
 

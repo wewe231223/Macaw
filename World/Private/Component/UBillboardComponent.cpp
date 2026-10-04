@@ -15,30 +15,39 @@ void UBillboardComponent::Serialize(FArchive& Archive) {
     UPrimitiveComponent::Serialize(Archive);
 
     const IAssetResolver* Registry{Archive.GetAssetResolver()};
+
     if (Archive.IsSaving() && Registry != nullptr) {
         if (const FAssetPath* AssetPath{Registry->GetAssetPath(mTextureHandle)}) {
             mTextureAssetPath = *AssetPath;
         }
+
         if (const FGuid* AssetGuid{Registry->GetAssetGuid(mTextureHandle)}) {
             mTextureAssetGuid = *AssetGuid;
         }
+
         if (const FAssetPath* AssetPath{Registry->GetAssetPath(mPipelineHandle)}) {
             mPipelineAssetPath = *AssetPath;
         }
+
         if (const FGuid* AssetGuid{Registry->GetAssetGuid(mPipelineHandle)}) {
             mPipelineAssetGuid = *AssetGuid;
         }
     }
+
     Archive.Serialize("TextureAssetGuid", mTextureAssetGuid);
     Archive.Serialize("TextureAssetPath", mTextureAssetPath.mPath);
     Archive.Serialize("PipelineAssetGuid", mPipelineAssetGuid);
     Archive.Serialize("PipelineAssetPath", mPipelineAssetPath.mPath);
+
     if (Archive.IsLoading()) {
         mTextureHandle = Registry != nullptr ? Registry->FindAsset(mTextureAssetGuid) : FAssetHandle{};
+
         if (!mTextureHandle && Registry != nullptr) {
             mTextureHandle = Registry->FindAsset(mTextureAssetPath);
         }
+
         mPipelineHandle = Registry != nullptr ? Registry->FindAsset(mPipelineAssetGuid) : FAssetHandle{};
+
         if (!mPipelineHandle && Registry != nullptr) {
             mPipelineHandle = Registry->FindAsset(mPipelineAssetPath);
         }
@@ -48,7 +57,9 @@ void UBillboardComponent::Serialize(FArchive& Archive) {
     Archive.Serialize("UVMin", mUvMin);
     Archive.Serialize("UVMax", mUvMax);
     Archive.Serialize("Color", mColor);
-    if (Archive.IsLoading()) OnRenderStateChanged();
+
+    if (Archive.IsLoading())
+        OnRenderStateChanged();
 }
 
 bool UBillboardComponent::TryGetBillBoardWorld(FMatrix& OutWorld) const {
@@ -57,13 +68,16 @@ bool UBillboardComponent::TryGetBillBoardWorld(FMatrix& OutWorld) const {
     }
 
     OutWorld = GetComponentToWorld();
+
     return true;
 }
 
 void UBillboardComponent::SetTextureHandle(FAssetHandle InTextureHandle) {
     mTextureHandle = InTextureHandle;
+
     UWorld* World{GetBelongingWorld()};
     const IAssetRegistry* Registry{World != nullptr ? World->GetAssetRegistry() : nullptr};
+
     mTextureAssetPath = Registry != nullptr && Registry->GetAssetPath(mTextureHandle) != nullptr ? *Registry->GetAssetPath(mTextureHandle) : FAssetPath{};
     mTextureAssetGuid = Registry != nullptr && Registry->GetAssetGuid(mTextureHandle) != nullptr ? *Registry->GetAssetGuid(mTextureHandle) : FGuid{};
     OnRenderStateChanged();
@@ -71,8 +85,10 @@ void UBillboardComponent::SetTextureHandle(FAssetHandle InTextureHandle) {
 
 void UBillboardComponent::SetPipelineHandle(FAssetHandle InPipelineHandle) {
     mPipelineHandle = InPipelineHandle;
+
     UWorld* World{GetBelongingWorld()};
     const IAssetRegistry* Registry{World != nullptr ? World->GetAssetRegistry() : nullptr};
+
     mPipelineAssetPath = Registry != nullptr && Registry->GetAssetPath(mPipelineHandle) != nullptr ? *Registry->GetAssetPath(mPipelineHandle) : FAssetPath{};
     mPipelineAssetGuid = Registry != nullptr && Registry->GetAssetGuid(mPipelineHandle) != nullptr ? *Registry->GetAssetGuid(mPipelineHandle) : FGuid{};
     OnRenderStateChanged();
@@ -137,22 +153,27 @@ bool UBillboardComponent::MakeBillboardRender(FBillboardProbe& OutProbe) const {
 
 bool UBillboardComponent::GetWorldCorners(const FMatrix& CameraWorld, std::array<FVector3, 4>& OutCorners) const {
     FBillboardProbe Probe{};
+
     if (!MakeBillboardRender(Probe) || Probe.mSize.mX <= 0.0f || Probe.mSize.mY <= 0.0f) {
         return false;
     }
 
     FVector3 Right{CameraWorld.m_[0][0], CameraWorld.m_[0][1], CameraWorld.m_[0][2]};
     FVector3 Up{CameraWorld.m_[1][0], CameraWorld.m_[1][1], CameraWorld.m_[1][2]};
+
     if (Right.LengthSquared() <= 0.0f || Up.LengthSquared() <= 0.0f) {
         return false;
     }
+
     Right.Normalize();
     Up.Normalize();
 
     const FVector3 Origin{Probe.mWorld.Translation()};
     const FVector3 Horizontal{Right * (Probe.mSize.mX * 0.5f)};
     const FVector3 Vertical{Up * (Probe.mSize.mY * 0.5f)};
+
     OutCorners = {Origin - Horizontal + Vertical, Origin - Horizontal - Vertical, Origin + Horizontal + Vertical, Origin + Horizontal - Vertical};
+
     return true;
 }
 
@@ -160,6 +181,7 @@ void UBillboardComponent::OnRegister() {
     UPrimitiveComponent::OnRegister();
 
     UWorld* World{GetBelongingWorld()};
+
     if (World != nullptr) {
         World->GetBillboardSubsystem().RegisterComponent(this);
     }
@@ -167,6 +189,7 @@ void UBillboardComponent::OnRegister() {
 
 void UBillboardComponent::OnUnregister() {
     UWorld* World{GetBelongingWorld()};
+
     if (World != nullptr) {
         World->GetBillboardSubsystem().UnregisterComponent(this);
     }

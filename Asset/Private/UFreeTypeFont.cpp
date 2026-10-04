@@ -57,16 +57,19 @@ bool UFreeTypeFont::InitializeFont(const std::filesystem::path& FontPath, Uint32
         Reset();
         return false;
     }
+
     Error = FT_New_Face(mLibrary, FontPath.string().c_str(), 0, &mFace); // TTF 파일에서 mFace 생성
     if (Error != FT_Err_Ok) {
         Reset();
         return false;
     }
+
     Error = FT_Select_Charmap(mFace, FT_ENCODING_UNICODE); // Unicode CodePoint를 사용할 charmap 선택
     if (Error != FT_Err_Ok) {
         Reset();
         return false;
     }
+
     Error = FT_Set_Pixel_Sizes(mFace, 0, BakePixelHeight); // Glyph를 생성할 픽셀 크기 설정
     // 폰트 전체 공통 Metric 저장
     mFontMetrics.mBakePixelHeight = static_cast<float>(BakePixelHeight);
@@ -75,21 +78,27 @@ bool UFreeTypeFont::InitializeFont(const std::filesystem::path& FontPath, Uint32
     mFontMetrics.mLineHeight = static_cast<float>(mFace->size->metrics.height) / 64.0f;
     // 빈 CPU Atlas 생성
     const std::size_t AtlasPixelCount{static_cast<std::size_t>(mAtlasWidth) * static_cast<std::size_t>(mAtlasHeight)};
+
     mAtlasPixels.assign(AtlasPixelCount, std::uint8_t{0});
     ++mAtlasRevision;
     mBInitialized = true;
+
     return true;
 }
 
 const FFontGlyph* UFreeTypeFont::FindGlyph(char32_t CodePoint) const {
     auto CodePointIt{mCodePointToGlyphIndex.find(CodePoint)};
+
     if (CodePointIt == mCodePointToGlyphIndex.end()) {
         return nullptr;
     }
+
     auto GlyphCacheIt{mGlyphCache.find(CodePointIt->second)};
+
     if (GlyphCacheIt == mGlyphCache.end()) {
         return nullptr;
     }
+
     return &GlyphCacheIt->second;
 }
 
@@ -105,6 +114,7 @@ const FFontGlyph* UFreeTypeFont::GetOrCreateGlyph(char32_t CodePoint) {
     // 즉, 다른 CodePoint로 같은 GlyphIndex가 나온 것이다. FT_Face에서 같은 모양을 가리킨다고 판단한것이다.
     std::uint32_t GlyphIndex{0};
     const auto CodePointIt{mCodePointToGlyphIndex.find(CodePoint)};
+
     if (CodePointIt != mCodePointToGlyphIndex.end()) {
         // 해당 CodePoint와 GlyphIndex를 매핑한다.
         GlyphIndex = CodePointIt->second;
@@ -118,6 +128,7 @@ const FFontGlyph* UFreeTypeFont::GetOrCreateGlyph(char32_t CodePoint) {
     }
     // 다른 CodePoint로 같은 GlyphIndex가 나온경우 해당 CodePoint에 매핑되는 Glyph가 존재하므로
     const auto GlyphCacheIt{mGlyphCache.find(GlyphIndex)};
+
     if (GlyphCacheIt != mGlyphCache.end()) {
         // 해당 관계(CodePoint->GlyphIndex)를 등록하고
         mCodePointToGlyphIndex.insert_or_assign(CodePoint, GlyphIndex);
@@ -129,6 +140,7 @@ const FFontGlyph* UFreeTypeFont::GetOrCreateGlyph(char32_t CodePoint) {
     // TTF 폰트는 글자의 윤곽선을 점과 곡선으로 저장한다. -> outline -> glyph를 구성하는 정보가 들어있다.
     // Metric은 glyph를 어디에 놓고 다음 glyph로 얼마나 이동할지를 알려주는 숫자이다.
     FT_Error Error{FT_Load_Glyph(mFace, static_cast<FT_UInt>(GlyphIndex), FT_LOAD_DEFAULT | FT_LOAD_NO_BITMAP)};
+
     if (Error != FT_Err_Ok) {
         return nullptr;
     }
@@ -144,6 +156,7 @@ const FFontGlyph* UFreeTypeFont::GetOrCreateGlyph(char32_t CodePoint) {
 
     // FKGlyph 구조체에 배치 정보 복사
     FFontGlyph NewGlyph{};
+
     NewGlyph.mGlyphIndex = GlyphIndex;
     NewGlyph.mBitmapWidth = static_cast<std::uint32_t>(Bitmap.width);
     NewGlyph.mBitmapHeight = static_cast<std::uint32_t>(Bitmap.rows);
@@ -162,6 +175,7 @@ const FFontGlyph* UFreeTypeFont::GetOrCreateGlyph(char32_t CodePoint) {
         if (!AllocateAtlasRect(static_cast<std::uint32_t>(Bitmap.width), static_cast<std::uint32_t>(Bitmap.rows), AtlasX, AtlasY)) {
             return nullptr;
         }
+
         if (!CopyBitmapToAtlas(Bitmap, AtlasX, AtlasY)) {
             return nullptr;
         }
@@ -175,6 +189,7 @@ const FFontGlyph* UFreeTypeFont::GetOrCreateGlyph(char32_t CodePoint) {
     // 캐시에 저장
     // emplace는 (Iterator, bool) 로 반환함, move -> Glyph를 복사하기보단 이동
     auto [InsertedIt, bInserted]{mGlyphCache.emplace(GlyphIndex, std::move(NewGlyph))};
+
     if (!bInserted) {
         return nullptr;
     }
@@ -194,23 +209,28 @@ bool UFreeTypeFont::AllocateAtlasRect(std::uint32_t BitmapWidth, std::uint32_t B
     if (BitmapWidth <= 0 || BitmapHeight <= 0) {
         return false;
     }
+
     std::uint32_t ReqWidth{BitmapWidth + AtlasPadding * 2};
     std::uint32_t ReqHeight{BitmapHeight + AtlasPadding * 2};
     std::uint32_t TempX{mNextAtlasX};
     std::uint32_t TempY{mNextAtlasY};
+
     if (TempX + ReqWidth > mAtlasWidth) {
         TempX = 0;
         TempY += mCurrentRowHeight;
         mCurrentRowHeight = ReqHeight;
     }
+
     if (TempY > mAtlasHeight || TempY + ReqHeight > mAtlasHeight || TempY + mCurrentRowHeight > mAtlasHeight) {
         return false;
     }
+
     OutAtlasX = TempX + AtlasPadding;
     OutAtlasY = TempY + AtlasPadding;
     mCurrentRowHeight = std::max(mCurrentRowHeight, ReqHeight);
     mNextAtlasX = TempX + ReqWidth;
     mNextAtlasY = TempY;
+
     return true;
 }
 
@@ -219,18 +239,22 @@ bool UFreeTypeFont::CopyBitmapToAtlas(FT_Bitmap& Bitmap, std::uint32_t AtlasX, s
         // 공백의 bitmap
         return true;
     }
+
     if (Bitmap.buffer == nullptr) {
         return false;
     }
+
     if (Bitmap.width + AtlasX > mAtlasWidth || Bitmap.rows + AtlasY > mAtlasHeight) {
         return false;
     }
     // Pitch = 다음 행까지의 거리 | 실제 픽셀의 길이를 나타내는 width와 다르다.
     // width는 bitmap에서 최대 가로 길이 이기도 하므로 Pitch는 Padding에 대비함이다.
     const std::uint32_t SourcePitch{static_cast<std::uint32_t>(Bitmap.pitch >= 0 ? Bitmap.pitch : -Bitmap.pitch)};
+
     if (SourcePitch < Bitmap.width) {
         return false;
     }
+
     for (std::uint32_t Row{0}; Row < Bitmap.rows; Row++) {
         const std::uint8_t* SourceRow{nullptr};
         /* 일반적인 경우 */
@@ -250,6 +274,7 @@ bool UFreeTypeFont::CopyBitmapToAtlas(FT_Bitmap& Bitmap, std::uint32_t AtlasX, s
     }
     // Atlas 정보 업데이트됨
     ++mAtlasRevision;
+
     return true;
 }
 

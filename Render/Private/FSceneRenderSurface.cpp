@@ -25,8 +25,10 @@ bool FSceneRenderSurface::Resize(ID3D11Device* Device, std::uint32_t Width, std:
     }
 
     ResetResources();
+
     if (mStorageMode == EStorageMode::SwapChain) {
         DXGI_SWAP_CHAIN_DESC SwapChainDescription{};
+
         ErrorHandler::ReportHRESULT(mSwapChain->GetDesc(&SwapChainDescription), "[ FSceneRenderSurface ]", "Failed to get swap chain description.", ErrorHandler::EErrorLevel::Critical);
         ErrorHandler::ReportHRESULT(mSwapChain->ResizeBuffers(0, Width, Height, DXGI_FORMAT_UNKNOWN, SwapChainDescription.Flags), "[ FSceneRenderSurface ]", "Failed to resize swap chain buffers.", ErrorHandler::EErrorLevel::Critical);
         CreateSwapChainResources(Device);
@@ -43,6 +45,7 @@ void FSceneRenderSurface::Bind(ID3D11DeviceContext* Context) const {
     }
 
     ID3D11RenderTargetView* TargetView{mRenderTargetView.Get()};
+
     Context->OMSetRenderTargets(1, &TargetView, mDepthStencilView.Get());
     Context->RSSetViewports(1, &mViewport);
 }
@@ -88,10 +91,12 @@ ID3D11ShaderResourceView* FSceneRenderSurface::GetDepthShaderResourceView() cons
 
 void FSceneRenderSurface::CreateSwapChainResources(ID3D11Device* Device) {
     DXGI_SWAP_CHAIN_DESC SwapChainDescription{};
+
     ErrorHandler::ReportHRESULT(mSwapChain->GetDesc(&SwapChainDescription), "[ FSceneRenderSurface ]", "Failed to get swap chain description.", ErrorHandler::EErrorLevel::Critical);
     ErrorHandler::ReportHRESULT(mSwapChain->GetBuffer(0, IID_PPV_ARGS(mColorTexture.GetAddressOf())), "[ FSceneRenderSurface ]", "Failed to get swap chain back buffer.", ErrorHandler::EErrorLevel::Critical);
 
     D3D11_RENDER_TARGET_VIEW_DESC RenderTargetViewDescription{};
+
     RenderTargetViewDescription.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
     RenderTargetViewDescription.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
     ErrorHandler::ReportHRESULT(Device->CreateRenderTargetView(mColorTexture.Get(), &RenderTargetViewDescription, mRenderTargetView.GetAddressOf()), "[ FSceneRenderSurface ]", "Failed to create swap chain render target view.", ErrorHandler::EErrorLevel::Critical);
@@ -101,6 +106,7 @@ void FSceneRenderSurface::CreateSwapChainResources(ID3D11Device* Device) {
 
 void FSceneRenderSurface::CreateOffscreenResources(ID3D11Device* Device, std::uint32_t Width, std::uint32_t Height) {
     D3D11_TEXTURE2D_DESC TextureDescription{};
+
     TextureDescription.Width = Width;
     TextureDescription.Height = Height;
     TextureDescription.MipLevels = 1;
@@ -117,6 +123,7 @@ void FSceneRenderSurface::CreateOffscreenResources(ID3D11Device* Device, std::ui
 
 void FSceneRenderSurface::CreateDepthStencilResources(ID3D11Device* Device, std::uint32_t Width, std::uint32_t Height) {
     D3D11_TEXTURE2D_DESC TextureDescription{};
+
     TextureDescription.Width = Width;
     TextureDescription.Height = Height;
     TextureDescription.MipLevels = 1;
@@ -128,10 +135,13 @@ void FSceneRenderSurface::CreateDepthStencilResources(ID3D11Device* Device, std:
     ErrorHandler::ReportHRESULT(Device->CreateTexture2D(&TextureDescription, nullptr, mDepthStencilTexture.GetAddressOf()), "[ FSceneRenderSurface ]", "Failed to create depth stencil texture.", ErrorHandler::EErrorLevel::Critical);
 
     D3D11_DEPTH_STENCIL_VIEW_DESC DepthStencilViewDescription{};
+
     DepthStencilViewDescription.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
     DepthStencilViewDescription.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
     ErrorHandler::ReportHRESULT(Device->CreateDepthStencilView(mDepthStencilTexture.Get(), &DepthStencilViewDescription, mDepthStencilView.GetAddressOf()), "[ FSceneRenderSurface ]", "Failed to create depth stencil view.", ErrorHandler::EErrorLevel::Critical);
+
     D3D11_SHADER_RESOURCE_VIEW_DESC DepthResourceDescription{};
+
     DepthResourceDescription.Format = DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
     DepthResourceDescription.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
     DepthResourceDescription.Texture2D.MipLevels = 1;

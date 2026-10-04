@@ -24,6 +24,7 @@ FAssetHandle UStaticMeshComponent::GetPipelineHandle() const {
 
 void UStaticMeshComponent::SetMeshHandle(FAssetHandle InHandle) {
     const FAssetHandle PreviousHandle{GetMeshHandle()};
+
     UMeshComponent::SetMeshHandle(InHandle);
 
     if (PreviousHandle != GetMeshHandle()) {
@@ -73,6 +74,7 @@ void UStaticMeshComponent::SetPipelineHandle(FAssetHandle InHandle) {
 
 void UStaticMeshComponent::OnRenderStateChanged() {
     UMeshComponent::OnRenderStateChanged();
+
     AActor* Owner{GetOwner()};
     UWorld* World{Owner != nullptr ? Owner->GetWorld() : nullptr};
 
@@ -126,7 +128,7 @@ void UStaticMeshComponent::MakeRender(FActorProbe& OutProbe) const {
         return;
     }
 
-    OutProbe = FActorProbe{ GetComponentToWorld(), GetMeshHandle(), mMaterialHandle, mPipelineHandle, 0x0000'0000};
+    OutProbe = FActorProbe{GetComponentToWorld(), GetMeshHandle(), mMaterialHandle, mPipelineHandle, 0x0000'0000};
     OutProbe.mWorldSphereBounds = GetWorldSphere();
     OutProbe.mWorldOBB = GetWorldOBB();
     OutProbe.mWorldAABB = GetWorldAABB();
@@ -141,12 +143,15 @@ void UStaticMeshComponent::Serialize(FArchive& Archive) {
         if (const FAssetPath* AssetPath{Registry->GetAssetPath(mMaterialHandle)}) {
             mMaterialAssetPath = *AssetPath;
         }
+
         if (const FGuid* AssetGuid{Registry->GetAssetGuid(mMaterialHandle)}) {
             mMaterialAssetGuid = *AssetGuid;
         }
+
         if (const FAssetPath* AssetPath{Registry->GetAssetPath(mPipelineHandle)}) {
             mPipelineAssetPath = *AssetPath;
         }
+
         if (const FGuid* AssetGuid{Registry->GetAssetGuid(mPipelineHandle)}) {
             mPipelineAssetGuid = *AssetGuid;
         }
@@ -159,11 +164,13 @@ void UStaticMeshComponent::Serialize(FArchive& Archive) {
 
     if (Archive.IsLoading()) {
         mMaterialHandle = Registry != nullptr ? Registry->FindAsset(mMaterialAssetGuid) : FAssetHandle{};
+
         if (!mMaterialHandle && Registry != nullptr) {
             mMaterialHandle = Registry->FindAsset(mMaterialAssetPath);
         }
 
         mPipelineHandle = Registry != nullptr ? Registry->FindAsset(mPipelineAssetGuid) : FAssetHandle{};
+
         if (!mPipelineHandle && Registry != nullptr) {
             mPipelineHandle = Registry->FindAsset(mPipelineAssetPath);
         }

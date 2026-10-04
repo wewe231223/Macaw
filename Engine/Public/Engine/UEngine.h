@@ -8,7 +8,7 @@
 
 class FAssetRegistry;
 
-class UEngine final : public UObject {
+class UEngine : public UObject {
 public:
     UEngine();
     ~UEngine() override;
@@ -16,8 +16,8 @@ public:
 public:
     JG_DECLARE_DERIVED_TYPEINFO(UEngine, UObject)
 
-    void Initialize();
-    void Shutdown();
+    virtual void Initialize();
+    virtual void Shutdown();
     bool IsInitialized() const;
     void Tick(float DeltaTime);
 

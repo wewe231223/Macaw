@@ -60,6 +60,7 @@ private:
 
     std::array<FPipelineDescription, static_cast<std::size_t>(ERenderMode::Max)> mDescriptions{};
     std::array<bool, static_cast<std::size_t>(ERenderMode::Max)> mEnabledModes{};
+
     Uint64 mRenderRevision{1};
 
     std::size_t mPrimaryIndex{0};

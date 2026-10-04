@@ -17,34 +17,39 @@ void FEditorApplication::InitializeMode(FApplicationContext& Context, HWND Windo
 }
 
 void FEditorApplication::ProcessInput(FApplicationContext& Context, float DeltaTime) {
-    if (FViewportHostWindow* Host{Context.mEditorUIManager->GetViewportHostWindow()}) {
+    if (FViewportHostWindow * Host{Context.mEditorUIManager->GetViewportHostWindow()}) {
         Host->ProcessInput(*Context.mEditorView, Context.mKeyboardInput, Context.mMouseInput, DeltaTime);
     }
 }
 
 void FEditorApplication::RenderMode(FApplicationContext& Context, float DeltaTime) {
     FViewportHostWindow* ViewportHostWindow{Context.mEditorUIManager->GetViewportHostWindow()};
+
     if (ViewportHostWindow == nullptr) {
         return;
     }
 
-    const Stat::FScopedSystemStatTimer RenderStat{ Stat::ESystemStatStage::RenderPreparation };
-    const AActor* SelectedActor{ Context.mEditorContext->GetSelectedActor() };
-    const FObjectHandle SelectedActorHandle{ SelectedActor != nullptr ? SelectedActor->GetHandle() : FObjectHandle{} };
+    const Stat::FScopedSystemStatTimer RenderStat{Stat::ESystemStatStage::RenderPreparation};
+    const AActor* SelectedActor{Context.mEditorContext->GetSelectedActor()};
+    const FObjectHandle SelectedActorHandle{SelectedActor != nullptr ? SelectedActor->GetHandle() : FObjectHandle{}};
 
     {
         const Stat::FScopedRenderPreparationStatTimer StageStat{Stat::ERenderPreparationStage::SceneData};
+
         Context.mWorldContext->GetWorld().BuildSceneRenderData(mSceneData);
     }
+
     const FRenderScene& RenderScene{Context.mRenderer.SynchronizeScene(mSceneData)};
 
     for (FViewportId Id{}; Id < FViewportHostWindow::MaximumViewportCount; ++Id) {
         FEditorViewport* Viewport{ViewportHostWindow->PrepareViewportForRender(Id)};
+
         if (Viewport == nullptr) {
             continue;
         }
 
         CameraProbe Camera{};
+
         if (!Viewport->BuildCameraProbe(Camera)) {
             continue;
         }
@@ -52,6 +57,7 @@ void FEditorApplication::RenderMode(FApplicationContext& Context, float DeltaTim
         FRenderView View{};
         {
             const Stat::FScopedRenderPreparationStatTimer StageStat{Stat::ERenderPreparationStage::ViewSetup};
+
             View.mTarget = &Viewport->GetRenderSurface();
             View.mCamera = Camera;
             View.mSettings = Viewport->GetRenderSettings();
@@ -60,6 +66,7 @@ void FEditorApplication::RenderMode(FApplicationContext& Context, float DeltaTim
 
             Context.mEditorView->BuildViewRenderData(View, Camera, Viewport->GetCameraPosition(), Viewport->GetRenderViewport());
         }
+
         Context.mRenderer.RenderView(View, RenderScene);
     }
 }

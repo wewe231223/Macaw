@@ -28,6 +28,7 @@ EKeyState FMouseInput::GetKeyState(EMouseSide Side) const {
 
 bool FMouseInput::IsWorldDragActive(EMouseSide Side) const {
     const EKeyState State{mKeyStates[Side]};
+
     return mDragOwners[Side] == EDragOwner::World && (State == EKeyState::Pressed || State == EKeyState::Down);
 }
 
@@ -58,7 +59,7 @@ void FMouseInput::ProcessWindowMessage(UINT Message, WPARAM WParam, LPARAM LPara
 
                 DragCapture& Capture{mClickCaptures[Side]};
 
-                Capture.mStart = { GetMouseX(LParam), GetMouseY(LParam)};
+                Capture.mStart = {GetMouseX(LParam), GetMouseY(LParam)};
 
                 Capture.mCurrent = Capture.mStart;
 
@@ -73,7 +74,7 @@ void FMouseInput::ProcessWindowMessage(UINT Message, WPARAM WParam, LPARAM LPara
         }
 
         case WM_MOUSEMOVE: {
-            const POINT Position{ GetMouseX(LParam), GetMouseY(LParam)};
+            const POINT Position{GetMouseX(LParam), GetMouseY(LParam)};
 
             for (std::size_t Side{0}; Side < MAX; ++Side) {
                 if (mKeyStates[Side] != EKeyState::Pressed &&
@@ -103,6 +104,7 @@ void FMouseInput::ProcessWindowMessage(UINT Message, WPARAM WParam, LPARAM LPara
             //좌,우를 같이 눌렀을때 PendingRotateDelta가 중복해서 누적되는걸 방지하기위해
             //한쪽을 누른상태인지 체크
             const EMouseSide Other{(Side == Left) ? Right : Left};
+
             if (mKeyStates[Other] == EKeyState::Pressed ||
                 mKeyStates[Other] == EKeyState::Down) {
                 break;
@@ -114,7 +116,7 @@ void FMouseInput::ProcessWindowMessage(UINT Message, WPARAM WParam, LPARAM LPara
                 State == EKeyState::Down) {
                 DragCapture& Capture{mClickCaptures[Side]};
 
-                const POINT Position{ GetMouseX(LParam), GetMouseY(LParam)};
+                const POINT Position{GetMouseX(LParam), GetMouseY(LParam)};
 
                 //if (Side == Right)
                 {
@@ -170,6 +172,7 @@ FViewportMouseNavigationInput FMouseInput::DispatchPendingViewportCommands(std::
         NavigationInput.mDragDeltaX = mPendingDeltaX;
         NavigationInput.mDragDeltaY = mPendingDeltaY;
     }
+
     if (!BMouseCapturedByUi) {
         NavigationInput.mWheelSteps = mPendingWheelSteps;
     }
@@ -195,6 +198,7 @@ FViewportMouseNavigationInput FMouseInput::DispatchPendingViewportCommands(std::
     mPendingDeltaX = 0.0f;
     mPendingDeltaY = 0.0f;
     mPendingWheelSteps = 0.0f;
+
     return NavigationInput;
 }
 

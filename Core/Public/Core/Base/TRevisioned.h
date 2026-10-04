@@ -44,6 +44,7 @@ bool TRevisioned<T>::Update(const T& Value, Uint64 Revision) {
 
     mValue = Value;
     mRevision.Commit(Revision);
+
     return true;
 }
 

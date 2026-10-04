@@ -27,6 +27,7 @@ struct FRenderView {
     FRenderSettings mSettings{};
     ERenderMode mRenderMode{ERenderMode::Lit};
     bool mUseLOD{true};
+
     std::bitset<static_cast<std::size_t>(ERenderPass::Count)> mPasses{0x7f};
 
     float mOrientationAxisSize{};

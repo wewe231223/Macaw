@@ -28,6 +28,7 @@ template <typename T>
     requires std::is_base_of_v<UObject, T>
 const T* IAssetRegistry::ResolveAsset(FAssetHandle Handle) const {
     const UObject* Asset{ResolveAssetObject(Handle)};
+
     if (Asset == nullptr || !Asset->GetTypeInfo()->IsA(T::StaticTypeInfo())) {
         return nullptr;
     }

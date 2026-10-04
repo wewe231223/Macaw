@@ -7,7 +7,7 @@ public:
     FGuid TargetGuid{};
     std::vector<Uint8> StateData{};
 
-    inline static const FTypeInfo TypeInfo{ "FObjectStateChangedMessage", nullptr, nullptr};
+    inline static const FTypeInfo TypeInfo{"FObjectStateChangedMessage", nullptr, nullptr};
 
     static const FTypeInfo& StaticTypeInfo() noexcept;
 

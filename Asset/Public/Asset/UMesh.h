@@ -21,21 +21,25 @@
 #include "CoreUObject/TypeInfo.h"
 
 class UMesh;
+
 struct alignas(64) FMeshPickingSource {
     const UMesh* Mesh = nullptr;
     const BVH8::FNode* Nodes = nullptr;
     const BVH8::FTrianglePacket* Packets = nullptr;
     Uint32 RootReference = 0;
+
     bool Raycast(const FRay& Ray, float& OutDistance, float MaxDistance, bool ReverseWinding) const;
 };
 
 class FMeshRaycastAccelerationStructure {
     friend class UMesh;
+
 private:
     static constexpr Uint32 Slice = 32;
     static constexpr Uint32 MaxTrianglesPerPacket = 8;
 
     using TrisIndex = Uint32;
+
     struct FNode {
         DirectX::BoundingBox BoundingBox;
         Uint32 mLeft = std::numeric_limits<Uint32>::max();
@@ -43,6 +47,7 @@ private:
         Uint32 mIndexStart = 0;
         Uint32 mIndexCount = 0;
     };
+
     struct MinMaxBox {
         float minX = std::numeric_limits<float>::max();
         float minY = std::numeric_limits<float>::max();
@@ -54,27 +59,30 @@ private:
         inline MinMaxBox() = default;
 
         inline MinMaxBox(const DirectX::BoundingBox& Box)
-            : minX(Box.Center.x - Box.Extents.x)
-            , minY(Box.Center.y - Box.Extents.y)
-            , minZ(Box.Center.z - Box.Extents.z)
-            , maxX(Box.Center.x + Box.Extents.x)
-            , maxY(Box.Center.y + Box.Extents.y)
-            , maxZ(Box.Center.z + Box.Extents.z)
-        {
+            : minX(Box.Center.x - Box.Extents.x),
+              minY(Box.Center.y - Box.Extents.y),
+              minZ(Box.Center.z - Box.Extents.z),
+              maxX(Box.Center.x + Box.Extents.x),
+              maxY(Box.Center.y + Box.Extents.y),
+              maxZ(Box.Center.z + Box.Extents.z) {
         }
 
         inline void Expand(const DirectX::BoundingBox& Box) {
             if (minX > Box.Center.x - Box.Extents.x)
                 minX = Box.Center.x - Box.Extents.x;
+
             if (minY > Box.Center.y - Box.Extents.y)
                 minY = Box.Center.y - Box.Extents.y;
+
             if (minZ > Box.Center.z - Box.Extents.z)
                 minZ = Box.Center.z - Box.Extents.z;
 
             if (maxX < Box.Center.x + Box.Extents.x)
                 maxX = Box.Center.x + Box.Extents.x;
+
             if (maxY < Box.Center.y + Box.Extents.y)
                 maxY = Box.Center.y + Box.Extents.y;
+
             if (maxZ < Box.Center.z + Box.Extents.z)
                 maxZ = Box.Center.z + Box.Extents.z;
         }
@@ -92,6 +100,7 @@ private:
 
         static MinMaxBox Merge(const MinMaxBox& Box1, const MinMaxBox& Box2) {
             MinMaxBox Result;
+
             Result.minX = (std::min)(Box1.minX, Box2.minX);
             Result.minY = (std::min)(Box1.minY, Box2.minY);
             Result.minZ = (std::min)(Box1.minZ, Box2.minZ);
@@ -99,36 +108,51 @@ private:
             Result.maxX = (std::max)(Box1.maxX, Box2.maxX);
             Result.maxY = (std::max)(Box1.maxY, Box2.maxY);
             Result.maxZ = (std::max)(Box1.maxZ, Box2.maxZ);
+
             return Result;
         }
     };
+
 public:
     bool BuildStructure(UMesh& Mesh);
     bool Raycast(const FRay& Ray, float& OutDistance, float MaxDistance = std::numeric_limits<float>::max(), bool ReverseWinding = false) const;
+
 private:
     Uint32 MakeChild(TArray<FNode>& BuildNodes, const TArray<DirectX::BoundingBox>& TriangleBounds, Uint32 First, Uint32 Count, const MinMaxBox& Bounds);
+
     TArray<Uint32> mIndexGroups;
     TArray<BVH8::FTrianglePacket> mTrianglePackets;
     FBVH8 mTree;
 };
 
 /* LOD */
-struct FEdge
-{
+struct FEdge {
     Uint32 V0;
     Uint32 V1;
-    Uint32 FaceCount{ 0 };
+    Uint32 FaceCount{0};
 
-    double Cost{ 0.0 };
+    double Cost{0.0};
     FVector3 NewPosition;
 };
 
 class UMesh : public UAsset {
 private:
-    struct FVertexAttributeStorageBase { virtual ~FVertexAttributeStorageBase() = default; virtual const void* GetData() const = 0; virtual Uint32 GetCount() const = 0; virtual Uint32 GetStride() const = 0; };
+    struct FVertexAttributeStorageBase {
+        virtual ~FVertexAttributeStorageBase() = default;
+        virtual const void* GetData() const = 0;
+        virtual Uint32 GetCount() const = 0;
+        virtual Uint32 GetStride() const = 0;
+    };
 
     template <typename T>
-    struct TVertexAttributeStorage final : FVertexAttributeStorageBase { explicit TVertexAttributeStorage(std::span<const T> InData); const void* GetData() const override; Uint32 GetCount() const override; Uint32 GetStride() const override; std::vector<T> mData{}; };
+    struct TVertexAttributeStorage final : FVertexAttributeStorageBase {
+        explicit TVertexAttributeStorage(std::span<const T> InData);
+        const void* GetData() const override;
+        Uint32 GetCount() const override;
+        Uint32 GetStride() const override;
+
+        std::vector<T> mData{};
+    };
 
 public:
     struct FSubMesh {
@@ -193,12 +217,11 @@ public:
     bool GenerateLOD(Uint32 Level, float TargetRatio);
 
     TArray<FEdge> BuildEdges(const TArray<Uint32>& Indices);
-	FEdge FindShortestEdge(const TArray<FEdge>& Edges, const TArray<FVector3>& Positions);
+    FEdge FindShortestEdge(const TArray<FEdge>& Edges, const TArray<FVector3>& Positions);
 
 private:
     // 대칭 4x4 Quadric의 상삼각 성분만 저장한다. 생성 중 원본 평면 오차를 누적한다.
-    struct FLODQuadric
-    {
+    struct FLODQuadric {
         std::array<double, 10> mValues{};
 
         void AddPlane(double X, double Y, double Z, double D);
@@ -207,15 +230,13 @@ private:
         float FindEdgeInterpolation(const FVector3& P0, const FVector3& P1, const FVector3& Origin) const;
     };
 
-    struct FLODAttributeGroup
-    {
+    struct FLODAttributeGroup {
         FVector2D mUV{};
-        Uint32 mNormalGroup{ UINT32_MAX };
+        Uint32 mNormalGroup{UINT32_MAX};
     };
 
     // Collapse 계산에만 사용하는 임시 데이터. 렌더 정점의 속성 경계는 별도로 유지한다.
-    struct FLODGeometry
-    {
+    struct FLODGeometry {
         TArray<FVector3> mPositions{};
         TArray<Uint32> mIndices{};
         TArray<Uint32> mRenderIndices{};
@@ -240,21 +261,18 @@ private:
         std::span<const FVector2D> mSourceUVs{};
     };
 
-    struct FLODCandidate
-    {
+    struct FLODCandidate {
         Uint32 mV0{};
         Uint32 mV1{};
         Uint32 mVersionV0{};
         Uint32 mVersionV1{};
         double mCost{};
         float mLengthSquared{};
-        float mInterpolation{ 0.5f };
+        float mInterpolation{0.5f};
     };
 
-    struct FLODCollapse
-    {
-        struct FAttributeMerge
-        {
+    struct FLODCollapse {
+        struct FAttributeMerge {
             Uint32 mKeepGroup{};
             Uint32 mRemoveGroup{};
             FVector2D mUV{};
@@ -268,8 +286,7 @@ private:
         bool mFixedTarget{};
     };
 
-    struct FLODSimplification
-    {
+    struct FLODSimplification {
         std::unordered_map<Uint64, Uint32> mEdgeFaceCounts{};
         TArray<Uint32> mBoundaryEdgeCounts{};
         TArray<Uint32> mNonManifoldEdgeCounts{};
@@ -290,8 +307,7 @@ private:
         TArray<Uint32> mVertexGroups{};
     };
 
-    struct FLODRenderData
-    {
+    struct FLODRenderData {
         TArray<FVector3> mPositions{};
         TArray<FVector3> mNormals{};
         TArray<FVector2D> mUVs{};
@@ -338,7 +354,6 @@ private:
     template <CVertexAttributeView TAttribute>
     bool StoreVertexAttribute(const TAttribute& InAttribute);
 
-
     void Reset();
 
     static std::size_t GetAttributeIndex(EVertexAttribute Attribute);
@@ -350,13 +365,12 @@ private:
 private:
     TFixedArray<std::unique_ptr<FVertexAttributeStorageBase>, static_cast<std::size_t>(EVertexAttribute::MAX)> mAttributeStorage{};
 
-
     TArray<Uint32> mIndices{};
 
     TArray<FSubMesh> mSubMeshes{};
     Uint64 mRenderRevision{1};
 
-    DirectX::BoundingOrientedBox mBoundingBox{ DirectX::XMFLOAT3{0.f, 0.f, 0.f}, DirectX::XMFLOAT3{0.f, 0.f, 0.f}, DirectX::XMFLOAT4{0.f, 0.f, 0.f, 1.f} };
+    DirectX::BoundingOrientedBox mBoundingBox{DirectX::XMFLOAT3{0.f, 0.f, 0.f}, DirectX::XMFLOAT3{0.f, 0.f, 0.f}, DirectX::XMFLOAT4{0.f, 0.f, 0.f, 1.f}};
 
     std::shared_ptr<FMeshPickingSource> mPickingSource = std::make_shared<FMeshPickingSource>(this);
     FMeshRaycastAccelerationStructure RaycastAccelerationStructure{};
@@ -364,7 +378,7 @@ private:
 
 template <typename T>
 UMesh::TVertexAttributeStorage<T>::TVertexAttributeStorage(std::span<const T> InData)
-    : mData(InData.begin(), InData.end()) {
+	: mData(InData.begin(), InData.end()) {
 }
 
 template <typename T>

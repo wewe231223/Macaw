@@ -51,10 +51,13 @@ private:
 template <typename T>
 void FPropertyPanel::AddSceneComponent(AActor& Actor) {
     static_assert(std::is_base_of_v<USceneComponent, T>);
+
     T* NewComponent{Actor.AddComponent<T>()};
+
     if (USceneComponent * Root{Actor.GetRootComponent()})
         NewComponent->AttachToComponent(Root);
     else
         Actor.SetRootComponent(NewComponent);
+
     mEditorContext->SetSelectedComponent(NewComponent);
 }

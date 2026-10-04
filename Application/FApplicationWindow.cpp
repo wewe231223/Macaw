@@ -20,13 +20,16 @@ namespace {
 
 void FApplication::QueueExternalFileDrops(HWND WindowHandle, HDROP DropHandle) {
     POINT DropPosition{};
+
     DragQueryPoint(DropHandle, &DropPosition);
     ClientToScreen(WindowHandle, &DropPosition);
 
     const UINT FileCount{DragQueryFileW(DropHandle, 0xFFFFFFFF, nullptr, 0)};
+
     for (UINT FileIndex{0}; FileIndex < FileCount; ++FileIndex) {
         const UINT CharacterCount{DragQueryFileW(DropHandle, FileIndex, nullptr, 0)};
         std::wstring FilePath{};
+
         FilePath.resize(static_cast<std::size_t>(CharacterCount + 1), L'\0');
         DragQueryFileW(DropHandle, FileIndex, FilePath.data(), CharacterCount + 1);
         FilePath.resize(CharacterCount);
@@ -58,6 +61,7 @@ LRESULT CALLBACK FApplication::ExternalDropWindowProcedure(HWND WindowHandle, UI
 void FApplication::EnableExternalDropsForImGuiViewports() {
     for (ImGuiViewport* Viewport : ImGui::GetPlatformIO().Viewports) {
         HWND ViewportWindow{static_cast<HWND>(Viewport->PlatformHandle)};
+
         if (ViewportWindow == nullptr) {
             continue;
         }
@@ -71,7 +75,9 @@ void FApplication::EnableExternalDropsForImGuiViewports() {
         if (!SetPropW(ViewportWindow, ExternalDropApplicationProperty, reinterpret_cast<HANDLE>(this))) {
             continue;
         }
+
         const WNDPROC OriginalWndProc{reinterpret_cast<WNDPROC>(SetWindowLongPtrW(ViewportWindow, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(ExternalDropWindowProcedure)))};
+
         if (OriginalWndProc != nullptr) {
             if (!SetPropW(ViewportWindow, ExternalDropOriginalWndProcProperty, reinterpret_cast<HANDLE>(OriginalWndProc))) {
                 SetWindowLongPtrW(ViewportWindow, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(OriginalWndProc));
@@ -85,7 +91,9 @@ void FApplication::RestoreGameWindow() {
     const DWORD Style{WS_OVERLAPPEDWINDOW};
     const DWORD ExtendedStyle{WS_EX_APPWINDOW};
     MONITORINFO MonitorInformation{sizeof(MONITORINFO)};
+
     GetMonitorInfoW(MonitorFromWindow(mPlatform.GetWindowHandle(), MONITOR_DEFAULTTONEAREST), &MonitorInformation);
+
     const RECT WorkArea{MonitorInformation.rcWork};
     const int WindowWidth{std::min(static_cast<int>(DefaultWindowWidth), static_cast<int>(WorkArea.right - WorkArea.left))};
     const int WindowHeight{std::min(static_cast<int>(DefaultWindowHeight), static_cast<int>(WorkArea.bottom - WorkArea.top))};
@@ -103,12 +111,15 @@ void FApplication::DrawCaptionButton(const char* Identifier, int Index, UINT Com
     const float ButtonX{WindowPosition.x + ImGui::GetWindowWidth() - static_cast<float>((3 - Index) * CaptionButtonWidth)};
     const ImVec2 ButtonPosition{ButtonX, WindowPosition.y};
     const ImVec2 ButtonSize{static_cast<float>(CaptionButtonWidth), static_cast<float>(TitleBarHeight)};
+
     ImGui::SetCursorScreenPos(ButtonPosition);
+
     const bool Pressed{ImGui::InvisibleButton(Identifier, ButtonSize)};
     const bool Hovered{ImGui::IsItemHovered()};
     const bool Held{ImGui::IsItemActive()};
     ImDrawList* DrawList{ImGui::GetWindowDrawList()};
     const ImU32 BackgroundColor{Index == 2 ? IM_COL32(192, 55, 55, 255) : IM_COL32(66, 68, 73, 255)};
+
     if (Hovered || Held) {
         DrawList->AddRectFilled(ButtonPosition, ImVec2{ButtonPosition.x + ButtonSize.x, ButtonPosition.y + ButtonSize.y}, BackgroundColor);
     }
@@ -116,6 +127,7 @@ void FApplication::DrawCaptionButton(const char* Identifier, int Index, UINT Com
     const float CenterX{ButtonPosition.x + ButtonSize.x * 0.5f};
     const float CenterY{ButtonPosition.y + ButtonSize.y * 0.5f};
     const ImU32 IconColor{IM_COL32(225, 228, 232, 255)};
+
     if (Index == 0) {
         DrawList->AddLine(ImVec2{CenterX - 6.0f, CenterY + 4.0f}, ImVec2{CenterX + 6.0f, CenterY + 4.0f}, IconColor, 1.5f);
     } else if (Index == 1 && IsZoomed(mPlatform.GetWindowHandle())) {
@@ -136,37 +148,49 @@ void FApplication::DrawCaptionButton(const char* Identifier, int Index, UINT Com
 
 void FApplication::DrawTitleBar() {
     const float MenuVerticalPadding{std::max(0.0f, (static_cast<float>(TitleBarHeight) - ImGui::GetFontSize()) * 0.5f)};
+
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{0.0f, 0.0f});
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{6.0f, MenuVerticalPadding});
     ImGui::PushStyleColor(ImGuiCol_WindowBg, IM_COL32(31, 32, 36, 255));
     ImGui::PushStyleColor(ImGuiCol_MenuBarBg, IM_COL32(31, 32, 36, 255));
+
     const ImGuiWindowFlags Flags{ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoBringToFrontOnFocus};
+
     if (ImGui::BeginViewportSideBar("##EditorTitleBar", ImGui::GetMainViewport(), ImGuiDir_Up, static_cast<float>(TitleBarHeight), Flags)) {
         ImDrawList* DrawList{ImGui::GetWindowDrawList()};
         const ImVec2 Position{ImGui::GetWindowPos()};
         const float Width{ImGui::GetWindowWidth()};
         const float FpsX{Position.x + Width - static_cast<float>(3 * CaptionButtonWidth) - 110.0f};
+
         DrawList->AddLine(ImVec2{Position.x, Position.y + static_cast<float>(TitleBarHeight) - 1.0f}, ImVec2{Position.x + Width, Position.y + static_cast<float>(TitleBarHeight) - 1.0f}, IM_COL32(72, 74, 78, 255));
+
         if (ImGui::BeginMenuBar()) {
             if (mEditorLogo.Get() != nullptr) {
                 DrawList->AddImage(reinterpret_cast<ImTextureID>(mEditorLogo.Get()), ImVec2{Position.x + 11.0f, Position.y + 1.0f}, ImVec2{Position.x + 27.0f, Position.y + static_cast<float>(TitleBarHeight) - 1.0f}, ImVec2{0.23f, 0.11f}, ImVec2{0.77f, 0.90f});
             }
+
             ImGui::SetCursorPosX(static_cast<float>(MenuStartX));
+
             if (mContext.mMenuPanel != nullptr) {
                 mContext.mMenuPanel->DrawPanel();
             }
+
             mWindowState.mMenuHitRight = static_cast<int>(ImGui::GetCursorPosX()) + 10;
+
             if (static_cast<float>(mWindowState.mMenuHitRight) + 112.0f < FpsX - Position.x) {
                 char FpsText[32]{};
+
                 std::snprintf(FpsText, sizeof(FpsText), "FPS: %.1f", Stat::GetFrameStats().mFramesPerSecond);
                 DrawList->AddText(ImVec2{FpsX, Position.y + 7.0f}, IM_COL32(152, 156, 163, 255), FpsText);
             }
+
             DrawCaptionButton("##MinimizeWindow", 0, SC_MINIMIZE);
             DrawCaptionButton("##MaximizeWindow", 1, IsZoomed(mPlatform.GetWindowHandle()) ? SC_RESTORE : SC_MAXIMIZE);
             DrawCaptionButton("##CloseWindow", 2, SC_CLOSE);
             ImGui::EndMenuBar();
         }
     }
+
     ImGui::End();
     ImGui::PopStyleColor(2);
     ImGui::PopStyleVar(2);
@@ -189,36 +213,48 @@ LRESULT FApplication::ProcessWindowMessage(HWND WindowHandle, UINT Message, WPAR
             mWindowState.mInMoveLoop = true;
             return 0;
         }
+
         case WM_EXITSIZEMOVE: {
             mWindowState.mInMoveLoop = false;
+
             if (mWindowState.mFrameEnabled) {
                 mEngineLoop.Tick();
             }
+
             return 0;
         }
+
         case WM_WINDOWPOSCHANGED: {
             const WINDOWPOS* WindowPosition{reinterpret_cast<const WINDOWPOS*>(LParam)};
             const bool SizeChanged{(WindowPosition->flags & SWP_NOSIZE) == 0};
             const LRESULT Result{DefWindowProcW(WindowHandle, Message, WParam, LParam)};
+
             if (mWindowState.mInMoveLoop && SizeChanged && mWindowState.mFrameEnabled) {
                 mEngineLoop.Tick();
             }
+
             return Result;
         }
+
         case WM_NCCALCSIZE: {
             if (WParam != 0 && IsZoomed(WindowHandle)) {
                 NCCALCSIZE_PARAMS* SizeParameters{reinterpret_cast<NCCALCSIZE_PARAMS*>(LParam)};
                 const HMONITOR Monitor{MonitorFromWindow(WindowHandle, MONITOR_DEFAULTTONEAREST)};
                 MONITORINFO MonitorInformation{sizeof(MONITORINFO)};
+
                 if (GetMonitorInfoW(Monitor, &MonitorInformation)) {
                     SizeParameters->rgrc[0] = MonitorInformation.rcWork;
                 }
             }
+
             return 0;
         }
+
         case WM_NCHITTEST: {
             RECT WindowRectangle{};
+
             GetWindowRect(WindowHandle, &WindowRectangle);
+
             const POINT Cursor{static_cast<SHORT>(LOWORD(LParam)), static_cast<SHORT>(HIWORD(LParam))};
             const int Border{MulDiv(ResizeBorderWidth, static_cast<int>(GetDpiForWindow(WindowHandle)), 96)};
             const bool Left{Cursor.x < WindowRectangle.left + Border};
@@ -230,24 +266,31 @@ LRESULT FApplication::ProcessWindowMessage(HWND WindowHandle, UINT Message, WPAR
                 if (Top && Left) {
                     return HTTOPLEFT;
                 }
+
                 if (Top && Right) {
                     return HTTOPRIGHT;
                 }
+
                 if (Bottom && Left) {
                     return HTBOTTOMLEFT;
                 }
+
                 if (Bottom && Right) {
                     return HTBOTTOMRIGHT;
                 }
+
                 if (Left) {
                     return HTLEFT;
                 }
+
                 if (Right) {
                     return HTRIGHT;
                 }
+
                 if (Top) {
                     return HTTOP;
                 }
+
                 if (Bottom) {
                     return HTBOTTOM;
                 }
@@ -256,35 +299,48 @@ LRESULT FApplication::ProcessWindowMessage(HWND WindowHandle, UINT Message, WPAR
             if (Cursor.y < WindowRectangle.top + TitleBarHeight && (Cursor.x < WindowRectangle.left + MenuStartX || Cursor.x >= WindowRectangle.left + mWindowState.mMenuHitRight) && Cursor.x < WindowRectangle.right - 3 * CaptionButtonWidth) {
                 return HTCAPTION;
             }
+
             return HTCLIENT;
         }
+
         case WM_GETMINMAXINFO: {
             const HMONITOR Monitor{MonitorFromWindow(WindowHandle, MONITOR_DEFAULTTONEAREST)};
             MONITORINFO MonitorInformation{sizeof(MONITORINFO)};
+
             if (GetMonitorInfoW(Monitor, &MonitorInformation)) {
                 MINMAXINFO* SizeInformation{reinterpret_cast<MINMAXINFO*>(LParam)};
+
                 SizeInformation->ptMaxPosition = POINT{MonitorInformation.rcWork.left - MonitorInformation.rcMonitor.left, MonitorInformation.rcWork.top - MonitorInformation.rcMonitor.top};
                 SizeInformation->ptMaxSize = POINT{MonitorInformation.rcWork.right - MonitorInformation.rcWork.left, MonitorInformation.rcWork.bottom - MonitorInformation.rcWork.top};
                 SizeInformation->ptMinTrackSize = POINT{520, 360};
             }
+
             return 0;
         }
+
         case WM_DROPFILES: {
             const HDROP DropHandle{reinterpret_cast<HDROP>(WParam)};
+
             QueueExternalFileDrops(WindowHandle, DropHandle);
             return 0;
         }
+
         case WM_DESTROY:
             return 0;
+
         case WM_SIZE:
             if (WParam != SIZE_MINIMIZED) {
                 Uint32 Width{LOWORD(LParam)};
                 Uint32 Height{HIWORD(LParam)};
+
                 mContext.mRenderer.ReSize(Width, Height);
             }
+
             break;
+
         default:
             return DefWindowProc(WindowHandle, Message, WParam, LParam);
     }
+
     return 0;
 }

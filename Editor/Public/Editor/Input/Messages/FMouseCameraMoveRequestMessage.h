@@ -2,7 +2,6 @@
 #include "Core/Channel/FMessageTypeInfo.h"
 
 struct FMouseCameraMoveRequestMessage {
-
     static const FMessageTypeInfo& StaticTypeInfo() noexcept;
 
     float DeltaX{0.0f};

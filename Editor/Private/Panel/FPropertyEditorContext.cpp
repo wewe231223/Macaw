@@ -22,6 +22,7 @@ namespace {
 
     void ApplyAssetBrowserDrop(const IAssetRegistry* Registry, const FTypeInfo& AssetType, FAssetHandle CurrentHandle, const std::function<void(FAssetHandle)>& Setter) {
         const char* PayloadType{};
+
         if (AssetType.IsA(UMesh::StaticTypeInfo())) {
             PayloadType = StaticMeshAssetPayloadType;
         } else if (AssetType.IsA(UMaterial::StaticTypeInfo())) {
@@ -35,10 +36,14 @@ namespace {
         }
 
         const ImGuiPayload* Payload{ImGui::AcceptDragDropPayload(PayloadType)};
+
         if (Payload != nullptr && Payload->DataSize == sizeof(FAssetHandle)) {
             FAssetHandle DroppedHandle{};
+
             std::memcpy(&DroppedHandle, Payload->Data, sizeof(DroppedHandle));
+
             const UAsset* DroppedAsset{Registry->ResolveAsset<UAsset>(DroppedHandle)};
+
             if (DroppedAsset != nullptr && DroppedAsset->GetTypeInfo()->IsA(&AssetType) && DroppedHandle != CurrentHandle) {
                 Setter(DroppedHandle);
             }
@@ -76,6 +81,7 @@ void FPropertyEditorContext::DrawFloat(const char* Label, float Value, float Spe
 
 void FPropertyEditorContext::DrawVector2(const char* Label, const FVector2& Value, float Speed, float Min, float Max, const std::function<void(const FVector2&)>& Setter) const {
     FVector2 EditedValue{Value};
+
     if (ImGui::DragFloat2(Label, &EditedValue.mX, Speed, Min, Max)) {
         Setter(EditedValue);
     }
@@ -83,6 +89,7 @@ void FPropertyEditorContext::DrawVector2(const char* Label, const FVector2& Valu
 
 void FPropertyEditorContext::DrawVector3(const char* Label, const FVector3& Value, float Speed, float Min, float Max, const std::function<void(const FVector3&)>& Setter) const {
     FVector3 EditedValue{Value};
+
     if (ImGui::DragFloat3(Label, &EditedValue.mX, Speed, Min, Max)) {
         Setter(EditedValue);
     }
@@ -90,6 +97,7 @@ void FPropertyEditorContext::DrawVector3(const char* Label, const FVector3& Valu
 
 void FPropertyEditorContext::DrawColor(const char* Label, const FVector4& Value, const std::function<void(const FVector4&)>& Setter) const {
     FVector4 EditedValue{Value};
+
     if (ImGui::ColorEdit4(Label, &EditedValue.mX)) {
         Setter(EditedValue);
     }
@@ -98,7 +106,9 @@ void FPropertyEditorContext::DrawColor(const char* Label, const FVector4& Value,
 void FPropertyEditorContext::DrawText(const char* Label, const FString& Value, const std::function<void(const FString&)>& Setter) const {
     std::array<char, 2048> TextBuffer{};
     const std::size_t CopyLength{std::min(Value.size(), TextBuffer.size() - 1)};
+
     std::memcpy(TextBuffer.data(), Value.data(), CopyLength);
+
     if (ImGui::InputTextMultiline(Label, TextBuffer.data(), TextBuffer.size(), ImVec2(-FLT_MIN, ImGui::GetTextLineHeight() * 5.0f))) {
         Setter(TextBuffer.data());
     }
@@ -106,6 +116,7 @@ void FPropertyEditorContext::DrawText(const char* Label, const FString& Value, c
 
 void FPropertyEditorContext::DrawTransform(const char* Label, const FTransform& Value, const std::function<void(const FTransform&)>& Setter) {
     const ImGuiID TransformId{ImGui::GetID(Label)};
+
     if (mEditingTransformId != TransformId) {
         mEditingTransformId = TransformId;
     }
@@ -113,6 +124,7 @@ void FPropertyEditorContext::DrawTransform(const char* Label, const FTransform& 
     UpdateTransformFields(Value);
 
     bool BChanged{false};
+
     BChanged |= ImGui::DragFloat3("Position", &mEditPosition.X, 0.1f);
     BChanged |= ImGui::DragFloat3("Rotation", &mEditRotation.Pitch, 0.5f);
     BChanged |= ImGui::DragFloat3("Scale", &mEditScale.X, 0.05f, 0.001f, FLT_MAX);
@@ -130,16 +142,21 @@ void FPropertyEditorContext::DrawReferencePicker(const char* Label, const char* 
     if (!ImGui::BeginCombo(Label, Preview)) {
         return;
     }
+
     if (ImGui::Selectable("None", BNoneSelected)) {
         ClearSelection();
     }
+
     for (const FPropertyReferenceOption& Option : Options) {
         ImGui::PushID(Option.mId);
+
         if (ImGui::Selectable(Option.mLabel.c_str(), Option.mBSelected)) {
             Option.mOnSelected();
         }
+
         ImGui::PopID();
     }
+
     ImGui::EndCombo();
 }
 
@@ -199,9 +216,11 @@ void FPropertyEditorContext::DrawAssetPicker(const char* Label, const FTypeInfo&
             if (DrawAssetOption(AssetName, Thumbnail, Handle == CurrentHandle) && Handle != CurrentHandle) {
                 Setter(Handle);
             }
+
             if (Handle == CurrentHandle) {
                 ImGui::SetItemDefaultFocus();
             }
+
             if (ImGui::IsItemHovered()) {
                 ImGui::SetTooltip("%s", AssetPath.c_str());
             }
@@ -226,9 +245,11 @@ void FPropertyEditorContext::UpdateTransformFields(const FTransform& Transform) 
 
 FTransform FPropertyEditorContext::BuildDesiredTransform() const {
     FTransform Transform{mEditPosition, mEditRotation, mEditScale};
+
     Transform.SetAbsoluteLocation(mBAbsoluteLocation);
     Transform.SetAbsoluteRotation(mBAbsoluteRotation);
     Transform.SetAbsoluteScale(mBAbsoluteScale);
+
     return Transform;
 }
 
@@ -274,6 +295,7 @@ bool FPropertyEditorContext::DrawAssetOption(const char* Label, ID3D11ShaderReso
     }
 
     const float TextY{RowMin.y + (RowHeight - ImGui::GetTextLineHeight()) * 0.5f};
+
     DrawList->AddText(ImVec2(ImageMax.x + 6.0f, TextY), ImGui::GetColorU32(ImGuiCol_Text), Label);
 
     return BPressed;

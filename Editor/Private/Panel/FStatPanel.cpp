@@ -3,7 +3,7 @@
 #include "Editor/Panel/Stats/StatWindow.h"
 
 FStatPanel::FStatPanel(FStateChannel<FStatDisplayFlags>::FReader InReader)
-    : mModeReader{std::move(InReader)} {
+	: mModeReader{std::move(InReader)} {
     //bVisible = false;
 }
 

@@ -3,9 +3,10 @@
 
 const FMessageTypeInfo& FMouseCameraDollyRequestMessage::StaticTypeInfo() noexcept {
     static const FMessageTypeInfo Information{"FMouseCameraDollyRequestMessage"};
+
     return Information;
 }
 
 FMouseCameraDollyRequestMessage::FMouseCameraDollyRequestMessage(float InSteps) noexcept
-    : Steps(InSteps) {
+	: Steps(InSteps) {
 }

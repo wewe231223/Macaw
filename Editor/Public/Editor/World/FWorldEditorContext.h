@@ -16,6 +16,8 @@
 #include "Editor/Input/Messages/FMouseCameraRotateRequestMessage.h"
 #include "Editor/Input/Messages/FMousePickRequestMessage.h"
 
+class UEditorEngine;
+
 struct FWorldEditorSharedState {
     FEditorSettings mEditorSettings{};
     std::size_t mModeIndex{2};
@@ -33,7 +35,7 @@ public:
 
 public:
     void SetWorld(UWorld* InWorld);
-    void InitializeChannels(const IAssetRegistry* AssetRegistry);
+    void InitializeChannels(UEditorEngine& EditorEngine);
     void Dispatch();
 
     void HandleMousePickRequest(const FMousePickRequestMessage& Message);
@@ -44,7 +46,6 @@ public:
     void HandleMouseCameraMoveRequestMessage(const FMouseCameraMoveRequestMessage& Message);
     void HandleMouseCameraDollyRequestMessage(const FMouseCameraDollyRequestMessage& Message);
 #endif
-
 
     FMessageChannel::FSender GetEditorToWorldSender();
     FMessageChannel::FSender GetWorldToEditorSender();
@@ -70,7 +71,6 @@ public:
     USceneComponent* GetSelectedTransformTarget() const noexcept;
 
     UWorld* GetWorld() const;
-
 
     // 프리뷰 대상을 바꾸면 Viewer 창을 띄워달라는 요청도 같이 세운다.
     void SetPreviewMesh(const FAssetHandle& Handle);

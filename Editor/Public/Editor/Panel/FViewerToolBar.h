@@ -5,6 +5,7 @@
 class FViewerToolBar final : public IEditorPanel {
 public:
     FViewerToolBar(FWorldEditorContext& InEditorContext);
+
     ;
 
     ~FViewerToolBar() = default;

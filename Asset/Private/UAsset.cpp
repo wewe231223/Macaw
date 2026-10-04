@@ -6,6 +6,7 @@ void UAsset::Serialize(FArchive& Ar) {
     Ar.Serialize("AssetName", mAssetName);
 
     FString PathStr{FString{mAssetPath.string()}};
+
     Ar.Serialize("AssetPath", PathStr);
 }
 
@@ -23,5 +24,6 @@ bool UAsset::Initialize(const std::filesystem::path& InAssetPath) {
     }
 
     mAssetPath = InAssetPath;
+
     return true;
 }

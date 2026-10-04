@@ -14,19 +14,20 @@ void AppendMeshDrawTemplates(const UMesh& Mesh, const UMaterial& Material, const
         const Uint32 MaterialIndex{Materials.GetMaterialIndex(Material, MaterialGroup)};
         const Uint32 FirstIndex{UseSubMeshes ? SubMeshes[SectionIndex].mFirstIndex : 0};
         const Uint32 IndexCount{UseSubMeshes ? SubMeshes[SectionIndex].mIndexCount : Mesh.GetIndexCount(static_cast<int>(LODLevel))};
+
         if (MaterialIndex == UINT32_MAX || IndexCount == 0) {
             continue;
         }
 
         FMeshDrawState State{};
+
         State.mPipelineHandle = PipelineHandle;
         State.mMeshHandle = MeshHandle;
         State.mTextureSignature = Material.BuildChunkSignature(MaterialGroup);
         State.mFirstIndex = FirstIndex;
         State.mIndexCount = IndexCount;
         State.mLODLevel = LODLevel;
-        State.mOriginalIndexCount = UseSubMeshes ?
-            (SubMeshes[SectionIndex].mSourceIndexCount != 0 ? SubMeshes[SectionIndex].mSourceIndexCount : IndexCount) : Mesh.GetIndexCount(0);
+        State.mOriginalIndexCount = UseSubMeshes ? (SubMeshes[SectionIndex].mSourceIndexCount != 0 ? SubMeshes[SectionIndex].mSourceIndexCount : IndexCount) : Mesh.GetIndexCount(0);
 
         OutTemplates.push_back(FRenderBatchTemplate{State, MaterialIndex});
     }

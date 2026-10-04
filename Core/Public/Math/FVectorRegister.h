@@ -8,6 +8,7 @@
 //#include <arm_neon.h>
 //using VectorRegister = float32x4_t;
 #else
-struct alignas(16) VectorRegister { float v[4]; };
+struct alignas(16) VectorRegister {
+    float v[4];
+};
 #endif
-

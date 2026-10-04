@@ -44,6 +44,7 @@ FMessageHandler FMessageHandler::Create(TCallable&& Callable) {
     Result.mMessageType = &TMessage::StaticTypeInfo();
     Result.mFunction = [Callable = FCallable(std::forward<TCallable>(Callable))](const FMessage& Message) mutable {
         const TMessage* TypedMessage{Message.Get<TMessage>()};
+
         if (TypedMessage == nullptr) {
             ErrorHandler::Report("FMessageHandler::Create", "The message type does not match the handler's registered type.", ErrorHandler::EErrorLevel::Critical);
         }

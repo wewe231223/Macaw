@@ -14,6 +14,8 @@ namespace ErrorHandler {
         Critical
     };
 
+    void Initialize();
+
     void Report(std::string_view Title, std::string_view Message, EErrorLevel Level);
     void Report(bool BCondition, std::string_view Title, std::string_view Message, EErrorLevel Level);
 

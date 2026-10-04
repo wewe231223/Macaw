@@ -72,6 +72,7 @@ void FAssetThumbnailRenderer::RenderThumbnail(FAssetHandle AssetHandle) {
 
 void FAssetThumbnailRenderer::RenderMaterialPreview(FAssetHandle MaterialHandle, FSceneRenderSurface& Surface) {
     const FAssetEntry* Entry{FindAssetEntry(MaterialHandle)};
+
     if (Entry == nullptr || Entry->mAssetType != EAssetType::Material || !Surface.IsValid()) {
         return;
     }
@@ -80,7 +81,8 @@ void FAssetThumbnailRenderer::RenderMaterialPreview(FAssetHandle MaterialHandle,
 }
 
 void FAssetThumbnailRenderer::RenderThumbnail(const FAssetEntry& Entry, FSceneRenderSurface* PreviewSurface) {
-    const Stat::FScopedSystemStatTimer StageStat{ Stat::ESystemStatStage::PreviewRender };
+    const Stat::FScopedSystemStatTimer StageStat{Stat::ESystemStatStage::PreviewRender};
+
     if (mRenderer == nullptr || mAssetRegistry == nullptr || Entry.mAsset == nullptr) {
         return;
     }
@@ -113,10 +115,12 @@ void FAssetThumbnailRenderer::RenderThumbnail(const FAssetEntry& Entry, FSceneRe
     DirectX::BoundingBox::CreateFromSphere(ActorProbe.mWorldAABB, ActorProbe.mWorldSphereBounds);
 
     FSceneRenderData Scene{};
+
     Scene.mSceneId = mRenderSceneId;
     Scene.mObjectUpdates.push_back(FRenderObjectUpdate{FObjectHandle{0, 1}, ActorProbe, false});
 
     FLightProbe LightProbe{};
+
     LightProbe.mType = ELightType::Directional;
     LightProbe.mDirection = FVector{-0.5f, -0.5f, -1.0f};
     LightProbe.mColor = FVector{1.0f, 1.0f, 1.0f};
@@ -125,25 +129,32 @@ void FAssetThumbnailRenderer::RenderThumbnail(const FAssetEntry& Entry, FSceneRe
     Scene.mLightProbes.push_back(LightProbe);
 
     FSceneRenderSurface* Surface{PreviewSurface};
+
     if (Surface == nullptr) {
         const Uint64 ThumbnailKey{MakeThumbnailKey(Entry.mHandle)};
         FThumbnail& Thumbnail{mThumbnails[ThumbnailKey]};
+
         if (Thumbnail.mSurface == nullptr) {
             Thumbnail.mSurface = std::make_unique<FSceneRenderSurface>();
         }
+
         Thumbnail.mSurface->InitializeOffscreen(mRenderer->GetDevice(), ThumbnailSize, ThumbnailSize);
+
         if (!Thumbnail.mSurface->IsValid()) {
             Thumbnail.mSurface.reset();
             return;
         }
+
         Surface = Thumbnail.mSurface.get();
     }
 
     FRenderSettings RenderSettings{};
-    RenderSettings.mClearColor = FVector4{ 0.075f, 0.080f, 0.095f, 1.0f};
+
+    RenderSettings.mClearColor = FVector4{0.075f, 0.080f, 0.095f, 1.0f};
     RenderSettings.mBRenderSky = false;
 
     FRenderView View{};
+
     View.mTarget = Surface;
     View.mCamera = BuildCamera();
     View.mUseLOD = true;
@@ -158,6 +169,7 @@ ID3D11ShaderResourceView* FAssetThumbnailRenderer::GetThumbnail(FAssetHandle Ass
     if (mRenderer != nullptr && mAssetRegistry != nullptr && mAssetRegistry->ResolveAsset<UTexture>(AssetHandle) != nullptr) {
         return mRenderer->GetTextureResource(AssetHandle);
     }
+
     const auto It{mThumbnails.find(MakeThumbnailKey(AssetHandle))};
 
     if (It == mThumbnails.end() || It->second.mSurface == nullptr) {
@@ -216,12 +228,14 @@ CameraProbe FAssetThumbnailRenderer::BuildCamera() const {
     const FVector Eye{3.0f, -3.0f, 2.25f};
 
     CameraProbe Camera{};
+
     Camera.mView = MakeCameraWorldMatrix(Eye, Target).Invert();
     Camera.mProjection = FMatrix::CreatePerspectiveFieldOfView(0.610865f, 1.0f, 0.1f, 100.0f);
 
     Camera.mViewProjection = Camera.mView * Camera.mProjection;
 
     FFrustum LocalFrustum{};
+
     FFrustum::CreateFromMatrix(LocalFrustum, Camera.mProjection.ToSimpleMath());
     LocalFrustum.Transform(Camera.mViewFrustum, Camera.mView.Inverse().ToSimpleMath());
 
@@ -230,12 +244,15 @@ CameraProbe FAssetThumbnailRenderer::BuildCamera() const {
 
 FMatrix FAssetThumbnailRenderer::MakeCameraWorldMatrix(const FVector& Eye, const FVector& Target) const {
     FVector Forward{Target - Eye};
+
     Forward.Normalize();
 
     FVector Right{FVector::UnitZ.Cross(Forward)};
+
     Right.Normalize();
 
     FVector Up{Forward.Cross(Right)};
+
     Up.Normalize();
 
     FMatrix Result{FMatrix::Identity};

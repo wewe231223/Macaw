@@ -13,6 +13,7 @@ FGuid FGuid::NewGuid() {
     FGuid NewGuid{0, 0, 0, 0};
 
     GUID WinGuid{};
+
     if (CoCreateGuid(&WinGuid) == S_OK) {
         std::memcpy(&NewGuid, &WinGuid, sizeof(FGuid));
     }
@@ -36,6 +37,7 @@ bool FGuid::Parse(const FString& GuidString) {
             continue;
 
         Uint32 HexValue{0};
+
         if (Ch >= '0' && Ch <= '9') {
             HexValue = Ch - '0';
         } else if (Ch >= 'a' && Ch <= 'f') {
@@ -79,9 +81,11 @@ bool FGuid::IsValid() const {
 
 std::size_t FGuid::GetHash() const noexcept {
     std::size_t Hash{std::hash<Uint32>{}(mA)};
+
     Hash ^= std::hash<Uint32>{}(mB) + 0x9e3779b9 + (Hash << 6) + (Hash >> 2);
     Hash ^= std::hash<Uint32>{}(mC) + 0x9e3779b9 + (Hash << 6) + (Hash >> 2);
     Hash ^= std::hash<Uint32>{}(mD) + 0x9e3779b9 + (Hash << 6) + (Hash >> 2);
+
     return Hash;
 }
 

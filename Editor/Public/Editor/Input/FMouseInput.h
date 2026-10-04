@@ -34,7 +34,10 @@ public:
     EKeyState GetKeyState(EMouseSide Side) const;
     bool IsWorldDragActive(EMouseSide Side) const;
 
-    struct DragCapture { POINT mStart{}; POINT mCurrent{}; };
+    struct DragCapture {
+        POINT mStart{};
+        POINT mCurrent{};
+    };
 
     const DragCapture& GetDragCapture(EMouseSide Side) const;
 
@@ -42,17 +45,22 @@ public:
     void EndFrame();
 
 private:
-    enum class EDragOwner : std::uint8_t { None, World, UI, Gizmo };
+    enum class EDragOwner : std::uint8_t {
+        None,
+        World,
+        UI,
+        Gizmo
+    };
 
     void ResetKeyStates();
 
     std::optional<FMessageChannel::FSender> mWorldCommandSender{};
 
-    std::array<EKeyState, MAX> mKeyStates{ EKeyState::None, EKeyState::None};
+    std::array<EKeyState, MAX> mKeyStates{EKeyState::None, EKeyState::None};
 
     std::array<DragCapture, MAX> mClickCaptures{};
 
-    std::array<EDragOwner, MAX> mDragOwners{ EDragOwner::None, EDragOwner::None};
+    std::array<EDragOwner, MAX> mDragOwners{EDragOwner::None, EDragOwner::None};
 
     float mPendingDeltaX{0.0f};
     float mPendingDeltaY{0.0f};

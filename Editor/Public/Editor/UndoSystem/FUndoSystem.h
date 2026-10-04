@@ -20,6 +20,7 @@ namespace FUndoSystem {
     // =================================================================
     // Undo/Redo API
     // =================================================================
+    void Reset();
     void BeginTransaction(const FString& TransactionName);
     void RecordObject(UObject* TargetObject, EUndoType UndoType, const IAssetRegistry* AssetRegistry);
     void EndTransaction();

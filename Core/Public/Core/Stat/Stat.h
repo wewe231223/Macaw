@@ -72,6 +72,7 @@ namespace Stat {
 
     struct FSystemStats {
         std::array<FSystemStatSample, static_cast<std::size_t>(ESystemStatStage::Count)> mSamples{};
+
         std::uint64_t mFrameCount{};
     };
 
@@ -103,7 +104,9 @@ namespace Stat {
     struct FStats {
         FFrameStats mFrame{};
         FSystemStats mSystem{};
+
         std::array<FSystemStatSample, static_cast<std::size_t>(ERenderPreparationStage::Count)> mRenderPreparationSamples{};
+
         FMemoryStats mMemory{};
         FObjectStats mObjects{};
         FWorldTickStats mWorldTick{};
@@ -128,6 +131,7 @@ namespace Stat {
         std::size_t mPeakAllocatedBytes{};
         std::size_t mTotalAllocationCount{};
         std::size_t mTotalDeallocationCount{};
+
         std::array<FTagStatAverage, static_cast<std::size_t>(EMemoryTag::Count)> mTagStats{};
     };
 
@@ -158,8 +162,10 @@ namespace Stat {
 
     struct FStatAverages {
         FFrameStats mFrame{};
+
         std::array<FSystemStatAverage, static_cast<std::size_t>(ESystemStatStage::Count)> mSystemSamples{};
         std::array<FSystemStatAverage, static_cast<std::size_t>(ERenderPreparationStage::Count)> mRenderPreparationSamples{};
+
         FMemoryStatAverage mMemory{};
         FObjectStatAverage mObjects{};
         FWorldTickStatAverage mWorldTick{};

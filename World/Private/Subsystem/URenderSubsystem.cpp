@@ -3,7 +3,7 @@
 #include "World/AActor.h"
 
 URenderSubsystem::URenderSubsystem()
-    : mSceneId{AllocateRenderSceneId()} {
+	: mSceneId{AllocateRenderSceneId()} {
 }
 
 void URenderSubsystem::RegisterComponent(UStaticMeshComponent* Component) {
@@ -35,6 +35,7 @@ void URenderSubsystem::UnregisterComponent(UStaticMeshComponent* Component) {
     }
 
     const std::size_t Index{Position->second};
+
     if (Index + 1 != mComponents.size()) {
         mComponents[Index] = mComponents.back();
         mComponentIndices[GetComponentKey(mComponents[Index]->GetHandle())] = Index;
@@ -60,10 +61,12 @@ void URenderSubsystem::BuildRenderProbes(FSceneRenderData& Scene) {
 
     for (const FObjectHandle Handle : mDirtyComponents) {
         FRenderObjectUpdate Update{};
+
         Update.mComponentHandle = Handle;
 
         const auto Position{mComponentIndices.find(GetComponentKey(Handle))};
         const UStaticMeshComponent* Component{Position != mComponentIndices.end() ? mComponents[Position->second] : nullptr};
+
         Update.mRemoved = Component == nullptr || !Component->IsActive() || !Component->IsVisible();
 
         if (!Update.mRemoved) {
@@ -90,6 +93,7 @@ bool URenderSubsystem::ContainsComponent(const UStaticMeshComponent* Component) 
     }
 
     const auto Position{mComponentIndices.find(GetComponentKey(Component->GetHandle()))};
+
     return Position != mComponentIndices.end() && mComponents[Position->second] == Component;
 }
 

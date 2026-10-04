@@ -10,6 +10,7 @@ class FMeshRenderResource {
 private:
     struct FLODBuffers {
         std::array<Microsoft::WRL::ComPtr<ID3D11Buffer>, static_cast<std::size_t>(EVertexAttribute::MAX)> mVertices{};
+
         Microsoft::WRL::ComPtr<ID3D11Buffer> mIndices{};
     };
 

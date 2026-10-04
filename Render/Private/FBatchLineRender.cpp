@@ -13,12 +13,14 @@ void FBatchLineRenderer::Initialize(ID3D11Device* InDevice, Uint32 InitialLineCa
     mOverlayPipeline = std::make_unique<FPipelineRenderResource>();
 
     UPipeline DepthPipeline{};
+
     ErrorHandler::Report(!DepthPipeline.Initialize("./Content/Pipeline/BatchLineDepthTested.json") || !mDepthTestedPipeline->Initialize(mDevice, DepthPipeline), "[ FBatchLineRenderer ]", "Failed to initialize the depth-tested batch line pipeline.", ErrorHandler::EErrorLevel::Critical);
+
     UPipeline OverlayPipeline{};
+
     ErrorHandler::Report(!OverlayPipeline.Initialize("./Content/Pipeline/BatchLineOverlay.json") || !mOverlayPipeline->Initialize(mDevice, OverlayPipeline), "[ FBatchLineRenderer ]", "Failed to initialize the overlay batch line pipeline.", ErrorHandler::EErrorLevel::Critical);
 
     InitialLineCapacity = std::max(InitialLineCapacity * 2, 2u);
-
 
     mDepthTestedBatch.mVertices.reserve(InitialLineCapacity);
     mOverlayBatch.mVertices.reserve(InitialLineCapacity);
@@ -41,8 +43,8 @@ void FBatchLineRenderer::AddLine(const FVector3& Start, const FVector3& End, con
 
     FLineBatch& Batch{DepthMode == ELineDepthMode::DepthTested ? mDepthTestedBatch : mOverlayBatch};
 
-    Batch.mVertices.emplace_back(FBatchLineInstance{ .mPosition = FVector3{Start.mX, Start.mY, Start.mZ}, .mColor = Color});
-    Batch.mVertices.emplace_back(FBatchLineInstance{ .mPosition = FVector3{End.mX, End.mY, End.mZ}, .mColor = Color});
+    Batch.mVertices.emplace_back(FBatchLineInstance{.mPosition = FVector3{Start.mX, Start.mY, Start.mZ}, .mColor = Color});
+    Batch.mVertices.emplace_back(FBatchLineInstance{.mPosition = FVector3{End.mX, End.mY, End.mZ}, .mColor = Color});
 }
 
 void FBatchLineRenderer::AddRay(const FVector3& Origin, const FVector3& Direction, float Length, const FVector4& Color, float WidthPixels, ELineDepthMode DepthMode) {
@@ -51,6 +53,7 @@ void FBatchLineRenderer::AddRay(const FVector3& Origin, const FVector3& Directio
     }
 
     FVector3 NormalizedDirection{Direction};
+
     NormalizedDirection.Normalize();
 
     AddLine(Origin, Origin + NormalizedDirection * Length, Color, WidthPixels, DepthMode);
@@ -92,6 +95,7 @@ bool FBatchLineRenderer::RenderBatch(ID3D11DeviceContext* Context, FFrameResourc
     }
 
     const Uint32 VertexCount{static_cast<Uint32>(Batch.mVertices.size())};
+
     if (!FrameResource.UploadStream(mDevice, Context, Stream, Batch.mVertices.data(), VertexCount, sizeof(FBatchLineInstance), D3D11_BIND_VERTEX_BUFFER)) {
         return false;
     }

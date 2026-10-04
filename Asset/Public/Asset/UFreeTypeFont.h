@@ -58,5 +58,4 @@ private:
     static constexpr std::uint32_t AtlasPadding{1};
     Uint64 mAtlasRevision{1};
     bool mBInitialized{false};
-
 };

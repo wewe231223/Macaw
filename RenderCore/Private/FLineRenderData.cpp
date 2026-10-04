@@ -9,6 +9,7 @@ void FLineRenderData::AddGridLine(const FVector3& Start, const FVector3& End, co
     if (WidthPixels <= 0.0f || (End - Start).LengthSquared() <= 0.0f) {
         return;
     }
+
     mLines.push_back(FLineProbe{Start, End, Color, WidthPixels, GridSpacing, DepthMode});
 }
 
@@ -16,7 +17,9 @@ void FLineRenderData::AddRay(const FVector3& Origin, const FVector3& Direction, 
     if (Length <= 0.0f || Direction.LengthSquared() <= 0.0f) {
         return;
     }
+
     FVector3 NormalizedDirection{Direction};
+
     NormalizedDirection.Normalize();
     AddLine(Origin, Origin + NormalizedDirection * Length, Color, WidthPixels, DepthMode);
 }

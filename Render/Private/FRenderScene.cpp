@@ -86,6 +86,7 @@ ERenderUpdateMode FRenderScene::CollectChangedObjects(Uint64 SinceRevision, TArr
 
     std::sort(OutIndices.begin(), OutIndices.end());
     OutIndices.erase(std::unique(OutIndices.begin(), OutIndices.end()), OutIndices.end());
+
     return ERenderUpdateMode::Partial;
 }
 
@@ -133,6 +134,7 @@ void FRenderScene::CollectVisibleObjects(const FMatrix& ViewProjection, TArray<U
 
 void FRenderScene::CollectVisibleObjects(const CameraProbe& Camera, TArray<Uint32>& OutIndices, TArray<Uint32>& OutBoundaryPositions) const {
     const bool Perspective{std::abs(Camera.mProjection.M[2][3]) > 1e-6f};
+
     OutIndices.reserve(mBoundsObjects.size() + mUnboundedObjects.size());
     OutBoundaryPositions.clear();
     mBoundsTree.FrustumCull(Camera.mViewProjection, OutIndices, Perspective ? &OutBoundaryPositions : nullptr);
@@ -146,6 +148,7 @@ void FRenderScene::CollectVisibleObjects(const CameraProbe& Camera, TArray<Uint3
     if (!OutBoundaryPositions.empty()) {
         std::erase(OutIndices, UINT32_MAX);
     }
+
     OutIndices.insert(OutIndices.end(), mUnboundedObjects.begin(), mUnboundedObjects.end());
 }
 
@@ -167,6 +170,7 @@ void FRenderScene::ApplyObjectUpdates(const FSceneRenderData& Scene) {
             UpdateObject(Position->second, Update.mProbe);
         } else {
             const Uint32 ObjectIndex{AddObject(Update.mComponentHandle, Update.mProbe)};
+
             if (ObjectIndex != UINT32_MAX) {
                 mObjectLookup.emplace(Key, ObjectIndex);
             }
@@ -177,12 +181,14 @@ void FRenderScene::ApplyObjectUpdates(const FSceneRenderData& Scene) {
 Uint32 FRenderScene::FindOrAddTemplateGroup(const FActorProbe& Probe) {
     const FRenderTemplateGroupKey Key{Probe.mPipelineHandle, Probe.mMaterialHandle, Probe.mMeshHandle};
     const auto Position{mTemplateGroupIndicesByKey.find(Key)};
+
     if (Position != mTemplateGroupIndicesByKey.end()) {
         return Position->second;
     }
 
     const Uint32 GroupIndex{static_cast<Uint32>(mTemplateGroups.size())};
     FRenderTemplateGroup Group{};
+
     Group.mKey = Key;
 
     mTemplateGroups.push_back(Group);
@@ -194,6 +200,7 @@ Uint32 FRenderScene::FindOrAddTemplateGroup(const FActorProbe& Probe) {
 
 Uint32 FRenderScene::AddObject(FObjectHandle ComponentHandle, const FActorProbe& Probe) {
     Uint32 ObjectIndex{};
+
     if (mFreeObjects.empty()) {
         if (mObjects.size() >= 0x80000000ull) {
             return UINT32_MAX;
@@ -208,6 +215,7 @@ Uint32 FRenderScene::AddObject(FObjectHandle ComponentHandle, const FActorProbe&
     }
 
     FRenderSceneObject& Object{mObjects[ObjectIndex]};
+
     Object = {};
     Object.mComponentHandle = ComponentHandle;
     Object.mActive = true;
@@ -221,6 +229,7 @@ Uint32 FRenderScene::AddObject(FObjectHandle ComponentHandle, const FActorProbe&
 void FRenderScene::UpdateObject(Uint32 ObjectIndex, const FActorProbe& Probe) {
     FRenderSceneObject& Object{mObjects[ObjectIndex]};
     Uint32 GroupIndex{Object.mTemplateGroupIndex};
+
     if (GroupIndex == UINT32_MAX || mTemplateGroups[GroupIndex].mKey.mPipelineHandle != Probe.mPipelineHandle || mTemplateGroups[GroupIndex].mKey.mMaterialHandle != Probe.mMaterialHandle || mTemplateGroups[GroupIndex].mKey.mMeshHandle != Probe.mMeshHandle) {
         GroupIndex = FindOrAddTemplateGroup(Probe);
     }
@@ -228,6 +237,7 @@ void FRenderScene::UpdateObject(Uint32 ObjectIndex, const FActorProbe& Probe) {
     const bool Cullable{HasUsableBounds(Probe.mWorldAABB)};
     const bool TransformChanged{std::memcmp(&mObjectTransforms[ObjectIndex], &Probe.mWorld, sizeof(FMatrix)) != 0};
     const bool BoundsChanged{std::memcmp(&Object.mWorldSphereBounds, &Probe.mWorldSphereBounds, sizeof(DirectX::BoundingSphere)) != 0 || std::memcmp(&Object.mWorldOBB, &Probe.mWorldOBB, sizeof(DirectX::BoundingOrientedBox)) != 0 || std::memcmp(&Object.mWorldAABB, &Probe.mWorldAABB, sizeof(DirectX::BoundingBox)) != 0};
+
     if (Object.mTemplateGroupIndex == GroupIndex && Object.mOwnerHandle == Probe.mOwnerHandle && Object.mFlags == Probe.mFlags && !TransformChanged && !BoundsChanged) {
         return;
     }
@@ -235,6 +245,7 @@ void FRenderScene::UpdateObject(Uint32 ObjectIndex, const FActorProbe& Probe) {
     if (Object.mTemplateGroupIndex != GroupIndex) {
         if (Object.mTemplateGroupIndex != UINT32_MAX) {
             FRenderTemplateGroup& PreviousGroup{mTemplateGroups[Object.mTemplateGroupIndex]};
+
             --PreviousGroup.mReferenceCount;
             mTemplatesDirty = mTemplatesDirty || PreviousGroup.mReferenceCount == 0;
         }
@@ -261,13 +272,16 @@ void FRenderScene::UpdateObject(Uint32 ObjectIndex, const FActorProbe& Probe) {
 
 void FRenderScene::RemoveObject(Uint32 ObjectIndex) {
     FRenderSceneObject& Object{mObjects[ObjectIndex]};
+
     if (!Object.mActive) {
         return;
     }
 
     Object.mActive = false;
+
     if (Object.mTemplateGroupIndex != UINT32_MAX) {
         FRenderTemplateGroup& Group{mTemplateGroups[Object.mTemplateGroupIndex]};
+
         --Group.mReferenceCount;
         mTemplatesDirty = mTemplatesDirty || Group.mReferenceCount == 0;
     }
@@ -305,14 +319,17 @@ void FRenderScene::RefreshTemplates(const IAssetRegistry* Registry, const FMater
         mMaterialBufferRevision = Materials.GetRevision();
         mTemplatesDirty = true;
     }
+
     const FAssetHandle SkyPipeline{Registry != nullptr ? Registry->FindAsset(FAssetPath{"/Game/Pipeline/SkyDome.json"}) : FAssetHandle{}};
 
     for (FRenderTemplateGroup& Group : mTemplateGroups) {
         const bool Sky{Group.mKey.mPipelineHandle == SkyPipeline};
+
         if (Group.mSky != Sky) {
             Group.mSky = Sky;
             mTemplatesDirty = true;
         }
+
         if (Group.mReferenceCount == 0) {
             continue;
         }
@@ -344,6 +361,7 @@ void FRenderScene::RefreshTemplates(const IAssetRegistry* Registry, const FMater
 
         const UMesh* Mesh{Group.mMesh.GetValue()};
         const UMaterial* Material{Group.mMaterial.GetValue()};
+
         if (Group.mReferenceCount == 0 || Mesh == nullptr || Material == nullptr || Group.mPipeline == nullptr) {
             continue;
         }
@@ -354,10 +372,13 @@ void FRenderScene::RefreshTemplates(const IAssetRegistry* Registry, const FMater
             }
 
             const Uint32 FirstTemplateIndex{static_cast<Uint32>(mTemplates.size())};
+
             AppendMeshDrawTemplates(*Mesh, *Material, Materials, Group.mKey.mPipelineHandle, Group.mKey.mMeshHandle, Level, mTemplates);
 
             FRenderTemplateRange& TemplateRange{Group.mTemplateRangesByLOD[Level]};
+
             TemplateRange = FRenderTemplateRange{FirstTemplateIndex, static_cast<Uint32>(mTemplates.size()) - FirstTemplateIndex};
+
             if (TemplateRange.mTemplateCount != 0) {
                 Group.mAvailableLODMask |= 1u << Level;
             }

@@ -1,70 +1,38 @@
 #include "pch.h"
 #include "Editor/Settings/FEditorConfigManager.h"
 #include "Serialization/FArchiveJson.h"
+#include "Serialization/FJsonFile.h"
 
-#include <fstream>
-#include <sstream>
-
-#include "rapidjson/document.h"
-#include "rapidjson/prettywriter.h"
-#include "rapidjson/ostreamwrapper.h"
-
-bool FEditorConfigManager::Save(FEditorSettings& Settings, const IAssetRegistry* AssetRegistry, const std::filesystem::path& ConfigPath) {
-    std::filesystem::path CurrentPath{std::filesystem::current_path()};
-    std::filesystem::path FilePath{CurrentPath / ConfigPath};
-
+bool FEditorConfigManager::Save(const FEditorSettings& Settings, const std::filesystem::path& ConfigPath) {
     rapidjson::Document Document{};
+
     Document.SetObject();
-    rapidjson::Document::AllocatorType& Allocator{Document.GetAllocator()};
 
-    FArchiveJson ArchiveSave{Document, Allocator};
-    if (AssetRegistry) {
-        ArchiveSave.SetAssetResolver(AssetRegistry);
-    }
+    FEditorSettings SavedSettings{Settings};
+    FArchiveJson Archive{Document, Document.GetAllocator()};
 
-    ArchiveSave.SerializeStruct("EditorSettings", Settings);
+    Archive.SerializeStruct("EditorSettings", SavedSettings);
 
-    std::ofstream OutputFileStream{FilePath};
-    if (!OutputFileStream.is_open()) {
-        return false;
-    }
-
-    rapidjson::OStreamWrapper StreamWrapper{OutputFileStream};
-    rapidjson::PrettyWriter<rapidjson::OStreamWrapper> Writer{StreamWrapper};
-    Document.Accept(Writer);
-    OutputFileStream.close();
-
-    return true;
+    return FJsonFile::Save(ConfigPath, Document);
 }
 
-bool FEditorConfigManager::Load(FEditorSettings& OutSettings, const IAssetRegistry* AssetRegistry, const std::filesystem::path& ConfigPath) {
-    std::filesystem::path CurrentPath{std::filesystem::current_path()};
-    std::filesystem::path FilePath{CurrentPath / ConfigPath};
+bool FEditorConfigManager::Load(FEditorSettings& OutSettings, const std::filesystem::path& ConfigPath) {
+    rapidjson::Document Document{};
 
-    std::ifstream InputFileStream{FilePath};
-    if (!InputFileStream) {
+    if (!FJsonFile::Load(ConfigPath, Document) || !Document.HasMember("EditorSettings") || !Document["EditorSettings"].IsObject()) {
         return false;
     }
 
-    std::stringstream Buffer{};
-    Buffer << InputFileStream.rdbuf();
-    std::string LoadedJsonString{Buffer.str()};
-    InputFileStream.close();
+    FEditorSettings Settings{OutSettings};
+    FArchiveJson Archive{Document["EditorSettings"]};
 
-    rapidjson::Document LoadDocument{};
-    LoadDocument.Parse(LoadedJsonString.c_str());
+    Settings.Serialize(Archive);
 
-    if (LoadDocument.HasParseError() || !LoadDocument.IsObject() || !LoadDocument.HasMember("EditorSettings") || !LoadDocument["EditorSettings"].IsObject()) {
+    if (Archive.HasError()) {
         return false;
     }
 
-    rapidjson::Value& SettingsJson{LoadDocument["EditorSettings"]};
-    FArchiveJson ArchiveLoad{SettingsJson};
-    if (AssetRegistry) {
-        ArchiveLoad.SetAssetResolver(AssetRegistry);
-    }
-
-    OutSettings.Serialize(ArchiveLoad);
+    OutSettings = Settings;
 
     return true;
 }

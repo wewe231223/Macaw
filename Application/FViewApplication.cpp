@@ -14,12 +14,15 @@ void FViewApplication::InitializeMode(FApplicationContext& Context, HWND WindowH
     Context.mWorldCommandChannel->TryBind<FMouseCameraRotateRequestMessage>([&Context](const FMouseCameraRotateRequestMessage& Message) {
         Context.mEditorContext->HandleMouseCameraRotateRequest(Message);
     });
+
     Context.mWorldCommandChannel->TryBind<FKeyboardCameraMoveRequestMessage>([&Context](const FKeyboardCameraMoveRequestMessage& Message) {
         Context.mEditorContext->HandleKeyboardCameraMoveRequest(Message);
     });
+
     Context.mWorldCommandChannel->TryBind<FMouseCameraMoveRequestMessage>([&Context](const FMouseCameraMoveRequestMessage& Message) {
         Context.mEditorContext->HandleMouseCameraMoveRequestMessage(Message);
     });
+
     Context.mWorldCommandChannel->TryBind<FMouseCameraDollyRequestMessage>([&Context](const FMouseCameraDollyRequestMessage& Message) {
         Context.mEditorContext->HandleMouseCameraDollyRequestMessage(Message);
     });

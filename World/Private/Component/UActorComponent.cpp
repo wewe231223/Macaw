@@ -11,9 +11,11 @@ void UActorComponent::SetOwner(AActor* InOwner) {
     if (mOwner == InOwner) {
         return;
     }
+
     if (mOwner != nullptr) {
         mOwner->UnregisterTickComponent(this);
     }
+
     mOwner = InOwner;
     UpdateTickRegistration();
 }
@@ -35,7 +37,7 @@ void UActorComponent::EndPlay() {
     UpdateTickRegistration();
 }
 
-void UActorComponent::Tick(float /*DeltaTime*/  ) {
+void UActorComponent::Tick(float /*DeltaTime*/) {
 }
 
 void UActorComponent::OnUnregister() {
@@ -137,7 +139,7 @@ void UActorComponent::UnregisterComponent() {
     UpdateTickRegistration();
 }
 
-void UActorComponent::DestroyComponent(bool /*bPromoteChildren*/  ) {
+void UActorComponent::DestroyComponent(bool /*bPromoteChildren*/) {
     if (mBIsBeingDestroyed) {
         return;
     }

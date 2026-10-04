@@ -1,7 +1,7 @@
 #pragma once
+#include "Core/Base/ErrorHandler.h"
 
 #include <memory>
-#include <stdexcept>
 #include <type_traits>
 #include <vector>
 #include "CoreUObject/UObjectSystem.h"
@@ -41,8 +41,9 @@ TSubsystemCollection<TSubsystem, TOwner>::~TSubsystemCollection() {
 template <typename TSubsystem, typename TOwner>
 void TSubsystemCollection<TSubsystem, TOwner>::Initialize(TOwner& Owner) {
     if (mOwner != nullptr && mOwner != &Owner) {
-        throw std::logic_error{"Subsystem collection already has an owner"};
+        ErrorHandler::Report("TSubsystemCollection", "Subsystem collection already has an owner", ErrorHandler::EErrorLevel::Critical);
     }
+
     mOwner = &Owner;
 }
 
@@ -51,13 +52,17 @@ void TSubsystemCollection<TSubsystem, TOwner>::Deinitialize() {
     if (mDeinitializing) {
         return;
     }
+
     mDeinitializing = true;
+
     while (!mSubsystems.empty()) {
         TSubsystem& Subsystem{*mSubsystems.back()};
+
         Subsystem.Deinitialize();
         UObjectSystem::Unregister(&Subsystem, Subsystem.GetHandle());
         mSubsystems.pop_back();
     }
+
     mOwner = nullptr;
     mDeinitializing = false;
 }
@@ -67,29 +72,20 @@ template <typename T>
     requires std::is_base_of_v<TSubsystem, T>
 T& TSubsystemCollection<TSubsystem, TOwner>::Add() {
     if (mOwner == nullptr || mDeinitializing) {
-        throw std::logic_error{"Subsystem collection is not initialized"};
+        ErrorHandler::Report("TSubsystemCollection", "Subsystem collection is not initialized", ErrorHandler::EErrorLevel::Critical);
     }
-    if (T* Existing{Get<T>()}) {
+
+    if (T * Existing{Get<T>()}) {
         return *Existing;
     }
+
     std::unique_ptr<T> Subsystem{std::make_unique<T>()};
     T* Result{Subsystem.get()};
-    const std::size_t InitialCount{mSubsystems.size()};
+
     mSubsystems.push_back(std::move(Subsystem));
-    try {
-        UObjectSystem::Register(Result);
-        Result->Initialize(mOwner);
-    } catch (...) {
-        mDeinitializing = true;
-        while (mSubsystems.size() > InitialCount) {
-            TSubsystem& FailedSubsystem{*mSubsystems.back()};
-            FailedSubsystem.Deinitialize();
-            UObjectSystem::Unregister(&FailedSubsystem, FailedSubsystem.GetHandle());
-            mSubsystems.pop_back();
-        }
-        mDeinitializing = false;
-        throw;
-    }
+    UObjectSystem::Register(Result);
+    Result->Initialize(mOwner);
+
     return *Result;
 }
 
@@ -98,9 +94,10 @@ template <typename T>
     requires std::is_base_of_v<TSubsystem, T>
 T* TSubsystemCollection<TSubsystem, TOwner>::Get() const {
     for (const std::unique_ptr<TSubsystem>& Subsystem : mSubsystems) {
-        if (T* Result{dynamic_cast<T*>(Subsystem.get())}) {
+        if (T * Result{dynamic_cast<T*>(Subsystem.get())}) {
             return Result;
         }
     }
+
     return nullptr;
 }

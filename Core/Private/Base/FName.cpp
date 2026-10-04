@@ -2,12 +2,13 @@
 #include "Core/Base/FName.h"
 
 FNameEntryId::FNameEntryId()
-    : mValue(0) {
+	: mValue(0) {
 }
 
 Uint32 FNameEntryId::ToUnstableInt() const {
     return mValue;
 }
+
 #include "Hash/city.h"
 
 static constexpr Uint32 FNameMaxBlockBits{13};
@@ -74,9 +75,13 @@ private:
 // Allocate memory to FNameEntry
 class FNameEntryAllocator {
 public:
-    enum { Stride = alignof(FNameEntry) };
+    enum {
+        Stride = alignof(FNameEntry)
+    };
 
-    enum { BlockSizeBytes = Stride * FNameBlockOffsets };
+    enum {
+        BlockSizeBytes = Stride * FNameBlockOffsets
+    };
 
     FNameEntryAllocator() {
         mBlocks[0] = new Uint8[BlockSizeBytes]();
@@ -97,6 +102,7 @@ public:
         }
 
         Uint32 ByteOffset{mCurrentByteCursor};
+
         mCurrentByteCursor += Step;
 
         return FNameEntryHandle(mCurrentBlock, ByteOffset / Stride);
@@ -197,6 +203,7 @@ class FNamePool {
 public:
     static FNamePool& Get() {
         static FNamePool Instance{};
+
         return Instance;
     }
 
@@ -214,6 +221,7 @@ public:
         // Display
         FNameDisplayValue DisplayValue{NameString};
         FNameEntryId Existing{FNamePool::FindValue(mDisplayHashBuckets, DisplayValue, true)};
+
         if (Existing.ToUnstableInt() != 0) {
             return Existing;
         }
@@ -237,6 +245,7 @@ public:
 
         FNameDisplayValue DisplayValue{NameString};
         FNameEntryId Existing{FNamePool::FindValue(mDisplayHashBuckets, DisplayValue, true)};
+
         if (Existing.ToUnstableInt() != 0) {
             return Existing;
         }
@@ -272,8 +281,10 @@ private:
                 const FNameEntry& Entry{Resolve(ExistingId)};
 
                 const char* ExistingStr{Entry.GetName()};
+
                 if (Entry.GetNameLength() == InValue.mName.length()) {
                     bool BIsMatch{true};
+
                     if (BIsCaseSensitive) {
                         BIsMatch = (std::memcmp(ExistingStr, InValue.mName.data(), InValue.mName.length()) == 0);
                     } else {
@@ -294,6 +305,7 @@ private:
 
     FNameEntryId StoreValue(TArray<FNameSlot>& Buckets, const FNameValue& InValue, bool BIsCaseSensitive) {
         FNameEntryId ExistingId{FNamePool::FindValue(Buckets, InValue, BIsCaseSensitive)};
+
         if (ExistingId.ToUnstableInt() != 0) {
             return ExistingId;
         }
@@ -305,9 +317,11 @@ private:
         // Set header
         FNameEntry& NewEntry{mEntries.Resolve(NewHandle)};
         Uint16* HeaderPtr{reinterpret_cast<Uint16*>(&NewEntry)};
+
         *HeaderPtr = static_cast<Uint16>(InValue.mName.length()) << 1;
         // Set string
         char* DataPtr{const_cast<char*>(NewEntry.GetName())};
+
         std::memcpy(DataPtr, InValue.mName.data(), InValue.mName.length());
         DataPtr[InValue.mName.length()] = '\0'; // null terminator
 
@@ -332,6 +346,7 @@ private:
 
     FNameEntryId StoreComparisonValue(const FNameValue& InValue, bool& BOutAdded) {
         FNameEntryId ExistingId{FNamePool::FindValue(mComparisonHashBuckets, InValue, false)};
+
         if (ExistingId.ToUnstableInt() != 0) {
             return ExistingId;
         }
@@ -345,9 +360,11 @@ private:
         // Set header
         FNameEntry& NewEntry{mEntries.Resolve(NewHandle)};
         Uint16* HeaderPtr{reinterpret_cast<Uint16*>(&NewEntry)};
+
         *HeaderPtr = static_cast<Uint16>(InValue.mName.length()) << 1;
         // Set string
         char* DataPtr{const_cast<char*>(NewEntry.GetName())};
+
         std::memcpy(DataPtr, InValue.mName.data(), InValue.mName.length());
         DataPtr[InValue.mName.length()] = '\0'; // null terminator
 
@@ -371,9 +388,11 @@ private:
         // Set header
         FNameEntry& NewEntry{mEntries.Resolve(NewHandle)};
         Uint16* HeaderPtr{reinterpret_cast<Uint16*>(&NewEntry)};
+
         *HeaderPtr = static_cast<Uint16>(InValue.mName.length()) << 1;
         // Set string
         char* DataPtr{const_cast<char*>(NewEntry.GetName())};
+
         std::memcpy(DataPtr, InValue.mName.data(), InValue.mName.length());
         DataPtr[InValue.mName.length()] = '\0'; // null terminator
 
@@ -411,6 +430,7 @@ private:
 FName::FName(std::string_view Str) {
     if (Str.length() > 0) {
         std::string_view BaseStr{};
+
         SplitNameAndNumber(Str, BaseStr, mNumber);
 
         mDisplayId = FNamePool::Get().Store(BaseStr);
@@ -419,11 +439,11 @@ FName::FName(std::string_view Str) {
 }
 
 FName::FName(const char* PStr)
-    : FName(PStr ? FName{std::string_view(PStr)} : FName{}) {
+	: FName(PStr ? FName{std::string_view(PStr)} : FName{}) {
 }
 
 FName::FName(FString Str)
-    : FName(std::string_view(Str)) {
+	: FName(std::string_view(Str)) {
 }
 
 FName::FName(std::string_view BaseName, Int32 InNumber) {
@@ -464,7 +484,9 @@ FString FName::ToString() const {
 
 FNameEntryId FNameEntryId::FromUnstableInt(Uint32 UnstableInt) {
     FNameEntryId Id{};
+
     Id.mValue = UnstableInt;
+
     return Id;
 }
 
@@ -517,11 +539,13 @@ void SplitNameAndNumber(std::string_view InString, std::string_view& OutString, 
     OutNumber = 0;
 
     const std::size_t Sep{InString.rfind('_')};
+
     if (Sep == std::string_view::npos || Sep == 0 || Sep + 1 == InString.length()) {
         return;
     }
 
     Int32 Num{0};
+
     for (std::size_t I{Sep + 1}; I < InString.length(); ++I) {
         if (!std::isdigit(static_cast<unsigned char>(InString[I]))) {
             return;

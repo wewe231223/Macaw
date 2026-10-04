@@ -51,8 +51,10 @@ public:
         FWriter& operator=(FWriter&&) = default;
 
     public:
-        void Write(const T& NewState) requires std::copy_constructible<T> && std::assignable_from<T&, const T&>;
-        void Write(T&& NewState) requires std::move_constructible<T> && std::assignable_from<T&, T>;
+        void Write(const T& NewState)
+            requires std::copy_constructible<T> && std::assignable_from<T&, const T&>;
+        void Write(T&& NewState)
+            requires std::move_constructible<T> && std::assignable_from<T&, T>;
         template <typename... Args>
             requires std::constructible_from<T, Args...>
         const T& Emplace(Args&&... Arguments);
@@ -82,8 +84,10 @@ public:
         [[nodiscard]] const T& Peek() const;
         [[nodiscard]] const T& Read();
         [[nodiscard]] FReadResult ReadIfChanged() noexcept;
-        void Write(const T& NewState) requires std::copy_constructible<T> && std::assignable_from<T&, const T&>;
-        void Write(T&& NewState) requires std::move_constructible<T> && std::assignable_from<T&, T>;
+        void Write(const T& NewState)
+            requires std::copy_constructible<T> && std::assignable_from<T&, const T&>;
+        void Write(T&& NewState)
+            requires std::move_constructible<T> && std::assignable_from<T&, T>;
         template <typename... Args>
             requires std::constructible_from<T, Args...>
         const T& Emplace(Args&&... Arguments);
@@ -99,8 +103,10 @@ public:
 
 public:
     FStateChannel() = default;
-    explicit FStateChannel(const T& InitialState) requires std::copy_constructible<T>;
-    explicit FStateChannel(T&& InitialState) requires std::move_constructible<T>;
+    explicit FStateChannel(const T& InitialState)
+        requires std::copy_constructible<T>;
+    explicit FStateChannel(T&& InitialState)
+        requires std::move_constructible<T>;
     template <typename... Args>
         requires std::constructible_from<T, Args...>
     explicit FStateChannel(std::in_place_t, Args&&... Arguments);
@@ -115,8 +121,10 @@ public:
     [[nodiscard]] FReadWriter GetReadWriter() noexcept;
 
 private:
-    void Write(const T& NewState) requires std::copy_constructible<T> && std::assignable_from<T&, const T&>;
-    void Write(T&& NewState) requires std::move_constructible<T> && std::assignable_from<T&, T>;
+    void Write(const T& NewState)
+        requires std::copy_constructible<T> && std::assignable_from<T&, const T&>;
+    void Write(T&& NewState)
+        requires std::move_constructible<T> && std::assignable_from<T&, T>;
     template <typename... Args>
         requires std::constructible_from<T, Args...>
     const T& Emplace(Args&&... Arguments);
@@ -132,7 +140,7 @@ private:
 
 template <typename T>
 FStateChannel<T>::FReader::FReader(const FStateChannel& InChannel) noexcept
-    : mChannel(&InChannel) {
+	: mChannel(&InChannel) {
 }
 
 template <typename T>
@@ -153,6 +161,7 @@ template <typename T>
 template <typename T>
 [[nodiscard]] const T& FStateChannel<T>::FReader::Read() {
     const T& Value{mChannel->mState.value()};
+
     mLastReadVersion = mChannel->mVersion;
 
     return Value;
@@ -171,16 +180,20 @@ template <typename T>
 
 template <typename T>
 FStateChannel<T>::FWriter::FWriter(FStateChannel& InChannel) noexcept
-    : mChannel(&InChannel) {
+	: mChannel(&InChannel) {
 }
 
 template <typename T>
-void FStateChannel<T>::FWriter::Write(const T& NewState) requires std::copy_constructible<T> && std::assignable_from<T&, const T&> {
+void FStateChannel<T>::FWriter::Write(const T& NewState)
+    requires std::copy_constructible<T> && std::assignable_from<T&, const T&>
+{
     mChannel->Write(NewState);
 }
 
 template <typename T>
-void FStateChannel<T>::FWriter::Write(T&& NewState) requires std::move_constructible<T> && std::assignable_from<T&, T> {
+void FStateChannel<T>::FWriter::Write(T&& NewState)
+    requires std::move_constructible<T> && std::assignable_from<T&, T>
+{
     mChannel->Write(std::move(NewState));
 }
 
@@ -210,7 +223,7 @@ template <typename T>
 
 template <typename T>
 FStateChannel<T>::FReadWriter::FReadWriter(FStateChannel& InChannel) noexcept
-    : mChannel(&InChannel) {
+	: mChannel(&InChannel) {
 }
 
 template <typename T>
@@ -231,6 +244,7 @@ template <typename T>
 template <typename T>
 [[nodiscard]] const T& FStateChannel<T>::FReadWriter::Read() {
     const T& Value{mChannel->mState.value()};
+
     mLastReadVersion = mChannel->mVersion;
 
     return Value;
@@ -248,12 +262,16 @@ template <typename T>
 }
 
 template <typename T>
-void FStateChannel<T>::FReadWriter::Write(const T& NewState) requires std::copy_constructible<T> && std::assignable_from<T&, const T&> {
+void FStateChannel<T>::FReadWriter::Write(const T& NewState)
+    requires std::copy_constructible<T> && std::assignable_from<T&, const T&>
+{
     mChannel->Write(NewState);
 }
 
 template <typename T>
-void FStateChannel<T>::FReadWriter::Write(T&& NewState) requires std::move_constructible<T> && std::assignable_from<T&, T> {
+void FStateChannel<T>::FReadWriter::Write(T&& NewState)
+    requires std::move_constructible<T> && std::assignable_from<T&, T>
+{
     mChannel->Write(std::move(NewState));
 }
 
@@ -277,23 +295,25 @@ void FStateChannel<T>::FReadWriter::Clear() noexcept {
 }
 
 template <typename T>
-FStateChannel<T>::FStateChannel(const T& InitialState) requires std::copy_constructible<T>
-    : mState(InitialState),
-      mVersion(1) {
+FStateChannel<T>::FStateChannel(const T& InitialState)
+    requires std::copy_constructible<T>
+	: mState(InitialState),
+	  mVersion(1) {
 }
 
 template <typename T>
-FStateChannel<T>::FStateChannel(T&& InitialState) requires std::move_constructible<T>
-    : mState(std::move(InitialState)),
-      mVersion(1) {
+FStateChannel<T>::FStateChannel(T&& InitialState)
+    requires std::move_constructible<T>
+	: mState(std::move(InitialState)),
+	  mVersion(1) {
 }
 
 template <typename T>
 template <typename... Args>
     requires std::constructible_from<T, Args...>
 FStateChannel<T>::FStateChannel(std::in_place_t, Args&&... Arguments)
-    : mState(std::in_place, std::forward<Args>(Arguments)...),
-      mVersion(1) {
+	: mState(std::in_place, std::forward<Args>(Arguments)...),
+	  mVersion(1) {
 }
 
 template <typename T>
@@ -312,7 +332,9 @@ template <typename T>
 }
 
 template <typename T>
-void FStateChannel<T>::Write(const T& NewState) requires std::copy_constructible<T> && std::assignable_from<T&, const T&> {
+void FStateChannel<T>::Write(const T& NewState)
+    requires std::copy_constructible<T> && std::assignable_from<T&, const T&>
+{
     if (mState) {
         *mState = NewState;
     } else {
@@ -323,7 +345,9 @@ void FStateChannel<T>::Write(const T& NewState) requires std::copy_constructible
 }
 
 template <typename T>
-void FStateChannel<T>::Write(T&& NewState) requires std::move_constructible<T> && std::assignable_from<T&, T> {
+void FStateChannel<T>::Write(T&& NewState)
+    requires std::move_constructible<T> && std::assignable_from<T&, T>
+{
     if (mState) {
         *mState = std::move(NewState);
     } else {

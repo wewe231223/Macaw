@@ -35,6 +35,7 @@ namespace {
         }
 
         OutValue = FVector3{X, Y, Z};
+
         return true;
     }
 
@@ -57,8 +58,10 @@ namespace {
         }
 
         const std::filesystem::path TexturePath{(MtlPath.parent_path() / TextureReference).lexically_normal()};
+
         OutTextureMap.mSourcePath = TextureReference.generic_string().c_str();
         OutTextureMap.mTexture = TextureResolver(TexturePath);
+
         return static_cast<bool>(OutTextureMap.mTexture);
     }
 }
@@ -92,6 +95,7 @@ bool USurfaceOpaque::Initialize(const std::filesystem::path& MtlPath, const FTex
 
         std::istringstream Stream{RawLine};
         std::string Command{};
+
         Stream >> Command;
 
         if (Command.empty() || Command[0] == '#') {
@@ -100,6 +104,7 @@ bool USurfaceOpaque::Initialize(const std::filesystem::path& MtlPath, const FTex
 
         if (Command == "newmtl") {
             std::string Name{};
+
             Stream >> Name;
 
             if (Name.empty()) {
@@ -136,6 +141,7 @@ bool USurfaceOpaque::Initialize(const std::filesystem::path& MtlPath, const FTex
             Stream >> CurrentGroup.mRefractionIndex;
         } else if (Command == "d") {
             std::string Token{};
+
             Stream >> Token;
 
             if (Token == "-halo") {
@@ -143,6 +149,7 @@ bool USurfaceOpaque::Initialize(const std::filesystem::path& MtlPath, const FTex
                 Stream >> CurrentGroup.mOpacity;
             } else if (!Token.empty()) {
                 std::istringstream OpacityStream{Token};
+
                 OpacityStream >> CurrentGroup.mOpacity;
             }
         } else if (Command == "Tr") {
@@ -191,6 +198,7 @@ bool USurfaceOpaque::Initialize(const std::filesystem::path& MtlPath, const FTex
     }
 
     MarkGPUDataDirty();
+
     return true;
 }
 
@@ -206,6 +214,7 @@ void USurfaceOpaque::BuildGPUData(Uint32 GroupIndex, FMaterialGPUSlot& OutSlot) 
 
     const FMaterialGroup& Group{mGroups[GroupIndex]};
     FSurfaceOpaqueGroupGPUData Data{};
+
     Data.mDiffuseAndOpacity = FVector4{Group.mDiffuse.mX, Group.mDiffuse.mY, Group.mDiffuse.mZ, Group.mOpacity};
     Data.mAmbientAndShininess = FVector4{Group.mAmbient.mX, Group.mAmbient.mY, Group.mAmbient.mZ, Group.mShininess};
     Data.mSpecularAndRefractionIndex = FVector4{Group.mSpecular.mX, Group.mSpecular.mY, Group.mSpecular.mZ, Group.mRefractionIndex};
@@ -229,6 +238,7 @@ FMaterialChunkSignature USurfaceOpaque::BuildChunkSignature(Uint32 GroupIndex) c
     }
 
     const FMaterialGroup& Group{mGroups[GroupIndex]};
+
     Builder.AddTexture(Group.mAmbientTexture.mTexture);
     Builder.AddTexture(Group.mDiffuseTexture.mTexture);
     Builder.AddTexture(Group.mSpecularTexture.mTexture);
@@ -266,6 +276,7 @@ bool USurfaceOpaque::ModifyGroup(Uint32 GroupIndex, const std::function<void(FMa
 
     Modifier(mGroups[GroupIndex]);
     MarkGPUDataDirty();
+
     return true;
 }
 

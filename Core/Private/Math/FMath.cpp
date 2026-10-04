@@ -3,40 +3,40 @@
 #include <limits>
 
 FVector2::FVector2(float InX, float InY)
-    : mX(InX),
-      mY(InY) {
+	: mX(InX),
+	  mY(InY) {
 }
 
 FVector::FVector(float InX, float InY, float InZ)
-    : mX(InX),
-      mY(InY),
-      mZ(InZ) {
+	: mX(InX),
+	  mY(InY),
+	  mZ(InZ) {
 }
 
 FVector4::FVector4(float InX, float InY, float InZ, float InW)
-    : mX(InX),
-      mY(InY),
-      mZ(InZ),
-      mW(InW) {
+	: mX(InX),
+	  mY(InY),
+	  mZ(InZ),
+	  mW(InW) {
 }
 
 FVector4::FVector4(FVector InXYZ, float InW)
-    : mX(InXYZ.mX),
-      mY(InXYZ.mY),
-      mZ(InXYZ.mZ),
-      mW(InW) {
+	: mX(InXYZ.mX),
+	  mY(InXYZ.mY),
+	  mZ(InXYZ.mZ),
+	  mW(InW) {
 }
 
 FRotator::FRotator(float InPitch, float InYaw, float InRoll)
-    : mX(InPitch),
-      mY(InYaw),
-      mZ(InRoll) {
+	: mX(InPitch),
+	  mY(InYaw),
+	  mZ(InRoll) {
 }
 
 FRotator::FRotator(const FVector& InEuler)
-    : mX(InEuler.mX),
-      mY(InEuler.mY),
-      mZ(InEuler.mZ) {
+	: mX(InEuler.mX),
+	  mY(InEuler.mY),
+	  mZ(InEuler.mZ) {
 }
 
 FRotator::operator FVector() const {
@@ -88,9 +88,9 @@ FVector2& FVector2::operator+=(const FVector2& Other) {
 }
 
 FVector::FVector(const DirectX::XMFLOAT3& Value)
-    : mX(Value.x),
-      mY(Value.y),
-      mZ(Value.z) {
+	: mX(Value.x),
+	  mY(Value.y),
+	  mZ(Value.z) {
 }
 
 DirectX::SimpleMath::Vector3 FVector::ToSimpleMath() const {
@@ -455,38 +455,38 @@ DirectX::SimpleMath::Matrix FMatrix::ToSimpleMath() const {
 }
 
 FQuat::FQuat()
-    : mX(0),
-      mY(0),
-      mZ(0),
-      mW(1) {
+	: mX(0),
+	  mY(0),
+	  mZ(0),
+	  mW(1) {
 }
 
 FQuat::FQuat(float X, float Y, float Z, float W)
-    : mX(X),
-      mY(Y),
-      mZ(Z),
-      mW(W) {
+	: mX(X),
+	  mY(Y),
+	  mZ(Z),
+	  mW(W) {
 }
 
 FQuat::FQuat(const FVector& V, float W)
-    : mX(V.mX),
-      mY(V.mY),
-      mZ(V.mZ),
-      mW(W) {
+	: mX(V.mX),
+	  mY(V.mY),
+	  mZ(V.mZ),
+	  mW(W) {
 }
 
 FQuat::FQuat(const FVector4& V)
-    : mX(V.mX),
-      mY(V.mY),
-      mZ(V.mZ),
-      mW(V.mW) {
+	: mX(V.mX),
+	  mY(V.mY),
+	  mZ(V.mZ),
+	  mW(V.mW) {
 }
 
 FQuat::FQuat(const DirectX::XMFLOAT4& Value)
-    : mX(Value.x),
-      mY(Value.y),
-      mZ(Value.z),
-      mW(Value.w) {
+	: mX(Value.x),
+	  mY(Value.y),
+	  mZ(Value.z),
+	  mW(Value.w) {
 }
 
 DirectX::SimpleMath::Quaternion FQuat::ToSimpleMath() const {

@@ -16,34 +16,32 @@ using FPlane = DirectX::SimpleMath::Plane;
 using FRay = DirectX::SimpleMath::Ray;
 using FFrustum = DirectX::BoundingFrustum;
 
-namespace FMath
-{
+namespace FMath {
     //static float PI = std::acosf(-1);
 
-    static inline bool IsNearlyZero(float Value, float ErrorTolerance = 1e-8f)
-    {
+    static inline bool IsNearlyZero(float Value, float ErrorTolerance = 1e-8f) {
         return std::abs(Value) <= ErrorTolerance;
     }
 
-    static inline bool IsNearlyEqual(float Value1, float Value2, float ErrorTolerance = 1e-4f)
-    {
+    static inline bool IsNearlyEqual(float Value1, float Value2, float ErrorTolerance = 1e-4f) {
         return std::abs(Value1 - Value2) <= ErrorTolerance;
     }
 
-    static inline float Clamp(float Value, float Min, float Max)
-    {
-        if (Value < Min) return Min;
-        if (Value > Max) return Max;
+    static inline float Clamp(float Value, float Min, float Max) {
+        if (Value < Min)
+            return Min;
+
+        if (Value > Max)
+            return Max;
+
         return Value;
     }
 
-    static inline float RadiansToDegrees(float Radian)
-    {
+    static inline float RadiansToDegrees(float Radian) {
         return Radian * (180.0f / PI);
     }
 
-    static inline float DegreesToRadians(float Degree)
-    {
+    static inline float DegreesToRadians(float Degree) {
         return Degree * (PI / 180.0f);
     }
 }

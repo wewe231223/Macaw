@@ -4,8 +4,8 @@
 #include "Core/Archive/FArchive.h"
 
 UObject::UObject()
-    : mGuid(FGuid::NewGuid()),
-      mName() {
+	: mGuid(FGuid::NewGuid()),
+	  mName() {
 }
 
 const FGuid& UObject::GetGuid() const {
@@ -60,7 +60,9 @@ void UObject::Load(FArchive& Archive) {
 
 void UObject::Serialize(FArchive& Archive) {
     Archive.Serialize("Guid", mGuid);
+
     FString TypeNameStr{GetTypeInfo()->mTypeName};
+
     Archive.Serialize("TypeName", TypeNameStr);
     Archive.Serialize("Name", mName);
 }

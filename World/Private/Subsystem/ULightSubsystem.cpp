@@ -24,6 +24,7 @@ void ULightSubsystem::BuildLightProbes(FSceneRenderData& Scene) const {
         }
 
         FLightProbe LightProbe{};
+
         Component->MakeLightProbe(LightProbe);
         Scene.mLightProbes.push_back(LightProbe);
     }

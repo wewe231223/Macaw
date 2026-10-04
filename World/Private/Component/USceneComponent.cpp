@@ -22,7 +22,9 @@ const FTransform& USceneComponent::GetRelativeTransform() const {
 
 void USceneComponent::SetRelativeTransform(const FTransform& Transform) {
     const Uint64 PreviousRevision{mTransform.GetRevision()};
+
     mTransform = Transform;
+
     if (mTransform.GetRevision() != PreviousRevision) {
         MarkTransformDirty();
     }
@@ -30,7 +32,9 @@ void USceneComponent::SetRelativeTransform(const FTransform& Transform) {
 
 void USceneComponent::SetRelativeLocation(const FVector3& Location) {
     const Uint64 PreviousRevision{mTransform.GetRevision()};
+
     mTransform.SetPosition(Location);
+
     if (mTransform.GetRevision() != PreviousRevision) {
         MarkTransformDirty();
     }
@@ -38,8 +42,10 @@ void USceneComponent::SetRelativeLocation(const FVector3& Location) {
 
 void USceneComponent::SetRelativeLocationAndRotation(const FVector3& Location, const FRotator& Rotation) {
     const Uint64 PreviousRevision{mTransform.GetRevision()};
+
     mTransform.SetPosition(Location);
     mTransform.SetRotation(Rotation);
+
     if (mTransform.GetRevision() != PreviousRevision) {
         MarkTransformDirty();
     }
@@ -51,7 +57,9 @@ FVector3 USceneComponent::GetRelativeLocation() const {
 
 void USceneComponent::SetRelativeRotation(const FRotator& Rotation) {
     const Uint64 PreviousRevision{mTransform.GetRevision()};
+
     mTransform.SetRotation(Rotation);
+
     if (mTransform.GetRevision() != PreviousRevision) {
         MarkTransformDirty();
     }
@@ -63,7 +71,9 @@ FRotator USceneComponent::GetRelativeRotation() const {
 
 void USceneComponent::SetRelativeScale3D(const FVector3& Scale) {
     const Uint64 PreviousRevision{mTransform.GetRevision()};
+
     mTransform.SetScale(Scale);
+
     if (mTransform.GetRevision() != PreviousRevision) {
         MarkTransformDirty();
     }
@@ -99,12 +109,14 @@ void USceneComponent::OnUnregister() {
 
 void USceneComponent::DestroyComponent(bool BPromoteChildren) {
     AActor* Actor{GetOwner()};
+
     if (Actor != nullptr && Actor->GetRootComponent() == this && Actor->Destroy()) {
         return;
     }
 
     USceneComponent* ParentComponent{GetParent()};
     std::vector<USceneComponent*> ChildrenToDetach{};
+
     ChildrenToDetach.reserve(mChildren.size());
 
     for (const TObjectRef<USceneComponent>& ChildRef : mChildren) {
@@ -174,6 +186,7 @@ bool USceneComponent::DetachFromComponent(EAttachmentTransformRule Rule) {
 
 bool USceneComponent::SetWorldTransform(const FTransform& WorldTransform) {
     FTransform DesiredWorldTransform{WorldTransform};
+
     DesiredWorldTransform.SetAbsoluteLocation(mTransform.IsAbsoluteLocation());
     DesiredWorldTransform.SetAbsoluteRotation(mTransform.IsAbsoluteRotation());
     DesiredWorldTransform.SetAbsoluteScale(mTransform.IsAbsoluteScale());
@@ -201,26 +214,34 @@ bool USceneComponent::SetWorldTransform(const FMatrix& WorldTransform) {
 
 bool USceneComponent::SetWorldLocation(const FVector3& Location) {
     FTransform DesiredWorldTransform{GetComponentTransform()};
+
     DesiredWorldTransform.SetPosition(Location);
+
     return SetWorldTransform(DesiredWorldTransform);
 }
 
 bool USceneComponent::SetWorldLocationAndRotation(const FVector3& Location, const FRotator& Rotation) {
     FTransform DesiredWorldTransform{GetComponentTransform()};
+
     DesiredWorldTransform.SetPosition(Location);
     DesiredWorldTransform.SetRotation(Rotation);
+
     return SetWorldTransform(DesiredWorldTransform);
 }
 
 bool USceneComponent::SetWorldRotation(const FRotator& Rotation) {
     FTransform DesiredWorldTransform{GetComponentTransform()};
+
     DesiredWorldTransform.SetRotation(Rotation);
+
     return SetWorldTransform(DesiredWorldTransform);
 }
 
 bool USceneComponent::SetWorldScale3D(const FVector3& Scale) {
     FTransform DesiredWorldTransform{GetComponentTransform()};
+
     DesiredWorldTransform.SetScale(Scale);
+
     return SetWorldTransform(DesiredWorldTransform);
 }
 
@@ -237,16 +258,19 @@ const FTransform& USceneComponent::GetComponentTransform() const {
     const FTransform* ParentTransform{ParentComponent != nullptr ? &ParentComponent->GetComponentTransform() : nullptr};
     const FObjectHandle ParentHandle{ParentComponent != nullptr ? ParentComponent->GetHandle() : FObjectHandle{}};
     const Uint64 ParentRevision{ParentComponent != nullptr ? ParentComponent->mTransformRevision : 0};
+
     if (!mWorldTransformDirty && mCachedParentHandle == ParentHandle && mCachedParentRevision == ParentRevision) {
         return mWorldTransform;
     }
 
     const bool NotifyChange{!mWorldTransformDirty};
+
     mWorldTransform = ParentTransform != nullptr ? mTransform.Compose(*ParentTransform) : mTransform;
     mCachedParentHandle = ParentHandle;
     mCachedParentRevision = ParentRevision;
     mWorldTransformDirty = false;
     ++mTransformRevision;
+
     if (NotifyChange) {
         const_cast<USceneComponent*>(this)->NotifyTransformUpdate();
         return GetComponentTransform();
@@ -257,6 +281,7 @@ const FTransform& USceneComponent::GetComponentTransform() const {
 
 Uint64 USceneComponent::GetTransformRevision() const {
     GetComponentTransform();
+
     return mTransformRevision;
 }
 
@@ -286,11 +311,13 @@ bool USceneComponent::ResolveLoadedReferences() {
     }
 
     UObject* ResolvedObject{UObjectSystem::Resolve(UObjectSystem::FindHandleByGuid(mPendingParentGuid))};
+
     if (ResolvedObject == nullptr || !ResolvedObject->GetTypeInfo()->IsA(USceneComponent::StaticTypeInfo())) {
         return false;
     }
 
     USceneComponent* ParentComponent{static_cast<USceneComponent*>(ResolvedObject)};
+
     if (!AttachToComponent(ParentComponent)) {
         return false;
     }
@@ -313,7 +340,7 @@ void USceneComponent::NotifyTransformUpdate() {
     OnTransformUpdate();
 
     for (const TObjectRef<USceneComponent>& ChildRef : mChildren) {
-        if (USceneComponent* Child{ChildRef.Get()}) {
+        if (USceneComponent * Child{ChildRef.Get()}) {
             Child->MarkTransformDirty();
         }
     }
