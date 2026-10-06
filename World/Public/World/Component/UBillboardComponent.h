@@ -12,7 +12,7 @@ public:
     UBillboardComponent() = default;
     ~UBillboardComponent() override = default;
 
-    JG_DECLARE_ABSTRACT_DERIVED_TYPEINFO(UBillboardComponent, UPrimitiveComponent);
+    JG_DECLARE_DERIVED_TYPEINFO(UBillboardComponent, UPrimitiveComponent);
 
     // Sprite
     void SetTextureHandle(FAssetHandle InTextureHandle);

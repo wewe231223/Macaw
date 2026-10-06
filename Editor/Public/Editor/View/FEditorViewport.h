@@ -64,7 +64,7 @@ private:
     EOrthographicView mOrthographicView{EOrthographicView::Front};
 
     FVector3 mCameraPosition{-13.567042f, -26.165287f, 31.506821f};
-    FQuat mCameraRotation{-0.040121f, -0.205543f, -0.187332f, 0.959713f};
+    FQuat mCameraRotation{FRotator{45.0f, 60.0f, 0.0f}};
     FVector3 mPerspectiveCameraPosition{mCameraPosition};
     FQuat mPerspectiveCameraRotation{mCameraRotation};
     FVector3 mOrthographicTarget{};

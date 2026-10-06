@@ -1,0 +1,283 @@
+{
+    "FormatVersion": 3,
+    "Actors": [
+        {
+            "Guid": "DC36D2E9-4A51-30FA-9EB5-6DA054B8C615",
+            "TypeName": "AActor",
+            "Name": "Floor",
+            "Components": [
+                {
+                    "Guid": "F617D8D7-473A-3294-B410-E6A94FEFB310",
+                    "TypeName": "UStaticMeshComponent",
+                    "Name": "Mesh",
+                    "bActive": true,
+                    "Transform": {
+                        "Position": [
+                            0.0,
+                            0.0,
+                            -0.10000000149011612
+                        ],
+                        "Rotation": [
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ],
+                        "Scale": [
+                            24.0,
+                            24.0,
+                            0.20000000298023224
+                        ],
+                        "bAbsoluteLocation": false,
+                        "bAbsoluteRotation": false,
+                        "bAbsoluteScale": false
+                    },
+                    "Parent": "00000000-0000-0000-0000-000000000000",
+                    "bVisible": true,
+                    "MeshAssetGuid": "84C8DD63-FABE-4D8A-9CB6-C66A986D2B1E",
+                    "MeshAssetPath": "/Game/System/Mesh/Cube.bin",
+                    "MaterialAssetGuid": "309729B8-08DE-4701-AB4B-034B10CCBC16",
+                    "MaterialAssetPath": "/Game/System/Material/Default.mtl",
+                    "PipelineAssetGuid": "DC8DBAC2-B368-4D74-81D7-4E09AD0BF8D5",
+                    "PipelineAssetPath": "/Game/Pipeline/Base"
+                },
+                {
+                    "Guid": "D593921A-409C-6585-E902-7E95BA6B5547",
+                    "TypeName": "UNameTagComponent",
+                    "Name": "NameTag",
+                    "bActive": true,
+                    "Transform": {
+                        "Position": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "Rotation": [
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ],
+                        "Scale": [
+                            1.0,
+                            1.0,
+                            1.0
+                        ],
+                        "bAbsoluteLocation": false,
+                        "bAbsoluteRotation": false,
+                        "bAbsoluteScale": false
+                    },
+                    "Parent": "F617D8D7-473A-3294-B410-E6A94FEFB310",
+                    "bVisible": false,
+                    "FontAssetGuid": "0C6D5C06-6626-4BCF-A653-83ED3FF5280F",
+                    "FontAssetPath": "/Game/Font/NotoSansKR-Medium.ttf",
+                    "PipelineAssetGuid": "E41C36DD-3CF1-4FC0-9C14-7F7C20714597",
+                    "PipelineAssetPath": "/Game/Pipeline/Text.json",
+                    "Text": "DC36D2E9-4A51-30FA-9EB5-6DA054B8C615",
+                    "Color": [
+                        1.0,
+                        1.0,
+                        1.0,
+                        1.0
+                    ],
+                    "CharacterHeight": 1.0,
+                    "LetterSpacing": 0.0,
+                    "LineSpacing": 0.0,
+                    "TargetActorGuid": "00000000-0000-0000-0000-000000000000",
+                    "TargetLocalOffset": [
+                        0.0,
+                        0.0,
+                        0.0
+                    ]
+                }
+            ],
+            "GuidRootComponent": "F617D8D7-473A-3294-B410-E6A94FEFB310"
+        },
+        {
+            "Guid": "6E0E3E9E-45B3-5933-E830-B68B29BA03BC",
+            "TypeName": "AActor",
+            "Name": "Cube",
+            "Components": [
+                {
+                    "Guid": "2F77CDA9-42E9-A64A-B01D-81989C32834F",
+                    "TypeName": "UStaticMeshComponent",
+                    "Name": "Mesh",
+                    "bActive": true,
+                    "Transform": {
+                        "Position": [
+                            0.0,
+                            0.0,
+                            1.5
+                        ],
+                        "Rotation": [
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ],
+                        "Scale": [
+                            3.0,
+                            3.0,
+                            3.0
+                        ],
+                        "bAbsoluteLocation": false,
+                        "bAbsoluteRotation": false,
+                        "bAbsoluteScale": false
+                    },
+                    "Parent": "00000000-0000-0000-0000-000000000000",
+                    "bVisible": true,
+                    "MeshAssetGuid": "84C8DD63-FABE-4D8A-9CB6-C66A986D2B1E",
+                    "MeshAssetPath": "/Game/System/Mesh/Cube.bin",
+                    "MaterialAssetGuid": "9618A502-6AE7-4008-B440-B4F775CD7902",
+                    "MaterialAssetPath": "/Game/System/Material/Blue.mtl",
+                    "PipelineAssetGuid": "DC8DBAC2-B368-4D74-81D7-4E09AD0BF8D5",
+                    "PipelineAssetPath": "/Game/Pipeline/Base"
+                },
+                {
+                    "Guid": "661A4EE8-4D04-4E03-1F75-6DB64080C67A",
+                    "TypeName": "UNameTagComponent",
+                    "Name": "NameTag",
+                    "bActive": true,
+                    "Transform": {
+                        "Position": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "Rotation": [
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ],
+                        "Scale": [
+                            1.0,
+                            1.0,
+                            1.0
+                        ],
+                        "bAbsoluteLocation": false,
+                        "bAbsoluteRotation": false,
+                        "bAbsoluteScale": false
+                    },
+                    "Parent": "2F77CDA9-42E9-A64A-B01D-81989C32834F",
+                    "bVisible": false,
+                    "FontAssetGuid": "0C6D5C06-6626-4BCF-A653-83ED3FF5280F",
+                    "FontAssetPath": "/Game/Font/NotoSansKR-Medium.ttf",
+                    "PipelineAssetGuid": "E41C36DD-3CF1-4FC0-9C14-7F7C20714597",
+                    "PipelineAssetPath": "/Game/Pipeline/Text.json",
+                    "Text": "6E0E3E9E-45B3-5933-E830-B68B29BA03BC",
+                    "Color": [
+                        1.0,
+                        1.0,
+                        1.0,
+                        1.0
+                    ],
+                    "CharacterHeight": 1.0,
+                    "LetterSpacing": 0.0,
+                    "LineSpacing": 0.0,
+                    "TargetActorGuid": "00000000-0000-0000-0000-000000000000",
+                    "TargetLocalOffset": [
+                        0.0,
+                        0.0,
+                        0.0
+                    ]
+                }
+            ],
+            "GuidRootComponent": "2F77CDA9-42E9-A64A-B01D-81989C32834F"
+        },
+        {
+            "Guid": "077C00EF-445C-C611-A222-63AB7DF53561",
+            "TypeName": "AActor",
+            "Name": "DirectionalLight",
+            "Components": [
+                {
+                    "Guid": "814C090A-463F-EBE5-F3AB-47A96E30383B",
+                    "TypeName": "UBillboardComponent",
+                    "Name": "Icon",
+                    "bActive": true,
+                    "Transform": {
+                        "Position": [
+                            6.0,
+                            -4.0,
+                            8.0
+                        ],
+                        "Rotation": [
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ],
+                        "Scale": [
+                            1.0,
+                            1.0,
+                            1.0
+                        ],
+                        "bAbsoluteLocation": false,
+                        "bAbsoluteRotation": false,
+                        "bAbsoluteScale": false
+                    },
+                    "Parent": "00000000-0000-0000-0000-000000000000",
+                    "bVisible": true,
+                    "TextureAssetGuid": "03E576DC-4EB0-8A38-4D5D-44B7DF36E251",
+                    "TextureAssetPath": "/Game/System/Light.png",
+                    "PipelineAssetGuid": "08738909-AF2A-4BD3-81B5-3FDFE7C7FF42",
+                    "PipelineAssetPath": "/Game/Pipeline/Billboard.json",
+                    "Size": [
+                        1.0,
+                        1.0
+                    ],
+                    "UVMin": [
+                        0.0,
+                        0.0
+                    ],
+                    "UVMax": [
+                        1.0,
+                        1.0
+                    ],
+                    "Color": [
+                        1.0,
+                        1.0,
+                        1.0,
+                        1.0
+                    ]
+                },
+                {
+                    "Guid": "264F8833-4CF9-AC1A-80D1-09B573CB378C",
+                    "TypeName": "UDirectionalLightComponent",
+                    "Name": "Light",
+                    "bActive": true,
+                    "Transform": {
+                        "Position": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "Rotation": [
+                            0.11507508158683777,
+                            0.3649716377258301,
+                            -0.27781587839126587,
+                            0.8811196684837341
+                        ],
+                        "Scale": [
+                            1.0,
+                            1.0,
+                            1.0
+                        ],
+                        "bAbsoluteLocation": false,
+                        "bAbsoluteRotation": false,
+                        "bAbsoluteScale": false
+                    },
+                    "Parent": "814C090A-463F-EBE5-F3AB-47A96E30383B",
+                    "LightColor": [
+                        1.0,
+                        1.0,
+                        1.0
+                    ],
+                    "Intensity": 1.5,
+                    "bVisible": true
+                }
+            ],
+            "GuidRootComponent": "814C090A-463F-EBE5-F3AB-47A96E30383B"
+        }
+    ]
+}

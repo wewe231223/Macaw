@@ -63,11 +63,16 @@ bool UEditorEngine::LoadStartupScene() {
     }
 
     const FString LastScenePath{mEditorContext->GetEditorSettings().mLastLoadedScenePath};
+    const std::filesystem::path ScenePath{LastScenePath.empty() ? "scenes/Default.json" : LastScenePath.c_str()};
 
-    return !LastScenePath.empty() && LoadScene(std::filesystem::path{LastScenePath.c_str()});
+    return LoadSceneInternal(ScenePath, !LastScenePath.empty());
 }
 
 bool UEditorEngine::LoadScene(const std::filesystem::path& ScenePath) {
+    return LoadSceneInternal(ScenePath, true);
+}
+
+bool UEditorEngine::LoadSceneInternal(const std::filesystem::path& ScenePath, bool BRememberScene) {
     if (mEditorWorldContext == nullptr || mEditorContext == nullptr) {
         return false;
     }
@@ -79,8 +84,14 @@ bool UEditorEngine::LoadScene(const std::filesystem::path& ScenePath) {
 
     mEditorContext->ClearSelection();
     FUndoSystem::Reset();
-    SetScenePath(ScenePath);
-    Console::AddLog(Console::STDOutHandle, ELogLevel::Log, ELogCategory::Etc, "Loaded scene: %s", mScenePath.generic_string().c_str());
+
+    if (BRememberScene) {
+        SetScenePath(ScenePath);
+    } else {
+        mScenePath.clear();
+    }
+
+    Console::AddLog(Console::STDOutHandle, ELogLevel::Log, ELogCategory::Etc, "Loaded scene: %s", ScenePath.generic_string().c_str());
 
     return true;
 }

@@ -27,6 +27,7 @@ public:
     const std::filesystem::path& GetScenePath() const;
 
 private:
+    bool LoadSceneInternal(const std::filesystem::path& ScenePath, bool BRememberScene);
     void SetScenePath(const std::filesystem::path& ScenePath);
 
 private:
