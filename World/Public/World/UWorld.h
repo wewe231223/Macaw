@@ -133,7 +133,7 @@ public:
     const IAssetRegistry* GetAssetRegistry() const;
     IAssetRegistryMutator* GetAssetRegistryMutator() const;
 
-    FName MakeUniqueObjectName(std::string_view SourceName);
+    FName MakeUniqueObjectName(FName SourceName);
     AActor* FindActorByName(FName InName) const;
 
     void MarkStructureDirty();

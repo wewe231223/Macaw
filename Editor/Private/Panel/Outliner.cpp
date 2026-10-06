@@ -75,7 +75,7 @@ void FOutlinerPanel::PopWindowStyle() {
 
 bool FOutlinerPanel::MatchesActor(const AActor& Actor) const {
     const FString Label{Actor.GetName().ToString()};
-    const std::string_view TypeName{Actor.GetTypeInfo()->mTypeName};
+    const FString TypeName{Actor.GetTypeInfo()->mTypeName.ToString()};
 
     if (mActorFilter.PassFilter(Label.c_str()) || mActorFilter.PassFilter(TypeName.data(), TypeName.data() + TypeName.size())) {
         return true;
@@ -192,7 +192,7 @@ void FOutlinerPanel::HandleDeleteShortcut() {
 
 void FOutlinerPanel::DrawActor(AActor& Actor) {
     const FString Label{Actor.GetName().ToString()};
-    const std::string_view TypeName{Actor.GetTypeInfo()->mTypeName};
+    const FString TypeName{Actor.GetTypeInfo()->mTypeName.ToString()};
     const bool BHasChildren{HasActorChildren(Actor)};
     const bool BExpanded{mExpandedActors.contains(&Actor)};
 

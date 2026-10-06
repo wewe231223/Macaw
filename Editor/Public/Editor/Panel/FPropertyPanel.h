@@ -26,7 +26,7 @@ public:
 private:
     void DrawContents() override;
 
-    static const char* GetComponentTypeName(const UActorComponent& Component);
+    static FString GetComponentTypeName(const UActorComponent& Component);
 
     void DrawGizmoControls();
 

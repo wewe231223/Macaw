@@ -1,4 +1,5 @@
 #pragma once
+#include "Core/Base/FName.h"
 #include "Core/Common.h"
 #include "Core/Channel/FMessageTypeInfo.h"
 
@@ -6,13 +7,13 @@
 // [Event] 단방향 메시지 데이터 (FMessageChannel 용)
 // =========================================================
 struct FMessageSpawnComponent {
-    FString mComponentType{};
+    FName mComponentType{};
     FString mMeshType{};
     Uint32 mSpawnCount{};
 
     JG_DECLARE_CHANNEL_MESSAGE(FMessageSpawnComponent);
 
-    FMessageSpawnComponent(FString InputComponentType, FString InputMeshType, Uint32 InputCount) noexcept;
+    FMessageSpawnComponent(FName InputComponentType, FString InputMeshType, Uint32 InputCount) noexcept;
 };
 
 struct FMessageSaveScene {

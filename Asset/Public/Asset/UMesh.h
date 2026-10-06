@@ -164,7 +164,7 @@ public:
     };
 
     using FMaterialResolver = std::function<FAssetHandle(const std::filesystem::path& MaterialPath)>;
-    using FMaterialGroupResolver = std::function<std::optional<Uint32>(FAssetHandle MaterialHandle, const FString& GroupName)>;
+    using FMaterialGroupResolver = std::function<std::optional<Uint32>(FAssetHandle MaterialHandle, FName GroupName)>;
 
 public:
     UMesh() = default;

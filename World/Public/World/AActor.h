@@ -174,6 +174,8 @@ private:
     virtual void OnRemovedFromWorld();
 
     void Serialize(FArchive& Archive) override;
+    bool CanChangeOuter(const UObject* NewOuter) const override;
+    void OnIdentityChanged() override;
 
 private:
     friend class UActorComponent;

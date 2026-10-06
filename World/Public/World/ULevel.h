@@ -19,6 +19,8 @@ public:
     const TArray<std::unique_ptr<AActor>>& GetActors() const;
 
 private:
+    bool CanChangeOuter(const UObject* NewOuter) const override;
+
     friend class UWorld;
     friend class FSceneSerializer;
 

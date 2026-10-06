@@ -1,4 +1,5 @@
 #pragma once
+#include "Core/Base/FName.h"
 #include "Core/Base/FAssetHandle.h"
 
 struct FMaterialTextureMap {
@@ -7,7 +8,7 @@ struct FMaterialTextureMap {
 };
 
 struct FMaterialGroup {
-    FString mName{};
+    FName mName{};
 
     FVector3 mAmbient{0.0f, 0.0f, 0.0f};
     FVector3 mDiffuse{1.0f, 1.0f, 1.0f};

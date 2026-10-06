@@ -169,6 +169,13 @@ bool USceneComponent::AttachToComponent(USceneComponent* ParentComponent, EAttac
         return false;
     }
 
+    const UWorld* World{GetTypedOuter<UWorld>()};
+    const UWorld* ParentWorld{ParentComponent != nullptr ? ParentComponent->GetTypedOuter<UWorld>() : nullptr};
+
+    if (World != nullptr && ParentWorld != nullptr && World != ParentWorld) {
+        return false;
+    }
+
     for (USceneComponent* Ancestor{ParentComponent}; Ancestor != nullptr; Ancestor = Ancestor->GetParent()) {
         if (Ancestor == this) {
             return false;

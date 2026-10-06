@@ -40,13 +40,13 @@ FRecordObjectState::FRecordObjectState(const FGuid& InGuid, const TArray<Uint8>&
 	  mAfterData(InAfter) {
 }
 
-FRecordObjectSpawned::FRecordObjectSpawned(FGuid InputGuid, const TArray<Uint8>& InputSavedData, std::string_view InputTargetTypeName)
+FRecordObjectSpawned::FRecordObjectSpawned(FGuid InputGuid, const TArray<Uint8>& InputSavedData, FName InputTargetTypeName)
 	: mTargetGuid(InputGuid),
 	  mSavedData(std::move(InputSavedData)),
 	  mTargetTypeName(InputTargetTypeName) {
 }
 
-FRecordObjectDestroyed::FRecordObjectDestroyed(FGuid InputGuid, TArray<Uint8> InputSavedData, std::string_view InputTargetTypeName)
+FRecordObjectDestroyed::FRecordObjectDestroyed(FGuid InputGuid, TArray<Uint8> InputSavedData, FName InputTargetTypeName)
 	: mTargetGuid(InputGuid),
 	  mSavedData(std::move(InputSavedData)),
 	  mTargetTypeName(InputTargetTypeName) {

@@ -1,12 +1,12 @@
 #pragma once
 
 #include <memory>
-#include <string_view>
+#include "Core/Base/FName.h"
 
 using FObjectCreator = std::unique_ptr<class UObject> (*)();
 
 struct FTypeInfo {
-    std::string_view mTypeName{};
+    FName mTypeName{};
     const FTypeInfo* mParent{nullptr};
     FObjectCreator mCreator{nullptr};
 
@@ -21,7 +21,7 @@ struct FTypeInfo {
 #define JG_DECLARE_ROOT_TYPEINFO(Type) \
     using TypeInfoOwner = Type; \
     static const FTypeInfo* StaticTypeInfo() noexcept { \
-        static const FTypeInfo Information{#Type, nullptr, +[]() -> std::unique_ptr<UObject> { \
+        static const FTypeInfo Information{FName{#Type}, nullptr, +[]() -> std::unique_ptr<UObject> { \
             return std::make_unique<Type>(); \
         }}; \
         return &Information; \
@@ -33,7 +33,7 @@ struct FTypeInfo {
 #define JG_DECLARE_DERIVED_TYPEINFO(Type, ParentType) \
     using TypeInfoOwner = Type; \
     static const FTypeInfo* StaticTypeInfo() noexcept { \
-        static const FTypeInfo Information{#Type, ParentType::StaticTypeInfo(), +[]() -> std::unique_ptr<UObject> { \
+        static const FTypeInfo Information{FName{#Type}, ParentType::StaticTypeInfo(), +[]() -> std::unique_ptr<UObject> { \
             return std::make_unique<Type>(); \
         }}; \
         return &Information; \
@@ -45,7 +45,7 @@ struct FTypeInfo {
 #define JG_DECLARE_NON_CREATABLE_DERIVED_TYPEINFO(Type, ParentType) \
     using TypeInfoOwner = Type; \
     static const FTypeInfo* StaticTypeInfo() noexcept { \
-        static const FTypeInfo Information{#Type, ParentType::StaticTypeInfo(), nullptr}; \
+        static const FTypeInfo Information{FName{#Type}, ParentType::StaticTypeInfo(), nullptr}; \
         return &Information; \
     } \
     virtual const FTypeInfo* GetTypeInfo() const noexcept override { \

@@ -89,7 +89,7 @@ void FMaterialEditorPanel::DrawContents() {
     for (Uint32 GroupIndex{}; GroupIndex < Groups.size(); ++GroupIndex) {
         ImGui::PushID(static_cast<int>(GroupIndex));
 
-        const FString& GroupName{Groups[GroupIndex].mName};
+        const FString GroupName{Groups[GroupIndex].mName.ToString()};
 
         if (ImGui::CollapsingHeader(GroupName.c_str(), ImGuiTreeNodeFlags_DefaultOpen)) {
             DrawGroup(*Material, GroupIndex, Groups[GroupIndex]);

@@ -205,16 +205,16 @@ bool UMesh::Initialize(const std::filesystem::path& SourceObjPath, const std::fi
 
         FirstIndex += SubMesh.mIndexCount;
 
-        const FString& MaterialName{Geometry.mMaterialNames[SubMeshIndex]};
+        const FName MaterialName{Geometry.mMaterialNames[SubMeshIndex]};
 
-        if (!MaterialName.empty()) {
+        if (!MaterialName.IsNone()) {
             if (ImportedMaterial && MaterialGroupResolver) {
                 const std::optional<Uint32> MaterialGroupIndex{MaterialGroupResolver(ImportedMaterial, MaterialName)};
 
                 if (MaterialGroupIndex.has_value()) {
                     SubMesh.mMaterialGroupIndex = *MaterialGroupIndex;
                 } else {
-                    Console::AddLog(Console::STDOutHandle, ELogLevel::Warning, ELogCategory::Etc, "Model MTL group was not found; using material group 0: %s in %s", MaterialName.c_str(), AssetPath.generic_string().c_str());
+                    Console::AddLog(Console::STDOutHandle, ELogLevel::Warning, ELogCategory::Etc, "Model MTL group was not found; using material group 0: %s in %s", MaterialName.ToString().c_str(), AssetPath.generic_string().c_str());
                 }
             } else {
                 Console::AddLog(Console::STDOutHandle, ELogLevel::Warning, ELogCategory::Etc, "Model has no usable MTL; using material group 0: %s", AssetPath.generic_string().c_str());

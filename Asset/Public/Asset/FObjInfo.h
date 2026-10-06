@@ -1,4 +1,5 @@
 #pragma once
+#include "Core/Base/FName.h"
 #include "Core/CoreMinimal.h"
 
 //OBJ의 v/vt/vn 인덱스 조합 하나 = GPU 정점 하나. 같은 조합이 또 나오면 새 정점을 만들지 않고 재사용한다.
@@ -36,7 +37,7 @@ struct FObjInfo {
 
     //머티리얼 이름들
     //SubMesh와 인덱스 매칭한다.
-    TArray<FString> mMaterialNames{};
+    TArray<FName> mMaterialNames{};
 
     //동일한 머티리얼을 쓰는 정점들의 개수
     //MaterialNames와 인덱스 매칭한다.
@@ -54,7 +55,7 @@ struct FGeometry {
     TArray<Uint32> mIndices{};
 
     FString mMaterialFileName{};
-    TArray<FString> mMaterialNames{};
+    TArray<FName> mMaterialNames{};
     TArray<Uint32> mSubMeshIndexCounts{};
 
     TArray<FColor4> mColors{};

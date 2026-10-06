@@ -95,7 +95,7 @@ namespace {
     class FUndoContextImpl : public IUndoContext {
     public:
         void NotifyObjectChanged(const FGuid& Guid, const TArray<Uint8>& Data) override;
-        void NotifyObjectSpawned(const FGuid& Guid, const TArray<Uint8>& Data, FString&& TypeName) override;
+        void NotifyObjectSpawned(const FGuid& Guid, const TArray<Uint8>& Data, FName TypeName) override;
         void NotifyObjectDeleted(const FGuid& Guid) override;
     };
 
@@ -107,7 +107,7 @@ namespace {
         }
     }
 
-    void FUndoContextImpl::NotifyObjectSpawned(const FGuid& Guid, const TArray<Uint8>& Data, FString&& TypeName) {
+    void FUndoContextImpl::NotifyObjectSpawned(const FGuid& Guid, const TArray<Uint8>& Data, FName TypeName) {
         FUndoSystemState& State{GetState()};
 
         if (State.mMessageSender.has_value()) {

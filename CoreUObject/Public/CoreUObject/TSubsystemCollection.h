@@ -82,8 +82,9 @@ T& TSubsystemCollection<TSubsystem, TOwner>::Add() {
     std::unique_ptr<T> Subsystem{std::make_unique<T>()};
     T* Result{Subsystem.get()};
 
+    Result->SetOuter(mOwner);
+    ErrorHandler::Report(!UObjectSystem::Register(Result).IsValid(), "TSubsystemCollection", "Cannot register subsystem", ErrorHandler::EErrorLevel::Critical);
     mSubsystems.push_back(std::move(Subsystem));
-    UObjectSystem::Register(Result);
     Result->Initialize(mOwner);
 
     return *Result;

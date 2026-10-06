@@ -35,8 +35,8 @@ namespace {
         return Guid.Parse(Member->value.GetString()) && (!Required || Guid.IsValid());
     }
 
-    bool AddObject(const rapidjson::Value& Json, const FTypeInfo* BaseType, const FGuid& Owner, std::unordered_map<FGuid, FSceneObject>& Objects, const std::unordered_set<FGuid>& ExistingGuids) {
-        if (!Json.IsObject() || !Json.HasMember("TypeName") || !Json["TypeName"].IsString()) {
+    bool AddObject(const rapidjson::Value& Json, const FTypeInfo* BaseType, const FGuid& Owner, std::unordered_map<FGuid, FSceneObject>& Objects) {
+        if (!Json.IsObject() || !Json.HasMember("TypeName") || !Json["TypeName"].IsString() || Json["TypeName"].GetStringLength() >= NameSize) {
             return false;
         }
 
@@ -44,10 +44,6 @@ namespace {
         const FTypeInfo* Type{TypeRegistry::Find(Json["TypeName"].GetString())};
 
         if (!ReadGuid(Json, "Guid", Guid, true) || Type == nullptr || Type->mCreator == nullptr || !Type->IsA(BaseType)) {
-            return false;
-        }
-
-        if (UObjectSystem::FindHandleByGuid(Guid).IsValid() && !ExistingGuids.contains(Guid)) {
             return false;
         }
 
@@ -68,21 +64,29 @@ namespace {
         return Found != Objects.end() && Found->second.mType->IsA(Type);
     }
 
-    bool ValidateScene(const rapidjson::Document& Document, const UWorld& World) {
-        std::unordered_set<FGuid> ExistingGuids{};
+    bool ValidateName(const rapidjson::Value& Json, const FGuid& Outer, TMap<FGuid, TSet<FName>>& Names) {
+        const auto Member{Json.FindMember("Name")};
 
-        for (const std::unique_ptr<AActor>& Actor : World.GetActors()) {
-            ExistingGuids.insert(Actor->GetGuid());
-
-            for (const std::unique_ptr<UActorComponent>& Component : Actor->GetComponents()) {
-                ExistingGuids.insert(Component->GetGuid());
-            }
+        if (Member == Json.MemberEnd()) {
+            return true;
         }
+
+        if (!Member->value.IsString() || Member->value.GetStringLength() >= NameSize) {
+            return false;
+        }
+
+        const FName Name{std::string_view{Member->value.GetString(), Member->value.GetStringLength()}};
+
+        return Name.IsNone() || (UObjectSystem::IsValidObjectName(Name) && Names[Outer].insert(Name).second);
+    }
+
+    bool ValidateScene(const rapidjson::Document& Document) {
+        TMap<FGuid, TSet<FName>> Names{};
 
         std::unordered_map<FGuid, FSceneObject> Objects{};
 
         for (const rapidjson::Value& Actor : Document["Actors"].GetArray()) {
-            if (!AddObject(Actor, AActor::StaticTypeInfo(), {}, Objects, ExistingGuids) || !Actor.HasMember("Components") || !Actor["Components"].IsArray()) {
+            if (!AddObject(Actor, AActor::StaticTypeInfo(), {}, Objects) || !ValidateName(Actor, {}, Names) || !Actor.HasMember("Components") || !Actor["Components"].IsArray()) {
                 return false;
             }
 
@@ -91,7 +95,7 @@ namespace {
             ReadGuid(Actor, "Guid", ActorGuid, true);
 
             for (const rapidjson::Value& Component : Actor["Components"].GetArray()) {
-                if (!AddObject(Component, UActorComponent::StaticTypeInfo(), ActorGuid, Objects, ExistingGuids)) {
+                if (!AddObject(Component, UActorComponent::StaticTypeInfo(), ActorGuid, Objects) || !ValidateName(Component, ActorGuid, Names)) {
                     return false;
                 }
             }
@@ -144,6 +148,75 @@ namespace {
 
         return true;
     }
+
+    void RemapConflictingGuids(rapidjson::Document& Document, const UWorld& World) {
+        TSet<FGuid> ExistingGuids{};
+
+        for (const std::unique_ptr<AActor>& Actor : World.GetActors()) {
+            ExistingGuids.insert(Actor->GetGuid());
+
+            for (const std::unique_ptr<UActorComponent>& Component : Actor->GetComponents()) {
+                ExistingGuids.insert(Component->GetGuid());
+            }
+        }
+
+        TMap<FGuid, FGuid> RemappedGuids{};
+        TSet<FGuid> SceneGuids{};
+
+        for (const rapidjson::Value& Actor : Document["Actors"].GetArray()) {
+            FGuid Guid{};
+
+            ReadGuid(Actor, "Guid", Guid, true);
+            SceneGuids.insert(Guid);
+
+            for (const rapidjson::Value& Component : Actor["Components"].GetArray()) {
+                ReadGuid(Component, "Guid", Guid, true);
+                SceneGuids.insert(Guid);
+            }
+        }
+
+        for (const FGuid& Guid : SceneGuids) {
+            if (UObjectSystem::FindHandleByGuid(Guid).IsValid() && !ExistingGuids.contains(Guid)) {
+                FGuid NewGuid{FGuid::NewGuid()};
+
+                while (UObjectSystem::FindHandleByGuid(NewGuid).IsValid() || SceneGuids.contains(NewGuid) || std::ranges::any_of(RemappedGuids, [&NewGuid](const auto& Entry) {
+                    return Entry.second == NewGuid;
+                })) {
+                    NewGuid = FGuid::NewGuid();
+                }
+
+                RemappedGuids.emplace(Guid, NewGuid);
+            }
+        }
+
+        const auto RemapObject{[&Document, &RemappedGuids](rapidjson::Value& Object) {
+            const char* Fields[]{"Guid", "GuidRootComponent", "Parent", "GuidMeshComponent", "TargetActorGuid"};
+
+            for (const char* Field : Fields) {
+                const auto Member{Object.FindMember(Field)};
+                FGuid Guid{};
+
+                if (Member != Object.MemberEnd() && ReadGuid(Object, Field, Guid, false)) {
+                    const auto Iterator{RemappedGuids.find(Guid)};
+
+                    if (Iterator != RemappedGuids.end()) {
+                        const FString String{Iterator->second.ToString()};
+
+                        Member->value.SetString(String.c_str(), static_cast<Uint32>(String.size()), Document.GetAllocator());
+                    }
+                }
+            }
+        }};
+
+        for (rapidjson::Value& Actor : Document["Actors"].GetArray()) {
+            RemapObject(Actor);
+
+            for (rapidjson::Value& Component : Actor["Components"].GetArray()) {
+                RemapObject(Component);
+            }
+        }
+    }
+
 }
 
 bool FSceneSerializer::Save(UWorld& World, const std::filesystem::path& ScenePath) {
@@ -237,9 +310,11 @@ bool FSceneSerializer::LoadInternal(UWorld& World, const std::filesystem::path& 
         return false;
     }
 
-    if (!ValidateScene(LoadDocument, World)) {
+    if (!ValidateScene(LoadDocument)) {
         return false;
     }
+
+    RemapConflictingGuids(LoadDocument, World);
 
     TArray<std::unique_ptr<AActor>> LoadedActors{};
 
@@ -275,10 +350,29 @@ bool FSceneSerializer::LoadInternal(UWorld& World, const std::filesystem::path& 
     World.mPersistentLevel->mActors = std::move(LoadedActors);
 
     for (const std::unique_ptr<AActor>& Actor : World.mPersistentLevel->mActors) {
-        UObjectSystem::Register(Actor.get());
+        if (!Actor->SetOuter(World.mPersistentLevel.get())) {
+            World.ClearActors();
+            return false;
+        }
+    }
 
-        for (const std::unique_ptr<UActorComponent>& Component : Actor->GetComponents()) {
-            UObjectSystem::Register(Component.get());
+    for (Uint32 Pass{}; Pass < 2; ++Pass) {
+        for (const std::unique_ptr<AActor>& Actor : World.mPersistentLevel->mActors) {
+            if (Actor->GetName().IsNone() == (Pass == 1) && !UObjectSystem::Register(Actor.get()).IsValid()) {
+                World.ClearActors();
+                return false;
+            }
+        }
+    }
+
+    for (const std::unique_ptr<AActor>& Actor : World.mPersistentLevel->mActors) {
+        for (Uint32 Pass{}; Pass < 2; ++Pass) {
+            for (const std::unique_ptr<UActorComponent>& Component : Actor->GetComponents()) {
+                if (Component->GetName().IsNone() == (Pass == 1) && !UObjectSystem::Register(Component.get()).IsValid()) {
+                    World.ClearActors();
+                    return false;
+                }
+            }
         }
     }
 

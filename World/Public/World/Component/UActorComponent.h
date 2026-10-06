@@ -80,6 +80,8 @@ private:
     friend class UWorld;
 
     void SetOwner(AActor* InOwner);
+    bool CanChangeOuter(const UObject* NewOuter) const override;
+    void OnIdentityChanged() override;
     void UpdateTickRegistration();
     /// <summary>초기화를 요청한 등록 컴포넌트의 상태를 갱신하고 초기화 콜백을 호출합니다.</summary>
     void DispatchInitializeComponent();

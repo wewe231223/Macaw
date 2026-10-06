@@ -26,7 +26,7 @@ public:
     FMaterialChunkSignature BuildChunkSignature() const override;
     FMaterialChunkSignature BuildChunkSignature(Uint32 GroupIndex) const override;
     Uint32 GetGPUDataCount() const override;
-    std::optional<Uint32> FindGroupIndex(const FString& Name) const override;
+    std::optional<Uint32> FindGroupIndex(FName Name) const override;
 
     const TArray<FMaterialGroup>& GetGroups() const;
     bool ModifyGroup(Uint32 GroupIndex, const std::function<void(FMaterialGroup&)>& Modifier);

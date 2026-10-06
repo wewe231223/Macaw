@@ -1,4 +1,5 @@
 #pragma once
+#include "Core/Base/FName.h"
 #include "Core/Base/FGuid.h"
 #include "Core/Channel/FMessageTypeInfo.h"
 #include "Core/Common.h"
@@ -25,9 +26,9 @@ struct FMessageUndoObjectSpawned {
 
     FGuid mTargetGuid{};
     TArray<Uint8> mSavedData{};
-    FString mTargetTypeName{};
+    FName mTargetTypeName{};
 
-    FMessageUndoObjectSpawned(const FGuid& InputGuid, TArray<Uint8>&& InputData, FString&& InputTargetTypeName) noexcept;
+    FMessageUndoObjectSpawned(const FGuid& InputGuid, TArray<Uint8>&& InputData, FName InputTargetTypeName) noexcept;
 };
 
 struct FMessageUndoObjectDestroyed {

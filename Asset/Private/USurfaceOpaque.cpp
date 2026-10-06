@@ -111,6 +111,18 @@ bool USurfaceOpaque::Initialize(const std::filesystem::path& MtlPath, const FTex
                 continue;
             }
 
+            if (Name.size() >= NameSize) {
+                Reset();
+                return false;
+            }
+
+            const FName GroupName{Name.c_str()};
+
+            if ((HasCurrentGroup && CurrentGroup.mName == GroupName) || FindGroupIndex(GroupName).has_value()) {
+                Reset();
+                return false;
+            }
+
             if (HasCurrentGroup) {
                 mGroups.push_back(std::move(CurrentGroup));
             }
@@ -255,7 +267,7 @@ FMaterialChunkSignature USurfaceOpaque::BuildChunkSignature(Uint32 GroupIndex) c
     return Builder.Build();
 }
 
-std::optional<Uint32> USurfaceOpaque::FindGroupIndex(const FString& Name) const {
+std::optional<Uint32> USurfaceOpaque::FindGroupIndex(FName Name) const {
     for (Uint32 Index{}; Index < mGroups.size(); ++Index) {
         if (mGroups[Index].mName == Name) {
             return Index;
@@ -274,7 +286,21 @@ bool USurfaceOpaque::ModifyGroup(Uint32 GroupIndex, const std::function<void(FMa
         return false;
     }
 
-    Modifier(mGroups[GroupIndex]);
+    FMaterialGroup EditedGroup{mGroups[GroupIndex]};
+
+    Modifier(EditedGroup);
+
+    if (EditedGroup.mName.IsNone()) {
+        return false;
+    }
+
+    for (Uint32 Index{}; Index < mGroups.size(); ++Index) {
+        if (Index != GroupIndex && mGroups[Index].mName == EditedGroup.mName) {
+            return false;
+        }
+    }
+
+    mGroups[GroupIndex] = std::move(EditedGroup);
     MarkGPUDataDirty();
 
     return true;

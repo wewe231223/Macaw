@@ -18,6 +18,7 @@ void UActorComponent::SetOwner(AActor* InOwner) {
     }
 
     mOwner = InOwner;
+    SetOuter(InOwner);
     UpdateTickRegistration();
 }
 
@@ -266,5 +267,17 @@ void UActorComponent::Serialize(FArchive& Archive) {
         }
 
         UpdateTickRegistration();
+    }
+}
+
+bool UActorComponent::CanChangeOuter(const UObject* NewOuter) const {
+    return NewOuter == mOwner;
+}
+
+void UActorComponent::OnIdentityChanged() {
+    UWorld* World{mOwner != nullptr ? mOwner->GetWorld() : nullptr};
+
+    if (World != nullptr && !mOwner->IsBeingDestroyed()) {
+        World->MarkStructureDirty();
     }
 }

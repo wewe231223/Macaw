@@ -4,7 +4,6 @@
 
 #include <windows.h>
 #include <filesystem>
-#include <map>
 #include "CoreUObject/TypeRegistry.h"
 #include "World/AActor.h"
 #include "World/Component/UActorComponent.h"
@@ -46,11 +45,11 @@ void FControlPanel::DrawPanel() {
 
             ImGui::SetNextItemWidth(220.0f);
 
-            if (ImGui::BeginCombo("Component", SelectedComponentType->mTypeName.data())) {
+            if (ImGui::BeginCombo("Component", SelectedComponentType->mTypeName.ToString().c_str())) {
                 for (int Index{0}; Index < static_cast<int>(SpawnableComponentTypes.size()); ++Index) {
                     const bool BIsSelected{Index == mSelectedComponentIndex};
 
-                    if (ImGui::Selectable(SpawnableComponentTypes[Index]->mTypeName.data(), BIsSelected)) {
+                    if (ImGui::Selectable(SpawnableComponentTypes[Index]->mTypeName.ToString().c_str(), BIsSelected)) {
                         mSelectedComponentIndex = Index;
                         SelectedComponentType = SpawnableComponentTypes[Index];
                     }
@@ -77,7 +76,7 @@ void FControlPanel::DrawPanel() {
             }
 
             if (ImGui::Button("Spawn Object(s)")) {
-                mEditorToWorldSender.TryEmplace<FMessageSpawnComponent>(FString{SelectedComponentType->mTypeName.data()}, FString{BIsStaticMesh ? PrimitiveMeshTypes[mSelectedMeshIndex] : ""}, static_cast<Uint32>(mSpawnCountToRequest));
+                mEditorToWorldSender.TryEmplace<FMessageSpawnComponent>(SelectedComponentType->mTypeName, FString{BIsStaticMesh ? PrimitiveMeshTypes[mSelectedMeshIndex] : ""}, static_cast<Uint32>(mSpawnCountToRequest));
             }
         }
 
@@ -132,7 +131,7 @@ void FControlPanel::DrawPanel() {
                 std::vector<UActorComponent*> mComponents{};
             };
 
-            std::map<FString, FComponentTypeState> ComponentsByType{};
+            TMap<FName, FComponentTypeState> ComponentsByType{};
 
             for (UActorComponent& Component : UObjectSystem::Objects<UActorComponent>()) {
                 AActor* Owner{Component.GetOwner()};
@@ -141,16 +140,28 @@ void FControlPanel::DrawPanel() {
                     continue;
                 }
 
-                FComponentTypeState& TypeState{ComponentsByType[FString{Component.GetTypeInfo()->mTypeName.data()}]};
+                FComponentTypeState& TypeState{ComponentsByType[Component.GetTypeInfo()->mTypeName]};
 
                 TypeState.mComponents.push_back(&Component);
                 TypeState.mActiveCount += Component.IsActive() ? 1 : 0;
             }
 
+            TArray<FName> SortedTypes{};
+
+            SortedTypes.reserve(ComponentsByType.size());
+
+            for (const auto& Entry : ComponentsByType) {
+                SortedTypes.push_back(Entry.first);
+            }
+
+            std::ranges::sort(SortedTypes, [](FName Left, FName Right) {
+                return Left.ToString() < Right.ToString();
+            });
+
             mComponentFilter.Draw("Search types##SceneComponents", 240.0f);
 
-            const auto IsTypeVisible{[this](const FString& TypeName) {
-                return mComponentFilter.PassFilter(TypeName.c_str());
+            const auto IsTypeVisible{[this](FName TypeName) {
+                return mComponentFilter.PassFilter(TypeName.ToString().c_str());
             }};
 
             const auto SetVisibleTypesActive{[&ComponentsByType, &IsTypeVisible](bool BActive) {
@@ -181,13 +192,15 @@ void FControlPanel::DrawPanel() {
 
             bool BHasVisibleType{false};
 
-            for (const auto& [TypeName, TypeState] : ComponentsByType) {
+            for (const FName TypeName : SortedTypes) {
+                const FComponentTypeState& TypeState{ComponentsByType.at(TypeName)};
+
                 if (!IsTypeVisible(TypeName)) {
                     continue;
                 }
 
                 BHasVisibleType = true;
-                ImGui::PushID(TypeName.c_str());
+                ImGui::PushID(TypeName.ToString().c_str());
 
                 const std::size_t ComponentCount{TypeState.mComponents.size()};
                 const bool BAllActive{TypeState.mActiveCount == ComponentCount};
@@ -196,7 +209,7 @@ void FControlPanel::DrawPanel() {
 
                 ImGui::PushItemFlag(ImGuiItemFlags_MixedValue, BMixed);
 
-                FString Label{TypeName};
+                FString Label{TypeName.ToString()};
 
                 Label += " (";
                 Label += std::to_string(TypeState.mActiveCount).c_str();

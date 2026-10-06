@@ -1,11 +1,17 @@
 #include "pch.h"
 #include "CoreUObject/UObject.h"
+#include "CoreUObject/UObjectSystem.h"
 #include "Core/Memory/Memory.h"
 #include "Core/Archive/FArchive.h"
 
 UObject::UObject()
-	: mGuid(FGuid::NewGuid()),
-	  mName() {
+	: mGuid(FGuid::NewGuid()) {
+}
+
+UObject::~UObject() {
+    mDestroying = true;
+    UObjectSystem::Unregister(this, mHandle);
+    UObjectSystem::DetachInners(this);
 }
 
 const FGuid& UObject::GetGuid() const {
@@ -20,8 +26,8 @@ void UObject::SetHandle(FObjectHandle InHandle) {
     mHandle = InHandle;
 }
 
-void UObject::RestoreGuid(const FGuid& InGuid) {
-    mGuid = InGuid;
+bool UObject::RestoreGuid(const FGuid& InGuid) {
+    return UObjectSystem::RestoreGuid(this, InGuid);
 }
 
 void* UObject::operator new(std::size_t Size) {
@@ -44,8 +50,69 @@ FName UObject::GetName() const {
     return mName;
 }
 
-void UObject::SetName(FName InName) {
-    mName = InName;
+bool UObject::SetName(FName InName) {
+    return Rename(InName);
+}
+
+bool UObject::Rename(FName NewName, UObject* NewOuter) {
+    return UObjectSystem::Rename(this, NewName, NewOuter != nullptr ? NewOuter : mOuter);
+}
+
+UObject* UObject::GetOuter() const {
+    return mOuter;
+}
+
+UObject* UObject::GetOutermost() const {
+    const UObject* Object{this};
+
+    while (Object->GetOuter() != nullptr) {
+        Object = Object->GetOuter();
+    }
+
+    return const_cast<UObject*>(Object);
+}
+
+UObject* UObject::GetTypedOuter(const FTypeInfo* Type) const {
+    for (UObject* Object{mOuter}; Object != nullptr; Object = Object->GetOuter()) {
+        if (Object->GetTypeInfo()->IsA(Type)) {
+            return Object;
+        }
+    }
+
+    return nullptr;
+}
+
+bool UObject::IsIn(const UObject* Outer) const {
+    for (const UObject* Object{mOuter}; Object != nullptr; Object = Object->GetOuter()) {
+        if (Object == Outer) {
+            return true;
+        }
+    }
+
+    return Outer == nullptr;
+}
+
+bool UObject::SetOuter(UObject* InOuter) {
+    return UObjectSystem::Rename(this, mName, InOuter);
+}
+
+FString UObject::GetPathName(const UObject* StopOuter) const {
+    FString Path{};
+
+    for (const UObject* Object{this}; Object != nullptr && Object != StopOuter; Object = Object->GetOuter()) {
+        const FString Name{Object->GetName().ToString()};
+
+        Path = Path.empty() ? Name : Name + "." + Path;
+    }
+
+    return Path;
+}
+
+bool UObject::CanChangeOuter(const UObject* NewOuter) const {
+    return true;
+}
+
+void UObject::OnIdentityChanged() {
 }
 
 void UObject::Save(FArchive& Archive) {
@@ -59,10 +126,16 @@ void UObject::Load(FArchive& Archive) {
 }
 
 void UObject::Serialize(FArchive& Archive) {
-    Archive.Serialize("Guid", mGuid);
+    FGuid Guid{mGuid};
+    FName Name{mName};
+    FName TypeName{GetTypeInfo()->mTypeName};
 
-    FString TypeNameStr{GetTypeInfo()->mTypeName};
+    Archive.Serialize("Guid", Guid);
+    Archive.Serialize("TypeName", TypeName);
+    Archive.Serialize("Name", Name);
 
-    Archive.Serialize("TypeName", TypeNameStr);
-    Archive.Serialize("Name", mName);
+    if (Archive.IsLoading()) {
+        ErrorHandler::Report(!RestoreGuid(Guid), "UObject", "Cannot restore an object with a conflicting GUID", ErrorHandler::EErrorLevel::Error);
+        ErrorHandler::Report(!SetName(Name), "UObject", "Cannot restore an object with a conflicting name", ErrorHandler::EErrorLevel::Error);
+    }
 }

@@ -35,7 +35,9 @@ UActorComponent* AActor::AddComponent(const FTypeInfo& Type) {
     UActorComponent* ComponentPtr{NewComponent.get()};
 
     ComponentPtr->SetOwner(this);
-    UObjectSystem::Register(ComponentPtr);
+    if (!UObjectSystem::Register(ComponentPtr).IsValid()) {
+        return nullptr;
+    }
     mComponents.push_back(std::move(NewComponent));
 
     FinishAddingComponent(*ComponentPtr);
@@ -128,7 +130,7 @@ UWorld* AActor::GetWorld() const {
 }
 
 ULevel* AActor::GetLevel() const {
-    return mWorld != nullptr ? &mWorld->GetPersistentLevel() : nullptr;
+    return GetTypedOuter<ULevel>();
 }
 
 void AActor::FinishAddingComponent(UActorComponent& Component) {
@@ -542,7 +544,7 @@ bool AActor::PreLoadComponents(FArchive& Archive, bool RegisterComponents) {
     for (std::size_t I{0}; I < ArraySize; ++I) {
         Archive.BeginObjectScope(std::to_string(I));
 
-        FString TypeName{};
+        FName TypeName{};
 
         Archive.Serialize("TypeName", TypeName);
 
@@ -570,10 +572,10 @@ bool AActor::PreLoadComponents(FArchive& Archive, bool RegisterComponents) {
 
         Archive.Serialize("Guid", ComponentGuid);
 
-        if (RegisterComponents) {
-            UObjectSystem::RegisterWithGuid(Component.get(), ComponentGuid);
-        } else {
-            Component->RestoreGuid(ComponentGuid);
+        if (!Component->RestoreGuid(ComponentGuid) || (RegisterComponents && !UObjectSystem::Register(Component.get()).IsValid())) {
+            Archive.EndObjectScope();
+            Archive.EndArrayScope();
+            return false;
         }
 
         mComponents.push_back(std::move(Component));
@@ -605,4 +607,18 @@ bool AActor::ResolveLoadedReferences() {
     }
 
     return true;
+}
+
+bool AActor::CanChangeOuter(const UObject* NewOuter) const {
+    if (mWorld != nullptr) {
+        return NewOuter == &mWorld->GetPersistentLevel();
+    }
+
+    return NewOuter == nullptr || NewOuter->GetTypeInfo()->IsA(ULevel::StaticTypeInfo());
+}
+
+void AActor::OnIdentityChanged() {
+    if (mWorld != nullptr && !mBIsBeingDestroyed) {
+        mWorld->MarkStructureDirty();
+    }
 }

@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Engine/Subsystem/UEngineSubsystem.h"
+#include "Engine/UEngine.h"
 
 void UEngineSubsystem::Initialize(UEngine* Engine) {
     if (mEngine != nullptr || Engine == nullptr) {
@@ -31,4 +32,8 @@ void UEngineSubsystem::OnInitialize() {
 }
 
 void UEngineSubsystem::OnDeinitialize() {
+}
+
+bool UEngineSubsystem::CanChangeOuter(const UObject* NewOuter) const {
+    return mEngine != nullptr ? NewOuter == mEngine : (NewOuter == nullptr || NewOuter->GetTypeInfo()->IsA(UEngine::StaticTypeInfo()));
 }

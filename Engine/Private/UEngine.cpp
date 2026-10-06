@@ -33,6 +33,7 @@ void UEngine::Initialize() {
 
     BVH8::Initialize();
     RegisterObjectTypes();
+    ErrorHandler::Report(!UObjectSystem::Register(this).IsValid(), "UEngine", "Cannot register engine", ErrorHandler::EErrorLevel::Critical);
     mAssetRegistry = std::make_unique<FAssetRegistry>();
     mSubsystems.Initialize(*this);
     mInitialized = true;
@@ -47,6 +48,7 @@ void UEngine::Shutdown() {
     mWorldContexts.clear();
     mSubsystems.Deinitialize();
     mAssetRegistry.reset();
+    UObjectSystem::Unregister(this, GetHandle());
 }
 
 bool UEngine::IsInitialized() const {

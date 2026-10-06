@@ -365,7 +365,7 @@ FAssetHandle FAssetRegistry::LoadViewerAsset(const std::filesystem::path& Source
 
         if (!Mesh->Initialize(ObjPath, BinPath, [this](const std::filesystem::path& MaterialPath) {
             return LoadViewerAsset(MaterialPath);
-        }, [this](FAssetHandle MaterialHandle, const FString& GroupName) -> std::optional<Uint32> {
+        }, [this](FAssetHandle MaterialHandle, FName GroupName) -> std::optional<Uint32> {
             const UMaterial* Material{ResolveAsset<UMaterial>(MaterialHandle)};
 
             return Material != nullptr ? Material->FindGroupIndex(GroupName) : std::nullopt;
@@ -624,7 +624,7 @@ bool FAssetRegistry::LoadMesh(FAssetEntry& Entry) {
         [this](const std::filesystem::path& MaterialPath) {
         return FindAsset(MakeAssetPath(MaterialPath));
     },
-        [this](FAssetHandle MaterialHandle, const FString& GroupName) -> std::optional<Uint32> {
+        [this](FAssetHandle MaterialHandle, FName GroupName) -> std::optional<Uint32> {
         const UMaterial* Material{ResolveAsset<UMaterial>(MaterialHandle)};
 
         return Material != nullptr ? Material->FindGroupIndex(GroupName) : std::nullopt;

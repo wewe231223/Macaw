@@ -29,7 +29,7 @@ public:
 
     virtual Uint32 GetGPUDataCount() const;
 
-    virtual std::optional<Uint32> FindGroupIndex(const FString& Name) const;
+    virtual std::optional<Uint32> FindGroupIndex(FName Name) const;
 
     void MarkGPUDataDirty();
     Uint64 GetRenderRevision() const;

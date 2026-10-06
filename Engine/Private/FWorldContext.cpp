@@ -3,9 +3,8 @@
 #include "World/UWorld.h"
 
 FWorldContext::FWorldContext(EWorldType WorldType)
-	: mWorld{std::make_unique<UWorld>()} {
+	: mWorld(std::make_unique<UWorld>()) {
     mWorld->Initialize(WorldType);
-    UObjectSystem::Register(mWorld.get());
 }
 
 FWorldContext::~FWorldContext() {

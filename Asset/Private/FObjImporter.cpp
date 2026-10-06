@@ -94,7 +94,7 @@ bool FObjImporter::LoadObjFile(const FString& FilePath, FGeometry& OutGeometry) 
                 continue;
 
             //머티리얼 이름 넣기
-            ObjInfo.mMaterialNames.push_back(Tokens[1]);
+            ObjInfo.mMaterialNames.push_back(FName{Tokens[1]});
 
             //처음엔 FaceViertices가 없어서 넣으면 안된다.
             if (ObjInfo.mFaceVerticesPolygon.size() != 0) {

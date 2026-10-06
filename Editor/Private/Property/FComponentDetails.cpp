@@ -176,7 +176,7 @@ void FComponentDetails::DrawBoxColliderComponent(UBoxColliderComponent& Componen
     }
 
     UMeshComponent* CurrentMesh{Component.GetMeshComponent()};
-    const char* Preview{CurrentMesh != nullptr ? CurrentMesh->GetTypeInfo()->mTypeName.data() : "None"};
+    const FString Preview{CurrentMesh != nullptr ? CurrentMesh->GetTypeInfo()->mTypeName.ToString() : FString{"None"}};
     std::vector<FPropertyReferenceOption> Candidates{};
 
     for (const std::unique_ptr<UActorComponent>& Candidate : Actor->GetComponents()) {
@@ -187,12 +187,12 @@ void FComponentDetails::DrawBoxColliderComponent(UBoxColliderComponent& Componen
         }
 
         auto* Mesh{static_cast<UMeshComponent*>(CandidateComponent)};
-        Candidates.push_back({Mesh, FString{Mesh->GetTypeInfo()->mTypeName}, Mesh == CurrentMesh, [&Component, Mesh] {
+        Candidates.push_back({Mesh, Mesh->GetTypeInfo()->mTypeName.ToString(), Mesh == CurrentMesh, [&Component, Mesh] {
             Component.SetMeshComponent(Mesh);
         }});
     }
 
-    Context.DrawReferencePicker("Source Mesh Component", Preview, CurrentMesh == nullptr, [&Component] {
+    Context.DrawReferencePicker("Source Mesh Component", Preview.c_str(), CurrentMesh == nullptr, [&Component] {
         Component.SetMeshComponent(nullptr);
     }, Candidates);
     Context.DrawButton("Build Bounds From Mesh", [&Component] {
@@ -325,7 +325,7 @@ void FComponentDetails::DrawSceneComponent(USceneComponent& Component, IProperty
     }
 
     USceneComponent* CurrentParent{Component.GetParent()};
-    const char* Preview{CurrentParent != nullptr ? CurrentParent->GetTypeInfo()->mTypeName.data() : "None"};
+    const FString Preview{CurrentParent != nullptr ? CurrentParent->GetTypeInfo()->mTypeName.ToString() : FString{"None"}};
     std::vector<FPropertyReferenceOption> Candidates{};
 
     for (const std::unique_ptr<UActorComponent>& Candidate : Actor->GetComponents()) {
@@ -340,12 +340,12 @@ void FComponentDetails::DrawSceneComponent(USceneComponent& Component, IProperty
         if (Parent == &Component)
             continue;
 
-        Candidates.push_back({Parent, FString{Parent->GetTypeInfo()->mTypeName}, Parent == CurrentParent, [&Component, Parent] {
+        Candidates.push_back({Parent, Parent->GetTypeInfo()->mTypeName.ToString(), Parent == CurrentParent, [&Component, Parent] {
             Component.AttachToComponent(Parent, EAttachmentTransformRule::KeepWorldTransform);
         }});
     }
 
-    Context.DrawReferencePicker("Parent", Preview, CurrentParent == nullptr, [&Component] {
+    Context.DrawReferencePicker("Parent", Preview.c_str(), CurrentParent == nullptr, [&Component] {
         Component.DetachFromComponent(EAttachmentTransformRule::KeepWorldTransform);
     }, Candidates);
 

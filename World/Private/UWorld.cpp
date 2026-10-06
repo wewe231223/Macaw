@@ -55,10 +55,14 @@ void UWorld::Initialize(EWorldType WorldType) {
         return;
     }
 
+    if (!UObjectSystem::Register(this).IsValid()) {
+        ErrorHandler::Report("UWorld", "Cannot register world", ErrorHandler::EErrorLevel::Critical);
+    }
+
     mWorldType = WorldType;
     mTime.Reset();
     mPersistentLevel = std::make_unique<ULevel>(*this);
-    UObjectSystem::Register(mPersistentLevel.get());
+    ErrorHandler::Report(!UObjectSystem::Register(mPersistentLevel.get()).IsValid(), "UWorld", "Cannot register persistent level", ErrorHandler::EErrorLevel::Critical);
     mInitialized = true;
     InitializeSubsystems();
 }
@@ -383,11 +387,7 @@ bool UWorld::RenameActor(AActor* Actor, const FName& NewName) {
         return false;
     }
 
-    Actor->SetName(NewName);
-
-    MarkStructureDirty();
-
-    return true;
+    return Actor->Rename(NewName);
 }
 
 const TArray<std::unique_ptr<AActor>>& UWorld::GetActors() const {
@@ -653,12 +653,8 @@ AActor* UWorld::AddActorInternal(std::unique_ptr<AActor> InActor) {
     const FActorDispatchScope Dispatch{this};
     AActor* Actor{InActor.get()};
 
-    if (UObjectSystem::Resolve(Actor->GetHandle()) != Actor) {
-        UObjectSystem::Register(Actor);
-    }
-
-    if (Actor->GetName() == FName{}) {
-        Actor->SetName(MakeUniqueObjectName(Actor->GetTypeInfo()->mTypeName));
+    if (!Actor->SetOuter(mPersistentLevel.get()) || !UObjectSystem::Register(Actor).IsValid()) {
+        return nullptr;
     }
 
     mPersistentLevel->mActors.push_back(std::move(InActor));
@@ -803,43 +799,16 @@ void UWorld::ClearActors() {
     FlushPendingDestroyActors();
 }
 
-FName UWorld::MakeUniqueObjectName(std::string_view SourceName) {
-    std::string_view BaseName{};
-    Int32 Number{0};
-
-    SplitNameAndNumber(SourceName, BaseName, Number);
-
-    Int32 Index{(Number > 0) ? (Number + 1) : 1};
-
-    if ((Number == 0) && (FindActorByName(BaseName) == nullptr)) {
-        return FName{BaseName};
-    }
-
-    while (true) {
-        FName CandidateName{BaseName, Index};
-
-        if (FindActorByName(CandidateName) == nullptr) {
-            return CandidateName;
-        }
-
-        Index++;
-    }
-
-    return FName{};
+FName UWorld::MakeUniqueObjectName(FName SourceName) {
+    return mInitialized ? UObjectSystem::MakeUniqueObjectName(mPersistentLevel.get(), SourceName) : FName{};
 }
 
 AActor* UWorld::FindActorByName(FName InName) const {
-    if (!mInitialized) {
-        return nullptr;
-    }
+    UObject* Object{mInitialized ? UObjectSystem::FindObject(mPersistentLevel.get(), InName) : nullptr};
 
-    for (const auto& Actor : mPersistentLevel->mActors) {
-        if (Actor && !Actor->IsBeingDestroyed() && Actor->GetName() == InName) {
-            return Actor.get();
-        }
-    }
+    AActor* Actor{Object != nullptr && Object->GetTypeInfo()->IsA(AActor::StaticTypeInfo()) ? static_cast<AActor*>(Object) : nullptr};
 
-    return nullptr;
+    return Actor != nullptr && !Actor->IsBeingDestroyed() ? Actor : nullptr;
 }
 
 void UWorld::SetAssetRegistry(const IAssetRegistry* InAssetRegistry, IAssetRegistryMutator* InAssetRegistryMutator) {

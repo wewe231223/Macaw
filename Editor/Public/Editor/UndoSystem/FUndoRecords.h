@@ -1,4 +1,5 @@
 #pragma once
+#include "Core/Base/FName.h"
 #include "Editor/UndoSystem/IUndoRecord.h"
 #include "Core/Base/FGuid.h"
 
@@ -19,7 +20,7 @@ private:
 
 class FRecordObjectSpawned : public IUndoRecord {
 public:
-    FRecordObjectSpawned(FGuid InputGuid, const TArray<Uint8>& InputSavedData, std::string_view InputTargetTypeName);
+    FRecordObjectSpawned(FGuid InputGuid, const TArray<Uint8>& InputSavedData, FName InputTargetTypeName);
 
 public:
     virtual void ApplyUndo(IUndoContext* Context) override;
@@ -28,12 +29,12 @@ public:
 private:
     FGuid mTargetGuid{};
     TArray<Uint8> mSavedData{};
-    FString mTargetTypeName{};
+    FName mTargetTypeName{};
 };
 
 class FRecordObjectDestroyed : public IUndoRecord {
 public:
-    FRecordObjectDestroyed(FGuid InputGuid, TArray<Uint8> InputSavedData, std::string_view InputTargetTypeName);
+    FRecordObjectDestroyed(FGuid InputGuid, TArray<Uint8> InputSavedData, FName InputTargetTypeName);
 
 public:
     virtual void ApplyUndo(IUndoContext* Context) override;
@@ -42,5 +43,5 @@ public:
 private:
     FGuid mTargetGuid{};
     TArray<Uint8> mSavedData{};
-    FString mTargetTypeName{};
+    FName mTargetTypeName{};
 };

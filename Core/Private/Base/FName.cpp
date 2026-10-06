@@ -1,5 +1,7 @@
 #include "pch.h"
 #include "Core/Base/FName.h"
+#include <limits>
+#include <mutex>
 
 FNameEntryId::FNameEntryId()
 	: mValue(0) {
@@ -84,7 +86,7 @@ public:
     };
 
     FNameEntryAllocator() {
-        mBlocks[0] = new Uint8[BlockSizeBytes]();
+        mBlocks[0] = new Uint8[BlockSizeBytes]{};
         mCurrentByteCursor = Stride;
     }
 
@@ -117,7 +119,7 @@ public:
         mCurrentByteCursor = 0;
 
         if (mBlocks[mCurrentBlock] == nullptr) {
-            mBlocks[mCurrentBlock] = new Uint8[BlockSizeBytes]();
+            mBlocks[mCurrentBlock] = new Uint8[BlockSizeBytes]{};
         }
     }
 
@@ -182,7 +184,7 @@ struct FNameComparisonValue : public FNameValue {
         std::size_t Len{std::min(InName.length(), std::size_t(NameSize - 1))};
 
         for (std::size_t I{0}; I < Len; ++I) {
-            LowerBuffer[I] = static_cast<char>(std::tolower(InName[I]));
+            LowerBuffer[I] = static_cast<char>(std::tolower(static_cast<unsigned char>(InName[I])));
         }
 
         mHash = FNameHash(LowerBuffer, static_cast<Int32>(Len));
@@ -208,6 +210,8 @@ public:
     }
 
     FNameEntryId Find(std::string_view NameString) const {
+        const std::lock_guard Lock{mMutex};
+
         if (NameString.empty()) {
             return FNameEntryId();
         }
@@ -233,6 +237,8 @@ public:
     }
 
     FNameEntryId Store(std::string_view NameString) {
+        const std::lock_guard Lock{mMutex};
+
         if (NameString.empty()) {
             return FNameEntryId();
         }
@@ -311,7 +317,7 @@ private:
         }
 
         // Write Memory
-        Uint32 NeededByte{static_cast<Uint32>(sizeof(FNameEntryHeader) + InValue.mName.length() + 1)}; // 1 : null terminator
+        Uint32 NeededByte{static_cast<Uint32>(sizeof(FNameEntry) + InValue.mName.length() + 1)}; // 1 : null terminator
         FNameEntryHandle NewHandle{mEntries.Allocate(NeededByte)};
 
         // Set header
@@ -421,6 +427,7 @@ private:
         Buckets[SlotIndex] = FNameSlot(InEntryId, InValue.mHash.mProbeHash);
     }
 
+    mutable std::mutex mMutex{};
     FNameEntryAllocator mEntries{};
 
     TArray<FNameSlot> mComparisonHashBuckets{};
@@ -448,14 +455,21 @@ FName::FName(FString Str)
 
 FName::FName(std::string_view BaseName, Int32 InNumber) {
     if (!BaseName.empty()) {
-        mNumber = (InNumber >= 0) ? (InNumber + 1) : 0;
+        mNumber = (InNumber >= 0 && InNumber < std::numeric_limits<Int32>::max()) ? (InNumber + 1) : 0;
         mDisplayId = FNamePool::Get().Store(BaseName);
         mComparisonId = FNamePool::Get().Resolve(mDisplayId).GetComparisonId();
     }
 }
 
 Int32 FName::Compare(const FName& Rhs) const {
-    return this->mComparisonId.ToUnstableInt() - Rhs.mComparisonId.ToUnstableInt();
+    const Uint32 LeftId{mComparisonId.ToUnstableInt()};
+    const Uint32 RightId{Rhs.mComparisonId.ToUnstableInt()};
+
+    if (LeftId != RightId) {
+        return LeftId < RightId ? -1 : 1;
+    }
+
+    return mNumber == Rhs.mNumber ? 0 : (mNumber < Rhs.mNumber ? -1 : 1);
 }
 
 bool FName::operator==(const FName& Rhs) const {
@@ -463,7 +477,19 @@ bool FName::operator==(const FName& Rhs) const {
 }
 
 bool FName::operator<(const FName& Rhs) const {
-    return this->mComparisonId.ToUnstableInt() < Rhs.mComparisonId.ToUnstableInt();
+    return Compare(Rhs) < 0;
+}
+
+bool FName::IsNone() const {
+    return mComparisonId.ToUnstableInt() == 0;
+}
+
+FName FName::WithNumber(Int32 InNumber) const {
+    FName Name{*this};
+
+    Name.mNumber = !IsNone() && InNumber >= 0 && InNumber < std::numeric_limits<Int32>::max() ? InNumber + 1 : 0;
+
+    return Name;
 }
 
 FString FName::ToString() const {
@@ -531,29 +557,50 @@ Int32 FName::GetNumber() const {
 }
 
 void SplitNameAndNumber(std::string_view InString, std::string_view& OutString, Int32& OutNumber) {
-    if (InString.empty()) {
-        return;
-    }
-
     OutString = InString;
     OutNumber = 0;
 
-    const std::size_t Sep{InString.rfind('_')};
+    const std::size_t Separator{InString.rfind('_')};
 
-    if (Sep == std::string_view::npos || Sep == 0 || Sep + 1 == InString.length()) {
+    if (Separator == std::string_view::npos || Separator == 0 || Separator + 1 == InString.length()) {
         return;
     }
 
-    Int32 Num{0};
+    const std::string_view Suffix{InString.substr(Separator + 1)};
 
-    for (std::size_t I{Sep + 1}; I < InString.length(); ++I) {
-        if (!std::isdigit(static_cast<unsigned char>(InString[I]))) {
+    if (Suffix.size() > 1 && Suffix.front() == '0') {
+        return;
+    }
+
+    Int32 Number{};
+    constexpr Int32 MaximumNumber{std::numeric_limits<Int32>::max() - 1};
+
+    for (const char Character : Suffix) {
+        if (Character < '0' || Character > '9') {
             return;
         }
 
-        Num = Num * 10 + (InString[I] - '0');
+        const Int32 Digit{Character - '0'};
+
+        if (Number > (MaximumNumber - Digit) / 10) {
+            return;
+        }
+
+        Number = Number * 10 + Digit;
     }
 
-    OutString = InString.substr(0, Sep);
-    OutNumber = Num + 1;
+    OutString = InString.substr(0, Separator);
+    OutNumber = Number + 1;
+}
+
+std::size_t std::hash<FName>::operator()(const FName& Name) const noexcept {
+    Uint64 Value{(static_cast<Uint64>(Name.GetComparisonId().ToUnstableInt()) << 32) | static_cast<Uint32>(Name.GetNumber())};
+
+    Value ^= Value >> 30;
+    Value *= 0xbf58476d1ce4e5b9ULL;
+    Value ^= Value >> 27;
+    Value *= 0x94d049bb133111ebULL;
+    Value ^= Value >> 31;
+
+    return static_cast<std::size_t>(Value);
 }

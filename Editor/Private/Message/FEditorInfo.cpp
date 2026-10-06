@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Editor/Message/FEditorInfo.h"
 
-FMessageSpawnComponent::FMessageSpawnComponent(FString InputComponentType, FString InputMeshType, Uint32 InputCount) noexcept
+FMessageSpawnComponent::FMessageSpawnComponent(FName InputComponentType, FString InputMeshType, Uint32 InputCount) noexcept
 	: mComponentType(std::move(InputComponentType)),
 	  mMeshType(std::move(InputMeshType)),
 	  mSpawnCount(InputCount) {

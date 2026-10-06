@@ -49,12 +49,12 @@ public:
 private:
     FNameEntryHeader mHeader{};
     FNameEntryId mComparisonId{};
-    Uint8 mNameData[0]{};
+    Uint8 mNameData[1]{};
 };
 
 class FName {
 public:
-    constexpr FName() = default;
+    FName() = default;
     FName(std::string_view Str);
     FName(const char* PStr);
     FName(FString Str);
@@ -64,6 +64,8 @@ public:
     bool operator==(const FName& Rhs) const;
     bool operator<(const FName& Rhs) const;
 
+    bool IsNone() const;
+    FName WithNumber(Int32 InNumber) const;
     FString ToString() const;
 
     FNameEntryId GetDisplayId() const;
@@ -79,3 +81,9 @@ private:
 };
 
 void SplitNameAndNumber(std::string_view InString, std::string_view& OutString, Int32& OutNumber);
+
+template <>
+struct std::hash<FName> {
+public:
+    std::size_t operator()(const FName& Name) const noexcept;
+};

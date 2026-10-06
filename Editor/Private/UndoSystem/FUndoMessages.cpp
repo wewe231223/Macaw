@@ -10,7 +10,7 @@ FMessageUndoObjectStateChanged::FMessageUndoObjectStateChanged(const FGuid& Inpu
 	  mSavedData(std::move(InputData)) {
 }
 
-FMessageUndoObjectSpawned::FMessageUndoObjectSpawned(const FGuid& InputGuid, TArray<Uint8>&& InputData, FString&& InputTargetTypeName) noexcept
+FMessageUndoObjectSpawned::FMessageUndoObjectSpawned(const FGuid& InputGuid, TArray<Uint8>&& InputData, FName InputTargetTypeName) noexcept
 	: mTargetGuid(InputGuid),
 	  mSavedData(std::move(InputData)),
 	  mTargetTypeName(InputTargetTypeName) {

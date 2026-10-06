@@ -27,7 +27,7 @@ void FPropertyPanel::DrawContents() {
     ImGui::Separator();
 
     if (UActorComponent* Component{mEditorContext->GetSelectedComponent()}; Component != nullptr && Component->GetOwner() == Actor) {
-        ImGui::Text("Details: %s", GetComponentTypeName(*Component));
+        ImGui::Text("Details: %s", GetComponentTypeName(*Component).c_str());
         ImGui::PushID(Component);
 
         UWorld* World{Actor->GetWorld()};
@@ -42,8 +42,8 @@ void FPropertyPanel::DrawContents() {
     }
 }
 
-const char* FPropertyPanel::GetComponentTypeName(const UActorComponent& Component) {
-    return Component.GetTypeInfo()->mTypeName.data();
+FString FPropertyPanel::GetComponentTypeName(const UActorComponent& Component) {
+    return Component.GetTypeInfo()->mTypeName.ToString();
 }
 
 void FPropertyPanel::DrawGizmoControls() {
@@ -147,7 +147,7 @@ void FPropertyPanel::DrawSceneComponentTree(AActor& Actor, USceneComponent& Comp
 
     ImGui::PushID(&Component);
 
-    const bool BOpen{ImGui::TreeNodeEx("Component", Flags, "%s", GetComponentTypeName(Component))};
+    const bool BOpen{ImGui::TreeNodeEx("Component", Flags, "%s", GetComponentTypeName(Component).c_str())};
 
     if (ImGui::IsItemClicked())
         mEditorContext->SetSelectedComponent(&Component);
@@ -170,7 +170,7 @@ void FPropertyPanel::DrawComponentNode(UActorComponent& Component, ImGuiTreeNode
         Flags |= ImGuiTreeNodeFlags_Selected;
 
     ImGui::PushID(&Component);
-    ImGui::TreeNodeEx("Component", Flags, "%s", GetComponentTypeName(Component));
+    ImGui::TreeNodeEx("Component", Flags, "%s", GetComponentTypeName(Component).c_str());
 
     if (ImGui::IsItemClicked())
         mEditorContext->SetSelectedComponent(&Component);

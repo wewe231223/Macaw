@@ -18,6 +18,7 @@ public:
     bool IsInitialized() const;
 
 private:
+    bool CanChangeOuter(const UObject* NewOuter) const override;
     virtual void OnInitialize();
     virtual void OnDeinitialize();
 

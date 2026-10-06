@@ -1,8 +1,9 @@
 #include "pch.h"
 #include "CoreUObject/TypeRegistry.h"
+#include "Core/Base/ErrorHandler.h"
 
 namespace {
-    TMap<std::string_view, const FTypeInfo*> TypeMap{};
+    TMap<FName, const FTypeInfo*> TypeMap{};
 }
 
 void TypeRegistry::Register(const FTypeInfo* Type) {
@@ -10,10 +11,12 @@ void TypeRegistry::Register(const FTypeInfo* Type) {
         return;
     }
 
-    TypeMap[Type->mTypeName] = Type;
+    const auto [Iterator, Inserted]{TypeMap.emplace(Type->mTypeName, Type)};
+
+    ErrorHandler::Report(!Inserted && Iterator->second != Type, "TypeRegistry", "A different type is already registered with this name", ErrorHandler::EErrorLevel::Critical);
 }
 
-const FTypeInfo* TypeRegistry::Find(std::string_view TypeName) {
+const FTypeInfo* TypeRegistry::Find(FName TypeName) {
     const auto It{TypeMap.find(TypeName)};
 
     if (It != TypeMap.end()) {
@@ -34,7 +37,7 @@ std::vector<const FTypeInfo*> TypeRegistry::GetRegisteredTypes() {
     }
 
     std::ranges::sort(Types, [](const FTypeInfo* Left, const FTypeInfo* Right) {
-        return Left->mTypeName < Right->mTypeName;
+        return Left->mTypeName.ToString() < Right->mTypeName.ToString();
     });
 
     return Types;
