@@ -33,8 +33,8 @@ public:
     void BeginFrame();
 
     const FRenderScene& SynchronizeScene(FSceneRenderData& Scene);
-    void RenderView(const FRenderView& View, FSceneRenderData& Scene);
-    void RenderView(const FRenderView& View, const FRenderScene& Scene);
+    void RenderView(const FRenderView& View, FSceneRenderData& Scene, const FOverlayRenderData& Overlay = {});
+    void RenderView(const FRenderView& View, const FRenderScene& Scene, const FOverlayRenderData& Overlay = {});
 
     void BeginUiRender();
     void EndFrame();

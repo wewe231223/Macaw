@@ -3,8 +3,9 @@
 #include "Render/FFrameResource.h"
 #include "Render/FLineRenderer.h"
 #include "Render/FRenderAssetResources.h"
-#include "Render/FRenderContext.h"
 #include "Render/FSceneRenderOutput.h"
+#include "Render/FOverlayTextRenderer.h"
+#include "RenderCore/FOverlayRenderData.h"
 
 class FOverLayRenderer {
 private:
@@ -21,6 +22,9 @@ private:
     struct FViewDepth {
         Microsoft::WRL::ComPtr<ID3D11Texture2D> mTexture{};
         Microsoft::WRL::ComPtr<ID3D11DepthStencilView> mView{};
+        Microsoft::WRL::ComPtr<ID3D11Texture2D> mSelectionMask{};
+        Microsoft::WRL::ComPtr<ID3D11RenderTargetView> mSelectionMaskTarget{};
+        Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> mSelectionMaskResource{};
         Uint64 mLastUsedFrame{};
     };
 
@@ -31,14 +35,17 @@ public:
     void EndFrame();
     void Reset();
 
-    ID3D11DepthStencilView* RenderView(const FRenderContext& Context, const FRenderView& View, const FRenderScene& Scene, const FRenderQueue& SceneQueue, const FSceneRenderOutput& Output);
-    void RenderOrientationAxis(ID3D11DeviceContext* Context, const FRenderView& View, const FSceneRenderOutput& Output);
+    ID3D11DepthStencilView* RenderView(ID3D11DeviceContext* Context, const FRenderView& View, const FOverlayRenderData& Overlay, const FSceneRenderOutput& Output);
 
 private:
     bool PrepareDepth(ID3D11DeviceContext* Context, const FSceneRenderOutput& Output);
-    bool PrepareMeshDraws(const TArray<FMeshDrawBatch>& Items, ERenderMode Mode, TArray<FMeshDraw>& Draws);
-    void DrawMeshes(ID3D11DeviceContext* Context, const TArray<FMeshDraw>& Draws);
-    void DrawSceneGuides(ID3D11DeviceContext* Context, const FRenderView& View);
+    bool PrepareSelectionMask();
+    void DrawSelectionOutline(ID3D11DeviceContext* Context, const FSceneRenderOutput& Output);
+    void BuildMeshItems(const TArray<FActorProbe>& Probes, const FRenderView& View, const D3D11_VIEWPORT& Viewport, bool Selection, TArray<FMeshDrawBatch>& Items);
+    bool PrepareMeshDraws(const TArray<FMeshDrawBatch>& Items, bool Selection, TArray<FMeshDraw>& Draws);
+    void DrawMeshes(ID3D11DeviceContext* Context, const TArray<FMeshDraw>& Draws, bool SelectionMask = false);
+    void DrawGuides(ID3D11DeviceContext* Context, const FOverlayRenderData& Overlay);
+    void RenderOrientationAxis(ID3D11DeviceContext* Context, const CameraProbe& Camera, const FOverlayRenderData& Overlay, const FSceneRenderOutput& Output);
 
 private:
     ID3D11Device* mDevice{nullptr};
@@ -47,11 +54,18 @@ private:
     TArray<FFrameResource> mFrameResources{};
     FFrameResource* mCurrentFrameResource{nullptr};
     Uint64 mFrameSerial{};
-    FRenderQueue mQueue{};
+    TArray<FMatrix> mObjectTransforms{};
+    TArray<FMeshDrawRecord> mDrawRecords{};
+    TArray<FMeshDrawBatch> mOutlineItems{};
+    TArray<FMeshDrawBatch> mGizmoItems{};
+    TArray<FRenderBatchTemplate> mTemplates{};
     TArray<FMeshDraw> mOutlineDraws{};
     TArray<FMeshDraw> mGizmoDraws{};
     TMap<const IRenderSurface*, FViewDepth> mViewDepths{};
     const IRenderSurface* mCurrentTarget{nullptr};
     ID3D11DepthStencilView* mCurrentDepth{nullptr};
     FLineRenderer mLineRenderer{};
+    FOverlayTextRenderer mTextRenderer{};
+    FPipelineRenderResource mSelectionMaskPipeline{};
+    FPipelineRenderResource mSelectionOutlinePipeline{};
 };

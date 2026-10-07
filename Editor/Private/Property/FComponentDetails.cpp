@@ -267,6 +267,8 @@ void FComponentDetails::DrawMeshComponent(UMeshComponent& Component, IPropertyEd
 }
 
 void FComponentDetails::DrawNameTagComponent(UNameTagComponent& Component, IPropertyEditorContext& Context) {
+    DrawSceneComponent(Component, Context);
+
     if (!Context.BeginCategory("Name Tag")) {
         return;
     }
@@ -275,8 +277,16 @@ void FComponentDetails::DrawNameTagComponent(UNameTagComponent& Component, IProp
         Component.SetColor(NewColor);
     });
 
-    Context.DrawFloat("Character Height", Component.GetCharacterHeight(), 0.01f, 0.001f, 1000.0f, [&Component](float NewHeight) {
-        Component.SetCharacterHeight(NewHeight);
+    Context.DrawBool("Visible", Component.IsVisible(), [&Component](bool Visible) {
+        Component.SetVisible(Visible);
+    });
+
+    Context.DrawFloat("Pixel Height", Component.GetPixelHeight(), 1.0f, 1.0f, 256.0f, [&Component](float NewHeight) {
+        Component.SetPixelHeight(NewHeight);
+    });
+
+    Context.DrawVector2("Screen Offset", Component.GetScreenOffset(), 1.0f, -10000.0f, 10000.0f, [&Component](const FVector2& Offset) {
+        Component.SetScreenOffset(Offset);
     });
 
     Context.DrawFloat("Letter Spacing", Component.GetLetterSpacing(), 0.01f, -100.0f, 100.0f, [&Component](float NewSpacing) {
@@ -289,10 +299,6 @@ void FComponentDetails::DrawNameTagComponent(UNameTagComponent& Component, IProp
 
     Context.DrawAssetPicker("Font", *UFont::StaticTypeInfo(), Component.GetFontHandle(), [&Component](FAssetHandle NewHandle) {
         Component.SetFontHandle(NewHandle);
-    });
-
-    Context.DrawAssetPicker("Pipeline", *UPipeline::StaticTypeInfo(), Component.GetPipelineHandle(), [&Component](FAssetHandle NewHandle) {
-        Component.SetPipelineHandle(NewHandle);
     });
 }
 

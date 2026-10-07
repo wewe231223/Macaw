@@ -1,26 +1,7 @@
 #pragma once
 #include "Render/FRenderView.h"
 #include "Render/FRenderScene.h"
-
-class IAssetRegistry;
-
-struct FMeshDrawRecord {
-    Uint32 mObjectIndex{};
-    Uint32 mMaterialIndex{};
-    Uint32 mFlags{};
-    float mLODDither{};
-};
-
-static_assert(sizeof(FMeshDrawRecord) == 16);
-
-struct FMeshDrawBatch {
-    FMeshDrawState mState{};
-
-    Uint32 mFirstRecord{};
-    Uint32 mRecordCount{};
-    Uint32 mFlags{};
-    float mSortDepth{};
-};
+#include "Render/FMeshDrawData.h"
 
 class FRenderQueue {
 private:
@@ -38,40 +19,32 @@ private:
         Uint64 mTemplateRevision{};
         CameraProbe mCamera{};
         float mViewportHeight{};
-        FObjectHandle mSelectedActorHandle{};
         bool mUseLOD{};
         bool mRenderSky{};
         bool mOpaque{};
         bool mTranslucent{};
-        bool mSelectionOutline{};
     };
 
 public:
-    void Build(const IAssetRegistry* Registry, const FRenderScene& Scene, const FRenderView& View, const FMaterialBuffer& Materials);
-    void BuildOverLay(const IAssetRegistry* Registry, const FRenderQueue& SceneQueue, const FRenderView& View, const FMaterialBuffer& SceneMaterials, const FMaterialBuffer& Materials);
+    void Build(const FRenderScene& Scene, const FRenderView& View);
 
     const TArray<FMeshDrawBatch>& GetItems(ERenderPass Pass) const;
     const TArray<FMeshDrawRecord>& GetDrawRecords() const;
-    const TArray<FMatrix>& GetGizmoTransforms() const;
 
 private:
     bool IsSceneCacheCurrent(const FRenderScene& Scene, const FRenderView& View) const;
     void CommitSceneCache(const FRenderScene& Scene, const FRenderView& View);
 
     void BuildSceneItems(const FRenderScene& Scene, const FRenderView& View);
-    void BuildGizmoItems(const IAssetRegistry* Registry, const TArray<FActorProbe>& Probes, const FMaterialBuffer& Materials);
 
     float CalculateScreenSize(const FRenderSceneObject& Object, const CameraProbe& Camera, float ProjectionScale, bool Perspective) const;
 
 private:
     FSceneCacheKey mSceneCacheKey{};
-    std::size_t mSceneRecordCount{};
 
     TArray<FMeshDrawBatch> mSceneItems{};
     TArray<FMeshDrawBatch> mOpaqueItems{};
     TArray<FMeshDrawBatch> mTranslucentItems{};
-    TArray<FMeshDrawBatch> mOutlineItems{};
-    TArray<FMeshDrawBatch> mGizmoItems{};
     TArray<FMeshDrawBatch> mEmptyItems{};
 
     TArray<FMeshDrawRecord> mDrawRecords{};
@@ -82,7 +55,4 @@ private:
 
     TArray<Uint32> mBucketCounts{};
     TArray<Uint32> mBucketWritePositions{};
-
-    TArray<FMatrix> mGizmoTransforms{};
-    TArray<FRenderBatchTemplate> mGizmoTemplates{};
 };

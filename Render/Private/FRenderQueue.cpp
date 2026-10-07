@@ -1,8 +1,5 @@
 #include "pch.h"
 #include "Render/FRenderQueue.h"
-#include "CoreUObject/Asset/IAssetRegistry.h"
-#include "Asset/UMaterial.h"
-#include "Asset/UMesh.h"
 #include "Render/FLODSelection.h"
 
 #include <algorithm>
@@ -18,92 +15,22 @@ namespace {
     }
 }
 
-void FRenderQueue::Build(const IAssetRegistry* Registry, const FRenderScene& Scene, const FRenderView& View, const FMaterialBuffer& Materials) {
-    mGizmoItems.clear();
-    mGizmoTransforms.clear();
-
-    if (!IsSceneCacheCurrent(Scene, View)) {
-        mSceneItems.clear();
-        mOpaqueItems.clear();
-        mTranslucentItems.clear();
-        mOutlineItems.clear();
-
-        if (View.IsPassEnabled(ERenderPass::Opaque) || View.IsPassEnabled(ERenderPass::Translucent)) {
-            BuildSceneItems(Scene, View);
-        } else {
-            mDrawRecords.clear();
-        }
-
-        if (View.IsPassEnabled(ERenderPass::SelectionOutline)) {
-            for (const ERenderPass Pass : {ERenderPass::Opaque, ERenderPass::Translucent}) {
-                for (const FMeshDrawBatch& Item : GetItems(Pass)) {
-                    if ((Item.mFlags & static_cast<Uint32>(ERenderObjectFlags::Selected)) != 0) {
-                        mOutlineItems.push_back(Item);
-                    }
-                }
-            }
-        }
-
-        mSceneRecordCount = mDrawRecords.size();
-        CommitSceneCache(Scene, View);
+void FRenderQueue::Build(const FRenderScene& Scene, const FRenderView& View) {
+    if (IsSceneCacheCurrent(Scene, View)) {
+        return;
     }
 
-    mDrawRecords.resize(mSceneRecordCount);
-
-    if (View.IsPassEnabled(ERenderPass::Gizmo)) {
-        BuildGizmoItems(Registry, View.mGizmoProbes, Materials);
-    }
-}
-
-void FRenderQueue::BuildOverLay(const IAssetRegistry* Registry, const FRenderQueue& SceneQueue, const FRenderView& View, const FMaterialBuffer& SceneMaterials, const FMaterialBuffer& Materials) {
-    mSceneCacheKey = {};
     mSceneItems.clear();
     mOpaqueItems.clear();
     mTranslucentItems.clear();
-    mOutlineItems.clear();
-    mGizmoItems.clear();
-    mGizmoTransforms.clear();
-    mDrawRecords.clear();
-    mSceneRecordCount = 0;
 
-    if (View.IsPassEnabled(ERenderPass::SelectionOutline)) {
-        const TArray<FMeshDrawRecord>& Records{SceneQueue.GetDrawRecords()};
-        TMap<Uint32, Uint32> MaterialIndices{};
-
-        SceneMaterials.BuildIndexRemapping(Materials, MaterialIndices);
-
-        for (const FMeshDrawBatch& Source : SceneQueue.GetItems(ERenderPass::SelectionOutline)) {
-            if (Source.mFirstRecord > Records.size() || Source.mRecordCount > Records.size() - Source.mFirstRecord || Source.mRecordCount > UINT32_MAX - mDrawRecords.size()) {
-                continue;
-            }
-
-            FMeshDrawBatch Item{Source};
-
-            Item.mFirstRecord = static_cast<Uint32>(mDrawRecords.size());
-            Item.mRecordCount = 0;
-
-            for (Uint32 Index{}; Index < Source.mRecordCount; ++Index) {
-                FMeshDrawRecord Record{Records[Source.mFirstRecord + Index]};
-                const auto MaterialIndex{MaterialIndices.find(Record.mMaterialIndex)};
-
-                if (MaterialIndex == MaterialIndices.end()) {
-                    continue;
-                }
-
-                Record.mMaterialIndex = MaterialIndex->second;
-                mDrawRecords.push_back(Record);
-                ++Item.mRecordCount;
-            }
-
-            if (Item.mRecordCount != 0) {
-                mOutlineItems.push_back(Item);
-            }
-        }
+    if (View.IsPassEnabled(ERenderPass::Opaque) || View.IsPassEnabled(ERenderPass::Translucent)) {
+        BuildSceneItems(Scene, View);
+    } else {
+        mDrawRecords.clear();
     }
 
-    if (View.IsPassEnabled(ERenderPass::Gizmo)) {
-        BuildGizmoItems(Registry, View.mGizmoProbes, Materials);
-    }
+    CommitSceneCache(Scene, View);
 }
 
 const TArray<FMeshDrawBatch>& FRenderQueue::GetItems(ERenderPass Pass) const {
@@ -114,12 +41,6 @@ const TArray<FMeshDrawBatch>& FRenderQueue::GetItems(ERenderPass Pass) const {
         case ERenderPass::Translucent:
             return mTranslucentItems;
 
-        case ERenderPass::SelectionOutline:
-            return mOutlineItems;
-
-        case ERenderPass::Gizmo:
-            return mGizmoItems;
-
         default:
             return mEmptyItems;
     }
@@ -129,10 +50,6 @@ const TArray<FMeshDrawRecord>& FRenderQueue::GetDrawRecords() const {
     return mDrawRecords;
 }
 
-const TArray<FMatrix>& FRenderQueue::GetGizmoTransforms() const {
-    return mGizmoTransforms;
-}
-
 bool FRenderQueue::IsSceneCacheCurrent(const FRenderScene& Scene, const FRenderView& View) const {
     const float ViewportHeight{View.mTarget != nullptr ? View.mTarget->GetViewport().Height : 0.0f};
 
@@ -140,13 +57,13 @@ bool FRenderQueue::IsSceneCacheCurrent(const FRenderScene& Scene, const FRenderV
         return false;
     }
 
-    return mSceneCacheKey.mScene == &Scene && mSceneCacheKey.mSceneId == Scene.GetId() && mSceneCacheKey.mObjectRevision == Scene.GetRevision() && mSceneCacheKey.mTemplateRevision == Scene.GetTemplateRevision() && IsSameMatrix(mSceneCacheKey.mCamera.mView, View.mCamera.mView) && IsSameMatrix(mSceneCacheKey.mCamera.mProjection, View.mCamera.mProjection) && IsSameMatrix(mSceneCacheKey.mCamera.mViewProjection, View.mCamera.mViewProjection) && IsSameFrustum(mSceneCacheKey.mCamera.mViewFrustum, View.mCamera.mViewFrustum) && mSceneCacheKey.mSelectedActorHandle == View.mSelectedActorHandle && mSceneCacheKey.mUseLOD == View.mUseLOD && mSceneCacheKey.mRenderSky == View.mSettings.mBRenderSky && mSceneCacheKey.mOpaque == View.IsPassEnabled(ERenderPass::Opaque) && mSceneCacheKey.mTranslucent == View.IsPassEnabled(ERenderPass::Translucent) && mSceneCacheKey.mSelectionOutline == View.IsPassEnabled(ERenderPass::SelectionOutline);
+    return mSceneCacheKey.mScene == &Scene && mSceneCacheKey.mSceneId == Scene.GetId() && mSceneCacheKey.mObjectRevision == Scene.GetRevision() && mSceneCacheKey.mTemplateRevision == Scene.GetTemplateRevision() && IsSameMatrix(mSceneCacheKey.mCamera.mView, View.mCamera.mView) && IsSameMatrix(mSceneCacheKey.mCamera.mProjection, View.mCamera.mProjection) && IsSameMatrix(mSceneCacheKey.mCamera.mViewProjection, View.mCamera.mViewProjection) && IsSameFrustum(mSceneCacheKey.mCamera.mViewFrustum, View.mCamera.mViewFrustum) && mSceneCacheKey.mUseLOD == View.mUseLOD && mSceneCacheKey.mRenderSky == View.mSettings.mBRenderSky && mSceneCacheKey.mOpaque == View.IsPassEnabled(ERenderPass::Opaque) && mSceneCacheKey.mTranslucent == View.IsPassEnabled(ERenderPass::Translucent);
 }
 
 void FRenderQueue::CommitSceneCache(const FRenderScene& Scene, const FRenderView& View) {
     const float ViewportHeight{View.mTarget != nullptr ? View.mTarget->GetViewport().Height : 0.0f};
 
-    mSceneCacheKey = FSceneCacheKey{&Scene, Scene.GetId(), Scene.GetRevision(), Scene.GetTemplateRevision(), View.mCamera, ViewportHeight, View.mSelectedActorHandle, View.mUseLOD, View.mSettings.mBRenderSky, View.IsPassEnabled(ERenderPass::Opaque), View.IsPassEnabled(ERenderPass::Translucent), View.IsPassEnabled(ERenderPass::SelectionOutline)};
+    mSceneCacheKey = FSceneCacheKey{&Scene, Scene.GetId(), Scene.GetRevision(), Scene.GetTemplateRevision(), View.mCamera, ViewportHeight, View.mUseLOD, View.mSettings.mBRenderSky, View.IsPassEnabled(ERenderPass::Opaque), View.IsPassEnabled(ERenderPass::Translucent)};
 }
 
 void FRenderQueue::BuildSceneItems(const FRenderScene& Scene, const FRenderView& View) {
@@ -180,8 +97,7 @@ void FRenderQueue::BuildSceneItems(const FRenderScene& Scene, const FRenderView&
             continue;
         }
 
-        const bool Selected{View.mSelectedActorHandle.IsValid() && Object.mOwnerHandle == View.mSelectedActorHandle};
-        const Uint32 Flags{Object.mFlags | (Selected ? SelectedFlag : 0)};
+        const Uint32 Flags{Object.mFlags};
         const Uint32 BucketFlag{(Flags & SelectedFlag) != 0 ? 1u : 0u};
         FLODSelection LOD{};
 
@@ -287,45 +203,6 @@ void FRenderQueue::BuildSceneItems(const FRenderScene& Scene, const FRenderView&
     std::stable_sort(mTranslucentItems.begin(), mTranslucentItems.end(), [](const FMeshDrawBatch& Left, const FMeshDrawBatch& Right) {
         return Left.mSortDepth > Right.mSortDepth;
     });
-}
-
-void FRenderQueue::BuildGizmoItems(const IAssetRegistry* Registry, const TArray<FActorProbe>& Probes, const FMaterialBuffer& Materials) {
-    if (Registry == nullptr) {
-        return;
-    }
-
-    mGizmoTransforms.reserve(Probes.size());
-
-    for (const FActorProbe& Probe : Probes) {
-        const UMesh* Mesh{Registry->ResolveAsset<UMesh>(Probe.mMeshHandle)};
-        const UMaterial* Material{Registry->ResolveAsset<UMaterial>(Probe.mMaterialHandle)};
-
-        if (Mesh == nullptr || Material == nullptr) {
-            continue;
-        }
-
-        mGizmoTemplates.clear();
-        AppendMeshDrawTemplates(*Mesh, *Material, Materials, Probe.mPipelineHandle, Probe.mMeshHandle, 0, mGizmoTemplates);
-
-        if (mGizmoTemplates.empty()) {
-            continue;
-        }
-
-        if (mGizmoTransforms.size() >= 0x80000000ull || mGizmoTemplates.size() > UINT32_MAX - mDrawRecords.size()) {
-            break;
-        }
-
-        const Uint32 ObjectIndex{0x80000000u | static_cast<Uint32>(mGizmoTransforms.size())};
-
-        mGizmoTransforms.push_back(Probe.mWorld);
-
-        for (const FRenderBatchTemplate& Template : mGizmoTemplates) {
-            const Uint32 FirstRecord{static_cast<Uint32>(mDrawRecords.size())};
-
-            mDrawRecords.push_back(FMeshDrawRecord{ObjectIndex, Template.mMaterialIndex, Probe.mFlags, 0});
-            mGizmoItems.push_back(FMeshDrawBatch{Template.mState, FirstRecord, 1, Probe.mFlags});
-        }
-    }
 }
 
 float FRenderQueue::CalculateScreenSize(const FRenderSceneObject& Object, const CameraProbe& Camera, float ProjectionScale, bool Perspective) const {

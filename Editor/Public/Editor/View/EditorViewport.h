@@ -7,6 +7,7 @@
 #include "Editor/World/FWorldEditorContext.h"
 #include "Editor/Input/FMouseInput.h"
 #include "RenderCore/FLineRenderData.h"
+#include "RenderCore/FOverlayRenderData.h"
 #include "Editor/View/FTransformGizmo.h"
 
 class EditorViewport {
@@ -25,7 +26,7 @@ public:
 
     void PrepareInput(const CameraProbe& Camera, const D3D11_VIEWPORT& Viewport);
     void ProcessInput(FKeyboardInput& KeyboardInput, FMouseInput& MouseInput, bool BMouseCapturedByUi);
-    void BuildViewRenderData(FRenderView& View, const CameraProbe& Camera, const FVector3& CameraPosition, const D3D11_VIEWPORT& Viewport);
+    void BuildOverlayRenderData(FOverlayRenderData& Overlay, const CameraProbe& Camera, const FVector3& CameraPosition, const D3D11_VIEWPORT& Viewport);
 
     FStateChannel<Uint8>::FReadWriter GetGizmoMode();
     FStateChannel<Uint8>::FReadWriter GetGizmoCoordinateSpace();

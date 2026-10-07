@@ -25,6 +25,7 @@
 #include "World/Subsystem/URenderSubsystem.h"
 #include "World/Subsystem/UBillboardSubsystem.h"
 #include "World/Subsystem/UTextSubsystem.h"
+#include "World/Subsystem/UOverlaySubsystem.h"
 #include "World/Subsystem/ULightSubsystem.h"
 
 class UWorld : public UObject {
@@ -96,6 +97,7 @@ public:
     const TArray<std::unique_ptr<AActor>>& GetActors() const;
 
     void BuildSceneRenderData(FSceneRenderData& Scene);
+    void BuildOverlayRenderData(FOverlayRenderData& Overlay, FObjectHandle SelectedActor = {});
 
     void AddObserver(IWorldObserver& Observer);
     void RemoveObserver(IWorldObserver& Observer);
@@ -122,6 +124,9 @@ public:
 
     UTextSubsystem& GetTextSubsystem();
     const UTextSubsystem& GetTextSubsystem() const;
+
+    UOverlaySubsystem& GetOverlaySubsystem();
+    const UOverlaySubsystem& GetOverlaySubsystem() const;
 
     ULightSubsystem& GetLightSubsystem();
     const ULightSubsystem& GetLightSubsystem() const;

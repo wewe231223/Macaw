@@ -2,7 +2,6 @@
 
 #include <bitset>
 #include "RenderCore/FRenderProbe.h"
-#include "RenderCore/FLineRenderData.h"
 #include "Asset/Pipeline/UPipeline.h"
 #include "Render/IRenderSurface.h"
 
@@ -10,12 +9,8 @@ enum class ERenderPass : Uint8 {
     Opaque,
     Translucent,
     PostProcessing,
-    SelectionOutline,
-    SceneGuides,
-    Gizmo,
     Text,
     Billboard,
-    OrientationAxis,
     Count
 };
 
@@ -31,12 +26,4 @@ struct FRenderView {
     bool mUseLOD{true};
 
     std::bitset<static_cast<std::size_t>(ERenderPass::Count)> mPasses{(1ull << static_cast<std::size_t>(ERenderPass::Count)) - 1};
-
-    float mOrientationAxisSize{};
-
-    FObjectHandle mSelectedActorHandle{};
-    TArray<FActorProbe> mGizmoProbes{};
-
-    FLineRenderData mSceneGuides{};
-    FVector4 mGridFade{};
 };

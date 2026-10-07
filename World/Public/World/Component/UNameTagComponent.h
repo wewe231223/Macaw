@@ -1,44 +1,66 @@
 #pragma once
-#include "World/Component/UBillboardTextComponent.h"
+#include "World/Component/USceneComponent.h"
+#include "Core/Asset/FAssetPath.h"
+#include "RenderCore/FOverlayRenderData.h"
 #include "Core/Base/FGuid.h"
 #include "CoreUObject/TObjectRef.h"
 #include "World/AActor.h"
 
-class UNameTagComponent final : public UBillboardTextComponent {
+class UNameTagComponent final : public USceneComponent {
 public:
     UNameTagComponent() = default;
     ~UNameTagComponent() override = default;
 
 public:
-    JG_DECLARE_DERIVED_TYPEINFO(UNameTagComponent, UBillboardTextComponent);
+    JG_DECLARE_DERIVED_TYPEINFO(UNameTagComponent, USceneComponent);
 
-    //nullptr을 지정하면 Owner Actor를 Target으로 사용한다.
     void SetTargetActor(AActor* InTargetActor);
-
     AActor* GetTargetActor() const;
-
     void SetTargetLocalOffset(const FVector3& InOffset);
     const FVector3& GetTargetLocalOffset() const;
-
-    // 요구사항에 맞춘 접근 함수
     FGuid GetObjectGuid() const;
-
     const FVector3& GetObjectOffset() const;
-    bool MakeTextRender(FTextProbe& OutProbe) const override;
+
+    void SetFontHandle(FAssetHandle FontHandle);
+    FAssetHandle GetFontHandle() const;
+    void SetText(const FString& Text);
+    const FString& GetText() const;
+    void SetColor(const FVector4& Color);
+    const FVector4& GetColor() const;
+    void SetPixelHeight(float PixelHeight);
+    float GetPixelHeight() const;
+    void SetLetterSpacing(float LetterSpacing);
+    float GetLetterSpacing() const;
+    void SetLineSpacing(float LineSpacing);
+    float GetLineSpacing() const;
+    void SetScreenOffset(const FVector2& ScreenOffset);
+    const FVector2& GetScreenOffset() const;
+    void SetVisible(bool Visible);
+    bool IsVisible() const;
+
+    bool MakeOverlayText(FOverlayTextProbe& OutProbe) const;
     bool ResolveLoadedReferences() override;
     void RefreshGuidText();
     void OnRegister() override;
-
-private:
+    void OnUnregister() override;
     void Serialize(FArchive& Archive) override;
 
 private:
+    void RebuildTextGeometry();
+
+private:
     TObjectRef<AActor> mTargetActor{};
-
-    // invalid GUID이면 Owner Actor를 사용한다.
-    // TObjectRef가 무효화돼도 원래 Target GUID는 보존된다.
     FGuid mExplicitTargetGuid{};
-
-    // Target Actor의 로컬 좌표 기준 Offset.
     FVector3 mTargetLocalOffset{};
+    FAssetHandle mFontHandle{};
+    FAssetPath mFontAssetPath{};
+    FGuid mFontAssetGuid{};
+    FString mText{};
+    FVector4 mColor{1.0f, 1.0f, 1.0f, 1.0f};
+    float mPixelHeight{24.0f};
+    float mLetterSpacing{};
+    float mLineSpacing{};
+    FVector2 mScreenOffset{0.0f, -8.0f};
+    bool mVisible{true};
+    TArray<FTextVertex> mVertices{};
 };

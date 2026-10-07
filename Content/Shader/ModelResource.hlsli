@@ -21,17 +21,12 @@ struct FModelContext {
 
 StructuredBuffer<FMeshDrawRecord> DrawRecords : register(t0);
 StructuredBuffer<FObjectTransform> ObjectTransforms : register(t15);
-StructuredBuffer<FObjectTransform> GizmoTransforms : register(t16);
 
 FModelContext GetModelContext(uint DrawRecordIndex) {
     const FMeshDrawRecord Record = {DrawRecords[DrawRecordIndex]};
     FModelContext Result = {(float4x4)0.0f, 0u, 0u, 0.0f};
 
-    if ((Record.mObjectIndex & 0x80000000u) != 0u) {
-        Result.mWorld = GizmoTransforms[Record.mObjectIndex & 0x7fffffffu].mWorld;
-    } else {
-        Result.mWorld = ObjectTransforms[Record.mObjectIndex].mWorld;
-    }
+    Result.mWorld = ObjectTransforms[Record.mObjectIndex].mWorld;
 
     Result.mMaterialIndex = Record.mMaterialIndex;
     Result.mFlags = Record.mFlags;

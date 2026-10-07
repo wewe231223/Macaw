@@ -22,8 +22,6 @@ struct FTextProbe {
     // Text Geometry Shader Pipeline
     FAssetHandle mPipelineHandle{};
     FVector4 mColor{1.0f, 1.0f, 1.0f, 1.0f};
-    FVector3 mScreenBoundsExtent{};
-    float mScreenUpPadding{};
     TArray<FTextVertex> mVertices{};
 };
 

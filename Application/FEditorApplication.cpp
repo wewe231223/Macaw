@@ -37,6 +37,7 @@ void FEditorApplication::RenderMode(FApplicationContext& Context, float DeltaTim
         const Stat::FScopedRenderPreparationStatTimer StageStat{Stat::ERenderPreparationStage::SceneData};
 
         Context.mWorldContext->GetWorld().BuildSceneRenderData(mSceneData);
+        Context.mWorldContext->GetWorld().BuildOverlayRenderData(mOverlayData, SelectedActorHandle);
     }
 
     const FRenderScene& RenderScene{Context.mRenderer.SynchronizeScene(mSceneData)};
@@ -55,6 +56,7 @@ void FEditorApplication::RenderMode(FApplicationContext& Context, float DeltaTim
         }
 
         FRenderView View{};
+        FOverlayRenderData Overlay{mOverlayData};
         {
             const Stat::FScopedRenderPreparationStatTimer StageStat{Stat::ERenderPreparationStage::ViewSetup};
 
@@ -62,11 +64,9 @@ void FEditorApplication::RenderMode(FApplicationContext& Context, float DeltaTim
             View.mCamera = Camera;
             View.mSettings = Viewport->GetRenderSettings();
             View.mRenderMode = static_cast<ERenderMode>(Context.mEditorContext->GetRenderModeState());
-            View.mSelectedActorHandle = SelectedActorHandle;
-
-            Context.mEditorView->BuildViewRenderData(View, Camera, Viewport->GetCameraPosition(), Viewport->GetRenderViewport());
+            Context.mEditorView->BuildOverlayRenderData(Overlay, Camera, Viewport->GetCameraPosition(), Viewport->GetRenderViewport());
         }
 
-        Context.mRenderer.RenderView(View, RenderScene);
+        Context.mRenderer.RenderView(View, RenderScene, Overlay);
     }
 }

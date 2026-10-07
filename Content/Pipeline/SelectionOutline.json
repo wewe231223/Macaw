@@ -1,0 +1,43 @@
+{
+  "VertexShader": {
+    "Source": "./Content/Shader/SelectionOverlay.hlsl",
+    "EntryPoint": "MainVS",
+    "Profile": "vs_5_0"
+  },
+  "PixelShader": {
+    "Source": "./Content/Shader/SelectionOverlay.hlsl",
+    "EntryPoint": "MainOutlinePS",
+    "Profile": "ps_5_0"
+  },
+  "InputLayout": [],
+  "PrimitiveTopology": "TriangleList",
+  "Rasterizer": {
+    "FillMode": "Solid",
+    "CullMode": "None",
+    "FrontCounterClockwise": false,
+    "DepthClipEnable": true,
+    "ScissorEnable": false
+  },
+  "DepthStencil": {
+    "DepthEnable": false,
+    "DepthWriteEnable": false,
+    "DepthFunc": "LessEqual",
+    "StencilEnable": false,
+    "StencilReadMask": 1,
+    "StencilWriteMask": 0,
+    "StencilFunc": "NotEqual",
+    "StencilPassOp": "Keep",
+    "StencilFailOp": "Keep",
+    "StencilDepthFailOp": "Keep",
+    "StencilRef": 1
+  },
+  "Blend": {
+    "BlendEnable": false,
+    "SrcBlend": "One",
+    "DestBlend": "Zero",
+    "BlendOp": "Add",
+    "SrcBlendAlpha": "One",
+    "DestBlendAlpha": "Zero",
+    "BlendOpAlpha": "Add"
+  }
+}

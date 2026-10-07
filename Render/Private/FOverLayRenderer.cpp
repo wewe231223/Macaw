@@ -1,6 +1,8 @@
 #include "pch.h"
 #include "Render/FOverLayRenderer.h"
 #include "Asset/UMesh.h"
+#include "Asset/UMaterial.h"
+#include "Render/FLODSelection.h"
 #include "Asset/UTexture.h"
 #include "Core/Stat/Stat.h"
 
@@ -20,6 +22,14 @@ bool FOverLayRenderer::Initialize(ID3D11Device* Device, ID3D11DeviceContext* Con
         }
     }
 
+    UPipeline MaskPipeline{};
+    UPipeline OutlinePipeline{};
+
+    if (!MaskPipeline.Initialize("./Content/Pipeline/SelectionMask.json") || !OutlinePipeline.Initialize("./Content/Pipeline/SelectionOutline.json") || !mSelectionMaskPipeline.Initialize(Device, MaskPipeline) || !mSelectionOutlinePipeline.Initialize(Device, OutlinePipeline) || !mTextRenderer.Initialize(Device)) {
+        Reset();
+        return false;
+    }
+
     mLineRenderer.Initialize(Device);
     mDevice = Device;
 
@@ -33,7 +43,11 @@ bool FOverLayRenderer::BindAssetRegistry(const IAssetRegistry* Registry) {
 
     mOutlineDraws.clear();
     mGizmoDraws.clear();
-    mQueue = {};
+    mObjectTransforms.clear();
+    mDrawRecords.clear();
+    mOutlineItems.clear();
+    mGizmoItems.clear();
+    mTemplates.clear();
     mViewDepths.clear();
     mCurrentDepth = nullptr;
     mCurrentTarget = nullptr;
@@ -97,9 +111,16 @@ void FOverLayRenderer::Reset() {
     EndFrame();
     mOutlineDraws.clear();
     mGizmoDraws.clear();
-    mQueue = {};
+    mObjectTransforms.clear();
+    mDrawRecords.clear();
+    mOutlineItems.clear();
+    mGizmoItems.clear();
+    mTemplates.clear();
     mViewDepths.clear();
     mLineRenderer.Reset();
+    mTextRenderer.Reset();
+    mSelectionMaskPipeline.Reset();
+    mSelectionOutlinePipeline.Reset();
     mFrameResources.clear();
     mAssetResources.Reset();
     mAssetRegistry = nullptr;
@@ -107,41 +128,126 @@ void FOverLayRenderer::Reset() {
     mFrameSerial = 0;
 }
 
-ID3D11DepthStencilView* FOverLayRenderer::RenderView(const FRenderContext& Context, const FRenderView& View, const FRenderScene& Scene, const FRenderQueue& SceneQueue, const FSceneRenderOutput& Output) {
+ID3D11DepthStencilView* FOverLayRenderer::RenderView(ID3D11DeviceContext* Context, const FRenderView& View, const FOverlayRenderData& Overlay, const FSceneRenderOutput& Output) {
     mCurrentDepth = nullptr;
     mCurrentTarget = nullptr;
+    mOutlineDraws.clear();
+    mGizmoDraws.clear();
+    mObjectTransforms.clear();
+    mDrawRecords.clear();
+    mOutlineItems.clear();
+    mGizmoItems.clear();
 
-    if (Context.mDeviceContext == nullptr || mDevice == nullptr || mAssetRegistry == nullptr || mCurrentFrameResource == nullptr || !Output.IsValid()) {
+    if (Context == nullptr || mDevice == nullptr || mCurrentFrameResource == nullptr || !Output.IsValid() || Overlay.mPasses.none()) {
         return Output.mDepthStencilView;
     }
 
-    if (!View.IsPassEnabled(ERenderPass::SelectionOutline) && !View.IsPassEnabled(ERenderPass::SceneGuides) && !View.IsPassEnabled(ERenderPass::Gizmo) && !View.IsPassEnabled(ERenderPass::OrientationAxis)) {
+    if (mAssetRegistry != nullptr) {
+        if (!mAssetResources.GetMaterialBuffer().Synchronize(*mAssetRegistry, Context)) {
+            return Output.mDepthStencilView;
+        }
+
+        if (Overlay.IsPassEnabled(EOverlayPass::SelectionOutline)) {
+            BuildMeshItems(Overlay.mSelectionProbes, View, Output.mViewport, true, mOutlineItems);
+        }
+
+        if (Overlay.IsPassEnabled(EOverlayPass::Gizmo)) {
+            BuildMeshItems(Overlay.mGizmoProbes, View, Output.mViewport, false, mGizmoItems);
+        }
+    }
+
+    if (!PrepareMeshDraws(mOutlineItems, true, mOutlineDraws) || !PrepareMeshDraws(mGizmoItems, false, mGizmoDraws) || !mCurrentFrameResource->PrepareView(mDevice, Context, View.mCamera, Output.mViewport, Overlay.mGridFade, mObjectTransforms, mDrawRecords) || !PrepareDepth(Context, Output)) {
         return Output.mDepthStencilView;
     }
 
-    if (!mAssetResources.GetMaterialBuffer().Synchronize(*mAssetRegistry, Context.mDeviceContext)) {
-        return Output.mDepthStencilView;
+    Output.mTarget->Bind(Context, mCurrentDepth);
+
+    if (!mOutlineDraws.empty() && PrepareSelectionMask()) {
+        DrawSelectionOutline(Context, Output);
     }
 
-    mQueue.BuildOverLay(mAssetRegistry, SceneQueue, View, Context.mAssetResources->GetMaterialBuffer(), mAssetResources.GetMaterialBuffer());
-
-    if (!PrepareMeshDraws(mQueue.GetItems(ERenderPass::SelectionOutline), ERenderMode::Outline, mOutlineDraws) || !PrepareMeshDraws(mQueue.GetItems(ERenderPass::Gizmo), ERenderMode::Lit, mGizmoDraws) || !mCurrentFrameResource->PrepareView(mDevice, Context.mDeviceContext, View, Scene, mQueue) || !PrepareDepth(Context.mDeviceContext, Output)) {
-        return Output.mDepthStencilView;
+    if (Overlay.IsPassEnabled(EOverlayPass::Guides)) {
+        DrawGuides(Context, Overlay);
     }
 
-    Output.mTarget->Bind(Context.mDeviceContext, mCurrentDepth);
-    DrawMeshes(Context.mDeviceContext, mOutlineDraws);
-
-    if (View.IsPassEnabled(ERenderPass::SceneGuides)) {
-        DrawSceneGuides(Context.mDeviceContext, View);
+    if (!mGizmoDraws.empty()) {
+        Context->ClearDepthStencilView(mCurrentDepth, D3D11_CLEAR_DEPTH, 1.0f, 0);
+        DrawMeshes(Context, mGizmoDraws);
     }
 
-    if (View.IsPassEnabled(ERenderPass::Gizmo) && !View.mGizmoProbes.empty()) {
-        Context.mDeviceContext->ClearDepthStencilView(mCurrentDepth, D3D11_CLEAR_DEPTH, 1.0f, 0);
-        DrawMeshes(Context.mDeviceContext, mGizmoDraws);
+    if (Overlay.IsPassEnabled(EOverlayPass::Text) && mAssetRegistry != nullptr) {
+        mTextRenderer.Render(Context, *mCurrentFrameResource, View.mCamera, Output.mViewport, Overlay.mTextProbes, *mAssetRegistry, mAssetResources);
     }
+
+    RenderOrientationAxis(Context, View.mCamera, Overlay, Output);
+    Output.mTarget->Bind(Context, mCurrentDepth);
 
     return mCurrentDepth;
+}
+
+void FOverLayRenderer::BuildMeshItems(const TArray<FActorProbe>& Probes, const FRenderView& View, const D3D11_VIEWPORT& Viewport, bool Selection, TArray<FMeshDrawBatch>& Items) {
+    for (const FActorProbe& Probe : Probes) {
+        const UMesh* Mesh{mAssetRegistry->ResolveAsset<UMesh>(Probe.mMeshHandle)};
+        const UMaterial* Material{mAssetRegistry->ResolveAsset<UMaterial>(Probe.mMaterialHandle)};
+
+        if (Mesh == nullptr || Material == nullptr) {
+            continue;
+        }
+
+        FLODSelection LOD{};
+
+        if (Selection && View.mUseLOD) {
+            const DirectX::BoundingSphere& Bounds{Probe.mWorldSphereBounds};
+            float ScreenSize{Bounds.Radius * std::abs(View.mCamera.mProjection.M[1][1])};
+
+            if (std::abs(View.mCamera.mProjection.M[2][3]) > 1e-6f) {
+                const FMatrix& CameraView{View.mCamera.mView};
+                const float Depth{Bounds.Center.x * CameraView.M[0][2] + Bounds.Center.y * CameraView.M[1][2] + Bounds.Center.z * CameraView.M[2][2] + CameraView.M[3][2]};
+
+                ScreenSize /= std::max(std::abs(Depth), 1e-4f);
+            }
+
+            Uint32 AvailableMask{};
+
+            for (Uint32 Level{}; Level < GLODCount; ++Level) {
+                if (Mesh->HasLOD(Level)) {
+                    AvailableMask |= 1u << Level;
+                }
+            }
+
+            LOD = SelectMeshLOD(ScreenSize, Viewport.Height, AvailableMask, true);
+        }
+
+        if (LOD.mCulled || mObjectTransforms.size() >= UINT32_MAX) {
+            continue;
+        }
+
+        const Uint32 ObjectIndex{static_cast<Uint32>(mObjectTransforms.size())};
+
+        mObjectTransforms.push_back(Probe.mWorld);
+
+        auto AddLevel{[&](Uint32 Level, float Dither) {
+            mTemplates.clear();
+            AppendMeshDrawTemplates(*Mesh, *Material, mAssetResources.GetMaterialBuffer(), Probe.mPipelineHandle, Probe.mMeshHandle, Level, mTemplates);
+
+            for (const FRenderBatchTemplate& Template : mTemplates) {
+                if (mDrawRecords.size() >= UINT32_MAX) {
+                    break;
+                }
+
+                const Uint32 FirstRecord{static_cast<Uint32>(mDrawRecords.size())};
+
+                mDrawRecords.push_back(FMeshDrawRecord{ObjectIndex, Template.mMaterialIndex, Probe.mFlags, Dither});
+                Items.push_back(FMeshDrawBatch{Template.mState, FirstRecord, 1, Probe.mFlags});
+            }
+        }};
+
+        AddLevel(LOD.mLevel, LOD.mDither);
+
+        if (LOD.mNextLevel != UINT32_MAX) {
+            AddLevel(LOD.mNextLevel, -LOD.mDither);
+        }
+    }
 }
 
 bool FOverLayRenderer::PrepareDepth(ID3D11DeviceContext* Context, const FSceneRenderOutput& Output) {
@@ -192,7 +298,41 @@ bool FOverLayRenderer::PrepareDepth(ID3D11DeviceContext* Context, const FSceneRe
     return true;
 }
 
-bool FOverLayRenderer::PrepareMeshDraws(const TArray<FMeshDrawBatch>& Items, ERenderMode Mode, TArray<FMeshDraw>& Draws) {
+bool FOverLayRenderer::PrepareSelectionMask() {
+    FViewDepth& Depth{mViewDepths[mCurrentTarget]};
+
+    if (Depth.mSelectionMaskTarget != nullptr && Depth.mSelectionMaskResource != nullptr) {
+        return true;
+    }
+
+    D3D11_TEXTURE2D_DESC Description{};
+
+    Depth.mTexture->GetDesc(&Description);
+    Description.Format = DXGI_FORMAT_R8_UNORM;
+    Description.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
+
+    return SUCCEEDED(mDevice->CreateTexture2D(&Description, nullptr, Depth.mSelectionMask.ReleaseAndGetAddressOf())) && SUCCEEDED(mDevice->CreateRenderTargetView(Depth.mSelectionMask.Get(), nullptr, Depth.mSelectionMaskTarget.ReleaseAndGetAddressOf())) && SUCCEEDED(mDevice->CreateShaderResourceView(Depth.mSelectionMask.Get(), nullptr, Depth.mSelectionMaskResource.ReleaseAndGetAddressOf()));
+}
+
+void FOverLayRenderer::DrawSelectionOutline(ID3D11DeviceContext* Context, const FSceneRenderOutput& Output) {
+    FViewDepth& Depth{mViewDepths[mCurrentTarget]};
+    constexpr float ClearColor[]{0.0f, 0.0f, 0.0f, 0.0f};
+
+    Context->ClearRenderTargetView(Depth.mSelectionMaskTarget.Get(), ClearColor);
+    Context->OMSetRenderTargets(1, Depth.mSelectionMaskTarget.GetAddressOf(), mCurrentDepth);
+    Context->RSSetViewports(1, &Output.mViewport);
+    DrawMeshes(Context, mOutlineDraws, true);
+    Output.mTarget->Bind(Context, mCurrentDepth);
+    mSelectionOutlinePipeline.Bind(Context, ERenderMode::Lit);
+    Context->PSSetShaderResources(3, 1, Depth.mSelectionMaskResource.GetAddressOf());
+    Context->DrawInstanced(3, 1, 0, 0);
+
+    ID3D11ShaderResourceView* NullResource{nullptr};
+
+    Context->PSSetShaderResources(3, 1, &NullResource);
+}
+
+bool FOverLayRenderer::PrepareMeshDraws(const TArray<FMeshDrawBatch>& Items, bool Selection, TArray<FMeshDraw>& Draws) {
     Draws.clear();
     Draws.reserve(Items.size());
 
@@ -200,27 +340,27 @@ bool FOverLayRenderer::PrepareMeshDraws(const TArray<FMeshDrawBatch>& Items, ERe
         const UPipeline* Pipeline{mAssetRegistry->ResolveAsset<UPipeline>(Item.mState.mPipelineHandle)};
         const UMesh* Mesh{mAssetRegistry->ResolveAsset<UMesh>(Item.mState.mMeshHandle)};
 
-        if (Pipeline == nullptr || Mesh == nullptr || Item.mRecordCount == 0 || (Mode == ERenderMode::Outline && !Pipeline->RenderModeSettable(Mode))) {
+        if (Mesh == nullptr || Item.mRecordCount == 0 || (!Selection && Pipeline == nullptr)) {
             continue;
         }
 
         FMeshDraw Draw{};
 
-        Draw.mMode = Pipeline->ResolveRenderMode(Mode);
+        Draw.mMode = Selection ? ERenderMode::Lit : Pipeline->ResolveRenderMode(ERenderMode::Lit);
 
-        if (!Pipeline->RenderModeSettable(Draw.mMode)) {
+        if (!Selection && !Pipeline->RenderModeSettable(Draw.mMode)) {
             continue;
         }
 
         Draw.mMesh = mAssetResources.GetMesh(*Mesh);
-        Draw.mPipeline = mAssetResources.GetPipeline(*Pipeline);
+        Draw.mPipeline = Selection ? &mSelectionOutlinePipeline : mAssetResources.GetPipeline(*Pipeline);
 
         if (Draw.mMesh == nullptr || Draw.mPipeline == nullptr) {
             return false;
         }
 
         Draw.mBatch = Item;
-        Draw.mStencilReference = Draw.mMode == ERenderMode::Outline || (Item.mFlags & static_cast<Uint32>(ERenderObjectFlags::Selected)) != 0 ? 1u : 0u;
+        Draw.mStencilReference = Selection ? 1u : 0u;
         Draw.mVertexStrides = {Mesh->GetVertexStride(EVertexAttribute::Position), Mesh->GetVertexStride(EVertexAttribute::Normal), Mesh->GetVertexStride(EVertexAttribute::UV), Mesh->GetVertexStride(EVertexAttribute::Color)};
 
         for (Uint8 Index{}; Index < Item.mState.mTextureSignature.mTextureFieldCount; ++Index) {
@@ -235,7 +375,7 @@ bool FOverLayRenderer::PrepareMeshDraws(const TArray<FMeshDrawBatch>& Items, ERe
     return true;
 }
 
-void FOverLayRenderer::DrawMeshes(ID3D11DeviceContext* Context, const TArray<FMeshDraw>& Draws) {
+void FOverLayRenderer::DrawMeshes(ID3D11DeviceContext* Context, const TArray<FMeshDraw>& Draws, bool SelectionMask) {
     if (Draws.empty() || !mCurrentFrameResource->BindModels(Context)) {
         return;
     }
@@ -249,7 +389,10 @@ void FOverLayRenderer::DrawMeshes(ID3D11DeviceContext* Context, const TArray<FMe
         const FMeshDrawBatch& Item{Draw.mBatch};
         const FMeshDrawState& State{Item.mState};
 
-        Draw.mPipeline->Bind(Context, Draw.mMode, Draw.mStencilReference);
+        const FPipelineRenderResource* Pipeline{SelectionMask ? &mSelectionMaskPipeline : Draw.mPipeline};
+
+        Pipeline->Bind(Context, Draw.mMode, Draw.mStencilReference);
+
         Context->VSSetShaderResources(3, static_cast<UINT>(Draw.mTextures.size()), Draw.mTextures.data());
         Context->PSSetShaderResources(3, static_cast<UINT>(Draw.mTextures.size()), Draw.mTextures.data());
 
@@ -264,10 +407,10 @@ void FOverLayRenderer::DrawMeshes(ID3D11DeviceContext* Context, const TArray<FMe
     }
 }
 
-void FOverLayRenderer::DrawSceneGuides(ID3D11DeviceContext* Context, const FRenderView& View) {
+void FOverLayRenderer::DrawGuides(ID3D11DeviceContext* Context, const FOverlayRenderData& Overlay) {
     mLineRenderer.Clear();
 
-    for (const FLineProbe& Line : View.mSceneGuides.GetLines()) {
+    for (const FLineProbe& Line : Overlay.mGuides.GetLines()) {
         mLineRenderer.AddGridLine(Line.mStart, Line.mEnd, Line.mColor, Line.mWidthPixels, Line.mGridSpacing, Line.mDepthMode);
     }
 
@@ -276,8 +419,8 @@ void FOverLayRenderer::DrawSceneGuides(ID3D11DeviceContext* Context, const FRend
     }
 }
 
-void FOverLayRenderer::RenderOrientationAxis(ID3D11DeviceContext* Context, const FRenderView& View, const FSceneRenderOutput& Output) {
-    if (!View.IsPassEnabled(ERenderPass::OrientationAxis) || Context == nullptr || mCurrentFrameResource == nullptr || mCurrentDepth == nullptr || mCurrentTarget != Output.mTarget || !Output.IsValid()) {
+void FOverLayRenderer::RenderOrientationAxis(ID3D11DeviceContext* Context, const CameraProbe& Camera, const FOverlayRenderData& Overlay, const FSceneRenderOutput& Output) {
+    if (!Overlay.IsPassEnabled(EOverlayPass::OrientationAxis) || Context == nullptr || mCurrentFrameResource == nullptr || mCurrentDepth == nullptr || mCurrentTarget != Output.mTarget || !Output.IsValid()) {
         return;
     }
 
@@ -289,14 +432,14 @@ void FOverLayRenderer::RenderOrientationAxis(ID3D11DeviceContext* Context, const
         return;
     }
 
-    const float RequestedSize{View.mOrientationAxisSize > 0.0f ? View.mOrientationAxisSize : std::min(std::min(Viewport.Width, Viewport.Height) * 0.15f, 160.0f)};
+    const float RequestedSize{Overlay.mOrientationAxisSize > 0.0f ? Overlay.mOrientationAxisSize : std::min(std::min(Viewport.Width, Viewport.Height) * 0.15f, 160.0f)};
     const float AxisSize{std::min(RequestedSize, AvailableSize)};
     const D3D11_VIEWPORT AxisViewport{Viewport.TopLeftX + Margin, Viewport.TopLeftY + Margin, AxisSize, AxisSize, Viewport.MinDepth, Viewport.MaxDepth};
 
     Output.mTarget->Bind(Context, mCurrentDepth);
     Context->RSSetViewports(1, &AxisViewport);
 
-    FMatrix AxisView{View.mCamera.mView};
+    FMatrix AxisView{Camera.mView};
 
     AxisView.Translation(FVector3{0.0f, 0.0f, 3.0f});
 

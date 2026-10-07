@@ -1,0 +1,89 @@
+{
+  "VertexShader": {
+    "Source": "./Content/Shader/OverlayText.hlsl",
+    "EntryPoint": "MainVS",
+    "Profile": "vs_5_0"
+  },
+  "PixelShader": {
+    "Source": "./Content/Shader/OverlayText.hlsl",
+    "EntryPoint": "MainPS",
+    "Profile": "ps_5_0"
+  },
+  "InputLayout": [
+    {
+      "SemanticName": "POSITION",
+      "SemanticIndex": 0,
+      "Format": "Float2",
+      "InputSlot": 0,
+      "AlignedByteOffset": 0,
+      "InputClassification": "PerInstance",
+      "InstanceDataStepRate": 1
+    },
+    {
+      "SemanticName": "SIZE",
+      "SemanticIndex": 0,
+      "Format": "Float2",
+      "InputSlot": 0,
+      "AlignedByteOffset": 8,
+      "InputClassification": "PerInstance",
+      "InstanceDataStepRate": 1
+    },
+    {
+      "SemanticName": "TEXCOORD",
+      "SemanticIndex": 0,
+      "Format": "Float2",
+      "InputSlot": 0,
+      "AlignedByteOffset": 16,
+      "InputClassification": "PerInstance",
+      "InstanceDataStepRate": 1
+    },
+    {
+      "SemanticName": "TEXCOORD",
+      "SemanticIndex": 1,
+      "Format": "Float2",
+      "InputSlot": 0,
+      "AlignedByteOffset": 24,
+      "InputClassification": "PerInstance",
+      "InstanceDataStepRate": 1
+    },
+    {
+      "SemanticName": "COLOR",
+      "SemanticIndex": 0,
+      "Format": "Float4",
+      "InputSlot": 0,
+      "AlignedByteOffset": 32,
+      "InputClassification": "PerInstance",
+      "InstanceDataStepRate": 1
+    }
+  ],
+  "PrimitiveTopology": "TriangleList",
+  "Rasterizer": {
+    "FillMode": "Solid",
+    "CullMode": "None",
+    "FrontCounterClockwise": false,
+    "DepthClipEnable": true,
+    "ScissorEnable": false
+  },
+  "DepthStencil": {
+    "DepthEnable": false,
+    "DepthWriteEnable": false,
+    "DepthFunc": "LessEqual",
+    "StencilEnable": false,
+    "StencilReadMask": 255,
+    "StencilWriteMask": 255,
+    "StencilFunc": "Always",
+    "StencilPassOp": "Replace",
+    "StencilFailOp": "Keep",
+    "StencilDepthFailOp": "Keep",
+    "StencilRef": 1
+  },
+  "Blend": {
+    "BlendEnable": true,
+    "SrcBlend": "SrcAlpha",
+    "DestBlend": "InvSrcAlpha",
+    "BlendOp": "Add",
+    "SrcBlendAlpha": "One",
+    "DestBlendAlpha": "InvSrcAlpha",
+    "BlendOpAlpha": "Add"
+  }
+}

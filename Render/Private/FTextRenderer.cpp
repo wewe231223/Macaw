@@ -59,7 +59,7 @@ void FTextRenderer::Render(ID3D11DeviceContext* Context, FFrameResource& FrameRe
 
         const Uint32 TextIndex{static_cast<Uint32>(mTextContexts.size())};
 
-        mTextContexts.push_back(FTextContext{Probe.mWorld, Probe.mColor, Probe.mScreenBoundsExtent, Probe.mScreenUpPadding});
+        mTextContexts.push_back(FTextContext{Probe.mWorld, Probe.mColor});
         mDraws.push_back(FTextDraw{PipeLine, AtlasSRV, static_cast<Uint32>(mVertices.size()), static_cast<Uint32>(Probe.mVertices.size())});
 
         for (const FTextVertex& Vertex : Probe.mVertices) {

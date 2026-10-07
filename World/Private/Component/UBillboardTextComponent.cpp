@@ -2,43 +2,11 @@
 #include "World/Component/UBillboardTextComponent.h"
 #include "CoreUObject/Asset/IAssetRegistry.h"
 #include "Asset/UFont.h"
+#include "Asset/FTextGeometry.h"
 #include "Asset/Pipeline/UPipeline.h"
 #include "World/AActor.h"
 #include "World/UWorld.h"
 #include "World/Subsystem/UTextSubsystem.h"
-
-namespace {
-    bool DecodeKoreanUTF8(const FString& Text, TArray<char32_t>& OutCodePoints) {
-        OutCodePoints.clear();
-
-        if (Text.empty()) {
-            return true;
-        }
-
-        const int WideLength{MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, Text.data(), static_cast<int>(Text.size()), nullptr, 0)};
-
-        if (WideLength <= 0) {
-            return false;
-        }
-
-        std::wstring WideText{};
-
-        WideText.resize(WideLength);
-
-        const int ConvertedLength{MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, Text.data(), static_cast<int>(Text.size()), WideText.data(), WideLength)};
-
-        if (ConvertedLength != WideLength) {
-            return false;
-        }
-
-        // 현대 한글 U+AC00~U+D7A3은 UTF-16 한 칸에 들어간다.
-        for (wchar_t Character : WideText) {
-            OutCodePoints.push_back(static_cast<char32_t>(Character));
-        }
-
-        return true;
-    }
-}
 
 void UBillboardTextComponent::SetFontHandle(FAssetHandle InFontHandle) {
     if (mFontHandle == InFontHandle) {
@@ -160,112 +128,13 @@ bool UBillboardTextComponent::MakeTextRender(FTextProbe& OutProbe) const {
 void UBillboardTextComponent::RebuildTextGeometry() {
     mVertices.clear();
 
-    if (!mFontHandle || mText.empty() || mCharacterHeight <= 0.0f) {
-        return;
-    }
+    UWorld* World{GetBelongingWorld()};
+    const IAssetRegistry* Registry{World != nullptr ? World->GetAssetRegistry() : nullptr};
+    IAssetRegistryMutator* Mutator{World != nullptr ? World->GetAssetRegistryMutator() : nullptr};
+    const UFont* Font{Registry != nullptr ? Registry->ResolveAsset<UFont>(mFontHandle) : nullptr};
 
-    AActor* Owner{GetOwner()};
-
-    if (Owner == nullptr || Owner->GetWorld() == nullptr) {
-        return;
-    }
-
-    const IAssetRegistry* AssetRegistry{Owner->GetWorld()->GetAssetRegistry()};
-
-    if (AssetRegistry == nullptr) {
-        return;
-    }
-
-    const UFont* Font{AssetRegistry->ResolveAsset<UFont>(mFontHandle)};
-    IAssetRegistryMutator* AssetRegistryMutator{Owner->GetWorld()->GetAssetRegistryMutator()};
-
-    if (Font == nullptr || AssetRegistryMutator == nullptr) {
-        return;
-    }
-
-    const FFontMetrics& Metrics{Font->GetFontMetrics()};
-
-    if (Metrics.mLineHeight <= 0.0f) {
-        return;
-    }
-
-    TArray<char32_t> CodePoints{};
-
-    if (!DecodeKoreanUTF8(mText, CodePoints)) {
-        return;
-    }
-
-    // FreeType 픽셀 좌표를 World 좌표로 변환하는 비율.
-    const float PixelToWorld{mCharacterHeight / Metrics.mLineHeight};
-
-    float PenX{0.0f};
-    float BaselineY{0.0f};
-
-    for (char32_t CodePoint : CodePoints) {
-        if (CodePoint == U'\r') {
-            continue;
-        }
-
-        if (CodePoint == U'\n') {
-            PenX = 0.0f;
-            BaselineY -= mCharacterHeight + mLineSpacing;
-
-            continue;
-        }
-
-        const FFontGlyph* Glyph{AssetRegistryMutator->GetOrCreateFontGlyph(mFontHandle, CodePoint)};
-
-        if (Glyph == nullptr) {
-            Glyph = AssetRegistryMutator->GetOrCreateFontGlyph(mFontHandle, U'\uFFFD');
-        }
-
-        if (Glyph == nullptr) {
-            continue;
-        }
-
-        // 공백은 Bitmap이 없으므로 Vertex를 만들지 않는다.하지만 아래에서 AdvanceX는 적용한다.
-        if (Glyph->mBitmapWidth > 0 && Glyph->mBitmapHeight > 0) {
-            FTextVertex Vertex{};
-
-            // Shader가 LocalPosition을 Glyph Quad의 왼쪽 위 좌표로 사용한다.
-            Vertex.mLocalPosition.mX = PenX + static_cast<float>(Glyph->mBearingX) * PixelToWorld;
-            Vertex.mLocalPosition.mY = BaselineY + static_cast<float>(Glyph->mBearingY) * PixelToWorld;
-            Vertex.mSize.mX = static_cast<float>(Glyph->mBitmapWidth) * PixelToWorld;
-            Vertex.mSize.mY = static_cast<float>(Glyph->mBitmapHeight) * PixelToWorld;
-            Vertex.mUvMin = Glyph->mUvMin;
-            Vertex.mUvMax = Glyph->mUvMax;
-
-            mVertices.push_back(Vertex);
-        }
-
-        PenX += Glyph->mAdvanceX * PixelToWorld + mLetterSpacing;
-    }
-
-    if (mVertices.empty()) {
-        return;
-    }
-
-    // 셰이더가 사용하는 실제 Glyph Quad들의 경계로 텍스트 중심을 계산한다.
-    // FreeType의 Bearing 때문에 첫 글자의 Left/Top이 0이라는 보장이 없다.
-    const FTextVertex& FirstVertex{mVertices.front()};
-    float MinLeft{FirstVertex.mLocalPosition.mX};
-    float MaxRight{FirstVertex.mLocalPosition.mX + FirstVertex.mSize.mX};
-    float MaxTop{FirstVertex.mLocalPosition.mY};
-    float MinBottom{FirstVertex.mLocalPosition.mY - FirstVertex.mSize.mY};
-
-    for (const FTextVertex& Vertex : mVertices) {
-        MinLeft = std::min(MinLeft, Vertex.mLocalPosition.mX);
-        MaxRight = std::max(MaxRight, Vertex.mLocalPosition.mX + Vertex.mSize.mX);
-        MaxTop = std::max(MaxTop, Vertex.mLocalPosition.mY);
-        MinBottom = std::min(MinBottom, Vertex.mLocalPosition.mY - Vertex.mSize.mY);
-    }
-
-    const float CenterX{(MinLeft + MaxRight) * 0.5f};
-    const float CenterY{(MinBottom + MaxTop) * 0.5f};
-
-    for (FTextVertex& Vertex : mVertices) {
-        Vertex.mLocalPosition.mX -= CenterX;
-        Vertex.mLocalPosition.mY -= CenterY;
+    if (Font != nullptr && Mutator != nullptr) {
+        BuildTextGeometry(*Font, *Mutator, mFontHandle, mText, mCharacterHeight, mLetterSpacing, mLineSpacing, mVertices);
     }
 }
 

@@ -164,7 +164,10 @@ void FAssetThumbnailRenderer::RenderThumbnail(const FAssetEntry& Entry, FSceneRe
     View.SetPassEnabled(ERenderPass::Translucent, true);
     View.SetPassEnabled(ERenderPass::PostProcessing, true);
     Scene.mRevision = ++mRenderSceneRevision;
-    mRenderer->RenderView(View, Scene);
+    FOverlayRenderData Overlay{};
+
+    Overlay.mPasses.reset();
+    mRenderer->RenderView(View, Scene, Overlay);
 }
 
 ID3D11ShaderResourceView* FAssetThumbnailRenderer::GetThumbnail(FAssetHandle AssetHandle) const {

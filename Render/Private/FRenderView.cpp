@@ -8,7 +8,7 @@ bool FRenderView::IsPassEnabled(ERenderPass Pass) const {
         return false;
     }
 
-    return Pass != ERenderPass::SelectionOutline || IsPassEnabled(ERenderPass::Opaque) || IsPassEnabled(ERenderPass::Translucent);
+    return true;
 }
 
 void FRenderView::SetPassEnabled(ERenderPass Pass, bool Enabled) {

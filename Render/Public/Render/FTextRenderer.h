@@ -14,8 +14,6 @@ private:
     struct FTextContext {
         FMatrix mWorld{};
         FVector4 mColor{};
-        FVector3 mScreenBoundsExtent{};
-        float mScreenUpPadding{};
     };
 
     struct FGlyphVertex {
@@ -30,7 +28,7 @@ private:
         Uint32 mVertexCount{};
     };
 
-    static_assert(sizeof(FTextContext) == 96);
+    static_assert(sizeof(FTextContext) == 80);
     static_assert(sizeof(FGlyphVertex) == 36);
 
 public:

@@ -25,7 +25,6 @@ public:
 
     const FRenderScene& SynchronizeScene(const FRenderContext& Context, FSceneRenderData& Scene);
     FSceneRenderOutput RenderView(const FRenderContext& Context, const FRenderView& View, const FRenderScene& Scene);
-    const FRenderQueue* GetRenderQueue(const IRenderSurface* Target) const;
 
 private:
     void RenderTextAndBillboards(const FRenderContext& Context, const FRenderView& View, const FRenderScene& Scene);

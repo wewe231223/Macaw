@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Render/FFrameResource.h"
+#include "Render/FRenderQueue.h"
 #include "Core/Base/ErrorHandler.h"
 
 #include <limits>
@@ -82,6 +83,42 @@ bool FFrameResource::PrepareView(ID3D11Device* Device, ID3D11DeviceContext* Cont
         return false;
     }
 
+    if (!PrepareViewBuffers(Device, Context, Scene.GetLightProbes()) || !PrepareSceneTransforms(Device, Context, Scene) || !UploadModels(Device, Context, Queue.GetDrawRecords())) {
+        return false;
+    }
+
+    mViewReady = UploadViewConstants(Context, mViews[mUsedViewCount - 1].mViewConstants, View.mCamera, View.mTarget->GetViewport(), FVector4{}, mHasCameraWorld);
+
+    return mViewReady;
+}
+
+bool FFrameResource::PrepareView(ID3D11Device* Device, ID3D11DeviceContext* Context, const CameraProbe& Camera, const D3D11_VIEWPORT& Viewport, const FVector4& GridFade, const TArray<FMatrix>& Transforms, const TArray<FMeshDrawRecord>& Records) {
+    mViewReady = false;
+    mHasCameraWorld = false;
+
+    const TArray<FLightProbe> Lights{};
+
+    if (!mFrameReady || Device == nullptr || Context == nullptr || !PrepareViewBuffers(Device, Context, Lights)) {
+        return false;
+    }
+
+    FViewBuffers& Buffers{mViews[mUsedViewCount - 1]};
+    ID3D11ShaderResourceView* NullResource{nullptr};
+
+    Context->VSSetShaderResources(15, 1, &NullResource);
+    Context->PSSetShaderResources(15, 1, &NullResource);
+
+    if (!Buffers.mLocalTransforms.UploadNoOverwrite(Device, Context, Transforms) || !UploadModels(Device, Context, Records)) {
+        return false;
+    }
+
+    Buffers.mSceneTransforms = Buffers.mLocalTransforms.GetSRV()[0];
+    mViewReady = UploadViewConstants(Context, Buffers.mViewConstants, Camera, Viewport, GridFade, mHasCameraWorld);
+
+    return mViewReady;
+}
+
+bool FFrameResource::PrepareViewBuffers(ID3D11Device* Device, ID3D11DeviceContext* Context, const TArray<FLightProbe>& Lights) {
     ID3D11ShaderResourceView* NullResource{nullptr};
 
     Context->PSSetShaderResources(2, 1, &NullResource);
@@ -89,7 +126,7 @@ bool FFrameResource::PrepareView(ID3D11Device* Device, ID3D11DeviceContext* Cont
     if (mUsedViewCount == mViews.size()) {
         FViewBuffers Buffers{};
 
-        if (!InitializeConstantBuffer(Device, Buffers.mViewConstants, sizeof(FViewConstants)) || !InitializeConstantBuffer(Device, Buffers.mOrientationAxisConstants, sizeof(FViewConstants)) || !Buffers.mLights.Initialize(Device, Context, 16) || !Buffers.mDrawRecords.Initialize(Device, Context, 128) || !Buffers.mGizmoTransforms.Initialize(Device, Context, 16)) {
+        if (!InitializeConstantBuffer(Device, Buffers.mViewConstants, sizeof(FViewConstants)) || !InitializeConstantBuffer(Device, Buffers.mOrientationAxisConstants, sizeof(FViewConstants)) || !Buffers.mLights.Initialize(Device, Context, 16) || !Buffers.mDrawRecords.Initialize(Device, Context, 128) || !Buffers.mLocalTransforms.Initialize(Device, Context, 16)) {
             return false;
         }
 
@@ -104,13 +141,7 @@ bool FFrameResource::PrepareView(ID3D11Device* Device, ID3D11DeviceContext* Cont
         Stream.mUploaded = false;
     }
 
-    if (!Buffers.mLights.UploadNoOverwrite(Device, Context, Scene.GetLightProbes()) || !PrepareSceneTransforms(Device, Context, Scene) || !UploadModels(Device, Context, Queue)) {
-        return false;
-    }
-
-    mViewReady = UploadViewConstants(Context, Buffers.mViewConstants, View.mCamera, View.mTarget->GetViewport(), View.mGridFade, mHasCameraWorld);
-
-    return mViewReady;
+    return Buffers.mLights.UploadNoOverwrite(Device, Context, Lights);
 }
 
 bool FFrameResource::PrepareOrientationAxis(ID3D11DeviceContext* Context, const CameraProbe& Camera, const D3D11_VIEWPORT& Viewport) {
@@ -159,8 +190,6 @@ bool FFrameResource::BindModels(ID3D11DeviceContext* Context) const {
     Context->PSSetShaderResources(0, 1, Buffers.mDrawRecords.GetSRV());
     Context->VSSetShaderResources(15, 1, Buffers.mSceneTransforms.GetAddressOf());
     Context->PSSetShaderResources(15, 1, Buffers.mSceneTransforms.GetAddressOf());
-    Context->VSSetShaderResources(16, 1, Buffers.mGizmoTransforms.GetSRV());
-    Context->PSSetShaderResources(16, 1, Buffers.mGizmoTransforms.GetSRV());
 
     ID3D11Buffer* DrawRecordIndexBuffer{mDrawRecordIndexBuffer.GetBuffer()};
     const UINT Stride{sizeof(Uint32)};
@@ -298,17 +327,15 @@ bool FFrameResource::UploadViewConstants(ID3D11DeviceContext* Context, FGraphics
     return Buffer.WriteNoOverwrite(Context, &Constants, sizeof(Constants), 0);
 }
 
-bool FFrameResource::UploadModels(ID3D11Device* Device, ID3D11DeviceContext* Context, const FRenderQueue& Queue) {
+bool FFrameResource::UploadModels(ID3D11Device* Device, ID3D11DeviceContext* Context, const TArray<FMeshDrawRecord>& Records) {
     ID3D11ShaderResourceView* NullResource{nullptr};
 
     Context->VSSetShaderResources(0, 1, &NullResource);
     Context->PSSetShaderResources(0, 1, &NullResource);
-    Context->VSSetShaderResources(16, 1, &NullResource);
-    Context->PSSetShaderResources(16, 1, &NullResource);
 
     FViewBuffers& Buffers{mViews[mUsedViewCount - 1]};
 
-    return Buffers.mDrawRecords.UploadNoOverwrite(Device, Context, Queue.GetDrawRecords()) && Buffers.mGizmoTransforms.UploadNoOverwrite(Device, Context, Queue.GetGizmoTransforms()) && (Buffers.mDrawRecords.IsEmpty() || EnsureDrawRecordIndices(Device));
+    return Buffers.mDrawRecords.UploadNoOverwrite(Device, Context, Records) && (Buffers.mDrawRecords.IsEmpty() || EnsureDrawRecordIndices(Device));
 }
 
 bool FFrameResource::PrepareSceneTransforms(ID3D11Device* Device, ID3D11DeviceContext* Context, const FRenderScene& Scene) {

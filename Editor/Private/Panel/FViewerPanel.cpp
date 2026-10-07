@@ -345,13 +345,16 @@ void FViewerPanel::RenderOffscreen(FRenderer& InRenderer, FAssetRegistry&) {
     View.mCamera = BuildPreviewCamera();
     View.mUseLOD = false;
     View.mSettings = PreviewSettings;
-    View.mOrientationAxisSize = 100.0f;
+    FOverlayRenderData Overlay{};
+
+    Overlay.mOrientationAxisSize = 100.0f;
+    Overlay.mPasses.reset();
+    Overlay.SetPassEnabled(EOverlayPass::OrientationAxis, true);
     View.mPasses.reset();
     View.SetPassEnabled(ERenderPass::Opaque, true);
     View.SetPassEnabled(ERenderPass::Translucent, true);
     View.SetPassEnabled(ERenderPass::PostProcessing, true);
-    View.SetPassEnabled(ERenderPass::OrientationAxis, true);
-    InRenderer.RenderView(View, PreviewScene);
+    InRenderer.RenderView(View, PreviewScene, Overlay);
 }
 
 void FViewerPanel::ReleaseRenderResources() {

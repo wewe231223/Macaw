@@ -195,13 +195,13 @@ const FRenderScene& FRenderer::SynchronizeScene(FSceneRenderData& Scene) {
     return mSceneRenderer.SynchronizeScene(Context, Scene);
 }
 
-void FRenderer::RenderView(const FRenderView& View, FSceneRenderData& Scene) {
+void FRenderer::RenderView(const FRenderView& View, FSceneRenderData& Scene, const FOverlayRenderData& Overlay) {
     const FRenderScene& RenderScene{SynchronizeScene(Scene)};
 
-    RenderView(View, RenderScene);
+    RenderView(View, RenderScene, Overlay);
 }
 
-void FRenderer::RenderView(const FRenderView& View, const FRenderScene& Scene) {
+void FRenderer::RenderView(const FRenderView& View, const FRenderScene& Scene, const FOverlayRenderData& Overlay) {
     const Stat::FScopedSystemStatTimer RenderStat{Stat::ESystemStatStage::RenderPreparation};
 
     if (mDeviceContext == nullptr || mCurrentFrameResource == nullptr) {
@@ -212,16 +212,14 @@ void FRenderer::RenderView(const FRenderView& View, const FRenderScene& Scene) {
 
     const FRenderContext Context{mDeviceContext.Get(), mAssetRegistry, &mAssetResources, mAssetResources.GetMaterialBuffer().GetSRV(), mCurrentFrameResource};
     const FSceneRenderOutput Output{mSceneRenderer.RenderView(Context, View, Scene)};
-    const FRenderQueue* Queue{mSceneRenderer.GetRenderQueue(View.mTarget)};
 
-    if (!Output.IsValid() || Queue == nullptr) {
+    if (!Output.IsValid()) {
         return;
     }
 
     const Stat::FScopedSystemStatTimer StageStat{Stat::ESystemStatStage::EditorOverlays};
     BindSamplerStates();
-    mOverLayRenderer.RenderView(Context, View, Scene, *Queue, Output);
-    mOverLayRenderer.RenderOrientationAxis(mDeviceContext.Get(), View, Output);
+    mOverLayRenderer.RenderView(mDeviceContext.Get(), View, Overlay, Output);
     View.mTarget->Bind(mDeviceContext.Get());
 }
 

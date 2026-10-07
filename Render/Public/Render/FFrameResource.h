@@ -1,14 +1,18 @@
 #pragma once
 #include "Core/Base/FRevisionCursor.h"
-#include "Render/FRenderQueue.h"
-#include "Render/FRenderScene.h"
+#include "Render/FMeshDrawData.h"
+#include "Render/FRenderView.h"
 #include "Render/Buffer/TGraphicsArray.h"
 
 #include <array>
 
+class FRenderScene;
+class FRenderQueue;
+
 enum class EFrameStream : Uint8 {
     Text,
     TextContext,
+    OverlayText,
     Billboard,
     LineDepth,
     LineOverlay,
@@ -58,7 +62,7 @@ private:
         TGraphicsArray<FLightProbe, true, true> mLights{};
 
         TGraphicsArray<FMeshDrawRecord, true, true> mDrawRecords{};
-        TGraphicsArray<FMatrix, true, true> mGizmoTransforms{};
+        TGraphicsArray<FMatrix, true, true> mLocalTransforms{};
         Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> mSceneTransforms{};
 
         std::array<FStreamBuffer, static_cast<std::size_t>(EFrameStream::Count)> mStreams{};
@@ -78,6 +82,7 @@ public:
     void EndFrame();
 
     bool PrepareView(ID3D11Device* Device, ID3D11DeviceContext* Context, const FRenderView& View, const FRenderScene& Scene, const FRenderQueue& Queue);
+    bool PrepareView(ID3D11Device* Device, ID3D11DeviceContext* Context, const CameraProbe& Camera, const D3D11_VIEWPORT& Viewport, const FVector4& GridFade, const TArray<FMatrix>& Transforms, const TArray<FMeshDrawRecord>& Records);
     bool PrepareOrientationAxis(ID3D11DeviceContext* Context, const CameraProbe& Camera, const D3D11_VIEWPORT& Viewport);
 
     bool BindCommon(ID3D11DeviceContext* Context, bool OrientationAxis = false) const;
@@ -94,7 +99,8 @@ private:
     bool InitializeConstantBuffer(ID3D11Device* Device, FGraphicsBuffer& Buffer, Uint32 ByteSize);
 
     bool UploadViewConstants(ID3D11DeviceContext* Context, FGraphicsBuffer& Buffer, const CameraProbe& Camera, const D3D11_VIEWPORT& Viewport, const FVector4& GridFade, bool& HasCameraWorld);
-    bool UploadModels(ID3D11Device* Device, ID3D11DeviceContext* Context, const FRenderQueue& Queue);
+    bool PrepareViewBuffers(ID3D11Device* Device, ID3D11DeviceContext* Context, const TArray<FLightProbe>& Lights);
+    bool UploadModels(ID3D11Device* Device, ID3D11DeviceContext* Context, const TArray<FMeshDrawRecord>& Records);
 
     bool PrepareSceneTransforms(ID3D11Device* Device, ID3D11DeviceContext* Context, const FRenderScene& Scene);
     bool UpdateSceneTransforms(ID3D11Device* Device, ID3D11DeviceContext* Context, const FRenderScene& Scene, FSceneBuffers& Buffers);

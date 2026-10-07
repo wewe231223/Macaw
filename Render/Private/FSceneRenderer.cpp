@@ -103,12 +103,11 @@ FSceneRenderOutput FSceneRenderer::RenderView(const FRenderContext& Context, con
     FRenderView SceneView{View};
 
     SceneView.mTarget = ViewQueue.mSceneColor.get();
-    SceneView.SetPassEnabled(ERenderPass::Gizmo, false);
 
     {
         const Stat::FScopedRenderPreparationStatTimer StageStat{Stat::ERenderPreparationStage::RenderQueue};
 
-        ViewQueue.mQueue.Build(Context.mAssetRegistry, Scene, SceneView, Context.mAssetResources->GetMaterialBuffer());
+        ViewQueue.mQueue.Build(Scene, SceneView);
     }
 
     {
@@ -151,10 +150,4 @@ void FSceneRenderer::RenderTextAndBillboards(const FRenderContext& Context, cons
     if (View.IsPassEnabled(ERenderPass::Billboard)) {
         mBillboardRenderer.Render(Context.mDeviceContext, *Context.mFrameResource, Scene.GetBillboardProbes(), Context.mAssetRegistry, *Context.mAssetResources, View.mRenderMode);
     }
-}
-
-const FRenderQueue* FSceneRenderer::GetRenderQueue(const IRenderSurface* Target) const {
-    const auto Position{mRenderQueues.find(Target)};
-
-    return Position != mRenderQueues.end() ? &Position->second.mQueue : nullptr;
 }

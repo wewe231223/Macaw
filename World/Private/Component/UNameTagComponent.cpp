@@ -1,8 +1,6 @@
 #include "pch.h"
 #include "World/Component/UNameTagComponent.h"
-#include "Asset/UFont.h"
-#include "Asset/Pipeline/UPipeline.h"
-#include "World/AActor.h"
+#include "Asset/FTextGeometry.h"
 #include "World/Component/UMeshComponent.h"
 #include "World/UWorld.h"
 #include "CoreUObject/UObjectSystem.h"
@@ -21,17 +19,8 @@ void UNameTagComponent::SetTargetActor(AActor* InTargetActor) {
     RefreshGuidText();
 }
 
-void UNameTagComponent::OnRegister() {
-    UBillboardTextComponent::OnRegister();
-    RefreshGuidText();
-}
-
 AActor* UNameTagComponent::GetTargetActor() const {
-    if (!mExplicitTargetGuid.IsValid()) {
-        return GetOwner();
-    }
-
-    return mTargetActor.Get();
+    return mExplicitTargetGuid.IsValid() ? mTargetActor.Get() : GetOwner();
 }
 
 void UNameTagComponent::SetTargetLocalOffset(const FVector3& InOffset) {
@@ -47,58 +36,137 @@ const FVector3& UNameTagComponent::GetObjectOffset() const {
 }
 
 FGuid UNameTagComponent::GetObjectGuid() const {
-    if (mExplicitTargetGuid.IsValid()) {
-        return mExplicitTargetGuid;
-    }
-
     const AActor* Owner{GetOwner()};
 
-    return Owner != nullptr ? Owner->GetGuid() : FGuid{};
+    return mExplicitTargetGuid.IsValid() ? mExplicitTargetGuid : Owner != nullptr ? Owner->GetGuid() : FGuid{};
 }
 
-bool UNameTagComponent::MakeTextRender(FTextProbe& OutProbe) const {
-    AActor* Target{GetTargetActor()};
-
-    if (Target == nullptr || Target->GetRootComponent() == nullptr) {
-        return false;
+void UNameTagComponent::SetFontHandle(FAssetHandle FontHandle) {
+    if (mFontHandle == FontHandle) {
+        return;
     }
 
-    if (!UBillboardTextComponent::MakeTextRender(OutProbe)) {
+    mFontHandle = FontHandle;
+
+    const UWorld* World{GetBelongingWorld()};
+    const IAssetRegistry* Registry{World != nullptr ? World->GetAssetRegistry() : nullptr};
+
+    mFontAssetPath = Registry != nullptr && Registry->GetAssetPath(FontHandle) != nullptr ? *Registry->GetAssetPath(FontHandle) : FAssetPath{};
+    mFontAssetGuid = Registry != nullptr && Registry->GetAssetGuid(FontHandle) != nullptr ? *Registry->GetAssetGuid(FontHandle) : FGuid{};
+    RebuildTextGeometry();
+}
+
+FAssetHandle UNameTagComponent::GetFontHandle() const {
+    return mFontHandle;
+}
+
+void UNameTagComponent::SetText(const FString& Text) {
+    if (mText != Text) {
+        mText = Text;
+        RebuildTextGeometry();
+    }
+}
+
+const FString& UNameTagComponent::GetText() const {
+    return mText;
+}
+
+void UNameTagComponent::SetColor(const FVector4& Color) {
+    mColor = Color;
+}
+
+const FVector4& UNameTagComponent::GetColor() const {
+    return mColor;
+}
+
+void UNameTagComponent::SetPixelHeight(float PixelHeight) {
+    if (std::isfinite(PixelHeight) && PixelHeight > 0.0f && mPixelHeight != PixelHeight) {
+        mPixelHeight = PixelHeight;
+        RebuildTextGeometry();
+    }
+}
+
+float UNameTagComponent::GetPixelHeight() const {
+    return mPixelHeight;
+}
+
+void UNameTagComponent::SetLetterSpacing(float LetterSpacing) {
+    if (std::isfinite(LetterSpacing) && mLetterSpacing != LetterSpacing) {
+        mLetterSpacing = LetterSpacing;
+        RebuildTextGeometry();
+    }
+}
+
+float UNameTagComponent::GetLetterSpacing() const {
+    return mLetterSpacing;
+}
+
+void UNameTagComponent::SetLineSpacing(float LineSpacing) {
+    if (std::isfinite(LineSpacing) && mLineSpacing != LineSpacing) {
+        mLineSpacing = LineSpacing;
+        RebuildTextGeometry();
+    }
+}
+
+float UNameTagComponent::GetLineSpacing() const {
+    return mLineSpacing;
+}
+
+void UNameTagComponent::SetScreenOffset(const FVector2& ScreenOffset) {
+    if (std::isfinite(ScreenOffset.mX) && std::isfinite(ScreenOffset.mY)) {
+        mScreenOffset = ScreenOffset;
+    }
+}
+
+const FVector2& UNameTagComponent::GetScreenOffset() const {
+    return mScreenOffset;
+}
+
+void UNameTagComponent::SetVisible(bool Visible) {
+    mVisible = Visible;
+}
+
+bool UNameTagComponent::IsVisible() const {
+    return mVisible;
+}
+
+bool UNameTagComponent::MakeOverlayText(FOverlayTextProbe& OutProbe) const {
+    const AActor* Target{GetTargetActor()};
+
+    if (!IsRegistered() || !mVisible || !mFontHandle || mVertices.empty() || Target == nullptr || Target->GetRootComponent() == nullptr || Target->GetWorld() != GetBelongingWorld()) {
         return false;
     }
 
     const FMatrix TargetWorld{Target->GetActorTransform().ToMatrixWithScale()};
-    const FVector3 TargetOrigin{TargetWorld.Translation()};
-    FVector3 Minimum{TargetOrigin};
-    FVector3 Maximum{TargetOrigin};
-    bool HasMeshBounds{false};
+    const FVector3 Origin{TargetWorld.Translation()};
+    FVector3 Minimum{Origin};
+    FVector3 Maximum{Origin};
+    bool HasBounds{};
 
     for (const std::unique_ptr<UActorComponent>& Component : Target->GetComponents()) {
-        if (!Component->GetTypeInfo()->IsA(UMeshComponent::StaticTypeInfo())) {
+        if (!Component->GetTypeInfo()->IsA<UMeshComponent>()) {
             continue;
         }
 
-        const UMeshComponent* MeshComponent{static_cast<const UMeshComponent*>(Component.get())};
+        const UMeshComponent* Mesh{static_cast<const UMeshComponent*>(Component.get())};
 
-        if (!MeshComponent->GetMeshHandle()) {
+        if (!Mesh->IsRegistered() || !Mesh->IsVisible() || !Mesh->GetMeshHandle()) {
             continue;
         }
 
-        DirectX::BoundingOrientedBox WorldBox{};
-
-        MeshComponent->GetPickingBox().Transform(WorldBox, MeshComponent->GetComponentToWorld().ToSimpleMath());
-
+        DirectX::BoundingOrientedBox Box{};
         DirectX::XMFLOAT3 Corners[DirectX::BoundingOrientedBox::CORNER_COUNT]{};
 
-        WorldBox.GetCorners(Corners);
+        Mesh->GetPickingBox().Transform(Box, Mesh->GetComponentToWorld().ToSimpleMath());
+        Box.GetCorners(Corners);
 
         for (const DirectX::XMFLOAT3& Corner : Corners) {
             const FVector3 Position{Corner};
 
-            if (!HasMeshBounds) {
+            if (!HasBounds) {
                 Minimum = Position;
                 Maximum = Position;
-                HasMeshBounds = true;
+                HasBounds = true;
             } else {
                 Minimum.mX = std::min(Minimum.mX, Position.mX);
                 Minimum.mY = std::min(Minimum.mY, Position.mY);
@@ -110,32 +178,92 @@ bool UNameTagComponent::MakeTextRender(FTextProbe& OutProbe) const {
         }
     }
 
-    const FVector3 Center{HasMeshBounds ? (Minimum + Maximum) * 0.5f : TargetOrigin};
+    const FVector3 Center{HasBounds ? (Minimum + Maximum) * 0.5f : Origin};
+    const FVector3 Offset{TargetWorld.TransformPosition(mTargetLocalOffset) - Origin};
 
-    // TargetLocalOffset이 Target의 로컬 공간 Offset이므로 Target의 회전과 scale까지 적용한다.
-    const FVector3 Offset{TargetWorld.TransformPosition(mTargetLocalOffset) - TargetOrigin};
-
-    // NameTag 컴포넌트 자신의 scale 등은 유지하고, 렌더링 원점만 Target 위치로 교체한다.
-    // 현재 Text Shader는 World에서 translation만 사용하므로 실질적으로 AnchorWorld가 Billboard 원점이 된다.
-    OutProbe.mWorld.Translation(Center + Offset);
-    OutProbe.mScreenBoundsExtent = HasMeshBounds ? (Maximum - Minimum) * 0.5f : FVector3{};
-    OutProbe.mScreenUpPadding = GetCharacterHeight() * 0.5f + 0.2f;
+    OutProbe.mWorldAnchor = Center + Offset;
+    OutProbe.mWorldBoundsExtent = HasBounds ? (Maximum - Minimum) * 0.5f : FVector3{};
+    OutProbe.mScreenOffset = mScreenOffset;
+    OutProbe.mFontHandle = mFontHandle;
+    OutProbe.mColor = mColor;
+    OutProbe.mVertices = mVertices;
 
     return true;
 }
 
+void UNameTagComponent::OnRegister() {
+    USceneComponent::OnRegister();
+
+    UWorld* World{GetBelongingWorld()};
+    const IAssetRegistry* Registry{World != nullptr ? World->GetAssetRegistry() : nullptr};
+
+    if (Registry != nullptr && Registry->ResolveAsset<UFont>(mFontHandle) == nullptr) {
+        mFontHandle = Registry->FindAsset(FAssetPath{"/Game/Font/NotoSansKR-Medium.ttf"});
+    }
+
+    if (World != nullptr) {
+        World->GetOverlaySubsystem().RegisterComponent(this);
+    }
+
+    RefreshGuidText();
+    RebuildTextGeometry();
+}
+
+void UNameTagComponent::OnUnregister() {
+    UWorld* World{GetBelongingWorld()};
+
+    if (World != nullptr) {
+        World->GetOverlaySubsystem().UnregisterComponent(this);
+    }
+
+    USceneComponent::OnUnregister();
+}
+
 void UNameTagComponent::Serialize(FArchive& Archive) {
-    UBillboardTextComponent::Serialize(Archive);
+    USceneComponent::Serialize(Archive);
+
+    const IAssetResolver* Registry{Archive.GetAssetResolver()};
+
+    if (Archive.IsSaving() && Registry != nullptr) {
+        if (const FAssetPath* Path{Registry->GetAssetPath(mFontHandle)}) {
+            mFontAssetPath = *Path;
+        }
+
+        if (const FGuid* Guid{Registry->GetAssetGuid(mFontHandle)}) {
+            mFontAssetGuid = *Guid;
+        }
+    }
+
+    Archive.Serialize("bVisible", mVisible);
+    Archive.Serialize("FontAssetGuid", mFontAssetGuid);
+    Archive.Serialize("FontAssetPath", mFontAssetPath.mPath);
+    Archive.Serialize("Text", mText);
+    Archive.Serialize("Color", mColor);
+    Archive.Serialize("PixelHeight", mPixelHeight);
+    Archive.Serialize("LetterSpacing", mLetterSpacing);
+    Archive.Serialize("LineSpacing", mLineSpacing);
+    Archive.Serialize("ScreenOffset", mScreenOffset);
     Archive.Serialize("TargetActorGuid", mExplicitTargetGuid);
     Archive.Serialize("TargetLocalOffset", mTargetLocalOffset);
 
     if (Archive.IsLoading()) {
         mTargetActor.Reset();
+        mFontHandle = Registry != nullptr ? Registry->FindAsset(mFontAssetGuid) : FAssetHandle{};
+
+        if (!mFontHandle && Registry != nullptr) {
+            mFontHandle = Registry->FindAsset(mFontAssetPath);
+        }
+
+        mPixelHeight = std::isfinite(mPixelHeight) && mPixelHeight > 0.0f ? mPixelHeight : 24.0f;
+        mLetterSpacing = std::isfinite(mLetterSpacing) ? mLetterSpacing : 0.0f;
+        mLineSpacing = std::isfinite(mLineSpacing) ? mLineSpacing : 0.0f;
+        mScreenOffset = std::isfinite(mScreenOffset.mX) && std::isfinite(mScreenOffset.mY) ? mScreenOffset : FVector2{0.0f, -8.0f};
+        RebuildTextGeometry();
     }
 }
 
 bool UNameTagComponent::ResolveLoadedReferences() {
-    if (!UBillboardTextComponent::ResolveLoadedReferences()) {
+    if (!USceneComponent::ResolveLoadedReferences()) {
         return false;
     }
 
@@ -143,10 +271,9 @@ bool UNameTagComponent::ResolveLoadedReferences() {
         return GetOwner() != nullptr;
     }
 
-    const FObjectHandle TargetHandle{UObjectSystem::FindHandleByGuid(mExplicitTargetGuid)};
-    UObject* Object{UObjectSystem::Resolve(TargetHandle)};
+    UObject* Object{UObjectSystem::Resolve(UObjectSystem::FindHandleByGuid(mExplicitTargetGuid))};
 
-    if (Object == nullptr || !Object->GetTypeInfo()->IsA(AActor::StaticTypeInfo())) {
+    if (Object == nullptr || !Object->GetTypeInfo()->IsA<AActor>()) {
         return false;
     }
 
@@ -156,11 +283,20 @@ bool UNameTagComponent::ResolveLoadedReferences() {
 }
 
 void UNameTagComponent::RefreshGuidText() {
-    const FGuid TargetGuid{GetObjectGuid()};
+    const FGuid Guid{GetObjectGuid()};
 
-    if (TargetGuid.IsValid()) {
-        SetText(TargetGuid.ToString());
-    } else {
-        SetText("");
+    SetText(Guid.IsValid() ? Guid.ToString() : FString{});
+}
+
+void UNameTagComponent::RebuildTextGeometry() {
+    mVertices.clear();
+
+    UWorld* World{GetBelongingWorld()};
+    const IAssetRegistry* Registry{World != nullptr ? World->GetAssetRegistry() : nullptr};
+    IAssetRegistryMutator* Mutator{World != nullptr ? World->GetAssetRegistryMutator() : nullptr};
+    const UFont* Font{Registry != nullptr ? Registry->ResolveAsset<UFont>(mFontHandle) : nullptr};
+
+    if (Font != nullptr && Mutator != nullptr) {
+        BuildTextGeometry(*Font, *Mutator, mFontHandle, mText, mPixelHeight, mLetterSpacing, mLineSpacing, mVertices);
     }
 }

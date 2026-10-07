@@ -229,7 +229,6 @@ AActor* UWorld::SpawnStaticMeshActor(const FAssetHandle& MeshHandle, const FAsse
     NameTagComponent->SetVisible(false);
 
     if (mAssetRegistry != nullptr) {
-        NameTagComponent->SetPipelineHandle(mAssetRegistry->FindAsset(FAssetPath{"/Game/Pipeline/Text.json"}));
         NameTagComponent->SetFontHandle(mAssetRegistry->FindAsset(FAssetPath{"/Game/Font/NotoSansKR-Medium.ttf"}));
     }
 
@@ -401,6 +400,7 @@ void UWorld::InitializeSubsystems() {
     mSubsystems.Add<UPickingSubsystem>();
     mSubsystems.Add<UCameraSubsystem>();
     mSubsystems.Add<UTextSubsystem>();
+    mSubsystems.Add<UOverlaySubsystem>();
     mSubsystems.Add<UBillboardSubsystem>();
     mSubsystems.Add<ULightSubsystem>();
 }
@@ -417,6 +417,14 @@ const UTextSubsystem& UWorld::GetTextSubsystem() const {
     return *mSubsystems.Get<UTextSubsystem>();
 }
 
+UOverlaySubsystem& UWorld::GetOverlaySubsystem() {
+    return *mSubsystems.Get<UOverlaySubsystem>();
+}
+
+const UOverlaySubsystem& UWorld::GetOverlaySubsystem() const {
+    return *mSubsystems.Get<UOverlaySubsystem>();
+}
+
 ULightSubsystem& UWorld::GetLightSubsystem() {
     return *mSubsystems.Get<ULightSubsystem>();
 }
@@ -431,6 +439,10 @@ void UWorld::BuildSceneRenderData(FSceneRenderData& Scene) {
     mSubsystems.Get<ULightSubsystem>()->BuildLightProbes(Scene);
     mSubsystems.Get<UTextSubsystem>()->BuildTextProbes(Scene);
     mSubsystems.Get<UBillboardSubsystem>()->BuildRenderProbes(Scene);
+}
+
+void UWorld::BuildOverlayRenderData(FOverlayRenderData& Overlay, FObjectHandle SelectedActor) {
+    mSubsystems.Get<UOverlaySubsystem>()->BuildRenderProbes(Overlay, SelectedActor);
 }
 
 void UWorld::MarkStructureDirty() {

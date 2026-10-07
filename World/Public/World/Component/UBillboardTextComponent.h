@@ -11,7 +11,6 @@ public:
     UBillboardTextComponent() = default;
     ~UBillboardTextComponent() override = default;
 
-    // UNameTagComponent가 상속해야 하므로 final을 붙이지 않는다.
     JG_DECLARE_DERIVED_TYPEINFO(UBillboardTextComponent, UPrimitiveComponent);
 
     void SetFontHandle(FAssetHandle InFontHandle);

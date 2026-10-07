@@ -13,4 +13,5 @@ private:
 
 private:
     FSceneRenderData mSceneData{};
+    FOverlayRenderData mOverlayData{};
 };
