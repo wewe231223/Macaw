@@ -35,7 +35,6 @@ void FLineRenderer::Initialize(ID3D11Device* InDevice, Uint32 InitialLineCapacit
 
 void FLineRenderer::Reset() {
     mQuadVertexBuffer.Reset();
-    mQuadIndexBuffer.Reset();
 
     mDepthTestedBatch.mInstances.clear();
 
@@ -111,9 +110,7 @@ bool FLineRenderer::IsEmpty() const {
 }
 
 bool FLineRenderer::CreateQuadGeometry(ID3D11Device* InDevice) {
-    const std::array<FQuadVertex, 4> Vertices{FQuadVertex{FVector2D{0.0f, -1.0f}}, FQuadVertex{FVector2D{0.0f, 1.0f}}, FQuadVertex{FVector2D{1.0f, -1.0f}}, FQuadVertex{FVector2D{1.0f, 1.0f}}};
-
-    constexpr std::array<Uint16, 6> Indices{0, 1, 2, 2, 1, 3};
+    const std::array<FQuadVertex, 6> Vertices{FQuadVertex{FVector2D{0.0f, -1.0f}}, FQuadVertex{FVector2D{0.0f, 1.0f}}, FQuadVertex{FVector2D{1.0f, -1.0f}}, FQuadVertex{FVector2D{1.0f, -1.0f}}, FQuadVertex{FVector2D{0.0f, 1.0f}}, FQuadVertex{FVector2D{1.0f, 1.0f}}};
 
     FGraphicsBufferDescription VertexBufferDescription{};
 
@@ -121,17 +118,7 @@ bool FLineRenderer::CreateQuadGeometry(ID3D11Device* InDevice) {
     VertexBufferDescription.mUsage = D3D11_USAGE_IMMUTABLE;
     VertexBufferDescription.mBindFlags = D3D11_BIND_VERTEX_BUFFER;
 
-    if (!mQuadVertexBuffer.Initialize(InDevice, VertexBufferDescription, Vertices.data())) {
-        return false;
-    }
-
-    FGraphicsBufferDescription IndexBufferDescription{};
-
-    IndexBufferDescription.mByteSize = static_cast<Uint32>(sizeof(Indices));
-    IndexBufferDescription.mUsage = D3D11_USAGE_IMMUTABLE;
-    IndexBufferDescription.mBindFlags = D3D11_BIND_INDEX_BUFFER;
-
-    return mQuadIndexBuffer.Initialize(InDevice, IndexBufferDescription, Indices.data());
+    return mQuadVertexBuffer.Initialize(InDevice, VertexBufferDescription, Vertices.data());
 }
 
 bool FLineRenderer::RenderBatch(ID3D11DeviceContext* Context, FFrameResource& FrameResource, FLineBatch& Batch, const FPipelineRenderResource* Pipeline, EFrameStream Stream) {
@@ -158,8 +145,7 @@ bool FLineRenderer::RenderBatch(ID3D11DeviceContext* Context, FFrameResource& Fr
     constexpr Uint32 Offsets[]{0, 0};
 
     Context->IASetVertexBuffers(0, _countof(VertexBuffers), VertexBuffers, Strides, Offsets);
-    Context->IASetIndexBuffer(mQuadIndexBuffer.GetBuffer(), DXGI_FORMAT_R16_UINT, 0);
-    Context->DrawIndexedInstanced(6, InstanceCount, 0, 0, 0);
+    Context->DrawInstanced(6, InstanceCount, 0, 0);
 
     return true;
 }

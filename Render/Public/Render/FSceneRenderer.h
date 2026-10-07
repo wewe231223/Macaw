@@ -4,7 +4,6 @@
 #include "Render/FRenderQueue.h"
 #include "Render/FSceneRenderOutput.h"
 #include "Render/FMeshRenderer.h"
-#include "Render/FGpuOcclusionCulling.h"
 #include "Render/FTextRenderer.h"
 #include "Render/FBillboardRenderer.h"
 
@@ -33,7 +32,6 @@ private:
     TMap<Uint64, std::unique_ptr<FRenderScene>> mRenderScenes{};
     TMap<const IRenderSurface*, FViewRenderQueue> mRenderQueues{};
     FMeshRenderer mMeshRenderer{};
-    FGpuOcclusionCulling mOcclusionCulling{};
     FTextRenderer mTextRenderer{};
     FBillboardRenderer mBillboardRenderer{};
 };

@@ -182,20 +182,6 @@ bool FFrameResource::BindModels(ID3D11DeviceContext* Context) const {
     return true;
 }
 
-bool FFrameResource::BindMeshDraw(ID3D11DeviceContext* Context, Uint32 DrawRecordIndex) const {
-    if (Context == nullptr || !mViewReady || mUsedViewCount == 0 || DrawRecordIndex >= mViews[mUsedViewCount - 1].mDrawRecords.GetCount() || !mDrawRecordIndexBuffer.IsValid()) {
-        return false;
-    }
-
-    ID3D11Buffer* DrawRecordIndexBuffer{mDrawRecordIndexBuffer.GetBuffer()};
-    const UINT Stride{sizeof(Uint32)};
-    const UINT Offset{DrawRecordIndex * Stride};
-
-    Context->IASetVertexBuffers(4, 1, &DrawRecordIndexBuffer, &Stride, &Offset);
-
-    return true;
-}
-
 bool FFrameResource::UploadStream(ID3D11Device* Device, ID3D11DeviceContext* Context, EFrameStream Stream, const void* Data, Uint32 Count, Uint32 Stride, Uint32 BindFlags) {
     const std::size_t Index{static_cast<std::size_t>(Stream)};
 

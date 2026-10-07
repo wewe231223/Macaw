@@ -151,6 +151,4 @@ struct FPipelineDescription {
     FRasterizerDescription mRasterizer{};
     FDepthStencilDescription mDepthStencil{};
     FBlendDescription mBlend{};
-    bool mOcclusionCullable{};
-    bool mOcclusionOccluder{};
 };

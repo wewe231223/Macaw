@@ -222,12 +222,6 @@ bool FEditorViewport::DrawMenuBar() {
         ImGui::EndCombo();
     }
 
-    ImGui::SameLine();
-
-    if (ImGui::Checkbox("Occlusion", &mRenderSettings.mOcclusionCulling)) {
-        BActivated = true;
-    }
-
     BActivated = BActivated || ImGui::IsItemActivated();
     ImGui::EndMenuBar();
 

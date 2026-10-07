@@ -97,6 +97,6 @@ void FTextRenderer::Render(ID3D11DeviceContext* Context, FFrameResource& FrameRe
 
         Pipeline->Bind(Context, Draw.mPipeline->GetRenderMode());
         Context->PSSetShaderResources(3, 1, &Draw.mAtlas);
-        Context->Draw(Draw.mVertexCount, Draw.mFirstVertex);
+        Context->DrawInstanced(Draw.mVertexCount, 1, Draw.mFirstVertex, 0);
     }
 }

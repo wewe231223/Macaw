@@ -1,6 +1,5 @@
 #include "pch.h"
 #include "Render/FOverLayRenderer.h"
-#include "Render/RenderConfig.h"
 #include "Asset/UMesh.h"
 #include "Asset/UTexture.h"
 #include "Core/Stat/Stat.h"
@@ -256,24 +255,12 @@ void FOverLayRenderer::DrawMeshes(ID3D11DeviceContext* Context, const TArray<FMe
 
         ID3D11Buffer* Vertices[]{Draw.mMesh->GetVertexBuffer(EVertexAttribute::Position, State.mLODLevel), Draw.mMesh->GetVertexBuffer(EVertexAttribute::Normal, State.mLODLevel), Draw.mMesh->GetVertexBuffer(EVertexAttribute::UV, State.mLODLevel), Draw.mMesh->GetVertexBuffer(EVertexAttribute::Color, State.mLODLevel)};
         constexpr Uint32 Offsets[]{0, 0, 0, 0};
-        Uint32 DrawCount{};
 
         Context->IASetVertexBuffers(0, 4, Vertices, Draw.mVertexStrides.data(), Offsets);
-        Context->IASetIndexBuffer(Draw.mMesh->GetIndexBuffer(State.mLODLevel), DXGI_FORMAT_R32_UINT, 0);
 
-#if ENABLE_INSTANCE
-        Context->DrawIndexedInstanced(State.mIndexCount, Item.mRecordCount, State.mFirstIndex, 0, Item.mFirstRecord);
-        DrawCount = 1;
-#else
-        for (Uint32 Index{}; Index < Item.mRecordCount; ++Index) {
-            if (mCurrentFrameResource->BindMeshDraw(Context, Item.mFirstRecord + Index)) {
-                Context->DrawIndexed(State.mIndexCount, State.mFirstIndex, 0);
-                ++DrawCount;
-            }
-        }
-#endif
+        Context->DrawInstanced(State.mIndexCount, Item.mRecordCount, State.mFirstIndex, Item.mFirstRecord);
 
-        Stat::RecordLODStats(State.mLODLevel, static_cast<std::uint64_t>(State.mIndexCount / 3) * Item.mRecordCount, static_cast<std::uint64_t>(State.mOriginalIndexCount / 3) * Item.mRecordCount, DrawCount);
+        Stat::RecordLODStats(State.mLODLevel, static_cast<std::uint64_t>(State.mIndexCount / 3) * Item.mRecordCount, static_cast<std::uint64_t>(State.mOriginalIndexCount / 3) * Item.mRecordCount, 1);
     }
 }
 

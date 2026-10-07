@@ -89,7 +89,6 @@ public:
 
     bool BindCommon(ID3D11DeviceContext* Context, bool OrientationAxis = false) const;
     bool BindModels(ID3D11DeviceContext* Context) const;
-    bool BindMeshDraw(ID3D11DeviceContext* Context, Uint32 DrawRecordIndex) const;
 
     bool UploadStream(ID3D11Device* Device, ID3D11DeviceContext* Context, EFrameStream Stream, const void* Data, Uint32 Count, Uint32 Stride, Uint32 BindFlags);
 

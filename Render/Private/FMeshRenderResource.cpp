@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Render/FMeshRenderResource.h"
 #include "Asset/UMesh.h"
+#include <cstring>
 
 bool FMeshRenderResource::Initialize(ID3D11Device* Device, const UMesh& Mesh) {
     if (Device == nullptr || !Mesh.HasLOD(0)) {
@@ -17,30 +18,51 @@ bool FMeshRenderResource::Initialize(ID3D11Device* Device, const UMesh& Mesh) {
         }
 
         FLODBuffers& LOD{Buffers[Level]};
+        const TArray<Uint32>& Indices{Mesh.GetIndices(static_cast<int>(Level))};
+
+        if (Indices.empty() || Indices.size() > UINT32_MAX) {
+            return false;
+        }
 
         for (std::size_t Index{}; Index < LOD.mVertices.size(); ++Index) {
             const EVertexAttribute Attribute{static_cast<EVertexAttribute>(Index)};
             const void* Data{Mesh.GetVertexData(Attribute, static_cast<int>(Level))};
-            const std::size_t ByteSize{static_cast<std::size_t>(Mesh.GetVertexAttributeCount(Attribute, static_cast<int>(Level))) * Mesh.GetVertexStride(Attribute)};
+            const Uint32 Count{Mesh.GetVertexAttributeCount(Attribute, static_cast<int>(Level))};
+            const Uint32 Stride{Mesh.GetVertexStride(Attribute)};
 
-            if (Data == nullptr || ByteSize == 0) {
+            if (Data == nullptr || Count == 0 || Stride == 0) {
                 continue;
             }
 
-            if (Level > 0 && Data == Mesh.GetVertexData(Attribute)) {
+            if (Level > 0 && Data == Mesh.GetVertexData(Attribute) && Indices.data() == Mesh.GetIndices().data()) {
                 LOD.mVertices[Index] = Buffers.front().mVertices[Index];
-            } else if (!CreateBuffer(Device, Data, ByteSize, D3D11_BIND_VERTEX_BUFFER, LOD.mVertices[Index])) {
+                continue;
+            }
+
+            if (Indices.size() > UINT32_MAX / Stride) {
+                return false;
+            }
+
+            TArray<Uint8> Vertices{};
+
+            Vertices.resize(Indices.size() * Stride);
+
+            for (std::size_t VertexIndex{}; VertexIndex < Indices.size(); ++VertexIndex) {
+                const Uint32 SourceIndex{Indices[VertexIndex]};
+
+                if (SourceIndex >= Count) {
+                    return false;
+                }
+
+                std::memcpy(Vertices.data() + VertexIndex * Stride, static_cast<const Uint8*>(Data) + static_cast<std::size_t>(SourceIndex) * Stride, Stride);
+            }
+
+            if (!CreateBuffer(Device, Vertices.data(), Vertices.size(), LOD.mVertices[Index])) {
                 return false;
             }
         }
 
-        const TArray<Uint32>& Indices{Mesh.GetIndices(static_cast<int>(Level))};
-
-        if (Level > 0 && Indices.data() == Mesh.GetIndices().data()) {
-            LOD.mIndices = Buffers.front().mIndices;
-        } else if (!CreateBuffer(Device, Indices.data(), Indices.size() * sizeof(Uint32), D3D11_BIND_INDEX_BUFFER, LOD.mIndices)) {
-            return false;
-        }
+        LOD.mVertexCount = static_cast<Uint32>(Indices.size());
     }
 
     mLODs = std::move(Buffers);
@@ -48,7 +70,7 @@ bool FMeshRenderResource::Initialize(ID3D11Device* Device, const UMesh& Mesh) {
     return true;
 }
 
-bool FMeshRenderResource::CreateBuffer(ID3D11Device* Device, const void* Data, std::size_t ByteSize, UINT BindFlags, Microsoft::WRL::ComPtr<ID3D11Buffer>& Buffer) {
+bool FMeshRenderResource::CreateBuffer(ID3D11Device* Device, const void* Data, std::size_t ByteSize, Microsoft::WRL::ComPtr<ID3D11Buffer>& Buffer) {
     if (Data == nullptr || ByteSize == 0 || ByteSize > UINT32_MAX) {
         return false;
     }
@@ -57,7 +79,7 @@ bool FMeshRenderResource::CreateBuffer(ID3D11Device* Device, const void* Data, s
 
     Description.ByteWidth = static_cast<UINT>(ByteSize);
     Description.Usage = D3D11_USAGE_IMMUTABLE;
-    Description.BindFlags = BindFlags;
+    Description.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 
     D3D11_SUBRESOURCE_DATA InitialData{};
 
@@ -73,15 +95,7 @@ ID3D11Buffer* FMeshRenderResource::GetVertexBuffer(EVertexAttribute Attribute, U
         return nullptr;
     }
 
-    const FLODBuffers& LOD{Level < mLODs.size() && mLODs[Level].mIndices != nullptr ? mLODs[Level] : mLODs.front()};
+    const FLODBuffers& LOD{Level < mLODs.size() && mLODs[Level].mVertexCount != 0 ? mLODs[Level] : mLODs.front()};
 
     return LOD.mVertices[Index].Get();
-}
-
-ID3D11Buffer* FMeshRenderResource::GetIndexBuffer(Uint32 Level) const {
-    if (mLODs.empty()) {
-        return nullptr;
-    }
-
-    return Level < mLODs.size() && mLODs[Level].mIndices != nullptr ? mLODs[Level].mIndices.Get() : mLODs.front().mIndices.Get();
 }

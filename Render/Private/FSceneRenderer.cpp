@@ -6,7 +6,7 @@
 bool FSceneRenderer::Initialize(ID3D11Device* Device) {
     Reset();
 
-    if (Device == nullptr || !mTextRenderer.Initialize(Device, 256) || !mBillboardRenderer.Initialize(Device, 64) || !mOcclusionCulling.Initialize(Device)) {
+    if (Device == nullptr || !mTextRenderer.Initialize(Device, 256) || !mBillboardRenderer.Initialize(Device, 64)) {
         Reset();
         return false;
     }
@@ -18,7 +18,6 @@ bool FSceneRenderer::Initialize(ID3D11Device* Device) {
 
 void FSceneRenderer::BeginFrame(Uint64 FrameSerial) {
     mFrameSerial = FrameSerial;
-    mOcclusionCulling.BeginFrame(FrameSerial);
 
     constexpr Uint64 MaximumUnusedFrames{120};
     std::erase_if(mRenderQueues, [FrameSerial](const auto& Entry) {
@@ -27,14 +26,12 @@ void FSceneRenderer::BeginFrame(Uint64 FrameSerial) {
 }
 
 void FSceneRenderer::ResetScenes() {
-    mOcclusionCulling.ResetViews();
     mRenderQueues.clear();
     mRenderScenes.clear();
 }
 
 void FSceneRenderer::Reset() {
     ResetScenes();
-    mOcclusionCulling.Reset();
     mTextRenderer = {};
     mBillboardRenderer = {};
     mDevice = nullptr;
@@ -108,11 +105,7 @@ FSceneRenderOutput FSceneRenderer::RenderView(const FRenderContext& Context, con
     if (View.IsPassEnabled(ERenderPass::SceneGeometry)) {
         const Stat::FScopedSystemStatTimer StageStat{Stat::ESystemStatStage::Geometry};
 
-        if (mOcclusionCulling.Prepare(mDevice, Context.mDeviceContext, View, Scene, ViewQueue.mQueue)) {
-            mMeshRenderer.DrawOccluded(Context, View, ViewQueue.mQueue, mOcclusionCulling);
-        } else {
-            mMeshRenderer.Draw(Context, ViewQueue.mQueue.GetItems(ERenderPass::SceneGeometry), View.mRenderMode);
-        }
+        mMeshRenderer.Draw(Context, ViewQueue.mQueue.GetItems(ERenderPass::SceneGeometry), View.mRenderMode);
     }
 
     return FSceneRenderOutput{View.mTarget, View.mTarget->GetShaderResourceView(), View.mTarget->GetDepthShaderResourceView(), View.mTarget->GetDepthStencilView(), View.mTarget->GetViewport()};

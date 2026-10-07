@@ -56,7 +56,6 @@ private:
     std::unique_ptr<FPipelineRenderResource> mOverlayPipeline{};
 
     FGraphicsBuffer mQuadVertexBuffer{};
-    FGraphicsBuffer mQuadIndexBuffer{};
 
     FLineBatch mDepthTestedBatch{};
     FLineBatch mOverlayBatch{};

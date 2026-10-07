@@ -42,9 +42,6 @@ public:
     const FPipelineDescription* GetDescription(ERenderMode Mode) const;
     Uint64 GetRenderRevision() const;
 
-    bool IsOcclusionCullable(ERenderMode Mode) const;
-    bool CanWriteOcclusionDepth(ERenderMode Mode) const;
-    bool CanReuseOcclusionDepth(ERenderMode Mode) const;
 
 private:
     bool InitializeFamily(const std::filesystem::path& FamilyDirectory);

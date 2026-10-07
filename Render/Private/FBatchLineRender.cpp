@@ -108,7 +108,7 @@ bool FBatchLineRenderer::RenderBatch(ID3D11DeviceContext* Context, FFrameResourc
 
     Context->IASetVertexBuffers(0, 1, VertexBuffers, Strides, Offsets);
 
-    Context->Draw(VertexCount, 0);
+    Context->DrawInstanced(VertexCount, 1, 0, 0);
 
     return true;
 }

@@ -5,49 +5,9 @@
 #include "Asset/UMesh.h"
 #include "Asset/UTexture.h"
 #include "Render/FFrameResource.h"
-#include "Render/RenderConfig.h"
 #include "Core/Stat/Stat.h"
-#include "Render/FGpuOcclusionCulling.h"
 
-void FMeshRenderer::Draw(const FRenderContext& Context, const TArray<FMeshDrawBatch>& Items, ERenderMode Mode, const FGpuOcclusionCulling* Occlusion) {
-    Execute(Context, Items, Mode, Occlusion, Occlusion == nullptr || Occlusion->GetArguments() == nullptr || !Occlusion->IsRetest());
-}
-
-void FMeshRenderer::DrawOccluded(const FRenderContext& Context, const FRenderView& View, const FRenderQueue& Queue, FGpuOcclusionCulling& Occlusion) {
-    const TArray<FMeshDrawBatch>& Items{Queue.GetItems(ERenderPass::SceneGeometry)};
-
-    if (Occlusion.DispatchPrevious(Context.mDeviceContext)) {
-        View.mTarget->Bind(Context.mDeviceContext);
-        Draw(Context, Items, View.mRenderMode, &Occlusion);
-
-        const FMeshDrawStats PreviousStats{mLastDrawStats};
-        const bool Retested{Occlusion.DispatchCurrent(Context.mDeviceContext)};
-
-        View.mTarget->Bind(Context.mDeviceContext);
-
-        if (Retested) {
-            Draw(Context, Items, View.mRenderMode, &Occlusion);
-        } else {
-            const float ClearColor[]{View.mSettings.mClearColor.mX, View.mSettings.mClearColor.mY, View.mSettings.mClearColor.mZ, View.mSettings.mClearColor.mW};
-
-            View.mTarget->Clear(Context.mDeviceContext, ClearColor);
-            Execute(Context, Items, View.mRenderMode, nullptr, false);
-        }
-
-        mLastDrawStats.mPipelineBindCount += PreviousStats.mPipelineBindCount;
-        mLastDrawStats.mTextureBindCount += PreviousStats.mTextureBindCount;
-        mLastDrawStats.mMeshBindCount += PreviousStats.mMeshBindCount;
-        mLastDrawStats.mDrawCallCount += PreviousStats.mDrawCallCount;
-    } else {
-        View.mTarget->Bind(Context.mDeviceContext);
-        Draw(Context, Items, View.mRenderMode);
-    }
-
-    Occlusion.CaptureDepth(Context.mDeviceContext);
-    View.mTarget->Bind(Context.mDeviceContext);
-}
-
-void FMeshRenderer::Execute(const FRenderContext& Context, const TArray<FMeshDrawBatch>& Items, ERenderMode Mode, const FGpuOcclusionCulling* Occlusion, bool RecordStatistics) {
+void FMeshRenderer::Draw(const FRenderContext& Context, const TArray<FMeshDrawBatch>& Items, ERenderMode Mode) {
     mLastDrawStats = {};
 
     if (Items.empty() || Context.mDeviceContext == nullptr || Context.mAssetRegistry == nullptr || Context.mAssetResources == nullptr || Context.mFrameResource == nullptr) {
@@ -58,12 +18,6 @@ void FMeshRenderer::Execute(const FRenderContext& Context, const TArray<FMeshDra
 
     if (!Context.mFrameResource->BindModels(DeviceContext)) {
         return;
-    }
-
-    ID3D11Buffer* Arguments{Occlusion != nullptr ? Occlusion->GetArguments() : nullptr};
-
-    if (Arguments != nullptr) {
-        Occlusion->BindDrawRecords(DeviceContext);
     }
 
     DeviceContext->VSSetShaderResources(1, 1, &Context.mMaterialResource);
@@ -132,44 +86,15 @@ void FMeshRenderer::Execute(const FRenderContext& Context, const TArray<FMeshDra
             const Uint32 Offsets[]{0, 0, 0, 0};
 
             DeviceContext->IASetVertexBuffers(0, _countof(VertexBuffers), VertexBuffers, Strides, Offsets);
-            DeviceContext->IASetIndexBuffer(MeshResource->GetIndexBuffer(LODLevel), DXGI_FORMAT_R32_UINT, 0);
             BoundMesh = Mesh;
             BoundLOD = State.mLODLevel;
             ++mLastDrawStats.mMeshBindCount;
         }
 
-        const Uint32 OriginalIndexCount{State.mOriginalIndexCount};
-#if ENABLE_INSTANCE
-        if (Arguments != nullptr) {
-            DeviceContext->DrawIndexedInstancedIndirect(Arguments, static_cast<UINT>(BatchIndex * sizeof(D3D11_DRAW_INDEXED_INSTANCED_INDIRECT_ARGS)));
-        } else {
-            DeviceContext->DrawIndexedInstanced(State.mIndexCount, Item.mRecordCount, State.mFirstIndex, 0, Item.mFirstRecord);
-        }
-
+        DeviceContext->DrawInstanced(State.mIndexCount, Item.mRecordCount, State.mFirstIndex, Item.mFirstRecord);
         ++mLastDrawStats.mDrawCallCount;
 
-        if (RecordStatistics) {
-            Stat::RecordLODStats(State.mLODLevel, static_cast<std::uint64_t>(State.mIndexCount / 3) * Item.mRecordCount, static_cast<std::uint64_t>(OriginalIndexCount / 3) * Item.mRecordCount, 1);
-        }
-#else
-        Uint32 DrawCount{};
-
-        for (Uint32 Index{}; Index < Item.mRecordCount; ++Index) {
-            if (Arguments != nullptr) {
-                DeviceContext->DrawIndexedInstancedIndirect(Arguments, (Item.mFirstRecord + Index) * sizeof(D3D11_DRAW_INDEXED_INSTANCED_INDIRECT_ARGS));
-                ++DrawCount;
-            } else if (Context.mFrameResource->BindMeshDraw(DeviceContext, Item.mFirstRecord + Index)) {
-                DeviceContext->DrawIndexed(State.mIndexCount, State.mFirstIndex, 0);
-                ++DrawCount;
-            }
-        }
-
-        mLastDrawStats.mDrawCallCount += DrawCount;
-
-        if (RecordStatistics) {
-            Stat::RecordLODStats(State.mLODLevel, static_cast<std::uint64_t>(State.mIndexCount / 3) * DrawCount, static_cast<std::uint64_t>(OriginalIndexCount / 3) * DrawCount, DrawCount);
-        }
-#endif
+        Stat::RecordLODStats(State.mLODLevel, static_cast<std::uint64_t>(State.mIndexCount / 3) * Item.mRecordCount, static_cast<std::uint64_t>(State.mOriginalIndexCount / 3) * Item.mRecordCount, 1);
     }
 }
 
