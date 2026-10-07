@@ -29,7 +29,6 @@
 #include "Core/Console/Console.h"
 
 #include <ranges>
-#include "World/Component/UNameTagComponent.h"
 
 UWorld::FActorDispatchScope::FActorDispatchScope(UWorld* World)
 	: mWorld{World} {
@@ -220,17 +219,6 @@ AActor* UWorld::SpawnStaticMeshActor(const FAssetHandle& MeshHandle, const FAsse
     MeshComponent->SetMaterialHandle(MaterialHandle);
 
     MeshComponent->SetRelativeLocation(FVector3{Position.mX, Position.mY, Position.mZ});
-
-    UNameTagComponent* NameTagComponent{Actor->AddComponent<UNameTagComponent>()};
-
-    NameTagComponent->AttachToComponent(MeshComponent);
-    NameTagComponent->SetTargetActor(nullptr);
-    NameTagComponent->SetTargetLocalOffset(NameTagComponent->GetTargetLocalOffset());
-    NameTagComponent->SetVisible(false);
-
-    if (mAssetRegistry != nullptr) {
-        NameTagComponent->SetFontHandle(mAssetRegistry->FindAsset(FAssetPath{"/Game/Font/NotoSansKR-Medium.ttf"}));
-    }
 
     return FinishSpawningActor(Actor, Actor->GetActorTransform()) ? Actor : nullptr;
 }

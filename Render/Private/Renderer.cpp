@@ -105,9 +105,9 @@ ID3D11DeviceContext* FRenderer::GetDeviceContext() const {
     return mDeviceContext.Get();
 }
 
-bool FRenderer::BindAssetRegistry(const IAssetRegistry* InAssetRegistry) {
+bool FRenderer::BindAssetRegistry(const IAssetRegistry* InAssetRegistry, IAssetRegistryMutator* InAssetRegistryMutator) {
     if (mAssetRegistry == InAssetRegistry) {
-        return true;
+        return mOverLayRenderer.BindAssetRegistry(InAssetRegistry, InAssetRegistryMutator);
     }
 
     mSceneRenderer.ResetScenes();
@@ -124,7 +124,7 @@ bool FRenderer::BindAssetRegistry(const IAssetRegistry* InAssetRegistry) {
         return false;
     }
 
-    if (!mOverLayRenderer.BindAssetRegistry(InAssetRegistry)) {
+    if (!mOverLayRenderer.BindAssetRegistry(InAssetRegistry, InAssetRegistryMutator)) {
         mAssetResources.Reset();
         return false;
     }

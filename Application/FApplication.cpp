@@ -119,7 +119,7 @@ bool FApplication::InitializeApplication(FLoadingProgress& Progress, HWND Window
         Console::AddLog(Console::STDOutHandle, ELogLevel::Warning, ELogCategory::Etc, "Some optional assets failed to load. Initialization will continue.");
     }
 
-    if (!mContext.mRenderer.BindAssetRegistry(&mContext.mEngine.GetAssetRegistry())) {
+    if (!mContext.mRenderer.BindAssetRegistry(&mContext.mEngine.GetAssetRegistry(), &mContext.mEngine.GetAssetRegistry())) {
         return false;
     }
 

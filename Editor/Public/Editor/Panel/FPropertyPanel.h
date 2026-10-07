@@ -16,7 +16,6 @@
 #include "World/Component/USpotLightComponent.h"
 #include "World/Component/UStaticMeshComponent.h"
 #include "World/Component/UBillboardTextComponent.h"
-#include "World/Component/UNameTagComponent.h"
 #include "Editor/View/FAssetThumbnailRenderer.h"
 
 class FPropertyPanel : public FEditorWindow {

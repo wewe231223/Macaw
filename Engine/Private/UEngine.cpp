@@ -16,7 +16,6 @@
 #include "World/Component/USpotLightComponent.h"
 #include "World/Component/UBillboardComponent.h"
 #include "World/Component/UBillboardTextComponent.h"
-#include "World/Component/UNameTagComponent.h"
 #include "World/Component/UScrollUVComponent.h"
 #include "World/Component/USubUVComponent.h"
 
@@ -143,7 +142,6 @@ void UEngine::RegisterObjectTypes() {
     TypeRegistry::Register(UActorComponent::StaticTypeInfo());
     TypeRegistry::Register(USceneComponent::StaticTypeInfo());
     TypeRegistry::Register(UBillboardTextComponent::StaticTypeInfo());
-    TypeRegistry::Register(UNameTagComponent::StaticTypeInfo());
     TypeRegistry::Register(UBillboardComponent::StaticTypeInfo());
     TypeRegistry::Register(USubUVComponent::StaticTypeInfo());
     TypeRegistry::Register(UScrollUVComponent::StaticTypeInfo());

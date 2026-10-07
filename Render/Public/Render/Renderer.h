@@ -42,7 +42,7 @@ public:
     ID3D11Device* GetDevice() const;
     ID3D11DeviceContext* GetDeviceContext() const;
 
-    bool BindAssetRegistry(const IAssetRegistry* InAssetRegistry);
+    bool BindAssetRegistry(const IAssetRegistry* InAssetRegistry, IAssetRegistryMutator* InAssetRegistryMutator = nullptr);
     bool PrepareAssetResources();
 
     ID3D11ShaderResourceView* GetTextureResource(FAssetHandle Handle);

@@ -4,8 +4,21 @@
 #include "Render/FRenderAssetResources.h"
 #include "RenderCore/FOverlayRenderData.h"
 
+class IAssetRegistryMutator;
+
 class FOverlayTextRenderer {
 private:
+    struct FCachedText {
+        FAssetHandle mFontHandle{};
+        FGuid mFontGuid{};
+        float mPixelHeight{};
+        float mLetterSpacing{};
+        float mLineSpacing{};
+        Uint64 mFontRevision{};
+        Uint64 mLastUsedFrame{};
+        TArray<FTextVertex> mVertices{};
+    };
+
     struct FGlyphInstance {
         FTextVertex mGlyph{};
         FVector4 mColor{};
@@ -21,14 +34,21 @@ private:
 
 public:
     bool Initialize(ID3D11Device* Device);
+    void BindAssetRegistry(const IAssetRegistry* Registry, IAssetRegistryMutator* Mutator);
+    void BeginFrame(Uint64 FrameSerial);
     void Reset();
-    void Render(ID3D11DeviceContext* Context, FFrameResource& FrameResource, const CameraProbe& Camera, const D3D11_VIEWPORT& Viewport, const TArray<FOverlayTextProbe>& Probes, const IAssetRegistry& Registry, FRenderAssetResources& Resources);
+    void Render(ID3D11DeviceContext* Context, FFrameResource& FrameResource, const CameraProbe& Camera, const D3D11_VIEWPORT& Viewport, const TArray<FOverlayTextProbe>& Probes, FRenderAssetResources& Resources);
 
 private:
-    bool ProjectAnchor(const FOverlayTextProbe& Probe, const CameraProbe& Camera, const D3D11_VIEWPORT& Viewport, FVector2& Position) const;
+    const TArray<FTextVertex>* GetTextGeometry(const FOverlayTextProbe& Probe, const UFont& Font, FAssetHandle FontHandle);
+    bool ProjectAnchor(const FOverlayTextProbe& Probe, const TArray<FTextVertex>& Vertices, const CameraProbe& Camera, const D3D11_VIEWPORT& Viewport, FVector2& Position) const;
 
 private:
     ID3D11Device* mDevice{nullptr};
+    const IAssetRegistry* mAssetRegistry{nullptr};
+    IAssetRegistryMutator* mAssetRegistryMutator{nullptr};
+    Uint64 mFrameSerial{};
+    TMap<FString, TArray<FCachedText>> mTextCache{};
     FPipelineRenderResource mPipeline{};
     Microsoft::WRL::ComPtr<ID3D11SamplerState> mSampler{};
     TArray<FGlyphInstance> mGlyphs{};

@@ -16,7 +16,6 @@
 #include "World/Component/ULightComponentBase.h"
 #include "World/Component/ULocalLightComponent.h"
 #include "World/Component/UMeshComponent.h"
-#include "World/Component/UNameTagComponent.h"
 #include "World/Component/UPrimitiveComponent.h"
 #include "World/Component/USceneComponent.h"
 #include "World/Component/UScrollUVComponent.h"
@@ -37,11 +36,6 @@ void FComponentDetails::Draw(UActorComponent& Component, IPropertyEditorContext&
 
     if (Component.GetTypeInfo()->IsA(ULocalLightComponent::StaticTypeInfo())) {
         DrawLocalLightComponent(static_cast<ULocalLightComponent&>(Component), Context);
-        return;
-    }
-
-    if (Component.GetTypeInfo()->IsA(UNameTagComponent::StaticTypeInfo())) {
-        DrawNameTagComponent(static_cast<UNameTagComponent&>(Component), Context);
         return;
     }
 
@@ -263,42 +257,6 @@ void FComponentDetails::DrawMeshComponent(UMeshComponent& Component, IPropertyEd
     DrawPrimitiveComponent(Component, Context);
     Context.DrawAssetPicker("Mesh", *UMesh::StaticTypeInfo(), Component.GetMeshHandle(), [&Component](FAssetHandle Handle) {
         Component.SetMeshHandle(Handle);
-    });
-}
-
-void FComponentDetails::DrawNameTagComponent(UNameTagComponent& Component, IPropertyEditorContext& Context) {
-    DrawSceneComponent(Component, Context);
-
-    if (!Context.BeginCategory("Name Tag")) {
-        return;
-    }
-
-    Context.DrawColor("Color", Component.GetColor(), [&Component](const FVector4& NewColor) {
-        Component.SetColor(NewColor);
-    });
-
-    Context.DrawBool("Visible", Component.IsVisible(), [&Component](bool Visible) {
-        Component.SetVisible(Visible);
-    });
-
-    Context.DrawFloat("Pixel Height", Component.GetPixelHeight(), 1.0f, 1.0f, 256.0f, [&Component](float NewHeight) {
-        Component.SetPixelHeight(NewHeight);
-    });
-
-    Context.DrawVector2("Screen Offset", Component.GetScreenOffset(), 1.0f, -10000.0f, 10000.0f, [&Component](const FVector2& Offset) {
-        Component.SetScreenOffset(Offset);
-    });
-
-    Context.DrawFloat("Letter Spacing", Component.GetLetterSpacing(), 0.01f, -100.0f, 100.0f, [&Component](float NewSpacing) {
-        Component.SetLetterSpacing(NewSpacing);
-    });
-
-    Context.DrawFloat("Line Spacing", Component.GetLineSpacing(), 0.01f, -100.0f, 100.0f, [&Component](float NewSpacing) {
-        Component.SetLineSpacing(NewSpacing);
-    });
-
-    Context.DrawAssetPicker("Font", *UFont::StaticTypeInfo(), Component.GetFontHandle(), [&Component](FAssetHandle NewHandle) {
-        Component.SetFontHandle(NewHandle);
     });
 }
 

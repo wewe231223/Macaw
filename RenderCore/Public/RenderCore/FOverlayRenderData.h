@@ -19,7 +19,10 @@ struct FOverlayTextProbe {
     FVector2 mScreenOffset{0.0f, -8.0f};
     FAssetHandle mFontHandle{};
     FVector4 mColor{1.0f, 1.0f, 1.0f, 1.0f};
-    TArray<FTextVertex> mVertices{};
+    FString mText{};
+    float mPixelHeight{24.0f};
+    float mLetterSpacing{};
+    float mLineSpacing{};
 };
 
 struct FOverlayRenderData {

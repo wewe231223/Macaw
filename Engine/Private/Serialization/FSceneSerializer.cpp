@@ -119,9 +119,8 @@ namespace {
 
                 FGuid ParentGuid{};
                 FGuid MeshGuid{};
-                FGuid TargetGuid{};
 
-                if (!ValidateReference(Component, "Parent", USceneComponent::StaticTypeInfo(), Objects, ParentGuid) || !ValidateReference(Component, "GuidMeshComponent", UMeshComponent::StaticTypeInfo(), Objects, MeshGuid) || !ValidateReference(Component, "TargetActorGuid", AActor::StaticTypeInfo(), Objects, TargetGuid)) {
+                if (!ValidateReference(Component, "Parent", USceneComponent::StaticTypeInfo(), Objects, ParentGuid) || !ValidateReference(Component, "GuidMeshComponent", UMeshComponent::StaticTypeInfo(), Objects, MeshGuid)) {
                     return false;
                 }
 
@@ -190,7 +189,7 @@ namespace {
         }
 
         const auto RemapObject{[&Document, &RemappedGuids](rapidjson::Value& Object) {
-            const char* Fields[]{"Guid", "GuidRootComponent", "Parent", "GuidMeshComponent", "TargetActorGuid"};
+            const char* Fields[]{"Guid", "GuidRootComponent", "Parent", "GuidMeshComponent"};
 
             for (const char* Field : Fields) {
                 const auto Member{Object.FindMember(Field)};

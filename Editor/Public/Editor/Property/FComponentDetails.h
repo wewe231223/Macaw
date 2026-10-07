@@ -10,7 +10,6 @@ class UCollisionComponent;
 class ULightComponentBase;
 class ULocalLightComponent;
 class UMeshComponent;
-class UNameTagComponent;
 class UPrimitiveComponent;
 class USceneComponent;
 class UScrollUVComponent;
@@ -32,7 +31,6 @@ private:
     static void DrawLightComponentBase(ULightComponentBase& Component, IPropertyEditorContext& Context);
     static void DrawLocalLightComponent(ULocalLightComponent& Component, IPropertyEditorContext& Context);
     static void DrawMeshComponent(UMeshComponent& Component, IPropertyEditorContext& Context);
-    static void DrawNameTagComponent(UNameTagComponent& Component, IPropertyEditorContext& Context);
     static void DrawPrimitiveComponent(UPrimitiveComponent& Component, IPropertyEditorContext& Context);
     static void DrawSceneComponent(USceneComponent& Component, IPropertyEditorContext& Context);
     static void DrawScrollUVComponent(UScrollUVComponent& Component, IPropertyEditorContext& Context);

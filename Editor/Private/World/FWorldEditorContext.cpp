@@ -12,7 +12,6 @@
 #include <random>
 #include "Core/Stat/Stat.h"
 #include "Core/Console/Console.h"
-#include "World/Component/UNameTagComponent.h"
 #include "World/Component/ULightComponent.h"
 #include "CoreUObject/TypeRegistry.h"
 #include <rapidjson/document.h>
@@ -275,22 +274,11 @@ void FWorldEditorContext::HandleMousePickRequest(const FMousePickRequestMessage&
             }
 #endif
 
-            AActor* PreviousActor{GetSelectedActor()};
             AActor* SelectedActor{NearestPrimitive != nullptr ? NearestPrimitive->GetOwner() : nullptr};
-
-            if (PreviousActor != nullptr && PreviousActor != SelectedActor) {
-                if (UNameTagComponent * NameTag{PreviousActor->GetComponent<UNameTagComponent>()}) {
-                    NameTag->SetVisible(false);
-                }
-            }
 
             if (SelectedActor != nullptr) {
                 if (mWorld != nullptr) {
                     SetSelectedComponent(NearestPrimitive);
-                }
-
-                if (UNameTagComponent * NameTag{SelectedActor->GetComponent<UNameTagComponent>()}) {
-                    NameTag->SetVisible(true);
                 }
             } else if (mWorld != nullptr) {
                 ClearSelection();
@@ -504,9 +492,6 @@ void FWorldEditorContext::HandleSpawnComponent(const FMessageSpawnComponent& Mes
             Billboard->SetTextureHandle(BillboardTexture);
         }
 
-        auto Tag{Actor->AddComponent<UNameTagComponent>()};
-
-        Tag->SetVisible(false);
         mWorld->FinishSpawningActor(Actor, Actor->GetActorTransform());
     }
 

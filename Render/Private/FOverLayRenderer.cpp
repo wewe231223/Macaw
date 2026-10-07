@@ -36,8 +36,9 @@ bool FOverLayRenderer::Initialize(ID3D11Device* Device, ID3D11DeviceContext* Con
     return true;
 }
 
-bool FOverLayRenderer::BindAssetRegistry(const IAssetRegistry* Registry) {
+bool FOverLayRenderer::BindAssetRegistry(const IAssetRegistry* Registry, IAssetRegistryMutator* Mutator) {
     if (mAssetRegistry == Registry) {
+        mTextRenderer.BindAssetRegistry(Registry, Mutator);
         return true;
     }
 
@@ -53,6 +54,7 @@ bool FOverLayRenderer::BindAssetRegistry(const IAssetRegistry* Registry) {
     mCurrentTarget = nullptr;
     mAssetResources.Reset();
     mAssetRegistry = nullptr;
+    mTextRenderer.BindAssetRegistry(nullptr, nullptr);
 
     for (FFrameResource& FrameResource : mFrameResources) {
         FrameResource.ResetScenes();
@@ -63,6 +65,7 @@ bool FOverLayRenderer::BindAssetRegistry(const IAssetRegistry* Registry) {
     }
 
     mAssetRegistry = Registry;
+    mTextRenderer.BindAssetRegistry(Registry, Mutator);
 
     return true;
 }
@@ -80,6 +83,7 @@ bool FOverLayRenderer::BeginFrame(ID3D11DeviceContext* Context, Uint32 FrameReso
 
     mCurrentFrameResource = &FrameResource;
     mFrameSerial = FrameSerial;
+    mTextRenderer.BeginFrame(FrameSerial);
     mCurrentDepth = nullptr;
     mCurrentTarget = nullptr;
     mOutlineDraws.clear();
@@ -176,7 +180,7 @@ ID3D11DepthStencilView* FOverLayRenderer::RenderView(ID3D11DeviceContext* Contex
     }
 
     if (Overlay.IsPassEnabled(EOverlayPass::Text) && mAssetRegistry != nullptr) {
-        mTextRenderer.Render(Context, *mCurrentFrameResource, View.mCamera, Output.mViewport, Overlay.mTextProbes, *mAssetRegistry, mAssetResources);
+        mTextRenderer.Render(Context, *mCurrentFrameResource, View.mCamera, Output.mViewport, Overlay.mTextProbes, mAssetResources);
     }
 
     RenderOrientationAxis(Context, View.mCamera, Overlay, Output);

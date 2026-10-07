@@ -324,4 +324,60 @@ void EditorViewport::BuildOverlayRenderData(FOverlayRenderData& Overlay, const C
 
     BuildBounds(Overlay.mGuides, Camera, DepthMode);
     Overlay.mGridFade = FVector4{FadeCenter.mX, FadeCenter.mY, 450.0f, 550.0f};
+    BuildSelectionNameTag(Overlay);
+}
+
+void EditorViewport::BuildSelectionNameTag(FOverlayRenderData& Overlay) {
+    Overlay.mTextProbes.clear();
+
+    const AActor* Actor{mEditorContext != nullptr ? mEditorContext->GetSelectedActor() : nullptr};
+
+    if (!Overlay.IsPassEnabled(EOverlayPass::Text) || Actor == nullptr || Actor->GetRootComponent() == nullptr) {
+        return;
+    }
+
+    const FVector3 Origin{Actor->GetActorTransform().ToMatrixWithScale().Translation()};
+    FVector3 Minimum{Origin};
+    FVector3 Maximum{Origin};
+    bool HasBounds{};
+
+    for (const std::unique_ptr<UActorComponent>& Component : Actor->GetComponents()) {
+        if (!Component->GetTypeInfo()->IsA<UMeshComponent>()) {
+            continue;
+        }
+
+        const UMeshComponent* Mesh{static_cast<const UMeshComponent*>(Component.get())};
+
+        if (!Mesh->IsRegistered() || !Mesh->IsVisible() || !Mesh->GetMeshHandle()) {
+            continue;
+        }
+
+        DirectX::XMFLOAT3 Corners[DirectX::BoundingOrientedBox::CORNER_COUNT]{};
+
+        Mesh->GetWorldOBB().GetCorners(Corners);
+
+        for (const DirectX::XMFLOAT3& Corner : Corners) {
+            const FVector3 Position{Corner};
+
+            if (!HasBounds) {
+                Minimum = Position;
+                Maximum = Position;
+                HasBounds = true;
+            } else {
+                Minimum.mX = std::min(Minimum.mX, Position.mX);
+                Minimum.mY = std::min(Minimum.mY, Position.mY);
+                Minimum.mZ = std::min(Minimum.mZ, Position.mZ);
+                Maximum.mX = std::max(Maximum.mX, Position.mX);
+                Maximum.mY = std::max(Maximum.mY, Position.mY);
+                Maximum.mZ = std::max(Maximum.mZ, Position.mZ);
+            }
+        }
+    }
+
+    FOverlayTextProbe Probe{};
+
+    Probe.mWorldAnchor = HasBounds ? (Minimum + Maximum) * 0.5f : Origin;
+    Probe.mWorldBoundsExtent = HasBounds ? (Maximum - Minimum) * 0.5f : FVector3{};
+    Probe.mText = Actor->GetGuid().ToString();
+    Overlay.mTextProbes.push_back(std::move(Probe));
 }

@@ -40,55 +40,6 @@
                     "MaterialAssetPath": "/Game/System/Material/Default.mtl",
                     "PipelineAssetGuid": "DC8DBAC2-B368-4D74-81D7-4E09AD0BF8D5",
                     "PipelineAssetPath": "/Game/Pipeline/Base"
-                },
-                {
-                    "Guid": "D593921A-409C-6585-E902-7E95BA6B5547",
-                    "TypeName": "UNameTagComponent",
-                    "Name": "NameTag",
-                    "bActive": true,
-                    "Transform": {
-                        "Position": [
-                            0.0,
-                            0.0,
-                            0.0
-                        ],
-                        "Rotation": [
-                            0.0,
-                            0.0,
-                            0.0,
-                            1.0
-                        ],
-                        "Scale": [
-                            1.0,
-                            1.0,
-                            1.0
-                        ],
-                        "bAbsoluteLocation": false,
-                        "bAbsoluteRotation": false,
-                        "bAbsoluteScale": false
-                    },
-                    "Parent": "F617D8D7-473A-3294-B410-E6A94FEFB310",
-                    "bVisible": false,
-                    "FontAssetGuid": "0C6D5C06-6626-4BCF-A653-83ED3FF5280F",
-                    "FontAssetPath": "/Game/Font/NotoSansKR-Medium.ttf",
-                    "PipelineAssetGuid": "E41C36DD-3CF1-4FC0-9C14-7F7C20714597",
-                    "PipelineAssetPath": "/Game/Pipeline/Text.json",
-                    "Text": "DC36D2E9-4A51-30FA-9EB5-6DA054B8C615",
-                    "Color": [
-                        1.0,
-                        1.0,
-                        1.0,
-                        1.0
-                    ],
-                    "CharacterHeight": 1.0,
-                    "LetterSpacing": 0.0,
-                    "LineSpacing": 0.0,
-                    "TargetActorGuid": "00000000-0000-0000-0000-000000000000",
-                    "TargetLocalOffset": [
-                        0.0,
-                        0.0,
-                        0.0
-                    ]
                 }
             ],
             "GuidRootComponent": "F617D8D7-473A-3294-B410-E6A94FEFB310"
@@ -132,55 +83,6 @@
                     "MaterialAssetPath": "/Game/System/Material/Blue.mtl",
                     "PipelineAssetGuid": "DC8DBAC2-B368-4D74-81D7-4E09AD0BF8D5",
                     "PipelineAssetPath": "/Game/Pipeline/Base"
-                },
-                {
-                    "Guid": "661A4EE8-4D04-4E03-1F75-6DB64080C67A",
-                    "TypeName": "UNameTagComponent",
-                    "Name": "NameTag",
-                    "bActive": true,
-                    "Transform": {
-                        "Position": [
-                            0.0,
-                            0.0,
-                            0.0
-                        ],
-                        "Rotation": [
-                            0.0,
-                            0.0,
-                            0.0,
-                            1.0
-                        ],
-                        "Scale": [
-                            1.0,
-                            1.0,
-                            1.0
-                        ],
-                        "bAbsoluteLocation": false,
-                        "bAbsoluteRotation": false,
-                        "bAbsoluteScale": false
-                    },
-                    "Parent": "2F77CDA9-42E9-A64A-B01D-81989C32834F",
-                    "bVisible": false,
-                    "FontAssetGuid": "0C6D5C06-6626-4BCF-A653-83ED3FF5280F",
-                    "FontAssetPath": "/Game/Font/NotoSansKR-Medium.ttf",
-                    "PipelineAssetGuid": "E41C36DD-3CF1-4FC0-9C14-7F7C20714597",
-                    "PipelineAssetPath": "/Game/Pipeline/Text.json",
-                    "Text": "6E0E3E9E-45B3-5933-E830-B68B29BA03BC",
-                    "Color": [
-                        1.0,
-                        1.0,
-                        1.0,
-                        1.0
-                    ],
-                    "CharacterHeight": 1.0,
-                    "LetterSpacing": 0.0,
-                    "LineSpacing": 0.0,
-                    "TargetActorGuid": "00000000-0000-0000-0000-000000000000",
-                    "TargetLocalOffset": [
-                        0.0,
-                        0.0,
-                        0.0
-                    ]
                 }
             ],
             "GuidRootComponent": "2F77CDA9-42E9-A64A-B01D-81989C32834F"

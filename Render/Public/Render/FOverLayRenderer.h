@@ -30,7 +30,7 @@ private:
 
 public:
     bool Initialize(ID3D11Device* Device, ID3D11DeviceContext* Context, Uint32 FrameResourceCount);
-    bool BindAssetRegistry(const IAssetRegistry* Registry);
+    bool BindAssetRegistry(const IAssetRegistry* Registry, IAssetRegistryMutator* Mutator = nullptr);
     bool BeginFrame(ID3D11DeviceContext* Context, Uint32 FrameResourceIndex, Uint64 FrameSerial);
     void EndFrame();
     void Reset();

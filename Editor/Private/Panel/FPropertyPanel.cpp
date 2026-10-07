@@ -111,9 +111,6 @@ void FPropertyPanel::DrawComponentList(AActor& Actor) {
         if (ImGui::MenuItem("Billboard Text Component"))
             AddSceneComponent<UBillboardTextComponent>(Actor);
 
-        if (ImGui::MenuItem("Name Tag Component"))
-            AddSceneComponent<UNameTagComponent>(Actor);
-
         ImGui::EndPopup();
     }
 

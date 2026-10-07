@@ -1,6 +1,5 @@
 #include "pch.h"
 #include "Editor/Panel/Outliner.h"
-#include "World/Component/UNameTagComponent.h"
 #include "World/Component/UMeshComponent.h"
 #include "Editor/World/FWorldEditorContext.h"
 
@@ -233,19 +232,7 @@ void FOutlinerPanel::DrawActor(AActor& Actor) {
     }
 
     if (ImGui::IsItemClicked()) {
-        auto Prev{mEditorContext->GetSelectedActor()};
-
-        if (Prev != nullptr) {
-            if (UNameTagComponent * NameTag{Prev->GetComponent<UNameTagComponent>()}) {
-                NameTag->SetVisible(false);
-            }
-        }
-
         mEditorContext->SetSelectedActor(&Actor);
-
-        if (UNameTagComponent * NameTag{Actor.GetComponent<UNameTagComponent>()}) {
-            NameTag->SetVisible(true);
-        }
     }
 
     DrawActorDragSource(Actor);

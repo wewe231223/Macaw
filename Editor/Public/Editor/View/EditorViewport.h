@@ -35,6 +35,7 @@ private:
     void BuildGrid(FLineRenderData& Lines, const CameraProbe& Camera, const FVector3& CameraPosition, const D3D11_VIEWPORT& Viewport, FVector2D& FadeCenter, ELineDepthMode DepthMode);
     void BuildAxis(FLineRenderData& Lines, ELineDepthMode DepthMode);
     void BuildBounds(FLineRenderData& Lines, const CameraProbe& Camera, ELineDepthMode DepthMode);
+    void BuildSelectionNameTag(FOverlayRenderData& Overlay);
 
 private:
     FTransformGizmo mTransformGizmo{};
