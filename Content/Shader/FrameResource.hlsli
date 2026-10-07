@@ -1,9 +1,3 @@
-cbuffer FrameConstants : register(b0) {
-    uint AnimationFrame;
-    float AnimationTime;
-    float2 FramePadding;
-};
-
 cbuffer ViewConstants : register(b1) {
     row_major float4x4 View;
     row_major float4x4 Projection;

@@ -9,9 +9,10 @@ void FSceneRenderSurface::InitializeSwapChain(ID3D11Device* Device, IDXGISwapCha
     CreateSwapChainResources(Device);
 }
 
-void FSceneRenderSurface::InitializeOffscreen(ID3D11Device* Device, std::uint32_t Width, std::uint32_t Height) {
+void FSceneRenderSurface::InitializeOffscreen(ID3D11Device* Device, std::uint32_t Width, std::uint32_t Height, DXGI_FORMAT ColorFormat) {
     Reset();
     mStorageMode = EStorageMode::Offscreen;
+    mColorFormat = ColorFormat;
     Resize(Device, Width, Height);
 }
 
@@ -75,6 +76,7 @@ void FSceneRenderSurface::Reset() {
     ResetResources();
     mSwapChain.Reset();
     mStorageMode = EStorageMode::None;
+    mColorFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
 }
 
 bool FSceneRenderSurface::IsValid() const {
@@ -119,7 +121,7 @@ void FSceneRenderSurface::CreateOffscreenResources(ID3D11Device* Device, std::ui
     TextureDescription.Height = Height;
     TextureDescription.MipLevels = 1;
     TextureDescription.ArraySize = 1;
-    TextureDescription.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    TextureDescription.Format = mColorFormat;
     TextureDescription.SampleDesc.Count = 1;
     TextureDescription.Usage = D3D11_USAGE_DEFAULT;
     TextureDescription.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;

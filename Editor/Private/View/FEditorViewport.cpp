@@ -223,6 +223,13 @@ bool FEditorViewport::DrawMenuBar() {
     }
 
     BActivated = BActivated || ImGui::IsItemActivated();
+
+    if (ImGui::BeginMenu("Post Processing")) {
+        ImGui::Checkbox("FXAA", &mRenderSettings.mPostProcessing.mFXAA);
+        BActivated = true;
+        ImGui::EndMenu();
+    }
+
     ImGui::EndMenuBar();
 
     return BActivated;

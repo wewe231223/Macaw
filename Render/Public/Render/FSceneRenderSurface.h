@@ -24,7 +24,7 @@ public:
 
 public:
     void InitializeSwapChain(ID3D11Device* Device, IDXGISwapChain* SwapChain);
-    void InitializeOffscreen(ID3D11Device* Device, std::uint32_t Width, std::uint32_t Height);
+    void InitializeOffscreen(ID3D11Device* Device, std::uint32_t Width, std::uint32_t Height, DXGI_FORMAT ColorFormat = DXGI_FORMAT_R8G8B8A8_UNORM);
     bool Resize(ID3D11Device* Device, std::uint32_t Width, std::uint32_t Height) override;
 
     void Bind(ID3D11DeviceContext* Context) const override;
@@ -48,6 +48,7 @@ private:
 
 private:
     EStorageMode mStorageMode{EStorageMode::None};
+    DXGI_FORMAT mColorFormat{DXGI_FORMAT_R8G8B8A8_UNORM};
     Microsoft::WRL::ComPtr<IDXGISwapChain> mSwapChain{};
     Microsoft::WRL::ComPtr<ID3D11Texture2D> mColorTexture{};
     Microsoft::WRL::ComPtr<ID3D11RenderTargetView> mRenderTargetView{};

@@ -2,6 +2,7 @@
 
 #include "Render/Pipeline/FShader.h"
 #include "Asset/Pipeline/UPipeline.h"
+#include "RenderCore/FMaterialBlendMode.h"
 
 class FPipelineRenderResource {
 private:
@@ -13,6 +14,7 @@ private:
         Microsoft::WRL::ComPtr<ID3D11RasterizerState> mRasterizerState{};
         Microsoft::WRL::ComPtr<ID3D11BlendState> mBlendState{};
         Microsoft::WRL::ComPtr<ID3D11DepthStencilState> mDepthStencilState{};
+        Microsoft::WRL::ComPtr<ID3D11DepthStencilState> mTranslucentDepthStencilState{};
         D3D11_PRIMITIVE_TOPOLOGY mPrimitiveTopology{D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST};
         bool mInitialized{false};
     };
@@ -29,6 +31,7 @@ public:
 public:
     bool Initialize(ID3D11Device* Device, const UPipeline& Pipeline);
     void Bind(ID3D11DeviceContext* Context, ERenderMode Mode, UINT StencilReference = 1) const;
+    void BindMaterial(ID3D11DeviceContext* Context, ERenderMode Mode, EMaterialBlendMode BlendMode, UINT StencilReference) const;
     void Reset();
 
 private:
@@ -36,4 +39,6 @@ private:
 
 private:
     std::vector<FPipelineState> mPipelines{};
+    Microsoft::WRL::ComPtr<ID3D11BlendState> mOpaqueBlendState{};
+    Microsoft::WRL::ComPtr<ID3D11BlendState> mTranslucentBlendState{};
 };

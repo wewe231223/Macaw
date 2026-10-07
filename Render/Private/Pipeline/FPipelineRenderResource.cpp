@@ -9,6 +9,32 @@ bool FPipelineRenderResource::Initialize(ID3D11Device* Device, const UPipeline& 
         return false;
     }
 
+    D3D11_BLEND_DESC BlendDescription{};
+    D3D11_RENDER_TARGET_BLEND_DESC& BlendTarget{BlendDescription.RenderTarget[0]};
+
+    BlendTarget.SrcBlend = D3D11_BLEND_ONE;
+    BlendTarget.DestBlend = D3D11_BLEND_ZERO;
+    BlendTarget.BlendOp = D3D11_BLEND_OP_ADD;
+    BlendTarget.SrcBlendAlpha = D3D11_BLEND_ONE;
+    BlendTarget.DestBlendAlpha = D3D11_BLEND_ZERO;
+    BlendTarget.BlendOpAlpha = D3D11_BLEND_OP_ADD;
+    BlendTarget.RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+
+    if (FAILED(Device->CreateBlendState(&BlendDescription, mOpaqueBlendState.GetAddressOf()))) {
+        Reset();
+        return false;
+    }
+
+    BlendTarget.BlendEnable = true;
+    BlendTarget.SrcBlend = D3D11_BLEND_SRC_ALPHA;
+    BlendTarget.DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
+    BlendTarget.DestBlendAlpha = D3D11_BLEND_INV_SRC_ALPHA;
+
+    if (FAILED(Device->CreateBlendState(&BlendDescription, mTranslucentBlendState.GetAddressOf()))) {
+        Reset();
+        return false;
+    }
+
     mPipelines.resize(static_cast<std::size_t>(ERenderMode::Max));
 
     for (std::size_t Index{}; Index < mPipelines.size(); ++Index) {
@@ -114,6 +140,13 @@ bool FPipelineRenderResource::Make(ID3D11Device* Device, const FPipelineDescript
         return false;
     }
 
+    DepthStencilDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
+
+    if (FAILED(Device->CreateDepthStencilState(&DepthStencilDesc, Pipeline.mTranslucentDepthStencilState.GetAddressOf()))) {
+        Reset();
+        return false;
+    }
+
     D3D11_BLEND_DESC BlendDesc{};
 
     BlendDesc.AlphaToCoverageEnable = false;
@@ -174,4 +207,21 @@ void FPipelineRenderResource::Bind(ID3D11DeviceContext* Context, ERenderMode Mod
 
 void FPipelineRenderResource::Reset() {
     mPipelines.clear();
+    mOpaqueBlendState.Reset();
+    mTranslucentBlendState.Reset();
+}
+
+void FPipelineRenderResource::BindMaterial(ID3D11DeviceContext* Context, ERenderMode Mode, EMaterialBlendMode BlendMode, UINT StencilReference) const {
+    const std::size_t Index{static_cast<std::size_t>(Mode)};
+
+    if (Context == nullptr || Index >= mPipelines.size() || !mPipelines[Index].mInitialized) {
+        return;
+    }
+
+    Bind(Context, Mode, StencilReference);
+
+    const bool Translucent{BlendMode == EMaterialBlendMode::Translucent};
+
+    Context->OMSetBlendState(Translucent ? mTranslucentBlendState.Get() : mOpaqueBlendState.Get(), nullptr, 0xffffffff);
+    Context->OMSetDepthStencilState(Translucent ? mPipelines[Index].mTranslucentDepthStencilState.Get() : mPipelines[Index].mDepthStencilState.Get(), StencilReference);
 }

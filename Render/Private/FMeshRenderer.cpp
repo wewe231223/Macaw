@@ -7,7 +7,7 @@
 #include "Render/FFrameResource.h"
 #include "Core/Stat/Stat.h"
 
-void FMeshRenderer::Draw(const FRenderContext& Context, const TArray<FMeshDrawBatch>& Items, ERenderMode Mode) {
+void FMeshRenderer::Draw(const FRenderContext& Context, const TArray<FMeshDrawBatch>& Items, ERenderMode Mode, bool MaterialPass) {
     mLastDrawStats = {};
 
     if (Items.empty() || Context.mDeviceContext == nullptr || Context.mAssetRegistry == nullptr || Context.mAssetResources == nullptr || Context.mFrameResource == nullptr) {
@@ -29,6 +29,7 @@ void FMeshRenderer::Draw(const FRenderContext& Context, const TArray<FMeshDrawBa
     const FMaterialChunkSignature* BoundTextures{};
     const UMesh* BoundMesh{};
     Uint32 BoundLOD{};
+    EMaterialBlendMode BoundBlendMode{EMaterialBlendMode::Opaque};
 
     for (std::size_t BatchIndex{}; BatchIndex < Items.size(); ++BatchIndex) {
         const FMeshDrawBatch& Item{Items[BatchIndex]};
@@ -55,11 +56,17 @@ void FMeshRenderer::Draw(const FRenderContext& Context, const TArray<FMeshDrawBa
 
         const Uint32 StencilReference{ResolvedMode == ERenderMode::Outline || (Item.mFlags & static_cast<Uint32>(ERenderObjectFlags::Selected)) != 0 ? 1u : 0u};
 
-        if (BoundPipeline != Pipeline || BoundMode != ResolvedMode || BoundStencilReference != StencilReference) {
-            PipelineResource->Bind(DeviceContext, ResolvedMode, StencilReference);
+        if (BoundPipeline != Pipeline || BoundMode != ResolvedMode || BoundStencilReference != StencilReference || (MaterialPass && BoundBlendMode != State.mBlendMode)) {
+            if (MaterialPass) {
+                PipelineResource->BindMaterial(DeviceContext, ResolvedMode, State.mBlendMode, StencilReference);
+            } else {
+                PipelineResource->Bind(DeviceContext, ResolvedMode, StencilReference);
+            }
+
             BoundPipeline = Pipeline;
             BoundMode = ResolvedMode;
             BoundStencilReference = StencilReference;
+            BoundBlendMode = State.mBlendMode;
             ++mLastDrawStats.mPipelineBindCount;
         }
 

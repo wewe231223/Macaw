@@ -6,7 +6,7 @@
 bool FSceneRenderer::Initialize(ID3D11Device* Device) {
     Reset();
 
-    if (Device == nullptr || !mTextRenderer.Initialize(Device, 256) || !mBillboardRenderer.Initialize(Device, 64)) {
+    if (Device == nullptr || !mTextRenderer.Initialize(Device, 256) || !mBillboardRenderer.Initialize(Device, 64) || !mPostProcessingRenderer.Initialize(Device)) {
         Reset();
         return false;
     }
@@ -34,6 +34,7 @@ void FSceneRenderer::Reset() {
     ResetScenes();
     mTextRenderer = {};
     mBillboardRenderer = {};
+    mPostProcessingRenderer.Reset();
     mDevice = nullptr;
     mFrameSerial = 0;
 }
@@ -84,8 +85,24 @@ FSceneRenderOutput FSceneRenderer::RenderView(const FRenderContext& Context, con
 
     ViewQueue.mLastUsedFrame = mFrameSerial;
 
+    const D3D11_VIEWPORT& Viewport{View.mTarget->GetViewport()};
+    const Uint32 Width{static_cast<Uint32>(Viewport.Width)};
+    const Uint32 Height{static_cast<Uint32>(Viewport.Height)};
+
+    if (ViewQueue.mSceneColor == nullptr) {
+        ViewQueue.mSceneColor = std::make_unique<FSceneRenderSurface>();
+        ViewQueue.mSceneColor->InitializeOffscreen(mDevice, Width, Height);
+    } else if (!ViewQueue.mSceneColor->Resize(mDevice, Width, Height)) {
+        return {};
+    }
+
+    if (!ViewQueue.mSceneColor->IsValid()) {
+        return {};
+    }
+
     FRenderView SceneView{View};
 
+    SceneView.mTarget = ViewQueue.mSceneColor.get();
     SceneView.SetPassEnabled(ERenderPass::Gizmo, false);
 
     {
@@ -97,23 +114,36 @@ FSceneRenderOutput FSceneRenderer::RenderView(const FRenderContext& Context, con
     {
         const Stat::FScopedRenderPreparationStatTimer StageStat{Stat::ERenderPreparationStage::ViewBuffers};
 
-        if (!Context.mFrameResource->PrepareView(mDevice, Context.mDeviceContext, View, Scene, ViewQueue.mQueue)) {
+        if (!Context.mFrameResource->PrepareView(mDevice, Context.mDeviceContext, SceneView, Scene, ViewQueue.mQueue)) {
             return {};
         }
     }
 
-    if (View.IsPassEnabled(ERenderPass::SceneGeometry)) {
+    ViewQueue.mSceneColor->Clear(Context.mDeviceContext, ClearColor);
+    ViewQueue.mSceneColor->Bind(Context.mDeviceContext, View.mTarget->GetDepthStencilView());
+
+    if (View.IsPassEnabled(ERenderPass::Opaque)) {
         const Stat::FScopedSystemStatTimer StageStat{Stat::ESystemStatStage::Geometry};
 
-        mMeshRenderer.Draw(Context, ViewQueue.mQueue.GetItems(ERenderPass::SceneGeometry), View.mRenderMode);
+        mMeshRenderer.Draw(Context, ViewQueue.mQueue.GetItems(ERenderPass::Opaque), View.mRenderMode, true);
+    }
+
+    if (View.IsPassEnabled(ERenderPass::Translucent)) {
+        const Stat::FScopedSystemStatTimer StageStat{Stat::ESystemStatStage::Geometry};
+
+        mMeshRenderer.Draw(Context, ViewQueue.mQueue.GetItems(ERenderPass::Translucent), View.mRenderMode, true);
+    }
+
+    RenderTextAndBillboards(Context, SceneView, Scene);
+
+    if (!mPostProcessingRenderer.Render(Context.mDeviceContext, ViewQueue.mSceneColor->GetShaderResourceView(), *View.mTarget, View.mSettings.mPostProcessing, View.IsPassEnabled(ERenderPass::PostProcessing))) {
+        return {};
     }
 
     return FSceneRenderOutput{View.mTarget, View.mTarget->GetShaderResourceView(), View.mTarget->GetDepthShaderResourceView(), View.mTarget->GetDepthStencilView(), View.mTarget->GetViewport()};
 }
 
-void FSceneRenderer::RenderTextAndBillboards(const FRenderContext& Context, const FRenderView& View, const FRenderScene& Scene, ID3D11DepthStencilView* DepthStencilView) {
-    View.mTarget->Bind(Context.mDeviceContext, DepthStencilView);
-
+void FSceneRenderer::RenderTextAndBillboards(const FRenderContext& Context, const FRenderView& View, const FRenderScene& Scene) {
     if (View.IsPassEnabled(ERenderPass::Text)) {
         mTextRenderer.Render(Context.mDeviceContext, *Context.mFrameResource, Scene.GetTextProbes(), Context.mAssetRegistry, *Context.mAssetResources);
     }

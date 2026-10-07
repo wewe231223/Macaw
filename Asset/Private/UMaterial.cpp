@@ -33,6 +33,10 @@ Uint32 UMaterial::GetGPUDataCount() const {
     return 1;
 }
 
+EMaterialBlendMode UMaterial::GetBlendMode(Uint32 GroupIndex) const {
+    return EMaterialBlendMode::Opaque;
+}
+
 void UMaterial::MarkGPUDataDirty() {
     ++mRenderRevision;
 }

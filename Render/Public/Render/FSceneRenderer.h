@@ -6,11 +6,14 @@
 #include "Render/FMeshRenderer.h"
 #include "Render/FTextRenderer.h"
 #include "Render/FBillboardRenderer.h"
+#include "Render/FSceneRenderSurface.h"
+#include "Render/FPostProcessingRenderer.h"
 
 class FSceneRenderer {
 private:
     struct FViewRenderQueue {
         FRenderQueue mQueue{};
+        std::unique_ptr<FSceneRenderSurface> mSceneColor{};
         Uint64 mLastUsedFrame{};
     };
 
@@ -22,8 +25,10 @@ public:
 
     const FRenderScene& SynchronizeScene(const FRenderContext& Context, FSceneRenderData& Scene);
     FSceneRenderOutput RenderView(const FRenderContext& Context, const FRenderView& View, const FRenderScene& Scene);
-    void RenderTextAndBillboards(const FRenderContext& Context, const FRenderView& View, const FRenderScene& Scene, ID3D11DepthStencilView* DepthStencilView);
     const FRenderQueue* GetRenderQueue(const IRenderSurface* Target) const;
+
+private:
+    void RenderTextAndBillboards(const FRenderContext& Context, const FRenderView& View, const FRenderScene& Scene);
 
 private:
     ID3D11Device* mDevice{nullptr};
@@ -34,4 +39,5 @@ private:
     FMeshRenderer mMeshRenderer{};
     FTextRenderer mTextRenderer{};
     FBillboardRenderer mBillboardRenderer{};
+    FPostProcessingRenderer mPostProcessingRenderer{};
 };

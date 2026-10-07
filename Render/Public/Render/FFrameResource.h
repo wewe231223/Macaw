@@ -21,12 +21,6 @@ enum class EFrameStream : Uint8 {
 
 class FFrameResource {
 private:
-    struct FFrameConstants {
-        Uint32 mAnimationFrame{};
-        float mAnimationTime{};
-        FVector2 mPadding{};
-    };
-
     struct FViewConstants {
         FMatrix mView{};
         FMatrix mProjection{};
@@ -72,7 +66,6 @@ private:
         bool mOrientationAxisReady{};
     };
 
-    static_assert(sizeof(FFrameConstants) == 16);
     static_assert(sizeof(FViewConstants) == 304);
     static_assert(sizeof(FMeshDrawRecord) == 16);
 
@@ -81,7 +74,7 @@ public:
     void Reset();
     void ResetScenes();
 
-    bool BeginFrame(ID3D11DeviceContext* Context, float AnimationTime);
+    bool BeginFrame(ID3D11DeviceContext* Context);
     void EndFrame();
 
     bool PrepareView(ID3D11Device* Device, ID3D11DeviceContext* Context, const FRenderView& View, const FRenderScene& Scene, const FRenderQueue& Queue);
@@ -112,7 +105,6 @@ private:
     void BindConstantBuffer(ID3D11DeviceContext* Context, Uint32 Slot, const FGraphicsBuffer& Buffer) const;
 
 private:
-    FGraphicsBuffer mFrameBuffer{};
     FGraphicsBuffer mDrawRecordIndexBuffer{};
 
     TArray<FViewBuffers> mViews{};
@@ -122,7 +114,6 @@ private:
     TArray<Uint32> mChangedObjects{};
     Uint64 mFrameSerial{};
 
-    FFrameConstants mFrameConstants{};
     bool mFrameReady{};
     bool mViewReady{};
     bool mHasCameraWorld{};

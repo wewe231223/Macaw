@@ -7,7 +7,9 @@
 #include "Render/IRenderSurface.h"
 
 enum class ERenderPass : Uint8 {
-    SceneGeometry,
+    Opaque,
+    Translucent,
+    PostProcessing,
     SelectionOutline,
     SceneGuides,
     Gizmo,
@@ -28,7 +30,7 @@ struct FRenderView {
     ERenderMode mRenderMode{ERenderMode::Lit};
     bool mUseLOD{true};
 
-    std::bitset<static_cast<std::size_t>(ERenderPass::Count)> mPasses{0x7f};
+    std::bitset<static_cast<std::size_t>(ERenderPass::Count)> mPasses{(1ull << static_cast<std::size_t>(ERenderPass::Count)) - 1};
 
     float mOrientationAxisSize{};
 

@@ -1,6 +1,7 @@
 #pragma once
 #include "RenderCore/FMaterialChunkSignature.h"
 #include "RenderCore/FMaterialGPUData.h"
+#include "RenderCore/FMaterialBlendMode.h"
 #include "Asset/UAsset.h"
 #include "CoreUObject/Asset/IAssetRegistry.h"
 
@@ -28,6 +29,7 @@ public:
     virtual void Finalize(const IAssetRegistry* Query);
 
     virtual Uint32 GetGPUDataCount() const;
+    virtual EMaterialBlendMode GetBlendMode(Uint32 GroupIndex = 0) const;
 
     virtual std::optional<Uint32> FindGroupIndex(FName Name) const;
 

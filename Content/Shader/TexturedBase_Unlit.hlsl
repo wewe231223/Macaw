@@ -69,6 +69,11 @@ float4 mainPS(PS_INPUT Input) : SV_TARGET {
     FSurfaceOpaqueMaterial Material = MaterialBuffer[Input.MaterialIndex];
 
     float4 BaseColor = DiffuseTexture.Sample(LinearWrap, Input.UV);
+    BaseColor.a *= saturate(Material.DiffuseColorAndOpacity.a);
+
+    if (Material.TransmissionFilter.w > 0.5f) {
+        BaseColor.a *= OpacityTexture.Sample(LinearWrap, Input.UV).r;
+    }
     
     return BaseColor;
 }

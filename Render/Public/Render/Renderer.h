@@ -30,7 +30,7 @@ public:
     void Create(HWND WindowHandle, UINT Width, UINT Height);
     bool Initialize();
 
-    void BeginFrame(float DeltaTime);
+    void BeginFrame();
 
     const FRenderScene& SynchronizeScene(FSceneRenderData& Scene);
     void RenderView(const FRenderView& View, FSceneRenderData& Scene);
@@ -90,7 +90,6 @@ private:
 
     std::array<FFrameResource, mFrameResourceCount> mFrameResources{};
     FFrameResource* mCurrentFrameResource{nullptr};
-    float mAnimationTime{};
 
     Uint64 mFrameSerial{};
 

@@ -160,7 +160,9 @@ void FAssetThumbnailRenderer::RenderThumbnail(const FAssetEntry& Entry, FSceneRe
     View.mUseLOD = true;
     View.mSettings = RenderSettings;
     View.mPasses.reset();
-    View.SetPassEnabled(ERenderPass::SceneGeometry, true);
+    View.SetPassEnabled(ERenderPass::Opaque, true);
+    View.SetPassEnabled(ERenderPass::Translucent, true);
+    View.SetPassEnabled(ERenderPass::PostProcessing, true);
     Scene.mRevision = ++mRenderSceneRevision;
     mRenderer->RenderView(View, Scene);
 }

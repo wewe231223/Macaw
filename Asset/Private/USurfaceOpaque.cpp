@@ -5,6 +5,8 @@
 #include <cstddef>
 #include <fstream>
 #include <sstream>
+#include <algorithm>
+#include <cmath>
 
 namespace {
     struct FSurfaceOpaqueGroupGPUData {
@@ -140,7 +142,11 @@ bool USurfaceOpaque::Initialize(const std::filesystem::path& MtlPath, const FTex
         if (Command == "Ka") {
             ParseVector3(Stream, CurrentGroup.mAmbient);
         } else if (Command == "Kd") {
-            ParseVector3(Stream, CurrentGroup.mDiffuse);
+            FVector3 Diffuse{};
+
+            if (ParseVector3(Stream, Diffuse)) {
+                CurrentGroup.mDiffuse = FVector4{Diffuse.mX, Diffuse.mY, Diffuse.mZ, CurrentGroup.mDiffuse.mW};
+            }
         } else if (Command == "Ks") {
             ParseVector3(Stream, CurrentGroup.mSpecular);
         } else if (Command == "Ke") {
@@ -158,17 +164,17 @@ bool USurfaceOpaque::Initialize(const std::filesystem::path& MtlPath, const FTex
 
             if (Token == "-halo") {
                 CurrentGroup.mBDissolveHalo = true;
-                Stream >> CurrentGroup.mOpacity;
+                Stream >> CurrentGroup.mDiffuse.mW;
             } else if (!Token.empty()) {
                 std::istringstream OpacityStream{Token};
 
-                OpacityStream >> CurrentGroup.mOpacity;
+                OpacityStream >> CurrentGroup.mDiffuse.mW;
             }
         } else if (Command == "Tr") {
             float Transparency{0.0f};
 
             if (Stream >> Transparency) {
-                CurrentGroup.mOpacity = 1.0f - Transparency;
+                CurrentGroup.mDiffuse.mW = 1.0f - Transparency;
             }
         } else if (Command == "illum") {
             Stream >> CurrentGroup.mIlluminationModel;
@@ -209,6 +215,15 @@ bool USurfaceOpaque::Initialize(const std::filesystem::path& MtlPath, const FTex
         return false;
     }
 
+    for (FMaterialGroup& Group : mGroups) {
+        if (!std::isfinite(Group.mDiffuse.mW)) {
+            Reset();
+            return false;
+        }
+
+        Group.mDiffuse.mW = std::clamp(Group.mDiffuse.mW, 0.0f, 1.0f);
+    }
+
     MarkGPUDataDirty();
 
     return true;
@@ -227,11 +242,11 @@ void USurfaceOpaque::BuildGPUData(Uint32 GroupIndex, FMaterialGPUSlot& OutSlot) 
     const FMaterialGroup& Group{mGroups[GroupIndex]};
     FSurfaceOpaqueGroupGPUData Data{};
 
-    Data.mDiffuseAndOpacity = FVector4{Group.mDiffuse.mX, Group.mDiffuse.mY, Group.mDiffuse.mZ, Group.mOpacity};
+    Data.mDiffuseAndOpacity = Group.mDiffuse;
     Data.mAmbientAndShininess = FVector4{Group.mAmbient.mX, Group.mAmbient.mY, Group.mAmbient.mZ, Group.mShininess};
     Data.mSpecularAndRefractionIndex = FVector4{Group.mSpecular.mX, Group.mSpecular.mY, Group.mSpecular.mZ, Group.mRefractionIndex};
     Data.mEmissiveAndSharpness = FVector4{Group.mEmissive.mX, Group.mEmissive.mY, Group.mEmissive.mZ, Group.mSharpness};
-    Data.mTransmissionFilter = FVector4{Group.mTransmissionFilter.mX, Group.mTransmissionFilter.mY, Group.mTransmissionFilter.mZ, 0.0f};
+    Data.mTransmissionFilter = FVector4{Group.mTransmissionFilter.mX, Group.mTransmissionFilter.mY, Group.mTransmissionFilter.mZ, Group.mOpacityTexture.mTexture ? 1.0f : 0.0f};
     Data.mIlluminationModel = Group.mIlluminationModel;
     Data.mDissolveHalo = Group.mBDissolveHalo ? 1u : 0u;
 
@@ -290,9 +305,11 @@ bool USurfaceOpaque::ModifyGroup(Uint32 GroupIndex, const std::function<void(FMa
 
     Modifier(EditedGroup);
 
-    if (EditedGroup.mName.IsNone()) {
+    if (EditedGroup.mName.IsNone() || !std::isfinite(EditedGroup.mDiffuse.mW)) {
         return false;
     }
+
+    EditedGroup.mDiffuse.mW = std::clamp(EditedGroup.mDiffuse.mW, 0.0f, 1.0f);
 
     for (Uint32 Index{}; Index < mGroups.size(); ++Index) {
         if (Index != GroupIndex && mGroups[Index].mName == EditedGroup.mName) {
@@ -312,4 +329,14 @@ void USurfaceOpaque::Serialize(FArchive& Ar) {
 
 Uint32 USurfaceOpaque::GetGPUDataCount() const {
     return mGroups.empty() ? 1u : static_cast<Uint32>(mGroups.size());
+}
+
+EMaterialBlendMode USurfaceOpaque::GetBlendMode(Uint32 GroupIndex) const {
+    if (GroupIndex >= mGroups.size()) {
+        return EMaterialBlendMode::Opaque;
+    }
+
+    const FMaterialGroup& Group{mGroups[GroupIndex]};
+
+    return Group.mDiffuse.mW < 1.0f ? EMaterialBlendMode::Translucent : EMaterialBlendMode::Opaque;
 }

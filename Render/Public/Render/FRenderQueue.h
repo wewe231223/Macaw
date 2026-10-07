@@ -19,6 +19,7 @@ struct FMeshDrawBatch {
     Uint32 mFirstRecord{};
     Uint32 mRecordCount{};
     Uint32 mFlags{};
+    float mSortDepth{};
 };
 
 class FRenderQueue {
@@ -40,7 +41,8 @@ private:
         FObjectHandle mSelectedActorHandle{};
         bool mUseLOD{};
         bool mRenderSky{};
-        bool mSceneGeometry{};
+        bool mOpaque{};
+        bool mTranslucent{};
         bool mSelectionOutline{};
     };
 
@@ -66,6 +68,8 @@ private:
     std::size_t mSceneRecordCount{};
 
     TArray<FMeshDrawBatch> mSceneItems{};
+    TArray<FMeshDrawBatch> mOpaqueItems{};
+    TArray<FMeshDrawBatch> mTranslucentItems{};
     TArray<FMeshDrawBatch> mOutlineItems{};
     TArray<FMeshDrawBatch> mGizmoItems{};
     TArray<FMeshDrawBatch> mEmptyItems{};

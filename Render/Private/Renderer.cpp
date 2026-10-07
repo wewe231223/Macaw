@@ -6,7 +6,6 @@
 #include "Core/Stat/Stat.h"
 
 #include <ranges>
-#include <cmath>
 #include <utility>
 #include <dxgi1_6.h>
 #include "Core/Console/Console.h"
@@ -135,13 +134,9 @@ bool FRenderer::BindAssetRegistry(const IAssetRegistry* InAssetRegistry) {
     return true;
 }
 
-void FRenderer::BeginFrame(float DeltaTime) {
+void FRenderer::BeginFrame() {
     if (mCurrentFrameResource != nullptr) {
         return;
-    }
-
-    if (std::isfinite(DeltaTime) && DeltaTime > 0.0f) {
-        mAnimationTime = std::fmod(mAnimationTime + DeltaTime, 25.0f);
     }
 
 #if EnableFrameResourceFence
@@ -172,14 +167,14 @@ void FRenderer::BeginFrame(float DeltaTime) {
     FFrameResource& FrameResource{mFrameResources.front()};
 #endif
 
-    if (!FrameResource.BeginFrame(mDeviceContext.Get(), mAnimationTime)) {
+    if (!FrameResource.BeginFrame(mDeviceContext.Get())) {
         ErrorHandler::Report("[ FRenderer ]", "Failed to begin a frame resource.", ErrorHandler::EErrorLevel::Critical);
         return;
     }
 
     const Uint32 FrameResourceIndex{static_cast<Uint32>(&FrameResource - mFrameResources.data())};
 
-    if (!mOverLayRenderer.BeginFrame(mDeviceContext.Get(), FrameResourceIndex, mFrameSerial + 1, mAnimationTime)) {
+    if (!mOverLayRenderer.BeginFrame(mDeviceContext.Get(), FrameResourceIndex, mFrameSerial + 1)) {
         FrameResource.EndFrame();
         ErrorHandler::Report("[ FRenderer ]", "Failed to begin overlay frame resources.", ErrorHandler::EErrorLevel::Critical);
         return;
@@ -224,9 +219,8 @@ void FRenderer::RenderView(const FRenderView& View, const FRenderScene& Scene) {
     }
 
     const Stat::FScopedSystemStatTimer StageStat{Stat::ESystemStatStage::EditorOverlays};
-    ID3D11DepthStencilView* CompositionDepth{mOverLayRenderer.RenderView(Context, View, Scene, *Queue, Output)};
-
-    mSceneRenderer.RenderTextAndBillboards(Context, View, Scene, CompositionDepth);
+    BindSamplerStates();
+    mOverLayRenderer.RenderView(Context, View, Scene, *Queue, Output);
     mOverLayRenderer.RenderOrientationAxis(mDeviceContext.Get(), View, Output);
     View.mTarget->Bind(mDeviceContext.Get());
 }
@@ -270,7 +264,6 @@ void FRenderer::Terminate() {
 #endif
 
     mCurrentFrameResource = nullptr;
-    mAnimationTime = 0.0f;
 
     if (mBackBufferSurface != nullptr) {
         mBackBufferSurface->Reset();

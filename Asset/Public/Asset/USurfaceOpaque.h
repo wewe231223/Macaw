@@ -26,6 +26,7 @@ public:
     FMaterialChunkSignature BuildChunkSignature() const override;
     FMaterialChunkSignature BuildChunkSignature(Uint32 GroupIndex) const override;
     Uint32 GetGPUDataCount() const override;
+    EMaterialBlendMode GetBlendMode(Uint32 GroupIndex = 0) const override;
     std::optional<Uint32> FindGroupIndex(FName Name) const override;
 
     const TArray<FMaterialGroup>& GetGroups() const;

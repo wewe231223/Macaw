@@ -1,6 +1,7 @@
 #pragma once
 #include "Render/FMaterialBuffer.h"
 #include "RenderCore/FMaterialChunkSignature.h"
+#include "RenderCore/FMaterialBlendMode.h"
 
 class UMaterial;
 class UMesh;
@@ -9,6 +10,7 @@ struct FMeshDrawState {
     FAssetHandle mPipelineHandle{};
     FAssetHandle mMeshHandle{};
     FMaterialChunkSignature mTextureSignature{};
+    EMaterialBlendMode mBlendMode{EMaterialBlendMode::Opaque};
 
     Uint32 mFirstIndex{};
     Uint32 mIndexCount{};

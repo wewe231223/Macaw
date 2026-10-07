@@ -167,7 +167,7 @@ void FApplication::Tick(float DeltaTime) {
             const Stat::FScopedSystemStatTimer StageStat{Stat::ESystemStatStage::FrameSetup};
 
             Stat::RecordObjectCounts(UObjectSystem::GetObjectCount(), mContext.mWorldContext->GetWorld().GetActors().size());
-            mContext.mRenderer.BeginFrame(DeltaTime);
+            mContext.mRenderer.BeginFrame();
         }
 
         {

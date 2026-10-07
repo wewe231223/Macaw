@@ -79,9 +79,14 @@ struct CameraProbe {
     FFrustum mViewFrustum{};
 };
 
+struct FPostProcessingSettings {
+    bool mFXAA{true};
+};
+
 struct FRenderSettings {
     FVector4 mClearColor{0.2f, 0.2f, 0.7f, 1.0f};
     bool mBRenderSky{true};
+    FPostProcessingSettings mPostProcessing{};
 };
 
 struct FLightProbe {

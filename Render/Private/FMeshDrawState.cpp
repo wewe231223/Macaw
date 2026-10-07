@@ -24,6 +24,7 @@ void AppendMeshDrawTemplates(const UMesh& Mesh, const UMaterial& Material, const
         State.mPipelineHandle = PipelineHandle;
         State.mMeshHandle = MeshHandle;
         State.mTextureSignature = Material.BuildChunkSignature(MaterialGroup);
+        State.mBlendMode = Material.GetBlendMode(MaterialGroup);
         State.mFirstIndex = FirstIndex;
         State.mIndexCount = IndexCount;
         State.mLODLevel = LODLevel;

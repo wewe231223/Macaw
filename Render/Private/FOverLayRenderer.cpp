@@ -53,14 +53,14 @@ bool FOverLayRenderer::BindAssetRegistry(const IAssetRegistry* Registry) {
     return true;
 }
 
-bool FOverLayRenderer::BeginFrame(ID3D11DeviceContext* Context, Uint32 FrameResourceIndex, Uint64 FrameSerial, float AnimationTime) {
+bool FOverLayRenderer::BeginFrame(ID3D11DeviceContext* Context, Uint32 FrameResourceIndex, Uint64 FrameSerial) {
     if (mCurrentFrameResource != nullptr || FrameResourceIndex >= mFrameResources.size()) {
         return false;
     }
 
     FFrameResource& FrameResource{mFrameResources[FrameResourceIndex]};
 
-    if (!FrameResource.BeginFrame(Context, AnimationTime)) {
+    if (!FrameResource.BeginFrame(Context)) {
         return false;
     }
 
@@ -304,7 +304,7 @@ void FOverLayRenderer::RenderOrientationAxis(ID3D11DeviceContext* Context, const
 
     mLineRenderer.Clear();
     mLineRenderer.AddRay(FVector3{}, FVector3{1.0f, 0.0f, 0.0f}, 1.0f, FVector4{1.0f, 0.0f, 0.0f, 1.0f}, 3.0f);
-    mLineRenderer.AddRay(FVector3{}, FVector3{0.0f, 1.0f, 0.0f}, 1.0f, FVector4{0.0f, 0.0f, 1.0f, 1.0f}, 3.0f);
+    mLineRenderer.AddRay(FVector3{}, FVector3{0.0f, 1.0f, 0.0f}, 1.0f, FVector4{0.0f, 1.0f, 0.0f, 1.0f}, 3.0f);
     mLineRenderer.AddRay(FVector3{}, FVector3{0.0f, 0.0f, 1.0f}, 1.0f, FVector4{0.0f, 0.0f, 1.0f, 1.0f}, 3.0f);
 
     const CameraProbe AxisCamera{AxisView * Projection, AxisView, Projection};

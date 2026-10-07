@@ -8,7 +8,7 @@ bool FRenderView::IsPassEnabled(ERenderPass Pass) const {
         return false;
     }
 
-    return Pass != ERenderPass::SelectionOutline || mPasses.test(static_cast<std::size_t>(ERenderPass::SceneGeometry));
+    return Pass != ERenderPass::SelectionOutline || IsPassEnabled(ERenderPass::Opaque) || IsPassEnabled(ERenderPass::Translucent);
 }
 
 void FRenderView::SetPassEnabled(ERenderPass Pass, bool Enabled) {

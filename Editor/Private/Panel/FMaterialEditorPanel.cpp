@@ -110,7 +110,11 @@ void FMaterialEditorPanel::DrawGroup(USurfaceOpaque& Material, Uint32 GroupIndex
     }};
 
     DrawColor3("Ambient", Group.mAmbient, &FMaterialGroup::mAmbient);
-    DrawColor3("Diffuse", Group.mDiffuse, &FMaterialGroup::mDiffuse);
+    mPropertyEditor.DrawColor("Diffuse", Group.mDiffuse, [this, &Material, GroupIndex](const FVector4& Value) {
+        ModifyGroup(Material, GroupIndex, [&Value](FMaterialGroup& Target) {
+            Target.mDiffuse = Value;
+        });
+    });
     DrawColor3("Specular", Group.mSpecular, &FMaterialGroup::mSpecular);
     DrawColor3("Emissive", Group.mEmissive, &FMaterialGroup::mEmissive);
     mPropertyEditor.DrawVector3("Transmission Filter", Group.mTransmissionFilter, 0.01f, 0.0f, 1.0f, [this, &Material, GroupIndex](const FVector3& Value) {
@@ -128,12 +132,6 @@ void FMaterialEditorPanel::DrawGroup(USurfaceOpaque& Material, Uint32 GroupIndex
     mPropertyEditor.DrawFloat("Refraction Index", Group.mRefractionIndex, 0.01f, 0.0f, 10.0f, [this, &Material, GroupIndex](float Value) {
         ModifyGroup(Material, GroupIndex, [Value](FMaterialGroup& Target) {
             Target.mRefractionIndex = Value;
-        });
-    });
-
-    mPropertyEditor.DrawFloat("Opacity", Group.mOpacity, 0.01f, 0.0f, 1.0f, [this, &Material, GroupIndex](float Value) {
-        ModifyGroup(Material, GroupIndex, [Value](FMaterialGroup& Target) {
-            Target.mOpacity = Value;
         });
     });
 

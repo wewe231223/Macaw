@@ -19,16 +19,10 @@ bool FFrameResource::Initialize(ID3D11Device* Device, ID3D11DeviceContext* Conte
         return false;
     }
 
-    if (!InitializeConstantBuffer(Device, mFrameBuffer, sizeof(FFrameConstants))) {
-        Reset();
-        return false;
-    }
-
     return true;
 }
 
 void FFrameResource::Reset() {
-    mFrameBuffer.Reset();
     mDrawRecordIndexBuffer.Reset();
 
     mViews.clear();
@@ -38,7 +32,6 @@ void FFrameResource::Reset() {
     mChangedObjects.clear();
     mFrameSerial = 0;
 
-    mFrameConstants = {};
     mFrameReady = false;
     mViewReady = false;
     mHasCameraWorld = false;
@@ -53,8 +46,8 @@ void FFrameResource::ResetScenes() {
     mChangedObjects.clear();
 }
 
-bool FFrameResource::BeginFrame(ID3D11DeviceContext* Context, float AnimationTime) {
-    if (mFrameReady) {
+bool FFrameResource::BeginFrame(ID3D11DeviceContext* Context) {
+    if (Context == nullptr || mFrameReady) {
         return false;
     }
 
@@ -70,10 +63,7 @@ bool FFrameResource::BeginFrame(ID3D11DeviceContext* Context, float AnimationTim
     mViewReady = false;
     mHasCameraWorld = false;
 
-    mFrameConstants.mAnimationTime = AnimationTime;
-    mFrameConstants.mAnimationFrame = static_cast<Uint32>(AnimationTime / 0.1f) % 250;
-
-    mFrameReady = mFrameBuffer.WriteNoOverwrite(Context, &mFrameConstants, sizeof(mFrameConstants), 0);
+    mFrameReady = true;
 
     return mFrameReady;
 }
@@ -152,7 +142,6 @@ bool FFrameResource::BindCommon(ID3D11DeviceContext* Context, bool OrientationAx
         return false;
     }
 
-    BindConstantBuffer(Context, 0, mFrameBuffer);
     BindConstantBuffer(Context, 1, OrientationAxis ? Buffers.mOrientationAxisConstants : Buffers.mViewConstants);
     Context->PSSetShaderResources(2, 1, Buffers.mLights.GetSRV());
 

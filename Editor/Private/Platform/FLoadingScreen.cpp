@@ -131,7 +131,7 @@ bool FLoadingScreen::Run(FRenderer& Renderer, IPlatformApplication& Platform, co
 
         if (!QuitRequested) {
             if (LoadingFinished && Succeeded.load(std::memory_order_acquire)) {
-                Renderer.BeginFrame(0.0f);
+                Renderer.BeginFrame();
                 FrameTaskFinished = LoadingFrameTask(Progress);
             }
 

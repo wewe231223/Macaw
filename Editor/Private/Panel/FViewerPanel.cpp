@@ -347,7 +347,9 @@ void FViewerPanel::RenderOffscreen(FRenderer& InRenderer, FAssetRegistry&) {
     View.mSettings = PreviewSettings;
     View.mOrientationAxisSize = 100.0f;
     View.mPasses.reset();
-    View.SetPassEnabled(ERenderPass::SceneGeometry, true);
+    View.SetPassEnabled(ERenderPass::Opaque, true);
+    View.SetPassEnabled(ERenderPass::Translucent, true);
+    View.SetPassEnabled(ERenderPass::PostProcessing, true);
     View.SetPassEnabled(ERenderPass::OrientationAxis, true);
     InRenderer.RenderView(View, PreviewScene);
 }
