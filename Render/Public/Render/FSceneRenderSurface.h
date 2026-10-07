@@ -28,6 +28,7 @@ public:
     bool Resize(ID3D11Device* Device, std::uint32_t Width, std::uint32_t Height) override;
 
     void Bind(ID3D11DeviceContext* Context) const override;
+    void Bind(ID3D11DeviceContext* Context, ID3D11DepthStencilView* DepthStencilView) const override;
     void Clear(ID3D11DeviceContext* Context, const float ClearColor[4]) const override;
     void ClearDepth(ID3D11DeviceContext* Context) const override;
 
@@ -37,6 +38,7 @@ public:
     const D3D11_VIEWPORT& GetViewport() const override;
     ID3D11ShaderResourceView* GetShaderResourceView() const override;
     ID3D11ShaderResourceView* GetDepthShaderResourceView() const override;
+    ID3D11DepthStencilView* GetDepthStencilView() const override;
 
 private:
     void CreateSwapChainResources(ID3D11Device* Device);

@@ -120,6 +120,25 @@ Uint32 FMaterialBuffer::GetMaterialIndex(const UMaterial& Material, Uint32 Group
     return Position != mMaterials.end() && GroupIndex < Position->second.mIndices.size() ? Position->second.mIndices[GroupIndex] : UINT32_MAX;
 }
 
+void FMaterialBuffer::BuildIndexRemapping(const FMaterialBuffer& Target, TMap<Uint32, Uint32>& OutIndices) const {
+    OutIndices.clear();
+
+    for (const auto& [Guid, Source] : mMaterials) {
+        const auto Position{Target.mMaterials.find(Guid)};
+
+        if (Position == Target.mMaterials.end()) {
+            continue;
+        }
+
+        const TArray<Uint32>& Indices{Position->second.mIndices};
+        const std::size_t GroupCount{std::min(Source.mIndices.size(), Indices.size())};
+
+        for (std::size_t Group{}; Group < GroupCount; ++Group) {
+            OutIndices.emplace(Source.mIndices[Group], Indices[Group]);
+        }
+    }
+}
+
 Uint64 FMaterialBuffer::GetRevision() const {
     return mRevision;
 }

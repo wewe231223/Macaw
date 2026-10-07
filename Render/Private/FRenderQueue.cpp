@@ -51,6 +51,55 @@ void FRenderQueue::Build(const IAssetRegistry* Registry, const FRenderScene& Sce
     }
 }
 
+void FRenderQueue::BuildOverLay(const IAssetRegistry* Registry, const FRenderQueue& SceneQueue, const FRenderView& View, const FMaterialBuffer& SceneMaterials, const FMaterialBuffer& Materials) {
+    mSceneCacheKey = {};
+    mSceneItems.clear();
+    mOutlineItems.clear();
+    mGizmoItems.clear();
+    mGizmoTransforms.clear();
+    mDrawRecords.clear();
+    mSceneRecordCount = 0;
+
+    if (View.IsPassEnabled(ERenderPass::SelectionOutline)) {
+        const TArray<FMeshDrawRecord>& Records{SceneQueue.GetDrawRecords()};
+        TMap<Uint32, Uint32> MaterialIndices{};
+
+        SceneMaterials.BuildIndexRemapping(Materials, MaterialIndices);
+
+        for (const FMeshDrawBatch& Source : SceneQueue.GetItems(ERenderPass::SelectionOutline)) {
+            if (Source.mFirstRecord > Records.size() || Source.mRecordCount > Records.size() - Source.mFirstRecord || Source.mRecordCount > UINT32_MAX - mDrawRecords.size()) {
+                continue;
+            }
+
+            FMeshDrawBatch Item{Source};
+
+            Item.mFirstRecord = static_cast<Uint32>(mDrawRecords.size());
+            Item.mRecordCount = 0;
+
+            for (Uint32 Index{}; Index < Source.mRecordCount; ++Index) {
+                FMeshDrawRecord Record{Records[Source.mFirstRecord + Index]};
+                const auto MaterialIndex{MaterialIndices.find(Record.mMaterialIndex)};
+
+                if (MaterialIndex == MaterialIndices.end()) {
+                    continue;
+                }
+
+                Record.mMaterialIndex = MaterialIndex->second;
+                mDrawRecords.push_back(Record);
+                ++Item.mRecordCount;
+            }
+
+            if (Item.mRecordCount != 0) {
+                mOutlineItems.push_back(Item);
+            }
+        }
+    }
+
+    if (View.IsPassEnabled(ERenderPass::Gizmo)) {
+        BuildGizmoItems(Registry, View.mGizmoProbes, Materials);
+    }
+}
+
 const TArray<FMeshDrawBatch>& FRenderQueue::GetItems(ERenderPass Pass) const {
     switch (Pass) {
         case ERenderPass::SceneGeometry:
@@ -128,15 +177,14 @@ void FRenderQueue::BuildSceneItems(const FRenderScene& Scene, const FRenderView&
         FLODSelection LOD{};
 
         if (!Group.mSky && View.mUseLOD) {
-            LOD = SelectMeshLOD(CalculateScreenSize(Object, View.mCamera, ProjectionScale, Perspective),
-                                ViewportHeight, Group.mAvailableLODMask, Object.mCullable && BucketFlag == 0);
+            LOD = SelectMeshLOD(CalculateScreenSize(Object, View.mCamera, ProjectionScale, Perspective), ViewportHeight, Group.mAvailableLODMask, Object.mCullable && BucketFlag == 0);
         }
 
         if (LOD.mCulled) {
             continue;
         }
 
-        auto AddLevel = [&](Uint32 Level, float Dither) {
+        auto AddLevel{[&](Uint32 Level, float Dither) {
             const FRenderTemplateRange& Range{Group.mTemplateRangesByLOD[Level]};
 
             if (Range.mTemplateCount == 0) {
@@ -148,7 +196,7 @@ void FRenderQueue::BuildSceneItems(const FRenderScene& Scene, const FRenderView&
             for (Uint32 Index{}; Index < Range.mTemplateCount; ++Index) {
                 ++mBucketCounts[(Range.mFirstTemplateIndex + Index) * 2 + BucketFlag];
             }
-        };
+        }};
 
         AddLevel(LOD.mLevel, LOD.mDither);
 

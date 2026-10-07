@@ -79,6 +79,7 @@ private:
 public:
     bool Initialize(ID3D11Device* Device);
     void Reset();
+    void ResetViews();
     void BeginFrame(Uint64 FrameSerial);
 
     bool Prepare(ID3D11Device* Device, ID3D11DeviceContext* Context, const FRenderView& View, const FRenderScene& Scene, const FRenderQueue& Queue);

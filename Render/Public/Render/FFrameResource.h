@@ -79,6 +79,7 @@ private:
 public:
     bool Initialize(ID3D11Device* Device, ID3D11DeviceContext* Context);
     void Reset();
+    void ResetScenes();
 
     bool BeginFrame(ID3D11DeviceContext* Context, float AnimationTime);
     void EndFrame();

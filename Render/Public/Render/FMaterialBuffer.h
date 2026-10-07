@@ -28,6 +28,7 @@ public:
     bool Initialize(ID3D11Device* Device, Uint32 MaxMaterialCount = 4096);
     bool Synchronize(const IAssetRegistry& Registry, ID3D11DeviceContext* Context);
     Uint32 GetMaterialIndex(const UMaterial& Material, Uint32 GroupIndex = 0) const;
+    void BuildIndexRemapping(const FMaterialBuffer& Target, TMap<Uint32, Uint32>& OutIndices) const;
     Uint64 GetRevision() const;
     ID3D11ShaderResourceView* GetSRV() const;
     void Reset();

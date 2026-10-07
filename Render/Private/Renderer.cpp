@@ -36,7 +36,7 @@ void FRenderer::Create(HWND WindowHandle, UINT Width, UINT Height) {
 }
 
 bool FRenderer::Initialize() {
-    if (!CreateSamplerStates() || !mTextRenderer.Initialize(mDevice.Get(), 256) || !mBillboardRenderer.Initialize(mDevice.Get(), 64) || !mOcclusionCulling.Initialize(mDevice.Get())) {
+    if (!CreateSamplerStates() || !mSceneRenderer.Initialize(mDevice.Get()) || !mOverLayRenderer.Initialize(mDevice.Get(), mDeviceContext.Get(), mFrameResourceCount)) {
         return false;
     }
 
@@ -60,7 +60,6 @@ bool FRenderer::Initialize() {
         }
     }
 
-    mLineRenderer.Initialize(mDevice.Get());
 
     return true;
 }
@@ -91,6 +90,7 @@ void FRenderer::EndFrame() {
         mNextFrameResourceIndex = (mNextFrameResourceIndex + 1) % mFrameResourceCount;
 #endif
 
+        mOverLayRenderer.EndFrame();
         mCurrentFrameResource->EndFrame();
         mCurrentFrameResource = nullptr;
     }
@@ -111,12 +111,22 @@ bool FRenderer::BindAssetRegistry(const IAssetRegistry* InAssetRegistry) {
         return true;
     }
 
-    mRenderScenes.clear();
-    mRenderQueues.clear();
+    mSceneRenderer.ResetScenes();
+    mOverLayRenderer.BindAssetRegistry(nullptr);
+
+    for (FFrameResource& FrameResource : mFrameResources) {
+        FrameResource.ResetScenes();
+    }
+
     mAssetResources.Reset();
     mAssetRegistry = nullptr;
 
     if (InAssetRegistry != nullptr && !mAssetResources.Initialize(mDevice.Get())) {
+        return false;
+    }
+
+    if (!mOverLayRenderer.BindAssetRegistry(InAssetRegistry)) {
+        mAssetResources.Reset();
         return false;
     }
 
@@ -167,10 +177,17 @@ void FRenderer::BeginFrame(float DeltaTime) {
         return;
     }
 
+    const Uint32 FrameResourceIndex{static_cast<Uint32>(&FrameResource - mFrameResources.data())};
+
+    if (!mOverLayRenderer.BeginFrame(mDeviceContext.Get(), FrameResourceIndex, mFrameSerial + 1, mAnimationTime)) {
+        FrameResource.EndFrame();
+        ErrorHandler::Report("[ FRenderer ]", "Failed to begin overlay frame resources.", ErrorHandler::EErrorLevel::Critical);
+        return;
+    }
+
     mCurrentFrameResource = &FrameResource;
     ++mFrameSerial;
-    mOcclusionCulling.BeginFrame(mFrameSerial);
-    PruneRenderQueues();
+    mSceneRenderer.BeginFrame(mFrameSerial);
 
     if (mAssetRegistry != nullptr) {
         mAssetResources.Prune(*mAssetRegistry);
@@ -178,21 +195,9 @@ void FRenderer::BeginFrame(float DeltaTime) {
 }
 
 const FRenderScene& FRenderer::SynchronizeScene(FSceneRenderData& Scene) {
-    const Stat::FScopedRenderPreparationStatTimer StageStat{Stat::ERenderPreparationStage::SceneSynchronization};
-    const Uint64 SceneId{Scene.mSceneId != 0 ? Scene.mSceneId : mTransientSceneId};
-    std::unique_ptr<FRenderScene>& RenderScene{mRenderScenes[SceneId]};
+    const FRenderContext Context{mDeviceContext.Get(), mAssetRegistry, &mAssetResources, mAssetResources.GetMaterialBuffer().GetSRV(), mCurrentFrameResource};
 
-    if (RenderScene == nullptr) {
-        RenderScene = std::make_unique<FRenderScene>(SceneId);
-    }
-
-    if (mAssetRegistry != nullptr) {
-        mAssetResources.GetMaterialBuffer().Synchronize(*mAssetRegistry, mDeviceContext.Get());
-    }
-
-    RenderScene->Synchronize(mAssetRegistry, Scene, mAssetResources.GetMaterialBuffer());
-
-    return *RenderScene;
+    return mSceneRenderer.SynchronizeScene(Context, Scene);
 }
 
 void FRenderer::RenderView(const FRenderView& View, FSceneRenderData& Scene) {
@@ -204,169 +209,26 @@ void FRenderer::RenderView(const FRenderView& View, FSceneRenderData& Scene) {
 void FRenderer::RenderView(const FRenderView& View, const FRenderScene& Scene) {
     const Stat::FScopedSystemStatTimer RenderStat{Stat::ESystemStatStage::RenderPreparation};
 
-    if (View.mTarget == nullptr || !View.mTarget->IsValid() || mDeviceContext == nullptr || mCurrentFrameResource == nullptr) {
+    if (mDeviceContext == nullptr || mCurrentFrameResource == nullptr) {
         return;
     }
 
-    {
-        ID3D11ShaderResourceView* NullResource{nullptr};
-
-        mDeviceContext->PSSetShaderResources(0, 1, &NullResource);
-        View.mTarget->Bind(mDeviceContext.Get());
-
-        const float ClearColor[]{View.mSettings.mClearColor.mX, View.mSettings.mClearColor.mY, View.mSettings.mClearColor.mZ, View.mSettings.mClearColor.mW};
-
-        View.mTarget->Clear(mDeviceContext.Get(), ClearColor);
-    }
-
-    if (mAssetRegistry == nullptr) {
-        return;
-    }
-
-    {
-        const Stat::FScopedRenderPreparationStatTimer StageStat{Stat::ERenderPreparationStage::MaterialBuffer};
-
-        mAssetResources.GetMaterialBuffer().Synchronize(*mAssetRegistry, mDeviceContext.Get());
-    }
-
-    FViewRenderQueue& ViewQueue{mRenderQueues[View.mTarget]};
-
-    ViewQueue.mLastUsedFrame = mFrameSerial;
-
-    FRenderQueue& Queue{ViewQueue.mQueue};
-    {
-        const Stat::FScopedRenderPreparationStatTimer StageStat{Stat::ERenderPreparationStage::RenderQueue};
-
-        Queue.Build(mAssetRegistry, Scene, View, mAssetResources.GetMaterialBuffer());
-    }
-
-    {
-        const Stat::FScopedRenderPreparationStatTimer StageStat{Stat::ERenderPreparationStage::ViewBuffers};
-
-        if (!mCurrentFrameResource->PrepareView(mDevice.Get(), mDeviceContext.Get(), View, Scene, Queue)) {
-            return;
-        }
-    }
-
-    const FRenderContext Context{mDeviceContext.Get(), mAssetRegistry, &mAssetResources, mAssetResources.GetMaterialBuffer().GetSRV(), mCurrentFrameResource};
-
-    if (View.IsPassEnabled(ERenderPass::SceneGeometry)) {
-        const Stat::FScopedSystemStatTimer StageStat{Stat::ESystemStatStage::Geometry};
-
-        ExecutePass(ERenderPass::SceneGeometry, Context, View, Scene, Queue);
-    }
-
-    {
-        const Stat::FScopedSystemStatTimer StageStat{Stat::ESystemStatStage::EditorOverlays};
-        constexpr std::array Passes{ERenderPass::SelectionOutline, ERenderPass::SceneGuides, ERenderPass::Gizmo, ERenderPass::Text, ERenderPass::Billboard, ERenderPass::OrientationAxis};
-
-        for (const ERenderPass Pass : Passes) {
-            if (View.IsPassEnabled(Pass)) {
-                ExecutePass(Pass, Context, View, Scene, Queue);
-            }
-        }
-    }
-
-    View.mTarget->Bind(mDeviceContext.Get());
-}
-
-void FRenderer::ExecutePass(ERenderPass Pass, const FRenderContext& Context, const FRenderView& View, const FRenderScene& Scene, const FRenderQueue& Queue) {
-    View.mTarget->Bind(mDeviceContext.Get());
     BindSamplerStates();
 
-    switch (Pass) {
-        case ERenderPass::SceneGeometry:
-            if (mOcclusionCulling.Prepare(mDevice.Get(), Context.mDeviceContext, View, Scene, Queue)) {
-                mMeshRenderer.DrawOccluded(Context, View, Queue, mOcclusionCulling);
-            } else {
-                mMeshRenderer.Draw(Context, Queue.GetItems(Pass), View.mRenderMode);
-            }
+    const FRenderContext Context{mDeviceContext.Get(), mAssetRegistry, &mAssetResources, mAssetResources.GetMaterialBuffer().GetSRV(), mCurrentFrameResource};
+    const FSceneRenderOutput Output{mSceneRenderer.RenderView(Context, View, Scene)};
+    const FRenderQueue* Queue{mSceneRenderer.GetRenderQueue(View.mTarget)};
 
-            break;
-
-        case ERenderPass::SelectionOutline:
-            mMeshRenderer.Draw(Context, Queue.GetItems(Pass), ERenderMode::Outline);
-            break;
-
-        case ERenderPass::SceneGuides:
-            DrawSceneGuides(View);
-            break;
-
-        case ERenderPass::Gizmo:
-            if (!View.mGizmoProbes.empty()) {
-                View.mTarget->ClearDepth(mDeviceContext.Get());
-                mMeshRenderer.Draw(Context, Queue.GetItems(Pass), ERenderMode::Lit);
-            }
-
-            break;
-
-        case ERenderPass::Text:
-            mTextRenderer.Render(mDeviceContext.Get(), *mCurrentFrameResource, Scene.GetTextProbes(), mAssetRegistry, mAssetResources);
-            break;
-
-        case ERenderPass::Billboard:
-            mBillboardRenderer.Render(mDeviceContext.Get(), *mCurrentFrameResource, Scene.GetBillboardProbes(), mAssetRegistry, mAssetResources, View.mRenderMode);
-            break;
-
-        case ERenderPass::OrientationAxis:
-            DrawOrientationAxis(View);
-            break;
-
-        default:
-            break;
-    }
-}
-
-void FRenderer::PruneRenderQueues() {
-    constexpr Uint64 MaximumUnusedFrames{120};
-    std::erase_if(mRenderQueues, [this](const auto& Entry) {
-        return mFrameSerial - Entry.second.mLastUsedFrame > MaximumUnusedFrames;
-    });
-}
-
-void FRenderer::DrawSceneGuides(const FRenderView& View) {
-    mLineRenderer.Clear();
-
-    for (const FLineProbe& Line : View.mSceneGuides.GetLines()) {
-        mLineRenderer.AddGridLine(Line.mStart, Line.mEnd, Line.mColor, Line.mWidthPixels, Line.mGridSpacing, Line.mDepthMode);
-    }
-
-    if (!mLineRenderer.IsEmpty()) {
-        mLineRenderer.Render(mDeviceContext.Get(), *mCurrentFrameResource);
-    }
-}
-
-void FRenderer::DrawOrientationAxis(const FRenderView& View) {
-    constexpr float Margin{5.0f};
-    const D3D11_VIEWPORT& Viewport{View.mTarget->GetViewport()};
-    const float AvailableSize{std::min(Viewport.Width, Viewport.Height) - Margin * 2.0f};
-
-    if (AvailableSize <= 0.0f) {
+    if (!Output.IsValid() || Queue == nullptr) {
         return;
     }
 
-    const float RequestedSize{View.mOrientationAxisSize > 0.0f ? View.mOrientationAxisSize : std::min(std::min(Viewport.Width, Viewport.Height) * 0.15f, 160.0f)};
-    const float AxisSize{std::min(RequestedSize, AvailableSize)};
-    const D3D11_VIEWPORT AxisViewport{Viewport.TopLeftX + Margin, Viewport.TopLeftY + Margin, AxisSize, AxisSize, Viewport.MinDepth, Viewport.MaxDepth};
+    const Stat::FScopedSystemStatTimer StageStat{Stat::ESystemStatStage::EditorOverlays};
+    ID3D11DepthStencilView* CompositionDepth{mOverLayRenderer.RenderView(Context, View, Scene, *Queue, Output)};
 
-    mDeviceContext->RSSetViewports(1, &AxisViewport);
-
-    FMatrix AxisView{View.mCamera.mView};
-
-    AxisView.Translation(FVector3{0.0f, 0.0f, 3.0f});
-
-    const FMatrix Projection{FMatrix::CreateOrthographic(2.5f, 2.5f, 0.5f, 10.0f)};
-
-    mLineRenderer.Clear();
-    mLineRenderer.AddRay(FVector3{}, FVector3{1.0f, 0.0f, 0.0f}, 1.0f, FVector4{1.0f, 0.0f, 0.0f, 1.0f}, 3.0f);
-    mLineRenderer.AddRay(FVector3{}, FVector3{0.0f, 1.0f, 0.0f}, 1.0f, FVector4{0.0f, 1.0f, 0.0f, 1.0f}, 3.0f);
-    mLineRenderer.AddRay(FVector3{}, FVector3{0.0f, 0.0f, 1.0f}, 1.0f, FVector4{0.0f, 0.0f, 1.0f, 1.0f}, 3.0f);
-
-    const CameraProbe AxisCamera{AxisView * Projection, AxisView, Projection};
-
-    if (mCurrentFrameResource->PrepareOrientationAxis(mDeviceContext.Get(), AxisCamera, AxisViewport)) {
-        mLineRenderer.RenderOrientationAxis(mDeviceContext.Get(), *mCurrentFrameResource);
-    }
+    mSceneRenderer.RenderTextAndBillboards(Context, View, Scene, CompositionDepth);
+    mOverLayRenderer.RenderOrientationAxis(mDeviceContext.Get(), View, Output);
+    View.mTarget->Bind(mDeviceContext.Get());
 }
 
 void FRenderer::ReSize(Uint32 Width, Uint32 Height) {
@@ -385,10 +247,8 @@ void FRenderer::Terminate() {
     mAssetRegistry = nullptr;
     mDeviceContext->ClearState();
 
-    mLineRenderer.Reset();
-    mOcclusionCulling.Reset();
-    mRenderQueues.clear();
-    mRenderScenes.clear();
+    mOverLayRenderer.Reset();
+    mSceneRenderer.Reset();
     mFrameSerial = 0;
 
     for (FFrameResource& FrameResource : mFrameResources) {
@@ -442,18 +302,18 @@ void FRenderer::CreateDeviceAndSwapChain(HWND WindowHandle) {
     SwapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
     SwapChainDesc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH | DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
 
-    UINT DeviceFlags = D3D11_CREATE_DEVICE_BGRA_SUPPORT;
+    UINT DeviceFlags{D3D11_CREATE_DEVICE_BGRA_SUPPORT};
 #ifdef _DEBUG
     DeviceFlags |= D3D11_CREATE_DEVICE_DEBUG;
 #endif
 
     //디바이스 생성이 복잡해진 이유: 외장그래픽 선택 코드
-    HRESULT Result = E_FAIL;
-    Microsoft::WRL::ComPtr<IDXGIFactory6> Factory;
+    HRESULT Result{E_FAIL};
+    Microsoft::WRL::ComPtr<IDXGIFactory6> Factory{};
 
     if (SUCCEEDED(CreateDXGIFactory1(IID_PPV_ARGS(Factory.GetAddressOf())))) {
-        for (UINT Index = 0;; ++Index) {
-            Microsoft::WRL::ComPtr<IDXGIAdapter1> Adapter;
+        for (UINT Index{};; ++Index) {
+            Microsoft::WRL::ComPtr<IDXGIAdapter1> Adapter{};
 
             if (FAILED(Factory->EnumAdapterByGpuPreference(Index, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE, IID_PPV_ARGS(Adapter.GetAddressOf()))))
                 break;

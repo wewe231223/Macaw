@@ -46,6 +46,7 @@ private:
 
 public:
     void Build(const IAssetRegistry* Registry, const FRenderScene& Scene, const FRenderView& View, const FMaterialBuffer& Materials);
+    void BuildOverLay(const IAssetRegistry* Registry, const FRenderQueue& SceneQueue, const FRenderView& View, const FMaterialBuffer& SceneMaterials, const FMaterialBuffer& Materials);
 
     const TArray<FMeshDrawBatch>& GetItems(ERenderPass Pass) const;
     const TArray<FMeshDrawRecord>& GetDrawRecords() const;

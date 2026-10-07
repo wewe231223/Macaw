@@ -11,23 +11,12 @@
 #include <memory>
 #include "Render/FRenderAssetResources.h"
 #include "Render/FRenderView.h"
-#include "Render/FRenderQueue.h"
-#include "Render/FRenderScene.h"
-#include "Render/FMeshRenderer.h"
-#include "Render/FTextRenderer.h"
-#include "Render/FBillboardRenderer.h"
-#include "Render/FLineRenderer.h"
+#include "Render/FSceneRenderer.h"
+#include "Render/FOverLayRenderer.h"
 #include "Render/FSceneRenderSurface.h"
 #include "Render/FFrameResource.h"
-#include "Render/FGpuOcclusionCulling.h"
 
 class FRenderer {
-private:
-    struct FViewRenderQueue {
-        FRenderQueue mQueue{};
-        Uint64 mLastUsedFrame{};
-    };
-
 public:
     FRenderer() = default;
     ~FRenderer();
@@ -68,12 +57,6 @@ private:
 
     void BindSamplerStates();
 
-    void ExecutePass(ERenderPass Pass, const FRenderContext& Context, const FRenderView& View, const FRenderScene& Scene, const FRenderQueue& Queue);
-    void PruneRenderQueues();
-
-    void DrawSceneGuides(const FRenderView& View);
-    void DrawOrientationAxis(const FRenderView& View);
-
 private:
 #if EnableFrameResourceFence
     static constexpr Uint32 mFrameResourceCount{3};
@@ -109,16 +92,10 @@ private:
     FFrameResource* mCurrentFrameResource{nullptr};
     float mAnimationTime{};
 
-    TMap<Uint64, std::unique_ptr<FRenderScene>> mRenderScenes{};
-    Uint64 mTransientSceneId{AllocateRenderSceneId()};
-    TMap<IRenderSurface*, FViewRenderQueue> mRenderQueues{};
     Uint64 mFrameSerial{};
 
-    FMeshRenderer mMeshRenderer{};
-    FGpuOcclusionCulling mOcclusionCulling{};
-    FTextRenderer mTextRenderer{};
-    FBillboardRenderer mBillboardRenderer{};
-    FLineRenderer mLineRenderer{};
+    FSceneRenderer mSceneRenderer{};
+    FOverLayRenderer mOverLayRenderer{};
 
     const float mUiClearColor[4]{0.2f, 0.2f, 0.7f, 1.0f};
     Uint32 mBackBufferWidth{};

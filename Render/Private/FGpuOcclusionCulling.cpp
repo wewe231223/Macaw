@@ -67,6 +67,13 @@ void FGpuOcclusionCulling::Reset() {
     mFrameSerial = 0;
 }
 
+void FGpuOcclusionCulling::ResetViews() {
+    mCurrentResources = nullptr;
+    mDrawReady = false;
+    mPreviousReady = false;
+    mViews.clear();
+}
+
 void FGpuOcclusionCulling::BeginFrame(Uint64 FrameSerial) {
     mCurrentResources = nullptr;
     mDrawReady = false;

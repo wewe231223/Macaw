@@ -40,13 +40,17 @@ bool FSceneRenderSurface::Resize(ID3D11Device* Device, std::uint32_t Width, std:
 }
 
 void FSceneRenderSurface::Bind(ID3D11DeviceContext* Context) const {
-    if (!IsValid()) {
+    Bind(Context, mDepthStencilView.Get());
+}
+
+void FSceneRenderSurface::Bind(ID3D11DeviceContext* Context, ID3D11DepthStencilView* DepthStencilView) const {
+    if (Context == nullptr || !IsValid()) {
         return;
     }
 
     ID3D11RenderTargetView* TargetView{mRenderTargetView.Get()};
 
-    Context->OMSetRenderTargets(1, &TargetView, mDepthStencilView.Get());
+    Context->OMSetRenderTargets(1, &TargetView, DepthStencilView);
     Context->RSSetViewports(1, &mViewport);
 }
 
@@ -87,6 +91,10 @@ ID3D11ShaderResourceView* FSceneRenderSurface::GetShaderResourceView() const {
 
 ID3D11ShaderResourceView* FSceneRenderSurface::GetDepthShaderResourceView() const {
     return mDepthShaderResourceView.Get();
+}
+
+ID3D11DepthStencilView* FSceneRenderSurface::GetDepthStencilView() const {
+    return mDepthStencilView.Get();
 }
 
 void FSceneRenderSurface::CreateSwapChainResources(ID3D11Device* Device) {

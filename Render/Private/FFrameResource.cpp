@@ -44,6 +44,15 @@ void FFrameResource::Reset() {
     mHasCameraWorld = false;
 }
 
+void FFrameResource::ResetScenes() {
+    for (FViewBuffers& View : mViews) {
+        View.mSceneTransforms.Reset();
+    }
+
+    mScenes.clear();
+    mChangedObjects.clear();
+}
+
 bool FFrameResource::BeginFrame(ID3D11DeviceContext* Context, float AnimationTime) {
     if (mFrameReady) {
         return false;
@@ -469,8 +478,7 @@ void FFrameResource::PruneSceneBuffers() {
 
     mScenes.erase(std::unique(mScenes.begin(), mScenes.end(), [](const FSceneBuffers& Left, const FSceneBuffers& Right) {
         return Left.mSceneId == Right.mSceneId;
-    }),
-                  mScenes.end());
+    }), mScenes.end());
 }
 
 bool FFrameResource::EnsureDrawRecordIndices(ID3D11Device* Device) {
