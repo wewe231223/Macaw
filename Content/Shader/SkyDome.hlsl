@@ -18,7 +18,6 @@ struct PS_INPUT
     float3 Normal : NORMAL;
     float2 UV : TEXCOORD0;
     nointerpolation uint MaterialIndex : Jungle1;
-    nointerpolation float3 ColorCoefficient : Jungle2;
 };
 
 PS_INPUT mainVS(VS_INPUT Input, uint DrawRecordIndex : MODEL_INDEX)
@@ -40,7 +39,6 @@ PS_INPUT mainVS(VS_INPUT Input, uint DrawRecordIndex : MODEL_INDEX)
     Output.Normal = mul(Input.Normal, (float3x3)ModelContext.mWorld);
     Output.UV = Input.UV;
     Output.MaterialIndex = ModelContext.mMaterialIndex;
-    Output.ColorCoefficient = float3(1.f, 1.f, 1.f);
 
     Output.Position.z = Output.Position.w;
 
@@ -50,7 +48,6 @@ PS_INPUT mainVS(VS_INPUT Input, uint DrawRecordIndex : MODEL_INDEX)
 float4 mainPS(PS_INPUT Input) : SV_TARGET
 {
     float4 Color = BaseColorTexture.Sample(LinearWrap, Input.UV);
-    Color.rgb *= Input.ColorCoefficient;
 
     return Color;
 }

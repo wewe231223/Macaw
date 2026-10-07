@@ -33,7 +33,6 @@ struct PS_INPUT
     float3 WorldPosition : TEXCOORD1;
     nointerpolation uint MaterialIndex : Jungle1;
     nointerpolation float LODDither : TEXCOORD7;
-    nointerpolation float3 ColorCoefficient : Jungle2;
 };
 
 PS_INPUT mainVS(VS_INPUT Input, uint DrawRecordIndex : MODEL_INDEX)
@@ -51,14 +50,6 @@ PS_INPUT mainVS(VS_INPUT Input, uint DrawRecordIndex : MODEL_INDEX)
     Output.MaterialIndex = ModelContext.mMaterialIndex;
     Output.LODDither = ModelContext.mLODDither;
 
-    if ((ModelContext.mFlags & 1) != 0)
-    {
-        Output.ColorCoefficient = float3(0.5f, 0.5f, 0.5f);
-    }
-    else
-    {
-        Output.ColorCoefficient = float3(1.0f, 1.0f, 1.0f);
-    }
 
     return Output;
 }
@@ -73,7 +64,6 @@ float4 mainPS(PS_INPUT Input) : SV_TARGET
 
     float4 FinalColor = float4(saturate(AlternateColor * Brightness), MaterialColor.a);
 
-    FinalColor.rgb *= Input.ColorCoefficient;
     FinalColor.rgb *= CalculateDirectLighting(Input.WorldPosition, Input.Normal, LightCount);
 
     return FinalColor;

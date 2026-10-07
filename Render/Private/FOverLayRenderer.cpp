@@ -132,7 +132,7 @@ void FOverLayRenderer::Reset() {
     mFrameSerial = 0;
 }
 
-ID3D11DepthStencilView* FOverLayRenderer::RenderView(ID3D11DeviceContext* Context, const FRenderView& View, const FOverlayRenderData& Overlay, const FSceneRenderOutput& Output) {
+void FOverLayRenderer::RenderView(ID3D11DeviceContext* Context, const FRenderView& View, const FOverlayRenderData& Overlay, const FSceneRenderOutput& Output) {
     mCurrentDepth = nullptr;
     mCurrentTarget = nullptr;
     mOutlineDraws.clear();
@@ -143,12 +143,12 @@ ID3D11DepthStencilView* FOverLayRenderer::RenderView(ID3D11DeviceContext* Contex
     mGizmoItems.clear();
 
     if (Context == nullptr || mDevice == nullptr || mCurrentFrameResource == nullptr || !Output.IsValid() || Overlay.mPasses.none()) {
-        return Output.mDepthStencilView;
+        return;
     }
 
     if (mAssetRegistry != nullptr) {
         if (!mAssetResources.GetMaterialBuffer().Synchronize(*mAssetRegistry, Context)) {
-            return Output.mDepthStencilView;
+            return;
         }
 
         if (Overlay.IsPassEnabled(EOverlayPass::SelectionOutline)) {
@@ -161,7 +161,7 @@ ID3D11DepthStencilView* FOverLayRenderer::RenderView(ID3D11DeviceContext* Contex
     }
 
     if (!PrepareMeshDraws(mOutlineItems, true, mOutlineDraws) || !PrepareMeshDraws(mGizmoItems, false, mGizmoDraws) || !mCurrentFrameResource->PrepareView(mDevice, Context, View.mCamera, Output.mViewport, Overlay.mGridFade, mObjectTransforms, mDrawRecords) || !PrepareDepth(Context, Output)) {
-        return Output.mDepthStencilView;
+        return;
     }
 
     Output.mTarget->Bind(Context, mCurrentDepth);
@@ -186,7 +186,7 @@ ID3D11DepthStencilView* FOverLayRenderer::RenderView(ID3D11DeviceContext* Contex
     RenderOrientationAxis(Context, View.mCamera, Overlay, Output);
     Output.mTarget->Bind(Context, mCurrentDepth);
 
-    return mCurrentDepth;
+    mCurrentFrameResource->BindCommon(Context);
 }
 
 void FOverLayRenderer::BuildMeshItems(const TArray<FActorProbe>& Probes, const FRenderView& View, const D3D11_VIEWPORT& Viewport, bool Selection, TArray<FMeshDrawBatch>& Items) {
@@ -241,8 +241,8 @@ void FOverLayRenderer::BuildMeshItems(const TArray<FActorProbe>& Probes, const F
 
                 const Uint32 FirstRecord{static_cast<Uint32>(mDrawRecords.size())};
 
-                mDrawRecords.push_back(FMeshDrawRecord{ObjectIndex, Template.mMaterialIndex, Probe.mFlags, Dither});
-                Items.push_back(FMeshDrawBatch{Template.mState, FirstRecord, 1, Probe.mFlags});
+                mDrawRecords.push_back(FMeshDrawRecord{ObjectIndex, Template.mMaterialIndex, Dither});
+                Items.push_back(FMeshDrawBatch{Template.mState, FirstRecord, 1});
             }
         }};
 
@@ -325,7 +325,7 @@ void FOverLayRenderer::DrawSelectionOutline(ID3D11DeviceContext* Context, const 
     Context->ClearRenderTargetView(Depth.mSelectionMaskTarget.Get(), ClearColor);
     Context->OMSetRenderTargets(1, Depth.mSelectionMaskTarget.GetAddressOf(), mCurrentDepth);
     Context->RSSetViewports(1, &Output.mViewport);
-    DrawMeshes(Context, mOutlineDraws, true);
+    DrawMeshes(Context, mOutlineDraws);
     Output.mTarget->Bind(Context, mCurrentDepth);
     mSelectionOutlinePipeline.Bind(Context, ERenderMode::Lit);
     Context->PSSetShaderResources(3, 1, Depth.mSelectionMaskResource.GetAddressOf());
@@ -357,14 +357,13 @@ bool FOverLayRenderer::PrepareMeshDraws(const TArray<FMeshDrawBatch>& Items, boo
         }
 
         Draw.mMesh = mAssetResources.GetMesh(*Mesh);
-        Draw.mPipeline = Selection ? &mSelectionOutlinePipeline : mAssetResources.GetPipeline(*Pipeline);
+        Draw.mPipeline = Selection ? &mSelectionMaskPipeline : mAssetResources.GetPipeline(*Pipeline);
 
         if (Draw.mMesh == nullptr || Draw.mPipeline == nullptr) {
             return false;
         }
 
         Draw.mBatch = Item;
-        Draw.mStencilReference = Selection ? 1u : 0u;
         Draw.mVertexStrides = {Mesh->GetVertexStride(EVertexAttribute::Position), Mesh->GetVertexStride(EVertexAttribute::Normal), Mesh->GetVertexStride(EVertexAttribute::UV), Mesh->GetVertexStride(EVertexAttribute::Color)};
 
         for (Uint8 Index{}; Index < Item.mState.mTextureSignature.mTextureFieldCount; ++Index) {
@@ -379,7 +378,7 @@ bool FOverLayRenderer::PrepareMeshDraws(const TArray<FMeshDrawBatch>& Items, boo
     return true;
 }
 
-void FOverLayRenderer::DrawMeshes(ID3D11DeviceContext* Context, const TArray<FMeshDraw>& Draws, bool SelectionMask) {
+void FOverLayRenderer::DrawMeshes(ID3D11DeviceContext* Context, const TArray<FMeshDraw>& Draws) {
     if (Draws.empty() || !mCurrentFrameResource->BindModels(Context)) {
         return;
     }
@@ -393,9 +392,7 @@ void FOverLayRenderer::DrawMeshes(ID3D11DeviceContext* Context, const TArray<FMe
         const FMeshDrawBatch& Item{Draw.mBatch};
         const FMeshDrawState& State{Item.mState};
 
-        const FPipelineRenderResource* Pipeline{SelectionMask ? &mSelectionMaskPipeline : Draw.mPipeline};
-
-        Pipeline->Bind(Context, Draw.mMode, Draw.mStencilReference);
+        Draw.mPipeline->Bind(Context, Draw.mMode);
 
         Context->VSSetShaderResources(3, static_cast<UINT>(Draw.mTextures.size()), Draw.mTextures.data());
         Context->PSSetShaderResources(3, static_cast<UINT>(Draw.mTextures.size()), Draw.mTextures.data());

@@ -30,7 +30,6 @@ struct FRenderSceneObject {
     DirectX::BoundingBox mWorldAABB{};
 
     Uint32 mTemplateGroupIndex{UINT32_MAX};
-    Uint32 mFlags{};
     bool mActive{};
     bool mCullable{};
 };

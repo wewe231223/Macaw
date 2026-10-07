@@ -238,7 +238,7 @@ void FRenderScene::UpdateObject(Uint32 ObjectIndex, const FActorProbe& Probe) {
     const bool TransformChanged{std::memcmp(&mObjectTransforms[ObjectIndex], &Probe.mWorld, sizeof(FMatrix)) != 0};
     const bool BoundsChanged{std::memcmp(&Object.mWorldSphereBounds, &Probe.mWorldSphereBounds, sizeof(DirectX::BoundingSphere)) != 0 || std::memcmp(&Object.mWorldOBB, &Probe.mWorldOBB, sizeof(DirectX::BoundingOrientedBox)) != 0 || std::memcmp(&Object.mWorldAABB, &Probe.mWorldAABB, sizeof(DirectX::BoundingBox)) != 0};
 
-    if (Object.mTemplateGroupIndex == GroupIndex && Object.mOwnerHandle == Probe.mOwnerHandle && Object.mFlags == Probe.mFlags && !TransformChanged && !BoundsChanged) {
+    if (Object.mTemplateGroupIndex == GroupIndex && Object.mOwnerHandle == Probe.mOwnerHandle && !TransformChanged && !BoundsChanged) {
         return;
     }
 
@@ -260,7 +260,6 @@ void FRenderScene::UpdateObject(Uint32 ObjectIndex, const FActorProbe& Probe) {
     }
 
     Object.mOwnerHandle = Probe.mOwnerHandle;
-    Object.mFlags = Probe.mFlags;
     Object.mWorldSphereBounds = Probe.mWorldSphereBounds;
     Object.mWorldOBB = Probe.mWorldOBB;
     Object.mWorldAABB = Probe.mWorldAABB;

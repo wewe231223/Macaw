@@ -124,13 +124,13 @@ FSceneRenderOutput FSceneRenderer::RenderView(const FRenderContext& Context, con
     if (View.IsPassEnabled(ERenderPass::Opaque)) {
         const Stat::FScopedSystemStatTimer StageStat{Stat::ESystemStatStage::Geometry};
 
-        mMeshRenderer.Draw(Context, ViewQueue.mQueue.GetItems(ERenderPass::Opaque), View.mRenderMode, true);
+        mMeshRenderer.Draw(Context, ViewQueue.mQueue.GetItems(ERenderPass::Opaque), View.mRenderMode);
     }
 
     if (View.IsPassEnabled(ERenderPass::Translucent)) {
         const Stat::FScopedSystemStatTimer StageStat{Stat::ESystemStatStage::Geometry};
 
-        mMeshRenderer.Draw(Context, ViewQueue.mQueue.GetItems(ERenderPass::Translucent), View.mRenderMode, true);
+        mMeshRenderer.Draw(Context, ViewQueue.mQueue.GetItems(ERenderPass::Translucent), View.mRenderMode);
     }
 
     RenderTextAndBillboards(Context, SceneView, Scene);

@@ -11,7 +11,7 @@ struct FMeshDrawStats {
 
 class FMeshRenderer {
 public:
-    void Draw(const FRenderContext& Context, const TArray<FMeshDrawBatch>& Items, ERenderMode Mode, bool MaterialPass = false);
+    void Draw(const FRenderContext& Context, const TArray<FMeshDrawBatch>& Items, ERenderMode Mode);
 
     const FMeshDrawStats& GetLastDrawStats() const;
 

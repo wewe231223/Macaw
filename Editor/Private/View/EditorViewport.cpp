@@ -308,7 +308,6 @@ void EditorViewport::BuildBounds(FLineRenderData& Lines, const CameraProbe& Came
 void EditorViewport::BuildOverlayRenderData(FOverlayRenderData& Overlay, const CameraProbe& Camera, const FVector3& CameraPosition, const D3D11_VIEWPORT& Viewport) {
     mTransformGizmo.Update(Camera, Viewport);
     mTransformGizmo.BuildGizmoProbes(Overlay.mGizmoProbes);
-    Overlay.mGuides.Clear();
 
     const ELineDepthMode DepthMode{ELineDepthMode::DepthTested};
     const FEditorSettings Settings{mEditorContext != nullptr ? mEditorContext->GetEditorSettings() : FEditorSettings{}};
@@ -328,8 +327,6 @@ void EditorViewport::BuildOverlayRenderData(FOverlayRenderData& Overlay, const C
 }
 
 void EditorViewport::BuildSelectionNameTag(FOverlayRenderData& Overlay) {
-    Overlay.mTextProbes.clear();
-
     const AActor* Actor{mEditorContext != nullptr ? mEditorContext->GetSelectedActor() : nullptr};
 
     if (!Overlay.IsPassEnabled(EOverlayPass::Text) || Actor == nullptr || Actor->GetRootComponent() == nullptr) {

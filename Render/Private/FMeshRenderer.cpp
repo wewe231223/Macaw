@@ -7,7 +7,7 @@
 #include "Render/FFrameResource.h"
 #include "Core/Stat/Stat.h"
 
-void FMeshRenderer::Draw(const FRenderContext& Context, const TArray<FMeshDrawBatch>& Items, ERenderMode Mode, bool MaterialPass) {
+void FMeshRenderer::Draw(const FRenderContext& Context, const TArray<FMeshDrawBatch>& Items, ERenderMode Mode) {
     mLastDrawStats = {};
 
     if (Items.empty() || Context.mDeviceContext == nullptr || Context.mAssetRegistry == nullptr || Context.mAssetResources == nullptr || Context.mFrameResource == nullptr) {
@@ -54,14 +54,10 @@ void FMeshRenderer::Draw(const FRenderContext& Context, const TArray<FMeshDrawBa
             continue;
         }
 
-        const Uint32 StencilReference{ResolvedMode == ERenderMode::Outline || (Item.mFlags & static_cast<Uint32>(ERenderObjectFlags::Selected)) != 0 ? 1u : 0u};
+        const Uint32 StencilReference{ResolvedMode == ERenderMode::Outline ? 1u : 0u};
 
-        if (BoundPipeline != Pipeline || BoundMode != ResolvedMode || BoundStencilReference != StencilReference || (MaterialPass && BoundBlendMode != State.mBlendMode)) {
-            if (MaterialPass) {
-                PipelineResource->BindMaterial(DeviceContext, ResolvedMode, State.mBlendMode, StencilReference);
-            } else {
-                PipelineResource->Bind(DeviceContext, ResolvedMode, StencilReference);
-            }
+        if (BoundPipeline != Pipeline || BoundMode != ResolvedMode || BoundStencilReference != StencilReference || BoundBlendMode != State.mBlendMode) {
+            PipelineResource->BindMaterial(DeviceContext, ResolvedMode, State.mBlendMode, StencilReference);
 
             BoundPipeline = Pipeline;
             BoundMode = ResolvedMode;

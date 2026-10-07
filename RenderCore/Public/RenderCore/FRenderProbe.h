@@ -35,18 +35,11 @@ struct FBillboardProbe {
     FVector4 mColor{};
 };
 
-enum class ERenderObjectFlags : Uint32 {
-    None = 0,
-    Selected = 1u << 0
-};
-
 enum class ELightType : Uint32 {
     Directional,
     Point,
     Spot
 };
-
-Uint32 operator|(ERenderObjectFlags Left, ERenderObjectFlags Right);
 
 struct FActorProbe {
     FMatrix mWorld{};
@@ -54,7 +47,6 @@ struct FActorProbe {
     FAssetHandle mMeshHandle{};
     FAssetHandle mMaterialHandle{};
     FAssetHandle mPipelineHandle{};
-    Uint32 mFlags{0x0000'0000};
     FObjectHandle mOwnerHandle{};
 
     DirectX::BoundingSphere mWorldSphereBounds{};

@@ -3,7 +3,6 @@
 #include "World/UWorld.h"
 
 void UOverlaySubsystem::BuildRenderProbes(FOverlayRenderData& Overlay, FObjectHandle SelectedActor) const {
-    Overlay.mTextProbes.clear();
     Overlay.mSelectionProbes.clear();
 
     if (GetWorld() == nullptr || !SelectedActor.IsValid()) {

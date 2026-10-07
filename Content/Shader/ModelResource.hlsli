@@ -4,8 +4,8 @@
 struct FMeshDrawRecord {
     uint mObjectIndex;
     uint mMaterialIndex;
-    uint mFlags;
     float mLODDither;
+    uint mPadding;
 };
 
 struct FObjectTransform {
@@ -15,7 +15,6 @@ struct FObjectTransform {
 struct FModelContext {
     row_major float4x4 mWorld;
     uint mMaterialIndex;
-    uint mFlags;
     float mLODDither;
 };
 
@@ -24,12 +23,11 @@ StructuredBuffer<FObjectTransform> ObjectTransforms : register(t15);
 
 FModelContext GetModelContext(uint DrawRecordIndex) {
     const FMeshDrawRecord Record = {DrawRecords[DrawRecordIndex]};
-    FModelContext Result = {(float4x4)0.0f, 0u, 0u, 0.0f};
+    FModelContext Result = {(float4x4)0.0f, 0u, 0.0f};
 
     Result.mWorld = ObjectTransforms[Record.mObjectIndex].mWorld;
 
     Result.mMaterialIndex = Record.mMaterialIndex;
-    Result.mFlags = Record.mFlags;
     Result.mLODDither = Record.mLODDither;
 
     return Result;

@@ -16,7 +16,6 @@ private:
         std::array<ID3D11ShaderResourceView*, MaxMaterialTextureFields> mTextures{};
         std::array<Uint32, 4> mVertexStrides{};
         ERenderMode mMode{ERenderMode::Lit};
-        Uint32 mStencilReference{};
     };
 
     struct FViewDepth {
@@ -35,7 +34,7 @@ public:
     void EndFrame();
     void Reset();
 
-    ID3D11DepthStencilView* RenderView(ID3D11DeviceContext* Context, const FRenderView& View, const FOverlayRenderData& Overlay, const FSceneRenderOutput& Output);
+    void RenderView(ID3D11DeviceContext* Context, const FRenderView& View, const FOverlayRenderData& Overlay, const FSceneRenderOutput& Output);
 
 private:
     bool PrepareDepth(ID3D11DeviceContext* Context, const FSceneRenderOutput& Output);
@@ -43,7 +42,7 @@ private:
     void DrawSelectionOutline(ID3D11DeviceContext* Context, const FSceneRenderOutput& Output);
     void BuildMeshItems(const TArray<FActorProbe>& Probes, const FRenderView& View, const D3D11_VIEWPORT& Viewport, bool Selection, TArray<FMeshDrawBatch>& Items);
     bool PrepareMeshDraws(const TArray<FMeshDrawBatch>& Items, bool Selection, TArray<FMeshDraw>& Draws);
-    void DrawMeshes(ID3D11DeviceContext* Context, const TArray<FMeshDraw>& Draws, bool SelectionMask = false);
+    void DrawMeshes(ID3D11DeviceContext* Context, const TArray<FMeshDraw>& Draws);
     void DrawGuides(ID3D11DeviceContext* Context, const FOverlayRenderData& Overlay);
     void RenderOrientationAxis(ID3D11DeviceContext* Context, const CameraProbe& Camera, const FOverlayRenderData& Overlay, const FSceneRenderOutput& Output);
 

@@ -65,7 +65,7 @@
     "DepthWriteEnable": true,
     "DepthFunc": "LessEqual",
 
-    "StencilEnable": true,
+    "StencilEnable": false,
     "StencilReadMask": 255,
     "StencilWriteMask": 255,
 

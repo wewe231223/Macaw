@@ -8,7 +8,6 @@ private:
     struct FVisibleObject {
         Uint32 mObjectIndex{};
         Uint32 mLODLevel{};
-        Uint32 mFlags{};
         float mLODDither{};
     };
 

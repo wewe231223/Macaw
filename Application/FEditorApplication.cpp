@@ -37,6 +37,7 @@ void FEditorApplication::RenderMode(FApplicationContext& Context, float DeltaTim
         const Stat::FScopedRenderPreparationStatTimer StageStat{Stat::ERenderPreparationStage::SceneData};
 
         Context.mWorldContext->GetWorld().BuildSceneRenderData(mSceneData);
+        mOverlayData.Clear();
         Context.mWorldContext->GetWorld().BuildOverlayRenderData(mOverlayData, SelectedActorHandle);
     }
 

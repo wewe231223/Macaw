@@ -1,6 +1,14 @@
 #include "pch.h"
 #include "RenderCore/FOverlayRenderData.h"
 
+void FOverlayRenderData::Clear() {
+    mSelectionProbes.clear();
+    mGizmoProbes.clear();
+    mTextProbes.clear();
+    mGuides.Clear();
+    mGridFade = {};
+}
+
 bool FOverlayRenderData::IsPassEnabled(EOverlayPass Pass) const {
     const std::size_t Index{static_cast<std::size_t>(Pass)};
 

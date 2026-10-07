@@ -26,6 +26,7 @@ struct FOverlayTextProbe {
 };
 
 struct FOverlayRenderData {
+    void Clear();
     bool IsPassEnabled(EOverlayPass Pass) const;
     void SetPassEnabled(EOverlayPass Pass, bool Enabled);
 
