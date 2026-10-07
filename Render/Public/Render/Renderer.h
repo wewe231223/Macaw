@@ -15,6 +15,10 @@
 #include "Render/FOverLayRenderer.h"
 #include "Render/FSceneRenderSurface.h"
 #include "Render/FFrameResource.h"
+#include "RenderCore/FSceneInterface.h"
+
+class FRendererScene;
+struct FSceneUpdateBatch;
 
 class FRenderer {
 public:
@@ -31,6 +35,12 @@ public:
     bool Initialize();
 
     void BeginFrame();
+
+    std::weak_ptr<FSceneInterface> CreateScene();
+    bool ReleaseScene(FSceneHandle Handle);
+    void ResetScenes();
+    FSceneHandle GetSceneHandle(Uint64 SceneId) const;
+    const FRenderScene* FindScene(FSceneHandle Handle) const;
 
     const FRenderScene& SynchronizeScene(FSceneRenderData& Scene);
     void RenderView(const FRenderView& View, FSceneRenderData& Scene, const FOverlayRenderData& Overlay = {});
@@ -52,6 +62,13 @@ public:
     void ReportLiveObjects() const;
 
 private:
+    friend class FRendererScene;
+
+    FRendererScene& FindOrAddScene(Uint64 SceneId);
+    bool ApplySceneUpdates(FSceneUpdateBatch& Updates);
+    void ReleaseSceneResources(Uint64 SceneId);
+    void ReleaseScenes();
+
     void CreateDeviceAndSwapChain(HWND WindowHandle);
     bool CreateSamplerStates();
 
@@ -92,6 +109,8 @@ private:
     FFrameResource* mCurrentFrameResource{nullptr};
 
     Uint64 mFrameSerial{};
+    Uint64 mTransientSceneId{AllocateRenderSceneId()};
+    TMap<Uint64, std::shared_ptr<FRendererScene>> mRenderScenes{};
 
     FSceneRenderer mSceneRenderer{};
     FOverLayRenderer mOverLayRenderer{};

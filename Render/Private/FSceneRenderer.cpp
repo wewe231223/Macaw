@@ -27,7 +27,12 @@ void FSceneRenderer::BeginFrame(Uint64 FrameSerial) {
 
 void FSceneRenderer::ResetScenes() {
     mRenderQueues.clear();
-    mRenderScenes.clear();
+}
+
+void FSceneRenderer::ReleaseScene(Uint64 SceneId) {
+    std::erase_if(mRenderQueues, [SceneId](const auto& Entry) {
+        return Entry.second.mSceneId == SceneId;
+    });
 }
 
 void FSceneRenderer::Reset() {
@@ -37,24 +42,6 @@ void FSceneRenderer::Reset() {
     mPostProcessingRenderer.Reset();
     mDevice = nullptr;
     mFrameSerial = 0;
-}
-
-const FRenderScene& FSceneRenderer::SynchronizeScene(const FRenderContext& Context, FSceneRenderData& Scene) {
-    const Stat::FScopedRenderPreparationStatTimer StageStat{Stat::ERenderPreparationStage::SceneSynchronization};
-    const Uint64 SceneId{Scene.mSceneId != 0 ? Scene.mSceneId : mTransientSceneId};
-    std::unique_ptr<FRenderScene>& RenderScene{mRenderScenes[SceneId]};
-
-    if (RenderScene == nullptr) {
-        RenderScene = std::make_unique<FRenderScene>(SceneId);
-    }
-
-    if (Context.mAssetRegistry != nullptr) {
-        Context.mAssetResources->GetMaterialBuffer().Synchronize(*Context.mAssetRegistry, Context.mDeviceContext);
-    }
-
-    RenderScene->Synchronize(Context.mAssetRegistry, Scene, Context.mAssetResources->GetMaterialBuffer());
-
-    return *RenderScene;
 }
 
 FSceneRenderOutput FSceneRenderer::RenderView(const FRenderContext& Context, const FRenderView& View, const FRenderScene& Scene) {
@@ -84,6 +71,7 @@ FSceneRenderOutput FSceneRenderer::RenderView(const FRenderContext& Context, con
     FViewRenderQueue& ViewQueue{mRenderQueues[View.mTarget]};
 
     ViewQueue.mLastUsedFrame = mFrameSerial;
+    ViewQueue.mSceneId = Scene.GetId();
 
     const D3D11_VIEWPORT& Viewport{View.mTarget->GetViewport()};
     const Uint32 Width{static_cast<Uint32>(Viewport.Width)};

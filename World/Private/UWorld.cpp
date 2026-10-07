@@ -67,7 +67,12 @@ void UWorld::Initialize(EWorldType WorldType) {
 }
 
 void UWorld::CleanupWorld() {
-    if (!mInitialized || mCleaningUp) {
+    if (mCleaningUp) {
+        return;
+    }
+
+    if (!mInitialized) {
+        BindScene({});
         return;
     }
 
@@ -80,6 +85,8 @@ void UWorld::CleanupWorld() {
     NotifyWorldChanged(EWorldChange::Destroying);
     mObservers.clear();
     ClearActors();
+    SendSceneUpdates();
+    BindScene({});
     DeinitializeSubsystems();
     UObjectSystem::Unregister(mPersistentLevel.get(), mPersistentLevel->GetHandle());
     mPersistentLevel.reset();
@@ -427,6 +434,63 @@ void UWorld::BuildSceneRenderData(FSceneRenderData& Scene) {
     mSubsystems.Get<ULightSubsystem>()->BuildLightProbes(Scene);
     mSubsystems.Get<UTextSubsystem>()->BuildTextProbes(Scene);
     mSubsystems.Get<UBillboardSubsystem>()->BuildRenderProbes(Scene);
+}
+
+void UWorld::BindScene(const std::weak_ptr<FSceneInterface>& Scene) {
+    const std::shared_ptr<FSceneInterface> Previous{mScene.lock()};
+    const std::shared_ptr<FSceneInterface> Next{Scene.lock()};
+
+    if (Previous == Next) {
+        return;
+    }
+
+    if (Previous != nullptr) {
+        Previous->Release();
+    }
+
+    mScene = Scene;
+    mAppliedSceneHandle = {};
+    mSceneUpdates = {};
+}
+
+FSceneHandle UWorld::GetSceneHandle() const {
+    const std::shared_ptr<FSceneInterface> Scene{mScene.lock()};
+
+    return Scene != nullptr ? Scene->GetHandle() : FSceneHandle{};
+}
+
+bool UWorld::SendSceneUpdates() {
+    const std::shared_ptr<FSceneInterface> Scene{mScene.lock()};
+
+    if (!mInitialized || Scene == nullptr) {
+        return false;
+    }
+
+    const FSceneHandle Handle{Scene->GetHandle()};
+
+    if (!Handle.IsValid()) {
+        return false;
+    }
+
+    const bool FullSnapshot{mAppliedSceneHandle != Handle};
+
+    if (FullSnapshot) {
+        GetRenderSubsystem().MarkAllComponentsDirty();
+    }
+
+    BuildSceneRenderData(mSceneUpdates.mRenderData);
+    mSceneUpdates.mSceneHandle = Handle;
+    mSceneUpdates.mRenderData.mSceneId = Handle.mId;
+    mSceneUpdates.mFullSnapshot = FullSnapshot;
+
+    if (!Scene->ApplyUpdates(mSceneUpdates)) {
+        mAppliedSceneHandle = {};
+        return false;
+    }
+
+    mAppliedSceneHandle = Handle;
+
+    return true;
 }
 
 void UWorld::BuildOverlayRenderData(FOverlayRenderData& Overlay, FObjectHandle SelectedActor) {

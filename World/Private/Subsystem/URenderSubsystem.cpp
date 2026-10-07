@@ -53,6 +53,12 @@ void URenderSubsystem::UpdateComponentRenderState(UStaticMeshComponent* Componen
     }
 }
 
+void URenderSubsystem::MarkAllComponentsDirty() {
+    for (const UStaticMeshComponent* Component : mComponents) {
+        MarkComponentDirty(Component->GetHandle());
+    }
+}
+
 void URenderSubsystem::BuildRenderProbes(FSceneRenderData& Scene) {
     Scene.mSceneId = mSceneId;
 

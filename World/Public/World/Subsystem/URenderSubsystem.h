@@ -18,6 +18,7 @@ public:
     void RegisterComponent(UStaticMeshComponent* Component);
     void UnregisterComponent(UStaticMeshComponent* Component);
     void UpdateComponentRenderState(UStaticMeshComponent* Component);
+    void MarkAllComponentsDirty();
 
     void BuildRenderProbes(FSceneRenderData& Scene);
 

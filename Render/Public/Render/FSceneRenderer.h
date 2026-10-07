@@ -14,16 +14,17 @@ private:
     struct FViewRenderQueue {
         FRenderQueue mQueue{};
         std::unique_ptr<FSceneRenderSurface> mSceneColor{};
+        Uint64 mSceneId{};
         Uint64 mLastUsedFrame{};
     };
 
 public:
     bool Initialize(ID3D11Device* Device);
     void BeginFrame(Uint64 FrameSerial);
+    void ReleaseScene(Uint64 SceneId);
     void ResetScenes();
     void Reset();
 
-    const FRenderScene& SynchronizeScene(const FRenderContext& Context, FSceneRenderData& Scene);
     FSceneRenderOutput RenderView(const FRenderContext& Context, const FRenderView& View, const FRenderScene& Scene);
 
 private:
@@ -31,9 +32,7 @@ private:
 
 private:
     ID3D11Device* mDevice{nullptr};
-    Uint64 mTransientSceneId{AllocateRenderSceneId()};
     Uint64 mFrameSerial{};
-    TMap<Uint64, std::unique_ptr<FRenderScene>> mRenderScenes{};
     TMap<const IRenderSurface*, FViewRenderQueue> mRenderQueues{};
     FMeshRenderer mMeshRenderer{};
     FTextRenderer mTextRenderer{};

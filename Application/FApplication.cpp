@@ -123,6 +123,8 @@ bool FApplication::InitializeApplication(FLoadingProgress& Progress, HWND Window
         return false;
     }
 
+    mContext.mWorldContext->GetWorld().BindScene(mContext.mRenderer.CreateScene());
+
     Progress.SetProgress(0.71f, "Preparing render resources");
 
     if (!mContext.mRenderer.PrepareAssetResources()) {
@@ -271,7 +273,6 @@ void FApplication::Shutdown() {
         mWindowState.mImGuiInitialized = false;
     }
 
-    mContext.mRenderer.BindAssetRegistry(nullptr);
     mContext.mMenuPanel.reset();
     mContext.mEditorUIManager.reset();
     mContext.mEditorView.reset();
@@ -280,6 +281,7 @@ void FApplication::Shutdown() {
     mContext.mEditorContext = nullptr;
     mContext.mWorldContext = nullptr;
     mContext.mEngine.Shutdown();
+    mContext.mRenderer.BindAssetRegistry(nullptr);
     mEditorLogo.Reset();
     mPendingExternalFileDrops.clear();
     mPlatform.Shutdown();

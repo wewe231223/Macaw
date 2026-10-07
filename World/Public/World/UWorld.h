@@ -17,6 +17,8 @@
 #include "CoreUObject/UObject.h"
 #include "CoreUObject/UObjectSystem.h"
 #include "RenderCore/FRenderProbe.h"
+#include "RenderCore/FSceneInterface.h"
+#include "RenderCore/FSceneUpdateBatch.h"
 #include "World/FWorldTime.h"
 #include "World/IWorldObserver.h"
 #include "World/Subsystem/UCameraSubsystem.h"
@@ -96,6 +98,9 @@ public:
     const TArray<std::unique_ptr<AActor>>& GetActors() const;
 
     void BuildSceneRenderData(FSceneRenderData& Scene);
+    void BindScene(const std::weak_ptr<FSceneInterface>& Scene);
+    FSceneHandle GetSceneHandle() const;
+    bool SendSceneUpdates();
     void BuildOverlayRenderData(FOverlayRenderData& Overlay, FObjectHandle SelectedActor = {});
 
     void AddObserver(IWorldObserver& Observer);
@@ -201,6 +206,9 @@ private:
     IAssetRegistryMutator* mAssetRegistryMutator{nullptr};
 
     TSubsystemCollection<UWorldSubsystem, UWorld> mSubsystems{};
+    std::weak_ptr<FSceneInterface> mScene{};
+    FSceneHandle mAppliedSceneHandle{};
+    FSceneUpdateBatch mSceneUpdates{};
 };
 
 template <typename T>

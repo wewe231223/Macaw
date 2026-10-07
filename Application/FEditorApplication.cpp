@@ -36,12 +36,18 @@ void FEditorApplication::RenderMode(FApplicationContext& Context, float DeltaTim
     {
         const Stat::FScopedRenderPreparationStatTimer StageStat{Stat::ERenderPreparationStage::SceneData};
 
-        Context.mWorldContext->GetWorld().BuildSceneRenderData(mSceneData);
+        if (!Context.mWorldContext->GetWorld().SendSceneUpdates()) {
+            return;
+        }
         mOverlayData.Clear();
         Context.mWorldContext->GetWorld().BuildOverlayRenderData(mOverlayData, SelectedActorHandle);
     }
 
-    const FRenderScene& RenderScene{Context.mRenderer.SynchronizeScene(mSceneData)};
+    const FRenderScene* RenderScene{Context.mRenderer.FindScene(Context.mWorldContext->GetWorld().GetSceneHandle())};
+
+    if (RenderScene == nullptr) {
+        return;
+    }
 
     for (FViewportId Id{}; Id < FViewportHostWindow::MaximumViewportCount; ++Id) {
         FEditorViewport* Viewport{ViewportHostWindow->PrepareViewportForRender(Id)};
@@ -68,6 +74,6 @@ void FEditorApplication::RenderMode(FApplicationContext& Context, float DeltaTim
             Context.mEditorView->BuildOverlayRenderData(Overlay, Camera, Viewport->GetCameraPosition(), Viewport->GetRenderViewport());
         }
 
-        Context.mRenderer.RenderView(View, RenderScene, Overlay);
+        Context.mRenderer.RenderView(View, *RenderScene, Overlay);
     }
 }

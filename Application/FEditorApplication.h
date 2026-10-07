@@ -12,6 +12,5 @@ private:
     void RenderMode(FApplicationContext& Context, float DeltaTime) override;
 
 private:
-    FSceneRenderData mSceneData{};
     FOverlayRenderData mOverlayData{};
 };

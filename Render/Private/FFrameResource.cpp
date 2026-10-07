@@ -41,10 +41,26 @@ void FFrameResource::Reset() {
 void FFrameResource::ResetScenes() {
     for (FViewBuffers& View : mViews) {
         View.mSceneTransforms.Reset();
+        View.mSceneId = 0;
     }
 
     mScenes.clear();
     mChangedObjects.clear();
+}
+
+void FFrameResource::ReleaseScene(Uint64 SceneId) {
+    std::erase_if(mScenes, [SceneId](const FSceneBuffers& Buffers) {
+        return Buffers.mSceneId == SceneId;
+    });
+
+    if (!mFrameReady) {
+        for (FViewBuffers& View : mViews) {
+            if (View.mSceneId == SceneId) {
+                View.mSceneTransforms.Reset();
+                View.mSceneId = 0;
+            }
+        }
+    }
 }
 
 bool FFrameResource::BeginFrame(ID3D11DeviceContext* Context) {
@@ -56,6 +72,7 @@ bool FFrameResource::BeginFrame(ID3D11DeviceContext* Context) {
 
     for (FViewBuffers& View : mViews) {
         View.mSceneTransforms.Reset();
+        View.mSceneId = 0;
     }
 
     PruneSceneBuffers();
@@ -87,6 +104,8 @@ bool FFrameResource::PrepareView(ID3D11Device* Device, ID3D11DeviceContext* Cont
         return false;
     }
 
+    mViews[mUsedViewCount - 1].mSceneId = Scene.GetId();
+
     mViewReady = UploadViewConstants(Context, mViews[mUsedViewCount - 1].mViewConstants, View.mCamera, View.mTarget->GetViewport(), FVector4{}, mHasCameraWorld);
 
     return mViewReady;
@@ -103,6 +122,7 @@ bool FFrameResource::PrepareView(ID3D11Device* Device, ID3D11DeviceContext* Cont
     }
 
     FViewBuffers& Buffers{mViews[mUsedViewCount - 1]};
+    Buffers.mSceneId = 0;
     ID3D11ShaderResourceView* NullResource{nullptr};
 
     Context->VSSetShaderResources(15, 1, &NullResource);

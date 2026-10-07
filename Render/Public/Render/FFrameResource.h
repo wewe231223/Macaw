@@ -56,6 +56,7 @@ private:
     };
 
     struct FViewBuffers {
+        Uint64 mSceneId{};
         FGraphicsBuffer mViewConstants{};
         FGraphicsBuffer mOrientationAxisConstants{};
 
@@ -77,6 +78,7 @@ public:
     bool Initialize(ID3D11Device* Device, ID3D11DeviceContext* Context);
     void Reset();
     void ResetScenes();
+    void ReleaseScene(Uint64 SceneId);
 
     bool BeginFrame(ID3D11DeviceContext* Context);
     void EndFrame();

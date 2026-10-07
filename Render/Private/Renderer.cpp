@@ -1,5 +1,7 @@
 #include "pch.h"
 #include "Render/Renderer.h"
+#include "FRendererScene.h"
+#include "RenderCore/FSceneUpdateBatch.h"
 #include "Asset/UTexture.h"
 #include "Asset/UMesh.h"
 #include "Core/Base/ErrorHandler.h"
@@ -7,10 +9,21 @@
 
 #include <ranges>
 #include <utility>
+#include <atomic>
 #include <dxgi1_6.h>
 #include "Core/Console/Console.h"
 
+namespace {
+    std::atomic<Uint64> NextSceneGeneration{1};
+
+    Uint64 AllocateSceneGeneration() {
+        return NextSceneGeneration.fetch_add(1, std::memory_order_relaxed);
+    }
+}
+
 FRenderer::~FRenderer() {
+    ReleaseScenes();
+
 #if EnableFrameResourceFence
     if (mFrameFenceEvent != nullptr) {
         CloseHandle(mFrameFenceEvent);
@@ -110,12 +123,8 @@ bool FRenderer::BindAssetRegistry(const IAssetRegistry* InAssetRegistry, IAssetR
         return mOverLayRenderer.BindAssetRegistry(InAssetRegistry, InAssetRegistryMutator);
     }
 
-    mSceneRenderer.ResetScenes();
+    ResetScenes();
     mOverLayRenderer.BindAssetRegistry(nullptr);
-
-    for (FFrameResource& FrameResource : mFrameResources) {
-        FrameResource.ResetScenes();
-    }
 
     mAssetResources.Reset();
     mAssetRegistry = nullptr;
@@ -190,9 +199,119 @@ void FRenderer::BeginFrame() {
 }
 
 const FRenderScene& FRenderer::SynchronizeScene(FSceneRenderData& Scene) {
-    const FRenderContext Context{mDeviceContext.Get(), mAssetRegistry, &mAssetResources, mAssetResources.GetMaterialBuffer().GetSRV(), mCurrentFrameResource};
+    const Uint64 SceneId{Scene.mSceneId != 0 ? Scene.mSceneId : mTransientSceneId};
+    FRendererScene& RendererScene{FindOrAddScene(SceneId)};
+    FSceneUpdateBatch Updates{RendererScene.GetHandle(), {}, false};
 
-    return mSceneRenderer.SynchronizeScene(Context, Scene);
+    std::swap(Updates.mRenderData, Scene);
+    Updates.mRenderData.mSceneId = SceneId;
+
+    const bool Applied{ApplySceneUpdates(Updates)};
+
+    std::swap(Updates.mRenderData, Scene);
+    ErrorHandler::Report(!Applied, "FRenderer", "Cannot synchronize render scene", ErrorHandler::EErrorLevel::Error);
+
+    return RendererScene.GetRenderScene();
+}
+
+std::weak_ptr<FSceneInterface> FRenderer::CreateScene() {
+    const Uint64 SceneId{AllocateRenderSceneId()};
+
+    return mRenderScenes.emplace(SceneId, std::make_shared<FRendererScene>(*this, FSceneHandle{SceneId, AllocateSceneGeneration()})).first->second;
+}
+
+bool FRenderer::ReleaseScene(FSceneHandle Handle) {
+    const auto Position{mRenderScenes.find(Handle.mId)};
+
+    if (!Handle.IsValid() || Position == mRenderScenes.end() || Position->second->GetHandle() != Handle) {
+        return false;
+    }
+
+    ReleaseSceneResources(Handle.mId);
+    Position->second->Detach();
+    mRenderScenes.erase(Position);
+
+    return true;
+}
+
+void FRenderer::ResetScenes() {
+    mSceneRenderer.ResetScenes();
+
+    for (FFrameResource& FrameResource : mFrameResources) {
+        FrameResource.ResetScenes();
+    }
+
+    for (const auto& Entry : mRenderScenes) {
+        Entry.second->Reset(AllocateSceneGeneration());
+    }
+}
+
+FSceneHandle FRenderer::GetSceneHandle(Uint64 SceneId) const {
+    const auto Position{mRenderScenes.find(SceneId)};
+
+    return Position != mRenderScenes.end() ? Position->second->GetHandle() : FSceneHandle{};
+}
+
+const FRenderScene* FRenderer::FindScene(FSceneHandle Handle) const {
+    const auto Position{mRenderScenes.find(Handle.mId)};
+
+    return Handle.IsValid() && Position != mRenderScenes.end() && Position->second->GetHandle() == Handle ? &Position->second->GetRenderScene() : nullptr;
+}
+
+FRendererScene& FRenderer::FindOrAddScene(Uint64 SceneId) {
+    const auto Position{mRenderScenes.find(SceneId)};
+
+    if (Position != mRenderScenes.end()) {
+        return *Position->second;
+    }
+
+    return *mRenderScenes.emplace(SceneId, std::make_shared<FRendererScene>(*this, FSceneHandle{SceneId, AllocateSceneGeneration()})).first->second;
+}
+
+bool FRenderer::ApplySceneUpdates(FSceneUpdateBatch& Updates) {
+    const auto Position{mRenderScenes.find(Updates.mSceneHandle.mId)};
+
+    if (!Updates.mSceneHandle.IsValid() || Position == mRenderScenes.end() || Position->second->GetHandle() != Updates.mSceneHandle || Updates.mRenderData.mSceneId != Updates.mSceneHandle.mId) {
+        return false;
+    }
+
+    const Stat::FScopedRenderPreparationStatTimer StageStat{Stat::ERenderPreparationStage::SceneSynchronization};
+    FMaterialBuffer& Materials{mAssetResources.GetMaterialBuffer()};
+
+    if (mAssetRegistry != nullptr && mDeviceContext != nullptr) {
+        Materials.Synchronize(*mAssetRegistry, mDeviceContext.Get());
+    }
+
+    if (Updates.mFullSnapshot) {
+        ReleaseSceneResources(Updates.mSceneHandle.mId);
+        Position->second->ResetRenderData();
+    }
+
+    Position->second->GetRenderScene().Synchronize(mAssetRegistry, Updates.mRenderData, Materials);
+
+    return true;
+}
+
+void FRenderer::ReleaseSceneResources(Uint64 SceneId) {
+    mSceneRenderer.ReleaseScene(SceneId);
+
+    for (FFrameResource& FrameResource : mFrameResources) {
+        FrameResource.ReleaseScene(SceneId);
+    }
+}
+
+void FRenderer::ReleaseScenes() {
+    mSceneRenderer.ResetScenes();
+
+    for (FFrameResource& FrameResource : mFrameResources) {
+        FrameResource.ResetScenes();
+    }
+
+    for (const auto& Entry : mRenderScenes) {
+        Entry.second->Detach();
+    }
+
+    mRenderScenes.clear();
 }
 
 void FRenderer::RenderView(const FRenderView& View, FSceneRenderData& Scene, const FOverlayRenderData& Overlay) {
@@ -235,9 +354,13 @@ void FRenderer::ReSize(Uint32 Width, Uint32 Height) {
 }
 
 void FRenderer::Terminate() {
+    ReleaseScenes();
     mAssetResources.Reset();
     mAssetRegistry = nullptr;
-    mDeviceContext->ClearState();
+
+    if (mDeviceContext != nullptr) {
+        mDeviceContext->ClearState();
+    }
 
     mOverLayRenderer.Reset();
     mSceneRenderer.Reset();
