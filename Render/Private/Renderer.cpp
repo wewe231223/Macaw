@@ -287,7 +287,7 @@ bool FRenderer::ApplySceneUpdates(FSceneUpdateBatch& Updates) {
         Position->second->ResetRenderData();
     }
 
-    Position->second->GetRenderScene().Synchronize(mAssetRegistry, Updates, Materials);
+    Position->second->GetRenderScene().Synchronize(mAssetRegistry, Updates, Materials, mDevice != nullptr ? &mAssetResources : nullptr);
 
     return true;
 }

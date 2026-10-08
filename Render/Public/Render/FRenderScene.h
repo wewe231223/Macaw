@@ -2,64 +2,19 @@
 #include "RenderCore/FRenderProbe.h"
 #include "RenderCore/FSceneUpdateBatch.h"
 #include "Core/Base/FRevisionCursor.h"
-#include "Core/Base/TRevisioned.h"
-#include "Asset/FLODSettings.h"
 #include "Render/FBVHTree.h"
-#include "Render/FMeshDrawState.h"
+#include "Render/FPrimitiveSceneInfo.h"
+#include "Render/FMeshDrawCommandCache.h"
 
-#include <array>
 #include <deque>
-#include <map>
 #include <unordered_map>
 
 class IAssetRegistry;
-class UMaterial;
-class UMesh;
-class UPipeline;
+class FRenderAssetResources;
 
 enum class ERenderUpdateMode : Uint8 {
     Partial,
     Full
-};
-
-struct FRenderSceneObject {
-    FObjectHandle mComponentHandle{};
-    FObjectHandle mOwnerHandle{};
-
-    DirectX::BoundingSphere mWorldSphereBounds{};
-    DirectX::BoundingOrientedBox mWorldOBB{};
-    DirectX::BoundingBox mWorldAABB{};
-
-    Uint32 mTemplateGroupIndex{UINT32_MAX};
-    bool mActive{};
-    bool mCullable{};
-};
-
-struct FRenderTemplateGroupKey {
-    FAssetHandle mPipelineHandle{};
-    FAssetHandle mMaterialHandle{};
-    FAssetHandle mMeshHandle{};
-};
-
-bool operator<(const FRenderTemplateGroupKey& Left, const FRenderTemplateGroupKey& Right);
-
-struct FRenderTemplateRange {
-    Uint32 mFirstTemplateIndex{};
-    Uint32 mTemplateCount{};
-};
-
-struct FRenderTemplateGroup {
-    FRenderTemplateGroupKey mKey{};
-
-    const UPipeline* mPipeline{};
-    TRevisioned<const UMaterial*> mMaterial{};
-    TRevisioned<const UMesh*> mMesh{};
-
-    std::array<FRenderTemplateRange, GLODCount> mTemplateRangesByLOD{};
-    Uint32 mAvailableLODMask{};
-
-    Uint32 mReferenceCount{};
-    bool mSky{};
 };
 
 class FRenderScene {
@@ -73,34 +28,29 @@ public:
     explicit FRenderScene(Uint64 SceneId);
 
 public:
-    void Synchronize(const IAssetRegistry* Registry, FSceneRenderData& Scene, const FMaterialBuffer& Materials);
-    void Synchronize(const IAssetRegistry* Registry, FSceneUpdateBatch& Updates, const FMaterialBuffer& Materials);
+    void Synchronize(const IAssetRegistry* Registry, FSceneRenderData& Scene, const FMaterialBuffer& Materials, FRenderAssetResources* Resources = nullptr);
+    void Synchronize(const IAssetRegistry* Registry, FSceneUpdateBatch& Updates, const FMaterialBuffer& Materials, FRenderAssetResources* Resources = nullptr);
 
     Uint64 GetId() const;
     Uint64 GetRevision() const;
-    Uint64 GetTemplateRevision() const;
     const TArray<FMatrix>& GetObjectTransforms() const;
 
     ERenderUpdateMode CollectChangedObjects(Uint64 SinceRevision, TArray<Uint32>& OutIndices) const;
 
-    const TArray<FRenderSceneObject>& GetObjects() const;
+    const TArray<FPrimitiveSceneInfo>& GetPrimitives() const;
     const FPrimitiveSceneProxy* FindPrimitive(FObjectHandle ComponentHandle) const;
-    const TArray<FRenderBatchTemplate>& GetTemplates() const;
-    const TArray<FRenderTemplateGroup>& GetTemplateGroups() const;
+    const TArray<std::shared_ptr<const FMeshDrawCommand>>& GetCachedMeshDrawCommands() const;
 
     const TArray<FLightProbe>& GetLightProbes() const;
     const TArray<FTextProbe>& GetTextProbes() const;
     const TArray<FBillboardProbe>& GetBillboardProbes() const;
 
-    void CollectVisibleObjects(const FFrustum& Frustum, TArray<Uint32>& OutIndices) const;
-    void CollectVisibleObjects(const FMatrix& ViewProjection, TArray<Uint32>& OutIndices) const;
-    void CollectVisibleObjects(const CameraProbe& Camera, TArray<Uint32>& OutIndices, TArray<Uint32>& OutBoundaryPositions) const;
+    void QueryFrustum(const FMatrix& ViewProjection, TArray<Uint32>& OutIndices, TArray<Uint32>* OutBoundaryPositions = nullptr) const;
 
 private:
     void ApplyObjectUpdates(const FSceneRenderData& Scene);
     void ApplyPrimitiveUpdate(FPrimitiveSceneUpdate& Update);
 
-    Uint32 FindOrAddTemplateGroup(const FMeshSceneData& Mesh);
     Uint32 AddObject(const FPrimitiveSceneProxy& Proxy);
     void UpdateObject(Uint32 ObjectIndex, const FPrimitiveSceneProxy& Proxy);
     void UpdateObjectTransform(Uint32 ObjectIndex, const FPrimitiveTransform& Transform);
@@ -109,24 +59,20 @@ private:
     void RecordObjectChange(Uint32 ObjectIndex);
     void CommitObjectChanges();
 
-    void RefreshTemplates(const IAssetRegistry* Registry, const FMaterialBuffer& Materials);
+    void RefreshStaticMeshes(const IAssetRegistry* Registry, const FMaterialBuffer& Materials, FRenderAssetResources* Resources);
     void UpdateBounds();
     void RebuildBounds();
 
 private:
     Uint64 mSceneId{};
     Uint64 mRevision{1};
-    Uint64 mTemplateRevision{};
-    Uint64 mMaterialBufferRevision{};
     FRevisionCursor mSourceRevision{};
     Uint64 mJournalFloor{};
 
     bool mTopologyDirty{};
     bool mObjectsChanged{};
-    bool mTemplatesDirty{true};
 
-    TArray<FRenderSceneObject> mObjects{};
-    TArray<std::unique_ptr<FPrimitiveSceneProxy>> mSceneProxies{};
+    TArray<FPrimitiveSceneInfo> mObjects{};
     TArray<FMatrix> mObjectTransforms{};
     TArray<Uint32> mFreeObjects{};
 
@@ -136,9 +82,7 @@ private:
 
     std::unordered_map<Uint64, Uint32> mObjectLookup{};
 
-    std::map<FRenderTemplateGroupKey, Uint32> mTemplateGroupIndicesByKey{};
-    TArray<FRenderTemplateGroup> mTemplateGroups{};
-    TArray<FRenderBatchTemplate> mTemplates{};
+    FMeshDrawCommandCache mCommandCache{};
 
     FBVHTree mBoundsTree{};
     TArray<DirectX::BoundingBox> mBuildBounds{};

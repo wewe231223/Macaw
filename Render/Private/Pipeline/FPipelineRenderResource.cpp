@@ -211,6 +211,30 @@ void FPipelineRenderResource::Reset() {
     mTranslucentBlendState.Reset();
 }
 
+bool FPipelineRenderResource::BuildMaterialState(ERenderMode Mode, EMaterialBlendMode BlendMode, FMeshDrawPipelineState& OutState) const {
+    OutState = {};
+
+    const std::size_t Index{static_cast<std::size_t>(Mode)};
+
+    if (Index >= mPipelines.size() || !mPipelines[Index].mInitialized) {
+        return false;
+    }
+
+    const FPipelineState& Pipeline{mPipelines[Index]};
+    const bool Translucent{BlendMode == EMaterialBlendMode::Translucent};
+
+    OutState.mVertexShader = Pipeline.mVertexShader.GetVertexShader();
+    OutState.mPixelShader = Pipeline.mPixelShader.GetPixelShader();
+    OutState.mGeometryShader = Pipeline.mGeometryShader.GetGeometryShader();
+    OutState.mInputLayout = Pipeline.mInputLayout;
+    OutState.mRasterizerState = Pipeline.mRasterizerState;
+    OutState.mBlendState = Translucent ? mTranslucentBlendState : mOpaqueBlendState;
+    OutState.mDepthStencilState = Translucent ? Pipeline.mTranslucentDepthStencilState : Pipeline.mDepthStencilState;
+    OutState.mPrimitiveTopology = Pipeline.mPrimitiveTopology;
+
+    return OutState.IsValid();
+}
+
 void FPipelineRenderResource::BindMaterial(ID3D11DeviceContext* Context, ERenderMode Mode, EMaterialBlendMode BlendMode, UINT StencilReference) const {
     const std::size_t Index{static_cast<std::size_t>(Mode)};
 

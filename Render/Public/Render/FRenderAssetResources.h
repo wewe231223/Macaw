@@ -3,33 +3,27 @@
 #include "Render/FMaterialBuffer.h"
 #include "Render/FMeshRenderResource.h"
 #include "Render/Pipeline/FPipelineRenderResource.h"
+#include "Render/FRenderAssetStamp.h"
+#include "Core/Base/TCachedValue.h"
 
 class UTexture;
 class UFont;
 
 class FRenderAssetResources {
 private:
-    struct FMeshEntry {
-        FMeshRenderResource mResource{};
-        Uint64 mRevision{};
-    };
-
-    struct FPipelineEntry {
-        FPipelineRenderResource mResource{};
-        Uint64 mRevision{};
-    };
-
-    struct FTextureEntry {
-        Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> mView{};
-        Uint64 mRevision{};
-    };
-
-    struct FFontEntry {
+    struct FFontResource {
         Microsoft::WRL::ComPtr<ID3D11Texture2D> mTexture{};
         Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> mView{};
         Uint32 mWidth{};
         Uint32 mHeight{};
-        Uint64 mRevision{};
+    };
+
+    struct FFontAtlasStamp {
+        FRenderAssetStamp mAsset{};
+        Uint32 mWidth{};
+        Uint32 mHeight{};
+
+        bool operator==(const FFontAtlasStamp&) const = default;
     };
 
 public:
@@ -54,9 +48,9 @@ public:
 
 private:
     ID3D11Device* mDevice{nullptr};
-    TMap<FGuid, FMeshEntry> mMeshes{};
-    TMap<FGuid, FPipelineEntry> mPipelines{};
-    TMap<FGuid, FTextureEntry> mTextures{};
-    TMap<FGuid, FFontEntry> mFonts{};
+    TMap<FGuid, TCachedValue<FMeshRenderResource, FRenderAssetStamp>> mMeshes{};
+    TMap<FGuid, TCachedValue<FPipelineRenderResource, FRenderAssetStamp>> mPipelines{};
+    TMap<FGuid, TCachedValue<Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>, FRenderAssetStamp>> mTextures{};
+    TMap<FGuid, TCachedValue<FFontResource, FFontAtlasStamp>> mFonts{};
     FMaterialBuffer mMaterials{};
 };

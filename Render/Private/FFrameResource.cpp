@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Render/FFrameResource.h"
 #include "Render/FRenderQueue.h"
+#include "Render/FRenderScene.h"
 #include "Core/Base/ErrorHandler.h"
 
 #include <limits>

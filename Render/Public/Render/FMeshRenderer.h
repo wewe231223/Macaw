@@ -1,6 +1,7 @@
 #pragma once
 #include "Render/FRenderContext.h"
-#include "Render/FRenderQueue.h"
+#include "Render/FMeshDrawCommand.h"
+#include "Asset/Pipeline/UPipeline.h"
 
 struct FMeshDrawStats {
     Uint64 mPipelineBindCount{};
@@ -11,7 +12,7 @@ struct FMeshDrawStats {
 
 class FMeshRenderer {
 public:
-    void Draw(const FRenderContext& Context, const TArray<FMeshDrawBatch>& Items, ERenderMode Mode);
+    void Draw(const FRenderContext& Context, const TArray<FMeshDrawCommandBatch>& Commands, ERenderMode Mode);
 
     const FMeshDrawStats& GetLastDrawStats() const;
 

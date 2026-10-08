@@ -3,6 +3,8 @@
 #include "Asset/UMesh.h"
 #include "Asset/UMaterial.h"
 #include "Render/FLODSelection.h"
+#include "Render/FStaticMeshBatchCollector.h"
+#include "RenderCore/FStaticMeshSceneProxy.h"
 #include "Asset/UTexture.h"
 #include "Core/Stat/Stat.h"
 
@@ -48,7 +50,7 @@ bool FOverLayRenderer::BindAssetRegistry(const IAssetRegistry* Registry, IAssetR
     mDrawRecords.clear();
     mOutlineItems.clear();
     mGizmoItems.clear();
-    mTemplates.clear();
+    mStaticMeshes.clear();
     mViewDepths.clear();
     mCurrentDepth = nullptr;
     mCurrentTarget = nullptr;
@@ -119,7 +121,7 @@ void FOverLayRenderer::Reset() {
     mDrawRecords.clear();
     mOutlineItems.clear();
     mGizmoItems.clear();
-    mTemplates.clear();
+    mStaticMeshes.clear();
     mViewDepths.clear();
     mLineRenderer.Reset();
     mTextRenderer.Reset();
@@ -230,19 +232,32 @@ void FOverLayRenderer::BuildMeshItems(const TArray<FActorProbe>& Probes, const F
 
         mObjectTransforms.push_back(Probe.mWorld);
 
-        auto AddLevel{[&](Uint32 Level, float Dither) {
-            mTemplates.clear();
-            AppendMeshDrawTemplates(*Mesh, *Material, mAssetResources.GetMaterialBuffer(), Probe.mPipelineHandle, Probe.mMeshHandle, Level, mTemplates);
+        mStaticMeshes.clear();
 
-            for (const FRenderBatchTemplate& Template : mTemplates) {
-                if (mDrawRecords.size() >= UINT32_MAX) {
-                    break;
+        FStaticMeshBatchCollector Collector{*mAssetRegistry, ObjectIndex, mStaticMeshes};
+        FStaticMeshSceneProxy Proxy{FObjectHandle{}, Probe.mOwnerHandle, FPrimitiveTransform{}, FMeshSceneData{Probe.mMeshHandle, Probe.mMaterialHandle, Probe.mPipelineHandle}};
+
+        Proxy.DrawStaticElements(Collector);
+
+        auto AddLevel{[&](Uint32 Level, float Dither) {
+            for (const FStaticMeshBatch& Batch : mStaticMeshes) {
+                if (Batch.mLODLevel != Level) {
+                    continue;
                 }
 
-                const Uint32 FirstRecord{static_cast<Uint32>(mDrawRecords.size())};
+                for (const FMeshBatchElement& Element : Batch.mElements) {
+                    FMeshDrawState State{};
+                    Uint32 MaterialIndex{UINT32_MAX};
 
-                mDrawRecords.push_back(FMeshDrawRecord{ObjectIndex, Template.mMaterialIndex, Dither});
-                Items.push_back(FMeshDrawBatch{Template.mState, FirstRecord, 1});
+                    if (mDrawRecords.size() >= UINT32_MAX || !BuildMeshDrawState(Batch, Element, *mAssetRegistry, mAssetResources.GetMaterialBuffer(), State, MaterialIndex)) {
+                        continue;
+                    }
+
+                    const Uint32 FirstRecord{static_cast<Uint32>(mDrawRecords.size())};
+
+                    mDrawRecords.push_back(FMeshDrawRecord{ObjectIndex, MaterialIndex, Dither});
+                    Items.push_back(FMeshDrawBatch{State, FirstRecord, 1});
+                }
             }
         }};
 

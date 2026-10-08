@@ -2,6 +2,7 @@
 #include "Render/FMaterialBuffer.h"
 #include "RenderCore/FMaterialChunkSignature.h"
 #include "RenderCore/FMaterialBlendMode.h"
+#include "RenderCore/FMeshBatch.h"
 
 class UMaterial;
 class UMesh;
@@ -18,10 +19,4 @@ struct FMeshDrawState {
     Uint32 mOriginalIndexCount{};
 };
 
-struct FRenderBatchTemplate {
-    FMeshDrawState mState{};
-
-    Uint32 mMaterialIndex{};
-};
-
-void AppendMeshDrawTemplates(const UMesh& Mesh, const UMaterial& Material, const FMaterialBuffer& Materials, FAssetHandle PipelineHandle, FAssetHandle MeshHandle, Uint32 LODLevel, TArray<FRenderBatchTemplate>& OutTemplates);
+bool BuildMeshDrawState(const FMeshBatch& Mesh, const FMeshBatchElement& Element, const IAssetRegistry& Registry, const FMaterialBuffer& Materials, FMeshDrawState& OutState, Uint32& OutMaterialIndex);

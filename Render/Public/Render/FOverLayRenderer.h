@@ -6,6 +6,7 @@
 #include "Render/FSceneRenderOutput.h"
 #include "Render/FOverlayTextRenderer.h"
 #include "RenderCore/FOverlayRenderData.h"
+#include "Render/FStaticMeshBatch.h"
 
 class FOverLayRenderer {
 private:
@@ -57,7 +58,7 @@ private:
     TArray<FMeshDrawRecord> mDrawRecords{};
     TArray<FMeshDrawBatch> mOutlineItems{};
     TArray<FMeshDrawBatch> mGizmoItems{};
-    TArray<FRenderBatchTemplate> mTemplates{};
+    TArray<FStaticMeshBatch> mStaticMeshes{};
     TArray<FMeshDraw> mOutlineDraws{};
     TArray<FMeshDraw> mGizmoDraws{};
     TMap<const IRenderSurface*, FViewDepth> mViewDepths{};

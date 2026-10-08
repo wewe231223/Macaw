@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Render/FSceneRenderer.h"
 #include "Render/FFrameResource.h"
+#include "Render/FRenderScene.h"
 #include "Core/Stat/Stat.h"
 
 bool FSceneRenderer::Initialize(ID3D11Device* Device) {
@@ -20,19 +21,23 @@ void FSceneRenderer::BeginFrame(Uint64 FrameSerial) {
     mFrameSerial = FrameSerial;
 
     constexpr Uint64 MaximumUnusedFrames{120};
-    std::erase_if(mRenderQueues, [FrameSerial](const auto& Entry) {
+    std::erase_if(mViews, [FrameSerial](const auto& Entry) {
         return FrameSerial - Entry.second.mLastUsedFrame > MaximumUnusedFrames;
     });
 }
 
 void FSceneRenderer::ResetScenes() {
-    mRenderQueues.clear();
+    mViews.clear();
+    mVisibleCommands.clear();
+    mRenderQueue = {};
 }
 
 void FSceneRenderer::ReleaseScene(Uint64 SceneId) {
-    std::erase_if(mRenderQueues, [SceneId](const auto& Entry) {
+    std::erase_if(mViews, [SceneId](const auto& Entry) {
         return Entry.second.mSceneId == SceneId;
     });
+    mVisibleCommands.clear();
+    mRenderQueue = {};
 }
 
 void FSceneRenderer::Reset() {
@@ -68,62 +73,63 @@ FSceneRenderOutput FSceneRenderer::RenderView(const FRenderContext& Context, con
         Context.mAssetResources->GetMaterialBuffer().Synchronize(*Context.mAssetRegistry, Context.mDeviceContext);
     }
 
-    FViewRenderQueue& ViewQueue{mRenderQueues[View.mTarget]};
+    FViewSurface& ViewState{mViews[View.mTarget]};
 
-    ViewQueue.mLastUsedFrame = mFrameSerial;
-    ViewQueue.mSceneId = Scene.GetId();
+    ViewState.mLastUsedFrame = mFrameSerial;
+    ViewState.mSceneId = Scene.GetId();
 
     const D3D11_VIEWPORT& Viewport{View.mTarget->GetViewport()};
     const Uint32 Width{static_cast<Uint32>(Viewport.Width)};
     const Uint32 Height{static_cast<Uint32>(Viewport.Height)};
 
-    if (ViewQueue.mSceneColor == nullptr) {
-        ViewQueue.mSceneColor = std::make_unique<FSceneRenderSurface>();
-        ViewQueue.mSceneColor->InitializeOffscreen(mDevice, Width, Height);
-    } else if (!ViewQueue.mSceneColor->Resize(mDevice, Width, Height)) {
+    if (ViewState.mSceneColor == nullptr) {
+        ViewState.mSceneColor = std::make_unique<FSceneRenderSurface>();
+        ViewState.mSceneColor->InitializeOffscreen(mDevice, Width, Height);
+    } else if (!ViewState.mSceneColor->Resize(mDevice, Width, Height)) {
         return {};
     }
 
-    if (!ViewQueue.mSceneColor->IsValid()) {
+    if (!ViewState.mSceneColor->IsValid()) {
         return {};
     }
 
     FRenderView SceneView{View};
 
-    SceneView.mTarget = ViewQueue.mSceneColor.get();
+    SceneView.mTarget = ViewState.mSceneColor.get();
 
     {
         const Stat::FScopedRenderPreparationStatTimer StageStat{Stat::ERenderPreparationStage::RenderQueue};
 
-        ViewQueue.mQueue.Build(Scene, SceneView);
+        SceneView.CollectMeshDrawCommands(Scene, mVisibleCommands);
+        mRenderQueue.Build(Scene.GetCachedMeshDrawCommands(), mVisibleCommands, SceneView.IsPassEnabled(ERenderPass::Opaque), SceneView.IsPassEnabled(ERenderPass::Translucent));
     }
 
     {
         const Stat::FScopedRenderPreparationStatTimer StageStat{Stat::ERenderPreparationStage::ViewBuffers};
 
-        if (!Context.mFrameResource->PrepareView(mDevice, Context.mDeviceContext, SceneView, Scene, ViewQueue.mQueue)) {
+        if (!Context.mFrameResource->PrepareView(mDevice, Context.mDeviceContext, SceneView, Scene, mRenderQueue)) {
             return {};
         }
     }
 
-    ViewQueue.mSceneColor->Clear(Context.mDeviceContext, ClearColor);
-    ViewQueue.mSceneColor->Bind(Context.mDeviceContext, View.mTarget->GetDepthStencilView());
+    ViewState.mSceneColor->Clear(Context.mDeviceContext, ClearColor);
+    ViewState.mSceneColor->Bind(Context.mDeviceContext, View.mTarget->GetDepthStencilView());
 
     if (View.IsPassEnabled(ERenderPass::Opaque)) {
         const Stat::FScopedSystemStatTimer StageStat{Stat::ESystemStatStage::Geometry};
 
-        mMeshRenderer.Draw(Context, ViewQueue.mQueue.GetItems(ERenderPass::Opaque), View.mRenderMode);
+        mMeshRenderer.Draw(Context, mRenderQueue.GetCommands(ERenderPass::Opaque), View.mRenderMode);
     }
 
     if (View.IsPassEnabled(ERenderPass::Translucent)) {
         const Stat::FScopedSystemStatTimer StageStat{Stat::ESystemStatStage::Geometry};
 
-        mMeshRenderer.Draw(Context, ViewQueue.mQueue.GetItems(ERenderPass::Translucent), View.mRenderMode);
+        mMeshRenderer.Draw(Context, mRenderQueue.GetCommands(ERenderPass::Translucent), View.mRenderMode);
     }
 
     RenderTextAndBillboards(Context, SceneView, Scene);
 
-    if (!mPostProcessingRenderer.Render(Context.mDeviceContext, ViewQueue.mSceneColor->GetShaderResourceView(), *View.mTarget, View.mSettings.mPostProcessing, View.IsPassEnabled(ERenderPass::PostProcessing))) {
+    if (!mPostProcessingRenderer.Render(Context.mDeviceContext, ViewState.mSceneColor->GetShaderResourceView(), *View.mTarget, View.mSettings.mPostProcessing, View.IsPassEnabled(ERenderPass::PostProcessing))) {
         return {};
     }
 

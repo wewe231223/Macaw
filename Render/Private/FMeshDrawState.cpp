@@ -1,35 +1,33 @@
 #include "pch.h"
 #include "Render/FMeshDrawState.h"
 #include "Asset/UMaterial.h"
-#include "Asset/UMesh.h"
 
-void AppendMeshDrawTemplates(const UMesh& Mesh, const UMaterial& Material, const FMaterialBuffer& Materials, FAssetHandle PipelineHandle, FAssetHandle MeshHandle, Uint32 LODLevel, TArray<FRenderBatchTemplate>& OutTemplates) {
-    const TArray<UMesh::FSubMesh>& SubMeshes{Mesh.GetSubMeshes(static_cast<int>(LODLevel))};
-    const bool UseSubMeshes{!SubMeshes.empty()};
-    const std::size_t SectionCount{UseSubMeshes ? SubMeshes.size() : 1};
+bool BuildMeshDrawState(const FMeshBatch& Mesh, const FMeshBatchElement& Element, const IAssetRegistry& Registry, const FMaterialBuffer& Materials, FMeshDrawState& OutState, Uint32& OutMaterialIndex) {
+    OutState = {};
+    OutMaterialIndex = UINT32_MAX;
 
-    for (std::size_t SectionIndex{}; SectionIndex < SectionCount; ++SectionIndex) {
-        const Uint32 RequestedGroup{UseSubMeshes ? SubMeshes[SectionIndex].mMaterialGroupIndex : 0};
-        const Uint32 MaterialGroup{Materials.GetMaterialIndex(Material, RequestedGroup) != UINT32_MAX ? RequestedGroup : 0};
-        const Uint32 MaterialIndex{Materials.GetMaterialIndex(Material, MaterialGroup)};
-        const Uint32 FirstIndex{UseSubMeshes ? SubMeshes[SectionIndex].mFirstIndex : 0};
-        const Uint32 IndexCount{UseSubMeshes ? SubMeshes[SectionIndex].mIndexCount : Mesh.GetIndexCount(static_cast<int>(LODLevel))};
+    const UMaterial* Material{Registry.ResolveAsset<UMaterial>(Mesh.mMaterialHandle)};
 
-        if (MaterialIndex == UINT32_MAX || IndexCount == 0) {
-            continue;
-        }
-
-        FMeshDrawState State{};
-
-        State.mPipelineHandle = PipelineHandle;
-        State.mMeshHandle = MeshHandle;
-        State.mTextureSignature = Material.BuildChunkSignature(MaterialGroup);
-        State.mBlendMode = Material.GetBlendMode(MaterialGroup);
-        State.mFirstIndex = FirstIndex;
-        State.mIndexCount = IndexCount;
-        State.mLODLevel = LODLevel;
-        State.mOriginalIndexCount = UseSubMeshes ? (SubMeshes[SectionIndex].mSourceIndexCount != 0 ? SubMeshes[SectionIndex].mSourceIndexCount : IndexCount) : Mesh.GetIndexCount(0);
-
-        OutTemplates.push_back(FRenderBatchTemplate{State, MaterialIndex});
+    if (Material == nullptr || Element.mIndexCount == 0) {
+        return false;
     }
+
+    const Uint32 Group{Materials.GetMaterialIndex(*Material, Element.mMaterialGroupIndex) != UINT32_MAX ? Element.mMaterialGroupIndex : 0};
+
+    OutMaterialIndex = Materials.GetMaterialIndex(*Material, Group);
+
+    if (OutMaterialIndex == UINT32_MAX) {
+        return false;
+    }
+
+    OutState.mPipelineHandle = Mesh.mPipelineHandle;
+    OutState.mMeshHandle = Mesh.mMeshHandle;
+    OutState.mTextureSignature = Material->BuildChunkSignature(Group);
+    OutState.mBlendMode = Material->GetBlendMode(Group);
+    OutState.mFirstIndex = Element.mFirstIndex;
+    OutState.mIndexCount = Element.mIndexCount;
+    OutState.mLODLevel = Mesh.mLODLevel;
+    OutState.mOriginalIndexCount = Element.mOriginalIndexCount;
+
+    return true;
 }

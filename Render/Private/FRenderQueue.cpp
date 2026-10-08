@@ -1,132 +1,63 @@
 #include "pch.h"
 #include "Render/FRenderQueue.h"
-#include "Render/FLODSelection.h"
 
 #include <algorithm>
-#include <cstring>
+#include <cmath>
 
-namespace {
-    bool IsSameMatrix(const FMatrix& Left, const FMatrix& Right) {
-        return std::memcmp(Left.M, Right.M, sizeof(Left.M)) == 0;
-    }
+void FRenderQueue::Build(std::span<const std::shared_ptr<const FMeshDrawCommand>> CachedCommands, std::span<const FVisibleMeshDrawCommand> VisibleCommands, bool RenderOpaque, bool RenderTranslucent) {
+    mOpaqueCommands.clear();
+    mTranslucentCommands.clear();
+    mDrawRecords.clear();
+    mRecordDepths.clear();
 
-    bool IsSameFrustum(const FFrustum& Left, const FFrustum& Right) {
-        return Left.Origin.x == Right.Origin.x && Left.Origin.y == Right.Origin.y && Left.Origin.z == Right.Origin.z && Left.Orientation.x == Right.Orientation.x && Left.Orientation.y == Right.Orientation.y && Left.Orientation.z == Right.Orientation.z && Left.Orientation.w == Right.Orientation.w && Left.RightSlope == Right.RightSlope && Left.LeftSlope == Right.LeftSlope && Left.TopSlope == Right.TopSlope && Left.BottomSlope == Right.BottomSlope && Left.Near == Right.Near && Left.Far == Right.Far;
-    }
-}
-
-void FRenderQueue::Build(const FRenderScene& Scene, const FRenderView& View) {
-    if (IsSceneCacheCurrent(Scene, View)) {
+    if ((!RenderOpaque && !RenderTranslucent) || CachedCommands.empty() || VisibleCommands.empty()) {
         return;
     }
 
-    mSceneItems.clear();
-    mOpaqueItems.clear();
-    mTranslucentItems.clear();
+    mBucketCounts.assign(CachedCommands.size(), 0);
+    mBucketWritePositions.resize(CachedCommands.size());
 
-    if (View.IsPassEnabled(ERenderPass::Opaque) || View.IsPassEnabled(ERenderPass::Translucent)) {
-        BuildSceneItems(Scene, View);
-    } else {
-        mDrawRecords.clear();
-    }
-
-    CommitSceneCache(Scene, View);
-}
-
-const TArray<FMeshDrawBatch>& FRenderQueue::GetItems(ERenderPass Pass) const {
-    switch (Pass) {
-        case ERenderPass::Opaque:
-            return mOpaqueItems;
-
-        case ERenderPass::Translucent:
-            return mTranslucentItems;
-
-        default:
-            return mEmptyItems;
-    }
-}
-
-const TArray<FMeshDrawRecord>& FRenderQueue::GetDrawRecords() const {
-    return mDrawRecords;
-}
-
-bool FRenderQueue::IsSceneCacheCurrent(const FRenderScene& Scene, const FRenderView& View) const {
-    const float ViewportHeight{View.mTarget != nullptr ? View.mTarget->GetViewport().Height : 0.0f};
-
-    if (mSceneCacheKey.mViewportHeight != ViewportHeight) {
-        return false;
-    }
-
-    return mSceneCacheKey.mScene == &Scene && mSceneCacheKey.mSceneId == Scene.GetId() && mSceneCacheKey.mObjectRevision == Scene.GetRevision() && mSceneCacheKey.mTemplateRevision == Scene.GetTemplateRevision() && IsSameMatrix(mSceneCacheKey.mCamera.mView, View.mCamera.mView) && IsSameMatrix(mSceneCacheKey.mCamera.mProjection, View.mCamera.mProjection) && IsSameMatrix(mSceneCacheKey.mCamera.mViewProjection, View.mCamera.mViewProjection) && IsSameFrustum(mSceneCacheKey.mCamera.mViewFrustum, View.mCamera.mViewFrustum) && mSceneCacheKey.mUseLOD == View.mUseLOD && mSceneCacheKey.mRenderSky == View.mSettings.mBRenderSky && mSceneCacheKey.mOpaque == View.IsPassEnabled(ERenderPass::Opaque) && mSceneCacheKey.mTranslucent == View.IsPassEnabled(ERenderPass::Translucent);
-}
-
-void FRenderQueue::CommitSceneCache(const FRenderScene& Scene, const FRenderView& View) {
-    const float ViewportHeight{View.mTarget != nullptr ? View.mTarget->GetViewport().Height : 0.0f};
-
-    mSceneCacheKey = FSceneCacheKey{&Scene, Scene.GetId(), Scene.GetRevision(), Scene.GetTemplateRevision(), View.mCamera, ViewportHeight, View.mUseLOD, View.mSettings.mBRenderSky, View.IsPassEnabled(ERenderPass::Opaque), View.IsPassEnabled(ERenderPass::Translucent)};
-}
-
-void FRenderQueue::BuildSceneItems(const FRenderScene& Scene, const FRenderView& View) {
-    const TArray<FRenderSceneObject>& Objects{Scene.GetObjects()};
-    const TArray<FRenderTemplateGroup>& Groups{Scene.GetTemplateGroups()};
-    const TArray<FRenderBatchTemplate>& Templates{Scene.GetTemplates()};
-
-    if (Templates.empty()) {
-        mDrawRecords.clear();
-        return;
-    }
-
-    const bool Perspective{std::abs(View.mCamera.mProjection.M[2][3]) > 1e-6f};
-    const float ProjectionScale{std::abs(View.mCamera.mProjection.M[1][1])};
-    const float ViewportHeight{View.mTarget != nullptr ? View.mTarget->GetViewport().Height : 0.0f};
-
-    Scene.CollectVisibleObjects(View.mCamera, mVisibleObjectIndices, mBoundaryObjectPositions);
-
-    mVisibleObjects.clear();
-    mVisibleObjects.reserve(mVisibleObjectIndices.size());
-    mBucketCounts.assign(Templates.size(), 0);
-    mBucketWritePositions.resize(mBucketCounts.size());
-
-    for (const Uint32 ObjectIndex : mVisibleObjectIndices) {
-        const FRenderSceneObject& Object{Objects[ObjectIndex]};
-        const FRenderTemplateGroup& Group{Groups[Object.mTemplateGroupIndex]};
-
-        if (!View.mSettings.mBRenderSky && Group.mSky) {
+    for (const FVisibleMeshDrawCommand& Visible : VisibleCommands) {
+        if (Visible.mCommandIndex >= CachedCommands.size() || CachedCommands[Visible.mCommandIndex] == nullptr || !IsCommandEnabled(*CachedCommands[Visible.mCommandIndex], RenderOpaque, RenderTranslucent)) {
             continue;
         }
 
-        FLODSelection LOD{};
+        Uint32& Count{mBucketCounts[Visible.mCommandIndex]};
 
-        if (!Group.mSky && View.mUseLOD) {
-            LOD = SelectMeshLOD(CalculateScreenSize(Object, View.mCamera, ProjectionScale, Perspective), ViewportHeight, Group.mAvailableLODMask, Object.mCullable);
+        if (Count == UINT32_MAX) {
+            return;
         }
 
-        if (LOD.mCulled) {
-            continue;
-        }
-
-        auto AddLevel{[&](Uint32 Level, float Dither) {
-            const FRenderTemplateRange& Range{Group.mTemplateRangesByLOD[Level]};
-
-            if (Range.mTemplateCount == 0) {
-                return;
-            }
-
-            mVisibleObjects.push_back(FVisibleObject{ObjectIndex, Level, Dither});
-
-            for (Uint32 Index{}; Index < Range.mTemplateCount; ++Index) {
-                ++mBucketCounts[Range.mFirstTemplateIndex + Index];
-            }
-        }};
-
-        AddLevel(LOD.mLevel, LOD.mDither);
-
-        if (LOD.mNextLevel != UINT32_MAX) {
-            AddLevel(LOD.mNextLevel, -LOD.mDither);
-        }
+        ++Count;
     }
 
     std::size_t TotalRecords{};
+
+    for (std::size_t Bucket{}; Bucket < mBucketCounts.size(); ++Bucket) {
+        const Uint32 Count{mBucketCounts[Bucket]};
+
+        if (TotalRecords > UINT32_MAX - static_cast<std::size_t>(Count)) {
+            return;
+        }
+
+        mBucketWritePositions[Bucket] = static_cast<Uint32>(TotalRecords);
+        TotalRecords += Count;
+    }
+
+    mDrawRecords.resize(TotalRecords);
+    mRecordDepths.resize(TotalRecords);
+
+    for (const FVisibleMeshDrawCommand& Visible : VisibleCommands) {
+        if (Visible.mCommandIndex >= CachedCommands.size() || CachedCommands[Visible.mCommandIndex] == nullptr || !IsCommandEnabled(*CachedCommands[Visible.mCommandIndex], RenderOpaque, RenderTranslucent)) {
+            continue;
+        }
+
+        const FMeshDrawCommand& Command{*CachedCommands[Visible.mCommandIndex]};
+        const Uint32 Destination{mBucketWritePositions[Visible.mCommandIndex]++};
+
+        mDrawRecords[Destination] = FMeshDrawRecord{Visible.mObjectIndex, Command.mMaterialIndex, Visible.mLODDither};
+        mRecordDepths[Destination] = std::isfinite(Visible.mSortDepth) ? Visible.mSortDepth : 0.0f;
+    }
 
     for (std::size_t Bucket{}; Bucket < mBucketCounts.size(); ++Bucket) {
         const Uint32 Count{mBucketCounts[Bucket]};
@@ -135,86 +66,43 @@ void FRenderQueue::BuildSceneItems(const FRenderScene& Scene, const FRenderView&
             continue;
         }
 
-        if (TotalRecords > UINT32_MAX - static_cast<std::size_t>(Count)) {
-            mSceneItems.clear();
-            mDrawRecords.clear();
-            return;
-        }
+        const std::shared_ptr<const FMeshDrawCommand>& Command{CachedCommands[Bucket]};
+        const Uint32 FirstRecord{mBucketWritePositions[Bucket] - Count};
 
-        const FRenderBatchTemplate& Template{Templates[Bucket]};
-        const Uint32 FirstRecord{static_cast<Uint32>(TotalRecords)};
-
-        mSceneItems.push_back(FMeshDrawBatch{Template.mState, FirstRecord, Count});
-        mBucketWritePositions[Bucket] = FirstRecord;
-        TotalRecords += Count;
-    }
-
-    mDrawRecords.resize(TotalRecords);
-
-    for (const FVisibleObject& VisibleObject : mVisibleObjects) {
-        const FRenderTemplateGroup& Group{Groups[Objects[VisibleObject.mObjectIndex].mTemplateGroupIndex]};
-        const FRenderTemplateRange& TemplateRange{Group.mTemplateRangesByLOD[VisibleObject.mLODLevel]};
-
-        for (Uint32 Index{}; Index < TemplateRange.mTemplateCount; ++Index) {
-            const Uint32 TemplateIndex{TemplateRange.mFirstTemplateIndex + Index};
-            const Uint32 Destination{mBucketWritePositions[TemplateIndex]++};
-
-            mDrawRecords[Destination] = FMeshDrawRecord{VisibleObject.mObjectIndex, Templates[TemplateIndex].mMaterialIndex, VisibleObject.mLODDither};
-        }
-    }
-
-    for (const FMeshDrawBatch& Item : mSceneItems) {
-        if (Item.mState.mBlendMode != EMaterialBlendMode::Translucent) {
-            if (View.IsPassEnabled(ERenderPass::Opaque)) {
-                mOpaqueItems.push_back(Item);
-            }
-
+        if (Command->mPass == ERenderPass::Opaque) {
+            mOpaqueCommands.push_back(FMeshDrawCommandBatch{Command, FirstRecord, Count});
             continue;
         }
 
-        if (!View.IsPassEnabled(ERenderPass::Translucent)) {
-            continue;
-        }
+        for (Uint32 Index{}; Index < Count; ++Index) {
+            const Uint32 RecordIndex{FirstRecord + Index};
 
-        for (Uint32 Index{}; Index < Item.mRecordCount; ++Index) {
-            FMeshDrawBatch SortedItem{Item};
-
-            SortedItem.mFirstRecord += Index;
-            SortedItem.mRecordCount = 1;
-
-            const Uint32 ObjectIndex{mDrawRecords[SortedItem.mFirstRecord].mObjectIndex};
-            const DirectX::BoundingSphere& Bounds{Objects[ObjectIndex].mWorldSphereBounds};
-            const FMatrix& Transform{Scene.GetObjectTransforms()[ObjectIndex]};
-            const FVector3 Center{Bounds.Radius > 0.0f ? FVector3{Bounds.Center.x, Bounds.Center.y, Bounds.Center.z} : FVector3{Transform.M[3][0], Transform.M[3][1], Transform.M[3][2]}};
-            const FMatrix& CameraView{View.mCamera.mView};
-            const float Depth{Center.mX * CameraView.M[0][2] + Center.mY * CameraView.M[1][2] + Center.mZ * CameraView.M[2][2] + CameraView.M[3][2]};
-
-            SortedItem.mSortDepth = std::isfinite(Depth) ? Depth : 0.0f;
-            mTranslucentItems.push_back(SortedItem);
+            mTranslucentCommands.push_back(FMeshDrawCommandBatch{Command, RecordIndex, 1, mRecordDepths[RecordIndex]});
         }
     }
 
-    std::stable_sort(mTranslucentItems.begin(), mTranslucentItems.end(), [](const FMeshDrawBatch& Left, const FMeshDrawBatch& Right) {
+    std::stable_sort(mTranslucentCommands.begin(), mTranslucentCommands.end(), [](const FMeshDrawCommandBatch& Left, const FMeshDrawCommandBatch& Right) {
         return Left.mSortDepth > Right.mSortDepth;
     });
 }
 
-float FRenderQueue::CalculateScreenSize(const FRenderSceneObject& Object, const CameraProbe& Camera, float ProjectionScale, bool Perspective) const {
-    const DirectX::BoundingSphere& Bounds{Object.mWorldSphereBounds};
+const TArray<FMeshDrawCommandBatch>& FRenderQueue::GetCommands(ERenderPass Pass) const {
+    switch (Pass) {
+        case ERenderPass::Opaque:
+            return mOpaqueCommands;
 
-    if (Bounds.Radius <= 1e-4f || !std::isfinite(Bounds.Radius)) {
-        return 0.0f;
+        case ERenderPass::Translucent:
+            return mTranslucentCommands;
+
+        default:
+            return mEmptyCommands;
     }
+}
 
-    float ScreenSize{Bounds.Radius * ProjectionScale};
+const TArray<FMeshDrawRecord>& FRenderQueue::GetDrawRecords() const {
+    return mDrawRecords;
+}
 
-    if (Perspective) {
-        // LOD 선택에 쓰는 카메라 깊이만 계산한다.
-        const FMatrix& View{Camera.mView};
-        const float ViewDepth{Bounds.Center.x * View.M[0][2] + Bounds.Center.y * View.M[1][2] + Bounds.Center.z * View.M[2][2] + View.M[3][2]};
-
-        ScreenSize /= (std::max)(std::abs(ViewDepth), 1e-4f);
-    }
-
-    return ScreenSize;
+bool FRenderQueue::IsCommandEnabled(const FMeshDrawCommand& Command, bool RenderOpaque, bool RenderTranslucent) const {
+    return (Command.mPass == ERenderPass::Opaque && RenderOpaque) || (Command.mPass == ERenderPass::Translucent && RenderTranslucent);
 }

@@ -4,19 +4,15 @@
 #include "RenderCore/FRenderProbe.h"
 #include "Asset/Pipeline/UPipeline.h"
 #include "Render/IRenderSurface.h"
+#include "Render/ERenderPass.h"
 
-enum class ERenderPass : Uint8 {
-    Opaque,
-    Translucent,
-    PostProcessing,
-    Text,
-    Billboard,
-    Count
-};
+class FRenderScene;
+struct FVisibleMeshDrawCommand;
 
 struct FRenderView {
     bool IsPassEnabled(ERenderPass Pass) const;
     void SetPassEnabled(ERenderPass Pass, bool Enabled);
+    void CollectMeshDrawCommands(const FRenderScene& Scene, TArray<FVisibleMeshDrawCommand>& OutCommands) const;
 
     IRenderSurface* mTarget{nullptr};
     CameraProbe mCamera{};

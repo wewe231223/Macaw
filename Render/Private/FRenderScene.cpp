@@ -1,14 +1,13 @@
 #include "pch.h"
 #include "Render/FRenderScene.h"
 #include "RenderCore/FStaticMeshSceneProxy.h"
+#include "Render/FStaticMeshBatchCollector.h"
+#include "Render/FMeshPassProcessor.h"
 #include "CoreUObject/Asset/IAssetRegistry.h"
-#include "Asset/UMaterial.h"
 #include "Asset/UMesh.h"
-#include "Asset/Pipeline/UPipeline.h"
 
 #include <algorithm>
 #include <cstring>
-#include <tuple>
 
 namespace {
     constexpr std::size_t MaximumJournalChanges{262144};
@@ -22,23 +21,19 @@ namespace {
     }
 }
 
-bool operator<(const FRenderTemplateGroupKey& Left, const FRenderTemplateGroupKey& Right) {
-    return std::tie(Left.mPipelineHandle.mId, Left.mPipelineHandle.mGeneration, Left.mMaterialHandle.mId, Left.mMaterialHandle.mGeneration, Left.mMeshHandle.mId, Left.mMeshHandle.mGeneration) < std::tie(Right.mPipelineHandle.mId, Right.mPipelineHandle.mGeneration, Right.mMaterialHandle.mId, Right.mMaterialHandle.mGeneration, Right.mMeshHandle.mId, Right.mMeshHandle.mGeneration);
-}
-
 FRenderScene::FRenderScene(Uint64 SceneId)
-	: mSceneId{SceneId} {
+	: mSceneId(SceneId) {
 }
 
-void FRenderScene::Synchronize(const IAssetRegistry* Registry, FSceneRenderData& Scene, const FMaterialBuffer& Materials) {
+void FRenderScene::Synchronize(const IAssetRegistry* Registry, FSceneRenderData& Scene, const FMaterialBuffer& Materials, FRenderAssetResources* Resources) {
     FSceneUpdateBatch Updates{};
 
     std::swap(Updates.mRenderData, Scene);
-    Synchronize(Registry, Updates, Materials);
+    Synchronize(Registry, Updates, Materials, Resources);
     std::swap(Updates.mRenderData, Scene);
 }
 
-void FRenderScene::Synchronize(const IAssetRegistry* Registry, FSceneUpdateBatch& Updates, const FMaterialBuffer& Materials) {
+void FRenderScene::Synchronize(const IAssetRegistry* Registry, FSceneUpdateBatch& Updates, const FMaterialBuffer& Materials, FRenderAssetResources* Resources) {
     FSceneRenderData& Scene{Updates.mRenderData};
 
     mLightProbes.swap(Scene.mLightProbes);
@@ -66,7 +61,7 @@ void FRenderScene::Synchronize(const IAssetRegistry* Registry, FSceneUpdateBatch
 
     UpdateBounds();
 
-    RefreshTemplates(Registry, Materials);
+    RefreshStaticMeshes(Registry, Materials, Resources);
 }
 
 Uint64 FRenderScene::GetId() const {
@@ -75,10 +70,6 @@ Uint64 FRenderScene::GetId() const {
 
 Uint64 FRenderScene::GetRevision() const {
     return mRevision;
-}
-
-Uint64 FRenderScene::GetTemplateRevision() const {
-    return mTemplateRevision;
 }
 
 const TArray<FMatrix>& FRenderScene::GetObjectTransforms() const {
@@ -106,22 +97,18 @@ ERenderUpdateMode FRenderScene::CollectChangedObjects(Uint64 SinceRevision, TArr
     return ERenderUpdateMode::Partial;
 }
 
-const TArray<FRenderSceneObject>& FRenderScene::GetObjects() const {
+const TArray<FPrimitiveSceneInfo>& FRenderScene::GetPrimitives() const {
     return mObjects;
 }
 
 const FPrimitiveSceneProxy* FRenderScene::FindPrimitive(FObjectHandle ComponentHandle) const {
     const auto Position{mObjectLookup.find(MakeObjectKey(ComponentHandle))};
 
-    return Position != mObjectLookup.end() ? mSceneProxies[Position->second].get() : nullptr;
+    return Position != mObjectLookup.end() ? mObjects[Position->second].mProxy.get() : nullptr;
 }
 
-const TArray<FRenderBatchTemplate>& FRenderScene::GetTemplates() const {
-    return mTemplates;
-}
-
-const TArray<FRenderTemplateGroup>& FRenderScene::GetTemplateGroups() const {
-    return mTemplateGroups;
+const TArray<std::shared_ptr<const FMeshDrawCommand>>& FRenderScene::GetCachedMeshDrawCommands() const {
+    return mCommandCache.GetCommands();
 }
 
 const TArray<FLightProbe>& FRenderScene::GetLightProbes() const {
@@ -136,40 +123,9 @@ const TArray<FBillboardProbe>& FRenderScene::GetBillboardProbes() const {
     return mBillboardProbes;
 }
 
-void FRenderScene::CollectVisibleObjects(const FFrustum& Frustum, TArray<Uint32>& OutIndices) const {
+void FRenderScene::QueryFrustum(const FMatrix& ViewProjection, TArray<Uint32>& OutIndices, TArray<Uint32>* OutBoundaryPositions) const {
     OutIndices.reserve(mBoundsObjects.size() + mUnboundedObjects.size());
-    mBoundsTree.FrustumCull(Frustum, OutIndices);
-
-    std::erase_if(OutIndices, [this, &Frustum](Uint32 ObjectIndex) {
-        return !Frustum.Intersects(mObjects[ObjectIndex].mWorldOBB);
-    });
-
-    OutIndices.insert(OutIndices.end(), mUnboundedObjects.begin(), mUnboundedObjects.end());
-}
-
-void FRenderScene::CollectVisibleObjects(const FMatrix& ViewProjection, TArray<Uint32>& OutIndices) const {
-    OutIndices.reserve(mBoundsObjects.size() + mUnboundedObjects.size());
-    mBoundsTree.FrustumCull(ViewProjection, OutIndices);
-
-    OutIndices.insert(OutIndices.end(), mUnboundedObjects.begin(), mUnboundedObjects.end());
-}
-
-void FRenderScene::CollectVisibleObjects(const CameraProbe& Camera, TArray<Uint32>& OutIndices, TArray<Uint32>& OutBoundaryPositions) const {
-    const bool Perspective{std::abs(Camera.mProjection.M[2][3]) > 1e-6f};
-
-    OutIndices.reserve(mBoundsObjects.size() + mUnboundedObjects.size());
-    OutBoundaryPositions.clear();
-    mBoundsTree.FrustumCull(Camera.mViewProjection, OutIndices, Perspective ? &OutBoundaryPositions : nullptr);
-
-    for (const Uint32 Position : OutBoundaryPositions) {
-        if (!Camera.mViewFrustum.Intersects(mObjects[OutIndices[Position]].mWorldOBB)) {
-            OutIndices[Position] = UINT32_MAX;
-        }
-    }
-
-    if (!OutBoundaryPositions.empty()) {
-        std::erase(OutIndices, UINT32_MAX);
-    }
+    mBoundsTree.FrustumCull(ViewProjection, OutIndices, OutBoundaryPositions);
 
     OutIndices.insert(OutIndices.end(), mUnboundedObjects.begin(), mUnboundedObjects.end());
 }
@@ -206,7 +162,7 @@ void FRenderScene::ApplyPrimitiveUpdate(FPrimitiveSceneUpdate& Update) {
         }
     } else if (Update.mType == EPrimitiveSceneUpdate::Transform) {
         if (Position != mObjectLookup.end()) {
-            mSceneProxies[Position->second]->SetTransform(Update.mTransform);
+            mObjects[Position->second].mProxy->SetTransform(Update.mTransform);
             UpdateObjectTransform(Position->second, Update.mTransform);
         }
     } else if (Update.mProxy != nullptr && Update.mProxy->GetComponentHandle() == Update.mComponentHandle) {
@@ -221,29 +177,9 @@ void FRenderScene::ApplyPrimitiveUpdate(FPrimitiveSceneUpdate& Update) {
 
         if (ObjectIndex != UINT32_MAX) {
             mObjectLookup.emplace(Key, ObjectIndex);
-            mSceneProxies[ObjectIndex] = std::move(Update.mProxy);
+            mObjects[ObjectIndex].mProxy = std::move(Update.mProxy);
         }
     }
-}
-
-Uint32 FRenderScene::FindOrAddTemplateGroup(const FMeshSceneData& Mesh) {
-    const FRenderTemplateGroupKey Key{Mesh.mPipelineHandle, Mesh.mMaterialHandle, Mesh.mMeshHandle};
-    const auto Position{mTemplateGroupIndicesByKey.find(Key)};
-
-    if (Position != mTemplateGroupIndicesByKey.end()) {
-        return Position->second;
-    }
-
-    const Uint32 GroupIndex{static_cast<Uint32>(mTemplateGroups.size())};
-    FRenderTemplateGroup Group{};
-
-    Group.mKey = Key;
-
-    mTemplateGroups.push_back(Group);
-    mTemplateGroupIndicesByKey.emplace(Key, GroupIndex);
-    mTemplatesDirty = true;
-
-    return GroupIndex;
 }
 
 Uint32 FRenderScene::AddObject(const FPrimitiveSceneProxy& Proxy) {
@@ -256,14 +192,13 @@ Uint32 FRenderScene::AddObject(const FPrimitiveSceneProxy& Proxy) {
 
         ObjectIndex = static_cast<Uint32>(mObjects.size());
         mObjects.emplace_back();
-        mSceneProxies.emplace_back();
         mObjectTransforms.emplace_back();
     } else {
         ObjectIndex = mFreeObjects.back();
         mFreeObjects.pop_back();
     }
 
-    FRenderSceneObject& Object{mObjects[ObjectIndex]};
+    FPrimitiveSceneInfo& Object{mObjects[ObjectIndex]};
 
     Object = {};
     Object.mComponentHandle = Proxy.GetComponentHandle();
@@ -276,27 +211,9 @@ Uint32 FRenderScene::AddObject(const FPrimitiveSceneProxy& Proxy) {
 }
 
 void FRenderScene::UpdateObject(Uint32 ObjectIndex, const FPrimitiveSceneProxy& Proxy) {
-    FRenderSceneObject& Object{mObjects[ObjectIndex]};
-    const FMeshSceneData& Mesh{Proxy.GetMeshData()};
-    Uint32 GroupIndex{Object.mTemplateGroupIndex};
-
-    if (GroupIndex == UINT32_MAX || mTemplateGroups[GroupIndex].mKey.mPipelineHandle != Mesh.mPipelineHandle || mTemplateGroups[GroupIndex].mKey.mMaterialHandle != Mesh.mMaterialHandle || mTemplateGroups[GroupIndex].mKey.mMeshHandle != Mesh.mMeshHandle) {
-        GroupIndex = FindOrAddTemplateGroup(Mesh);
-    }
-
-    if (Object.mTemplateGroupIndex != GroupIndex) {
-        if (Object.mTemplateGroupIndex != UINT32_MAX) {
-            FRenderTemplateGroup& PreviousGroup{mTemplateGroups[Object.mTemplateGroupIndex]};
-
-            --PreviousGroup.mReferenceCount;
-            mTemplatesDirty = mTemplatesDirty || PreviousGroup.mReferenceCount == 0;
-        }
-
-        mTemplatesDirty = mTemplatesDirty || mTemplateGroups[GroupIndex].mReferenceCount == 0;
-        ++mTemplateGroups[GroupIndex].mReferenceCount;
-        Object.mTemplateGroupIndex = GroupIndex;
-        RecordObjectChange(ObjectIndex);
-    }
+    FPrimitiveSceneInfo& Object{mObjects[ObjectIndex]};
+    Object.mStaticMeshes.Invalidate();
+    RecordObjectChange(ObjectIndex);
 
     if (Object.mOwnerHandle != Proxy.GetOwnerHandle()) {
         Object.mOwnerHandle = Proxy.GetOwnerHandle();
@@ -307,7 +224,7 @@ void FRenderScene::UpdateObject(Uint32 ObjectIndex, const FPrimitiveSceneProxy& 
 }
 
 void FRenderScene::UpdateObjectTransform(Uint32 ObjectIndex, const FPrimitiveTransform& Transform) {
-    FRenderSceneObject& Object{mObjects[ObjectIndex]};
+    FPrimitiveSceneInfo& Object{mObjects[ObjectIndex]};
     const bool Cullable{HasUsableBounds(Transform.mWorldAABB)};
     const bool TransformChanged{std::memcmp(&mObjectTransforms[ObjectIndex], &Transform.mWorld, sizeof(FMatrix)) != 0};
     const bool BoundsChanged{std::memcmp(&Object.mWorldSphereBounds, &Transform.mWorldSphereBounds, sizeof(DirectX::BoundingSphere)) != 0 || std::memcmp(&Object.mWorldOBB, &Transform.mWorldOBB, sizeof(DirectX::BoundingOrientedBox)) != 0 || std::memcmp(&Object.mWorldAABB, &Transform.mWorldAABB, sizeof(DirectX::BoundingBox)) != 0};
@@ -330,20 +247,20 @@ void FRenderScene::UpdateObjectTransform(Uint32 ObjectIndex, const FPrimitiveTra
 }
 
 void FRenderScene::RemoveObject(Uint32 ObjectIndex) {
-    FRenderSceneObject& Object{mObjects[ObjectIndex]};
+    FPrimitiveSceneInfo& Object{mObjects[ObjectIndex]};
 
     if (!Object.mActive) {
         return;
     }
 
     Object.mActive = false;
-    mSceneProxies[ObjectIndex].reset();
+    mObjects[ObjectIndex].mProxy.reset();
 
-    if (Object.mTemplateGroupIndex != UINT32_MAX) {
-        FRenderTemplateGroup& Group{mTemplateGroups[Object.mTemplateGroupIndex]};
+    Object.mStaticMeshes = {};
+    Object.mAvailableLODMask = 0;
 
-        --Group.mReferenceCount;
-        mTemplatesDirty = mTemplatesDirty || Group.mReferenceCount == 0;
+    for (TArray<Uint32>& Commands : Object.mCachedCommandsByLOD) {
+        Commands.clear();
     }
 
     mFreeObjects.push_back(ObjectIndex);
@@ -374,79 +291,68 @@ void FRenderScene::CommitObjectChanges() {
     }
 }
 
-void FRenderScene::RefreshTemplates(const IAssetRegistry* Registry, const FMaterialBuffer& Materials) {
-    if (mMaterialBufferRevision != Materials.GetRevision()) {
-        mMaterialBufferRevision = Materials.GetRevision();
-        mTemplatesDirty = true;
-    }
-
+void FRenderScene::RefreshStaticMeshes(const IAssetRegistry* Registry, const FMaterialBuffer& Materials, FRenderAssetResources* Resources) {
     const FAssetHandle SkyPipeline{Registry != nullptr ? Registry->FindAsset(FAssetPath{"/Game/Pipeline/SkyDome.json"}) : FAssetHandle{}};
 
-    for (FRenderTemplateGroup& Group : mTemplateGroups) {
-        const bool Sky{Group.mKey.mPipelineHandle == SkyPipeline};
+    mCommandCache.BeginUpdate();
 
-        if (Group.mSky != Sky) {
-            Group.mSky = Sky;
-            mTemplatesDirty = true;
-        }
+    for (Uint32 ObjectIndex{}; ObjectIndex < mObjects.size(); ++ObjectIndex) {
+        FPrimitiveSceneInfo& Primitive{mObjects[ObjectIndex]};
 
-        if (Group.mReferenceCount == 0) {
+        if (!Primitive.mActive) {
             continue;
         }
 
-        const UMesh* Mesh{Registry != nullptr ? Registry->ResolveAsset<UMesh>(Group.mKey.mMeshHandle) : nullptr};
-        const UMaterial* Material{Registry != nullptr ? Registry->ResolveAsset<UMaterial>(Group.mKey.mMaterialHandle) : nullptr};
-        const UPipeline* Pipeline{Registry != nullptr ? Registry->ResolveAsset<UPipeline>(Group.mKey.mPipelineHandle) : nullptr};
+        const FMeshSceneData& MeshData{Primitive.mProxy->GetMeshData()};
+        const UMesh* Mesh{Registry != nullptr ? Registry->ResolveAsset<UMesh>(MeshData.mMeshHandle) : nullptr};
         const Uint64 MeshRevision{Mesh != nullptr ? Mesh->GetRenderRevision() : 0};
-        const Uint64 MaterialRevision{Material != nullptr ? Material->GetRenderRevision() : 0};
+        Primitive.mSky = static_cast<bool>(SkyPipeline) && MeshData.mPipelineHandle == SkyPipeline;
+        Primitive.mAvailableLODMask = 0;
 
-        const bool MeshChanged{Group.mMesh.Update(Mesh, MeshRevision)};
-        const bool MaterialChanged{Group.mMaterial.Update(Material, MaterialRevision)};
-
-        if (MeshChanged || MaterialChanged || Group.mPipeline != Pipeline) {
-            Group.mPipeline = Pipeline;
-            mTemplatesDirty = true;
+        for (TArray<Uint32>& Commands : Primitive.mCachedCommandsByLOD) {
+            Commands.clear();
         }
-    }
 
-    if (!mTemplatesDirty) {
-        return;
-    }
-
-    mTemplates.clear();
-
-    for (FRenderTemplateGroup& Group : mTemplateGroups) {
-        Group.mTemplateRangesByLOD.fill(FRenderTemplateRange{});
-        Group.mAvailableLODMask = 0;
-
-        const UMesh* Mesh{Group.mMesh.GetValue()};
-        const UMaterial* Material{Group.mMaterial.GetValue()};
-
-        if (Group.mReferenceCount == 0 || Mesh == nullptr || Material == nullptr || Group.mPipeline == nullptr) {
+        if (Registry == nullptr) {
+            Primitive.mStaticMeshes.Invalidate();
             continue;
         }
 
-        for (Uint32 Level{}; Level < GLODCount; ++Level) {
-            if (Level != 0 && !Mesh->HasLOD(static_cast<int>(Level))) {
+        const FRenderAssetStamp Stamp{Mesh != nullptr ? Mesh->GetHandle() : FObjectHandle{}, MeshRevision};
+        const TArray<FStaticMeshBatch>* StaticMeshes{Primitive.mStaticMeshes.GetOrUpdate(Stamp, [&](TArray<FStaticMeshBatch>& Meshes) {
+            Meshes.clear();
+
+            FStaticMeshBatchCollector Collector{*Registry, ObjectIndex, Meshes};
+
+            Primitive.mProxy->DrawStaticElements(Collector);
+
+            return true;
+        })};
+
+        if (StaticMeshes == nullptr) {
+            continue;
+        }
+
+        FMeshPassProcessor Opaque{ERenderPass::Opaque, *Registry, Materials, Resources, mCommandCache};
+        FMeshPassProcessor Translucent{ERenderPass::Translucent, *Registry, Materials, Resources, mCommandCache};
+
+        for (const FStaticMeshBatch& StaticMesh : *StaticMeshes) {
+            if (StaticMesh.mLODLevel >= GLODCount) {
                 continue;
             }
 
-            const Uint32 FirstTemplateIndex{static_cast<Uint32>(mTemplates.size())};
+            TArray<Uint32>& Commands{Primitive.mCachedCommandsByLOD[StaticMesh.mLODLevel]};
 
-            AppendMeshDrawTemplates(*Mesh, *Material, Materials, Group.mKey.mPipelineHandle, Group.mKey.mMeshHandle, Level, mTemplates);
+            Opaque.AddMeshBatch(StaticMesh, Commands);
+            Translucent.AddMeshBatch(StaticMesh, Commands);
 
-            FRenderTemplateRange& TemplateRange{Group.mTemplateRangesByLOD[Level]};
-
-            TemplateRange = FRenderTemplateRange{FirstTemplateIndex, static_cast<Uint32>(mTemplates.size()) - FirstTemplateIndex};
-
-            if (TemplateRange.mTemplateCount != 0) {
-                Group.mAvailableLODMask |= 1u << Level;
+            if (!Commands.empty()) {
+                Primitive.mAvailableLODMask |= 1u << StaticMesh.mLODLevel;
             }
         }
     }
 
-    ++mTemplateRevision;
-    mTemplatesDirty = false;
+    mCommandCache.EndUpdate();
 }
 
 void FRenderScene::UpdateBounds() {

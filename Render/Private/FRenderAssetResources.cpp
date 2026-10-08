@@ -52,20 +52,9 @@ const FMeshRenderResource* FRenderAssetResources::GetMesh(const UMesh& Mesh) {
         return nullptr;
     }
 
-    FMeshEntry& Entry{mMeshes[Mesh.GetGuid()]};
-
-    if (Entry.mRevision != Mesh.GetRenderRevision()) {
-        FMeshRenderResource Resource{};
-
-        if (!Resource.Initialize(mDevice, Mesh)) {
-            return nullptr;
-        }
-
-        Entry.mResource = std::move(Resource);
-        Entry.mRevision = Mesh.GetRenderRevision();
-    }
-
-    return &Entry.mResource;
+    return mMeshes[Mesh.GetGuid()].GetOrUpdate(FRenderAssetStamp{Mesh.GetHandle(), Mesh.GetRenderRevision()}, [&](FMeshRenderResource& Resource) {
+        return Resource.Initialize(mDevice, Mesh);
+    });
 }
 
 const FPipelineRenderResource* FRenderAssetResources::GetPipeline(const UPipeline& Pipeline) {
@@ -73,20 +62,9 @@ const FPipelineRenderResource* FRenderAssetResources::GetPipeline(const UPipelin
         return nullptr;
     }
 
-    FPipelineEntry& Entry{mPipelines[Pipeline.GetGuid()]};
-
-    if (Entry.mRevision != Pipeline.GetRenderRevision()) {
-        FPipelineRenderResource Resource{};
-
-        if (!Resource.Initialize(mDevice, Pipeline)) {
-            return nullptr;
-        }
-
-        Entry.mResource = std::move(Resource);
-        Entry.mRevision = Pipeline.GetRenderRevision();
-    }
-
-    return &Entry.mResource;
+    return mPipelines[Pipeline.GetGuid()].GetOrUpdate(FRenderAssetStamp{Pipeline.GetHandle(), Pipeline.GetRenderRevision()}, [&](FPipelineRenderResource& Resource) {
+        return Resource.Initialize(mDevice, Pipeline);
+    });
 }
 
 ID3D11ShaderResourceView* FRenderAssetResources::GetTexture(const UTexture& Texture) {
@@ -96,20 +74,11 @@ ID3D11ShaderResourceView* FRenderAssetResources::GetTexture(const UTexture& Text
         return nullptr;
     }
 
-    FTextureEntry& Entry{mTextures[Texture.GetGuid()]};
+    const Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>* View{mTextures[Texture.GetGuid()].GetOrUpdate(FRenderAssetStamp{Texture.GetHandle(), Texture.GetRenderRevision()}, [&](Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>& Resource) {
+        return SUCCEEDED(DirectX::CreateShaderResourceView(mDevice, Source->GetImages(), Source->GetImageCount(), Source->GetMetadata(), Resource.ReleaseAndGetAddressOf()));
+    })};
 
-    if (Entry.mRevision != Texture.GetRenderRevision()) {
-        Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> View{};
-
-        if (FAILED(DirectX::CreateShaderResourceView(mDevice, Source->GetImages(), Source->GetImageCount(), Source->GetMetadata(), View.GetAddressOf()))) {
-            return nullptr;
-        }
-
-        Entry.mView = std::move(View);
-        Entry.mRevision = Texture.GetRenderRevision();
-    }
-
-    return Entry.mView.Get();
+    return View != nullptr ? View->Get() : nullptr;
 }
 
 ID3D11ShaderResourceView* FRenderAssetResources::GetFontAtlas(const UFont& Font, ID3D11DeviceContext* Context) {
@@ -121,10 +90,16 @@ ID3D11ShaderResourceView* FRenderAssetResources::GetFontAtlas(const UFont& Font,
         return nullptr;
     }
 
-    FFontEntry& Entry{mFonts[Font.GetGuid()]};
+    TCachedValue<FFontResource, FFontAtlasStamp>& Entry{mFonts[Font.GetGuid()]};
+    const bool SameFont{Entry.IsValid() && Entry.GetStamp().mAsset.mAssetHandle == Font.GetHandle()};
+    const FFontAtlasStamp Stamp{FRenderAssetStamp{Font.GetHandle(), Font.GetAtlasRevision()}, Width, Height};
+    const FFontResource* Resource{Entry.GetOrUpdate(Stamp, [&](FFontResource& Atlas) {
+        if (SameFont && Atlas.mTexture != nullptr && Atlas.mWidth == Width && Atlas.mHeight == Height) {
+            Context->UpdateSubresource(Atlas.mTexture.Get(), 0, nullptr, Pixels.data(), Width, 0);
+            return true;
+        }
 
-    if (Entry.mTexture == nullptr || Entry.mWidth != Width || Entry.mHeight != Height) {
-        FFontEntry Replacement{};
+        FFontResource Replacement{};
         D3D11_TEXTURE2D_DESC Description{};
 
         Description.Width = Width;
@@ -142,19 +117,17 @@ ID3D11ShaderResourceView* FRenderAssetResources::GetFontAtlas(const UFont& Font,
         InitialData.SysMemPitch = Width;
 
         if (FAILED(mDevice->CreateTexture2D(&Description, &InitialData, Replacement.mTexture.GetAddressOf())) || FAILED(mDevice->CreateShaderResourceView(Replacement.mTexture.Get(), nullptr, Replacement.mView.GetAddressOf()))) {
-            return nullptr;
+            return false;
         }
 
         Replacement.mWidth = Width;
         Replacement.mHeight = Height;
-        Replacement.mRevision = Font.GetAtlasRevision();
-        Entry = std::move(Replacement);
-    } else if (Entry.mRevision != Font.GetAtlasRevision()) {
-        Context->UpdateSubresource(Entry.mTexture.Get(), 0, nullptr, Pixels.data(), Width, 0);
-        Entry.mRevision = Font.GetAtlasRevision();
-    }
+        Atlas = std::move(Replacement);
 
-    return Entry.mView.Get();
+        return true;
+    })};
+
+    return Resource != nullptr ? Resource->mView.Get() : nullptr;
 }
 
 FMaterialBuffer& FRenderAssetResources::GetMaterialBuffer() {

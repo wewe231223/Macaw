@@ -22,6 +22,9 @@ const FPrimitiveTransform& FPrimitiveSceneProxy::GetTransform() const {
     return mTransform;
 }
 
+void FPrimitiveSceneProxy::DrawStaticElements(FStaticPrimitiveDrawInterface& DrawInterface) const {
+}
+
 void FPrimitiveSceneProxy::SetTransform(const FPrimitiveTransform& Transform) {
     mTransform = Transform;
 }

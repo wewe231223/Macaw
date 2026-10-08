@@ -5,6 +5,7 @@
 #include "CoreUObject/FObjectHandle.h"
 
 struct FActorProbe;
+class FStaticPrimitiveDrawInterface;
 
 struct FPrimitiveTransform {
     FMatrix mWorld{};
@@ -33,6 +34,7 @@ public:
     FObjectHandle GetOwnerHandle() const;
     const FPrimitiveTransform& GetTransform() const;
     virtual const FMeshSceneData& GetMeshData() const = 0;
+    virtual void DrawStaticElements(FStaticPrimitiveDrawInterface& DrawInterface) const;
     void SetTransform(const FPrimitiveTransform& Transform);
     void BuildLegacyProbe(FActorProbe& Probe) const;
 
