@@ -287,7 +287,7 @@ bool FRenderer::ApplySceneUpdates(FSceneUpdateBatch& Updates) {
         Position->second->ResetRenderData();
     }
 
-    Position->second->GetRenderScene().Synchronize(mAssetRegistry, Updates.mRenderData, Materials);
+    Position->second->GetRenderScene().Synchronize(mAssetRegistry, Updates, Materials);
 
     return true;
 }

@@ -19,6 +19,8 @@ public:
 
     void OnRegister() override;
     void OnUnregister() override;
+    bool ShouldCreateRenderState() const override;
+    std::unique_ptr<FPrimitiveSceneProxy> CreateSceneProxy() const override;
 
     virtual void MakeRender(FActorProbe& OutProbe) const override;
 
@@ -26,7 +28,6 @@ private:
     void Serialize(FArchive& Archive) override;
 
     void EnsureDefaultRenderAssets();
-    void OnRenderStateChanged() override;
 
 private:
     FAssetHandle mMaterialHandle{};

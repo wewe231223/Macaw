@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "World/Component/UStaticMeshComponent.h"
 #include "RenderCore/FRenderProbe.h"
+#include "RenderCore/FStaticMeshSceneProxy.h"
 #include "World/AActor.h"
 #include "World/UWorld.h"
 #include "World/Subsystem/URenderSubsystem.h"
@@ -72,17 +73,6 @@ void UStaticMeshComponent::SetPipelineHandle(FAssetHandle InHandle) {
     }
 }
 
-void UStaticMeshComponent::OnRenderStateChanged() {
-    UMeshComponent::OnRenderStateChanged();
-
-    AActor* Owner{GetOwner()};
-    UWorld* World{Owner != nullptr ? Owner->GetWorld() : nullptr};
-
-    if (World != nullptr) {
-        World->GetRenderSubsystem().UpdateComponentRenderState(this);
-    }
-}
-
 void UStaticMeshComponent::OnRegister() {
     UMeshComponent::OnRegister();
 
@@ -123,15 +113,26 @@ void UStaticMeshComponent::OnUnregister() {
     UMeshComponent::OnUnregister();
 }
 
-void UStaticMeshComponent::MakeRender(FActorProbe& OutProbe) const {
-    if (!IsRegistered() || !IsVisible()) {
-        return;
+bool UStaticMeshComponent::ShouldCreateRenderState() const {
+    return IsVisible();
+}
+
+std::unique_ptr<FPrimitiveSceneProxy> UStaticMeshComponent::CreateSceneProxy() const {
+    const AActor* Owner{GetOwner()};
+
+    if (!IsRegistered() || !IsVisible() || Owner == nullptr) {
+        return nullptr;
     }
 
-    OutProbe = FActorProbe{GetComponentToWorld(), GetMeshHandle(), mMaterialHandle, mPipelineHandle, 0x0000'0000};
-    OutProbe.mWorldSphereBounds = GetWorldSphere();
-    OutProbe.mWorldOBB = GetWorldOBB();
-    OutProbe.mWorldAABB = GetWorldAABB();
+    return std::make_unique<FStaticMeshSceneProxy>(GetHandle(), Owner->GetHandle(), GetRenderTransform(), FMeshSceneData{GetMeshHandle(), mMaterialHandle, mPipelineHandle});
+}
+
+void UStaticMeshComponent::MakeRender(FActorProbe& OutProbe) const {
+    const std::unique_ptr<FPrimitiveSceneProxy> Proxy{CreateSceneProxy()};
+
+    if (Proxy != nullptr) {
+        Proxy->BuildLegacyProbe(OutProbe);
+    }
 }
 
 void UStaticMeshComponent::Serialize(FArchive& Archive) {

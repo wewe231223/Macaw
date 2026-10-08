@@ -18,8 +18,6 @@ void URenderSubsystem::RegisterComponent(UStaticMeshComponent* Component) {
     }
 
     mComponents.push_back(Component);
-
-    MarkComponentDirty(Handle);
 }
 
 void URenderSubsystem::UnregisterComponent(UStaticMeshComponent* Component) {
@@ -43,54 +41,133 @@ void URenderSubsystem::UnregisterComponent(UStaticMeshComponent* Component) {
 
     mComponents.pop_back();
     mComponentIndices.erase(Position);
-
-    MarkComponentDirty(Handle);
 }
 
-void URenderSubsystem::UpdateComponentRenderState(UStaticMeshComponent* Component) {
-    if (ContainsComponent(Component)) {
-        MarkComponentDirty(Component->GetHandle());
+void URenderSubsystem::MarkComponentDirty(UActorComponent* Component) {
+    if (Component != nullptr && Component->GetHandle().IsValid() && mDirtyComponentKeys.insert(GetComponentKey(Component->GetHandle())).second) {
+        mDirtyComponents.emplace_back(Component);
     }
 }
 
-void URenderSubsystem::MarkAllComponentsDirty() {
-    for (const UStaticMeshComponent* Component : mComponents) {
-        MarkComponentDirty(Component->GetHandle());
+void URenderSubsystem::RecreateRenderStates() {
+    for (UStaticMeshComponent* Component : mComponents) {
+        Component->MarkRenderStateDirty();
+    }
+}
+
+void URenderSubsystem::AddPrimitive(std::unique_ptr<FPrimitiveSceneProxy> Proxy) {
+    if (Proxy == nullptr || !Proxy->GetComponentHandle().IsValid()) {
+        return;
+    }
+
+    FPrimitiveSceneUpdate& Update{FindOrAddPrimitiveUpdate(Proxy->GetComponentHandle())};
+
+    Update.mType = EPrimitiveSceneUpdate::Create;
+    Update.mProxy = std::move(Proxy);
+    Update.mTransform = {};
+}
+
+void URenderSubsystem::UpdatePrimitiveTransform(FObjectHandle ComponentHandle, const FPrimitiveTransform& Transform) {
+    if (!ComponentHandle.IsValid()) {
+        return;
+    }
+
+    const auto Position{mPrimitiveUpdateIndices.find(GetComponentKey(ComponentHandle))};
+
+    if (Position != mPrimitiveUpdateIndices.end() && mPrimitiveUpdates[Position->second].mType == EPrimitiveSceneUpdate::Remove) {
+        return;
+    }
+
+    FPrimitiveSceneUpdate& Update{FindOrAddPrimitiveUpdate(ComponentHandle)};
+
+    if (Update.mType == EPrimitiveSceneUpdate::Create && Update.mProxy != nullptr) {
+        Update.mProxy->SetTransform(Transform);
+    } else {
+        Update.mType = EPrimitiveSceneUpdate::Transform;
+        Update.mTransform = Transform;
+    }
+}
+
+void URenderSubsystem::RemovePrimitive(FObjectHandle ComponentHandle) {
+    if (!ComponentHandle.IsValid()) {
+        return;
+    }
+
+    FPrimitiveSceneUpdate& Update{FindOrAddPrimitiveUpdate(ComponentHandle)};
+
+    Update.mType = EPrimitiveSceneUpdate::Remove;
+    Update.mProxy.reset();
+    Update.mTransform = {};
+}
+
+void URenderSubsystem::BuildSceneUpdates(FSceneUpdateBatch& Updates) {
+    FlushDeferredRenderUpdates();
+    FinishPrimitiveUpdates(Updates.mRenderData);
+    Updates.mRenderData.mObjectUpdates.clear();
+    Updates.mPrimitiveUpdates.clear();
+    Updates.mPrimitiveUpdates.swap(mPrimitiveUpdates);
+    mPrimitiveUpdateIndices.clear();
+}
+
+void URenderSubsystem::FlushDeferredRenderUpdates() {
+    TArray<TObjectRef<UActorComponent>> Components{};
+
+    Components.swap(mDirtyComponents);
+    mDirtyComponentKeys.clear();
+
+    for (const TObjectRef<UActorComponent>& Reference : Components) {
+        if (UActorComponent* Component{Reference.Get()}) {
+            Component->DoDeferredRenderUpdates();
+        }
+    }
+
+    Components.clear();
+
+    if (mDirtyComponents.empty()) {
+        mDirtyComponents.swap(Components);
     }
 }
 
 void URenderSubsystem::BuildRenderProbes(FSceneRenderData& Scene) {
-    Scene.mSceneId = mSceneId;
-
+    FlushDeferredRenderUpdates();
+    FinishPrimitiveUpdates(Scene);
     Scene.mObjectUpdates.clear();
-    Scene.mObjectUpdates.reserve(mDirtyComponents.size());
+    Scene.mObjectUpdates.reserve(mPrimitiveUpdates.size());
 
-    for (const FObjectHandle Handle : mDirtyComponents) {
+    for (const FPrimitiveSceneUpdate& PrimitiveUpdate : mPrimitiveUpdates) {
         FRenderObjectUpdate Update{};
 
-        Update.mComponentHandle = Handle;
+        Update.mComponentHandle = PrimitiveUpdate.mComponentHandle;
+        Update.mRemoved = PrimitiveUpdate.mType == EPrimitiveSceneUpdate::Remove;
 
-        const auto Position{mComponentIndices.find(GetComponentKey(Handle))};
-        const UStaticMeshComponent* Component{Position != mComponentIndices.end() ? mComponents[Position->second] : nullptr};
+        if (PrimitiveUpdate.mProxy != nullptr) {
+            PrimitiveUpdate.mProxy->BuildLegacyProbe(Update.mProbe);
+        } else if (!Update.mRemoved) {
+            const auto Position{mComponentIndices.find(GetComponentKey(Update.mComponentHandle))};
+            const UStaticMeshComponent* Component{Position != mComponentIndices.end() ? mComponents[Position->second] : nullptr};
+            const std::unique_ptr<FPrimitiveSceneProxy> Proxy{Component != nullptr ? Component->CreateSceneProxy() : nullptr};
 
-        Update.mRemoved = Component == nullptr || !Component->IsRegistered() || !Component->IsVisible();
+            Update.mRemoved = Proxy == nullptr;
 
-        if (!Update.mRemoved) {
-            Component->MakeRender(Update.mProbe);
-            Update.mProbe.mOwnerHandle = Component->GetOwner()->GetHandle();
+            if (Proxy != nullptr) {
+                Proxy->BuildLegacyProbe(Update.mProbe);
+            }
         }
 
         Scene.mObjectUpdates.push_back(Update);
     }
 
-    if (!Scene.mObjectUpdates.empty()) {
+    mPrimitiveUpdates.clear();
+    mPrimitiveUpdateIndices.clear();
+}
+
+void URenderSubsystem::FinishPrimitiveUpdates(FSceneRenderData& Scene) {
+    if (!mPrimitiveUpdates.empty()) {
         ++mRevision;
     }
 
+    Scene.mSceneId = mSceneId;
     Scene.mRevision = mRevision;
-
-    mDirtyComponents.clear();
-    mDirtyComponentKeys.clear();
 }
 
 bool URenderSubsystem::ContainsComponent(const UStaticMeshComponent* Component) const {
@@ -115,10 +192,15 @@ Uint64 URenderSubsystem::GetComponentKey(FObjectHandle Handle) {
     return static_cast<Uint64>(Handle.mGeneration) << 32 | Handle.mIndex;
 }
 
-void URenderSubsystem::MarkComponentDirty(FObjectHandle Handle) {
-    if (mDirtyComponentKeys.insert(GetComponentKey(Handle)).second) {
-        mDirtyComponents.push_back(Handle);
+FPrimitiveSceneUpdate& URenderSubsystem::FindOrAddPrimitiveUpdate(FObjectHandle Handle) {
+    const auto Position{mPrimitiveUpdateIndices.emplace(GetComponentKey(Handle), mPrimitiveUpdates.size())};
+
+    if (Position.second) {
+        mPrimitiveUpdates.emplace_back();
+        mPrimitiveUpdates.back().mComponentHandle = Handle;
     }
+
+    return mPrimitiveUpdates[Position.first->second];
 }
 
 void URenderSubsystem::OnDeinitialize() {
@@ -127,6 +209,8 @@ void URenderSubsystem::OnDeinitialize() {
 
     mDirtyComponents.clear();
     mDirtyComponentKeys.clear();
+    mPrimitiveUpdates.clear();
+    mPrimitiveUpdateIndices.clear();
 
     mSceneId = AllocateRenderSceneId();
     mRevision = {};

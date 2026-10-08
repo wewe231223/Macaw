@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Render/FRenderScene.h"
+#include "RenderCore/FStaticMeshSceneProxy.h"
 #include "CoreUObject/Asset/IAssetRegistry.h"
 #include "Asset/UMaterial.h"
 #include "Asset/UMesh.h"
@@ -30,6 +31,16 @@ FRenderScene::FRenderScene(Uint64 SceneId)
 }
 
 void FRenderScene::Synchronize(const IAssetRegistry* Registry, FSceneRenderData& Scene, const FMaterialBuffer& Materials) {
+    FSceneUpdateBatch Updates{};
+
+    std::swap(Updates.mRenderData, Scene);
+    Synchronize(Registry, Updates, Materials);
+    std::swap(Updates.mRenderData, Scene);
+}
+
+void FRenderScene::Synchronize(const IAssetRegistry* Registry, FSceneUpdateBatch& Updates, const FMaterialBuffer& Materials) {
+    FSceneRenderData& Scene{Updates.mRenderData};
+
     mLightProbes.swap(Scene.mLightProbes);
     mTextProbes.swap(Scene.mTextProbes);
     mBillboardProbes.swap(Scene.mBillboardProbes);
@@ -46,6 +57,11 @@ void FRenderScene::Synchronize(const IAssetRegistry* Registry, FSceneRenderData&
         mSourceRevision.Commit(Scene.mRevision);
     }
 
+    for (FPrimitiveSceneUpdate& Update : Updates.mPrimitiveUpdates) {
+        ApplyPrimitiveUpdate(Update);
+    }
+
+    Updates.mPrimitiveUpdates.clear();
     CommitObjectChanges();
 
     UpdateBounds();
@@ -92,6 +108,12 @@ ERenderUpdateMode FRenderScene::CollectChangedObjects(Uint64 SinceRevision, TArr
 
 const TArray<FRenderSceneObject>& FRenderScene::GetObjects() const {
     return mObjects;
+}
+
+const FPrimitiveSceneProxy* FRenderScene::FindPrimitive(FObjectHandle ComponentHandle) const {
+    const auto Position{mObjectLookup.find(MakeObjectKey(ComponentHandle))};
+
+    return Position != mObjectLookup.end() ? mSceneProxies[Position->second].get() : nullptr;
 }
 
 const TArray<FRenderBatchTemplate>& FRenderScene::GetTemplates() const {
@@ -153,33 +175,59 @@ void FRenderScene::CollectVisibleObjects(const CameraProbe& Camera, TArray<Uint3
 }
 
 void FRenderScene::ApplyObjectUpdates(const FSceneRenderData& Scene) {
-    for (const FRenderObjectUpdate& Update : Scene.mObjectUpdates) {
-        if (!Update.mComponentHandle.IsValid()) {
-            continue;
+    for (const FRenderObjectUpdate& ObjectUpdate : Scene.mObjectUpdates) {
+        FPrimitiveSceneUpdate Update{};
+
+        Update.mComponentHandle = ObjectUpdate.mComponentHandle;
+
+        if (!ObjectUpdate.mRemoved) {
+            const FActorProbe& Probe{ObjectUpdate.mProbe};
+
+            Update.mType = EPrimitiveSceneUpdate::Create;
+            Update.mProxy = std::make_unique<FStaticMeshSceneProxy>(ObjectUpdate.mComponentHandle, Probe.mOwnerHandle, FPrimitiveTransform{Probe.mWorld, Probe.mWorldSphereBounds, Probe.mWorldOBB, Probe.mWorldAABB}, FMeshSceneData{Probe.mMeshHandle, Probe.mMaterialHandle, Probe.mPipelineHandle});
         }
 
-        const Uint64 Key{MakeObjectKey(Update.mComponentHandle)};
-        const auto Position{mObjectLookup.find(Key)};
+        ApplyPrimitiveUpdate(Update);
+    }
+}
 
-        if (Update.mRemoved) {
-            if (Position != mObjectLookup.end()) {
-                RemoveObject(Position->second);
-                mObjectLookup.erase(Position);
-            }
-        } else if (Position != mObjectLookup.end()) {
-            UpdateObject(Position->second, Update.mProbe);
+void FRenderScene::ApplyPrimitiveUpdate(FPrimitiveSceneUpdate& Update) {
+    if (!Update.mComponentHandle.IsValid()) {
+        return;
+    }
+
+    const Uint64 Key{MakeObjectKey(Update.mComponentHandle)};
+    const auto Position{mObjectLookup.find(Key)};
+
+    if (Update.mType == EPrimitiveSceneUpdate::Remove) {
+        if (Position != mObjectLookup.end()) {
+            RemoveObject(Position->second);
+            mObjectLookup.erase(Position);
+        }
+    } else if (Update.mType == EPrimitiveSceneUpdate::Transform) {
+        if (Position != mObjectLookup.end()) {
+            mSceneProxies[Position->second]->SetTransform(Update.mTransform);
+            UpdateObjectTransform(Position->second, Update.mTransform);
+        }
+    } else if (Update.mProxy != nullptr && Update.mProxy->GetComponentHandle() == Update.mComponentHandle) {
+        Uint32 ObjectIndex{UINT32_MAX};
+
+        if (Position != mObjectLookup.end()) {
+            ObjectIndex = Position->second;
+            UpdateObject(ObjectIndex, *Update.mProxy);
         } else {
-            const Uint32 ObjectIndex{AddObject(Update.mComponentHandle, Update.mProbe)};
+            ObjectIndex = AddObject(*Update.mProxy);
+        }
 
-            if (ObjectIndex != UINT32_MAX) {
-                mObjectLookup.emplace(Key, ObjectIndex);
-            }
+        if (ObjectIndex != UINT32_MAX) {
+            mObjectLookup.emplace(Key, ObjectIndex);
+            mSceneProxies[ObjectIndex] = std::move(Update.mProxy);
         }
     }
 }
 
-Uint32 FRenderScene::FindOrAddTemplateGroup(const FActorProbe& Probe) {
-    const FRenderTemplateGroupKey Key{Probe.mPipelineHandle, Probe.mMaterialHandle, Probe.mMeshHandle};
+Uint32 FRenderScene::FindOrAddTemplateGroup(const FMeshSceneData& Mesh) {
+    const FRenderTemplateGroupKey Key{Mesh.mPipelineHandle, Mesh.mMaterialHandle, Mesh.mMeshHandle};
     const auto Position{mTemplateGroupIndicesByKey.find(Key)};
 
     if (Position != mTemplateGroupIndicesByKey.end()) {
@@ -198,7 +246,7 @@ Uint32 FRenderScene::FindOrAddTemplateGroup(const FActorProbe& Probe) {
     return GroupIndex;
 }
 
-Uint32 FRenderScene::AddObject(FObjectHandle ComponentHandle, const FActorProbe& Probe) {
+Uint32 FRenderScene::AddObject(const FPrimitiveSceneProxy& Proxy) {
     Uint32 ObjectIndex{};
 
     if (mFreeObjects.empty()) {
@@ -208,6 +256,7 @@ Uint32 FRenderScene::AddObject(FObjectHandle ComponentHandle, const FActorProbe&
 
         ObjectIndex = static_cast<Uint32>(mObjects.size());
         mObjects.emplace_back();
+        mSceneProxies.emplace_back();
         mObjectTransforms.emplace_back();
     } else {
         ObjectIndex = mFreeObjects.back();
@@ -217,29 +266,22 @@ Uint32 FRenderScene::AddObject(FObjectHandle ComponentHandle, const FActorProbe&
     FRenderSceneObject& Object{mObjects[ObjectIndex]};
 
     Object = {};
-    Object.mComponentHandle = ComponentHandle;
+    Object.mComponentHandle = Proxy.GetComponentHandle();
     Object.mActive = true;
     mTopologyDirty = true;
 
-    UpdateObject(ObjectIndex, Probe);
+    UpdateObject(ObjectIndex, Proxy);
 
     return ObjectIndex;
 }
 
-void FRenderScene::UpdateObject(Uint32 ObjectIndex, const FActorProbe& Probe) {
+void FRenderScene::UpdateObject(Uint32 ObjectIndex, const FPrimitiveSceneProxy& Proxy) {
     FRenderSceneObject& Object{mObjects[ObjectIndex]};
+    const FMeshSceneData& Mesh{Proxy.GetMeshData()};
     Uint32 GroupIndex{Object.mTemplateGroupIndex};
 
-    if (GroupIndex == UINT32_MAX || mTemplateGroups[GroupIndex].mKey.mPipelineHandle != Probe.mPipelineHandle || mTemplateGroups[GroupIndex].mKey.mMaterialHandle != Probe.mMaterialHandle || mTemplateGroups[GroupIndex].mKey.mMeshHandle != Probe.mMeshHandle) {
-        GroupIndex = FindOrAddTemplateGroup(Probe);
-    }
-
-    const bool Cullable{HasUsableBounds(Probe.mWorldAABB)};
-    const bool TransformChanged{std::memcmp(&mObjectTransforms[ObjectIndex], &Probe.mWorld, sizeof(FMatrix)) != 0};
-    const bool BoundsChanged{std::memcmp(&Object.mWorldSphereBounds, &Probe.mWorldSphereBounds, sizeof(DirectX::BoundingSphere)) != 0 || std::memcmp(&Object.mWorldOBB, &Probe.mWorldOBB, sizeof(DirectX::BoundingOrientedBox)) != 0 || std::memcmp(&Object.mWorldAABB, &Probe.mWorldAABB, sizeof(DirectX::BoundingBox)) != 0};
-
-    if (Object.mTemplateGroupIndex == GroupIndex && Object.mOwnerHandle == Probe.mOwnerHandle && !TransformChanged && !BoundsChanged) {
-        return;
+    if (GroupIndex == UINT32_MAX || mTemplateGroups[GroupIndex].mKey.mPipelineHandle != Mesh.mPipelineHandle || mTemplateGroups[GroupIndex].mKey.mMaterialHandle != Mesh.mMaterialHandle || mTemplateGroups[GroupIndex].mKey.mMeshHandle != Mesh.mMeshHandle) {
+        GroupIndex = FindOrAddTemplateGroup(Mesh);
     }
 
     if (Object.mTemplateGroupIndex != GroupIndex) {
@@ -253,18 +295,36 @@ void FRenderScene::UpdateObject(Uint32 ObjectIndex, const FActorProbe& Probe) {
         mTemplatesDirty = mTemplatesDirty || mTemplateGroups[GroupIndex].mReferenceCount == 0;
         ++mTemplateGroups[GroupIndex].mReferenceCount;
         Object.mTemplateGroupIndex = GroupIndex;
+        RecordObjectChange(ObjectIndex);
+    }
+
+    if (Object.mOwnerHandle != Proxy.GetOwnerHandle()) {
+        Object.mOwnerHandle = Proxy.GetOwnerHandle();
+        RecordObjectChange(ObjectIndex);
+    }
+
+    UpdateObjectTransform(ObjectIndex, Proxy.GetTransform());
+}
+
+void FRenderScene::UpdateObjectTransform(Uint32 ObjectIndex, const FPrimitiveTransform& Transform) {
+    FRenderSceneObject& Object{mObjects[ObjectIndex]};
+    const bool Cullable{HasUsableBounds(Transform.mWorldAABB)};
+    const bool TransformChanged{std::memcmp(&mObjectTransforms[ObjectIndex], &Transform.mWorld, sizeof(FMatrix)) != 0};
+    const bool BoundsChanged{std::memcmp(&Object.mWorldSphereBounds, &Transform.mWorldSphereBounds, sizeof(DirectX::BoundingSphere)) != 0 || std::memcmp(&Object.mWorldOBB, &Transform.mWorldOBB, sizeof(DirectX::BoundingOrientedBox)) != 0 || std::memcmp(&Object.mWorldAABB, &Transform.mWorldAABB, sizeof(DirectX::BoundingBox)) != 0};
+
+    if (!TransformChanged && !BoundsChanged && Object.mCullable == Cullable) {
+        return;
     }
 
     if (Object.mCullable != Cullable) {
         mTopologyDirty = true;
     }
 
-    Object.mOwnerHandle = Probe.mOwnerHandle;
-    Object.mWorldSphereBounds = Probe.mWorldSphereBounds;
-    Object.mWorldOBB = Probe.mWorldOBB;
-    Object.mWorldAABB = Probe.mWorldAABB;
+    Object.mWorldSphereBounds = Transform.mWorldSphereBounds;
+    Object.mWorldOBB = Transform.mWorldOBB;
+    Object.mWorldAABB = Transform.mWorldAABB;
     Object.mCullable = Cullable;
-    mObjectTransforms[ObjectIndex] = Probe.mWorld;
+    mObjectTransforms[ObjectIndex] = Transform.mWorld;
 
     RecordObjectChange(ObjectIndex);
 }
@@ -277,6 +337,7 @@ void FRenderScene::RemoveObject(Uint32 ObjectIndex) {
     }
 
     Object.mActive = false;
+    mSceneProxies[ObjectIndex].reset();
 
     if (Object.mTemplateGroupIndex != UINT32_MAX) {
         FRenderTemplateGroup& Group{mTemplateGroups[Object.mTemplateGroupIndex]};

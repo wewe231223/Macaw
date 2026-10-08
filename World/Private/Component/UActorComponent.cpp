@@ -44,6 +44,76 @@ void UActorComponent::OnUnregister() {
 }
 
 void UActorComponent::OnRenderStateChanged() {
+    MarkRenderStateDirty();
+}
+
+bool UActorComponent::ShouldCreateRenderState() const {
+    return false;
+}
+
+void UActorComponent::CreateRenderState() {
+    if (!mBRegistered || mRenderStateCreated || !ShouldCreateRenderState()) {
+        return;
+    }
+
+    mRenderStateCreated = true;
+    mRenderStateDirty = false;
+    mRenderTransformDirty = false;
+}
+
+void UActorComponent::DestroyRenderState() {
+    mRenderStateCreated = false;
+    mRenderStateDirty = false;
+    mRenderTransformDirty = false;
+}
+
+void UActorComponent::SendRenderTransform() {
+}
+
+bool UActorComponent::IsRenderStateCreated() const {
+    return mRenderStateCreated;
+}
+
+void UActorComponent::MarkRenderStateDirty() {
+    if (!mBRegistered || mUnregistering || (!mRenderStateCreated && !ShouldCreateRenderState())) {
+        return;
+    }
+
+    mRenderStateDirty = true;
+    mParentWorld->GetRenderSubsystem().MarkComponentDirty(this);
+}
+
+void UActorComponent::MarkRenderTransformDirty() {
+    if (!mBRegistered || mUnregistering || !mRenderStateCreated) {
+        return;
+    }
+
+    mRenderTransformDirty = true;
+    mParentWorld->GetRenderSubsystem().MarkComponentDirty(this);
+}
+
+void UActorComponent::DoDeferredRenderUpdates() {
+    if (!mBRegistered || mUnregistering) {
+        return;
+    }
+
+    const UWorld::FActorDispatchScope Dispatch{mParentWorld};
+
+    if (mRenderStateDirty) {
+        if (mRenderStateCreated) {
+            DestroyRenderState();
+        }
+
+        mRenderStateDirty = false;
+        mRenderTransformDirty = false;
+
+        if (mBRegistered && !mBIsBeingDestroyed && !mOwner->IsBeingDestroyed() && ShouldCreateRenderState()) {
+            CreateRenderState();
+        }
+    } else if (mRenderTransformDirty) {
+        mRenderTransformDirty = false;
+        SendRenderTransform();
+    }
 }
 
 bool UActorComponent::IsActive() const {
@@ -155,6 +225,11 @@ void UActorComponent::RegisterComponent(UWorld* World) {
     mBRegistered = true;
     mRegistering = true;
     OnRegister();
+
+    if (mBRegistered && !mRenderStateCreated && !mBIsBeingDestroyed && !mOwner->IsBeingDestroyed() && ShouldCreateRenderState()) {
+        CreateRenderState();
+    }
+
     mRegistering = false;
 
     if (mOwner->mActorInitialized) {
@@ -176,6 +251,11 @@ void UActorComponent::UnregisterComponent() {
     const UWorld::FActorDispatchScope Dispatch{mParentWorld};
 
     mUnregistering = true;
+
+    if (mRenderStateCreated) {
+        DestroyRenderState();
+    }
+
     mBRegistered = false;
     UpdateTickRegistration();
     OnUnregister();

@@ -2,6 +2,9 @@
 #include "World/Component/UActorComponent.h"
 #include "World/Component/USceneComponent.h"
 #include "RenderCore/FRenderProbe.h"
+#include "RenderCore/FPrimitiveSceneProxy.h"
+
+#include <memory>
 
 class UPrimitiveComponent : public USceneComponent {
 public:
@@ -17,6 +20,12 @@ public:
     void OnRenderStateChanged() override;
     void OnRegister() override;
     void OnUnregister() override;
+
+    virtual std::unique_ptr<FPrimitiveSceneProxy> CreateSceneProxy() const;
+    void CreateRenderState() override;
+    void DestroyRenderState() override;
+    void SendRenderTransform() override;
+    FPrimitiveTransform GetRenderTransform() const;
 
     void UpdateBounds();
 

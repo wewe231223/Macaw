@@ -23,10 +23,11 @@ void UPrimitiveComponent::SetVisible(bool BInVisible) {
 void UPrimitiveComponent::OnRenderStateChanged() {
     USceneComponent::OnRenderStateChanged();
 
-    UWorld* World = GetBelongingWorld();
+    UWorld* World{GetBelongingWorld()};
 
-    if (World != nullptr)
+    if (World != nullptr) {
         World->GetPickingSubsystem().UpdateComponent(this);
+    }
 }
 
 void UPrimitiveComponent::OnRegister() {
@@ -47,6 +48,49 @@ void UPrimitiveComponent::OnUnregister() {
     }
 
     USceneComponent::OnUnregister();
+}
+
+std::unique_ptr<FPrimitiveSceneProxy> UPrimitiveComponent::CreateSceneProxy() const {
+    return nullptr;
+}
+
+void UPrimitiveComponent::CreateRenderState() {
+    UWorld* World{GetBelongingWorld()};
+
+    if (World == nullptr || !IsRegistered() || IsRenderStateCreated() || !ShouldCreateRenderState()) {
+        return;
+    }
+
+    std::unique_ptr<FPrimitiveSceneProxy> Proxy{CreateSceneProxy()};
+
+    if (Proxy == nullptr) {
+        return;
+    }
+
+    World->GetRenderSubsystem().AddPrimitive(std::move(Proxy));
+    UActorComponent::CreateRenderState();
+}
+
+void UPrimitiveComponent::DestroyRenderState() {
+    UWorld* World{GetBelongingWorld()};
+
+    if (World != nullptr && IsRenderStateCreated()) {
+        World->GetRenderSubsystem().RemovePrimitive(GetHandle());
+    }
+
+    UActorComponent::DestroyRenderState();
+}
+
+void UPrimitiveComponent::SendRenderTransform() {
+    UWorld* World{GetBelongingWorld()};
+
+    if (World != nullptr && IsRenderStateCreated()) {
+        World->GetRenderSubsystem().UpdatePrimitiveTransform(GetHandle(), GetRenderTransform());
+    }
+}
+
+FPrimitiveTransform UPrimitiveComponent::GetRenderTransform() const {
+    return FPrimitiveTransform{GetComponentToWorld(), GetWorldSphere(), GetWorldOBB(), GetWorldAABB()};
 }
 
 void UPrimitiveComponent::UpdateBounds() {
@@ -123,5 +167,11 @@ const DirectX::BoundingSphere& UPrimitiveComponent::GetWorldSphere() const {
 
 void UPrimitiveComponent::OnTransformUpdate() {
     mWorldBoundsDirty = true;
-    OnRenderStateChanged();
+    MarkRenderTransformDirty();
+
+    UWorld* World{GetBelongingWorld()};
+
+    if (World != nullptr) {
+        World->GetPickingSubsystem().UpdateComponent(this);
+    }
 }

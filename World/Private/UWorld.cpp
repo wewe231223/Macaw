@@ -429,6 +429,7 @@ const ULightSubsystem& UWorld::GetLightSubsystem() const {
 }
 
 void UWorld::BuildSceneRenderData(FSceneRenderData& Scene) {
+    mAppliedSceneHandle = {};
     mSubsystems.Get<URenderSubsystem>()->BuildRenderProbes(Scene);
 
     mSubsystems.Get<ULightSubsystem>()->BuildLightProbes(Scene);
@@ -475,10 +476,13 @@ bool UWorld::SendSceneUpdates() {
     const bool FullSnapshot{mAppliedSceneHandle != Handle};
 
     if (FullSnapshot) {
-        GetRenderSubsystem().MarkAllComponentsDirty();
+        GetRenderSubsystem().RecreateRenderStates();
     }
 
-    BuildSceneRenderData(mSceneUpdates.mRenderData);
+    GetRenderSubsystem().BuildSceneUpdates(mSceneUpdates);
+    GetLightSubsystem().BuildLightProbes(mSceneUpdates.mRenderData);
+    GetTextSubsystem().BuildTextProbes(mSceneUpdates.mRenderData);
+    GetBillboardSubsystem().BuildRenderProbes(mSceneUpdates.mRenderData);
     mSceneUpdates.mSceneHandle = Handle;
     mSceneUpdates.mRenderData.mSceneId = Handle.mId;
     mSceneUpdates.mFullSnapshot = FullSnapshot;

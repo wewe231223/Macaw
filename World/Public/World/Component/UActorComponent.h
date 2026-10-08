@@ -37,6 +37,15 @@ public:
     virtual void OnUnregister();
 
     virtual void OnRenderStateChanged();
+    virtual bool ShouldCreateRenderState() const;
+    virtual void CreateRenderState();
+    virtual void DestroyRenderState();
+    virtual void SendRenderTransform();
+
+    bool IsRenderStateCreated() const;
+    void MarkRenderStateDirty();
+    void MarkRenderTransformDirty();
+    void DoDeferredRenderUpdates();
 
     bool IsActive() const;
     void SetActive(bool BInActive);
@@ -112,4 +121,7 @@ private:
     bool mBInitialized{false};
     bool mBHasBegunPlay{false};
     bool mBIsBeingDestroyed{false};
+    bool mRenderStateCreated{};
+    bool mRenderStateDirty{};
+    bool mRenderTransformDirty{};
 };

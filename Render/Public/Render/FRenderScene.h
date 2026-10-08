@@ -1,5 +1,6 @@
 #pragma once
 #include "RenderCore/FRenderProbe.h"
+#include "RenderCore/FSceneUpdateBatch.h"
 #include "Core/Base/FRevisionCursor.h"
 #include "Core/Base/TRevisioned.h"
 #include "Asset/FLODSettings.h"
@@ -73,6 +74,7 @@ public:
 
 public:
     void Synchronize(const IAssetRegistry* Registry, FSceneRenderData& Scene, const FMaterialBuffer& Materials);
+    void Synchronize(const IAssetRegistry* Registry, FSceneUpdateBatch& Updates, const FMaterialBuffer& Materials);
 
     Uint64 GetId() const;
     Uint64 GetRevision() const;
@@ -82,6 +84,7 @@ public:
     ERenderUpdateMode CollectChangedObjects(Uint64 SinceRevision, TArray<Uint32>& OutIndices) const;
 
     const TArray<FRenderSceneObject>& GetObjects() const;
+    const FPrimitiveSceneProxy* FindPrimitive(FObjectHandle ComponentHandle) const;
     const TArray<FRenderBatchTemplate>& GetTemplates() const;
     const TArray<FRenderTemplateGroup>& GetTemplateGroups() const;
 
@@ -95,10 +98,12 @@ public:
 
 private:
     void ApplyObjectUpdates(const FSceneRenderData& Scene);
+    void ApplyPrimitiveUpdate(FPrimitiveSceneUpdate& Update);
 
-    Uint32 FindOrAddTemplateGroup(const FActorProbe& Probe);
-    Uint32 AddObject(FObjectHandle ComponentHandle, const FActorProbe& Probe);
-    void UpdateObject(Uint32 ObjectIndex, const FActorProbe& Probe);
+    Uint32 FindOrAddTemplateGroup(const FMeshSceneData& Mesh);
+    Uint32 AddObject(const FPrimitiveSceneProxy& Proxy);
+    void UpdateObject(Uint32 ObjectIndex, const FPrimitiveSceneProxy& Proxy);
+    void UpdateObjectTransform(Uint32 ObjectIndex, const FPrimitiveTransform& Transform);
     void RemoveObject(Uint32 ObjectIndex);
 
     void RecordObjectChange(Uint32 ObjectIndex);
@@ -121,6 +126,7 @@ private:
     bool mTemplatesDirty{true};
 
     TArray<FRenderSceneObject> mObjects{};
+    TArray<std::unique_ptr<FPrimitiveSceneProxy>> mSceneProxies{};
     TArray<FMatrix> mObjectTransforms{};
     TArray<Uint32> mFreeObjects{};
 
