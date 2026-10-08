@@ -1,8 +1,9 @@
 #pragma once
 
 #include <bitset>
-#include "RenderCore/FRenderProbe.h"
+#include "RenderCore/FRenderData.h"
 #include "RenderCore/FLineRenderData.h"
+#include "RenderCore/FPrimitiveSceneProxy.h"
 
 enum class EOverlayPass : Uint8 {
     SelectionOutline,
@@ -13,7 +14,7 @@ enum class EOverlayPass : Uint8 {
     Count
 };
 
-struct FOverlayTextProbe {
+struct FOverlayTextDrawData {
     FVector3 mWorldAnchor{};
     FVector3 mWorldBoundsExtent{};
     FVector2 mScreenOffset{0.0f, -8.0f};
@@ -25,6 +26,12 @@ struct FOverlayTextProbe {
     float mLineSpacing{};
 };
 
+struct FOverlayMeshDrawData {
+    FMatrix mWorld{};
+    FMeshSceneData mMesh{};
+    DirectX::BoundingSphere mWorldSphereBounds{};
+};
+
 struct FOverlayRenderData {
     void Clear();
     bool IsPassEnabled(EOverlayPass Pass) const;
@@ -32,9 +39,9 @@ struct FOverlayRenderData {
 
     std::bitset<static_cast<std::size_t>(EOverlayPass::Count)> mPasses{(1ull << static_cast<std::size_t>(EOverlayPass::Count)) - 1};
     float mOrientationAxisSize{};
-    TArray<FActorProbe> mSelectionProbes{};
-    TArray<FActorProbe> mGizmoProbes{};
-    TArray<FOverlayTextProbe> mTextProbes{};
+    TArray<FOverlayMeshDrawData> mSelectionMeshes{};
+    TArray<FOverlayMeshDrawData> mGizmoMeshes{};
+    TArray<FOverlayTextDrawData> mTextDraws{};
     FLineRenderData mGuides{};
     FVector4 mGridFade{};
 };

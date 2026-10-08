@@ -1,12 +1,11 @@
 #pragma once
-
 #include "RenderCore/FSceneHandle.h"
-#include "RenderCore/FRenderProbe.h"
 #include "RenderCore/FPrimitiveSceneProxy.h"
+#include "RenderCore/FLightSceneProxy.h"
 
 #include <memory>
 
-enum class EPrimitiveSceneUpdate : Uint8 {
+enum class ESceneUpdateType : Uint8 {
     Create,
     Transform,
     Remove
@@ -14,14 +13,21 @@ enum class EPrimitiveSceneUpdate : Uint8 {
 
 struct FPrimitiveSceneUpdate {
     FObjectHandle mComponentHandle{};
-    EPrimitiveSceneUpdate mType{EPrimitiveSceneUpdate::Remove};
+    ESceneUpdateType mType{ESceneUpdateType::Remove};
     std::unique_ptr<FPrimitiveSceneProxy> mProxy{};
     FPrimitiveTransform mTransform{};
 };
 
+struct FLightSceneUpdate {
+    FObjectHandle mComponentHandle{};
+    ESceneUpdateType mType{ESceneUpdateType::Remove};
+    std::unique_ptr<FLightSceneProxy> mProxy{};
+    FMatrix mWorld{};
+};
+
 struct FSceneUpdateBatch {
     FSceneHandle mSceneHandle{};
-    FSceneRenderData mRenderData{};
     bool mFullSnapshot{};
     TArray<FPrimitiveSceneUpdate> mPrimitiveUpdates{};
+    TArray<FLightSceneUpdate> mLightUpdates{};
 };

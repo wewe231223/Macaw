@@ -1,12 +1,12 @@
 #include "pch.h"
 #include "World/Component/UBillboardTextComponent.h"
+#include "RenderCore/FTextSceneProxy.h"
 #include "CoreUObject/Asset/IAssetRegistry.h"
 #include "Asset/UFont.h"
 #include "Asset/FTextGeometry.h"
 #include "Asset/Pipeline/UPipeline.h"
 #include "World/AActor.h"
 #include "World/UWorld.h"
-#include "World/Subsystem/UTextSubsystem.h"
 
 void UBillboardTextComponent::SetFontHandle(FAssetHandle InFontHandle) {
     if (mFontHandle == InFontHandle) {
@@ -24,6 +24,10 @@ void UBillboardTextComponent::SetFontHandle(FAssetHandle InFontHandle) {
 }
 
 void UBillboardTextComponent::SetPipelineHandle(FAssetHandle InPipelineHandle) {
+    if (mPipelineHandle == InPipelineHandle) {
+        return;
+    }
+
     mPipelineHandle = InPipelineHandle;
 
     UWorld* World{GetBelongingWorld()};
@@ -31,6 +35,7 @@ void UBillboardTextComponent::SetPipelineHandle(FAssetHandle InPipelineHandle) {
 
     mPipelineAssetPath = AssetRegistry != nullptr && AssetRegistry->GetAssetPath(mPipelineHandle) != nullptr ? *AssetRegistry->GetAssetPath(mPipelineHandle) : FAssetPath{};
     mPipelineAssetGuid = AssetRegistry != nullptr && AssetRegistry->GetAssetGuid(mPipelineHandle) != nullptr ? *AssetRegistry->GetAssetGuid(mPipelineHandle) : FGuid{};
+    MarkRenderStateDirty();
 }
 
 void UBillboardTextComponent::SetText(const FString& InText) {
@@ -43,7 +48,12 @@ void UBillboardTextComponent::SetText(const FString& InText) {
 }
 
 void UBillboardTextComponent::SetColor(const FVector4& InColor) {
+    if (mColor == InColor) {
+        return;
+    }
+
     mColor = InColor;
+    MarkRenderStateDirty();
 }
 
 void UBillboardTextComponent::SetCharacterHeight(float InCharacterHeight) {
@@ -107,24 +117,6 @@ const TArray<FTextVertex>& UBillboardTextComponent::GetVertices() const {
     return mVertices;
 }
 
-bool UBillboardTextComponent::MakeTextRender(FTextProbe& OutProbe) const {
-    if (!IsRegistered() || !IsVisible() || !mFontHandle || !mPipelineHandle || mVertices.empty()) {
-        return false;
-    }
-
-    // UBillBoardComponent가 World Transform을 계산한다.
-    if (!TryGetTextWorld(OutProbe.mWorld)) {
-        return false;
-    }
-
-    OutProbe.mFontHandle = mFontHandle;
-    OutProbe.mPipelineHandle = mPipelineHandle;
-    OutProbe.mColor = mColor;
-    OutProbe.mVertices = mVertices;
-
-    return true;
-}
-
 void UBillboardTextComponent::RebuildTextGeometry() {
     mVertices.clear();
 
@@ -136,6 +128,8 @@ void UBillboardTextComponent::RebuildTextGeometry() {
     if (Font != nullptr && Mutator != nullptr) {
         BuildTextGeometry(*Font, *Mutator, mFontHandle, mText, mCharacterHeight, mLetterSpacing, mLineSpacing, mVertices);
     }
+
+    MarkRenderStateDirty();
 }
 
 void UBillboardTextComponent::OnRegister() {
@@ -155,21 +149,9 @@ void UBillboardTextComponent::OnRegister() {
                 mPipelineHandle = AssetRegistry->FindAsset(FAssetPath{"/Game/Pipeline/Text.json"});
             }
         }
-
-        World->GetTextSubsystem().RegisterComponent(this);
     }
 
     RebuildTextGeometry();
-}
-
-void UBillboardTextComponent::OnUnregister() {
-    UWorld* World{GetBelongingWorld()};
-
-    if (World != nullptr) {
-        World->GetTextSubsystem().UnregisterComponent(this);
-    }
-
-    UPrimitiveComponent::OnUnregister();
 }
 
 void UBillboardTextComponent::Serialize(FArchive& Archive) {
@@ -219,10 +201,46 @@ void UBillboardTextComponent::Serialize(FArchive& Archive) {
     Archive.Serialize("CharacterHeight", mCharacterHeight);
     Archive.Serialize("LetterSpacing", mLetterSpacing);
     Archive.Serialize("LineSpacing", mLineSpacing);
+
+    if (Archive.IsLoading()) {
+        RebuildTextGeometry();
+    }
 }
 
 bool UBillboardTextComponent::TryGetTextWorld(FMatrix& OutWorld) const {
     OutWorld = GetComponentToWorld();
 
     return true;
+}
+
+bool UBillboardTextComponent::ShouldCreateRenderState() const {
+    return IsVisible();
+}
+
+std::unique_ptr<FPrimitiveSceneProxy> UBillboardTextComponent::CreateSceneProxy() const {
+    const AActor* Owner{GetOwner()};
+    FTextDrawData Data{};
+
+    if (!IsRegistered() || !IsVisible() || Owner == nullptr || !mFontHandle || !mPipelineHandle || mVertices.empty() || !TryGetTextWorld(Data.mWorld)) {
+        return nullptr;
+    }
+
+    Data.mFontHandle = mFontHandle;
+    Data.mPipelineHandle = mPipelineHandle;
+    Data.mColor = mColor;
+    Data.mVertices = mVertices;
+
+    FPrimitiveTransform Transform{GetRenderTransform()};
+
+    Transform.mWorld = Data.mWorld;
+
+    return std::make_unique<FTextSceneProxy>(GetHandle(), Owner->GetHandle(), Transform, std::move(Data));
+}
+
+void UBillboardTextComponent::SendRenderTransform() {
+    FPrimitiveTransform Transform{GetRenderTransform()};
+
+    if (GetBelongingWorld() != nullptr && IsRenderStateCreated() && TryGetTextWorld(Transform.mWorld)) {
+        GetBelongingWorld()->GetRenderSubsystem().UpdatePrimitiveTransform(GetHandle(), Transform);
+    }
 }

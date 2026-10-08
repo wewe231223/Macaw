@@ -7,7 +7,12 @@ const FVector3& ULightComponentBase::GetLightColor() const {
 }
 
 void ULightComponentBase::SetLightColor(const FVector3& InLightColor) {
+    if (mLightColor == InLightColor) {
+        return;
+    }
+
     mLightColor = InLightColor;
+    MarkRenderStateDirty();
 }
 
 float ULightComponentBase::GetIntensity() const {
@@ -15,7 +20,14 @@ float ULightComponentBase::GetIntensity() const {
 }
 
 void ULightComponentBase::SetIntensity(float InIntensity) {
-    mIntensity = std::max(InIntensity, 0.0f);
+    const float Intensity{std::max(InIntensity, 0.0f)};
+
+    if (mIntensity == Intensity) {
+        return;
+    }
+
+    mIntensity = Intensity;
+    MarkRenderStateDirty();
 }
 
 bool ULightComponentBase::IsVisible() const {
@@ -23,7 +35,12 @@ bool ULightComponentBase::IsVisible() const {
 }
 
 void ULightComponentBase::SetVisible(bool BInVisible) {
+    if (mBVisible == BInVisible) {
+        return;
+    }
+
     mBVisible = BInVisible;
+    MarkRenderStateDirty();
 }
 
 void ULightComponentBase::Serialize(FArchive& Archive) {
@@ -32,4 +49,8 @@ void ULightComponentBase::Serialize(FArchive& Archive) {
     Archive.Serialize("LightColor", mLightColor);
     Archive.Serialize("Intensity", mIntensity);
     Archive.Serialize("bVisible", mBVisible);
+
+    if (Archive.IsLoading()) {
+        MarkRenderStateDirty();
+    }
 }

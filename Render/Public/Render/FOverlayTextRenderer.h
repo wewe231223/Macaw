@@ -37,11 +37,11 @@ public:
     void BindAssetRegistry(const IAssetRegistry* Registry, IAssetRegistryMutator* Mutator);
     void BeginFrame(Uint64 FrameSerial);
     void Reset();
-    void Render(ID3D11DeviceContext* Context, FFrameResource& FrameResource, const CameraProbe& Camera, const D3D11_VIEWPORT& Viewport, const TArray<FOverlayTextProbe>& Probes, FRenderAssetResources& Resources);
+    void Render(ID3D11DeviceContext* Context, FFrameResource& FrameResource, const FViewMatrices& Camera, const D3D11_VIEWPORT& Viewport, const TArray<FOverlayTextDrawData>& Draws, FRenderAssetResources& Resources);
 
 private:
-    const TArray<FTextVertex>* GetTextGeometry(const FOverlayTextProbe& Probe, const UFont& Font, FAssetHandle FontHandle);
-    bool ProjectAnchor(const FOverlayTextProbe& Probe, const TArray<FTextVertex>& Vertices, const CameraProbe& Camera, const D3D11_VIEWPORT& Viewport, FVector2& Position) const;
+    const TArray<FTextVertex>* GetTextGeometry(const FOverlayTextDrawData& Data, const UFont& Font, FAssetHandle FontHandle);
+    bool ProjectAnchor(const FOverlayTextDrawData& Data, const TArray<FTextVertex>& Vertices, const FViewMatrices& Camera, const D3D11_VIEWPORT& Viewport, FVector2& Position) const;
 
 private:
     ID3D11Device* mDevice{nullptr};

@@ -1,7 +1,7 @@
 #pragma once
 #include "World/Component/UActorComponent.h"
 #include "World/Component/USceneComponent.h"
-#include "RenderCore/FRenderProbe.h"
+#include "RenderCore/FRenderData.h"
 #include "RenderCore/FPrimitiveSceneProxy.h"
 
 #include <memory>
@@ -28,8 +28,6 @@ public:
     FPrimitiveTransform GetRenderTransform() const;
 
     void UpdateBounds();
-
-    virtual void MakeRender(FActorProbe& OutProbe) const;
 
     void SetPickingBox(const DirectX::BoundingOrientedBox& Box);
 

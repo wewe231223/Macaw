@@ -18,8 +18,8 @@ bool FTextRenderer::Initialize(ID3D11Device* InDevice, std::uint32_t InitialCapa
     return true;
 }
 
-void FTextRenderer::Render(ID3D11DeviceContext* Context, FFrameResource& FrameResource, const TArray<FTextProbe>& TextProbes, const IAssetRegistry* AssetRegistry, FRenderAssetResources& Resources) {
-    if (Context == nullptr || mDevice == nullptr || AssetRegistry == nullptr || TextProbes.empty() || !FrameResource.HasCameraWorld() || !FrameResource.BindCommon(Context)) {
+void FTextRenderer::Render(ID3D11DeviceContext* Context, FFrameResource& FrameResource, const TArray<FTextDrawData>& TextDraws, const IAssetRegistry* AssetRegistry, FRenderAssetResources& Resources) {
+    if (Context == nullptr || mDevice == nullptr || AssetRegistry == nullptr || TextDraws.empty() || !FrameResource.HasCameraWorld() || !FrameResource.BindCommon(Context)) {
         return;
     }
 
@@ -30,12 +30,12 @@ void FTextRenderer::Render(ID3D11DeviceContext* Context, FFrameResource& FrameRe
     constexpr std::size_t MaxVertexCount{UINT32_MAX / sizeof(FGlyphVertex)};
     constexpr std::size_t MaxTextCount{UINT32_MAX / sizeof(FTextContext)};
 
-    for (const FTextProbe& Probe : TextProbes) {
-        if (Probe.mVertices.empty()) {
+    for (const FTextDrawData& Data : TextDraws) {
+        if (Data.mVertices.empty()) {
             continue;
         }
 
-        const UFont* Font{AssetRegistry->ResolveAsset<UFont>(Probe.mFontHandle)};
+        const UFont* Font{AssetRegistry->ResolveAsset<UFont>(Data.mFontHandle)};
 
         if (Font == nullptr) {
             continue;
@@ -47,22 +47,22 @@ void FTextRenderer::Render(ID3D11DeviceContext* Context, FFrameResource& FrameRe
             continue;
         }
 
-        const UPipeline* PipeLine{AssetRegistry->ResolveAsset<UPipeline>(Probe.mPipelineHandle)};
+        const UPipeline* PipeLine{AssetRegistry->ResolveAsset<UPipeline>(Data.mPipelineHandle)};
 
         if (PipeLine == nullptr) {
             continue;
         }
 
-        if (Probe.mVertices.size() > MaxVertexCount - mVertices.size() || mTextContexts.size() >= MaxTextCount) {
+        if (Data.mVertices.size() > MaxVertexCount - mVertices.size() || mTextContexts.size() >= MaxTextCount) {
             return;
         }
 
         const Uint32 TextIndex{static_cast<Uint32>(mTextContexts.size())};
 
-        mTextContexts.push_back(FTextContext{Probe.mWorld, Probe.mColor});
-        mDraws.push_back(FTextDraw{PipeLine, AtlasSRV, static_cast<Uint32>(mVertices.size()), static_cast<Uint32>(Probe.mVertices.size())});
+        mTextContexts.push_back(FTextContext{Data.mWorld, Data.mColor});
+        mDraws.push_back(FTextDraw{PipeLine, AtlasSRV, static_cast<Uint32>(mVertices.size()), static_cast<Uint32>(Data.mVertices.size())});
 
-        for (const FTextVertex& Vertex : Probe.mVertices) {
+        for (const FTextVertex& Vertex : Data.mVertices) {
             mVertices.push_back(FGlyphVertex{Vertex, TextIndex});
         }
     }

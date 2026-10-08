@@ -11,5 +11,5 @@ public:
 public:
     JG_DECLARE_DERIVED_TYPEINFO(UOverlaySubsystem, UWorldSubsystem)
 
-    void BuildRenderProbes(FOverlayRenderData& Overlay, FObjectHandle SelectedActor) const;
+    void BuildDrawData(FOverlayRenderData& Overlay, FObjectHandle SelectedActor) const;
 };

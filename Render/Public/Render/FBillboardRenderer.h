@@ -4,7 +4,7 @@
 #include <wrl/client.h>
 #include "Math/FMath.h"
 #include "Core/STL.h"
-#include "RenderCore/FRenderProbe.h"
+#include "RenderCore/FRenderData.h"
 #include "CoreUObject/Asset/IAssetRegistry.h"
 
 class FFrameResource;
@@ -55,7 +55,7 @@ public:
 
 public:
     bool Initialize(ID3D11Device* InDevice, std::uint32_t InitialCapacity = 256);
-    void Render(ID3D11DeviceContext* Context, FFrameResource& FrameResource, const TArray<FBillboardProbe>& BillboardProbe, const IAssetRegistry* AssetRegistry, FRenderAssetResources& Resources, ERenderMode Mode);
+    void Render(ID3D11DeviceContext* Context, FFrameResource& FrameResource, const TArray<FBillboardDrawData>& BillboardDraws, const IAssetRegistry* AssetRegistry, FRenderAssetResources& Resources, ERenderMode Mode);
 
 private:
     ID3D11Device* mDevice{nullptr};

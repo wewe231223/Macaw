@@ -25,26 +25,26 @@ bool FBillboardRenderer::Initialize(ID3D11Device* InDevice, std::uint32_t Initia
     return true;
 }
 
-void FBillboardRenderer::Render(ID3D11DeviceContext* Context, FFrameResource& FrameResource, const TArray<FBillboardProbe>& BillboardProbe, const IAssetRegistry* AssetRegistry, FRenderAssetResources& Resources, ERenderMode Mode) {
-    if (Context == nullptr || mDevice == nullptr || AssetRegistry == nullptr || BillboardProbe.empty() || !FrameResource.HasCameraWorld() || !FrameResource.BindCommon(Context)) {
+void FBillboardRenderer::Render(ID3D11DeviceContext* Context, FFrameResource& FrameResource, const TArray<FBillboardDrawData>& BillboardDraws, const IAssetRegistry* AssetRegistry, FRenderAssetResources& Resources, ERenderMode Mode) {
+    if (Context == nullptr || mDevice == nullptr || AssetRegistry == nullptr || BillboardDraws.empty() || !FrameResource.HasCameraWorld() || !FrameResource.BindCommon(Context)) {
         return;
     }
 
     mInstances.clear();
     mDraws.clear();
 
-    if (BillboardProbe.size() > UINT32_MAX / sizeof(FBillboardData)) {
+    if (BillboardDraws.size() > UINT32_MAX / sizeof(FBillboardData)) {
         return;
     }
 
     std::unordered_map<FBatchKey, FBillboardBatch, FBatchKeyHash> Batches{};
 
-    for (const FBillboardProbe& Probe : BillboardProbe) {
-        if (!Probe.mPipelineHandle || !Probe.mTextureHandle) {
+    for (const FBillboardDrawData& Data : BillboardDraws) {
+        if (!Data.mPipelineHandle || !Data.mTextureHandle) {
             continue;
         }
 
-        ++Batches[FBatchKey{Probe.mPipelineHandle, Probe.mTextureHandle}].mDraw.mInstanceCount;
+        ++Batches[FBatchKey{Data.mPipelineHandle, Data.mTextureHandle}].mDraw.mInstanceCount;
     }
 
     Uint32 InstanceCount{};
@@ -66,8 +66,8 @@ void FBillboardRenderer::Render(ID3D11DeviceContext* Context, FFrameResource& Fr
 
     mInstances.resize(InstanceCount);
 
-    for (const FBillboardProbe& Probe : BillboardProbe) {
-        const auto Iterator{Batches.find(FBatchKey{Probe.mPipelineHandle, Probe.mTextureHandle})};
+    for (const FBillboardDrawData& Data : BillboardDraws) {
+        const auto Iterator{Batches.find(FBatchKey{Data.mPipelineHandle, Data.mTextureHandle})};
 
         if (Iterator == Batches.end() || Iterator->second.mDraw.mPipeline == nullptr) {
             continue;
@@ -75,7 +75,7 @@ void FBillboardRenderer::Render(ID3D11DeviceContext* Context, FFrameResource& Fr
 
         FBillboardBatch& Batch{Iterator->second};
 
-        mInstances[Batch.mDraw.mFirstInstance + Batch.mWriteCount] = FBillboardData{Probe.mWorld, Probe.mSize, Probe.mUvMin, Probe.mUvMax, FVector2{}, Probe.mColor};
+        mInstances[Batch.mDraw.mFirstInstance + Batch.mWriteCount] = FBillboardData{Data.mWorld, Data.mSize, Data.mUvMin, Data.mUvMax, FVector2{}, Data.mColor};
         ++Batch.mWriteCount;
     }
 

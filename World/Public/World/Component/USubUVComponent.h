@@ -1,7 +1,7 @@
 #pragma once
 #include "World/Component/UBillboardComponent.h"
 #include "Core/Base/FAssetHandle.h"
-#include "RenderCore/FRenderProbe.h"
+#include "RenderCore/FRenderData.h"
 #include "Core/Archive/FArchive.h"
 
 class USubUVComponent : public UBillboardComponent {

@@ -219,15 +219,9 @@ FMatrix FViewerPanel::MakeCameraWorldMatrix(const FVector3& Eye) const {
     return Result;
 }
 
-FSceneRenderData FViewerPanel::BuildPreviewScene() {
-    FSceneRenderData Scene{};
-
-    Scene.mSceneId = mRenderSceneId;
-    Scene.mRevision = ++mRenderSceneRevision;
-    Scene.mObjectUpdates.push_back(FRenderObjectUpdate{FObjectHandle{0, 1}, {}, true});
-
+void FViewerPanel::UpdatePreviewScene() {
     if (mRegistry == nullptr || mSurfaceWidth == 0 || mSurfaceHeight == 0) {
-        return Scene;
+        return;
     }
 
     if (mRegistry->ResolveAsset<UMesh>(mMeshHandle) == nullptr) {
@@ -255,39 +249,22 @@ FSceneRenderData FViewerPanel::BuildPreviewScene() {
     const UMesh* Mesh{mRegistry->ResolveAsset<UMesh>(mMeshHandle)};
     const UMaterial* Material{mRegistry->ResolveAsset<UMaterial>(mMaterialHandle)};
 
-    if (Mesh != nullptr && Material != nullptr && Pipeline != nullptr) {
-        FRenderObjectUpdate& Update{Scene.mObjectUpdates.front()};
-        FActorProbe& ActorProbe{Update.mProbe};
+    const FMeshSceneData MeshData{Mesh != nullptr && Material != nullptr && Pipeline != nullptr ? FMeshSceneData{mMeshHandle, mMaterialHandle, PipelineHandle} : FMeshSceneData{}};
 
-        ActorProbe.mMeshHandle = mMeshHandle;
-        ActorProbe.mMaterialHandle = mMaterialHandle;
-        ActorProbe.mPipelineHandle = PipelineHandle;
-        Mesh->GetBoundingBox().Transform(ActorProbe.mWorldOBB, ActorProbe.mWorld.ToSimpleMath());
-        DirectX::BoundingSphere::CreateFromBoundingBox(ActorProbe.mWorldSphereBounds, ActorProbe.mWorldOBB);
-        DirectX::BoundingBox::CreateFromSphere(ActorProbe.mWorldAABB, ActorProbe.mWorldSphereBounds);
-        Update.mRemoved = false;
-    }
-
-    FLightProbe LightProbe{};
-
-    LightProbe.mType = ELightType::Directional;
-    LightProbe.mColor = FVector3{1.0f, 1.0f, 1.0f};
-    LightProbe.mIntensity = 1.0f;
+    mPreviewScene.SetMesh(MeshData, FMatrix::Identity);
 
     FVector3 LightDirection{-FMatrix::CreateFromQuaternion(mOrbitRotation).TransformDirection(-FVector::UnitX) - FVector::UnitZ * 0.75f};
 
     LightDirection.Normalize();
-    LightProbe.mDirection = LightDirection;
-    Scene.mLightProbes.push_back(LightProbe);
-    return Scene;
+    mPreviewScene.SetLight(LightDirection, FVector3{1.0f, 1.0f, 1.0f}, 1.0f);
 }
 
-CameraProbe FViewerPanel::BuildPreviewCamera() const {
+FViewMatrices FViewerPanel::BuildPreviewCamera() const {
     const FMatrix OrbitMatrix{FMatrix::CreateFromQuaternion(mOrbitRotation)};
     const FVector3 Offset{OrbitMatrix.TransformDirection(-FVector::UnitX)};
     const FVector3 Eye{mTarget + Offset * mDistance};
     const float Aspect{static_cast<float>(mSurfaceWidth) / static_cast<float>(mSurfaceHeight)};
-    CameraProbe Camera{};
+    FViewMatrices Camera{};
 
     Camera.mView = MakeCameraWorldMatrix(Eye).Invert();
     Camera.mProjection = FMatrix::CreatePerspectiveFieldOfView(mFieldOfView, Aspect, 0.1f, std::max(1000.0f, mDistance * 4.0f));
@@ -322,7 +299,7 @@ void FViewerPanel::ProcessInput() {
     }
 }
 
-void FViewerPanel::RenderOffscreen(FRenderer& InRenderer, FAssetRegistry&) {
+void FViewerPanel::RenderOffscreen(FRenderer& InRenderer, FAssetRegistry& InRegistry) {
     if (mDesiredWidth == 0 || mDesiredHeight == 0) {
         return;
     }
@@ -333,7 +310,17 @@ void FViewerPanel::RenderOffscreen(FRenderer& InRenderer, FAssetRegistry&) {
         return;
     }
 
-    FSceneRenderData PreviewScene{BuildPreviewScene()};
+    if (!mPreviewScene.Initialize(InRenderer, InRegistry)) {
+        return;
+    }
+
+    UpdatePreviewScene();
+
+    const FRenderScene* PreviewScene{mPreviewScene.Synchronize()};
+
+    if (PreviewScene == nullptr) {
+        return;
+    }
 
     FRenderSettings PreviewSettings{};
 
@@ -354,10 +341,11 @@ void FViewerPanel::RenderOffscreen(FRenderer& InRenderer, FAssetRegistry&) {
     View.SetPassEnabled(ERenderPass::Opaque, true);
     View.SetPassEnabled(ERenderPass::Translucent, true);
     View.SetPassEnabled(ERenderPass::PostProcessing, true);
-    InRenderer.RenderView(View, PreviewScene, Overlay);
+    InRenderer.RenderView(View, *PreviewScene, Overlay);
 }
 
 void FViewerPanel::ReleaseRenderResources() {
+    mPreviewScene.Reset();
     mSurface.Reset();
 }
 

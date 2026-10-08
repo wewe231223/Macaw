@@ -2,9 +2,9 @@
 #include "RenderCore/FOverlayRenderData.h"
 
 void FOverlayRenderData::Clear() {
-    mSelectionProbes.clear();
-    mGizmoProbes.clear();
-    mTextProbes.clear();
+    mSelectionMeshes.clear();
+    mGizmoMeshes.clear();
+    mTextDraws.clear();
     mGuides.Clear();
     mGridFade = {};
 }

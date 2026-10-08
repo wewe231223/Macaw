@@ -25,17 +25,31 @@ float USpotLightComponent::GetOuterConeAngle() const {
 }
 
 void USpotLightComponent::SetInnerConeAngle(float InInnerConeAngle) {
-    mInnerConeAngle = std::clamp(InInnerConeAngle, MinimumConeAngle, mOuterConeAngle);
+    const float Angle{std::clamp(InInnerConeAngle, MinimumConeAngle, mOuterConeAngle)};
+
+    if (mInnerConeAngle == Angle) {
+        return;
+    }
+
+    mInnerConeAngle = Angle;
+    MarkRenderStateDirty();
 }
 
 void USpotLightComponent::SetOuterConeAngle(float InOuterConeAngle) {
-    mOuterConeAngle = std::clamp(InOuterConeAngle, mInnerConeAngle, MaximumConeAngle);
+    const float Angle{std::clamp(InOuterConeAngle, mInnerConeAngle, MaximumConeAngle)};
+
+    if (mOuterConeAngle == Angle) {
+        return;
+    }
+
+    mOuterConeAngle = Angle;
+    MarkRenderStateDirty();
 }
 
-void USpotLightComponent::MakeLightProbe(FLightProbe& OutProbe) const {
-    UPointLightComponent::MakeLightProbe(OutProbe);
-    OutProbe.mInnerConeCos = std::cos(ToRadians(mInnerConeAngle));
-    OutProbe.mOuterConeCos = std::cos(ToRadians(mOuterConeAngle));
+void USpotLightComponent::BuildLightShaderParameters(FLightShaderParameters& OutParameters) const {
+    UPointLightComponent::BuildLightShaderParameters(OutParameters);
+    OutParameters.mInnerConeCos = std::cos(ToRadians(mInnerConeAngle));
+    OutParameters.mOuterConeCos = std::cos(ToRadians(mOuterConeAngle));
 }
 
 void USpotLightComponent::Serialize(FArchive& Archive) {

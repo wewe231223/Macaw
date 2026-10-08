@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "World/Component/UBillboardComponent.h"
 #include "Editor/UEditorEngine.h"
 #include "Asset/FAssetRegistry.h"
 #include "Serialization/FJsonFile.h"

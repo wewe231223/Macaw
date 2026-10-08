@@ -10,7 +10,7 @@ void FLineRenderData::AddGridLine(const FVector3& Start, const FVector3& End, co
         return;
     }
 
-    mLines.push_back(FLineProbe{Start, End, Color, WidthPixels, GridSpacing, DepthMode});
+    mLines.push_back(FLineDrawData{Start, End, Color, WidthPixels, GridSpacing, DepthMode});
 }
 
 void FLineRenderData::AddRay(const FVector3& Origin, const FVector3& Direction, float Length, const FVector4& Color, float WidthPixels, ELineDepthMode DepthMode) {
@@ -24,7 +24,7 @@ void FLineRenderData::AddRay(const FVector3& Origin, const FVector3& Direction, 
     AddLine(Origin, Origin + NormalizedDirection * Length, Color, WidthPixels, DepthMode);
 }
 
-const TArray<FLineProbe>& FLineRenderData::GetLines() const {
+const TArray<FLineDrawData>& FLineRenderData::GetLines() const {
     return mLines;
 }
 

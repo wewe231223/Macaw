@@ -101,7 +101,7 @@ bool FFrameResource::PrepareView(ID3D11Device* Device, ID3D11DeviceContext* Cont
         return false;
     }
 
-    if (!PrepareViewBuffers(Device, Context, Scene.GetLightProbes()) || !PrepareSceneTransforms(Device, Context, Scene) || !UploadModels(Device, Context, Queue.GetDrawRecords())) {
+    if (!PrepareViewBuffers(Device, Context, Scene.GetLights()) || !PrepareSceneTransforms(Device, Context, Scene) || !UploadModels(Device, Context, Queue.GetDrawRecords())) {
         return false;
     }
 
@@ -112,11 +112,11 @@ bool FFrameResource::PrepareView(ID3D11Device* Device, ID3D11DeviceContext* Cont
     return mViewReady;
 }
 
-bool FFrameResource::PrepareView(ID3D11Device* Device, ID3D11DeviceContext* Context, const CameraProbe& Camera, const D3D11_VIEWPORT& Viewport, const FVector4& GridFade, const TArray<FMatrix>& Transforms, const TArray<FMeshDrawRecord>& Records) {
+bool FFrameResource::PrepareView(ID3D11Device* Device, ID3D11DeviceContext* Context, const FViewMatrices& Camera, const D3D11_VIEWPORT& Viewport, const FVector4& GridFade, const TArray<FMatrix>& Transforms, const TArray<FMeshDrawRecord>& Records) {
     mViewReady = false;
     mHasCameraWorld = false;
 
-    const TArray<FLightProbe> Lights{};
+    const TArray<FLightShaderParameters> Lights{};
 
     if (!mFrameReady || Device == nullptr || Context == nullptr || !PrepareViewBuffers(Device, Context, Lights)) {
         return false;
@@ -139,7 +139,7 @@ bool FFrameResource::PrepareView(ID3D11Device* Device, ID3D11DeviceContext* Cont
     return mViewReady;
 }
 
-bool FFrameResource::PrepareViewBuffers(ID3D11Device* Device, ID3D11DeviceContext* Context, const TArray<FLightProbe>& Lights) {
+bool FFrameResource::PrepareViewBuffers(ID3D11Device* Device, ID3D11DeviceContext* Context, const TArray<FLightShaderParameters>& Lights) {
     ID3D11ShaderResourceView* NullResource{nullptr};
 
     Context->PSSetShaderResources(2, 1, &NullResource);
@@ -165,7 +165,7 @@ bool FFrameResource::PrepareViewBuffers(ID3D11Device* Device, ID3D11DeviceContex
     return Buffers.mLights.UploadNoOverwrite(Device, Context, Lights);
 }
 
-bool FFrameResource::PrepareOrientationAxis(ID3D11DeviceContext* Context, const CameraProbe& Camera, const D3D11_VIEWPORT& Viewport) {
+bool FFrameResource::PrepareOrientationAxis(ID3D11DeviceContext* Context, const FViewMatrices& Camera, const D3D11_VIEWPORT& Viewport) {
     if (!mFrameReady || !mViewReady || mUsedViewCount == 0) {
         return false;
     }
@@ -329,7 +329,7 @@ bool FFrameResource::InitializeConstantBuffer(ID3D11Device* Device, FGraphicsBuf
     return Buffer.Initialize(Device, Description);
 }
 
-bool FFrameResource::UploadViewConstants(ID3D11DeviceContext* Context, FGraphicsBuffer& Buffer, const CameraProbe& Camera, const D3D11_VIEWPORT& Viewport, const FVector4& GridFade, bool& HasCameraWorld) {
+bool FFrameResource::UploadViewConstants(ID3D11DeviceContext* Context, FGraphicsBuffer& Buffer, const FViewMatrices& Camera, const D3D11_VIEWPORT& Viewport, const FVector4& GridFade, bool& HasCameraWorld) {
     if (Context == nullptr || Viewport.Width <= 0.0f || Viewport.Height <= 0.0f) {
         return false;
     }

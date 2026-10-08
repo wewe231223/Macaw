@@ -2,11 +2,7 @@
 #include "World/Subsystem/URenderSubsystem.h"
 #include "World/AActor.h"
 
-URenderSubsystem::URenderSubsystem()
-	: mSceneId{AllocateRenderSceneId()} {
-}
-
-void URenderSubsystem::RegisterComponent(UStaticMeshComponent* Component) {
+void URenderSubsystem::RegisterComponent(UActorComponent* Component) {
     if (Component == nullptr || !Component->GetHandle().IsValid()) {
         return;
     }
@@ -20,7 +16,7 @@ void URenderSubsystem::RegisterComponent(UStaticMeshComponent* Component) {
     mComponents.push_back(Component);
 }
 
-void URenderSubsystem::UnregisterComponent(UStaticMeshComponent* Component) {
+void URenderSubsystem::UnregisterComponent(UActorComponent* Component) {
     if (Component == nullptr) {
         return;
     }
@@ -50,7 +46,7 @@ void URenderSubsystem::MarkComponentDirty(UActorComponent* Component) {
 }
 
 void URenderSubsystem::RecreateRenderStates() {
-    for (UStaticMeshComponent* Component : mComponents) {
+    for (UActorComponent* Component : mComponents) {
         Component->MarkRenderStateDirty();
     }
 }
@@ -62,7 +58,7 @@ void URenderSubsystem::AddPrimitive(std::unique_ptr<FPrimitiveSceneProxy> Proxy)
 
     FPrimitiveSceneUpdate& Update{FindOrAddPrimitiveUpdate(Proxy->GetComponentHandle())};
 
-    Update.mType = EPrimitiveSceneUpdate::Create;
+    Update.mType = ESceneUpdateType::Create;
     Update.mProxy = std::move(Proxy);
     Update.mTransform = {};
 }
@@ -74,16 +70,16 @@ void URenderSubsystem::UpdatePrimitiveTransform(FObjectHandle ComponentHandle, c
 
     const auto Position{mPrimitiveUpdateIndices.find(GetComponentKey(ComponentHandle))};
 
-    if (Position != mPrimitiveUpdateIndices.end() && mPrimitiveUpdates[Position->second].mType == EPrimitiveSceneUpdate::Remove) {
+    if (Position != mPrimitiveUpdateIndices.end() && mPrimitiveUpdates[Position->second].mType == ESceneUpdateType::Remove) {
         return;
     }
 
     FPrimitiveSceneUpdate& Update{FindOrAddPrimitiveUpdate(ComponentHandle)};
 
-    if (Update.mType == EPrimitiveSceneUpdate::Create && Update.mProxy != nullptr) {
+    if (Update.mType == ESceneUpdateType::Create && Update.mProxy != nullptr) {
         Update.mProxy->SetTransform(Transform);
     } else {
-        Update.mType = EPrimitiveSceneUpdate::Transform;
+        Update.mType = ESceneUpdateType::Transform;
         Update.mTransform = Transform;
     }
 }
@@ -95,18 +91,19 @@ void URenderSubsystem::RemovePrimitive(FObjectHandle ComponentHandle) {
 
     FPrimitiveSceneUpdate& Update{FindOrAddPrimitiveUpdate(ComponentHandle)};
 
-    Update.mType = EPrimitiveSceneUpdate::Remove;
+    Update.mType = ESceneUpdateType::Remove;
     Update.mProxy.reset();
     Update.mTransform = {};
 }
 
 void URenderSubsystem::BuildSceneUpdates(FSceneUpdateBatch& Updates) {
     FlushDeferredRenderUpdates();
-    FinishPrimitiveUpdates(Updates.mRenderData);
-    Updates.mRenderData.mObjectUpdates.clear();
     Updates.mPrimitiveUpdates.clear();
     Updates.mPrimitiveUpdates.swap(mPrimitiveUpdates);
     mPrimitiveUpdateIndices.clear();
+    Updates.mLightUpdates.clear();
+    Updates.mLightUpdates.swap(mLightUpdates);
+    mLightUpdateIndices.clear();
 }
 
 void URenderSubsystem::FlushDeferredRenderUpdates() {
@@ -128,49 +125,7 @@ void URenderSubsystem::FlushDeferredRenderUpdates() {
     }
 }
 
-void URenderSubsystem::BuildRenderProbes(FSceneRenderData& Scene) {
-    FlushDeferredRenderUpdates();
-    FinishPrimitiveUpdates(Scene);
-    Scene.mObjectUpdates.clear();
-    Scene.mObjectUpdates.reserve(mPrimitiveUpdates.size());
-
-    for (const FPrimitiveSceneUpdate& PrimitiveUpdate : mPrimitiveUpdates) {
-        FRenderObjectUpdate Update{};
-
-        Update.mComponentHandle = PrimitiveUpdate.mComponentHandle;
-        Update.mRemoved = PrimitiveUpdate.mType == EPrimitiveSceneUpdate::Remove;
-
-        if (PrimitiveUpdate.mProxy != nullptr) {
-            PrimitiveUpdate.mProxy->BuildLegacyProbe(Update.mProbe);
-        } else if (!Update.mRemoved) {
-            const auto Position{mComponentIndices.find(GetComponentKey(Update.mComponentHandle))};
-            const UStaticMeshComponent* Component{Position != mComponentIndices.end() ? mComponents[Position->second] : nullptr};
-            const std::unique_ptr<FPrimitiveSceneProxy> Proxy{Component != nullptr ? Component->CreateSceneProxy() : nullptr};
-
-            Update.mRemoved = Proxy == nullptr;
-
-            if (Proxy != nullptr) {
-                Proxy->BuildLegacyProbe(Update.mProbe);
-            }
-        }
-
-        Scene.mObjectUpdates.push_back(Update);
-    }
-
-    mPrimitiveUpdates.clear();
-    mPrimitiveUpdateIndices.clear();
-}
-
-void URenderSubsystem::FinishPrimitiveUpdates(FSceneRenderData& Scene) {
-    if (!mPrimitiveUpdates.empty()) {
-        ++mRevision;
-    }
-
-    Scene.mSceneId = mSceneId;
-    Scene.mRevision = mRevision;
-}
-
-bool URenderSubsystem::ContainsComponent(const UStaticMeshComponent* Component) const {
+bool URenderSubsystem::ContainsComponent(const UActorComponent* Component) const {
     if (Component == nullptr) {
         return false;
     }
@@ -180,12 +135,8 @@ bool URenderSubsystem::ContainsComponent(const UStaticMeshComponent* Component) 
     return Position != mComponentIndices.end() && mComponents[Position->second] == Component;
 }
 
-const TArray<UStaticMeshComponent*>& URenderSubsystem::GetRegisteredComponents() const {
+const TArray<UActorComponent*>& URenderSubsystem::GetRegisteredComponents() const {
     return mComponents;
-}
-
-Uint64 URenderSubsystem::GetSceneId() const {
-    return mSceneId;
 }
 
 Uint64 URenderSubsystem::GetComponentKey(FObjectHandle Handle) {
@@ -212,6 +163,62 @@ void URenderSubsystem::OnDeinitialize() {
     mPrimitiveUpdates.clear();
     mPrimitiveUpdateIndices.clear();
 
-    mSceneId = AllocateRenderSceneId();
-    mRevision = {};
+    mLightUpdates.clear();
+    mLightUpdateIndices.clear();
+}
+
+void URenderSubsystem::AddLight(std::unique_ptr<FLightSceneProxy> Proxy) {
+    if (Proxy == nullptr || !Proxy->GetComponentHandle().IsValid()) {
+        return;
+    }
+
+    FLightSceneUpdate& Update{FindOrAddLightUpdate(Proxy->GetComponentHandle())};
+
+    Update.mType = ESceneUpdateType::Create;
+    Update.mProxy = std::move(Proxy);
+    Update.mWorld = {};
+}
+
+void URenderSubsystem::UpdateLightTransform(FObjectHandle ComponentHandle, const FMatrix& World) {
+    if (!ComponentHandle.IsValid()) {
+        return;
+    }
+
+    const auto Position{mLightUpdateIndices.find(GetComponentKey(ComponentHandle))};
+
+    if (Position != mLightUpdateIndices.end() && mLightUpdates[Position->second].mType == ESceneUpdateType::Remove) {
+        return;
+    }
+
+    FLightSceneUpdate& Update{FindOrAddLightUpdate(ComponentHandle)};
+
+    if (Update.mType == ESceneUpdateType::Create && Update.mProxy != nullptr) {
+        Update.mProxy->SetTransform(World);
+    } else {
+        Update.mType = ESceneUpdateType::Transform;
+        Update.mWorld = World;
+    }
+}
+
+void URenderSubsystem::RemoveLight(FObjectHandle ComponentHandle) {
+    if (!ComponentHandle.IsValid()) {
+        return;
+    }
+
+    FLightSceneUpdate& Update{FindOrAddLightUpdate(ComponentHandle)};
+
+    Update.mType = ESceneUpdateType::Remove;
+    Update.mProxy.reset();
+    Update.mWorld = {};
+}
+
+FLightSceneUpdate& URenderSubsystem::FindOrAddLightUpdate(FObjectHandle Handle) {
+    const auto Position{mLightUpdateIndices.emplace(GetComponentKey(Handle), mLightUpdates.size())};
+
+    if (Position.second) {
+        mLightUpdates.emplace_back();
+        mLightUpdates.back().mComponentHandle = Handle;
+    }
+
+    return mLightUpdates[Position.first->second];
 }

@@ -7,15 +7,26 @@ float ULocalLightComponent::GetAttenuationRadius() const {
 }
 
 void ULocalLightComponent::SetAttenuationRadius(float InAttenuationRadius) {
-    mAttenuationRadius = std::max(InAttenuationRadius, 0.0f);
+    const float Radius{std::max(InAttenuationRadius, 0.0f)};
+
+    if (mAttenuationRadius == Radius) {
+        return;
+    }
+
+    mAttenuationRadius = Radius;
+    MarkRenderStateDirty();
 }
 
-void ULocalLightComponent::MakeLightProbe(FLightProbe& OutProbe) const {
-    ULightComponent::MakeLightProbe(OutProbe);
-    OutProbe.mAttenuationRadius = GetAttenuationRadius();
+void ULocalLightComponent::BuildLightShaderParameters(FLightShaderParameters& OutParameters) const {
+    ULightComponent::BuildLightShaderParameters(OutParameters);
+    OutParameters.mAttenuationRadius = GetAttenuationRadius();
 }
 
 void ULocalLightComponent::Serialize(FArchive& Archive) {
     ULightComponent::Serialize(Archive);
     Archive.Serialize("AttenuationRadius", mAttenuationRadius);
+
+    if (Archive.IsLoading()) {
+        MarkRenderStateDirty();
+    }
 }

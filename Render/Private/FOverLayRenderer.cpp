@@ -4,7 +4,6 @@
 #include "Asset/UMaterial.h"
 #include "Render/FLODSelection.h"
 #include "Render/FStaticMeshBatchCollector.h"
-#include "RenderCore/FStaticMeshSceneProxy.h"
 #include "Asset/UTexture.h"
 #include "Core/Stat/Stat.h"
 
@@ -154,11 +153,11 @@ void FOverLayRenderer::RenderView(ID3D11DeviceContext* Context, const FRenderVie
         }
 
         if (Overlay.IsPassEnabled(EOverlayPass::SelectionOutline)) {
-            BuildMeshItems(Overlay.mSelectionProbes, View, Output.mViewport, true, mOutlineItems);
+            BuildMeshItems(Overlay.mSelectionMeshes, View, Output.mViewport, true, mOutlineItems);
         }
 
         if (Overlay.IsPassEnabled(EOverlayPass::Gizmo)) {
-            BuildMeshItems(Overlay.mGizmoProbes, View, Output.mViewport, false, mGizmoItems);
+            BuildMeshItems(Overlay.mGizmoMeshes, View, Output.mViewport, false, mGizmoItems);
         }
     }
 
@@ -182,7 +181,7 @@ void FOverLayRenderer::RenderView(ID3D11DeviceContext* Context, const FRenderVie
     }
 
     if (Overlay.IsPassEnabled(EOverlayPass::Text) && mAssetRegistry != nullptr) {
-        mTextRenderer.Render(Context, *mCurrentFrameResource, View.mCamera, Output.mViewport, Overlay.mTextProbes, mAssetResources);
+        mTextRenderer.Render(Context, *mCurrentFrameResource, View.mCamera, Output.mViewport, Overlay.mTextDraws, mAssetResources);
     }
 
     RenderOrientationAxis(Context, View.mCamera, Overlay, Output);
@@ -191,10 +190,10 @@ void FOverLayRenderer::RenderView(ID3D11DeviceContext* Context, const FRenderVie
     mCurrentFrameResource->BindCommon(Context);
 }
 
-void FOverLayRenderer::BuildMeshItems(const TArray<FActorProbe>& Probes, const FRenderView& View, const D3D11_VIEWPORT& Viewport, bool Selection, TArray<FMeshDrawBatch>& Items) {
-    for (const FActorProbe& Probe : Probes) {
-        const UMesh* Mesh{mAssetRegistry->ResolveAsset<UMesh>(Probe.mMeshHandle)};
-        const UMaterial* Material{mAssetRegistry->ResolveAsset<UMaterial>(Probe.mMaterialHandle)};
+void FOverLayRenderer::BuildMeshItems(const TArray<FOverlayMeshDrawData>& Meshes, const FRenderView& View, const D3D11_VIEWPORT& Viewport, bool Selection, TArray<FMeshDrawBatch>& Items) {
+    for (const FOverlayMeshDrawData& Data : Meshes) {
+        const UMesh* Mesh{mAssetRegistry->ResolveAsset<UMesh>(Data.mMesh.mMeshHandle)};
+        const UMaterial* Material{mAssetRegistry->ResolveAsset<UMaterial>(Data.mMesh.mMaterialHandle)};
 
         if (Mesh == nullptr || Material == nullptr) {
             continue;
@@ -203,7 +202,7 @@ void FOverLayRenderer::BuildMeshItems(const TArray<FActorProbe>& Probes, const F
         FLODSelection LOD{};
 
         if (Selection && View.mUseLOD) {
-            const DirectX::BoundingSphere& Bounds{Probe.mWorldSphereBounds};
+            const DirectX::BoundingSphere& Bounds{Data.mWorldSphereBounds};
             float ScreenSize{Bounds.Radius * std::abs(View.mCamera.mProjection.M[1][1])};
 
             if (std::abs(View.mCamera.mProjection.M[2][3]) > 1e-6f) {
@@ -230,14 +229,25 @@ void FOverLayRenderer::BuildMeshItems(const TArray<FActorProbe>& Probes, const F
 
         const Uint32 ObjectIndex{static_cast<Uint32>(mObjectTransforms.size())};
 
-        mObjectTransforms.push_back(Probe.mWorld);
+        mObjectTransforms.push_back(Data.mWorld);
 
         mStaticMeshes.clear();
 
         FStaticMeshBatchCollector Collector{*mAssetRegistry, ObjectIndex, mStaticMeshes};
-        FStaticMeshSceneProxy Proxy{FObjectHandle{}, Probe.mOwnerHandle, FPrimitiveTransform{}, FMeshSceneData{Probe.mMeshHandle, Probe.mMaterialHandle, Probe.mPipelineHandle}};
 
-        Proxy.DrawStaticElements(Collector);
+        for (Uint32 Level{}; Level < Collector.GetMeshLODCount(Data.mMesh.mMeshHandle); ++Level) {
+            FMeshBatch Batch{};
+
+            Batch.mMeshHandle = Data.mMesh.mMeshHandle;
+            Batch.mMaterialHandle = Data.mMesh.mMaterialHandle;
+            Batch.mPipelineHandle = Data.mMesh.mPipelineHandle;
+            Batch.mLODLevel = Level;
+            Collector.GetMeshElements(Batch.mMeshHandle, Level, Batch.mElements);
+
+            if (!Batch.mElements.empty()) {
+                Collector.DrawMesh(Batch);
+            }
+        }
 
         auto AddLevel{[&](Uint32 Level, float Dither) {
             for (const FStaticMeshBatch& Batch : mStaticMeshes) {
@@ -426,7 +436,7 @@ void FOverLayRenderer::DrawMeshes(ID3D11DeviceContext* Context, const TArray<FMe
 void FOverLayRenderer::DrawGuides(ID3D11DeviceContext* Context, const FOverlayRenderData& Overlay) {
     mLineRenderer.Clear();
 
-    for (const FLineProbe& Line : Overlay.mGuides.GetLines()) {
+    for (const FLineDrawData& Line : Overlay.mGuides.GetLines()) {
         mLineRenderer.AddGridLine(Line.mStart, Line.mEnd, Line.mColor, Line.mWidthPixels, Line.mGridSpacing, Line.mDepthMode);
     }
 
@@ -435,7 +445,7 @@ void FOverLayRenderer::DrawGuides(ID3D11DeviceContext* Context, const FOverlayRe
     }
 }
 
-void FOverLayRenderer::RenderOrientationAxis(ID3D11DeviceContext* Context, const CameraProbe& Camera, const FOverlayRenderData& Overlay, const FSceneRenderOutput& Output) {
+void FOverLayRenderer::RenderOrientationAxis(ID3D11DeviceContext* Context, const FViewMatrices& Camera, const FOverlayRenderData& Overlay, const FSceneRenderOutput& Output) {
     if (!Overlay.IsPassEnabled(EOverlayPass::OrientationAxis) || Context == nullptr || mCurrentFrameResource == nullptr || mCurrentDepth == nullptr || mCurrentTarget != Output.mTarget || !Output.IsValid()) {
         return;
     }
@@ -466,7 +476,7 @@ void FOverLayRenderer::RenderOrientationAxis(ID3D11DeviceContext* Context, const
     mLineRenderer.AddRay(FVector3{}, FVector3{0.0f, 1.0f, 0.0f}, 1.0f, FVector4{0.0f, 1.0f, 0.0f, 1.0f}, 3.0f);
     mLineRenderer.AddRay(FVector3{}, FVector3{0.0f, 0.0f, 1.0f}, 1.0f, FVector4{0.0f, 0.0f, 1.0f, 1.0f}, 3.0f);
 
-    const CameraProbe AxisCamera{AxisView * Projection, AxisView, Projection};
+    const FViewMatrices AxisCamera{AxisView * Projection, AxisView, Projection};
 
     if (mCurrentFrameResource->PrepareOrientationAxis(Context, AxisCamera, AxisViewport)) {
         mLineRenderer.RenderOrientationAxis(Context, *mCurrentFrameResource);

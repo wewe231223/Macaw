@@ -41,9 +41,6 @@ bool UCollisionComponent::Raycast(const FRay& Ray, float& OutDistance) const {
     return Mesh == nullptr || Mesh->RaycastMesh(Ray, OutDistance);
 }
 
-void UCollisionComponent::MakeRender(FActorProbe& Probe) const {
-}
-
 void UCollisionComponent::Serialize(FArchive& Archive) {
     UPrimitiveComponent::Serialize(Archive);
 

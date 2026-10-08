@@ -4,8 +4,8 @@
 #include "Core/Base/FAssetHandle.h"
 #include "CoreUObject/FObjectHandle.h"
 
-struct FActorProbe;
 class FStaticPrimitiveDrawInterface;
+class FDynamicPrimitiveDrawInterface;
 
 struct FPrimitiveTransform {
     FMatrix mWorld{};
@@ -33,10 +33,10 @@ public:
     FObjectHandle GetComponentHandle() const;
     FObjectHandle GetOwnerHandle() const;
     const FPrimitiveTransform& GetTransform() const;
-    virtual const FMeshSceneData& GetMeshData() const = 0;
+    virtual const FMeshSceneData* GetMeshData() const;
     virtual void DrawStaticElements(FStaticPrimitiveDrawInterface& DrawInterface) const;
+    virtual void GetDynamicMeshElements(FDynamicPrimitiveDrawInterface& DrawInterface) const;
     void SetTransform(const FPrimitiveTransform& Transform);
-    void BuildLegacyProbe(FActorProbe& Probe) const;
 
 private:
     FObjectHandle mComponentHandle{};

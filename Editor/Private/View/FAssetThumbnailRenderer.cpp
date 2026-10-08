@@ -87,46 +87,40 @@ void FAssetThumbnailRenderer::RenderThumbnail(const FAssetEntry& Entry, FSceneRe
         return;
     }
 
-    FActorProbe ActorProbe{};
+    FMeshSceneData MeshData{};
 
     if (Entry.mAssetType == EAssetType::Mesh) {
-        ActorProbe.mMeshHandle = Entry.mHandle;
-        ActorProbe.mMaterialHandle = mAssetRegistry->FindAsset(FAssetPath{DefaultMaterialPath});
-        ActorProbe.mPipelineHandle = mAssetRegistry->FindAsset(FAssetPath{StaticMeshPipelinePath});
+        MeshData.mMeshHandle = Entry.mHandle;
+        MeshData.mMaterialHandle = mAssetRegistry->FindAsset(FAssetPath{DefaultMaterialPath});
+        MeshData.mPipelineHandle = mAssetRegistry->FindAsset(FAssetPath{StaticMeshPipelinePath});
     } else if (Entry.mAssetType == EAssetType::Material) {
-        ActorProbe.mMeshHandle = mAssetRegistry->FindAsset(FAssetPath{SphereMeshPath});
-        ActorProbe.mMaterialHandle = Entry.mHandle;
-        ActorProbe.mPipelineHandle = mAssetRegistry->FindAsset(FAssetPath{MaterialPipelinePath});
+        MeshData.mMeshHandle = mAssetRegistry->FindAsset(FAssetPath{SphereMeshPath});
+        MeshData.mMaterialHandle = Entry.mHandle;
+        MeshData.mPipelineHandle = mAssetRegistry->FindAsset(FAssetPath{MaterialPipelinePath});
     } else {
         return;
     }
 
-    UMesh* Mesh{mAssetRegistry->ResolveAsset<UMesh>(ActorProbe.mMeshHandle)};
+    UMesh* Mesh{mAssetRegistry->ResolveAsset<UMesh>(MeshData.mMeshHandle)};
 
-    UMaterial* Material{mAssetRegistry->ResolveAsset<UMaterial>(ActorProbe.mMaterialHandle)};
+    UMaterial* Material{mAssetRegistry->ResolveAsset<UMaterial>(MeshData.mMaterialHandle)};
 
-    if (Mesh == nullptr || Material == nullptr || !ActorProbe.mPipelineHandle) {
+    if (Mesh == nullptr || Material == nullptr || !MeshData.mPipelineHandle) {
         return;
     }
 
-    ActorProbe.mWorld = BuildMeshTransform(*Mesh);
-    Mesh->GetBoundingBox().Transform(ActorProbe.mWorldOBB, ActorProbe.mWorld.ToSimpleMath());
-    DirectX::BoundingSphere::CreateFromBoundingBox(ActorProbe.mWorldSphereBounds, ActorProbe.mWorldOBB);
-    DirectX::BoundingBox::CreateFromSphere(ActorProbe.mWorldAABB, ActorProbe.mWorldSphereBounds);
+    if (!mPreviewScene.Initialize(*mRenderer, *mAssetRegistry)) {
+        return;
+    }
 
-    FSceneRenderData Scene{};
+    mPreviewScene.SetMesh(MeshData, BuildMeshTransform(*Mesh));
+    mPreviewScene.SetLight(FVector3{-0.5f, -0.5f, -1.0f}, FVector3{1.0f, 1.0f, 1.0f}, 1.0f);
 
-    Scene.mSceneId = mRenderSceneId;
-    Scene.mObjectUpdates.push_back(FRenderObjectUpdate{FObjectHandle{0, 1}, ActorProbe, false});
+    const FRenderScene* Scene{mPreviewScene.Synchronize()};
 
-    FLightProbe LightProbe{};
-
-    LightProbe.mType = ELightType::Directional;
-    LightProbe.mDirection = FVector{-0.5f, -0.5f, -1.0f};
-    LightProbe.mColor = FVector{1.0f, 1.0f, 1.0f};
-    LightProbe.mIntensity = 1.0f;
-
-    Scene.mLightProbes.push_back(LightProbe);
+    if (Scene == nullptr) {
+        return;
+    }
 
     FSceneRenderSurface* Surface{PreviewSurface};
 
@@ -163,11 +157,10 @@ void FAssetThumbnailRenderer::RenderThumbnail(const FAssetEntry& Entry, FSceneRe
     View.SetPassEnabled(ERenderPass::Opaque, true);
     View.SetPassEnabled(ERenderPass::Translucent, true);
     View.SetPassEnabled(ERenderPass::PostProcessing, true);
-    Scene.mRevision = ++mRenderSceneRevision;
     FOverlayRenderData Overlay{};
 
     Overlay.mPasses.reset();
-    mRenderer->RenderView(View, Scene, Overlay);
+    mRenderer->RenderView(View, *Scene, Overlay);
 }
 
 ID3D11ShaderResourceView* FAssetThumbnailRenderer::GetThumbnail(FAssetHandle AssetHandle) const {
@@ -185,6 +178,8 @@ ID3D11ShaderResourceView* FAssetThumbnailRenderer::GetThumbnail(FAssetHandle Ass
 }
 
 void FAssetThumbnailRenderer::Terminate() {
+    mPreviewScene.Reset();
+
     for (auto& [Key, Thumbnail] : mThumbnails) {
         if (Thumbnail.mSurface != nullptr) {
             Thumbnail.mSurface->Reset();
@@ -228,11 +223,11 @@ FMatrix FAssetThumbnailRenderer::BuildMeshTransform(const UMesh& Mesh) const {
     return FMatrix::CreateTranslation(-Center) * FMatrix::CreateScale(UniformScale, UniformScale, UniformScale);
 }
 
-CameraProbe FAssetThumbnailRenderer::BuildCamera() const {
+FViewMatrices FAssetThumbnailRenderer::BuildCamera() const {
     const FVector Target{0.0f, 0.0f, 0.0f};
     const FVector Eye{3.0f, -3.0f, 2.25f};
 
-    CameraProbe Camera{};
+    FViewMatrices Camera{};
 
     Camera.mView = MakeCameraWorldMatrix(Eye, Target).Invert();
     Camera.mProjection = FMatrix::CreatePerspectiveFieldOfView(0.610865f, 1.0f, 0.1f, 100.0f);

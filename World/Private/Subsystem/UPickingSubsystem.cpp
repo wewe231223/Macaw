@@ -37,11 +37,11 @@ FWorldRaycastAccelerationStructure::FProxy FWorldRaycastAccelerationStructure::M
 
         Proxy.BillboardSize = Billboard->GetSize();
 
-        FBillboardProbe Probe{};
-        const bool Renderable = Billboard->MakeBillboardRender(Probe);
+        FBillboardDrawData Data{};
+        const bool Renderable = Billboard->BuildBillboardDrawData(Data);
 
         Proxy.Enabled = Proxy.Enabled && Renderable && Proxy.BillboardSize.mX > 0.0f && Proxy.BillboardSize.mY > 0.0f;
-        Proxy.Box.Center = Renderable ? Probe.mWorld.Translation().ToSimpleMath() : Component->GetComponentLocation().ToSimpleMath();
+        Proxy.Box.Center = Renderable ? Data.mWorld.Translation().ToSimpleMath() : Component->GetComponentLocation().ToSimpleMath();
 
         const float Radius = 0.5f * (std::abs(Proxy.BillboardSize.mX) + std::abs(Proxy.BillboardSize.mY));
 

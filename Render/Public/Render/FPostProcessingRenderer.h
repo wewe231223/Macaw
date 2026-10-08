@@ -3,7 +3,7 @@
 #include "Render/Buffer/FGraphicsBuffer.h"
 #include "Render/Pipeline/FShader.h"
 #include "Render/IRenderSurface.h"
-#include "RenderCore/FRenderProbe.h"
+#include "RenderCore/FRenderData.h"
 
 class FPostProcessingRenderer {
 public:

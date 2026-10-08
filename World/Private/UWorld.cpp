@@ -15,9 +15,6 @@
 #include "World/Subsystem/UCollisionSubsystem.h"
 #include "World/Subsystem/UPickingSubsystem.h"
 #include "World/Subsystem/URenderSubsystem.h"
-#include "World/Subsystem/UTextSubsystem.h"
-#include "World/Subsystem/UBillboardSubsystem.h"
-#include "World/Subsystem/ULightSubsystem.h"
 #include "World/Component/UCollisionComponent.h"
 #include "World/Component/UBillboardTextComponent.h"
 #include "World/Component/UBillboardComponent.h"
@@ -394,22 +391,11 @@ void UWorld::InitializeSubsystems() {
     mSubsystems.Add<UCollisionSubsystem>();
     mSubsystems.Add<UPickingSubsystem>();
     mSubsystems.Add<UCameraSubsystem>();
-    mSubsystems.Add<UTextSubsystem>();
     mSubsystems.Add<UOverlaySubsystem>();
-    mSubsystems.Add<UBillboardSubsystem>();
-    mSubsystems.Add<ULightSubsystem>();
 }
 
 void UWorld::DeinitializeSubsystems() {
     mSubsystems.Deinitialize();
-}
-
-UTextSubsystem& UWorld::GetTextSubsystem() {
-    return *mSubsystems.Get<UTextSubsystem>();
-}
-
-const UTextSubsystem& UWorld::GetTextSubsystem() const {
-    return *mSubsystems.Get<UTextSubsystem>();
 }
 
 UOverlaySubsystem& UWorld::GetOverlaySubsystem() {
@@ -418,23 +404,6 @@ UOverlaySubsystem& UWorld::GetOverlaySubsystem() {
 
 const UOverlaySubsystem& UWorld::GetOverlaySubsystem() const {
     return *mSubsystems.Get<UOverlaySubsystem>();
-}
-
-ULightSubsystem& UWorld::GetLightSubsystem() {
-    return *mSubsystems.Get<ULightSubsystem>();
-}
-
-const ULightSubsystem& UWorld::GetLightSubsystem() const {
-    return *mSubsystems.Get<ULightSubsystem>();
-}
-
-void UWorld::BuildSceneRenderData(FSceneRenderData& Scene) {
-    mAppliedSceneHandle = {};
-    mSubsystems.Get<URenderSubsystem>()->BuildRenderProbes(Scene);
-
-    mSubsystems.Get<ULightSubsystem>()->BuildLightProbes(Scene);
-    mSubsystems.Get<UTextSubsystem>()->BuildTextProbes(Scene);
-    mSubsystems.Get<UBillboardSubsystem>()->BuildRenderProbes(Scene);
 }
 
 void UWorld::BindScene(const std::weak_ptr<FSceneInterface>& Scene) {
@@ -480,11 +449,7 @@ bool UWorld::SendSceneUpdates() {
     }
 
     GetRenderSubsystem().BuildSceneUpdates(mSceneUpdates);
-    GetLightSubsystem().BuildLightProbes(mSceneUpdates.mRenderData);
-    GetTextSubsystem().BuildTextProbes(mSceneUpdates.mRenderData);
-    GetBillboardSubsystem().BuildRenderProbes(mSceneUpdates.mRenderData);
     mSceneUpdates.mSceneHandle = Handle;
-    mSceneUpdates.mRenderData.mSceneId = Handle.mId;
     mSceneUpdates.mFullSnapshot = FullSnapshot;
 
     if (!Scene->ApplyUpdates(mSceneUpdates)) {
@@ -498,7 +463,7 @@ bool UWorld::SendSceneUpdates() {
 }
 
 void UWorld::BuildOverlayRenderData(FOverlayRenderData& Overlay, FObjectHandle SelectedActor) {
-    mSubsystems.Get<UOverlaySubsystem>()->BuildRenderProbes(Overlay, SelectedActor);
+    mSubsystems.Get<UOverlaySubsystem>()->BuildDrawData(Overlay, SelectedActor);
 }
 
 void UWorld::MarkStructureDirty() {
@@ -703,14 +668,6 @@ UCameraSubsystem& UWorld::GetCameraSubsystem() {
 
 const UCameraSubsystem& UWorld::GetCameraSubsystem() const {
     return *mSubsystems.Get<UCameraSubsystem>();
-}
-
-UBillboardSubsystem& UWorld::GetBillboardSubsystem() {
-    return *mSubsystems.Get<UBillboardSubsystem>();
-}
-
-const UBillboardSubsystem& UWorld::GetBillboardSubsystem() const {
-    return *mSubsystems.Get<UBillboardSubsystem>();
 }
 
 AActor* UWorld::AddActorInternal(std::unique_ptr<AActor> InActor) {

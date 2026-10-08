@@ -56,9 +56,9 @@ void FEditorApplication::RenderMode(FApplicationContext& Context, float DeltaTim
             continue;
         }
 
-        CameraProbe Camera{};
+        FViewMatrices Camera{};
 
-        if (!Viewport->BuildCameraProbe(Camera)) {
+        if (!Viewport->BuildViewMatrices(Camera)) {
             continue;
         }
 

@@ -3,7 +3,7 @@
 #include "Editor/Panel/FEditorWindow.h"
 #include "Editor/Panel/FPropertyEditorContext.h"
 #include "Render/FSceneRenderSurface.h"
-#include "RenderCore/FRenderProbe.h"
+#include "RenderCore/FRenderData.h"
 #include "Core/Channel/FMessageChannel.h"
 #include "Core/Base/FAssetHandle.h"
 #include "Editor/World/FWorldEditorContext.h"
@@ -36,8 +36,8 @@ private:
     void DrawPreview();
 
     void ResizeSurfaceIfNeeded(ID3D11Device* Device, Uint32 Width, Uint32 Height);
-    FSceneRenderData BuildPreviewScene();
-    CameraProbe BuildPreviewCamera() const;
+    void UpdatePreviewScene();
+    FViewMatrices BuildPreviewCamera() const;
 
     void ProcessInput();
     FMatrix MakeCameraWorldMatrix(const FVector3& Eye) const;
@@ -51,8 +51,7 @@ private:
     FPropertyEditorContext mPropertyEditor{};
 
     FSceneRenderSurface mSurface{};
-    Uint64 mRenderSceneId{AllocateRenderSceneId()};
-    Uint64 mRenderSceneRevision{};
+    FPreviewScene mPreviewScene{};
     FAssetHandle mMeshHandle{};
     FAssetHandle mMaterialHandle{};
 

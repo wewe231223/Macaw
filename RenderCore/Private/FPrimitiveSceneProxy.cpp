@@ -1,6 +1,5 @@
 #include "pch.h"
 #include "RenderCore/FPrimitiveSceneProxy.h"
-#include "RenderCore/FRenderProbe.h"
 
 FPrimitiveSceneProxy::FPrimitiveSceneProxy(FObjectHandle ComponentHandle, FObjectHandle OwnerHandle, const FPrimitiveTransform& Transform)
 	: mComponentHandle(ComponentHandle),
@@ -29,8 +28,9 @@ void FPrimitiveSceneProxy::SetTransform(const FPrimitiveTransform& Transform) {
     mTransform = Transform;
 }
 
-void FPrimitiveSceneProxy::BuildLegacyProbe(FActorProbe& Probe) const {
-    const FMeshSceneData& Mesh{GetMeshData()};
+const FMeshSceneData* FPrimitiveSceneProxy::GetMeshData() const {
+    return nullptr;
+}
 
-    Probe = FActorProbe{mTransform.mWorld, Mesh.mMeshHandle, Mesh.mMaterialHandle, Mesh.mPipelineHandle, mOwnerHandle, mTransform.mWorldSphereBounds, mTransform.mWorldOBB, mTransform.mWorldAABB};
+void FPrimitiveSceneProxy::GetDynamicMeshElements(FDynamicPrimitiveDrawInterface& DrawInterface) const {
 }

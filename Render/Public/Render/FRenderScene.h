@@ -1,12 +1,12 @@
 #pragma once
-#include "RenderCore/FRenderProbe.h"
+#include "RenderCore/FRenderData.h"
 #include "RenderCore/FSceneUpdateBatch.h"
-#include "Core/Base/FRevisionCursor.h"
 #include "Render/FBVHTree.h"
 #include "Render/FPrimitiveSceneInfo.h"
 #include "Render/FMeshDrawCommandCache.h"
 
 #include <deque>
+#include <map>
 #include <unordered_map>
 
 class IAssetRegistry;
@@ -28,7 +28,6 @@ public:
     explicit FRenderScene(Uint64 SceneId);
 
 public:
-    void Synchronize(const IAssetRegistry* Registry, FSceneRenderData& Scene, const FMaterialBuffer& Materials, FRenderAssetResources* Resources = nullptr);
     void Synchronize(const IAssetRegistry* Registry, FSceneUpdateBatch& Updates, const FMaterialBuffer& Materials, FRenderAssetResources* Resources = nullptr);
 
     Uint64 GetId() const;
@@ -41,15 +40,15 @@ public:
     const FPrimitiveSceneProxy* FindPrimitive(FObjectHandle ComponentHandle) const;
     const TArray<std::shared_ptr<const FMeshDrawCommand>>& GetCachedMeshDrawCommands() const;
 
-    const TArray<FLightProbe>& GetLightProbes() const;
-    const TArray<FTextProbe>& GetTextProbes() const;
-    const TArray<FBillboardProbe>& GetBillboardProbes() const;
+    const TArray<FLightShaderParameters>& GetLights() const;
+    const FLightSceneProxy* FindLight(FObjectHandle ComponentHandle) const;
+    void CollectDynamicMeshElements(FDynamicPrimitiveDrawInterface& DrawInterface) const;
 
     void QueryFrustum(const FMatrix& ViewProjection, TArray<Uint32>& OutIndices, TArray<Uint32>* OutBoundaryPositions = nullptr) const;
 
 private:
-    void ApplyObjectUpdates(const FSceneRenderData& Scene);
     void ApplyPrimitiveUpdate(FPrimitiveSceneUpdate& Update);
+    void ApplyLightUpdate(FLightSceneUpdate& Update);
 
     Uint32 AddObject(const FPrimitiveSceneProxy& Proxy);
     void UpdateObject(Uint32 ObjectIndex, const FPrimitiveSceneProxy& Proxy);
@@ -66,7 +65,6 @@ private:
 private:
     Uint64 mSceneId{};
     Uint64 mRevision{1};
-    FRevisionCursor mSourceRevision{};
     Uint64 mJournalFloor{};
 
     bool mTopologyDirty{};
@@ -76,9 +74,8 @@ private:
     TArray<FMatrix> mObjectTransforms{};
     TArray<Uint32> mFreeObjects{};
 
-    TArray<FLightProbe> mLightProbes{};
-    TArray<FTextProbe> mTextProbes{};
-    TArray<FBillboardProbe> mBillboardProbes{};
+    std::map<Uint64, std::unique_ptr<FLightSceneProxy>> mLights{};
+    TArray<FLightShaderParameters> mLightParameters{};
 
     std::unordered_map<Uint64, Uint32> mObjectLookup{};
 

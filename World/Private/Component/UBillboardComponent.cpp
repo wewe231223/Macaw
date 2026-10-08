@@ -1,11 +1,11 @@
 #include "pch.h"
 #include "World/Component/UBillboardComponent.h"
+#include "RenderCore/FBillboardSceneProxy.h"
 #include "CoreUObject/Asset/IAssetRegistry.h"
 #include "Asset/UTexture.h"
 #include "Asset/Pipeline/UPipeline.h"
 #include "World/AActor.h"
 #include "World/UWorld.h"
-#include "World/Subsystem/UBillboardSubsystem.h"
 
 bool UBillboardComponent::CanRenderBillBoard() const {
     return IsRegistered() && IsVisible();
@@ -95,17 +95,31 @@ void UBillboardComponent::SetPipelineHandle(FAssetHandle InPipelineHandle) {
 }
 
 void UBillboardComponent::SetSize(const FVector2& InSize) {
+    if (mSize.mX == InSize.mX && mSize.mY == InSize.mY) {
+        return;
+    }
+
     mSize = InSize;
     OnRenderStateChanged();
 }
 
 void UBillboardComponent::SetUV(const FVector2& InUVMin, const FVector2& InUVMax) {
+    if (mUvMin.mX == InUVMin.mX && mUvMin.mY == InUVMin.mY && mUvMax.mX == InUVMax.mX && mUvMax.mY == InUVMax.mY) {
+        return;
+    }
+
     mUvMin = InUVMin;
     mUvMax = InUVMax;
+    MarkRenderStateDirty();
 }
 
 void UBillboardComponent::SetColor(const FVector4& InColor) {
+    if (mColor == InColor) {
+        return;
+    }
+
     mColor = InColor;
+    MarkRenderStateDirty();
 }
 
 FAssetHandle UBillboardComponent::GetTextureHandle() const {
@@ -132,29 +146,29 @@ const FVector4& UBillboardComponent::GetColor() const {
     return mColor;
 }
 
-bool UBillboardComponent::MakeBillboardRender(FBillboardProbe& OutProbe) const {
+bool UBillboardComponent::BuildBillboardDrawData(FBillboardDrawData& OutData) const {
     if (!mTextureHandle || !mPipelineHandle) {
         return false;
     }
 
-    if (!TryGetBillBoardWorld(OutProbe.mWorld)) {
+    if (!TryGetBillBoardWorld(OutData.mWorld)) {
         return false;
     }
 
-    OutProbe.mTextureHandle = mTextureHandle;
-    OutProbe.mPipelineHandle = mPipelineHandle;
-    OutProbe.mSize = mSize;
-    OutProbe.mUvMin = mUvMin;
-    OutProbe.mUvMax = mUvMax;
-    OutProbe.mColor = mColor;
+    OutData.mTextureHandle = mTextureHandle;
+    OutData.mPipelineHandle = mPipelineHandle;
+    OutData.mSize = mSize;
+    OutData.mUvMin = mUvMin;
+    OutData.mUvMax = mUvMax;
+    OutData.mColor = mColor;
 
     return true;
 }
 
 bool UBillboardComponent::GetWorldCorners(const FMatrix& CameraWorld, std::array<FVector3, 4>& OutCorners) const {
-    FBillboardProbe Probe{};
+    FBillboardDrawData Data{};
 
-    if (!MakeBillboardRender(Probe) || Probe.mSize.mX <= 0.0f || Probe.mSize.mY <= 0.0f) {
+    if (!BuildBillboardDrawData(Data) || Data.mSize.mX <= 0.0f || Data.mSize.mY <= 0.0f) {
         return false;
     }
 
@@ -168,31 +182,38 @@ bool UBillboardComponent::GetWorldCorners(const FMatrix& CameraWorld, std::array
     Right.Normalize();
     Up.Normalize();
 
-    const FVector3 Origin{Probe.mWorld.Translation()};
-    const FVector3 Horizontal{Right * (Probe.mSize.mX * 0.5f)};
-    const FVector3 Vertical{Up * (Probe.mSize.mY * 0.5f)};
+    const FVector3 Origin{Data.mWorld.Translation()};
+    const FVector3 Horizontal{Right * (Data.mSize.mX * 0.5f)};
+    const FVector3 Vertical{Up * (Data.mSize.mY * 0.5f)};
 
     OutCorners = {Origin - Horizontal + Vertical, Origin - Horizontal - Vertical, Origin + Horizontal + Vertical, Origin + Horizontal - Vertical};
 
     return true;
 }
 
-void UBillboardComponent::OnRegister() {
-    UPrimitiveComponent::OnRegister();
-
-    UWorld* World{GetBelongingWorld()};
-
-    if (World != nullptr) {
-        World->GetBillboardSubsystem().RegisterComponent(this);
-    }
+bool UBillboardComponent::ShouldCreateRenderState() const {
+    return IsVisible();
 }
 
-void UBillboardComponent::OnUnregister() {
-    UWorld* World{GetBelongingWorld()};
+std::unique_ptr<FPrimitiveSceneProxy> UBillboardComponent::CreateSceneProxy() const {
+    const AActor* Owner{GetOwner()};
+    FBillboardDrawData Data{};
 
-    if (World != nullptr) {
-        World->GetBillboardSubsystem().UnregisterComponent(this);
+    if (!IsRegistered() || !IsVisible() || Owner == nullptr || !BuildBillboardDrawData(Data)) {
+        return nullptr;
     }
 
-    UPrimitiveComponent::OnUnregister();
+    FPrimitiveTransform Transform{GetRenderTransform()};
+
+    Transform.mWorld = Data.mWorld;
+
+    return std::make_unique<FBillboardSceneProxy>(GetHandle(), Owner->GetHandle(), Transform, Data);
+}
+
+void UBillboardComponent::SendRenderTransform() {
+    FPrimitiveTransform Transform{GetRenderTransform()};
+
+    if (GetBelongingWorld() != nullptr && IsRenderStateCreated() && TryGetBillBoardWorld(Transform.mWorld)) {
+        GetBelongingWorld()->GetRenderSubsystem().UpdatePrimitiveTransform(GetHandle(), Transform);
+    }
 }

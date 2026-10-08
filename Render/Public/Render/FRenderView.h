@@ -1,7 +1,7 @@
 #pragma once
 
 #include <bitset>
-#include "RenderCore/FRenderProbe.h"
+#include "RenderCore/FRenderData.h"
 #include "Asset/Pipeline/UPipeline.h"
 #include "Render/IRenderSurface.h"
 #include "Render/ERenderPass.h"
@@ -15,7 +15,7 @@ struct FRenderView {
     void CollectMeshDrawCommands(const FRenderScene& Scene, TArray<FVisibleMeshDrawCommand>& OutCommands) const;
 
     IRenderSurface* mTarget{nullptr};
-    CameraProbe mCamera{};
+    FViewMatrices mCamera{};
 
     FRenderSettings mSettings{};
     ERenderMode mRenderMode{ERenderMode::Lit};

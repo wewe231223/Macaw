@@ -20,8 +20,6 @@ public:
     bool Raycast(const FRay& Ray, float& OutDistance) const;
     virtual void DrawEditorBounds(ILineDrawContext* LineContext, ELineDepthMode DepthMode) const = 0;
 
-    void MakeRender(FActorProbe& OutProbe) const override;
-
     JG_DECLARE_ABSTRACT_DERIVED_TYPEINFO(UCollisionComponent, UPrimitiveComponent)
 
     virtual bool RaycastBounds(const FRay& Ray, float& OutDistance) const = 0;

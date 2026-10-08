@@ -11,7 +11,7 @@ public:
     float GetAttenuationRadius() const;
     void SetAttenuationRadius(float InAttenuationRadius);
 
-    void MakeLightProbe(FLightProbe& OutProbe) const override;
+    void BuildLightShaderParameters(FLightShaderParameters& OutParameters) const override;
 
 protected:
     void Serialize(FArchive& Archive) override;

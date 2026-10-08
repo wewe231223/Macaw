@@ -7,8 +7,8 @@ FStaticMeshSceneProxy::FStaticMeshSceneProxy(FObjectHandle ComponentHandle, FObj
 	  mMeshData(MeshData) {
 }
 
-const FMeshSceneData& FStaticMeshSceneProxy::GetMeshData() const {
-    return mMeshData;
+const FMeshSceneData* FStaticMeshSceneProxy::GetMeshData() const {
+    return &mMeshData;
 }
 
 void FStaticMeshSceneProxy::DrawStaticElements(FStaticPrimitiveDrawInterface& DrawInterface) const {

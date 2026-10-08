@@ -8,7 +8,7 @@ public:
     ~FStaticMeshSceneProxy() override = default;
 
 public:
-    const FMeshSceneData& GetMeshData() const override;
+    const FMeshSceneData* GetMeshData() const override;
     void DrawStaticElements(FStaticPrimitiveDrawInterface& DrawInterface) const override;
 
 private:

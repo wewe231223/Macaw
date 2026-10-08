@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "World/Component/UStaticMeshComponent.h"
-#include "RenderCore/FRenderProbe.h"
+#include "RenderCore/FRenderData.h"
 #include "RenderCore/FStaticMeshSceneProxy.h"
 #include "World/AActor.h"
 #include "World/UWorld.h"
@@ -78,11 +78,6 @@ void UStaticMeshComponent::OnRegister() {
 
     EnsureDefaultRenderAssets();
 
-    AActor* Owner{GetOwner()};
-
-    if (Owner != nullptr && Owner->GetWorld() != nullptr) {
-        Owner->GetWorld()->GetRenderSubsystem().RegisterComponent(this);
-    }
 }
 
 void UStaticMeshComponent::EnsureDefaultRenderAssets() {
@@ -103,16 +98,6 @@ void UStaticMeshComponent::EnsureDefaultRenderAssets() {
     }
 }
 
-void UStaticMeshComponent::OnUnregister() {
-    AActor* Owner{GetOwner()};
-
-    if (Owner != nullptr && Owner->GetWorld() != nullptr) {
-        Owner->GetWorld()->GetRenderSubsystem().UnregisterComponent(this);
-    }
-
-    UMeshComponent::OnUnregister();
-}
-
 bool UStaticMeshComponent::ShouldCreateRenderState() const {
     return IsVisible();
 }
@@ -125,14 +110,6 @@ std::unique_ptr<FPrimitiveSceneProxy> UStaticMeshComponent::CreateSceneProxy() c
     }
 
     return std::make_unique<FStaticMeshSceneProxy>(GetHandle(), Owner->GetHandle(), GetRenderTransform(), FMeshSceneData{GetMeshHandle(), mMaterialHandle, mPipelineHandle});
-}
-
-void UStaticMeshComponent::MakeRender(FActorProbe& OutProbe) const {
-    const std::unique_ptr<FPrimitiveSceneProxy> Proxy{CreateSceneProxy()};
-
-    if (Proxy != nullptr) {
-        Proxy->BuildLegacyProbe(OutProbe);
-    }
 }
 
 void UStaticMeshComponent::Serialize(FArchive& Archive) {

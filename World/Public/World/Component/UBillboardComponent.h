@@ -12,6 +12,7 @@ public:
     UBillboardComponent() = default;
     ~UBillboardComponent() override = default;
 
+public:
     JG_DECLARE_DERIVED_TYPEINFO(UBillboardComponent, UPrimitiveComponent);
 
     // Sprite
@@ -28,11 +29,12 @@ public:
     const FVector2& GetUVMax() const;
     const FVector4& GetColor() const;
 
-    bool MakeBillboardRender(FBillboardProbe& OutProbe) const;
+    bool BuildBillboardDrawData(FBillboardDrawData& OutData) const;
     bool GetWorldCorners(const FMatrix& CameraWorld, std::array<FVector3, 4>& OutCorners) const;
 
-    void OnRegister() override;
-    void OnUnregister() override;
+    bool ShouldCreateRenderState() const override;
+    std::unique_ptr<FPrimitiveSceneProxy> CreateSceneProxy() const override;
+    void SendRenderTransform() override;
 
 protected:
     //Billboard를 현재 프레임에 렌더할 수 있는지 검사한다.

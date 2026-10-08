@@ -42,8 +42,6 @@ public:
     FSceneHandle GetSceneHandle(Uint64 SceneId) const;
     const FRenderScene* FindScene(FSceneHandle Handle) const;
 
-    const FRenderScene& SynchronizeScene(FSceneRenderData& Scene);
-    void RenderView(const FRenderView& View, FSceneRenderData& Scene, const FOverlayRenderData& Overlay = {});
     void RenderView(const FRenderView& View, const FRenderScene& Scene, const FOverlayRenderData& Overlay = {});
 
     void BeginUiRender();
@@ -64,7 +62,6 @@ public:
 private:
     friend class FRendererScene;
 
-    FRendererScene& FindOrAddScene(Uint64 SceneId);
     bool ApplySceneUpdates(FSceneUpdateBatch& Updates);
     void ReleaseSceneResources(Uint64 SceneId);
     void ReleaseScenes();
@@ -109,7 +106,6 @@ private:
     FFrameResource* mCurrentFrameResource{nullptr};
 
     Uint64 mFrameSerial{};
-    Uint64 mTransientSceneId{AllocateRenderSceneId()};
     TMap<Uint64, std::shared_ptr<FRendererScene>> mRenderScenes{};
 
     FSceneRenderer mSceneRenderer{};

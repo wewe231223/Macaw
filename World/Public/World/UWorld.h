@@ -16,7 +16,7 @@
 #include "Core/Common.h"
 #include "CoreUObject/UObject.h"
 #include "CoreUObject/UObjectSystem.h"
-#include "RenderCore/FRenderProbe.h"
+#include "RenderCore/FRenderData.h"
 #include "RenderCore/FSceneInterface.h"
 #include "RenderCore/FSceneUpdateBatch.h"
 #include "World/FWorldTime.h"
@@ -25,10 +25,7 @@
 #include "World/Subsystem/UCollisionSubsystem.h"
 #include "World/Subsystem/UPickingSubsystem.h"
 #include "World/Subsystem/URenderSubsystem.h"
-#include "World/Subsystem/UBillboardSubsystem.h"
-#include "World/Subsystem/UTextSubsystem.h"
 #include "World/Subsystem/UOverlaySubsystem.h"
-#include "World/Subsystem/ULightSubsystem.h"
 
 class UWorld : public UObject {
 private:
@@ -97,7 +94,6 @@ public:
 
     const TArray<std::unique_ptr<AActor>>& GetActors() const;
 
-    void BuildSceneRenderData(FSceneRenderData& Scene);
     void BindScene(const std::weak_ptr<FSceneInterface>& Scene);
     FSceneHandle GetSceneHandle() const;
     bool SendSceneUpdates();
@@ -123,17 +119,8 @@ public:
     UCameraSubsystem& GetCameraSubsystem();
     const UCameraSubsystem& GetCameraSubsystem() const;
 
-    UBillboardSubsystem& GetBillboardSubsystem();
-    const UBillboardSubsystem& GetBillboardSubsystem() const;
-
-    UTextSubsystem& GetTextSubsystem();
-    const UTextSubsystem& GetTextSubsystem() const;
-
     UOverlaySubsystem& GetOverlaySubsystem();
     const UOverlaySubsystem& GetOverlaySubsystem() const;
-
-    ULightSubsystem& GetLightSubsystem();
-    const ULightSubsystem& GetLightSubsystem() const;
 
     JG_DECLARE_DERIVED_TYPEINFO(UWorld, UObject);
 

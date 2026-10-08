@@ -2,7 +2,7 @@
 #include "World/Component/UPrimitiveComponent.h"
 #include "Core/Base/FAssetHandle.h"
 #include "Core/Asset/FAssetPath.h"
-#include "RenderCore/FRenderProbe.h"
+#include "RenderCore/FRenderData.h"
 #include "Core/STL.h"
 #include "Asset/UFont.h"
 
@@ -11,6 +11,7 @@ public:
     UBillboardTextComponent() = default;
     ~UBillboardTextComponent() override = default;
 
+public:
     JG_DECLARE_DERIVED_TYPEINFO(UBillboardTextComponent, UPrimitiveComponent);
 
     void SetFontHandle(FAssetHandle InFontHandle);
@@ -34,11 +35,12 @@ public:
     float GetLineSpacing() const;
 
     const TArray<FTextVertex>& GetVertices() const;
-    virtual bool MakeTextRender(FTextProbe& OutProbe) const;
 
-    // 기존 FTextProbe를 직접 생성한다.
+    bool ShouldCreateRenderState() const override;
+    std::unique_ptr<FPrimitiveSceneProxy> CreateSceneProxy() const override;
+    void SendRenderTransform() override;
+
     void OnRegister() override;
-    void OnUnregister() override;
 
 protected:
     virtual bool TryGetTextWorld(FMatrix& OutWorld) const;

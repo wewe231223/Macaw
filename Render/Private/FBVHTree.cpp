@@ -9,51 +9,28 @@ bool FBVHNode::IsLeaf() const {
     return mLeftChild == -1 && mRightChild == -1;
 }
 
-void FBVHTree::Build(const TArray<FActorProbe>& Probes) {
-    Clear();
-
-    constexpr std::size_t MaximumLeafCount{(static_cast<std::size_t>((std::numeric_limits<Int32>::max)()) + 1) / 2};
-
-    if (Probes.empty() || Probes.size() > MaximumLeafCount) {
-        return;
-    }
-
-    TArray<DirectX::BoundingBox> Bounds{};
-    TArray<Uint32> Indices{};
-
-    Bounds.reserve(Probes.size());
-    Indices.reserve(Probes.size());
-
-    for (std::size_t Index{}; Index < Probes.size(); ++Index) {
-        Bounds.push_back(Probes[Index].mWorldAABB);
-        Indices.push_back(static_cast<Uint32>(Index));
-    }
-
-    Build(Bounds, Indices);
-}
-
 void FBVHTree::Build(std::span<const DirectX::BoundingBox> Bounds, std::span<const Uint32> Indices) {
     Clear();
 
-    constexpr std::size_t MaximumProbeCount{static_cast<std::size_t>((std::numeric_limits<Int32>::max)()) + 1};
-    constexpr std::size_t MaximumLeafCount{MaximumProbeCount / 2};
+    constexpr std::size_t MaximumObjectCount{static_cast<std::size_t>((std::numeric_limits<Int32>::max)()) + 1};
+    constexpr std::size_t MaximumLeafCount{MaximumObjectCount / 2};
 
-    if (Indices.empty() || Bounds.empty() || Bounds.size() > MaximumProbeCount || Indices.size() > MaximumLeafCount) {
+    if (Indices.empty() || Bounds.empty() || Bounds.size() > MaximumObjectCount || Indices.size() > MaximumLeafCount) {
         return;
     }
 
-    mProbeLeaves.assign(Bounds.size(), -1);
+    mObjectLeaves.assign(Bounds.size(), -1);
 
     for (const Uint32 Index : Indices) {
-        if (Index >= Bounds.size() || mProbeLeaves[Index] != -1) {
+        if (Index >= Bounds.size() || mObjectLeaves[Index] != -1) {
             Clear();
             return;
         }
 
-        mProbeLeaves[Index] = 0;
+        mObjectLeaves[Index] = 0;
     }
 
-    std::fill(mProbeLeaves.begin(), mProbeLeaves.end(), -1);
+    std::fill(mObjectLeaves.begin(), mObjectLeaves.end(), -1);
     mIndices.assign(Indices.begin(), Indices.end());
     mNodes.reserve(Indices.size() * 2 - 1);
 
@@ -63,7 +40,7 @@ void FBVHTree::Build(std::span<const DirectX::BoundingBox> Bounds, std::span<con
 void FBVHTree::Clear() {
     mNodes.clear();
     mIndices.clear();
-    mProbeLeaves.clear();
+    mObjectLeaves.clear();
     mRootIndex = -1;
 }
 
@@ -71,12 +48,12 @@ const TArray<FBVHNode>& FBVHTree::GetNodes() const {
     return mNodes;
 }
 
-void FBVHTree::UpdateBounds(Uint32 ProbeIndex, const DirectX::BoundingBox& Bounds) {
-    if (ProbeIndex >= mProbeLeaves.size()) {
+void FBVHTree::UpdateBounds(Uint32 ObjectIndex, const DirectX::BoundingBox& Bounds) {
+    if (ObjectIndex >= mObjectLeaves.size()) {
         return;
     }
 
-    const Int32 LeafIndex{mProbeLeaves[ProbeIndex]};
+    const Int32 LeafIndex{mObjectLeaves[ObjectIndex]};
 
     if (LeafIndex != -1) {
         mNodes[LeafIndex].mBounds = Bounds;
@@ -100,12 +77,12 @@ void FBVHTree::Refit(std::span<const Uint32> ChangedIndices) {
         return;
     }
 
-    for (const Uint32 ProbeIndex : ChangedIndices) {
-        if (ProbeIndex >= mProbeLeaves.size() || mProbeLeaves[ProbeIndex] == -1) {
+    for (const Uint32 ObjectIndex : ChangedIndices) {
+        if (ObjectIndex >= mObjectLeaves.size() || mObjectLeaves[ObjectIndex] == -1) {
             continue;
         }
 
-        Int32 NodeIndex{mNodes[mProbeLeaves[ProbeIndex]].mParentIndex};
+        Int32 NodeIndex{mNodes[mObjectLeaves[ObjectIndex]].mParentIndex};
 
         while (NodeIndex != -1) {
             FBVHNode& Node{mNodes[NodeIndex]};
@@ -114,14 +91,6 @@ void FBVHTree::Refit(std::span<const Uint32> ChangedIndices) {
             NodeIndex = Node.mParentIndex;
         }
     }
-}
-
-void FBVHTree::FrustumCull(const FFrustum& Frustum, const TArray<FActorProbe>& Probes, TArray<FActorProbe>& OutVisibleProbes) const {
-    if (mRootIndex == -1 || Probes.empty()) {
-        return;
-    }
-
-    CullRecursive(mRootIndex, Frustum, Probes, OutVisibleProbes);
 }
 
 void FBVHTree::FrustumCull(const FFrustum& Frustum, TArray<Uint32>& OutIndices) const {
@@ -189,11 +158,11 @@ Int32 FBVHTree::BuildRecursive(std::span<const DirectX::BoundingBox> Bounds, std
     mNodes[NodeIndex].mIndexCount = static_cast<Uint32>(Count);
 
     if (Count == 1) {
-        const Uint32 ProbeIndex{mIndices[Start]};
+        const Uint32 ObjectIndex{mIndices[Start]};
 
-        mNodes[NodeIndex].mBounds = Bounds[ProbeIndex];
-        mNodes[NodeIndex].mProbeIndex = static_cast<Int32>(ProbeIndex);
-        mProbeLeaves[ProbeIndex] = NodeIndex;
+        mNodes[NodeIndex].mBounds = Bounds[ObjectIndex];
+        mNodes[NodeIndex].mObjectIndex = static_cast<Int32>(ObjectIndex);
+        mObjectLeaves[ObjectIndex] = NodeIndex;
         return NodeIndex;
     }
 
@@ -248,39 +217,6 @@ Int32 FBVHTree::BuildRecursive(std::span<const DirectX::BoundingBox> Bounds, std
     return NodeIndex;
 }
 
-void FBVHTree::CullRecursive(Int32 NodeIndex, const FFrustum& Frustum, const TArray<FActorProbe>& Probes, TArray<FActorProbe>& OutVisibleProbes) const {
-    if (NodeIndex == -1) {
-        return;
-    }
-
-    const FBVHNode& Node{mNodes[NodeIndex]};
-    const DirectX::ContainmentType Containment{Frustum.Contains(Node.mBounds)};
-
-    if (Containment == DirectX::DISJOINT) {
-        return;
-    }
-
-    if (Containment == DirectX::CONTAINS) {
-        CollectAllLeaves(NodeIndex, Probes, OutVisibleProbes);
-        return;
-    }
-
-    if (Node.IsLeaf()) {
-        if (static_cast<std::size_t>(Node.mProbeIndex) >= Probes.size()) {
-            return;
-        }
-
-        const FActorProbe& Probe{Probes[Node.mProbeIndex]};
-
-        if (Frustum.Intersects(Probe.mWorldOBB)) {
-            OutVisibleProbes.push_back(Probe);
-        }
-    } else {
-        CullRecursive(Node.mLeftChild, Frustum, Probes, OutVisibleProbes);
-        CullRecursive(Node.mRightChild, Frustum, Probes, OutVisibleProbes);
-    }
-}
-
 void FBVHTree::CullRecursive(Int32 NodeIndex, const FFrustum& Frustum, TArray<Uint32>& OutIndices) const {
     if (NodeIndex == -1) {
         return;
@@ -296,7 +232,7 @@ void FBVHTree::CullRecursive(Int32 NodeIndex, const FFrustum& Frustum, TArray<Ui
     if (Containment == DirectX::CONTAINS) {
         CollectAllLeaves(NodeIndex, OutIndices);
     } else if (Node.IsLeaf()) {
-        OutIndices.push_back(static_cast<Uint32>(Node.mProbeIndex));
+        OutIndices.push_back(static_cast<Uint32>(Node.mObjectIndex));
     } else {
         CullRecursive(Node.mLeftChild, Frustum, OutIndices);
         CullRecursive(Node.mRightChild, Frustum, OutIndices);
@@ -335,30 +271,11 @@ void FBVHTree::CullRecursive(Int32 NodeIndex, const std::array<DirectX::XMFLOAT4
             OutBoundaryPositions->push_back(static_cast<Uint32>(OutIndices.size()));
         }
 
-        OutIndices.push_back(static_cast<Uint32>(Node.mProbeIndex));
+        OutIndices.push_back(static_cast<Uint32>(Node.mObjectIndex));
     } else {
         CullRecursive(Node.mLeftChild, Planes, OutIndices, OutBoundaryPositions);
         CullRecursive(Node.mRightChild, Planes, OutIndices, OutBoundaryPositions);
     }
-}
-
-void FBVHTree::CollectAllLeaves(Int32 NodeIndex, const TArray<FActorProbe>& Probes, TArray<FActorProbe>& OutVisibleProbes) const {
-    if (NodeIndex == -1) {
-        return;
-    }
-
-    const FBVHNode& Node{mNodes[NodeIndex]};
-
-    if (Node.IsLeaf()) {
-        if (static_cast<std::size_t>(Node.mProbeIndex) < Probes.size()) {
-            OutVisibleProbes.push_back(Probes[Node.mProbeIndex]);
-        }
-
-        return;
-    }
-
-    CollectAllLeaves(Node.mLeftChild, Probes, OutVisibleProbes);
-    CollectAllLeaves(Node.mRightChild, Probes, OutVisibleProbes);
 }
 
 void FBVHTree::CollectAllLeaves(Int32 NodeIndex, TArray<Uint32>& OutIndices) const {

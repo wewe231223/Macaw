@@ -268,9 +268,9 @@ bool FEditorViewport::TryCalculateDropPosition(const ImVec2& ScreenPosition, FVe
     }
 
     const Stat::FScopedPickingStatTimer PickingTimer{};
-    CameraProbe Camera{};
+    FViewMatrices Camera{};
 
-    if (!BuildCameraProbe(Camera)) {
+    if (!BuildViewMatrices(Camera)) {
         return false;
     }
 
@@ -339,8 +339,8 @@ void FEditorViewport::ProcessInput(EditorViewport& SharedEditorViewport, FKeyboa
         ResizeRenderSurface();
     }
 
-    CameraProbe Camera{};
-    const bool BHasCamera{BuildCameraProbe(Camera)};
+    FViewMatrices Camera{};
+    const bool BHasCamera{BuildViewMatrices(Camera)};
     const bool BBlockMouse{BInputBlocked || !mBVisible || !mBHovered || !BHasCamera};
 
     if (BHasCamera) {
@@ -387,31 +387,31 @@ void FEditorViewport::ResizeRenderSurface() {
     }
 }
 
-bool FEditorViewport::BuildCameraProbe(CameraProbe& OutCamera) {
+bool FEditorViewport::BuildViewMatrices(FViewMatrices& OutCamera) {
     if (mWidth == 0 || mHeight == 0) {
         return false;
     }
 
-    if (!IsCameraProbeCurrent()) {
+    if (!IsViewMatricesCurrent()) {
         const FTransform CameraTransform{mCameraPosition, mCameraRotation, FVector3{1.0f, 1.0f, 1.0f}};
         const FMatrix CameraWorld{UCameraComponent::CameraBasis * CameraTransform.ToMatrixNoScale()};
         const float AspectRatio{static_cast<float>(mWidth) / static_cast<float>(mHeight)};
 
-        mCachedCameraProbe.mView = CameraWorld.Inverse();
+        mViewMatrices.mView = CameraWorld.Inverse();
 
         if (mProjectionType == EProjectionType::Perspective) {
-            mCachedCameraProbe.mProjection = FMatrix::CreatePerspectiveFieldOfView(mFieldOfView, AspectRatio, mNearPlane, mFarPlane);
+            mViewMatrices.mProjection = FMatrix::CreatePerspectiveFieldOfView(mFieldOfView, AspectRatio, mNearPlane, mFarPlane);
 
             FFrustum LocalFrustum{};
 
-            FFrustum::CreateFromMatrix(LocalFrustum, mCachedCameraProbe.mProjection.ToSimpleMath());
-            LocalFrustum.Transform(mCachedCameraProbe.mViewFrustum, CameraWorld.ToSimpleMath());
+            FFrustum::CreateFromMatrix(LocalFrustum, mViewMatrices.mProjection.ToSimpleMath());
+            LocalFrustum.Transform(mViewMatrices.mViewFrustum, CameraWorld.ToSimpleMath());
         } else {
-            mCachedCameraProbe.mProjection = FMatrix::CreateOrthographic(mOrthographicWidth, mOrthographicWidth / AspectRatio, mNearPlane, mFarPlane);
-            mCachedCameraProbe.mViewFrustum = {};
+            mViewMatrices.mProjection = FMatrix::CreateOrthographic(mOrthographicWidth, mOrthographicWidth / AspectRatio, mNearPlane, mFarPlane);
+            mViewMatrices.mViewFrustum = {};
         }
 
-        mCachedCameraProbe.mViewProjection = mCachedCameraProbe.mView * mCachedCameraProbe.mProjection;
+        mViewMatrices.mViewProjection = mViewMatrices.mView * mViewMatrices.mProjection;
         mCachedCameraPosition = mCameraPosition;
         mCachedCameraRotation = mCameraRotation;
         mCachedProjectionType = mProjectionType;
@@ -421,21 +421,21 @@ bool FEditorViewport::BuildCameraProbe(CameraProbe& OutCamera) {
         mCachedFarPlane = mFarPlane;
         mCachedWidth = mWidth;
         mCachedHeight = mHeight;
-        mHasCachedCameraProbe = true;
+        mHasViewMatrices = true;
     }
 
-    OutCamera = mCachedCameraProbe;
+    OutCamera = mViewMatrices;
 
     return true;
 }
 
-bool FEditorViewport::IsCameraProbeCurrent() const {
+bool FEditorViewport::IsViewMatricesCurrent() const {
     const bool PositionMatches{mCachedCameraPosition == mCameraPosition};
     const bool RotationMatches{mCachedCameraRotation.mX == mCameraRotation.mX && mCachedCameraRotation.mY == mCameraRotation.mY && mCachedCameraRotation.mZ == mCameraRotation.mZ && mCachedCameraRotation.mW == mCameraRotation.mW};
     const bool ProjectionMatches{mCachedProjectionType == mProjectionType && mCachedFieldOfView == mFieldOfView && mCachedOrthographicWidth == mOrthographicWidth && mCachedNearPlane == mNearPlane && mCachedFarPlane == mFarPlane};
     const bool SizeMatches{mCachedWidth == mWidth && mCachedHeight == mHeight};
 
-    return mHasCachedCameraProbe && PositionMatches && RotationMatches && ProjectionMatches && SizeMatches;
+    return mHasViewMatrices && PositionMatches && RotationMatches && ProjectionMatches && SizeMatches;
 }
 
 void FEditorViewport::ApplyMouseNavigation(const FViewportMouseNavigationInput& NavigationInput) {

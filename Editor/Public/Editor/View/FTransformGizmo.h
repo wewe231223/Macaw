@@ -7,7 +7,7 @@
 #include "Asset/FAssetRegistry.h"
 #include "Asset/UMaterial.h"
 #include "Asset/UMesh.h"
-#include "RenderCore/FRenderProbe.h"
+#include "RenderCore/FOverlayRenderData.h"
 #include "CoreUObject/TObjectRef.h"
 #include "Core/Channel/FStateChannel.h"
 #include "Editor/World/FWorldEditorContext.h"
@@ -72,8 +72,8 @@ public:
     void Initialize(ID3D11Device* Device, FAssetRegistry& AssetRegistry, FWorldEditorContext& InEditorContext);
 
     void ProcessInput(FKeyboardInput& KeyboardInput, FMouseInput& MouseInput, bool BMouseCapturedByUi);
-    void Update(const CameraProbe& Camera, const D3D11_VIEWPORT& Viewport);
-    void BuildGizmoProbes(TArray<FActorProbe>& GizmoProbes);
+    void Update(const FViewMatrices& Camera, const D3D11_VIEWPORT& Viewport);
+    void BuildGizmoDrawData(TArray<FOverlayMeshDrawData>& GizmoMeshes);
 
     FStateChannel<Uint8>::FReadWriter GetGizmoMode();
 
@@ -149,7 +149,7 @@ private:
     FStateChannel<Uint8> mGizmoCoordinateSpaceChannel{};
     FStateChannel<Uint8>::FReadWriter mGizmoCoordinateSpace{};
 
-    CameraProbe mLastCamera{};
+    FViewMatrices mLastCamera{};
     D3D11_VIEWPORT mLastViewport{};
 
     std::optional<FDragSession> mDragSession{};

@@ -1,6 +1,5 @@
 #include "pch.h"
 #include "Render/FRenderScene.h"
-#include "RenderCore/FStaticMeshSceneProxy.h"
 #include "Render/FStaticMeshBatchCollector.h"
 #include "Render/FMeshPassProcessor.h"
 #include "CoreUObject/Asset/IAssetRegistry.h"
@@ -25,38 +24,28 @@ FRenderScene::FRenderScene(Uint64 SceneId)
 	: mSceneId(SceneId) {
 }
 
-void FRenderScene::Synchronize(const IAssetRegistry* Registry, FSceneRenderData& Scene, const FMaterialBuffer& Materials, FRenderAssetResources* Resources) {
-    FSceneUpdateBatch Updates{};
-
-    std::swap(Updates.mRenderData, Scene);
-    Synchronize(Registry, Updates, Materials, Resources);
-    std::swap(Updates.mRenderData, Scene);
-}
-
 void FRenderScene::Synchronize(const IAssetRegistry* Registry, FSceneUpdateBatch& Updates, const FMaterialBuffer& Materials, FRenderAssetResources* Resources) {
-    FSceneRenderData& Scene{Updates.mRenderData};
-
-    mLightProbes.swap(Scene.mLightProbes);
-    mTextProbes.swap(Scene.mTextProbes);
-    mBillboardProbes.swap(Scene.mBillboardProbes);
-
-    Scene.mLightProbes.clear();
-    Scene.mTextProbes.clear();
-    Scene.mBillboardProbes.clear();
-
     mChangedObjects.clear();
     mObjectsChanged = false;
-
-    if (!mSourceRevision.IsCurrent(Scene.mRevision)) {
-        ApplyObjectUpdates(Scene);
-        mSourceRevision.Commit(Scene.mRevision);
-    }
 
     for (FPrimitiveSceneUpdate& Update : Updates.mPrimitiveUpdates) {
         ApplyPrimitiveUpdate(Update);
     }
 
+    for (FLightSceneUpdate& Update : Updates.mLightUpdates) {
+        ApplyLightUpdate(Update);
+    }
+
+    if (!Updates.mLightUpdates.empty()) {
+        mLightParameters.clear();
+
+        for (const auto& Entry : mLights) {
+            mLightParameters.push_back(Entry.second->GetShaderParameters());
+        }
+    }
+
     Updates.mPrimitiveUpdates.clear();
+    Updates.mLightUpdates.clear();
     CommitObjectChanges();
 
     UpdateBounds();
@@ -111,16 +100,8 @@ const TArray<std::shared_ptr<const FMeshDrawCommand>>& FRenderScene::GetCachedMe
     return mCommandCache.GetCommands();
 }
 
-const TArray<FLightProbe>& FRenderScene::GetLightProbes() const {
-    return mLightProbes;
-}
-
-const TArray<FTextProbe>& FRenderScene::GetTextProbes() const {
-    return mTextProbes;
-}
-
-const TArray<FBillboardProbe>& FRenderScene::GetBillboardProbes() const {
-    return mBillboardProbes;
+const TArray<FLightShaderParameters>& FRenderScene::GetLights() const {
+    return mLightParameters;
 }
 
 void FRenderScene::QueryFrustum(const FMatrix& ViewProjection, TArray<Uint32>& OutIndices, TArray<Uint32>* OutBoundaryPositions) const {
@@ -128,23 +109,6 @@ void FRenderScene::QueryFrustum(const FMatrix& ViewProjection, TArray<Uint32>& O
     mBoundsTree.FrustumCull(ViewProjection, OutIndices, OutBoundaryPositions);
 
     OutIndices.insert(OutIndices.end(), mUnboundedObjects.begin(), mUnboundedObjects.end());
-}
-
-void FRenderScene::ApplyObjectUpdates(const FSceneRenderData& Scene) {
-    for (const FRenderObjectUpdate& ObjectUpdate : Scene.mObjectUpdates) {
-        FPrimitiveSceneUpdate Update{};
-
-        Update.mComponentHandle = ObjectUpdate.mComponentHandle;
-
-        if (!ObjectUpdate.mRemoved) {
-            const FActorProbe& Probe{ObjectUpdate.mProbe};
-
-            Update.mType = EPrimitiveSceneUpdate::Create;
-            Update.mProxy = std::make_unique<FStaticMeshSceneProxy>(ObjectUpdate.mComponentHandle, Probe.mOwnerHandle, FPrimitiveTransform{Probe.mWorld, Probe.mWorldSphereBounds, Probe.mWorldOBB, Probe.mWorldAABB}, FMeshSceneData{Probe.mMeshHandle, Probe.mMaterialHandle, Probe.mPipelineHandle});
-        }
-
-        ApplyPrimitiveUpdate(Update);
-    }
 }
 
 void FRenderScene::ApplyPrimitiveUpdate(FPrimitiveSceneUpdate& Update) {
@@ -155,12 +119,12 @@ void FRenderScene::ApplyPrimitiveUpdate(FPrimitiveSceneUpdate& Update) {
     const Uint64 Key{MakeObjectKey(Update.mComponentHandle)};
     const auto Position{mObjectLookup.find(Key)};
 
-    if (Update.mType == EPrimitiveSceneUpdate::Remove) {
+    if (Update.mType == ESceneUpdateType::Remove) {
         if (Position != mObjectLookup.end()) {
             RemoveObject(Position->second);
             mObjectLookup.erase(Position);
         }
-    } else if (Update.mType == EPrimitiveSceneUpdate::Transform) {
+    } else if (Update.mType == ESceneUpdateType::Transform) {
         if (Position != mObjectLookup.end()) {
             mObjects[Position->second].mProxy->SetTransform(Update.mTransform);
             UpdateObjectTransform(Position->second, Update.mTransform);
@@ -303,10 +267,22 @@ void FRenderScene::RefreshStaticMeshes(const IAssetRegistry* Registry, const FMa
             continue;
         }
 
-        const FMeshSceneData& MeshData{Primitive.mProxy->GetMeshData()};
-        const UMesh* Mesh{Registry != nullptr ? Registry->ResolveAsset<UMesh>(MeshData.mMeshHandle) : nullptr};
+        const FMeshSceneData* MeshData{Primitive.mProxy->GetMeshData()};
+
+        if (MeshData == nullptr) {
+            Primitive.mSky = false;
+            Primitive.mAvailableLODMask = 0;
+
+            for (TArray<Uint32>& Commands : Primitive.mCachedCommandsByLOD) {
+                Commands.clear();
+            }
+
+            continue;
+        }
+
+        const UMesh* Mesh{Registry != nullptr ? Registry->ResolveAsset<UMesh>(MeshData->mMeshHandle) : nullptr};
         const Uint64 MeshRevision{Mesh != nullptr ? Mesh->GetRenderRevision() : 0};
-        Primitive.mSky = static_cast<bool>(SkyPipeline) && MeshData.mPipelineHandle == SkyPipeline;
+        Primitive.mSky = static_cast<bool>(SkyPipeline) && MeshData->mPipelineHandle == SkyPipeline;
         Primitive.mAvailableLODMask = 0;
 
         for (TArray<Uint32>& Commands : Primitive.mCachedCommandsByLOD) {
@@ -387,4 +363,35 @@ void FRenderScene::RebuildBounds() {
 
     mBoundsTree.Build(mBuildBounds, mBoundsObjects);
     mTopologyDirty = false;
+}
+
+void FRenderScene::CollectDynamicMeshElements(FDynamicPrimitiveDrawInterface& DrawInterface) const {
+    for (const FPrimitiveSceneInfo& Primitive : mObjects) {
+        if (Primitive.mActive) {
+            Primitive.mProxy->GetDynamicMeshElements(DrawInterface);
+        }
+    }
+}
+
+const FLightSceneProxy* FRenderScene::FindLight(FObjectHandle ComponentHandle) const {
+    const auto Position{mLights.find(MakeObjectKey(ComponentHandle))};
+
+    return Position != mLights.end() ? Position->second.get() : nullptr;
+}
+
+void FRenderScene::ApplyLightUpdate(FLightSceneUpdate& Update) {
+    if (!Update.mComponentHandle.IsValid()) {
+        return;
+    }
+
+    const Uint64 Key{MakeObjectKey(Update.mComponentHandle)};
+    const auto Position{mLights.find(Key)};
+
+    if (Update.mType == ESceneUpdateType::Remove) {
+        mLights.erase(Key);
+    } else if (Update.mType == ESceneUpdateType::Create && Update.mProxy != nullptr && Update.mProxy->GetComponentHandle() == Update.mComponentHandle) {
+        mLights[Key] = std::move(Update.mProxy);
+    } else if (Update.mType == ESceneUpdateType::Transform && Position != mLights.end()) {
+        Position->second->SetTransform(Update.mWorld);
+    }
 }

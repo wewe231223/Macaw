@@ -72,7 +72,6 @@ bool FRenderer::Initialize() {
         }
     }
 
-
     return true;
 }
 
@@ -198,22 +197,6 @@ void FRenderer::BeginFrame() {
     }
 }
 
-const FRenderScene& FRenderer::SynchronizeScene(FSceneRenderData& Scene) {
-    const Uint64 SceneId{Scene.mSceneId != 0 ? Scene.mSceneId : mTransientSceneId};
-    FRendererScene& RendererScene{FindOrAddScene(SceneId)};
-    FSceneUpdateBatch Updates{RendererScene.GetHandle(), {}, false};
-
-    std::swap(Updates.mRenderData, Scene);
-    Updates.mRenderData.mSceneId = SceneId;
-
-    const bool Applied{ApplySceneUpdates(Updates)};
-
-    std::swap(Updates.mRenderData, Scene);
-    ErrorHandler::Report(!Applied, "FRenderer", "Cannot synchronize render scene", ErrorHandler::EErrorLevel::Error);
-
-    return RendererScene.GetRenderScene();
-}
-
 std::weak_ptr<FSceneInterface> FRenderer::CreateScene() {
     const Uint64 SceneId{AllocateRenderSceneId()};
 
@@ -258,20 +241,10 @@ const FRenderScene* FRenderer::FindScene(FSceneHandle Handle) const {
     return Handle.IsValid() && Position != mRenderScenes.end() && Position->second->GetHandle() == Handle ? &Position->second->GetRenderScene() : nullptr;
 }
 
-FRendererScene& FRenderer::FindOrAddScene(Uint64 SceneId) {
-    const auto Position{mRenderScenes.find(SceneId)};
-
-    if (Position != mRenderScenes.end()) {
-        return *Position->second;
-    }
-
-    return *mRenderScenes.emplace(SceneId, std::make_shared<FRendererScene>(*this, FSceneHandle{SceneId, AllocateSceneGeneration()})).first->second;
-}
-
 bool FRenderer::ApplySceneUpdates(FSceneUpdateBatch& Updates) {
     const auto Position{mRenderScenes.find(Updates.mSceneHandle.mId)};
 
-    if (!Updates.mSceneHandle.IsValid() || Position == mRenderScenes.end() || Position->second->GetHandle() != Updates.mSceneHandle || Updates.mRenderData.mSceneId != Updates.mSceneHandle.mId) {
+    if (!Updates.mSceneHandle.IsValid() || Position == mRenderScenes.end() || Position->second->GetHandle() != Updates.mSceneHandle) {
         return false;
     }
 
@@ -312,12 +285,6 @@ void FRenderer::ReleaseScenes() {
     }
 
     mRenderScenes.clear();
-}
-
-void FRenderer::RenderView(const FRenderView& View, FSceneRenderData& Scene, const FOverlayRenderData& Overlay) {
-    const FRenderScene& RenderScene{SynchronizeScene(Scene)};
-
-    RenderView(View, RenderScene, Overlay);
 }
 
 void FRenderer::RenderView(const FRenderView& View, const FRenderScene& Scene, const FOverlayRenderData& Overlay) {

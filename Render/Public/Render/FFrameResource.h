@@ -60,7 +60,7 @@ private:
         FGraphicsBuffer mViewConstants{};
         FGraphicsBuffer mOrientationAxisConstants{};
 
-        TGraphicsArray<FLightProbe, true, true> mLights{};
+        TGraphicsArray<FLightShaderParameters, true, true> mLights{};
 
         TGraphicsArray<FMeshDrawRecord, true, true> mDrawRecords{};
         TGraphicsArray<FMatrix, true, true> mLocalTransforms{};
@@ -84,8 +84,8 @@ public:
     void EndFrame();
 
     bool PrepareView(ID3D11Device* Device, ID3D11DeviceContext* Context, const FRenderView& View, const FRenderScene& Scene, const FRenderQueue& Queue);
-    bool PrepareView(ID3D11Device* Device, ID3D11DeviceContext* Context, const CameraProbe& Camera, const D3D11_VIEWPORT& Viewport, const FVector4& GridFade, const TArray<FMatrix>& Transforms, const TArray<FMeshDrawRecord>& Records);
-    bool PrepareOrientationAxis(ID3D11DeviceContext* Context, const CameraProbe& Camera, const D3D11_VIEWPORT& Viewport);
+    bool PrepareView(ID3D11Device* Device, ID3D11DeviceContext* Context, const FViewMatrices& Camera, const D3D11_VIEWPORT& Viewport, const FVector4& GridFade, const TArray<FMatrix>& Transforms, const TArray<FMeshDrawRecord>& Records);
+    bool PrepareOrientationAxis(ID3D11DeviceContext* Context, const FViewMatrices& Camera, const D3D11_VIEWPORT& Viewport);
 
     bool BindCommon(ID3D11DeviceContext* Context, bool OrientationAxis = false) const;
     bool BindModels(ID3D11DeviceContext* Context) const;
@@ -100,8 +100,8 @@ public:
 private:
     bool InitializeConstantBuffer(ID3D11Device* Device, FGraphicsBuffer& Buffer, Uint32 ByteSize);
 
-    bool UploadViewConstants(ID3D11DeviceContext* Context, FGraphicsBuffer& Buffer, const CameraProbe& Camera, const D3D11_VIEWPORT& Viewport, const FVector4& GridFade, bool& HasCameraWorld);
-    bool PrepareViewBuffers(ID3D11Device* Device, ID3D11DeviceContext* Context, const TArray<FLightProbe>& Lights);
+    bool UploadViewConstants(ID3D11DeviceContext* Context, FGraphicsBuffer& Buffer, const FViewMatrices& Camera, const D3D11_VIEWPORT& Viewport, const FVector4& GridFade, bool& HasCameraWorld);
+    bool PrepareViewBuffers(ID3D11Device* Device, ID3D11DeviceContext* Context, const TArray<FLightShaderParameters>& Lights);
     bool UploadModels(ID3D11Device* Device, ID3D11DeviceContext* Context, const TArray<FMeshDrawRecord>& Records);
 
     bool PrepareSceneTransforms(ID3D11Device* Device, ID3D11DeviceContext* Context, const FRenderScene& Scene);

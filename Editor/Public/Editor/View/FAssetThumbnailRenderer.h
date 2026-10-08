@@ -4,7 +4,7 @@
 #include <cstddef>
 #include <memory>
 #include "Asset/FAssetRegistry.h"
-#include "RenderCore/FRenderProbe.h"
+#include "Editor/View/FPreviewScene.h"
 #include "Render/FSceneRenderSurface.h"
 #include "Render/Renderer.h"
 #include "Asset/UMesh.h"
@@ -41,7 +41,7 @@ private:
     void RenderThumbnail(const FAssetEntry& Entry, FSceneRenderSurface* PreviewSurface = nullptr);
 
     FMatrix BuildMeshTransform(const UMesh& Mesh) const;
-    CameraProbe BuildCamera() const;
+    FViewMatrices BuildCamera() const;
     FMatrix MakeCameraWorldMatrix(const FVector& Eye, const FVector& Target) const;
 
     const FAssetEntry* FindAssetEntry(FAssetHandle AssetHandle) const;
@@ -51,8 +51,7 @@ private:
 private:
     FRenderer* mRenderer{nullptr};
     FAssetRegistry* mAssetRegistry{nullptr};
-    Uint64 mRenderSceneId{AllocateRenderSceneId()};
-    Uint64 mRenderSceneRevision{};
+    FPreviewScene mPreviewScene{};
 
     TMap<Uint64, FThumbnail> mThumbnails{};
     TArray<FAssetHandle> mPendingAssetHandles{};

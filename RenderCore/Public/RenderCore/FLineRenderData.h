@@ -2,7 +2,7 @@
 #include "Core/STL.h"
 #include "Core/Debug/ILineDrawContext.h"
 
-struct FLineProbe {
+struct FLineDrawData {
     FVector3 mStart{};
     FVector3 mEnd{};
     FVector4 mColor{};
@@ -17,9 +17,9 @@ public:
     void AddGridLine(const FVector3& Start, const FVector3& End, const FVector4& Color, float WidthPixels, float GridSpacing, ELineDepthMode DepthMode);
     void AddRay(const FVector3& Origin, const FVector3& Direction, float Length, const FVector4& Color, float WidthPixels = 1.0f, ELineDepthMode DepthMode = ELineDepthMode::DepthTested);
 
-    const TArray<FLineProbe>& GetLines() const;
+    const TArray<FLineDrawData>& GetLines() const;
     void Clear();
 
 private:
-    TArray<FLineProbe> mLines{};
+    TArray<FLineDrawData> mLines{};
 };

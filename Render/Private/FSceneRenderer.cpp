@@ -2,6 +2,7 @@
 #include "Render/FSceneRenderer.h"
 #include "Render/FFrameResource.h"
 #include "Render/FRenderScene.h"
+#include "Render/FViewElementCollector.h"
 #include "Core/Stat/Stat.h"
 
 bool FSceneRenderer::Initialize(ID3D11Device* Device) {
@@ -137,11 +138,15 @@ FSceneRenderOutput FSceneRenderer::RenderView(const FRenderContext& Context, con
 }
 
 void FSceneRenderer::RenderTextAndBillboards(const FRenderContext& Context, const FRenderView& View, const FRenderScene& Scene) {
+    FViewElementCollector Collector{View};
+
+    Scene.CollectDynamicMeshElements(Collector);
+
     if (View.IsPassEnabled(ERenderPass::Text)) {
-        mTextRenderer.Render(Context.mDeviceContext, *Context.mFrameResource, Scene.GetTextProbes(), Context.mAssetRegistry, *Context.mAssetResources);
+        mTextRenderer.Render(Context.mDeviceContext, *Context.mFrameResource, Collector.GetTextDraws(), Context.mAssetRegistry, *Context.mAssetResources);
     }
 
     if (View.IsPassEnabled(ERenderPass::Billboard)) {
-        mBillboardRenderer.Render(Context.mDeviceContext, *Context.mFrameResource, Scene.GetBillboardProbes(), Context.mAssetRegistry, *Context.mAssetResources, View.mRenderMode);
+        mBillboardRenderer.Render(Context.mDeviceContext, *Context.mFrameResource, Collector.GetBillboardDraws(), Context.mAssetRegistry, *Context.mAssetResources, View.mRenderMode);
     }
 }

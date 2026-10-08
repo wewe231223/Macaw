@@ -1,6 +1,6 @@
 #pragma once
 
-#include "RenderCore/FRenderProbe.h"
+#include "RenderCore/FRenderData.h"
 
 class UFont;
 class IAssetRegistryMutator;

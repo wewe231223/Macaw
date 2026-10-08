@@ -83,14 +83,14 @@ void FOverlayTextRenderer::Reset() {
     mDevice = nullptr;
 }
 
-const TArray<FTextVertex>* FOverlayTextRenderer::GetTextGeometry(const FOverlayTextProbe& Probe, const UFont& Font, FAssetHandle FontHandle) {
-    if (mAssetRegistryMutator == nullptr || Probe.mText.empty() || !std::isfinite(Probe.mPixelHeight) || Probe.mPixelHeight <= 0.0f || !std::isfinite(Probe.mLetterSpacing) || !std::isfinite(Probe.mLineSpacing)) {
+const TArray<FTextVertex>* FOverlayTextRenderer::GetTextGeometry(const FOverlayTextDrawData& Data, const UFont& Font, FAssetHandle FontHandle) {
+    if (mAssetRegistryMutator == nullptr || Data.mText.empty() || !std::isfinite(Data.mPixelHeight) || Data.mPixelHeight <= 0.0f || !std::isfinite(Data.mLetterSpacing) || !std::isfinite(Data.mLineSpacing)) {
         return nullptr;
     }
 
-    TArray<FCachedText>& Entries{mTextCache[Probe.mText]};
-    auto Found{std::ranges::find_if(Entries, [&Probe, &Font, FontHandle](const FCachedText& Entry) {
-        return Entry.mFontHandle == FontHandle && Entry.mFontGuid == Font.GetGuid() && Entry.mPixelHeight == Probe.mPixelHeight && Entry.mLetterSpacing == Probe.mLetterSpacing && Entry.mLineSpacing == Probe.mLineSpacing;
+    TArray<FCachedText>& Entries{mTextCache[Data.mText]};
+    auto Found{std::ranges::find_if(Entries, [&Data, &Font, FontHandle](const FCachedText& Entry) {
+        return Entry.mFontHandle == FontHandle && Entry.mFontGuid == Font.GetGuid() && Entry.mPixelHeight == Data.mPixelHeight && Entry.mLetterSpacing == Data.mLetterSpacing && Entry.mLineSpacing == Data.mLineSpacing;
     })};
     const bool NeedsRebuild{Found == Entries.end() || Found->mFontRevision != Font.GetAtlasRevision()};
 
@@ -99,15 +99,15 @@ const TArray<FTextVertex>* FOverlayTextRenderer::GetTextGeometry(const FOverlayT
 
         Entry.mFontHandle = FontHandle;
         Entry.mFontGuid = Font.GetGuid();
-        Entry.mPixelHeight = Probe.mPixelHeight;
-        Entry.mLetterSpacing = Probe.mLetterSpacing;
-        Entry.mLineSpacing = Probe.mLineSpacing;
+        Entry.mPixelHeight = Data.mPixelHeight;
+        Entry.mLetterSpacing = Data.mLetterSpacing;
+        Entry.mLineSpacing = Data.mLineSpacing;
         Entries.push_back(std::move(Entry));
         Found = std::prev(Entries.end());
     }
 
     if (NeedsRebuild) {
-        if (!BuildTextGeometry(Font, *mAssetRegistryMutator, FontHandle, Probe.mText, Probe.mPixelHeight, Probe.mLetterSpacing, Probe.mLineSpacing, Found->mVertices)) {
+        if (!BuildTextGeometry(Font, *mAssetRegistryMutator, FontHandle, Data.mText, Data.mPixelHeight, Data.mLetterSpacing, Data.mLineSpacing, Found->mVertices)) {
             Entries.erase(Found);
             return nullptr;
         }
@@ -120,8 +120,8 @@ const TArray<FTextVertex>* FOverlayTextRenderer::GetTextGeometry(const FOverlayT
     return &Found->mVertices;
 }
 
-bool FOverlayTextRenderer::ProjectAnchor(const FOverlayTextProbe& Probe, const TArray<FTextVertex>& Vertices, const CameraProbe& Camera, const D3D11_VIEWPORT& Viewport, FVector2& Position) const {
-    const FVector4 Clip{TransformClip(Probe.mWorldAnchor, Camera.mViewProjection)};
+bool FOverlayTextRenderer::ProjectAnchor(const FOverlayTextDrawData& Data, const TArray<FTextVertex>& Vertices, const FViewMatrices& Camera, const D3D11_VIEWPORT& Viewport, FVector2& Position) const {
+    const FVector4 Clip{TransformClip(Data.mWorldAnchor, Camera.mViewProjection)};
 
     if (!std::isfinite(Clip.mX) || !std::isfinite(Clip.mY) || !std::isfinite(Clip.mZ) || !std::isfinite(Clip.mW) || Clip.mW <= 0.00001f || Clip.mZ < 0.0f || Clip.mZ > Clip.mW || Viewport.Width <= 0.0f || Viewport.Height <= 0.0f) {
         return false;
@@ -132,7 +132,7 @@ bool FOverlayTextRenderer::ProjectAnchor(const FOverlayTextProbe& Probe, const T
     float Top{Position.mY};
 
     for (Uint32 Index{}; Index < 8; ++Index) {
-        const FVector3 Corner{Probe.mWorldAnchor + FVector3{(Index & 1u) != 0 ? Probe.mWorldBoundsExtent.mX : -Probe.mWorldBoundsExtent.mX, (Index & 2u) != 0 ? Probe.mWorldBoundsExtent.mY : -Probe.mWorldBoundsExtent.mY, (Index & 4u) != 0 ? Probe.mWorldBoundsExtent.mZ : -Probe.mWorldBoundsExtent.mZ}};
+        const FVector3 Corner{Data.mWorldAnchor + FVector3{(Index & 1u) != 0 ? Data.mWorldBoundsExtent.mX : -Data.mWorldBoundsExtent.mX, (Index & 2u) != 0 ? Data.mWorldBoundsExtent.mY : -Data.mWorldBoundsExtent.mY, (Index & 4u) != 0 ? Data.mWorldBoundsExtent.mZ : -Data.mWorldBoundsExtent.mZ}};
         const FVector4 Bound{TransformClip(Corner, Camera.mViewProjection)};
 
         if (std::isfinite(Bound.mY) && std::isfinite(Bound.mW) && Bound.mW > 0.00001f && Bound.mZ >= 0.0f && Bound.mZ <= Bound.mW) {
@@ -146,13 +146,13 @@ bool FOverlayTextRenderer::ProjectAnchor(const FOverlayTextProbe& Probe, const T
         HalfHeight = std::max(HalfHeight, Glyph.mLocalPosition.mY);
     }
 
-    Position.mX += Probe.mScreenOffset.mX;
-    Position.mY = Top + Probe.mScreenOffset.mY - HalfHeight;
+    Position.mX += Data.mScreenOffset.mX;
+    Position.mY = Top + Data.mScreenOffset.mY - HalfHeight;
 
     return std::isfinite(Position.mX) && std::isfinite(Position.mY);
 }
 
-void FOverlayTextRenderer::Render(ID3D11DeviceContext* Context, FFrameResource& FrameResource, const CameraProbe& Camera, const D3D11_VIEWPORT& Viewport, const TArray<FOverlayTextProbe>& Probes, FRenderAssetResources& Resources) {
+void FOverlayTextRenderer::Render(ID3D11DeviceContext* Context, FFrameResource& FrameResource, const FViewMatrices& Camera, const D3D11_VIEWPORT& Viewport, const TArray<FOverlayTextDrawData>& Draws, FRenderAssetResources& Resources) {
     mGlyphs.clear();
     mDraws.clear();
 
@@ -162,18 +162,18 @@ void FOverlayTextRenderer::Render(ID3D11DeviceContext* Context, FFrameResource& 
 
     constexpr std::size_t MaximumGlyphs{UINT32_MAX / sizeof(FGlyphInstance)};
 
-    for (const FOverlayTextProbe& Probe : Probes) {
+    for (const FOverlayTextDrawData& Data : Draws) {
         FVector2 Anchor{};
-        const FAssetHandle FontHandle{Probe.mFontHandle ? Probe.mFontHandle : mAssetRegistry->FindAsset(FAssetPath{"/Game/Font/NotoSansKR-Medium.ttf"})};
+        const FAssetHandle FontHandle{Data.mFontHandle ? Data.mFontHandle : mAssetRegistry->FindAsset(FAssetPath{"/Game/Font/NotoSansKR-Medium.ttf"})};
         const UFont* Font{mAssetRegistry->ResolveAsset<UFont>(FontHandle)};
 
         if (Font == nullptr) {
             continue;
         }
 
-        const TArray<FTextVertex>* Vertices{GetTextGeometry(Probe, *Font, FontHandle)};
+        const TArray<FTextVertex>* Vertices{GetTextGeometry(Data, *Font, FontHandle)};
 
-        if (Vertices == nullptr || Vertices->empty() || !ProjectAnchor(Probe, *Vertices, Camera, Viewport, Anchor)) {
+        if (Vertices == nullptr || Vertices->empty() || !ProjectAnchor(Data, *Vertices, Camera, Viewport, Anchor)) {
             continue;
         }
 
@@ -191,7 +191,7 @@ void FOverlayTextRenderer::Render(ID3D11DeviceContext* Context, FFrameResource& 
             Glyph.mLocalPosition = FVector2{Anchor.mX + Source.mLocalPosition.mX, Anchor.mY - Source.mLocalPosition.mY};
 
             if (Glyph.mSize.mX > 0.0f && Glyph.mSize.mY > 0.0f && Glyph.mLocalPosition.mX < Viewport.Width && Glyph.mLocalPosition.mY < Viewport.Height && Glyph.mLocalPosition.mX + Glyph.mSize.mX > 0.0f && Glyph.mLocalPosition.mY + Glyph.mSize.mY > 0.0f) {
-                mGlyphs.push_back(FGlyphInstance{Glyph, Probe.mColor});
+                mGlyphs.push_back(FGlyphInstance{Glyph, Data.mColor});
             }
         }
 

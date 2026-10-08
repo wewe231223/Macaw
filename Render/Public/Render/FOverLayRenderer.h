@@ -38,14 +38,14 @@ public:
     void RenderView(ID3D11DeviceContext* Context, const FRenderView& View, const FOverlayRenderData& Overlay, const FSceneRenderOutput& Output);
 
 private:
+    void BuildMeshItems(const TArray<FOverlayMeshDrawData>& Meshes, const FRenderView& View, const D3D11_VIEWPORT& Viewport, bool Selection, TArray<FMeshDrawBatch>& Items);
     bool PrepareDepth(ID3D11DeviceContext* Context, const FSceneRenderOutput& Output);
     bool PrepareSelectionMask();
     void DrawSelectionOutline(ID3D11DeviceContext* Context, const FSceneRenderOutput& Output);
-    void BuildMeshItems(const TArray<FActorProbe>& Probes, const FRenderView& View, const D3D11_VIEWPORT& Viewport, bool Selection, TArray<FMeshDrawBatch>& Items);
     bool PrepareMeshDraws(const TArray<FMeshDrawBatch>& Items, bool Selection, TArray<FMeshDraw>& Draws);
     void DrawMeshes(ID3D11DeviceContext* Context, const TArray<FMeshDraw>& Draws);
     void DrawGuides(ID3D11DeviceContext* Context, const FOverlayRenderData& Overlay);
-    void RenderOrientationAxis(ID3D11DeviceContext* Context, const CameraProbe& Camera, const FOverlayRenderData& Overlay, const FSceneRenderOutput& Output);
+    void RenderOrientationAxis(ID3D11DeviceContext* Context, const FViewMatrices& Camera, const FOverlayRenderData& Overlay, const FSceneRenderOutput& Output);
 
 private:
     ID3D11Device* mDevice{nullptr};

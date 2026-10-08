@@ -76,7 +76,7 @@ void FTransformGizmo::ProcessInput(FKeyboardInput& KeyboardInput, FMouseInput& M
     }
 }
 
-void FTransformGizmo::Update(const CameraProbe& Camera, const D3D11_VIEWPORT& Viewport) {
+void FTransformGizmo::Update(const FViewMatrices& Camera, const D3D11_VIEWPORT& Viewport) {
     mLastCamera = Camera;
     mLastViewport = Viewport;
     mBHasCamera = true;
@@ -724,7 +724,7 @@ FVector3 FTransformGizmo::GetWorldAxis(EAxis Axis) const {
     }
 }
 
-void FTransformGizmo::BuildGizmoProbes(TArray<FActorProbe>& GizmoProbes) {
+void FTransformGizmo::BuildGizmoDrawData(TArray<FOverlayMeshDrawData>& GizmoMeshes) {
     RefreshAssetHandles();
 
     if (!mBVisible) {
@@ -734,7 +734,7 @@ void FTransformGizmo::BuildGizmoProbes(TArray<FActorProbe>& GizmoProbes) {
     const EModifyMode CurrentMode{mGizmoMode.HasValue() ? static_cast<EModifyMode>(mGizmoMode.Peek()) : EModifyMode::None};
 
     const auto Submit{[&](const FMatrix& LocalTransform, FAssetHandle MeshHandle, FAssetHandle MaterialHandle) {
-        GizmoProbes.emplace_back(FActorProbe{.mWorld = LocalTransform * mGizmoWorldTransform, .mMeshHandle = MeshHandle, .mMaterialHandle = MaterialHandle, .mPipelineHandle = mGizmoPipeline});
+        GizmoMeshes.push_back(FOverlayMeshDrawData{LocalTransform * mGizmoWorldTransform, FMeshSceneData{MeshHandle, MaterialHandle, mGizmoPipeline}});
     }};
 
     switch (CurrentMode) {

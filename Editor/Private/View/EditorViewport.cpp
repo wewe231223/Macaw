@@ -11,7 +11,7 @@
 #include "World/Component/UMeshComponent.h"
 
 namespace {
-    bool GetVisibleGridBounds(const CameraProbe& Camera, float& MinimumX, float& MaximumX, float& MinimumY, float& MaximumY) {
+    bool GetVisibleGridBounds(const FViewMatrices& Camera, float& MinimumX, float& MaximumX, float& MinimumY, float& MaximumY) {
         FMatrix InverseViewProjection{};
 
         if (!Camera.mViewProjection.TryInverse(InverseViewProjection)) {
@@ -76,7 +76,7 @@ void EditorViewport::Initialize(ID3D11Device* Device, FAssetRegistry& AssetRegis
     mEditorContext = &InEditorContext;
 }
 
-void EditorViewport::PrepareInput(const CameraProbe& Camera, const D3D11_VIEWPORT& Viewport) {
+void EditorViewport::PrepareInput(const FViewMatrices& Camera, const D3D11_VIEWPORT& Viewport) {
     mTransformGizmo.Update(Camera, Viewport);
 }
 
@@ -92,7 +92,7 @@ FStateChannel<Uint8>::FReadWriter EditorViewport::GetGizmoCoordinateSpace() {
     return mTransformGizmo.GetGizmoCoordinateSpace();
 }
 
-void EditorViewport::BuildGrid(FLineRenderData& Lines, const CameraProbe& Camera, const FVector3& CameraPosition, const D3D11_VIEWPORT& Viewport, FVector2D& FadeCenter, ELineDepthMode DepthMode) {
+void EditorViewport::BuildGrid(FLineRenderData& Lines, const FViewMatrices& Camera, const FVector3& CameraPosition, const D3D11_VIEWPORT& Viewport, FVector2D& FadeCenter, ELineDepthMode DepthMode) {
     const float GridInterval{mEditorContext != nullptr ? mEditorContext->GetEditorSettings().mGridSize : 1.0f};
     const float ProjectionYScale{Camera.mProjection.m_[1][1]};
 
@@ -188,7 +188,7 @@ void EditorViewport::BuildAxis(FLineRenderData& Lines, ELineDepthMode DepthMode)
     Lines.AddRay(FVector3{0.0f, 0.0f, 0.0f}, FVector3{0.0f, 0.0f, -1.0f}, 1000.0f, FVector4{0.0f, 0.0f, 1.0f, 1.0f}, 3.0f, DepthMode);
 }
 
-void EditorViewport::BuildBounds(FLineRenderData& Lines, const CameraProbe& Camera, ELineDepthMode DepthMode) {
+void EditorViewport::BuildBounds(FLineRenderData& Lines, const FViewMatrices& Camera, ELineDepthMode DepthMode) {
     if (mEditorContext == nullptr)
         return;
 
@@ -305,9 +305,9 @@ void EditorViewport::BuildBounds(FLineRenderData& Lines, const CameraProbe& Came
     }
 }
 
-void EditorViewport::BuildOverlayRenderData(FOverlayRenderData& Overlay, const CameraProbe& Camera, const FVector3& CameraPosition, const D3D11_VIEWPORT& Viewport) {
+void EditorViewport::BuildOverlayRenderData(FOverlayRenderData& Overlay, const FViewMatrices& Camera, const FVector3& CameraPosition, const D3D11_VIEWPORT& Viewport) {
     mTransformGizmo.Update(Camera, Viewport);
-    mTransformGizmo.BuildGizmoProbes(Overlay.mGizmoProbes);
+    mTransformGizmo.BuildGizmoDrawData(Overlay.mGizmoMeshes);
 
     const ELineDepthMode DepthMode{ELineDepthMode::DepthTested};
     const FEditorSettings Settings{mEditorContext != nullptr ? mEditorContext->GetEditorSettings() : FEditorSettings{}};
@@ -371,10 +371,10 @@ void EditorViewport::BuildSelectionNameTag(FOverlayRenderData& Overlay) {
         }
     }
 
-    FOverlayTextProbe Probe{};
+    FOverlayTextDrawData Data{};
 
-    Probe.mWorldAnchor = HasBounds ? (Minimum + Maximum) * 0.5f : Origin;
-    Probe.mWorldBoundsExtent = HasBounds ? (Maximum - Minimum) * 0.5f : FVector3{};
-    Probe.mText = Actor->GetGuid().ToString();
-    Overlay.mTextProbes.push_back(std::move(Probe));
+    Data.mWorldAnchor = HasBounds ? (Minimum + Maximum) * 0.5f : Origin;
+    Data.mWorldBoundsExtent = HasBounds ? (Maximum - Minimum) * 0.5f : FVector3{};
+    Data.mText = Actor->GetGuid().ToString();
+    Overlay.mTextDraws.push_back(std::move(Data));
 }

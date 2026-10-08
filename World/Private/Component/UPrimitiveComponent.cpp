@@ -4,9 +4,6 @@
 #include "World/Subsystem/UPickingSubsystem.h"
 #include "World/UWorld.h"
 
-void UPrimitiveComponent::MakeRender(FActorProbe& OutProbe) const {
-}
-
 bool UPrimitiveComponent::IsVisible() const {
     return mBVisible;
 }
@@ -37,6 +34,7 @@ void UPrimitiveComponent::OnRegister() {
 
     if (Owner != nullptr && Owner->GetWorld() != nullptr) {
         Owner->GetWorld()->GetPickingSubsystem().RegisterComponent(this);
+        Owner->GetWorld()->GetRenderSubsystem().RegisterComponent(this);
     }
 }
 
@@ -45,6 +43,7 @@ void UPrimitiveComponent::OnUnregister() {
 
     if (Owner != nullptr && Owner->GetWorld() != nullptr) {
         Owner->GetWorld()->GetPickingSubsystem().UnregisterComponent(this);
+        Owner->GetWorld()->GetRenderSubsystem().UnregisterComponent(this);
     }
 
     USceneComponent::OnUnregister();

@@ -7,7 +7,7 @@
 #include <cmath>
 
 namespace {
-    float CalculateScreenSize(const FPrimitiveSceneInfo& Object, const CameraProbe& Camera, float ProjectionScale, bool Perspective) {
+    float CalculateScreenSize(const FPrimitiveSceneInfo& Object, const FViewMatrices& Camera, float ProjectionScale, bool Perspective) {
         const DirectX::BoundingSphere& Bounds{Object.mWorldSphereBounds};
 
         if (Bounds.Radius <= 1e-4f || !std::isfinite(Bounds.Radius)) {

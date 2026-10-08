@@ -1,7 +1,7 @@
 #pragma once
 #include "Editor/View/FEditorViewportTypes.h"
 #include "Editor/View/FViewportGeometry.h"
-#include "RenderCore/FRenderProbe.h"
+#include "RenderCore/FRenderData.h"
 #include "Render/FSceneRenderSurface.h"
 #include "Editor/View/EditorViewport.h"
 #include "Editor/Input/FKeyboardInput.h"
@@ -28,7 +28,7 @@ public:
     void SetFocused(bool BInFocused);
     void ProcessInput(EditorViewport& SharedEditorViewport, FKeyboardInput& KeyboardInput, FMouseInput& MouseInput, float DeltaTime, bool BInputBlocked);
     bool PrepareForRender();
-    bool BuildCameraProbe(CameraProbe& OutCamera);
+    bool BuildViewMatrices(FViewMatrices& OutCamera);
 
     FSceneRenderSurface& GetRenderSurface();
     const D3D11_VIEWPORT& GetRenderViewport() const;
@@ -48,7 +48,7 @@ private:
     void ApplyOrthographicView();
     const char* GetViewModeName() const;
     void ResizeRenderSurface();
-    bool IsCameraProbeCurrent() const;
+    bool IsViewMatricesCurrent() const;
     void ApplyMouseNavigation(const FViewportMouseNavigationInput& NavigationInput);
     void ApplyKeyboardNavigation(const FViewportKeyboardNavigationInput& NavigationInput);
     D3D11_VIEWPORT BuildInputViewport() const;
@@ -74,7 +74,7 @@ private:
     float mNearPlane{0.1f};
     float mFarPlane{1000.0f};
 
-    CameraProbe mCachedCameraProbe{};
+    FViewMatrices mViewMatrices{};
     FVector3 mCachedCameraPosition{};
     FQuat mCachedCameraRotation{};
     EProjectionType mCachedProjectionType{};
@@ -84,7 +84,7 @@ private:
     float mCachedFarPlane{};
     Uint32 mCachedWidth{};
     Uint32 mCachedHeight{};
-    bool mHasCachedCameraProbe{};
+    bool mHasViewMatrices{};
 
     FRect mDisplayRect{};
     Uint32 mWidth{0};

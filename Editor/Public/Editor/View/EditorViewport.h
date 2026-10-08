@@ -24,17 +24,17 @@ public:
 public:
     void Initialize(ID3D11Device* Device, FAssetRegistry& AssetRegistry, FWorldEditorContext& InEditorContext);
 
-    void PrepareInput(const CameraProbe& Camera, const D3D11_VIEWPORT& Viewport);
+    void PrepareInput(const FViewMatrices& Camera, const D3D11_VIEWPORT& Viewport);
     void ProcessInput(FKeyboardInput& KeyboardInput, FMouseInput& MouseInput, bool BMouseCapturedByUi);
-    void BuildOverlayRenderData(FOverlayRenderData& Overlay, const CameraProbe& Camera, const FVector3& CameraPosition, const D3D11_VIEWPORT& Viewport);
+    void BuildOverlayRenderData(FOverlayRenderData& Overlay, const FViewMatrices& Camera, const FVector3& CameraPosition, const D3D11_VIEWPORT& Viewport);
 
     FStateChannel<Uint8>::FReadWriter GetGizmoMode();
     FStateChannel<Uint8>::FReadWriter GetGizmoCoordinateSpace();
 
 private:
-    void BuildGrid(FLineRenderData& Lines, const CameraProbe& Camera, const FVector3& CameraPosition, const D3D11_VIEWPORT& Viewport, FVector2D& FadeCenter, ELineDepthMode DepthMode);
+    void BuildGrid(FLineRenderData& Lines, const FViewMatrices& Camera, const FVector3& CameraPosition, const D3D11_VIEWPORT& Viewport, FVector2D& FadeCenter, ELineDepthMode DepthMode);
     void BuildAxis(FLineRenderData& Lines, ELineDepthMode DepthMode);
-    void BuildBounds(FLineRenderData& Lines, const CameraProbe& Camera, ELineDepthMode DepthMode);
+    void BuildBounds(FLineRenderData& Lines, const FViewMatrices& Camera, ELineDepthMode DepthMode);
     void BuildSelectionNameTag(FOverlayRenderData& Overlay);
 
 private:
