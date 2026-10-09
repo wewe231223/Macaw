@@ -7,13 +7,13 @@
 #include "Render/FMeshRenderer.h"
 #include "Render/FTextRenderer.h"
 #include "Render/FBillboardRenderer.h"
-#include "Render/FSceneRenderSurface.h"
+#include "Render/FOffScreenRenderSurface.h"
 #include "Render/FPostProcessingRenderer.h"
 
 class FSceneRenderer {
 private:
     struct FViewSurface {
-        std::unique_ptr<FSceneRenderSurface> mSceneColor{};
+        std::unique_ptr<FOffScreenRenderSurface> mSceneColor{};
         Uint64 mSceneId{};
         Uint64 mLastUsedFrame{};
     };
@@ -33,7 +33,7 @@ private:
 private:
     ID3D11Device* mDevice{nullptr};
     Uint64 mFrameSerial{};
-    TMap<const IRenderSurface*, FViewSurface> mViews{};
+    TMap<const FSceneRenderSurface*, FViewSurface> mViews{};
     TArray<FVisibleMeshDrawCommand> mVisibleCommands{};
     FRenderQueue mRenderQueue{};
     FMeshRenderer mMeshRenderer{};

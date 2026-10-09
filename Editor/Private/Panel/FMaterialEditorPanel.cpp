@@ -47,7 +47,7 @@ void FMaterialEditorPanel::RenderOffscreen(FRenderer& Renderer, FAssetRegistry&)
     }
 
     if (!mPreviewSurface.IsValid()) {
-        mPreviewSurface.InitializeOffscreen(Renderer.GetDevice(), PreviewSize, PreviewSize);
+        mPreviewSurface.Initialize(Renderer.GetDevice(), PreviewSize, PreviewSize);
     }
 
     if (mPreviewSurface.IsValid()) {

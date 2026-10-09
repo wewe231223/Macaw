@@ -180,7 +180,7 @@ void FViewerPanel::ResizeSurfaceIfNeeded(ID3D11Device* Device, Uint32 Width, Uin
     }
 
     if (!mSurface.IsValid()) {
-        mSurface.InitializeOffscreen(Device, Width, Height);
+        mSurface.Initialize(Device, Width, Height);
     } else if (Width != mSurfaceWidth || Height != mSurfaceHeight) {
         mSurface.Resize(Device, Width, Height);
     }

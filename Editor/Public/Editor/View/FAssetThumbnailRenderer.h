@@ -5,14 +5,14 @@
 #include <memory>
 #include "Asset/FAssetRegistry.h"
 #include "Editor/View/FPreviewScene.h"
-#include "Render/FSceneRenderSurface.h"
+#include "Render/FOffScreenRenderSurface.h"
 #include "Render/Renderer.h"
 #include "Asset/UMesh.h"
 
 class FAssetThumbnailRenderer {
 private:
     struct FThumbnail {
-        std::unique_ptr<FSceneRenderSurface> mSurface{};
+        std::unique_ptr<FOffScreenRenderSurface> mSurface{};
     };
 
 public:

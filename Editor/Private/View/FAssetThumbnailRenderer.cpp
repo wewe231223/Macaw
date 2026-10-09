@@ -129,10 +129,10 @@ void FAssetThumbnailRenderer::RenderThumbnail(const FAssetEntry& Entry, FSceneRe
         FThumbnail& Thumbnail{mThumbnails[ThumbnailKey]};
 
         if (Thumbnail.mSurface == nullptr) {
-            Thumbnail.mSurface = std::make_unique<FSceneRenderSurface>();
+            Thumbnail.mSurface = std::make_unique<FOffScreenRenderSurface>();
         }
 
-        Thumbnail.mSurface->InitializeOffscreen(mRenderer->GetDevice(), ThumbnailSize, ThumbnailSize);
+        Thumbnail.mSurface->Initialize(mRenderer->GetDevice(), ThumbnailSize, ThumbnailSize);
 
         if (!Thumbnail.mSurface->IsValid()) {
             Thumbnail.mSurface.reset();

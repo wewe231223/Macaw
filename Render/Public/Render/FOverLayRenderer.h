@@ -61,8 +61,8 @@ private:
     TArray<FStaticMeshBatch> mStaticMeshes{};
     TArray<FMeshDraw> mOutlineDraws{};
     TArray<FMeshDraw> mGizmoDraws{};
-    TMap<const IRenderSurface*, FViewDepth> mViewDepths{};
-    const IRenderSurface* mCurrentTarget{nullptr};
+    TMap<const FSceneRenderSurface*, FViewDepth> mViewDepths{};
+    const FSceneRenderSurface* mCurrentTarget{nullptr};
     ID3D11DepthStencilView* mCurrentDepth{nullptr};
     FLineRenderer mLineRenderer{};
     FOverlayTextRenderer mTextRenderer{};

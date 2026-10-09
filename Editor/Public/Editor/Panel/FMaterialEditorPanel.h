@@ -1,7 +1,7 @@
 #pragma once
 #include "Editor/Panel/FEditorWindow.h"
 #include "Editor/Panel/FPropertyEditorContext.h"
-#include "Render/FSceneRenderSurface.h"
+#include "Render/FOffScreenRenderSurface.h"
 #include "Core/Base/FAssetHandle.h"
 #include "Asset/FMaterialGroup.h"
 #include <functional>
@@ -35,7 +35,7 @@ private:
     FAssetRegistry& mRegistry;
     FAssetThumbnailRenderer& mThumbnailRenderer;
     FPropertyEditorContext mPropertyEditor{};
-    FSceneRenderSurface mPreviewSurface{};
+    FOffScreenRenderSurface mPreviewSurface{};
     FAssetHandle mMaterialHandle{};
     bool mPreviewDirty{false};
 };

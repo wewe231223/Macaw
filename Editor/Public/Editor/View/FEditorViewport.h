@@ -2,7 +2,7 @@
 #include "Editor/View/FEditorViewportTypes.h"
 #include "Editor/View/FViewportGeometry.h"
 #include "RenderCore/FRenderData.h"
-#include "Render/FSceneRenderSurface.h"
+#include "Render/FOffScreenRenderSurface.h"
 #include "Editor/View/EditorViewport.h"
 #include "Editor/Input/FKeyboardInput.h"
 #include "Editor/Input/FMouseInput.h"
@@ -56,7 +56,7 @@ private:
 private:
     ID3D11Device* mDevice{nullptr};
     FWorldEditorContext* mEditorContext{nullptr};
-    FSceneRenderSurface mRenderSurface{};
+    FOffScreenRenderSurface mRenderSurface{};
     FRenderSettings mRenderSettings{};
     FViewportId mViewportId{0};
 

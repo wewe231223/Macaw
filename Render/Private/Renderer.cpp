@@ -37,9 +37,9 @@ void FRenderer::Create(HWND WindowHandle, UINT Width, UINT Height) {
 
     FRenderer::CreateDeviceAndSwapChain(WindowHandle);
 
-    auto BackBuffer{std::make_unique<FSceneRenderSurface>()};
+    auto BackBuffer{std::make_unique<FSwapChainRenderSurface>()};
 
-    BackBuffer->InitializeSwapChain(mDevice.Get(), mSwapChain.Get());
+    BackBuffer->Initialize(mDevice.Get(), mSwapChain.Get());
     mBackBufferSurface = std::move(BackBuffer);
 
 #ifdef _DEBUG

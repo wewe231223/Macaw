@@ -3,19 +3,11 @@
 #include <cstdint>
 #include <d3d11.h>
 #include <wrl/client.h>
-#include "Render/IRenderSurface.h"
 
-class FSceneRenderSurface final : public IRenderSurface {
-private:
-    enum class EStorageMode : std::uint8_t {
-        None,
-        SwapChain,
-        Offscreen
-    };
-
+class FSceneRenderSurface {
 public:
     FSceneRenderSurface() = default;
-    ~FSceneRenderSurface() override = default;
+    virtual ~FSceneRenderSurface() = default;
 
     FSceneRenderSurface(const FSceneRenderSurface&) = delete;
     FSceneRenderSurface& operator=(const FSceneRenderSurface&) = delete;
@@ -23,33 +15,29 @@ public:
     FSceneRenderSurface& operator=(FSceneRenderSurface&&) = delete;
 
 public:
-    void InitializeSwapChain(ID3D11Device* Device, IDXGISwapChain* SwapChain);
-    void InitializeOffscreen(ID3D11Device* Device, std::uint32_t Width, std::uint32_t Height, DXGI_FORMAT ColorFormat = DXGI_FORMAT_R8G8B8A8_UNORM);
-    bool Resize(ID3D11Device* Device, std::uint32_t Width, std::uint32_t Height) override;
+    virtual bool Resize(ID3D11Device* Device, std::uint32_t Width, std::uint32_t Height) = 0;
 
-    void Bind(ID3D11DeviceContext* Context) const override;
-    void Bind(ID3D11DeviceContext* Context, ID3D11DepthStencilView* DepthStencilView) const override;
-    void Clear(ID3D11DeviceContext* Context, const float ClearColor[4]) const override;
-    void ClearDepth(ID3D11DeviceContext* Context) const override;
+    void Bind(ID3D11DeviceContext* Context) const;
+    void Bind(ID3D11DeviceContext* Context, ID3D11DepthStencilView* DepthStencilView) const;
+    void Clear(ID3D11DeviceContext* Context, const float ClearColor[4]) const;
+    void ClearDepth(ID3D11DeviceContext* Context) const;
 
-    void Reset() override;
-    bool IsValid() const override;
+    virtual void Reset();
+    bool IsValid() const;
 
-    const D3D11_VIEWPORT& GetViewport() const override;
-    ID3D11ShaderResourceView* GetShaderResourceView() const override;
-    ID3D11ShaderResourceView* GetDepthShaderResourceView() const override;
-    ID3D11DepthStencilView* GetDepthStencilView() const override;
+    const D3D11_VIEWPORT& GetViewport() const;
+    ID3D11ShaderResourceView* GetShaderResourceView() const;
+    ID3D11ShaderResourceView* GetDepthShaderResourceView() const;
+    ID3D11DepthStencilView* GetDepthStencilView() const;
 
 private:
-    void CreateSwapChainResources(ID3D11Device* Device);
-    void CreateOffscreenResources(ID3D11Device* Device, std::uint32_t Width, std::uint32_t Height);
+    friend class FOffScreenRenderSurface;
+    friend class FSwapChainRenderSurface;
+
+    void InitializeResources(ID3D11Device* Device, Microsoft::WRL::ComPtr<ID3D11Texture2D> ColorTexture, Microsoft::WRL::ComPtr<ID3D11RenderTargetView> RenderTargetView, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> ShaderResourceView);
     void CreateDepthStencilResources(ID3D11Device* Device, std::uint32_t Width, std::uint32_t Height);
-    void ResetResources();
 
 private:
-    EStorageMode mStorageMode{EStorageMode::None};
-    DXGI_FORMAT mColorFormat{DXGI_FORMAT_R8G8B8A8_UNORM};
-    Microsoft::WRL::ComPtr<IDXGISwapChain> mSwapChain{};
     Microsoft::WRL::ComPtr<ID3D11Texture2D> mColorTexture{};
     Microsoft::WRL::ComPtr<ID3D11RenderTargetView> mRenderTargetView{};
     Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> mShaderResourceView{};

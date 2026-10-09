@@ -13,7 +13,7 @@
 #include "Render/FRenderView.h"
 #include "Render/FSceneRenderer.h"
 #include "Render/FOverLayRenderer.h"
-#include "Render/FSceneRenderSurface.h"
+#include "Render/FSwapChainRenderSurface.h"
 #include "Render/FFrameResource.h"
 #include "RenderCore/FSceneInterface.h"
 
@@ -94,7 +94,7 @@ private:
 #endif
 
     Microsoft::WRL::ComPtr<IDXGISwapChain> mSwapChain{};
-    std::unique_ptr<IRenderSurface> mBackBufferSurface{};
+    std::unique_ptr<FSwapChainRenderSurface> mBackBufferSurface{};
 
     // s0: LinearWrap, s1: LinearClamp, s2: PointClamp, s3: PointWrap, s4: AnisotropicWrap, s5: ShadowCompare.
     std::array<Microsoft::WRL::ComPtr<ID3D11SamplerState>, 6> mSamplerStates{};

@@ -61,7 +61,7 @@ bool FPostProcessingRenderer::Initialize(ID3D11Device* Device) {
     return true;
 }
 
-bool FPostProcessingRenderer::Render(ID3D11DeviceContext* Context, ID3D11ShaderResourceView* SceneColor, const IRenderSurface& Target, const FPostProcessingSettings& Settings, bool Enabled) {
+bool FPostProcessingRenderer::Render(ID3D11DeviceContext* Context, ID3D11ShaderResourceView* SceneColor, const FSceneRenderSurface& Target, const FPostProcessingSettings& Settings, bool Enabled) {
     if (Context == nullptr || SceneColor == nullptr || !Target.IsValid() || !mConstants.IsValid()) {
         return false;
     }

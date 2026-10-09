@@ -2,7 +2,7 @@
 #include "Core/CoreMinimal.h"
 #include "Editor/Panel/FEditorWindow.h"
 #include "Editor/Panel/FPropertyEditorContext.h"
-#include "Render/FSceneRenderSurface.h"
+#include "Render/FOffScreenRenderSurface.h"
 #include "RenderCore/FRenderData.h"
 #include "Core/Channel/FMessageChannel.h"
 #include "Core/Base/FAssetHandle.h"
@@ -50,7 +50,7 @@ private:
     FWorldEditorContext& mEditorContext;
     FPropertyEditorContext mPropertyEditor{};
 
-    FSceneRenderSurface mSurface{};
+    FOffScreenRenderSurface mSurface{};
     FPreviewScene mPreviewScene{};
     FAssetHandle mMeshHandle{};
     FAssetHandle mMaterialHandle{};

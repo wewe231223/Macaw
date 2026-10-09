@@ -92,7 +92,7 @@ FEditorViewport::FEditorViewport(FViewportId InViewportId, ID3D11Device* InDevic
     }
 
     if (mDevice != nullptr) {
-        mRenderSurface.InitializeOffscreen(mDevice, 1, 1);
+        mRenderSurface.Initialize(mDevice, 1, 1);
     }
 }
 

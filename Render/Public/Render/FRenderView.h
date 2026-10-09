@@ -3,7 +3,7 @@
 #include <bitset>
 #include "RenderCore/FRenderData.h"
 #include "Asset/Pipeline/UPipeline.h"
-#include "Render/IRenderSurface.h"
+#include "Render/FSceneRenderSurface.h"
 #include "Render/ERenderPass.h"
 
 class FRenderScene;
@@ -14,7 +14,7 @@ struct FRenderView {
     void SetPassEnabled(ERenderPass Pass, bool Enabled);
     void CollectMeshDrawCommands(const FRenderScene& Scene, TArray<FVisibleMeshDrawCommand>& OutCommands) const;
 
-    IRenderSurface* mTarget{nullptr};
+    FSceneRenderSurface* mTarget{nullptr};
     FViewMatrices mCamera{};
 
     FRenderSettings mSettings{};

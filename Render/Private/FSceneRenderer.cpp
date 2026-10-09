@@ -84,8 +84,8 @@ FSceneRenderOutput FSceneRenderer::RenderView(const FRenderContext& Context, con
     const Uint32 Height{static_cast<Uint32>(Viewport.Height)};
 
     if (ViewState.mSceneColor == nullptr) {
-        ViewState.mSceneColor = std::make_unique<FSceneRenderSurface>();
-        ViewState.mSceneColor->InitializeOffscreen(mDevice, Width, Height);
+        ViewState.mSceneColor = std::make_unique<FOffScreenRenderSurface>();
+        ViewState.mSceneColor->Initialize(mDevice, Width, Height);
     } else if (!ViewState.mSceneColor->Resize(mDevice, Width, Height)) {
         return {};
     }

@@ -2,13 +2,13 @@
 
 #include "Render/Buffer/FGraphicsBuffer.h"
 #include "Render/Pipeline/FShader.h"
-#include "Render/IRenderSurface.h"
+#include "Render/FSceneRenderSurface.h"
 #include "RenderCore/FRenderData.h"
 
 class FPostProcessingRenderer {
 public:
     bool Initialize(ID3D11Device* Device);
-    bool Render(ID3D11DeviceContext* Context, ID3D11ShaderResourceView* SceneColor, const IRenderSurface& Target, const FPostProcessingSettings& Settings, bool Enabled);
+    bool Render(ID3D11DeviceContext* Context, ID3D11ShaderResourceView* SceneColor, const FSceneRenderSurface& Target, const FPostProcessingSettings& Settings, bool Enabled);
     void Reset();
 
 private:
