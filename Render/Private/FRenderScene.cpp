@@ -105,7 +105,7 @@ const TArray<FLightShaderParameters>& FRenderScene::GetLights() const {
 }
 
 void FRenderScene::QueryFrustum(const FMatrix& ViewProjection, TArray<Uint32>& OutIndices, TArray<Uint32>* OutBoundaryPositions) const {
-    OutIndices.reserve(mBoundsObjects.size() + mUnboundedObjects.size());
+    OutIndices.reserve(mBoundsTree.GetObjectCount() + mUnboundedObjects.size());
     mBoundsTree.FrustumCull(ViewProjection, OutIndices, OutBoundaryPositions);
 
     OutIndices.insert(OutIndices.end(), mUnboundedObjects.begin(), mUnboundedObjects.end());
@@ -179,7 +179,6 @@ Uint32 FRenderScene::AddObject(const FPrimitiveSceneProxy& Proxy) {
     Object = {};
     Object.mComponentHandle = Proxy.GetComponentHandle();
     Object.mActive = true;
-    mTopologyDirty = true;
 
     UpdateObject(ObjectIndex, Proxy);
 
@@ -209,10 +208,6 @@ void FRenderScene::UpdateObjectTransform(Uint32 ObjectIndex, const FPrimitiveTra
         return;
     }
 
-    if (Object.mCullable != Cullable) {
-        mTopologyDirty = true;
-    }
-
     Object.mWorldSphereBounds = Transform.mWorldSphereBounds;
     Object.mWorldOBB = Transform.mWorldOBB;
     Object.mWorldAABB = Transform.mWorldAABB;
@@ -240,7 +235,6 @@ void FRenderScene::RemoveObject(Uint32 ObjectIndex) {
     }
 
     mFreeObjects.push_back(ObjectIndex);
-    mTopologyDirty = true;
 
     RecordObjectChange(ObjectIndex);
 }
@@ -344,37 +338,30 @@ void FRenderScene::RefreshStaticMeshes(const IAssetRegistry* Registry, const FMa
 }
 
 void FRenderScene::UpdateBounds() {
-    if (mTopologyDirty) {
-        RebuildBounds();
-    } else {
-        for (const Uint32 ObjectIndex : mChangedObjects) {
-            mBoundsTree.UpdateBounds(ObjectIndex, mObjects[ObjectIndex].mWorldAABB);
-        }
+    for (const Uint32 ObjectIndex : mChangedObjects) {
+        const FPrimitiveSceneInfo& Object{mObjects[ObjectIndex]};
+        const auto Position{std::lower_bound(mUnboundedObjects.begin(), mUnboundedObjects.end(), ObjectIndex)};
 
-        mBoundsTree.Refit(mChangedObjects);
-    }
-}
+        if (Object.mActive && !Object.mCullable) {
+            mBoundsTree.Remove(ObjectIndex);
 
-void FRenderScene::RebuildBounds() {
-    mBuildBounds.resize(mObjects.size());
-    mBoundsObjects.clear();
-    mUnboundedObjects.clear();
-
-    for (Uint32 Index{}; Index < mObjects.size(); ++Index) {
-        if (!mObjects[Index].mActive) {
-            continue;
-        }
-
-        if (mObjects[Index].mCullable) {
-            mBuildBounds[Index] = mObjects[Index].mWorldAABB;
-            mBoundsObjects.push_back(Index);
+            if (Position == mUnboundedObjects.end() || *Position != ObjectIndex) {
+                mUnboundedObjects.insert(Position, ObjectIndex);
+            }
         } else {
-            mUnboundedObjects.push_back(Index);
+            if (Position != mUnboundedObjects.end() && *Position == ObjectIndex) {
+                mUnboundedObjects.erase(Position);
+            }
+
+            if (Object.mActive) {
+                mBoundsTree.Register(ObjectIndex, Object.mWorldAABB);
+            } else {
+                mBoundsTree.Remove(ObjectIndex);
+            }
         }
     }
 
-    mBoundsTree.Build(mBuildBounds, mBoundsObjects);
-    mTopologyDirty = false;
+    mBoundsTree.CommitUpdates();
 }
 
 void FRenderScene::CollectDynamicMeshElements(FDynamicPrimitiveDrawInterface& DrawInterface) const {

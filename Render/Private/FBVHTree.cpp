@@ -3,61 +3,118 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstring>
 #include <limits>
 
 bool FBVHNode::IsLeaf() const {
     return mLeftChild == -1 && mRightChild == -1;
 }
 
-void FBVHTree::Build(std::span<const DirectX::BoundingBox> Bounds, std::span<const Uint32> Indices) {
-    Clear();
+void FBVHTree::Register(Uint32 ObjectIndex, const DirectX::BoundingBox& Bounds) {
+    if (ObjectIndex < mRegisteredObjects.size() && mRegisteredObjects[ObjectIndex]) {
+        UpdateBounds(ObjectIndex, Bounds);
+        return;
+    }
 
     constexpr std::size_t MaximumObjectCount{static_cast<std::size_t>((std::numeric_limits<Int32>::max)()) + 1};
     constexpr std::size_t MaximumLeafCount{MaximumObjectCount / 2};
 
-    if (Indices.empty() || Bounds.empty() || Bounds.size() > MaximumObjectCount || Indices.size() > MaximumLeafCount) {
+    if (ObjectIndex >= MaximumObjectCount || mObjectCount >= MaximumLeafCount) {
         return;
     }
 
-    mObjectLeaves.assign(Bounds.size(), -1);
+    const std::size_t ObjectCount{static_cast<std::size_t>(ObjectIndex) + 1};
 
-    for (const Uint32 Index : Indices) {
-        if (Index >= Bounds.size() || mObjectLeaves[Index] != -1) {
-            Clear();
-            return;
-        }
-
-        mObjectLeaves[Index] = 0;
+    if (ObjectCount > mObjectBounds.size()) {
+        mObjectBounds.resize(ObjectCount);
+        mRegisteredObjects.resize(ObjectCount);
     }
 
-    std::fill(mObjectLeaves.begin(), mObjectLeaves.end(), -1);
-    mIndices.assign(Indices.begin(), Indices.end());
-    mNodes.reserve(Indices.size() * 2 - 1);
+    mObjectBounds[ObjectIndex] = Bounds;
+    mRegisteredObjects[ObjectIndex] = true;
+    ++mObjectCount;
+    mTopologyDirty = true;
+}
 
-    mRootIndex = BuildRecursive(Bounds, 0, mIndices.size(), -1);
+void FBVHTree::Remove(Uint32 ObjectIndex) {
+    if (ObjectIndex >= mRegisteredObjects.size() || !mRegisteredObjects[ObjectIndex]) {
+        return;
+    }
+
+    mRegisteredObjects[ObjectIndex] = false;
+    --mObjectCount;
+    mTopologyDirty = true;
+}
+
+void FBVHTree::UpdateBounds(Uint32 ObjectIndex, const DirectX::BoundingBox& Bounds) {
+    if (ObjectIndex >= mRegisteredObjects.size() || !mRegisteredObjects[ObjectIndex] || std::memcmp(&mObjectBounds[ObjectIndex], &Bounds, sizeof(DirectX::BoundingBox)) == 0) {
+        return;
+    }
+
+    mObjectBounds[ObjectIndex] = Bounds;
+    mChangedObjects.push_back(ObjectIndex);
+}
+
+void FBVHTree::CommitUpdates() {
+    if (mTopologyDirty) {
+        Build();
+    } else {
+        std::sort(mChangedObjects.begin(), mChangedObjects.end());
+        mChangedObjects.erase(std::unique(mChangedObjects.begin(), mChangedObjects.end()), mChangedObjects.end());
+
+        for (const Uint32 ObjectIndex : mChangedObjects) {
+            mNodes[mObjectLeaves[ObjectIndex]].mBounds = mObjectBounds[ObjectIndex];
+        }
+
+        Refit(mChangedObjects);
+    }
+
+    mChangedObjects.clear();
+    mTopologyDirty = false;
 }
 
 void FBVHTree::Clear() {
+    mObjectBounds.clear();
+    mRegisteredObjects.clear();
+    mChangedObjects.clear();
+    mObjectCount = 0;
+    mTopologyDirty = false;
+
     mNodes.clear();
     mIndices.clear();
     mObjectLeaves.clear();
     mRootIndex = -1;
 }
 
+Uint32 FBVHTree::GetObjectCount() const {
+    return mObjectCount;
+}
+
 const TArray<FBVHNode>& FBVHTree::GetNodes() const {
     return mNodes;
 }
 
-void FBVHTree::UpdateBounds(Uint32 ObjectIndex, const DirectX::BoundingBox& Bounds) {
-    if (ObjectIndex >= mObjectLeaves.size()) {
+void FBVHTree::Build() {
+    mNodes.clear();
+    mIndices.clear();
+    mObjectLeaves.clear();
+    mRootIndex = -1;
+
+    if (mObjectCount == 0) {
         return;
     }
 
-    const Int32 LeafIndex{mObjectLeaves[ObjectIndex]};
+    mObjectLeaves.assign(mObjectBounds.size(), -1);
+    mIndices.reserve(mObjectCount);
 
-    if (LeafIndex != -1) {
-        mNodes[LeafIndex].mBounds = Bounds;
+    for (Uint32 ObjectIndex{}; ObjectIndex < mRegisteredObjects.size(); ++ObjectIndex) {
+        if (mRegisteredObjects[ObjectIndex]) {
+            mIndices.push_back(ObjectIndex);
+        }
     }
+
+    mNodes.reserve(mIndices.size() * 2 - 1);
+    mRootIndex = BuildRecursive(mObjectBounds, 0, mIndices.size(), -1);
 }
 
 void FBVHTree::Refit(std::span<const Uint32> ChangedIndices) {

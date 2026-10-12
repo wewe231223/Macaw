@@ -60,14 +60,12 @@ private:
 
     void RefreshStaticMeshes(const IAssetRegistry* Registry, const FMaterialBuffer& Materials, FRenderAssetResources* Resources);
     void UpdateBounds();
-    void RebuildBounds();
 
 private:
     Uint64 mSceneId{};
     Uint64 mRevision{1};
     Uint64 mJournalFloor{};
 
-    bool mTopologyDirty{};
     bool mObjectsChanged{};
 
     TArray<FPrimitiveSceneInfo> mObjects{};
@@ -82,8 +80,6 @@ private:
     FMeshDrawCommandCache mCommandCache{};
 
     FBVHTree mBoundsTree{};
-    TArray<DirectX::BoundingBox> mBuildBounds{};
-    TArray<Uint32> mBoundsObjects{};
     TArray<Uint32> mUnboundedObjects{};
 
     TArray<Uint32> mChangedObjects{};
