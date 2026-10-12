@@ -57,6 +57,9 @@ public:
     FVector3 GetComponentScale() const;
 
     USceneComponent* GetParent() const;
+    bool SetEditorParent(USceneComponent* Parent);
+    bool CanEditParent() const;
+    bool CanSelectParent(USceneComponent* Parent) const;
     const std::vector<TObjectRef<USceneComponent>>& GetChildren() const;
 
     // PrimitiveComponent 에서 호출될 world bound 업데이트 위한 함수
@@ -72,7 +75,7 @@ private:
 private:
     // 부모와 자식 연결을 정리하는 동안 파괴 처리의 중복 진입을 막습니다.
     bool mDestroyingHierarchy{};
-    UPROPERTY(Name = "Transform", ReadOnly)
+    UPROPERTY(Edit, Serialize, Name = "Transform", Category = "Transform", DisplayName = "Relative Transform", Getter = GetRelativeTransform, Setter = SetRelativeTransform)
     FTransform mTransform{};
     mutable FTransform mWorldTransform{};
     mutable FObjectHandle mCachedParentHandle{};
@@ -81,7 +84,7 @@ private:
     mutable bool mWorldTransformDirty{true};
     FGuid mPendingParentGuid{};
 
-    UPROPERTY(Name = "Parent", Reference, ReadOnly)
+    UPROPERTY(Edit, Serialize, Name = "Parent", Reference, OwnerOnly, Category = "Attachment", Getter = GetParent, Setter = SetEditorParent, EditCondition = CanEditParent, ObjectFilter = CanSelectParent, PendingGuid = mPendingParentGuid)
     TObjectRef<USceneComponent> mParent{};
     UPROPERTY(Name = "Children", Reference, ReadOnly)
     std::vector<TObjectRef<USceneComponent>> mChildren{};

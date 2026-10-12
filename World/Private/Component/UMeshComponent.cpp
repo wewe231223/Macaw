@@ -130,28 +130,7 @@ bool FMeshPickingProxy::Raycast(const FRay& Ray, float& OutDistance, float MaxDi
 void UMeshComponent::Serialize(FArchive& Archive) {
     Super::Serialize(Archive);
 
-    const IAssetResolver* Registry{Archive.GetAssetResolver()};
-
-    if (Archive.IsSaving() && Registry != nullptr) {
-        if (const FAssetPath* AssetPath{Registry->GetAssetPath(mMeshHandle)}) {
-            mMeshAssetPath = *AssetPath;
-        }
-
-        if (const FGuid* AssetGuid{Registry->GetAssetGuid(mMeshHandle)}) {
-            mMeshAssetGuid = *AssetGuid;
-        }
-    }
-
-    Archive.Serialize("MeshAssetGuid", mMeshAssetGuid);
-    Archive.Serialize("MeshAssetPath", mMeshAssetPath.mPath);
-
     if (Archive.IsLoading()) {
-        mMeshHandle = Registry != nullptr ? Registry->FindAsset(mMeshAssetGuid) : FAssetHandle{};
-
-        if (!mMeshHandle && Registry != nullptr) {
-            mMeshHandle = Registry->FindAsset(mMeshAssetPath);
-        }
-
         BuildPickingBoxFromMesh();
         OnRenderStateChanged();
     }

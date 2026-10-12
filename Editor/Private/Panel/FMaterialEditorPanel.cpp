@@ -5,6 +5,8 @@
 #include "Asset/UTexture.h"
 #include "Editor/View/FAssetThumbnailRenderer.h"
 #include "Render/Renderer.h"
+#include "Editor/Property/FReflectedDetails.h"
+#include "CoreUObject/Reflection/UStruct.h"
 
 #include <algorithm>
 #include <array>
@@ -12,12 +14,7 @@
 namespace {
     constexpr Uint32 PreviewSize{512};
 
-    struct FTextureField {
-        const char* mLabel{};
-        FMaterialTextureMap FMaterialGroup::* mMember{};
-    };
 
-    constexpr std::array<FTextureField, 12> TextureFields{{{"Ambient", &FMaterialGroup::mAmbientTexture}, {"Diffuse", &FMaterialGroup::mDiffuseTexture}, {"Specular", &FMaterialGroup::mSpecularTexture}, {"Emissive", &FMaterialGroup::mEmissiveTexture}, {"Transmission", &FMaterialGroup::mTransmissionTexture}, {"Shininess", &FMaterialGroup::mShininessTexture}, {"Opacity", &FMaterialGroup::mOpacityTexture}, {"Bump", &FMaterialGroup::mBumpTexture}, {"Normal", &FMaterialGroup::mNormalTexture}, {"Displacement", &FMaterialGroup::mDisplacementTexture}, {"Decal", &FMaterialGroup::mDecalTexture}, {"Reflection", &FMaterialGroup::mReflectionTexture}}};
 }
 
 FMaterialEditorPanel::FMaterialEditorPanel(FAssetRegistry& InRegistry, FAssetThumbnailRenderer& InThumbnailRenderer)
@@ -100,76 +97,9 @@ void FMaterialEditorPanel::DrawContents() {
 }
 
 void FMaterialEditorPanel::DrawGroup(USurfaceOpaque& Material, Uint32 GroupIndex, const FMaterialGroup& Group) {
-    const auto DrawColor3{[this, &Material, GroupIndex](const char* Label, const FVector3& Value, FVector3 FMaterialGroup::* Member) {
-        const FVector4 Color{Value.mX, Value.mY, Value.mZ, 1.0f};
-        mPropertyEditor.DrawColor(Label, Color, [this, &Material, GroupIndex, Member](const FVector4& Edited) {
-            ModifyGroup(Material, GroupIndex, [Member, &Edited](FMaterialGroup& Target) {
-                Target.*Member = FVector3{Edited.mX, Edited.mY, Edited.mZ};
-            });
-        });
-    }};
-
-    DrawColor3("Ambient", Group.mAmbient, &FMaterialGroup::mAmbient);
-    mPropertyEditor.DrawColor("Diffuse", Group.mDiffuse, [this, &Material, GroupIndex](const FVector4& Value) {
-        ModifyGroup(Material, GroupIndex, [&Value](FMaterialGroup& Target) {
-            Target.mDiffuse = Value;
-        });
-    });
-    DrawColor3("Specular", Group.mSpecular, &FMaterialGroup::mSpecular);
-    DrawColor3("Emissive", Group.mEmissive, &FMaterialGroup::mEmissive);
-    mPropertyEditor.DrawVector3("Transmission Filter", Group.mTransmissionFilter, 0.01f, 0.0f, 1.0f, [this, &Material, GroupIndex](const FVector3& Value) {
-        ModifyGroup(Material, GroupIndex, [&Value](FMaterialGroup& Target) {
-            Target.mTransmissionFilter = Value;
-        });
-    });
-
-    mPropertyEditor.DrawFloat("Shininess", Group.mShininess, 1.0f, 0.0f, 1000.0f, [this, &Material, GroupIndex](float Value) {
-        ModifyGroup(Material, GroupIndex, [Value](FMaterialGroup& Target) {
-            Target.mShininess = Value;
-        });
-    });
-
-    mPropertyEditor.DrawFloat("Refraction Index", Group.mRefractionIndex, 0.01f, 0.0f, 10.0f, [this, &Material, GroupIndex](float Value) {
-        ModifyGroup(Material, GroupIndex, [Value](FMaterialGroup& Target) {
-            Target.mRefractionIndex = Value;
-        });
-    });
-
-    mPropertyEditor.DrawFloat("Sharpness", Group.mSharpness, 1.0f, 0.0f, 1000.0f, [this, &Material, GroupIndex](float Value) {
-        ModifyGroup(Material, GroupIndex, [Value](FMaterialGroup& Target) {
-            Target.mSharpness = Value;
-        });
-    });
-
-    int IlluminationModel{Group.mIlluminationModel};
-
-    if (ImGui::InputInt("Illumination Model", &IlluminationModel)) {
-        ModifyGroup(Material, GroupIndex, [IlluminationModel](FMaterialGroup& Target) {
-            Target.mIlluminationModel = IlluminationModel;
-        });
-    }
-
-    mPropertyEditor.DrawBool("Dissolve Halo", Group.mBDissolveHalo, [this, &Material, GroupIndex](bool Value) {
-        ModifyGroup(Material, GroupIndex, [Value](FMaterialGroup& Target) {
-            Target.mBDissolveHalo = Value;
-        });
-    });
-
-    ImGui::SeparatorText("Textures");
-
-    for (const FTextureField& Field : TextureFields) {
-        DrawTexture(Material, GroupIndex, Field.mLabel, Field.mMember);
-    }
-}
-
-void FMaterialEditorPanel::DrawTexture(USurfaceOpaque& Material, Uint32 GroupIndex, const char* Label, FMaterialTextureMap FMaterialGroup::* Member) {
-    const FAssetHandle CurrentHandle{(Material.GetGroups()[GroupIndex].*Member).mTexture};
-    mPropertyEditor.DrawAssetPicker(Label, *UTexture::StaticClass(), CurrentHandle, [this, &Material, GroupIndex, Member](FAssetHandle NewHandle) {
-        ModifyGroup(Material, GroupIndex, [Member, NewHandle](FMaterialGroup& Group) {
-            FMaterialTextureMap& Map{Group.*Member};
-
-            Map.mTexture = NewHandle;
-            Map.mSourcePath.clear();
+    FReflectedDetails::Draw(*FMaterialGroup::StaticStruct(), &Group, mPropertyEditor, [this, &Material, GroupIndex](const FProperty& Property, const FPropertyValue& Value) {
+        ModifyGroup(Material, GroupIndex, [&Property, &Value](FMaterialGroup& Target) {
+            Property.WriteContainer(&Target, Value);
         });
     });
 }

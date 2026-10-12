@@ -40,6 +40,7 @@ public:
     const TArray<std::unique_ptr<FProperty>>& GetDeclaredProperties() const;
     TArray<const FProperty*> GetProperties(bool IncludeInherited = true) const;
     const FProperty* FindProperty(FName Name) const;
+    void SerializeProperties(void* Container, FArchive& Archive, bool IncludeInherited = true) const;
     void SerializeDeclaredProperties(void* Container, FArchive& Archive) const;
     void VisitObjectReferences(const void* Container, const std::function<void(UObject*)>& Visitor) const;
 

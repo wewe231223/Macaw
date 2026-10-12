@@ -28,7 +28,6 @@ public:
 private:
     void DrawContents() override;
     void DrawGroup(USurfaceOpaque& Material, Uint32 GroupIndex, const FMaterialGroup& Group);
-    void DrawTexture(USurfaceOpaque& Material, Uint32 GroupIndex, const char* Label, FMaterialTextureMap FMaterialGroup::* Member);
     void ModifyGroup(USurfaceOpaque& Material, Uint32 GroupIndex, const std::function<void(FMaterialGroup&)>& Modifier);
 
 private:

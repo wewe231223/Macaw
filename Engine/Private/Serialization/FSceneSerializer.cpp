@@ -273,7 +273,7 @@ namespace {
 
             for (const FProperty* Property : Class->GetProperties()) {
                 if (Property->HasAnyFlags(EPropertyFlags::Reference) && !Property->HasAnyFlags(EPropertyFlags::Transient) && Property->GetKind() == EPropertyKind::Object) {
-                    Fields.push_back(Property->GetName().ToString());
+                    Fields.push_back(Property->GetSerializationName());
                 }
             }
 

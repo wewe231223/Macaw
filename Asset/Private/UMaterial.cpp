@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Asset/UMaterial.h"
+#include "Asset/FMaterialGroup.h"
 
 void UMaterial::BuildGPUData(Uint32 GroupIndex, FMaterialGPUSlot& OutSlot) const {
     if (GroupIndex != 0) {
@@ -54,3 +55,8 @@ UMaterial::UMaterial() {
 }
 
 UMaterial::~UMaterial() = default;
+
+void FMaterialTextureMap::SetTexture(FAssetHandle Texture) {
+    mTexture = Texture;
+    mSourcePath.clear();
+}

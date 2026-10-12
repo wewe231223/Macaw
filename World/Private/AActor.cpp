@@ -440,23 +440,7 @@ void AActor::Serialize(FArchive& Archive) {
 
     Archive.EndArrayScope();
 
-    // root component
-    FString GuidRootComponent{};
 
-    if (mRootComponent != nullptr) {
-        GuidRootComponent = mRootComponent->GetGuid().ToString();
-    }
-
-    Archive.Serialize("GuidRootComponent", GuidRootComponent);
-
-    if (Archive.IsLoading()) {
-        mRootComponent = nullptr;
-        mPendingRootComponentGuid = {};
-
-        if (!GuidRootComponent.empty() && !mPendingRootComponentGuid.Parse(GuidRootComponent)) {
-            mPendingRootComponentGuid = {};
-        }
-    }
 }
 
 void AActor::OnAddedToWorld() {

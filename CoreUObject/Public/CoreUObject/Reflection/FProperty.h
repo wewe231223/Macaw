@@ -17,7 +17,10 @@ enum class EPropertyFlags : Uint32 {
     Return = 32,
     Reference = 64,
     Owned = 128,
-    Color = 256
+    Color = 256,
+    Asset = 512,
+    Inline = 1024,
+    OwnerOnly = 2048
 };
 
 EPropertyFlags operator|(EPropertyFlags Left, EPropertyFlags Right);
@@ -41,6 +44,10 @@ public:
     using FReader = FPropertyValue (*)(const void*);
     using FWriter = bool (*)(void*, const FPropertyValue&);
     using FSerializer = void (*)(void*, FArchive&);
+    using FBoundGetter = double (*)(const void*);
+    using FObjectFilter = bool (*)(const void*, UObject*);
+    using FEditCondition = bool (*)(const void*);
+    using FOptionsGetter = TArray<FName> (*)(const void*);
     using FReferenceVisitor = void (*)(const void*, const std::function<void(UObject*)>&);
 
 public:
@@ -63,11 +70,27 @@ public:
     void SerializeContainer(void* Container, FArchive& Archive) const;
     void VisitReferences(const void* Container, const std::function<void(UObject*)>& Visitor) const;
     bool ResetToDefault(UObject& Object) const;
-    void SetEditorMetadata(FString Category, FString DisplayName, float Minimum, float Maximum, float Speed);
+    void SetEditorMetadata(FString Category, FString DisplayName, double Minimum, double Maximum, float Speed);
     const FString& GetCategory() const;
     const FString& GetDisplayName() const;
-    float GetMinimum() const;
-    float GetMaximum() const;
+    void SetDynamicBounds(FBoundGetter Minimum, FBoundGetter Maximum);
+    void SetEditCondition(FEditCondition Condition);
+    bool CanEdit(const void* Container) const;
+    void SetOptionsGetter(FOptionsGetter Getter);
+    bool HasOptions() const;
+    TArray<FName> GetOptions(const void* Container) const;
+    void SetAssetClass(UClass* AssetClass);
+    UClass* GetAssetClass() const;
+    UObject* ReadObject(const void* Container) const;
+    FPropertyValue MakeObjectValue(UObject* Object) const;
+    void SetObjectFilter(FObjectFilter Filter);
+    bool CanSelectObject(const void* Container, UObject* Object) const;
+    void SetSerializationName(FString Name);
+    const FString& GetSerializationName() const;
+    void SetSerializationScope(FString Scope);
+    const FString& GetSerializationScope() const;
+    double GetMinimum(const void* Container = nullptr) const;
+    double GetMaximum(const void* Container = nullptr) const;
     float GetSpeed() const;
 
 private:
@@ -79,7 +102,15 @@ private:
     FReferenceVisitor mReferenceVisitor{};
     FString mCategory{};
     FString mDisplayName{};
-    float mMinimum{-std::numeric_limits<float>::max()};
-    float mMaximum{std::numeric_limits<float>::max()};
+    double mMinimum{-std::numeric_limits<double>::max()};
+    double mMaximum{std::numeric_limits<double>::max()};
+    FBoundGetter mMinimumGetter{};
+    FBoundGetter mMaximumGetter{};
+    FEditCondition mEditCondition{};
+    FObjectFilter mObjectFilter{};
+    FOptionsGetter mOptionsGetter{};
+    UClass* mAssetClass{};
+    FString mSerializationName{};
+    FString mSerializationScope{};
     float mSpeed{0.1f};
 };

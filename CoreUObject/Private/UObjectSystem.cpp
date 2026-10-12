@@ -359,3 +359,15 @@ Uint32 UObjectSystem::GetItemCount() {
 Uint32 UObjectSystem::GetObjectCount() {
     return GetRegistryState().mObjectCount;
 }
+
+TArray<UObject*> UObjectSystem::GetObjects() {
+    TArray<UObject*> Objects{};
+
+    for (const FObjectItem& Item : GetRegistryState().mObjectItems) {
+        if (Item.mObject != nullptr) {
+            Objects.push_back(Item.mObject);
+        }
+    }
+
+    return Objects;
+}

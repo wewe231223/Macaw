@@ -26,5 +26,6 @@ namespace UObjectSystem {
     bool RestoreGuid(UObject* Object, const FGuid& Guid);
     void DetachInners(UObject* Object);
 
+    TArray<UObject*> GetObjects();
     Uint32 GetObjectCount();
 }

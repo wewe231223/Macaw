@@ -5,6 +5,7 @@
 #include "RenderCore/FRenderData.h"
 #include "Core/STL.h"
 #include "Asset/UFont.h"
+#include "Asset/Pipeline/UPipeline.h"
 #include "World/Component/UBillboardTextComponent.generated.h"
 
 UCLASS()
@@ -55,7 +56,9 @@ protected:
     void RebuildTextGeometry();
 
 protected:
+    UPROPERTY(Edit, Serialize, Asset, AssetClass = UFont, Getter = GetFontHandle, Setter = SetFontHandle, AssetGuid = mFontAssetGuid, AssetPath = mFontAssetPath, Category = "Text Assets", DisplayName = "Font")
     FAssetHandle mFontHandle{};
+    UPROPERTY(Edit, Serialize, Asset, AssetClass = UPipeline, Getter = GetPipelineHandle, Setter = SetPipelineHandle, AssetGuid = mPipelineAssetGuid, AssetPath = mPipelineAssetPath, Category = "Text Assets", DisplayName = "Pipeline")
     FAssetHandle mPipelineHandle{};
     FAssetPath mFontAssetPath{};
     FAssetPath mPipelineAssetPath{};

@@ -26,7 +26,6 @@ const FVector2& UUVScrollComponent::GetScrollSpeed() const {
 
 void UUVScrollComponent::Serialize(FArchive& Archive) {
     Super::Serialize(Archive);
-    StaticClass()->SerializeDeclaredProperties(this, Archive);
 
     if (Archive.IsLoading()) {
         ResetPlaybackState();

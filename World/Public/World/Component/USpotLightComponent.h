@@ -32,8 +32,8 @@ protected:
     void Serialize(FArchive& Archive) override;
 
 private:
-    UPROPERTY(Serialize, Name = "InnerConeAngle", Getter = GetInnerConeAngle, Category = "Spot Light", DisplayName = "Inner Cone Angle", Edit, Setter = SetInnerConeAngle, Min = 0.0f, Max = 89.9f)
+    UPROPERTY(Serialize, Name = "InnerConeAngle", Getter = GetInnerConeAngle, Category = "Spot Light", DisplayName = "Inner Cone Angle", Edit, Setter = SetInnerConeAngle, Min = 0.0f, Max = 89.9f, MaxGetter = GetOuterConeAngle)
     float mInnerConeAngle{30.0f};
-    UPROPERTY(Serialize, Name = "OuterConeAngle", Getter = GetOuterConeAngle, Category = "Spot Light", DisplayName = "Outer Cone Angle", Edit, Setter = SetOuterConeAngle, Min = 0.0f, Max = 89.9f)
+    UPROPERTY(Serialize, Name = "OuterConeAngle", Getter = GetOuterConeAngle, Category = "Spot Light", DisplayName = "Outer Cone Angle", Edit, Setter = SetOuterConeAngle, Min = 0.0f, Max = 89.9f, MinGetter = GetInnerConeAngle)
     float mOuterConeAngle{45.0f};
 };

@@ -62,7 +62,6 @@ Int32 UFlipBookComponent::GetCurrentFrame() const {
 
 void UFlipBookComponent::Serialize(FArchive& Archive) {
     Super::Serialize(Archive);
-    StaticClass()->SerializeDeclaredProperties(this, Archive);
 
     if (Archive.IsLoading()) {
         mCurrentFrame = 0;
@@ -87,4 +86,24 @@ double UFlipBookComponent::GetDuration() const {
 
 void UFlipBookComponent::ResetPlaybackState() {
     mCurrentFrame = 0;
+}
+
+void UFlipBookComponent::SetColumns(Int32 Columns) {
+    SetSubImage(Columns, mRows, mTotalFrames, mFrameRate, IsLooping());
+}
+
+void UFlipBookComponent::SetRows(Int32 Rows) {
+    SetSubImage(mColumns, Rows, mTotalFrames, mFrameRate, IsLooping());
+}
+
+void UFlipBookComponent::SetTotalFrames(Int32 TotalFrames) {
+    SetSubImage(mColumns, mRows, TotalFrames, mFrameRate, IsLooping());
+}
+
+Int32 UFlipBookComponent::GetMaximumTotalFrames() const {
+    return static_cast<Int32>((std::min)(static_cast<Int64>(mColumns) * mRows, static_cast<Int64>(std::numeric_limits<Int32>::max())));
+}
+
+Int32 UFlipBookComponent::GetMaximumCurrentFrame() const {
+    return mTotalFrames - 1;
 }

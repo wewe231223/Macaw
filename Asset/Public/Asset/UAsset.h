@@ -32,6 +32,8 @@ protected:
     virtual void Serialize(FArchive& Ar) override;
 
 protected:
+    UPROPERTY(Serialize, Name = "AssetPath", ReadOnly)
     std::filesystem::path mAssetPath{};
+    UPROPERTY(Serialize, Name = "AssetName", ReadOnly)
     FString mAssetName{};
 };

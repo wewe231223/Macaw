@@ -21,6 +21,11 @@ public:
     void SetCurrentFrame(Int32 Frame);
     UFUNCTION()
     float GetFrameRate() const;
+    void SetColumns(Int32 Columns);
+    void SetRows(Int32 Rows);
+    void SetTotalFrames(Int32 TotalFrames);
+    Int32 GetMaximumTotalFrames() const;
+    Int32 GetMaximumCurrentFrame() const;
     Int32 GetColumns() const;
     Int32 GetRows() const;
     Int32 GetTotalFrames() const;
@@ -35,12 +40,13 @@ private:
     void ResetPlaybackState() override;
 
 private:
-    UPROPERTY(Serialize, Name = "SubImageHorizontal", Getter = GetColumns, Category = "Flipbook", DisplayName = "Columns", ReadOnly)
+    UPROPERTY(Serialize, Name = "SubImageHorizontal", Getter = GetColumns, Category = "Flipbook", DisplayName = "Columns", Edit, Setter = SetColumns, Min = 1, Speed = 1.0f)
     Int32 mColumns{1};
-    UPROPERTY(Serialize, Name = "SubImageVertical", Getter = GetRows, Category = "Flipbook", DisplayName = "Rows", ReadOnly)
+    UPROPERTY(Serialize, Name = "SubImageVertical", Getter = GetRows, Category = "Flipbook", DisplayName = "Rows", Edit, Setter = SetRows, Min = 1, Speed = 1.0f)
     Int32 mRows{1};
-    UPROPERTY(Serialize, Name = "TotalFrame", Getter = GetTotalFrames, Category = "Flipbook", DisplayName = "Total Frames", ReadOnly)
+    UPROPERTY(Serialize, Name = "TotalFrame", Getter = GetTotalFrames, Category = "Flipbook", DisplayName = "Total Frames", Edit, Setter = SetTotalFrames, Min = 1, MaxGetter = GetMaximumTotalFrames, Speed = 1.0f)
     Int32 mTotalFrames{1};
+    UPROPERTY(Edit, Transient, Name = "CurrentFrame", Category = "Flipbook", DisplayName = "Current Frame", Getter = GetCurrentFrame, Setter = SetCurrentFrame, Min = 0, MaxGetter = GetMaximumCurrentFrame, Speed = 1.0f)
     Int32 mCurrentFrame{};
     UPROPERTY(Serialize, Name = "FrameRate", Getter = GetFrameRate, Category = "Flipbook", DisplayName = "Frame Rate", Edit, Setter = SetFrameRate, Min = 0.0f, Max = 240.0f)
     float mFrameRate{30.0f};

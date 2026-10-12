@@ -157,47 +157,6 @@ void UBillboardTextComponent::OnRegister() {
 void UBillboardTextComponent::Serialize(FArchive& Archive) {
     Super::Serialize(Archive);
 
-    const IAssetResolver* AssetRegistry{Archive.GetAssetResolver()};
-
-    if (Archive.IsSaving() && AssetRegistry != nullptr) {
-        if (const FAssetPath* AssetPath{AssetRegistry->GetAssetPath(mFontHandle)}) {
-            mFontAssetPath = *AssetPath;
-        }
-
-        if (const FGuid* AssetGuid{AssetRegistry->GetAssetGuid(mFontHandle)}) {
-            mFontAssetGuid = *AssetGuid;
-        }
-
-        if (const FAssetPath* AssetPath{AssetRegistry->GetAssetPath(mPipelineHandle)}) {
-            mPipelineAssetPath = *AssetPath;
-        }
-
-        if (const FGuid* AssetGuid{AssetRegistry->GetAssetGuid(mPipelineHandle)}) {
-            mPipelineAssetGuid = *AssetGuid;
-        }
-    }
-
-    Archive.Serialize("FontAssetGuid", mFontAssetGuid);
-    Archive.Serialize("FontAssetPath", mFontAssetPath.mPath);
-    Archive.Serialize("PipelineAssetGuid", mPipelineAssetGuid);
-    Archive.Serialize("PipelineAssetPath", mPipelineAssetPath.mPath);
-
-    if (Archive.IsLoading()) {
-        mFontHandle = AssetRegistry != nullptr ? AssetRegistry->FindAsset(mFontAssetGuid) : FAssetHandle{};
-
-        if (!mFontHandle && AssetRegistry != nullptr) {
-            mFontHandle = AssetRegistry->FindAsset(mFontAssetPath);
-        }
-
-        mPipelineHandle = AssetRegistry != nullptr ? AssetRegistry->FindAsset(mPipelineAssetGuid) : FAssetHandle{};
-
-        if (!mPipelineHandle && AssetRegistry != nullptr) {
-            mPipelineHandle = AssetRegistry->FindAsset(mPipelineAssetPath);
-        }
-    }
-
-    StaticClass()->SerializeDeclaredProperties(this, Archive);
-
     if (Archive.IsLoading()) {
         RebuildTextGeometry();
     }

@@ -5,6 +5,7 @@
 #include "Editor/Message/FEditorInfo.h"
 #include "Core/Channel/FMessageChannel.h"
 #include "Editor/World/FWorldEditorContext.h"
+#include "Editor/Panel/FPropertyEditorContext.h"
 
 class FControlPanel : public IEditorPanel {
 public:
@@ -14,6 +15,10 @@ public:
     void DrawPanel() override;
 
 private:
+    void DrawSettings(const char* Category);
+
+private:
+    FPropertyEditorContext mPropertyEditor{};
     FWorldEditorContext* mEditorContext{nullptr};
     FMessageChannel::FSender mEditorToWorldSender;
 

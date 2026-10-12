@@ -54,11 +54,11 @@ void USpotLightComponent::BuildLightShaderParameters(FLightShaderParameters& Out
 
 void USpotLightComponent::Serialize(FArchive& Archive) {
     Super::Serialize(Archive);
-    StaticClass()->SerializeDeclaredProperties(this, Archive);
 
     if (Archive.IsLoading()) {
-        SetInnerConeAngle(mInnerConeAngle);
-        SetOuterConeAngle(mOuterConeAngle);
+        mOuterConeAngle = std::isfinite(mOuterConeAngle) ? std::clamp(mOuterConeAngle, MinimumConeAngle, MaximumConeAngle) : MaximumConeAngle;
+        mInnerConeAngle = std::isfinite(mInnerConeAngle) ? std::clamp(mInnerConeAngle, MinimumConeAngle, mOuterConeAngle) : MinimumConeAngle;
+        MarkRenderStateDirty();
     }
 }
 

@@ -387,10 +387,22 @@ std::vector<FTypeDefinition> ParseHeader(const std::string& Source, const std::s
                     if (Tokens[Position].mText == "UPROPERTY") {
                         FPropertyDefinition Property{};
                         Property.mOptions = ParseOptions(Tokens, Position);
-                        ValidateOptions(Property.mOptions, {"Edit", "Serialize", "ReadOnly", "Transient", "Reference", "Owned", "Color", "Name", "Getter", "Setter", "Category", "DisplayName", "Min", "Max", "Speed"}, {"Edit", "Serialize", "ReadOnly", "Transient", "Reference", "Owned", "Color"});
+                        ValidateOptions(Property.mOptions, {"Edit", "Serialize", "ReadOnly", "Transient", "Reference", "Owned", "Color", "Name", "Getter", "Setter", "Category", "DisplayName", "Min", "Max", "Speed", "MinGetter", "MaxGetter", "EditCondition", "OptionsGetter", "ObjectFilter", "Asset", "AssetClass", "AssetGuid", "AssetPath", "PendingGuid", "Inline", "OwnerOnly", "SerializationScope", "SerializeName"}, {"Edit", "Serialize", "ReadOnly", "Transient", "Reference", "Owned", "Color", "Asset", "Inline", "OwnerOnly"});
 
                         if (Property.mOptions.contains("Transient") && Property.mOptions.contains("Serialize")) {
                             throw std::runtime_error{"Transient and Serialize cannot be combined"};
+                        }
+
+                        if (Property.mOptions.contains("Asset") && !Property.mOptions.contains("AssetClass")) {
+                            throw std::runtime_error{"Asset properties require AssetClass"};
+                        }
+
+                        if (Property.mOptions.contains("Serialize") && Property.mOptions.contains("Asset") && (!Property.mOptions.contains("AssetGuid") || !Property.mOptions.contains("AssetPath"))) {
+                            throw std::runtime_error{"Serialized assets require persistent GUID and path members"};
+                        }
+
+                        if (Property.mOptions.contains("Serialize") && Property.mOptions.contains("Reference") && !Property.mOptions.contains("PendingGuid")) {
+                            throw std::runtime_error{"Serialized object references require PendingGuid"};
                         }
 
                         while (++Position < End && Tokens[Position].mText != ";" && Tokens[Position].mText != "{" && Tokens[Position].mText != "=") {
@@ -448,7 +460,7 @@ std::vector<FTypeDefinition> ParseHeader(const std::string& Source, const std::s
 std::string PropertyFlags(const FPropertyDefinition& Property) {
     std::string Flags{"EPropertyFlags::None"};
 
-    for (const std::string Key : {"Edit", "Serialize", "ReadOnly", "Transient", "Reference", "Owned", "Color"}) {
+    for (const std::string Key : {"Edit", "Serialize", "ReadOnly", "Transient", "Reference", "Owned", "Color", "Asset", "Inline", "OwnerOnly"}) {
         if (Property.mOptions.contains(Key)) {
             Flags += " | EPropertyFlags::" + Key;
         }
@@ -529,6 +541,15 @@ void Generate(const std::filesystem::path& Root, const std::string& Module, cons
             Code << "    static FPropertyValue Read" << Member << "(const void* Container);\n    static bool Write" << Member << "(void* Container, const FPropertyValue& Value);\n    static void Serialize" << Member << "(void* Container, FArchive& Archive);\n    static void Visit" << Member << "(const void* Container, const std::function<void(UObject*)>& Visitor);\n";
         }
 
+        for (const FPropertyDefinition& Property : Type.mProperties) {
+            for (const std::string Key : {"MinGetter", "MaxGetter", "EditCondition", "OptionsGetter"}) {
+                if (Property.mOptions.contains(Key)) {
+                    const std::string ReturnType{Key == "EditCondition" ? "bool" : Key == "OptionsGetter" ? "TArray<FName>" : "double"};
+                    Code << "    static " << ReturnType << " " << Key << Property.mMember << "(const void* Container);\n";
+                }
+            }
+        }
+
         for (const FFunctionDefinition& Function : Type.mFunctions) {
             Code << "    static bool Invoke" << Function.mName << "(UObject& Object, std::span<const FPropertyValue> Arguments, FPropertyValue& Result);\n";
         }
@@ -541,10 +562,38 @@ void Generate(const std::filesystem::path& Root, const std::string& Module, cons
 
         for (const FPropertyDefinition& Property : Type.mProperties) {
             const std::string& Member{Property.mMember};
-            const std::string ValueType{"std::remove_cvref_t<decltype(std::declval<" + Type.mName + ">()." + Member + ")>"};
+            const std::string ReadExpression{Property.mOptions.contains("Getter") ? Property.mOptions.at("Getter") + "()" : Member};
+            const std::string ValueType{"std::remove_cvref_t<decltype(std::declval<" + Type.mName + ">()." + ReadExpression + ")>"};
             const std::string Name{Option(Property.mOptions, "Name", "\"" + Member.substr(1) + "\"")};
             Code << "    {\n        std::unique_ptr<FProperty> Property{std::make_unique<FProperty>(FName{" << Name << "}, &Information, GetNativeType<" << ValueType << ">(), " << PropertyFlags(Property) << ", &Read" << Member << ", &Write" << Member << ", &Serialize" << Member << ", &Visit" << Member << ")};\n";
-            Code << "        Property->SetEditorMetadata(FString{" << Option(Property.mOptions, "Category", "\"\"") << "}, FString{" << Option(Property.mOptions, "DisplayName", Name) << "}, " << Option(Property.mOptions, "Min", "-std::numeric_limits<float>::max()") << ", " << Option(Property.mOptions, "Max", "std::numeric_limits<float>::max()") << ", " << Option(Property.mOptions, "Speed", "0.1f") << ");\n        Information.AddProperty(std::move(Property));\n    }\n";
+            Code << "        Property->SetEditorMetadata(FString{" << Option(Property.mOptions, "Category", "\"\"") << "}, FString{" << Option(Property.mOptions, "DisplayName", Name) << "}, " << Option(Property.mOptions, "Min", "-std::numeric_limits<float>::max()") << ", " << Option(Property.mOptions, "Max", "std::numeric_limits<float>::max()") << ", " << Option(Property.mOptions, "Speed", "0.1f") << ");\n";
+            Code << "        Property->SetDynamicBounds(" << (Property.mOptions.contains("MinGetter") ? "&MinGetter" + Member : "nullptr") << ", " << (Property.mOptions.contains("MaxGetter") ? "&MaxGetter" + Member : "nullptr") << ");\n";
+
+            if (Property.mOptions.contains("EditCondition")) {
+                Code << "        Property->SetEditCondition(&EditCondition" << Member << ");\n";
+            }
+
+            if (Property.mOptions.contains("OptionsGetter")) {
+                Code << "        Property->SetOptionsGetter(&OptionsGetter" << Member << ");\n";
+            }
+
+            if (Property.mOptions.contains("AssetClass")) {
+                Code << "        Property->SetAssetClass(" << Property.mOptions.at("AssetClass") << "::StaticClass());\n";
+            }
+
+            if (Property.mOptions.contains("SerializeName")) {
+                Code << "        Property->SetSerializationName(FString{" << Property.mOptions.at("SerializeName") << "});\n";
+            }
+
+            if (Property.mOptions.contains("SerializationScope")) {
+                Code << "        Property->SetSerializationScope(FString{" << Property.mOptions.at("SerializationScope") << "});\n";
+            }
+
+            if (Property.mOptions.contains("ObjectFilter")) {
+                Code << "        Property->SetObjectFilter([](const void* Container, UObject* Candidate) {\n            const " << Type.mName << "& Object{*static_cast<const " << Type.mName << "*>(Container)};\n\n            return Object." << Property.mOptions.at("ObjectFilter") << "(static_cast<" << ValueType << ">(Candidate));\n        });\n";
+            }
+
+            Code << "        Information.AddProperty(std::move(Property));\n    }\n";
         }
 
         for (const FFunctionDefinition& Function : Type.mFunctions) {
@@ -565,10 +614,11 @@ void Generate(const std::filesystem::path& Root, const std::string& Module, cons
 
         for (const FPropertyDefinition& Property : Type.mProperties) {
             const std::string& Member{Property.mMember};
-            const std::string ValueType{"std::remove_cvref_t<decltype(std::declval<" + Type.mName + ">()." + Member + ")>"};
+            const std::string ReadExpression{Property.mOptions.contains("Getter") ? Property.mOptions.at("Getter") + "()" : Member};
+            const std::string ValueType{"std::remove_cvref_t<decltype(std::declval<" + Type.mName + ">()." + ReadExpression + ")>"};
             const std::string Getter{Option(Property.mOptions, "Getter", "")};
             const std::string Setter{Option(Property.mOptions, "Setter", "")};
-            const std::string Name{Option(Property.mOptions, "Name", "\"" + Member.substr(1) + "\"")};
+            const std::string Name{Option(Property.mOptions, "SerializeName", Option(Property.mOptions, "Name", "\"" + Member.substr(1) + "\""))};
             Code << "\nFPropertyValue " << Access << "::Read" << Member << "(const void* Container) {\n    const " << Type.mName << "& Object{*static_cast<const " << Type.mName << "*>(Container)};\n\n    return FPropertyValue{Object." << (Getter.empty() ? Member : Getter + "()") << "};\n}\n";
             Code << "\nbool " << Access << "::Write" << Member << "(void* Container, const FPropertyValue& Value) {\n";
 
@@ -587,10 +637,31 @@ void Generate(const std::filesystem::path& Root, const std::string& Module, cons
             Code << "}\n\nvoid " << Access << "::Serialize" << Member << "(void* Container, FArchive& Archive) {\n";
 
             if (Property.mOptions.contains("Serialize")) {
-                Code << "    using ValueType = " << ValueType << ";\n\n    " << Type.mName << "& Object{*static_cast<" << Type.mName << "*>(Container)};\n    ValueType Value{Object." << Member << "};\n\n    SerializeNativeValue(Archive, " << Name << ", Value);\n\n    if (Archive.IsLoading()) {\n        Object." << Member << " = Value;\n    }\n";
+                Code << "    " << Type.mName << "& Object{*static_cast<" << Type.mName << "*>(Container)};\n";
+
+                if (Property.mOptions.contains("Asset")) {
+                    const std::string Guid{Property.mOptions.at("AssetGuid")};
+                    const std::string Path{Property.mOptions.at("AssetPath")};
+                    Code << "\n    SerializeAssetReference(Archive, \"" << Guid.substr(1) << "\", \"" << Path.substr(1) << "\", Object." << Member << ", Object." << Guid << ", Object." << Path << ");\n";
+                } else if (Property.mOptions.contains("Reference")) {
+                    Code << "\n    SerializeObjectReference(Archive, " << Name << ", Object." << ReadExpression << ", Object." << Property.mOptions.at("PendingGuid") << ");\n\n    if (Archive.IsLoading()) {\n        Object." << Member << " = {};\n    }\n";
+                } else if (Property.mOptions.contains("Inline")) {
+                    Code << "\n    std::remove_cvref_t<decltype(Object." << Member << ")>::StaticStruct()->SerializeProperties(&Object." << Member << ", Archive);\n";
+                } else {
+                    Code << "    using StorageType = std::remove_cvref_t<decltype(Object." << Member << ")>;\n    StorageType Value{Object." << Member << "};\n\n    SerializeNativeValue(Archive, " << Name << ", Value);\n\n    if (Archive.IsLoading()) {\n        Object." << Member << " = Value;\n    }\n";
+                }
             }
 
-            Code << "}\n\nvoid " << Access << "::Visit" << Member << "(const void* Container, const std::function<void(UObject*)>& Visitor) {\n    const " << Type.mName << "& Object{*static_cast<const " << Type.mName << "*>(Container)};\n\n    VisitNativeReferences<" << ValueType << ">(&Object." << Member << ", Visitor);\n}\n";
+            Code << "}\n\nvoid " << Access << "::Visit" << Member << "(const void* Container, const std::function<void(UObject*)>& Visitor) {\n    const " << Type.mName << "& Object{*static_cast<const " << Type.mName << "*>(Container)};\n\n    VisitNativeReferences<std::remove_cvref_t<decltype(Object." << Member << ")>>(&Object." << Member << ", Visitor);\n}\n";
+        }
+
+        for (const FPropertyDefinition& Property : Type.mProperties) {
+            for (const std::string Key : {"MinGetter", "MaxGetter", "EditCondition", "OptionsGetter"}) {
+                if (Property.mOptions.contains(Key)) {
+                    const std::string ReturnType{Key == "EditCondition" ? "bool" : Key == "OptionsGetter" ? "TArray<FName>" : "double"};
+                    Code << "\n" << ReturnType << " " << Access << "::" << Key << Property.mMember << "(const void* Container) {\n    const " << Type.mName << "& Object{*static_cast<const " << Type.mName << "*>(Container)};\n\n    return Object." << Property.mOptions.at(Key) << "();\n}\n";
+                }
+            }
         }
 
         for (const FFunctionDefinition& Function : Type.mFunctions) {

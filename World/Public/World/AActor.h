@@ -206,7 +206,7 @@ private:
     // 파괴 처리 후 메모리 해제를 기다리는 컴포넌트입니다.
     std::vector<std::unique_ptr<UActorComponent>> mPendingDestroyComponents{};
     std::size_t mTickIndex{std::numeric_limits<std::size_t>::max()};
-    UPROPERTY(Name = "GuidRootComponent", Reference, ReadOnly)
+    UPROPERTY(Serialize, Name = "GuidRootComponent", Reference, ReadOnly, PendingGuid = mPendingRootComponentGuid)
     USceneComponent* mRootComponent{nullptr};
 
     FGuid mPendingRootComponentGuid{};

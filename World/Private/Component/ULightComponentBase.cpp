@@ -46,7 +46,6 @@ void ULightComponentBase::SetVisible(bool BInVisible) {
 void ULightComponentBase::Serialize(FArchive& Archive) {
     Super::Serialize(Archive);
 
-    StaticClass()->SerializeDeclaredProperties(this, Archive);
 
     if (Archive.IsLoading()) {
         MarkRenderStateDirty();

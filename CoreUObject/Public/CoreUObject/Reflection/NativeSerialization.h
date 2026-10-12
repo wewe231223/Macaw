@@ -4,9 +4,15 @@
 #include "CoreUObject/Reflection/FPropertyValue.h"
 #include "CoreUObject/Reflection/UStruct.h"
 #include <stdexcept>
+#include <filesystem>
+#include "Core/Asset/FAssetPath.h"
 
 template <typename T>
 void SerializeNativeValue(FArchive& Archive, std::string_view Name, T& Value);
+
+void SerializeAssetReference(FArchive& Archive, std::string_view GuidName, std::string_view PathName, FAssetHandle& Handle, FGuid& Guid, FAssetPath& Path);
+
+void SerializeObjectReference(FArchive& Archive, std::string_view Name, const UObject* Object, FGuid& PendingGuid);
 
 template <typename TSetter>
 bool ApplyPropertySetter(TSetter&& Setter);
@@ -19,6 +25,13 @@ void SerializeNativeValue(FArchive& Archive, std::string_view Name, T& Value) {
 
         if (Archive.IsLoading()) {
             Value = static_cast<T>(Number);
+        }
+    } else if constexpr (std::is_same_v<T, std::filesystem::path>) {
+        FString Path{Value.generic_string()};
+        Archive.Serialize(Name, Path);
+
+        if (Archive.IsLoading()) {
+            Value = std::filesystem::path{Path};
         }
     } else if constexpr (requires { Value.Serialize(Archive); }) {
         Archive.SerializeStruct(Name, Value);

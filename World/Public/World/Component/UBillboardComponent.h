@@ -3,6 +3,8 @@
 #include "Core/Asset/FAssetPath.h"
 #include <array>
 #include "Math/FMath.h"
+#include "Asset/UTexture.h"
+#include "Asset/Pipeline/UPipeline.h"
 #include "World/Component/UBillboardComponent.generated.h"
 
 // 카메라를 향하는 Primitive의 공통 기반 클래스.
@@ -53,7 +55,9 @@ protected:
     virtual bool TryGetBillBoardWorld(FMatrix& OutWorld) const;
 
 private:
+    UPROPERTY(Edit, Serialize, Asset, AssetClass = UTexture, Getter = GetTextureHandle, Setter = SetTextureHandle, AssetGuid = mTextureAssetGuid, AssetPath = mTextureAssetPath, Category = "Billboard", DisplayName = "Texture")
     FAssetHandle mTextureHandle{};
+    UPROPERTY(Edit, Serialize, Asset, AssetClass = UPipeline, Getter = GetPipelineHandle, Setter = SetPipelineHandle, AssetGuid = mPipelineAssetGuid, AssetPath = mPipelineAssetPath, Category = "Billboard", DisplayName = "Pipeline")
     FAssetHandle mPipelineHandle{};
     FAssetPath mTextureAssetPath{};
     FAssetPath mPipelineAssetPath{};

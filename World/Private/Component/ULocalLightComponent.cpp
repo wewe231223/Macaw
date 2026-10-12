@@ -24,7 +24,6 @@ void ULocalLightComponent::BuildLightShaderParameters(FLightShaderParameters& Ou
 
 void ULocalLightComponent::Serialize(FArchive& Archive) {
     Super::Serialize(Archive);
-    StaticClass()->SerializeDeclaredProperties(this, Archive);
 
     if (Archive.IsLoading()) {
         MarkRenderStateDirty();

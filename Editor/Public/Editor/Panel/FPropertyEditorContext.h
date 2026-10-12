@@ -11,11 +11,14 @@ public:
     ~FPropertyEditorContext() override = default;
 
 public:
+    void BeginProperty(const char* Label) const override;
+    void EndProperty() const override;
     bool BeginCategory(const char* Label, bool BDefaultOpen = true) const override;
     void DrawDisabledText(const char* Text) const override;
     void DrawButton(const char* Label, const std::function<void()>& OnClicked) const override;
 
     void DrawBool(const char* Label, bool Value, const std::function<void(bool)>& Setter) const override;
+    void DrawInteger(const char* Label, Int64 Value, float Speed, Int64 Min, Int64 Max, const std::function<void(Int64)>& Setter) const override;
     void DrawFloat(const char* Label, float Value, float Speed, float Min, float Max, const std::function<void(float)>& Setter) const override;
     void DrawVector2(const char* Label, const FVector2& Value, float Speed, float Min, float Max, const std::function<void(const FVector2&)>& Setter) const override;
     void DrawVector3(const char* Label, const FVector3& Value, float Speed, float Min, float Max, const std::function<void(const FVector3&)>& Setter) const override;

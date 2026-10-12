@@ -118,44 +118,7 @@ std::unique_ptr<FPrimitiveSceneProxy> UStaticMeshComponent::CreateSceneProxy() c
 void UStaticMeshComponent::Serialize(FArchive& Archive) {
     Super::Serialize(Archive);
 
-    const IAssetResolver* Registry{Archive.GetAssetResolver()};
-
-    if (Archive.IsSaving() && Registry != nullptr) {
-        if (const FAssetPath* AssetPath{Registry->GetAssetPath(mMaterialHandle)}) {
-            mMaterialAssetPath = *AssetPath;
-        }
-
-        if (const FGuid* AssetGuid{Registry->GetAssetGuid(mMaterialHandle)}) {
-            mMaterialAssetGuid = *AssetGuid;
-        }
-
-        if (const FAssetPath* AssetPath{Registry->GetAssetPath(mPipelineHandle)}) {
-            mPipelineAssetPath = *AssetPath;
-        }
-
-        if (const FGuid* AssetGuid{Registry->GetAssetGuid(mPipelineHandle)}) {
-            mPipelineAssetGuid = *AssetGuid;
-        }
-    }
-
-    Archive.Serialize("MaterialAssetGuid", mMaterialAssetGuid);
-    Archive.Serialize("MaterialAssetPath", mMaterialAssetPath.mPath);
-    Archive.Serialize("PipelineAssetGuid", mPipelineAssetGuid);
-    Archive.Serialize("PipelineAssetPath", mPipelineAssetPath.mPath);
-
     if (Archive.IsLoading()) {
-        mMaterialHandle = Registry != nullptr ? Registry->FindAsset(mMaterialAssetGuid) : FAssetHandle{};
-
-        if (!mMaterialHandle && Registry != nullptr) {
-            mMaterialHandle = Registry->FindAsset(mMaterialAssetPath);
-        }
-
-        mPipelineHandle = Registry != nullptr ? Registry->FindAsset(mPipelineAssetGuid) : FAssetHandle{};
-
-        if (!mPipelineHandle && Registry != nullptr) {
-            mPipelineHandle = Registry->FindAsset(mPipelineAssetPath);
-        }
-
         BuildPickingBoxFromMesh();
         OnRenderStateChanged();
     }
@@ -163,4 +126,37 @@ void UStaticMeshComponent::Serialize(FArchive& Archive) {
 
 UStaticMeshComponent::UStaticMeshComponent() {
     InitializeClass(StaticClass());
+}
+
+void UStaticMeshComponent::SetEditorMaterialHandle(FAssetHandle InHandle) {
+    SetMaterialHandle(InHandle);
+
+    const UWorld* World{GetOwner() != nullptr ? GetOwner()->GetWorld() : nullptr};
+    const IAssetRegistry* Registry{World != nullptr ? World->GetAssetRegistry() : nullptr};
+
+    if (Registry == nullptr) {
+        return;
+    }
+
+    const UMaterial* Material{Registry->ResolveAsset<UMaterial>(GetMaterialHandle())};
+    bool HasTexture{};
+
+    if (Material != nullptr) {
+        for (Uint32 GroupIndex{}; GroupIndex < Material->GetGPUDataCount() && !HasTexture; ++GroupIndex) {
+            const FMaterialChunkSignature Signature{Material->BuildChunkSignature(GroupIndex)};
+
+            for (Uint8 TextureFieldIndex{}; TextureFieldIndex < Signature.mTextureFieldCount; ++TextureFieldIndex) {
+                if (Signature.GetTextureHandle(TextureFieldIndex)) {
+                    HasTexture = true;
+                    break;
+                }
+            }
+        }
+    }
+
+    const FAssetHandle DesiredPipelineHandle{Registry->FindAsset(FAssetPath{HasTexture ? "/Game/Pipeline/TexturedBase" : "/Game/Pipeline/Base"})};
+
+    if (DesiredPipelineHandle != GetPipelineHandle() && Registry->ResolveAsset<UPipeline>(DesiredPipelineHandle) != nullptr) {
+        SetPipelineHandle(DesiredPipelineHandle);
+    }
 }

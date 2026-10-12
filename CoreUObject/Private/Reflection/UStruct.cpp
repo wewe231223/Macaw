@@ -99,12 +99,35 @@ const FProperty* UStruct::FindProperty(FName Name) const {
     return mSuperStruct != nullptr ? mSuperStruct->FindProperty(Name) : nullptr;
 }
 
-void UStruct::SerializeDeclaredProperties(void* Container, FArchive& Archive) const {
-    for (const std::unique_ptr<FProperty>& Property : mProperties) {
-        if (Property->HasAnyFlags(EPropertyFlags::Serialize) && !Property->HasAnyFlags(EPropertyFlags::Transient)) {
-            Property->SerializeContainer(Container, Archive);
+void UStruct::SerializeProperties(void* Container, FArchive& Archive, bool IncludeInherited) const {
+    const TArray<const FProperty*> Properties{GetProperties(IncludeInherited)};
+    TArray<FString> Scopes{};
+
+    for (const FProperty* Property : Properties) {
+        if (Property->HasAnyFlags(EPropertyFlags::Serialize) && !Property->HasAnyFlags(EPropertyFlags::Transient) && std::ranges::find(Scopes, Property->GetSerializationScope()) == Scopes.end()) {
+            Scopes.push_back(Property->GetSerializationScope());
         }
     }
+
+    for (const FString& Scope : Scopes) {
+        if (!Scope.empty()) {
+            Archive.BeginObjectScope(Scope);
+        }
+
+        for (const FProperty* Property : Properties) {
+            if (Property->HasAnyFlags(EPropertyFlags::Serialize) && !Property->HasAnyFlags(EPropertyFlags::Transient) && Property->GetSerializationScope() == Scope) {
+                Property->SerializeContainer(Container, Archive);
+            }
+        }
+
+        if (!Scope.empty()) {
+            Archive.EndObjectScope();
+        }
+    }
+}
+
+void UStruct::SerializeDeclaredProperties(void* Container, FArchive& Archive) const {
+    SerializeProperties(Container, Archive, false);
 }
 
 void UStruct::VisitObjectReferences(const void* Container, const std::function<void(UObject*)>& Visitor) const {

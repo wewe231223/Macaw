@@ -44,7 +44,6 @@ bool UCollisionComponent::Raycast(const FRay& Ray, float& OutDistance) const {
 void UCollisionComponent::Serialize(FArchive& Archive) {
     Super::Serialize(Archive);
 
-    StaticClass()->SerializeDeclaredProperties(this, Archive);
 }
 
 class UMeshComponent* UCollisionComponent::GetMeshComponent() const {

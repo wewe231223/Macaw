@@ -73,25 +73,31 @@ void FPropertyEditorContext::DrawBool(const char* Label, bool Value, const std::
     }
 }
 
+void FPropertyEditorContext::DrawInteger(const char* Label, Int64 Value, float Speed, Int64 Min, Int64 Max, const std::function<void(Int64)>& Setter) const {
+    if (ImGui::DragScalar(Label, ImGuiDataType_S64, &Value, Speed, &Min, &Max, nullptr, ImGuiSliderFlags_AlwaysClamp)) {
+        Setter(std::clamp(Value, Min, Max));
+    }
+}
+
 void FPropertyEditorContext::DrawFloat(const char* Label, float Value, float Speed, float Min, float Max, const std::function<void(float)>& Setter) const {
-    if (ImGui::DragFloat(Label, &Value, Speed, Min, Max)) {
-        Setter(Value);
+    if (ImGui::DragFloat(Label, &Value, Speed, Min, Max, "%.3f", ImGuiSliderFlags_AlwaysClamp)) {
+        Setter(std::clamp(Value, Min, Max));
     }
 }
 
 void FPropertyEditorContext::DrawVector2(const char* Label, const FVector2& Value, float Speed, float Min, float Max, const std::function<void(const FVector2&)>& Setter) const {
     FVector2 EditedValue{Value};
 
-    if (ImGui::DragFloat2(Label, &EditedValue.mX, Speed, Min, Max)) {
-        Setter(EditedValue);
+    if (ImGui::DragFloat2(Label, &EditedValue.mX, Speed, Min, Max, "%.3f", ImGuiSliderFlags_AlwaysClamp)) {
+        Setter(FVector2{std::clamp(EditedValue.mX, Min, Max), std::clamp(EditedValue.mY, Min, Max)});
     }
 }
 
 void FPropertyEditorContext::DrawVector3(const char* Label, const FVector3& Value, float Speed, float Min, float Max, const std::function<void(const FVector3&)>& Setter) const {
     FVector3 EditedValue{Value};
 
-    if (ImGui::DragFloat3(Label, &EditedValue.mX, Speed, Min, Max)) {
-        Setter(EditedValue);
+    if (ImGui::DragFloat3(Label, &EditedValue.mX, Speed, Min, Max, "%.3f", ImGuiSliderFlags_AlwaysClamp)) {
+        Setter(FVector3{std::clamp(EditedValue.mX, Min, Max), std::clamp(EditedValue.mY, Min, Max), std::clamp(EditedValue.mZ, Min, Max)});
     }
 }
 
@@ -148,12 +154,14 @@ void FPropertyEditorContext::DrawReferencePicker(const char* Label, const char* 
     }
 
     for (const FPropertyReferenceOption& Option : Options) {
+        ImGui::PushID(Option.mLabel.c_str());
         ImGui::PushID(Option.mId);
 
         if (ImGui::Selectable(Option.mLabel.c_str(), Option.mBSelected)) {
             Option.mOnSelected();
         }
 
+        ImGui::PopID();
         ImGui::PopID();
     }
 
@@ -307,4 +315,12 @@ void FPropertyEditorContext::BindThumbnailRenderer(FAssetThumbnailRenderer* InTh
 
 void FPropertyEditorContext::BindAssetRegistry(const IAssetRegistry* InAssetRegistry) {
     mAssetRegistry = InAssetRegistry;
+}
+
+void FPropertyEditorContext::BeginProperty(const char* Label) const {
+    ImGui::PushID(Label);
+}
+
+void FPropertyEditorContext::EndProperty() const {
+    ImGui::PopID();
 }

@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "CoreUObject/Reflection/FPropertyValue.h"
 #include <utility>
+#include "CoreUObject/Reflection/UClass.h"
 
 FPropertyValue::~FPropertyValue() {
     Reset();
@@ -50,4 +51,16 @@ void FPropertyValue::Reset() {
 
     mType = nullptr;
     mData = nullptr;
+}
+
+const void* FPropertyValue::GetData() const {
+    return mData;
+}
+
+void* FPropertyValue::GetMutableData() {
+    return mData;
+}
+
+bool IsNativeObjectCompatible(const UObject* Object, const UClass* Class) {
+    return Object == nullptr || Object->IsA(Class);
 }

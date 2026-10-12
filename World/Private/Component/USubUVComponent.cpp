@@ -2,6 +2,10 @@
 #include "CoreUObject/Reflection/UClass.h"
 #include "World/Component/USubUVComponent.h"
 #include "World/AActor.h"
+#include "World/UWorld.h"
+#include "World/Component/UStaticMeshComponent.h"
+#include "World/Component/UBillboardComponent.h"
+#include "Asset/UMaterial.h"
 
 #include <cmath>
 #include <limits>
@@ -187,21 +191,13 @@ bool USubUVComponent::ResolveLoadedReferences() {
 }
 
 void USubUVComponent::Serialize(FArchive& Archive) {
-    Super::Serialize(Archive);
-
-    FGuid TargetGuid{GetTargetComponent() != nullptr ? GetTargetComponent()->GetGuid() : FGuid{}};
-
-    Archive.Serialize("GuidTargetComponent", TargetGuid);
-    Archive.Serialize("TargetMaterialGroup", mTargetMaterialGroup);
-    Archive.Serialize("UVScale", mUVTransform.mScale);
-    Archive.Serialize("UVOffset", mUVTransform.mOffset);
-    Archive.Serialize("bPlaying", mPlaying);
-    Archive.Serialize("bLooping", mLooping);
-
     if (Archive.IsLoading()) {
         ClearTargetTransform();
-        mTargetComponent.Reset();
-        mPendingTargetGuid = TargetGuid;
+    }
+
+    Super::Serialize(Archive);
+
+    if (Archive.IsLoading()) {
         mElapsedTime = 0.0;
         UpdateTickEnabled();
     }
@@ -236,4 +232,32 @@ void USubUVComponent::ClearTargetTransform() {
     if (UPrimitiveComponent* Target{GetTargetComponent()}) {
         Target->ClearUVTransform(mTargetMaterialGroup, GetHandle());
     }
+}
+
+bool USubUVComponent::CanSelectTarget(UPrimitiveComponent* Target) const {
+    return Target == nullptr || (!Target->IsBeingDestroyed() && Target->GetOwner() == GetOwner() && (Target->IsA(UStaticMeshComponent::StaticClass()) || Target->IsA(UBillboardComponent::StaticClass())));
+}
+
+bool USubUVComponent::CanEditUVTransform() const {
+    return GetClass() == StaticClass();
+}
+
+TArray<FName> USubUVComponent::GetTargetMaterialGroups() const {
+    TArray<FName> Groups{};
+    const UPrimitiveComponent* Target{GetTargetComponent()};
+    const UWorld* World{GetOwner() != nullptr ? GetOwner()->GetWorld() : nullptr};
+    const IAssetRegistry* Registry{World != nullptr ? World->GetAssetRegistry() : nullptr};
+    const UMaterial* Material{Target != nullptr && Target->IsA(UStaticMeshComponent::StaticClass()) && Registry != nullptr ? Registry->ResolveAsset<UMaterial>(static_cast<const UStaticMeshComponent*>(Target)->GetMaterialHandle()) : nullptr};
+
+    if (Material != nullptr) {
+        for (Uint32 Index{}; Index < Material->GetGPUDataCount(); ++Index) {
+            const FName Group{Material->GetGroupName(Index)};
+
+            if (!Group.IsNone()) {
+                Groups.push_back(Group);
+            }
+        }
+    }
+
+    return Groups;
 }

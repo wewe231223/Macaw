@@ -2,6 +2,8 @@
 #include "CoreUObject/Reflection/FProperty.h"
 #include "CoreUObject/Reflection/UClass.h"
 #include "CoreUObject/Reflection/FReflectionRegistry.h"
+#include <cmath>
+#include "CoreUObject/Reflection/NativeSerialization.h"
 
 EPropertyFlags operator|(EPropertyFlags Left, EPropertyFlags Right) {
     return static_cast<EPropertyFlags>(static_cast<Uint32>(Left) | static_cast<Uint32>(Right));
@@ -28,7 +30,8 @@ FProperty::FProperty(FName Name, UStruct* Owner, const FNativeType* Type, EPrope
 	  mWriter(Writer),
 	  mSerializer(Serializer),
 	  mReferenceVisitor(ReferenceVisitor),
-	  mDisplayName(Name.ToString()) {
+	  mDisplayName(Name.ToString()),
+	  mSerializationName(Name.ToString()) {
 }
 
 const FNativeType* FProperty::GetValueType() const {
@@ -101,7 +104,7 @@ bool FProperty::ResetToDefault(UObject& Object) const {
     return Default != nullptr && SetValue(Object, GetValue(*Default));
 }
 
-void FProperty::SetEditorMetadata(FString Category, FString DisplayName, float Minimum, float Maximum, float Speed) {
+void FProperty::SetEditorMetadata(FString Category, FString DisplayName, double Minimum, double Maximum, float Speed) {
     mCategory = std::move(Category);
     mDisplayName = std::move(DisplayName);
     mMinimum = Minimum;
@@ -117,14 +120,126 @@ const FString& FProperty::GetDisplayName() const {
     return mDisplayName;
 }
 
-float FProperty::GetMinimum() const {
-    return mMinimum;
+double FProperty::GetMinimum(const void* Container) const {
+    const double Value{Container != nullptr && mMinimumGetter != nullptr ? mMinimumGetter(Container) : mMinimum};
+
+    return std::isfinite(Value) ? (std::max)(mMinimum, Value) : mMinimum;
 }
 
-float FProperty::GetMaximum() const {
-    return mMaximum;
+double FProperty::GetMaximum(const void* Container) const {
+    const double Value{Container != nullptr && mMaximumGetter != nullptr ? mMaximumGetter(Container) : mMaximum};
+
+    return std::isfinite(Value) ? (std::min)(mMaximum, Value) : mMaximum;
 }
 
 float FProperty::GetSpeed() const {
     return mSpeed;
+}
+
+void FProperty::SetDynamicBounds(FBoundGetter Minimum, FBoundGetter Maximum) {
+    mMinimumGetter = Minimum;
+    mMaximumGetter = Maximum;
+}
+
+void FProperty::SetEditCondition(FEditCondition Condition) {
+    mEditCondition = Condition;
+}
+
+bool FProperty::CanEdit(const void* Container) const {
+    return HasAnyFlags(EPropertyFlags::Edit) && CanWrite() && Container != nullptr && (mEditCondition == nullptr || mEditCondition(Container));
+}
+
+void FProperty::SetOptionsGetter(FOptionsGetter Getter) {
+    mOptionsGetter = Getter;
+}
+
+bool FProperty::HasOptions() const {
+    return mOptionsGetter != nullptr;
+}
+
+TArray<FName> FProperty::GetOptions(const void* Container) const {
+    return Container != nullptr && mOptionsGetter != nullptr ? mOptionsGetter(Container) : TArray<FName>{};
+}
+
+void FProperty::SetAssetClass(UClass* AssetClass) {
+    mAssetClass = AssetClass;
+}
+
+UClass* FProperty::GetAssetClass() const {
+    return mAssetClass;
+}
+
+UObject* FProperty::ReadObject(const void* Container) const {
+    const FPropertyValue Value{ReadContainer(Container)};
+
+    return !Value.IsEmpty() && mValueType->mReadObject != nullptr ? mValueType->mReadObject(Value.GetData()) : nullptr;
+}
+
+FPropertyValue FProperty::MakeObjectValue(UObject* Object) const {
+    return mValueType != nullptr && mValueType->mMakeObjectValue != nullptr ? mValueType->mMakeObjectValue(Object) : FPropertyValue{};
+}
+
+void FProperty::SetSerializationScope(FString Scope) {
+    mSerializationScope = std::move(Scope);
+}
+
+const FString& FProperty::GetSerializationScope() const {
+    return mSerializationScope;
+}
+
+void SerializeAssetReference(FArchive& Archive, std::string_view GuidName, std::string_view PathName, FAssetHandle& Handle, FGuid& Guid, FAssetPath& Path) {
+    const IAssetResolver* Resolver{Archive.GetAssetResolver()};
+
+    if (!Archive.IsLoading() && Resolver != nullptr) {
+        if (const FGuid* PersistentGuid{Resolver->GetAssetGuid(Handle)}) {
+            Guid = *PersistentGuid;
+        }
+
+        if (const FAssetPath* PersistentPath{Resolver->GetAssetPath(Handle)}) {
+            Path = *PersistentPath;
+        }
+    }
+
+    Archive.Serialize(GuidName, Guid);
+    Archive.Serialize(PathName, Path.mPath);
+
+    if (Archive.IsLoading()) {
+        Handle = Resolver != nullptr ? Resolver->FindAsset(Guid) : FAssetHandle{};
+
+        if (!Handle && Resolver != nullptr) {
+            Handle = Resolver->FindAsset(Path);
+        }
+    }
+}
+
+void SerializeObjectReference(FArchive& Archive, std::string_view Name, const UObject* Object, FGuid& PendingGuid) {
+    FString Guid{Archive.IsLoading() ? FString{} : Object != nullptr ? Object->GetGuid().ToString() : PendingGuid.IsValid() ? PendingGuid.ToString() : FString{}};
+
+    Archive.Serialize(Name, Guid);
+
+    if (Archive.IsLoading()) {
+        PendingGuid = {};
+
+        if (!Guid.empty() && !PendingGuid.Parse(Guid)) {
+            throw std::runtime_error{"Invalid serialized object reference"};
+        }
+    }
+}
+
+void FProperty::SetObjectFilter(FObjectFilter Filter) {
+    mObjectFilter = Filter;
+}
+
+bool FProperty::CanSelectObject(const void* Container, UObject* Object) const {
+    const UClass* Class{GetObjectClass()};
+
+    return Container != nullptr && Class != nullptr && (Object == nullptr || Object->IsA(Class)) && (mObjectFilter == nullptr || mObjectFilter(Container, Object));
+}
+
+void FProperty::SetSerializationName(FString Name) {
+    mSerializationName = std::move(Name);
+}
+
+const FString& FProperty::GetSerializationName() const {
+    return mSerializationName;
 }

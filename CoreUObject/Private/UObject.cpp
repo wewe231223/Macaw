@@ -142,6 +142,7 @@ void UObject::Serialize(FArchive& Archive) {
     Archive.Serialize("Guid", Guid);
     Archive.Serialize("TypeName", TypeName);
     Archive.Serialize("Name", Name);
+    GetClass()->SerializeProperties(this, Archive);
 
     if (Archive.IsLoading()) {
         ErrorHandler::Report(!RestoreGuid(Guid), "UObject", "Cannot restore an object with a conflicting GUID", ErrorHandler::EErrorLevel::Error);

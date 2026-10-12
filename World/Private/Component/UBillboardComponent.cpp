@@ -14,49 +14,9 @@ bool UBillboardComponent::CanRenderBillBoard() const {
 void UBillboardComponent::Serialize(FArchive& Archive) {
     Super::Serialize(Archive);
 
-    const IAssetResolver* Registry{Archive.GetAssetResolver()};
-
-    if (Archive.IsSaving() && Registry != nullptr) {
-        if (const FAssetPath* AssetPath{Registry->GetAssetPath(mTextureHandle)}) {
-            mTextureAssetPath = *AssetPath;
-        }
-
-        if (const FGuid* AssetGuid{Registry->GetAssetGuid(mTextureHandle)}) {
-            mTextureAssetGuid = *AssetGuid;
-        }
-
-        if (const FAssetPath* AssetPath{Registry->GetAssetPath(mPipelineHandle)}) {
-            mPipelineAssetPath = *AssetPath;
-        }
-
-        if (const FGuid* AssetGuid{Registry->GetAssetGuid(mPipelineHandle)}) {
-            mPipelineAssetGuid = *AssetGuid;
-        }
-    }
-
-    Archive.Serialize("TextureAssetGuid", mTextureAssetGuid);
-    Archive.Serialize("TextureAssetPath", mTextureAssetPath.mPath);
-    Archive.Serialize("PipelineAssetGuid", mPipelineAssetGuid);
-    Archive.Serialize("PipelineAssetPath", mPipelineAssetPath.mPath);
-
     if (Archive.IsLoading()) {
-        mTextureHandle = Registry != nullptr ? Registry->FindAsset(mTextureAssetGuid) : FAssetHandle{};
-
-        if (!mTextureHandle && Registry != nullptr) {
-            mTextureHandle = Registry->FindAsset(mTextureAssetPath);
-        }
-
-        mPipelineHandle = Registry != nullptr ? Registry->FindAsset(mPipelineAssetGuid) : FAssetHandle{};
-
-        if (!mPipelineHandle && Registry != nullptr) {
-            mPipelineHandle = Registry->FindAsset(mPipelineAssetPath);
-        }
-    }
-
-    StaticClass()->SerializeDeclaredProperties(this, Archive);
-
-    if (Archive.IsLoading())
         OnRenderStateChanged();
+    }
 }
 
 bool UBillboardComponent::TryGetBillBoardWorld(FMatrix& OutWorld) const {

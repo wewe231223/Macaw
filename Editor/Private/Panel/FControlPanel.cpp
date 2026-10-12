@@ -1,4 +1,6 @@
 #include "pch.h"
+#include "Editor/Property/FReflectedDetails.h"
+#include "CoreUObject/Reflection/UStruct.h"
 #include "CoreUObject/Reflection/UClass.h"
 #include "Editor/Panel/FControlPanel.h"
 #include "Editor/FileDialog.h"
@@ -242,54 +244,11 @@ void FControlPanel::DrawPanel() {
     }
 
     if (ImGui::BeginMenu("EditorSettings")) {
-        if (ImGui::BeginMenu("Camera")) {
-            const FEditorSettings Settings{mEditorContext->GetEditorSettings()};
-            float MoveSensitivity{Settings.mMoveSensitivity};
-
-            if (ImGui::SliderFloat("MoveSensitivity", &MoveSensitivity, 1.f, 100.0f)) {
-                mEditorContext->SetMoveSensitivity(MoveSensitivity);
+        for (const char* Category : {"Camera", "Grid", "ON/OFF"}) {
+            if (ImGui::BeginMenu(Category)) {
+                DrawSettings(Category);
+                ImGui::EndMenu();
             }
-
-            float RotationSensitivity{Settings.mRotationSensitivity};
-
-            if (ImGui::SliderFloat("RotationSensitivity", &RotationSensitivity, 0.1f, 5.0f)) {
-                mEditorContext->SetRotationSensitivity(RotationSensitivity);
-            }
-
-            ImGui::EndMenu();
-        }
-
-        if (ImGui::BeginMenu("Grid")) {
-            const FEditorSettings Settings{mEditorContext->GetEditorSettings()};
-            float GridSize{Settings.mGridSize};
-
-            if (ImGui::SliderFloat("GridSize", &GridSize, 0.1f, 100.0f)) {
-                mEditorContext->SetGridSize(GridSize);
-            }
-
-            bool GridSnapEnabled{Settings.mGridSnapEnabled};
-
-            if (ImGui::Checkbox("Snap to Grid", &GridSnapEnabled)) {
-                mEditorContext->SetGridSnapEnabled(GridSnapEnabled);
-            }
-
-            ImGui::EndMenu();
-        }
-
-        if (ImGui::BeginMenu("ON/OFF")) {
-            const FEditorSettings Settings{mEditorContext->GetEditorSettings()};
-            bool GridVisible{Settings.mGridVisible};
-            bool AxisVisible{Settings.mAxisVisible};
-
-            if (ImGui::Checkbox("Grid", &GridVisible)) {
-                mEditorContext->SetGridVisible(GridVisible);
-            }
-
-            if (ImGui::Checkbox("World Axis", &AxisVisible)) {
-                mEditorContext->SetAxisVisible(AxisVisible);
-            }
-
-            ImGui::EndMenu();
         }
 
         ImGui::EndMenu();
@@ -328,4 +287,16 @@ FControlPanel::FControlPanel(FWorldEditorContext& InEditorContext, HWND InputWin
 	: mEditorContext{&InEditorContext},
 	  mEditorToWorldSender{std::move(InEditorToWorldSender)},
 	  mWindowHandle{InputWindowHandle} {
+}
+
+void FControlPanel::DrawSettings(const char* Category) {
+    const FEditorSettings Settings{mEditorContext->GetEditorSettings()};
+
+    FReflectedDetails::Draw(*FEditorSettings::StaticStruct(), &Settings, mPropertyEditor, [this](const FProperty& Property, const FPropertyValue& Value) {
+        FEditorSettings Edited{mEditorContext->GetEditorSettings()};
+
+        if (Property.WriteContainer(&Edited, Value)) {
+            mEditorContext->SetEditorSettings(Edited);
+        }
+    }, FString{Category});
 }

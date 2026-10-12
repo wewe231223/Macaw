@@ -3,11 +3,6 @@
 
 void UAsset::Serialize(FArchive& Ar) {
     Super::Serialize(Ar);
-    Ar.Serialize("AssetName", mAssetName);
-
-    FString PathStr{FString{mAssetPath.string()}};
-
-    Ar.Serialize("AssetPath", PathStr);
 }
 
 void UAsset::SetAssetName(const FString& InName) {

@@ -34,6 +34,7 @@ private:
     mutable FMeshPickingProxy mRaycastProxy;
     mutable Uint64 mRaycastTransformRevision = 0;
     mutable bool mRaycastTransformInitialized = false;
+    UPROPERTY(Edit, Serialize, Asset, AssetClass = UMesh, Getter = GetMeshHandle, Setter = SetMeshHandle, AssetGuid = mMeshAssetGuid, AssetPath = mMeshAssetPath, Category = "Rendering", DisplayName = "Mesh")
     FAssetHandle mMeshHandle{};
     FAssetPath mMeshAssetPath{};
     FGuid mMeshAssetGuid{};

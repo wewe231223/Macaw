@@ -86,20 +86,13 @@ FVector3 USceneComponent::GetRelativeScale3D() const {
 }
 
 void USceneComponent::Serialize(FArchive& Archive) {
-    Super::Serialize(Archive);
-
-    Archive.SerializeStruct("Transform", mTransform);
-
-    FGuid ParentGuid{};
-
-    if (Archive.IsSaving() && GetParent() != nullptr) {
-        ParentGuid = GetParent()->GetGuid();
+    if (Archive.IsLoading()) {
+        DetachFromComponent();
     }
 
-    Archive.Serialize("Parent", ParentGuid);
+    Super::Serialize(Archive);
 
     if (Archive.IsLoading()) {
-        mPendingParentGuid = ParentGuid;
         MarkTransformDirty();
     }
 }
@@ -392,4 +385,26 @@ void USceneComponent::NotifyTransformUpdate() {
 
 USceneComponent::USceneComponent() {
     InitializeClass(StaticClass());
+}
+
+bool USceneComponent::SetEditorParent(USceneComponent* Parent) {
+    return CanEditParent() && CanSelectParent(Parent) && AttachToComponent(Parent, EAttachmentTransformRule::KeepWorldTransform);
+}
+
+bool USceneComponent::CanEditParent() const {
+    return !IsBeingDestroyed() && GetOwner() != nullptr && GetOwner()->GetRootComponent() != this;
+}
+
+bool USceneComponent::CanSelectParent(USceneComponent* Parent) const {
+    if (Parent != nullptr && (Parent->IsBeingDestroyed() || Parent->GetOwner() != GetOwner())) {
+        return false;
+    }
+
+    for (const USceneComponent* Ancestor{Parent}; Ancestor != nullptr; Ancestor = Ancestor->GetParent()) {
+        if (Ancestor == this) {
+            return false;
+        }
+    }
+
+    return true;
 }

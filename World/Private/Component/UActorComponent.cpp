@@ -366,7 +366,6 @@ bool UActorComponent::ResolveLoadedReferences() {
 void UActorComponent::Serialize(FArchive& Archive) {
     Super::Serialize(Archive);
 
-    StaticClass()->SerializeDeclaredProperties(this, Archive);
 
     if (Archive.IsLoading()) {
         if (!mBActive) {

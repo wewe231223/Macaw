@@ -21,6 +21,9 @@ public:
     void SetTargetMaterialGroup(FName MaterialGroup);
     FName GetTargetMaterialGroup() const;
     bool HasTargetConflict() const;
+    bool CanSelectTarget(UPrimitiveComponent* Target) const;
+    bool CanEditUVTransform() const;
+    TArray<FName> GetTargetMaterialGroups() const;
     void SetUVTransform(const FUVTransform& Transform);
     const FUVTransform& GetUVTransform() const;
     void UpdateUVTransform();
@@ -57,16 +60,16 @@ private:
     void ClearTargetTransform();
 
 private:
-    UPROPERTY(Name = "GuidTargetComponent", Reference, ReadOnly)
+    UPROPERTY(Edit, Serialize, Name = "GuidTargetComponent", DisplayName = "Target Component", Category = "UV Animation", Reference, OwnerOnly, Getter = GetTargetComponent, Setter = SetTargetComponent, ObjectFilter = CanSelectTarget, PendingGuid = mPendingTargetGuid)
     TObjectRef<UPrimitiveComponent> mTargetComponent{};
     FGuid mPendingTargetGuid{};
-    UPROPERTY(Name = "TargetMaterialGroup", ReadOnly)
+    UPROPERTY(Edit, Serialize, Name = "TargetMaterialGroup", DisplayName = "Material Group", Category = "UV Animation", Getter = GetTargetMaterialGroup, Setter = SetTargetMaterialGroup, OptionsGetter = GetTargetMaterialGroups)
     FName mTargetMaterialGroup{};
-    UPROPERTY(Name = "UVTransform", ReadOnly)
+    UPROPERTY(Edit, Serialize, Inline, Name = "UVTransform", DisplayName = "UV Transform", Category = "UV Animation", Getter = GetUVTransform, Setter = SetUVTransform, EditCondition = CanEditUVTransform)
     FUVTransform mUVTransform{};
     double mElapsedTime{};
-    UPROPERTY(Name = "Playing", ReadOnly)
+    UPROPERTY(Serialize, Name = "Playing", SerializeName = "bPlaying", Getter = IsPlaying, ReadOnly)
     bool mPlaying{true};
-    UPROPERTY(Name = "Looping", ReadOnly)
+    UPROPERTY(Edit, Serialize, Name = "Looping", SerializeName = "bLooping", DisplayName = "Looping", Category = "UV Animation", Getter = IsLooping, Setter = SetLooping)
     bool mLooping{true};
 };

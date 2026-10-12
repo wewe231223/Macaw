@@ -11,6 +11,7 @@
 class UObject;
 class UClass;
 class UScriptStruct;
+class FPropertyValue;
 
 enum class EPropertyKind {
     Unknown,
@@ -41,6 +42,8 @@ struct FNativeType {
     UScriptStruct* (*mGetStruct)(){};
     UClass* (*mGetObjectClass)(){};
     const FNativeType* (*mGetElementType)(){};
+    UObject* (*mReadObject)(const void*){};
+    FPropertyValue (*mMakeObjectValue)(UObject*){};
 };
 
 template <typename T>
@@ -64,6 +67,14 @@ UClass* GetNativeObjectClass();
 template <typename T>
 const FNativeType* GetNativeElementType();
 
+bool IsNativeObjectCompatible(const UObject* Object, const UClass* Class);
+
+template <typename T>
+UObject* ReadNativeObject(const void* Value);
+
+template <typename T>
+FPropertyValue MakeNativeObjectValue(UObject* Object);
+
 void VisitScriptStructReferences(const UScriptStruct* Struct, const void* Value, const std::function<void(UObject*)>& Visitor);
 
 class FPropertyValue {
@@ -85,6 +96,8 @@ public:
     const T* Get() const;
 
     const FNativeType* GetType() const;
+    const void* GetData() const;
+    void* GetMutableData();
     bool IsEmpty() const;
     void Reset();
 
@@ -127,7 +140,7 @@ const FNativeType* GetNativeType() {
         } else {
             return EPropertyKind::Struct;
         }
-    }(), sizeof(T), alignof(T), &CopyNativeValue<T>, &DestroyNativeValue<T>, &VisitNativeReferences<T>, &GetNativeStruct<T>, &GetNativeObjectClass<T>, &GetNativeElementType<T>};
+    }(), sizeof(T), alignof(T), &CopyNativeValue<T>, &DestroyNativeValue<T>, &VisitNativeReferences<T>, &GetNativeStruct<T>, &GetNativeObjectClass<T>, &GetNativeElementType<T>, &ReadNativeObject<T>, &MakeNativeObjectValue<T>};
 
     return &Type;
 }
@@ -227,4 +240,26 @@ bool FPropertyValue::Is() const {
 template <typename T>
 const T* FPropertyValue::Get() const {
     return Is<T>() ? static_cast<const T*>(mData) : nullptr;
+}
+
+template <typename T>
+UObject* ReadNativeObject(const void* Value) {
+    if constexpr (std::is_pointer_v<T> && std::is_convertible_v<T, UObject*>) {
+        return *static_cast<const T*>(Value);
+    } else {
+        return nullptr;
+    }
+}
+
+template <typename T>
+FPropertyValue MakeNativeObjectValue(UObject* Object) {
+    if constexpr (std::is_pointer_v<T> && std::is_convertible_v<T, UObject*>) {
+        if (Object != nullptr && !IsNativeObjectCompatible(Object, std::remove_pointer_t<T>::StaticClass())) {
+            return {};
+        }
+
+        return FPropertyValue{static_cast<T>(Object)};
+    } else {
+        return {};
+    }
 }
