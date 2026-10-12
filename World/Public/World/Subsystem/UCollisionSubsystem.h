@@ -2,14 +2,20 @@
 #include "World/Subsystem/UWorldSubsystem.h"
 #include "CoreUObject/TObjectRef.h"
 #include "World/Component/UCollisionComponent.h"
+#include "World/Subsystem/UCollisionSubsystem.generated.h"
 
 /// <summary>Provides world-space raycasts over registered CollisionComponents.</summary>
+UCLASS()
 class UCollisionSubsystem : public UWorldSubsystem {
 public:
-    UCollisionSubsystem() = default;
+    GENERATED_TYPES(UCollisionSubsystem)
+
+public:
+    UCollisionSubsystem();
     ~UCollisionSubsystem() override = default;
 
-    JG_DECLARE_DERIVED_TYPEINFO(UCollisionSubsystem, UWorldSubsystem)
+public:
+    GENERATED_BODY(UCollisionSubsystem)
 
     void RegisterComponent(UCollisionComponent* Component);
     void UnregisterComponent(UCollisionComponent* Component);

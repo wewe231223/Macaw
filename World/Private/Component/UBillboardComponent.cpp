@@ -12,7 +12,7 @@ bool UBillboardComponent::CanRenderBillBoard() const {
 }
 
 void UBillboardComponent::Serialize(FArchive& Archive) {
-    UPrimitiveComponent::Serialize(Archive);
+    Super::Serialize(Archive);
 
     const IAssetResolver* Registry{Archive.GetAssetResolver()};
 
@@ -53,10 +53,7 @@ void UBillboardComponent::Serialize(FArchive& Archive) {
         }
     }
 
-    Archive.Serialize("Size", mSize);
-    Archive.Serialize("UVMin", mUvMin);
-    Archive.Serialize("UVMax", mUvMax);
-    Archive.Serialize("Color", mColor);
+    StaticClass()->SerializeDeclaredProperties(this, Archive);
 
     if (Archive.IsLoading())
         OnRenderStateChanged();
@@ -222,8 +219,12 @@ void UBillboardComponent::SendRenderTransform() {
 }
 
 void UBillboardComponent::SendRenderDynamicData() {
-    UPrimitiveComponent::SendRenderDynamicData();
+    Super::SendRenderDynamicData();
     if (GetBelongingWorld() != nullptr && IsRenderStateCreated()) {
         GetBelongingWorld()->GetRenderSubsystem().UpdateBillboardUV(GetHandle(), mUvMin, mUvMax);
     }
+}
+
+UBillboardComponent::UBillboardComponent() {
+    InitializeClass(StaticClass());
 }

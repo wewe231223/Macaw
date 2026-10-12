@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "CoreUObject/Reflection/UClass.h"
 #include "Engine/Subsystem/UEngineSubsystem.h"
 #include "Engine/UEngine.h"
 
@@ -35,5 +36,9 @@ void UEngineSubsystem::OnDeinitialize() {
 }
 
 bool UEngineSubsystem::CanChangeOuter(const UObject* NewOuter) const {
-    return mEngine != nullptr ? NewOuter == mEngine : (NewOuter == nullptr || NewOuter->GetTypeInfo()->IsA(UEngine::StaticTypeInfo()));
+    return mEngine != nullptr ? NewOuter == mEngine : (NewOuter == nullptr || NewOuter->GetClass()->IsChildOf(UEngine::StaticClass()));
+}
+
+UEngineSubsystem::UEngineSubsystem() {
+    InitializeClass(StaticClass());
 }

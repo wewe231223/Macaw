@@ -1,4 +1,5 @@
 #pragma once
+#include "CoreUObject/Reflection/UClass.h"
 
 #include "Core/CoreMinimal.h"
 
@@ -63,7 +64,7 @@ T* TObjectRef<T>::Get() const noexcept {
 
     UObject* Object{UObjectSystem::Resolve(mHandle)};
 
-    if (Object == nullptr || !Object->GetTypeInfo()->IsA(T::StaticTypeInfo())) {
+    if (Object == nullptr || !Object->GetClass()->IsChildOf(T::StaticClass())) {
         return nullptr;
     }
 
@@ -115,5 +116,5 @@ FObjectHandle TObjectRef<T>::GetHandle() const noexcept {
 template <typename T>
 constexpr void TObjectRef<T>::ValidateType() noexcept {
     static_assert(std::is_base_of_v<UObject, T>, "TObjectRef<T> requires T to derive from UObject.");
-    static_assert(std::is_same_v<typename T::TypeInfoOwner, T>, "TObjectRef<T> requires T to declare its own type information.");
+    static_assert(std::is_same_v<typename T::ReflectionOwner, T>, "TObjectRef<T> requires T to declare its own type information.");
 }

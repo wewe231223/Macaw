@@ -8,14 +8,12 @@ struct FMessageTypeInfo {
     bool IsExactlyA(const FMessageTypeInfo* Type) const noexcept;
 };
 
-#define JG_DECLARE_CHANNEL_MESSAGE(MessageType) \
-    static const FMessageTypeInfo& StaticTypeInfo() noexcept { \
-        static const FMessageTypeInfo Information{#MessageType}; \
-        return Information; \
-    } \
+#define DECLARE_CHANNEL_MESSAGE(MessageType) \
     MessageType() = default; \
     ~MessageType() = default; \
     MessageType(const MessageType&) = default; \
     MessageType& operator=(const MessageType&) = default; \
     MessageType(MessageType&&) noexcept = default; \
-    MessageType& operator=(MessageType&&) noexcept = default
+    MessageType& operator=(MessageType&&) noexcept = default; \
+public: \
+    static const FMessageTypeInfo& StaticTypeInfo() noexcept

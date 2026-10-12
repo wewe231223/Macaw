@@ -6,14 +6,19 @@
 
 #include <unordered_map>
 #include <unordered_set>
+#include "World/Subsystem/URenderSubsystem.generated.h"
 
+UCLASS()
 class URenderSubsystem : public UWorldSubsystem {
 public:
-    URenderSubsystem() = default;
+    GENERATED_TYPES(URenderSubsystem)
+
+public:
+    URenderSubsystem();
     ~URenderSubsystem() override = default;
 
 public:
-    JG_DECLARE_DERIVED_TYPEINFO(URenderSubsystem, UWorldSubsystem)
+    GENERATED_BODY(URenderSubsystem)
 
     void RegisterComponent(UActorComponent* Component);
     void UnregisterComponent(UActorComponent* Component);

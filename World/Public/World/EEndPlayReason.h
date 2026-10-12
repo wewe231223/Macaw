@@ -1,6 +1,9 @@
 #pragma once
+#include "CoreUObject/Reflection/ReflectionMacros.h"
+#include "World/EEndPlayReason.generated.h"
 
 /// <summary>Actor와 컴포넌트의 플레이가 끝난 이유를 구분합니다.</summary>
+UENUM()
 enum class EEndPlayReason {
     Destroyed, // 명시적인 파괴 요청입니다.
     LevelTransition, // 다른 장면으로 전환하면서 종료합니다.

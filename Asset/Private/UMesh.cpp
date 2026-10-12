@@ -1776,7 +1776,7 @@ bool UMesh::CanCollapseEdge(const FLODCollapse& Collapse, const FLODGeometry& Ge
 }
 
 void UMesh::Serialize(FArchive& Ar) {
-    UAsset::Serialize(Ar);
+    Super::Serialize(Ar);
 }
 
 void UMesh::Reset() {
@@ -2072,4 +2072,8 @@ Uint32 UMesh::GetLODCount() const {
 
 bool UMesh::FGeneratedLOD::IsValid() const {
     return mUsesBaseData || (!mData.mPositions.empty() && !mData.mIndices.empty());
+}
+
+UMesh::UMesh() {
+    InitializeClass(StaticClass());
 }

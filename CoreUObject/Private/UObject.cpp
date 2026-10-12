@@ -1,11 +1,20 @@
 #include "pch.h"
+#include "CoreUObject/Reflection/UClass.h"
+#include "CoreUObject/Reflection/UFunction.h"
 #include "CoreUObject/UObject.h"
+#include "CoreUObject/Reflection/FReflectionRegistry.h"
+#include "CoreUObject/Reflection/NewObject.h"
 #include "CoreUObject/UObjectSystem.h"
 #include "Core/Memory/Memory.h"
 #include "Core/Archive/FArchive.h"
 
 UObject::UObject()
-	: mGuid(FGuid::NewGuid()) {
+	: mClass(FReflectionRegistry::IsBootstrapping() ? nullptr : FObjectInitializer::GetConstructingClass()),
+	  mClassDefaultObject(!FReflectionRegistry::IsBootstrapping() && FObjectInitializer::IsConstructingDefault()),
+	  mGuid(FGuid::NewGuid()) {
+    if (!FReflectionRegistry::IsBootstrapping() && mClass == nullptr) {
+        mClass = StaticClass();
+    }
 }
 
 UObject::~UObject() {
@@ -72,9 +81,9 @@ UObject* UObject::GetOutermost() const {
     return const_cast<UObject*>(Object);
 }
 
-UObject* UObject::GetTypedOuter(const FTypeInfo* Type) const {
+UObject* UObject::GetTypedOuter(const UClass* Type) const {
     for (UObject* Object{mOuter}; Object != nullptr; Object = Object->GetOuter()) {
-        if (Object->GetTypeInfo()->IsA(Type)) {
+        if (Object->GetClass()->IsChildOf(Type)) {
             return Object;
         }
     }
@@ -128,7 +137,7 @@ void UObject::Load(FArchive& Archive) {
 void UObject::Serialize(FArchive& Archive) {
     FGuid Guid{mGuid};
     FName Name{mName};
-    FName TypeName{GetTypeInfo()->mTypeName};
+    FName TypeName{GetClass()->GetClassName()};
 
     Archive.Serialize("Guid", Guid);
     Archive.Serialize("TypeName", TypeName);
@@ -137,5 +146,38 @@ void UObject::Serialize(FArchive& Archive) {
     if (Archive.IsLoading()) {
         ErrorHandler::Report(!RestoreGuid(Guid), "UObject", "Cannot restore an object with a conflicting GUID", ErrorHandler::EErrorLevel::Error);
         ErrorHandler::Report(!SetName(Name), "UObject", "Cannot restore an object with a conflicting name", ErrorHandler::EErrorLevel::Error);
+    }
+}
+
+UClass* UObject::GetClass() const noexcept {
+    return mClass;
+}
+
+bool UObject::IsClassDefaultObject() const noexcept {
+    return mClassDefaultObject;
+}
+
+bool UObject::IsA(const UClass* Class) const noexcept {
+    return mClass != nullptr && mClass->IsChildOf(Class);
+}
+
+const UFunction* UObject::FindFunction(FName Name) const {
+    return mClass != nullptr ? mClass->FindFunction(Name) : nullptr;
+}
+
+bool UObject::ProcessEvent(const UFunction* Function, std::span<const FPropertyValue> Arguments, FPropertyValue& Result) {
+    if (Function == nullptr) {
+        Result.Reset();
+        return false;
+    }
+
+    return Function->Invoke(*this, Arguments, Result);
+}
+
+void UObject::InitializeClass(UClass* Class) {
+    if (UClass* ConstructingClass{FObjectInitializer::GetConstructingClass()}; !FReflectionRegistry::IsBootstrapping() && ConstructingClass != nullptr && ConstructingClass->IsChildOf(Class)) {
+        mClass = ConstructingClass;
+    } else {
+        mClass = Class;
     }
 }

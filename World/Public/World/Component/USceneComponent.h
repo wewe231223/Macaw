@@ -3,15 +3,20 @@
 #include "CoreUObject/TObjectRef.h"
 #include "Core/Archive/FArchive.h"
 #include "World/Component/UActorComponent.h"
+#include "World/Component/USceneComponent.generated.h"
 
 enum class EAttachmentTransformRule {
     KeepRelativeTransform,
     KeepWorldTransform
 };
 
+UCLASS()
 class USceneComponent : public UActorComponent {
 public:
-    USceneComponent() = default;
+    GENERATED_TYPES(USceneComponent)
+
+public:
+    USceneComponent();
     ~USceneComponent() override = default;
 
 public:
@@ -19,7 +24,7 @@ public:
     void DestroyComponent(bool BPromoteChildren = false) override;
     void RemoveChild(USceneComponent* InChild);
 
-    JG_DECLARE_DERIVED_TYPEINFO(USceneComponent, UActorComponent)
+    GENERATED_BODY(USceneComponent)
 
     const FTransform& GetRelativeTransform() const;
     void SetRelativeTransform(const FTransform& Transform);
@@ -67,6 +72,7 @@ private:
 private:
     // 부모와 자식 연결을 정리하는 동안 파괴 처리의 중복 진입을 막습니다.
     bool mDestroyingHierarchy{};
+    UPROPERTY(Name = "Transform", ReadOnly)
     FTransform mTransform{};
     mutable FTransform mWorldTransform{};
     mutable FObjectHandle mCachedParentHandle{};
@@ -75,6 +81,8 @@ private:
     mutable bool mWorldTransformDirty{true};
     FGuid mPendingParentGuid{};
 
+    UPROPERTY(Name = "Parent", Reference, ReadOnly)
     TObjectRef<USceneComponent> mParent{};
+    UPROPERTY(Name = "Children", Reference, ReadOnly)
     std::vector<TObjectRef<USceneComponent>> mChildren{};
 };

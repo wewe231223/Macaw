@@ -3,16 +3,21 @@
 #include <filesystem>
 #include "Engine/UEngine.h"
 #include "Editor/Settings/FEditorSettings.h"
+#include "Editor/UEditorEngine.generated.h"
 
 class FWorldEditorContext;
 
+UCLASS()
 class UEditorEngine final : public UEngine {
+public:
+    GENERATED_TYPES(UEditorEngine)
+
 public:
     UEditorEngine();
     ~UEditorEngine() override;
 
 public:
-    JG_DECLARE_DERIVED_TYPEINFO(UEditorEngine, UEngine)
+    GENERATED_BODY(UEditorEngine)
 
     void Initialize() override;
     void Shutdown() override;

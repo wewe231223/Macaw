@@ -5,6 +5,7 @@
 
 ULevel::ULevel(UWorld& World)
 	: mWorld(World) {
+    InitializeClass(StaticClass());
     SetOuter(&World);
     SetName(UObjectSystem::MakeUniqueObjectName(&World, FName{"PersistentLevel"}));
 }

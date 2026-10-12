@@ -24,7 +24,7 @@ public:
     void DrawTransform(const char* Label, const FTransform& Value, const std::function<void(const FTransform&)>& Setter) override;
 
     void DrawReferencePicker(const char* Label, const char* Preview, bool BNoneSelected, const std::function<void()>& ClearSelection, const std::vector<FPropertyReferenceOption>& Options) const override;
-    void DrawAssetPicker(const char* Label, const FTypeInfo& AssetType, FAssetHandle CurrentHandle, const std::function<void(FAssetHandle)>& Setter) const override;
+    void DrawAssetPicker(const char* Label, const UClass& AssetType, FAssetHandle CurrentHandle, const std::function<void(FAssetHandle)>& Setter) const override;
 
     void BindAssetRegistry(const IAssetRegistry* InAssetRegistry);
     void BindThumbnailRenderer(FAssetThumbnailRenderer* InThumbnailRenderer);
@@ -33,7 +33,7 @@ private:
     void UpdateTransformFields(const FTransform& Transform);
     FTransform BuildDesiredTransform() const;
 
-    bool SupportsAssetThumbnail(const FTypeInfo& AssetType) const;
+    bool SupportsAssetThumbnail(const UClass& AssetType) const;
 
     ID3D11ShaderResourceView* GetAssetThumbnail(const IAssetRegistry* Registry, FAssetHandle AssetHandle) const;
 

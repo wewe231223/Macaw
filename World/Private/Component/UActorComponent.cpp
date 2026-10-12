@@ -364,9 +364,9 @@ bool UActorComponent::ResolveLoadedReferences() {
 }
 
 void UActorComponent::Serialize(FArchive& Archive) {
-    UObject::Serialize(Archive);
+    Super::Serialize(Archive);
 
-    Archive.Serialize("bActive", mBActive);
+    StaticClass()->SerializeDeclaredProperties(this, Archive);
 
     if (Archive.IsLoading()) {
         if (!mBActive) {
@@ -387,4 +387,8 @@ void UActorComponent::OnIdentityChanged() {
     if (World != nullptr && !mOwner->IsBeingDestroyed()) {
         World->MarkStructureDirty();
     }
+}
+
+UActorComponent::UActorComponent() {
+    InitializeClass(StaticClass());
 }

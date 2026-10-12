@@ -18,7 +18,7 @@ void UPrimitiveComponent::SetVisible(bool BInVisible) {
 }
 
 void UPrimitiveComponent::OnRenderStateChanged() {
-    USceneComponent::OnRenderStateChanged();
+    Super::OnRenderStateChanged();
 
     UWorld* World{GetBelongingWorld()};
 
@@ -28,7 +28,7 @@ void UPrimitiveComponent::OnRenderStateChanged() {
 }
 
 void UPrimitiveComponent::OnRegister() {
-    USceneComponent::OnRegister();
+    Super::OnRegister();
 
     AActor* Owner{GetOwner()};
 
@@ -46,7 +46,7 @@ void UPrimitiveComponent::OnUnregister() {
         Owner->GetWorld()->GetRenderSubsystem().UnregisterComponent(this);
     }
 
-    USceneComponent::OnUnregister();
+    Super::OnUnregister();
 }
 
 std::unique_ptr<FPrimitiveSceneProxy> UPrimitiveComponent::CreateSceneProxy() const {
@@ -157,9 +157,9 @@ void UPrimitiveComponent::UpdateBounds() {
 }
 
 void UPrimitiveComponent::Serialize(FArchive& Archive) {
-    USceneComponent::Serialize(Archive);
+    Super::Serialize(Archive);
 
-    Archive.Serialize("bVisible", mBVisible);
+    StaticClass()->SerializeDeclaredProperties(this, Archive);
 
     if (Archive.IsLoading()) {
         OnRenderStateChanged();
@@ -226,4 +226,8 @@ void UPrimitiveComponent::OnTransformUpdate() {
     if (World != nullptr) {
         World->GetPickingSubsystem().UpdateComponent(this);
     }
+}
+
+UPrimitiveComponent::UPrimitiveComponent() {
+    InitializeClass(StaticClass());
 }

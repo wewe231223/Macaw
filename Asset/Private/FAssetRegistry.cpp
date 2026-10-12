@@ -1,4 +1,7 @@
 #include "pch.h"
+#include "CoreUObject/Reflection/NewObject.h"
+#include "CoreUObject/Reflection/Cast.h"
+#include "CoreUObject/Reflection/UClass.h"
 #include "Serialization/FJsonFile.h"
 #include "Asset/FAssetRegistry.h"
 #include "Asset/UFreeTypeFont.h"
@@ -311,7 +314,7 @@ FAssetHandle FAssetRegistry::LoadViewerAsset(const std::filesystem::path& Source
     std::unique_ptr<UAsset> Asset{};
 
     if (AssetType == EAssetType::Texture) {
-        std::unique_ptr<UTexture> Texture{std::make_unique<UTexture>()};
+        std::unique_ptr<UTexture> Texture{NewObject<UTexture>()};
 
         if (!Texture->Initialize(AbsolutePath, false, ETextureFormat::UNORM, true)) {
             return {};
@@ -319,7 +322,7 @@ FAssetHandle FAssetRegistry::LoadViewerAsset(const std::filesystem::path& Source
 
         Asset = std::move(Texture);
     } else if (AssetType == EAssetType::Material) {
-        std::unique_ptr<USurfaceOpaque> Material{std::make_unique<USurfaceOpaque>()};
+        std::unique_ptr<USurfaceOpaque> Material{NewObject<USurfaceOpaque>()};
 
         if (!Material->Initialize(AbsolutePath, [this](const std::filesystem::path& TexturePath) {
             return LoadViewerAsset(TexturePath);
@@ -329,7 +332,7 @@ FAssetHandle FAssetRegistry::LoadViewerAsset(const std::filesystem::path& Source
 
         Asset = std::move(Material);
     } else {
-        std::unique_ptr<UMesh> Mesh{std::make_unique<UMesh>()};
+        std::unique_ptr<UMesh> Mesh{NewObject<UMesh>()};
         std::filesystem::path ObjPath{Extension == ".obj" ? AbsolutePath : std::filesystem::path{}};
         const std::filesystem::path BinPath{Extension == ".bin" ? AbsolutePath : std::filesystem::path{}};
         bool FlipUV{false};
@@ -407,7 +410,7 @@ void FAssetRegistry::Reset() {
 
 void FAssetRegistry::Finalize() {
     for (FAssetEntry& Entry : mAssets) {
-        if (Entry.mAsset == nullptr || !Entry.mAsset->GetTypeInfo()->IsA(UMaterial::StaticTypeInfo())) {
+        if (Entry.mAsset == nullptr || !Entry.mAsset->GetClass()->IsChildOf(UMaterial::StaticClass())) {
             continue;
         }
 
@@ -527,7 +530,7 @@ bool FAssetRegistry::DiscoverAssetFile(const std::filesystem::path& FilePath) {
 }
 
 bool FAssetRegistry::LoadTexture(FAssetEntry& Entry) {
-    std::unique_ptr<UTexture> Texture{std::make_unique<UTexture>()};
+    std::unique_ptr<UTexture> Texture{NewObject<UTexture>()};
 
     Texture->SetAssetName(Entry.mAssetPath.mPath);
 
@@ -541,7 +544,7 @@ bool FAssetRegistry::LoadTexture(FAssetEntry& Entry) {
 }
 
 bool FAssetRegistry::LoadFont(FAssetEntry& Entry) {
-    std::unique_ptr<UFreeTypeFont> Font{std::make_unique<UFreeTypeFont>()};
+    std::unique_ptr<UFreeTypeFont> Font{NewObject<UFreeTypeFont>()};
 
     Font->SetAssetName(Entry.mAssetPath.mPath);
 
@@ -555,7 +558,7 @@ bool FAssetRegistry::LoadFont(FAssetEntry& Entry) {
 }
 
 bool FAssetRegistry::LoadPipeline(FAssetEntry& Entry) {
-    std::unique_ptr<UPipeline> Pipeline{std::make_unique<UPipeline>()};
+    std::unique_ptr<UPipeline> Pipeline{NewObject<UPipeline>()};
 
     Pipeline->SetAssetName(Entry.mAssetPath.mPath);
 
@@ -571,7 +574,7 @@ bool FAssetRegistry::LoadPipeline(FAssetEntry& Entry) {
 }
 
 bool FAssetRegistry::LoadMaterial(FAssetEntry& Entry) {
-    std::unique_ptr<USurfaceOpaque> Material{std::make_unique<USurfaceOpaque>()};
+    std::unique_ptr<USurfaceOpaque> Material{NewObject<USurfaceOpaque>()};
 
     Material->SetAssetName(Entry.mAssetPath.mPath);
 
@@ -597,7 +600,7 @@ bool FAssetRegistry::LoadMaterial(FAssetEntry& Entry) {
 }
 
 bool FAssetRegistry::LoadMesh(FAssetEntry& Entry) {
-    std::unique_ptr<UMesh> Mesh{std::make_unique<UMesh>()};
+    std::unique_ptr<UMesh> Mesh{NewObject<UMesh>()};
 
     Mesh->SetAssetName(Entry.mAssetPath.mPath);
 
@@ -909,11 +912,11 @@ const UObject* FAssetRegistry::ResolveAssetObject(FAssetHandle Handle) const {
     return Entry != nullptr ? Entry->mAsset.get() : nullptr;
 }
 
-TArray<FAssetHandle> FAssetRegistry::GetAssetHandles(const FTypeInfo& AssetType) const {
+TArray<FAssetHandle> FAssetRegistry::GetAssetHandles(const UClass& AssetType) const {
     TArray<FAssetHandle> Handles{};
 
     for (const FAssetEntry& Entry : mAssets) {
-        if (Entry.mAsset != nullptr && Entry.mAsset->GetTypeInfo()->IsA(&AssetType)) {
+        if (Entry.mAsset != nullptr && Entry.mAsset->GetClass()->IsChildOf(&AssetType)) {
             Handles.push_back(Entry.mHandle);
         }
     }

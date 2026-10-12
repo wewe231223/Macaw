@@ -1,15 +1,21 @@
 #pragma once
 #include "World/Component/ULightComponentBase.h"
 #include "RenderCore/FLightSceneProxy.h"
+#include "World/Component/ULightComponent.generated.h"
 
+UCLASS(Abstract)
 class ULightComponent : public ULightComponentBase {
 public:
-    ULightComponent() = default;
+    GENERATED_TYPES(ULightComponent)
+
+public:
+    ULightComponent();
     ~ULightComponent() override = default;
 
 public:
-    JG_DECLARE_ABSTRACT_DERIVED_TYPEINFO(ULightComponent, ULightComponentBase)
+    GENERATED_BODY(ULightComponent)
 
+    UFUNCTION()
     virtual ELightType GetLightType() const = 0;
     virtual void BuildLightShaderParameters(FLightShaderParameters& OutParameters) const;
 

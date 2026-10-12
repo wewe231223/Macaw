@@ -1,9 +1,10 @@
 #include "pch.h"
+#include "CoreUObject/Reflection/UClass.h"
 #include "Engine/Serialization/FSceneSerializer.h"
 #include "Serialization/FArchiveJson.h"
 #include "Serialization/FJsonFile.h"
 #include "World/UWorld.h"
-#include "CoreUObject/TypeRegistry.h"
+#include "CoreUObject/Reflection/FReflectionRegistry.h"
 #include "Core/Console/Console.h"
 
 #include "World/Component/UMeshComponent.h"
@@ -85,7 +86,7 @@ namespace {
     }
 
     struct FSceneObject {
-        const FTypeInfo* mType{};
+        const UClass* mType{};
         FGuid mOwner{};
         FGuid mParent{};
     };
@@ -108,22 +109,22 @@ namespace {
         return Guid.Parse(Member->value.GetString()) && (!Required || Guid.IsValid());
     }
 
-    bool AddObject(const rapidjson::Value& Json, const FTypeInfo* BaseType, const FGuid& Owner, std::unordered_map<FGuid, FSceneObject>& Objects) {
+    bool AddObject(const rapidjson::Value& Json, const UClass* BaseType, const FGuid& Owner, std::unordered_map<FGuid, FSceneObject>& Objects) {
         if (!Json.IsObject() || !Json.HasMember("TypeName") || !Json["TypeName"].IsString() || Json["TypeName"].GetStringLength() >= NameSize) {
             return false;
         }
 
         FGuid Guid{};
-        const FTypeInfo* Type{TypeRegistry::Find(Json["TypeName"].GetString())};
+        const UClass* Type{FReflectionRegistry::FindClass(Json["TypeName"].GetString())};
 
-        if (!ReadGuid(Json, "Guid", Guid, true) || Type == nullptr || Type->mCreator == nullptr || !Type->IsA(BaseType)) {
+        if (!ReadGuid(Json, "Guid", Guid, true) || Type == nullptr || !Type->CanCreateInstance() || !Type->IsChildOf(BaseType)) {
             return false;
         }
 
         return Objects.emplace(Guid, FSceneObject{Type, Owner, {}}).second;
     }
 
-    bool ValidateReference(const rapidjson::Value& Json, const char* Name, const FTypeInfo* Type, const std::unordered_map<FGuid, FSceneObject>& Objects, FGuid& Guid) {
+    bool ValidateReference(const rapidjson::Value& Json, const char* Name, const UClass* Type, const std::unordered_map<FGuid, FSceneObject>& Objects, FGuid& Guid) {
         if (!ReadGuid(Json, Name, Guid, false)) {
             return false;
         }
@@ -134,7 +135,7 @@ namespace {
 
         const auto Found{Objects.find(Guid)};
 
-        return Found != Objects.end() && Found->second.mType->IsA(Type);
+        return Found != Objects.end() && Found->second.mType->IsChildOf(Type);
     }
 
     bool ValidateName(const rapidjson::Value& Json, const FGuid& Outer, TMap<FGuid, TSet<FName>>& Names) {
@@ -159,7 +160,7 @@ namespace {
         std::unordered_map<FGuid, FSceneObject> Objects{};
 
         for (const rapidjson::Value& Actor : Document["Actors"].GetArray()) {
-            if (!AddObject(Actor, AActor::StaticTypeInfo(), {}, Objects) || !ValidateName(Actor, {}, Names) || !Actor.HasMember("Components") || !Actor["Components"].IsArray()) {
+            if (!AddObject(Actor, AActor::StaticClass(), {}, Objects) || !ValidateName(Actor, {}, Names) || !Actor.HasMember("Components") || !Actor["Components"].IsArray()) {
                 return false;
             }
 
@@ -168,7 +169,7 @@ namespace {
             ReadGuid(Actor, "Guid", ActorGuid, true);
 
             for (const rapidjson::Value& Component : Actor["Components"].GetArray()) {
-                if (!AddObject(Component, UActorComponent::StaticTypeInfo(), ActorGuid, Objects) || !ValidateName(Component, ActorGuid, Names)) {
+                if (!AddObject(Component, UActorComponent::StaticClass(), ActorGuid, Objects) || !ValidateName(Component, ActorGuid, Names)) {
                     return false;
                 }
             }
@@ -181,7 +182,7 @@ namespace {
 
             FGuid RootGuid{};
 
-            if (!ValidateReference(Actor, "GuidRootComponent", USceneComponent::StaticTypeInfo(), Objects, RootGuid) || (RootGuid.IsValid() && Objects.at(RootGuid).mOwner != ActorGuid)) {
+            if (!ValidateReference(Actor, "GuidRootComponent", USceneComponent::StaticClass(), Objects, RootGuid) || (RootGuid.IsValid() && Objects.at(RootGuid).mOwner != ActorGuid)) {
                 return false;
             }
 
@@ -194,13 +195,13 @@ namespace {
                 FGuid MeshGuid{};
                 FGuid TargetGuid{};
 
-                if (!ValidateReference(Component, "Parent", USceneComponent::StaticTypeInfo(), Objects, ParentGuid) || !ValidateReference(Component, "GuidMeshComponent", UMeshComponent::StaticTypeInfo(), Objects, MeshGuid)) {
+                if (!ValidateReference(Component, "Parent", USceneComponent::StaticClass(), Objects, ParentGuid) || !ValidateReference(Component, "GuidMeshComponent", UMeshComponent::StaticClass(), Objects, MeshGuid)) {
                     return false;
                 }
 
                 Objects.at(Guid).mParent = ParentGuid;
 
-                if (Objects.at(Guid).mType->IsA(USubUVComponent::StaticTypeInfo()) && (!ValidateReference(Component, "GuidTargetComponent", UPrimitiveComponent::StaticTypeInfo(), Objects, TargetGuid) || (TargetGuid.IsValid() && Objects.at(TargetGuid).mOwner != ActorGuid))) {
+                if (Objects.at(Guid).mType->IsChildOf(USubUVComponent::StaticClass()) && (!ValidateReference(Component, "GuidTargetComponent", UPrimitiveComponent::StaticClass(), Objects, TargetGuid) || (TargetGuid.IsValid() && Objects.at(TargetGuid).mOwner != ActorGuid))) {
                     return false;
                 }
             }
@@ -267,9 +268,17 @@ namespace {
         }
 
         const auto RemapObject{[&Document, &RemappedGuids](rapidjson::Value& Object) {
-            const char* Fields[]{"Guid", "GuidRootComponent", "Parent", "GuidMeshComponent", "GuidTargetComponent"};
+            TArray<FString> Fields{FString{"Guid"}};
+            const UClass* Class{FReflectionRegistry::FindClass(FName{Object["TypeName"].GetString()})};
 
-            for (const char* Field : Fields) {
+            for (const FProperty* Property : Class->GetProperties()) {
+                if (Property->HasAnyFlags(EPropertyFlags::Reference) && !Property->HasAnyFlags(EPropertyFlags::Transient) && Property->GetKind() == EPropertyKind::Object) {
+                    Fields.push_back(Property->GetName().ToString());
+                }
+            }
+
+            for (const FString& FieldName : Fields) {
+                const char* Field{FieldName.c_str()};
                 const auto Member{Object.FindMember(Field)};
                 FGuid Guid{};
 
@@ -398,10 +407,10 @@ bool FSceneSerializer::LoadInternal(UWorld& World, const std::filesystem::path& 
     LoadedActors.reserve(LoadDocument["Actors"].Size());
 
     for (rapidjson::Value& ActorJson : LoadDocument["Actors"].GetArray()) {
-        const FTypeInfo* Type{TypeRegistry::Find(ActorJson["TypeName"].GetString())};
-        std::unique_ptr<UObject> CreatedObject{Type->mCreator()};
+        const UClass* Type{FReflectionRegistry::FindClass(ActorJson["TypeName"].GetString())};
+        std::unique_ptr<UObject> CreatedObject{Type->CreateInstance()};
 
-        if (CreatedObject == nullptr || !CreatedObject->GetTypeInfo()->IsA(AActor::StaticTypeInfo())) {
+        if (CreatedObject == nullptr || !CreatedObject->GetClass()->IsChildOf(AActor::StaticClass())) {
             return false;
         }
 

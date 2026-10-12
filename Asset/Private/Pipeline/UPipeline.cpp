@@ -350,7 +350,7 @@ bool UPipeline::LoadPipelineDescription(const std::filesystem::path& Path, FPipe
 }
 
 void UPipeline::Serialize(FArchive& Ar) {
-    UAsset::Serialize(Ar);
+    Super::Serialize(Ar);
 }
 
 ERenderMode UPipeline::ResolveRenderMode(ERenderMode Mode) const {
@@ -368,3 +368,9 @@ const FPipelineDescription* UPipeline::GetDescription(ERenderMode Mode) const {
 Uint64 UPipeline::GetRenderRevision() const {
     return mRenderRevision;
 }
+
+UPipeline::UPipeline() {
+    InitializeClass(StaticClass());
+}
+
+UPipeline::~UPipeline() = default;

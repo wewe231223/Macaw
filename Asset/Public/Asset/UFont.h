@@ -5,6 +5,7 @@
 #include <array>
 #include <cstdint>
 #include <span>
+#include "Asset/UFont.generated.h"
 
 struct FFontGlyph {
     Uint32 mGlyphIndex{0};
@@ -30,13 +31,17 @@ struct FFontMetrics {
     float mLineHeight{0.0f};
 };
 
+UCLASS(Abstract)
 class UFont : public UAsset {
 public:
-    UFont() = default;
+    GENERATED_TYPES(UFont)
+
+public:
+    UFont();
     ~UFont() override = default;
 
 public:
-    JG_DECLARE_ABSTRACT_DERIVED_TYPEINFO(UFont, UAsset)
+    GENERATED_BODY(UFont)
 
     virtual const FFontGlyph* GetOrCreateGlyph(char32_t CodePoint) = 0;
     virtual const FFontMetrics& GetFontMetrics() const = 0;

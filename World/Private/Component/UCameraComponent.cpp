@@ -5,6 +5,7 @@
 #include "World/Subsystem/UCameraSubsystem.h"
 
 UCameraComponent::UCameraComponent() {
+    InitializeClass(StaticClass());
     SetRelativeLocation({5.0f, 5.0f, 5.0f});
 }
 
@@ -53,7 +54,7 @@ void UCameraComponent::SetFarPlane(float InFarPlane) {
 }
 
 void UCameraComponent::OnRegister() {
-    UActorComponent::OnRegister();
+    Super::OnRegister();
 
     AActor* Owner{GetOwner()};
 
@@ -63,7 +64,7 @@ void UCameraComponent::OnRegister() {
 }
 
 void UCameraComponent::OnUnregister() {
-    USceneComponent::OnUnregister();
+    Super::OnUnregister();
 
     AActor* Owner{GetOwner()};
 
@@ -89,10 +90,8 @@ float UCameraComponent::GetMoveSensitivity() const {
 }
 
 void UCameraComponent::Serialize(FArchive& Archive) {
-    USceneComponent::Serialize(Archive);
+    Super::Serialize(Archive);
 
-    Archive.Serialize("FOV", mFov);
-    Archive.Serialize("AspectRatio", mAspectRatio);
-    Archive.Serialize("NearPlane", mNearPlane);
-    Archive.Serialize("FarPlane", mFarPlane);
+    StaticClass()->SerializeDeclaredProperties(this, Archive);
+
 }

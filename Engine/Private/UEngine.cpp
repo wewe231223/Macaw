@@ -6,7 +6,7 @@
 #include "World/UWorld.h"
 #include "World/ULevel.h"
 #include <algorithm>
-#include "CoreUObject/TypeRegistry.h"
+#include "CoreUObject/Reflection/FReflectionRegistry.h"
 #include "Asset/UTexture.h"
 #include "Asset/UFont.h"
 #include "Asset/UFreeTypeFont.h"
@@ -20,7 +20,9 @@
 #include "World/Component/UFlipBookComponent.h"
 #include "World/Component/USubUVComponent.h"
 
-UEngine::UEngine() = default;
+UEngine::UEngine() {
+    InitializeClass(StaticClass());
+}
 
 UEngine::~UEngine() {
     Shutdown();
@@ -122,29 +124,9 @@ TSubsystemCollection<UEngineSubsystem, UEngine>& UEngine::GetSubsystems() {
 }
 
 void UEngine::RegisterObjectTypes() {
-    TypeRegistry::Register(UObject::StaticTypeInfo());
-    TypeRegistry::Register(UAsset::StaticTypeInfo());
-    TypeRegistry::Register(UMesh::StaticTypeInfo());
-    TypeRegistry::Register(UPipeline::StaticTypeInfo());
-    TypeRegistry::Register(UTexture::StaticTypeInfo());
-    TypeRegistry::Register(AActor::StaticTypeInfo());
-    TypeRegistry::Register(UFont::StaticTypeInfo());
-    TypeRegistry::Register(UFreeTypeFont::StaticTypeInfo());
-    TypeRegistry::Register(UWorld::StaticTypeInfo());
-    TypeRegistry::Register(ULevel::StaticTypeInfo());
-    TypeRegistry::Register(UEngine::StaticTypeInfo());
-    TypeRegistry::Register(UCameraComponent::StaticTypeInfo());
-    TypeRegistry::Register(UStaticMeshComponent::StaticTypeInfo());
-    TypeRegistry::Register(UCollisionComponent::StaticTypeInfo());
-    TypeRegistry::Register(UBoxColliderComponent::StaticTypeInfo());
-    TypeRegistry::Register(UDirectionalLightComponent::StaticTypeInfo());
-    TypeRegistry::Register(UPointLightComponent::StaticTypeInfo());
-    TypeRegistry::Register(USpotLightComponent::StaticTypeInfo());
-    TypeRegistry::Register(UActorComponent::StaticTypeInfo());
-    TypeRegistry::Register(USceneComponent::StaticTypeInfo());
-    TypeRegistry::Register(UBillboardTextComponent::StaticTypeInfo());
-    TypeRegistry::Register(UBillboardComponent::StaticTypeInfo());
-    TypeRegistry::Register(USubUVComponent::StaticTypeInfo());
-    TypeRegistry::Register(UUVScrollComponent::StaticTypeInfo());
-    TypeRegistry::Register(UFlipBookComponent::StaticTypeInfo());
+    ReflectionModules::RegisterCoreUObject();
+    ReflectionModules::RegisterRenderCore();
+    ReflectionModules::RegisterAsset();
+    ReflectionModules::RegisterWorld();
+    ReflectionModules::RegisterEngine();
 }

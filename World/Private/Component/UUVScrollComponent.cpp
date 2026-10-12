@@ -4,6 +4,7 @@
 #include <cmath>
 
 UUVScrollComponent::UUVScrollComponent() {
+    InitializeClass(StaticClass());
     UpdateTickEnabled();
 }
 
@@ -24,8 +25,8 @@ const FVector2& UUVScrollComponent::GetScrollSpeed() const {
 }
 
 void UUVScrollComponent::Serialize(FArchive& Archive) {
-    USubUVComponent::Serialize(Archive);
-    Archive.Serialize("ScrollSpeed", mScrollSpeed);
+    Super::Serialize(Archive);
+    StaticClass()->SerializeDeclaredProperties(this, Archive);
 
     if (Archive.IsLoading()) {
         ResetPlaybackState();

@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "CoreUObject/Reflection/UClass.h"
 #include "World/Component/USubUVComponent.h"
 #include "World/AActor.h"
 
@@ -6,6 +7,7 @@
 #include <limits>
 
 USubUVComponent::USubUVComponent() {
+    InitializeClass(StaticClass());
     SetCanEverTick(true);
     SetTickInEditor(true);
 }
@@ -131,23 +133,23 @@ double USubUVComponent::GetElapsedTime() const {
 }
 
 void USubUVComponent::OnRegister() {
-    UActorComponent::OnRegister();
+    Super::OnRegister();
     UpdateUVTransform();
     UpdateTickEnabled();
 }
 
 void USubUVComponent::OnUnregister() {
     ClearTargetTransform();
-    UActorComponent::OnUnregister();
+    Super::OnUnregister();
 }
 
 void USubUVComponent::Activate() {
-    UActorComponent::Activate();
+    Super::Activate();
     UpdateTickEnabled();
 }
 
 void USubUVComponent::TickComponent(float DeltaTime) {
-    UActorComponent::TickComponent(DeltaTime);
+    Super::TickComponent(DeltaTime);
 
     if (GetTargetComponent() == nullptr) {
         UpdateTickEnabled();
@@ -176,7 +178,7 @@ bool USubUVComponent::ResolveLoadedReferences() {
     if (mPendingTargetGuid.IsValid()) {
         UObject* Object{UObjectSystem::Resolve(UObjectSystem::FindHandleByGuid(mPendingTargetGuid))};
 
-        if (Object == nullptr || !Object->GetTypeInfo()->IsA(UPrimitiveComponent::StaticTypeInfo()) || !SetTargetComponent(static_cast<UPrimitiveComponent*>(Object))) {
+        if (Object == nullptr || !Object->GetClass()->IsChildOf(UPrimitiveComponent::StaticClass()) || !SetTargetComponent(static_cast<UPrimitiveComponent*>(Object))) {
             return false;
         }
     }
@@ -185,7 +187,7 @@ bool USubUVComponent::ResolveLoadedReferences() {
 }
 
 void USubUVComponent::Serialize(FArchive& Archive) {
-    UActorComponent::Serialize(Archive);
+    Super::Serialize(Archive);
 
     FGuid TargetGuid{GetTargetComponent() != nullptr ? GetTargetComponent()->GetGuid() : FGuid{}};
 

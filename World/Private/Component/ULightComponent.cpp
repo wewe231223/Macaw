@@ -8,7 +8,7 @@ void ULightComponent::BuildLightShaderParameters(FLightShaderParameters& OutPara
 }
 
 void ULightComponent::OnRegister() {
-    ULightComponentBase::OnRegister();
+    Super::OnRegister();
 
     AActor* Owner{GetOwner()};
 
@@ -24,7 +24,7 @@ void ULightComponent::OnUnregister() {
         Owner->GetWorld()->GetRenderSubsystem().UnregisterComponent(this);
     }
 
-    ULightComponentBase::OnUnregister();
+    Super::OnUnregister();
 }
 
 bool ULightComponent::ShouldCreateRenderState() const {
@@ -74,4 +74,8 @@ void ULightComponent::SendRenderTransform() {
 
 void ULightComponent::OnTransformUpdate() {
     MarkRenderTransformDirty();
+}
+
+ULightComponent::ULightComponent() {
+    InitializeClass(StaticClass());
 }

@@ -1,9 +1,11 @@
 #pragma once
+#include "CoreUObject/Reflection/UClass.h"
 #include "Core/Common.h"
 #include <limits>
 #include "CoreUObject/UObject.h"
 #include "World/Component/UActorComponent.h"
 #include "World/Component/USceneComponent.h"
+#include "World/AActor.generated.h"
 
 class UWorld;
 class ULevel;
@@ -12,10 +14,14 @@ class ULevel;
 /// World에 소속되며 UActorComponent를 RAII 방식으로 소유하는 게임플레이 객체입니다.
 /// Actor의 월드 Transform은 RootComponent의 ComponentToWorld Transform으로 정의됩니다.
 /// </summary>
+UCLASS()
 class AActor : public UObject {
 public:
+    GENERATED_TYPES(AActor)
+
+public:
     /// <summary>새 Actor를 생성합니다. World 소속과 Component 등록은 아직 수행하지 않습니다.</summary>
-    AActor() = default;
+    AActor();
     /// <summary>World 및 소유 Component와의 수명 관계를 정리합니다.</summary>
     ~AActor() override;
 
@@ -26,7 +32,7 @@ public:
     AActor& operator=(AActor&&) = delete;
 
 public:
-    JG_DECLARE_DERIVED_TYPEINFO(AActor, UObject)
+    GENERATED_BODY(AActor)
 
     /// <summary>Actor가 소유하는 새 Component를 생성하고 추가합니다.</summary>
     /// <typeparam name="T">생성할 UActorComponent 파생 타입입니다.</typeparam>
@@ -35,7 +41,7 @@ public:
         requires std::is_base_of_v<UActorComponent, T>
     T* AddComponent();
 
-    UActorComponent* AddComponent(const FTypeInfo& Type);
+    UActorComponent* AddComponent(const UClass& Type);
 
     /// <summary>지정한 타입과 호환되는 첫 번째 소유 Component를 찾습니다.</summary>
     /// <typeparam name="T">찾을 UActorComponent 파생 타입입니다.</typeparam>
@@ -195,10 +201,12 @@ private:
     void UpdateTickRegistration();
 
 private:
+    UPROPERTY(Name = "Components", Owned, ReadOnly)
     std::vector<std::unique_ptr<UActorComponent>> mComponents{};
     // 파괴 처리 후 메모리 해제를 기다리는 컴포넌트입니다.
     std::vector<std::unique_ptr<UActorComponent>> mPendingDestroyComponents{};
     std::size_t mTickIndex{std::numeric_limits<std::size_t>::max()};
+    UPROPERTY(Name = "GuidRootComponent", Reference, ReadOnly)
     USceneComponent* mRootComponent{nullptr};
 
     FGuid mPendingRootComponentGuid{};
@@ -231,16 +239,16 @@ private:
 template <typename T>
     requires std::is_base_of_v<UActorComponent, T>
 T* AActor::AddComponent() {
-    static_assert(std::is_same_v<typename T::TypeInfoOwner, T>);
+    static_assert(std::is_same_v<typename T::ReflectionOwner, T>);
 
-    return static_cast<T*>(AddComponent(*T::StaticTypeInfo()));
+    return static_cast<T*>(AddComponent(*T::StaticClass()));
 }
 
 template <typename T>
     requires std::is_base_of_v<UActorComponent, T>
 T* AActor::GetComponent() {
     for (const auto& Component : mComponents) {
-        if (Component->GetTypeInfo()->IsA(T::StaticTypeInfo())) {
+        if (Component->GetClass()->IsChildOf(T::StaticClass())) {
             return static_cast<T*>(Component.get());
         }
     }

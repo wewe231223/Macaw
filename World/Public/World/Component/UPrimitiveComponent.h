@@ -5,14 +5,19 @@
 #include "RenderCore/FPrimitiveSceneProxy.h"
 
 #include <memory>
+#include "World/Component/UPrimitiveComponent.generated.h"
 
+UCLASS(Abstract)
 class UPrimitiveComponent : public USceneComponent {
 public:
-    UPrimitiveComponent() = default;
+    GENERATED_TYPES(UPrimitiveComponent)
+
+public:
+    UPrimitiveComponent();
     ~UPrimitiveComponent() override = default;
 
 public:
-    JG_DECLARE_ABSTRACT_DERIVED_TYPEINFO(UPrimitiveComponent, USceneComponent)
+    GENERATED_BODY(UPrimitiveComponent)
 
     bool IsVisible() const;
     void SetVisible(bool BInVisible);
@@ -51,6 +56,7 @@ public:
 
 private:
     TArray<FPrimitiveUVTransform> mUVTransforms{};
+    UPROPERTY(Serialize, Name = "bVisible", Getter = IsVisible, Category = "Rendering", DisplayName = "Visible", Edit, Setter = SetVisible)
     bool mBVisible{true};
 
     DirectX::BoundingBox mLocalAABB{};

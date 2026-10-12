@@ -1,16 +1,12 @@
 #include "pch.h"
 #include "Editor/UndoSystem/FUndoInfo.h"
 
-const FTypeInfo& FObjectStateChangedMessage::StaticTypeInfo() noexcept {
-    return TypeInfo;
-}
-
 FObjectStateChangedMessage::FObjectStateChangedMessage(const FGuid& InGuid, const std::vector<Uint8>& InData)
-	: TargetGuid(InGuid),
-	  StateData(InData) {
+	: mTargetGuid(InGuid),
+	  mStateData(InData) {
 }
 
 FObjectStateChangedMessage::FObjectStateChangedMessage(const FGuid& InGuid, std::vector<Uint8>&& InData) noexcept
-	: TargetGuid(InGuid),
-	  StateData(std::move(InData)) {
+	: mTargetGuid(InGuid),
+	  mStateData(std::move(InData)) {
 }

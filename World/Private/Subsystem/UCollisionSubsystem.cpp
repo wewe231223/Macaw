@@ -52,3 +52,7 @@ const TArray<TObjectRef<UCollisionComponent>>& UCollisionSubsystem::GetRegistere
 void UCollisionSubsystem::OnDeinitialize() {
     mComponents.clear();
 }
+
+UCollisionSubsystem::UCollisionSubsystem() {
+    InitializeClass(StaticClass());
+}

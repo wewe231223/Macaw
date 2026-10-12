@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "CoreUObject/Reflection/UClass.h"
 #include "World/Component/UBillboardComponent.h"
 #include "Editor/UEditorEngine.h"
 #include "Asset/FAssetRegistry.h"
@@ -14,7 +15,7 @@
 #include "Core/Stat/Stat.h"
 #include "Core/Console/Console.h"
 #include "World/Component/ULightComponent.h"
-#include "CoreUObject/TypeRegistry.h"
+#include "CoreUObject/Reflection/FReflectionRegistry.h"
 #include <rapidjson/document.h>
 
 namespace {
@@ -198,7 +199,7 @@ UActorComponent* FWorldEditorContext::GetSelectedComponent() const noexcept {
 USceneComponent* FWorldEditorContext::GetSelectedTransformTarget() const noexcept {
     UActorComponent* Component{mSelectedComponent.Get()};
 
-    if (Component != nullptr && Component->GetTypeInfo()->IsA(USceneComponent::StaticTypeInfo())) {
+    if (Component != nullptr && Component->GetClass()->IsChildOf(USceneComponent::StaticClass())) {
         return static_cast<USceneComponent*>(Component);
     }
 
@@ -402,14 +403,14 @@ void FWorldEditorContext::HandleSpawnComponent(const FMessageSpawnComponent& Mes
     }
 
     static std::mt19937 RandomEngine{std::random_device{}()};
-    const FTypeInfo* ComponentType{TypeRegistry::Find(Message.mComponentType)};
+    const UClass* ComponentType{FReflectionRegistry::FindClass(Message.mComponentType)};
 
-    if (ComponentType == nullptr || ComponentType->mCreator == nullptr ||
-        !ComponentType->IsA(UActorComponent::StaticTypeInfo())) {
+    if (ComponentType == nullptr || !ComponentType->CanCreateInstance() ||
+        !ComponentType->IsChildOf(UActorComponent::StaticClass())) {
         return;
     }
 
-    const bool BIsStaticMesh{ComponentType->IsA(UStaticMeshComponent::StaticTypeInfo())};
+    const bool BIsStaticMesh{ComponentType->IsChildOf(UStaticMeshComponent::StaticClass())};
     const FAssetHandle MeshHandle{BIsStaticMesh ? AssetRegistry->FindAsset(FAssetPath{Message.mMeshType}) : FAssetHandle{}};
 
     if (BIsStaticMesh && AssetRegistry->ResolveAsset<UMesh>(MeshHandle) == nullptr) {
@@ -418,8 +419,8 @@ void FWorldEditorContext::HandleSpawnComponent(const FMessageSpawnComponent& Mes
 
     const FAssetHandle PipelineHandle{BIsStaticMesh ? AssetRegistry->FindAsset(FAssetPath{"/Game/Pipeline/Base"}) : FAssetHandle{}};
     const FAssetHandle Materials[]{AssetRegistry->FindAsset(FAssetPath{"/Game/System/Material/Default.mtl"}), AssetRegistry->FindAsset(FAssetPath{"/Game/System/Material/Red.mtl"}), AssetRegistry->FindAsset(FAssetPath{"/Game/System/Material/Green.mtl"}), AssetRegistry->FindAsset(FAssetPath{"/Game/System/Material/Blue.mtl"})};
-    const bool IsBillboard{ComponentType->IsA(UBillboardComponent::StaticTypeInfo())};
-    const bool IsLight{ComponentType->IsA(ULightComponent::StaticTypeInfo())};
+    const bool IsBillboard{ComponentType->IsChildOf(UBillboardComponent::StaticClass())};
+    const bool IsLight{ComponentType->IsChildOf(ULightComponent::StaticClass())};
     const FAssetHandle BillboardPipeline{IsBillboard || IsLight ? AssetRegistry->FindAsset(FAssetPath{"/Game/Pipeline/Billboard.json"}) : FAssetHandle{}};
     const FAssetHandle BillboardTexture{IsBillboard ? AssetRegistry->FindAsset(FAssetPath{"/Game/Texture/Fire+Sparks-Sheet.png"}) : FAssetHandle{}};
     const FAssetHandle LightProxyTexture{IsLight ? AssetRegistry->FindAsset(FAssetPath{"/Game/System/Light.png"}) : FAssetHandle{}};
@@ -461,7 +462,7 @@ void FWorldEditorContext::HandleSpawnComponent(const FMessageSpawnComponent& Mes
             continue;
         }
 
-        if (ComponentType->IsA(USceneComponent::StaticTypeInfo())) {
+        if (ComponentType->IsChildOf(USceneComponent::StaticClass())) {
             USceneComponent* SceneComponent{static_cast<USceneComponent*>(Component)};
 
             if (IsLight) {

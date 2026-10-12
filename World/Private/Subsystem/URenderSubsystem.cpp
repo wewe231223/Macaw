@@ -277,3 +277,7 @@ FLightSceneUpdate& URenderSubsystem::FindOrAddLightUpdate(FObjectHandle Handle) 
 
     return mLightUpdates[Position.first->second];
 }
+
+URenderSubsystem::URenderSubsystem() {
+    InitializeClass(StaticClass());
+}

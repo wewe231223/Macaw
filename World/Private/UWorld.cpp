@@ -1,4 +1,7 @@
 #include "pch.h"
+#include "CoreUObject/Reflection/NewObject.h"
+#include "CoreUObject/Reflection/Cast.h"
+#include "CoreUObject/Reflection/UClass.h"
 #include "Core/Base/ErrorHandler.h"
 #include "World/UWorld.h"
 #include "Core/Stat/Stat.h"
@@ -40,7 +43,9 @@ UWorld::FActorDispatchScope::~FActorDispatchScope() {
     }
 }
 
-UWorld::UWorld() = default;
+UWorld::UWorld() {
+    InitializeClass(StaticClass());
+}
 
 UWorld::~UWorld() {
     CleanupWorld();
@@ -57,7 +62,7 @@ void UWorld::Initialize(EWorldType WorldType) {
 
     mWorldType = WorldType;
     mTime.Reset();
-    mPersistentLevel = std::make_unique<ULevel>(*this);
+    mPersistentLevel = NewObject<ULevel>(*this);
     ErrorHandler::Report(!UObjectSystem::Register(mPersistentLevel.get()).IsValid(), "UWorld", "Cannot register persistent level", ErrorHandler::EErrorLevel::Critical);
     mInitialized = true;
     InitializeSubsystems();
@@ -255,7 +260,7 @@ bool UWorld::DestroyActorInternal(AActor* Actor, EEndPlayReason Reason) {
     const TArray<UActorComponent*> Components{Actor->GetComponentSnapshot()};
 
     for (UActorComponent* Component : Components) {
-        if (!Component->IsBeingDestroyed() && Component->GetTypeInfo()->IsA(USceneComponent::StaticTypeInfo())) {
+        if (!Component->IsBeingDestroyed() && Component->GetClass()->IsChildOf(USceneComponent::StaticClass())) {
             USceneComponent* SceneComponent{static_cast<USceneComponent*>(Component)};
             const std::vector<TObjectRef<USceneComponent>> Children{SceneComponent->GetChildren()};
 
@@ -346,7 +351,6 @@ void UWorld::AttachActor(AActor* Child, AActor* Parent) {
     }
 
     ChildRoot->AttachToComponent(ParentRoot);
-    MarkStructureDirty();
 }
 
 void UWorld::DetachActor(AActor* Actor) {
@@ -360,9 +364,7 @@ void UWorld::DetachActor(AActor* Actor) {
         return;
     }
 
-    if (RootComponent->DetachFromComponent(EAttachmentTransformRule::KeepWorldTransform)) {
-        MarkStructureDirty();
-    }
+    RootComponent->DetachFromComponent(EAttachmentTransformRule::KeepWorldTransform);
 }
 
 bool UWorld::RenameActor(AActor* Actor, const FName& NewName) {
@@ -702,22 +704,22 @@ AActor* UWorld::AddActor(std::unique_ptr<AActor> InActor) {
     return FinishSpawningActor(Actor, Transform) ? Actor : nullptr;
 }
 
-AActor* UWorld::SpawnActor(const FTypeInfo& Type, const FTransform& Transform) {
+AActor* UWorld::SpawnActor(const UClass& Type, const FTransform& Transform) {
     const FActorDispatchScope Dispatch{this};
     AActor* Actor{SpawnActorDeferred(Type, Transform)};
 
     return Actor != nullptr && FinishSpawningActor(Actor, Transform) ? Actor : nullptr;
 }
 
-AActor* UWorld::SpawnActorDeferred(const FTypeInfo& Type, const FTransform& Transform) {
-    if (!mInitialized || mCleaningUp || mEndingPlay || Type.mCreator == nullptr || !Type.IsA(AActor::StaticTypeInfo())) {
+AActor* UWorld::SpawnActorDeferred(const UClass& Type, const FTransform& Transform) {
+    if (!mInitialized || mCleaningUp || mEndingPlay || !Type.CanCreateInstance() || !Type.IsChildOf(AActor::StaticClass())) {
         return nullptr;
     }
 
     const FActorDispatchScope Dispatch{this};
-    std::unique_ptr<UObject> Object{Type.mCreator()};
+    std::unique_ptr<UObject> Object{Type.CreateInstance()};
 
-    if (Object == nullptr || !Object->GetTypeInfo()->IsA(AActor::StaticTypeInfo())) {
+    if (Object == nullptr || !Object->GetClass()->IsChildOf(AActor::StaticClass())) {
         return nullptr;
     }
 
@@ -831,7 +833,7 @@ FName UWorld::MakeUniqueObjectName(FName SourceName) {
 AActor* UWorld::FindActorByName(FName InName) const {
     UObject* Object{mInitialized ? UObjectSystem::FindObject(mPersistentLevel.get(), InName) : nullptr};
 
-    AActor* Actor{Object != nullptr && Object->GetTypeInfo()->IsA(AActor::StaticTypeInfo()) ? static_cast<AActor*>(Object) : nullptr};
+    AActor* Actor{Object != nullptr && Object->GetClass()->IsChildOf(AActor::StaticClass()) ? static_cast<AActor*>(Object) : nullptr};
 
     return Actor != nullptr && !Actor->IsBeingDestroyed() ? Actor : nullptr;
 }

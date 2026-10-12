@@ -18,3 +18,7 @@ UCameraComponent* UCameraSubsystem::GetMainCamera() const {
 void UCameraSubsystem::OnDeinitialize() {
     mMainCamera = nullptr;
 }
+
+UCameraSubsystem::UCameraSubsystem() {
+    InitializeClass(StaticClass());
+}

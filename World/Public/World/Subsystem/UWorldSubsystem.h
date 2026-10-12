@@ -1,16 +1,21 @@
 #pragma once
 #include "CoreUObject/UObject.h"
+#include "World/Subsystem/UWorldSubsystem.generated.h"
 
 class UWorld;
 
 /// <summary>A World-owned RAII service that follows the World lifetime.</summary>
+UCLASS(Abstract)
 class UWorldSubsystem : public UObject {
 public:
-    UWorldSubsystem() = default;
+    GENERATED_TYPES(UWorldSubsystem)
+
+public:
+    UWorldSubsystem();
     ~UWorldSubsystem() override = default;
 
 public:
-    JG_DECLARE_ABSTRACT_DERIVED_TYPEINFO(UWorldSubsystem, UObject)
+    GENERATED_BODY(UWorldSubsystem)
 
     void Initialize(UWorld* World);
     void Deinitialize();

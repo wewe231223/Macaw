@@ -18,7 +18,8 @@
 
 #include "Asset/UAsset.h"
 #include "Core/Base/FAssetHandle.h"
-#include "CoreUObject/TypeInfo.h"
+#include "CoreUObject/Reflection/UClass.h"
+#include "Asset/UMesh.generated.h"
 
 class UMesh;
 
@@ -59,12 +60,12 @@ private:
         inline MinMaxBox() = default;
 
         inline MinMaxBox(const DirectX::BoundingBox& Box)
-            : minX(Box.Center.x - Box.Extents.x),
-              minY(Box.Center.y - Box.Extents.y),
-              minZ(Box.Center.z - Box.Extents.z),
-              maxX(Box.Center.x + Box.Extents.x),
-              maxY(Box.Center.y + Box.Extents.y),
-              maxZ(Box.Center.z + Box.Extents.z) {
+	: minX(Box.Center.x - Box.Extents.x),
+	  minY(Box.Center.y - Box.Extents.y),
+	  minZ(Box.Center.z - Box.Extents.z),
+	  maxX(Box.Center.x + Box.Extents.x),
+	  maxY(Box.Center.y + Box.Extents.y),
+	  maxZ(Box.Center.z + Box.Extents.z) {
         }
 
         inline void Expand(const DirectX::BoundingBox& Box) {
@@ -135,7 +136,11 @@ struct FEdge {
     FVector3 NewPosition;
 };
 
+UCLASS()
 class UMesh : public UAsset {
+public:
+    GENERATED_TYPES(UMesh)
+
 private:
     struct FVertexAttributeStorageBase {
         virtual ~FVertexAttributeStorageBase() = default;
@@ -167,7 +172,7 @@ public:
     using FMaterialGroupResolver = std::function<std::optional<Uint32>(FAssetHandle MaterialHandle, FName GroupName)>;
 
 public:
-    UMesh() = default;
+    UMesh();
     ~UMesh() override;
 
     UMesh(const UMesh&) = delete;
@@ -177,7 +182,7 @@ public:
     UMesh& operator=(UMesh&&) noexcept = default;
 
 public:
-    JG_DECLARE_DERIVED_TYPEINFO(UMesh, UAsset);
+    GENERATED_BODY(UMesh)
 
     std::shared_ptr<const FMeshPickingSource> GetPickingSource() const;
     bool RebuildPickingStructure();

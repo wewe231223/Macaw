@@ -2,7 +2,7 @@
 #include "Asset/UAsset.h"
 
 void UAsset::Serialize(FArchive& Ar) {
-    UObject::Serialize(Ar);
+    Super::Serialize(Ar);
     Ar.Serialize("AssetName", mAssetName);
 
     FString PathStr{FString{mAssetPath.string()}};
@@ -27,3 +27,9 @@ bool UAsset::Initialize(const std::filesystem::path& InAssetPath) {
 
     return true;
 }
+
+UAsset::UAsset() {
+    InitializeClass(StaticClass());
+}
+
+UAsset::~UAsset() = default;

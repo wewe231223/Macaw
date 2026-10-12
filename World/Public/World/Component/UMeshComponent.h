@@ -5,14 +5,19 @@
 #include "Core/Asset/FAssetPath.h"
 #include "Core/Base/FGuid.h"
 #include "Asset/UMesh.h"
+#include "World/Component/UMeshComponent.generated.h"
 
+UCLASS(Abstract)
 class UMeshComponent : public UPrimitiveComponent {
 public:
-    UMeshComponent() = default;
+    GENERATED_TYPES(UMeshComponent)
+
+public:
+    UMeshComponent();
     ~UMeshComponent() override = default;
 
 public:
-    JG_DECLARE_ABSTRACT_DERIVED_TYPEINFO(UMeshComponent, UPrimitiveComponent)
+    GENERATED_BODY(UMeshComponent)
 
     FAssetHandle GetMeshHandle() const;
     virtual void SetMeshHandle(FAssetHandle InHandle);

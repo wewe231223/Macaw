@@ -5,13 +5,18 @@
 #include "CoreUObject/UObject.h"
 #include "Core/Archive/FArchive.h"
 #include "World/EEndPlayReason.h"
+#include "World/Component/UActorComponent.generated.h"
 
 class AActor;
 class UWorld;
 
+UCLASS()
 class UActorComponent : public UObject {
 public:
-    UActorComponent() = default;
+    GENERATED_TYPES(UActorComponent)
+
+public:
+    UActorComponent();
     ~UActorComponent() override = default;
 
     UActorComponent(const UActorComponent&) = delete;
@@ -21,7 +26,7 @@ public:
     UActorComponent& operator=(UActorComponent&&) = delete;
 
 public:
-    JG_DECLARE_DERIVED_TYPEINFO(UActorComponent, UObject)
+    GENERATED_BODY(UActorComponent)
 
     AActor* GetOwner() const;
 
@@ -49,18 +54,24 @@ public:
     void MarkRenderDynamicDataDirty();
     void DoDeferredRenderUpdates();
 
+    UFUNCTION()
     bool IsActive() const;
+    UFUNCTION()
     void SetActive(bool BInActive);
     /// <summary>컴포넌트를 활성화하고 Tick을 켭니다.</summary>
+    UFUNCTION()
     virtual void Activate();
     /// <summary>컴포넌트를 비활성화하고 Tick을 끕니다.</summary>
+    UFUNCTION()
     virtual void Deactivate();
 
     /// <summary>현재 Tick 활성 상태와 별개로 컴포넌트가 Tick을 지원하는지 반환합니다.</summary>
     bool CanEverTick() const;
     /// <summary>Tick 지원 여부를 설정하고 World의 Tick 등록을 갱신합니다.</summary>
     void SetCanEverTick(bool CanEverTick);
+    UFUNCTION()
     bool IsTickEnabled() const;
+    UFUNCTION()
     void SetTickEnabled(bool TickEnabled);
     bool IsTickInEditor() const;
     void SetTickInEditor(bool TickInEditor);
@@ -114,6 +125,7 @@ private:
     bool mRegistering{};
     // 등록 해제 콜백에서 등록 상태를 다시 바꾸는 것을 막습니다.
     bool mUnregistering{};
+    UPROPERTY(Serialize, Name = "bActive", Getter = IsActive, Category = "Component", DisplayName = "Active", Edit, Setter = SetActive)
     bool mBActive{true};
     // 현재 Tick 활성 상태와 별개인 컴포넌트의 Tick 지원 여부입니다.
     bool mCanEverTick{};

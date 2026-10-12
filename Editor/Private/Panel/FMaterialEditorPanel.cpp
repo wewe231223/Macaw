@@ -164,7 +164,7 @@ void FMaterialEditorPanel::DrawGroup(USurfaceOpaque& Material, Uint32 GroupIndex
 
 void FMaterialEditorPanel::DrawTexture(USurfaceOpaque& Material, Uint32 GroupIndex, const char* Label, FMaterialTextureMap FMaterialGroup::* Member) {
     const FAssetHandle CurrentHandle{(Material.GetGroups()[GroupIndex].*Member).mTexture};
-    mPropertyEditor.DrawAssetPicker(Label, *UTexture::StaticTypeInfo(), CurrentHandle, [this, &Material, GroupIndex, Member](FAssetHandle NewHandle) {
+    mPropertyEditor.DrawAssetPicker(Label, *UTexture::StaticClass(), CurrentHandle, [this, &Material, GroupIndex, Member](FAssetHandle NewHandle) {
         ModifyGroup(Material, GroupIndex, [Member, NewHandle](FMaterialGroup& Group) {
             FMaterialTextureMap& Map{Group.*Member};
 

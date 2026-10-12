@@ -44,13 +44,15 @@ void ULightComponentBase::SetVisible(bool BInVisible) {
 }
 
 void ULightComponentBase::Serialize(FArchive& Archive) {
-    USceneComponent::Serialize(Archive);
+    Super::Serialize(Archive);
 
-    Archive.Serialize("LightColor", mLightColor);
-    Archive.Serialize("Intensity", mIntensity);
-    Archive.Serialize("bVisible", mBVisible);
+    StaticClass()->SerializeDeclaredProperties(this, Archive);
 
     if (Archive.IsLoading()) {
         MarkRenderStateDirty();
     }
+}
+
+ULightComponentBase::ULightComponentBase() {
+    InitializeClass(StaticClass());
 }

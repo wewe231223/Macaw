@@ -4,12 +4,19 @@
 #include "Core/Base/FGuid.h"
 #include "Core/Base/FName.h"
 #include "CoreUObject/FObjectHandle.h"
-#include "CoreUObject/TypeInfo.h"
+#include "CoreUObject/Reflection/ReflectionMacros.h"
+
+class UClass;
+class FReflectionRegistry;
 #include <cstddef>
 #include <new>
+#include <span>
 #include <type_traits>
+#include "CoreUObject/UObject.generated.h"
 
 class FArchive;
+class FPropertyValue;
+class UFunction;
 class UObject;
 
 namespace UObjectSystem {
@@ -22,7 +29,11 @@ namespace UObjectSystem {
     Uint32 GetItemCount();
 }
 
+UCLASS()
 class UObject {
+public:
+    GENERATED_TYPES(UObject)
+
 public:
     UObject();
     virtual ~UObject();
@@ -40,7 +51,7 @@ public:
 
     UObject* GetOuter() const;
     UObject* GetOutermost() const;
-    UObject* GetTypedOuter(const FTypeInfo* Type) const;
+    UObject* GetTypedOuter(const UClass* Type) const;
     template <typename T>
     T* GetTypedOuter() const;
 
@@ -56,15 +67,27 @@ public:
     static void* operator new(std::size_t Size, std::align_val_t Alignment);
     static void operator delete(void* Ptr, std::align_val_t Alignment) noexcept;
 
-    JG_DECLARE_ROOT_TYPEINFO(UObject)
+    GENERATED_BODY(UObject)
+    UClass* GetClass() const noexcept;
+    bool IsClassDefaultObject() const noexcept;
+    bool IsA(const UClass* Class) const noexcept;
+    template <typename T>
+    bool IsA() const noexcept;
+    const UFunction* FindFunction(FName Name) const;
+    virtual bool ProcessEvent(const UFunction* Function, std::span<const FPropertyValue> Arguments, FPropertyValue& Result);
 
 protected:
+    void InitializeClass(UClass* Class);
+
     virtual void Serialize(FArchive& Archive);
 
 private:
     void SetHandle(FObjectHandle InHandle);
     virtual bool CanChangeOuter(const UObject* NewOuter) const;
     virtual void OnIdentityChanged();
+
+    friend class FReflectionRegistry;
+    friend class UClass;
 
     friend FObjectHandle UObjectSystem::Register(UObject* Object);
     friend void UObjectSystem::Unregister(UObject* Object, FObjectHandle Handle);
@@ -73,9 +96,15 @@ private:
     friend void UObjectSystem::DetachInners(UObject* Object);
 
 private:
+    UPROPERTY(Name = "Class", Reference, ReadOnly, Transient)
+    UClass* mClass{};
+    bool mClassDefaultObject{};
+    UPROPERTY(Name = "Guid", ReadOnly)
     FGuid mGuid{};
     FObjectHandle mHandle{};
+    UPROPERTY(Name = "Name", ReadOnly)
     FName mName{};
+    UPROPERTY(Name = "Outer", Reference, ReadOnly, Transient)
     UObject* mOuter{};
     TArray<UObject*> mInnerObjects{};
     bool mDestroying{};
@@ -84,7 +113,14 @@ private:
 template <typename T>
 T* UObject::GetTypedOuter() const {
     static_assert(std::is_base_of_v<UObject, T>);
-    static_assert(std::is_same_v<typename T::TypeInfoOwner, T>);
+    static_assert(std::is_same_v<typename T::ReflectionOwner, T>);
 
-    return static_cast<T*>(GetTypedOuter(T::StaticTypeInfo()));
+    return static_cast<T*>(GetTypedOuter(T::StaticClass()));
+}
+
+template <typename T>
+bool UObject::IsA() const noexcept {
+    static_assert(std::is_same_v<typename T::ReflectionOwner, T>);
+
+    return IsA(T::StaticClass());
 }

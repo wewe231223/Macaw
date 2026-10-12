@@ -1,5 +1,8 @@
 #include "pch.h"
+#include "CoreUObject/Reflection/UClass.h"
+#include "CoreUObject/Reflection/FPropertyValue.h"
 #include "Editor/Property/FComponentDetails.h"
+#include "Editor/Property/FReflectedDetails.h"
 #include "Editor/Property/IPropertyEditorContext.h"
 #include "World/UWorld.h"
 #include "Asset/UTexture.h"
@@ -7,6 +10,7 @@
 #include "Asset/UMaterial.h"
 #include "Asset/Pipeline/UPipeline.h"
 #include <cfloat>
+#include <array>
 #include "World/Component/UActorComponent.h"
 #include "World/Component/UBillboardComponent.h"
 #include "World/Component/UBillboardTextComponent.h"
@@ -25,104 +29,99 @@
 #include "World/Component/USubUVComponent.h"
 
 void FComponentDetails::Draw(UActorComponent& Component, IPropertyEditorContext& Context) {
-    if (Component.GetTypeInfo()->IsA(USpotLightComponent::StaticTypeInfo())) {
+    FReflectedDetails::Draw(Component, Context);
+
+    if (Component.GetClass()->IsChildOf(USpotLightComponent::StaticClass())) {
         DrawSpotLightComponent(static_cast<USpotLightComponent&>(Component), Context);
         return;
     }
 
-    if (Component.GetTypeInfo()->IsA(UBoxColliderComponent::StaticTypeInfo())) {
+    if (Component.GetClass()->IsChildOf(UBoxColliderComponent::StaticClass())) {
         DrawBoxColliderComponent(static_cast<UBoxColliderComponent&>(Component), Context);
         return;
     }
 
-    if (Component.GetTypeInfo()->IsA(ULocalLightComponent::StaticTypeInfo())) {
+    if (Component.GetClass()->IsChildOf(ULocalLightComponent::StaticClass())) {
         DrawLocalLightComponent(static_cast<ULocalLightComponent&>(Component), Context);
         return;
     }
 
-    if (Component.GetTypeInfo()->IsA(UUVScrollComponent::StaticTypeInfo())) {
+    if (Component.GetClass()->IsChildOf(UUVScrollComponent::StaticClass())) {
         DrawUVScrollComponent(static_cast<UUVScrollComponent&>(Component), Context);
         return;
     }
 
-    if (Component.GetTypeInfo()->IsA(UFlipBookComponent::StaticTypeInfo())) {
+    if (Component.GetClass()->IsChildOf(UFlipBookComponent::StaticClass())) {
         DrawFlipBookComponent(static_cast<UFlipBookComponent&>(Component), Context);
         return;
     }
 
-    if (Component.GetTypeInfo()->IsA(UStaticMeshComponent::StaticTypeInfo())) {
+    if (Component.GetClass()->IsChildOf(UStaticMeshComponent::StaticClass())) {
         DrawStaticMeshComponent(static_cast<UStaticMeshComponent&>(Component), Context);
         return;
     }
 
-    if (Component.GetTypeInfo()->IsA(USubUVComponent::StaticTypeInfo())) {
+    if (Component.GetClass()->IsChildOf(USubUVComponent::StaticClass())) {
         DrawSubUVComponent(static_cast<USubUVComponent&>(Component), Context);
         return;
     }
 
-    if (Component.GetTypeInfo()->IsA(UBillboardComponent::StaticTypeInfo())) {
+    if (Component.GetClass()->IsChildOf(UBillboardComponent::StaticClass())) {
         DrawBillboardComponent(static_cast<UBillboardComponent&>(Component), Context);
         return;
     }
 
-    if (Component.GetTypeInfo()->IsA(UBillboardTextComponent::StaticTypeInfo())) {
+    if (Component.GetClass()->IsChildOf(UBillboardTextComponent::StaticClass())) {
         DrawBillboardTextComponent(static_cast<UBillboardTextComponent&>(Component), Context);
         return;
     }
 
-    if (Component.GetTypeInfo()->IsA(UCollisionComponent::StaticTypeInfo())) {
+    if (Component.GetClass()->IsChildOf(UCollisionComponent::StaticClass())) {
         DrawCollisionComponent(static_cast<UCollisionComponent&>(Component), Context);
         return;
     }
 
-    if (Component.GetTypeInfo()->IsA(UMeshComponent::StaticTypeInfo())) {
+    if (Component.GetClass()->IsChildOf(UMeshComponent::StaticClass())) {
         DrawMeshComponent(static_cast<UMeshComponent&>(Component), Context);
         return;
     }
 
-    if (Component.GetTypeInfo()->IsA(UCameraComponent::StaticTypeInfo())) {
+    if (Component.GetClass()->IsChildOf(UCameraComponent::StaticClass())) {
         DrawCameraComponent(static_cast<UCameraComponent&>(Component), Context);
         return;
     }
 
-    if (Component.GetTypeInfo()->IsA(ULightComponentBase::StaticTypeInfo())) {
+    if (Component.GetClass()->IsChildOf(ULightComponentBase::StaticClass())) {
         DrawLightComponentBase(static_cast<ULightComponentBase&>(Component), Context);
         return;
     }
 
-    if (Component.GetTypeInfo()->IsA(UPrimitiveComponent::StaticTypeInfo())) {
+    if (Component.GetClass()->IsChildOf(UPrimitiveComponent::StaticClass())) {
         DrawPrimitiveComponent(static_cast<UPrimitiveComponent&>(Component), Context);
         return;
     }
 
-    if (Component.GetTypeInfo()->IsA(USceneComponent::StaticTypeInfo())) {
+    if (Component.GetClass()->IsChildOf(USceneComponent::StaticClass())) {
         DrawSceneComponent(static_cast<USceneComponent&>(Component), Context);
         return;
     }
 
-    if (Component.GetTypeInfo()->IsA(UActorComponent::StaticTypeInfo())) {
+    if (Component.GetClass()->IsChildOf(UActorComponent::StaticClass())) {
         DrawActorComponent(static_cast<UActorComponent&>(Component), Context);
         return;
     }
 }
 
 void FComponentDetails::DrawActorComponent(UActorComponent& Component, IPropertyEditorContext& Context) {
-    Context.DrawBool("Active", Component.IsActive(), [&Component](bool BActive) {
-        Component.SetActive(BActive);
-    });
 }
 
 void FComponentDetails::DrawBillboardComponent(UBillboardComponent& Component, IPropertyEditorContext& Context) {
     DrawPrimitiveComponent(Component, Context);
-    Context.DrawColor("Color", Component.GetColor(), [&Component](const FVector4& NewColor) {
-        Component.SetColor(NewColor);
-    });
-
-    Context.DrawAssetPicker("Texture", *UTexture::StaticTypeInfo(), Component.GetTextureHandle(), [&Component](FAssetHandle NewHandle) {
+    Context.DrawAssetPicker("Texture", *UTexture::StaticClass(), Component.GetTextureHandle(), [&Component](FAssetHandle NewHandle) {
         Component.SetTextureHandle(NewHandle);
     });
 
-    Context.DrawAssetPicker("Pipeline", *UPipeline::StaticTypeInfo(), Component.GetPipelineHandle(), [&Component](FAssetHandle NewHandle) {
+    Context.DrawAssetPicker("Pipeline", *UPipeline::StaticClass(), Component.GetPipelineHandle(), [&Component](FAssetHandle NewHandle) {
         Component.SetPipelineHandle(NewHandle);
     });
 }
@@ -130,35 +129,15 @@ void FComponentDetails::DrawBillboardComponent(UBillboardComponent& Component, I
 void FComponentDetails::DrawBillboardTextComponent(UBillboardTextComponent& Component, IPropertyEditorContext& Context) {
     DrawPrimitiveComponent(Component, Context);
 
-    if (!Context.BeginCategory("Billboard Text")) {
+    if (!Context.BeginCategory("Text Assets")) {
         return;
     }
 
-    Context.DrawText("Text", Component.GetText(), [&Component](const FString& NewText) {
-        Component.SetText(NewText);
-    });
-
-    Context.DrawColor("Color", Component.GetColor(), [&Component](const FVector4& NewColor) {
-        Component.SetColor(NewColor);
-    });
-
-    Context.DrawFloat("Character Height", Component.GetCharacterHeight(), 0.01f, 0.001f, 1000.0f, [&Component](float NewHeight) {
-        Component.SetCharacterHeight(NewHeight);
-    });
-
-    Context.DrawFloat("Letter Spacing", Component.GetLetterSpacing(), 0.01f, -100.0f, 100.0f, [&Component](float NewSpacing) {
-        Component.SetLetterSpacing(NewSpacing);
-    });
-
-    Context.DrawFloat("Line Spacing", Component.GetLineSpacing(), 0.01f, -100.0f, 100.0f, [&Component](float NewSpacing) {
-        Component.SetLineSpacing(NewSpacing);
-    });
-
-    Context.DrawAssetPicker("Font", *UFont::StaticTypeInfo(), Component.GetFontHandle(), [&Component](FAssetHandle NewHandle) {
+    Context.DrawAssetPicker("Font", *UFont::StaticClass(), Component.GetFontHandle(), [&Component](FAssetHandle NewHandle) {
         Component.SetFontHandle(NewHandle);
     });
 
-    Context.DrawAssetPicker("Pipeline", *UPipeline::StaticTypeInfo(), Component.GetPipelineHandle(), [&Component](FAssetHandle NewHandle) {
+    Context.DrawAssetPicker("Pipeline", *UPipeline::StaticClass(), Component.GetPipelineHandle(), [&Component](FAssetHandle NewHandle) {
         Component.SetPipelineHandle(NewHandle);
     });
 }
@@ -176,18 +155,18 @@ void FComponentDetails::DrawBoxColliderComponent(UBoxColliderComponent& Componen
     }
 
     UMeshComponent* CurrentMesh{Component.GetMeshComponent()};
-    const FString Preview{CurrentMesh != nullptr ? CurrentMesh->GetTypeInfo()->mTypeName.ToString() : FString{"None"}};
+    const FString Preview{CurrentMesh != nullptr ? CurrentMesh->GetClass()->GetClassName().ToString() : FString{"None"}};
     std::vector<FPropertyReferenceOption> Candidates{};
 
     for (const std::unique_ptr<UActorComponent>& Candidate : Actor->GetComponents()) {
         UActorComponent* CandidateComponent{Candidate.get()};
 
-        if (CandidateComponent == nullptr || !CandidateComponent->GetTypeInfo()->IsA<UMeshComponent>()) {
+        if (CandidateComponent == nullptr || !CandidateComponent->GetClass()->IsChildOf<UMeshComponent>()) {
             continue;
         }
 
         auto* Mesh{static_cast<UMeshComponent*>(CandidateComponent)};
-        Candidates.push_back({Mesh, Mesh->GetTypeInfo()->mTypeName.ToString(), Mesh == CurrentMesh, [&Component, Mesh] {
+        Candidates.push_back({Mesh, Mesh->GetClass()->GetClassName().ToString(), Mesh == CurrentMesh, [&Component, Mesh] {
             Component.SetMeshComponent(Mesh);
         }});
     }
@@ -202,66 +181,23 @@ void FComponentDetails::DrawBoxColliderComponent(UBoxColliderComponent& Componen
 
 void FComponentDetails::DrawCameraComponent(UCameraComponent& Component, IPropertyEditorContext& Context) {
     DrawSceneComponent(Component, Context);
-
-    Context.DrawFloat("FOV (Degrees)", DirectX::XMConvertToDegrees(Component.GetFOV()), 0.1f, 1.0f, 179.0f, [&Component](float FOVDegrees) {
-        Component.SetFOV(DirectX::XMConvertToRadians(FOVDegrees));
-    });
-
-    Context.DrawFloat("Aspect Ratio", Component.GetAspectRatio(), 0.01f, 0.01f, 100.0f, [&Component](float AspectRatio) {
-        Component.SetAspectRatio(AspectRatio);
-    });
-
-    Context.DrawFloat("Near Plane", Component.GetNearPlane(), 0.01f, 0.001f, Component.GetFarPlane() - 0.001f, [&Component](float NearPlane) {
-        Component.SetNearPlane(NearPlane);
-    });
-
-    Context.DrawFloat("Far Plane", Component.GetFarPlane(), 1.0f, Component.GetNearPlane() + 0.001f, 1000000.0f, [&Component](float FarPlane) {
-        Component.SetFarPlane(FarPlane);
-    });
 }
 
 void FComponentDetails::DrawCollisionComponent(UCollisionComponent& Component, IPropertyEditorContext& Context) {
     DrawPrimitiveComponent(Component, Context);
-    Context.DrawBool("Collision Enabled", Component.IsCollisionEnabled(), [&Component](bool BEnabled) {
-        Component.SetCollisionEnabled(BEnabled);
-    });
 }
 
 void FComponentDetails::DrawLightComponentBase(ULightComponentBase& Component, IPropertyEditorContext& Context) {
     DrawSceneComponent(Component, Context);
-
-    if (!Context.BeginCategory("Light")) {
-        return;
-    }
-
-    Context.DrawColor("Color", FVector4{Component.GetLightColor(), 1.0f}, [&Component](const FVector4& Color) {
-        Component.SetLightColor(FVector3{Color.mX, Color.mY, Color.mZ});
-    });
-
-    Context.DrawFloat("Intensity", Component.GetIntensity(), 0.1f, 0.0f, FLT_MAX, [&Component](float InIntensity) {
-        Component.SetIntensity(InIntensity);
-    });
-
-    Context.DrawBool("Visible", Component.IsVisible(), [&Component](bool BInVisible) {
-        Component.SetVisible(BInVisible);
-    });
 }
 
 void FComponentDetails::DrawLocalLightComponent(ULocalLightComponent& Component, IPropertyEditorContext& Context) {
     DrawLightComponentBase(Component, Context);
-
-    if (!Context.BeginCategory("Local Light")) {
-        return;
-    }
-
-    Context.DrawFloat("Attenuation Radius", Component.GetAttenuationRadius(), 1.0f, 0.0f, FLT_MAX, [&Component](float InAttenuationRadius) {
-        Component.SetAttenuationRadius(InAttenuationRadius);
-    });
 }
 
 void FComponentDetails::DrawMeshComponent(UMeshComponent& Component, IPropertyEditorContext& Context) {
     DrawPrimitiveComponent(Component, Context);
-    Context.DrawAssetPicker("Mesh", *UMesh::StaticTypeInfo(), Component.GetMeshHandle(), [&Component](FAssetHandle Handle) {
+    Context.DrawAssetPicker("Mesh", *UMesh::StaticClass(), Component.GetMeshHandle(), [&Component](FAssetHandle Handle) {
         Component.SetMeshHandle(Handle);
     });
 }
@@ -269,9 +205,6 @@ void FComponentDetails::DrawMeshComponent(UMeshComponent& Component, IPropertyEd
 void FComponentDetails::DrawPrimitiveComponent(UPrimitiveComponent& Component, IPropertyEditorContext& Context) {
     DrawSceneComponent(Component, Context);
 
-    Context.DrawBool("Visible", Component.IsVisible(), [&Component](bool BVisible) {
-        Component.SetVisible(BVisible);
-    });
 }
 
 void FComponentDetails::DrawSceneComponent(USceneComponent& Component, IPropertyEditorContext& Context) {
@@ -295,13 +228,13 @@ void FComponentDetails::DrawSceneComponent(USceneComponent& Component, IProperty
     }
 
     USceneComponent* CurrentParent{Component.GetParent()};
-    const FString Preview{CurrentParent != nullptr ? CurrentParent->GetTypeInfo()->mTypeName.ToString() : FString{"None"}};
+    const FString Preview{CurrentParent != nullptr ? CurrentParent->GetClass()->GetClassName().ToString() : FString{"None"}};
     std::vector<FPropertyReferenceOption> Candidates{};
 
     for (const std::unique_ptr<UActorComponent>& Candidate : Actor->GetComponents()) {
         UActorComponent* CandidateComponent{Candidate.get()};
 
-        if (CandidateComponent == nullptr || !CandidateComponent->GetTypeInfo()->IsA<USceneComponent>()) {
+        if (CandidateComponent == nullptr || !CandidateComponent->GetClass()->IsChildOf<USceneComponent>()) {
             continue;
         }
 
@@ -310,7 +243,7 @@ void FComponentDetails::DrawSceneComponent(USceneComponent& Component, IProperty
         if (Parent == &Component)
             continue;
 
-        Candidates.push_back({Parent, Parent->GetTypeInfo()->mTypeName.ToString(), Parent == CurrentParent, [&Component, Parent] {
+        Candidates.push_back({Parent, Parent->GetClass()->GetClassName().ToString(), Parent == CurrentParent, [&Component, Parent] {
             Component.AttachToComponent(Parent, EAttachmentTransformRule::KeepWorldTransform);
         }});
     }
@@ -328,31 +261,16 @@ void FComponentDetails::DrawSceneComponent(USceneComponent& Component, IProperty
 void FComponentDetails::DrawUVScrollComponent(UUVScrollComponent& Component, IPropertyEditorContext& Context) {
     DrawSubUVComponent(Component, Context);
 
-    Context.DrawVector2("ScrollSpeed", Component.GetScrollSpeed(), 0.01f, -5.0f, 5.0f, [&Component](FVector2 NewSpeed) {
-        Component.SetScrollSpeed(NewSpeed);
-    });
 }
 
 void FComponentDetails::DrawSpotLightComponent(USpotLightComponent& Component, IPropertyEditorContext& Context) {
     DrawLocalLightComponent(Component, Context);
-
-    if (!Context.BeginCategory("Spot Light")) {
-        return;
-    }
-
-    Context.DrawFloat("Inner Cone Angle", Component.GetInnerConeAngle(), 0.1f, 0.0f, Component.GetOuterConeAngle(), [&Component](float InInnerConeAngle) {
-        Component.SetInnerConeAngle(InInnerConeAngle);
-    });
-
-    Context.DrawFloat("Outer Cone Angle", Component.GetOuterConeAngle(), 0.1f, Component.GetInnerConeAngle(), 89.9f, [&Component](float InOuterConeAngle) {
-        Component.SetOuterConeAngle(InOuterConeAngle);
-    });
 }
 
 void FComponentDetails::DrawStaticMeshComponent(UStaticMeshComponent& Component, IPropertyEditorContext& Context) {
     DrawMeshComponent(Component, Context);
 
-    Context.DrawAssetPicker("Material", *UMaterial::StaticTypeInfo(), Component.GetMaterialHandle(), [&Component](FAssetHandle Handle) {
+    Context.DrawAssetPicker("Material", *UMaterial::StaticClass(), Component.GetMaterialHandle(), [&Component](FAssetHandle Handle) {
         Component.SetMaterialHandle(Handle);
 
         AActor* Owner{Component.GetOwner()};
@@ -386,7 +304,7 @@ void FComponentDetails::DrawStaticMeshComponent(UStaticMeshComponent& Component,
         }
     });
 
-    Context.DrawAssetPicker("Pipeline", *UPipeline::StaticTypeInfo(), Component.GetPipelineHandle(), [&Component](FAssetHandle Handle) {
+    Context.DrawAssetPicker("Pipeline", *UPipeline::StaticClass(), Component.GetPipelineHandle(), [&Component](FAssetHandle Handle) {
         Component.SetPipelineHandle(Handle);
     });
 }
@@ -400,7 +318,7 @@ void FComponentDetails::DrawSubUVComponent(USubUVComponent& Component, IProperty
 
     if (Owner != nullptr) {
         for (const std::unique_ptr<UActorComponent>& Candidate : Owner->GetComponents()) {
-            if (!Candidate->IsBeingDestroyed() && (Candidate->GetTypeInfo()->IsA(UStaticMeshComponent::StaticTypeInfo()) || Candidate->GetTypeInfo()->IsA(UBillboardComponent::StaticTypeInfo()))) {
+            if (!Candidate->IsBeingDestroyed() && (Candidate->GetClass()->IsChildOf(UStaticMeshComponent::StaticClass()) || Candidate->GetClass()->IsChildOf(UBillboardComponent::StaticClass()))) {
                 UPrimitiveComponent* Primitive{static_cast<UPrimitiveComponent*>(Candidate.get())};
 
                 Targets.push_back(FPropertyReferenceOption{Primitive, Primitive->GetName().ToString(), Primitive == Target, [&Component, Primitive] {
@@ -419,7 +337,7 @@ void FComponentDetails::DrawSubUVComponent(USubUVComponent& Component, IProperty
     const UMaterial* Material{nullptr};
     const IAssetRegistry* Registry{Owner != nullptr && Owner->GetWorld() != nullptr ? Owner->GetWorld()->GetAssetRegistry() : nullptr};
 
-    if (Target != nullptr && Registry != nullptr && Target->GetTypeInfo()->IsA(UStaticMeshComponent::StaticTypeInfo())) {
+    if (Target != nullptr && Registry != nullptr && Target->GetClass()->IsChildOf(UStaticMeshComponent::StaticClass())) {
         Material = Registry->ResolveAsset<UMaterial>(static_cast<UStaticMeshComponent*>(Target)->GetMaterialHandle());
     }
 
@@ -453,26 +371,31 @@ void FComponentDetails::DrawSubUVComponent(USubUVComponent& Component, IProperty
     }
 
     Context.DrawBool("Looping", Component.IsLooping(), [&Component](bool Looping) {
-        Component.SetLooping(Looping);
+        const std::array<FPropertyValue, 1> Arguments{FPropertyValue{Looping}};
+        FPropertyValue Result{};
+
+        Component.ProcessEvent(Component.FindFunction(FName{"SetLooping"}), Arguments, Result);
     });
 
     Context.DrawButton(Component.IsPlaying() ? "Pause" : "Play", [&Component] {
-        if (Component.IsPlaying()) {
-            Component.Pause();
-        } else {
-            Component.Play();
-        }
+        FPropertyValue Result{};
+
+        Component.ProcessEvent(Component.FindFunction(FName{Component.IsPlaying() ? "Pause" : "Play"}), {}, Result);
     });
 
     Context.DrawButton("Stop", [&Component] {
-        Component.Stop();
+        FPropertyValue Result{};
+
+        Component.ProcessEvent(Component.FindFunction(FName{"Stop"}), {}, Result);
     });
 
     Context.DrawButton("Restart", [&Component] {
-        Component.Restart();
+        FPropertyValue Result{};
+
+        Component.ProcessEvent(Component.FindFunction(FName{"Restart"}), {}, Result);
     });
 
-    if (Component.GetTypeInfo()->IsExactlyA(USubUVComponent::StaticTypeInfo())) {
+    if (Component.GetClass() == USubUVComponent::StaticClass()) {
         Context.DrawVector2("UV scale", Component.GetUVTransform().mScale, 0.01f, -100.0f, 100.0f, [&Component](const FVector2& Scale) {
             Component.SetUVTransform(FUVTransform{Scale, Component.GetUVTransform().mOffset});
         });
@@ -485,10 +408,6 @@ void FComponentDetails::DrawSubUVComponent(USubUVComponent& Component, IProperty
 
 void FComponentDetails::DrawFlipBookComponent(UFlipBookComponent& Component, IPropertyEditorContext& Context) {
     DrawSubUVComponent(Component, Context);
-
-    Context.DrawFloat("FrameRate", Component.GetFrameRate(), 1.0f, 0.0f, 240.0f, [&Component](float NewRate) {
-        Component.SetFrameRate(NewRate);
-    });
 
     Context.DrawVector2("SubImage", FVector2{static_cast<float>(Component.GetColumns()), static_cast<float>(Component.GetRows())}, 1.0f, 1.0f, 100.0f, [&Component](const FVector2& NewValue) {
         Component.SetSubImage(static_cast<Int32>(NewValue.mX), static_cast<Int32>(NewValue.mY), Component.GetTotalFrames(), Component.GetFrameRate(), Component.IsLooping());

@@ -20,7 +20,7 @@ bool FRenderAssetResources::Initialize(ID3D11Device* Device) {
 void FRenderAssetResources::Prune(const IAssetRegistry& Registry) {
     TSet<FGuid> LiveAssets{};
 
-    for (FAssetHandle Handle : Registry.GetAssetHandles(*UAsset::StaticTypeInfo())) {
+    for (FAssetHandle Handle : Registry.GetAssetHandles(*UAsset::StaticClass())) {
         const UAsset* Asset{Registry.ResolveAsset<UAsset>(Handle)};
 
         if (Asset != nullptr) {

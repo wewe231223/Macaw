@@ -1,16 +1,21 @@
 #pragma once
 
 #include "CoreUObject/UObject.h"
+#include "Engine/Subsystem/UEngineSubsystem.generated.h"
 
 class UEngine;
 
+UCLASS(Abstract)
 class UEngineSubsystem : public UObject {
 public:
-    UEngineSubsystem() = default;
+    GENERATED_TYPES(UEngineSubsystem)
+
+public:
+    UEngineSubsystem();
     ~UEngineSubsystem() override = default;
 
 public:
-    JG_DECLARE_ABSTRACT_DERIVED_TYPEINFO(UEngineSubsystem, UObject)
+    GENERATED_BODY(UEngineSubsystem)
 
     void Initialize(UEngine* Engine);
     void Deinitialize();

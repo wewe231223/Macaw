@@ -1,6 +1,30 @@
 #include "pch.h"
 #include "Editor/UndoSystem/FUndoMessages.h"
 
+const FMessageTypeInfo& FMessageUndoApply::StaticTypeInfo() noexcept {
+    static const FMessageTypeInfo Information{"FMessageUndoApply"};
+
+    return Information;
+}
+
+const FMessageTypeInfo& FMessageUndoObjectStateChanged::StaticTypeInfo() noexcept {
+    static const FMessageTypeInfo Information{"FMessageUndoObjectStateChanged"};
+
+    return Information;
+}
+
+const FMessageTypeInfo& FMessageUndoObjectSpawned::StaticTypeInfo() noexcept {
+    static const FMessageTypeInfo Information{"FMessageUndoObjectSpawned"};
+
+    return Information;
+}
+
+const FMessageTypeInfo& FMessageUndoObjectDestroyed::StaticTypeInfo() noexcept {
+    static const FMessageTypeInfo Information{"FMessageUndoObjectDestroyed"};
+
+    return Information;
+}
+
 FMessageUndoApply::FMessageUndoApply(const bool InputType) noexcept
 	: mBIsUndo(InputType) {
 }

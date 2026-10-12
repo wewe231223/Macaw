@@ -18,15 +18,19 @@ void ULocalLightComponent::SetAttenuationRadius(float InAttenuationRadius) {
 }
 
 void ULocalLightComponent::BuildLightShaderParameters(FLightShaderParameters& OutParameters) const {
-    ULightComponent::BuildLightShaderParameters(OutParameters);
+    Super::BuildLightShaderParameters(OutParameters);
     OutParameters.mAttenuationRadius = GetAttenuationRadius();
 }
 
 void ULocalLightComponent::Serialize(FArchive& Archive) {
-    ULightComponent::Serialize(Archive);
-    Archive.Serialize("AttenuationRadius", mAttenuationRadius);
+    Super::Serialize(Archive);
+    StaticClass()->SerializeDeclaredProperties(this, Archive);
 
     if (Archive.IsLoading()) {
         MarkRenderStateDirty();
     }
+}
+
+ULocalLightComponent::ULocalLightComponent() {
+    InitializeClass(StaticClass());
 }

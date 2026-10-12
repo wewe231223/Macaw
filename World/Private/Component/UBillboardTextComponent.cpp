@@ -133,7 +133,7 @@ void UBillboardTextComponent::RebuildTextGeometry() {
 }
 
 void UBillboardTextComponent::OnRegister() {
-    UPrimitiveComponent::OnRegister();
+    Super::OnRegister();
 
     UWorld* World{GetBelongingWorld()};
 
@@ -155,7 +155,7 @@ void UBillboardTextComponent::OnRegister() {
 }
 
 void UBillboardTextComponent::Serialize(FArchive& Archive) {
-    UPrimitiveComponent::Serialize(Archive);
+    Super::Serialize(Archive);
 
     const IAssetResolver* AssetRegistry{Archive.GetAssetResolver()};
 
@@ -196,11 +196,7 @@ void UBillboardTextComponent::Serialize(FArchive& Archive) {
         }
     }
 
-    Archive.Serialize("Text", mText);
-    Archive.Serialize("Color", mColor);
-    Archive.Serialize("CharacterHeight", mCharacterHeight);
-    Archive.Serialize("LetterSpacing", mLetterSpacing);
-    Archive.Serialize("LineSpacing", mLineSpacing);
+    StaticClass()->SerializeDeclaredProperties(this, Archive);
 
     if (Archive.IsLoading()) {
         RebuildTextGeometry();
@@ -243,4 +239,8 @@ void UBillboardTextComponent::SendRenderTransform() {
     if (GetBelongingWorld() != nullptr && IsRenderStateCreated() && TryGetTextWorld(Transform.mWorld)) {
         GetBelongingWorld()->GetRenderSubsystem().UpdatePrimitiveTransform(GetHandle(), Transform);
     }
+}
+
+UBillboardTextComponent::UBillboardTextComponent() {
+    InitializeClass(StaticClass());
 }

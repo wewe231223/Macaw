@@ -1,4 +1,5 @@
 #pragma once
+#include "CoreUObject/Reflection/UClass.h"
 #include "Core/Base/FAssetHandle.h"
 #include "Core/Base/FGuid.h"
 #include "CoreUObject/UObject.h"
@@ -11,7 +12,7 @@ public:
     virtual ~IAssetRegistry() = default;
 
 public:
-    virtual TArray<FAssetHandle> GetAssetHandles(const FTypeInfo& AssetType) const = 0;
+    virtual TArray<FAssetHandle> GetAssetHandles(const UClass& AssetType) const = 0;
 
     template <typename T>
         requires std::is_base_of_v<UObject, T>
@@ -29,7 +30,7 @@ template <typename T>
 const T* IAssetRegistry::ResolveAsset(FAssetHandle Handle) const {
     const UObject* Asset{ResolveAssetObject(Handle)};
 
-    if (Asset == nullptr || !Asset->GetTypeInfo()->IsA(T::StaticTypeInfo())) {
+    if (Asset == nullptr || !Asset->GetClass()->IsChildOf(T::StaticClass())) {
         return nullptr;
     }
 

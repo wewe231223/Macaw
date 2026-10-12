@@ -1,12 +1,18 @@
 #pragma once
 #include "World/Component/ULightComponent.h"
+#include "World/Component/UDirectionalLightComponent.generated.h"
 
+UCLASS()
 class UDirectionalLightComponent : public ULightComponent {
 public:
-    UDirectionalLightComponent() = default;
+    GENERATED_TYPES(UDirectionalLightComponent)
+
+public:
+    UDirectionalLightComponent();
     ~UDirectionalLightComponent() override = default;
 
-    JG_DECLARE_DERIVED_TYPEINFO(UDirectionalLightComponent, ULightComponent)
+public:
+    GENERATED_BODY(UDirectionalLightComponent)
 
     ELightType GetLightType() const override;
 };

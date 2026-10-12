@@ -1,6 +1,7 @@
 #pragma once
 #include "Asset/UAsset.h"
 #include <memory>
+#include "Asset/UTexture.generated.h"
 
 namespace DirectX {
     class ScratchImage;
@@ -24,7 +25,11 @@ enum class ETextureExtension : Uint8 {
     HDR
 };
 
+UCLASS()
 class UTexture : public UAsset {
+public:
+    GENERATED_TYPES(UTexture)
+
 public:
     UTexture();
     ~UTexture() override;
@@ -36,7 +41,7 @@ public:
     UTexture& operator=(UTexture&&) noexcept = delete;
 
 public:
-    JG_DECLARE_DERIVED_TYPEINFO(UTexture, UAsset);
+    GENERATED_BODY(UTexture)
 
     bool Initialize(const std::filesystem::path& ImagePath, bool MakeDDS, ETextureFormat TextureFormat = ETextureFormat::UNORM, bool BGenerateMipMap = true);
 

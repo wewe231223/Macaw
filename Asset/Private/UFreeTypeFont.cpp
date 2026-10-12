@@ -293,3 +293,7 @@ Uint32 UFreeTypeFont::GetAtlasHeight() const {
 Uint64 UFreeTypeFont::GetAtlasRevision() const {
     return mAtlasRevision;
 }
+
+UFreeTypeFont::UFreeTypeFont() {
+    InitializeClass(StaticClass());
+}

@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "CoreUObject/Reflection/UClass.h"
 #include "Editor/Panel/Outliner.h"
 #include "World/Component/UMeshComponent.h"
 #include "Editor/World/FWorldEditorContext.h"
@@ -74,7 +75,7 @@ void FOutlinerPanel::PopWindowStyle() {
 
 bool FOutlinerPanel::MatchesActor(const AActor& Actor) const {
     const FString Label{Actor.GetName().ToString()};
-    const FString TypeName{Actor.GetTypeInfo()->mTypeName.ToString()};
+    const FString TypeName{Actor.GetClass()->GetClassName().ToString()};
 
     if (mActorFilter.PassFilter(Label.c_str()) || mActorFilter.PassFilter(TypeName.data(), TypeName.data() + TypeName.size())) {
         return true;
@@ -191,7 +192,7 @@ void FOutlinerPanel::HandleDeleteShortcut() {
 
 void FOutlinerPanel::DrawActor(AActor& Actor) {
     const FString Label{Actor.GetName().ToString()};
-    const FString TypeName{Actor.GetTypeInfo()->mTypeName.ToString()};
+    const FString TypeName{Actor.GetClass()->GetClassName().ToString()};
     const bool BHasChildren{HasActorChildren(Actor)};
     const bool BExpanded{mExpandedActors.contains(&Actor)};
 

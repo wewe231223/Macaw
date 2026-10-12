@@ -7,11 +7,16 @@
 
 #include <optional>
 #include <span>
+#include "Asset/UMaterial.generated.h"
 
+UCLASS(Abstract)
 class UMaterial : public UAsset {
 public:
-    UMaterial() = default;
-    virtual ~UMaterial() = default;
+    GENERATED_TYPES(UMaterial)
+
+public:
+    UMaterial();
+    virtual ~UMaterial();
 
     UMaterial(const UMaterial&) = delete;
     UMaterial& operator=(const UMaterial&) = delete;
@@ -20,7 +25,7 @@ public:
     UMaterial& operator=(UMaterial&&) noexcept = default;
 
 public:
-    JG_DECLARE_ABSTRACT_DERIVED_TYPEINFO(UMaterial, UAsset);
+    GENERATED_BODY(UMaterial)
 
     virtual void BuildGPUData(FMaterialGPUSlot& OutSlot) const = 0;
     virtual void BuildGPUData(Uint32 GroupIndex, FMaterialGPUSlot& OutSlot) const;

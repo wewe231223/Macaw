@@ -3,17 +3,22 @@
 #include "Core/Asset/FAssetPath.h"
 #include <array>
 #include "Math/FMath.h"
+#include "World/Component/UBillboardComponent.generated.h"
 
 // 카메라를 향하는 Primitive의 공통 기반 클래스.
 // Billboard의 실제 방향 계산은 Shader에서 수행한다.
 // 이 클래스는 렌더링 여부와 Billboard 원점만 제공한다.
+UCLASS()
 class UBillboardComponent : public UPrimitiveComponent {
 public:
-    UBillboardComponent() = default;
+    GENERATED_TYPES(UBillboardComponent)
+
+public:
+    UBillboardComponent();
     ~UBillboardComponent() override = default;
 
 public:
-    JG_DECLARE_DERIVED_TYPEINFO(UBillboardComponent, UPrimitiveComponent);
+    GENERATED_BODY(UBillboardComponent)
 
     // Sprite
     void SetTextureHandle(FAssetHandle InTextureHandle);
@@ -55,8 +60,12 @@ private:
     FGuid mTextureAssetGuid{};
     FGuid mPipelineAssetGuid{};
 
+    UPROPERTY(Serialize, Name = "Size", Getter = GetSize, Category = "Billboard", DisplayName = "Size", Edit, Setter = SetSize, Min = 0.001f)
     FVector2 mSize{1.0f, 1.0f};
+    UPROPERTY(Serialize, Name = "UVMin", Getter = GetUVmin, Category = "Billboard", DisplayName = "UV Min", ReadOnly)
     FVector2 mUvMin{0.0f, 0.0f};
+    UPROPERTY(Serialize, Name = "UVMax", Getter = GetUVMax, Category = "Billboard", DisplayName = "UV Max", ReadOnly)
     FVector2 mUvMax{1.0f, 1.0f};
+    UPROPERTY(Serialize, Name = "Color", Getter = GetColor, Category = "Billboard", DisplayName = "Color", Edit, Setter = SetColor, Color)
     FVector4 mColor{1.0f, 1.0f, 1.0f, 1.0f};
 };

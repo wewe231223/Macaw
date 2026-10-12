@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "CoreUObject/Reflection/UClass.h"
 #include "Core/Debug/ILineDrawContext.h"
 #include <cfloat>
 #include "World/Component/UBoxColliderComponent.h"
@@ -10,6 +11,7 @@
 #include <array>
 
 UBoxColliderComponent::UBoxColliderComponent() {
+    InitializeClass(StaticClass());
     SetWantsInitializeComponent(true);
 }
 
@@ -79,7 +81,7 @@ bool UBoxColliderComponent::ResolveLoadedReferences() {
     if (mPendingMeshComponentGuid.IsValid()) {
         UObject* Object{UObjectSystem::Resolve(UObjectSystem::FindHandleByGuid(mPendingMeshComponentGuid))};
 
-        if (Object == nullptr || !Object->GetTypeInfo()->IsA(UMeshComponent::StaticTypeInfo())) {
+        if (Object == nullptr || !Object->GetClass()->IsChildOf(UMeshComponent::StaticClass())) {
             return false;
         }
 
@@ -93,12 +95,12 @@ bool UBoxColliderComponent::ResolveLoadedReferences() {
 }
 
 void UBoxColliderComponent::InitializeComponent() {
-    UCollisionComponent::InitializeComponent();
+    Super::InitializeComponent();
     BuildBoundsFromMesh();
 }
 
 void UBoxColliderComponent::Serialize(FArchive& Archive) {
-    UCollisionComponent::Serialize(Archive);
+    Super::Serialize(Archive);
 
     FString MeshComponentGuid{};
 

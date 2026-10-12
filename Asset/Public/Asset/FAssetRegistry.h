@@ -1,4 +1,5 @@
 #pragma once
+#include "CoreUObject/Reflection/UClass.h"
 #include "CoreUObject/UObject.h"
 #include "CoreUObject/Asset/IAssetRegistry.h"
 #include "Asset/IAssetRegistryMutator.h"
@@ -43,7 +44,7 @@ public:
     const FAssetPath* GetAssetPath(FAssetHandle Handle) const override;
     const FGuid* GetAssetGuid(FAssetHandle Handle) const override;
 
-    TArray<FAssetHandle> GetAssetHandles(const FTypeInfo& AssetType) const override;
+    TArray<FAssetHandle> GetAssetHandles(const UClass& AssetType) const override;
 
     void SetPipelineRenderMode(FAssetHandle Handle, ERenderMode Mode) override;
     const FFontGlyph* GetOrCreateFontGlyph(FAssetHandle Handle, char32_t CodePoint) override;
@@ -114,7 +115,7 @@ template <typename T>
 T* FAssetRegistry::ResolveAsset(FAssetHandle Handle) {
     FAssetEntry* Entry{FindEntry(Handle)};
 
-    if (Entry == nullptr || Entry->mAsset == nullptr || !Entry->mAsset->GetTypeInfo()->IsA(T::StaticTypeInfo())) {
+    if (Entry == nullptr || Entry->mAsset == nullptr || !Entry->mAsset->GetClass()->IsChildOf(T::StaticClass())) {
         return nullptr;
     }
 
@@ -126,7 +127,7 @@ template <typename T>
 const T* FAssetRegistry::ResolveAsset(FAssetHandle Handle) const {
     const FAssetEntry* Entry{FindEntry(Handle)};
 
-    if (Entry == nullptr || Entry->mAsset == nullptr || !Entry->mAsset->GetTypeInfo()->IsA(T::StaticTypeInfo())) {
+    if (Entry == nullptr || Entry->mAsset == nullptr || !Entry->mAsset->GetClass()->IsChildOf(T::StaticClass())) {
         return nullptr;
     }
 

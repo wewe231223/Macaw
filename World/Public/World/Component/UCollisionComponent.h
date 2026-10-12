@@ -1,13 +1,18 @@
 #pragma once
 #include "World/Component/UPrimitiveComponent.h"
-#include "CoreUObject/TypeInfo.h"
+#include "CoreUObject/Reflection/UClass.h"
 #include "Core/Archive/FArchive.h"
 #include "Core/Debug/ILineDrawContext.h"
 #include "World/Component/UMeshComponent.h"
+#include "World/Component/UCollisionComponent.generated.h"
 
+UCLASS(Abstract)
 class UCollisionComponent : public UPrimitiveComponent {
 public:
-    UCollisionComponent() = default;
+    GENERATED_TYPES(UCollisionComponent)
+
+public:
+    UCollisionComponent();
     ~UCollisionComponent() override = default;
 
 public:
@@ -20,7 +25,7 @@ public:
     bool Raycast(const FRay& Ray, float& OutDistance) const;
     virtual void DrawEditorBounds(ILineDrawContext* LineContext, ELineDepthMode DepthMode) const = 0;
 
-    JG_DECLARE_ABSTRACT_DERIVED_TYPEINFO(UCollisionComponent, UPrimitiveComponent)
+    GENERATED_BODY(UCollisionComponent)
 
     virtual bool RaycastBounds(const FRay& Ray, float& OutDistance) const = 0;
 
@@ -30,5 +35,6 @@ protected:
     void Serialize(FArchive& Archive) override;
 
 private:
+    UPROPERTY(Serialize, Name = "bCollisionEnabled", Getter = IsCollisionEnabled, Category = "Collision", DisplayName = "Collision Enabled", Edit, Setter = SetCollisionEnabled)
     bool mBCollisionEnabled{true};
 };

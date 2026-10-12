@@ -5,10 +5,12 @@
 #include "Editor/World/FWorldEditorContext.h"
 #include "Editor/UndoSystem/FUndoSystem.h"
 #include "Engine/Serialization/FSceneSerializer.h"
-#include "CoreUObject/TypeRegistry.h"
+#include "CoreUObject/Reflection/FReflectionRegistry.h"
 #include "Core/Console/Console.h"
 
-UEditorEngine::UEditorEngine() = default;
+UEditorEngine::UEditorEngine() {
+    InitializeClass(StaticClass());
+}
 
 UEditorEngine::~UEditorEngine() {
     Shutdown();
@@ -19,8 +21,8 @@ void UEditorEngine::Initialize() {
         return;
     }
 
-    UEngine::Initialize();
-    TypeRegistry::Register(UEditorEngine::StaticTypeInfo());
+    Super::Initialize();
+    ReflectionModules::RegisterEditor();
     mEditorWorldContext = &CreateWorldContext(EWorldType::Editor);
     mEditorContext = std::make_unique<FWorldEditorContext>();
 
@@ -38,7 +40,7 @@ void UEditorEngine::Shutdown() {
     mEditorContext.reset();
     mEditorWorldContext = nullptr;
     mScenePath.clear();
-    UEngine::Shutdown();
+    Super::Shutdown();
 }
 
 FWorldContext& UEditorEngine::GetEditorWorldContext() {

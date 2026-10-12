@@ -31,7 +31,7 @@ const UMesh* UMeshComponent::ResolveMesh() const {
 }
 
 void UMeshComponent::OnRegister() {
-    UPrimitiveComponent::OnRegister();
+    Super::OnRegister();
     BuildPickingBoxFromMesh();
 }
 
@@ -128,7 +128,7 @@ bool FMeshPickingProxy::Raycast(const FRay& Ray, float& OutDistance, float MaxDi
 }
 
 void UMeshComponent::Serialize(FArchive& Archive) {
-    UPrimitiveComponent::Serialize(Archive);
+    Super::Serialize(Archive);
 
     const IAssetResolver* Registry{Archive.GetAssetResolver()};
 
@@ -155,4 +155,8 @@ void UMeshComponent::Serialize(FArchive& Archive) {
         BuildPickingBoxFromMesh();
         OnRenderStateChanged();
     }
+}
+
+UMeshComponent::UMeshComponent() {
+    InitializeClass(StaticClass());
 }

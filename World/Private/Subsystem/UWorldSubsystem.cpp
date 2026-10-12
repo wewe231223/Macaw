@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "CoreUObject/Reflection/UClass.h"
 #include "World/Subsystem/UWorldSubsystem.h"
 #include "World/UWorld.h"
 
@@ -37,5 +38,9 @@ void UWorldSubsystem::OnDeinitialize() {
 }
 
 bool UWorldSubsystem::CanChangeOuter(const UObject* NewOuter) const {
-    return mWorld != nullptr ? NewOuter == mWorld : (NewOuter == nullptr || NewOuter->GetTypeInfo()->IsA(UWorld::StaticTypeInfo()));
+    return mWorld != nullptr ? NewOuter == mWorld : (NewOuter == nullptr || NewOuter->GetClass()->IsChildOf(UWorld::StaticClass()));
+}
+
+UWorldSubsystem::UWorldSubsystem() {
+    InitializeClass(StaticClass());
 }

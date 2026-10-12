@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "CoreUObject/Reflection/UClass.h"
 #include "World/Component/USceneComponent.h"
 #include "World/AActor.h"
 #include "World/UWorld.h"
@@ -85,7 +86,7 @@ FVector3 USceneComponent::GetRelativeScale3D() const {
 }
 
 void USceneComponent::Serialize(FArchive& Archive) {
-    UActorComponent::Serialize(Archive);
+    Super::Serialize(Archive);
 
     Archive.SerializeStruct("Transform", mTransform);
 
@@ -105,7 +106,7 @@ void USceneComponent::Serialize(FArchive& Archive) {
 
 void USceneComponent::OnUnregister() {
     MarkTransformDirty();
-    UActorComponent::OnUnregister();
+    Super::OnUnregister();
 }
 
 void USceneComponent::DestroyComponent(bool BPromoteChildren) {
@@ -146,7 +147,7 @@ void USceneComponent::DestroyComponent(bool BPromoteChildren) {
     }
 
     DetachFromComponent(EAttachmentTransformRule::KeepWorldTransform);
-    UActorComponent::DestroyComponent(BPromoteChildren);
+    Super::DestroyComponent(BPromoteChildren);
 }
 
 void USceneComponent::RemoveChild(USceneComponent* InChild) {
@@ -161,6 +162,10 @@ void USceneComponent::RemoveChild(USceneComponent* InChild) {
     if (InChild->mParent.Get() == this) {
         InChild->mParent.Reset();
         InChild->MarkTransformDirty();
+
+        if (UWorld* World{InChild->GetTypedOuter<UWorld>()}) {
+            World->MarkStructureDirty();
+        }
     }
 }
 
@@ -169,7 +174,7 @@ bool USceneComponent::AttachToComponent(USceneComponent* ParentComponent, EAttac
         return false;
     }
 
-    const UWorld* World{GetTypedOuter<UWorld>()};
+    UWorld* World{GetTypedOuter<UWorld>()};
     const UWorld* ParentWorld{ParentComponent != nullptr ? ParentComponent->GetTypedOuter<UWorld>() : nullptr};
 
     if (World != nullptr && ParentWorld != nullptr && World != ParentWorld) {
@@ -182,10 +187,22 @@ bool USceneComponent::AttachToComponent(USceneComponent* ParentComponent, EAttac
         }
     }
 
-    const FTransform PreviousWorldTransform{GetComponentTransform()};
+    FTransform RelativeTransform{mTransform};
 
-    if (USceneComponent * PreviousParent{mParent.Get()}) {
-        PreviousParent->RemoveChild(this);
+    if (Rule == EAttachmentTransformRule::KeepWorldTransform) {
+        const FTransform WorldTransform{GetComponentTransform()};
+
+        if (ParentComponent == nullptr) {
+            RelativeTransform = WorldTransform;
+        } else if (!WorldTransform.MakeRelativeTo(ParentComponent->GetComponentTransform(), RelativeTransform)) {
+            return false;
+        }
+    }
+
+    if (USceneComponent* PreviousParent{mParent.Get()}) {
+        std::erase_if(PreviousParent->mChildren, [this](const TObjectRef<USceneComponent>& ChildRef) {
+            return ChildRef.Get() == this;
+        });
     }
 
     mParent.Set(ParentComponent);
@@ -194,10 +211,14 @@ bool USceneComponent::AttachToComponent(USceneComponent* ParentComponent, EAttac
         ParentComponent->mChildren.emplace_back(this);
     }
 
+    if (Rule == EAttachmentTransformRule::KeepWorldTransform) {
+        mTransform = RelativeTransform;
+    }
+
     MarkTransformDirty();
 
-    if (Rule == EAttachmentTransformRule::KeepWorldTransform) {
-        return SetWorldTransform(PreviousWorldTransform);
+    if (World != nullptr) {
+        World->MarkStructureDirty();
     }
 
     return true;
@@ -335,7 +356,7 @@ bool USceneComponent::ResolveLoadedReferences() {
 
     UObject* ResolvedObject{UObjectSystem::Resolve(UObjectSystem::FindHandleByGuid(mPendingParentGuid))};
 
-    if (ResolvedObject == nullptr || !ResolvedObject->GetTypeInfo()->IsA(USceneComponent::StaticTypeInfo())) {
+    if (ResolvedObject == nullptr || !ResolvedObject->GetClass()->IsChildOf(USceneComponent::StaticClass())) {
         return false;
     }
 
@@ -367,4 +388,8 @@ void USceneComponent::NotifyTransformUpdate() {
             Child->MarkTransformDirty();
         }
     }
+}
+
+USceneComponent::USceneComponent() {
+    InitializeClass(StaticClass());
 }

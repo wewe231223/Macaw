@@ -1,10 +1,11 @@
 #include "pch.h"
+#include "CoreUObject/Reflection/UClass.h"
 #include "Editor/Panel/FControlPanel.h"
 #include "Editor/FileDialog.h"
 
 #include <windows.h>
 #include <filesystem>
-#include "CoreUObject/TypeRegistry.h"
+#include "CoreUObject/Reflection/FReflectionRegistry.h"
 #include "World/AActor.h"
 #include "World/Component/UActorComponent.h"
 #include "World/Component/UStaticMeshComponent.h"
@@ -17,11 +18,11 @@ void FControlPanel::DrawPanel() {
     const char* PrimitiveMeshTypes[]{"/Game/System/Mesh/Cube.bin", "/Game/System/Mesh/Sphere.bin", "/Game/System/Mesh/Plane.bin", "/Game/System/Mesh/Cylinder.bin", "/Game/System/Mesh/Capsule.bin", "/Game/System/Mesh/Cone.bin", "/Game/System/Mesh/Torus.bin", "/Game/System/Mesh/Pyramid.bin"};
 
     if (ImGui::BeginMenu("Create")) {
-        std::vector<const FTypeInfo*> SpawnableComponentTypes{};
+        std::vector<const UClass*> SpawnableComponentTypes{};
 
-        for (const FTypeInfo* Type : TypeRegistry::GetRegisteredTypes()) {
-            if (Type != nullptr && Type->mCreator != nullptr &&
-                Type->IsA(UActorComponent::StaticTypeInfo())) {
+        for (const UClass* Type : FReflectionRegistry::GetClasses()) {
+            if (Type != nullptr && Type->CanCreateInstance() &&
+                Type->IsChildOf(UActorComponent::StaticClass())) {
                 SpawnableComponentTypes.push_back(Type);
             }
         }
@@ -32,8 +33,8 @@ void FControlPanel::DrawPanel() {
             ImGui::TextDisabled("No spawnable component types are registered.");
         } else {
             if (mSelectedComponentIndex < 0) {
-                const auto StaticMeshType{std::ranges::find_if(SpawnableComponentTypes, [](const FTypeInfo* Type) {
-                    return Type->IsA(UStaticMeshComponent::StaticTypeInfo());
+                const auto StaticMeshType{std::ranges::find_if(SpawnableComponentTypes, [](const UClass* Type) {
+                    return Type->IsChildOf(UStaticMeshComponent::StaticClass());
                 })};
 
                 mSelectedComponentIndex = StaticMeshType != SpawnableComponentTypes.end() ? static_cast<int>(std::distance(SpawnableComponentTypes.begin(), StaticMeshType)) : 0;
@@ -41,15 +42,15 @@ void FControlPanel::DrawPanel() {
 
             mSelectedComponentIndex = std::clamp(mSelectedComponentIndex, 0, static_cast<int>(SpawnableComponentTypes.size()) - 1);
 
-            const FTypeInfo* SelectedComponentType{SpawnableComponentTypes[mSelectedComponentIndex]};
+            const UClass* SelectedComponentType{SpawnableComponentTypes[mSelectedComponentIndex]};
 
             ImGui::SetNextItemWidth(220.0f);
 
-            if (ImGui::BeginCombo("Component", SelectedComponentType->mTypeName.ToString().c_str())) {
+            if (ImGui::BeginCombo("Component", SelectedComponentType->GetClassName().ToString().c_str())) {
                 for (int Index{0}; Index < static_cast<int>(SpawnableComponentTypes.size()); ++Index) {
                     const bool BIsSelected{Index == mSelectedComponentIndex};
 
-                    if (ImGui::Selectable(SpawnableComponentTypes[Index]->mTypeName.ToString().c_str(), BIsSelected)) {
+                    if (ImGui::Selectable(SpawnableComponentTypes[Index]->GetClassName().ToString().c_str(), BIsSelected)) {
                         mSelectedComponentIndex = Index;
                         SelectedComponentType = SpawnableComponentTypes[Index];
                     }
@@ -62,7 +63,7 @@ void FControlPanel::DrawPanel() {
                 ImGui::EndCombo();
             }
 
-            const bool BIsStaticMesh{SelectedComponentType->IsA(UStaticMeshComponent::StaticTypeInfo())};
+            const bool BIsStaticMesh{SelectedComponentType->IsChildOf(UStaticMeshComponent::StaticClass())};
 
             if (BIsStaticMesh) {
                 ImGui::SetNextItemWidth(180.0f);
@@ -76,7 +77,7 @@ void FControlPanel::DrawPanel() {
             }
 
             if (ImGui::Button("Spawn Object(s)")) {
-                mEditorToWorldSender.TryEmplace<FMessageSpawnComponent>(SelectedComponentType->mTypeName, FString{BIsStaticMesh ? PrimitiveMeshTypes[mSelectedMeshIndex] : ""}, static_cast<Uint32>(mSpawnCountToRequest));
+                mEditorToWorldSender.TryEmplace<FMessageSpawnComponent>(SelectedComponentType->GetClassName(), FString{BIsStaticMesh ? PrimitiveMeshTypes[mSelectedMeshIndex] : ""}, static_cast<Uint32>(mSpawnCountToRequest));
             }
         }
 
@@ -140,7 +141,7 @@ void FControlPanel::DrawPanel() {
                     continue;
                 }
 
-                FComponentTypeState& TypeState{ComponentsByType[Component.GetTypeInfo()->mTypeName]};
+                FComponentTypeState& TypeState{ComponentsByType[Component.GetClass()->GetClassName()]};
 
                 TypeState.mComponents.push_back(&Component);
                 TypeState.mActiveCount += Component.IsActive() ? 1 : 0;

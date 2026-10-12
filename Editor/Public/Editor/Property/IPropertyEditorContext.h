@@ -5,7 +5,7 @@
 
 #include <functional>
 #include <vector>
-#include "CoreUObject/TypeInfo.h"
+#include "CoreUObject/Reflection/UClass.h"
 
 struct FPropertyReferenceOption {
     const void* mId{nullptr};
@@ -32,5 +32,5 @@ public:
     virtual void DrawTransform(const char* Label, const FTransform& Value, const std::function<void(const FTransform&)>& Setter) = 0;
 
     virtual void DrawReferencePicker(const char* Label, const char* Preview, bool BNoneSelected, const std::function<void()>& ClearSelection, const std::vector<FPropertyReferenceOption>& Options) const = 0;
-    virtual void DrawAssetPicker(const char* Label, const FTypeInfo& AssetType, FAssetHandle CurrentHandle, const std::function<void(FAssetHandle)>& Setter) const = 0;
+    virtual void DrawAssetPicker(const char* Label, const UClass& AssetType, FAssetHandle CurrentHandle, const std::function<void(FAssetHandle)>& Setter) const = 0;
 };

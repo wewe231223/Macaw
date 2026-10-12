@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "CoreUObject/Reflection/UClass.h"
 #include "World/Subsystem/UOverlaySubsystem.h"
 #include "World/Component/UStaticMeshComponent.h"
 #include "World/UWorld.h"
@@ -11,7 +12,7 @@ void UOverlaySubsystem::BuildDrawData(FOverlayRenderData& Overlay, FObjectHandle
     }
 
     for (const UActorComponent* Registered : GetWorld()->GetRenderSubsystem().GetRegisteredComponents()) {
-        const UStaticMeshComponent* Component{Registered != nullptr && Registered->GetTypeInfo()->IsA(UStaticMeshComponent::StaticTypeInfo()) ? static_cast<const UStaticMeshComponent*>(Registered) : nullptr};
+        const UStaticMeshComponent* Component{Registered != nullptr && Registered->GetClass()->IsChildOf(UStaticMeshComponent::StaticClass()) ? static_cast<const UStaticMeshComponent*>(Registered) : nullptr};
 
         if (Component == nullptr || !Component->IsRegistered() || !Component->IsVisible() || Component->GetOwner() == nullptr || Component->GetOwner()->GetHandle() != SelectedActor) {
             continue;
@@ -26,4 +27,8 @@ void UOverlaySubsystem::BuildDrawData(FOverlayRenderData& Overlay, FObjectHandle
             Overlay.mSelectionMeshes.push_back(FOverlayMeshDrawData{Transform.mWorld, *Mesh, Transform.mWorldSphereBounds});
         }
     }
+}
+
+UOverlaySubsystem::UOverlaySubsystem() {
+    InitializeClass(StaticClass());
 }

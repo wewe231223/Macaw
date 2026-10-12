@@ -6,7 +6,8 @@
 #include <vector>
 #include "RenderCore/Pipeline/FPipelineDescription.h"
 #include "Asset/UAsset.h"
-#include "CoreUObject/TypeInfo.h"
+#include "CoreUObject/Reflection/UClass.h"
+#include "Asset/Pipeline/UPipeline.generated.h"
 
 enum class ERenderMode : std::size_t {
     Lit,
@@ -16,10 +17,14 @@ enum class ERenderMode : std::size_t {
     Max
 };
 
+UCLASS()
 class UPipeline : public UAsset {
 public:
-    UPipeline() = default;
-    ~UPipeline() = default;
+    GENERATED_TYPES(UPipeline)
+
+public:
+    UPipeline();
+    ~UPipeline();
 
     UPipeline(const UPipeline&) = delete;
     UPipeline& operator=(const UPipeline&) = delete;
@@ -28,7 +33,7 @@ public:
     UPipeline& operator=(UPipeline&&) noexcept = default;
 
 public:
-    JG_DECLARE_DERIVED_TYPEINFO(UPipeline, UAsset);
+    GENERATED_BODY(UPipeline)
 
     bool Initialize(const std::filesystem::path& PipelinePath);
 
@@ -41,7 +46,6 @@ public:
 
     const FPipelineDescription* GetDescription(ERenderMode Mode) const;
     Uint64 GetRenderRevision() const;
-
 
 private:
     bool InitializeFamily(const std::filesystem::path& FamilyDirectory);

@@ -7,6 +7,7 @@
 #include <unordered_map>
 #include <unordered_set>
 #include "World/Component/FMeshPickingProxy.h"
+#include "World/Subsystem/UPickingSubsystem.generated.h"
 
 class FWorldRaycastAccelerationStructure {
 private:
@@ -36,12 +37,12 @@ private:
         inline MinMaxBox() = default;
 
         inline MinMaxBox(const DirectX::BoundingBox& Box)
-            : minX(Box.Center.x - Box.Extents.x),
-              minY(Box.Center.y - Box.Extents.y),
-              minZ(Box.Center.z - Box.Extents.z),
-              maxX(Box.Center.x + Box.Extents.x),
-              maxY(Box.Center.y + Box.Extents.y),
-              maxZ(Box.Center.z + Box.Extents.z) {
+	: minX(Box.Center.x - Box.Extents.x),
+	  minY(Box.Center.y - Box.Extents.y),
+	  minZ(Box.Center.z - Box.Extents.z),
+	  maxX(Box.Center.x + Box.Extents.x),
+	  maxY(Box.Center.y + Box.Extents.y),
+	  maxZ(Box.Center.z + Box.Extents.z) {
         }
 
         inline void Expand(const DirectX::BoundingBox& Box) {
@@ -139,12 +140,17 @@ private:
 };
 
 /// <summary>Provides editor picking over registered primitive component volumes.</summary>
+UCLASS()
 class UPickingSubsystem : public UWorldSubsystem {
 public:
-    UPickingSubsystem() = default;
+    GENERATED_TYPES(UPickingSubsystem)
+
+public:
+    UPickingSubsystem();
     ~UPickingSubsystem() override = default;
 
-    JG_DECLARE_DERIVED_TYPEINFO(UPickingSubsystem, UWorldSubsystem)
+public:
+    GENERATED_BODY(UPickingSubsystem)
 
     void RegisterComponent(UPrimitiveComponent* Component);
     void UnregisterComponent(UPrimitiveComponent* Component);

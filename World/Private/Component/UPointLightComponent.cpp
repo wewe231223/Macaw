@@ -4,3 +4,7 @@
 ELightType UPointLightComponent::GetLightType() const {
     return ELightType::Point;
 }
+
+UPointLightComponent::UPointLightComponent() {
+    InitializeClass(StaticClass());
+}

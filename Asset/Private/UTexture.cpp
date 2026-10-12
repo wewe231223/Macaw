@@ -161,10 +161,11 @@ bool UTexture::InitializeInternal(const std::filesystem::path& ImagePath, ETextu
 }
 
 void UTexture::Serialize(FArchive& Ar) {
-    UAsset::Serialize(Ar);
+    Super::Serialize(Ar);
 }
 
 UTexture::UTexture() {
+    InitializeClass(StaticClass());
 }
 
 UTexture::~UTexture() {

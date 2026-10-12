@@ -328,7 +328,7 @@ bool USurfaceOpaque::ModifyGroup(Uint32 GroupIndex, const std::function<void(FMa
 }
 
 void USurfaceOpaque::Serialize(FArchive& Ar) {
-    UMaterial::Serialize(Ar);
+    Super::Serialize(Ar);
 }
 
 Uint32 USurfaceOpaque::GetGPUDataCount() const {
@@ -344,3 +344,9 @@ EMaterialBlendMode USurfaceOpaque::GetBlendMode(Uint32 GroupIndex) const {
 
     return Group.mDiffuse.mW < 1.0f ? EMaterialBlendMode::Translucent : EMaterialBlendMode::Opaque;
 }
+
+USurfaceOpaque::USurfaceOpaque() {
+    InitializeClass(StaticClass());
+}
+
+USurfaceOpaque::~USurfaceOpaque() = default;

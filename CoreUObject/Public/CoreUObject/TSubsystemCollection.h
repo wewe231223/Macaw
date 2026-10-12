@@ -1,4 +1,6 @@
 #pragma once
+#include "CoreUObject/Reflection/NewObject.h"
+#include "CoreUObject/Reflection/Cast.h"
 #include "Core/Base/ErrorHandler.h"
 
 #include <memory>
@@ -79,7 +81,7 @@ T& TSubsystemCollection<TSubsystem, TOwner>::Add() {
         return *Existing;
     }
 
-    std::unique_ptr<T> Subsystem{std::make_unique<T>()};
+    std::unique_ptr<T> Subsystem{NewObject<T>()};
     T* Result{Subsystem.get()};
 
     Result->SetOuter(mOwner);
@@ -95,7 +97,7 @@ template <typename T>
     requires std::is_base_of_v<TSubsystem, T>
 T* TSubsystemCollection<TSubsystem, TOwner>::Get() const {
     for (const std::unique_ptr<TSubsystem>& Subsystem : mSubsystems) {
-        if (T * Result{dynamic_cast<T*>(Subsystem.get())}) {
+        if (T * Result{Cast<T>(Subsystem.get())}) {
             return Result;
         }
     }

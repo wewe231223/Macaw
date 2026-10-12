@@ -4,7 +4,7 @@
 #include "ImGui/imgui.h"
 #include "CoreUObject/Asset/IAssetRegistry.h"
 #include "Asset/UAsset.h"
-#include "CoreUObject/TypeInfo.h"
+#include "CoreUObject/Reflection/UClass.h"
 #include "Asset/UTexture.h"
 #include "Asset/UMesh.h"
 #include "Asset/UMaterial.h"
@@ -20,14 +20,14 @@ namespace {
     constexpr char MaterialAssetPayloadType[]{"MACAW_MATERIAL_ASSET"};
     constexpr char TextureAssetPayloadType[]{"MACAW_TEXTURE_ASSET"};
 
-    void ApplyAssetBrowserDrop(const IAssetRegistry* Registry, const FTypeInfo& AssetType, FAssetHandle CurrentHandle, const std::function<void(FAssetHandle)>& Setter) {
+    void ApplyAssetBrowserDrop(const IAssetRegistry* Registry, const UClass& AssetType, FAssetHandle CurrentHandle, const std::function<void(FAssetHandle)>& Setter) {
         const char* PayloadType{};
 
-        if (AssetType.IsA(UMesh::StaticTypeInfo())) {
+        if (AssetType.IsChildOf(UMesh::StaticClass())) {
             PayloadType = StaticMeshAssetPayloadType;
-        } else if (AssetType.IsA(UMaterial::StaticTypeInfo())) {
+        } else if (AssetType.IsChildOf(UMaterial::StaticClass())) {
             PayloadType = MaterialAssetPayloadType;
-        } else if (AssetType.IsA(UTexture::StaticTypeInfo())) {
+        } else if (AssetType.IsChildOf(UTexture::StaticClass())) {
             PayloadType = TextureAssetPayloadType;
         }
 
@@ -44,7 +44,7 @@ namespace {
 
             const UAsset* DroppedAsset{Registry->ResolveAsset<UAsset>(DroppedHandle)};
 
-            if (DroppedAsset != nullptr && DroppedAsset->GetTypeInfo()->IsA(&AssetType) && DroppedHandle != CurrentHandle) {
+            if (DroppedAsset != nullptr && DroppedAsset->GetClass()->IsChildOf(&AssetType) && DroppedHandle != CurrentHandle) {
                 Setter(DroppedHandle);
             }
         }
@@ -160,7 +160,7 @@ void FPropertyEditorContext::DrawReferencePicker(const char* Label, const char* 
     ImGui::EndCombo();
 }
 
-void FPropertyEditorContext::DrawAssetPicker(const char* Label, const FTypeInfo& AssetType, FAssetHandle CurrentHandle, const std::function<void(FAssetHandle)>& Setter) const {
+void FPropertyEditorContext::DrawAssetPicker(const char* Label, const UClass& AssetType, FAssetHandle CurrentHandle, const std::function<void(FAssetHandle)>& Setter) const {
     if (mAssetRegistry == nullptr) {
         ImGui::TextDisabled("%s: Asset registry unavailable", Label);
         return;
@@ -169,7 +169,7 @@ void FPropertyEditorContext::DrawAssetPicker(const char* Label, const FTypeInfo&
     const IAssetRegistry* Registry{mAssetRegistry};
     const UAsset* Current{Registry->ResolveAsset<UAsset>(CurrentHandle)};
 
-    if (Current != nullptr && !Current->GetTypeInfo()->IsA(&AssetType)) {
+    if (Current != nullptr && !Current->GetClass()->IsChildOf(&AssetType)) {
         Current = nullptr;
     }
 
@@ -253,8 +253,8 @@ FTransform FPropertyEditorContext::BuildDesiredTransform() const {
     return Transform;
 }
 
-bool FPropertyEditorContext::SupportsAssetThumbnail(const FTypeInfo& AssetType) const {
-    return UMesh::StaticTypeInfo()->IsA(&AssetType) || UMaterial::StaticTypeInfo()->IsA(&AssetType) || UTexture::StaticTypeInfo()->IsA(&AssetType);
+bool FPropertyEditorContext::SupportsAssetThumbnail(const UClass& AssetType) const {
+    return UMesh::StaticClass()->IsChildOf(&AssetType) || UMaterial::StaticClass()->IsChildOf(&AssetType) || UTexture::StaticClass()->IsChildOf(&AssetType);
 }
 
 ID3D11ShaderResourceView* FPropertyEditorContext::GetAssetThumbnail(const IAssetRegistry* Registry, FAssetHandle AssetHandle) const {
@@ -268,7 +268,7 @@ ID3D11ShaderResourceView* FPropertyEditorContext::GetAssetThumbnail(const IAsset
         return nullptr;
     }
 
-    if (Asset->GetTypeInfo()->IsA(UMesh::StaticTypeInfo()) || Asset->GetTypeInfo()->IsA(UMaterial::StaticTypeInfo()) || Asset->GetTypeInfo()->IsA(UTexture::StaticTypeInfo())) {
+    if (Asset->GetClass()->IsChildOf(UMesh::StaticClass()) || Asset->GetClass()->IsChildOf(UMaterial::StaticClass()) || Asset->GetClass()->IsChildOf(UTexture::StaticClass())) {
         return mThumbnailRenderer->GetThumbnail(AssetHandle);
     }
 

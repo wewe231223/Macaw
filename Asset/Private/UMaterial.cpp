@@ -26,7 +26,7 @@ std::optional<Uint32> UMaterial::FindGroupIndex(FName Name) const {
 }
 
 void UMaterial::Serialize(FArchive& Ar) {
-    UAsset::Serialize(Ar);
+    Super::Serialize(Ar);
 }
 
 FName UMaterial::GetGroupName(Uint32 GroupIndex) const {
@@ -48,3 +48,9 @@ void UMaterial::MarkGPUDataDirty() {
 Uint64 UMaterial::GetRenderRevision() const {
     return mRenderRevision;
 }
+
+UMaterial::UMaterial() {
+    InitializeClass(StaticClass());
+}
+
+UMaterial::~UMaterial() = default;

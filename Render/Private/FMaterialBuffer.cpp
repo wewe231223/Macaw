@@ -60,7 +60,7 @@ bool FMaterialBuffer::Synchronize(const IAssetRegistry& Registry, ID3D11DeviceCo
 
     bool Complete{true};
 
-    for (FAssetHandle Handle : Registry.GetAssetHandles(*UMaterial::StaticTypeInfo())) {
+    for (FAssetHandle Handle : Registry.GetAssetHandles(*UMaterial::StaticClass())) {
         const UMaterial* Material{Registry.ResolveAsset<UMaterial>(Handle)};
 
         if (Material == nullptr) {

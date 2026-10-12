@@ -26,7 +26,7 @@ FAssetHandle UStaticMeshComponent::GetPipelineHandle() const {
 void UStaticMeshComponent::SetMeshHandle(FAssetHandle InHandle) {
     const FAssetHandle PreviousHandle{GetMeshHandle()};
 
-    UMeshComponent::SetMeshHandle(InHandle);
+    Super::SetMeshHandle(InHandle);
 
     if (PreviousHandle != GetMeshHandle()) {
         OnRenderStateChanged();
@@ -74,7 +74,7 @@ void UStaticMeshComponent::SetPipelineHandle(FAssetHandle InHandle) {
 }
 
 void UStaticMeshComponent::OnRegister() {
-    UMeshComponent::OnRegister();
+    Super::OnRegister();
 
     EnsureDefaultRenderAssets();
 
@@ -116,7 +116,7 @@ std::unique_ptr<FPrimitiveSceneProxy> UStaticMeshComponent::CreateSceneProxy() c
 }
 
 void UStaticMeshComponent::Serialize(FArchive& Archive) {
-    UMeshComponent::Serialize(Archive);
+    Super::Serialize(Archive);
 
     const IAssetResolver* Registry{Archive.GetAssetResolver()};
 
@@ -159,4 +159,8 @@ void UStaticMeshComponent::Serialize(FArchive& Archive) {
         BuildPickingBoxFromMesh();
         OnRenderStateChanged();
     }
+}
+
+UStaticMeshComponent::UStaticMeshComponent() {
+    InitializeClass(StaticClass());
 }

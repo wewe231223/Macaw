@@ -36,7 +36,7 @@ local function AddPublicIncludes(ModuleName, Visited)
         return
     end
     Visited[ModuleName] = true
-    includedirs { ModuleName .. "/Public" }
+    includedirs { ModuleName .. "/Public", "Intermediate/Reflection/%{cfg.buildcfg}/%{cfg.platform}/" .. ModuleName }
     for _, Dependency in ipairs(Modules[ModuleName].Public) do
         AddPublicIncludes(Dependency, Visited)
     end
@@ -68,6 +68,9 @@ local function ConfigureModule(ModuleName)
     end
     links(Modules[ModuleName].Public)
     links(Modules[ModuleName].Private)
+    if ModuleName == "CoreUObject" or ModuleName == "RenderCore" or ModuleName == "Asset" or ModuleName == "World" or ModuleName == "Engine" or ModuleName == "Editor" then
+        dependson { "MacawHeaderTool" }
+    end
     if ModuleName == "ImGui" then
         includedirs { "ImGui/Public/ImGui" }
         enablepch "Off"
@@ -85,6 +88,10 @@ local function ConfigureSystemLinks()
         libdirs { "Externals/bin/release" }
     filter {}
 end
+
+ConfigureProject("MacawHeaderTool", "ConsoleApp")
+    files { "Tools/MacawHeaderTool/**.cpp" }
+    enablepch "Off"
 
 for _, ModuleName in ipairs({ "Core", "CoreUObject", "RenderCore", "Serialization", "ImGui", "Asset", "World", "Render", "Editor", "Platform", "Engine" }) do
     ConfigureModule(ModuleName)

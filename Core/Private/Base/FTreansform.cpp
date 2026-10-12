@@ -118,7 +118,7 @@ bool FTransform::MakeRelativeTo(const FTransform& Parent, FTransform& OutRelativ
         RelativeScale = {mScale.mX / Parent.mScale.mX, mScale.mY / Parent.mScale.mY, mScale.mZ / Parent.mScale.mZ};
     }
 
-    OutRelative = {RelativePosition, mBAbsoluteRotation ? mRotation : FQuat::Concatenate(mRotation, Parent.mRotation.Inverse()), RelativeScale};
+    OutRelative = {RelativePosition, mBAbsoluteRotation ? mRotation : FQuat::Concatenate(Parent.mRotation.Inverse(), mRotation), RelativeScale};
     OutRelative.SetAbsoluteLocation(mBAbsoluteLocation);
     OutRelative.SetAbsoluteRotation(mBAbsoluteRotation);
     OutRelative.SetAbsoluteScale(mBAbsoluteScale);

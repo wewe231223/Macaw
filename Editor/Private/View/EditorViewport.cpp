@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "CoreUObject/Reflection/UClass.h"
 #include "Editor/View/EditorViewport.h"
 
 #include <algorithm>
@@ -197,11 +198,11 @@ void EditorViewport::BuildBounds(FLineRenderData& Lines, const FViewMatrices& Ca
     if (SelectedComponent == nullptr)
         return;
 
-    if (SelectedComponent->GetTypeInfo()->IsA<UCollisionComponent>()) {
+    if (SelectedComponent->GetClass()->IsChildOf<UCollisionComponent>()) {
         const auto* CollisionComponent{static_cast<const UCollisionComponent*>(SelectedComponent)};
 
         CollisionComponent->DrawEditorBounds(&Lines, DepthMode);
-    } else if (SelectedComponent->GetTypeInfo()->IsA<UBillboardComponent>()) {
+    } else if (SelectedComponent->GetClass()->IsChildOf<UBillboardComponent>()) {
         FMatrix CameraWorld{};
 
         if (!Camera.mView.TryInverse(CameraWorld))
@@ -235,7 +236,7 @@ void EditorViewport::BuildBounds(FLineRenderData& Lines, const FViewMatrices& Ca
         for (const std::array<std::size_t, 2>& Edge : BoxEdges) {
             Lines.AddLine(BoxCorners[Edge[0]], BoxCorners[Edge[1]], BoxColor, 1.0f, DepthMode);
         }
-    } else if (SelectedComponent->GetTypeInfo()->IsA<UMeshComponent>()) {
+    } else if (SelectedComponent->GetClass()->IsChildOf<UMeshComponent>()) {
         const auto* MeshComponent{static_cast<const UMeshComponent*>(SelectedComponent)};
 
         auto& BB{MeshComponent->GetPickingBox()};
@@ -339,7 +340,7 @@ void EditorViewport::BuildSelectionNameTag(FOverlayRenderData& Overlay) {
     bool HasBounds{};
 
     for (const std::unique_ptr<UActorComponent>& Component : Actor->GetComponents()) {
-        if (!Component->GetTypeInfo()->IsA<UMeshComponent>()) {
+        if (!Component->GetClass()->IsChildOf<UMeshComponent>()) {
             continue;
         }
 

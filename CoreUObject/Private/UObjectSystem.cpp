@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "CoreUObject/Reflection/UClass.h"
 #include "CoreUObject/UObjectSystem.h"
 #include "FObjectItem.h"
 #include <limits>
@@ -42,7 +43,7 @@ namespace {
 }
 
 FObjectHandle UObjectSystem::Register(UObject* Object) {
-    if (Object == nullptr || Object->mDestroying) {
+    if (Object == nullptr || Object->mDestroying || Object->IsClassDefaultObject()) {
         return {};
     }
 
@@ -54,7 +55,7 @@ FObjectHandle UObjectSystem::Register(UObject* Object) {
         return {};
     }
 
-    const FName Name{Object->GetName().IsNone() ? MakeUniqueObjectName(Object->GetOuter(), Object->GetTypeInfo()->mTypeName) : Object->GetName()};
+    const FName Name{Object->GetName().IsNone() ? MakeUniqueObjectName(Object->GetOuter(), Object->GetClass()->GetClassName()) : Object->GetName()};
 
     if (!IsValidObjectName(Name) || FindObject(Object->GetOuter(), Name) != nullptr) {
         return {};
@@ -257,7 +258,7 @@ bool UObjectSystem::Rename(UObject* Object, FName NewName, UObject* NewOuter) {
     const bool Registered{Resolve(Object->GetHandle()) == Object};
 
     if (NewName.IsNone() && Registered) {
-        NewName = MakeUniqueObjectName(NewOuter, Object->GetTypeInfo()->mTypeName, Object);
+        NewName = MakeUniqueObjectName(NewOuter, Object->GetClass()->GetClassName(), Object);
     }
 
     if (!NewName.IsNone() && !IsValidObjectName(NewName)) {

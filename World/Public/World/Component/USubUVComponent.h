@@ -2,14 +2,19 @@
 #include "World/Component/UActorComponent.h"
 #include "World/Component/UPrimitiveComponent.h"
 #include "CoreUObject/TObjectRef.h"
+#include "World/Component/USubUVComponent.generated.h"
 
+UCLASS()
 class USubUVComponent : public UActorComponent {
+public:
+    GENERATED_TYPES(USubUVComponent)
+
 public:
     USubUVComponent();
     ~USubUVComponent() override = default;
 
 public:
-    JG_DECLARE_DERIVED_TYPEINFO(USubUVComponent, UActorComponent);
+    GENERATED_BODY(USubUVComponent)
 
     bool SetTargetComponent(UPrimitiveComponent* Target);
     UPrimitiveComponent* GetTargetComponent() const;
@@ -19,12 +24,19 @@ public:
     void SetUVTransform(const FUVTransform& Transform);
     const FUVTransform& GetUVTransform() const;
     void UpdateUVTransform();
+    UFUNCTION()
     void Play();
+    UFUNCTION()
     void Pause();
+    UFUNCTION()
     void Stop();
+    UFUNCTION()
     void Restart();
+    UFUNCTION()
     bool IsPlaying() const;
+    UFUNCTION()
     void SetLooping(bool Looping);
+    UFUNCTION()
     bool IsLooping() const;
     void SetElapsedTime(double ElapsedTime);
     double GetElapsedTime() const;
@@ -45,11 +57,16 @@ private:
     void ClearTargetTransform();
 
 private:
+    UPROPERTY(Name = "GuidTargetComponent", Reference, ReadOnly)
     TObjectRef<UPrimitiveComponent> mTargetComponent{};
     FGuid mPendingTargetGuid{};
+    UPROPERTY(Name = "TargetMaterialGroup", ReadOnly)
     FName mTargetMaterialGroup{};
+    UPROPERTY(Name = "UVTransform", ReadOnly)
     FUVTransform mUVTransform{};
     double mElapsedTime{};
+    UPROPERTY(Name = "Playing", ReadOnly)
     bool mPlaying{true};
+    UPROPERTY(Name = "Looping", ReadOnly)
     bool mLooping{true};
 };

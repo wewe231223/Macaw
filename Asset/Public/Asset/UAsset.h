@@ -2,11 +2,16 @@
 #include "CoreUObject/UObject.h"
 #include <filesystem>
 #include "Core/Archive/FArchive.h"
+#include "Asset/UAsset.generated.h"
 
+UCLASS()
 class UAsset : public UObject {
 public:
-    UAsset() = default;
-    virtual ~UAsset() = default;
+    GENERATED_TYPES(UAsset)
+
+public:
+    UAsset();
+    virtual ~UAsset();
 
     UAsset(const UAsset&) = delete;
     UAsset& operator=(const UAsset&) = delete;
@@ -15,7 +20,7 @@ public:
     UAsset& operator=(UAsset&&) noexcept = default;
 
 public:
-    JG_DECLARE_DERIVED_TYPEINFO(UAsset, UObject);
+    GENERATED_BODY(UAsset)
 
     void SetAssetName(const FString& InName);
 

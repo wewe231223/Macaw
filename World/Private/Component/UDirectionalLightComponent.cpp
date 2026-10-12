@@ -4,3 +4,7 @@
 ELightType UDirectionalLightComponent::GetLightType() const {
     return ELightType::Directional;
 }
+
+UDirectionalLightComponent::UDirectionalLightComponent() {
+    InitializeClass(StaticClass());
+}

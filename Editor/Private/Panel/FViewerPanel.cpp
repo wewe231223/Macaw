@@ -165,11 +165,11 @@ void FViewerPanel::DrawProperties() {
     }
 
     ImGui::TextUnformatted("Preview Assets");
-    mPropertyEditor.DrawAssetPicker("StaticMesh", *UMesh::StaticTypeInfo(), mMeshHandle, [this](FAssetHandle Handle) {
+    mPropertyEditor.DrawAssetPicker("StaticMesh", *UMesh::StaticClass(), mMeshHandle, [this](FAssetHandle Handle) {
         SetMesh(Handle);
     });
 
-    mPropertyEditor.DrawAssetPicker("Material", *UMaterial::StaticTypeInfo(), mMaterialHandle, [this](FAssetHandle Handle) {
+    mPropertyEditor.DrawAssetPicker("Material", *UMaterial::StaticClass(), mMaterialHandle, [this](FAssetHandle Handle) {
         SetMaterial(Handle);
     });
 }

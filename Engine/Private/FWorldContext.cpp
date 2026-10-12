@@ -1,9 +1,11 @@
 #include "pch.h"
+#include "CoreUObject/Reflection/NewObject.h"
+#include "CoreUObject/Reflection/Cast.h"
 #include "Engine/FWorldContext.h"
 #include "World/UWorld.h"
 
 FWorldContext::FWorldContext(EWorldType WorldType)
-	: mWorld(std::make_unique<UWorld>()) {
+	: mWorld(NewObject<UWorld>()) {
     mWorld->Initialize(WorldType);
 }
 

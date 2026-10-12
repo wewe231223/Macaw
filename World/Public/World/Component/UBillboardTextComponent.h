@@ -5,14 +5,19 @@
 #include "RenderCore/FRenderData.h"
 #include "Core/STL.h"
 #include "Asset/UFont.h"
+#include "World/Component/UBillboardTextComponent.generated.h"
 
+UCLASS()
 class UBillboardTextComponent : public UPrimitiveComponent {
 public:
-    UBillboardTextComponent() = default;
+    GENERATED_TYPES(UBillboardTextComponent)
+
+public:
+    UBillboardTextComponent();
     ~UBillboardTextComponent() override = default;
 
 public:
-    JG_DECLARE_DERIVED_TYPEINFO(UBillboardTextComponent, UPrimitiveComponent);
+    GENERATED_BODY(UBillboardTextComponent)
 
     void SetFontHandle(FAssetHandle InFontHandle);
     void SetPipelineHandle(FAssetHandle InPipelineHandle);
@@ -57,12 +62,17 @@ protected:
     FGuid mFontAssetGuid{};
     FGuid mPipelineAssetGuid{};
 
+    UPROPERTY(Serialize, Name = "Text", Getter = GetText, Category = "Text", DisplayName = "Text", Edit, Setter = SetText)
     FString mText{};
 
+    UPROPERTY(Serialize, Name = "Color", Getter = GetColor, Category = "Text", DisplayName = "Color", Edit, Setter = SetColor, Color)
     FVector4 mColor{1.0f, 1.0f, 1.0f, 1.0f};
 
+    UPROPERTY(Serialize, Name = "CharacterHeight", Getter = GetCharacterHeight, Category = "Text", DisplayName = "Character Height", Edit, Setter = SetCharacterHeight, Min = 0.001f)
     float mCharacterHeight{1.0f};
+    UPROPERTY(Serialize, Name = "LetterSpacing", Getter = GetLetterSpacing, Category = "Text", DisplayName = "Letter Spacing", Edit, Setter = SetLetterSpacing)
     float mLetterSpacing{0.0f};
+    UPROPERTY(Serialize, Name = "LineSpacing", Getter = GetLineSpacing, Category = "Text", DisplayName = "Line Spacing", Edit, Setter = SetLineSpacing)
     float mLineSpacing{0.0f};
 
     TArray<FTextVertex> mVertices{};

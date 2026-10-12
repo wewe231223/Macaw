@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "CoreUObject/Reflection/UClass.h"
 #include "Editor/View/FTransformGizmo.h"
 
 #include <algorithm>
@@ -123,7 +124,7 @@ void FTransformGizmo::Update(const FViewMatrices& Camera, const D3D11_VIEWPORT& 
 
     FVector3 BoundsExtent{};
 
-    const UPrimitiveComponent* TargetPrimitive{Target->GetTypeInfo()->IsA<UPrimitiveComponent>() ? static_cast<const UPrimitiveComponent*>(Target) : nullptr};
+    const UPrimitiveComponent* TargetPrimitive{Target->GetClass()->IsChildOf<UPrimitiveComponent>() ? static_cast<const UPrimitiveComponent*>(Target) : nullptr};
 
     if (TargetPrimitive != nullptr) {
         UpdateBoundsInGizmoSpace(*TargetPrimitive, mBoundsCenterInGizmoSpace, BoundsExtent);

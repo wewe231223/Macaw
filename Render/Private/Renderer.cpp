@@ -491,19 +491,19 @@ bool FRenderer::PrepareAssetResources() {
 
     bool Complete{true};
 
-    for (FAssetHandle Handle : mAssetRegistry->GetAssetHandles(*UTexture::StaticTypeInfo())) {
+    for (FAssetHandle Handle : mAssetRegistry->GetAssetHandles(*UTexture::StaticClass())) {
         const UTexture* Texture{mAssetRegistry->ResolveAsset<UTexture>(Handle)};
 
         Complete = Texture != nullptr && mAssetResources.GetTexture(*Texture) != nullptr && Complete;
     }
 
-    for (FAssetHandle Handle : mAssetRegistry->GetAssetHandles(*UMesh::StaticTypeInfo())) {
+    for (FAssetHandle Handle : mAssetRegistry->GetAssetHandles(*UMesh::StaticClass())) {
         const UMesh* Mesh{mAssetRegistry->ResolveAsset<UMesh>(Handle)};
 
         Complete = Mesh != nullptr && mAssetResources.GetMesh(*Mesh) != nullptr && Complete;
     }
 
-    for (FAssetHandle Handle : mAssetRegistry->GetAssetHandles(*UPipeline::StaticTypeInfo())) {
+    for (FAssetHandle Handle : mAssetRegistry->GetAssetHandles(*UPipeline::StaticClass())) {
         const UPipeline* Pipeline{mAssetRegistry->ResolveAsset<UPipeline>(Handle)};
 
         Complete = Pipeline != nullptr && mAssetResources.GetPipeline(*Pipeline) != nullptr && Complete;

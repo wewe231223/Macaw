@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "CoreUObject/Reflection/UClass.h"
 #include "Core/Base/ErrorHandler.h"
 #include "World/Subsystem/UPickingSubsystem.h"
 #include "Core/Stat/Stat.h"
@@ -30,7 +31,7 @@ FWorldRaycastAccelerationStructure::FProxy FWorldRaycastAccelerationStructure::M
 
     const Uint64 Key = ComponentKey(Component->GetHandle());
 
-    if (Component->GetTypeInfo()->IsA(UBillboardComponent::StaticTypeInfo())) {
+    if (Component->GetClass()->IsChildOf(UBillboardComponent::StaticClass())) {
         Proxy.Kind = EProxyKind::Billboard;
 
         const auto* Billboard = static_cast<const UBillboardComponent*>(Component);
@@ -49,7 +50,7 @@ FWorldRaycastAccelerationStructure::FProxy FWorldRaycastAccelerationStructure::M
     } else {
         DirectX::XMFLOAT3 Corners[8];
 
-        if (Component->GetTypeInfo()->IsA(UMeshComponent::StaticTypeInfo())) {
+        if (Component->GetClass()->IsChildOf(UMeshComponent::StaticClass())) {
             Proxy.Kind = EProxyKind::Mesh;
 
             const auto& LocalBox = Component->GetPickingBox();
@@ -631,4 +632,8 @@ void UPickingSubsystem::OnDeinitialize() {
     mDirtyComponents.clear();
     mDirtyComponentKeys.clear();
     RaycastAccelerationStructure.Clear();
+}
+
+UPickingSubsystem::UPickingSubsystem() {
+    InitializeClass(StaticClass());
 }

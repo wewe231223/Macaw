@@ -1,7 +1,15 @@
 #include "pch.h"
+#include "CoreUObject/Reflection/UClass.h"
 #include "Editor/Property/FComponentDetails.h"
 #include "Editor/Panel/FPropertyPanel.h"
 #include "World/UWorld.h"
+
+#include <algorithm>
+#include <cstring>
+
+namespace {
+    constexpr const char* ComponentDragDropPayloadType{"PROPERTY_SCENE_COMPONENT"};
+}
 
 FPropertyPanel::FPropertyPanel(FWorldEditorContext& InEditorContext, FStateChannel<Uint8>::FReadWriter InGizmoMode, FStateChannel<Uint8>::FReadWriter InGizmoCoordinateSpace, FAssetThumbnailRenderer* InThumbnailRenderer)
 	: FEditorWindow("Property Window"),
@@ -43,7 +51,7 @@ void FPropertyPanel::DrawContents() {
 }
 
 FString FPropertyPanel::GetComponentTypeName(const UActorComponent& Component) {
-    return Component.GetTypeInfo()->mTypeName.ToString();
+    return Component.GetClass()->GetClassName().ToString();
 }
 
 void FPropertyPanel::DrawGizmoControls() {
@@ -133,7 +141,7 @@ void FPropertyPanel::DrawComponentList(AActor& Actor) {
     ImGui::BeginChild("ComponentList", ImVec2(0.0f, 180.0f), true);
 
     for (const std::unique_ptr<UActorComponent>& Component : Actor.GetComponents()) {
-        USceneComponent* SceneComponent{Component->GetTypeInfo()->IsA(USceneComponent::StaticTypeInfo()) ? static_cast<USceneComponent*>(Component.get()) : nullptr};
+        USceneComponent* SceneComponent{Component->GetClass()->IsChildOf(USceneComponent::StaticClass()) ? static_cast<USceneComponent*>(Component.get()) : nullptr};
 
         if (SceneComponent == nullptr) {
             DrawComponentNode(*Component, ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen);
@@ -142,7 +150,9 @@ void FPropertyPanel::DrawComponentList(AActor& Actor) {
         }
     }
 
+    DrawRootComponentDropTarget(Actor);
     ImGui::EndChild();
+    ApplyPendingComponentDrop(Actor);
 }
 
 void FPropertyPanel::DrawSceneComponentTree(AActor& Actor, USceneComponent& Component) {
@@ -164,6 +174,9 @@ void FPropertyPanel::DrawSceneComponentTree(AActor& Actor, USceneComponent& Comp
 
     if (ImGui::IsItemClicked())
         mEditorContext->SetSelectedComponent(&Component);
+
+    DrawComponentDragSource(Actor, Component);
+    AcceptComponentDrop(Actor, &Component);
 
     if (BHasOwnedChildren && BOpen) {
         for (const TObjectRef<USceneComponent>& Child : Component.GetChildren()) {
@@ -200,4 +213,82 @@ void FPropertyPanel::HandleDeleteShortcut(AActor& Actor, UActorComponent& Compon
 
     Component.DestroyComponent();
     mEditorContext->SetSelectedActor(&Actor);
+}
+
+void FPropertyPanel::DrawComponentDragSource(AActor& Actor, USceneComponent& Component) {
+    if (Actor.IsBeingDestroyed() || Component.IsBeingDestroyed() || Actor.GetRootComponent() == &Component || !ImGui::BeginDragDropSource()) {
+        return;
+    }
+
+    const FObjectHandle ComponentHandle{Component.GetHandle()};
+
+    ImGui::SetDragDropPayload(ComponentDragDropPayloadType, &ComponentHandle, sizeof(ComponentHandle));
+    ImGui::TextUnformatted(Component.GetName().ToString().c_str());
+    ImGui::EndDragDropSource();
+}
+
+void FPropertyPanel::AcceptComponentDrop(AActor& Actor, USceneComponent* Parent) {
+    const ImGuiPayload* Payload{ImGui::GetDragDropPayload()};
+
+    if (Payload == nullptr || !Payload->IsDataType(ComponentDragDropPayloadType) || Payload->DataSize != sizeof(FObjectHandle)) {
+        return;
+    }
+
+    FObjectHandle ComponentHandle{};
+
+    std::memcpy(&ComponentHandle, Payload->Data, sizeof(ComponentHandle));
+
+    const TObjectRef<USceneComponent> ComponentRef{ComponentHandle};
+    USceneComponent* Component{ComponentRef.Get()};
+
+    if (Component == nullptr || !CanAttachComponent(Actor, *Component, Parent) || !ImGui::BeginDragDropTarget()) {
+        return;
+    }
+
+    if (const ImGuiPayload* AcceptedPayload{ImGui::AcceptDragDropPayload(ComponentDragDropPayloadType)}; AcceptedPayload != nullptr && AcceptedPayload->Delivery) {
+        mPendingDraggedComponent.SetHandle(ComponentHandle);
+        mPendingParentComponent.Set(Parent);
+    }
+
+    ImGui::EndDragDropTarget();
+}
+
+void FPropertyPanel::DrawRootComponentDropTarget(AActor& Actor) {
+    const float AvailableHeight{std::max(ImGui::GetFrameHeight(), ImGui::GetContentRegionAvail().y)};
+
+    ImGui::Selectable("Drop here to detach##RootComponentDropTarget", false, ImGuiSelectableFlags_None, ImVec2{0.0f, AvailableHeight});
+    AcceptComponentDrop(Actor, nullptr);
+}
+
+bool FPropertyPanel::CanAttachComponent(const AActor& Actor, const USceneComponent& Component, const USceneComponent* Parent) const {
+    if (Actor.IsBeingDestroyed() || Component.IsBeingDestroyed() || Component.GetOwner() != &Actor || Actor.GetRootComponent() == &Component || Component.GetParent() == Parent || (Parent != nullptr && (Parent->IsBeingDestroyed() || Parent->GetOwner() != &Actor))) {
+        return false;
+    }
+
+    for (const USceneComponent* Ancestor{Parent}; Ancestor != nullptr; Ancestor = Ancestor->GetParent()) {
+        if (Ancestor == &Component) {
+            return false;
+        }
+    }
+
+    if (Parent != nullptr) {
+        FTransform RelativeTransform{};
+
+        return Component.GetComponentTransform().MakeRelativeTo(Parent->GetComponentTransform(), RelativeTransform);
+    }
+
+    return true;
+}
+
+void FPropertyPanel::ApplyPendingComponentDrop(AActor& Actor) {
+    USceneComponent* Component{mPendingDraggedComponent.Get()};
+    USceneComponent* Parent{mPendingParentComponent.Get()};
+    const bool HasParent{mPendingParentComponent.GetHandle().IsValid()};
+
+    mPendingDraggedComponent.Reset();
+    mPendingParentComponent.Reset();
+
+    if (Component != nullptr && (!HasParent || Parent != nullptr) && CanAttachComponent(Actor, *Component, Parent) && Component->AttachToComponent(Parent, EAttachmentTransformRule::KeepWorldTransform)) {
+        mEditorContext->SetSelectedComponent(Component);
+    }
 }

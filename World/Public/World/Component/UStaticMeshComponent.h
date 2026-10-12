@@ -1,14 +1,19 @@
 #pragma once
 #include "World/Component/UMeshComponent.h"
 #include "Core/Archive/FArchive.h"
+#include "World/Component/UStaticMeshComponent.generated.h"
 
+UCLASS()
 class UStaticMeshComponent : public UMeshComponent {
 public:
-    UStaticMeshComponent() = default;
+    GENERATED_TYPES(UStaticMeshComponent)
+
+public:
+    UStaticMeshComponent();
     ~UStaticMeshComponent() override = default;
 
 public:
-    JG_DECLARE_DERIVED_TYPEINFO(UStaticMeshComponent, UMeshComponent)
+    GENERATED_BODY(UStaticMeshComponent)
 
     FAssetHandle GetMaterialHandle() const;
     FAssetHandle GetPipelineHandle() const;

@@ -26,8 +26,13 @@
 #include "World/Subsystem/UPickingSubsystem.h"
 #include "World/Subsystem/URenderSubsystem.h"
 #include "World/Subsystem/UOverlaySubsystem.h"
+#include "World/UWorld.generated.h"
 
+UCLASS()
 class UWorld : public UObject {
+public:
+    GENERATED_TYPES(UWorld)
+
 private:
     /// <summary>생명주기와 알림 콜백 중 객체가 해제되지 않도록 호출 깊이를 추적합니다.</summary>
     class FActorDispatchScope final {
@@ -78,9 +83,9 @@ public:
     T* SpawnActorDeferred(const FTransform& Transform = {});
 
     /// <summary>런타임 타입 정보로 Actor를 생성하고 생성 완료 단계까지 처리합니다.</summary>
-    AActor* SpawnActor(const FTypeInfo& Type, const FTransform& Transform = {});
+    AActor* SpawnActor(const UClass& Type, const FTransform& Transform = {});
     /// <summary>런타임 타입 정보로 Actor를 생성하고 구성 완료 단계는 보류합니다.</summary>
-    AActor* SpawnActorDeferred(const FTypeInfo& Type, const FTransform& Transform = {});
+    AActor* SpawnActorDeferred(const UClass& Type, const FTransform& Transform = {});
     /// <summary>구성 콜백과 컴포넌트 등록을 수행하고 플레이 중이면 BeginPlay까지 진행합니다.</summary>
     bool FinishSpawningActor(AActor* Actor, const FTransform& Transform);
 
@@ -122,7 +127,7 @@ public:
     UOverlaySubsystem& GetOverlaySubsystem();
     const UOverlaySubsystem& GetOverlaySubsystem() const;
 
-    JG_DECLARE_DERIVED_TYPEINFO(UWorld, UObject);
+    GENERATED_BODY(UWorld)
 
     void SetAssetRegistry(const IAssetRegistry* InAssetRegistry, IAssetRegistryMutator* InAssetRegistryMutator = nullptr);
 
@@ -201,15 +206,15 @@ private:
 template <typename T>
     requires std::is_base_of_v<AActor, T>
 T* UWorld::SpawnActor(const FTransform& Transform) {
-    static_assert(std::is_same_v<typename T::TypeInfoOwner, T>);
+    static_assert(std::is_same_v<typename T::ReflectionOwner, T>);
 
-    return static_cast<T*>(SpawnActor(*T::StaticTypeInfo(), Transform));
+    return static_cast<T*>(SpawnActor(*T::StaticClass(), Transform));
 }
 
 template <typename T>
     requires std::is_base_of_v<AActor, T>
 T* UWorld::SpawnActorDeferred(const FTransform& Transform) {
-    static_assert(std::is_same_v<typename T::TypeInfoOwner, T>);
+    static_assert(std::is_same_v<typename T::ReflectionOwner, T>);
 
-    return static_cast<T*>(SpawnActorDeferred(*T::StaticTypeInfo(), Transform));
+    return static_cast<T*>(SpawnActorDeferred(*T::StaticClass(), Transform));
 }

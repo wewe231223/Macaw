@@ -47,18 +47,21 @@ void USpotLightComponent::SetOuterConeAngle(float InOuterConeAngle) {
 }
 
 void USpotLightComponent::BuildLightShaderParameters(FLightShaderParameters& OutParameters) const {
-    UPointLightComponent::BuildLightShaderParameters(OutParameters);
+    Super::BuildLightShaderParameters(OutParameters);
     OutParameters.mInnerConeCos = std::cos(ToRadians(mInnerConeAngle));
     OutParameters.mOuterConeCos = std::cos(ToRadians(mOuterConeAngle));
 }
 
 void USpotLightComponent::Serialize(FArchive& Archive) {
-    UPointLightComponent::Serialize(Archive);
-    Archive.Serialize("InnerConeAngle", mInnerConeAngle);
-    Archive.Serialize("OuterConeAngle", mOuterConeAngle);
+    Super::Serialize(Archive);
+    StaticClass()->SerializeDeclaredProperties(this, Archive);
 
     if (Archive.IsLoading()) {
         SetInnerConeAngle(mInnerConeAngle);
         SetOuterConeAngle(mOuterConeAngle);
     }
+}
+
+USpotLightComponent::USpotLightComponent() {
+    InitializeClass(StaticClass());
 }

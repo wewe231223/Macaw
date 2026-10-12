@@ -1,9 +1,10 @@
 #include "pch.h"
+#include "CoreUObject/Reflection/UClass.h"
 #include "World/AActor.h"
 #include "Core/Stat/Stat.h"
 #include "World/UWorld.h"
 #include "World/Component/USceneComponent.h"
-#include "CoreUObject/TypeRegistry.h"
+#include "CoreUObject/Reflection/FReflectionRegistry.h"
 
 const std::vector<std::unique_ptr<UActorComponent>>& AActor::GetComponents() const {
     return mComponents;
@@ -18,16 +19,16 @@ AActor::~AActor() {
     }
 }
 
-UActorComponent* AActor::AddComponent(const FTypeInfo& Type) {
-    if (mBIsBeingDestroyed || Type.mCreator == nullptr || !Type.IsA(UActorComponent::StaticTypeInfo())) {
+UActorComponent* AActor::AddComponent(const UClass& Type) {
+    if (mBIsBeingDestroyed || !Type.CanCreateInstance() || !Type.IsChildOf(UActorComponent::StaticClass())) {
         return nullptr;
     }
 
     const UWorld::FActorDispatchScope Dispatch{mWorld};
-    std::unique_ptr<UObject> CreatedObject{Type.mCreator()};
+    std::unique_ptr<UObject> CreatedObject{Type.CreateInstance()};
 
     if (CreatedObject == nullptr ||
-        !CreatedObject->GetTypeInfo()->IsA(UActorComponent::StaticTypeInfo())) {
+        !CreatedObject->GetClass()->IsChildOf(UActorComponent::StaticClass())) {
         return nullptr;
     }
 
@@ -424,7 +425,7 @@ void AActor::Tick(float DeltaTime) {
 }
 
 void AActor::Serialize(FArchive& Archive) {
-    UObject::Serialize(Archive);
+    Super::Serialize(Archive);
 
     // components
     std::size_t ArraySize{mComponents.size()};
@@ -548,17 +549,17 @@ bool AActor::PreLoadComponents(FArchive& Archive, bool RegisterComponents) {
 
         Archive.Serialize("TypeName", TypeName);
 
-        const FTypeInfo* Type{TypeRegistry::Find(TypeName)};
+        const UClass* Type{FReflectionRegistry::FindClass(TypeName)};
 
-        if (Type == nullptr || Type->mCreator == nullptr) {
+        if (Type == nullptr || !Type->CanCreateInstance()) {
             Archive.EndObjectScope();
             Archive.EndArrayScope();
             return false;
         }
 
-        std::unique_ptr<UObject> CreatedObject{Type->mCreator()};
+        std::unique_ptr<UObject> CreatedObject{Type->CreateInstance()};
 
-        if (CreatedObject == nullptr || !CreatedObject->GetTypeInfo()->IsA(UActorComponent::StaticTypeInfo())) {
+        if (CreatedObject == nullptr || !CreatedObject->GetClass()->IsChildOf(UActorComponent::StaticClass())) {
             Archive.EndObjectScope();
             Archive.EndArrayScope();
             return false;
@@ -593,7 +594,7 @@ bool AActor::ResolveLoadedReferences() {
         UObject* ResolvedObject{UObjectSystem::Resolve(UObjectSystem::FindHandleByGuid(mPendingRootComponentGuid))};
 
         if (ResolvedObject == nullptr ||
-            !ResolvedObject->GetTypeInfo()->IsA(USceneComponent::StaticTypeInfo()) || static_cast<USceneComponent*>(ResolvedObject)->GetOwner() != this) {
+            !ResolvedObject->GetClass()->IsChildOf(USceneComponent::StaticClass()) || static_cast<USceneComponent*>(ResolvedObject)->GetOwner() != this) {
             return false;
         }
 
@@ -614,11 +615,15 @@ bool AActor::CanChangeOuter(const UObject* NewOuter) const {
         return NewOuter == &mWorld->GetPersistentLevel();
     }
 
-    return NewOuter == nullptr || NewOuter->GetTypeInfo()->IsA(ULevel::StaticTypeInfo());
+    return NewOuter == nullptr || NewOuter->GetClass()->IsChildOf(ULevel::StaticClass());
 }
 
 void AActor::OnIdentityChanged() {
     if (mWorld != nullptr && !mBIsBeingDestroyed) {
         mWorld->MarkStructureDirty();
     }
+}
+
+AActor::AActor() {
+    InitializeClass(StaticClass());
 }

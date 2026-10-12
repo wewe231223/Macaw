@@ -5,6 +5,7 @@
 #include <limits>
 
 UFlipBookComponent::UFlipBookComponent() {
+    InitializeClass(StaticClass());
     UpdateUVTransform();
     UpdateTickEnabled();
 }
@@ -60,11 +61,8 @@ Int32 UFlipBookComponent::GetCurrentFrame() const {
 }
 
 void UFlipBookComponent::Serialize(FArchive& Archive) {
-    USubUVComponent::Serialize(Archive);
-    Archive.Serialize("SubImageHorizontal", mColumns);
-    Archive.Serialize("SubImageVertical", mRows);
-    Archive.Serialize("TotalFrame", mTotalFrames);
-    Archive.Serialize("FrameRate", mFrameRate);
+    Super::Serialize(Archive);
+    StaticClass()->SerializeDeclaredProperties(this, Archive);
 
     if (Archive.IsLoading()) {
         mCurrentFrame = 0;

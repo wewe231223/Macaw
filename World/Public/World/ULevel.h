@@ -3,17 +3,22 @@
 #include <memory>
 #include "Core/STL.h"
 #include "CoreUObject/UObject.h"
+#include "World/ULevel.generated.h"
 
 class AActor;
 class UWorld;
 
+UCLASS(NoFactory)
 class ULevel final : public UObject {
+public:
+    GENERATED_TYPES(ULevel)
+
 public:
     explicit ULevel(UWorld& World);
     ~ULevel() override;
 
 public:
-    JG_DECLARE_NON_CREATABLE_DERIVED_TYPEINFO(ULevel, UObject)
+    GENERATED_BODY(ULevel)
 
     UWorld& GetWorld() const;
     const TArray<std::unique_ptr<AActor>>& GetActors() const;
@@ -26,5 +31,6 @@ private:
 
 private:
     UWorld& mWorld;
+    UPROPERTY(Name = "Actors", Owned, ReadOnly)
     TArray<std::unique_ptr<AActor>> mActors{};
 };

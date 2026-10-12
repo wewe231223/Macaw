@@ -5,16 +5,21 @@
 #include "CoreUObject/TSubsystemCollection.h"
 #include "Engine/FWorldContext.h"
 #include "Engine/Subsystem/UEngineSubsystem.h"
+#include "Engine/UEngine.generated.h"
 
 class FAssetRegistry;
 
+UCLASS()
 class UEngine : public UObject {
+public:
+    GENERATED_TYPES(UEngine)
+
 public:
     UEngine();
     ~UEngine() override;
 
 public:
-    JG_DECLARE_DERIVED_TYPEINFO(UEngine, UObject)
+    GENERATED_BODY(UEngine)
 
     virtual void Initialize();
     virtual void Shutdown();

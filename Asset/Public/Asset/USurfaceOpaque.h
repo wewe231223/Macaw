@@ -3,13 +3,18 @@
 #include "Asset/UMaterial.h"
 
 #include <functional>
+#include "Asset/USurfaceOpaque.generated.h"
 
+UCLASS()
 class USurfaceOpaque : public UMaterial {
+public:
+    GENERATED_TYPES(USurfaceOpaque)
+
 public:
     using FTextureResolver = std::function<FAssetHandle(const std::filesystem::path& TexturePath)>;
 
-    USurfaceOpaque() = default;
-    virtual ~USurfaceOpaque() = default;
+    USurfaceOpaque();
+    virtual ~USurfaceOpaque();
 
     USurfaceOpaque(const USurfaceOpaque&) = delete;
     USurfaceOpaque& operator=(const USurfaceOpaque&) = delete;
@@ -18,7 +23,7 @@ public:
     USurfaceOpaque& operator=(USurfaceOpaque&&) noexcept = default;
 
 public:
-    JG_DECLARE_DERIVED_TYPEINFO(USurfaceOpaque, UMaterial);
+    GENERATED_BODY(USurfaceOpaque)
 
     bool Initialize(const std::filesystem::path& MtlPath, const FTextureResolver& TextureResolver);
     void BuildGPUData(FMaterialGPUSlot& OutSlot) const override;

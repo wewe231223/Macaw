@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "CoreUObject/Reflection/UClass.h"
 #include "Editor/UndoSystem/FUndoSystem.h"
 #include "Editor/UndoSystem/IUndoContext.h"
 #include "Editor/UndoSystem/FUndoTransaction.h"
@@ -192,11 +193,11 @@ namespace FUndoSystem {
 
             switch (UndoType) {
                 case EUndoType::Spawn:
-                    Record = std::make_unique<FRecordObjectSpawned>(TargetObject->GetGuid(), std::move(CurrentData), TargetObject->GetTypeInfo()->mTypeName);
+                    Record = std::make_unique<FRecordObjectSpawned>(TargetObject->GetGuid(), std::move(CurrentData), TargetObject->GetClass()->GetClassName());
                     break;
 
                 case EUndoType::Destroy:
-                    Record = std::make_unique<FRecordObjectDestroyed>(TargetObject->GetGuid(), std::move(CurrentData), TargetObject->GetTypeInfo()->mTypeName);
+                    Record = std::make_unique<FRecordObjectDestroyed>(TargetObject->GetGuid(), std::move(CurrentData), TargetObject->GetClass()->GetClassName());
                     break;
             }
 

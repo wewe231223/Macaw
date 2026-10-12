@@ -17,7 +17,7 @@ void UCollisionComponent::SetCollisionEnabled(bool BEnabled) {
 }
 
 void UCollisionComponent::OnRegister() {
-    UPrimitiveComponent::OnRegister();
+    Super::OnRegister();
     GetBelongingWorld()->GetCollisionSubsystem().RegisterComponent(this);
 }
 
@@ -28,7 +28,7 @@ void UCollisionComponent::OnUnregister() {
         Owner->GetWorld()->GetCollisionSubsystem().UnregisterComponent(this);
     }
 
-    UPrimitiveComponent::OnUnregister();
+    Super::OnUnregister();
 }
 
 bool UCollisionComponent::Raycast(const FRay& Ray, float& OutDistance) const {
@@ -42,11 +42,15 @@ bool UCollisionComponent::Raycast(const FRay& Ray, float& OutDistance) const {
 }
 
 void UCollisionComponent::Serialize(FArchive& Archive) {
-    UPrimitiveComponent::Serialize(Archive);
+    Super::Serialize(Archive);
 
-    Archive.Serialize("bCollisionEnabled", mBCollisionEnabled);
+    StaticClass()->SerializeDeclaredProperties(this, Archive);
 }
 
 class UMeshComponent* UCollisionComponent::GetMeshComponent() const {
     return nullptr;
+}
+
+UCollisionComponent::UCollisionComponent() {
+    InitializeClass(StaticClass());
 }

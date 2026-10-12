@@ -2,14 +2,19 @@
 
 #include "World/Subsystem/UWorldSubsystem.h"
 #include "RenderCore/FOverlayRenderData.h"
+#include "World/Subsystem/UOverlaySubsystem.generated.h"
 
+UCLASS()
 class UOverlaySubsystem final : public UWorldSubsystem {
 public:
-    UOverlaySubsystem() = default;
+    GENERATED_TYPES(UOverlaySubsystem)
+
+public:
+    UOverlaySubsystem();
     ~UOverlaySubsystem() override = default;
 
 public:
-    JG_DECLARE_DERIVED_TYPEINFO(UOverlaySubsystem, UWorldSubsystem)
+    GENERATED_BODY(UOverlaySubsystem)
 
     void BuildDrawData(FOverlayRenderData& Overlay, FObjectHandle SelectedActor) const;
 };

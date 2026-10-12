@@ -1,4 +1,5 @@
 #pragma once
+#include "CoreUObject/Reflection/UClass.h"
 
 #include "Core/CoreMinimal.h"
 #include "CoreUObject/UObject.h"
@@ -88,10 +89,11 @@ namespace UObjectSystem {
     template <typename TObject>
         requires std::derived_from<TObject, UObject>
     TObjectIterator<TObject>::TObjectIterator(Uint32 Start, Uint32 End)
-        : mCurrentIndex(Start),
-          mEndIndex(End) {
-        if (Start > End)
+		: mCurrentIndex(Start),
+		  mEndIndex(End) {
+        if (Start > End) {
             ErrorHandler::Report("Invalid start!", "Start > End", ErrorHandler::EErrorLevel::Critical);
+        }
 
         AdvanceToNextValidObject();
     }
@@ -104,7 +106,7 @@ namespace UObjectSystem {
         UObject* Object{UObjectSystem::Resolve(mHandle)};
 
         if (mCurrentIndex == mEndIndex || Object == nullptr ||
-            !Object->GetTypeInfo()->IsA(TObject::StaticTypeInfo())) {
+            !Object->GetClass()->IsChildOf(TObject::StaticClass())) {
             ErrorHandler::Report("Refer Error!", "Does not refer to a live object", ErrorHandler::EErrorLevel::Critical);
         }
 
@@ -146,7 +148,7 @@ namespace UObjectSystem {
                 UObject* Object{UObjectSystem::Resolve(Handle)};
 
                 // 같은 타입인지
-                if (Object != nullptr && Object->GetTypeInfo()->IsA(TObject::StaticTypeInfo())) {
+                if (Object != nullptr && Object->GetClass()->IsChildOf(TObject::StaticClass())) {
                     mCurrentIndex = Index;
                     mHandle = Handle;
                     return *this;
@@ -220,7 +222,7 @@ namespace UObjectSystem {
             UObject* Object{UObjectSystem::Resolve(mHandle)};
 
             // 타입검사(완전히 같은 타입)
-            if (Object != nullptr && Object->GetTypeInfo()->IsA(TObject::StaticTypeInfo()))
+            if (Object != nullptr && Object->GetClass()->IsChildOf(TObject::StaticClass()))
                 return true;
 
             ++mCurrentIndex; // 핵심: 타입이 다르거나 빈 슬롯이면 다음 인덱스로
@@ -252,7 +254,7 @@ namespace UObjectSystem {
     template <typename TObject>
         requires std::derived_from<TObject, UObject>
     TObjectRange<TObject>::TObjectRange(Uint32 End)
-        : mEnd(End) {
+		: mEnd(End) {
     }
 }
 

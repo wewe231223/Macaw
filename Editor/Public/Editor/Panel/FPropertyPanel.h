@@ -1,4 +1,5 @@
 #pragma once
+#include "CoreUObject/Reflection/UClass.h"
 #include "Core/CoreMinimal.h"
 #include "ImGui/imgui.h"
 #include "Editor/Panel/FEditorWindow.h"
@@ -38,6 +39,12 @@ private:
 
     void DrawComponentNode(UActorComponent& Component, ImGuiTreeNodeFlags Flags);
 
+    void DrawComponentDragSource(AActor& Actor, USceneComponent& Component);
+    void AcceptComponentDrop(AActor& Actor, USceneComponent* Parent);
+    void DrawRootComponentDropTarget(AActor& Actor);
+    bool CanAttachComponent(const AActor& Actor, const USceneComponent& Component, const USceneComponent* Parent) const;
+    void ApplyPendingComponentDrop(AActor& Actor);
+
     template <typename T>
     void AddComponent(AActor& Actor);
 
@@ -48,6 +55,8 @@ private:
     FPropertyEditorContext mPropertyEditor{};
     FStateChannel<Uint8>::FReadWriter mGizmoMode{};
     FStateChannel<Uint8>::FReadWriter mGizmoCoordinateSpace{};
+    TObjectRef<USceneComponent> mPendingDraggedComponent{};
+    TObjectRef<USceneComponent> mPendingParentComponent{};
 };
 
 template <typename T>
@@ -69,7 +78,7 @@ void FPropertyPanel::AddComponent(AActor& Actor) {
     } else if constexpr (std::is_base_of_v<USubUVComponent, T>) {
         UActorComponent* Selected{mEditorContext->GetSelectedComponent()};
 
-        if (Selected != nullptr && Selected->GetOwner() == &Actor && (Selected->GetTypeInfo()->IsA(UStaticMeshComponent::StaticTypeInfo()) || Selected->GetTypeInfo()->IsA(UBillboardComponent::StaticTypeInfo()))) {
+        if (Selected != nullptr && Selected->GetOwner() == &Actor && (Selected->GetClass()->IsChildOf(UStaticMeshComponent::StaticClass()) || Selected->GetClass()->IsChildOf(UBillboardComponent::StaticClass()))) {
             NewComponent->SetTargetComponent(static_cast<UPrimitiveComponent*>(Selected));
         }
     }
