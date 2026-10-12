@@ -4,7 +4,9 @@
     <VcpkgEnableManifest>true</VcpkgEnableManifest>
     <VcpkgManifestRoot>$(MSBuildThisFileDirectory)</VcpkgManifestRoot>
     <VcpkgManifestInstalledBaseDir>$(MSBuildThisFileDirectory)vcpkg_installed\</VcpkgManifestInstalledBaseDir>
+    <VcpkgInstalledDir>$(VcpkgManifestInstalledBaseDir)</VcpkgInstalledDir>
     <VcpkgTriplet>x64-windows</VcpkgTriplet>
+    <VcpkgConfiguration Condition="'$(Configuration)' == 'Viewer'">Release</VcpkgConfiguration>
     <VcpkgApplocalDeps>true</VcpkgApplocalDeps>
   </PropertyGroup>
 

@@ -256,7 +256,7 @@ void FPropertyPanel::AcceptComponentDrop(AActor& Actor, USceneComponent* Parent)
 void FPropertyPanel::DrawRootComponentDropTarget(AActor& Actor) {
     const float AvailableHeight{std::max(ImGui::GetFrameHeight(), ImGui::GetContentRegionAvail().y)};
 
-    ImGui::Selectable("Drop here to detach##RootComponentDropTarget", false, ImGuiSelectableFlags_None, ImVec2{0.0f, AvailableHeight});
+    ImGui::Selectable("##RootComponentDropTarget", false, ImGuiSelectableFlags_None, ImVec2{0.0f, AvailableHeight});
     AcceptComponentDrop(Actor, nullptr);
 }
 

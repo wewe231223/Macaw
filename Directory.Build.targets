@@ -11,6 +11,7 @@
     </ProjectReference>
   </ItemGroup>
   <Target Name="GenerateMacawReflection" BeforeTargets="ClCompile" Condition="'$(MacawReflectionModule)' != ''">
+    <RemoveDir Directories="$(MacawReflectionOutput)" Condition="Exists('$(MacawReflectionOutput)')" />
     <Exec Command="&quot;$(MSBuildThisFileDirectory)bin\$(Configuration)\$(Platform)\MacawHeaderTool.exe&quot; &quot;$(MSBuildThisFileDirectory).&quot; &quot;$(MacawReflectionModule)&quot; &quot;$(MacawReflectionOutput)&quot;" />
     <ItemGroup>
       <ClCompile Include="$(MacawReflectionOutput)\$(MacawReflectionModule).Reflection.gen.cpp" />

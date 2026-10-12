@@ -1,3 +1,12 @@
+if _ACTION and _ACTION:match("^vs%d+$") and not _OPTIONS["help"] then
+    print("Preparing Macaw dependencies...")
+    local SetupScript = path.getabsolute("Scripts/setup-deps.ps1")
+    local Success, ExitReason, ExitCode = os.execute('powershell.exe -NoProfile -ExecutionPolicy Bypass -File "' .. SetupScript .. '"')
+    if Success ~= true and Success ~= 0 then
+        error("Macaw dependency setup failed: " .. tostring(ExitCode or Success))
+    end
+end
+
 workspace "Macaw"
     location ""
     configurations { "Debug", "Release", "Viewer" }
@@ -49,7 +58,6 @@ local function ConfigureProject(ProjectName, ProjectKind)
         cppdialect "C++20"
         characterset "Unicode"
         staticruntime "Off"
-        toolset "msc-v145"
         targetdir "bin/%{cfg.buildcfg}/%{cfg.platform}"
         objdir "bin-int/%{prj.name}/%{cfg.buildcfg}/%{cfg.platform}"
         externalincludedirs { "Externals/Include" }
