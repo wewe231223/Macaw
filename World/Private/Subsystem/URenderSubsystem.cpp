@@ -61,6 +61,9 @@ void URenderSubsystem::AddPrimitive(std::unique_ptr<FPrimitiveSceneProxy> Proxy)
     Update.mType = ESceneUpdateType::Create;
     Update.mProxy = std::move(Proxy);
     Update.mTransform = {};
+    Update.mBillboardUV.reset();
+    Update.mUVTransforms.clear();
+    Update.mUVTransformsChanged = false;
 }
 
 void URenderSubsystem::UpdatePrimitiveTransform(FObjectHandle ComponentHandle, const FPrimitiveTransform& Transform) {
@@ -84,6 +87,55 @@ void URenderSubsystem::UpdatePrimitiveTransform(FObjectHandle ComponentHandle, c
     }
 }
 
+void URenderSubsystem::UpdateBillboardUV(FObjectHandle ComponentHandle, const FVector2& UVMin, const FVector2& UVMax) {
+    if (!ComponentHandle.IsValid()) {
+        return;
+    }
+
+    const auto Position{mPrimitiveUpdateIndices.find(GetComponentKey(ComponentHandle))};
+
+    if (Position != mPrimitiveUpdateIndices.end() && mPrimitiveUpdates[Position->second].mType == ESceneUpdateType::Remove) {
+        return;
+    }
+
+    FPrimitiveSceneUpdate& Update{FindOrAddPrimitiveUpdate(ComponentHandle)};
+
+    if (Update.mType == ESceneUpdateType::Create && Update.mProxy != nullptr) {
+        Update.mProxy->SetBillboardUV(UVMin, UVMax);
+    } else {
+        if (Update.mType != ESceneUpdateType::Transform) {
+            Update.mType = ESceneUpdateType::DynamicData;
+        }
+
+        Update.mBillboardUV = FBillboardUV{UVMin, UVMax};
+    }
+}
+
+void URenderSubsystem::UpdatePrimitiveUV(FObjectHandle ComponentHandle, std::span<const FPrimitiveUVTransform> Transforms) {
+    if (!ComponentHandle.IsValid()) {
+        return;
+    }
+
+    const auto Position{mPrimitiveUpdateIndices.find(GetComponentKey(ComponentHandle))};
+
+    if (Position != mPrimitiveUpdateIndices.end() && mPrimitiveUpdates[Position->second].mType == ESceneUpdateType::Remove) {
+        return;
+    }
+
+    FPrimitiveSceneUpdate& Update{FindOrAddPrimitiveUpdate(ComponentHandle)};
+
+    if (Update.mType == ESceneUpdateType::Create && Update.mProxy != nullptr) {
+        Update.mProxy->SetUVTransforms(Transforms);
+    } else {
+        if (Update.mType != ESceneUpdateType::Transform) {
+            Update.mType = ESceneUpdateType::DynamicData;
+        }
+
+        Update.mUVTransforms.assign(Transforms.begin(), Transforms.end());
+        Update.mUVTransformsChanged = true;
+    }
+}
+
 void URenderSubsystem::RemovePrimitive(FObjectHandle ComponentHandle) {
     if (!ComponentHandle.IsValid()) {
         return;
@@ -94,6 +146,9 @@ void URenderSubsystem::RemovePrimitive(FObjectHandle ComponentHandle) {
     Update.mType = ESceneUpdateType::Remove;
     Update.mProxy.reset();
     Update.mTransform = {};
+    Update.mBillboardUV.reset();
+    Update.mUVTransforms.clear();
+    Update.mUVTransformsChanged = false;
 }
 
 void URenderSubsystem::BuildSceneUpdates(FSceneUpdateBatch& Updates) {

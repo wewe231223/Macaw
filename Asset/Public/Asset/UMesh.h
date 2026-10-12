@@ -227,7 +227,7 @@ private:
         void AddPlane(double X, double Y, double Z, double D);
         FLODQuadric& operator+=(const FLODQuadric& Other);
         double Evaluate(const FVector3& Position, const FVector3& Origin) const;
-        float FindEdgeInterpolation(const FVector3& P0, const FVector3& P1, const FVector3& Origin) const;
+        float FindEdgeInterpolation(const FVector3& P0, const FVector3& P1, const FVector3& Origin, double UVSlope = 0.0, double UVCurvature = 0.0) const;
     };
 
     struct FLODAttributeGroup {
@@ -258,6 +258,7 @@ private:
         TArray<Uint32> mNextCorners{};
         TArray<Uint32> mPreviousCorners{};
         TArray<Uint8> mActiveTriangles{};
+        std::span<const FVector3> mSourcePositions{};
         std::span<const FVector2D> mSourceUVs{};
     };
 
@@ -294,6 +295,7 @@ private:
         TArray<FLODCandidate> mCandidates{};
         TArray<FLODQuadric> mQuadrics{};
         FVector3 mQuadricOrigin{};
+        double mMaximumGeometryError{};
         Uint32 mTriangleCount{};
 
         // 매 후보 / Collapse마다 할당하지 않고 작업 공간을 재사용한다.
@@ -337,6 +339,7 @@ private:
     static void MergeLODNormalGroups(FLODGeometry& Geometry, Uint32 Group0, Uint32 Group1);
     bool MakeLODCandidate(Uint64 Key, const FLODGeometry& Geometry, const FLODSimplification& State, FLODCandidate& Candidate) const;
     bool PrepareLODCollapse(const FLODCandidate& Candidate, const FLODGeometry& Geometry, const FLODSimplification& State, FLODCollapse& Collapse) const;
+    static bool EvaluateLODUVError(const FLODCollapse& Collapse, const FLODGeometry& Geometry, double& Error, std::array<double, 3>* UVQuadric = nullptr);
     bool CanCollapseEdge(const FLODCollapse& Collapse, const FLODGeometry& Geometry, FLODSimplification& State) const;
     void ApplyLODCollapse(const FLODCollapse& Collapse, FLODGeometry& Geometry, FLODSimplification& State);
     FLODRenderData BuildLODRenderData(const FLODGeometry& Geometry) const;

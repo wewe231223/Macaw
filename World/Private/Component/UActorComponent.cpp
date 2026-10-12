@@ -59,15 +59,20 @@ void UActorComponent::CreateRenderState() {
     mRenderStateCreated = true;
     mRenderStateDirty = false;
     mRenderTransformDirty = false;
+    mRenderDynamicDataDirty = false;
 }
 
 void UActorComponent::DestroyRenderState() {
     mRenderStateCreated = false;
     mRenderStateDirty = false;
     mRenderTransformDirty = false;
+    mRenderDynamicDataDirty = false;
 }
 
 void UActorComponent::SendRenderTransform() {
+}
+
+void UActorComponent::SendRenderDynamicData() {
 }
 
 bool UActorComponent::IsRenderStateCreated() const {
@@ -92,6 +97,20 @@ void UActorComponent::MarkRenderTransformDirty() {
     mParentWorld->GetRenderSubsystem().MarkComponentDirty(this);
 }
 
+void UActorComponent::MarkRenderDynamicDataDirty() {
+    if (!mBRegistered || mUnregistering) {
+        return;
+    }
+
+    if (!mRenderStateCreated) {
+        MarkRenderStateDirty();
+        return;
+    }
+
+    mRenderDynamicDataDirty = true;
+    mParentWorld->GetRenderSubsystem().MarkComponentDirty(this);
+}
+
 void UActorComponent::DoDeferredRenderUpdates() {
     if (!mBRegistered || mUnregistering) {
         return;
@@ -106,13 +125,21 @@ void UActorComponent::DoDeferredRenderUpdates() {
 
         mRenderStateDirty = false;
         mRenderTransformDirty = false;
+        mRenderDynamicDataDirty = false;
 
         if (mBRegistered && !mBIsBeingDestroyed && !mOwner->IsBeingDestroyed() && ShouldCreateRenderState()) {
             CreateRenderState();
         }
-    } else if (mRenderTransformDirty) {
-        mRenderTransformDirty = false;
-        SendRenderTransform();
+    } else {
+        if (mRenderTransformDirty) {
+            mRenderTransformDirty = false;
+            SendRenderTransform();
+        }
+
+        if (mRenderDynamicDataDirty) {
+            mRenderDynamicDataDirty = false;
+            SendRenderDynamicData();
+        }
     }
 }
 

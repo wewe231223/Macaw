@@ -459,6 +459,7 @@ bool UMesh::BuildLODGeometry(FLODGeometry& Geometry) const {
         return false;
     }
 
+    Geometry.mSourcePositions = SourcePositions;
     Geometry.mSourceUVs = SourceUVs;
 
     if (!BuildLODSubMeshes(Geometry)) {
@@ -638,7 +639,7 @@ double UMesh::FLODQuadric::Evaluate(const FVector3& Position, const FVector3& Or
     return Error < 0.0 ? 0.0 : Error;
 }
 
-float UMesh::FLODQuadric::FindEdgeInterpolation(const FVector3& P0, const FVector3& P1, const FVector3& Origin) const {
+float UMesh::FLODQuadric::FindEdgeInterpolation(const FVector3& P0, const FVector3& P1, const FVector3& Origin, double UVSlope, double UVCurvature) const {
     const double X{static_cast<double>(P0.X) - Origin.X};
     const double Y{static_cast<double>(P0.Y) - Origin.Y};
     const double Z{static_cast<double>(P0.Z) - Origin.Z};
@@ -648,7 +649,7 @@ float UMesh::FLODQuadric::FindEdgeInterpolation(const FVector3& P0, const FVecto
     const double AX{mValues[0] * DX + mValues[1] * DY + mValues[2] * DZ};
     const double AY{mValues[1] * DX + mValues[4] * DY + mValues[5] * DZ};
     const double AZ{mValues[2] * DX + mValues[5] * DY + mValues[7] * DZ};
-    const double Curvature{DX * AX + DY * AY + DZ * AZ};
+    const double Curvature{DX * AX + DY * AY + DZ * AZ + UVCurvature};
     const double Scale{(mValues[0] + mValues[4] + mValues[7]) * (DX * DX + DY * DY + DZ * DZ)};
 
     // P(t) = P0 + t(P1-P0)에서 QEM 오차를 최소화한다. 평면 위의 자유 방향은 중간점을 쓴다.
@@ -656,7 +657,7 @@ float UMesh::FLODQuadric::FindEdgeInterpolation(const FVector3& P0, const FVecto
         return 0.5f;
     }
 
-    const double Slope{X * AX + Y * AY + Z * AZ + mValues[3] * DX + mValues[6] * DY + mValues[8] * DZ};
+    const double Slope{X * AX + Y * AY + Z * AZ + mValues[3] * DX + mValues[6] * DY + mValues[8] * DZ + UVSlope * 0.5};
     const double T{-Slope / Curvature};
 
     return std::isfinite(T) ? static_cast<float>(std::clamp(T, 0.0, 1.0)) : 0.5f;
@@ -672,6 +673,27 @@ void UMesh::SimplifyLODGeometry(FLODGeometry& Geometry, Uint32 TargetTriangleCou
     State.mVertexVersions.resize(Geometry.mPositions.size());
     State.mQuadrics.resize(Geometry.mPositions.size());
     State.mQuadricOrigin = Geometry.mPositions.front();
+
+    if (!Geometry.mSourceUVs.empty()) {
+        constexpr double MaximumRelativeError{0.01};
+        FVector3 Minimum{Geometry.mPositions.front()};
+        FVector3 Maximum{Minimum};
+
+        for (const FVector3& Position : Geometry.mPositions) {
+            Minimum.X = (std::min)(Minimum.X, Position.X);
+            Minimum.Y = (std::min)(Minimum.Y, Position.Y);
+            Minimum.Z = (std::min)(Minimum.Z, Position.Z);
+            Maximum.X = (std::max)(Maximum.X, Position.X);
+            Maximum.Y = (std::max)(Maximum.Y, Position.Y);
+            Maximum.Z = (std::max)(Maximum.Z, Position.Z);
+        }
+
+        const double ExtentX{static_cast<double>(Maximum.X) - Minimum.X};
+        const double ExtentY{static_cast<double>(Maximum.Y) - Minimum.Y};
+        const double ExtentZ{static_cast<double>(Maximum.Z) - Minimum.Z};
+
+        State.mMaximumGeometryError = MaximumRelativeError * MaximumRelativeError * (ExtentX * ExtentX + ExtentY * ExtentY + ExtentZ * ExtentZ);
+    }
 
     // Edge 연결 수와 Heap은 처음에 한 번만 만든다.
     for (std::size_t Index{}; Index < Geometry.mIndices.size(); Index += 3) {
@@ -964,10 +986,64 @@ bool UMesh::MakeLODCandidate(Uint64 Key, const FLODGeometry& Geometry, const FLO
     }
 
     const FVector3 NewPosition{P0 * (1.0f - Interpolation) + P1 * Interpolation};
-    Candidate = {V0, V1, State.mVertexVersions[V0], State.mVertexVersions[V1],
-                 Quadric.Evaluate(NewPosition, State.mQuadricOrigin), (P1 - P0).LengthSquared(), Interpolation};
+    Candidate = {V0, V1, State.mVertexVersions[V0], State.mVertexVersions[V1], Quadric.Evaluate(NewPosition, State.mQuadricOrigin), (P1 - P0).LengthSquared(), Interpolation};
 
-    return std::isfinite(Candidate.mCost) && std::isfinite(Candidate.mLengthSquared);
+    if (!std::isfinite(Candidate.mCost) || !std::isfinite(Candidate.mLengthSquared)) {
+        return false;
+    }
+
+    if (State.mMaximumGeometryError > 0.0 && Candidate.mCost > State.mMaximumGeometryError) {
+        return false;
+    }
+
+    if (!Geometry.mSourceUVs.empty()) {
+        FLODCollapse Collapse{};
+        double UVError{};
+
+        if (!PrepareLODCollapse(Candidate, Geometry, State, Collapse)) {
+            return false;
+        }
+
+        const auto SetInterpolation{[&](float Value) {
+            Candidate.mInterpolation = Value;
+            Collapse.mEdge.NewPosition = P0 * (1.0f - Value) + P1 * Value;
+            Candidate.mCost = Quadric.Evaluate(Collapse.mEdge.NewPosition, State.mQuadricOrigin);
+
+            for (Uint32 Index{}; Index < Collapse.mMergeCount; ++Index) {
+                auto& Merge{Collapse.mAttributeMerges[Index]};
+
+                Merge.mUV = Geometry.mAttributeGroups[Merge.mKeepGroup].mUV * (1.0f - Value) + Geometry.mAttributeGroups[Merge.mRemoveGroup].mUV * Value;
+            }
+        }};
+
+        if (!Collapse.mFixedTarget) {
+            std::array<double, 3> UVQuadric{};
+
+            if (!EvaluateLODUVError(Collapse, Geometry, UVError, &UVQuadric)) {
+                return false;
+            }
+
+            const float Value{Quadric.FindEdgeInterpolation(P0, P1, State.mQuadricOrigin, UVQuadric[1], UVQuadric[2])};
+
+            SetInterpolation(Value);
+        }
+
+        if ((State.mMaximumGeometryError > 0.0 && Candidate.mCost > State.mMaximumGeometryError) || !EvaluateLODUVError(Collapse, Geometry, UVError)) {
+            if (Collapse.mFixedTarget) {
+                return false;
+            }
+
+            SetInterpolation(Interpolation);
+
+            if (!EvaluateLODUVError(Collapse, Geometry, UVError)) {
+                return false;
+            }
+        }
+
+        Candidate.mCost += UVError;
+    }
+
+    return std::isfinite(Candidate.mCost);
 }
 
 bool UMesh::PrepareLODCollapse(const FLODCandidate& Candidate, const FLODGeometry& Geometry, const FLODSimplification& State, FLODCollapse& Collapse) const {
@@ -1061,6 +1137,183 @@ bool UMesh::PrepareLODCollapse(const FLODCandidate& Candidate, const FLODGeometr
     }
 
     return Collapse.mMergeCount != 0;
+}
+
+bool UMesh::EvaluateLODUVError(const FLODCollapse& Collapse, const FLODGeometry& Geometry, double& Error, std::array<double, 3>* UVQuadric) {
+    constexpr double MaximumStretch{2.0};
+    constexpr double MaximumDensityChange{4.0};
+    constexpr double ConstantUVToleranceSquared{1e-12};
+    const FEdge& Edge{Collapse.mEdge};
+
+    Error = 0.0;
+
+    if (UVQuadric != nullptr) {
+        *UVQuadric = {};
+    }
+
+    for (Uint32 Vertex : {Edge.V0, Edge.V1}) {
+        for (Uint32 Corner{Geometry.mFirstCorners[Vertex]}; Corner != UINT32_MAX; Corner = Geometry.mNextCorners[Corner]) {
+            const Uint32 First{Corner / 3 * 3};
+            const bool BHasV0{Geometry.mIndices[First] == Edge.V0 || Geometry.mIndices[First + 1] == Edge.V0 || Geometry.mIndices[First + 2] == Edge.V0};
+            const bool BHasV1{Geometry.mIndices[First] == Edge.V1 || Geometry.mIndices[First + 1] == Edge.V1 || Geometry.mIndices[First + 2] == Edge.V1};
+
+            if ((BHasV0 && BHasV1) || (Collapse.mFixedTarget && BHasV0)) {
+                continue;
+            }
+
+            std::array<FVector3, 3> SourcePositions{};
+            std::array<FVector3, 3> Positions{};
+            std::array<FVector2D, 3> SourceUVs{};
+            std::array<FVector2D, 3> UVs{};
+
+            for (Uint32 Offset{}; Offset < 3; ++Offset) {
+                const Uint32 RenderVertex{Geometry.mRenderIndices[First + Offset]};
+                const Uint32 GeometryVertex{Geometry.mIndices[First + Offset]};
+                const Uint32 Group{Geometry.mRenderGroups[RenderVertex]};
+
+                SourcePositions[Offset] = Geometry.mSourcePositions[RenderVertex];
+                SourceUVs[Offset] = Geometry.mSourceUVs[RenderVertex];
+                Positions[Offset] = GeometryVertex == Edge.V0 || GeometryVertex == Edge.V1 ? Edge.NewPosition : Geometry.mPositions[GeometryVertex];
+                UVs[Offset] = Geometry.mAttributeGroups[Group].mUV;
+
+                for (Uint32 MergeIndex{}; MergeIndex < Collapse.mMergeCount; ++MergeIndex) {
+                    const auto& Merge{Collapse.mAttributeMerges[MergeIndex]};
+
+                    if (Group == Merge.mKeepGroup || Group == Merge.mRemoveGroup) {
+                        UVs[Offset] = Merge.mUV;
+                        break;
+                    }
+                }
+            }
+
+            const FVector3 SourceEdge0{SourcePositions[1] - SourcePositions[0]};
+            const FVector3 SourceEdge1{SourcePositions[2] - SourcePositions[0]};
+            const FVector3 SourceNormal{SourceEdge0.Cross(SourceEdge1)};
+            const double SourceAreaSquared{SourceNormal.LengthSquared()};
+
+            if (SourceAreaSquared <= 0.0) {
+                continue;
+            }
+
+            const FVector2D SourceUVEdge0{SourceUVs[1] - SourceUVs[0]};
+            const FVector2D SourceUVEdge1{SourceUVs[2] - SourceUVs[0]};
+            const FVector3 Basis0{SourceEdge1.Cross(SourceNormal) / static_cast<float>(SourceAreaSquared)};
+            const FVector3 Basis1{SourceNormal.Cross(SourceEdge0) / static_cast<float>(SourceAreaSquared)};
+            const FVector3 GradientU{Basis0 * SourceUVEdge0.X + Basis1 * SourceUVEdge1.X};
+            const FVector3 GradientV{Basis0 * SourceUVEdge0.Y + Basis1 * SourceUVEdge1.Y};
+            const double GradientSquared{static_cast<double>(GradientU.LengthSquared()) + GradientV.LengthSquared()};
+
+            if (GradientSquared <= 0.0) {
+                if (UVQuadric != nullptr) {
+                    continue;
+                }
+
+                const double ToleranceSquared{ConstantUVToleranceSquared * (std::max)(1.0, static_cast<double>(SourceUVs[0].LengthSquared()))};
+
+                for (const FVector2D& UV : UVs) {
+                    if (static_cast<double>((UV - SourceUVs[0]).LengthSquared()) > ToleranceSquared) {
+                        return false;
+                    }
+                }
+
+                continue;
+            }
+
+            std::array<FVector2D, 3> ExpectedUVs{};
+
+            for (Uint32 Offset{}; Offset < 3; ++Offset) {
+                const FVector3 Displacement{Positions[Offset] - SourcePositions[0]};
+
+                ExpectedUVs[Offset] = {SourceUVs[0].X + GradientU.Dot(Displacement), SourceUVs[0].Y + GradientV.Dot(Displacement)};
+
+                if (Geometry.mIndices[First + Offset] == Edge.V0 || Geometry.mIndices[First + Offset] == Edge.V1) {
+                    const FVector2D Difference{UVs[Offset] - ExpectedUVs[Offset]};
+
+                    Error += static_cast<double>(Difference.LengthSquared()) / GradientSquared;
+
+                    if (UVQuadric != nullptr) {
+                        const Uint32 Group{Geometry.mRenderGroups[Geometry.mRenderIndices[First + Offset]]};
+
+                        for (Uint32 MergeIndex{}; MergeIndex < Collapse.mMergeCount; ++MergeIndex) {
+                            const auto& Merge{Collapse.mAttributeMerges[MergeIndex]};
+
+                            if (Group != Merge.mKeepGroup && Group != Merge.mRemoveGroup) {
+                                continue;
+                            }
+
+                            const FVector2D KeepUV{Geometry.mAttributeGroups[Merge.mKeepGroup].mUV};
+                            const FVector2D RemoveUV{Geometry.mAttributeGroups[Merge.mRemoveGroup].mUV};
+                            const FVector3 KeepDisplacement{Geometry.mPositions[Edge.V0] - SourcePositions[0]};
+                            const FVector3 Direction{Geometry.mPositions[Edge.V1] - Geometry.mPositions[Edge.V0]};
+                            const FVector2D Base{KeepUV.X - SourceUVs[0].X - GradientU.Dot(KeepDisplacement), KeepUV.Y - SourceUVs[0].Y - GradientV.Dot(KeepDisplacement)};
+                            const FVector2D Delta{RemoveUV.X - KeepUV.X - GradientU.Dot(Direction), RemoveUV.Y - KeepUV.Y - GradientV.Dot(Direction)};
+
+                            (*UVQuadric)[0] += static_cast<double>(Base.LengthSquared()) / GradientSquared;
+                            (*UVQuadric)[1] += 2.0 * (static_cast<double>(Base.X) * Delta.X + static_cast<double>(Base.Y) * Delta.Y) / GradientSquared;
+                            (*UVQuadric)[2] += static_cast<double>(Delta.LengthSquared()) / GradientSquared;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            if (UVQuadric != nullptr) {
+                continue;
+            }
+
+            const FVector2D UVEdge0{UVs[1] - UVs[0]};
+            const FVector2D UVEdge1{UVs[2] - UVs[0]};
+            const double SourceUVArea{static_cast<double>(SourceUVEdge0.X) * SourceUVEdge1.Y - static_cast<double>(SourceUVEdge0.Y) * SourceUVEdge1.X};
+            const double UVArea{static_cast<double>(UVEdge0.X) * UVEdge1.Y - static_cast<double>(UVEdge0.Y) * UVEdge1.X};
+
+            if (SourceUVArea == 0.0) {
+                continue;
+            }
+
+            const double AreaSquared{(Positions[1] - Positions[0]).Cross(Positions[2] - Positions[0]).LengthSquared()};
+            const double DensityChange{std::abs(UVArea / SourceUVArea) * std::sqrt(SourceAreaSquared / AreaSquared)};
+
+            if (!std::isfinite(DensityChange) || DensityChange < 1.0 / MaximumDensityChange || DensityChange > MaximumDensityChange) {
+                return false;
+            }
+
+            const FVector2D ExpectedEdge0{ExpectedUVs[1] - ExpectedUVs[0]};
+            const FVector2D ExpectedEdge1{ExpectedUVs[2] - ExpectedUVs[0]};
+            const double Determinant{static_cast<double>(ExpectedEdge0.X) * ExpectedEdge1.Y - static_cast<double>(ExpectedEdge0.Y) * ExpectedEdge1.X};
+
+            if (Determinant == 0.0) {
+                return false;
+            }
+
+            const double J00{(static_cast<double>(UVEdge0.X) * ExpectedEdge1.Y - static_cast<double>(UVEdge1.X) * ExpectedEdge0.Y) / Determinant};
+            const double J01{(static_cast<double>(UVEdge1.X) * ExpectedEdge0.X - static_cast<double>(UVEdge0.X) * ExpectedEdge1.X) / Determinant};
+            const double J10{(static_cast<double>(UVEdge0.Y) * ExpectedEdge1.Y - static_cast<double>(UVEdge1.Y) * ExpectedEdge0.Y) / Determinant};
+            const double J11{(static_cast<double>(UVEdge1.Y) * ExpectedEdge0.X - static_cast<double>(UVEdge0.Y) * ExpectedEdge1.X) / Determinant};
+            const double Trace{J00 * J00 + J01 * J01 + J10 * J10 + J11 * J11};
+            const double JDeterminant{J00 * J11 - J01 * J10};
+            const double Discriminant{std::sqrt((std::max)(0.0, Trace * Trace - 4.0 * JDeterminant * JDeterminant))};
+            const double MaximumScaleSquared{(Trace + Discriminant) * 0.5};
+            const double MinimumScaleSquared{MaximumScaleSquared > 0.0 ? JDeterminant * JDeterminant / MaximumScaleSquared : 0.0};
+
+            if (!std::isfinite(MaximumScaleSquared) || MaximumScaleSquared > MaximumStretch * MaximumStretch || MinimumScaleSquared < 1.0 / (MaximumStretch * MaximumStretch)) {
+                return false;
+            }
+        }
+    }
+
+    if (!std::isfinite(Error)) {
+        return false;
+    }
+
+    if (UVQuadric != nullptr) {
+        for (double Value : *UVQuadric) {
+            if (!std::isfinite(Value)) {
+                return false;
+            }
+        }
+    }
+
+    return true;
 }
 
 void UMesh::ApplyLODCollapse(const FLODCollapse& Collapse, FLODGeometry& Geometry, FLODSimplification& State) {

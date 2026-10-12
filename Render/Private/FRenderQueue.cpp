@@ -1,13 +1,16 @@
 #include "pch.h"
 #include "Render/FRenderQueue.h"
+#include "Render/FRenderScene.h"
 
 #include <algorithm>
 #include <cmath>
 
-void FRenderQueue::Build(std::span<const std::shared_ptr<const FMeshDrawCommand>> CachedCommands, std::span<const FVisibleMeshDrawCommand> VisibleCommands, bool RenderOpaque, bool RenderTranslucent) {
+void FRenderQueue::Build(std::span<const std::shared_ptr<const FMeshDrawCommand>> CachedCommands, std::span<const FVisibleMeshDrawCommand> VisibleCommands, bool RenderOpaque, bool RenderTranslucent, const FRenderScene* Scene) {
     mOpaqueCommands.clear();
     mTranslucentCommands.clear();
     mDrawRecords.clear();
+    mUVTransforms.clear();
+    mUVTransforms.push_back(FUVTransform{});
     mRecordDepths.clear();
 
     if ((!RenderOpaque && !RenderTranslucent) || CachedCommands.empty() || VisibleCommands.empty()) {
@@ -55,7 +58,22 @@ void FRenderQueue::Build(std::span<const std::shared_ptr<const FMeshDrawCommand>
         const FMeshDrawCommand& Command{*CachedCommands[Visible.mCommandIndex]};
         const Uint32 Destination{mBucketWritePositions[Visible.mCommandIndex]++};
 
-        mDrawRecords[Destination] = FMeshDrawRecord{Visible.mObjectIndex, Command.mMaterialIndex, Visible.mLODDither};
+        Uint32 UVIndex{};
+
+        if (Scene != nullptr && Visible.mObjectIndex < Scene->GetPrimitives().size()) {
+            const FPrimitiveSceneInfo& Primitive{Scene->GetPrimitives()[Visible.mObjectIndex]};
+
+            if (Primitive.mActive && Primitive.mProxy != nullptr) {
+                const FUVTransform Transform{Primitive.mProxy->GetUVTransform(Command.mMaterialGroupName)};
+
+                if (Transform.mScale.mX != 1.0f || Transform.mScale.mY != 1.0f || Transform.mOffset.mX != 0.0f || Transform.mOffset.mY != 0.0f) {
+                    UVIndex = static_cast<Uint32>(mUVTransforms.size());
+                    mUVTransforms.push_back(Transform);
+                }
+            }
+        }
+
+        mDrawRecords[Destination] = FMeshDrawRecord{Visible.mObjectIndex, Command.mMaterialIndex, Visible.mLODDither, UVIndex};
         mRecordDepths[Destination] = std::isfinite(Visible.mSortDepth) ? Visible.mSortDepth : 0.0f;
     }
 
@@ -101,6 +119,10 @@ const TArray<FMeshDrawCommandBatch>& FRenderQueue::GetCommands(ERenderPass Pass)
 
 const TArray<FMeshDrawRecord>& FRenderQueue::GetDrawRecords() const {
     return mDrawRecords;
+}
+
+const TArray<FUVTransform>& FRenderQueue::GetUVTransforms() const {
+    return mUVTransforms;
 }
 
 bool FRenderQueue::IsCommandEnabled(const FMeshDrawCommand& Command, bool RenderOpaque, bool RenderTranslucent) const {

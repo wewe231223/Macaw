@@ -25,6 +25,10 @@ public:
     void CreateRenderState() override;
     void DestroyRenderState() override;
     void SendRenderTransform() override;
+    void SendRenderDynamicData() override;
+    bool SetUVTransform(FName MaterialGroup, const FUVTransform& Transform, FObjectHandle SourceHandle = {});
+    void ClearUVTransform(FName MaterialGroup, FObjectHandle SourceHandle = {});
+    const TArray<FPrimitiveUVTransform>& GetUVTransforms() const;
     FPrimitiveTransform GetRenderTransform() const;
 
     void UpdateBounds();
@@ -46,6 +50,7 @@ public:
     void Serialize(FArchive& Archive) override;
 
 private:
+    TArray<FPrimitiveUVTransform> mUVTransforms{};
     bool mBVisible{true};
 
     DirectX::BoundingBox mLocalAABB{};

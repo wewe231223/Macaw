@@ -29,6 +29,10 @@ void UMaterial::Serialize(FArchive& Ar) {
     UAsset::Serialize(Ar);
 }
 
+FName UMaterial::GetGroupName(Uint32 GroupIndex) const {
+    return {};
+}
+
 Uint32 UMaterial::GetGPUDataCount() const {
     return 1;
 }

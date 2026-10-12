@@ -107,6 +107,15 @@ bool FFrameResource::PrepareView(ID3D11Device* Device, ID3D11DeviceContext* Cont
 
     mViews[mUsedViewCount - 1].mSceneId = Scene.GetId();
 
+    ID3D11ShaderResourceView* NullUVResource{nullptr};
+
+    Context->VSSetShaderResources(16, 1, &NullUVResource);
+    Context->PSSetShaderResources(16, 1, &NullUVResource);
+
+    if (!mViews[mUsedViewCount - 1].mUVTransforms.UploadNoOverwrite(Device, Context, Queue.GetUVTransforms())) {
+        return false;
+    }
+
     mViewReady = UploadViewConstants(Context, mViews[mUsedViewCount - 1].mViewConstants, View.mCamera, View.mTarget->GetViewport(), FVector4{}, mHasCameraWorld);
 
     return mViewReady;
@@ -147,7 +156,7 @@ bool FFrameResource::PrepareViewBuffers(ID3D11Device* Device, ID3D11DeviceContex
     if (mUsedViewCount == mViews.size()) {
         FViewBuffers Buffers{};
 
-        if (!InitializeConstantBuffer(Device, Buffers.mViewConstants, sizeof(FViewConstants)) || !InitializeConstantBuffer(Device, Buffers.mOrientationAxisConstants, sizeof(FViewConstants)) || !Buffers.mLights.Initialize(Device, Context, 16) || !Buffers.mDrawRecords.Initialize(Device, Context, 128) || !Buffers.mLocalTransforms.Initialize(Device, Context, 16)) {
+        if (!InitializeConstantBuffer(Device, Buffers.mViewConstants, sizeof(FViewConstants)) || !InitializeConstantBuffer(Device, Buffers.mOrientationAxisConstants, sizeof(FViewConstants)) || !Buffers.mLights.Initialize(Device, Context, 16) || !Buffers.mDrawRecords.Initialize(Device, Context, 128) || !Buffers.mLocalTransforms.Initialize(Device, Context, 16) || !Buffers.mUVTransforms.Initialize(Device, Context, 16)) {
             return false;
         }
 
@@ -211,6 +220,8 @@ bool FFrameResource::BindModels(ID3D11DeviceContext* Context) const {
     Context->PSSetShaderResources(0, 1, Buffers.mDrawRecords.GetSRV());
     Context->VSSetShaderResources(15, 1, Buffers.mSceneTransforms.GetAddressOf());
     Context->PSSetShaderResources(15, 1, Buffers.mSceneTransforms.GetAddressOf());
+    Context->VSSetShaderResources(16, 1, Buffers.mUVTransforms.GetSRV());
+    Context->PSSetShaderResources(16, 1, Buffers.mUVTransforms.GetSRV());
 
     ID3D11Buffer* DrawRecordIndexBuffer{mDrawRecordIndexBuffer.GetBuffer()};
     const UINT Stride{sizeof(Uint32)};

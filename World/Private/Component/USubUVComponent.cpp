@@ -1,142 +1,237 @@
 #include "pch.h"
 #include "World/Component/USubUVComponent.h"
-#include "CoreUObject/Asset/IAssetRegistry.h"
-#include "Asset/UTexture.h"
-#include "Asset/Pipeline/UPipeline.h"
 #include "World/AActor.h"
-#include "World/UWorld.h"
-#include "World/Subsystem/URenderSubsystem.h"
+
+#include <cmath>
+#include <limits>
 
 USubUVComponent::USubUVComponent() {
     SetCanEverTick(true);
     SetTickInEditor(true);
-    UpdateTickEnabled();
 }
 
-void USubUVComponent::UpdateTickEnabled() {
-    SetTickEnabled(IsActive() && mBPlaying && mTotalFrame > 1 && mFrameRate > 0.0f);
-}
-
-void USubUVComponent::SetSubImage(Int32 InHorizontal, Int32 InVertical, Int32 InTotalFrame, float InFrameRate, bool BInLooping) {
-    mSubImageHorizontal = InHorizontal;
-    mSubImageVertical = InVertical;
-    mTotalFrame = InTotalFrame;
-    mFrameRate = InFrameRate;
-    mBLooping = BInLooping;
-    UpdateTickEnabled();
-}
-
-void USubUVComponent::SetFrameRate(float InFrameRate) {
-    mFrameRate = InFrameRate;
-    UpdateTickEnabled();
-}
-
-void USubUVComponent::SetCurrentFrame(Int32 InFrame) {
-    mCurrentFrameIndex = InFrame;
-}
-
-void USubUVComponent::PlaySubUV() {
-    mBPlaying = true;
-    UpdateTickEnabled();
-}
-
-void USubUVComponent::PauseSubUV() {
-    mBPlaying = false;
-    UpdateTickEnabled();
-}
-
-void USubUVComponent::StopSubUV() {
-    mBPlaying = false;
-    SetCurrentFrame(0);
-    UpdateTickEnabled();
-}
-
-void USubUVComponent::RestartSubUV() {
-    mElapsedTime = 0.0f;
-    mCurrentFrameIndex = 0;
-    mBPlaying = true;
-    UpdateTickEnabled();
-}
-
-bool USubUVComponent::IsPlaying() const {
-    return mBPlaying;
-}
-
-bool USubUVComponent::IsLooping() const {
-    return mBLooping;
-}
-
-void USubUVComponent::UpdateUVFromCurrentFrame() {
-    if (mSubImageHorizontal <= 0 || mSubImageVertical <= 0) {
-        return;
+bool USubUVComponent::SetTargetComponent(UPrimitiveComponent* Target) {
+    if (Target != nullptr && (Target->IsBeingDestroyed() || Target->GetOwner() != GetOwner())) {
+        return false;
     }
 
-    const Int32 Col{mCurrentFrameIndex % mSubImageHorizontal};
-    const Int32 Row{mCurrentFrameIndex / mSubImageHorizontal};
-
-    const float UWidth{1.0f / static_cast<float>(mSubImageHorizontal)};
-    const float VHeight{1.0f / static_cast<float>(mSubImageVertical)};
-
-    FVector2 NewUVMin{FVector2{Col * UWidth, Row * VHeight}};
-    FVector2 NewUVMax{FVector2{(Col + 1) * UWidth, (Row + 1) * VHeight}};
-
-    UBillboardComponent::SetUV(NewUVMin, NewUVMax);
-}
-
-void USubUVComponent::TickComponent(float DeltaTime) {
-    UBillboardComponent::TickComponent(DeltaTime);
-
-    if (!mBPlaying || mTotalFrame <= 1 || mFrameRate <= 0.0f || DeltaTime <= 0.0f) {
-        return;
+    if (GetTargetComponent() != Target) {
+        ClearTargetTransform();
+        mTargetComponent.Set(Target);
+        mPendingTargetGuid = {};
     }
 
-    mElapsedTime += DeltaTime;
+    ApplyUVTransform();
+    UpdateTickEnabled();
+    return true;
+}
 
-    const Int32 TargetFrame{static_cast<Int32>(mElapsedTime * mFrameRate)};
+UPrimitiveComponent* USubUVComponent::GetTargetComponent() const {
+    return mTargetComponent.Get();
+}
 
-    if (mBLooping) {
-        mCurrentFrameIndex = TargetFrame % mTotalFrame;
-    } else {
-        mCurrentFrameIndex = std::min(TargetFrame, mTotalFrame - 1);
+void USubUVComponent::SetTargetMaterialGroup(FName MaterialGroup) {
+    if (mTargetMaterialGroup != MaterialGroup) {
+        ClearTargetTransform();
+        mTargetMaterialGroup = MaterialGroup;
+    }
 
-        if (TargetFrame >= mTotalFrame) {
-            mBPlaying = false;
-            UpdateTickEnabled();
+    ApplyUVTransform();
+}
+
+FName USubUVComponent::GetTargetMaterialGroup() const {
+    return mTargetMaterialGroup;
+}
+
+bool USubUVComponent::HasTargetConflict() const {
+    const UPrimitiveComponent* Target{GetTargetComponent()};
+
+    if (Target != nullptr) {
+        for (const FPrimitiveUVTransform& Entry : Target->GetUVTransforms()) {
+            if (Entry.mMaterialGroup == mTargetMaterialGroup && Entry.mSourceHandle.IsValid() && Entry.mSourceHandle != GetHandle() && UObjectSystem::Resolve(Entry.mSourceHandle) != nullptr) {
+                return true;
+            }
         }
     }
 
-    UpdateUVFromCurrentFrame();
+    return false;
+}
+
+void USubUVComponent::SetUVTransform(const FUVTransform& Transform) {
+    if (!std::isfinite(Transform.mScale.mX) || !std::isfinite(Transform.mScale.mY) || !std::isfinite(Transform.mOffset.mX) || !std::isfinite(Transform.mOffset.mY)) {
+        return;
+    }
+
+    mUVTransform = Transform;
+    ApplyUVTransform();
+}
+
+const FUVTransform& USubUVComponent::GetUVTransform() const {
+    return mUVTransform;
+}
+
+void USubUVComponent::UpdateUVTransform() {
+    SetUVTransform(CalculateUVTransform());
+}
+
+void USubUVComponent::Play() {
+    if (mElapsedTime >= GetDuration()) {
+        mElapsedTime = 0.0;
+    }
+
+    mPlaying = true;
+    UpdateUVTransform();
+    UpdateTickEnabled();
+}
+
+void USubUVComponent::Pause() {
+    mPlaying = false;
+    UpdateTickEnabled();
+}
+
+void USubUVComponent::Stop() {
+    mPlaying = false;
+    ResetPlaybackState();
+    SetElapsedTime(0.0);
+}
+
+void USubUVComponent::Restart() {
+    mPlaying = true;
+    ResetPlaybackState();
+    SetElapsedTime(0.0);
+}
+
+bool USubUVComponent::IsPlaying() const {
+    return mPlaying;
+}
+
+void USubUVComponent::SetLooping(bool Looping) {
+    mLooping = Looping;
+    SetElapsedTime(mElapsedTime);
+}
+
+bool USubUVComponent::IsLooping() const {
+    return mLooping;
+}
+
+void USubUVComponent::SetElapsedTime(double ElapsedTime) {
+    if (!std::isfinite(ElapsedTime) || ElapsedTime < 0.0) {
+        return;
+    }
+
+    const double Duration{GetDuration()};
+
+    mElapsedTime = std::isfinite(Duration) && Duration > 0.0 ? (mLooping ? std::fmod(ElapsedTime, Duration) : (std::min)(ElapsedTime, Duration)) : ElapsedTime;
+    UpdateUVTransform();
+    UpdateTickEnabled();
+}
+
+double USubUVComponent::GetElapsedTime() const {
+    return mElapsedTime;
+}
+
+void USubUVComponent::OnRegister() {
+    UActorComponent::OnRegister();
+    UpdateUVTransform();
+    UpdateTickEnabled();
+}
+
+void USubUVComponent::OnUnregister() {
+    ClearTargetTransform();
+    UActorComponent::OnUnregister();
+}
+
+void USubUVComponent::Activate() {
+    UActorComponent::Activate();
+    UpdateTickEnabled();
+}
+
+void USubUVComponent::TickComponent(float DeltaTime) {
+    UActorComponent::TickComponent(DeltaTime);
+
+    if (GetTargetComponent() == nullptr) {
+        UpdateTickEnabled();
+        return;
+    }
+
+    if (!IsActive() || !mPlaying || !CanAdvance() || !std::isfinite(DeltaTime) || DeltaTime <= 0.0f) {
+        return;
+    }
+
+    const double Duration{GetDuration()};
+    const double NextTime{mElapsedTime + DeltaTime};
+
+    if (!mLooping && std::isfinite(Duration) && NextTime >= Duration) {
+        mPlaying = false;
+    }
+
+    SetElapsedTime(NextTime);
+}
+
+bool USubUVComponent::ResolveLoadedReferences() {
+    if (!UActorComponent::ResolveLoadedReferences()) {
+        return false;
+    }
+
+    if (mPendingTargetGuid.IsValid()) {
+        UObject* Object{UObjectSystem::Resolve(UObjectSystem::FindHandleByGuid(mPendingTargetGuid))};
+
+        if (Object == nullptr || !Object->GetTypeInfo()->IsA(UPrimitiveComponent::StaticTypeInfo()) || !SetTargetComponent(static_cast<UPrimitiveComponent*>(Object))) {
+            return false;
+        }
+    }
+
+    return true;
 }
 
 void USubUVComponent::Serialize(FArchive& Archive) {
-    UBillboardComponent::Serialize(Archive);
-    Archive.Serialize("TotalFrame", mTotalFrame);
-    Archive.Serialize("SubImageHorizontal", mSubImageHorizontal);
-    Archive.Serialize("SubImageVertical", mSubImageVertical);
-    Archive.Serialize("FrameRate", mFrameRate);
-    Archive.Serialize("bLooping", mBLooping);
-    Archive.Serialize("bPlaying", mBPlaying);
+    UActorComponent::Serialize(Archive);
+
+    FGuid TargetGuid{GetTargetComponent() != nullptr ? GetTargetComponent()->GetGuid() : FGuid{}};
+
+    Archive.Serialize("GuidTargetComponent", TargetGuid);
+    Archive.Serialize("TargetMaterialGroup", mTargetMaterialGroup);
+    Archive.Serialize("UVScale", mUVTransform.mScale);
+    Archive.Serialize("UVOffset", mUVTransform.mOffset);
+    Archive.Serialize("bPlaying", mPlaying);
+    Archive.Serialize("bLooping", mLooping);
 
     if (Archive.IsLoading()) {
-        mElapsedTime = 0.0f;
-        mCurrentFrameIndex = 0;
-        UpdateUVFromCurrentFrame();
+        ClearTargetTransform();
+        mTargetComponent.Reset();
+        mPendingTargetGuid = TargetGuid;
+        mElapsedTime = 0.0;
         UpdateTickEnabled();
     }
 }
 
-float USubUVComponent::GetFrameRate() const {
-    return mFrameRate;
+void USubUVComponent::UpdateTickEnabled() {
+    SetTickEnabled(IsActive() && mPlaying && CanAdvance() && GetTargetComponent() != nullptr);
 }
 
-Int32 USubUVComponent::GetSubImageHorizontal() const {
-    return mSubImageHorizontal;
+FUVTransform USubUVComponent::CalculateUVTransform() const {
+    return mUVTransform;
 }
 
-Int32 USubUVComponent::GetSubImageVertical() const {
-    return mSubImageVertical;
+bool USubUVComponent::CanAdvance() const {
+    return false;
 }
 
-Int32 USubUVComponent::GetTotalFrame() const {
-    return mTotalFrame;
+double USubUVComponent::GetDuration() const {
+    return std::numeric_limits<double>::infinity();
+}
+
+void USubUVComponent::ApplyUVTransform() {
+    if (UPrimitiveComponent* Target{GetTargetComponent()}; Target != nullptr && !Target->IsBeingDestroyed() && GetHandle().IsValid() && IsRegistered()) {
+        Target->SetUVTransform(mTargetMaterialGroup, mUVTransform, GetHandle());
+    }
+}
+
+void USubUVComponent::ResetPlaybackState() {
+}
+
+void USubUVComponent::ClearTargetTransform() {
+    if (UPrimitiveComponent* Target{GetTargetComponent()}) {
+        Target->ClearUVTransform(mTargetMaterialGroup, GetHandle());
+    }
 }

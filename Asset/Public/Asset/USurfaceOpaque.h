@@ -28,6 +28,7 @@ public:
     Uint32 GetGPUDataCount() const override;
     EMaterialBlendMode GetBlendMode(Uint32 GroupIndex = 0) const override;
     std::optional<Uint32> FindGroupIndex(FName Name) const override;
+    FName GetGroupName(Uint32 GroupIndex) const override;
 
     const TArray<FMaterialGroup>& GetGroups() const;
     bool ModifyGroup(Uint32 GroupIndex, const std::function<void(FMaterialGroup&)>& Modifier);

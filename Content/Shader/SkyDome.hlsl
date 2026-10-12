@@ -37,7 +37,7 @@ PS_INPUT mainVS(VS_INPUT Input, uint DrawRecordIndex : MODEL_INDEX)
 
     Output.Position = mul(WorldPosition, vp);
     Output.Normal = mul(Input.Normal, (float3x3)ModelContext.mWorld);
-    Output.UV = Input.UV;
+    Output.UV = ApplyUVTransform(Input.UV, ModelContext);
     Output.MaterialIndex = ModelContext.mMaterialIndex;
 
     Output.Position.z = Output.Position.w;

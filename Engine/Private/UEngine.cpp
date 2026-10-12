@@ -16,7 +16,8 @@
 #include "World/Component/USpotLightComponent.h"
 #include "World/Component/UBillboardComponent.h"
 #include "World/Component/UBillboardTextComponent.h"
-#include "World/Component/UScrollUVComponent.h"
+#include "World/Component/UUVScrollComponent.h"
+#include "World/Component/UFlipBookComponent.h"
 #include "World/Component/USubUVComponent.h"
 
 UEngine::UEngine() = default;
@@ -144,5 +145,6 @@ void UEngine::RegisterObjectTypes() {
     TypeRegistry::Register(UBillboardTextComponent::StaticTypeInfo());
     TypeRegistry::Register(UBillboardComponent::StaticTypeInfo());
     TypeRegistry::Register(USubUVComponent::StaticTypeInfo());
-    TypeRegistry::Register(UScrollUVComponent::StaticTypeInfo());
+    TypeRegistry::Register(UUVScrollComponent::StaticTypeInfo());
+    TypeRegistry::Register(UFlipBookComponent::StaticTypeInfo());
 }

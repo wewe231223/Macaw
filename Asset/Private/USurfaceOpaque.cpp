@@ -296,6 +296,10 @@ const TArray<FMaterialGroup>& USurfaceOpaque::GetGroups() const {
     return mGroups;
 }
 
+FName USurfaceOpaque::GetGroupName(Uint32 GroupIndex) const {
+    return GroupIndex < mGroups.size() ? mGroups[GroupIndex].mName : FName{};
+}
+
 bool USurfaceOpaque::ModifyGroup(Uint32 GroupIndex, const std::function<void(FMaterialGroup&)>& Modifier) {
     if (GroupIndex >= mGroups.size() || !Modifier) {
         return false;

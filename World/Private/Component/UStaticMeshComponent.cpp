@@ -109,7 +109,10 @@ std::unique_ptr<FPrimitiveSceneProxy> UStaticMeshComponent::CreateSceneProxy() c
         return nullptr;
     }
 
-    return std::make_unique<FStaticMeshSceneProxy>(GetHandle(), Owner->GetHandle(), GetRenderTransform(), FMeshSceneData{GetMeshHandle(), mMaterialHandle, mPipelineHandle});
+    std::unique_ptr<FStaticMeshSceneProxy> Proxy{std::make_unique<FStaticMeshSceneProxy>(GetHandle(), Owner->GetHandle(), GetRenderTransform(), FMeshSceneData{GetMeshHandle(), mMaterialHandle, mPipelineHandle})};
+
+    Proxy->SetUVTransforms(GetUVTransforms());
+    return Proxy;
 }
 
 void UStaticMeshComponent::Serialize(FArchive& Archive) {

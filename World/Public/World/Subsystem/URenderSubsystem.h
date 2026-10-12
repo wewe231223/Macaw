@@ -22,6 +22,8 @@ public:
 
     void AddPrimitive(std::unique_ptr<FPrimitiveSceneProxy> Proxy);
     void UpdatePrimitiveTransform(FObjectHandle ComponentHandle, const FPrimitiveTransform& Transform);
+    void UpdateBillboardUV(FObjectHandle ComponentHandle, const FVector2& UVMin, const FVector2& UVMax);
+    void UpdatePrimitiveUV(FObjectHandle ComponentHandle, std::span<const FPrimitiveUVTransform> Transforms);
     void RemovePrimitive(FObjectHandle ComponentHandle);
 
     void AddLight(std::unique_ptr<FLightSceneProxy> Proxy);

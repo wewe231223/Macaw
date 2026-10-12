@@ -3,6 +3,9 @@
 #include "Core/CoreMinimal.h"
 #include "Core/Base/FAssetHandle.h"
 #include "CoreUObject/FObjectHandle.h"
+#include "RenderCore/FUVTransform.h"
+
+#include <span>
 
 class FStaticPrimitiveDrawInterface;
 class FDynamicPrimitiveDrawInterface;
@@ -37,9 +40,13 @@ public:
     virtual void DrawStaticElements(FStaticPrimitiveDrawInterface& DrawInterface) const;
     virtual void GetDynamicMeshElements(FDynamicPrimitiveDrawInterface& DrawInterface) const;
     void SetTransform(const FPrimitiveTransform& Transform);
+    virtual void SetBillboardUV(const FVector2& UVMin, const FVector2& UVMax);
+    void SetUVTransforms(std::span<const FPrimitiveUVTransform> Transforms);
+    FUVTransform GetUVTransform(FName MaterialGroup = {}) const;
 
 private:
     FObjectHandle mComponentHandle{};
     FObjectHandle mOwnerHandle{};
     FPrimitiveTransform mTransform{};
+    TArray<FPrimitiveUVTransform> mUVTransforms{};
 };

@@ -3,6 +3,7 @@
 #include "Render/FMeshDrawData.h"
 #include "Render/FRenderView.h"
 #include "Render/Buffer/TGraphicsArray.h"
+#include "RenderCore/FUVTransform.h"
 
 #include <array>
 
@@ -63,6 +64,7 @@ private:
         TGraphicsArray<FLightShaderParameters, true, true> mLights{};
 
         TGraphicsArray<FMeshDrawRecord, true, true> mDrawRecords{};
+        TGraphicsArray<FUVTransform, true, true> mUVTransforms{};
         TGraphicsArray<FMatrix, true, true> mLocalTransforms{};
         Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> mSceneTransforms{};
 

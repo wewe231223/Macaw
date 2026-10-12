@@ -102,7 +102,7 @@ FSceneRenderOutput FSceneRenderer::RenderView(const FRenderContext& Context, con
         const Stat::FScopedRenderPreparationStatTimer StageStat{Stat::ERenderPreparationStage::RenderQueue};
 
         SceneView.CollectMeshDrawCommands(Scene, mVisibleCommands);
-        mRenderQueue.Build(Scene.GetCachedMeshDrawCommands(), mVisibleCommands, SceneView.IsPassEnabled(ERenderPass::Opaque), SceneView.IsPassEnabled(ERenderPass::Translucent));
+        mRenderQueue.Build(Scene.GetCachedMeshDrawCommands(), mVisibleCommands, SceneView.IsPassEnabled(ERenderPass::Opaque), SceneView.IsPassEnabled(ERenderPass::Translucent), &Scene);
     }
 
     {

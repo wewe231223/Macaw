@@ -9,6 +9,7 @@ public:
 
 public:
     void GetDynamicMeshElements(FDynamicPrimitiveDrawInterface& DrawInterface) const override;
+    void SetBillboardUV(const FVector2& UVMin, const FVector2& UVMax) override;
 
 private:
     FBillboardDrawData mData{};

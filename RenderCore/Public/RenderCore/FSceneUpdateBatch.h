@@ -4,11 +4,18 @@
 #include "RenderCore/FLightSceneProxy.h"
 
 #include <memory>
+#include <optional>
 
 enum class ESceneUpdateType : Uint8 {
     Create,
     Transform,
-    Remove
+    Remove,
+    DynamicData
+};
+
+struct FBillboardUV {
+    FVector2 mUvMin{};
+    FVector2 mUvMax{};
 };
 
 struct FPrimitiveSceneUpdate {
@@ -16,6 +23,9 @@ struct FPrimitiveSceneUpdate {
     ESceneUpdateType mType{ESceneUpdateType::Remove};
     std::unique_ptr<FPrimitiveSceneProxy> mProxy{};
     FPrimitiveTransform mTransform{};
+    std::optional<FBillboardUV> mBillboardUV{};
+    TArray<FPrimitiveUVTransform> mUVTransforms{};
+    bool mUVTransformsChanged{};
 };
 
 struct FLightSceneUpdate {

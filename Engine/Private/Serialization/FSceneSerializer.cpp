@@ -7,10 +7,83 @@
 #include "Core/Console/Console.h"
 
 #include "World/Component/UMeshComponent.h"
+#include "World/Component/USubUVComponent.h"
 #include <unordered_map>
 #include <unordered_set>
 
 namespace {
+    bool MigrateUVComponents(rapidjson::Document& Document) {
+        rapidjson::Document::AllocatorType& Allocator{Document.GetAllocator()};
+
+        for (rapidjson::Value& Actor : Document["Actors"].GetArray()) {
+            if (!Actor.IsObject() || !Actor.HasMember("Components") || !Actor["Components"].IsArray()) {
+                return false;
+            }
+
+            rapidjson::Value Controllers{rapidjson::kArrayType};
+
+            for (rapidjson::Value& Component : Actor["Components"].GetArray()) {
+                if (!Component.IsObject() || !Component.HasMember("TypeName") || !Component["TypeName"].IsString()) {
+                    return false;
+                }
+
+                const std::string_view Type{Component["TypeName"].GetString()};
+                const bool FlipBook{Type == "USubUVComponent" && Component.HasMember("Transform")};
+                const bool Scroll{Type == "UScrollUVComponent"};
+
+                if (!FlipBook && !Scroll) {
+                    continue;
+                }
+
+                if (!Component.HasMember("Guid") || !Component["Guid"].IsString()) {
+                    return false;
+                }
+
+                rapidjson::Value Controller{rapidjson::kObjectType};
+                const FString Guid{FGuid::NewGuid().ToString()};
+
+                Controller.AddMember("TypeName", rapidjson::Value{FlipBook ? "UFlipBookComponent" : "UUVScrollComponent", Allocator}, Allocator);
+                Controller.AddMember("Guid", rapidjson::Value{Guid.c_str(), Allocator}, Allocator);
+                Controller.AddMember("GuidTargetComponent", rapidjson::Value{Component["Guid"], Allocator}, Allocator);
+
+                const char* Fields[]{"SubImageHorizontal", "SubImageVertical", "TotalFrame", "FrameRate", "ScrollSpeed", "bLooping", "bPlaying", "bActive"};
+
+                for (const char* Field : Fields) {
+                    if (Component.HasMember(Field)) {
+                        Controller.AddMember(rapidjson::Value{Field, Allocator}, rapidjson::Value{Component[Field], Allocator}, Allocator);
+                    }
+                }
+
+                Controllers.PushBack(Controller, Allocator);
+                Component["TypeName"].SetString("UBillboardComponent", Allocator);
+
+                rapidjson::Value Minimum{rapidjson::kArrayType};
+                rapidjson::Value Maximum{rapidjson::kArrayType};
+
+                Minimum.PushBack(0.0f, Allocator).PushBack(0.0f, Allocator);
+                Maximum.PushBack(1.0f, Allocator).PushBack(1.0f, Allocator);
+
+                if (Component.HasMember("UVMin")) {
+                    Component["UVMin"] = Minimum;
+                } else {
+                    Component.AddMember("UVMin", Minimum, Allocator);
+                }
+
+                if (Component.HasMember("UVMax")) {
+                    Component["UVMax"] = Maximum;
+                } else {
+                    Component.AddMember("UVMax", Maximum, Allocator);
+                }
+            }
+
+            for (rapidjson::Value& Controller : Controllers.GetArray()) {
+                Actor["Components"].PushBack(Controller, Allocator);
+            }
+        }
+
+        return true;
+    }
+
     struct FSceneObject {
         const FTypeInfo* mType{};
         FGuid mOwner{};
@@ -119,12 +192,17 @@ namespace {
 
                 FGuid ParentGuid{};
                 FGuid MeshGuid{};
+                FGuid TargetGuid{};
 
                 if (!ValidateReference(Component, "Parent", USceneComponent::StaticTypeInfo(), Objects, ParentGuid) || !ValidateReference(Component, "GuidMeshComponent", UMeshComponent::StaticTypeInfo(), Objects, MeshGuid)) {
                     return false;
                 }
 
                 Objects.at(Guid).mParent = ParentGuid;
+
+                if (Objects.at(Guid).mType->IsA(USubUVComponent::StaticTypeInfo()) && (!ValidateReference(Component, "GuidTargetComponent", UPrimitiveComponent::StaticTypeInfo(), Objects, TargetGuid) || (TargetGuid.IsValid() && Objects.at(TargetGuid).mOwner != ActorGuid))) {
+                    return false;
+                }
             }
         }
 
@@ -189,7 +267,7 @@ namespace {
         }
 
         const auto RemapObject{[&Document, &RemappedGuids](rapidjson::Value& Object) {
-            const char* Fields[]{"Guid", "GuidRootComponent", "Parent", "GuidMeshComponent"};
+            const char* Fields[]{"Guid", "GuidRootComponent", "Parent", "GuidMeshComponent", "GuidTargetComponent"};
 
             for (const char* Field : Fields) {
                 const auto Member{Object.FindMember(Field)};
@@ -309,7 +387,7 @@ bool FSceneSerializer::LoadInternal(UWorld& World, const std::filesystem::path& 
         return false;
     }
 
-    if (!ValidateScene(LoadDocument)) {
+    if (!MigrateUVComponents(LoadDocument) || !ValidateScene(LoadDocument)) {
         return false;
     }
 

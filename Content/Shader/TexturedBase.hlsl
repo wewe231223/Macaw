@@ -57,7 +57,7 @@ PS_INPUT mainVS(VS_INPUT Input, uint DrawRecordIndex : MODEL_INDEX) {
     float4 WorldPosition = mul(float4(Input.Position, 1.0f), ModelContext.mWorld);
     Output.Position = mul(WorldPosition, ViewProjection);
     Output.Normal = mul(Input.Normal, (float3x3) ModelContext.mWorld);
-    Output.UV = Input.UV;
+    Output.UV = ApplyUVTransform(Input.UV, ModelContext);
     Output.WorldPosition = WorldPosition.xyz;
     Output.MaterialIndex = ModelContext.mMaterialIndex;
     Output.LODDither = ModelContext.mLODDither;

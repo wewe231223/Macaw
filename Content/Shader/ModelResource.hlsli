@@ -5,7 +5,7 @@ struct FMeshDrawRecord {
     uint mObjectIndex;
     uint mMaterialIndex;
     float mLODDither;
-    uint mPadding;
+    uint mUVTransformIndex;
 };
 
 struct FObjectTransform {
@@ -16,21 +16,31 @@ struct FModelContext {
     row_major float4x4 mWorld;
     uint mMaterialIndex;
     float mLODDither;
+    float4 mUVTransform;
 };
 
 StructuredBuffer<FMeshDrawRecord> DrawRecords : register(t0);
 StructuredBuffer<FObjectTransform> ObjectTransforms : register(t15);
+StructuredBuffer<float4> UVTransforms : register(t16);
 
 FModelContext GetModelContext(uint DrawRecordIndex) {
     const FMeshDrawRecord Record = {DrawRecords[DrawRecordIndex]};
-    FModelContext Result = {(float4x4)0.0f, 0u, 0.0f};
+    FModelContext Result = {(float4x4)0.0f, 0u, 0.0f, float4(1.0f, 1.0f, 0.0f, 0.0f)};
 
     Result.mWorld = ObjectTransforms[Record.mObjectIndex].mWorld;
 
     Result.mMaterialIndex = Record.mMaterialIndex;
     Result.mLODDither = Record.mLODDither;
 
+    if (Record.mUVTransformIndex != 0u) {
+        Result.mUVTransform = UVTransforms[Record.mUVTransformIndex];
+    }
+
     return Result;
+}
+
+float2 ApplyUVTransform(float2 UV, FModelContext Model) {
+    return UV * Model.mUVTransform.xy + Model.mUVTransform.zw;
 }
 
 // Both LODs use the same screen-space pattern with complementary tests.

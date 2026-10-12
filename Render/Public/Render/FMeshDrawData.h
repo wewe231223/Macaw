@@ -6,7 +6,7 @@ struct FMeshDrawRecord {
     Uint32 mObjectIndex{};
     Uint32 mMaterialIndex{};
     float mLODDither{};
-    Uint32 mPadding{};
+    Uint32 mUVTransformIndex{};
 };
 
 static_assert(sizeof(FMeshDrawRecord) == 16);

@@ -32,6 +32,7 @@ public:
     virtual EMaterialBlendMode GetBlendMode(Uint32 GroupIndex = 0) const;
 
     virtual std::optional<Uint32> FindGroupIndex(FName Name) const;
+    virtual FName GetGroupName(Uint32 GroupIndex) const;
 
     void MarkGPUDataDirty();
     Uint64 GetRenderRevision() const;

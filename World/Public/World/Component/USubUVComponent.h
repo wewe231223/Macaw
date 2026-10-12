@@ -1,54 +1,55 @@
 #pragma once
-#include "World/Component/UBillboardComponent.h"
-#include "Core/Base/FAssetHandle.h"
-#include "RenderCore/FRenderData.h"
-#include "Core/Archive/FArchive.h"
+#include "World/Component/UActorComponent.h"
+#include "World/Component/UPrimitiveComponent.h"
+#include "CoreUObject/TObjectRef.h"
 
-class USubUVComponent : public UBillboardComponent {
+class USubUVComponent : public UActorComponent {
 public:
     USubUVComponent();
     ~USubUVComponent() override = default;
 
 public:
-    JG_DECLARE_DERIVED_TYPEINFO(USubUVComponent, UBillboardComponent);
+    JG_DECLARE_DERIVED_TYPEINFO(USubUVComponent, UActorComponent);
 
-    // SubUV
-    void SetSubImage(Int32 InHorizontal, Int32 InVertical, Int32 InTotalFrame, float InFrameRate, bool BInLooping);
-    void SetFrameRate(float InFrameRate);
-    void SetCurrentFrame(Int32 InFrame);
-
-    void PlaySubUV();
-    void PauseSubUV();
-    void StopSubUV();
-    void RestartSubUV();
-
-    float GetFrameRate() const;
-    Int32 GetSubImageHorizontal() const;
-    Int32 GetSubImageVertical() const;
-    Int32 GetTotalFrame() const;
-
+    bool SetTargetComponent(UPrimitiveComponent* Target);
+    UPrimitiveComponent* GetTargetComponent() const;
+    void SetTargetMaterialGroup(FName MaterialGroup);
+    FName GetTargetMaterialGroup() const;
+    bool HasTargetConflict() const;
+    void SetUVTransform(const FUVTransform& Transform);
+    const FUVTransform& GetUVTransform() const;
+    void UpdateUVTransform();
+    void Play();
+    void Pause();
+    void Stop();
+    void Restart();
     bool IsPlaying() const;
+    void SetLooping(bool Looping);
     bool IsLooping() const;
-
-    void UpdateUVFromCurrentFrame();
-
-    /// <summary>경과 시간에 따라 스프라이트 시트의 재생 프레임과 UV를 갱신합니다.</summary>
+    void SetElapsedTime(double ElapsedTime);
+    double GetElapsedTime() const;
+    void OnRegister() override;
+    void OnUnregister() override;
+    void Activate() override;
     void TickComponent(float DeltaTime) override;
-
-protected:
+    bool ResolveLoadedReferences() override;
     void Serialize(FArchive& Archive) override;
-
-private:
     void UpdateTickEnabled();
 
 private:
-    Int32 mSubImageHorizontal{1};
-    Int32 mSubImageVertical{1};
-    Int32 mTotalFrame{1};
-    float mFrameRate{30.0f};
-    bool mBLooping{true};
-    bool mBPlaying{true};
+    virtual FUVTransform CalculateUVTransform() const;
+    virtual bool CanAdvance() const;
+    virtual double GetDuration() const;
+    virtual void ResetPlaybackState();
+    void ApplyUVTransform();
+    void ClearTargetTransform();
 
-    float mElapsedTime{0.0f};
-    Int32 mCurrentFrameIndex{0};
+private:
+    TObjectRef<UPrimitiveComponent> mTargetComponent{};
+    FGuid mPendingTargetGuid{};
+    FName mTargetMaterialGroup{};
+    FUVTransform mUVTransform{};
+    double mElapsedTime{};
+    bool mPlaying{true};
+    bool mLooping{true};
 };

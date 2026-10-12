@@ -92,6 +92,59 @@ FPrimitiveTransform UPrimitiveComponent::GetRenderTransform() const {
     return FPrimitiveTransform{GetComponentToWorld(), GetWorldSphere(), GetWorldOBB(), GetWorldAABB()};
 }
 
+void UPrimitiveComponent::SendRenderDynamicData() {
+    UWorld* World{GetBelongingWorld()};
+
+    if (World != nullptr && IsRenderStateCreated()) {
+        World->GetRenderSubsystem().UpdatePrimitiveUV(GetHandle(), mUVTransforms);
+    }
+}
+
+bool UPrimitiveComponent::SetUVTransform(FName MaterialGroup, const FUVTransform& Transform, FObjectHandle SourceHandle) {
+    if (!std::isfinite(Transform.mScale.mX) || !std::isfinite(Transform.mScale.mY) || !std::isfinite(Transform.mOffset.mX) || !std::isfinite(Transform.mOffset.mY)) {
+        return false;
+    }
+
+    for (FPrimitiveUVTransform& Entry : mUVTransforms) {
+        if (Entry.mMaterialGroup != MaterialGroup) {
+            continue;
+        }
+
+        if (Entry.mSourceHandle.IsValid() && Entry.mSourceHandle != SourceHandle && UObjectSystem::Resolve(Entry.mSourceHandle) != nullptr) {
+            return false;
+        }
+
+        if (Entry.mTransform.mScale.mX == Transform.mScale.mX && Entry.mTransform.mScale.mY == Transform.mScale.mY && Entry.mTransform.mOffset.mX == Transform.mOffset.mX && Entry.mTransform.mOffset.mY == Transform.mOffset.mY && Entry.mSourceHandle == SourceHandle) {
+            return true;
+        }
+
+        Entry.mTransform = Transform;
+        Entry.mSourceHandle = SourceHandle;
+        MarkRenderDynamicDataDirty();
+        return true;
+    }
+
+    mUVTransforms.push_back(FPrimitiveUVTransform{MaterialGroup, Transform, SourceHandle});
+    MarkRenderDynamicDataDirty();
+    return true;
+}
+
+void UPrimitiveComponent::ClearUVTransform(FName MaterialGroup, FObjectHandle SourceHandle) {
+    const std::size_t PreviousCount{mUVTransforms.size()};
+
+    std::erase_if(mUVTransforms, [MaterialGroup, SourceHandle](const FPrimitiveUVTransform& Entry) {
+        return Entry.mMaterialGroup == MaterialGroup && Entry.mSourceHandle == SourceHandle;
+    });
+
+    if (PreviousCount != mUVTransforms.size()) {
+        MarkRenderDynamicDataDirty();
+    }
+}
+
+const TArray<FPrimitiveUVTransform>& UPrimitiveComponent::GetUVTransforms() const {
+    return mUVTransforms;
+}
+
 void UPrimitiveComponent::UpdateBounds() {
     const DirectX::XMMATRIX WorldMatrix{GetComponentToWorld().ToSimpleMath()};
 

@@ -47,6 +47,7 @@ void FMeshPassProcessor::AddMeshBatch(const FMeshBatch& Mesh, TArray<Uint32>& Ou
 
             NewCommand->mState = State;
             NewCommand->mMaterialIndex = MaterialIndex;
+            NewCommand->mMaterialGroupName = Material->GetGroupName(State.mMaterialGroupIndex);
             NewCommand->mPass = mPass;
 
             if (!BuildShaderBindings(Mesh, *NewCommand)) {

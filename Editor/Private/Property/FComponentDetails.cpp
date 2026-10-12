@@ -18,7 +18,8 @@
 #include "World/Component/UMeshComponent.h"
 #include "World/Component/UPrimitiveComponent.h"
 #include "World/Component/USceneComponent.h"
-#include "World/Component/UScrollUVComponent.h"
+#include "World/Component/UUVScrollComponent.h"
+#include "World/Component/UFlipBookComponent.h"
 #include "World/Component/USpotLightComponent.h"
 #include "World/Component/UStaticMeshComponent.h"
 #include "World/Component/USubUVComponent.h"
@@ -39,8 +40,13 @@ void FComponentDetails::Draw(UActorComponent& Component, IPropertyEditorContext&
         return;
     }
 
-    if (Component.GetTypeInfo()->IsA(UScrollUVComponent::StaticTypeInfo())) {
-        DrawScrollUVComponent(static_cast<UScrollUVComponent&>(Component), Context);
+    if (Component.GetTypeInfo()->IsA(UUVScrollComponent::StaticTypeInfo())) {
+        DrawUVScrollComponent(static_cast<UUVScrollComponent&>(Component), Context);
+        return;
+    }
+
+    if (Component.GetTypeInfo()->IsA(UFlipBookComponent::StaticTypeInfo())) {
+        DrawFlipBookComponent(static_cast<UFlipBookComponent&>(Component), Context);
         return;
     }
 
@@ -319,8 +325,8 @@ void FComponentDetails::DrawSceneComponent(USceneComponent& Component, IProperty
     });
 }
 
-void FComponentDetails::DrawScrollUVComponent(UScrollUVComponent& Component, IPropertyEditorContext& Context) {
-    DrawBillboardComponent(Component, Context);
+void FComponentDetails::DrawUVScrollComponent(UUVScrollComponent& Component, IPropertyEditorContext& Context) {
+    DrawSubUVComponent(Component, Context);
 
     Context.DrawVector2("ScrollSpeed", Component.GetScrollSpeed(), 0.01f, -5.0f, 5.0f, [&Component](FVector2 NewSpeed) {
         Component.SetScrollSpeed(NewSpeed);
@@ -386,13 +392,113 @@ void FComponentDetails::DrawStaticMeshComponent(UStaticMeshComponent& Component,
 }
 
 void FComponentDetails::DrawSubUVComponent(USubUVComponent& Component, IPropertyEditorContext& Context) {
-    DrawBillboardComponent(Component, Context);
+    DrawActorComponent(Component, Context);
+
+    UPrimitiveComponent* Target{Component.GetTargetComponent()};
+    AActor* Owner{Component.GetOwner()};
+    std::vector<FPropertyReferenceOption> Targets{};
+
+    if (Owner != nullptr) {
+        for (const std::unique_ptr<UActorComponent>& Candidate : Owner->GetComponents()) {
+            if (!Candidate->IsBeingDestroyed() && (Candidate->GetTypeInfo()->IsA(UStaticMeshComponent::StaticTypeInfo()) || Candidate->GetTypeInfo()->IsA(UBillboardComponent::StaticTypeInfo()))) {
+                UPrimitiveComponent* Primitive{static_cast<UPrimitiveComponent*>(Candidate.get())};
+
+                Targets.push_back(FPropertyReferenceOption{Primitive, Primitive->GetName().ToString(), Primitive == Target, [&Component, Primitive] {
+                    Component.SetTargetComponent(Primitive);
+                }});
+            }
+        }
+    }
+
+    const FString TargetName{Target != nullptr ? Target->GetName().ToString() : "None"};
+
+    Context.DrawReferencePicker("Target component", TargetName.c_str(), Target == nullptr, [&Component] {
+        Component.SetTargetComponent(nullptr);
+    }, Targets);
+
+    const UMaterial* Material{nullptr};
+    const IAssetRegistry* Registry{Owner != nullptr && Owner->GetWorld() != nullptr ? Owner->GetWorld()->GetAssetRegistry() : nullptr};
+
+    if (Target != nullptr && Registry != nullptr && Target->GetTypeInfo()->IsA(UStaticMeshComponent::StaticTypeInfo())) {
+        Material = Registry->ResolveAsset<UMaterial>(static_cast<UStaticMeshComponent*>(Target)->GetMaterialHandle());
+    }
+
+    std::vector<FPropertyReferenceOption> Groups{};
+    const FName CurrentGroup{Component.GetTargetMaterialGroup()};
+
+    if (Material != nullptr) {
+        for (Uint32 Index{}; Index < Material->GetGPUDataCount(); ++Index) {
+            const FName Group{Material->GetGroupName(Index)};
+
+            if (!Group.IsNone()) {
+                Groups.push_back(FPropertyReferenceOption{reinterpret_cast<const void*>(static_cast<std::uintptr_t>(Index) + 1), Group.ToString(), Group == CurrentGroup, [&Component, Group] {
+                    Component.SetTargetMaterialGroup(Group);
+                }});
+            }
+        }
+    }
+
+    const FString GroupName{CurrentGroup.IsNone() ? "All material groups" : CurrentGroup.ToString()};
+
+    Context.DrawReferencePicker("Material group", GroupName.c_str(), CurrentGroup.IsNone(), [&Component] {
+        Component.SetTargetMaterialGroup({});
+    }, Groups);
+
+    if (CurrentGroup.IsNone()) {
+        Context.DrawDisabledText("Applies to all material groups.");
+    }
+
+    if (Component.HasTargetConflict()) {
+        Context.DrawDisabledText("This material group is already controlled by another UV component.");
+    }
+
+    Context.DrawBool("Looping", Component.IsLooping(), [&Component](bool Looping) {
+        Component.SetLooping(Looping);
+    });
+
+    Context.DrawButton(Component.IsPlaying() ? "Pause" : "Play", [&Component] {
+        if (Component.IsPlaying()) {
+            Component.Pause();
+        } else {
+            Component.Play();
+        }
+    });
+
+    Context.DrawButton("Stop", [&Component] {
+        Component.Stop();
+    });
+
+    Context.DrawButton("Restart", [&Component] {
+        Component.Restart();
+    });
+
+    if (Component.GetTypeInfo()->IsExactlyA(USubUVComponent::StaticTypeInfo())) {
+        Context.DrawVector2("UV scale", Component.GetUVTransform().mScale, 0.01f, -100.0f, 100.0f, [&Component](const FVector2& Scale) {
+            Component.SetUVTransform(FUVTransform{Scale, Component.GetUVTransform().mOffset});
+        });
+
+        Context.DrawVector2("UV offset", Component.GetUVTransform().mOffset, 0.01f, -100.0f, 100.0f, [&Component](const FVector2& Offset) {
+            Component.SetUVTransform(FUVTransform{Component.GetUVTransform().mScale, Offset});
+        });
+    }
+}
+
+void FComponentDetails::DrawFlipBookComponent(UFlipBookComponent& Component, IPropertyEditorContext& Context) {
+    DrawSubUVComponent(Component, Context);
 
     Context.DrawFloat("FrameRate", Component.GetFrameRate(), 1.0f, 0.0f, 240.0f, [&Component](float NewRate) {
         Component.SetFrameRate(NewRate);
     });
 
-    Context.DrawVector2("SubImage", FVector2{static_cast<float>(Component.GetSubImageHorizontal()), static_cast<float>(Component.GetSubImageVertical())}, 1.0f, 1.0f, 100.0f, [&Component](const FVector2& NewValue) {
-        Component.SetSubImage(static_cast<Int32>(NewValue.mX), static_cast<Int32>(NewValue.mY), Component.GetTotalFrame(), Component.GetFrameRate(), Component.IsLooping());
+    Context.DrawVector2("SubImage", FVector2{static_cast<float>(Component.GetColumns()), static_cast<float>(Component.GetRows())}, 1.0f, 1.0f, 100.0f, [&Component](const FVector2& NewValue) {
+        Component.SetSubImage(static_cast<Int32>(NewValue.mX), static_cast<Int32>(NewValue.mY), Component.GetTotalFrames(), Component.GetFrameRate(), Component.IsLooping());
+    });
+
+    Context.DrawFloat("Total frames", static_cast<float>(Component.GetTotalFrames()), 1.0f, 1.0f, static_cast<float>(static_cast<Int64>(Component.GetColumns()) * Component.GetRows()), [&Component](float Frames) {
+        Component.SetSubImage(Component.GetColumns(), Component.GetRows(), static_cast<Int32>(Frames), Component.GetFrameRate(), Component.IsLooping());
+    });
+
+    Context.DrawFloat("Current frame", static_cast<float>(Component.GetCurrentFrame()), 1.0f, 0.0f, static_cast<float>(Component.GetTotalFrames() - 1), [&Component](float Frame) {
+        Component.SetCurrentFrame(static_cast<Int32>(Frame));
     });
 }

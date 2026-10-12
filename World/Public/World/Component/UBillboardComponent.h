@@ -35,6 +35,7 @@ public:
     bool ShouldCreateRenderState() const override;
     std::unique_ptr<FPrimitiveSceneProxy> CreateSceneProxy() const override;
     void SendRenderTransform() override;
+    void SendRenderDynamicData() override;
 
 protected:
     //Billboard를 현재 프레임에 렌더할 수 있는지 검사한다.

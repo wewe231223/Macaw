@@ -41,10 +41,12 @@ public:
     virtual void CreateRenderState();
     virtual void DestroyRenderState();
     virtual void SendRenderTransform();
+    virtual void SendRenderDynamicData();
 
     bool IsRenderStateCreated() const;
     void MarkRenderStateDirty();
     void MarkRenderTransformDirty();
+    void MarkRenderDynamicDataDirty();
     void DoDeferredRenderUpdates();
 
     bool IsActive() const;
@@ -124,4 +126,5 @@ private:
     bool mRenderStateCreated{};
     bool mRenderStateDirty{};
     bool mRenderTransformDirty{};
+    bool mRenderDynamicDataDirty{};
 };

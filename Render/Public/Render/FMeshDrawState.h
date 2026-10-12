@@ -17,6 +17,7 @@ struct FMeshDrawState {
     Uint32 mIndexCount{};
     Uint32 mLODLevel{};
     Uint32 mOriginalIndexCount{};
+    Uint32 mMaterialGroupIndex{};
 };
 
 bool BuildMeshDrawState(const FMeshBatch& Mesh, const FMeshBatchElement& Element, const IAssetRegistry& Registry, const FMaterialBuffer& Materials, FMeshDrawState& OutState, Uint32& OutMaterialIndex);

@@ -28,6 +28,7 @@ bool BuildMeshDrawState(const FMeshBatch& Mesh, const FMeshBatchElement& Element
     OutState.mIndexCount = Element.mIndexCount;
     OutState.mLODLevel = Mesh.mLODLevel;
     OutState.mOriginalIndexCount = Element.mOriginalIndexCount;
+    OutState.mMaterialGroupIndex = Group;
 
     return true;
 }

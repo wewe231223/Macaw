@@ -110,7 +110,7 @@ void UBillboardComponent::SetUV(const FVector2& InUVMin, const FVector2& InUVMax
 
     mUvMin = InUVMin;
     mUvMax = InUVMax;
-    MarkRenderStateDirty();
+    MarkRenderDynamicDataDirty();
 }
 
 void UBillboardComponent::SetColor(const FVector4& InColor) {
@@ -207,7 +207,10 @@ std::unique_ptr<FPrimitiveSceneProxy> UBillboardComponent::CreateSceneProxy() co
 
     Transform.mWorld = Data.mWorld;
 
-    return std::make_unique<FBillboardSceneProxy>(GetHandle(), Owner->GetHandle(), Transform, Data);
+    std::unique_ptr<FBillboardSceneProxy> Proxy{std::make_unique<FBillboardSceneProxy>(GetHandle(), Owner->GetHandle(), Transform, Data)};
+
+    Proxy->SetUVTransforms(GetUVTransforms());
+    return Proxy;
 }
 
 void UBillboardComponent::SendRenderTransform() {
@@ -215,5 +218,12 @@ void UBillboardComponent::SendRenderTransform() {
 
     if (GetBelongingWorld() != nullptr && IsRenderStateCreated() && TryGetBillBoardWorld(Transform.mWorld)) {
         GetBelongingWorld()->GetRenderSubsystem().UpdatePrimitiveTransform(GetHandle(), Transform);
+    }
+}
+
+void UBillboardComponent::SendRenderDynamicData() {
+    UPrimitiveComponent::SendRenderDynamicData();
+    if (GetBelongingWorld() != nullptr && IsRenderStateCreated()) {
+        GetBelongingWorld()->GetRenderSubsystem().UpdateBillboardUV(GetHandle(), mUvMin, mUvMax);
     }
 }

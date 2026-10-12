@@ -124,10 +124,22 @@ void FRenderScene::ApplyPrimitiveUpdate(FPrimitiveSceneUpdate& Update) {
             RemoveObject(Position->second);
             mObjectLookup.erase(Position);
         }
-    } else if (Update.mType == ESceneUpdateType::Transform) {
+    } else if (Update.mType == ESceneUpdateType::Transform || Update.mType == ESceneUpdateType::DynamicData) {
         if (Position != mObjectLookup.end()) {
-            mObjects[Position->second].mProxy->SetTransform(Update.mTransform);
-            UpdateObjectTransform(Position->second, Update.mTransform);
+            FPrimitiveSceneProxy& Proxy{*mObjects[Position->second].mProxy};
+
+            if (Update.mType == ESceneUpdateType::Transform) {
+                Proxy.SetTransform(Update.mTransform);
+                UpdateObjectTransform(Position->second, Update.mTransform);
+            }
+
+            if (Update.mBillboardUV.has_value()) {
+                Proxy.SetBillboardUV(Update.mBillboardUV->mUvMin, Update.mBillboardUV->mUvMax);
+            }
+
+            if (Update.mUVTransformsChanged) {
+                Proxy.SetUVTransforms(Update.mUVTransforms);
+            }
         }
     } else if (Update.mProxy != nullptr && Update.mProxy->GetComponentHandle() == Update.mComponentHandle) {
         Uint32 ObjectIndex{UINT32_MAX};

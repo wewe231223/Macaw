@@ -88,28 +88,44 @@ void FPropertyPanel::DrawComponentList(AActor& Actor) {
         ImGui::Separator();
 
         if (ImGui::MenuItem("Scene Component"))
-            AddSceneComponent<USceneComponent>(Actor);
+            AddComponent<USceneComponent>(Actor);
 
         if (ImGui::MenuItem("Static Mesh Component"))
-            AddSceneComponent<UStaticMeshComponent>(Actor);
+            AddComponent<UStaticMeshComponent>(Actor);
 
         if (ImGui::MenuItem("Camera Component"))
-            AddSceneComponent<UCameraComponent>(Actor);
+            AddComponent<UCameraComponent>(Actor);
 
         if (ImGui::MenuItem("Directional Light Component"))
-            AddSceneComponent<UDirectionalLightComponent>(Actor);
+            AddComponent<UDirectionalLightComponent>(Actor);
 
         if (ImGui::MenuItem("Point Light Component"))
-            AddSceneComponent<UPointLightComponent>(Actor);
+            AddComponent<UPointLightComponent>(Actor);
 
         if (ImGui::MenuItem("Spot Light Component"))
-            AddSceneComponent<USpotLightComponent>(Actor);
+            AddComponent<USpotLightComponent>(Actor);
 
         if (ImGui::MenuItem("Box Collider Component"))
-            AddSceneComponent<UBoxColliderComponent>(Actor);
+            AddComponent<UBoxColliderComponent>(Actor);
 
         if (ImGui::MenuItem("Billboard Text Component"))
-            AddSceneComponent<UBillboardTextComponent>(Actor);
+            AddComponent<UBillboardTextComponent>(Actor);
+
+        if (ImGui::MenuItem("Billboard Component")) {
+            AddComponent<UBillboardComponent>(Actor);
+        }
+
+        if (ImGui::MenuItem("SubUV Component")) {
+            AddComponent<USubUVComponent>(Actor);
+        }
+
+        if (ImGui::MenuItem("FlipBook Component")) {
+            AddComponent<UFlipBookComponent>(Actor);
+        }
+
+        if (ImGui::MenuItem("UVScroll Component")) {
+            AddComponent<UUVScrollComponent>(Actor);
+        }
 
         ImGui::EndPopup();
     }
@@ -117,7 +133,7 @@ void FPropertyPanel::DrawComponentList(AActor& Actor) {
     ImGui::BeginChild("ComponentList", ImVec2(0.0f, 180.0f), true);
 
     for (const std::unique_ptr<UActorComponent>& Component : Actor.GetComponents()) {
-        auto* SceneComponent{static_cast<USceneComponent*>(Component.get())};
+        USceneComponent* SceneComponent{Component->GetTypeInfo()->IsA(USceneComponent::StaticTypeInfo()) ? static_cast<USceneComponent*>(Component.get()) : nullptr};
 
         if (SceneComponent == nullptr) {
             DrawComponentNode(*Component, ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen);
