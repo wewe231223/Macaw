@@ -1,18 +1,16 @@
 #pragma once
+#include "CoreUObject/Reflection/ReflectionMacros.h"
 
 #include "Core/Common.h"
 #include "Core/Base/FGuid.h"
 #include "Core/Base/FName.h"
 #include "CoreUObject/FObjectHandle.h"
-#include "CoreUObject/Reflection/ReflectionMacros.h"
 
-class UClass;
 class FReflectionRegistry;
 #include <cstddef>
 #include <new>
 #include <span>
 #include <type_traits>
-#include "CoreUObject/UObject.generated.h"
 
 class FArchive;
 class FPropertyValue;
@@ -29,10 +27,9 @@ namespace UObjectSystem {
     Uint32 GetItemCount();
 }
 
-UCLASS()
 class UObject {
 public:
-    GENERATED_TYPES(UObject)
+    ReflectTypes(UObject);
 
 public:
     UObject();
@@ -67,7 +64,7 @@ public:
     static void* operator new(std::size_t Size, std::align_val_t Alignment);
     static void operator delete(void* Ptr, std::align_val_t Alignment) noexcept;
 
-    GENERATED_BODY(UObject)
+    ReflectRootClass(UObject, EClassFlags::None);
     UClass* GetClass() const noexcept;
     bool IsClassDefaultObject() const noexcept;
     bool IsA(const UClass* Class) const noexcept;
@@ -96,18 +93,20 @@ private:
     friend void UObjectSystem::DetachInners(UObject* Object);
 
 private:
-    UPROPERTY(Name = "Class", Reference, ReadOnly, Transient)
+    ReflectReadOnlyProperty(mClass, "Class", EPropertyFlags::ReadOnly | EPropertyFlags::Transient | EPropertyFlags::Reference);
     UClass* mClass{};
     bool mClassDefaultObject{};
-    UPROPERTY(Name = "Guid", ReadOnly)
+    ReflectReadOnlyProperty(mGuid, "Guid", EPropertyFlags::ReadOnly);
     FGuid mGuid{};
     FObjectHandle mHandle{};
-    UPROPERTY(Name = "Name", ReadOnly)
+    ReflectReadOnlyProperty(mName, "Name", EPropertyFlags::ReadOnly);
     FName mName{};
-    UPROPERTY(Name = "Outer", Reference, ReadOnly, Transient)
+    ReflectReadOnlyProperty(mOuter, "Outer", EPropertyFlags::ReadOnly | EPropertyFlags::Transient | EPropertyFlags::Reference);
     UObject* mOuter{};
     TArray<UObject*> mInnerObjects{};
     bool mDestroying{};
+
+    ReflectMembers();
 };
 
 template <typename T>

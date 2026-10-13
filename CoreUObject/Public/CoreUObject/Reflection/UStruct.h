@@ -1,5 +1,7 @@
 #pragma once
 
+#include "CoreUObject/Reflection/ReflectionMacros.h"
+
 #include "CoreUObject/UObject.h"
 #include "CoreUObject/Reflection/FProperty.h"
 
@@ -13,7 +15,7 @@ public:
     ~UField() override = default;
 
 public:
-    static UClass* StaticClass();
+    ReflectClass(UField, EClassFlags::Metadata | EClassFlags::NoFactory);
     FName GetFieldName() const;
 
 private:
@@ -30,7 +32,7 @@ public:
     ~UStruct() override = default;
 
 public:
-    static UClass* StaticClass();
+    ReflectClass(UStruct, EClassFlags::Metadata | EClassFlags::NoFactory);
     UStruct* GetSuperStruct() const;
     void SetSuperStruct(UStruct* SuperStruct);
     bool IsChildOf(const UStruct* BaseStruct) const;
@@ -61,7 +63,7 @@ public:
     ~UScriptStruct() override = default;
 
 public:
-    static UClass* StaticClass();
+    ReflectClass(UScriptStruct, EClassFlags::Metadata | EClassFlags::NoFactory);
     const FNativeType* GetValueType() const;
 
 private:
@@ -78,7 +80,7 @@ public:
     ~UEnum() override = default;
 
 public:
-    static UClass* StaticClass();
+    ReflectClass(UEnum, EClassFlags::Metadata | EClassFlags::NoFactory);
     void AddValue(FName Name, Int64 Value);
     std::optional<Int64> FindValue(FName Name) const;
     FName FindName(Int64 Value) const;

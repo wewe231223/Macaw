@@ -1,20 +1,21 @@
 #pragma once
+#include "CoreUObject/Reflection/ReflectionMacros.h"
 #include "World/Component/UActorComponent.h"
 #include "World/Component/UPrimitiveComponent.h"
 #include "CoreUObject/TObjectRef.h"
-#include "World/Component/USubUVComponent.generated.h"
 
-UCLASS()
+class FProperty;
+
 class USubUVComponent : public UActorComponent {
 public:
-    GENERATED_TYPES(USubUVComponent)
+    ReflectTypes(USubUVComponent, UActorComponent);
 
 public:
     USubUVComponent();
     ~USubUVComponent() override = default;
 
 public:
-    GENERATED_BODY(USubUVComponent)
+    ReflectClass(USubUVComponent, EClassFlags::None);
 
     bool SetTargetComponent(UPrimitiveComponent* Target);
     UPrimitiveComponent* GetTargetComponent() const;
@@ -27,19 +28,19 @@ public:
     void SetUVTransform(const FUVTransform& Transform);
     const FUVTransform& GetUVTransform() const;
     void UpdateUVTransform();
-    UFUNCTION()
+    ReflectFunction(Play);
     void Play();
-    UFUNCTION()
+    ReflectFunction(Pause);
     void Pause();
-    UFUNCTION()
+    ReflectFunction(Stop);
     void Stop();
-    UFUNCTION()
+    ReflectFunction(Restart);
     void Restart();
-    UFUNCTION()
+    ReflectFunction(IsPlaying);
     bool IsPlaying() const;
-    UFUNCTION()
+    ReflectFunction(SetLooping, FName{"Looping"});
     void SetLooping(bool Looping);
-    UFUNCTION()
+    ReflectFunction(IsLooping);
     bool IsLooping() const;
     void SetElapsedTime(double ElapsedTime);
     double GetElapsedTime() const;
@@ -52,6 +53,7 @@ public:
     void UpdateTickEnabled();
 
 private:
+    static void SerializeTargetComponentProperty(void* Container, FArchive& Archive, const FProperty& Property);
     virtual FUVTransform CalculateUVTransform() const;
     virtual bool CanAdvance() const;
     virtual double GetDuration() const;
@@ -60,16 +62,18 @@ private:
     void ClearTargetTransform();
 
 private:
-    UPROPERTY(Edit, Serialize, Name = "GuidTargetComponent", DisplayName = "Target Component", Category = "UV Animation", Reference, OwnerOnly, Getter = GetTargetComponent, Setter = SetTargetComponent, ObjectFilter = CanSelectTarget, PendingGuid = mPendingTargetGuid)
+    ReflectAccessor(mTargetComponent, GetTargetComponent, SetTargetComponent, "GuidTargetComponent", EPropertyFlags::Edit | EPropertyFlags::Serialize | EPropertyFlags::Reference | EPropertyFlags::OwnerOnly, &SerializeTargetComponentProperty, ReflectEditor("UV Animation", "Target Component"), ReflectFilter(CanSelectTarget));
     TObjectRef<UPrimitiveComponent> mTargetComponent{};
     FGuid mPendingTargetGuid{};
-    UPROPERTY(Edit, Serialize, Name = "TargetMaterialGroup", DisplayName = "Material Group", Category = "UV Animation", Getter = GetTargetMaterialGroup, Setter = SetTargetMaterialGroup, OptionsGetter = GetTargetMaterialGroups)
+    ReflectAccessor(mTargetMaterialGroup, GetTargetMaterialGroup, SetTargetMaterialGroup, "TargetMaterialGroup", EPropertyFlags::Edit | EPropertyFlags::Serialize, ReflectSerializer(mTargetMaterialGroup), ReflectEditor("UV Animation", "Material Group"), ReflectOptions(GetTargetMaterialGroups));
     FName mTargetMaterialGroup{};
-    UPROPERTY(Edit, Serialize, Inline, Name = "UVTransform", DisplayName = "UV Transform", Category = "UV Animation", Getter = GetUVTransform, Setter = SetUVTransform, EditCondition = CanEditUVTransform)
+    ReflectAccessor(mUVTransform, GetUVTransform, SetUVTransform, "UVTransform", EPropertyFlags::Edit | EPropertyFlags::Serialize | EPropertyFlags::Inline, ReflectSerializer(mUVTransform), ReflectEditor("UV Animation", "UV Transform"), ReflectCondition(CanEditUVTransform));
     FUVTransform mUVTransform{};
     double mElapsedTime{};
-    UPROPERTY(Serialize, Name = "Playing", SerializeName = "bPlaying", Getter = IsPlaying, ReadOnly)
+    ReflectReadOnlyAccessor(mPlaying, IsPlaying, "Playing", EPropertyFlags::Serialize | EPropertyFlags::ReadOnly, ReflectSerializer(mPlaying), ReflectSerializationName("bPlaying"));
     bool mPlaying{true};
-    UPROPERTY(Edit, Serialize, Name = "Looping", SerializeName = "bLooping", DisplayName = "Looping", Category = "UV Animation", Getter = IsLooping, Setter = SetLooping)
+    ReflectAccessor(mLooping, IsLooping, SetLooping, "Looping", EPropertyFlags::Edit | EPropertyFlags::Serialize, ReflectSerializer(mLooping), ReflectEditor("UV Animation", "Looping"), ReflectSerializationName("bLooping"));
     bool mLooping{true};
+
+    ReflectMembers();
 };

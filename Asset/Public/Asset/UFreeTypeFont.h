@@ -1,23 +1,22 @@
 #pragma once
+#include "CoreUObject/Reflection/ReflectionMacros.h"
 #include "Core/STL.h"
 #include "CoreUObject/Reflection/UClass.h"
 #include "Asset/UFont.h"
 #include "Math/FMath.h"
 #include <ft2build.h>
 #include FT_FREETYPE_H
-#include "Asset/UFreeTypeFont.generated.h"
 
-UCLASS()
 class UFreeTypeFont : public UFont {
 public:
-    GENERATED_TYPES(UFreeTypeFont)
+    ReflectTypes(UFreeTypeFont, UFont);
 
 public:
     UFreeTypeFont();
     ~UFreeTypeFont() override;
 
 public:
-    GENERATED_BODY(UFreeTypeFont)
+    ReflectClass(UFreeTypeFont);
 
     bool Initialize(const std::filesystem::path& FontPath, Uint32 BakePixelHeight = 32, Uint32 AtlasWidth = 4096, Uint32 AtlasHeight = 4096);
     const FFontGlyph* GetOrCreateGlyph(char32_t CodePoint) override;

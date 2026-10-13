@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "CoreUObject/Reflection/UClass.h"
 #include "CoreUObject/Reflection/FReflectionRegistry.h"
 #include "CoreUObject/Reflection/UFunction.h"
 #include "CoreUObject/Reflection/NewObject.h"
@@ -19,10 +20,6 @@ UClass::UClass(FName ClassName, std::size_t Size, std::size_t Alignment, EClassF
 }
 
 UClass::~UClass() = default;
-
-UClass* UClass::StaticClass() {
-    return FReflectionRegistry::DefineClass(FName{"UClass"}, &UStruct::StaticClass, sizeof(UClass), alignof(UClass), EClassFlags::Metadata | EClassFlags::NoFactory, nullptr);
-}
 
 FName UClass::GetClassName() const {
     return GetFieldName();

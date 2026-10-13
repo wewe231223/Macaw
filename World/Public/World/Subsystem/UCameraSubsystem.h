@@ -1,20 +1,19 @@
 #pragma once
+#include "CoreUObject/Reflection/ReflectionMacros.h"
 #include "World/Subsystem/UWorldSubsystem.h"
 #include "World/Component/UCameraComponent.h"
-#include "World/Subsystem/UCameraSubsystem.generated.h"
 
 /// <summary>Maintains the World's active main camera.</summary>
-UCLASS()
 class UCameraSubsystem : public UWorldSubsystem {
 public:
-    GENERATED_TYPES(UCameraSubsystem)
+    ReflectTypes(UCameraSubsystem, UWorldSubsystem);
 
 public:
     UCameraSubsystem();
     ~UCameraSubsystem() override = default;
 
 public:
-    GENERATED_BODY(UCameraSubsystem)
+    ReflectClass(UCameraSubsystem);
 
     void SetMainCamera(UCameraComponent* Camera);
     void ClearMainCamera(UCameraComponent* Camera);

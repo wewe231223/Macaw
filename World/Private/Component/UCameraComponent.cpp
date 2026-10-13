@@ -92,5 +92,4 @@ float UCameraComponent::GetMoveSensitivity() const {
 void UCameraComponent::Serialize(FArchive& Archive) {
     Super::Serialize(Archive);
 
-
 }

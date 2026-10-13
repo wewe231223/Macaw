@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "CoreUObject/Reflection/UFunction.h"
+#include "CoreUObject/Reflection/UClass.h"
 #include "CoreUObject/Reflection/FReflectionRegistry.h"
 
 UFunction::UFunction(FName Name, UClass* Owner, FInvoker Invoker)
@@ -8,10 +9,6 @@ UFunction::UFunction(FName Name, UClass* Owner, FInvoker Invoker)
 	  mInvoker(Invoker) {
     InitializeClass(StaticClass());
     SetOuter(Owner);
-}
-
-UClass* UFunction::StaticClass() {
-    return FReflectionRegistry::DefineClass(FName{"UFunction"}, &UStruct::StaticClass, sizeof(UFunction), alignof(UFunction), EClassFlags::Metadata | EClassFlags::NoFactory, nullptr);
 }
 
 void UFunction::AddParameter(FName Name, const FNativeType* Type) {

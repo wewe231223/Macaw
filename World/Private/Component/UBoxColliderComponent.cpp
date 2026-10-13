@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "CoreUObject/Reflection/NativeSerialization.h"
 #include "CoreUObject/Reflection/UClass.h"
 #include "Core/Debug/ILineDrawContext.h"
 #include <cfloat>
@@ -165,4 +166,14 @@ void UBoxColliderComponent::SetBounds(const FBoxColliderBounds& Bounds) {
     mBounds = Bounds;
     mBounds.mExtent = FVector3{(std::max)(0.001f, Bounds.mExtent.mX), (std::max)(0.001f, Bounds.mExtent.mY), (std::max)(0.001f, Bounds.mExtent.mZ)};
     SetPickingBox(mBounds.ToNative());
+}
+
+void UBoxColliderComponent::SerializeMeshComponentProperty(void* Container, FArchive& Archive, const FProperty& Property) {
+    UBoxColliderComponent& Object{*static_cast<UBoxColliderComponent*>(Container)};
+
+    SerializeObjectReference(Archive, Property.GetSerializationName(), Object.GetMeshComponent(), Object.mPendingMeshComponentGuid);
+
+    if (Archive.IsLoading()) {
+        Object.mMeshComponent = {};
+    }
 }

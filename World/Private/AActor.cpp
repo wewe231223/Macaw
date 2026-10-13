@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "CoreUObject/Reflection/NativeSerialization.h"
 #include "CoreUObject/Reflection/UClass.h"
 #include "World/AActor.h"
 #include "Core/Stat/Stat.h"
@@ -440,7 +441,6 @@ void AActor::Serialize(FArchive& Archive) {
 
     Archive.EndArrayScope();
 
-
 }
 
 void AActor::OnAddedToWorld() {
@@ -610,4 +610,14 @@ void AActor::OnIdentityChanged() {
 
 AActor::AActor() {
     InitializeClass(StaticClass());
+}
+
+void AActor::SerializeRootComponentProperty(void* Container, FArchive& Archive, const FProperty& Property) {
+    AActor& Object{*static_cast<AActor*>(Container)};
+
+    SerializeObjectReference(Archive, Property.GetSerializationName(), Object.mRootComponent, Object.mPendingRootComponentGuid);
+
+    if (Archive.IsLoading()) {
+        Object.mRootComponent = {};
+    }
 }

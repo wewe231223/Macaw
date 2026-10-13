@@ -1,23 +1,24 @@
 #pragma once
+#include "CoreUObject/Reflection/ReflectionMacros.h"
 #include "World/Component/UPrimitiveComponent.h"
 #include "World/Component/FMeshPickingProxy.h"
 #include "Core/Base/FAssetHandle.h"
 #include "Core/Asset/FAssetPath.h"
 #include "Core/Base/FGuid.h"
 #include "Asset/UMesh.h"
-#include "World/Component/UMeshComponent.generated.h"
 
-UCLASS(Abstract)
+class FProperty;
+
 class UMeshComponent : public UPrimitiveComponent {
 public:
-    GENERATED_TYPES(UMeshComponent)
+    ReflectTypes(UMeshComponent, UPrimitiveComponent);
 
 public:
     UMeshComponent();
     ~UMeshComponent() override = default;
 
 public:
-    GENERATED_BODY(UMeshComponent)
+    ReflectClass(UMeshComponent, EClassFlags::Abstract);
 
     FAssetHandle GetMeshHandle() const;
     virtual void SetMeshHandle(FAssetHandle InHandle);
@@ -31,11 +32,16 @@ protected:
     void Serialize(FArchive& Archive) override;
 
 private:
-    mutable FMeshPickingProxy mRaycastProxy;
-    mutable Uint64 mRaycastTransformRevision = 0;
-    mutable bool mRaycastTransformInitialized = false;
-    UPROPERTY(Edit, Serialize, Asset, AssetClass = UMesh, Getter = GetMeshHandle, Setter = SetMeshHandle, AssetGuid = mMeshAssetGuid, AssetPath = mMeshAssetPath, Category = "Rendering", DisplayName = "Mesh")
+    static void SerializeMeshHandleProperty(void* Container, FArchive& Archive, const FProperty& Property);
+
+private:
+    mutable FMeshPickingProxy mRaycastProxy{};
+    mutable Uint64 mRaycastTransformRevision{};
+    mutable bool mRaycastTransformInitialized{};
+    ReflectAccessor(mMeshHandle, GetMeshHandle, SetMeshHandle, "MeshHandle", EPropertyFlags::Edit | EPropertyFlags::Serialize | EPropertyFlags::Asset, &SerializeMeshHandleProperty, ReflectEditor("Rendering", "Mesh"), ReflectAsset(UMesh));
     FAssetHandle mMeshHandle{};
     FAssetPath mMeshAssetPath{};
     FGuid mMeshAssetGuid{};
+
+    ReflectMembers();
 };

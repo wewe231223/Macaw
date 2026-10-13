@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "CoreUObject/Reflection/FReflectionRegistry.h"
+#include "CoreUObject/Reflection/UClass.h"
 #include <mutex>
 #include <stdexcept>
 
@@ -170,6 +171,12 @@ UEnum* FReflectionRegistry::DefineEnum(FName Name, const FNativeType* ValueType,
     }
 
     return Enum;
+}
+
+void FReflectionRegistry::AddEnumValues(UEnum& Information, std::initializer_list<std::pair<FName, Int64>> Values) {
+    for (const auto& [Name, Value] : Values) {
+        Information.AddValue(Name, Value);
+    }
 }
 
 UClass* FReflectionRegistry::FindClass(FName Name) {

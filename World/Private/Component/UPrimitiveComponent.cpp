@@ -159,7 +159,6 @@ void UPrimitiveComponent::UpdateBounds() {
 void UPrimitiveComponent::Serialize(FArchive& Archive) {
     Super::Serialize(Archive);
 
-
     if (Archive.IsLoading()) {
         OnRenderStateChanged();
     }

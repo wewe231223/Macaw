@@ -77,6 +77,9 @@ FPropertyValue MakeNativeObjectValue(UObject* Object);
 
 void VisitScriptStructReferences(const UScriptStruct* Struct, const void* Value, const std::function<void(UObject*)>& Visitor);
 
+extern template const FNativeType* GetNativeType<UClass*>();
+extern template void VisitNativeReferences<UClass*>(const void* Value, const std::function<void(UObject*)>& Visitor);
+
 class FPropertyValue {
 public:
     FPropertyValue() = default;

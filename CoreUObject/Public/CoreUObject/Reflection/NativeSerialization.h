@@ -2,10 +2,11 @@
 
 #include "Core/Archive/FArchive.h"
 #include "CoreUObject/Reflection/FPropertyValue.h"
-#include "CoreUObject/Reflection/UStruct.h"
 #include <stdexcept>
 #include <filesystem>
 #include "Core/Asset/FAssetPath.h"
+
+void SerializeScriptStructProperties(const UScriptStruct* Struct, void* Container, FArchive& Archive, bool IncludeInherited);
 
 template <typename T>
 void SerializeNativeValue(FArchive& Archive, std::string_view Name, T& Value);
@@ -37,7 +38,7 @@ void SerializeNativeValue(FArchive& Archive, std::string_view Name, T& Value) {
         Archive.SerializeStruct(Name, Value);
     } else if constexpr (requires { T::StaticStruct(); }) {
         Archive.BeginObjectScope(Name);
-        T::StaticStruct()->SerializeDeclaredProperties(&Value, Archive);
+        SerializeScriptStructProperties(T::StaticStruct(), &Value, Archive, false);
         Archive.EndObjectScope();
     } else if constexpr (!std::is_same_v<T, FString> && requires { typename T::value_type; Value.resize(std::size_t{}); Value.size(); Value.begin(); }) {
         std::size_t Size{Value.size()};

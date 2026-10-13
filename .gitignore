@@ -390,6 +390,5 @@ FodyWeavers.xsd
 /vcpkg_installed/
 imgui.ini
 Tests
-/Intermediate/Reflection/
 !/Core/Public/Core/Debug/
 !/Core/Public/Core/Debug/**

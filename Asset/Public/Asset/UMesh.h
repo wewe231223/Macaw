@@ -1,4 +1,5 @@
 #pragma once
+#include "CoreUObject/Reflection/ReflectionMacros.h"
 #include "CoreUObject/UObject.h"
 #include "RenderCore/Pipeline/FPipelineDescription.h"
 #include "RenderCore/FVertexAttribute.h"
@@ -19,7 +20,6 @@
 #include "Asset/UAsset.h"
 #include "Core/Base/FAssetHandle.h"
 #include "CoreUObject/Reflection/UClass.h"
-#include "Asset/UMesh.generated.h"
 
 class UMesh;
 
@@ -136,10 +136,9 @@ struct FEdge {
     FVector3 NewPosition;
 };
 
-UCLASS()
 class UMesh : public UAsset {
 public:
-    GENERATED_TYPES(UMesh)
+    ReflectTypes(UMesh, UAsset);
 
 private:
     struct FVertexAttributeStorageBase {
@@ -182,7 +181,7 @@ public:
     UMesh& operator=(UMesh&&) noexcept = default;
 
 public:
-    GENERATED_BODY(UMesh)
+    ReflectClass(UMesh);
 
     std::shared_ptr<const FMeshPickingSource> GetPickingSource() const;
     bool RebuildPickingStructure();

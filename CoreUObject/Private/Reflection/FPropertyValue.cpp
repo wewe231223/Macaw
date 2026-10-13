@@ -64,3 +64,6 @@ void* FPropertyValue::GetMutableData() {
 bool IsNativeObjectCompatible(const UObject* Object, const UClass* Class) {
     return Object == nullptr || Object->IsA(Class);
 }
+
+template const FNativeType* GetNativeType<UClass*>();
+template void VisitNativeReferences<UClass*>(const void* Value, const std::function<void(UObject*)>& Visitor);

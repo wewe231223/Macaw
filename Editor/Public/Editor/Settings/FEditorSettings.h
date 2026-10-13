@@ -1,64 +1,63 @@
 #pragma once
+#include "CoreUObject/Reflection/ReflectionMacros.h"
 #include "Core/Common.h"
 #include "Math/FMath.h"
 #include "Core/Archive/FArchive.h"
-#include "CoreUObject/Reflection/ReflectionMacros.h"
-#include "Editor/Settings/FEditorSettings.generated.h"
 
-USTRUCT()
 struct FEditorSettings {
 public:
-    GENERATED_TYPES(FEditorSettings)
+    ReflectTypes(FEditorSettings);
 
 public:
-    GENERATED_BODY(FEditorSettings)
+    ReflectStruct(FEditorSettings);
 
     void Serialize(FArchive& Ar);
 
 public:
-    UPROPERTY(Serialize, Name = "MoveSensitivity", SerializationScope = "Camera", Edit, Category = "Camera", DisplayName = "Move Sensitivity", Min = 1.0f, Max = 100.0f)
+    ReflectProperty(mMoveSensitivity, "MoveSensitivity", EPropertyFlags::Edit | EPropertyFlags::Serialize, ReflectSerializer(mMoveSensitivity), ReflectEditor("Camera", "Move Sensitivity"), ReflectRange(1.0f, 100.0f), ReflectSerializationScope("Camera"));
     Float32 mMoveSensitivity{5.0f};
-    UPROPERTY(Serialize, Name = "RotationSensitivity", SerializationScope = "Camera", Edit, Category = "Camera", DisplayName = "Rotation Sensitivity", Min = 0.1f, Max = 5.0f)
+    ReflectProperty(mRotationSensitivity, "RotationSensitivity", EPropertyFlags::Edit | EPropertyFlags::Serialize, ReflectSerializer(mRotationSensitivity), ReflectEditor("Camera", "Rotation Sensitivity"), ReflectRange(0.1f, 5.0f), ReflectSerializationScope("Camera"));
     Float32 mRotationSensitivity{1.0f};
-    UPROPERTY(Serialize, Name = "CameraStartPosition", SerializationScope = "Camera", ReadOnly)
+    ReflectReadOnlyProperty(mCameraStartPosition, "CameraStartPosition", EPropertyFlags::Serialize | EPropertyFlags::ReadOnly, ReflectSerializer(mCameraStartPosition), ReflectSerializationScope("Camera"));
     FVector mCameraStartPosition{0.0f, 0.0f, 0.0f};
-    UPROPERTY(Serialize, Name = "GridSize", SerializationScope = "Grid", Edit, Category = "Grid", DisplayName = "Grid Size", Min = 0.1f, Max = 100.0f)
+    ReflectProperty(mGridSize, "GridSize", EPropertyFlags::Edit | EPropertyFlags::Serialize, ReflectSerializer(mGridSize), ReflectEditor("Grid", "Grid Size"), ReflectRange(0.1f, 100.0f), ReflectSerializationScope("Grid"));
     Float32 mGridSize{1.0f};
-    UPROPERTY(Serialize, Name = "GridVisible", SerializationScope = "Grid", Edit, Category = "ON/OFF", DisplayName = "Grid")
+    ReflectProperty(mGridVisible, "GridVisible", EPropertyFlags::Edit | EPropertyFlags::Serialize, ReflectSerializer(mGridVisible), ReflectEditor("ON/OFF", "Grid"), ReflectSerializationScope("Grid"));
     bool mGridVisible{true};
-    UPROPERTY(Serialize, Name = "GridSnapEnabled", SerializationScope = "Grid", Edit, Category = "Grid", DisplayName = "Snap to Grid")
+    ReflectProperty(mGridSnapEnabled, "GridSnapEnabled", EPropertyFlags::Edit | EPropertyFlags::Serialize, ReflectSerializer(mGridSnapEnabled), ReflectEditor("Grid", "Snap to Grid"), ReflectSerializationScope("Grid"));
     bool mGridSnapEnabled{true};
-    UPROPERTY(Serialize, Name = "AxisVisible", SerializationScope = "Grid", Edit, Category = "ON/OFF", DisplayName = "World Axis")
+    ReflectProperty(mAxisVisible, "AxisVisible", EPropertyFlags::Edit | EPropertyFlags::Serialize, ReflectSerializer(mAxisVisible), ReflectEditor("ON/OFF", "World Axis"), ReflectSerializationScope("Grid"));
     bool mAxisVisible{true};
-    UPROPERTY(Serialize, Name = "LastLoadedScenePath", ReadOnly)
+    ReflectReadOnlyProperty(mLastLoadedScenePath, "LastLoadedScenePath", EPropertyFlags::Serialize | EPropertyFlags::ReadOnly, ReflectSerializer(mLastLoadedScenePath));
     FString mLastLoadedScenePath{};
-    UPROPERTY(Serialize, Name = "ViewportLayoutPreset", SerializationScope = "Splitter", ReadOnly)
+    ReflectReadOnlyProperty(mViewportLayoutPreset, "ViewportLayoutPreset", EPropertyFlags::Serialize | EPropertyFlags::ReadOnly, ReflectSerializer(mViewportLayoutPreset), ReflectSerializationScope("Splitter"));
     Uint8 mViewportLayoutPreset{7U};
-    UPROPERTY(Serialize, Name = "ViewportSplitterCount", SerializationScope = "Splitter", ReadOnly)
+    ReflectReadOnlyProperty(mViewportSplitterCount, "ViewportSplitterCount", EPropertyFlags::Serialize | EPropertyFlags::ReadOnly, ReflectSerializer(mViewportSplitterCount), ReflectSerializationScope("Splitter"));
     Uint32 mViewportSplitterCount{3U};
-    UPROPERTY(Serialize, Name = "ViewportSplitterRatio0", SerializationScope = "Splitter", ReadOnly)
+    ReflectReadOnlyProperty(mViewportSplitterRatio0, "ViewportSplitterRatio0", EPropertyFlags::Serialize | EPropertyFlags::ReadOnly, ReflectSerializer(mViewportSplitterRatio0), ReflectSerializationScope("Splitter"));
     Float32 mViewportSplitterRatio0{0.5f};
-    UPROPERTY(Serialize, Name = "ViewportSplitterRatio1", SerializationScope = "Splitter", ReadOnly)
+    ReflectReadOnlyProperty(mViewportSplitterRatio1, "ViewportSplitterRatio1", EPropertyFlags::Serialize | EPropertyFlags::ReadOnly, ReflectSerializer(mViewportSplitterRatio1), ReflectSerializationScope("Splitter"));
     Float32 mViewportSplitterRatio1{0.5f};
-    UPROPERTY(Serialize, Name = "ViewportSplitterRatio2", SerializationScope = "Splitter", ReadOnly)
+    ReflectReadOnlyProperty(mViewportSplitterRatio2, "ViewportSplitterRatio2", EPropertyFlags::Serialize | EPropertyFlags::ReadOnly, ReflectSerializer(mViewportSplitterRatio2), ReflectSerializationScope("Splitter"));
     Float32 mViewportSplitterRatio2{0.5f};
-    UPROPERTY(Serialize, Name = "ControlPanelEnabled", SerializationScope = "Pannel", ReadOnly)
+    ReflectReadOnlyProperty(mControlPanelEnabled, "ControlPanelEnabled", EPropertyFlags::Serialize | EPropertyFlags::ReadOnly, ReflectSerializer(mControlPanelEnabled), ReflectSerializationScope("Pannel"));
     bool mControlPanelEnabled{true};
-    UPROPERTY(Serialize, Name = "ViewportPanelEnabled", SerializationScope = "Pannel", ReadOnly)
+    ReflectReadOnlyProperty(mViewportPanelEnabled, "ViewportPanelEnabled", EPropertyFlags::Serialize | EPropertyFlags::ReadOnly, ReflectSerializer(mViewportPanelEnabled), ReflectSerializationScope("Pannel"));
     bool mViewportPanelEnabled{true};
-    UPROPERTY(Serialize, Name = "PropertyPanelEnabled", SerializationScope = "Pannel", ReadOnly)
+    ReflectReadOnlyProperty(mPropertyPanelEnabled, "PropertyPanelEnabled", EPropertyFlags::Serialize | EPropertyFlags::ReadOnly, ReflectSerializer(mPropertyPanelEnabled), ReflectSerializationScope("Pannel"));
     bool mPropertyPanelEnabled{true};
-    UPROPERTY(Serialize, Name = "ConsolePanelEnabled", SerializationScope = "Pannel", ReadOnly)
+    ReflectReadOnlyProperty(mConsolePanelEnabled, "ConsolePanelEnabled", EPropertyFlags::Serialize | EPropertyFlags::ReadOnly, ReflectSerializer(mConsolePanelEnabled), ReflectSerializationScope("Pannel"));
     bool mConsolePanelEnabled{true};
-    UPROPERTY(Serialize, Name = "StatPanelEnabled", SerializationScope = "Pannel", ReadOnly)
+    ReflectReadOnlyProperty(mStatPanelEnabled, "StatPanelEnabled", EPropertyFlags::Serialize | EPropertyFlags::ReadOnly, ReflectSerializer(mStatPanelEnabled), ReflectSerializationScope("Pannel"));
     bool mStatPanelEnabled{true};
-    UPROPERTY(Serialize, Name = "AssetBrowserPanelEnabled", SerializationScope = "Pannel", ReadOnly)
+    ReflectReadOnlyProperty(mAssetBrowserPanelEnabled, "AssetBrowserPanelEnabled", EPropertyFlags::Serialize | EPropertyFlags::ReadOnly, ReflectSerializer(mAssetBrowserPanelEnabled), ReflectSerializationScope("Pannel"));
     bool mAssetBrowserPanelEnabled{true};
-    UPROPERTY(Serialize, Name = "MaterialEditorPanelEnabled", SerializationScope = "Pannel", ReadOnly)
+    ReflectReadOnlyProperty(mMaterialEditorPanelEnabled, "MaterialEditorPanelEnabled", EPropertyFlags::Serialize | EPropertyFlags::ReadOnly, ReflectSerializer(mMaterialEditorPanelEnabled), ReflectSerializationScope("Pannel"));
     bool mMaterialEditorPanelEnabled{true};
-    UPROPERTY(Serialize, Name = "OutlinerPanelEnabled", SerializationScope = "Pannel", ReadOnly)
+    ReflectReadOnlyProperty(mOutlinerPanelEnabled, "OutlinerPanelEnabled", EPropertyFlags::Serialize | EPropertyFlags::ReadOnly, ReflectSerializer(mOutlinerPanelEnabled), ReflectSerializationScope("Pannel"));
     bool mOutlinerPanelEnabled{true};
-    UPROPERTY(Serialize, Name = "ViewerPanelEnabled", SerializationScope = "Pannel", ReadOnly)
+    ReflectReadOnlyProperty(mViewerPanelEnabled, "ViewerPanelEnabled", EPropertyFlags::Serialize | EPropertyFlags::ReadOnly, ReflectSerializer(mViewerPanelEnabled), ReflectSerializationScope("Pannel"));
     bool mViewerPanelEnabled{true};
 
+    ReflectMembers();
 };

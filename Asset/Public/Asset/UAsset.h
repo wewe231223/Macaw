@@ -1,13 +1,12 @@
 #pragma once
+#include "CoreUObject/Reflection/ReflectionMacros.h"
 #include "CoreUObject/UObject.h"
 #include <filesystem>
 #include "Core/Archive/FArchive.h"
-#include "Asset/UAsset.generated.h"
 
-UCLASS()
 class UAsset : public UObject {
 public:
-    GENERATED_TYPES(UAsset)
+    ReflectTypes(UAsset, UObject);
 
 public:
     UAsset();
@@ -20,7 +19,7 @@ public:
     UAsset& operator=(UAsset&&) noexcept = default;
 
 public:
-    GENERATED_BODY(UAsset)
+    ReflectClass(UAsset, EClassFlags::None);
 
     void SetAssetName(const FString& InName);
 
@@ -32,8 +31,10 @@ protected:
     virtual void Serialize(FArchive& Ar) override;
 
 protected:
-    UPROPERTY(Serialize, Name = "AssetPath", ReadOnly)
+    ReflectReadOnlyProperty(mAssetPath, "AssetPath", EPropertyFlags::Serialize | EPropertyFlags::ReadOnly, ReflectSerializer(mAssetPath));
     std::filesystem::path mAssetPath{};
-    UPROPERTY(Serialize, Name = "AssetName", ReadOnly)
+    ReflectReadOnlyProperty(mAssetName, "AssetName", EPropertyFlags::Serialize | EPropertyFlags::ReadOnly, ReflectSerializer(mAssetName));
     FString mAssetName{};
+
+    ReflectMembers();
 };

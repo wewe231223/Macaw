@@ -1,7 +1,7 @@
 #pragma once
+#include "CoreUObject/Reflection/ReflectionMacros.h"
 #include "Asset/UAsset.h"
 #include <memory>
-#include "Asset/UTexture.generated.h"
 
 namespace DirectX {
     class ScratchImage;
@@ -25,10 +25,9 @@ enum class ETextureExtension : Uint8 {
     HDR
 };
 
-UCLASS()
 class UTexture : public UAsset {
 public:
-    GENERATED_TYPES(UTexture)
+    ReflectTypes(UTexture, UAsset);
 
 public:
     UTexture();
@@ -41,7 +40,7 @@ public:
     UTexture& operator=(UTexture&&) noexcept = delete;
 
 public:
-    GENERATED_BODY(UTexture)
+    ReflectClass(UTexture);
 
     bool Initialize(const std::filesystem::path& ImagePath, bool MakeDDS, ETextureFormat TextureFormat = ETextureFormat::UNORM, bool BGenerateMipMap = true);
 

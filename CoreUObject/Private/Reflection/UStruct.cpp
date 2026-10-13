@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "CoreUObject/Reflection/UStruct.h"
 #include "CoreUObject/Reflection/FReflectionRegistry.h"
 #include "CoreUObject/Reflection/NativeSerialization.h"
 #include <stdexcept>
@@ -12,10 +13,6 @@ UField::UField(FName FieldName)
     SetName(FieldName);
 }
 
-UClass* UField::StaticClass() {
-    return FReflectionRegistry::DefineClass(FName{"UField"}, &UObject::StaticClass, sizeof(UField), alignof(UField), EClassFlags::Metadata | EClassFlags::NoFactory, nullptr);
-}
-
 FName UField::GetFieldName() const {
     return mFieldName;
 }
@@ -27,10 +24,6 @@ UStruct::UStruct(FName FieldName, std::size_t Size, std::size_t Alignment)
     if (!FReflectionRegistry::IsBootstrapping()) {
         InitializeClass(StaticClass());
     }
-}
-
-UClass* UStruct::StaticClass() {
-    return FReflectionRegistry::DefineClass(FName{"UStruct"}, &UField::StaticClass, sizeof(UStruct), alignof(UStruct), EClassFlags::Metadata | EClassFlags::NoFactory, nullptr);
 }
 
 UStruct* UStruct::GetSuperStruct() const {
@@ -148,10 +141,6 @@ UScriptStruct::UScriptStruct(FName FieldName, const FNativeType* ValueType)
     }
 }
 
-UClass* UScriptStruct::StaticClass() {
-    return FReflectionRegistry::DefineClass(FName{"UScriptStruct"}, &UStruct::StaticClass, sizeof(UScriptStruct), alignof(UScriptStruct), EClassFlags::Metadata | EClassFlags::NoFactory, nullptr);
-}
-
 const FNativeType* UScriptStruct::GetValueType() const {
     return mValueType;
 }
@@ -167,10 +156,6 @@ UEnum::UEnum(FName FieldName)
     if (!FReflectionRegistry::IsBootstrapping()) {
         InitializeClass(StaticClass());
     }
-}
-
-UClass* UEnum::StaticClass() {
-    return FReflectionRegistry::DefineClass(FName{"UEnum"}, &UField::StaticClass, sizeof(UEnum), alignof(UEnum), EClassFlags::Metadata | EClassFlags::NoFactory, nullptr);
 }
 
 void UEnum::AddValue(FName Name, Int64 Value) {

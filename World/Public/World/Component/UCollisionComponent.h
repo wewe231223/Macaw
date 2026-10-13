@@ -1,15 +1,14 @@
 #pragma once
+#include "CoreUObject/Reflection/ReflectionMacros.h"
 #include "World/Component/UPrimitiveComponent.h"
 #include "CoreUObject/Reflection/UClass.h"
 #include "Core/Archive/FArchive.h"
 #include "Core/Debug/ILineDrawContext.h"
 #include "World/Component/UMeshComponent.h"
-#include "World/Component/UCollisionComponent.generated.h"
 
-UCLASS(Abstract)
 class UCollisionComponent : public UPrimitiveComponent {
 public:
-    GENERATED_TYPES(UCollisionComponent)
+    ReflectTypes(UCollisionComponent, UPrimitiveComponent);
 
 public:
     UCollisionComponent();
@@ -25,7 +24,7 @@ public:
     bool Raycast(const FRay& Ray, float& OutDistance) const;
     virtual void DrawEditorBounds(ILineDrawContext* LineContext, ELineDepthMode DepthMode) const = 0;
 
-    GENERATED_BODY(UCollisionComponent)
+    ReflectClass(UCollisionComponent, EClassFlags::Abstract);
 
     virtual bool RaycastBounds(const FRay& Ray, float& OutDistance) const = 0;
 
@@ -35,6 +34,8 @@ protected:
     void Serialize(FArchive& Archive) override;
 
 private:
-    UPROPERTY(Serialize, Name = "bCollisionEnabled", Getter = IsCollisionEnabled, Category = "Collision", DisplayName = "Collision Enabled", Edit, Setter = SetCollisionEnabled)
+    ReflectAccessor(mBCollisionEnabled, IsCollisionEnabled, SetCollisionEnabled, "bCollisionEnabled", EPropertyFlags::Edit | EPropertyFlags::Serialize, ReflectSerializer(mBCollisionEnabled), ReflectEditor("Collision", "Collision Enabled"));
     bool mBCollisionEnabled{true};
+
+    ReflectMembers();
 };

@@ -1,20 +1,3 @@
 <Project>
   <Import Project="$(VcpkgRoot)scripts\buildsystems\msbuild\vcpkg.targets" />
-  <PropertyGroup Condition="'$(MSBuildProjectName)' == 'CoreUObject' Or '$(MSBuildProjectName)' == 'RenderCore' Or '$(MSBuildProjectName)' == 'Asset' Or '$(MSBuildProjectName)' == 'World' Or '$(MSBuildProjectName)' == 'Engine' Or '$(MSBuildProjectName)' == 'Editor'">
-    <MacawReflectionModule>$(MSBuildProjectName)</MacawReflectionModule>
-    <MacawReflectionOutput>$(MSBuildThisFileDirectory)Intermediate\Reflection\$(Configuration)\$(Platform)\$(MacawReflectionModule)</MacawReflectionOutput>
-  </PropertyGroup>
-  <ItemGroup Condition="'$(MacawReflectionModule)' != ''">
-    <ProjectReference Include="$(MSBuildThisFileDirectory)MacawHeaderTool.vcxproj">
-      <LinkLibraryDependencies>false</LinkLibraryDependencies>
-      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
-    </ProjectReference>
-  </ItemGroup>
-  <Target Name="GenerateMacawReflection" BeforeTargets="ClCompile" Condition="'$(MacawReflectionModule)' != ''">
-    <RemoveDir Directories="$(MacawReflectionOutput)" Condition="Exists('$(MacawReflectionOutput)')" />
-    <Exec Command="&quot;$(MSBuildThisFileDirectory)bin\$(Configuration)\$(Platform)\MacawHeaderTool.exe&quot; &quot;$(MSBuildThisFileDirectory).&quot; &quot;$(MacawReflectionModule)&quot; &quot;$(MacawReflectionOutput)&quot;" />
-    <ItemGroup>
-      <ClCompile Include="$(MacawReflectionOutput)\$(MacawReflectionModule).Reflection.gen.cpp" />
-    </ItemGroup>
-  </Target>
 </Project>

@@ -1,13 +1,12 @@
 #pragma once
+#include "CoreUObject/Reflection/ReflectionMacros.h"
 
 #include "Core/Base/FGuid.h"
 #include "CoreUObject/Reflection/UStruct.h"
-#include "Editor/UndoSystem/FUndoInfo.generated.h"
 
-USTRUCT()
 struct FObjectStateChangedMessage {
 public:
-    GENERATED_TYPES(FObjectStateChangedMessage)
+    ReflectTypes(FObjectStateChangedMessage);
 
 public:
     FObjectStateChangedMessage() = default;
@@ -20,11 +19,13 @@ public:
     FObjectStateChangedMessage& operator=(FObjectStateChangedMessage&&) noexcept = default;
 
 public:
-    GENERATED_BODY(FObjectStateChangedMessage)
+    ReflectStruct(FObjectStateChangedMessage);
 
 private:
-    UPROPERTY(Name = "TargetGuid")
+    ReflectProperty(mTargetGuid, "TargetGuid", EPropertyFlags::None);
     FGuid mTargetGuid{};
-    UPROPERTY(Name = "StateData")
+    ReflectProperty(mStateData, "StateData", EPropertyFlags::None);
     std::vector<Uint8> mStateData{};
+
+    ReflectMembers();
 };

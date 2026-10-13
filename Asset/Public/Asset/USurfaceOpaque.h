@@ -1,14 +1,13 @@
 #pragma once
+#include "CoreUObject/Reflection/ReflectionMacros.h"
 #include "Asset/FMaterialGroup.h"
 #include "Asset/UMaterial.h"
 
 #include <functional>
-#include "Asset/USurfaceOpaque.generated.h"
 
-UCLASS()
 class USurfaceOpaque : public UMaterial {
 public:
-    GENERATED_TYPES(USurfaceOpaque)
+    ReflectTypes(USurfaceOpaque, UMaterial);
 
 public:
     using FTextureResolver = std::function<FAssetHandle(const std::filesystem::path& TexturePath)>;
@@ -23,7 +22,7 @@ public:
     USurfaceOpaque& operator=(USurfaceOpaque&&) noexcept = default;
 
 public:
-    GENERATED_BODY(USurfaceOpaque)
+    ReflectClass(USurfaceOpaque);
 
     bool Initialize(const std::filesystem::path& MtlPath, const FTextureResolver& TextureResolver);
     void BuildGPUData(FMaterialGPUSlot& OutSlot) const override;

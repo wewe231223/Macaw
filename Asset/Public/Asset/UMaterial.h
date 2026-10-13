@@ -1,4 +1,5 @@
 #pragma once
+#include "CoreUObject/Reflection/ReflectionMacros.h"
 #include "RenderCore/FMaterialChunkSignature.h"
 #include "RenderCore/FMaterialGPUData.h"
 #include "RenderCore/FMaterialBlendMode.h"
@@ -7,12 +8,10 @@
 
 #include <optional>
 #include <span>
-#include "Asset/UMaterial.generated.h"
 
-UCLASS(Abstract)
 class UMaterial : public UAsset {
 public:
-    GENERATED_TYPES(UMaterial)
+    ReflectTypes(UMaterial, UAsset);
 
 public:
     UMaterial();
@@ -25,7 +24,7 @@ public:
     UMaterial& operator=(UMaterial&&) noexcept = default;
 
 public:
-    GENERATED_BODY(UMaterial)
+    ReflectClass(UMaterial, EClassFlags::Abstract);
 
     virtual void BuildGPUData(FMaterialGPUSlot& OutSlot) const = 0;
     virtual void BuildGPUData(Uint32 GroupIndex, FMaterialGPUSlot& OutSlot) const;

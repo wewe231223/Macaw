@@ -1,80 +1,79 @@
 #pragma once
+#include "CoreUObject/Reflection/ReflectionMacros.h"
 #include "Core/Base/FName.h"
 #include "Core/Base/FAssetHandle.h"
 #include "Asset/UTexture.h"
-#include "Asset/FMaterialGroup.generated.h"
 
-USTRUCT()
 struct FMaterialTextureMap {
 public:
-    GENERATED_TYPES(FMaterialTextureMap)
+    ReflectTypes(FMaterialTextureMap);
 
 public:
-    GENERATED_BODY(FMaterialTextureMap)
+    ReflectStruct(FMaterialTextureMap);
 
     void SetTexture(FAssetHandle Texture);
 
 public:
     FString mSourcePath{};
-    UPROPERTY(Edit, Asset, AssetClass = UTexture, Setter = SetTexture, DisplayName = "Texture")
+    ReflectSetter(mTexture, SetTexture, "Texture", EPropertyFlags::Edit | EPropertyFlags::Asset, ReflectAsset(UTexture));
     FAssetHandle mTexture{};
+
+    ReflectMembers();
 };
 
-USTRUCT()
 struct FMaterialGroup {
 public:
-    GENERATED_TYPES(FMaterialGroup)
+    ReflectTypes(FMaterialGroup);
 
 public:
-    GENERATED_BODY(FMaterialGroup)
+    ReflectStruct(FMaterialGroup);
 
 public:
     FName mName{};
-
-    UPROPERTY(Edit, Category = "Material", Color)
+    ReflectProperty(mAmbient, "Ambient", EPropertyFlags::Edit | EPropertyFlags::Color, ReflectEditor("Material", "Ambient"));
     FVector3 mAmbient{0.0f, 0.0f, 0.0f};
-    UPROPERTY(Edit, Category = "Material", Color)
+    ReflectProperty(mDiffuse, "Diffuse", EPropertyFlags::Edit | EPropertyFlags::Color, ReflectEditor("Material", "Diffuse"));
     FVector4 mDiffuse{1.0f, 1.0f, 1.0f, 1.0f};
-    UPROPERTY(Edit, Category = "Material", Color)
+    ReflectProperty(mSpecular, "Specular", EPropertyFlags::Edit | EPropertyFlags::Color, ReflectEditor("Material", "Specular"));
     FVector3 mSpecular{0.0f, 0.0f, 0.0f};
-    UPROPERTY(Edit, Category = "Material", Color)
+    ReflectProperty(mEmissive, "Emissive", EPropertyFlags::Edit | EPropertyFlags::Color, ReflectEditor("Material", "Emissive"));
     FVector3 mEmissive{0.0f, 0.0f, 0.0f};
-    UPROPERTY(Edit, Category = "Material", Min = 0.0f, Max = 1.0f, DisplayName = "Transmission Filter", Speed = 0.01f)
+    ReflectProperty(mTransmissionFilter, "TransmissionFilter", EPropertyFlags::Edit, ReflectEditor("Material", "Transmission Filter"), ReflectRange(0.0f, 1.0f), ReflectSpeed(0.01f));
     FVector3 mTransmissionFilter{1.0f, 1.0f, 1.0f};
-
-    UPROPERTY(Edit, Category = "Material", Min = 0.0f, Max = 1000.0f, Speed = 1.0f)
+    ReflectProperty(mShininess, "Shininess", EPropertyFlags::Edit, ReflectEditor("Material", "Shininess"), ReflectRange(0.0f, 1000.0f), ReflectSpeed(1.0f));
     float mShininess{0.0f};
-    UPROPERTY(Edit, Category = "Material", Min = 0.0f, Max = 10.0f, DisplayName = "Refraction Index", Speed = 0.01f)
+    ReflectProperty(mRefractionIndex, "RefractionIndex", EPropertyFlags::Edit, ReflectEditor("Material", "Refraction Index"), ReflectRange(0.0f, 10.0f), ReflectSpeed(0.01f));
     float mRefractionIndex{1.0f};
-    UPROPERTY(Edit, Category = "Material", Min = 0.0f, Max = 1000.0f, Speed = 1.0f)
+    ReflectProperty(mSharpness, "Sharpness", EPropertyFlags::Edit, ReflectEditor("Material", "Sharpness"), ReflectRange(0.0f, 1000.0f), ReflectSpeed(1.0f));
     float mSharpness{60.0f};
-    UPROPERTY(Edit, Category = "Material", DisplayName = "Illumination Model", Speed = 1.0f)
+    ReflectProperty(mIlluminationModel, "IlluminationModel", EPropertyFlags::Edit, ReflectEditor("Material", "Illumination Model"), ReflectSpeed(1.0f));
     Int32 mIlluminationModel{2};
-    UPROPERTY(Edit, Category = "Material", DisplayName = "Dissolve Halo")
+    ReflectProperty(mBDissolveHalo, "BDissolveHalo", EPropertyFlags::Edit, ReflectEditor("Material", "Dissolve Halo"));
     bool mBDissolveHalo{false};
-
-    UPROPERTY(Edit, Category = "Textures", DisplayName = "Ambient")
+    ReflectProperty(mAmbientTexture, "AmbientTexture", EPropertyFlags::Edit, ReflectEditor("Textures", "Ambient"));
     FMaterialTextureMap mAmbientTexture{};
-    UPROPERTY(Edit, Category = "Textures", DisplayName = "Diffuse")
+    ReflectProperty(mDiffuseTexture, "DiffuseTexture", EPropertyFlags::Edit, ReflectEditor("Textures", "Diffuse"));
     FMaterialTextureMap mDiffuseTexture{};
-    UPROPERTY(Edit, Category = "Textures", DisplayName = "Specular")
+    ReflectProperty(mSpecularTexture, "SpecularTexture", EPropertyFlags::Edit, ReflectEditor("Textures", "Specular"));
     FMaterialTextureMap mSpecularTexture{};
-    UPROPERTY(Edit, Category = "Textures", DisplayName = "Emissive")
+    ReflectProperty(mEmissiveTexture, "EmissiveTexture", EPropertyFlags::Edit, ReflectEditor("Textures", "Emissive"));
     FMaterialTextureMap mEmissiveTexture{};
-    UPROPERTY(Edit, Category = "Textures", DisplayName = "Transmission")
+    ReflectProperty(mTransmissionTexture, "TransmissionTexture", EPropertyFlags::Edit, ReflectEditor("Textures", "Transmission"));
     FMaterialTextureMap mTransmissionTexture{};
-    UPROPERTY(Edit, Category = "Textures", DisplayName = "Shininess")
+    ReflectProperty(mShininessTexture, "ShininessTexture", EPropertyFlags::Edit, ReflectEditor("Textures", "Shininess"));
     FMaterialTextureMap mShininessTexture{};
-    UPROPERTY(Edit, Category = "Textures", DisplayName = "Opacity")
+    ReflectProperty(mOpacityTexture, "OpacityTexture", EPropertyFlags::Edit, ReflectEditor("Textures", "Opacity"));
     FMaterialTextureMap mOpacityTexture{};
-    UPROPERTY(Edit, Category = "Textures", DisplayName = "Bump")
+    ReflectProperty(mBumpTexture, "BumpTexture", EPropertyFlags::Edit, ReflectEditor("Textures", "Bump"));
     FMaterialTextureMap mBumpTexture{};
-    UPROPERTY(Edit, Category = "Textures", DisplayName = "Normal")
+    ReflectProperty(mNormalTexture, "NormalTexture", EPropertyFlags::Edit, ReflectEditor("Textures", "Normal"));
     FMaterialTextureMap mNormalTexture{};
-    UPROPERTY(Edit, Category = "Textures", DisplayName = "Displacement")
+    ReflectProperty(mDisplacementTexture, "DisplacementTexture", EPropertyFlags::Edit, ReflectEditor("Textures", "Displacement"));
     FMaterialTextureMap mDisplacementTexture{};
-    UPROPERTY(Edit, Category = "Textures", DisplayName = "Decal")
+    ReflectProperty(mDecalTexture, "DecalTexture", EPropertyFlags::Edit, ReflectEditor("Textures", "Decal"));
     FMaterialTextureMap mDecalTexture{};
-    UPROPERTY(Edit, Category = "Textures", DisplayName = "Reflection")
+    ReflectProperty(mReflectionTexture, "ReflectionTexture", EPropertyFlags::Edit, ReflectEditor("Textures", "Reflection"));
     FMaterialTextureMap mReflectionTexture{};
+
+    ReflectMembers();
 };

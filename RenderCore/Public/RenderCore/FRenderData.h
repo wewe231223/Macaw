@@ -1,26 +1,26 @@
 #pragma once
+#include "CoreUObject/Reflection/ReflectionMacros.h"
 #include "Core/CoreMinimal.h"
 #include "Core/Base/FAssetHandle.h"
-#include "CoreUObject/Reflection/ReflectionMacros.h"
-#include "RenderCore/FRenderData.generated.h"
 
-USTRUCT()
 struct FTextVertex {
 public:
-    GENERATED_TYPES(FTextVertex)
+    ReflectTypes(FTextVertex);
 
 public:
-    GENERATED_BODY(FTextVertex)
+    ReflectStruct(FTextVertex);
 
 public:
-    UPROPERTY(Serialize, Name = "LocalPosition")
+    ReflectProperty(mLocalPosition, "LocalPosition", EPropertyFlags::Serialize, ReflectSerializer(mLocalPosition));
     FVector2 mLocalPosition{};
-    UPROPERTY(Serialize, Name = "Size")
+    ReflectProperty(mSize, "Size", EPropertyFlags::Serialize, ReflectSerializer(mSize));
     FVector2 mSize{};
-    UPROPERTY(Serialize, Name = "UvMin")
+    ReflectProperty(mUvMin, "UvMin", EPropertyFlags::Serialize, ReflectSerializer(mUvMin));
     FVector2 mUvMin{};
-    UPROPERTY(Serialize, Name = "UvMax")
+    ReflectProperty(mUvMax, "UvMax", EPropertyFlags::Serialize, ReflectSerializer(mUvMax));
     FVector2 mUvMax{};
+
+    ReflectMembers();
 };
 
 struct FTextDrawData {
@@ -48,42 +48,45 @@ struct FViewMatrices {
     FFrustum mViewFrustum{};
 };
 
-USTRUCT()
 struct FPostProcessingSettings {
 public:
-    GENERATED_TYPES(FPostProcessingSettings)
+    ReflectTypes(FPostProcessingSettings);
 
 public:
-    GENERATED_BODY(FPostProcessingSettings)
+    ReflectStruct(FPostProcessingSettings);
 
 public:
-    UPROPERTY(Serialize, Name = "FXAA")
+    ReflectProperty(mFXAA, "FXAA", EPropertyFlags::Serialize, ReflectSerializer(mFXAA));
     bool mFXAA{true};
+
+    ReflectMembers();
 };
 
-USTRUCT()
 struct FRenderSettings {
 public:
-    GENERATED_TYPES(FRenderSettings)
+    ReflectTypes(FRenderSettings);
 
 public:
-    GENERATED_BODY(FRenderSettings)
+    ReflectStruct(FRenderSettings);
 
 public:
-    UPROPERTY(Serialize, Name = "ClearColor")
+    ReflectProperty(mClearColor, "ClearColor", EPropertyFlags::Serialize, ReflectSerializer(mClearColor));
     FVector4 mClearColor{0.2f, 0.2f, 0.7f, 1.0f};
-    UPROPERTY(Serialize, Name = "BRenderSky")
+    ReflectProperty(mBRenderSky, "BRenderSky", EPropertyFlags::Serialize, ReflectSerializer(mBRenderSky));
     bool mBRenderSky{true};
-    UPROPERTY(Serialize, Name = "PostProcessing")
+    ReflectProperty(mPostProcessing, "PostProcessing", EPropertyFlags::Serialize, ReflectSerializer(mPostProcessing));
     FPostProcessingSettings mPostProcessing{};
+
+    ReflectMembers();
 };
 
-UENUM()
 enum class ELightType : Uint32 {
     Directional,
     Point,
     Spot
 };
+
+ReflectEnum(ELightType, ReflectEnumValue(ELightType, Directional), ReflectEnumValue(ELightType, Point), ReflectEnumValue(ELightType, Spot));
 
 struct FLightShaderParameters {
     FVector3 mColor{1.0f, 1.0f, 1.0f};

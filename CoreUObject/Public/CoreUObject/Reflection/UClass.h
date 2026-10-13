@@ -1,18 +1,12 @@
 #pragma once
 
+#include "CoreUObject/Reflection/ReflectionMacros.h"
+
 #include "CoreUObject/Reflection/UStruct.h"
+#include "CoreUObject/Reflection/EClassFlags.h"
 #include <mutex>
 
 class UFunction;
-
-enum class EClassFlags : Uint32 {
-    None = 0,
-    Abstract = 1,
-    NoFactory = 2,
-    Metadata = 4
-};
-
-EClassFlags operator|(EClassFlags Left, EClassFlags Right);
 
 struct FObjectConstructionParameters {
     UObject* mOuter{};
@@ -32,7 +26,7 @@ public:
     ~UClass() override;
 
 public:
-    static UClass* StaticClass();
+    ReflectClass(UClass, EClassFlags::Metadata | EClassFlags::NoFactory);
     FName GetClassName() const;
     UClass* GetSuperClass() const;
     bool IsChildOf(const UClass* BaseClass) const;

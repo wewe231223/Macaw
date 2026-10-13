@@ -1,6 +1,6 @@
 #pragma once
 
-#include "CoreUObject/Reflection/UClass.h"
+#include "CoreUObject/Reflection/FReflectionRegistry.h"
 #include <utility>
 
 class FObjectInitializer {
@@ -25,6 +25,9 @@ std::unique_ptr<T> NewObject(TArguments&&... Arguments);
 template <typename T>
 std::unique_ptr<UObject> CreateNativeInstance();
 
+template <typename T>
+UClass* DefineNativeClass(FName Name, UClass* (*Parent)(), EClassFlags Flags = EClassFlags::None, FReflectionRegistry::FClassBuilder Builder = nullptr);
+
 template <typename T, typename... TArguments>
 std::unique_ptr<T> NewObject(TArguments&&... Arguments) {
     static_assert(std::is_base_of_v<UObject, T>);
@@ -42,4 +45,11 @@ std::unique_ptr<UObject> CreateNativeInstance() {
     } else {
         return NewObject<T>();
     }
+}
+
+template <typename T>
+UClass* DefineNativeClass(FName Name, UClass* (*Parent)(), EClassFlags Flags, FReflectionRegistry::FClassBuilder Builder) {
+    const FReflectionRegistry::FFactory Factory{(static_cast<Uint32>(Flags) & static_cast<Uint32>(EClassFlags::NoFactory)) != 0 ? nullptr : &CreateNativeInstance<T>};
+
+    return FReflectionRegistry::DefineClass(Name, Parent, sizeof(T), alignof(T), Flags, Factory, Builder);
 }

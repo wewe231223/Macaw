@@ -86,9 +86,13 @@ bool FProperty::WriteContainer(void* Container, const FPropertyValue& Value) con
     return Container != nullptr && CanWrite() && Value.GetType() == mValueType && mWriter(Container, Value);
 }
 
+void FProperty::SetSerializer(FSerializer Serializer) {
+    mSerializer = Serializer;
+}
+
 void FProperty::SerializeContainer(void* Container, FArchive& Archive) const {
     if (Container != nullptr && mSerializer != nullptr) {
-        mSerializer(Container, Archive);
+        mSerializer(Container, Archive, *this);
     }
 }
 

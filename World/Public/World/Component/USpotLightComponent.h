@@ -1,29 +1,26 @@
 #pragma once
+#include "CoreUObject/Reflection/ReflectionMacros.h"
 #include "World/Component/UPointLightComponent.h"
-#include "World/Component/USpotLightComponent.generated.h"
 
-UCLASS()
 class USpotLightComponent : public UPointLightComponent {
 public:
-    GENERATED_TYPES(USpotLightComponent)
+    ReflectTypes(USpotLightComponent, UPointLightComponent);
 
 public:
     USpotLightComponent();
     ~USpotLightComponent() override = default;
 
 public:
-    GENERATED_BODY(USpotLightComponent)
-
-    UFUNCTION()
+    ReflectClass(USpotLightComponent, EClassFlags::None);
+    ReflectFunction(GetLightType);
     ELightType GetLightType() const override;
-
-    UFUNCTION()
+    ReflectFunction(GetInnerConeAngle);
     float GetInnerConeAngle() const;
-    UFUNCTION()
+    ReflectFunction(GetOuterConeAngle);
     float GetOuterConeAngle() const;
-    UFUNCTION()
+    ReflectFunction(SetInnerConeAngle, FName{"InInnerConeAngle"});
     void SetInnerConeAngle(float InInnerConeAngle);
-    UFUNCTION()
+    ReflectFunction(SetOuterConeAngle, FName{"InOuterConeAngle"});
     void SetOuterConeAngle(float InOuterConeAngle);
 
     void BuildLightShaderParameters(FLightShaderParameters& OutParameters) const override;
@@ -32,8 +29,10 @@ protected:
     void Serialize(FArchive& Archive) override;
 
 private:
-    UPROPERTY(Serialize, Name = "InnerConeAngle", Getter = GetInnerConeAngle, Category = "Spot Light", DisplayName = "Inner Cone Angle", Edit, Setter = SetInnerConeAngle, Min = 0.0f, Max = 89.9f, MaxGetter = GetOuterConeAngle)
+    ReflectAccessor(mInnerConeAngle, GetInnerConeAngle, SetInnerConeAngle, "InnerConeAngle", EPropertyFlags::Edit | EPropertyFlags::Serialize, ReflectSerializer(mInnerConeAngle), ReflectEditor("Spot Light", "Inner Cone Angle"), ReflectRange(0.0f, 89.9f), ReflectBounds(nullptr, ReflectBound(GetOuterConeAngle)));
     float mInnerConeAngle{30.0f};
-    UPROPERTY(Serialize, Name = "OuterConeAngle", Getter = GetOuterConeAngle, Category = "Spot Light", DisplayName = "Outer Cone Angle", Edit, Setter = SetOuterConeAngle, Min = 0.0f, Max = 89.9f, MinGetter = GetInnerConeAngle)
+    ReflectAccessor(mOuterConeAngle, GetOuterConeAngle, SetOuterConeAngle, "OuterConeAngle", EPropertyFlags::Edit | EPropertyFlags::Serialize, ReflectSerializer(mOuterConeAngle), ReflectEditor("Spot Light", "Outer Cone Angle"), ReflectRange(0.0f, 89.9f), ReflectBounds(ReflectBound(GetInnerConeAngle), nullptr));
     float mOuterConeAngle{45.0f};
+
+    ReflectMembers();
 };

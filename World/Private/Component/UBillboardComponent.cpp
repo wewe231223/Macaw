@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "CoreUObject/Reflection/NativeSerialization.h"
 #include "World/Component/UBillboardComponent.h"
 #include "RenderCore/FBillboardSceneProxy.h"
 #include "CoreUObject/Asset/IAssetRegistry.h"
@@ -187,4 +188,16 @@ void UBillboardComponent::SendRenderDynamicData() {
 
 UBillboardComponent::UBillboardComponent() {
     InitializeClass(StaticClass());
+}
+
+void UBillboardComponent::SerializeTextureHandleProperty(void* Container, FArchive& Archive, const FProperty& Property) {
+    UBillboardComponent& Object{*static_cast<UBillboardComponent*>(Container)};
+
+    SerializeAssetReference(Archive, "TextureAssetGuid", "TextureAssetPath", Object.mTextureHandle, Object.mTextureAssetGuid, Object.mTextureAssetPath);
+}
+
+void UBillboardComponent::SerializePipelineHandleProperty(void* Container, FArchive& Archive, const FProperty& Property) {
+    UBillboardComponent& Object{*static_cast<UBillboardComponent*>(Container)};
+
+    SerializeAssetReference(Archive, "PipelineAssetGuid", "PipelineAssetPath", Object.mPipelineHandle, Object.mPipelineAssetGuid, Object.mPipelineAssetPath);
 }

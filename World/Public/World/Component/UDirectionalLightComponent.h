@@ -1,18 +1,17 @@
 #pragma once
+#include "CoreUObject/Reflection/ReflectionMacros.h"
 #include "World/Component/ULightComponent.h"
-#include "World/Component/UDirectionalLightComponent.generated.h"
 
-UCLASS()
 class UDirectionalLightComponent : public ULightComponent {
 public:
-    GENERATED_TYPES(UDirectionalLightComponent)
+    ReflectTypes(UDirectionalLightComponent, ULightComponent);
 
 public:
     UDirectionalLightComponent();
     ~UDirectionalLightComponent() override = default;
 
 public:
-    GENERATED_BODY(UDirectionalLightComponent)
+    ReflectClass(UDirectionalLightComponent);
 
     ELightType GetLightType() const override;
 };

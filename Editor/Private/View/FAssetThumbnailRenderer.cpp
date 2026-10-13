@@ -96,7 +96,6 @@ void FAssetThumbnailRenderer::RenderThumbnail(const FAssetEntry& Entry, FSceneRe
     } else if (Entry.mAssetType == EAssetType::Material) {
         MeshData.mMeshHandle = mAssetRegistry->FindAsset(FAssetPath{SphereMeshPath});
         MeshData.mMaterialHandle = Entry.mHandle;
-        MeshData.mPipelineHandle = mAssetRegistry->FindAsset(FAssetPath{MaterialPipelinePath});
     } else {
         return;
     }
@@ -105,7 +104,25 @@ void FAssetThumbnailRenderer::RenderThumbnail(const FAssetEntry& Entry, FSceneRe
 
     UMaterial* Material{mAssetRegistry->ResolveAsset<UMaterial>(MeshData.mMaterialHandle)};
 
-    if (Mesh == nullptr || Material == nullptr || !MeshData.mPipelineHandle) {
+    if (Mesh == nullptr || Material == nullptr) {
+        return;
+    }
+
+    if (Entry.mAssetType == EAssetType::Material) {
+        bool HasTexture{};
+
+        for (Uint32 GroupIndex{}; GroupIndex < Material->GetGPUDataCount() && !HasTexture; ++GroupIndex) {
+            const FMaterialChunkSignature Signature{Material->BuildChunkSignature(GroupIndex)};
+
+            for (Uint8 TextureIndex{}; TextureIndex < Signature.mTextureFieldCount && !HasTexture; ++TextureIndex) {
+                HasTexture = static_cast<bool>(Signature.GetTextureHandle(TextureIndex));
+            }
+        }
+
+        MeshData.mPipelineHandle = mAssetRegistry->FindAsset(FAssetPath{HasTexture ? MaterialPipelinePath : StaticMeshPipelinePath});
+    }
+
+    if (!MeshData.mPipelineHandle) {
         return;
     }
 

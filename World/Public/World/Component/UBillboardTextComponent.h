@@ -1,4 +1,5 @@
 #pragma once
+#include "CoreUObject/Reflection/ReflectionMacros.h"
 #include "World/Component/UPrimitiveComponent.h"
 #include "Core/Base/FAssetHandle.h"
 #include "Core/Asset/FAssetPath.h"
@@ -6,19 +7,19 @@
 #include "Core/STL.h"
 #include "Asset/UFont.h"
 #include "Asset/Pipeline/UPipeline.h"
-#include "World/Component/UBillboardTextComponent.generated.h"
 
-UCLASS()
+class FProperty;
+
 class UBillboardTextComponent : public UPrimitiveComponent {
 public:
-    GENERATED_TYPES(UBillboardTextComponent)
+    ReflectTypes(UBillboardTextComponent, UPrimitiveComponent);
 
 public:
     UBillboardTextComponent();
     ~UBillboardTextComponent() override = default;
 
 public:
-    GENERATED_BODY(UBillboardTextComponent)
+    ReflectClass(UBillboardTextComponent, EClassFlags::None);
 
     void SetFontHandle(FAssetHandle InFontHandle);
     void SetPipelineHandle(FAssetHandle InPipelineHandle);
@@ -55,28 +56,31 @@ protected:
     // Dynamic Font에서 글리프를 요청하고 FTextVertex 배열을 다시 생성한다.
     void RebuildTextGeometry();
 
+private:
+    static void SerializeFontHandleProperty(void* Container, FArchive& Archive, const FProperty& Property);
+    static void SerializePipelineHandleProperty(void* Container, FArchive& Archive, const FProperty& Property);
+
 protected:
-    UPROPERTY(Edit, Serialize, Asset, AssetClass = UFont, Getter = GetFontHandle, Setter = SetFontHandle, AssetGuid = mFontAssetGuid, AssetPath = mFontAssetPath, Category = "Text Assets", DisplayName = "Font")
+    ReflectAccessor(mFontHandle, GetFontHandle, SetFontHandle, "FontHandle", EPropertyFlags::Edit | EPropertyFlags::Serialize | EPropertyFlags::Asset, &SerializeFontHandleProperty, ReflectEditor("Text Assets", "Font"), ReflectAsset(UFont));
     FAssetHandle mFontHandle{};
-    UPROPERTY(Edit, Serialize, Asset, AssetClass = UPipeline, Getter = GetPipelineHandle, Setter = SetPipelineHandle, AssetGuid = mPipelineAssetGuid, AssetPath = mPipelineAssetPath, Category = "Text Assets", DisplayName = "Pipeline")
+    ReflectAccessor(mPipelineHandle, GetPipelineHandle, SetPipelineHandle, "PipelineHandle", EPropertyFlags::Edit | EPropertyFlags::Serialize | EPropertyFlags::Asset, &SerializePipelineHandleProperty, ReflectEditor("Text Assets", "Pipeline"), ReflectAsset(UPipeline));
     FAssetHandle mPipelineHandle{};
     FAssetPath mFontAssetPath{};
     FAssetPath mPipelineAssetPath{};
     FGuid mFontAssetGuid{};
     FGuid mPipelineAssetGuid{};
-
-    UPROPERTY(Serialize, Name = "Text", Getter = GetText, Category = "Text", DisplayName = "Text", Edit, Setter = SetText)
+    ReflectAccessor(mText, GetText, SetText, "Text", EPropertyFlags::Edit | EPropertyFlags::Serialize, ReflectSerializer(mText), ReflectEditor("Text", "Text"));
     FString mText{};
-
-    UPROPERTY(Serialize, Name = "Color", Getter = GetColor, Category = "Text", DisplayName = "Color", Edit, Setter = SetColor, Color)
+    ReflectAccessor(mColor, GetColor, SetColor, "Color", EPropertyFlags::Edit | EPropertyFlags::Serialize | EPropertyFlags::Color, ReflectSerializer(mColor), ReflectEditor("Text", "Color"));
     FVector4 mColor{1.0f, 1.0f, 1.0f, 1.0f};
-
-    UPROPERTY(Serialize, Name = "CharacterHeight", Getter = GetCharacterHeight, Category = "Text", DisplayName = "Character Height", Edit, Setter = SetCharacterHeight, Min = 0.001f)
+    ReflectAccessor(mCharacterHeight, GetCharacterHeight, SetCharacterHeight, "CharacterHeight", EPropertyFlags::Edit | EPropertyFlags::Serialize, ReflectSerializer(mCharacterHeight), ReflectEditor("Text", "Character Height"), ReflectRange(0.001f, std::numeric_limits<float>::max()));
     float mCharacterHeight{1.0f};
-    UPROPERTY(Serialize, Name = "LetterSpacing", Getter = GetLetterSpacing, Category = "Text", DisplayName = "Letter Spacing", Edit, Setter = SetLetterSpacing)
+    ReflectAccessor(mLetterSpacing, GetLetterSpacing, SetLetterSpacing, "LetterSpacing", EPropertyFlags::Edit | EPropertyFlags::Serialize, ReflectSerializer(mLetterSpacing), ReflectEditor("Text", "Letter Spacing"));
     float mLetterSpacing{0.0f};
-    UPROPERTY(Serialize, Name = "LineSpacing", Getter = GetLineSpacing, Category = "Text", DisplayName = "Line Spacing", Edit, Setter = SetLineSpacing)
+    ReflectAccessor(mLineSpacing, GetLineSpacing, SetLineSpacing, "LineSpacing", EPropertyFlags::Edit | EPropertyFlags::Serialize, ReflectSerializer(mLineSpacing), ReflectEditor("Text", "Line Spacing"));
     float mLineSpacing{0.0f};
 
     TArray<FTextVertex> mVertices{};
+
+    ReflectMembers();
 };

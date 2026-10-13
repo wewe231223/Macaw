@@ -1,21 +1,22 @@
 #pragma once
+#include "CoreUObject/Reflection/ReflectionMacros.h"
 #include "World/Component/UMeshComponent.h"
 #include "Core/Archive/FArchive.h"
 #include "Asset/UMaterial.h"
 #include "Asset/Pipeline/UPipeline.h"
-#include "World/Component/UStaticMeshComponent.generated.h"
 
-UCLASS()
+class FProperty;
+
 class UStaticMeshComponent : public UMeshComponent {
 public:
-    GENERATED_TYPES(UStaticMeshComponent)
+    ReflectTypes(UStaticMeshComponent, UMeshComponent);
 
 public:
     UStaticMeshComponent();
     ~UStaticMeshComponent() override = default;
 
 public:
-    GENERATED_BODY(UStaticMeshComponent)
+    ReflectClass(UStaticMeshComponent, EClassFlags::None);
 
     FAssetHandle GetMaterialHandle() const;
     FAssetHandle GetPipelineHandle() const;
@@ -30,14 +31,16 @@ public:
     std::unique_ptr<FPrimitiveSceneProxy> CreateSceneProxy() const override;
 
 private:
+    static void SerializeMaterialHandleProperty(void* Container, FArchive& Archive, const FProperty& Property);
+    static void SerializePipelineHandleProperty(void* Container, FArchive& Archive, const FProperty& Property);
     void Serialize(FArchive& Archive) override;
 
     void EnsureDefaultRenderAssets();
 
 private:
-    UPROPERTY(Edit, Serialize, Asset, AssetClass = UMaterial, Getter = GetMaterialHandle, Setter = SetEditorMaterialHandle, AssetGuid = mMaterialAssetGuid, AssetPath = mMaterialAssetPath, Category = "Rendering", DisplayName = "Material")
+    ReflectAccessor(mMaterialHandle, GetMaterialHandle, SetEditorMaterialHandle, "MaterialHandle", EPropertyFlags::Edit | EPropertyFlags::Serialize | EPropertyFlags::Asset, &SerializeMaterialHandleProperty, ReflectEditor("Rendering", "Material"), ReflectAsset(UMaterial));
     FAssetHandle mMaterialHandle{};
-    UPROPERTY(Edit, Serialize, Asset, AssetClass = UPipeline, Getter = GetPipelineHandle, Setter = SetPipelineHandle, AssetGuid = mPipelineAssetGuid, AssetPath = mPipelineAssetPath, Category = "Rendering", DisplayName = "Pipeline")
+    ReflectAccessor(mPipelineHandle, GetPipelineHandle, SetPipelineHandle, "PipelineHandle", EPropertyFlags::Edit | EPropertyFlags::Serialize | EPropertyFlags::Asset, &SerializePipelineHandleProperty, ReflectEditor("Rendering", "Pipeline"), ReflectAsset(UPipeline));
     FAssetHandle mPipelineHandle{};
 
     FAssetPath mMaterialAssetPath{};
@@ -45,4 +48,6 @@ private:
 
     FGuid mMaterialAssetGuid{};
     FGuid mPipelineAssetGuid{};
+
+    ReflectMembers();
 };

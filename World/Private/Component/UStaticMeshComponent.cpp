@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "CoreUObject/Reflection/NativeSerialization.h"
 #include "World/Component/UStaticMeshComponent.h"
 #include "RenderCore/FRenderData.h"
 #include "RenderCore/FStaticMeshSceneProxy.h"
@@ -159,4 +160,16 @@ void UStaticMeshComponent::SetEditorMaterialHandle(FAssetHandle InHandle) {
     if (DesiredPipelineHandle != GetPipelineHandle() && Registry->ResolveAsset<UPipeline>(DesiredPipelineHandle) != nullptr) {
         SetPipelineHandle(DesiredPipelineHandle);
     }
+}
+
+void UStaticMeshComponent::SerializeMaterialHandleProperty(void* Container, FArchive& Archive, const FProperty& Property) {
+    UStaticMeshComponent& Object{*static_cast<UStaticMeshComponent*>(Container)};
+
+    SerializeAssetReference(Archive, "MaterialAssetGuid", "MaterialAssetPath", Object.mMaterialHandle, Object.mMaterialAssetGuid, Object.mMaterialAssetPath);
+}
+
+void UStaticMeshComponent::SerializePipelineHandleProperty(void* Container, FArchive& Archive, const FProperty& Property) {
+    UStaticMeshComponent& Object{*static_cast<UStaticMeshComponent*>(Container)};
+
+    SerializeAssetReference(Archive, "PipelineAssetGuid", "PipelineAssetPath", Object.mPipelineHandle, Object.mPipelineAssetGuid, Object.mPipelineAssetPath);
 }

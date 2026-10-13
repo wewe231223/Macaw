@@ -1,25 +1,24 @@
 #pragma once
+#include "CoreUObject/Reflection/ReflectionMacros.h"
 
 #include <memory>
 #include <vector>
 #include "CoreUObject/TSubsystemCollection.h"
 #include "Engine/FWorldContext.h"
 #include "Engine/Subsystem/UEngineSubsystem.h"
-#include "Engine/UEngine.generated.h"
 
 class FAssetRegistry;
 
-UCLASS()
 class UEngine : public UObject {
 public:
-    GENERATED_TYPES(UEngine)
+    ReflectTypes(UEngine, UObject);
 
 public:
     UEngine();
     ~UEngine() override;
 
 public:
-    GENERATED_BODY(UEngine)
+    ReflectClass(UEngine);
 
     virtual void Initialize();
     virtual void Shutdown();

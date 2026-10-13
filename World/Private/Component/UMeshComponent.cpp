@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "CoreUObject/Reflection/NativeSerialization.h"
 #include "World/Component/UMeshComponent.h"
 #include "World/AActor.h"
 #include "World/UWorld.h"
@@ -138,4 +139,10 @@ void UMeshComponent::Serialize(FArchive& Archive) {
 
 UMeshComponent::UMeshComponent() {
     InitializeClass(StaticClass());
+}
+
+void UMeshComponent::SerializeMeshHandleProperty(void* Container, FArchive& Archive, const FProperty& Property) {
+    UMeshComponent& Object{*static_cast<UMeshComponent*>(Container)};
+
+    SerializeAssetReference(Archive, "MeshAssetGuid", "MeshAssetPath", Object.mMeshHandle, Object.mMeshAssetGuid, Object.mMeshAssetPath);
 }

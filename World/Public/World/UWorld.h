@@ -1,4 +1,5 @@
 #pragma once
+#include "CoreUObject/Reflection/ReflectionMacros.h"
 
 #include <memory>
 #include <optional>
@@ -26,12 +27,10 @@
 #include "World/Subsystem/UPickingSubsystem.h"
 #include "World/Subsystem/URenderSubsystem.h"
 #include "World/Subsystem/UOverlaySubsystem.h"
-#include "World/UWorld.generated.h"
 
-UCLASS()
 class UWorld : public UObject {
 public:
-    GENERATED_TYPES(UWorld)
+    ReflectTypes(UWorld, UObject);
 
 private:
     /// <summary>생명주기와 알림 콜백 중 객체가 해제되지 않도록 호출 깊이를 추적합니다.</summary>
@@ -127,7 +126,7 @@ public:
     UOverlaySubsystem& GetOverlaySubsystem();
     const UOverlaySubsystem& GetOverlaySubsystem() const;
 
-    GENERATED_BODY(UWorld)
+    ReflectClass(UWorld);
 
     void SetAssetRegistry(const IAssetRegistry* InAssetRegistry, IAssetRegistryMutator* InAssetRegistryMutator = nullptr);
 

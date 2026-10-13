@@ -1,12 +1,11 @@
 #pragma once
+#include "CoreUObject/Reflection/ReflectionMacros.h"
 #include "World/Component/USceneComponent.h"
 #include "Core/Archive/FArchive.h"
-#include "World/Component/UCameraComponent.generated.h"
 
-UCLASS()
 class UCameraComponent : public USceneComponent {
 public:
-    GENERATED_TYPES(UCameraComponent)
+    ReflectTypes(UCameraComponent, USceneComponent);
 
 public:
     inline static const FMatrix CameraBasis{
@@ -20,28 +19,26 @@ public:
     ~UCameraComponent() override = default;
 
 public:
-    GENERATED_BODY(UCameraComponent)
+    ReflectClass(UCameraComponent, EClassFlags::None);
 
     FMatrix GetViewMatrix() const;
     FMatrix GetProjectionMatrix() const;
     FMatrix GetViewProjectionMatrix() const;
-
-    UFUNCTION()
+    ReflectFunction(GetFOV);
     float GetFOV() const;
-    UFUNCTION()
+    ReflectFunction(GetAspectRatio);
     float GetAspectRatio() const;
-    UFUNCTION()
+    ReflectFunction(GetNearPlane);
     float GetNearPlane() const;
-    UFUNCTION()
+    ReflectFunction(GetFarPlane);
     float GetFarPlane() const;
-
-    UFUNCTION()
+    ReflectFunction(SetFOV, FName{"InFOV"});
     void SetFOV(float InFOV);
-    UFUNCTION()
+    ReflectFunction(SetAspectRatio, FName{"InAspectRatio"});
     void SetAspectRatio(float InAspectRatio);
-    UFUNCTION()
+    ReflectFunction(SetNearPlane, FName{"InNearPlane"});
     void SetNearPlane(float InNearPlane);
-    UFUNCTION()
+    ReflectFunction(SetFarPlane, FName{"InFarPlane"});
     void SetFarPlane(float InFarPlane);
 
     void OnRegister() override;
@@ -57,14 +54,16 @@ protected:
     void Serialize(FArchive& Archive) override;
 
 private:
-    UPROPERTY(Serialize, Name = "FOV", Getter = GetFOV, Category = "Camera", DisplayName = "FOV", Edit, Setter = SetFOV, Min = 0.01f, Max = 3.13f)
+    ReflectAccessor(mFov, GetFOV, SetFOV, "FOV", EPropertyFlags::Edit | EPropertyFlags::Serialize, ReflectSerializer(mFov), ReflectEditor("Camera", "FOV"), ReflectRange(0.01f, 3.13f));
     float mFov{1.0472f}; // 약 60도, 라디안
-    UPROPERTY(Serialize, Name = "AspectRatio", Getter = GetAspectRatio, Category = "Camera", DisplayName = "Aspect Ratio", Edit, Setter = SetAspectRatio, Min = 0.01f)
+    ReflectAccessor(mAspectRatio, GetAspectRatio, SetAspectRatio, "AspectRatio", EPropertyFlags::Edit | EPropertyFlags::Serialize, ReflectSerializer(mAspectRatio), ReflectEditor("Camera", "Aspect Ratio"), ReflectRange(0.01f, std::numeric_limits<float>::max()));
     float mAspectRatio{16.0f / 9.0f};
-    UPROPERTY(Serialize, Name = "NearPlane", Getter = GetNearPlane, Category = "Camera", DisplayName = "Near Plane", Edit, Setter = SetNearPlane, Min = 0.001f)
+    ReflectAccessor(mNearPlane, GetNearPlane, SetNearPlane, "NearPlane", EPropertyFlags::Edit | EPropertyFlags::Serialize, ReflectSerializer(mNearPlane), ReflectEditor("Camera", "Near Plane"), ReflectRange(0.001f, std::numeric_limits<float>::max()));
     float mNearPlane{0.1f};
-    UPROPERTY(Serialize, Name = "FarPlane", Getter = GetFarPlane, Category = "Camera", DisplayName = "Far Plane", Edit, Setter = SetFarPlane, Min = 0.001f)
+    ReflectAccessor(mFarPlane, GetFarPlane, SetFarPlane, "FarPlane", EPropertyFlags::Edit | EPropertyFlags::Serialize, ReflectSerializer(mFarPlane), ReflectEditor("Camera", "Far Plane"), ReflectRange(0.001f, std::numeric_limits<float>::max()));
     float mFarPlane{1000.0f};
     float mMoveSensitivity{5.0f};
     float mRotationSensitivity{0.1f};
+
+    ReflectMembers();
 };

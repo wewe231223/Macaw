@@ -1,11 +1,13 @@
 #pragma once
+#include "CoreUObject/Reflection/ReflectionMacros.h"
 #include "CoreUObject/Reflection/UClass.h"
 #include "Core/Common.h"
 #include <limits>
 #include "CoreUObject/UObject.h"
 #include "World/Component/UActorComponent.h"
 #include "World/Component/USceneComponent.h"
-#include "World/AActor.generated.h"
+
+class FProperty;
 
 class UWorld;
 class ULevel;
@@ -14,10 +16,9 @@ class ULevel;
 /// World에 소속되며 UActorComponent를 RAII 방식으로 소유하는 게임플레이 객체입니다.
 /// Actor의 월드 Transform은 RootComponent의 ComponentToWorld Transform으로 정의됩니다.
 /// </summary>
-UCLASS()
 class AActor : public UObject {
 public:
-    GENERATED_TYPES(AActor)
+    ReflectTypes(AActor, UObject);
 
 public:
     /// <summary>새 Actor를 생성합니다. World 소속과 Component 등록은 아직 수행하지 않습니다.</summary>
@@ -32,7 +33,7 @@ public:
     AActor& operator=(AActor&&) = delete;
 
 public:
-    GENERATED_BODY(AActor)
+    ReflectClass(AActor, EClassFlags::None);
 
     /// <summary>Actor가 소유하는 새 Component를 생성하고 추가합니다.</summary>
     /// <typeparam name="T">생성할 UActorComponent 파생 타입입니다.</typeparam>
@@ -156,6 +157,7 @@ public:
     bool ResolveLoadedReferences();
 
 private:
+    static void SerializeRootComponentProperty(void* Container, FArchive& Archive, const FProperty& Property);
     /// <summary>Actor가 World에 추가된 직후 호출됩니다.</summary>
     virtual void OnAddedToWorld();
     /// <summary>등록된 Component를 초기화할 때 호출됩니다.</summary>
@@ -201,12 +203,12 @@ private:
     void UpdateTickRegistration();
 
 private:
-    UPROPERTY(Name = "Components", Owned, ReadOnly)
+    ReflectReadOnlyProperty(mComponents, "Components", EPropertyFlags::ReadOnly | EPropertyFlags::Owned);
     std::vector<std::unique_ptr<UActorComponent>> mComponents{};
     // 파괴 처리 후 메모리 해제를 기다리는 컴포넌트입니다.
     std::vector<std::unique_ptr<UActorComponent>> mPendingDestroyComponents{};
     std::size_t mTickIndex{std::numeric_limits<std::size_t>::max()};
-    UPROPERTY(Serialize, Name = "GuidRootComponent", Reference, ReadOnly, PendingGuid = mPendingRootComponentGuid)
+    ReflectReadOnlyProperty(mRootComponent, "GuidRootComponent", EPropertyFlags::Serialize | EPropertyFlags::ReadOnly | EPropertyFlags::Reference, &SerializeRootComponentProperty);
     USceneComponent* mRootComponent{nullptr};
 
     FGuid mPendingRootComponentGuid{};
@@ -234,6 +236,8 @@ private:
     bool mBIsBeingDestroyed{};
     // 보류한 플레이 종료 요청의 이유입니다.
     EEndPlayReason mEndPlayReason{EEndPlayReason::RemovedFromWorld};
+
+    ReflectMembers();
 };
 
 template <typename T>

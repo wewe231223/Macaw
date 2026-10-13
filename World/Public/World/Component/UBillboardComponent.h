@@ -1,26 +1,27 @@
 #pragma once
+#include "CoreUObject/Reflection/ReflectionMacros.h"
 #include "World/Component/UPrimitiveComponent.h"
 #include "Core/Asset/FAssetPath.h"
 #include <array>
 #include "Math/FMath.h"
 #include "Asset/UTexture.h"
 #include "Asset/Pipeline/UPipeline.h"
-#include "World/Component/UBillboardComponent.generated.h"
+
+class FProperty;
 
 // 카메라를 향하는 Primitive의 공통 기반 클래스.
 // Billboard의 실제 방향 계산은 Shader에서 수행한다.
 // 이 클래스는 렌더링 여부와 Billboard 원점만 제공한다.
-UCLASS()
 class UBillboardComponent : public UPrimitiveComponent {
 public:
-    GENERATED_TYPES(UBillboardComponent)
+    ReflectTypes(UBillboardComponent, UPrimitiveComponent);
 
 public:
     UBillboardComponent();
     ~UBillboardComponent() override = default;
 
 public:
-    GENERATED_BODY(UBillboardComponent)
+    ReflectClass(UBillboardComponent, EClassFlags::None);
 
     // Sprite
     void SetTextureHandle(FAssetHandle InTextureHandle);
@@ -55,21 +56,26 @@ protected:
     virtual bool TryGetBillBoardWorld(FMatrix& OutWorld) const;
 
 private:
-    UPROPERTY(Edit, Serialize, Asset, AssetClass = UTexture, Getter = GetTextureHandle, Setter = SetTextureHandle, AssetGuid = mTextureAssetGuid, AssetPath = mTextureAssetPath, Category = "Billboard", DisplayName = "Texture")
+    static void SerializeTextureHandleProperty(void* Container, FArchive& Archive, const FProperty& Property);
+    static void SerializePipelineHandleProperty(void* Container, FArchive& Archive, const FProperty& Property);
+
+private:
+    ReflectAccessor(mTextureHandle, GetTextureHandle, SetTextureHandle, "TextureHandle", EPropertyFlags::Edit | EPropertyFlags::Serialize | EPropertyFlags::Asset, &SerializeTextureHandleProperty, ReflectEditor("Billboard", "Texture"), ReflectAsset(UTexture));
     FAssetHandle mTextureHandle{};
-    UPROPERTY(Edit, Serialize, Asset, AssetClass = UPipeline, Getter = GetPipelineHandle, Setter = SetPipelineHandle, AssetGuid = mPipelineAssetGuid, AssetPath = mPipelineAssetPath, Category = "Billboard", DisplayName = "Pipeline")
+    ReflectAccessor(mPipelineHandle, GetPipelineHandle, SetPipelineHandle, "PipelineHandle", EPropertyFlags::Edit | EPropertyFlags::Serialize | EPropertyFlags::Asset, &SerializePipelineHandleProperty, ReflectEditor("Billboard", "Pipeline"), ReflectAsset(UPipeline));
     FAssetHandle mPipelineHandle{};
     FAssetPath mTextureAssetPath{};
     FAssetPath mPipelineAssetPath{};
     FGuid mTextureAssetGuid{};
     FGuid mPipelineAssetGuid{};
-
-    UPROPERTY(Serialize, Name = "Size", Getter = GetSize, Category = "Billboard", DisplayName = "Size", Edit, Setter = SetSize, Min = 0.001f)
+    ReflectAccessor(mSize, GetSize, SetSize, "Size", EPropertyFlags::Edit | EPropertyFlags::Serialize, ReflectSerializer(mSize), ReflectEditor("Billboard", "Size"), ReflectRange(0.001f, std::numeric_limits<float>::max()));
     FVector2 mSize{1.0f, 1.0f};
-    UPROPERTY(Serialize, Name = "UVMin", Getter = GetUVmin, Category = "Billboard", DisplayName = "UV Min", ReadOnly)
+    ReflectReadOnlyAccessor(mUvMin, GetUVmin, "UVMin", EPropertyFlags::Serialize | EPropertyFlags::ReadOnly, ReflectSerializer(mUvMin), ReflectEditor("Billboard", "UV Min"));
     FVector2 mUvMin{0.0f, 0.0f};
-    UPROPERTY(Serialize, Name = "UVMax", Getter = GetUVMax, Category = "Billboard", DisplayName = "UV Max", ReadOnly)
+    ReflectReadOnlyAccessor(mUvMax, GetUVMax, "UVMax", EPropertyFlags::Serialize | EPropertyFlags::ReadOnly, ReflectSerializer(mUvMax), ReflectEditor("Billboard", "UV Max"));
     FVector2 mUvMax{1.0f, 1.0f};
-    UPROPERTY(Serialize, Name = "Color", Getter = GetColor, Category = "Billboard", DisplayName = "Color", Edit, Setter = SetColor, Color)
+    ReflectAccessor(mColor, GetColor, SetColor, "Color", EPropertyFlags::Edit | EPropertyFlags::Serialize | EPropertyFlags::Color, ReflectSerializer(mColor), ReflectEditor("Billboard", "Color"));
     FVector4 mColor{1.0f, 1.0f, 1.0f, 1.0f};
+
+    ReflectMembers();
 };

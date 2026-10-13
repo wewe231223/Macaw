@@ -1,23 +1,22 @@
 #pragma once
+#include "CoreUObject/Reflection/ReflectionMacros.h"
 #include "World/Component/UActorComponent.h"
 #include "World/Component/USceneComponent.h"
 #include "RenderCore/FRenderData.h"
 #include "RenderCore/FPrimitiveSceneProxy.h"
 
 #include <memory>
-#include "World/Component/UPrimitiveComponent.generated.h"
 
-UCLASS(Abstract)
 class UPrimitiveComponent : public USceneComponent {
 public:
-    GENERATED_TYPES(UPrimitiveComponent)
+    ReflectTypes(UPrimitiveComponent, USceneComponent);
 
 public:
     UPrimitiveComponent();
     ~UPrimitiveComponent() override = default;
 
 public:
-    GENERATED_BODY(UPrimitiveComponent)
+    ReflectClass(UPrimitiveComponent, EClassFlags::Abstract);
 
     bool IsVisible() const;
     void SetVisible(bool BInVisible);
@@ -56,7 +55,7 @@ public:
 
 private:
     TArray<FPrimitiveUVTransform> mUVTransforms{};
-    UPROPERTY(Serialize, Name = "bVisible", Getter = IsVisible, Category = "Rendering", DisplayName = "Visible", Edit, Setter = SetVisible)
+    ReflectAccessor(mBVisible, IsVisible, SetVisible, "bVisible", EPropertyFlags::Edit | EPropertyFlags::Serialize, ReflectSerializer(mBVisible), ReflectEditor("Rendering", "Visible"));
     bool mBVisible{true};
 
     DirectX::BoundingBox mLocalAABB{};
@@ -69,4 +68,6 @@ private:
 
     Uint64 mWorldBoundsTransformRevision{};
     bool mWorldBoundsDirty{true};
+
+    ReflectMembers();
 };

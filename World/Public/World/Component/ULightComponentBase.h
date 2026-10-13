@@ -1,41 +1,40 @@
 #pragma once
+#include "CoreUObject/Reflection/ReflectionMacros.h"
 #include "World/Component/USceneComponent.h"
-#include "World/Component/ULightComponentBase.generated.h"
 
-UCLASS(Abstract)
 class ULightComponentBase : public USceneComponent {
 public:
-    GENERATED_TYPES(ULightComponentBase)
+    ReflectTypes(ULightComponentBase, USceneComponent);
 
 public:
     ULightComponentBase();
     ~ULightComponentBase() override = default;
 
 public:
-    GENERATED_BODY(ULightComponentBase)
-    UFUNCTION()
+    ReflectClass(ULightComponentBase, EClassFlags::Abstract);
+    ReflectFunction(GetLightColor);
     const FVector3& GetLightColor() const;
-    UFUNCTION()
+    ReflectFunction(SetLightColor, FName{"InLightColor"});
     void SetLightColor(const FVector3& InLightColor);
-
-    UFUNCTION()
+    ReflectFunction(GetIntensity);
     float GetIntensity() const;
-    UFUNCTION()
+    ReflectFunction(SetIntensity, FName{"InIntensity"});
     void SetIntensity(float InIntensity);
-
-    UFUNCTION()
+    ReflectFunction(IsVisible);
     bool IsVisible() const;
-    UFUNCTION()
+    ReflectFunction(SetVisible, FName{"BInVisible"});
     void SetVisible(bool BInVisible);
 
 protected:
     void Serialize(FArchive& Archive) override;
 
 private:
-    UPROPERTY(Serialize, Name = "LightColor", Getter = GetLightColor, Category = "Light", DisplayName = "Color", Edit, Setter = SetLightColor, Color)
+    ReflectAccessor(mLightColor, GetLightColor, SetLightColor, "LightColor", EPropertyFlags::Edit | EPropertyFlags::Serialize | EPropertyFlags::Color, ReflectSerializer(mLightColor), ReflectEditor("Light", "Color"));
     FVector3 mLightColor{1.0f, 1.0f, 1.0f};
-    UPROPERTY(Serialize, Name = "Intensity", Getter = GetIntensity, Category = "Light", DisplayName = "Intensity", Edit, Setter = SetIntensity, Min = 0.0f)
+    ReflectAccessor(mIntensity, GetIntensity, SetIntensity, "Intensity", EPropertyFlags::Edit | EPropertyFlags::Serialize, ReflectSerializer(mIntensity), ReflectEditor("Light", "Intensity"), ReflectRange(0.0f, std::numeric_limits<float>::max()));
     float mIntensity{1.0f};
-    UPROPERTY(Serialize, Name = "bVisible", Getter = IsVisible, Category = "Light", DisplayName = "Visible", Edit, Setter = SetVisible)
+    ReflectAccessor(mBVisible, IsVisible, SetVisible, "bVisible", EPropertyFlags::Edit | EPropertyFlags::Serialize, ReflectSerializer(mBVisible), ReflectEditor("Light", "Visible"));
     bool mBVisible{true};
+
+    ReflectMembers();
 };

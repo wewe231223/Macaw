@@ -1,4 +1,5 @@
 #pragma once
+#include "CoreUObject/Reflection/ReflectionMacros.h"
 #include "World/Subsystem/UWorldSubsystem.h"
 #include "RenderCore/FSceneUpdateBatch.h"
 #include "World/Component/UActorComponent.h"
@@ -6,19 +7,17 @@
 
 #include <unordered_map>
 #include <unordered_set>
-#include "World/Subsystem/URenderSubsystem.generated.h"
 
-UCLASS()
 class URenderSubsystem : public UWorldSubsystem {
 public:
-    GENERATED_TYPES(URenderSubsystem)
+    ReflectTypes(URenderSubsystem, UWorldSubsystem);
 
 public:
     URenderSubsystem();
     ~URenderSubsystem() override = default;
 
 public:
-    GENERATED_BODY(URenderSubsystem)
+    ReflectClass(URenderSubsystem);
 
     void RegisterComponent(UActorComponent* Component);
     void UnregisterComponent(UActorComponent* Component);

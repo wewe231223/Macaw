@@ -1,19 +1,18 @@
 #pragma once
+#include "CoreUObject/Reflection/ReflectionMacros.h"
 
 #include <cstddef>
 #include <limits>
 #include "CoreUObject/UObject.h"
 #include "Core/Archive/FArchive.h"
 #include "World/EEndPlayReason.h"
-#include "World/Component/UActorComponent.generated.h"
 
 class AActor;
 class UWorld;
 
-UCLASS()
 class UActorComponent : public UObject {
 public:
-    GENERATED_TYPES(UActorComponent)
+    ReflectTypes(UActorComponent, UObject);
 
 public:
     UActorComponent();
@@ -26,7 +25,7 @@ public:
     UActorComponent& operator=(UActorComponent&&) = delete;
 
 public:
-    GENERATED_BODY(UActorComponent)
+    ReflectClass(UActorComponent, EClassFlags::None);
 
     AActor* GetOwner() const;
 
@@ -53,25 +52,24 @@ public:
     void MarkRenderTransformDirty();
     void MarkRenderDynamicDataDirty();
     void DoDeferredRenderUpdates();
-
-    UFUNCTION()
+    ReflectFunction(IsActive);
     bool IsActive() const;
-    UFUNCTION()
+    ReflectFunction(SetActive, FName{"BInActive"});
     void SetActive(bool BInActive);
     /// <summary>컴포넌트를 활성화하고 Tick을 켭니다.</summary>
-    UFUNCTION()
+    ReflectFunction(Activate);
     virtual void Activate();
     /// <summary>컴포넌트를 비활성화하고 Tick을 끕니다.</summary>
-    UFUNCTION()
+    ReflectFunction(Deactivate);
     virtual void Deactivate();
 
     /// <summary>현재 Tick 활성 상태와 별개로 컴포넌트가 Tick을 지원하는지 반환합니다.</summary>
     bool CanEverTick() const;
     /// <summary>Tick 지원 여부를 설정하고 World의 Tick 등록을 갱신합니다.</summary>
     void SetCanEverTick(bool CanEverTick);
-    UFUNCTION()
+    ReflectFunction(IsTickEnabled);
     bool IsTickEnabled() const;
-    UFUNCTION()
+    ReflectFunction(SetTickEnabled, FName{"TickEnabled"});
     void SetTickEnabled(bool TickEnabled);
     bool IsTickInEditor() const;
     void SetTickInEditor(bool TickInEditor);
@@ -125,7 +123,7 @@ private:
     bool mRegistering{};
     // 등록 해제 콜백에서 등록 상태를 다시 바꾸는 것을 막습니다.
     bool mUnregistering{};
-    UPROPERTY(Serialize, Name = "bActive", Getter = IsActive, Category = "Component", DisplayName = "Active", Edit, Setter = SetActive)
+    ReflectAccessor(mBActive, IsActive, SetActive, "bActive", EPropertyFlags::Edit | EPropertyFlags::Serialize, ReflectSerializer(mBActive), ReflectEditor("Component", "Active"));
     bool mBActive{true};
     // 현재 Tick 활성 상태와 별개인 컴포넌트의 Tick 지원 여부입니다.
     bool mCanEverTick{};
@@ -139,4 +137,6 @@ private:
     bool mRenderStateDirty{};
     bool mRenderTransformDirty{};
     bool mRenderDynamicDataDirty{};
+
+    ReflectMembers();
 };

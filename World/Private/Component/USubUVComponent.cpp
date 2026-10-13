@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "CoreUObject/Reflection/NativeSerialization.h"
 #include "CoreUObject/Reflection/UClass.h"
 #include "World/Component/USubUVComponent.h"
 #include "World/AActor.h"
@@ -260,4 +261,14 @@ TArray<FName> USubUVComponent::GetTargetMaterialGroups() const {
     }
 
     return Groups;
+}
+
+void USubUVComponent::SerializeTargetComponentProperty(void* Container, FArchive& Archive, const FProperty& Property) {
+    USubUVComponent& Object{*static_cast<USubUVComponent*>(Container)};
+
+    SerializeObjectReference(Archive, Property.GetSerializationName(), Object.GetTargetComponent(), Object.mPendingTargetGuid);
+
+    if (Archive.IsLoading()) {
+        Object.mTargetComponent = {};
+    }
 }

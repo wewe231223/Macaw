@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "CoreUObject/Reflection/NativeSerialization.h"
 #include "CoreUObject/Reflection/UClass.h"
 #include "World/Component/USceneComponent.h"
 #include "World/AActor.h"
@@ -407,4 +408,14 @@ bool USceneComponent::CanSelectParent(USceneComponent* Parent) const {
     }
 
     return true;
+}
+
+void USceneComponent::SerializeParentProperty(void* Container, FArchive& Archive, const FProperty& Property) {
+    USceneComponent& Object{*static_cast<USceneComponent*>(Container)};
+
+    SerializeObjectReference(Archive, Property.GetSerializationName(), Object.GetParent(), Object.mPendingParentGuid);
+
+    if (Archive.IsLoading()) {
+        Object.mParent = {};
+    }
 }

@@ -43,7 +43,7 @@ class FProperty : public FField {
 public:
     using FReader = FPropertyValue (*)(const void*);
     using FWriter = bool (*)(void*, const FPropertyValue&);
-    using FSerializer = void (*)(void*, FArchive&);
+    using FSerializer = void (*)(void*, FArchive&, const FProperty&);
     using FBoundGetter = double (*)(const void*);
     using FObjectFilter = bool (*)(const void*, UObject*);
     using FEditCondition = bool (*)(const void*);
@@ -67,6 +67,7 @@ public:
     bool SetValue(UObject& Object, const FPropertyValue& Value) const;
     FPropertyValue ReadContainer(const void* Container) const;
     bool WriteContainer(void* Container, const FPropertyValue& Value) const;
+    void SetSerializer(FSerializer Serializer);
     void SerializeContainer(void* Container, FArchive& Archive) const;
     void VisitReferences(const void* Container, const std::function<void(UObject*)>& Visitor) const;
     bool ResetToDefault(UObject& Object) const;

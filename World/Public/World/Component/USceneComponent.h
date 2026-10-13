@@ -1,19 +1,20 @@
 #pragma once
+#include "CoreUObject/Reflection/ReflectionMacros.h"
 #include "Core/Base/FTransform.h"
 #include "CoreUObject/TObjectRef.h"
 #include "Core/Archive/FArchive.h"
 #include "World/Component/UActorComponent.h"
-#include "World/Component/USceneComponent.generated.h"
+
+class FProperty;
 
 enum class EAttachmentTransformRule {
     KeepRelativeTransform,
     KeepWorldTransform
 };
 
-UCLASS()
 class USceneComponent : public UActorComponent {
 public:
-    GENERATED_TYPES(USceneComponent)
+    ReflectTypes(USceneComponent, UActorComponent);
 
 public:
     USceneComponent();
@@ -24,7 +25,7 @@ public:
     void DestroyComponent(bool BPromoteChildren = false) override;
     void RemoveChild(USceneComponent* InChild);
 
-    GENERATED_BODY(USceneComponent)
+    ReflectClass(USceneComponent, EClassFlags::None);
 
     const FTransform& GetRelativeTransform() const;
     void SetRelativeTransform(const FTransform& Transform);
@@ -69,13 +70,14 @@ public:
     bool ResolveLoadedReferences() override;
 
 private:
+    static void SerializeParentProperty(void* Container, FArchive& Archive, const FProperty& Property);
     void MarkTransformDirty();
     void NotifyTransformUpdate();
 
 private:
     // 부모와 자식 연결을 정리하는 동안 파괴 처리의 중복 진입을 막습니다.
     bool mDestroyingHierarchy{};
-    UPROPERTY(Edit, Serialize, Name = "Transform", Category = "Transform", DisplayName = "Relative Transform", Getter = GetRelativeTransform, Setter = SetRelativeTransform)
+    ReflectAccessor(mTransform, GetRelativeTransform, SetRelativeTransform, "Transform", EPropertyFlags::Edit | EPropertyFlags::Serialize, ReflectSerializer(mTransform), ReflectEditor("Transform", "Relative Transform"));
     FTransform mTransform{};
     mutable FTransform mWorldTransform{};
     mutable FObjectHandle mCachedParentHandle{};
@@ -83,9 +85,10 @@ private:
     mutable Uint64 mTransformRevision{};
     mutable bool mWorldTransformDirty{true};
     FGuid mPendingParentGuid{};
-
-    UPROPERTY(Edit, Serialize, Name = "Parent", Reference, OwnerOnly, Category = "Attachment", Getter = GetParent, Setter = SetEditorParent, EditCondition = CanEditParent, ObjectFilter = CanSelectParent, PendingGuid = mPendingParentGuid)
+    ReflectAccessor(mParent, GetParent, SetEditorParent, "Parent", EPropertyFlags::Edit | EPropertyFlags::Serialize | EPropertyFlags::Reference | EPropertyFlags::OwnerOnly, &SerializeParentProperty, ReflectEditor("Attachment", "Parent"), ReflectCondition(CanEditParent), ReflectFilter(CanSelectParent));
     TObjectRef<USceneComponent> mParent{};
-    UPROPERTY(Name = "Children", Reference, ReadOnly)
+    ReflectReadOnlyProperty(mChildren, "Children", EPropertyFlags::ReadOnly | EPropertyFlags::Reference);
     std::vector<TObjectRef<USceneComponent>> mChildren{};
+
+    ReflectMembers();
 };

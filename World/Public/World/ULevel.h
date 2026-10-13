@@ -1,24 +1,23 @@
 #pragma once
+#include "CoreUObject/Reflection/ReflectionMacros.h"
 
 #include <memory>
 #include "Core/STL.h"
 #include "CoreUObject/UObject.h"
-#include "World/ULevel.generated.h"
+#include "World/AActor.h"
 
-class AActor;
 class UWorld;
 
-UCLASS(NoFactory)
 class ULevel final : public UObject {
 public:
-    GENERATED_TYPES(ULevel)
+    ReflectTypes(ULevel, UObject);
 
 public:
     explicit ULevel(UWorld& World);
     ~ULevel() override;
 
 public:
-    GENERATED_BODY(ULevel)
+    ReflectClass(ULevel, EClassFlags::NoFactory);
 
     UWorld& GetWorld() const;
     const TArray<std::unique_ptr<AActor>>& GetActors() const;
@@ -31,6 +30,8 @@ private:
 
 private:
     UWorld& mWorld;
-    UPROPERTY(Name = "Actors", Owned, ReadOnly)
+    ReflectReadOnlyProperty(mActors, "Actors", EPropertyFlags::ReadOnly | EPropertyFlags::Owned);
     TArray<std::unique_ptr<AActor>> mActors{};
+
+    ReflectMembers();
 };

@@ -1,23 +1,23 @@
 #pragma once
+#include "CoreUObject/Reflection/ReflectionMacros.h"
 #include "Core/CoreMinimal.h"
 #include "Core/Base/FName.h"
 #include "CoreUObject/FObjectHandle.h"
-#include "CoreUObject/Reflection/ReflectionMacros.h"
-#include "RenderCore/FUVTransform.generated.h"
 
-USTRUCT()
 struct FUVTransform {
 public:
-    GENERATED_TYPES(FUVTransform)
+    ReflectTypes(FUVTransform);
 
 public:
-    GENERATED_BODY(FUVTransform)
+    ReflectStruct(FUVTransform);
 
 public:
-    UPROPERTY(Edit, Serialize, Name = "UVScale", DisplayName = "UV Scale", Speed = 0.01f, Min = -100.0f, Max = 100.0f)
+    ReflectProperty(mScale, "UVScale", EPropertyFlags::Edit | EPropertyFlags::Serialize, ReflectSerializer(mScale), ReflectEditor("", "UV Scale"), ReflectRange(-100.0f, 100.0f), ReflectSpeed(0.01f));
     FVector2 mScale{1.0f, 1.0f};
-    UPROPERTY(Edit, Serialize, Name = "UVOffset", DisplayName = "UV Offset", Speed = 0.01f, Min = -100.0f, Max = 100.0f)
+    ReflectProperty(mOffset, "UVOffset", EPropertyFlags::Edit | EPropertyFlags::Serialize, ReflectSerializer(mOffset), ReflectEditor("", "UV Offset"), ReflectRange(-100.0f, 100.0f), ReflectSpeed(0.01f));
     FVector2 mOffset{};
+
+    ReflectMembers();
 };
 
 struct FPrimitiveUVTransform {

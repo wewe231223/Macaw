@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "CoreUObject/Reflection/NativeSerialization.h"
 #include "World/Component/UBillboardTextComponent.h"
 #include "RenderCore/FTextSceneProxy.h"
 #include "CoreUObject/Asset/IAssetRegistry.h"
@@ -202,4 +203,16 @@ void UBillboardTextComponent::SendRenderTransform() {
 
 UBillboardTextComponent::UBillboardTextComponent() {
     InitializeClass(StaticClass());
+}
+
+void UBillboardTextComponent::SerializeFontHandleProperty(void* Container, FArchive& Archive, const FProperty& Property) {
+    UBillboardTextComponent& Object{*static_cast<UBillboardTextComponent*>(Container)};
+
+    SerializeAssetReference(Archive, "FontAssetGuid", "FontAssetPath", Object.mFontHandle, Object.mFontAssetGuid, Object.mFontAssetPath);
+}
+
+void UBillboardTextComponent::SerializePipelineHandleProperty(void* Container, FArchive& Archive, const FProperty& Property) {
+    UBillboardTextComponent& Object{*static_cast<UBillboardTextComponent*>(Container)};
+
+    SerializeAssetReference(Archive, "PipelineAssetGuid", "PipelineAssetPath", Object.mPipelineHandle, Object.mPipelineAssetGuid, Object.mPipelineAssetPath);
 }

@@ -1,4 +1,5 @@
 #pragma once
+#include "CoreUObject/Reflection/ReflectionMacros.h"
 
 #include <filesystem>
 #include <array>
@@ -7,7 +8,6 @@
 #include "RenderCore/Pipeline/FPipelineDescription.h"
 #include "Asset/UAsset.h"
 #include "CoreUObject/Reflection/UClass.h"
-#include "Asset/Pipeline/UPipeline.generated.h"
 
 enum class ERenderMode : std::size_t {
     Lit,
@@ -17,10 +17,9 @@ enum class ERenderMode : std::size_t {
     Max
 };
 
-UCLASS()
 class UPipeline : public UAsset {
 public:
-    GENERATED_TYPES(UPipeline)
+    ReflectTypes(UPipeline, UAsset);
 
 public:
     UPipeline();
@@ -33,7 +32,7 @@ public:
     UPipeline& operator=(UPipeline&&) noexcept = default;
 
 public:
-    GENERATED_BODY(UPipeline)
+    ReflectClass(UPipeline);
 
     bool Initialize(const std::filesystem::path& PipelinePath);
 

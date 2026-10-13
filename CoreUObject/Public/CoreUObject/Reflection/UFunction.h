@@ -1,5 +1,7 @@
 #pragma once
 
+#include "CoreUObject/Reflection/ReflectionMacros.h"
+
 #include "CoreUObject/Reflection/UStruct.h"
 #include <span>
 
@@ -14,7 +16,7 @@ public:
     ~UFunction() override = default;
 
 public:
-    static UClass* StaticClass();
+    ReflectClass(UFunction, EClassFlags::Metadata | EClassFlags::NoFactory);
     void AddParameter(FName Name, const FNativeType* Type);
     void SetReturnType(const FNativeType* Type);
     const FNativeType* GetReturnType() const;

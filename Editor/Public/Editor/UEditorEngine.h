@@ -1,23 +1,22 @@
 #pragma once
+#include "CoreUObject/Reflection/ReflectionMacros.h"
 
 #include <filesystem>
 #include "Engine/UEngine.h"
 #include "Editor/Settings/FEditorSettings.h"
-#include "Editor/UEditorEngine.generated.h"
 
 class FWorldEditorContext;
 
-UCLASS()
 class UEditorEngine final : public UEngine {
 public:
-    GENERATED_TYPES(UEditorEngine)
+    ReflectTypes(UEditorEngine, UEngine);
 
 public:
     UEditorEngine();
     ~UEditorEngine() override;
 
 public:
-    GENERATED_BODY(UEditorEngine)
+    ReflectClass(UEditorEngine);
 
     void Initialize() override;
     void Shutdown() override;

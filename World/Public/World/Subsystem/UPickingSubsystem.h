@@ -1,4 +1,5 @@
 #pragma once
+#include "CoreUObject/Reflection/ReflectionMacros.h"
 #include "World/Subsystem/UWorldSubsystem.h"
 #include "CoreUObject/TObjectRef.h"
 #include "Core/Spatial/FDynamicBVH8.h"
@@ -7,7 +8,6 @@
 #include <unordered_map>
 #include <unordered_set>
 #include "World/Component/FMeshPickingProxy.h"
-#include "World/Subsystem/UPickingSubsystem.generated.h"
 
 class FWorldRaycastAccelerationStructure {
 private:
@@ -140,17 +140,16 @@ private:
 };
 
 /// <summary>Provides editor picking over registered primitive component volumes.</summary>
-UCLASS()
 class UPickingSubsystem : public UWorldSubsystem {
 public:
-    GENERATED_TYPES(UPickingSubsystem)
+    ReflectTypes(UPickingSubsystem, UWorldSubsystem);
 
 public:
     UPickingSubsystem();
     ~UPickingSubsystem() override = default;
 
 public:
-    GENERATED_BODY(UPickingSubsystem)
+    ReflectClass(UPickingSubsystem);
 
     void RegisterComponent(UPrimitiveComponent* Component);
     void UnregisterComponent(UPrimitiveComponent* Component);

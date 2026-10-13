@@ -1,32 +1,34 @@
 #pragma once
+#include "CoreUObject/Reflection/ReflectionMacros.h"
 #include "World/Component/UCollisionComponent.h"
 #include "World/Component/UMeshComponent.h"
-#include "World/Component/UBoxColliderComponent.generated.h"
 
-USTRUCT()
+class FProperty;
+
 struct FBoxColliderBounds {
 public:
-    GENERATED_TYPES(FBoxColliderBounds)
+    ReflectTypes(FBoxColliderBounds);
 
 public:
-    GENERATED_BODY(FBoxColliderBounds)
+    ReflectStruct(FBoxColliderBounds);
 
     DirectX::BoundingOrientedBox ToNative() const;
     void SetNative(const DirectX::BoundingOrientedBox& Bounds);
 
 public:
-    UPROPERTY(Serialize, Name = "OBB_Center", ReadOnly)
+    ReflectReadOnlyProperty(mCenter, "OBB_Center", EPropertyFlags::Serialize | EPropertyFlags::ReadOnly, ReflectSerializer(mCenter));
     FVector3 mCenter{};
-    UPROPERTY(Edit, Serialize, Name = "OBB_Extent", DisplayName = "Extent", Min = 0.001f, Speed = 0.05f)
+    ReflectProperty(mExtent, "OBB_Extent", EPropertyFlags::Edit | EPropertyFlags::Serialize, ReflectSerializer(mExtent), ReflectEditor("", "Extent"), ReflectRange(0.001f, std::numeric_limits<float>::max()), ReflectSpeed(0.05f));
     FVector3 mExtent{1.0f, 1.0f, 1.0f};
-    UPROPERTY(Serialize, Name = "OBB_Orientation", ReadOnly)
+    ReflectReadOnlyProperty(mOrientation, "OBB_Orientation", EPropertyFlags::Serialize | EPropertyFlags::ReadOnly, ReflectSerializer(mOrientation));
     FQuat mOrientation{0.0f, 0.0f, 0.0f, 1.0f};
+
+    ReflectMembers();
 };
 
-UCLASS()
 class UBoxColliderComponent final : public UCollisionComponent {
 public:
-    GENERATED_TYPES(UBoxColliderComponent)
+    ReflectTypes(UBoxColliderComponent, UCollisionComponent);
 
 public:
     /// <summary>플레이 초기화에서 메시 기준 충돌 경계를 구성하도록 초기화 호출을 요청합니다.</summary>
@@ -34,7 +36,7 @@ public:
     ~UBoxColliderComponent() override = default;
 
 public:
-    GENERATED_BODY(UBoxColliderComponent)
+    ReflectClass(UBoxColliderComponent, EClassFlags::None);
 
     void SetMeshComponent(UMeshComponent* InMeshComponent);
     UMeshComponent* GetMeshComponent() const override;
@@ -54,9 +56,14 @@ public:
     void Serialize(FArchive& Archive) override;
 
 private:
-    UPROPERTY(Edit, Serialize, Name = "GuidMeshComponent", DisplayName = "Source Mesh Component", Category = "Collision", Reference, OwnerOnly, Getter = GetMeshComponent, Setter = SetMeshComponent, PendingGuid = mPendingMeshComponentGuid)
+    static void SerializeMeshComponentProperty(void* Container, FArchive& Archive, const FProperty& Property);
+
+private:
+    ReflectAccessor(mMeshComponent, GetMeshComponent, SetMeshComponent, "GuidMeshComponent", EPropertyFlags::Edit | EPropertyFlags::Serialize | EPropertyFlags::Reference | EPropertyFlags::OwnerOnly, &SerializeMeshComponentProperty, ReflectEditor("Collision", "Source Mesh Component"));
     TObjectRef<UMeshComponent> mMeshComponent{};
     FGuid mPendingMeshComponentGuid{};
-    UPROPERTY(Edit, Serialize, Inline, Name = "Bounds", DisplayName = "Extent", Category = "Collision", Getter = GetBounds, Setter = SetBounds)
+    ReflectAccessor(mBounds, GetBounds, SetBounds, "Bounds", EPropertyFlags::Edit | EPropertyFlags::Serialize | EPropertyFlags::Inline, ReflectSerializer(mBounds), ReflectEditor("Collision", "Extent"));
     FBoxColliderBounds mBounds{};
+
+    ReflectMembers();
 };

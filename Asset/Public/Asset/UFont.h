@@ -1,11 +1,11 @@
 #pragma once
+#include "CoreUObject/Reflection/ReflectionMacros.h"
 #include "Asset/UAsset.h"
 #include "Core/Base/FAssetHandle.h"
 #include "Math/FVector.h"
 #include <array>
 #include <cstdint>
 #include <span>
-#include "Asset/UFont.generated.h"
 
 struct FFontGlyph {
     Uint32 mGlyphIndex{0};
@@ -31,17 +31,16 @@ struct FFontMetrics {
     float mLineHeight{0.0f};
 };
 
-UCLASS(Abstract)
 class UFont : public UAsset {
 public:
-    GENERATED_TYPES(UFont)
+    ReflectTypes(UFont, UAsset);
 
 public:
     UFont();
     ~UFont() override = default;
 
 public:
-    GENERATED_BODY(UFont)
+    ReflectClass(UFont, EClassFlags::Abstract);
 
     virtual const FFontGlyph* GetOrCreateGlyph(char32_t CodePoint) = 0;
     virtual const FFontMetrics& GetFontMetrics() const = 0;

@@ -1,21 +1,20 @@
 #pragma once
+#include "CoreUObject/Reflection/ReflectionMacros.h"
 
 #include "CoreUObject/UObject.h"
-#include "Engine/Subsystem/UEngineSubsystem.generated.h"
 
 class UEngine;
 
-UCLASS(Abstract)
 class UEngineSubsystem : public UObject {
 public:
-    GENERATED_TYPES(UEngineSubsystem)
+    ReflectTypes(UEngineSubsystem, UObject);
 
 public:
     UEngineSubsystem();
     ~UEngineSubsystem() override = default;
 
 public:
-    GENERATED_BODY(UEngineSubsystem)
+    ReflectClass(UEngineSubsystem, EClassFlags::Abstract);
 
     void Initialize(UEngine* Engine);
     void Deinitialize();

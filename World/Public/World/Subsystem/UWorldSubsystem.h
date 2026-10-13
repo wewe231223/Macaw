@@ -1,21 +1,20 @@
 #pragma once
+#include "CoreUObject/Reflection/ReflectionMacros.h"
 #include "CoreUObject/UObject.h"
-#include "World/Subsystem/UWorldSubsystem.generated.h"
 
 class UWorld;
 
 /// <summary>A World-owned RAII service that follows the World lifetime.</summary>
-UCLASS(Abstract)
 class UWorldSubsystem : public UObject {
 public:
-    GENERATED_TYPES(UWorldSubsystem)
+    ReflectTypes(UWorldSubsystem, UObject);
 
 public:
     UWorldSubsystem();
     ~UWorldSubsystem() override = default;
 
 public:
-    GENERATED_BODY(UWorldSubsystem)
+    ReflectClass(UWorldSubsystem, EClassFlags::Abstract);
 
     void Initialize(UWorld* World);
     void Deinitialize();
