@@ -3,6 +3,7 @@
 #include "CoreUObject/Reflection/FReflectionRegistry.h"
 #include "CoreUObject/Reflection/NativeSerialization.h"
 #include "CoreUObject/Reflection/FProperty.h"
+#include "Core/Base/ErrorHandler.h"
 #include <span>
 #include <initializer_list>
 #include <tuple>
@@ -283,7 +284,7 @@ void RegisterFunction(FReflectionBuilder& Owner, FName Name, std::initializer_li
     using FArguments = typename TFunctionPointerTraits<decltype(Method)>::FArguments;
 
     if (ParameterNames.size() != std::tuple_size_v<FArguments>) {
-        throw std::logic_error{"Reflected function parameter names must match its signature"};
+        ErrorHandler::Report("FReflectionBuilder", "Reflected function parameter names must match its signature", ErrorHandler::EErrorLevel::Critical);
     }
 
     RegisterFunctionParameters<Method>(Owner, Name, ParameterNames, std::make_index_sequence<std::tuple_size_v<FArguments>>{});

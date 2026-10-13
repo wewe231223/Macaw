@@ -8,6 +8,7 @@ class UWorld;
 class FWorldContext final {
 public:
     explicit FWorldContext(EWorldType WorldType);
+    explicit FWorldContext(std::unique_ptr<UWorld> World);
     ~FWorldContext();
     FWorldContext(const FWorldContext&) = delete;
     FWorldContext& operator=(const FWorldContext&) = delete;

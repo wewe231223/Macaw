@@ -3,6 +3,7 @@
 #include "CoreUObject/Reflection/Cast.h"
 #include "CoreUObject/Reflection/UClass.h"
 #include "Core/Base/ErrorHandler.h"
+#include "Core/Base/FScopedFlag.h"
 #include "World/UWorld.h"
 #include "Core/Stat/Stat.h"
 
@@ -78,7 +79,7 @@ void UWorld::CleanupWorld() {
         return;
     }
 
-    if (mBTickingActors || mBeginningPlay || mEndingPlay || mActorDispatchDepth > 0 || mFlushingActors) {
+    if (mTicking || mBeginningPlay || mEndingPlay || mActorDispatchDepth > 0 || mFlushingActors) {
         ErrorHandler::Report("UWorld", "Cannot clean up a world during actor callbacks", ErrorHandler::EErrorLevel::Critical);
     }
 
@@ -93,10 +94,10 @@ void UWorld::CleanupWorld() {
     UObjectSystem::Unregister(mPersistentLevel.get(), mPersistentLevel->GetHandle());
     mPersistentLevel.reset();
     mPendingDestroyActors.clear();
-    mTickActors.clear();
-    mTickComponents.clear();
-    mTickComponentsNeedCompaction = false;
-    mTickActorsNeedCompaction = false;
+    mActorTickFunctions.clear();
+    mComponentTickFunctions.clear();
+    mComponentTickFunctionsNeedCompaction = false;
+    mActorTickFunctionsNeedCompaction = false;
     mEndPlayRequested = false;
     mAssetRegistry = nullptr;
     mAssetRegistryMutator = nullptr;
@@ -110,6 +111,10 @@ bool UWorld::IsInitialized() const {
 
 EWorldType UWorld::GetWorldType() const {
     return mWorldType;
+}
+
+bool UWorld::IsGameWorld() const {
+    return mWorldType == EWorldType::Game || mWorldType == EWorldType::PIE;
 }
 
 ULevel& UWorld::GetPersistentLevel() {
@@ -129,34 +134,34 @@ const ULevel& UWorld::GetPersistentLevel() const {
 }
 
 void UWorld::BeginPlay() {
-    if (!mInitialized || mHasBegunPlay || mBeginningPlay || mWorldType != EWorldType::Game || mCleaningUp || mLoadingScene || mEndingPlay) {
+    if (!mInitialized || mHasBegunPlay || mBeginningPlay || !IsGameWorld() || mCleaningUp || mLoadingScene || mEndingPlay) {
         return;
     }
 
     mTime.Reset();
-    mBeginningPlay = true;
+    {
+        const FScopedFlag BeginningPlay{mBeginningPlay};
 
-    for (std::size_t Index{}; Index < mPersistentLevel->mActors.size() && !mEndPlayRequested; ++Index) {
-        AActor* Actor{mPersistentLevel->mActors[Index].get()};
+        for (std::size_t Index{}; Index < mPersistentLevel->mActors.size() && !mEndPlayRequested; ++Index) {
+            AActor* Actor{mPersistentLevel->mActors[Index].get()};
 
-        if (!Actor->IsBeingDestroyed()) {
-            Actor->InitializeComponents();
+            if (!Actor->IsBeingDestroyed()) {
+                Actor->InitializeComponents();
+            }
+        }
+
+        mHasBegunPlay = true;
+
+        const std::size_t Count{mPersistentLevel->mActors.size()};
+
+        for (std::size_t Index{}; Index < Count && !mEndPlayRequested; ++Index) {
+            AActor* Actor{mPersistentLevel->mActors[Index].get()};
+
+            if (!Actor->IsBeingDestroyed()) {
+                Actor->DispatchBeginPlay();
+            }
         }
     }
-
-    mHasBegunPlay = true;
-
-    const std::size_t Count{mPersistentLevel->mActors.size()};
-
-    for (std::size_t Index{}; Index < Count && !mEndPlayRequested; ++Index) {
-        AActor* Actor{mPersistentLevel->mActors[Index].get()};
-
-        if (!Actor->IsBeingDestroyed()) {
-            Actor->DispatchBeginPlay();
-        }
-    }
-
-    mBeginningPlay = false;
 
     if (mEndPlayRequested) {
         EndPlay(mEndPlayReason);
@@ -168,21 +173,20 @@ void UWorld::EndPlay(EEndPlayReason Reason) {
         return;
     }
 
-    if (mBeginningPlay || mBTickingActors || mActorDispatchDepth > 0) {
+    if (mBeginningPlay || mTicking || mActorDispatchDepth > 0) {
         mEndPlayRequested = true;
         mEndPlayReason = Reason;
         return;
     }
 
     mEndPlayRequested = false;
-    mEndingPlay = true;
     mHasBegunPlay = false;
+
+    const FScopedFlag EndingPlay{mEndingPlay};
 
     for (std::size_t Index{mPersistentLevel->mActors.size()}; Index > 0; --Index) {
         mPersistentLevel->mActors[Index - 1]->DispatchEndPlay(Reason);
     }
-
-    mEndingPlay = false;
 }
 
 bool UWorld::HasBegunPlay() const {
@@ -291,7 +295,7 @@ bool UWorld::DestroyActorInternal(AActor* Actor, EEndPlayReason Reason) {
 }
 
 void UWorld::FlushPendingDestroyActors() {
-    if (!mInitialized || mBTickingActors || mBeginningPlay || mEndingPlay || mFlushingActors || mActorDispatchDepth > 0) {
+    if (!mInitialized || mTicking || mBeginningPlay || mEndingPlay || mFlushingActors || mActorDispatchDepth > 0) {
         return;
     }
 
@@ -478,7 +482,11 @@ Uint64 UWorld::GetStructureRevision() const {
 }
 
 void UWorld::Tick(float DeltaTime) {
-    if (!mInitialized || mBTickingActors || mCleaningUp || mLoadingScene || mBeginningPlay || mEndingPlay || mActorDispatchDepth > 0) {
+    Tick(GetDefaultTickType(), DeltaTime);
+}
+
+void UWorld::Tick(ETickType TickType, float DeltaTime) {
+    if (!mInitialized || IsBusy() || TickType == ETickType::None) {
         return;
     }
 
@@ -486,27 +494,30 @@ void UWorld::Tick(float DeltaTime) {
         EndPlay(mEndPlayReason);
     }
 
-    if (mWorldType == EWorldType::Game && !mHasBegunPlay) {
+    const ETickType EffectiveTickType{mTime.IsPaused() && (TickType == ETickType::Game || TickType == ETickType::Editor) ? ETickType::Paused : TickType};
+
+    if ((EffectiveTickType == ETickType::Game || EffectiveTickType == ETickType::Paused) && !mHasBegunPlay) {
         FlushPendingDestroyActors();
         return;
     }
 
-    mTime.Tick(static_cast<double>(DeltaTime));
+    mTime.Tick(EffectiveTickType == ETickType::Paused ? 0.0 : static_cast<double>(DeltaTime));
 
     const float WorldDeltaTime{static_cast<float>(mTime.GetDeltaSeconds())};
+    const bool CanRunTicks{EffectiveTickType != ETickType::TimeOnly && (WorldDeltaTime > 0.0f || (EffectiveTickType == ETickType::Paused && std::isfinite(DeltaTime) && DeltaTime > 0.0f))};
 
-    if (WorldDeltaTime > 0.0f) {
+    if (CanRunTicks) {
         const Stat::FScopedWorldTickStatTimer TickStat{0};
         Stat::FWorldTickStats* TickStats{Stat::GetActiveWorldTickStats()};
-        const std::size_t ActorCount{mTickActors.size()};
-        const std::size_t ComponentCount{mTickComponents.size()};
+        const std::size_t ActorCount{mActorTickFunctions.size()};
+        const std::size_t ComponentCount{mComponentTickFunctions.size()};
 
-        mBTickingActors = true;
+        mTicking = true;
 
         for (std::size_t Index{}; Index < ActorCount && !mEndPlayRequested; ++Index) {
-            AActor* Actor{mTickActors[Index]};
+            FTickFunction* TickFunction{mActorTickFunctions[Index]};
 
-            if (Actor == nullptr || Actor->IsBeingDestroyed()) {
+            if (TickFunction == nullptr || !TickFunction->CanTick(EffectiveTickType)) {
                 continue;
             }
 
@@ -514,13 +525,13 @@ void UWorld::Tick(float DeltaTime) {
                 ++TickStats->mActorTickCount;
             }
 
-            Actor->Tick(WorldDeltaTime);
+            TickFunction->ExecuteTick(WorldDeltaTime);
         }
 
         for (std::size_t Index{}; Index < ComponentCount && !mEndPlayRequested; ++Index) {
-            UActorComponent* Component{mTickComponents[Index]};
+            FTickFunction* TickFunction{mComponentTickFunctions[Index]};
 
-            if (Component == nullptr || Component->IsBeingDestroyed() || Component->GetOwner()->IsBeingDestroyed()) {
+            if (TickFunction == nullptr || !TickFunction->CanTick(EffectiveTickType)) {
                 continue;
             }
 
@@ -529,7 +540,7 @@ void UWorld::Tick(float DeltaTime) {
                 ++TickStats->mComponentTickCount;
             }
 
-            Component->TickComponent(WorldDeltaTime);
+            TickFunction->ExecuteTick(WorldDeltaTime);
         }
 
         FinishTicks();
@@ -542,94 +553,81 @@ void UWorld::Tick(float DeltaTime) {
     FlushPendingDestroyActors();
 }
 
-void UWorld::RegisterTickActor(AActor* Actor) {
-    if (Actor->mTickIndex != std::numeric_limits<std::size_t>::max()) {
-        return;
-    }
+ETickType UWorld::GetDefaultTickType() const {
+    return IsGameWorld() ? ETickType::Game : ETickType::Editor;
+}
 
-    mTickActors.push_back(Actor);
-    Actor->mTickIndex = mTickActors.size() - 1;
+bool UWorld::IsBusy() const {
+    return mTicking || mCleaningUp || mLoadingScene || mBeginningPlay || mEndingPlay || mActorDispatchDepth > 0 || mFlushingActors;
+}
+
+void UWorld::RegisterTickActor(AActor* Actor) {
+    RegisterTickFunction(Actor->mPrimaryActorTick, mActorTickFunctions);
 }
 
 void UWorld::UnregisterTickActor(AActor* Actor) {
-    const std::size_t Index{Actor->mTickIndex};
-
-    if (Index == std::numeric_limits<std::size_t>::max()) {
-        return;
-    }
-
-    Actor->mTickIndex = std::numeric_limits<std::size_t>::max();
-
-    if (mBTickingActors) {
-        mTickActors[Index] = nullptr;
-        mTickActorsNeedCompaction = true;
-    } else {
-        if (Index + 1 < mTickActors.size()) {
-            AActor* LastActor{mTickActors.back()};
-
-            mTickActors[Index] = LastActor;
-            LastActor->mTickIndex = Index;
-        }
-
-        mTickActors.pop_back();
-    }
+    UnregisterTickFunction(Actor->mPrimaryActorTick, mActorTickFunctions, mActorTickFunctionsNeedCompaction);
 }
 
 void UWorld::RegisterTickComponent(UActorComponent* Component) {
-    if (Component->mTickIndex != std::numeric_limits<std::size_t>::max()) {
-        return;
-    }
-
-    mTickComponents.push_back(Component);
-    Component->mTickIndex = mTickComponents.size() - 1;
+    RegisterTickFunction(Component->mPrimaryComponentTick, mComponentTickFunctions);
 }
 
 void UWorld::UnregisterTickComponent(UActorComponent* Component) {
-    const std::size_t Index{Component->mTickIndex};
+    UnregisterTickFunction(Component->mPrimaryComponentTick, mComponentTickFunctions, mComponentTickFunctionsNeedCompaction);
+}
+
+void UWorld::RegisterTickFunction(FTickFunction& TickFunction, TArray<FTickFunction*>& TickFunctions) {
+    if (TickFunction.mTickIndex != std::numeric_limits<std::size_t>::max()) {
+        return;
+    }
+
+    TickFunctions.push_back(&TickFunction);
+    TickFunction.mTickIndex = TickFunctions.size() - 1;
+}
+
+void UWorld::UnregisterTickFunction(FTickFunction& TickFunction, TArray<FTickFunction*>& TickFunctions, bool& NeedsCompaction) {
+    const std::size_t Index{TickFunction.mTickIndex};
 
     if (Index == std::numeric_limits<std::size_t>::max()) {
         return;
     }
 
-    Component->mTickIndex = std::numeric_limits<std::size_t>::max();
+    TickFunction.mTickIndex = std::numeric_limits<std::size_t>::max();
 
-    if (mBTickingActors) {
-        mTickComponents[Index] = nullptr;
-        mTickComponentsNeedCompaction = true;
+    if (mTicking) {
+        TickFunctions[Index] = nullptr;
+        NeedsCompaction = true;
     } else {
-        if (Index + 1 < mTickComponents.size()) {
-            UActorComponent* LastComponent{mTickComponents.back()};
+        if (Index + 1 < TickFunctions.size()) {
+            FTickFunction* LastTickFunction{TickFunctions.back()};
 
-            mTickComponents[Index] = LastComponent;
-            LastComponent->mTickIndex = Index;
+            TickFunctions[Index] = LastTickFunction;
+            LastTickFunction->mTickIndex = Index;
         }
 
-        mTickComponents.pop_back();
+        TickFunctions.pop_back();
     }
 }
 
+void UWorld::CompactTickFunctions(TArray<FTickFunction*>& TickFunctions, bool& NeedsCompaction) {
+    if (!NeedsCompaction) {
+        return;
+    }
+
+    std::erase(TickFunctions, nullptr);
+
+    for (std::size_t Index{}; Index < TickFunctions.size(); ++Index) {
+        TickFunctions[Index]->mTickIndex = Index;
+    }
+
+    NeedsCompaction = false;
+}
+
 void UWorld::FinishTicks() {
-    mBTickingActors = false;
-
-    if (mTickActorsNeedCompaction) {
-        std::erase(mTickActors, nullptr);
-
-        for (std::size_t Index{}; Index < mTickActors.size(); ++Index) {
-            mTickActors[Index]->mTickIndex = Index;
-        }
-
-        mTickActorsNeedCompaction = false;
-    }
-
-    if (mTickComponentsNeedCompaction) {
-        std::erase(mTickComponents, nullptr);
-
-        for (std::size_t Index{}; Index < mTickComponents.size(); ++Index) {
-            mTickComponents[Index]->mTickIndex = Index;
-        }
-
-        mTickComponentsNeedCompaction = false;
-    }
+    mTicking = false;
+    CompactTickFunctions(mActorTickFunctions, mActorTickFunctionsNeedCompaction);
+    CompactTickFunctions(mComponentTickFunctions, mComponentTickFunctionsNeedCompaction);
 }
 
 FWorldTime& UWorld::GetTime() {

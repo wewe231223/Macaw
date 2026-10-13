@@ -2,10 +2,10 @@
 #include "CoreUObject/Reflection/UStruct.h"
 #include "CoreUObject/Reflection/FReflectionRegistry.h"
 #include "CoreUObject/Reflection/NativeSerialization.h"
-#include <stdexcept>
+#include "Core/Base/ErrorHandler.h"
 
 UField::UField(FName FieldName)
-	: mFieldName(FieldName) {
+	: mFieldName{FieldName} {
     if (!FReflectionRegistry::IsBootstrapping()) {
         InitializeClass(StaticClass());
     }
@@ -18,9 +18,9 @@ FName UField::GetFieldName() const {
 }
 
 UStruct::UStruct(FName FieldName, std::size_t Size, std::size_t Alignment)
-	: UField(FieldName),
-	  mStructureSize(Size),
-	  mStructureAlignment(Alignment) {
+	: UField{FieldName},
+	  mStructureSize{Size},
+	  mStructureAlignment{Alignment} {
     if (!FReflectionRegistry::IsBootstrapping()) {
         InitializeClass(StaticClass());
     }
@@ -32,7 +32,7 @@ UStruct* UStruct::GetSuperStruct() const {
 
 void UStruct::SetSuperStruct(UStruct* SuperStruct) {
     if (SuperStruct != nullptr && SuperStruct->IsChildOf(this)) {
-        throw std::logic_error{"A reflected inheritance cycle is not allowed"};
+        ErrorHandler::Report("UStruct", "A reflected inheritance cycle is not allowed", ErrorHandler::EErrorLevel::Critical);
     }
 
     mSuperStruct = SuperStruct;
@@ -58,7 +58,7 @@ std::size_t UStruct::GetStructureAlignment() const {
 
 void UStruct::AddProperty(std::unique_ptr<FProperty> Property) {
     if (Property == nullptr || Property->GetOwner() != this || FindProperty(Property->GetName()) != nullptr) {
-        throw std::logic_error{"Invalid or duplicate reflected property"};
+        ErrorHandler::Report("UStruct", "Invalid or duplicate reflected property", ErrorHandler::EErrorLevel::Critical);
     }
 
     mProperties.push_back(std::move(Property));
@@ -134,8 +134,8 @@ void UStruct::VisitObjectReferences(const void* Container, const std::function<v
 }
 
 UScriptStruct::UScriptStruct(FName FieldName, const FNativeType* ValueType)
-	: UStruct(FieldName, ValueType->mSize, ValueType->mAlignment),
-	  mValueType(ValueType) {
+	: UStruct{FieldName, ValueType->mSize, ValueType->mAlignment},
+	  mValueType{ValueType} {
     if (!FReflectionRegistry::IsBootstrapping()) {
         InitializeClass(StaticClass());
     }
@@ -152,7 +152,7 @@ void VisitScriptStructReferences(const UScriptStruct* Struct, const void* Value,
 }
 
 UEnum::UEnum(FName FieldName)
-	: UField(FieldName) {
+	: UField{FieldName} {
     if (!FReflectionRegistry::IsBootstrapping()) {
         InitializeClass(StaticClass());
     }
@@ -160,7 +160,7 @@ UEnum::UEnum(FName FieldName)
 
 void UEnum::AddValue(FName Name, Int64 Value) {
     if (FindValue(Name).has_value()) {
-        throw std::logic_error{"Duplicate reflected enum name"};
+        ErrorHandler::Report("UEnum", "Duplicate reflected enum name", ErrorHandler::EErrorLevel::Critical);
     }
 
     mValues.emplace_back(Name, Value);

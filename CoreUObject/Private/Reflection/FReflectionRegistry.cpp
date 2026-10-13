@@ -1,8 +1,8 @@
 #include "pch.h"
 #include "CoreUObject/Reflection/FReflectionRegistry.h"
 #include "CoreUObject/Reflection/UClass.h"
+#include "Core/Base/ErrorHandler.h"
 #include <mutex>
-#include <stdexcept>
 
 namespace {
     enum class EDefinitionKind {
@@ -62,7 +62,7 @@ UClass* FReflectionRegistry::DefineClass(FName Name, UClass* (*Parent)(), std::s
         const FDefinition& Definition{State.mDefinitions.at(Name)};
 
         if (Definition.mKind != EDefinitionKind::Class || Definition.mParent != Parent || Definition.mSize != Size || Definition.mAlignment != Alignment || Definition.mFlags != Flags || Definition.mFactory != Factory || Definition.mClassBuilder != Builder) {
-            throw std::logic_error{"Conflicting reflected class name"};
+            ErrorHandler::Report("FReflectionRegistry", "Conflicting reflected class name", ErrorHandler::EErrorLevel::Critical);
         }
 
         return static_cast<UClass*>(Existing->second.get());
@@ -75,17 +75,11 @@ UClass* FReflectionRegistry::DefineClass(FName Name, UClass* (*Parent)(), std::s
     State.mDefinitions.emplace(Name, FDefinition{EDefinitionKind::Class, Parent, Size, Alignment, Flags, Factory, Builder});
     State.mFields.emplace(Name, std::move(Owner));
 
-    try {
-        Class->SetSuperStruct(Parent != nullptr ? Parent() : nullptr);
-        Class->InitializeClass(Name == FName{"UClass"} ? Class : UClass::StaticClass());
+    Class->SetSuperStruct(Parent != nullptr ? Parent() : nullptr);
+    Class->InitializeClass(Name == FName{"UClass"} ? Class : UClass::StaticClass());
 
-        if (Builder != nullptr) {
-            Builder(*Class);
-        }
-    } catch (...) {
-        State.mFields.erase(Name);
-        State.mDefinitions.erase(Name);
-        throw;
+    if (Builder != nullptr) {
+        Builder(*Class);
     }
 
     return Class;
@@ -100,7 +94,7 @@ UScriptStruct* FReflectionRegistry::DefineStruct(FName Name, const FNativeType* 
         const FDefinition& Definition{State.mDefinitions.at(Name)};
 
         if (Definition.mKind != EDefinitionKind::Struct || Definition.mValueType != ValueType || Definition.mStructBuilder != Builder) {
-            throw std::logic_error{"Conflicting reflected struct name"};
+            ErrorHandler::Report("FReflectionRegistry", "Conflicting reflected struct name", ErrorHandler::EErrorLevel::Critical);
         }
 
         return static_cast<UScriptStruct*>(Existing->second.get());
@@ -117,16 +111,10 @@ UScriptStruct* FReflectionRegistry::DefineStruct(FName Name, const FNativeType* 
     State.mDefinitions.emplace(Name, Definition);
     State.mFields.emplace(Name, std::move(Owner));
 
-    try {
-        Struct->InitializeClass(UScriptStruct::StaticClass());
+    Struct->InitializeClass(UScriptStruct::StaticClass());
 
-        if (Builder != nullptr) {
-            Builder(*Struct);
-        }
-    } catch (...) {
-        State.mFields.erase(Name);
-        State.mDefinitions.erase(Name);
-        throw;
+    if (Builder != nullptr) {
+        Builder(*Struct);
     }
 
     return Struct;
@@ -141,7 +129,7 @@ UEnum* FReflectionRegistry::DefineEnum(FName Name, const FNativeType* ValueType,
         const FDefinition& Definition{State.mDefinitions.at(Name)};
 
         if (Definition.mKind != EDefinitionKind::Enum || Definition.mValueType != ValueType || Definition.mEnumBuilder != Builder) {
-            throw std::logic_error{"Conflicting reflected enum name"};
+            ErrorHandler::Report("FReflectionRegistry", "Conflicting reflected enum name", ErrorHandler::EErrorLevel::Critical);
         }
 
         return static_cast<UEnum*>(Existing->second.get());
@@ -158,16 +146,10 @@ UEnum* FReflectionRegistry::DefineEnum(FName Name, const FNativeType* ValueType,
     State.mDefinitions.emplace(Name, Definition);
     State.mFields.emplace(Name, std::move(Owner));
 
-    try {
-        Enum->InitializeClass(UEnum::StaticClass());
+    Enum->InitializeClass(UEnum::StaticClass());
 
-        if (Builder != nullptr) {
-            Builder(*Enum);
-        }
-    } catch (...) {
-        State.mFields.erase(Name);
-        State.mDefinitions.erase(Name);
-        throw;
+    if (Builder != nullptr) {
+        Builder(*Enum);
     }
 
     return Enum;

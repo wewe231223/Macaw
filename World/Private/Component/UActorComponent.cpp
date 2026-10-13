@@ -174,30 +174,42 @@ void UActorComponent::Deactivate() {
 }
 
 bool UActorComponent::CanEverTick() const {
-    return mCanEverTick;
+    return mPrimaryComponentTick.CanEverTick();
 }
 
 void UActorComponent::SetCanEverTick(bool CanEverTick) {
-    mCanEverTick = CanEverTick;
+    mPrimaryComponentTick.SetCanEverTick(CanEverTick);
     UpdateTickRegistration();
 }
 
 bool UActorComponent::IsTickEnabled() const {
-    return mBTickEnabled;
+    return mPrimaryComponentTick.IsTickEnabled();
 }
 
 void UActorComponent::SetTickEnabled(bool TickEnabled) {
-    mBTickEnabled = TickEnabled;
+    mPrimaryComponentTick.SetTickEnabled(TickEnabled);
     UpdateTickRegistration();
 }
 
 bool UActorComponent::IsTickInEditor() const {
-    return mTickInEditor;
+    return mPrimaryComponentTick.IsTickInEditor();
 }
 
 void UActorComponent::SetTickInEditor(bool TickInEditor) {
-    mTickInEditor = TickInEditor;
+    mPrimaryComponentTick.SetTickInEditor(TickInEditor);
     UpdateTickRegistration();
+}
+
+bool UActorComponent::IsTickWhenPaused() const {
+    return mPrimaryComponentTick.IsTickWhenPaused();
+}
+
+void UActorComponent::SetTickWhenPaused(bool TickWhenPaused) {
+    mPrimaryComponentTick.SetTickWhenPaused(TickWhenPaused);
+}
+
+const FActorComponentTickFunction& UActorComponent::GetTickFunction() const {
+    return mPrimaryComponentTick;
 }
 
 void UActorComponent::SetWantsInitializeComponent(bool WantsInitializeComponent) {
@@ -213,9 +225,7 @@ void UActorComponent::UpdateTickRegistration() {
         return;
     }
 
-    const bool CanTick{mCanEverTick && mBTickEnabled && mBRegistered && !mBIsBeingDestroyed && mOwner != nullptr && !mOwner->IsBeingDestroyed() && mOwner->mHasFinishedSpawning && (mBHasBegunPlay || (mTickInEditor && mParentWorld->GetWorldType() != EWorldType::Game))};
-
-    if (CanTick) {
+    if (mPrimaryComponentTick.CanTick(mParentWorld->GetDefaultTickType())) {
         mParentWorld->RegisterTickComponent(this);
     } else {
         mParentWorld->UnregisterTickComponent(this);
@@ -368,7 +378,7 @@ void UActorComponent::Serialize(FArchive& Archive) {
 
     if (Archive.IsLoading()) {
         if (!mBActive) {
-            mBTickEnabled = false;
+            mPrimaryComponentTick.SetTickEnabled(false);
         }
 
         UpdateTickRegistration();

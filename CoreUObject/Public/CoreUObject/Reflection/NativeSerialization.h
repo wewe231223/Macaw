@@ -2,7 +2,6 @@
 
 #include "Core/Archive/FArchive.h"
 #include "CoreUObject/Reflection/FPropertyValue.h"
-#include <stdexcept>
 #include <filesystem>
 #include "Core/Asset/FAssetPath.h"
 
@@ -61,7 +60,7 @@ void SerializeNativeValue(FArchive& Archive, std::string_view Name, T& Value) {
     } else if constexpr (requires { Archive.Serialize(Name, Value); }) {
         Archive.Serialize(Name, Value);
     } else {
-        throw std::logic_error{"This reflected value requires a custom serializer"};
+        Archive.SetError();
     }
 }
 

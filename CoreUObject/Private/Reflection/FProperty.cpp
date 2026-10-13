@@ -225,7 +225,8 @@ void SerializeObjectReference(FArchive& Archive, std::string_view Name, const UO
         PendingGuid = {};
 
         if (!Guid.empty() && !PendingGuid.Parse(Guid)) {
-            throw std::runtime_error{"Invalid serialized object reference"};
+            Archive.SetError();
+            return;
         }
 
         if (!Archive.HasError()) {

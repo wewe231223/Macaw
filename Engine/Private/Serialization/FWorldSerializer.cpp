@@ -23,7 +23,7 @@ FWorldSerializer::FLoadScope::~FLoadScope() {
 }
 
 bool FWorldSerializer::CanSerialize(const UWorld& World) {
-    return World.mInitialized && !World.mLoadingScene && !World.mBTickingActors && !World.mCleaningUp && !World.mBeginningPlay && !World.mEndingPlay && World.mActorDispatchDepth == 0 && !World.mFlushingActors;
+    return World.IsInitialized() && !World.IsBusy();
 }
 
 FWorldSerializer::FObjectGuidScope::FObjectGuidScope(FArchive& Archive, const TMap<FGuid, FGuid>* Remapping)
@@ -377,13 +377,8 @@ bool FWorldSerializer::LoadInternal(UWorld& World, FArchive& Archive, const UWor
 
         Archive.BeginObjectScope(std::to_string(Index));
 
-        try {
-            Actor->Load(Archive);
-            Valid = !Archive.HasError();
-        } catch (const std::exception& Error) {
-            Console::AddLog(Console::STDOutHandle, ELogLevel::Error, ELogCategory::Etc, "Failed to deserialize world: %s", Error.what());
-            Valid = false;
-        }
+        Actor->Load(Archive);
+        Valid = !Archive.HasError();
 
         Archive.EndObjectScope();
         LoadedActors.push_back(std::move(Actor));

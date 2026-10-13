@@ -2,7 +2,7 @@
 #include "CoreUObject/Reflection/ReflectionMacros.h"
 
 #include <cstddef>
-#include <limits>
+#include "World/Tick/FActorComponentTickFunction.h"
 #include "CoreUObject/UObject.h"
 #include "Core/Archive/FArchive.h"
 #include "World/EEndPlayReason.h"
@@ -73,6 +73,9 @@ public:
     void SetTickEnabled(bool TickEnabled);
     bool IsTickInEditor() const;
     void SetTickInEditor(bool TickInEditor);
+    bool IsTickWhenPaused() const;
+    void SetTickWhenPaused(bool TickWhenPaused);
+    const FActorComponentTickFunction& GetTickFunction() const;
 
     /// <summary>플레이 초기화 과정에서 InitializeComponent 호출이 필요한지 지정합니다.</summary>
     void SetWantsInitializeComponent(bool WantsInitializeComponent);
@@ -116,7 +119,7 @@ private:
 private:
     AActor* mOwner{nullptr};
     UWorld* mParentWorld{nullptr};
-    std::size_t mTickIndex{std::numeric_limits<std::size_t>::max()};
+    FActorComponentTickFunction mPrimaryComponentTick{*this};
 
     // 플레이 초기화 시 InitializeComponent 호출이 필요한지 나타냅니다.
     bool mWantsInitializeComponent{};
@@ -126,10 +129,6 @@ private:
     bool mUnregistering{};
     ReflectAccessor(mBActive, IsActive, SetActive, "bActive", EPropertyFlags::Edit | EPropertyFlags::Serialize, ReflectSerializer(mBActive), ReflectEditor("Component", "Active"));
     bool mBActive{true};
-    // 현재 Tick 활성 상태와 별개인 컴포넌트의 Tick 지원 여부입니다.
-    bool mCanEverTick{};
-    bool mBTickEnabled{};
-    bool mTickInEditor{};
     bool mBRegistered{false};
     bool mBInitialized{false};
     bool mBHasBegunPlay{false};

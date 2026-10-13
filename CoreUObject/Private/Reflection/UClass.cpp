@@ -4,16 +4,17 @@
 #include "CoreUObject/Reflection/UFunction.h"
 #include "CoreUObject/Reflection/NewObject.h"
 #include "CoreUObject/UObjectSystem.h"
-#include <stdexcept>
+#include "Core/Base/ErrorHandler.h"
+#include "Core/Base/FScopedFlag.h"
 
 EClassFlags operator|(EClassFlags Left, EClassFlags Right) {
     return static_cast<EClassFlags>(static_cast<Uint32>(Left) | static_cast<Uint32>(Right));
 }
 
 UClass::UClass(FName ClassName, std::size_t Size, std::size_t Alignment, EClassFlags Flags, FFactory Factory)
-	: UStruct(ClassName, Size, Alignment),
-	  mClassFlags(Flags),
-	  mFactory(Factory) {
+	: UStruct{ClassName, Size, Alignment},
+	  mClassFlags{Flags},
+	  mFactory{Factory} {
     if (!FReflectionRegistry::IsBootstrapping()) {
         InitializeClass(StaticClass());
     }
@@ -64,25 +65,18 @@ const UObject* UClass::GetDefaultObject() const {
     const std::lock_guard<std::recursive_mutex> Lock{mDefaultMutex};
 
     if (mDefaultObject == nullptr && !mCreatingDefault && mFactory != nullptr && !HasAnyFlags(EClassFlags::NoFactory | EClassFlags::Metadata)) {
-        mCreatingDefault = true;
+        const FScopedFlag CreatingDefault{mCreatingDefault};
+        const FObjectInitializer Initializer{const_cast<UClass*>(this), true};
 
-        try {
-            const FObjectInitializer Initializer{const_cast<UClass*>(this), true};
-            mDefaultObject = mFactory();
+        mDefaultObject = mFactory();
 
-            if (mDefaultObject != nullptr && mDefaultObject->GetClass() != this) {
-                mDefaultObject.reset();
-            }
-
-            if (mDefaultObject != nullptr) {
-                mDefaultObject->mClassDefaultObject = true;
-            }
-        } catch (...) {
-            mCreatingDefault = false;
-            throw;
+        if (mDefaultObject != nullptr && mDefaultObject->GetClass() != this) {
+            mDefaultObject.reset();
         }
 
-        mCreatingDefault = false;
+        if (mDefaultObject != nullptr) {
+            mDefaultObject->mClassDefaultObject = true;
+        }
     }
 
     return mDefaultObject.get();
@@ -104,12 +98,12 @@ bool UClass::ResetToDefault(UObject& Object) const {
 
 void UClass::AddFunction(std::unique_ptr<UFunction> Function) {
     if (Function == nullptr) {
-        throw std::logic_error{"Cannot register an empty reflected function"};
+        ErrorHandler::Report("UClass", "Cannot register an empty reflected function", ErrorHandler::EErrorLevel::Critical);
     }
 
     for (const std::unique_ptr<UFunction>& Existing : mFunctions) {
         if (Existing->GetFieldName() == Function->GetFieldName()) {
-            throw std::logic_error{"Duplicate reflected function"};
+            ErrorHandler::Report("UClass", "Duplicate reflected function", ErrorHandler::EErrorLevel::Critical);
         }
     }
 

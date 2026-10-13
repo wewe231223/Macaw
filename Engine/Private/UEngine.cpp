@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Core/Base/ErrorHandler.h"
+#include "Core/Base/FScopedFlag.h"
 #include "Engine/UEngine.h"
 #include "Asset/FAssetRegistry.h"
 #include "Core/Spatial/FBVH8.h"
@@ -62,15 +63,48 @@ void UEngine::Tick(float DeltaTime) {
         return;
     }
 
-    mTicking = true;
+    const FScopedFlag TickScope{mTicking};
 
     const std::size_t Count{mWorldContexts.size()};
 
     for (std::size_t Index{}; Index < Count; ++Index) {
-        mWorldContexts[Index]->GetWorld().Tick(DeltaTime);
+        mWorldContexts[Index]->GetWorld().Tick(GetWorldTickType(*mWorldContexts[Index]), DeltaTime);
+    }
+}
+
+bool UEngine::IsTicking() const {
+    return mTicking;
+}
+
+bool UEngine::CanChangeWorldContexts() const {
+    if (mTicking) {
+        return false;
     }
 
-    mTicking = false;
+    return std::ranges::none_of(mWorldContexts, [](const std::unique_ptr<FWorldContext>& Context) {
+        return Context->GetWorld().IsBusy();
+    });
+}
+
+ETickType UEngine::GetWorldTickType(const FWorldContext& Context) const {
+    const UWorld& World{Context.GetWorld()};
+
+    return World.GetTime().IsPaused() ? ETickType::Paused : World.GetDefaultTickType();
+}
+
+FWorldContext* UEngine::AdoptWorld(std::unique_ptr<UWorld>& World) {
+    if (!mInitialized || mTicking || World == nullptr || !World->IsInitialized() || World->IsBusy() || (World->GetAssetRegistry() != nullptr && World->GetAssetRegistry() != mAssetRegistry.get())) {
+        return nullptr;
+    }
+
+    World->SetAssetRegistry(mAssetRegistry.get(), mAssetRegistry.get());
+
+    std::unique_ptr<FWorldContext> Context{std::make_unique<FWorldContext>(std::move(World))};
+    FWorldContext* Result{Context.get()};
+
+    mWorldContexts.push_back(std::move(Context));
+
+    return Result;
 }
 
 FWorldContext& UEngine::CreateWorldContext(EWorldType WorldType) {
@@ -101,6 +135,12 @@ bool UEngine::DestroyWorldContext(FWorldContext& Context) {
     if (Iterator == mWorldContexts.end()) {
         return false;
     }
+
+    if (Context.GetWorld().IsBusy()) {
+        return false;
+    }
+
+    std::unique_ptr<FWorldContext> RemovedContext{std::move(*Iterator)};
 
     mWorldContexts.erase(Iterator);
 

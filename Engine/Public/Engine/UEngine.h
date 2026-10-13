@@ -6,6 +6,7 @@
 #include "CoreUObject/TSubsystemCollection.h"
 #include "Engine/FWorldContext.h"
 #include "Engine/Subsystem/UEngineSubsystem.h"
+#include "World/Tick/ETickType.h"
 
 class FAssetRegistry;
 
@@ -23,10 +24,14 @@ public:
     virtual void Initialize();
     virtual void Shutdown();
     bool IsInitialized() const;
-    void Tick(float DeltaTime);
+    virtual void Tick(float DeltaTime);
+    bool IsTicking() const;
+    bool CanChangeWorldContexts() const;
+    virtual ETickType GetWorldTickType(const FWorldContext& Context) const;
 
     FWorldContext& CreateWorldContext(EWorldType WorldType);
-    bool DestroyWorldContext(FWorldContext& Context);
+    FWorldContext* AdoptWorld(std::unique_ptr<UWorld>& World);
+    virtual bool DestroyWorldContext(FWorldContext& Context);
     const std::vector<std::unique_ptr<FWorldContext>>& GetWorldContexts() const;
     FAssetRegistry& GetAssetRegistry();
     TSubsystemCollection<UEngineSubsystem, UEngine>& GetSubsystems();

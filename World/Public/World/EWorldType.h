@@ -4,7 +4,8 @@
 enum class EWorldType {
     Editor,
     Game,
-    Preview
+    Preview,
+    PIE
 };
 
-ReflectEnum(EWorldType, ReflectEnumValue(EWorldType, Editor), ReflectEnumValue(EWorldType, Game), ReflectEnumValue(EWorldType, Preview));
+ReflectEnum(EWorldType, ReflectEnumValue(EWorldType, Editor), ReflectEnumValue(EWorldType, Game), ReflectEnumValue(EWorldType, Preview), ReflectEnumValue(EWorldType, PIE));

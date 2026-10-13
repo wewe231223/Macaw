@@ -21,6 +21,7 @@
 #include "RenderCore/FSceneInterface.h"
 #include "RenderCore/FSceneUpdateBatch.h"
 #include "World/FWorldTime.h"
+#include "World/Tick/ETickType.h"
 #include "World/IWorldObserver.h"
 #include "World/Subsystem/UCameraSubsystem.h"
 #include "World/Subsystem/UCollisionSubsystem.h"
@@ -59,6 +60,7 @@ public:
     void CleanupWorld();
     bool IsInitialized() const;
     EWorldType GetWorldType() const;
+    bool IsGameWorld() const;
     ULevel& GetPersistentLevel();
     const ULevel& GetPersistentLevel() const;
 
@@ -107,6 +109,9 @@ public:
     void RemoveObserver(IWorldObserver& Observer);
 
     void Tick(float DeltaTime);
+    void Tick(ETickType TickType, float DeltaTime);
+    ETickType GetDefaultTickType() const;
+    bool IsBusy() const;
 
     FWorldTime& GetTime();
     const FWorldTime& GetTime() const;
@@ -156,6 +161,9 @@ private:
     void RegisterTickComponent(UActorComponent* Component);
     /// <summary>컴포넌트를 Tick 목록에서 제외하고 순회 중이면 빈 항목으로 남깁니다.</summary>
     void UnregisterTickComponent(UActorComponent* Component);
+    void RegisterTickFunction(FTickFunction& TickFunction, TArray<FTickFunction*>& TickFunctions);
+    void UnregisterTickFunction(FTickFunction& TickFunction, TArray<FTickFunction*>& TickFunctions, bool& NeedsCompaction);
+    void CompactTickFunctions(TArray<FTickFunction*>& TickFunctions, bool& NeedsCompaction);
     /// <summary>Tick 순회를 종료하고 Actor와 컴포넌트 목록의 빈 항목을 정리합니다.</summary>
     void FinishTicks();
     /// <summary>Actor 소유권을 Level로 옮기고 객체 등록과 World 연결을 수행합니다.</summary>
@@ -186,13 +194,12 @@ private:
     bool mLoadingScene{};
     bool mFlushingActors{};
     TArray<AActor*> mPendingDestroyActors{};
-    TArray<AActor*> mTickActors{};
-    // Actor의 Tick 목록과 별도로 실행할 컴포넌트입니다.
-    TArray<UActorComponent*> mTickComponents{};
-    bool mBTickingActors{};
-    bool mTickActorsNeedCompaction{};
+    TArray<FTickFunction*> mActorTickFunctions{};
+    TArray<FTickFunction*> mComponentTickFunctions{};
+    bool mTicking{};
+    bool mActorTickFunctionsNeedCompaction{};
     // Tick 도중 제거된 컴포넌트의 빈 항목을 정리해야 하는지 나타냅니다.
-    bool mTickComponentsNeedCompaction{};
+    bool mComponentTickFunctionsNeedCompaction{};
 
     const IAssetRegistry* mAssetRegistry{nullptr};
     IAssetRegistryMutator* mAssetRegistryMutator{nullptr};

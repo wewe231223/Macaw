@@ -3,6 +3,7 @@
 #include "CoreUObject/Reflection/UClass.h"
 #include "World/AActor.h"
 #include "Core/Stat/Stat.h"
+#include "Core/Base/FScopedFlag.h"
 #include "World/UWorld.h"
 #include "World/Component/USceneComponent.h"
 #include "CoreUObject/Reflection/FReflectionRegistry.h"
@@ -183,22 +184,24 @@ void AActor::DispatchBeginPlay() {
         return;
     }
 
-    mBeginningPlay = true;
     mBHasBegunPlay = true;
 
-    for (UActorComponent* Component : GetComponentSnapshot()) {
-        if (mBIsBeingDestroyed || mEndPlayRequested) {
-            break;
+    {
+        const FScopedFlag BeginningPlay{mBeginningPlay};
+
+        for (UActorComponent* Component : GetComponentSnapshot()) {
+            if (mBIsBeingDestroyed || mEndPlayRequested) {
+                break;
+            }
+
+            Component->DispatchBeginPlay();
         }
 
-        Component->DispatchBeginPlay();
+        if (!mBIsBeingDestroyed && !mEndPlayRequested && !mWorld->mEndPlayRequested) {
+            BeginPlay();
+        }
     }
 
-    if (!mBIsBeingDestroyed && !mEndPlayRequested && !mWorld->mEndPlayRequested) {
-        BeginPlay();
-    }
-
-    mBeginningPlay = false;
     UpdateTickRegistration();
 
     if (mEndPlayRequested) {
@@ -220,7 +223,7 @@ void AActor::DispatchEndPlay(EEndPlayReason Reason) {
     const UWorld::FActorDispatchScope Dispatch{mWorld};
     const bool HadBegunPlay{mBHasBegunPlay};
 
-    mEndingPlay = true;
+    const FScopedFlag EndingPlay{mEndingPlay};
     mEndPlayRequested = false;
     mBHasBegunPlay = false;
     mActorInitialized = false;
@@ -234,8 +237,6 @@ void AActor::DispatchEndPlay(EEndPlayReason Reason) {
         Component->DispatchEndPlay(Reason);
         Component->DispatchUninitializeComponent();
     }
-
-    mEndingPlay = false;
 }
 
 bool AActor::Destroy() {
@@ -381,34 +382,46 @@ bool AActor::HasFinishedSpawning() const {
 }
 
 bool AActor::CanEverTick() const {
-    return mCanEverTick;
+    return mPrimaryActorTick.CanEverTick();
 }
 
 void AActor::SetCanEverTick(bool CanEverTick) {
-    mCanEverTick = CanEverTick;
+    mPrimaryActorTick.SetCanEverTick(CanEverTick);
     UpdateTickRegistration();
 }
 
 bool AActor::IsTickEnabled() const {
-    return mBTickEnabled;
+    return mPrimaryActorTick.IsTickEnabled();
 }
 
 void AActor::SetTickEnabled(bool TickEnabled) {
-    if (mBTickEnabled == TickEnabled) {
+    if (mPrimaryActorTick.IsTickEnabled() == TickEnabled) {
         return;
     }
 
-    mBTickEnabled = TickEnabled;
+    mPrimaryActorTick.SetTickEnabled(TickEnabled);
     UpdateTickRegistration();
 }
 
 bool AActor::IsTickInEditor() const {
-    return mTickInEditor;
+    return mPrimaryActorTick.IsTickInEditor();
 }
 
 void AActor::SetTickInEditor(bool TickInEditor) {
-    mTickInEditor = TickInEditor;
+    mPrimaryActorTick.SetTickInEditor(TickInEditor);
     UpdateTickRegistration();
+}
+
+bool AActor::IsTickWhenPaused() const {
+    return mPrimaryActorTick.IsTickWhenPaused();
+}
+
+void AActor::SetTickWhenPaused(bool TickWhenPaused) {
+    mPrimaryActorTick.SetTickWhenPaused(TickWhenPaused);
+}
+
+const FActorTickFunction& AActor::GetTickFunction() const {
+    return mPrimaryActorTick;
 }
 
 void AActor::UpdateTickRegistration() {
@@ -416,7 +429,7 @@ void AActor::UpdateTickRegistration() {
         return;
     }
 
-    if (mCanEverTick && mBTickEnabled && !mBIsBeingDestroyed && mHasFinishedSpawning && (mBHasBegunPlay || (mTickInEditor && mWorld->GetWorldType() != EWorldType::Game))) {
+    if (mPrimaryActorTick.CanTick(mWorld->GetDefaultTickType())) {
         mWorld->RegisterTickActor(this);
     } else {
         mWorld->UnregisterTickActor(this);
@@ -460,27 +473,27 @@ void AActor::InitializeComponents() {
 
     const UWorld::FActorDispatchScope Dispatch{mWorld};
 
-    mInitializingComponents = true;
-    PreInitializeComponents();
+    {
+        const FScopedFlag InitializingComponents{mInitializingComponents};
+        PreInitializeComponents();
 
-    while (!mBIsBeingDestroyed && !mEndPlayRequested && !mWorld->mEndPlayRequested) {
-        const auto Pending{std::ranges::find_if(mComponents, [](const std::unique_ptr<UActorComponent>& Component) {
-            return Component->mWantsInitializeComponent && Component->IsRegistered() && !Component->IsInitialized() && !Component->IsBeingDestroyed();
-        })};
+        while (!mBIsBeingDestroyed && !mEndPlayRequested && !mWorld->mEndPlayRequested) {
+            const auto Pending{std::ranges::find_if(mComponents, [](const std::unique_ptr<UActorComponent>& Component) {
+                return Component->mWantsInitializeComponent && Component->IsRegistered() && !Component->IsInitialized() && !Component->IsBeingDestroyed();
+            })};
 
-        if (Pending == mComponents.end()) {
-            break;
+            if (Pending == mComponents.end()) {
+                break;
+            }
+
+            (*Pending)->DispatchInitializeComponent();
         }
 
-        (*Pending)->DispatchInitializeComponent();
+        if (!mBIsBeingDestroyed && !mEndPlayRequested && !mWorld->mEndPlayRequested) {
+            mActorInitialized = true;
+            PostInitializeComponents();
+        }
     }
-
-    if (!mBIsBeingDestroyed && !mEndPlayRequested && !mWorld->mEndPlayRequested) {
-        mActorInitialized = true;
-        PostInitializeComponents();
-    }
-
-    mInitializingComponents = false;
 
     if (mEndPlayRequested) {
         DispatchEndPlay(mEndPlayReason);

@@ -2,7 +2,7 @@
 #include "CoreUObject/Reflection/ReflectionMacros.h"
 #include "CoreUObject/Reflection/UClass.h"
 #include "Core/Common.h"
-#include <limits>
+#include "World/Tick/FActorTickFunction.h"
 #include "CoreUObject/UObject.h"
 #include "World/Component/UActorComponent.h"
 #include "World/Component/USceneComponent.h"
@@ -140,6 +140,9 @@ public:
     void SetTickEnabled(bool TickEnabled);
     bool IsTickInEditor() const;
     void SetTickInEditor(bool TickInEditor);
+    bool IsTickWhenPaused() const;
+    void SetTickWhenPaused(bool TickWhenPaused);
+    const FActorTickFunction& GetTickFunction() const;
     /// <summary>World가 호출하는 Actor 자체의 프레임 갱신입니다.</summary>
     /// <param name="DeltaTime">이전 프레임 이후 경과 시간입니다.</param>
     virtual void Tick(float DeltaTime);
@@ -204,7 +207,7 @@ private:
     std::vector<std::unique_ptr<UActorComponent>> mComponents{};
     // 파괴 처리 후 메모리 해제를 기다리는 컴포넌트입니다.
     std::vector<std::unique_ptr<UActorComponent>> mPendingDestroyComponents{};
-    std::size_t mTickIndex{std::numeric_limits<std::size_t>::max()};
+    FActorTickFunction mPrimaryActorTick{*this};
     ReflectReadOnlyProperty(mRootComponent, "GuidRootComponent", EPropertyFlags::Serialize | EPropertyFlags::ReadOnly | EPropertyFlags::Reference, &SerializeRootComponentProperty);
     USceneComponent* mRootComponent{nullptr};
 
@@ -213,10 +216,6 @@ private:
     UWorld* mWorld{nullptr};
     bool mBHasBegunPlay{false};
     bool mInitializingComponents{};
-    // 현재 Tick 활성 상태와 별개인 Actor의 Tick 지원 여부입니다.
-    bool mCanEverTick{};
-    bool mBTickEnabled{};
-    bool mTickInEditor{};
     // 소유 컴포넌트의 플레이용 초기화 단계를 완료했는지 나타냅니다.
     bool mActorInitialized{};
     // 생성 구성을 마쳐 컴포넌트 등록과 플레이 시작이 가능한 상태입니다.
