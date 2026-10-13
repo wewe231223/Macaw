@@ -29,11 +29,10 @@ namespace {
         }
     }
 
-    void ExecuteCommand(FConsoleOutputHandle Handle, const char* Input, FStateChannel<FStatDisplayFlags>::FWriter Writer) {
+    void ExecuteCommand(FConsoleOutputHandle Handle, const char* Input, FStatDisplayFlags& Flags) {
         std::istringstream Stream{Input};
 
         FString Command{};
-        //Stream >> Command;
 
         std::getline(Stream, Command);
 
@@ -54,60 +53,26 @@ namespace {
 
             Console::AddLog(Handle, Log, Core, "> %s", Text.c_str());
         } else if (Command == "stat fps") {
-            Writer.Modify([](FStatDisplayFlags& Flags) {
-                Flags.mBShowFps = !Flags.mBShowFps;
-            });
+            Flags.mBShowFps = !Flags.mBShowFps;
         } else if (Command == "stat render") {
-            Writer.Modify([](FStatDisplayFlags& Flags) {
-                Flags.mBShowRender = !Flags.mBShowRender;
-            });
+            Flags.mBShowRender = !Flags.mBShowRender;
         } else if (Command == "stat lod") {
-            Writer.Modify([](FStatDisplayFlags& Flags) {
-                Flags.mBShowLOD = !Flags.mBShowLOD;
-            });
+            Flags.mBShowLOD = !Flags.mBShowLOD;
         } else if (Command == "stat memory") {
-            Writer.Modify([](FStatDisplayFlags& Flags) {
-                Flags.mBShowMemory = !Flags.mBShowMemory;
-            });
+            Flags.mBShowMemory = !Flags.mBShowMemory;
         } else if (Command == "stat object system") {
-            Writer.Modify([](FStatDisplayFlags& Flags) {
-                Flags.mBObjectSystem = !Flags.mBObjectSystem;
-            });
+            Flags.mBObjectSystem = !Flags.mBObjectSystem;
         } else if (Command == "stat picking") {
-            Writer.Modify([](FStatDisplayFlags& Flags) {
-                Flags.mBShowPicking = !Flags.mBShowPicking;
-            });
+            Flags.mBShowPicking = !Flags.mBShowPicking;
         } else if (Command == "stat none") {
-            Writer.Modify([](FStatDisplayFlags& Flags) {
-                Flags.mBShowRender = false;
-            });
-
-            Writer.Modify([](FStatDisplayFlags& Flags) {
-                Flags.mBShowFps = false;
-            });
-
-            Writer.Modify([](FStatDisplayFlags& Flags) {
-                Flags.mBShowMemory = false;
-            });
-
-            Writer.Modify([](FStatDisplayFlags& Flags) {
-                Flags.mBObjectSystem = false;
-            });
-
-            Writer.Modify([](FStatDisplayFlags& Flags) {
-                Flags.mBShowPicking = false;
-            });
-
-            Writer.Modify([](FStatDisplayFlags& Flags) {
-                Flags.mBShowLOD = false;
-            });
+            Flags = {};
         } else {
             Console::AddLog(Handle, Warning, Core, "Unknown command: %s", Command.c_str());
         }
     }
 }
 
-void DrawConsoleContents(FConsoleOutputHandle Handle, FStateChannel<FStatDisplayFlags>::FWriter Writer) {
+void DrawConsoleContents(FConsoleOutputHandle Handle, FStatDisplayFlags& Flags) {
     const std::size_t Count{Console::GetMessageCount(Handle)};
 
     // 로그 영역
@@ -171,7 +136,7 @@ void DrawConsoleContents(FConsoleOutputHandle Handle, FStateChannel<FStatDisplay
             sizeof(InputBuf),
             ImGuiInputTextFlags_EnterReturnsTrue)) {
         if (InputBuf[0] != '\0') {
-            ExecuteCommand(Console::STDOutHandle, InputBuf, Writer);
+            ExecuteCommand(Console::STDOutHandle, InputBuf, Flags);
             InputBuf[0] = '\0';
 
             ImGui::SetKeyboardFocusHere(-1);

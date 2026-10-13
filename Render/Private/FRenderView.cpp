@@ -7,25 +7,6 @@
 #include <cmath>
 
 namespace {
-    float CalculateScreenSize(const FPrimitiveSceneInfo& Object, const FViewMatrices& Camera, float ProjectionScale, bool Perspective) {
-        const DirectX::BoundingSphere& Bounds{Object.mWorldSphereBounds};
-
-        if (Bounds.Radius <= 1e-4f || !std::isfinite(Bounds.Radius)) {
-            return 0.0f;
-        }
-
-        float ScreenSize{Bounds.Radius * ProjectionScale};
-
-        if (Perspective) {
-            const FMatrix& View{Camera.mView};
-            const float ViewDepth{Bounds.Center.x * View.M[0][2] + Bounds.Center.y * View.M[1][2] + Bounds.Center.z * View.M[2][2] + View.M[3][2]};
-
-            ScreenSize /= (std::max)(std::abs(ViewDepth), 1e-4f);
-        }
-
-        return ScreenSize;
-    }
-
     float CalculateSortDepth(const FPrimitiveSceneInfo& Object, const FMatrix& Transform, const FMatrix& View) {
         const DirectX::BoundingSphere& Bounds{Object.mWorldSphereBounds};
         const FVector3 Center{Bounds.Radius > 0.0f ? FVector3{Bounds.Center.x, Bounds.Center.y, Bounds.Center.z} : FVector3{Transform.M[3][0], Transform.M[3][1], Transform.M[3][2]}};
@@ -62,7 +43,6 @@ void FRenderView::CollectMeshDrawCommands(const FRenderScene& Scene, TArray<FVis
 
     const TArray<FPrimitiveSceneInfo>& Objects{Scene.GetPrimitives()};
     const bool Perspective{std::abs(mCamera.mProjection.M[2][3]) > 1e-6f};
-    const float ProjectionScale{std::abs(mCamera.mProjection.M[1][1])};
     const float ViewportHeight{mTarget->GetViewport().Height};
     TArray<Uint32> ObjectIndices{};
     TArray<Uint32> BoundaryPositions{};
@@ -91,7 +71,10 @@ void FRenderView::CollectMeshDrawCommands(const FRenderScene& Scene, TArray<FVis
         FLODSelection LOD{};
 
         if (!Object.mSky && mUseLOD) {
-            LOD = SelectMeshLOD(CalculateScreenSize(Object, mCamera, ProjectionScale, Perspective), ViewportHeight, Object.mAvailableLODMask, Object.mCullable);
+            const DirectX::BoundingSphere& Bounds{Object.mWorldSphereBounds};
+            const float ScreenSize{Bounds.Radius > 1e-4f && std::isfinite(Bounds.Radius) ? CalculateMeshScreenSize(Bounds, mCamera) : 0.0f};
+
+            LOD = SelectMeshLOD(ScreenSize, ViewportHeight, Object.mAvailableLODMask, Object.mCullable);
         }
 
         if (LOD.mCulled) {

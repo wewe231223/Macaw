@@ -1,12 +1,12 @@
 #include "pch.h"
 #include "Editor/Panel/FConsolePanel.h"
 
-FConsolePanel::FConsolePanel(FConsoleOutputHandle InHandle, FStateChannel<FStatDisplayFlags>::FWriter Writer)
+FConsolePanel::FConsolePanel(FConsoleOutputHandle InHandle, FStatDisplayFlags& Flags)
 	: FEditorWindow("Console"),
 	  mHandle(InHandle),
-	  mModeWriter(std::move(Writer)) {
+	  mStatDisplayFlags(Flags) {
 }
 
 void FConsolePanel::DrawContents() {
-    DrawConsoleContents(mHandle, mModeWriter);
+    DrawConsoleContents(mHandle, mStatDisplayFlags);
 }

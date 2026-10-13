@@ -36,7 +36,7 @@ public:
     FRenderAssetResources& operator=(FRenderAssetResources&&) = delete;
 
 public:
-    bool Initialize(ID3D11Device* Device);
+    bool Initialize(ID3D11Device* Device, bool UseLOD = true);
     void Prune(const IAssetRegistry& Registry);
     void Reset();
 
@@ -48,6 +48,7 @@ public:
 
 private:
     ID3D11Device* mDevice{nullptr};
+    bool mUseLOD{true};
     TMap<FGuid, TCachedValue<FMeshRenderResource, FRenderAssetStamp>> mMeshes{};
     TMap<FGuid, TCachedValue<FPipelineRenderResource, FRenderAssetStamp>> mPipelines{};
     TMap<FGuid, TCachedValue<Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>, FRenderAssetStamp>> mTextures{};

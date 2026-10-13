@@ -85,14 +85,6 @@ void EditorViewport::ProcessInput(FKeyboardInput& KeyboardInput, FMouseInput& Mo
     mTransformGizmo.ProcessInput(KeyboardInput, MouseInput, BMouseCapturedByUi);
 }
 
-FStateChannel<Uint8>::FReadWriter EditorViewport::GetGizmoMode() {
-    return mTransformGizmo.GetGizmoMode();
-}
-
-FStateChannel<Uint8>::FReadWriter EditorViewport::GetGizmoCoordinateSpace() {
-    return mTransformGizmo.GetGizmoCoordinateSpace();
-}
-
 void EditorViewport::BuildGrid(FLineRenderData& Lines, const FViewMatrices& Camera, const FVector3& CameraPosition, const D3D11_VIEWPORT& Viewport, FVector2D& FadeCenter, ELineDepthMode DepthMode) {
     const float GridInterval{mEditorContext != nullptr ? mEditorContext->GetEditorSettings().mGridSize : 1.0f};
     const float ProjectionYScale{Camera.mProjection.m_[1][1]};

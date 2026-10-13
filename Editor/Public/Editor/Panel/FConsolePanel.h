@@ -5,12 +5,12 @@
 
 class FConsolePanel : public FEditorWindow {
 public:
-    explicit FConsolePanel(FConsoleOutputHandle InHandle, FStateChannel<FStatDisplayFlags>::FWriter Writer);
+    explicit FConsolePanel(FConsoleOutputHandle InHandle, FStatDisplayFlags& Flags);
 
 private:
     void DrawContents() override;
 
+private:
     FConsoleOutputHandle mHandle{};
-
-    FStateChannel<FStatDisplayFlags>::FWriter mModeWriter{};
+    FStatDisplayFlags& mStatDisplayFlags;
 };

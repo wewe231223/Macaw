@@ -1,8 +1,12 @@
 #pragma once
-#include "Render/ILineRenderer.h"
+#include "Core/Debug/ILineDrawContext.h"
+#include "Render/Buffer/FGraphicsBuffer.h"
 #include "Render/Pipeline/FPipelineRenderResource.h"
 
-class FLineRenderer : public ILineRenderer {
+class FFrameResource;
+enum class EFrameStream : Uint8;
+
+class FLineRenderer final : public ILineDrawContext {
 private:
     struct FQuadVertex {
         FVector2D mCorner{};
@@ -20,7 +24,7 @@ private:
 
 public:
     FLineRenderer() = default;
-    ~FLineRenderer() = default;
+    ~FLineRenderer() override = default;
 
     FLineRenderer(const FLineRenderer&) = delete;
     FLineRenderer& operator=(const FLineRenderer&) = delete;
@@ -32,7 +36,7 @@ public:
     void Initialize(ID3D11Device* InDevice, Uint32 InitialLineCapacity = 1024);
     void Reset();
 
-    void AddLine(const FVector3& Start, const FVector3& End, const FVector4& Color, float WidthPixels = 1.0f, ELineDepthMode DepthMode = ELineDepthMode::DepthTested);
+    void AddLine(const FVector3& Start, const FVector3& End, const FVector4& Color, float WidthPixels = 1.0f, ELineDepthMode DepthMode = ELineDepthMode::DepthTested) override;
     void AddGridLine(const FVector3& Start, const FVector3& End, const FVector4& Color, float WidthPixels, float GridSpacing, ELineDepthMode DepthMode);
     void AddRay(const FVector3& Origin, const FVector3& Direction, float Length, const FVector4& Color, float WidthPixels = 1.0f, ELineDepthMode DepthMode = ELineDepthMode::DepthTested);
 

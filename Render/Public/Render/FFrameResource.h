@@ -17,8 +17,6 @@ enum class EFrameStream : Uint8 {
     Billboard,
     LineDepth,
     LineOverlay,
-    BatchLineDepth,
-    BatchLineOverlay,
     OrientationAxisLineDepth,
     OrientationAxisLineOverlay,
     Count

@@ -5,7 +5,6 @@
 #include "Editor/Panel/FEditorWindow.h"
 #include "Editor/Message/FEditorInfo.h"
 #include "Editor/Panel/FPropertyEditorContext.h"
-#include "Core/Channel/FStateChannel.h"
 #include "World/AActor.h"
 #include "Editor/World/FWorldEditorContext.h"
 #include "World/Component/UActorComponent.h"
@@ -24,7 +23,7 @@
 
 class FPropertyPanel : public FEditorWindow {
 public:
-    FPropertyPanel(FWorldEditorContext& InEditorContext, FStateChannel<Uint8>::FReadWriter InGizmoMode, FStateChannel<Uint8>::FReadWriter InGizmoCoordinateSpace, FAssetThumbnailRenderer* InThumbnailRenderer);
+    FPropertyPanel(FWorldEditorContext& InEditorContext, FAssetThumbnailRenderer* InThumbnailRenderer);
 
 private:
     void DrawContents() override;
@@ -53,8 +52,6 @@ private:
 private:
     FWorldEditorContext* mEditorContext{nullptr};
     FPropertyEditorContext mPropertyEditor{};
-    FStateChannel<Uint8>::FReadWriter mGizmoMode{};
-    FStateChannel<Uint8>::FReadWriter mGizmoCoordinateSpace{};
     TObjectRef<USceneComponent> mPendingDraggedComponent{};
     TObjectRef<USceneComponent> mPendingParentComponent{};
 };

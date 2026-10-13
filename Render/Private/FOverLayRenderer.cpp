@@ -2,8 +2,6 @@
 #include "Render/FOverLayRenderer.h"
 #include "Asset/UMesh.h"
 #include "Asset/UMaterial.h"
-#include "Render/FLODSelection.h"
-#include "Render/FStaticMeshBatchCollector.h"
 #include "Asset/UTexture.h"
 #include "Core/Stat/Stat.h"
 
@@ -49,7 +47,6 @@ bool FOverLayRenderer::BindAssetRegistry(const IAssetRegistry* Registry, IAssetR
     mDrawRecords.clear();
     mOutlineItems.clear();
     mGizmoItems.clear();
-    mStaticMeshes.clear();
     mViewDepths.clear();
     mCurrentDepth = nullptr;
     mCurrentTarget = nullptr;
@@ -61,7 +58,7 @@ bool FOverLayRenderer::BindAssetRegistry(const IAssetRegistry* Registry, IAssetR
         FrameResource.ResetScenes();
     }
 
-    if (Registry != nullptr && !mAssetResources.Initialize(mDevice)) {
+    if (Registry != nullptr && !mAssetResources.Initialize(mDevice, false)) {
         return false;
     }
 
@@ -120,7 +117,6 @@ void FOverLayRenderer::Reset() {
     mDrawRecords.clear();
     mOutlineItems.clear();
     mGizmoItems.clear();
-    mStaticMeshes.clear();
     mViewDepths.clear();
     mLineRenderer.Reset();
     mTextRenderer.Reset();
@@ -153,11 +149,11 @@ void FOverLayRenderer::RenderView(ID3D11DeviceContext* Context, const FRenderVie
         }
 
         if (Overlay.IsPassEnabled(EOverlayPass::SelectionOutline)) {
-            BuildMeshItems(Overlay.mSelectionMeshes, View, Output.mViewport, true, mOutlineItems);
+            BuildMeshItems(Overlay.mSelectionMeshes, mOutlineItems);
         }
 
         if (Overlay.IsPassEnabled(EOverlayPass::Gizmo)) {
-            BuildMeshItems(Overlay.mGizmoMeshes, View, Output.mViewport, false, mGizmoItems);
+            BuildMeshItems(Overlay.mGizmoMeshes, mGizmoItems);
         }
     }
 
@@ -190,40 +186,12 @@ void FOverLayRenderer::RenderView(ID3D11DeviceContext* Context, const FRenderVie
     mCurrentFrameResource->BindCommon(Context);
 }
 
-void FOverLayRenderer::BuildMeshItems(const TArray<FOverlayMeshDrawData>& Meshes, const FRenderView& View, const D3D11_VIEWPORT& Viewport, bool Selection, TArray<FMeshDrawBatch>& Items) {
+void FOverLayRenderer::BuildMeshItems(const TArray<FOverlayMeshDrawData>& Meshes, TArray<FMeshDrawBatch>& Items) {
     for (const FOverlayMeshDrawData& Data : Meshes) {
         const UMesh* Mesh{mAssetRegistry->ResolveAsset<UMesh>(Data.mMesh.mMeshHandle)};
         const UMaterial* Material{mAssetRegistry->ResolveAsset<UMaterial>(Data.mMesh.mMaterialHandle)};
 
-        if (Mesh == nullptr || Material == nullptr) {
-            continue;
-        }
-
-        FLODSelection LOD{};
-
-        if (Selection && View.mUseLOD) {
-            const DirectX::BoundingSphere& Bounds{Data.mWorldSphereBounds};
-            float ScreenSize{Bounds.Radius * std::abs(View.mCamera.mProjection.M[1][1])};
-
-            if (std::abs(View.mCamera.mProjection.M[2][3]) > 1e-6f) {
-                const FMatrix& CameraView{View.mCamera.mView};
-                const float Depth{Bounds.Center.x * CameraView.M[0][2] + Bounds.Center.y * CameraView.M[1][2] + Bounds.Center.z * CameraView.M[2][2] + CameraView.M[3][2]};
-
-                ScreenSize /= std::max(std::abs(Depth), 1e-4f);
-            }
-
-            Uint32 AvailableMask{};
-
-            for (Uint32 Level{}; Level < GLODCount; ++Level) {
-                if (Mesh->HasLOD(Level)) {
-                    AvailableMask |= 1u << Level;
-                }
-            }
-
-            LOD = SelectMeshLOD(ScreenSize, Viewport.Height, AvailableMask, true);
-        }
-
-        if (LOD.mCulled || mObjectTransforms.size() >= UINT32_MAX) {
+        if (Mesh == nullptr || Material == nullptr || mObjectTransforms.size() >= UINT32_MAX) {
             continue;
         }
 
@@ -231,50 +199,26 @@ void FOverLayRenderer::BuildMeshItems(const TArray<FOverlayMeshDrawData>& Meshes
 
         mObjectTransforms.push_back(Data.mWorld);
 
-        mStaticMeshes.clear();
+        FMeshBatch Batch{};
 
-        FStaticMeshBatchCollector Collector{*mAssetRegistry, ObjectIndex, mStaticMeshes};
+        Batch.mMeshHandle = Data.mMesh.mMeshHandle;
+        Batch.mMaterialHandle = Data.mMesh.mMaterialHandle;
+        Batch.mPipelineHandle = Data.mMesh.mPipelineHandle;
 
-        for (Uint32 Level{}; Level < Collector.GetMeshLODCount(Data.mMesh.mMeshHandle); ++Level) {
-            FMeshBatch Batch{};
+        BuildMeshBatchElements(*Mesh, 0, Batch.mElements);
 
-            Batch.mMeshHandle = Data.mMesh.mMeshHandle;
-            Batch.mMaterialHandle = Data.mMesh.mMaterialHandle;
-            Batch.mPipelineHandle = Data.mMesh.mPipelineHandle;
-            Batch.mLODLevel = Level;
-            Collector.GetMeshElements(Batch.mMeshHandle, Level, Batch.mElements);
+        for (const FMeshBatchElement& Element : Batch.mElements) {
+            FMeshDrawState State{};
+            Uint32 MaterialIndex{UINT32_MAX};
 
-            if (!Batch.mElements.empty()) {
-                Collector.DrawMesh(Batch);
+            if (mDrawRecords.size() >= UINT32_MAX || !BuildMeshDrawState(Batch, Element, *Material, mAssetResources.GetMaterialBuffer(), State, MaterialIndex)) {
+                continue;
             }
-        }
 
-        auto AddLevel{[&](Uint32 Level, float Dither) {
-            for (const FStaticMeshBatch& Batch : mStaticMeshes) {
-                if (Batch.mLODLevel != Level) {
-                    continue;
-                }
+            const Uint32 FirstRecord{static_cast<Uint32>(mDrawRecords.size())};
 
-                for (const FMeshBatchElement& Element : Batch.mElements) {
-                    FMeshDrawState State{};
-                    Uint32 MaterialIndex{UINT32_MAX};
-
-                    if (mDrawRecords.size() >= UINT32_MAX || !BuildMeshDrawState(Batch, Element, *mAssetRegistry, mAssetResources.GetMaterialBuffer(), State, MaterialIndex)) {
-                        continue;
-                    }
-
-                    const Uint32 FirstRecord{static_cast<Uint32>(mDrawRecords.size())};
-
-                    mDrawRecords.push_back(FMeshDrawRecord{ObjectIndex, MaterialIndex, Dither});
-                    Items.push_back(FMeshDrawBatch{State, FirstRecord, 1});
-                }
-            }
-        }};
-
-        AddLevel(LOD.mLevel, LOD.mDither);
-
-        if (LOD.mNextLevel != UINT32_MAX) {
-            AddLevel(LOD.mNextLevel, -LOD.mDither);
+            mDrawRecords.push_back(FMeshDrawRecord{ObjectIndex, MaterialIndex});
+            Items.push_back(FMeshDrawBatch{State, FirstRecord, 1});
         }
     }
 }

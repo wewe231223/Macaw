@@ -1,6 +1,6 @@
 #pragma once
 #include "RenderCore/FPrimitiveSceneProxy.h"
-#include "Render/FStaticMeshBatch.h"
+#include "RenderCore/FMeshBatch.h"
 #include "Render/FMeshDrawCommand.h"
 #include "Core/Base/TCachedValue.h"
 #include "Render/FRenderAssetStamp.h"
@@ -16,7 +16,7 @@ struct FPrimitiveSceneInfo {
     bool mCullable{};
     bool mSky{};
     std::unique_ptr<FPrimitiveSceneProxy> mProxy{};
-    TCachedValue<TArray<FStaticMeshBatch>, FRenderAssetStamp> mStaticMeshes{};
+    TCachedValue<TArray<FMeshBatch>, FRenderAssetStamp> mStaticMeshes{};
     std::array<TArray<Uint32>, GLODCount> mCachedCommandsByLOD{};
     Uint32 mAvailableLODMask{};
 };

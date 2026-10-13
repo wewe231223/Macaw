@@ -11,11 +11,9 @@ namespace {
     constexpr const char* ComponentDragDropPayloadType{"PROPERTY_SCENE_COMPONENT"};
 }
 
-FPropertyPanel::FPropertyPanel(FWorldEditorContext& InEditorContext, FStateChannel<Uint8>::FReadWriter InGizmoMode, FStateChannel<Uint8>::FReadWriter InGizmoCoordinateSpace, FAssetThumbnailRenderer* InThumbnailRenderer)
+FPropertyPanel::FPropertyPanel(FWorldEditorContext& InEditorContext, FAssetThumbnailRenderer* InThumbnailRenderer)
 	: FEditorWindow("Property Window"),
-	  mEditorContext(&InEditorContext),
-	  mGizmoMode(std::move(InGizmoMode)),
-	  mGizmoCoordinateSpace(std::move(InGizmoCoordinateSpace)) {
+	  mEditorContext(&InEditorContext) {
     mPropertyEditor.BindThumbnailRenderer(InThumbnailRenderer);
 }
 
@@ -57,7 +55,7 @@ FString FPropertyPanel::GetComponentTypeName(const UActorComponent& Component) {
 void FPropertyPanel::DrawGizmoControls() {
     ImGui::TextUnformatted("Gizmo Mode");
 
-    int ModeIndex{static_cast<int>(mGizmoMode.Read())};
+    int ModeIndex{static_cast<int>(mEditorContext->GetGizmoMode())};
     bool BModeChanged{false};
 
     BModeChanged |= ImGui::RadioButton("Translate", &ModeIndex, static_cast<int>(EGizmoMode::Translate));
@@ -66,20 +64,22 @@ void FPropertyPanel::DrawGizmoControls() {
     ImGui::SameLine();
     BModeChanged |= ImGui::RadioButton("Scale", &ModeIndex, static_cast<int>(EGizmoMode::Scale));
 
-    if (BModeChanged)
-        mGizmoMode.Emplace(static_cast<Uint8>(ModeIndex));
+    if (BModeChanged) {
+        mEditorContext->SetGizmoMode(static_cast<EGizmoMode>(ModeIndex));
+    }
 
     ImGui::TextUnformatted("Coordinate Mode");
 
-    int CoordinateSpaceIndex{static_cast<int>(mGizmoCoordinateSpace.Read())};
+    int CoordinateSpaceIndex{static_cast<int>(mEditorContext->GetGizmoCoordinateSpace())};
     bool BCoordinateSpaceChanged{false};
 
     BCoordinateSpaceChanged |= ImGui::RadioButton("World", &CoordinateSpaceIndex, static_cast<int>(EGizmoCoordinateSpace::World));
     ImGui::SameLine();
     BCoordinateSpaceChanged |= ImGui::RadioButton("Local", &CoordinateSpaceIndex, static_cast<int>(EGizmoCoordinateSpace::Local));
 
-    if (BCoordinateSpaceChanged)
-        mGizmoCoordinateSpace.Emplace(static_cast<Uint8>(CoordinateSpaceIndex));
+    if (BCoordinateSpaceChanged) {
+        mEditorContext->SetGizmoCoordinateSpace(static_cast<EGizmoCoordinateSpace>(CoordinateSpaceIndex));
+    }
 
     ImGui::Separator();
 }

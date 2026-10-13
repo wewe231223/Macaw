@@ -24,7 +24,7 @@ public:
     FMeshRenderResource& operator=(FMeshRenderResource&&) noexcept = default;
 
 public:
-    bool Initialize(ID3D11Device* Device, const UMesh& Mesh);
+    bool Initialize(ID3D11Device* Device, const UMesh& Mesh, bool UseLOD = true);
     ID3D11Buffer* GetVertexBuffer(EVertexAttribute Attribute, Uint32 Level = 0) const;
 
 private:

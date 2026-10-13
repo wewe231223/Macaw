@@ -13,7 +13,7 @@ void FEditorApplication::InitializeMode(FApplicationContext& Context, HWND Windo
         Context.mMenuPanel = std::make_unique<FControlPanel>(*Context.mEditorContext, WindowHandle, Context.mEditorContext->GetEditorToWorldSender());
     }
 
-    Context.mEditorUIManager->Initialize(Context.mWorldContext->GetWorld(), Context.mRenderer, Context.mEngine.GetAssetRegistry(), *Context.mEditorContext, WindowHandle, Context.mEditorView->GetGizmoMode(), Context.mEditorView->GetGizmoCoordinateSpace(), Context.mThumbnailRenderer.get());
+    Context.mEditorUIManager->Initialize(Context.mWorldContext->GetWorld(), Context.mRenderer, Context.mEngine.GetAssetRegistry(), *Context.mEditorContext, WindowHandle, Context.mThumbnailRenderer.get());
 }
 
 void FEditorApplication::ProcessInput(FApplicationContext& Context, float DeltaTime) {

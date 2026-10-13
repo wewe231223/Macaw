@@ -1,12 +1,11 @@
 #pragma once
 #include "RenderCore/FStaticPrimitiveDrawInterface.h"
-#include "Render/FStaticMeshBatch.h"
 
 class IAssetRegistry;
 
 class FStaticMeshBatchCollector final : public FStaticPrimitiveDrawInterface {
 public:
-    FStaticMeshBatchCollector(const IAssetRegistry& Registry, Uint32 ObjectIndex, TArray<FStaticMeshBatch>& Meshes);
+    FStaticMeshBatchCollector(const IAssetRegistry& Registry, TArray<FMeshBatch>& Meshes);
     ~FStaticMeshBatchCollector() override = default;
 
 public:
@@ -16,6 +15,5 @@ public:
 
 private:
     const IAssetRegistry& mRegistry;
-    Uint32 mObjectIndex{};
-    TArray<FStaticMeshBatch>& mMeshes;
+    TArray<FMeshBatch>& mMeshes;
 };

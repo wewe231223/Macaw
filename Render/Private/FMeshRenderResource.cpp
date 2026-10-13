@@ -3,14 +3,14 @@
 #include "Asset/UMesh.h"
 #include <cstring>
 
-bool FMeshRenderResource::Initialize(ID3D11Device* Device, const UMesh& Mesh) {
+bool FMeshRenderResource::Initialize(ID3D11Device* Device, const UMesh& Mesh, bool UseLOD) {
     if (Device == nullptr || !Mesh.HasLOD(0)) {
         return false;
     }
 
     TArray<FLODBuffers> Buffers{};
 
-    Buffers.resize(Mesh.GetLODCount());
+    Buffers.resize(UseLOD ? Mesh.GetLODCount() : 1);
 
     for (Uint32 Level{}; Level < Buffers.size(); ++Level) {
         if (!Mesh.HasLOD(static_cast<int>(Level))) {

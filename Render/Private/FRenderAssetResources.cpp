@@ -5,7 +5,7 @@
 #include "Asset/UFont.h"
 #include <DirectXTex.h>
 
-bool FRenderAssetResources::Initialize(ID3D11Device* Device) {
+bool FRenderAssetResources::Initialize(ID3D11Device* Device, bool UseLOD) {
     Reset();
 
     if (!mMaterials.Initialize(Device)) {
@@ -13,6 +13,7 @@ bool FRenderAssetResources::Initialize(ID3D11Device* Device) {
     }
 
     mDevice = Device;
+    mUseLOD = UseLOD;
 
     return true;
 }
@@ -45,6 +46,7 @@ void FRenderAssetResources::Reset() {
     mFonts.clear();
     mMaterials.Reset();
     mDevice = nullptr;
+    mUseLOD = true;
 }
 
 const FMeshRenderResource* FRenderAssetResources::GetMesh(const UMesh& Mesh) {
@@ -53,7 +55,7 @@ const FMeshRenderResource* FRenderAssetResources::GetMesh(const UMesh& Mesh) {
     }
 
     return mMeshes[Mesh.GetGuid()].GetOrUpdate(FRenderAssetStamp{Mesh.GetHandle(), Mesh.GetRenderRevision()}, [&](FMeshRenderResource& Resource) {
-        return Resource.Initialize(mDevice, Mesh);
+        return Resource.Initialize(mDevice, Mesh, mUseLOD);
     });
 }
 

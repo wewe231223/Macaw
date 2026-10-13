@@ -2,7 +2,6 @@
 #include "Core/Base/FAssetHandle.h"
 #include "CoreUObject/TObjectRef.h"
 #include "Core/Channel/FMessageChannel.h"
-#include "Core/Channel/FStateChannel.h"
 #include "Editor/Message/FEditorInfo.h"
 #include "Editor/Settings/FEditorSettings.h"
 #include "World/AActor.h"
@@ -17,11 +16,6 @@
 #include "Editor/Input/Messages/FMousePickRequestMessage.h"
 
 class UEditorEngine;
-
-struct FWorldEditorSharedState {
-    FEditorSettings mEditorSettings{};
-    std::size_t mModeIndex{2};
-};
 
 class FWorldEditorContext final : public IWorldObserver {
 public:
@@ -48,7 +42,6 @@ public:
 #endif
 
     FMessageChannel::FSender GetEditorToWorldSender();
-    FMessageChannel::FSender GetWorldToEditorSender();
 
     FEditorSettings GetEditorSettings() const;
     void SetEditorSettings(const FEditorSettings& Settings);
@@ -61,6 +54,11 @@ public:
 
     const std::size_t GetRenderModeState() const noexcept;
     void SetRenderModeState(const std::size_t State);
+
+    EGizmoMode GetGizmoMode() const;
+    void SetGizmoMode(EGizmoMode Mode);
+    EGizmoCoordinateSpace GetGizmoCoordinateSpace() const;
+    void SetGizmoCoordinateSpace(EGizmoCoordinateSpace CoordinateSpace);
 
     void SetSelectedActor(AActor* Actor);
     void SetSelectedComponent(UActorComponent* Component);
@@ -87,9 +85,11 @@ private:
     UWorld* mWorld{nullptr};
     TObjectRef<AActor> mSelectedActor{};
     TObjectRef<UActorComponent> mSelectedComponent{};
-    FStateChannel<FWorldEditorSharedState> mSharedState{std::in_place};
+    FEditorSettings mEditorSettings{};
+    std::size_t mRenderModeIndex{2};
+    EGizmoMode mGizmoMode{EGizmoMode::Translate};
+    EGizmoCoordinateSpace mGizmoCoordinateSpace{EGizmoCoordinateSpace::World};
     FMessageChannel mEditorToWorld{64};
-    FMessageChannel mWorldToEditor{64};
 
     FAssetHandle mPreviewMesh{};
     bool mBPreviewOpenRequested{false};

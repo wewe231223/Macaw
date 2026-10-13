@@ -1,5 +1,6 @@
 #pragma once
 #include "Asset/FLODSettings.h"
+#include "RenderCore/FRenderData.h"
 
 struct FLODSelection {
     Uint32 mLevel{};
@@ -9,4 +10,5 @@ struct FLODSelection {
     bool mCulled{};
 };
 
+float CalculateMeshScreenSize(const DirectX::BoundingSphere& Bounds, const FViewMatrices& Camera);
 FLODSelection SelectMeshLOD(float ScreenSize, float ViewportHeight, Uint32 AvailableMask, bool AllowCull);

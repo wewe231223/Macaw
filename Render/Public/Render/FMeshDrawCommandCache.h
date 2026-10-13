@@ -5,6 +5,8 @@
 
 #include <map>
 
+class FRenderAssetResources;
+
 struct FMeshDrawCommandKey {
     FAssetHandle mMeshHandle{};
     FAssetHandle mMaterialHandle{};
@@ -40,11 +42,13 @@ private:
 public:
     void BeginUpdate();
     void EndUpdate();
-
-    template <typename TBuilder>
-    Uint32 GetOrCreateCommand(const FMeshDrawCommandKey& Key, const FMeshDrawCommandStamp& Stamp, TBuilder&& Builder);
+    void AddMeshBatch(const FMeshBatch& Mesh, const IAssetRegistry& Registry, const FMaterialBuffer& Materials, FRenderAssetResources* Resources, TArray<Uint32>& OutCommands);
 
     const TArray<std::shared_ptr<const FMeshDrawCommand>>& GetCommands() const;
+
+private:
+    template <typename TBuilder>
+    Uint32 GetOrCreateCommand(const FMeshDrawCommandKey& Key, const FMeshDrawCommandStamp& Stamp, TBuilder&& Builder);
 
 private:
     Uint64 mUpdateSerial{};

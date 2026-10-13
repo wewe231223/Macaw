@@ -9,7 +9,6 @@
 #include "Asset/UMesh.h"
 #include "RenderCore/FOverlayRenderData.h"
 #include "CoreUObject/TObjectRef.h"
-#include "Core/Channel/FStateChannel.h"
 #include "Editor/World/FWorldEditorContext.h"
 #include "World/Component/USceneComponent.h"
 #include "Asset/Pipeline/UPipeline.h"
@@ -24,13 +23,6 @@ private:
         X,
         Y,
         Z
-    };
-
-    enum class EModifyMode : Uint8 {
-        Translate,
-        Rotate,
-        Scale,
-        None
     };
 
     struct FAxisHitProxy {
@@ -51,7 +43,7 @@ private:
         FVector3 mDragPlaneNormal{};
         float mPreviousAxisParameter{0.0f};
         EAxis mDragAxis{EAxis::None};
-        EModifyMode mModifyMode{EModifyMode::None};
+        EGizmoMode mMode{EGizmoMode::Translate};
         EGizmoCoordinateSpace mCoordinateSpace{EGizmoCoordinateSpace::World};
         FVector3 mPreviousRotationDirection{};
         float mWorkUnitsPerPixel{1.0f};
@@ -74,10 +66,6 @@ public:
     void ProcessInput(FKeyboardInput& KeyboardInput, FMouseInput& MouseInput, bool BMouseCapturedByUi);
     void Update(const FViewMatrices& Camera, const D3D11_VIEWPORT& Viewport);
     void BuildGizmoDrawData(TArray<FOverlayMeshDrawData>& GizmoMeshes);
-
-    FStateChannel<Uint8>::FReadWriter GetGizmoMode();
-
-    FStateChannel<Uint8>::FReadWriter GetGizmoCoordinateSpace();
 
 private:
     void SetTranslate(const FVector3& Pivot, float WorldUnitsPerPixel);
@@ -144,10 +132,6 @@ private:
 
     FAssetRegistry* mAssetRegistry{nullptr};
     FWorldEditorContext* mEditorContext{nullptr};
-    FStateChannel<Uint8> mGizmoModeChannel{};
-    FStateChannel<Uint8>::FReadWriter mGizmoMode{};
-    FStateChannel<Uint8> mGizmoCoordinateSpaceChannel{};
-    FStateChannel<Uint8>::FReadWriter mGizmoCoordinateSpace{};
 
     FViewMatrices mLastCamera{};
     D3D11_VIEWPORT mLastViewport{};

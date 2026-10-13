@@ -3,7 +3,6 @@
 #include <d3d11.h>
 #include "Asset/FAssetRegistry.h"
 #include "Render/FRenderView.h"
-#include "Core/Channel/FStateChannel.h"
 #include "Editor/World/FWorldEditorContext.h"
 #include "Editor/Input/FMouseInput.h"
 #include "RenderCore/FLineRenderData.h"
@@ -27,9 +26,6 @@ public:
     void PrepareInput(const FViewMatrices& Camera, const D3D11_VIEWPORT& Viewport);
     void ProcessInput(FKeyboardInput& KeyboardInput, FMouseInput& MouseInput, bool BMouseCapturedByUi);
     void BuildOverlayRenderData(FOverlayRenderData& Overlay, const FViewMatrices& Camera, const FVector3& CameraPosition, const D3D11_VIEWPORT& Viewport);
-
-    FStateChannel<Uint8>::FReadWriter GetGizmoMode();
-    FStateChannel<Uint8>::FReadWriter GetGizmoCoordinateSpace();
 
 private:
     void BuildGrid(FLineRenderData& Lines, const FViewMatrices& Camera, const FVector3& CameraPosition, const D3D11_VIEWPORT& Viewport, FVector2D& FadeCenter, ELineDepthMode DepthMode);

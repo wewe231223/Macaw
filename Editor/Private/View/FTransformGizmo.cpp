@@ -18,19 +18,21 @@ void FTransformGizmo::Initialize(ID3D11Device* Device, FAssetRegistry& AssetRegi
 
     mEditorContext = &InEditorContext;
 
-    mGizmoMode = mGizmoModeChannel.GetReadWriter();
-    mGizmoMode.Emplace(static_cast<Uint8>(EModifyMode::Translate));
-    mGizmoCoordinateSpace = mGizmoCoordinateSpaceChannel.GetReadWriter();
-    mGizmoCoordinateSpace.Emplace(static_cast<Uint8>(EGizmoCoordinateSpace::World));
+    mEditorContext->SetGizmoMode(EGizmoMode::Translate);
+    mEditorContext->SetGizmoCoordinateSpace(EGizmoCoordinateSpace::World);
 }
 
 void FTransformGizmo::ProcessInput(FKeyboardInput& KeyboardInput, FMouseInput& MouseInput, bool BMouseCapturedByUi) {
+    if (mEditorContext == nullptr) {
+        return;
+    }
+
     if (KeyboardInput.GetKeyState(VK_SPACE) == EKeyState::Pressed) {
-        mGizmoMode.Emplace((mGizmoModeChannel.GetReader().Read() + 1) % 3);
+        mEditorContext->SetGizmoMode(static_cast<EGizmoMode>((static_cast<Uint8>(mEditorContext->GetGizmoMode()) + 1) % 3));
     }
 
     if (KeyboardInput.GetKeyState(VK_TAB) == EKeyState::Pressed) {
-        mGizmoCoordinateSpace.Emplace((mGizmoCoordinateSpaceChannel.GetReader().Read() + 1) % 2);
+        mEditorContext->SetGizmoCoordinateSpace(static_cast<EGizmoCoordinateSpace>((static_cast<Uint8>(mEditorContext->GetGizmoCoordinateSpace()) + 1) % 2));
     }
 
     const EKeyState LeftState{MouseInput.GetKeyState(Left)};
@@ -103,14 +105,14 @@ void FTransformGizmo::Update(const FViewMatrices& Camera, const D3D11_VIEWPORT& 
     }
 
     const FMatrix TargetWorld{Target->GetComponentToWorld()};
-    const EGizmoCoordinateSpace CoordinateSpace{mGizmoCoordinateSpace.HasValue() ? static_cast<EGizmoCoordinateSpace>(mGizmoCoordinateSpace.Peek()) : EGizmoCoordinateSpace::World};
-    const EModifyMode CurrentMode{mGizmoMode.HasValue() ? static_cast<EModifyMode>(mGizmoMode.Peek()) : EModifyMode::None};
+    const EGizmoCoordinateSpace CoordinateSpace{mEditorContext->GetGizmoCoordinateSpace()};
+    const EGizmoMode CurrentMode{mEditorContext->GetGizmoMode()};
 
     // Gizmo는 scale 없이 회전 축과 위치만 사용한다. World 모드에서는
     // 축을 월드 그리드에 고정하고, Local 모드에서만 대상 회전을 따른다.
     mGizmoWorldTransform = FMatrix::Identity;
 
-    if (CoordinateSpace == EGizmoCoordinateSpace::Local && CurrentMode == EModifyMode::Rotate) {
+    if (CoordinateSpace == EGizmoCoordinateSpace::Local && CurrentMode == EGizmoMode::Rotate) {
         const FMatrix TargetRotation{Target->GetComponentTransform().ToMatrixNoScale()};
 
         for (Uint32 Row{0}; Row < 3; ++Row) {
@@ -153,15 +155,15 @@ void FTransformGizmo::Update(const FViewMatrices& Camera, const D3D11_VIEWPORT& 
     mCurrentWorkUnitsPerPixel = WorldUnitsPerPixel;
 
     switch (CurrentMode) {
-        case EModifyMode::Translate:
+        case EGizmoMode::Translate:
             SetTranslate(mBoundsCenterInGizmoSpace, WorldUnitsPerPixel);
             break;
 
-        case EModifyMode::Scale:
+        case EGizmoMode::Scale:
             SetScale(mBoundsCenterInGizmoSpace, WorldUnitsPerPixel);
             break;
 
-        case EModifyMode::Rotate:
+        case EGizmoMode::Rotate:
             SetRotate(mBoundsCenterInGizmoSpace, WorldUnitsPerPixel);
             break;
 
@@ -323,9 +325,9 @@ std::optional<FTransformGizmo::FAxisHit> FTransformGizmo::HitTest(const FRay& Wo
 
     const FRay LocalRay{LocalOrigin.ToSimpleMath(), LocalDirection.ToSimpleMath()};
     std::optional<FAxisHit> NearestHit{};
-    const EModifyMode CurrentMode{mGizmoMode.HasValue() ? static_cast<EModifyMode>(mGizmoMode.Peek()) : EModifyMode::None};
+    const EGizmoMode CurrentMode{mEditorContext->GetGizmoMode()};
 
-    if (CurrentMode == EModifyMode::Rotate) {
+    if (CurrentMode == EGizmoMode::Rotate) {
         const EAxis Axis[3]{EAxis::X, EAxis::Y, EAxis::Z};
         const FVector3 PlaneNormals[3]{FVector3::UnitX, FVector3::UnitY, FVector3::UnitZ};
 
@@ -375,11 +377,7 @@ bool FTransformGizmo::BeginDrag(EAxis Axis, const FRay& WorldRay) {
     }
 
     //드래그를 시작한 순간의 모드를 고정한다.
-    const EModifyMode CurrentMode{mGizmoMode.HasValue() ? static_cast<EModifyMode>(mGizmoMode.Peek()) : EModifyMode::None};
-
-    if (CurrentMode == EModifyMode::None) {
-        return false;
-    }
+    const EGizmoMode CurrentMode{mEditorContext->GetGizmoMode()};
 
     // 선택한 기즈모 축을 월드 공간 방향으로 변환한다.
     // The editor is Z-up: Forward is local Y and Up is local Z.
@@ -404,8 +402,8 @@ bool FTransformGizmo::BeginDrag(EAxis Axis, const FRay& WorldRay) {
     }
 
     NewSession.mTarget.Set(Target);
-    NewSession.mModifyMode = CurrentMode;
-    NewSession.mCoordinateSpace = mGizmoCoordinateSpace.HasValue() ? static_cast<EGizmoCoordinateSpace>(mGizmoCoordinateSpace.Peek()) : EGizmoCoordinateSpace::World;
+    NewSession.mMode = CurrentMode;
+    NewSession.mCoordinateSpace = mEditorContext->GetGizmoCoordinateSpace();
     NewSession.mDragAxis = Axis;
     NewSession.mAxisWorld = AxisWorld;
     NewSession.mInteractionPivotWorld = InteractionPivotWorld;
@@ -413,7 +411,7 @@ bool FTransformGizmo::BeginDrag(EAxis Axis, const FRay& WorldRay) {
     NewSession.mAccumulatedDelta = 0.0f;
 
     // Rotation은 링 평면을 사용한다.
-    if (CurrentMode == EModifyMode::Rotate) {
+    if (CurrentMode == EGizmoMode::Rotate) {
         // 회전 링 평면은 회전축에 수직이므로 평면 법선은 회전축과 같다.
         NewSession.mDragPlaneNormal = AxisWorld;
 
@@ -493,7 +491,7 @@ void FTransformGizmo::UpdateDrag(const FRay& WorldRay) {
     }
 
     // Rotation은 방향 벡터 사이의 각도로 계산한다.
-    if (Session.mModifyMode == EModifyMode::Rotate) {
+    if (Session.mMode == EGizmoMode::Rotate) {
         // BeginDrag에서 사용한 것과 동일한 회전 평면.
         // 평면 중심 = 기즈모 Pivot
         // 평면 법선 = 선택한 회전축
@@ -593,7 +591,7 @@ void FTransformGizmo::UpdateDrag(const FRay& WorldRay) {
 
         FTransform DesiredWorldTransform{Target->GetComponentTransform()};
 
-        if (Session.mModifyMode == EModifyMode::Translate) {
+        if (Session.mMode == EGizmoMode::Translate) {
             const FEditorSettings Settings{mEditorContext->GetEditorSettings()};
             const float GridSize{Settings.mGridSize};
 
@@ -614,7 +612,7 @@ void FTransformGizmo::UpdateDrag(const FRay& WorldRay) {
                 Session.mAccumulatedDelta = 0.0f;
             }
 
-        } else if (Session.mModifyMode == EModifyMode::Scale) {
+        } else if (Session.mMode == EGizmoMode::Scale) {
             const float ScaleSpeed{std::max(100.0f * Session.mWorkUnitsPerPixel, 0.0001f)};
             const float ScaleFactor{std::max(0.01f, 1.0f + Delta / ScaleSpeed)};
 
@@ -732,14 +730,14 @@ void FTransformGizmo::BuildGizmoDrawData(TArray<FOverlayMeshDrawData>& GizmoMesh
         return;
     }
 
-    const EModifyMode CurrentMode{mGizmoMode.HasValue() ? static_cast<EModifyMode>(mGizmoMode.Peek()) : EModifyMode::None};
+    const EGizmoMode CurrentMode{mEditorContext->GetGizmoMode()};
 
     const auto Submit{[&](const FMatrix& LocalTransform, FAssetHandle MeshHandle, FAssetHandle MaterialHandle) {
         GizmoMeshes.push_back(FOverlayMeshDrawData{LocalTransform * mGizmoWorldTransform, FMeshSceneData{MeshHandle, MaterialHandle, mGizmoPipeline}});
     }};
 
     switch (CurrentMode) {
-        case EModifyMode::Translate:
+        case EGizmoMode::Translate:
             Submit(mCylinderXAxisTransform, mCylinderMesh, mRedMaterial);
             Submit(mCylinderYAxisTransform, mCylinderMesh, mGreenMaterial);
             Submit(mCylinderZAxisTransform, mCylinderMesh, mBlueMaterial);
@@ -749,7 +747,7 @@ void FTransformGizmo::BuildGizmoDrawData(TArray<FOverlayMeshDrawData>& GizmoMesh
             Submit(mConeZAxisTransform, mConeMesh, mBlueMaterial);
             break;
 
-        case EModifyMode::Scale:
+        case EGizmoMode::Scale:
             Submit(mCylinderXAxisTransform, mCylinderMesh, mRedMaterial);
             Submit(mCylinderYAxisTransform, mCylinderMesh, mGreenMaterial);
             Submit(mCylinderZAxisTransform, mCylinderMesh, mBlueMaterial);
@@ -759,7 +757,7 @@ void FTransformGizmo::BuildGizmoDrawData(TArray<FOverlayMeshDrawData>& GizmoMesh
             Submit(mCubeZAxisTransform, mCubeMesh, mBlueMaterial);
             break;
 
-        case EModifyMode::Rotate:
+        case EGizmoMode::Rotate:
             Submit(mTorusXAxisTransform, mGizmoTorusMesh, mRedMaterial);
             Submit(mTorusYAxisTransform, mGizmoTorusMesh, mGreenMaterial);
             Submit(mTorusZAxisTransform, mGizmoTorusMesh, mBlueMaterial);
@@ -783,12 +781,4 @@ void FTransformGizmo::RefreshAssetHandles() {
     mGreenMaterial = mAssetRegistry->FindAsset(FAssetPath{"/Game/System/Material/Green.mtl"});
     mBlueMaterial = mAssetRegistry->FindAsset(FAssetPath{"/Game/System/Material/Blue.mtl"});
     mGizmoPipeline = mAssetRegistry->FindAsset(FAssetPath{"/Game/Pipeline/Gizmo.json"});
-}
-
-FStateChannel<Uint8>::FReadWriter FTransformGizmo::GetGizmoMode() {
-    return mGizmoModeChannel.GetReadWriter();
-}
-
-FStateChannel<Uint8>::FReadWriter FTransformGizmo::GetGizmoCoordinateSpace() {
-    return mGizmoCoordinateSpaceChannel.GetReadWriter();
 }

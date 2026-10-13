@@ -3,7 +3,6 @@
 #include "World/Component/UBillboardComponent.h"
 #include "Editor/UEditorEngine.h"
 #include "Asset/FAssetRegistry.h"
-#include "Serialization/FJsonFile.h"
 #include "Editor/World/FWorldEditorContext.h"
 #include "World/AActor.h"
 #include "World/Component/UActorComponent.h"
@@ -16,27 +15,6 @@
 #include "Core/Console/Console.h"
 #include "World/Component/ULightComponent.h"
 #include "CoreUObject/Reflection/FReflectionRegistry.h"
-#include <rapidjson/document.h>
-
-namespace {
-    bool ReWriteObjFilePath(const std::filesystem::path& MetaPath, const FString& NewObjFilePath) {
-        rapidjson::Document Document{};
-
-        if (!FJsonFile::Load(MetaPath, Document)) {
-            return false;
-        }
-
-        rapidjson::Document::AllocatorType& Allocator{Document.GetAllocator()};
-
-        if (Document.HasMember("FilePath")) {
-            Document["FilePath"].SetString(NewObjFilePath.c_str(), Allocator);
-        } else {
-            Document.AddMember("FilePath", rapidjson::Value(NewObjFilePath.c_str(), Allocator), Allocator);
-        }
-
-        return FJsonFile::Save(MetaPath, Document);
-    }
-}
 
 FWorldEditorContext::~FWorldEditorContext() {
     SetWorld(nullptr);
@@ -53,7 +31,6 @@ void FWorldEditorContext::SetWorld(UWorld* InWorld) {
 
     ClearSelection();
     mEditorToWorld.Clear();
-    mWorldToEditor.Clear();
     mWorld = InWorld;
 
     if (mWorld != nullptr) {
@@ -69,7 +46,6 @@ void FWorldEditorContext::OnWorldChanged(UWorld& World, EWorldChange Change, AAc
     if (Change == EWorldChange::Destroying) {
         ClearSelection();
         mEditorToWorld.Clear();
-        mWorldToEditor.Clear();
         mWorld = nullptr;
     } else if (Change == EWorldChange::ActorRemoving && GetSelectedActor() == Actor) {
         ClearSelection();
@@ -96,71 +72,66 @@ void FWorldEditorContext::InitializeChannels(UEditorEngine& EditorEngine) {
 
 void FWorldEditorContext::Dispatch() {
     mEditorToWorld.Dispatch();
-    mWorldToEditor.Dispatch();
 }
 
 FMessageChannel::FSender FWorldEditorContext::GetEditorToWorldSender() {
     return mEditorToWorld.GetSender();
 }
 
-FMessageChannel::FSender FWorldEditorContext::GetWorldToEditorSender() {
-    return mWorldToEditor.GetSender();
-}
-
 FEditorSettings FWorldEditorContext::GetEditorSettings() const {
-    return mSharedState.GetReader().Peek().mEditorSettings;
+    return mEditorSettings;
 }
 
 void FWorldEditorContext::SetEditorSettings(const FEditorSettings& Settings) {
-    mSharedState.GetWriter().Modify([&Settings](FWorldEditorSharedState& Shared) {
-        Shared.mEditorSettings = Settings;
-    });
+    mEditorSettings = Settings;
 }
 
 void FWorldEditorContext::SetMoveSensitivity(float Value) {
-    mSharedState.GetWriter().Modify([Value](FWorldEditorSharedState& Shared) {
-        Shared.mEditorSettings.mMoveSensitivity = Value;
-    });
+    mEditorSettings.mMoveSensitivity = Value;
 }
 
 void FWorldEditorContext::SetRotationSensitivity(float Value) {
-    mSharedState.GetWriter().Modify([Value](FWorldEditorSharedState& Shared) {
-        Shared.mEditorSettings.mRotationSensitivity = Value;
-    });
+    mEditorSettings.mRotationSensitivity = Value;
 }
 
 void FWorldEditorContext::SetGridSize(float Value) {
-    mSharedState.GetWriter().Modify([Value](FWorldEditorSharedState& Shared) {
-        Shared.mEditorSettings.mGridSize = Value;
-    });
+    mEditorSettings.mGridSize = Value;
 }
 
 void FWorldEditorContext::SetGridSnapEnabled(bool Enabled) {
-    mSharedState.GetWriter().Modify([Enabled](FWorldEditorSharedState& Shared) {
-        Shared.mEditorSettings.mGridSnapEnabled = Enabled;
-    });
+    mEditorSettings.mGridSnapEnabled = Enabled;
 }
 
 void FWorldEditorContext::SetGridVisible(bool Visible) {
-    mSharedState.GetWriter().Modify([Visible](FWorldEditorSharedState& Shared) {
-        Shared.mEditorSettings.mGridVisible = Visible;
-    });
+    mEditorSettings.mGridVisible = Visible;
 }
 
 void FWorldEditorContext::SetAxisVisible(bool Visible) {
-    mSharedState.GetWriter().Modify([Visible](FWorldEditorSharedState& Shared) {
-        Shared.mEditorSettings.mAxisVisible = Visible;
-    });
+    mEditorSettings.mAxisVisible = Visible;
 }
 
 const std::size_t FWorldEditorContext::GetRenderModeState() const noexcept {
-    return mSharedState.GetReader().Peek().mModeIndex;
+    return mRenderModeIndex;
 }
 
 void FWorldEditorContext::SetRenderModeState(const std::size_t State) {
-    mSharedState.GetWriter().Modify([&State](FWorldEditorSharedState& Shared) {
-        Shared.mModeIndex = State;
-    });
+    mRenderModeIndex = State;
+}
+
+EGizmoMode FWorldEditorContext::GetGizmoMode() const {
+    return mGizmoMode;
+}
+
+void FWorldEditorContext::SetGizmoMode(EGizmoMode Mode) {
+    mGizmoMode = Mode;
+}
+
+EGizmoCoordinateSpace FWorldEditorContext::GetGizmoCoordinateSpace() const {
+    return mGizmoCoordinateSpace;
+}
+
+void FWorldEditorContext::SetGizmoCoordinateSpace(EGizmoCoordinateSpace CoordinateSpace) {
+    mGizmoCoordinateSpace = CoordinateSpace;
 }
 
 void FWorldEditorContext::SetSelectedActor(AActor* Actor) {

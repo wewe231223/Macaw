@@ -3,7 +3,6 @@
 #include "ImGui/imgui.h"
 #include "Editor/Message/FEditorInfo.h"
 #include "Editor/Panel/FViewportHostWindow.h"
-#include "Core/Channel/FStateChannel.h"
 #include <filesystem>
 #include "World/UWorld.h"
 #include "Render/Renderer.h"
@@ -23,7 +22,7 @@ public:
     ~FEditorUIManager();
 
 public:
-    void Initialize(UWorld& World, FRenderer& Renderer, FAssetRegistry& AssetRegistry, FWorldEditorContext& EditorContext, HWND WindowHandle, FStateChannel<Uint8>::FReadWriter GizmoSender, FStateChannel<Uint8>::FReadWriter GizmoCoordinateSpaceSender, FAssetThumbnailRenderer* ThumbnailRenderer);
+    void Initialize(UWorld& World, FRenderer& Renderer, FAssetRegistry& AssetRegistry, FWorldEditorContext& EditorContext, HWND WindowHandle, FAssetThumbnailRenderer* ThumbnailRenderer);
     void InitializeViewer(FAssetRegistry& AssetRegistry, HWND WindowHandle, FWorldEditorContext& EditorContext, FAssetThumbnailRenderer* ThumbnailRenderer);
     void Tick();
     void RenderOffscreen(FRenderer& Renderer, FAssetRegistry& AssetRegistry);
@@ -49,5 +48,5 @@ private:
     FAssetBrowserPanel* mAssetBrowserPanel{};
     FMaterialEditorPanel* mMaterialEditorPanel{};
     bool mFocusMaterialEditor{};
-    FStateChannel<FStatDisplayFlags> mStatDisplayChannel{FStatDisplayFlags{false, false, false}};
+    FStatDisplayFlags mStatDisplayFlags{};
 };

@@ -4,6 +4,19 @@
 #include <algorithm>
 #include <cmath>
 
+float CalculateMeshScreenSize(const DirectX::BoundingSphere& Bounds, const FViewMatrices& Camera) {
+    float ScreenSize{Bounds.Radius * std::abs(Camera.mProjection.M[1][1])};
+
+    if (std::abs(Camera.mProjection.M[2][3]) > 1e-6f) {
+        const FMatrix& View{Camera.mView};
+        const float Depth{Bounds.Center.x * View.M[0][2] + Bounds.Center.y * View.M[1][2] + Bounds.Center.z * View.M[2][2] + View.M[3][2]};
+
+        ScreenSize /= std::max(std::abs(Depth), 1e-4f);
+    }
+
+    return ScreenSize;
+}
+
 FLODSelection SelectMeshLOD(float ScreenSize, float ViewportHeight, Uint32 AvailableMask, bool AllowCull) {
     FLODSelection Result{};
 

@@ -6,7 +6,6 @@
 #include "Render/FSceneRenderOutput.h"
 #include "Render/FOverlayTextRenderer.h"
 #include "RenderCore/FOverlayRenderData.h"
-#include "Render/FStaticMeshBatch.h"
 
 class FOverLayRenderer {
 private:
@@ -38,7 +37,7 @@ public:
     void RenderView(ID3D11DeviceContext* Context, const FRenderView& View, const FOverlayRenderData& Overlay, const FSceneRenderOutput& Output);
 
 private:
-    void BuildMeshItems(const TArray<FOverlayMeshDrawData>& Meshes, const FRenderView& View, const D3D11_VIEWPORT& Viewport, bool Selection, TArray<FMeshDrawBatch>& Items);
+    void BuildMeshItems(const TArray<FOverlayMeshDrawData>& Meshes, TArray<FMeshDrawBatch>& Items);
     bool PrepareDepth(ID3D11DeviceContext* Context, const FSceneRenderOutput& Output);
     bool PrepareSelectionMask();
     void DrawSelectionOutline(ID3D11DeviceContext* Context, const FSceneRenderOutput& Output);
@@ -58,7 +57,6 @@ private:
     TArray<FMeshDrawRecord> mDrawRecords{};
     TArray<FMeshDrawBatch> mOutlineItems{};
     TArray<FMeshDrawBatch> mGizmoItems{};
-    TArray<FStaticMeshBatch> mStaticMeshes{};
     TArray<FMeshDraw> mOutlineDraws{};
     TArray<FMeshDraw> mGizmoDraws{};
     TMap<const FSceneRenderSurface*, FViewDepth> mViewDepths{};

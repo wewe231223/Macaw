@@ -1,7 +1,6 @@
 #include "pch.h"
 #include "Render/FRenderScene.h"
 #include "Render/FStaticMeshBatchCollector.h"
-#include "Render/FMeshPassProcessor.h"
 #include "CoreUObject/Asset/IAssetRegistry.h"
 #include "Asset/UMesh.h"
 
@@ -301,10 +300,10 @@ void FRenderScene::RefreshStaticMeshes(const IAssetRegistry* Registry, const FMa
         }
 
         const FRenderAssetStamp Stamp{Mesh != nullptr ? Mesh->GetHandle() : FObjectHandle{}, MeshRevision};
-        const TArray<FStaticMeshBatch>* StaticMeshes{Primitive.mStaticMeshes.GetOrUpdate(Stamp, [&](TArray<FStaticMeshBatch>& Meshes) {
+        const TArray<FMeshBatch>* StaticMeshes{Primitive.mStaticMeshes.GetOrUpdate(Stamp, [&](TArray<FMeshBatch>& Meshes) {
             Meshes.clear();
 
-            FStaticMeshBatchCollector Collector{*Registry, ObjectIndex, Meshes};
+            FStaticMeshBatchCollector Collector{*Registry, Meshes};
 
             Primitive.mProxy->DrawStaticElements(Collector);
 
@@ -315,18 +314,14 @@ void FRenderScene::RefreshStaticMeshes(const IAssetRegistry* Registry, const FMa
             continue;
         }
 
-        FMeshPassProcessor Opaque{ERenderPass::Opaque, *Registry, Materials, Resources, mCommandCache};
-        FMeshPassProcessor Translucent{ERenderPass::Translucent, *Registry, Materials, Resources, mCommandCache};
-
-        for (const FStaticMeshBatch& StaticMesh : *StaticMeshes) {
+        for (const FMeshBatch& StaticMesh : *StaticMeshes) {
             if (StaticMesh.mLODLevel >= GLODCount) {
                 continue;
             }
 
             TArray<Uint32>& Commands{Primitive.mCachedCommandsByLOD[StaticMesh.mLODLevel]};
 
-            Opaque.AddMeshBatch(StaticMesh, Commands);
-            Translucent.AddMeshBatch(StaticMesh, Commands);
+            mCommandCache.AddMeshBatch(StaticMesh, *Registry, Materials, Resources, Commands);
 
             if (!Commands.empty()) {
                 Primitive.mAvailableLODMask |= 1u << StaticMesh.mLODLevel;
