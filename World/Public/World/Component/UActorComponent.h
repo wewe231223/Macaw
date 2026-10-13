@@ -97,6 +97,7 @@ public:
 
 private:
     friend class AActor;
+    friend class FWorldSerializer;
     friend class UWorld;
 
     void SetOwner(AActor* InOwner);

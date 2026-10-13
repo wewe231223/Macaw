@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "CoreUObject/Reflection/UClass.h"
 #include "Engine/Serialization/FSceneSerializer.h"
+#include "Engine/Serialization/FWorldSerializer.h"
 #include "Serialization/FArchiveJson.h"
 #include "Serialization/FJsonFile.h"
 #include "World/UWorld.h"
@@ -306,82 +307,26 @@ namespace {
 }
 
 bool FSceneSerializer::Save(UWorld& World, const std::filesystem::path& ScenePath) {
-    if (!World.mInitialized || World.mLoadingScene || World.mBTickingActors || World.mCleaningUp || World.mBeginningPlay || World.mEndingPlay || World.mActorDispatchDepth > 0 || World.mFlushingActors) {
-        return false;
-    }
-
-    World.FlushPendingDestroyActors();
-
-    TArray<AActor*> Actors{};
-
-    for (const std::unique_ptr<AActor>& Actor : World.GetActors()) {
-        if (Actor->HasFinishedSpawning() && !Actor->IsBeingDestroyed()) {
-            Actors.push_back(Actor.get());
-        }
-    }
-
     rapidjson::Document Document{};
 
     Document.SetObject();
 
-    rapidjson::Document::AllocatorType& Allocator{Document.GetAllocator()};
+    FArchiveJson Archive{Document, Document.GetAllocator()};
 
-    FArchiveJson ArchiveSave{Document, Allocator};
-
-    ArchiveSave.SetAssetResolver(World.GetAssetRegistry());
-
-    Uint32 FormatVersion{3};
-
-    ArchiveSave.Serialize("FormatVersion", FormatVersion);
-
-    std::size_t ArraySize{Actors.size()};
-
-    ArchiveSave.BeginArrayScope("Actors", ArraySize);
-
-    for (std::size_t CurrentIndex{0}, EndIndex{Actors.size()}; CurrentIndex < EndIndex; ++CurrentIndex) {
-        ArchiveSave.BeginObjectScope(std::to_string(CurrentIndex));
-        Actors[CurrentIndex]->Save(ArchiveSave);
-        ArchiveSave.EndObjectScope();
-    }
-
-    ArchiveSave.EndArrayScope();
-
-    return FJsonFile::Save(ScenePath, Document);
+    return FWorldSerializer::Save(World, Archive) && FJsonFile::Save(ScenePath, Document);
 }
 
 bool FSceneSerializer::Load(UWorld& World, const std::filesystem::path& ScenePath) {
-    if (!World.mInitialized || World.mLoadingScene || World.mBTickingActors || World.mCleaningUp || World.mBeginningPlay || World.mEndingPlay || World.mActorDispatchDepth > 0 || World.mFlushingActors) {
+    if (!FWorldSerializer::CanSerialize(World)) {
         return false;
     }
 
-    const bool WasPlaying{World.mHasBegunPlay};
+    const FWorldSerializer::FLoadScope LoadScope{World};
 
-    World.EndPlay(EEndPlayReason::LevelTransition);
-    World.mLoadingScene = true;
-
-    const bool Loaded{LoadInternal(World, ScenePath)};
-
-    World.mLoadingScene = false;
-    World.RefreshActorTicks();
-
-    if (WasPlaying) {
-        World.BeginPlay();
-    }
-
-    return Loaded;
+    return LoadInternal(World, ScenePath);
 }
 
 bool FSceneSerializer::LoadInternal(UWorld& World, const std::filesystem::path& ScenePath) {
-    const auto FinishLoad{[&World]() {
-        if (!World.GetPickingSubsystem().RebuildAccelerationStructure()) {
-            Console::AddLog(Console::STDOutHandle, ELogLevel::Warning, ELogCategory::Etc, "Failed to rebuild the picking acceleration structure after loading the scene.");
-        }
-
-        World.MarkStructureDirty();
-
-        return true;
-    }};
-
     rapidjson::Document LoadDocument{};
 
     if (!FJsonFile::Load(ScenePath, LoadDocument)) {
@@ -392,7 +337,7 @@ bool FSceneSerializer::LoadInternal(UWorld& World, const std::filesystem::path& 
         return false;
     }
 
-    if (World.mAssetRegistry == nullptr) {
+    if (World.GetAssetRegistry() == nullptr) {
         return false;
     }
 
@@ -402,80 +347,7 @@ bool FSceneSerializer::LoadInternal(UWorld& World, const std::filesystem::path& 
 
     RemapConflictingGuids(LoadDocument, World);
 
-    TArray<std::unique_ptr<AActor>> LoadedActors{};
+    FArchiveJson Archive{LoadDocument};
 
-    LoadedActors.reserve(LoadDocument["Actors"].Size());
-
-    for (rapidjson::Value& ActorJson : LoadDocument["Actors"].GetArray()) {
-        const UClass* Type{FReflectionRegistry::FindClass(ActorJson["TypeName"].GetString())};
-        std::unique_ptr<UObject> CreatedObject{Type->CreateInstance()};
-
-        if (CreatedObject == nullptr || !CreatedObject->GetClass()->IsChildOf(AActor::StaticClass())) {
-            return false;
-        }
-
-        std::unique_ptr<AActor> Actor{static_cast<AActor*>(CreatedObject.release())};
-        FArchiveJson Archive{ActorJson};
-
-        Archive.SetAssetResolver(World.mAssetRegistry);
-
-        if (!Actor->PreLoadComponents(Archive, false)) {
-            return false;
-        }
-
-        Actor->Load(Archive);
-
-        if (Archive.HasError()) {
-            return false;
-        }
-
-        LoadedActors.push_back(std::move(Actor));
-    }
-
-    World.ClearActors();
-    World.mPersistentLevel->mActors = std::move(LoadedActors);
-
-    for (const std::unique_ptr<AActor>& Actor : World.mPersistentLevel->mActors) {
-        if (!Actor->SetOuter(World.mPersistentLevel.get())) {
-            World.ClearActors();
-            return false;
-        }
-    }
-
-    for (Uint32 Pass{}; Pass < 2; ++Pass) {
-        for (const std::unique_ptr<AActor>& Actor : World.mPersistentLevel->mActors) {
-            if (Actor->GetName().IsNone() == (Pass == 1) && !UObjectSystem::Register(Actor.get()).IsValid()) {
-                World.ClearActors();
-                return false;
-            }
-        }
-    }
-
-    for (const std::unique_ptr<AActor>& Actor : World.mPersistentLevel->mActors) {
-        for (Uint32 Pass{}; Pass < 2; ++Pass) {
-            for (const std::unique_ptr<UActorComponent>& Component : Actor->GetComponents()) {
-                if (Component->GetName().IsNone() == (Pass == 1) && !UObjectSystem::Register(Component.get()).IsValid()) {
-                    World.ClearActors();
-                    return false;
-                }
-            }
-        }
-    }
-
-    for (const std::unique_ptr<AActor>& Actor : World.mPersistentLevel->mActors) {
-        if (!Actor->ResolveLoadedReferences()) {
-            World.ClearActors();
-            return false;
-        }
-    }
-
-    ++World.mActorDispatchDepth;
-
-    for (std::size_t Index{}; Index < World.mPersistentLevel->mActors.size(); ++Index) {
-        World.InitializeLoadedActor(*World.mPersistentLevel->mActors[Index]);
-    }
-
-    --World.mActorDispatchDepth;
-
-    return FinishLoad();
+    return FWorldSerializer::LoadInternal(World, Archive);
 }

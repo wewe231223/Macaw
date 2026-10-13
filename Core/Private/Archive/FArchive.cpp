@@ -2,8 +2,24 @@
 #include "Core/Archive/FArchive.h"
 
 FArchive::FArchive(EArchiveMode InMode)
-	: mMode(InMode),
-	  mAssetResolver(nullptr) {
+	: mMode{InMode},
+	  mAssetResolver{nullptr} {
+}
+
+bool FArchive::HasError() const {
+    return mError;
+}
+
+bool FArchive::SupportsNamedFields() const {
+    return false;
+}
+
+bool FArchive::HasField(std::string_view Name) const {
+    return false;
+}
+
+void FArchive::SetError() {
+    mError = true;
 }
 
 void FArchive::SetAssetResolver(const IAssetResolver* InAssetResolver) {
@@ -36,6 +52,11 @@ void FArchive::Serialize(std::string_view Name, FName& Value) {
     Serialize(Name, Str);
 
     if (IsLoading()) {
+        if (HasError() || Str.size() >= NameSize) {
+            SetError();
+            return;
+        }
+
         Value = FName{Str};
     }
 }

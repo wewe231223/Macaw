@@ -4,11 +4,15 @@
 
 class FArchiveJson : public FArchive {
 public:
+    using FArchive::Serialize;
+
+public:
     FArchiveJson(rapidjson::Value& RootNode, rapidjson::Document::AllocatorType& InAllocator);
     FArchiveJson(rapidjson::Value& RootNode);
 
 public:
-    bool HasError() const;
+    bool SupportsNamedFields() const override;
+    bool HasField(std::string_view Name) const override;
 
     // Primitives
     virtual void Serialize(std::string_view Name, bool& Value) override;
@@ -46,10 +50,9 @@ private:
     void AddChildNode(rapidjson::Value* Parent, std::string_view Name, rapidjson::Value& Child);
 
     // called when loading in progress
-    rapidjson::Value* GetChildNode(rapidjson::Value* Parent, std::string_view Name);
+    rapidjson::Value* GetChildNode(rapidjson::Value* Parent, std::string_view Name) const;
 
 private:
     rapidjson::Document::AllocatorType* mAllocator{};
     TArray<rapidjson::Value*> mNodeStack{};
-    bool mError{};
 };

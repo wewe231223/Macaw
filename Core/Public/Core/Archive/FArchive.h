@@ -18,6 +18,12 @@ public:
 
     virtual ~FArchive() = default;
 
+public:
+    virtual bool HasError() const;
+    virtual bool SupportsNamedFields() const;
+    virtual bool HasField(std::string_view Name) const;
+    void SetError();
+
     bool IsLoading() const;
 
     bool IsSaving() const;
@@ -86,6 +92,7 @@ public:
 private:
     const EArchiveMode mMode{};
     const IAssetResolver* mAssetResolver{};
+    bool mError{};
 };
 
 template <typename T>
@@ -94,11 +101,16 @@ void FArchive::Serialize(std::string_view Name, TArray<T>& ArrayValue) {
 
     BeginArrayScope(Name, Size);
 
+    if (HasError()) {
+        EndArrayScope();
+        return;
+    }
+
     if (IsLoading()) {
         ArrayValue.resize(Size);
     }
 
-    for (std::size_t I{0}; I < Size; ++I) {
+    for (std::size_t I{0}; I < Size && !HasError(); ++I) {
         // 인덱스를 Name으로 변환하여 순회
         Serialize(std::to_string(I), ArrayValue[I]);
     }

@@ -3,10 +3,16 @@
 
 class FArchiveMemory : public FArchive {
 public:
+    using FArchive::Serialize;
+
+public:
     // Save
     FArchiveMemory(TArray<Uint8>& InBytes);
     // Load
     FArchiveMemory(const TArray<Uint8>& InBytes);
+
+public:
+    std::size_t GetRemainingBytes() const;
 
     // Primitives
     virtual void Serialize(std::string_view Name, bool& Value) override;
@@ -34,6 +40,9 @@ public:
     virtual void EndObjectScope() override;
     virtual void BeginArrayScope(std::string_view Name, std::size_t& ArraySize) override;
     virtual void EndArrayScope() override;
+
+private:
+    void SerializeBytes(void* Value, std::size_t Size);
 
 private:
     // Save

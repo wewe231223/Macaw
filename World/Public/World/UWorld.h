@@ -141,6 +141,7 @@ public:
 
 private:
     friend class FSceneSerializer;
+    friend class FWorldSerializer;
     friend class AActor;
     friend class UActorComponent;
     friend class USceneComponent;

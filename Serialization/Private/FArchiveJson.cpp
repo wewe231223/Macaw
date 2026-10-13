@@ -15,8 +15,12 @@ FArchiveJson::FArchiveJson(rapidjson::Value& RootNode)
     mNodeStack.push_back(&RootNode);
 }
 
-bool FArchiveJson::HasError() const {
-    return mError;
+bool FArchiveJson::SupportsNamedFields() const {
+    return true;
+}
+
+bool FArchiveJson::HasField(std::string_view Name) const {
+    return !mNodeStack.empty() && mNodeStack.back() != nullptr && GetChildNode(mNodeStack.back(), Name) != nullptr;
 }
 
 // ---------------------------------------------------------
@@ -37,7 +41,7 @@ bool FArchiveJson::HasError() const {
                 if (Child->RapidIsFunc()) { \
                     Value = static_cast<Type>(Child->RapidGetFunc()); \
                 } else { \
-                    mError = true; \
+                    SetError(); \
                 } \
             } \
         } \
@@ -59,7 +63,7 @@ void FArchiveJson::Serialize(std::string_view Name, Float32& Value) {
 
     if (IsLoading()) {
         if (!std::isfinite(Number) || std::abs(Number) > std::numeric_limits<Float32>::max()) {
-            mError = true;
+            SetError();
             return;
         }
 
@@ -74,7 +78,7 @@ void FArchiveJson::Serialize(std::string_view Name, Uint8& Value) {
 
     if (IsLoading()) {
         if (Temp > std::numeric_limits<Uint8>::max()) {
-            mError = true;
+            SetError();
             return;
         }
 
@@ -102,7 +106,7 @@ void FArchiveJson::Serialize(std::string_view Name, FString& Value) {
             if (Child->IsString()) {
                 Value.assign(Child->GetString(), Child->GetStringLength());
             } else {
-                mError = true;
+                SetError();
             }
         }
     }
@@ -114,7 +118,7 @@ void FArchiveJson::Serialize(std::string_view Name, FGuid& Value) {
     Serialize(Name, GuidStr);
 
     if (IsLoading() && !Value.Parse(GuidStr)) {
-        mError = true;
+        SetError();
     }
 }
 
@@ -137,13 +141,13 @@ void FArchiveJson::Serialize(std::string_view Name, FVector2D& Value) {
 
         if (Child != nullptr) {
             if (!Child->IsArray() || Child->Size() != 2) {
-                mError = true;
+                SetError();
                 return;
             }
 
             for (const rapidjson::Value& Number : Child->GetArray()) {
                 if (!Number.IsNumber() || !std::isfinite(Number.GetDouble()) || std::abs(Number.GetDouble()) > std::numeric_limits<Float32>::max()) {
-                    mError = true;
+                    SetError();
                     return;
                 }
             }
@@ -170,13 +174,13 @@ void FArchiveJson::Serialize(std::string_view Name, FVector3& Value) {
 
         if (Child != nullptr) {
             if (!Child->IsArray() || Child->Size() != 3) {
-                mError = true;
+                SetError();
                 return;
             }
 
             for (const rapidjson::Value& Number : Child->GetArray()) {
                 if (!Number.IsNumber() || !std::isfinite(Number.GetDouble()) || std::abs(Number.GetDouble()) > std::numeric_limits<Float32>::max()) {
-                    mError = true;
+                    SetError();
                     return;
                 }
             }
@@ -204,13 +208,13 @@ void FArchiveJson::Serialize(std::string_view Name, FVector4& Value) {
 
         if (Child != nullptr) {
             if (!Child->IsArray() || Child->Size() != 4) {
-                mError = true;
+                SetError();
                 return;
             }
 
             for (const rapidjson::Value& Number : Child->GetArray()) {
                 if (!Number.IsNumber() || !std::isfinite(Number.GetDouble()) || std::abs(Number.GetDouble()) > std::numeric_limits<Float32>::max()) {
-                    mError = true;
+                    SetError();
                     return;
                 }
             }
@@ -258,13 +262,13 @@ void FArchiveJson::Serialize(std::string_view Name, FMatrix& Value) {
 
         if (Child != nullptr) {
             if (!Child->IsArray() || Child->Size() != 16) {
-                mError = true;
+                SetError();
                 return;
             }
 
             for (const rapidjson::Value& Number : Child->GetArray()) {
                 if (!Number.IsNumber() || !std::isfinite(Number.GetDouble()) || std::abs(Number.GetDouble()) > std::numeric_limits<Float32>::max()) {
-                    mError = true;
+                    SetError();
                     return;
                 }
             }
@@ -309,7 +313,9 @@ void FArchiveJson::BeginObjectScope(std::string_view Name) {
         if (Child != nullptr && Child->IsObject()) {
             mNodeStack.push_back(Child);
         } else {
-            mError = mError || Child != nullptr;
+            if (Child != nullptr) {
+                SetError();
+            }
             mNodeStack.push_back(nullptr);
         }
     }
@@ -342,7 +348,9 @@ void FArchiveJson::BeginArrayScope(std::string_view Name, std::size_t& ArraySize
             ArraySize = Child->Size();
             mNodeStack.push_back(Child);
         } else {
-            mError = mError || Child != nullptr;
+            if (Child != nullptr) {
+                SetError();
+            }
             ArraySize = 0;
             mNodeStack.push_back(nullptr);
         }
@@ -359,7 +367,7 @@ void FArchiveJson::AddChildNode(rapidjson::Value* Parent, std::string_view Name,
     }
 }
 
-rapidjson::Value* FArchiveJson::GetChildNode(rapidjson::Value* Parent, std::string_view Name) {
+rapidjson::Value* FArchiveJson::GetChildNode(rapidjson::Value* Parent, std::string_view Name) const {
     if (Parent->IsObject()) {
         std::string KeyStr{Name};
 

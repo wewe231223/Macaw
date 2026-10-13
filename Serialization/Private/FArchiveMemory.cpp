@@ -1,38 +1,52 @@
 #include "pch.h"
 #include "Serialization/FArchiveMemory.h"
+#include <limits>
 
 FArchiveMemory::FArchiveMemory(TArray<Uint8>& InBytes)
-	: FArchive(EArchiveMode::Saving),
-	  mWriteBytes(&InBytes),
-	  mReadBytes(nullptr),
-	  mReadOffset(0) {
+	: FArchive{EArchiveMode::Saving},
+	  mWriteBytes{&InBytes} {
 }
 
 FArchiveMemory::FArchiveMemory(const TArray<Uint8>& InBytes)
-	: FArchive(EArchiveMode::Loading),
-	  mWriteBytes(nullptr),
-	  mReadBytes(&InBytes),
-	  mReadOffset(0) {
+	: FArchive{EArchiveMode::Loading},
+	  mReadBytes{&InBytes} {
+}
+
+std::size_t FArchiveMemory::GetRemainingBytes() const {
+    return mReadBytes != nullptr ? mReadBytes->size() - mReadOffset : 0;
+}
+
+void FArchiveMemory::SerializeBytes(void* Value, std::size_t Size) {
+    if (HasError() || Size == 0) {
+        return;
+    }
+
+    if (IsSaving()) {
+        const std::size_t CurrentSize{mWriteBytes->size()};
+
+        if (Size > mWriteBytes->max_size() - CurrentSize) {
+            SetError();
+            return;
+        }
+
+        mWriteBytes->resize(CurrentSize + Size);
+        std::memcpy(mWriteBytes->data() + CurrentSize, Value, Size);
+    } else if (IsLoading()) {
+        if (Size > GetRemainingBytes()) {
+            SetError();
+            return;
+        }
+
+        std::memcpy(Value, mReadBytes->data() + mReadOffset, Size);
+        mReadOffset += Size;
+    }
 }
 
 #define IMPLEMENT_MEMORY_SERIALIZE(Type) \
     void FArchiveMemory::Serialize(std::string_view Name, Type& Value) { \
-        if (IsSaving()) { \
-            std::size_t Size{sizeof(Type)}; \
-            std::size_t CurrentSize{mWriteBytes->size()}; \
-            mWriteBytes->resize(CurrentSize + Size); \
-            std::memcpy(mWriteBytes->data() + CurrentSize, &Value, Size); \
-        } else if (IsLoading()) { \
-            std::size_t Size{sizeof(Type)}; \
-            if (mReadOffset + Size <= mReadBytes->size()) { \
-                std::memcpy(&Value, mReadBytes->data() + mReadOffset, Size); \
-                mReadOffset += Size; \
-            } \
-        } \
+        SerializeBytes(&Value, sizeof(Type)); \
     }
 
-// Primitives
-IMPLEMENT_MEMORY_SERIALIZE(bool)
 IMPLEMENT_MEMORY_SERIALIZE(Uint8)
 IMPLEMENT_MEMORY_SERIALIZE(Int32)
 IMPLEMENT_MEMORY_SERIALIZE(Uint32)
@@ -40,8 +54,6 @@ IMPLEMENT_MEMORY_SERIALIZE(Int64)
 IMPLEMENT_MEMORY_SERIALIZE(Uint64)
 IMPLEMENT_MEMORY_SERIALIZE(Float32)
 IMPLEMENT_MEMORY_SERIALIZE(Float64)
-
-// Math Types & Guid
 IMPLEMENT_MEMORY_SERIALIZE(FGuid)
 IMPLEMENT_MEMORY_SERIALIZE(FVector2D)
 IMPLEMENT_MEMORY_SERIALIZE(FVector3)
@@ -51,50 +63,75 @@ IMPLEMENT_MEMORY_SERIALIZE(FMatrix)
 
 #undef IMPLEMENT_MEMORY_SERIALIZE
 
-// Engine Core
-void FArchiveMemory::Serialize(std::string_view Name, FString& Value) {
-    if (IsSaving()) {
-        Uint32 StringLen{static_cast<Uint32>(Value.size())};
+void FArchiveMemory::Serialize(std::string_view Name, bool& Value) {
+    Uint8 Byte{static_cast<Uint8>(Value)};
 
-        Serialize(Name, StringLen);
+    Serialize(Name, Byte);
 
-        if (StringLen > 0) {
-            std::size_t CurrentSize{mWriteBytes->size()};
-
-            mWriteBytes->resize(CurrentSize + StringLen);
-            std::memcpy(mWriteBytes->data() + CurrentSize, Value.data(), StringLen);
+    if (IsLoading() && !HasError()) {
+        if (Byte > 1) {
+            SetError();
+            return;
         }
-    } else if (IsLoading()) {
-        Uint32 StringLen{0};
 
-        Serialize(Name, StringLen);
-
-        if (StringLen > 0 && (mReadOffset + StringLen) <= mReadBytes->size()) {
-            Value.resize(StringLen);
-            std::memcpy(Value.data(), mReadBytes->data() + mReadOffset, StringLen);
-            mReadOffset += StringLen;
-        }
+        Value = Byte != 0;
     }
 }
 
-// Scope
+void FArchiveMemory::Serialize(std::string_view Name, FString& Value) {
+    if (HasError()) {
+        return;
+    }
+
+    if (IsSaving()) {
+        if (Value.size() > std::numeric_limits<Uint32>::max()) {
+            SetError();
+            return;
+        }
+
+        Uint32 StringLength{static_cast<Uint32>(Value.size())};
+
+        Serialize(Name, StringLength);
+        SerializeBytes(Value.data(), StringLength);
+    } else if (IsLoading()) {
+        Uint32 StringLength{};
+
+        Serialize(Name, StringLength);
+
+        if (HasError() || StringLength > GetRemainingBytes()) {
+            SetError();
+            return;
+        }
+
+        Value.resize(StringLength);
+        SerializeBytes(Value.data(), StringLength);
+    }
+}
+
 void FArchiveMemory::BeginObjectScope(std::string_view Name) {
-    // 바이너리 아카이브에서는 Object Scope 단위 구분을 하지 않음
 }
 
 void FArchiveMemory::EndObjectScope() {
-    // 바이너리 아카이브에서는 Object Scope 단위 구분을 하지 않음
 }
 
 void FArchiveMemory::BeginArrayScope(std::string_view Name, std::size_t& ArraySize) {
-    // 배열은 크기정보를 저장해야 함
-    Uint32 Size32{static_cast<Uint32>(ArraySize)};
+    if (IsSaving() && ArraySize > std::numeric_limits<Uint32>::max()) {
+        SetError();
+        return;
+    }
 
-    // Uint32 재사용
-    Serialize(Name, Size32);
+    Uint32 Size{IsSaving() ? static_cast<Uint32>(ArraySize) : 0};
+
+    Serialize(Name, Size);
 
     if (IsLoading()) {
-        ArraySize = Size32;
+        if (HasError() || Size > GetRemainingBytes()) {
+            SetError();
+            ArraySize = 0;
+            return;
+        }
+
+        ArraySize = Size;
     }
 }
 

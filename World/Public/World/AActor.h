@@ -189,6 +189,7 @@ private:
     friend class UActorComponent;
     friend class UWorld;
     friend class FSceneSerializer;
+    friend class FWorldSerializer;
 
     void SetWorld(UWorld* InWorld);
     void DispatchBeginPlay();

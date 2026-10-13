@@ -27,6 +27,7 @@ private:
 
     friend class UWorld;
     friend class FSceneSerializer;
+    friend class FWorldSerializer;
 
 private:
     UWorld& mWorld;

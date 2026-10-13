@@ -433,7 +433,13 @@ void AActor::Serialize(FArchive& Archive) {
 
     Archive.BeginArrayScope("Components", ArraySize);
 
-    for (std::size_t I{0}; I < ArraySize; ++I) {
+    if (Archive.HasError() || (Archive.IsLoading() && ArraySize != mComponents.size())) {
+        Archive.SetError();
+        Archive.EndArrayScope();
+        return;
+    }
+
+    for (std::size_t I{0}; I < ArraySize && !Archive.HasError(); ++I) {
         Archive.BeginObjectScope(std::to_string(I));
         mComponents[I]->Serialize(Archive);
         Archive.EndObjectScope();
