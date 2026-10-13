@@ -185,6 +185,11 @@ try {
         throw 'Doxygen generation failed.'
     }
 
+    $ClassListPath = Join-Path $SiteDirectory 'api/annotated.html'
+    $ClassList = Get-Content -LiteralPath $ClassListPath -Raw
+    $ClassList = $ClassList -replace '(?s)<td class="desc">.*?</td>', ''
+    Set-Content -LiteralPath $ClassListPath -Value $ClassList -NoNewline -Encoding utf8
+
     $LandingPage = Get-Content -LiteralPath (Join-Path $RepositoryRoot 'Docs/Index.html') -Raw
     $LandingPage = $LandingPage.Replace('@@ModuleRows@@', ($ModuleRows -join "`n")).Replace('@@ModuleCount@@', [string]$ModuleCount).Replace('@@Revision@@', $Revision)
     Set-Content -LiteralPath (Join-Path $SiteDirectory 'index.html') -Value $LandingPage -Encoding utf8
