@@ -139,12 +139,12 @@ void UObject::Serialize(FArchive& Archive) {
     FName Name{mName};
     FName TypeName{GetClass()->GetClassName()};
 
-    Archive.Serialize("Guid", Guid);
+    Archive.SerializeObjectGuid("Guid", Guid);
     Archive.Serialize("TypeName", TypeName);
     Archive.Serialize("Name", Name);
     GetClass()->SerializeProperties(this, Archive);
 
-    if (Archive.IsLoading()) {
+    if (Archive.IsLoading() && !Archive.HasError()) {
         ErrorHandler::Report(!RestoreGuid(Guid), "UObject", "Cannot restore an object with a conflicting GUID", ErrorHandler::EErrorLevel::Error);
         ErrorHandler::Report(!SetName(Name), "UObject", "Cannot restore an object with a conflicting name", ErrorHandler::EErrorLevel::Error);
     }

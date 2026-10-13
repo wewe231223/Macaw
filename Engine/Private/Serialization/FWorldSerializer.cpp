@@ -26,6 +26,16 @@ bool FWorldSerializer::CanSerialize(const UWorld& World) {
     return World.mInitialized && !World.mLoadingScene && !World.mBTickingActors && !World.mCleaningUp && !World.mBeginningPlay && !World.mEndingPlay && World.mActorDispatchDepth == 0 && !World.mFlushingActors;
 }
 
+FWorldSerializer::FObjectGuidScope::FObjectGuidScope(FArchive& Archive, const TMap<FGuid, FGuid>* Remapping)
+	: mArchive{Archive},
+	  mPreviousRemapping{Archive.GetObjectGuidRemapping()} {
+    mArchive.SetObjectGuidRemapping(Remapping);
+}
+
+FWorldSerializer::FObjectGuidScope::~FObjectGuidScope() {
+    mArchive.SetObjectGuidRemapping(mPreviousRemapping);
+}
+
 bool FWorldSerializer::Save(UWorld& World, FArchive& Archive) {
     if (!CanSerialize(World) || !Archive.IsSaving() || Archive.HasError()) {
         return false;
@@ -161,7 +171,7 @@ bool FWorldSerializer::SerializeObjectTable(FArchive& Archive, TArray<FActorReco
     return Valid && !Archive.HasError();
 }
 
-bool FWorldSerializer::ValidateObjectTable(const UWorld& World, const TArray<FActorRecord>& Records) {
+bool FWorldSerializer::ValidateObjectTable(const UWorld& World, const TArray<FActorRecord>& Records, bool AllowExistingGuids) {
     TSet<FGuid> ExistingGuids{};
     TSet<FGuid> Guids{};
 
@@ -173,10 +183,10 @@ bool FWorldSerializer::ValidateObjectTable(const UWorld& World, const TArray<FAc
         }
     }
 
-    const auto ValidateObject{[&ExistingGuids, &Guids](const FObjectRecord& Record, const UClass* BaseType) {
+    const auto ValidateObject{[&ExistingGuids, &Guids, AllowExistingGuids](const FObjectRecord& Record, const UClass* BaseType) {
         const UClass* Type{FReflectionRegistry::FindClass(Record.mTypeName)};
 
-        return Record.mGuid.IsValid() && Guids.insert(Record.mGuid).second && Type != nullptr && Type->CanCreateInstance() && Type->IsChildOf(BaseType) && (!UObjectSystem::FindHandleByGuid(Record.mGuid).IsValid() || ExistingGuids.contains(Record.mGuid));
+        return Record.mGuid.IsValid() && Guids.insert(Record.mGuid).second && Type != nullptr && Type->CanCreateInstance() && Type->IsChildOf(BaseType) && (AllowExistingGuids || !UObjectSystem::FindHandleByGuid(Record.mGuid).IsValid() || ExistingGuids.contains(Record.mGuid));
     }};
 
     for (const FActorRecord& Record : Records) {
@@ -186,6 +196,60 @@ bool FWorldSerializer::ValidateObjectTable(const UWorld& World, const TArray<FAc
 
         for (const FObjectRecord& Component : Record.mComponents) {
             if (!ValidateObject(Component, UActorComponent::StaticClass())) {
+                return false;
+            }
+        }
+    }
+
+    return true;
+}
+
+bool FWorldSerializer::RemapObjectTable(const UWorld& SourceWorld, const UWorld& World, TArray<FActorRecord>& Records, TMap<FGuid, FGuid>& Remapping) {
+    TSet<FGuid> UsedGuids{SourceWorld.GetGuid(), SourceWorld.GetPersistentLevel().GetGuid(), World.GetGuid(), World.GetPersistentLevel().GetGuid()};
+
+    Remapping.emplace(SourceWorld.GetGuid(), World.GetGuid());
+    Remapping.emplace(SourceWorld.GetPersistentLevel().GetGuid(), World.GetPersistentLevel().GetGuid());
+
+    for (const FActorRecord& Record : Records) {
+        UsedGuids.insert(Record.mObject.mGuid);
+
+        for (const FObjectRecord& Component : Record.mComponents) {
+            UsedGuids.insert(Component.mGuid);
+        }
+    }
+
+    const auto RemapObject{[&UsedGuids, &Remapping](FObjectRecord& Record) {
+        for (Uint32 Attempt{}; Attempt < 128; ++Attempt) {
+            const FGuid Guid{FGuid::NewGuid()};
+
+            if (!Guid.IsValid()) {
+                return false;
+            }
+
+            if (UsedGuids.contains(Guid) || UObjectSystem::FindHandleByGuid(Guid).IsValid()) {
+                continue;
+            }
+
+            if (!Remapping.emplace(Record.mGuid, Guid).second) {
+                return false;
+            }
+
+            UsedGuids.insert(Guid);
+            Record.mGuid = Guid;
+
+            return true;
+        }
+
+        return false;
+    }};
+
+    for (FActorRecord& Record : Records) {
+        if (!RemapObject(Record.mObject)) {
+            return false;
+        }
+
+        for (FObjectRecord& Component : Record.mComponents) {
+            if (!RemapObject(Component)) {
                 return false;
             }
         }
@@ -261,7 +325,7 @@ bool FWorldSerializer::ValidateLoadedActors(const TArray<std::unique_ptr<AActor>
     return true;
 }
 
-bool FWorldSerializer::LoadInternal(UWorld& World, FArchive& Archive) {
+bool FWorldSerializer::LoadInternal(UWorld& World, FArchive& Archive, const UWorld* SourceWorld) {
     if (!Archive.IsLoading() || Archive.HasError() || World.mAssetRegistry == nullptr) {
         return false;
     }
@@ -282,9 +346,17 @@ bool FWorldSerializer::LoadInternal(UWorld& World, FArchive& Archive) {
 
     TArray<FActorRecord> Records{};
 
-    if (!SerializeObjectTable(Archive, Records) || !ValidateObjectTable(World, Records)) {
+    if (!SerializeObjectTable(Archive, Records) || !ValidateObjectTable(World, Records, SourceWorld != nullptr)) {
         return false;
     }
+
+    TMap<FGuid, FGuid> Remapping{};
+
+    if (SourceWorld != nullptr && (!RemapObjectTable(*SourceWorld, World, Records, Remapping) || !ValidateObjectTable(World, Records))) {
+        return false;
+    }
+
+    const FObjectGuidScope GuidScope{Archive, SourceWorld != nullptr ? &Remapping : Archive.GetObjectGuidRemapping()};
 
     TArray<std::unique_ptr<AActor>> LoadedActors{};
     std::size_t ActorCount{};
@@ -319,10 +391,10 @@ bool FWorldSerializer::LoadInternal(UWorld& World, FArchive& Archive) {
 
     Archive.EndArrayScope();
 
-    return Valid && ValidateLoadedActors(LoadedActors, Records) && InstallActors(World, std::move(LoadedActors));
+    return Valid && ValidateLoadedActors(LoadedActors, Records) && InstallActors(World, std::move(LoadedActors), SourceWorld != nullptr);
 }
 
-bool FWorldSerializer::InstallActors(UWorld& World, TArray<std::unique_ptr<AActor>> Actors) {
+bool FWorldSerializer::InstallActors(UWorld& World, TArray<std::unique_ptr<AActor>> Actors, bool IsCloning) {
     World.ClearActors();
     World.mPersistentLevel->mActors = std::move(Actors);
 
@@ -353,6 +425,12 @@ bool FWorldSerializer::InstallActors(UWorld& World, TArray<std::unique_ptr<AActo
         }
     }
 
+    if (IsCloning) {
+        for (const std::unique_ptr<AActor>& Actor : World.mPersistentLevel->mActors) {
+            Actor->mWorld = &World;
+        }
+    }
+
     for (const std::unique_ptr<AActor>& Actor : World.mPersistentLevel->mActors) {
         if (!Actor->ResolveLoadedReferences()) {
             World.ClearActors();
@@ -364,6 +442,10 @@ bool FWorldSerializer::InstallActors(UWorld& World, TArray<std::unique_ptr<AActo
         const UWorld::FActorDispatchScope Dispatch{&World};
 
         for (std::size_t Index{}; Index < World.mPersistentLevel->mActors.size(); ++Index) {
+            if (IsCloning && !World.mPersistentLevel->mActors[Index]->IsBeingDestroyed()) {
+                World.mPersistentLevel->mActors[Index]->OnAddedToWorld();
+            }
+
             World.InitializeLoadedActor(*World.mPersistentLevel->mActors[Index]);
         }
     }

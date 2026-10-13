@@ -60,3 +60,41 @@ void FArchive::Serialize(std::string_view Name, FName& Value) {
         Value = FName{Str};
     }
 }
+
+void FArchive::SerializeObjectGuid(std::string_view Name, FGuid& Value) {
+    Serialize(Name, Value);
+
+    if (IsLoading() && !HasError()) {
+        RemapObjectGuid(Value);
+    }
+}
+
+bool FArchive::RemapObjectReference(FGuid& Guid) {
+    return !Guid.IsValid() || RemapObjectGuid(Guid);
+}
+
+void FArchive::SetObjectGuidRemapping(const TMap<FGuid, FGuid>* Remapping) {
+    mObjectGuidRemapping = Remapping;
+}
+
+const TMap<FGuid, FGuid>* FArchive::GetObjectGuidRemapping() const {
+    return mObjectGuidRemapping;
+}
+
+bool FArchive::RemapObjectGuid(FGuid& Guid) {
+    if (mObjectGuidRemapping == nullptr) {
+        return true;
+    }
+
+    const auto Found{mObjectGuidRemapping->find(Guid)};
+
+    if (Found == mObjectGuidRemapping->end() || !Found->second.IsValid()) {
+        SetError();
+        Guid = {};
+        return false;
+    }
+
+    Guid = Found->second;
+
+    return true;
+}

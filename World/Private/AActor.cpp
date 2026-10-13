@@ -97,6 +97,7 @@ bool AActor::SetRootComponent(USceneComponent* InRootComponent) {
     }
 
     mRootComponent = InRootComponent;
+    mPendingRootComponentGuid = {};
 
     return true;
 }
@@ -589,6 +590,7 @@ bool AActor::ResolveLoadedReferences() {
         }
 
         mRootComponent = static_cast<USceneComponent*>(ResolvedObject);
+        mPendingRootComponentGuid = {};
     }
 
     for (const std::unique_ptr<UActorComponent>& Component : mComponents) {

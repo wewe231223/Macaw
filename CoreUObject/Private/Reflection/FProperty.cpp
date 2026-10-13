@@ -227,6 +227,10 @@ void SerializeObjectReference(FArchive& Archive, std::string_view Name, const UO
         if (!Guid.empty() && !PendingGuid.Parse(Guid)) {
             throw std::runtime_error{"Invalid serialized object reference"};
         }
+
+        if (!Archive.HasError()) {
+            Archive.RemapObjectReference(PendingGuid);
+        }
     }
 }
 

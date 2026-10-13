@@ -63,6 +63,10 @@ public:
     void Serialize(std::string_view Name, TArray<T>& ArrayValue);
 
     void Serialize(std::string_view Name, FName& Value);
+    void SerializeObjectGuid(std::string_view Name, FGuid& Value);
+    bool RemapObjectReference(FGuid& Guid);
+    void SetObjectGuidRemapping(const TMap<FGuid, FGuid>* Remapping);
+    const TMap<FGuid, FGuid>* GetObjectGuidRemapping() const;
 
     // ---------------------------------------------------
     // 4. 구조체 / 계층 처리 (Scope)
@@ -90,9 +94,13 @@ public:
     const IAssetResolver* GetAssetResolver();
 
 private:
+    bool RemapObjectGuid(FGuid& Guid);
+
+private:
     const EArchiveMode mMode{};
     const IAssetResolver* mAssetResolver{};
     bool mError{};
+    const TMap<FGuid, FGuid>* mObjectGuidRemapping{};
 };
 
 template <typename T>
