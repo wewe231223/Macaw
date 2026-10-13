@@ -63,7 +63,7 @@ if ($IsWindows) {
     $Dot = GetDocumentationTool 'Graphviz' $Manifest.WindowsGraphviz "Graphviz-$($Manifest.GraphvizVersion).zip" "Graphviz-$($Manifest.GraphvizVersion)" 'dot.exe'
 } elseif ($IsLinux) {
     $Doxygen = GetDocumentationTool 'Doxygen' $Manifest.LinuxDoxygen "Doxygen-$($Manifest.DoxygenVersion).tar.gz" "Doxygen-$($Manifest.DoxygenVersion)" 'doxygen'
-    $DotCommand = Get-Command dot -CommandType Application -ErrorAction SilentlyContinue
+    $DotCommand = Get-Command dot -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
     if ($null -eq $DotCommand) {
         throw 'Graphviz is required. Install it with sudo apt-get install graphviz.'
     }
