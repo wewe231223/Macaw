@@ -11,7 +11,6 @@
 #include <cstddef>
 
 /// <summary>
-/// GetItemCount: Object 담긴 리스트 전체 길이(빈 슬롯 포함)
 ///
 /// </summary>
 namespace UObjectSystem {

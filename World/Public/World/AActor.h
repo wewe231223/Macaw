@@ -12,10 +12,6 @@ class FProperty;
 class UWorld;
 class ULevel;
 
-/// <summary>
-/// World에 소속되며 UActorComponent를 RAII 방식으로 소유하는 게임플레이 객체입니다.
-/// Actor의 월드 Transform은 RootComponent의 ComponentToWorld Transform으로 정의됩니다.
-/// </summary>
 class AActor : public UObject {
 public:
     ReflectTypes(AActor, UObject);

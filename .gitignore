@@ -367,6 +367,7 @@ FodyWeavers.xsd
 
 # Premake / Visual Studio generated project files
 /build/
+/Build/Documentation/
 /bin-int/
 
 # Keep checked-in third-party static libraries despite the global bin/ and

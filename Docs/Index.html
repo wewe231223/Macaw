@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="ko">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Macaw 엔진의 모듈 구조, API 레퍼런스와 빌드 방법.">
+    <meta name="color-scheme" content="light">
+    <title>Macaw Documentation</title>
+    <link rel="stylesheet" href="Documentation.css">
+</head>
+<body>
+    <a class="SkipLink" href="#Main">본문으로 이동</a>
+    <header class="Header">
+        <div class="HeaderInner">
+            <a class="Brand" href="./index.html" aria-label="Macaw Home"><span class="BrandMark" aria-hidden="true">M</span><span>Macaw<span class="BrandCaption">DOCUMENTATION</span></span></a>
+            <nav class="HeaderNav" aria-label="주요 메뉴">
+                <a href="#Architecture">구조</a>
+                <a href="#GettingStarted">빌드</a>
+                <a class="NavApi" href="./api/index.html">API Reference <span aria-hidden="true">↗</span></a>
+            </nav>
+        </div>
+    </header>
+    <main id="Main" class="Main">
+        <section class="Hero" aria-labelledby="HeroTitle">
+            <div class="HeroCopy">
+                <p class="Eyebrow">DOCUMENTATION</p>
+                <h1 id="HeroTitle">Macaw Documentation</h1>
+                <p class="HeroDescription">Macaw는 C++20과 Direct3D 11을 사용하는 Windows용 엔진입니다. 이 문서는 모듈 구조, API와 빌드 방법을 다룹니다.</p>
+                <div class="HeroActions"><a class="Button ButtonPrimary" href="./api/annotated.html">Classes <span aria-hidden="true">→</span></a><a class="Button ButtonSecondary" href="#Architecture">모듈 구조</a></div>
+            </div>
+            <aside class="ProjectCard" aria-label="프로젝트 개요">
+                <div class="ProjectCardHeading"><span class="StatusDot" aria-hidden="true"></span>프로젝트 정보</div>
+                <dl class="ProjectFacts">
+                    <div><dt>언어</dt><dd>C++20</dd></div>
+                    <div><dt>실행 환경</dt><dd>Windows · x64</dd></div>
+                    <div><dt>그래픽스</dt><dd>Direct3D 11</dd></div>
+                    <div><dt>자체 모듈</dt><dd>@@ModuleCount@@ <span>+ 외부 ImGui</span></dd></div>
+                    <div><dt>빌드 구성</dt><dd>Debug / Release / Viewer</dd></div>
+                </dl>
+                <a class="TextLink" href="https://github.com/wewe231223/Macaw/blob/@@Revision@@/premake5.lua">premake5.lua <span aria-hidden="true">↗</span></a>
+            </aside>
+        </section>
+        <nav class="QuickLinks" aria-label="API 바로가기">
+            <a href="./api/annotated.html"><span class="QuickNumber">01</span><span><strong>Classes</strong><small>클래스·구조체 및 멤버</small></span><span class="Arrow" aria-hidden="true">↗</span></a>
+            <a href="./api/files.html"><span class="QuickNumber">02</span><span><strong>Files</strong><small>헤더·소스 파일 목록</small></span><span class="Arrow" aria-hidden="true">↗</span></a>
+            <a href="./api/hierarchy.html"><span class="QuickNumber">03</span><span><strong>Class Hierarchy</strong><small>클래스 상속 관계</small></span><span class="Arrow" aria-hidden="true">↗</span></a>
+        </nav>
+        <section id="Architecture" class="Section" aria-labelledby="ArchitectureTitle">
+            <div class="SectionHeading"><div><p class="Eyebrow">ARCHITECTURE</p><h2 id="ArchitectureTitle">모듈 구조</h2></div><a class="TextLink" href="https://github.com/wewe231223/Macaw/blob/@@Revision@@/ModuleDependencies.json">ModuleDependencies.json <span aria-hidden="true">↗</span></a></div>
+            <p class="SectionIntro">모듈 간 의존성은 <code>ModuleDependencies.json</code>에서 정의합니다. 아래 그래프와 표는 이 파일을 기준으로 생성됩니다.</p>
+            <figure class="GraphPanel">
+                <div class="GraphToolbar"><span>MODULE DEPENDENCIES</span><a href="ModuleDependencies.svg">SVG 원본 <span aria-hidden="true">↗</span></a></div>
+                <div class="GraphViewport"><img src="ModuleDependencies.svg" alt="Macaw 모듈 의존성 그래프. 각 모듈의 Public 및 Private 의존성은 아래 표에 수록되어 있습니다."></div>
+                <figcaption><strong>실선: Public · 점선: Private · 회색 노드: 외부 모듈 ImGui</strong><br>화살표는 의존하는 모듈을 향합니다. Public 의존성의 공개 헤더 경로는 재귀적으로 전파되며, Private 의존성은 해당 모듈을 구성할 때 추가됩니다.</figcaption>
+            </figure>
+            <p class="TableDescription">Public과 Private 열에는 각 모듈의 직접 의존성만 표시합니다.</p>
+            <div class="TableScroll" tabindex="0" role="region" aria-label="모듈 역할과 직접 의존성 표">
+                <table class="ModuleTable">
+                    <thead><tr><th scope="col">모듈</th><th scope="col">기능</th><th scope="col">Public</th><th scope="col">Private</th></tr></thead>
+                    <tbody>
+                        @@ModuleRows@@
+                    </tbody>
+                </table>
+            </div>
+            <p class="Note">실행 파일 <code>Macaw</code>의 구성은 <code>premake5.lua</code>에서 정의합니다. <code>Application/</code>과 각 모듈을 연결하며, 위 그래프에는 포함되지 않습니다.</p>
+        </section>
+        <section id="ReadingPaths" class="Section" aria-labelledby="ReadingPathsTitle">
+            <div class="SectionHeading"><div><p class="Eyebrow">API REFERENCE</p><h2 id="ReadingPathsTitle">주요 API</h2></div></div>
+            <p class="SectionIntro">API 레퍼런스에는 타입 선언, 멤버, 상속 관계와 소스 참조가 포함됩니다.</p>
+            <div class="ReadingGrid">
+                <a class="ReadingCard" href="./api/class_u_object.html"><span class="ReadingLabel">객체 모델</span><h3>UObject <span aria-hidden="true">↗</span></h3><p>객체 기반 타입, 핸들, 리플렉션</p><span class="ReadingTrail">UObject · FObjectHandle · UClass</span></a>
+                <a class="ReadingCard" href="./api/class_u_world.html"><span class="ReadingLabel">월드</span><h3>UWorld <span aria-hidden="true">↗</span></h3><p>월드, 레벨, 액터, 컴포넌트</p><span class="ReadingTrail">UWorld · AActor · UActorComponent</span></a>
+                <a class="ReadingCard" href="./api/class_f_renderer.html"><span class="ReadingLabel">렌더링</span><h3>FRenderer <span aria-hidden="true">↗</span></h3><p>렌더러, 렌더 장면, 뷰</p><span class="ReadingTrail">FRenderer · FRenderScene · FRenderView</span></a>
+                <a class="ReadingCard" href="./api/class_f_asset_registry.html"><span class="ReadingLabel">에셋</span><h3>FAssetRegistry <span aria-hidden="true">↗</span></h3><p>에셋 등록·조회와 에셋 타입</p><span class="ReadingTrail">FAssetRegistry · UAsset · UMesh</span></a>
+            </div>
+        </section>
+        <section id="GettingStarted" class="Section" aria-labelledby="GettingStartedTitle">
+            <div class="SectionHeading"><div><p class="Eyebrow">BUILD</p><h2 id="GettingStartedTitle">빌드</h2></div></div>
+            <div class="GuideGrid">
+                <article class="GuideCard"><span class="GuideKicker">DOCUMENTATION</span><h3>문서 생성</h3><p>PowerShell 7이 필요합니다. 저장소 루트에서 다음 명령을 실행합니다. Windows x64에서는 <code>-InstallTools</code> 옵션으로 지정된 버전의 Doxygen과 Graphviz를 다운로드합니다.</p><pre><code>pwsh -File Scripts/BuildDocumentation.ps1 -InstallTools</code></pre><p>Linux x64에서는 Graphviz를 먼저 설치합니다. Ubuntu·Debian:</p><pre><code>sudo apt-get install graphviz</code></pre><p>생성된 문서의 시작 페이지:</p><pre><code>Build/Documentation/Site/index.html</code></pre><p class="SmallText">최초 설치 후에는 <code>-InstallTools</code>를 생략할 수 있습니다. C++ 빌드는 필요하지 않습니다.</p></article>
+                <article class="GuideCard"><span class="GuideKicker">ENGINE</span><h3>엔진 빌드</h3><p>Windows, Visual Studio C++ 개발 도구, Windows SDK, Git, Premake 5가 필요합니다. 저장소 루트에서 설치된 Visual Studio 버전에 맞는 Premake 액션으로 프로젝트를 생성합니다.</p><p>프로젝트 생성 시 의존성 설치 스크립트가 실행됩니다. 수동 실행 명령:</p><pre><code>powershell.exe -NoProfile -ExecutionPolicy Bypass -File Scripts/setup-deps.ps1</code></pre><p>생성된 솔루션에서 플랫폼 <code>x64</code>, 구성 <code>Debug</code>, <code>Release</code> 또는 <code>Viewer</code>를 선택하고 <code>Macaw</code>를 빌드합니다. 출력 경로는 <code>bin/&lt;구성&gt;/x64/Macaw.exe</code>입니다.</p><p class="SmallText">실행 시 작업 디렉터리는 저장소 루트로 설정합니다. 초기화 코드에서 <code>./Content/</code>의 리소스를 상대 경로로 읽습니다.</p></article>
+            </div>
+        </section>
+    </main>
+    <footer class="Footer"><div><a class="FooterBrand" href="./index.html">Macaw</a><span>Doxygen · Graphviz · GitHub Pages</span><a href="ThemeLicense.txt">Doxygen Awesome License</a></div><a href="https://github.com/wewe231223/Macaw">GitHub <span aria-hidden="true">↗</span></a></footer>
+</body>
+</html>

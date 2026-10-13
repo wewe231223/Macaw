@@ -1,0 +1,846 @@
+:root {
+    --Background: #f5f7fa;
+    --Paper: #ffffff;
+    --Ink: #182b44;
+    --Body: #40516a;
+    --Muted: #617089;
+    --Border: #dce3ec;
+    --Accent: #007d79;
+    --AccentDark: #005f5c;
+    --AccentPale: #e6f4f1;
+    --Radius: 18px;
+    font-family: "Malgun Gothic", "Apple SD Gothic Neo", "Noto Sans KR", system-ui, sans-serif;
+    color: var(--Ink);
+    background: var(--Background);
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+}
+* {
+    box-sizing: border-box;
+}
+html {
+    scroll-behavior: smooth;
+    scroll-padding-top: 100px;
+}
+body {
+    margin: 0;
+    font-size: 15px;
+    line-height: 1.8;
+    word-break: keep-all;
+    overflow-wrap: anywhere;
+}
+a {
+    color: var(--AccentDark);
+    text-decoration: none;
+}
+a:hover {
+    text-decoration: underline;
+    text-underline-offset: 4px;
+}
+a:focus-visible, [tabindex]:focus-visible {
+    outline: 3px solid var(--Accent);
+    outline-offset: 5px;
+}
+p, h1, h2, h3, dl, figure {
+    margin: 0;
+}
+code {
+    padding: 2px 5px;
+    border-radius: 4px;
+    background: #edf1f6;
+    color: #33465f;
+    font-family: Consolas, "SFMono-Regular", monospace;
+    font-size: 0.88em;
+    overflow-wrap: anywhere;
+}
+.SkipLink {
+    position: absolute;
+    top: -100px;
+    left: 24px;
+    padding: 10px 18px;
+    background: var(--Paper);
+    z-index: 10;
+}
+.SkipLink:focus {
+    top: 10px;
+}
+.Header {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    background: rgba(255, 255, 255, 0.97);
+    border-bottom: 1px solid var(--Border);
+}
+.HeaderInner, .Main, .Footer {
+    width: min(1180px, calc(100% - 72px));
+    margin: 0 auto;
+}
+.HeaderInner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 32px;
+    min-height: 88px;
+}
+.Brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: var(--Ink);
+    font-size: 23px;
+    font-weight: 800;
+    line-height: 1.15;
+    letter-spacing: -0.8px;
+}
+.Brand:hover {
+    text-decoration: none;
+}
+.BrandMark {
+    display: grid;
+    place-items: center;
+    width: 42px;
+    height: 42px;
+    border-radius: 12px 12px 12px 3px;
+    background: var(--Accent);
+    color: white;
+    font-size: 24px;
+    font-weight: 800;
+}
+.BrandCaption {
+    display: block;
+    margin-top: 6px;
+    color: var(--Muted);
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 2px;
+}
+.HeaderNav {
+    display: flex;
+    align-items: center;
+    gap: 30px;
+    font-size: 13px;
+    font-weight: 700;
+}
+.HeaderNav a {
+    color: var(--Body);
+}
+.HeaderNav .NavApi {
+    padding: 9px 15px;
+    border: 1px solid var(--Border);
+    border-radius: 8px;
+    color: var(--AccentDark);
+}
+.NavApi span {
+    margin-left: 12px;
+}
+.Hero {
+    display: grid;
+    grid-template-columns: 1.5fr 1fr;
+    align-items: center;
+    gap: 70px;
+    padding: 76px 0 60px;
+}
+.Eyebrow {
+    margin-bottom: 15px;
+    color: var(--Accent);
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 2px;
+    line-height: 1.5;
+}
+h1 {
+    font-size: clamp(32px, 3.4vw, 46px);
+    line-height: 1.42;
+    letter-spacing: -2px;
+    font-weight: 800;
+}
+h1 span {
+    color: var(--Accent);
+}
+.HeroDescription {
+    max-width: 555px;
+    margin-top: 23px;
+    color: var(--Body);
+    font-size: 16px;
+    line-height: 1.95;
+}
+.HeroActions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 29px;
+}
+.Button {
+    display: inline-flex;
+    align-items: center;
+    gap: 28px;
+    justify-content: center;
+    padding: 12px 20px;
+    border-radius: 9px;
+    font-size: 14px;
+    font-weight: 700;
+}
+.Button:hover {
+    text-decoration: none;
+}
+.ButtonPrimary {
+    color: white;
+    background: var(--Ink);
+    border: 1px solid var(--Ink);
+}
+.ButtonPrimary:hover {
+    background: #294663;
+}
+.ButtonSecondary {
+    color: var(--Body);
+    background: var(--Paper);
+    border: 1px solid var(--Border);
+}
+.ButtonSecondary:hover {
+    border-color: var(--Accent);
+}
+.ProjectCard {
+    padding: 27px 30px;
+    border: 1px solid var(--Border);
+    border-top: 3px solid var(--Accent);
+    border-radius: var(--Radius);
+    background: var(--Paper);
+    box-shadow: 0 12px 28px rgba(24, 43, 68, 0.035);
+}
+.ProjectCardHeading {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 15px;
+    font-size: 14px;
+    font-weight: 700;
+}
+.StatusDot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--Accent);
+}
+.ProjectFacts div {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 12px 0;
+    border-bottom: 1px solid #edf0f4;
+    font-size: 13px;
+}
+.ProjectFacts dt {
+    color: var(--Muted);
+}
+.ProjectFacts dd {
+    margin: 0;
+    text-align: right;
+    font-weight: 700;
+}
+.ProjectFacts dd span {
+    color: var(--Muted);
+    font-size: 11px;
+    font-weight: 400;
+}
+.TextLink {
+    font-size: 12px;
+    font-weight: 700;
+}
+.ProjectCard > .TextLink {
+    display: inline-block;
+    margin-top: 18px;
+}
+.TextLink span {
+    margin-left: 8px;
+}
+.QuickLinks {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    border: 1px solid var(--Border);
+    border-radius: 12px;
+    background: var(--Paper);
+    overflow: hidden;
+}
+.QuickLinks > a {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    padding: 25px 27px;
+    color: var(--Ink);
+}
+.QuickLinks > a + a {
+    border-left: 1px solid var(--Border);
+}
+.QuickLinks > a:hover {
+    background: #f4fbf9;
+    text-decoration: none;
+}
+.QuickNumber {
+    color: #7c919f;
+    font-family: Consolas, monospace;
+    font-size: 12px;
+}
+.QuickLinks strong, .QuickLinks small {
+    display: block;
+}
+.QuickLinks strong {
+    font-size: 15px;
+}
+.QuickLinks small {
+    margin-top: 3px;
+    color: var(--Muted);
+    font-size: 11px;
+}
+.Arrow {
+    margin-left: auto;
+    color: var(--Accent);
+}
+.Section {
+    padding-top: 76px;
+}
+.SectionHeading {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 20px;
+    margin-bottom: 18px;
+}
+.SectionHeading .Eyebrow {
+    margin-bottom: 10px;
+}
+h2 {
+    font-size: 29px;
+    line-height: 1.5;
+    letter-spacing: -1px;
+}
+.SectionIntro {
+    max-width: 850px;
+    color: var(--Body);
+    line-height: 1.9;
+}
+.GraphPanel {
+    margin-top: 28px;
+    border: 1px solid var(--Border);
+    border-radius: var(--Radius);
+    background: var(--Paper);
+    overflow: hidden;
+}
+.GraphToolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px;
+    padding: 17px 25px;
+    border-bottom: 1px solid #edf0f4;
+    font-size: 11px;
+}
+.GraphToolbar > span {
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    color: var(--Muted);
+}
+.GraphViewport {
+    padding: 30px;
+    overflow-x: auto;
+}
+.GraphViewport img {
+    display: block;
+    width: 100%;
+    min-width: 660px;
+    max-height: 740px;
+    object-fit: contain;
+}
+figcaption {
+    padding: 17px 25px;
+    border-top: 1px solid #edf0f4;
+    color: var(--Muted);
+    background: #fbfcfd;
+    font-size: 12px;
+    line-height: 1.9;
+}
+.TableDescription {
+    margin: 28px 0 12px;
+    color: var(--Body);
+    font-size: 13px;
+}
+.TableScroll {
+    border: 1px solid var(--Border);
+    border-radius: 12px;
+    overflow-x: auto;
+}
+.ModuleTable {
+    width: 100%;
+    min-width: 820px;
+    border-collapse: collapse;
+    text-align: left;
+    background: var(--Paper);
+    font-size: 12px;
+}
+.ModuleTable th, .ModuleTable td {
+    padding: 14px 20px;
+    border-bottom: 1px solid #e9eef3;
+    vertical-align: top;
+}
+.ModuleTable thead th {
+    color: var(--Muted);
+    background: #eef2f7;
+    font-size: 11px;
+    font-weight: 700;
+}
+.ModuleTable tbody th {
+    width: 16%;
+    font-family: Consolas, monospace;
+    font-size: 13px;
+}
+.ModuleTable td:nth-child(2) {
+    width: 40%;
+    color: var(--Body);
+}
+.ModuleTable td:nth-child(3), .ModuleTable td:nth-child(4) {
+    color: var(--Muted);
+    font-family: Consolas, monospace;
+    font-size: 11px;
+}
+.ModuleTable tr:last-child > * {
+    border-bottom: 0;
+}
+.ModuleTable .ExternalRow {
+    background: #fafbfd;
+}
+.Tag {
+    display: inline-block;
+    padding: 3px 9px;
+    border-radius: 5px;
+    background: var(--AccentPale);
+    color: var(--AccentDark);
+    font-size: 10px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+.ExternalRow .Tag {
+    margin-left: 8px;
+    padding: 1px 6px;
+    background: #e9edf4;
+    color: var(--Muted);
+    font-family: "Malgun Gothic", sans-serif;
+    font-size: 9px;
+}
+.Note {
+    margin-top: 14px;
+    color: var(--Muted);
+    font-size: 12px;
+}
+.Flow {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 18px;
+    list-style: none;
+    padding: 0;
+    margin: 28px 0 20px;
+}
+.Flow li {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 23px;
+    border: 1px solid var(--Border);
+    border-radius: 12px;
+    background: var(--Paper);
+}
+.FlowNumber {
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    margin-bottom: 20px;
+    border-radius: 8px;
+    color: var(--AccentDark);
+    background: var(--AccentPale);
+    font-family: Consolas, monospace;
+    font-size: 13px;
+    font-weight: 700;
+}
+h3 {
+    font-size: 17px;
+    line-height: 1.55;
+    letter-spacing: -0.5px;
+}
+.Flow p {
+    margin: 12px 0 20px;
+    color: var(--Body);
+    font-size: 12px;
+    line-height: 1.95;
+}
+.Flow a {
+    margin-top: auto;
+    font-family: Consolas, monospace;
+    font-size: 11px;
+}
+.DetailGrid, .GuideGrid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+}
+.DetailCard {
+    padding: 26px;
+    border: 1px solid var(--Border);
+    border-radius: 12px;
+    background: #eef3f7;
+}
+.DetailCard .Eyebrow {
+    margin-bottom: 9px;
+    font-size: 10px;
+}
+.DetailCard p:not(.Eyebrow), .GuideCard p {
+    margin-top: 12px;
+    color: var(--Body);
+    font-size: 13px;
+    line-height: 1.95;
+}
+.DetailCard .Sequence {
+    line-height: 2.2;
+    font-weight: 700;
+}
+.Sequence span {
+    padding: 0 4px;
+    color: var(--Accent);
+}
+.DetailCard .SmallText, .GuideCard .SmallText {
+    color: var(--Muted);
+    font-size: 12px;
+}
+.SourceLinks {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 24px;
+    margin-top: 19px;
+    font-size: 12px;
+    font-weight: 700;
+}
+.ReadingGrid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 18px;
+    margin-top: 26px;
+}
+.ReadingCard {
+    display: block;
+    padding: 25px 28px;
+    border: 1px solid var(--Border);
+    border-radius: 12px;
+    background: var(--Paper);
+    color: var(--Ink);
+}
+.ReadingCard:hover {
+    border-color: #85bcb8;
+    text-decoration: none;
+}
+.ReadingLabel {
+    color: var(--Muted);
+    font-size: 11px;
+}
+.ReadingCard h3 {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    margin-top: 7px;
+    font-family: Consolas, monospace;
+    font-size: 21px;
+}
+.ReadingCard h3 span {
+    color: var(--Accent);
+    font-size: 18px;
+}
+.ReadingCard p {
+    margin-top: 11px;
+    color: var(--Body);
+    font-size: 13px;
+}
+.ReadingTrail {
+    display: block;
+    margin-top: 16px;
+    color: var(--AccentDark);
+    font-family: Consolas, monospace;
+    font-size: 11px;
+}
+.GuideCard {
+    padding: 30px;
+    border: 1px solid var(--Border);
+    border-radius: var(--Radius);
+    background: var(--Paper);
+}
+.GuideKicker {
+    display: inline-block;
+    margin-bottom: 14px;
+    color: var(--Accent);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+}
+.GuideCard h3 {
+    font-size: 21px;
+}
+pre {
+    margin: 16px 0;
+    padding: 15px 17px;
+    border-radius: 8px;
+    background: #182b44;
+    overflow-x: auto;
+    line-height: 1.7;
+    word-break: normal;
+    overflow-wrap: normal;
+}
+pre code {
+    padding: 0;
+    background: transparent;
+    color: #daf2ee;
+    font-size: 11px;
+}
+.Main {
+    padding-bottom: 55px;
+}
+.MaintenanceGrid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 35px;
+    padding: 20px 0 30px;
+}
+.MaintenanceGrid h3 {
+    font-size: 15px;
+}
+.MaintenanceGrid p {
+    margin-top: 12px;
+    color: var(--Body);
+    font-size: 12px;
+    line-height: 1.95;
+}
+.EvidenceNote {
+    display: grid;
+    grid-template-columns: 145px 1fr;
+    gap: 22px;
+    padding: 22px 25px;
+    border-left: 3px solid #91b7b1;
+    border-radius: 0 8px 8px 0;
+    background: #eaf1f2;
+    font-size: 12px;
+}
+.EvidenceNote strong {
+    color: var(--AccentDark);
+}
+.EvidenceNote p {
+    color: var(--Body);
+}
+.Footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 22px;
+    padding: 28px 0 34px;
+    border-top: 1px solid var(--Border);
+    color: var(--Muted);
+    font-size: 11px;
+}
+.Footer > div {
+    display: flex;
+    align-items: center;
+    gap: 22px;
+}
+.FooterBrand {
+    color: var(--Ink);
+    font-size: 18px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+}
+@media (max-width: 1000px) {
+    .HeaderInner, .Main, .Footer {
+        width: min(1180px, calc(100% - 48px));
+    }
+    .Hero {
+        gap: 30px;
+        grid-template-columns: 1.2fr 1fr;
+    }
+    .ProjectCard {
+        padding: 24px;
+    }
+    .QuickLinks > a {
+        gap: 12px;
+        padding: 20px;
+    }
+    .QuickNumber {
+        display: none;
+    }
+    .Flow {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    .Flow p {
+        font-size: 13px;
+    }
+}
+@media (max-width: 720px) {
+    html {
+        scroll-padding-top: 125px;
+    }
+    .HeaderInner, .Main, .Footer {
+        width: calc(100% - 36px);
+    }
+    .HeaderInner {
+        min-height: 104px;
+        flex-wrap: wrap;
+        gap: 14px;
+        padding: 15px 0;
+    }
+    .Brand {
+        font-size: 19px;
+    }
+    .BrandMark {
+        width: 34px;
+        height: 34px;
+        font-size: 20px;
+        border-radius: 9px 9px 9px 3px;
+    }
+    .BrandCaption {
+        margin-top: 4px;
+        font-size: 8px;
+    }
+    .HeaderNav {
+        width: 100%;
+        justify-content: space-between;
+        gap: 12px;
+        font-size: 11px;
+    }
+    .HeaderNav .NavApi {
+        padding: 3px 9px;
+    }
+    .Hero {
+        grid-template-columns: 1fr;
+        gap: 32px;
+        padding: 44px 0 30px;
+    }
+    h1 {
+        font-size: 35px;
+        letter-spacing: -1.7px;
+    }
+    .HeroDescription {
+        font-size: 14px;
+    }
+    .Button {
+        gap: 18px;
+        padding: 11px 16px;
+        font-size: 12px;
+    }
+    .ProjectCard {
+        padding: 21px 23px;
+    }
+    .QuickLinks {
+        grid-template-columns: 1fr;
+    }
+    .QuickLinks > a {
+        padding: 17px 22px;
+    }
+    .QuickLinks > a + a {
+        border-left: 0;
+        border-top: 1px solid var(--Border);
+    }
+    .QuickNumber {
+        display: block;
+    }
+    .Section {
+        padding-top: 52px;
+    }
+    .SectionHeading {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 12px;
+    }
+    h2 {
+        font-size: 24px;
+    }
+    .SectionIntro {
+        font-size: 13px;
+    }
+    .GraphToolbar {
+        padding: 14px 17px;
+        font-size: 10px;
+    }
+    .GraphToolbar > span {
+        letter-spacing: 0.6px;
+    }
+    .GraphViewport {
+        padding: 20px;
+    }
+    figcaption {
+        padding: 16px 19px;
+        font-size: 11px;
+    }
+    .DetailGrid, .GuideGrid, .ReadingGrid, .MaintenanceGrid {
+        grid-template-columns: 1fr;
+    }
+    .Flow {
+        gap: 12px;
+    }
+    .Flow li {
+        padding: 19px;
+    }
+    .Flow h3 {
+        font-size: 15px;
+    }
+    .Flow p {
+        font-size: 12px;
+    }
+    .GuideCard {
+        padding: 24px;
+    }
+    .MaintenanceGrid {
+        gap: 25px;
+    }
+    .EvidenceNote {
+        grid-template-columns: 1fr;
+        gap: 8px;
+        padding: 19px;
+    }
+    .Footer, .Footer > div {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 10px;
+    }
+}
+@media (max-width: 390px) {
+    h1 {
+        font-size: 30px;
+    }
+    .Flow {
+        grid-template-columns: 1fr;
+    }
+}
+@media (prefers-reduced-motion: reduce) {
+    html {
+        scroll-behavior: auto;
+    }
+}
+@media print {
+    .Header {
+        position: static;
+    }
+    .Main, .Footer, .HeaderInner {
+        width: 100%;
+    }
+    .HeaderNav, .HeroActions, .QuickLinks {
+        display: none;
+    }
+    .Hero {
+        padding-top: 30px;
+    }
+    .Section {
+        padding-top: 35px;
+    }
+    .GraphViewport img {
+        min-width: 0;
+    }
+    .ModuleTable {
+        min-width: 0;
+    }
+    .Flow, .DetailGrid, .GuideGrid {
+        break-inside: avoid;
+    }
+}

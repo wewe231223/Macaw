@@ -1,0 +1,25 @@
+{
+  "DoxygenVersion": "1.18.0",
+  "WindowsDoxygen": {
+    "Url": "https://github.com/doxygen/doxygen/releases/download/Release_1_18_0/doxygen-1.18.0.windows.x64.bin.zip",
+    "Sha256": "e84f54cfd49ef06b0b16536056dbec0c496323de28abcce53a4269463de35eaf"
+  },
+  "LinuxDoxygen": {
+    "Url": "https://github.com/doxygen/doxygen/releases/download/Release_1_18_0/doxygen-1.18.0.linux.bin.tar.gz",
+    "Sha256": "14fa81bdc34171edb5f1f02b1d60e74802f0439b77fa44e592565d517d72df90"
+  },
+  "GraphvizVersion": "16.1.0",
+  "WindowsGraphviz": {
+    "Url": "https://gitlab.com/api/v4/projects/4207231/packages/generic/graphviz-releases/16.1.0/windows_10_cmake_Release_Graphviz-16.1.0-win64.zip",
+    "Sha256": "733e49626c492242eb8dca30ea627b6ead20710e207998c7933b4909d92d6abc"
+  },
+  "ThemeVersion": "2.5.0",
+  "ThemeStylesheet": {
+    "Url": "https://raw.githubusercontent.com/jothepro/doxygen-awesome-css/v2.5.0/doxygen-awesome.css",
+    "Sha256": "ea37516ec7a7a7780719b9d9a285fe3268a8d5411523d8b93af98d77e67cd1a1"
+  },
+  "ThemeLicense": {
+    "Url": "https://raw.githubusercontent.com/jothepro/doxygen-awesome-css/v2.5.0/LICENSE",
+    "Sha256": "e3da754c3f657cc78594fa2e8a3283665f78c743df2485fa9e498a8973051191"
+  }
+}

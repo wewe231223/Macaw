@@ -1,0 +1,41 @@
+\mainpage API Reference
+
+Macaw C++ API — C++20, Windows x64, Direct3D 11.
+
+\section ApiIndex API Index
+
+<ul>
+<li><a href="annotated.html">Classes</a> — 클래스·구조체와 멤버</li>
+<li><a href="hierarchy.html">Class Hierarchy</a> — 클래스 상속 관계</li>
+<li><a href="functions.html">Class Members</a> — 멤버 이름별 인덱스</li>
+<li><a href="namespaces.html">Namespaces</a> — 네임스페이스와 전역 선언</li>
+<li><a href="files.html">Files</a> — 헤더·소스 파일</li>
+</ul>
+
+\section ApiModules Modules
+
+<table>
+<tr><th>Module</th><th>Description</th><th>Types</th></tr>
+<tr><td>Core</td><td>기본 타입, 수학 연산, Archive 인터페이스</td><td>\ref FName, \ref FTransform, \ref FArchive</td></tr>
+<tr><td>CoreUObject</td><td>객체 관리와 Reflection</td><td>\ref UObject, \ref UClass, \ref FProperty</td></tr>
+<tr><td>Serialization</td><td>JSON·메모리 기반 직렬화</td><td>\ref FArchiveJson, \ref FArchiveMemory, \ref FJsonFile</td></tr>
+<tr><td>RenderCore</td><td>Scene 인터페이스와 렌더링 데이터</td><td>\ref FSceneInterface, \ref FPrimitiveSceneProxy, \ref FMeshBatch</td></tr>
+<tr><td>Asset</td><td>에셋 검색·로드, Mesh·Material 관리</td><td>\ref FAssetRegistry, \ref UMesh, \ref UMaterial</td></tr>
+<tr><td>World</td><td>World·Actor·Component 관리</td><td>\ref UWorld, \ref AActor, \ref UActorComponent</td></tr>
+<tr><td>Render</td><td>Direct3D 11 렌더링과 Render Scene 관리</td><td>\ref FRenderer, \ref FRenderScene, \ref FSceneRenderer</td></tr>
+<tr><td>Platform</td><td>Windows 창과 메시지 처리</td><td>\ref IPlatformApplication, \ref FWindowsApplication, \ref IWindowsMessageHandler</td></tr>
+<tr><td>Engine</td><td>엔진 초기화·종료, World Context 관리</td><td>\ref UEngine, \ref FEngineLoop, \ref FWorldContext</td></tr>
+<tr><td>Editor</td><td>에디터 UI와 Viewport 관리</td><td>\ref UEditorEngine, \ref FEditorViewport, \ref FEditorUIManager</td></tr>
+</table>
+
+\section ApiHeaders Headers
+
+각 모듈의 <code>Public/</code> 디렉터리를 include 경로로 사용합니다. 헤더 경로는 모듈 이름으로 시작합니다.
+
+\code{.cpp}
+#include <Core/Archive/FArchive.h>
+#include <CoreUObject/UObject.h>
+#include <World/UWorld.h>
+\endcode
+
+모듈 의존성과 빌드 절차는 <a href="../index.html">Macaw Documentation</a>에 정리되어 있습니다.
