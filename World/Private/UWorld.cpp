@@ -3,7 +3,7 @@
 #include "CoreUObject/Reflection/Cast.h"
 #include "CoreUObject/Reflection/UClass.h"
 #include "Core/Base/ErrorHandler.h"
-#include "Core/Base/FScopedFlag.h"
+#include "Core/Base/TStateFlags.h"
 #include "World/UWorld.h"
 #include "Core/Stat/Stat.h"
 
@@ -31,6 +31,108 @@
 
 #include <ranges>
 
+UWorld::FLifecycleScope::FLifecycleScope(UWorld& World)
+	: mWorld{World} {
+    ++mWorld.mLifecycleDepth;
+}
+
+UWorld::FLifecycleScope::~FLifecycleScope() {
+    --mWorld.mLifecycleDepth;
+
+    if (mWorld.mLifecycleDepth == 0) {
+        mWorld.ProcessPendingLifecycleChanges();
+    }
+}
+
+bool UWorld::IsDeferringLifecycleChanges() const {
+    return mLifecycleDepth > 0;
+}
+
+void UWorld::ProcessPendingLifecycleChanges() {
+    if (IsDeferringLifecycleChanges() || mState.IsSet(EStateFlag::ProcessingLifecycleRequests) || mPendingLifecycleRequests.empty()) {
+        return;
+    }
+
+    const TScopedStateFlag ProcessingRequests{mState, EStateFlag::ProcessingLifecycleRequests};
+
+    while (!mPendingLifecycleRequests.empty()) {
+        TArray<FLifecycleRequest> Requests{std::move(mPendingLifecycleRequests)};
+
+        mPendingLifecycleRequests.clear();
+
+        for (FLifecycleRequest& Request : Requests) {
+            switch (Request.mType) {
+            case ELifecycleRequestType::AddActor: {
+                std::unique_ptr<AActor> Owner{static_cast<AActor*>(Request.mOwner.release())};
+                AActor* Actor{Owner.get()};
+
+                mPersistentLevel->mActors.push_back(std::move(Owner));
+
+                if (!Actor->IsBeingDestroyed()) {
+                    Actor->OnAddedToWorld();
+
+                    if (!Actor->IsBeingDestroyed()) {
+                        Actor->PostActorCreated();
+                    }
+                }
+                break;
+            }
+            case ELifecycleRequestType::FinishSpawningActor: {
+                AActor* Actor{static_cast<AActor*>(Request.mTarget)};
+
+                Actor->mState.Clear(AActor::EStateFlag::FinishingSpawning);
+                FinishSpawningActor(Actor, Request.mTransform);
+                break;
+            }
+            case ELifecycleRequestType::AddComponent: {
+                std::unique_ptr<UActorComponent> Owner{static_cast<UActorComponent*>(Request.mOwner.release())};
+                UActorComponent* Component{Owner.get()};
+                AActor* Actor{Component->GetOwner()};
+
+                Actor->mComponents.push_back(std::move(Owner));
+
+                if (Actor->mState.IsSet(AActor::EStateFlag::BeingDestroyed)) {
+                    Component->DestroyComponent();
+                } else {
+                    Actor->FinishAddingComponent(*Component);
+                }
+
+                if (Actor->HasFinishedSpawning() && !Actor->IsBeingDestroyed()) {
+                    MarkStructureDirty();
+                }
+                break;
+            }
+            case ELifecycleRequestType::RegisterComponent:
+                static_cast<UActorComponent*>(Request.mTarget)->RegisterComponent(this);
+                break;
+            case ELifecycleRequestType::UnregisterComponent:
+                static_cast<UActorComponent*>(Request.mTarget)->UnregisterComponent();
+                break;
+            case ELifecycleRequestType::AdvanceComponent: {
+                UActorComponent* Component{static_cast<UActorComponent*>(Request.mTarget)};
+
+                Component->GetOwner()->OnComponentRegistered(*Component);
+                break;
+            }
+            case ELifecycleRequestType::DestroyActor: {
+                AActor* Actor{static_cast<AActor*>(Request.mTarget)};
+
+                Actor->mState.Clear(AActor::EStateFlag::DestroyRequested);
+                DestroyActorInternal(Actor, Request.mReason);
+                break;
+            }
+            case ELifecycleRequestType::DestroyComponent: {
+                UActorComponent* Component{static_cast<UActorComponent*>(Request.mTarget)};
+
+                Component->mState.Clear(UActorComponent::EStateFlag::DestroyRequested);
+                Component->DestroyComponent(Request.mPromoteChildren);
+                break;
+            }
+            }
+        }
+    }
+}
+
 UWorld::FActorDispatchScope::FActorDispatchScope(UWorld* World)
 	: mWorld{World} {
     if (mWorld != nullptr) {
@@ -53,7 +155,7 @@ UWorld::~UWorld() {
 }
 
 void UWorld::Initialize(EWorldType WorldType) {
-    if (mInitialized || mCleaningUp) {
+    if (mState.IsSet(EStateFlag::Initialized) || mState.IsSet(EStateFlag::CleaningUp)) {
         return;
     }
 
@@ -65,25 +167,25 @@ void UWorld::Initialize(EWorldType WorldType) {
     mTime.Reset();
     mPersistentLevel = NewObject<ULevel>(*this);
     ErrorHandler::Report(!UObjectSystem::Register(mPersistentLevel.get()).IsValid(), "UWorld", "Cannot register persistent level", ErrorHandler::EErrorLevel::Critical);
-    mInitialized = true;
+    mState.Set(EStateFlag::Initialized);
     InitializeSubsystems();
 }
 
 void UWorld::CleanupWorld() {
-    if (mCleaningUp) {
+    if (mState.IsSet(EStateFlag::CleaningUp)) {
         return;
     }
 
-    if (!mInitialized) {
+    if (!mState.IsSet(EStateFlag::Initialized)) {
         BindScene({});
         return;
     }
 
-    if (mTicking || mBeginningPlay || mEndingPlay || mActorDispatchDepth > 0 || mFlushingActors) {
+    if (mState.IsSet(EStateFlag::Ticking) || mState.IsSet(EStateFlag::BeginningPlay) || mState.IsSet(EStateFlag::EndingPlay) || mActorDispatchDepth > 0 || mState.IsSet(EStateFlag::FlushingActors) || IsDeferringLifecycleChanges() || mState.IsSet(EStateFlag::ProcessingLifecycleRequests)) {
         ErrorHandler::Report("UWorld", "Cannot clean up a world during actor callbacks", ErrorHandler::EErrorLevel::Critical);
     }
 
-    mCleaningUp = true;
+    mState.Set(EStateFlag::CleaningUp);
     EndPlay(EEndPlayReason::Quit);
     NotifyWorldChanged(EWorldChange::Destroying);
     mObservers.clear();
@@ -94,19 +196,20 @@ void UWorld::CleanupWorld() {
     UObjectSystem::Unregister(mPersistentLevel.get(), mPersistentLevel->GetHandle());
     mPersistentLevel.reset();
     mPendingDestroyActors.clear();
+    mPendingLifecycleRequests.clear();
     mActorTickFunctions.clear();
     mComponentTickFunctions.clear();
-    mComponentTickFunctionsNeedCompaction = false;
-    mActorTickFunctionsNeedCompaction = false;
-    mEndPlayRequested = false;
+    mState.Clear(EStateFlag::ComponentTickFunctionsNeedCompaction);
+    mState.Clear(EStateFlag::ActorTickFunctionsNeedCompaction);
+    mState.Clear(EStateFlag::EndPlayRequested);
     mAssetRegistry = nullptr;
     mAssetRegistryMutator = nullptr;
-    mInitialized = false;
-    mCleaningUp = false;
+    mState.Clear(EStateFlag::Initialized);
+    mState.Clear(EStateFlag::CleaningUp);
 }
 
 bool UWorld::IsInitialized() const {
-    return mInitialized;
+    return mState.IsSet(EStateFlag::Initialized);
 }
 
 EWorldType UWorld::GetWorldType() const {
@@ -134,55 +237,65 @@ const ULevel& UWorld::GetPersistentLevel() const {
 }
 
 void UWorld::BeginPlay() {
-    if (!mInitialized || mHasBegunPlay || mBeginningPlay || !IsGameWorld() || mCleaningUp || mLoadingScene || mEndingPlay) {
+    if (!mState.IsSet(EStateFlag::Initialized) || mState.IsSet(EStateFlag::HasBegunPlay) || mState.IsSet(EStateFlag::BeginningPlay) || !IsGameWorld() || mState.IsSet(EStateFlag::CleaningUp) || mState.IsSet(EStateFlag::LoadingScene) || mState.IsSet(EStateFlag::EndingPlay)) {
         return;
     }
 
     mTime.Reset();
     {
-        const FScopedFlag BeginningPlay{mBeginningPlay};
+        const TScopedStateFlag BeginningPlay{mState, EStateFlag::BeginningPlay};
 
-        for (std::size_t Index{}; Index < mPersistentLevel->mActors.size() && !mEndPlayRequested; ++Index) {
-            AActor* Actor{mPersistentLevel->mActors[Index].get()};
+        {
+            const FLifecycleScope Lifecycle{*this};
 
-            if (!Actor->IsBeingDestroyed()) {
-                Actor->InitializeComponents();
+            for (const std::unique_ptr<AActor>& Actor : mPersistentLevel->mActors) {
+                if (mState.IsSet(EStateFlag::EndPlayRequested)) {
+                    break;
+                }
+
+                if (!Actor->IsBeingDestroyed()) {
+                    Actor->InitializeComponents();
+                }
             }
         }
 
-        mHasBegunPlay = true;
+        mState.Set(EStateFlag::HasBegunPlay);
 
-        const std::size_t Count{mPersistentLevel->mActors.size()};
+        {
+            const FLifecycleScope Lifecycle{*this};
 
-        for (std::size_t Index{}; Index < Count && !mEndPlayRequested; ++Index) {
-            AActor* Actor{mPersistentLevel->mActors[Index].get()};
+            for (const std::unique_ptr<AActor>& Actor : mPersistentLevel->mActors) {
+                if (mState.IsSet(EStateFlag::EndPlayRequested)) {
+                    break;
+                }
 
-            if (!Actor->IsBeingDestroyed()) {
-                Actor->DispatchBeginPlay();
+                if (!Actor->IsBeingDestroyed()) {
+                    Actor->DispatchBeginPlay();
+                }
             }
         }
     }
 
-    if (mEndPlayRequested) {
+    if (mState.IsSet(EStateFlag::EndPlayRequested)) {
         EndPlay(mEndPlayReason);
     }
 }
 
 void UWorld::EndPlay(EEndPlayReason Reason) {
-    if (mEndingPlay || (!mHasBegunPlay && !mBeginningPlay)) {
+    if (mState.IsSet(EStateFlag::EndingPlay) || (!mState.IsSet(EStateFlag::HasBegunPlay) && !mState.IsSet(EStateFlag::BeginningPlay))) {
         return;
     }
 
-    if (mBeginningPlay || mTicking || mActorDispatchDepth > 0) {
-        mEndPlayRequested = true;
+    if (mState.IsSet(EStateFlag::BeginningPlay) || mState.IsSet(EStateFlag::Ticking) || mActorDispatchDepth > 0 || IsDeferringLifecycleChanges() || mState.IsSet(EStateFlag::ProcessingLifecycleRequests)) {
+        mState.Set(EStateFlag::EndPlayRequested);
         mEndPlayReason = Reason;
         return;
     }
 
-    mEndPlayRequested = false;
-    mHasBegunPlay = false;
+    mState.Clear(EStateFlag::EndPlayRequested);
+    mState.Clear(EStateFlag::HasBegunPlay);
 
-    const FScopedFlag EndingPlay{mEndingPlay};
+    const TScopedStateFlag EndingPlay{mState, EStateFlag::EndingPlay};
 
     for (std::size_t Index{mPersistentLevel->mActors.size()}; Index > 0; --Index) {
         mPersistentLevel->mActors[Index - 1]->DispatchEndPlay(Reason);
@@ -190,7 +303,7 @@ void UWorld::EndPlay(EEndPlayReason Reason) {
 }
 
 bool UWorld::HasBegunPlay() const {
-    return mHasBegunPlay;
+    return mState.IsSet(EStateFlag::HasBegunPlay);
 }
 
 TSubsystemCollection<UWorldSubsystem, UWorld>& UWorld::GetSubsystems() {
@@ -241,17 +354,25 @@ bool UWorld::DestroyActor(AActor* Actor) {
 }
 
 bool UWorld::DestroyActorInternal(AActor* Actor, EEndPlayReason Reason) {
-    if (!mInitialized || Actor == nullptr || Actor->GetWorld() != this) {
+    if (!mState.IsSet(EStateFlag::Initialized) || Actor == nullptr || Actor->GetWorld() != this) {
         return false;
     }
 
-    if (Actor->mBIsBeingDestroyed) {
+    if (Actor->mState.IsSet(AActor::EStateFlag::BeingDestroyed)) {
+        return true;
+    }
+
+    if (IsDeferringLifecycleChanges()) {
+        if (!Actor->mState.IsSet(AActor::EStateFlag::DestroyRequested)) {
+            Actor->mState.Set(AActor::EStateFlag::DestroyRequested);
+            mPendingLifecycleRequests.push_back({ELifecycleRequestType::DestroyActor, Actor, {}, {}, Reason});
+        }
         return true;
     }
 
     const FActorDispatchScope Dispatch{this};
 
-    Actor->mBIsBeingDestroyed = true;
+    Actor->mState.Set(AActor::EStateFlag::BeingDestroyed);
     mPendingDestroyActors.push_back(Actor);
     Actor->UpdateTickRegistration();
     NotifyWorldChanged(EWorldChange::ActorRemoving, Actor);
@@ -295,11 +416,11 @@ bool UWorld::DestroyActorInternal(AActor* Actor, EEndPlayReason Reason) {
 }
 
 void UWorld::FlushPendingDestroyActors() {
-    if (!mInitialized || mTicking || mBeginningPlay || mEndingPlay || mFlushingActors || mActorDispatchDepth > 0) {
+    if (!mState.IsSet(EStateFlag::Initialized) || mState.IsSet(EStateFlag::Ticking) || mState.IsSet(EStateFlag::BeginningPlay) || mState.IsSet(EStateFlag::EndingPlay) || mState.IsSet(EStateFlag::FlushingActors) || mActorDispatchDepth > 0 || IsDeferringLifecycleChanges() || mState.IsSet(EStateFlag::ProcessingLifecycleRequests)) {
         return;
     }
 
-    mFlushingActors = true;
+    mState.Set(EStateFlag::FlushingActors);
 
     bool RemovedAnyActor{};
 
@@ -330,7 +451,7 @@ void UWorld::FlushPendingDestroyActors() {
         std::vector<std::unique_ptr<UActorComponent>> RetiredComponents{std::move(mPersistentLevel->mActors[Index]->mPendingDestroyComponents)};
     }
 
-    mFlushingActors = false;
+    mState.Clear(EStateFlag::FlushingActors);
 
     if (RemovedAnyActor) {
         MarkStructureDirty();
@@ -438,7 +559,7 @@ FSceneHandle UWorld::GetSceneHandle() const {
 bool UWorld::SendSceneUpdates() {
     const std::shared_ptr<FSceneInterface> Scene{mScene.lock()};
 
-    if (!mInitialized || Scene == nullptr) {
+    if (!mState.IsSet(EStateFlag::Initialized) || Scene == nullptr) {
         return false;
     }
 
@@ -486,17 +607,17 @@ void UWorld::Tick(float DeltaTime) {
 }
 
 void UWorld::Tick(ETickType TickType, float DeltaTime) {
-    if (!mInitialized || IsBusy() || TickType == ETickType::None) {
+    if (!mState.IsSet(EStateFlag::Initialized) || IsBusy() || TickType == ETickType::None) {
         return;
     }
 
-    if (mEndPlayRequested) {
+    if (mState.IsSet(EStateFlag::EndPlayRequested)) {
         EndPlay(mEndPlayReason);
     }
 
     const ETickType EffectiveTickType{mTime.IsPaused() && (TickType == ETickType::Game || TickType == ETickType::Editor) ? ETickType::Paused : TickType};
 
-    if ((EffectiveTickType == ETickType::Game || EffectiveTickType == ETickType::Paused) && !mHasBegunPlay) {
+    if ((EffectiveTickType == ETickType::Game || EffectiveTickType == ETickType::Paused) && !mState.IsSet(EStateFlag::HasBegunPlay)) {
         FlushPendingDestroyActors();
         return;
     }
@@ -512,9 +633,9 @@ void UWorld::Tick(ETickType TickType, float DeltaTime) {
         const std::size_t ActorCount{mActorTickFunctions.size()};
         const std::size_t ComponentCount{mComponentTickFunctions.size()};
 
-        mTicking = true;
+        mState.Set(EStateFlag::Ticking);
 
-        for (std::size_t Index{}; Index < ActorCount && !mEndPlayRequested; ++Index) {
+        for (std::size_t Index{}; Index < ActorCount && !mState.IsSet(EStateFlag::EndPlayRequested); ++Index) {
             FTickFunction* TickFunction{mActorTickFunctions[Index]};
 
             if (TickFunction == nullptr || !TickFunction->CanTick(EffectiveTickType)) {
@@ -528,7 +649,7 @@ void UWorld::Tick(ETickType TickType, float DeltaTime) {
             TickFunction->ExecuteTick(WorldDeltaTime);
         }
 
-        for (std::size_t Index{}; Index < ComponentCount && !mEndPlayRequested; ++Index) {
+        for (std::size_t Index{}; Index < ComponentCount && !mState.IsSet(EStateFlag::EndPlayRequested); ++Index) {
             FTickFunction* TickFunction{mComponentTickFunctions[Index]};
 
             if (TickFunction == nullptr || !TickFunction->CanTick(EffectiveTickType)) {
@@ -546,7 +667,7 @@ void UWorld::Tick(ETickType TickType, float DeltaTime) {
         FinishTicks();
     }
 
-    if (mEndPlayRequested) {
+    if (mState.IsSet(EStateFlag::EndPlayRequested)) {
         EndPlay(mEndPlayReason);
     }
 
@@ -558,7 +679,7 @@ ETickType UWorld::GetDefaultTickType() const {
 }
 
 bool UWorld::IsBusy() const {
-    return mTicking || mCleaningUp || mLoadingScene || mBeginningPlay || mEndingPlay || mActorDispatchDepth > 0 || mFlushingActors;
+    return mState.HasAny({EStateFlag::Ticking, EStateFlag::CleaningUp, EStateFlag::LoadingScene, EStateFlag::BeginningPlay, EStateFlag::EndingPlay, EStateFlag::FlushingActors, EStateFlag::ProcessingLifecycleRequests}) || mActorDispatchDepth > 0 || IsDeferringLifecycleChanges();
 }
 
 void UWorld::RegisterTickActor(AActor* Actor) {
@@ -566,7 +687,7 @@ void UWorld::RegisterTickActor(AActor* Actor) {
 }
 
 void UWorld::UnregisterTickActor(AActor* Actor) {
-    UnregisterTickFunction(Actor->mPrimaryActorTick, mActorTickFunctions, mActorTickFunctionsNeedCompaction);
+    UnregisterTickFunction(Actor->mPrimaryActorTick, mActorTickFunctions, EStateFlag::ActorTickFunctionsNeedCompaction);
 }
 
 void UWorld::RegisterTickComponent(UActorComponent* Component) {
@@ -574,7 +695,7 @@ void UWorld::RegisterTickComponent(UActorComponent* Component) {
 }
 
 void UWorld::UnregisterTickComponent(UActorComponent* Component) {
-    UnregisterTickFunction(Component->mPrimaryComponentTick, mComponentTickFunctions, mComponentTickFunctionsNeedCompaction);
+    UnregisterTickFunction(Component->mPrimaryComponentTick, mComponentTickFunctions, EStateFlag::ComponentTickFunctionsNeedCompaction);
 }
 
 void UWorld::RegisterTickFunction(FTickFunction& TickFunction, TArray<FTickFunction*>& TickFunctions) {
@@ -586,7 +707,7 @@ void UWorld::RegisterTickFunction(FTickFunction& TickFunction, TArray<FTickFunct
     TickFunction.mTickIndex = TickFunctions.size() - 1;
 }
 
-void UWorld::UnregisterTickFunction(FTickFunction& TickFunction, TArray<FTickFunction*>& TickFunctions, bool& NeedsCompaction) {
+void UWorld::UnregisterTickFunction(FTickFunction& TickFunction, TArray<FTickFunction*>& TickFunctions, EStateFlag CompactionFlag) {
     const std::size_t Index{TickFunction.mTickIndex};
 
     if (Index == std::numeric_limits<std::size_t>::max()) {
@@ -595,9 +716,9 @@ void UWorld::UnregisterTickFunction(FTickFunction& TickFunction, TArray<FTickFun
 
     TickFunction.mTickIndex = std::numeric_limits<std::size_t>::max();
 
-    if (mTicking) {
+    if (mState.IsSet(EStateFlag::Ticking)) {
         TickFunctions[Index] = nullptr;
-        NeedsCompaction = true;
+        mState.Set(CompactionFlag);
     } else {
         if (Index + 1 < TickFunctions.size()) {
             FTickFunction* LastTickFunction{TickFunctions.back()};
@@ -610,8 +731,8 @@ void UWorld::UnregisterTickFunction(FTickFunction& TickFunction, TArray<FTickFun
     }
 }
 
-void UWorld::CompactTickFunctions(TArray<FTickFunction*>& TickFunctions, bool& NeedsCompaction) {
-    if (!NeedsCompaction) {
+void UWorld::CompactTickFunctions(TArray<FTickFunction*>& TickFunctions, EStateFlag CompactionFlag) {
+    if (!mState.IsSet(CompactionFlag)) {
         return;
     }
 
@@ -621,13 +742,13 @@ void UWorld::CompactTickFunctions(TArray<FTickFunction*>& TickFunctions, bool& N
         TickFunctions[Index]->mTickIndex = Index;
     }
 
-    NeedsCompaction = false;
+    mState.Clear(CompactionFlag);
 }
 
 void UWorld::FinishTicks() {
-    mTicking = false;
-    CompactTickFunctions(mActorTickFunctions, mActorTickFunctionsNeedCompaction);
-    CompactTickFunctions(mComponentTickFunctions, mComponentTickFunctionsNeedCompaction);
+    mState.Clear(EStateFlag::Ticking);
+    CompactTickFunctions(mActorTickFunctions, EStateFlag::ActorTickFunctionsNeedCompaction);
+    CompactTickFunctions(mComponentTickFunctions, EStateFlag::ComponentTickFunctionsNeedCompaction);
 }
 
 FWorldTime& UWorld::GetTime() {
@@ -671,7 +792,7 @@ const UCameraSubsystem& UWorld::GetCameraSubsystem() const {
 }
 
 AActor* UWorld::AddActorInternal(std::unique_ptr<AActor> InActor) {
-    if (!mInitialized || mCleaningUp || mEndingPlay || !InActor || InActor->GetWorld() != nullptr || InActor->IsBeingDestroyed()) {
+    if (!mState.IsSet(EStateFlag::Initialized) || mState.IsSet(EStateFlag::CleaningUp) || mState.IsSet(EStateFlag::EndingPlay) || !InActor || InActor->GetWorld() != nullptr || InActor->IsBeingDestroyed()) {
         return nullptr;
     }
 
@@ -680,6 +801,12 @@ AActor* UWorld::AddActorInternal(std::unique_ptr<AActor> InActor) {
 
     if (!Actor->SetOuter(mPersistentLevel.get()) || !UObjectSystem::Register(Actor).IsValid()) {
         return nullptr;
+    }
+
+    if (IsDeferringLifecycleChanges()) {
+        Actor->mWorld = this;
+        mPendingLifecycleRequests.push_back({ELifecycleRequestType::AddActor, Actor, std::move(InActor)});
+        return Actor;
     }
 
     mPersistentLevel->mActors.push_back(std::move(InActor));
@@ -697,7 +824,9 @@ AActor* UWorld::AddActor(std::unique_ptr<AActor> InActor) {
         return nullptr;
     }
 
-    Actor->PostActorCreated();
+    if (!IsDeferringLifecycleChanges()) {
+        Actor->PostActorCreated();
+    }
 
     return FinishSpawningActor(Actor, Transform) ? Actor : nullptr;
 }
@@ -710,7 +839,7 @@ AActor* UWorld::SpawnActor(const UClass& Type, const FTransform& Transform) {
 }
 
 AActor* UWorld::SpawnActorDeferred(const UClass& Type, const FTransform& Transform) {
-    if (!mInitialized || mCleaningUp || mEndingPlay || !Type.CanCreateInstance() || !Type.IsChildOf(AActor::StaticClass())) {
+    if (!mState.IsSet(EStateFlag::Initialized) || mState.IsSet(EStateFlag::CleaningUp) || mState.IsSet(EStateFlag::EndingPlay) || !Type.CanCreateInstance() || !Type.IsChildOf(AActor::StaticClass())) {
         return nullptr;
     }
 
@@ -729,20 +858,28 @@ AActor* UWorld::SpawnActorDeferred(const UClass& Type, const FTransform& Transfo
     }
 
     Actor->SetActorTransform(Transform);
-    Actor->PostActorCreated();
+    if (!IsDeferringLifecycleChanges()) {
+        Actor->PostActorCreated();
+    }
 
     return Actor->IsBeingDestroyed() ? nullptr : Actor;
 }
 
 bool UWorld::FinishSpawningActor(AActor* Actor, const FTransform& Transform) {
-    if (Actor == nullptr || Actor->GetWorld() != this || Actor->mHasFinishedSpawning || Actor->mFinishingSpawning || Actor->IsBeingDestroyed()) {
+    if (Actor == nullptr || Actor->GetWorld() != this || Actor->mState.IsSet(AActor::EStateFlag::FinishedSpawning) || Actor->mState.IsSet(AActor::EStateFlag::FinishingSpawning) || Actor->IsBeingDestroyed()) {
         return false;
+    }
+
+    if (IsDeferringLifecycleChanges()) {
+        Actor->mState.Set(AActor::EStateFlag::FinishingSpawning);
+        mPendingLifecycleRequests.push_back({ELifecycleRequestType::FinishSpawningActor, Actor, {}, Transform});
+        return true;
     }
 
     const FActorDispatchScope Dispatch{this};
     const bool HadRootComponent{Actor->GetRootComponent() != nullptr};
 
-    Actor->mFinishingSpawning = true;
+    Actor->mState.Set(AActor::EStateFlag::FinishingSpawning);
     Actor->SetActorTransform(Transform);
     Actor->OnConstruction(Transform);
 
@@ -750,17 +887,19 @@ bool UWorld::FinishSpawningActor(AActor* Actor, const FTransform& Transform) {
         Actor->SetActorTransform(Transform);
     }
 
-    Actor->mFinishingSpawning = false;
+    Actor->mState.Clear(AActor::EStateFlag::FinishingSpawning);
 
     if (Actor->IsBeingDestroyed()) {
         return false;
     }
 
-    Actor->mHasFinishedSpawning = true;
+    Actor->mState.Set(AActor::EStateFlag::FinishedSpawning);
     Actor->RegisterAllComponents();
 
-    if (mHasBegunPlay && !mLoadingScene) {
+    if (mState.IsSet(EStateFlag::HasBegunPlay) && !mState.IsSet(EStateFlag::LoadingScene)) {
         Actor->DispatchBeginPlay();
+    } else if (mState.IsSet(EStateFlag::BeginningPlay) && !mState.IsSet(EStateFlag::LoadingScene)) {
+        Actor->InitializeComponents();
     }
 
     if (Actor->IsBeingDestroyed()) {
@@ -788,10 +927,10 @@ void UWorld::InitializeLoadedActor(AActor& Actor) {
         return;
     }
 
-    Actor.mHasFinishedSpawning = true;
+    Actor.mState.Set(AActor::EStateFlag::FinishedSpawning);
     Actor.RegisterAllComponents();
 
-    if (mHasBegunPlay && !mLoadingScene) {
+    if (mState.IsSet(EStateFlag::HasBegunPlay) && !mState.IsSet(EStateFlag::LoadingScene)) {
         Actor.DispatchBeginPlay();
     }
 
@@ -814,9 +953,9 @@ void UWorld::ClearActors() {
         AActor* Actor{mPersistentLevel->mActors[Index].get()};
 
         if (Actor->GetWorld() == this) {
-            DestroyActorInternal(Actor, mCleaningUp ? EEndPlayReason::Quit : EEndPlayReason::LevelTransition);
-        } else if (!Actor->mBIsBeingDestroyed) {
-            Actor->mBIsBeingDestroyed = true;
+            DestroyActorInternal(Actor, mState.IsSet(EStateFlag::CleaningUp) ? EEndPlayReason::Quit : EEndPlayReason::LevelTransition);
+        } else if (!Actor->mState.IsSet(AActor::EStateFlag::BeingDestroyed)) {
+            Actor->mState.Set(AActor::EStateFlag::BeingDestroyed);
             mPendingDestroyActors.push_back(Actor);
         }
     }
@@ -825,15 +964,15 @@ void UWorld::ClearActors() {
 }
 
 FName UWorld::MakeUniqueObjectName(FName SourceName) {
-    return mInitialized ? UObjectSystem::MakeUniqueObjectName(mPersistentLevel.get(), SourceName) : FName{};
+    return mState.IsSet(EStateFlag::Initialized) ? UObjectSystem::MakeUniqueObjectName(mPersistentLevel.get(), SourceName) : FName{};
 }
 
 AActor* UWorld::FindActorByName(FName InName) const {
-    UObject* Object{mInitialized ? UObjectSystem::FindObject(mPersistentLevel.get(), InName) : nullptr};
+    UObject* Object{mState.IsSet(EStateFlag::Initialized) ? UObjectSystem::FindObject(mPersistentLevel.get(), InName) : nullptr};
 
     AActor* Actor{Object != nullptr && Object->GetClass()->IsChildOf(AActor::StaticClass()) ? static_cast<AActor*>(Object) : nullptr};
 
-    return Actor != nullptr && !Actor->IsBeingDestroyed() ? Actor : nullptr;
+    return Actor != nullptr && !Actor->IsBeingDestroyed() && std::ranges::find(mPersistentLevel->mActors, Actor, &std::unique_ptr<AActor>::get) != mPersistentLevel->mActors.end() ? Actor : nullptr;
 }
 
 void UWorld::SetAssetRegistry(const IAssetRegistry* InAssetRegistry, IAssetRegistryMutator* InAssetRegistryMutator) {

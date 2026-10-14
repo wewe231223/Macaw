@@ -52,21 +52,21 @@ bool UActorComponent::ShouldCreateRenderState() const {
 }
 
 void UActorComponent::CreateRenderState() {
-    if (!mBRegistered || mRenderStateCreated || !ShouldCreateRenderState()) {
+    if (!mState.IsSet(EStateFlag::Registered) || mState.IsSet(EStateFlag::RenderStateCreated) || !ShouldCreateRenderState()) {
         return;
     }
 
-    mRenderStateCreated = true;
-    mRenderStateDirty = false;
-    mRenderTransformDirty = false;
-    mRenderDynamicDataDirty = false;
+    mState.Set(EStateFlag::RenderStateCreated);
+    mState.Clear(EStateFlag::RenderStateDirty);
+    mState.Clear(EStateFlag::RenderTransformDirty);
+    mState.Clear(EStateFlag::RenderDynamicDataDirty);
 }
 
 void UActorComponent::DestroyRenderState() {
-    mRenderStateCreated = false;
-    mRenderStateDirty = false;
-    mRenderTransformDirty = false;
-    mRenderDynamicDataDirty = false;
+    mState.Clear(EStateFlag::RenderStateCreated);
+    mState.Clear(EStateFlag::RenderStateDirty);
+    mState.Clear(EStateFlag::RenderTransformDirty);
+    mState.Clear(EStateFlag::RenderDynamicDataDirty);
 }
 
 void UActorComponent::SendRenderTransform() {
@@ -76,68 +76,68 @@ void UActorComponent::SendRenderDynamicData() {
 }
 
 bool UActorComponent::IsRenderStateCreated() const {
-    return mRenderStateCreated;
+    return mState.IsSet(EStateFlag::RenderStateCreated);
 }
 
 void UActorComponent::MarkRenderStateDirty() {
-    if (!mBRegistered || mUnregistering || (!mRenderStateCreated && !ShouldCreateRenderState())) {
+    if (!mState.IsSet(EStateFlag::Registered) || mState.IsSet(EStateFlag::Unregistering) || (!mState.IsSet(EStateFlag::RenderStateCreated) && !ShouldCreateRenderState())) {
         return;
     }
 
-    mRenderStateDirty = true;
+    mState.Set(EStateFlag::RenderStateDirty);
     mParentWorld->GetRenderSubsystem().MarkComponentDirty(this);
 }
 
 void UActorComponent::MarkRenderTransformDirty() {
-    if (!mBRegistered || mUnregistering || !mRenderStateCreated) {
+    if (!mState.IsSet(EStateFlag::Registered) || mState.IsSet(EStateFlag::Unregistering) || !mState.IsSet(EStateFlag::RenderStateCreated)) {
         return;
     }
 
-    mRenderTransformDirty = true;
+    mState.Set(EStateFlag::RenderTransformDirty);
     mParentWorld->GetRenderSubsystem().MarkComponentDirty(this);
 }
 
 void UActorComponent::MarkRenderDynamicDataDirty() {
-    if (!mBRegistered || mUnregistering) {
+    if (!mState.IsSet(EStateFlag::Registered) || mState.IsSet(EStateFlag::Unregistering)) {
         return;
     }
 
-    if (!mRenderStateCreated) {
+    if (!mState.IsSet(EStateFlag::RenderStateCreated)) {
         MarkRenderStateDirty();
         return;
     }
 
-    mRenderDynamicDataDirty = true;
+    mState.Set(EStateFlag::RenderDynamicDataDirty);
     mParentWorld->GetRenderSubsystem().MarkComponentDirty(this);
 }
 
 void UActorComponent::DoDeferredRenderUpdates() {
-    if (!mBRegistered || mUnregistering) {
+    if (!mState.IsSet(EStateFlag::Registered) || mState.IsSet(EStateFlag::Unregistering)) {
         return;
     }
 
     const UWorld::FActorDispatchScope Dispatch{mParentWorld};
 
-    if (mRenderStateDirty) {
-        if (mRenderStateCreated) {
+    if (mState.IsSet(EStateFlag::RenderStateDirty)) {
+        if (mState.IsSet(EStateFlag::RenderStateCreated)) {
             DestroyRenderState();
         }
 
-        mRenderStateDirty = false;
-        mRenderTransformDirty = false;
-        mRenderDynamicDataDirty = false;
+        mState.Clear(EStateFlag::RenderStateDirty);
+        mState.Clear(EStateFlag::RenderTransformDirty);
+        mState.Clear(EStateFlag::RenderDynamicDataDirty);
 
-        if (mBRegistered && !mBIsBeingDestroyed && !mOwner->IsBeingDestroyed() && ShouldCreateRenderState()) {
+        if (mState.IsSet(EStateFlag::Registered) && !mState.IsSet(EStateFlag::BeingDestroyed) && !mOwner->IsBeingDestroyed() && ShouldCreateRenderState()) {
             CreateRenderState();
         }
     } else {
-        if (mRenderTransformDirty) {
-            mRenderTransformDirty = false;
+        if (mState.IsSet(EStateFlag::RenderTransformDirty)) {
+            mState.Clear(EStateFlag::RenderTransformDirty);
             SendRenderTransform();
         }
 
-        if (mRenderDynamicDataDirty) {
-            mRenderDynamicDataDirty = false;
+        if (mState.IsSet(EStateFlag::RenderDynamicDataDirty)) {
+            mState.Clear(EStateFlag::RenderDynamicDataDirty);
             SendRenderDynamicData();
         }
     }
@@ -148,7 +148,7 @@ bool UActorComponent::IsActive() const {
 }
 
 void UActorComponent::SetActive(bool BInActive) {
-    if (mBActive == BInActive || mBIsBeingDestroyed) {
+    if (mBActive == BInActive || mState.IsSet(EStateFlag::BeingDestroyed)) {
         return;
     }
 
@@ -160,7 +160,7 @@ void UActorComponent::SetActive(bool BInActive) {
 }
 
 void UActorComponent::Activate() {
-    if (mBIsBeingDestroyed) {
+    if (mState.IsSet(EStateFlag::BeingDestroyed)) {
         return;
     }
 
@@ -213,15 +213,15 @@ const FActorComponentTickFunction& UActorComponent::GetTickFunction() const {
 }
 
 void UActorComponent::SetWantsInitializeComponent(bool WantsInitializeComponent) {
-    mWantsInitializeComponent = WantsInitializeComponent;
+    mState.Set(EStateFlag::WantsInitialize, WantsInitializeComponent);
 
-    if (WantsInitializeComponent && mOwner != nullptr) {
-        mOwner->QueueComponentInitialization(*this);
+    if (WantsInitializeComponent && mOwner != nullptr && mOwner->GetWorld() != nullptr && mOwner->GetWorld()->IsDeferringLifecycleChanges()) {
+        mOwner->GetWorld()->mPendingLifecycleRequests.push_back({UWorld::ELifecycleRequestType::AdvanceComponent, this});
     }
 }
 
 bool UActorComponent::IsBeingDestroyed() const {
-    return mBIsBeingDestroyed;
+    return mState.HasAny({EStateFlag::BeingDestroyed, EStateFlag::DestroyRequested});
 }
 
 void UActorComponent::UpdateTickRegistration() {
@@ -237,15 +237,15 @@ void UActorComponent::UpdateTickRegistration() {
 }
 
 bool UActorComponent::IsRegistered() const {
-    return mBRegistered;
+    return mState.IsSet(EStateFlag::Registered);
 }
 
 bool UActorComponent::IsInitialized() const {
-    return mBInitialized;
+    return mState.IsSet(EStateFlag::Initialized);
 }
 
 bool UActorComponent::HasBegunPlay() const {
-    return mBHasBegunPlay;
+    return mState.IsSet(EStateFlag::HasBegunPlay);
 }
 
 UWorld* UActorComponent::GetBelongingWorld() const {
@@ -253,96 +253,132 @@ UWorld* UActorComponent::GetBelongingWorld() const {
 }
 
 void UActorComponent::RegisterComponent(UWorld* World) {
-    if (mBRegistered || mRegistering || mUnregistering || mBIsBeingDestroyed || (mOwner != nullptr && mOwner->IsBeingDestroyed())) {
+    if (mState.HasAny({EStateFlag::Registering, EStateFlag::Unregistering}) || IsBeingDestroyed() || (mOwner != nullptr && mOwner->IsBeingDestroyed())) {
         return;
     }
 
     ErrorHandler::Report(mOwner == nullptr || World == nullptr, "UActorComponent", "Component registration requires an owner and a world", ErrorHandler::EErrorLevel::Critical);
     ErrorHandler::Report(World != mOwner->GetWorld(), "UActorComponent", "Component world must match its owner", ErrorHandler::EErrorLevel::Critical);
 
+    if (World->IsDeferringLifecycleChanges()) {
+        World->mPendingLifecycleRequests.push_back({UWorld::ELifecycleRequestType::RegisterComponent, this});
+        return;
+    }
+
+    if (mState.IsSet(EStateFlag::Registered)) {
+        return;
+    }
+
     const UWorld::FActorDispatchScope Dispatch{World};
 
     mParentWorld = World;
-    mBRegistered = true;
-    mRegistering = true;
+    mState.Set(EStateFlag::Registered);
+    mState.Set(EStateFlag::Registering);
     OnRegister();
 
-    if (mBRegistered && !mRenderStateCreated && !mBIsBeingDestroyed && !mOwner->IsBeingDestroyed() && ShouldCreateRenderState()) {
+    if (mState.IsSet(EStateFlag::Registered) && !mState.IsSet(EStateFlag::RenderStateCreated) && !mState.IsSet(EStateFlag::BeingDestroyed) && !mOwner->IsBeingDestroyed() && ShouldCreateRenderState()) {
         CreateRenderState();
     }
 
-    mRegistering = false;
+    mState.Clear(EStateFlag::Registering);
 
     mOwner->OnComponentRegistered(*this);
     UpdateTickRegistration();
 }
 
 void UActorComponent::UnregisterComponent() {
-    if (!mBRegistered || mUnregistering) {
+    if (mState.IsSet(EStateFlag::Unregistering)) {
+        return;
+    }
+
+    UWorld* World{mOwner != nullptr ? mOwner->GetWorld() : mParentWorld};
+
+    if (World != nullptr && World->IsDeferringLifecycleChanges()) {
+        World->mPendingLifecycleRequests.push_back({UWorld::ELifecycleRequestType::UnregisterComponent, this});
+        return;
+    }
+
+    if (!mState.IsSet(EStateFlag::Registered)) {
         return;
     }
 
     const UWorld::FActorDispatchScope Dispatch{mParentWorld};
 
-    mUnregistering = true;
+    mState.Set(EStateFlag::Unregistering);
 
-    if (mRenderStateCreated) {
+    if (mState.IsSet(EStateFlag::RenderStateCreated)) {
         DestroyRenderState();
     }
 
-    mBRegistered = false;
+    mState.Clear(EStateFlag::Registered);
     UpdateTickRegistration();
     OnUnregister();
     mParentWorld = nullptr;
-    mUnregistering = false;
+    mState.Clear(EStateFlag::Unregistering);
 }
 
 void UActorComponent::DispatchInitializeComponent() {
-    if (!mWantsInitializeComponent || mBInitialized || !mBRegistered || mBIsBeingDestroyed) {
+    if (!mState.IsSet(EStateFlag::WantsInitialize) || mState.IsSet(EStateFlag::Initialized) || !mState.IsSet(EStateFlag::Registered) || IsBeingDestroyed()) {
         return;
     }
 
-    mBInitialized = true;
+    mState.Set(EStateFlag::Initialized);
     InitializeComponent();
 }
 
 void UActorComponent::DispatchUninitializeComponent() {
-    if (!mBInitialized) {
+    if (!mState.IsSet(EStateFlag::Initialized)) {
         return;
     }
 
-    mBInitialized = false;
+    mState.Clear(EStateFlag::Initialized);
     UninitializeComponent();
 }
 
 void UActorComponent::DispatchBeginPlay() {
-    if (!mBRegistered || mBHasBegunPlay || mBIsBeingDestroyed) {
+    if (!mState.IsSet(EStateFlag::Registered) || mState.IsSet(EStateFlag::HasBegunPlay) || IsBeingDestroyed()) {
         return;
     }
 
-    mBHasBegunPlay = true;
+    mState.Set(EStateFlag::HasBegunPlay);
     BeginPlay();
     UpdateTickRegistration();
 }
 
 void UActorComponent::DispatchEndPlay(EEndPlayReason Reason) {
-    if (!mBHasBegunPlay) {
+    if (!mState.IsSet(EStateFlag::HasBegunPlay)) {
         return;
     }
 
-    mBHasBegunPlay = false;
+    mState.Clear(EStateFlag::HasBegunPlay);
     UpdateTickRegistration();
     EndPlay(Reason);
 }
 
+bool UActorComponent::DeferComponentDestruction(bool BPromoteChildren) {
+    if (IsBeingDestroyed()) {
+        return true;
+    }
+
+    UWorld* World{mOwner != nullptr ? mOwner->GetWorld() : nullptr};
+
+    if (World != nullptr && World->IsDeferringLifecycleChanges()) {
+        mState.Set(EStateFlag::DestroyRequested);
+        World->mPendingLifecycleRequests.push_back({UWorld::ELifecycleRequestType::DestroyComponent, this, {}, {}, EEndPlayReason::Destroyed, BPromoteChildren});
+        return true;
+    }
+
+    return false;
+}
+
 void UActorComponent::DestroyComponent(bool BPromoteChildren) {
-    if (mBIsBeingDestroyed) {
+    if (DeferComponentDestruction(BPromoteChildren)) {
         return;
     }
 
     const UWorld::FActorDispatchScope Dispatch{mOwner != nullptr ? mOwner->GetWorld() : nullptr};
 
-    mBIsBeingDestroyed = true;
+    mState.Set(EStateFlag::BeingDestroyed);
     DispatchEndPlay(EEndPlayReason::Destroyed);
     DispatchUninitializeComponent();
     UnregisterComponent();

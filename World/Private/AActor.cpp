@@ -11,7 +11,7 @@ const std::vector<std::unique_ptr<UActorComponent>>& AActor::GetComponents() con
 }
 
 AActor::~AActor() {
-    mBIsBeingDestroyed = true;
+    mState.Set(EStateFlag::BeingDestroyed);
     SetWorld(nullptr);
 
     while (!mComponents.empty()) {
@@ -20,7 +20,7 @@ AActor::~AActor() {
 }
 
 UActorComponent* AActor::AddComponent(const UClass& Type) {
-    if (mBIsBeingDestroyed || !Type.CanCreateInstance() || !Type.IsChildOf(UActorComponent::StaticClass())) {
+    if (IsBeingDestroyed() || !Type.CanCreateInstance() || !Type.IsChildOf(UActorComponent::StaticClass())) {
         return nullptr;
     }
 
@@ -39,15 +39,21 @@ UActorComponent* AActor::AddComponent(const UClass& Type) {
     if (!UObjectSystem::Register(ComponentPtr).IsValid()) {
         return nullptr;
     }
+
+    if (mWorld != nullptr && mWorld->IsDeferringLifecycleChanges()) {
+        mWorld->mPendingLifecycleRequests.push_back({UWorld::ELifecycleRequestType::AddComponent, ComponentPtr, std::move(NewComponent)});
+        return ComponentPtr;
+    }
+
     mComponents.push_back(std::move(NewComponent));
 
     FinishAddingComponent(*ComponentPtr);
 
-    if (mWorld != nullptr && mHasFinishedSpawning && !mBIsBeingDestroyed) {
+    if (mWorld != nullptr && mState.IsSet(EStateFlag::FinishedSpawning) && !IsBeingDestroyed()) {
         mWorld->MarkStructureDirty();
     }
 
-    return ComponentPtr->IsBeingDestroyed() || mBIsBeingDestroyed ? nullptr : ComponentPtr;
+    return ComponentPtr->IsBeingDestroyed() || IsBeingDestroyed() ? nullptr : ComponentPtr;
 }
 
 void AActor::RemoveOwnedComponent(UActorComponent* Component) {
@@ -67,7 +73,7 @@ void AActor::RemoveOwnedComponent(UActorComponent* Component) {
     mPendingDestroyComponents.push_back(std::move(*Iterator));
     mComponents.erase(Iterator);
 
-    if (mWorld != nullptr && !mBIsBeingDestroyed) {
+    if (mWorld != nullptr && !mState.IsSet(EStateFlag::BeingDestroyed)) {
         mWorld->MarkStructureDirty();
     }
 }
@@ -81,18 +87,12 @@ const USceneComponent* AActor::GetRootComponent() const {
 }
 
 bool AActor::SetRootComponent(USceneComponent* InRootComponent) {
-    if (mBIsBeingDestroyed || (InRootComponent != nullptr && InRootComponent->IsBeingDestroyed())) {
+    if (IsBeingDestroyed() || (InRootComponent != nullptr && InRootComponent->IsBeingDestroyed())) {
         return false;
     }
 
-    if (InRootComponent != nullptr) {
-        const bool BIsOwnedComponent{std::ranges::any_of(mComponents, [InRootComponent](const std::unique_ptr<UActorComponent>& Component) {
-            return Component.get() == InRootComponent;
-        })};
-
-        if (!BIsOwnedComponent) {
-            return false;
-        }
+    if (InRootComponent != nullptr && InRootComponent->GetOwner() != this) {
+        return false;
     }
 
     mRootComponent = InRootComponent;
@@ -121,7 +121,7 @@ void AActor::SetWorld(UWorld* InWorld) {
         mWorld = nullptr;
     }
 
-    if (InWorld != nullptr && !mBIsBeingDestroyed) {
+    if (InWorld != nullptr && !mState.IsSet(EStateFlag::BeingDestroyed)) {
         mWorld = InWorld;
         OnAddedToWorld();
     }
@@ -136,22 +136,18 @@ ULevel* AActor::GetLevel() const {
 }
 
 void AActor::FinishAddingComponent(UActorComponent& Component) {
-    if (mWorld != nullptr && mHasFinishedSpawning && !mBIsBeingDestroyed) {
+    if (mWorld != nullptr && mState.IsSet(EStateFlag::FinishedSpawning) && !mState.IsSet(EStateFlag::BeingDestroyed)) {
         Component.RegisterComponent(mWorld);
     }
 }
 
 void AActor::OnComponentRegistered(UActorComponent& Component) {
-    if (mActorInitialized) {
-        AdvanceComponentLifecycle(Component);
-    } else {
-        QueueComponentInitialization(Component);
-    }
-}
-
-void AActor::QueueComponentInitialization(UActorComponent& Component) {
-    if (!mActorInitialized && mLifecyclePhase == ELifecyclePhase::InitializingComponents && Component.IsRegistered() && !Component.IsInitialized() && !Component.IsBeingDestroyed()) {
-        mPendingInitializeComponents.push_back(&Component);
+    if (mState.IsSet(EStateFlag::Initialized)) {
+        if (mWorld->IsDeferringLifecycleChanges()) {
+            mWorld->mPendingLifecycleRequests.push_back({UWorld::ELifecycleRequestType::AdvanceComponent, &Component});
+        } else {
+            AdvanceComponentLifecycle(Component);
+        }
     }
 }
 
@@ -160,15 +156,17 @@ void AActor::AdvanceComponentLifecycle(UActorComponent& Component) {
         return;
     }
 
+    const UWorld::FLifecycleScope Lifecycle{*mWorld};
+
     Component.DispatchInitializeComponent();
 
-    if (mBHasBegunPlay && CanAdvanceComponentLifecycle()) {
+    if (mState.IsSet(EStateFlag::HasBegunPlay) && CanAdvanceComponentLifecycle()) {
         Component.DispatchBeginPlay();
     }
 }
 
 bool AActor::CanAdvanceComponentLifecycle() const {
-    return mWorld != nullptr && !mBIsBeingDestroyed && !mEndPlayRequested && !mWorld->mEndPlayRequested && mLifecyclePhase != ELifecyclePhase::EndingPlay;
+    return mWorld != nullptr && !IsBeingDestroyed() && !mWorld->mState.IsSet(UWorld::EStateFlag::EndPlayRequested) && mLifecyclePhase != ELifecyclePhase::EndingPlay;
 }
 
 TArray<UActorComponent*> AActor::GetComponentSnapshot() const {
@@ -187,7 +185,7 @@ void AActor::RegisterAllComponents() {
     const UWorld::FActorDispatchScope Dispatch{mWorld};
 
     for (UActorComponent* Component : GetComponentSnapshot()) {
-        if (mBIsBeingDestroyed) {
+        if (mState.IsSet(EStateFlag::BeingDestroyed)) {
             break;
         }
 
@@ -200,7 +198,7 @@ void AActor::RegisterAllComponents() {
 }
 
 void AActor::DispatchBeginPlay() {
-    if (!CanAdvanceComponentLifecycle() || !mWorld->HasBegunPlay() || mBHasBegunPlay || mLifecyclePhase != ELifecyclePhase::None || !mHasFinishedSpawning) {
+    if (!CanAdvanceComponentLifecycle() || !mWorld->HasBegunPlay() || mState.IsSet(EStateFlag::HasBegunPlay) || mLifecyclePhase != ELifecyclePhase::None || !mState.IsSet(EStateFlag::FinishedSpawning)) {
         return;
     }
 
@@ -208,14 +206,15 @@ void AActor::DispatchBeginPlay() {
 
     InitializeComponents();
 
-    if (!CanAdvanceComponentLifecycle() || !mWorld->HasBegunPlay() || !mActorInitialized) {
+    if (!CanAdvanceComponentLifecycle() || !mWorld->HasBegunPlay() || !mState.IsSet(EStateFlag::Initialized)) {
         return;
     }
 
-    mBHasBegunPlay = true;
+    mState.Set(EStateFlag::HasBegunPlay);
     mLifecyclePhase = ELifecyclePhase::BeginningPlay;
+    const UWorld::FLifecycleScope Lifecycle{*mWorld};
 
-    for (UActorComponent* Component : GetComponentSnapshot()) {
+    for (const std::unique_ptr<UActorComponent>& Component : mComponents) {
         if (!CanAdvanceComponentLifecycle()) {
             break;
         }
@@ -229,10 +228,6 @@ void AActor::DispatchBeginPlay() {
 
     mLifecyclePhase = ELifecyclePhase::None;
     UpdateTickRegistration();
-
-    if (mEndPlayRequested) {
-        DispatchEndPlay(mEndPlayReason);
-    }
 }
 
 void AActor::DispatchEndPlay(EEndPlayReason Reason) {
@@ -240,19 +235,12 @@ void AActor::DispatchEndPlay(EEndPlayReason Reason) {
         return;
     }
 
-    if (mLifecyclePhase != ELifecyclePhase::None) {
-        mEndPlayRequested = true;
-        mEndPlayReason = Reason;
-        return;
-    }
-
     const UWorld::FActorDispatchScope Dispatch{mWorld};
-    const bool HadBegunPlay{mBHasBegunPlay};
+    const bool HadBegunPlay{mState.IsSet(EStateFlag::HasBegunPlay)};
 
     mLifecyclePhase = ELifecyclePhase::EndingPlay;
-    mEndPlayRequested = false;
-    mBHasBegunPlay = false;
-    mActorInitialized = false;
+    mState.Clear(EStateFlag::HasBegunPlay);
+    mState.Clear(EStateFlag::Initialized);
     UpdateTickRegistration();
 
     if (HadBegunPlay) {
@@ -398,15 +386,15 @@ bool AActor::SetActorRelativeScale3D(const FVector3& Scale) {
 }
 
 bool AActor::HasBegunPlay() const {
-    return mBHasBegunPlay;
+    return mState.IsSet(EStateFlag::HasBegunPlay);
 }
 
 bool AActor::IsBeingDestroyed() const {
-    return mBIsBeingDestroyed;
+    return mState.HasAny({EStateFlag::BeingDestroyed, EStateFlag::DestroyRequested});
 }
 
 bool AActor::HasFinishedSpawning() const {
-    return mHasFinishedSpawning;
+    return mState.IsSet(EStateFlag::FinishedSpawning);
 }
 
 bool AActor::CanEverTick() const {
@@ -495,34 +483,30 @@ void AActor::OnAddedToWorld() {
 }
 
 void AActor::InitializeComponents() {
-    if (mActorInitialized || mLifecyclePhase != ELifecyclePhase::None || !CanAdvanceComponentLifecycle() || !mHasFinishedSpawning) {
+    if (mState.IsSet(EStateFlag::Initialized) || mLifecyclePhase != ELifecyclePhase::None || !CanAdvanceComponentLifecycle() || !mState.IsSet(EStateFlag::FinishedSpawning)) {
         return;
     }
 
     const UWorld::FActorDispatchScope Dispatch{mWorld};
+    const UWorld::FLifecycleScope Lifecycle{*mWorld};
 
     mLifecyclePhase = ELifecyclePhase::InitializingComponents;
-    mPendingInitializeComponents = GetComponentSnapshot();
     PreInitializeComponents();
 
-    for (std::size_t Index{}; Index < mPendingInitializeComponents.size() && CanAdvanceComponentLifecycle(); ++Index) {
-        UActorComponent* Component{mPendingInitializeComponents[Index]};
+    for (const std::unique_ptr<UActorComponent>& Component : mComponents) {
+        if (!CanAdvanceComponentLifecycle()) {
+            break;
+        }
 
         AdvanceComponentLifecycle(*Component);
     }
 
-    mPendingInitializeComponents.clear();
-
     if (CanAdvanceComponentLifecycle()) {
-        mActorInitialized = true;
+        mState.Set(EStateFlag::Initialized);
         PostInitializeComponents();
     }
 
     mLifecyclePhase = ELifecyclePhase::None;
-
-    if (mEndPlayRequested) {
-        DispatchEndPlay(mEndPlayReason);
-    }
 }
 
 void AActor::BeginPlay() {
@@ -583,7 +567,7 @@ bool AActor::CanChangeOuter(const UObject* NewOuter) const {
 }
 
 void AActor::OnIdentityChanged() {
-    if (mWorld != nullptr && !mBIsBeingDestroyed) {
+    if (mWorld != nullptr && !mState.IsSet(EStateFlag::BeingDestroyed)) {
         mWorld->MarkStructureDirty();
     }
 }

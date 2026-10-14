@@ -5,6 +5,7 @@
 #include "World/Tick/FActorComponentTickFunction.h"
 #include "CoreUObject/UObject.h"
 #include "Core/Archive/FArchive.h"
+#include "Core/Base/TStateFlags.h"
 #include "World/EEndPlayReason.h"
 
 class AActor;
@@ -13,6 +14,23 @@ class UWorld;
 class UActorComponent : public UObject {
 public:
     ReflectTypes(UActorComponent, UObject);
+
+private:
+    enum class EStateFlag {
+        WantsInitialize,
+        Registering,
+        Unregistering,
+        Registered,
+        Initialized,
+        HasBegunPlay,
+        BeingDestroyed,
+        DestroyRequested,
+        RenderStateCreated,
+        RenderStateDirty,
+        RenderTransformDirty,
+        RenderDynamicDataDirty,
+        Count
+    };
 
 public:
     UActorComponent();
@@ -102,11 +120,13 @@ private:
     friend class AActor;
     friend class FWorldSerializer;
     friend class UWorld;
+    friend class USceneComponent;
 
     void SetOwner(AActor* InOwner);
     bool CanChangeOuter(const UObject* NewOuter) const override;
     void OnIdentityChanged() override;
     void UpdateTickRegistration();
+    bool DeferComponentDestruction(bool BPromoteChildren);
     /// <summary>초기화를 요청한 등록 컴포넌트의 상태를 갱신하고 초기화 콜백을 호출합니다.</summary>
     void DispatchInitializeComponent();
     /// <summary>초기화된 상태를 해제하고 정리 콜백을 한 번 호출합니다.</summary>
@@ -120,22 +140,9 @@ private:
     UWorld* mParentWorld{nullptr};
     FActorComponentTickFunction mPrimaryComponentTick{*this};
 
-    // 플레이 초기화 시 InitializeComponent 호출이 필요한지 나타냅니다.
-    bool mWantsInitializeComponent{};
-    // 등록 콜백에서 다시 등록하는 것을 막습니다.
-    bool mRegistering{};
-    // 등록 해제 콜백에서 등록 상태를 다시 바꾸는 것을 막습니다.
-    bool mUnregistering{};
+    TStateFlags<EStateFlag> mState{};
     ReflectAccessor(mBActive, IsActive, SetActive, "bActive", EPropertyFlags::Edit | EPropertyFlags::Serialize, ReflectSerializer(mBActive), ReflectEditor("Component", "Active"));
     bool mBActive{true};
-    bool mBRegistered{false};
-    bool mBInitialized{false};
-    bool mBHasBegunPlay{false};
-    bool mBIsBeingDestroyed{false};
-    bool mRenderStateCreated{};
-    bool mRenderStateDirty{};
-    bool mRenderTransformDirty{};
-    bool mRenderDynamicDataDirty{};
 
     ReflectMembers();
 };

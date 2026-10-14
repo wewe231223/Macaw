@@ -104,7 +104,7 @@ void USceneComponent::OnUnregister() {
 }
 
 void USceneComponent::DestroyComponent(bool BPromoteChildren) {
-    if (IsBeingDestroyed() || mDestroyingHierarchy) {
+    if (DeferComponentDestruction(BPromoteChildren) || mDestroyingHierarchy) {
         return;
     }
 

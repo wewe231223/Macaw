@@ -2,6 +2,7 @@
 #include "CoreUObject/Reflection/ReflectionMacros.h"
 #include "CoreUObject/Reflection/UClass.h"
 #include "Core/Common.h"
+#include "Core/Base/TStateFlags.h"
 #include "World/Tick/FActorTickFunction.h"
 #include "CoreUObject/UObject.h"
 #include "World/Component/UActorComponent.h"
@@ -17,6 +18,16 @@ public:
     ReflectTypes(AActor, UObject);
 
 private:
+    enum class EStateFlag {
+        HasBegunPlay,
+        Initialized,
+        FinishedSpawning,
+        FinishingSpawning,
+        DestroyRequested,
+        BeingDestroyed,
+        Count
+    };
+
     enum class ELifecyclePhase {
         None,
         InitializingComponents,
@@ -204,7 +215,6 @@ private:
     TArray<UActorComponent*> GetComponentSnapshot() const;
     void FinishAddingComponent(UActorComponent& Component);
     void OnComponentRegistered(UActorComponent& Component);
-    void QueueComponentInitialization(UActorComponent& Component);
     void AdvanceComponentLifecycle(UActorComponent& Component);
     bool CanAdvanceComponentLifecycle() const;
     void RemoveOwnedComponent(UActorComponent* Component);
@@ -215,7 +225,6 @@ private:
     std::vector<std::unique_ptr<UActorComponent>> mComponents{};
     // 파괴 처리 후 메모리 해제를 기다리는 컴포넌트입니다.
     std::vector<std::unique_ptr<UActorComponent>> mPendingDestroyComponents{};
-    TArray<UActorComponent*> mPendingInitializeComponents{};
     FActorTickFunction mPrimaryActorTick{*this};
     ReflectReadOnlyProperty(mRootComponent, "GuidRootComponent", EPropertyFlags::Serialize | EPropertyFlags::ReadOnly | EPropertyFlags::Reference, &SerializeRootComponentProperty);
     USceneComponent* mRootComponent{nullptr};
@@ -223,20 +232,8 @@ private:
     FGuid mPendingRootComponentGuid{};
 
     UWorld* mWorld{nullptr};
-    bool mBHasBegunPlay{false};
+    TStateFlags<EStateFlag> mState{};
     ELifecyclePhase mLifecyclePhase{ELifecyclePhase::None};
-    // 소유 컴포넌트의 플레이용 초기화 단계를 완료했는지 나타냅니다.
-    bool mActorInitialized{};
-    // 생성 구성을 마쳐 컴포넌트 등록과 플레이 시작이 가능한 상태입니다.
-    bool mHasFinishedSpawning{};
-    // 생성 완료 처리의 중복 진입을 막습니다.
-    bool mFinishingSpawning{};
-    // 초기화 또는 플레이 시작 콜백 이후 처리할 종료 요청입니다.
-    bool mEndPlayRequested{};
-    // 파괴가 시작되어 새 동작을 허용하지 않는 상태입니다.
-    bool mBIsBeingDestroyed{};
-    // 보류한 플레이 종료 요청의 이유입니다.
-    EEndPlayReason mEndPlayReason{EEndPlayReason::RemovedFromWorld};
 
     ReflectMembers();
 };

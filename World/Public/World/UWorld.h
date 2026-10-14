@@ -34,6 +34,54 @@ public:
     ReflectTypes(UWorld, UObject);
 
 private:
+    enum class EStateFlag {
+        Initialized,
+        HasBegunPlay,
+        EndingPlay,
+        BeginningPlay,
+        EndPlayRequested,
+        ProcessingLifecycleRequests,
+        CleaningUp,
+        LoadingScene,
+        FlushingActors,
+        Ticking,
+        ActorTickFunctionsNeedCompaction,
+        ComponentTickFunctionsNeedCompaction,
+        Count
+    };
+
+    enum class ELifecycleRequestType {
+        AddActor,
+        FinishSpawningActor,
+        AddComponent,
+        RegisterComponent,
+        UnregisterComponent,
+        AdvanceComponent,
+        DestroyActor,
+        DestroyComponent
+    };
+
+    struct FLifecycleRequest {
+    public:
+        ELifecycleRequestType mType{ELifecycleRequestType::AddActor};
+        UObject* mTarget{};
+        std::unique_ptr<UObject> mOwner{};
+        FTransform mTransform{};
+        EEndPlayReason mReason{EEndPlayReason::Destroyed};
+        bool mPromoteChildren{};
+    };
+
+    class FLifecycleScope final {
+    public:
+        explicit FLifecycleScope(UWorld& World);
+        ~FLifecycleScope();
+        FLifecycleScope(const FLifecycleScope&) = delete;
+        FLifecycleScope& operator=(const FLifecycleScope&) = delete;
+
+    private:
+        UWorld& mWorld;
+    };
+
     /// <summary>생명주기와 알림 콜백 중 객체가 해제되지 않도록 호출 깊이를 추적합니다.</summary>
     class FActorDispatchScope final {
     public:
@@ -152,6 +200,8 @@ private:
     friend class USceneComponent;
 
     void NotifyWorldChanged(EWorldChange Change, AActor* Actor = nullptr);
+    bool IsDeferringLifecycleChanges() const;
+    void ProcessPendingLifecycleChanges();
     void ClearActors();
     /// <summary>종료 이유에 따라 Actor를 파괴 상태로 전환하고 메모리 해제를 예약합니다.</summary>
     bool DestroyActorInternal(AActor* Actor, EEndPlayReason Reason);
@@ -162,8 +212,8 @@ private:
     /// <summary>컴포넌트를 Tick 목록에서 제외하고 순회 중이면 빈 항목으로 남깁니다.</summary>
     void UnregisterTickComponent(UActorComponent* Component);
     void RegisterTickFunction(FTickFunction& TickFunction, TArray<FTickFunction*>& TickFunctions);
-    void UnregisterTickFunction(FTickFunction& TickFunction, TArray<FTickFunction*>& TickFunctions, bool& NeedsCompaction);
-    void CompactTickFunctions(TArray<FTickFunction*>& TickFunctions, bool& NeedsCompaction);
+    void UnregisterTickFunction(FTickFunction& TickFunction, TArray<FTickFunction*>& TickFunctions, EStateFlag CompactionFlag);
+    void CompactTickFunctions(TArray<FTickFunction*>& TickFunctions, EStateFlag CompactionFlag);
     /// <summary>Tick 순회를 종료하고 Actor와 컴포넌트 목록의 빈 항목을 정리합니다.</summary>
     void FinishTicks();
     /// <summary>Actor 소유권을 Level로 옮기고 객체 등록과 World 연결을 수행합니다.</summary>
@@ -182,24 +232,15 @@ private:
 
     std::unique_ptr<ULevel> mPersistentLevel{};
     EWorldType mWorldType{EWorldType::Editor};
-    bool mInitialized{};
-    bool mHasBegunPlay{};
-    bool mEndingPlay{};
-    bool mBeginningPlay{};
-    bool mEndPlayRequested{};
+    TStateFlags<EStateFlag> mState{};
     // 안전한 시점까지 보류한 플레이 종료 요청의 이유입니다.
     EEndPlayReason mEndPlayReason{EEndPlayReason::RemovedFromWorld};
     std::size_t mActorDispatchDepth{};
-    bool mCleaningUp{};
-    bool mLoadingScene{};
-    bool mFlushingActors{};
+    std::size_t mLifecycleDepth{};
+    TArray<FLifecycleRequest> mPendingLifecycleRequests{};
     TArray<AActor*> mPendingDestroyActors{};
     TArray<FTickFunction*> mActorTickFunctions{};
     TArray<FTickFunction*> mComponentTickFunctions{};
-    bool mTicking{};
-    bool mActorTickFunctionsNeedCompaction{};
-    // Tick 도중 제거된 컴포넌트의 빈 항목을 정리해야 하는지 나타냅니다.
-    bool mComponentTickFunctionsNeedCompaction{};
 
     const IAssetRegistry* mAssetRegistry{nullptr};
     IAssetRegistryMutator* mAssetRegistryMutator{nullptr};

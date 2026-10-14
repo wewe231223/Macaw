@@ -8,13 +8,13 @@
 
 FWorldSerializer::FLoadScope::FLoadScope(UWorld& World)
 	: mWorld{World},
-	  mWasPlaying{World.mHasBegunPlay} {
+	  mWasPlaying{World.HasBegunPlay()} {
     mWorld.EndPlay(EEndPlayReason::LevelTransition);
-    mWorld.mLoadingScene = true;
+    mWorld.mState.Set(UWorld::EStateFlag::LoadingScene);
 }
 
 FWorldSerializer::FLoadScope::~FLoadScope() {
-    mWorld.mLoadingScene = false;
+    mWorld.mState.Clear(UWorld::EStateFlag::LoadingScene);
     mWorld.RefreshActorTicks();
 
     if (mWasPlaying) {
