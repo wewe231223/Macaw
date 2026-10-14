@@ -1,3 +1,7 @@
+/**
+ * @file NativeSerialization.h
+ * @brief 네이티브 값, 리플렉션 구조체와 지속 에셋·객체 참조의 직렬화를 제공합니다.
+ */
 #pragma once
 
 #include "Core/Archive/FArchive.h"
@@ -5,15 +9,54 @@
 #include <filesystem>
 #include "Core/Asset/FAssetPath.h"
 
+/**
+ * @brief 구조체 메타데이터의 직렬화 대상 프로퍼티를 처리합니다.
+ * @param Struct 사용할 유효한 구조체 메타데이터입니다.
+ * @param Container 구조체 타입의 저장 공간입니다.
+ * @param Archive 사용할 아카이브입니다.
+ * @param IncludeInherited 기반 구조체 프로퍼티 포함 여부입니다.
+ */
 void SerializeScriptStructProperties(const UScriptStruct* Struct, void* Container, FArchive& Archive, bool IncludeInherited);
 
+/**
+ * @brief 네이티브 타입에 맞는 아카이브 직렬화 경로를 선택합니다.
+ * @tparam T 직렬화할 값 타입입니다.
+ * @param Archive 저장 또는 로드 아카이브입니다.
+ * @param Name 필드 또는 범위 이름입니다.
+ * @param[in,out] Value 저장할 값 또는 로드 결과입니다.
+ * @note 열거형은 Int64, 파일 경로는 일반 형식 문자열로 처리합니다. 사용자 Serialize, 리플렉션 구조체, 크기 조절 가능한 컨테이너와 아카이브 직접 지원 타입을 순서대로 검사하며 미지원 타입은 아카이브 오류를 설정합니다.
+ */
 template <typename T>
 void SerializeNativeValue(FArchive& Archive, std::string_view Name, T& Value);
 
+/**
+ * @brief 에셋 참조의 GUID와 경로를 직렬화하고 로드 시 핸들을 해석합니다.
+ * @param Archive 에셋 해석기를 선택적으로 제공하는 아카이브입니다.
+ * @param GuidName GUID 필드 이름입니다.
+ * @param PathName 경로 필드 이름입니다.
+ * @param[in,out] Handle 저장 시 식별 정보 조회에 사용하며 로드 시 해석 결과를 저장합니다.
+ * @param[in,out] Guid 지속 에셋 GUID입니다.
+ * @param[in,out] Path 지속 에셋 경로입니다.
+ * @note 로드 시 GUID 검색에 실패하면 경로로 검색합니다. 해석기가 없으면 무효 핸들로 설정합니다.
+ */
 void SerializeAssetReference(FArchive& Archive, std::string_view GuidName, std::string_view PathName, FAssetHandle& Handle, FGuid& Guid, FAssetPath& Path);
 
+/**
+ * @brief 객체 참조를 GUID 문자열로 직렬화하고 로드 GUID를 참조 재매핑합니다.
+ * @param Archive 사용할 아카이브입니다.
+ * @param Name GUID 문자열 필드 이름입니다.
+ * @param Object 저장할 참조 객체입니다. nullptr이면 유효한 PendingGuid를 사용합니다.
+ * @param[in,out] PendingGuid 로드 시 읽고 재매핑한 GUID입니다. 빈 문자열이면 비웁니다.
+ * @note 객체 포인터를 즉시 해석하지 않으며 GUID 구문 오류이면 아카이브 오류를 설정합니다.
+ */
 void SerializeObjectReference(FArchive& Archive, std::string_view Name, const UObject* Object, FGuid& PendingGuid);
 
+/**
+ * @brief 쓰기 작업을 실행하고 bool 반환 여부에 맞게 성공값을 처리합니다.
+ * @tparam TSetter 무인수 쓰기 작업의 호출 가능 타입입니다.
+ * @param Setter 실행할 쓰기 작업입니다.
+ * @return 정확한 bool 반환 타입이면 해당 결과이고, 그 외 반환 타입이면 실행 후 true입니다.
+ */
 template <typename TSetter>
 bool ApplyPropertySetter(TSetter&& Setter);
 
