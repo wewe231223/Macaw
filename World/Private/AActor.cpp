@@ -3,7 +3,6 @@
 #include "CoreUObject/Reflection/UClass.h"
 #include "World/AActor.h"
 #include "Core/Stat/Stat.h"
-#include "Core/Base/FScopedFlag.h"
 #include "World/UWorld.h"
 #include "World/Component/USceneComponent.h"
 
@@ -142,6 +141,36 @@ void AActor::FinishAddingComponent(UActorComponent& Component) {
     }
 }
 
+void AActor::OnComponentRegistered(UActorComponent& Component) {
+    if (mActorInitialized) {
+        AdvanceComponentLifecycle(Component);
+    } else {
+        QueueComponentInitialization(Component);
+    }
+}
+
+void AActor::QueueComponentInitialization(UActorComponent& Component) {
+    if (!mActorInitialized && mLifecyclePhase == ELifecyclePhase::InitializingComponents && Component.IsRegistered() && !Component.IsInitialized() && !Component.IsBeingDestroyed()) {
+        mPendingInitializeComponents.push_back(&Component);
+    }
+}
+
+void AActor::AdvanceComponentLifecycle(UActorComponent& Component) {
+    if (!CanAdvanceComponentLifecycle() || !Component.IsRegistered() || Component.IsBeingDestroyed()) {
+        return;
+    }
+
+    Component.DispatchInitializeComponent();
+
+    if (mBHasBegunPlay && CanAdvanceComponentLifecycle()) {
+        Component.DispatchBeginPlay();
+    }
+}
+
+bool AActor::CanAdvanceComponentLifecycle() const {
+    return mWorld != nullptr && !mBIsBeingDestroyed && !mEndPlayRequested && !mWorld->mEndPlayRequested && mLifecyclePhase != ELifecyclePhase::EndingPlay;
+}
+
 TArray<UActorComponent*> AActor::GetComponentSnapshot() const {
     TArray<UActorComponent*> Components{};
 
@@ -171,7 +200,7 @@ void AActor::RegisterAllComponents() {
 }
 
 void AActor::DispatchBeginPlay() {
-    if (mWorld == nullptr || !mWorld->HasBegunPlay() || mWorld->mEndPlayRequested || mBHasBegunPlay || mBeginningPlay || mEndingPlay || mBIsBeingDestroyed || !mHasFinishedSpawning) {
+    if (!CanAdvanceComponentLifecycle() || !mWorld->HasBegunPlay() || mBHasBegunPlay || mLifecyclePhase != ELifecyclePhase::None || !mHasFinishedSpawning) {
         return;
     }
 
@@ -179,28 +208,26 @@ void AActor::DispatchBeginPlay() {
 
     InitializeComponents();
 
-    if (mBIsBeingDestroyed || !mWorld->HasBegunPlay() || mWorld->mEndPlayRequested || !mActorInitialized) {
+    if (!CanAdvanceComponentLifecycle() || !mWorld->HasBegunPlay() || !mActorInitialized) {
         return;
     }
 
     mBHasBegunPlay = true;
+    mLifecyclePhase = ELifecyclePhase::BeginningPlay;
 
-    {
-        const FScopedFlag BeginningPlay{mBeginningPlay};
-
-        for (UActorComponent* Component : GetComponentSnapshot()) {
-            if (mBIsBeingDestroyed || mEndPlayRequested) {
-                break;
-            }
-
-            Component->DispatchBeginPlay();
+    for (UActorComponent* Component : GetComponentSnapshot()) {
+        if (!CanAdvanceComponentLifecycle()) {
+            break;
         }
 
-        if (!mBIsBeingDestroyed && !mEndPlayRequested && !mWorld->mEndPlayRequested) {
-            BeginPlay();
-        }
+        AdvanceComponentLifecycle(*Component);
     }
 
+    if (CanAdvanceComponentLifecycle()) {
+        BeginPlay();
+    }
+
+    mLifecyclePhase = ELifecyclePhase::None;
     UpdateTickRegistration();
 
     if (mEndPlayRequested) {
@@ -209,11 +236,11 @@ void AActor::DispatchBeginPlay() {
 }
 
 void AActor::DispatchEndPlay(EEndPlayReason Reason) {
-    if (mEndingPlay) {
+    if (mLifecyclePhase == ELifecyclePhase::EndingPlay) {
         return;
     }
 
-    if (mBeginningPlay || mInitializingComponents) {
+    if (mLifecyclePhase != ELifecyclePhase::None) {
         mEndPlayRequested = true;
         mEndPlayReason = Reason;
         return;
@@ -222,7 +249,7 @@ void AActor::DispatchEndPlay(EEndPlayReason Reason) {
     const UWorld::FActorDispatchScope Dispatch{mWorld};
     const bool HadBegunPlay{mBHasBegunPlay};
 
-    const FScopedFlag EndingPlay{mEndingPlay};
+    mLifecyclePhase = ELifecyclePhase::EndingPlay;
     mEndPlayRequested = false;
     mBHasBegunPlay = false;
     mActorInitialized = false;
@@ -236,6 +263,8 @@ void AActor::DispatchEndPlay(EEndPlayReason Reason) {
         Component->DispatchEndPlay(Reason);
         Component->DispatchUninitializeComponent();
     }
+
+    mLifecyclePhase = ELifecyclePhase::None;
 }
 
 bool AActor::Destroy() {
@@ -466,33 +495,30 @@ void AActor::OnAddedToWorld() {
 }
 
 void AActor::InitializeComponents() {
-    if (mActorInitialized || mInitializingComponents || mBIsBeingDestroyed || !mHasFinishedSpawning) {
+    if (mActorInitialized || mLifecyclePhase != ELifecyclePhase::None || !CanAdvanceComponentLifecycle() || !mHasFinishedSpawning) {
         return;
     }
 
     const UWorld::FActorDispatchScope Dispatch{mWorld};
 
-    {
-        const FScopedFlag InitializingComponents{mInitializingComponents};
-        PreInitializeComponents();
+    mLifecyclePhase = ELifecyclePhase::InitializingComponents;
+    mPendingInitializeComponents = GetComponentSnapshot();
+    PreInitializeComponents();
 
-        while (!mBIsBeingDestroyed && !mEndPlayRequested && !mWorld->mEndPlayRequested) {
-            const auto Pending{std::ranges::find_if(mComponents, [](const std::unique_ptr<UActorComponent>& Component) {
-                return Component->mWantsInitializeComponent && Component->IsRegistered() && !Component->IsInitialized() && !Component->IsBeingDestroyed();
-            })};
+    for (std::size_t Index{}; Index < mPendingInitializeComponents.size() && CanAdvanceComponentLifecycle(); ++Index) {
+        UActorComponent* Component{mPendingInitializeComponents[Index]};
 
-            if (Pending == mComponents.end()) {
-                break;
-            }
-
-            (*Pending)->DispatchInitializeComponent();
-        }
-
-        if (!mBIsBeingDestroyed && !mEndPlayRequested && !mWorld->mEndPlayRequested) {
-            mActorInitialized = true;
-            PostInitializeComponents();
-        }
+        AdvanceComponentLifecycle(*Component);
     }
+
+    mPendingInitializeComponents.clear();
+
+    if (CanAdvanceComponentLifecycle()) {
+        mActorInitialized = true;
+        PostInitializeComponents();
+    }
+
+    mLifecyclePhase = ELifecyclePhase::None;
 
     if (mEndPlayRequested) {
         DispatchEndPlay(mEndPlayReason);

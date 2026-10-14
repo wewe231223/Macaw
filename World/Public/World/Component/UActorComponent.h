@@ -111,7 +111,6 @@ private:
     void DispatchInitializeComponent();
     /// <summary>초기화된 상태를 해제하고 정리 콜백을 한 번 호출합니다.</summary>
     void DispatchUninitializeComponent();
-    /// <summary>필요한 초기화를 거쳐 플레이 시작 상태를 갱신한 뒤 BeginPlay를 호출합니다.</summary>
     void DispatchBeginPlay();
     /// <summary>플레이 상태와 Tick 등록을 갱신하고 종료 이유를 전달합니다.</summary>
     void DispatchEndPlay(EEndPlayReason Reason);

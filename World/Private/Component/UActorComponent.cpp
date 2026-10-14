@@ -214,6 +214,10 @@ const FActorComponentTickFunction& UActorComponent::GetTickFunction() const {
 
 void UActorComponent::SetWantsInitializeComponent(bool WantsInitializeComponent) {
     mWantsInitializeComponent = WantsInitializeComponent;
+
+    if (WantsInitializeComponent && mOwner != nullptr) {
+        mOwner->QueueComponentInitialization(*this);
+    }
 }
 
 bool UActorComponent::IsBeingDestroyed() const {
@@ -269,14 +273,7 @@ void UActorComponent::RegisterComponent(UWorld* World) {
 
     mRegistering = false;
 
-    if (mOwner->mActorInitialized) {
-        DispatchInitializeComponent();
-    }
-
-    if (mOwner->HasBegunPlay()) {
-        DispatchBeginPlay();
-    }
-
+    mOwner->OnComponentRegistered(*this);
     UpdateTickRegistration();
 }
 
@@ -301,11 +298,9 @@ void UActorComponent::UnregisterComponent() {
 }
 
 void UActorComponent::DispatchInitializeComponent() {
-    if (!mWantsInitializeComponent || mBInitialized || !mBRegistered || mBIsBeingDestroyed || mOwner->IsBeingDestroyed()) {
+    if (!mWantsInitializeComponent || mBInitialized || !mBRegistered || mBIsBeingDestroyed) {
         return;
     }
-
-    const UWorld::FActorDispatchScope Dispatch{mParentWorld};
 
     mBInitialized = true;
     InitializeComponent();
@@ -316,22 +311,12 @@ void UActorComponent::DispatchUninitializeComponent() {
         return;
     }
 
-    const UWorld::FActorDispatchScope Dispatch{mOwner != nullptr ? mOwner->GetWorld() : nullptr};
-
     mBInitialized = false;
     UninitializeComponent();
 }
 
 void UActorComponent::DispatchBeginPlay() {
-    if (!mBRegistered || mBHasBegunPlay || mBIsBeingDestroyed || mOwner == nullptr || mOwner->IsBeingDestroyed() || !mOwner->HasBegunPlay() || mOwner->GetWorld()->mEndPlayRequested) {
-        return;
-    }
-
-    const UWorld::FActorDispatchScope Dispatch{mParentWorld};
-
-    DispatchInitializeComponent();
-
-    if (!mBRegistered || mBIsBeingDestroyed || mOwner->IsBeingDestroyed() || !mOwner->HasBegunPlay() || mOwner->GetWorld()->mEndPlayRequested) {
+    if (!mBRegistered || mBHasBegunPlay || mBIsBeingDestroyed) {
         return;
     }
 
@@ -344,8 +329,6 @@ void UActorComponent::DispatchEndPlay(EEndPlayReason Reason) {
     if (!mBHasBegunPlay) {
         return;
     }
-
-    const UWorld::FActorDispatchScope Dispatch{mOwner != nullptr ? mOwner->GetWorld() : nullptr};
 
     mBHasBegunPlay = false;
     UpdateTickRegistration();

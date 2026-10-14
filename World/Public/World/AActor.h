@@ -16,6 +16,14 @@ class AActor : public UObject {
 public:
     ReflectTypes(AActor, UObject);
 
+private:
+    enum class ELifecyclePhase {
+        None,
+        InitializingComponents,
+        BeginningPlay,
+        EndingPlay
+    };
+
 public:
     /// <summary>새 Actor를 생성합니다. World 소속과 Component 등록은 아직 수행하지 않습니다.</summary>
     AActor();
@@ -195,6 +203,10 @@ private:
     /// <summary>콜백에서 소유 목록이 바뀌어도 순회할 수 있도록 현재 컴포넌트 포인터를 복사합니다.</summary>
     TArray<UActorComponent*> GetComponentSnapshot() const;
     void FinishAddingComponent(UActorComponent& Component);
+    void OnComponentRegistered(UActorComponent& Component);
+    void QueueComponentInitialization(UActorComponent& Component);
+    void AdvanceComponentLifecycle(UActorComponent& Component);
+    bool CanAdvanceComponentLifecycle() const;
     void RemoveOwnedComponent(UActorComponent* Component);
     void UpdateTickRegistration();
 
@@ -203,6 +215,7 @@ private:
     std::vector<std::unique_ptr<UActorComponent>> mComponents{};
     // 파괴 처리 후 메모리 해제를 기다리는 컴포넌트입니다.
     std::vector<std::unique_ptr<UActorComponent>> mPendingDestroyComponents{};
+    TArray<UActorComponent*> mPendingInitializeComponents{};
     FActorTickFunction mPrimaryActorTick{*this};
     ReflectReadOnlyProperty(mRootComponent, "GuidRootComponent", EPropertyFlags::Serialize | EPropertyFlags::ReadOnly | EPropertyFlags::Reference, &SerializeRootComponentProperty);
     USceneComponent* mRootComponent{nullptr};
@@ -211,17 +224,13 @@ private:
 
     UWorld* mWorld{nullptr};
     bool mBHasBegunPlay{false};
-    bool mInitializingComponents{};
+    ELifecyclePhase mLifecyclePhase{ELifecyclePhase::None};
     // 소유 컴포넌트의 플레이용 초기화 단계를 완료했는지 나타냅니다.
     bool mActorInitialized{};
     // 생성 구성을 마쳐 컴포넌트 등록과 플레이 시작이 가능한 상태입니다.
     bool mHasFinishedSpawning{};
     // 생성 완료 처리의 중복 진입을 막습니다.
     bool mFinishingSpawning{};
-    // 플레이 시작 처리 중에는 종료 요청을 뒤로 미룹니다.
-    bool mBeginningPlay{};
-    // 플레이 종료 처리의 중복 진입을 막습니다.
-    bool mEndingPlay{};
     // 초기화 또는 플레이 시작 콜백 이후 처리할 종료 요청입니다.
     bool mEndPlayRequested{};
     // 파괴가 시작되어 새 동작을 허용하지 않는 상태입니다.
