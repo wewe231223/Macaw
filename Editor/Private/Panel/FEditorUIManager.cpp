@@ -14,7 +14,7 @@
 FEditorUIManager::FEditorUIManager() = default;
 FEditorUIManager::~FEditorUIManager() = default;
 
-void FEditorUIManager::Initialize(UWorld& World, FRenderer& Renderer, FAssetRegistry& AssetRegistry, FWorldEditorContext& EditorContext, HWND WindowHandle, FAssetThumbnailRenderer* ThumbnailRenderer) {
+void FEditorUIManager::Initialize(UWorld& World, FRenderer& Renderer, FAssetRegistry& AssetRegistry, FWorldEditorContext& EditorContext, HWND WindowHandle, FAssetThumbnailRenderer* ThumbnailRenderer, UEditorEngine& Engine) {
     const FEditorSettings Settings{EditorContext.GetEditorSettings()};
 
     if (Settings.mViewportPanelEnabled) {
@@ -61,6 +61,7 @@ void FEditorUIManager::Initialize(UWorld& World, FRenderer& Renderer, FAssetRegi
     }
 
     AddViewerWindow(AssetRegistry, EditorContext, WindowHandle, ThumbnailRenderer);
+    mPIEViewportSession = std::make_unique<FPIEViewportSession>(Engine, Renderer, mViewportHostWindow);
 }
 
 void FEditorUIManager::InitializeViewer(FAssetRegistry& AssetRegistry, HWND WindowHandle, FWorldEditorContext& EditorContext, FAssetThumbnailRenderer* ThumbnailRenderer) {
@@ -68,6 +69,10 @@ void FEditorUIManager::InitializeViewer(FAssetRegistry& AssetRegistry, HWND Wind
 }
 
 void FEditorUIManager::Tick() {
+    if (mPIEViewportSession != nullptr) {
+        mPIEViewportSession->BeginFrame();
+    }
+
     mDockSpaceId = ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport(), ImGuiDockNodeFlags_PassthruCentralNode);
 
     if (mViewerWindow != nullptr && mPreviewContext != nullptr && mPreviewContext->ConsumePreviewOpenRequest()) {
@@ -93,6 +98,10 @@ void FEditorUIManager::Tick() {
         ImGui::SetWindowFocus(mMaterialEditorPanel->GetWindowName());
         mFocusMaterialEditor = false;
     }
+
+    if (mPIEViewportSession != nullptr) {
+        mPIEViewportSession->DrawWindow();
+    }
 }
 
 void FEditorUIManager::RenderOffscreen(FRenderer& Renderer, FAssetRegistry& AssetRegistry) {
@@ -104,6 +113,10 @@ void FEditorUIManager::RenderOffscreen(FRenderer& Renderer, FAssetRegistry& Asse
 }
 
 void FEditorUIManager::ReleaseRenderResources() {
+    if (mPIEViewportSession != nullptr) {
+        mPIEViewportSession->ReleaseRenderResources();
+    }
+
     for (const std::unique_ptr<IEditorPanel>& Element : mElements) {
         if (Element != nullptr) {
             Element->ReleaseRenderResources();
@@ -117,6 +130,16 @@ ImGuiID FEditorUIManager::GetDockSpaceId() const {
 
 FViewportHostWindow* FEditorUIManager::GetViewportHostWindow() const {
     return mViewportHostWindow;
+}
+
+FPIEViewportSession* FEditorUIManager::GetPIEViewportSession() const {
+    return mPIEViewportSession.get();
+}
+
+void FEditorUIManager::DrawPIEControls() {
+    if (mPIEViewportSession != nullptr) {
+        mPIEViewportSession->DrawControls();
+    }
 }
 
 bool FEditorUIManager::HandleExternalFileDrop(const std::filesystem::path& FilePath, const ImVec2& ScreenPosition) {

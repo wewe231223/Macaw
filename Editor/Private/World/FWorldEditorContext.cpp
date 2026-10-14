@@ -53,6 +53,7 @@ void FWorldEditorContext::OnWorldChanged(UWorld& World, EWorldChange Change, AAc
 }
 
 void FWorldEditorContext::InitializeChannels(UEditorEngine& EditorEngine) {
+    mEditorEngine = &EditorEngine;
     if (mWorld == nullptr)
         return;
 
@@ -72,6 +73,14 @@ void FWorldEditorContext::InitializeChannels(UEditorEngine& EditorEngine) {
 
 void FWorldEditorContext::Dispatch() {
     mEditorToWorld.Dispatch();
+}
+
+bool FWorldEditorContext::IsWorldEditingAllowed() const {
+    return mWorld != nullptr && mWorld->IsInitialized() && !mWorld->IsBusy();
+}
+
+bool FWorldEditorContext::IsSceneLoadingAllowed() const {
+    return IsWorldEditingAllowed() && (mEditorEngine == nullptr || !mEditorEngine->HasPIESession());
 }
 
 FMessageChannel::FSender FWorldEditorContext::GetEditorToWorldSender() {
@@ -135,6 +144,10 @@ void FWorldEditorContext::SetGizmoCoordinateSpace(EGizmoCoordinateSpace Coordina
 }
 
 void FWorldEditorContext::SetSelectedActor(AActor* Actor) {
+    if (!IsWorldEditingAllowed()) {
+        return;
+    }
+
     if (Actor == nullptr) {
         ClearSelection();
         return;
@@ -145,6 +158,10 @@ void FWorldEditorContext::SetSelectedActor(AActor* Actor) {
 }
 
 void FWorldEditorContext::SetSelectedComponent(UActorComponent* Component) {
+    if (!IsWorldEditingAllowed()) {
+        return;
+    }
+
     if (Component == nullptr || Component->GetOwner() == nullptr) {
         ClearSelection();
         return;
@@ -209,6 +226,10 @@ bool FWorldEditorContext::ConsumePreviewOpenRequest() noexcept {
 }
 
 void FWorldEditorContext::HandleMousePickRequest(const FMousePickRequestMessage& Message) {
+    if (!IsWorldEditingAllowed()) {
+        return;
+    }
+
     if (mWorld == nullptr) {
         return;
     }
@@ -369,6 +390,10 @@ void FWorldEditorContext::HandleMouseCameraDollyRequestMessage(const FMouseCamer
 #endif
 
 void FWorldEditorContext::HandleSpawnComponent(const FMessageSpawnComponent& Message, const IAssetRegistry* AssetRegistry) {
+    if (!IsWorldEditingAllowed()) {
+        return;
+    }
+
     if (mWorld == nullptr || AssetRegistry == nullptr) {
         return;
     }

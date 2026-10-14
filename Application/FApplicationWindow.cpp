@@ -175,6 +175,8 @@ void FApplication::DrawTitleBar() {
                 mContext.mMenuPanel->DrawPanel();
             }
 
+            mContext.mEditorUIManager->DrawPIEControls();
+
             mWindowState.mMenuHitRight = static_cast<int>(ImGui::GetCursorPosX()) + 10;
 
             if (static_cast<float>(mWindowState.mMenuHitRight) + 112.0f < FpsX - Position.x) {

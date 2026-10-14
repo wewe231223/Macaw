@@ -31,6 +31,8 @@ public:
     void SetWorld(UWorld* InWorld);
     void InitializeChannels(UEditorEngine& EditorEngine);
     void Dispatch();
+    bool IsWorldEditingAllowed() const;
+    bool IsSceneLoadingAllowed() const;
 
     void HandleMousePickRequest(const FMousePickRequestMessage& Message);
     void HandleSpawnComponent(const FMessageSpawnComponent& Message, const IAssetRegistry* AssetRegistry);
@@ -83,6 +85,7 @@ private:
 
 private:
     UWorld* mWorld{nullptr};
+    UEditorEngine* mEditorEngine{};
     TObjectRef<AActor> mSelectedActor{};
     TObjectRef<UActorComponent> mSelectedComponent{};
     FEditorSettings mEditorSettings{};

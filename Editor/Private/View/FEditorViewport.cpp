@@ -149,7 +149,7 @@ bool FEditorViewport::Draw(const FRect& Rect, const ImVec2& MainViewportPosition
                 ImGui::GetWindowDrawList()->AddImage(reinterpret_cast<ImTextureID>(ShaderResourceView), ImagePosition, ImVec2(ImagePosition.x + ImageSize.x, ImagePosition.y + ImageSize.y));
             }
 
-            if (ImGui::BeginDragDropTarget()) {
+            if (mMode == EMode::Editor && mEditorContext->IsWorldEditingAllowed() && ImGui::BeginDragDropTarget()) {
                 const ImGuiPayload* Payload{ImGui::AcceptDragDropPayload(StaticMeshAssetPayloadType)};
 
                 if (Payload != nullptr && Payload->IsDelivery() && Payload->DataSize == sizeof(FAssetHandle)) {
@@ -183,6 +183,12 @@ bool FEditorViewport::DrawMenuBar() {
     }
 
     bool BActivated{false};
+
+    if (mMode == EMode::PIE) {
+        ImGui::TextUnformatted("PIE | Click to control | Shift+F1: release | Esc: stop");
+        ImGui::EndMenuBar();
+        return false;
+    }
 
     ImGui::TextUnformatted("View");
     ImGui::SameLine();
@@ -334,7 +340,47 @@ void FEditorViewport::SetFocused(bool BInFocused) {
     mBFocused = BInFocused;
 }
 
+bool FEditorViewport::IsVisible() const {
+    return mBVisible;
+}
+
+bool FEditorViewport::IsHovered() const {
+    return mBHovered;
+}
+
+bool FEditorViewport::IsFocused() const {
+    return mBFocused;
+}
+
+const FRect& FEditorViewport::GetDisplayRect() const {
+    return mDisplayRect;
+}
+
+void FEditorViewport::SetPIEActive(bool Active) {
+    mMode = Active ? EMode::PIE : EMode::Editor;
+}
+
+bool FEditorViewport::IsPIEActive() const {
+    return mMode == EMode::PIE;
+}
+
+void FEditorViewport::ConfigurePlayCamera(UCameraComponent& Camera) const {
+    const FVector3& Position{mProjectionType == EProjectionType::Perspective ? mCameraPosition : mPerspectiveCameraPosition};
+    const FQuat& Rotation{mProjectionType == EProjectionType::Perspective ? mCameraRotation : mPerspectiveCameraRotation};
+
+    Camera.SetWorldTransform(FTransform{Position, Rotation, FVector3{1.0f, 1.0f, 1.0f}});
+    Camera.SetFOV(mFieldOfView);
+    Camera.SetNearPlane(mNearPlane);
+    Camera.SetFarPlane(mFarPlane);
+}
+
 void FEditorViewport::ProcessInput(EditorViewport& SharedEditorViewport, FKeyboardInput& KeyboardInput, FMouseInput& MouseInput, float DeltaTime, bool BInputBlocked) {
+    if (mMode == EMode::PIE || !mEditorContext->IsWorldEditingAllowed()) {
+        KeyboardInput.ConsumeViewportNavigation(DeltaTime, true);
+        MouseInput.Reset();
+        return;
+    }
+
     if (mBVisible) {
         ResizeRenderSurface();
     }

@@ -33,6 +33,7 @@ void FOutlinerPanel::DrawContents() {
         bVisibleDirty = true;
     }
 
+    ImGui::BeginDisabled(!mEditorContext->IsWorldEditingAllowed());
     ImGui::SetNextItemWidth(-FLT_MIN);
 
     if (ImGui::InputTextWithHint("##ActorFilter", "Search", mActorFilter.InputBuf, IM_ARRAYSIZE(mActorFilter.InputBuf))) {
@@ -57,6 +58,7 @@ void FOutlinerPanel::DrawContents() {
 
     HandleDeleteShortcut();
     ImGui::TextDisabled("%zu Actors", mWorld->GetActors().size());
+    ImGui::EndDisabled();
 }
 
 void FOutlinerPanel::PushWindowStyle() {
@@ -154,6 +156,10 @@ void FOutlinerPanel::DrawRootActorDropTarget() {
 }
 
 void FOutlinerPanel::HandleDeleteShortcut() {
+    if (!mEditorContext->IsWorldEditingAllowed()) {
+        return;
+    }
+
     const ImGuiIO& IO{ImGui::GetIO()};
 
     if (!ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) || IO.WantTextInput || ImGui::IsAnyItemActive() || !ImGui::IsKeyPressed(ImGuiKey_Delete, false)) {

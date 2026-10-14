@@ -144,6 +144,15 @@ void FMouseInput::ProcessWindowMessage(UINT Message, WPARAM WParam, LPARAM LPara
     }
 }
 
+void FMouseInput::Reset() {
+    mKeyStates.fill(EKeyState::None);
+    mDragOwners.fill(EDragOwner::None);
+    mClickCaptures = {};
+    mPendingDeltaX = 0.0f;
+    mPendingDeltaY = 0.0f;
+    mPendingWheelSteps = 0.0f;
+}
+
 void FMouseInput::Consume(EMouseSide Side) {
     if (mKeyStates[Side] == EKeyState::Pressed) {
         mDragOwners[Side] = EDragOwner::Gizmo;

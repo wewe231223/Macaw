@@ -31,7 +31,6 @@ public:
     bool HasPIESession() const;
     FWorldContext* GetPIEWorldContext() const;
     bool DestroyWorldContext(FWorldContext& Context) override;
-    ETickType GetWorldTickType(const FWorldContext& Context) const override;
 
     FWorldContext& GetEditorWorldContext();
     FWorldEditorContext& GetEditorContext();

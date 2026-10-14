@@ -28,6 +28,7 @@ void FPropertyPanel::DrawContents() {
         return;
     }
 
+    ImGui::BeginDisabled(!mEditorContext->IsWorldEditingAllowed());
     DrawGizmoControls();
     DrawComponentList(*Actor);
     ImGui::Separator();
@@ -46,6 +47,8 @@ void FPropertyPanel::DrawContents() {
     } else {
         ImGui::TextDisabled("Select a component.");
     }
+
+    ImGui::EndDisabled();
 }
 
 FString FPropertyPanel::GetComponentTypeName(const UActorComponent& Component) {
@@ -205,6 +208,10 @@ void FPropertyPanel::DrawComponentNode(UActorComponent& Component, ImGuiTreeNode
 }
 
 void FPropertyPanel::HandleDeleteShortcut(AActor& Actor, UActorComponent& Component) {
+    if (!mEditorContext->IsWorldEditingAllowed()) {
+        return;
+    }
+
     const ImGuiIO& IO{ImGui::GetIO()};
 
     if (!ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) || IO.WantTextInput || ImGui::IsAnyItemActive() || !ImGui::IsKeyPressed(ImGuiKey_Delete, false)) {
@@ -288,7 +295,7 @@ void FPropertyPanel::ApplyPendingComponentDrop(AActor& Actor) {
     mPendingDraggedComponent.Reset();
     mPendingParentComponent.Reset();
 
-    if (Component != nullptr && (!HasParent || Parent != nullptr) && CanAttachComponent(Actor, *Component, Parent) && Component->AttachToComponent(Parent, EAttachmentTransformRule::KeepWorldTransform)) {
+    if (mEditorContext->IsWorldEditingAllowed() && Component != nullptr && (!HasParent || Parent != nullptr) && CanAttachComponent(Actor, *Component, Parent) && Component->AttachToComponent(Parent, EAttachmentTransformRule::KeepWorldTransform)) {
         mEditorContext->SetSelectedComponent(Component);
     }
 }

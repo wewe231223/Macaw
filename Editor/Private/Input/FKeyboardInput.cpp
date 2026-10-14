@@ -8,6 +8,10 @@ FKeyboardInput::FKeyboardInput() {
     ResetKeyStates();
 }
 
+void FKeyboardInput::Reset() {
+    ResetKeyStates();
+}
+
 void FKeyboardInput::InitializeWorldCommandSender(FMessageChannel::FSender&& InSender) {
     mWorldCommandSender.emplace(std::move(InSender));
 }

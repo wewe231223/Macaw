@@ -7,10 +7,11 @@
 #include "Editor/View/EditorViewport.h"
 
 FViewportHostWindow::FViewportHostWindow(ID3D11Device* Device, FWorldEditorContext& EditorContext)
-	: FEditorWindow("Viewports###SplitSceneViewport", ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse),
-	  mLayout(EViewportLayoutPreset::FourGrid),
-	  mPendingLayoutSettings(EditorContext.GetEditorSettings()),
-	  mBHasPendingLayoutSettings(true) {
+	: FEditorWindow{"Viewports###SplitSceneViewport", ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse},
+	  mLayout{EViewportLayoutPreset::FourGrid},
+	  mEditorContext{EditorContext},
+	  mPendingLayoutSettings{EditorContext.GetEditorSettings()},
+	  mBHasPendingLayoutSettings{true} {
     for (FViewportId Id{0}; Id < MaximumViewportCount; ++Id) {
         mViewports[Id] = std::make_unique<FEditorViewport>(Id, Device, EditorContext);
     }
@@ -51,6 +52,10 @@ Uint32 FViewportHostWindow::GetViewportCount() const {
     return mLayout.GetViewportCount();
 }
 
+FEditorViewport* FViewportHostWindow::GetActiveViewport() const {
+    return GetViewport(mActiveViewportId);
+}
+
 void FViewportHostWindow::ApplyLayoutSettings(const FEditorSettings& Settings) {
     // 기본은 4분할
     EViewportLayoutPreset Preset{EViewportLayoutPreset::FourGrid};
@@ -84,6 +89,11 @@ void FViewportHostWindow::CaptureLayoutSettings(FEditorSettings& Settings) const
 }
 
 void FViewportHostWindow::DrawContents() {
+    const bool HasPIEViewport{std::ranges::any_of(mViewports, [](const std::unique_ptr<FEditorViewport>& Viewport) {
+        return Viewport->IsPIEActive();
+    })};
+
+    ImGui::BeginDisabled(HasPIEViewport || !mEditorContext.IsWorldEditingAllowed());
     ImGui::SetNextItemWidth(260.0f);
 
     if (ImGui::BeginCombo("Layout", mLayout.GetPresetName())) {
@@ -103,6 +113,7 @@ void FViewportHostWindow::DrawContents() {
         ImGui::EndCombo();
     }
 
+    ImGui::EndDisabled();
     ImGui::Separator();
 
     const ImVec2 MainViewportPosition{ImGui::GetMainViewport()->Pos};
@@ -213,5 +224,5 @@ bool FViewportHostWindow::DrawSplitterHandle(SSplitter& Splitter) {
 }
 
 FEditorViewport* FViewportHostWindow::GetViewport(FViewportId Id) const {
-    return Id < MaximumViewportCount ? mViewports[Id].get() : nullptr;
+    return Id < GetViewportCount() ? mViewports[Id].get() : nullptr;
 }

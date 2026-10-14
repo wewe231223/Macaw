@@ -10,8 +10,15 @@
 #include "ImGui/imgui.h"
 
 class FStatPanel;
+class UCameraComponent;
 
 class FEditorViewport {
+private:
+    enum class EMode {
+        Editor,
+        PIE
+    };
+
 public:
     FEditorViewport(FViewportId InViewportId, ID3D11Device* InDevice, FWorldEditorContext& InEditorContext);
 
@@ -26,6 +33,14 @@ public:
     void BeginFrame();
     bool Draw(const FRect& Rect, const ImVec2& MainViewportPosition, bool BInputBlocked, FStatPanel* StatOverlay = nullptr);
     void SetFocused(bool BInFocused);
+    bool IsVisible() const;
+    bool IsHovered() const;
+    bool IsFocused() const;
+    const FRect& GetDisplayRect() const;
+    void SetPIEActive(bool Active);
+    bool IsPIEActive() const;
+    const char* GetViewModeName() const;
+    void ConfigurePlayCamera(UCameraComponent& Camera) const;
     void ProcessInput(EditorViewport& SharedEditorViewport, FKeyboardInput& KeyboardInput, FMouseInput& MouseInput, float DeltaTime, bool BInputBlocked);
     bool PrepareForRender();
     bool BuildViewMatrices(FViewMatrices& OutCamera);
@@ -46,7 +61,6 @@ private:
     bool SpawnDroppedStaticMesh(FAssetHandle MeshHandle, const ImVec2& ScreenPosition);
     bool TryCalculateDropPosition(const ImVec2& ScreenPosition, FVector3& OutPosition);
     void ApplyOrthographicView();
-    const char* GetViewModeName() const;
     void ResizeRenderSurface();
     bool IsViewMatricesCurrent() const;
     void ApplyMouseNavigation(const FViewportMouseNavigationInput& NavigationInput);
@@ -59,6 +73,7 @@ private:
     FOffScreenRenderSurface mRenderSurface{};
     FRenderSettings mRenderSettings{};
     FViewportId mViewportId{0};
+    EMode mMode{EMode::Editor};
 
     EProjectionType mProjectionType{EProjectionType::Perspective};
     EOrthographicView mOrthographicView{EOrthographicView::Front};

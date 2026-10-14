@@ -15,6 +15,7 @@
 #include "Editor/Panel/FStatPanel.h"
 #include "Editor/Panel/FEditorWindow.h"
 #include "Editor/Panel/IEditorPanel.h"
+#include "Editor/PIE/FPIEViewportSession.h"
 
 class FEditorUIManager {
 public:
@@ -22,13 +23,15 @@ public:
     ~FEditorUIManager();
 
 public:
-    void Initialize(UWorld& World, FRenderer& Renderer, FAssetRegistry& AssetRegistry, FWorldEditorContext& EditorContext, HWND WindowHandle, FAssetThumbnailRenderer* ThumbnailRenderer);
+    void Initialize(UWorld& World, FRenderer& Renderer, FAssetRegistry& AssetRegistry, FWorldEditorContext& EditorContext, HWND WindowHandle, FAssetThumbnailRenderer* ThumbnailRenderer, UEditorEngine& Engine);
     void InitializeViewer(FAssetRegistry& AssetRegistry, HWND WindowHandle, FWorldEditorContext& EditorContext, FAssetThumbnailRenderer* ThumbnailRenderer);
     void Tick();
     void RenderOffscreen(FRenderer& Renderer, FAssetRegistry& AssetRegistry);
     void ReleaseRenderResources();
     ImGuiID GetDockSpaceId() const;
     FViewportHostWindow* GetViewportHostWindow() const;
+    FPIEViewportSession* GetPIEViewportSession() const;
+    void DrawPIEControls();
     bool HandleExternalFileDrop(const std::filesystem::path& FilePath, const ImVec2& ScreenPosition);
 
 private:
@@ -39,6 +42,7 @@ private:
 private:
     std::vector<std::unique_ptr<IEditorPanel>> mElements{};
     FViewportHostWindow* mViewportHostWindow{};
+    std::unique_ptr<FPIEViewportSession> mPIEViewportSession{};
     FViewerPanel* mViewerWindow{};
     FWorldEditorContext* mPreviewContext{};
     ImGuiID mDockSpaceId{};

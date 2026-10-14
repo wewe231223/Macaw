@@ -13,16 +13,28 @@ void FEditorApplication::InitializeMode(FApplicationContext& Context, HWND Windo
         Context.mMenuPanel = std::make_unique<FControlPanel>(*Context.mEditorContext, WindowHandle, Context.mEditorContext->GetEditorToWorldSender());
     }
 
-    Context.mEditorUIManager->Initialize(Context.mWorldContext->GetWorld(), Context.mRenderer, Context.mEngine.GetAssetRegistry(), *Context.mEditorContext, WindowHandle, Context.mThumbnailRenderer.get());
+    Context.mEditorUIManager->Initialize(Context.mWorldContext->GetWorld(), Context.mRenderer, Context.mEngine.GetAssetRegistry(), *Context.mEditorContext, WindowHandle, Context.mThumbnailRenderer.get(), Context.mEngine);
 }
 
 void FEditorApplication::ProcessInput(FApplicationContext& Context, float DeltaTime) {
+    FPIEViewportSession* Session{Context.mEditorUIManager->GetPIEViewportSession()};
+
+    if (Session != nullptr && Session->ProcessInput(Context.mKeyboardInput, Context.mMouseInput, DeltaTime)) {
+        return;
+    }
+
     if (FViewportHostWindow * Host{Context.mEditorUIManager->GetViewportHostWindow()}) {
         Host->ProcessInput(*Context.mEditorView, Context.mKeyboardInput, Context.mMouseInput, DeltaTime);
     }
 }
 
 void FEditorApplication::RenderMode(FApplicationContext& Context, float DeltaTime) {
+    FPIEViewportSession* Session{Context.mEditorUIManager->GetPIEViewportSession()};
+
+    if (Session != nullptr) {
+        Session->Render();
+    }
+
     FViewportHostWindow* ViewportHostWindow{Context.mEditorUIManager->GetViewportHostWindow()};
 
     if (ViewportHostWindow == nullptr) {
@@ -52,7 +64,7 @@ void FEditorApplication::RenderMode(FApplicationContext& Context, float DeltaTim
     for (FViewportId Id{}; Id < FViewportHostWindow::MaximumViewportCount; ++Id) {
         FEditorViewport* Viewport{ViewportHostWindow->PrepareViewportForRender(Id)};
 
-        if (Viewport == nullptr) {
+        if (Viewport == nullptr || (Session != nullptr && Viewport == Session->GetViewport())) {
             continue;
         }
 

@@ -19,6 +19,8 @@ class FKeyboardInput {
 public:
     FKeyboardInput();
 
+public:
+    void Reset();
     void InitializeWorldCommandSender(FMessageChannel::FSender&& Sender);
 
     void ProcessWindowMessage(UINT Message, WPARAM WParam, LPARAM LParam);

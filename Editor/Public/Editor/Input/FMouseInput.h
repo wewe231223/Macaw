@@ -25,24 +25,10 @@ struct FViewportMouseNavigationInput {
 
 class FMouseInput {
 public:
-    void InitializeWorldCommandSender(FMessageChannel::FSender&& InSender);
-
-    void ProcessWindowMessage(UINT Message, WPARAM WParam, LPARAM LParam);
-
-    FViewportMouseNavigationInput DispatchPendingViewportCommands(std::int32_t ViewportLeft, std::int32_t ViewportTop, std::uint32_t ViewportWidth, std::uint32_t ViewportHeight, const FMatrix& ViewProjection, const FMatrix& View, bool BMouseCaptureByUi);
-
-    EKeyState GetKeyState(EMouseSide Side) const;
-    bool IsWorldDragActive(EMouseSide Side) const;
-
     struct DragCapture {
         POINT mStart{};
         POINT mCurrent{};
     };
-
-    const DragCapture& GetDragCapture(EMouseSide Side) const;
-
-    void Consume(EMouseSide Side);
-    void EndFrame();
 
 private:
     enum class EDragOwner : std::uint8_t {
@@ -52,8 +38,26 @@ private:
         Gizmo
     };
 
+public:
+    void Reset();
+    void InitializeWorldCommandSender(FMessageChannel::FSender&& InSender);
+
+    void ProcessWindowMessage(UINT Message, WPARAM WParam, LPARAM LParam);
+
+    FViewportMouseNavigationInput DispatchPendingViewportCommands(std::int32_t ViewportLeft, std::int32_t ViewportTop, std::uint32_t ViewportWidth, std::uint32_t ViewportHeight, const FMatrix& ViewProjection, const FMatrix& View, bool BMouseCaptureByUi);
+
+    EKeyState GetKeyState(EMouseSide Side) const;
+    bool IsWorldDragActive(EMouseSide Side) const;
+
+    const DragCapture& GetDragCapture(EMouseSide Side) const;
+
+    void Consume(EMouseSide Side);
+    void EndFrame();
+
+private:
     void ResetKeyStates();
 
+private:
     std::optional<FMessageChannel::FSender> mWorldCommandSender{};
 
     std::array<EKeyState, MAX> mKeyStates{EKeyState::None, EKeyState::None};

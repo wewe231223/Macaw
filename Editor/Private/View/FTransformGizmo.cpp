@@ -23,7 +23,8 @@ void FTransformGizmo::Initialize(ID3D11Device* Device, FAssetRegistry& AssetRegi
 }
 
 void FTransformGizmo::ProcessInput(FKeyboardInput& KeyboardInput, FMouseInput& MouseInput, bool BMouseCapturedByUi) {
-    if (mEditorContext == nullptr) {
+    if (mEditorContext == nullptr || !mEditorContext->IsWorldEditingAllowed()) {
+        EndDrag();
         return;
     }
 
@@ -48,6 +49,8 @@ void FTransformGizmo::ProcessInput(FKeyboardInput& KeyboardInput, FMouseInput& M
                 UpdateDrag(*Ray);
             }
 
+            EndDrag();
+        } else if (LeftState == EKeyState::None) {
             EndDrag();
         }
 
@@ -84,7 +87,7 @@ void FTransformGizmo::Update(const FViewMatrices& Camera, const D3D11_VIEWPORT& 
     mLastViewport = Viewport;
     mBHasCamera = true;
 
-    if (mEditorContext == nullptr) {
+    if (mEditorContext == nullptr || !mEditorContext->IsWorldEditingAllowed()) {
         if (mDragSession.has_value()) {
             EndDrag();
         }

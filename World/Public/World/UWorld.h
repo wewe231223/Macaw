@@ -21,6 +21,7 @@
 #include "RenderCore/FSceneInterface.h"
 #include "RenderCore/FSceneUpdateBatch.h"
 #include "World/FWorldTime.h"
+#include "World/Input/FWorldInput.h"
 #include "World/Tick/ETickType.h"
 #include "World/IWorldObserver.h"
 #include "World/Subsystem/UCameraSubsystem.h"
@@ -163,6 +164,8 @@ public:
 
     FWorldTime& GetTime();
     const FWorldTime& GetTime() const;
+    FWorldInput& GetInput();
+    const FWorldInput& GetInput() const;
 
     URenderSubsystem& GetRenderSubsystem();
     const URenderSubsystem& GetRenderSubsystem() const;
@@ -229,6 +232,7 @@ private:
     std::vector<IWorldObserver*> mObservers{};
 
     FWorldTime mTime{};
+    FWorldInput mInput{};
 
     std::unique_ptr<ULevel> mPersistentLevel{};
     EWorldType mWorldType{EWorldType::Editor};

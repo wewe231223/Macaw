@@ -19,7 +19,7 @@
 void FControlPanel::DrawPanel() {
     const char* PrimitiveMeshTypes[]{"/Game/System/Mesh/Cube.bin", "/Game/System/Mesh/Sphere.bin", "/Game/System/Mesh/Plane.bin", "/Game/System/Mesh/Cylinder.bin", "/Game/System/Mesh/Capsule.bin", "/Game/System/Mesh/Cone.bin", "/Game/System/Mesh/Torus.bin", "/Game/System/Mesh/Pyramid.bin"};
 
-    if (ImGui::BeginMenu("Create")) {
+    if (ImGui::BeginMenu("Create", mEditorContext->IsWorldEditingAllowed())) {
         std::vector<const UClass*> SpawnableComponentTypes{};
 
         for (const UClass* Type : FReflectionRegistry::GetClasses()) {
@@ -112,6 +112,8 @@ void FControlPanel::DrawPanel() {
 
         ImGui::SameLine();
 
+        ImGui::BeginDisabled(!mEditorContext->IsSceneLoadingAllowed());
+
         if (ImGui::Button("Load Scene")) {
             const FString FilePath{OpenFileDialog(mWindowHandle, "./scenes", "Scene Files (*.json)\0*.json\0All Files (*.*)\0*.*\0", "json")};
 
@@ -120,10 +122,11 @@ void FControlPanel::DrawPanel() {
             }
         }
 
+        ImGui::EndDisabled();
         ImGui::EndMenu();
     }
 
-    if (ImGui::BeginMenu("Components")) {
+    if (ImGui::BeginMenu("Components", mEditorContext->IsWorldEditingAllowed())) {
         UWorld* World{mEditorContext != nullptr ? mEditorContext->GetWorld() : nullptr};
 
         if (World == nullptr) {

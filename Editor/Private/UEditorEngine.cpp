@@ -127,10 +127,6 @@ bool UEditorEngine::DestroyWorldContext(FWorldContext& Context) {
     return Super::DestroyWorldContext(Context);
 }
 
-ETickType UEditorEngine::GetWorldTickType(const FWorldContext& Context) const {
-    return &Context == mEditorWorldContext && mPIEWorldContext != nullptr ? ETickType::None : Super::GetWorldTickType(Context);
-}
-
 void UEditorEngine::ProcessPIERequests() {
     if (mPIEState == EPIEState::Starting) {
         StartPIE();

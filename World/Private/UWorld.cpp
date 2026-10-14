@@ -172,6 +172,7 @@ void UWorld::Initialize(EWorldType WorldType) {
 }
 
 void UWorld::CleanupWorld() {
+    mInput.Reset();
     if (mState.IsSet(EStateFlag::CleaningUp)) {
         return;
     }
@@ -282,6 +283,7 @@ void UWorld::BeginPlay() {
 }
 
 void UWorld::EndPlay(EEndPlayReason Reason) {
+    mInput.Reset();
     if (mState.IsSet(EStateFlag::EndingPlay) || (!mState.IsSet(EStateFlag::HasBegunPlay) && !mState.IsSet(EStateFlag::BeginningPlay))) {
         return;
     }
@@ -304,6 +306,14 @@ void UWorld::EndPlay(EEndPlayReason Reason) {
 
 bool UWorld::HasBegunPlay() const {
     return mState.IsSet(EStateFlag::HasBegunPlay);
+}
+
+FWorldInput& UWorld::GetInput() {
+    return mInput;
+}
+
+const FWorldInput& UWorld::GetInput() const {
+    return mInput;
 }
 
 TSubsystemCollection<UWorldSubsystem, UWorld>& UWorld::GetSubsystems() {

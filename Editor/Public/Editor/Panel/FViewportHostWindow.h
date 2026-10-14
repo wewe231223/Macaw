@@ -18,6 +18,7 @@ public:
     using FViewportId = ::FViewportId;
     static constexpr Uint32 MaximumViewportCount{FViewportPresetLayout::MaximumViewportCount};
 
+public:
     FViewportHostWindow(ID3D11Device* Device, FWorldEditorContext& EditorContext);
     ~FViewportHostWindow() override;
 
@@ -28,6 +29,8 @@ public:
     void ReleaseRenderResources() override;
     FEditorViewport* PrepareViewportForRender(FViewportId Id);
     Uint32 GetViewportCount() const;
+    FEditorViewport* GetViewport(FViewportId Id) const;
+    FEditorViewport* GetActiveViewport() const;
 
     void ApplyLayoutSettings(const FEditorSettings& Settings);
     void CaptureLayoutSettings(FEditorSettings& Settings) const;
@@ -37,13 +40,13 @@ private:
     void PushWindowStyle() override;
     void SetViewportLayout(EViewportLayoutPreset InPreset);
     bool DrawSplitterHandle(SSplitter& Splitter);
-    FEditorViewport* GetViewport(FViewportId Id) const;
 
 private:
     std::unique_ptr<FStatPanel> mStatOverlay{};
     FViewportPresetLayout mLayout{};
     std::array<std::unique_ptr<FEditorViewport>, MaximumViewportCount> mViewports{};
     FViewportId mActiveViewportId{0};
+    FWorldEditorContext& mEditorContext;
     ImGuiID mDockSpaceId{0};
     bool mBSplitterActive{false};
 
