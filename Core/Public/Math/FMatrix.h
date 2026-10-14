@@ -25,33 +25,21 @@ public:
         const float& f30, const float& f31, const float& f32, const float& f33);
 
 public:
-    void SetAxes(const FVector4& Axis0, const FVector4& Axis1, const FVector4& Axis2, const FVector4& Axis3);
-    void SetAxis(int32 i, const FVector& Axis);
     void GetUnitAxis(FVector4& X, FVector4& Y, FVector4& Z) const;
-
+    FVector4 GetColumn(int32 Index) const;
+    void SetAxis(int32 i, const FVector& Axis);
+    void SetColumn(int32 Index, FVector4 Value);
     //XMMATRIX FMatrixToXMMatrix() const;
 
-    FVector4 GetColumn(int32 i) const;
-    FVector4 GetOrigin();
-    FVector4 GetScaledAxis(FVector4& X, FVector4& Y, FVector4& Z) const;
-
     FVector4 TransformFVector4(const FVector4& V) const;
-    FVector TransformPosition(const FVector& V) const;
-    FVector4 TransformVector(const FVector& V) const;
-    FVector4 InverseTransformPosition(const FVector& V) const;
-
-    FMatrix ApplyScale(float Scale) const;
+    FVector TransformPosition(const FVector& Vector) const;
     FMatrix GetTransposed() const;
     FMatrix Inverse() const;
     FMatrix Multiply(const FMatrix& Other) const;
 
     float Determinant() const;
 
-    void SetColumn(int32 i, FVector4 Value);
     void SetIdentity();
-    void SetOrigin(const FVector& NewOrigin);
-
-    static FMatrix MakeTranslation(const FVector& T);
     FMatrix Invert() const;
     static FMatrix CreateScale(float X, float Y, float Z);
     static FMatrix CreateScale(const FVector& Scale);
@@ -113,5 +101,3 @@ public:
 
 /* Global Operator*/
 std::ostream& operator<<(std::ostream& OS, const FMatrix& M);
-
-FRotator MatrixToRotator(const FMatrix& M);

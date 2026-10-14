@@ -55,18 +55,6 @@ bool FShader::Initialize(ID3D11Device* Device, const FShaderDescription& Descrip
             Result = Device->CreateGeometryShader(ShaderBlob->GetBufferPointer(), ShaderBlob->GetBufferSize(), nullptr, mGeometryShader.GetAddressOf());
             break;
 
-        case EShaderStage::Hull:
-            Result = Device->CreateHullShader(ShaderBlob->GetBufferPointer(), ShaderBlob->GetBufferSize(), nullptr, mHullShader.GetAddressOf());
-            break;
-
-        case EShaderStage::Domain:
-            Result = Device->CreateDomainShader(ShaderBlob->GetBufferPointer(), ShaderBlob->GetBufferSize(), nullptr, mDomainShader.GetAddressOf());
-            break;
-
-        case EShaderStage::Compute:
-            Result = Device->CreateComputeShader(ShaderBlob->GetBufferPointer(), ShaderBlob->GetBufferSize(), nullptr, mComputeShader.GetAddressOf());
-            break;
-
         default:
             ErrorHandler::Report("Shader::Initialize", "The shader description contains an invalid shader stage.", ErrorHandler::EErrorLevel::Error);
             return false;
@@ -87,9 +75,6 @@ void FShader::Reset() {
     mVertexShader.Reset();
     mPixelShader.Reset();
     mGeometryShader.Reset();
-    mHullShader.Reset();
-    mDomainShader.Reset();
-    mComputeShader.Reset();
 }
 
 EShaderStage FShader::GetStage() const noexcept {
@@ -114,16 +99,4 @@ ID3D11PixelShader* FShader::GetPixelShader() const noexcept {
 
 ID3D11GeometryShader* FShader::GetGeometryShader() const noexcept {
     return mGeometryShader.Get();
-}
-
-ID3D11HullShader* FShader::GetHullShader() const noexcept {
-    return mHullShader.Get();
-}
-
-ID3D11DomainShader* FShader::GetDomainShader() const noexcept {
-    return mDomainShader.Get();
-}
-
-ID3D11ComputeShader* FShader::GetComputeShader() const noexcept {
-    return mComputeShader.Get();
 }

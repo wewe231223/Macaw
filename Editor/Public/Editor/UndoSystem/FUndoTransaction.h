@@ -17,6 +17,7 @@ public:
     FUndoTransaction& operator=(FUndoTransaction&&) noexcept = default;
 
 public:
+    const FString& GetTransactionName() const;
     void AddRecord(std::unique_ptr<IUndoRecord> Record);
 
     void Undo(IUndoContext* Context);

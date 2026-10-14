@@ -338,7 +338,7 @@ void UWorld::FlushPendingDestroyActors() {
 }
 
 void UWorld::AttachActor(AActor* Child, AActor* Parent) {
-    if (Child == nullptr || Parent == nullptr || Child == Parent) {
+    if (Child == nullptr || Parent == nullptr || Child == Parent || Child->GetWorld() != this || Parent->GetWorld() != this) {
         return;
     }
 
@@ -358,7 +358,7 @@ void UWorld::AttachActor(AActor* Child, AActor* Parent) {
 }
 
 void UWorld::DetachActor(AActor* Actor) {
-    if (Actor == nullptr) {
+    if (Actor == nullptr || Actor->GetWorld() != this) {
         return;
     }
 

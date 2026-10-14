@@ -53,10 +53,6 @@ const FVector3& FTransform::GetPosition() const {
     return mPosition;
 }
 
-const FVector3& FTransform::GetLocation() const {
-    return mPosition;
-}
-
 const FRotator& FTransform::GetRotation() const {
     return mRotationEuler;
 }
@@ -66,10 +62,6 @@ const FQuat& FTransform::GetRotationQuaternion() const {
 }
 
 const FVector3& FTransform::GetScale() const {
-    return mScale;
-}
-
-const FVector3& FTransform::GetScale3D() const {
     return mScale;
 }
 
@@ -95,10 +87,6 @@ void FTransform::SetPosition(const FVector3& InPosition) {
     ++mRevision;
 }
 
-void FTransform::SetLocation(const FVector3& Location) {
-    SetPosition(Location);
-}
-
 void FTransform::SetScale(const FVector3& InScale) {
     if (mScale == InScale) {
         return;
@@ -107,10 +95,6 @@ void FTransform::SetScale(const FVector3& InScale) {
     mScale = InScale;
     InvalidateMatrices(false);
     ++mRevision;
-}
-
-void FTransform::SetScale3D(const FVector3& Scale) {
-    SetScale(Scale);
 }
 
 void FTransform::SetAbsoluteLocation(bool BInAbsoluteLocation) {

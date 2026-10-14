@@ -87,35 +87,12 @@ bool FOutlinerPanel::MatchesActor(const AActor& Actor) const {
         return false;
     }
 
-    //return std::ranges::any_of(mWorld->GetActors(), [this, &Actor](const std::unique_ptr<AActor>& ChildActor) {
-    //    return IsActorAttachedTo(*ChildActor, Actor) && MatchesActor(*ChildActor);
-    //});
-
     return std::ranges::any_of(It->second, [this](const AActor* ChildActor) {
         return ChildActor != nullptr && MatchesActor(*ChildActor);
     });
 }
 
-bool FOutlinerPanel::IsActorAttachedTo(const AActor& Actor, const AActor& ParentActor) const {
-    const USceneComponent* RootComponent{Actor.GetRootComponent()};
-    const USceneComponent* ParentComponent{RootComponent != nullptr ? RootComponent->GetParent() : nullptr};
-
-    return ParentComponent != nullptr && ParentComponent->GetOwner() == &ParentActor && &Actor != &ParentActor;
-}
-
-bool FOutlinerPanel::IsRootActor(const AActor& Actor) const {
-    const USceneComponent* RootComponent{Actor.GetRootComponent()};
-    const USceneComponent* ParentComponent{RootComponent != nullptr ? RootComponent->GetParent() : nullptr};
-    const AActor* ParentActor{ParentComponent != nullptr ? ParentComponent->GetOwner() : nullptr};
-
-    return ParentActor == nullptr || ParentActor == &Actor;
-}
-
 bool FOutlinerPanel::HasActorChildren(const AActor& Actor) const {
-    //return std::ranges::any_of(mWorld->GetActors(), [this, &Actor](const std::unique_ptr<AActor>& ChildActor) {
-    //    return IsActorAttachedTo(*ChildActor, Actor);
-    //});
-
     auto It = mChildrenByParent.find(const_cast<AActor*>(&Actor));
 
     return It != mChildrenByParent.end() && !It->second.empty();

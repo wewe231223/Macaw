@@ -79,15 +79,6 @@ bool FObjImporter::LoadObjFile(const FString& FilePath, FGeometry& OutGeometry) 
             FVector2 UV{std::stof(Tokens[1].c_str()), std::stof(Tokens[2].c_str())};
 
             ObjInfo.mUVs.push_back(UV);
-        } else if (Tag == "o") // o Name
-        {
-            if (Tokens.size() != 2)
-                continue;
-
-            //이름 저장
-            ObjInfo.mAssetName = Tokens[1];
-        } else if (Tag == "s") {
-            //스무딩 그룹이라는데 일단 대기
         } else if (Tag == "usemtl") // usemtl Name
         {
             if (Tokens.size() != 2)
@@ -156,9 +147,6 @@ bool FObjImporter::LoadObjFile(const FString& FilePath, FGeometry& OutGeometry) 
             //SubMesh에 넣어주기 위한 FaceCount값
             TempFaceCount += static_cast<Int32>(Vertices.size());
 
-            //반대로 뒤집기
-            //std::reverse(Vertices.begin(), Vertices.end());
-
             ObjInfo.mFaceVerticesPolygon.push_back(Vertices);
         } else if (Tag == "mtllib") {
             ObjInfo.mMaterialFileName = Tokens[1];
@@ -204,9 +192,6 @@ bool FObjImporter::BuildGeometry(const FObjInfo& ObjInfo, FGeometry& OutGeometry
         OutGeometry.mSubMeshIndexCounts.push_back(static_cast<Uint32>(IndexCount));
     }
 
-    /*const Int32 PositionCount = static_cast<Int32>(ObjInfo.Positions.size());
-	const Int32 UVCount = static_cast<Int32>(ObjInfo.UVs.size());
-	const Int32 NormalCount = static_cast<Int32>(ObjInfo.Normals.size());*/
     //(PositionIndex, UVIndex, NormalIndex) 조합 -> 이미 만들어둔 OutGeometry 상의 정점 인덱스
     std::unordered_map<FFaceVertexKey, Uint32, FFaceVertexKeyHash> VertexCache{};
 
@@ -272,8 +257,6 @@ bool FObjImporter::BuildPolygonGeometry(const FObjInfo& ObjInfo, FGeometry& OutG
     }
 
     const Int32 PositionCount{static_cast<Int32>(ObjInfo.mPositions.size())};
-    const Int32 UVCount{static_cast<Int32>(ObjInfo.mUVs.size())};
-    const Int32 NormalCount{static_cast<Int32>(ObjInfo.mNormals.size())};
 
     //(PositionIndex, UVIndex, NormalIndex) 조합 -> 이미 만들어둔 OutGeometry 상의 정점 인덱스
     std::unordered_map<FFaceVertexKey, Uint32, FFaceVertexKeyHash> VertexCache{};
@@ -298,8 +281,6 @@ bool FObjImporter::BuildPolygonGeometry(const FObjInfo& ObjInfo, FGeometry& OutG
     Int32 CurrentSubMeshSourceIndexCount{0};
 
     const TArray<FVector>& FacePositions{ObjInfo.mPositions};
-    const TArray<FVector2>& FaceUVs{ObjInfo.mUVs};
-    const TArray<FVector>& FaceNormals{ObjInfo.mNormals};
 
     constexpr float ConvexityEpsilon{1e-5f};
 
@@ -347,11 +328,6 @@ bool FObjImporter::BuildPolygonGeometry(const FObjInfo& ObjInfo, FGeometry& OutG
             Int32 CurrentPositionIndex{NormalizeIndex(Current.mPositionIndex, PositionCount)};
             Int32 NextPositionIndex{NormalizeIndex(Next.mPositionIndex, PositionCount)};
 
-            FVector NormalPrev{FaceNormals[NormalizeIndex(Prev.mNormalIndex, NormalCount)]};
-            FVector NormalCurrent{FaceNormals[NormalizeIndex(Current.mNormalIndex, NormalCount)]};
-            FVector NormalNext{FaceNormals[NormalizeIndex(Next.mNormalIndex, NormalCount)]};
-
-            //FaceNormal = (Normal_Prev + Normal_Current + Normal_Next) / 3.f;
             //Current가 볼록한지 오목한지 검사
             //Current - Prev 벡터, Next - Current 벡터를 외적하여 노멀 벡터를 구하고, Face의 노멀과 내적하여 방향이 같다면 볼록, 방향이 다르다면 오목
             FVector Vector1{FacePositions[CurrentPositionIndex] - FacePositions[PrevPositionIndex]};
@@ -363,8 +339,6 @@ bool FObjImporter::BuildPolygonGeometry(const FObjInfo& ObjInfo, FGeometry& OutG
             FVector CrossVector{Vector1.Cross(Vector2)};
 
             CrossVector.Normalize();
-
-            //Vector_1 = Vector_1.Cross(Vector_2);
             float DotResult{CrossVector.Dot(FaceNormal)};
 
             //내적값이 음수라면 오목

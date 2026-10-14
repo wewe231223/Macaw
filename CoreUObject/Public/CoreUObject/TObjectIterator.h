@@ -14,11 +14,6 @@
 ///
 /// </summary>
 namespace UObjectSystem {
-    enum class ETypeMatch {
-        Exact,
-        IncludeDerived
-    };
-
     // UObject에서 파생된 타입만 사용가능
     template <typename TObject>
         requires std::derived_from<TObject, UObject>
@@ -51,12 +46,6 @@ namespace UObjectSystem {
         bool AdvanceToNextValidObject();
 
         bool Advance();
-
-        /*bool Advance()
-        {
-            ++_CurrentIndex;
-            return UObjectSystem::TryGet(_CurrentIndex, _handle);
-        }*/
 
         FObjectHandle mHandle{};
 
@@ -165,7 +154,6 @@ namespace UObjectSystem {
     template <typename TObject>
         requires std::derived_from<TObject, UObject>
     TObjectIterator<TObject>::operator bool() const {
-        // return UObjectSystem::TryGet(_CurrentIndex, _handle);
         return mCurrentIndex < mEndIndex;
     }
 }

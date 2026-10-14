@@ -24,8 +24,6 @@ private:
     void PopWindowStyle() override;
 
     bool MatchesActor(const AActor& Actor) const;
-    bool IsActorAttachedTo(const AActor& Actor, const AActor& ParentActor) const;
-    bool IsRootActor(const AActor& Actor) const;
     bool HasActorChildren(const AActor& Actor) const;
     void DrawActorDragSource(AActor& Actor);
     void AcceptActorChildDrop(AActor& ParentActor);

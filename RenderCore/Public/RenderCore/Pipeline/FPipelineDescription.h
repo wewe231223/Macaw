@@ -124,10 +124,7 @@ struct FBlendDescription {
 enum class EShaderStage {
     Vertex,
     Pixel,
-    Geometry,
-    Hull,
-    Domain,
-    Compute
+    Geometry
 };
 
 struct FShaderDescription {

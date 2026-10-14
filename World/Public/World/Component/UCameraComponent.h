@@ -44,12 +44,6 @@ public:
     void OnRegister() override;
     void OnUnregister() override;
 
-    void SetMoveSensitivity(float InMoveSensitivity);
-    float GetMoveSensitivity() const;
-
-    void SetRotationSensitivity(float InRotationSensitivity);
-    float GetRotationSensitivity() const;
-
 protected:
     void Serialize(FArchive& Archive) override;
 
@@ -62,8 +56,6 @@ private:
     float mNearPlane{0.1f};
     ReflectAccessor(mFarPlane, GetFarPlane, SetFarPlane, "FarPlane", EPropertyFlags::Edit | EPropertyFlags::Serialize, ReflectSerializer(mFarPlane), ReflectEditor("Camera", "Far Plane"), ReflectRange(0.001f, std::numeric_limits<float>::max()));
     float mFarPlane{1000.0f};
-    float mMoveSensitivity{5.0f};
-    float mRotationSensitivity{0.1f};
 
     ReflectMembers();
 };

@@ -2,6 +2,7 @@
 #include "Math/FVector4.h"
 #include "Math/FVector.h"
 #include <assert.h>
+#include <cmath>
 
 struct FVector;
 struct FMatrix;
@@ -84,42 +85,6 @@ void FVector4::Normalize() {
     }
 }
 
-float& FVector4::Component(int32 index) {
-    assert(index >= 0 && index <= 2);
-
-    if (index == 0)
-        return X;
-
-    if (index == 1)
-        return Y;
-
-    if (index == 2)
-        return Z;
-
-    if (index == 3)
-        return W;
-
-    return X; // 예외의 경우에서 X를 반환 (임시)
-}
-
-float FVector4::Component(int32 index) const {
-    assert(index >= 0 && index <= 2);
-
-    if (index == 0)
-        return X;
-
-    if (index == 1)
-        return Y;
-
-    if (index == 2)
-        return Z;
-
-    if (index == 3)
-        return W;
-
-    return 0.0f; // 이외의 경우에서 0을 반환 (임시)
-}
-
 float FVector4::Dot(const FVector4& V1) const {
     return X * V1.X + Y * V1.Y + Z * V1.Z + W * V1.W;
 }
@@ -128,25 +93,8 @@ FVector4 FVector4::Cross(const FVector4& V1) const {
     return FVector4(Y * V1.Z - Z * V1.Y, Z * V1.X - X * V1.Z, X * V1.Y - Y * V1.X, 0);
 }
 
-FVector4 FVector4::GetAbs() {
-    float AbsX = X;
-    float AbsY = Y;
-    float AbsZ = Z;
-    float AbsW = W;
-
-    if (X < 0)
-        AbsX = -X;
-
-    if (Y < 0)
-        AbsY = -Y;
-
-    if (Z < 0)
-        AbsZ = -Z;
-
-    if (W < 0)
-        AbsW = -W;
-
-    return FVector4(AbsX, AbsY, AbsZ, AbsW);
+FVector4 FVector4::GetAbs() const {
+    return FVector4{std::abs(X), std::abs(Y), std::abs(Z), std::abs(W)};
 }
 
 /* Operator */
@@ -274,14 +222,6 @@ std::ostream& operator<<(std::ostream& OS, const FVector4& V) {
 }
 
 /* Static Functions */
-
-float FVector4::DotProduct(const FVector4& V1, const FVector4& V2) {
-    return V1.Dot(V2);
-}
-
-FVector4 FVector4::CrossProduct(const FVector4& V1, const FVector4& V2) {
-    return V1.Cross(V2);
-}
 
 float FVector4::Distance(const FVector4& V1, const FVector4& V2) {
     float dX = V1.X - V2.X;

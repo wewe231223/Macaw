@@ -18,7 +18,11 @@ void FUndoTransaction::Redo(IUndoContext* Context) {
 }
 
 FUndoTransaction::FUndoTransaction(const FString& InName)
-	: mTransactionName(InName) {
+	: mTransactionName{InName} {
+}
+
+const FString& FUndoTransaction::GetTransactionName() const {
+    return mTransactionName;
 }
 
 void FUndoTransaction::AddRecord(std::unique_ptr<IUndoRecord> Record) {

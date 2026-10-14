@@ -115,10 +115,6 @@ ImGuiID FEditorUIManager::GetDockSpaceId() const {
     return mDockSpaceId;
 }
 
-const std::vector<FEditorWindow*>& FEditorUIManager::GetWindows() const {
-    return mWindows;
-}
-
 FViewportHostWindow* FEditorUIManager::GetViewportHostWindow() const {
     return mViewportHostWindow;
 }
@@ -131,12 +127,7 @@ bool FEditorUIManager::HandleExternalFileDrop(const std::filesystem::path& FileP
 #endif
 }
 
-void FEditorUIManager::AddPanel(std::unique_ptr<IEditorPanel> Panel) {
-    mElements.emplace_back(std::move(Panel));
-}
-
 void FEditorUIManager::AddWindow(std::unique_ptr<FEditorWindow> Window) {
-    mWindows.emplace_back(Window.get());
     mElements.emplace_back(std::move(Window));
 }
 

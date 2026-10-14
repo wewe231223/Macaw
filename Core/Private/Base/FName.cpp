@@ -524,10 +524,6 @@ bool FNameEntryId::operator!=(const FNameEntryId& Rhs) const {
     return this->mValue != Rhs.mValue;
 }
 
-bool FNameEntry::IsWide() const {
-    return mHeader.mBIsWide;
-}
-
 Int32 FNameEntry::GetNameLength() const {
     return mHeader.mLen;
 }

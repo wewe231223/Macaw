@@ -10,7 +10,6 @@
 #include <filesystem>
 #include <functional>
 #include <memory>
-#include <ranges>
 #include <string>
 #include <type_traits>
 #include <utility>
@@ -65,8 +64,6 @@ public:
     template <typename T, typename Func>
         requires std::is_base_of_v<UAsset, T>
     void ModifyAsset(FAssetHandle Handle, Func&& Modifier);
-
-    auto GetAssetList() const;
 
     void Reset();
     void Finalize();

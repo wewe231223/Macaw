@@ -38,14 +38,6 @@ bool FArchive::IsSaving() const {
     return mMode == EArchiveMode::Saving;
 }
 
-bool FArchive::IsHashing() const {
-    return mMode == EArchiveMode::Hashing;
-}
-
-bool FArchive::IsCounting() const {
-    return mMode == EArchiveMode::Counting;
-}
-
 void FArchive::Serialize(std::string_view Name, FName& Value) {
     FString Str{Value.ToString()};
 

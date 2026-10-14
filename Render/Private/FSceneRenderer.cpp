@@ -134,7 +134,7 @@ FSceneRenderOutput FSceneRenderer::RenderView(const FRenderContext& Context, con
         return {};
     }
 
-    return FSceneRenderOutput{View.mTarget, View.mTarget->GetShaderResourceView(), View.mTarget->GetDepthShaderResourceView(), View.mTarget->GetDepthStencilView(), View.mTarget->GetViewport()};
+    return FSceneRenderOutput{View.mTarget, View.mTarget->GetDepthShaderResourceView(), View.mTarget->GetDepthStencilView(), View.mTarget->GetViewport()};
 }
 
 void FSceneRenderer::RenderTextAndBillboards(const FRenderContext& Context, const FRenderView& View, const FRenderScene& Scene) {

@@ -85,18 +85,13 @@ FQuat FQuat::operator*(const FQuat& Other) const {
 
 // 켤레 복소수
 FQuat FQuat::Conjugate() const {
-    FQuatRegister Reg = VectorSIMD::Load(V);
-    FQuatRegister Sign = VectorSIMD::SetVal(-1.0f, -1.0f, -1.0f, 1.0f);
-    FQuat Result;
+    const FQuatRegister Rotation{VectorSIMD::Load(V)};
+    const FQuatRegister Sign{VectorSIMD::SetVal(-1.0f, -1.0f, -1.0f, 1.0f)};
+    FQuat Result{};
 
-    VectorSIMD::Store(Result.V, VectorSIMD::Mul(Reg, Sign));
+    VectorSIMD::Store(Result.V, VectorSIMD::Mul(Rotation, Sign));
 
     return Result;
-}
-
-// 단위 쿼터니언 전용 역
-FQuat FQuat::UnitInverse() const {
-    return Conjugate();
 }
 
 FQuat FQuat::Inverse() const {
@@ -132,51 +127,23 @@ void FQuat::Normalize() {
     W *= InverseLength;
 }
 
-FVector FQuat::RotateVector(const FVector& V) const {
-    FQuatRegister Q = VectorSIMD::Load(this->V);
-    FVectorRegister Vec = VectorSIMD::LoadFloat3(V.V);
+FVector FQuat::RotateVector(const FVector& Vector) const {
+    const FQuatRegister Rotation{VectorSIMD::Load(V)};
+    const FVectorRegister Input{VectorSIMD::LoadFloat3(Vector.V)};
+    const FVectorRegister RotationVector{VectorSIMD::SetWZero(Rotation)};
+    const FVectorRegister TwiceCross{VectorSIMD::Mul(VectorSIMD::SetVal(2.0f), VectorSIMD::Cross3(RotationVector, Input))};
+    FVectorRegister Result{VectorSIMD::Add(Input, VectorSIMD::Mul(VectorSIMD::Swizzle<3, 3, 3, 3>(Rotation), TwiceCross))};
 
-    // Q.xyz
-    FVectorRegister Qv = VectorSIMD::SetWZero(Q);
+    Result = VectorSIMD::Add(Result, VectorSIMD::Cross3(RotationVector, TwiceCross));
 
-    // T = 2 * cross(Q.xyz, V)
-    FVectorRegister T = VectorSIMD::Mul(VectorSIMD::SetVal(2.0f), VectorSIMD::Cross3(Qv, Vec));
+    FVector Output{};
+    VectorSIMD::StoreFloat3(Output.V, Result);
 
-    // V + W*T
-    FVectorRegister Result = VectorSIMD::Add(Vec, VectorSIMD::Mul(VectorSIMD::SplatW(Q), T));
-
-    // + cross(Q.xyz, T)
-    Result = VectorSIMD::Add(Result, VectorSIMD::Cross3(Qv, T));
-
-    FVector Out;
-
-    VectorSIMD::StoreFloat3(Out.V, Result);
-
-    return Out;
+    return Output;
 }
 
 FQuat FQuat::Concatenate(const FQuat& First, const FQuat& Second) {
     return First * Second;
-}
-
-FMatrix FQuat::ToFMatrix() const {
-    const float XX = X * X;
-    const float YY = Y * Y;
-    const float ZZ = Z * Z;
-
-    const float XY = X * Y;
-    const float XZ = X * Z;
-    const float YZ = Y * Z;
-
-    const float WX = W * X;
-    const float WY = W * Y;
-    const float WZ = W * Z;
-
-    return FMatrix(
-        1.0f - 2.0f * (YY + ZZ), 2.0f * (XY + WZ), 2.0f * (XZ - WY), 0.0f,
-        2.0f * (XY - WZ), 1.0f - 2.0f * (XX + ZZ), 2.0f * (YZ + WX), 0.0f,
-        2.0f * (XZ + WY), 2.0f * (YZ - WX), 1.0f - 2.0f * (XX + YY), 0.0f,
-        0.0f, 0.0f, 0.0f, 1.0f);
 }
 
 FRotator FQuat::ToRotator() const {
@@ -271,54 +238,19 @@ const FQuat FQuat::CreateFromRotationMatrix(const FMatrix& Matrix) {
     return Result;
 }
 
-const FVector FQuat::ToEuler() const {
-    const float XX = X * X;
-    const float YY = Y * Y;
-    const float ZZ = Z * Z;
-    const float M31 = 2.0f * X * Z + 2.0f * Y * W;
-    const float M32 = 2.0f * Y * Z - 2.0f * X * W;
-    const float M33 = 1.0f - 2.0f * XX - 2.0f * YY;
-    const float CY = std::sqrt(M33 * M33 + M31 * M31);
-    const float CX = std::atan2(-M32, CY);
-
-    if (CY > 16.0f * FLT_EPSILON) {
-        const float M12 = 2.0f * X * Y + 2.0f * Z * W;
-        const float M22 = 1.0f - 2.0f * XX - 2.0f * ZZ;
-        return FVector(CX, std::atan2(M31, M33), std::atan2(M12, M22));
-    }
-
-    const float M11 = 1.0f - 2.0f * YY - 2.0f * ZZ;
-    const float M21 = 2.0f * X * Y - 2.0f * Z * W;
-
-    return FVector(CX, 0.0f, std::atan2(-M21, M11));
-}
-
 FVector FQuat::GetForwardVector() const {
-    return FVector(
-        1.0f - 2.0f * (Y * Y + Z * Z),
-        2.0f * (X * Y + W * Z),
-        2.0f * (X * Z - W * Y));
+    return FVector{1.0f - 2.0f * (Y * Y + Z * Z), 2.0f * (X * Y + W * Z), 2.0f * (X * Z - W * Y)};
 }
 
 FVector FQuat::GetRightVector() const {
-    return FVector(
-        2.0f * (X * Y - W * Z),
-        1.0f - 2.0f * (X * X + Z * Z),
-        2.0f * (Y * Z + W * X));
+    return FVector{2.0f * (X * Y - W * Z), 1.0f - 2.0f * (X * X + Z * Z), 2.0f * (Y * Z + W * X)};
 }
 
 FVector FQuat::GetUpVector() const {
-    return FVector(
-        2.0f * (X * Z + W * Y),
-        2.0f * (Y * Z - W * X),
-        1.0f - 2.0f * (X * X + Y * Y));
+    return FVector{2.0f * (X * Z + W * Y), 2.0f * (Y * Z - W * X), 1.0f - 2.0f * (X * X + Y * Y)};
 }
 
 /* Statics */
-
-FQuat FQuat::Identity() {
-    return FQuat(0, 0, 0, 1.0f);
-}
 
 const FQuat FQuat::CreateFromAxisAngle(const FVector Axis, const float AngleRadians) {
     FVector NormalizedAxis = Axis;

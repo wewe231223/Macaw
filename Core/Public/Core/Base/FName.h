@@ -36,8 +36,6 @@ public:
     FNameEntry& operator=(const FNameEntry&) = delete;
     FNameEntry& operator=(FNameEntry&&) = delete;
 
-    bool IsWide() const;
-
     Int32 GetNameLength() const;
 
     FNameEntryId GetComparisonId() const;

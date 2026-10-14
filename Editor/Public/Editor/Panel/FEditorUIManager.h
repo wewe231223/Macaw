@@ -28,19 +28,16 @@ public:
     void RenderOffscreen(FRenderer& Renderer, FAssetRegistry& AssetRegistry);
     void ReleaseRenderResources();
     ImGuiID GetDockSpaceId() const;
-    const std::vector<FEditorWindow*>& GetWindows() const;
     FViewportHostWindow* GetViewportHostWindow() const;
     bool HandleExternalFileDrop(const std::filesystem::path& FilePath, const ImVec2& ScreenPosition);
 
 private:
-    void AddPanel(std::unique_ptr<IEditorPanel> Panel);
     void AddWindow(std::unique_ptr<FEditorWindow> Window);
     void AddViewerWindow(FAssetRegistry& AssetRegistry, FWorldEditorContext& EditorContext, HWND WindowHandle, FAssetThumbnailRenderer* ThumbnailRenderer);
     void AddViewportHostWindow(ID3D11Device* Device, FWorldEditorContext& EditorContext);
 
 private:
     std::vector<std::unique_ptr<IEditorPanel>> mElements{};
-    std::vector<FEditorWindow*> mWindows{};
     FViewportHostWindow* mViewportHostWindow{};
     FViewerPanel* mViewerWindow{};
     FWorldEditorContext* mPreviewContext{};

@@ -23,7 +23,6 @@ public:
 public:
     virtual void OnUnregister() override;
     void DestroyComponent(bool BPromoteChildren = false) override;
-    void RemoveChild(USceneComponent* InChild);
 
     ReflectClass(USceneComponent, EClassFlags::None);
 

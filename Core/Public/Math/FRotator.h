@@ -1,7 +1,6 @@
 #pragma once
 
 struct FVector;
-struct FQuat;
 
 // Degree but Quat: Radians
 struct FRotator {
@@ -18,11 +17,6 @@ struct FRotator {
     FRotator();
     FRotator(float P, float Y, float R);
     FRotator(FVector Vector);
-
-    static FRotator Identitiy;
-    static FRotator Zero;
-
-    FQuat Quaternion() const;
 
     FRotator operator+(const FRotator& Other) {
         Pitch += Other.Pitch;

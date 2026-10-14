@@ -57,27 +57,25 @@ FMatrix::FMatrix(
 
 /* Axis */
 
-void FMatrix::SetAxes(const FVector4& Axis0, const FVector4& Axis1, const FVector4& Axis2, const FVector4& Axis3) {
-    // 수정 필요
-    M[0][0] = Axis0.X;
-    M[0][1] = Axis0.Y;
-    M[0][2] = Axis0.Z;
-    M[0][3] = Axis0.W;
+void FMatrix::GetUnitAxis(FVector4& X, FVector4& Y, FVector4& Z) const {
+    X = FVector4{M[0][0], M[0][1], M[0][2], 0.0f};
+    Y = FVector4{M[1][0], M[1][1], M[1][2], 0.0f};
+    Z = FVector4{M[2][0], M[2][1], M[2][2], 0.0f};
 
-    M[1][0] = Axis1.X;
-    M[1][1] = Axis1.Y;
-    M[1][2] = Axis1.Z;
-    M[1][3] = Axis1.W;
+    X.Normalize();
+    Y.Normalize();
+    Z.Normalize();
+}
 
-    M[2][0] = Axis2.X;
-    M[2][1] = Axis2.Y;
-    M[2][2] = Axis2.Z;
-    M[2][3] = Axis2.W;
+FVector4 FMatrix::GetColumn(int32 Index) const {
+    return FVector4{M[0][Index], M[1][Index], M[2][Index], M[3][Index]};
+}
 
-    M[3][0] = Axis3.X;
-    M[3][1] = Axis3.Y;
-    M[3][2] = Axis3.Z;
-    M[3][3] = Axis3.W;
+void FMatrix::SetColumn(int32 Index, FVector4 Value) {
+    M[0][Index] = Value[0];
+    M[1][Index] = Value[1];
+    M[2][Index] = Value[2];
+    M[3][Index] = Value[3];
 }
 
 void FMatrix::SetAxis(int32 i, const FVector& Axis) {
@@ -85,28 +83,6 @@ void FMatrix::SetAxis(int32 i, const FVector& Axis) {
     M[i][1] = Axis.Y;
     M[i][2] = Axis.Z;
 }
-
-void FMatrix::GetUnitAxis(FVector4& X, FVector4& Y, FVector4& Z) const {
-    X = FVector4(M[0][0], M[0][1], M[0][2], 0.0f);
-    Y = FVector4(M[1][0], M[1][1], M[1][2], 0.0f);
-    Z = FVector4(M[2][0], M[2][1], M[2][2], 0.0f);
-    X.Normalize();
-    Y.Normalize();
-    Z.Normalize();
-}
-
-FVector4 FMatrix::GetColumn(int32 i) const {
-    return FVector4(M[0][i], M[1][i], M[2][i], M[3][i]);
-}
-
-FVector4 FMatrix::GetOrigin() {
-    return FVector4(M[3][0], M[3][1], M[3][2], M[3][3]);
-}
-
-//FVector4 FMatrix::GetScaledAxis(FVector4& X, FVector4& Y, FVector4& Z) const
-//{
-//	return FVector4();
-//}
 
 FVector4 FMatrix::TransformFVector4(const FVector4& V) const {
     FMatrixRegister MReg = FMatrixRegister::Load(*this);
@@ -122,32 +98,11 @@ FVector4 FMatrix::TransformFVector4(const FVector4& V) const {
         VectorSIMD::Dot(MReg.R[3], VReg));
 }
 
-FVector FMatrix::TransformPosition(const FVector& V) const {
-    return FVector(
-        V.X * M[0][0] + V.Y * M[1][0] + V.Z * M[2][0] + M[3][0],
-        V.X * M[0][1] + V.Y * M[1][1] + V.Z * M[2][1] + M[3][1],
-        V.X * M[0][2] + V.Y * M[1][2] + V.Z * M[2][2] + M[3][2]);
-}
-
-FVector4 FMatrix::TransformVector(const FVector& V) const {
-    return TransformFVector4(FVector4(V.X, V.Y, V.Z, 0.0f));
-}
-
-FVector4 FMatrix::InverseTransformPosition(const FVector& V) const {
-    FMatrix InvMatrix = Inverse();
-
-    return InvMatrix.TransformFVector4(FVector4(V, 1.0f));
+FVector FMatrix::TransformPosition(const FVector& Vector) const {
+    return FVector{Vector.X * M[0][0] + Vector.Y * M[1][0] + Vector.Z * M[2][0] + M[3][0], Vector.X * M[0][1] + Vector.Y * M[1][1] + Vector.Z * M[2][1] + M[3][1], Vector.X * M[0][2] + Vector.Y * M[1][2] + Vector.Z * M[2][2] + M[3][2]};
 }
 
 /* Functions */
-
-FMatrix FMatrix::ApplyScale(float Scale) const {
-    return FMatrix(
-        FVector4(M[0][0] * Scale, M[0][1], M[0][2], M[0][3]),
-        FVector4(M[1][0], M[1][1] * Scale, M[1][2], M[1][3]),
-        FVector4(M[2][0], M[2][1], M[2][2] * Scale, M[2][3]),
-        FVector4(M[3][0], M[3][1], M[3][2], M[3][3] * Scale));
-}
 
 FMatrix FMatrix::GetTransposed() const {
     return FMatrixRegister::Load(*this).Transpose().ToFMatrix();
@@ -179,13 +134,6 @@ float FMatrix::Determinant() const {
     return FMatrixRegister::Load(*this).Determinant();
 }
 
-void FMatrix::SetColumn(int32 i, FVector4 Value) {
-    M[0][i] = Value[0];
-    M[1][i] = Value[1];
-    M[2][i] = Value[2];
-    M[3][i] = Value[3];
-}
-
 void FMatrix::SetIdentity() {
     M[0][0] = 1;
     M[0][1] = 0;
@@ -206,23 +154,6 @@ void FMatrix::SetIdentity() {
     M[3][1] = 0;
     M[3][2] = 0;
     M[3][3] = 1;
-}
-
-void FMatrix::SetOrigin(const FVector& NewOrigin) {
-    M[3][0] = NewOrigin.X;
-    M[3][1] = NewOrigin.Y;
-    M[3][2] = NewOrigin.Z;
-}
-
-FMatrix FMatrix::MakeTranslation(const FVector& T) {
-    FMatrix Mat;
-
-    Mat.SetIdentity();
-    Mat.M[3][0] = T.X;
-    Mat.M[3][1] = T.Y;
-    Mat.M[3][2] = T.Z;
-
-    return Mat;
 }
 
 /* Operator */
@@ -578,14 +509,4 @@ std::ostream& operator<<(std::ostream& OS, const FMatrix& M) {
     OS << M[3][0] << " " << M[3][1] << " " << M[3][2] << " " << M[3][3] << "\n";
 
     return OS;
-}
-
-FRotator MatrixToRotator(const FMatrix& Mat) {
-    FRotator R;
-
-    R.Roll = atan2f(Mat.M[1][2], Mat.M[2][2]) * 180.0f / PI;
-    R.Pitch = atan2f(-Mat.M[0][2], sqrtf(Mat.M[1][2] * Mat.M[1][2] + Mat.M[2][2] * Mat.M[2][2])) * 180.0f / PI;
-    R.Yaw = atan2f(Mat.M[0][1], Mat.M[0][0]) * 180.0f / PI;
-
-    return R;
 }

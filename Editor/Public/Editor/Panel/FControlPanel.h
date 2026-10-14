@@ -29,8 +29,6 @@ private:
     int mSelectedMeshIndex{0};
     int mSpawnCountToRequest{1};
 
-    std::size_t mRenderModeIndex{0};
-
     // Components 체크리스트에서 컴포넌트 타입을 검색한다.
     ImGuiTextFilter mComponentFilter{};
 

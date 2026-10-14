@@ -18,7 +18,6 @@ struct FFontGlyph {
     Int32 mBearingX{0};
     Int32 mBearingY{0};
     float mAdvanceX{0.0f};
-    float mAdvanceY{0.0f};
 
     FVector2 mUvMin{};
     FVector2 mUvMax{};

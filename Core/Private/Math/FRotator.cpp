@@ -20,13 +20,6 @@ FRotator::FRotator(FVector Vector) {
     Roll = Vector.Z;
 }
 
-FQuat FRotator::Quaternion() const {
-    return FQuat::FromRotator(*this);
-}
-
-FRotator FRotator::Identitiy = FRotator(0, 0, 0);
-FRotator FRotator::Zero = FRotator(0.f, 0.f, 0.f);
-
 FRotator operator+(FRotator Rot, const FVector& Vec) {
     Rot.Roll += Vec.X;
     Rot.Pitch += Vec.Y;

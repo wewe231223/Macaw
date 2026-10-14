@@ -165,7 +165,6 @@ const FFontGlyph* UFreeTypeFont::GetOrCreateGlyph(char32_t CodePoint) {
     // FreeType의 Advance는 26.6(정수 26bit / 소숫점 6bit) 고정소수점을 사용하므로 실제값을 얻으려면 64로 나눠야함.
     // FreeType은 소숫점이 포함된 픽셀 정밀도를 유지하기 위해 이를 사용한다.
     NewGlyph.mAdvanceX = static_cast<float>(Slot->advance.x) / 64.0f;
-    NewGlyph.mAdvanceY = static_cast<float>(Slot->advance.y) / 64.0f;
 
     // Atlas 공간 할당
     if (Bitmap.width > 0 && Bitmap.rows > 0) {

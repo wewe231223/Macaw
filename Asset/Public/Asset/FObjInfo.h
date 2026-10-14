@@ -22,7 +22,6 @@ struct FFaceVertex {
 };
 
 struct FObjInfo {
-    FString mAssetName{};
     //이 오브젝트의 머티리얼 정보가 담긴 mtl 파일 이름
     FString mMaterialFileName{};
 

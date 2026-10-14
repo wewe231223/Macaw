@@ -6,7 +6,6 @@
 #include "Core/Base/FScopedFlag.h"
 #include "World/UWorld.h"
 #include "World/Component/USceneComponent.h"
-#include "CoreUObject/Reflection/FReflectionRegistry.h"
 
 const std::vector<std::unique_ptr<UActorComponent>>& AActor::GetComponents() const {
     return mComponents;
@@ -281,7 +280,7 @@ bool AActor::SetActorLocationAndRotation(const FVector3& Location, const FRotato
 
 FRotator AActor::GetActorRotation() const {
     if (mRootComponent == nullptr) {
-        return FRotator::Zero;
+        return FRotator{};
     }
 
     return mRootComponent->GetComponentRotation();
@@ -342,7 +341,7 @@ bool AActor::SetActorRelativeLocationAndRotation(const FVector3& Location, const
 }
 
 FRotator AActor::GetActorRelativeRotation() const {
-    return mRootComponent != nullptr ? mRootComponent->GetRelativeRotation() : FRotator::Zero;
+    return mRootComponent != nullptr ? mRootComponent->GetRelativeRotation() : FRotator{};
 }
 
 bool AActor::SetActorRelativeRotation(const FRotator& Rotation) {
@@ -525,72 +524,6 @@ void AActor::Destroyed() {
 }
 
 void AActor::OnRemovedFromWorld() {
-}
-
-bool AActor::PreLoadComponents(FArchive& Archive, bool RegisterComponents) {
-    if (mWorld != nullptr || mBIsBeingDestroyed) {
-        return false;
-    }
-
-    std::size_t ArraySize{};
-
-    Archive.BeginArrayScope("Components", ArraySize);
-
-    for (const std::unique_ptr<UActorComponent>& Component : mComponents) {
-        Component->UnregisterComponent();
-        UObjectSystem::Unregister(Component.get(), Component->GetHandle());
-    }
-
-    mRootComponent = nullptr;
-    UpdateTickRegistration();
-    mComponents.clear();
-    mComponents.reserve(ArraySize);
-
-    for (std::size_t I{0}; I < ArraySize; ++I) {
-        Archive.BeginObjectScope(std::to_string(I));
-
-        FName TypeName{};
-
-        Archive.Serialize("TypeName", TypeName);
-
-        const UClass* Type{FReflectionRegistry::FindClass(TypeName)};
-
-        if (Type == nullptr || !Type->CanCreateInstance()) {
-            Archive.EndObjectScope();
-            Archive.EndArrayScope();
-            return false;
-        }
-
-        std::unique_ptr<UObject> CreatedObject{Type->CreateInstance()};
-
-        if (CreatedObject == nullptr || !CreatedObject->GetClass()->IsChildOf(UActorComponent::StaticClass())) {
-            Archive.EndObjectScope();
-            Archive.EndArrayScope();
-            return false;
-        }
-
-        std::unique_ptr<UActorComponent> Component{static_cast<UActorComponent*>(CreatedObject.release())};
-
-        Component->SetOwner(this);
-
-        FGuid ComponentGuid{};
-
-        Archive.Serialize("Guid", ComponentGuid);
-
-        if (!Component->RestoreGuid(ComponentGuid) || (RegisterComponents && !UObjectSystem::Register(Component.get()).IsValid())) {
-            Archive.EndObjectScope();
-            Archive.EndArrayScope();
-            return false;
-        }
-
-        mComponents.push_back(std::move(Component));
-
-        Archive.EndObjectScope();
-    }
-
-    Archive.EndArrayScope();
-
-    return true;
 }
 
 bool AActor::ResolveLoadedReferences() {

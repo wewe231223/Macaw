@@ -12,6 +12,7 @@ class FAssetBrowserPanel : public FEditorWindow {
 public:
     explicit FAssetBrowserPanel(FAssetRegistry& InAssetRegistry, FWorldEditorContext& InEditorContext, FAssetThumbnailRenderer* InThumbnailRenderer, std::function<void(FAssetHandle)> InOpenMaterialEditor);
 
+public:
     void BeginExternalDropFrame();
     bool HandleExternalFileDrop(const std::filesystem::path& FilePath, const ImVec2& ScreenPosition);
 

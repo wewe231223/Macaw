@@ -32,7 +32,6 @@ public:
 public:
     bool Initialize(ID3D11Device* Device, const UPipeline& Pipeline);
     void Bind(ID3D11DeviceContext* Context, ERenderMode Mode, UINT StencilReference = 1) const;
-    void BindMaterial(ID3D11DeviceContext* Context, ERenderMode Mode, EMaterialBlendMode BlendMode, UINT StencilReference) const;
     bool BuildMaterialState(ERenderMode Mode, EMaterialBlendMode BlendMode, FMeshDrawPipelineState& OutState) const;
     void Reset();
 

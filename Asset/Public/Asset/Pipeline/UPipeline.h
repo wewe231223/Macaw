@@ -54,7 +54,6 @@ private:
     virtual void Serialize(FArchive& Ar) override;
 
 private:
-    std::filesystem::path mOptionFilePath{};
 
     std::size_t mModeIndex{0};
 

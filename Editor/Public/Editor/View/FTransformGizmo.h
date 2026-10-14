@@ -72,9 +72,6 @@ private:
     void SetScale(const FVector3& Pivot, float WorldUnitsPerPixel);
     void SetRotate(const FVector3& Pivot, float WorldUnitsPerPixel);
 
-    FAssetHandle GetAxisMaterial(EAxis Axis) const;
-    void AddRenderPart(EAxis Axis, const FMatrix& LocalTransform, FAssetHandle MeshHandle);
-
     void UpdateBoundsInGizmoSpace(const UPrimitiveComponent& Primitive, FVector3& OutCenter, FVector3& OutExtent) const;
 
     std::optional<FRay> MakeWorldRay(const POINT& ScreenPosition) const;

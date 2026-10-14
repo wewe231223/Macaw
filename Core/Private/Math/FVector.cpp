@@ -6,6 +6,8 @@
 #include <algorithm>
 #include <assert.h>
 
+const FVector FVector::OneVector{1.0f, 1.0f, 1.0f};
+
 FVector::FVector() {
     X = 0;
     Y = 0;
@@ -54,63 +56,12 @@ float FVector::Dot(const FVector& V1) const {
     return X * V1.X + Y * V1.Y + Z * V1.Z;
 }
 
-float& FVector::Component(int32 index) {
-    assert(index >= 0 && index <= 2);
-
-    if (index == 0)
-        return X;
-
-    if (index == 1)
-        return Y;
-
-    if (index == 2)
-        return Z;
-
-    return X; // 예외의 경우에서 X를 반환 (임시)
-}
-
-float FVector::Component(int32 index) const {
-    assert(index >= 0 && index <= 2);
-
-    if (index == 0)
-        return X;
-
-    if (index == 1)
-        return Y;
-
-    if (index == 2)
-        return Z;
-
-    return 0.0f; // 이외의 경우에서 0을 반환 (임시)
-}
-
-FVector FVector::Add(const FVector& V1) const {
-    return FVector(X + V1.X, Y + V1.Y, Z + V1.Z);
-}
-
-FVector FVector::Subtract(const FVector& V1) const {
-    return FVector(X - V1.X, Y - V1.Y, Z - V1.Z);
-}
-
 FVector FVector::Cross(const FVector& V1) const {
     return FVector(Y * V1.Z - Z * V1.Y, Z * V1.X - X * V1.Z, X * V1.Y - Y * V1.X);
 }
 
 FVector FVector::GetAbs() const {
-    float AbsX = X;
-    float AbsY = Y;
-    float AbsZ = Z;
-
-    if (X < 0)
-        AbsX = -X;
-
-    if (Y < 0)
-        AbsY = -Y;
-
-    if (Z < 0)
-        AbsZ = -Z;
-
-    return FVector(AbsX, AbsY, AbsZ);
+    return FVector{std::abs(X), std::abs(Y), std::abs(Z)};
 }
 
 void FVector::Normalize() {

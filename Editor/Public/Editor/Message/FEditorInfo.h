@@ -57,12 +57,6 @@ enum class EGizmoCoordinateSpace : Uint8 {
     Local
 };
 
-enum class EStatDisplayMode : Uint8 {
-    Fps,
-    Memory,
-    None
-};
-
 struct FStatDisplayFlags {
     bool mBShowFps{false};
     bool mBShowMemory{false};

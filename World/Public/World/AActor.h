@@ -147,10 +147,6 @@ public:
     /// <param name="DeltaTime">이전 프레임 이후 경과 시간입니다.</param>
     virtual void Tick(float DeltaTime);
 
-    /// <summary>직렬화 데이터에서 Component 인스턴스와 Object 등록 정보를 먼저 생성합니다.</summary>
-    /// <param name="Archive">로드 중인 아카이브입니다.</param>
-    /// <returns>모든 Component를 만들고 등록했으면 true입니다.</returns>
-    bool PreLoadComponents(FArchive& Archive, bool RegisterComponents = true);
     /// <summary>Component와 RootComponent의 지연 참조를 해석합니다.</summary>
     /// <returns>모든 참조를 해석했으면 true입니다.</returns>
     bool ResolveLoadedReferences();

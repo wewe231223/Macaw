@@ -59,15 +59,6 @@ private:
 
         inline MinMaxBox() = default;
 
-        inline MinMaxBox(const DirectX::BoundingBox& Box)
-	: minX(Box.Center.x - Box.Extents.x),
-	  minY(Box.Center.y - Box.Extents.y),
-	  minZ(Box.Center.z - Box.Extents.z),
-	  maxX(Box.Center.x + Box.Extents.x),
-	  maxY(Box.Center.y + Box.Extents.y),
-	  maxZ(Box.Center.z + Box.Extents.z) {
-        }
-
         inline void Expand(const DirectX::BoundingBox& Box) {
             if (minX > Box.Center.x - Box.Extents.x)
                 minX = Box.Center.x - Box.Extents.x;
@@ -116,7 +107,6 @@ private:
 
 public:
     bool BuildStructure(UMesh& Mesh);
-    bool Raycast(const FRay& Ray, float& OutDistance, float MaxDistance = std::numeric_limits<float>::max(), bool ReverseWinding = false) const;
 
 private:
     Uint32 MakeChild(TArray<FNode>& BuildNodes, const TArray<DirectX::BoundingBox>& TriangleBounds, Uint32 First, Uint32 Count, const MinMaxBox& Bounds);
@@ -221,7 +211,6 @@ public:
     bool GenerateLOD(Uint32 Level, float TargetRatio);
 
     TArray<FEdge> BuildEdges(const TArray<Uint32>& Indices);
-    FEdge FindShortestEdge(const TArray<FEdge>& Edges, const TArray<FVector3>& Positions);
 
 private:
     // 대칭 4x4 Quadric의 상삼각 성분만 저장한다. 생성 중 원본 평면 오차를 누적한다.

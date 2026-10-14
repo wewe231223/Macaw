@@ -22,15 +22,11 @@ public:
 
     const FVector3& GetPosition() const;
 
-    const FVector3& GetLocation() const;
-
     const FRotator& GetRotation() const;
 
     const FQuat& GetRotationQuaternion() const;
 
     const FVector3& GetScale() const;
-
-    const FVector3& GetScale3D() const;
 
     bool IsAbsoluteLocation() const;
 
@@ -40,14 +36,10 @@ public:
 
     void SetPosition(const FVector3& InPosition);
 
-    void SetLocation(const FVector3& Location);
-
     void SetRotation(const FRotator& InRotation);
     void SetRotation(const FQuat& InRotation);
 
     void SetScale(const FVector3& InScale);
-
-    void SetScale3D(const FVector3& Scale);
 
     void SetAbsoluteLocation(bool BInAbsoluteLocation);
 

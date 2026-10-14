@@ -15,10 +15,6 @@ namespace BVH8 {
         return ((Reference >> CountShift) & 7u) + 1;
     }
 
-    constexpr Uint32 GetValidMask(Uint32 Reference) {
-        return (1u << GetCount(Reference)) - 1;
-    }
-
     Uint32 MakeReference(Uint32 Index, Uint32 Count, bool Leaf = false);
 
     struct FLeaf {

@@ -897,15 +897,6 @@ const TArray<FAssetEntry>& FAssetRegistry::GetAssetEntries() const {
     return mAssets;
 }
 
-auto FAssetRegistry::GetAssetList() const {
-    return mAssets | std::ranges::views::filter([](const FAssetEntry& Entry) {
-        return Entry.mAsset != nullptr;
-    }) |
-           std::ranges::views::transform([](const FAssetEntry& Entry) -> UObject* {
-        return Entry.mAsset.get();
-    });
-}
-
 const UObject* FAssetRegistry::ResolveAssetObject(FAssetHandle Handle) const {
     const FAssetEntry* Entry{FindEntry(Handle)};
 

@@ -73,22 +73,6 @@ void UCameraComponent::OnUnregister() {
     }
 }
 
-void UCameraComponent::SetMoveSensitivity(float InMoveSensitivity) {
-    mMoveSensitivity = InMoveSensitivity;
-}
-
-void UCameraComponent::SetRotationSensitivity(float InRotationSensitivity) {
-    mRotationSensitivity = InRotationSensitivity;
-}
-
-float UCameraComponent::GetRotationSensitivity() const {
-    return mRotationSensitivity;
-}
-
-float UCameraComponent::GetMoveSensitivity() const {
-    return mMoveSensitivity;
-}
-
 void UCameraComponent::Serialize(FArchive& Archive) {
     Super::Serialize(Archive);
 

@@ -127,7 +127,6 @@ bool UPipeline::InitializeModes(const std::array<std::filesystem::path, static_c
     Reset();
     mDescriptions = std::move(Descriptions);
     mEnabledModes = EnabledModes;
-    mOptionFilePath = ModePaths[LitIndex];
     mPrimaryIndex = LitIndex;
     mModeIndex = LitIndex;
 

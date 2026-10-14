@@ -10,14 +10,6 @@ namespace {
         FMatrix RotationMatrix{FMatrix::CreateFromQuaternion(Rotation)};
         FMatrix Result{ScaleMatrix * RotationMatrix};
 
-        const float Row0[3]{Result.m_[0][0], Result.m_[0][1], Result.m_[0][2]};
-        const float Row1[3]{Result.m_[1][0], Result.m_[1][1], Result.m_[1][2]};
-        const float Row2[3]{Result.m_[2][0], Result.m_[2][1], Result.m_[2][2]};
-        //for (Uint32 Column = 0; Column < 3; ++Column) {
-        //    Result.m[0][Column] = -Row0[Column];
-        //    Result.m[1][Column] = Row2[Column];
-        //    Result.m[2][Column] = Row1[Column];
-        //}
         Result.Translation(Position);
 
         return Result;

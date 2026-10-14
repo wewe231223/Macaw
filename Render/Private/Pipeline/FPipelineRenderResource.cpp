@@ -234,18 +234,3 @@ bool FPipelineRenderResource::BuildMaterialState(ERenderMode Mode, EMaterialBlen
 
     return OutState.IsValid();
 }
-
-void FPipelineRenderResource::BindMaterial(ID3D11DeviceContext* Context, ERenderMode Mode, EMaterialBlendMode BlendMode, UINT StencilReference) const {
-    const std::size_t Index{static_cast<std::size_t>(Mode)};
-
-    if (Context == nullptr || Index >= mPipelines.size() || !mPipelines[Index].mInitialized) {
-        return;
-    }
-
-    Bind(Context, Mode, StencilReference);
-
-    const bool Translucent{BlendMode == EMaterialBlendMode::Translucent};
-
-    Context->OMSetBlendState(Translucent ? mTranslucentBlendState.Get() : mOpaqueBlendState.Get(), nullptr, 0xffffffff);
-    Context->OMSetDepthStencilState(Translucent ? mPipelines[Index].mTranslucentDepthStencilState.Get() : mPipelines[Index].mDepthStencilState.Get(), StencilReference);
-}

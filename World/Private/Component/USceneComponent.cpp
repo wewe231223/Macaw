@@ -144,25 +144,6 @@ void USceneComponent::DestroyComponent(bool BPromoteChildren) {
     Super::DestroyComponent(BPromoteChildren);
 }
 
-void USceneComponent::RemoveChild(USceneComponent* InChild) {
-    if (InChild == nullptr) {
-        return;
-    }
-
-    std::erase_if(mChildren, [InChild](const TObjectRef<USceneComponent>& ChildRef) {
-        return ChildRef.Get() == InChild;
-    });
-
-    if (InChild->mParent.Get() == this) {
-        InChild->mParent.Reset();
-        InChild->MarkTransformDirty();
-
-        if (UWorld* World{InChild->GetTypedOuter<UWorld>()}) {
-            World->MarkStructureDirty();
-        }
-    }
-}
-
 bool USceneComponent::AttachToComponent(USceneComponent* ParentComponent, EAttachmentTransformRule Rule) {
     if (IsBeingDestroyed() || (ParentComponent != nullptr && (ParentComponent->IsBeingDestroyed() || (ParentComponent->GetOwner() != nullptr && ParentComponent->GetOwner()->IsBeingDestroyed()))) || ParentComponent == this || mParent.Get() == ParentComponent) {
         return false;

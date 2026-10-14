@@ -40,8 +40,6 @@ public:
     void Set(const FVector& V1, float w = 0.0f);
     void Set(const FVector4& V1);
 
-    float& Component(int32 index); // 참조자 반환으로 lvalue로 직접 값수정 가능
-    float Component(int32 index) const;
     float Size() const;   // 길이 반환
     float Length() const; // ==  size()
     float LengthSquared() const;
@@ -49,7 +47,7 @@ public:
 
     void Normalize();
     FVector4 Cross(const FVector4& V1) const;
-    FVector4 GetAbs();
+    FVector4 GetAbs() const;
 
     // float GetMax();
     //// float GetMin();
@@ -90,21 +88,7 @@ public:
     float operator[](int32 Index) const;
     float& operator[](int32 Index);
 
-    static float DotProduct(const FVector4& V1, const FVector4& V2);
-    static FVector4 CrossProduct(const FVector4& V1, const FVector4& V2);
     static float Distance(const FVector4& V1, const FVector4& V2); // == Dist()
-                                                                   /*static FVector DegreesToRadians(const FVector& V1);
-	static FVector RadiansToDegrees(const FVector& V1);
-	static FVector Max(const FVector& V1, const FVector& V2);
-	static FVector Max3(const FVector& V1, const FVector& V2, const FVector& V3);
-	static FVector Min(const FVector& V1, const FVector& V2);
-	static FVector Min3(const FVector& V1, const FVector& V2, const FVector& V3);
-
-	static FVector UnitX();
-	static FVector UnitY();
-	static FVector UnitZ();
-
-	static FVector Zero();*/
 };
 
 using FColor4 = FVector4;

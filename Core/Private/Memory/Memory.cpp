@@ -11,15 +11,8 @@ namespace {
     struct FAllocationHeader {
         void* mRawPointer{nullptr};
         std::size_t mSize{0};
-        std::size_t mAlignment{0};
         Memory::EMemoryTag mTag{Memory::EMemoryTag::Unknown};
     };
-
-    FString Str{};
-}
-
-const char* Memory::GetMemoryTagName(EMemoryTag Tag) {
-    return Stat::GetMemoryTagName(Tag);
 }
 
 void* Memory::Allocate(std::size_t Size, std::size_t Alignment, EMemoryTag Tag) {
@@ -57,7 +50,7 @@ void* Memory::Allocate(std::size_t Size, std::size_t Alignment, EMemoryTag Tag) 
 
     void* HeaderAddress{static_cast<std::byte*>(UserPointer) - sizeof(FAllocationHeader)};
 
-    ::new (HeaderAddress) FAllocationHeader{RawPointer, Size, Alignment, Tag};
+    ::new (HeaderAddress) FAllocationHeader{RawPointer, Size, Tag};
 
     Stat::RecordAllocation(Size, Tag);
 
@@ -79,8 +72,4 @@ void Memory::Free(void* Ptr) noexcept {
 
     Header->~FAllocationHeader();
     ::operator delete(RawPointer);
-}
-
-Memory::FMemoryStats Memory::GetStats() {
-    return Stat::GetMemoryStats();
 }

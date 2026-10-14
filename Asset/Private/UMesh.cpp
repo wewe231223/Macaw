@@ -1553,16 +1553,17 @@ UMesh::FLODRenderData UMesh::BuildLODRenderData(const FLODGeometry& Geometry) co
 
 TArray<FEdge> UMesh::BuildEdges(const TArray<Uint32>& Indices) {
     TArray<FEdge> Edges{};
-    std::unordered_map<uint64_t, std::size_t> EdgeMap{};
+    std::unordered_map<Uint64, std::size_t> EdgeMap{};
 
     Edges.reserve(Indices.size() / 2);
     EdgeMap.reserve(Indices.size() / 2);
 
-    auto AddEdge = [&](Uint32 A, Uint32 B) {
-        if (A > B)
+    auto AddEdge{[&](Uint32 A, Uint32 B) {
+        if (A > B) {
             std::swap(A, B);
+        }
 
-        const uint64_t Key{(static_cast<uint64_t>(A) << 32) | static_cast<uint64_t>(B)};
+        const Uint64 Key{(static_cast<Uint64>(A) << 32) | static_cast<Uint64>(B)};
 
         const auto [It, BInserted]{EdgeMap.try_emplace(Key, Edges.size())};
 
@@ -1577,7 +1578,7 @@ TArray<FEdge> UMesh::BuildEdges(const TArray<Uint32>& Indices) {
         } else {
             ++Edges[It->second].FaceCount;
         }
-    };
+    }};
 
     for (std::size_t Index{}; Index + 2 < Indices.size(); Index += 3) {
         const Uint32 V0{Indices[Index]};
@@ -1590,27 +1591,6 @@ TArray<FEdge> UMesh::BuildEdges(const TArray<Uint32>& Indices) {
     }
 
     return Edges;
-}
-
-FEdge UMesh::FindShortestEdge(const TArray<FEdge>& Edges, const TArray<FVector3>& Positions) {
-    FEdge ShortestEdge;
-    float MinLengthSq = FLT_MAX;
-
-    for (const FEdge& Edge : Edges) {
-        const FVector3& V0 = Positions[Edge.V0];
-        const FVector3& V1 = Positions[Edge.V1];
-
-        float LengthSq = (V1 - V0).LengthSquared();
-
-        if (LengthSq < MinLengthSq) {
-            MinLengthSq = LengthSq;
-            ShortestEdge = Edge;
-        }
-    }
-
-    ShortestEdge.Cost = MinLengthSq;
-
-    return ShortestEdge;
 }
 
 bool UMesh::CanCollapseEdge(const FLODCollapse& Collapse, const FLODGeometry& Geometry, FLODSimplification& State) const {
@@ -1813,13 +1793,12 @@ const TArray<UMesh::FSubMesh>& UMesh::GetSubMeshes(int Level) const {
 
 void UMesh::SetSubMeshes(const std::span<FSubMesh>& InSubMeshes) {
     mSubMeshes.assign(InSubMeshes.begin(), InSubMeshes.end());
-    // 구간 / 재질이 바뀌면 이전 구간을 참조하는 LOD를 다시 생성해야 한다.
     mGeneratedLODs.clear();
     ++mRenderRevision;
 }
 
 bool UMesh::Raycast(const FRay& Ray, float& OutDistance, float MaxDistance, bool ReverseWinding) const {
-    return RaycastAccelerationStructure.Raycast(Ray, OutDistance, MaxDistance, ReverseWinding);
+    return mPickingSource != nullptr && mPickingSource->Raycast(Ray, OutDistance, MaxDistance, ReverseWinding);
 }
 
 bool UMesh::RebuildPickingStructure() {
@@ -2040,16 +2019,6 @@ Uint32 FMeshRaycastAccelerationStructure::MakeChild(TArray<FNode>& BuildNodes, c
     }
 
     return retIndex;
-}
-
-bool FMeshRaycastAccelerationStructure::Raycast(const FRay& Ray, float& OutDistance, float MaxDistance, bool ReverseWinding) const {
-    float ClosestDistance = MaxDistance;
-    const bool Hit = mTree.RaycastTrianglePackets(Ray, ClosestDistance, mTrianglePackets.data(), ReverseWinding);
-
-    if (Hit)
-        OutDistance = ClosestDistance;
-
-    return Hit;
 }
 
 UMesh::~UMesh() {

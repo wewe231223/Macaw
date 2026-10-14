@@ -38,12 +38,6 @@ public:
 
     ID3D11GeometryShader* GetGeometryShader() const noexcept;
 
-    ID3D11HullShader* GetHullShader() const noexcept;
-
-    ID3D11DomainShader* GetDomainShader() const noexcept;
-
-    ID3D11ComputeShader* GetComputeShader() const noexcept;
-
 private:
     EShaderStage mStage{EShaderStage::Vertex};
     std::vector<std::uint8_t> mByteCode{};
@@ -51,7 +45,4 @@ private:
     Microsoft::WRL::ComPtr<ID3D11VertexShader> mVertexShader{};
     Microsoft::WRL::ComPtr<ID3D11PixelShader> mPixelShader{};
     Microsoft::WRL::ComPtr<ID3D11GeometryShader> mGeometryShader{};
-    Microsoft::WRL::ComPtr<ID3D11HullShader> mHullShader{};
-    Microsoft::WRL::ComPtr<ID3D11DomainShader> mDomainShader{};
-    Microsoft::WRL::ComPtr<ID3D11ComputeShader> mComputeShader{};
 };

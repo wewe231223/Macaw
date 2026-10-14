@@ -4,15 +4,6 @@
 #include "Core/Channel/FMessageTypeInfo.h"
 #include "Core/Common.h"
 
-struct FMessageUndoApply {
-public:
-    FMessageUndoApply(const bool InputType) noexcept;
-    DECLARE_CHANNEL_MESSAGE(FMessageUndoApply);
-
-public:
-    bool mBIsUndo{}; // true = undo, false = redo
-};
-
 struct FMessageUndoObjectStateChanged {
 public:
     FMessageUndoObjectStateChanged(const FGuid& InputGuid, TArray<Uint8>&& InputData) noexcept;

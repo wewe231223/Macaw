@@ -7,6 +7,7 @@ class FSplitterRatio {
 public:
     explicit FSplitterRatio(float InValue = 0.5f);
 
+public:
     float GetValue() const;
     void SetValue(float InValue);
     bool SharesStateWith(const FSplitterRatio& Other) const;
