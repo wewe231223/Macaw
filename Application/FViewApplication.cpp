@@ -28,7 +28,7 @@ void FViewApplication::InitializeMode(FApplicationContext& Context, HWND WindowH
     });
 
     Context.mMenuPanel = std::make_unique<FViewerToolBar>(*Context.mEditorContext);
-    Context.mEditorUIManager->InitializeViewer(Context.mEngine.GetAssetRegistry(), WindowHandle, *Context.mEditorContext, Context.mThumbnailRenderer.get());
+    Context.mEditorUIManager->InitializeViewer(WindowHandle, Context.mThumbnailRenderer.get());
 }
 
 void FViewApplication::RenderMode(FApplicationContext&, float) {

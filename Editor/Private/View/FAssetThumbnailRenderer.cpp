@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Asset/FAssetRegistry.h"
 #include "Editor/View/FAssetThumbnailRenderer.h"
 #include "Render/Renderer.h"
 #include "Core/Stat/Stat.h"
@@ -17,18 +18,24 @@ namespace {
     constexpr const char* MaterialPipelinePath{"/Game/Pipeline/TexturedBase"};
 }
 
-void FAssetThumbnailRenderer::Create(FRenderer* InRenderer, FAssetRegistry* InAssetRegistry) {
-    mRenderer = InRenderer;
-    mAssetRegistry = InAssetRegistry;
+void FAssetThumbnailRenderer::Create(FRenderer* InRenderer) {
+    const Uint64 Generation{FAssetRegistry::GetGeneration()};
 
-    if (mRenderer == nullptr || mAssetRegistry == nullptr) {
+    if (mRegistryGeneration != Generation) {
+        Terminate();
+    }
+
+    mRenderer = InRenderer;
+    mRegistryGeneration = Generation;
+
+    if (mRenderer == nullptr || FAssetRegistry::TryGet() == nullptr) {
         return;
     }
 
     mPendingAssetHandles.clear();
     mPendingAssetIndex = 0;
 
-    for (const FAssetEntry& Entry : mAssetRegistry->GetAssetEntries()) {
+    for (const FAssetEntry& Entry : FAssetRegistry::Get().GetAssetEntries()) {
         if (Entry.mAsset == nullptr) {
             continue;
         }
@@ -83,7 +90,7 @@ void FAssetThumbnailRenderer::RenderMaterialPreview(FAssetHandle MaterialHandle,
 void FAssetThumbnailRenderer::RenderThumbnail(const FAssetEntry& Entry, FSceneRenderSurface* PreviewSurface) {
     const Stat::FScopedSystemStatTimer StageStat{Stat::ESystemStatStage::PreviewRender};
 
-    if (mRenderer == nullptr || mAssetRegistry == nullptr || Entry.mAsset == nullptr) {
+    if (mRenderer == nullptr || FAssetRegistry::TryGet() == nullptr || Entry.mAsset == nullptr) {
         return;
     }
 
@@ -91,18 +98,18 @@ void FAssetThumbnailRenderer::RenderThumbnail(const FAssetEntry& Entry, FSceneRe
 
     if (Entry.mAssetType == EAssetType::Mesh) {
         MeshData.mMeshHandle = Entry.mHandle;
-        MeshData.mMaterialHandle = mAssetRegistry->FindAsset(FAssetPath{DefaultMaterialPath});
-        MeshData.mPipelineHandle = mAssetRegistry->FindAsset(FAssetPath{StaticMeshPipelinePath});
+        MeshData.mMaterialHandle = FAssetRegistry::Get().FindAsset(FAssetPath{DefaultMaterialPath});
+        MeshData.mPipelineHandle = FAssetRegistry::Get().FindAsset(FAssetPath{StaticMeshPipelinePath});
     } else if (Entry.mAssetType == EAssetType::Material) {
-        MeshData.mMeshHandle = mAssetRegistry->FindAsset(FAssetPath{SphereMeshPath});
+        MeshData.mMeshHandle = FAssetRegistry::Get().FindAsset(FAssetPath{SphereMeshPath});
         MeshData.mMaterialHandle = Entry.mHandle;
     } else {
         return;
     }
 
-    UMesh* Mesh{mAssetRegistry->ResolveAsset<UMesh>(MeshData.mMeshHandle)};
+    UMesh* Mesh{FAssetRegistry::Get().ResolveAsset<UMesh>(MeshData.mMeshHandle)};
 
-    UMaterial* Material{mAssetRegistry->ResolveAsset<UMaterial>(MeshData.mMaterialHandle)};
+    UMaterial* Material{FAssetRegistry::Get().ResolveAsset<UMaterial>(MeshData.mMaterialHandle)};
 
     if (Mesh == nullptr || Material == nullptr) {
         return;
@@ -119,14 +126,14 @@ void FAssetThumbnailRenderer::RenderThumbnail(const FAssetEntry& Entry, FSceneRe
             }
         }
 
-        MeshData.mPipelineHandle = mAssetRegistry->FindAsset(FAssetPath{HasTexture ? MaterialPipelinePath : StaticMeshPipelinePath});
+        MeshData.mPipelineHandle = FAssetRegistry::Get().FindAsset(FAssetPath{HasTexture ? MaterialPipelinePath : StaticMeshPipelinePath});
     }
 
     if (!MeshData.mPipelineHandle) {
         return;
     }
 
-    if (!mPreviewScene.Initialize(*mRenderer, *mAssetRegistry)) {
+    if (!mPreviewScene.Initialize(*mRenderer)) {
         return;
     }
 
@@ -181,17 +188,24 @@ void FAssetThumbnailRenderer::RenderThumbnail(const FAssetEntry& Entry, FSceneRe
 }
 
 ID3D11ShaderResourceView* FAssetThumbnailRenderer::GetThumbnail(FAssetHandle AssetHandle) const {
-    if (mRenderer != nullptr && mAssetRegistry != nullptr && mAssetRegistry->ResolveAsset<UTexture>(AssetHandle) != nullptr) {
+    const FAssetRegistry* Registry{FAssetRegistry::TryGet()};
+    const UAsset* Asset{Registry != nullptr && mRegistryGeneration == FAssetRegistry::GetGeneration() ? Registry->ResolveAsset<UAsset>(AssetHandle) : nullptr};
+
+    if (mRenderer == nullptr || Asset == nullptr) {
+        return nullptr;
+    }
+
+    if (Asset->GetClass()->IsChildOf(UTexture::StaticClass())) {
         return mRenderer->GetTextureResource(AssetHandle);
+    }
+
+    if (!Asset->GetClass()->IsChildOf(UMesh::StaticClass()) && !Asset->GetClass()->IsChildOf(UMaterial::StaticClass())) {
+        return nullptr;
     }
 
     const auto It{mThumbnails.find(MakeThumbnailKey(AssetHandle))};
 
-    if (It == mThumbnails.end() || It->second.mSurface == nullptr) {
-        return nullptr;
-    }
-
-    return It->second.mSurface->GetShaderResourceView();
+    return It != mThumbnails.end() && It->second.mSurface != nullptr ? It->second.mSurface->GetShaderResourceView() : nullptr;
 }
 
 void FAssetThumbnailRenderer::Terminate() {
@@ -208,7 +222,7 @@ void FAssetThumbnailRenderer::Terminate() {
     mPendingAssetIndex = 0;
 
     mRenderer = nullptr;
-    mAssetRegistry = nullptr;
+    mRegistryGeneration = 0;
 }
 
 FMatrix FAssetThumbnailRenderer::BuildMeshTransform(const UMesh& Mesh) const {
@@ -294,11 +308,11 @@ FMatrix FAssetThumbnailRenderer::MakeCameraWorldMatrix(const FVector& Eye, const
 }
 
 const FAssetEntry* FAssetThumbnailRenderer::FindAssetEntry(FAssetHandle AssetHandle) const {
-    if (mAssetRegistry == nullptr) {
+    if (FAssetRegistry::TryGet() == nullptr || mRegistryGeneration != FAssetRegistry::GetGeneration()) {
         return nullptr;
     }
 
-    for (const FAssetEntry& Entry : mAssetRegistry->GetAssetEntries()) {
+    for (const FAssetEntry& Entry : FAssetRegistry::Get().GetAssetEntries()) {
         if (Entry.mHandle == AssetHandle) {
             return &Entry;
         }

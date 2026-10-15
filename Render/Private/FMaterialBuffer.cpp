@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Asset/FAssetRegistry.h"
 #include "Render/FMaterialBuffer.h"
 #include "Asset/UMaterial.h"
 
@@ -41,13 +42,15 @@ bool FMaterialBuffer::Initialize(ID3D11Device* Device, Uint32 MaxMaterialCount) 
     return true;
 }
 
-bool FMaterialBuffer::Synchronize(const IAssetRegistry& Registry, ID3D11DeviceContext* Context) {
+bool FMaterialBuffer::Synchronize(ID3D11DeviceContext* Context) {
     if (Context == nullptr || mBuffer == nullptr) {
         return false;
     }
 
-    std::erase_if(mMaterials, [this, &Registry](auto& Pair) {
-        const UMaterial* Material{Registry.ResolveAsset<UMaterial>(Pair.second.mHandle)};
+    const IAssetRegistry* Registry{FAssetRegistry::TryGet()};
+
+    std::erase_if(mMaterials, [this, Registry](auto& Pair) {
+        const UMaterial* Material{Registry != nullptr ? Registry->ResolveAsset<UMaterial>(Pair.second.mHandle) : nullptr};
 
         if (Material != nullptr && Material->GetGuid() == Pair.first && Material->GetGPUDataCount() == Pair.second.mIndices.size()) {
             return false;
@@ -58,10 +61,14 @@ bool FMaterialBuffer::Synchronize(const IAssetRegistry& Registry, ID3D11DeviceCo
         return true;
     });
 
+    if (Registry == nullptr) {
+        return false;
+    }
+
     bool Complete{true};
 
-    for (FAssetHandle Handle : Registry.GetAssetHandles(*UMaterial::StaticClass())) {
-        const UMaterial* Material{Registry.ResolveAsset<UMaterial>(Handle)};
+    for (FAssetHandle Handle : Registry->GetAssetHandles(*UMaterial::StaticClass())) {
+        const UMaterial* Material{Registry->ResolveAsset<UMaterial>(Handle)};
 
         if (Material == nullptr) {
             continue;
@@ -90,7 +97,9 @@ bool FMaterialBuffer::Synchronize(const IAssetRegistry& Registry, ID3D11DeviceCo
 
         FMaterialEntry& Entry{Position->second};
 
-        if (Entry.mRevision == Material->GetRenderRevision()) {
+        const FRenderAssetStamp Stamp{Material->GetHandle(), Material->GetRenderRevision()};
+
+        if (Entry.mStamp == Stamp) {
             continue;
         }
 
@@ -108,7 +117,7 @@ bool FMaterialBuffer::Synchronize(const IAssetRegistry& Registry, ID3D11DeviceCo
             Context->UpdateSubresource(mBuffer.Get(), 0, &Box, Slot.mData.data(), 0, 0);
         }
 
-        Entry.mRevision = Material->GetRenderRevision();
+        Entry.mStamp = Stamp;
     }
 
     return Complete;

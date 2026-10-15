@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "Render/FLineRenderer.h"
-#include "Render/FFrameResource.h"
+#include "Render/FRenderBuffers.h"
 #include "Core/Base/ErrorHandler.h"
 
 #include <algorithm>
@@ -75,23 +75,23 @@ void FLineRenderer::AddRay(const FVector3& Origin, const FVector3& Direction, fl
     AddLine(Origin, Origin + NormalizedDirection * Length, Color, WidthPixels, DepthMode);
 }
 
-void FLineRenderer::Render(ID3D11DeviceContext* Context, FFrameResource& FrameResource) {
-    RenderLines(Context, FrameResource, false);
+void FLineRenderer::Render(ID3D11DeviceContext* Context, FRenderBuffers& RenderBuffers) {
+    RenderLines(Context, RenderBuffers, false);
 }
 
-void FLineRenderer::RenderOrientationAxis(ID3D11DeviceContext* Context, FFrameResource& FrameResource) {
-    RenderLines(Context, FrameResource, true);
+void FLineRenderer::RenderOrientationAxis(ID3D11DeviceContext* Context, FRenderBuffers& RenderBuffers) {
+    RenderLines(Context, RenderBuffers, true);
 }
 
-void FLineRenderer::RenderLines(ID3D11DeviceContext* Context, FFrameResource& FrameResource, bool OrientationAxis) {
+void FLineRenderer::RenderLines(ID3D11DeviceContext* Context, FRenderBuffers& RenderBuffers, bool OrientationAxis) {
     ErrorHandler::Report(mDevice == nullptr, "[ FLineRenderer ]", "Invalid device pointer.", ErrorHandler::EErrorLevel::Critical);
     ErrorHandler::Report(Context == nullptr, "[ FLineRenderer ]", "Invalid device context pointer.", ErrorHandler::EErrorLevel::Critical);
     ErrorHandler::Report(mDepthTestedPipeline == nullptr, "[ FLineRenderer ]", "Depth-tested pipeline is not initialized.", ErrorHandler::EErrorLevel::Critical);
 
-    ErrorHandler::Report(not FrameResource.BindCommon(Context, OrientationAxis), "[ FLineRenderer ]", "Failed to bind frame constants.", ErrorHandler::EErrorLevel::Critical);
+    ErrorHandler::Report(not RenderBuffers.BindCommon(Context, OrientationAxis), "[ FLineRenderer ]", "Failed to bind view constants.", ErrorHandler::EErrorLevel::Critical);
 
-    ErrorHandler::Report(not RenderBatch(Context, FrameResource, mDepthTestedBatch, mDepthTestedPipeline.get(), OrientationAxis ? EFrameStream::OrientationAxisLineDepth : EFrameStream::LineDepth), "[ FLineRenderer ]", "Failed to render depth-tested lines.", ErrorHandler::EErrorLevel::Critical);
-    ErrorHandler::Report(not RenderBatch(Context, FrameResource, mOverlayBatch, mOverlayPipeline.get(), OrientationAxis ? EFrameStream::OrientationAxisLineOverlay : EFrameStream::LineOverlay), "[ FLineRenderer ]", "Failed to render overlay lines.", ErrorHandler::EErrorLevel::Critical);
+    ErrorHandler::Report(not RenderBatch(Context, RenderBuffers, mDepthTestedBatch, mDepthTestedPipeline.get(), ERenderStream::LineDepth), "[ FLineRenderer ]", "Failed to render depth-tested lines.", ErrorHandler::EErrorLevel::Critical);
+    ErrorHandler::Report(not RenderBatch(Context, RenderBuffers, mOverlayBatch, mOverlayPipeline.get(), ERenderStream::LineOverlay), "[ FLineRenderer ]", "Failed to render overlay lines.", ErrorHandler::EErrorLevel::Critical);
 
     Clear();
 }
@@ -121,7 +121,7 @@ bool FLineRenderer::CreateQuadGeometry(ID3D11Device* InDevice) {
     return mQuadVertexBuffer.Initialize(InDevice, VertexBufferDescription, Vertices.data());
 }
 
-bool FLineRenderer::RenderBatch(ID3D11DeviceContext* Context, FFrameResource& FrameResource, FLineBatch& Batch, const FPipelineRenderResource* Pipeline, EFrameStream Stream) {
+bool FLineRenderer::RenderBatch(ID3D11DeviceContext* Context, FRenderBuffers& RenderBuffers, FLineBatch& Batch, const FPipelineRenderResource* Pipeline, ERenderStream Stream) {
     if (Batch.mInstances.empty()) {
         return true;
     }
@@ -132,13 +132,13 @@ bool FLineRenderer::RenderBatch(ID3D11DeviceContext* Context, FFrameResource& Fr
 
     const Uint32 InstanceCount{static_cast<Uint32>(Batch.mInstances.size())};
 
-    if (not FrameResource.UploadStream(mDevice, Context, Stream, Batch.mInstances.data(), InstanceCount, sizeof(FLineInstance), D3D11_BIND_VERTEX_BUFFER)) {
+    if (not RenderBuffers.UploadStream(mDevice, Context, Stream, Batch.mInstances.data(), InstanceCount, sizeof(FLineInstance), D3D11_BIND_VERTEX_BUFFER)) {
         return false;
     }
 
     Pipeline->Bind(Context, ERenderMode::Lit);
 
-    ID3D11Buffer* VertexBuffers[]{mQuadVertexBuffer.GetBuffer(), FrameResource.GetStreamBuffer(Stream)};
+    ID3D11Buffer* VertexBuffers[]{mQuadVertexBuffer.GetBuffer(), RenderBuffers.GetStreamBuffer(Stream)};
 
     const Uint32 Strides[]{static_cast<Uint32>(sizeof(FQuadVertex)), static_cast<Uint32>(sizeof(FLineInstance))};
 

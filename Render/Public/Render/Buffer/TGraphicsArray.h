@@ -26,7 +26,7 @@ public:
     bool Initialize(ID3D11Device* Device, ID3D11DeviceContext* Context, Uint32 InCapacity, std::span<const T> InitialData = {});
 
     bool UploadDiscard(ID3D11Device* Device, ID3D11DeviceContext* Context, std::span<const T> Values) requires(BDynamic);
-    bool UploadNoOverwrite(ID3D11Device* Device, ID3D11DeviceContext* Context, std::span<const T> Values) requires(BDynamic);
+    bool Upload(ID3D11Device* Device, ID3D11DeviceContext* Context, std::span<const T> Values) requires(!BDynamic);
 
     bool Add(ID3D11Device* Device, ID3D11DeviceContext* Context, const T& Value) requires(!BDynamic);
 
@@ -140,7 +140,7 @@ bool TGraphicsArray<T, BAutoResize, BDynamic>::UploadDiscard(ID3D11Device* Devic
 }
 
 template <typename T, bool BAutoResize, bool BDynamic>
-bool TGraphicsArray<T, BAutoResize, BDynamic>::UploadNoOverwrite(ID3D11Device* Device, ID3D11DeviceContext* Context, std::span<const T> Values) requires(BDynamic) {
+bool TGraphicsArray<T, BAutoResize, BDynamic>::Upload(ID3D11Device* Device, ID3D11DeviceContext* Context, std::span<const T> Values) requires(!BDynamic) {
     if (Device == nullptr || Context == nullptr || Values.size() > UINT32_MAX / sizeof(T)) {
         return false;
     }
@@ -148,7 +148,7 @@ bool TGraphicsArray<T, BAutoResize, BDynamic>::UploadNoOverwrite(ID3D11Device* D
         mCount = 0;
         return true;
     }
-    if (!EnsureCapacity(Device, Context, static_cast<Uint32>(Values.size())) || !mBuffer.WriteNoOverwrite(Context, Values.data(), static_cast<Uint32>(Values.size_bytes()), 0)) {
+    if (!EnsureCapacity(Device, Context, static_cast<Uint32>(Values.size())) || !mBuffer.Update(Context, Values.data(), static_cast<Uint32>(Values.size_bytes()))) {
         return false;
     }
     mCount = static_cast<Uint32>(Values.size());

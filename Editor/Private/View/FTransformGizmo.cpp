@@ -1,4 +1,6 @@
 #include "pch.h"
+#include "Asset/FAssetRegistry.h"
+#include "Editor/Settings/FEditorConfigManager.h"
 #include "Editor/View/FTransformGizmo.h"
 
 #include <algorithm>
@@ -133,9 +135,8 @@ namespace {
     }
 }
 
-void FTransformGizmo::Initialize(ID3D11Device* Device, FAssetRegistry& AssetRegistry, FWorldEditorContext& InEditorContext) {
+void FTransformGizmo::Initialize(ID3D11Device* Device, FWorldEditorContext& InEditorContext) {
     UNREFERENCED_PARAMETER(Device);
-    mAssetRegistry = &AssetRegistry;
     mEditorContext = &InEditorContext;
     RefreshAssetHandles();
 }
@@ -158,7 +159,7 @@ void FTransformGizmo::ProcessInput(FKeyboardInput& KeyboardInput, FMouseInput& M
         }
 
         if (State == EKeyState::Down || State == EKeyState::Pressed || State == EKeyState::Released) {
-            UpdateDrag(MouseInput.GetDragCapture(mDragSession->mButton).mCurrent, mVertexSnap, mEditorContext->GetEditorSettings().mSurfaceSnapEnabled);
+            UpdateDrag(MouseInput.GetDragCapture(mDragSession->mButton).mCurrent, mVertexSnap, FEditorConfigManager::Get().GetSettings().mSurfaceSnapEnabled);
         }
 
         if (State == EKeyState::Released || State == EKeyState::None) {
@@ -185,7 +186,7 @@ void FTransformGizmo::ProcessInput(FKeyboardInput& KeyboardInput, FMouseInput& M
             mEditorContext->SetGizmoCoordinateSpace(mEditorContext->GetGizmoCoordinateSpace() == EGizmoCoordinateSpace::World ? EGizmoCoordinateSpace::Local : EGizmoCoordinateSpace::World);
         }
 
-        FEditorSettings Settings{mEditorContext->GetEditorSettings()};
+        FEditorSettings& Settings{FEditorConfigManager::Get().GetSettings()};
 
         if (KeyboardInput.GetKeyState('X') == EKeyState::Pressed) {
             switch (mEditorContext->GetGizmoMode()) {
@@ -200,7 +201,6 @@ void FTransformGizmo::ProcessInput(FKeyboardInput& KeyboardInput, FMouseInput& M
             Settings.mSurfaceSnapEnabled = !Settings.mSurfaceSnapEnabled;
         }
 
-        mEditorContext->SetEditorSettings(Settings);
         Update(mLastCamera, mLastViewport);
     }
 
@@ -232,7 +232,7 @@ void FTransformGizmo::ProcessInput(FKeyboardInput& KeyboardInput, FMouseInput& M
 
     if (PressedHandle != EHandle::None && BeginDrag(PressedHandle, Capture.mStart, Button, PivotOnly, Duplicate)) {
         MouseInput.Consume(Button);
-        UpdateDrag(Capture.mCurrent, mVertexSnap, mEditorContext->GetEditorSettings().mSurfaceSnapEnabled);
+        UpdateDrag(Capture.mCurrent, mVertexSnap, FEditorConfigManager::Get().GetSettings().mSurfaceSnapEnabled);
     }
 }
 
@@ -275,7 +275,7 @@ void FTransformGizmo::Update(const FViewMatrices& Camera, const D3D11_VIEWPORT& 
     }
 
     mUnitsPerPixel = 2.0f * (Perspective ? Depth : 1.0f) / (Viewport.Height * ProjectionScale);
-    mSize = std::clamp(mEditorContext->GetEditorSettings().mGizmoSize, 0.5f, 2.0f);
+    mSize = std::clamp(FEditorConfigManager::Get().GetSettings().mGizmoSize, 0.5f, 2.0f);
 
     if (!std::isfinite(mUnitsPerPixel) || mUnitsPerPixel <= 0.0f) {
         return;
@@ -627,7 +627,7 @@ void FTransformGizmo::UpdateDrag(const POINT& Position, bool VertexSnap, bool Su
         }
     }
 
-    const FEditorSettings Settings{mEditorContext->GetEditorSettings()};
+    const FEditorSettings& Settings{FEditorConfigManager::Get().GetSettings()};
     const std::optional<FRay> Ray{MakeRay(Position, Session.mCamera, Session.mViewport)};
 
     if (!Ray.has_value() || !std::isfinite(MouseDelta.mX) || !std::isfinite(MouseDelta.mY)) {
@@ -949,7 +949,7 @@ bool FTransformGizmo::FindSurface(const FRay& Ray, FVector3& Position, FVector3&
 
     Position = FVector3{Ray.position} + FVector3{Ray.direction} * NearestDistance;
     Normal = -FVector3{Ray.direction};
-    const UMesh* Mesh{mAssetRegistry->ResolveAsset<UMesh>(Nearest->GetMeshHandle())};
+    const UMesh* Mesh{FAssetRegistry::Get().ResolveAsset<UMesh>(Nearest->GetMeshHandle())};
 
     if (Mesh != nullptr) {
         const auto Positions{Mesh->GetVertexAttributeData<EVertexAttribute::Position>()};
@@ -991,7 +991,7 @@ bool FTransformGizmo::FindVertex(const POINT& MousePosition, FVector3& Position)
     float BestDepth{std::numeric_limits<float>::max()};
     bool Found{};
 
-    if (World == nullptr || mAssetRegistry == nullptr) {
+    if (World == nullptr || FAssetRegistry::TryGet() == nullptr) {
         return false;
     }
 
@@ -1006,7 +1006,7 @@ bool FTransformGizmo::FindVertex(const POINT& MousePosition, FVector3& Position)
             }
 
             const UMeshComponent* MeshComponent{static_cast<const UMeshComponent*>(Component.get())};
-            const UMesh* Mesh{MeshComponent->IsRegistered() && MeshComponent->IsVisible() ? mAssetRegistry->ResolveAsset<UMesh>(MeshComponent->GetMeshHandle()) : nullptr};
+            const UMesh* Mesh{MeshComponent->IsRegistered() && MeshComponent->IsVisible() ? FAssetRegistry::Get().ResolveAsset<UMesh>(MeshComponent->GetMeshHandle()) : nullptr};
 
             if (Mesh == nullptr) {
                 continue;
@@ -1174,15 +1174,15 @@ void FTransformGizmo::BuildFeedback(FOverlayRenderData& Overlay) const {
 }
 
 void FTransformGizmo::RefreshAssetHandles() {
-    if (mAssetRegistry == nullptr) {
+    if (FAssetRegistry::TryGet() == nullptr) {
         return;
     }
 
-    mArrowMesh = mAssetRegistry->FindAsset(FAssetPath{"/Game/System/Mesh/GizmoArrow.bin"});
-    mScaleArrowMesh = mAssetRegistry->FindAsset(FAssetPath{"/Game/System/Mesh/GizmoScaleArrow.bin"});
-    mCubeMesh = mAssetRegistry->FindAsset(FAssetPath{"/Game/System/Mesh/Cube.bin"});
-    mAxisMaterials = {mAssetRegistry->FindAsset(FAssetPath{"/Game/System/Material/Red.mtl"}), mAssetRegistry->FindAsset(FAssetPath{"/Game/System/Material/Green.mtl"}), mAssetRegistry->FindAsset(FAssetPath{"/Game/System/Material/Blue.mtl"})};
-    mHighlightMaterial = mAssetRegistry->FindAsset(FAssetPath{"/Game/System/Material/GizmoHighlight.mtl"});
-    mNeutralMaterial = mAssetRegistry->FindAsset(FAssetPath{"/Game/System/Material/GizmoNeutral.mtl"});
-    mGizmoPipeline = mAssetRegistry->FindAsset(FAssetPath{"/Game/Pipeline/Gizmo.json"});
+    mArrowMesh = FAssetRegistry::Get().FindAsset(FAssetPath{"/Game/System/Mesh/GizmoArrow.bin"});
+    mScaleArrowMesh = FAssetRegistry::Get().FindAsset(FAssetPath{"/Game/System/Mesh/GizmoScaleArrow.bin"});
+    mCubeMesh = FAssetRegistry::Get().FindAsset(FAssetPath{"/Game/System/Mesh/Cube.bin"});
+    mAxisMaterials = {FAssetRegistry::Get().FindAsset(FAssetPath{"/Game/System/Material/Red.mtl"}), FAssetRegistry::Get().FindAsset(FAssetPath{"/Game/System/Material/Green.mtl"}), FAssetRegistry::Get().FindAsset(FAssetPath{"/Game/System/Material/Blue.mtl"})};
+    mHighlightMaterial = FAssetRegistry::Get().FindAsset(FAssetPath{"/Game/System/Material/GizmoHighlight.mtl"});
+    mNeutralMaterial = FAssetRegistry::Get().FindAsset(FAssetPath{"/Game/System/Material/GizmoNeutral.mtl"});
+    mGizmoPipeline = FAssetRegistry::Get().FindAsset(FAssetPath{"/Game/Pipeline/Gizmo.json"});
 }

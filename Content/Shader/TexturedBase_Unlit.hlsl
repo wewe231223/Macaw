@@ -31,7 +31,7 @@ Texture2D ReflectionTexture : register(t14);
 
 SamplerState LinearWrap : register(s0);
 
-#include "FrameResource.hlsli"
+#include "ViewConstants.hlsli"
 
 struct VS_INPUT {
     float3 Position : POSITION;

@@ -1,4 +1,6 @@
 #include "pch.h"
+#include "Core/Base/ErrorHandler.h"
+#include "Editor/Settings/FEditorConfigManager.h"
 #include "Editor/PIE/FPIEViewportSession.h"
 #include "Editor/UEditorEngine.h"
 #include "Editor/Panel/FViewportHostWindow.h"
@@ -8,11 +10,13 @@
 #include <cmath>
 #include <cstdio>
 
-FPIEViewportSession::FPIEViewportSession(UEditorEngine& Engine, FRenderer& Renderer, FViewportHostWindow* Host)
-	: mEngine{Engine},
-	  mRenderer{Renderer},
-	  mHost{Host},
-	  mWindowViewport{std::make_unique<FEditorViewport>(0, Renderer.GetDevice(), Engine.GetEditorContext())} {
+FPIEViewportSession::FPIEViewportSession(FRenderer& Renderer, FViewportHostWindow* Host)
+	: mRenderer{Renderer},
+	  mHost{Host} {
+    UEditorEngine* Engine{GetEditorEngine()};
+
+    ErrorHandler::Report(Engine == nullptr, "FPIEViewportSession", "No editor engine is active", ErrorHandler::EErrorLevel::Critical);
+    mWindowViewport = std::make_unique<FEditorViewport>(0, Renderer.GetDevice(), Engine->GetEditorContext());
 }
 
 FPIEViewportSession::~FPIEViewportSession() {
@@ -20,11 +24,18 @@ FPIEViewportSession::~FPIEViewportSession() {
 }
 
 bool FPIEViewportSession::RequestStart() {
+    UEditorEngine* Engine{GetEditorEngine()};
+
+    if (Engine == nullptr) {
+        ResetViewport();
+        return false;
+    }
+
     if (mTargetViewportId.has_value() && (mHost == nullptr || mHost->GetViewport(*mTargetViewportId) == nullptr)) {
         return false;
     }
 
-    if (!mEngine.RequestStartPIE()) {
+    if (!Engine->RequestStartPIE()) {
         return false;
     }
 
@@ -34,7 +45,14 @@ bool FPIEViewportSession::RequestStart() {
 }
 
 bool FPIEViewportSession::SetTargetViewport(std::optional<FViewportId> ViewportId) {
-    if (mEngine.HasPIESession() || (ViewportId.has_value() && (mHost == nullptr || mHost->GetViewport(*ViewportId) == nullptr))) {
+    UEditorEngine* Engine{GetEditorEngine()};
+
+    if (Engine == nullptr) {
+        ResetViewport();
+        return false;
+    }
+
+    if (Engine->HasPIESession() || (ViewportId.has_value() && (mHost == nullptr || mHost->GetViewport(*ViewportId) == nullptr))) {
         return false;
     }
 
@@ -48,11 +66,18 @@ std::optional<FViewportId> FPIEViewportSession::GetTargetViewportId() const {
 }
 
 void FPIEViewportSession::SelectViewport() {
+    UEditorEngine* Engine{GetEditorEngine()};
+
+    if (Engine == nullptr) {
+        ResetViewport();
+        return;
+    }
+
     if (mTargetViewportId.has_value()) {
         mViewport = mHost != nullptr ? mHost->GetViewport(*mTargetViewportId) : nullptr;
 
         if (mViewport == nullptr) {
-            mEngine.RequestStopPIE();
+            Engine->RequestStopPIE();
             return;
         }
 
@@ -80,7 +105,14 @@ void FPIEViewportSession::ResetViewport() {
 }
 
 void FPIEViewportSession::Synchronize() {
-    if (!mEngine.HasPIESession()) {
+    UEditorEngine* Engine{GetEditorEngine()};
+
+    if (Engine == nullptr) {
+        ResetViewport();
+        return;
+    }
+
+    if (!Engine->HasPIESession()) {
         ResetViewport();
         return;
     }
@@ -93,7 +125,7 @@ void FPIEViewportSession::Synchronize() {
         return;
     }
 
-    FWorldContext* Context{mEngine.GetPIEWorldContext()};
+    FWorldContext* Context{Engine->GetPIEWorldContext()};
 
     if (Context != nullptr) {
         UWorld& World{Context->GetWorld()};
@@ -107,7 +139,14 @@ void FPIEViewportSession::Synchronize() {
 }
 
 void FPIEViewportSession::DrawControls() {
-    const EPIEState State{mEngine.GetPIEState()};
+    UEditorEngine* Engine{GetEditorEngine()};
+
+    if (Engine == nullptr) {
+        ResetViewport();
+        return;
+    }
+
+    const EPIEState State{Engine->GetPIEState()};
 
     ImGui::BeginDisabled(State != EPIEState::Stopped);
 
@@ -158,9 +197,9 @@ void FPIEViewportSession::DrawControls() {
 
     if (ImGui::Button(State == EPIEState::Paused ? "Resume" : "Pause")) {
         if (State == EPIEState::Paused) {
-            mEngine.RequestResumePIE();
+            Engine->RequestResumePIE();
         } else {
-            mEngine.RequestPausePIE();
+            Engine->RequestPausePIE();
             mState.Clear(EStateFlag::InputCaptured);
         }
     }
@@ -170,7 +209,7 @@ void FPIEViewportSession::DrawControls() {
     ImGui::BeginDisabled(State == EPIEState::Stopped || State == EPIEState::Stopping);
 
     if (ImGui::Button("Stop")) {
-        mEngine.RequestStopPIE();
+        Engine->RequestStopPIE();
     }
 
     ImGui::EndDisabled();
@@ -182,25 +221,39 @@ void FPIEViewportSession::DrawControls() {
 }
 
 void FPIEViewportSession::BeginFrame() {
+    UEditorEngine* Engine{GetEditorEngine()};
+
+    if (Engine == nullptr) {
+        ResetViewport();
+        return;
+    }
+
     mWindowViewport->BeginFrame();
 
-    if (mEngine.HasPIESession() && mViewport == nullptr) {
+    if (Engine->HasPIESession() && mViewport == nullptr) {
         SelectViewport();
     }
 
-    if (!mEngine.HasPIESession()) {
+    if (!Engine->HasPIESession()) {
         mWindowViewport->ReleaseRenderResources();
     }
 }
 
 void FPIEViewportSession::DrawWindow() {
-    if (!mEngine.HasPIESession()) {
+    UEditorEngine* Engine{GetEditorEngine()};
+
+    if (Engine == nullptr) {
+        ResetViewport();
+        return;
+    }
+
+    if (!Engine->HasPIESession()) {
         return;
     }
 
     if (mViewport != mWindowViewport.get()) {
         if (mViewport != nullptr && (mHost == nullptr || !mHost->IsVisible() || !mTargetViewportId.has_value() || mHost->GetViewport(*mTargetViewportId) != mViewport)) {
-            mEngine.RequestStopPIE();
+            Engine->RequestStopPIE();
             mState.Clear(EStateFlag::InputCaptured);
         }
 
@@ -230,7 +283,7 @@ void FPIEViewportSession::DrawWindow() {
     ImGui::End();
 
     if (!Open) {
-        mEngine.RequestStopPIE();
+        Engine->RequestStopPIE();
     }
 }
 
@@ -327,6 +380,13 @@ void FPIEViewportSession::UpdateInput(UWorld& World) {
 }
 
 bool FPIEViewportSession::ProcessInput(FKeyboardInput& KeyboardInput, FMouseInput& MouseInput, float DeltaTime) {
+    UEditorEngine* Engine{GetEditorEngine()};
+
+    if (Engine == nullptr) {
+        ResetViewport();
+        return false;
+    }
+
     if (mState.IsSet(EStateFlag::InputResetPending)) {
         KeyboardInput.Reset();
         MouseInput.Reset();
@@ -336,38 +396,38 @@ bool FPIEViewportSession::ProcessInput(FKeyboardInput& KeyboardInput, FMouseInpu
     const ImGuiIO& IO{ImGui::GetIO()};
 
     if (!IO.WantTextInput && !IO.AppFocusLost) {
-        if (ImGui::IsKeyPressed(ImGuiKey_F5, false) && !mEngine.HasPIESession()) {
+        if (ImGui::IsKeyPressed(ImGuiKey_F5, false) && !Engine->HasPIESession()) {
             RequestStart();
         }
 
         if (ImGui::IsKeyPressed(ImGuiKey_F6, false)) {
-            if (mEngine.GetPIEState() == EPIEState::Paused) {
-                mEngine.RequestResumePIE();
-            } else if (mEngine.GetPIEState() == EPIEState::Playing) {
-                mEngine.RequestPausePIE();
+            if (Engine->GetPIEState() == EPIEState::Paused) {
+                Engine->RequestResumePIE();
+            } else if (Engine->GetPIEState() == EPIEState::Playing) {
+                Engine->RequestPausePIE();
                 mState.Clear(EStateFlag::InputCaptured);
             }
         }
 
-        if (ImGui::IsKeyPressed(ImGuiKey_Escape, false) && mEngine.HasPIESession()) {
-            mEngine.RequestStopPIE();
+        if (ImGui::IsKeyPressed(ImGuiKey_Escape, false) && Engine->HasPIESession()) {
+            Engine->RequestStopPIE();
         }
     }
 
-    if (!mEngine.HasPIESession()) {
+    if (!Engine->HasPIESession()) {
         return false;
     }
 
     const bool Focused{mViewport != nullptr && mViewport->IsVisible() && mViewport->IsFocused() && !IO.AppFocusLost};
     const bool ReleaseInput{IO.KeyShift && ImGui::IsKeyPressed(ImGuiKey_F1, false)};
 
-    if (!Focused || IO.WantTextInput || ReleaseInput || mEngine.GetPIEState() != EPIEState::Playing) {
+    if (!Focused || IO.WantTextInput || ReleaseInput || Engine->GetPIEState() != EPIEState::Playing) {
         mState.Clear(EStateFlag::InputCaptured);
     } else if (mViewport->IsHovered() && (ImGui::IsMouseClicked(ImGuiMouseButton_Left) || ImGui::IsMouseClicked(ImGuiMouseButton_Right))) {
         mState.Set(EStateFlag::InputCaptured);
     }
 
-    FWorldContext* Context{mEngine.GetPIEWorldContext()};
+    FWorldContext* Context{Engine->GetPIEWorldContext()};
 
     if (Context != nullptr) {
         UWorld& World{Context->GetWorld()};
@@ -390,6 +450,12 @@ bool FPIEViewportSession::ProcessInput(FKeyboardInput& KeyboardInput, FMouseInpu
 }
 
 UCameraComponent* FPIEViewportSession::EnsureCamera(UWorld& World) {
+    UEditorEngine* Engine{GetEditorEngine()};
+
+    if (Engine == nullptr) {
+        return nullptr;
+    }
+
     UCameraComponent* Camera{World.GetCameraSubsystem().GetMainCamera()};
 
     if (Camera != nullptr) {
@@ -399,7 +465,7 @@ UCameraComponent* FPIEViewportSession::EnsureCamera(UWorld& World) {
     AActor* Actor{World.SpawnActorDeferred<AActor>()};
 
     if (Actor == nullptr) {
-        mEngine.RequestStopPIE();
+        Engine->RequestStopPIE();
         return nullptr;
     }
 
@@ -407,7 +473,7 @@ UCameraComponent* FPIEViewportSession::EnsureCamera(UWorld& World) {
 
     if (Camera == nullptr) {
         World.DestroyActor(Actor);
-        mEngine.RequestStopPIE();
+        Engine->RequestStopPIE();
         return nullptr;
     }
 
@@ -427,7 +493,7 @@ void FPIEViewportSession::MoveCamera(UWorld& World, float DeltaTime) {
 
     const FWorldInput& Input{World.GetInput()};
     FTransform Transform{Camera->GetComponentTransform()};
-    const FEditorSettings Settings{mEngine.GetEditorContext().GetEditorSettings()};
+    const FEditorSettings& Settings{FEditorConfigManager::Get().GetSettings()};
     const FVector2& Delta{Input.GetMouseDelta()};
 
     if (Input.IsMouseButtonDown(ImGuiMouseButton_Right) && (Delta.mX != 0.0f || Delta.mY != 0.0f)) {
@@ -484,7 +550,14 @@ bool FPIEViewportSession::BuildCamera(UWorld& World, FViewMatrices& Camera) {
 }
 
 void FPIEViewportSession::Render() {
-    FWorldContext* Context{mEngine.GetPIEWorldContext()};
+    UEditorEngine* Engine{GetEditorEngine()};
+
+    if (Engine == nullptr) {
+        ResetViewport();
+        return;
+    }
+
+    FWorldContext* Context{Engine->GetPIEWorldContext()};
 
     if (Context == nullptr || mViewport == nullptr) {
         return;

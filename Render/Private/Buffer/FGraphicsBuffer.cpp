@@ -95,34 +95,6 @@ bool FGraphicsBuffer::WriteDiscard(ID3D11DeviceContext* Context, const void* Dat
     return true;
 }
 
-bool FGraphicsBuffer::WriteNoOverwrite(ID3D11DeviceContext* Context, const void* Data, Uint32 InByteSize, Uint32 DestinationOffset) {
-    if (!Context || !mBuffer || !Data || InByteSize == 0) {
-        return false;
-    }
-
-    if (mDescription.mUsage != D3D11_USAGE_DYNAMIC || !(mDescription.mCpuAccessFlags & D3D11_CPU_ACCESS_WRITE)) {
-        return false;
-    }
-
-    if (DestinationOffset > mDescription.mByteSize || InByteSize > mDescription.mByteSize - DestinationOffset) {
-        return false;
-    }
-
-    D3D11_MAPPED_SUBRESOURCE MappedResource{};
-
-    const HRESULT Result{Context->Map(mBuffer.Get(), 0, D3D11_MAP_WRITE_NO_OVERWRITE, 0, &MappedResource)};
-
-    if (FAILED(Result)) {
-        return false;
-    }
-
-    std::memcpy(static_cast<Uint8*>(MappedResource.pData) + DestinationOffset, Data, InByteSize);
-
-    Context->Unmap(mBuffer.Get(), 0);
-
-    return true;
-}
-
 bool FGraphicsBuffer::CopyFrom(ID3D11DeviceContext* Context, const FGraphicsBuffer& Source) {
     if (!Context || !mBuffer || !Source.mBuffer) {
         return false;

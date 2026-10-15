@@ -36,9 +36,6 @@ void FPropertyPanel::DrawContents() {
         ImGui::Text("Details: %s", GetComponentTypeName(*Component).c_str());
         ImGui::PushID(Component);
 
-        UWorld* World{Actor->GetWorld()};
-
-        mPropertyEditor.BindAssetRegistry(World != nullptr ? World->GetAssetRegistry() : nullptr);
         FComponentDetails::Draw(*Component, mPropertyEditor);
         ImGui::Separator();
         HandleDeleteShortcut(*Actor, *Component);

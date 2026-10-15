@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Asset/FAssetRegistry.h"
 #include "Render/FOverlayTextRenderer.h"
 #include "Asset/UFont.h"
 #include "Asset/FTextGeometry.h"
@@ -43,26 +44,18 @@ bool FOverlayTextRenderer::Initialize(ID3D11Device* Device) {
     return true;
 }
 
-void FOverlayTextRenderer::BindAssetRegistry(const IAssetRegistry* Registry, IAssetRegistryMutator* Mutator) {
-    if (mAssetRegistry == Registry && mAssetRegistryMutator == Mutator) {
-        return;
-    }
-
-    mTextCache.clear();
-    mAssetRegistry = Registry;
-    mAssetRegistryMutator = Registry != nullptr ? Mutator : nullptr;
-}
-
 void FOverlayTextRenderer::BeginFrame(Uint64 FrameSerial) {
     mFrameSerial = FrameSerial;
 
     constexpr Uint64 MaximumUnusedFrames{120};
+    const FAssetRegistry* Registry{FAssetRegistry::TryGet()};
+    const Uint64 Generation{FAssetRegistry::GetGeneration()};
 
     for (auto& [Text, Entries] : mTextCache) {
-        std::erase_if(Entries, [this](const FCachedText& Entry) {
-            const UFont* Font{mAssetRegistry != nullptr ? mAssetRegistry->ResolveAsset<UFont>(Entry.mFontHandle) : nullptr};
+        std::erase_if(Entries, [this, Registry, Generation](const FCachedText& Entry) {
+            const UFont* Font{Registry != nullptr ? Registry->ResolveAsset<UFont>(Entry.mFontHandle) : nullptr};
 
-            return Font == nullptr || Font->GetGuid() != Entry.mFontGuid || mFrameSerial < Entry.mLastUsedFrame || mFrameSerial - Entry.mLastUsedFrame > MaximumUnusedFrames;
+            return Font == nullptr || Font->GetGuid() != Entry.mFontGuid || Entry.mRegistryGeneration != Generation || mFrameSerial < Entry.mLastUsedFrame || mFrameSerial - Entry.mLastUsedFrame > MaximumUnusedFrames;
         });
     }
 
@@ -77,20 +70,21 @@ void FOverlayTextRenderer::Reset() {
     mGlyphs.clear();
     mDraws.clear();
     mTextCache.clear();
-    mAssetRegistry = nullptr;
-    mAssetRegistryMutator = nullptr;
     mFrameSerial = 0;
     mDevice = nullptr;
 }
 
 const TArray<FTextVertex>* FOverlayTextRenderer::GetTextGeometry(const FOverlayTextDrawData& Data, const UFont& Font, FAssetHandle FontHandle) {
-    if (mAssetRegistryMutator == nullptr || Data.mText.empty() || !std::isfinite(Data.mPixelHeight) || Data.mPixelHeight <= 0.0f || !std::isfinite(Data.mLetterSpacing) || !std::isfinite(Data.mLineSpacing)) {
+    FAssetRegistry* Registry{FAssetRegistry::TryGet()};
+    const Uint64 Generation{FAssetRegistry::GetGeneration()};
+
+    if (Registry == nullptr || Data.mText.empty() || !std::isfinite(Data.mPixelHeight) || Data.mPixelHeight <= 0.0f || !std::isfinite(Data.mLetterSpacing) || !std::isfinite(Data.mLineSpacing)) {
         return nullptr;
     }
 
     TArray<FCachedText>& Entries{mTextCache[Data.mText]};
-    auto Found{std::ranges::find_if(Entries, [&Data, &Font, FontHandle](const FCachedText& Entry) {
-        return Entry.mFontHandle == FontHandle && Entry.mFontGuid == Font.GetGuid() && Entry.mPixelHeight == Data.mPixelHeight && Entry.mLetterSpacing == Data.mLetterSpacing && Entry.mLineSpacing == Data.mLineSpacing;
+    auto Found{std::ranges::find_if(Entries, [&Data, &Font, FontHandle, Generation](const FCachedText& Entry) {
+        return Entry.mFontHandle == FontHandle && Entry.mFontGuid == Font.GetGuid() && Entry.mRegistryGeneration == Generation && Entry.mPixelHeight == Data.mPixelHeight && Entry.mLetterSpacing == Data.mLetterSpacing && Entry.mLineSpacing == Data.mLineSpacing;
     })};
     const bool NeedsRebuild{Found == Entries.end() || Found->mFontRevision != Font.GetAtlasRevision()};
 
@@ -99,6 +93,7 @@ const TArray<FTextVertex>* FOverlayTextRenderer::GetTextGeometry(const FOverlayT
 
         Entry.mFontHandle = FontHandle;
         Entry.mFontGuid = Font.GetGuid();
+        Entry.mRegistryGeneration = Generation;
         Entry.mPixelHeight = Data.mPixelHeight;
         Entry.mLetterSpacing = Data.mLetterSpacing;
         Entry.mLineSpacing = Data.mLineSpacing;
@@ -107,7 +102,7 @@ const TArray<FTextVertex>* FOverlayTextRenderer::GetTextGeometry(const FOverlayT
     }
 
     if (NeedsRebuild) {
-        if (!BuildTextGeometry(Font, *mAssetRegistryMutator, FontHandle, Data.mText, Data.mPixelHeight, Data.mLetterSpacing, Data.mLineSpacing, Found->mVertices)) {
+        if (!BuildTextGeometry(Font, *Registry, FontHandle, Data.mText, Data.mPixelHeight, Data.mLetterSpacing, Data.mLineSpacing, Found->mVertices)) {
             Entries.erase(Found);
             return nullptr;
         }
@@ -152,11 +147,11 @@ bool FOverlayTextRenderer::ProjectAnchor(const FOverlayTextDrawData& Data, const
     return std::isfinite(Position.mX) && std::isfinite(Position.mY);
 }
 
-void FOverlayTextRenderer::Render(ID3D11DeviceContext* Context, FFrameResource& FrameResource, const FViewMatrices& Camera, const D3D11_VIEWPORT& Viewport, const TArray<FOverlayTextDrawData>& Draws, FRenderAssetResources& Resources) {
+void FOverlayTextRenderer::Render(ID3D11DeviceContext* Context, FRenderBuffers& RenderBuffers, const FViewMatrices& Camera, const D3D11_VIEWPORT& Viewport, const TArray<FOverlayTextDrawData>& Draws, FRenderAssetResources& Resources) {
     mGlyphs.clear();
     mDraws.clear();
 
-    if (Context == nullptr || mDevice == nullptr || mAssetRegistry == nullptr || mAssetRegistryMutator == nullptr || !FrameResource.BindCommon(Context)) {
+    if (Context == nullptr || mDevice == nullptr || FAssetRegistry::TryGet() == nullptr || !RenderBuffers.BindCommon(Context)) {
         return;
     }
 
@@ -164,8 +159,8 @@ void FOverlayTextRenderer::Render(ID3D11DeviceContext* Context, FFrameResource& 
 
     for (const FOverlayTextDrawData& Data : Draws) {
         FVector2 Anchor{};
-        const FAssetHandle FontHandle{Data.mFontHandle ? Data.mFontHandle : mAssetRegistry->FindAsset(FAssetPath{"/Game/Font/NotoSansKR-Medium.ttf"})};
-        const UFont* Font{mAssetRegistry->ResolveAsset<UFont>(FontHandle)};
+        const FAssetHandle FontHandle{Data.mFontHandle ? Data.mFontHandle : FAssetRegistry::Get().FindAsset(FAssetPath{"/Game/Font/NotoSansKR-Medium.ttf"})};
+        const UFont* Font{FAssetRegistry::Get().ResolveAsset<UFont>(FontHandle)};
 
         if (Font == nullptr) {
             continue;
@@ -200,11 +195,11 @@ void FOverlayTextRenderer::Render(ID3D11DeviceContext* Context, FFrameResource& 
         }
     }
 
-    if (mGlyphs.empty() || !FrameResource.UploadStream(mDevice, Context, EFrameStream::OverlayText, mGlyphs.data(), static_cast<Uint32>(mGlyphs.size()), sizeof(FGlyphInstance), D3D11_BIND_VERTEX_BUFFER)) {
+    if (mGlyphs.empty() || !RenderBuffers.UploadStream(mDevice, Context, ERenderStream::OverlayText, mGlyphs.data(), static_cast<Uint32>(mGlyphs.size()), sizeof(FGlyphInstance), D3D11_BIND_VERTEX_BUFFER)) {
         return;
     }
 
-    ID3D11Buffer* Buffer{FrameResource.GetStreamBuffer(EFrameStream::OverlayText)};
+    ID3D11Buffer* Buffer{RenderBuffers.GetStreamBuffer(ERenderStream::OverlayText)};
     const UINT Stride{sizeof(FGlyphInstance)};
     const UINT Offset{};
 

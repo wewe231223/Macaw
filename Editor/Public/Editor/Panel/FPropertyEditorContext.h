@@ -1,7 +1,10 @@
+/**
+ * @file FPropertyEditorContext.h
+ * @brief 속성 UI의 편집 상태와 전역 에셋 선택 기능을 정의합니다.
+ */
 #pragma once
 #include "Editor/Property/IPropertyEditorContext.h"
 #include "ImGui/imgui.h"
-#include "CoreUObject/Asset/IAssetRegistry.h"
 #include "Editor/View/FAssetThumbnailRenderer.h"
 #include <d3d11.h>
 
@@ -27,9 +30,16 @@ public:
     void DrawTransform(const char* Label, const FTransform& Value, const std::function<void(const FTransform&)>& Setter) override;
 
     void DrawReferencePicker(const char* Label, const char* Preview, bool BNoneSelected, const std::function<void()>& ClearSelection, const std::vector<FPropertyReferenceOption>& Options) const override;
+    /**
+     * @brief 전역 에셋 서비스를 사용해 타입별 에셋 선택 UI를 표시합니다.
+     * @param Label 속성 이름입니다.
+     * @param AssetType 허용할 에셋 클래스입니다.
+     * @param CurrentHandle 현재 선택된 핸들입니다.
+     * @param Setter 선택 변경 시 실행할 함수입니다.
+     * @note 활성 에셋 서비스가 없으면 비활성 안내 문구를 표시합니다.
+     */
     void DrawAssetPicker(const char* Label, const UClass& AssetType, FAssetHandle CurrentHandle, const std::function<void(FAssetHandle)>& Setter) const override;
 
-    void BindAssetRegistry(const IAssetRegistry* InAssetRegistry);
     void BindThumbnailRenderer(FAssetThumbnailRenderer* InThumbnailRenderer);
 
 private:
@@ -38,12 +48,9 @@ private:
 
     bool SupportsAssetThumbnail(const UClass& AssetType) const;
 
-    ID3D11ShaderResourceView* GetAssetThumbnail(const IAssetRegistry* Registry, FAssetHandle AssetHandle) const;
-
     bool DrawAssetOption(const char* Label, ID3D11ShaderResourceView* Thumbnail, bool BSelected) const;
 
 private:
-    const IAssetRegistry* mAssetRegistry{nullptr};
     FAssetThumbnailRenderer* mThumbnailRenderer{nullptr};
 
     ImGuiID mEditingTransformId{0};

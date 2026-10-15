@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Asset/FAssetRegistry.h"
 #include "Render/FRenderAssetResources.h"
 #include "Asset/UMesh.h"
 #include "Asset/UTexture.h"
@@ -18,14 +19,17 @@ bool FRenderAssetResources::Initialize(ID3D11Device* Device, bool UseLOD) {
     return true;
 }
 
-void FRenderAssetResources::Prune(const IAssetRegistry& Registry) {
+void FRenderAssetResources::Prune() {
+    const IAssetRegistry* Registry{FAssetRegistry::TryGet()};
     TSet<FGuid> LiveAssets{};
 
-    for (FAssetHandle Handle : Registry.GetAssetHandles(*UAsset::StaticClass())) {
-        const UAsset* Asset{Registry.ResolveAsset<UAsset>(Handle)};
+    if (Registry != nullptr) {
+        for (FAssetHandle Handle : Registry->GetAssetHandles(*UAsset::StaticClass())) {
+            const UAsset* Asset{Registry->ResolveAsset<UAsset>(Handle)};
 
-        if (Asset != nullptr) {
-            LiveAssets.insert(Asset->GetGuid());
+            if (Asset != nullptr) {
+                LiveAssets.insert(Asset->GetGuid());
+            }
         }
     }
 

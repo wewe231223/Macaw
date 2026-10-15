@@ -8,16 +8,21 @@ FPreviewScene::~FPreviewScene() {
     Reset();
 }
 
-bool FPreviewScene::Initialize(FRenderer& Renderer, FAssetRegistry& Registry) {
-    if (mRenderer == &Renderer && mRegistry == &Registry && mWorld.IsInitialized()) {
+bool FPreviewScene::Initialize(FRenderer& Renderer) {
+    const Uint64 Generation{FAssetRegistry::GetGeneration()};
+
+    if (Generation == 0) {
+        return false;
+    }
+
+    if (mRenderer == &Renderer && mRegistryGeneration == Generation && mWorld.IsInitialized()) {
         return true;
     }
 
     Reset();
     mRenderer = &Renderer;
-    mRegistry = &Registry;
+    mRegistryGeneration = Generation;
     mWorld.Initialize(EWorldType::Preview);
-    mWorld.SetAssetRegistry(&Registry, &Registry);
     mWorld.BindScene(Renderer.CreateScene());
 
     AActor* MeshActor{mWorld.SpawnActorDeferred<AActor>()};
@@ -109,5 +114,5 @@ void FPreviewScene::Reset() {
     mMesh = nullptr;
     mLight = nullptr;
     mRenderer = nullptr;
-    mRegistry = nullptr;
+    mRegistryGeneration = 0;
 }

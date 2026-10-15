@@ -24,32 +24,30 @@ namespace {
     constexpr char TexturedPipelinePath[]{"/Game/Pipeline/TexturedBase"};
 }
 
-FViewerPanel::FViewerPanel(FAssetRegistry& InRegistry, HWND InputWindowHandle, FMessageChannel::FSender InEditorToWorldSender, FWorldEditorContext& InEditorContext, FAssetThumbnailRenderer* InThumbnailRenderer)
+FViewerPanel::FViewerPanel(HWND InputWindowHandle, FMessageChannel::FSender InEditorToWorldSender, FWorldEditorContext& InEditorContext, FAssetThumbnailRenderer* InThumbnailRenderer)
 	: FEditorWindow{"Viewer", ImGuiWindowFlags_MenuBar},
-	  mRegistry{&InRegistry},
 	  mEditorToWorldSender{std::move(InEditorToWorldSender)},
 	  mWindowHandle{InputWindowHandle},
 	  mEditorContext{InEditorContext} {
-    mPropertyEditor.BindAssetRegistry(&InRegistry);
     mPropertyEditor.BindThumbnailRenderer(InThumbnailRenderer);
     SetMesh({});
     SetMaterial({});
 }
 
 void FViewerPanel::SetMesh(FAssetHandle InMeshHandle) {
-    mMeshHandle = mRegistry->ResolveAsset<UMesh>(InMeshHandle) != nullptr ? InMeshHandle : mRegistry->FindAsset(FAssetPath{DefaultMeshPath});
+    mMeshHandle = FAssetRegistry::Get().ResolveAsset<UMesh>(InMeshHandle) != nullptr ? InMeshHandle : FAssetRegistry::Get().FindAsset(FAssetPath{DefaultMeshPath});
 }
 
 void FViewerPanel::SetMaterial(FAssetHandle InMaterialHandle) {
-    mMaterialHandle = mRegistry->ResolveAsset<UMaterial>(InMaterialHandle) != nullptr ? InMaterialHandle : mRegistry->FindAsset(FAssetPath{DefaultMaterialPath});
+    mMaterialHandle = FAssetRegistry::Get().ResolveAsset<UMaterial>(InMaterialHandle) != nullptr ? InMaterialHandle : FAssetRegistry::Get().FindAsset(FAssetPath{DefaultMaterialPath});
 
-    if (mRegistry->ResolveAsset<UMaterial>(mMaterialHandle) == nullptr) {
-        mMaterialHandle = mRegistry->EnsureDefaultStaticMeshMaterial();
+    if (FAssetRegistry::Get().ResolveAsset<UMaterial>(mMaterialHandle) == nullptr) {
+        mMaterialHandle = FAssetRegistry::Get().EnsureDefaultStaticMeshMaterial();
     }
 }
 
 bool FViewerPanel::OpenViewerFile(const std::filesystem::path& FilePath) {
-    if (mRegistry == nullptr) {
+    if (FAssetRegistry::TryGet() == nullptr) {
         return false;
     }
 
@@ -62,17 +60,17 @@ bool FViewerPanel::OpenViewerFile(const std::filesystem::path& FilePath) {
         return false;
     }
 
-    const FAssetHandle Handle{mRegistry->LoadViewerAsset(FilePath)};
+    const FAssetHandle Handle{FAssetRegistry::Get().LoadViewerAsset(FilePath)};
 
-    if (Extension == ".mtl" && mRegistry->ResolveAsset<UMesh>(mMeshHandle) != nullptr && mRegistry->ResolveAsset<UMaterial>(Handle) != nullptr) {
+    if (Extension == ".mtl" && FAssetRegistry::Get().ResolveAsset<UMesh>(mMeshHandle) != nullptr && FAssetRegistry::Get().ResolveAsset<UMaterial>(Handle) != nullptr) {
         SetMaterial(Handle);
         return true;
     }
 
-    if (Extension != ".mtl" && mRegistry->ResolveAsset<UMesh>(Handle) != nullptr) {
+    if (Extension != ".mtl" && FAssetRegistry::Get().ResolveAsset<UMesh>(Handle) != nullptr) {
         SetMesh(Handle);
 
-        const UMesh* Mesh{mRegistry->ResolveAsset<UMesh>(mMeshHandle)};
+        const UMesh* Mesh{FAssetRegistry::Get().ResolveAsset<UMesh>(mMeshHandle)};
         const Uint32 VertexCount{Mesh->GetVertexAttributeCount(EVertexAttribute::Position)};
         const Uint32 VertexStride{Mesh->GetVertexStride(EVertexAttribute::Position)};
         const std::byte* VertexData{static_cast<const std::byte*>(Mesh->GetVertexData(EVertexAttribute::Position))};
@@ -159,7 +157,7 @@ void FViewerPanel::DrawMenuBar() {
 }
 
 void FViewerPanel::DrawProperties() {
-    if (mRegistry == nullptr) {
+    if (FAssetRegistry::TryGet() == nullptr) {
         mPropertyEditor.DrawDisabledText("Asset registry unavailable");
         return;
     }
@@ -220,21 +218,21 @@ FMatrix FViewerPanel::MakeCameraWorldMatrix(const FVector3& Eye) const {
 }
 
 void FViewerPanel::UpdatePreviewScene() {
-    if (mRegistry == nullptr || mSurfaceWidth == 0 || mSurfaceHeight == 0) {
+    if (FAssetRegistry::TryGet() == nullptr || mSurfaceWidth == 0 || mSurfaceHeight == 0) {
         return;
     }
 
-    if (mRegistry->ResolveAsset<UMesh>(mMeshHandle) == nullptr) {
+    if (FAssetRegistry::Get().ResolveAsset<UMesh>(mMeshHandle) == nullptr) {
         SetMesh({});
     }
 
-    if (mRegistry->ResolveAsset<UMaterial>(mMaterialHandle) == nullptr) {
+    if (FAssetRegistry::Get().ResolveAsset<UMaterial>(mMaterialHandle) == nullptr) {
         SetMaterial({});
     }
 
     bool HasTexture{};
 
-    if (const USurfaceOpaque* Material{mRegistry->ResolveAsset<USurfaceOpaque>(mMaterialHandle)}; Material != nullptr) {
+    if (const USurfaceOpaque* Material{FAssetRegistry::Get().ResolveAsset<USurfaceOpaque>(mMaterialHandle)}; Material != nullptr) {
         for (Uint32 GroupIndex{}; GroupIndex < Material->GetGroups().size() && !HasTexture; ++GroupIndex) {
             const FMaterialChunkSignature Signature{Material->BuildChunkSignature(GroupIndex)};
 
@@ -244,10 +242,10 @@ void FViewerPanel::UpdatePreviewScene() {
         }
     }
 
-    const FAssetHandle PipelineHandle{mRegistry->FindAsset(FAssetPath{HasTexture ? TexturedPipelinePath : DefaultPipelinePath})};
-    const UPipeline* Pipeline{mRegistry->ResolveAsset<UPipeline>(PipelineHandle)};
-    const UMesh* Mesh{mRegistry->ResolveAsset<UMesh>(mMeshHandle)};
-    const UMaterial* Material{mRegistry->ResolveAsset<UMaterial>(mMaterialHandle)};
+    const FAssetHandle PipelineHandle{FAssetRegistry::Get().FindAsset(FAssetPath{HasTexture ? TexturedPipelinePath : DefaultPipelinePath})};
+    const UPipeline* Pipeline{FAssetRegistry::Get().ResolveAsset<UPipeline>(PipelineHandle)};
+    const UMesh* Mesh{FAssetRegistry::Get().ResolveAsset<UMesh>(mMeshHandle)};
+    const UMaterial* Material{FAssetRegistry::Get().ResolveAsset<UMaterial>(mMaterialHandle)};
 
     const FMeshSceneData MeshData{Mesh != nullptr && Material != nullptr && Pipeline != nullptr ? FMeshSceneData{mMeshHandle, mMaterialHandle, PipelineHandle} : FMeshSceneData{}};
 
@@ -299,7 +297,7 @@ void FViewerPanel::ProcessInput() {
     }
 }
 
-void FViewerPanel::RenderOffscreen(FRenderer& InRenderer, FAssetRegistry& InRegistry) {
+void FViewerPanel::RenderOffscreen(FRenderer& InRenderer) {
     if (mDesiredWidth == 0 || mDesiredHeight == 0) {
         return;
     }
@@ -310,7 +308,7 @@ void FViewerPanel::RenderOffscreen(FRenderer& InRenderer, FAssetRegistry& InRegi
         return;
     }
 
-    if (!mPreviewScene.Initialize(InRenderer, InRegistry)) {
+    if (!mPreviewScene.Initialize(InRenderer)) {
         return;
     }
 
@@ -370,7 +368,7 @@ void FViewerPanel::DrawPreview() {
     Uint32 VertexCount{};
     std::size_t TriangleCount{};
 
-    if (const UMesh* Mesh{mRegistry != nullptr ? mRegistry->ResolveAsset<UMesh>(mMeshHandle) : nullptr}; Mesh != nullptr) {
+    if (const UMesh* Mesh{FAssetRegistry::TryGet() != nullptr ? FAssetRegistry::Get().ResolveAsset<UMesh>(mMeshHandle) : nullptr}; Mesh != nullptr) {
         VertexCount = Mesh->GetVertexAttributeCount(EVertexAttribute::Position);
         TriangleCount = Mesh->GetIndices().size() / 3;
     }

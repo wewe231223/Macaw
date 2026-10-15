@@ -16,7 +16,7 @@ struct FMaterial
 StructuredBuffer<FMaterial> MaterialBuffer : register(t1);
 #include "Lighting.hlsli"
 
-#include "FrameResource.hlsli"
+#include "ViewConstants.hlsli"
 
 struct VS_INPUT
 {

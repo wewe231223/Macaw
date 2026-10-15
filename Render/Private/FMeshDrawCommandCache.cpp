@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Asset/FAssetRegistry.h"
 #include "Render/FMeshDrawCommandCache.h"
 #include "Render/FRenderAssetResources.h"
 #include "Asset/UMaterial.h"
@@ -8,7 +9,13 @@
 #include <tuple>
 
 namespace {
-    bool BuildShaderBindings(const UMesh& Mesh, const UPipeline& Pipeline, const IAssetRegistry& Registry, FRenderAssetResources& Resources, FMeshDrawCommand& Command) {
+    bool BuildShaderBindings(const UMesh& Mesh, const UPipeline& Pipeline, FRenderAssetResources& Resources, FMeshDrawCommand& Command) {
+        const IAssetRegistry* Registry{FAssetRegistry::TryGet()};
+
+        if (Registry == nullptr) {
+            return false;
+        }
+
         const FMeshRenderResource* MeshResource{Resources.GetMesh(Mesh)};
         const FPipelineRenderResource* PipelineResource{Resources.GetPipeline(Pipeline)};
 
@@ -33,7 +40,7 @@ namespace {
         }
 
         for (Uint8 Index{}; Index < Command.mState.mTextureSignature.mTextureFieldCount; ++Index) {
-            const UTexture* Texture{Registry.ResolveAsset<UTexture>(Command.mState.mTextureSignature.GetTextureHandle(Index))};
+            const UTexture* Texture{Registry->ResolveAsset<UTexture>(Command.mState.mTextureSignature.GetTextureHandle(Index))};
 
             Command.mTextures[Index] = Texture != nullptr ? Resources.GetTexture(*Texture) : nullptr;
 
@@ -61,10 +68,16 @@ void FMeshDrawCommandCache::EndUpdate() {
     });
 }
 
-void FMeshDrawCommandCache::AddMeshBatch(const FMeshBatch& Mesh, const IAssetRegistry& Registry, const FMaterialBuffer& Materials, FRenderAssetResources* Resources, TArray<Uint32>& OutCommands) {
-    const UMesh* MeshAsset{Registry.ResolveAsset<UMesh>(Mesh.mMeshHandle)};
-    const UMaterial* Material{Registry.ResolveAsset<UMaterial>(Mesh.mMaterialHandle)};
-    const UPipeline* Pipeline{Registry.ResolveAsset<UPipeline>(Mesh.mPipelineHandle)};
+void FMeshDrawCommandCache::AddMeshBatch(const FMeshBatch& Mesh, const FMaterialBuffer& Materials, FRenderAssetResources* Resources, TArray<Uint32>& OutCommands) {
+    const IAssetRegistry* Registry{FAssetRegistry::TryGet()};
+
+    if (Registry == nullptr) {
+        return;
+    }
+
+    const UMesh* MeshAsset{Registry->ResolveAsset<UMesh>(Mesh.mMeshHandle)};
+    const UMaterial* Material{Registry->ResolveAsset<UMaterial>(Mesh.mMaterialHandle)};
+    const UPipeline* Pipeline{Registry->ResolveAsset<UPipeline>(Mesh.mPipelineHandle)};
 
     if (MeshAsset == nullptr || Material == nullptr || Pipeline == nullptr) {
         return;
@@ -84,7 +97,7 @@ void FMeshDrawCommandCache::AddMeshBatch(const FMeshBatch& Mesh, const IAssetReg
 
         for (Uint8 Index{}; Index < State.mTextureSignature.mTextureFieldCount; ++Index) {
             const FAssetHandle Handle{State.mTextureSignature.GetTextureHandle(Index)};
-            const UTexture* Texture{Registry.ResolveAsset<UTexture>(Handle)};
+            const UTexture* Texture{Registry->ResolveAsset<UTexture>(Handle)};
 
             Stamp.mTextures[Index] = Texture != nullptr ? FRenderAssetStamp{Texture->GetHandle(), Texture->GetRenderRevision()} : FRenderAssetStamp{};
         }
@@ -97,7 +110,7 @@ void FMeshDrawCommandCache::AddMeshBatch(const FMeshBatch& Mesh, const IAssetReg
             NewCommand->mMaterialGroupName = Material->GetGroupName(State.mMaterialGroupIndex);
             NewCommand->mPass = Pass;
 
-            if (Resources != nullptr && !BuildShaderBindings(*MeshAsset, *Pipeline, Registry, *Resources, *NewCommand)) {
+            if (Resources != nullptr && !BuildShaderBindings(*MeshAsset, *Pipeline, *Resources, *NewCommand)) {
                 return false;
             }
 

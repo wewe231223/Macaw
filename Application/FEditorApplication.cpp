@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Editor/Settings/FEditorConfigManager.h"
 #include "Application/FEditorApplication.h"
 #include "Core/Stat/Stat.h"
 #include "Editor/Panel/FControlPanel.h"
@@ -9,11 +10,11 @@ FEditorApplication::FEditorApplication() = default;
 FEditorApplication::~FEditorApplication() = default;
 
 void FEditorApplication::InitializeMode(FApplicationContext& Context, HWND WindowHandle) {
-    if (Context.mEditorContext->GetEditorSettings().mControlPanelEnabled) {
+    if (FEditorConfigManager::Get().GetSettings().mControlPanelEnabled) {
         Context.mMenuPanel = std::make_unique<FControlPanel>(*Context.mEditorContext, WindowHandle, Context.mEditorContext->GetEditorToWorldSender());
     }
 
-    Context.mEditorUIManager->Initialize(Context.mWorldContext->GetWorld(), Context.mRenderer, Context.mEngine.GetAssetRegistry(), *Context.mEditorContext, WindowHandle, Context.mThumbnailRenderer.get(), Context.mEngine);
+    Context.mEditorUIManager->Initialize(Context.mRenderer, WindowHandle, Context.mThumbnailRenderer.get());
 }
 
 void FEditorApplication::ProcessInput(FApplicationContext& Context, float DeltaTime) {

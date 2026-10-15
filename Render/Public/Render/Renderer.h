@@ -1,11 +1,9 @@
+/**
+ * @file Renderer.h
+ * @brief 전역 에셋을 조회하고 장치 및 렌더 씬별 GPU 자원을 소유하는 렌더러를 정의합니다.
+ */
 #pragma once
-#include "Render/RenderConfig.h"
-
-#if EnableFrameResourceFence
-#include <d3d11_4.h>
-#else
 #include <d3d11.h>
-#endif
 #include <wrl/client.h>
 #include <array>
 #include <memory>
@@ -14,7 +12,7 @@
 #include "Render/FSceneRenderer.h"
 #include "Render/FOverLayRenderer.h"
 #include "Render/FSwapChainRenderSurface.h"
-#include "Render/FFrameResource.h"
+#include "Render/FRenderBuffers.h"
 #include "RenderCore/FSceneInterface.h"
 
 class FRendererScene;
@@ -32,6 +30,11 @@ public:
 
 public:
     void Create(HWND WindowHandle, UINT Width, UINT Height);
+    /**
+     * @brief 렌더러 소유의 GPU 에셋 캐시와 공용 렌더 자원을 초기화합니다.
+     * @return 모든 렌더 자원 초기화에 성공하면 true입니다.
+     * @details 에셋 레지스트리 연결은 필요하지 않으며 실제 에셋 조회 시 활성 전역 서비스를 사용합니다.
+     */
     bool Initialize();
 
     void BeginFrame();
@@ -50,7 +53,10 @@ public:
     ID3D11Device* GetDevice() const;
     ID3D11DeviceContext* GetDeviceContext() const;
 
-    bool BindAssetRegistry(const IAssetRegistry* InAssetRegistry, IAssetRegistryMutator* InAssetRegistryMutator = nullptr);
+    /**
+     * @brief 전역 레지스트리에 로드된 에셋의 GPU 자원을 준비합니다.
+     * @return 활성 에셋 서비스가 존재하고 모든 GPU 자원이 준비되면 true입니다.
+     */
     bool PrepareAssetResources();
 
     ID3D11ShaderResourceView* GetTextureResource(FAssetHandle Handle);
@@ -72,26 +78,11 @@ private:
     void BindSamplerStates();
 
 private:
-#if EnableFrameResourceFence
-    static constexpr Uint32 mFrameResourceCount{3};
-#else
-    static constexpr Uint32 mFrameResourceCount{1};
-#endif
-
 #ifdef _DEBUG
     Microsoft::WRL::ComPtr<ID3D11Debug> mDebugInterface{};
 #endif
     Microsoft::WRL::ComPtr<ID3D11Device> mDevice{};
     Microsoft::WRL::ComPtr<ID3D11DeviceContext> mDeviceContext{};
-
-#if EnableFrameResourceFence
-    Microsoft::WRL::ComPtr<ID3D11DeviceContext4> mFenceContext{};
-    Microsoft::WRL::ComPtr<ID3D11Fence> mFrameFence{};
-    HANDLE mFrameFenceEvent{nullptr};
-    Uint64 mNextFenceValue{1};
-    std::array<Uint64, mFrameResourceCount> mCompletionValues{};
-    Uint32 mNextFrameResourceIndex{};
-#endif
 
     Microsoft::WRL::ComPtr<IDXGISwapChain> mSwapChain{};
     std::unique_ptr<FSwapChainRenderSurface> mBackBufferSurface{};
@@ -99,11 +90,9 @@ private:
     // s0: LinearWrap, s1: LinearClamp, s2: PointClamp, s3: PointWrap, s4: AnisotropicWrap, s5: ShadowCompare.
     std::array<Microsoft::WRL::ComPtr<ID3D11SamplerState>, 6> mSamplerStates{};
 
-    const IAssetRegistry* mAssetRegistry{nullptr};
     FRenderAssetResources mAssetResources{};
 
-    std::array<FFrameResource, mFrameResourceCount> mFrameResources{};
-    FFrameResource* mCurrentFrameResource{nullptr};
+    FRenderBuffers mRenderBuffers{};
 
     Uint64 mFrameSerial{};
     TMap<Uint64, std::shared_ptr<FRendererScene>> mRenderScenes{};

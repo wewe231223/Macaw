@@ -1,4 +1,6 @@
 #include "pch.h"
+#include "Asset/FAssetRegistry.h"
+#include "Editor/Settings/FEditorConfigManager.h"
 
 #include <algorithm>
 #include <cmath>
@@ -247,7 +249,7 @@ bool FEditorViewport::DrawMenuBar() {
 
 bool FEditorViewport::SpawnDroppedStaticMesh(FAssetHandle MeshHandle, const ImVec2& ScreenPosition) {
     UWorld* World{mEditorContext != nullptr ? mEditorContext->GetWorld() : nullptr};
-    const IAssetRegistry* AssetRegistry{World != nullptr ? World->GetAssetRegistry() : nullptr};
+    const IAssetRegistry* AssetRegistry{FAssetRegistry::TryGet()};
 
     if (World == nullptr || AssetRegistry == nullptr || AssetRegistry->ResolveAsset<UMesh>(MeshHandle) == nullptr) {
         return false;
@@ -523,7 +525,7 @@ void FEditorViewport::ApplyMouseNavigation(const FViewportMouseNavigationInput& 
         return;
     }
 
-    const FEditorSettings Settings{mEditorContext != nullptr ? mEditorContext->GetEditorSettings() : FEditorSettings{}};
+    const FEditorSettings& Settings{FEditorConfigManager::Get().GetSettings()};
     const float RotationSensitivity{Settings.mRotationSensitivity * 0.001f};
     constexpr float MaximumForwardUp{0.99f};
     const FTransform CameraTransform{FVector3{}, mCameraRotation, FVector3{1.0f, 1.0f, 1.0f}};
@@ -560,7 +562,7 @@ void FEditorViewport::ApplyKeyboardNavigation(const FViewportKeyboardNavigationI
 
     MoveDirection.Normalize();
 
-    const FEditorSettings Settings{mEditorContext != nullptr ? mEditorContext->GetEditorSettings() : FEditorSettings{}};
+    const FEditorSettings& Settings{FEditorConfigManager::Get().GetSettings()};
     const float MoveSensitivity{Settings.mMoveSensitivity};
 
     mCameraPosition = mCameraPosition + MoveDirection * MoveSensitivity * NavigationInput.mDeltaTime;
@@ -685,7 +687,7 @@ bool FEditorViewport::DrawGizmoToolbar() {
         Activated = true;
     }
 
-    FEditorSettings Settings{mEditorContext->GetEditorSettings()};
+    FEditorSettings& Settings{FEditorConfigManager::Get().GetSettings()};
     bool Changed{};
 
     if (ImGui::BeginPopup("GizmoSnapping")) {
@@ -741,7 +743,7 @@ bool FEditorViewport::DrawGizmoToolbar() {
         Settings.mGridSize = std::max(0.001f, Settings.mGridSize);
         Settings.mRotationSnapDegrees = std::clamp(Settings.mRotationSnapDegrees, 0.1f, 180.0f);
         Settings.mScaleSnapStep = std::max(0.001f, Settings.mScaleSnapStep);
-        mEditorContext->SetEditorSettings(Settings);
+
         Activated = true;
     }
 

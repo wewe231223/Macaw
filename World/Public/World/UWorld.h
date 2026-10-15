@@ -1,3 +1,7 @@
+/**
+ * @file UWorld.h
+ * @brief 액터와 월드별 서브시스템 및 렌더 씬의 수명을 정의합니다. 에셋은 전역 FAssetRegistry에서 조회합니다.
+ */
 #pragma once
 #include "CoreUObject/Reflection/ReflectionMacros.h"
 
@@ -10,8 +14,6 @@
 #include "World/Component/UCameraComponent.h"
 #include "World/Component/UStaticMeshComponent.h"
 #include "World/Component/UCollisionComponent.h"
-#include "CoreUObject/Asset/IAssetRegistry.h"
-#include "Asset/IAssetRegistryMutator.h"
 #include "Asset/UMesh.h"
 #include "CoreUObject/TObjectRef.h"
 #include "Core/Common.h"
@@ -184,11 +186,6 @@ public:
 
     ReflectClass(UWorld);
 
-    void SetAssetRegistry(const IAssetRegistry* InAssetRegistry, IAssetRegistryMutator* InAssetRegistryMutator = nullptr);
-
-    const IAssetRegistry* GetAssetRegistry() const;
-    IAssetRegistryMutator* GetAssetRegistryMutator() const;
-
     FName MakeUniqueObjectName(FName SourceName);
     AActor* FindActorByName(FName InName) const;
 
@@ -245,9 +242,6 @@ private:
     TArray<AActor*> mPendingDestroyActors{};
     TArray<FTickFunction*> mActorTickFunctions{};
     TArray<FTickFunction*> mComponentTickFunctions{};
-
-    const IAssetRegistry* mAssetRegistry{nullptr};
-    IAssetRegistryMutator* mAssetRegistryMutator{nullptr};
 
     TSubsystemCollection<UWorldSubsystem, UWorld> mSubsystems{};
     std::weak_ptr<FSceneInterface> mScene{};

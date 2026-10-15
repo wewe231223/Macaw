@@ -47,6 +47,7 @@ public:
     std::unique_ptr<FPrimitiveSceneProxy> CreateSceneProxy() const override;
     void SendRenderTransform() override;
 
+    /** @brief 전역 에셋 서비스에서 기본 폰트와 파이프라인을 조회하고 이 컴포넌트의 텍스트 정점을 갱신합니다. */
     void OnRegister() override;
 
 protected:

@@ -3,27 +3,28 @@
 #include "Serialization/FArchiveJson.h"
 #include "Serialization/FJsonFile.h"
 
-bool FEditorConfigManager::Save(const FEditorSettings& Settings, const std::filesystem::path& ConfigPath) {
-    rapidjson::Document Document{};
+FEditorConfigManager& FEditorConfigManager::Get() {
+    static FEditorConfigManager Instance{};
 
-    Document.SetObject();
-
-    FEditorSettings SavedSettings{Settings};
-    FArchiveJson Archive{Document, Document.GetAllocator()};
-
-    Archive.SerializeStruct("EditorSettings", SavedSettings);
-
-    return FJsonFile::Save(ConfigPath, Document);
+    return Instance;
 }
 
-bool FEditorConfigManager::Load(FEditorSettings& OutSettings, const std::filesystem::path& ConfigPath) {
+FEditorSettings& FEditorConfigManager::GetSettings() {
+    return mSettings;
+}
+
+const FEditorSettings& FEditorConfigManager::GetSettings() const {
+    return mSettings;
+}
+
+bool FEditorConfigManager::Reload(const std::filesystem::path& ConfigPath) {
     rapidjson::Document Document{};
 
     if (!FJsonFile::Load(ConfigPath, Document) || !Document.HasMember("EditorSettings") || !Document["EditorSettings"].IsObject()) {
         return false;
     }
 
-    FEditorSettings Settings{OutSettings};
+    FEditorSettings Settings{mSettings};
     FArchiveJson Archive{Document["EditorSettings"]};
 
     Settings.Serialize(Archive);
@@ -32,7 +33,20 @@ bool FEditorConfigManager::Load(FEditorSettings& OutSettings, const std::filesys
         return false;
     }
 
-    OutSettings = Settings;
+    mSettings = Settings;
 
     return true;
+}
+
+bool FEditorConfigManager::Flush(const std::filesystem::path& ConfigPath) const {
+    rapidjson::Document Document{};
+
+    Document.SetObject();
+
+    FEditorSettings SavedSettings{mSettings};
+    FArchiveJson Archive{Document, Document.GetAllocator()};
+
+    Archive.SerializeStruct("EditorSettings", SavedSettings);
+
+    return FJsonFile::Save(ConfigPath, Document);
 }

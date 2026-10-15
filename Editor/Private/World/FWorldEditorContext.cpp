@@ -2,6 +2,7 @@
 #include "CoreUObject/Reflection/UClass.h"
 #include "World/Component/UBillboardComponent.h"
 #include "Editor/UEditorEngine.h"
+#include "Editor/Settings/FEditorConfigManager.h"
 #include "Asset/FAssetRegistry.h"
 #include "Editor/World/FWorldEditorContext.h"
 #include "World/AActor.h"
@@ -55,22 +56,24 @@ void FWorldEditorContext::OnWorldChanged(UWorld& World, EWorldChange Change, AAc
     }
 }
 
-void FWorldEditorContext::InitializeChannels(UEditorEngine& EditorEngine) {
-    mEditorEngine = &EditorEngine;
+void FWorldEditorContext::InitializeChannels() {
     if (mWorld == nullptr)
         return;
 
-    const IAssetRegistry* AssetRegistry{&EditorEngine.GetAssetRegistry()};
-    mEditorToWorld.TryBind<FMessageSpawnComponent>([this, AssetRegistry](const FMessageSpawnComponent& Message) {
-        HandleSpawnComponent(Message, AssetRegistry);
+    mEditorToWorld.TryBind<FMessageSpawnComponent>([this](const FMessageSpawnComponent& Message) {
+        HandleSpawnComponent(Message);
     });
 
-    mEditorToWorld.TryBind<FMessageSaveScene>([&EditorEngine](const FMessageSaveScene& Message) {
-        EditorEngine.SaveScene(Message.mSceneName);
+    mEditorToWorld.TryBind<FMessageSaveScene>([](const FMessageSaveScene& Message) {
+        if (UEditorEngine* Engine{GetEditorEngine()}) {
+            Engine->SaveScene(Message.mSceneName);
+        }
     });
 
-    mEditorToWorld.TryBind<FMessageLoadScene>([&EditorEngine](const FMessageLoadScene& Message) {
-        EditorEngine.LoadScene(std::filesystem::path{Message.mFilePath.c_str()});
+    mEditorToWorld.TryBind<FMessageLoadScene>([](const FMessageLoadScene& Message) {
+        if (UEditorEngine* Engine{GetEditorEngine()}) {
+            Engine->LoadScene(std::filesystem::path{Message.mFilePath.c_str()});
+        }
     });
 }
 
@@ -83,43 +86,13 @@ bool FWorldEditorContext::IsWorldEditingAllowed() const {
 }
 
 bool FWorldEditorContext::IsSceneLoadingAllowed() const {
-    return IsWorldEditingAllowed() && (mEditorEngine == nullptr || !mEditorEngine->HasPIESession());
+    const UEditorEngine* Engine{GetEditorEngine()};
+
+    return IsWorldEditingAllowed() && (Engine == nullptr || !Engine->HasPIESession());
 }
 
 FMessageChannel::FSender FWorldEditorContext::GetEditorToWorldSender() {
     return mEditorToWorld.GetSender();
-}
-
-FEditorSettings FWorldEditorContext::GetEditorSettings() const {
-    return mEditorSettings;
-}
-
-void FWorldEditorContext::SetEditorSettings(const FEditorSettings& Settings) {
-    mEditorSettings = Settings;
-}
-
-void FWorldEditorContext::SetMoveSensitivity(float Value) {
-    mEditorSettings.mMoveSensitivity = Value;
-}
-
-void FWorldEditorContext::SetRotationSensitivity(float Value) {
-    mEditorSettings.mRotationSensitivity = Value;
-}
-
-void FWorldEditorContext::SetGridSize(float Value) {
-    mEditorSettings.mGridSize = Value;
-}
-
-void FWorldEditorContext::SetGridSnapEnabled(bool Enabled) {
-    mEditorSettings.mGridSnapEnabled = Enabled;
-}
-
-void FWorldEditorContext::SetGridVisible(bool Visible) {
-    mEditorSettings.mGridVisible = Visible;
-}
-
-void FWorldEditorContext::SetAxisVisible(bool Visible) {
-    mEditorSettings.mAxisVisible = Visible;
 }
 
 const std::size_t FWorldEditorContext::GetRenderModeState() const noexcept {
@@ -434,7 +407,7 @@ void FWorldEditorContext::HandleMouseCameraRotateRequest(const FMouseCameraRotat
         return;
     }
 
-    const FEditorSettings Settings{GetEditorSettings()};
+    const FEditorSettings& Settings{FEditorConfigManager::Get().GetSettings()};
     const float RotationSensitivity{Settings.mRotationSensitivity * 0.001f};
     constexpr float MaximumForwardUp{0.99f};
     FTransform CameraTransform{Camera->GetRelativeTransform()};
@@ -478,7 +451,7 @@ void FWorldEditorContext::HandleKeyboardCameraMoveRequest(const FKeyboardCameraM
 
     MoveDirection.Normalize();
 
-    const FEditorSettings Settings{GetEditorSettings()};
+    const FEditorSettings& Settings{FEditorConfigManager::Get().GetSettings()};
 
     Camera->SetRelativeLocation(Camera->GetRelativeLocation() + MoveDirection * Settings.mMoveSensitivity * Message.DeltaTime);
 }
@@ -501,7 +474,7 @@ void FWorldEditorContext::HandleMouseCameraMoveRequestMessage(const FMouseCamera
     Right.Normalize();
     Up.Normalize();
 
-    const FEditorSettings Settings{GetEditorSettings()};
+    const FEditorSettings& Settings{FEditorConfigManager::Get().GetSettings()};
     const float PanScale{Settings.mMoveSensitivity * 0.01f};
     const FVector3 Offset{Right * (-Message.DeltaX * PanScale) + Up * (-Message.DeltaY * PanScale)};
 
@@ -523,14 +496,15 @@ void FWorldEditorContext::HandleMouseCameraDollyRequestMessage(const FMouseCamer
 
     ForwardDirection.Normalize();
 
-    const FEditorSettings Settings{GetEditorSettings()};
+    const FEditorSettings& Settings{FEditorConfigManager::Get().GetSettings()};
     const float DollySpeed{Settings.mMoveSensitivity * 0.3f};
 
     Camera->SetRelativeLocation(Camera->GetRelativeLocation() + ForwardDirection * (Message.Steps * DollySpeed));
 }
 #endif
 
-void FWorldEditorContext::HandleSpawnComponent(const FMessageSpawnComponent& Message, const IAssetRegistry* AssetRegistry) {
+void FWorldEditorContext::HandleSpawnComponent(const FMessageSpawnComponent& Message) {
+    const IAssetRegistry* AssetRegistry{FAssetRegistry::TryGet()};
     if (!IsWorldEditingAllowed()) {
         return;
     }

@@ -1,7 +1,7 @@
 Texture2D FontAtlas : register(t3);
 SamplerState LinearClamp : register(s0);
 
-#include "FrameResource.hlsli"
+#include "ViewConstants.hlsli"
 
 struct FInput {
     float2 mPosition : POSITION;

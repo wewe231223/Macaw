@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "Render/FMeshRenderer.h"
-#include "Render/FFrameResource.h"
+#include "Render/FRenderBuffers.h"
 #include "Core/Stat/Stat.h"
 
 void FMeshRenderer::Draw(const FRenderContext& Context, const TArray<FMeshDrawCommandBatch>& Commands, ERenderMode Mode) {
@@ -8,7 +8,7 @@ void FMeshRenderer::Draw(const FRenderContext& Context, const TArray<FMeshDrawCo
 
     const std::size_t ModeIndex{static_cast<std::size_t>(Mode)};
 
-    if (Commands.empty() || ModeIndex >= static_cast<std::size_t>(ERenderMode::Max) || Context.mDeviceContext == nullptr || Context.mFrameResource == nullptr || !Context.mFrameResource->BindModels(Context.mDeviceContext)) {
+    if (Commands.empty() || ModeIndex >= static_cast<std::size_t>(ERenderMode::Max) || Context.mDeviceContext == nullptr || Context.mRenderBuffers == nullptr || !Context.mRenderBuffers->BindModels(Context.mDeviceContext)) {
         return;
     }
 

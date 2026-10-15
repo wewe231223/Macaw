@@ -3,7 +3,7 @@
 Texture2D BaseColorTexture : register(t4);
 SamplerState LinearWrap : register(s0);
 
-#include "FrameResource.hlsli"
+#include "ViewConstants.hlsli"
 
 struct VS_INPUT
 {

@@ -1,4 +1,6 @@
 #include "pch.h"
+#include "Asset/FAssetRegistry.h"
+#include "Editor/Settings/FEditorConfigManager.h"
 #include "CoreUObject/Reflection/UClass.h"
 #include "Editor/View/EditorViewport.h"
 
@@ -72,8 +74,8 @@ namespace {
     }
 }
 
-void EditorViewport::Initialize(ID3D11Device* Device, FAssetRegistry& AssetRegistry, FWorldEditorContext& InEditorContext) {
-    mTransformGizmo.Initialize(Device, AssetRegistry, InEditorContext);
+void EditorViewport::Initialize(ID3D11Device* Device, FWorldEditorContext& InEditorContext) {
+    mTransformGizmo.Initialize(Device, InEditorContext);
     mEditorContext = &InEditorContext;
 }
 
@@ -86,7 +88,7 @@ void EditorViewport::ProcessInput(FKeyboardInput& KeyboardInput, FMouseInput& Mo
 }
 
 void EditorViewport::BuildGrid(FLineRenderData& Lines, const FViewMatrices& Camera, const FVector3& CameraPosition, const D3D11_VIEWPORT& Viewport, FVector2D& FadeCenter, ELineDepthMode DepthMode) {
-    const float GridInterval{mEditorContext != nullptr ? mEditorContext->GetEditorSettings().mGridSize : 1.0f};
+    const float GridInterval{FEditorConfigManager::Get().GetSettings().mGridSize};
     const float ProjectionYScale{Camera.mProjection.m_[1][1]};
 
     if (!std::isfinite(GridInterval) || GridInterval <= 0.0f || ProjectionYScale <= 0.0f || Viewport.Width <= 0.0f || Viewport.Height <= 0.0f) {
@@ -303,7 +305,7 @@ void EditorViewport::BuildOverlayRenderData(FOverlayRenderData& Overlay, const F
     mTransformGizmo.BuildGizmoDrawData(Overlay);
 
     const ELineDepthMode DepthMode{ELineDepthMode::DepthTested};
-    const FEditorSettings Settings{mEditorContext != nullptr ? mEditorContext->GetEditorSettings() : FEditorSettings{}};
+    const FEditorSettings& Settings{FEditorConfigManager::Get().GetSettings()};
     FVector2D FadeCenter{CameraPosition.mX, CameraPosition.mY};
 
     if (Settings.mGridVisible) {

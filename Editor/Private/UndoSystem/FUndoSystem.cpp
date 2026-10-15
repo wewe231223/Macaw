@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Asset/FAssetRegistry.h"
 #include "CoreUObject/Reflection/UClass.h"
 #include "Editor/UndoSystem/FUndoSystem.h"
 #include "Editor/UndoSystem/IUndoContext.h"
@@ -157,7 +158,7 @@ namespace FUndoSystem {
         State.mCurrentTransaction = std::make_unique<FUndoTransaction>(TransactionName);
     }
 
-    void RecordObject(UObject* TargetObject, EUndoType UndoType, const IAssetRegistry* AssetRegistry) {
+    void RecordObject(UObject* TargetObject, EUndoType UndoType) {
         FUndoSystemState& State{GetState()};
 
         if (!State.mCurrentTransaction || !TargetObject)
@@ -173,7 +174,7 @@ namespace FUndoSystem {
         TArray<Uint8> CurrentData{};
         FArchiveMemory MemoryArchive{CurrentData};
 
-        MemoryArchive.SetAssetResolver(AssetRegistry);
+        MemoryArchive.SetAssetResolver(FAssetRegistry::TryGet());
         TargetObject->Save(MemoryArchive);
 
         if (UndoType == EUndoType::StateChange) {
@@ -182,6 +183,7 @@ namespace FUndoSystem {
                 TArray<Uint8> AfterData{};
                 FArchiveMemory MemoryArchiveAfter{AfterData};
 
+                MemoryArchiveAfter.SetAssetResolver(FAssetRegistry::TryGet());
                 TargetObject->Save(MemoryArchiveAfter);
 
                 auto Record{std::make_unique<FRecordObjectState>(TargetObject->GetGuid(), CurrentData, AfterData)};

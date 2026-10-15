@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Asset/FAssetRegistry.h"
 #include "Editor/Panel/FPropertyEditorContext.h"
 
 #include "ImGui/imgui.h"
@@ -20,7 +21,8 @@ namespace {
     constexpr char MaterialAssetPayloadType[]{"MACAW_MATERIAL_ASSET"};
     constexpr char TextureAssetPayloadType[]{"MACAW_TEXTURE_ASSET"};
 
-    void ApplyAssetBrowserDrop(const IAssetRegistry* Registry, const UClass& AssetType, FAssetHandle CurrentHandle, const std::function<void(FAssetHandle)>& Setter) {
+    void ApplyAssetBrowserDrop(const UClass& AssetType, FAssetHandle CurrentHandle, const std::function<void(FAssetHandle)>& Setter) {
+        const IAssetRegistry* Registry{FAssetRegistry::TryGet()};
         const char* PayloadType{};
 
         if (AssetType.IsChildOf(UMesh::StaticClass())) {
@@ -31,7 +33,7 @@ namespace {
             PayloadType = TextureAssetPayloadType;
         }
 
-        if (PayloadType == nullptr || !ImGui::BeginDragDropTarget()) {
+        if (Registry == nullptr || PayloadType == nullptr || !ImGui::BeginDragDropTarget()) {
             return;
         }
 
@@ -169,12 +171,13 @@ void FPropertyEditorContext::DrawReferencePicker(const char* Label, const char* 
 }
 
 void FPropertyEditorContext::DrawAssetPicker(const char* Label, const UClass& AssetType, FAssetHandle CurrentHandle, const std::function<void(FAssetHandle)>& Setter) const {
-    if (mAssetRegistry == nullptr) {
+    const IAssetRegistry* Registry{FAssetRegistry::TryGet()};
+
+    if (Registry == nullptr) {
         ImGui::TextDisabled("%s: Asset registry unavailable", Label);
         return;
     }
 
-    const IAssetRegistry* Registry{mAssetRegistry};
     const UAsset* Current{Registry->ResolveAsset<UAsset>(CurrentHandle)};
 
     if (Current != nullptr && !Current->GetClass()->IsChildOf(&AssetType)) {
@@ -187,7 +190,7 @@ void FPropertyEditorContext::DrawAssetPicker(const char* Label, const UClass& As
     ImGui::PushID(Label);
 
     if (BSupportsThumbnail) {
-        ID3D11ShaderResourceView* Thumbnail{GetAssetThumbnail(Registry, CurrentHandle)};
+        ID3D11ShaderResourceView* Thumbnail{mThumbnailRenderer != nullptr ? mThumbnailRenderer->GetThumbnail(CurrentHandle) : nullptr};
 
         if (Thumbnail != nullptr) {
             ImGui::Image(ImTextureRef(reinterpret_cast<ImTextureID>(Thumbnail)), ImVec2(48.0f, 48.0f));
@@ -195,7 +198,7 @@ void FPropertyEditorContext::DrawAssetPicker(const char* Label, const UClass& As
             ImGui::Button("##AssetThumbnail", ImVec2(48.0f, 48.0f));
         }
 
-        ApplyAssetBrowserDrop(Registry, AssetType, CurrentHandle, Setter);
+        ApplyAssetBrowserDrop(AssetType, CurrentHandle, Setter);
         ImGui::SameLine();
     }
 
@@ -217,7 +220,7 @@ void FPropertyEditorContext::DrawAssetPicker(const char* Label, const UClass& As
             const FString& AssetPath{Registry->GetAssetPath(Handle)->mPath};
             const std::size_t NameOffset{AssetPath.find_last_of('/') + 1};
             const char* AssetName{AssetPath.c_str() + NameOffset};
-            ID3D11ShaderResourceView* Thumbnail{GetAssetThumbnail(Registry, Handle)};
+            ID3D11ShaderResourceView* Thumbnail{mThumbnailRenderer != nullptr ? mThumbnailRenderer->GetThumbnail(Handle) : nullptr};
 
             ImGui::PushID(Registry->ResolveAsset<UObject>(Handle));
 
@@ -265,24 +268,6 @@ bool FPropertyEditorContext::SupportsAssetThumbnail(const UClass& AssetType) con
     return UMesh::StaticClass()->IsChildOf(&AssetType) || UMaterial::StaticClass()->IsChildOf(&AssetType) || UTexture::StaticClass()->IsChildOf(&AssetType);
 }
 
-ID3D11ShaderResourceView* FPropertyEditorContext::GetAssetThumbnail(const IAssetRegistry* Registry, FAssetHandle AssetHandle) const {
-    const UAsset* Asset{Registry->ResolveAsset<UAsset>(AssetHandle)};
-
-    if (Asset == nullptr) {
-        return nullptr;
-    }
-
-    if (mThumbnailRenderer == nullptr) {
-        return nullptr;
-    }
-
-    if (Asset->GetClass()->IsChildOf(UMesh::StaticClass()) || Asset->GetClass()->IsChildOf(UMaterial::StaticClass()) || Asset->GetClass()->IsChildOf(UTexture::StaticClass())) {
-        return mThumbnailRenderer->GetThumbnail(AssetHandle);
-    }
-
-    return nullptr;
-}
-
 bool FPropertyEditorContext::DrawAssetOption(const char* Label, ID3D11ShaderResourceView* Thumbnail, bool BSelected) const {
     constexpr float RowHeight{36.0f};
     constexpr float ImageSize{32.0f};
@@ -311,10 +296,6 @@ bool FPropertyEditorContext::DrawAssetOption(const char* Label, ID3D11ShaderReso
 
 void FPropertyEditorContext::BindThumbnailRenderer(FAssetThumbnailRenderer* InThumbnailRenderer) {
     mThumbnailRenderer = InThumbnailRenderer;
-}
-
-void FPropertyEditorContext::BindAssetRegistry(const IAssetRegistry* InAssetRegistry) {
-    mAssetRegistry = InAssetRegistry;
 }
 
 void FPropertyEditorContext::BeginProperty(const char* Label) const {

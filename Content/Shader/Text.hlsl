@@ -1,7 +1,7 @@
 Texture2D FontAtlas : register(t3);
 SamplerState PointClamp : register(s2);
 
-#include "FrameResource.hlsli"
+#include "ViewConstants.hlsli"
 struct FTextContext {
     row_major float4x4 mWorld;
     float4 mColor;

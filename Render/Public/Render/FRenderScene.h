@@ -1,3 +1,7 @@
+/**
+ * @file FRenderScene.h
+ * @brief 전역 에셋을 조회하며 씬별 프리미티브와 조명 및 명령 캐시를 유지하는 렌더 씬을 정의합니다.
+ */
 #pragma once
 #include "RenderCore/FRenderData.h"
 #include "RenderCore/FSceneUpdateBatch.h"
@@ -9,7 +13,6 @@
 #include <map>
 #include <unordered_map>
 
-class IAssetRegistry;
 class FRenderAssetResources;
 
 enum class ERenderUpdateMode : Uint8 {
@@ -28,7 +31,13 @@ public:
     explicit FRenderScene(Uint64 SceneId);
 
 public:
-    void Synchronize(const IAssetRegistry* Registry, FSceneUpdateBatch& Updates, const FMaterialBuffer& Materials, FRenderAssetResources* Resources = nullptr);
+    /**
+     * @brief 이 씬의 변경 사항을 적용하고 전역 에셋으로 정적 메시 명령을 갱신합니다.
+     * @param Updates 소비할 씬 변경 목록입니다.
+     * @param Materials 장치별 머티리얼 인덱스 저장소입니다.
+     * @param Resources 선택적인 GPU 에셋 캐시입니다. nullptr이면 CPU 명령만 구성합니다.
+     */
+    void Synchronize(FSceneUpdateBatch& Updates, const FMaterialBuffer& Materials, FRenderAssetResources* Resources = nullptr);
 
     Uint64 GetId() const;
     Uint64 GetRevision() const;
@@ -58,7 +67,12 @@ private:
     void RecordObjectChange(Uint32 ObjectIndex);
     void CommitObjectChanges();
 
-    void RefreshStaticMeshes(const IAssetRegistry* Registry, const FMaterialBuffer& Materials, FRenderAssetResources* Resources);
+    /**
+     * @brief 전역 에셋의 현재 상태로 이 씬의 정적 메시 캐시를 갱신합니다.
+     * @param Materials 머티리얼 인덱스 저장소입니다.
+     * @param Resources 선택적인 GPU 에셋 캐시입니다.
+     */
+    void RefreshStaticMeshes(const FMaterialBuffer& Materials, FRenderAssetResources* Resources);
     void UpdateBounds();
 
 private:

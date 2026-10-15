@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Asset/FAssetRegistry.h"
 #include "CoreUObject/Reflection/UClass.h"
 #include "Engine/Serialization/FSceneSerializer.h"
 #include "Engine/Serialization/FWorldSerializer.h"
@@ -337,7 +338,7 @@ bool FSceneSerializer::LoadInternal(UWorld& World, const std::filesystem::path& 
         return false;
     }
 
-    if (World.GetAssetRegistry() == nullptr) {
+    if (FAssetRegistry::TryGet() == nullptr) {
         return false;
     }
 

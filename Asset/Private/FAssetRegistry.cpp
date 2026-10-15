@@ -4,6 +4,7 @@
 #include "CoreUObject/Reflection/UClass.h"
 #include "Serialization/FJsonFile.h"
 #include "Asset/FAssetRegistry.h"
+#include "Core/Base/ErrorHandler.h"
 #include "Asset/UFreeTypeFont.h"
 #include "Asset/FLODSettings.h"
 #include "Asset/UMesh.h"
@@ -25,6 +26,8 @@
 #include <rapidjson/stringbuffer.h>
 
 namespace {
+    FAssetRegistry* AssetRegistryInstance{};
+    Uint64 AssetRegistryGeneration{};
     constexpr const char* DefaultStaticMeshMaterialAssetPath{"/Game/System/Material/Default.mtl"};
     constexpr const char* DefaultStaticMeshPipelineAssetPath{"/Game/Pipeline/Base"};
     constexpr const char* DefaultCheckerboardTexturePath{"/Game/Texture/checkerboard.png"};
@@ -37,6 +40,34 @@ namespace {
         });
 
         return Extension;
+    }
+}
+
+FAssetRegistry::~FAssetRegistry() {
+    if (AssetRegistryInstance == this) {
+        AssetRegistryInstance = nullptr;
+    }
+}
+
+FAssetRegistry& FAssetRegistry::Get() {
+    ErrorHandler::Report(AssetRegistryInstance == nullptr, "FAssetRegistry", "No engine asset registry is active", ErrorHandler::EErrorLevel::Critical);
+
+    return *AssetRegistryInstance;
+}
+
+FAssetRegistry* FAssetRegistry::TryGet() noexcept {
+    return AssetRegistryInstance;
+}
+
+Uint64 FAssetRegistry::GetGeneration() noexcept {
+    return AssetRegistryInstance != nullptr ? AssetRegistryGeneration : 0;
+}
+
+void FAssetRegistry::ActivateGlobal() {
+    ErrorHandler::Report(AssetRegistryInstance != nullptr && AssetRegistryInstance != this, "FAssetRegistry", "Another asset registry is already active", ErrorHandler::EErrorLevel::Critical);
+    if (AssetRegistryInstance != this) {
+        ++AssetRegistryGeneration;
+        AssetRegistryInstance = this;
     }
 }
 
@@ -401,6 +432,10 @@ FAssetHandle FAssetRegistry::LoadViewerAsset(const std::filesystem::path& Source
 }
 
 void FAssetRegistry::Reset() {
+    if (AssetRegistryInstance == this) {
+        ++AssetRegistryGeneration;
+    }
+
     mAssets.clear();
     mFreeHandles.clear();
     mPathToHandle.clear();

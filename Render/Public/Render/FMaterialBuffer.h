@@ -1,8 +1,13 @@
+/**
+ * @file FMaterialBuffer.h
+ * @brief 전역 머티리얼을 장치별 GPU 버퍼와 동기화하는 저장소를 정의합니다.
+ */
 #pragma once
 
 #include <d3d11.h>
+#include "Render/FRenderAssetStamp.h"
 #include <wrl/client.h>
-#include "CoreUObject/Asset/IAssetRegistry.h"
+#include "Core/Base/FAssetHandle.h"
 #include "RenderCore/FMaterialGPUData.h"
 
 class UMaterial;
@@ -11,7 +16,10 @@ class FMaterialBuffer {
 private:
     struct FMaterialEntry {
         FAssetHandle mHandle{};
-        Uint64 mRevision{};
+        /**
+         * @brief 머티리얼 객체 재생성과 수정 여부를 구분하는 마지막 업로드 상태입니다.
+         */
+        FRenderAssetStamp mStamp{};
         TArray<Uint32> mIndices{};
     };
 
@@ -26,7 +34,13 @@ public:
 
 public:
     bool Initialize(ID3D11Device* Device, Uint32 MaxMaterialCount = 4096);
-    bool Synchronize(const IAssetRegistry& Registry, ID3D11DeviceContext* Context);
+    /**
+     * @brief 전역 레지스트리의 머티리얼을 이 GPU 버퍼와 동기화합니다.
+     * @param Context 업로드할 장치 컨텍스트입니다.
+     * @return 활성 서비스가 존재하고 모든 머티리얼을 반영하면 true입니다.
+     * @details 서비스가 없으면 기존 인덱스 매핑을 해제합니다. 동일 GUID의 에셋도 객체가 재생성되었으면 다시 업로드합니다.
+     */
+    bool Synchronize(ID3D11DeviceContext* Context);
     Uint32 GetMaterialIndex(const UMaterial& Material, Uint32 GroupIndex = 0) const;
     void BuildIndexRemapping(const FMaterialBuffer& Target, TMap<Uint32, Uint32>& OutIndices) const;
     Uint64 GetRevision() const;

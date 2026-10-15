@@ -1,6 +1,10 @@
+/**
+ * @file FOverLayRenderer.h
+ * @brief 전역 에셋을 조회하며 뷰포트별 깊이와 선택 마스크를 유지하는 오버레이 렌더러를 정의합니다.
+ */
 #pragma once
 
-#include "Render/FFrameResource.h"
+#include "Render/FRenderBuffers.h"
 #include "Render/FLineRenderer.h"
 #include "Render/FRenderAssetResources.h"
 #include "Render/FSceneRenderOutput.h"
@@ -28,30 +32,30 @@ private:
     };
 
 public:
-    bool Initialize(ID3D11Device* Device, ID3D11DeviceContext* Context, Uint32 FrameResourceCount);
-    bool BindAssetRegistry(const IAssetRegistry* Registry, IAssetRegistryMutator* Mutator = nullptr);
-    bool BeginFrame(ID3D11DeviceContext* Context, Uint32 FrameResourceIndex, Uint64 FrameSerial);
-    void EndFrame();
+    /**
+     * @brief 오버레이 파이프라인과 렌더러 소유 GPU 에셋 캐시를 생성합니다.
+     * @param Device 사용할 그래픽 장치입니다.
+     * @return 모든 자원 생성에 성공하면 true입니다.
+     */
+    bool Initialize(ID3D11Device* Device);
+    void BeginFrame(Uint64 FrameSerial);
     void Reset();
 
-    void RenderView(ID3D11DeviceContext* Context, const FRenderView& View, const FOverlayRenderData& Overlay, const FSceneRenderOutput& Output);
+    void RenderView(ID3D11DeviceContext* Context, FRenderBuffers& RenderBuffers, const FRenderView& View, const FOverlayRenderData& Overlay, const FSceneRenderOutput& Output);
 
 private:
     void BuildMeshItems(const TArray<FOverlayMeshDrawData>& Meshes, TArray<FMeshDrawBatch>& Items);
     bool PrepareDepth(ID3D11DeviceContext* Context, const FSceneRenderOutput& Output);
     bool PrepareSelectionMask();
-    void DrawSelectionOutline(ID3D11DeviceContext* Context, const FSceneRenderOutput& Output);
+    void DrawSelectionOutline(ID3D11DeviceContext* Context, FRenderBuffers& RenderBuffers, const FSceneRenderOutput& Output);
     bool PrepareMeshDraws(const TArray<FMeshDrawBatch>& Items, bool Selection, TArray<FMeshDraw>& Draws);
-    void DrawMeshes(ID3D11DeviceContext* Context, const TArray<FMeshDraw>& Draws);
-    void DrawGuides(ID3D11DeviceContext* Context, const FOverlayRenderData& Overlay);
-    void RenderOrientationAxis(ID3D11DeviceContext* Context, const FViewMatrices& Camera, const FOverlayRenderData& Overlay, const FSceneRenderOutput& Output);
+    void DrawMeshes(ID3D11DeviceContext* Context, FRenderBuffers& RenderBuffers, const TArray<FMeshDraw>& Draws);
+    void DrawGuides(ID3D11DeviceContext* Context, FRenderBuffers& RenderBuffers, const FOverlayRenderData& Overlay);
+    void RenderOrientationAxis(ID3D11DeviceContext* Context, FRenderBuffers& RenderBuffers, const FViewMatrices& Camera, const FOverlayRenderData& Overlay, const FSceneRenderOutput& Output);
 
 private:
     ID3D11Device* mDevice{nullptr};
-    const IAssetRegistry* mAssetRegistry{nullptr};
     FRenderAssetResources mAssetResources{};
-    TArray<FFrameResource> mFrameResources{};
-    FFrameResource* mCurrentFrameResource{nullptr};
     Uint64 mFrameSerial{};
     TArray<FMatrix> mObjectTransforms{};
     TArray<FMeshDrawRecord> mDrawRecords{};

@@ -2,7 +2,7 @@ Texture2D SpriteTexture : register(t3);
 SamplerState LinearWrap : register(s0);
 SamplerState LinearClamp : register(s1);
 
-#include "FrameResource.hlsli"
+#include "ViewConstants.hlsli"
 
 struct VS_INPUT {
     float3 mOrigin : POSITION;

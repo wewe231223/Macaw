@@ -1,7 +1,7 @@
 Texture2D SelectionMask : register(t3);
 
 #include "ModelResource.hlsli"
-#include "FrameResource.hlsli"
+#include "ViewConstants.hlsli"
 
 struct FMaskVertex {
     float4 mPosition : SV_POSITION;

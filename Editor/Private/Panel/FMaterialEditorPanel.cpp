@@ -17,19 +17,17 @@ namespace {
 
 }
 
-FMaterialEditorPanel::FMaterialEditorPanel(FAssetRegistry& InRegistry, FAssetThumbnailRenderer& InThumbnailRenderer)
-	: FEditorWindow("Material Editor###MaterialEditor", ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoDocking),
-	  mRegistry(InRegistry),
-	  mThumbnailRenderer(InThumbnailRenderer) {
+FMaterialEditorPanel::FMaterialEditorPanel(FAssetThumbnailRenderer& InThumbnailRenderer)
+	: FEditorWindow{"Material Editor###MaterialEditor", ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoDocking},
+	  mThumbnailRenderer{InThumbnailRenderer} {
     SetVisible(false);
-    mPropertyEditor.BindAssetRegistry(&InRegistry);
     mPropertyEditor.BindThumbnailRenderer(&InThumbnailRenderer);
 }
 
 FMaterialEditorPanel::~FMaterialEditorPanel() = default;
 
 void FMaterialEditorPanel::OpenMaterial(FAssetHandle MaterialHandle) {
-    if (mRegistry.ResolveAsset<USurfaceOpaque>(MaterialHandle) == nullptr) {
+    if (FAssetRegistry::Get().ResolveAsset<USurfaceOpaque>(MaterialHandle) == nullptr) {
         return;
     }
 
@@ -38,8 +36,8 @@ void FMaterialEditorPanel::OpenMaterial(FAssetHandle MaterialHandle) {
     SetVisible(true);
 }
 
-void FMaterialEditorPanel::RenderOffscreen(FRenderer& Renderer, FAssetRegistry&) {
-    if (!mPreviewDirty || mRegistry.ResolveAsset<USurfaceOpaque>(mMaterialHandle) == nullptr) {
+void FMaterialEditorPanel::RenderOffscreen(FRenderer& Renderer) {
+    if (!mPreviewDirty || FAssetRegistry::Get().ResolveAsset<USurfaceOpaque>(mMaterialHandle) == nullptr) {
         return;
     }
 
@@ -60,14 +58,14 @@ void FMaterialEditorPanel::ReleaseRenderResources() {
 }
 
 void FMaterialEditorPanel::DrawContents() {
-    USurfaceOpaque* Material{mRegistry.ResolveAsset<USurfaceOpaque>(mMaterialHandle)};
+    USurfaceOpaque* Material{FAssetRegistry::Get().ResolveAsset<USurfaceOpaque>(mMaterialHandle)};
 
     if (Material == nullptr) {
         ImGui::TextDisabled("Material unavailable.");
         return;
     }
 
-    const FAssetPath* AssetPath{mRegistry.GetAssetPath(mMaterialHandle)};
+    const FAssetPath* AssetPath{FAssetRegistry::Get().GetAssetPath(mMaterialHandle)};
 
     ImGui::TextUnformatted(AssetPath != nullptr ? AssetPath->mPath.c_str() : Material->GetAssetName().c_str());
 

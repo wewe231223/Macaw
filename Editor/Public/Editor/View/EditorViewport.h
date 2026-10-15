@@ -1,7 +1,10 @@
+/**
+ * @file EditorViewport.h
+ * @brief 월드별 편집 상태와 전역 에셋 및 설정을 사용하는 뷰포트 도구를 정의합니다.
+ */
 #pragma once
 
 #include <d3d11.h>
-#include "Asset/FAssetRegistry.h"
 #include "Render/FRenderView.h"
 #include "Editor/World/FWorldEditorContext.h"
 #include "Editor/Input/FMouseInput.h"
@@ -21,7 +24,12 @@ public:
     EditorViewport& operator=(EditorViewport&&) noexcept = default;
 
 public:
-    void Initialize(ID3D11Device* Device, FAssetRegistry& AssetRegistry, FWorldEditorContext& InEditorContext);
+    /**
+     * @brief 대상 월드의 편집 컨텍스트에 연결하고 에셋과 설정은 전역 서비스에서 조회합니다.
+     * @param Device 렌더링에 사용할 그래픽 장치입니다.
+     * @param InEditorContext 선택과 조작 상태를 보관하는 월드별 컨텍스트입니다.
+     */
+    void Initialize(ID3D11Device* Device, FWorldEditorContext& InEditorContext);
 
     void PrepareInput(const FViewMatrices& Camera, const D3D11_VIEWPORT& Viewport);
     void ProcessInput(FKeyboardInput& KeyboardInput, FMouseInput& MouseInput, bool BMouseCapturedByUi, bool BKeyboardCapturedByUi);

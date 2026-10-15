@@ -21,9 +21,8 @@ namespace {
     constexpr char TextureAssetPayloadType[]{"MACAW_TEXTURE_ASSET"};
 }
 
-FAssetBrowserPanel::FAssetBrowserPanel(FAssetRegistry& InAssetRegistry, FWorldEditorContext& InEditorContext, FAssetThumbnailRenderer* InThumbnailRenderer, std::function<void(FAssetHandle)> InOpenMaterialEditor)
+FAssetBrowserPanel::FAssetBrowserPanel(FWorldEditorContext& InEditorContext, FAssetThumbnailRenderer* InThumbnailRenderer, std::function<void(FAssetHandle)> InOpenMaterialEditor)
 	: FEditorWindow{"Content Browser###AssetBrowserPanel"},
-	  mAssetRegistry{&InAssetRegistry},
 	  mEditorContext{InEditorContext},
 	  mThumbnailRenderer{InThumbnailRenderer},
 	  mOpenMaterialEditor{std::move(InOpenMaterialEditor)} {
@@ -34,7 +33,7 @@ void FAssetBrowserPanel::BeginExternalDropFrame() {
 }
 
 bool FAssetBrowserPanel::HandleExternalFileDrop(const std::filesystem::path& FilePath, const ImVec2& ScreenPosition) {
-    if (!mBDropTargetActive || mAssetRegistry == nullptr ||
+    if (!mBDropTargetActive || FAssetRegistry::TryGet() == nullptr ||
         ScreenPosition.x < mDropTargetMin.x || ScreenPosition.x >= mDropTargetMax.x ||
         ScreenPosition.y < mDropTargetMin.y || ScreenPosition.y >= mDropTargetMax.y) {
         return false;
@@ -50,7 +49,7 @@ bool FAssetBrowserPanel::HandleExternalFileDrop(const std::filesystem::path& Fil
         return true;
     }
 
-    const FAssetHandle ImportedHandle{mAssetRegistry->ImportMesh(FilePath, mSelectedFolder)};
+    const FAssetHandle ImportedHandle{FAssetRegistry::Get().ImportMesh(FilePath, mSelectedFolder)};
 
     if (ImportedHandle) {
         if (mThumbnailRenderer != nullptr) {
@@ -84,7 +83,7 @@ void FAssetBrowserPanel::DrawContents() {
 
         if (!FilePath.empty()) {
             const std::filesystem::path SourcePath{FilePath};
-            const FAssetHandle ImportedHandle{mAssetRegistry->ImportMesh(SourcePath, mSelectedFolder)};
+            const FAssetHandle ImportedHandle{FAssetRegistry::Get().ImportMesh(SourcePath, mSelectedFolder)};
 
             if (ImportedHandle && mThumbnailRenderer != nullptr) {
                 mThumbnailRenderer->RenderThumbnail(ImportedHandle);
@@ -142,7 +141,7 @@ void FAssetBrowserPanel::DrawContents() {
     if (ImGui::BeginChild("AssetTiles", ImVec2(0.0f, ContentHeight), ImGuiChildFlags_Borders)) {
         std::vector<const FAssetEntry*> VisibleAssets{};
 
-        for (const FAssetEntry& Entry : mAssetRegistry->GetAssetEntries()) {
+        for (const FAssetEntry& Entry : FAssetRegistry::Get().GetAssetEntries()) {
             if (!IsInSelectedFolder(Entry) || (mSelectedAssetType != EAssetType::END && Entry.mAssetType != mSelectedAssetType)) {
                 continue;
             }
@@ -229,7 +228,7 @@ void FAssetBrowserPanel::DrawFolderTree(const FString& FolderPath, const char* F
     std::vector<FString> ChildFolderNames{};
     const std::string_view FolderPathView{FolderPath.data(), FolderPath.size()};
 
-    for (const FAssetEntry& Entry : mAssetRegistry->GetAssetEntries()) {
+    for (const FAssetEntry& Entry : FAssetRegistry::Get().GetAssetEntries()) {
         const std::string_view AssetPath{Entry.mAssetPath.mPath.data(), Entry.mAssetPath.mPath.size()};
 
         if (!AssetPath.starts_with(FolderPathView) || AssetPath.size() <= FolderPathView.size() || AssetPath[FolderPathView.size()] != '/') {

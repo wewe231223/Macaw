@@ -33,7 +33,6 @@ public:
     bool Update(ID3D11DeviceContext* Context, const void* Data, Uint32 InByteSize, Uint32 DestinationOffset = 0);
 
     bool WriteDiscard(ID3D11DeviceContext* Context, const void* Data, Uint32 InByteSize);
-    bool WriteNoOverwrite(ID3D11DeviceContext* Context, const void* Data, Uint32 InByteSize, Uint32 DestinationOffset);
 
     bool CopyFrom(ID3D11DeviceContext* Context, const FGraphicsBuffer& Source);
     bool CopyFrom(ID3D11DeviceContext* Context, Uint32 DestinationOffset, const FGraphicsBuffer& Source, Uint32 SourceOffset, Uint32 InByteSize);

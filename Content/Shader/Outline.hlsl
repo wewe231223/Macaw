@@ -1,6 +1,6 @@
 #include "ModelResource.hlsli"
 
-#include "FrameResource.hlsli"
+#include "ViewConstants.hlsli"
 
 struct FOutlineInput {
     float3 mPosition : POSITION;

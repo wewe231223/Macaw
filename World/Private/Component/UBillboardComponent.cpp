@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Asset/FAssetRegistry.h"
 #include "CoreUObject/Reflection/NativeSerialization.h"
 #include "World/Component/UBillboardComponent.h"
 #include "RenderCore/FBillboardSceneProxy.h"
@@ -33,8 +34,7 @@ bool UBillboardComponent::TryGetBillBoardWorld(FMatrix& OutWorld) const {
 void UBillboardComponent::SetTextureHandle(FAssetHandle InTextureHandle) {
     mTextureHandle = InTextureHandle;
 
-    UWorld* World{GetBelongingWorld()};
-    const IAssetRegistry* Registry{World != nullptr ? World->GetAssetRegistry() : nullptr};
+    const IAssetRegistry* Registry{FAssetRegistry::TryGet()};
 
     mTextureAssetPath = Registry != nullptr && Registry->GetAssetPath(mTextureHandle) != nullptr ? *Registry->GetAssetPath(mTextureHandle) : FAssetPath{};
     mTextureAssetGuid = Registry != nullptr && Registry->GetAssetGuid(mTextureHandle) != nullptr ? *Registry->GetAssetGuid(mTextureHandle) : FGuid{};
@@ -44,8 +44,7 @@ void UBillboardComponent::SetTextureHandle(FAssetHandle InTextureHandle) {
 void UBillboardComponent::SetPipelineHandle(FAssetHandle InPipelineHandle) {
     mPipelineHandle = InPipelineHandle;
 
-    UWorld* World{GetBelongingWorld()};
-    const IAssetRegistry* Registry{World != nullptr ? World->GetAssetRegistry() : nullptr};
+    const IAssetRegistry* Registry{FAssetRegistry::TryGet()};
 
     mPipelineAssetPath = Registry != nullptr && Registry->GetAssetPath(mPipelineHandle) != nullptr ? *Registry->GetAssetPath(mPipelineHandle) : FAssetPath{};
     mPipelineAssetGuid = Registry != nullptr && Registry->GetAssetGuid(mPipelineHandle) != nullptr ? *Registry->GetAssetGuid(mPipelineHandle) : FGuid{};

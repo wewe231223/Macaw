@@ -1,3 +1,7 @@
+/**
+ * @file FRenderAssetResources.h
+ * @brief 장치별 GPU 에셋 캐시와 전역 에셋 생존 여부 검사를 정의합니다.
+ */
 #pragma once
 
 #include "Render/FMaterialBuffer.h"
@@ -37,7 +41,11 @@ public:
 
 public:
     bool Initialize(ID3D11Device* Device, bool UseLOD = true);
-    void Prune(const IAssetRegistry& Registry);
+    /**
+     * @brief 전역 레지스트리에 존재하지 않는 에셋의 GPU 캐시를 해제합니다.
+     * @note 활성 에셋 서비스가 없으면 모든 에셋 캐시를 비웁니다. 장치와 머티리얼 버퍼 자체는 유지합니다.
+     */
+    void Prune();
     void Reset();
 
     const FMeshRenderResource* GetMesh(const UMesh& Mesh);

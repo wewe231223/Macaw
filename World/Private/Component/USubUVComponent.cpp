@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Asset/FAssetRegistry.h"
 #include "CoreUObject/Reflection/NativeSerialization.h"
 #include "CoreUObject/Reflection/UClass.h"
 #include "World/Component/USubUVComponent.h"
@@ -246,8 +247,7 @@ bool USubUVComponent::CanEditUVTransform() const {
 TArray<FName> USubUVComponent::GetTargetMaterialGroups() const {
     TArray<FName> Groups{};
     const UPrimitiveComponent* Target{GetTargetComponent()};
-    const UWorld* World{GetOwner() != nullptr ? GetOwner()->GetWorld() : nullptr};
-    const IAssetRegistry* Registry{World != nullptr ? World->GetAssetRegistry() : nullptr};
+    const IAssetRegistry* Registry{FAssetRegistry::TryGet()};
     const UMaterial* Material{Target != nullptr && Target->IsA(UStaticMeshComponent::StaticClass()) && Registry != nullptr ? Registry->ResolveAsset<UMaterial>(static_cast<const UStaticMeshComponent*>(Target)->GetMaterialHandle()) : nullptr};
 
     if (Material != nullptr) {

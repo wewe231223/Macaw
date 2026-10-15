@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Asset/FAssetRegistry.h"
 #include "CoreUObject/Reflection/NativeSerialization.h"
 #include "World/Component/UMeshComponent.h"
 #include "World/AActor.h"
@@ -13,9 +14,7 @@ FAssetHandle UMeshComponent::GetMeshHandle() const {
 void UMeshComponent::SetMeshHandle(FAssetHandle InHandle) {
     mMeshHandle = InHandle;
 
-    AActor* Owner{GetOwner()};
-    UWorld* World{Owner != nullptr ? Owner->GetWorld() : nullptr};
-    const IAssetRegistry* Registry{World != nullptr ? World->GetAssetRegistry() : nullptr};
+    const IAssetRegistry* Registry{FAssetRegistry::TryGet()};
 
     mMeshAssetPath = Registry != nullptr && Registry->GetAssetPath(mMeshHandle) != nullptr ? *Registry->GetAssetPath(mMeshHandle) : FAssetPath{};
     mMeshAssetGuid = Registry != nullptr && Registry->GetAssetGuid(mMeshHandle) != nullptr ? *Registry->GetAssetGuid(mMeshHandle) : FGuid{};
@@ -24,9 +23,7 @@ void UMeshComponent::SetMeshHandle(FAssetHandle InHandle) {
 }
 
 const UMesh* UMeshComponent::ResolveMesh() const {
-    AActor* Owner{GetOwner()};
-    UWorld* World{Owner != nullptr ? Owner->GetWorld() : nullptr};
-    const IAssetRegistry* Registry{World != nullptr ? World->GetAssetRegistry() : nullptr};
+    const IAssetRegistry* Registry{FAssetRegistry::TryGet()};
 
     return Registry != nullptr ? Registry->ResolveAsset<UMesh>(mMeshHandle) : nullptr;
 }

@@ -1,6 +1,7 @@
 #include "pch.h"
+#include "Asset/FAssetRegistry.h"
 #include "Render/FSceneRenderer.h"
-#include "Render/FFrameResource.h"
+#include "Render/FRenderBuffers.h"
 #include "Render/FRenderScene.h"
 #include "Render/FViewElementCollector.h"
 #include "Core/Stat/Stat.h"
@@ -51,7 +52,7 @@ void FSceneRenderer::Reset() {
 }
 
 FSceneRenderOutput FSceneRenderer::RenderView(const FRenderContext& Context, const FRenderView& View, const FRenderScene& Scene) {
-    if (mDevice == nullptr || Context.mDeviceContext == nullptr || Context.mFrameResource == nullptr || View.mTarget == nullptr || !View.mTarget->IsValid()) {
+    if (mDevice == nullptr || Context.mDeviceContext == nullptr || Context.mRenderBuffers == nullptr || View.mTarget == nullptr || !View.mTarget->IsValid()) {
         return {};
     }
 
@@ -64,14 +65,14 @@ FSceneRenderOutput FSceneRenderer::RenderView(const FRenderContext& Context, con
 
     View.mTarget->Clear(Context.mDeviceContext, ClearColor);
 
-    if (Context.mAssetRegistry == nullptr || Context.mAssetResources == nullptr) {
+    if (FAssetRegistry::TryGet() == nullptr || Context.mAssetResources == nullptr) {
         return {};
     }
 
     {
         const Stat::FScopedRenderPreparationStatTimer StageStat{Stat::ERenderPreparationStage::MaterialBuffer};
 
-        Context.mAssetResources->GetMaterialBuffer().Synchronize(*Context.mAssetRegistry, Context.mDeviceContext);
+        Context.mAssetResources->GetMaterialBuffer().Synchronize(Context.mDeviceContext);
     }
 
     FViewSurface& ViewState{mViews[View.mTarget]};
@@ -108,7 +109,7 @@ FSceneRenderOutput FSceneRenderer::RenderView(const FRenderContext& Context, con
     {
         const Stat::FScopedRenderPreparationStatTimer StageStat{Stat::ERenderPreparationStage::ViewBuffers};
 
-        if (!Context.mFrameResource->PrepareView(mDevice, Context.mDeviceContext, SceneView, Scene, mRenderQueue)) {
+        if (!Context.mRenderBuffers->PrepareView(mDevice, Context.mDeviceContext, SceneView, Scene, mRenderQueue)) {
             return {};
         }
     }
@@ -143,10 +144,10 @@ void FSceneRenderer::RenderTextAndBillboards(const FRenderContext& Context, cons
     Scene.CollectDynamicMeshElements(Collector);
 
     if (View.IsPassEnabled(ERenderPass::Text)) {
-        mTextRenderer.Render(Context.mDeviceContext, *Context.mFrameResource, Collector.GetTextDraws(), Context.mAssetRegistry, *Context.mAssetResources);
+        mTextRenderer.Render(Context.mDeviceContext, *Context.mRenderBuffers, Collector.GetTextDraws(), *Context.mAssetResources);
     }
 
     if (View.IsPassEnabled(ERenderPass::Billboard)) {
-        mBillboardRenderer.Render(Context.mDeviceContext, *Context.mFrameResource, Collector.GetBillboardDraws(), Context.mAssetRegistry, *Context.mAssetResources, View.mRenderMode);
+        mBillboardRenderer.Render(Context.mDeviceContext, *Context.mRenderBuffers, Collector.GetBillboardDraws(), *Context.mAssetResources, View.mRenderMode);
     }
 }

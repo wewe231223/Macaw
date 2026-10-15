@@ -21,6 +21,14 @@
 #include "World/Component/UFlipBookComponent.h"
 #include "World/Component/USubUVComponent.h"
 
+namespace {
+    UEngine* EngineInstance{};
+}
+
+UEngine* GetEngine() noexcept {
+    return EngineInstance;
+}
+
 UEngine::UEngine() {
     InitializeClass(StaticClass());
 }
@@ -30,28 +38,42 @@ UEngine::~UEngine() {
 }
 
 void UEngine::Initialize() {
-    if (mInitialized) {
+    if (mInitialized || mShuttingDown) {
         return;
     }
+
+    ErrorHandler::Report(EngineInstance != nullptr && EngineInstance != this, "UEngine", "Another engine is already active", ErrorHandler::EErrorLevel::Critical);
 
     BVH8::Initialize();
     RegisterObjectTypes();
     ErrorHandler::Report(!UObjectSystem::Register(this).IsValid(), "UEngine", "Cannot register engine", ErrorHandler::EErrorLevel::Critical);
     mAssetRegistry = std::make_unique<FAssetRegistry>();
     mSubsystems.Initialize(*this);
+    mAssetRegistry->ActivateGlobal();
+    EngineInstance = this;
     mInitialized = true;
 }
 
 void UEngine::Shutdown() {
+    if (mShuttingDown) {
+        return;
+    }
+
     if (mTicking) {
         ErrorHandler::Report("UEngine", "Cannot shut down the engine during a world tick", ErrorHandler::EErrorLevel::Critical);
     }
+
+    const FScopedFlag ShutdownScope{mShuttingDown};
 
     mInitialized = false;
     mWorldContexts.clear();
     mSubsystems.Deinitialize();
     mAssetRegistry.reset();
     UObjectSystem::Unregister(this, GetHandle());
+
+    if (EngineInstance == this) {
+        EngineInstance = nullptr;
+    }
 }
 
 bool UEngine::IsInitialized() const {
@@ -93,11 +115,9 @@ ETickType UEngine::GetWorldTickType(const FWorldContext& Context) const {
 }
 
 FWorldContext* UEngine::AdoptWorld(std::unique_ptr<UWorld>& World) {
-    if (!mInitialized || mTicking || World == nullptr || !World->IsInitialized() || World->IsBusy() || (World->GetAssetRegistry() != nullptr && World->GetAssetRegistry() != mAssetRegistry.get())) {
+    if (!mInitialized || mTicking || World == nullptr || !World->IsInitialized() || World->IsBusy()) {
         return nullptr;
     }
-
-    World->SetAssetRegistry(mAssetRegistry.get(), mAssetRegistry.get());
 
     std::unique_ptr<FWorldContext> Context{std::make_unique<FWorldContext>(std::move(World))};
     FWorldContext* Result{Context.get()};
@@ -113,8 +133,6 @@ FWorldContext& UEngine::CreateWorldContext(EWorldType WorldType) {
     }
 
     std::unique_ptr<FWorldContext> Context{std::make_unique<FWorldContext>(WorldType)};
-
-    Context->GetWorld().SetAssetRegistry(mAssetRegistry.get(), mAssetRegistry.get());
 
     FWorldContext& Result{*Context};
 
@@ -149,14 +167,6 @@ bool UEngine::DestroyWorldContext(FWorldContext& Context) {
 
 const std::vector<std::unique_ptr<FWorldContext>>& UEngine::GetWorldContexts() const {
     return mWorldContexts;
-}
-
-FAssetRegistry& UEngine::GetAssetRegistry() {
-    if (mAssetRegistry == nullptr) {
-        ErrorHandler::Report("UEngine", "Engine is not initialized", ErrorHandler::EErrorLevel::Critical);
-    }
-
-    return *mAssetRegistry;
 }
 
 TSubsystemCollection<UEngineSubsystem, UEngine>& UEngine::GetSubsystems() {

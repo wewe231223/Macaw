@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Asset/FAssetRegistry.h"
 #include "Render/FRenderScene.h"
 #include "Render/FStaticMeshBatchCollector.h"
 #include "CoreUObject/Asset/IAssetRegistry.h"
@@ -23,7 +24,7 @@ FRenderScene::FRenderScene(Uint64 SceneId)
 	: mSceneId(SceneId) {
 }
 
-void FRenderScene::Synchronize(const IAssetRegistry* Registry, FSceneUpdateBatch& Updates, const FMaterialBuffer& Materials, FRenderAssetResources* Resources) {
+void FRenderScene::Synchronize(FSceneUpdateBatch& Updates, const FMaterialBuffer& Materials, FRenderAssetResources* Resources) {
     mChangedObjects.clear();
     mObjectsChanged = false;
 
@@ -49,7 +50,7 @@ void FRenderScene::Synchronize(const IAssetRegistry* Registry, FSceneUpdateBatch
 
     UpdateBounds();
 
-    RefreshStaticMeshes(Registry, Materials, Resources);
+    RefreshStaticMeshes(Materials, Resources);
 }
 
 Uint64 FRenderScene::GetId() const {
@@ -260,7 +261,8 @@ void FRenderScene::CommitObjectChanges() {
     }
 }
 
-void FRenderScene::RefreshStaticMeshes(const IAssetRegistry* Registry, const FMaterialBuffer& Materials, FRenderAssetResources* Resources) {
+void FRenderScene::RefreshStaticMeshes(const FMaterialBuffer& Materials, FRenderAssetResources* Resources) {
+    const IAssetRegistry* Registry{FAssetRegistry::TryGet()};
     const FAssetHandle SkyPipeline{Registry != nullptr ? Registry->FindAsset(FAssetPath{"/Game/Pipeline/SkyDome.json"}) : FAssetHandle{}};
 
     mCommandCache.BeginUpdate();
@@ -303,7 +305,7 @@ void FRenderScene::RefreshStaticMeshes(const IAssetRegistry* Registry, const FMa
         const TArray<FMeshBatch>* StaticMeshes{Primitive.mStaticMeshes.GetOrUpdate(Stamp, [&](TArray<FMeshBatch>& Meshes) {
             Meshes.clear();
 
-            FStaticMeshBatchCollector Collector{*Registry, Meshes};
+            FStaticMeshBatchCollector Collector{Meshes};
 
             Primitive.mProxy->DrawStaticElements(Collector);
 
@@ -321,7 +323,7 @@ void FRenderScene::RefreshStaticMeshes(const IAssetRegistry* Registry, const FMa
 
             TArray<Uint32>& Commands{Primitive.mCachedCommandsByLOD[StaticMesh.mLODLevel]};
 
-            mCommandCache.AddMeshBatch(StaticMesh, *Registry, Materials, Resources, Commands);
+            mCommandCache.AddMeshBatch(StaticMesh, Materials, Resources, Commands);
 
             if (!Commands.empty()) {
                 Primitive.mAvailableLODMask |= 1u << StaticMesh.mLODLevel;

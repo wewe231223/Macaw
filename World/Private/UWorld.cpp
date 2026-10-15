@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Asset/FAssetRegistry.h"
 #include "CoreUObject/Reflection/NewObject.h"
 #include "CoreUObject/Reflection/Cast.h"
 #include "CoreUObject/Reflection/UClass.h"
@@ -203,8 +204,6 @@ void UWorld::CleanupWorld() {
     mState.Clear(EStateFlag::ComponentTickFunctionsNeedCompaction);
     mState.Clear(EStateFlag::ActorTickFunctionsNeedCompaction);
     mState.Clear(EStateFlag::EndPlayRequested);
-    mAssetRegistry = nullptr;
-    mAssetRegistryMutator = nullptr;
     mState.Clear(EStateFlag::Initialized);
     mState.Clear(EStateFlag::CleaningUp);
 }
@@ -331,7 +330,9 @@ void UWorld::RefreshActorTicks() {
 }
 
 AActor* UWorld::SpawnStaticMeshActor(const FAssetHandle& MeshHandle, const FAssetHandle& PipelineHandle, const FAssetHandle& MaterialHandle, const FVector3& Position) {
-    if (mAssetRegistry == nullptr || mAssetRegistry->ResolveAsset<UMesh>(MeshHandle) == nullptr) {
+    const IAssetRegistry* Registry{FAssetRegistry::TryGet()};
+
+    if (Registry == nullptr || Registry->ResolveAsset<UMesh>(MeshHandle) == nullptr) {
         return nullptr;
     }
 
@@ -950,10 +951,6 @@ void UWorld::InitializeLoadedActor(AActor& Actor) {
     }
 }
 
-const IAssetRegistry* UWorld::GetAssetRegistry() const {
-    return mAssetRegistry;
-}
-
 void UWorld::ClearActors() {
     mPendingDestroyActors.reserve(mPersistentLevel->mActors.size());
 
@@ -983,15 +980,6 @@ AActor* UWorld::FindActorByName(FName InName) const {
     AActor* Actor{Object != nullptr && Object->GetClass()->IsChildOf(AActor::StaticClass()) ? static_cast<AActor*>(Object) : nullptr};
 
     return Actor != nullptr && !Actor->IsBeingDestroyed() && std::ranges::find(mPersistentLevel->mActors, Actor, &std::unique_ptr<AActor>::get) != mPersistentLevel->mActors.end() ? Actor : nullptr;
-}
-
-void UWorld::SetAssetRegistry(const IAssetRegistry* InAssetRegistry, IAssetRegistryMutator* InAssetRegistryMutator) {
-    mAssetRegistry = InAssetRegistry;
-    mAssetRegistryMutator = InAssetRegistryMutator;
-}
-
-IAssetRegistryMutator* UWorld::GetAssetRegistryMutator() const {
-    return mAssetRegistryMutator;
 }
 
 void UWorld::AddObserver(IWorldObserver& Observer) {

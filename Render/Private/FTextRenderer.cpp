@@ -1,9 +1,10 @@
 #include "pch.h"
+#include "Asset/FAssetRegistry.h"
 #include "Render/FTextRenderer.h"
 #include "Asset/Pipeline/UPipeline.h"
 #include "Render/FRenderAssetResources.h"
 #include "Asset/UFont.h"
-#include "Render/FFrameResource.h"
+#include "Render/FRenderBuffers.h"
 
 #include <algorithm>
 #include <limits>
@@ -18,8 +19,10 @@ bool FTextRenderer::Initialize(ID3D11Device* InDevice, std::uint32_t InitialCapa
     return true;
 }
 
-void FTextRenderer::Render(ID3D11DeviceContext* Context, FFrameResource& FrameResource, const TArray<FTextDrawData>& TextDraws, const IAssetRegistry* AssetRegistry, FRenderAssetResources& Resources) {
-    if (Context == nullptr || mDevice == nullptr || AssetRegistry == nullptr || TextDraws.empty() || !FrameResource.HasCameraWorld() || !FrameResource.BindCommon(Context)) {
+void FTextRenderer::Render(ID3D11DeviceContext* Context, FRenderBuffers& RenderBuffers, const TArray<FTextDrawData>& TextDraws, FRenderAssetResources& Resources) {
+    const IAssetRegistry* AssetRegistry{FAssetRegistry::TryGet()};
+
+    if (Context == nullptr || mDevice == nullptr || AssetRegistry == nullptr || TextDraws.empty() || !RenderBuffers.HasCameraWorld() || !RenderBuffers.BindCommon(Context)) {
         return;
     }
 
@@ -75,12 +78,12 @@ void FTextRenderer::Render(ID3D11DeviceContext* Context, FFrameResource& FrameRe
 
     Context->GSSetShaderResources(0, 1, &NullResource);
 
-    if (!FrameResource.UploadStream(mDevice, Context, EFrameStream::Text, mVertices.data(), static_cast<Uint32>(mVertices.size()), sizeof(FGlyphVertex), D3D11_BIND_VERTEX_BUFFER) || !FrameResource.UploadStream(mDevice, Context, EFrameStream::TextContext, mTextContexts.data(), static_cast<Uint32>(mTextContexts.size()), sizeof(FTextContext), D3D11_BIND_SHADER_RESOURCE)) {
+    if (!RenderBuffers.UploadStream(mDevice, Context, ERenderStream::Text, mVertices.data(), static_cast<Uint32>(mVertices.size()), sizeof(FGlyphVertex), D3D11_BIND_VERTEX_BUFFER) || !RenderBuffers.UploadStream(mDevice, Context, ERenderStream::TextContext, mTextContexts.data(), static_cast<Uint32>(mTextContexts.size()), sizeof(FTextContext), D3D11_BIND_SHADER_RESOURCE)) {
         return;
     }
 
-    ID3D11Buffer* Buffer{FrameResource.GetStreamBuffer(EFrameStream::Text)};
-    ID3D11ShaderResourceView* TextContexts{FrameResource.GetStreamResourceView(EFrameStream::TextContext)};
+    ID3D11Buffer* Buffer{RenderBuffers.GetStreamBuffer(ERenderStream::Text)};
+    ID3D11ShaderResourceView* TextContexts{RenderBuffers.GetStreamResourceView(ERenderStream::TextContext)};
     const UINT Stride{sizeof(FGlyphVertex)};
     const UINT Offset{};
 

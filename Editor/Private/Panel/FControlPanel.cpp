@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Editor/Settings/FEditorConfigManager.h"
 #include "Editor/Property/FReflectedDetails.h"
 #include "CoreUObject/Reflection/UStruct.h"
 #include "CoreUObject/Reflection/UClass.h"
@@ -87,7 +88,7 @@ void FControlPanel::DrawPanel() {
     }
 
     if (ImGui::BeginMenu("Scene")) {
-        const FString ScenePath{mEditorContext != nullptr ? mEditorContext->GetEditorSettings().mLastLoadedScenePath : FString{}};
+        const FString ScenePath{FEditorConfigManager::Get().GetSettings().mLastLoadedScenePath};
 
         if (ScenePath != mDisplayedScenePath) {
             mDisplayedScenePath = ScenePath;
@@ -293,13 +294,9 @@ FControlPanel::FControlPanel(FWorldEditorContext& InEditorContext, HWND InputWin
 }
 
 void FControlPanel::DrawSettings(const char* Category) {
-    const FEditorSettings Settings{mEditorContext->GetEditorSettings()};
+    const FEditorSettings& Settings{FEditorConfigManager::Get().GetSettings()};
 
-    FReflectedDetails::Draw(*FEditorSettings::StaticStruct(), &Settings, mPropertyEditor, [this](const FProperty& Property, const FPropertyValue& Value) {
-        FEditorSettings Edited{mEditorContext->GetEditorSettings()};
-
-        if (Property.WriteContainer(&Edited, Value)) {
-            mEditorContext->SetEditorSettings(Edited);
-        }
+    FReflectedDetails::Draw(*FEditorSettings::StaticStruct(), &Settings, mPropertyEditor, [](const FProperty& Property, const FPropertyValue& Value) {
+        Property.WriteContainer(&FEditorConfigManager::Get().GetSettings(), Value);
     }, FString{Category});
 }

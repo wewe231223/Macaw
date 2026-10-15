@@ -11,6 +11,14 @@
 #include "Core/Console/Console.h"
 #include "World/UWorld.h"
 
+namespace {
+    UEditorEngine* EditorEngineInstance{};
+}
+
+UEditorEngine* GetEditorEngine() noexcept {
+    return EditorEngineInstance == GetEngine() ? EditorEngineInstance : nullptr;
+}
+
 UEditorEngine::UEditorEngine() {
     InitializeClass(StaticClass());
 }
@@ -25,20 +33,30 @@ void UEditorEngine::Initialize() {
     }
 
     Super::Initialize();
+
+    if (!IsInitialized()) {
+        return;
+    }
+
     ReflectionModules::RegisterEditor();
     mEditorWorldContext = &CreateWorldContext(EWorldType::Editor);
     mEditorContext = std::make_unique<FWorldEditorContext>();
 
-    FEditorSettings Settings{};
+    FEditorConfigManager& Config{FEditorConfigManager::Get()};
 
-    FEditorConfigManager::Load(Settings);
-    mEditorContext->SetEditorSettings(Settings);
+    Config.GetSettings() = {};
+    Config.Reload();
     mEditorContext->SetWorld(&mEditorWorldContext->GetWorld());
-    mEditorContext->InitializeChannels(*this);
+    mEditorContext->InitializeChannels();
     FUndoSystem::Reset();
+    EditorEngineInstance = this;
 }
 
 void UEditorEngine::Shutdown() {
+    if (!IsInitialized() && mEditorContext == nullptr) {
+        return;
+    }
+
     if (!CanChangeWorldContexts() || mProcessingPIE) {
         Console::AddLog(Console::STDOutHandle, ELogLevel::Warning, ELogCategory::Etc, "Cannot shut down the editor engine during world callbacks.");
         return;
@@ -48,6 +66,11 @@ void UEditorEngine::Shutdown() {
 
     StopPIE();
     FUndoSystem::Reset();
+
+    if (EditorEngineInstance == this) {
+        EditorEngineInstance = nullptr;
+    }
+
     mEditorContext.reset();
     mEditorWorldContext = nullptr;
     mScenePath.clear();
@@ -209,7 +232,7 @@ bool UEditorEngine::LoadStartupScene() {
         return false;
     }
 
-    const FString LastScenePath{mEditorContext->GetEditorSettings().mLastLoadedScenePath};
+    const FString LastScenePath{FEditorConfigManager::Get().GetSettings().mLastLoadedScenePath};
     const std::filesystem::path ScenePath{LastScenePath.empty() ? "scenes/Default.json" : LastScenePath.c_str()};
 
     return LoadSceneInternal(ScenePath, !LastScenePath.empty());
@@ -278,17 +301,14 @@ bool UEditorEngine::SaveScene(const FString& SceneName) {
     return true;
 }
 
-bool UEditorEngine::SaveEditorSettings(const FEditorSettings& Settings) {
+bool UEditorEngine::SaveEditorSettings() {
     if (mEditorContext == nullptr) {
         return false;
     }
 
-    FEditorSettings SavedSettings{Settings};
+    FEditorConfigManager::Get().GetSettings().mLastLoadedScenePath = mScenePath.generic_string().c_str();
 
-    SavedSettings.mLastLoadedScenePath = mScenePath.generic_string().c_str();
-    mEditorContext->SetEditorSettings(SavedSettings);
-
-    if (!FEditorConfigManager::Save(SavedSettings)) {
+    if (!FEditorConfigManager::Get().Flush()) {
         Console::AddLog(Console::STDOutHandle, ELogLevel::Warning, ELogCategory::Etc, "Failed to save editor settings.");
         return false;
     }
@@ -303,9 +323,5 @@ const std::filesystem::path& UEditorEngine::GetScenePath() const {
 void UEditorEngine::SetScenePath(const std::filesystem::path& ScenePath) {
     mScenePath = ScenePath.lexically_normal();
 
-    FEditorSettings Settings{mEditorContext->GetEditorSettings()};
-
-    Settings.mLastLoadedScenePath = mScenePath.generic_string().c_str();
-    mEditorContext->SetEditorSettings(Settings);
-    SaveEditorSettings(Settings);
+    SaveEditorSettings();
 }

@@ -1,4 +1,4 @@
-#include "FrameResource.hlsli"
+#include "ViewConstants.hlsli"
 
 struct VS_INPUT
 {

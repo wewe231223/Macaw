@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Editor/Settings/FEditorConfigManager.h"
 #include "Editor/Panel/FViewportHostWindow.h"
 #include "Editor/Panel/FStatPanel.h"
 #include "Editor/Input/FKeyboardInput.h"
@@ -10,7 +11,6 @@ FViewportHostWindow::FViewportHostWindow(ID3D11Device* Device, FWorldEditorConte
 	: FEditorWindow{"Viewports###SplitSceneViewport", ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse},
 	  mLayout{EViewportLayoutPreset::FourGrid},
 	  mEditorContext{EditorContext},
-	  mPendingLayoutSettings{EditorContext.GetEditorSettings()},
 	  mBHasPendingLayoutSettings{true} {
     for (FViewportId Id{0}; Id < MaximumViewportCount; ++Id) {
         mViewports[Id] = std::make_unique<FEditorViewport>(Id, Device, EditorContext);
@@ -56,7 +56,9 @@ FEditorViewport* FViewportHostWindow::GetActiveViewport() const {
     return GetViewport(mActiveViewportId);
 }
 
-void FViewportHostWindow::ApplyLayoutSettings(const FEditorSettings& Settings) {
+void FViewportHostWindow::ApplyLayoutSettings() {
+    const FEditorSettings& Settings{FEditorConfigManager::Get().GetSettings()};
+
     // 기본은 4분할
     EViewportLayoutPreset Preset{EViewportLayoutPreset::FourGrid};
 
@@ -73,7 +75,9 @@ void FViewportHostWindow::ApplyLayoutSettings(const FEditorSettings& Settings) {
     mActiveViewportId = 0;
 }
 
-void FViewportHostWindow::CaptureLayoutSettings(FEditorSettings& Settings) const {
+void FViewportHostWindow::CaptureLayoutSettings() const {
+    FEditorSettings& Settings{FEditorConfigManager::Get().GetSettings()};
+
     std::array<float, FViewportPresetLayout::MaximumSplitterCount> Ratios{0.5f, 0.5f, 0.5f};
 
     Uint32 RatioCount{0};
@@ -132,7 +136,7 @@ void FViewportHostWindow::DrawContents() {
 
     // 한번만 실행
     if (mBHasPendingLayoutSettings) {
-        ApplyLayoutSettings(mPendingLayoutSettings);
+        ApplyLayoutSettings();
         mBHasPendingLayoutSettings = false;
     }
 

@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Editor/Panel/IEditorPanel.h"
 
-void IEditorPanel::RenderOffscreen(FRenderer&, FAssetRegistry&) {
+void IEditorPanel::RenderOffscreen(FRenderer&) {
 }
 
 void IEditorPanel::ReleaseRenderResources() {

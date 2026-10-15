@@ -1,3 +1,7 @@
+/**
+ * @file FMeshDrawCommandCache.h
+ * @brief 전역 에셋을 조회하며 씬별 메시 명령을 유지하는 캐시를 정의합니다.
+ */
 #pragma once
 #include "Render/FMeshDrawCommand.h"
 #include "Render/FRenderAssetStamp.h"
@@ -42,7 +46,14 @@ private:
 public:
     void BeginUpdate();
     void EndUpdate();
-    void AddMeshBatch(const FMeshBatch& Mesh, const IAssetRegistry& Registry, const FMaterialBuffer& Materials, FRenderAssetResources* Resources, TArray<Uint32>& OutCommands);
+    /**
+     * @brief 전역 에셋으로 메시 배치의 렌더 명령을 생성하거나 갱신합니다.
+     * @param Mesh 처리할 메시 배치입니다.
+     * @param Materials 장치별 머티리얼 저장소입니다.
+     * @param Resources 선택적인 GPU 에셋 캐시입니다.
+     * @param OutCommands 생성하거나 재사용한 명령 인덱스를 추가할 배열입니다.
+     */
+    void AddMeshBatch(const FMeshBatch& Mesh, const FMaterialBuffer& Materials, FRenderAssetResources* Resources, TArray<Uint32>& OutCommands);
 
     const TArray<std::shared_ptr<const FMeshDrawCommand>>& GetCommands() const;
 

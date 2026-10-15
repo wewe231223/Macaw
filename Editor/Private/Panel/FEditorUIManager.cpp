@@ -10,12 +10,21 @@
 #include "Editor/Panel/FViewportHostWindow.h"
 #include "Editor/World/FWorldEditorContext.h"
 #include "Render/Renderer.h"
+#include "Core/Base/ErrorHandler.h"
+#include "Editor/UEditorEngine.h"
+#include "Editor/Settings/FEditorConfigManager.h"
 
 FEditorUIManager::FEditorUIManager() = default;
 FEditorUIManager::~FEditorUIManager() = default;
 
-void FEditorUIManager::Initialize(UWorld& World, FRenderer& Renderer, FAssetRegistry& AssetRegistry, FWorldEditorContext& EditorContext, HWND WindowHandle, FAssetThumbnailRenderer* ThumbnailRenderer, UEditorEngine& Engine) {
-    const FEditorSettings Settings{EditorContext.GetEditorSettings()};
+void FEditorUIManager::Initialize(FRenderer& Renderer, HWND WindowHandle, FAssetThumbnailRenderer* ThumbnailRenderer) {
+    UEditorEngine* Engine{GetEditorEngine()};
+
+    ErrorHandler::Report(Engine == nullptr, "FEditorUIManager", "No editor engine is active", ErrorHandler::EErrorLevel::Critical);
+
+    FWorldEditorContext& EditorContext{Engine->GetEditorContext()};
+    UWorld& World{Engine->GetEditorWorldContext().GetWorld()};
+    const FEditorSettings& Settings{FEditorConfigManager::Get().GetSettings()};
 
     if (Settings.mViewportPanelEnabled) {
         AddViewportHostWindow(Renderer.GetDevice(), EditorContext);
@@ -36,12 +45,12 @@ void FEditorUIManager::Initialize(UWorld& World, FRenderer& Renderer, FAssetRegi
     std::unique_ptr<FMaterialEditorPanel> MaterialWindow{};
 
     if (Settings.mMaterialEditorPanelEnabled && ThumbnailRenderer != nullptr) {
-        MaterialWindow = std::make_unique<FMaterialEditorPanel>(AssetRegistry, *ThumbnailRenderer);
+        MaterialWindow = std::make_unique<FMaterialEditorPanel>(*ThumbnailRenderer);
         mMaterialEditorPanel = MaterialWindow.get();
     }
 
     if (Settings.mAssetBrowserPanelEnabled) {
-        std::unique_ptr<FAssetBrowserPanel> AssetBrowserWindow{std::make_unique<FAssetBrowserPanel>(AssetRegistry, EditorContext, ThumbnailRenderer, [this](FAssetHandle Handle) {
+        std::unique_ptr<FAssetBrowserPanel> AssetBrowserWindow{std::make_unique<FAssetBrowserPanel>(EditorContext, ThumbnailRenderer, [this](FAssetHandle Handle) {
             if (mMaterialEditorPanel != nullptr) {
                 mMaterialEditorPanel->OpenMaterial(Handle);
                 mFocusMaterialEditor = true;
@@ -60,12 +69,15 @@ void FEditorUIManager::Initialize(UWorld& World, FRenderer& Renderer, FAssetRegi
         AddWindow(std::make_unique<FOutlinerPanel>(World, EditorContext));
     }
 
-    AddViewerWindow(AssetRegistry, EditorContext, WindowHandle, ThumbnailRenderer);
-    mPIEViewportSession = std::make_unique<FPIEViewportSession>(Engine, Renderer, mViewportHostWindow);
+    AddViewerWindow(EditorContext, WindowHandle, ThumbnailRenderer);
+    mPIEViewportSession = std::make_unique<FPIEViewportSession>(Renderer, mViewportHostWindow);
 }
 
-void FEditorUIManager::InitializeViewer(FAssetRegistry& AssetRegistry, HWND WindowHandle, FWorldEditorContext& EditorContext, FAssetThumbnailRenderer* ThumbnailRenderer) {
-    AddViewerWindow(AssetRegistry, EditorContext, WindowHandle, ThumbnailRenderer);
+void FEditorUIManager::InitializeViewer(HWND WindowHandle, FAssetThumbnailRenderer* ThumbnailRenderer) {
+    UEditorEngine* Engine{GetEditorEngine()};
+
+    ErrorHandler::Report(Engine == nullptr, "FEditorUIManager", "No editor engine is active", ErrorHandler::EErrorLevel::Critical);
+    AddViewerWindow(Engine->GetEditorContext(), WindowHandle, ThumbnailRenderer);
 }
 
 void FEditorUIManager::Tick() {
@@ -104,10 +116,11 @@ void FEditorUIManager::Tick() {
     }
 }
 
-void FEditorUIManager::RenderOffscreen(FRenderer& Renderer, FAssetRegistry& AssetRegistry) {
+void FEditorUIManager::RenderOffscreen(FRenderer& Renderer) {
+
     for (const std::unique_ptr<IEditorPanel>& Element : mElements) {
         if (Element != nullptr && Element->IsVisible()) {
-            Element->RenderOffscreen(Renderer, AssetRegistry);
+            Element->RenderOffscreen(Renderer);
         }
     }
 }
@@ -154,12 +167,12 @@ void FEditorUIManager::AddWindow(std::unique_ptr<FEditorWindow> Window) {
     mElements.emplace_back(std::move(Window));
 }
 
-void FEditorUIManager::AddViewerWindow(FAssetRegistry& AssetRegistry, FWorldEditorContext& EditorContext, HWND WindowHandle, FAssetThumbnailRenderer* ThumbnailRenderer) {
-    if (!EditorContext.GetEditorSettings().mViewerPanelEnabled) {
+void FEditorUIManager::AddViewerWindow(FWorldEditorContext& EditorContext, HWND WindowHandle, FAssetThumbnailRenderer* ThumbnailRenderer) {
+    if (!FEditorConfigManager::Get().GetSettings().mViewerPanelEnabled) {
         return;
     }
 
-    std::unique_ptr<FViewerPanel> Window{std::make_unique<FViewerPanel>(AssetRegistry, WindowHandle, EditorContext.GetEditorToWorldSender(), EditorContext, ThumbnailRenderer)};
+    std::unique_ptr<FViewerPanel> Window{std::make_unique<FViewerPanel>(WindowHandle, EditorContext.GetEditorToWorldSender(), EditorContext, ThumbnailRenderer)};
 
     mViewerWindow = Window.get();
     mPreviewContext = &EditorContext;

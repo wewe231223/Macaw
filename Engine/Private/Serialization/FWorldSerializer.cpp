@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Asset/FAssetRegistry.h"
 #include "Engine/Serialization/FWorldSerializer.h"
 #include "Core/Archive/FArchive.h"
 #include "Core/Console/Console.h"
@@ -65,7 +66,7 @@ bool FWorldSerializer::Save(UWorld& World, FArchive& Archive) {
         }
     }
 
-    Archive.SetAssetResolver(World.GetAssetRegistry());
+    Archive.SetAssetResolver(FAssetRegistry::TryGet());
 
     Uint32 FormatVersion{3};
 
@@ -327,7 +328,7 @@ bool FWorldSerializer::ValidateLoadedActors(const TArray<std::unique_ptr<AActor>
 }
 
 bool FWorldSerializer::LoadInternal(UWorld& World, FArchive& Archive, const UWorld* SourceWorld) {
-    if (!Archive.IsLoading() || Archive.HasError() || World.mAssetRegistry == nullptr) {
+    if (!Archive.IsLoading() || Archive.HasError() || FAssetRegistry::TryGet() == nullptr) {
         return false;
     }
 
@@ -335,7 +336,7 @@ bool FWorldSerializer::LoadInternal(UWorld& World, FArchive& Archive, const UWor
         return false;
     }
 
-    Archive.SetAssetResolver(World.mAssetRegistry);
+    Archive.SetAssetResolver(FAssetRegistry::TryGet());
 
     Uint32 FormatVersion{};
 
@@ -463,7 +464,7 @@ TArray<AActor*> FWorldSerializer::DuplicateActors(UWorld& World, const TArray<AA
     TArray<FActorRecord> Records{};
     TArray<Uint8> Bytes{};
     FArchiveMemory Writer{Bytes};
-    Writer.SetAssetResolver(World.GetAssetRegistry());
+    Writer.SetAssetResolver(FAssetRegistry::TryGet());
 
     for (AActor* Actor : Actors) {
         if (Actor == nullptr || Actor->GetWorld() != &World || Actor->IsBeingDestroyed() || !Actor->HasFinishedSpawning()) {
@@ -487,7 +488,7 @@ TArray<AActor*> FWorldSerializer::DuplicateActors(UWorld& World, const TArray<AA
     }
 
     FArchiveMemory Reader{static_cast<const TArray<Uint8>&>(Bytes)};
-    Reader.SetAssetResolver(World.GetAssetRegistry());
+    Reader.SetAssetResolver(FAssetRegistry::TryGet());
     const FObjectGuidScope GuidScope{Reader, &Remapping};
     TArray<std::unique_ptr<AActor>> Copies{};
 

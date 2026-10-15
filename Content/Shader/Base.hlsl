@@ -16,7 +16,7 @@ struct FSurfaceOpaqueMaterial {
 StructuredBuffer<FSurfaceOpaqueMaterial> MaterialBuffer : register(t1);
 #include "Lighting.hlsli"
 
-#include "FrameResource.hlsli"
+#include "ViewConstants.hlsli"
 
 struct VS_INPUT {
     float3 Position : POSITION;

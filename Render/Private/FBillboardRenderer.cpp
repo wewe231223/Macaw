@@ -1,9 +1,10 @@
 #include "pch.h"
+#include "Asset/FAssetRegistry.h"
 #include "Render/FBillboardRenderer.h"
 #include "Asset/Pipeline/UPipeline.h"
 #include "CoreUObject/Asset/IAssetRegistry.h"
 #include "Asset/UTexture.h"
-#include "Render/FFrameResource.h"
+#include "Render/FRenderBuffers.h"
 #include <algorithm>
 #include <unordered_map>
 
@@ -25,8 +26,10 @@ bool FBillboardRenderer::Initialize(ID3D11Device* InDevice, std::uint32_t Initia
     return true;
 }
 
-void FBillboardRenderer::Render(ID3D11DeviceContext* Context, FFrameResource& FrameResource, const TArray<FBillboardDrawData>& BillboardDraws, const IAssetRegistry* AssetRegistry, FRenderAssetResources& Resources, ERenderMode Mode) {
-    if (Context == nullptr || mDevice == nullptr || AssetRegistry == nullptr || BillboardDraws.empty() || !FrameResource.HasCameraWorld() || !FrameResource.BindCommon(Context)) {
+void FBillboardRenderer::Render(ID3D11DeviceContext* Context, FRenderBuffers& RenderBuffers, const TArray<FBillboardDrawData>& BillboardDraws, FRenderAssetResources& Resources, ERenderMode Mode) {
+    const IAssetRegistry* AssetRegistry{FAssetRegistry::TryGet()};
+
+    if (Context == nullptr || mDevice == nullptr || AssetRegistry == nullptr || BillboardDraws.empty() || !RenderBuffers.HasCameraWorld() || !RenderBuffers.BindCommon(Context)) {
         return;
     }
 
@@ -79,11 +82,11 @@ void FBillboardRenderer::Render(ID3D11DeviceContext* Context, FFrameResource& Fr
         ++Batch.mWriteCount;
     }
 
-    if (mDraws.empty() || !FrameResource.UploadStream(mDevice, Context, EFrameStream::Billboard, mInstances.data(), static_cast<Uint32>(mInstances.size()), sizeof(FBillboardData), D3D11_BIND_VERTEX_BUFFER)) {
+    if (mDraws.empty() || !RenderBuffers.UploadStream(mDevice, Context, ERenderStream::Billboard, mInstances.data(), static_cast<Uint32>(mInstances.size()), sizeof(FBillboardData), D3D11_BIND_VERTEX_BUFFER)) {
         return;
     }
 
-    ID3D11Buffer* Buffer{FrameResource.GetStreamBuffer(EFrameStream::Billboard)};
+    ID3D11Buffer* Buffer{RenderBuffers.GetStreamBuffer(ERenderStream::Billboard)};
     const UINT Stride{sizeof(FBillboardData)};
     const UINT Offset{};
 

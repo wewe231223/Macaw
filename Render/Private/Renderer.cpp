@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Asset/FAssetRegistry.h"
 #include "Render/Renderer.h"
 #include "FRendererScene.h"
 #include "RenderCore/FSceneUpdateBatch.h"
@@ -23,12 +24,6 @@ namespace {
 
 FRenderer::~FRenderer() {
     ReleaseScenes();
-
-#if EnableFrameResourceFence
-    if (mFrameFenceEvent != nullptr) {
-        CloseHandle(mFrameFenceEvent);
-    }
-#endif
 }
 
 void FRenderer::Create(HWND WindowHandle, UINT Width, UINT Height) {
@@ -48,31 +43,7 @@ void FRenderer::Create(HWND WindowHandle, UINT Width, UINT Height) {
 }
 
 bool FRenderer::Initialize() {
-    if (!CreateSamplerStates() || !mSceneRenderer.Initialize(mDevice.Get()) || !mOverLayRenderer.Initialize(mDevice.Get(), mDeviceContext.Get(), mFrameResourceCount)) {
-        return false;
-    }
-
-#if EnableFrameResourceFence
-    Microsoft::WRL::ComPtr<ID3D11Device5> FenceDevice{};
-
-    if (FAILED(mDevice.As(&FenceDevice)) || FAILED(mDeviceContext.As(&mFenceContext)) || FAILED(FenceDevice->CreateFence(0, D3D11_FENCE_FLAG_NONE, IID_PPV_ARGS(mFrameFence.GetAddressOf())))) {
-        return false;
-    }
-
-    mFrameFenceEvent = CreateEventW(nullptr, FALSE, FALSE, nullptr);
-
-    if (mFrameFenceEvent == nullptr) {
-        return false;
-    }
-#endif
-
-    for (FFrameResource& FrameResource : mFrameResources) {
-        if (!FrameResource.Initialize(mDevice.Get(), mDeviceContext.Get())) {
-            return false;
-        }
-    }
-
-    return true;
+    return mAssetResources.Initialize(mDevice.Get()) && CreateSamplerStates() && mRenderBuffers.Initialize(mDevice.Get(), mDeviceContext.Get()) && mSceneRenderer.Initialize(mDevice.Get()) && mOverLayRenderer.Initialize(mDevice.Get());
 }
 
 void FRenderer::BeginUiRender() {
@@ -91,21 +62,6 @@ void FRenderer::BindSamplerStates() {
 }
 
 void FRenderer::EndFrame() {
-    if (mCurrentFrameResource != nullptr) {
-#if EnableFrameResourceFence
-        const HRESULT Result{mFenceContext->Signal(mFrameFence.Get(), mNextFenceValue)};
-
-        ErrorHandler::ReportHRESULT(Result, "[ FRenderer ]", "Failed to signal the frame fence.", ErrorHandler::EErrorLevel::Critical);
-        mCompletionValues[mNextFrameResourceIndex] = mNextFenceValue;
-        ++mNextFenceValue;
-        mNextFrameResourceIndex = (mNextFrameResourceIndex + 1) % mFrameResourceCount;
-#endif
-
-        mOverLayRenderer.EndFrame();
-        mCurrentFrameResource->EndFrame();
-        mCurrentFrameResource = nullptr;
-    }
-
     mSwapChain->Present(0, DXGI_PRESENT_ALLOW_TEARING);
 }
 
@@ -117,84 +73,12 @@ ID3D11DeviceContext* FRenderer::GetDeviceContext() const {
     return mDeviceContext.Get();
 }
 
-bool FRenderer::BindAssetRegistry(const IAssetRegistry* InAssetRegistry, IAssetRegistryMutator* InAssetRegistryMutator) {
-    if (mAssetRegistry == InAssetRegistry) {
-        return mOverLayRenderer.BindAssetRegistry(InAssetRegistry, InAssetRegistryMutator);
-    }
-
-    ResetScenes();
-    mOverLayRenderer.BindAssetRegistry(nullptr);
-
-    mAssetResources.Reset();
-    mAssetRegistry = nullptr;
-
-    if (InAssetRegistry != nullptr && !mAssetResources.Initialize(mDevice.Get())) {
-        return false;
-    }
-
-    if (!mOverLayRenderer.BindAssetRegistry(InAssetRegistry, InAssetRegistryMutator)) {
-        mAssetResources.Reset();
-        return false;
-    }
-
-    mAssetRegistry = InAssetRegistry;
-
-    return true;
-}
-
 void FRenderer::BeginFrame() {
-    if (mCurrentFrameResource != nullptr) {
-        return;
-    }
-
-#if EnableFrameResourceFence
-    FFrameResource& FrameResource{mFrameResources[mNextFrameResourceIndex]};
-    const Uint64 CompletionValue{mCompletionValues[mNextFrameResourceIndex]};
-
-    if (CompletionValue != 0 && mFrameFence->GetCompletedValue() < CompletionValue) {
-        const HRESULT Result{mFrameFence->SetEventOnCompletion(CompletionValue, mFrameFenceEvent)};
-
-        ErrorHandler::ReportHRESULT(Result, "[ FRenderer ]", "Failed to register the frame fence event.", ErrorHandler::EErrorLevel::Critical);
-
-        mDeviceContext->Flush();
-
-        for (;;) {
-            const DWORD WaitResult{WaitForSingleObject(mFrameFenceEvent, 1000)};
-
-            if (WaitResult == WAIT_OBJECT_0) {
-                break;
-            }
-
-            if (WaitResult != WAIT_TIMEOUT || FAILED(mDevice->GetDeviceRemovedReason())) {
-                ErrorHandler::Report("[ FRenderer ]", "Failed to wait for the frame fence.", ErrorHandler::EErrorLevel::Critical);
-                return;
-            }
-        }
-    }
-#else
-    FFrameResource& FrameResource{mFrameResources.front()};
-#endif
-
-    if (!FrameResource.BeginFrame(mDeviceContext.Get())) {
-        ErrorHandler::Report("[ FRenderer ]", "Failed to begin a frame resource.", ErrorHandler::EErrorLevel::Critical);
-        return;
-    }
-
-    const Uint32 FrameResourceIndex{static_cast<Uint32>(&FrameResource - mFrameResources.data())};
-
-    if (!mOverLayRenderer.BeginFrame(mDeviceContext.Get(), FrameResourceIndex, mFrameSerial + 1)) {
-        FrameResource.EndFrame();
-        ErrorHandler::Report("[ FRenderer ]", "Failed to begin overlay frame resources.", ErrorHandler::EErrorLevel::Critical);
-        return;
-    }
-
-    mCurrentFrameResource = &FrameResource;
     ++mFrameSerial;
     mSceneRenderer.BeginFrame(mFrameSerial);
+    mOverLayRenderer.BeginFrame(mFrameSerial);
 
-    if (mAssetRegistry != nullptr) {
-        mAssetResources.Prune(*mAssetRegistry);
-    }
+    mAssetResources.Prune();
 }
 
 std::weak_ptr<FSceneInterface> FRenderer::CreateScene() {
@@ -220,9 +104,7 @@ bool FRenderer::ReleaseScene(FSceneHandle Handle) {
 void FRenderer::ResetScenes() {
     mSceneRenderer.ResetScenes();
 
-    for (FFrameResource& FrameResource : mFrameResources) {
-        FrameResource.ResetScenes();
-    }
+    mRenderBuffers.ResetScenes();
 
     for (const auto& Entry : mRenderScenes) {
         Entry.second->Reset(AllocateSceneGeneration());
@@ -251,8 +133,8 @@ bool FRenderer::ApplySceneUpdates(FSceneUpdateBatch& Updates) {
     const Stat::FScopedRenderPreparationStatTimer StageStat{Stat::ERenderPreparationStage::SceneSynchronization};
     FMaterialBuffer& Materials{mAssetResources.GetMaterialBuffer()};
 
-    if (mAssetRegistry != nullptr && mDeviceContext != nullptr) {
-        Materials.Synchronize(*mAssetRegistry, mDeviceContext.Get());
+    if (mDeviceContext != nullptr) {
+        Materials.Synchronize(mDeviceContext.Get());
     }
 
     if (Updates.mFullSnapshot) {
@@ -260,7 +142,7 @@ bool FRenderer::ApplySceneUpdates(FSceneUpdateBatch& Updates) {
         Position->second->ResetRenderData();
     }
 
-    Position->second->GetRenderScene().Synchronize(mAssetRegistry, Updates, Materials, mDevice != nullptr ? &mAssetResources : nullptr);
+    Position->second->GetRenderScene().Synchronize(Updates, Materials, mDevice != nullptr ? &mAssetResources : nullptr);
 
     return true;
 }
@@ -268,17 +150,13 @@ bool FRenderer::ApplySceneUpdates(FSceneUpdateBatch& Updates) {
 void FRenderer::ReleaseSceneResources(Uint64 SceneId) {
     mSceneRenderer.ReleaseScene(SceneId);
 
-    for (FFrameResource& FrameResource : mFrameResources) {
-        FrameResource.ReleaseScene(SceneId);
-    }
+    mRenderBuffers.ReleaseScene(SceneId);
 }
 
 void FRenderer::ReleaseScenes() {
     mSceneRenderer.ResetScenes();
 
-    for (FFrameResource& FrameResource : mFrameResources) {
-        FrameResource.ResetScenes();
-    }
+    mRenderBuffers.ResetScenes();
 
     for (const auto& Entry : mRenderScenes) {
         Entry.second->Detach();
@@ -290,13 +168,13 @@ void FRenderer::ReleaseScenes() {
 void FRenderer::RenderView(const FRenderView& View, const FRenderScene& Scene, const FOverlayRenderData& Overlay) {
     const Stat::FScopedSystemStatTimer RenderStat{Stat::ESystemStatStage::RenderPreparation};
 
-    if (mDeviceContext == nullptr || mCurrentFrameResource == nullptr) {
+    if (mDeviceContext == nullptr) {
         return;
     }
 
     BindSamplerStates();
 
-    const FRenderContext Context{mDeviceContext.Get(), mAssetRegistry, &mAssetResources, mAssetResources.GetMaterialBuffer().GetSRV(), mCurrentFrameResource};
+    const FRenderContext Context{mDeviceContext.Get(), &mAssetResources, mAssetResources.GetMaterialBuffer().GetSRV(), &mRenderBuffers};
     const FSceneRenderOutput Output{mSceneRenderer.RenderView(Context, View, Scene)};
 
     if (!Output.IsValid()) {
@@ -305,7 +183,7 @@ void FRenderer::RenderView(const FRenderView& View, const FRenderScene& Scene, c
 
     const Stat::FScopedSystemStatTimer StageStat{Stat::ESystemStatStage::EditorOverlays};
     BindSamplerStates();
-    mOverLayRenderer.RenderView(mDeviceContext.Get(), View, Overlay, Output);
+    mOverLayRenderer.RenderView(mDeviceContext.Get(), mRenderBuffers, View, Overlay, Output);
     View.mTarget->Bind(mDeviceContext.Get());
 }
 
@@ -323,7 +201,6 @@ void FRenderer::ReSize(Uint32 Width, Uint32 Height) {
 void FRenderer::Terminate() {
     ReleaseScenes();
     mAssetResources.Reset();
-    mAssetRegistry = nullptr;
 
     if (mDeviceContext != nullptr) {
         mDeviceContext->ClearState();
@@ -333,25 +210,7 @@ void FRenderer::Terminate() {
     mSceneRenderer.Reset();
     mFrameSerial = 0;
 
-    for (FFrameResource& FrameResource : mFrameResources) {
-        FrameResource.Reset();
-    }
-
-#if EnableFrameResourceFence
-    mFrameFence.Reset();
-    mFenceContext.Reset();
-
-    if (mFrameFenceEvent != nullptr) {
-        CloseHandle(mFrameFenceEvent);
-        mFrameFenceEvent = nullptr;
-    }
-
-    mNextFenceValue = 1;
-    mCompletionValues = {};
-    mNextFrameResourceIndex = 0;
-#endif
-
-    mCurrentFrameResource = nullptr;
+    mRenderBuffers.Reset();
 
     if (mBackBufferSurface != nullptr) {
         mBackBufferSurface->Reset();
@@ -479,32 +338,35 @@ bool FRenderer::CreateSamplerStates() {
 }
 
 ID3D11ShaderResourceView* FRenderer::GetTextureResource(FAssetHandle Handle) {
-    const UTexture* Texture{mAssetRegistry != nullptr ? mAssetRegistry->ResolveAsset<UTexture>(Handle) : nullptr};
+    const IAssetRegistry* Registry{FAssetRegistry::TryGet()};
+    const UTexture* Texture{Registry != nullptr ? Registry->ResolveAsset<UTexture>(Handle) : nullptr};
 
     return Texture != nullptr ? mAssetResources.GetTexture(*Texture) : nullptr;
 }
 
 bool FRenderer::PrepareAssetResources() {
-    if (mAssetRegistry == nullptr) {
+    const IAssetRegistry* Registry{FAssetRegistry::TryGet()};
+
+    if (Registry == nullptr) {
         return false;
     }
 
     bool Complete{true};
 
-    for (FAssetHandle Handle : mAssetRegistry->GetAssetHandles(*UTexture::StaticClass())) {
-        const UTexture* Texture{mAssetRegistry->ResolveAsset<UTexture>(Handle)};
+    for (FAssetHandle Handle : Registry->GetAssetHandles(*UTexture::StaticClass())) {
+        const UTexture* Texture{Registry->ResolveAsset<UTexture>(Handle)};
 
         Complete = Texture != nullptr && mAssetResources.GetTexture(*Texture) != nullptr && Complete;
     }
 
-    for (FAssetHandle Handle : mAssetRegistry->GetAssetHandles(*UMesh::StaticClass())) {
-        const UMesh* Mesh{mAssetRegistry->ResolveAsset<UMesh>(Handle)};
+    for (FAssetHandle Handle : Registry->GetAssetHandles(*UMesh::StaticClass())) {
+        const UMesh* Mesh{Registry->ResolveAsset<UMesh>(Handle)};
 
         Complete = Mesh != nullptr && mAssetResources.GetMesh(*Mesh) != nullptr && Complete;
     }
 
-    for (FAssetHandle Handle : mAssetRegistry->GetAssetHandles(*UPipeline::StaticClass())) {
-        const UPipeline* Pipeline{mAssetRegistry->ResolveAsset<UPipeline>(Handle)};
+    for (FAssetHandle Handle : Registry->GetAssetHandles(*UPipeline::StaticClass())) {
+        const UPipeline* Pipeline{Registry->ResolveAsset<UPipeline>(Handle)};
 
         Complete = Pipeline != nullptr && mAssetResources.GetPipeline(*Pipeline) != nullptr && Complete;
     }

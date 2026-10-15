@@ -1,9 +1,11 @@
 #include "pch.h"
+#include "Asset/FAssetRegistry.h"
 #include "Application/FApplication.h"
 #include "Core/Stat/Stat.h"
 #include "Resource.h"
 #include "Editor/Platform/FLoadingScreen.h"
 #include "Core/Console/Console.h"
+#include "Editor/Settings/FEditorConfigManager.h"
 #include "Editor/Input/Messages/FMousePickRequestMessage.h"
 #include "ImGui/imgui.h"
 #include "ImGui/imgui_impl_dx11.h"
@@ -106,21 +108,15 @@ bool FApplication::InitializeApplication(FLoadingProgress& Progress, HWND Window
     mContext.mEditorView = std::make_unique<EditorViewport>();
     mContext.mEditorUIManager = std::make_unique<FEditorUIManager>();
 
-    Progress.SetProgress(0.13f, "Loading editor settings");
-    mContext.mEditorSettings = mContext.mEditorContext->GetEditorSettings();
-
     const FAssetRegistry::FProgressCallback AssetProgressCallback{[&Progress](float AssetProgress, const std::string& Status) {
         Progress.SetProgress(0.15f + AssetProgress * 0.55f, Status);
     }};
 
-    const bool AssetsInitialized{mContext.mEngine.GetAssetRegistry().Initialize(AssetProgressCallback)};
+    FAssetRegistry& Assets{FAssetRegistry::Get()};
+    const bool AssetsInitialized{Assets.Initialize(AssetProgressCallback)};
 
     if (!AssetsInitialized) {
         Console::AddLog(Console::STDOutHandle, ELogLevel::Warning, ELogCategory::Etc, "Some optional assets failed to load. Initialization will continue.");
-    }
-
-    if (!mContext.mRenderer.BindAssetRegistry(&mContext.mEngine.GetAssetRegistry(), &mContext.mEngine.GetAssetRegistry())) {
-        return false;
     }
 
     mContext.mWorldContext->GetWorld().BindScene(mContext.mRenderer.CreateScene());
@@ -139,7 +135,7 @@ bool FApplication::InitializeApplication(FLoadingProgress& Progress, HWND Window
     });
 
     Progress.SetProgress(0.78f, "Initializing editor view");
-    mContext.mEditorView->Initialize(mContext.mRenderer.GetDevice(), mContext.mEngine.GetAssetRegistry(), *mContext.mEditorContext);
+    mContext.mEditorView->Initialize(mContext.mRenderer.GetDevice(), *mContext.mEditorContext);
 
     InitializeMode(mContext, WindowHandle);
 
@@ -148,8 +144,8 @@ bool FApplication::InitializeApplication(FLoadingProgress& Progress, HWND Window
     mContext.mEngine.LoadStartupScene();
 
     Progress.SetProgress(0.96f, "Finalizing assets");
-    mContext.mEngine.GetAssetRegistry().Finalize();
-    mContext.mThumbnailRenderer->Create(&mContext.mRenderer, &mContext.mEngine.GetAssetRegistry());
+    Assets.Finalize();
+    mContext.mThumbnailRenderer->Create(&mContext.mRenderer);
     Progress.SetProgress(0.96f, "Generating thumbnails");
 
     return true;
@@ -175,7 +171,7 @@ void FApplication::Tick(float DeltaTime) {
         {
             const Stat::FScopedSystemStatTimer StageStat{Stat::ESystemStatStage::PreviewRender};
 
-            mContext.mEditorUIManager->RenderOffscreen(mContext.mRenderer, mContext.mEngine.GetAssetRegistry());
+            mContext.mEditorUIManager->RenderOffscreen(mContext.mRenderer);
         }
 
         {
@@ -232,13 +228,11 @@ void FApplication::Tick(float DeltaTime) {
 }
 
 void FApplication::SaveState() {
-    mContext.mEditorSettings = mContext.mEditorContext->GetEditorSettings();
-
     if (FViewportHostWindow * Host{mContext.mEditorUIManager->GetViewportHostWindow()}) {
-        Host->CaptureLayoutSettings(mContext.mEditorSettings);
+        Host->CaptureLayoutSettings();
     }
 
-    mContext.mEngine.SaveEditorSettings(mContext.mEditorSettings);
+    mContext.mEngine.SaveEditorSettings();
 }
 
 void FApplication::Shutdown() {
@@ -281,7 +275,6 @@ void FApplication::Shutdown() {
     mContext.mEditorContext = nullptr;
     mContext.mWorldContext = nullptr;
     mContext.mEngine.Shutdown();
-    mContext.mRenderer.BindAssetRegistry(nullptr);
     mEditorLogo.Reset();
     mPendingExternalFileDrops.clear();
     mPlatform.Shutdown();

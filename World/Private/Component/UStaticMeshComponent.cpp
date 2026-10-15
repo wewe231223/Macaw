@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Asset/FAssetRegistry.h"
 #include "CoreUObject/Reflection/NativeSerialization.h"
 #include "World/Component/UStaticMeshComponent.h"
 #include "RenderCore/FRenderData.h"
@@ -40,9 +41,7 @@ void UStaticMeshComponent::SetMaterialHandle(FAssetHandle InHandle) {
 
     mMaterialHandle = InHandle;
 
-    AActor* Owner{GetOwner()};
-    UWorld* World{Owner != nullptr ? Owner->GetWorld() : nullptr};
-    const IAssetRegistry* Registry{World != nullptr ? World->GetAssetRegistry() : nullptr};
+    const IAssetRegistry* Registry{FAssetRegistry::TryGet()};
 
     mMaterialAssetPath = Registry != nullptr && Registry->GetAssetPath(mMaterialHandle) != nullptr ? *Registry->GetAssetPath(mMaterialHandle) : FAssetPath{};
     mMaterialAssetGuid = Registry != nullptr && Registry->GetAssetGuid(mMaterialHandle) != nullptr ? *Registry->GetAssetGuid(mMaterialHandle) : FGuid{};
@@ -60,9 +59,7 @@ void UStaticMeshComponent::SetPipelineHandle(FAssetHandle InHandle) {
 
     mPipelineHandle = InHandle;
 
-    AActor* Owner{GetOwner()};
-    UWorld* World{Owner != nullptr ? Owner->GetWorld() : nullptr};
-    const IAssetRegistry* Registry{World != nullptr ? World->GetAssetRegistry() : nullptr};
+    const IAssetRegistry* Registry{FAssetRegistry::TryGet()};
 
     mPipelineAssetPath = Registry != nullptr && Registry->GetAssetPath(mPipelineHandle) != nullptr ? *Registry->GetAssetPath(mPipelineHandle) : FAssetPath{};
     mPipelineAssetGuid = Registry != nullptr && Registry->GetAssetGuid(mPipelineHandle) != nullptr ? *Registry->GetAssetGuid(mPipelineHandle) : FGuid{};
@@ -82,9 +79,7 @@ void UStaticMeshComponent::OnRegister() {
 }
 
 void UStaticMeshComponent::EnsureDefaultRenderAssets() {
-    AActor* Owner{GetOwner()};
-    UWorld* World{Owner != nullptr ? Owner->GetWorld() : nullptr};
-    const IAssetRegistry* Registry{World != nullptr ? World->GetAssetRegistry() : nullptr};
+    const IAssetRegistry* Registry{FAssetRegistry::TryGet()};
 
     if (Registry == nullptr) {
         return;
@@ -132,8 +127,7 @@ UStaticMeshComponent::UStaticMeshComponent() {
 void UStaticMeshComponent::SetEditorMaterialHandle(FAssetHandle InHandle) {
     SetMaterialHandle(InHandle);
 
-    const UWorld* World{GetOwner() != nullptr ? GetOwner()->GetWorld() : nullptr};
-    const IAssetRegistry* Registry{World != nullptr ? World->GetAssetRegistry() : nullptr};
+    const IAssetRegistry* Registry{FAssetRegistry::TryGet()};
 
     if (Registry == nullptr) {
         return;

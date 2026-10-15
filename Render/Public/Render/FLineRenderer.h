@@ -3,8 +3,8 @@
 #include "Render/Buffer/FGraphicsBuffer.h"
 #include "Render/Pipeline/FPipelineRenderResource.h"
 
-class FFrameResource;
-enum class EFrameStream : Uint8;
+class FRenderBuffers;
+enum class ERenderStream : Uint8;
 
 class FLineRenderer final : public ILineDrawContext {
 private:
@@ -40,18 +40,18 @@ public:
     void AddGridLine(const FVector3& Start, const FVector3& End, const FVector4& Color, float WidthPixels, float GridSpacing, ELineDepthMode DepthMode);
     void AddRay(const FVector3& Origin, const FVector3& Direction, float Length, const FVector4& Color, float WidthPixels = 1.0f, ELineDepthMode DepthMode = ELineDepthMode::DepthTested);
 
-    void Render(ID3D11DeviceContext* Context, FFrameResource& FrameResource);
-    void RenderOrientationAxis(ID3D11DeviceContext* Context, FFrameResource& FrameResource);
+    void Render(ID3D11DeviceContext* Context, FRenderBuffers& RenderBuffers);
+    void RenderOrientationAxis(ID3D11DeviceContext* Context, FRenderBuffers& RenderBuffers);
     void Clear();
 
     [[nodiscard]] Uint32 GetLineCount() const;
     [[nodiscard]] bool IsEmpty() const;
 
 private:
-    void RenderLines(ID3D11DeviceContext* Context, FFrameResource& FrameResource, bool OrientationAxis);
+    void RenderLines(ID3D11DeviceContext* Context, FRenderBuffers& RenderBuffers, bool OrientationAxis);
     void AddLineInternal(const FVector3& Start, const FVector3& End, const FVector4& Color, float WidthPixels, ELineDepthMode DepthMode, float GridSpacing);
     bool CreateQuadGeometry(ID3D11Device* Device);
-    bool RenderBatch(ID3D11DeviceContext* Context, FFrameResource& FrameResource, FLineBatch& Batch, const FPipelineRenderResource* Pipeline, EFrameStream Stream);
+    bool RenderBatch(ID3D11DeviceContext* Context, FRenderBuffers& RenderBuffers, FLineBatch& Batch, const FPipelineRenderResource* Pipeline, ERenderStream Stream);
 
 private:
     ID3D11Device* mDevice{nullptr};
