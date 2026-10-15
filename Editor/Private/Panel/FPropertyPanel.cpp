@@ -29,7 +29,6 @@ void FPropertyPanel::DrawContents() {
     }
 
     ImGui::BeginDisabled(!mEditorContext->IsWorldEditingAllowed());
-    DrawGizmoControls();
     DrawComponentList(*Actor);
     ImGui::Separator();
 
@@ -53,38 +52,6 @@ void FPropertyPanel::DrawContents() {
 
 FString FPropertyPanel::GetComponentTypeName(const UActorComponent& Component) {
     return Component.GetClass()->GetClassName().ToString();
-}
-
-void FPropertyPanel::DrawGizmoControls() {
-    ImGui::TextUnformatted("Gizmo Mode");
-
-    int ModeIndex{static_cast<int>(mEditorContext->GetGizmoMode())};
-    bool BModeChanged{false};
-
-    BModeChanged |= ImGui::RadioButton("Translate", &ModeIndex, static_cast<int>(EGizmoMode::Translate));
-    ImGui::SameLine();
-    BModeChanged |= ImGui::RadioButton("Rotate", &ModeIndex, static_cast<int>(EGizmoMode::Rotate));
-    ImGui::SameLine();
-    BModeChanged |= ImGui::RadioButton("Scale", &ModeIndex, static_cast<int>(EGizmoMode::Scale));
-
-    if (BModeChanged) {
-        mEditorContext->SetGizmoMode(static_cast<EGizmoMode>(ModeIndex));
-    }
-
-    ImGui::TextUnformatted("Coordinate Mode");
-
-    int CoordinateSpaceIndex{static_cast<int>(mEditorContext->GetGizmoCoordinateSpace())};
-    bool BCoordinateSpaceChanged{false};
-
-    BCoordinateSpaceChanged |= ImGui::RadioButton("World", &CoordinateSpaceIndex, static_cast<int>(EGizmoCoordinateSpace::World));
-    ImGui::SameLine();
-    BCoordinateSpaceChanged |= ImGui::RadioButton("Local", &CoordinateSpaceIndex, static_cast<int>(EGizmoCoordinateSpace::Local));
-
-    if (BCoordinateSpaceChanged) {
-        mEditorContext->SetGizmoCoordinateSpace(static_cast<EGizmoCoordinateSpace>(CoordinateSpaceIndex));
-    }
-
-    ImGui::Separator();
 }
 
 void FPropertyPanel::DrawComponentList(AActor& Actor) {

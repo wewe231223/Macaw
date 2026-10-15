@@ -36,24 +36,33 @@ const FMouseInput::DragCapture& FMouseInput::GetDragCapture(EMouseSide Side) con
     return mClickCaptures[Side];
 }
 
-void FMouseInput::ProcessWindowMessage(UINT Message, WPARAM WParam, LPARAM LParam) {
-    UNREFERENCED_PARAMETER(WParam);
+const POINT& FMouseInput::GetPosition() const {
+    return mPosition;
+}
 
+bool FMouseInput::WasCaptureLost() const {
+    return mCaptureLost;
+}
+
+void FMouseInput::ProcessWindowMessage(UINT Message, WPARAM WParam, LPARAM LParam) {
     switch (Message) {
         case WM_LBUTTONDOWN:
-        case WM_RBUTTONDOWN: {
-            const EMouseSide Side{Message == WM_LBUTTONDOWN ? Left : Right};
-            const EMouseSide Other{(Side == Left) ? Right : Left};
+        case WM_RBUTTONDOWN:
+        case WM_MBUTTONDOWN: {
+            const EMouseSide Side{Message == WM_LBUTTONDOWN ? Left : Message == WM_RBUTTONDOWN ? Right : Middle};
+            bool OtherHeld{};
 
-            if (mKeyStates[Other] == EKeyState::Pressed ||
-                mKeyStates[Other] == EKeyState::Down) {
+            for (std::size_t Index{}; Index < MAX; ++Index) {
+                OtherHeld = OtherHeld || (Index != static_cast<std::size_t>(Side) && (mKeyStates[Index] == EKeyState::Pressed || mKeyStates[Index] == EKeyState::Down));
+            }
+
+            if (OtherHeld) {
                 break;
             }
 
             EKeyState& State{mKeyStates[Side]};
 
-            if (State == EKeyState::None ||
-                State == EKeyState::Released) {
+            if (State == EKeyState::None || State == EKeyState::Released) {
                 State = EKeyState::Pressed;
                 mDragOwners[Side] = EDragOwner::None;
 
@@ -62,6 +71,9 @@ void FMouseInput::ProcessWindowMessage(UINT Message, WPARAM WParam, LPARAM LPara
                 Capture.mStart = {GetMouseX(LParam), GetMouseY(LParam)};
 
                 Capture.mCurrent = Capture.mStart;
+                Capture.mAdditiveSelection = (WParam & MK_CONTROL) != 0;
+                mPosition = Capture.mCurrent;
+                mCaptureLost = false;
 
                 //if (Side == Right)
                 {
@@ -75,10 +87,10 @@ void FMouseInput::ProcessWindowMessage(UINT Message, WPARAM WParam, LPARAM LPara
 
         case WM_MOUSEMOVE: {
             const POINT Position{GetMouseX(LParam), GetMouseY(LParam)};
+            mPosition = Position;
 
             for (std::size_t Side{0}; Side < MAX; ++Side) {
-                if (mKeyStates[Side] != EKeyState::Pressed &&
-                    mKeyStates[Side] != EKeyState::Down) {
+                if (mKeyStates[Side] != EKeyState::Pressed && mKeyStates[Side] != EKeyState::Down) {
                     continue;
                 }
 
@@ -98,22 +110,13 @@ void FMouseInput::ProcessWindowMessage(UINT Message, WPARAM WParam, LPARAM LPara
         }
 
         case WM_LBUTTONUP:
-        case WM_RBUTTONUP: {
-            const EMouseSide Side{Message == WM_LBUTTONUP ? Left : Right};
-
-            //좌,우를 같이 눌렀을때 PendingRotateDelta가 중복해서 누적되는걸 방지하기위해
-            //한쪽을 누른상태인지 체크
-            const EMouseSide Other{(Side == Left) ? Right : Left};
-
-            if (mKeyStates[Other] == EKeyState::Pressed ||
-                mKeyStates[Other] == EKeyState::Down) {
-                break;
-            }
+        case WM_RBUTTONUP:
+        case WM_MBUTTONUP: {
+            const EMouseSide Side{Message == WM_LBUTTONUP ? Left : Message == WM_RBUTTONUP ? Right : Middle};
 
             EKeyState& State{mKeyStates[Side]};
 
-            if (State == EKeyState::Pressed ||
-                State == EKeyState::Down) {
+            if (State == EKeyState::Pressed || State == EKeyState::Down) {
                 DragCapture& Capture{mClickCaptures[Side]};
 
                 const POINT Position{GetMouseX(LParam), GetMouseY(LParam)};
@@ -126,6 +129,7 @@ void FMouseInput::ProcessWindowMessage(UINT Message, WPARAM WParam, LPARAM LPara
                 }
 
                 Capture.mCurrent = Position;
+                mPosition = Position;
                 State = EKeyState::Released;
             }
 
@@ -134,8 +138,15 @@ void FMouseInput::ProcessWindowMessage(UINT Message, WPARAM WParam, LPARAM LPara
 
         case WM_KILLFOCUS:
         case WM_CANCELMODE:
-        case WM_CAPTURECHANGED:
+            mCaptureLost = true;
             ResetKeyStates();
+            break;
+
+        case WM_CAPTURECHANGED:
+            if ((GetAsyncKeyState(VK_LBUTTON) & 0x8000) != 0 || (GetAsyncKeyState(VK_RBUTTON) & 0x8000) != 0 || (GetAsyncKeyState(VK_MBUTTON) & 0x8000) != 0) {
+                mCaptureLost = true;
+                ResetKeyStates();
+            }
             break;
 
         case WM_MOUSEWHEEL:
@@ -151,6 +162,7 @@ void FMouseInput::Reset() {
     mPendingDeltaX = 0.0f;
     mPendingDeltaY = 0.0f;
     mPendingWheelSteps = 0.0f;
+    mCaptureLost = true;
 }
 
 void FMouseInput::Consume(EMouseSide Side) {
@@ -174,7 +186,7 @@ FViewportMouseNavigationInput FMouseInput::DispatchPendingViewportCommands(std::
     if (mWorldCommandSender.has_value() && mDragOwners[Left] == EDragOwner::World && mKeyStates[Left] == EKeyState::Pressed) {
         const DragCapture& Capture{mClickCaptures[Left]};
 
-        mWorldCommandSender->TryEmplace<FMousePickRequestMessage>(Capture.mStart.x, Capture.mStart.y, ViewportLeft, ViewportTop, ViewportWidth, ViewportHeight, ViewProjection, View);
+        mWorldCommandSender->TryEmplace<FMousePickRequestMessage>(Capture.mStart.x, Capture.mStart.y, ViewportLeft, ViewportTop, ViewportWidth, ViewportHeight, ViewProjection, View, Capture.mAdditiveSelection);
     }
 
     if (mDragOwners[Right] == EDragOwner::World && (mPendingDeltaX != 0.0f || mPendingDeltaY != 0.0f)) {
@@ -212,6 +224,7 @@ FViewportMouseNavigationInput FMouseInput::DispatchPendingViewportCommands(std::
 }
 
 void FMouseInput::EndFrame() {
+    mCaptureLost = false;
     for (std::size_t Side{0}; Side < MAX; ++Side) {
         EKeyState& State{mKeyStates[Side]};
 
@@ -230,8 +243,7 @@ void FMouseInput::EndFrame() {
 void FMouseInput::ResetKeyStates() {
     for (EKeyState& State : mKeyStates) {
         // 드래그를 종료할 수 있도록 Released를 한 프레임 유지한다.
-        if (State == EKeyState::Pressed ||
-            State == EKeyState::Down) {
+        if (State == EKeyState::Pressed || State == EKeyState::Down) {
             State = EKeyState::Released;
         }
     }

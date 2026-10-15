@@ -2,6 +2,22 @@
  * @file FBVH8.h
  * @brief 8분기 BVH의 참조 인코딩, 노드 저장 형식, 이진 트리 변환 및 광선 순회를 정의한다.
  */
+/**
+ * @var Uint32 BVH8::FLeaf::Count
+ * @brief 리프 또는 삼각형 패킷에서 처리할 1부터 8까지의 유효 요소 수입니다.
+ */
+/**
+ * @var float BVH8::FNode::MaxX[8]
+ * @brief 각 자식 경계의 X축 최댓값을 저장한 여덟 레인 배열입니다.
+ */
+/**
+ * @var float BVH8::FNode::MaxY[8]
+ * @brief 각 자식 경계의 Y축 최댓값을 저장한 여덟 레인 배열입니다.
+ */
+/**
+ * @var float BVH8::FNode::MaxZ[8]
+ * @brief 각 자식 경계의 Z축 최댓값을 저장한 여덟 레인 배열입니다.
+ */
 #pragma once
 #include "Core/Base/ErrorHandler.h"
 #include "Core/Common.h"
@@ -226,6 +242,9 @@ namespace BVH8 {
  * @details 노드 참조의 개수 필드로 유효한 자식만 순회하며 리프 저장소 자체는 외부 콜백 또는 삼각형 패킷 배열이 관리한다.
  */
 class FBVH8 {
+    /**
+     * @brief 동적 BVH가 내부 노드와 루트 저장 공간을 직접 갱신할 수 있게 합니다.
+     */
     friend class FDynamicBVH8;
 
 public:

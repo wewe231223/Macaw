@@ -5,6 +5,7 @@
 #include "CoreUObject/Reflection/FReflectionRegistry.h"
 #include "CoreUObject/Reflection/UClass.h"
 #include "World/UWorld.h"
+#include "Serialization/FArchiveMemory.h"
 
 FWorldSerializer::FLoadScope::FLoadScope(UWorld& World)
 	: mWorld{World},
@@ -452,4 +453,120 @@ bool FWorldSerializer::InstallActors(UWorld& World, TArray<std::unique_ptr<AActo
     World.MarkStructureDirty();
 
     return true;
+}
+
+TArray<AActor*> FWorldSerializer::DuplicateActors(UWorld& World, const TArray<AActor*>& Actors) {
+    if (!CanSerialize(World) || Actors.empty()) {
+        return {};
+    }
+
+    TArray<FActorRecord> Records{};
+    TArray<Uint8> Bytes{};
+    FArchiveMemory Writer{Bytes};
+    Writer.SetAssetResolver(World.GetAssetRegistry());
+
+    for (AActor* Actor : Actors) {
+        if (Actor == nullptr || Actor->GetWorld() != &World || Actor->IsBeingDestroyed() || !Actor->HasFinishedSpawning()) {
+            return {};
+        }
+
+        FActorRecord Record{{Actor->GetGuid(), Actor->GetClass()->GetClassName()}, {}};
+
+        for (const std::unique_ptr<UActorComponent>& Component : Actor->GetComponents()) {
+            Record.mComponents.push_back({Component->GetGuid(), Component->GetClass()->GetClassName()});
+        }
+
+        Records.push_back(std::move(Record));
+        Actor->Save(Writer);
+    }
+
+    TMap<FGuid, FGuid> Remapping{};
+
+    if (Writer.HasError() || !RemapObjectTable(World, World, Records, Remapping) || !ValidateObjectTable(World, Records)) {
+        return {};
+    }
+
+    FArchiveMemory Reader{static_cast<const TArray<Uint8>&>(Bytes)};
+    Reader.SetAssetResolver(World.GetAssetRegistry());
+    const FObjectGuidScope GuidScope{Reader, &Remapping};
+    TArray<std::unique_ptr<AActor>> Copies{};
+
+    for (const FActorRecord& Record : Records) {
+        std::unique_ptr<AActor> Actor{CreateActor(Record)};
+
+        if (Actor == nullptr) {
+            return {};
+        }
+
+        Actor->Load(Reader);
+
+        if (Reader.HasError()) {
+            return {};
+        }
+
+        const FName UniqueName{UObjectSystem::MakeUniqueObjectName(&World.GetPersistentLevel(), Actor->GetName())};
+
+        if (!Actor->SetName(UniqueName) || !Actor->SetOuter(&World.GetPersistentLevel()) || !UObjectSystem::Register(Actor.get()).IsValid()) {
+            return {};
+        }
+
+        Actor->mWorld = &World;
+
+        for (const std::unique_ptr<UActorComponent>& Component : Actor->GetComponents()) {
+            if (!UObjectSystem::Register(Component.get()).IsValid()) {
+                return {};
+            }
+        }
+
+        Copies.push_back(std::move(Actor));
+    }
+
+    if (Reader.GetRemainingBytes() != 0 || !ValidateLoadedActors(Copies, Records)) {
+        return {};
+    }
+
+    for (const std::unique_ptr<AActor>& Actor : Copies) {
+        if (!Actor->ResolveLoadedReferences()) {
+            return {};
+        }
+    }
+
+    TArray<TObjectRef<AActor>> Installed{};
+
+    for (std::unique_ptr<AActor>& Actor : Copies) {
+        Installed.push_back(TObjectRef<AActor>{Actor.get()});
+        World.mPersistentLevel->mActors.push_back(std::move(Actor));
+    }
+
+    {
+        const UWorld::FActorDispatchScope Dispatch{&World};
+
+        for (const TObjectRef<AActor>& Entry : Installed) {
+            if (AActor* Actor{Entry.Get()}) {
+                Actor->OnAddedToWorld();
+                World.InitializeLoadedActor(*Actor);
+            }
+        }
+    }
+
+    TArray<AActor*> Result{};
+
+    for (const TObjectRef<AActor>& Entry : Installed) {
+        AActor* Actor{Entry.Get()};
+
+        if (Actor == nullptr || Actor->IsBeingDestroyed()) {
+            for (const TObjectRef<AActor>& Copy : Installed) {
+                if (AActor* Remaining{Copy.Get()}) {
+                    World.DestroyActor(Remaining);
+                }
+            }
+
+            World.FlushPendingDestroyActors();
+            return {};
+        }
+
+        Result.push_back(Actor);
+    }
+
+    return Result;
 }

@@ -32,6 +32,7 @@ void FEditorApplication::RenderMode(FApplicationContext& Context, float DeltaTim
     FPIEViewportSession* Session{Context.mEditorUIManager->GetPIEViewportSession()};
 
     if (Session != nullptr) {
+        Session->Synchronize();
         Session->Render();
     }
 
@@ -42,8 +43,6 @@ void FEditorApplication::RenderMode(FApplicationContext& Context, float DeltaTim
     }
 
     const Stat::FScopedSystemStatTimer RenderStat{Stat::ESystemStatStage::RenderPreparation};
-    const AActor* SelectedActor{Context.mEditorContext->GetSelectedActor()};
-    const FObjectHandle SelectedActorHandle{SelectedActor != nullptr ? SelectedActor->GetHandle() : FObjectHandle{}};
 
     {
         const Stat::FScopedRenderPreparationStatTimer StageStat{Stat::ERenderPreparationStage::SceneData};
@@ -52,7 +51,11 @@ void FEditorApplication::RenderMode(FApplicationContext& Context, float DeltaTim
             return;
         }
         mOverlayData.Clear();
-        Context.mWorldContext->GetWorld().BuildOverlayRenderData(mOverlayData, SelectedActorHandle);
+        for (AActor* SelectedActor : Context.mEditorContext->GetSelectedActors()) {
+            FOverlayRenderData Selection{};
+            Context.mWorldContext->GetWorld().BuildOverlayRenderData(Selection, SelectedActor->GetHandle());
+            mOverlayData.mSelectionMeshes.insert(mOverlayData.mSelectionMeshes.end(), Selection.mSelectionMeshes.begin(), Selection.mSelectionMeshes.end());
+        }
     }
 
     const FRenderScene* RenderScene{Context.mRenderer.FindScene(Context.mWorldContext->GetWorld().GetSceneHandle())};

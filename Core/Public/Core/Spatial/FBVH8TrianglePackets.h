@@ -2,6 +2,22 @@
  * @file FBVH8TrianglePackets.h
  * @brief 여덟 삼각형의 성분별 저장 형식과 SIMD 광선 교차 방문자를 정의한다.
  */
+/**
+ * @var float BVH8::FTrianglePacket::Edge2[3][8]
+ * @brief 각 삼각형의 V2 - V0 변 벡터를 축별 여덟 레인으로 저장합니다.
+ */
+/**
+ * @var float BVH8::FTrianglePacket::V0[3][8]
+ * @brief 각 삼각형의 기준 정점을 축별 여덟 레인으로 저장합니다.
+ */
+/**
+ * @var BVH8::TTrianglePacketVisitor::V BVH8::TTrianglePacketVisitor::Direction[3]
+ * @brief 광선 방향의 X, Y, Z 성분을 각각 SIMD 레인에 복제한 벡터입니다.
+ */
+/**
+ * @var BVH8::TTrianglePacketVisitor::V BVH8::TTrianglePacketVisitor::Sign
+ * @brief 와인딩을 뒤집을 때 부호 반전에 사용하는 SIMD 부호 비트 마스크입니다.
+ */
 #pragma once
 #include "Core/Spatial/FBVH8.h"
 

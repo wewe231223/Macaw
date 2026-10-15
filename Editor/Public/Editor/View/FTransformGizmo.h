@@ -1,142 +1,140 @@
 #pragma once
 
 #include <array>
-#include <cstdint>
-#include <d3d11.h>
 #include <optional>
+#include <d3d11.h>
 #include "Asset/FAssetRegistry.h"
-#include "Asset/UMaterial.h"
-#include "Asset/UMesh.h"
-#include "RenderCore/FOverlayRenderData.h"
 #include "CoreUObject/TObjectRef.h"
-#include "Editor/World/FWorldEditorContext.h"
-#include "World/Component/USceneComponent.h"
-#include "Asset/Pipeline/UPipeline.h"
-#include "Editor/Input/FMouseInput.h"
 #include "Editor/Input/FKeyboardInput.h"
-#include "World/Component/UPrimitiveComponent.h"
+#include "Editor/Input/FMouseInput.h"
+#include "Editor/World/FWorldEditorContext.h"
+#include "RenderCore/FOverlayRenderData.h"
+#include "World/Component/USceneComponent.h"
 
 class FTransformGizmo {
 private:
-    enum class EAxis : std::uint8_t {
+    enum class EHandle : Uint8 {
         None,
         X,
         Y,
-        Z
+        Z,
+        XY,
+        XZ,
+        YZ,
+        Screen,
+        Uniform
     };
 
-    struct FAxisHitProxy {
-        EAxis mAxis{EAxis::None};
-        FVector3 mCenter{};
-        FVector3 mExtent{};
+    struct FPickShape {
+        EHandle mHandle{EHandle::None};
+        std::array<FVector3, 4> mPoints{};
+        Uint32 mCount{};
+        float mTolerance{8.0f};
+        Uint32 mPriority{2};
     };
 
-    struct FAxisHit {
-        EAxis mAxis{EAxis::None};
-        float mDistance{0.0f};
+    struct FTargetState {
+        TObjectRef<USceneComponent> mTarget{};
+        FTransform mRelative{};
+        FTransform mWorld{};
     };
 
     struct FDragSession {
-        TObjectRef<USceneComponent> mTarget{};
-        FVector3 mAxisWorld{};
-        FVector3 mInteractionPivotWorld{};
-        FVector3 mDragPlaneNormal{};
-        float mPreviousAxisParameter{0.0f};
-        EAxis mDragAxis{EAxis::None};
+        TArray<FTargetState> mTargets{};
+        TArray<TObjectRef<AActor>> mOriginalSelection{};
+        TArray<TObjectRef<AActor>> mDuplicates{};
+        TObjectRef<UActorComponent> mOriginalComponent{};
+        UWorld* mWorld{};
+        FViewMatrices mCamera{};
+        D3D11_VIEWPORT mViewport{};
+        FMatrix mBasis{FMatrix::Identity};
+        std::array<FVector3, 3> mAxes{};
+        FVector3 mPivot{};
+        FVector3 mPlaneNormal{};
+        FVector3 mStartIntersection{};
+        FVector3 mStartDirection{};
+        FVector3 mPreviousDirection{};
+        FVector3 mTranslation{};
+        FVector3 mScaleDelta{};
+        FVector3 mOriginalPivot{};
+        POINT mStartMouse{};
+        FVector2 mScreenAxis{};
+        float mUnitsPerPixel{1.0f};
+        float mRawAngle{};
+        float mAppliedAngle{};
+        float mUniformFactor{1.0f};
+        Uint64 mSelectionRevision{};
+        EHandle mHandle{EHandle::None};
         EGizmoMode mMode{EGizmoMode::Translate};
-        EGizmoCoordinateSpace mCoordinateSpace{EGizmoCoordinateSpace::World};
-        FVector3 mPreviousRotationDirection{};
-        float mWorkUnitsPerPixel{1.0f};
-        float mAccumulatedDelta{0.0f};
+        EMouseSide mButton{Left};
+        bool mPivotOnly{};
+        bool mHadPivot{};
+        bool mScreenFallback{};
+        bool mDuplicatePending{};
     };
 
 public:
     FTransformGizmo() = default;
     ~FTransformGizmo() = default;
-
     FTransformGizmo(const FTransformGizmo&) = delete;
     FTransformGizmo& operator=(const FTransformGizmo&) = delete;
-
     FTransformGizmo(FTransformGizmo&&) = default;
     FTransformGizmo& operator=(FTransformGizmo&&) = default;
 
 public:
     void Initialize(ID3D11Device* Device, FAssetRegistry& AssetRegistry, FWorldEditorContext& InEditorContext);
-
-    void ProcessInput(FKeyboardInput& KeyboardInput, FMouseInput& MouseInput, bool BMouseCapturedByUi);
+    void ProcessInput(FKeyboardInput& KeyboardInput, FMouseInput& MouseInput, bool BMouseCapturedByUi, bool BKeyboardCapturedByUi);
     void Update(const FViewMatrices& Camera, const D3D11_VIEWPORT& Viewport);
-    void BuildGizmoDrawData(TArray<FOverlayMeshDrawData>& GizmoMeshes);
+    void BuildGizmoDrawData(FOverlayRenderData& Overlay);
 
 private:
-    void SetTranslate(const FVector3& Pivot, float WorldUnitsPerPixel);
-    void SetScale(const FVector3& Pivot, float WorldUnitsPerPixel);
-    void SetRotate(const FVector3& Pivot, float WorldUnitsPerPixel);
-
-    void UpdateBoundsInGizmoSpace(const UPrimitiveComponent& Primitive, FVector3& OutCenter, FVector3& OutExtent) const;
-
-    std::optional<FRay> MakeWorldRay(const POINT& ScreenPosition) const;
-    std::optional<FAxisHit> HitTest(const FRay& WorldRay) const;
-
-    bool BeginDrag(EAxis Axis, const FRay& WorldRay);
-    void UpdateDrag(const FRay& WorldRay);
-    void EndDrag();
+    void BuildHandles();
+    void BuildAxes();
+    void BuildPlanes();
+    void BuildRotation();
+    void BuildFeedback(FOverlayRenderData& Overlay) const;
+    void AddSegment(EHandle Handle, const FVector3& Start, const FVector3& End, const FVector4& Color, float Width, bool Pickable = true);
+    void AddPolygon(EHandle Handle, const std::array<FVector3, 4>& Points, Uint32 Count, const FVector4& Color, Uint32 Priority);
+    EHandle HitTest(const POINT& Position) const;
+    bool BeginDrag(EHandle Handle, const POINT& Position, EMouseSide Button, bool PivotOnly, bool Duplicate);
+    void UpdateDrag(const POINT& Position, bool VertexSnap, bool SurfaceSnap);
+    void EndDrag(bool Cancel);
+    bool DuplicateSelection();
+    bool FindSurface(const FRay& Ray, FVector3& Position, FVector3& Normal) const;
+    bool FindVertex(const POINT& MousePosition, FVector3& Position) const;
+    bool IsSelectedHierarchy(const AActor* Actor) const;
+    FVector4 GetHandleColor(EHandle Handle) const;
+    FAssetHandle GetHandleMaterial(EHandle Handle) const;
+    FVector3 GetHandleAxis(EHandle Handle) const;
     void RefreshAssetHandles();
-    bool GetAxisParameterOnDragPlane(const FRay& WorldRay, const FDragSession& Session, float& OutParameter) const;
-    FVector3 GetWorldAxis(EAxis Axis) const;
 
 private:
-    static constexpr float ShaftLengthPixels{66.0f};
-    static constexpr float ConeLengthPixels{22.0f};
-    static constexpr float ShaftRadiusPixels{6.0f};
-    static constexpr float ConeRadiusPixels{13.0f};
-    static constexpr float PickRadiusPixels{10.0f};
-    static constexpr float BoundsGapPixels{5.0f};
-
-    float mCurrentRingRadius{0.0f};
-    float mCurrentRingPickHalfWidth{0.0f};
-
-    FAssetHandle mCylinderMesh{};
-    FAssetHandle mConeMesh{};
+    FAssetRegistry* mAssetRegistry{};
+    FWorldEditorContext* mEditorContext{};
+    FAssetHandle mArrowMesh{};
+    FAssetHandle mScaleArrowMesh{};
     FAssetHandle mCubeMesh{};
-    FAssetHandle mGizmoTorusMesh{};
-
-    FAssetHandle mRedMaterial{};
-    FAssetHandle mGreenMaterial{};
-    FAssetHandle mBlueMaterial{};
-
+    std::array<FAssetHandle, 3> mAxisMaterials{};
+    FAssetHandle mHighlightMaterial{};
+    FAssetHandle mNeutralMaterial{};
     FAssetHandle mGizmoPipeline{};
-
-    FMatrix mCylinderXAxisTransform{FMatrix::Identity};
-    FMatrix mCylinderYAxisTransform{FMatrix::Identity};
-    FMatrix mCylinderZAxisTransform{FMatrix::Identity};
-
-    FMatrix mConeXAxisTransform{FMatrix::Identity};
-    FMatrix mConeYAxisTransform{FMatrix::Identity};
-    FMatrix mConeZAxisTransform{FMatrix::Identity};
-
-    FMatrix mCubeXAxisTransform{FMatrix::Identity};
-    FMatrix mCubeYAxisTransform{FMatrix::Identity};
-    FMatrix mCubeZAxisTransform{FMatrix::Identity};
-
-    FMatrix mTorusXAxisTransform{FMatrix::Identity};
-    FMatrix mTorusYAxisTransform{FMatrix::Identity};
-    FMatrix mTorusZAxisTransform{FMatrix::Identity};
-
-    FMatrix mGizmoWorldTransform{FMatrix::Identity};
-
-    FVector3 mBoundsCenterInGizmoSpace{};
-    std::array<FAxisHitProxy, 3> mAxisHitProxies{};
-
-    FAssetRegistry* mAssetRegistry{nullptr};
-    FWorldEditorContext* mEditorContext{nullptr};
-
     FViewMatrices mLastCamera{};
     D3D11_VIEWPORT mLastViewport{};
-
+    FMatrix mBasis{FMatrix::Identity};
+    std::array<FVector3, 3> mAxes{FVector3::UnitX, FVector3::UnitY, FVector3::UnitZ};
+    FVector3 mPivot{};
+    FVector3 mViewDirection{};
+    FVector3 mViewRight{};
+    FVector3 mViewUp{};
+    float mUnitsPerPixel{1.0f};
+    float mSize{1.0f};
+    TArray<FPickShape> mPickShapes{};
+    TArray<FOverlayMeshDrawData> mMeshes{};
+    FLineRenderData mLines{};
     std::optional<FDragSession> mDragSession{};
-
-    bool mBVisible{false};
-    bool mBHasCamera{false};
-
-    float mCurrentWorkUnitsPerPixel{1.0f};
+    EHandle mHoveredHandle{EHandle::None};
+    bool mVisible{};
+    bool mHasCamera{};
+    bool mVertexSnap{};
+    std::optional<FVector3> mSnapPosition{};
 };

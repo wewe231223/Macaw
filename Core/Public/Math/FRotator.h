@@ -12,7 +12,13 @@ struct FVector;
  * @note 쿼터니언 변환은 FQuat::FromRotator를 사용합니다.
  */
 struct FRotator {
+    /**
+     * @brief 회전 각도와 별도 V 배열을 포함하는 익명 저장 공간입니다.
+     */
     union {
+        /**
+         * @brief V 배열 뒤에 Pitch, Yaw, Roll을 독립적으로 배치한 익명 구조체입니다.
+         */
         struct
         {
             /**

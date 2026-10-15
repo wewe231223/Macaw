@@ -44,6 +44,9 @@ public:
      * @note 대상 채널은 이 송신 인터페이스를 사용하는 동안 유효해야 한다.
      */
     class FSender {
+        /**
+         * @brief 채널이 송신 인터페이스의 내부 연결을 관리할 수 있게 합니다.
+         */
         friend class FMessageChannel;
 
     public:

@@ -24,7 +24,7 @@ public:
     void Initialize(ID3D11Device* Device, FAssetRegistry& AssetRegistry, FWorldEditorContext& InEditorContext);
 
     void PrepareInput(const FViewMatrices& Camera, const D3D11_VIEWPORT& Viewport);
-    void ProcessInput(FKeyboardInput& KeyboardInput, FMouseInput& MouseInput, bool BMouseCapturedByUi);
+    void ProcessInput(FKeyboardInput& KeyboardInput, FMouseInput& MouseInput, bool BMouseCapturedByUi, bool BKeyboardCapturedByUi);
     void BuildOverlayRenderData(FOverlayRenderData& Overlay, const FViewMatrices& Camera, const FVector3& CameraPosition, const D3D11_VIEWPORT& Viewport);
 
 private:

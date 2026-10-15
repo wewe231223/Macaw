@@ -8,6 +8,9 @@
 #include <string_view>
 
 // Max size of name, including the null terminator
+/**
+ * @brief 이름 풀의 저장 규격 상수를 선언합니다.
+ */
 enum {
     /** @brief 이름 풀에 저장할 기본 이름의 최대 버퍼 크기. 널 종료 문자를 포함하므로 문자열은 최대 1023바이트이다. */
     NameSize = 1024

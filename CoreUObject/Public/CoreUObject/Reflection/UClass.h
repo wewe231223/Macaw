@@ -45,6 +45,8 @@ public:
     using Super = UStruct;
     /**
      * @brief UStruct 기반의 상속 검사 오버로드도 공개합니다.
+     * @param BaseStruct 비교할 기반 구조체 메타데이터입니다.
+     * @return 현재 타입과 같거나 기반 타입 체인에 포함되면 true입니다.
      */
     using UStruct::IsChildOf;
     /**

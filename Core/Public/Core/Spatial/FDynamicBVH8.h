@@ -2,6 +2,26 @@
  * @file FDynamicBVH8.h
  * @brief 리프의 삽입, 삭제 및 경계 갱신을 지원하는 동적 8분기 BVH를 정의한다.
  */
+/**
+ * @var float FDynamicBVH8::FBounds::Max[3]
+ * @brief X, Y, Z 순서의 경계 최댓값입니다.
+ */
+/**
+ * @var Uint32 FDynamicBVH8::FParent::Lane
+ * @brief 부모 노드 안에서 현재 참조가 저장된 자식 레인입니다.
+ */
+/**
+ * @var double FDynamicBVH8::FCandidate::CombinedArea
+ * @brief 후보 경계와 새 리프를 병합한 상자의 표면적입니다.
+ */
+/**
+ * @var double FDynamicBVH8::FCandidate::Lower
+ * @brief 후보 하위 트리의 삽입 위치 탐색에 사용하는 비용 하한입니다.
+ */
+/**
+ * @var TArray<FDynamicBVH8::FParent> FDynamicBVH8::mLeafParents
+ * @brief 리프 인덱스별 부모 노드와 자식 레인 연결을 저장한 배열입니다.
+ */
 #pragma once
 #include "Core/Spatial/FBVH8.h"
 #include <utility>

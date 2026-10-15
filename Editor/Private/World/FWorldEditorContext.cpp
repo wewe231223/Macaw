@@ -32,6 +32,7 @@ void FWorldEditorContext::SetWorld(UWorld* InWorld) {
     ClearSelection();
     mEditorToWorld.Clear();
     mWorld = InWorld;
+    mGizmoInteracting = false;
 
     if (mWorld != nullptr) {
         mWorld->AddObserver(*this);
@@ -47,8 +48,10 @@ void FWorldEditorContext::OnWorldChanged(UWorld& World, EWorldChange Change, AAc
         ClearSelection();
         mEditorToWorld.Clear();
         mWorld = nullptr;
-    } else if (Change == EWorldChange::ActorRemoving && GetSelectedActor() == Actor) {
-        ClearSelection();
+    } else if (Change == EWorldChange::ActorRemoving && IsActorSelected(Actor)) {
+        TArray<AActor*> Remaining{GetSelectedActors()};
+        std::erase(Remaining, Actor);
+        SetSelectedActors(Remaining);
     }
 }
 
@@ -132,7 +135,9 @@ EGizmoMode FWorldEditorContext::GetGizmoMode() const {
 }
 
 void FWorldEditorContext::SetGizmoMode(EGizmoMode Mode) {
-    mGizmoMode = Mode;
+    if (!mGizmoInteracting) {
+        mGizmoMode = Mode;
+    }
 }
 
 EGizmoCoordinateSpace FWorldEditorContext::GetGizmoCoordinateSpace() const {
@@ -140,7 +145,9 @@ EGizmoCoordinateSpace FWorldEditorContext::GetGizmoCoordinateSpace() const {
 }
 
 void FWorldEditorContext::SetGizmoCoordinateSpace(EGizmoCoordinateSpace CoordinateSpace) {
-    mGizmoCoordinateSpace = CoordinateSpace;
+    if (!mGizmoInteracting) {
+        mGizmoCoordinateSpace = CoordinateSpace;
+    }
 }
 
 void FWorldEditorContext::SetSelectedActor(AActor* Actor) {
@@ -155,6 +162,9 @@ void FWorldEditorContext::SetSelectedActor(AActor* Actor) {
 
     mSelectedActor.Set(Actor);
     mSelectedComponent.Set(Actor->GetRootComponent());
+    mSelectedActors = {TObjectRef<AActor>{Actor}};
+    ResetGizmoPivot();
+    ++mSelectionRevision;
 }
 
 void FWorldEditorContext::SetSelectedComponent(UActorComponent* Component) {
@@ -169,11 +179,138 @@ void FWorldEditorContext::SetSelectedComponent(UActorComponent* Component) {
 
     mSelectedActor.Set(Component->GetOwner());
     mSelectedComponent.Set(Component);
+    mSelectedActors = {TObjectRef<AActor>{Component->GetOwner()}};
+    ResetGizmoPivot();
+    ++mSelectionRevision;
 }
 
 void FWorldEditorContext::ClearSelection() {
     mSelectedComponent.Reset();
     mSelectedActor.Reset();
+    mSelectedActors.clear();
+    ResetGizmoPivot();
+    ++mSelectionRevision;
+}
+
+void FWorldEditorContext::ToggleSelectedActor(AActor* Actor) {
+    if (Actor == nullptr || Actor->GetWorld() != mWorld || !IsWorldEditingAllowed()) {
+        return;
+    }
+
+    TArray<AActor*> Actors{GetSelectedActors()};
+    const auto Found{std::find(Actors.begin(), Actors.end(), Actor)};
+
+    if (Found == Actors.end()) {
+        Actors.push_back(Actor);
+    } else {
+        Actors.erase(Found);
+    }
+
+    SetSelectedActors(Actors);
+}
+
+void FWorldEditorContext::SetSelectedActors(const TArray<AActor*>& Actors) {
+    mSelectedActors.clear();
+    mSelectedActor.Reset();
+    mSelectedComponent.Reset();
+
+    for (AActor* Actor : Actors) {
+        if (Actor != nullptr && Actor->GetWorld() == mWorld && !Actor->IsBeingDestroyed() && !IsActorSelected(Actor)) {
+            mSelectedActors.push_back(TObjectRef<AActor>{Actor});
+            mSelectedActor.Set(Actor);
+            mSelectedComponent.Set(Actor->GetRootComponent());
+        }
+    }
+
+    ResetGizmoPivot();
+    ++mSelectionRevision;
+}
+
+bool FWorldEditorContext::IsActorSelected(const AActor* Actor) const {
+    return Actor != nullptr && std::any_of(mSelectedActors.begin(), mSelectedActors.end(), [Actor](const TObjectRef<AActor>& Entry) {
+        return Entry.Get() == Actor;
+    });
+}
+
+TArray<AActor*> FWorldEditorContext::GetSelectedActors() const {
+    TArray<AActor*> Actors{};
+
+    for (const TObjectRef<AActor>& Entry : mSelectedActors) {
+        if (AActor* Actor{Entry.Get()}; Actor != nullptr && !Actor->IsBeingDestroyed()) {
+            Actors.push_back(Actor);
+        }
+    }
+
+    return Actors;
+}
+
+TArray<USceneComponent*> FWorldEditorContext::GetSelectedTransformTargets() const {
+    TArray<USceneComponent*> Targets{};
+    const TArray<AActor*> Actors{GetSelectedActors()};
+
+    if (Actors.size() <= 1) {
+        if (USceneComponent* Target{GetSelectedTransformTarget()}) {
+            Targets.push_back(Target);
+        }
+
+        return Targets;
+    }
+
+    for (AActor* Actor : Actors) {
+        USceneComponent* Root{Actor->GetRootComponent()};
+        bool HasSelectedParent{};
+
+        for (USceneComponent* Parent{Root != nullptr ? Root->GetParent() : nullptr}; Parent != nullptr; Parent = Parent->GetParent()) {
+            HasSelectedParent = HasSelectedParent || IsActorSelected(Parent->GetOwner());
+        }
+
+        if (Root != nullptr && !HasSelectedParent) {
+            Targets.push_back(Root);
+        }
+    }
+
+    return Targets;
+}
+
+Uint64 FWorldEditorContext::GetSelectionRevision() const {
+    return mSelectionRevision;
+}
+
+FVector3 FWorldEditorContext::GetGizmoPivot() const {
+    if (mHasGizmoPivot) {
+        return mGizmoPivot;
+    }
+
+    const TArray<USceneComponent*> Targets{GetSelectedTransformTargets()};
+    FVector3 Pivot{};
+
+    for (const USceneComponent* Target : Targets) {
+        Pivot += Target->GetComponentLocation();
+    }
+
+    return Targets.empty() ? Pivot : Pivot / static_cast<float>(Targets.size());
+}
+
+void FWorldEditorContext::SetGizmoPivot(const FVector3& Pivot) {
+    mGizmoPivot = Pivot;
+    mHasGizmoPivot = true;
+}
+
+void FWorldEditorContext::ResetGizmoPivot() {
+    mGizmoPivot = {};
+    mHasGizmoPivot = false;
+}
+
+bool FWorldEditorContext::HasGizmoPivot() const {
+    return mHasGizmoPivot;
+}
+
+bool FWorldEditorContext::IsGizmoInteracting() const {
+    return mGizmoInteracting;
+}
+
+void FWorldEditorContext::SetGizmoInteracting(bool Interacting) {
+    mGizmoInteracting = Interacting;
 }
 
 AActor* FWorldEditorContext::GetSelectedActor() const noexcept {
@@ -272,9 +409,13 @@ void FWorldEditorContext::HandleMousePickRequest(const FMousePickRequestMessage&
 
             if (SelectedActor != nullptr) {
                 if (mWorld != nullptr) {
-                    SetSelectedComponent(NearestPrimitive);
+                    if (Message.mAdditiveSelection) {
+                        ToggleSelectedActor(SelectedActor);
+                    } else {
+                        SetSelectedComponent(NearestPrimitive);
+                    }
                 }
-            } else if (mWorld != nullptr) {
+            } else if (mWorld != nullptr && !Message.mAdditiveSelection) {
                 ClearSelection();
             }
         }

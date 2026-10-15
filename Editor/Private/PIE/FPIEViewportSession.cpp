@@ -93,12 +93,6 @@ void FPIEViewportSession::Synchronize() {
         return;
     }
 
-    if (mViewport != mWindowViewport.get() && (mHost == nullptr || !mHost->IsVisible() || !mTargetViewportId.has_value() || mHost->GetViewport(*mTargetViewportId) != mViewport)) {
-        mEngine.RequestStopPIE();
-        mState.Clear(EStateFlag::InputCaptured);
-        return;
-    }
-
     FWorldContext* Context{mEngine.GetPIEWorldContext()};
 
     if (Context != nullptr) {
@@ -113,8 +107,6 @@ void FPIEViewportSession::Synchronize() {
 }
 
 void FPIEViewportSession::DrawControls() {
-    Synchronize();
-
     const EPIEState State{mEngine.GetPIEState()};
 
     ImGui::BeginDisabled(State != EPIEState::Stopped);
@@ -190,8 +182,11 @@ void FPIEViewportSession::DrawControls() {
 }
 
 void FPIEViewportSession::BeginFrame() {
-    Synchronize();
     mWindowViewport->BeginFrame();
+
+    if (mEngine.HasPIESession() && mViewport == nullptr) {
+        SelectViewport();
+    }
 
     if (!mEngine.HasPIESession()) {
         mWindowViewport->ReleaseRenderResources();
@@ -199,7 +194,16 @@ void FPIEViewportSession::BeginFrame() {
 }
 
 void FPIEViewportSession::DrawWindow() {
-    if (mViewport != mWindowViewport.get() || !mEngine.HasPIESession()) {
+    if (!mEngine.HasPIESession()) {
+        return;
+    }
+
+    if (mViewport != mWindowViewport.get()) {
+        if (mViewport != nullptr && (mHost == nullptr || !mHost->IsVisible() || !mTargetViewportId.has_value() || mHost->GetViewport(*mTargetViewportId) != mViewport)) {
+            mEngine.RequestStopPIE();
+            mState.Clear(EStateFlag::InputCaptured);
+        }
+
         return;
     }
 
@@ -323,8 +327,6 @@ void FPIEViewportSession::UpdateInput(UWorld& World) {
 }
 
 bool FPIEViewportSession::ProcessInput(FKeyboardInput& KeyboardInput, FMouseInput& MouseInput, float DeltaTime) {
-    Synchronize();
-
     if (mState.IsSet(EStateFlag::InputResetPending)) {
         KeyboardInput.Reset();
         MouseInput.Reset();
@@ -482,8 +484,6 @@ bool FPIEViewportSession::BuildCamera(UWorld& World, FViewMatrices& Camera) {
 }
 
 void FPIEViewportSession::Render() {
-    Synchronize();
-
     FWorldContext* Context{mEngine.GetPIEWorldContext()};
 
     if (Context == nullptr || mViewport == nullptr) {

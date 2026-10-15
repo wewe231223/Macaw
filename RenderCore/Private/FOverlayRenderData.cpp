@@ -4,6 +4,7 @@
 void FOverlayRenderData::Clear() {
     mSelectionMeshes.clear();
     mGizmoMeshes.clear();
+    mGizmoLines.Clear();
     mTextDraws.clear();
     mGuides.Clear();
     mGridFade = {};

@@ -171,9 +171,18 @@ void FOverLayRenderer::RenderView(ID3D11DeviceContext* Context, const FRenderVie
         DrawGuides(Context, Overlay);
     }
 
-    if (!mGizmoDraws.empty()) {
+    if (Overlay.IsPassEnabled(EOverlayPass::Gizmo) && (!mGizmoDraws.empty() || !Overlay.mGizmoLines.GetLines().empty())) {
         Context->ClearDepthStencilView(mCurrentDepth, D3D11_CLEAR_DEPTH, 1.0f, 0);
         DrawMeshes(Context, mGizmoDraws);
+        mLineRenderer.Clear();
+
+        for (const FLineDrawData& Line : Overlay.mGizmoLines.GetLines()) {
+            mLineRenderer.AddLine(Line.mStart, Line.mEnd, Line.mColor, Line.mWidthPixels, ELineDepthMode::Overlay);
+        }
+
+        if (!mLineRenderer.IsEmpty()) {
+            mLineRenderer.Render(Context, *mCurrentFrameResource);
+        }
     }
 
     if (Overlay.IsPassEnabled(EOverlayPass::Text) && mAssetRegistry != nullptr) {

@@ -49,7 +49,8 @@ public:
 enum class EGizmoMode : Uint8 {
     Translate,
     Rotate,
-    Scale
+    Scale,
+    None
 };
 
 enum class EGizmoCoordinateSpace : Uint8 {

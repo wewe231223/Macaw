@@ -24,6 +24,9 @@ struct FVector {
          */
         float V[3];
 
+        /**
+         * @brief X, Y, Z 이름으로 벡터 성분에 접근하는 익명 구조체입니다.
+         */
         struct
         {
             /**
@@ -40,6 +43,9 @@ struct FVector {
             float Z;
         };
 
+        /**
+         * @brief m 접두사 이름으로 같은 벡터 성분에 접근하는 익명 구조체입니다.
+         */
         struct
         {
             /**

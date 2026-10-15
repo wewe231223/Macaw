@@ -32,6 +32,9 @@ struct FQuat {
          */
         float V[4];
 
+        /**
+         * @brief X, Y, Z, W 이름으로 벡터 성분에 접근하는 익명 구조체입니다.
+         */
         struct {
             /**
              * @brief 벡터부 X 성분입니다.
@@ -51,6 +54,9 @@ struct FQuat {
             float W;
         };
 
+        /**
+         * @brief m 접두사 이름으로 같은 벡터 성분에 접근하는 익명 구조체입니다.
+         */
         struct {
             /**
              * @brief X와 저장 공간을 공유하는 성분 별칭입니다.

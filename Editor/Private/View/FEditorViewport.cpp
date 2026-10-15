@@ -131,6 +131,10 @@ bool FEditorViewport::Draw(const FRect& Rect, const ImVec2& MainViewportPosition
     if (BChildVisible) {
         BActivated = DrawMenuBar();
 
+        if (mMode == EMode::Editor) {
+            BActivated = DrawGizmoToolbar() || BActivated;
+        }
+
         const ImVec2 ImagePosition{ImGui::GetCursorScreenPos()};
         const ImVec2 ImageSize{ImGui::GetContentRegionAvail()};
 
@@ -393,9 +397,10 @@ void FEditorViewport::ProcessInput(EditorViewport& SharedEditorViewport, FKeyboa
         SharedEditorViewport.PrepareInput(Camera, BuildInputViewport());
     }
 
-    SharedEditorViewport.ProcessInput(KeyboardInput, MouseInput, BBlockMouse);
+    const bool BBlockTools{BInputBlocked || !mBVisible || !mBFocused || !BHasCamera || ImGui::GetIO().WantTextInput || MouseInput.IsWorldDragActive(Right)};
+    SharedEditorViewport.ProcessInput(KeyboardInput, MouseInput, BBlockMouse, BBlockTools);
 
-    const FViewportMouseNavigationInput MouseNavigation{MouseInput.DispatchPendingViewportCommands(static_cast<Int32>(mRenderLeft), static_cast<Int32>(mRenderTop), mWidth, mHeight, Camera.mViewProjection, Camera.mView, BBlockMouse)};
+    const FViewportMouseNavigationInput MouseNavigation{MouseInput.DispatchPendingViewportCommands(static_cast<Int32>(mRenderLeft), static_cast<Int32>(mRenderTop), mWidth, mHeight, Camera.mViewProjection, Camera.mView, BBlockMouse || mEditorContext->IsGizmoInteracting())};
 
     if (BHasCamera) {
         ApplyMouseNavigation(MouseNavigation);
@@ -403,7 +408,7 @@ void FEditorViewport::ProcessInput(EditorViewport& SharedEditorViewport, FKeyboa
 
     const bool BViewportNavigationActive{MouseInput.IsWorldDragActive(Right)};
     const bool BImGuiOwnsKeyboard{ImGui::GetIO().WantCaptureKeyboard && !BViewportNavigationActive};
-    const bool BBlockKeyboard{mProjectionType == EProjectionType::Orthographic || BInputBlocked || !mBVisible || !mBFocused || !BHasCamera || BImGuiOwnsKeyboard};
+    const bool BBlockKeyboard{mProjectionType == EProjectionType::Orthographic || BInputBlocked || !mBVisible || !mBFocused || !BHasCamera || BImGuiOwnsKeyboard || !BViewportNavigationActive || mEditorContext->IsGizmoInteracting()};
     const FViewportKeyboardNavigationInput KeyboardNavigation{KeyboardInput.ConsumeViewportNavigation(DeltaTime, BBlockKeyboard)};
 
     if (BHasCamera) {
@@ -656,4 +661,91 @@ void FEditorViewport::ReleaseRenderResources() {
 
 D3D11_VIEWPORT FEditorViewport::BuildInputViewport() const {
     return D3D11_VIEWPORT{mRenderLeft, mRenderTop, static_cast<float>(mWidth), static_cast<float>(mHeight), 0.0f, 1.0f};
+}
+
+bool FEditorViewport::DrawGizmoToolbar() {
+    bool Activated{};
+    ImGui::BeginGroup();
+    ImGui::BeginDisabled(!mEditorContext->IsWorldEditingAllowed() || mEditorContext->IsGizmoInteracting());
+    const EGizmoMode Mode{mEditorContext->GetGizmoMode()};
+    const bool Local{Mode == EGizmoMode::Scale || mEditorContext->GetGizmoCoordinateSpace() == EGizmoCoordinateSpace::Local};
+    ImGui::BeginDisabled(Mode == EGizmoMode::Scale);
+
+    if (ImGui::SmallButton(Local ? "Local" : "World")) {
+        mEditorContext->SetGizmoCoordinateSpace(Local ? EGizmoCoordinateSpace::World : EGizmoCoordinateSpace::Local);
+        Activated = true;
+    }
+
+    ImGui::SetItemTooltip(Mode == EGizmoMode::Scale ? "Scale uses local axes" : "World / Local (Tab)");
+    ImGui::EndDisabled();
+    ImGui::SameLine();
+
+    if (ImGui::SmallButton("Snap")) {
+        ImGui::OpenPopup("GizmoSnapping");
+        Activated = true;
+    }
+
+    FEditorSettings Settings{mEditorContext->GetEditorSettings()};
+    bool Changed{};
+
+    if (ImGui::BeginPopup("GizmoSnapping")) {
+        Changed = ImGui::Checkbox("Move", &Settings.mGridSnapEnabled) || Changed;
+        ImGui::SameLine();
+        ImGui::SetNextItemWidth(95.0f);
+        Changed = ImGui::InputFloat("##MoveStep", &Settings.mGridSize, 0.0f, 0.0f, "%.3f") || Changed;
+        Changed = ImGui::Checkbox("Rotate", &Settings.mRotationSnapEnabled) || Changed;
+        ImGui::SameLine();
+        ImGui::SetNextItemWidth(95.0f);
+        Changed = ImGui::InputFloat("##RotationStep", &Settings.mRotationSnapDegrees, 0.0f, 0.0f, "%.1f deg") || Changed;
+        Changed = ImGui::Checkbox("Scale", &Settings.mScaleSnapEnabled) || Changed;
+        ImGui::SameLine();
+        ImGui::SetNextItemWidth(95.0f);
+        Changed = ImGui::InputFloat("##ScaleStep", &Settings.mScaleSnapStep, 0.0f, 0.0f, "%.3f") || Changed;
+        ImGui::Separator();
+        ImGui::TextDisabled("X: toggle current tool snap");
+        ImGui::EndPopup();
+    }
+
+    ImGui::SameLine();
+
+    if (ImGui::SmallButton("Options")) {
+        ImGui::OpenPopup("GizmoOptions");
+        Activated = true;
+    }
+
+    if (ImGui::BeginPopup("GizmoOptions")) {
+        Changed = ImGui::Checkbox("Surface snap (Z)", &Settings.mSurfaceSnapEnabled) || Changed;
+        ImGui::BeginDisabled(!Settings.mSurfaceSnapEnabled);
+        Changed = ImGui::Checkbox("Align to surface", &Settings.mSurfaceAlignRotation) || Changed;
+        ImGui::SetNextItemWidth(110.0f);
+        Changed = ImGui::DragFloat("Surface offset", &Settings.mSurfaceSnapOffset, 0.01f, -1000.0f, 1000.0f, "%.3f") || Changed;
+        ImGui::EndDisabled();
+        ImGui::SetNextItemWidth(110.0f);
+        Changed = ImGui::SliderFloat("Gizmo size", &Settings.mGizmoSize, 0.5f, 2.0f, "%.1f") || Changed;
+
+        if (ImGui::MenuItem("Reset temporary pivot", nullptr, false, mEditorContext->HasGizmoPivot())) {
+            mEditorContext->ResetGizmoPivot();
+            Activated = true;
+        }
+
+        ImGui::Separator();
+        ImGui::TextDisabled("V: hold for vertex snapping");
+        ImGui::TextDisabled("Middle drag: move pivot");
+        ImGui::TextDisabled("Alt + move: duplicate");
+        ImGui::TextDisabled("Ctrl + click: multiple selection");
+        ImGui::TextDisabled("Esc: cancel drag");
+        ImGui::EndPopup();
+    }
+
+    if (Changed) {
+        Settings.mGridSize = std::max(0.001f, Settings.mGridSize);
+        Settings.mRotationSnapDegrees = std::clamp(Settings.mRotationSnapDegrees, 0.1f, 180.0f);
+        Settings.mScaleSnapStep = std::max(0.001f, Settings.mScaleSnapStep);
+        mEditorContext->SetEditorSettings(Settings);
+        Activated = true;
+    }
+
+    ImGui::EndDisabled();
+    ImGui::EndGroup();
+    return Activated;
 }

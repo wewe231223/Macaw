@@ -291,13 +291,46 @@ private:
      */
     virtual void OnIdentityChanged();
 
+    /**
+     * @brief 메타데이터 부트스트랩 과정에서 객체 클래스 정보를 설정할 수 있게 합니다.
+     */
     friend class FReflectionRegistry;
+    /**
+     * @brief 클래스 기본 객체의 상태를 관리할 수 있게 합니다.
+     */
     friend class UClass;
 
+    /**
+     * @brief 객체 등록 함수가 내부 식별 상태와 핸들을 갱신할 수 있게 합니다.
+     * @param Object 등록할 객체입니다.
+     * @return 등록 핸들입니다. 등록 조건을 충족하지 못하면 무효 핸들입니다.
+     */
     friend FObjectHandle UObjectSystem::Register(UObject* Object);
+    /**
+     * @brief 등록 해제 함수가 객체의 내부 핸들을 비울 수 있게 합니다.
+     * @param Object 등록을 해제할 객체입니다.
+     * @param Handle 현재 객체와 일치해야 하는 등록 핸들입니다.
+     */
     friend void UObjectSystem::Unregister(UObject* Object, FObjectHandle Handle);
+    /**
+     * @brief 식별 변경 함수가 이름과 Outer·Inner 관계를 함께 갱신할 수 있게 합니다.
+     * @param Object 변경할 객체입니다.
+     * @param NewName 새 이름입니다.
+     * @param NewOuter 새 Outer입니다. nullptr이면 최상위로 분리합니다.
+     * @return 식별 변경에 성공하면 true입니다.
+     */
     friend bool UObjectSystem::Rename(UObject* Object, FName NewName, UObject* NewOuter);
+    /**
+     * @brief GUID 복원 함수가 내부 GUID와 등록 인덱스를 함께 갱신할 수 있게 합니다.
+     * @param Object 변경할 객체입니다.
+     * @param Guid 복원할 GUID입니다.
+     * @return GUID 복원이 허용되면 true입니다.
+     */
     friend bool UObjectSystem::RestoreGuid(UObject* Object, const FGuid& Guid);
+    /**
+     * @brief 관계 해제 함수가 Inner 객체와 기존 Outer 연결을 정리할 수 있게 합니다.
+     * @param Object 관계를 해제할 객체입니다.
+     */
     friend void UObjectSystem::DetachInners(UObject* Object);
 
 private:

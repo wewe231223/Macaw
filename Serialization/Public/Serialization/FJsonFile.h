@@ -1,3 +1,7 @@
+/**
+ * @file FJsonFile.h
+ * @brief JSON 객체 파일의 파싱과 임시 파일을 통한 교체 저장을 제공합니다.
+ */
 #pragma once
 
 #include <filesystem>

@@ -194,7 +194,7 @@ void FOutlinerPanel::DrawActor(AActor& Actor) {
         Flags |= ImGuiTreeNodeFlags_Leaf;
     }
 
-    if (mEditorContext->GetSelectedActor() == &Actor) {
+    if (mEditorContext->IsActorSelected(&Actor)) {
         Flags |= ImGuiTreeNodeFlags_Selected;
     }
 
@@ -216,7 +216,11 @@ void FOutlinerPanel::DrawActor(AActor& Actor) {
     }
 
     if (ImGui::IsItemClicked()) {
-        mEditorContext->SetSelectedActor(&Actor);
+        if (ImGui::GetIO().KeyCtrl) {
+            mEditorContext->ToggleSelectedActor(&Actor);
+        } else {
+            mEditorContext->SetSelectedActor(&Actor);
+        }
     }
 
     DrawActorDragSource(Actor);

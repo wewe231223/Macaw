@@ -51,6 +51,9 @@ struct FAssetPath {
     bool operator==(const FAssetPath& Other) const = default;
 };
 
+/**
+ * @brief 엔진 값 타입의 표준 해시 특수화를 선언하는 네임스페이스입니다.
+ */
 namespace std {
     /** @brief FAssetPath를 해시 기반 컨테이너의 키로 사용할 수 있도록 해시 함수를 제공한다. */
     template <>

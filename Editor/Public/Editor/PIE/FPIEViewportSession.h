@@ -34,13 +34,13 @@ public:
     void BeginFrame();
     void DrawWindow();
     bool ProcessInput(FKeyboardInput& KeyboardInput, FMouseInput& MouseInput, float DeltaTime);
+    void Synchronize();
     void Render();
     void ReleaseRenderResources();
     FEditorViewport* GetViewport() const;
     bool IsInputCaptured() const;
 
 private:
-    void Synchronize();
     void SelectViewport();
     void ResetViewport();
     UCameraComponent* EnsureCamera(UWorld& World);

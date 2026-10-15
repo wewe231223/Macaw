@@ -65,6 +65,18 @@ public:
     void SetSelectedActor(AActor* Actor);
     void SetSelectedComponent(UActorComponent* Component);
     void ClearSelection();
+    void ToggleSelectedActor(AActor* Actor);
+    void SetSelectedActors(const TArray<AActor*>& Actors);
+    bool IsActorSelected(const AActor* Actor) const;
+    TArray<AActor*> GetSelectedActors() const;
+    TArray<USceneComponent*> GetSelectedTransformTargets() const;
+    Uint64 GetSelectionRevision() const;
+    FVector3 GetGizmoPivot() const;
+    void SetGizmoPivot(const FVector3& Pivot);
+    void ResetGizmoPivot();
+    bool HasGizmoPivot() const;
+    bool IsGizmoInteracting() const;
+    void SetGizmoInteracting(bool Interacting);
 
     AActor* GetSelectedActor() const noexcept;
     UActorComponent* GetSelectedComponent() const noexcept;
@@ -88,6 +100,11 @@ private:
     UEditorEngine* mEditorEngine{};
     TObjectRef<AActor> mSelectedActor{};
     TObjectRef<UActorComponent> mSelectedComponent{};
+    TArray<TObjectRef<AActor>> mSelectedActors{};
+    Uint64 mSelectionRevision{};
+    FVector3 mGizmoPivot{};
+    bool mHasGizmoPivot{};
+    bool mGizmoInteracting{};
     FEditorSettings mEditorSettings{};
     std::size_t mRenderModeIndex{2};
     EGizmoMode mGizmoMode{EGizmoMode::Translate};

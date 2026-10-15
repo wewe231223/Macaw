@@ -41,6 +41,7 @@ struct FOverlayRenderData {
     float mOrientationAxisSize{};
     TArray<FOverlayMeshDrawData> mSelectionMeshes{};
     TArray<FOverlayMeshDrawData> mGizmoMeshes{};
+    FLineRenderData mGizmoLines{};
     TArray<FOverlayTextDrawData> mTextDraws{};
     FLineRenderData mGuides{};
     FVector4 mGridFade{};

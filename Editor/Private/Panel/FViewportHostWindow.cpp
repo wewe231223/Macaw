@@ -151,7 +151,7 @@ void FViewportHostWindow::DrawContents() {
     for (FViewportId Id{0}; Id < GetViewportCount(); ++Id) {
         FEditorViewport* Viewport{GetViewport(Id)};
 
-        if (Viewport != nullptr && Viewport->Draw(mLayout.GetViewportRect(Id), MainViewportPosition, mBSplitterActive, Id == 0 ? mStatOverlay.get() : nullptr)) {
+        if (Viewport != nullptr && Viewport->Draw(mLayout.GetViewportRect(Id), MainViewportPosition, mBSplitterActive, Id == 0 ? mStatOverlay.get() : nullptr) && !mEditorContext.IsGizmoInteracting()) {
             mActiveViewportId = Viewport->GetViewportId();
         }
     }

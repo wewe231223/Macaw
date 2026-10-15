@@ -81,8 +81,8 @@ void EditorViewport::PrepareInput(const FViewMatrices& Camera, const D3D11_VIEWP
     mTransformGizmo.Update(Camera, Viewport);
 }
 
-void EditorViewport::ProcessInput(FKeyboardInput& KeyboardInput, FMouseInput& MouseInput, bool BMouseCapturedByUi) {
-    mTransformGizmo.ProcessInput(KeyboardInput, MouseInput, BMouseCapturedByUi);
+void EditorViewport::ProcessInput(FKeyboardInput& KeyboardInput, FMouseInput& MouseInput, bool BMouseCapturedByUi, bool BKeyboardCapturedByUi) {
+    mTransformGizmo.ProcessInput(KeyboardInput, MouseInput, BMouseCapturedByUi, BKeyboardCapturedByUi);
 }
 
 void EditorViewport::BuildGrid(FLineRenderData& Lines, const FViewMatrices& Camera, const FVector3& CameraPosition, const D3D11_VIEWPORT& Viewport, FVector2D& FadeCenter, ELineDepthMode DepthMode) {
@@ -300,7 +300,7 @@ void EditorViewport::BuildBounds(FLineRenderData& Lines, const FViewMatrices& Ca
 
 void EditorViewport::BuildOverlayRenderData(FOverlayRenderData& Overlay, const FViewMatrices& Camera, const FVector3& CameraPosition, const D3D11_VIEWPORT& Viewport) {
     mTransformGizmo.Update(Camera, Viewport);
-    mTransformGizmo.BuildGizmoDrawData(Overlay.mGizmoMeshes);
+    mTransformGizmo.BuildGizmoDrawData(Overlay);
 
     const ELineDepthMode DepthMode{ELineDepthMode::DepthTested};
     const FEditorSettings Settings{mEditorContext != nullptr ? mEditorContext->GetEditorSettings() : FEditorSettings{}};

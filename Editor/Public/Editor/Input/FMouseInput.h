@@ -14,6 +14,7 @@
 enum EMouseSide : Uint32 {
     Left,
     Right,
+    Middle,
     MAX
 };
 
@@ -28,6 +29,7 @@ public:
     struct DragCapture {
         POINT mStart{};
         POINT mCurrent{};
+        bool mAdditiveSelection{};
     };
 
 private:
@@ -50,6 +52,8 @@ public:
     bool IsWorldDragActive(EMouseSide Side) const;
 
     const DragCapture& GetDragCapture(EMouseSide Side) const;
+    const POINT& GetPosition() const;
+    bool WasCaptureLost() const;
 
     void Consume(EMouseSide Side);
     void EndFrame();
@@ -60,7 +64,7 @@ private:
 private:
     std::optional<FMessageChannel::FSender> mWorldCommandSender{};
 
-    std::array<EKeyState, MAX> mKeyStates{EKeyState::None, EKeyState::None};
+    std::array<EKeyState, MAX> mKeyStates{EKeyState::None, EKeyState::None, EKeyState::None};
 
     std::array<DragCapture, MAX> mClickCaptures{};
 
@@ -70,4 +74,6 @@ private:
     float mPendingDeltaY{0.0f};
 
     float mPendingWheelSteps{0.0f};
+    POINT mPosition{};
+    bool mCaptureLost{};
 };

@@ -28,14 +28,14 @@ public:
     FViewportKeyboardNavigationInput ConsumeViewportNavigation(float DeltaTime, bool BKeyboardCaptureByUi);
 
     EKeyState GetKeyState(std::uint8_t VirtualKey) const;
+    bool IsHeld(std::uint8_t VirtualKey) const;
 
 private:
-    static constexpr std::size_t KeyCount{256};
-
-    bool IsHeld(std::uint8_t VirtualKey) const;
     void AdvanceKeyStates();
     void ResetKeyStates();
 
+private:
+    static constexpr std::size_t KeyCount{256};
     std::array<EKeyState, KeyCount> mKeyStates{};
     std::optional<FMessageChannel::FSender> mWorldCommandSender{};
 };

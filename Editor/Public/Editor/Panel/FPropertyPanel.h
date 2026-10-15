@@ -30,8 +30,6 @@ private:
 
     static FString GetComponentTypeName(const UActorComponent& Component);
 
-    void DrawGizmoControls();
-
     void DrawComponentList(AActor& Actor);
 
     void DrawSceneComponentTree(AActor& Actor, USceneComponent& Component);
