@@ -9,6 +9,8 @@
 #include "Asset/FLODSettings.h"
 #include "Asset/UMesh.h"
 #include "Asset/USurfaceOpaque.h"
+#include "Asset/UMaterialDefinition.h"
+#include "Asset/UMaterialInstance.h"
 #include "Asset/UTexture.h"
 #include "Asset/FObjImporter.h"
 #include "Asset/Pipeline/UPipeline.h"
@@ -40,6 +42,18 @@ namespace {
         });
 
         return Extension;
+    }
+
+    std::unique_ptr<UMaterial> LoadNativeMaterial(const std::filesystem::path& Path) {
+        if (GetLowercaseExtension(Path) == ".material") {
+            std::unique_ptr<UMaterialDefinition> Material{NewObject<UMaterialDefinition>()};
+
+            return Material->Initialize(Path) ? std::unique_ptr<UMaterial>{std::move(Material)} : nullptr;
+        }
+
+        std::unique_ptr<UMaterialInstance> Material{NewObject<UMaterialInstance>()};
+
+        return Material->Initialize(Path) ? std::unique_ptr<UMaterial>{std::move(Material)} : nullptr;
     }
 }
 
@@ -353,15 +367,23 @@ FAssetHandle FAssetRegistry::LoadViewerAsset(const std::filesystem::path& Source
 
         Asset = std::move(Texture);
     } else if (AssetType == EAssetType::Material) {
-        std::unique_ptr<USurfaceOpaque> Material{NewObject<USurfaceOpaque>()};
+        if (Extension == ".material" || Extension == ".materialinstance") {
+            Asset = LoadNativeMaterial(AbsolutePath);
 
-        if (!Material->Initialize(AbsolutePath, [this](const std::filesystem::path& TexturePath) {
-            return LoadViewerAsset(TexturePath);
-        })) {
-            return {};
+            if (Asset == nullptr) {
+                return {};
+            }
+        } else {
+            std::unique_ptr<USurfaceOpaque> Material{NewObject<USurfaceOpaque>()};
+
+            if (!Material->Initialize(AbsolutePath, [this](const std::filesystem::path& TexturePath) {
+                return LoadViewerAsset(TexturePath);
+            })) {
+                return {};
+            }
+
+            Asset = std::move(Material);
         }
-
-        Asset = std::move(Material);
     } else {
         std::unique_ptr<UMesh> Mesh{NewObject<UMesh>()};
         std::filesystem::path ObjPath{Extension == ".obj" ? AbsolutePath : std::filesystem::path{}};
@@ -609,6 +631,20 @@ bool FAssetRegistry::LoadPipeline(FAssetEntry& Entry) {
 }
 
 bool FAssetRegistry::LoadMaterial(FAssetEntry& Entry) {
+    const FString Extension{GetLowercaseExtension(Entry.mPhysicalPath)};
+
+    if (Extension == ".material" || Extension == ".materialinstance") {
+        std::unique_ptr<UMaterial> Material{LoadNativeMaterial(Entry.mPhysicalPath)};
+
+        if (Material == nullptr) {
+            return false;
+        }
+
+        Material->SetAssetName(Entry.mAssetPath.mPath);
+        Entry.mAsset = std::move(Material);
+        return true;
+    }
+
     std::unique_ptr<USurfaceOpaque> Material{NewObject<USurfaceOpaque>()};
 
     Material->SetAssetName(Entry.mAssetPath.mPath);
@@ -854,7 +890,7 @@ EAssetType FAssetRegistry::GetAssetType(const std::filesystem::path& FilePath) {
         return EAssetType::Mesh;
     }
 
-    if (Extension == ".mtl") {
+    if (Extension == ".mtl" || Extension == ".material" || Extension == ".materialinstance") {
         return EAssetType::Material;
     }
 
