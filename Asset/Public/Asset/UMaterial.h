@@ -7,8 +7,7 @@
 #include "CoreUObject/Asset/IAssetRegistry.h"
 
 #include <optional>
-
-struct FResolvedMaterialData;
+#include <span>
 
 class UMaterial : public UAsset {
 public:
@@ -27,12 +26,11 @@ public:
 public:
     ReflectClass(UMaterial, EClassFlags::Abstract);
 
-    virtual void BuildGPUData(FMaterialGPUSlot& OutSlot) const;
+    virtual void BuildGPUData(FMaterialGPUSlot& OutSlot) const = 0;
     virtual void BuildGPUData(Uint32 GroupIndex, FMaterialGPUSlot& OutSlot) const;
     virtual FMaterialChunkSignature BuildChunkSignature() const;
     virtual FMaterialChunkSignature BuildChunkSignature(Uint32 GroupIndex) const;
     virtual void Finalize(const IAssetRegistry* Query);
-    virtual bool BuildResolvedData(const IAssetRegistry& Registry, FResolvedMaterialData& OutData) const;
 
     virtual Uint32 GetGPUDataCount() const;
     virtual EMaterialBlendMode GetBlendMode(Uint32 GroupIndex = 0) const;

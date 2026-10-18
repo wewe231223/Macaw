@@ -1,15 +1,6 @@
 #include "pch.h"
 #include "Asset/UMaterial.h"
-#include "Asset/FMaterialParameter.h"
-
-void UMaterial::BuildGPUData(FMaterialGPUSlot& OutSlot) const {
-    OutSlot = {};
-}
-
-bool UMaterial::BuildResolvedData(const IAssetRegistry& Registry, FResolvedMaterialData& OutData) const {
-    OutData = {};
-    return false;
-}
+#include "Asset/FMaterialGroup.h"
 
 void UMaterial::BuildGPUData(Uint32 GroupIndex, FMaterialGPUSlot& OutSlot) const {
     if (GroupIndex != 0) {
@@ -44,7 +35,7 @@ FName UMaterial::GetGroupName(Uint32 GroupIndex) const {
 }
 
 Uint32 UMaterial::GetGPUDataCount() const {
-    return 0;
+    return 1;
 }
 
 EMaterialBlendMode UMaterial::GetBlendMode(Uint32 GroupIndex) const {
@@ -64,3 +55,8 @@ UMaterial::UMaterial() {
 }
 
 UMaterial::~UMaterial() = default;
+
+void FMaterialTextureMap::SetTexture(FAssetHandle Texture) {
+    mTexture = Texture;
+    mSourcePath.clear();
+}
