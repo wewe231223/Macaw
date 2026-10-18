@@ -13,6 +13,9 @@
 #include "Core/Base/ErrorHandler.h"
 #include "Editor/UEditorEngine.h"
 #include "Editor/Settings/FEditorConfigManager.h"
+#include "Editor/Panel/FControlPanel.h"
+#include "Editor/Panel/FViewerToolBar.h"
+#include "Core/Stat/Stat.h"
 
 FEditorUIManager::FEditorUIManager() = default;
 FEditorUIManager::~FEditorUIManager() = default;
@@ -25,6 +28,12 @@ void FEditorUIManager::Initialize(FRenderer& Renderer, HWND WindowHandle, FAsset
     FWorldEditorContext& EditorContext{Engine->GetEditorContext()};
     UWorld& World{Engine->GetEditorWorldContext().GetWorld()};
     const FEditorSettings& Settings{FEditorConfigManager::Get().GetSettings()};
+
+    mEditorView.Initialize(Renderer.GetDevice(), EditorContext);
+
+    if (Settings.mControlPanelEnabled) {
+        mMenuPanel = std::make_unique<FControlPanel>(EditorContext, WindowHandle, EditorContext.GetEditorToWorldSender());
+    }
 
     if (Settings.mViewportPanelEnabled) {
         AddViewportHostWindow(Renderer.GetDevice(), EditorContext);
@@ -74,10 +83,100 @@ void FEditorUIManager::Initialize(FRenderer& Renderer, HWND WindowHandle, FAsset
 }
 
 void FEditorUIManager::InitializeViewer(HWND WindowHandle, FAssetThumbnailRenderer* ThumbnailRenderer) {
+    mViewerOnly = true;
+
     UEditorEngine* Engine{GetEditorEngine()};
 
     ErrorHandler::Report(Engine == nullptr, "FEditorUIManager", "No editor engine is active", ErrorHandler::EErrorLevel::Critical);
+    mMenuPanel = std::make_unique<FViewerToolBar>(Engine->GetEditorContext());
     AddViewerWindow(Engine->GetEditorContext(), WindowHandle, ThumbnailRenderer);
+}
+
+void FEditorUIManager::DrawMainMenu() {
+    if (mMenuPanel != nullptr) {
+        mMenuPanel->DrawPanel();
+    }
+
+    DrawPIEControls();
+}
+
+void FEditorUIManager::ProcessInput(FKeyboardInput& KeyboardInput, FMouseInput& MouseInput, float DeltaTime) {
+    if (mPIEViewportSession != nullptr && mPIEViewportSession->ProcessInput(KeyboardInput, MouseInput, DeltaTime)) {
+        return;
+    }
+
+    if (mViewportHostWindow != nullptr) {
+        mViewportHostWindow->ProcessInput(mEditorView, KeyboardInput, MouseInput, DeltaTime);
+    }
+}
+
+const FRenderScene* FEditorUIManager::UpdateRenderData(FRenderer& Renderer) {
+    if (mPIEViewportSession != nullptr) {
+        mPIEViewportSession->Synchronize();
+    }
+
+    mOverlayData.Clear();
+
+    if (mViewportHostWindow == nullptr) {
+        return nullptr;
+    }
+
+    const Stat::FScopedRenderPreparationStatTimer StageStat{Stat::ERenderPreparationStage::SceneData};
+    FWorldEditorContext& EditorContext{GetEditorEngine()->GetEditorContext()};
+    UWorld& World{GetEditorEngine()->GetEditorWorldContext().GetWorld()};
+
+    if (!World.SendSceneUpdates()) {
+        return nullptr;
+    }
+
+    for (AActor* SelectedActor : EditorContext.GetSelectedActors()) {
+        FOverlayRenderData Selection{};
+
+        World.BuildOverlayRenderData(Selection, SelectedActor->GetHandle());
+        mOverlayData.mSelectionMeshes.insert(mOverlayData.mSelectionMeshes.end(), Selection.mSelectionMeshes.begin(), Selection.mSelectionMeshes.end());
+    }
+
+    return Renderer.FindScene(World.GetSceneHandle());
+}
+
+void FEditorUIManager::RenderViews(FRenderer& Renderer, const FRenderScene* RenderScene) {
+    if (mPIEViewportSession != nullptr) {
+        mPIEViewportSession->Render();
+    }
+
+    if (mViewportHostWindow == nullptr || RenderScene == nullptr) {
+        return;
+    }
+
+    FWorldEditorContext& EditorContext{GetEditorEngine()->GetEditorContext()};
+
+    for (FViewportId Id{}; Id < FViewportHostWindow::MaximumViewportCount; ++Id) {
+        FEditorViewport* Viewport{mViewportHostWindow->PrepareViewportForRender(Id)};
+
+        if (Viewport == nullptr || (mPIEViewportSession != nullptr && Viewport == mPIEViewportSession->GetViewport())) {
+            continue;
+        }
+
+        FViewMatrices Camera{};
+
+        if (!Viewport->BuildViewMatrices(Camera)) {
+            continue;
+        }
+
+        FRenderView View{};
+        FOverlayRenderData Overlay{mOverlayData};
+        {
+            const Stat::FScopedRenderPreparationStatTimer StageStat{Stat::ERenderPreparationStage::ViewSetup};
+
+            View.mTarget = &Viewport->GetRenderSurface();
+            View.mCamera = Camera;
+            View.mSettings = Viewport->GetRenderSettings();
+            View.mRenderMode = static_cast<ERenderMode>(EditorContext.GetRenderModeState());
+            mEditorView.BuildOverlayRenderData(Overlay, Camera, Viewport->GetCameraPosition(), Viewport->GetRenderViewport());
+        }
+
+        Renderer.RenderView(View, *RenderScene, Overlay);
+    }
 }
 
 void FEditorUIManager::Tick() {
@@ -156,11 +255,11 @@ void FEditorUIManager::DrawPIEControls() {
 }
 
 bool FEditorUIManager::HandleExternalFileDrop(const std::filesystem::path& FilePath, const ImVec2& ScreenPosition) {
-#ifdef OBJ_VIEWER
-    return mViewerWindow != nullptr && mViewerWindow->HandleExternalFileDrop(FilePath, ScreenPosition);
-#else
+    if (mViewerOnly) {
+        return mViewerWindow != nullptr && mViewerWindow->HandleExternalFileDrop(FilePath, ScreenPosition);
+    }
+
     return mAssetBrowserPanel != nullptr && mAssetBrowserPanel->IsVisible() && mAssetBrowserPanel->HandleExternalFileDrop(FilePath, ScreenPosition);
-#endif
 }
 
 void FEditorUIManager::AddWindow(std::unique_ptr<FEditorWindow> Window) {

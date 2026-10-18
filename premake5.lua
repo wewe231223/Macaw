@@ -86,7 +86,7 @@ local function ConfigureModule(ModuleName)
 end
 
 local function ConfigureSystemLinks()
-    links { "DirectXTex", "nvapi64", "d3d11", "dxgi", "d3dcompiler", "dwmapi", "gdi32", "imm32", "shell32", "user32", "kernel32", "ole32" }
+    links { "DirectXTex", "nvapi64", "d3d11", "dxgi", "d3dcompiler", "dwmapi", "comdlg32", "gdi32", "imm32", "shell32", "user32", "kernel32", "ole32" }
     filter "configurations:Debug"
         libdirs { "Externals/bin/debug" }
     filter "configurations:Release or Viewer"
@@ -114,9 +114,4 @@ ConfigureProject("Macaw", "WindowedApp")
     links { "Engine", "Platform", "Editor", "World", "Render", "Asset", "Serialization", "RenderCore", "CoreUObject", "Core", "ImGui" }
     pchheader "pch.h"
     pchsource "pch.cpp"
-    filter "configurations:Viewer"
-        removefiles { "Application/FEditorApplication.cpp" }
-    filter "configurations:Debug or Release"
-        removefiles { "Application/FViewApplication.cpp" }
-    filter {}
     ConfigureSystemLinks()

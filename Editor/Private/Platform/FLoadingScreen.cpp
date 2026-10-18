@@ -46,6 +46,10 @@ FLoadingScreen::FLoadingScreen() = default;
 FLoadingScreen::~FLoadingScreen() = default;
 
 bool FLoadingScreen::LoadLogo(ID3D11Device* Device) {
+    mLogoShaderResourceView.Reset();
+    mLogoWidth = 0;
+    mLogoHeight = 0;
+
     if (Device == nullptr) {
         return false;
     }
@@ -103,14 +107,20 @@ bool FLoadingScreen::Run(FRenderer& Renderer, IPlatformApplication& Platform, co
     std::atomic<bool> Finished{};
     std::atomic<bool> Succeeded{};
 
-    std::thread LoadingThread{[&Progress, &LoadingTask, &Finished, &Succeeded]() {
+    std::jthread LoadingThread{[&Progress, &LoadingTask, &Finished, &Succeeded]() {
         const HRESULT ComResult{CoInitializeEx(nullptr, COINIT_MULTITHREADED)};
 
-        ErrorHandler::ReportHRESULT(ComResult, "FLoadingScreen::Run", "Failed to initialize COM for the loading thread.", ErrorHandler::EErrorLevel::Critical);
+        ErrorHandler::ReportHRESULT(ComResult, "FLoadingScreen::Run", "Failed to initialize COM for the loading thread.", ErrorHandler::EErrorLevel::Warning);
 
         const bool UninitializeCom{SUCCEEDED(ComResult)};
 
-        Succeeded.store(LoadingTask(Progress), std::memory_order_release);
+        if (UninitializeCom) {
+            try {
+                Succeeded.store(LoadingTask(Progress), std::memory_order_release);
+            } catch (...) {
+                Succeeded.store(false, std::memory_order_release);
+            }
+        }
 
         if (UninitializeCom) {
             CoUninitialize();

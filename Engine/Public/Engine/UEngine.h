@@ -11,8 +11,10 @@
 #include "Engine/FWorldContext.h"
 #include "Engine/Subsystem/UEngineSubsystem.h"
 #include "World/Tick/ETickType.h"
+#include <Windows.h>
 
 class FAssetRegistry;
+class FRenderer;
 
 /** @brief 엔진 공용 서비스와 여러 월드를 소유하고 활성 엔진의 전역 접근 수명을 관리합니다. @details 동시에 하나의 엔진만 활성화할 수 있으며 Initialize와 Shutdown은 외부에서 직렬화해야 합니다. */
 class UEngine : public UObject {
@@ -56,11 +58,15 @@ public:
     /** @brief 엔진 수명에 귀속된 서브시스템 컬렉션을 반환합니다. */
     TSubsystemCollection<UEngineSubsystem, UEngine>& GetSubsystems();
 
+    bool CreateRenderer(HWND WindowHandle, UINT Width, UINT Height);
+    FRenderer* GetRenderer() const;
+
 private:
     /** @brief 엔진 실행에 필요한 모듈의 리플렉션 타입을 등록합니다. */
     void RegisterObjectTypes();
 
 private:
+    std::unique_ptr<FRenderer> mRenderer{};
     /** @brief 이 엔진이 소유하며 활성화 시 전역으로 공개되는 공용 에셋 저장소입니다. */
     std::unique_ptr<FAssetRegistry> mAssetRegistry{};
     /** @brief 엔진에 귀속된 서브시스템의 소유 컬렉션입니다. */

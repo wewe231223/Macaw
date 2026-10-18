@@ -9,5 +9,5 @@
   "Render": {"Public": ["Asset", "RenderCore"], "Private": []},
   "Editor": {"Public": ["Engine", "Render", "ImGui"], "Private": ["Serialization", "Platform"]},
   "Platform": {"Public": ["Core"], "Private": []},
-  "Engine": {"Public": ["World", "Platform"], "Private": ["Serialization"]}
+  "Engine": {"Public": ["World", "Platform"], "Private": ["Serialization", "Render"]}
 }

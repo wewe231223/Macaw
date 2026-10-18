@@ -6,16 +6,36 @@
 #include "CoreUObject/Reflection/ReflectionMacros.h"
 
 #include <filesystem>
+#include <functional>
 #include "Engine/UEngine.h"
 #include "Editor/PIE/EPIEState.h"
+#include "Editor/Input/FKeyboardInput.h"
+#include "Editor/Input/FMouseInput.h"
+#include <wrl/client.h>
+#include <d3d11.h>
 
 class FWorldEditorContext;
+class FEditorUIManager;
+class FAssetThumbnailRenderer;
+class FLoadingProgress;
+class IPlatformApplication;
+
+enum class EEditorMode {
+    Editor,
+    Viewer
+};
 
 /** @brief 에디터 월드, PIE 세션과 편집 컨텍스트를 관리하는 전역 에디터 엔진입니다. */
 class UEditorEngine final : public UEngine {
 public:
     /** @brief UEngine 기반 리플렉션 타입 별칭입니다. */
     ReflectTypes(UEditorEngine, UEngine);
+
+private:
+    struct FExternalFileDrop {
+        std::filesystem::path mFilePath{};
+        POINT mScreenPosition{};
+    };
 
 public:
     /** @brief 전역으로 등록하지 않은 에디터 엔진 객체를 생성합니다. */
@@ -33,6 +53,13 @@ public:
     void Shutdown() override;
     /** @brief PIE 요청과 월드 Tick을 안전한 프레임 경계에서 처리합니다. @param DeltaTime 프레임 경과 시간(초)입니다. */
     void Tick(float DeltaTime) override;
+
+    bool InitializeEditor(HWND WindowHandle, UINT Width, UINT Height, IPlatformApplication& Platform, EEditorMode Mode);
+    void TickFrame(float DeltaTime, const std::function<void()>& DrawWindowChrome);
+    void ProcessWindowInput(UINT Message, WPARAM WParam, LPARAM LParam);
+    void QueueExternalFileDrop(const std::filesystem::path& FilePath, POINT ScreenPosition);
+    void DrawMainMenu();
+    ID3D11ShaderResourceView* GetLogo() const;
 
     /** @brief 다음 프레임 경계에서 PIE 시작을 요청합니다. @return 요청이 수락되면 true입니다. */
     bool RequestStartPIE();
@@ -71,6 +98,11 @@ public:
     const std::filesystem::path& GetScenePath() const;
 
 private:
+    bool InitializeEditorResources(FLoadingProgress& Progress, HWND WindowHandle, EEditorMode Mode);
+    void ReleaseEditorResources();
+    void DrawEditorUI(const std::function<void()>& DrawWindowChrome);
+    void RenderUI();
+
     /** @brief 대기 중인 PIE 시작, 종료와 일시 정지 상태를 적용합니다. */
     void ProcessPIERequests();
     /** @brief 에디터 월드를 복제해 PIE 컨텍스트를 만들고 BeginPlay를 호출합니다. */
@@ -85,6 +117,17 @@ private:
     void SetScenePath(const std::filesystem::path& ScenePath);
 
 private:
+    FKeyboardInput mKeyboardInput{};
+    FMouseInput mMouseInput{};
+    std::unique_ptr<FMessageChannel> mWorldCommandChannel{};
+    std::unique_ptr<FEditorUIManager> mEditorUI{};
+    std::unique_ptr<FAssetThumbnailRenderer> mThumbnailRenderer{};
+    Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> mLogo{};
+    std::vector<FExternalFileDrop> mExternalFileDrops{};
+    bool mPresentationReady{};
+    bool mImGuiInitialized{};
+    bool mImGuiPlatformInitialized{};
+    bool mImGuiRendererInitialized{};
     /** @brief 기반 엔진이 소유하는 에디터 월드의 비소유 참조입니다. */
     FWorldContext* mEditorWorldContext{};
     /** @brief 기반 엔진이 소유하는 PIE 월드의 비소유 참조입니다. */

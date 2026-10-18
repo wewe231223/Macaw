@@ -29,7 +29,7 @@ public:
     FRenderer& operator=(FRenderer&&) = delete;
 
 public:
-    void Create(HWND WindowHandle, UINT Width, UINT Height);
+    bool Create(HWND WindowHandle, UINT Width, UINT Height);
     /**
      * @brief 렌더러 소유의 GPU 에셋 캐시와 공용 렌더 자원을 초기화합니다.
      * @return 모든 렌더 자원 초기화에 성공하면 true입니다.
@@ -72,7 +72,7 @@ private:
     void ReleaseSceneResources(Uint64 SceneId);
     void ReleaseScenes();
 
-    void CreateDeviceAndSwapChain(HWND WindowHandle);
+    bool CreateDeviceAndSwapChain(HWND WindowHandle);
     bool CreateSamplerStates();
 
     void BindSamplerStates();

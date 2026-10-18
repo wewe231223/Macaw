@@ -13,12 +13,12 @@ public:
     FSwapChainRenderSurface& operator=(FSwapChainRenderSurface&&) = delete;
 
 public:
-    void Initialize(ID3D11Device* Device, IDXGISwapChain* SwapChain);
+    bool Initialize(ID3D11Device* Device, IDXGISwapChain* SwapChain);
     bool Resize(ID3D11Device* Device, std::uint32_t Width, std::uint32_t Height) override;
     void Reset() override;
 
 private:
-    void CreateResources(ID3D11Device* Device);
+    bool CreateResources(ID3D11Device* Device);
 
 private:
     Microsoft::WRL::ComPtr<IDXGISwapChain> mSwapChain{};

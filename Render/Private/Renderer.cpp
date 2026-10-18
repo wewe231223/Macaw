@@ -23,14 +23,21 @@ namespace {
 }
 
 FRenderer::~FRenderer() {
-    ReleaseScenes();
+    Terminate();
+    ReportLiveObjects();
 }
 
-void FRenderer::Create(HWND WindowHandle, UINT Width, UINT Height) {
+bool FRenderer::Create(HWND WindowHandle, UINT Width, UINT Height) {
+    if (WindowHandle == nullptr || Width == 0 || Height == 0 || mDevice != nullptr) {
+        return false;
+    }
+
     mBackBufferWidth = Width;
     mBackBufferHeight = Height;
 
-    FRenderer::CreateDeviceAndSwapChain(WindowHandle);
+    if (!CreateDeviceAndSwapChain(WindowHandle)) {
+        return false;
+    }
 
     auto BackBuffer{std::make_unique<FSwapChainRenderSurface>()};
 
@@ -40,10 +47,12 @@ void FRenderer::Create(HWND WindowHandle, UINT Width, UINT Height) {
 #ifdef _DEBUG
     mDevice.As(&mDebugInterface);
 #endif
+
+    return mBackBufferSurface->IsValid();
 }
 
 bool FRenderer::Initialize() {
-    return mAssetResources.Initialize(mDevice.Get()) && CreateSamplerStates() && mRenderBuffers.Initialize(mDevice.Get(), mDeviceContext.Get()) && mSceneRenderer.Initialize(mDevice.Get()) && mOverLayRenderer.Initialize(mDevice.Get());
+    return mDevice != nullptr && mDeviceContext != nullptr && mAssetResources.Initialize(mDevice.Get()) && CreateSamplerStates() && mRenderBuffers.Initialize(mDevice.Get(), mDeviceContext.Get()) && mSceneRenderer.Initialize(mDevice.Get()) && mOverLayRenderer.Initialize(mDevice.Get());
 }
 
 void FRenderer::BeginUiRender() {
@@ -218,15 +227,24 @@ void FRenderer::Terminate() {
 
     mBackBufferSurface.reset();
     mSwapChain.Reset();
+
+    for (auto& Sampler : mSamplerStates) {
+        Sampler.Reset();
+    }
+
+    mDeviceContext.Reset();
+    mDevice.Reset();
 }
 
 void FRenderer::ReportLiveObjects() const {
 #ifdef _DEBUG
-    mDebugInterface->ReportLiveDeviceObjects(D3D11_RLDO_DETAIL | D3D11_RLDO_IGNORE_INTERNAL);
+    if (mDebugInterface != nullptr) {
+        mDebugInterface->ReportLiveDeviceObjects(D3D11_RLDO_DETAIL | D3D11_RLDO_IGNORE_INTERNAL);
+    }
 #endif
 }
 
-void FRenderer::CreateDeviceAndSwapChain(HWND WindowHandle) {
+bool FRenderer::CreateDeviceAndSwapChain(HWND WindowHandle) {
     D3D_FEATURE_LEVEL FeatureLevels[]{D3D_FEATURE_LEVEL_11_0};
 
     DXGI_SWAP_CHAIN_DESC SwapChainDesc{};
@@ -276,7 +294,10 @@ void FRenderer::CreateDeviceAndSwapChain(HWND WindowHandle) {
         Result = D3D11CreateDeviceAndSwapChain(nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr, DeviceFlags, FeatureLevels, ARRAYSIZE(FeatureLevels), D3D11_SDK_VERSION, &SwapChainDesc, mSwapChain.ReleaseAndGetAddressOf(), mDevice.ReleaseAndGetAddressOf(), nullptr, mDeviceContext.ReleaseAndGetAddressOf());
     }
 
-    ErrorHandler::ReportHRESULT(Result, "[ FRenderer ]", "Failed to create Direct3D device and swap chain.", ErrorHandler::EErrorLevel::Critical);
+    if (FAILED(Result)) {
+        ErrorHandler::ReportHRESULT(Result, "[ FRenderer ]", "Failed to create Direct3D device and swap chain.", ErrorHandler::EErrorLevel::Warning);
+        return false;
+    }
     mSwapChain->GetDesc(&SwapChainDesc);
 
     Microsoft::WRL::ComPtr<IDXGIDevice1> DxgiDevice{};
@@ -290,6 +311,8 @@ void FRenderer::CreateDeviceAndSwapChain(HWND WindowHandle) {
 
         ErrorHandler::ReportHRESULT(PriorityResult, "[ FRenderer ]", "Failed to restore the default GPU thread priority.", ErrorHandler::EErrorLevel::Warning);
     }
+
+    return true;
 }
 
 bool FRenderer::CreateSamplerStates() {

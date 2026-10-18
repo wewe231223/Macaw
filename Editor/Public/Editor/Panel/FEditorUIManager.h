@@ -19,6 +19,7 @@
 #include "Editor/Panel/FEditorWindow.h"
 #include "Editor/Panel/IEditorPanel.h"
 #include "Editor/PIE/FPIEViewportSession.h"
+#include "Editor/View/EditorViewport.h"
 
 /** @brief 전역 엔진 서비스로 패널을 구성하고 패널 및 PIE 뷰포트의 UI 수명을 관리합니다. */
 class FEditorUIManager {
@@ -63,6 +64,10 @@ public:
     void DrawPIEControls();
     /** @brief 외부 파일 드롭을 현재 실행 모드의 패널로 전달합니다. @param FilePath 드롭한 파일 경로입니다. @param ScreenPosition 화면 좌표입니다. @return 패널이 드롭을 처리했으면 true입니다. */
     bool HandleExternalFileDrop(const std::filesystem::path& FilePath, const ImVec2& ScreenPosition);
+    void DrawMainMenu();
+    void ProcessInput(FKeyboardInput& KeyboardInput, FMouseInput& MouseInput, float DeltaTime);
+    const FRenderScene* UpdateRenderData(FRenderer& Renderer);
+    void RenderViews(FRenderer& Renderer, const FRenderScene* RenderScene);
 
 private:
     /** @brief 패널의 소유권을 관리자에 추가합니다. @param Window 추가할 패널입니다. */
@@ -78,6 +83,10 @@ private:
     void AddViewportHostWindow(ID3D11Device* Device, FWorldEditorContext& EditorContext);
 
 private:
+    std::unique_ptr<IEditorPanel> mMenuPanel{};
+    EditorViewport mEditorView{};
+    FOverlayRenderData mOverlayData{};
+    bool mViewerOnly{};
     /** @brief 생성 순서대로 소유하는 UI 패널 목록입니다. */
     std::vector<std::unique_ptr<IEditorPanel>> mElements{};
     /** @brief 소유 목록에 등록된 뷰포트 호스트의 비소유 참조입니다. */

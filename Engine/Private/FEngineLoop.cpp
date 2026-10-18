@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Core/Base/ErrorHandler.h"
+#include "Core/Base/FScopedFlag.h"
 #include "Engine/FEngineLoop.h"
 #include "Engine/IEngineLoopClient.h"
 #include "Platform/IPlatformApplication.h"
@@ -10,25 +11,23 @@ int FEngineLoop::Run(IEngineLoopClient& Client, IPlatformApplication& Platform) 
     }
 
     mClient = &Client;
+    mFrameTimer.Reset();
+    mRunning = true;
 
-    int ExitCode{1};
-
-    if (Client.Initialize()) {
-        mFrameTimer.Reset();
-        mRunning = true;
-
+    try {
         while (Platform.PumpMessages()) {
             Tick();
         }
-
-        ExitCode = Platform.GetExitCode();
+    } catch (...) {
+        mRunning = false;
+        mClient = nullptr;
+        throw;
     }
 
     mRunning = false;
     mClient = nullptr;
-    Client.Shutdown();
 
-    return ExitCode;
+    return Platform.GetExitCode();
 }
 
 void FEngineLoop::Tick() {
@@ -36,10 +35,10 @@ void FEngineLoop::Tick() {
         return;
     }
 
-    mTicking = true;
+    const FScopedFlag TickScope{mTicking};
+
     mFrameTimer.Tick();
     mClient->Tick(static_cast<float>(mFrameTimer.GetUpdateDeltaSeconds()));
-    mTicking = false;
 }
 
 bool FEngineLoop::IsRunning() const {

@@ -3,6 +3,7 @@
 #include "Core/Base/FScopedFlag.h"
 #include "Engine/UEngine.h"
 #include "Asset/FAssetRegistry.h"
+#include "Render/Renderer.h"
 #include "Core/Spatial/FBVH8.h"
 #include "World/UWorld.h"
 #include "World/ULevel.h"
@@ -69,6 +70,7 @@ void UEngine::Shutdown() {
     mWorldContexts.clear();
     mSubsystems.Deinitialize();
     mAssetRegistry.reset();
+    mRenderer.reset();
     UObjectSystem::Unregister(this, GetHandle());
 
     if (EngineInstance == this) {
@@ -122,6 +124,10 @@ FWorldContext* UEngine::AdoptWorld(std::unique_ptr<UWorld>& World) {
     std::unique_ptr<FWorldContext> Context{std::make_unique<FWorldContext>(std::move(World))};
     FWorldContext* Result{Context.get()};
 
+    if (mRenderer != nullptr && !Result->GetWorld().GetSceneHandle().IsValid()) {
+        Result->GetWorld().BindScene(mRenderer->CreateScene());
+    }
+
     mWorldContexts.push_back(std::move(Context));
 
     return Result;
@@ -135,6 +141,10 @@ FWorldContext& UEngine::CreateWorldContext(EWorldType WorldType) {
     std::unique_ptr<FWorldContext> Context{std::make_unique<FWorldContext>(WorldType)};
 
     FWorldContext& Result{*Context};
+
+    if (mRenderer != nullptr) {
+        Result.GetWorld().BindScene(mRenderer->CreateScene());
+    }
 
     mWorldContexts.push_back(std::move(Context));
 
@@ -171,6 +181,26 @@ const std::vector<std::unique_ptr<FWorldContext>>& UEngine::GetWorldContexts() c
 
 TSubsystemCollection<UEngineSubsystem, UEngine>& UEngine::GetSubsystems() {
     return mSubsystems;
+}
+
+bool UEngine::CreateRenderer(HWND WindowHandle, UINT Width, UINT Height) {
+    if (mRenderer != nullptr || mInitialized || mShuttingDown || WindowHandle == nullptr || Width == 0 || Height == 0) {
+        return false;
+    }
+
+    std::unique_ptr<FRenderer> Renderer{std::make_unique<FRenderer>()};
+
+    if (!Renderer->Create(WindowHandle, Width, Height)) {
+        return false;
+    }
+
+    mRenderer = std::move(Renderer);
+
+    return true;
+}
+
+FRenderer* UEngine::GetRenderer() const {
+    return mRenderer.get();
 }
 
 void UEngine::RegisterObjectTypes() {

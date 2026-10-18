@@ -2,12 +2,7 @@
 #include "Core/Base/ErrorHandler.h"
 
 #include "Platform/Windows/FWindowsGraphicsSettings.h"
-#include "Application/IApplication.h"
-#ifdef OBJ_VIEWER
-#include "Application/FViewApplication.h"
-#else
-#include "Application/FEditorApplication.h"
-#endif
+#include "Application/FApplication.h"
 
 int APIENTRY wWinMain(_In_ HINSTANCE Instance, _In_opt_ HINSTANCE PreviousInstance, _In_ LPWSTR CommandLine, _In_ int ShowCommand) {
     ErrorHandler::Initialize();
@@ -16,10 +11,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE Instance, _In_opt_ HINSTANCE PreviousInstan
     UNREFERENCED_PARAMETER(PreviousInstance);
     UNREFERENCED_PARAMETER(CommandLine);
 
-#ifdef OBJ_VIEWER
-    std::unique_ptr<IApplication> Application{std::make_unique<FViewApplication>()};
-#else
-    std::unique_ptr<IApplication> Application{std::make_unique<FEditorApplication>()};
-#endif
-    return Application->Run(Instance, ShowCommand);
+    FApplication Application{};
+
+    return Application.Run(Instance, ShowCommand);
 }

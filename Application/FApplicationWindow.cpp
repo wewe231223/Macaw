@@ -6,6 +6,7 @@
 #include "Resource.h"
 #include "ImGui/imgui.h"
 #include "ImGui/imgui_internal.h"
+#include "Render/Renderer.h"
 
 namespace {
     constexpr UINT DefaultWindowWidth{1920};
@@ -33,7 +34,7 @@ void FApplication::QueueExternalFileDrops(HWND WindowHandle, HDROP DropHandle) {
         FilePath.resize(static_cast<std::size_t>(CharacterCount + 1), L'\0');
         DragQueryFileW(DropHandle, FileIndex, FilePath.data(), CharacterCount + 1);
         FilePath.resize(CharacterCount);
-        mPendingExternalFileDrops.push_back({std::filesystem::path{FilePath}, DropPosition});
+        mEngine.QueueExternalFileDrop(std::filesystem::path{FilePath}, DropPosition);
     }
 
     DragFinish(DropHandle);
@@ -165,17 +166,13 @@ void FApplication::DrawTitleBar() {
         DrawList->AddLine(ImVec2{Position.x, Position.y + static_cast<float>(TitleBarHeight) - 1.0f}, ImVec2{Position.x + Width, Position.y + static_cast<float>(TitleBarHeight) - 1.0f}, IM_COL32(72, 74, 78, 255));
 
         if (ImGui::BeginMenuBar()) {
-            if (mEditorLogo.Get() != nullptr) {
-                DrawList->AddImage(reinterpret_cast<ImTextureID>(mEditorLogo.Get()), ImVec2{Position.x + 11.0f, Position.y + 1.0f}, ImVec2{Position.x + 27.0f, Position.y + static_cast<float>(TitleBarHeight) - 1.0f}, ImVec2{0.23f, 0.11f}, ImVec2{0.77f, 0.90f});
+            if (mEngine.GetLogo() != nullptr) {
+                DrawList->AddImage(reinterpret_cast<ImTextureID>(mEngine.GetLogo()), ImVec2{Position.x + 11.0f, Position.y + 1.0f}, ImVec2{Position.x + 27.0f, Position.y + static_cast<float>(TitleBarHeight) - 1.0f}, ImVec2{0.23f, 0.11f}, ImVec2{0.77f, 0.90f});
             }
 
             ImGui::SetCursorPosX(static_cast<float>(MenuStartX));
 
-            if (mContext.mMenuPanel != nullptr) {
-                mContext.mMenuPanel->DrawPanel();
-            }
-
-            mContext.mEditorUIManager->DrawPIEControls();
+            mEngine.DrawMainMenu();
 
             mWindowState.mMenuHitRight = static_cast<int>(ImGui::GetCursorPosX()) + 10;
 
@@ -205,10 +202,7 @@ LRESULT FApplication::ProcessWindowMessage(HWND WindowHandle, UINT Message, WPAR
         return Result;
     }
 
-    if (mAcceptGameInput.load(std::memory_order_acquire)) {
-        mContext.mMouseInput.ProcessWindowMessage(Message, WParam, LParam);
-        mContext.mKeyboardInput.ProcessWindowMessage(Message, WParam, LParam);
-    }
+    mEngine.ProcessWindowInput(Message, WParam, LParam);
 
     switch (Message) {
         case WM_ENTERSIZEMOVE: {
@@ -219,9 +213,7 @@ LRESULT FApplication::ProcessWindowMessage(HWND WindowHandle, UINT Message, WPAR
         case WM_EXITSIZEMOVE: {
             mWindowState.mInMoveLoop = false;
 
-            if (mWindowState.mFrameEnabled) {
-                mEngineLoop.Tick();
-            }
+            mEngineLoop.Tick();
 
             return 0;
         }
@@ -231,7 +223,7 @@ LRESULT FApplication::ProcessWindowMessage(HWND WindowHandle, UINT Message, WPAR
             const bool SizeChanged{(WindowPosition->flags & SWP_NOSIZE) == 0};
             const LRESULT Result{DefWindowProcW(WindowHandle, Message, WParam, LParam)};
 
-            if (mWindowState.mInMoveLoop && SizeChanged && mWindowState.mFrameEnabled) {
+            if (mWindowState.mInMoveLoop && SizeChanged) {
                 mEngineLoop.Tick();
             }
 
@@ -335,7 +327,9 @@ LRESULT FApplication::ProcessWindowMessage(HWND WindowHandle, UINT Message, WPAR
                 Uint32 Width{LOWORD(LParam)};
                 Uint32 Height{HIWORD(LParam)};
 
-                mContext.mRenderer.ReSize(Width, Height);
+                if (FRenderer* Renderer{mEngine.GetRenderer()}) {
+                    Renderer->ReSize(Width, Height);
+                }
             }
 
             break;
