@@ -2,9 +2,7 @@
 #include "CoreUObject/Reflection/ReflectionMacros.h"
 #include "World/Component/UPrimitiveComponent.h"
 #include "World/Component/FMeshPickingProxy.h"
-#include "Core/Base/FAssetHandle.h"
-#include "Core/Asset/FAssetPath.h"
-#include "Core/Base/FGuid.h"
+#include "Core/Asset/FAssetReference.h"
 #include "Asset/UMesh.h"
 
 class FProperty;
@@ -28,20 +26,16 @@ public:
     bool BuildPickingBoxFromMesh();
     bool RaycastMesh(const FRay& Ray, float& OutDistance, float MaxDistance = std::numeric_limits<float>::max()) const;
 
-protected:
-    void Serialize(FArchive& Archive) override;
-
 private:
+    void Serialize(FArchive& Archive) override;
     static void SerializeMeshHandleProperty(void* Container, FArchive& Archive, const FProperty& Property);
 
 private:
     mutable FMeshPickingProxy mRaycastProxy{};
     mutable Uint64 mRaycastTransformRevision{};
     mutable bool mRaycastTransformInitialized{};
-    ReflectAccessor(mMeshHandle, GetMeshHandle, SetMeshHandle, "MeshHandle", EPropertyFlags::Edit | EPropertyFlags::Serialize | EPropertyFlags::Asset, &SerializeMeshHandleProperty, ReflectEditor("Rendering", "Mesh"), ReflectAsset(UMesh));
-    FAssetHandle mMeshHandle{};
-    FAssetPath mMeshAssetPath{};
-    FGuid mMeshAssetGuid{};
+    ReflectAccessor(mMeshReference, GetMeshHandle, SetMeshHandle, "MeshHandle", EPropertyFlags::Edit | EPropertyFlags::Serialize | EPropertyFlags::Asset, &SerializeMeshHandleProperty, ReflectEditor("Rendering", "Mesh"), ReflectAsset(UMesh));
+    FAssetReference mMeshReference{};
 
     ReflectMembers();
 };

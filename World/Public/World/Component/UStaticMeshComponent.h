@@ -21,7 +21,6 @@ public:
     FAssetHandle GetMaterialHandle() const;
     FAssetHandle GetPipelineHandle() const;
 
-    void SetMeshHandle(FAssetHandle InHandle) override;
     void SetMaterialHandle(FAssetHandle InHandle);
     void SetEditorMaterialHandle(FAssetHandle InHandle);
     void SetPipelineHandle(FAssetHandle InHandle);
@@ -33,21 +32,12 @@ public:
 private:
     static void SerializeMaterialHandleProperty(void* Container, FArchive& Archive, const FProperty& Property);
     static void SerializePipelineHandleProperty(void* Container, FArchive& Archive, const FProperty& Property);
-    void Serialize(FArchive& Archive) override;
-
-    void EnsureDefaultRenderAssets();
 
 private:
-    ReflectAccessor(mMaterialHandle, GetMaterialHandle, SetEditorMaterialHandle, "MaterialHandle", EPropertyFlags::Edit | EPropertyFlags::Serialize | EPropertyFlags::Asset, &SerializeMaterialHandleProperty, ReflectEditor("Rendering", "Material"), ReflectAsset(UMaterial));
-    FAssetHandle mMaterialHandle{};
-    ReflectAccessor(mPipelineHandle, GetPipelineHandle, SetPipelineHandle, "PipelineHandle", EPropertyFlags::Edit | EPropertyFlags::Serialize | EPropertyFlags::Asset, &SerializePipelineHandleProperty, ReflectEditor("Rendering", "Pipeline"), ReflectAsset(UPipeline));
-    FAssetHandle mPipelineHandle{};
-
-    FAssetPath mMaterialAssetPath{};
-    FAssetPath mPipelineAssetPath{};
-
-    FGuid mMaterialAssetGuid{};
-    FGuid mPipelineAssetGuid{};
+    ReflectAccessor(mMaterialReference, GetMaterialHandle, SetEditorMaterialHandle, "MaterialHandle", EPropertyFlags::Edit | EPropertyFlags::Serialize | EPropertyFlags::Asset, &SerializeMaterialHandleProperty, ReflectEditor("Rendering", "Material"), ReflectAsset(UMaterial));
+    FAssetReference mMaterialReference{};
+    ReflectAccessor(mPipelineReference, GetPipelineHandle, SetPipelineHandle, "PipelineHandle", EPropertyFlags::Edit | EPropertyFlags::Serialize | EPropertyFlags::Asset, &SerializePipelineHandleProperty, ReflectEditor("Rendering", "Pipeline"), ReflectAsset(UPipeline));
+    FAssetReference mPipelineReference{};
 
     ReflectMembers();
 };

@@ -13,6 +13,15 @@ bool UBillboardComponent::CanRenderBillBoard() const {
     return IsRegistered() && IsVisible();
 }
 
+void UBillboardComponent::OnRegister() {
+    Super::OnRegister();
+
+    const IAssetResolver* Resolver{FAssetRegistry::TryGet()};
+
+    mTextureReference.Resolve(Resolver);
+    mPipelineReference.Resolve(Resolver);
+}
+
 void UBillboardComponent::Serialize(FArchive& Archive) {
     Super::Serialize(Archive);
 
@@ -32,22 +41,12 @@ bool UBillboardComponent::TryGetBillBoardWorld(FMatrix& OutWorld) const {
 }
 
 void UBillboardComponent::SetTextureHandle(FAssetHandle InTextureHandle) {
-    mTextureHandle = InTextureHandle;
-
-    const IAssetRegistry* Registry{FAssetRegistry::TryGet()};
-
-    mTextureAssetPath = Registry != nullptr && Registry->GetAssetPath(mTextureHandle) != nullptr ? *Registry->GetAssetPath(mTextureHandle) : FAssetPath{};
-    mTextureAssetGuid = Registry != nullptr && Registry->GetAssetGuid(mTextureHandle) != nullptr ? *Registry->GetAssetGuid(mTextureHandle) : FGuid{};
+    mTextureReference.Assign(InTextureHandle, FAssetRegistry::TryGet());
     OnRenderStateChanged();
 }
 
 void UBillboardComponent::SetPipelineHandle(FAssetHandle InPipelineHandle) {
-    mPipelineHandle = InPipelineHandle;
-
-    const IAssetRegistry* Registry{FAssetRegistry::TryGet()};
-
-    mPipelineAssetPath = Registry != nullptr && Registry->GetAssetPath(mPipelineHandle) != nullptr ? *Registry->GetAssetPath(mPipelineHandle) : FAssetPath{};
-    mPipelineAssetGuid = Registry != nullptr && Registry->GetAssetGuid(mPipelineHandle) != nullptr ? *Registry->GetAssetGuid(mPipelineHandle) : FGuid{};
+    mPipelineReference.Assign(InPipelineHandle, FAssetRegistry::TryGet());
     OnRenderStateChanged();
 }
 
@@ -80,11 +79,11 @@ void UBillboardComponent::SetColor(const FVector4& InColor) {
 }
 
 FAssetHandle UBillboardComponent::GetTextureHandle() const {
-    return mTextureHandle;
+    return mTextureReference.GetHandle();
 }
 
 FAssetHandle UBillboardComponent::GetPipelineHandle() const {
-    return mPipelineHandle;
+    return mPipelineReference.GetHandle();
 }
 
 const FVector2& UBillboardComponent::GetSize() const {
@@ -104,7 +103,7 @@ const FVector4& UBillboardComponent::GetColor() const {
 }
 
 bool UBillboardComponent::BuildBillboardDrawData(FBillboardDrawData& OutData) const {
-    if (!mTextureHandle || !mPipelineHandle) {
+    if (!mTextureReference.GetHandle() || !mPipelineReference.GetHandle()) {
         return false;
     }
 
@@ -112,8 +111,8 @@ bool UBillboardComponent::BuildBillboardDrawData(FBillboardDrawData& OutData) co
         return false;
     }
 
-    OutData.mTextureHandle = mTextureHandle;
-    OutData.mPipelineHandle = mPipelineHandle;
+    OutData.mTextureHandle = mTextureReference.GetHandle();
+    OutData.mPipelineHandle = mPipelineReference.GetHandle();
     OutData.mSize = mSize;
     OutData.mUvMin = mUvMin;
     OutData.mUvMax = mUvMax;
@@ -192,11 +191,11 @@ UBillboardComponent::UBillboardComponent() {
 void UBillboardComponent::SerializeTextureHandleProperty(void* Container, FArchive& Archive, const FProperty& Property) {
     UBillboardComponent& Object{*static_cast<UBillboardComponent*>(Container)};
 
-    SerializeAssetReference(Archive, "TextureAssetGuid", "TextureAssetPath", Object.mTextureHandle, Object.mTextureAssetGuid, Object.mTextureAssetPath);
+    SerializeAssetReference(Archive, "TextureAssetGuid", "TextureAssetPath", Object.mTextureReference);
 }
 
 void UBillboardComponent::SerializePipelineHandleProperty(void* Container, FArchive& Archive, const FProperty& Property) {
     UBillboardComponent& Object{*static_cast<UBillboardComponent*>(Container)};
 
-    SerializeAssetReference(Archive, "PipelineAssetGuid", "PipelineAssetPath", Object.mPipelineHandle, Object.mPipelineAssetGuid, Object.mPipelineAssetPath);
+    SerializeAssetReference(Archive, "PipelineAssetGuid", "PipelineAssetPath", Object.mPipelineReference);
 }

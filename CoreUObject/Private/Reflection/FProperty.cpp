@@ -191,28 +191,26 @@ const FString& FProperty::GetSerializationScope() const {
     return mSerializationScope;
 }
 
-void SerializeAssetReference(FArchive& Archive, std::string_view GuidName, std::string_view PathName, FAssetHandle& Handle, FGuid& Guid, FAssetPath& Path) {
+void SerializeAssetReference(FArchive& Archive, std::string_view GuidName, std::string_view PathName, FAssetReference& Reference) {
+    if (Archive.IsLoading() && Archive.SupportsNamedFields() && !Archive.HasField(GuidName) && !Archive.HasField(PathName)) {
+        return;
+    }
+
     const IAssetResolver* Resolver{Archive.GetAssetResolver()};
 
-    if (!Archive.IsLoading() && Resolver != nullptr) {
-        if (const FGuid* PersistentGuid{Resolver->GetAssetGuid(Handle)}) {
-            Guid = *PersistentGuid;
-        }
-
-        if (const FAssetPath* PersistentPath{Resolver->GetAssetPath(Handle)}) {
-            Path = *PersistentPath;
-        }
+    if (Archive.IsSaving()) {
+        Reference.RefreshIdentity(Resolver);
     }
+
+    FGuid Guid{Archive.IsLoading() ? FGuid{} : Reference.GetGuid()};
+    FAssetPath Path{Archive.IsLoading() ? FAssetPath{} : Reference.GetPath()};
 
     Archive.Serialize(GuidName, Guid);
     Archive.Serialize(PathName, Path.mPath);
 
-    if (Archive.IsLoading()) {
-        Handle = Resolver != nullptr ? Resolver->FindAsset(Guid) : FAssetHandle{};
-
-        if (!Handle && Resolver != nullptr) {
-            Handle = Resolver->FindAsset(Path);
-        }
+    if (Archive.IsLoading() && !Archive.HasError()) {
+        Reference = FAssetReference{Guid, Path};
+        Reference.Resolve(Resolver);
     }
 }
 

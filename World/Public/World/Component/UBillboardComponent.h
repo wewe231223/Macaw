@@ -1,7 +1,7 @@
 #pragma once
 #include "CoreUObject/Reflection/ReflectionMacros.h"
 #include "World/Component/UPrimitiveComponent.h"
-#include "Core/Asset/FAssetPath.h"
+#include "Core/Asset/FAssetReference.h"
 #include <array>
 #include "Math/FMath.h"
 #include "Asset/UTexture.h"
@@ -37,6 +37,7 @@ public:
     const FVector2& GetUVMax() const;
     const FVector4& GetColor() const;
 
+    void OnRegister() override;
     bool BuildBillboardDrawData(FBillboardDrawData& OutData) const;
     bool GetWorldCorners(const FMatrix& CameraWorld, std::array<FVector3, 4>& OutCorners) const;
 
@@ -45,7 +46,7 @@ public:
     void SendRenderTransform() override;
     void SendRenderDynamicData() override;
 
-protected:
+private:
     //Billboard를 현재 프레임에 렌더할 수 있는지 검사한다.
     bool CanRenderBillBoard() const;
 
@@ -55,19 +56,14 @@ protected:
     // 기본 구현 : 자신의 ComponentToWorld 사용
     virtual bool TryGetBillBoardWorld(FMatrix& OutWorld) const;
 
-private:
     static void SerializeTextureHandleProperty(void* Container, FArchive& Archive, const FProperty& Property);
     static void SerializePipelineHandleProperty(void* Container, FArchive& Archive, const FProperty& Property);
 
 private:
-    ReflectAccessor(mTextureHandle, GetTextureHandle, SetTextureHandle, "TextureHandle", EPropertyFlags::Edit | EPropertyFlags::Serialize | EPropertyFlags::Asset, &SerializeTextureHandleProperty, ReflectEditor("Billboard", "Texture"), ReflectAsset(UTexture));
-    FAssetHandle mTextureHandle{};
-    ReflectAccessor(mPipelineHandle, GetPipelineHandle, SetPipelineHandle, "PipelineHandle", EPropertyFlags::Edit | EPropertyFlags::Serialize | EPropertyFlags::Asset, &SerializePipelineHandleProperty, ReflectEditor("Billboard", "Pipeline"), ReflectAsset(UPipeline));
-    FAssetHandle mPipelineHandle{};
-    FAssetPath mTextureAssetPath{};
-    FAssetPath mPipelineAssetPath{};
-    FGuid mTextureAssetGuid{};
-    FGuid mPipelineAssetGuid{};
+    ReflectAccessor(mTextureReference, GetTextureHandle, SetTextureHandle, "TextureHandle", EPropertyFlags::Edit | EPropertyFlags::Serialize | EPropertyFlags::Asset, &SerializeTextureHandleProperty, ReflectEditor("Billboard", "Texture"), ReflectAsset(UTexture));
+    FAssetReference mTextureReference{};
+    ReflectAccessor(mPipelineReference, GetPipelineHandle, SetPipelineHandle, "PipelineHandle", EPropertyFlags::Edit | EPropertyFlags::Serialize | EPropertyFlags::Asset, &SerializePipelineHandleProperty, ReflectEditor("Billboard", "Pipeline"), ReflectAsset(UPipeline));
+    FAssetReference mPipelineReference{};
     ReflectAccessor(mSize, GetSize, SetSize, "Size", EPropertyFlags::Edit | EPropertyFlags::Serialize, ReflectSerializer(mSize), ReflectEditor("Billboard", "Size"), ReflectRange(0.001f, std::numeric_limits<float>::max()));
     FVector2 mSize{1.0f, 1.0f};
     ReflectReadOnlyAccessor(mUvMin, GetUVmin, "UVMin", EPropertyFlags::Serialize | EPropertyFlags::ReadOnly, ReflectSerializer(mUvMin), ReflectEditor("Billboard", "UV Min"));

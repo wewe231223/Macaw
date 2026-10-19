@@ -7,7 +7,7 @@
 #include "Core/Archive/FArchive.h"
 #include "CoreUObject/Reflection/FPropertyValue.h"
 #include <filesystem>
-#include "Core/Asset/FAssetPath.h"
+#include "Core/Asset/FAssetReference.h"
 
 /**
  * @brief 구조체 메타데이터의 직렬화 대상 프로퍼티를 처리합니다.
@@ -29,17 +29,7 @@ void SerializeScriptStructProperties(const UScriptStruct* Struct, void* Containe
 template <typename T>
 void SerializeNativeValue(FArchive& Archive, std::string_view Name, T& Value);
 
-/**
- * @brief 에셋 참조의 GUID와 경로를 직렬화하고 로드 시 핸들을 해석합니다.
- * @param Archive 에셋 해석기를 선택적으로 제공하는 아카이브입니다.
- * @param GuidName GUID 필드 이름입니다.
- * @param PathName 경로 필드 이름입니다.
- * @param[in,out] Handle 저장 시 식별 정보 조회에 사용하며 로드 시 해석 결과를 저장합니다.
- * @param[in,out] Guid 지속 에셋 GUID입니다.
- * @param[in,out] Path 지속 에셋 경로입니다.
- * @note 로드 시 GUID 검색에 실패하면 경로로 검색합니다. 해석기가 없으면 무효 핸들로 설정합니다.
- */
-void SerializeAssetReference(FArchive& Archive, std::string_view GuidName, std::string_view PathName, FAssetHandle& Handle, FGuid& Guid, FAssetPath& Path);
+void SerializeAssetReference(FArchive& Archive, std::string_view GuidName, std::string_view PathName, FAssetReference& Reference);
 
 /**
  * @brief 객체 참조를 GUID 문자열로 직렬화하고 로드 GUID를 참조 재매핑합니다.

@@ -8,16 +8,11 @@
 #include "Asset/UMesh.h"
 
 FAssetHandle UMeshComponent::GetMeshHandle() const {
-    return mMeshHandle;
+    return mMeshReference.GetHandle();
 }
 
 void UMeshComponent::SetMeshHandle(FAssetHandle InHandle) {
-    mMeshHandle = InHandle;
-
-    const IAssetRegistry* Registry{FAssetRegistry::TryGet()};
-
-    mMeshAssetPath = Registry != nullptr && Registry->GetAssetPath(mMeshHandle) != nullptr ? *Registry->GetAssetPath(mMeshHandle) : FAssetPath{};
-    mMeshAssetGuid = Registry != nullptr && Registry->GetAssetGuid(mMeshHandle) != nullptr ? *Registry->GetAssetGuid(mMeshHandle) : FGuid{};
+    mMeshReference.Assign(InHandle, FAssetRegistry::TryGet());
     BuildPickingBoxFromMesh();
     OnRenderStateChanged();
 }
@@ -25,11 +20,12 @@ void UMeshComponent::SetMeshHandle(FAssetHandle InHandle) {
 const UMesh* UMeshComponent::ResolveMesh() const {
     const IAssetRegistry* Registry{FAssetRegistry::TryGet()};
 
-    return Registry != nullptr ? Registry->ResolveAsset<UMesh>(mMeshHandle) : nullptr;
+    return Registry != nullptr ? Registry->ResolveAsset<UMesh>(mMeshReference.GetHandle()) : nullptr;
 }
 
 void UMeshComponent::OnRegister() {
     Super::OnRegister();
+    mMeshReference.Resolve(FAssetRegistry::TryGet());
     BuildPickingBoxFromMesh();
 }
 
@@ -52,7 +48,7 @@ const UMesh* FMeshPickingProxy::GetMesh() const {
 void FMeshPickingProxy::Update(const UMesh* InMesh, const FTransform& Transform) {
     Source = InMesh != nullptr ? InMesh->GetPickingSource() : nullptr;
 
-    const FVector3& Scale = Transform.GetScale();
+    const FVector3& Scale{Transform.GetScale()};
 
     Valid = std::isfinite(Scale.mX) && std::isfinite(Scale.mY) && std::isfinite(Scale.mZ) && Scale.mX != 0.0f && Scale.mY != 0.0f && Scale.mZ != 0.0f;
 
@@ -66,8 +62,8 @@ void FMeshPickingProxy::Update(const UMesh* InMesh, const FTransform& Transform)
 }
 
 bool UMeshComponent::RaycastMesh(const FRay& Ray, float& OutDistance, float MaxDistance) const {
-    const UMesh* Mesh = ResolveMesh();
-    const Uint64 Revision = GetTransformRevision();
+    const UMesh* Mesh{ResolveMesh()};
+    const Uint64 Revision{GetTransformRevision()};
 
     if (!mRaycastTransformInitialized || mRaycastTransformRevision != Revision || mRaycastProxy.GetMesh() != Mesh) {
         mRaycastProxy.Update(Mesh, GetComponentTransform());
@@ -82,10 +78,13 @@ bool FMeshPickingProxy::PrepareRay(const FRay& Ray, FRay& LocalRay, double& Dire
     if (!Valid)
         return false;
 
-    const auto Scale = DirectX::XMLoadFloat3(&InverseScale), Q = DirectX::XMLoadFloat4(&Rotation);
-    const auto Origin = DirectX::XMVectorMultiply(DirectX::XMVector3InverseRotate(DirectX::XMVectorSubtract(Ray.position, DirectX::XMLoadFloat3(&Position)), Q), Scale);
-    const auto Direction = DirectX::XMVectorMultiply(DirectX::XMVector3InverseRotate(Ray.direction, Q), Scale);
-    const double DX = DirectX::XMVectorGetX(Direction), DY = DirectX::XMVectorGetY(Direction), DZ = DirectX::XMVectorGetZ(Direction);
+    const auto Scale{DirectX::XMLoadFloat3(&InverseScale)};
+    const auto Q{DirectX::XMLoadFloat4(&Rotation)};
+    const auto Origin{DirectX::XMVectorMultiply(DirectX::XMVector3InverseRotate(DirectX::XMVectorSubtract(Ray.position, DirectX::XMLoadFloat3(&Position)), Q), Scale)};
+    const auto Direction{DirectX::XMVectorMultiply(DirectX::XMVector3InverseRotate(Ray.direction, Q), Scale)};
+    const double DX{DirectX::XMVectorGetX(Direction)};
+    const double DY{DirectX::XMVectorGetY(Direction)};
+    const double DZ{DirectX::XMVectorGetZ(Direction)};
 
     DirectionLength = std::sqrt(DX * DX + DY * DY + DZ * DZ);
 
@@ -101,14 +100,14 @@ bool FMeshPickingProxy::RaycastPrepared(const FRay& LocalRay, double DirectionLe
     if (Source == nullptr || !(MaxDistance >= 0.0f))
         return false;
 
-    const double Limit = static_cast<double>(MaxDistance) * DirectionLength;
-    const float LocalLimit = Limit >= std::numeric_limits<float>::max() ? std::numeric_limits<float>::max() : std::bit_cast<float>(std::bit_cast<Uint32>((std::max)(0.0f, static_cast<float>(Limit))) + 1u);
-    float Distance = 0.0f;
+    const double Limit{static_cast<double>(MaxDistance) * DirectionLength};
+    const float LocalLimit{Limit >= std::numeric_limits<float>::max() ? std::numeric_limits<float>::max() : std::bit_cast<float>(std::bit_cast<Uint32>((std::max)(0.0f, static_cast<float>(Limit))) + 1u)};
+    float Distance{};
 
     if (!Source->Raycast(LocalRay, Distance, LocalLimit, ReverseWinding))
         return false;
 
-    const float WorldDistance = static_cast<float>(Distance / DirectionLength);
+    const float WorldDistance{static_cast<float>(Distance / DirectionLength)};
 
     if (WorldDistance > MaxDistance)
         return false;
@@ -119,8 +118,8 @@ bool FMeshPickingProxy::RaycastPrepared(const FRay& LocalRay, double DirectionLe
 }
 
 bool FMeshPickingProxy::Raycast(const FRay& Ray, float& OutDistance, float MaxDistance) const {
-    FRay LocalRay;
-    double DirectionLength;
+    FRay LocalRay{};
+    double DirectionLength{};
 
     return PrepareRay(Ray, LocalRay, DirectionLength) && RaycastPrepared(LocalRay, DirectionLength, OutDistance, MaxDistance);
 }
@@ -141,5 +140,5 @@ UMeshComponent::UMeshComponent() {
 void UMeshComponent::SerializeMeshHandleProperty(void* Container, FArchive& Archive, const FProperty& Property) {
     UMeshComponent& Object{*static_cast<UMeshComponent*>(Container)};
 
-    SerializeAssetReference(Archive, "MeshAssetGuid", "MeshAssetPath", Object.mMeshHandle, Object.mMeshAssetGuid, Object.mMeshAssetPath);
+    SerializeAssetReference(Archive, "MeshAssetGuid", "MeshAssetPath", Object.mMeshReference);
 }

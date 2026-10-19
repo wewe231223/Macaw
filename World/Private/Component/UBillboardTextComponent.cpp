@@ -11,30 +11,12 @@
 #include "World/UWorld.h"
 
 void UBillboardTextComponent::SetFontHandle(FAssetHandle InFontHandle) {
-    if (mFontHandle == InFontHandle) {
-        return;
-    }
-
-    mFontHandle = InFontHandle;
-
-    const IAssetRegistry* AssetRegistry{FAssetRegistry::TryGet()};
-
-    mFontAssetPath = AssetRegistry != nullptr && AssetRegistry->GetAssetPath(mFontHandle) != nullptr ? *AssetRegistry->GetAssetPath(mFontHandle) : FAssetPath{};
-    mFontAssetGuid = AssetRegistry != nullptr && AssetRegistry->GetAssetGuid(mFontHandle) != nullptr ? *AssetRegistry->GetAssetGuid(mFontHandle) : FGuid{};
+    mFontReference.Assign(InFontHandle, FAssetRegistry::TryGet());
     RebuildTextGeometry();
 }
 
 void UBillboardTextComponent::SetPipelineHandle(FAssetHandle InPipelineHandle) {
-    if (mPipelineHandle == InPipelineHandle) {
-        return;
-    }
-
-    mPipelineHandle = InPipelineHandle;
-
-    const IAssetRegistry* AssetRegistry{FAssetRegistry::TryGet()};
-
-    mPipelineAssetPath = AssetRegistry != nullptr && AssetRegistry->GetAssetPath(mPipelineHandle) != nullptr ? *AssetRegistry->GetAssetPath(mPipelineHandle) : FAssetPath{};
-    mPipelineAssetGuid = AssetRegistry != nullptr && AssetRegistry->GetAssetGuid(mPipelineHandle) != nullptr ? *AssetRegistry->GetAssetGuid(mPipelineHandle) : FGuid{};
+    mPipelineReference.Assign(InPipelineHandle, FAssetRegistry::TryGet());
     MarkRenderStateDirty();
 }
 
@@ -86,11 +68,23 @@ void UBillboardTextComponent::SetLineSpacing(float InLineSpacing) {
 }
 
 FAssetHandle UBillboardTextComponent::GetFontHandle() const {
-    return mFontHandle;
+    return mFontReference.GetHandle();
 }
 
 FAssetHandle UBillboardTextComponent::GetPipelineHandle() const {
-    return mPipelineHandle;
+    return mPipelineReference.GetHandle();
+}
+
+FAssetHandle UBillboardTextComponent::GetRenderFontHandle() const {
+    const IAssetRegistry* Registry{FAssetRegistry::TryGet()};
+
+    return Registry != nullptr && Registry->ResolveAsset<UFont>(GetFontHandle()) == nullptr ? Registry->FindAsset(FAssetPath{"/Game/Font/NotoSansKR-Medium.ttf"}) : GetFontHandle();
+}
+
+FAssetHandle UBillboardTextComponent::GetRenderPipelineHandle() const {
+    const IAssetRegistry* Registry{FAssetRegistry::TryGet()};
+
+    return Registry != nullptr && Registry->ResolveAsset<UPipeline>(GetPipelineHandle()) == nullptr ? Registry->FindAsset(FAssetPath{"/Game/Pipeline/Text.json"}) : GetPipelineHandle();
 }
 
 const FString& UBillboardTextComponent::GetText() const {
@@ -121,10 +115,11 @@ void UBillboardTextComponent::RebuildTextGeometry() {
     mVertices.clear();
 
     FAssetRegistry* Registry{FAssetRegistry::TryGet()};
-    const UFont* Font{Registry != nullptr ? Registry->ResolveAsset<UFont>(mFontHandle) : nullptr};
+    const FAssetHandle FontHandle{GetRenderFontHandle()};
+    const UFont* Font{Registry != nullptr ? Registry->ResolveAsset<UFont>(FontHandle) : nullptr};
 
     if (Font != nullptr) {
-        BuildTextGeometry(*Font, *Registry, mFontHandle, mText, mCharacterHeight, mLetterSpacing, mLineSpacing, mVertices);
+        BuildTextGeometry(*Font, *Registry, FontHandle, mText, mCharacterHeight, mLetterSpacing, mLineSpacing, mVertices);
     }
 
     MarkRenderStateDirty();
@@ -133,17 +128,10 @@ void UBillboardTextComponent::RebuildTextGeometry() {
 void UBillboardTextComponent::OnRegister() {
     Super::OnRegister();
 
-    const IAssetRegistry* Registry{FAssetRegistry::TryGet()};
+    const IAssetResolver* Resolver{FAssetRegistry::TryGet()};
 
-    if (Registry != nullptr) {
-        if (Registry->ResolveAsset<UFont>(mFontHandle) == nullptr) {
-            mFontHandle = Registry->FindAsset(FAssetPath{"/Game/Font/NotoSansKR-Medium.ttf"});
-        }
-
-        if (Registry->ResolveAsset<UPipeline>(mPipelineHandle) == nullptr) {
-            mPipelineHandle = Registry->FindAsset(FAssetPath{"/Game/Pipeline/Text.json"});
-        }
-    }
+    mFontReference.Resolve(Resolver);
+    mPipelineReference.Resolve(Resolver);
 
     RebuildTextGeometry();
 }
@@ -170,12 +158,13 @@ std::unique_ptr<FPrimitiveSceneProxy> UBillboardTextComponent::CreateSceneProxy(
     const AActor* Owner{GetOwner()};
     FTextDrawData Data{};
 
-    if (!IsRegistered() || !IsVisible() || Owner == nullptr || !mFontHandle || !mPipelineHandle || mVertices.empty() || !TryGetTextWorld(Data.mWorld)) {
+    Data.mFontHandle = GetRenderFontHandle();
+    Data.mPipelineHandle = GetRenderPipelineHandle();
+
+    if (!IsRegistered() || !IsVisible() || Owner == nullptr || !Data.mFontHandle || !Data.mPipelineHandle || mVertices.empty() || !TryGetTextWorld(Data.mWorld)) {
         return nullptr;
     }
 
-    Data.mFontHandle = mFontHandle;
-    Data.mPipelineHandle = mPipelineHandle;
     Data.mColor = mColor;
     Data.mVertices = mVertices;
 
@@ -201,11 +190,11 @@ UBillboardTextComponent::UBillboardTextComponent() {
 void UBillboardTextComponent::SerializeFontHandleProperty(void* Container, FArchive& Archive, const FProperty& Property) {
     UBillboardTextComponent& Object{*static_cast<UBillboardTextComponent*>(Container)};
 
-    SerializeAssetReference(Archive, "FontAssetGuid", "FontAssetPath", Object.mFontHandle, Object.mFontAssetGuid, Object.mFontAssetPath);
+    SerializeAssetReference(Archive, "FontAssetGuid", "FontAssetPath", Object.mFontReference);
 }
 
 void UBillboardTextComponent::SerializePipelineHandleProperty(void* Container, FArchive& Archive, const FProperty& Property) {
     UBillboardTextComponent& Object{*static_cast<UBillboardTextComponent*>(Container)};
 
-    SerializeAssetReference(Archive, "PipelineAssetGuid", "PipelineAssetPath", Object.mPipelineHandle, Object.mPipelineAssetGuid, Object.mPipelineAssetPath);
+    SerializeAssetReference(Archive, "PipelineAssetGuid", "PipelineAssetPath", Object.mPipelineReference);
 }

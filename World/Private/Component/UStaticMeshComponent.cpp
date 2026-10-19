@@ -12,86 +12,31 @@
 #include "Asset/UMaterial.h"
 #include "Asset/Pipeline/UPipeline.h"
 
-namespace {
-    constexpr char BasePipelinePath[]{"/Game/Pipeline/Base"};
-    constexpr char TextureBasePipelinePath[]{"/Game/Pipeline/TexturedBase"};
-}
-
 FAssetHandle UStaticMeshComponent::GetMaterialHandle() const {
-    return mMaterialHandle;
+    return mMaterialReference.GetHandle();
 }
 
 FAssetHandle UStaticMeshComponent::GetPipelineHandle() const {
-    return mPipelineHandle;
-}
-
-void UStaticMeshComponent::SetMeshHandle(FAssetHandle InHandle) {
-    const FAssetHandle PreviousHandle{GetMeshHandle()};
-
-    Super::SetMeshHandle(InHandle);
-
-    if (PreviousHandle != GetMeshHandle()) {
-        OnRenderStateChanged();
-    }
+    return mPipelineReference.GetHandle();
 }
 
 void UStaticMeshComponent::SetMaterialHandle(FAssetHandle InHandle) {
-    const FAssetHandle PreviousMaterialHandle{mMaterialHandle};
-    const FAssetHandle PreviousPipelineHandle{mPipelineHandle};
-
-    mMaterialHandle = InHandle;
-
-    const IAssetRegistry* Registry{FAssetRegistry::TryGet()};
-
-    mMaterialAssetPath = Registry != nullptr && Registry->GetAssetPath(mMaterialHandle) != nullptr ? *Registry->GetAssetPath(mMaterialHandle) : FAssetPath{};
-    mMaterialAssetGuid = Registry != nullptr && Registry->GetAssetGuid(mMaterialHandle) != nullptr ? *Registry->GetAssetGuid(mMaterialHandle) : FGuid{};
-
-    EnsureDefaultRenderAssets();
-
-    if (PreviousMaterialHandle != mMaterialHandle || PreviousPipelineHandle != mPipelineHandle) {
-        OnRenderStateChanged();
-    }
+    mMaterialReference.Assign(InHandle, FAssetRegistry::TryGet());
+    OnRenderStateChanged();
 }
 
 void UStaticMeshComponent::SetPipelineHandle(FAssetHandle InHandle) {
-    const FAssetHandle PreviousMaterialHandle{mMaterialHandle};
-    const FAssetHandle PreviousPipelineHandle{mPipelineHandle};
-
-    mPipelineHandle = InHandle;
-
-    const IAssetRegistry* Registry{FAssetRegistry::TryGet()};
-
-    mPipelineAssetPath = Registry != nullptr && Registry->GetAssetPath(mPipelineHandle) != nullptr ? *Registry->GetAssetPath(mPipelineHandle) : FAssetPath{};
-    mPipelineAssetGuid = Registry != nullptr && Registry->GetAssetGuid(mPipelineHandle) != nullptr ? *Registry->GetAssetGuid(mPipelineHandle) : FGuid{};
-
-    EnsureDefaultRenderAssets();
-
-    if (PreviousMaterialHandle != mMaterialHandle || PreviousPipelineHandle != mPipelineHandle) {
-        OnRenderStateChanged();
-    }
+    mPipelineReference.Assign(InHandle, FAssetRegistry::TryGet());
+    OnRenderStateChanged();
 }
 
 void UStaticMeshComponent::OnRegister() {
     Super::OnRegister();
 
-    EnsureDefaultRenderAssets();
-
-}
-
-void UStaticMeshComponent::EnsureDefaultRenderAssets() {
     const IAssetRegistry* Registry{FAssetRegistry::TryGet()};
 
-    if (Registry == nullptr) {
-        return;
-    }
-
-    if (Registry->ResolveAsset<UMaterial>(mMaterialHandle) == nullptr) {
-        mMaterialHandle = Registry->EnsureDefaultStaticMeshMaterial();
-    }
-
-    if (Registry->ResolveAsset<UPipeline>(mPipelineHandle) == nullptr) {
-        mPipelineHandle = Registry->EnsureDefaultStaticMeshPipeline();
-    }
+    mMaterialReference.Resolve(Registry);
+    mPipelineReference.Resolve(Registry);
 }
 
 bool UStaticMeshComponent::ShouldCreateRenderState() const {
@@ -105,19 +50,13 @@ std::unique_ptr<FPrimitiveSceneProxy> UStaticMeshComponent::CreateSceneProxy() c
         return nullptr;
     }
 
-    std::unique_ptr<FStaticMeshSceneProxy> Proxy{std::make_unique<FStaticMeshSceneProxy>(GetHandle(), Owner->GetHandle(), GetRenderTransform(), FMeshSceneData{GetMeshHandle(), mMaterialHandle, mPipelineHandle})};
+    const IAssetRegistry* Registry{FAssetRegistry::TryGet()};
+    const FAssetHandle Material{Registry != nullptr && Registry->ResolveAsset<UMaterial>(GetMaterialHandle()) == nullptr ? Registry->EnsureDefaultStaticMeshMaterial() : GetMaterialHandle()};
+    const FAssetHandle Pipeline{Registry != nullptr && Registry->ResolveAsset<UPipeline>(GetPipelineHandle()) == nullptr ? Registry->EnsureDefaultStaticMeshPipeline() : GetPipelineHandle()};
+    std::unique_ptr<FStaticMeshSceneProxy> Proxy{std::make_unique<FStaticMeshSceneProxy>(GetHandle(), Owner->GetHandle(), GetRenderTransform(), FMeshSceneData{GetMeshHandle(), Material, Pipeline})};
 
     Proxy->SetUVTransforms(GetUVTransforms());
     return Proxy;
-}
-
-void UStaticMeshComponent::Serialize(FArchive& Archive) {
-    Super::Serialize(Archive);
-
-    if (Archive.IsLoading()) {
-        BuildPickingBoxFromMesh();
-        OnRenderStateChanged();
-    }
 }
 
 UStaticMeshComponent::UStaticMeshComponent() {
@@ -134,22 +73,32 @@ void UStaticMeshComponent::SetEditorMaterialHandle(FAssetHandle InHandle) {
     }
 
     const UMaterial* Material{Registry->ResolveAsset<UMaterial>(GetMaterialHandle())};
+
+    if (Material == nullptr || Registry->ResolveAsset<UPipeline>(GetPipelineHandle()) == nullptr) {
+        return;
+    }
+
+    const FAssetHandle BasePipeline{Registry->FindAsset(FAssetPath{"/Game/Pipeline/Base"})};
+    const FAssetHandle TexturedPipeline{Registry->FindAsset(FAssetPath{"/Game/Pipeline/TexturedBase"})};
+
+    if (GetPipelineHandle() != BasePipeline && GetPipelineHandle() != TexturedPipeline) {
+        return;
+    }
+
     bool HasTexture{};
 
-    if (Material != nullptr) {
-        for (Uint32 GroupIndex{}; GroupIndex < Material->GetGPUDataCount() && !HasTexture; ++GroupIndex) {
-            const FMaterialChunkSignature Signature{Material->BuildChunkSignature(GroupIndex)};
+    for (Uint32 GroupIndex{}; GroupIndex < Material->GetGPUDataCount() && !HasTexture; ++GroupIndex) {
+        const FMaterialChunkSignature Signature{Material->BuildChunkSignature(GroupIndex)};
 
-            for (Uint8 TextureFieldIndex{}; TextureFieldIndex < Signature.mTextureFieldCount; ++TextureFieldIndex) {
-                if (Signature.GetTextureHandle(TextureFieldIndex)) {
-                    HasTexture = true;
-                    break;
-                }
+        for (Uint8 TextureFieldIndex{}; TextureFieldIndex < Signature.mTextureFieldCount; ++TextureFieldIndex) {
+            if (Signature.GetTextureHandle(TextureFieldIndex)) {
+                HasTexture = true;
+                break;
             }
         }
     }
 
-    const FAssetHandle DesiredPipelineHandle{Registry->FindAsset(FAssetPath{HasTexture ? "/Game/Pipeline/TexturedBase" : "/Game/Pipeline/Base"})};
+    const FAssetHandle DesiredPipelineHandle{HasTexture ? TexturedPipeline : BasePipeline};
 
     if (DesiredPipelineHandle != GetPipelineHandle() && Registry->ResolveAsset<UPipeline>(DesiredPipelineHandle) != nullptr) {
         SetPipelineHandle(DesiredPipelineHandle);
@@ -159,11 +108,11 @@ void UStaticMeshComponent::SetEditorMaterialHandle(FAssetHandle InHandle) {
 void UStaticMeshComponent::SerializeMaterialHandleProperty(void* Container, FArchive& Archive, const FProperty& Property) {
     UStaticMeshComponent& Object{*static_cast<UStaticMeshComponent*>(Container)};
 
-    SerializeAssetReference(Archive, "MaterialAssetGuid", "MaterialAssetPath", Object.mMaterialHandle, Object.mMaterialAssetGuid, Object.mMaterialAssetPath);
+    SerializeAssetReference(Archive, "MaterialAssetGuid", "MaterialAssetPath", Object.mMaterialReference);
 }
 
 void UStaticMeshComponent::SerializePipelineHandleProperty(void* Container, FArchive& Archive, const FProperty& Property) {
     UStaticMeshComponent& Object{*static_cast<UStaticMeshComponent*>(Container)};
 
-    SerializeAssetReference(Archive, "PipelineAssetGuid", "PipelineAssetPath", Object.mPipelineHandle, Object.mPipelineAssetGuid, Object.mPipelineAssetPath);
+    SerializeAssetReference(Archive, "PipelineAssetGuid", "PipelineAssetPath", Object.mPipelineReference);
 }

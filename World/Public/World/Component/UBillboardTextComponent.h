@@ -1,8 +1,7 @@
 #pragma once
 #include "CoreUObject/Reflection/ReflectionMacros.h"
 #include "World/Component/UPrimitiveComponent.h"
-#include "Core/Base/FAssetHandle.h"
-#include "Core/Asset/FAssetPath.h"
+#include "Core/Asset/FAssetReference.h"
 #include "RenderCore/FRenderData.h"
 #include "Core/STL.h"
 #include "Asset/UFont.h"
@@ -50,26 +49,23 @@ public:
     /** @brief 전역 에셋 서비스에서 기본 폰트와 파이프라인을 조회하고 이 컴포넌트의 텍스트 정점을 갱신합니다. */
     void OnRegister() override;
 
-protected:
+private:
     virtual bool TryGetTextWorld(FMatrix& OutWorld) const;
     void Serialize(FArchive& Archive) override;
 
     // Dynamic Font에서 글리프를 요청하고 FTextVertex 배열을 다시 생성한다.
     void RebuildTextGeometry();
 
-private:
     static void SerializeFontHandleProperty(void* Container, FArchive& Archive, const FProperty& Property);
     static void SerializePipelineHandleProperty(void* Container, FArchive& Archive, const FProperty& Property);
+    FAssetHandle GetRenderFontHandle() const;
+    FAssetHandle GetRenderPipelineHandle() const;
 
-protected:
-    ReflectAccessor(mFontHandle, GetFontHandle, SetFontHandle, "FontHandle", EPropertyFlags::Edit | EPropertyFlags::Serialize | EPropertyFlags::Asset, &SerializeFontHandleProperty, ReflectEditor("Text Assets", "Font"), ReflectAsset(UFont));
-    FAssetHandle mFontHandle{};
-    ReflectAccessor(mPipelineHandle, GetPipelineHandle, SetPipelineHandle, "PipelineHandle", EPropertyFlags::Edit | EPropertyFlags::Serialize | EPropertyFlags::Asset, &SerializePipelineHandleProperty, ReflectEditor("Text Assets", "Pipeline"), ReflectAsset(UPipeline));
-    FAssetHandle mPipelineHandle{};
-    FAssetPath mFontAssetPath{};
-    FAssetPath mPipelineAssetPath{};
-    FGuid mFontAssetGuid{};
-    FGuid mPipelineAssetGuid{};
+private:
+    ReflectAccessor(mFontReference, GetFontHandle, SetFontHandle, "FontHandle", EPropertyFlags::Edit | EPropertyFlags::Serialize | EPropertyFlags::Asset, &SerializeFontHandleProperty, ReflectEditor("Text Assets", "Font"), ReflectAsset(UFont));
+    FAssetReference mFontReference{};
+    ReflectAccessor(mPipelineReference, GetPipelineHandle, SetPipelineHandle, "PipelineHandle", EPropertyFlags::Edit | EPropertyFlags::Serialize | EPropertyFlags::Asset, &SerializePipelineHandleProperty, ReflectEditor("Text Assets", "Pipeline"), ReflectAsset(UPipeline));
+    FAssetReference mPipelineReference{};
     ReflectAccessor(mText, GetText, SetText, "Text", EPropertyFlags::Edit | EPropertyFlags::Serialize, ReflectSerializer(mText), ReflectEditor("Text", "Text"));
     FString mText{};
     ReflectAccessor(mColor, GetColor, SetColor, "Color", EPropertyFlags::Edit | EPropertyFlags::Serialize | EPropertyFlags::Color, ReflectSerializer(mColor), ReflectEditor("Text", "Color"));
