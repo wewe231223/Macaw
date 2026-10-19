@@ -123,26 +123,35 @@ void FPropertyEditorContext::DrawText(const char* Label, const FString& Value, c
 }
 
 void FPropertyEditorContext::DrawTransform(const char* Label, const FTransform& Value, const std::function<void(const FTransform&)>& Setter) {
-    const ImGuiID TransformId{ImGui::GetID(Label)};
+    FRotationEditorState& RotationState{mRotationEdits[ImGui::GetID(Label)]};
+    FVector3 Position{Value.GetPosition()};
+    FRotator Rotation{RotationState.Update(Value.GetRotationQuaternion())};
+    FVector3 Scale{Value.GetScale()};
+    FTransform Transform{Value};
+    bool Changed{false};
 
-    if (mEditingTransformId != TransformId) {
-        mEditingTransformId = TransformId;
+    ImGui::PushID(Label);
+
+    if (ImGui::DragFloat3("Position", &Position.X, 0.1f)) {
+        Transform.SetPosition(Position);
+        Changed = true;
     }
 
-    UpdateTransformFields(Value);
+    if (ImGui::DragFloat3("Rotation", &Rotation.Pitch, 0.5f)) {
+        RotationState.SetRotation(Rotation);
+        Transform.SetRotation(Rotation);
+        Changed = true;
+    }
 
-    bool BChanged{false};
+    if (ImGui::DragFloat3("Scale", &Scale.X, 0.05f, 0.001f, FLT_MAX)) {
+        Transform.SetScale(FVector::Max(Scale, FVector{0.001f, 0.001f, 0.001f}));
+        Changed = true;
+    }
 
-    BChanged |= ImGui::DragFloat3("Position", &mEditPosition.X, 0.1f);
-    BChanged |= ImGui::DragFloat3("Rotation", &mEditRotation.Pitch, 0.5f);
-    BChanged |= ImGui::DragFloat3("Scale", &mEditScale.X, 0.05f, 0.001f, FLT_MAX);
-    BChanged |= ImGui::Checkbox("Absolute Location", &mBAbsoluteLocation);
-    BChanged |= ImGui::Checkbox("Absolute Rotation", &mBAbsoluteRotation);
-    BChanged |= ImGui::Checkbox("Absolute Scale", &mBAbsoluteScale);
+    ImGui::PopID();
 
-    if (BChanged) {
-        mEditScale = FVector::Max(mEditScale, FVector{0.001f, 0.001f, 0.001f});
-        Setter(BuildDesiredTransform());
+    if (Changed) {
+        Setter(Transform);
     }
 }
 
@@ -243,25 +252,6 @@ void FPropertyEditorContext::DrawAssetPicker(const char* Label, const UClass& As
     }
 
     ImGui::PopID();
-}
-
-void FPropertyEditorContext::UpdateTransformFields(const FTransform& Transform) {
-    mEditPosition = Transform.GetPosition();
-    mEditRotation = Transform.GetRotation();
-    mEditScale = Transform.GetScale();
-    mBAbsoluteLocation = Transform.IsAbsoluteLocation();
-    mBAbsoluteRotation = Transform.IsAbsoluteRotation();
-    mBAbsoluteScale = Transform.IsAbsoluteScale();
-}
-
-FTransform FPropertyEditorContext::BuildDesiredTransform() const {
-    FTransform Transform{mEditPosition, mEditRotation, mEditScale};
-
-    Transform.SetAbsoluteLocation(mBAbsoluteLocation);
-    Transform.SetAbsoluteRotation(mBAbsoluteRotation);
-    Transform.SetAbsoluteScale(mBAbsoluteScale);
-
-    return Transform;
 }
 
 bool FPropertyEditorContext::SupportsAssetThumbnail(const UClass& AssetType) const {

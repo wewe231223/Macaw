@@ -21,13 +21,21 @@ public:
     ~USceneComponent() override = default;
 
 public:
-    virtual void OnUnregister() override;
     void DestroyComponent(bool BPromoteChildren = false) override;
 
     ReflectClass(USceneComponent, EClassFlags::None);
 
     const FTransform& GetRelativeTransform() const;
     void SetRelativeTransform(const FTransform& Transform);
+
+    bool IsAbsoluteLocation() const;
+    bool IsAbsoluteRotation() const;
+    bool IsAbsoluteScale() const;
+    void SetAbsoluteLocation(bool AbsoluteLocation);
+    void SetAbsoluteRotation(bool AbsoluteRotation);
+    void SetAbsoluteScale(bool AbsoluteScale);
+    void SetAbsolute(bool AbsoluteLocation, bool AbsoluteRotation, bool AbsoluteScale);
+    bool CalculateRelativeTransform(const FTransform& WorldTransform, const USceneComponent* Parent, FTransform& OutRelative) const;
 
     void SetRelativeLocation(const FVector3& Location);
     void SetRelativeLocationAndRotation(const FVector3& Location, const FRotator& Rotation);
@@ -69,20 +77,25 @@ public:
     bool ResolveLoadedReferences() override;
 
 private:
+    static void SerializeTransformProperty(void* Container, FArchive& Archive, const FProperty& Property);
     static void SerializeParentProperty(void* Container, FArchive& Archive, const FProperty& Property);
-    void MarkTransformDirty();
+    void UpdateComponentTransform();
+    void UpdateWorldTransform();
     void NotifyTransformUpdate();
 
 private:
     // 부모와 자식 연결을 정리하는 동안 파괴 처리의 중복 진입을 막습니다.
     bool mDestroyingHierarchy{};
-    ReflectAccessor(mTransform, GetRelativeTransform, SetRelativeTransform, "Transform", EPropertyFlags::Edit | EPropertyFlags::Serialize, ReflectSerializer(mTransform), ReflectEditor("Transform", "Relative Transform"));
+    ReflectAccessor(mTransform, GetRelativeTransform, SetRelativeTransform, "Transform", EPropertyFlags::Edit | EPropertyFlags::Serialize, &SerializeTransformProperty, ReflectEditor("Transform", "Relative Transform"));
     FTransform mTransform{};
-    mutable FTransform mWorldTransform{};
-    mutable FObjectHandle mCachedParentHandle{};
-    mutable Uint64 mCachedParentRevision{};
-    mutable Uint64 mTransformRevision{};
-    mutable bool mWorldTransformDirty{true};
+    FTransform mWorldTransform{};
+    Uint64 mTransformRevision{1};
+    ReflectAccessor(mAbsoluteLocation, IsAbsoluteLocation, SetAbsoluteLocation, "bAbsoluteLocation", EPropertyFlags::Edit, ReflectEditor("Transform", "Absolute Location"));
+    bool mAbsoluteLocation{};
+    ReflectAccessor(mAbsoluteRotation, IsAbsoluteRotation, SetAbsoluteRotation, "bAbsoluteRotation", EPropertyFlags::Edit, ReflectEditor("Transform", "Absolute Rotation"));
+    bool mAbsoluteRotation{};
+    ReflectAccessor(mAbsoluteScale, IsAbsoluteScale, SetAbsoluteScale, "bAbsoluteScale", EPropertyFlags::Edit, ReflectEditor("Transform", "Absolute Scale"));
+    bool mAbsoluteScale{};
     FGuid mPendingParentGuid{};
     ReflectAccessor(mParent, GetParent, SetEditorParent, "Parent", EPropertyFlags::Edit | EPropertyFlags::Serialize | EPropertyFlags::Reference | EPropertyFlags::OwnerOnly, &SerializeParentProperty, ReflectEditor("Attachment", "Parent"), ReflectCondition(CanEditParent), ReflectFilter(CanSelectParent));
     TObjectRef<USceneComponent> mParent{};

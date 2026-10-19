@@ -245,7 +245,7 @@ bool FPropertyPanel::CanAttachComponent(const AActor& Actor, const USceneCompone
     if (Parent != nullptr) {
         FTransform RelativeTransform{};
 
-        return Component.GetComponentTransform().MakeRelativeTo(Parent->GetComponentTransform(), RelativeTransform);
+        return Component.CalculateRelativeTransform(Component.GetComponentTransform(), Parent, RelativeTransform);
     }
 
     return true;

@@ -4,6 +4,8 @@
 #include "Math/FMath.h"
 #include "Math/FVector4.h"
 #include <cfloat>
+#include <algorithm>
+#include <cmath>
 
 FQuat::FQuat() {
     X = 0.0f;
@@ -147,28 +149,31 @@ FQuat FQuat::Concatenate(const FQuat& First, const FQuat& Second) {
 }
 
 FRotator FQuat::ToRotator() const {
-    FRotator ResultRotator;
+    constexpr double ToDegrees{180.0 / 3.14159265358979323846};
+    const double QuaternionX{X};
+    const double QuaternionY{Y};
+    const double QuaternionZ{Z};
+    const double QuaternionW{W};
+    const double LengthSquared{QuaternionX * QuaternionX + QuaternionY * QuaternionY + QuaternionZ * QuaternionZ + QuaternionW * QuaternionW};
 
-    // Pitch
-    const float SinPitch = 2.0f * (W * Y - Z * X);
+    if (LengthSquared <= 1e-8) {
+        return FRotator{};
+    }
 
-    // Gimbal Lock 방지를 위해 [-1, 1] 범위로 Clamp
-    const float ClampedSinPitch = FMath::Clamp(SinPitch, -1.0f, 1.0f);
+    const double SinPitch{std::clamp(2.0 * (QuaternionW * QuaternionY - QuaternionZ * QuaternionX) / LengthSquared, -1.0, 1.0)};
 
-    ResultRotator.Pitch = asinf(ClampedSinPitch);
+    if (std::abs(SinPitch) >= 1.0 - 1e-14) {
+        const float Pitch{static_cast<float>(std::copysign(90.0, SinPitch))};
+        const float Roll{static_cast<float>(std::remainder(2.0 * std::atan2(QuaternionX, QuaternionW) * ToDegrees, 360.0))};
 
-    // Roll
-    ResultRotator.Roll = atan2f(2.0f * (W * X + Y * Z), 1.0f - 2.0f * (X * X + Y * Y));
+        return FRotator{Pitch, 0.0f, Roll};
+    }
 
-    // Yaw
-    ResultRotator.Yaw = atan2f(2.0f * (W * Z + X * Y), 1.0f - 2.0f * (Y * Y + Z * Z));
+    const float Pitch{static_cast<float>(std::asin(SinPitch) * ToDegrees)};
+    const float Yaw{static_cast<float>(std::atan2(2.0 * (QuaternionW * QuaternionZ + QuaternionX * QuaternionY), LengthSquared - 2.0 * (QuaternionY * QuaternionY + QuaternionZ * QuaternionZ)) * ToDegrees)};
+    const float Roll{static_cast<float>(std::atan2(2.0 * (QuaternionW * QuaternionX + QuaternionY * QuaternionZ), LengthSquared - 2.0 * (QuaternionX * QuaternionX + QuaternionY * QuaternionY)) * ToDegrees)};
 
-    // Radian -> Degree
-    ResultRotator.Pitch = FMath::RadiansToDegrees(ResultRotator.Pitch);
-    ResultRotator.Yaw = FMath::RadiansToDegrees(ResultRotator.Yaw);
-    ResultRotator.Roll = FMath::RadiansToDegrees(ResultRotator.Roll);
-
-    return ResultRotator;
+    return FRotator{Pitch, Yaw, Roll};
 }
 
 FQuat FQuat::FromRotator(const FRotator& Rotation) {

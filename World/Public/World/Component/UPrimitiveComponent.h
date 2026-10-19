@@ -67,7 +67,6 @@ private:
     DirectX::BoundingSphere mWorldSphere{};
 
     Uint64 mWorldBoundsTransformRevision{};
-    bool mWorldBoundsDirty{true};
 
     ReflectMembers();
 };

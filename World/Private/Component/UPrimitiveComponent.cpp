@@ -153,7 +153,6 @@ void UPrimitiveComponent::UpdateBounds() {
     mLocalAABB.Transform(mWorldAABB, WorldMatrix);
 
     mWorldBoundsTransformRevision = GetTransformRevision();
-    mWorldBoundsDirty = false;
 }
 
 void UPrimitiveComponent::Serialize(FArchive& Archive) {
@@ -178,6 +177,7 @@ void UPrimitiveComponent::BuildBoundsFromOBB() {
     DirectX::BoundingSphere::CreateFromBoundingBox(mLocalSphere, mPickingBox);
     DirectX::BoundingBox::CreateFromSphere(mLocalAABB, mLocalSphere);
 
+    UpdateBounds();
     OnTransformUpdate();
 }
 
@@ -188,7 +188,7 @@ const DirectX::BoundingSphere& UPrimitiveComponent::GetBoundingSphere() const {
 const DirectX::BoundingBox& UPrimitiveComponent::GetWorldAABB() const {
     const Uint64 TransformRevision{GetTransformRevision()};
 
-    if (mWorldBoundsDirty || mWorldBoundsTransformRevision != TransformRevision) {
+    if (mWorldBoundsTransformRevision != TransformRevision) {
         const_cast<UPrimitiveComponent*>(this)->UpdateBounds();
     }
 
@@ -198,7 +198,7 @@ const DirectX::BoundingBox& UPrimitiveComponent::GetWorldAABB() const {
 const DirectX::BoundingOrientedBox& UPrimitiveComponent::GetWorldOBB() const {
     const Uint64 TransformRevision{GetTransformRevision()};
 
-    if (mWorldBoundsDirty || mWorldBoundsTransformRevision != TransformRevision) {
+    if (mWorldBoundsTransformRevision != TransformRevision) {
         const_cast<UPrimitiveComponent*>(this)->UpdateBounds();
     }
 
@@ -208,7 +208,7 @@ const DirectX::BoundingOrientedBox& UPrimitiveComponent::GetWorldOBB() const {
 const DirectX::BoundingSphere& UPrimitiveComponent::GetWorldSphere() const {
     const Uint64 TransformRevision{GetTransformRevision()};
 
-    if (mWorldBoundsDirty || mWorldBoundsTransformRevision != TransformRevision) {
+    if (mWorldBoundsTransformRevision != TransformRevision) {
         const_cast<UPrimitiveComponent*>(this)->UpdateBounds();
     }
 
@@ -216,7 +216,6 @@ const DirectX::BoundingSphere& UPrimitiveComponent::GetWorldSphere() const {
 }
 
 void UPrimitiveComponent::OnTransformUpdate() {
-    mWorldBoundsDirty = true;
     MarkRenderTransformDirty();
 
     UWorld* World{GetBelongingWorld()};

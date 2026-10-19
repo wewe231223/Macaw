@@ -5,53 +5,99 @@
 #include "World/AActor.h"
 #include "World/UWorld.h"
 
-namespace {
-    bool ApplyWorldMatrix(USceneComponent& Component, const FMatrix& DesiredWorld) {
-        FVector3 Scale{};
-        FQuat Rotation{};
-        FVector3 Translation{};
-
-        if (!DesiredWorld.Decompose(Scale, Rotation, Translation)) {
-            return false;
-        }
-
-        return Component.SetWorldTransform(FTransform{Translation, Rotation, Scale});
-    }
-}
-
 const FTransform& USceneComponent::GetRelativeTransform() const {
     return mTransform;
 }
 
 void USceneComponent::SetRelativeTransform(const FTransform& Transform) {
-    const Uint64 PreviousRevision{mTransform.GetRevision()};
+    if (mTransform == Transform) {
+        return;
+    }
 
     mTransform = Transform;
+    UpdateComponentTransform();
+}
 
-    if (mTransform.GetRevision() != PreviousRevision) {
-        MarkTransformDirty();
+bool USceneComponent::IsAbsoluteLocation() const {
+    return mAbsoluteLocation;
+}
+
+bool USceneComponent::IsAbsoluteRotation() const {
+    return mAbsoluteRotation;
+}
+
+bool USceneComponent::IsAbsoluteScale() const {
+    return mAbsoluteScale;
+}
+
+void USceneComponent::SetAbsoluteLocation(bool AbsoluteLocation) {
+    SetAbsolute(AbsoluteLocation, mAbsoluteRotation, mAbsoluteScale);
+}
+
+void USceneComponent::SetAbsoluteRotation(bool AbsoluteRotation) {
+    SetAbsolute(mAbsoluteLocation, AbsoluteRotation, mAbsoluteScale);
+}
+
+void USceneComponent::SetAbsoluteScale(bool AbsoluteScale) {
+    SetAbsolute(mAbsoluteLocation, mAbsoluteRotation, AbsoluteScale);
+}
+
+void USceneComponent::SetAbsolute(bool AbsoluteLocation, bool AbsoluteRotation, bool AbsoluteScale) {
+    if (mAbsoluteLocation == AbsoluteLocation && mAbsoluteRotation == AbsoluteRotation && mAbsoluteScale == AbsoluteScale) {
+        return;
     }
+
+    mAbsoluteLocation = AbsoluteLocation;
+    mAbsoluteRotation = AbsoluteRotation;
+    mAbsoluteScale = AbsoluteScale;
+    UpdateComponentTransform();
+}
+
+bool USceneComponent::CalculateRelativeTransform(const FTransform& WorldTransform, const USceneComponent* Parent, FTransform& OutRelative) const {
+    FTransform RelativeTransform{WorldTransform};
+
+    if (Parent != nullptr) {
+        FTransform ParentTransform{Parent->GetComponentTransform()};
+
+        if (mAbsoluteLocation && mAbsoluteScale) {
+            ParentTransform.SetScale(FVector3{1.0f, 1.0f, 1.0f});
+        }
+
+        if (!WorldTransform.MakeRelativeTo(ParentTransform, RelativeTransform)) {
+            return false;
+        }
+
+        if (mAbsoluteLocation) {
+            RelativeTransform.SetPosition(WorldTransform.GetPosition());
+        }
+
+        if (mAbsoluteRotation) {
+            RelativeTransform.SetRotation(WorldTransform.GetRotationQuaternion());
+        }
+
+        if (mAbsoluteScale) {
+            RelativeTransform.SetScale(WorldTransform.GetScale());
+        }
+    }
+
+    OutRelative = RelativeTransform;
+
+    return true;
 }
 
 void USceneComponent::SetRelativeLocation(const FVector3& Location) {
-    const Uint64 PreviousRevision{mTransform.GetRevision()};
+    FTransform Transform{mTransform};
 
-    mTransform.SetPosition(Location);
-
-    if (mTransform.GetRevision() != PreviousRevision) {
-        MarkTransformDirty();
-    }
+    Transform.SetPosition(Location);
+    SetRelativeTransform(Transform);
 }
 
 void USceneComponent::SetRelativeLocationAndRotation(const FVector3& Location, const FRotator& Rotation) {
-    const Uint64 PreviousRevision{mTransform.GetRevision()};
+    FTransform Transform{mTransform};
 
-    mTransform.SetPosition(Location);
-    mTransform.SetRotation(Rotation);
-
-    if (mTransform.GetRevision() != PreviousRevision) {
-        MarkTransformDirty();
-    }
+    Transform.SetPosition(Location);
+    Transform.SetRotation(Rotation);
+    SetRelativeTransform(Transform);
 }
 
 FVector3 USceneComponent::GetRelativeLocation() const {
@@ -59,13 +105,10 @@ FVector3 USceneComponent::GetRelativeLocation() const {
 }
 
 void USceneComponent::SetRelativeRotation(const FRotator& Rotation) {
-    const Uint64 PreviousRevision{mTransform.GetRevision()};
+    FTransform Transform{mTransform};
 
-    mTransform.SetRotation(Rotation);
-
-    if (mTransform.GetRevision() != PreviousRevision) {
-        MarkTransformDirty();
-    }
+    Transform.SetRotation(Rotation);
+    SetRelativeTransform(Transform);
 }
 
 FRotator USceneComponent::GetRelativeRotation() const {
@@ -73,13 +116,10 @@ FRotator USceneComponent::GetRelativeRotation() const {
 }
 
 void USceneComponent::SetRelativeScale3D(const FVector3& Scale) {
-    const Uint64 PreviousRevision{mTransform.GetRevision()};
+    FTransform Transform{mTransform};
 
-    mTransform.SetScale(Scale);
-
-    if (mTransform.GetRevision() != PreviousRevision) {
-        MarkTransformDirty();
-    }
+    Transform.SetScale(Scale);
+    SetRelativeTransform(Transform);
 }
 
 FVector3 USceneComponent::GetRelativeScale3D() const {
@@ -92,15 +132,6 @@ void USceneComponent::Serialize(FArchive& Archive) {
     }
 
     Super::Serialize(Archive);
-
-    if (Archive.IsLoading()) {
-        MarkTransformDirty();
-    }
-}
-
-void USceneComponent::OnUnregister() {
-    MarkTransformDirty();
-    Super::OnUnregister();
 }
 
 void USceneComponent::DestroyComponent(bool BPromoteChildren) {
@@ -130,13 +161,16 @@ void USceneComponent::DestroyComponent(bool BPromoteChildren) {
     }
 
     if (PromotedComponent != nullptr) {
-        PromotedComponent->AttachToComponent(ParentComponent, EAttachmentTransformRule::KeepWorldTransform);
+        if (!PromotedComponent->AttachToComponent(ParentComponent, EAttachmentTransformRule::KeepWorldTransform)) {
+            PromotedComponent->DetachFromComponent(EAttachmentTransformRule::KeepWorldTransform);
+        }
+
         Actor->SetRootComponent(PromotedComponent);
     }
 
     for (USceneComponent* Child : ChildrenToDetach) {
-        if (Child != PromotedComponent) {
-            Child->AttachToComponent(PromotedComponent != nullptr ? PromotedComponent : ParentComponent, EAttachmentTransformRule::KeepWorldTransform);
+        if (Child != PromotedComponent && !Child->AttachToComponent(PromotedComponent != nullptr ? PromotedComponent : ParentComponent, EAttachmentTransformRule::KeepWorldTransform)) {
+            Child->DetachFromComponent(EAttachmentTransformRule::KeepWorldTransform);
         }
     }
 
@@ -167,9 +201,7 @@ bool USceneComponent::AttachToComponent(USceneComponent* ParentComponent, EAttac
     if (Rule == EAttachmentTransformRule::KeepWorldTransform) {
         const FTransform WorldTransform{GetComponentTransform()};
 
-        if (ParentComponent == nullptr) {
-            RelativeTransform = WorldTransform;
-        } else if (!WorldTransform.MakeRelativeTo(ParentComponent->GetComponentTransform(), RelativeTransform)) {
+        if (!CalculateRelativeTransform(WorldTransform, ParentComponent, RelativeTransform)) {
             return false;
         }
     }
@@ -190,7 +222,7 @@ bool USceneComponent::AttachToComponent(USceneComponent* ParentComponent, EAttac
         mTransform = RelativeTransform;
     }
 
-    MarkTransformDirty();
+    UpdateComponentTransform();
 
     if (World != nullptr) {
         World->MarkStructureDirty();
@@ -204,31 +236,27 @@ bool USceneComponent::DetachFromComponent(EAttachmentTransformRule Rule) {
 }
 
 bool USceneComponent::SetWorldTransform(const FTransform& WorldTransform) {
-    FTransform DesiredWorldTransform{WorldTransform};
+    FTransform RelativeTransform{};
 
-    DesiredWorldTransform.SetAbsoluteLocation(mTransform.IsAbsoluteLocation());
-    DesiredWorldTransform.SetAbsoluteRotation(mTransform.IsAbsoluteRotation());
-    DesiredWorldTransform.SetAbsoluteScale(mTransform.IsAbsoluteScale());
-
-    if (USceneComponent * ParentComponent{mParent.Get()}) {
-        FTransform RelativeTransform{};
-
-        if (!DesiredWorldTransform.MakeRelativeTo(ParentComponent->GetComponentTransform(), RelativeTransform)) {
-            return false;
-        }
-
-        SetRelativeTransform(RelativeTransform);
-
-        return true;
+    if (!CalculateRelativeTransform(WorldTransform, GetParent(), RelativeTransform)) {
+        return false;
     }
 
-    SetRelativeTransform(DesiredWorldTransform);
+    SetRelativeTransform(RelativeTransform);
 
     return true;
 }
 
 bool USceneComponent::SetWorldTransform(const FMatrix& WorldTransform) {
-    return ApplyWorldMatrix(*this, WorldTransform);
+    FVector3 Scale{};
+    FQuat Rotation{};
+    FVector3 Translation{};
+
+    if (!WorldTransform.Decompose(Scale, Rotation, Translation)) {
+        return false;
+    }
+
+    return SetWorldTransform(FTransform{Translation, Rotation, Scale});
 }
 
 bool USceneComponent::SetWorldLocation(const FVector3& Location) {
@@ -273,34 +301,10 @@ const std::vector<TObjectRef<USceneComponent>>& USceneComponent::GetChildren() c
 }
 
 const FTransform& USceneComponent::GetComponentTransform() const {
-    const USceneComponent* ParentComponent{mParent.Get()};
-    const FTransform* ParentTransform{ParentComponent != nullptr ? &ParentComponent->GetComponentTransform() : nullptr};
-    const FObjectHandle ParentHandle{ParentComponent != nullptr ? ParentComponent->GetHandle() : FObjectHandle{}};
-    const Uint64 ParentRevision{ParentComponent != nullptr ? ParentComponent->mTransformRevision : 0};
-
-    if (!mWorldTransformDirty && mCachedParentHandle == ParentHandle && mCachedParentRevision == ParentRevision) {
-        return mWorldTransform;
-    }
-
-    const bool NotifyChange{!mWorldTransformDirty};
-
-    mWorldTransform = ParentTransform != nullptr ? mTransform.Compose(*ParentTransform) : mTransform;
-    mCachedParentHandle = ParentHandle;
-    mCachedParentRevision = ParentRevision;
-    mWorldTransformDirty = false;
-    ++mTransformRevision;
-
-    if (NotifyChange) {
-        const_cast<USceneComponent*>(this)->NotifyTransformUpdate();
-        return GetComponentTransform();
-    }
-
     return mWorldTransform;
 }
 
 Uint64 USceneComponent::GetTransformRevision() const {
-    GetComponentTransform();
-
     return mTransformRevision;
 }
 
@@ -350,17 +354,45 @@ void USceneComponent::OnTransformUpdate() {
     OnRenderStateChanged();
 }
 
-void USceneComponent::MarkTransformDirty() {
-    mWorldTransformDirty = true;
+void USceneComponent::UpdateComponentTransform() {
+    const UWorld::FActorDispatchScope Dispatch{GetTypedOuter<UWorld>()};
+
+    UpdateWorldTransform();
     NotifyTransformUpdate();
+}
+
+void USceneComponent::UpdateWorldTransform() {
+    const USceneComponent* Parent{GetParent()};
+
+    mWorldTransform = Parent != nullptr ? mTransform.Compose(Parent->mWorldTransform) : mTransform;
+
+    if (mAbsoluteLocation) {
+        mWorldTransform.SetPosition(mTransform.GetPosition());
+    }
+
+    if (mAbsoluteRotation) {
+        mWorldTransform.SetRotation(mTransform.GetRotationQuaternion());
+    }
+
+    if (mAbsoluteScale) {
+        mWorldTransform.SetScale(mTransform.GetScale());
+    }
+
+    ++mTransformRevision;
+
+    for (const TObjectRef<USceneComponent>& ChildRef : mChildren) {
+        if (USceneComponent* Child{ChildRef.Get()}) {
+            Child->UpdateWorldTransform();
+        }
+    }
 }
 
 void USceneComponent::NotifyTransformUpdate() {
     OnTransformUpdate();
 
     for (const TObjectRef<USceneComponent>& ChildRef : mChildren) {
-        if (USceneComponent * Child{ChildRef.Get()}) {
-            Child->MarkTransformDirty();
+        if (USceneComponent* Child{ChildRef.Get()}) {
+            Child->NotifyTransformUpdate();
         }
     }
 }
@@ -398,5 +430,28 @@ void USceneComponent::SerializeParentProperty(void* Container, FArchive& Archive
 
     if (Archive.IsLoading()) {
         Object.mParent = {};
+    }
+}
+
+void USceneComponent::SerializeTransformProperty(void* Container, FArchive& Archive, const FProperty& Property) {
+    USceneComponent& Object{*static_cast<USceneComponent*>(Container)};
+    FTransform Transform{Object.mTransform};
+    bool AbsoluteLocation{Object.mAbsoluteLocation};
+    bool AbsoluteRotation{Object.mAbsoluteRotation};
+    bool AbsoluteScale{Object.mAbsoluteScale};
+
+    Archive.BeginObjectScope(Property.GetSerializationName());
+    Transform.Serialize(Archive);
+    Archive.Serialize("bAbsoluteLocation", AbsoluteLocation);
+    Archive.Serialize("bAbsoluteRotation", AbsoluteRotation);
+    Archive.Serialize("bAbsoluteScale", AbsoluteScale);
+    Archive.EndObjectScope();
+
+    if (Archive.IsLoading() && !Archive.HasError()) {
+        Object.mTransform = Transform;
+        Object.mAbsoluteLocation = AbsoluteLocation;
+        Object.mAbsoluteRotation = AbsoluteRotation;
+        Object.mAbsoluteScale = AbsoluteScale;
+        Object.UpdateComponentTransform();
     }
 }

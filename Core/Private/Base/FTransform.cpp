@@ -4,7 +4,6 @@
 FTransform::FTransform(const FVector3& InPosition, const FRotator& InRotation, const FVector3& InScale)
 	: mPosition{InPosition},
 	  mRotation{FQuat::FromRotator(InRotation)},
-	  mRotationEuler{InRotation},
 	  mScale{InScale} {
 }
 
@@ -13,48 +12,21 @@ FTransform::FTransform(const FVector3& InPosition, const FQuat& InRotation, cons
 	  mRotation{InRotation},
 	  mScale{InScale} {
     mRotation.Normalize();
-    mRotationEuler = mRotation.ToRotator();
 }
 
-FTransform& FTransform::operator=(const FTransform& Other) {
-    if (this == &Other || HasSameState(Other)) {
-        return *this;
-    }
+bool FTransform::operator==(const FTransform& Other) const {
+    const bool SameRotation{mRotation.X == Other.mRotation.X && mRotation.Y == Other.mRotation.Y && mRotation.Z == Other.mRotation.Z && mRotation.W == Other.mRotation.W};
+    const bool OppositeRotation{mRotation.X == -Other.mRotation.X && mRotation.Y == -Other.mRotation.Y && mRotation.Z == -Other.mRotation.Z && mRotation.W == -Other.mRotation.W};
 
-    const bool PositionOrRotationChanged{mPosition != Other.mPosition || mRotation.X != Other.mRotation.X || mRotation.Y != Other.mRotation.Y || mRotation.Z != Other.mRotation.Z || mRotation.W != Other.mRotation.W};
-    const bool ScaleChanged{mScale != Other.mScale};
-
-    mPosition = Other.mPosition;
-    mRotation = Other.mRotation;
-    mRotationEuler = Other.mRotationEuler;
-    mScale = Other.mScale;
-    mBAbsoluteLocation = Other.mBAbsoluteLocation;
-    mBAbsoluteRotation = Other.mBAbsoluteRotation;
-    mBAbsoluteScale = Other.mBAbsoluteScale;
-
-    if (PositionOrRotationChanged || ScaleChanged) {
-        InvalidateMatrices(PositionOrRotationChanged);
-    }
-
-    ++mRevision;
-
-    return *this;
-}
-
-FTransform& FTransform::operator=(FTransform&& Other) noexcept {
-    return operator=(static_cast<const FTransform&>(Other));
-}
-
-Uint64 FTransform::GetRevision() const {
-    return mRevision;
+    return mPosition == Other.mPosition && mScale == Other.mScale && (SameRotation || OppositeRotation);
 }
 
 const FVector3& FTransform::GetPosition() const {
     return mPosition;
 }
 
-const FRotator& FTransform::GetRotation() const {
-    return mRotationEuler;
+FRotator FTransform::GetRotation() const {
+    return mRotation.ToRotator();
 }
 
 const FQuat& FTransform::GetRotationQuaternion() const {
@@ -65,74 +37,78 @@ const FVector3& FTransform::GetScale() const {
     return mScale;
 }
 
-bool FTransform::IsAbsoluteLocation() const {
-    return mBAbsoluteLocation;
-}
-
-bool FTransform::IsAbsoluteRotation() const {
-    return mBAbsoluteRotation;
-}
-
-bool FTransform::IsAbsoluteScale() const {
-    return mBAbsoluteScale;
-}
-
 void FTransform::SetPosition(const FVector3& InPosition) {
-    if (mPosition == InPosition) {
-        return;
-    }
-
     mPosition = InPosition;
-    InvalidateMatrices(true);
-    ++mRevision;
+}
+
+void FTransform::SetRotation(const FRotator& InRotation) {
+    mRotation = FQuat::FromRotator(InRotation);
+}
+
+void FTransform::SetRotation(const FQuat& InRotation) {
+    mRotation = InRotation;
+    mRotation.Normalize();
 }
 
 void FTransform::SetScale(const FVector3& InScale) {
-    if (mScale == InScale) {
-        return;
-    }
-
     mScale = InScale;
-    InvalidateMatrices(false);
-    ++mRevision;
 }
 
-void FTransform::SetAbsoluteLocation(bool BInAbsoluteLocation) {
-    if (mBAbsoluteLocation == BInAbsoluteLocation) {
-        return;
+FMatrix FTransform::ToMatrixWithScale() const {
+    FMatrix Result{FMatrix::CreateScale(mScale) * FMatrix::CreateFromQuaternion(mRotation)};
+
+    Result.Translation(mPosition);
+
+    return Result;
+}
+
+FMatrix FTransform::ToMatrixNoScale() const {
+    FMatrix Result{FMatrix::CreateFromQuaternion(mRotation)};
+
+    Result.Translation(mPosition);
+
+    return Result;
+}
+
+FMatrix FTransform::ToInverseMatrixWithScale() const {
+    return ToMatrixWithScale().Invert();
+}
+
+FTransform FTransform::Compose(const FTransform& Parent) const {
+    const FVector3 ScaledPosition{mPosition.mX * Parent.mScale.mX, mPosition.mY * Parent.mScale.mY, mPosition.mZ * Parent.mScale.mZ};
+    const FVector3 Position{Parent.mRotation.RotateVector(ScaledPosition) + Parent.mPosition};
+    const FVector3 Scale{mScale.mX * Parent.mScale.mX, mScale.mY * Parent.mScale.mY, mScale.mZ * Parent.mScale.mZ};
+
+    return FTransform{Position, FQuat::Concatenate(Parent.mRotation, mRotation), Scale};
+}
+
+bool FTransform::MakeRelativeTo(const FTransform& Parent, FTransform& OutRelative) const {
+    constexpr float Epsilon{1e-6f};
+
+    if (std::abs(Parent.mScale.mX) <= Epsilon || std::abs(Parent.mScale.mY) <= Epsilon || std::abs(Parent.mScale.mZ) <= Epsilon) {
+        return false;
     }
 
-    mBAbsoluteLocation = BInAbsoluteLocation;
-    ++mRevision;
+    const FVector3 ParentSpacePosition{Parent.mRotation.Inverse().RotateVector(mPosition - Parent.mPosition)};
+    const FVector3 Position{ParentSpacePosition.mX / Parent.mScale.mX, ParentSpacePosition.mY / Parent.mScale.mY, ParentSpacePosition.mZ / Parent.mScale.mZ};
+    const FQuat Rotation{FQuat::Concatenate(Parent.mRotation.Inverse(), mRotation)};
+    const FVector3 Scale{mScale.mX / Parent.mScale.mX, mScale.mY / Parent.mScale.mY, mScale.mZ / Parent.mScale.mZ};
+
+    OutRelative = FTransform{Position, Rotation, Scale};
+
+    return true;
 }
 
-void FTransform::SetAbsoluteRotation(bool BInAbsoluteRotation) {
-    if (mBAbsoluteRotation == BInAbsoluteRotation) {
-        return;
-    }
+void FTransform::Serialize(FArchive& Archive) {
+    FVector3 Position{mPosition};
+    FQuat Rotation{mRotation};
+    FVector3 Scale{mScale};
 
-    mBAbsoluteRotation = BInAbsoluteRotation;
-    ++mRevision;
-}
+    Archive.Serialize("Position", Position);
+    Archive.Serialize("Rotation", Rotation);
+    Archive.Serialize("Scale", Scale);
 
-void FTransform::SetAbsoluteScale(bool BInAbsoluteScale) {
-    if (mBAbsoluteScale == BInAbsoluteScale) {
-        return;
-    }
-
-    mBAbsoluteScale = BInAbsoluteScale;
-    ++mRevision;
-}
-
-bool FTransform::HasSameState(const FTransform& Other) const {
-    return mPosition == Other.mPosition && mRotation.X == Other.mRotation.X && mRotation.Y == Other.mRotation.Y && mRotation.Z == Other.mRotation.Z && mRotation.W == Other.mRotation.W && mRotationEuler.Pitch == Other.mRotationEuler.Pitch && mRotationEuler.Yaw == Other.mRotationEuler.Yaw && mRotationEuler.Roll == Other.mRotationEuler.Roll && mScale == Other.mScale && mBAbsoluteLocation == Other.mBAbsoluteLocation && mBAbsoluteRotation == Other.mBAbsoluteRotation && mBAbsoluteScale == Other.mBAbsoluteScale;
-}
-
-void FTransform::InvalidateMatrices(bool IncludeNoScale) {
-    mMatrixWithScaleDirty = true;
-    mInverseMatrixWithScaleDirty = true;
-
-    if (IncludeNoScale) {
-        mMatrixNoScaleDirty = true;
+    if (Archive.IsLoading() && !Archive.HasError()) {
+        *this = FTransform{Position, Rotation, Scale};
     }
 }

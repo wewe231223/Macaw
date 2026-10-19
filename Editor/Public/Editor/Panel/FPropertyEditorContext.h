@@ -6,7 +6,9 @@
 #include "Editor/Property/IPropertyEditorContext.h"
 #include "ImGui/imgui.h"
 #include "Editor/View/FAssetThumbnailRenderer.h"
+#include "Editor/Property/FRotationEditorState.h"
 #include <d3d11.h>
+#include <unordered_map>
 
 class FPropertyEditorContext final : public IPropertyEditorContext {
 public:
@@ -43,9 +45,6 @@ public:
     void BindThumbnailRenderer(FAssetThumbnailRenderer* InThumbnailRenderer);
 
 private:
-    void UpdateTransformFields(const FTransform& Transform);
-    FTransform BuildDesiredTransform() const;
-
     bool SupportsAssetThumbnail(const UClass& AssetType) const;
 
     bool DrawAssetOption(const char* Label, ID3D11ShaderResourceView* Thumbnail, bool BSelected) const;
@@ -53,11 +52,5 @@ private:
 private:
     FAssetThumbnailRenderer* mThumbnailRenderer{nullptr};
 
-    ImGuiID mEditingTransformId{0};
-    FVector3 mEditPosition{};
-    FRotator mEditRotation{};
-    FVector3 mEditScale{1.0f, 1.0f, 1.0f};
-    bool mBAbsoluteLocation{false};
-    bool mBAbsoluteRotation{false};
-    bool mBAbsoluteScale{false};
+    std::unordered_map<ImGuiID, FRotationEditorState> mRotationEdits{};
 };
