@@ -60,12 +60,18 @@ void FPreviewScene::SetMesh(const FMeshSceneData& Mesh, const FMatrix& World) {
 
     if (mMesh->GetMeshHandle() != Mesh.mMeshHandle) {
         mMesh->SetMeshHandle(Mesh.mMeshHandle);
+        mMesh->ClearMaterialOverrides();
     }
 
-    mMesh->SetMaterialHandle(Mesh.mMaterialHandle);
-    mMesh->SetPipelineHandle(Mesh.mPipelineHandle);
+    if (const UMesh* Asset{mMesh->ResolveMesh()}; Asset != nullptr) {
+        for (const FMeshMaterialSlot& Slot : Asset->GetMaterialSlots()) {
+            const auto Position{std::ranges::find(Mesh.mMaterialOverrides, Slot.mName, &FMeshMaterialBinding::mSlot)};
+
+            mMesh->SetMaterialOverride(Slot.mName, Position != Mesh.mMaterialOverrides.end() ? Position->mMaterial : FAssetHandle{});
+        }
+    }
     mMesh->SetWorldTransform(World);
-    mMesh->SetVisible(static_cast<bool>(Mesh.mMeshHandle) && static_cast<bool>(Mesh.mMaterialHandle) && static_cast<bool>(Mesh.mPipelineHandle));
+    mMesh->SetVisible(static_cast<bool>(Mesh.mMeshHandle));
 }
 
 void FPreviewScene::SetLight(const FVector3& Direction, const FVector3& Color, float Intensity) {

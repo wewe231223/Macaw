@@ -528,16 +528,12 @@ void FWorldEditorContext::HandleSpawnComponent(const FMessageSpawnComponent& Mes
         return;
     }
 
-    const FAssetHandle PipelineHandle{BIsStaticMesh ? AssetRegistry->FindAsset(FAssetPath{"/Game/Pipeline/Base"}) : FAssetHandle{}};
-    const FAssetHandle Materials[]{AssetRegistry->FindAsset(FAssetPath{"/Game/System/Material/Default.mtl"}), AssetRegistry->FindAsset(FAssetPath{"/Game/System/Material/Red.mtl"}), AssetRegistry->FindAsset(FAssetPath{"/Game/System/Material/Green.mtl"}), AssetRegistry->FindAsset(FAssetPath{"/Game/System/Material/Blue.mtl"})};
     const bool IsBillboard{ComponentType->IsChildOf(UBillboardComponent::StaticClass())};
     const bool IsLight{ComponentType->IsChildOf(ULightComponent::StaticClass())};
     const FAssetHandle BillboardPipeline{IsBillboard || IsLight ? AssetRegistry->FindAsset(FAssetPath{"/Game/Pipeline/Billboard.json"}) : FAssetHandle{}};
     const FAssetHandle BillboardTexture{IsBillboard ? AssetRegistry->FindAsset(FAssetPath{"/Game/Texture/Fire+Sparks-Sheet.png"}) : FAssetHandle{}};
     const FAssetHandle LightProxyTexture{IsLight ? AssetRegistry->FindAsset(FAssetPath{"/Game/System/Light.png"}) : FAssetHandle{}};
 
-    std::uniform_int_distribution<std::size_t> MaterialIndex{0, std::size(Materials) - 1};
-    const FAssetHandle MaterialHandle{BIsStaticMesh ? Materials[MaterialIndex(RandomEngine)] : FAssetHandle{}};
 
     std::uniform_real_distribution<float> RandomX{-5.0f, 5.0f};
     std::uniform_real_distribution<float> RandomY{-5.0f, 5.0f};
@@ -594,8 +590,6 @@ void FWorldEditorContext::HandleSpawnComponent(const FMessageSpawnComponent& Mes
             auto* StaticMeshComponent{static_cast<UStaticMeshComponent*>(Component)};
 
             StaticMeshComponent->SetMeshHandle(MeshHandle);
-            StaticMeshComponent->SetPipelineHandle(PipelineHandle);
-            StaticMeshComponent->SetMaterialHandle(MaterialHandle);
         }
 
         if (IsBillboard) {

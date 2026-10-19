@@ -1,6 +1,6 @@
 #include "pch.h"
-#include "CoreUObject/Reflection/FReflectionRegistry.h"
-#include "Asset/FMaterialGroup.h"
+#include "RegisterAsset.h"
+#include "Asset/FSurfaceParameters.h"
 #include "Asset/Pipeline/UPipeline.h"
 #include "Asset/UAsset.h"
 #include "Asset/UFont.h"
@@ -12,7 +12,7 @@
 
 void ReflectionModules::RegisterAsset() {
     FMaterialTextureMap::StaticStruct();
-    FMaterialGroup::StaticStruct();
+    FSurfaceParameters::StaticStruct();
     UPipeline::StaticClass();
     UAsset::StaticClass();
     UFont::StaticClass();

@@ -52,7 +52,7 @@ bool FMaterialBuffer::Synchronize(ID3D11DeviceContext* Context) {
     std::erase_if(mMaterials, [this, Registry](auto& Pair) {
         const UMaterial* Material{Registry != nullptr ? Registry->ResolveAsset<UMaterial>(Pair.second.mHandle) : nullptr};
 
-        if (Material != nullptr && Material->GetGuid() == Pair.first && Material->GetGPUDataCount() == Pair.second.mIndices.size()) {
+        if (Material != nullptr && Material->GetGuid() == Pair.first) {
             return false;
         }
 
@@ -77,7 +77,7 @@ bool FMaterialBuffer::Synchronize(ID3D11DeviceContext* Context) {
         auto Position{mMaterials.find(Material->GetGuid())};
 
         if (Position == mMaterials.end()) {
-            if (Material->GetGPUDataCount() > mFreeIndices.size()) {
+            if (mFreeIndices.empty()) {
                 Complete = false;
                 continue;
             }
@@ -86,10 +86,8 @@ bool FMaterialBuffer::Synchronize(ID3D11DeviceContext* Context) {
 
             Entry.mHandle = Handle;
 
-            for (Uint32 Group{}; Group < Material->GetGPUDataCount(); ++Group) {
-                Entry.mIndices.push_back(mFreeIndices.back());
-                mFreeIndices.pop_back();
-            }
+            Entry.mIndex = mFreeIndices.back();
+            mFreeIndices.pop_back();
 
             Position = mMaterials.emplace(Material->GetGuid(), std::move(Entry)).first;
             ++mRevision;
@@ -103,19 +101,17 @@ bool FMaterialBuffer::Synchronize(ID3D11DeviceContext* Context) {
             continue;
         }
 
-        for (Uint32 Group{}; Group < Entry.mIndices.size(); ++Group) {
-            FMaterialGPUSlot Slot{};
+        FMaterialGPUSlot Slot{};
 
-            Material->BuildGPUData(Group, Slot);
+        Material->BuildGPUData(Slot);
 
-            D3D11_BOX Box{};
+        D3D11_BOX Box{};
 
-            Box.left = Entry.mIndices[Group] * MaterialGpuStride;
-            Box.right = Box.left + MaterialGpuStride;
-            Box.bottom = 1;
-            Box.back = 1;
-            Context->UpdateSubresource(mBuffer.Get(), 0, &Box, Slot.mData.data(), 0, 0);
-        }
+        Box.left = Entry.mIndex * MaterialGpuStride;
+        Box.right = Box.left + MaterialGpuStride;
+        Box.bottom = 1;
+        Box.back = 1;
+        Context->UpdateSubresource(mBuffer.Get(), 0, &Box, Slot.mData.data(), 0, 0);
 
         Entry.mStamp = Stamp;
     }
@@ -123,10 +119,10 @@ bool FMaterialBuffer::Synchronize(ID3D11DeviceContext* Context) {
     return Complete;
 }
 
-Uint32 FMaterialBuffer::GetMaterialIndex(const UMaterial& Material, Uint32 GroupIndex) const {
+Uint32 FMaterialBuffer::GetMaterialIndex(const UMaterial& Material) const {
     const auto Position{mMaterials.find(Material.GetGuid())};
 
-    return Position != mMaterials.end() && GroupIndex < Position->second.mIndices.size() ? Position->second.mIndices[GroupIndex] : UINT32_MAX;
+    return Position != mMaterials.end() ? Position->second.mIndex : UINT32_MAX;
 }
 
 void FMaterialBuffer::BuildIndexRemapping(const FMaterialBuffer& Target, TMap<Uint32, Uint32>& OutIndices) const {
@@ -139,12 +135,7 @@ void FMaterialBuffer::BuildIndexRemapping(const FMaterialBuffer& Target, TMap<Ui
             continue;
         }
 
-        const TArray<Uint32>& Indices{Position->second.mIndices};
-        const std::size_t GroupCount{std::min(Source.mIndices.size(), Indices.size())};
-
-        for (std::size_t Group{}; Group < GroupCount; ++Group) {
-            OutIndices.emplace(Source.mIndices[Group], Indices[Group]);
-        }
+        OutIndices.emplace(Source.mIndex, Position->second.mIndex);
     }
 }
 
@@ -157,7 +148,7 @@ ID3D11ShaderResourceView* FMaterialBuffer::GetSRV() const {
 }
 
 void FMaterialBuffer::ReleaseMaterial(FMaterialEntry& Entry) {
-    mFreeIndices.insert(mFreeIndices.end(), Entry.mIndices.begin(), Entry.mIndices.end());
+    mFreeIndices.push_back(Entry.mIndex);
     ++mRevision;
 }
 

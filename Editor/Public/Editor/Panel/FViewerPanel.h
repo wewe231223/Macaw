@@ -45,6 +45,7 @@ public:
     bool HandleExternalFileDrop(const std::filesystem::path& FilePath, const ImVec2& ScreenPosition);
 
 private:
+    FAssetHandle GetMaterial() const;
     void DrawContents() override;
     void DrawMenuBar();
     void DrawProperties();
@@ -67,7 +68,8 @@ private:
     FOffScreenRenderSurface mSurface{};
     FPreviewScene mPreviewScene{};
     FAssetHandle mMeshHandle{};
-    FAssetHandle mMaterialHandle{};
+    FName mSelectedMaterialSlot{};
+    TArray<FMeshMaterialBinding> mMaterialOverrides{};
 
     Uint32 mSurfaceWidth{};
     Uint32 mSurfaceHeight{};

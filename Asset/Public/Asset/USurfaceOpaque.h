@@ -1,50 +1,33 @@
 #pragma once
-#include "CoreUObject/Reflection/ReflectionMacros.h"
-#include "Asset/FMaterialGroup.h"
-#include "Asset/UMaterial.h"
 
-#include <functional>
+#include "Asset/FSurfaceParameters.h"
+#include "Asset/UMaterial.h"
 
 class USurfaceOpaque : public UMaterial {
 public:
     ReflectTypes(USurfaceOpaque, UMaterial);
 
 public:
-    using FTextureResolver = std::function<FAssetHandle(const std::filesystem::path& TexturePath)>;
-
     USurfaceOpaque();
-    virtual ~USurfaceOpaque();
-
+    ~USurfaceOpaque() override = default;
     USurfaceOpaque(const USurfaceOpaque&) = delete;
     USurfaceOpaque& operator=(const USurfaceOpaque&) = delete;
-
     USurfaceOpaque(USurfaceOpaque&&) noexcept = default;
     USurfaceOpaque& operator=(USurfaceOpaque&&) noexcept = default;
 
 public:
     ReflectClass(USurfaceOpaque);
 
-    bool Initialize(const std::filesystem::path& MtlPath, const FTextureResolver& TextureResolver);
+    const FSurfaceParameters& GetParameters() const;
+    bool SetParameters(const FSurfaceParameters& Parameters);
     void BuildGPUData(FMaterialGPUSlot& OutSlot) const override;
-    void BuildGPUData(Uint32 GroupIndex, FMaterialGPUSlot& OutSlot) const override;
-    
     FMaterialChunkSignature BuildChunkSignature() const override;
-    FMaterialChunkSignature BuildChunkSignature(Uint32 GroupIndex) const override;
-
-    Uint32 GetGPUDataCount() const override;
-    EMaterialBlendMode GetBlendMode(Uint32 GroupIndex = 0) const override;
-    
-    std::optional<Uint32> FindGroupIndex(FName Name) const override;
-    
-    FName GetGroupName(Uint32 GroupIndex) const override;
-
-    const TArray<FMaterialGroup>& GetGroups() const;
-    bool ModifyGroup(Uint32 GroupIndex, const std::function<void(FMaterialGroup&)>& Modifier);
+    EMaterialBlendMode GetBlendMode() const override;
+    void Finalize(const IAssetRegistry* Registry) override;
 
 private:
-    void Serialize(FArchive& Ar) override;
-    void Reset();
+    ReflectAccessor(mParameters, GetParameters, SetParameters, "Parameters", EPropertyFlags::Edit | EPropertyFlags::Serialize, ReflectSerializer(mParameters), ReflectEditor("Material", "Surface"));
+    FSurfaceParameters mParameters{};
 
-private:
-    TArray<FMaterialGroup> mGroups{};
+    ReflectMembers();
 };

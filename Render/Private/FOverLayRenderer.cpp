@@ -131,9 +131,8 @@ void FOverLayRenderer::RenderView(ID3D11DeviceContext* Context, FRenderBuffers& 
 void FOverLayRenderer::BuildMeshItems(const TArray<FOverlayMeshDrawData>& Meshes, TArray<FMeshDrawBatch>& Items) {
     for (const FOverlayMeshDrawData& Data : Meshes) {
         const UMesh* Mesh{FAssetRegistry::Get().ResolveAsset<UMesh>(Data.mMesh.mMeshHandle)};
-        const UMaterial* Material{FAssetRegistry::Get().ResolveAsset<UMaterial>(Data.mMesh.mMaterialHandle)};
 
-        if (Mesh == nullptr || Material == nullptr || mObjectTransforms.size() >= UINT32_MAX) {
+        if (Mesh == nullptr || mObjectTransforms.size() >= UINT32_MAX) {
             continue;
         }
 
@@ -144,16 +143,16 @@ void FOverLayRenderer::BuildMeshItems(const TArray<FOverlayMeshDrawData>& Meshes
         FMeshBatch Batch{};
 
         Batch.mMeshHandle = Data.mMesh.mMeshHandle;
-        Batch.mMaterialHandle = Data.mMesh.mMaterialHandle;
-        Batch.mPipelineHandle = Data.mMesh.mPipelineHandle;
+        Batch.mMaterialOverrides = Data.mMesh.mMaterialOverrides;
 
         BuildMeshBatchElements(*Mesh, 0, Batch.mElements);
 
         for (const FMeshBatchElement& Element : Batch.mElements) {
+            const UMaterial* Material{FAssetRegistry::Get().ResolveAsset<UMaterial>(ResolveMeshMaterial(*Mesh, Batch.mMaterialOverrides, Element.mMaterialSlotIndex))};
             FMeshDrawState State{};
             Uint32 MaterialIndex{UINT32_MAX};
 
-            if (mDrawRecords.size() >= UINT32_MAX || !BuildMeshDrawState(Batch, Element, *Material, mAssetResources.GetMaterialBuffer(), State, MaterialIndex)) {
+            if (Material == nullptr || mDrawRecords.size() >= UINT32_MAX || !BuildMeshDrawState(Batch, Element, *Material, mAssetResources.GetMaterialBuffer(), State, MaterialIndex, true)) {
                 continue;
             }
 

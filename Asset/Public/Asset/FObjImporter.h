@@ -1,9 +1,19 @@
 #pragma once
 #include "Asset/FObjInfo.h"
-#include "Asset/FAssetRegistry.h"
-#include "Asset/UMesh.h"
+#include "Asset/FSurfaceParameters.h"
+#include "Asset/FMeshData.h"
+#include <functional>
+
+struct FImportedMaterial {
+    FName mName{};
+    FSurfaceParameters mParameters{};
+};
 
 class FObjImporter {
+public:
+    using FTextureResolver = std::function<FAssetReference(const std::filesystem::path&)>;
+    using FMaterialResolver = std::function<FAssetReference(const std::filesystem::path&, FName)>;
+
 public:
     FObjImporter() = default;
     ~FObjImporter() = default;
@@ -14,6 +24,11 @@ public:
     FObjImporter(FObjImporter&&) noexcept = default;
     FObjImporter& operator=(FObjImporter&&) noexcept = default;
 
+public:
+    static bool LoadMaterialFile(const std::filesystem::path& MtlPath, const FTextureResolver& TextureResolver, TArray<FImportedMaterial>& OutMaterials);
+    bool ImportMesh(const std::filesystem::path& SourcePath, bool FlipUV, const FMaterialResolver& MaterialResolver, FMeshData& OutData);
+
+private:
     //Obj 파일 로드
     bool LoadObjFile(const FString& FilePath, FGeometry& OutGeometry);
     //한줄 나누기

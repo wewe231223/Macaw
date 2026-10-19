@@ -141,7 +141,7 @@ public:
     /// <summary>구성 콜백과 컴포넌트 등록을 수행하고 플레이 중이면 BeginPlay까지 진행합니다.</summary>
     bool FinishSpawningActor(AActor* Actor, const FTransform& Transform);
 
-    AActor* SpawnStaticMeshActor(const FAssetHandle& MeshHandle, const FAssetHandle& PipelineHandle, const FAssetHandle& MaterialHandle, const FVector3& Position);
+    AActor* SpawnStaticMeshActor(const FAssetHandle& MeshHandle, const FVector3& Position);
     bool DestroyActor(AActor* Actor);
     void FlushPendingDestroyActors();
 

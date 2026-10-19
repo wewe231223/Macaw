@@ -261,9 +261,7 @@ bool FEditorViewport::SpawnDroppedStaticMesh(FAssetHandle MeshHandle, const ImVe
         return false;
     }
 
-    const FAssetHandle PipelineHandle{AssetRegistry->EnsureDefaultStaticMeshPipeline()};
-    const FAssetHandle MaterialHandle{AssetRegistry->EnsureDefaultStaticMeshMaterial()};
-    AActor* Actor{World->SpawnStaticMeshActor(MeshHandle, PipelineHandle, MaterialHandle, DropPosition)};
+    AActor* Actor{World->SpawnStaticMeshActor(MeshHandle, DropPosition)};
 
     if (Actor == nullptr) {
         return false;

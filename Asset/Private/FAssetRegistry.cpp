@@ -13,7 +13,8 @@
 #include "Asset/FObjImporter.h"
 #include "Asset/Pipeline/UPipeline.h"
 #include "Core/Console/Console.h"
-#include "Importer/FObjSerializer.h"
+#include "Asset/FMeshAssetSerializer.h"
+#include "Asset/FMaterialAssetSerializer.h"
 
 #include <algorithm>
 #include <array>
@@ -28,10 +29,27 @@
 namespace {
     FAssetRegistry* AssetRegistryInstance{};
     Uint64 AssetRegistryGeneration{};
-    constexpr const char* DefaultStaticMeshMaterialAssetPath{"/Game/System/Material/Default.mtl"};
-    constexpr const char* DefaultStaticMeshPipelineAssetPath{"/Game/Pipeline/Base"};
+    constexpr const char* DefaultStaticMeshMaterialAssetPath{"/Game/System/Material/Default.mtl.materials/M_Default.material"};
     constexpr const char* DefaultCheckerboardTexturePath{"/Game/Texture/checkerboard.png"};
     constexpr const char* GizmoPipelineAssetPath{"/Game/Pipeline/Gizmo.json"};
+
+    std::filesystem::path MakeMaterialPath(const std::filesystem::path& Folder, FName MaterialName) {
+        std::string Name{"M_"};
+
+        for (unsigned char Character : MaterialName.ToString()) {
+            if ((Character >= 'a' && Character <= 'z') || (Character >= 'A' && Character <= 'Z') || (Character >= '0' && Character <= '9') || Character == '-') {
+                Name += static_cast<char>(Character);
+            } else {
+                constexpr char Digits[]{"0123456789ABCDEF"};
+
+                Name += '_';
+                Name += Digits[Character >> 4];
+                Name += Digits[Character & 15];
+            }
+        }
+
+        return Folder / (Name + ".material");
+    }
 
     FString GetLowercaseExtension(const std::filesystem::path& FilePath) {
         FString Extension{FilePath.extension().generic_string().c_str()};
@@ -231,204 +249,514 @@ bool FAssetRegistry::RemoveAsset(FAssetHandle Handle) {
 }
 
 FAssetHandle FAssetRegistry::ImportMesh(const std::filesystem::path& SourceObjPath, const FString& TargetVirtualFolder) {
-    std::error_code ErrorCode{};
-    const std::filesystem::path AbsoluteSourcePath{std::filesystem::absolute(SourceObjPath, ErrorCode).lexically_normal()};
+    std::error_code Error{};
+    const std::filesystem::path Source{std::filesystem::absolute(SourceObjPath, Error).lexically_normal()};
+    const std::filesystem::path Folder{ResolveContentFolder(TargetVirtualFolder)};
 
-    if (ErrorCode || !std::filesystem::is_regular_file(AbsoluteSourcePath, ErrorCode) || GetLowercaseExtension(AbsoluteSourcePath) != ".obj") {
+    if (Error || Folder.empty() || GetLowercaseExtension(Source) != ".obj" || !std::filesystem::is_regular_file(Source, Error)) {
         return {};
     }
 
-    const std::filesystem::path TargetFolder{ResolveContentFolder(TargetVirtualFolder)};
+    std::filesystem::path Target{Folder / Source.filename()};
 
-    if (TargetFolder.empty()) {
+    Target.replace_extension(".bin");
+
+    if (std::filesystem::exists(Target, Error) || std::filesystem::exists(MakeSidecarPath(Target), Error) || Error) {
         return {};
     }
 
-    std::filesystem::create_directories(TargetFolder, ErrorCode);
+    const std::filesystem::path MaterialFolder{Target.parent_path() / (Target.stem().string() + ".materials")};
 
-    if (ErrorCode) {
+    if (std::filesystem::exists(MaterialFolder, Error) || Error) {
         return {};
     }
 
-    std::filesystem::path TargetBinaryPath{TargetFolder / AbsoluteSourcePath.filename()};
-
-    TargetBinaryPath.replace_extension(".bin");
-
-    const bool BTargetExists{std::filesystem::exists(TargetBinaryPath, ErrorCode)};
-
-    if (ErrorCode) {
-        return {};
-    }
-
-    if (BTargetExists) {
-        Console::AddLog(Console::STDOutHandle, ELogLevel::Warning, ELogCategory::Etc, "Mesh import target already exists: %s", TargetBinaryPath.generic_string().c_str());
-        return {};
-    }
-
-    const std::filesystem::path TargetSidecarPath{MakeSidecarPath(TargetBinaryPath)};
-    const bool SidecarExists{std::filesystem::exists(TargetSidecarPath, ErrorCode)};
-
-    if (ErrorCode) {
-        return {};
-    }
-
-    FAssetEntry ImportEntry{};
-
-    if (!LoadOrCreateMetadata(TargetSidecarPath, EAssetType::Mesh, ImportEntry)) {
-        return {};
-    }
-
-    FObjImporter Importer{};
-    FGeometry Geometry{};
-
-    if (!Importer.LoadObjFile(AbsoluteSourcePath.string().c_str(), Geometry) || !FObjSerializer::SaveBinary(Geometry, TargetBinaryPath.string().c_str())) {
-        std::filesystem::remove(TargetBinaryPath, ErrorCode);
-
-        if (!SidecarExists) {
-            std::filesystem::remove(TargetSidecarPath, ErrorCode);
-        }
-
-        return {};
-    }
-
-    if (!DiscoverAssetFile(TargetBinaryPath)) {
-        std::filesystem::remove(TargetBinaryPath, ErrorCode);
-
-        if (!SidecarExists) {
-            std::filesystem::remove(TargetSidecarPath, ErrorCode);
-        }
-
-        return {};
-    }
-
-    const FAssetHandle Handle{FindAsset(MakeAssetPath(TargetBinaryPath))};
-    FAssetEntry* Entry{FindEntry(Handle)};
-
-    if (Entry == nullptr || Entry->mAssetType != EAssetType::Mesh || !LoadMesh(*Entry)) {
-        if (Handle) {
-            RemoveAsset(Handle);
-        }
-
-        std::filesystem::remove(TargetBinaryPath, ErrorCode);
-
-        if (!SidecarExists) {
-            std::filesystem::remove(TargetSidecarPath, ErrorCode);
-        }
-
-        return {};
-    }
-
-    return Handle;
+    return ImportMeshAsset(Source, Target, false);
 }
 
 FAssetHandle FAssetRegistry::LoadViewerAsset(const std::filesystem::path& SourcePath) {
-    std::error_code ErrorCode{};
-    const std::filesystem::path AbsolutePath{std::filesystem::absolute(SourcePath, ErrorCode).lexically_normal()};
+    std::error_code Error{};
+    const std::filesystem::path Source{std::filesystem::absolute(SourcePath, Error).lexically_normal()};
 
-    if (ErrorCode || !std::filesystem::is_regular_file(AbsolutePath, ErrorCode)) {
+    if (Error || !std::filesystem::is_regular_file(Source, Error)) {
         return {};
     }
 
-    for (const FAssetEntry& ExistingEntry : mAssets) {
-        if (ExistingEntry.mAsset != nullptr && ExistingEntry.mPhysicalPath.lexically_normal() == AbsolutePath) {
-            return ExistingEntry.mHandle;
+    for (const FAssetEntry& Entry : mAssets) {
+        if (Entry.mAsset != nullptr && Entry.mPhysicalPath == Source) {
+            return Entry.mHandle;
         }
     }
 
-    const FString Extension{GetLowercaseExtension(AbsolutePath)};
-    const EAssetType AssetType{Extension == ".obj" ? EAssetType::Mesh : GetAssetType(AbsolutePath)};
+    const FString Extension{GetLowercaseExtension(Source)};
 
-    if (AssetType != EAssetType::Mesh && AssetType != EAssetType::Material && AssetType != EAssetType::Texture) {
-        return {};
+    if (Extension == ".obj" || Extension == ".bin") {
+        return ImportMeshAsset(Source, {}, false);
     }
 
-    std::unique_ptr<UAsset> Asset{};
+    if (Extension == ".mtl") {
+        TArray<FAssetHandle> Existing{};
 
-    if (AssetType == EAssetType::Texture) {
-        std::unique_ptr<UTexture> Texture{NewObject<UTexture>()};
-
-        if (!Texture->Initialize(AbsolutePath, false, ETextureFormat::UNORM, true)) {
-            return {};
+        for (const FAssetEntry& Entry : mAssets) {
+            if (Entry.mAssetType != EAssetType::END) {
+                Existing.push_back(Entry.mHandle);
+            }
         }
 
-        Asset = std::move(Texture);
-    } else if (AssetType == EAssetType::Material) {
+        const TArray<FMeshMaterialSlot> Materials{ImportMaterialLibrary(Source, {})};
+
+        if (Materials.empty()) {
+            for (FAssetHandle Handle : GetAssetHandles(*UAsset::StaticClass())) {
+                if (std::ranges::find(Existing, Handle) == Existing.end()) {
+                    RemoveAsset(Handle);
+                }
+            }
+        }
+
+        return Materials.empty() ? FAssetHandle{} : Materials.front().mMaterial.GetHandle();
+    }
+
+    if (Extension == ".material") {
         std::unique_ptr<USurfaceOpaque> Material{NewObject<USurfaceOpaque>()};
 
-        if (!Material->Initialize(AbsolutePath, [this](const std::filesystem::path& TexturePath) {
-            return LoadViewerAsset(TexturePath);
-        })) {
+        if (!FMaterialAssetSerializer::Load(Source, *Material)) {
             return {};
         }
 
-        Asset = std::move(Material);
-    } else {
-        std::unique_ptr<UMesh> Mesh{NewObject<UMesh>()};
-        std::filesystem::path ObjPath{Extension == ".obj" ? AbsolutePath : std::filesystem::path{}};
-        const std::filesystem::path BinPath{Extension == ".bin" ? AbsolutePath : std::filesystem::path{}};
-        bool FlipUV{false};
+        Material->Finalize(this);
+        return RegisterImportedAsset(Source, {}, std::move(Material));
+    }
 
-        if (Extension == ".bin") {
-            ObjPath = AbsolutePath;
-            ObjPath.replace_extension(".obj");
+    return ImportTexture(Source, {});
+}
 
-            if (!std::filesystem::is_regular_file(ObjPath, ErrorCode)) {
-                ObjPath.clear();
+bool FAssetRegistry::SaveMaterial(FAssetHandle Handle) {
+    const FAssetEntry* Entry{FindEntry(Handle)};
+    const USurfaceOpaque* Material{ResolveAsset<USurfaceOpaque>(Handle)};
+
+    return Entry != nullptr && Material != nullptr && Entry->mPhysicalPath.extension() == ".material" && FMaterialAssetSerializer::Save(Entry->mPhysicalPath, *Material);
+}
+
+FAssetReference FAssetRegistry::ImportLegacyMaterial(const FAssetReference& Library, FName Slot, const FAssetReference& Pipeline) {
+    FAssetReference Material{Library};
+
+    Material.Resolve(this);
+
+    if (Library.GetPath().mPath.ends_with(".mtl")) {
+        const FAssetPath SlotPath{MakeMaterialPath(std::filesystem::path{Library.GetPath().mPath + ".materials"}, Slot).generic_string().c_str()};
+        const FAssetHandle SlotMaterial{FindAsset(SlotPath)};
+
+        if (SlotMaterial) {
+            Material = MakeReference(SlotMaterial);
+        }
+    }
+
+    const USurfaceOpaque* SourceMaterial{ResolveAsset<USurfaceOpaque>(Material.GetHandle())};
+    const FAssetEntry* Entry{FindEntry(Material.GetHandle())};
+
+    if (SourceMaterial == nullptr || Entry == nullptr || Entry->mPhysicalPath.extension() != ".material") {
+        return Material;
+    }
+
+    FAssetReference ResolvedPipeline{Pipeline};
+
+    ResolvedPipeline.Resolve(this);
+    const FString PipelineName{std::filesystem::path{ResolvedPipeline.GetPath().mPath}.stem().string().c_str()};
+    EMaterialShader Shader{EMaterialShader::Base};
+
+    if (PipelineName == "TexturedBase") {
+        Shader = EMaterialShader::Textured;
+    } else if (PipelineName == "BaseSolid") {
+        Shader = EMaterialShader::BaseSolid;
+    } else if (PipelineName == "Alternate") {
+        Shader = EMaterialShader::Alternate;
+    } else if (PipelineName == "AlternateSolid") {
+        Shader = EMaterialShader::AlternateSolid;
+    } else if (PipelineName == "SkyDome") {
+        Shader = EMaterialShader::Sky;
+    } else if (PipelineName == "Gizmo") {
+        Shader = EMaterialShader::Gizmo;
+    }
+
+    if (SourceMaterial->GetShader() == Shader) {
+        return Material;
+    }
+
+    const std::filesystem::path Path{Entry->mPhysicalPath.parent_path() / (Entry->mPhysicalPath.stem().string() + ".Shader" + std::to_string(static_cast<Uint32>(Shader)) + ".material")};
+    const FAssetHandle Existing{FindAsset(MakeAssetPath(Path))};
+
+    if (Existing) {
+        return MakeReference(Existing);
+    }
+
+    std::unique_ptr<USurfaceOpaque> Variant{NewObject<USurfaceOpaque>()};
+
+    Variant->SetParameters(SourceMaterial->GetParameters());
+    Variant->SetShader(Shader);
+
+    if (!FMaterialAssetSerializer::Save(Path, *Variant)) {
+        return Material;
+    }
+
+    const FAssetHandle Handle{RegisterImportedAsset(Path, Path, std::move(Variant))};
+
+    return Handle ? MakeReference(Handle) : Material;
+}
+
+bool FAssetRegistry::ConvertLegacyAssets() {
+    TArray<std::filesystem::path> Sources{};
+
+    for (const std::filesystem::directory_entry& Entry : std::filesystem::recursive_directory_iterator(mContentRoot)) {
+        if (Entry.is_regular_file() && Entry.path().extension() == ".mtl") {
+            Sources.push_back(Entry.path());
+        }
+    }
+
+    for (const std::filesystem::path& Source : Sources) {
+        TArray<FImportedMaterial> Imported{};
+        const FObjImporter::FTextureResolver UnresolvedTexture{[](const std::filesystem::path&) {
+            return FAssetReference{};
+        }};
+
+        if (!FObjImporter::LoadMaterialFile(Source, UnresolvedTexture, Imported) || Imported.empty()) {
+            return false;
+        }
+
+        const std::filesystem::path Folder{Source.string() + ".materials"};
+        const std::filesystem::path Metadata{MakeSidecarPath(MakeMaterialPath(Folder, Imported.front().mName))};
+        std::error_code Error{};
+
+        std::filesystem::create_directories(Folder, Error);
+
+        if (!std::filesystem::exists(Metadata) && std::filesystem::exists(MakeSidecarPath(Source))) {
+            std::filesystem::copy_file(MakeSidecarPath(Source), Metadata, Error);
+        }
+
+        const TArray<FMeshMaterialSlot> Materials{ImportMaterialLibrary(Source, Folder)};
+
+        if (Error || Materials.empty()) {
+            return false;
+        }
+
+        if (MakeAssetPath(Source).mPath == "/Game/Material/SkyDome.mtl") {
+            USurfaceOpaque* Material{ResolveAsset<USurfaceOpaque>(Materials.front().mMaterial.GetHandle())};
+
+            Material->SetShader(EMaterialShader::Sky);
+
+            if (!SaveMaterial(Materials.front().mMaterial.GetHandle())) {
+                return false;
             }
+        }
+    }
 
-            if (ErrorCode) {
+    Sources.clear();
+
+    for (const FAssetEntry& Entry : mAssets) {
+        if (Entry.mAssetType == EAssetType::Mesh) {
+            Sources.push_back(Entry.mPhysicalPath);
+        }
+    }
+
+    for (const std::filesystem::path& Source : Sources) {
+        FMeshData Existing{};
+
+        if (!FMeshAssetSerializer::Load(Source, Existing)) {
+            const FAssetEntry* Entry{FindEntry(FindAsset(MakeAssetPath(Source)))};
+            const bool FlipUV{Entry != nullptr && Entry->mMeshMetadata.mFlipUV};
+
+            if (!ImportMeshAsset(Source, Source, FlipUV) || !FMeshAssetSerializer::Load(Source, Existing)) {
+                return false;
+            }
+        }
+
+        for (FMeshMaterialSlot& Slot : Existing.mMaterialSlots) {
+            Slot.mMaterial.Resolve(this);
+
+            if (Slot.mMaterial.IsEmpty() && MakeAssetPath(Source).mPath.starts_with("/Game/System/Mesh/")) {
+                const FAssetHandle DefaultMaterial{Source.stem() == "SkyDome" ? FindAsset(FAssetPath{"/Game/Material/SkyDome.mtl.materials/M_Material.material"}) : FindAsset(FAssetPath{DefaultStaticMeshMaterialAssetPath})};
+
+                Slot.mMaterial = MakeReference(DefaultMaterial);
+            }
+        }
+
+        if (!FMeshAssetSerializer::Save(Source, Existing)) {
+            return false;
+        }
+
+        FAssetEntry* Entry{FindEntry(FindAsset(MakeAssetPath(Source)))};
+
+        if (Entry == nullptr || !LoadMesh(*Entry)) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+FAssetReference FAssetRegistry::MakeReference(FAssetHandle Handle) const {
+    FAssetReference Reference{};
+
+    Reference.Assign(Handle, this);
+    return Reference;
+}
+
+FAssetHandle FAssetRegistry::RegisterImportedAsset(const std::filesystem::path& Source, const std::filesystem::path& Target, std::unique_ptr<UAsset> Asset) {
+    if (Asset == nullptr) {
+        return {};
+    }
+
+    const EAssetType Type{Asset->IsA(UMesh::StaticClass()) ? EAssetType::Mesh : Asset->IsA(UMaterial::StaticClass()) ? EAssetType::Material : EAssetType::Texture};
+    FAssetHandle Handle{};
+
+    if (!Target.empty()) {
+        Handle = FindAsset(MakeAssetPath(Target));
+
+        if (!Handle && !DiscoverAssetFile(Target)) {
+            return {};
+        }
+
+        Handle = FindAsset(MakeAssetPath(Target));
+    } else {
+        Handle = AllocateHandle();
+        FAssetEntry Entry{};
+
+        Entry.mHandle = Handle;
+        Entry.mPhysicalPath = Source;
+        Entry.mAssetType = Type;
+        Entry.mAssetPath = FAssetPath{FString{"/Viewer/"} + std::to_string(Handle.mId).c_str() + "/" + Source.filename().generic_string().c_str()};
+
+        if (Handle.mId < mAssets.size()) {
+            mAssets[Handle.mId] = std::move(Entry);
+        } else {
+            mAssets.push_back(std::move(Entry));
+        }
+
+        mPathToHandle[mAssets[Handle.mId].mAssetPath] = Handle;
+    }
+
+    FAssetEntry* Entry{FindEntry(Handle)};
+
+    if (Entry == nullptr) {
+        return {};
+    }
+
+    Asset->SetAssetName(Entry->mAssetPath.mPath);
+    Entry->mAsset = std::move(Asset);
+    return Handle;
+}
+
+FAssetHandle FAssetRegistry::ImportTexture(const std::filesystem::path& Source, const std::filesystem::path& TargetFolder) {
+    const FAssetHandle Existing{FindAsset(MakeAssetPath(Source))};
+
+    if (Existing) {
+        FAssetEntry* Entry{FindEntry(Existing)};
+
+        if (Entry != nullptr && Entry->mAsset == nullptr && !LoadTexture(*Entry)) {
+            return {};
+        }
+
+        return ResolveAsset<UTexture>(Existing) != nullptr ? Existing : FAssetHandle{};
+    }
+
+    for (const FAssetEntry& Entry : mAssets) {
+        if (Entry.mPhysicalPath == Source && (TargetFolder.empty() || Entry.mPersistentGuid.IsValid()) && ResolveAsset<UTexture>(Entry.mHandle) != nullptr) {
+            return Entry.mHandle;
+        }
+    }
+
+    if (GetAssetType(Source) != EAssetType::Texture) {
+        return {};
+    }
+
+    std::filesystem::path Target{};
+
+    if (!TargetFolder.empty()) {
+        Target = TargetFolder / (std::to_string(std::hash<std::string>{}(Source.generic_string())) + "_" + Source.filename().string());
+        const FAssetHandle Imported{FindAsset(MakeAssetPath(Target))};
+
+        if (ResolveAsset<UTexture>(Imported) != nullptr) {
+            return Imported;
+        }
+    }
+
+    std::unique_ptr<UTexture> Texture{NewObject<UTexture>()};
+
+    if (!Texture->Initialize(Source, false, ETextureFormat::UNORM, true)) {
+        return {};
+    }
+
+    if (!TargetFolder.empty()) {
+        std::error_code Error{};
+
+        std::filesystem::create_directories(TargetFolder, Error);
+        if (Error || !std::filesystem::copy_file(Source, Target, std::filesystem::copy_options::none, Error)) {
+            return {};
+        }
+    }
+
+    return RegisterImportedAsset(Source, Target, std::move(Texture));
+}
+
+TArray<FMeshMaterialSlot> FAssetRegistry::ImportMaterialLibrary(const std::filesystem::path& Source, const std::filesystem::path& TargetFolder) {
+    TArray<FImportedMaterial> Imported{};
+
+    if (!FObjImporter::LoadMaterialFile(Source, [this, &TargetFolder](const std::filesystem::path& TexturePath) {
+        const FAssetHandle Texture{ImportTexture(TexturePath, TargetFolder.empty() ? std::filesystem::path{} : TargetFolder / "Textures")};
+
+        return MakeReference(Texture ? Texture : FindAsset(FAssetPath{DefaultCheckerboardTexturePath}));
+    }, Imported)) {
+        return {};
+    }
+
+    TArray<FMeshMaterialSlot> Materials{};
+
+    for (const FImportedMaterial& Item : Imported) {
+        std::filesystem::path Target{};
+
+        if (!TargetFolder.empty()) {
+            Target = MakeMaterialPath(TargetFolder, Item.mName);
+        }
+
+        FAssetHandle Handle{Target.empty() ? FAssetHandle{} : FindAsset(MakeAssetPath(Target))};
+
+        if (!Handle) {
+            std::unique_ptr<USurfaceOpaque> Material{NewObject<USurfaceOpaque>()};
+
+            if (!Material->SetParameters(Item.mParameters)) {
                 return {};
             }
 
-            const std::filesystem::path SidecarPath{MakeSidecarPath(AbsolutePath)};
+            if (!Target.empty() && !FMaterialAssetSerializer::Save(Target, *Material)) {
+                return {};
+            }
 
-            if (std::filesystem::is_regular_file(SidecarPath, ErrorCode)) {
+            Handle = RegisterImportedAsset(Source, Target, std::move(Material));
+        }
+
+        FAssetEntry* Entry{FindEntry(Handle)};
+
+        if (Entry == nullptr || (Entry->mAsset == nullptr && !LoadMaterial(*Entry))) {
+            return {};
+        }
+
+        Materials.push_back(FMeshMaterialSlot{Item.mName, MakeReference(Handle)});
+    }
+
+    return Materials;
+}
+
+FAssetHandle FAssetRegistry::ImportMeshAsset(const std::filesystem::path& Source, const std::filesystem::path& Target, bool FlipUV) {
+    TArray<FAssetHandle> Existing{};
+
+    for (const FAssetEntry& Entry : mAssets) {
+        if (Entry.mAssetType != EAssetType::END) {
+            Existing.push_back(Entry.mHandle);
+        }
+    }
+
+    const auto Rollback{[this, &Existing, &Source, &Target] {
+        TArray<FAssetHandle> Added{};
+
+        for (const FAssetEntry& Entry : mAssets) {
+            if (Entry.mAssetType != EAssetType::END && std::ranges::find(Existing, Entry.mHandle) == Existing.end()) {
+                Added.push_back(Entry.mHandle);
+            }
+        }
+
+        std::error_code Error{};
+
+        for (FAssetHandle Handle : Added) {
+            const FAssetEntry* Entry{FindEntry(Handle)};
+
+            if (!Target.empty() && Entry != nullptr && !Entry->mSidecarPath.empty()) {
+                std::filesystem::remove(Entry->mPhysicalPath, Error);
+                std::filesystem::remove(Entry->mSidecarPath, Error);
+            }
+
+            RemoveAsset(Handle);
+        }
+
+        if (!Target.empty() && Source != Target) {
+            std::filesystem::remove(Target, Error);
+            std::filesystem::remove(MakeSidecarPath(Target), Error);
+            const std::filesystem::path Folder{Target.parent_path() / (Target.stem().string() + ".materials")};
+            const std::filesystem::path ResolvedFolder{std::filesystem::weakly_canonical(Folder, Error)};
+            const std::filesystem::path ResolvedContent{std::filesystem::weakly_canonical(mContentRoot, Error)};
+            const std::filesystem::path Relative{ResolvedFolder.lexically_relative(ResolvedContent)};
+
+            if (!Error && !Relative.empty() && *Relative.begin() != ".." && ResolvedFolder.parent_path() == std::filesystem::weakly_canonical(Target.parent_path(), Error)) {
+                std::filesystem::remove_all(ResolvedFolder, Error);
+            }
+        }
+
+        return FAssetHandle{};
+    }};
+    FMeshData Data{};
+
+    if (!FMeshAssetSerializer::Load(Source, Data)) {
+        if (GetLowercaseExtension(Source) == ".bin") {
+            std::error_code Error{};
+            const bool HasMetadata{std::filesystem::is_regular_file(MakeSidecarPath(Source), Error)};
+
+            if (Error) {
+                return Rollback();
+            }
+
+            if (HasMetadata) {
                 FAssetEntry Metadata{};
 
-                if (!LoadOrCreateMetadata(SidecarPath, EAssetType::Mesh, Metadata)) {
-                    return {};
+                if (!LoadOrCreateMetadata(MakeSidecarPath(Source), EAssetType::Mesh, Metadata)) {
+                    return Rollback();
                 }
 
                 FlipUV = Metadata.mMeshMetadata.mFlipUV;
             }
+        }
 
-            if (ErrorCode) {
-                return {};
+        FObjImporter Importer{};
+        TMap<std::filesystem::path, TArray<FMeshMaterialSlot>> Libraries{};
+        bool MaterialImportFailed{};
+
+        if (!Importer.ImportMesh(Source, FlipUV, [this, &Libraries, &Target, &Source, &MaterialImportFailed](const std::filesystem::path& MaterialPath, FName Name) {
+            auto Position{Libraries.find(MaterialPath)};
+
+            if (Position == Libraries.end()) {
+                const std::filesystem::path Folder{Target.empty() ? std::filesystem::path{} : Target == Source ? std::filesystem::path{MaterialPath.string() + ".materials"} : Target.parent_path() / (Target.stem().string() + ".materials")};
+
+                Position = Libraries.emplace(MaterialPath, ImportMaterialLibrary(MaterialPath, Folder)).first;
+
+                if (Position->second.empty() && std::filesystem::is_regular_file(MaterialPath)) {
+                    MaterialImportFailed = true;
+                }
             }
+
+            const auto Material{std::ranges::find(Position->second, Name, &FMeshMaterialSlot::mName)};
+
+            return Material != Position->second.end() ? Material->mMaterial : Name.IsNone() && !Position->second.empty() ? Position->second.front().mMaterial : FAssetReference{};
+        }, Data) || MaterialImportFailed) {
+            return Rollback();
         }
-
-        if (!Mesh->Initialize(ObjPath, BinPath, [this](const std::filesystem::path& MaterialPath) {
-            return LoadViewerAsset(MaterialPath);
-        }, [this](FAssetHandle MaterialHandle, FName GroupName) -> std::optional<Uint32> {
-            const UMaterial* Material{ResolveAsset<UMaterial>(MaterialHandle)};
-
-            return Material != nullptr ? Material->FindGroupIndex(GroupName) : std::nullopt;
-        }, FlipUV)) {
-            return {};
-        }
-
-        Asset = std::move(Mesh);
     }
 
-    const FAssetHandle Handle{AllocateHandle()};
-    FAssetEntry Entry{};
+    std::unique_ptr<UMesh> Mesh{CreateMesh(Data)};
 
-    Entry.mAssetPath = FAssetPath{FString{"/Viewer/"} + std::to_string(Handle.mId).c_str() + "/" + AbsolutePath.filename().generic_string().c_str()};
-    Entry.mPhysicalPath = AbsolutePath;
-    Entry.mAssetType = AssetType;
-    Entry.mHandle = Handle;
-    Asset->SetAssetName(Entry.mAssetPath.mPath);
-    Entry.mAsset = std::move(Asset);
-
-    if (Handle.mId < mAssets.size()) {
-        mAssets[Handle.mId] = std::move(Entry);
-    } else {
-        mAssets.emplace_back(std::move(Entry));
+    if (Mesh == nullptr) {
+        return Rollback();
     }
 
-    mPathToHandle[mAssets[Handle.mId].mAssetPath] = Handle;
+    if (!Target.empty()) {
+        std::error_code Error{};
 
-    return Handle;
+        std::filesystem::create_directories(Target.parent_path(), Error);
+
+        if (Error || !FMeshAssetSerializer::Save(Target, Data)) {
+            return Rollback();
+        }
+    }
+
+    const FAssetHandle Handle{RegisterImportedAsset(Source, Target, std::move(Mesh))};
+
+    return Handle ? Handle : Rollback();
 }
 
 void FAssetRegistry::Reset() {
@@ -452,7 +780,6 @@ void FAssetRegistry::Finalize() {
         UMaterial* Material{static_cast<UMaterial*>(Entry.mAsset.get())};
 
         Material->Finalize(this);
-        Material->MarkGPUDataDirty();
     }
 }
 
@@ -464,16 +791,6 @@ FAssetHandle FAssetRegistry::EnsureDefaultStaticMeshMaterial() const {
     }
 
     return DefaultMaterialHandle;
-}
-
-FAssetHandle FAssetRegistry::EnsureDefaultStaticMeshPipeline() const {
-    const FAssetHandle DefaultPipelineHandle{FindAsset(FAssetPath{DefaultStaticMeshPipelineAssetPath})};
-
-    if (ResolveAsset<UPipeline>(DefaultPipelineHandle) == nullptr) {
-        return {};
-    }
-
-    return DefaultPipelineHandle;
 }
 
 std::filesystem::path FAssetRegistry::ResolveContentFolder(const FString& VirtualFolder) const {
@@ -491,7 +808,10 @@ std::filesystem::path FAssetRegistry::ResolveContentFolder(const FString& Virtua
 
     const FString RelativeFolder{VirtualFolder.substr(VirtualPrefix.size())};
 
-    return (mContentRoot / std::filesystem::path(RelativeFolder)).lexically_normal();
+    const std::filesystem::path Folder{(mContentRoot / std::filesystem::path(RelativeFolder)).lexically_normal()};
+    const std::filesystem::path Relative{Folder.lexically_relative(mContentRoot)};
+
+    return !Relative.empty() && *Relative.begin() != ".." ? Folder : std::filesystem::path{};
 }
 
 bool FAssetRegistry::EnsureSystemAssets() {
@@ -513,7 +833,7 @@ bool FAssetRegistry::EnsureSystemAssets() {
         const char* mAssetPath{};
     };
 
-    constexpr std::array SystemGizmoMaterials{FSystemAssetDefinition{"/Game/System/Material/Red.mtl"}, FSystemAssetDefinition{"/Game/System/Material/Green.mtl"}, FSystemAssetDefinition{"/Game/System/Material/Blue.mtl"}};
+    constexpr std::array SystemGizmoMaterials{FSystemAssetDefinition{"/Game/System/Material/Red.mtl.materials/M_Red.material"}, FSystemAssetDefinition{"/Game/System/Material/Green.mtl.materials/M_Green.material"}, FSystemAssetDefinition{"/Game/System/Material/Blue.mtl.materials/M_Blue.material"}};
 
     for (const FSystemAssetDefinition& Definition : SystemGizmoMaterials) {
         const FAssetHandle Handle{FindAsset(FAssetPath{Definition.mAssetPath})};
@@ -611,90 +931,50 @@ bool FAssetRegistry::LoadPipeline(FAssetEntry& Entry) {
 bool FAssetRegistry::LoadMaterial(FAssetEntry& Entry) {
     std::unique_ptr<USurfaceOpaque> Material{NewObject<USurfaceOpaque>()};
 
+    if (!FMaterialAssetSerializer::Load(Entry.mPhysicalPath, *Material)) {
+        return false;
+    }
+
     Material->SetAssetName(Entry.mAssetPath.mPath);
-
-    const FAssetHandle CheckerboardHandle{FindAsset(FAssetPath{DefaultCheckerboardTexturePath})};
-
-    if (ResolveAsset<UTexture>(CheckerboardHandle) == nullptr) {
-        return false;
-    }
-
-    const bool BInitialized{Material->Initialize(Entry.mPhysicalPath, [this, CheckerboardHandle](const std::filesystem::path& TexturePath) {
-        const FAssetHandle TextureHandle{FindAsset(MakeAssetPath(TexturePath))};
-
-        return ResolveAsset<UTexture>(TextureHandle) != nullptr ? TextureHandle : CheckerboardHandle;
-    })};
-
-    if (!BInitialized) {
-        return false;
-    }
-
+    Material->Finalize(this);
     Entry.mAsset = std::move(Material);
-
     return true;
 }
 
-bool FAssetRegistry::LoadMesh(FAssetEntry& Entry) {
+std::unique_ptr<UMesh> FAssetRegistry::CreateMesh(FMeshData& Data) {
+    for (FMeshMaterialSlot& Slot : Data.mMaterialSlots) {
+        Slot.mMaterial.Resolve(this);
+    }
+
     std::unique_ptr<UMesh> Mesh{NewObject<UMesh>()};
 
-    Mesh->SetAssetName(Entry.mAssetPath.mPath);
-
-    const bool BBinaryAsset{GetLowercaseExtension(Entry.mPhysicalPath) == ".bin"};
-
-    std::filesystem::path SourceObjPath{Entry.mPhysicalPath};
-
-    SourceObjPath.replace_extension(".obj");
-
-    if (!std::filesystem::is_regular_file(SourceObjPath)) {
-        SourceObjPath = std::filesystem::current_path() / "OBJFiles" / Entry.mPhysicalPath.filename();
-        SourceObjPath.replace_extension(".obj");
+    if (!Mesh->Initialize(Data)) {
+        return nullptr;
     }
 
-    std::filesystem::path BinaryPath{Entry.mPhysicalPath};
-
-    if (!BBinaryAsset) {
-        BinaryPath.replace_extension(".bin");
+    for (Uint32 Level{1}; Level < GLODCount; ++Level) {
+        Mesh->GenerateLOD(Level, GLODSettings[Level].mTargetRatio);
     }
 
-    const bool BInitialized{Mesh->Initialize(
-        SourceObjPath,
-        BinaryPath,
-        [this](const std::filesystem::path& MaterialPath) {
-        return FindAsset(MakeAssetPath(MaterialPath));
-    },
-        [this](FAssetHandle MaterialHandle, FName GroupName) -> std::optional<Uint32> {
-        const UMaterial* Material{ResolveAsset<UMaterial>(MaterialHandle)};
+    return Mesh;
+}
 
-        return Material != nullptr ? Material->FindGroupIndex(GroupName) : std::nullopt;
-    },
-        Entry.mMeshMetadata.mFlipUV)};
+bool FAssetRegistry::LoadMesh(FAssetEntry& Entry) {
+    FMeshData Data{};
 
-    if (!BInitialized) {
-        Console::AddLog(Console::STDOutHandle, ELogLevel::Error, ELogCategory::Etc, "Failed to load model: %s", Entry.mPhysicalPath.generic_string().c_str());
+    if (!FMeshAssetSerializer::Load(Entry.mPhysicalPath, Data)) {
         return false;
     }
 
-    // 설정된 비율로 LOD1부터 마지막 LOD까지 생성한다.
-    for (Uint32 Level{1}; Level < GLODCount; ++Level) {
-        const float TargetRatio{GLODSettings[Level].mTargetRatio};
+    std::unique_ptr<UMesh> Mesh{CreateMesh(Data)};
 
-        if (!Mesh->GenerateLOD(Level, TargetRatio)) {
-            Console::AddLog(Console::STDOutHandle, ELogLevel::Warning, ELogCategory::Etc,
-                            "Failed to generate LOD%u: %s", Level, Entry.mPhysicalPath.generic_string().c_str());
-
-            continue;
-        }
-
-        Console::AddLog(Console::STDOutHandle, ELogLevel::Log, ELogCategory::Etc,
-                        "Generated LOD%u: %s (%u -> %u triangles)", Level,
-                        Entry.mPhysicalPath.generic_string().c_str(),
-                        Mesh->GetIndexCount(0) / 3,
-                        Mesh->GetIndexCount(Level) / 3);
+    if (Mesh == nullptr) {
+        return false;
     }
 
-    Console::AddLog(Console::STDOutHandle, ELogLevel::Log, ELogCategory::Etc, "Loaded model: %s", Entry.mPhysicalPath.generic_string().c_str());
-    Entry.mAsset = std::move(Mesh);
+    Mesh->SetAssetName(Entry.mAssetPath.mPath);
 
+    Entry.mAsset = std::move(Mesh);
     return true;
 }
 
@@ -854,7 +1134,7 @@ EAssetType FAssetRegistry::GetAssetType(const std::filesystem::path& FilePath) {
         return EAssetType::Mesh;
     }
 
-    if (Extension == ".mtl") {
+    if (Extension == ".material") {
         return EAssetType::Material;
     }
 

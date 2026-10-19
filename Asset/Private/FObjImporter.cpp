@@ -2,9 +2,110 @@
 #include "Asset/FObjImporter.h"
 #include <filesystem>
 #include <fstream>
+#include <sstream>
+#include <algorithm>
+#include <cmath>
+#include <cctype>
 #include <format>
 #include <unordered_map>
 #include "Core/Console/Console.h"
+#include "Importer/FLegacyMeshReader.h"
+
+bool FObjImporter::ImportMesh(const std::filesystem::path& SourcePath, bool FlipUV, const FMaterialResolver& MaterialResolver, FMeshData& OutData) try {
+    FGeometry Geometry{};
+    Uint32 Version{FLegacyMeshReader::RawUVVersion};
+
+    std::string Extension{SourcePath.extension().string()};
+
+    std::ranges::transform(Extension, Extension.begin(), [](unsigned char Character) {
+        return static_cast<char>(std::tolower(Character));
+    });
+
+    if (Extension == ".bin") {
+        if (!FLegacyMeshReader::Load(SourcePath.string().c_str(), Geometry, Version)) {
+            return false;
+        }
+
+        if (Version != FLegacyMeshReader::RawUVVersion) {
+            std::filesystem::path Original{SourcePath};
+
+            Original.replace_extension(".obj");
+
+            if (!std::filesystem::is_regular_file(Original)) {
+                Original = std::filesystem::current_path() / "OBJFiles" / Original.filename();
+            }
+
+            FGeometry Raw{};
+
+            if (std::filesystem::is_regular_file(Original) && LoadObjFile(Original.string().c_str(), Raw)) {
+                Geometry = std::move(Raw);
+                Version = FLegacyMeshReader::RawUVVersion;
+            }
+        }
+    } else if (!LoadObjFile(SourcePath.string().c_str(), Geometry)) {
+        return false;
+    }
+
+    if (Geometry.mSubMeshIndexCounts.empty() && !Geometry.mIndices.empty()) {
+        Geometry.mSubMeshIndexCounts.push_back(static_cast<Uint32>(Geometry.mIndices.size()));
+    }
+
+    if (Geometry.mMaterialNames.empty() && Geometry.mSubMeshIndexCounts.size() == 1) {
+        Geometry.mMaterialNames.push_back({});
+    }
+
+    if (Geometry.mMaterialNames.size() != Geometry.mSubMeshIndexCounts.size()) {
+        return false;
+    }
+
+    if (FlipUV && Version == FLegacyMeshReader::RawUVVersion) {
+        for (FVector2& UV : Geometry.mTexCoords) {
+            UV.mY = 1.0f - UV.mY;
+        }
+    }
+
+    FMeshData Data{};
+    const std::filesystem::path MaterialPath{(SourcePath.parent_path() / Geometry.mMaterialFileName.c_str()).lexically_normal()};
+    FName DefaultSlot{"Default"};
+    Uint32 DefaultSuffix{};
+
+    while (std::ranges::find(Geometry.mMaterialNames, DefaultSlot) != Geometry.mMaterialNames.end()) {
+        DefaultSlot = FName{FString{"Unassigned"} + std::to_string(DefaultSuffix++).c_str()};
+    }
+
+    Uint32 FirstIndex{};
+
+    for (Uint32 SectionIndex{}; SectionIndex < Geometry.mSubMeshIndexCounts.size(); ++SectionIndex) {
+        const FName Name{Geometry.mMaterialNames[SectionIndex].IsNone() ? DefaultSlot : Geometry.mMaterialNames[SectionIndex]};
+        const auto Position{std::ranges::find(Data.mMaterialSlots, Name, &FMeshMaterialSlot::mName)};
+        Uint32 SlotIndex{static_cast<Uint32>(Position - Data.mMaterialSlots.begin())};
+
+        if (Position == Data.mMaterialSlots.end()) {
+            FMeshMaterialSlot Slot{Name, {}};
+
+            if (!Geometry.mMaterialFileName.empty() && MaterialResolver) {
+                Slot.mMaterial = MaterialResolver(MaterialPath, Geometry.mMaterialNames[SectionIndex]);
+            }
+
+            Data.mMaterialSlots.push_back(std::move(Slot));
+        }
+
+        const Uint32 Count{Geometry.mSubMeshIndexCounts[SectionIndex]};
+
+        Data.mSections.push_back(FMeshSection{FirstIndex, Count, SlotIndex, 0});
+        FirstIndex += Count;
+    }
+
+    Data.mPositions = std::move(Geometry.mPositions);
+    Data.mNormals = std::move(Geometry.mNormals);
+    Data.mUVs = std::move(Geometry.mTexCoords);
+    Data.mColors = std::move(Geometry.mColors);
+    Data.mIndices = std::move(Geometry.mIndices);
+    OutData = std::move(Data);
+    return true;
+} catch (const std::exception&) {
+    return false;
+}
 
 bool FObjImporter::LoadObjFile(const FString& FilePath, FGeometry& OutGeometry) {
     std::ifstream File{FilePath.c_str()};
@@ -20,6 +121,7 @@ bool FObjImporter::LoadObjFile(const FString& FilePath, FGeometry& OutGeometry) 
 
     //SubMesh에 넣기 전 임시 저장 변수
     Int32 TempFaceCount{0};
+    FName CurrentMaterial{};
 
     //삼각형으로만 되어 있는지, 다각형도 있는지 검사
     bool Ispolygon{false};
@@ -54,7 +156,7 @@ bool FObjImporter::LoadObjFile(const FString& FilePath, FGeometry& OutGeometry) 
             FColor4 Color{FColor4(1.f, 1.f, 1.f, 1.f)};
 
             //컬러 값이 존재한다면
-            if (Tokens.size() > 4) {
+            if (Tokens.size() >= 7) {
                 Color.mX = std::stof(Tokens[4].c_str());
                 Color.mY = std::stof(Tokens[5].c_str());
                 Color.mZ = std::stof(Tokens[6].c_str());
@@ -84,19 +186,23 @@ bool FObjImporter::LoadObjFile(const FString& FilePath, FGeometry& OutGeometry) 
             if (Tokens.size() != 2)
                 continue;
 
-            //머티리얼 이름 넣기
-            ObjInfo.mMaterialNames.push_back(FName{Tokens[1]});
+            const FName Material{Tokens[1]};
 
-            //처음엔 FaceViertices가 없어서 넣으면 안된다.
-            if (ObjInfo.mFaceVerticesPolygon.size() != 0) {
-                //face들을 순회하다가 새로운 머티리얼을 만난다면 지금까지의 face들의 개수를 SubMesh에 넣어준다.
+            if (Material != CurrentMaterial && TempFaceCount != 0) {
                 ObjInfo.mSubMesh.push_back(TempFaceCount);
                 TempFaceCount = 0;
             }
+
+            CurrentMaterial = Material;
         } else if (Tag == "f") {
             //v, v/vt, v//vn, v/vt/vn 네가지 형태 있음.
-            if (Tokens.size() == 0)
-                continue;
+            if (Tokens.size() < 4) {
+                return false;
+            }
+
+            if (TempFaceCount == 0) {
+                ObjInfo.mMaterialNames.push_back(CurrentMaterial);
+            }
 
             // f  v  v  v  : 삼각형이면 개수가 4개
             // f  v  v  v  v : 다각형이면 개수가 5개 이상
@@ -149,18 +255,21 @@ bool FObjImporter::LoadObjFile(const FString& FilePath, FGeometry& OutGeometry) 
 
             ObjInfo.mFaceVerticesPolygon.push_back(Vertices);
         } else if (Tag == "mtllib") {
-            ObjInfo.mMaterialFileName = Tokens[1];
+            if (Tokens.size() >= 2) {
+                ObjInfo.mMaterialFileName = Tokens[1];
+            }
         }
     }
 
     //가장 마지막 Face들의 개수를 SubMesh에 넣어준다.
-    ObjInfo.mSubMesh.push_back(TempFaceCount);
-    TempFaceCount = 0;
+    if (TempFaceCount != 0) {
+        ObjInfo.mSubMesh.push_back(TempFaceCount);
+    }
 
     if (Ispolygon) {
-        BuildPolygonGeometry(ObjInfo, OutGeometry);
+        return BuildPolygonGeometry(ObjInfo, OutGeometry);
     } else {
-        BuildGeometry(ObjInfo, OutGeometry);
+        return BuildGeometry(ObjInfo, OutGeometry);
     }
 
     //다각형이 포함된 모델이라면 배열 조합을 다르게 처리한다.
@@ -517,4 +626,204 @@ Int32 FObjImporter::NormalizeIndex(Int32 RawIndex, Int32 ArraySize) const {
 
     //RawIndex가 음수라면 뒤에서부터 인덱스를 샌다.
     return ArraySize + RawIndex;
+}
+
+namespace {
+    bool ParseVector3(std::istringstream& Stream, FVector3& OutValue) {
+        float X{0.0f};
+        float Y{0.0f};
+        float Z{0.0f};
+
+        if (!(Stream >> X >> Y >> Z)) {
+            return false;
+        }
+
+        OutValue = FVector3{X, Y, Z};
+
+        return true;
+    }
+
+    std::filesystem::path GetTextureReference(std::istringstream& Stream) {
+        std::string Token{};
+        std::string TextureReference{};
+
+        while (Stream >> Token) {
+            TextureReference = Token;
+        }
+
+        return TextureReference;
+    }
+
+    bool LoadTextureMap(FMaterialTextureMap& OutTextureMap, std::istringstream& Stream, const std::filesystem::path& MtlPath, const FObjImporter::FTextureResolver& TextureResolver) {
+        const std::filesystem::path TextureReference{GetTextureReference(Stream)};
+
+        if (TextureReference.empty()) {
+            return false;
+        }
+
+        const std::filesystem::path TexturePath{(MtlPath.parent_path() / TextureReference).lexically_normal()};
+
+        OutTextureMap.SetTextureReference(TextureResolver(TexturePath));
+
+        return static_cast<bool>(OutTextureMap.GetTexture());
+    }
+}
+
+bool FObjImporter::LoadMaterialFile(const std::filesystem::path& MtlPath, const FTextureResolver& TextureResolver, TArray<FImportedMaterial>& OutMaterials) {
+    if (!TextureResolver || MtlPath.empty()) {
+        return false;
+    }
+
+    OutMaterials.clear();
+
+    std::ifstream File{MtlPath};
+
+    if (!File.is_open()) {
+        return false;
+    }
+
+    FSurfaceParameters CurrentParameters{};
+    FName CurrentName{};
+    bool HasCurrentParameters{false};
+    std::string RawLine{};
+
+    while (std::getline(File, RawLine)) {
+        if (!RawLine.empty() && RawLine.back() == '\r') {
+            RawLine.pop_back();
+        }
+
+        std::istringstream Stream{RawLine};
+        std::string Command{};
+
+        Stream >> Command;
+
+        if (Command.empty() || Command[0] == '#') {
+            continue;
+        }
+
+        if (Command == "newmtl") {
+            std::string Name{};
+
+            Stream >> Name;
+
+            if (Name.empty()) {
+                continue;
+            }
+
+            if (Name.size() >= NameSize) {
+                OutMaterials.clear();
+                return false;
+            }
+
+            const FName MaterialName{Name.c_str()};
+            const auto MatchesName{[MaterialName](const FImportedMaterial& Material) {
+                return Material.mName == MaterialName;
+            }};
+
+            if ((HasCurrentParameters && CurrentName == MaterialName) || std::ranges::any_of(OutMaterials, MatchesName)) {
+                OutMaterials.clear();
+                return false;
+            }
+
+            if (HasCurrentParameters) {
+                OutMaterials.push_back(FImportedMaterial{CurrentName, std::move(CurrentParameters)});
+            }
+
+            CurrentParameters = {};
+            CurrentName = Name.c_str();
+            HasCurrentParameters = true;
+            continue;
+        }
+
+        if (!HasCurrentParameters) {
+            continue;
+        }
+
+        if (Command == "Ka") {
+            ParseVector3(Stream, CurrentParameters.mAmbient);
+        } else if (Command == "Kd") {
+            FVector3 Diffuse{};
+
+            if (ParseVector3(Stream, Diffuse)) {
+                CurrentParameters.mDiffuse = FVector4{Diffuse.mX, Diffuse.mY, Diffuse.mZ, CurrentParameters.mDiffuse.mW};
+            }
+        } else if (Command == "Ks") {
+            ParseVector3(Stream, CurrentParameters.mSpecular);
+        } else if (Command == "Ke") {
+            ParseVector3(Stream, CurrentParameters.mEmissive);
+        } else if (Command == "Tf") {
+            ParseVector3(Stream, CurrentParameters.mTransmissionFilter);
+        } else if (Command == "Ns") {
+            Stream >> CurrentParameters.mShininess;
+        } else if (Command == "Ni") {
+            Stream >> CurrentParameters.mRefractionIndex;
+        } else if (Command == "d") {
+            std::string Token{};
+
+            Stream >> Token;
+
+            if (Token == "-halo") {
+                CurrentParameters.mBDissolveHalo = true;
+                Stream >> CurrentParameters.mDiffuse.mW;
+            } else if (!Token.empty()) {
+                std::istringstream OpacityStream{Token};
+
+                OpacityStream >> CurrentParameters.mDiffuse.mW;
+            }
+        } else if (Command == "Tr") {
+            float Transparency{0.0f};
+
+            if (Stream >> Transparency) {
+                CurrentParameters.mDiffuse.mW = 1.0f - Transparency;
+            }
+        } else if (Command == "illum") {
+            Stream >> CurrentParameters.mIlluminationModel;
+        } else if (Command == "sharpness") {
+            Stream >> CurrentParameters.mSharpness;
+        } else if (Command == "map_Ka") {
+            LoadTextureMap(CurrentParameters.mAmbientTexture, Stream, MtlPath, TextureResolver);
+        } else if (Command == "map_Kd") {
+            LoadTextureMap(CurrentParameters.mDiffuseTexture, Stream, MtlPath, TextureResolver);
+        } else if (Command == "map_Ks") {
+            LoadTextureMap(CurrentParameters.mSpecularTexture, Stream, MtlPath, TextureResolver);
+        } else if (Command == "map_Ke") {
+            LoadTextureMap(CurrentParameters.mEmissiveTexture, Stream, MtlPath, TextureResolver);
+        } else if (Command == "map_Tf") {
+            LoadTextureMap(CurrentParameters.mTransmissionTexture, Stream, MtlPath, TextureResolver);
+        } else if (Command == "map_Ns") {
+            LoadTextureMap(CurrentParameters.mShininessTexture, Stream, MtlPath, TextureResolver);
+        } else if (Command == "map_d") {
+            LoadTextureMap(CurrentParameters.mOpacityTexture, Stream, MtlPath, TextureResolver);
+        } else if (Command == "map_Bump" || Command == "map_bump" || Command == "bump") {
+            LoadTextureMap(CurrentParameters.mBumpTexture, Stream, MtlPath, TextureResolver);
+        } else if (Command == "norm") {
+            LoadTextureMap(CurrentParameters.mNormalTexture, Stream, MtlPath, TextureResolver);
+        } else if (Command == "disp") {
+            LoadTextureMap(CurrentParameters.mDisplacementTexture, Stream, MtlPath, TextureResolver);
+        } else if (Command == "decal") {
+            LoadTextureMap(CurrentParameters.mDecalTexture, Stream, MtlPath, TextureResolver);
+        } else if (Command == "refl") {
+            LoadTextureMap(CurrentParameters.mReflectionTexture, Stream, MtlPath, TextureResolver);
+        }
+    }
+
+    if (HasCurrentParameters) {
+        OutMaterials.push_back(FImportedMaterial{CurrentName, std::move(CurrentParameters)});
+    }
+
+    if (OutMaterials.empty()) {
+        return false;
+    }
+
+    for (FImportedMaterial& Material : OutMaterials) {
+        FSurfaceParameters& Parameters{Material.mParameters};
+        if (!std::isfinite(Parameters.mDiffuse.mW)) {
+            OutMaterials.clear();
+            return false;
+        }
+
+        Parameters.mDiffuse.mW = std::clamp(Parameters.mDiffuse.mW, 0.0f, 1.0f);
+    }
+
+    return true;
 }

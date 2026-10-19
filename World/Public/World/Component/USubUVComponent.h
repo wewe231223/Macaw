@@ -19,12 +19,12 @@ public:
 
     bool SetTargetComponent(UPrimitiveComponent* Target);
     UPrimitiveComponent* GetTargetComponent() const;
-    void SetTargetMaterialGroup(FName MaterialGroup);
-    FName GetTargetMaterialGroup() const;
+    void SetTargetMaterialSlot(FName MaterialSlot);
+    FName GetTargetMaterialSlot() const;
     bool HasTargetConflict() const;
     bool CanSelectTarget(UPrimitiveComponent* Target) const;
     bool CanEditUVTransform() const;
-    TArray<FName> GetTargetMaterialGroups() const;
+    TArray<FName> GetTargetMaterialSlots() const;
     void SetUVTransform(const FUVTransform& Transform);
     const FUVTransform& GetUVTransform() const;
     void UpdateUVTransform();
@@ -65,8 +65,8 @@ private:
     ReflectAccessor(mTargetComponent, GetTargetComponent, SetTargetComponent, "GuidTargetComponent", EPropertyFlags::Edit | EPropertyFlags::Serialize | EPropertyFlags::Reference | EPropertyFlags::OwnerOnly, &SerializeTargetComponentProperty, ReflectEditor("UV Animation", "Target Component"), ReflectFilter(CanSelectTarget));
     TObjectRef<UPrimitiveComponent> mTargetComponent{};
     FGuid mPendingTargetGuid{};
-    ReflectAccessor(mTargetMaterialGroup, GetTargetMaterialGroup, SetTargetMaterialGroup, "TargetMaterialGroup", EPropertyFlags::Edit | EPropertyFlags::Serialize, ReflectSerializer(mTargetMaterialGroup), ReflectEditor("UV Animation", "Material Group"), ReflectOptions(GetTargetMaterialGroups));
-    FName mTargetMaterialGroup{};
+    ReflectAccessor(mTargetMaterialSlot, GetTargetMaterialSlot, SetTargetMaterialSlot, "TargetMaterialSlot", EPropertyFlags::Edit | EPropertyFlags::Serialize, ReflectSerializer(mTargetMaterialSlot), ReflectEditor("UV Animation", "Material Slot"), ReflectOptions(GetTargetMaterialSlots));
+    FName mTargetMaterialSlot{};
     ReflectAccessor(mUVTransform, GetUVTransform, SetUVTransform, "UVTransform", EPropertyFlags::Edit | EPropertyFlags::Serialize | EPropertyFlags::Inline, ReflectSerializer(mUVTransform), ReflectEditor("UV Animation", "UV Transform"), ReflectCondition(CanEditUVTransform));
     FUVTransform mUVTransform{};
     double mElapsedTime{};

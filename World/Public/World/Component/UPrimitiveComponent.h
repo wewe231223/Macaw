@@ -30,8 +30,8 @@ public:
     void DestroyRenderState() override;
     void SendRenderTransform() override;
     void SendRenderDynamicData() override;
-    bool SetUVTransform(FName MaterialGroup, const FUVTransform& Transform, FObjectHandle SourceHandle = {});
-    void ClearUVTransform(FName MaterialGroup, FObjectHandle SourceHandle = {});
+    bool SetUVTransform(FName MaterialSlot, const FUVTransform& Transform, FObjectHandle SourceHandle = {});
+    void ClearUVTransform(FName MaterialSlot, FObjectHandle SourceHandle = {});
     const TArray<FPrimitiveUVTransform>& GetUVTransforms() const;
     FPrimitiveTransform GetRenderTransform() const;
 

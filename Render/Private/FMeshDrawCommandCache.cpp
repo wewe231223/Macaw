@@ -76,14 +76,19 @@ void FMeshDrawCommandCache::AddMeshBatch(const FMeshBatch& Mesh, const FMaterial
     }
 
     const UMesh* MeshAsset{Registry->ResolveAsset<UMesh>(Mesh.mMeshHandle)};
-    const UMaterial* Material{Registry->ResolveAsset<UMaterial>(Mesh.mMaterialHandle)};
-    const UPipeline* Pipeline{Registry->ResolveAsset<UPipeline>(Mesh.mPipelineHandle)};
 
-    if (MeshAsset == nullptr || Material == nullptr || Pipeline == nullptr) {
+    if (MeshAsset == nullptr) {
         return;
     }
 
     for (const FMeshBatchElement& Element : Mesh.mElements) {
+        const FAssetHandle MaterialHandle{ResolveMeshMaterial(*MeshAsset, Mesh.mMaterialOverrides, Element.mMaterialSlotIndex)};
+        const UMaterial* Material{Registry->ResolveAsset<UMaterial>(MaterialHandle)};
+
+        if (Material == nullptr) {
+            continue;
+        }
+
         FMeshDrawState State{};
         Uint32 MaterialIndex{UINT32_MAX};
 
@@ -91,8 +96,14 @@ void FMeshDrawCommandCache::AddMeshBatch(const FMeshBatch& Mesh, const FMaterial
             continue;
         }
 
+        const UPipeline* Pipeline{Registry->ResolveAsset<UPipeline>(State.mPipelineHandle)};
+
+        if (Pipeline == nullptr) {
+            continue;
+        }
+
         const ERenderPass Pass{State.mBlendMode == EMaterialBlendMode::Opaque ? ERenderPass::Opaque : ERenderPass::Translucent};
-        const FMeshDrawCommandKey Key{Mesh.mMeshHandle, Mesh.mMaterialHandle, Mesh.mPipelineHandle, State.mLODLevel, State.mFirstIndex, State.mIndexCount, State.mOriginalIndexCount, MaterialIndex, Pass, Resources != nullptr};
+        const FMeshDrawCommandKey Key{Mesh.mMeshHandle, MaterialHandle, State.mPipelineHandle, State.mLODLevel, State.mFirstIndex, State.mIndexCount, State.mOriginalIndexCount, MaterialIndex, Pass, Resources != nullptr};
         FMeshDrawCommandStamp Stamp{FRenderAssetStamp{MeshAsset->GetHandle(), MeshAsset->GetRenderRevision()}, FRenderAssetStamp{Material->GetHandle(), Material->GetRenderRevision()}, FRenderAssetStamp{Pipeline->GetHandle(), Pipeline->GetRenderRevision()}};
 
         for (Uint8 Index{}; Index < State.mTextureSignature.mTextureFieldCount; ++Index) {
@@ -107,7 +118,7 @@ void FMeshDrawCommandCache::AddMeshBatch(const FMeshBatch& Mesh, const FMaterial
 
             NewCommand->mState = State;
             NewCommand->mMaterialIndex = MaterialIndex;
-            NewCommand->mMaterialGroupName = Material->GetGroupName(State.mMaterialGroupIndex);
+            NewCommand->mMaterialSlotName = MeshAsset->GetMaterialSlotName(State.mMaterialSlotIndex);
             NewCommand->mPass = Pass;
 
             if (Resources != nullptr && !BuildShaderBindings(*MeshAsset, *Pipeline, *Resources, *NewCommand)) {

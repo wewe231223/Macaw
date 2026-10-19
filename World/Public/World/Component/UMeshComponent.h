@@ -26,8 +26,9 @@ public:
     bool BuildPickingBoxFromMesh();
     bool RaycastMesh(const FRay& Ray, float& OutDistance, float MaxDistance = std::numeric_limits<float>::max()) const;
 
-private:
     void Serialize(FArchive& Archive) override;
+
+private:
     static void SerializeMeshHandleProperty(void* Container, FArchive& Archive, const FProperty& Property);
 
 private:

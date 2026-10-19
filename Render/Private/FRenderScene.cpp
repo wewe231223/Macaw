@@ -263,7 +263,6 @@ void FRenderScene::CommitObjectChanges() {
 
 void FRenderScene::RefreshStaticMeshes(const FMaterialBuffer& Materials, FRenderAssetResources* Resources) {
     const IAssetRegistry* Registry{FAssetRegistry::TryGet()};
-    const FAssetHandle SkyPipeline{Registry != nullptr ? Registry->FindAsset(FAssetPath{"/Game/Pipeline/SkyDome.json"}) : FAssetHandle{}};
 
     mCommandCache.BeginUpdate();
 
@@ -289,7 +288,7 @@ void FRenderScene::RefreshStaticMeshes(const FMaterialBuffer& Materials, FRender
 
         const UMesh* Mesh{Registry != nullptr ? Registry->ResolveAsset<UMesh>(MeshData->mMeshHandle) : nullptr};
         const Uint64 MeshRevision{Mesh != nullptr ? Mesh->GetRenderRevision() : 0};
-        Primitive.mSky = static_cast<bool>(SkyPipeline) && MeshData->mPipelineHandle == SkyPipeline;
+        Primitive.mSky = false;
         Primitive.mAvailableLODMask = 0;
 
         for (TArray<Uint32>& Commands : Primitive.mCachedCommandsByLOD) {
@@ -329,6 +328,12 @@ void FRenderScene::RefreshStaticMeshes(const FMaterialBuffer& Materials, FRender
                 Primitive.mAvailableLODMask |= 1u << StaticMesh.mLODLevel;
             }
         }
+
+        const TArray<Uint32>& BaseCommands{Primitive.mCachedCommandsByLOD[0]};
+
+        Primitive.mSky = !BaseCommands.empty() && std::ranges::all_of(BaseCommands, [this](Uint32 Index) {
+            return mCommandCache.GetCommands()[Index]->mState.mSky;
+        });
     }
 
     mCommandCache.EndUpdate();

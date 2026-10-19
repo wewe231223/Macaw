@@ -44,11 +44,6 @@ public:
      * @return 구현이 제공하는 기본 머티리얼 핸들입니다.
      */
     virtual FAssetHandle EnsureDefaultStaticMeshMaterial() const = 0;
-    /**
-     * @brief 기본 정적 메시 파이프라인을 확보합니다.
-     * @return 구현이 제공하는 기본 파이프라인 핸들입니다.
-     */
-    virtual FAssetHandle EnsureDefaultStaticMeshPipeline() const = 0;
 
 private:
     /**

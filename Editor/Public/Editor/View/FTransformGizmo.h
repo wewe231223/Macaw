@@ -125,7 +125,6 @@ private:
     std::array<FAssetHandle, 3> mAxisMaterials{};
     FAssetHandle mHighlightMaterial{};
     FAssetHandle mNeutralMaterial{};
-    FAssetHandle mGizmoPipeline{};
     FViewMatrices mLastCamera{};
     D3D11_VIEWPORT mLastViewport{};
     FMatrix mBasis{FMatrix::Identity};

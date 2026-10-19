@@ -12,7 +12,7 @@
 namespace {
     constexpr Uint32 ThumbnailSize{256};
 
-    constexpr const char* DefaultMaterialPath{"/Game/System/Material/Default.mtl"};
+    constexpr const char* DefaultMaterialPath{"/Game/System/Material/Default.mtl.materials/M_Default.material"};
     constexpr const char* SphereMeshPath{"/Game/System/Mesh/Sphere.bin"};
     constexpr const char* StaticMeshPipelinePath{"/Game/Pipeline/Base"};
     constexpr const char* MaterialPipelinePath{"/Game/Pipeline/TexturedBase"};
@@ -98,38 +98,22 @@ void FAssetThumbnailRenderer::RenderThumbnail(const FAssetEntry& Entry, FSceneRe
 
     if (Entry.mAssetType == EAssetType::Mesh) {
         MeshData.mMeshHandle = Entry.mHandle;
-        MeshData.mMaterialHandle = FAssetRegistry::Get().FindAsset(FAssetPath{DefaultMaterialPath});
-        MeshData.mPipelineHandle = FAssetRegistry::Get().FindAsset(FAssetPath{StaticMeshPipelinePath});
     } else if (Entry.mAssetType == EAssetType::Material) {
         MeshData.mMeshHandle = FAssetRegistry::Get().FindAsset(FAssetPath{SphereMeshPath});
-        MeshData.mMaterialHandle = Entry.mHandle;
+        const UMesh* PreviewMesh{FAssetRegistry::Get().ResolveAsset<UMesh>(MeshData.mMeshHandle)};
+
+        if (PreviewMesh != nullptr) {
+            for (const FMeshMaterialSlot& Slot : PreviewMesh->GetMaterialSlots()) {
+                MeshData.mMaterialOverrides.push_back(FMeshMaterialBinding{Slot.mName, Entry.mHandle});
+            }
+        }
     } else {
         return;
     }
 
     UMesh* Mesh{FAssetRegistry::Get().ResolveAsset<UMesh>(MeshData.mMeshHandle)};
 
-    UMaterial* Material{FAssetRegistry::Get().ResolveAsset<UMaterial>(MeshData.mMaterialHandle)};
-
-    if (Mesh == nullptr || Material == nullptr) {
-        return;
-    }
-
-    if (Entry.mAssetType == EAssetType::Material) {
-        bool HasTexture{};
-
-        for (Uint32 GroupIndex{}; GroupIndex < Material->GetGPUDataCount() && !HasTexture; ++GroupIndex) {
-            const FMaterialChunkSignature Signature{Material->BuildChunkSignature(GroupIndex)};
-
-            for (Uint8 TextureIndex{}; TextureIndex < Signature.mTextureFieldCount && !HasTexture; ++TextureIndex) {
-                HasTexture = static_cast<bool>(Signature.GetTextureHandle(TextureIndex));
-            }
-        }
-
-        MeshData.mPipelineHandle = FAssetRegistry::Get().FindAsset(FAssetPath{HasTexture ? MaterialPipelinePath : StaticMeshPipelinePath});
-    }
-
-    if (!MeshData.mPipelineHandle) {
+    if (Mesh == nullptr) {
         return;
     }
 

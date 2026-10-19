@@ -1,11 +1,6 @@
-#include "Asset/UMesh.h"
 #include "pch.h"
-#include "Core/Console/Console.h"
-#include "Core/Base/FGuid.h"
-#include "Asset/FObjImporter.h"
-#include "Importer/FObjSerializer.h"
+#include "Asset/UMesh.h"
 #include <ranges>
-#include <windows.h>
 #include <map>
 #include <tuple>
 #include <cmath>
@@ -24,6 +19,51 @@ namespace {
             Vertices.push_back(Vertex);
         }
     }
+}
+
+void FMeshRaycastAccelerationStructure::MinMaxBox::Expand(const DirectX::BoundingBox& Box) {
+    if (mMinX > Box.Center.x - Box.Extents.x)
+        mMinX = Box.Center.x - Box.Extents.x;
+
+    if (mMinY > Box.Center.y - Box.Extents.y)
+        mMinY = Box.Center.y - Box.Extents.y;
+
+    if (mMinZ > Box.Center.z - Box.Extents.z)
+        mMinZ = Box.Center.z - Box.Extents.z;
+
+    if (mMaxX < Box.Center.x + Box.Extents.x)
+        mMaxX = Box.Center.x + Box.Extents.x;
+
+    if (mMaxY < Box.Center.y + Box.Extents.y)
+        mMaxY = Box.Center.y + Box.Extents.y;
+
+    if (mMaxZ < Box.Center.z + Box.Extents.z)
+        mMaxZ = Box.Center.z + Box.Extents.z;
+}
+
+float FMeshRaycastAccelerationStructure::MinMaxBox::SurfaceArea() const {
+    const float DX{mMaxX - mMinX};
+    const float DY{mMaxY - mMinY};
+    const float DZ{mMaxZ - mMinZ};
+
+    if (DX < 0.0f || DY < 0.0f || DZ < 0.0f)
+        return 0.0f;
+
+    return 2.0f * (DX * DY + DY * DZ + DZ * DX);
+}
+
+FMeshRaycastAccelerationStructure::MinMaxBox FMeshRaycastAccelerationStructure::MinMaxBox::Merge(const MinMaxBox& Box1, const MinMaxBox& Box2) {
+    MinMaxBox Result{};
+
+    Result.mMinX = (std::min)(Box1.mMinX, Box2.mMinX);
+    Result.mMinY = (std::min)(Box1.mMinY, Box2.mMinY);
+    Result.mMinZ = (std::min)(Box1.mMinZ, Box2.mMinZ);
+
+    Result.mMaxX = (std::max)(Box1.mMaxX, Box2.mMaxX);
+    Result.mMaxY = (std::max)(Box1.mMaxY, Box2.mMaxY);
+    Result.mMaxZ = (std::max)(Box1.mMaxZ, Box2.mMaxZ);
+
+    return Result;
 }
 
 std::size_t UMesh::GetAttributeIndex(EVertexAttribute Attribute) {
@@ -85,165 +125,68 @@ bool UMesh::BuildBoundingBoxFromMesh() {
     return true;
 }
 
-bool UMesh::Initialize(const std::filesystem::path& SourceObjPath, const std::filesystem::path& BinaryPath, const FMaterialResolver& MaterialResolver, const FMaterialGroupResolver& MaterialGroupResolver, bool FlipUV) {
-    if ((SourceObjPath.empty() && BinaryPath.empty())) {
-        Console::AddLog(Console::STDOutHandle, ELogLevel::Error, ELogCategory::Etc, "Model load rejected: asset path is invalid.");
+bool UMesh::Initialize(const FMeshData& Data) {
+    if (Data.mPositions.empty() || Data.mIndices.empty() || Data.mIndices.size() % 3 != 0 || Data.mNormals.size() != Data.mPositions.size() || Data.mUVs.size() != Data.mPositions.size() || Data.mColors.size() != Data.mPositions.size() || Data.mMaterialSlots.empty()) {
         return false;
     }
 
-    FObjImporter ObjImporter{};
-    FGeometry Geometry{};
+    for (Uint32 Index : Data.mIndices) {
+        if (Index >= Data.mPositions.size()) {
+            return false;
+        }
+    }
 
-    std::error_code FileSystemError{};
-    const bool BHasBinary{!BinaryPath.empty() && std::filesystem::is_regular_file(BinaryPath, FileSystemError)};
-    Uint32 LoadedVersion{};
-    const bool BLoadedFromBinary{BHasBinary && FObjSerializer::LoadBinary(BinaryPath.string().c_str(), Geometry, LoadedVersion)};
-    bool BHasRawGeometry{BLoadedFromBinary && LoadedVersion == FObjSerializer::CurrentVersion};
+    for (std::size_t Index{}; Index < Data.mMaterialSlots.size(); ++Index) {
+        if (Data.mMaterialSlots[Index].mName.IsNone()) {
+            return false;
+        }
 
-    if (BLoadedFromBinary && !BHasRawGeometry && !SourceObjPath.empty() && std::filesystem::is_regular_file(SourceObjPath, FileSystemError)) {
-        FGeometry RawGeometry{};
-
-        if (ObjImporter.LoadObjFile(SourceObjPath.string().c_str(), RawGeometry)) {
-            const FString TemporarySuffix{FGuid::NewGuid().ToString()};
-            const std::filesystem::path TemporaryBinaryPath{BinaryPath.string() + "." + TemporarySuffix.c_str() + ".tmp"};
-
-            if (FObjSerializer::SaveBinary(RawGeometry, TemporaryBinaryPath.string().c_str()) && MoveFileExW(TemporaryBinaryPath.c_str(), BinaryPath.c_str(), MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH)) {
-                Geometry = std::move(RawGeometry);
-                BHasRawGeometry = true;
-                Console::AddLog(Console::STDOutHandle, ELogLevel::Log, ELogCategory::Etc, "Rebuilt legacy model binary with original UVs: %s", BinaryPath.generic_string().c_str());
-            } else {
-                Console::AddLog(Console::STDOutHandle, ELogLevel::Warning, ELogCategory::Etc, "Failed to rebuild legacy model binary: %s", BinaryPath.generic_string().c_str());
-                std::filesystem::remove(TemporaryBinaryPath, FileSystemError);
+        for (std::size_t Previous{}; Previous < Index; ++Previous) {
+            if (Data.mMaterialSlots[Previous].mName == Data.mMaterialSlots[Index].mName) {
+                return false;
             }
         }
     }
 
-    if (BLoadedFromBinary) {
-        Console::AddLog(Console::STDOutHandle, ELogLevel::Log, ELogCategory::Etc, "Loaded model binary: %s", BinaryPath.generic_string().c_str());
-    } else {
-        if (SourceObjPath.empty()) {
-            Console::AddLog(Console::STDOutHandle, ELogLevel::Error, ELogCategory::Etc, "Failed to load standalone model binary: %s", BinaryPath.generic_string().c_str());
+    Uint32 FirstIndex{};
+
+    for (const FMeshSection& Section : Data.mSections) {
+        if (Section.mFirstIndex != FirstIndex || Section.mIndexCount % 3 != 0 || Section.mIndexCount > Data.mIndices.size() - FirstIndex || Section.mMaterialSlotIndex >= Data.mMaterialSlots.size()) {
             return false;
         }
 
-        if (BHasBinary) {
-            Console::AddLog(Console::STDOutHandle, ELogLevel::Warning, ELogCategory::Etc, "[UMesh] Failed to load model binary; Maybe Different Version. falling back to OBJ: %s", BinaryPath.generic_string().c_str());
-        }
-
-        Geometry = FGeometry{};
-
-        if (!ObjImporter.LoadObjFile(SourceObjPath.string().c_str(), Geometry)) {
-            Console::AddLog(Console::STDOutHandle, ELogLevel::Error, ELogCategory::Etc, "[UMesh] Failed to import OBJ geometry: %s", SourceObjPath.generic_string().c_str());
-            Console::AddLog(Console::STDOutHandle, ELogLevel::Error, ELogCategory::Etc, "[UMesh] Import Failed. Check Obj File Path : %s", SourceObjPath.generic_string().c_str());
-            return false;
-        }
-
-        BHasRawGeometry = true;
-
-        if (!BinaryPath.empty() && !FObjSerializer::SaveBinary(Geometry, BinaryPath.string().c_str())) {
-            Console::AddLog(Console::STDOutHandle, ELogLevel::Warning, ELogCategory::Etc, "[UMesh] Failed to create model binary: %s", BinaryPath.generic_string().c_str());
-        } else if (!BinaryPath.empty()) {
-            Console::AddLog(Console::STDOutHandle, ELogLevel::Log, ELogCategory::Etc, "[UMesh] Created model binary: %s", BinaryPath.generic_string().c_str());
-        }
+        FirstIndex += Section.mIndexCount;
     }
 
-    if (FlipUV && BHasRawGeometry) {
-        for (FVector2& UV : Geometry.mTexCoords) {
-            UV.mY = 1.0f - UV.mY;
-        }
-    }
-
-    const std::filesystem::path AssetPath{BLoadedFromBinary ? BinaryPath : SourceObjPath};
-
-    if (!UAsset::Initialize(AssetPath)) {
+    if (FirstIndex != Data.mIndices.size() || !Make(Data.mIndices, MakeVertexAttribute<EVertexAttribute::Position>(Data.mPositions), MakeVertexAttribute<EVertexAttribute::Normal>(Data.mNormals), MakeVertexAttribute<EVertexAttribute::UV>(Data.mUVs), MakeVertexAttribute<EVertexAttribute::Color>(Data.mColors))) {
         return false;
     }
 
-    if (BLoadedFromBinary && Geometry.mSubMeshIndexCounts.empty() && !Geometry.mIndices.empty()) {
-        Geometry.mSubMeshIndexCounts.push_back(static_cast<Uint32>(Geometry.mIndices.size()));
-    }
+    mSections = Data.mSections;
+    mMaterialSlots = Data.mMaterialSlots;
+    return BuildBoundingBoxFromMesh() && RebuildPickingStructure();
+}
 
-    if (Geometry.mMaterialNames.empty() && Geometry.mSubMeshIndexCounts.size() == 1) {
-        Geometry.mMaterialNames.push_back({});
-    }
+const TArray<FMeshMaterialSlot>& UMesh::GetMaterialSlots() const {
+    return mMaterialSlots;
+}
 
-    FAssetHandle ImportedMaterial{};
+FName UMesh::GetMaterialSlotName(Uint32 SlotIndex) const {
+    return SlotIndex < mMaterialSlots.size() ? mMaterialSlots[SlotIndex].mName : FName{};
+}
 
-    if (!Geometry.mMaterialFileName.empty()) {
-        const std::filesystem::path MaterialPath{(AssetPath.parent_path() / std::filesystem::path(Geometry.mMaterialFileName.c_str())).lexically_normal()};
-
-        if (MaterialResolver) {
-            ImportedMaterial = MaterialResolver(MaterialPath);
-        }
-
-        if (!ImportedMaterial) {
-            Console::AddLog(Console::STDOutHandle, ELogLevel::Warning, ELogCategory::Etc, "Model MTL asset was not found; using material group 0: %s", MaterialPath.generic_string().c_str());
+std::optional<Uint32> UMesh::FindMaterialSlot(FName Name) const {
+    for (Uint32 Index{}; Index < mMaterialSlots.size(); ++Index) {
+        if (mMaterialSlots[Index].mName == Name) {
+            return Index;
         }
     }
 
-    TArray<FSubMesh> ImportedSubMeshes{};
+    return std::nullopt;
+}
 
-    ImportedSubMeshes.reserve(Geometry.mSubMeshIndexCounts.size());
-
-    if (Geometry.mMaterialNames.size() != Geometry.mSubMeshIndexCounts.size()) {
-        Console::AddLog(Console::STDOutHandle, ELogLevel::Error, ELogCategory::Etc, "Model material group count does not match submesh count: %s", AssetPath.generic_string().c_str());
-        return false;
-    }
-
-    Uint32 FirstIndex{0};
-
-    for (Uint32 SubMeshIndex{0}; SubMeshIndex < Geometry.mSubMeshIndexCounts.size(); ++SubMeshIndex) {
-        FSubMesh SubMesh{};
-
-        SubMesh.mFirstIndex = FirstIndex;
-        SubMesh.mIndexCount = Geometry.mSubMeshIndexCounts[SubMeshIndex];
-
-        if (SubMesh.mFirstIndex > Geometry.mIndices.size() || SubMesh.mIndexCount > Geometry.mIndices.size() - SubMesh.mFirstIndex) {
-            Console::AddLog(Console::STDOutHandle, ELogLevel::Error, ELogCategory::Etc, "Model submesh index range is invalid: %s", AssetPath.generic_string().c_str());
-            return false;
-        }
-
-        FirstIndex += SubMesh.mIndexCount;
-
-        const FName MaterialName{Geometry.mMaterialNames[SubMeshIndex]};
-
-        if (!MaterialName.IsNone()) {
-            if (ImportedMaterial && MaterialGroupResolver) {
-                const std::optional<Uint32> MaterialGroupIndex{MaterialGroupResolver(ImportedMaterial, MaterialName)};
-
-                if (MaterialGroupIndex.has_value()) {
-                    SubMesh.mMaterialGroupIndex = *MaterialGroupIndex;
-                } else {
-                    Console::AddLog(Console::STDOutHandle, ELogLevel::Warning, ELogCategory::Etc, "Model MTL group was not found; using material group 0: %s in %s", MaterialName.ToString().c_str(), AssetPath.generic_string().c_str());
-                }
-            } else {
-                Console::AddLog(Console::STDOutHandle, ELogLevel::Warning, ELogCategory::Etc, "Model has no usable MTL; using material group 0: %s", AssetPath.generic_string().c_str());
-            }
-        }
-
-        ImportedSubMeshes.push_back(SubMesh);
-    }
-
-    if (FirstIndex != Geometry.mIndices.size() || !Make(Geometry.mIndices,
-                                                        MakeVertexAttribute<EVertexAttribute::Position>(Geometry.mPositions),
-                                                        MakeVertexAttribute<EVertexAttribute::Normal>(Geometry.mNormals),
-                                                        MakeVertexAttribute<EVertexAttribute::UV>(Geometry.mTexCoords),
-                                                        MakeVertexAttribute<EVertexAttribute::Color>(Geometry.mColors))) {
-        Console::AddLog(Console::STDOutHandle, ELogLevel::Error, ELogCategory::Etc, "Failed to prepare mesh data for model: %s", AssetPath.generic_string().c_str());
-        return false;
-    }
-
-    if (!BuildBoundingBoxFromMesh()) {
-        Console::AddLog(Console::STDOutHandle, ELogLevel::Warning, ELogCategory::Etc, "Failed to create a Bounding Box for model: %s", AssetPath.generic_string().c_str());
-    }
-
-    if (!RebuildPickingStructure()) {
-        Console::AddLog(Console::STDOutHandle, ELogLevel::Warning, ELogCategory::Etc, "Failed to create a RaycastAS for model: %s", AssetPath.generic_string().c_str());
-    }
-
-    mSubMeshes = std::move(ImportedSubMeshes);
-
-    return true;
+FAssetHandle UMesh::GetDefaultMaterial(Uint32 SlotIndex) const {
+    return SlotIndex < mMaterialSlots.size() ? mMaterialSlots[SlotIndex].mMaterial.GetHandle() : FAssetHandle{};
 }
 
 Uint32 UMesh::GetIndexCount(int Level) const {
@@ -362,7 +305,7 @@ bool UMesh::GenerateLOD(Uint32 Level, float TargetRatio) {
     SimplifyLODGeometry(Geometry, TargetTriangleCount);
 
     FGeneratedLOD NewLOD{};
-    const bool NeedsSectionReorder{Geometry.mSubMeshes.size() > 1 && Geometry.mSubMeshes.size() < mSubMeshes.size()};
+    const bool NeedsSectionReorder{Geometry.mSections.size() > 1 && Geometry.mSections.size() < mSections.size()};
 
     NewLOD.mUsesBaseData = Geometry.mIndices.size() == mIndices.size() && !NeedsSectionReorder;
 
@@ -374,7 +317,7 @@ bool UMesh::GenerateLOD(Uint32 Level, float TargetRatio) {
         }
     }
 
-    NewLOD.mSubMeshes = std::move(Geometry.mSubMeshes);
+    NewLOD.mSections = std::move(Geometry.mSections);
 
     if (mGeneratedLODs.size() < Level) {
         mGeneratedLODs.resize(Level);
@@ -386,37 +329,37 @@ bool UMesh::GenerateLOD(Uint32 Level, float TargetRatio) {
     return true;
 }
 
-bool UMesh::BuildLODSubMeshes(FLODGeometry& Geometry) const {
+bool UMesh::BuildLODSections(FLODGeometry& Geometry) const {
     const Uint32 IndexCount{static_cast<Uint32>(mIndices.size())};
 
-    if (mSubMeshes.empty()) {
-        Geometry.mSubMeshes.push_back({0, 0, 0, IndexCount});
+    if (mSections.empty()) {
+        Geometry.mSections.push_back({0, 0, 0, IndexCount});
         return true;
     }
 
     std::unordered_map<Uint32, Uint32> MaterialSections{};
     TArray<Uint32> SourceSections{};
 
-    SourceSections.reserve(mSubMeshes.size());
+    SourceSections.reserve(mSections.size());
 
     Uint32 NextIndex{};
 
-    for (const FSubMesh& SubMesh : mSubMeshes) {
+    for (const FMeshSection& Section : mSections) {
         // 원본 구간이 삼각형 단위로 전체 인덱스를 빠짐없이 덮어야 한다.
-        if (SubMesh.mFirstIndex != NextIndex || SubMesh.mIndexCount % 3 != 0 ||
-            SubMesh.mIndexCount > IndexCount - NextIndex) {
+        if (Section.mFirstIndex != NextIndex || Section.mIndexCount % 3 != 0 ||
+            Section.mIndexCount > IndexCount - NextIndex) {
             return false;
         }
 
-        NextIndex += SubMesh.mIndexCount;
-        const auto [It, BInserted]{MaterialSections.try_emplace(SubMesh.mMaterialGroupIndex,
-                                                                static_cast<Uint32>(Geometry.mSubMeshes.size()))};
+        NextIndex += Section.mIndexCount;
+        const auto [It, BInserted]{MaterialSections.try_emplace(Section.mMaterialSlotIndex,
+                                                                static_cast<Uint32>(Geometry.mSections.size()))};
 
         if (BInserted) {
-            Geometry.mSubMeshes.push_back({0, 0, SubMesh.mMaterialGroupIndex, 0});
+            Geometry.mSections.push_back({0, 0, Section.mMaterialSlotIndex, 0});
         }
 
-        Geometry.mSubMeshes[It->second].mSourceIndexCount += SubMesh.mIndexCount;
+        Geometry.mSections[It->second].mSourceIndexCount += Section.mIndexCount;
         SourceSections.push_back(It->second);
     }
 
@@ -424,17 +367,17 @@ bool UMesh::BuildLODSubMeshes(FLODGeometry& Geometry) const {
         return false;
     }
 
-    if (Geometry.mSubMeshes.size() == 1) {
+    if (Geometry.mSections.size() == 1) {
         return true;
     }
 
-    Geometry.mTriangleSubMeshes.resize(IndexCount / 3);
+    Geometry.mTriangleSections.resize(IndexCount / 3);
 
-    for (std::size_t Index{}; Index < mSubMeshes.size(); ++Index) {
-        const FSubMesh& SubMesh{mSubMeshes[Index]};
-        const auto First{Geometry.mTriangleSubMeshes.begin() + SubMesh.mFirstIndex / 3};
+    for (std::size_t Index{}; Index < mSections.size(); ++Index) {
+        const FMeshSection& Section{mSections[Index]};
+        const auto First{Geometry.mTriangleSections.begin() + Section.mFirstIndex / 3};
 
-        std::fill_n(First, SubMesh.mIndexCount / 3, SourceSections[Index]);
+        std::fill_n(First, Section.mIndexCount / 3, SourceSections[Index]);
     }
 
     return true;
@@ -462,7 +405,7 @@ bool UMesh::BuildLODGeometry(FLODGeometry& Geometry) const {
     Geometry.mSourcePositions = SourcePositions;
     Geometry.mSourceUVs = SourceUVs;
 
-    if (!BuildLODSubMeshes(Geometry)) {
+    if (!BuildLODSections(Geometry)) {
         return false;
     }
 
@@ -559,8 +502,8 @@ bool UMesh::BuildLODGeometry(FLODGeometry& Geometry) const {
             continue;
         }
 
-        if (!Geometry.mTriangleSubMeshes.empty()) {
-            Geometry.mTriangleSubMeshes[Geometry.mIndices.size() / 3] = Geometry.mTriangleSubMeshes[Index / 3];
+        if (!Geometry.mTriangleSections.empty()) {
+            Geometry.mTriangleSections[Geometry.mIndices.size() / 3] = Geometry.mTriangleSections[Index / 3];
         }
 
         for (Uint32 RenderIndex : {R0, R1, R2}) {
@@ -582,8 +525,8 @@ bool UMesh::BuildLODGeometry(FLODGeometry& Geometry) const {
         RefreshLODVertexGroups(Geometry, Vertex, Groups);
     }
 
-    if (!Geometry.mTriangleSubMeshes.empty()) {
-        Geometry.mTriangleSubMeshes.resize(Geometry.mIndices.size() / 3);
+    if (!Geometry.mTriangleSections.empty()) {
+        Geometry.mTriangleSections.resize(Geometry.mIndices.size() / 3);
         Geometry.mMaterialBoundaryVertices.resize(Geometry.mPositions.size());
         // 서로 다른 재질의 접점만 고정한다. 내부 정점은 이 경계 쪽으로 합칠 수 있다.
         for (Uint32 Vertex{}; Vertex < Geometry.mPositions.size(); ++Vertex) {
@@ -593,10 +536,10 @@ bool UMesh::BuildLODGeometry(FLODGeometry& Geometry) const {
                 continue;
             }
 
-            const Uint32 Section{Geometry.mTriangleSubMeshes[First / 3]};
+            const Uint32 Section{Geometry.mTriangleSections[First / 3]};
 
             for (Uint32 Corner{Geometry.mNextCorners[First]}; Corner != UINT32_MAX; Corner = Geometry.mNextCorners[Corner]) {
-                if (Geometry.mTriangleSubMeshes[Corner / 3] != Section) {
+                if (Geometry.mTriangleSections[Corner / 3] != Section) {
                     Geometry.mMaterialBoundaryVertices[Vertex] = 1;
                     break;
                 }
@@ -787,12 +730,12 @@ void UMesh::SimplifyLODGeometry(FLODGeometry& Geometry, Uint32 TargetTriangleCou
             continue;
         }
 
-        const Uint32 Section{Geometry.mTriangleSubMeshes.empty() ? 0 : Geometry.mTriangleSubMeshes[Triangle]};
+        const Uint32 Section{Geometry.mTriangleSections.empty() ? 0 : Geometry.mTriangleSections[Triangle]};
 
-        Geometry.mSubMeshes[Section].mIndexCount += 3;
+        Geometry.mSections[Section].mIndexCount += 3;
 
-        if (!Geometry.mTriangleSubMeshes.empty()) {
-            Geometry.mTriangleSubMeshes[WriteIndex / 3] = Section;
+        if (!Geometry.mTriangleSections.empty()) {
+            Geometry.mTriangleSections[WriteIndex / 3] = Section;
         }
 
         for (Uint32 Corner{}; Corner < 3; ++Corner) {
@@ -805,15 +748,15 @@ void UMesh::SimplifyLODGeometry(FLODGeometry& Geometry, Uint32 TargetTriangleCou
     Geometry.mIndices.resize(WriteIndex);
     Geometry.mRenderIndices.resize(WriteIndex);
 
-    if (!Geometry.mTriangleSubMeshes.empty()) {
-        Geometry.mTriangleSubMeshes.resize(WriteIndex / 3);
+    if (!Geometry.mTriangleSections.empty()) {
+        Geometry.mTriangleSections.resize(WriteIndex / 3);
     }
 
     Uint32 FirstIndex{};
 
-    for (FSubMesh& SubMesh : Geometry.mSubMeshes) {
-        SubMesh.mFirstIndex = FirstIndex;
-        FirstIndex += SubMesh.mIndexCount;
+    for (FMeshSection& Section : Geometry.mSections) {
+        Section.mFirstIndex = FirstIndex;
+        FirstIndex += Section.mIndexCount;
     }
     // Corner 번호가 달라졌으므로 생성 중 사용한 인접 목록은 더 이상 참조하지 않는다.
     Geometry.mFirstCorners.clear();
@@ -1006,8 +949,8 @@ bool UMesh::MakeLODCandidate(Uint64 Key, const FLODGeometry& Geometry, const FLO
 
         const auto SetInterpolation{[&](float Value) {
             Candidate.mInterpolation = Value;
-            Collapse.mEdge.NewPosition = P0 * (1.0f - Value) + P1 * Value;
-            Candidate.mCost = Quadric.Evaluate(Collapse.mEdge.NewPosition, State.mQuadricOrigin);
+            Collapse.mEdge.mNewPosition = P0 * (1.0f - Value) + P1 * Value;
+            Candidate.mCost = Quadric.Evaluate(Collapse.mEdge.mNewPosition, State.mQuadricOrigin);
 
             for (Uint32 Index{}; Index < Collapse.mMergeCount; ++Index) {
                 auto& Merge{Collapse.mAttributeMerges[Index]};
@@ -1049,37 +992,37 @@ bool UMesh::MakeLODCandidate(Uint64 Key, const FLODGeometry& Geometry, const FLO
 bool UMesh::PrepareLODCollapse(const FLODCandidate& Candidate, const FLODGeometry& Geometry, const FLODSimplification& State, FLODCollapse& Collapse) const {
     FEdge& Edge{Collapse.mEdge};
 
-    Edge.V0 = Candidate.mV0;
-    Edge.V1 = Candidate.mV1;
-    Edge.FaceCount = 2;
-    Edge.Cost = Candidate.mCost;
+    Edge.mV0 = Candidate.mV0;
+    Edge.mV1 = Candidate.mV1;
+    Edge.mFaceCount = 2;
+    Edge.mCost = Candidate.mCost;
 
-    const bool BFixedV0{Geometry.mVertexGroupCounts[Edge.V0] > 2 || State.mBoundaryEdgeCounts[Edge.V0] ||
-                        (!Geometry.mMaterialBoundaryVertices.empty() && Geometry.mMaterialBoundaryVertices[Edge.V0])};
+    const bool BFixedV0{Geometry.mVertexGroupCounts[Edge.mV0] > 2 || State.mBoundaryEdgeCounts[Edge.mV0] ||
+                        (!Geometry.mMaterialBoundaryVertices.empty() && Geometry.mMaterialBoundaryVertices[Edge.mV0])};
 
-    const bool BFixedV1{Geometry.mVertexGroupCounts[Edge.V1] > 2 || State.mBoundaryEdgeCounts[Edge.V1] ||
-                        (!Geometry.mMaterialBoundaryVertices.empty() && Geometry.mMaterialBoundaryVertices[Edge.V1])};
+    const bool BFixedV1{Geometry.mVertexGroupCounts[Edge.mV1] > 2 || State.mBoundaryEdgeCounts[Edge.mV1] ||
+                        (!Geometry.mMaterialBoundaryVertices.empty() && Geometry.mMaterialBoundaryVertices[Edge.mV1])};
 
     if (BFixedV0 && BFixedV1) {
         return false;
     }
 
     // 외곽 / 이음매 교차점은 고정한다. 내부 정점은 경계 쪽으로만 합친다.
-    if (BFixedV1 || (!BFixedV0 && Geometry.mVertexGroupCounts[Edge.V1] > Geometry.mVertexGroupCounts[Edge.V0])) {
-        std::swap(Edge.V0, Edge.V1);
+    if (BFixedV1 || (!BFixedV0 && Geometry.mVertexGroupCounts[Edge.mV1] > Geometry.mVertexGroupCounts[Edge.mV0])) {
+        std::swap(Edge.mV0, Edge.mV1);
     }
 
-    Collapse.mFixedTarget = BFixedV0 || BFixedV1 || Geometry.mVertexGroupCounts[Edge.V0] != Geometry.mVertexGroupCounts[Edge.V1];
-    Edge.NewPosition = Collapse.mFixedTarget ? Geometry.mPositions[Edge.V0] : Geometry.mPositions[Candidate.mV0] * (1.0f - Candidate.mInterpolation) + Geometry.mPositions[Candidate.mV1] * Candidate.mInterpolation;
+    Collapse.mFixedTarget = BFixedV0 || BFixedV1 || Geometry.mVertexGroupCounts[Edge.mV0] != Geometry.mVertexGroupCounts[Edge.mV1];
+    Edge.mNewPosition = Collapse.mFixedTarget ? Geometry.mPositions[Edge.mV0] : Geometry.mPositions[Candidate.mV0] * (1.0f - Candidate.mInterpolation) + Geometry.mPositions[Candidate.mV1] * Candidate.mInterpolation;
 
-    const float Interpolation{Edge.V0 == Candidate.mV0 ? Candidate.mInterpolation : 1.0f - Candidate.mInterpolation};
+    const float Interpolation{Edge.mV0 == Candidate.mV0 ? Candidate.mInterpolation : 1.0f - Candidate.mInterpolation};
 
     // 공유 면마다 같은 쪽의 속성 그룹을 짝짓는다. 이음매 반대편의 UV는 섞지 않는다.
-    for (Uint32 Corner{Geometry.mFirstCorners[Edge.V1]}; Corner != UINT32_MAX; Corner = Geometry.mNextCorners[Corner]) {
+    for (Uint32 Corner{Geometry.mFirstCorners[Edge.mV1]}; Corner != UINT32_MAX; Corner = Geometry.mNextCorners[Corner]) {
         const Uint32 First{Corner / 3 * 3};
 
         for (Uint32 Offset{}; Offset < 3; ++Offset) {
-            if (Geometry.mIndices[First + Offset] != Edge.V0) {
+            if (Geometry.mIndices[First + Offset] != Edge.mV0) {
                 continue;
             }
 
@@ -1117,8 +1060,8 @@ bool UMesh::PrepareLODCollapse(const FLODCandidate& Candidate, const FLODGeometr
     }
 
     // 짝이 없는 영역을 없애거나 서로 다른 영역을 하나로 합치는 후보는 제외한다.
-    if (Collapse.mMergeCount != Geometry.mVertexGroupCounts[Edge.V1] ||
-        (!Collapse.mFixedTarget && Collapse.mMergeCount != Geometry.mVertexGroupCounts[Edge.V0])) {
+    if (Collapse.mMergeCount != Geometry.mVertexGroupCounts[Edge.mV1] ||
+        (!Collapse.mFixedTarget && Collapse.mMergeCount != Geometry.mVertexGroupCounts[Edge.mV0])) {
         return false;
     }
 
@@ -1151,11 +1094,11 @@ bool UMesh::EvaluateLODUVError(const FLODCollapse& Collapse, const FLODGeometry&
         *UVQuadric = {};
     }
 
-    for (Uint32 Vertex : {Edge.V0, Edge.V1}) {
+    for (Uint32 Vertex : {Edge.mV0, Edge.mV1}) {
         for (Uint32 Corner{Geometry.mFirstCorners[Vertex]}; Corner != UINT32_MAX; Corner = Geometry.mNextCorners[Corner]) {
             const Uint32 First{Corner / 3 * 3};
-            const bool BHasV0{Geometry.mIndices[First] == Edge.V0 || Geometry.mIndices[First + 1] == Edge.V0 || Geometry.mIndices[First + 2] == Edge.V0};
-            const bool BHasV1{Geometry.mIndices[First] == Edge.V1 || Geometry.mIndices[First + 1] == Edge.V1 || Geometry.mIndices[First + 2] == Edge.V1};
+            const bool BHasV0{Geometry.mIndices[First] == Edge.mV0 || Geometry.mIndices[First + 1] == Edge.mV0 || Geometry.mIndices[First + 2] == Edge.mV0};
+            const bool BHasV1{Geometry.mIndices[First] == Edge.mV1 || Geometry.mIndices[First + 1] == Edge.mV1 || Geometry.mIndices[First + 2] == Edge.mV1};
 
             if ((BHasV0 && BHasV1) || (Collapse.mFixedTarget && BHasV0)) {
                 continue;
@@ -1173,7 +1116,7 @@ bool UMesh::EvaluateLODUVError(const FLODCollapse& Collapse, const FLODGeometry&
 
                 SourcePositions[Offset] = Geometry.mSourcePositions[RenderVertex];
                 SourceUVs[Offset] = Geometry.mSourceUVs[RenderVertex];
-                Positions[Offset] = GeometryVertex == Edge.V0 || GeometryVertex == Edge.V1 ? Edge.NewPosition : Geometry.mPositions[GeometryVertex];
+                Positions[Offset] = GeometryVertex == Edge.mV0 || GeometryVertex == Edge.mV1 ? Edge.mNewPosition : Geometry.mPositions[GeometryVertex];
                 UVs[Offset] = Geometry.mAttributeGroups[Group].mUV;
 
                 for (Uint32 MergeIndex{}; MergeIndex < Collapse.mMergeCount; ++MergeIndex) {
@@ -1226,7 +1169,7 @@ bool UMesh::EvaluateLODUVError(const FLODCollapse& Collapse, const FLODGeometry&
 
                 ExpectedUVs[Offset] = {SourceUVs[0].X + GradientU.Dot(Displacement), SourceUVs[0].Y + GradientV.Dot(Displacement)};
 
-                if (Geometry.mIndices[First + Offset] == Edge.V0 || Geometry.mIndices[First + Offset] == Edge.V1) {
+                if (Geometry.mIndices[First + Offset] == Edge.mV0 || Geometry.mIndices[First + Offset] == Edge.mV1) {
                     const FVector2D Difference{UVs[Offset] - ExpectedUVs[Offset]};
 
                     Error += static_cast<double>(Difference.LengthSquared()) / GradientSquared;
@@ -1243,8 +1186,8 @@ bool UMesh::EvaluateLODUVError(const FLODCollapse& Collapse, const FLODGeometry&
 
                             const FVector2D KeepUV{Geometry.mAttributeGroups[Merge.mKeepGroup].mUV};
                             const FVector2D RemoveUV{Geometry.mAttributeGroups[Merge.mRemoveGroup].mUV};
-                            const FVector3 KeepDisplacement{Geometry.mPositions[Edge.V0] - SourcePositions[0]};
-                            const FVector3 Direction{Geometry.mPositions[Edge.V1] - Geometry.mPositions[Edge.V0]};
+                            const FVector3 KeepDisplacement{Geometry.mPositions[Edge.mV0] - SourcePositions[0]};
+                            const FVector3 Direction{Geometry.mPositions[Edge.mV1] - Geometry.mPositions[Edge.mV0]};
                             const FVector2D Base{KeepUV.X - SourceUVs[0].X - GradientU.Dot(KeepDisplacement), KeepUV.Y - SourceUVs[0].Y - GradientV.Dot(KeepDisplacement)};
                             const FVector2D Delta{RemoveUV.X - KeepUV.X - GradientU.Dot(Direction), RemoveUV.Y - KeepUV.Y - GradientV.Dot(Direction)};
 
@@ -1323,13 +1266,13 @@ void UMesh::ApplyLODCollapse(const FLODCollapse& Collapse, FLODGeometry& Geometr
     State.mAffectedVertices.clear();
     State.mAffectedEdges.clear();
 
-    for (Uint32 Vertex : {Edge.V0, Edge.V1}) {
+    for (Uint32 Vertex : {Edge.mV0, Edge.mV1}) {
         for (Uint32 Corner{Geometry.mFirstCorners[Vertex]}; Corner != UINT32_MAX; Corner = Geometry.mNextCorners[Corner]) {
             const Uint32 Triangle{Corner / 3};
             const Uint32 First{Triangle * 3};
 
-            if (Vertex == Edge.V1 && (Geometry.mIndices[First] == Edge.V0 ||
-                                      Geometry.mIndices[First + 1] == Edge.V0 || Geometry.mIndices[First + 2] == Edge.V0)) {
+            if (Vertex == Edge.mV1 && (Geometry.mIndices[First] == Edge.mV0 ||
+                                      Geometry.mIndices[First + 1] == Edge.mV0 || Geometry.mIndices[First + 2] == Edge.mV0)) {
                 continue;
             }
 
@@ -1341,9 +1284,9 @@ void UMesh::ApplyLODCollapse(const FLODCollapse& Collapse, FLODGeometry& Geometr
         }
     }
 
-    Geometry.mPositions[Edge.V0] = Edge.NewPosition;
+    Geometry.mPositions[Edge.mV0] = Edge.mNewPosition;
     // 삭제된 원본 면의 오차도 누적해서 유지한다. 주변 평면을 다시 계산하지 않는다.
-    State.mQuadrics[Edge.V0] += State.mQuadrics[Edge.V1];
+    State.mQuadrics[Edge.mV0] += State.mQuadrics[Edge.mV1];
 
     for (Uint32 Index{}; Index < Collapse.mMergeCount; ++Index) {
         const auto& Merge{Collapse.mAttributeMerges[Index]};
@@ -1374,11 +1317,11 @@ void UMesh::ApplyLODCollapse(const FLODCollapse& Collapse, FLODGeometry& Geometr
         for (Uint32 Offset{}; Offset < 3; ++Offset) {
             const Uint32 Corner{First + Offset};
 
-            if (Geometry.mIndices[Corner] != Edge.V1) {
+            if (Geometry.mIndices[Corner] != Edge.mV1) {
                 continue;
             }
 
-            Geometry.mIndices[Corner] = Edge.V0;
+            Geometry.mIndices[Corner] = Edge.mV0;
 
             Uint32& Group{Geometry.mRenderGroups[Geometry.mRenderIndices[Corner]]};
 
@@ -1527,18 +1470,18 @@ UMesh::FLODRenderData UMesh::BuildLODRenderData(const FLODGeometry& Geometry) co
         RenderIndex = Representative;
     }
 
-    if (!Geometry.mTriangleSubMeshes.empty()) {
+    if (!Geometry.mTriangleSections.empty()) {
         // 생성 마지막에 한 번만 재질별로 모은다. 모든 구간은 같은 GPU 인덱스 버퍼를 쓴다.
         TArray<Uint32> WritePositions{};
 
-        for (const FSubMesh& SubMesh : Geometry.mSubMeshes) {
-            WritePositions.push_back(SubMesh.mFirstIndex);
+        for (const FMeshSection& Section : Geometry.mSections) {
+            WritePositions.push_back(Section.mFirstIndex);
         }
 
         TArray<Uint32> SectionIndices(RenderData.mIndices.size());
 
-        for (std::size_t Triangle{}; Triangle < Geometry.mTriangleSubMeshes.size(); ++Triangle) {
-            Uint32& Destination{WritePositions[Geometry.mTriangleSubMeshes[Triangle]]};
+        for (std::size_t Triangle{}; Triangle < Geometry.mTriangleSections.size(); ++Triangle) {
+            Uint32& Destination{WritePositions[Geometry.mTriangleSections[Triangle]]};
 
             for (Uint32 Corner{}; Corner < 3; ++Corner) {
                 SectionIndices[Destination++] = RenderData.mIndices[Triangle * 3 + Corner];
@@ -1551,55 +1494,13 @@ UMesh::FLODRenderData UMesh::BuildLODRenderData(const FLODGeometry& Geometry) co
     return RenderData;
 }
 
-TArray<FEdge> UMesh::BuildEdges(const TArray<Uint32>& Indices) {
-    TArray<FEdge> Edges{};
-    std::unordered_map<Uint64, std::size_t> EdgeMap{};
-
-    Edges.reserve(Indices.size() / 2);
-    EdgeMap.reserve(Indices.size() / 2);
-
-    auto AddEdge{[&](Uint32 A, Uint32 B) {
-        if (A > B) {
-            std::swap(A, B);
-        }
-
-        const Uint64 Key{(static_cast<Uint64>(A) << 32) | static_cast<Uint64>(B)};
-
-        const auto [It, BInserted]{EdgeMap.try_emplace(Key, Edges.size())};
-
-        if (BInserted) {
-            FEdge Edge{};
-
-            Edge.V0 = A;
-            Edge.V1 = B;
-            Edge.FaceCount = 1;
-
-            Edges.push_back(Edge);
-        } else {
-            ++Edges[It->second].FaceCount;
-        }
-    }};
-
-    for (std::size_t Index{}; Index + 2 < Indices.size(); Index += 3) {
-        const Uint32 V0{Indices[Index]};
-        const Uint32 V1{Indices[Index + 1]};
-        const Uint32 V2{Indices[Index + 2]};
-
-        AddEdge(V0, V1);
-        AddEdge(V1, V2);
-        AddEdge(V2, V0);
-    }
-
-    return Edges;
-}
-
 bool UMesh::CanCollapseEdge(const FLODCollapse& Collapse, const FLODGeometry& Geometry, FLODSimplification& State) const {
     constexpr float Epsilon{1e-8f};
     constexpr float MinUVAreaRatio{1e-4f};
     const FEdge& Edge{Collapse.mEdge};
     const bool BFixedTarget{Collapse.mFixedTarget};
 
-    if (Edge.FaceCount != 2) {
+    if (Edge.mFaceCount != 2) {
         return false;
     }
 
@@ -1637,22 +1538,22 @@ bool UMesh::CanCollapseEdge(const FLODCollapse& Collapse, const FLODGeometry& Ge
     }};
 
     // 전체 메시 대신 두 끝점에 연결된 삼각형만 방문한다.
-    for (Uint32 Vertex : {Edge.V0, Edge.V1}) {
+    for (Uint32 Vertex : {Edge.mV0, Edge.mV1}) {
         for (Uint32 Corner{Geometry.mFirstCorners[Vertex]}; Corner != UINT32_MAX; Corner = Geometry.mNextCorners[Corner]) {
             const Uint32 Index{Corner / 3 * 3};
             const Uint32 I0{Geometry.mIndices[Index]};
             const Uint32 I1{Geometry.mIndices[Index + 1]};
             const Uint32 I2{Geometry.mIndices[Index + 2]};
-            const bool BHasV0{I0 == Edge.V0 || I1 == Edge.V0 || I2 == Edge.V0};
-            const bool BHasV1{I0 == Edge.V1 || I1 == Edge.V1 || I2 == Edge.V1};
+            const bool BHasV0{I0 == Edge.mV0 || I1 == Edge.mV0 || I2 == Edge.mV0};
+            const bool BHasV1{I0 == Edge.mV1 || I1 == Edge.mV1 || I2 == Edge.mV1};
 
             // 공유 삼각형은 V0 목록에서 이미 처리했다.
-            if (Vertex == Edge.V1 && BHasV0) {
+            if (Vertex == Edge.mV1 && BHasV0) {
                 continue;
             }
 
             for (Uint32 Neighbor : {I0, I1, I2}) {
-                if (Neighbor == Edge.V0 || Neighbor == Edge.V1) {
+                if (Neighbor == Edge.mV0 || Neighbor == Edge.mV1) {
                     continue;
                 }
 
@@ -1675,8 +1576,8 @@ bool UMesh::CanCollapseEdge(const FLODCollapse& Collapse, const FLODGeometry& Ge
             }
 
             // Collapse 후 같은 세 정점을 가진 면이 겹치는 경우도 제외한다.
-            const Uint32 A{I0 == Edge.V0 || I0 == Edge.V1 ? I1 : I0};
-            const Uint32 B{I2 == Edge.V0 || I2 == Edge.V1 ? I1 : I2};
+            const Uint32 A{I0 == Edge.mV0 || I0 == Edge.mV1 ? I1 : I0};
+            const Uint32 B{I2 == Edge.mV0 || I2 == Edge.mV1 ? I1 : I2};
             const Uint64 FaceKey{MakeLODEdgeKey(A, B)};
 
             if (std::ranges::find(State.mRemainingFaces, FaceKey) != State.mRemainingFaces.end()) {
@@ -1695,16 +1596,16 @@ bool UMesh::CanCollapseEdge(const FLODCollapse& Collapse, const FLODGeometry& Ge
             FVector3 P2{Geometry.mPositions[I2]};
             const FVector3 OldNormal{(P1 - P0).Cross(P2 - P0)};
 
-            if (I0 == Edge.V0 || I0 == Edge.V1) {
-                P0 = Edge.NewPosition;
+            if (I0 == Edge.mV0 || I0 == Edge.mV1) {
+                P0 = Edge.mNewPosition;
             }
 
-            if (I1 == Edge.V0 || I1 == Edge.V1) {
-                P1 = Edge.NewPosition;
+            if (I1 == Edge.mV0 || I1 == Edge.mV1) {
+                P1 = Edge.mNewPosition;
             }
 
-            if (I2 == Edge.V0 || I2 == Edge.V1) {
-                P2 = Edge.NewPosition;
+            if (I2 == Edge.mV0 || I2 == Edge.mV1) {
+                P2 = Edge.mNewPosition;
             }
 
             const FVector3 NewNormal{(P1 - P0).Cross(P2 - P0)};
@@ -1762,14 +1663,15 @@ void UMesh::Serialize(FArchive& Ar) {
 void UMesh::Reset() {
     mPickingSource->Nodes = nullptr;
     mPickingSource->Packets = nullptr;
-    RaycastAccelerationStructure = FMeshRaycastAccelerationStructure{};
+    mRaycastAccelerationStructure = FMeshRaycastAccelerationStructure{};
 
     for (std::unique_ptr<FVertexAttributeStorageBase>& Storage : mAttributeStorage) {
         Storage.reset();
     }
 
     mIndices.clear();
-    mSubMeshes.clear();
+    mSections.clear();
+    mMaterialSlots.clear();
 
     mGeneratedLODs.clear();
     ++mRenderRevision;
@@ -1781,20 +1683,14 @@ const TArray<Uint32>& UMesh::GetIndices(int Level) const {
     return LOD != nullptr && LOD->IsValid() && !LOD->mUsesBaseData ? LOD->mData.mIndices : mIndices;
 }
 
-const TArray<UMesh::FSubMesh>& UMesh::GetSubMeshes(int Level) const {
+const TArray<FMeshSection>& UMesh::GetSections(int Level) const {
     const FGeneratedLOD* LOD{GetGeneratedLOD(Level)};
 
     if (LOD && LOD->IsValid()) {
-        return LOD->mSubMeshes;
+        return LOD->mSections;
     }
 
-    return mSubMeshes;
-}
-
-void UMesh::SetSubMeshes(const std::span<FSubMesh>& InSubMeshes) {
-    mSubMeshes.assign(InSubMeshes.begin(), InSubMeshes.end());
-    mGeneratedLODs.clear();
-    ++mRenderRevision;
+    return mSections;
 }
 
 bool UMesh::Raycast(const FRay& Ray, float& OutDistance, float MaxDistance, bool ReverseWinding) const {
@@ -1805,13 +1701,13 @@ bool UMesh::RebuildPickingStructure() {
     mPickingSource->Nodes = nullptr;
     mPickingSource->Packets = nullptr;
 
-    if (!RaycastAccelerationStructure.BuildStructure(*this))
+    if (!mRaycastAccelerationStructure.BuildStructure(*this))
         return false;
 
-    const auto& Tree = RaycastAccelerationStructure.mTree;
+    const auto& Tree = mRaycastAccelerationStructure.mTree;
 
     mPickingSource->Nodes = Tree.GetNodes().empty() ? nullptr : Tree.GetNodes().data();
-    mPickingSource->Packets = RaycastAccelerationStructure.mTrianglePackets.data();
+    mPickingSource->Packets = mRaycastAccelerationStructure.mTrianglePackets.data();
     mPickingSource->RootReference = Tree.GetRootReference();
 
     return true;
@@ -1911,8 +1807,8 @@ Uint32 FMeshRaycastAccelerationStructure::MakeChild(TArray<FNode>& BuildNodes, c
 
     Node.mIndexStart = First;
     Node.mIndexCount = Count;
-    Node.BoundingBox.Center = {Bounds.minX * 0.5f + Bounds.maxX * 0.5f, Bounds.minY * 0.5f + Bounds.maxY * 0.5f, Bounds.minZ * 0.5f + Bounds.maxZ * 0.5f};
-    Node.BoundingBox.Extents = {Bounds.maxX * 0.5f - Bounds.minX * 0.5f, Bounds.maxY * 0.5f - Bounds.minY * 0.5f, Bounds.maxZ * 0.5f - Bounds.minZ * 0.5f};
+    Node.BoundingBox.Center = {Bounds.mMinX * 0.5f + Bounds.mMaxX * 0.5f, Bounds.mMinY * 0.5f + Bounds.mMaxY * 0.5f, Bounds.mMinZ * 0.5f + Bounds.mMaxZ * 0.5f};
+    Node.BoundingBox.Extents = {Bounds.mMaxX * 0.5f - Bounds.mMinX * 0.5f, Bounds.mMaxY * 0.5f - Bounds.mMinY * 0.5f, Bounds.mMaxZ * 0.5f - Bounds.mMinZ * 0.5f};
     Node.BoundingBox.Extents.x += 4.0f * std::numeric_limits<float>::epsilon() * (std::abs(Node.BoundingBox.Center.x) + Node.BoundingBox.Extents.x);
     Node.BoundingBox.Extents.y += 4.0f * std::numeric_limits<float>::epsilon() * (std::abs(Node.BoundingBox.Center.y) + Node.BoundingBox.Extents.y);
     Node.BoundingBox.Extents.z += 4.0f * std::numeric_limits<float>::epsilon() * (std::abs(Node.BoundingBox.Center.z) + Node.BoundingBox.Extents.z);

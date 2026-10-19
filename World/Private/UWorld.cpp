@@ -329,7 +329,7 @@ void UWorld::RefreshActorTicks() {
     }
 }
 
-AActor* UWorld::SpawnStaticMeshActor(const FAssetHandle& MeshHandle, const FAssetHandle& PipelineHandle, const FAssetHandle& MaterialHandle, const FVector3& Position) {
+AActor* UWorld::SpawnStaticMeshActor(const FAssetHandle& MeshHandle, const FVector3& Position) {
     const IAssetRegistry* Registry{FAssetRegistry::TryGet()};
 
     if (Registry == nullptr || Registry->ResolveAsset<UMesh>(MeshHandle) == nullptr) {
@@ -352,8 +352,6 @@ AActor* UWorld::SpawnStaticMeshActor(const FAssetHandle& MeshHandle, const FAsse
     Actor->SetRootComponent(MeshComponent);
 
     MeshComponent->SetMeshHandle(MeshHandle);
-    MeshComponent->SetPipelineHandle(PipelineHandle);
-    MeshComponent->SetMaterialHandle(MaterialHandle);
 
     MeshComponent->SetRelativeLocation(FVector3{Position.mX, Position.mY, Position.mZ});
 

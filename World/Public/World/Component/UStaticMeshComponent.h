@@ -1,11 +1,16 @@
 #pragma once
-#include "CoreUObject/Reflection/ReflectionMacros.h"
-#include "World/Component/UMeshComponent.h"
-#include "Core/Archive/FArchive.h"
-#include "Asset/UMaterial.h"
-#include "Asset/Pipeline/UPipeline.h"
 
-class FProperty;
+#include "World/Component/UMeshComponent.h"
+#include "Asset/UMaterial.h"
+
+struct FMeshMaterialOverride {
+public:
+    void Serialize(FArchive& Archive);
+
+public:
+    FName mSlot{};
+    FAssetReference mMaterial{};
+};
 
 class UStaticMeshComponent : public UMeshComponent {
 public:
@@ -16,28 +21,22 @@ public:
     ~UStaticMeshComponent() override = default;
 
 public:
-    ReflectClass(UStaticMeshComponent, EClassFlags::None);
+    ReflectClass(UStaticMeshComponent);
 
-    FAssetHandle GetMaterialHandle() const;
-    FAssetHandle GetPipelineHandle() const;
-
-    void SetMaterialHandle(FAssetHandle InHandle);
-    void SetEditorMaterialHandle(FAssetHandle InHandle);
-    void SetPipelineHandle(FAssetHandle InHandle);
-
+    FAssetHandle GetMaterial(Uint32 SlotIndex) const;
+    FAssetHandle GetMaterialOverride(FName Slot) const;
+    bool SetMaterialOverride(FName Slot, FAssetHandle Material);
+    void ClearMaterialOverrides();
     void OnRegister() override;
     bool ShouldCreateRenderState() const override;
     std::unique_ptr<FPrimitiveSceneProxy> CreateSceneProxy() const override;
 
 private:
-    static void SerializeMaterialHandleProperty(void* Container, FArchive& Archive, const FProperty& Property);
-    static void SerializePipelineHandleProperty(void* Container, FArchive& Archive, const FProperty& Property);
+    void Serialize(FArchive& Archive) override;
 
 private:
-    ReflectAccessor(mMaterialReference, GetMaterialHandle, SetEditorMaterialHandle, "MaterialHandle", EPropertyFlags::Edit | EPropertyFlags::Serialize | EPropertyFlags::Asset, &SerializeMaterialHandleProperty, ReflectEditor("Rendering", "Material"), ReflectAsset(UMaterial));
-    FAssetReference mMaterialReference{};
-    ReflectAccessor(mPipelineReference, GetPipelineHandle, SetPipelineHandle, "PipelineHandle", EPropertyFlags::Edit | EPropertyFlags::Serialize | EPropertyFlags::Asset, &SerializePipelineHandleProperty, ReflectEditor("Rendering", "Pipeline"), ReflectAsset(UPipeline));
-    FAssetReference mPipelineReference{};
+    ReflectProperty(mMaterialOverrides, "MaterialOverrides", EPropertyFlags::Serialize, ReflectSerializer(mMaterialOverrides));
+    TArray<FMeshMaterialOverride> mMaterialOverrides{};
 
     ReflectMembers();
 };

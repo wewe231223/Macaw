@@ -253,8 +253,8 @@ namespace {
                 rapidjson::Document Document{rapidjson::kObjectType};
                 FArchiveJson Save{Document, Document.GetAllocator()};
                 Save.SetAssetResolver(FAssetRegistry::TryGet());
-                Component->GetClass()->FindProperty(FName{"MaterialHandle"})->SerializeContainer(Component.get(), Save);
-                return !Save.HasError() && Document["MaterialAssetGuid"].GetString() == Guid.ToString() && Document["MaterialAssetPath"].GetString() == Path.mPath;
+                Component->GetClass()->FindProperty(FName{"MaterialOverrides"})->SerializeContainer(Component.get(), Save);
+                return !Save.HasError() && Document["MaterialOverrides"].Size() == 1 && Document["MaterialOverrides"][0]["MaterialGuid"].GetString() == Guid.ToString() && Document["MaterialOverrides"][0]["MaterialPath"].GetString() == Path.mPath;
             }
         }
 
@@ -272,61 +272,25 @@ namespace {
         UBillboardTextComponent* Text{Actor->AddComponent<UBillboardTextComponent>()};
         const FAssetHandle MeshHandle{Assets.FindAsset(FAssetPath{"/Game/System/Mesh/Cube.bin"})};
         const FAssetHandle MaterialHandle{Assets.EnsureDefaultStaticMeshMaterial()};
-        const FAssetHandle PipelineHandle{Assets.EnsureDefaultStaticMeshPipeline()};
         const FAssetHandle TextureHandle{Assets.FindAsset(FAssetPath{"/Game/System/Light.png"})};
         const FAssetHandle FontHandle{Assets.FindAsset(FAssetPath{"/Game/Font/NotoSansKR-Medium.ttf"})};
         const FAssetHandle TextPipeline{Assets.FindAsset(FAssetPath{"/Game/Pipeline/Text.json"})};
         const FAssetHandle BillboardPipeline{Assets.FindAsset(FAssetPath{"/Game/Pipeline/Billboard.json"})};
         Passed = CheckProperty(*Mesh, "MeshHandle", "MeshAssetGuid", "MeshAssetPath", MeshHandle, World) && Passed;
-        Passed = CheckProperty(*Mesh, "MaterialHandle", "MaterialAssetGuid", "MaterialAssetPath", MaterialHandle, World) && Passed;
-        Passed = CheckProperty(*Mesh, "PipelineHandle", "PipelineAssetGuid", "PipelineAssetPath", PipelineHandle, World) && Passed;
         Passed = CheckProperty(*Billboard, "TextureHandle", "TextureAssetGuid", "TextureAssetPath", TextureHandle, World) && Passed;
         Passed = CheckProperty(*Billboard, "PipelineHandle", "PipelineAssetGuid", "PipelineAssetPath", BillboardPipeline, World) && Passed;
         Passed = CheckProperty(*Text, "FontHandle", "FontAssetGuid", "FontAssetPath", FontHandle, World) && Passed;
         Passed = CheckProperty(*Text, "PipelineHandle", "PipelineAssetGuid", "PipelineAssetPath", TextPipeline, World) && Passed;
 
-        const FProperty* MaterialProperty{Mesh->GetClass()->FindProperty(FName{"MaterialHandle"})};
-        const FProperty* PipelineProperty{Mesh->GetClass()->FindProperty(FName{"PipelineHandle"})};
-        Mesh->SetPipelineHandle({});
-        MaterialProperty->SetValue(*Mesh, FPropertyValue{MaterialHandle});
-        Passed = Check(!Mesh->GetPipelineHandle(), "Editing material preserves a separately cleared pipeline reference") && Passed;
-
-        const FGuid MissingPipelineGuid{301, 302, 303, 304};
-        const FAssetPath MissingPipelinePath{FString{"/Game/Missing/Pipeline"}};
-        FAssetReference MissingPipeline{MissingPipelineGuid, MissingPipelinePath};
-        rapidjson::Document PipelineDocument{rapidjson::kObjectType};
-        FArchiveJson PipelineSave{PipelineDocument, PipelineDocument.GetAllocator()};
-        SerializeAssetReference(PipelineSave, "PipelineAssetGuid", "PipelineAssetPath", MissingPipeline);
-
-        for (FAssetHandle SelectedMaterial : {FAssetHandle{}, MaterialHandle}) {
-            FArchiveJson PipelineLoad{PipelineDocument};
-            PipelineLoad.SetAssetResolver(&Assets);
-            PipelineProperty->SerializeContainer(Mesh, PipelineLoad);
-            MaterialProperty->SetValue(*Mesh, FPropertyValue{SelectedMaterial});
-            rapidjson::Document AfterEdit{rapidjson::kObjectType};
-            FArchiveJson AfterEditSave{AfterEdit, AfterEdit.GetAllocator()};
-            AfterEditSave.SetAssetResolver(&Assets);
-            PipelineProperty->SerializeContainer(Mesh, AfterEditSave);
-            Passed = Check(!Mesh->GetPipelineHandle() && AfterEdit["PipelineAssetGuid"].GetString() == MissingPipelineGuid.ToString() && AfterEdit["PipelineAssetPath"].GetString() == MissingPipelinePath.mPath, "Clearing or changing material never replaces a missing pipeline with a default asset") && Passed;
-        }
-
-        Mesh->SetPipelineHandle(BillboardPipeline);
-        MaterialProperty->SetValue(*Mesh, FPropertyValue{MaterialHandle});
-        Passed = Check(Mesh->GetPipelineHandle() == BillboardPipeline, "Material convenience selection preserves a custom pipeline reference") && Passed;
-        MaterialProperty->SetValue(*Mesh, FPropertyValue{FAssetHandle{}});
-        Passed = Check(Mesh->GetPipelineHandle() == BillboardPipeline, "Clearing material leaves a valid custom pipeline unchanged") && Passed;
-        Mesh->SetPipelineHandle(Assets.FindAsset(FAssetPath{"/Game/Pipeline/TexturedBase"}));
-        MaterialProperty->SetValue(*Mesh, FPropertyValue{MaterialHandle});
-        Passed = Check(Mesh->GetPipelineHandle() == PipelineHandle, "Valid built-in pipelines retain automatic selection for an untextured material") && Passed;
-        Mesh->SetPipelineHandle(PipelineHandle);
+        const FName Slot{Mesh->ResolveMesh()->GetMaterialSlotName(0)};
+        Passed = Check(Mesh->SetMaterialOverride(Slot, MaterialHandle) && Mesh->GetMaterialOverride(Slot) == MaterialHandle, "A named override captures the selected material") && Passed;
         Text->SetText(FString{"Asset reference"});
         FBillboardDrawData BillboardData{};
         Passed = Check(Mesh->ResolveMesh() != nullptr && Mesh->CreateSceneProxy() != nullptr && Billboard->BuildBillboardDrawData(BillboardData) && BillboardData.mTextureHandle == TextureHandle && !Text->GetVertices().empty() && Text->CreateSceneProxy() != nullptr, "Resolved mesh, billboard and text still build their picking and rendering inputs") && Passed;
-        Mesh->SetMaterialHandle({});
-        Mesh->SetPipelineHandle({});
+        Mesh->ClearMaterialOverrides();
         std::unique_ptr<FPrimitiveSceneProxy> Proxy{Mesh->CreateSceneProxy()};
         const FMeshSceneData* MeshData{Proxy != nullptr ? Proxy->GetMeshData() : nullptr};
-        Passed = Check(MeshData != nullptr && MeshData->mMaterialHandle == MaterialHandle && MeshData->mPipelineHandle == PipelineHandle && !Mesh->GetMaterialHandle() && !Mesh->GetPipelineHandle(), "Mesh rendering uses defaults without writing them into cleared references") && Passed;
+        Passed = Check(MeshData != nullptr && MeshData->mMaterialOverrides.empty() && !Mesh->GetMaterialOverride(Slot) && Mesh->GetMaterial(0), "Mesh rendering uses mesh defaults without writing explicit overrides") && Passed;
         Text->SetFontHandle({});
         Text->SetPipelineHandle({});
         Passed = Check(!Text->GetFontHandle() && !Text->GetPipelineHandle() && !Text->GetVertices().empty() && Text->CreateSceneProxy() != nullptr, "Text default rendering remains available without changing cleared references") && Passed;
@@ -336,10 +300,11 @@ namespace {
         FAssetReference Missing{MissingGuid, MissingPath};
         rapidjson::Document MissingDocument{rapidjson::kObjectType};
         FArchiveJson MissingSave{MissingDocument, MissingDocument.GetAllocator()};
-        SerializeAssetReference(MissingSave, "MaterialAssetGuid", "MaterialAssetPath", Missing);
+        TArray<FMeshMaterialOverride> MissingOverrides{FMeshMaterialOverride{Slot, Missing}};
+        SerializeNativeValue(MissingSave, "MaterialOverrides", MissingOverrides);
         FArchiveJson MissingLoad{MissingDocument};
         MissingLoad.SetAssetResolver(&Assets);
-        Mesh->GetClass()->FindProperty(FName{"MaterialHandle"})->SerializeContainer(Mesh, MissingLoad);
+        Mesh->GetClass()->FindProperty(FName{"MaterialOverrides"})->SerializeContainer(Mesh, MissingLoad);
         std::unique_ptr<UWorld> Clone{FWorldCloner::Clone(World)};
         Passed = Check(Clone != nullptr && HasSavedMaterial(*Clone, MissingGuid, MissingPath), "World memory cloning preserves missing identity across object creation and component registration") && Passed;
         Clone.reset();
@@ -396,7 +361,7 @@ namespace {
             }
         }
 
-        return Count == 7;
+        return Count == 5;
     }
 
     bool RunLifecycleStates() {
@@ -440,9 +405,9 @@ namespace {
             }
 
             std::printf("Lifecycle state: %s\n", Missing ? "missing" : "explicitly cleared");
-            Passed = Check(Applied && HasSavedReferences(World, ExpectedGuid, ExpectedPath), "All seven properties distinguish missing identity from explicit clearing") && Passed;
+            Passed = Check(Applied && HasSavedReferences(World, ExpectedGuid, ExpectedPath), "all five properties distinguish missing identity from explicit clearing") && Passed;
             ReregisterComponents(World);
-            Passed = Check(HasSavedReferences(World, ExpectedGuid, ExpectedPath), "Registration and rendering defaults preserve all seven stored reference states") && Passed;
+            Passed = Check(HasSavedReferences(World, ExpectedGuid, ExpectedPath), "Registration and rendering defaults preserve all five stored reference states") && Passed;
             std::unique_ptr<UWorld> Clone{FWorldCloner::Clone(World)};
             Passed = Check(Clone != nullptr && HasSavedReferences(*Clone, ExpectedGuid, ExpectedPath), "Memory cloning preserves every stored reference state") && Passed;
 
@@ -475,7 +440,7 @@ int main() {
     bool Passed{RunValues()};
     Passed = RunArchives() && Passed;
     const std::filesystem::path Repository{std::filesystem::current_path()};
-    const std::filesystem::path Sandbox{Repository / "Build/Diagnostics/AssetReferenceFixtures"};
+    const std::filesystem::path Sandbox{Repository / "Build/Diagnostics/AssetReferenceFixtures" / FGuid::NewGuid().ToString().c_str()};
     std::filesystem::create_directories(Sandbox / "Content");
 
     for (const char* Directory : {"System", "Shader", "Pipeline", "Font", "Texture"}) {

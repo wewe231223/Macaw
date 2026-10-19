@@ -19,9 +19,6 @@ namespace {
     constexpr float MinimumDistance{0.10f};
     constexpr float MaximumDistance{1000000.0f};
     constexpr char DefaultMeshPath[]{"/Game/System/Mesh/Cube.bin"};
-    constexpr char DefaultMaterialPath[]{"/Game/System/Material/Green.mtl"};
-    constexpr char DefaultPipelinePath[]{"/Game/Pipeline/Base"};
-    constexpr char TexturedPipelinePath[]{"/Game/Pipeline/TexturedBase"};
 }
 
 FViewerPanel::FViewerPanel(HWND InputWindowHandle, FMessageChannel::FSender InEditorToWorldSender, FWorldEditorContext& InEditorContext, FAssetThumbnailRenderer* InThumbnailRenderer)
@@ -36,13 +33,25 @@ FViewerPanel::FViewerPanel(HWND InputWindowHandle, FMessageChannel::FSender InEd
 
 void FViewerPanel::SetMesh(FAssetHandle InMeshHandle) {
     mMeshHandle = FAssetRegistry::Get().ResolveAsset<UMesh>(InMeshHandle) != nullptr ? InMeshHandle : FAssetRegistry::Get().FindAsset(FAssetPath{DefaultMeshPath});
+    mMaterialOverrides.clear();
+    const UMesh* Mesh{FAssetRegistry::Get().ResolveAsset<UMesh>(mMeshHandle)};
+
+    mSelectedMaterialSlot = Mesh != nullptr ? Mesh->GetMaterialSlotName(0) : FName{};
+}
+
+FAssetHandle FViewerPanel::GetMaterial() const {
+    const auto Position{std::ranges::find(mMaterialOverrides, mSelectedMaterialSlot, &FMeshMaterialBinding::mSlot)};
+
+    return Position != mMaterialOverrides.end() ? Position->mMaterial : FAssetHandle{};
 }
 
 void FViewerPanel::SetMaterial(FAssetHandle InMaterialHandle) {
-    mMaterialHandle = FAssetRegistry::Get().ResolveAsset<UMaterial>(InMaterialHandle) != nullptr ? InMaterialHandle : FAssetRegistry::Get().FindAsset(FAssetPath{DefaultMaterialPath});
+    std::erase_if(mMaterialOverrides, [this](const FMeshMaterialBinding& Binding) {
+        return Binding.mSlot == mSelectedMaterialSlot;
+    });
 
-    if (FAssetRegistry::Get().ResolveAsset<UMaterial>(mMaterialHandle) == nullptr) {
-        mMaterialHandle = FAssetRegistry::Get().EnsureDefaultStaticMeshMaterial();
+    if (!mSelectedMaterialSlot.IsNone() && FAssetRegistry::Get().ResolveAsset<UMaterial>(InMaterialHandle) != nullptr) {
+        mMaterialOverrides.push_back(FMeshMaterialBinding{mSelectedMaterialSlot, InMaterialHandle});
     }
 }
 
@@ -56,18 +65,18 @@ bool FViewerPanel::OpenViewerFile(const std::filesystem::path& FilePath) {
         return static_cast<char>(std::tolower(Character));
     });
 
-    if (Extension != ".obj" && Extension != ".bin" && Extension != ".mtl") {
+    if (Extension != ".obj" && Extension != ".bin" && Extension != ".mtl" && Extension != ".material") {
         return false;
     }
 
     const FAssetHandle Handle{FAssetRegistry::Get().LoadViewerAsset(FilePath)};
 
-    if (Extension == ".mtl" && FAssetRegistry::Get().ResolveAsset<UMesh>(mMeshHandle) != nullptr && FAssetRegistry::Get().ResolveAsset<UMaterial>(Handle) != nullptr) {
+    if ((Extension == ".mtl" || Extension == ".material") && FAssetRegistry::Get().ResolveAsset<UMesh>(mMeshHandle) != nullptr && FAssetRegistry::Get().ResolveAsset<UMaterial>(Handle) != nullptr) {
         SetMaterial(Handle);
         return true;
     }
 
-    if (Extension != ".mtl" && FAssetRegistry::Get().ResolveAsset<UMesh>(Handle) != nullptr) {
+    if (Extension != ".mtl" && Extension != ".material" && FAssetRegistry::Get().ResolveAsset<UMesh>(Handle) != nullptr) {
         SetMesh(Handle);
 
         const UMesh* Mesh{FAssetRegistry::Get().ResolveAsset<UMesh>(mMeshHandle)};
@@ -137,7 +146,7 @@ void FViewerPanel::DrawMenuBar() {
         if (ImGui::MenuItem("Import OBJ...")) {
 #endif
 #ifdef OBJ_VIEWER
-            FString FilePath{OpenFileDialog(mWindowHandle, "./Content/ModelingFiles", "Model and Material Files\0*.bin;*.obj;*.mtl\0All Files\0*.*\0")};
+            FString FilePath{OpenFileDialog(mWindowHandle, "./Content/ModelingFiles", "Model and Material Files\0*.bin;*.obj;*.mtl;*.material\0All Files\0*.*\0")};
 #else
             FString FilePath{OpenFileDialog(mWindowHandle, "./Content/ModelingFiles", "OBJ Files(*.obj)\0*.obj\0All Files(*.*)\0*.*\0", "obj")};
 #endif
@@ -167,7 +176,22 @@ void FViewerPanel::DrawProperties() {
         SetMesh(Handle);
     });
 
-    mPropertyEditor.DrawAssetPicker("Material", *UMaterial::StaticClass(), mMaterialHandle, [this](FAssetHandle Handle) {
+    const UMesh* Mesh{FAssetRegistry::Get().ResolveAsset<UMesh>(mMeshHandle)};
+    const FString SlotName{mSelectedMaterialSlot.ToString()};
+
+    if (Mesh != nullptr && ImGui::BeginCombo("Material Slot", SlotName.c_str())) {
+        for (const FMeshMaterialSlot& Slot : Mesh->GetMaterialSlots()) {
+            const FString Name{Slot.mName.ToString()};
+
+            if (ImGui::Selectable(Name.c_str(), Slot.mName == mSelectedMaterialSlot)) {
+                mSelectedMaterialSlot = Slot.mName;
+            }
+        }
+
+        ImGui::EndCombo();
+    }
+
+    mPropertyEditor.DrawAssetPicker("Material Override", *UMaterial::StaticClass(), GetMaterial(), [this](FAssetHandle Handle) {
         SetMaterial(Handle);
     });
 }
@@ -226,28 +250,7 @@ void FViewerPanel::UpdatePreviewScene() {
         SetMesh({});
     }
 
-    if (FAssetRegistry::Get().ResolveAsset<UMaterial>(mMaterialHandle) == nullptr) {
-        SetMaterial({});
-    }
-
-    bool HasTexture{};
-
-    if (const USurfaceOpaque* Material{FAssetRegistry::Get().ResolveAsset<USurfaceOpaque>(mMaterialHandle)}; Material != nullptr) {
-        for (Uint32 GroupIndex{}; GroupIndex < Material->GetGroups().size() && !HasTexture; ++GroupIndex) {
-            const FMaterialChunkSignature Signature{Material->BuildChunkSignature(GroupIndex)};
-
-            for (Uint8 TextureIndex{}; TextureIndex < Signature.mTextureFieldCount; ++TextureIndex) {
-                HasTexture = HasTexture || static_cast<bool>(Signature.GetTextureHandle(TextureIndex));
-            }
-        }
-    }
-
-    const FAssetHandle PipelineHandle{FAssetRegistry::Get().FindAsset(FAssetPath{HasTexture ? TexturedPipelinePath : DefaultPipelinePath})};
-    const UPipeline* Pipeline{FAssetRegistry::Get().ResolveAsset<UPipeline>(PipelineHandle)};
-    const UMesh* Mesh{FAssetRegistry::Get().ResolveAsset<UMesh>(mMeshHandle)};
-    const UMaterial* Material{FAssetRegistry::Get().ResolveAsset<UMaterial>(mMaterialHandle)};
-
-    const FMeshSceneData MeshData{Mesh != nullptr && Material != nullptr && Pipeline != nullptr ? FMeshSceneData{mMeshHandle, mMaterialHandle, PipelineHandle} : FMeshSceneData{}};
+    const FMeshSceneData MeshData{mMeshHandle, mMaterialOverrides};
 
     mPreviewScene.SetMesh(MeshData, FMatrix::Identity);
 

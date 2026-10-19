@@ -7,12 +7,25 @@
 #include "World/Component/USceneComponent.h"
 #include "World/Component/UBoxColliderComponent.h"
 #include "World/Component/USubUVComponent.h"
+#include "World/Component/UStaticMeshComponent.h"
 
 void FComponentDetails::Draw(UActorComponent& Component, IPropertyEditorContext& Context) {
     FReflectedDetails::Draw(Component, Context, [&Component, &Context](const FString& Category) {
         if (Category == "Attachment") {
             if (USceneComponent* Scene{Cast<USceneComponent>(&Component)}) {
                 DrawAttachmentActions(*Scene, Context);
+            }
+        } else if (Category == "Rendering") {
+            if (UStaticMeshComponent* Mesh{Cast<UStaticMeshComponent>(&Component)}) {
+                if (const UMesh* Asset{Mesh->ResolveMesh()}; Asset != nullptr) {
+                    for (const FMeshMaterialSlot& Slot : Asset->GetMaterialSlots()) {
+                        const FString Label{Slot.mName.ToString()};
+
+                        Context.DrawAssetPicker(Label.c_str(), *UMaterial::StaticClass(), Mesh->GetMaterialOverride(Slot.mName), [Mesh, Name = Slot.mName](FAssetHandle Material) {
+                            Mesh->SetMaterialOverride(Name, Material);
+                        });
+                    }
+                }
             }
         } else if (Category == "Collision") {
             if (UBoxColliderComponent* Collider{Cast<UBoxColliderComponent>(&Component)}) {
@@ -47,12 +60,12 @@ void FComponentDetails::DrawAttachmentActions(USceneComponent& Component, IPrope
 }
 
 void FComponentDetails::DrawPlaybackActions(USubUVComponent& Component, IPropertyEditorContext& Context) {
-    if (Component.GetTargetMaterialGroup().IsNone()) {
-        Context.DrawDisabledText("Applies to all material groups.");
+    if (Component.GetTargetMaterialSlot().IsNone()) {
+        Context.DrawDisabledText("Applies to all material slots.");
     }
 
     if (Component.HasTargetConflict()) {
-        Context.DrawDisabledText("This material group is already controlled by another UV component.");
+        Context.DrawDisabledText("This material slot is already controlled by another UV component.");
     }
 
     Context.DrawButton(Component.IsPlaying() ? "Pause" : "Play", [&Component] {

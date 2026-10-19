@@ -1,42 +1,87 @@
 #include "pch.h"
+#include "World/Component/UStaticMeshComponent.h"
 #include "Asset/FAssetRegistry.h"
 #include "CoreUObject/Reflection/NativeSerialization.h"
-#include "World/Component/UStaticMeshComponent.h"
-#include "RenderCore/FRenderData.h"
 #include "RenderCore/FStaticMeshSceneProxy.h"
 #include "World/AActor.h"
-#include "World/UWorld.h"
-#include "World/Subsystem/URenderSubsystem.h"
-#include "Core/Archive/FArchive.h"
-#include "CoreUObject/Asset/IAssetRegistry.h"
-#include "Asset/UMaterial.h"
-#include "Asset/Pipeline/UPipeline.h"
+#include <algorithm>
 
-FAssetHandle UStaticMeshComponent::GetMaterialHandle() const {
-    return mMaterialReference.GetHandle();
+void FMeshMaterialOverride::Serialize(FArchive& Archive) {
+    Archive.Serialize("Slot", mSlot);
+    SerializeAssetReference(Archive, "MaterialGuid", "MaterialPath", mMaterial);
 }
 
-FAssetHandle UStaticMeshComponent::GetPipelineHandle() const {
-    return mPipelineReference.GetHandle();
+UStaticMeshComponent::UStaticMeshComponent() {
+    InitializeClass(StaticClass());
 }
 
-void UStaticMeshComponent::SetMaterialHandle(FAssetHandle InHandle) {
-    mMaterialReference.Assign(InHandle, FAssetRegistry::TryGet());
+FAssetHandle UStaticMeshComponent::GetMaterial(Uint32 SlotIndex) const {
+    const UMesh* Mesh{ResolveMesh()};
+
+    if (Mesh == nullptr || SlotIndex >= Mesh->GetMaterialSlots().size()) {
+        return {};
+    }
+
+    const FAssetHandle Override{GetMaterialOverride(Mesh->GetMaterialSlotName(SlotIndex))};
+    const IAssetRegistry* Registry{FAssetRegistry::TryGet()};
+    const FAssetHandle Material{Registry != nullptr && Registry->ResolveAsset<UMaterial>(Override) != nullptr ? Override : Mesh->GetDefaultMaterial(SlotIndex)};
+
+    return Registry != nullptr && Registry->ResolveAsset<UMaterial>(Material) == nullptr ? Registry->EnsureDefaultStaticMeshMaterial() : Material;
+}
+
+FAssetHandle UStaticMeshComponent::GetMaterialOverride(FName Slot) const {
+    const auto Position{std::ranges::find(mMaterialOverrides, Slot, &FMeshMaterialOverride::mSlot)};
+
+    return Position != mMaterialOverrides.end() ? Position->mMaterial.GetHandle() : FAssetHandle{};
+}
+
+bool UStaticMeshComponent::SetMaterialOverride(FName Slot, FAssetHandle Material) {
+    const UMesh* Mesh{ResolveMesh()};
+
+    if (Mesh == nullptr || !Mesh->FindMaterialSlot(Slot).has_value()) {
+        return false;
+    }
+
+    const auto Position{std::ranges::find(mMaterialOverrides, Slot, &FMeshMaterialOverride::mSlot)};
+
+    if (!Material) {
+        if (Position != mMaterialOverrides.end()) {
+            mMaterialOverrides.erase(Position);
+            OnRenderStateChanged();
+        }
+
+        return true;
+    }
+
+    FMeshMaterialOverride Override{Slot, {}};
+
+    Override.mMaterial.Assign(Material, FAssetRegistry::TryGet());
+
+    if (Position == mMaterialOverrides.end()) {
+        mMaterialOverrides.push_back(std::move(Override));
+    } else if (Position->mMaterial.GetHandle() == Material) {
+        return true;
+    } else {
+        *Position = std::move(Override);
+    }
+
     OnRenderStateChanged();
+    return true;
 }
 
-void UStaticMeshComponent::SetPipelineHandle(FAssetHandle InHandle) {
-    mPipelineReference.Assign(InHandle, FAssetRegistry::TryGet());
-    OnRenderStateChanged();
+void UStaticMeshComponent::ClearMaterialOverrides() {
+    if (!mMaterialOverrides.empty()) {
+        mMaterialOverrides.clear();
+        OnRenderStateChanged();
+    }
 }
 
 void UStaticMeshComponent::OnRegister() {
     Super::OnRegister();
 
-    const IAssetRegistry* Registry{FAssetRegistry::TryGet()};
-
-    mMaterialReference.Resolve(Registry);
-    mPipelineReference.Resolve(Registry);
+    for (FMeshMaterialOverride& Override : mMaterialOverrides) {
+        Override.mMaterial.Resolve(FAssetRegistry::TryGet());
+    }
 }
 
 bool UStaticMeshComponent::ShouldCreateRenderState() const {
@@ -50,69 +95,46 @@ std::unique_ptr<FPrimitiveSceneProxy> UStaticMeshComponent::CreateSceneProxy() c
         return nullptr;
     }
 
-    const IAssetRegistry* Registry{FAssetRegistry::TryGet()};
-    const FAssetHandle Material{Registry != nullptr && Registry->ResolveAsset<UMaterial>(GetMaterialHandle()) == nullptr ? Registry->EnsureDefaultStaticMeshMaterial() : GetMaterialHandle()};
-    const FAssetHandle Pipeline{Registry != nullptr && Registry->ResolveAsset<UPipeline>(GetPipelineHandle()) == nullptr ? Registry->EnsureDefaultStaticMeshPipeline() : GetPipelineHandle()};
-    std::unique_ptr<FStaticMeshSceneProxy> Proxy{std::make_unique<FStaticMeshSceneProxy>(GetHandle(), Owner->GetHandle(), GetRenderTransform(), FMeshSceneData{GetMeshHandle(), Material, Pipeline})};
+    FMeshSceneData Data{GetMeshHandle(), {}};
+
+    for (const FMeshMaterialOverride& Override : mMaterialOverrides) {
+        Data.mMaterialOverrides.push_back(FMeshMaterialBinding{Override.mSlot, Override.mMaterial.GetHandle()});
+    }
+
+    std::unique_ptr<FStaticMeshSceneProxy> Proxy{std::make_unique<FStaticMeshSceneProxy>(GetHandle(), Owner->GetHandle(), GetRenderTransform(), Data)};
 
     Proxy->SetUVTransforms(GetUVTransforms());
     return Proxy;
 }
 
-UStaticMeshComponent::UStaticMeshComponent() {
-    InitializeClass(StaticClass());
-}
+void UStaticMeshComponent::Serialize(FArchive& Archive) {
+    Super::Serialize(Archive);
 
-void UStaticMeshComponent::SetEditorMaterialHandle(FAssetHandle InHandle) {
-    SetMaterialHandle(InHandle);
+    if (Archive.IsLoading() && Archive.SupportsNamedFields() && !Archive.HasField("MaterialOverrides") && (Archive.HasField("MaterialAssetGuid") || Archive.HasField("MaterialAssetPath"))) {
+        mMaterialOverrides.clear();
+        FGuid MaterialGuid{};
+        FAssetPath MaterialPath{};
+        FAssetReference Pipeline{};
 
-    const IAssetRegistry* Registry{FAssetRegistry::TryGet()};
+        Archive.Serialize("MaterialAssetGuid", MaterialGuid);
+        Archive.Serialize("MaterialAssetPath", MaterialPath.mPath);
+        SerializeAssetReference(Archive, "PipelineAssetGuid", "PipelineAssetPath", Pipeline);
+        const FAssetReference Library{MaterialGuid, MaterialPath};
+        FAssetRegistry* Registry{FAssetRegistry::TryGet()};
+        const UMesh* Mesh{ResolveMesh()};
 
-    if (Registry == nullptr) {
-        return;
-    }
-
-    const UMaterial* Material{Registry->ResolveAsset<UMaterial>(GetMaterialHandle())};
-
-    if (Material == nullptr || Registry->ResolveAsset<UPipeline>(GetPipelineHandle()) == nullptr) {
-        return;
-    }
-
-    const FAssetHandle BasePipeline{Registry->FindAsset(FAssetPath{"/Game/Pipeline/Base"})};
-    const FAssetHandle TexturedPipeline{Registry->FindAsset(FAssetPath{"/Game/Pipeline/TexturedBase"})};
-
-    if (GetPipelineHandle() != BasePipeline && GetPipelineHandle() != TexturedPipeline) {
-        return;
-    }
-
-    bool HasTexture{};
-
-    for (Uint32 GroupIndex{}; GroupIndex < Material->GetGPUDataCount() && !HasTexture; ++GroupIndex) {
-        const FMaterialChunkSignature Signature{Material->BuildChunkSignature(GroupIndex)};
-
-        for (Uint8 TextureFieldIndex{}; TextureFieldIndex < Signature.mTextureFieldCount; ++TextureFieldIndex) {
-            if (Signature.GetTextureHandle(TextureFieldIndex)) {
-                HasTexture = true;
-                break;
+        if (!Library.IsEmpty() && Registry != nullptr && Mesh != nullptr) {
+            for (const FMeshMaterialSlot& Slot : Mesh->GetMaterialSlots()) {
+                mMaterialOverrides.push_back(FMeshMaterialOverride{Slot.mName, Registry->ImportLegacyMaterial(Library, Slot.mName, Pipeline)});
             }
         }
     }
 
-    const FAssetHandle DesiredPipelineHandle{HasTexture ? TexturedPipeline : BasePipeline};
+    if (Archive.IsLoading()) {
+        for (FMeshMaterialOverride& Override : mMaterialOverrides) {
+            Override.mMaterial.Resolve(Archive.GetAssetResolver());
+        }
 
-    if (DesiredPipelineHandle != GetPipelineHandle() && Registry->ResolveAsset<UPipeline>(DesiredPipelineHandle) != nullptr) {
-        SetPipelineHandle(DesiredPipelineHandle);
+        OnRenderStateChanged();
     }
-}
-
-void UStaticMeshComponent::SerializeMaterialHandleProperty(void* Container, FArchive& Archive, const FProperty& Property) {
-    UStaticMeshComponent& Object{*static_cast<UStaticMeshComponent*>(Container)};
-
-    SerializeAssetReference(Archive, "MaterialAssetGuid", "MaterialAssetPath", Object.mMaterialReference);
-}
-
-void UStaticMeshComponent::SerializePipelineHandleProperty(void* Container, FArchive& Archive, const FProperty& Property) {
-    UStaticMeshComponent& Object{*static_cast<UStaticMeshComponent*>(Container)};
-
-    SerializeAssetReference(Archive, "PipelineAssetGuid", "PipelineAssetPath", Object.mPipelineReference);
 }

@@ -100,13 +100,13 @@ void UPrimitiveComponent::SendRenderDynamicData() {
     }
 }
 
-bool UPrimitiveComponent::SetUVTransform(FName MaterialGroup, const FUVTransform& Transform, FObjectHandle SourceHandle) {
+bool UPrimitiveComponent::SetUVTransform(FName MaterialSlot, const FUVTransform& Transform, FObjectHandle SourceHandle) {
     if (!std::isfinite(Transform.mScale.mX) || !std::isfinite(Transform.mScale.mY) || !std::isfinite(Transform.mOffset.mX) || !std::isfinite(Transform.mOffset.mY)) {
         return false;
     }
 
     for (FPrimitiveUVTransform& Entry : mUVTransforms) {
-        if (Entry.mMaterialGroup != MaterialGroup) {
+        if (Entry.mMaterialSlot != MaterialSlot) {
             continue;
         }
 
@@ -124,16 +124,16 @@ bool UPrimitiveComponent::SetUVTransform(FName MaterialGroup, const FUVTransform
         return true;
     }
 
-    mUVTransforms.push_back(FPrimitiveUVTransform{MaterialGroup, Transform, SourceHandle});
+    mUVTransforms.push_back(FPrimitiveUVTransform{MaterialSlot, Transform, SourceHandle});
     MarkRenderDynamicDataDirty();
     return true;
 }
 
-void UPrimitiveComponent::ClearUVTransform(FName MaterialGroup, FObjectHandle SourceHandle) {
+void UPrimitiveComponent::ClearUVTransform(FName MaterialSlot, FObjectHandle SourceHandle) {
     const std::size_t PreviousCount{mUVTransforms.size()};
 
-    std::erase_if(mUVTransforms, [MaterialGroup, SourceHandle](const FPrimitiveUVTransform& Entry) {
-        return Entry.mMaterialGroup == MaterialGroup && Entry.mSourceHandle == SourceHandle;
+    std::erase_if(mUVTransforms, [MaterialSlot, SourceHandle](const FPrimitiveUVTransform& Entry) {
+        return Entry.mMaterialSlot == MaterialSlot && Entry.mSourceHandle == SourceHandle;
     });
 
     if (PreviousCount != mUVTransforms.size()) {

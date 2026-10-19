@@ -45,7 +45,7 @@ struct FPrimitiveUVTransform {
     /**
      * @brief 적용할 머티리얼 그룹 이름입니다. None이면 그룹에 대응하지 않는 요청의 기본 변환으로 사용합니다.
      */
-    FName mMaterialGroup{};
+    FName mMaterialSlot{};
     /**
      * @brief 그룹에 적용할 UV 배율과 오프셋입니다.
      */

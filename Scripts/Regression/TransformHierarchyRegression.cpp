@@ -379,7 +379,7 @@ namespace {
         UWorld World{};
         World.Initialize();
         const FAssetHandle Cube{Assets.FindAsset(FAssetPath{"/Game/System/Mesh/Cube.bin"})};
-        AActor* Actor{World.SpawnStaticMeshActor(Cube, Assets.EnsureDefaultStaticMeshPipeline(), Assets.EnsureDefaultStaticMeshMaterial(), FVector3{})};
+        AActor* Actor{World.SpawnStaticMeshActor(Cube, FVector3{})};
         USceneComponent* Parent{Actor->AddComponent<USceneComponent>()};
         UStaticMeshComponent* Mesh{static_cast<UStaticMeshComponent*>(Actor->GetRootComponent())};
         Mesh->AttachToComponent(Parent);
@@ -397,7 +397,7 @@ namespace {
 
 int main() {
     const std::filesystem::path Repository{std::filesystem::current_path()};
-    const std::filesystem::path Sandbox{Repository / "Build/Diagnostics/TransformHierarchyFixtures"};
+    const std::filesystem::path Sandbox{Repository / "Build/Diagnostics/TransformHierarchyFixtures" / FGuid::NewGuid().ToString().c_str()};
     std::filesystem::create_directories(Sandbox / "Content");
 
     for (const char* Directory : {"System", "Shader", "Pipeline", "Font", "Texture"}) {

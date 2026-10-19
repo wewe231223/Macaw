@@ -5,6 +5,7 @@
 #pragma once
 #include "Core/CoreMinimal.h"
 #include "Core/Base/FAssetHandle.h"
+#include "RenderCore/FPrimitiveSceneProxy.h"
 
 /**
  * @brief 하나의 머티리얼 그룹에 대응하는 메시 인덱스 구간입니다.
@@ -21,7 +22,7 @@ struct FMeshBatchElement {
     /**
      * @brief 적용할 머티리얼 그룹의 인덱스입니다.
      */
-    Uint32 mMaterialGroupIndex{};
+    Uint32 mMaterialSlotIndex{};
     /**
      * @brief LOD 감소 전 기준 인덱스 수이며 렌더링 통계 비교에 사용합니다.
      */
@@ -36,14 +37,7 @@ struct FMeshBatch {
      * @brief 그릴 메시 에셋 핸들입니다.
      */
     FAssetHandle mMeshHandle{};
-    /**
-     * @brief 적용할 머티리얼 에셋 핸들입니다.
-     */
-    FAssetHandle mMaterialHandle{};
-    /**
-     * @brief 사용할 렌더링 파이프라인 에셋 핸들입니다.
-     */
-    FAssetHandle mPipelineHandle{};
+    TArray<FMeshMaterialBinding> mMaterialOverrides{};
     /**
      * @brief 0부터 시작하는 메시 상세 수준입니다.
      */

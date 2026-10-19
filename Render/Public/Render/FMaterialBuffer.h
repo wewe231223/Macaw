@@ -20,7 +20,7 @@ private:
          * @brief 머티리얼 객체 재생성과 수정 여부를 구분하는 마지막 업로드 상태입니다.
          */
         FRenderAssetStamp mStamp{};
-        TArray<Uint32> mIndices{};
+        Uint32 mIndex{UINT32_MAX};
     };
 
 public:
@@ -41,7 +41,7 @@ public:
      * @details 서비스가 없으면 기존 인덱스 매핑을 해제합니다. 동일 GUID의 에셋도 객체가 재생성되었으면 다시 업로드합니다.
      */
     bool Synchronize(ID3D11DeviceContext* Context);
-    Uint32 GetMaterialIndex(const UMaterial& Material, Uint32 GroupIndex = 0) const;
+    Uint32 GetMaterialIndex(const UMaterial& Material) const;
     void BuildIndexRemapping(const FMaterialBuffer& Target, TMap<Uint32, Uint32>& OutIndices) const;
     Uint64 GetRevision() const;
     ID3D11ShaderResourceView* GetSRV() const;

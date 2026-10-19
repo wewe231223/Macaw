@@ -79,31 +79,13 @@ void FMaterialEditorPanel::DrawContents() {
 
     ImGui::Separator();
 
-    const TArray<FMaterialGroup>& Groups{Material->GetGroups()};
-
-    for (Uint32 GroupIndex{}; GroupIndex < Groups.size(); ++GroupIndex) {
-        ImGui::PushID(static_cast<int>(GroupIndex));
-
-        const FString GroupName{Groups[GroupIndex].mName.ToString()};
-
-        if (ImGui::CollapsingHeader(GroupName.c_str(), ImGuiTreeNodeFlags_DefaultOpen)) {
-            DrawGroup(*Material, GroupIndex, Groups[GroupIndex]);
+    FReflectedDetails::Draw(*Material->GetClass(), Material, mPropertyEditor, [this, Material](const FProperty& Property, const FPropertyValue& Value) {
+        if (Property.SetValue(*Material, Value)) {
+            mPreviewDirty = true;
         }
-
-        ImGui::PopID();
-    }
-}
-
-void FMaterialEditorPanel::DrawGroup(USurfaceOpaque& Material, Uint32 GroupIndex, const FMaterialGroup& Group) {
-    FReflectedDetails::Draw(*FMaterialGroup::StaticStruct(), &Group, mPropertyEditor, [this, &Material, GroupIndex](const FProperty& Property, const FPropertyValue& Value) {
-        ModifyGroup(Material, GroupIndex, [&Property, &Value](FMaterialGroup& Target) {
-            Property.WriteContainer(&Target, Value);
-        });
     });
-}
 
-void FMaterialEditorPanel::ModifyGroup(USurfaceOpaque& Material, Uint32 GroupIndex, const std::function<void(FMaterialGroup&)>& Modifier) {
-    if (Material.ModifyGroup(GroupIndex, Modifier)) {
-        mPreviewDirty = true;
+    if (ImGui::Button("Save Material")) {
+        FAssetRegistry::Get().SaveMaterial(mMaterialHandle);
     }
 }

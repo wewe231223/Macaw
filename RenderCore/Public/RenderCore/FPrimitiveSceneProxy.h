@@ -40,19 +40,14 @@ struct FPrimitiveTransform {
 /**
  * @brief 메시 프리미티브가 사용할 메시·머티리얼·파이프라인 에셋 식별자입니다.
  */
+struct FMeshMaterialBinding {
+    FName mSlot{};
+    FAssetHandle mMaterial{};
+};
+
 struct FMeshSceneData {
-    /**
-     * @brief 메시 에셋 핸들입니다.
-     */
     FAssetHandle mMeshHandle{};
-    /**
-     * @brief 머티리얼 에셋 핸들입니다.
-     */
-    FAssetHandle mMaterialHandle{};
-    /**
-     * @brief 파이프라인 에셋 핸들입니다.
-     */
-    FAssetHandle mPipelineHandle{};
+    TArray<FMeshMaterialBinding> mMaterialOverrides{};
 };
 
 /**
@@ -141,10 +136,10 @@ public:
     void SetUVTransforms(std::span<const FPrimitiveUVTransform> Transforms);
     /**
      * @brief 그룹 이름에 대응하는 UV 변환을 선택합니다.
-     * @param MaterialGroup 요청할 머티리얼 그룹입니다. 기본값은 None입니다.
+     * @param MaterialSlot 요청할 머티리얼 그룹입니다. 기본값은 None입니다.
      * @return 첫 정확한 이름 일치의 변환입니다. 없으면 마지막 None 항목, 그마저 없으면 항등 변환입니다.
      */
-    FUVTransform GetUVTransform(FName MaterialGroup = {}) const;
+    FUVTransform GetUVTransform(FName MaterialSlot = {}) const;
 
 private:
     /**

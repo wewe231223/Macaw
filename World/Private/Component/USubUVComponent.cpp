@@ -38,17 +38,17 @@ UPrimitiveComponent* USubUVComponent::GetTargetComponent() const {
     return mTargetComponent.Get();
 }
 
-void USubUVComponent::SetTargetMaterialGroup(FName MaterialGroup) {
-    if (mTargetMaterialGroup != MaterialGroup) {
+void USubUVComponent::SetTargetMaterialSlot(FName MaterialSlot) {
+    if (mTargetMaterialSlot != MaterialSlot) {
         ClearTargetTransform();
-        mTargetMaterialGroup = MaterialGroup;
+        mTargetMaterialSlot = MaterialSlot;
     }
 
     ApplyUVTransform();
 }
 
-FName USubUVComponent::GetTargetMaterialGroup() const {
-    return mTargetMaterialGroup;
+FName USubUVComponent::GetTargetMaterialSlot() const {
+    return mTargetMaterialSlot;
 }
 
 bool USubUVComponent::HasTargetConflict() const {
@@ -56,7 +56,7 @@ bool USubUVComponent::HasTargetConflict() const {
 
     if (Target != nullptr) {
         for (const FPrimitiveUVTransform& Entry : Target->GetUVTransforms()) {
-            if (Entry.mMaterialGroup == mTargetMaterialGroup && Entry.mSourceHandle.IsValid() && Entry.mSourceHandle != GetHandle() && UObjectSystem::Resolve(Entry.mSourceHandle) != nullptr) {
+            if (Entry.mMaterialSlot == mTargetMaterialSlot && Entry.mSourceHandle.IsValid() && Entry.mSourceHandle != GetHandle() && UObjectSystem::Resolve(Entry.mSourceHandle) != nullptr) {
                 return true;
             }
         }
@@ -199,6 +199,10 @@ void USubUVComponent::Serialize(FArchive& Archive) {
 
     Super::Serialize(Archive);
 
+    if (Archive.IsLoading() && Archive.SupportsNamedFields() && !Archive.HasField("TargetMaterialSlot") && Archive.HasField("TargetMaterialGroup")) {
+        Archive.Serialize("TargetMaterialGroup", mTargetMaterialSlot);
+    }
+
     if (Archive.IsLoading()) {
         mElapsedTime = 0.0;
         UpdateTickEnabled();
@@ -223,7 +227,7 @@ double USubUVComponent::GetDuration() const {
 
 void USubUVComponent::ApplyUVTransform() {
     if (UPrimitiveComponent* Target{GetTargetComponent()}; Target != nullptr && !Target->IsBeingDestroyed() && GetHandle().IsValid() && IsRegistered()) {
-        Target->SetUVTransform(mTargetMaterialGroup, mUVTransform, GetHandle());
+        Target->SetUVTransform(mTargetMaterialSlot, mUVTransform, GetHandle());
     }
 }
 
@@ -232,7 +236,7 @@ void USubUVComponent::ResetPlaybackState() {
 
 void USubUVComponent::ClearTargetTransform() {
     if (UPrimitiveComponent* Target{GetTargetComponent()}) {
-        Target->ClearUVTransform(mTargetMaterialGroup, GetHandle());
+        Target->ClearUVTransform(mTargetMaterialSlot, GetHandle());
     }
 }
 
@@ -244,23 +248,18 @@ bool USubUVComponent::CanEditUVTransform() const {
     return GetClass() == StaticClass();
 }
 
-TArray<FName> USubUVComponent::GetTargetMaterialGroups() const {
-    TArray<FName> Groups{};
+TArray<FName> USubUVComponent::GetTargetMaterialSlots() const {
+    TArray<FName> Slots{};
     const UPrimitiveComponent* Target{GetTargetComponent()};
-    const IAssetRegistry* Registry{FAssetRegistry::TryGet()};
-    const UMaterial* Material{Target != nullptr && Target->IsA(UStaticMeshComponent::StaticClass()) && Registry != nullptr ? Registry->ResolveAsset<UMaterial>(static_cast<const UStaticMeshComponent*>(Target)->GetMaterialHandle()) : nullptr};
+    const UMesh* Mesh{Target != nullptr && Target->IsA(UStaticMeshComponent::StaticClass()) ? static_cast<const UStaticMeshComponent*>(Target)->ResolveMesh() : nullptr};
 
-    if (Material != nullptr) {
-        for (Uint32 Index{}; Index < Material->GetGPUDataCount(); ++Index) {
-            const FName Group{Material->GetGroupName(Index)};
-
-            if (!Group.IsNone()) {
-                Groups.push_back(Group);
-            }
+    if (Mesh != nullptr) {
+        for (const FMeshMaterialSlot& Slot : Mesh->GetMaterialSlots()) {
+            Slots.push_back(Slot.mName);
         }
     }
 
-    return Groups;
+    return Slots;
 }
 
 void USubUVComponent::SerializeTargetComponentProperty(void* Container, FArchive& Archive, const FProperty& Property) {

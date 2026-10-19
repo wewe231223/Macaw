@@ -64,7 +64,7 @@ void FRenderQueue::Build(std::span<const std::shared_ptr<const FMeshDrawCommand>
             const FPrimitiveSceneInfo& Primitive{Scene->GetPrimitives()[Visible.mObjectIndex]};
 
             if (Primitive.mActive && Primitive.mProxy != nullptr) {
-                const FUVTransform Transform{Primitive.mProxy->GetUVTransform(Command.mMaterialGroupName)};
+                const FUVTransform Transform{Primitive.mProxy->GetUVTransform(Command.mMaterialSlotName)};
 
                 if (Transform.mScale.mX != 1.0f || Transform.mScale.mY != 1.0f || Transform.mOffset.mX != 0.0f || Transform.mOffset.mY != 0.0f) {
                     UVIndex = static_cast<Uint32>(mUVTransforms.size());

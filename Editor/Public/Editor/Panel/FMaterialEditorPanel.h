@@ -7,7 +7,7 @@
 #include "Editor/Panel/FPropertyEditorContext.h"
 #include "Render/FOffScreenRenderSurface.h"
 #include "Core/Base/FAssetHandle.h"
-#include "Asset/FMaterialGroup.h"
+#include "Asset/FSurfaceParameters.h"
 #include <functional>
 #include "Editor/View/FAssetThumbnailRenderer.h"
 #include "Render/Renderer.h"
@@ -39,8 +39,6 @@ public:
 
 private:
     void DrawContents() override;
-    void DrawGroup(USurfaceOpaque& Material, Uint32 GroupIndex, const FMaterialGroup& Group);
-    void ModifyGroup(USurfaceOpaque& Material, Uint32 GroupIndex, const std::function<void(FMaterialGroup&)>& Modifier);
 
 private:
     FAssetThumbnailRenderer& mThumbnailRenderer;

@@ -9,6 +9,7 @@
 #include "Asset/IAssetRegistryMutator.h"
 #include "Asset/FAssetEntry.h"
 #include "Asset/UMaterial.h"
+#include "Asset/FMeshData.h"
 
 #include <cstddef>
 #include <filesystem>
@@ -20,6 +21,7 @@
 
 /** @brief 전역 에셋 레지스트리를 활성화하고 소유하는 엔진입니다. */
 class UEngine;
+class UMesh;
 
 /** @brief 에셋 검색, 로딩과 핸들 해석을 제공하며 활성 엔진의 공용 에셋 접근점을 공개합니다. @details 별도로 생성한 레지스트리는 전역 접근점을 변경하지 않습니다. 전역 레지스트리의 소유와 해제는 활성 엔진이 담당합니다. */
 class FAssetRegistry : public IAssetRegistry, public IAssetRegistryMutator {
@@ -104,6 +106,9 @@ public:
     FAssetHandle ImportMesh(const std::filesystem::path& SourceObjPath, const FString& TargetVirtualFolder);
     /** @brief 외부 파일을 뷰어용 에셋으로 로드합니다. @param SourcePath 원본 파일 경로입니다. @return 실패하면 빈 핸들입니다. */
     FAssetHandle LoadViewerAsset(const std::filesystem::path& SourcePath);
+    bool SaveMaterial(FAssetHandle Handle);
+    bool ConvertLegacyAssets();
+    FAssetReference ImportLegacyMaterial(const FAssetReference& Library, FName Slot, const FAssetReference& Pipeline);
 
     /** @brief 핸들을 수정 가능한 타입 지정 에셋으로 해석합니다. @tparam T 요구하는 UAsset 파생 타입입니다. @param Handle 조회할 핸들입니다. @return 타입이 맞는 비소유 포인터이며 실패하면 nullptr입니다. */
     template <typename T>
@@ -127,8 +132,6 @@ public:
 
     /** @brief 기본 정적 메시 머티리얼 핸들을 반환하며 사용할 수 없으면 빈 핸들입니다. */
     FAssetHandle EnsureDefaultStaticMeshMaterial() const override;
-    /** @brief 기본 정적 메시 파이프라인 핸들을 반환하며 사용할 수 없으면 빈 핸들입니다. */
-    FAssetHandle EnsureDefaultStaticMeshPipeline() const override;
 
 private:
     /** @brief 전역 레지스트리 활성화 권한을 소유 엔진에만 부여합니다. */
@@ -136,6 +139,12 @@ private:
 
     /** @brief 이 레지스트리를 활성 엔진의 전역 에셋 접근점으로 등록합니다. 다른 레지스트리가 활성 상태이면 Critical 오류를 보고합니다. */
     void ActivateGlobal();
+    FAssetReference MakeReference(FAssetHandle Handle) const;
+    std::unique_ptr<UMesh> CreateMesh(FMeshData& Data);
+    FAssetHandle RegisterImportedAsset(const std::filesystem::path& Source, const std::filesystem::path& Target, std::unique_ptr<UAsset> Asset);
+    FAssetHandle ImportTexture(const std::filesystem::path& Source, const std::filesystem::path& TargetFolder);
+    TArray<FMeshMaterialSlot> ImportMaterialLibrary(const std::filesystem::path& Source, const std::filesystem::path& TargetFolder);
+    FAssetHandle ImportMeshAsset(const std::filesystem::path& Source, const std::filesystem::path& Target, bool FlipUV);
     /** @brief 핸들의 에셋 객체를 해석합니다. @param Handle 조회할 핸들입니다. @return 객체가 없으면 nullptr입니다. */
     const UObject* ResolveAssetObject(FAssetHandle Handle) const override;
 

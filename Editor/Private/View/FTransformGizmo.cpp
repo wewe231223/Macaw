@@ -323,7 +323,7 @@ void FTransformGizmo::BuildHandles() {
 
     if (Handle == EHandle::Uniform && mCubeMesh) {
         const FMatrix World{FMatrix::CreateScale(Radius * 1.6f, Radius * 1.6f, Radius * 1.6f) * mBasis * FMatrix::CreateTranslation(mPivot)};
-        mMeshes.push_back({World, FMeshSceneData{mCubeMesh, GetHandleMaterial(Handle), mGizmoPipeline}});
+        mMeshes.push_back({World, FMeshSceneData{mCubeMesh, {{FAssetRegistry::Get().ResolveAsset<UMesh>(mCubeMesh)->GetMaterialSlotName(0), GetHandleMaterial(Handle)}}}});
     }
 }
 
@@ -346,8 +346,8 @@ void FTransformGizmo::BuildAxes() {
         mPickShapes.push_back({Handle, {Start, End, FVector3{}, FVector3{}}, 2, 8.0f, 2});
         const FMatrix World{FMatrix::CreateScale(Unit, Unit, Unit) * Rotations[Index] * mBasis * FMatrix::CreateTranslation(mPivot)};
 
-        if (Mesh && mGizmoPipeline && (!mDragSession.has_value() || mDragSession->mHandle == Handle)) {
-            mMeshes.push_back({World, FMeshSceneData{Mesh, GetHandleMaterial(Handle), mGizmoPipeline}});
+        if (Mesh && (!mDragSession.has_value() || mDragSession->mHandle == Handle)) {
+            mMeshes.push_back({World, FMeshSceneData{Mesh, {{FAssetRegistry::Get().ResolveAsset<UMesh>(Mesh)->GetMaterialSlotName(0), GetHandleMaterial(Handle)}}}});
         }
     }
 }
@@ -1181,8 +1181,7 @@ void FTransformGizmo::RefreshAssetHandles() {
     mArrowMesh = FAssetRegistry::Get().FindAsset(FAssetPath{"/Game/System/Mesh/GizmoArrow.bin"});
     mScaleArrowMesh = FAssetRegistry::Get().FindAsset(FAssetPath{"/Game/System/Mesh/GizmoScaleArrow.bin"});
     mCubeMesh = FAssetRegistry::Get().FindAsset(FAssetPath{"/Game/System/Mesh/Cube.bin"});
-    mAxisMaterials = {FAssetRegistry::Get().FindAsset(FAssetPath{"/Game/System/Material/Red.mtl"}), FAssetRegistry::Get().FindAsset(FAssetPath{"/Game/System/Material/Green.mtl"}), FAssetRegistry::Get().FindAsset(FAssetPath{"/Game/System/Material/Blue.mtl"})};
-    mHighlightMaterial = FAssetRegistry::Get().FindAsset(FAssetPath{"/Game/System/Material/GizmoHighlight.mtl"});
-    mNeutralMaterial = FAssetRegistry::Get().FindAsset(FAssetPath{"/Game/System/Material/GizmoNeutral.mtl"});
-    mGizmoPipeline = FAssetRegistry::Get().FindAsset(FAssetPath{"/Game/Pipeline/Gizmo.json"});
+    mAxisMaterials = {FAssetRegistry::Get().FindAsset(FAssetPath{"/Game/System/Material/Red.mtl.materials/M_Red.material"}), FAssetRegistry::Get().FindAsset(FAssetPath{"/Game/System/Material/Green.mtl.materials/M_Green.material"}), FAssetRegistry::Get().FindAsset(FAssetPath{"/Game/System/Material/Blue.mtl.materials/M_Blue.material"})};
+    mHighlightMaterial = FAssetRegistry::Get().FindAsset(FAssetPath{"/Game/System/Material/GizmoHighlight.mtl.materials/M_GizmoHighlight.material"});
+    mNeutralMaterial = FAssetRegistry::Get().FindAsset(FAssetPath{"/Game/System/Material/GizmoNeutral.mtl.materials/M_GizmoNeutral.material"});
 }

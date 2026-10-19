@@ -10,7 +10,7 @@
 struct FMeshDrawCommand {
     FMeshDrawState mState{};
     Uint32 mMaterialIndex{};
-    FName mMaterialGroupName{};
+    FName mMaterialSlotName{};
     ERenderPass mPass{ERenderPass::Opaque};
     std::array<FMeshDrawPipelineState, static_cast<std::size_t>(ERenderMode::Max)> mPipelineStates{};
     std::array<Microsoft::WRL::ComPtr<ID3D11Buffer>, 4> mVertexBuffers{};

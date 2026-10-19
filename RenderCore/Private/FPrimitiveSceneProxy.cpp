@@ -35,15 +35,15 @@ void FPrimitiveSceneProxy::SetUVTransforms(std::span<const FPrimitiveUVTransform
     mUVTransforms.assign(Transforms.begin(), Transforms.end());
 }
 
-FUVTransform FPrimitiveSceneProxy::GetUVTransform(FName MaterialGroup) const {
+FUVTransform FPrimitiveSceneProxy::GetUVTransform(FName MaterialSlot) const {
     const FUVTransform* Default{nullptr};
 
     for (const FPrimitiveUVTransform& Entry : mUVTransforms) {
-        if (Entry.mMaterialGroup == MaterialGroup) {
+        if (Entry.mMaterialSlot == MaterialSlot) {
             return Entry.mTransform;
         }
 
-        if (Entry.mMaterialGroup.IsNone()) {
+        if (Entry.mMaterialSlot.IsNone()) {
             Default = &Entry.mTransform;
         }
     }

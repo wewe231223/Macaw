@@ -7,7 +7,6 @@
 #include "Core/Spatial/FBVH8TrianglePackets.h"
 
 #include <array>
-#include <functional>
 #include <limits>
 #include <memory>
 #include <optional>
@@ -19,6 +18,7 @@
 
 #include "Asset/UAsset.h"
 #include "Core/Base/FAssetHandle.h"
+#include "Asset/FMeshData.h"
 #include "CoreUObject/Reflection/UClass.h"
 
 class UMesh;
@@ -50,59 +50,17 @@ private:
     };
 
     struct MinMaxBox {
-        float minX = std::numeric_limits<float>::max();
-        float minY = std::numeric_limits<float>::max();
-        float minZ = std::numeric_limits<float>::max();
-        float maxX = std::numeric_limits<float>::lowest();
-        float maxY = std::numeric_limits<float>::lowest();
-        float maxZ = std::numeric_limits<float>::lowest();
+        float mMinX{std::numeric_limits<float>::max()};
+        float mMinY{std::numeric_limits<float>::max()};
+        float mMinZ{std::numeric_limits<float>::max()};
+        float mMaxX{std::numeric_limits<float>::lowest()};
+        float mMaxY{std::numeric_limits<float>::lowest()};
+        float mMaxZ{std::numeric_limits<float>::lowest()};
 
-        inline MinMaxBox() = default;
-
-        inline void Expand(const DirectX::BoundingBox& Box) {
-            if (minX > Box.Center.x - Box.Extents.x)
-                minX = Box.Center.x - Box.Extents.x;
-
-            if (minY > Box.Center.y - Box.Extents.y)
-                minY = Box.Center.y - Box.Extents.y;
-
-            if (minZ > Box.Center.z - Box.Extents.z)
-                minZ = Box.Center.z - Box.Extents.z;
-
-            if (maxX < Box.Center.x + Box.Extents.x)
-                maxX = Box.Center.x + Box.Extents.x;
-
-            if (maxY < Box.Center.y + Box.Extents.y)
-                maxY = Box.Center.y + Box.Extents.y;
-
-            if (maxZ < Box.Center.z + Box.Extents.z)
-                maxZ = Box.Center.z + Box.Extents.z;
-        }
-
-        inline float SurfaceArea() const {
-            const float dx = maxX - minX;
-            const float dy = maxY - minY;
-            const float dz = maxZ - minZ;
-
-            if (dx < 0.0f || dy < 0.0f || dz < 0.0f)
-                return 0.0f;
-
-            return 2.0f * (dx * dy + dy * dz + dz * dx);
-        }
-
-        static MinMaxBox Merge(const MinMaxBox& Box1, const MinMaxBox& Box2) {
-            MinMaxBox Result;
-
-            Result.minX = (std::min)(Box1.minX, Box2.minX);
-            Result.minY = (std::min)(Box1.minY, Box2.minY);
-            Result.minZ = (std::min)(Box1.minZ, Box2.minZ);
-
-            Result.maxX = (std::max)(Box1.maxX, Box2.maxX);
-            Result.maxY = (std::max)(Box1.maxY, Box2.maxY);
-            Result.maxZ = (std::max)(Box1.maxZ, Box2.maxZ);
-
-            return Result;
-        }
+        MinMaxBox() = default;
+        void Expand(const DirectX::BoundingBox& Box);
+        float SurfaceArea() const;
+        static MinMaxBox Merge(const MinMaxBox& Box1, const MinMaxBox& Box2);
     };
 
 public:
@@ -111,19 +69,20 @@ public:
 private:
     Uint32 MakeChild(TArray<FNode>& BuildNodes, const TArray<DirectX::BoundingBox>& TriangleBounds, Uint32 First, Uint32 Count, const MinMaxBox& Bounds);
 
-    TArray<Uint32> mIndexGroups;
-    TArray<BVH8::FTrianglePacket> mTrianglePackets;
-    FBVH8 mTree;
+private:
+    TArray<Uint32> mIndexGroups{};
+    TArray<BVH8::FTrianglePacket> mTrianglePackets{};
+    FBVH8 mTree{};
 };
 
 /* LOD */
 struct FEdge {
-    Uint32 V0;
-    Uint32 V1;
-    Uint32 FaceCount{0};
+    Uint32 mV0{};
+    Uint32 mV1{};
+    Uint32 mFaceCount{0};
 
-    double Cost{0.0};
-    FVector3 NewPosition;
+    double mCost{0.0};
+    FVector3 mNewPosition{};
 };
 
 class UMesh : public UAsset {
@@ -148,71 +107,6 @@ private:
         std::vector<T> mData{};
     };
 
-public:
-    struct FSubMesh {
-        Uint32 mFirstIndex{0};
-        Uint32 mIndexCount{0};
-        Uint32 mMaterialGroupIndex{0};
-        // 생성된 LOD의 통계용 원본 개수. 원본 SubMesh에서는 mIndexCount를 사용한다.
-        Uint32 mSourceIndexCount{0};
-    };
-
-    using FMaterialResolver = std::function<FAssetHandle(const std::filesystem::path& MaterialPath)>;
-    using FMaterialGroupResolver = std::function<std::optional<Uint32>(FAssetHandle MaterialHandle, FName GroupName)>;
-
-public:
-    UMesh();
-    ~UMesh() override;
-
-    UMesh(const UMesh&) = delete;
-    UMesh& operator=(const UMesh&) = delete;
-
-    UMesh(UMesh&&) noexcept = default;
-    UMesh& operator=(UMesh&&) noexcept = default;
-
-public:
-    ReflectClass(UMesh);
-
-    std::shared_ptr<const FMeshPickingSource> GetPickingSource() const;
-    bool RebuildPickingStructure();
-
-    bool Initialize(const std::filesystem::path& SourceObjPath, const std::filesystem::path& BinaryPath, const FMaterialResolver& MaterialResolver, const FMaterialGroupResolver& MaterialGroupResolver, bool FlipUV);
-
-    template <CVertexAttributeView... TAttributes>
-    bool Make(const std::span<const Uint32>& InIndices, const TAttributes&... InAttributes);
-
-    Uint32 GetIndexCount(int Level = 0) const;
-    bool HasLOD(int Level) const;
-    Uint32 GetLODCount() const;
-
-    Uint64 GetRenderRevision() const;
-
-    bool HasVertexAttribute(EVertexAttribute Attribute) const;
-
-    Uint32 GetVertexStride(EVertexAttribute Attribute) const;
-    Uint32 GetVertexAttributeCount(EVertexAttribute Attribute, int Level = 0) const;
-
-    const void* GetVertexData(EVertexAttribute Attribute, int Level = 0) const;
-
-    template <EVertexAttribute Attribute>
-    std::span<const TVertexAttributeElementType<Attribute>> GetVertexAttributeData() const;
-
-    const TArray<Uint32>& GetIndices(int Level = 0) const;
-
-    const TArray<FSubMesh>& GetSubMeshes(int Level = 0) const;
-
-    void SetSubMeshes(const std::span<FSubMesh>& InSubMeshes);
-
-    bool Raycast(const FRay& Ray, float& OutDistance, float MaxDistance = std::numeric_limits<float>::max(), bool ReverseWinding = false) const;
-
-    DirectX::BoundingOrientedBox GetBoundingBox() const;
-
-    /* LOD */
-    bool GenerateLOD(Uint32 Level, float TargetRatio);
-
-    TArray<FEdge> BuildEdges(const TArray<Uint32>& Indices);
-
-private:
     // 대칭 4x4 Quadric의 상삼각 성분만 저장한다. 생성 중 원본 평면 오차를 누적한다.
     struct FLODQuadric {
         std::array<double, 10> mValues{};
@@ -233,9 +127,9 @@ private:
         TArray<FVector3> mPositions{};
         TArray<Uint32> mIndices{};
         TArray<Uint32> mRenderIndices{};
-        TArray<FSubMesh> mSubMeshes{};
+        TArray<FMeshSection> mSections{};
         // 재질이 하나일 때는 삼각형별 구간과 경계 배열을 만들지 않는다.
-        TArray<Uint32> mTriangleSubMeshes{};
+        TArray<Uint32> mTriangleSections{};
         TArray<Uint8> mMaterialBoundaryVertices{};
 
         // 같은 기하 위치에도 UV / Normal이 다른 렌더 그룹을 따로 유지한다.
@@ -311,17 +205,70 @@ private:
 
     struct FGeneratedLOD {
         FLODRenderData mData{};
-        TArray<FSubMesh> mSubMeshes{};
+        TArray<FMeshSection> mSections{};
         bool mUsesBaseData{};
 
         bool IsValid() const;
     };
 
+public:
+    UMesh();
+    ~UMesh() override;
+
+    UMesh(const UMesh&) = delete;
+    UMesh& operator=(const UMesh&) = delete;
+
+    UMesh(UMesh&&) = delete;
+    UMesh& operator=(UMesh&&) = delete;
+
+public:
+    ReflectClass(UMesh);
+
+    std::shared_ptr<const FMeshPickingSource> GetPickingSource() const;
+    bool RebuildPickingStructure();
+
+    bool Initialize(const FMeshData& Data);
+    const TArray<FMeshMaterialSlot>& GetMaterialSlots() const;
+    FName GetMaterialSlotName(Uint32 SlotIndex) const;
+    std::optional<Uint32> FindMaterialSlot(FName Name) const;
+    FAssetHandle GetDefaultMaterial(Uint32 SlotIndex) const;
+
+    template <CVertexAttributeView... TAttributes>
+    bool Make(const std::span<const Uint32>& InIndices, const TAttributes&... InAttributes);
+
+    Uint32 GetIndexCount(int Level = 0) const;
+    bool HasLOD(int Level) const;
+    Uint32 GetLODCount() const;
+
+    Uint64 GetRenderRevision() const;
+
+    bool HasVertexAttribute(EVertexAttribute Attribute) const;
+
+    Uint32 GetVertexStride(EVertexAttribute Attribute) const;
+    Uint32 GetVertexAttributeCount(EVertexAttribute Attribute, int Level = 0) const;
+
+    const void* GetVertexData(EVertexAttribute Attribute, int Level = 0) const;
+
+    template <EVertexAttribute Attribute>
+    std::span<const TVertexAttributeElementType<Attribute>> GetVertexAttributeData() const;
+
+    const TArray<Uint32>& GetIndices(int Level = 0) const;
+
+    const TArray<FMeshSection>& GetSections(int Level = 0) const;
+
+    bool Raycast(const FRay& Ray, float& OutDistance, float MaxDistance = std::numeric_limits<float>::max(), bool ReverseWinding = false) const;
+
+    DirectX::BoundingOrientedBox GetBoundingBox() const;
+
+    /* LOD */
+    bool GenerateLOD(Uint32 Level, float TargetRatio);
+
+private:
     FGeneratedLOD* GetGeneratedLOD(int Level);
     const FGeneratedLOD* GetGeneratedLOD(int Level) const;
 
     bool BuildLODGeometry(FLODGeometry& Geometry) const;
-    bool BuildLODSubMeshes(FLODGeometry& Geometry) const;
+    bool BuildLODSections(FLODGeometry& Geometry) const;
     void SimplifyLODGeometry(FLODGeometry& Geometry, Uint32 TargetTriangleCount);
     static bool CompareLODCandidates(const FLODCandidate& Left, const FLODCandidate& Right);
     static void UpdateLODEdge(FLODSimplification& State, Uint32 V0, Uint32 V1, bool BAddFace);
@@ -337,13 +284,8 @@ private:
     void ApplyLODCollapse(const FLODCollapse& Collapse, FLODGeometry& Geometry, FLODSimplification& State);
     FLODRenderData BuildLODRenderData(const FLODGeometry& Geometry) const;
 
-    // Level 1은 index 0, Level 2는 index 1
-    TArray<FGeneratedLOD> mGeneratedLODs{};
+    void Serialize(FArchive& Ar) override;
 
-protected:
-    virtual void Serialize(FArchive& Ar) override;
-
-private:
     template <typename... TAttributes>
     static consteval bool AreVertexAttributesUnique();
 
@@ -363,18 +305,20 @@ private:
 
     TArray<Uint32> mIndices{};
 
-    TArray<FSubMesh> mSubMeshes{};
+    TArray<FGeneratedLOD> mGeneratedLODs{};
+    TArray<FMeshSection> mSections{};
+    TArray<FMeshMaterialSlot> mMaterialSlots{};
     Uint64 mRenderRevision{1};
 
     DirectX::BoundingOrientedBox mBoundingBox{DirectX::XMFLOAT3{0.f, 0.f, 0.f}, DirectX::XMFLOAT3{0.f, 0.f, 0.f}, DirectX::XMFLOAT4{0.f, 0.f, 0.f, 1.f}};
 
-    std::shared_ptr<FMeshPickingSource> mPickingSource = std::make_shared<FMeshPickingSource>(this);
-    FMeshRaycastAccelerationStructure RaycastAccelerationStructure{};
+    std::shared_ptr<FMeshPickingSource> mPickingSource{std::make_shared<FMeshPickingSource>(this)};
+    FMeshRaycastAccelerationStructure mRaycastAccelerationStructure{};
 };
 
 template <typename T>
 UMesh::TVertexAttributeStorage<T>::TVertexAttributeStorage(std::span<const T> InData)
-	: mData(InData.begin(), InData.end()) {
+	: mData{InData.begin(), InData.end()} {
 }
 
 template <typename T>
@@ -440,6 +384,7 @@ bool UMesh::Make(const std::span<const Uint32>& InIndices, const TAttributes&...
     }
 
     mIndices.assign(InIndices.begin(), InIndices.end());
+    mMaterialSlots.push_back(FMeshMaterialSlot{FName{"Default"}, {}});
 
     return true;
 }
