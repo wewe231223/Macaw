@@ -308,12 +308,11 @@ bool FEditorViewport::TryCalculateDropPosition(const ImVec2& ScreenPosition, FVe
     RayDirection.Normalize();
 
     UWorld* World{mEditorContext != nullptr ? mEditorContext->GetWorld() : nullptr};
-    UPrimitiveComponent* HitComponent{};
-    float HitDistance{};
+    FWorldRaycastHit Hit{};
     FMatrix CameraWorld{};
 
-    if (World != nullptr && Camera.mView.TryInverse(CameraWorld) && World->GetPickingSubsystem().Raycast(FRay{RayOrigin.ToSimpleMath(), RayDirection.ToSimpleMath()}, HitComponent, HitDistance, &CameraWorld)) {
-        OutPosition = RayOrigin + RayDirection * HitDistance;
+    if (World != nullptr && Camera.mView.TryInverse(CameraWorld) && World->GetPickingSubsystem().Raycast(FRay{RayOrigin.ToSimpleMath(), RayDirection.ToSimpleMath()}, FWorldRaycastQuery{}, Hit, EPickingTarget::Primitives, &CameraWorld)) {
+        OutPosition = Hit.mPosition;
         return true;
     }
 

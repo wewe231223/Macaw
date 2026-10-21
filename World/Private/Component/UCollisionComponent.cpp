@@ -31,14 +31,23 @@ void UCollisionComponent::OnUnregister() {
     Super::OnUnregister();
 }
 
-bool UCollisionComponent::Raycast(const FRay& Ray, float& OutDistance) const {
-    if (!IsRegistered() || IsBeingDestroyed() || !mBCollisionEnabled || !RaycastBounds(Ray, OutDistance)) {
+bool UCollisionComponent::Raycast(const FRay& Ray, FWorldRaycastHit& OutHit, float MaxDistance) const {
+    OutHit = {};
+    FRay WorldRay{};
+    const FWorldRaycastQuery Query{MaxDistance};
+
+    if (!IsRegistered() || IsBeingDestroyed() || !mBCollisionEnabled || !Query.PrepareRay(Ray, WorldRay)) {
         return false;
     }
 
     UMeshComponent* Mesh{GetMeshComponent()};
 
-    return Mesh == nullptr || Mesh->RaycastMesh(Ray, OutDistance);
+    if (!RaycastBounds(WorldRay, OutHit, Mesh != nullptr ? std::numeric_limits<float>::max() : MaxDistance) || (Mesh != nullptr && !Mesh->RaycastMesh(WorldRay, OutHit, MaxDistance))) {
+        return false;
+    }
+
+    OutHit.mComponent.Set(const_cast<UCollisionComponent*>(this));
+    return true;
 }
 
 void UCollisionComponent::Serialize(FArchive& Archive) {

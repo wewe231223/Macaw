@@ -18,7 +18,7 @@ public:
 
     void RegisterComponent(UCollisionComponent* Component);
     void UnregisterComponent(UCollisionComponent* Component);
-    bool Raycast(const FRay& Ray, UCollisionComponent*& OutComponent, float& OutDistance) const;
+    bool Raycast(const FRay& Ray, const FWorldRaycastQuery& Query, FWorldRaycastHit& OutHit) const;
 
     bool ContainsComponent(const UCollisionComponent* Component) const;
     const TArray<TObjectRef<UCollisionComponent>>& GetRegisteredComponents() const;

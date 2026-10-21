@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "World/ACameraActor.h"
 #include "Core/Base/ErrorHandler.h"
 #include "Editor/Settings/FEditorConfigManager.h"
 #include "Editor/PIE/FPIEViewportSession.h"
@@ -462,14 +463,14 @@ UCameraComponent* FPIEViewportSession::EnsureCamera(UWorld& World) {
         return Camera;
     }
 
-    AActor* Actor{World.SpawnActorDeferred<AActor>()};
+    ACameraActor* Actor{World.SpawnActorDeferred<ACameraActor>()};
 
     if (Actor == nullptr) {
         Engine->RequestStopPIE();
         return nullptr;
     }
 
-    Camera = Actor->AddComponent<UCameraComponent>();
+    Camera = Actor->GetCameraComponent();
 
     if (Camera == nullptr) {
         World.DestroyActor(Actor);
@@ -477,7 +478,6 @@ UCameraComponent* FPIEViewportSession::EnsureCamera(UWorld& World) {
         return nullptr;
     }
 
-    Actor->SetRootComponent(Camera);
     mViewport->ConfigurePlayCamera(*Camera);
     World.FinishSpawningActor(Actor, Actor->GetActorTransform());
 

@@ -87,6 +87,133 @@ namespace {
         return true;
     }
 
+    bool RerootLegacyLight(rapidjson::Value& Actor, rapidjson::Value& Icon, rapidjson::Value& Light, rapidjson::Document::AllocatorType& Allocator) {
+        if (!Icon.HasMember("Transform") || !Icon["Transform"].IsObject() || !Light.HasMember("Transform") || !Light["Transform"].IsObject() || !Icon.HasMember("Parent") || !Icon["Parent"].IsString()) {
+            return false;
+        }
+
+        const char* AbsoluteFields[]{"bAbsoluteLocation", "bAbsoluteRotation", "bAbsoluteScale"};
+
+        for (const char* Field : AbsoluteFields) {
+            for (rapidjson::Value* Component : {&Icon, &Light}) {
+                if ((*Component)["Transform"].HasMember(Field) && (!(*Component)["Transform"][Field].IsBool() || (*Component)["Transform"][Field].GetBool())) {
+                    return false;
+                }
+            }
+        }
+
+        FTransform IconTransform{};
+        FTransform LightTransform{};
+        FArchiveJson ReadIcon{Icon["Transform"]};
+        FArchiveJson ReadLight{Light["Transform"]};
+
+        IconTransform.Serialize(ReadIcon);
+        LightTransform.Serialize(ReadLight);
+
+        if (ReadIcon.HasError() || ReadLight.HasError()) {
+            return false;
+        }
+
+        FTransform RootTransform{LightTransform.Compose(IconTransform)};
+        FTransform RelativeIcon{};
+
+        if (!IconTransform.MakeRelativeTo(RootTransform, RelativeIcon)) {
+            return false;
+        }
+
+        rapidjson::Value RootJson{rapidjson::kObjectType};
+        rapidjson::Value IconJson{rapidjson::kObjectType};
+        FArchiveJson WriteRoot{RootJson, Allocator};
+        FArchiveJson WriteIcon{IconJson, Allocator};
+
+        RootTransform.Serialize(WriteRoot);
+        RelativeIcon.Serialize(WriteIcon);
+        Light["Transform"] = RootJson;
+        Icon["Transform"] = IconJson;
+        Light["Parent"].CopyFrom(Icon["Parent"], Allocator);
+        Icon["Parent"].CopyFrom(Light["Guid"], Allocator);
+        Actor["GuidRootComponent"].CopyFrom(Light["Guid"], Allocator);
+
+        return !WriteRoot.HasError() && !WriteIcon.HasError();
+    }
+
+    void MigrateDefaultActors(rapidjson::Document& Document) {
+        rapidjson::Document::AllocatorType& Allocator{Document.GetAllocator()};
+
+        for (rapidjson::Value& Actor : Document["Actors"].GetArray()) {
+            if (!Actor.HasMember("TypeName") || !Actor["TypeName"].IsString() || std::string_view{Actor["TypeName"].GetString()} != "AActor" || !Actor.HasMember("GuidRootComponent") || !Actor["GuidRootComponent"].IsString()) {
+                continue;
+            }
+
+            rapidjson::Value* Root{};
+
+            for (rapidjson::Value& Component : Actor["Components"].GetArray()) {
+                if (Component.HasMember("Guid") && Component["Guid"].IsString() && std::string_view{Component["Guid"].GetString()} == Actor["GuidRootComponent"].GetString()) {
+                    Root = &Component;
+                    break;
+                }
+            }
+
+            if (Root == nullptr || Root->HasMember("DefaultComponentName")) {
+                continue;
+            }
+
+            if (std::string_view{(*Root)["TypeName"].GetString()} == "UBillboardComponent") {
+                rapidjson::Value* Light{};
+
+                for (rapidjson::Value& Component : Actor["Components"].GetArray()) {
+                    const std::string_view Type{Component["TypeName"].GetString()};
+
+                    if ((Type == "UDirectionalLightComponent" || Type == "UPointLightComponent" || Type == "USpotLightComponent") && Component.HasMember("Parent") && Component["Parent"].IsString() && std::string_view{Component["Parent"].GetString()} == (*Root)["Guid"].GetString()) {
+                        if (Light != nullptr) {
+                            Light = nullptr;
+                            break;
+                        }
+
+                        Light = &Component;
+                    }
+                }
+
+                if (Light == nullptr || !RerootLegacyLight(Actor, *Root, *Light, Allocator)) {
+                    continue;
+                }
+
+                Root = Light;
+            }
+
+            const std::string_view Type{(*Root)["TypeName"].GetString()};
+            const char* ActorType{};
+            const char* DefaultName{};
+
+            if (Type == "UStaticMeshComponent") {
+                ActorType = "AStaticMeshActor";
+                DefaultName = "Mesh";
+            } else if (Type == "UCameraComponent") {
+                ActorType = "ACameraActor";
+                DefaultName = "Camera";
+            } else if (Type == "UDirectionalLightComponent") {
+                ActorType = "ADirectionalLightActor";
+                DefaultName = "Light";
+            } else if (Type == "UPointLightComponent") {
+                ActorType = "APointLightActor";
+                DefaultName = "Light";
+            } else if (Type == "USpotLightComponent") {
+                ActorType = "ASpotLightActor";
+                DefaultName = "Light";
+            }
+
+            if (ActorType != nullptr) {
+                Actor["TypeName"].SetString(ActorType, Allocator);
+
+                if (Root->HasMember("DefaultComponentName")) {
+                    (*Root)["DefaultComponentName"].SetString(DefaultName, Allocator);
+                } else {
+                    Root->AddMember("DefaultComponentName", rapidjson::Value{DefaultName, Allocator}, Allocator);
+                }
+            }
+        }
+    }
+
     struct FSceneObject {
         const UClass* mType{};
         FGuid mOwner{};
@@ -334,7 +461,7 @@ bool FSceneSerializer::LoadInternal(UWorld& World, const std::filesystem::path& 
         return false;
     }
 
-    if (LoadDocument.HasParseError() || !LoadDocument.IsObject() || !LoadDocument.HasMember("FormatVersion") || !LoadDocument["FormatVersion"].IsUint() || LoadDocument["FormatVersion"].GetUint() != 3 || !LoadDocument.HasMember("Actors") || !LoadDocument["Actors"].IsArray()) {
+    if (LoadDocument.HasParseError() || !LoadDocument.IsObject() || !LoadDocument.HasMember("FormatVersion") || !LoadDocument["FormatVersion"].IsUint() || (LoadDocument["FormatVersion"].GetUint() != 3 && LoadDocument["FormatVersion"].GetUint() != 4) || !LoadDocument.HasMember("Actors") || !LoadDocument["Actors"].IsArray()) {
         return false;
     }
 
@@ -343,6 +470,14 @@ bool FSceneSerializer::LoadInternal(UWorld& World, const std::filesystem::path& 
     }
 
     if (!MigrateUVComponents(LoadDocument) || !ValidateScene(LoadDocument)) {
+        return false;
+    }
+
+    if (LoadDocument["FormatVersion"].GetUint() == 3) {
+        MigrateDefaultActors(LoadDocument);
+    }
+
+    if (!ValidateScene(LoadDocument)) {
         return false;
     }
 

@@ -77,6 +77,8 @@ public:
     bool ResolveLoadedReferences() override;
 
 private:
+    friend class FWorldSerializer;
+
     static void SerializeTransformProperty(void* Container, FArchive& Archive, const FProperty& Property);
     static void SerializeParentProperty(void* Container, FArchive& Archive, const FProperty& Property);
     void UpdateComponentTransform();

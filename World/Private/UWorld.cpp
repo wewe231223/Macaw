@@ -12,6 +12,7 @@
 #include <cmath>
 #include <random>
 #include "World/AActor.h"
+#include "World/AStaticMeshActor.h"
 #include "World/Component/UCameraComponent.h"
 #include "World/Component/UActorComponent.h"
 #include "World/Component/USceneComponent.h"
@@ -81,7 +82,6 @@ void UWorld::ProcessPendingLifecycleChanges() {
             case ELifecycleRequestType::FinishSpawningActor: {
                 AActor* Actor{static_cast<AActor*>(Request.mTarget)};
 
-                Actor->mState.Clear(AActor::EStateFlag::FinishingSpawning);
                 FinishSpawningActor(Actor, Request.mTransform);
                 break;
             }
@@ -90,17 +90,7 @@ void UWorld::ProcessPendingLifecycleChanges() {
                 UActorComponent* Component{Owner.get()};
                 AActor* Actor{Component->GetOwner()};
 
-                Actor->mComponents.push_back(std::move(Owner));
-
-                if (Actor->mState.IsSet(AActor::EStateFlag::BeingDestroyed)) {
-                    Component->DestroyComponent();
-                } else {
-                    Actor->FinishAddingComponent(*Component);
-                }
-
-                if (Actor->HasFinishedSpawning() && !Actor->IsBeingDestroyed()) {
-                    MarkStructureDirty();
-                }
+                Actor->InstallComponent(std::move(Owner));
                 break;
             }
             case ELifecycleRequestType::RegisterComponent:
@@ -118,15 +108,13 @@ void UWorld::ProcessPendingLifecycleChanges() {
             case ELifecycleRequestType::DestroyActor: {
                 AActor* Actor{static_cast<AActor*>(Request.mTarget)};
 
-                Actor->mState.Clear(AActor::EStateFlag::DestroyRequested);
                 DestroyActorInternal(Actor, Request.mReason);
                 break;
             }
             case ELifecycleRequestType::DestroyComponent: {
                 UActorComponent* Component{static_cast<UActorComponent*>(Request.mTarget)};
 
-                Component->mState.Clear(UActorComponent::EStateFlag::DestroyRequested);
-                Component->DestroyComponent(Request.mPromoteChildren);
+                Component->ApplyDestruction(Request.mPromoteChildren);
                 break;
             }
             }
@@ -336,24 +324,14 @@ AActor* UWorld::SpawnStaticMeshActor(const FAssetHandle& MeshHandle, const FVect
         return nullptr;
     }
 
-    AActor* Actor{SpawnActorDeferred<AActor>()};
+    AStaticMeshActor* Actor{SpawnActorDeferred<AStaticMeshActor>()};
 
     if (Actor == nullptr) {
         return nullptr;
     }
 
-    UStaticMeshComponent* MeshComponent{Actor->AddComponent<UStaticMeshComponent>()};
-
-    if (MeshComponent == nullptr) {
-        DestroyActor(Actor);
-        return nullptr;
-    }
-
-    Actor->SetRootComponent(MeshComponent);
-
-    MeshComponent->SetMeshHandle(MeshHandle);
-
-    MeshComponent->SetRelativeLocation(FVector3{Position.mX, Position.mY, Position.mZ});
+    Actor->GetStaticMeshComponent()->SetMeshHandle(MeshHandle);
+    Actor->SetActorLocation(Position);
 
     return FinishSpawningActor(Actor, Actor->GetActorTransform()) ? Actor : nullptr;
 }
@@ -372,8 +350,7 @@ bool UWorld::DestroyActorInternal(AActor* Actor, EEndPlayReason Reason) {
     }
 
     if (IsDeferringLifecycleChanges()) {
-        if (!Actor->mState.IsSet(AActor::EStateFlag::DestroyRequested)) {
-            Actor->mState.Set(AActor::EStateFlag::DestroyRequested);
+        if (Actor->RequestDestruction()) {
             mPendingLifecycleRequests.push_back({ELifecycleRequestType::DestroyActor, Actor, {}, {}, Reason});
         }
         return true;
@@ -381,15 +358,10 @@ bool UWorld::DestroyActorInternal(AActor* Actor, EEndPlayReason Reason) {
 
     const FActorDispatchScope Dispatch{this};
 
-    Actor->mState.Set(AActor::EStateFlag::BeingDestroyed);
+    Actor->StartDestruction();
     mPendingDestroyActors.push_back(Actor);
-    Actor->UpdateTickRegistration();
     NotifyWorldChanged(EWorldChange::ActorRemoving, Actor);
-    Actor->DispatchEndPlay(Reason);
-
-    if (Reason == EEndPlayReason::Destroyed) {
-        Actor->Destroyed();
-    }
+    Actor->DispatchDestruction(Reason);
 
     const TArray<UActorComponent*> Components{Actor->GetComponentSnapshot()};
 
@@ -813,7 +785,7 @@ AActor* UWorld::AddActorInternal(std::unique_ptr<AActor> InActor) {
     }
 
     if (IsDeferringLifecycleChanges()) {
-        Actor->mWorld = this;
+        Actor->SetWorld(this, false);
         mPendingLifecycleRequests.push_back({ELifecycleRequestType::AddActor, Actor, std::move(InActor)});
         return Actor;
     }
@@ -875,78 +847,57 @@ AActor* UWorld::SpawnActorDeferred(const UClass& Type, const FTransform& Transfo
 }
 
 bool UWorld::FinishSpawningActor(AActor* Actor, const FTransform& Transform) {
-    if (Actor == nullptr || Actor->GetWorld() != this || Actor->mState.IsSet(AActor::EStateFlag::FinishedSpawning) || Actor->mState.IsSet(AActor::EStateFlag::FinishingSpawning) || Actor->IsBeingDestroyed()) {
+    if (Actor == nullptr || Actor->GetWorld() != this || Actor->HasFinishedSpawning() || Actor->IsBeingDestroyed()) {
         return false;
     }
 
     if (IsDeferringLifecycleChanges()) {
-        Actor->mState.Set(AActor::EStateFlag::FinishingSpawning);
+        if (!Actor->QueueConstruction()) {
+            return false;
+        }
+
         mPendingLifecycleRequests.push_back({ELifecycleRequestType::FinishSpawningActor, Actor, {}, Transform});
         return true;
     }
 
     const FActorDispatchScope Dispatch{this};
-    const bool HadRootComponent{Actor->GetRootComponent() != nullptr};
 
-    Actor->mState.Set(AActor::EStateFlag::FinishingSpawning);
-    Actor->SetActorTransform(Transform);
-    Actor->OnConstruction(Transform);
-
-    if (!HadRootComponent) {
-        Actor->SetActorTransform(Transform);
-    }
-
-    Actor->mState.Clear(AActor::EStateFlag::FinishingSpawning);
-
-    if (Actor->IsBeingDestroyed()) {
-        return false;
-    }
-
-    Actor->mState.Set(AActor::EStateFlag::FinishedSpawning);
-    Actor->RegisterAllComponents();
-
-    if (mState.IsSet(EStateFlag::HasBegunPlay) && !mState.IsSet(EStateFlag::LoadingScene)) {
-        Actor->DispatchBeginPlay();
-    } else if (mState.IsSet(EStateFlag::BeginningPlay) && !mState.IsSet(EStateFlag::LoadingScene)) {
-        Actor->InitializeComponents();
-    }
-
-    if (Actor->IsBeingDestroyed()) {
-        return false;
-    }
-
-    NotifyWorldChanged(EWorldChange::ActorAdded, Actor);
-    MarkStructureDirty();
-
-    return !Actor->IsBeingDestroyed();
+    return Actor->CompleteConstruction(Transform) && CompleteActorRegistration(*Actor);
 }
 
 void UWorld::InitializeLoadedActor(AActor& Actor) {
     const FActorDispatchScope Dispatch{this};
 
-    Actor.SetWorld(this);
+    if (!Actor.IsBeingDestroyed()) {
+        Actor.OnAddedToWorld();
 
-    if (Actor.IsBeingDestroyed()) {
-        return;
-    }
-
-    Actor.PostLoad();
-
-    if (Actor.IsBeingDestroyed()) {
-        return;
-    }
-
-    Actor.mState.Set(AActor::EStateFlag::FinishedSpawning);
-    Actor.RegisterAllComponents();
-
-    if (mState.IsSet(EStateFlag::HasBegunPlay) && !mState.IsSet(EStateFlag::LoadingScene)) {
-        Actor.DispatchBeginPlay();
+        if (!Actor.IsBeingDestroyed()) {
+            Actor.PostLoad();
+        }
     }
 
     if (!Actor.IsBeingDestroyed()) {
-        NotifyWorldChanged(EWorldChange::ActorAdded, &Actor);
-        MarkStructureDirty();
+        CompleteActorRegistration(Actor);
     }
+}
+
+bool UWorld::CompleteActorRegistration(AActor& Actor) {
+    Actor.CompleteRegistration();
+
+    if (mState.IsSet(EStateFlag::HasBegunPlay) && !mState.IsSet(EStateFlag::LoadingScene)) {
+        Actor.DispatchBeginPlay();
+    } else if (mState.IsSet(EStateFlag::BeginningPlay) && !mState.IsSet(EStateFlag::LoadingScene)) {
+        Actor.InitializeComponents();
+    }
+
+    if (Actor.IsBeingDestroyed()) {
+        return false;
+    }
+
+    NotifyWorldChanged(EWorldChange::ActorAdded, &Actor);
+    MarkStructureDirty();
+
+    return !Actor.IsBeingDestroyed();
 }
 
 void UWorld::ClearActors() {
@@ -960,7 +911,7 @@ void UWorld::ClearActors() {
         if (Actor->GetWorld() == this) {
             DestroyActorInternal(Actor, mState.IsSet(EStateFlag::CleaningUp) ? EEndPlayReason::Quit : EEndPlayReason::LevelTransition);
         } else if (!Actor->mState.IsSet(AActor::EStateFlag::BeingDestroyed)) {
-            Actor->mState.Set(AActor::EStateFlag::BeingDestroyed);
+            Actor->StartDestruction();
             mPendingDestroyActors.push_back(Actor);
         }
     }

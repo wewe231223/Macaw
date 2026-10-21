@@ -116,8 +116,8 @@ bool BVH8::RaycastSSE(const FNode* Nodes, Uint32 RootReference, const FRayData& 
     });
 }
 
-bool BVH8::RaycastTrianglePacketsSSE(const FNode* Nodes, Uint32 RootReference, const FRayData& RayData, const FRay& Ray, float& ClosestDistance, const FTrianglePacket* Packets, bool ReverseWinding) {
-    const TTrianglePacketVisitor<FSIMD4> Visitor{Packets, Ray, ReverseWinding};
+bool BVH8::RaycastTrianglePacketsSSE(const FNode* Nodes, Uint32 RootReference, const FRayData& RayData, const FRay& Ray, float& ClosestDistance, const FTrianglePacket* Packets, bool ReverseWinding, FTriangleHit* Hit) {
+    const TTrianglePacketVisitor<FSIMD4> Visitor{Packets, Ray, ReverseWinding, Hit};
 
     if (RayData.Parallel[0] || RayData.Parallel[1] || RayData.Parallel[2])
         return Traverse<FPreparedRaySSE, true>(Nodes, RootReference, RayData, ClosestDistance, Visitor);
@@ -125,6 +125,26 @@ bool BVH8::RaycastTrianglePacketsSSE(const FNode* Nodes, Uint32 RootReference, c
     return Traverse<FPreparedRaySSE, false>(Nodes, RootReference, RayData, ClosestDistance, Visitor);
 }
 
-bool BVH8::RaycastTrianglePackets(const FNode* Nodes, Uint32 RootReference, const FRayData& RayData, const FRay& Ray, float& ClosestDistance, const FTrianglePacket* Packets, bool ReverseWinding) {
-    return TrianglePacketRaycaster(Nodes, RootReference, RayData, Ray, ClosestDistance, Packets, ReverseWinding);
+bool BVH8::RaycastTrianglePackets(const FNode* Nodes, Uint32 RootReference, const FRayData& RayData, const FRay& Ray, float& ClosestDistance, const FTrianglePacket* Packets, bool ReverseWinding, FTriangleHit* Hit) {
+    return TrianglePacketRaycaster(Nodes, RootReference, RayData, Ray, ClosestDistance, Packets, ReverseWinding, Hit);
+}
+
+void FBVH8::Clear() {
+    mNodes.clear();
+    mRootReference = 0;
+}
+
+Uint32 FBVH8::GetRootReference() const {
+    return mRootReference;
+}
+
+const TArray<BVH8::FNode>& FBVH8::GetNodes() const {
+    return mNodes;
+}
+
+bool FBVH8::RaycastTrianglePackets(const FRay& Ray, float& ClosestDistance, const BVH8::FTrianglePacket* Packets, bool ReverseWinding) const {
+    if (mNodes.empty() || !(ClosestDistance >= 0.0f))
+        return false;
+
+    return BVH8::RaycastTrianglePackets(mNodes.data(), mRootReference, BVH8::FRayData{Ray}, Ray, ClosestDistance, Packets, ReverseWinding);
 }

@@ -6,6 +6,11 @@
 #include "Asset/FAssetRegistry.h"
 #include "Editor/World/FWorldEditorContext.h"
 #include "World/AActor.h"
+#include "World/ACameraActor.h"
+#include "World/AStaticMeshActor.h"
+#include "World/ADirectionalLightActor.h"
+#include "World/APointLightActor.h"
+#include "World/ASpotLightActor.h"
 #include "World/Component/UActorComponent.h"
 #include "World/Component/USceneComponent.h"
 #include "CoreUObject/Asset/IAssetRegistry.h"
@@ -364,17 +369,17 @@ void FWorldEditorContext::HandleMousePickRequest(const FMousePickRequestMessage&
         if (RayDirection.LengthSquared() > 0.0f) {
             RayDirection.Normalize();
 
-            UPrimitiveComponent* NearestPrimitive{nullptr};
-            float NearestDistance{0.0f};
+            FWorldRaycastHit Hit{};
             FMatrix CameraWorld{};
 
             if (!Message.mView.TryInverse(CameraWorld))
                 return;
 
-            mWorld->GetPickingSubsystem().Raycast(FRay{RayOrigin.ToSimpleMath(), RayDirection.ToSimpleMath()}, NearestPrimitive, NearestDistance, &CameraWorld);
+            mWorld->GetPickingSubsystem().Raycast(FRay{RayOrigin.ToSimpleMath(), RayDirection.ToSimpleMath()}, FWorldRaycastQuery{}, Hit, EPickingTarget::Primitives, &CameraWorld);
+            UPrimitiveComponent* NearestPrimitive{Hit.mComponent.Get()};
 #if defined(MacawEnablePickingLog) && MacawEnablePickingLog
             if (NearestPrimitive != nullptr) {
-                Console::AddLog(Console::STDOutHandle, ELogLevel::Log, ELogCategory::Etc, "Raycast hit primitive component %f", NearestDistance);
+                Console::AddLog(Console::STDOutHandle, ELogLevel::Log, ELogCategory::Etc, "Raycast hit primitive component %f", Hit.mDistance);
             }
 #endif
 
@@ -521,6 +526,26 @@ void FWorldEditorContext::HandleSpawnComponent(const FMessageSpawnComponent& Mes
         return;
     }
 
+    const UClass* ActorType{AActor::StaticClass()};
+    FName DefaultComponentName{};
+
+    if (ComponentType == UStaticMeshComponent::StaticClass()) {
+        ActorType = AStaticMeshActor::StaticClass();
+        DefaultComponentName = FName{"Mesh"};
+    } else if (ComponentType == UCameraComponent::StaticClass()) {
+        ActorType = ACameraActor::StaticClass();
+        DefaultComponentName = FName{"Camera"};
+    } else if (ComponentType == UDirectionalLightComponent::StaticClass()) {
+        ActorType = ADirectionalLightActor::StaticClass();
+        DefaultComponentName = FName{"Light"};
+    } else if (ComponentType == UPointLightComponent::StaticClass()) {
+        ActorType = APointLightActor::StaticClass();
+        DefaultComponentName = FName{"Light"};
+    } else if (ComponentType == USpotLightComponent::StaticClass()) {
+        ActorType = ASpotLightActor::StaticClass();
+        DefaultComponentName = FName{"Light"};
+    }
+
     const bool BIsStaticMesh{ComponentType->IsChildOf(UStaticMeshComponent::StaticClass())};
     const FAssetHandle MeshHandle{BIsStaticMesh ? AssetRegistry->FindAsset(FAssetPath{Message.mMeshType}) : FAssetHandle{}};
 
@@ -542,48 +567,38 @@ void FWorldEditorContext::HandleSpawnComponent(const FMessageSpawnComponent& Mes
     const FVector3 SpawnCenter{0.0f, 0.0f, 5.0f};
 
     for (Uint32 Index{0}; Index < Message.mSpawnCount; ++Index) {
-        AActor* Actor{mWorld->SpawnActorDeferred<AActor>()};
+        AActor* Actor{mWorld->SpawnActorDeferred(*ActorType)};
 
         if (Actor == nullptr) {
             continue;
         }
 
-        UBillboardComponent* LightProxy{};
-
-        if (IsLight) {
-            LightProxy = Actor->AddComponent<UBillboardComponent>();
-
-            if (LightProxy == nullptr || !Actor->SetRootComponent(LightProxy)) {
-                mWorld->DestroyActor(Actor);
-                continue;
-            }
-
-            LightProxy->SetPipelineHandle(BillboardPipeline);
-            LightProxy->SetTextureHandle(LightProxyTexture);
-        }
-
-        UActorComponent* Component{Actor->AddComponent(*ComponentType)};
+        UActorComponent* Component{DefaultComponentName.IsNone() ? Actor->AddComponent(*ComponentType) : Actor->FindDefaultComponent(DefaultComponentName)};
 
         if (Component == nullptr) {
             mWorld->DestroyActor(Actor);
             continue;
         }
 
-        if (ComponentType->IsChildOf(USceneComponent::StaticClass())) {
-            USceneComponent* SceneComponent{static_cast<USceneComponent*>(Component)};
-
-            if (IsLight) {
-                if (!SceneComponent->AttachToComponent(LightProxy)) {
-                    mWorld->DestroyActor(Actor);
-                    continue;
-                }
-            } else {
-                Actor->SetRootComponent(SceneComponent);
+        if (Component->IsA(USceneComponent::StaticClass())) {
+            if (Actor->GetRootComponent() == nullptr) {
+                Actor->SetRootComponent(static_cast<USceneComponent*>(Component));
             }
 
-            USceneComponent* SpawnRoot{IsLight ? LightProxy : SceneComponent};
+            Actor->SetActorLocation(FVector3{SpawnCenter.mX + RandomX(RandomEngine), SpawnCenter.mY + RandomY(RandomEngine), SpawnCenter.mZ + RandomZ(RandomEngine)});
+        }
 
-            SpawnRoot->SetRelativeLocation(FVector3{SpawnCenter.mX + RandomX(RandomEngine), SpawnCenter.mY + RandomY(RandomEngine), SpawnCenter.mZ + RandomZ(RandomEngine)});
+        if (IsLight) {
+            UBillboardComponent* LightProxy{Actor->AddComponent<UBillboardComponent>()};
+
+            if (LightProxy == nullptr || !LightProxy->AttachToComponent(Actor->GetRootComponent())) {
+                mWorld->DestroyActor(Actor);
+                continue;
+            }
+
+            LightProxy->SetName(FName{"Icon"});
+            LightProxy->SetPipelineHandle(BillboardPipeline);
+            LightProxy->SetTextureHandle(LightProxyTexture);
         }
 
         if (BIsStaticMesh) {

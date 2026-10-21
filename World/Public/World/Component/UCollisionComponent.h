@@ -21,12 +21,12 @@ public:
     bool IsCollisionEnabled() const;
     void SetCollisionEnabled(bool BEnabled);
 
-    bool Raycast(const FRay& Ray, float& OutDistance) const;
+    bool Raycast(const FRay& Ray, FWorldRaycastHit& OutHit, float MaxDistance) const;
     virtual void DrawEditorBounds(ILineDrawContext* LineContext, ELineDepthMode DepthMode) const = 0;
 
     ReflectClass(UCollisionComponent, EClassFlags::Abstract);
 
-    virtual bool RaycastBounds(const FRay& Ray, float& OutDistance) const = 0;
+    virtual bool RaycastBounds(const FRay& Ray, FWorldRaycastHit& OutHit, float MaxDistance) const = 0;
 
     virtual UMeshComponent* GetMeshComponent() const;
 

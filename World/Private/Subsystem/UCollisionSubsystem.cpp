@@ -17,26 +17,32 @@ void UCollisionSubsystem::UnregisterComponent(UCollisionComponent* Component) {
     });
 }
 
-bool UCollisionSubsystem::Raycast(const FRay& Ray, UCollisionComponent*& OutComponent, float& OutDistance) const {
-    OutComponent = nullptr;
-    OutDistance = std::numeric_limits<float>::max();
+bool UCollisionSubsystem::Raycast(const FRay& Ray, const FWorldRaycastQuery& Query, FWorldRaycastHit& OutHit) const {
+    OutHit = {};
+    FRay WorldRay{};
+
+    if (!Query.PrepareRay(Ray, WorldRay)) {
+        return false;
+    }
+
+    float Distance{Query.mMaxDistance};
 
     for (const TObjectRef<UCollisionComponent>& ComponentRef : mComponents) {
         UCollisionComponent* Component{ComponentRef.Get()};
 
-        if (Component == nullptr || !Component->IsRegistered() || !Component->IsCollisionEnabled()) {
+        if (Component == nullptr || Query.Excludes(*Component)) {
             continue;
         }
 
-        float Distance{0.0f};
+        FWorldRaycastHit Hit{};
 
-        if (Component->Raycast(Ray, Distance) && Distance < OutDistance) {
-            OutDistance = Distance;
-            OutComponent = Component;
+        if (Component->Raycast(WorldRay, Hit, Distance) && (!OutHit.mComponent || Hit.mDistance < Distance)) {
+            Distance = Hit.mDistance;
+            OutHit = Hit;
         }
     }
 
-    return OutComponent != nullptr;
+    return OutHit.mComponent.IsValid();
 }
 
 bool UCollisionSubsystem::ContainsComponent(const UCollisionComponent* Component) const {

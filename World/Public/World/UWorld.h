@@ -220,6 +220,7 @@ private:
     AActor* AddActorInternal(std::unique_ptr<AActor> InActor);
     /// <summary>복원한 Actor의 PostLoad와 컴포넌트 등록 및 필요한 플레이 시작을 처리합니다.</summary>
     void InitializeLoadedActor(AActor& Actor);
+    bool CompleteActorRegistration(AActor& Actor);
     void InitializeSubsystems();
     void DeinitializeSubsystems();
     void RefreshActorTicks();

@@ -23,13 +23,19 @@
 
 class UMesh;
 
+struct FMeshRaycastHit {
+    float mDistance{};
+    FVector3 mNormal{};
+    Uint32 mFaceIndex{std::numeric_limits<Uint32>::max()};
+};
+
 struct alignas(64) FMeshPickingSource {
     const UMesh* Mesh = nullptr;
     const BVH8::FNode* Nodes = nullptr;
     const BVH8::FTrianglePacket* Packets = nullptr;
     Uint32 RootReference = 0;
 
-    bool Raycast(const FRay& Ray, float& OutDistance, float MaxDistance, bool ReverseWinding) const;
+    bool Raycast(const FRay& Ray, FMeshRaycastHit& OutHit, float MaxDistance, bool ReverseWinding) const;
 };
 
 class FMeshRaycastAccelerationStructure {
@@ -256,7 +262,7 @@ public:
 
     const TArray<FMeshSection>& GetSections(int Level = 0) const;
 
-    bool Raycast(const FRay& Ray, float& OutDistance, float MaxDistance = std::numeric_limits<float>::max(), bool ReverseWinding = false) const;
+    bool Raycast(const FRay& Ray, FMeshRaycastHit& OutHit, float MaxDistance = std::numeric_limits<float>::max(), bool ReverseWinding = false) const;
 
     DirectX::BoundingOrientedBox GetBoundingBox() const;
 

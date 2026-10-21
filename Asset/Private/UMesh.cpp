@@ -1693,8 +1693,8 @@ const TArray<FMeshSection>& UMesh::GetSections(int Level) const {
     return mSections;
 }
 
-bool UMesh::Raycast(const FRay& Ray, float& OutDistance, float MaxDistance, bool ReverseWinding) const {
-    return mPickingSource != nullptr && mPickingSource->Raycast(Ray, OutDistance, MaxDistance, ReverseWinding);
+bool UMesh::Raycast(const FRay& Ray, FMeshRaycastHit& OutHit, float MaxDistance, bool ReverseWinding) const {
+    return mPickingSource != nullptr && mPickingSource->Raycast(Ray, OutHit, MaxDistance, ReverseWinding);
 }
 
 bool UMesh::RebuildPickingStructure() {
@@ -1713,17 +1713,24 @@ bool UMesh::RebuildPickingStructure() {
     return true;
 }
 
-bool FMeshPickingSource::Raycast(const FRay& Ray, float& OutDistance, float MaxDistance, bool ReverseWinding) const {
+bool FMeshPickingSource::Raycast(const FRay& Ray, FMeshRaycastHit& OutHit, float MaxDistance, bool ReverseWinding) const {
     if (Mesh == nullptr || Nodes == nullptr || !(MaxDistance >= 0.0f))
         return false;
 
-    float Distance = MaxDistance;
+    float Distance{MaxDistance};
+    BVH8::FTriangleHit Triangle{};
 
-    if (!BVH8::RaycastTrianglePackets(Nodes, RootReference, BVH8::FRayData{Ray}, Ray, Distance, Packets, ReverseWinding))
+    if (!BVH8::RaycastTrianglePackets(Nodes, RootReference, BVH8::FRayData{Ray}, Ray, Distance, Packets, ReverseWinding, &Triangle))
         return false;
 
-    OutDistance = Distance;
+    const BVH8::FTrianglePacket& Packet{Packets[Triangle.mPacketIndex]};
+    const Uint32 Lane{Triangle.mLane};
+    const FVector3 Edge1{Packet.Edge1[0][Lane], Packet.Edge1[1][Lane], Packet.Edge1[2][Lane]};
+    const FVector3 Edge2{Packet.Edge2[0][Lane], Packet.Edge2[1][Lane], Packet.Edge2[2][Lane]};
 
+    OutHit.mDistance = Distance;
+    OutHit.mNormal = Edge1.Cross(Edge2);
+    OutHit.mFaceIndex = Packet.mFaceIndices[Lane];
     return true;
 }
 
@@ -1773,6 +1780,7 @@ bool FMeshRaycastAccelerationStructure::BuildStructure(UMesh& Mesh) {
         auto& Packet = mTrianglePackets.emplace_back();
 
         for (Uint32 Lane = 0; Lane < Node.mIndexCount; ++Lane) {
+            Packet.mFaceIndices[Lane] = mIndexGroups[Node.mIndexStart + Lane];
             const std::size_t TriangleIndex = static_cast<std::size_t>(mIndexGroups[Node.mIndexStart + Lane]) * 3;
             const auto V0 = Positions[Indices[TriangleIndex]].ToSimpleMath(), V1 = Positions[Indices[TriangleIndex + 1]].ToSimpleMath(), V2 = Positions[Indices[TriangleIndex + 2]].ToSimpleMath();
 

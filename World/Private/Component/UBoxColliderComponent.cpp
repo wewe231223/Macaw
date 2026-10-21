@@ -15,6 +15,7 @@
 UBoxColliderComponent::UBoxColliderComponent() {
     InitializeClass(StaticClass());
     SetWantsInitializeComponent(true);
+    SetPickingBox(mBounds.ToNative());
 }
 
 void UBoxColliderComponent::SetMeshComponent(UMeshComponent* InMeshComponent) {
@@ -61,12 +62,28 @@ bool UBoxColliderComponent::BuildBoundsFromMesh() {
     return true;
 }
 
-bool UBoxColliderComponent::RaycastBounds(const FRay& Ray, float& OutDistance) const {
-    DirectX::BoundingOrientedBox WorldBox{};
+bool UBoxColliderComponent::RaycastBounds(const FRay& Ray, FWorldRaycastHit& OutHit, float MaxDistance) const {
+    FMeshPickingProxy Transform{};
+    Transform.Update(nullptr, GetComponentTransform());
+    FRay LocalRay{};
+    double DirectionLength{};
+    FWorldRaycastHit LocalHit{};
 
-    mBounds.ToNative().Transform(WorldBox, GetComponentToWorld().ToSimpleMath());
+    if (!Transform.PrepareRay(Ray, LocalRay, DirectionLength) || !RaycastBox(mBounds.ToNative(), LocalRay, LocalHit, std::numeric_limits<float>::max())) {
+        return false;
+    }
 
-    return WorldBox.Intersects(Ray.position, Ray.direction, OutDistance);
+    const float Distance{static_cast<float>(LocalHit.mDistance / DirectionLength)};
+
+    if (Distance > MaxDistance) {
+        return false;
+    }
+
+    OutHit.mDistance = Distance;
+    OutHit.mPosition = FVector3{Ray.position} + FVector3{Ray.direction} * Distance;
+    OutHit.mNormal = Transform.TransformNormal(LocalHit.mNormal);
+    OutHit.mFaceIndex = std::numeric_limits<Uint32>::max();
+    return true;
 }
 
 FVector3 UBoxColliderComponent::GetExtent() const {
@@ -115,13 +132,14 @@ void UBoxColliderComponent::Serialize(FArchive& Archive) {
 }
 
 void UBoxColliderComponent::DrawEditorBounds(ILineDrawContext* LineContext, ELineDepthMode DepthMode) const {
-    DirectX::BoundingOrientedBox WorldBox{};
-
-    mBounds.ToNative().Transform(WorldBox, GetComponentToWorld().ToSimpleMath());
-
     std::array<DirectX::XMFLOAT3, DirectX::BoundingOrientedBox::CORNER_COUNT> Corners{};
+    const FMatrix WorldMatrix{GetComponentToWorld()};
 
-    WorldBox.GetCorners(Corners.data());
+    mBounds.ToNative().GetCorners(Corners.data());
+
+    for (DirectX::XMFLOAT3& Corner : Corners) {
+        DirectX::XMStoreFloat3(&Corner, DirectX::XMVector3TransformCoord(DirectX::XMLoadFloat3(&Corner), WorldMatrix.ToSimpleMath()));
+    }
 
     const FVector4 LineColor{FVector4{1.0f, 1.0f, 0.0f, 1.0f}};
     const float Thickness{1.0f};

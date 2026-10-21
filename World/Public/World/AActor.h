@@ -21,11 +21,16 @@ private:
     enum class EStateFlag {
         HasBegunPlay,
         Initialized,
-        FinishedSpawning,
-        FinishingSpawning,
         DestroyRequested,
         BeingDestroyed,
         Count
+    };
+
+    enum class EConstructionState {
+        Deferred,
+        Queued,
+        Constructing,
+        Finished
     };
 
     enum class ELifecyclePhase {
@@ -58,6 +63,10 @@ public:
     T* AddComponent();
 
     UActorComponent* AddComponent(const UClass& Type);
+    template <typename T>
+        requires std::is_base_of_v<UActorComponent, T>
+    T* CreateDefaultComponent(FName Name);
+    UActorComponent* FindDefaultComponent(FName Name) const;
 
     /// <summary>지정한 타입과 호환되는 첫 번째 소유 Component를 찾습니다.</summary>
     /// <typeparam name="T">찾을 UActorComponent 파생 타입입니다.</typeparam>
@@ -205,7 +214,14 @@ private:
     friend class FSceneSerializer;
     friend class FWorldSerializer;
 
-    void SetWorld(UWorld* InWorld);
+    UActorComponent* CreateComponent(const UClass& Type, FName DefaultComponentName);
+    bool QueueConstruction();
+    bool CompleteConstruction(const FTransform& Transform);
+    void CompleteRegistration();
+    bool RequestDestruction();
+    void StartDestruction();
+    void DispatchDestruction(EEndPlayReason Reason);
+    void SetWorld(UWorld* InWorld, bool NotifyAdded = true);
     void DispatchBeginPlay();
     /// <summary>종료 이유를 전달하고 Actor와 컴포넌트의 플레이 및 초기화 상태를 정리합니다.</summary>
     void DispatchEndPlay(EEndPlayReason Reason);
@@ -213,7 +229,7 @@ private:
     void RegisterAllComponents();
     /// <summary>콜백에서 소유 목록이 바뀌어도 순회할 수 있도록 현재 컴포넌트 포인터를 복사합니다.</summary>
     TArray<UActorComponent*> GetComponentSnapshot() const;
-    void FinishAddingComponent(UActorComponent& Component);
+    UActorComponent* InstallComponent(std::unique_ptr<UActorComponent> Component);
     void OnComponentRegistered(UActorComponent& Component);
     void AdvanceComponentLifecycle(UActorComponent& Component);
     bool CanAdvanceComponentLifecycle() const;
@@ -233,6 +249,7 @@ private:
 
     UWorld* mWorld{nullptr};
     TStateFlags<EStateFlag> mState{};
+    EConstructionState mConstructionState{EConstructionState::Deferred};
     ELifecyclePhase mLifecyclePhase{ELifecyclePhase::None};
 
     ReflectMembers();
@@ -256,4 +273,12 @@ T* AActor::GetComponent() {
     }
 
     return nullptr;
+}
+
+template <typename T>
+    requires std::is_base_of_v<UActorComponent, T>
+T* AActor::CreateDefaultComponent(FName Name) {
+    static_assert(std::is_same_v<typename T::ReflectionOwner, T>);
+
+    return Name.IsNone() || mWorld != nullptr || HasFinishedSpawning() || FindDefaultComponent(Name) != nullptr ? nullptr : static_cast<T*>(CreateComponent(*T::StaticClass(), Name));
 }

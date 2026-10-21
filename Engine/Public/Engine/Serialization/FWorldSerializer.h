@@ -31,11 +31,9 @@ private:
          * @brief 객체를 생성할 등록 리플렉션 클래스 이름입니다.
          */
         FName mTypeName{};
+        FName mDefaultComponentName{};
     };
 
-    /**
-     * @brief 액터 식별 정보와 선언 순서의 컴포넌트 식별 목록입니다.
-     */
     struct FActorRecord {
         /**
          * @brief 액터의 GUID와 클래스 정보입니다.
@@ -161,7 +159,6 @@ private:
     /**
      * @brief 객체 테이블을 검증하고 선택적 GUID 재매핑 후 임시 액터를 로드·설치합니다.
      * @param World 로드 대상 월드입니다. 에셋 레지스트리가 있어야 합니다.
-     * @param Archive 오류가 없는 버전 3 로드 아카이브입니다.
      * @param SourceWorld 복제 원본입니다. nullptr이면 원래 GUID를 사용하는 일반 로드입니다.
      * @return 전체 로드 단계와 설치가 성공하면 true입니다.
      * @pre 호출자가 월드의 로드 범위와 진입 상태를 관리해야 합니다.
@@ -173,14 +170,14 @@ private:
      * @param[in,out] Record 저장할 레코드 또는 로드 결과입니다.
      * @return 아카이브 오류가 없고 GUID와 타입 이름이 유효하면 true입니다.
      */
-    static bool SerializeObjectRecord(FArchive& Archive, FObjectRecord& Record);
+    static bool SerializeObjectRecord(FArchive& Archive, FObjectRecord& Record, Uint32 FormatVersion);
     /**
      * @brief 액터와 각 컴포넌트의 식별 테이블을 저장하거나 읽습니다.
      * @param Archive 이름 기반이면 Actors, 순차 형식이면 ObjectTable 범위를 사용할 아카이브입니다.
      * @param[in,out] Records 저장할 식별 테이블 또는 로드 결과입니다.
      * @return 모든 객체 레코드와 배열 범위를 처리하고 오류가 없으면 true입니다.
      */
-    static bool SerializeObjectTable(FArchive& Archive, TArray<FActorRecord>& Records);
+    static bool SerializeObjectTable(FArchive& Archive, TArray<FActorRecord>& Records, Uint32 FormatVersion);
     /**
      * @brief GUID 중복, 생성 가능한 클래스와 기반 타입 호환성을 검사합니다.
      * @param World GUID 재사용을 허용할 기존 월드입니다.
@@ -200,14 +197,12 @@ private:
      */
     static bool RemapObjectTable(const UWorld& SourceWorld, const UWorld& World, TArray<FActorRecord>& Records, TMap<FGuid, FGuid>& Remapping);
     /**
-     * @brief 액터를 생성하고 기본 컴포넌트를 제거한 뒤 레코드의 컴포넌트를 구성합니다.
      * @param Record 생성할 액터와 컴포넌트의 검증된 클래스·GUID 정보입니다.
      * @pre 각 클래스가 등록되어 있고 액터·컴포넌트 기반 타입과 호환되어야 합니다.
      * @return 생성 액터의 소유권입니다. 객체 생성이나 컴포넌트 GUID 복원이 실패하면 nullptr입니다.
      */
-    static std::unique_ptr<AActor> CreateActor(const FActorRecord& Record);
+    static std::unique_ptr<AActor> CreateAndLoadActor(const FActorRecord& Record, FArchive& Archive);
     /**
-     * @brief 로드 객체의 컴포넌트 수, GUID, 클래스와 Outer별 이름 유효성을 검사합니다.
      * @param Actors 로드한 유효한 액터 목록입니다.
      * @param Records 대응하는 식별 레코드 목록입니다.
      * @pre 두 목록의 개수와 순서가 대응해야 합니다.
@@ -218,9 +213,8 @@ private:
      * @brief 기존 액터를 교체하고 등록, 참조 해석, 초기화와 피킹 구조 갱신을 수행합니다.
      * @param World 액터를 설치할 월드입니다.
      * @param Actors 월드로 소유권을 전달할 검증된 액터 목록입니다.
-     * @param IsCloning 복제 로드의 월드 연결과 OnAddedToWorld 호출을 적용할지 여부입니다.
      * @return 등록과 참조 해석이 성공하면 true입니다. 실패하면 설치 액터를 비웁니다.
      * @note 피킹 가속 구조 재구축 실패는 경고를 기록하며 함수 자체의 실패로 처리하지 않습니다.
      */
-    static bool InstallActors(UWorld& World, TArray<std::unique_ptr<AActor>> Actors, bool IsCloning = false);
+    static bool InstallActors(UWorld& World, TArray<std::unique_ptr<AActor>> Actors);
 };

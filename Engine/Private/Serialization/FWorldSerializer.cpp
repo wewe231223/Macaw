@@ -59,7 +59,7 @@ bool FWorldSerializer::Save(UWorld& World, FArchive& Archive) {
             FActorRecord Record{{Actor->GetGuid(), Actor->GetClass()->GetClassName()}, {}};
 
             for (const std::unique_ptr<UActorComponent>& Component : Actor->GetComponents()) {
-                Record.mComponents.push_back({Component->GetGuid(), Component->GetClass()->GetClassName()});
+                Record.mComponents.push_back({Component->GetGuid(), Component->GetClass()->GetClassName(), Component->GetDefaultComponentName()});
             }
 
             Records.push_back(std::move(Record));
@@ -68,11 +68,11 @@ bool FWorldSerializer::Save(UWorld& World, FArchive& Archive) {
 
     Archive.SetAssetResolver(FAssetRegistry::TryGet());
 
-    Uint32 FormatVersion{3};
+    Uint32 FormatVersion{4};
 
     Archive.Serialize("FormatVersion", FormatVersion);
 
-    if (!Archive.SupportsNamedFields() && !SerializeObjectTable(Archive, Records)) {
+    if (!Archive.SupportsNamedFields() && !SerializeObjectTable(Archive, Records, FormatVersion)) {
         return false;
     }
 
@@ -101,7 +101,7 @@ bool FWorldSerializer::Load(UWorld& World, FArchive& Archive) {
     return LoadInternal(World, Archive);
 }
 
-bool FWorldSerializer::SerializeObjectRecord(FArchive& Archive, FObjectRecord& Record) {
+bool FWorldSerializer::SerializeObjectRecord(FArchive& Archive, FObjectRecord& Record, Uint32 FormatVersion) {
     if (Archive.IsLoading() && Archive.SupportsNamedFields() && (!Archive.HasField("Guid") || !Archive.HasField("TypeName"))) {
         return false;
     }
@@ -110,6 +110,14 @@ bool FWorldSerializer::SerializeObjectRecord(FArchive& Archive, FObjectRecord& R
 
     Archive.Serialize("Guid", Record.mGuid);
     Archive.Serialize("TypeName", TypeName);
+
+    if ((!Archive.SupportsNamedFields() && FormatVersion >= 4) || (Archive.SupportsNamedFields() && Archive.HasField("DefaultComponentName"))) {
+        Archive.Serialize("DefaultComponentName", Record.mDefaultComponentName);
+    }
+
+    if (!Record.mDefaultComponentName.IsNone() && !UObjectSystem::IsValidObjectName(Record.mDefaultComponentName)) {
+        return false;
+    }
 
     if (Archive.HasError() || !Record.mGuid.IsValid() || TypeName.empty() || TypeName.size() >= NameSize) {
         return false;
@@ -122,7 +130,7 @@ bool FWorldSerializer::SerializeObjectRecord(FArchive& Archive, FObjectRecord& R
     return true;
 }
 
-bool FWorldSerializer::SerializeObjectTable(FArchive& Archive, TArray<FActorRecord>& Records) {
+bool FWorldSerializer::SerializeObjectTable(FArchive& Archive, TArray<FActorRecord>& Records, Uint32 FormatVersion) {
     std::size_t ActorCount{Records.size()};
 
     Archive.BeginArrayScope(Archive.SupportsNamedFields() ? "Actors" : "ObjectTable", ActorCount);
@@ -141,7 +149,7 @@ bool FWorldSerializer::SerializeObjectTable(FArchive& Archive, TArray<FActorReco
         FActorRecord& Record{Records[Index]};
 
         Archive.BeginObjectScope(std::to_string(Index));
-        Valid = SerializeObjectRecord(Archive, Record.mObject);
+        Valid = SerializeObjectRecord(Archive, Record.mObject, FormatVersion);
         Valid = Valid && (!Archive.SupportsNamedFields() || Archive.HasField("Components"));
 
         std::size_t ComponentCount{Record.mComponents.size()};
@@ -160,7 +168,7 @@ bool FWorldSerializer::SerializeObjectTable(FArchive& Archive, TArray<FActorReco
             }
 
             Archive.BeginObjectScope(std::to_string(ComponentIndex));
-            Valid = SerializeObjectRecord(Archive, Record.mComponents[ComponentIndex]);
+            Valid = SerializeObjectRecord(Archive, Record.mComponents[ComponentIndex], FormatVersion);
             Archive.EndObjectScope();
         }
 
@@ -260,7 +268,7 @@ bool FWorldSerializer::RemapObjectTable(const UWorld& SourceWorld, const UWorld&
     return true;
 }
 
-std::unique_ptr<AActor> FWorldSerializer::CreateActor(const FActorRecord& Record) {
+std::unique_ptr<AActor> FWorldSerializer::CreateAndLoadActor(const FActorRecord& Record, FArchive& Archive) {
     const UClass* Type{FReflectionRegistry::FindClass(Record.mObject.mTypeName)};
     std::unique_ptr<UObject> CreatedObject{Type->CreateInstance()};
 
@@ -270,26 +278,55 @@ std::unique_ptr<AActor> FWorldSerializer::CreateActor(const FActorRecord& Record
 
     std::unique_ptr<AActor> Actor{static_cast<AActor*>(CreatedObject.release())};
 
+    TArray<std::pair<USceneComponent*, USceneComponent*>> DefaultAttachments{};
+
     for (const std::unique_ptr<UActorComponent>& Component : Actor->mComponents) {
-        Component->UnregisterComponent();
+        if (Component->IsA(USceneComponent::StaticClass())) {
+            USceneComponent* Scene{static_cast<USceneComponent*>(Component.get())};
+
+            if (USceneComponent* Parent{Scene->GetParent()}) {
+                DefaultAttachments.emplace_back(Scene, Parent);
+            }
+        }
+    }
+
+    for (const auto& [Child, Parent] : DefaultAttachments) {
+        Child->DetachFromComponent();
+    }
+
+    std::vector<std::unique_ptr<UActorComponent>> Defaults{std::move(Actor->mComponents)};
+
+    Actor->mComponents.clear();
+    Actor->mComponents.reserve(Record.mComponents.size() + Defaults.size());
+
+    for (const std::unique_ptr<UActorComponent>& Component : Defaults) {
         UObjectSystem::Unregister(Component.get(), Component->GetHandle());
     }
 
-    Actor->mRootComponent = nullptr;
-    Actor->mComponents.clear();
-    Actor->mComponents.reserve(Record.mComponents.size());
-
     for (const FObjectRecord& ComponentRecord : Record.mComponents) {
         const UClass* ComponentType{FReflectionRegistry::FindClass(ComponentRecord.mTypeName)};
-        std::unique_ptr<UObject> CreatedComponent{ComponentType->CreateInstance()};
+        std::unique_ptr<UActorComponent> Component{};
 
-        if (CreatedComponent == nullptr || !CreatedComponent->IsA(UActorComponent::StaticClass())) {
-            return {};
+        if (!ComponentRecord.mDefaultComponentName.IsNone()) {
+            const auto Found{std::ranges::find_if(Defaults, [&ComponentRecord](const std::unique_ptr<UActorComponent>& Candidate) {
+                return Candidate != nullptr && Candidate->GetDefaultComponentName() == ComponentRecord.mDefaultComponentName;
+            })};
+
+            if (Found == Defaults.end() || (*Found)->GetClass() != ComponentType) {
+                return {};
+            }
+
+            Component = std::move(*Found);
+        } else {
+            std::unique_ptr<UObject> CreatedComponent{ComponentType->CreateInstance()};
+
+            if (CreatedComponent == nullptr || !CreatedComponent->IsA(UActorComponent::StaticClass())) {
+                return {};
+            }
+
+            Component.reset(static_cast<UActorComponent*>(CreatedComponent.release()));
+            Component->SetOwner(Actor.get());
         }
-
-        std::unique_ptr<UActorComponent> Component{static_cast<UActorComponent*>(CreatedComponent.release())};
-
-        Component->SetOwner(Actor.get());
 
         if (!Component->RestoreGuid(ComponentRecord.mGuid)) {
             return {};
@@ -298,29 +335,64 @@ std::unique_ptr<AActor> FWorldSerializer::CreateActor(const FActorRecord& Record
         Actor->mComponents.push_back(std::move(Component));
     }
 
+    for (const auto& [Child, Parent] : DefaultAttachments) {
+        Child->mPendingParentGuid = Parent->GetGuid();
+    }
+
+    Actor->Load(Archive);
+
+    if (Archive.HasError()) {
+        return {};
+    }
+
+    for (std::unique_ptr<UActorComponent>& Component : Defaults) {
+        if (Component != nullptr) {
+            Actor->mComponents.push_back(std::move(Component));
+        }
+    }
+
     return Actor;
 }
 
 bool FWorldSerializer::ValidateLoadedActors(const TArray<std::unique_ptr<AActor>>& Actors, const TArray<FActorRecord>& Records) {
+    if (Actors.size() != Records.size()) {
+        return false;
+    }
+
     TSet<FName> ActorNames{};
 
     for (std::size_t Index{}; Index < Actors.size(); ++Index) {
         const AActor& Actor{*Actors[Index]};
         const FActorRecord& Record{Records[Index]};
 
-        if (Actor.GetComponents().size() != Record.mComponents.size() || Actor.GetGuid() != Record.mObject.mGuid || Actor.GetClass()->GetClassName() != Record.mObject.mTypeName || (!Actor.GetName().IsNone() && (!UObjectSystem::IsValidObjectName(Actor.GetName()) || !ActorNames.insert(Actor.GetName()).second))) {
+        if (Actor.GetGuid() != Record.mObject.mGuid || Actor.GetClass()->GetClassName() != Record.mObject.mTypeName || (!Actor.GetName().IsNone() && (!UObjectSystem::IsValidObjectName(Actor.GetName()) || !ActorNames.insert(Actor.GetName()).second))) {
             return false;
         }
 
         TSet<FName> ComponentNames{};
+        TSet<FName> DefaultNames{};
+        TSet<FGuid> MatchedGuids{};
 
-        for (std::size_t ComponentIndex{}; ComponentIndex < Actor.GetComponents().size(); ++ComponentIndex) {
-            const UActorComponent& Component{*Actor.GetComponents()[ComponentIndex]};
-            const FObjectRecord& ComponentRecord{Record.mComponents[ComponentIndex]};
+        for (const std::unique_ptr<UActorComponent>& Component : Actor.GetComponents()) {
+            const auto Found{std::ranges::find(Record.mComponents, Component->GetGuid(), &FObjectRecord::mGuid)};
 
-            if (Component.GetGuid() != ComponentRecord.mGuid || Component.GetClass()->GetClassName() != ComponentRecord.mTypeName || (!Component.GetName().IsNone() && (!UObjectSystem::IsValidObjectName(Component.GetName()) || !ComponentNames.insert(Component.GetName()).second))) {
+            if (Found != Record.mComponents.end()) {
+                if (Component->GetClass()->GetClassName() != Found->mTypeName || Component->GetDefaultComponentName() != Found->mDefaultComponentName) {
+                    return false;
+                }
+
+                MatchedGuids.insert(Component->GetGuid());
+            } else if (Component->GetDefaultComponentName().IsNone()) {
                 return false;
             }
+
+            if ((!Component->GetName().IsNone() && (!UObjectSystem::IsValidObjectName(Component->GetName()) || !ComponentNames.insert(Component->GetName()).second)) || (!Component->GetDefaultComponentName().IsNone() && !DefaultNames.insert(Component->GetDefaultComponentName()).second)) {
+                return false;
+            }
+        }
+
+        if (MatchedGuids.size() != Record.mComponents.size()) {
+            return false;
         }
     }
 
@@ -342,13 +414,13 @@ bool FWorldSerializer::LoadInternal(UWorld& World, FArchive& Archive, const UWor
 
     Archive.Serialize("FormatVersion", FormatVersion);
 
-    if (Archive.HasError() || FormatVersion != 3) {
+    if (Archive.HasError() || (FormatVersion != 4 && (FormatVersion != 3 || !Archive.SupportsNamedFields()))) {
         return false;
     }
 
     TArray<FActorRecord> Records{};
 
-    if (!SerializeObjectTable(Archive, Records) || !ValidateObjectTable(World, Records, SourceWorld != nullptr)) {
+    if (!SerializeObjectTable(Archive, Records, FormatVersion) || !ValidateObjectTable(World, Records, SourceWorld != nullptr)) {
         return false;
     }
 
@@ -370,28 +442,24 @@ bool FWorldSerializer::LoadInternal(UWorld& World, FArchive& Archive, const UWor
     LoadedActors.reserve(Valid ? ActorCount : 0);
 
     for (std::size_t Index{}; Index < ActorCount && Valid; ++Index) {
-        std::unique_ptr<AActor> Actor{CreateActor(Records[Index])};
-
-        if (Actor == nullptr) {
-            Valid = false;
-            break;
-        }
-
         Archive.BeginObjectScope(std::to_string(Index));
 
-        Actor->Load(Archive);
-        Valid = !Archive.HasError();
+        std::unique_ptr<AActor> Actor{CreateAndLoadActor(Records[Index], Archive)};
 
+        Valid = Actor != nullptr && !Archive.HasError();
         Archive.EndObjectScope();
-        LoadedActors.push_back(std::move(Actor));
+
+        if (Valid) {
+            LoadedActors.push_back(std::move(Actor));
+        }
     }
 
     Archive.EndArrayScope();
 
-    return Valid && ValidateLoadedActors(LoadedActors, Records) && InstallActors(World, std::move(LoadedActors), SourceWorld != nullptr);
+    return Valid && ValidateLoadedActors(LoadedActors, Records) && InstallActors(World, std::move(LoadedActors));
 }
 
-bool FWorldSerializer::InstallActors(UWorld& World, TArray<std::unique_ptr<AActor>> Actors, bool IsCloning) {
+bool FWorldSerializer::InstallActors(UWorld& World, TArray<std::unique_ptr<AActor>> Actors) {
     World.ClearActors();
     World.mPersistentLevel->mActors = std::move(Actors);
 
@@ -422,10 +490,8 @@ bool FWorldSerializer::InstallActors(UWorld& World, TArray<std::unique_ptr<AActo
         }
     }
 
-    if (IsCloning) {
-        for (const std::unique_ptr<AActor>& Actor : World.mPersistentLevel->mActors) {
-            Actor->mWorld = &World;
-        }
+    for (const std::unique_ptr<AActor>& Actor : World.mPersistentLevel->mActors) {
+        Actor->SetWorld(&World, false);
     }
 
     for (const std::unique_ptr<AActor>& Actor : World.mPersistentLevel->mActors) {
@@ -439,10 +505,6 @@ bool FWorldSerializer::InstallActors(UWorld& World, TArray<std::unique_ptr<AActo
         const UWorld::FActorDispatchScope Dispatch{&World};
 
         for (std::size_t Index{}; Index < World.mPersistentLevel->mActors.size(); ++Index) {
-            if (IsCloning && !World.mPersistentLevel->mActors[Index]->IsBeingDestroyed()) {
-                World.mPersistentLevel->mActors[Index]->OnAddedToWorld();
-            }
-
             World.InitializeLoadedActor(*World.mPersistentLevel->mActors[Index]);
         }
     }
@@ -474,7 +536,7 @@ TArray<AActor*> FWorldSerializer::DuplicateActors(UWorld& World, const TArray<AA
         FActorRecord Record{{Actor->GetGuid(), Actor->GetClass()->GetClassName()}, {}};
 
         for (const std::unique_ptr<UActorComponent>& Component : Actor->GetComponents()) {
-            Record.mComponents.push_back({Component->GetGuid(), Component->GetClass()->GetClassName()});
+            Record.mComponents.push_back({Component->GetGuid(), Component->GetClass()->GetClassName(), Component->GetDefaultComponentName()});
         }
 
         Records.push_back(std::move(Record));
@@ -493,15 +555,9 @@ TArray<AActor*> FWorldSerializer::DuplicateActors(UWorld& World, const TArray<AA
     TArray<std::unique_ptr<AActor>> Copies{};
 
     for (const FActorRecord& Record : Records) {
-        std::unique_ptr<AActor> Actor{CreateActor(Record)};
+        std::unique_ptr<AActor> Actor{CreateAndLoadActor(Record, Reader)};
 
         if (Actor == nullptr) {
-            return {};
-        }
-
-        Actor->Load(Reader);
-
-        if (Reader.HasError()) {
             return {};
         }
 
@@ -511,7 +567,7 @@ TArray<AActor*> FWorldSerializer::DuplicateActors(UWorld& World, const TArray<AA
             return {};
         }
 
-        Actor->mWorld = &World;
+        Actor->SetWorld(&World, false);
 
         for (const std::unique_ptr<UActorComponent>& Component : Actor->GetComponents()) {
             if (!UObjectSystem::Register(Component.get()).IsValid()) {
@@ -544,7 +600,6 @@ TArray<AActor*> FWorldSerializer::DuplicateActors(UWorld& World, const TArray<AA
 
         for (const TObjectRef<AActor>& Entry : Installed) {
             if (AActor* Actor{Entry.Get()}) {
-                Actor->OnAddedToWorld();
                 World.InitializeLoadedActor(*Actor);
             }
         }

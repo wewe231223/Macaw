@@ -46,6 +46,7 @@ public:
     ReflectClass(UActorComponent, EClassFlags::None);
 
     AActor* GetOwner() const;
+    FName GetDefaultComponentName() const;
 
     virtual void OnRegister();
     virtual void InitializeComponent();
@@ -127,6 +128,7 @@ private:
     void OnIdentityChanged() override;
     void UpdateTickRegistration();
     bool DeferComponentDestruction(bool BPromoteChildren);
+    void ApplyDestruction(bool BPromoteChildren);
     /// <summary>초기화를 요청한 등록 컴포넌트의 상태를 갱신하고 초기화 콜백을 호출합니다.</summary>
     void DispatchInitializeComponent();
     /// <summary>초기화된 상태를 해제하고 정리 콜백을 한 번 호출합니다.</summary>
@@ -136,6 +138,7 @@ private:
     void DispatchEndPlay(EEndPlayReason Reason);
 
 private:
+    FName mDefaultComponentName{};
     AActor* mOwner{nullptr};
     UWorld* mParentWorld{nullptr};
     FActorComponentTickFunction mPrimaryComponentTick{*this};

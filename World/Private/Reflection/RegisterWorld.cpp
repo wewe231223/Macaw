@@ -1,6 +1,11 @@
 #include "pch.h"
 #include "CoreUObject/Reflection/FReflectionRegistry.h"
 #include "World/AActor.h"
+#include "World/AStaticMeshActor.h"
+#include "World/ACameraActor.h"
+#include "World/ADirectionalLightActor.h"
+#include "World/APointLightActor.h"
+#include "World/ASpotLightActor.h"
 #include "World/Component/UActorComponent.h"
 #include "World/Component/UBillboardComponent.h"
 #include "World/Component/UBillboardTextComponent.h"
@@ -33,6 +38,11 @@
 
 void ReflectionModules::RegisterWorld() {
     AActor::StaticClass();
+    AStaticMeshActor::StaticClass();
+    ACameraActor::StaticClass();
+    ADirectionalLightActor::StaticClass();
+    APointLightActor::StaticClass();
+    ASpotLightActor::StaticClass();
     UActorComponent::StaticClass();
     UBillboardComponent::StaticClass();
     UBillboardTextComponent::StaticClass();

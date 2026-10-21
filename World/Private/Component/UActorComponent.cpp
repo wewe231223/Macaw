@@ -4,6 +4,10 @@
 #include "World/UWorld.h"
 #include "Core/Base/ErrorHandler.h"
 
+FName UActorComponent::GetDefaultComponentName() const {
+    return mDefaultComponentName;
+}
+
 AActor* UActorComponent::GetOwner() const {
     return mOwner;
 }
@@ -371,6 +375,11 @@ bool UActorComponent::DeferComponentDestruction(bool BPromoteChildren) {
     return false;
 }
 
+void UActorComponent::ApplyDestruction(bool BPromoteChildren) {
+    mState.Clear(EStateFlag::DestroyRequested);
+    DestroyComponent(BPromoteChildren);
+}
+
 void UActorComponent::DestroyComponent(bool BPromoteChildren) {
     if (DeferComponentDestruction(BPromoteChildren)) {
         return;
@@ -394,6 +403,16 @@ bool UActorComponent::ResolveLoadedReferences() {
 
 void UActorComponent::Serialize(FArchive& Archive) {
     Super::Serialize(Archive);
+
+    if (Archive.SupportsNamedFields() && (Archive.IsSaving() || Archive.HasField("DefaultComponentName"))) {
+        FName DefaultComponentName{mDefaultComponentName};
+
+        Archive.Serialize("DefaultComponentName", DefaultComponentName);
+
+        if (Archive.IsLoading() && DefaultComponentName != mDefaultComponentName) {
+            Archive.SetError();
+        }
+    }
 
     if (Archive.IsLoading()) {
         if (!mBActive) {

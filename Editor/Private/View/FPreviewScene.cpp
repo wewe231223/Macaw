@@ -2,7 +2,8 @@
 #include "Editor/View/FPreviewScene.h"
 #include "Asset/FAssetRegistry.h"
 #include "Render/Renderer.h"
-#include "World/Component/UDirectionalLightComponent.h"
+#include "World/ADirectionalLightActor.h"
+#include "World/AStaticMeshActor.h"
 
 FPreviewScene::~FPreviewScene() {
     Reset();
@@ -25,16 +26,16 @@ bool FPreviewScene::Initialize(FRenderer& Renderer) {
     mWorld.Initialize(EWorldType::Preview);
     mWorld.BindScene(Renderer.CreateScene());
 
-    AActor* MeshActor{mWorld.SpawnActorDeferred<AActor>()};
-    AActor* LightActor{mWorld.SpawnActorDeferred<AActor>()};
+    AStaticMeshActor* MeshActor{mWorld.SpawnActorDeferred<AStaticMeshActor>()};
+    ADirectionalLightActor* LightActor{mWorld.SpawnActorDeferred<ADirectionalLightActor>()};
 
     if (MeshActor == nullptr || LightActor == nullptr) {
         Reset();
         return false;
     }
 
-    mMesh = MeshActor->AddComponent<UStaticMeshComponent>();
-    mLight = LightActor->AddComponent<UDirectionalLightComponent>();
+    mMesh = MeshActor->GetStaticMeshComponent();
+    mLight = LightActor->GetLightComponent();
 
     if (mMesh == nullptr || mLight == nullptr) {
         Reset();
@@ -42,8 +43,6 @@ bool FPreviewScene::Initialize(FRenderer& Renderer) {
     }
 
     mMesh->SetVisible(false);
-    MeshActor->SetRootComponent(mMesh);
-    LightActor->SetRootComponent(mLight);
 
     if (!mWorld.FinishSpawningActor(MeshActor, FTransform{}) || !mWorld.FinishSpawningActor(LightActor, FTransform{})) {
         Reset();

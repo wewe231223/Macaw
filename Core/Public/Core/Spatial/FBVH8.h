@@ -150,7 +150,12 @@ namespace BVH8 {
     /**
      * @brief 삼각형 패킷과 와인딩 방향을 사용하는 광선 검사 함수 포인터 타입.
      */
-    using FTrianglePacketRaycaster = bool (*)(const FNode*, Uint32, const FRayData&, const FRay&, float&, const FTrianglePacket*, bool);
+    struct FTriangleHit {
+        Uint32 mPacketIndex{};
+        Uint32 mLane{};
+    };
+
+    using FTrianglePacketRaycaster = bool (*)(const FNode*, Uint32, const FRayData&, const FRay&, float&, const FTrianglePacket*, bool, FTriangleHit*);
     /**
      * @brief CPU와 운영체제의 AVX 지원에 따라 일반 및 삼각형 패킷 순회의 SSE 또는 AVX 구현을 선택한다. 초기 선택은 SSE이다.
      */
@@ -207,7 +212,7 @@ namespace BVH8 {
      * @return 상한 안에 유효한 삼각형 교차가 있으면 true.
      * @details 리프 참조의 개수만큼 패킷의 유효한 삼각형을 검사하며 뒷면은 제외한다.
      */
-    bool RaycastTrianglePackets(const FNode* Nodes, Uint32 RootReference, const FRayData& RayData, const FRay& Ray, float& ClosestDistance, const FTrianglePacket* Packets, bool ReverseWinding = false);
+    bool RaycastTrianglePackets(const FNode* Nodes, Uint32 RootReference, const FRayData& RayData, const FRay& Ray, float& ClosestDistance, const FTrianglePacket* Packets, bool ReverseWinding = false, FTriangleHit* Hit = nullptr);
     /**
      * @brief SSE 구현으로 삼각형 패킷의 최근접 교차를 검사한다.
      * @param Nodes 참조 인덱스로 접근할 내부 노드 배열.
@@ -220,7 +225,7 @@ namespace BVH8 {
      * @return 상한 안에 유효한 삼각형 교차가 있으면 true.
      * @details 리프 참조의 개수만큼 패킷의 유효한 삼각형을 검사하며 뒷면은 제외한다.
      */
-    bool RaycastTrianglePacketsSSE(const FNode* Nodes, Uint32 RootReference, const FRayData& RayData, const FRay& Ray, float& ClosestDistance, const FTrianglePacket* Packets, bool ReverseWinding = false);
+    bool RaycastTrianglePacketsSSE(const FNode* Nodes, Uint32 RootReference, const FRayData& RayData, const FRay& Ray, float& ClosestDistance, const FTrianglePacket* Packets, bool ReverseWinding = false, FTriangleHit* Hit = nullptr);
     /**
      * @brief AVX 구현으로 삼각형 패킷의 최근접 교차를 검사한다.
      * @param Nodes 참조 인덱스로 접근할 내부 노드 배열.
@@ -234,7 +239,7 @@ namespace BVH8 {
      * @details 리프 참조의 개수만큼 패킷의 유효한 삼각형을 검사하며 뒷면은 제외한다.
      * @pre CPU와 운영체제가 AVX를 지원해야 한다.
      */
-    bool RaycastTrianglePacketsAVX(const FNode* Nodes, Uint32 RootReference, const FRayData& RayData, const FRay& Ray, float& ClosestDistance, const FTrianglePacket* Packets, bool ReverseWinding = false);
+    bool RaycastTrianglePacketsAVX(const FNode* Nodes, Uint32 RootReference, const FRayData& RayData, const FRay& Ray, float& ClosestDistance, const FTrianglePacket* Packets, bool ReverseWinding = false, FTriangleHit* Hit = nullptr);
 }
 
 /**
@@ -251,26 +256,19 @@ public:
     /**
      * @brief 노드 배열을 비우고 루트 참조를 0으로 초기화한다.
      */
-    void Clear() {
-        mNodes.clear();
-        mRootReference = 0;
-    }
+    void Clear();
 
     /**
      * @brief 인코딩된 루트 노드 참조를 조회한다.
      * @return 현재 루트 참조. 빈 트리의 기본값도 0이므로 노드 배열과 함께 확인한다.
      */
-    Uint32 GetRootReference() const {
-        return mRootReference;
-    }
+    Uint32 GetRootReference() const;
 
     /**
      * @brief BVH가 소유하는 내부 노드 배열을 조회한다.
      * @return 노드 배열의 읽기 전용 참조.
      */
-    const TArray<BVH8::FNode>& GetNodes() const {
-        return mNodes;
-    }
+    const TArray<BVH8::FNode>& GetNodes() const;
 
     /**
      * @brief 외부 삼각형 패킷 저장소를 사용하여 최근접 교차를 검사한다.
@@ -280,12 +278,7 @@ public:
      * @param ReverseWinding true이면 와인딩 판정을 뒤집어 반대 방향의 면을 검사한다.
      * @return 유효한 삼각형 교차가 있으면 true. 빈 트리나 음수 또는 NaN 상한이면 false.
      */
-    bool RaycastTrianglePackets(const FRay& Ray, float& ClosestDistance, const BVH8::FTrianglePacket* Packets, bool ReverseWinding = false) const {
-        if (mNodes.empty() || !(ClosestDistance >= 0.0f))
-            return false;
-
-        return BVH8::RaycastTrianglePackets(mNodes.data(), mRootReference, BVH8::FRayData{Ray}, Ray, ClosestDistance, Packets, ReverseWinding);
-    }
+    bool RaycastTrianglePackets(const FRay& Ray, float& ClosestDistance, const BVH8::FTrianglePacket* Packets, bool ReverseWinding = false) const;
 
     /**
      * @brief 기존 이진 트리의 리프 구분을 유지하면서 8분기 BVH를 구축한다.

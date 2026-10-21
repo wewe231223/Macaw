@@ -20,6 +20,20 @@ AActor::~AActor() {
 }
 
 UActorComponent* AActor::AddComponent(const UClass& Type) {
+    return CreateComponent(Type, {});
+}
+
+UActorComponent* AActor::FindDefaultComponent(FName Name) const {
+    for (const std::unique_ptr<UActorComponent>& Component : mComponents) {
+        if (!Name.IsNone() && Component->GetDefaultComponentName() == Name && !Component->IsBeingDestroyed()) {
+            return Component.get();
+        }
+    }
+
+    return nullptr;
+}
+
+UActorComponent* AActor::CreateComponent(const UClass& Type, FName DefaultComponentName) {
     if (IsBeingDestroyed() || !Type.CanCreateInstance() || !Type.IsChildOf(UActorComponent::StaticClass())) {
         return nullptr;
     }
@@ -36,6 +50,12 @@ UActorComponent* AActor::AddComponent(const UClass& Type) {
     UActorComponent* ComponentPtr{NewComponent.get()};
 
     ComponentPtr->SetOwner(this);
+    ComponentPtr->mDefaultComponentName = DefaultComponentName;
+
+    if (!DefaultComponentName.IsNone() && !ComponentPtr->SetName(DefaultComponentName)) {
+        return nullptr;
+    }
+
     if (!UObjectSystem::Register(ComponentPtr).IsValid()) {
         return nullptr;
     }
@@ -45,15 +65,7 @@ UActorComponent* AActor::AddComponent(const UClass& Type) {
         return ComponentPtr;
     }
 
-    mComponents.push_back(std::move(NewComponent));
-
-    FinishAddingComponent(*ComponentPtr);
-
-    if (mWorld != nullptr && mState.IsSet(EStateFlag::FinishedSpawning) && !IsBeingDestroyed()) {
-        mWorld->MarkStructureDirty();
-    }
-
-    return ComponentPtr->IsBeingDestroyed() || IsBeingDestroyed() ? nullptr : ComponentPtr;
+    return InstallComponent(std::move(NewComponent));
 }
 
 void AActor::RemoveOwnedComponent(UActorComponent* Component) {
@@ -101,7 +113,7 @@ bool AActor::SetRootComponent(USceneComponent* InRootComponent) {
     return true;
 }
 
-void AActor::SetWorld(UWorld* InWorld) {
+void AActor::SetWorld(UWorld* InWorld, bool NotifyAdded) {
     if (mWorld == InWorld) {
         return;
     }
@@ -123,7 +135,10 @@ void AActor::SetWorld(UWorld* InWorld) {
 
     if (InWorld != nullptr && !mState.IsSet(EStateFlag::BeingDestroyed)) {
         mWorld = InWorld;
-        OnAddedToWorld();
+
+        if (NotifyAdded) {
+            OnAddedToWorld();
+        }
     }
 }
 
@@ -135,10 +150,22 @@ ULevel* AActor::GetLevel() const {
     return GetTypedOuter<ULevel>();
 }
 
-void AActor::FinishAddingComponent(UActorComponent& Component) {
-    if (mWorld != nullptr && mState.IsSet(EStateFlag::FinishedSpawning) && !mState.IsSet(EStateFlag::BeingDestroyed)) {
-        Component.RegisterComponent(mWorld);
+UActorComponent* AActor::InstallComponent(std::unique_ptr<UActorComponent> Component) {
+    UActorComponent* ComponentPtr{Component.get()};
+
+    mComponents.push_back(std::move(Component));
+
+    if (mState.IsSet(EStateFlag::BeingDestroyed)) {
+        ComponentPtr->DestroyComponent();
+    } else if (mWorld != nullptr && HasFinishedSpawning()) {
+        ComponentPtr->RegisterComponent(mWorld);
     }
+
+    if (mWorld != nullptr && HasFinishedSpawning() && !IsBeingDestroyed()) {
+        mWorld->MarkStructureDirty();
+    }
+
+    return ComponentPtr->IsBeingDestroyed() || IsBeingDestroyed() ? nullptr : ComponentPtr;
 }
 
 void AActor::OnComponentRegistered(UActorComponent& Component) {
@@ -198,7 +225,7 @@ void AActor::RegisterAllComponents() {
 }
 
 void AActor::DispatchBeginPlay() {
-    if (!CanAdvanceComponentLifecycle() || !mWorld->HasBegunPlay() || mState.IsSet(EStateFlag::HasBegunPlay) || mLifecyclePhase != ELifecyclePhase::None || !mState.IsSet(EStateFlag::FinishedSpawning)) {
+    if (!CanAdvanceComponentLifecycle() || !mWorld->HasBegunPlay() || mState.IsSet(EStateFlag::HasBegunPlay) || mLifecyclePhase != ELifecyclePhase::None || !HasFinishedSpawning()) {
         return;
     }
 
@@ -394,7 +421,7 @@ bool AActor::IsBeingDestroyed() const {
 }
 
 bool AActor::HasFinishedSpawning() const {
-    return mState.IsSet(EStateFlag::FinishedSpawning);
+    return mConstructionState == EConstructionState::Finished;
 }
 
 bool AActor::CanEverTick() const {
@@ -483,7 +510,7 @@ void AActor::OnAddedToWorld() {
 }
 
 void AActor::InitializeComponents() {
-    if (mState.IsSet(EStateFlag::Initialized) || mLifecyclePhase != ELifecyclePhase::None || !CanAdvanceComponentLifecycle() || !mState.IsSet(EStateFlag::FinishedSpawning)) {
+    if (mState.IsSet(EStateFlag::Initialized) || mLifecyclePhase != ELifecyclePhase::None || !CanAdvanceComponentLifecycle() || !HasFinishedSpawning()) {
         return;
     }
 
@@ -583,5 +610,62 @@ void AActor::SerializeRootComponentProperty(void* Container, FArchive& Archive, 
 
     if (Archive.IsLoading()) {
         Object.mRootComponent = {};
+    }
+}
+
+bool AActor::QueueConstruction() {
+    if (mConstructionState != EConstructionState::Deferred) {
+        return false;
+    }
+
+    mConstructionState = EConstructionState::Queued;
+
+    return true;
+}
+
+bool AActor::CompleteConstruction(const FTransform& Transform) {
+    if (mConstructionState == EConstructionState::Constructing || HasFinishedSpawning() || IsBeingDestroyed()) {
+        return false;
+    }
+
+    const bool HadRootComponent{mRootComponent != nullptr};
+
+    mConstructionState = EConstructionState::Constructing;
+    SetActorTransform(Transform);
+    OnConstruction(Transform);
+
+    if (!HadRootComponent) {
+        SetActorTransform(Transform);
+    }
+
+    return !IsBeingDestroyed();
+}
+
+void AActor::CompleteRegistration() {
+    mConstructionState = EConstructionState::Finished;
+    RegisterAllComponents();
+}
+
+bool AActor::RequestDestruction() {
+    if (IsBeingDestroyed()) {
+        return false;
+    }
+
+    mState.Set(EStateFlag::DestroyRequested);
+
+    return true;
+}
+
+void AActor::StartDestruction() {
+    mState.Clear(EStateFlag::DestroyRequested);
+    mState.Set(EStateFlag::BeingDestroyed);
+    UpdateTickRegistration();
+}
+
+void AActor::DispatchDestruction(EEndPlayReason Reason) {
+    DispatchEndPlay(Reason);
+
+    if (Reason == EEndPlayReason::Destroyed) {
+        Destroyed();
     }
 }

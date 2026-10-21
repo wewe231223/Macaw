@@ -12,6 +12,7 @@
 #include "ImGui/imgui.h"
 #include "World/Component/UMeshComponent.h"
 #include "World/UWorld.h"
+#include "World/Subsystem/UPickingSubsystem.h"
 
 namespace {
     constexpr float Pi{std::numbers::pi_v<float>};
@@ -916,69 +917,25 @@ bool FTransformGizmo::IsSelectedHierarchy(const AActor* Actor) const {
 
 bool FTransformGizmo::FindSurface(const FRay& Ray, FVector3& Position, FVector3& Normal) const {
     UWorld* World{mEditorContext->GetWorld()};
-    const UMeshComponent* Nearest{};
-    float NearestDistance{std::numeric_limits<float>::max()};
 
     if (World == nullptr) {
         return false;
     }
 
-    for (const std::unique_ptr<AActor>& Actor : World->GetActors()) {
-        if (Actor->IsBeingDestroyed() || IsSelectedHierarchy(Actor.get())) {
-            continue;
-        }
+    FWorldRaycastQuery Query{};
 
-        for (const std::unique_ptr<UActorComponent>& Component : Actor->GetComponents()) {
-            if (!Component->IsA(UMeshComponent::StaticClass())) {
-                continue;
-            }
-
-            const UMeshComponent* Mesh{static_cast<const UMeshComponent*>(Component.get())};
-            float Distance{};
-
-            if (Mesh->IsRegistered() && Mesh->IsVisible() && Mesh->RaycastMesh(Ray, Distance, NearestDistance) && Distance < NearestDistance) {
-                Nearest = Mesh;
-                NearestDistance = Distance;
-            }
-        }
+    for (AActor* Actor : mEditorContext->GetSelectedActors()) {
+        Query.mExcludedActorHierarchies.emplace_back(Actor);
     }
 
-    if (Nearest == nullptr) {
+    FWorldRaycastHit Hit{};
+
+    if (!World->GetPickingSubsystem().Raycast(Ray, Query, Hit, EPickingTarget::MeshSurfaces)) {
         return false;
     }
 
-    Position = FVector3{Ray.position} + FVector3{Ray.direction} * NearestDistance;
-    Normal = -FVector3{Ray.direction};
-    const UMesh* Mesh{FAssetRegistry::Get().ResolveAsset<UMesh>(Nearest->GetMeshHandle())};
-
-    if (Mesh != nullptr) {
-        const auto Positions{Mesh->GetVertexAttributeData<EVertexAttribute::Position>()};
-        const auto& Indices{Mesh->GetIndices()};
-        const FMatrix WorldTransform{Nearest->GetComponentToWorld()};
-
-        for (std::size_t Index{}; Index + 2 < Indices.size(); Index += 3) {
-            if (Indices[Index] >= Positions.size() || Indices[Index + 1] >= Positions.size() || Indices[Index + 2] >= Positions.size()) {
-                continue;
-            }
-
-            const FVector3 First{FVector3::Transform(Positions[Indices[Index]], WorldTransform)};
-            const FVector3 Second{FVector3::Transform(Positions[Indices[Index + 1]], WorldTransform)};
-            const FVector3 Third{FVector3::Transform(Positions[Indices[Index + 2]], WorldTransform)};
-            float Distance{};
-
-            if (Ray.Intersects(First.ToSimpleMath(), Second.ToSimpleMath(), Third.ToSimpleMath(), Distance) && std::abs(Distance - NearestDistance) < std::max(0.001f, NearestDistance * 0.0001f)) {
-                Normal = (Second - First).Cross(Third - First);
-                Normal.Normalize();
-
-                if (Normal.Dot(FVector3{Ray.direction}) > 0.0f) {
-                    Normal = -Normal;
-                }
-
-                break;
-            }
-        }
-    }
-
+    Position = Hit.mPosition;
+    Normal = Hit.mNormal;
     return true;
 }
 

@@ -42,7 +42,7 @@ public:
     UMeshComponent* GetMeshComponent() const override;
     bool BuildBoundsFromMesh();
 
-    bool RaycastBounds(const FRay& Ray, float& OutDistance) const override;
+    bool RaycastBounds(const FRay& Ray, FWorldRaycastHit& OutHit, float MaxDistance) const override;
     void DrawEditorBounds(ILineDrawContext* LineContext, ELineDepthMode DepthMode) const override;
     FVector3 GetExtent() const;
     void SetExtent(const FVector3& InExtent);

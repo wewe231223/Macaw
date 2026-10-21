@@ -75,8 +75,8 @@ bool BVH8::RaycastAVX(const FNode* Nodes, Uint32 RootReference, const FRayData& 
     });
 }
 
-bool BVH8::RaycastTrianglePacketsAVX(const FNode* Nodes, Uint32 RootReference, const FRayData& RayData, const FRay& Ray, float& ClosestDistance, const FTrianglePacket* Packets, bool ReverseWinding) {
-    const TTrianglePacketVisitor<FSIMD8> Visitor{Packets, Ray, ReverseWinding};
+bool BVH8::RaycastTrianglePacketsAVX(const FNode* Nodes, Uint32 RootReference, const FRayData& RayData, const FRay& Ray, float& ClosestDistance, const FTrianglePacket* Packets, bool ReverseWinding, FTriangleHit* Hit) {
+    const TTrianglePacketVisitor<FSIMD8> Visitor{Packets, Ray, ReverseWinding, Hit};
 
     if (RayData.Parallel[0] || RayData.Parallel[1] || RayData.Parallel[2])
         return Traverse<FPreparedRayAVX, true>(Nodes, RootReference, RayData, ClosestDistance, Visitor);
