@@ -1,0 +1,117 @@
+if _ACTION and _ACTION:match("^vs%d+$") and not _OPTIONS["help"] then
+    print("Preparing Macaw dependencies...")
+    local SetupScript = path.getabsolute("Scripts/setup-deps.ps1")
+    local Success, ExitReason, ExitCode = os.execute('powershell.exe -NoProfile -ExecutionPolicy Bypass -File "' .. SetupScript .. '"')
+    if Success ~= true and Success ~= 0 then
+        error("Macaw dependency setup failed: " .. tostring(ExitCode or Success))
+    end
+end
+
+workspace "Macaw"
+    location ""
+    configurations { "Debug", "Release", "Viewer" }
+    platforms { "x64" }
+    defaultplatform "x64"
+    startproject "Macaw"
+
+filter "platforms:x64"
+    architecture "x86_64"
+
+filter "system:windows"
+    systemversion "latest"
+
+filter "configurations:Debug"
+    defines { "_DEBUG" }
+    symbols "On"
+    editandcontinue "Off"
+    runtime "Debug"
+
+filter "configurations:Release"
+    defines { "NDEBUG" }
+    optimize "Speed"
+    runtime "Release"
+
+filter "configurations:Viewer"
+    defines { "NDEBUG", "OBJ_VIEWER" }
+    optimize "Speed"
+    runtime "Release"
+
+filter {}
+
+local Modules = json.decode(io.readfile("ModuleDependencies.json"))
+
+local function AddPublicIncludes(ModuleName, Visited)
+    if Visited[ModuleName] then
+        return
+    end
+    Visited[ModuleName] = true
+    includedirs { ModuleName .. "/Public" }
+    for _, Dependency in ipairs(Modules[ModuleName].Public) do
+        AddPublicIncludes(Dependency, Visited)
+    end
+end
+
+local function ConfigureProject(ProjectName, ProjectKind)
+    project(ProjectName)
+        kind(ProjectKind)
+        language "C++"
+        cppdialect "C++20"
+        characterset "Unicode"
+        staticruntime "Off"
+        targetdir "bin/%{cfg.buildcfg}/%{cfg.platform}"
+        objdir "bin-int/%{prj.name}/%{cfg.buildcfg}/%{cfg.platform}"
+        externalincludedirs { "Externals/Include" }
+        defines { "NOMINMAX" }
+        buildoptions { "/utf-8", "/Zc:preprocessor" }
+end
+
+local function ConfigureModule(ModuleName)
+    ConfigureProject(ModuleName, "StaticLib")
+    files { ModuleName .. "/Public/**.h", ModuleName .. "/Public/**.inl", ModuleName .. "/Private/**.h", ModuleName .. "/Private/**.cpp", ModuleName .. "/Private/**.cc" }
+    includedirs { ModuleName .. "/Private" }
+    local Visited = {}
+    AddPublicIncludes(ModuleName, Visited)
+    for _, Dependency in ipairs(Modules[ModuleName].Private) do
+        AddPublicIncludes(Dependency, Visited)
+    end
+    links(Modules[ModuleName].Public)
+    links(Modules[ModuleName].Private)
+    if ModuleName == "ImGui" then
+        includedirs { "ImGui/Public/ImGui" }
+        enablepch "Off"
+    else
+        pchheader "pch.h"
+        pchsource(ModuleName .. "/Private/pch.cpp")
+    end
+end
+
+local function ConfigureSystemLinks()
+    links { "DirectXTex", "nvapi64", "d3d11", "dxgi", "d3dcompiler", "dwmapi", "comdlg32", "gdi32", "imm32", "shell32", "user32", "kernel32", "ole32" }
+    filter "configurations:Debug"
+        libdirs { "Externals/bin/debug" }
+    filter "configurations:Release or Viewer"
+        libdirs { "Externals/bin/release" }
+    filter {}
+end
+
+for _, ModuleName in ipairs({ "Core", "CoreUObject", "RenderCore", "Serialization", "ImGui", "Asset", "World", "Render", "Editor", "Platform", "Engine" }) do
+    ConfigureModule(ModuleName)
+end
+
+project "Core"
+    filter "files:Core/Private/Spatial/FBVH8AVX.cpp"
+        enablepch "Off"
+        vectorextensions "AVX"
+    filter "files:Core/Private/Math/**.cpp"
+        enablepch "Off"
+    filter {}
+
+ConfigureProject("Macaw", "WindowedApp")
+    files { "Application/**.h", "Application/**.cpp", "Macaw.cpp", "Macaw.h", "framework.h", "targetver.h", "Resource.h", "Macaw.rc", "pch.h", "pch.cpp" }
+    includedirs { "." }
+    AddPublicIncludes("Editor", {})
+    AddPublicIncludes("Engine", {})
+    links { "Engine", "Platform", "Editor", "World", "Render", "Asset", "Serialization", "RenderCore", "CoreUObject", "Core", "ImGui" }
+    pchheader "pch.h"
+    pchsource "pch.cpp"
+    ConfigureSystemLinks()
