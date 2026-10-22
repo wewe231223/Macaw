@@ -1,5 +1,14 @@
+/**
+ * @file NewObjectTemplates.h
+ * @brief UObject 생성과 클래스 메타데이터 등록 템플릿의 정의입니다.
+ * @ingroup CoreUObject
+ */
+
 #pragma once
 
+/**
+ * @brief UObject 파생 객체를 생성하고 지정한 객체 레지스트리에 등록합니다.
+ */
 template <typename T, typename... TArguments>
 std::unique_ptr<T> NewObject(FObjectRegistry& Registry, TArguments&&... Arguments) {
     static_assert(std::is_base_of_v<UObject, T>);
@@ -16,6 +25,9 @@ std::unique_ptr<T> NewObject(FObjectRegistry& Registry, TArguments&&... Argument
     return Object;
 }
 
+/**
+ * @brief 구체적이고 기본 생성 가능한 네이티브 타입의 인스턴스를 생성합니다.
+ */
 template <typename T>
 std::unique_ptr<UObject> CreateNativeInstance() {
     static_assert(std::is_same_v<typename T::ReflectionOwner, T>);
@@ -29,6 +41,9 @@ std::unique_ptr<UObject> CreateNativeInstance() {
     }
 }
 
+/**
+ * @brief 네이티브 클래스의 상속, 생성 정책과 멤버 빌더를 등록합니다.
+ */
 template <typename T>
 UClass* DefineNativeClass(FString Name, UClass* (*Parent)(), EClassFlags Flags) {
     static_assert(std::is_base_of_v<UObject, T>);

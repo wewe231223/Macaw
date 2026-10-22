@@ -1,3 +1,9 @@
+/**
+ * @file Gizmo.h
+ * @brief 이동, 회전과 스케일 기즈모의 화면 질의와 드래그를 구현합니다.
+ * @ingroup Editor
+ */
+
 #pragma once
 
 #include "Core/ReflectionMacros.h"
@@ -11,96 +17,247 @@
 
 class UEditorEngine;
 
+/**
+ * @brief 기즈모로 편집할 이동, 회전 또는 스케일 연산을 지정합니다.
+ * @ingroup Editor
+ */
 enum class EGizmoMode {
+    /**
+     * @brief 위치를 편집합니다.
+     */
     Translate,
+    /**
+     * @brief 회전을 편집합니다.
+     */
     Rotate,
+    /**
+     * @brief 축별 스케일을 편집합니다.
+     */
     Scale
 };
 
+/**
+ * @brief 기즈모 축을 월드 좌표 또는 객체 로컬 좌표로 지정합니다.
+ * @ingroup Editor
+ */
 enum class EGizmoSpace {
+    /**
+     * @brief 월드 좌표축을 사용합니다.
+     */
     World,
+    /**
+     * @brief 대상의 회전이 적용된 로컬 좌표축을 사용합니다.
+     */
     Local
 };
 
+/**
+ * @brief 이동, 회전과 스케일 축의 선택 및 드래그 편집을 제공합니다.
+ * @ingroup Editor
+ */
 class FTransformGizmo {
 public:
+    /**
+     * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
+     */
     ReflectTypes(FTransformGizmo);
 
 public:
+    /**
+     * @brief FTransformGizmo의 초기 상태와 전달받은 의존성을 구성합니다.
+     * @param[in,out] Engine 패널 또는 뷰포트가 참조할 에디터 엔진입니다.
+     */
     explicit FTransformGizmo(UEditorEngine& Engine);
 
 public:
+    /**
+     * @brief 이 타입의 정적 구조체 메타데이터를 반환합니다.
+     * @return 등록된 타입 메타데이터의 비소유 주소입니다.
+     */
     ReflectStruct(FTransformGizmo);
 
+    /**
+     * @brief 기즈모의 이동, 회전 또는 스케일 모드를 선택합니다.
+     * @param[in] Mode 로드·저장 또는 기즈모 동작 모드입니다.
+     */
     void SetMode(EGizmoMode Mode);
+    /**
+     * @brief 현재 동작 모드를 반환합니다.
+     * @return 현재 동작 모드입니다.
+     */
     EGizmoMode GetMode() const;
 
+    /**
+     * @brief 기즈모 축의 기준을 월드 또는 로컬 좌표로 바꿉니다.
+     * @param[in] Space 축에 적용할 월드 또는 로컬 좌표 공간입니다.
+     */
     void SetSpace(EGizmoSpace Space);
+    /**
+     * @brief 기즈모 축의 좌표 공간을 반환합니다.
+     * @return 기즈모 축의 좌표 공간입니다.
+     */
     EGizmoSpace GetSpace() const;
 
+    /**
+     * @brief 현재 프레임의 뷰포트 입력을 처리합니다.
+     * @param[in] Input 현재 프레임의 뷰포트 입력 스냅샷입니다.
+     * @param[in] View 입력 해석이나 그리기에 사용할 카메라 뷰입니다.
+     * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
+     */
     bool Input(const FViewportInput& Input, const FSceneView& View);
+    /**
+     * @brief 뷰포트 또는 패널의 현재 내용을 그립니다.
+     * @param[in] View 입력 해석이나 그리기에 사용할 카메라 뷰입니다.
+     * @param[in,out] DrawInterface 보조 선분을 추가할 그리기 인터페이스입니다.
+     */
     void Draw(const FSceneView& View, FPrimitiveDrawInterface& DrawInterface);
 
+    /**
+     * @brief 진행 중인 기즈모 드래그를 취소하고 가능한 경우 시작 변환을 복원합니다.
+     */
     void Cancel();
+    /**
+     * @brief 기즈모에서 활성 축을 드래그하고 있는지 검사합니다.
+     * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
+     */
     bool IsDragging() const;
+    /**
+     * @brief 마우스가 가리키는 축 인덱스, 없으면 -1을 반환합니다.
+     * @return 마우스가 가리키는 축 인덱스, 없으면 -1입니다.
+     */
     Int32 GetHoveredAxis() const;
 
 private:
+    /**
+     * @brief 선택한 좌표 공간에 맞는 기즈모 단위 축을 구합니다.
+     * @param[in] Transform 적용할 위치, 회전과 스케일입니다.
+     * @param[in] Index 선택할 요소 또는 축의 0부터 시작하는 인덱스입니다.
+     * @return 선택한 좌표 공간에 맞는 기즈모 단위 축을 구합니다.입니다.
+     */
     FVector GetAxis(const FTransform& Transform, Int32 Index) const;
+    /**
+     * @brief 크기를 반환합니다.
+     * @param[in] View 입력 해석이나 그리기에 사용할 카메라 뷰입니다.
+     * @param[in] Pivot 기즈모 또는 카메라 회전의 월드 중심점입니다.
+     * @return 크기입니다.
+     */
     float GetSize(const FSceneView& View, const FVector& Pivot) const;
+    /**
+     * @brief 마우스와 투영된 기즈모 축의 거리를 검사하여 선택할 축을 구합니다.
+     * @param[in] Mouse 뷰포트 기준 마우스 픽셀 좌표입니다.
+     * @param[in] View 입력 해석이나 그리기에 사용할 카메라 뷰입니다.
+     * @param[in] Transform 적용할 위치, 회전과 스케일입니다.
+     * @return 연산을 적용한 새 값입니다.
+     */
     Int32 HitTest(const FVector2& Mouse, const FSceneView& View, const FTransform& Transform) const;
 
+    /**
+     * @brief 선택 축과 대상의 시작 변환을 저장하고 드래그 평면을 구성합니다.
+     * @param[in] Axis 회전 또는 편집에 사용할 축입니다.
+     * @param[in] Mouse 뷰포트 기준 마우스 픽셀 좌표입니다.
+     * @param[in] View 입력 해석이나 그리기에 사용할 카메라 뷰입니다.
+     * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
+     */
     bool BeginDrag(Int32 Axis, const FVector2& Mouse, const FSceneView& View);
+    /**
+     * @brief 마우스 이동량을 활성 모드의 변환으로 바꾸어 선택한 액터에 적용합니다.
+     * @param[in] Mouse 뷰포트 기준 마우스 픽셀 좌표입니다.
+     */
     void UpdateDrag(const FVector2& Mouse);
 
 private:
+    /**
+     * @brief 생성된 프로퍼티 등록 함수와 빌더 접근 권한입니다.
+     */
     ReflectMembers();
 
 private:
+    /**
+     * @brief 연결된 에디터 엔진입니다.
+     */
     UEditorEngine* mEngine{};
     ReflectProperty(mEngine, "Engine", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 
 
+    /**
+     * @brief 현재 동작 모드입니다.
+     */
     EGizmoMode mMode{EGizmoMode::Translate};
     ReflectProperty(mMode, "Mode", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 
+    /**
+     * @brief 기즈모 축의 좌표 공간입니다.
+     */
     EGizmoSpace mSpace{EGizmoSpace::World};
     ReflectProperty(mSpace, "Space", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 
 
+    /**
+     * @brief 마우스가 가리키는 축 인덱스, 없으면 -1입니다.
+     */
     Int32 mHoveredAxis{-1};
     ReflectProperty(mHoveredAxis, "HoveredAxis", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 
+    /**
+     * @brief 드래그 중인 축 인덱스, 없으면 -1입니다.
+     */
     Int32 mActiveAxis{-1};
     ReflectProperty(mActiveAxis, "ActiveAxis", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 
 
+    /**
+     * @brief 렌더 타깃 또는 편집 대상입니다.
+     */
     FObjectHandle mTarget{};
     ReflectProperty(mTarget, "Target", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 
+    /**
+     * @brief 월드 교체 시 증가하는 컨텍스트 세대입니다.
+     */
     Uint64 mWorldGeneration{};
     ReflectProperty(mWorldGeneration, "WorldGeneration", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 
 
+    /**
+     * @brief 드래그 시작 시 대상 변환입니다.
+     */
     FTransform mStartTransform{};
     ReflectProperty(mStartTransform, "StartTransform", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 
+    /**
+     * @brief 드래그 시작 시 카메라 뷰입니다.
+     */
     FSceneView mDragView{};
     ReflectProperty(mDragView, "DragView", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 
+    /**
+     * @brief 드래그 시작 마우스 픽셀 좌표입니다.
+     */
     FVector2 mStartMouse{};
     ReflectProperty(mStartMouse, "StartMouse", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 
 
+    /**
+     * @brief 드래그할 월드 단위 축입니다.
+     */
     FVector mAxis{};
     ReflectProperty(mAxis, "Axis", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 
+    /**
+     * @brief 드래그 평면의 단위 법선입니다.
+     */
     FVector mPlaneNormal{};
     ReflectProperty(mPlaneNormal, "PlaneNormal", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 
+    /**
+     * @brief 드래그 시작 광선과 평면의 교점입니다.
+     */
     FVector mStartIntersection{};
     ReflectProperty(mStartIntersection, "StartIntersection", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 
+    /**
+     * @brief 드래그 기준 기즈모 크기입니다.
+     */
     float mDragSize{1.0f};
     ReflectProperty(mDragSize, "DragSize", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 };

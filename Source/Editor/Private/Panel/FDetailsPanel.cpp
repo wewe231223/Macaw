@@ -1,3 +1,9 @@
+/**
+ * @file FDetailsPanel.cpp
+ * @brief 선택한 객체의 리플렉션 프로퍼티를 표시하고 편집합니다.
+ * @ingroup Editor
+ */
+
 #include "Editor/Panel/FDetailsPanel.h"
 #include "Editor/EditorEngine.h"
 #include "Engine/AActor.h"
@@ -11,12 +17,21 @@
 #include <algorithm>
 #include <array>
 
+/**
+ * @brief FDetailsPanel의 초기 상태와 전달받은 의존성을 구성합니다.
+ */
 FDetailsPanel::FDetailsPanel(UEditorEngine& Engine)
 	: FEditorPanel{Engine, "Details"} {
 }
 
+/**
+ * @brief 객체의 수명을 끝내고 소유한 리소스를 정리합니다.
+ */
 FDetailsPanel::~FDetailsPanel() = default;
 
+/**
+ * @brief 패널 고유의 ImGui 위젯과 내용을 그립니다.
+ */
 void FDetailsPanel::DrawContent(float) {
     UEditorEngine& Engine{GetEditorEngine()};
     AActor* Actor{Engine.GetSelectedActor()};
@@ -39,6 +54,9 @@ void FDetailsPanel::DrawContent(float) {
     }
 }
 
+/**
+ * @brief 객체 타입의 편집 가능한 리플렉션 프로퍼티를 순회하여 표시합니다.
+ */
 void FDetailsPanel::DrawReflectedObject(UObject& Object) {
     ImGui::PushID(&Object);
     ImGui::TextDisabled("%s", Object.GetClass()->GetName().c_str());
@@ -63,6 +81,9 @@ void FDetailsPanel::DrawReflectedObject(UObject& Object) {
     ImGui::PopID();
 }
 
+/**
+ * @brief 프로퍼티 타입에 맞는 편집 위젯을 표시하고 변경한 값을 돌려줍니다.
+ */
 bool FDetailsPanel::DrawPropertyValue(const FProperty& Property, FPropertyValue& Value) {
     const char* Label{Property.GetName().c_str()};
 

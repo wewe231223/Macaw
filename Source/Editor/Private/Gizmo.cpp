@@ -1,3 +1,9 @@
+/**
+ * @file Gizmo.cpp
+ * @brief 이동, 회전과 스케일 기즈모의 화면 질의와 드래그를 구현합니다.
+ * @ingroup Editor
+ */
+
 #include "Editor/Gizmo.h"
 #include "Engine/Component/USceneComponent.h"
 #include "Engine/FWorldContext.h"
@@ -17,7 +23,14 @@
 #include <algorithm>
 #include <cmath>
 
+/**
+ * @brief 이 구현 파일에서만 사용하는 내부 상태와 보조 함수입니다.
+ */
 namespace {
+    /**
+     * @brief 기즈모 회전 링에 사용하는 닫힌 단위 원의 65개 점을 생성합니다.
+     * @return 연산을 적용한 새 값입니다.
+     */
     std::array<FVector2, 65> BuildUnitCircle() {
         std::array<FVector2, 65> Points{};
 
@@ -30,19 +43,39 @@ namespace {
         return Points;
     }
 
+    /**
+     * @brief 기즈모 회전 링의 캐시된 단위 원 좌표입니다.
+     */
     const std::array<FVector2, 65> UnitCircle{BuildUnitCircle()};
+    /**
+     * @brief 기즈모의 기본 X·Y·Z 단위 축입니다.
+     */
     const std::array<FVector, 3> UnitAxes{{{1.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f, 1.0f}}};
+    /**
+     * @brief 기즈모 X·Y·Z 축의 표시 색상입니다.
+     */
     const std::array<FVector, 3> AxisColors{{{1.0f, 0.28f, 0.22f}, {0.35f, 0.95f, 0.45f}, {0.32f, 0.58f, 1.0f}}};
 
+    /**
+     * @brief 지정한 축과 수직인 안정적인 단위 벡터를 구합니다.
+     * @param[in] Axis 회전 또는 편집에 사용할 축입니다.
+     * @return 연산을 적용한 새 값입니다.
+     */
     FVector Perpendicular(const FVector& Axis) {
         return Axis.Cross(std::abs(Axis.z) < 0.8f ? FVector{0.0f, 0.0f, 1.0f} : FVector{0.0f, 1.0f, 0.0f}).Normalized();
     }
 }
 
+/**
+ * @brief FTransformGizmo의 초기 상태와 전달받은 의존성을 구성합니다.
+ */
 FTransformGizmo::FTransformGizmo(UEditorEngine& Engine)
 	: mEngine{&Engine} {
 }
 
+/**
+ * @brief 기즈모의 이동, 회전 또는 스케일 모드를 선택합니다.
+ */
 void FTransformGizmo::SetMode(EGizmoMode Mode) {
     if (!IsDragging()) {
         mMode = Mode;
@@ -53,28 +86,46 @@ void FTransformGizmo::SetMode(EGizmoMode Mode) {
     }
 }
 
+/**
+ * @brief 현재 동작 모드를 반환합니다.
+ */
 EGizmoMode FTransformGizmo::GetMode() const {
     return mMode;
 }
 
+/**
+ * @brief 기즈모 축의 기준을 월드 또는 로컬 좌표로 바꿉니다.
+ */
 void FTransformGizmo::SetSpace(EGizmoSpace Space) {
     if (!IsDragging() && (mMode != EGizmoMode::Scale || Space == EGizmoSpace::Local)) {
         mSpace = Space;
     }
 }
 
+/**
+ * @brief 기즈모 축의 좌표 공간을 반환합니다.
+ */
 EGizmoSpace FTransformGizmo::GetSpace() const {
     return mSpace;
 }
 
+/**
+ * @brief 선택한 좌표 공간에 맞는 기즈모 단위 축을 구합니다.
+ */
 FVector FTransformGizmo::GetAxis(const FTransform& Transform, Int32 Index) const {
     return mSpace == EGizmoSpace::Local ? Transform.TransformVectorNoScale(UnitAxes[Index]) : UnitAxes[Index];
 }
 
+/**
+ * @brief 크기를 반환합니다.
+ */
 float FTransformGizmo::GetSize(const FSceneView& View, const FVector& Pivot) const {
     return std::max(0.05f, Pivot.Distance(View.mLocation) * 2.0f * std::tan(Math::ToRadians(View.mFieldOfView) * 0.5f) * 90.0f / std::max(View.mSize.y, 1.0f));
 }
 
+/**
+ * @brief 마우스와 투영된 기즈모 축의 거리를 검사하여 선택할 축을 구합니다.
+ */
 Int32 FTransformGizmo::HitTest(const FVector2& Mouse, const FSceneView& View, const FTransform& Transform) const {
     const float Size{GetSize(View, Transform.mLocation)};
     float Closest{9.0f};
@@ -121,6 +172,9 @@ Int32 FTransformGizmo::HitTest(const FVector2& Mouse, const FSceneView& View, co
     return Hit;
 }
 
+/**
+ * @brief 선택 축과 대상의 시작 변환을 저장하고 드래그 평면을 구성합니다.
+ */
 bool FTransformGizmo::BeginDrag(Int32 Axis, const FVector2& Mouse, const FSceneView& View) {
     AActor* Actor{mEngine->GetSelectedActor()};
 
@@ -154,6 +208,9 @@ bool FTransformGizmo::BeginDrag(Int32 Axis, const FVector2& Mouse, const FSceneV
     return true;
 }
 
+/**
+ * @brief 마우스 이동량을 활성 모드의 변환으로 바꾸어 선택한 액터에 적용합니다.
+ */
 void FTransformGizmo::UpdateDrag(const FVector2& Mouse) {
     if (mEngine->GetWorldGeneration() != mWorldGeneration || mEngine->GetWorldContext() == nullptr) {
         mActiveAxis = -1;
@@ -200,6 +257,9 @@ void FTransformGizmo::UpdateDrag(const FVector2& Mouse) {
     mEngine->ApplyTransform(*Actor, Transform, true);
 }
 
+/**
+ * @brief 현재 프레임의 뷰포트 입력을 처리합니다.
+ */
 bool FTransformGizmo::Input(const FViewportInput& Input, const FSceneView& View) {
     if (IsDragging()) {
         if (Input.mEscape) {
@@ -219,6 +279,9 @@ bool FTransformGizmo::Input(const FViewportInput& Input, const FSceneView& View)
     return Input.mLeftPressed && mHoveredAxis >= 0 && BeginDrag(mHoveredAxis, Input.mMouse, View);
 }
 
+/**
+ * @brief 뷰포트 또는 패널의 현재 내용을 그립니다.
+ */
 void FTransformGizmo::Draw(const FSceneView& View, FPrimitiveDrawInterface& DrawInterface) {
     const AActor* Actor{mEngine->GetSelectedActor()};
 
@@ -265,6 +328,9 @@ void FTransformGizmo::Draw(const FSceneView& View, FPrimitiveDrawInterface& Draw
     }
 }
 
+/**
+ * @brief 진행 중인 기즈모 드래그를 취소하고 가능한 경우 시작 변환을 복원합니다.
+ */
 void FTransformGizmo::Cancel() {
     if (IsDragging() && mEngine->GetWorldGeneration() == mWorldGeneration && mEngine->GetWorldContext() != nullptr) {
         if (auto* Actor{Cast<AActor>(mEngine->GetWorldContext()->GetRegistry().Resolve(mTarget))}) {
@@ -276,10 +342,16 @@ void FTransformGizmo::Cancel() {
     mHoveredAxis = -1;
 }
 
+/**
+ * @brief 기즈모에서 활성 축을 드래그하고 있는지 검사합니다.
+ */
 bool FTransformGizmo::IsDragging() const {
     return mActiveAxis >= 0;
 }
 
+/**
+ * @brief 마우스가 가리키는 축 인덱스, 없으면 -1을 반환합니다.
+ */
 Int32 FTransformGizmo::GetHoveredAxis() const {
     return mHoveredAxis;
 }

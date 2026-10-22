@@ -1,3 +1,9 @@
+/**
+ * @file JsonArchive.cpp
+ * @brief RapidJSON을 사용하는 파일 및 값 직렬화를 제공합니다.
+ * @ingroup Serialization
+ */
+
 #include "Serialization/JsonArchive.h"
 #include "Core/Archive.h"
 
@@ -11,7 +17,16 @@
 #include <limits>
 #include <unordered_set>
 
+/**
+ * @brief 이 구현 파일에서만 사용하는 내부 상태와 보조 함수입니다.
+ */
 namespace {
+    /**
+     * @brief 중첩 깊이를 제한하면서 JSON 값의 유한한 수와 지원 타입을 검사합니다.
+     * @param[in] Value 입력 값입니다.
+     * @param[in] Depth 현재 JSON 중첩 깊이입니다.
+     * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
+     */
     bool ValidateJson(const rapidjson::Value& Value, Uint32 Depth) {
         if (Depth > 32) {
             return false;
@@ -41,14 +56,23 @@ namespace {
     }
 }
 
+/**
+ * @brief FJsonArchive의 초기 상태와 전달받은 의존성을 구성합니다.
+ */
 FJsonArchive::FJsonArchive(EArchiveMode Mode)
 	: FArchive{Mode} {
     mDocument.SetObject();
     mStack.push_back(&mDocument);
 }
 
+/**
+ * @brief 객체의 수명을 끝내고 소유한 리소스를 정리합니다.
+ */
 FJsonArchive::~FJsonArchive() = default;
 
+/**
+ * @brief JSON 파일을 읽어 루트 문서를 교체합니다.
+ */
 bool FJsonArchive::Load(const std::filesystem::path& Path) {
     std::ifstream Input{Path, std::ios::binary | std::ios::ate};
 
@@ -72,6 +96,9 @@ bool FJsonArchive::Load(const std::filesystem::path& Path) {
     return Parse(Text);
 }
 
+/**
+ * @brief JSON 문서를 파일로 저장합니다.
+ */
 bool FJsonArchive::Save(const std::filesystem::path& Path) {
     if (IsLoading() || HasError() || Path.empty()) {
         return false;
@@ -124,6 +151,9 @@ bool FJsonArchive::Save(const std::filesystem::path& Path) {
     return true;
 }
 
+/**
+ * @brief JSON 텍스트의 구문과 지원 값 범위를 검사하여 문서로 읽습니다.
+ */
 bool FJsonArchive::Parse(const FString& Text) {
     if (!IsLoading()) {
         SetError("Archive is not loading");
@@ -150,6 +180,9 @@ bool FJsonArchive::Parse(const FString& Text) {
     return true;
 }
 
+/**
+ * @brief JSON 문서를 사람이 읽을 수 있는 문자열로 출력합니다.
+ */
 FString FJsonArchive::ToString() const {
     rapidjson::StringBuffer Buffer{};
     rapidjson::PrettyWriter<rapidjson::StringBuffer> Writer{Buffer};
@@ -159,6 +192,9 @@ FString FJsonArchive::ToString() const {
     return FString{Buffer.GetString(), Buffer.GetSize()};
 }
 
+/**
+ * @brief 현재 컨테이너에 지정한 이름의 필드가 있는지 검사합니다.
+ */
 bool FJsonArchive::HasField(std::string_view Name) const {
     const rapidjson::Value& Parent{*mStack.back()};
 
@@ -176,6 +212,9 @@ bool FJsonArchive::HasField(std::string_view Name) const {
     return Parsed.ec == std::errc{} && Parsed.ptr == Name.data() + Name.size() && Index < Parent.Size();
 }
 
+/**
+ * @brief 이름으로 지정한 객체 컨테이너에 진입합니다.
+ */
 bool FJsonArchive::BeginObject(std::string_view Name) {
     if (HasError()) {
         return false;
@@ -198,12 +237,18 @@ bool FJsonArchive::BeginObject(std::string_view Name) {
     return true;
 }
 
+/**
+ * @brief 현재 객체 컨테이너를 끝내고 상위 컨테이너로 돌아갑니다.
+ */
 void FJsonArchive::EndObject() {
     if (mStack.size() > 1) {
         mStack.pop_back();
     }
 }
 
+/**
+ * @brief 배열 컨테이너에 진입하고 로드 시 원소 개수를 읽습니다.
+ */
 bool FJsonArchive::BeginArray(std::string_view Name, Uint32& Count) {
     if (HasError()) {
         return false;
@@ -228,10 +273,16 @@ bool FJsonArchive::BeginArray(std::string_view Name, Uint32& Count) {
     return true;
 }
 
+/**
+ * @brief 현재 배열 컨테이너를 끝내고 상위 컨테이너로 돌아갑니다.
+ */
 void FJsonArchive::EndArray() {
     EndObject();
 }
 
+/**
+ * @brief 아카이브 모드에 따라 값을 읽거나 저장합니다.
+ */
 void FJsonArchive::Serialize(std::string_view Name, bool& Value) {
     rapidjson::Value* Field{Find(Name, !IsLoading())};
 
@@ -244,6 +295,9 @@ void FJsonArchive::Serialize(std::string_view Name, bool& Value) {
     }
 }
 
+/**
+ * @brief 아카이브 모드에 따라 값을 읽거나 저장합니다.
+ */
 void FJsonArchive::Serialize(std::string_view Name, Int32& Value) {
     rapidjson::Value* Field{Find(Name, !IsLoading())};
 
@@ -256,6 +310,9 @@ void FJsonArchive::Serialize(std::string_view Name, Int32& Value) {
     }
 }
 
+/**
+ * @brief 아카이브 모드에 따라 값을 읽거나 저장합니다.
+ */
 void FJsonArchive::Serialize(std::string_view Name, Uint32& Value) {
     rapidjson::Value* Field{Find(Name, !IsLoading())};
 
@@ -268,6 +325,9 @@ void FJsonArchive::Serialize(std::string_view Name, Uint32& Value) {
     }
 }
 
+/**
+ * @brief 아카이브 모드에 따라 값을 읽거나 저장합니다.
+ */
 void FJsonArchive::Serialize(std::string_view Name, Uint64& Value) {
     rapidjson::Value* Field{Find(Name, !IsLoading())};
 
@@ -280,6 +340,9 @@ void FJsonArchive::Serialize(std::string_view Name, Uint64& Value) {
     }
 }
 
+/**
+ * @brief 아카이브 모드에 따라 값을 읽거나 저장합니다.
+ */
 void FJsonArchive::Serialize(std::string_view Name, float& Value) {
     rapidjson::Value* Field{Find(Name, !IsLoading())};
 
@@ -294,6 +357,9 @@ void FJsonArchive::Serialize(std::string_view Name, float& Value) {
     }
 }
 
+/**
+ * @brief 아카이브 모드에 따라 값을 읽거나 저장합니다.
+ */
 void FJsonArchive::Serialize(std::string_view Name, FString& Value) {
     rapidjson::Value* Field{Find(Name, !IsLoading())};
 
@@ -306,6 +372,9 @@ void FJsonArchive::Serialize(std::string_view Name, FString& Value) {
     }
 }
 
+/**
+ * @brief 현재 JSON 컨테이너의 필드나 다음 배열 원소를 조회하고 필요하면 생성합니다.
+ */
 rapidjson::Value* FJsonArchive::Find(std::string_view Name, bool Create) {
     rapidjson::Value& Parent{*mStack.back()};
 

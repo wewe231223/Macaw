@@ -1,3 +1,9 @@
+/**
+ * @file FOutlinerPanel.cpp
+ * @brief 월드의 액터와 컴포넌트 계층 및 선택 상태를 표시합니다.
+ * @ingroup Editor
+ */
+
 #include "Editor/Panel/FOutlinerPanel.h"
 #include "Editor/EditorEngine.h"
 #include "Engine/UWorld.h"
@@ -8,12 +14,21 @@
 #include <imgui.h>
 #include <format>
 
+/**
+ * @brief FOutlinerPanel의 초기 상태와 전달받은 의존성을 구성합니다.
+ */
 FOutlinerPanel::FOutlinerPanel(UEditorEngine& Engine)
 	: FEditorPanel{Engine, "World Outliner"} {
 }
 
+/**
+ * @brief 객체의 수명을 끝내고 소유한 리소스를 정리합니다.
+ */
 FOutlinerPanel::~FOutlinerPanel() = default;
 
+/**
+ * @brief 패널 고유의 ImGui 위젯과 내용을 그립니다.
+ */
 void FOutlinerPanel::DrawContent(float) {
     UEditorEngine& Engine{GetEditorEngine()};
 

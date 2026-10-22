@@ -1,3 +1,9 @@
+/**
+ * @file FMatrix.cpp
+ * @brief 행 벡터 변환 규약을 사용하는 16바이트 정렬 4×4 행렬입니다.
+ * @ingroup Core
+ */
+
 #include "Core/Math/FMatrix.h"
 #include "Core/Math/FVector.h"
 #include "Core/Math/FRotator.h"
@@ -12,6 +18,9 @@
 
 using namespace Math::Simd;
 
+/**
+ * @brief FMatrix의 초기 상태와 전달받은 의존성을 구성합니다.
+ */
 FMatrix::FMatrix() {
     mRows[0] = _mm_set_ps(0.0f, 0.0f, 0.0f, 1.0f);
     mRows[1] = _mm_set_ps(0.0f, 0.0f, 1.0f, 0.0f);
@@ -19,10 +28,16 @@ FMatrix::FMatrix() {
     mRows[3] = _mm_set_ps(1.0f, 0.0f, 0.0f, 0.0f);
 }
 
+/**
+ * @brief 항등행렬을 생성합니다.
+ */
 FMatrix FMatrix::Identity() {
     return {};
 }
 
+/**
+ * @brief 이동 성분을 갖는 변환 행렬을 생성합니다.
+ */
 FMatrix FMatrix::Translation(const FVector& Value) {
     FMatrix Result{};
     Result.mRows[3] = _mm_set_ps(1.0f, Value.z, Value.y, Value.x);
@@ -30,6 +45,9 @@ FMatrix FMatrix::Translation(const FVector& Value) {
     return Result;
 }
 
+/**
+ * @brief 축별 스케일 행렬을 생성합니다.
+ */
 FMatrix FMatrix::Scale(const FVector& Value) {
     FMatrix Result{};
     Result.mRows[0] = _mm_set_ps(0.0f, 0.0f, 0.0f, Value.x);
@@ -39,10 +57,16 @@ FMatrix FMatrix::Scale(const FVector& Value) {
     return Result;
 }
 
+/**
+ * @brief 회전 값에 대응하는 회전 행렬 또는 오일러 회전을 구합니다.
+ */
 FMatrix FMatrix::Rotation(const FRotator& Value) {
     return Rotation(Value.Quaternion());
 }
 
+/**
+ * @brief 회전 값에 대응하는 회전 행렬 또는 오일러 회전을 구합니다.
+ */
 FMatrix FMatrix::Rotation(const FQuat& Value) {
     const __m128 Quaternion{Value.mValue};
     const __m128 Twice{_mm_add_ps(Quaternion, Quaternion)};
@@ -68,10 +92,16 @@ FMatrix FMatrix::Rotation(const FQuat& Value) {
     return Result;
 }
 
+/**
+ * @brief 지정한 축을 중심으로 라디안 단위 회전 행렬을 생성합니다.
+ */
 FMatrix FMatrix::RotationAxis(const FVector& Axis, float Radians) {
     return Rotation(FQuat{Axis, Radians});
 }
 
+/**
+ * @brief 위치, 회전과 스케일을 행 벡터 규약의 행렬로 합성합니다.
+ */
 FMatrix FMatrix::FromTransform(const FTransform& Transform) {
     const __m128 Scale{Transform.mScale.mValue};
     FMatrix Result{Rotation(Transform.mRotation)};
@@ -83,6 +113,9 @@ FMatrix FMatrix::FromTransform(const FTransform& Transform) {
     return Result;
 }
 
+/**
+ * @brief 카메라 위치, 전방과 상방으로 뷰 행렬을 생성합니다.
+ */
 FMatrix FMatrix::LookTo(const FVector& Position, const FVector& Forward, const FVector& Up) {
     const FVector Direction{Forward.Normalized()};
     const FVector Right{Up.Cross(Direction).Normalized()};
@@ -97,6 +130,9 @@ FMatrix FMatrix::LookTo(const FVector& Position, const FVector& Forward, const F
     return Result;
 }
 
+/**
+ * @brief 수직 시야각과 종횡비로 Direct3D 깊이 범위의 원근 투영 행렬을 생성합니다.
+ */
 FMatrix FMatrix::Perspective(float FieldOfView, float Aspect, float NearPlane, float FarPlane) {
     const float Height{1.0f / std::tan(Math::ToRadians(FieldOfView) * 0.5f)};
     const float Width{Height / Aspect};
@@ -111,6 +147,9 @@ FMatrix FMatrix::Perspective(float FieldOfView, float Aspect, float NearPlane, f
     return Result;
 }
 
+/**
+ * @brief 대응 성분을 더한 값을 반환합니다.
+ */
 FMatrix FMatrix::operator+(const FMatrix& Other) const {
     FMatrix Result{};
 
@@ -121,6 +160,9 @@ FMatrix FMatrix::operator+(const FMatrix& Other) const {
     return Result;
 }
 
+/**
+ * @brief 성분의 부호를 반전하거나 상대 값을 뺍니다.
+ */
 FMatrix FMatrix::operator-(const FMatrix& Other) const {
     FMatrix Result{};
 
@@ -131,6 +173,9 @@ FMatrix FMatrix::operator-(const FMatrix& Other) const {
     return Result;
 }
 
+/**
+ * @brief 현재 행렬 뒤에 상대 행렬을 적용하는 행 벡터 규약의 곱을 계산합니다.
+ */
 FMatrix FMatrix::operator*(const FMatrix& Other) const {
     const __m128 OtherX{Other.mRows[0]};
     const __m128 OtherY{Other.mRows[1]};
@@ -151,6 +196,9 @@ FMatrix FMatrix::operator*(const FMatrix& Other) const {
     return Result;
 }
 
+/**
+ * @brief 각 성분에 스칼라 값을 곱합니다.
+ */
 FMatrix FMatrix::operator*(float Value) const {
     const __m128 Scale{_mm_set1_ps(Value)};
     FMatrix Result{};
@@ -162,40 +210,61 @@ FMatrix FMatrix::operator*(float Value) const {
     return Result;
 }
 
+/**
+ * @brief 성분별 또는 스칼라 나눗셈 결과를 반환합니다.
+ */
 FMatrix FMatrix::operator/(float Value) const {
     return *this * (1.0f / Value);
 }
 
+/**
+ * @brief 대응 성분을 현재 값에 더합니다.
+ */
 FMatrix& FMatrix::operator+=(const FMatrix& Other) {
     *this = *this + Other;
 
     return *this;
 }
 
+/**
+ * @brief 대응 성분을 현재 값에서 뺍니다.
+ */
 FMatrix& FMatrix::operator-=(const FMatrix& Other) {
     *this = *this - Other;
 
     return *this;
 }
 
+/**
+ * @brief 현재 행렬 뒤에 상대 행렬을 적용하는 행 벡터 규약의 곱을 계산합니다.
+ */
 FMatrix& FMatrix::operator*=(const FMatrix& Other) {
     *this = *this * Other;
 
     return *this;
 }
 
+/**
+ * @brief 각 성분에 스칼라 값을 곱합니다.
+ */
 FMatrix& FMatrix::operator*=(float Value) {
     *this = *this * Value;
 
     return *this;
 }
 
+/**
+ * @brief 나눗셈 결과를 현재 값에 반영합니다.
+ */
 FMatrix& FMatrix::operator/=(float Value) {
     *this = *this / Value;
 
     return *this;
 }
 
+/**
+ * @brief 저장된 성분 또는 식별 상태가 정확히 같은지 검사합니다.
+ */
 bool FMatrix::operator==(const FMatrix& Other) const {
     for (Int32 Row{}; Row < 4; ++Row) {
         if (!Equal<4>(mRows[Row], Other.mRows[Row])) {
@@ -206,6 +275,9 @@ bool FMatrix::operator==(const FMatrix& Other) const {
     return true;
 }
 
+/**
+ * @brief 동차 W=1인 위치를 변환하고 결과 W로 나눕니다.
+ */
 FVector FMatrix::TransformPosition(const FVector& Position) const {
     const __m128 Homogeneous{_mm_add_ps(Position.mValue, _mm_set_ps(1.0f, 0.0f, 0.0f, 0.0f))};
     const __m128 Result{Transform(Homogeneous, mRows)};
@@ -213,18 +285,30 @@ FVector FMatrix::TransformPosition(const FVector& Position) const {
     return FVector{_mm_div_ps(Result, Splat<3>(Result))};
 }
 
+/**
+ * @brief 방향 벡터에 스케일과 회전을 적용합니다.
+ */
 FVector FMatrix::TransformVector(const FVector& Vector) const {
     return FVector{Transform(Vector.mValue, mRows)};
 }
 
+/**
+ * @brief 행렬에서 지정한 행의 XYZ 축 성분을 반환합니다.
+ */
 FVector FMatrix::GetAxis(Int32 Index) const {
     return FVector{mRows[Index]};
 }
 
+/**
+ * @brief 회전 값을 반환합니다.
+ */
 FRotator FMatrix::GetRotation() const {
     return GetQuaternion().Rotator();
 }
 
+/**
+ * @brief 행렬에서 추출한 쿼터니언 회전을 반환합니다.
+ */
 FQuat FMatrix::GetQuaternion() const {
     FMatrix Rotation{*this};
     std::array<float, 3> Scales{};
@@ -274,6 +358,9 @@ FQuat FMatrix::GetQuaternion() const {
     return Result.Normalized();
 }
 
+/**
+ * @brief 역행렬의 유효성을 검사하고 계산 가능한 경우 결과에 기록합니다.
+ */
 bool FMatrix::TryInverse(FMatrix& Result) const {
     FMatrix Working{*this};
     FMatrix Inverse{};
@@ -338,6 +425,9 @@ bool FMatrix::TryInverse(FMatrix& Result) const {
     return true;
 }
 
+/**
+ * @brief 행과 열을 교환한 전치행렬을 반환합니다.
+ */
 FMatrix FMatrix::Transposed() const {
     FMatrix Result{*this};
     _MM_TRANSPOSE4_PS(Result.mRows[0], Result.mRows[1], Result.mRows[2], Result.mRows[3]);
@@ -345,6 +435,9 @@ FMatrix FMatrix::Transposed() const {
     return Result;
 }
 
+/**
+ * @brief 4×4 행렬의 행렬식을 구합니다.
+ */
 float FMatrix::Determinant() const {
     constexpr std::array<std::array<Int32, 2>, 6> Columns{{{0, 1}, {0, 2}, {0, 3}, {1, 2}, {1, 3}, {2, 3}}};
     std::array<double, 6> Upper{};
@@ -360,10 +453,16 @@ float FMatrix::Determinant() const {
     return static_cast<float>(Upper[0] * Lower[5] - Upper[1] * Lower[4] + Upper[2] * Lower[3] + Upper[3] * Lower[2] - Upper[4] * Lower[1] + Upper[5] * Lower[0]);
 }
 
+/**
+ * @brief 행렬의 이동 성분을 반환합니다.
+ */
 FVector FMatrix::Origin() const {
     return FVector{mRows[3]};
 }
 
+/**
+ * @brief 모든 유효 성분에 NaN이나 무한대가 없는지 검사합니다.
+ */
 bool FMatrix::IsFinite() const {
     for (Int32 Row{}; Row < 4; ++Row) {
         if (!Math::Simd::IsFinite<4>(mRows[Row])) {
@@ -374,10 +473,16 @@ bool FMatrix::IsFinite() const {
     return true;
 }
 
+/**
+ * @brief 현재 변환이 허용 오차 이내에서 항등 변환인지 검사합니다.
+ */
 bool FMatrix::IsIdentity(float Tolerance) const {
     return Equals(FMatrix{}, Tolerance);
 }
 
+/**
+ * @brief 각 성분의 차이가 지정한 허용 오차 이내인지 검사합니다.
+ */
 bool FMatrix::Equals(const FMatrix& Other, float Tolerance) const {
     for (Int32 Row{}; Row < 4; ++Row) {
         if (!NearEqual<4>(mRows[Row], Other.mRows[Row], Tolerance)) {
@@ -388,14 +493,23 @@ bool FMatrix::Equals(const FMatrix& Other, float Tolerance) const {
     return true;
 }
 
+/**
+ * @brief 각 성분에 스칼라 값을 곱합니다.
+ */
 FMatrix operator*(float Value, const FMatrix& Matrix) {
     return Matrix * Value;
 }
 
+/**
+ * @brief 지정한 행과 열의 행렬 성분을 참조합니다.
+ */
 float& FMatrix::operator()(Int32 Row, Int32 Column) {
     return mRows[Row].m128_f32[Column];
 }
 
+/**
+ * @brief 지정한 행과 열의 행렬 성분을 참조합니다.
+ */
 const float& FMatrix::operator()(Int32 Row, Int32 Column) const {
     return mRows[Row].m128_f32[Column];
 }

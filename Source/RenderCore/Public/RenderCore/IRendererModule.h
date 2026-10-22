@@ -1,3 +1,9 @@
+/**
+ * @file IRendererModule.h
+ * @brief 엔진과 에디터가 사용하는 렌더러의 수명 및 프레임 제출 인터페이스입니다.
+ * @ingroup RenderCore
+ */
+
 #pragma once
 
 #include "Core/ReflectionMacros.h"
@@ -9,35 +15,112 @@ struct FSceneViewFamily;
 struct FMeshData;
 enum class EPrimitiveType : Uint8;
 
+/**
+ * @brief 엔진과 에디터가 사용하는 렌더러의 수명 및 프레임 제출 인터페이스입니다.
+ * @ingroup RenderCore
+ */
 class IRendererModule {
 public:
+    /**
+     * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
+     */
     ReflectTypes(IRendererModule);
 
 public:
+    /**
+     * @brief 객체의 수명을 끝내고 소유한 리소스를 정리합니다.
+     */
     virtual ~IRendererModule();
 
 public:
+    /**
+     * @brief 이 타입의 정적 구조체 메타데이터를 반환합니다.
+     * @return 등록된 타입 메타데이터의 비소유 주소입니다.
+     */
     ReflectStruct(IRendererModule);
 
+    /**
+     * @brief Direct3D 11 장치, 스왑 체인과 렌더 파이프라인을 준비합니다.
+     * @param[in] WindowHandle 렌더링할 네이티브 Win32 창 핸들입니다.
+     * @param[in] Width 클라이언트 영역 또는 타깃의 가로 픽셀 수입니다.
+     * @param[in] Height 클라이언트 영역 또는 타깃의 세로 픽셀 수입니다.
+     * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
+     */
     virtual bool Initialize(void* WindowHandle, Uint32 Width, Uint32 Height) = 0;
+    /**
+     * @brief 종속 객체를 역순으로 정리하고 여러 번 호출해도 안전한 종료 상태로 만듭니다.
+     */
     virtual void Shutdown() = 0;
 
+    /**
+     * @brief 렌더러 장치를 참조하는 새로운 렌더 장면을 생성합니다.
+     * @return 생성한 객체의 단독 소유권이며, 생성 또는 검증 실패 시 nullptr입니다.
+     */
     virtual std::unique_ptr<FSceneInterface> AllocateScene() = 0;
+    /**
+     * @brief CPU 메시를 종류별 GPU 정점·인덱스 버퍼에 업로드합니다.
+     * @param[in] Type 생성, 조회 또는 표시할 타입입니다.
+     * @param[in] Mesh 업로드할 CPU 메시입니다.
+     * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
+     */
     virtual bool UploadMesh(EPrimitiveType Type, const FMeshData& Mesh) = 0;
 
+    /**
+     * @brief 지정한 픽셀 크기의 오프스크린 렌더 타깃을 생성합니다.
+     * @param[in] Width 클라이언트 영역 또는 타깃의 가로 픽셀 수입니다.
+     * @param[in] Height 클라이언트 영역 또는 타깃의 세로 픽셀 수입니다.
+     * @return 생성한 객체의 단독 소유권이며, 생성 또는 검증 실패 시 nullptr입니다.
+     */
     virtual std::unique_ptr<FRenderTarget> CreateRenderTarget(Uint32 Width, Uint32 Height) = 0;
+    /**
+     * @brief 기존 오프스크린 렌더 타깃을 새 픽셀 크기로 변경합니다.
+     * @param[in,out] Target 렌더 타깃 또는 셰이더 컴파일 프로파일입니다.
+     * @param[in] Width 클라이언트 영역 또는 타깃의 가로 픽셀 수입니다.
+     * @param[in] Height 클라이언트 영역 또는 타깃의 세로 픽셀 수입니다.
+     * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
+     */
     virtual bool ResizeRenderTarget(FRenderTarget& Target, Uint32 Width, Uint32 Height) = 0;
 
+    /**
+     * @brief 백 버퍼 크기를 동기화하고 프레임 렌더링 통계를 초기화합니다.
+     * @param[in] Width 클라이언트 영역 또는 타깃의 가로 픽셀 수입니다.
+     * @param[in] Height 클라이언트 영역 또는 타깃의 세로 픽셀 수입니다.
+     */
     virtual void BeginFrame(Uint32 Width, Uint32 Height) = 0;
+    /**
+     * @brief 지정한 장면 뷰를 타깃에 렌더링하고 에디터 보조 선분을 그립니다.
+     * @param[in] Family 장면, 출력 타깃과 카메라를 묶은 렌더 요청입니다.
+     */
     virtual void BeginRenderingViewFamily(const FSceneViewFamily& Family) = 0;
 
+    /**
+     * @brief UI 렌더링에 사용할 백 버퍼와 뷰포트를 설정합니다.
+     */
     virtual void BeginUiRender() = 0;
+    /**
+     * @brief 스왑 체인의 백 버퍼를 화면에 표시합니다.
+     */
     virtual void Present() = 0;
 
+    /**
+     * @brief Direct3D 11 장치의 비소유 주소를 반환합니다.
+     * @return 조회한 값의 비소유 주소이며, 해당 값이 없으면 nullptr입니다.
+     */
     virtual void* GetNativeDevice() const = 0;
+    /**
+     * @brief Direct3D 11 즉시 컨텍스트의 비소유 주소를 반환합니다.
+     * @return 조회한 값의 비소유 주소이며, 해당 값이 없으면 nullptr입니다.
+     */
     virtual void* GetNativeContext() const = 0;
+    /**
+     * @brief 프레임 렌더링 통계를 반환합니다.
+     * @return 프레임 렌더링 통계입니다.
+     */
     virtual FRenderStats GetStats() const = 0;
 
 private:
+    /**
+     * @brief 생성된 프로퍼티 등록 함수와 빌더 접근 권한입니다.
+     */
     ReflectMembers();
 };

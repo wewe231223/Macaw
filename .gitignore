@@ -392,8 +392,8 @@ FodyWeavers.xsd
 imgui.ini
 !/Core/Public/Core/Debug/
 !/Core/Public/Core/Debug/**
-/Binaries/Week1/
-/Intermediate/Week1/
-/Saved/Week1/
+/Binaries/
+/Intermediate/
+/Saved/
 !/Regacy/Core/Public/Core/Debug/
 !/Regacy/Core/Public/Core/Debug/**

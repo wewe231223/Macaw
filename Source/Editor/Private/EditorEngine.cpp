@@ -1,3 +1,9 @@
+/**
+ * @file EditorEngine.cpp
+ * @brief 에디터 UI, 입력과 장면 파일 편집을 관리합니다.
+ * @ingroup Editor
+ */
+
 #include "Editor/EditorEngine.h"
 #include "Engine/Component/USceneComponent.h"
 #include "Engine/AActor.h"
@@ -21,7 +27,6 @@
 #include "Engine/FSceneViewport.h"
 #include "RenderCore/IRendererModule.h"
 #include "CoreUObject/Reflection/Cast.h"
-#include "CoreUObject/Reflection/ReflectionMacros.h"
 #include "Core/Base/ErrorHandler.h"
 #include "Editor/ViewportClient.h"
 #include "Engine/SceneSerializer.h"
@@ -36,15 +41,34 @@
 #include <array>
 #include <sstream>
 
+/**
+ * @brief ImGui Win32 백엔드의 외부 메시지 처리 진입점입니다.
+ * @param[in] Window 메시지를 받은 Win32 창입니다.
+ * @param[in] Message 보고할 내용 또는 Windows 메시지 번호입니다.
+ * @param[in] WParam Windows 메시지의 WPARAM 인수입니다.
+ * @param[in] LParam Windows 메시지의 LPARAM 인수입니다.
+ * @return 연산을 적용한 새 값입니다.
+ */
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND Window, UINT Message, WPARAM WParam, LPARAM LParam);
 
+/**
+ * @brief 이 구현 파일에서만 사용하는 내부 상태와 보조 함수입니다.
+ */
 namespace {
+    /**
+     * @brief 파일시스템 경로를 UI에 표시할 UTF-8 문자열로 변환합니다.
+     * @param[in] Path 읽거나 쓸 파일 경로입니다.
+     * @return 연산을 적용한 새 값입니다.
+     */
     FString PathText(const std::filesystem::path& Path) {
         const auto Text{Path.u8string()};
         return FString{reinterpret_cast<const char*>(Text.data()), Text.size()};
     }
 }
 
+/**
+ * @brief UEditorEngine의 초기 상태와 전달받은 의존성을 구성합니다.
+ */
 UEditorEngine::UEditorEngine()
 	: mClient{*this},
 	  mOutlinerPanel{*this},
@@ -53,12 +77,16 @@ UEditorEngine::UEditorEngine()
 	  mStatisticsPanel{*this} {
 }
 
+/**
+ * @brief 객체의 수명을 끝내고 소유한 리소스를 정리합니다.
+ */
 UEditorEngine::~UEditorEngine() {
     Shutdown();
 }
 
-ImplementReflection(UEditorEngine, EClassFlags::NoFactory)
-
+/**
+ * @brief 엔진, ImGui 백엔드, 뷰포트와 초기 장면을 준비합니다.
+ */
 bool UEditorEngine::InitializeEditor(IRendererModule& Renderer, FWindowsApplication& Platform) {
     if (!UEngine::Initialize(Renderer)) {
         return false;
@@ -74,9 +102,7 @@ bool UEditorEngine::InitializeEditor(IRendererModule& Renderer, FWindowsApplicat
     ImGuiIO& Input{ImGui::GetIO()};
     Input.ConfigFlags |= ImGuiConfigFlags_DockingEnable | ImGuiConfigFlags_NavEnableKeyboard;
 
-    std::error_code Error{};
-    std::filesystem::create_directories("Saved/Week1", Error);
-    mIniPath = "Saved/Week1/EditorLayout.ini";
+    mIniPath = "EditorLayout.ini";
     Input.IniFilename = mIniPath.c_str();
     Input.LogFilename = nullptr;
 
@@ -135,6 +161,9 @@ bool UEditorEngine::InitializeEditor(IRendererModule& Renderer, FWindowsApplicat
     return true;
 }
 
+/**
+ * @brief 종속 객체를 역순으로 정리하고 여러 번 호출해도 안전한 종료 상태로 만듭니다.
+ */
 void UEditorEngine::Shutdown() {
     mClient.GetGizmo().Cancel();
     mSelectedActor = {};
@@ -168,6 +197,9 @@ void UEditorEngine::Shutdown() {
     UEngine::Shutdown();
 }
 
+/**
+ * @brief 입력을 수집하고 패널, 월드 동기화와 에디터 프레임 렌더링을 진행합니다.
+ */
 void UEditorEngine::TickFrame(float DeltaTime) {
     if (!mInitialized) {
         return;
@@ -197,6 +229,9 @@ void UEditorEngine::TickFrame(float DeltaTime) {
     ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
 }
 
+/**
+ * @brief 지정한 기본 메시 종류의 액터를 생성하여 영속 레벨에 추가합니다.
+ */
 AStaticMeshActor* UEditorEngine::SpawnPrimitive(EPrimitiveType Type) {
     if (GetWorld() == nullptr) {
         return nullptr;
@@ -217,6 +252,9 @@ AStaticMeshActor* UEditorEngine::SpawnPrimitive(EPrimitiveType Type) {
     return Actor;
 }
 
+/**
+ * @brief 현재 선택한 액터를 제거하고 관련 선택 상태를 초기화합니다.
+ */
 bool UEditorEngine::DestroySelectedActor() {
     AActor* Actor{GetSelectedActor()};
 
@@ -240,6 +278,9 @@ bool UEditorEngine::DestroySelectedActor() {
     return true;
 }
 
+/**
+ * @brief 유효한 액터 핸들을 선택하고 프로퍼티 편집 대상으로 지정합니다.
+ */
 void UEditorEngine::SelectActor(FObjectHandle Handle) {
     if (GetWorldContext() == nullptr) {
         return;
@@ -260,25 +301,40 @@ void UEditorEngine::SelectActor(FObjectHandle Handle) {
     mSelectedObject = Actor->GetRootComponent() != nullptr ? Actor->GetRootComponent()->GetHandle() : Handle;
 }
 
+/**
+ * @brief 액터와 객체 선택 핸들을 모두 무효화합니다.
+ */
 void UEditorEngine::ClearSelection() {
     mSelectedActor = {};
     mSelectedObject = {};
 }
 
+/**
+ * @brief 선택한 액터의 세대 핸들을 반환합니다.
+ */
 AActor* UEditorEngine::GetSelectedActor() const {
     return GetWorldContext() != nullptr ? Cast<AActor>(GetWorldContext()->GetRegistry().Resolve(mSelectedActor)) : nullptr;
 }
 
+/**
+ * @brief 프로퍼티 편집 대상의 세대 핸들을 반환합니다.
+ */
 UObject* UEditorEngine::GetSelectedObject() const {
     return GetWorldContext() != nullptr ? GetWorldContext()->GetRegistry().Resolve(mSelectedObject) : nullptr;
 }
 
+/**
+ * @brief 레지스트리에서 유효한 객체를 확인한 뒤 편집 대상으로 선택합니다.
+ */
 void UEditorEngine::SelectObject(FObjectHandle Handle) {
     if (GetWorldContext() != nullptr && GetWorldContext()->GetRegistry().Resolve(Handle) != nullptr) {
         mSelectedObject = Handle;
     }
 }
 
+/**
+ * @brief 프로퍼티 소속과 편집 권한을 확인하고 변경 전후 알림과 함께 값을 씁니다.
+ */
 bool UEditorEngine::EditProperty(UObject& Object, const FProperty& Property, const FPropertyValue& Value, bool Interactive) {
     if (GetWorldContext() == nullptr || Object.GetRegistry() != &GetWorldContext()->GetRegistry() || Object.GetClass()->FindClassProperty(Property.GetName()) != &Property || !Property.HasFlag(EPropertyFlags::Edit) || Property.HasFlag(EPropertyFlags::ReadOnly)) {
         return false;
@@ -298,6 +354,9 @@ bool UEditorEngine::EditProperty(UObject& Object, const FProperty& Property, con
     return true;
 }
 
+/**
+ * @brief 액터 루트의 변환 프로퍼티를 에디터 편집 경로로 변경합니다.
+ */
 bool UEditorEngine::ApplyTransform(AActor& Actor, const FTransform& Transform, bool Interactive) {
     USceneComponent* Root{Actor.GetRootComponent()};
     const FProperty* Property{Root != nullptr ? Root->GetClass()->FindClassProperty("Transform") : nullptr};
@@ -305,6 +364,9 @@ bool UEditorEngine::ApplyTransform(AActor& Actor, const FTransform& Transform, b
     return Property != nullptr && EditProperty(*Root, *Property, FPropertyValue{Transform}, Interactive);
 }
 
+/**
+ * @brief 현재 월드를 지정한 장면 파일로 저장하고 성공하면 변경 표시를 해제합니다.
+ */
 bool UEditorEngine::SaveScene(const std::filesystem::path& Path) {
     if (GetWorldContext() == nullptr || Path.empty()) {
         return false;
@@ -325,6 +387,9 @@ bool UEditorEngine::SaveScene(const std::filesystem::path& Path) {
     return true;
 }
 
+/**
+ * @brief 장면 파일을 새 컨텍스트에 복원한 뒤 현재 월드와 선택 상태를 교체합니다.
+ */
 bool UEditorEngine::LoadScene(const std::filesystem::path& Path) {
     if (Path.empty()) {
         return false;
@@ -353,6 +418,9 @@ bool UEditorEngine::LoadScene(const std::filesystem::path& Path) {
     return true;
 }
 
+/**
+ * @brief 빈 월드 컨텍스트로 교체하고 선택 및 장면 파일 경로를 초기화합니다.
+ */
 bool UEditorEngine::NewScene() {
     mClient.GetGizmo().Cancel();
 
@@ -367,11 +435,17 @@ bool UEditorEngine::NewScene() {
     return true;
 }
 
+/**
+ * @brief 콘솔 패널에 메시지를 추가하고 스크롤 갱신을 요청합니다.
+ */
 void UEditorEngine::AddLog(const FString& Message) {
     mConsolePanel.AddLog(Message);
     OutputDebugStringA((Message + "\n").c_str());
 }
 
+/**
+ * @brief 입력한 콘솔 명령을 해석하여 에디터 동작을 실행합니다.
+ */
 void UEditorEngine::ExecuteConsoleCommand(const FString& Command) {
     AddLog("> " + Command);
     std::istringstream Input{Command};
@@ -409,27 +483,42 @@ void UEditorEngine::ExecuteConsoleCommand(const FString& Command) {
     }
 }
 
+/**
+ * @brief 에디터 뷰포트 클라이언트를 반환합니다.
+ */
 FEditorViewportClient& UEditorEngine::GetViewportClient() {
     return mClient;
 }
 
+/**
+ * @brief 에디터 뷰포트 렌더 타깃의 비소유 주소를 반환합니다.
+ */
 FRenderTarget* UEditorEngine::GetViewportTarget() const {
     return mViewport != nullptr ? mViewport->GetRenderTarget() : nullptr;
 }
 
+/**
+ * @brief 저장 후 변경되어 저장이 필요한 장면인지 검사합니다.
+ */
 bool UEditorEngine::IsSceneDirty() const {
     return mDirty;
 }
 
+/**
+ * @brief 에디터에서 프로그램 종료를 요청했는지 검사합니다.
+ */
 bool UEditorEngine::WantsExit() const {
     return mExit;
 }
 
+/**
+ * @brief 장면 로드 또는 저장용 Windows 파일 대화상자를 표시합니다.
+ */
 std::filesystem::path UEditorEngine::ChooseFile(bool Save) {
     std::array<wchar_t, 4096> Buffer{};
 
     if (Save) {
-        const std::wstring Filename{mScenePath.empty() ? L"Week1.json" : mScenePath.filename().wstring()};
+        const std::wstring Filename{mScenePath.empty() ? L"Scene.json" : mScenePath.filename().wstring()};
         std::copy_n(Filename.begin(), std::min(Filename.size(), Buffer.size() - 1), Buffer.begin());
     }
 
@@ -455,6 +544,9 @@ std::filesystem::path UEditorEngine::ChooseFile(bool Save) {
     return {};
 }
 
+/**
+ * @brief 에디터 패널의 초기 ImGui 도킹 레이아웃을 구성합니다.
+ */
 void UEditorEngine::BuildLayout() {
     const ImGuiID Dockspace{ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport())};
 
@@ -481,6 +573,9 @@ void UEditorEngine::BuildLayout() {
     }
 }
 
+/**
+ * @brief 장면 파일, 프리미티브 생성과 패널 표시 메뉴를 그립니다.
+ */
 void UEditorEngine::DrawMenu() {
     if (ImGui::BeginMainMenuBar()) {
         if (ImGui::BeginMenu("File")) {
@@ -560,6 +655,9 @@ void UEditorEngine::DrawMenu() {
     }
 }
 
+/**
+ * @brief 장면 타깃을 표시하고 뷰포트 입력 및 크기 변경을 전달합니다.
+ */
 void UEditorEngine::DrawViewport() {
     if (ImGui::Begin("Viewport", nullptr, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoNavInputs)) {
         FTransformGizmo& Gizmo{mClient.GetGizmo()};

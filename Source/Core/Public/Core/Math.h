@@ -1,3 +1,9 @@
+/**
+ * @file Math.h
+ * @brief 엔진 수학 타입과 수학 유틸리티를 한 번에 포함합니다.
+ * @ingroup Core
+ */
+
 #pragma once
 
 #include "Core/Math/FVector2.h"

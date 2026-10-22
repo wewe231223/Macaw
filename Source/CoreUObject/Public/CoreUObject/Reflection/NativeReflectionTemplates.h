@@ -1,11 +1,23 @@
+/**
+ * @file NativeReflectionTemplates.h
+ * @brief 네이티브 타입 판별과 프로퍼티 어댑터 템플릿의 정의입니다.
+ * @ingroup CoreUObject
+ */
+
 #pragma once
 
+/**
+ * @brief 템플릿 타입의 크기, 정렬과 식별 문자열을 갖는 정적 메타데이터를 반환합니다.
+ */
 template <typename T>
 const FNativeType* GetNativeType() {
     static const FNativeType Type{sizeof(T), alignof(T), __FUNCSIG__};
     return &Type;
 }
 
+/**
+ * @brief C++ 타입을 지원하는 프로퍼티 저장 타입으로 분류합니다.
+ */
 template <typename T>
 constexpr EPropertyType GetNativePropertyType() {
     if constexpr (std::is_same_v<T, bool>) {
@@ -47,6 +59,9 @@ constexpr EPropertyType GetNativePropertyType() {
     }
 }
 
+/**
+ * @brief 지원되는 복합 값 타입의 구조체 메타데이터를 조회합니다.
+ */
 template <typename T>
 const UStruct* GetNativeStruct() {
     if constexpr (!std::is_same_v<T, FGuid> && !std::is_same_v<T, FMatrix> && GetNativePropertyType<T>() != EPropertyType::Opaque && requires { T::StaticStruct(); }) {
@@ -56,6 +71,9 @@ const UStruct* GetNativeStruct() {
     }
 }
 
+/**
+ * @brief 네이티브 구조체와 선택적 부모의 메타데이터를 등록합니다.
+ */
 template <typename T>
 UScriptStruct* DefineNativeStruct(const char* Name) {
     const UScriptStruct* Parent{};
@@ -68,18 +86,27 @@ UScriptStruct* DefineNativeStruct(const char* Name) {
     return Struct;
 }
 
+/**
+ * @brief 템플릿 특수화의 구조체 메타데이터를 한 번 등록합니다.
+ */
 template <typename T>
 UScriptStruct* DefineTemplateStruct(const char* Name) {
-    static UScriptStruct* Struct{FReflectionRegistry::DefineStruct(Name, GetNativeType<T>(), nullptr)};
+    static UScriptStruct* Struct{FReflectionRegistry::DefineStruct(Name, GetNativeType<T>(), &BuildNativeReflection<T, UScriptStruct>)};
     return Struct;
 }
 
+/**
+ * @brief 타입이 생성한 멤버 등록 함수를 리플렉션 빌더로 실행합니다.
+ */
 template <typename T, typename TMetadata>
 void BuildNativeReflection(TMetadata& Information) {
     FReflectionBuilder Builder{Information};
     T::RegisterReflectionMembers(Builder);
 }
 
+/**
+ * @brief 지정된 getter 또는 멤버 포인터로 실제 값을 읽습니다.
+ */
 template <auto Member, auto Getter>
 decltype(auto) ReadMemberValue(const typename TMemberPointerTraits<decltype(Member)>::FOwner& Object) {
     if constexpr (std::is_same_v<decltype(Getter), std::nullptr_t>) {
@@ -89,6 +116,9 @@ decltype(auto) ReadMemberValue(const typename TMemberPointerTraits<decltype(Memb
     }
 }
 
+/**
+ * @brief 네이티브 멤버를 프로퍼티 variant의 대응 저장 타입으로 변환합니다.
+ */
 template <auto Member, auto Getter>
 FPropertyValue ReadMemberProperty(const void* Container) {
     using FOwner = typename TMemberPointerTraits<decltype(Member)>::FOwner;
@@ -105,6 +135,9 @@ FPropertyValue ReadMemberProperty(const void* Container) {
     }
 }
 
+/**
+ * @brief variant 타입과 Uint8 범위를 검사한 뒤 setter 또는 멤버 포인터로 씁니다.
+ */
 template <auto Member, auto Getter, auto Setter>
 bool WriteMemberProperty(void* Container, const FPropertyValue& Value) {
     using FOwner = typename TMemberPointerTraits<decltype(Member)>::FOwner;
@@ -142,6 +175,9 @@ bool WriteMemberProperty(void* Container, const FPropertyValue& Value) {
     }
 }
 
+/**
+ * @brief 네이티브 멤버의 타입, 플래그와 읽기·쓰기 함수를 등록합니다.
+ */
 template <auto Member, auto Getter, auto Setter>
 void RegisterProperty(FReflectionBuilder& Information, FString Name, EPropertyFlags Flags) {
     using FOwner = typename TMemberPointerTraits<decltype(Member)>::FOwner;
@@ -160,6 +196,9 @@ void RegisterProperty(FReflectionBuilder& Information, FString Name, EPropertyFl
     Information.AddProperty(std::make_unique<FProperty>(std::move(Name), GetNativePropertyType<FValue>(), Flags, &ReadMemberProperty<Member, Getter>, &WriteMemberProperty<Member, Getter, Setter>, GetNativeStruct<FValue>(), std::move(Values), nullptr, GetNativeType<FValue>()));
 }
 
+/**
+ * @brief 읽기 전용 프로퍼티와 로드에 사용하는 별도 쓰기 함수를 등록합니다.
+ */
 template <auto Member, auto Getter>
 void RegisterReadOnlyProperty(FReflectionBuilder& Information, FString Name, EPropertyFlags Flags) {
     using FOwner = typename TMemberPointerTraits<decltype(Member)>::FOwner;

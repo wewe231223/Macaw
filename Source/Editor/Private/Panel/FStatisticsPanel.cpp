@@ -1,3 +1,9 @@
+/**
+ * @file FStatisticsPanel.cpp
+ * @brief 프레임 시간, 객체, 메모리와 렌더링 통계를 표시합니다.
+ * @ingroup Editor
+ */
+
 #include "Editor/Panel/FStatisticsPanel.h"
 #include "Editor/EditorEngine.h"
 #include "Core/Memory.h"
@@ -9,12 +15,21 @@
 #include <imgui.h>
 #include <format>
 
+/**
+ * @brief FStatisticsPanel의 초기 상태와 전달받은 의존성을 구성합니다.
+ */
 FStatisticsPanel::FStatisticsPanel(UEditorEngine& Engine)
 	: FEditorPanel{Engine, "Statistics", true} {
 }
 
+/**
+ * @brief 객체의 수명을 끝내고 소유한 리소스를 정리합니다.
+ */
 FStatisticsPanel::~FStatisticsPanel() = default;
 
+/**
+ * @brief 패널 고유의 ImGui 위젯과 내용을 그립니다.
+ */
 void FStatisticsPanel::DrawContent(float DeltaTime) {
     UEditorEngine& Engine{GetEditorEngine()};
     const FMemoryStats Memory{FMemory::GetStats()};

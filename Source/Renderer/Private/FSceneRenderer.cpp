@@ -1,3 +1,9 @@
+/**
+ * @file FSceneRenderer.cpp
+ * @brief 뷰 프러스텀으로 프리미티브를 선별하여 장면 드로 호출을 제출합니다.
+ * @ingroup Renderer
+ */
+
 #include "FSceneRenderer.h"
 #include "Core/Math/FVector.h"
 #include "Core/Math/FVector4.h"
@@ -13,6 +19,9 @@
 
 #include <algorithm>
 
+/**
+ * @brief FSceneRenderer의 초기 상태와 전달받은 의존성을 구성합니다.
+ */
 FSceneRenderer::FSceneRenderer(const FSceneViewFamily& Family, const FScene& Scene, const FSceneDrawContext& Context, FRenderStats& Stats)
 	: mFamily{&Family},
 	  mScene{&Scene},
@@ -20,6 +29,9 @@ FSceneRenderer::FSceneRenderer(const FSceneViewFamily& Family, const FScene& Sce
 	  mStats{&Stats} {
 }
 
+/**
+ * @brief 경계 상자가 뷰 프러스텀과 겹치는지 검사합니다.
+ */
 bool FSceneRenderer::IsVisible(const FBox& Bounds) const {
     const FMatrix& Matrix{mFamily->mView.mViewProjection};
     std::array<Uint32, 6> Outside{};
@@ -42,6 +54,9 @@ bool FSceneRenderer::IsVisible(const FBox& Bounds) const {
     });
 }
 
+/**
+ * @brief 가시 프리미티브를 선별하여 드로 호출을 제출하고 통계를 갱신합니다.
+ */
 void FSceneRenderer::Render() {
     ID3D11DeviceContext& Context{*mDrawContext.mContext};
     Context.UpdateSubresource(mDrawContext.mViewBuffer, 0, nullptr, &mFamily->mView.mViewProjection, 0, 0);

@@ -1,3 +1,9 @@
+/**
+ * @file ViewportClient.cpp
+ * @brief 에디터 카메라, 선택과 기즈모 입력을 처리합니다.
+ * @ingroup Editor
+ */
+
 #include "Editor/ViewportClient.h"
 #include "RenderCore/IRendererModule.h"
 #include "Core/Math.h"
@@ -22,13 +28,22 @@
 #include <algorithm>
 #include <cmath>
 
+/**
+ * @brief FEditorViewportClient의 초기 상태와 전달받은 의존성을 구성합니다.
+ */
 FEditorViewportClient::FEditorViewportClient(UEditorEngine& Engine)
 	: mEngine{&Engine},
 	  mGizmo{Engine} {
 }
 
+/**
+ * @brief 객체의 수명을 끝내고 소유한 리소스를 정리합니다.
+ */
 FEditorViewportClient::~FEditorViewportClient() = default;
 
+/**
+ * @brief 현재 프레임의 뷰포트 입력을 처리합니다.
+ */
 void FEditorViewportClient::Input(const FViewportInput& Input, const FVector2& Size, float DeltaTime) {
     if (!mGizmo.IsDragging() && NavigateCamera(Input, Size, DeltaTime)) {
         return;
@@ -58,6 +73,9 @@ void FEditorViewportClient::Input(const FViewportInput& Input, const FVector2& S
     }
 }
 
+/**
+ * @brief 뷰포트 입력으로 카메라 이동, 회전, 팬 또는 오빗을 적용합니다.
+ */
 bool FEditorViewportClient::NavigateCamera(const FViewportInput& Input, const FVector2& Size, float DeltaTime) {
     if (!Input.mHovered && !Input.mFocused) {
         return false;
@@ -126,6 +144,9 @@ bool FEditorViewportClient::NavigateCamera(const FViewportInput& Input, const FV
     return Input.mAlt || Input.mMiddleDown || (Input.mWheel != 0.0f && Input.mHovered);
 }
 
+/**
+ * @brief 선택한 액터가 화면에 들어오도록 카메라 위치와 중심을 조정합니다.
+ */
 void FEditorViewportClient::FocusSelection(const FVector2& Size) {
     const AActor* Actor{mEngine->GetSelectedActor()};
     const auto* Component{Actor != nullptr ? Cast<UPrimitiveComponent>(Actor->GetRootComponent()) : nullptr};
@@ -144,6 +165,9 @@ void FEditorViewportClient::FocusSelection(const FVector2& Size) {
     mCameraLocation = mOrbitPivot - mCameraRotation.Vector() * Distance;
 }
 
+/**
+ * @brief 뷰포트 또는 패널의 현재 내용을 그립니다.
+ */
 void FEditorViewportClient::Draw(FSceneViewport& Viewport) {
     UWorld* World{mEngine->GetWorld()};
 
@@ -175,6 +199,9 @@ void FEditorViewportClient::Draw(FSceneViewport& Viewport) {
     mEngine->GetRenderer()->BeginRenderingViewFamily(Family);
 }
 
+/**
+ * @brief 현재 카메라와 뷰포트 크기로 뷰·투영 행렬을 계산합니다.
+ */
 FSceneView FEditorViewportClient::CalcSceneView(const FVector2& Size) const {
     const FQuat Rotation{mCameraRotation.Quaternion()};
 
@@ -191,6 +218,9 @@ FSceneView FEditorViewportClient::CalcSceneView(const FVector2& Size) const {
     return View;
 }
 
+/**
+ * @brief 에디터 카메라를 초기 위치와 회전으로 되돌립니다.
+ */
 void FEditorViewportClient::ResetCamera() {
     mCameraLocation = {-7.0f, -9.0f, 6.0f};
     mCameraRotation = {-26.0f, 50.0f, 0.0f};
@@ -199,16 +229,25 @@ void FEditorViewportClient::ResetCamera() {
     mCameraSpeed = 4.0f;
 }
 
+/**
+ * @brief 유효한 위치와 회전으로 에디터 카메라를 설정합니다.
+ */
 void FEditorViewportClient::SetCamera(const FVector& Location, const FRotator& Rotation) {
     mCameraLocation = Location;
     mCameraRotation = Rotation;
     mOrbitPivot = Location + Rotation.Vector() * 10.0f;
 }
 
+/**
+ * @brief 에디터 카메라의 월드 위치를 반환합니다.
+ */
 const FVector& FEditorViewportClient::GetCameraLocation() const {
     return mCameraLocation;
 }
 
+/**
+ * @brief 뷰포트 변환 편집 기즈모를 반환합니다.
+ */
 FTransformGizmo& FEditorViewportClient::GetGizmo() {
     return mGizmo;
 }

@@ -1,3 +1,9 @@
+/**
+ * @file PrimitiveMesh.cpp
+ * @brief Plane, Cube와 Sphere 기본 메시의 생성 및 캐시 조회를 제공합니다.
+ * @ingroup Engine
+ */
+
 #include "Engine/PrimitiveMesh.h"
 #include "Core/Math/FVector.h"
 #include "Core/Math/FVector2.h"
@@ -7,6 +13,9 @@
 #include <cmath>
 #include <numbers>
 
+/**
+ * @brief 프리미티브 종류의 표시 이름을 반환합니다.
+ */
 FString PrimitiveName(EPrimitiveType Type) {
     switch (Type) {
     case EPrimitiveType::Plane:
@@ -23,6 +32,9 @@ FString PrimitiveName(EPrimitiveType Type) {
     }
 }
 
+/**
+ * @brief 기본 프리미티브의 CPU 정점, 삼각형 인덱스와 경계 상자를 생성합니다.
+ */
 FMeshData BuildPrimitive(EPrimitiveType Type) {
     FMeshData Mesh{};
 
@@ -90,6 +102,9 @@ FMeshData BuildPrimitive(EPrimitiveType Type) {
     return Mesh;
 }
 
+/**
+ * @brief 종류별로 캐시된 읽기 전용 기본 메시를 반환합니다.
+ */
 const FMeshData& GetPrimitiveMesh(EPrimitiveType Type) {
     static const std::array<FMeshData, 3> Meshes{BuildPrimitive(EPrimitiveType::Plane), BuildPrimitive(EPrimitiveType::Cube), BuildPrimitive(EPrimitiveType::Sphere)};
     return Meshes[static_cast<std::size_t>(Type)];

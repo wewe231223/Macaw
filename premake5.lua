@@ -39,6 +39,11 @@ local function AddIncludes(Name, Visited)
     end
     Visited[Name] = true
     includedirs { "Source/" .. Name .. "/Public" }
+
+    if ReflectedModules[Name] then
+        includedirs { Reflection.GetGeneratedDirectory(Name) }
+    end
+
     for _, Dependency in ipairs(Modules[Name].Public) do
         AddIncludes(Dependency, Visited)
     end
@@ -52,8 +57,8 @@ local function Configure(Name, Kind)
         characterset "Unicode"
         systemversion "latest"
         staticruntime "Off"
-        targetdir "Binaries/Week1/%{cfg.buildcfg}"
-        objdir "Intermediate/Week1/%{cfg.buildcfg}/%{prj.name}"
+        targetdir "Binaries/%{cfg.buildcfg}"
+        objdir "Intermediate/%{prj.name}/%{cfg.buildcfg}"
         defines { "NOMINMAX", "WIN32_LEAN_AND_MEAN" }
         buildoptions { "/utf-8", "/Zc:preprocessor", "/permissive-" }
         multiprocessorcompile "On"
@@ -67,8 +72,8 @@ for _, Name in ipairs({ "Core", "CoreUObject", "Serialization", "RenderCore", "E
     includedirs { "Source/" .. Name .. "/Private" }
 
     if ReflectedModules[Name] then
-        local GeneratedDirectory = "Intermediate/Week1/Generated/" .. Name
-        files { GeneratedDirectory .. "/" .. Name .. "Reflection.h", GeneratedDirectory .. "/" .. Name .. "Reflection.cpp" }
+        local GeneratedDirectory = Reflection.GetGeneratedDirectory(Name)
+        files { GeneratedDirectory .. "/**.h", GeneratedDirectory .. "/" .. Name .. "Reflection.cpp" }
         includedirs { GeneratedDirectory }
         prebuildcommands { '"' .. _PREMAKE_COMMAND .. '" --file="' .. path.getabsolute("premake5.lua") .. '" generate-reflection --reflection-module=' .. Name }
     end
@@ -92,14 +97,15 @@ local function ConfigureExecutable(Name, Kind, Directory)
     includedirs { Directory }
 
     for Module, _ in pairs(ReflectedModules) do
-        includedirs { "Intermediate/Week1/Generated/" .. Module }
+        includedirs { Reflection.GetGeneratedDirectory(Module) }
 
         if Modules[Module] then
             AddIncludes(Module, {})
         end
     end
 
-    files { "Intermediate/Week1/Generated/App/AppReflection.h", "Intermediate/Week1/Generated/App/AppReflection.cpp" }
+    local GeneratedDirectory = Reflection.GetGeneratedDirectory("App")
+    files { GeneratedDirectory .. "/**.h", GeneratedDirectory .. "/AppReflection.cpp" }
     prebuildcommands { '"' .. _PREMAKE_COMMAND .. '" --file="' .. path.getabsolute("premake5.lua") .. '" generate-reflection --reflection-module=App' }
     AddIncludes("Editor", {})
     AddIncludes("Renderer", {})

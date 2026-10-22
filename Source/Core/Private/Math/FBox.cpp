@@ -1,3 +1,9 @@
+/**
+ * @file FBox.cpp
+ * @brief 최솟값과 최댓값으로 정의하는 축 정렬 경계 상자입니다.
+ * @ingroup Core
+ */
+
 #include "Core/Math/FBox.h"
 #include "Core/Math/FMatrix.h"
 #include "Core/Math/FRay.h"
@@ -8,11 +14,17 @@
 
 using namespace Math::Simd;
 
+/**
+ * @brief FBox의 초기 상태와 전달받은 의존성을 구성합니다.
+ */
 FBox::FBox(const FVector& Minimum, const FVector& Maximum)
 	: mMinimum{Minimum},
 	  mMaximum{Maximum} {
 }
 
+/**
+ * @brief 광선이 최대 거리 이내에서 축 정렬 경계 상자와 교차하는지 검사합니다.
+ */
 bool FBox::Intersects(const FRay& Ray, float MaximumDistance) const {
     const __m128 Origin{Ray.mOrigin.mValue};
     const __m128 Direction{Ray.mDirection.mValue};
@@ -38,6 +50,9 @@ bool FBox::Intersects(const FRay& Ray, float MaximumDistance) const {
     return Entry <= Exit;
 }
 
+/**
+ * @brief 경계 상자의 모서리를 변환한 뒤 새 축 정렬 경계 상자를 계산합니다.
+ */
 FBox FBox::Transformed(const FMatrix& Matrix) const {
     const __m128 Minimum{mMinimum.mValue};
     const __m128 Maximum{mMaximum.mValue};

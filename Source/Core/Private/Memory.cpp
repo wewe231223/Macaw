@@ -1,3 +1,9 @@
+/**
+ * @file Memory.cpp
+ * @brief 정렬된 UObject 메모리 할당과 통계를 제공합니다.
+ * @ingroup Core
+ */
+
 #include "Core/Memory.h"
 #include "FAllocationHeader.h"
 #include "Core/FMemoryStats.h"
@@ -8,10 +14,19 @@
 #include <memory>
 #include <new>
 
+/**
+ * @brief 이 구현 파일에서만 사용하는 내부 상태와 보조 함수입니다.
+ */
 namespace {
+    /**
+     * @brief 프레임 렌더링 통계입니다.
+     */
     FMemoryStats Stats{};
 }
 
+/**
+ * @brief 요청한 정렬을 만족하는 힙 블록을 할당하고 사용량을 기록합니다.
+ */
 void* FMemory::Allocate(std::size_t Size, std::size_t Alignment) {
     const std::size_t EffectiveAlignment{std::max(Alignment, alignof(FAllocationHeader))};
 
@@ -37,6 +52,9 @@ void* FMemory::Allocate(std::size_t Size, std::size_t Alignment) {
     return Pointer;
 }
 
+/**
+ * @brief 정렬된 블록의 원본 주소를 해제하고 추적 중인 사용량을 차감합니다.
+ */
 void FMemory::Free(void* Pointer) noexcept {
     if (Pointer == nullptr) {
         return;
@@ -51,15 +69,24 @@ void FMemory::Free(void* Pointer) noexcept {
     ::operator delete(Raw);
 }
 
+/**
+ * @brief 생존 객체와 누적 생성 객체 수를 증가시킵니다.
+ */
 void FMemory::ObjectCreated() {
     ++Stats.mLiveObjects;
     ++Stats.mCreatedObjects;
 }
 
+/**
+ * @brief 생존 객체 수를 감소시킵니다.
+ */
 void FMemory::ObjectDestroyed() {
     --Stats.mLiveObjects;
 }
 
+/**
+ * @brief 현재 UObject 개수와 추적 중인 힙 사용량의 스냅샷을 반환합니다.
+ */
 FMemoryStats FMemory::GetStats() {
     return Stats;
 }

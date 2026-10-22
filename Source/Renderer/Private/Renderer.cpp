@@ -1,3 +1,9 @@
+/**
+ * @file Renderer.cpp
+ * @brief Direct3D 11 렌더러와 프레임 제출을 제공합니다.
+ * @ingroup Renderer
+ */
+
 #include "Renderer/Renderer.h"
 #include "Renderer/FLineVertex.h"
 #include "Core/Math/FVector.h"
@@ -26,7 +32,13 @@
 
 using namespace Microsoft::WRL;
 
+/**
+ * @brief 이 구현 파일에서만 사용하는 내부 상태와 보조 함수입니다.
+ */
 namespace {
+    /**
+     * @brief 메시 정점 및 픽셀 셰이더의 내장 HLSL 소스입니다.
+     */
     constexpr char MeshShader[]{R"(
 cbuffer ObjectConstants : register(b0) {
     row_major float4x4 World;
@@ -56,6 +68,9 @@ float4 PixelMain(FOutput Input) : SV_TARGET {
 }
 )"};
 
+    /**
+     * @brief 보조 선분 정점 및 픽셀 셰이더의 내장 HLSL 소스입니다.
+     */
     constexpr char LineShader[]{R"(
 cbuffer ViewConstants : register(b1) {
     row_major float4x4 ViewProjection;
@@ -81,12 +96,21 @@ float4 PixelMain(FOutput Input) : SV_TARGET {
 
 }
 
+/**
+ * @brief FRenderer의 초기 상태와 전달받은 의존성을 구성합니다.
+ */
 FRenderer::FRenderer() = default;
 
+/**
+ * @brief 객체의 수명을 끝내고 소유한 리소스를 정리합니다.
+ */
 FRenderer::~FRenderer() {
     Shutdown();
 }
 
+/**
+ * @brief Direct3D 11 장치, 스왑 체인과 렌더 파이프라인을 준비합니다.
+ */
 bool FRenderer::Initialize(void* WindowHandle, Uint32 Width, Uint32 Height) {
     if (mDevice != nullptr || WindowHandle == nullptr || Width == 0 || Height == 0) {
         ErrorHandler::Fatal("Renderer", "Invalid renderer initialization state");
@@ -137,6 +161,9 @@ bool FRenderer::Initialize(void* WindowHandle, Uint32 Width, Uint32 Height) {
     return true;
 }
 
+/**
+ * @brief 종속 객체를 역순으로 정리하고 여러 번 호출해도 안전한 종료 상태로 만듭니다.
+ */
 void FRenderer::Shutdown() {
     if (mContext != nullptr) {
         mContext->ClearState();
@@ -173,12 +200,18 @@ void FRenderer::Shutdown() {
     mStats = {};
 }
 
+/**
+ * @brief 렌더러 장치를 참조하는 새로운 렌더 장면을 생성합니다.
+ */
 std::unique_ptr<FSceneInterface> FRenderer::AllocateScene() {
     ErrorHandler::Report(mDevice == nullptr, "Renderer", "Scene allocation requires an initialized device", ErrorHandler::EErrorLevel::Critical);
 
     return std::make_unique<FScene>(*mDevice.Get(), *mContext.Get());
 }
 
+/**
+ * @brief CPU 메시를 종류별 GPU 정점·인덱스 버퍼에 업로드합니다.
+ */
 bool FRenderer::UploadMesh(EPrimitiveType Type, const FMeshData& Mesh) {
     if (Type >= EPrimitiveType::Count || Mesh.mVertices.empty() || Mesh.mIndices.empty() || mDevice == nullptr) {
         ErrorHandler::Fatal("Renderer", "Invalid mesh upload state");
@@ -223,11 +256,17 @@ bool FRenderer::UploadMesh(EPrimitiveType Type, const FMeshData& Mesh) {
     return true;
 }
 
+/**
+ * @brief 지정한 픽셀 크기의 오프스크린 렌더 타깃을 생성합니다.
+ */
 std::unique_ptr<FRenderTarget> FRenderer::CreateRenderTarget(Uint32 Width, Uint32 Height) {
     auto Target{std::make_unique<FDXRenderTarget>()};
     return mDevice != nullptr && Target->Resize(*mDevice.Get(), Width, Height) ? std::move(Target) : nullptr;
 }
 
+/**
+ * @brief 기존 오프스크린 렌더 타깃을 새 픽셀 크기로 변경합니다.
+ */
 bool FRenderer::ResizeRenderTarget(FRenderTarget& Target, Uint32 Width, Uint32 Height) {
     auto* Native{dynamic_cast<FDXRenderTarget*>(&Target)};
 
@@ -243,6 +282,9 @@ bool FRenderer::ResizeRenderTarget(FRenderTarget& Target, Uint32 Width, Uint32 H
     return Native->Resize(*mDevice.Get(), Width, Height);
 }
 
+/**
+ * @brief 백 버퍼 크기를 동기화하고 프레임 렌더링 통계를 초기화합니다.
+ */
 void FRenderer::BeginFrame(Uint32 Width, Uint32 Height) {
     mStats = {};
 
@@ -251,6 +293,9 @@ void FRenderer::BeginFrame(Uint32 Width, Uint32 Height) {
     }
 }
 
+/**
+ * @brief 지정한 장면 뷰를 타깃에 렌더링하고 에디터 보조 선분을 그립니다.
+ */
 void FRenderer::BeginRenderingViewFamily(const FSceneViewFamily& Family) {
     const auto* Scene{dynamic_cast<const FScene*>(Family.mScene)};
     auto* Target{dynamic_cast<FDXRenderTarget*>(Family.mTarget)};
@@ -297,6 +342,9 @@ void FRenderer::BeginRenderingViewFamily(const FSceneViewFamily& Family) {
     mContext->OMSetRenderTargets(0, nullptr, nullptr);
 }
 
+/**
+ * @brief UI 렌더링에 사용할 백 버퍼와 뷰포트를 설정합니다.
+ */
 void FRenderer::BeginUiRender() {
     if (mBackBuffer != nullptr) {
         ID3D11RenderTargetView* Target{mBackBuffer.Get()};
@@ -307,27 +355,42 @@ void FRenderer::BeginUiRender() {
     }
 }
 
+/**
+ * @brief 스왑 체인의 백 버퍼를 화면에 표시합니다.
+ */
 void FRenderer::Present() {
     if (mSwapChain != nullptr && FAILED(mSwapChain->Present(1, 0))) {
         ErrorHandler::Fatal("Renderer", "Presentation failed");
     }
 }
 
+/**
+ * @brief Direct3D 11 장치의 비소유 주소를 반환합니다.
+ */
 void* FRenderer::GetNativeDevice() const {
     return mDevice.Get();
 }
 
+/**
+ * @brief Direct3D 11 즉시 컨텍스트의 비소유 주소를 반환합니다.
+ */
 void* FRenderer::GetNativeContext() const {
     return mContext.Get();
 }
 
+/**
+ * @brief 프레임 렌더링 통계를 반환합니다.
+ */
 FRenderStats FRenderer::GetStats() const {
     return mStats;
 }
 
+/**
+ * @brief 내장 HLSL 소스를 지정한 진입점과 프로파일로 컴파일합니다.
+ */
 bool FRenderer::Compile(const char* Source, std::size_t Size, const char* Entry, const char* Target, ComPtr<ID3DBlob>& Code) {
     ComPtr<ID3DBlob> Errors{};
-    const HRESULT Result{D3DCompile(Source, Size, "MacawWeek1", nullptr, nullptr, Entry, Target, D3DCOMPILE_ENABLE_STRICTNESS, 0, Code.GetAddressOf(), Errors.GetAddressOf())};
+    const HRESULT Result{D3DCompile(Source, Size, "Macaw", nullptr, nullptr, Entry, Target, D3DCOMPILE_ENABLE_STRICTNESS, 0, Code.GetAddressOf(), Errors.GetAddressOf())};
 
     if (FAILED(Result)) {
         ErrorHandler::Fatal("Renderer", Errors != nullptr ? FString{static_cast<const char*>(Errors->GetBufferPointer()), Errors->GetBufferSize()} : "Shader compilation failed");
@@ -336,6 +399,9 @@ bool FRenderer::Compile(const char* Source, std::size_t Size, const char* Entry,
     return true;
 }
 
+/**
+ * @brief 스왑 체인을 조정하고 백 버퍼 렌더 타깃 뷰를 생성합니다.
+ */
 bool FRenderer::CreateBackBuffer(Uint32 Width, Uint32 Height) {
     mContext->OMSetRenderTargets(0, nullptr, nullptr);
     mBackBuffer.Reset();
@@ -356,6 +422,9 @@ bool FRenderer::CreateBackBuffer(Uint32 Width, Uint32 Height) {
     return true;
 }
 
+/**
+ * @brief 메시·선분 셰이더, 입력 레이아웃과 고정 파이프라인 상태를 생성합니다.
+ */
 bool FRenderer::CreatePipeline() {
     ComPtr<ID3DBlob> VertexCode{};
     ComPtr<ID3DBlob> PixelCode{};
@@ -423,6 +492,9 @@ bool FRenderer::CreatePipeline() {
     return true;
 }
 
+/**
+ * @brief 깊이 검사 정책에 맞는 보조 선분을 동적 정점 버퍼로 그립니다.
+ */
 void FRenderer::DrawLines(const FPrimitiveDrawInterface& Elements, bool DepthTest) {
     mLineVertices.clear();
 
