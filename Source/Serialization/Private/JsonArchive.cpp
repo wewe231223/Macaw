@@ -41,67 +41,10 @@ namespace {
     }
 }
 
-struct FJsonArchive::FImplementation {
-private:
-    friend class FJsonArchive;
-
-public:
-    FImplementation();
-
-public:
-    rapidjson::Value* Find(std::string_view Name, bool Create);
-
-private:
-    rapidjson::Document mDocument{};
-    TArray<rapidjson::Value*> mStack{};
-};
-
-FJsonArchive::FImplementation::FImplementation() {
+FJsonArchive::FJsonArchive(EArchiveMode Mode)
+	: FArchive{Mode} {
     mDocument.SetObject();
     mStack.push_back(&mDocument);
-}
-
-rapidjson::Value* FJsonArchive::FImplementation::Find(std::string_view Name, bool Create) {
-    rapidjson::Value& Parent{*mStack.back()};
-
-    if (Parent.IsObject()) {
-        const auto Position{Parent.FindMember(rapidjson::StringRef(Name.data(), static_cast<rapidjson::SizeType>(Name.size())))};
-
-        if (Position != Parent.MemberEnd()) {
-            return &Position->value;
-        }
-
-        if (Create) {
-            rapidjson::Value Key{};
-            Key.SetString(Name.data(), static_cast<rapidjson::SizeType>(Name.size()), mDocument.GetAllocator());
-
-            Parent.AddMember(Key, rapidjson::Value{}, mDocument.GetAllocator());
-
-            return &Parent.MemberEnd()[-1].value;
-        }
-    } else if (Parent.IsArray()) {
-        Uint32 Index{};
-        const auto Parsed{std::from_chars(Name.data(), Name.data() + Name.size(), Index)};
-
-        if (Parsed.ec != std::errc{} || Parsed.ptr != Name.data() + Name.size()) {
-            return nullptr;
-        }
-
-        if (Create && Index == Parent.Size()) {
-            Parent.PushBack(rapidjson::Value{}, mDocument.GetAllocator());
-        }
-
-        if (Index < Parent.Size()) {
-            return &Parent[Index];
-        }
-    }
-
-    return nullptr;
-}
-
-FJsonArchive::FJsonArchive(EArchiveMode Mode)
-	: FArchive{Mode},
-	  mImplementation{std::make_unique<FImplementation>()} {
 }
 
 FJsonArchive::~FJsonArchive() = default;
@@ -152,7 +95,7 @@ bool FJsonArchive::Save(const std::filesystem::path& Path) {
     }
 
     std::filesystem::path Temporary{Target};
-    Temporary += "." + FGuid::NewGuid().ToString() + ".tmp";
+    Temporary += "." + FGuid{}.ToString() + ".tmp";
 
     const FString Text{ToString()};
     {
@@ -188,21 +131,21 @@ bool FJsonArchive::Parse(const FString& Text) {
         return false;
     }
 
-    mImplementation->mDocument.Parse(Text.data(), Text.size());
+    mDocument.Parse(Text.data(), Text.size());
 
-    if (mImplementation->mDocument.HasParseError()) {
-        SetError(FString{"JSON: "} + rapidjson::GetParseError_En(mImplementation->mDocument.GetParseError()));
+    if (mDocument.HasParseError()) {
+        SetError(FString{"JSON: "} + rapidjson::GetParseError_En(mDocument.GetParseError()));
 
         return false;
     }
 
-    if (!mImplementation->mDocument.IsObject() || !ValidateJson(mImplementation->mDocument, 0)) {
+    if (!mDocument.IsObject() || !ValidateJson(mDocument, 0)) {
         SetError("Invalid scene structure or duplicate JSON field");
 
         return false;
     }
 
-    mImplementation->mStack = {&mImplementation->mDocument};
+    mStack = {&mDocument};
 
     return true;
 }
@@ -211,13 +154,26 @@ FString FJsonArchive::ToString() const {
     rapidjson::StringBuffer Buffer{};
     rapidjson::PrettyWriter<rapidjson::StringBuffer> Writer{Buffer};
 
-    mImplementation->mDocument.Accept(Writer);
+    mDocument.Accept(Writer);
 
     return FString{Buffer.GetString(), Buffer.GetSize()};
 }
 
 bool FJsonArchive::HasField(std::string_view Name) const {
-    return mImplementation->Find(Name, false) != nullptr;
+    const rapidjson::Value& Parent{*mStack.back()};
+
+    if (Parent.IsObject()) {
+        return Parent.HasMember(rapidjson::StringRef(Name.data(), static_cast<rapidjson::SizeType>(Name.size())));
+    }
+
+    if (!Parent.IsArray()) {
+        return false;
+    }
+
+    Uint32 Index{};
+    const auto Parsed{std::from_chars(Name.data(), Name.data() + Name.size(), Index)};
+
+    return Parsed.ec == std::errc{} && Parsed.ptr == Name.data() + Name.size() && Index < Parent.Size();
 }
 
 bool FJsonArchive::BeginObject(std::string_view Name) {
@@ -225,7 +181,7 @@ bool FJsonArchive::BeginObject(std::string_view Name) {
         return false;
     }
 
-    rapidjson::Value* Value{mImplementation->Find(Name, !IsLoading())};
+    rapidjson::Value* Value{Find(Name, !IsLoading())};
 
     if (Value == nullptr || (IsLoading() && !Value->IsObject())) {
         SetError("Expected object: " + FString{Name});
@@ -237,14 +193,14 @@ bool FJsonArchive::BeginObject(std::string_view Name) {
         Value->SetObject();
     }
 
-    mImplementation->mStack.push_back(Value);
+    mStack.push_back(Value);
 
     return true;
 }
 
 void FJsonArchive::EndObject() {
-    if (mImplementation->mStack.size() > 1) {
-        mImplementation->mStack.pop_back();
+    if (mStack.size() > 1) {
+        mStack.pop_back();
     }
 }
 
@@ -253,7 +209,7 @@ bool FJsonArchive::BeginArray(std::string_view Name, Uint32& Count) {
         return false;
     }
 
-    rapidjson::Value* Value{mImplementation->Find(Name, !IsLoading())};
+    rapidjson::Value* Value{Find(Name, !IsLoading())};
 
     if (Value == nullptr || (IsLoading() && !Value->IsArray())) {
         SetError("Expected array: " + FString{Name});
@@ -267,7 +223,7 @@ bool FJsonArchive::BeginArray(std::string_view Name, Uint32& Count) {
         Value->SetArray();
     }
 
-    mImplementation->mStack.push_back(Value);
+    mStack.push_back(Value);
 
     return true;
 }
@@ -277,7 +233,7 @@ void FJsonArchive::EndArray() {
 }
 
 void FJsonArchive::Serialize(std::string_view Name, bool& Value) {
-    rapidjson::Value* Field{mImplementation->Find(Name, !IsLoading())};
+    rapidjson::Value* Field{Find(Name, !IsLoading())};
 
     if (Field == nullptr || (IsLoading() && !Field->IsBool())) {
         SetError("Expected bool: " + FString{Name});
@@ -289,7 +245,7 @@ void FJsonArchive::Serialize(std::string_view Name, bool& Value) {
 }
 
 void FJsonArchive::Serialize(std::string_view Name, Int32& Value) {
-    rapidjson::Value* Field{mImplementation->Find(Name, !IsLoading())};
+    rapidjson::Value* Field{Find(Name, !IsLoading())};
 
     if (Field == nullptr || (IsLoading() && !Field->IsInt())) {
         SetError("Expected int32: " + FString{Name});
@@ -301,7 +257,7 @@ void FJsonArchive::Serialize(std::string_view Name, Int32& Value) {
 }
 
 void FJsonArchive::Serialize(std::string_view Name, Uint32& Value) {
-    rapidjson::Value* Field{mImplementation->Find(Name, !IsLoading())};
+    rapidjson::Value* Field{Find(Name, !IsLoading())};
 
     if (Field == nullptr || (IsLoading() && !Field->IsUint())) {
         SetError("Expected uint32: " + FString{Name});
@@ -312,8 +268,20 @@ void FJsonArchive::Serialize(std::string_view Name, Uint32& Value) {
     }
 }
 
+void FJsonArchive::Serialize(std::string_view Name, Uint64& Value) {
+    rapidjson::Value* Field{Find(Name, !IsLoading())};
+
+    if (Field == nullptr || (IsLoading() && !Field->IsUint64())) {
+        SetError("Expected uint64: " + FString{Name});
+    } else if (IsLoading()) {
+        Value = Field->GetUint64();
+    } else {
+        Field->SetUint64(Value);
+    }
+}
+
 void FJsonArchive::Serialize(std::string_view Name, float& Value) {
-    rapidjson::Value* Field{mImplementation->Find(Name, !IsLoading())};
+    rapidjson::Value* Field{Find(Name, !IsLoading())};
 
     if (Field == nullptr || (IsLoading() && (!Field->IsNumber() || !std::isfinite(Field->GetDouble()) || std::abs(Field->GetDouble()) > std::numeric_limits<float>::max()))) {
         SetError("Expected finite float: " + FString{Name});
@@ -327,13 +295,51 @@ void FJsonArchive::Serialize(std::string_view Name, float& Value) {
 }
 
 void FJsonArchive::Serialize(std::string_view Name, FString& Value) {
-    rapidjson::Value* Field{mImplementation->Find(Name, !IsLoading())};
+    rapidjson::Value* Field{Find(Name, !IsLoading())};
 
     if (Field == nullptr || (IsLoading() && (!Field->IsString() || Field->GetStringLength() > 4096))) {
         SetError("Expected string: " + FString{Name});
     } else if (IsLoading()) {
         Value.assign(Field->GetString(), Field->GetStringLength());
     } else {
-        Field->SetString(Value.data(), static_cast<rapidjson::SizeType>(Value.size()), mImplementation->mDocument.GetAllocator());
+        Field->SetString(Value.data(), static_cast<rapidjson::SizeType>(Value.size()), mDocument.GetAllocator());
     }
+}
+
+rapidjson::Value* FJsonArchive::Find(std::string_view Name, bool Create) {
+    rapidjson::Value& Parent{*mStack.back()};
+
+    if (Parent.IsObject()) {
+        const auto Position{Parent.FindMember(rapidjson::StringRef(Name.data(), static_cast<rapidjson::SizeType>(Name.size())))};
+
+        if (Position != Parent.MemberEnd()) {
+            return &Position->value;
+        }
+
+        if (Create) {
+            rapidjson::Value Key{};
+            Key.SetString(Name.data(), static_cast<rapidjson::SizeType>(Name.size()), mDocument.GetAllocator());
+
+            Parent.AddMember(Key, rapidjson::Value{}, mDocument.GetAllocator());
+
+            return &Parent.MemberEnd()[-1].value;
+        }
+    } else if (Parent.IsArray()) {
+        Uint32 Index{};
+        const auto Parsed{std::from_chars(Name.data(), Name.data() + Name.size(), Index)};
+
+        if (Parsed.ec != std::errc{} || Parsed.ptr != Name.data() + Name.size()) {
+            return nullptr;
+        }
+
+        if (Create && Index == Parent.Size()) {
+            Parent.PushBack(rapidjson::Value{}, mDocument.GetAllocator());
+        }
+
+        if (Index < Parent.Size()) {
+            return &Parent[Index];
+        }
+    }
+
+    return nullptr;
 }

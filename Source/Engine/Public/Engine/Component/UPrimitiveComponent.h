@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Core/ReflectionMacros.h"
 #include "Engine/Component/USceneComponent.h"
 
 enum class EPrimitiveType : Uint8;
@@ -38,7 +39,14 @@ private:
 
 private:
     bool mRenderStateDirty{true};
+    ReflectProperty(mRenderStateDirty, "RenderStateDirty", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     bool mRenderTransformDirty{};
+    ReflectProperty(mRenderTransformDirty, "RenderTransformDirty", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     bool mQueued{};
+    ReflectProperty(mQueued, "Queued", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     bool mRenderStateCreated{};
+    ReflectProperty(mRenderStateCreated, "RenderStateCreated", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 };

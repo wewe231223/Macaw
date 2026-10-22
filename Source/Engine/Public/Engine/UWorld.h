@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Core/ReflectionMacros.h"
 #include "CoreUObject/UObject.h"
 
 class ULevel;
@@ -41,8 +42,15 @@ private:
 
 private:
     std::unique_ptr<ULevel> mPersistentLevel{};
+    ReflectProperty(mPersistentLevel, "PersistentLevel", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     std::unique_ptr<FSceneInterface> mScene{};
+    ReflectProperty(mScene, "Scene", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
 
     TArray<FObjectHandle> mDirtyComponents{};
+    ReflectProperty(mDirtyComponents, "DirtyComponents", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     Uint32 mSpawnSerial{};
+    ReflectProperty(mSpawnSerial, "SpawnSerial", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 };

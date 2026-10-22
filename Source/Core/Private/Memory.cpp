@@ -1,4 +1,5 @@
 #include "Core/Memory.h"
+#include "FAllocationHeader.h"
 #include "Core/FMemoryStats.h"
 #include "Core/Base/ErrorHandler.h"
 
@@ -8,11 +9,6 @@
 #include <new>
 
 namespace {
-    struct FAllocationHeader {
-        void* mRaw{};
-        std::size_t mSize{};
-    };
-
     FMemoryStats Stats{};
 }
 

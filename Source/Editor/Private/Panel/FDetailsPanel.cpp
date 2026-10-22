@@ -1,0 +1,190 @@
+#include "Editor/Panel/FDetailsPanel.h"
+#include "Editor/EditorEngine.h"
+#include "Engine/AActor.h"
+#include "Engine/Component/UActorComponent.h"
+#include "CoreUObject/UObject.h"
+#include "CoreUObject/Reflection/FProperty.h"
+#include "CoreUObject/Reflection/UStruct.h"
+#include "CoreUObject/Reflection/UClass.h"
+
+#include <imgui.h>
+#include <algorithm>
+#include <array>
+
+FDetailsPanel::FDetailsPanel(UEditorEngine& Engine)
+	: FEditorPanel{Engine, "Details"} {
+}
+
+FDetailsPanel::~FDetailsPanel() = default;
+
+void FDetailsPanel::DrawContent(float) {
+    UEditorEngine& Engine{GetEditorEngine()};
+    AActor* Actor{Engine.GetSelectedActor()};
+
+    if (Actor != nullptr) {
+        if (ImGui::CollapsingHeader("Actor", ImGuiTreeNodeFlags_DefaultOpen)) {
+            DrawReflectedObject(*Actor);
+        }
+
+        for (const auto& Component : Actor->GetComponents()) {
+            ImGui::PushID(Component.get());
+
+            if (ImGui::CollapsingHeader(Component->GetName().c_str(), ImGuiTreeNodeFlags_DefaultOpen)) {
+                Engine.SelectObject(Component->GetHandle());
+                DrawReflectedObject(*Component);
+            }
+
+            ImGui::PopID();
+        }
+    }
+}
+
+void FDetailsPanel::DrawReflectedObject(UObject& Object) {
+    ImGui::PushID(&Object);
+    ImGui::TextDisabled("%s", Object.GetClass()->GetName().c_str());
+
+    for (const FProperty* Property : Object.GetClass()->GetAllProperties()) {
+        if (Property->HasFlag(EPropertyFlags::Transient) || (!Property->HasFlag(EPropertyFlags::Edit) && !Property->HasFlag(EPropertyFlags::ReadOnly))) {
+            continue;
+        }
+
+        FPropertyValue Value{Property->ReadValue(&Object)};
+        const bool ReadOnly{Property->HasFlag(EPropertyFlags::ReadOnly)};
+
+        ImGui::BeginDisabled(ReadOnly);
+
+        if (DrawPropertyValue(*Property, Value) && !ReadOnly) {
+            GetEditorEngine().EditProperty(Object, *Property, Value, ImGui::IsMouseDown(ImGuiMouseButton_Left));
+        }
+
+        ImGui::EndDisabled();
+    }
+
+    ImGui::PopID();
+}
+
+bool FDetailsPanel::DrawPropertyValue(const FProperty& Property, FPropertyValue& Value) {
+    const char* Label{Property.GetName().c_str()};
+
+    if (Property.GetType() == EPropertyType::Enum) {
+        Int32 Number{std::get<Int32>(Value)};
+        const auto& Choices{Property.GetEnumValues()};
+        const auto Current{std::find_if(Choices.begin(), Choices.end(), [Number](const FEnumValue& Choice) {
+            return Choice.mValue == Number;
+        })};
+        bool Changed{};
+
+        if (ImGui::BeginCombo(Label, Current != Choices.end() ? Current->mName.c_str() : "Invalid")) {
+            for (const FEnumValue& Choice : Choices) {
+                if (ImGui::Selectable(Choice.mName.c_str(), Number == Choice.mValue)) {
+                    Number = Choice.mValue;
+                    Changed = true;
+                }
+            }
+
+            ImGui::EndCombo();
+        }
+
+        Value = Number;
+
+        return Changed;
+    }
+
+    if (auto* Vector2{std::get_if<FVector2>(&Value)}) {
+        auto Values{Vector2->ToArray()};
+
+        if (ImGui::DragFloat2(Label, Values.data(), 0.025f)) {
+            *Vector2 = {Values[0], Values[1]};
+
+            return true;
+        }
+    } else if (auto* Vector4{std::get_if<FVector4>(&Value)}) {
+        auto Values{Vector4->ToArray()};
+
+        if (ImGui::DragFloat4(Label, Values.data(), 0.025f)) {
+            *Vector4 = {Values[0], Values[1], Values[2], Values[3]};
+
+            return true;
+        }
+    } else if (auto* Matrix{std::get_if<FMatrix>(&Value)}) {
+        bool Changed{};
+
+        if (ImGui::TreeNodeEx(Label, ImGuiTreeNodeFlags_DefaultOpen)) {
+            for (Int32 Row{}; Row < 4; ++Row) {
+                std::array<float, 4> Values{(*Matrix)(Row, 0), (*Matrix)(Row, 1), (*Matrix)(Row, 2), (*Matrix)(Row, 3)};
+
+                if (ImGui::DragFloat4(std::to_string(Row).c_str(), Values.data(), 0.025f)) {
+                    for (Int32 Column{}; Column < 4; ++Column) {
+                        (*Matrix)(Row, Column) = Values[static_cast<std::size_t>(Column)];
+                    }
+
+                    Changed = true;
+                }
+            }
+
+            ImGui::TreePop();
+        }
+
+        return Changed;
+    } else if (auto* Vector{std::get_if<FVector>(&Value)}) {
+        auto Values{Vector->ToArray()};
+
+        if (ImGui::DragFloat3(Label, Values.data(), 0.025f, 0.0f, 0.0f, "%.3f")) {
+            *Vector = {Values[0], Values[1], Values[2]};
+
+            return true;
+        }
+    } else if (auto* Rotation{std::get_if<FRotator>(&Value)}) {
+        auto Values{Rotation->ToArray()};
+
+        if (ImGui::DragFloat3(Label, Values.data(), 0.25f, 0.0f, 0.0f, "%.2f")) {
+            *Rotation = {Values[0], Values[1], Values[2]};
+
+            return true;
+        }
+    } else if (auto* String{std::get_if<FString>(&Value)}) {
+        std::array<char, 512> Buffer{};
+        std::copy_n(String->begin(), std::min(String->size(), Buffer.size() - 1), Buffer.begin());
+
+        if (ImGui::InputText(Label, Buffer.data(), Buffer.size(), ImGuiInputTextFlags_EnterReturnsTrue)) {
+            *String = Buffer.data();
+
+            return true;
+        }
+    } else if (auto* Boolean{std::get_if<bool>(&Value)}) {
+        return ImGui::Checkbox(Label, Boolean);
+    } else if (auto* FloatValue{std::get_if<float>(&Value)}) {
+        return ImGui::DragFloat(Label, FloatValue, 0.025f);
+    } else if (auto* IntegerValue{std::get_if<Int32>(&Value)}) {
+        return ImGui::InputInt(Label, IntegerValue);
+    } else if (auto* UnsignedValue{std::get_if<Uint32>(&Value)}) {
+        return ImGui::InputScalar(Label, ImGuiDataType_U32, UnsignedValue);
+    } else if (auto* Unsigned64Value{std::get_if<Uint64>(&Value)}) {
+        return ImGui::InputScalar(Label, ImGuiDataType_U64, Unsigned64Value);
+    } else if (auto* Guid{std::get_if<FGuid>(&Value)}) {
+        ImGui::TextDisabled("%s", Label);
+        ImGui::TextWrapped("%s", Guid->ToString().c_str());
+    } else if (const UStruct* Struct{Property.GetStruct()}) {
+        bool Changed{};
+
+        if (ImGui::TreeNodeEx(Label, ImGuiTreeNodeFlags_DefaultOpen)) {
+            for (const FProperty* Child : Struct->GetProperties()) {
+                if (Child->HasFlag(EPropertyFlags::Transient)) {
+                    continue;
+                }
+
+                FPropertyValue ChildValue{Child->ReadValue(GetPropertyData(Value))};
+
+                if (DrawPropertyValue(*Child, ChildValue)) {
+                    Changed = Child->WriteValue(GetPropertyData(Value), ChildValue) || Changed;
+                }
+            }
+
+            ImGui::TreePop();
+        }
+
+        return Changed;
+    }
+
+    return false;
+}

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Core/ReflectionMacros.h"
 #include "CoreUObject/UObject.h"
 
 class UWorld;
@@ -28,5 +29,8 @@ private:
 
 private:
     UWorld* mWorld{};
+    ReflectProperty(mWorld, "World", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     TArray<std::unique_ptr<AActor>> mActors{};
+    ReflectProperty(mActors, "Actors", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 };

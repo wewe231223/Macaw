@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Core/ReflectionMacros.h"
 #include "CoreUObject/UObject.h"
 
 class UWorld;
@@ -34,6 +35,10 @@ private:
 
 private:
     std::unique_ptr<FWorldContext> mWorldContext{};
+    ReflectProperty(mWorldContext, "WorldContext", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
     IRendererModule* mRenderer{};
+    ReflectProperty(mRenderer, "Renderer", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     Uint64 mWorldGeneration{};
+    ReflectProperty(mWorldGeneration, "WorldGeneration", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 };

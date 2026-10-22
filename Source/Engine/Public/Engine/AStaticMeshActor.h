@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Core/ReflectionMacros.h"
 #include "Engine/AActor.h"
 
 class UStaticMeshComponent;

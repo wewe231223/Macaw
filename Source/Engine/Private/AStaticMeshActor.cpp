@@ -10,9 +10,7 @@ AStaticMeshActor::AStaticMeshActor() = default;
 
 AStaticMeshActor::~AStaticMeshActor() = default;
 
-ImplementReflection(AStaticMeshActor) {
-    static_cast<void>(Information);
-}
+ImplementReflection(AStaticMeshActor)
 
 bool AStaticMeshActor::InitializeDefaultComponents() {
     if (GetRegistry() == nullptr || !GetComponents().empty()) {

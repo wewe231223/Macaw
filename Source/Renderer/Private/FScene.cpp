@@ -7,8 +7,6 @@
 #include "FScenePrimitive.h"
 #include "Core/Base/ErrorHandler.h"
 
-#include <algorithm>
-
 FScene::FScene(ID3D11Device& Device, ID3D11DeviceContext& Context)
 	: mDevice{&Device},
 	  mContext{&Context} {
@@ -25,8 +23,7 @@ void FScene::AddPrimitive(const FPrimitiveSceneProxy& Proxy) {
 
         Upload(Primitive);
     } else {
-        FScenePrimitive Primitive{};
-        Primitive.mProxy = Proxy;
+        FScenePrimitive Primitive{Proxy};
 
         Upload(Primitive);
 
@@ -46,9 +43,7 @@ void FScene::UpdatePrimitiveTransform(const FGuid& Id, const FMatrix& World, con
 
     FScenePrimitive& Primitive{mPrimitives[Position->second]};
 
-    if (std::ranges::equal(Primitive.mProxy.mWorld.mValues, World.mValues, [](const auto& Left, const auto& Right) {
-        return std::ranges::equal(Left, Right);
-    })) {
+    if (Primitive.mProxy.mWorld == World) {
         return;
     }
 

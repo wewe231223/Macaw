@@ -2,7 +2,7 @@
 #include "Core/Archive.h"
 #include "CoreUObject/Reflection/FEnumValue.h"
 #include "CoreUObject/Reflection/EPropertyType.h"
-#include "CoreUObject/Reflection/EPropertyFlags.h"
+#include "Core/Reflection/EPropertyFlags.h"
 #include "CoreUObject/Reflection/FPropertyValue.h"
 #include "CoreUObject/Reflection/UStruct.h"
 #include "Core/Base/ErrorHandler.h"
@@ -10,7 +10,7 @@
 #include <algorithm>
 #include <utility>
 
-FProperty::FProperty(FString Name, EPropertyType Type, EPropertyFlags Flags, FReader Reader, FWriter Writer, const UStruct* Struct, TArray<FEnumValue> Values, FWriter Loader)
+FProperty::FProperty(FString Name, EPropertyType Type, EPropertyFlags Flags, FReader Reader, FWriter Writer, const UStruct* Struct, TArray<FEnumValue> Values, FWriter Loader, const FNativeType* NativeType)
 	: mName{std::move(Name)},
 	  mType{Type},
 	  mFlags{Flags},
@@ -18,7 +18,8 @@ FProperty::FProperty(FString Name, EPropertyType Type, EPropertyFlags Flags, FRe
 	  mWriter{Writer},
 	  mLoader{Loader != nullptr ? Loader : Writer},
 	  mStruct{Struct},
-	  mEnumValues{std::move(Values)} {
+	  mEnumValues{std::move(Values)},
+	  mNativeType{NativeType} {
 }
 
 const FString& FProperty::GetName() const {
@@ -27,6 +28,10 @@ const FString& FProperty::GetName() const {
 
 EPropertyType FProperty::GetType() const {
     return mType;
+}
+
+const FNativeType* FProperty::GetNativeType() const {
+    return mNativeType;
 }
 
 bool FProperty::HasFlag(EPropertyFlags Flag) const {
@@ -46,6 +51,10 @@ FPropertyValue FProperty::ReadValue(const void* Container) const {
 }
 
 bool FProperty::WriteValue(void* Container, const FPropertyValue& Value) const {
+    if (HasFlag(EPropertyFlags::ReadOnly)) {
+        return false;
+    }
+
     return WriteValue(Container, Value, mWriter);
 }
 
@@ -82,7 +91,11 @@ void FProperty::SerializeValue(void* Container, FArchive& Archive) const {
         }
     } else {
         std::visit([&Archive, this](auto& Typed) {
-            Archive.Serialize(mName, Typed);
+            if constexpr (!std::is_same_v<std::remove_cvref_t<decltype(Typed)>, const void*>) {
+                Archive.Serialize(mName, Typed);
+            } else {
+                Archive.SetError("Cannot serialize opaque property: " + mName);
+            }
         }, Value);
     }
 

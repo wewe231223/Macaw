@@ -1,9 +1,12 @@
 #include "Application.h"
+#include "AppReflection.h"
 #include "CoreUObject/UObject.h"
 #include "Core/Base/ErrorHandler.h"
 #include "Core/Memory.h"
 
-FApplication::FApplication() = default;
+FApplication::FApplication() {
+    ReflectionModules::RegisterAppTypes();
+}
 
 FApplication::~FApplication() {
     Shutdown();

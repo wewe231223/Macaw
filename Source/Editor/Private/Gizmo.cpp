@@ -16,14 +16,26 @@
 
 #include <algorithm>
 #include <cmath>
-#include <numbers>
 
 namespace {
-    constexpr std::array<FVector, 3> UnitAxes{{{1.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f, 1.0f}}};
-    constexpr std::array<FVector, 3> AxisColors{{{1.0f, 0.28f, 0.22f}, {0.35f, 0.95f, 0.45f}, {0.32f, 0.58f, 1.0f}}};
+    std::array<FVector2, 65> BuildUnitCircle() {
+        std::array<FVector2, 65> Points{};
+
+        for (std::size_t Index{}; Index + 1 < Points.size(); ++Index) {
+            Points[Index] = FVector2{1.0f, 0.0f}.Rotated(360.0f * static_cast<float>(Index) / 64.0f);
+        }
+
+        Points.back() = Points.front();
+
+        return Points;
+    }
+
+    const std::array<FVector2, 65> UnitCircle{BuildUnitCircle()};
+    const std::array<FVector, 3> UnitAxes{{{1.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f, 1.0f}}};
+    const std::array<FVector, 3> AxisColors{{{1.0f, 0.28f, 0.22f}, {0.35f, 0.95f, 0.45f}, {0.32f, 0.58f, 1.0f}}};
 
     FVector Perpendicular(const FVector& Axis) {
-        return Axis.Cross(std::abs(Axis.mZ) < 0.8f ? FVector{0.0f, 0.0f, 1.0f} : FVector{0.0f, 1.0f, 0.0f}).Normalized();
+        return Axis.Cross(std::abs(Axis.z) < 0.8f ? FVector{0.0f, 0.0f, 1.0f} : FVector{0.0f, 1.0f, 0.0f}).Normalized();
     }
 }
 
@@ -56,11 +68,11 @@ EGizmoSpace FTransformGizmo::GetSpace() const {
 }
 
 FVector FTransformGizmo::GetAxis(const FTransform& Transform, Int32 Index) const {
-    return mSpace == EGizmoSpace::Local ? FMatrix::Rotation(Transform.mRotation).GetAxis(Index).Normalized() : UnitAxes[Index];
+    return mSpace == EGizmoSpace::Local ? Transform.TransformVectorNoScale(UnitAxes[Index]) : UnitAxes[Index];
 }
 
 float FTransformGizmo::GetSize(const FSceneView& View, const FVector& Pivot) const {
-    return std::max(0.05f, (Pivot - View.mLocation).Length() * 2.0f * std::tan(Math::ToRadians(View.mFieldOfView) * 0.5f) * 90.0f / std::max(View.mSize.mY, 1.0f));
+    return std::max(0.05f, Pivot.Distance(View.mLocation) * 2.0f * std::tan(Math::ToRadians(View.mFieldOfView) * 0.5f) * 90.0f / std::max(View.mSize.y, 1.0f));
 }
 
 Int32 FTransformGizmo::HitTest(const FVector2& Mouse, const FSceneView& View, const FTransform& Transform) const {
@@ -76,13 +88,13 @@ Int32 FTransformGizmo::HitTest(const FVector2& Mouse, const FSceneView& View, co
             const FVector V{Axis.Cross(U)};
 
             for (Int32 Segment{}; Segment < 64; ++Segment) {
-                const float A{2.0f * std::numbers::pi_v<float> * Segment / 64.0f};
-                const float B{2.0f * std::numbers::pi_v<float> * (Segment + 1) / 64.0f};
+                const FVector2& A{UnitCircle[Segment]};
+                const FVector2& B{UnitCircle[Segment + 1]};
 
                 FVector2 Start{};
                 FVector2 End{};
 
-                if (Math::Project(Transform.mLocation + (U * std::cos(A) + V * std::sin(A)) * Size, View.mViewProjection, View.mSize, Start) && Math::Project(Transform.mLocation + (U * std::cos(B) + V * std::sin(B)) * Size, View.mViewProjection, View.mSize, End)) {
+                if (Math::Project(Transform.mLocation + (U * A.x + V * A.y) * Size, View.mViewProjection, View.mSize, Start) && Math::Project(Transform.mLocation + (U * B.x + V * B.y) * Size, View.mViewProjection, View.mSize, End)) {
                     const float Distance{Math::DistanceToSegment(Mouse, Start, End)};
 
                     if (Distance < Closest) {
@@ -123,9 +135,9 @@ bool FTransformGizmo::BeginDrag(Int32 Axis, const FVector2& Mouse, const FSceneV
     mDragSize = GetSize(View, mStartTransform.mLocation);
     mStartMouse = Mouse;
 
-    mPlaneNormal = mMode == EGizmoMode::Rotate ? mAxis : (View.mForward - mAxis * View.mForward.Dot(mAxis)).Normalized();
+    mPlaneNormal = mMode == EGizmoMode::Rotate ? mAxis : View.mForward.ProjectedOnPlane(mAxis).Normalized();
 
-    if (mPlaneNormal.Length() < 0.01f) {
+    if (mPlaneNormal.IsNearlyZero(0.01f)) {
         mPlaneNormal = Perpendicular(mAxis);
     }
 
@@ -165,23 +177,24 @@ void FTransformGizmo::UpdateDrag(const FVector2& Mouse) {
     FTransform Transform{mStartTransform};
 
     if (mMode == EGizmoMode::Translate) {
-        Transform.mLocation += mAxis * (Intersection - mStartIntersection).Dot(mAxis);
+        Transform.mLocation += (Intersection - mStartIntersection).ProjectedOn(mAxis);
     } else if (mMode == EGizmoMode::Scale) {
         const float Factor{std::max(0.01f, 1.0f + (Intersection - mStartIntersection).Dot(mAxis) / mDragSize)};
 
         if (mActiveAxis == 0) {
-            Transform.mScale.mX *= Factor;
+            Transform.mScale.x *= Factor;
         } else if (mActiveAxis == 1) {
-            Transform.mScale.mY *= Factor;
+            Transform.mScale.y *= Factor;
         } else {
-            Transform.mScale.mZ *= Factor;
+            Transform.mScale.z *= Factor;
         }
     } else {
         const FVector Start{(mStartIntersection - mStartTransform.mLocation).Normalized()};
         const FVector Current{(Intersection - mStartTransform.mLocation).Normalized()};
         const float Angle{std::atan2(mAxis.Dot(Start.Cross(Current)), std::clamp(Start.Dot(Current), -1.0f, 1.0f))};
 
-        Transform.mRotation = (FMatrix::Rotation(mStartTransform.mRotation) * FMatrix::RotationAxis(mAxis, Angle)).GetRotation();
+        Transform.mRotation = FQuat{mAxis, Angle} * mStartTransform.mRotation;
+        Transform.NormalizeRotation();
     }
 
     mEngine->ApplyTransform(*Actor, Transform, true);
@@ -225,10 +238,10 @@ void FTransformGizmo::Draw(const FSceneView& View, FPrimitiveDrawInterface& Draw
 
         if (mMode == EGizmoMode::Rotate) {
             for (Int32 Segment{}; Segment < 64; ++Segment) {
-                const float A{2.0f * std::numbers::pi_v<float> * Segment / 64.0f};
-                const float B{2.0f * std::numbers::pi_v<float> * (Segment + 1) / 64.0f};
+                const FVector2& A{UnitCircle[Segment]};
+                const FVector2& B{UnitCircle[Segment + 1]};
 
-                DrawInterface.DrawLine(Pivot + (U * std::cos(A) + V * std::sin(A)) * Size, Pivot + (U * std::cos(B) + V * std::sin(B)) * Size, Color);
+                DrawInterface.DrawLine(Pivot + (U * A.x + V * A.y) * Size, Pivot + (U * B.x + V * B.y) * Size, Color);
             }
         } else {
             const FVector End{Pivot + Axis * Size};

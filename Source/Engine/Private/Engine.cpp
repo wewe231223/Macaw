@@ -14,9 +14,7 @@ UEngine::~UEngine() {
     Shutdown();
 }
 
-ImplementReflection(UEngine, EClassFlags::NoFactory) {
-    static_cast<void>(Information);
-}
+ImplementReflection(UEngine, EClassFlags::NoFactory)
 
 bool UEngine::Initialize(IRendererModule& Renderer) {
     if (mWorldContext != nullptr) {

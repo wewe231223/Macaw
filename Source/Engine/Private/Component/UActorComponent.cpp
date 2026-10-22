@@ -7,9 +7,7 @@ UActorComponent::UActorComponent() = default;
 
 UActorComponent::~UActorComponent() = default;
 
-ImplementReflection(UActorComponent, EClassFlags::NoFactory) {
-    static_cast<void>(Information);
-}
+ImplementReflection(UActorComponent, EClassFlags::NoFactory)
 
 AActor* UActorComponent::GetOwner() const {
     return mOwner;

@@ -57,16 +57,17 @@ UClass* FReflectionRegistry::DefineClass(FString Name, UClass* (*Parent)(), cons
     return Class;
 }
 
-UScriptStruct* FReflectionRegistry::DefineStruct(FString Name, const FNativeType* NativeType, FStructBuilder Builder) {
+UScriptStruct* FReflectionRegistry::DefineStruct(FString Name, const FNativeType* NativeType, FStructBuilder Builder, const UScriptStruct* Parent) {
     ErrorHandler::Report(Name.empty() || NativeType == nullptr, "FReflectionRegistry", "Invalid struct definition", ErrorHandler::EErrorLevel::Critical);
     FReflectionDefinition Definition{EReflectionType::Struct, NativeType};
     Definition.mStructBuilder = Builder;
+    Definition.mStructParent = Parent;
 
     if (UStruct* Existing{FindDefinition(Name, Definition)}) {
         return static_cast<UScriptStruct*>(Existing);
     }
 
-    auto Owner{std::make_unique<UScriptStruct>(Name, NativeType->mSize)};
+    auto Owner{std::make_unique<UScriptStruct>(Name, NativeType->mSize, Parent)};
     UScriptStruct* Struct{Owner.get()};
 
     GetRegisteredTypes().emplace(std::move(Name), FRegisteredType{Definition, std::move(Owner)});

@@ -1,5 +1,5 @@
 #include "Renderer/Renderer.h"
-#include "FLineVertex.h"
+#include "Renderer/FLineVertex.h"
 #include "Core/Math/FVector.h"
 #include "Core/Math/FMatrix.h"
 #include "Engine/FMeshVertex.h"
@@ -12,7 +12,8 @@
 #include "Engine/EPrimitiveType.h"
 #include "RenderCore/FRenderStats.h"
 #include "FObjectConstants.h"
-#include "FMeshResource.h"
+#include "FGpuMeshVertex.h"
+#include "Renderer/FMeshResource.h"
 #include "FSceneDrawContext.h"
 #include "Core/Base/ErrorHandler.h"
 #include "RenderTarget.h"
@@ -80,51 +81,251 @@ float4 PixelMain(FOutput Input) : SV_TARGET {
 
 }
 
-struct FRenderer::FImplementation {
-private:
-    friend class FRenderer;
+FRenderer::FRenderer() = default;
 
-public:
-    bool CreateBackBuffer(Uint32 Width, Uint32 Height);
-    bool CreatePipeline();
-    bool Compile(const char* Source, std::size_t Size, const char* Entry, const char* Target, ComPtr<ID3DBlob>& Code);
-    void DrawLines(const FPrimitiveDrawInterface& Elements, bool DepthTest);
+FRenderer::~FRenderer() {
+    Shutdown();
+}
 
-private:
-    ComPtr<ID3D11Device> mDevice{};
-    ComPtr<ID3D11DeviceContext> mContext{};
+bool FRenderer::Initialize(void* WindowHandle, Uint32 Width, Uint32 Height) {
+    if (mDevice != nullptr || WindowHandle == nullptr || Width == 0 || Height == 0) {
+        ErrorHandler::Fatal("Renderer", "Invalid renderer initialization state");
+    }
 
-    ComPtr<IDXGISwapChain> mSwapChain{};
-    ComPtr<ID3D11RenderTargetView> mBackBuffer{};
+    DXGI_SWAP_CHAIN_DESC Description{};
+    Description.BufferDesc.Width = Width;
+    Description.BufferDesc.Height = Height;
+    Description.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    Description.SampleDesc.Count = 1;
 
-    ComPtr<ID3D11VertexShader> mMeshVertexShader{};
-    ComPtr<ID3D11PixelShader> mMeshPixelShader{};
-    ComPtr<ID3D11InputLayout> mMeshLayout{};
+    Description.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+    Description.BufferCount = 2;
 
-    ComPtr<ID3D11VertexShader> mLineVertexShader{};
-    ComPtr<ID3D11PixelShader> mLinePixelShader{};
-    ComPtr<ID3D11InputLayout> mLineLayout{};
+    Description.OutputWindow = static_cast<HWND>(WindowHandle);
+    Description.Windowed = true;
+    Description.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
 
-    ComPtr<ID3D11Buffer> mViewBuffer{};
-    ComPtr<ID3D11Buffer> mLineBuffer{};
+    UINT Flags{D3D11_CREATE_DEVICE_BGRA_SUPPORT};
+#ifdef _DEBUG
+    Flags |= D3D11_CREATE_DEVICE_DEBUG;
+#endif
 
-    ComPtr<ID3D11RasterizerState> mRasterizer{};
-    ComPtr<ID3D11DepthStencilState> mDepthEnabled{};
-    ComPtr<ID3D11DepthStencilState> mDepthReadOnly{};
-    ComPtr<ID3D11DepthStencilState> mDepthDisabled{};
+    const D3D_FEATURE_LEVEL Level{D3D_FEATURE_LEVEL_11_0};
+    HRESULT Result{E_FAIL};
 
-    std::array<FMeshResource, 3> mMeshes{};
+    for (Int32 Attempt{}; Attempt < 4 && FAILED(Result); ++Attempt) {
+        const D3D_DRIVER_TYPE Driver{Attempt >= 2 ? D3D_DRIVER_TYPE_WARP : D3D_DRIVER_TYPE_HARDWARE};
+        const UINT AttemptFlags{(Attempt & 1) != 0 ? Flags & ~D3D11_CREATE_DEVICE_DEBUG : Flags};
 
-    TArray<FLineVertex> mLineVertices{};
-    Uint32 mLineCapacity{};
+        Result = D3D11CreateDeviceAndSwapChain(nullptr, Driver, nullptr, AttemptFlags, &Level, 1, D3D11_SDK_VERSION, &Description, mSwapChain.GetAddressOf(), mDevice.GetAddressOf(), nullptr, mContext.GetAddressOf());
+    }
 
-    Uint32 mWidth{};
-    Uint32 mHeight{};
+    if (FAILED(Result)) {
+        ErrorHandler::ReportHRESULT(Result, "Renderer", "D3D11 device creation failed", ErrorHandler::EErrorLevel::Critical);
+    }
 
-    FRenderStats mStats{};
-};
+    ComPtr<IDXGIFactory> Factory{};
 
-bool FRenderer::FImplementation::Compile(const char* Source, std::size_t Size, const char* Entry, const char* Target, ComPtr<ID3DBlob>& Code) {
+    if (SUCCEEDED(mSwapChain->GetParent(IID_PPV_ARGS(Factory.GetAddressOf())))) {
+        Factory->MakeWindowAssociation(Description.OutputWindow, DXGI_MWA_NO_ALT_ENTER);
+    }
+
+    if (!CreateBackBuffer(Width, Height) || !CreatePipeline()) {
+        ErrorHandler::Fatal("Renderer", "Render pipeline creation failed");
+    }
+
+    return true;
+}
+
+void FRenderer::Shutdown() {
+    if (mContext != nullptr) {
+        mContext->ClearState();
+        mContext->Flush();
+    }
+
+    mMeshes = {};
+    mLineVertices = TArray<FLineVertex>{};
+
+    mViewBuffer.Reset();
+    mLineBuffer.Reset();
+
+    mMeshVertexShader.Reset();
+    mMeshPixelShader.Reset();
+    mMeshLayout.Reset();
+
+    mLineVertexShader.Reset();
+    mLinePixelShader.Reset();
+    mLineLayout.Reset();
+
+    mRasterizer.Reset();
+    mDepthEnabled.Reset();
+    mDepthReadOnly.Reset();
+    mDepthDisabled.Reset();
+
+    mBackBuffer.Reset();
+    mSwapChain.Reset();
+    mContext.Reset();
+    mDevice.Reset();
+
+    mLineCapacity = 0;
+    mWidth = 0;
+    mHeight = 0;
+    mStats = {};
+}
+
+std::unique_ptr<FSceneInterface> FRenderer::AllocateScene() {
+    ErrorHandler::Report(mDevice == nullptr, "Renderer", "Scene allocation requires an initialized device", ErrorHandler::EErrorLevel::Critical);
+
+    return std::make_unique<FScene>(*mDevice.Get(), *mContext.Get());
+}
+
+bool FRenderer::UploadMesh(EPrimitiveType Type, const FMeshData& Mesh) {
+    if (Type >= EPrimitiveType::Count || Mesh.mVertices.empty() || Mesh.mIndices.empty() || mDevice == nullptr) {
+        ErrorHandler::Fatal("Renderer", "Invalid mesh upload state");
+    }
+
+    TArray<FGpuMeshVertex> Vertices{};
+    Vertices.reserve(Mesh.mVertices.size());
+
+    for (const FMeshVertex& Vertex : Mesh.mVertices) {
+        Vertices.emplace_back(Vertex);
+    }
+
+    FMeshResource Resource{};
+
+    D3D11_BUFFER_DESC Description{};
+    Description.ByteWidth = static_cast<UINT>(Vertices.size() * sizeof(FGpuMeshVertex));
+    Description.Usage = D3D11_USAGE_IMMUTABLE;
+    Description.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+
+    D3D11_SUBRESOURCE_DATA Data{};
+    Data.pSysMem = Vertices.data();
+
+    if (FAILED(mDevice->CreateBuffer(&Description, &Data, Resource.mVertices.GetAddressOf()))) {
+        ErrorHandler::Fatal("Renderer", "Mesh vertex buffer allocation failed");
+    }
+
+    Resource.mBytes = Description.ByteWidth;
+
+    Description.ByteWidth = static_cast<UINT>(Mesh.mIndices.size() * sizeof(Uint32));
+    Description.BindFlags = D3D11_BIND_INDEX_BUFFER;
+    Data.pSysMem = Mesh.mIndices.data();
+
+    if (FAILED(mDevice->CreateBuffer(&Description, &Data, Resource.mIndices.GetAddressOf()))) {
+        ErrorHandler::Fatal("Renderer", "Mesh index buffer allocation failed");
+    }
+
+    Resource.mBytes += Description.ByteWidth;
+    Resource.mIndexCount = static_cast<Uint32>(Mesh.mIndices.size());
+
+    mMeshes[static_cast<std::size_t>(Type)] = std::move(Resource);
+
+    return true;
+}
+
+std::unique_ptr<FRenderTarget> FRenderer::CreateRenderTarget(Uint32 Width, Uint32 Height) {
+    auto Target{std::make_unique<FDXRenderTarget>()};
+    return mDevice != nullptr && Target->Resize(*mDevice.Get(), Width, Height) ? std::move(Target) : nullptr;
+}
+
+bool FRenderer::ResizeRenderTarget(FRenderTarget& Target, Uint32 Width, Uint32 Height) {
+    auto* Native{dynamic_cast<FDXRenderTarget*>(&Target)};
+
+    if (Native == nullptr || mDevice == nullptr) {
+        ErrorHandler::Fatal("Renderer", "Invalid render target resize state");
+    }
+
+    mContext->OMSetRenderTargets(0, nullptr, nullptr);
+
+    ID3D11ShaderResourceView* Empty{};
+    mContext->PSSetShaderResources(0, 1, &Empty);
+
+    return Native->Resize(*mDevice.Get(), Width, Height);
+}
+
+void FRenderer::BeginFrame(Uint32 Width, Uint32 Height) {
+    mStats = {};
+
+    if (Width > 0 && Height > 0 && (mWidth != Width || mHeight != Height)) {
+        CreateBackBuffer(Width, Height);
+    }
+}
+
+void FRenderer::BeginRenderingViewFamily(const FSceneViewFamily& Family) {
+    const auto* Scene{dynamic_cast<const FScene*>(Family.mScene)};
+    auto* Target{dynamic_cast<FDXRenderTarget*>(Family.mTarget)};
+
+    if (Scene == nullptr || Target == nullptr || mContext == nullptr) {
+        ErrorHandler::Fatal("Renderer", "Invalid scene view family");
+    }
+
+    ID3D11ShaderResourceView* Empty{};
+    mContext->PSSetShaderResources(0, 1, &Empty);
+
+    ID3D11RenderTargetView* RenderTarget{Target->GetRenderTargetView()};
+    mContext->OMSetRenderTargets(1, &RenderTarget, Target->GetDepthView());
+
+    constexpr float ClearColor[]{0.065f, 0.078f, 0.10f, 1.0f};
+    mContext->ClearRenderTargetView(RenderTarget, ClearColor);
+    mContext->ClearDepthStencilView(Target->GetDepthView(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+
+    const D3D11_VIEWPORT Viewport{0.0f, 0.0f, static_cast<float>(Target->GetWidth()), static_cast<float>(Target->GetHeight()), 0.0f, 1.0f};
+    mContext->RSSetViewports(1, &Viewport);
+    mContext->RSSetState(mRasterizer.Get());
+    mContext->OMSetDepthStencilState(mDepthEnabled.Get(), 0);
+    mContext->OMSetBlendState(nullptr, nullptr, 0xFFFFFFFFu);
+
+    mContext->GSSetShader(nullptr, nullptr, 0);
+    mContext->HSSetShader(nullptr, nullptr, 0);
+    mContext->DSSetShader(nullptr, nullptr, 0);
+
+    const FSceneDrawContext Context{mContext.Get(), &mMeshes, mMeshVertexShader.Get(), mMeshPixelShader.Get(), mMeshLayout.Get(), mViewBuffer.Get()};
+    FSceneRenderer SceneRenderer{Family, *Scene, Context, mStats};
+    SceneRenderer.Render();
+
+    if (Family.mEditorElements != nullptr) {
+        DrawLines(*Family.mEditorElements, true);
+        DrawLines(*Family.mEditorElements, false);
+    }
+
+    mStats.mGpuBytes = Scene->GetPrimitiveCount() * sizeof(FObjectConstants) + sizeof(FMatrix) + mLineCapacity * sizeof(FLineVertex) + static_cast<std::size_t>(Target->GetWidth()) * Target->GetHeight() * 8;
+
+    for (const FMeshResource& Mesh : mMeshes) {
+        mStats.mGpuBytes += Mesh.mBytes;
+    }
+
+    mContext->OMSetRenderTargets(0, nullptr, nullptr);
+}
+
+void FRenderer::BeginUiRender() {
+    if (mBackBuffer != nullptr) {
+        ID3D11RenderTargetView* Target{mBackBuffer.Get()};
+        mContext->OMSetRenderTargets(1, &Target, nullptr);
+
+        constexpr float Clear[]{0.045f, 0.05f, 0.065f, 1.0f};
+        mContext->ClearRenderTargetView(Target, Clear);
+    }
+}
+
+void FRenderer::Present() {
+    if (mSwapChain != nullptr && FAILED(mSwapChain->Present(1, 0))) {
+        ErrorHandler::Fatal("Renderer", "Presentation failed");
+    }
+}
+
+void* FRenderer::GetNativeDevice() const {
+    return mDevice.Get();
+}
+
+void* FRenderer::GetNativeContext() const {
+    return mContext.Get();
+}
+
+FRenderStats FRenderer::GetStats() const {
+    return mStats;
+}
+
+bool FRenderer::Compile(const char* Source, std::size_t Size, const char* Entry, const char* Target, ComPtr<ID3DBlob>& Code) {
     ComPtr<ID3DBlob> Errors{};
     const HRESULT Result{D3DCompile(Source, Size, "MacawWeek1", nullptr, nullptr, Entry, Target, D3DCOMPILE_ENABLE_STRICTNESS, 0, Code.GetAddressOf(), Errors.GetAddressOf())};
 
@@ -135,7 +336,7 @@ bool FRenderer::FImplementation::Compile(const char* Source, std::size_t Size, c
     return true;
 }
 
-bool FRenderer::FImplementation::CreateBackBuffer(Uint32 Width, Uint32 Height) {
+bool FRenderer::CreateBackBuffer(Uint32 Width, Uint32 Height) {
     mContext->OMSetRenderTargets(0, nullptr, nullptr);
     mBackBuffer.Reset();
 
@@ -155,7 +356,7 @@ bool FRenderer::FImplementation::CreateBackBuffer(Uint32 Width, Uint32 Height) {
     return true;
 }
 
-bool FRenderer::FImplementation::CreatePipeline() {
+bool FRenderer::CreatePipeline() {
     ComPtr<ID3DBlob> VertexCode{};
     ComPtr<ID3DBlob> PixelCode{};
 
@@ -163,7 +364,7 @@ bool FRenderer::FImplementation::CreatePipeline() {
         return false;
     }
 
-    const std::array<D3D11_INPUT_ELEMENT_DESC, 2> MeshElements{{{"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0}, {"NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0}}};
+    const std::array<D3D11_INPUT_ELEMENT_DESC, 2> MeshElements{{{"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(FGpuMeshVertex, mPosition), D3D11_INPUT_PER_VERTEX_DATA, 0}, {"NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(FGpuMeshVertex, mNormal), D3D11_INPUT_PER_VERTEX_DATA, 0}}};
 
     if (FAILED(mDevice->CreateVertexShader(VertexCode->GetBufferPointer(), VertexCode->GetBufferSize(), nullptr, mMeshVertexShader.GetAddressOf())) || FAILED(mDevice->CreatePixelShader(PixelCode->GetBufferPointer(), PixelCode->GetBufferSize(), nullptr, mMeshPixelShader.GetAddressOf())) || FAILED(mDevice->CreateInputLayout(MeshElements.data(), static_cast<UINT>(MeshElements.size()), VertexCode->GetBufferPointer(), VertexCode->GetBufferSize(), mMeshLayout.GetAddressOf()))) {
         ErrorHandler::Fatal("Renderer", "Mesh pipeline allocation failed");
@@ -176,7 +377,7 @@ bool FRenderer::FImplementation::CreatePipeline() {
         return false;
     }
 
-    const std::array<D3D11_INPUT_ELEMENT_DESC, 2> LineElements{{{"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0}, {"COLOR", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0}}};
+    const std::array<D3D11_INPUT_ELEMENT_DESC, 2> LineElements{{{"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(FLineVertex, mPosition), D3D11_INPUT_PER_VERTEX_DATA, 0}, {"COLOR", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(FLineVertex, mColor), D3D11_INPUT_PER_VERTEX_DATA, 0}}};
 
     if (FAILED(mDevice->CreateVertexShader(VertexCode->GetBufferPointer(), VertexCode->GetBufferSize(), nullptr, mLineVertexShader.GetAddressOf())) || FAILED(mDevice->CreatePixelShader(PixelCode->GetBufferPointer(), PixelCode->GetBufferSize(), nullptr, mLinePixelShader.GetAddressOf())) || FAILED(mDevice->CreateInputLayout(LineElements.data(), static_cast<UINT>(LineElements.size()), VertexCode->GetBufferPointer(), VertexCode->GetBufferSize(), mLineLayout.GetAddressOf()))) {
         ErrorHandler::Fatal("Renderer", "Line pipeline allocation failed");
@@ -222,7 +423,7 @@ bool FRenderer::FImplementation::CreatePipeline() {
     return true;
 }
 
-void FRenderer::FImplementation::DrawLines(const FPrimitiveDrawInterface& Elements, bool DepthTest) {
+void FRenderer::DrawLines(const FPrimitiveDrawInterface& Elements, bool DepthTest) {
     mLineVertices.clear();
 
     for (const FDrawLine& Line : Elements.GetLines()) {
@@ -280,222 +481,4 @@ void FRenderer::FImplementation::DrawLines(const FPrimitiveDrawInterface& Elemen
     mContext->Draw(Count, 0);
 
     ++mStats.mDrawCalls;
-}
-
-FRenderer::FRenderer()
-	: mImplementation{std::make_unique<FImplementation>()} {
-}
-
-FRenderer::~FRenderer() {
-    Shutdown();
-}
-
-bool FRenderer::Initialize(void* WindowHandle, Uint32 Width, Uint32 Height) {
-    if (mImplementation->mDevice != nullptr || WindowHandle == nullptr || Width == 0 || Height == 0) {
-        ErrorHandler::Fatal("Renderer", "Invalid renderer initialization state");
-    }
-
-    auto& State{*mImplementation};
-
-    DXGI_SWAP_CHAIN_DESC Description{};
-    Description.BufferDesc.Width = Width;
-    Description.BufferDesc.Height = Height;
-    Description.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-    Description.SampleDesc.Count = 1;
-
-    Description.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-    Description.BufferCount = 2;
-
-    Description.OutputWindow = static_cast<HWND>(WindowHandle);
-    Description.Windowed = true;
-    Description.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
-
-    UINT Flags{D3D11_CREATE_DEVICE_BGRA_SUPPORT};
-#ifdef _DEBUG
-    Flags |= D3D11_CREATE_DEVICE_DEBUG;
-#endif
-
-    const D3D_FEATURE_LEVEL Level{D3D_FEATURE_LEVEL_11_0};
-    HRESULT Result{E_FAIL};
-
-    for (Int32 Attempt{}; Attempt < 4 && FAILED(Result); ++Attempt) {
-        const D3D_DRIVER_TYPE Driver{Attempt >= 2 ? D3D_DRIVER_TYPE_WARP : D3D_DRIVER_TYPE_HARDWARE};
-        const UINT AttemptFlags{(Attempt & 1) != 0 ? Flags & ~D3D11_CREATE_DEVICE_DEBUG : Flags};
-
-        Result = D3D11CreateDeviceAndSwapChain(nullptr, Driver, nullptr, AttemptFlags, &Level, 1, D3D11_SDK_VERSION, &Description, State.mSwapChain.GetAddressOf(), State.mDevice.GetAddressOf(), nullptr, State.mContext.GetAddressOf());
-    }
-
-    if (FAILED(Result)) {
-        ErrorHandler::ReportHRESULT(Result, "Renderer", "D3D11 device creation failed", ErrorHandler::EErrorLevel::Critical);
-    }
-
-    ComPtr<IDXGIFactory> Factory{};
-
-    if (SUCCEEDED(State.mSwapChain->GetParent(IID_PPV_ARGS(Factory.GetAddressOf())))) {
-        Factory->MakeWindowAssociation(Description.OutputWindow, DXGI_MWA_NO_ALT_ENTER);
-    }
-
-    if (!State.CreateBackBuffer(Width, Height) || !State.CreatePipeline()) {
-        ErrorHandler::Fatal("Renderer", "Render pipeline creation failed");
-    }
-
-    return true;
-}
-
-void FRenderer::Shutdown() {
-    if (mImplementation != nullptr && mImplementation->mContext != nullptr) {
-        mImplementation->mContext->ClearState();
-        mImplementation->mContext->Flush();
-    }
-
-    *mImplementation = FImplementation{};
-}
-
-std::unique_ptr<FSceneInterface> FRenderer::AllocateScene() {
-    ErrorHandler::Report(mImplementation->mDevice == nullptr, "Renderer", "Scene allocation requires an initialized device", ErrorHandler::EErrorLevel::Critical);
-
-    return std::make_unique<FScene>(*mImplementation->mDevice.Get(), *mImplementation->mContext.Get());
-}
-
-bool FRenderer::UploadMesh(EPrimitiveType Type, const FMeshData& Mesh) {
-    if (Type >= EPrimitiveType::Count || Mesh.mVertices.empty() || Mesh.mIndices.empty() || mImplementation->mDevice == nullptr) {
-        ErrorHandler::Fatal("Renderer", "Invalid mesh upload state");
-    }
-
-    FMeshResource Resource{};
-
-    D3D11_BUFFER_DESC Description{};
-    Description.ByteWidth = static_cast<UINT>(Mesh.mVertices.size() * sizeof(FMeshVertex));
-    Description.Usage = D3D11_USAGE_IMMUTABLE;
-    Description.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-
-    D3D11_SUBRESOURCE_DATA Data{};
-    Data.pSysMem = Mesh.mVertices.data();
-
-    if (FAILED(mImplementation->mDevice->CreateBuffer(&Description, &Data, Resource.mVertices.GetAddressOf()))) {
-        ErrorHandler::Fatal("Renderer", "Mesh vertex buffer allocation failed");
-    }
-
-    Resource.mBytes = Description.ByteWidth;
-
-    Description.ByteWidth = static_cast<UINT>(Mesh.mIndices.size() * sizeof(Uint32));
-    Description.BindFlags = D3D11_BIND_INDEX_BUFFER;
-    Data.pSysMem = Mesh.mIndices.data();
-
-    if (FAILED(mImplementation->mDevice->CreateBuffer(&Description, &Data, Resource.mIndices.GetAddressOf()))) {
-        ErrorHandler::Fatal("Renderer", "Mesh index buffer allocation failed");
-    }
-
-    Resource.mBytes += Description.ByteWidth;
-    Resource.mIndexCount = static_cast<Uint32>(Mesh.mIndices.size());
-
-    mImplementation->mMeshes[static_cast<std::size_t>(Type)] = std::move(Resource);
-
-    return true;
-}
-
-std::unique_ptr<FRenderTarget> FRenderer::CreateRenderTarget(Uint32 Width, Uint32 Height) {
-    auto Target{std::make_unique<FDXRenderTarget>()};
-    return mImplementation->mDevice != nullptr && Target->Resize(*mImplementation->mDevice.Get(), Width, Height) ? std::move(Target) : nullptr;
-}
-
-bool FRenderer::ResizeRenderTarget(FRenderTarget& Target, Uint32 Width, Uint32 Height) {
-    auto* Native{dynamic_cast<FDXRenderTarget*>(&Target)};
-
-    if (Native == nullptr || mImplementation->mDevice == nullptr) {
-        ErrorHandler::Fatal("Renderer", "Invalid render target resize state");
-    }
-
-    mImplementation->mContext->OMSetRenderTargets(0, nullptr, nullptr);
-
-    ID3D11ShaderResourceView* Empty{};
-    mImplementation->mContext->PSSetShaderResources(0, 1, &Empty);
-
-    return Native->Resize(*mImplementation->mDevice.Get(), Width, Height);
-}
-
-void FRenderer::BeginFrame(Uint32 Width, Uint32 Height) {
-    auto& State{*mImplementation};
-    State.mStats = {};
-
-    if (Width > 0 && Height > 0 && (State.mWidth != Width || State.mHeight != Height)) {
-        State.CreateBackBuffer(Width, Height);
-    }
-}
-
-void FRenderer::BeginRenderingViewFamily(const FSceneViewFamily& Family) {
-    auto& State{*mImplementation};
-    const auto* Scene{dynamic_cast<const FScene*>(Family.mScene)};
-    auto* Target{dynamic_cast<FDXRenderTarget*>(Family.mTarget)};
-
-    if (Scene == nullptr || Target == nullptr || State.mContext == nullptr) {
-        ErrorHandler::Fatal("Renderer", "Invalid scene view family");
-    }
-
-    ID3D11ShaderResourceView* Empty{};
-    State.mContext->PSSetShaderResources(0, 1, &Empty);
-
-    ID3D11RenderTargetView* RenderTarget{Target->GetRenderTargetView()};
-    State.mContext->OMSetRenderTargets(1, &RenderTarget, Target->GetDepthView());
-
-    constexpr float ClearColor[]{0.065f, 0.078f, 0.10f, 1.0f};
-    State.mContext->ClearRenderTargetView(RenderTarget, ClearColor);
-    State.mContext->ClearDepthStencilView(Target->GetDepthView(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
-
-    const D3D11_VIEWPORT Viewport{0.0f, 0.0f, static_cast<float>(Target->GetWidth()), static_cast<float>(Target->GetHeight()), 0.0f, 1.0f};
-    State.mContext->RSSetViewports(1, &Viewport);
-    State.mContext->RSSetState(State.mRasterizer.Get());
-    State.mContext->OMSetDepthStencilState(State.mDepthEnabled.Get(), 0);
-    State.mContext->OMSetBlendState(nullptr, nullptr, 0xFFFFFFFFu);
-
-    State.mContext->GSSetShader(nullptr, nullptr, 0);
-    State.mContext->HSSetShader(nullptr, nullptr, 0);
-    State.mContext->DSSetShader(nullptr, nullptr, 0);
-
-    const FSceneDrawContext Context{State.mContext.Get(), &State.mMeshes, State.mMeshVertexShader.Get(), State.mMeshPixelShader.Get(), State.mMeshLayout.Get(), State.mViewBuffer.Get()};
-    FSceneRenderer SceneRenderer{Family, *Scene, Context, State.mStats};
-    SceneRenderer.Render();
-
-    if (Family.mEditorElements != nullptr) {
-        State.DrawLines(*Family.mEditorElements, true);
-        State.DrawLines(*Family.mEditorElements, false);
-    }
-
-    State.mStats.mGpuBytes = Scene->GetPrimitiveCount() * sizeof(FObjectConstants) + sizeof(FMatrix) + State.mLineCapacity * sizeof(FLineVertex) + static_cast<std::size_t>(Target->GetWidth()) * Target->GetHeight() * 8;
-
-    for (const FMeshResource& Mesh : State.mMeshes) {
-        State.mStats.mGpuBytes += Mesh.mBytes;
-    }
-
-    State.mContext->OMSetRenderTargets(0, nullptr, nullptr);
-}
-
-void FRenderer::BeginUiRender() {
-    auto& State{*mImplementation};
-
-    if (State.mBackBuffer != nullptr) {
-        ID3D11RenderTargetView* Target{State.mBackBuffer.Get()};
-        State.mContext->OMSetRenderTargets(1, &Target, nullptr);
-
-        constexpr float Clear[]{0.045f, 0.05f, 0.065f, 1.0f};
-        State.mContext->ClearRenderTargetView(Target, Clear);
-    }
-}
-
-void FRenderer::Present() {
-    if (mImplementation->mSwapChain != nullptr && FAILED(mImplementation->mSwapChain->Present(1, 0))) {
-        ErrorHandler::Fatal("Renderer", "Presentation failed");
-    }
-}
-
-void* FRenderer::GetNativeDevice() const {
-    return mImplementation->mDevice.Get();
-}
-
-void* FRenderer::GetNativeContext() const {
-    return mImplementation->mContext.Get();
-}
-
-FRenderStats FRenderer::GetStats() const {
-    return mImplementation->mStats;
 }

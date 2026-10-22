@@ -1,7 +1,7 @@
 #pragma once
 
+#include "Core/ReflectionMacros.h"
 #include "RenderCore/FRenderStats.h"
-
 
 class FSceneInterface;
 class FRenderTarget;
@@ -11,9 +11,14 @@ enum class EPrimitiveType : Uint8;
 
 class IRendererModule {
 public:
+    ReflectTypes(IRendererModule);
+
+public:
     virtual ~IRendererModule();
 
 public:
+    ReflectStruct(IRendererModule);
+
     virtual bool Initialize(void* WindowHandle, Uint32 Width, Uint32 Height) = 0;
     virtual void Shutdown() = 0;
 
@@ -33,4 +38,6 @@ public:
     virtual void* GetNativeContext() const = 0;
     virtual FRenderStats GetStats() const = 0;
 
+private:
+    ReflectMembers();
 };

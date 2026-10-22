@@ -26,9 +26,7 @@ UWorld::~UWorld() {
     Shutdown();
 }
 
-ImplementReflection(UWorld, EClassFlags::NoFactory) {
-    static_cast<void>(Information);
-}
+ImplementReflection(UWorld, EClassFlags::NoFactory)
 
 bool UWorld::SetPersistentLevel(std::unique_ptr<ULevel> Level) {
     if (mPersistentLevel != nullptr || Level == nullptr || Level->GetRegistry() != GetRegistry()) {
@@ -116,13 +114,14 @@ void UWorld::SendAllEndOfFrameUpdates() {
 }
 
 bool UWorld::Raycast(const FRay& Ray, FWorldHit& Hit) const {
-    if (mPersistentLevel == nullptr || !Ray.mOrigin.IsFinite() || !Ray.mDirection.IsFinite() || Ray.mDirection.Length() < 0.000001f) {
+    FRay NormalizedRay{Ray};
+
+    if (mPersistentLevel == nullptr || !NormalizedRay.mOrigin.IsFinite() || !NormalizedRay.mDirection.Normalize()) {
         return false;
     }
 
     bool Found{};
     float Closest{std::numeric_limits<float>::max()};
-    const FRay NormalizedRay{Ray.mOrigin, Ray.mDirection.Normalized()};
 
     for (const auto& Actor : mPersistentLevel->GetActors()) {
         for (const auto& Component : Actor->GetComponents()) {

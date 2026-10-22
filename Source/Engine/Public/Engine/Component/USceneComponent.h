@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Core/ReflectionMacros.h"
 #include "Engine/Component/UActorComponent.h"
 #include "Core/Math/FTransform.h"
 
@@ -24,4 +25,5 @@ private:
 
 private:
     FTransform mTransform{};
+    ReflectAccessor(mTransform, GetTransform, SetTransform, "Transform", EPropertyFlags::Edit | EPropertyFlags::Serialize);
 };

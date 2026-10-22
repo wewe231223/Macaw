@@ -1,5 +1,5 @@
 #include "Engine/Component/USceneComponent.h"
-#include "CoreUObject/Reflection/EPropertyFlags.h"
+#include "Core/Reflection/EPropertyFlags.h"
 #include "Core/Math/FMatrix.h"
 #include "Core/Math/FTransform.h"
 #include "CoreUObject/Reflection/ReflectionMacros.h"
@@ -8,9 +8,7 @@ USceneComponent::USceneComponent() = default;
 
 USceneComponent::~USceneComponent() = default;
 
-ImplementReflection(USceneComponent, EClassFlags::NoFactory) {
-    ReflectAccessor(mTransform, GetTransform, SetTransform, "Transform", EPropertyFlags::Edit | EPropertyFlags::Serialize);
-}
+ImplementReflection(USceneComponent, EClassFlags::NoFactory)
 
 const FTransform& USceneComponent::GetTransform() const {
     return mTransform;

@@ -1,10 +1,10 @@
 {
   "Core": { "Public": [], "Private": [] },
   "CoreUObject": { "Public": ["Core"], "Private": [] },
-  "Serialization": { "Public": ["Core"], "Private": [] },
-  "RenderCore": { "Public": ["Core"], "Private": [] },
+  "Serialization": { "Public": ["Core"], "Private": ["CoreUObject"] },
+  "RenderCore": { "Public": ["Core"], "Private": ["CoreUObject"] },
   "Engine": { "Public": ["CoreUObject", "RenderCore"], "Private": ["Serialization"] },
   "Renderer": { "Public": ["Engine"], "Private": [] },
-  "Platform": { "Public": ["Core"], "Private": [] },
+  "Platform": { "Public": ["Core"], "Private": ["CoreUObject"] },
   "Editor": { "Public": ["Engine", "Platform"], "Private": ["Serialization", "Renderer"] }
 }

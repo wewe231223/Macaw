@@ -54,9 +54,17 @@ private:
 
 private:
     FGuid mGuid{};
+    ReflectAccessor(mGuid, GetGuid, RestoreGuid, "Id", EPropertyFlags::Serialize | EPropertyFlags::ReadOnly);
+
+
     FObjectHandle mHandle{};
+    ReflectProperty(mHandle, "Handle", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     FString mName{"Object"};
+    ReflectAccessor(mName, GetName, SetName, "Name", EPropertyFlags::Edit | EPropertyFlags::Serialize);
+
     FObjectRegistry* mRegistry{};
+    ReflectProperty(mRegistry, "Registry", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 };
 
 #include "CoreUObject/UObjectTemplates.h"

@@ -1,6 +1,7 @@
-#include "Core/Math.h"
+#include "Core/Math/MathUtility.h"
 #include "Core/Math/FVector2.h"
 #include "Core/Math/FVector.h"
+#include "Core/Math/FVector4.h"
 #include "Core/Math/FMatrix.h"
 #include "Core/Math/FRay.h"
 
@@ -69,39 +70,37 @@ bool Math::IntersectTriangle(const FRay& Ray, const FVector& A, const FVector& B
 }
 
 bool Math::Project(const FVector& Position, const FMatrix& ViewProjection, const FVector2& Size, FVector2& Screen) {
-    const float W{Position.mX * ViewProjection.mValues[0][3] + Position.mY * ViewProjection.mValues[1][3] + Position.mZ * ViewProjection.mValues[2][3] + ViewProjection.mValues[3][3]};
+    const FVector4 Clip{FVector4{Position, 1.0f} * ViewProjection};
+    FVector PositionNdc{};
 
-    if (W <= 0.00001f || Size.mX <= 0.0f || Size.mY <= 0.0f) {
+    if (Clip.w <= 0.00001f || Size.x <= 0.0f || Size.y <= 0.0f || !Clip.TryPerspectiveDivide(PositionNdc)) {
         return false;
     }
 
-    const FVector Clip{ViewProjection.TransformPosition(Position)};
-    Screen = {(Clip.mX + 1.0f) * Size.mX * 0.5f, (1.0f - Clip.mY) * Size.mY * 0.5f};
+    Screen = {(PositionNdc.x + 1.0f) * Size.x * 0.5f, (1.0f - PositionNdc.y) * Size.y * 0.5f};
 
-    return std::isfinite(Screen.mX) && std::isfinite(Screen.mY);
+    return Screen.IsFinite();
 }
 
 bool Math::Deproject(const FVector2& Screen, const FVector2& Size, const FMatrix& ViewProjection, FRay& Ray) {
     FMatrix Inverse{};
 
-    if (Size.mX <= 0.0f || Size.mY <= 0.0f || !ViewProjection.TryInverse(Inverse)) {
+    if (Size.x <= 0.0f || Size.y <= 0.0f || !ViewProjection.TryInverse(Inverse)) {
         return false;
     }
 
-    const float X{Screen.mX * 2.0f / Size.mX - 1.0f};
-    const float Y{1.0f - Screen.mY * 2.0f / Size.mY};
+    const float X{Screen.x * 2.0f / Size.x - 1.0f};
+    const float Y{1.0f - Screen.y * 2.0f / Size.y};
     Ray.mOrigin = Inverse.TransformPosition({X, Y, 0.0f});
-    Ray.mDirection = (Inverse.TransformPosition({X, Y, 1.0f}) - Ray.mOrigin).Normalized();
+    Ray.mDirection = Inverse.TransformPosition({X, Y, 1.0f}) - Ray.mOrigin;
 
-    return Ray.mOrigin.IsFinite() && Ray.mDirection.Length() > 0.0f;
+    return Ray.mDirection.Normalize() && Ray.mOrigin.IsFinite();
 }
 
 float Math::DistanceToSegment(const FVector2& Point, const FVector2& Start, const FVector2& End) {
-    const float X{End.mX - Start.mX};
-    const float Y{End.mY - Start.mY};
-    const float LengthSquared{X * X + Y * Y};
+    const FVector2 Segment{End - Start};
+    const float LengthSquared{Segment.LengthSquared()};
+    const float T{LengthSquared > 0.00001f ? std::clamp((Point - Start).Dot(Segment) / LengthSquared, 0.0f, 1.0f) : 0.0f};
 
-    const float T{LengthSquared > 0.00001f ? std::clamp(((Point.mX - Start.mX) * X + (Point.mY - Start.mY) * Y) / LengthSquared, 0.0f, 1.0f) : 0.0f};
-
-    return std::hypot(Point.mX - Start.mX - X * T, Point.mY - Start.mY - Y * T);
+    return Point.Distance(Start.Lerp(End, T));
 }

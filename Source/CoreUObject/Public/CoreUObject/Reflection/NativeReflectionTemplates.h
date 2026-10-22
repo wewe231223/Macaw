@@ -2,44 +2,76 @@
 
 template <typename T>
 const FNativeType* GetNativeType() {
-    static const FNativeType Type{sizeof(T), alignof(T)};
+    static const FNativeType Type{sizeof(T), alignof(T), __FUNCSIG__};
     return &Type;
 }
 
 template <typename T>
-EPropertyType GetNativePropertyType() {
+constexpr EPropertyType GetNativePropertyType() {
     if constexpr (std::is_same_v<T, bool>) {
         return EPropertyType::Boolean;
     } else if constexpr (std::is_same_v<T, Int32>) {
         return EPropertyType::Integer;
-    } else if constexpr (std::is_same_v<T, Uint32>) {
+    } else if constexpr ((std::is_same_v<T, Uint32> || std::is_same_v<T, Uint8>)) {
         return EPropertyType::Unsigned;
+    } else if constexpr (std::is_same_v<T, Uint64>) {
+        return EPropertyType::Unsigned64;
     } else if constexpr (std::is_same_v<T, float>) {
         return EPropertyType::Float;
     } else if constexpr (std::is_same_v<T, FString>) {
         return EPropertyType::String;
     } else if constexpr (std::is_same_v<T, FGuid>) {
         return EPropertyType::Guid;
+    } else if constexpr (std::is_same_v<T, FVector2>) {
+        return EPropertyType::Vector2;
     } else if constexpr (std::is_same_v<T, FVector>) {
         return EPropertyType::Vector;
+    } else if constexpr (std::is_same_v<T, FVector4>) {
+        return EPropertyType::Vector4;
+    } else if constexpr (std::is_same_v<T, FQuat>) {
+        return EPropertyType::Quat;
     } else if constexpr (std::is_same_v<T, FRotator>) {
         return EPropertyType::Rotator;
+    } else if constexpr (std::is_same_v<T, FMatrix>) {
+        return EPropertyType::Matrix;
     } else if constexpr (std::is_same_v<T, FTransform>) {
         return EPropertyType::Transform;
-    } else {
-        static_assert(std::is_enum_v<T>);
-
+    } else if constexpr (std::is_same_v<T, FBox>) {
+        return EPropertyType::Box;
+    } else if constexpr (std::is_same_v<T, FRay>) {
+        return EPropertyType::Ray;
+    } else if constexpr (std::is_enum_v<T>) {
         return EPropertyType::Enum;
+    } else {
+        return EPropertyType::Opaque;
     }
 }
 
 template <typename T>
 const UStruct* GetNativeStruct() {
-    if constexpr (requires { T::StaticStruct(); }) {
+    if constexpr (!std::is_same_v<T, FGuid> && !std::is_same_v<T, FMatrix> && GetNativePropertyType<T>() != EPropertyType::Opaque && requires { T::StaticStruct(); }) {
         return T::StaticStruct();
     } else {
         return nullptr;
     }
+}
+
+template <typename T>
+UScriptStruct* DefineNativeStruct(const char* Name) {
+    const UScriptStruct* Parent{};
+
+    if constexpr (requires { typename T::Super; }) {
+        Parent = T::Super::StaticStruct();
+    }
+
+    static UScriptStruct* Struct{FReflectionRegistry::DefineStruct(Name, GetNativeType<T>(), &BuildNativeReflection<T, UScriptStruct>, Parent)};
+    return Struct;
+}
+
+template <typename T>
+UScriptStruct* DefineTemplateStruct(const char* Name) {
+    static UScriptStruct* Struct{FReflectionRegistry::DefineStruct(Name, GetNativeType<T>(), nullptr)};
+    return Struct;
 }
 
 template <typename T, typename TMetadata>
@@ -64,6 +96,10 @@ FPropertyValue ReadMemberProperty(const void* Container) {
 
     if constexpr (std::is_enum_v<FValue>) {
         return static_cast<Int32>(ReadMemberValue<Member, Getter>(*static_cast<const FOwner*>(Container)));
+    } else if constexpr (std::is_same_v<FValue, Uint8>) {
+        return static_cast<Uint32>(ReadMemberValue<Member, Getter>(*static_cast<const FOwner*>(Container)));
+    } else if constexpr (GetNativePropertyType<FValue>() == EPropertyType::Opaque) {
+        return static_cast<const void*>(std::addressof(ReadMemberValue<Member, Getter>(*static_cast<const FOwner*>(Container))));
     } else {
         return FPropertyValue{ReadMemberValue<Member, Getter>(*static_cast<const FOwner*>(Container))};
     }
@@ -73,56 +109,67 @@ template <auto Member, auto Getter, auto Setter>
 bool WriteMemberProperty(void* Container, const FPropertyValue& Value) {
     using FOwner = typename TMemberPointerTraits<decltype(Member)>::FOwner;
     using FValue = std::remove_cvref_t<decltype(ReadMemberValue<Member, Getter>(std::declval<const FOwner&>()))>;
-    using FStoredValue = std::conditional_t<std::is_enum_v<FValue>, Int32, FValue>;
-
-    const FStoredValue* Typed{std::get_if<FStoredValue>(&Value)};
-
-    if (Typed == nullptr) {
+    if constexpr (GetNativePropertyType<FValue>() == EPropertyType::Opaque) {
         return false;
-    }
-
-    FOwner& Object{*static_cast<FOwner*>(Container)};
-    const FValue Converted{static_cast<FValue>(*Typed)};
-
-    if constexpr (std::is_same_v<decltype(Setter), std::nullptr_t>) {
-        Object.*Member = Converted;
-
-        return true;
-    } else if constexpr (std::is_void_v<std::invoke_result_t<decltype(Setter), FOwner&, const FValue&>>) {
-        std::invoke(Setter, Object, Converted);
-
-        return true;
     } else {
-        return static_cast<bool>(std::invoke(Setter, Object, Converted));
+        using FStoredValue = std::conditional_t<std::is_enum_v<FValue>, Int32, std::conditional_t<std::is_same_v<FValue, Uint8>, Uint32, FValue>>;
+        const FStoredValue* Typed{std::get_if<FStoredValue>(&Value)};
+
+        if (Typed == nullptr) {
+            return false;
+        }
+
+        if constexpr (std::is_same_v<FValue, Uint8>) {
+            if (*Typed > std::numeric_limits<Uint8>::max()) {
+                return false;
+            }
+        }
+
+        FOwner& Object{*static_cast<FOwner*>(Container)};
+        const FValue Converted{static_cast<FValue>(*Typed)};
+
+        if constexpr (std::is_same_v<decltype(Setter), std::nullptr_t>) {
+            Object.*Member = Converted;
+
+            return true;
+        } else if constexpr (std::is_void_v<std::invoke_result_t<decltype(Setter), FOwner&, const FValue&>>) {
+            std::invoke(Setter, Object, Converted);
+
+            return true;
+        } else {
+            return static_cast<bool>(std::invoke(Setter, Object, Converted));
+        }
     }
 }
 
 template <auto Member, auto Getter, auto Setter>
-std::unique_ptr<FProperty> MakeProperty(FReflectionBuilder& Owner, FString Name, EPropertyFlags Flags) {
+void RegisterProperty(FReflectionBuilder& Information, FString Name, EPropertyFlags Flags) {
     using FOwner = typename TMemberPointerTraits<decltype(Member)>::FOwner;
     using FValue = std::remove_cvref_t<decltype(ReadMemberValue<Member, Getter>(std::declval<const FOwner&>()))>;
 
-    static_cast<void>(Owner);
     TArray<FEnumValue> Values{};
 
-    if constexpr (std::is_enum_v<FValue>) {
+    if constexpr (std::is_enum_v<FValue> && requires { GetNativeEnum(TNativeEnum<FValue>{}); }) {
         Values = GetNativeEnum(TNativeEnum<FValue>{})->GetValues();
     }
 
-    return std::make_unique<FProperty>(std::move(Name), GetNativePropertyType<FValue>(), Flags, &ReadMemberProperty<Member, Getter>, &WriteMemberProperty<Member, Getter, Setter>, GetNativeStruct<FValue>(), std::move(Values));
+    if constexpr (GetNativePropertyType<FValue>() == EPropertyType::Opaque) {
+        Flags = Flags | EPropertyFlags::Transient | EPropertyFlags::ReadOnly;
+    }
+
+    Information.AddProperty(std::make_unique<FProperty>(std::move(Name), GetNativePropertyType<FValue>(), Flags, &ReadMemberProperty<Member, Getter>, &WriteMemberProperty<Member, Getter, Setter>, GetNativeStruct<FValue>(), std::move(Values), nullptr, GetNativeType<FValue>()));
 }
 
 template <auto Member, auto Getter>
-std::unique_ptr<FProperty> MakeReadOnlyProperty(FReflectionBuilder& Owner, FString Name, EPropertyFlags Flags) {
+void RegisterReadOnlyProperty(FReflectionBuilder& Information, FString Name, EPropertyFlags Flags) {
     using FOwner = typename TMemberPointerTraits<decltype(Member)>::FOwner;
     using FValue = std::remove_cvref_t<decltype(ReadMemberValue<Member, Getter>(std::declval<const FOwner&>()))>;
 
-    static_cast<void>(Owner);
     TArray<FEnumValue> Values{};
 
-    if constexpr (std::is_enum_v<FValue>) {
+    if constexpr (std::is_enum_v<FValue> && requires { GetNativeEnum(TNativeEnum<FValue>{}); }) {
         Values = GetNativeEnum(TNativeEnum<FValue>{})->GetValues();
     }
 
-    return std::make_unique<FProperty>(std::move(Name), GetNativePropertyType<FValue>(), Flags | EPropertyFlags::ReadOnly, &ReadMemberProperty<Member, Getter>, nullptr, GetNativeStruct<FValue>(), std::move(Values), &WriteMemberProperty<Member, Getter>);
+    Information.AddProperty(std::make_unique<FProperty>(std::move(Name), GetNativePropertyType<FValue>(), Flags | EPropertyFlags::ReadOnly, &ReadMemberProperty<Member, Getter>, nullptr, GetNativeStruct<FValue>(), std::move(Values), &WriteMemberProperty<Member, Getter>, GetNativeType<FValue>()));
 }

@@ -10,8 +10,7 @@
 } \
 UClass* Type::GetClass() const { \
     return StaticClass(); \
-} \
-void Type::RegisterReflectionMembers(FReflectionBuilder& Information)
+}
 
 #define ImplementRootReflection(Type, ...) UClass* Type::StaticClass() { \
     static UClass* Class{DefineNativeClass<Type>(#Type, nullptr, EClassFlags::None __VA_OPT__(| __VA_ARGS__))}; \
@@ -19,14 +18,11 @@ void Type::RegisterReflectionMembers(FReflectionBuilder& Information)
 } \
 UClass* Type::GetClass() const { \
     return StaticClass(); \
-} \
-void Type::RegisterReflectionMembers(FReflectionBuilder& Information)
+}
 
 #define ImplementStructReflection(Type) UScriptStruct* Type::StaticStruct() { \
-    static UScriptStruct* Struct{FReflectionRegistry::DefineStruct(#Type, GetNativeType<Type>(), &BuildNativeReflection<Type, UScriptStruct>)}; \
-    return Struct; \
-} \
-void Type::RegisterReflectionMembers(FReflectionBuilder& Information)
+    return DefineNativeStruct<ReflectionOwner>(#Type); \
+}
 
 #define ReflectEnumValue(Type, Value) FEnumValue{#Value, static_cast<Int32>(Type::Value)}
 #define ReflectEnum(Type, ...) void Build##Type##Reflection(UEnum& Information) { \
@@ -39,9 +35,3 @@ UEnum* StaticEnum##Type() { \
 UEnum* GetNativeEnum(TNativeEnum<Type>) { \
     return StaticEnum##Type(); \
 }
-
-#define ReflectProperty(Member, Name, Flags) RegisterProperty(Information, MakeProperty<&ReflectionOwner::Member>(Information, Name, Flags))
-#define ReflectAccessor(Member, Getter, Setter, Name, Flags) RegisterProperty(Information, MakeProperty<&ReflectionOwner::Member, &ReflectionOwner::Getter, &ReflectionOwner::Setter>(Information, Name, Flags))
-#define ReflectSetter(Member, Setter, Name, Flags) RegisterProperty(Information, MakeProperty<&ReflectionOwner::Member, nullptr, &ReflectionOwner::Setter>(Information, Name, Flags))
-#define ReflectReadOnlyProperty(Member, Name, Flags) RegisterProperty(Information, MakeReadOnlyProperty<&ReflectionOwner::Member>(Information, Name, Flags))
-#define ReflectReadOnlyAccessor(Member, Getter, Name, Flags) RegisterProperty(Information, MakeReadOnlyProperty<&ReflectionOwner::Member, &ReflectionOwner::Getter>(Information, Name, Flags))

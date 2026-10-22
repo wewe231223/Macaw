@@ -14,9 +14,7 @@ AActor::~AActor() {
     SetWorld(nullptr);
 }
 
-ImplementReflection(AActor, EClassFlags::NoFactory) {
-    static_cast<void>(Information);
-}
+ImplementReflection(AActor, EClassFlags::NoFactory)
 
 UWorld* AActor::GetWorld() const {
     return mWorld;

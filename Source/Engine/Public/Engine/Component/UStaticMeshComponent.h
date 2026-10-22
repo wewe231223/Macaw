@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Core/ReflectionMacros.h"
 #include "Engine/Component/UPrimitiveComponent.h"
 #include "Engine/EPrimitiveType.h"
 
@@ -22,4 +23,5 @@ private:
 
 private:
     EPrimitiveType mPrimitive{EPrimitiveType::Cube};
+    ReflectAccessor(mPrimitive, GetPrimitiveType, SetPrimitiveType, "Primitive", EPropertyFlags::Edit | EPropertyFlags::Serialize);
 };

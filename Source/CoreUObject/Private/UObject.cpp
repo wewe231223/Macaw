@@ -3,14 +3,13 @@
 #include "CoreUObject/FObjectHandle.h"
 #include "CoreUObject/FPropertyChangedEvent.h"
 #include "CoreUObject/FObjectRegistry.h"
-#include "CoreUObject/Reflection/EPropertyFlags.h"
+#include "Core/Reflection/EPropertyFlags.h"
 #include "CoreUObject/Reflection/FProperty.h"
 #include "CoreUObject/Reflection/UClass.h"
 #include "CoreUObject/Reflection/ReflectionMacros.h"
 #include "Core/Memory.h"
 
-UObject::UObject()
-	: mGuid{FGuid::NewGuid()} {
+UObject::UObject() {
     FMemory::ObjectCreated();
 }
 
@@ -22,10 +21,7 @@ UObject::~UObject() {
     FMemory::ObjectDestroyed();
 }
 
-ImplementRootReflection(UObject, EClassFlags::NoFactory) {
-    ReflectAccessor(mName, GetName, SetName, "Name", EPropertyFlags::Edit | EPropertyFlags::Serialize);
-    ReflectAccessor(mGuid, GetGuid, RestoreGuid, "Id", EPropertyFlags::Serialize | EPropertyFlags::ReadOnly);
-}
+ImplementRootReflection(UObject, EClassFlags::NoFactory)
 
 bool UObject::IsA(const UClass* Class) const {
     return GetClass()->IsChildOf(Class);

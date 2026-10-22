@@ -6,11 +6,19 @@ enum class EPropertyType {
     Boolean,
     Integer,
     Unsigned,
+    Unsigned64,
     Float,
     String,
     Guid,
+    Vector2,
     Vector,
+    Vector4,
+    Quat,
     Rotator,
+    Matrix,
     Transform,
-    Enum
+    Box,
+    Ray,
+    Enum,
+    Opaque
 };

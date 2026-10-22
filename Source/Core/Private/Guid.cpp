@@ -6,11 +6,11 @@
 #include <algorithm>
 #include <bit>
 
-FGuid FGuid::NewGuid() {
+FGuid::FGuid() {
     GUID Native{};
     ErrorHandler::ReportHRESULT(CoCreateGuid(&Native), "UUID", "UUID creation failed", ErrorHandler::EErrorLevel::Critical);
 
-    return std::bit_cast<FGuid>(Native);
+    mBytes = std::bit_cast<std::array<Uint8, 16>>(Native);
 }
 
 bool FGuid::Parse(const FString& Text, FGuid& Result) {
@@ -18,7 +18,7 @@ bool FGuid::Parse(const FString& Text, FGuid& Result) {
         return false;
     }
 
-    FGuid Parsed{};
+    std::array<Uint8, 16> Bytes{};
     std::size_t ByteIndex{};
     Int32 High{-1};
 
@@ -36,12 +36,12 @@ bool FGuid::Parse(const FString& Text, FGuid& Result) {
         if (High < 0) {
             High = Digit;
         } else {
-            Parsed.mBytes[ByteIndex++] = static_cast<Uint8>(High * 16 + Digit);
+            Bytes[ByteIndex++] = static_cast<Uint8>(High * 16 + Digit);
             High = -1;
         }
     }
 
-    Result = Parsed;
+    Result.mBytes = Bytes;
 
     return Result.IsValid();
 }

@@ -1,59 +1,54 @@
 #include "Core/Math/FBox.h"
-#include "Core/Math/FVector.h"
 #include "Core/Math/FMatrix.h"
 #include "Core/Math/FRay.h"
+#include "Math/SimdMath.h"
 
 #include <algorithm>
-#include <cmath>
 #include <limits>
 
+using namespace Math::Simd;
+
+FBox::FBox(const FVector& Minimum, const FVector& Maximum)
+	: mMinimum{Minimum},
+	  mMaximum{Maximum} {
+}
+
 bool FBox::Intersects(const FRay& Ray, float MaximumDistance) const {
-    float MinimumDistance{};
-    float Maximum{MaximumDistance};
+    const __m128 Origin{Ray.mOrigin.mValue};
+    const __m128 Direction{Ray.mDirection.mValue};
+    const __m128 Minimum{mMinimum.mValue};
+    const __m128 Maximum{mMaximum.mValue};
+    const __m128 Magnitude{_mm_andnot_ps(_mm_set1_ps(-0.0f), Direction)};
+    const __m128 Parallel{_mm_cmple_ps(Magnitude, _mm_set1_ps(0.0000001f))};
+    const __m128 Outside{_mm_or_ps(_mm_cmplt_ps(Origin, Minimum), _mm_cmpgt_ps(Origin, Maximum))};
 
-    const std::array<float, 3> Origins{Ray.mOrigin.mX, Ray.mOrigin.mY, Ray.mOrigin.mZ};
-    const std::array<float, 3> Directions{Ray.mDirection.mX, Ray.mDirection.mY, Ray.mDirection.mZ};
-
-    const std::array<float, 3> Minimums{mMinimum.mX, mMinimum.mY, mMinimum.mZ};
-    const std::array<float, 3> Maximums{mMaximum.mX, mMaximum.mY, mMaximum.mZ};
-
-    for (Int32 Index{}; Index < 3; ++Index) {
-        if (std::abs(Directions[Index]) < 0.0000001f) {
-            if (Origins[Index] < Minimums[Index] || Origins[Index] > Maximums[Index]) {
-                return false;
-            }
-
-            continue;
-        }
-
-        float Near{(Minimums[Index] - Origins[Index]) / Directions[Index]};
-        float Far{(Maximums[Index] - Origins[Index]) / Directions[Index]};
-
-        if (Near > Far) {
-            std::swap(Near, Far);
-        }
-
-        MinimumDistance = std::max(MinimumDistance, Near);
-        Maximum = std::min(Maximum, Far);
-
-        if (MinimumDistance > Maximum) {
-            return false;
-        }
+    if ((_mm_movemask_ps(_mm_and_ps(Parallel, Outside)) & 7) != 0) {
+        return false;
     }
 
-    return true;
+    const __m128 SafeDirection{_mm_or_ps(_mm_andnot_ps(Parallel, Direction), _mm_and_ps(Parallel, _mm_set1_ps(1.0f)))};
+    const __m128 First{_mm_div_ps(_mm_sub_ps(Minimum, Origin), SafeDirection)};
+    const __m128 Second{_mm_div_ps(_mm_sub_ps(Maximum, Origin), SafeDirection)};
+    const __m128 Near{_mm_or_ps(_mm_andnot_ps(Parallel, _mm_min_ps(First, Second)), _mm_and_ps(Parallel, _mm_set1_ps(-std::numeric_limits<float>::max())))};
+    const __m128 Far{_mm_or_ps(_mm_andnot_ps(Parallel, _mm_max_ps(First, Second)), _mm_and_ps(Parallel, _mm_set1_ps(std::numeric_limits<float>::max())))};
+
+    const float Entry{std::max({0.0f, Extract<0>(Near), Extract<1>(Near), Extract<2>(Near)})};
+    const float Exit{std::min({MaximumDistance, Extract<0>(Far), Extract<1>(Far), Extract<2>(Far)})};
+
+    return Entry <= Exit;
 }
 
 FBox FBox::Transformed(const FMatrix& Matrix) const {
-    const float Limit{std::numeric_limits<float>::max()};
-    FBox Result{{Limit, Limit, Limit}, {-Limit, -Limit, -Limit}};
+    const __m128 Minimum{mMinimum.mValue};
+    const __m128 Maximum{mMaximum.mValue};
+    const __m128 Center{_mm_mul_ps(_mm_add_ps(Minimum, Maximum), _mm_set1_ps(0.5f))};
+    const __m128 Extent{_mm_mul_ps(_mm_sub_ps(Maximum, Minimum), _mm_set1_ps(0.5f))};
+    const __m128 Homogeneous{_mm_add_ps(Center, _mm_set_ps(1.0f, 0.0f, 0.0f, 0.0f))};
+    const __m128 TransformedCenter{Transform(Homogeneous, Matrix.mRows)};
+    const __m128 ExtentX{_mm_mul_ps(_mm_andnot_ps(_mm_set1_ps(-0.0f), Matrix.mRows[0]), Splat<0>(Extent))};
+    const __m128 ExtentY{_mm_mul_ps(_mm_andnot_ps(_mm_set1_ps(-0.0f), Matrix.mRows[1]), Splat<1>(Extent))};
+    const __m128 ExtentZ{_mm_mul_ps(_mm_andnot_ps(_mm_set1_ps(-0.0f), Matrix.mRows[2]), Splat<2>(Extent))};
+    const __m128 TransformedExtent{_mm_add_ps(_mm_add_ps(ExtentX, ExtentY), ExtentZ)};
 
-    for (Int32 Index{}; Index < 8; ++Index) {
-        const FVector Point{Matrix.TransformPosition({(Index & 1) ? mMaximum.mX : mMinimum.mX, (Index & 2) ? mMaximum.mY : mMinimum.mY, (Index & 4) ? mMaximum.mZ : mMinimum.mZ})};
-
-        Result.mMinimum = {std::min(Result.mMinimum.mX, Point.mX), std::min(Result.mMinimum.mY, Point.mY), std::min(Result.mMinimum.mZ, Point.mZ)};
-        Result.mMaximum = {std::max(Result.mMaximum.mX, Point.mX), std::max(Result.mMaximum.mY, Point.mY), std::max(Result.mMaximum.mZ, Point.mZ)};
-    }
-
-    return Result;
+    return {FVector{_mm_sub_ps(TransformedCenter, TransformedExtent)}, FVector{_mm_add_ps(TransformedCenter, TransformedExtent)}};
 }

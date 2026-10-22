@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Core/ReflectionMacros.h"
 #include "CoreUObject/UObject.h"
 
 class AActor;
@@ -29,5 +30,7 @@ private:
 
 private:
     AActor* mOwner{};
+    ReflectProperty(mOwner, "Owner", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
     UWorld* mWorld{};
+    ReflectProperty(mWorld, "World", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 };

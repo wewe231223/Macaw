@@ -16,9 +16,7 @@ UPrimitiveComponent::~UPrimitiveComponent() {
     UnregisterComponent();
 }
 
-ImplementReflection(UPrimitiveComponent, EClassFlags::Abstract) {
-    static_cast<void>(Information);
-}
+ImplementReflection(UPrimitiveComponent, EClassFlags::Abstract)
 
 void UPrimitiveComponent::RegisterComponent(UWorld& World) {
     if (GetWorld() == &World) {

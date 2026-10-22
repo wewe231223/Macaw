@@ -182,10 +182,5 @@ void ErrorHandler::ReportWin32(DWORD ErrorCode, std::string_view Title, std::str
 }
 
 [[noreturn]] void ErrorHandler::Fatal(std::string_view Title, std::string_view Message, const std::source_location& Location) {
-    if (ReportingCritical) {
-        ReportCriticalFallback();
-    }
-
     Report(Title, Message, EErrorLevel::Critical, Location);
-    std::quick_exit(EXIT_FAILURE);
 }

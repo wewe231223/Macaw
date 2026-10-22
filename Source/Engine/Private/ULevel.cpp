@@ -13,9 +13,7 @@ ULevel::~ULevel() {
     SetWorld(nullptr);
 }
 
-ImplementReflection(ULevel, EClassFlags::NoFactory) {
-    static_cast<void>(Information);
-}
+ImplementReflection(ULevel, EClassFlags::NoFactory)
 
 void ULevel::SetWorld(UWorld* World) {
     mWorld = World;

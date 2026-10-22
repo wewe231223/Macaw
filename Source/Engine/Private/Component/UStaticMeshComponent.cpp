@@ -1,5 +1,5 @@
 #include "Engine/Component/UStaticMeshComponent.h"
-#include "CoreUObject/Reflection/EPropertyFlags.h"
+#include "Core/Reflection/EPropertyFlags.h"
 #include "Engine/EPrimitiveType.h"
 #include "CoreUObject/Reflection/ReflectionMacros.h"
 
@@ -7,9 +7,7 @@ UStaticMeshComponent::UStaticMeshComponent() = default;
 
 UStaticMeshComponent::~UStaticMeshComponent() = default;
 
-ImplementReflection(UStaticMeshComponent) {
-    ReflectAccessor(mPrimitive, GetPrimitiveType, SetPrimitiveType, "Primitive", EPropertyFlags::Edit | EPropertyFlags::Serialize);
-}
+ImplementReflection(UStaticMeshComponent)
 
 EPrimitiveType UStaticMeshComponent::GetPrimitiveType() const {
     return mPrimitive;

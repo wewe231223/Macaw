@@ -1,3 +1,14 @@
+local Reflection = dofile("Scripts/GenerateReflection.lua")
+
+newoption { trigger = "reflection-module", value = "MODULE", description = "Generate reflection for one module" }
+newaction { trigger = "generate-reflection", description = "Generate reflection from property annotations", execute = function() Reflection.Generate(_OPTIONS["reflection-module"]) end }
+
+if _ACTION == "generate-reflection" then
+    return
+end
+
+local ReflectedModules = Reflection.Generate()
+
 workspace "Macaw"
     location "."
     configurations { "Debug", "Release" }
@@ -14,6 +25,7 @@ filter "configurations:Debug"
 
 filter "configurations:Release"
     optimize "Speed"
+    linktimeoptimization "On"
     runtime "Release"
     defines { "NDEBUG" }
 
@@ -53,6 +65,14 @@ for _, Name in ipairs({ "Core", "CoreUObject", "Serialization", "RenderCore", "E
     Configure(Name, "StaticLib")
     files { "Source/" .. Name .. "/Public/**.h", "Source/" .. Name .. "/Private/**.h", "Source/" .. Name .. "/Private/**.cpp" }
     includedirs { "Source/" .. Name .. "/Private" }
+
+    if ReflectedModules[Name] then
+        local GeneratedDirectory = "Intermediate/Week1/Generated/" .. Name
+        files { GeneratedDirectory .. "/" .. Name .. "Reflection.h", GeneratedDirectory .. "/" .. Name .. "Reflection.cpp" }
+        includedirs { GeneratedDirectory }
+        prebuildcommands { '"' .. _PREMAKE_COMMAND .. '" --file="' .. path.getabsolute("premake5.lua") .. '" generate-reflection --reflection-module=' .. Name }
+    end
+
     local Visited = {}
     AddIncludes(Name, Visited)
     for _, Dependency in ipairs(Modules[Name].Private) do
@@ -70,6 +90,17 @@ local function ConfigureExecutable(Name, Kind, Directory)
     Configure(Name, Kind)
     files { Directory .. "/**.h", Directory .. "/**.cpp" }
     includedirs { Directory }
+
+    for Module, _ in pairs(ReflectedModules) do
+        includedirs { "Intermediate/Week1/Generated/" .. Module }
+
+        if Modules[Module] then
+            AddIncludes(Module, {})
+        end
+    end
+
+    files { "Intermediate/Week1/Generated/App/AppReflection.h", "Intermediate/Week1/Generated/App/AppReflection.cpp" }
+    prebuildcommands { '"' .. _PREMAKE_COMMAND .. '" --file="' .. path.getabsolute("premake5.lua") .. '" generate-reflection --reflection-module=App' }
     AddIncludes("Editor", {})
     AddIncludes("Renderer", {})
     links { "Editor", "Engine", "Renderer", "Platform", "Serialization", "RenderCore", "CoreUObject", "Core", "ImGui", "d3d11", "dxgi", "d3dcompiler", "user32", "gdi32", "dwmapi", "imm32", "ole32", "comdlg32", "shell32" }
