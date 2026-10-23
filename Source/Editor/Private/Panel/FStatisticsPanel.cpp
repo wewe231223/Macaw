@@ -5,7 +5,7 @@
  */
 
 #include "Editor/Panel/FStatisticsPanel.h"
-#include "Editor/EditorEngine.h"
+#include "Editor/FEditorContext.h"
 #include "Core/Memory.h"
 #include "Engine/UWorld.h"
 #include "Engine/ULevel.h"
@@ -18,8 +18,8 @@
 /**
  * @brief FStatisticsPanel의 초기 상태와 전달받은 의존성을 구성합니다.
  */
-FStatisticsPanel::FStatisticsPanel(UEditorEngine* Engine)
-	: FEditorPanel{Engine, "Statistics", true} {
+FStatisticsPanel::FStatisticsPanel(FEditorContext* Context)
+	: FEditorPanel{Context, "Statistics", true} {
 }
 
 /**
@@ -31,10 +31,10 @@ FStatisticsPanel::~FStatisticsPanel() = default;
  * @brief 패널 고유의 ImGui 위젯과 내용을 그립니다.
  */
 void FStatisticsPanel::DrawContent(float DeltaTime) {
-    UEditorEngine* Engine{GetEditorEngine()};
+    FEditorContext* Context{GetEditorContext()};
     const FMemoryStats Memory{FMemory::GetStats()};
-    const FRenderStats Render{Engine->GetRenderer()->GetStats()};
-    const UWorld* World{Engine->GetWorld()};
+    const FRenderStats Render{Context->GetRenderer() != nullptr ? Context->GetRenderer()->GetStats() : FRenderStats{}};
+    const UWorld* World{Context->GetWorld()};
 
     ImGui::TextUnformatted(std::format("Frame: {:.2f} ms", DeltaTime * 1000.0f).c_str());
     ImGui::TextUnformatted(std::format("Live UObjects: {}", Memory.mLiveObjects).c_str());

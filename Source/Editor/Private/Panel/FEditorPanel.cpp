@@ -12,8 +12,8 @@
 /**
  * @brief FEditorPanel의 초기 상태와 전달받은 의존성을 구성합니다.
  */
-FEditorPanel::FEditorPanel(UEditorEngine* Engine, FString Name, bool Closable)
-	: mEngine{Engine},
+FEditorPanel::FEditorPanel(FEditorContext* Context, FString Name, bool Closable)
+	: mContext{Context},
 	  mName{std::move(Name)},
 	  mClosable{Closable} {
 }
@@ -46,7 +46,7 @@ const FString& FEditorPanel::GetName() const {
 }
 
 /**
- * @brief 경계 상자가 뷰 프러스텀과 겹치는지 검사합니다.
+ * @brief 패널 창의 표시 여부를 반환합니다.
  */
 bool FEditorPanel::IsVisible() const {
     return mVisible;
@@ -60,8 +60,8 @@ void FEditorPanel::SetVisible(bool Visible) {
 }
 
 /**
- * @brief 연결된 에디터 엔진을 반환합니다.
+ * @brief 연결된 공통 편집 컨텍스트를 반환합니다.
  */
-UEditorEngine* FEditorPanel::GetEditorEngine() const {
-    return mEngine;
+FEditorContext* FEditorPanel::GetEditorContext() const {
+    return mContext;
 }

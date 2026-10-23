@@ -1,5 +1,5 @@
 /**
- * @file ViewportClient.h
+ * @file FEditorViewportClient.h
  * @brief 에디터 카메라, 선택, 공통 명령과 기즈모 입력을 처리합니다.
  * @ingroup Editor
  */
@@ -11,7 +11,7 @@
 #include "Editor/Gizmo.h"
 #include "Editor/EViewportCommand.h"
 
-class UEditorEngine;
+class FEditorContext;
 
 /**
  * @brief 에디터 카메라, 선택, 변환 도구 상태와 공통 명령을 관리하고 기즈모 입력 및 장면 뷰 생성을 담당합니다.
@@ -28,9 +28,9 @@ public:
 public:
     /**
      * @brief FEditorViewportClient의 초기 상태와 전달받은 의존성을 구성합니다.
-     * @param[in,out] Engine 패널 또는 뷰포트가 참조할 에디터 엔진입니다.
+     * @param[in,out] Context 패널 또는 뷰포트가 공유할 편집 컨텍스트입니다.
      */
-    explicit FEditorViewportClient(UEditorEngine* Engine);
+    explicit FEditorViewportClient(FEditorContext* Context);
     /**
      * @brief 객체의 수명을 끝내고 소유한 리소스를 정리합니다.
      */
@@ -157,10 +157,10 @@ private:
 
 private:
     /**
-     * @brief 연결된 에디터 엔진입니다.
+     * @brief 연결된 공통 편집 컨텍스트입니다.
      */
-    UEditorEngine* mEngine{};
-    ReflectProperty(mEngine, "Engine", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    FEditorContext* mContext{};
+    ReflectProperty(mContext, "Context", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 
     /**
      * @brief 에디터 카메라의 월드 위치입니다.

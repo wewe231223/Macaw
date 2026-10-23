@@ -161,6 +161,20 @@ FWorldHandle UEngine::CreateWorld(EWorldType Type) {
 }
 
 /**
+ * @brief 현재 월드 선택을 유지하면서 준비한 컨텍스트의 소유권을 인수합니다.
+ */
+FWorldHandle UEngine::RegisterWorld(std::unique_ptr<FWorldContext> Context) {
+    return IsDispatching() ? FWorldHandle{} : AdoptWorld(std::move(Context));
+}
+
+/**
+ * @brief 명시적인 세대 핸들로 엔진 소유 컨텍스트를 조회합니다.
+ */
+FWorldContext* UEngine::GetWorldContext(FWorldHandle Handle) const {
+    return FindContext(Handle);
+}
+
+/**
  * @brief 필요한 렌더 장면을 준비하고 컨텍스트를 빈 슬롯에 인수합니다.
  */
 FWorldHandle UEngine::AdoptWorld(std::unique_ptr<FWorldContext> Context) {

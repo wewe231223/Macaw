@@ -76,6 +76,13 @@ public:
      */
     FWorldHandle CreateWorld(EWorldType Type);
     /**
+     * @brief 외부에서 준비한 월드 컨텍스트의 소유권을 엔진에 등록합니다.
+     * @param[in] Context 같은 엔진에 아직 등록되지 않은 새 컨텍스트입니다.
+     * @return 등록한 월드 핸들이며 콜백 처리 중이거나 장면 할당에 실패하면 무효 핸들입니다.
+     * @note 현재 월드 선택은 변경하지 않습니다.
+     */
+    FWorldHandle RegisterWorld(std::unique_ptr<FWorldContext> Context);
+    /**
      * @brief 핸들을 검증하고 해당 월드의 실행과 소유 리소스를 종료합니다.
      * @param[in] Handle 제거할 월드의 슬롯과 세대입니다.
      * @return 월드를 제거하면 true입니다.
@@ -132,6 +139,12 @@ public:
      */
     FWorldContext* GetWorldContext() const;
     /**
+     * @brief 명시적인 핸들에 해당하는 월드 컨텍스트를 조회합니다.
+     * @param[in] Handle 같은 엔진이 소유한 월드 핸들입니다.
+     * @return 검증한 컨텍스트의 비소유 주소이며 만료되거나 다른 엔진의 핸들이면 nullptr입니다.
+     */
+    FWorldContext* GetWorldContext(FWorldHandle Handle) const;
+    /**
      * @brief 연결된 렌더러의 비소유 주소를 반환합니다.
      * @return 조회한 값의 비소유 주소이며, 해당 값이 없으면 nullptr입니다.
      */
@@ -152,6 +165,12 @@ public:
      */
     void SynchronizeWorld();
 
+    /**
+     * @brief 엔진 갱신 또는 소유 월드의 콜백 처리가 진행 중인지 검사합니다.
+     * @return 안전한 월드 제거 경계가 아니면 true입니다.
+     */
+    bool IsDispatching() const;
+
 private:
     /**
      * @brief 생성된 프로퍼티 등록 함수와 빌더 접근 권한입니다.
@@ -169,11 +188,6 @@ private:
      * @return 새 세대를 발급한 월드 핸들이며 검증이나 장면 준비 실패 시 무효 핸들입니다.
      */
     FWorldHandle AdoptWorld(std::unique_ptr<FWorldContext> Context);
-    /**
-     * @brief 엔진 갱신 또는 소유 월드의 콜백 처리가 진행 중인지 검사합니다.
-     * @return 안전한 월드 제거 경계가 아니면 true입니다.
-     */
-    bool IsDispatching() const;
 
 private:
     /**

@@ -1,10 +1,10 @@
 /**
- * @file ViewportClient.cpp
+ * @file FEditorViewportClient.cpp
  * @brief 에디터 카메라, 선택, 공통 명령과 기즈모 입력을 처리합니다.
  * @ingroup Editor
  */
 
-#include "Editor/ViewportClient.h"
+#include "Editor/FEditorViewportClient.h"
 #include "RenderCore/IRendererModule.h"
 #include "Core/Math.h"
 #include "Engine/Component/UPrimitiveComponent.h"
@@ -23,7 +23,7 @@
 #include "Engine/FViewportInput.h"
 #include "Engine/FSceneViewport.h"
 #include "CoreUObject/Reflection/Cast.h"
-#include "Editor/EditorEngine.h"
+#include "Editor/FEditorContext.h"
 
 #include <algorithm>
 #include <cmath>
@@ -31,9 +31,9 @@
 /**
  * @brief FEditorViewportClient의 초기 상태와 전달받은 의존성을 구성합니다.
  */
-FEditorViewportClient::FEditorViewportClient(UEditorEngine* Engine)
-	: mEngine{Engine},
-	  mGizmo{Engine, this} {
+FEditorViewportClient::FEditorViewportClient(FEditorContext* Context)
+	: mContext{Context},
+	  mGizmo{Context, this} {
 }
 
 /**
@@ -82,7 +82,7 @@ bool FEditorViewportClient::ExecuteCommand(EViewportCommand Command) {
  * @brief 드래그 잠금, 스케일 좌표계 제한과 명령 지원 여부를 검사합니다.
  */
 bool FEditorViewportClient::CanExecuteCommand(EViewportCommand Command) const {
-    if (mGizmo.IsDragging()) {
+    if (mGizmo.IsDragging() || !mContext->CanEditWorld()) {
         return false;
     }
 
@@ -138,18 +138,18 @@ void FEditorViewportClient::Input(const FViewportInput& Input, const FVector2& S
     const bool GizmoConsumed{mGizmo.Input(Input, View)};
 
     if (Input.mDelete && Input.mFocused && !mGizmo.IsDragging()) {
-        mEngine->DestroySelectedActor();
+        mContext->DestroySelectedActor();
         return;
     }
 
-    if (Input.mLeftPressed && Input.mHovered && !Input.mAlt && !GizmoConsumed && mEngine->GetWorld() != nullptr) {
+    if (Input.mLeftPressed && Input.mHovered && !Input.mAlt && !GizmoConsumed && mContext->GetWorld() != nullptr) {
         FRay Ray{};
         FWorldHit Hit{};
 
-        if (Math::Deproject(Input.mMouse, Size, View.mViewProjection, Ray) && mEngine->GetWorld()->Raycast(Ray, Hit)) {
-            mEngine->SelectActor(Hit.mActor);
+        if (Math::Deproject(Input.mMouse, Size, View.mViewProjection, Ray) && mContext->GetWorld()->Raycast(Ray, Hit)) {
+            mContext->SelectActor(Hit.mActor);
         } else {
-            mEngine->ClearSelection();
+            mContext->ClearSelection();
         }
     }
 }
@@ -229,7 +229,7 @@ bool FEditorViewportClient::NavigateCamera(const FViewportInput& Input, const FV
  * @brief 선택한 액터가 화면에 들어오도록 카메라 위치와 중심을 조정합니다.
  */
 void FEditorViewportClient::FocusSelection(const FVector2& Size) {
-    const AActor* Actor{mEngine->GetSelectedActor()};
+    const AActor* Actor{mContext->GetSelectedActor()};
     const auto* Component{Actor != nullptr ? Cast<UPrimitiveComponent>(Actor->GetRootComponent()) : nullptr};
 
     if (Component == nullptr) {
@@ -250,9 +250,9 @@ void FEditorViewportClient::FocusSelection(const FVector2& Size) {
  * @brief 뷰포트 또는 패널의 현재 내용을 그립니다.
  */
 void FEditorViewportClient::Draw(FSceneViewport* Viewport) {
-    UWorld* World{mEngine->GetWorld()};
+    UWorld* World{mContext->GetWorld()};
 
-    if (World == nullptr || World->GetScene() == nullptr) {
+    if (World == nullptr || World->GetScene() == nullptr || mContext->GetRenderer() == nullptr) {
         return;
     }
 
@@ -264,7 +264,7 @@ void FEditorViewportClient::Draw(FSceneViewport* Viewport) {
     mDrawInterface.DrawLine({}, {0.0f, 2.0f, 0.0f}, {0.3f, 0.9f, 0.4f}, true);
     mDrawInterface.DrawLine({}, {0.0f, 0.0f, 2.0f}, {0.3f, 0.55f, 1.0f}, true);
 
-    if (const AActor* Actor{mEngine->GetSelectedActor()}; Actor != nullptr && Actor->GetRootComponent() != nullptr) {
+    if (const AActor* Actor{mContext->GetSelectedActor()}; Actor != nullptr && Actor->GetRootComponent() != nullptr) {
         const FTransform& Transform{Actor->GetRootComponent()->GetTransform()};
         const std::array<FVector, 3> Axes{Transform.mRotation.ForwardVector(), Transform.mRotation.RightVector(), Transform.mRotation.UpVector()};
         const std::array<FVector, 3> Colors{{{0.65f, 0.15f, 0.12f}, {0.12f, 0.65f, 0.2f}, {0.15f, 0.35f, 0.8f}}};
@@ -277,7 +277,7 @@ void FEditorViewportClient::Draw(FSceneViewport* Viewport) {
     mGizmo.Draw(View, mDrawInterface);
 
     const FSceneViewFamily Family{World->GetScene(), Viewport->GetRenderTarget(), View, &mDrawInterface};
-    mEngine->GetRenderer()->BeginRenderingViewFamily(Family);
+    mContext->GetRenderer()->BeginRenderingViewFamily(Family);
 }
 
 /**

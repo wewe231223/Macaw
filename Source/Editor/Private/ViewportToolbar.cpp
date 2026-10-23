@@ -6,7 +6,7 @@
 
 #include "ViewportToolbar.h"
 #include "EditorStyle.h"
-#include "Editor/ViewportClient.h"
+#include "Editor/FEditorViewportClient.h"
 
 #include <array>
 

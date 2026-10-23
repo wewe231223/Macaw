@@ -9,6 +9,7 @@
 #include "Core/ReflectionMacros.h"
 #include "Core/FrameTimer.h"
 #include "Editor/EditorEngine.h"
+#include "Platform/Window.h"
 #include "Renderer/Renderer.h"
 
 /**

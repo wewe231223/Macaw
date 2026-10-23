@@ -5,15 +5,15 @@
  */
 
 #include "Editor/Panel/FConsolePanel.h"
-#include "Editor/EditorEngine.h"
+#include "Editor/FEditorContext.h"
 
 #include <imgui.h>
 
 /**
  * @brief FConsolePanel의 초기 상태와 전달받은 의존성을 구성합니다.
  */
-FConsolePanel::FConsolePanel(UEditorEngine* Engine)
-	: FEditorPanel{Engine, "Console", true} {
+FConsolePanel::FConsolePanel(FEditorContext* Context)
+	: FEditorPanel{Context, "Console", true} {
 }
 
 /**
@@ -25,19 +25,14 @@ FConsolePanel::~FConsolePanel() = default;
  * @brief 콘솔 패널에 메시지를 추가하고 스크롤 갱신을 요청합니다.
  */
 void FConsolePanel::AddLog(const FString& Message) {
-    if (mLogs.size() >= 500) {
-        mLogs.erase(mLogs.begin(), mLogs.begin() + 100);
-    }
-
-    mLogs.push_back(Message);
-    mScrollToBottom = true;
+    GetEditorContext()->AddLog(Message);
 }
 
 /**
  * @brief 수집한 콘솔 로그를 모두 지웁니다.
  */
 void FConsolePanel::Clear() {
-    mLogs.clear();
+    GetEditorContext()->ClearLogs();
     mScrollToBottom = false;
 }
 
@@ -45,8 +40,15 @@ void FConsolePanel::Clear() {
  * @brief 패널 고유의 ImGui 위젯과 내용을 그립니다.
  */
 void FConsolePanel::DrawContent(float) {
+    FEditorContext* Context{GetEditorContext()};
+
+    if (mLastLogRevision != Context->GetLogRevision()) {
+        mLastLogRevision = Context->GetLogRevision();
+        mScrollToBottom = !Context->GetLogs().empty();
+    }
+
     if (ImGui::BeginChild("Messages", {0.0f, -ImGui::GetFrameHeightWithSpacing()}, 0, ImGuiWindowFlags_HorizontalScrollbar)) {
-        for (const FString& Message : mLogs) {
+        for (const FString& Message : Context->GetLogs()) {
             ImGui::TextUnformatted(Message.c_str());
         }
 
@@ -60,7 +62,7 @@ void FConsolePanel::DrawContent(float) {
     ImGui::SetNextItemWidth(-1.0f);
 
     if (ImGui::InputText("##Command", mConsoleInput.data(), mConsoleInput.size(), ImGuiInputTextFlags_EnterReturnsTrue)) {
-        GetEditorEngine()->ExecuteConsoleCommand(mConsoleInput.data());
+        GetEditorContext()->ExecuteConsoleCommand(mConsoleInput.data());
         mConsoleInput.fill(0);
         ImGui::SetKeyboardFocusHere(-1);
     }

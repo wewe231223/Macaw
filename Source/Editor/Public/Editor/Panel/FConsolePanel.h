@@ -25,9 +25,9 @@ public:
 public:
     /**
      * @brief FConsolePanel의 초기 상태와 전달받은 의존성을 구성합니다.
-     * @param[in,out] Engine 패널 또는 뷰포트가 참조할 에디터 엔진입니다.
+     * @param[in,out] Context 패널 또는 뷰포트가 공유할 편집 컨텍스트입니다.
      */
-    explicit FConsolePanel(UEditorEngine* Engine);
+    explicit FConsolePanel(FEditorContext* Context);
     /**
      * @brief 객체의 수명을 끝내고 소유한 리소스를 정리합니다.
      */
@@ -65,10 +65,10 @@ private:
 
 private:
     /**
-     * @brief 표시할 콘솔 로그 목록입니다.
+     * @brief 마지막으로 표시한 로그 모델의 변경 세대입니다.
      */
-    TArray<FString> mLogs{};
-    ReflectProperty(mLogs, "Logs", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    Uint64 mLastLogRevision{};
+    ReflectProperty(mLastLogRevision, "LastLogRevision", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 
     /**
      * @brief 널 종료된 콘솔 명령 입력 버퍼입니다.

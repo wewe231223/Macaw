@@ -5,7 +5,7 @@
  */
 
 #include "Editor/Gizmo.h"
-#include "Editor/ViewportClient.h"
+#include "Editor/FEditorViewportClient.h"
 #include "Engine/Component/USceneComponent.h"
 #include "Engine/FWorldContext.h"
 #include "Core/Math.h"
@@ -20,7 +20,7 @@
 #include "Engine/FViewportInput.h"
 #include "CoreUObject/Reflection/Cast.h"
 #include "CoreUObject/FObjectRegistry.h"
-#include "Editor/EditorEngine.h"
+#include "Editor/FEditorContext.h"
 
 #include <algorithm>
 #include <cmath>
@@ -71,8 +71,8 @@ namespace {
 /**
  * @brief 에디터 편집 경로와 클라이언트가 제공하는 변환 도구 상태를 연결합니다.
  */
-FTransformGizmo::FTransformGizmo(UEditorEngine* Engine, const FEditorViewportClient* Client)
-	: mEngine{Engine},
+FTransformGizmo::FTransformGizmo(FEditorContext* Context, const FEditorViewportClient* Client)
+	: mContext{Context},
 	  mClient{Client} {
 }
 
@@ -143,9 +143,9 @@ Int32 FTransformGizmo::HitTest(const FVector2& Mouse, const FSceneView& View, co
  * @brief 선택 축과 대상의 시작 변환을 저장하고 드래그 평면을 구성합니다.
  */
 bool FTransformGizmo::BeginDrag(Int32 Axis, const FVector2& Mouse, const FSceneView& View) {
-    AActor* Actor{mEngine->GetSelectedActor()};
+    AActor* Actor{mContext->GetSelectedActor()};
 
-    if (Actor == nullptr || Actor->GetRootComponent() == nullptr) {
+    if (Actor == nullptr || Actor->GetRootComponent() == nullptr || !mContext->CanEditWorld()) {
         return false;
     }
 
@@ -169,7 +169,7 @@ bool FTransformGizmo::BeginDrag(Int32 Axis, const FVector2& Mouse, const FSceneV
     }
 
     mTarget = Actor->GetHandle();
-    mWorldGeneration = mEngine->GetWorldGeneration();
+    mWorldHandle = mContext->GetWorldHandle();
     mActiveAxis = Axis;
 
     return true;
@@ -179,14 +179,14 @@ bool FTransformGizmo::BeginDrag(Int32 Axis, const FVector2& Mouse, const FSceneV
  * @brief 마우스 이동량을 활성 모드의 변환으로 바꾸어 선택한 액터에 적용합니다.
  */
 void FTransformGizmo::UpdateDrag(const FVector2& Mouse) {
-    if (mEngine->GetWorldGeneration() != mWorldGeneration || mEngine->GetWorldContext() == nullptr) {
+    if (mContext->GetWorldHandle() != mWorldHandle || mContext->GetWorld() == nullptr) {
         mActiveAxis = -1;
         return;
     }
 
     AActor* Actor{Cast<AActor>(FObjectRegistry::Get()->Resolve(mTarget))};
 
-    if (Actor == nullptr || Actor->GetWorld() != mEngine->GetWorld() || Actor->IsPendingDestroy()) {
+    if (Actor == nullptr || Actor->GetWorld() != mContext->GetWorld() || Actor->IsPendingDestroy()) {
         mActiveAxis = -1;
         return;
     }
@@ -221,7 +221,7 @@ void FTransformGizmo::UpdateDrag(const FVector2& Mouse) {
         Transform.NormalizeRotation();
     }
 
-    mEngine->ApplyTransform(Actor, Transform, true);
+    mContext->ApplyTransform(Actor->GetHandle(), Transform, true);
 }
 
 /**
@@ -240,7 +240,7 @@ bool FTransformGizmo::Input(const FViewportInput& Input, const FSceneView& View)
         return true;
     }
 
-    const AActor* Actor{mEngine->GetSelectedActor()};
+    const AActor* Actor{mContext->GetSelectedActor()};
     mHoveredAxis = Actor != nullptr && Actor->GetRootComponent() != nullptr && Input.mHovered ? HitTest(Input.mMouse, View, Actor->GetRootComponent()->GetTransform()) : -1;
 
     return Input.mLeftPressed && mHoveredAxis >= 0 && BeginDrag(mHoveredAxis, Input.mMouse, View);
@@ -250,9 +250,9 @@ bool FTransformGizmo::Input(const FViewportInput& Input, const FSceneView& View)
  * @brief 뷰포트 또는 패널의 현재 내용을 그립니다.
  */
 void FTransformGizmo::Draw(const FSceneView& View, FPrimitiveDrawInterface& DrawInterface) {
-    const AActor* Actor{mEngine->GetSelectedActor()};
+    const AActor* Actor{mContext->GetSelectedActor()};
 
-    if (Actor == nullptr || Actor->GetRootComponent() == nullptr) {
+    if (Actor == nullptr || Actor->GetRootComponent() == nullptr || !mContext->CanEditWorld()) {
         return;
     }
 
@@ -299,9 +299,9 @@ void FTransformGizmo::Draw(const FSceneView& View, FPrimitiveDrawInterface& Draw
  * @brief 진행 중인 기즈모 드래그를 취소하고 가능한 경우 시작 변환을 복원합니다.
  */
 void FTransformGizmo::Cancel() {
-    if (IsDragging() && mEngine->GetWorldGeneration() == mWorldGeneration && mEngine->GetWorldContext() != nullptr) {
-        if (auto* Actor{Cast<AActor>(FObjectRegistry::Get()->Resolve(mTarget))}; Actor != nullptr && Actor->GetWorld() == mEngine->GetWorld() && !Actor->IsPendingDestroy()) {
-            mEngine->ApplyTransform(Actor, mStartTransform);
+    if (IsDragging() && mContext->GetWorldHandle() == mWorldHandle && mContext->GetWorld() != nullptr) {
+        if (auto* Actor{Cast<AActor>(FObjectRegistry::Get()->Resolve(mTarget))}; Actor != nullptr && Actor->GetWorld() == mContext->GetWorld() && !Actor->IsPendingDestroy()) {
+            mContext->ApplyTransform(Actor->GetHandle(), mStartTransform);
         }
     }
 

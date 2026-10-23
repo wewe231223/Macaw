@@ -23,7 +23,7 @@ Macaw는 C++20, Windows x64와 Direct3D 11을 사용하는 엔진입니다.
 | \ref Engine | 월드, 레벨, 액터, 컴포넌트, 장면·뷰포트 및 장면 저장 | \ref UEngine, \ref UWorld, \ref AActor, \ref FSceneSerializer |
 | \ref Renderer | Direct3D 11 장치, 장면, 타깃과 드로 제출 | \ref FRenderer, \ref FScene, \ref FSceneRenderer |
 | \ref Platform | Win32 창과 메시지 펌프 | \ref FWindowsApplication |
-| \ref Editor | 선택, 카메라, 변환 명령, 기즈모, 프로퍼티 편집과 ImGui 패널 | \ref UEditorEngine, \ref FEditorViewportClient, \ref EViewportCommand, \ref FTransformGizmo |
+| \ref Editor | UI 독립 편집 컨텍스트, 카메라, 변환 명령, 기즈모와 ImGui 패널 | \ref UEditorEngine, \ref FEditorContext, \ref FEditorUI, \ref FEditorViewportClient, \ref EViewportCommand |
 | \ref App | 플랫폼·렌더러·에디터를 조합하는 실행 진입점 | \ref FApplication |
 
 외부 ImGui는 `ThirdParty/ImGui`에서 별도 정적 라이브러리로 빌드합니다.
@@ -68,6 +68,22 @@ FObjectDuplicationContext는 원본과 복제본의 비소유 대응표이며,
 복제 월드의 실행 상태와 렌더 장면은 원본과 공유하지 않습니다.
 
 \section ApiViewport 뷰포트 UI와 공통 명령
+
+UEditorEngine은 FEditorContext, FEditorViewportClient와 FEditorUI의 수명을 조합합니다.
+FEditorContext는 편집 대상 FWorldHandle, 액터·객체 선택, 장면 파일 경로와 변경 여부,
+콘솔 로그를 소유합니다. 엔진의 현재 실행 월드 선택과 편집 대상 월드는 독립적입니다.
+FEditorUI는 ImGui 백엔드, 창, 도킹, 패널과 표시용 FSceneViewport를 소유합니다.
+UI를 만들지 않고도 엔진과 편집 컨텍스트를 초기화하여 같은 편집 경로를 사용할 수 있습니다.
+
+패널, 콘솔과 기즈모는 FEditorContext의 선택, 생성·삭제, EditProperty()와 ApplyTransform()
+경로를 공유합니다. 프로퍼티 변경은 객체 핸들과 월드 소속, 메타데이터와 편집 권한을 검증하고
+변경 전후 알림을 전달합니다. 알림 중 객체 삭제는 월드 전달 범위로 지연하며 재진입을 제한합니다.
+현재 Game과 PIE 월드의 조회·선택은 가능하지만 수정은 허용하지 않습니다.
+
+Outliner는 액터와 컴포넌트 선택을 요청하고 Details는 선택에 따른 핸들 스냅샷을 표시합니다.
+패널을 그리는 동작 자체는 선택을 변경하지 않습니다. 창 표시 여부, 입력 버퍼와 스크롤은 UI 상태로 유지합니다.
+장면 교체는 해당 편집 월드만 교체합니다.
+실제 Undo/Redo 기록과 SIE 편집 정책은 아직 구현하지 않았으며 공통 편집 경로에서 확장할 수 있습니다.
 
 ViewportToolbar는 변환 도구, 좌표계와 그리드 설정의 UI를 구성합니다.
 아이콘, 버튼 표시와 툴바 색상은 EditorStyle에서 공유합니다.

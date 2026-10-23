@@ -5,10 +5,10 @@
  */
 
 #include "Editor/Panel/FOutlinerPanel.h"
-#include "Editor/EditorEngine.h"
-#include "Engine/UWorld.h"
-#include "Engine/ULevel.h"
+#include "Editor/FEditorContext.h"
 #include "Engine/AActor.h"
+#include "Engine/Component/UActorComponent.h"
+#include "CoreUObject/Reflection/Cast.h"
 #include "Engine/EPrimitiveType.h"
 
 #include <imgui.h>
@@ -17,8 +17,8 @@
 /**
  * @brief FOutlinerPanel의 초기 상태와 전달받은 의존성을 구성합니다.
  */
-FOutlinerPanel::FOutlinerPanel(UEditorEngine* Engine)
-	: FEditorPanel{Engine, "World Outliner"} {
+FOutlinerPanel::FOutlinerPanel(FEditorContext* Context)
+	: FEditorPanel{Context, "World Outliner"} {
 }
 
 /**
@@ -30,48 +30,76 @@ FOutlinerPanel::~FOutlinerPanel() = default;
  * @brief 패널 고유의 ImGui 위젯과 내용을 그립니다.
  */
 void FOutlinerPanel::DrawContent(float) {
-    UEditorEngine* Engine{GetEditorEngine()};
+    FEditorContext* Context{GetEditorContext()};
+    ImGui::BeginDisabled(!Context->CanEditWorld());
 
     if (ImGui::Button("+ Plane")) {
-        Engine->SpawnPrimitive(EPrimitiveType::Plane);
+        Context->SpawnPrimitive(EPrimitiveType::Plane);
     }
 
     ImGui::SameLine();
 
     if (ImGui::Button("+ Cube")) {
-        Engine->SpawnPrimitive(EPrimitiveType::Cube);
+        Context->SpawnPrimitive(EPrimitiveType::Cube);
     }
 
     ImGui::SameLine();
 
     if (ImGui::Button("+ Sphere")) {
-        Engine->SpawnPrimitive(EPrimitiveType::Sphere);
+        Context->SpawnPrimitive(EPrimitiveType::Sphere);
     }
 
+    ImGui::EndDisabled();
     ImGui::Separator();
+    const auto Actors{Context->GetActorHandles()};
+    ImGui::TextUnformatted(std::format("PersistentLevel ({})", Actors.size()).c_str());
 
-    const UWorld* World{Engine->GetWorld()};
+    for (FObjectHandle Handle : Actors) {
+        AActor* Actor{Cast<AActor>(Context->ResolveObject(Handle))};
 
-    if (World != nullptr && World->GetPersistentLevel() != nullptr) {
-        ImGui::TextUnformatted(std::format("PersistentLevel ({})", World->GetPersistentLevel()->GetActors().size()).c_str());
+        if (Actor == nullptr) {
+            continue;
+        }
 
-        for (const auto& Actor : World->GetPersistentLevel()->GetActors()) {
-            ImGui::PushID(Actor.get());
+        TArray<FObjectHandle> Components{};
 
-            if (ImGui::Selectable(Actor->GetName().c_str(), Engine->GetSelectedActor() == Actor.get())) {
-                Engine->SelectActor(Actor->GetHandle());
+        for (const auto& Component : Actor->GetComponents()) {
+            Components.push_back(Component->GetHandle());
+        }
+
+        ImGui::PushID(Actor);
+        const bool Selected{Context->GetSelectedObject() == Actor};
+        const ImGuiTreeNodeFlags Flags{ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_SpanAvailWidth | (Selected ? ImGuiTreeNodeFlags_Selected : 0) | (Components.empty() ? ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen : 0)};
+        const bool Open{ImGui::TreeNodeEx(Actor->GetName().c_str(), Flags)};
+
+        if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen()) {
+            Context->SelectActor(Handle);
+        }
+
+        if (Open && !Components.empty()) {
+            for (FObjectHandle ComponentHandle : Components) {
+                if (UObject* Component{Context->ResolveObject(ComponentHandle)}) {
+                    ImGui::PushID(Component);
+
+                    if (ImGui::Selectable(Component->GetName().c_str(), Context->GetSelectedObject() == Component)) {
+                        Context->SelectObject(ComponentHandle);
+                    }
+
+                    ImGui::PopID();
+                }
             }
 
-            ImGui::PopID();
+            ImGui::TreePop();
         }
+
+        ImGui::PopID();
     }
 
     ImGui::Separator();
-
-    ImGui::BeginDisabled(Engine->GetSelectedActor() == nullptr);
+    ImGui::BeginDisabled(!Context->CanEditWorld() || Context->GetSelectedActor() == nullptr);
 
     if (ImGui::Button("Delete Selected")) {
-        Engine->DestroySelectedActor();
+        Context->DestroySelectedActor();
     }
 
     ImGui::EndDisabled();

@@ -127,7 +127,7 @@ bool FRenderer::Initialize(void* WindowHandle, Uint32 Width, Uint32 Height) {
 
     Description.OutputWindow = static_cast<HWND>(WindowHandle);
     Description.Windowed = true;
-    Description.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
+    Description.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
 
     UINT Flags{D3D11_CREATE_DEVICE_BGRA_SUPPORT};
 #ifdef _DEBUG

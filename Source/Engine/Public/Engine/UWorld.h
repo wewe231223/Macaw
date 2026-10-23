@@ -32,7 +32,7 @@ public:
      */
     ReflectTypes(UWorld, UObject);
 
-private:
+public:
     /**
      * @brief 중첩 콜백 동안 객체 해제를 지연하는 월드 전달 범위입니다.
      * @note 가장 바깥 범위가 끝나면 지연된 종료와 액터 삭제를 처리합니다.

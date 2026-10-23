@@ -5,13 +5,14 @@
  */
 
 #include "Editor/Panel/FDetailsPanel.h"
-#include "Editor/EditorEngine.h"
+#include "Editor/FEditorContext.h"
 #include "Engine/AActor.h"
 #include "Engine/Component/UActorComponent.h"
 #include "CoreUObject/UObject.h"
 #include "CoreUObject/Reflection/FProperty.h"
 #include "CoreUObject/Reflection/UStruct.h"
 #include "CoreUObject/Reflection/UClass.h"
+#include "CoreUObject/Reflection/Cast.h"
 
 #include <imgui.h>
 #include <algorithm>
@@ -20,8 +21,8 @@
 /**
  * @brief FDetailsPanel의 초기 상태와 전달받은 의존성을 구성합니다.
  */
-FDetailsPanel::FDetailsPanel(UEditorEngine* Engine)
-	: FEditorPanel{Engine, "Details"} {
+FDetailsPanel::FDetailsPanel(FEditorContext* Context)
+	: FEditorPanel{Context, "Details"} {
 }
 
 /**
@@ -33,20 +34,15 @@ FDetailsPanel::~FDetailsPanel() = default;
  * @brief 패널 고유의 ImGui 위젯과 내용을 그립니다.
  */
 void FDetailsPanel::DrawContent(float) {
-    UEditorEngine* Engine{GetEditorEngine()};
-    AActor* Actor{Engine->GetSelectedActor()};
+    FEditorContext* Context{GetEditorContext()};
+    const auto Objects{Context->GetDetailsObjects()};
 
-    if (Actor != nullptr) {
-        if (ImGui::CollapsingHeader("Actor", ImGuiTreeNodeFlags_DefaultOpen)) {
-            DrawReflectedObject(Actor);
-        }
+    for (FObjectHandle Handle : Objects) {
+        if (UObject* Object{Context->ResolveObject(Handle)}) {
+            ImGui::PushID(Object);
 
-        for (const auto& Component : Actor->GetComponents()) {
-            ImGui::PushID(Component.get());
-
-            if (ImGui::CollapsingHeader(Component->GetName().c_str(), ImGuiTreeNodeFlags_DefaultOpen)) {
-                Engine->SelectObject(Component->GetHandle());
-                DrawReflectedObject(Component.get());
+            if (ImGui::CollapsingHeader(Cast<AActor>(Object) != nullptr ? "Actor" : Object->GetName().c_str(), ImGuiTreeNodeFlags_DefaultOpen)) {
+                DrawReflectedObject(Object);
             }
 
             ImGui::PopID();
@@ -58,6 +54,8 @@ void FDetailsPanel::DrawContent(float) {
  * @brief 객체 타입의 편집 가능한 리플렉션 프로퍼티를 순회하여 표시합니다.
  */
 void FDetailsPanel::DrawReflectedObject(UObject* Object) {
+    FEditorContext* Context{GetEditorContext()};
+    const FObjectHandle Handle{Object->GetHandle()};
     ImGui::PushID(Object);
     ImGui::TextDisabled("%s", Object->GetClass()->GetName().c_str());
 
@@ -67,15 +65,19 @@ void FDetailsPanel::DrawReflectedObject(UObject* Object) {
         }
 
         FPropertyValue Value{Property->ReadValue(Object)};
-        const bool ReadOnly{Property->HasFlag(EPropertyFlags::ReadOnly)};
+        const bool ReadOnly{!Context->CanEditProperty(Handle, Property)};
 
         ImGui::BeginDisabled(ReadOnly);
 
         if (DrawPropertyValue(Property, Value) && !ReadOnly) {
-            GetEditorEngine()->EditProperty(Object, Property, Value, ImGui::IsMouseDown(ImGuiMouseButton_Left));
+            Context->EditProperty(Handle, Property, Value, ImGui::IsMouseDown(ImGuiMouseButton_Left));
         }
 
         ImGui::EndDisabled();
+
+        if (Context->ResolveObject(Handle) != Object) {
+            break;
+        }
     }
 
     ImGui::PopID();
@@ -195,10 +197,14 @@ bool FDetailsPanel::DrawPropertyValue(const FProperty* Property, FPropertyValue&
                 }
 
                 FPropertyValue ChildValue{Child->ReadValue(GetPropertyData(Value))};
+                const bool ReadOnly{Child->HasFlag(EPropertyFlags::ReadOnly)};
+                ImGui::BeginDisabled(ReadOnly);
 
-                if (DrawPropertyValue(Child, ChildValue)) {
+                if (DrawPropertyValue(Child, ChildValue) && !ReadOnly) {
                     Changed = Child->WriteValue(GetPropertyData(Value), ChildValue) || Changed;
                 }
+
+                ImGui::EndDisabled();
             }
 
             ImGui::TreePop();

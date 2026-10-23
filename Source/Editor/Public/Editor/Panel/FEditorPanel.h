@@ -9,7 +9,7 @@
 #include "Core/ReflectionMacros.h"
 #include "Core/Types.h"
 
-class UEditorEngine;
+class FEditorContext;
 
 /**
  * @brief ImGui 패널의 이름, 가시성과 내용 그리기 수명을 관리합니다.
@@ -25,11 +25,11 @@ public:
 public:
     /**
      * @brief FEditorPanel의 초기 상태와 전달받은 의존성을 구성합니다.
-     * @param[in,out] Engine 패널 또는 뷰포트가 참조할 에디터 엔진입니다.
+     * @param[in,out] Context 패널 또는 뷰포트가 공유할 편집 컨텍스트입니다.
      * @param[in] Name 조회하거나 기록할 이름입니다.
      * @param[in] Closable 사용자가 패널을 닫을 수 있는지 지정합니다.
      */
-    FEditorPanel(UEditorEngine* Engine, FString Name, bool Closable = false);
+    FEditorPanel(FEditorContext* Context, FString Name, bool Closable = false);
     /**
      * @brief 객체의 수명을 끝내고 소유한 리소스를 정리합니다.
      */
@@ -63,7 +63,7 @@ public:
      */
     const FString& GetName() const;
     /**
-     * @brief 경계 상자가 뷰 프러스텀과 겹치는지 검사합니다.
+     * @brief 패널 창의 표시 여부를 반환합니다.
      * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
      */
     bool IsVisible() const;
@@ -74,10 +74,10 @@ public:
     void SetVisible(bool Visible);
 
     /**
-     * @brief 연결된 에디터 엔진을 반환합니다.
-     * @return 연결된 에디터 엔진의 비소유 주소입니다.
+     * @brief 연결된 공통 편집 컨텍스트를 반환합니다.
+     * @return 연결된 공통 편집 컨텍스트의 비소유 주소입니다.
      */
-    UEditorEngine* GetEditorEngine() const;
+    FEditorContext* GetEditorContext() const;
 
 private:
     /**
@@ -94,10 +94,10 @@ private:
 
 private:
     /**
-     * @brief 연결된 에디터 엔진입니다.
+     * @brief 연결된 공통 편집 컨텍스트입니다.
      */
-    UEditorEngine* mEngine{};
-    ReflectProperty(mEngine, "Engine", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    FEditorContext* mContext{};
+    ReflectProperty(mContext, "Context", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 
     /**
      * @brief 이름 또는 표시 문자열입니다.

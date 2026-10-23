@@ -12,10 +12,11 @@
 #include "Core/Math/FVector.h"
 #include "Core/Math/FTransform.h"
 #include "Engine/FSceneView.h"
+#include "Engine/FWorldHandle.h"
 #include "Engine/FPrimitiveDrawInterface.h"
 #include "Engine/FViewportInput.h"
 
-class UEditorEngine;
+class FEditorContext;
 class FEditorViewportClient;
 
 /**
@@ -67,11 +68,11 @@ public:
 public:
     /**
      * @brief FTransformGizmo의 초기 상태와 전달받은 의존성을 구성합니다.
-     * @param[in,out] Engine 패널 또는 뷰포트가 참조할 에디터 엔진입니다.
+     * @param[in,out] Context 패널 또는 뷰포트가 공유할 편집 컨텍스트입니다.
      * @param[in] Client 변환 모드와 좌표계를 제공하는 뷰포트 클라이언트의 비소유 주소입니다.
-     * @pre Engine과 Client는 nullptr이 아니며 기즈모를 사용하는 동안 유효해야 합니다.
+     * @pre Context와 Client는 nullptr이 아니며 기즈모를 사용하는 동안 유효해야 합니다.
      */
-    FTransformGizmo(UEditorEngine* Engine, const FEditorViewportClient* Client);
+    FTransformGizmo(FEditorContext* Context, const FEditorViewportClient* Client);
 
 public:
     /**
@@ -155,10 +156,10 @@ private:
 
 private:
     /**
-     * @brief 연결된 에디터 엔진입니다.
+     * @brief 연결된 공통 편집 컨텍스트입니다.
      */
-    UEditorEngine* mEngine{};
-    ReflectProperty(mEngine, "Engine", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    FEditorContext* mContext{};
+    ReflectProperty(mContext, "Context", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 
     /**
      * @brief 변환 모드와 좌표계를 읽을 뷰포트 클라이언트의 비소유 주소입니다.
@@ -185,10 +186,10 @@ private:
     ReflectProperty(mTarget, "Target", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 
     /**
-     * @brief 월드 교체 시 증가하는 컨텍스트 세대입니다.
+     * @brief 드래그 시작 시 편집 대상 월드의 세대 핸들입니다.
      */
-    Uint64 mWorldGeneration{};
-    ReflectProperty(mWorldGeneration, "WorldGeneration", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    FWorldHandle mWorldHandle{};
+    ReflectProperty(mWorldHandle, "WorldHandle", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 
     /**
      * @brief 드래그 시작 시 대상 변환입니다.
