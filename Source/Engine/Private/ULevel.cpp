@@ -39,12 +39,18 @@ void ULevel::SetWorld(UWorld* World) {
  * @brief 검증한 액터의 소유권을 레벨로 옮기고 컴포넌트를 월드에 등록합니다.
  */
 bool ULevel::AddActor(std::unique_ptr<AActor> Actor) {
-    if (Actor == nullptr || Actor->GetRegistry() != GetRegistry() || Actor->GetWorld() != nullptr) {
+    if (Actor == nullptr || Actor->GetWorld() != nullptr || (mWorld != nullptr && !mWorld->CanAddActor())) {
         return false;
     }
 
-    Actor->SetWorld(mWorld);
+    UWorld::FDispatchScope Scope{mWorld};
+    AActor* Added{Actor.get()};
     mActors.push_back(std::move(Actor));
+    Added->SetWorld(mWorld);
+
+    if (mWorld != nullptr) {
+        mWorld->NotifyActorAdded(Added);
+    }
 
     return true;
 }
@@ -53,6 +59,13 @@ bool ULevel::AddActor(std::unique_ptr<AActor> Actor) {
  * @brief 핸들에 해당하는 액터의 컴포넌트를 등록 해제하고 액터를 제거합니다.
  */
 bool ULevel::DestroyActor(FObjectHandle Handle) {
+    return mWorld != nullptr ? mWorld->DestroyActor(Handle) : RemoveActor(Handle);
+}
+
+/**
+ * @brief 안전한 삭제 경계에서 실행을 종료하고 액터의 소유권을 해제합니다.
+ */
+bool ULevel::RemoveActor(FObjectHandle Handle) {
     const auto Position{std::find_if(mActors.begin(), mActors.end(), [Handle](const auto& Actor) {
         return Actor->GetHandle() == Handle;
     })};
@@ -61,9 +74,9 @@ bool ULevel::DestroyActor(FObjectHandle Handle) {
         return false;
     }
 
-    (*Position)->SetWorld(nullptr);
+    auto Removed{std::move(*Position)};
     mActors.erase(Position);
-
+    Removed->SetWorld(nullptr);
     return true;
 }
 

@@ -16,6 +16,7 @@
 #include "Engine/FViewportInput.h"
 
 class UEditorEngine;
+class FEditorViewportClient;
 
 /**
  * @brief 기즈모로 편집할 이동, 회전 또는 스케일 연산을 지정합니다.
@@ -67,7 +68,7 @@ public:
      * @brief FTransformGizmo의 초기 상태와 전달받은 의존성을 구성합니다.
      * @param[in,out] Engine 패널 또는 뷰포트가 참조할 에디터 엔진입니다.
      */
-    explicit FTransformGizmo(UEditorEngine& Engine);
+    FTransformGizmo(UEditorEngine* Engine, const FEditorViewportClient* Client);
 
 public:
     /**
@@ -75,28 +76,6 @@ public:
      * @return 등록된 타입 메타데이터의 비소유 주소입니다.
      */
     ReflectStruct(FTransformGizmo);
-
-    /**
-     * @brief 기즈모의 이동, 회전 또는 스케일 모드를 선택합니다.
-     * @param[in] Mode 로드·저장 또는 기즈모 동작 모드입니다.
-     */
-    void SetMode(EGizmoMode Mode);
-    /**
-     * @brief 현재 동작 모드를 반환합니다.
-     * @return 현재 동작 모드입니다.
-     */
-    EGizmoMode GetMode() const;
-
-    /**
-     * @brief 기즈모 축의 기준을 월드 또는 로컬 좌표로 바꿉니다.
-     * @param[in] Space 축에 적용할 월드 또는 로컬 좌표 공간입니다.
-     */
-    void SetSpace(EGizmoSpace Space);
-    /**
-     * @brief 기즈모 축의 좌표 공간을 반환합니다.
-     * @return 기즈모 축의 좌표 공간입니다.
-     */
-    EGizmoSpace GetSpace() const;
 
     /**
      * @brief 현재 프레임의 뷰포트 입력을 처리합니다.
@@ -178,19 +157,8 @@ private:
     UEditorEngine* mEngine{};
     ReflectProperty(mEngine, "Engine", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 
-
-    /**
-     * @brief 현재 동작 모드입니다.
-     */
-    EGizmoMode mMode{EGizmoMode::Translate};
-    ReflectProperty(mMode, "Mode", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
-
-    /**
-     * @brief 기즈모 축의 좌표 공간입니다.
-     */
-    EGizmoSpace mSpace{EGizmoSpace::World};
-    ReflectProperty(mSpace, "Space", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
-
+    const FEditorViewportClient* mClient{};
+    ReflectProperty(mClient, "ViewportClient", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 
     /**
      * @brief 마우스가 가리키는 축 인덱스, 없으면 -1입니다.
@@ -204,7 +172,6 @@ private:
     Int32 mActiveAxis{-1};
     ReflectProperty(mActiveAxis, "ActiveAxis", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 
-
     /**
      * @brief 렌더 타깃 또는 편집 대상입니다.
      */
@@ -216,7 +183,6 @@ private:
      */
     Uint64 mWorldGeneration{};
     ReflectProperty(mWorldGeneration, "WorldGeneration", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
-
 
     /**
      * @brief 드래그 시작 시 대상 변환입니다.
@@ -235,7 +201,6 @@ private:
      */
     FVector2 mStartMouse{};
     ReflectProperty(mStartMouse, "StartMouse", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
-
 
     /**
      * @brief 드래그할 월드 단위 축입니다.

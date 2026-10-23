@@ -39,7 +39,7 @@ public:
      * @param[in,out] Error 실패 시 원인을 기록할 문자열입니다.
      * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
      */
-    static bool Save(const std::filesystem::path& Path, FWorldContext& Context, FString& Error);
+    static bool Save(const std::filesystem::path& Path, FWorldContext* Context, FString& Error);
     /**
      * @brief 파일을 읽고 검증한 새 월드 컨텍스트를 반환합니다.
      * @param[in] Path 읽거나 쓸 파일 경로입니다.
@@ -52,7 +52,7 @@ public:
      * @param[in,out] Archive 로드 또는 저장 모드를 가진 아카이브입니다.
      * @param[in,out] Context 월드 컨텍스트 또는 Direct3D 11 컨텍스트입니다.
      */
-    static void Serialize(FArchive& Archive, FWorldContext& Context);
+    static void Serialize(FArchive& Archive, FWorldContext* Context);
 
 private:
     /**

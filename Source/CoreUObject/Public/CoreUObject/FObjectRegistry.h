@@ -1,19 +1,19 @@
 /**
  * @file FObjectRegistry.h
- * @brief 객체의 GUID 검색과 슬롯 세대 검사를 통한 핸들 해석을 담당합니다.
+ * @brief 프로세스 전역 객체 등록과 슬롯 세대 검사를 통한 핸들 해석을 담당합니다.
  * @ingroup CoreUObject
  */
 
 #pragma once
 
 #include "Core/ReflectionMacros.h"
-#include "Core/GuidHash.h"
+#include "Core/Types.h"
 #include "CoreUObject/FObjectHandle.h"
 
 class UObject;
 
 /**
- * @brief 객체의 GUID 검색과 슬롯 세대 검사를 통한 핸들 해석을 담당합니다.
+ * @brief 프로세스 전역 객체 등록과 슬롯 세대 검사를 통한 핸들 해석을 담당합니다.
  * @ingroup CoreUObject
  */
 class FObjectRegistry {
@@ -62,7 +62,7 @@ private:
         ReflectProperty(mGeneration, "Generation", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
     };
 
-public:
+private:
     /**
      * @brief FObjectRegistry의 초기 상태와 전달받은 의존성을 구성합니다.
      */
@@ -89,24 +89,10 @@ public:
     ReflectStruct(FObjectRegistry);
 
     /**
-     * @brief 객체를 빈 슬롯과 GUID 인덱스에 등록하고 핸들을 부여합니다.
-     * @param[in,out] Object 대상 객체입니다.
-     * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
+     * @brief 프로세스 수명 동안 유지되는 전역 객체 레지스트리를 반환합니다.
+     * @return 객체를 소유하지 않는 전역 레지스트리의 주소입니다.
      */
-    bool Register(UObject& Object);
-    /**
-     * @brief 객체를 등록 해제하고 슬롯 세대를 올려 기존 핸들을 무효화합니다.
-     * @param[in,out] Object 대상 객체입니다.
-     */
-    void Unregister(UObject& Object);
-
-    /**
-     * @brief 중복되지 않는 유효 GUID로 객체의 식별자를 복원합니다.
-     * @param[in,out] Object 대상 객체입니다.
-     * @param[in] Guid 복원 또는 조회할 영속 GUID입니다.
-     * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
-     */
-    bool RestoreGuid(UObject& Object, const FGuid& Guid);
+    static FObjectRegistry* Get();
 
     /**
      * @brief 핸들의 슬롯 범위와 세대가 일치하는 객체를 조회합니다.
@@ -114,12 +100,6 @@ public:
      * @return 조회한 값의 비소유 주소이며, 해당 값이 없으면 nullptr입니다.
      */
     UObject* Resolve(FObjectHandle Handle) const;
-    /**
-     * @brief GUID에 등록된 객체를 조회합니다.
-     * @param[in] Guid 복원 또는 조회할 영속 GUID입니다.
-     * @return 조회한 값의 비소유 주소이며, 해당 값이 없으면 nullptr입니다.
-     */
-    UObject* Find(const FGuid& Guid) const;
 
     /**
      * @brief 현재 레지스트리에 등록된 객체 개수를 반환합니다.
@@ -132,6 +112,21 @@ private:
      * @brief 생성된 프로퍼티 등록 함수와 빌더 접근 권한입니다.
      */
     ReflectMembers();
+    /**
+     * @brief UObject의 생성과 소멸에서 전역 등록 상태를 관리하도록 허용합니다.
+     */
+    friend class UObject;
+    /**
+     * @brief 객체를 전역 슬롯에 등록하고 핸들을 부여합니다.
+     * @param[in,out] Object 대상 객체입니다.
+     * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
+     */
+    bool Register(UObject* Object);
+    /**
+     * @brief 객체를 등록 해제하고 슬롯 세대를 올려 기존 핸들을 무효화합니다.
+     * @param[in,out] Object 대상 객체입니다.
+     */
+    void Unregister(UObject* Object);
 
 private:
     /**
@@ -147,8 +142,8 @@ private:
     ReflectProperty(mFreeSlots, "FreeSlots", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 
     /**
-     * @brief GUID에서 등록 객체로의 비소유 인덱스입니다.
+     * @brief 현재 전역 레지스트리에 등록된 객체의 개수입니다.
      */
-    TMap<FGuid, UObject*, FGuidHash> mObjectsByGuid{};
-    ReflectProperty(mObjectsByGuid, "ObjectsByGuid", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    std::size_t mObjectCount{};
+    ReflectProperty(mObjectCount, "ObjectCount", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 };

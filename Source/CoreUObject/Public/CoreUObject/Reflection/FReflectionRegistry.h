@@ -37,15 +37,15 @@ public:
     /**
      * @brief UClass의 멤버 메타데이터를 채우는 함수 포인터입니다.
      */
-    using FClassBuilder = void (*)(UClass&);
+    using FClassBuilder = void (*)(UClass*);
     /**
      * @brief UScriptStruct의 멤버 메타데이터를 채우는 함수 포인터입니다.
      */
-    using FStructBuilder = void (*)(UScriptStruct&);
+    using FStructBuilder = void (*)(UScriptStruct*);
     /**
      * @brief UEnum의 열거값을 채우는 함수 포인터입니다.
      */
-    using FEnumBuilder = void (*)(UEnum&);
+    using FEnumBuilder = void (*)(UEnum*);
 
 public:
     /**
@@ -82,7 +82,7 @@ public:
      * @param[in,out] Information 프로퍼티 또는 열거값을 추가할 메타데이터나 빌더입니다.
      * @param[in] Values 등록할 열거값 목록입니다.
      */
-    static void AddEnumValues(UEnum& Information, std::initializer_list<FEnumValue> Values);
+    static void AddEnumValues(UEnum* Information, std::initializer_list<FEnumValue> Values);
 
     /**
      * @brief 등록된 클래스 메타데이터를 이름으로 조회합니다.

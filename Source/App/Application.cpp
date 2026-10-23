@@ -36,7 +36,7 @@ int FApplication::Run() {
         ErrorHandler::Fatal("Application", "Renderer initialization failed");
     }
 
-    if (!mEngine.InitializeEditor(mRenderer, mPlatform)) {
+    if (!mEngine.InitializeEditor(&mRenderer, &mPlatform)) {
         ErrorHandler::Fatal("Application", "Editor initialization failed");
     }
 

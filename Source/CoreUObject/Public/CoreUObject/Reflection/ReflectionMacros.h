@@ -52,7 +52,7 @@ UClass* Type::GetClass() const { \
  * @brief 열거형 등록 빌더와 ADL 메타데이터 조회 함수를 정의합니다.
  * @param Type 생성, 조회 또는 표시할 타입입니다.
  */
-#define ImplementEnumReflection(Type, ...) void Build##Type##Reflection(UEnum& Information) { \
+#define ImplementEnumReflection(Type, ...) void Build##Type##Reflection(UEnum* Information) { \
     FReflectionRegistry::AddEnumValues(Information, {__VA_ARGS__}); \
 } \
 UEnum* StaticEnum##Type() { \

@@ -16,9 +16,9 @@
 /**
  * @brief FScene의 초기 상태와 전달받은 의존성을 구성합니다.
  */
-FScene::FScene(ID3D11Device& Device, ID3D11DeviceContext& Context)
-	: mDevice{&Device},
-	  mContext{&Context} {
+FScene::FScene(ID3D11Device* Device, ID3D11DeviceContext* Context)
+	: mDevice{Device},
+	  mContext{Context} {
 }
 
 /**

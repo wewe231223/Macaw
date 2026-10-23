@@ -20,8 +20,8 @@ FDXRenderTarget::~FDXRenderTarget() = default;
 /**
  * @brief 새 크기에 맞추어 렌더 타깃 리소스를 생성하거나 교체합니다.
  */
-bool FDXRenderTarget::Resize(ID3D11Device& Device, Uint32 Width, Uint32 Height) {
-    if (Width == 0 || Height == 0 || Width > D3D11_REQ_TEXTURE2D_U_OR_V_DIMENSION || Height > D3D11_REQ_TEXTURE2D_U_OR_V_DIMENSION) {
+bool FDXRenderTarget::Resize(ID3D11Device* Device, Uint32 Width, Uint32 Height) {
+    if (Device == nullptr || Width == 0 || Height == 0 || Width > D3D11_REQ_TEXTURE2D_U_OR_V_DIMENSION || Height > D3D11_REQ_TEXTURE2D_U_OR_V_DIMENSION) {
         return false;
     }
 
@@ -45,14 +45,14 @@ bool FDXRenderTarget::Resize(ID3D11Device& Device, Uint32 Width, Uint32 Height) 
     Description.Usage = D3D11_USAGE_DEFAULT;
     Description.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
 
-    if (FAILED(Device.CreateTexture2D(&Description, nullptr, Color.GetAddressOf())) || FAILED(Device.CreateRenderTargetView(Color.Get(), nullptr, RenderTarget.GetAddressOf())) || FAILED(Device.CreateShaderResourceView(Color.Get(), nullptr, ResourceView.GetAddressOf()))) {
+    if (FAILED(Device->CreateTexture2D(&Description, nullptr, Color.GetAddressOf())) || FAILED(Device->CreateRenderTargetView(Color.Get(), nullptr, RenderTarget.GetAddressOf())) || FAILED(Device->CreateShaderResourceView(Color.Get(), nullptr, ResourceView.GetAddressOf()))) {
         ErrorHandler::Fatal("Renderer", "Render target allocation failed");
     }
 
     Description.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
     Description.BindFlags = D3D11_BIND_DEPTH_STENCIL;
 
-    if (FAILED(Device.CreateTexture2D(&Description, nullptr, Depth.GetAddressOf())) || FAILED(Device.CreateDepthStencilView(Depth.Get(), nullptr, DepthView.GetAddressOf()))) {
+    if (FAILED(Device->CreateTexture2D(&Description, nullptr, Depth.GetAddressOf())) || FAILED(Device->CreateDepthStencilView(Depth.Get(), nullptr, DepthView.GetAddressOf()))) {
         ErrorHandler::Fatal("Renderer", "Depth target allocation failed");
     }
 

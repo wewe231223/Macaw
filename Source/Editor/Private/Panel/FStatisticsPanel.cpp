@@ -18,7 +18,7 @@
 /**
  * @brief FStatisticsPanel의 초기 상태와 전달받은 의존성을 구성합니다.
  */
-FStatisticsPanel::FStatisticsPanel(UEditorEngine& Engine)
+FStatisticsPanel::FStatisticsPanel(UEditorEngine* Engine)
 	: FEditorPanel{Engine, "Statistics", true} {
 }
 
@@ -31,10 +31,10 @@ FStatisticsPanel::~FStatisticsPanel() = default;
  * @brief 패널 고유의 ImGui 위젯과 내용을 그립니다.
  */
 void FStatisticsPanel::DrawContent(float DeltaTime) {
-    UEditorEngine& Engine{GetEditorEngine()};
+    UEditorEngine* Engine{GetEditorEngine()};
     const FMemoryStats Memory{FMemory::GetStats()};
-    const FRenderStats Render{Engine.GetRenderer()->GetStats()};
-    const UWorld* World{Engine.GetWorld()};
+    const FRenderStats Render{Engine->GetRenderer()->GetStats()};
+    const UWorld* World{Engine->GetWorld()};
 
     ImGui::TextUnformatted(std::format("Frame: {:.2f} ms", DeltaTime * 1000.0f).c_str());
     ImGui::TextUnformatted(std::format("Live UObjects: {}", Memory.mLiveObjects).c_str());

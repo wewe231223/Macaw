@@ -9,6 +9,7 @@
 #include "Core/ReflectionMacros.h"
 #include "Engine/FViewportClient.h"
 #include "Editor/Gizmo.h"
+#include "Editor/EViewportCommand.h"
 
 class UEditorEngine;
 
@@ -28,7 +29,7 @@ public:
      * @brief FEditorViewportClient의 초기 상태와 전달받은 의존성을 구성합니다.
      * @param[in,out] Engine 패널 또는 뷰포트가 참조할 에디터 엔진입니다.
      */
-    explicit FEditorViewportClient(UEditorEngine& Engine);
+    explicit FEditorViewportClient(UEditorEngine* Engine);
     /**
      * @brief 객체의 수명을 끝내고 소유한 리소스를 정리합니다.
      */
@@ -41,6 +42,22 @@ public:
      */
     ReflectStruct(FEditorViewportClient);
 
+    bool ExecuteCommand(EViewportCommand Command);
+    bool CanExecuteCommand(EViewportCommand Command) const;
+    bool IsCommandChecked(EViewportCommand Command) const;
+
+    /**
+     * @brief 현재 동작 모드를 반환합니다.
+     * @return 현재 동작 모드입니다.
+     */
+    EGizmoMode GetGizmoMode() const;
+
+    /**
+     * @brief 기즈모 축의 좌표 공간을 반환합니다.
+     * @return 기즈모 축의 좌표 공간입니다.
+     */
+    EGizmoSpace GetGizmoSpace() const;
+
     /**
      * @brief 현재 프레임의 뷰포트 입력을 처리합니다.
      * @param[in] Input 현재 프레임의 뷰포트 입력 스냅샷입니다.
@@ -52,7 +69,7 @@ public:
      * @brief 뷰포트 또는 패널의 현재 내용을 그립니다.
      * @param[in,out] Viewport 출력 타깃과 크기를 제공하는 뷰포트입니다.
      */
-    void Draw(FSceneViewport& Viewport) override;
+    void Draw(FSceneViewport* Viewport) override;
 
     /**
      * @brief 현재 카메라와 뷰포트 크기로 뷰·투영 행렬을 계산합니다.
@@ -85,6 +102,18 @@ public:
 
 private:
     /**
+     * @brief 기즈모의 이동, 회전 또는 스케일 모드를 선택합니다.
+     * @param[in] Mode 로드·저장 또는 기즈모 동작 모드입니다.
+     */
+    void SetGizmoMode(EGizmoMode Mode);
+
+    /**
+     * @brief 기즈모 축의 기준을 월드 또는 로컬 좌표로 바꿉니다.
+     * @param[in] Space 축에 적용할 월드 또는 로컬 좌표 공간입니다.
+     */
+    void SetGizmoSpace(EGizmoSpace Space);
+
+    /**
      * @brief 뷰포트 입력으로 카메라 이동, 회전, 팬 또는 오빗을 적용합니다.
      * @param[in] Input 현재 프레임의 뷰포트 입력 스냅샷입니다.
      * @param[in] Size 뷰포트 크기 또는 데이터의 바이트 수입니다.
@@ -111,7 +140,6 @@ private:
     UEditorEngine* mEngine{};
     ReflectProperty(mEngine, "Engine", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 
-
     /**
      * @brief 에디터 카메라의 월드 위치입니다.
      */
@@ -136,6 +164,17 @@ private:
     float mCameraSpeed{4.0f};
     ReflectProperty(mCameraSpeed, "CameraSpeed", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 
+    /**
+     * @brief 현재 동작 모드입니다.
+     */
+    EGizmoMode mGizmoMode{EGizmoMode::Translate};
+    ReflectProperty(mGizmoMode, "GizmoMode", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
+    /**
+     * @brief 기즈모 축의 좌표 공간입니다.
+     */
+    EGizmoSpace mGizmoSpace{EGizmoSpace::World};
+    ReflectProperty(mGizmoSpace, "GizmoSpace", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 
     /**
      * @brief 뷰포트 변환 편집 기즈모입니다.

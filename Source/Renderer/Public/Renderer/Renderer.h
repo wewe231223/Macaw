@@ -97,7 +97,7 @@ public:
      * @param[in] Height 클라이언트 영역 또는 타깃의 세로 픽셀 수입니다.
      * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
      */
-    bool ResizeRenderTarget(FRenderTarget& Target, Uint32 Width, Uint32 Height) override;
+    bool ResizeRenderTarget(FRenderTarget* Target, Uint32 Width, Uint32 Height) override;
 
     /**
      * @brief 백 버퍼 크기를 동기화하고 프레임 렌더링 통계를 초기화합니다.
@@ -164,7 +164,7 @@ private:
      * @param[in] Elements 이번 프레임의 에디터 보조 도형입니다.
      * @param[in] DepthTest 깊이 검사를 적용할지 지정합니다.
      */
-    void DrawLines(const FPrimitiveDrawInterface& Elements, bool DepthTest);
+    void DrawLines(const FPrimitiveDrawInterface* Elements, bool DepthTest);
 
 private:
     /**

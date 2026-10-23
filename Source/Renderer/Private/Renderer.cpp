@@ -206,7 +206,7 @@ void FRenderer::Shutdown() {
 std::unique_ptr<FSceneInterface> FRenderer::AllocateScene() {
     ErrorHandler::Report(mDevice == nullptr, "Renderer", "Scene allocation requires an initialized device", ErrorHandler::EErrorLevel::Critical);
 
-    return std::make_unique<FScene>(*mDevice.Get(), *mContext.Get());
+    return std::make_unique<FScene>(mDevice.Get(), mContext.Get());
 }
 
 /**
@@ -261,14 +261,14 @@ bool FRenderer::UploadMesh(EPrimitiveType Type, const FMeshData& Mesh) {
  */
 std::unique_ptr<FRenderTarget> FRenderer::CreateRenderTarget(Uint32 Width, Uint32 Height) {
     auto Target{std::make_unique<FDXRenderTarget>()};
-    return mDevice != nullptr && Target->Resize(*mDevice.Get(), Width, Height) ? std::move(Target) : nullptr;
+    return mDevice != nullptr && Target->Resize(mDevice.Get(), Width, Height) ? std::move(Target) : nullptr;
 }
 
 /**
  * @brief 기존 오프스크린 렌더 타깃을 새 픽셀 크기로 변경합니다.
  */
-bool FRenderer::ResizeRenderTarget(FRenderTarget& Target, Uint32 Width, Uint32 Height) {
-    auto* Native{dynamic_cast<FDXRenderTarget*>(&Target)};
+bool FRenderer::ResizeRenderTarget(FRenderTarget* Target, Uint32 Width, Uint32 Height) {
+    auto* Native{dynamic_cast<FDXRenderTarget*>(Target)};
 
     if (Native == nullptr || mDevice == nullptr) {
         ErrorHandler::Fatal("Renderer", "Invalid render target resize state");
@@ -279,7 +279,7 @@ bool FRenderer::ResizeRenderTarget(FRenderTarget& Target, Uint32 Width, Uint32 H
     ID3D11ShaderResourceView* Empty{};
     mContext->PSSetShaderResources(0, 1, &Empty);
 
-    return Native->Resize(*mDevice.Get(), Width, Height);
+    return Native->Resize(mDevice.Get(), Width, Height);
 }
 
 /**
@@ -325,12 +325,12 @@ void FRenderer::BeginRenderingViewFamily(const FSceneViewFamily& Family) {
     mContext->DSSetShader(nullptr, nullptr, 0);
 
     const FSceneDrawContext Context{mContext.Get(), &mMeshes, mMeshVertexShader.Get(), mMeshPixelShader.Get(), mMeshLayout.Get(), mViewBuffer.Get()};
-    FSceneRenderer SceneRenderer{Family, *Scene, Context, mStats};
+    FSceneRenderer SceneRenderer{Family, Scene, Context, mStats};
     SceneRenderer.Render();
 
     if (Family.mEditorElements != nullptr) {
-        DrawLines(*Family.mEditorElements, true);
-        DrawLines(*Family.mEditorElements, false);
+        DrawLines(Family.mEditorElements, true);
+        DrawLines(Family.mEditorElements, false);
     }
 
     mStats.mGpuBytes = Scene->GetPrimitiveCount() * sizeof(FObjectConstants) + sizeof(FMatrix) + mLineCapacity * sizeof(FLineVertex) + static_cast<std::size_t>(Target->GetWidth()) * Target->GetHeight() * 8;
@@ -495,10 +495,10 @@ bool FRenderer::CreatePipeline() {
 /**
  * @brief 깊이 검사 정책에 맞는 보조 선분을 동적 정점 버퍼로 그립니다.
  */
-void FRenderer::DrawLines(const FPrimitiveDrawInterface& Elements, bool DepthTest) {
+void FRenderer::DrawLines(const FPrimitiveDrawInterface* Elements, bool DepthTest) {
     mLineVertices.clear();
 
-    for (const FDrawLine& Line : Elements.GetLines()) {
+    for (const FDrawLine& Line : Elements->GetLines()) {
         if (Line.mDepthTest == DepthTest) {
             mLineVertices.push_back({Line.mStart, Line.mColor});
             mLineVertices.push_back({Line.mEnd, Line.mColor});

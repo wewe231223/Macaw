@@ -38,13 +38,12 @@ public:
      * @brief 이 타입의 정적 클래스 메타데이터를 반환합니다.
      * @return 등록된 타입 메타데이터의 비소유 주소입니다.
      */
-    ReflectClass(UActorComponent, EClassFlags::NoFactory);
+    ReflectClass(UActorComponent);
     /**
      * @fn UClass* UActorComponent::GetClass() const
      * @brief 객체의 실제 클래스 메타데이터를 반환합니다.
      * @return 실제 클래스 메타데이터의 비소유 주소입니다.
      */
-
     /**
      * @brief 소유 객체 또는 메타데이터를 반환합니다.
      * @return 조회한 값의 비소유 주소이며, 해당 값이 없으면 nullptr입니다.
@@ -56,16 +55,10 @@ public:
      */
     UWorld* GetWorld() const;
     /**
-     * @brief 컴포넌트의 소유 액터를 지정합니다.
-     * @param[in] Owner 컴포넌트 또는 메타데이터의 소유자입니다.
-     */
-    void SetOwner(AActor* Owner);
-
-    /**
      * @brief 컴포넌트를 월드에 연결하고 필요한 렌더 상태를 등록합니다.
      * @param[in,out] World 연결할 월드 또는 적용할 월드 행렬입니다.
      */
-    virtual void RegisterComponent(UWorld& World);
+    virtual void RegisterComponent(UWorld* World);
     /**
      * @brief 등록된 렌더 상태와 월드 연결을 해제합니다.
      */
@@ -75,12 +68,53 @@ public:
      * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
      */
     bool IsRegistered() const;
+    /**
+     * @brief 컴포넌트의 게임 실행 시작 시 호출되는 확장 지점입니다.
+     * @note 생명주기 상태는 월드의 전달 경로가 관리합니다.
+     */
+    virtual void BeginPlay();
+    /**
+     * @brief 컴포넌트의 게임 갱신 시 호출되는 확장 지점입니다.
+     * @param[in] DeltaTime 이번 갱신이 진행하는 초 단위 게임 시간입니다.
+     */
+    virtual void Tick(float DeltaTime);
+    /**
+     * @brief 컴포넌트의 게임 실행 종료 시 호출되는 확장 지점입니다.
+     */
+    virtual void EndPlay();
+    /**
+     * @brief 컴포넌트가 실행 시작 전달에 진입했는지 검사합니다.
+     * @return 실행 시작 전달 이후 종료 전달 전이면 true입니다.
+     */
+    bool HasBegunPlay() const;
 
 private:
     /**
      * @brief 생성된 프로퍼티 등록 함수와 빌더 접근 권한입니다.
      */
     ReflectMembers();
+    /**
+     * @brief 컴포넌트의 소유 액터를 지정합니다.
+     * @param[in] Owner 컴포넌트 또는 메타데이터의 소유자입니다.
+     */
+    void SetOwner(AActor* Owner);
+    /**
+     * @brief 소유 액터가 컴포넌트의 소유 관계와 실행 전달을 관리하도록 허용합니다.
+     */
+    friend class AActor;
+    /**
+     * @brief 시작 상태를 설정하고 중복되지 않도록 시작 콜백을 전달합니다.
+     */
+    void DispatchBeginPlay();
+    /**
+     * @brief 시작되었고 삭제 예정이 아닌 컴포넌트의 갱신 콜백을 전달합니다.
+     * @param[in] DeltaTime 이번 갱신의 초 단위 게임 시간입니다.
+     */
+    void DispatchTick(float DeltaTime);
+    /**
+     * @brief 시작 상태를 먼저 해제하여 종료 콜백의 중복 전달을 막습니다.
+     */
+    void DispatchEndPlay();
 
 private:
     /**
@@ -93,4 +127,9 @@ private:
      */
     UWorld* mWorld{};
     ReflectProperty(mWorld, "World", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /**
+     * @brief 컴포넌트가 시작 전달에 진입하여 아직 종료되지 않았는지 나타냅니다.
+     */
+    bool mHasBegunPlay{};
+    ReflectProperty(mHasBegunPlay, "HasBegunPlay", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 };

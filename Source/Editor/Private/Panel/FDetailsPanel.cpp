@@ -20,7 +20,7 @@
 /**
  * @brief FDetailsPanel의 초기 상태와 전달받은 의존성을 구성합니다.
  */
-FDetailsPanel::FDetailsPanel(UEditorEngine& Engine)
+FDetailsPanel::FDetailsPanel(UEditorEngine* Engine)
 	: FEditorPanel{Engine, "Details"} {
 }
 
@@ -33,20 +33,20 @@ FDetailsPanel::~FDetailsPanel() = default;
  * @brief 패널 고유의 ImGui 위젯과 내용을 그립니다.
  */
 void FDetailsPanel::DrawContent(float) {
-    UEditorEngine& Engine{GetEditorEngine()};
-    AActor* Actor{Engine.GetSelectedActor()};
+    UEditorEngine* Engine{GetEditorEngine()};
+    AActor* Actor{Engine->GetSelectedActor()};
 
     if (Actor != nullptr) {
         if (ImGui::CollapsingHeader("Actor", ImGuiTreeNodeFlags_DefaultOpen)) {
-            DrawReflectedObject(*Actor);
+            DrawReflectedObject(Actor);
         }
 
         for (const auto& Component : Actor->GetComponents()) {
             ImGui::PushID(Component.get());
 
             if (ImGui::CollapsingHeader(Component->GetName().c_str(), ImGuiTreeNodeFlags_DefaultOpen)) {
-                Engine.SelectObject(Component->GetHandle());
-                DrawReflectedObject(*Component);
+                Engine->SelectObject(Component->GetHandle());
+                DrawReflectedObject(Component.get());
             }
 
             ImGui::PopID();
@@ -57,22 +57,22 @@ void FDetailsPanel::DrawContent(float) {
 /**
  * @brief 객체 타입의 편집 가능한 리플렉션 프로퍼티를 순회하여 표시합니다.
  */
-void FDetailsPanel::DrawReflectedObject(UObject& Object) {
-    ImGui::PushID(&Object);
-    ImGui::TextDisabled("%s", Object.GetClass()->GetName().c_str());
+void FDetailsPanel::DrawReflectedObject(UObject* Object) {
+    ImGui::PushID(Object);
+    ImGui::TextDisabled("%s", Object->GetClass()->GetName().c_str());
 
-    for (const FProperty* Property : Object.GetClass()->GetAllProperties()) {
+    for (const FProperty* Property : Object->GetClass()->GetAllProperties()) {
         if (Property->HasFlag(EPropertyFlags::Transient) || (!Property->HasFlag(EPropertyFlags::Edit) && !Property->HasFlag(EPropertyFlags::ReadOnly))) {
             continue;
         }
 
-        FPropertyValue Value{Property->ReadValue(&Object)};
+        FPropertyValue Value{Property->ReadValue(Object)};
         const bool ReadOnly{Property->HasFlag(EPropertyFlags::ReadOnly)};
 
         ImGui::BeginDisabled(ReadOnly);
 
-        if (DrawPropertyValue(*Property, Value) && !ReadOnly) {
-            GetEditorEngine().EditProperty(Object, *Property, Value, ImGui::IsMouseDown(ImGuiMouseButton_Left));
+        if (DrawPropertyValue(Property, Value) && !ReadOnly) {
+            GetEditorEngine()->EditProperty(Object, Property, Value, ImGui::IsMouseDown(ImGuiMouseButton_Left));
         }
 
         ImGui::EndDisabled();
@@ -84,12 +84,12 @@ void FDetailsPanel::DrawReflectedObject(UObject& Object) {
 /**
  * @brief 프로퍼티 타입에 맞는 편집 위젯을 표시하고 변경한 값을 돌려줍니다.
  */
-bool FDetailsPanel::DrawPropertyValue(const FProperty& Property, FPropertyValue& Value) {
-    const char* Label{Property.GetName().c_str()};
+bool FDetailsPanel::DrawPropertyValue(const FProperty* Property, FPropertyValue& Value) {
+    const char* Label{Property->GetName().c_str()};
 
-    if (Property.GetType() == EPropertyType::Enum) {
+    if (Property->GetType() == EPropertyType::Enum) {
         Int32 Number{std::get<Int32>(Value)};
-        const auto& Choices{Property.GetEnumValues()};
+        const auto& Choices{Property->GetEnumValues()};
         const auto Current{std::find_if(Choices.begin(), Choices.end(), [Number](const FEnumValue& Choice) {
             return Choice.mValue == Number;
         })};
@@ -185,7 +185,7 @@ bool FDetailsPanel::DrawPropertyValue(const FProperty& Property, FPropertyValue&
     } else if (auto* Guid{std::get_if<FGuid>(&Value)}) {
         ImGui::TextDisabled("%s", Label);
         ImGui::TextWrapped("%s", Guid->ToString().c_str());
-    } else if (const UStruct* Struct{Property.GetStruct()}) {
+    } else if (const UStruct* Struct{Property->GetStruct()}) {
         bool Changed{};
 
         if (ImGui::TreeNodeEx(Label, ImGuiTreeNodeFlags_DefaultOpen)) {
@@ -196,7 +196,7 @@ bool FDetailsPanel::DrawPropertyValue(const FProperty& Property, FPropertyValue&
 
                 FPropertyValue ChildValue{Child->ReadValue(GetPropertyData(Value))};
 
-                if (DrawPropertyValue(*Child, ChildValue)) {
+                if (DrawPropertyValue(Child, ChildValue)) {
                     Changed = Child->WriteValue(GetPropertyData(Value), ChildValue) || Changed;
                 }
             }

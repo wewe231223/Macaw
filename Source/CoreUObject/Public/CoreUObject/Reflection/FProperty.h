@@ -106,6 +106,14 @@ public:
      * @note 일반 편집 경로는 ReadOnly 프로퍼티를 거부합니다. 로드 전용 콜백은 SerializeValue()에서 선택합니다.
      */
     bool WriteValue(void* Container, const FPropertyValue& Value) const;
+    /**
+     * @brief 로드 전용 쓰기 경로로 동일 프로퍼티의 값을 복사합니다.
+     * @param[in,out] Destination 이 프로퍼티를 포함한 대상 컨테이너입니다.
+     * @param[in] Source 같은 레이아웃을 가진 원본 컨테이너입니다.
+     * @return 읽고 로드할 수 있는 값의 복사에 성공하면 true입니다.
+     * @note Serialize 플래그와 일반 편집의 ReadOnly 제한을 적용하지 않습니다. Transient, 불투명 주소 값과 nullptr 컨테이너는 거부합니다.
+     */
+    bool CopyValue(void* Destination, const void* Source) const;
 
     /**
      * @brief 프로퍼티의 저장 정책과 타입에 맞추어 값을 직렬화합니다.

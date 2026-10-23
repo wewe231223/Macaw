@@ -33,7 +33,7 @@ public:
      * @param[in] Context 월드 컨텍스트 또는 Direct3D 11 컨텍스트입니다.
      * @param[in,out] Stats 렌더링 결과를 누적할 통계입니다.
      */
-    FSceneRenderer(const FSceneViewFamily& Family, const FScene& Scene, const FSceneDrawContext& Context, FRenderStats& Stats);
+    FSceneRenderer(const FSceneViewFamily& Family, const FScene* Scene, const FSceneDrawContext& Context, FRenderStats& Stats);
 
 public:
     /**

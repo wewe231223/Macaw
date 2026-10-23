@@ -42,14 +42,32 @@ void UActorComponent::SetOwner(AActor* Owner) {
 /**
  * @brief 컴포넌트를 월드에 연결하고 필요한 렌더 상태를 등록합니다.
  */
-void UActorComponent::RegisterComponent(UWorld& World) {
-    mWorld = &World;
+void UActorComponent::RegisterComponent(UWorld* World) {
+    UWorld::FDispatchScope Scope{World};
+
+    if (World == nullptr || mWorld == World || !World->CanAddActor() || (mOwner != nullptr && (mOwner->GetWorld() != World || mOwner->IsPendingDestroy()))) {
+        return;
+    }
+
+    UnregisterComponent();
+
+    if (!World->CanAddActor() || (mOwner != nullptr && (mOwner->GetWorld() != World || mOwner->IsPendingDestroy()))) {
+        return;
+    }
+
+    mWorld = World;
+
+    if (mOwner != nullptr && mOwner->HasBegunPlay() && World->CanBeginActor()) {
+        DispatchBeginPlay();
+    }
 }
 
 /**
  * @brief 등록된 렌더 상태와 월드 연결을 해제합니다.
  */
 void UActorComponent::UnregisterComponent() {
+    UWorld::FDispatchScope Scope{mWorld};
+    DispatchEndPlay();
     mWorld = nullptr;
 }
 
@@ -58,4 +76,58 @@ void UActorComponent::UnregisterComponent() {
  */
 bool UActorComponent::IsRegistered() const {
     return mWorld != nullptr;
+}
+
+/**
+ * @brief 컴포넌트의 게임 실행 시작 시 호출되는 확장 지점입니다.
+ */
+void UActorComponent::BeginPlay() {
+}
+
+/**
+ * @brief 컴포넌트의 게임 갱신 시 호출되는 확장 지점입니다.
+ */
+void UActorComponent::Tick(float DeltaTime) {
+}
+
+/**
+ * @brief 컴포넌트의 게임 실행 종료 시 호출되는 확장 지점입니다.
+ */
+void UActorComponent::EndPlay() {
+}
+
+/**
+ * @brief 컴포넌트가 실행 시작 전달에 진입했는지 검사합니다.
+ */
+bool UActorComponent::HasBegunPlay() const {
+    return mHasBegunPlay;
+}
+
+/**
+ * @brief 시작 상태를 설정하고 중복되지 않도록 시작 콜백을 전달합니다.
+ */
+void UActorComponent::DispatchBeginPlay() {
+    if (!mHasBegunPlay && mWorld != nullptr && mOwner != nullptr && !mOwner->IsPendingDestroy()) {
+        mHasBegunPlay = true;
+        BeginPlay();
+    }
+}
+
+/**
+ * @brief 시작되었고 삭제 예정이 아닌 컴포넌트의 갱신 콜백을 전달합니다.
+ */
+void UActorComponent::DispatchTick(float DeltaTime) {
+    if (mHasBegunPlay && mWorld != nullptr && mOwner != nullptr && !mOwner->IsPendingDestroy()) {
+        Tick(DeltaTime);
+    }
+}
+
+/**
+ * @brief 시작 상태를 먼저 해제하여 종료 콜백의 중복 전달을 막습니다.
+ */
+void UActorComponent::DispatchEndPlay() {
+    if (mHasBegunPlay) {
+        mHasBegunPlay = false;
+        EndPlay();
+    }
 }

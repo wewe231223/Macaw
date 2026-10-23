@@ -25,7 +25,7 @@ public:
      * @brief FOutlinerPanel의 초기 상태와 전달받은 의존성을 구성합니다.
      * @param[in,out] Engine 패널 또는 뷰포트가 참조할 에디터 엔진입니다.
      */
-    explicit FOutlinerPanel(UEditorEngine& Engine);
+    explicit FOutlinerPanel(UEditorEngine* Engine);
     /**
      * @brief 객체의 수명을 끝내고 소유한 리소스를 정리합니다.
      */

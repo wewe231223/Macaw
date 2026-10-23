@@ -88,8 +88,8 @@ const FProperty* UStruct::FindProperty(const FString& Name) const {
 /**
  * @brief 지정한 프로퍼티가 타입의 프로퍼티 목록에 속하는지 검사합니다.
  */
-bool UStruct::ContainsProperty(const FProperty& Property) const {
-    return std::find(mProperties.begin(), mProperties.end(), &Property) != mProperties.end();
+bool UStruct::ContainsProperty(const FProperty* Property) const {
+    return std::find(mProperties.begin(), mProperties.end(), Property) != mProperties.end();
 }
 
 /**

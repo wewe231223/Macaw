@@ -36,7 +36,7 @@ public:
      * @brief 이 타입의 정적 클래스 메타데이터를 반환합니다.
      * @return 등록된 타입 메타데이터의 비소유 주소입니다.
      */
-    ReflectClass(USceneComponent, EClassFlags::NoFactory);
+    ReflectClass(USceneComponent);
     /**
      * @fn UClass* USceneComponent::GetClass() const
      * @brief 객체의 실제 클래스 메타데이터를 반환합니다.

@@ -45,11 +45,6 @@ public:
      * @return 실제 클래스 메타데이터의 비소유 주소입니다.
      */
 
-    /**
-     * @brief 객체가 소속된 월드 연결을 지정합니다.
-     * @param[in] World 연결할 월드 또는 적용할 월드 행렬입니다.
-     */
-    void SetWorld(UWorld* World);
 
     /**
      * @brief 검증한 액터의 소유권을 레벨로 옮기고 컴포넌트를 월드에 등록합니다.
@@ -75,6 +70,21 @@ private:
      * @brief 생성된 프로퍼티 등록 함수와 빌더 접근 권한입니다.
      */
     ReflectMembers();
+    /**
+     * @brief 객체가 소속된 월드 연결을 지정합니다.
+     * @param[in] World 연결할 월드 또는 적용할 월드 행렬입니다.
+     */
+    void SetWorld(UWorld* World);
+    /**
+     * @brief 월드가 레벨 연결과 안전한 액터 제거를 관리하도록 허용합니다.
+     */
+    friend class UWorld;
+    /**
+     * @brief 안전한 삭제 경계에서 실행을 종료하고 액터의 소유권을 해제합니다.
+     * @param[in] Handle 이 레벨에서 제거할 액터의 전역 핸들입니다.
+     * @return 해당 액터를 찾아 제거하면 true입니다.
+     */
+    bool RemoveActor(FObjectHandle Handle);
 
 private:
     /**

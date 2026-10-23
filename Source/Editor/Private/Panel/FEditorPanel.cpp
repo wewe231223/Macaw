@@ -12,8 +12,8 @@
 /**
  * @brief FEditorPanel의 초기 상태와 전달받은 의존성을 구성합니다.
  */
-FEditorPanel::FEditorPanel(UEditorEngine& Engine, FString Name, bool Closable)
-	: mEngine{&Engine},
+FEditorPanel::FEditorPanel(UEditorEngine* Engine, FString Name, bool Closable)
+	: mEngine{Engine},
 	  mName{std::move(Name)},
 	  mClosable{Closable} {
 }
@@ -62,6 +62,6 @@ void FEditorPanel::SetVisible(bool Visible) {
 /**
  * @brief 연결된 에디터 엔진을 반환합니다.
  */
-UEditorEngine& FEditorPanel::GetEditorEngine() const {
-    return *mEngine;
+UEditorEngine* FEditorPanel::GetEditorEngine() const {
+    return mEngine;
 }

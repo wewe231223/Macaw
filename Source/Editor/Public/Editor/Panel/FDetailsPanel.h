@@ -29,7 +29,7 @@ public:
      * @brief FDetailsPanel의 초기 상태와 전달받은 의존성을 구성합니다.
      * @param[in,out] Engine 패널 또는 뷰포트가 참조할 에디터 엔진입니다.
      */
-    explicit FDetailsPanel(UEditorEngine& Engine);
+    explicit FDetailsPanel(UEditorEngine* Engine);
     /**
      * @brief 객체의 수명을 끝내고 소유한 리소스를 정리합니다.
      */
@@ -53,14 +53,14 @@ private:
      * @brief 객체 타입의 편집 가능한 리플렉션 프로퍼티를 순회하여 표시합니다.
      * @param[in,out] Object 대상 객체입니다.
      */
-    void DrawReflectedObject(UObject& Object);
+    void DrawReflectedObject(UObject* Object);
     /**
      * @brief 프로퍼티 타입에 맞는 편집 위젯을 표시하고 변경한 값을 돌려줍니다.
      * @param[in] Property 읽기, 쓰기 또는 알림을 적용할 프로퍼티 메타데이터입니다.
      * @param[in,out] Value 프로퍼티 타입에 대응하는 variant 값입니다.
      * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
      */
-    bool DrawPropertyValue(const FProperty& Property, FPropertyValue& Value);
+    bool DrawPropertyValue(const FProperty* Property, FPropertyValue& Value);
 
 private:
     /**

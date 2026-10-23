@@ -196,20 +196,20 @@ FString FJsonArchive::ToString() const {
  * @brief 현재 컨테이너에 지정한 이름의 필드가 있는지 검사합니다.
  */
 bool FJsonArchive::HasField(std::string_view Name) const {
-    const rapidjson::Value& Parent{*mStack.back()};
+    const rapidjson::Value* Parent{mStack.back()};
 
-    if (Parent.IsObject()) {
-        return Parent.HasMember(rapidjson::StringRef(Name.data(), static_cast<rapidjson::SizeType>(Name.size())));
+    if (Parent->IsObject()) {
+        return Parent->HasMember(rapidjson::StringRef(Name.data(), static_cast<rapidjson::SizeType>(Name.size())));
     }
 
-    if (!Parent.IsArray()) {
+    if (!Parent->IsArray()) {
         return false;
     }
 
     Uint32 Index{};
     const auto Parsed{std::from_chars(Name.data(), Name.data() + Name.size(), Index)};
 
-    return Parsed.ec == std::errc{} && Parsed.ptr == Name.data() + Name.size() && Index < Parent.Size();
+    return Parsed.ec == std::errc{} && Parsed.ptr == Name.data() + Name.size() && Index < Parent->Size();
 }
 
 /**
@@ -376,12 +376,12 @@ void FJsonArchive::Serialize(std::string_view Name, FString& Value) {
  * @brief 현재 JSON 컨테이너의 필드나 다음 배열 원소를 조회하고 필요하면 생성합니다.
  */
 rapidjson::Value* FJsonArchive::Find(std::string_view Name, bool Create) {
-    rapidjson::Value& Parent{*mStack.back()};
+    rapidjson::Value* Parent{mStack.back()};
 
-    if (Parent.IsObject()) {
-        const auto Position{Parent.FindMember(rapidjson::StringRef(Name.data(), static_cast<rapidjson::SizeType>(Name.size())))};
+    if (Parent->IsObject()) {
+        const auto Position{Parent->FindMember(rapidjson::StringRef(Name.data(), static_cast<rapidjson::SizeType>(Name.size())))};
 
-        if (Position != Parent.MemberEnd()) {
+        if (Position != Parent->MemberEnd()) {
             return &Position->value;
         }
 
@@ -389,11 +389,11 @@ rapidjson::Value* FJsonArchive::Find(std::string_view Name, bool Create) {
             rapidjson::Value Key{};
             Key.SetString(Name.data(), static_cast<rapidjson::SizeType>(Name.size()), mDocument.GetAllocator());
 
-            Parent.AddMember(Key, rapidjson::Value{}, mDocument.GetAllocator());
+            Parent->AddMember(Key, rapidjson::Value{}, mDocument.GetAllocator());
 
-            return &Parent.MemberEnd()[-1].value;
+            return &Parent->MemberEnd()[-1].value;
         }
-    } else if (Parent.IsArray()) {
+    } else if (Parent->IsArray()) {
         Uint32 Index{};
         const auto Parsed{std::from_chars(Name.data(), Name.data() + Name.size(), Index)};
 
@@ -401,12 +401,12 @@ rapidjson::Value* FJsonArchive::Find(std::string_view Name, bool Create) {
             return nullptr;
         }
 
-        if (Create && Index == Parent.Size()) {
-            Parent.PushBack(rapidjson::Value{}, mDocument.GetAllocator());
+        if (Create && Index == Parent->Size()) {
+            Parent->PushBack(rapidjson::Value{}, mDocument.GetAllocator());
         }
 
-        if (Index < Parent.Size()) {
-            return &Parent[Index];
+        if (Index < Parent->Size()) {
+            return &(*Parent)[Index];
         }
     }
 

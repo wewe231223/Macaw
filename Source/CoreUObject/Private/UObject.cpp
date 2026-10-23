@@ -13,22 +13,24 @@
 #include "CoreUObject/Reflection/FProperty.h"
 #include "CoreUObject/Reflection/UClass.h"
 #include "Core/Memory.h"
+#include "Core/Base/ErrorHandler.h"
 
 /**
  * @brief UObject의 초기 상태와 전달받은 의존성을 구성합니다.
  */
 UObject::UObject() {
     FMemory::ObjectCreated();
+
+    if (!FObjectRegistry::Get()->Register(this)) {
+        ErrorHandler::Fatal("Object registry", "Object registration failed");
+    }
 }
 
 /**
  * @brief 객체의 수명을 끝내고 소유한 리소스를 정리합니다.
  */
 UObject::~UObject() {
-    if (mRegistry != nullptr) {
-        mRegistry->Unregister(*this);
-    }
-
+    FObjectRegistry::Get()->Unregister(this);
     FMemory::ObjectDestroyed();
 }
 
@@ -74,27 +76,15 @@ bool UObject::SetName(const FString& Name) {
 }
 
 /**
- * @brief 중복되지 않는 유효 GUID로 객체의 식별자를 복원합니다.
+ * @brief 유효한 장면 GUID로 객체의 영속 식별자를 복원합니다.
  */
 bool UObject::RestoreGuid(const FGuid& Guid) {
     if (!Guid.IsValid()) {
         return false;
     }
 
-    if (mRegistry != nullptr) {
-        return mRegistry->RestoreGuid(*this, Guid);
-    }
-
     mGuid = Guid;
-
     return true;
-}
-
-/**
- * @brief 객체를 등록한 레지스트리를 반환합니다.
- */
-FObjectRegistry* UObject::GetRegistry() const {
-    return mRegistry;
 }
 
 /**
@@ -105,17 +95,22 @@ void UObject::Serialize(FArchive& Archive) {
 }
 
 /**
+ * @brief 복제 그래프 생성 후 사용자 참조를 복제본으로 재연결하는 확장 지점입니다.
+ */
+bool UObject::PostDuplicate(const UObject* Source, const FObjectDuplicationContext* Context) {
+    return Source != nullptr && Source->GetClass() == GetClass();
+}
+
+/**
  * @brief 프로퍼티 값을 편집하기 직전에 호출되는 확장 지점입니다.
  */
-void UObject::PreEditChange(const FProperty& Property) {
-    static_cast<void>(Property);
+void UObject::PreEditChange(const FProperty* Property) {
 }
 
 /**
  * @brief 프로퍼티 값이 변경된 뒤 호출되는 확장 지점입니다.
  */
 void UObject::PostEditChangeProperty(const FPropertyChangedEvent& Event) {
-    static_cast<void>(Event);
 }
 
 /**
@@ -143,6 +138,5 @@ void UObject::operator delete(void* Pointer) noexcept {
  * @brief 객체 통계에 포함된 정렬 메모리를 해제합니다.
  */
 void UObject::operator delete(void* Pointer, std::align_val_t Alignment) noexcept {
-    static_cast<void>(Alignment);
     FMemory::Free(Pointer);
 }

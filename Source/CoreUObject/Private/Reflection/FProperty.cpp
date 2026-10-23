@@ -92,6 +92,23 @@ bool FProperty::WriteValue(void* Container, const FPropertyValue& Value) const {
 }
 
 /**
+ * @brief 로드 전용 쓰기 경로로 동일 프로퍼티의 값을 복사합니다.
+ */
+bool FProperty::CopyValue(void* Destination, const void* Source) const {
+    if (Destination == nullptr || Source == nullptr || HasFlag(EPropertyFlags::Transient)) {
+        return false;
+    }
+
+    const FPropertyValue Value{ReadValue(Source)};
+
+    if (std::holds_alternative<const void*>(Value)) {
+        return false;
+    }
+
+    return WriteValue(Destination, Value, mLoader);
+}
+
+/**
  * @brief 값 타입과 쓰기 정책을 검사한 뒤 등록된 함수로 프로퍼티를 변경합니다.
  */
 bool FProperty::WriteValue(void* Container, const FPropertyValue& Value, FWriter Writer) const {

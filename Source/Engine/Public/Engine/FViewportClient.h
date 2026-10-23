@@ -48,7 +48,7 @@ public:
      * @brief 뷰포트 또는 패널의 현재 내용을 그립니다.
      * @param[in,out] Viewport 출력 타깃과 크기를 제공하는 뷰포트입니다.
      */
-    virtual void Draw(FSceneViewport& Viewport) = 0;
+    virtual void Draw(FSceneViewport* Viewport) = 0;
 
 private:
     /**

@@ -1,6 +1,6 @@
 /**
  * @file FObjectHandle.h
- * @brief 슬롯 인덱스와 세대로 구성되어 재사용된 슬롯의 오참조를 막는 핸들입니다.
+ * @brief 전역 슬롯 인덱스와 세대로 구성되어 재사용된 슬롯의 오참조를 막는 핸들입니다.
  * @ingroup CoreUObject
  */
 
@@ -12,7 +12,7 @@
 #include <limits>
 
 /**
- * @brief 슬롯 인덱스와 세대로 구성되어 재사용된 슬롯의 오참조를 막는 핸들입니다.
+ * @brief 전역 슬롯 인덱스와 세대로 구성되어 재사용된 슬롯의 오참조를 막는 핸들입니다.
  * @ingroup CoreUObject
  */
 struct FObjectHandle {

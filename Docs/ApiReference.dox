@@ -32,11 +32,14 @@ Macaw는 C++20, Windows x64와 Direct3D 11을 사용하는 엔진입니다.
 \section ApiLifetime 객체와 월드 수명
 
 FApplication은 플랫폼, 렌더러와 에디터를 순서대로 초기화하고 종료 시 역순으로 정리합니다.
-FWorldContext는 FObjectRegistry와 UWorld를 소유합니다. 월드가 소유한 ULevel은 액터를,
+FObjectRegistry는 프로세스 전역에서 UObject의 생성과 소멸에 따라 비소유 등록 상태를 관리합니다.
+FWorldContext는 UWorld를 소유합니다. 월드가 소유한 ULevel은 액터를,
 각 AActor는 컴포넌트를 `std::unique_ptr`로 소유합니다.
 FObjectHandle은 슬롯 번호와 세대를 함께 검사하므로 객체가 삭제된 뒤 같은 슬롯을 재사용해도
 이전 핸들이 새 객체로 해석되지 않습니다. IsValid()는 핸들 표현만 검사하며 실제 객체 조회에는
-FObjectRegistry::Resolve()를 사용합니다.
+FObjectRegistry::Get()->Resolve()를 사용합니다.
+전역 런타임 식별은 FObjectHandle이 담당하며, 장면 GUID는 장면 파일 내부의 참조를 복원합니다.
+같은 장면을 여러 월드에 로드해도 객체 핸들은 서로 다르고 파일 내부 GUID는 유지됩니다.
 
 렌더 갱신은 UPrimitiveComponent의 dirty 상태에서 UWorld의 프레임 말 큐로 전달됩니다.
 UEngine::SynchronizeWorld()가 갱신을 반영하고, 렌더러는 복사된 FPrimitiveSceneProxy로 장면을 그립니다.

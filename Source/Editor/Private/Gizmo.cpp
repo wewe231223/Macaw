@@ -5,6 +5,7 @@
  */
 
 #include "Editor/Gizmo.h"
+#include "Editor/ViewportClient.h"
 #include "Engine/Component/USceneComponent.h"
 #include "Engine/FWorldContext.h"
 #include "Core/Math.h"
@@ -18,6 +19,7 @@
 #include "Engine/FPrimitiveDrawInterface.h"
 #include "Engine/FViewportInput.h"
 #include "CoreUObject/Reflection/Cast.h"
+#include "CoreUObject/FObjectRegistry.h"
 #include "Editor/EditorEngine.h"
 
 #include <algorithm>
@@ -69,51 +71,16 @@ namespace {
 /**
  * @brief FTransformGizmo의 초기 상태와 전달받은 의존성을 구성합니다.
  */
-FTransformGizmo::FTransformGizmo(UEditorEngine& Engine)
-	: mEngine{&Engine} {
-}
-
-/**
- * @brief 기즈모의 이동, 회전 또는 스케일 모드를 선택합니다.
- */
-void FTransformGizmo::SetMode(EGizmoMode Mode) {
-    if (!IsDragging()) {
-        mMode = Mode;
-
-        if (mMode == EGizmoMode::Scale) {
-            mSpace = EGizmoSpace::Local;
-        }
-    }
-}
-
-/**
- * @brief 현재 동작 모드를 반환합니다.
- */
-EGizmoMode FTransformGizmo::GetMode() const {
-    return mMode;
-}
-
-/**
- * @brief 기즈모 축의 기준을 월드 또는 로컬 좌표로 바꿉니다.
- */
-void FTransformGizmo::SetSpace(EGizmoSpace Space) {
-    if (!IsDragging() && (mMode != EGizmoMode::Scale || Space == EGizmoSpace::Local)) {
-        mSpace = Space;
-    }
-}
-
-/**
- * @brief 기즈모 축의 좌표 공간을 반환합니다.
- */
-EGizmoSpace FTransformGizmo::GetSpace() const {
-    return mSpace;
+FTransformGizmo::FTransformGizmo(UEditorEngine* Engine, const FEditorViewportClient* Client)
+	: mEngine{Engine},
+	  mClient{Client} {
 }
 
 /**
  * @brief 선택한 좌표 공간에 맞는 기즈모 단위 축을 구합니다.
  */
 FVector FTransformGizmo::GetAxis(const FTransform& Transform, Int32 Index) const {
-    return mSpace == EGizmoSpace::Local ? Transform.TransformVectorNoScale(UnitAxes[Index]) : UnitAxes[Index];
+    return mClient->GetGizmoSpace() == EGizmoSpace::Local ? Transform.TransformVectorNoScale(UnitAxes[Index]) : UnitAxes[Index];
 }
 
 /**
@@ -134,7 +101,7 @@ Int32 FTransformGizmo::HitTest(const FVector2& Mouse, const FSceneView& View, co
     for (Int32 AxisIndex{}; AxisIndex < 3; ++AxisIndex) {
         const FVector Axis{GetAxis(Transform, AxisIndex)};
 
-        if (mMode == EGizmoMode::Rotate) {
+        if (mClient->GetGizmoMode() == EGizmoMode::Rotate) {
             const FVector U{Perpendicular(Axis)};
             const FVector V{Axis.Cross(U)};
 
@@ -189,7 +156,7 @@ bool FTransformGizmo::BeginDrag(Int32 Axis, const FVector2& Mouse, const FSceneV
     mDragSize = GetSize(View, mStartTransform.mLocation);
     mStartMouse = Mouse;
 
-    mPlaneNormal = mMode == EGizmoMode::Rotate ? mAxis : View.mForward.ProjectedOnPlane(mAxis).Normalized();
+    mPlaneNormal = mClient->GetGizmoMode() == EGizmoMode::Rotate ? mAxis : View.mForward.ProjectedOnPlane(mAxis).Normalized();
 
     if (mPlaneNormal.IsNearlyZero(0.01f)) {
         mPlaneNormal = Perpendicular(mAxis);
@@ -217,9 +184,9 @@ void FTransformGizmo::UpdateDrag(const FVector2& Mouse) {
         return;
     }
 
-    AActor* Actor{Cast<AActor>(mEngine->GetWorldContext()->GetRegistry().Resolve(mTarget))};
+    AActor* Actor{Cast<AActor>(FObjectRegistry::Get()->Resolve(mTarget))};
 
-    if (Actor == nullptr) {
+    if (Actor == nullptr || Actor->GetWorld() != mEngine->GetWorld() || Actor->IsPendingDestroy()) {
         mActiveAxis = -1;
         return;
     }
@@ -233,9 +200,9 @@ void FTransformGizmo::UpdateDrag(const FVector2& Mouse) {
 
     FTransform Transform{mStartTransform};
 
-    if (mMode == EGizmoMode::Translate) {
+    if (mClient->GetGizmoMode() == EGizmoMode::Translate) {
         Transform.mLocation += (Intersection - mStartIntersection).ProjectedOn(mAxis);
-    } else if (mMode == EGizmoMode::Scale) {
+    } else if (mClient->GetGizmoMode() == EGizmoMode::Scale) {
         const float Factor{std::max(0.01f, 1.0f + (Intersection - mStartIntersection).Dot(mAxis) / mDragSize)};
 
         if (mActiveAxis == 0) {
@@ -254,7 +221,7 @@ void FTransformGizmo::UpdateDrag(const FVector2& Mouse) {
         Transform.NormalizeRotation();
     }
 
-    mEngine->ApplyTransform(*Actor, Transform, true);
+    mEngine->ApplyTransform(Actor, Transform, true);
 }
 
 /**
@@ -299,7 +266,7 @@ void FTransformGizmo::Draw(const FSceneView& View, FPrimitiveDrawInterface& Draw
         const FVector U{Perpendicular(Axis)};
         const FVector V{Axis.Cross(U)};
 
-        if (mMode == EGizmoMode::Rotate) {
+        if (mClient->GetGizmoMode() == EGizmoMode::Rotate) {
             for (Int32 Segment{}; Segment < 64; ++Segment) {
                 const FVector2& A{UnitCircle[Segment]};
                 const FVector2& B{UnitCircle[Segment + 1]};
@@ -311,7 +278,7 @@ void FTransformGizmo::Draw(const FSceneView& View, FPrimitiveDrawInterface& Draw
 
             DrawInterface.DrawLine(Pivot, End, Color);
 
-            if (mMode == EGizmoMode::Translate) {
+            if (mClient->GetGizmoMode() == EGizmoMode::Translate) {
                 DrawInterface.DrawLine(End, End - Axis * Size * 0.18f + U * Size * 0.07f, Color);
                 DrawInterface.DrawLine(End, End - Axis * Size * 0.18f - U * Size * 0.07f, Color);
                 DrawInterface.DrawLine(End, End - Axis * Size * 0.18f + V * Size * 0.07f, Color);
@@ -333,8 +300,8 @@ void FTransformGizmo::Draw(const FSceneView& View, FPrimitiveDrawInterface& Draw
  */
 void FTransformGizmo::Cancel() {
     if (IsDragging() && mEngine->GetWorldGeneration() == mWorldGeneration && mEngine->GetWorldContext() != nullptr) {
-        if (auto* Actor{Cast<AActor>(mEngine->GetWorldContext()->GetRegistry().Resolve(mTarget))}) {
-            mEngine->ApplyTransform(*Actor, mStartTransform);
+        if (auto* Actor{Cast<AActor>(FObjectRegistry::Get()->Resolve(mTarget))}; Actor != nullptr && Actor->GetWorld() == mEngine->GetWorld() && !Actor->IsPendingDestroy()) {
+            mEngine->ApplyTransform(Actor, mStartTransform);
         }
     }
 

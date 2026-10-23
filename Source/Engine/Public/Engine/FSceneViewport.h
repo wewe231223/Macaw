@@ -32,7 +32,7 @@ public:
      * @param[in,out] Renderer 뷰포트 및 엔진이 참조할 렌더러입니다.
      * @param[in,out] Client 입력과 그리기를 처리할 뷰포트 클라이언트입니다.
      */
-    FSceneViewport(IRendererModule& Renderer, FViewportClient& Client);
+    FSceneViewport(IRendererModule* Renderer, FViewportClient* Client);
     /**
      * @brief 객체의 수명을 끝내고 소유한 리소스를 정리합니다.
      */

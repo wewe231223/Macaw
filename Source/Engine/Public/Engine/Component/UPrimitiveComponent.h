@@ -50,7 +50,7 @@ public:
      * @brief 컴포넌트를 월드에 연결하고 필요한 렌더 상태를 등록합니다.
      * @param[in,out] World 연결할 월드 또는 적용할 월드 행렬입니다.
      */
-    void RegisterComponent(UWorld& World) override;
+    void RegisterComponent(UWorld* World) override;
     /**
      * @brief 등록된 렌더 상태와 월드 연결을 해제합니다.
      */

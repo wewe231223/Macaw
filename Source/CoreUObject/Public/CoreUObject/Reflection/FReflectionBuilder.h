@@ -28,7 +28,7 @@ public:
      * @brief FReflectionBuilder의 초기 상태와 전달받은 의존성을 구성합니다.
      * @param[in,out] Owner 컴포넌트 또는 메타데이터의 소유자입니다.
      */
-    explicit FReflectionBuilder(UStruct& Owner);
+    explicit FReflectionBuilder(UStruct* Owner);
 
 public:
     /**

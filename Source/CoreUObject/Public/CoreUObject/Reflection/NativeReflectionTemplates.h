@@ -99,7 +99,7 @@ UScriptStruct* DefineTemplateStruct(const char* Name) {
  * @brief 타입이 생성한 멤버 등록 함수를 리플렉션 빌더로 실행합니다.
  */
 template <typename T, typename TMetadata>
-void BuildNativeReflection(TMetadata& Information) {
+void BuildNativeReflection(TMetadata* Information) {
     FReflectionBuilder Builder{Information};
     T::RegisterReflectionMembers(Builder);
 }
@@ -108,9 +108,9 @@ void BuildNativeReflection(TMetadata& Information) {
  * @brief 지정된 getter 또는 멤버 포인터로 실제 값을 읽습니다.
  */
 template <auto Member, auto Getter>
-decltype(auto) ReadMemberValue(const typename TMemberPointerTraits<decltype(Member)>::FOwner& Object) {
+decltype(auto) ReadMemberValue(const typename TMemberPointerTraits<decltype(Member)>::FOwner* Object) {
     if constexpr (std::is_same_v<decltype(Getter), std::nullptr_t>) {
-        return Object.*Member;
+        return Object->*Member;
     } else {
         return std::invoke(Getter, Object);
     }
@@ -122,16 +122,16 @@ decltype(auto) ReadMemberValue(const typename TMemberPointerTraits<decltype(Memb
 template <auto Member, auto Getter>
 FPropertyValue ReadMemberProperty(const void* Container) {
     using FOwner = typename TMemberPointerTraits<decltype(Member)>::FOwner;
-    using FValue = std::remove_cvref_t<decltype(ReadMemberValue<Member, Getter>(std::declval<const FOwner&>()))>;
+    using FValue = std::remove_cvref_t<decltype(ReadMemberValue<Member, Getter>(std::declval<const FOwner*>()))>;
 
     if constexpr (std::is_enum_v<FValue>) {
-        return static_cast<Int32>(ReadMemberValue<Member, Getter>(*static_cast<const FOwner*>(Container)));
+        return static_cast<Int32>(ReadMemberValue<Member, Getter>(static_cast<const FOwner*>(Container)));
     } else if constexpr (std::is_same_v<FValue, Uint8>) {
-        return static_cast<Uint32>(ReadMemberValue<Member, Getter>(*static_cast<const FOwner*>(Container)));
+        return static_cast<Uint32>(ReadMemberValue<Member, Getter>(static_cast<const FOwner*>(Container)));
     } else if constexpr (GetNativePropertyType<FValue>() == EPropertyType::Opaque) {
-        return static_cast<const void*>(std::addressof(ReadMemberValue<Member, Getter>(*static_cast<const FOwner*>(Container))));
+        return static_cast<const void*>(std::addressof(ReadMemberValue<Member, Getter>(static_cast<const FOwner*>(Container))));
     } else {
-        return FPropertyValue{ReadMemberValue<Member, Getter>(*static_cast<const FOwner*>(Container))};
+        return FPropertyValue{ReadMemberValue<Member, Getter>(static_cast<const FOwner*>(Container))};
     }
 }
 
@@ -141,7 +141,7 @@ FPropertyValue ReadMemberProperty(const void* Container) {
 template <auto Member, auto Getter, auto Setter>
 bool WriteMemberProperty(void* Container, const FPropertyValue& Value) {
     using FOwner = typename TMemberPointerTraits<decltype(Member)>::FOwner;
-    using FValue = std::remove_cvref_t<decltype(ReadMemberValue<Member, Getter>(std::declval<const FOwner&>()))>;
+    using FValue = std::remove_cvref_t<decltype(ReadMemberValue<Member, Getter>(std::declval<const FOwner*>()))>;
     if constexpr (GetNativePropertyType<FValue>() == EPropertyType::Opaque) {
         return false;
     } else {
@@ -158,14 +158,14 @@ bool WriteMemberProperty(void* Container, const FPropertyValue& Value) {
             }
         }
 
-        FOwner& Object{*static_cast<FOwner*>(Container)};
+        FOwner* Object{static_cast<FOwner*>(Container)};
         const FValue Converted{static_cast<FValue>(*Typed)};
 
         if constexpr (std::is_same_v<decltype(Setter), std::nullptr_t>) {
-            Object.*Member = Converted;
+            Object->*Member = Converted;
 
             return true;
-        } else if constexpr (std::is_void_v<std::invoke_result_t<decltype(Setter), FOwner&, const FValue&>>) {
+        } else if constexpr (std::is_void_v<std::invoke_result_t<decltype(Setter), FOwner*, const FValue&>>) {
             std::invoke(Setter, Object, Converted);
 
             return true;
@@ -181,7 +181,7 @@ bool WriteMemberProperty(void* Container, const FPropertyValue& Value) {
 template <auto Member, auto Getter, auto Setter>
 void RegisterProperty(FReflectionBuilder& Information, FString Name, EPropertyFlags Flags) {
     using FOwner = typename TMemberPointerTraits<decltype(Member)>::FOwner;
-    using FValue = std::remove_cvref_t<decltype(ReadMemberValue<Member, Getter>(std::declval<const FOwner&>()))>;
+    using FValue = std::remove_cvref_t<decltype(ReadMemberValue<Member, Getter>(std::declval<const FOwner*>()))>;
 
     TArray<FEnumValue> Values{};
 
@@ -202,7 +202,7 @@ void RegisterProperty(FReflectionBuilder& Information, FString Name, EPropertyFl
 template <auto Member, auto Getter>
 void RegisterReadOnlyProperty(FReflectionBuilder& Information, FString Name, EPropertyFlags Flags) {
     using FOwner = typename TMemberPointerTraits<decltype(Member)>::FOwner;
-    using FValue = std::remove_cvref_t<decltype(ReadMemberValue<Member, Getter>(std::declval<const FOwner&>()))>;
+    using FValue = std::remove_cvref_t<decltype(ReadMemberValue<Member, Getter>(std::declval<const FOwner*>()))>;
 
     TArray<FEnumValue> Values{};
 

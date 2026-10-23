@@ -31,15 +31,87 @@
 /**
  * @brief FEditorViewportClient의 초기 상태와 전달받은 의존성을 구성합니다.
  */
-FEditorViewportClient::FEditorViewportClient(UEditorEngine& Engine)
-	: mEngine{&Engine},
-	  mGizmo{Engine} {
+FEditorViewportClient::FEditorViewportClient(UEditorEngine* Engine)
+	: mEngine{Engine},
+	  mGizmo{Engine, this} {
 }
 
 /**
  * @brief 객체의 수명을 끝내고 소유한 리소스를 정리합니다.
  */
 FEditorViewportClient::~FEditorViewportClient() = default;
+
+bool FEditorViewportClient::ExecuteCommand(EViewportCommand Command) {
+    if (!CanExecuteCommand(Command)) {
+        return false;
+    }
+
+    switch (Command) {
+    case EViewportCommand::Translate:
+        SetGizmoMode(EGizmoMode::Translate);
+        break;
+    case EViewportCommand::Rotate:
+        SetGizmoMode(EGizmoMode::Rotate);
+        break;
+    case EViewportCommand::Scale:
+        SetGizmoMode(EGizmoMode::Scale);
+        break;
+    case EViewportCommand::WorldSpace:
+        SetGizmoSpace(EGizmoSpace::World);
+        break;
+    case EViewportCommand::LocalSpace:
+        SetGizmoSpace(EGizmoSpace::Local);
+        break;
+    case EViewportCommand::ToggleCoordinateSystem:
+        SetGizmoSpace(mGizmoSpace == EGizmoSpace::World ? EGizmoSpace::Local : EGizmoSpace::World);
+        break;
+    case EViewportCommand::CycleTransformMode:
+        SetGizmoMode(mGizmoMode == EGizmoMode::Translate ? EGizmoMode::Rotate : mGizmoMode == EGizmoMode::Rotate ? EGizmoMode::Scale : EGizmoMode::Translate);
+        break;
+    default:
+        return false;
+    }
+
+    return true;
+}
+
+bool FEditorViewportClient::CanExecuteCommand(EViewportCommand Command) const {
+    if (mGizmo.IsDragging()) {
+        return false;
+    }
+
+    switch (Command) {
+    case EViewportCommand::Translate:
+    case EViewportCommand::Rotate:
+    case EViewportCommand::Scale:
+    case EViewportCommand::LocalSpace:
+    case EViewportCommand::CycleTransformMode:
+        return true;
+    case EViewportCommand::WorldSpace:
+    case EViewportCommand::ToggleCoordinateSystem:
+        return mGizmoMode != EGizmoMode::Scale;
+    default:
+        return false;
+    }
+}
+
+bool FEditorViewportClient::IsCommandChecked(EViewportCommand Command) const {
+    switch (Command) {
+    case EViewportCommand::Translate:
+        return mGizmoMode == EGizmoMode::Translate;
+    case EViewportCommand::Rotate:
+        return mGizmoMode == EGizmoMode::Rotate;
+    case EViewportCommand::Scale:
+        return mGizmoMode == EGizmoMode::Scale;
+    case EViewportCommand::WorldSpace:
+        return mGizmoSpace == EGizmoSpace::World;
+    case EViewportCommand::LocalSpace:
+    case EViewportCommand::ToggleCoordinateSystem:
+        return mGizmoSpace == EGizmoSpace::Local;
+    default:
+        return false;
+    }
+}
 
 /**
  * @brief 현재 프레임의 뷰포트 입력을 처리합니다.
@@ -49,8 +121,8 @@ void FEditorViewportClient::Input(const FViewportInput& Input, const FVector2& S
         return;
     }
 
-    if (Input.mCycleGizmo && Input.mFocused && !Input.mAlt && !Input.mLeftDown && !mGizmo.IsDragging()) {
-        mGizmo.SetMode(static_cast<EGizmoMode>((static_cast<Int32>(mGizmo.GetMode()) + 1) % 3));
+    if (Input.mCycleGizmo && Input.mFocused && !Input.mAlt && !Input.mLeftDown) {
+        ExecuteCommand(EViewportCommand::CycleTransformMode);
     }
 
     const FSceneView View{CalcSceneView(Size)};
@@ -168,14 +240,14 @@ void FEditorViewportClient::FocusSelection(const FVector2& Size) {
 /**
  * @brief 뷰포트 또는 패널의 현재 내용을 그립니다.
  */
-void FEditorViewportClient::Draw(FSceneViewport& Viewport) {
+void FEditorViewportClient::Draw(FSceneViewport* Viewport) {
     UWorld* World{mEngine->GetWorld()};
 
     if (World == nullptr || World->GetScene() == nullptr) {
         return;
     }
 
-    const FSceneView View{CalcSceneView(Viewport.GetSize())};
+    const FSceneView View{CalcSceneView(Viewport->GetSize())};
 
     mDrawInterface.Clear();
 
@@ -195,7 +267,7 @@ void FEditorViewportClient::Draw(FSceneViewport& Viewport) {
 
     mGizmo.Draw(View, mDrawInterface);
 
-    const FSceneViewFamily Family{World->GetScene(), Viewport.GetRenderTarget(), View, &mDrawInterface};
+    const FSceneViewFamily Family{World->GetScene(), Viewport->GetRenderTarget(), View, &mDrawInterface};
     mEngine->GetRenderer()->BeginRenderingViewFamily(Family);
 }
 
@@ -250,4 +322,36 @@ const FVector& FEditorViewportClient::GetCameraLocation() const {
  */
 FTransformGizmo& FEditorViewportClient::GetGizmo() {
     return mGizmo;
+}
+
+/**
+ * @brief 기즈모의 이동, 회전 또는 스케일 모드를 선택합니다.
+ */
+void FEditorViewportClient::SetGizmoMode(EGizmoMode Mode) {
+    mGizmoMode = Mode;
+
+    if (mGizmoMode == EGizmoMode::Scale) {
+        mGizmoSpace = EGizmoSpace::Local;
+    }
+}
+
+/**
+ * @brief 현재 동작 모드를 반환합니다.
+ */
+EGizmoMode FEditorViewportClient::GetGizmoMode() const {
+    return mGizmoMode;
+}
+
+/**
+ * @brief 기즈모 축의 기준을 월드 또는 로컬 좌표로 바꿉니다.
+ */
+void FEditorViewportClient::SetGizmoSpace(EGizmoSpace Space) {
+    mGizmoSpace = Space;
+}
+
+/**
+ * @brief 기즈모 축의 좌표 공간을 반환합니다.
+ */
+EGizmoSpace FEditorViewportClient::GetGizmoSpace() const {
+    return mGizmoSpace;
 }

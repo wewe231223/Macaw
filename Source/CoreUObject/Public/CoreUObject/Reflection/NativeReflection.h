@@ -56,7 +56,7 @@ UScriptStruct* DefineNativeStruct(const char* Name);
  * @param[in,out] Information 프로퍼티 또는 열거값을 추가할 메타데이터나 빌더입니다.
  */
 template <typename T, typename TMetadata>
-void BuildNativeReflection(TMetadata& Information);
+void BuildNativeReflection(TMetadata* Information);
 
 /**
  * @brief 지정된 getter 또는 멤버 포인터로 실제 값을 읽습니다.
@@ -66,7 +66,7 @@ void BuildNativeReflection(TMetadata& Information);
  * @return 연산을 적용한 새 값입니다.
  */
 template <auto Member, auto Getter = nullptr>
-decltype(auto) ReadMemberValue(const typename TMemberPointerTraits<decltype(Member)>::FOwner& Object);
+decltype(auto) ReadMemberValue(const typename TMemberPointerTraits<decltype(Member)>::FOwner* Object);
 
 /**
  * @brief 네이티브 멤버를 프로퍼티 variant의 대응 저장 타입으로 변환합니다.

@@ -16,11 +16,6 @@
  * @return 정상 종료 시 0입니다.
  */
 int WINAPI WinMain(HINSTANCE Instance, HINSTANCE Previous, LPSTR CommandLine, int ShowCommand) {
-    static_cast<void>(Instance);
-    static_cast<void>(Previous);
-    static_cast<void>(CommandLine);
-    static_cast<void>(ShowCommand);
-
     ErrorHandler::Initialize();
 
     FApplication Application{};

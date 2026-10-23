@@ -6,23 +6,19 @@
 
 #pragma once
 
-#include "CoreUObject/FObjectRegistry.h"
 #include "CoreUObject/Reflection/UClass.h"
 #include "CoreUObject/Reflection/NativeReflection.h"
 #include "CoreUObject/UObject.h"
 
-class FObjectRegistry;
-
 /**
- * @brief UObject 파생 객체를 생성하고 지정한 객체 레지스트리에 등록합니다.
+ * @brief UObject 파생 객체를 생성하고 전역 레지스트리에 자동 등록합니다.
  * @tparam T 적용할 네이티브 타입입니다.
  * @tparam TArguments 생성자 인수의 타입 팩입니다.
- * @param[in,out] Registry 객체를 등록하거나 조회할 레지스트리입니다.
  * @param[in] Arguments 객체 생성자에 전달할 인수 팩입니다.
  * @return 생성한 객체의 단독 소유권이며, 생성 또는 검증 실패 시 nullptr입니다.
  */
 template <typename T, typename... TArguments>
-std::unique_ptr<T> NewObject(FObjectRegistry& Registry, TArguments&&... Arguments);
+std::unique_ptr<T> NewObject(TArguments&&... Arguments);
 
 /**
  * @brief 구체적이고 기본 생성 가능한 네이티브 타입의 인스턴스를 생성합니다.

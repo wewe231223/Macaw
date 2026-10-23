@@ -17,7 +17,7 @@
 /**
  * @brief FOutlinerPanel의 초기 상태와 전달받은 의존성을 구성합니다.
  */
-FOutlinerPanel::FOutlinerPanel(UEditorEngine& Engine)
+FOutlinerPanel::FOutlinerPanel(UEditorEngine* Engine)
 	: FEditorPanel{Engine, "World Outliner"} {
 }
 
@@ -30,27 +30,27 @@ FOutlinerPanel::~FOutlinerPanel() = default;
  * @brief 패널 고유의 ImGui 위젯과 내용을 그립니다.
  */
 void FOutlinerPanel::DrawContent(float) {
-    UEditorEngine& Engine{GetEditorEngine()};
+    UEditorEngine* Engine{GetEditorEngine()};
 
     if (ImGui::Button("+ Plane")) {
-        Engine.SpawnPrimitive(EPrimitiveType::Plane);
+        Engine->SpawnPrimitive(EPrimitiveType::Plane);
     }
 
     ImGui::SameLine();
 
     if (ImGui::Button("+ Cube")) {
-        Engine.SpawnPrimitive(EPrimitiveType::Cube);
+        Engine->SpawnPrimitive(EPrimitiveType::Cube);
     }
 
     ImGui::SameLine();
 
     if (ImGui::Button("+ Sphere")) {
-        Engine.SpawnPrimitive(EPrimitiveType::Sphere);
+        Engine->SpawnPrimitive(EPrimitiveType::Sphere);
     }
 
     ImGui::Separator();
 
-    const UWorld* World{Engine.GetWorld()};
+    const UWorld* World{Engine->GetWorld()};
 
     if (World != nullptr && World->GetPersistentLevel() != nullptr) {
         ImGui::TextUnformatted(std::format("PersistentLevel ({})", World->GetPersistentLevel()->GetActors().size()).c_str());
@@ -58,8 +58,8 @@ void FOutlinerPanel::DrawContent(float) {
         for (const auto& Actor : World->GetPersistentLevel()->GetActors()) {
             ImGui::PushID(Actor.get());
 
-            if (ImGui::Selectable(Actor->GetName().c_str(), Engine.GetSelectedActor() == Actor.get())) {
-                Engine.SelectActor(Actor->GetHandle());
+            if (ImGui::Selectable(Actor->GetName().c_str(), Engine->GetSelectedActor() == Actor.get())) {
+                Engine->SelectActor(Actor->GetHandle());
             }
 
             ImGui::PopID();
@@ -68,10 +68,10 @@ void FOutlinerPanel::DrawContent(float) {
 
     ImGui::Separator();
 
-    ImGui::BeginDisabled(Engine.GetSelectedActor() == nullptr);
+    ImGui::BeginDisabled(Engine->GetSelectedActor() == nullptr);
 
     if (ImGui::Button("Delete Selected")) {
-        Engine.DestroySelectedActor();
+        Engine->DestroySelectedActor();
     }
 
     ImGui::EndDisabled();

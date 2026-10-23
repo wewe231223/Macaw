@@ -25,11 +25,11 @@ AStaticMeshActor::~AStaticMeshActor() = default;
  * @brief 액터의 기본 컴포넌트를 생성하고 루트 컴포넌트를 정합니다.
  */
 bool AStaticMeshActor::InitializeDefaultComponents() {
-    if (GetRegistry() == nullptr || !GetComponents().empty()) {
+    if (!GetComponents().empty()) {
         return false;
     }
 
-    auto Component{NewObject<UStaticMeshComponent>(*GetRegistry())};
+    auto Component{NewObject<UStaticMeshComponent>()};
     Component->SetName("StaticMeshComponent");
 
     return AddComponent(std::move(Component));

@@ -5,6 +5,7 @@
  */
 
 #include "Editor/EditorEngine.h"
+#include "ViewportToolbar.h"
 #include "Engine/Component/USceneComponent.h"
 #include "Engine/AActor.h"
 #include "Engine/AStaticMeshActor.h"
@@ -13,6 +14,7 @@
 #include "CoreUObject/FObjectHandle.h"
 #include "CoreUObject/FPropertyChangedEvent.h"
 #include "CoreUObject/UObject.h"
+#include "CoreUObject/FObjectRegistry.h"
 #include "Core/Reflection/EPropertyFlags.h"
 #include "CoreUObject/Reflection/FPropertyValue.h"
 #include "CoreUObject/Reflection/FProperty.h"
@@ -70,11 +72,11 @@ namespace {
  * @brief UEditorEngine의 초기 상태와 전달받은 의존성을 구성합니다.
  */
 UEditorEngine::UEditorEngine()
-	: mClient{*this},
-	  mOutlinerPanel{*this},
-	  mDetailsPanel{*this},
-	  mConsolePanel{*this},
-	  mStatisticsPanel{*this} {
+	: mClient{this},
+	  mOutlinerPanel{this},
+	  mDetailsPanel{this},
+	  mConsolePanel{this},
+	  mStatisticsPanel{this} {
 }
 
 /**
@@ -87,13 +89,13 @@ UEditorEngine::~UEditorEngine() {
 /**
  * @brief 엔진, ImGui 백엔드, 뷰포트와 초기 장면을 준비합니다.
  */
-bool UEditorEngine::InitializeEditor(IRendererModule& Renderer, FWindowsApplication& Platform) {
-    if (!UEngine::Initialize(Renderer)) {
+bool UEditorEngine::InitializeEditor(IRendererModule* Renderer, FWindowsApplication* Platform) {
+    if (Renderer == nullptr || Platform == nullptr || !UEngine::Initialize(Renderer)) {
         return false;
     }
 
     StaticClass();
-    mPlatform = &Platform;
+    mPlatform = Platform;
 
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
@@ -118,8 +120,8 @@ bool UEditorEngine::InitializeEditor(IRendererModule& Renderer, FWindowsApplicat
     Style.FrameRounding = 3.0f;
     Style.GrabRounding = 3.0f;
 
-    mWin32Ready = ImGui_ImplWin32_Init(Platform.GetWindowHandle());
-    mDxReady = mWin32Ready && ImGui_ImplDX11_Init(static_cast<ID3D11Device*>(Renderer.GetNativeDevice()), static_cast<ID3D11DeviceContext*>(Renderer.GetNativeContext()));
+    mWin32Ready = ImGui_ImplWin32_Init(Platform->GetWindowHandle());
+    mDxReady = mWin32Ready && ImGui_ImplDX11_Init(static_cast<ID3D11Device*>(Renderer->GetNativeDevice()), static_cast<ID3D11DeviceContext*>(Renderer->GetNativeContext()));
 
     if (!mDxReady) {
         Shutdown();
@@ -127,11 +129,11 @@ bool UEditorEngine::InitializeEditor(IRendererModule& Renderer, FWindowsApplicat
         return false;
     }
 
-    Platform.SetMessageHandler([](HWND Window, UINT Message, WPARAM WParam, LPARAM LParam) {
+    Platform->SetMessageHandler([](HWND Window, UINT Message, WPARAM WParam, LPARAM LParam) {
         return ImGui_ImplWin32_WndProcHandler(Window, Message, WParam, LParam) != 0;
     });
 
-    mViewport = std::make_unique<FSceneViewport>(Renderer, mClient);
+    mViewport = std::make_unique<FSceneViewport>(Renderer, &mClient);
 
     if (!mViewport->Resize(960, 640)) {
         Shutdown();
@@ -155,7 +157,7 @@ bool UEditorEngine::InitializeEditor(IRendererModule& Renderer, FWindowsApplicat
 
     SynchronizeWorld();
 
-    mInitialized = true;
+    mEditorInitialized = true;
     mDirty = false;
 
     return true;
@@ -191,7 +193,7 @@ void UEditorEngine::Shutdown() {
         mContextCreated = false;
     }
 
-    mInitialized = false;
+    mEditorInitialized = false;
     mPlatform = nullptr;
 
     UEngine::Shutdown();
@@ -201,7 +203,7 @@ void UEditorEngine::Shutdown() {
  * @brief 입력을 수집하고 패널, 월드 동기화와 에디터 프레임 렌더링을 진행합니다.
  */
 void UEditorEngine::TickFrame(float DeltaTime) {
-    if (!mInitialized) {
+    if (!mEditorInitialized) {
         return;
     }
 
@@ -219,6 +221,7 @@ void UEditorEngine::TickFrame(float DeltaTime) {
     DrawViewport();
     mConsolePanel.Draw(DeltaTime);
 
+    UEngine::Tick(DeltaTime);
     SynchronizeWorld();
     mViewport->Draw();
 
@@ -286,9 +289,9 @@ void UEditorEngine::SelectActor(FObjectHandle Handle) {
         return;
     }
 
-    AActor* Actor{Cast<AActor>(GetWorldContext()->GetRegistry().Resolve(Handle))};
+    AActor* Actor{Cast<AActor>(FObjectRegistry::Get()->Resolve(Handle))};
 
-    if (Actor == nullptr || Actor->GetWorld() != GetWorld()) {
+    if (Actor == nullptr || GetWorld() == nullptr || !GetWorld()->ContainsObject(Actor)) {
         ClearSelection();
         return;
     }
@@ -313,42 +316,43 @@ void UEditorEngine::ClearSelection() {
  * @brief 선택한 액터의 세대 핸들을 반환합니다.
  */
 AActor* UEditorEngine::GetSelectedActor() const {
-    return GetWorldContext() != nullptr ? Cast<AActor>(GetWorldContext()->GetRegistry().Resolve(mSelectedActor)) : nullptr;
+    AActor* Actor{Cast<AActor>(FObjectRegistry::Get()->Resolve(mSelectedActor))};
+    return GetWorld() != nullptr && GetWorld()->ContainsObject(Actor) ? Actor : nullptr;
 }
 
 /**
  * @brief 프로퍼티 편집 대상의 세대 핸들을 반환합니다.
  */
 UObject* UEditorEngine::GetSelectedObject() const {
-    return GetWorldContext() != nullptr ? GetWorldContext()->GetRegistry().Resolve(mSelectedObject) : nullptr;
+    UObject* Object{FObjectRegistry::Get()->Resolve(mSelectedObject)};
+    return GetWorld() != nullptr && GetWorld()->ContainsObject(Object) ? Object : nullptr;
 }
 
 /**
  * @brief 레지스트리에서 유효한 객체를 확인한 뒤 편집 대상으로 선택합니다.
  */
 void UEditorEngine::SelectObject(FObjectHandle Handle) {
-    if (GetWorldContext() != nullptr && GetWorldContext()->GetRegistry().Resolve(Handle) != nullptr) {
-        mSelectedObject = Handle;
-    }
+    UObject* Object{FObjectRegistry::Get()->Resolve(Handle)};
+    mSelectedObject = GetWorld() != nullptr && GetWorld()->ContainsObject(Object) ? Handle : FObjectHandle{};
 }
 
 /**
  * @brief 프로퍼티 소속과 편집 권한을 확인하고 변경 전후 알림과 함께 값을 씁니다.
  */
-bool UEditorEngine::EditProperty(UObject& Object, const FProperty& Property, const FPropertyValue& Value, bool Interactive) {
-    if (GetWorldContext() == nullptr || Object.GetRegistry() != &GetWorldContext()->GetRegistry() || Object.GetClass()->FindClassProperty(Property.GetName()) != &Property || !Property.HasFlag(EPropertyFlags::Edit) || Property.HasFlag(EPropertyFlags::ReadOnly)) {
+bool UEditorEngine::EditProperty(UObject* Object, const FProperty* Property, const FPropertyValue& Value, bool Interactive) {
+    if (Object == nullptr || Property == nullptr || GetWorld() == nullptr || !GetWorld()->ContainsObject(Object) || Object->GetClass()->FindClassProperty(Property->GetName()) != Property || !Property->HasFlag(EPropertyFlags::Edit) || Property->HasFlag(EPropertyFlags::ReadOnly)) {
         return false;
     }
 
-    Object.PreEditChange(Property);
+    Object->PreEditChange(Property);
 
-    if (!Property.WriteValue(&Object, Value)) {
-        AddLog("Rejected invalid property value: " + Property.GetName());
+    if (!Property->WriteValue(Object, Value)) {
+        AddLog("Rejected invalid property value: " + Property->GetName());
 
         return false;
     }
 
-    Object.PostEditChangeProperty(FPropertyChangedEvent{&Property, Interactive});
+    Object->PostEditChangeProperty(FPropertyChangedEvent{Property, Interactive});
     mDirty = true;
 
     return true;
@@ -357,11 +361,11 @@ bool UEditorEngine::EditProperty(UObject& Object, const FProperty& Property, con
 /**
  * @brief 액터 루트의 변환 프로퍼티를 에디터 편집 경로로 변경합니다.
  */
-bool UEditorEngine::ApplyTransform(AActor& Actor, const FTransform& Transform, bool Interactive) {
-    USceneComponent* Root{Actor.GetRootComponent()};
+bool UEditorEngine::ApplyTransform(AActor* Actor, const FTransform& Transform, bool Interactive) {
+    USceneComponent* Root{Actor != nullptr ? Actor->GetRootComponent() : nullptr};
     const FProperty* Property{Root != nullptr ? Root->GetClass()->FindClassProperty("Transform") : nullptr};
 
-    return Property != nullptr && EditProperty(*Root, *Property, FPropertyValue{Transform}, Interactive);
+    return Property != nullptr && EditProperty(Root, Property, FPropertyValue{Transform}, Interactive);
 }
 
 /**
@@ -375,7 +379,7 @@ bool UEditorEngine::SaveScene(const std::filesystem::path& Path) {
     const std::filesystem::path ScenePath{std::filesystem::absolute(Path.is_absolute() ? Path : std::filesystem::path{"Scenes"} / Path)};
     FString Error{};
 
-    if (!FSceneSerializer::Save(ScenePath, *GetWorldContext(), Error)) {
+    if (!FSceneSerializer::Save(ScenePath, GetWorldContext(), Error)) {
         ErrorHandler::Fatal("Scene save", Error);
     }
 
@@ -660,32 +664,7 @@ void UEditorEngine::DrawMenu() {
  */
 void UEditorEngine::DrawViewport() {
     if (ImGui::Begin("Viewport", nullptr, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoNavInputs)) {
-        FTransformGizmo& Gizmo{mClient.GetGizmo()};
-        const std::array<const char*, 3> Modes{"Translate", "Rotation", "Scale"};
-
-        for (Int32 Index{}; Index < 3; ++Index) {
-            if (Index > 0) {
-                ImGui::SameLine();
-            }
-
-            if (ImGui::Selectable(Modes[Index], Gizmo.GetMode() == static_cast<EGizmoMode>(Index), 0, {90.0f, 0.0f})) {
-                Gizmo.SetMode(static_cast<EGizmoMode>(Index));
-            }
-        }
-
-        ImGui::SameLine();
-        ImGui::BeginDisabled(Gizmo.GetMode() == EGizmoMode::Scale);
-
-        if (ImGui::Button(Gizmo.GetSpace() == EGizmoSpace::World ? "World" : "Local")) {
-            Gizmo.SetSpace(Gizmo.GetSpace() == EGizmoSpace::World ? EGizmoSpace::Local : EGizmoSpace::World);
-        }
-
-        ImGui::EndDisabled();
-        ImGui::SameLine();
-
-        if (ImGui::Button("Reset Camera")) {
-            mClient.ResetCamera();
-        }
+        ViewportToolbar::Draw(&mClient);
 
         const ImVec2 Available{ImGui::GetContentRegionAvail()};
 
@@ -703,7 +682,7 @@ void UEditorEngine::DrawViewport() {
             State.mDelta = {Input.MouseDelta.x * ScaleX, Input.MouseDelta.y * ScaleY};
 
             State.mHovered = ImGui::IsItemHovered();
-            State.mFocused = ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows);
+            State.mFocused = ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) && !ImGui::IsPopupOpen(nullptr, ImGuiPopupFlags_AnyPopup);
 
             State.mLeftPressed = ImGui::IsMouseClicked(ImGuiMouseButton_Left);
             State.mLeftDown = ImGui::IsMouseDown(ImGuiMouseButton_Left);

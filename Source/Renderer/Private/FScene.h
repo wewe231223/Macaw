@@ -31,7 +31,7 @@ public:
      * @param[in,out] Device 리소스 생성에 사용할 Direct3D 11 장치입니다.
      * @param[in,out] Context 월드 컨텍스트 또는 Direct3D 11 컨텍스트입니다.
      */
-    FScene(ID3D11Device& Device, ID3D11DeviceContext& Context);
+    FScene(ID3D11Device* Device, ID3D11DeviceContext* Context);
     /**
      * @brief 객체의 수명을 끝내고 소유한 리소스를 정리합니다.
      */

@@ -7,22 +7,15 @@
 #pragma once
 
 /**
- * @brief UObject 파생 객체를 생성하고 지정한 객체 레지스트리에 등록합니다.
+ * @brief UObject 파생 객체를 생성하고 전역 레지스트리에 자동 등록합니다.
  */
 template <typename T, typename... TArguments>
-std::unique_ptr<T> NewObject(FObjectRegistry& Registry, TArguments&&... Arguments) {
+std::unique_ptr<T> NewObject(TArguments&&... Arguments) {
     static_assert(std::is_base_of_v<UObject, T>);
     static_assert(std::is_same_v<typename T::ReflectionOwner, T>);
 
     T::StaticClass();
-
-    auto Object{std::make_unique<T>(std::forward<TArguments>(Arguments)...)};
-
-    if (!Registry.Register(*Object)) {
-        return nullptr;
-    }
-
-    return Object;
+    return std::make_unique<T>(std::forward<TArguments>(Arguments)...);
 }
 
 /**

@@ -77,7 +77,7 @@ UClass* FReflectionRegistry::DefineClass(FString Name, UClass* (*Parent)(), cons
     GetRegisteredTypes().emplace(std::move(Name), FRegisteredType{Definition, std::move(Owner)});
 
     if (Builder != nullptr) {
-        Builder(*Class);
+        Builder(Class);
     }
 
     Class->Seal();
@@ -104,7 +104,7 @@ UScriptStruct* FReflectionRegistry::DefineStruct(FString Name, const FNativeType
     GetRegisteredTypes().emplace(std::move(Name), FRegisteredType{Definition, std::move(Owner)});
 
     if (Builder != nullptr) {
-        Builder(*Struct);
+        Builder(Struct);
     }
 
     Struct->Seal();
@@ -130,7 +130,7 @@ UEnum* FReflectionRegistry::DefineEnum(FString Name, const FNativeType* NativeTy
     GetRegisteredTypes().emplace(std::move(Name), FRegisteredType{Definition, std::move(Owner)});
 
     if (Builder != nullptr) {
-        Builder(*Enum);
+        Builder(Enum);
     }
 
     Enum->Seal();
@@ -141,8 +141,8 @@ UEnum* FReflectionRegistry::DefineEnum(FString Name, const FNativeType* NativeTy
 /**
  * @brief 열거형 빌더에서 전달한 열거값 목록을 등록합니다.
  */
-void FReflectionRegistry::AddEnumValues(UEnum& Information, std::initializer_list<FEnumValue> Values) {
-    Information.AddValues(Values);
+void FReflectionRegistry::AddEnumValues(UEnum* Information, std::initializer_list<FEnumValue> Values) {
+    Information->AddValues(Values);
 }
 
 /**

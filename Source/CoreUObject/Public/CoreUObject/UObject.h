@@ -15,6 +15,7 @@
 class FObjectRegistry;
 class FArchive;
 class FProperty;
+class FObjectDuplicationContext;
 struct FPropertyChangedEvent;
 
 /**
@@ -105,17 +106,11 @@ public:
      */
     bool SetName(const FString& Name);
     /**
-     * @brief 중복되지 않는 유효 GUID로 객체의 식별자를 복원합니다.
+     * @brief 유효한 장면 GUID로 객체의 영속 식별자를 복원합니다.
      * @param[in] Guid 복원 또는 조회할 영속 GUID입니다.
      * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
      */
     bool RestoreGuid(const FGuid& Guid);
-
-    /**
-     * @brief 객체를 등록한 레지스트리를 반환합니다.
-     * @return 조회한 값의 비소유 주소이며, 해당 값이 없으면 nullptr입니다.
-     */
-    FObjectRegistry* GetRegistry() const;
 
     /**
      * @brief 아카이브 모드에 따라 값을 읽거나 저장합니다.
@@ -123,10 +118,18 @@ public:
      */
     virtual void Serialize(FArchive& Archive);
     /**
+     * @brief 복제 그래프 생성 후 사용자 참조를 복제본으로 재연결하는 확장 지점입니다.
+     * @param[in] Source 이 객체에 대응하는 원본입니다.
+     * @param[in] Context 모든 복제 객체의 비소유 대응표입니다.
+     * @return 재연결에 성공하면 true이며 false이면 월드 복제 전체를 취소합니다.
+     * @note 기본 구현은 클래스 일치 여부만 확인합니다. 참조 필드는 Context로 조회하여 연결하며 대상 객체의 소유권은 이전하지 않습니다.
+     */
+    virtual bool PostDuplicate(const UObject* Source, const FObjectDuplicationContext* Context);
+    /**
      * @brief 프로퍼티 값을 편집하기 직전에 호출되는 확장 지점입니다.
      * @param[in] Property 읽기, 쓰기 또는 알림을 적용할 프로퍼티 메타데이터입니다.
      */
-    virtual void PreEditChange(const FProperty& Property);
+    virtual void PreEditChange(const FProperty* Property);
     /**
      * @brief 프로퍼티 값이 변경된 뒤 호출되는 확장 지점입니다.
      * @param[in] Event Event에 적용할 입력 값입니다.
@@ -170,11 +173,10 @@ private:
 
 private:
     /**
-     * @brief 객체의 영속 식별자입니다.
+     * @brief 장면 저장과 파일 내부 참조 복원에 사용하는 영속 식별자입니다.
      */
     FGuid mGuid{};
     ReflectAccessor(mGuid, GetGuid, RestoreGuid, "Id", EPropertyFlags::Serialize | EPropertyFlags::ReadOnly);
-
 
     /**
      * @brief 레지스트리 슬롯과 세대 핸들입니다.
@@ -188,11 +190,6 @@ private:
     FString mName{"Object"};
     ReflectAccessor(mName, GetName, SetName, "Name", EPropertyFlags::Edit | EPropertyFlags::Serialize);
 
-    /**
-     * @brief 객체를 등록한 레지스트리입니다.
-     */
-    FObjectRegistry* mRegistry{};
-    ReflectProperty(mRegistry, "Registry", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 };
 
 #include "CoreUObject/UObjectTemplates.h"

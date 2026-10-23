@@ -29,7 +29,7 @@ public:
      * @param[in] Name 조회하거나 기록할 이름입니다.
      * @param[in] Closable 사용자가 패널을 닫을 수 있는지 지정합니다.
      */
-    FEditorPanel(UEditorEngine& Engine, FString Name, bool Closable = false);
+    FEditorPanel(UEditorEngine* Engine, FString Name, bool Closable = false);
     /**
      * @brief 객체의 수명을 끝내고 소유한 리소스를 정리합니다.
      */
@@ -75,9 +75,9 @@ public:
 
     /**
      * @brief 연결된 에디터 엔진을 반환합니다.
-     * @return 소유 객체가 유지하는 값의 참조입니다.
+     * @return 연결된 에디터 엔진의 비소유 주소입니다.
      */
-    UEditorEngine& GetEditorEngine() const;
+    UEditorEngine* GetEditorEngine() const;
 
 private:
     /**

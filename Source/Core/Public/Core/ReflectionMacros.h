@@ -19,7 +19,7 @@ class FReflectionBuilder;
  * @param[in,out] Information 프로퍼티 또는 열거값을 추가할 메타데이터나 빌더입니다.
  */
 template <typename T, typename TMetadata>
-void BuildNativeReflection(TMetadata& Information);
+void BuildNativeReflection(TMetadata* Information);
 
 /**
  * @brief 템플릿 특수화의 구조체 메타데이터를 한 번 등록합니다.
@@ -58,7 +58,7 @@ UScriptStruct* DefineTemplateStruct(const char* Name);
 /**
  * @brief 생성된 멤버 등록 함수와 네이티브 빌더에 필요한 접근 권한을 선언합니다.
  */
-#define ReflectMembers() template <typename T, typename TMetadata> friend void ::BuildNativeReflection(TMetadata& Information); static void RegisterReflectionMembers(FReflectionBuilder& Information)
+#define ReflectMembers() template <typename T, typename TMetadata> friend void ::BuildNativeReflection(TMetadata* Information); static void RegisterReflectionMembers(FReflectionBuilder& Information)
 
 /**
  * @brief 생성기가 직접 읽고 쓰는 멤버 프로퍼티와 정책을 표시합니다.

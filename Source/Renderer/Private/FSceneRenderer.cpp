@@ -22,9 +22,9 @@
 /**
  * @brief FSceneRenderer의 초기 상태와 전달받은 의존성을 구성합니다.
  */
-FSceneRenderer::FSceneRenderer(const FSceneViewFamily& Family, const FScene& Scene, const FSceneDrawContext& Context, FRenderStats& Stats)
+FSceneRenderer::FSceneRenderer(const FSceneViewFamily& Family, const FScene* Scene, const FSceneDrawContext& Context, FRenderStats& Stats)
 	: mFamily{&Family},
-	  mScene{&Scene},
+	  mScene{Scene},
 	  mDrawContext{Context},
 	  mStats{&Stats} {
 }
@@ -58,17 +58,17 @@ bool FSceneRenderer::IsVisible(const FBox& Bounds) const {
  * @brief 가시 프리미티브를 선별하여 드로 호출을 제출하고 통계를 갱신합니다.
  */
 void FSceneRenderer::Render() {
-    ID3D11DeviceContext& Context{*mDrawContext.mContext};
-    Context.UpdateSubresource(mDrawContext.mViewBuffer, 0, nullptr, &mFamily->mView.mViewProjection, 0, 0);
+    ID3D11DeviceContext* Context{mDrawContext.mContext};
+    Context->UpdateSubresource(mDrawContext.mViewBuffer, 0, nullptr, &mFamily->mView.mViewProjection, 0, 0);
 
     ID3D11Buffer* ViewBuffer{mDrawContext.mViewBuffer};
-    Context.VSSetConstantBuffers(1, 1, &ViewBuffer);
+    Context->VSSetConstantBuffers(1, 1, &ViewBuffer);
 
-    Context.IASetInputLayout(mDrawContext.mInputLayout);
-    Context.IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    Context->IASetInputLayout(mDrawContext.mInputLayout);
+    Context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-    Context.VSSetShader(mDrawContext.mVertexShader, nullptr, 0);
-    Context.PSSetShader(mDrawContext.mPixelShader, nullptr, 0);
+    Context->VSSetShader(mDrawContext.mVertexShader, nullptr, 0);
+    Context->PSSetShader(mDrawContext.mPixelShader, nullptr, 0);
 
     const UINT Stride{sizeof(FGpuMeshVertex)};
     const UINT Offset{};
@@ -78,22 +78,22 @@ void FSceneRenderer::Render() {
             continue;
         }
 
-        const FMeshResource& Mesh{(*mDrawContext.mMeshes)[static_cast<std::size_t>(Primitive.mProxy.mPrimitive)]};
+        const FMeshResource* Mesh{mDrawContext.mMeshes->data() + static_cast<std::size_t>(Primitive.mProxy.mPrimitive)};
 
-        if (Mesh.mVertices == nullptr) {
+        if (Mesh->mVertices == nullptr) {
             continue;
         }
 
-        ID3D11Buffer* VertexBuffer{Mesh.mVertices.Get()};
+        ID3D11Buffer* VertexBuffer{Mesh->mVertices.Get()};
         ID3D11Buffer* ObjectBuffer{Primitive.mObjectBuffer.Get()};
 
-        Context.IASetVertexBuffers(0, 1, &VertexBuffer, &Stride, &Offset);
-        Context.IASetIndexBuffer(Mesh.mIndices.Get(), DXGI_FORMAT_R32_UINT, 0);
+        Context->IASetVertexBuffers(0, 1, &VertexBuffer, &Stride, &Offset);
+        Context->IASetIndexBuffer(Mesh->mIndices.Get(), DXGI_FORMAT_R32_UINT, 0);
 
-        Context.VSSetConstantBuffers(0, 1, &ObjectBuffer);
-        Context.PSSetConstantBuffers(0, 1, &ObjectBuffer);
+        Context->VSSetConstantBuffers(0, 1, &ObjectBuffer);
+        Context->PSSetConstantBuffers(0, 1, &ObjectBuffer);
 
-        Context.DrawIndexed(Mesh.mIndexCount, 0, 0);
+        Context->DrawIndexed(Mesh->mIndexCount, 0, 0);
 
         ++mStats->mDrawCalls;
         ++mStats->mVisiblePrimitives;

@@ -11,8 +11,8 @@
 /**
  * @brief FReflectionBuilder의 초기 상태와 전달받은 의존성을 구성합니다.
  */
-FReflectionBuilder::FReflectionBuilder(UStruct& Owner)
-	: mOwner{&Owner} {
+FReflectionBuilder::FReflectionBuilder(UStruct* Owner)
+	: mOwner{Owner} {
 }
 
 /**

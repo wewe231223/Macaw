@@ -30,20 +30,25 @@ UPrimitiveComponent::~UPrimitiveComponent() {
 /**
  * @brief 컴포넌트를 월드에 연결하고 필요한 렌더 상태를 등록합니다.
  */
-void UPrimitiveComponent::RegisterComponent(UWorld& World) {
-    if (GetWorld() == &World) {
+void UPrimitiveComponent::RegisterComponent(UWorld* World) {
+    UWorld::FDispatchScope Scope{World};
+
+    if (World == nullptr || GetWorld() == World) {
         return;
     }
 
-    UnregisterComponent();
     UActorComponent::RegisterComponent(World);
-    MarkRenderStateDirty();
+
+    if (GetWorld() == World) {
+        MarkRenderStateDirty();
+    }
 }
 
 /**
  * @brief 등록된 렌더 상태와 월드 연결을 해제합니다.
  */
 void UPrimitiveComponent::UnregisterComponent() {
+    UWorld::FDispatchScope Scope{GetWorld()};
     if (mRenderStateCreated && GetWorld() != nullptr && GetWorld()->GetScene() != nullptr) {
         GetWorld()->GetScene()->RemovePrimitive(GetGuid());
     }
@@ -105,15 +110,15 @@ void UPrimitiveComponent::SendRenderUpdates() {
         return;
     }
 
-    FSceneInterface& Scene{*GetWorld()->GetScene()};
+    FSceneInterface* Scene{GetWorld()->GetScene()};
 
     if (mRenderStateDirty || !mRenderStateCreated) {
-        Scene.AddPrimitive(CreateSceneProxy());
+        Scene->AddPrimitive(CreateSceneProxy());
         mRenderStateCreated = true;
     } else if (mRenderTransformDirty) {
         const FPrimitiveSceneProxy Proxy{CreateSceneProxy()};
 
-        Scene.UpdatePrimitiveTransform(Proxy.mId, Proxy.mWorld, Proxy.mBounds);
+        Scene->UpdatePrimitiveTransform(Proxy.mId, Proxy.mWorld, Proxy.mBounds);
     }
 
     mRenderStateDirty = false;

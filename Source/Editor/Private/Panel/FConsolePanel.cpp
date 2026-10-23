@@ -12,7 +12,7 @@
 /**
  * @brief FConsolePanel의 초기 상태와 전달받은 의존성을 구성합니다.
  */
-FConsolePanel::FConsolePanel(UEditorEngine& Engine)
+FConsolePanel::FConsolePanel(UEditorEngine* Engine)
 	: FEditorPanel{Engine, "Console", true} {
 }
 
@@ -60,7 +60,7 @@ void FConsolePanel::DrawContent(float) {
     ImGui::SetNextItemWidth(-1.0f);
 
     if (ImGui::InputText("##Command", mConsoleInput.data(), mConsoleInput.size(), ImGuiInputTextFlags_EnterReturnsTrue)) {
-        GetEditorEngine().ExecuteConsoleCommand(mConsoleInput.data());
+        GetEditorEngine()->ExecuteConsoleCommand(mConsoleInput.data());
         mConsoleInput.fill(0);
         ImGui::SetKeyboardFocusHere(-1);
     }

@@ -10,6 +10,7 @@
 #include "CoreUObject/UObject.h"
 
 class UWorld;
+class ULevel;
 class UActorComponent;
 class USceneComponent;
 struct FTransform;
@@ -40,24 +41,17 @@ public:
      * @brief 이 타입의 정적 클래스 메타데이터를 반환합니다.
      * @return 등록된 타입 메타데이터의 비소유 주소입니다.
      */
-    ReflectClass(AActor, EClassFlags::NoFactory);
+    ReflectClass(AActor);
     /**
      * @fn UClass* AActor::GetClass() const
      * @brief 객체의 실제 클래스 메타데이터를 반환합니다.
      * @return 실제 클래스 메타데이터의 비소유 주소입니다.
      */
-
     /**
      * @brief 현재 소속되거나 관리하는 월드의 비소유 주소를 반환합니다.
      * @return 조회한 값의 비소유 주소이며, 해당 값이 없으면 nullptr입니다.
      */
     UWorld* GetWorld() const;
-    /**
-     * @brief 객체가 소속된 월드 연결을 지정합니다.
-     * @param[in] World 연결할 월드 또는 적용할 월드 행렬입니다.
-     */
-    void SetWorld(UWorld* World);
-
     /**
      * @brief 컴포넌트의 소유권을 액터로 옮기고 필요하면 월드에 등록합니다.
      * @param[in] Component 액터가 소유권을 넘겨받을 컴포넌트입니다.
@@ -69,30 +63,89 @@ public:
      * @return 생성한 객체의 단독 소유권이며, 생성 또는 검증 실패 시 nullptr입니다.
      */
     const TArray<std::unique_ptr<UActorComponent>>& GetComponents() const;
-
     /**
      * @brief 액터 변환을 제공하는 루트 컴포넌트의 비소유 주소를 반환합니다.
      * @return 조회한 값의 비소유 주소이며, 해당 값이 없으면 nullptr입니다.
      */
     USceneComponent* GetRootComponent() const;
     /**
+     * @brief 소유한 공간 컴포넌트를 액터의 루트로 지정합니다.
+     * @param[in] Component 이 액터가 소유한 공간 컴포넌트이며 nullptr이면 루트를 해제합니다.
+     * @return 소유 관계를 검증하여 지정하면 true입니다.
+     */
+    bool SetRootComponent(USceneComponent* Component);
+    /**
      * @brief 루트 공간 컴포넌트에 액터의 변환을 적용합니다.
      * @param[in] Transform 적용할 위치, 회전과 스케일입니다.
      * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
      */
     bool SetActorTransform(const FTransform& Transform);
-
     /**
      * @brief 액터의 기본 컴포넌트를 생성하고 루트 컴포넌트를 정합니다.
      * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
      */
     virtual bool InitializeDefaultComponents();
+    /**
+     * @brief 액터의 게임 실행 시작 시 호출되는 확장 지점입니다.
+     * @note 생명주기 상태는 월드의 전달 경로가 관리합니다.
+     */
+    virtual void BeginPlay();
+    /**
+     * @brief 액터의 게임 갱신 시 호출되는 확장 지점입니다.
+     * @param[in] DeltaTime 이번 갱신이 진행하는 초 단위 게임 시간입니다.
+     */
+    virtual void Tick(float DeltaTime);
+    /**
+     * @brief 액터의 게임 실행 종료 시 호출되는 확장 지점입니다.
+     */
+    virtual void EndPlay();
+    /**
+     * @brief 액터가 실행 시작 전달에 진입했는지 검사합니다.
+     * @return 실행 시작 전달 이후 종료 전달 전이면 true입니다.
+     */
+    bool HasBegunPlay() const;
+    /**
+     * @brief 지연 삭제가 예약되었는지 검사합니다.
+     * @return 삭제 요청을 수락한 뒤 실제 해제 전이면 true입니다.
+     */
+    bool IsPendingDestroy() const;
 
 private:
     /**
      * @brief 생성된 프로퍼티 등록 함수와 빌더 접근 권한입니다.
      */
     ReflectMembers();
+    /**
+     * @brief 객체가 소속된 월드 연결을 지정합니다.
+     * @param[in] World 연결할 월드 또는 적용할 월드 행렬입니다.
+     */
+    void SetWorld(UWorld* World);
+    /**
+     * @brief 월드가 액터의 실행 전달과 지연 삭제 상태를 관리하도록 허용합니다.
+     */
+    friend class UWorld;
+    /**
+     * @brief 레벨이 소유 액터의 월드 연결을 관리하도록 허용합니다.
+     */
+    friend class ULevel;
+    /**
+     * @brief 컴포넌트를 먼저 시작한 뒤 살아 있는 액터의 시작 콜백을 전달합니다.
+     */
+    void DispatchBeginPlay();
+    /**
+     * @brief 시작되었고 삭제 예정이 아닌 액터의 갱신 콜백을 전달합니다.
+     * @param[in] DeltaTime 이번 갱신의 초 단위 게임 시간입니다.
+     */
+    void DispatchTick(float DeltaTime);
+    /**
+     * @brief 시작된 액터의 종료 콜백과 컴포넌트 역순 종료를 전달합니다.
+     */
+    void DispatchEndPlay();
+    /**
+     * @brief 콜백 중 컴포넌트 추가에 영향받지 않는 핸들 스냅샷을 만듭니다.
+     * @return 현재 소유 컴포넌트의 전역 핸들 목록입니다.
+     */
+    TArray<FObjectHandle> GetComponentHandles() const;
 
 private:
     /**
@@ -100,8 +153,6 @@ private:
      */
     UWorld* mWorld{};
     ReflectProperty(mWorld, "World", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
-
-
     /**
      * @brief 액터가 소유한 컴포넌트 목록입니다.
      */
@@ -112,4 +163,24 @@ private:
      */
     USceneComponent* mRootComponent{};
     ReflectProperty(mRootComponent, "RootComponent", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /**
+     * @brief 액터가 시작 전달에 진입하여 아직 종료되지 않았는지 나타냅니다.
+     */
+    bool mHasBegunPlay{};
+    ReflectProperty(mHasBegunPlay, "HasBegunPlay", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /**
+     * @brief 액터 자체의 BeginPlay 호출 여부이며 부분 시작 시 EndPlay 짝을 구분합니다.
+     */
+    bool mBeginPlayCalled{};
+    ReflectProperty(mBeginPlayCalled, "BeginPlayCalled", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /**
+     * @brief 안전한 전달 경계에서 액터를 제거하도록 예약한 상태입니다.
+     */
+    bool mPendingDestroy{};
+    ReflectProperty(mPendingDestroy, "PendingDestroy", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /**
+     * @brief 월드 연결 변경 중 재진입에 의한 컴포넌트 변경을 제한합니다.
+     */
+    bool mChangingWorld{};
+    ReflectProperty(mChangingWorld, "ChangingWorld", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 };

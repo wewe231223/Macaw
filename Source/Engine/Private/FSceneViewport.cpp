@@ -14,9 +14,9 @@
 /**
  * @brief FSceneViewport의 초기 상태와 전달받은 의존성을 구성합니다.
  */
-FSceneViewport::FSceneViewport(IRendererModule& Renderer, FViewportClient& Client)
-	: mRenderer{&Renderer},
-	  mClient{&Client} {
+FSceneViewport::FSceneViewport(IRendererModule* Renderer, FViewportClient* Client)
+	: mRenderer{Renderer},
+	  mClient{Client} {
 }
 
 /**
@@ -38,7 +38,7 @@ bool FSceneViewport::Resize(Uint32 Width, Uint32 Height) {
         return true;
     }
 
-    return mRenderer->ResizeRenderTarget(*mTarget, Width, Height);
+    return mRenderer->ResizeRenderTarget(mTarget.get(), Width, Height);
 }
 
 /**
@@ -53,7 +53,7 @@ void FSceneViewport::Input(const FViewportInput& Input, float DeltaTime) {
  */
 void FSceneViewport::Draw() {
     if (mTarget != nullptr) {
-        mClient->Draw(*this);
+        mClient->Draw(this);
     }
 }
 

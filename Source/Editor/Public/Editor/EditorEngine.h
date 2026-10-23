@@ -62,7 +62,7 @@ public:
      * @param[in,out] Platform Win32 창과 메시지를 제공하는 플랫폼 객체입니다.
      * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
      */
-    bool InitializeEditor(IRendererModule& Renderer, FWindowsApplication& Platform);
+    bool InitializeEditor(IRendererModule* Renderer, FWindowsApplication* Platform);
     /**
      * @brief 종속 객체를 역순으로 정리하고 여러 번 호출해도 안전한 종료 상태로 만듭니다.
      */
@@ -118,7 +118,7 @@ public:
      * @param[in] Interactive 드래그 등 연속 편집 중인지 지정합니다.
      * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
      */
-    bool EditProperty(UObject& Object, const FProperty& Property, const FPropertyValue& Value, bool Interactive = false);
+    bool EditProperty(UObject* Object, const FProperty* Property, const FPropertyValue& Value, bool Interactive = false);
     /**
      * @brief 액터 루트의 변환 프로퍼티를 에디터 편집 경로로 변경합니다.
      * @param[in,out] Actor 생성, 편집 또는 직렬화할 액터입니다.
@@ -126,7 +126,7 @@ public:
      * @param[in] Interactive 드래그 등 연속 편집 중인지 지정합니다.
      * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
      */
-    bool ApplyTransform(AActor& Actor, const FTransform& Transform, bool Interactive = false);
+    bool ApplyTransform(AActor* Actor, const FTransform& Transform, bool Interactive = false);
 
     /**
      * @brief 현재 월드를 지정한 장면 파일로 저장하고 성공하면 변경 표시를 해제합니다.
@@ -288,8 +288,8 @@ private:
     /**
      * @brief 에디터 초기화 완료 여부입니다.
      */
-    bool mInitialized{};
-    ReflectProperty(mInitialized, "Initialized", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    bool mEditorInitialized{};
+    ReflectProperty(mEditorInitialized, "EditorInitialized", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 
     /**
      * @brief ImGui 컨텍스트 생성 여부입니다.
