@@ -35,7 +35,7 @@
                     <div><dt>실행 환경</dt><dd>Windows · x64</dd></div>
                     <div><dt>그래픽스</dt><dd>Direct3D 11</dd></div>
                     <div><dt>자체 모듈</dt><dd>@@ModuleCount@@ <span>+ 외부 ImGui</span></dd></div>
-                    <div><dt>빌드 구성</dt><dd>Debug / Release / Viewer</dd></div>
+                    <div><dt>빌드 구성</dt><dd>Debug / Release</dd></div>
                 </dl>
                 <a class="TextLink" href="https://github.com/wewe231223/Macaw/blob/@@Revision@@/premake5.lua">premake5.lua <span aria-hidden="true">↗</span></a>
             </aside>
@@ -62,23 +62,24 @@
                     </tbody>
                 </table>
             </div>
-            <p class="Note">실행 파일 <code>Macaw</code>의 구성은 <code>premake5.lua</code>에서 정의합니다. <code>Application/</code>과 각 모듈을 연결하며, 위 그래프에는 포함되지 않습니다.</p>
+            <p class="Note">실행 파일 <code>Macaw</code>의 구성은 <code>premake5.lua</code>에서 정의합니다. <code>Source/App/</code>과 각 모듈을 연결하며, 위 그래프에는 포함되지 않습니다. 현재 API 문서의 입력은 <code>Source/</code>입니다.</p>
         </section>
         <section id="ReadingPaths" class="Section" aria-labelledby="ReadingPathsTitle">
             <div class="SectionHeading"><div><p class="Eyebrow">API REFERENCE</p><h2 id="ReadingPathsTitle">주요 API</h2></div></div>
-            <p class="SectionIntro">API 레퍼런스에는 타입 선언, 멤버, 상속 관계와 소스 참조가 포함됩니다.</p>
+            <p class="SectionIntro">API 레퍼런스에는 자체 소스의 공개·비공개 타입, 함수 인수·반환값, 열거값, 템플릿, 매크로와 데이터 멤버 설명이 포함됩니다. Files에서 모든 헤더·구현 파일을 찾을 수 있습니다.</p>
             <div class="ReadingGrid">
                 <a class="ReadingCard" href="./api/class_u_object.html"><span class="ReadingLabel">객체 모델</span><h3>UObject <span aria-hidden="true">↗</span></h3><p>객체 기반 타입, 핸들, 리플렉션</p><span class="ReadingTrail">UObject · FObjectHandle · UClass</span></a>
                 <a class="ReadingCard" href="./api/class_u_world.html"><span class="ReadingLabel">월드</span><h3>UWorld <span aria-hidden="true">↗</span></h3><p>월드, 레벨, 액터, 컴포넌트</p><span class="ReadingTrail">UWorld · AActor · UActorComponent</span></a>
-                <a class="ReadingCard" href="./api/class_f_renderer.html"><span class="ReadingLabel">렌더링</span><h3>FRenderer <span aria-hidden="true">↗</span></h3><p>렌더러, 렌더 장면, 뷰</p><span class="ReadingTrail">FRenderer · FRenderScene · FRenderView</span></a>
-                <a class="ReadingCard" href="./api/class_f_asset_registry.html"><span class="ReadingLabel">에셋</span><h3>FAssetRegistry <span aria-hidden="true">↗</span></h3><p>에셋 등록·조회와 에셋 타입</p><span class="ReadingTrail">FAssetRegistry · UAsset · UMesh</span></a>
+                <a class="ReadingCard" href="./api/class_f_renderer.html"><span class="ReadingLabel">렌더링</span><h3>FRenderer <span aria-hidden="true">↗</span></h3><p>Direct3D 11 장치, 렌더 장면과 타깃</p><span class="ReadingTrail">FRenderer · FScene · FSceneRenderer</span></a>
+                <a class="ReadingCard" href="./api/class_f_json_archive.html"><span class="ReadingLabel">직렬화</span><h3>FJsonArchive <span aria-hidden="true">↗</span></h3><p>리플렉션 프로퍼티와 JSON 장면 파일</p><span class="ReadingTrail">FArchive · FJsonArchive · FSceneSerializer</span></a>
             </div>
         </section>
         <section id="GettingStarted" class="Section" aria-labelledby="GettingStartedTitle">
             <div class="SectionHeading"><div><p class="Eyebrow">BUILD</p><h2 id="GettingStartedTitle">빌드</h2></div></div>
             <div class="GuideGrid">
                 <article class="GuideCard"><span class="GuideKicker">DOCUMENTATION</span><h3>문서 생성</h3><p>PowerShell 7이 필요합니다. 저장소 루트에서 다음 명령을 실행합니다. Windows x64에서는 <code>-InstallTools</code> 옵션으로 지정된 버전의 Doxygen과 Graphviz를 다운로드합니다.</p><pre><code>pwsh -File Scripts/BuildDocumentation.ps1 -InstallTools</code></pre><p>Linux x64에서는 Graphviz를 먼저 설치합니다. Ubuntu·Debian:</p><pre><code>sudo apt-get install graphviz</code></pre><p>생성된 문서의 시작 페이지:</p><pre><code>Build/Documentation/Site/index.html</code></pre><p class="SmallText">최초 설치 후에는 <code>-InstallTools</code>를 생략할 수 있습니다. C++ 빌드는 필요하지 않습니다.</p></article>
-                <article class="GuideCard"><span class="GuideKicker">ENGINE</span><h3>엔진 빌드</h3><p>Windows, Visual Studio C++ 개발 도구, Windows SDK, Git, Premake 5가 필요합니다. 저장소 루트에서 설치된 Visual Studio 버전에 맞는 Premake 액션으로 프로젝트를 생성합니다.</p><p>프로젝트 생성 시 의존성 설치 스크립트가 실행됩니다. 수동 실행 명령:</p><pre><code>powershell.exe -NoProfile -ExecutionPolicy Bypass -File Scripts/setup-deps.ps1</code></pre><p>생성된 솔루션에서 플랫폼 <code>x64</code>, 구성 <code>Debug</code>, <code>Release</code> 또는 <code>Viewer</code>를 선택하고 <code>Macaw</code>를 빌드합니다. 출력 경로는 <code>bin/&lt;구성&gt;/x64/Macaw.exe</code>입니다.</p><p class="SmallText">실행 시 작업 디렉터리는 저장소 루트로 설정합니다. 초기화 코드에서 <code>./Content/</code>의 리소스를 상대 경로로 읽습니다.</p></article>
+                <article class="GuideCard"><span class="GuideKicker">ENGINE</span><h3>엔진 빌드</h3><p>Windows, Visual Studio C++ 개발 도구, Windows SDK, Git, Premake 5가 필요합니다. 저장소 루트에서 다음 명령으로 리플렉션 코드와 프로젝트를 생성하고 빌드합니다.</p><pre><code>pwsh -File Scripts/Build.ps1 -Configuration Debug
+pwsh -File Scripts/Build.ps1 -Configuration Release</code></pre><p>소스는 <code>Source/&lt;모듈&gt;/Public</code>과 <code>Private</code>에 있습니다. 생성된 리플렉션 코드는 <code>Intermediate/&lt;모듈&gt;/Generated/</code>에 있으며 앱은 <code>Intermediate/Macaw/Generated/</code>를 사용합니다.</p><p>플랫폼은 <code>x64</code>, 구성은 <code>Debug</code> 또는 <code>Release</code>입니다. 실행 파일은 <code>Binaries/&lt;구성&gt;/Macaw.exe</code>입니다.</p><p class="SmallText">실행 시 작업 디렉터리는 저장소 루트로 설정합니다. Documentation Actions는 PR에서 문서를 검증하고 기본 브랜치에서 GitHub Pages에 배포합니다.</p></article>
             </div>
         </section>
     </main>

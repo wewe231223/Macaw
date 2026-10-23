@@ -52,6 +52,7 @@ $OutputDirectory = Join-Path $RepositoryRoot 'Build/Documentation'
 $SiteDirectory = Join-Path $OutputDirectory 'Site'
 $Manifest = Get-Content -LiteralPath (Join-Path $RepositoryRoot 'Docs/Tools.json') -Raw | ConvertFrom-Json
 $Modules = Get-Content -LiteralPath (Join-Path $RepositoryRoot 'ModuleDependencies.json') -Raw | ConvertFrom-Json -AsHashtable
+$Modules['ImGui'] = @{ Public = @(); Private = @(); External = $true }
 $ModuleDescriptions = Get-Content -LiteralPath (Join-Path $RepositoryRoot 'Docs/Modules.json') -Raw | ConvertFrom-Json -AsHashtable
 New-Item -ItemType Directory -Path $ToolsDirectory -Force | Out-Null
 
@@ -99,25 +100,27 @@ foreach ($ModuleName in $Modules.Keys) {
         throw "Invalid module name: $ModuleName"
     }
     $Module = $Modules[$ModuleName]
-    if ($Module['External']) {
+    if ($Module.Contains('External') -and $Module['External']) {
         $GraphLines.Add('    "' + $ModuleName + '" [fillcolor="#f1f2f5", color="#a0a6b2", style="rounded,filled,dashed"];')
     } else {
         $ModuleCount += 1
         $GraphLines.Add('    "' + $ModuleName + '";')
         foreach ($SourceDirectory in @('Public', 'Private')) {
-            $SourcePath = Join-Path $RepositoryRoot "$ModuleName/$SourceDirectory"
+            $SourcePath = Join-Path $RepositoryRoot "Source/$ModuleName/$SourceDirectory"
             if (-not (Test-Path -LiteralPath $SourcePath -PathType Container)) {
                 throw "Missing module source directory: $SourcePath"
             }
             $InputPaths.Add((GetDoxygenPath $SourcePath))
         }
-        $IncludePaths.Add((GetDoxygenPath (Join-Path $RepositoryRoot "$ModuleName/Public")))
+        $IncludePaths.Add((GetDoxygenPath (Join-Path $RepositoryRoot "Source/$ModuleName/Public")))
+        $IncludePaths.Add((GetDoxygenPath (Join-Path $RepositoryRoot "Source/$ModuleName/Private")))
     }
     $Description = if ($ModuleDescriptions.Contains($ModuleName)) { $ModuleDescriptions[$ModuleName] } else { 'API에서 공개 타입과 구현을 확인하세요.' }
     $PublicDependencies = if ($Module.Public.Count -gt 0) { $Module.Public -join ', ' } else { '—' }
     $PrivateDependencies = if ($Module.Private.Count -gt 0) { $Module.Private -join ', ' } else { '—' }
-    $ModuleSource = if ($Module['External']) { $ModuleName } else { "$ModuleName/Public" }
-    $ExternalBadge = if ($Module['External']) { '<span class="Tag">외부</span>' } else { '' }
+    $External = $Module.Contains('External') -and $Module['External']
+    $ModuleSource = if ($External) { 'ThirdParty/ImGui' } else { "Source/$ModuleName/Public" }
+    $ExternalBadge = if ($External) { '<span class="Tag">외부</span>' } else { '' }
     $ModuleRows.Add('<tr><th scope="row"><a href="https://github.com/wewe231223/Macaw/tree/@@Revision@@/' + $ModuleSource + '">' + $ModuleName + '</a>' + $ExternalBadge + '</th><td>' + [Net.WebUtility]::HtmlEncode($Description) + '</td><td>' + [Net.WebUtility]::HtmlEncode($PublicDependencies) + '</td><td>' + [Net.WebUtility]::HtmlEncode($PrivateDependencies) + '</td></tr>')
     foreach ($Visibility in @('Public', 'Private')) {
         foreach ($Dependency in $Module[$Visibility]) {
@@ -130,7 +133,7 @@ foreach ($ModuleName in $Modules.Keys) {
     }
 }
 $GraphLines.Add('}')
-foreach ($ApplicationPath in @('Application', 'Macaw.cpp', 'Macaw.h', 'framework.h', 'targetver.h', 'Resource.h')) {
+foreach ($ApplicationPath in @('Source/App')) {
     $InputPaths.Add((GetDoxygenPath (Join-Path $RepositoryRoot $ApplicationPath)))
 }
 $InputPaths.Add((GetDoxygenPath (Join-Path $RepositoryRoot 'Docs/ApiReference.dox')))
@@ -185,12 +188,73 @@ try {
         throw 'Doxygen generation failed.'
     }
 
-    foreach ($ClassListName in @('annotated.html', 'hierarchy.html', 'classes.html')) {
-        $ClassListPath = Join-Path $SiteDirectory "api/$ClassListName"
-        $ClassList = Get-Content -LiteralPath $ClassListPath -Raw
-        $ClassList = $ClassList -replace '(?s)<td class="desc">.*?</td>', ''
-        Set-Content -LiteralPath $ClassListPath -Value $ClassList -NoNewline -Encoding utf8
+    $MissingDocumentation = [Collections.Generic.List[string]]::new()
+    $DocumentedFiles = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
+    $DocumentedMembers = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+    $MemberCounts = @{}
+    $EnumValueCount = 0
+    $SourceRoot = [IO.Path]::GetFullPath((Join-Path $RepositoryRoot 'Source')) + [IO.Path]::DirectorySeparatorChar
+    foreach ($XmlFile in Get-ChildItem -LiteralPath (Join-Path $OutputDirectory 'Xml') -Filter '*.xml' -File) {
+        [xml]$Document = Get-Content -LiteralPath $XmlFile.FullName -Raw
+        $Compound = $Document.SelectSingleNode('/doxygen/compounddef')
+        if ($null -eq $Compound) {
+            continue
+        }
+        $Location = $Compound.SelectSingleNode('location')
+        $OwnSource = $false
+        if ($null -ne $Location) {
+            $SourcePath = [IO.Path]::GetFullPath((Join-Path $RepositoryRoot $Location.GetAttribute('file')))
+            $OwnSource = $SourcePath.StartsWith($SourceRoot, [StringComparison]::OrdinalIgnoreCase)
+        }
+        $Kind = $Compound.GetAttribute('kind')
+        $Name = $Compound.SelectSingleNode('compoundname').InnerText
+        if ($OwnSource -and $Kind -eq 'file') {
+            [void]$DocumentedFiles.Add($SourcePath)
+        }
+        if ($OwnSource -and $Kind -in @('file', 'class', 'struct', 'union', 'namespace')) {
+            $Description = ($Compound.SelectSingleNode('briefdescription').InnerText + $Compound.SelectSingleNode('detaileddescription').InnerText).Trim()
+            if ($Description.Length -eq 0) {
+                $MissingDocumentation.Add("$Kind $Name")
+            }
+        }
+        foreach ($Member in $Compound.SelectNodes('.//memberdef')) {
+            if (-not $DocumentedMembers.Add($Member.GetAttribute('id'))) {
+                continue
+            }
+            $MemberName = $Member.SelectSingleNode('name').InnerText
+            if ($MemberName.StartsWith('@')) {
+                continue
+            }
+            $MemberKind = $Member.GetAttribute('kind')
+            if (-not $MemberCounts.ContainsKey($MemberKind)) {
+                $MemberCounts[$MemberKind] = 0
+            }
+            $MemberCounts[$MemberKind] += 1
+            $Description = ($Member.SelectSingleNode('briefdescription').InnerText + $Member.SelectSingleNode('detaileddescription').InnerText).Trim()
+            if ($Description.Length -eq 0) {
+                $MissingDocumentation.Add("${Name}::${MemberName}")
+            }
+            foreach ($EnumValue in $Member.SelectNodes('enumvalue')) {
+                $EnumValueCount += 1
+                $Description = ($EnumValue.SelectSingleNode('briefdescription').InnerText + $EnumValue.SelectSingleNode('detaileddescription').InnerText).Trim()
+                if ($Description.Length -eq 0) {
+                    $MissingDocumentation.Add("${Name}::${MemberName}::$($EnumValue.SelectSingleNode('name').InnerText)")
+                }
+            }
+        }
     }
+    $SourceFiles = @(Get-ChildItem -LiteralPath (Join-Path $RepositoryRoot 'Source') -Recurse -File | Where-Object { $_.Extension -in @('.h', '.cpp') })
+    foreach ($SourceFile in $SourceFiles) {
+        if (-not $DocumentedFiles.Contains($SourceFile.FullName)) {
+            $MissingDocumentation.Add("Missing source file: $($SourceFile.FullName)")
+        }
+    }
+    if ($MissingDocumentation.Count -gt 0) {
+        throw ("Undocumented source entities:`n" + ($MissingDocumentation -join "`n"))
+    }
+    $Coverage = [ordered]@{ SourceFiles = $SourceFiles.Count; DocumentedFiles = $DocumentedFiles.Count; Members = $MemberCounts; EnumValues = $EnumValueCount; Undocumented = $MissingDocumentation.Count }
+    $Coverage | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $SiteDirectory 'DocumentationCoverage.json') -Encoding utf8
+    Write-Host "Documentation coverage: $($DocumentedFiles.Count)/$($SourceFiles.Count) source files; $($MissingDocumentation.Count) undocumented entities."
 
     $LandingPage = Get-Content -LiteralPath (Join-Path $RepositoryRoot 'Docs/Index.html') -Raw
     $LandingPage = $LandingPage.Replace('@@ModuleRows@@', ($ModuleRows -join "`n")).Replace('@@ModuleCount@@', [string]$ModuleCount).Replace('@@Revision@@', $Revision)
@@ -206,9 +270,8 @@ try {
         Theme = $Manifest.ThemeVersion
     }
     $BuildInformation | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $SiteDirectory 'BuildInformation.json') -Encoding utf8
-    & (Join-Path $PSScriptRoot 'VerifyDocumentation.ps1') -OutputDirectory $OutputDirectory
     $WarningPath = Join-Path $OutputDirectory 'DoxygenWarnings.log'
-    $WarningCount = @(Select-String -LiteralPath $WarningPath -Pattern 'warning:').Count
+    $WarningCount = @(Select-String -LiteralPath $WarningPath -Pattern '(warning|error):').Count
     Write-Host "Doxygen warnings: $WarningCount. Details: $WarningPath"
     Write-Host "Documentation ready: $(Join-Path $SiteDirectory 'index.html')"
 } finally {

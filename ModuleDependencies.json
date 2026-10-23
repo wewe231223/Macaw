@@ -1,13 +1,10 @@
 {
-  "Core": {"Public": [], "Private": []},
-  "CoreUObject": {"Public": ["Core"], "Private": []},
-  "RenderCore": {"Public": ["CoreUObject"], "Private": []},
-  "Serialization": {"Public": ["Core"], "Private": []},
-  "ImGui": {"Public": [], "Private": [], "External": true},
-  "Asset": {"Public": ["CoreUObject", "RenderCore"], "Private": ["Serialization"]},
-  "World": {"Public": ["Asset", "RenderCore"], "Private": []},
-  "Render": {"Public": ["Asset", "RenderCore"], "Private": []},
-  "Editor": {"Public": ["Engine", "Render", "ImGui"], "Private": ["Serialization", "Platform"]},
-  "Platform": {"Public": ["Core"], "Private": []},
-  "Engine": {"Public": ["World", "Platform"], "Private": ["Serialization"]}
+  "Core": { "Public": [], "Private": [] },
+  "CoreUObject": { "Public": ["Core"], "Private": [] },
+  "Serialization": { "Public": ["Core"], "Private": ["CoreUObject"] },
+  "RenderCore": { "Public": ["Core"], "Private": ["CoreUObject"] },
+  "Engine": { "Public": ["CoreUObject", "RenderCore"], "Private": ["Serialization"] },
+  "Renderer": { "Public": ["Engine"], "Private": [] },
+  "Platform": { "Public": ["Core"], "Private": ["CoreUObject"] },
+  "Editor": { "Public": ["Engine", "Platform"], "Private": ["Serialization", "Renderer"] }
 }

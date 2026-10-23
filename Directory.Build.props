@@ -1,14 +1,7 @@
 <Project>
   <PropertyGroup>
-    <VcpkgRoot>$(MSBuildThisFileDirectory).tools\vcpkg\</VcpkgRoot>
-    <VcpkgEnableManifest>true</VcpkgEnableManifest>
-    <VcpkgManifestRoot>$(MSBuildThisFileDirectory)</VcpkgManifestRoot>
-    <VcpkgManifestInstalledBaseDir>$(MSBuildThisFileDirectory)vcpkg_installed\</VcpkgManifestInstalledBaseDir>
-    <VcpkgInstalledDir>$(VcpkgManifestInstalledBaseDir)</VcpkgInstalledDir>
-    <VcpkgTriplet>x64-windows</VcpkgTriplet>
-    <VcpkgConfiguration Condition="'$(Configuration)' == 'Viewer'">Release</VcpkgConfiguration>
-    <VcpkgApplocalDeps>true</VcpkgApplocalDeps>
+    <VcpkgEnabled>false</VcpkgEnabled>
+    <VcpkgEnableManifest>false</VcpkgEnableManifest>
   </PropertyGroup>
 
-  <Import Project="$(VcpkgRoot)scripts\buildsystems\msbuild\vcpkg.props" />
 </Project>

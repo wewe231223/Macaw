@@ -1,0 +1,61 @@
+/**
+ * @file FObjectConstants.h
+ * @brief 객체별 월드 행렬, 역행렬과 색상을 전달하는 GPU 상수 버퍼 레이아웃입니다.
+ * @ingroup Renderer
+ */
+
+#pragma once
+
+#include "Core/ReflectionMacros.h"
+#include "Core/Math/FMatrix.h"
+
+#include <cstddef>
+#include <type_traits>
+
+/**
+ * @brief 객체별 월드 행렬, 역행렬과 색상을 전달하는 GPU 상수 버퍼 레이아웃입니다.
+ * @ingroup Renderer
+ */
+struct FObjectConstants {
+public:
+    /**
+     * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
+     */
+    ReflectTypes(FObjectConstants);
+
+public:
+    /**
+     * @brief 이 타입의 정적 구조체 메타데이터를 반환합니다.
+     * @return 등록된 타입 메타데이터의 비소유 주소입니다.
+     */
+    ReflectStruct(FObjectConstants);
+
+private:
+    /**
+     * @brief 생성된 프로퍼티 등록 함수와 빌더 접근 권한입니다.
+     */
+    ReflectMembers();
+
+public:
+    /**
+     * @brief 월드 연결 또는 월드 변환 행렬입니다.
+     */
+    FMatrix mWorld{};
+    ReflectProperty(mWorld, "World", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
+    /**
+     * @brief 월드 변환의 역행렬입니다.
+     */
+    FMatrix mWorldInverse{};
+    ReflectProperty(mWorldInverse, "WorldInverse", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
+    /**
+     * @brief 표시 색상입니다.
+     */
+    std::array<float, 4> mColor{};
+    ReflectProperty(mColor, "Color", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+};
+
+static_assert(sizeof(FMatrix) == 64 && alignof(FMatrix) == 16 && std::is_trivially_copyable_v<FMatrix>);
+static_assert(std::is_standard_layout_v<FObjectConstants> && sizeof(FObjectConstants) == 144);
+static_assert(offsetof(FObjectConstants, mWorld) == 0 && offsetof(FObjectConstants, mWorldInverse) == 64 && offsetof(FObjectConstants, mColor) == 128);

@@ -1,0 +1,105 @@
+{
+    "Version": 1,
+    "World": {
+        "Class": "UWorld",
+        "Name": "EditorWorld",
+        "Id": "D757EF1C-3580-0B49-88AF-049F2638C6F3",
+        "PersistentLevel": {
+            "Class": "ULevel",
+            "Name": "PersistentLevel",
+            "Id": "867963ED-4332-8148-91C7-33CB2CA1D18F",
+            "Actors": [
+                {
+                    "Class": "AStaticMeshActor",
+                    "Name": "Cube_1",
+                    "Id": "DB010B33-3750-1A4F-8B86-0F682A64AEB3",
+                    "Components": [
+                        {
+                            "Class": "UStaticMeshComponent",
+                            "Name": "StaticMeshComponent",
+                            "Id": "DDFB9557-C95A-E24B-9EE2-05B5EA9F12A4",
+                            "Transform": {
+                                "Location": {
+                                    "X": 0.0,
+                                    "Y": 0.0,
+                                    "Z": 0.0
+                                },
+                                "Rotation": {
+                                    "Pitch": 0.0,
+                                    "Yaw": 0.0,
+                                    "Roll": 0.0
+                                },
+                                "Scale": {
+                                    "X": 1.0,
+                                    "Y": 1.0,
+                                    "Z": 1.0
+                                }
+                            },
+                            "Primitive": 1
+                        }
+                    ]
+                },
+                {
+                    "Class": "AStaticMeshActor",
+                    "Name": "Sphere_2",
+                    "Id": "06960BED-0A4C-8C4D-A930-6005C1F27021",
+                    "Components": [
+                        {
+                            "Class": "UStaticMeshComponent",
+                            "Name": "StaticMeshComponent",
+                            "Id": "6247B71A-4D71-F14C-A175-2E47D64C7FE5",
+                            "Transform": {
+                                "Location": {
+                                    "X": 0.0,
+                                    "Y": 2.0,
+                                    "Z": 0.0
+                                },
+                                "Rotation": {
+                                    "Pitch": 0.0,
+                                    "Yaw": 0.0,
+                                    "Roll": 0.0
+                                },
+                                "Scale": {
+                                    "X": 1.0,
+                                    "Y": 1.0,
+                                    "Z": 1.0
+                                }
+                            },
+                            "Primitive": 2
+                        }
+                    ]
+                },
+                {
+                    "Class": "AStaticMeshActor",
+                    "Name": "Plane_3",
+                    "Id": "74BFF99E-B3A3-6443-8F28-23F9612656EB",
+                    "Components": [
+                        {
+                            "Class": "UStaticMeshComponent",
+                            "Name": "StaticMeshComponent",
+                            "Id": "D6E245DB-9F51-E346-B8E9-4B8627A11283",
+                            "Transform": {
+                                "Location": {
+                                    "X": 0.0,
+                                    "Y": 0.0,
+                                    "Z": -0.550000011920929
+                                },
+                                "Rotation": {
+                                    "Pitch": 0.0,
+                                    "Yaw": 0.0,
+                                    "Roll": 0.0
+                                },
+                                "Scale": {
+                                    "X": 12.0,
+                                    "Y": 12.0,
+                                    "Z": 1.0
+                                }
+                            },
+                            "Primitive": 0
+                        }
+                    ]
+                }
+            ]
+        }
+    }
+}

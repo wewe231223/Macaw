@@ -1,122 +1,116 @@
-if _ACTION and _ACTION:match("^vs%d+$") and not _OPTIONS["help"] then
-    print("Preparing Macaw dependencies...")
-    local SetupScript = path.getabsolute("Scripts/setup-deps.ps1")
-    local Success, ExitReason, ExitCode = os.execute('powershell.exe -NoProfile -ExecutionPolicy Bypass -File "' .. SetupScript .. '"')
-    if Success ~= true and Success ~= 0 then
-        error("Macaw dependency setup failed: " .. tostring(ExitCode or Success))
-    end
+local Reflection = dofile("Scripts/GenerateReflection.lua")
+
+newoption { trigger = "reflection-module", value = "MODULE", description = "Generate reflection for one module" }
+newaction { trigger = "generate-reflection", description = "Generate reflection from property annotations", execute = function() Reflection.Generate(_OPTIONS["reflection-module"]) end }
+
+if _ACTION == "generate-reflection" then
+    return
 end
 
+local ReflectedModules = Reflection.Generate()
+
 workspace "Macaw"
-    location ""
-    configurations { "Debug", "Release", "Viewer" }
+    location "."
+    configurations { "Debug", "Release" }
     platforms { "x64" }
     defaultplatform "x64"
     startproject "Macaw"
-
-filter "platforms:x64"
+    system "windows"
     architecture "x86_64"
 
-filter "system:windows"
-    systemversion "latest"
-
 filter "configurations:Debug"
-    defines { "_DEBUG" }
     symbols "On"
-    editandcontinue "Off"
     runtime "Debug"
+    defines { "_DEBUG" }
 
 filter "configurations:Release"
+    optimize "Speed"
+    linktimeoptimization "On"
+    runtime "Release"
     defines { "NDEBUG" }
-    optimize "Speed"
-    runtime "Release"
-
-filter "configurations:Viewer"
-    defines { "NDEBUG", "OBJ_VIEWER" }
-    optimize "Speed"
-    runtime "Release"
 
 filter {}
 
 local Modules = json.decode(io.readfile("ModuleDependencies.json"))
 
-local function AddPublicIncludes(ModuleName, Visited)
-    if Visited[ModuleName] then
+local function AddIncludes(Name, Visited)
+    if Visited[Name] then
         return
     end
-    Visited[ModuleName] = true
-    includedirs { ModuleName .. "/Public" }
-    for _, Dependency in ipairs(Modules[ModuleName].Public) do
-        AddPublicIncludes(Dependency, Visited)
+    Visited[Name] = true
+    includedirs { "Source/" .. Name .. "/Public" }
+
+    if ReflectedModules[Name] then
+        includedirs { Reflection.GetGeneratedDirectory(Name) }
+    end
+
+    for _, Dependency in ipairs(Modules[Name].Public) do
+        AddIncludes(Dependency, Visited)
     end
 end
 
-local function ConfigureProject(ProjectName, ProjectKind)
-    project(ProjectName)
-        kind(ProjectKind)
+local function Configure(Name, Kind)
+    project(Name)
+        kind(Kind)
         language "C++"
         cppdialect "C++20"
         characterset "Unicode"
+        systemversion "latest"
         staticruntime "Off"
-        targetdir "bin/%{cfg.buildcfg}/%{cfg.platform}"
-        objdir "bin-int/%{prj.name}/%{cfg.buildcfg}/%{cfg.platform}"
-        externalincludedirs { "Externals/Include" }
-        defines { "NOMINMAX" }
-        buildoptions { "/utf-8", "/Zc:preprocessor" }
+        targetdir "Binaries/%{cfg.buildcfg}"
+        objdir "Intermediate/%{prj.name}/%{cfg.buildcfg}"
+        defines { "NOMINMAX", "WIN32_LEAN_AND_MEAN" }
+        buildoptions { "/utf-8", "/Zc:preprocessor", "/permissive-" }
+        multiprocessorcompile "On"
+        warnings "Extra"
+        externalincludedirs { "Externals/Include", "ThirdParty/ImGui/Public/ImGui" }
 end
 
-local function ConfigureModule(ModuleName)
-    ConfigureProject(ModuleName, "StaticLib")
-    files { ModuleName .. "/Public/**.h", ModuleName .. "/Public/**.inl", ModuleName .. "/Private/**.h", ModuleName .. "/Private/**.cpp", ModuleName .. "/Private/**.cc" }
-    includedirs { ModuleName .. "/Private" }
+for _, Name in ipairs({ "Core", "CoreUObject", "Serialization", "RenderCore", "Engine", "Renderer", "Platform", "Editor" }) do
+    Configure(Name, "StaticLib")
+    files { "Source/" .. Name .. "/Public/**.h", "Source/" .. Name .. "/Private/**.h", "Source/" .. Name .. "/Private/**.cpp" }
+    includedirs { "Source/" .. Name .. "/Private" }
+
+    if ReflectedModules[Name] then
+        local GeneratedDirectory = Reflection.GetGeneratedDirectory(Name)
+        files { GeneratedDirectory .. "/**.h", GeneratedDirectory .. "/" .. Name .. "Reflection.cpp" }
+        includedirs { GeneratedDirectory }
+        prebuildcommands { '"' .. _PREMAKE_COMMAND .. '" --file="' .. path.getabsolute("premake5.lua") .. '" generate-reflection --reflection-module=' .. Name }
+    end
+
     local Visited = {}
-    AddPublicIncludes(ModuleName, Visited)
-    for _, Dependency in ipairs(Modules[ModuleName].Private) do
-        AddPublicIncludes(Dependency, Visited)
+    AddIncludes(Name, Visited)
+    for _, Dependency in ipairs(Modules[Name].Private) do
+        AddIncludes(Dependency, Visited)
     end
-    links(Modules[ModuleName].Public)
-    links(Modules[ModuleName].Private)
-    if ModuleName == "ImGui" then
-        includedirs { "ImGui/Public/ImGui" }
-        enablepch "Off"
-    else
-        pchheader "pch.h"
-        pchsource(ModuleName .. "/Private/pch.cpp")
+    links(Modules[Name].Public)
+    links(Modules[Name].Private)
+end
+
+Configure("ImGui", "StaticLib")
+    warnings "Off"
+    files { "ThirdParty/ImGui/Private/imgui.cpp", "ThirdParty/ImGui/Private/imgui_draw.cpp", "ThirdParty/ImGui/Private/imgui_tables.cpp", "ThirdParty/ImGui/Private/imgui_widgets.cpp", "ThirdParty/ImGui/Private/imgui_impl_dx11.cpp", "ThirdParty/ImGui/Private/imgui_impl_win32.cpp", "ThirdParty/ImGui/Public/ImGui/**.h" }
+
+local function ConfigureExecutable(Name, Kind, Directory)
+    Configure(Name, Kind)
+    files { Directory .. "/**.h", Directory .. "/**.cpp" }
+    includedirs { Directory }
+
+    for Module, _ in pairs(ReflectedModules) do
+        includedirs { Reflection.GetGeneratedDirectory(Module) }
+
+        if Modules[Module] then
+            AddIncludes(Module, {})
+        end
     end
+
+    local GeneratedDirectory = Reflection.GetGeneratedDirectory("App")
+    files { GeneratedDirectory .. "/**.h", GeneratedDirectory .. "/AppReflection.cpp" }
+    prebuildcommands { '"' .. _PREMAKE_COMMAND .. '" --file="' .. path.getabsolute("premake5.lua") .. '" generate-reflection --reflection-module=App' }
+    AddIncludes("Editor", {})
+    AddIncludes("Renderer", {})
+    links { "Editor", "Engine", "Renderer", "Platform", "Serialization", "RenderCore", "CoreUObject", "Core", "ImGui", "d3d11", "dxgi", "d3dcompiler", "user32", "gdi32", "dwmapi", "imm32", "ole32", "comdlg32", "shell32" }
+    debugdir "%{wks.location}"
 end
 
-local function ConfigureSystemLinks()
-    links { "DirectXTex", "nvapi64", "d3d11", "dxgi", "d3dcompiler", "dwmapi", "gdi32", "imm32", "shell32", "user32", "kernel32", "ole32" }
-    filter "configurations:Debug"
-        libdirs { "Externals/bin/debug" }
-    filter "configurations:Release or Viewer"
-        libdirs { "Externals/bin/release" }
-    filter {}
-end
-
-for _, ModuleName in ipairs({ "Core", "CoreUObject", "RenderCore", "Serialization", "ImGui", "Asset", "World", "Render", "Editor", "Platform", "Engine" }) do
-    ConfigureModule(ModuleName)
-end
-
-project "Core"
-    filter "files:Core/Private/Spatial/FBVH8AVX.cpp"
-        enablepch "Off"
-        vectorextensions "AVX"
-    filter "files:Core/Private/Math/**.cpp"
-        enablepch "Off"
-    filter {}
-
-ConfigureProject("Macaw", "WindowedApp")
-    files { "Application/**.h", "Application/**.cpp", "Macaw.cpp", "Macaw.h", "framework.h", "targetver.h", "Resource.h", "Macaw.rc", "pch.h", "pch.cpp" }
-    includedirs { "." }
-    AddPublicIncludes("Editor", {})
-    AddPublicIncludes("Engine", {})
-    links { "Engine", "Platform", "Editor", "World", "Render", "Asset", "Serialization", "RenderCore", "CoreUObject", "Core", "ImGui" }
-    pchheader "pch.h"
-    pchsource "pch.cpp"
-    filter "configurations:Viewer"
-        removefiles { "Application/FEditorApplication.cpp" }
-    filter "configurations:Debug or Release"
-        removefiles { "Application/FViewApplication.cpp" }
-    filter {}
-    ConfigureSystemLinks()
+ConfigureExecutable("Macaw", "WindowedApp", "Source/App")

@@ -13,19 +13,19 @@
                     "bActive": true,
                     "Transform": {
                         "Position": [
-                            0.0,
-                            0.0,
+                            0,
+                            0,
                             -0.10000000149011612
                         ],
                         "Rotation": [
-                            0.0,
-                            0.0,
-                            0.0,
-                            1.0
+                            0,
+                            0,
+                            0,
+                            1
                         ],
                         "Scale": [
-                            24.0,
-                            24.0,
+                            24,
+                            24,
                             0.20000000298023224
                         ],
                         "bAbsoluteLocation": false,
@@ -36,10 +36,13 @@
                     "bVisible": true,
                     "MeshAssetGuid": "84C8DD63-FABE-4D8A-9CB6-C66A986D2B1E",
                     "MeshAssetPath": "/Game/System/Mesh/Cube.bin",
-                    "MaterialAssetGuid": "309729B8-08DE-4701-AB4B-034B10CCBC16",
-                    "MaterialAssetPath": "/Game/System/Material/Default.mtl",
-                    "PipelineAssetGuid": "DC8DBAC2-B368-4D74-81D7-4E09AD0BF8D5",
-                    "PipelineAssetPath": "/Game/Pipeline/Base"
+                    "MaterialOverrides": [
+                        {
+                            "Slot": "Default",
+                            "MaterialGuid": "309729B8-08DE-4701-AB4B-034B10CCBC16",
+                            "MaterialPath": "/Game/System/Material/Default.mtl.materials/M_Default.material"
+                        }
+                    ]
                 }
             ],
             "GuidRootComponent": "F617D8D7-473A-3294-B410-E6A94FEFB310"
@@ -56,20 +59,20 @@
                     "bActive": true,
                     "Transform": {
                         "Position": [
-                            0.0,
-                            0.0,
+                            0,
+                            0,
                             1.5
                         ],
                         "Rotation": [
-                            0.0,
-                            0.0,
-                            0.0,
-                            1.0
+                            0,
+                            0,
+                            0,
+                            1
                         ],
                         "Scale": [
-                            3.0,
-                            3.0,
-                            3.0
+                            3,
+                            3,
+                            3
                         ],
                         "bAbsoluteLocation": false,
                         "bAbsoluteRotation": false,
@@ -79,10 +82,13 @@
                     "bVisible": true,
                     "MeshAssetGuid": "84C8DD63-FABE-4D8A-9CB6-C66A986D2B1E",
                     "MeshAssetPath": "/Game/System/Mesh/Cube.bin",
-                    "MaterialAssetGuid": "9618A502-6AE7-4008-B440-B4F775CD7902",
-                    "MaterialAssetPath": "/Game/System/Material/Blue.mtl",
-                    "PipelineAssetGuid": "DC8DBAC2-B368-4D74-81D7-4E09AD0BF8D5",
-                    "PipelineAssetPath": "/Game/Pipeline/Base"
+                    "MaterialOverrides": [
+                        {
+                            "Slot": "Default",
+                            "MaterialGuid": "9618A502-6AE7-4008-B440-B4F775CD7902",
+                            "MaterialPath": "/Game/System/Material/Blue.mtl.materials/M_Blue.material"
+                        }
+                    ]
                 }
             ],
             "GuidRootComponent": "2F77CDA9-42E9-A64A-B01D-81989C32834F"
@@ -99,20 +105,20 @@
                     "bActive": true,
                     "Transform": {
                         "Position": [
-                            6.0,
-                            -4.0,
-                            8.0
+                            6,
+                            -4,
+                            8
                         ],
                         "Rotation": [
-                            0.0,
-                            0.0,
-                            0.0,
-                            1.0
+                            0,
+                            0,
+                            0,
+                            1
                         ],
                         "Scale": [
-                            1.0,
-                            1.0,
-                            1.0
+                            1,
+                            1,
+                            1
                         ],
                         "bAbsoluteLocation": false,
                         "bAbsoluteRotation": false,
@@ -125,22 +131,22 @@
                     "PipelineAssetGuid": "08738909-AF2A-4BD3-81B5-3FDFE7C7FF42",
                     "PipelineAssetPath": "/Game/Pipeline/Billboard.json",
                     "Size": [
-                        1.0,
-                        1.0
+                        1,
+                        1
                     ],
                     "UVMin": [
-                        0.0,
-                        0.0
+                        0,
+                        0
                     ],
                     "UVMax": [
-                        1.0,
-                        1.0
+                        1,
+                        1
                     ],
                     "Color": [
-                        1.0,
-                        1.0,
-                        1.0,
-                        1.0
+                        1,
+                        1,
+                        1,
+                        1
                     ]
                 },
                 {
@@ -150,9 +156,9 @@
                     "bActive": true,
                     "Transform": {
                         "Position": [
-                            0.0,
-                            0.0,
-                            0.0
+                            0,
+                            0,
+                            0
                         ],
                         "Rotation": [
                             0.11507508158683777,
@@ -161,9 +167,9 @@
                             0.8811196684837341
                         ],
                         "Scale": [
-                            1.0,
-                            1.0,
-                            1.0
+                            1,
+                            1,
+                            1
                         ],
                         "bAbsoluteLocation": false,
                         "bAbsoluteRotation": false,
@@ -171,9 +177,9 @@
                     },
                     "Parent": "814C090A-463F-EBE5-F3AB-47A96E30383B",
                     "LightColor": [
-                        1.0,
-                        1.0,
-                        1.0
+                        1,
+                        1,
+                        1
                     ],
                     "Intensity": 1.5,
                     "bVisible": true

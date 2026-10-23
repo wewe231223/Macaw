@@ -1,0 +1,328 @@
+/**
+ * @file FVector4.cpp
+ * @brief 16바이트 정렬 SIMD 저장소를 사용하는 동차 4차원 벡터입니다.
+ * @ingroup Core
+ */
+
+#include "Core/Math/FVector4.h"
+#include "Core/Math/FVector.h"
+#include "Core/Math/FMatrix.h"
+#include "Math/SimdMath.h"
+
+#include <algorithm>
+#include <cmath>
+
+using namespace Math::Simd;
+
+/**
+ * @brief FVector4의 초기 상태와 전달받은 의존성을 구성합니다.
+ */
+FVector4::FVector4(float X, float Y, float Z, float W)
+	: mValue{_mm_set_ps(W, Z, Y, X)} {
+}
+
+/**
+ * @brief FVector4의 초기 상태와 전달받은 의존성을 구성합니다.
+ */
+FVector4::FVector4(const FVector& Vector, float W)
+	: FVector4{Vector.x, Vector.y, Vector.z, W} {
+}
+
+/**
+ * @brief FVector4의 초기 상태와 전달받은 의존성을 구성합니다.
+ */
+FVector4::FVector4(__m128 Value)
+	: mValue{Value} {
+}
+
+/**
+ * @brief 동차 행 벡터에 지정한 4×4 행렬을 곱합니다.
+ */
+FVector4 FVector4::operator*(const FMatrix& Matrix) const {
+    return FVector4{Math::Simd::Transform(mValue, Matrix.mRows)};
+}
+
+/**
+ * @brief 동차 행 벡터에 지정한 4×4 행렬을 곱합니다.
+ */
+FVector4& FVector4::operator*=(const FMatrix& Matrix) {
+    *this = *this * Matrix;
+
+    return *this;
+}
+
+/**
+ * @brief 대응 성분을 더한 값을 반환합니다.
+ */
+FVector4 FVector4::operator+(const FVector4& Other) const {
+    return FVector4{_mm_add_ps(mValue, Other.mValue)};
+}
+
+/**
+ * @brief 성분의 부호를 반전하거나 상대 값을 뺍니다.
+ */
+FVector4 FVector4::operator-(const FVector4& Other) const {
+    return FVector4{_mm_sub_ps(mValue, Other.mValue)};
+}
+
+/**
+ * @brief 대응하는 성분끼리 곱합니다.
+ */
+FVector4 FVector4::operator*(const FVector4& Other) const {
+    return FVector4{_mm_mul_ps(mValue, Other.mValue)};
+}
+
+/**
+ * @brief 성분별 또는 스칼라 나눗셈 결과를 반환합니다.
+ */
+FVector4 FVector4::operator/(const FVector4& Other) const {
+    return FVector4{_mm_div_ps(mValue, Other.mValue)};
+}
+
+/**
+ * @brief 성분의 부호를 반전하거나 상대 값을 뺍니다.
+ */
+FVector4 FVector4::operator-() const {
+    return FVector4{_mm_xor_ps(mValue, _mm_set1_ps(-0.0f))};
+}
+
+/**
+ * @brief 각 성분에 스칼라 값을 곱합니다.
+ */
+FVector4 FVector4::operator*(float Value) const {
+    return FVector4{_mm_mul_ps(mValue, _mm_set1_ps(Value))};
+}
+
+/**
+ * @brief 성분별 또는 스칼라 나눗셈 결과를 반환합니다.
+ */
+FVector4 FVector4::operator/(float Value) const {
+    return *this * (1.0f / Value);
+}
+
+/**
+ * @brief 대응 성분을 현재 값에 더합니다.
+ */
+FVector4& FVector4::operator+=(const FVector4& Other) {
+    *this = *this + Other;
+
+    return *this;
+}
+
+/**
+ * @brief 대응 성분을 현재 값에서 뺍니다.
+ */
+FVector4& FVector4::operator-=(const FVector4& Other) {
+    *this = *this - Other;
+
+    return *this;
+}
+
+/**
+ * @brief 대응 성분끼리 곱한 결과를 현재 값에 반영합니다.
+ */
+FVector4& FVector4::operator*=(const FVector4& Other) {
+    *this = *this * Other;
+
+    return *this;
+}
+
+/**
+ * @brief 나눗셈 결과를 현재 값에 반영합니다.
+ */
+FVector4& FVector4::operator/=(const FVector4& Other) {
+    *this = *this / Other;
+
+    return *this;
+}
+
+/**
+ * @brief 각 성분에 스칼라 값을 곱합니다.
+ */
+FVector4& FVector4::operator*=(float Value) {
+    *this = *this * Value;
+
+    return *this;
+}
+
+/**
+ * @brief 나눗셈 결과를 현재 값에 반영합니다.
+ */
+FVector4& FVector4::operator/=(float Value) {
+    *this = *this / Value;
+
+    return *this;
+}
+
+/**
+ * @brief 저장된 성분 또는 식별 상태가 정확히 같은지 검사합니다.
+ */
+bool FVector4::operator==(const FVector4& Other) const {
+    return Equal<4>(mValue, Other.mValue);
+}
+
+/**
+ * @brief 대응 성분의 곱을 합산하여 내적을 계산합니다.
+ */
+float FVector4::Dot(const FVector4& Other) const {
+    return _mm_cvtss_f32(Math::Simd::Dot<4>(mValue, Other.mValue));
+}
+
+/**
+ * @brief 성분의 제곱합을 반환합니다.
+ */
+float FVector4::LengthSquared() const {
+    return Dot(*this);
+}
+
+/**
+ * @brief 유클리드 길이를 반환합니다.
+ */
+float FVector4::Length() const {
+    return _mm_cvtss_f32(_mm_sqrt_ps(Math::Simd::Dot<4>(mValue, mValue)));
+}
+
+/**
+ * @brief 정규화한 복사본을 반환합니다.
+ */
+FVector4 FVector4::Normalized() const {
+    FVector4 Result{*this};
+    Result.Normalize();
+
+    return Result;
+}
+
+/**
+ * @brief 값을 제자리에서 정규화합니다.
+ */
+bool FVector4::Normalize() {
+    return Math::Simd::Normalize<4>(mValue);
+}
+
+/**
+ * @brief 두 값 사이 유클리드 거리의 제곱을 구합니다.
+ */
+float FVector4::DistanceSquared(const FVector4& Other) const {
+    return (*this - Other).LengthSquared();
+}
+
+/**
+ * @brief 두 값 사이 유클리드 거리를 구합니다.
+ */
+float FVector4::Distance(const FVector4& Other) const {
+    return (*this - Other).Length();
+}
+
+/**
+ * @brief 두 값 사이를 주어진 비율로 선형 보간합니다.
+ */
+FVector4 FVector4::Lerp(const FVector4& Other, float Alpha) const {
+    return *this + (Other - *this) * Alpha;
+}
+
+/**
+ * @brief 각 성분의 절댓값을 반환합니다.
+ */
+FVector4 FVector4::Abs() const {
+    return FVector4{_mm_andnot_ps(_mm_set1_ps(-0.0f), mValue)};
+}
+
+/**
+ * @brief 각 성분에서 두 값 중 작은 값을 선택합니다.
+ */
+FVector4 FVector4::Min(const FVector4& Other) const {
+    return FVector4{_mm_min_ps(mValue, Other.mValue)};
+}
+
+/**
+ * @brief 각 성분에서 두 값 중 큰 값을 선택합니다.
+ */
+FVector4 FVector4::Max(const FVector4& Other) const {
+    return FVector4{_mm_max_ps(mValue, Other.mValue)};
+}
+
+/**
+ * @brief 각 성분을 지정한 최솟값과 최댓값 사이로 제한합니다.
+ */
+FVector4 FVector4::Clamped(const FVector4& Minimum, const FVector4& Maximum) const {
+    return Max(Minimum).Min(Maximum);
+}
+
+/**
+ * @brief 방향을 유지하며 벡터 길이를 지정한 상한으로 제한합니다.
+ */
+FVector4 FVector4::ClampedLength(float MaximumLength) const {
+    const float Limit{std::max(MaximumLength, 0.0f)};
+
+    const double SizeSquared{static_cast<double>(x) * x + static_cast<double>(y) * y + static_cast<double>(z) * z + static_cast<double>(w) * w};
+
+    return SizeSquared > static_cast<double>(Limit) * Limit ? Normalized() * Limit : *this;
+}
+
+/**
+ * @brief 모든 유효 성분이 허용 오차 이내에서 0인지 검사합니다.
+ */
+bool FVector4::IsNearlyZero(float Tolerance) const {
+    return NearEqual<4>(mValue, _mm_setzero_ps(), Tolerance);
+}
+
+/**
+ * @brief 제곱 길이가 허용 오차 이내에서 1인지 검사합니다.
+ */
+bool FVector4::IsNormalized(float Tolerance) const {
+    return IsFinite() && std::abs(LengthSquared() - 1.0f) <= Tolerance;
+}
+
+/**
+ * @brief 모든 유효 성분에 NaN이나 무한대가 없는지 검사합니다.
+ */
+bool FVector4::IsFinite() const {
+    return Math::Simd::IsFinite<4>(mValue);
+}
+
+/**
+ * @brief 각 성분의 차이가 지정한 허용 오차 이내인지 검사합니다.
+ */
+bool FVector4::Equals(const FVector4& Other, float Tolerance) const {
+    return NearEqual<4>(mValue, Other.mValue, Tolerance);
+}
+
+/**
+ * @brief 각 성분에 스칼라 값을 곱합니다.
+ */
+FVector4 operator*(float Value, const FVector4& Vector) {
+    return Vector * Value;
+}
+
+/**
+ * @brief 앞 세 성분을 3차원 벡터로 반환합니다.
+ */
+FVector FVector4::ToVector3() const {
+    return {x, y, z};
+}
+
+/**
+ * @brief 유효한 동차 W로 XYZ를 나누어 3차원 좌표를 구합니다.
+ */
+bool FVector4::TryPerspectiveDivide(FVector& Result, float Tolerance) const {
+    if (!IsFinite() || std::abs(w) <= std::abs(Tolerance)) {
+        return false;
+    }
+
+    const FVector Candidate{x / w, y / w, z / w};
+
+    if (!Candidate.IsFinite()) {
+        return false;
+    }
+
+    Result = Candidate;
+
+    return true;
+}
+
+/**
+ * @brief 유효한 성분을 원래 순서의 일반 배열로 반환합니다.
+ */
+std::array<float, 4> FVector4::ToArray() const {
+    return {x, y, z, w};
+}

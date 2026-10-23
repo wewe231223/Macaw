@@ -1,0 +1,105 @@
+{
+    "Version": 1,
+    "World": {
+        "Class": "UWorld",
+        "Name": "EditorWorld",
+        "Id": "5E60554D-4B77-A349-9E5E-AFA69A6B96EF",
+        "PersistentLevel": {
+            "Class": "ULevel",
+            "Name": "PersistentLevel",
+            "Id": "3492004D-8371-0841-82D5-C22445595A73",
+            "Actors": [
+                {
+                    "Class": "AStaticMeshActor",
+                    "Name": "Cube_1",
+                    "Id": "D9A866A3-F3E4-F940-96D7-C5755B797166",
+                    "Components": [
+                        {
+                            "Class": "UStaticMeshComponent",
+                            "Name": "StaticMeshComponent",
+                            "Id": "91344019-C95B-974D-80E1-48CF16304199",
+                            "Transform": {
+                                "Location": {
+                                    "X": -3.7908759117126465,
+                                    "Y": 0.0,
+                                    "Z": 0.0
+                                },
+                                "Rotation": {
+                                    "Pitch": 11.743252754211426,
+                                    "Yaw": -69.58554077148438,
+                                    "Roll": -175.66815185546875
+                                },
+                                "Scale": {
+                                    "X": 1.0,
+                                    "Y": 1.0,
+                                    "Z": 1.0
+                                }
+                            },
+                            "Primitive": 1
+                        }
+                    ]
+                },
+                {
+                    "Class": "AStaticMeshActor",
+                    "Name": "Sphere_2",
+                    "Id": "636D204E-3EAB-9C4A-9211-691CC4D74FB9",
+                    "Components": [
+                        {
+                            "Class": "UStaticMeshComponent",
+                            "Name": "StaticMeshComponent",
+                            "Id": "52DBFABB-AEFF-DC48-BE76-18C254A81F44",
+                            "Transform": {
+                                "Location": {
+                                    "X": 0.0,
+                                    "Y": 2.0,
+                                    "Z": 0.0
+                                },
+                                "Rotation": {
+                                    "Pitch": 0.0,
+                                    "Yaw": 0.0,
+                                    "Roll": -0.0
+                                },
+                                "Scale": {
+                                    "X": 1.0,
+                                    "Y": 1.0,
+                                    "Z": 1.0
+                                }
+                            },
+                            "Primitive": 2
+                        }
+                    ]
+                },
+                {
+                    "Class": "AStaticMeshActor",
+                    "Name": "Plane_3",
+                    "Id": "BD591720-2764-0C44-8B12-1A5193F3ED94",
+                    "Components": [
+                        {
+                            "Class": "UStaticMeshComponent",
+                            "Name": "StaticMeshComponent",
+                            "Id": "15972B69-F888-DD45-A51E-8F8D6E0D2BBA",
+                            "Transform": {
+                                "Location": {
+                                    "X": -2.995455026626587,
+                                    "Y": 0.0,
+                                    "Z": -0.550000011920929
+                                },
+                                "Rotation": {
+                                    "Pitch": 0.0,
+                                    "Yaw": 0.0,
+                                    "Roll": -0.0
+                                },
+                                "Scale": {
+                                    "X": 12.0,
+                                    "Y": 12.0,
+                                    "Z": 1.0
+                                }
+                            },
+                            "Primitive": 0
+                        }
+                    ]
+                }
+            ]
+        }
+    }
+}

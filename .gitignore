@@ -390,6 +390,10 @@ FodyWeavers.xsd
 /.tools/
 /vcpkg_installed/
 imgui.ini
-Tests
 !/Core/Public/Core/Debug/
 !/Core/Public/Core/Debug/**
+/Binaries/
+/Intermediate/
+/Saved/
+!/Regacy/Core/Public/Core/Debug/
+!/Regacy/Core/Public/Core/Debug/**

@@ -1,41 +1,109 @@
-\mainpage API Reference
+\mainpage Macaw API Reference
 
-Macaw C++ API — C++20, Windows x64, Direct3D 11.
+Macaw는 C++20, Windows x64와 Direct3D 11을 사용하는 엔진입니다.
+현재 빌드의 자체 C++ 소스는 `Source/` 아래에 있으며, 공개 API와 비공개 구현을 함께 문서화합니다.
 
-\section ApiIndex API Index
+\section ApiIndex API 찾기
 
-<ul>
-<li><a href="annotated.html">Classes</a> — 클래스·구조체와 멤버</li>
-<li><a href="hierarchy.html">Class Hierarchy</a> — 클래스 상속 관계</li>
-<li><a href="functions.html">Class Members</a> — 멤버 이름별 인덱스</li>
-<li><a href="namespaces.html">Namespaces</a> — 네임스페이스와 전역 선언</li>
-<li><a href="files.html">Files</a> — 헤더·소스 파일</li>
-</ul>
+- <a href="annotated.html">클래스·구조체</a>: 역할, 생성·소멸, 함수 인수, 반환값과 상태 필드
+- <a href="hierarchy.html">상속 관계</a>: UObject, 액터, 컴포넌트와 렌더러 인터페이스
+- <a href="functions.html">멤버 인덱스</a>: 함수와 데이터 멤버의 이름별 검색
+- <a href="namespaces.html">네임스페이스</a>: Math, Math::Simd, ErrorHandler와 ReflectionModules
+- <a href="files.html">소스 파일</a>: 모든 자체 헤더와 구현 파일
+- <a href="topics.html">모듈</a>: 빌드 모듈별 타입과 API
 
-\section ApiModules Modules
+\section ApiModules 현재 모듈
 
-<table>
-<tr><th>Module</th><th>Description</th><th>Types</th></tr>
-<tr><td>Core</td><td>기본 타입, 수학 연산, Archive 인터페이스</td><td>\ref FName, \ref FTransform, \ref FArchive</td></tr>
-<tr><td>CoreUObject</td><td>객체 관리와 Reflection</td><td>\ref UObject, \ref UClass, \ref FProperty</td></tr>
-<tr><td>Serialization</td><td>JSON·메모리 기반 직렬화</td><td>\ref FArchiveJson, \ref FArchiveMemory, \ref FJsonFile</td></tr>
-<tr><td>RenderCore</td><td>Scene 인터페이스와 렌더링 데이터</td><td>\ref FSceneInterface, \ref FPrimitiveSceneProxy, \ref FMeshBatch</td></tr>
-<tr><td>Asset</td><td>에셋 검색·로드, Mesh·Material 관리</td><td>\ref FAssetRegistry, \ref UMesh, \ref UMaterial</td></tr>
-<tr><td>World</td><td>World·Actor·Component 관리</td><td>\ref UWorld, \ref AActor, \ref UActorComponent</td></tr>
-<tr><td>Render</td><td>Direct3D 11 렌더링과 Render Scene 관리</td><td>\ref FRenderer, \ref FRenderScene, \ref FSceneRenderer</td></tr>
-<tr><td>Platform</td><td>Windows 창과 메시지 처리</td><td>\ref IPlatformApplication, \ref FWindowsApplication, \ref IWindowsMessageHandler</td></tr>
-<tr><td>Engine</td><td>엔진 초기화·종료, World Context 관리</td><td>\ref UEngine, \ref FEngineLoop, \ref FWorldContext</td></tr>
-<tr><td>Editor</td><td>에디터 UI와 Viewport 관리</td><td>\ref UEditorEngine, \ref FEditorViewport, \ref FEditorUIManager</td></tr>
-</table>
+| 모듈 | 역할 | 주요 API |
+| --- | --- | --- |
+| \ref Core | 기본 타입, SIMD 수학, 메모리, 프레임 시간, 아카이브 | \ref FVector, \ref FMatrix, \ref FTransform, \ref FArchive |
+| \ref CoreUObject | 객체 수명, 세대 핸들, 타입·프로퍼티 리플렉션 | \ref UObject, \ref FObjectRegistry, \ref UClass, \ref FProperty |
+| \ref Serialization | JSON 아카이브와 파일 입출력 | \ref FJsonArchive |
+| \ref RenderCore | 렌더러 수명 및 프레임 제출 인터페이스 | \ref IRendererModule, \ref FRenderStats |
+| \ref Engine | 월드, 레벨, 액터, 컴포넌트, 장면·뷰포트 및 장면 저장 | \ref UEngine, \ref UWorld, \ref AActor, \ref FSceneSerializer |
+| \ref Renderer | Direct3D 11 장치, 장면, 타깃과 드로 제출 | \ref FRenderer, \ref FScene, \ref FSceneRenderer |
+| \ref Platform | Win32 창과 메시지 펌프 | \ref FWindowsApplication |
+| \ref Editor | 선택, 카메라, 기즈모, 프로퍼티 편집과 ImGui 패널 | \ref UEditorEngine, \ref FEditorViewportClient, \ref FTransformGizmo |
+| \ref App | 플랫폼·렌더러·에디터를 조합하는 실행 진입점 | \ref FApplication |
 
-\section ApiHeaders Headers
+외부 ImGui는 `ThirdParty/ImGui`에서 별도 정적 라이브러리로 빌드합니다.
+`Regacy/`, 외부 라이브러리와 `Intermediate/` 생성물은 현재 자체 소스 문서의 입력에서 제외합니다.
 
-각 모듈의 <code>Public/</code> 디렉터리를 include 경로로 사용합니다. 헤더 경로는 모듈 이름으로 시작합니다.
+\section ApiLifetime 객체와 월드 수명
+
+FApplication은 플랫폼, 렌더러와 에디터를 순서대로 초기화하고 종료 시 역순으로 정리합니다.
+FWorldContext는 FObjectRegistry와 UWorld를 소유합니다. 월드가 소유한 ULevel은 액터를,
+각 AActor는 컴포넌트를 `std::unique_ptr`로 소유합니다.
+FObjectHandle은 슬롯 번호와 세대를 함께 검사하므로 객체가 삭제된 뒤 같은 슬롯을 재사용해도
+이전 핸들이 새 객체로 해석되지 않습니다. IsValid()는 핸들 표현만 검사하며 실제 객체 조회에는
+FObjectRegistry::Resolve()를 사용합니다.
+
+렌더 갱신은 UPrimitiveComponent의 dirty 상태에서 UWorld의 프레임 말 큐로 전달됩니다.
+UEngine::SynchronizeWorld()가 갱신을 반영하고, 렌더러는 복사된 FPrimitiveSceneProxy로 장면을 그립니다.
+
+\section ApiReflection 리플렉션과 직렬화
+
+`Scripts/GenerateReflection.lua`는 `ReflectTypes`, `ReflectClass`, `ReflectStruct`, `ReflectProperty` 등의
+선언을 읽어 모듈별 등록 코드를 `Intermediate/<모듈>/Generated/`에 생성합니다.
+앱 등록 코드는 `Intermediate/Macaw/Generated/`에 생성합니다.
+생성은 Premake 프로젝트 생성 시와 모듈 prebuild 단계에서 실행합니다.
+
+UObject의 Serialize()는 클래스 메타데이터를 통해 프로퍼티를 직렬화합니다.
+`EPropertyFlags::Serialize`가 설정되고 `Transient`가 없는 프로퍼티가 저장 대상입니다.
+`ReadOnly`는 에디터 쓰기를 막으며, 로드는 별도 loader가 있으면 해당 경로를 사용합니다.
+불투명 네이티브 타입은 일반 값 편집과 직렬화를 지원하지 않습니다.
+FSceneSerializer는 GUID와 클래스 이름을 포함한 액터·컴포넌트 데이터를 FJsonArchive로 저장하고,
+로드 시 새 FWorldContext에 생성한 뒤 검증된 월드를 교체합니다.
+
+\section ApiHeaders 헤더와 빌드
+
+각 모듈의 `Source/<모듈>/Public/`을 include 루트로 사용합니다.
 
 \code{.cpp}
-#include <Core/Archive/FArchive.h>
+#include <Core/Archive.h>
 #include <CoreUObject/UObject.h>
-#include <World/UWorld.h>
+#include <Engine/UWorld.h>
+#include <Renderer/Renderer.h>
 \endcode
 
-모듈 의존성과 빌드 절차는 <a href="../index.html">Macaw Documentation</a>에 정리되어 있습니다.
+프로젝트 생성 및 엔진 빌드:
+
+\code{.ps1}
+pwsh -File Scripts/Build.ps1 -Configuration Debug
+pwsh -File Scripts/Build.ps1 -Configuration Release
+\endcode
+
+실행 파일은 `Binaries/<구성>/Macaw.exe`이며 작업 디렉터리는 저장소 루트입니다.
+
+\section ApiDocumentation 문서 생성과 검증
+
+\code{.ps1}
+pwsh -File Scripts/BuildDocumentation.ps1 -InstallTools
+\endcode
+
+결과는 `Build/Documentation/Site/index.html`에서 확인합니다.
+문서 빌드는 미문서화 API, 누락한 인수·반환값 설명과 문서 오류가 있으면 실패합니다.
+파일·타입·함수·별칭·열거값·데이터 멤버·매크로의 설명은 원본 소스에 유지합니다.
+수정하는 헤더와 구현 파일은 CRLF 줄 끝을 사용합니다.
+GitHub Actions의 Documentation 워크플로는 PR에서 검증하고 기본 브랜치에서 GitHub Pages로 배포합니다.
+
+상위 문서와 모듈 의존성은 <a href="../index.html">Macaw Documentation</a>에서 확인합니다.
+
+\defgroup Core Core
+기본 타입, 수학, 메모리, 시간과 공통 아카이브입니다.
+\defgroup CoreUObject CoreUObject
+객체 레지스트리와 네이티브 리플렉션입니다.
+\defgroup Serialization Serialization
+JSON 문서와 파일 직렬화입니다.
+\defgroup RenderCore RenderCore
+렌더러 인터페이스와 렌더 통계입니다.
+\defgroup Engine Engine
+월드, 액터, 컴포넌트, 장면 인터페이스와 직렬화입니다.
+\defgroup Renderer Renderer
+Direct3D 11 렌더러 구현입니다.
+\defgroup Platform Platform
+Windows 창과 메시지 처리입니다.
+\defgroup Editor Editor
+에디터 엔진, 뷰포트, 기즈모와 패널입니다.
+\defgroup App App
+실행 진입점과 애플리케이션 수명입니다.

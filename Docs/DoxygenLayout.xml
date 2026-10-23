@@ -3,6 +3,7 @@
   <navindex>
         <tab type="user" visible="yes" url="../index.html" title="Home"/>
         <tab type="mainpage" visible="yes" title="API Reference"/>
+        <tab type="topics" visible="yes" title="Modules" intro="현재 빌드 모듈별 API입니다."/>
         <tab type="namespaces" visible="yes" title="">
             <tab type="namespacelist" visible="yes" title="" intro=""/>
             <tab type="namespacemembers" visible="yes" title="" intro=""/>

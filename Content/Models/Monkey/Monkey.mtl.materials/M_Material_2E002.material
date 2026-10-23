@@ -1,0 +1,85 @@
+{
+    "Version": 1,
+    "Shader": 0,
+    "Parameters": {
+        "Ambient": [
+            1.0,
+            0.0,
+            1.0
+        ],
+        "Diffuse": [
+            0.800000011920929,
+            0.800000011920929,
+            0.800000011920929,
+            1.0
+        ],
+        "Specular": [
+            0.5,
+            0.5,
+            0.5
+        ],
+        "Emissive": [
+            0.0,
+            0.0,
+            0.0
+        ],
+        "TransmissionFilter": [
+            1.0,
+            1.0,
+            1.0
+        ],
+        "Shininess": 250.0,
+        "RefractionIndex": 1.5,
+        "Sharpness": 60.0,
+        "IlluminationModel": 2,
+        "BDissolveHalo": false,
+        "AmbientTexture": {
+            "TextureGuid": "00000000-0000-0000-0000-000000000000",
+            "TexturePath": ""
+        },
+        "DiffuseTexture": {
+            "TextureGuid": "DB63ED5D-4F53-5CDA-A35A-E08135EE3E1F",
+            "TexturePath": "/Game/Models/Monkey/checkerboard.png"
+        },
+        "SpecularTexture": {
+            "TextureGuid": "00000000-0000-0000-0000-000000000000",
+            "TexturePath": ""
+        },
+        "EmissiveTexture": {
+            "TextureGuid": "00000000-0000-0000-0000-000000000000",
+            "TexturePath": ""
+        },
+        "TransmissionTexture": {
+            "TextureGuid": "00000000-0000-0000-0000-000000000000",
+            "TexturePath": ""
+        },
+        "ShininessTexture": {
+            "TextureGuid": "00000000-0000-0000-0000-000000000000",
+            "TexturePath": ""
+        },
+        "OpacityTexture": {
+            "TextureGuid": "00000000-0000-0000-0000-000000000000",
+            "TexturePath": ""
+        },
+        "BumpTexture": {
+            "TextureGuid": "00000000-0000-0000-0000-000000000000",
+            "TexturePath": ""
+        },
+        "NormalTexture": {
+            "TextureGuid": "00000000-0000-0000-0000-000000000000",
+            "TexturePath": ""
+        },
+        "DisplacementTexture": {
+            "TextureGuid": "00000000-0000-0000-0000-000000000000",
+            "TexturePath": ""
+        },
+        "DecalTexture": {
+            "TextureGuid": "00000000-0000-0000-0000-000000000000",
+            "TexturePath": ""
+        },
+        "ReflectionTexture": {
+            "TextureGuid": "00000000-0000-0000-0000-000000000000",
+            "TexturePath": ""
+        }
+    }
+}

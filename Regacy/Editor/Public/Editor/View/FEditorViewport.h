@@ -1,0 +1,113 @@
+#pragma once
+#include "Editor/View/FEditorViewportTypes.h"
+#include "Editor/View/FViewportGeometry.h"
+#include "RenderCore/FRenderData.h"
+#include "Render/FOffScreenRenderSurface.h"
+#include "Editor/View/EditorViewport.h"
+#include "Editor/Input/FKeyboardInput.h"
+#include "Editor/Input/FMouseInput.h"
+#include "Editor/World/FWorldEditorContext.h"
+#include "ImGui/imgui.h"
+
+class FStatPanel;
+class UCameraComponent;
+
+class FEditorViewport {
+private:
+    enum class EMode {
+        Editor,
+        PIE
+    };
+
+public:
+    FEditorViewport(FViewportId InViewportId, ID3D11Device* InDevice, FWorldEditorContext& InEditorContext);
+
+    FEditorViewport(const FEditorViewport&) = delete;
+    FEditorViewport& operator=(const FEditorViewport&) = delete;
+    FEditorViewport(FEditorViewport&&) = delete;
+    FEditorViewport& operator=(FEditorViewport&&) = delete;
+
+public:
+    FViewportId GetViewportId() const;
+
+    void BeginFrame();
+    bool Draw(const FRect& Rect, const ImVec2& MainViewportPosition, bool BInputBlocked, FStatPanel* StatOverlay = nullptr);
+    void SetFocused(bool BInFocused);
+    bool IsVisible() const;
+    bool IsHovered() const;
+    bool IsFocused() const;
+    const FRect& GetDisplayRect() const;
+    void SetPIEActive(bool Active);
+    bool IsPIEActive() const;
+    const char* GetViewModeName() const;
+    void ConfigurePlayCamera(UCameraComponent& Camera) const;
+    void ProcessInput(EditorViewport& SharedEditorViewport, FKeyboardInput& KeyboardInput, FMouseInput& MouseInput, float DeltaTime, bool BInputBlocked);
+    bool PrepareForRender();
+    bool BuildViewMatrices(FViewMatrices& OutCamera);
+
+    FSceneRenderSurface& GetRenderSurface();
+    const D3D11_VIEWPORT& GetRenderViewport() const;
+    const FRenderSettings& GetRenderSettings() const;
+    const FVector3& GetCameraPosition() const;
+
+    void ReleaseRenderResources();
+
+    void SetProjectionType(EProjectionType InProjectionType);
+    void SetOrthographicView(EOrthographicView InView);
+    void SetCameraParameter(const FVector3& InPosition, const FQuat& InRotation, float InFieldOfView, float InOrthographicWidth, float InNearPlane, float InFarPlane);
+
+private:
+    bool DrawMenuBar();
+    bool DrawGizmoToolbar();
+    bool SpawnDroppedStaticMesh(FAssetHandle MeshHandle, const ImVec2& ScreenPosition);
+    bool TryCalculateDropPosition(const ImVec2& ScreenPosition, FVector3& OutPosition);
+    void ApplyOrthographicView();
+    void ResizeRenderSurface();
+    bool IsViewMatricesCurrent() const;
+    void ApplyMouseNavigation(const FViewportMouseNavigationInput& NavigationInput);
+    void ApplyKeyboardNavigation(const FViewportKeyboardNavigationInput& NavigationInput);
+    D3D11_VIEWPORT BuildInputViewport() const;
+
+private:
+    ID3D11Device* mDevice{nullptr};
+    FWorldEditorContext* mEditorContext{nullptr};
+    FOffScreenRenderSurface mRenderSurface{};
+    FRenderSettings mRenderSettings{};
+    FViewportId mViewportId{0};
+    EMode mMode{EMode::Editor};
+
+    EProjectionType mProjectionType{EProjectionType::Perspective};
+    EOrthographicView mOrthographicView{EOrthographicView::Front};
+
+    FVector3 mCameraPosition{-13.567042f, -26.165287f, 31.506821f};
+    FQuat mCameraRotation{FRotator{45.0f, 60.0f, 0.0f}};
+    FVector3 mPerspectiveCameraPosition{mCameraPosition};
+    FQuat mPerspectiveCameraRotation{mCameraRotation};
+    FVector3 mOrthographicTarget{};
+
+    float mFieldOfView{1.0472f};
+    float mOrthographicWidth{50.0f};
+    float mNearPlane{0.1f};
+    float mFarPlane{1000.0f};
+
+    FViewMatrices mViewMatrices{};
+    FVector3 mCachedCameraPosition{};
+    FQuat mCachedCameraRotation{};
+    EProjectionType mCachedProjectionType{};
+    float mCachedFieldOfView{};
+    float mCachedOrthographicWidth{};
+    float mCachedNearPlane{};
+    float mCachedFarPlane{};
+    Uint32 mCachedWidth{};
+    Uint32 mCachedHeight{};
+    bool mHasViewMatrices{};
+
+    FRect mDisplayRect{};
+    Uint32 mWidth{0};
+    Uint32 mHeight{0};
+    float mRenderLeft{0.0f};
+    float mRenderTop{0.0f};
+    bool mBVisible{false};
+    bool mBHovered{false};
+    bool mBFocused{false};
+};
