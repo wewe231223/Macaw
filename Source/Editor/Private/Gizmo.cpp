@@ -69,7 +69,7 @@ namespace {
 }
 
 /**
- * @brief FTransformGizmo의 초기 상태와 전달받은 의존성을 구성합니다.
+ * @brief 에디터 편집 경로와 클라이언트가 제공하는 변환 도구 상태를 연결합니다.
  */
 FTransformGizmo::FTransformGizmo(UEditorEngine* Engine, const FEditorViewportClient* Client)
 	: mEngine{Engine},

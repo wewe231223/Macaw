@@ -1,6 +1,6 @@
 /**
  * @file ViewportClient.h
- * @brief 에디터 카메라, 선택과 기즈모 입력을 처리합니다.
+ * @brief 에디터 카메라, 선택, 공통 명령과 기즈모 입력을 처리합니다.
  * @ingroup Editor
  */
 
@@ -14,8 +14,9 @@
 class UEditorEngine;
 
 /**
- * @brief 에디터 카메라 이동, 피킹, 기즈모 입력과 장면 뷰 생성을 담당합니다.
+ * @brief 에디터 카메라, 선택, 변환 도구 상태와 공통 명령을 관리하고 기즈모 입력 및 장면 뷰 생성을 담당합니다.
  * @ingroup Editor
+ * @note 툴바, 메뉴와 단축키는 동일한 명령 경로를 사용하며 기즈모는 이 클라이언트의 모드와 좌표계를 읽습니다.
  */
 class FEditorViewportClient final : public FViewportClient {
 public:
@@ -42,19 +43,37 @@ public:
      */
     ReflectStruct(FEditorViewportClient);
 
+    /**
+     * @brief 실행 가능 여부를 검사한 뒤 뷰포트 명령을 처리합니다.
+     * @param[in] Command 툴바, 메뉴 또는 단축키에서 요청한 동작입니다.
+     * @return 명령을 처리하면 true이며 차단되거나 지원하지 않는 명령이면 상태를 변경하지 않고 false입니다.
+     * @note 드래그 중에는 변환 명령을 차단합니다. 스케일 진입 시 로컬 좌표계로 바꾸며 그리드 명령은 아직 지원하지 않습니다.
+     */
     bool ExecuteCommand(EViewportCommand Command);
+    /**
+     * @brief 현재 드래그 상태와 변환 모드에서 명령을 실행할 수 있는지 검사합니다.
+     * @param[in] Command 실행 가능 여부를 조회할 동작입니다.
+     * @return 처리 가능한 명령이면 true이며 드래그 중이거나 스케일 모드의 월드 좌표계 전환, 미지원 명령이면 false입니다.
+     */
     bool CanExecuteCommand(EViewportCommand Command) const;
+    /**
+     * @brief 명령에 대응하는 모드 또는 좌표계가 선택되어 있는지 검사합니다.
+     * @param[in] Command 선택 상태를 조회할 동작입니다.
+     * @return 해당 모드나 좌표계가 선택되어 있으면 true입니다. 좌표계 전환 명령은 로컬일 때 true이며 순환 및 미지원 명령은 false입니다.
+     * @note 실행 가능 여부와 독립적으로 조회하므로 드래그 중에도 현재 선택을 표시할 수 있습니다.
+     */
     bool IsCommandChecked(EViewportCommand Command) const;
 
     /**
-     * @brief 현재 동작 모드를 반환합니다.
-     * @return 현재 동작 모드입니다.
+     * @brief 클라이언트가 관리하는 변환 기즈모 모드를 반환합니다.
+     * @return 이동, 회전 또는 스케일 중 현재 선택한 모드입니다.
      */
     EGizmoMode GetGizmoMode() const;
 
     /**
-     * @brief 기즈모 축의 좌표 공간을 반환합니다.
+     * @brief 클라이언트가 관리하는 기즈모 축의 좌표 공간을 반환합니다.
      * @return 기즈모 축의 좌표 공간입니다.
+     * @note 스케일 모드에서는 로컬 좌표계를 유지합니다.
      */
     EGizmoSpace GetGizmoSpace() const;
 
@@ -97,19 +116,22 @@ public:
     /**
      * @brief 뷰포트 변환 편집 기즈모를 반환합니다.
      * @return 소유 객체가 유지하는 값의 참조입니다.
+     * @note 모드와 좌표계 변경은 ExecuteCommand()를 사용하며 반환한 기즈모는 클라이언트보다 오래 보관할 수 없습니다.
      */
     FTransformGizmo& GetGizmo();
 
 private:
     /**
      * @brief 기즈모의 이동, 회전 또는 스케일 모드를 선택합니다.
-     * @param[in] Mode 로드·저장 또는 기즈모 동작 모드입니다.
+     * @param[in] Mode 적용할 변환 기즈모 모드입니다.
+     * @note ExecuteCommand()의 실행 검사 후 호출하며 스케일 모드에서는 로컬 좌표계를 설정합니다.
      */
     void SetGizmoMode(EGizmoMode Mode);
 
     /**
      * @brief 기즈모 축의 기준을 월드 또는 로컬 좌표로 바꿉니다.
      * @param[in] Space 축에 적용할 월드 또는 로컬 좌표 공간입니다.
+     * @note ExecuteCommand()에서 현재 모드와 드래그 상태를 검증한 뒤 호출합니다.
      */
     void SetGizmoSpace(EGizmoSpace Space);
 
@@ -165,13 +187,13 @@ private:
     ReflectProperty(mCameraSpeed, "CameraSpeed", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 
     /**
-     * @brief 현재 동작 모드입니다.
+     * @brief 클라이언트가 소유하며 기즈모와 UI가 함께 조회하는 변환 모드입니다.
      */
     EGizmoMode mGizmoMode{EGizmoMode::Translate};
     ReflectProperty(mGizmoMode, "GizmoMode", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 
     /**
-     * @brief 기즈모 축의 좌표 공간입니다.
+     * @brief 클라이언트가 소유하는 기즈모 좌표계이며 스케일 모드에서는 로컬입니다.
      */
     EGizmoSpace mGizmoSpace{EGizmoSpace::World};
     ReflectProperty(mGizmoSpace, "GizmoSpace", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);

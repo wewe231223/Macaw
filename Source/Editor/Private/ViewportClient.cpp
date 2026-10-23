@@ -1,6 +1,6 @@
 /**
  * @file ViewportClient.cpp
- * @brief 에디터 카메라, 선택과 기즈모 입력을 처리합니다.
+ * @brief 에디터 카메라, 선택, 공통 명령과 기즈모 입력을 처리합니다.
  * @ingroup Editor
  */
 
@@ -41,6 +41,9 @@ FEditorViewportClient::FEditorViewportClient(UEditorEngine* Engine)
  */
 FEditorViewportClient::~FEditorViewportClient() = default;
 
+/**
+ * @brief 공통 실행 검사를 통과한 명령으로 변환 모드 또는 좌표계를 변경합니다.
+ */
 bool FEditorViewportClient::ExecuteCommand(EViewportCommand Command) {
     if (!CanExecuteCommand(Command)) {
         return false;
@@ -75,6 +78,9 @@ bool FEditorViewportClient::ExecuteCommand(EViewportCommand Command) {
     return true;
 }
 
+/**
+ * @brief 드래그 잠금, 스케일 좌표계 제한과 명령 지원 여부를 검사합니다.
+ */
 bool FEditorViewportClient::CanExecuteCommand(EViewportCommand Command) const {
     if (mGizmo.IsDragging()) {
         return false;
@@ -95,6 +101,9 @@ bool FEditorViewportClient::CanExecuteCommand(EViewportCommand Command) const {
     }
 }
 
+/**
+ * @brief 실행 가능 여부와 별개로 현재 변환 모드와 좌표계의 선택 상태를 조회합니다.
+ */
 bool FEditorViewportClient::IsCommandChecked(EViewportCommand Command) const {
     switch (Command) {
     case EViewportCommand::Translate:
@@ -325,7 +334,7 @@ FTransformGizmo& FEditorViewportClient::GetGizmo() {
 }
 
 /**
- * @brief 기즈모의 이동, 회전 또는 스케일 모드를 선택합니다.
+ * @brief 변환 모드를 저장하고 스케일을 선택하면 로컬 좌표계를 적용합니다.
  */
 void FEditorViewportClient::SetGizmoMode(EGizmoMode Mode) {
     mGizmoMode = Mode;
@@ -336,21 +345,21 @@ void FEditorViewportClient::SetGizmoMode(EGizmoMode Mode) {
 }
 
 /**
- * @brief 현재 동작 모드를 반환합니다.
+ * @brief 클라이언트가 관리하는 변환 기즈모 모드를 반환합니다.
  */
 EGizmoMode FEditorViewportClient::GetGizmoMode() const {
     return mGizmoMode;
 }
 
 /**
- * @brief 기즈모 축의 기준을 월드 또는 로컬 좌표로 바꿉니다.
+ * @brief 명령 실행 경로에서 검증한 기즈모 좌표계를 저장합니다.
  */
 void FEditorViewportClient::SetGizmoSpace(EGizmoSpace Space) {
     mGizmoSpace = Space;
 }
 
 /**
- * @brief 기즈모 축의 좌표 공간을 반환합니다.
+ * @brief 클라이언트가 관리하는 기즈모 축의 좌표 공간을 반환합니다.
  */
 EGizmoSpace FEditorViewportClient::GetGizmoSpace() const {
     return mGizmoSpace;

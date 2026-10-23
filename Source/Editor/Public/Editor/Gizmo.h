@@ -55,6 +55,7 @@ enum class EGizmoSpace {
 /**
  * @brief 이동, 회전과 스케일 축의 선택 및 드래그 편집을 제공합니다.
  * @ingroup Editor
+ * @note 변환 모드와 좌표계는 FEditorViewportClient가 소유하며 기즈모는 해당 상태를 읽어 사용합니다.
  */
 class FTransformGizmo {
 public:
@@ -67,6 +68,8 @@ public:
     /**
      * @brief FTransformGizmo의 초기 상태와 전달받은 의존성을 구성합니다.
      * @param[in,out] Engine 패널 또는 뷰포트가 참조할 에디터 엔진입니다.
+     * @param[in] Client 변환 모드와 좌표계를 제공하는 뷰포트 클라이언트의 비소유 주소입니다.
+     * @pre Engine과 Client는 nullptr이 아니며 기즈모를 사용하는 동안 유효해야 합니다.
      */
     FTransformGizmo(UEditorEngine* Engine, const FEditorViewportClient* Client);
 
@@ -157,6 +160,9 @@ private:
     UEditorEngine* mEngine{};
     ReflectProperty(mEngine, "Engine", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 
+    /**
+     * @brief 변환 모드와 좌표계를 읽을 뷰포트 클라이언트의 비소유 주소입니다.
+     */
     const FEditorViewportClient* mClient{};
     ReflectProperty(mClient, "ViewportClient", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 

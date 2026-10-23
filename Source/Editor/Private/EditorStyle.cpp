@@ -1,8 +1,17 @@
+/**
+ * @file EditorStyle.cpp
+ * @brief 에디터 공통 벡터 아이콘과 툴바 버튼 스타일을 구현합니다.
+ * @ingroup Editor
+ */
+
 #include "EditorStyle.h"
 
 #include <imgui_internal.h>
 #include <array>
 
+/**
+ * @brief 공통 아이콘의 정규화된 도형을 요청한 화면 크기와 색상으로 그립니다.
+ */
 void EditorStyle::DrawIcon(EIcon Icon, const ImVec2& Origin, float Size, ImU32 Color) {
     ImDrawList* DrawList{ImGui::GetWindowDrawList()};
     const float Scale{Size / 20.0f};
@@ -69,6 +78,9 @@ void EditorStyle::DrawIcon(EIcon Icon, const ImVec2& Origin, float Size, ImU32 C
     }
 }
 
+/**
+ * @brief 아이콘 버튼을 표시하고 선택 색상, 비활성 처리와 툴팁을 적용합니다.
+ */
 bool EditorStyle::IconButton(const char* Label, EIcon Icon, bool Selected, bool Enabled, bool Dropdown, const char* Tooltip) {
     ImGui::PushID(Label);
     ImGui::BeginDisabled(!Enabled);
@@ -108,6 +120,9 @@ bool EditorStyle::IconButton(const char* Label, EIcon Icon, bool Selected, bool 
     return Pressed;
 }
 
+/**
+ * @brief 뷰포트 툴바에서 사용할 스타일을 ImGui 스택에 추가합니다.
+ */
 void EditorStyle::PushViewportToolbar() {
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{5.0f, 5.0f});
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2{2.0f, 4.0f});
@@ -117,11 +132,17 @@ void EditorStyle::PushViewportToolbar() {
     ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{0.10f, 0.29f, 0.44f, 1.0f});
 }
 
+/**
+ * @brief 뷰포트 툴바의 스타일 스택 변경을 되돌립니다.
+ */
 void EditorStyle::PopViewportToolbar() {
     ImGui::PopStyleColor(3);
     ImGui::PopStyleVar(3);
 }
 
+/**
+ * @brief 메뉴의 기본 아이콘 열에 벡터 아이콘을 배치하여 항목 이름과 체크 표시를 정렬합니다.
+ */
 bool EditorStyle::IconMenuItem(const char* Label, EIcon Icon, bool Selected, bool Enabled) {
     const ImVec2 Position{ImGui::GetCursorScreenPos()};
     const float Size{ImGui::GetFontSize()};
