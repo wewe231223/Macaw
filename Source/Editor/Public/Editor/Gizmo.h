@@ -16,8 +16,10 @@
 #include "Engine/FPrimitiveDrawInterface.h"
 #include "Engine/FViewportInput.h"
 #include "Engine/FHitProxy.h"
+#include "Editor/FGizmoSettings.h"
 
 class FEditorContext;
+class USceneComponent;
 class FEditorViewportClient;
 
 /**
@@ -36,7 +38,8 @@ enum class EGizmoMode {
     /**
      * @brief 축별 스케일을 편집합니다.
      */
-    Scale
+    Scale,
+    None
 };
 
 /**
@@ -66,6 +69,24 @@ public:
      */
     ReflectTypes(FTransformGizmo);
 
+private:
+    struct FTargetState {
+    public:
+        ReflectTypes(FTargetState);
+
+    public:
+        ReflectStruct(FTargetState);
+
+    private:
+        ReflectMembers();
+
+    public:
+        FObjectHandle mObject{};
+        ReflectProperty(mObject, "Object", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+        FTransform mTransform{};
+        ReflectProperty(mTransform, "Transform", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    };
+
 public:
     /**
      * @brief FTransformGizmo의 초기 상태와 전달받은 의존성을 구성합니다.
@@ -91,7 +112,7 @@ public:
      */
     bool Input(const FViewportInput& Input, const FSceneView& View, const FHitProxy& Hit);
     /**
-     * @brief 마우스와 투영된 축의 거리로 선택 액터의 기즈모 HitProxy를 구합니다.
+     * @brief 그리는 메시의 CPU 레이 교차 판정으로 선택 액터의 기즈모 HitProxy를 구합니다.
      * @param[in] Mouse 뷰포트 기준 마우스 픽셀 좌표입니다.
      * @param[in] View 입력 해석이나 그리기에 사용할 카메라 뷰입니다.
      * @return 선택 액터와 기즈모 축을 나타내며 편집할 수 없거나 유효한 루트 또는 적중 축이 없으면 빈 프록시입니다.
@@ -113,9 +134,12 @@ public:
      * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
      */
     bool IsDragging() const;
+    FGizmoSettings* GetSettings();
+    FVector GetPivot() const;
+    bool IsPivotDrag() const;
     /**
-     * @brief 마우스가 가리키는 축 인덱스, 없으면 -1을 반환합니다.
-     * @return 마우스가 가리키는 축 인덱스, 없으면 -1입니다.
+     * @brief 마우스가 가리키는 핸들 인덱스, 없으면 -1을 반환합니다.
+     * @return 마우스가 가리키는 핸들 인덱스, 없으면 -1입니다.
      */
     Int32 GetHoveredAxis() const;
 
@@ -128,26 +152,30 @@ private:
      */
     FVector GetAxis(const FTransform& Transform, Int32 Index) const;
     /**
-     * @brief 크기를 반환합니다.
+     * @brief 피벗 깊이와 시야각으로 화면 픽셀당 월드 거리를 구합니다.
      * @param[in] View 입력 해석이나 그리기에 사용할 카메라 뷰입니다.
      * @param[in] Pivot 기즈모 또는 카메라 회전의 월드 중심점입니다.
-     * @return 크기입니다.
+     * @return 기즈모 크기 배율을 반영한 픽셀당 월드 거리이며 카메라 뒤에서는 0입니다.
      */
     float GetSize(const FSceneView& View, const FVector& Pivot) const;
 
     /**
      * @brief 선택 축과 대상의 시작 변환을 저장하고 드래그 평면을 구성합니다.
      * @param[in] Axis 회전 또는 편집에 사용할 축입니다.
-     * @param[in] Mouse 뷰포트 기준 마우스 픽셀 좌표입니다.
+     * @param[in] Input 마우스 시작 위치, 누른 버튼과 복제 키 상태를 제공합니다.
      * @param[in] View 입력 해석이나 그리기에 사용할 카메라 뷰입니다.
-     * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
+     * @return 드래그 대상과 시작 상태를 준비하면 true입니다.
      */
-    bool BeginDrag(Int32 Axis, const FVector2& Mouse, const FSceneView& View);
+    bool BeginDrag(Int32 Axis, const FViewportInput* Input, const FSceneView& View);
     /**
      * @brief 마우스 이동량을 활성 모드의 변환으로 바꾸어 선택한 액터에 적용합니다.
-     * @param[in] Mouse 뷰포트 기준 마우스 픽셀 좌표입니다.
+     * @param[in] Input 현재 뷰포트 기준 마우스 위치를 제공합니다.
      */
-    void UpdateDrag(const FVector2& Mouse);
+    void UpdateDrag(const FViewportInput* Input);
+    void EndDrag(bool Restore);
+    USceneComponent* GetPrimaryTarget() const;
+    void BuildHandles(const FSceneView& View, FPrimitiveDrawInterface* DrawInterface) const;
+    void DrawFeedback(const FSceneView& View, FPrimitiveDrawInterface* DrawInterface) const;
 
 private:
     /**
@@ -169,22 +197,16 @@ private:
     ReflectProperty(mClient, "ViewportClient", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 
     /**
-     * @brief 마우스가 가리키는 축 인덱스, 없으면 -1입니다.
+     * @brief 마우스가 가리키는 핸들 인덱스, 없으면 -1입니다.
      */
     Int32 mHoveredAxis{-1};
     ReflectProperty(mHoveredAxis, "HoveredAxis", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 
     /**
-     * @brief 드래그 중인 축 인덱스, 없으면 -1입니다.
+     * @brief 드래그 중인 핸들 인덱스, 없으면 -1입니다.
      */
     Int32 mActiveAxis{-1};
     ReflectProperty(mActiveAxis, "ActiveAxis", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
-
-    /**
-     * @brief 렌더 타깃 또는 편집 대상입니다.
-     */
-    FObjectHandle mTarget{};
-    ReflectProperty(mTarget, "Target", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 
     /**
      * @brief 드래그 시작 시 편집 대상 월드의 세대 핸들입니다.
@@ -233,4 +255,57 @@ private:
      */
     float mDragSize{1.0f};
     ReflectProperty(mDragSize, "DragSize", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    FGizmoSettings mSettings{};
+    ReflectProperty(mSettings, "Settings", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /**
+     * @brief 드래그 시작 시 기록한 편집 대상과 원본 변환입니다.
+     */
+    TArray<FTargetState> mTargets{};
+    ReflectProperty(mTargets, "Targets", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    TArray<FObjectHandle> mOriginalSelection{};
+    ReflectProperty(mOriginalSelection, "OriginalSelection", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    TArray<FObjectHandle> mDuplicates{};
+    ReflectProperty(mDuplicates, "Duplicates", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    FObjectHandle mOriginalObject{};
+    ReflectProperty(mOriginalObject, "OriginalObject", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    Uint64 mSelectionRevision{};
+    ReflectProperty(mSelectionRevision, "SelectionRevision", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    Uint64 mPivotRevision{};
+    ReflectProperty(mPivotRevision, "PivotRevision", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    FVector mPivot{};
+    ReflectProperty(mPivot, "Pivot", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    FVector mStartPivot{};
+    ReflectProperty(mStartPivot, "StartPivot", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    FVector mOriginalPivot{};
+    ReflectProperty(mOriginalPivot, "OriginalPivot", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    FVector mStartDirection{};
+    ReflectProperty(mStartDirection, "StartDirection", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    FVector mPreviousDirection{};
+    ReflectProperty(mPreviousDirection, "PreviousDirection", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    FVector mSnapPosition{};
+    ReflectProperty(mSnapPosition, "SnapPosition", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    FVector mTranslation{};
+    ReflectProperty(mTranslation, "Translation", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    std::array<FVector, 3> mDragAxes{};
+    ReflectProperty(mDragAxes, "DragAxes", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    FVector2 mScreenAxis{};
+    ReflectProperty(mScreenAxis, "ScreenAxis", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    float mRawAngle{};
+    ReflectProperty(mRawAngle, "RawAngle", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    float mAppliedAngle{};
+    ReflectProperty(mAppliedAngle, "AppliedAngle", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    EGizmoMode mDragMode{EGizmoMode::Translate};
+    ReflectProperty(mDragMode, "DragMode", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    bool mHasPivot{};
+    ReflectProperty(mHasPivot, "HasPivot", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    bool mHadPivot{};
+    ReflectProperty(mHadPivot, "HadPivot", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    bool mPivotOnly{};
+    ReflectProperty(mPivotOnly, "PivotOnly", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    bool mDuplicatePending{};
+    ReflectProperty(mDuplicatePending, "DuplicatePending", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    bool mScreenFallback{};
+    ReflectProperty(mScreenFallback, "ScreenFallback", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    bool mShowSnap{};
+    ReflectProperty(mShowSnap, "ShowSnap", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 };

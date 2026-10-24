@@ -1,6 +1,6 @@
 /**
  * @file FPrimitiveDrawInterface.h
- * @brief 에디터 보조 선분을 프레임 단위로 수집합니다.
+ * @brief 에디터 보조 선분과 메시를 프레임 단위로 수집합니다.
  * @ingroup Engine
  */
 
@@ -8,9 +8,10 @@
 
 #include "Core/ReflectionMacros.h"
 #include "Engine/FDrawLine.h"
+#include "Engine/FDrawMesh.h"
 
 /**
- * @brief 에디터 보조 선분을 프레임 단위로 수집합니다.
+ * @brief 에디터 보조 선분과 메시를 프레임 단위로 수집합니다.
  * @ingroup Engine
  */
 class FPrimitiveDrawInterface {
@@ -36,9 +37,11 @@ public:
      */
     void DrawLine(const FVector& Start, const FVector& End, const FVector& Color, bool DepthTest = false);
     /**
-     * @brief 현재 프레임의 보조 선분 목록을 비웁니다.
+     * @brief 현재 프레임의 보조 선분과 메시 목록을 비웁니다.
      */
     void Clear();
+    void DrawMesh(const FDrawMesh& Mesh);
+    const TArray<FDrawMesh>& GetMeshes() const;
 
     /**
      * @brief 현재 프레임에 수집한 보조 선분을 반환합니다.
@@ -58,4 +61,6 @@ private:
      */
     TArray<FDrawLine> mLines{};
     ReflectProperty(mLines, "Lines", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    TArray<FDrawMesh> mMeshes{};
+    ReflectProperty(mMeshes, "Meshes", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 };

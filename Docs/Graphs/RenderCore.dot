@@ -1,0 +1,16 @@
+digraph RenderCore {
+    graph [rankdir=LR, bgcolor="transparent", fontname="Malgun Gothic", nodesep=0.4, ranksep=0.7];
+    node [shape=box, style="rounded,filled", fillcolor="#e8f3ff", color="#8eb6d9", fontname="Malgun Gothic", fontsize=11, margin="0.16,0.12"];
+    edge [color="#52677d", fontname="Malgun Gothic", fontsize=9];
+    Module [label="IRendererModule\n렌더러 수명·프레임 제출"];
+    Stats [label="FRenderStats\n드로 횟수·메모리 통계"];
+    Renderer [label="FRenderer\nRenderer · Direct3D 11 구현", fillcolor="#f0f2f5", color="#b9c2cc"];
+    Scene [label="FSceneInterface\nEngine · 렌더 장면 계약", fillcolor="#f0f2f5", color="#b9c2cc"];
+    Target [label="FRenderTarget\nEngine · 출력 타깃 계약", fillcolor="#f0f2f5", color="#b9c2cc"];
+    Family [label="FSceneViewFamily\nEngine · 장면·카메라·타깃", fillcolor="#f0f2f5", color="#b9c2cc"];
+    Renderer -> Module [arrowhead=empty, label="상속"];
+    Module -> Scene [style=dashed, label="생성 · 호출자에 소유권 반환"];
+    Module -> Target [style=dashed, label="생성 · 호출자에 소유권 반환"];
+    Module -> Family [style=dashed, label="사용 · 렌더 요청"];
+    Module -> Stats [style=dashed, label="사용 · 통계 값 반환"];
+}

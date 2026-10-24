@@ -97,6 +97,9 @@ void ViewportToolbar::Draw(FEditorViewportClient* Client) {
 
     if (ImGui::BeginPopup("TransformTools")) {
         ImGui::SeparatorText("Transform Tools");
+        if (ImGui::MenuItem("Select", "Q", Client->IsCommandChecked(EViewportCommand::Select), Client->CanExecuteCommand(EViewportCommand::Select))) {
+            Client->ExecuteCommand(EViewportCommand::Select);
+        }
         DrawModeCommands(Client, true);
         ImGui::Separator();
 
@@ -139,6 +142,29 @@ void ViewportToolbar::Draw(FEditorViewportClient* Client) {
         ImGui::EndPopup();
     }
 
+    ImGui::SameLine(0.0f, 6.0f);
+    if (ImGui::Button("Snap")) {
+        ImGui::OpenPopup("GizmoSnapping");
+    }
+    if (ImGui::BeginPopup("GizmoSnapping")) {
+        ImGui::BeginDisabled(!Client->CanExecuteCommand(EViewportCommand::Translate));
+        auto* Settings{Client->GetGizmo().GetSettings()};
+        ImGui::Checkbox("Translation Snap", &Settings->mTranslationSnap);
+        ImGui::InputFloat("Translation Step", &Settings->mTranslationStep);
+        ImGui::Checkbox("Rotation Snap", &Settings->mRotationSnap);
+        ImGui::InputFloat("Rotation Degrees", &Settings->mRotationStep);
+        ImGui::Checkbox("Scale Snap", &Settings->mScaleSnap);
+        ImGui::InputFloat("Scale Step", &Settings->mScaleStep);
+        ImGui::Checkbox("Surface Snap", &Settings->mSurfaceSnap);
+        ImGui::Checkbox("Align to Surface", &Settings->mAlignToSurface);
+        ImGui::InputFloat("Surface Offset", &Settings->mSurfaceOffset);
+        ImGui::SliderFloat("Gizmo Size", &Settings->mSize, 0.5f, 2.0f);
+        ImGui::EndDisabled();
+        ImGui::Separator();
+        ImGui::TextDisabled("Q/W/E/R: Mode | Tab: World/Local | X: Snap | Z: Surface");
+        ImGui::TextDisabled("V: Vertex | MMB: Pivot | Alt+Drag: Duplicate");
+        ImGui::EndPopup();
+    }
     ImGui::EndGroup();
     EditorStyle::PopViewportToolbar();
     ImGui::PopID();

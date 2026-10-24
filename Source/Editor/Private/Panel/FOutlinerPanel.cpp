@@ -13,6 +13,7 @@
 
 #include <imgui.h>
 #include <format>
+#include <algorithm>
 
 /**
  * @brief FOutlinerPanel의 초기 상태와 전달받은 의존성을 구성합니다.
@@ -68,12 +69,17 @@ void FOutlinerPanel::DrawContent(float) {
         }
 
         ImGui::PushID(Actor);
-        const bool Selected{Context->GetSelectedObject() == Actor};
+        const TArray<FObjectHandle> Selection{Context->GetSelectedActors()};
+        const bool Selected{std::find(Selection.begin(), Selection.end(), Handle) != Selection.end()};
         const ImGuiTreeNodeFlags Flags{ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_SpanAvailWidth | (Selected ? ImGuiTreeNodeFlags_Selected : 0) | (Components.empty() ? ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen : 0)};
         const bool Open{ImGui::TreeNodeEx(Actor->GetName().c_str(), Flags)};
 
         if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen()) {
-            Context->SelectActor(Handle);
+            if (ImGui::GetIO().KeyCtrl) {
+                Context->ToggleActorSelection(Handle);
+            } else {
+                Context->SelectActor(Handle);
+            }
         }
 
         if (Open && !Components.empty()) {

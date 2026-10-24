@@ -5,6 +5,7 @@
  */
 
 #include "Engine/UWorld.h"
+#include "Engine/MeshPicking.h"
 #include "Engine/Component/UStaticMeshComponent.h"
 #include "Core/Math.h"
 #include "Engine/Component/UPrimitiveComponent.h"
@@ -214,45 +215,27 @@ void UWorld::SendAllEndOfFrameUpdates() {
 /**
  * @brief 월드 프리미티브의 메시를 검사하여 광선에 가장 가까운 충돌을 찾습니다.
  */
-bool UWorld::Raycast(const FRay& Ray, FWorldHit& Hit) const {
+bool UWorld::Raycast(const FRay& Ray, FWorldHit& Hit, const TArray<FObjectHandle>* ExcludedActors) const {
     FRay NormalizedRay{Ray};
-
     if (mPersistentLevel == nullptr || !NormalizedRay.mOrigin.IsFinite() || !NormalizedRay.mDirection.Normalize()) {
         return false;
     }
 
     bool Found{};
     float Closest{std::numeric_limits<float>::max()};
-
     for (const auto& Actor : mPersistentLevel->GetActors()) {
+        if (Actor->IsPendingDestroy() || (ExcludedActors != nullptr && std::find(ExcludedActors->begin(), ExcludedActors->end(), Actor->GetHandle()) != ExcludedActors->end())) {
+            continue;
+        }
         for (const auto& Component : Actor->GetComponents()) {
             const auto* Primitive{Cast<UPrimitiveComponent>(Component.get())};
-
-            if (Primitive == nullptr || !Primitive->GetWorldBounds().Intersects(NormalizedRay, Closest)) {
-                continue;
-            }
-
-            FMatrix Inverse{};
-
-            if (!Primitive->GetWorldMatrix().TryInverse(Inverse)) {
-                continue;
-            }
-
-            const FRay Local{Inverse.TransformPosition(NormalizedRay.mOrigin), Inverse.TransformVector(NormalizedRay.mDirection)};
-            const FMeshData& Mesh{GetPrimitiveMesh(Primitive->GetPrimitiveType())};
-
-            for (std::size_t Index{}; Index + 2 < Mesh.mIndices.size(); Index += 3) {
-                float Distance{};
-
-                if (Math::IntersectTriangle(Local, Mesh.mVertices[Mesh.mIndices[Index]].mPosition, Mesh.mVertices[Mesh.mIndices[Index + 1]].mPosition, Mesh.mVertices[Mesh.mIndices[Index + 2]].mPosition, Distance) && Distance < Closest) {
-                    Closest = Distance;
-                    Hit = {Actor->GetHandle(), Primitive->GetHandle(), NormalizedRay.mOrigin + NormalizedRay.mDirection * Distance, Distance};
-                    Found = true;
-                }
+            FVector Normal{};
+            if (Primitive != nullptr && RaycastMesh(&GetPrimitiveMesh(Primitive->GetPrimitiveType()), Primitive->GetWorldMatrix(), NormalizedRay, Closest, &Normal)) {
+                Hit = {Actor->GetHandle(), Primitive->GetHandle(), NormalizedRay.mOrigin + NormalizedRay.mDirection * Closest, Closest, Normal};
+                Found = true;
             }
         }
     }
-
     return Found;
 }
 

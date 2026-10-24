@@ -59,4 +59,6 @@ public:
      */
     float mDistance{};
     ReflectProperty(mDistance, "Distance", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    FVector mNormal{};
+    ReflectProperty(mNormal, "Normal", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 };

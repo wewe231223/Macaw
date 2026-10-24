@@ -1,0 +1,16 @@
+digraph Macaw {
+    graph [rankdir=LR, bgcolor="transparent", fontname="Malgun Gothic", nodesep=0.35, ranksep=0.65, pad=0.2];
+    node [shape=box, style="rounded,filled", fillcolor="#e7f1fb", color="#8ba8c3", fontname="Malgun Gothic", fontsize=11, margin="0.16,0.10"];
+    edge [color="#57718a", fontname="Malgun Gothic", fontsize=10, arrowsize=0.75];
+    Application [label="FApplication\n초기화 · 메인 루프 · 종료"];
+    Platform [label="FWindowsApplication\n창 · 메시지 펌프", fillcolor="#f0f2f5"];
+    Renderer [label="FRenderer\nD3D11 · 화면 표시", fillcolor="#f0f2f5"];
+    Engine [label="UEditorEngine\n에디터 프레임", fillcolor="#f0f2f5"];
+    Timer [label="FFrameTimer\n프레임 경과 시간", fillcolor="#f0f2f5"];
+    Application -> Platform [label="소유"];
+    Application -> Renderer [label="소유"];
+    Application -> Engine [label="소유"];
+    Application -> Timer [label="소유"];
+    Engine -> Renderer [label="인터페이스 참조", style=dashed];
+    Engine -> Platform [label="UI 입력 연결", style=dashed];
+}

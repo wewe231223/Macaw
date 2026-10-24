@@ -15,6 +15,8 @@
 #include "Engine/Component/UActorComponent.h"
 #include "Engine/Component/USceneComponent.h"
 #include "Engine/SceneSerializer.h"
+#include "Engine/FWorldCloner.h"
+#include <algorithm>
 #include "CoreUObject/FObjectRegistry.h"
 #include "CoreUObject/FPropertyChangedEvent.h"
 #include "CoreUObject/Reflection/Cast.h"
@@ -179,7 +181,7 @@ bool FEditorContext::SetSelection(FObjectHandle Actor, FObjectHandle Object) {
         return false;
     }
 
-    if (mSelectedActor == Actor && mSelectedObject == Object) {
+    if (mSelectedActor == Actor && mSelectedObject == Object && mSelectedActors.size() <= 1) {
         return true;
     }
 
@@ -197,11 +199,20 @@ bool FEditorContext::SetSelection(FObjectHandle Actor, FObjectHandle Object) {
 void FEditorContext::AssignSelection(FObjectHandle Actor, FObjectHandle Object) {
     mSelectedActor = Actor;
     mSelectedObject = Object;
+    mSelectedActors.clear();
+    if (Actor.IsValid()) {
+        mSelectedActors.push_back(Actor);
+    }
+    ++mSelectionRevision;
 }
 
 /** @brief 선택한 액터를 월드 소속과 함께 검증합니다. */
 AActor* FEditorContext::GetSelectedActor() const {
-    return Cast<AActor>(ResolveObject(mSelectedActor));
+    if (auto* Actor{Cast<AActor>(ResolveObject(mSelectedActor))}; Actor != nullptr && !Actor->IsPendingDestroy()) {
+        return Actor;
+    }
+    const TArray<FObjectHandle> Actors{GetSelectedActors()};
+    return Actors.empty() ? nullptr : Cast<AActor>(ResolveObject(Actors.back()));
 }
 
 /** @brief 프로퍼티 편집 대상을 월드 소속과 함께 검증합니다. */
@@ -241,25 +252,25 @@ AStaticMeshActor* FEditorContext::SpawnPrimitive(EPrimitiveType Type) {
 
 /** @brief 현재 선택한 액터를 제거하고 관련 선택 상태를 초기화합니다. */
 bool FEditorContext::DestroySelectedActor() {
-    AActor* Actor{GetSelectedActor()};
-
-    if (Actor == nullptr || !CanEditWorld() || mChangingState || mEditingProperty || mEngine->IsDispatching()) {
+    if (!CanEditWorld() || mChangingState || mEditingProperty || mEngine->IsDispatching()) {
         return false;
     }
-
-    const FObjectHandle Handle{Actor->GetHandle()};
-    const FString Name{Actor->GetName()};
+    const TArray<FObjectHandle> Actors{GetSelectedActors()};
+    if (Actors.empty()) {
+        return false;
+    }
     FOperationScope Scope{&mChangingState};
     UWorld* World{GetWorld()};
-
-    if (World == nullptr || ResolveObject(Handle) == nullptr || !World->DestroyActor(Handle)) {
-        return false;
+    bool Removed{};
+    for (FObjectHandle Handle : Actors) {
+        Removed = World->DestroyActor(Handle) || Removed;
     }
-
-    AssignSelection({}, {});
-    mDirty = true;
-    AddLog("Deleted " + Name);
-    return true;
+    if (Removed) {
+        AssignSelection({}, {});
+        mDirty = true;
+        AddLog("Deleted selected actors");
+    }
+    return Removed;
 }
 
 /** @brief 편집 월드, 객체, 프로퍼티 소속과 편집 권한을 함께 검사합니다. */
@@ -296,8 +307,9 @@ bool FEditorContext::EditProperty(FObjectHandle Handle, const FProperty* Propert
 
 /** @brief 액터 루트의 변환 프로퍼티를 에디터 편집 경로로 변경합니다. */
 bool FEditorContext::ApplyTransform(FObjectHandle Handle, const FTransform& Transform, bool Interactive) {
-    AActor* Actor{Cast<AActor>(ResolveObject(Handle))};
-    USceneComponent* Root{Actor != nullptr ? Actor->GetRootComponent() : nullptr};
+    UObject* Object{ResolveObject(Handle)};
+    AActor* Actor{Cast<AActor>(Object)};
+    USceneComponent* Root{Actor != nullptr ? Actor->GetRootComponent() : Cast<USceneComponent>(Object)};
     const FProperty* Property{Root != nullptr ? Root->GetClass()->FindClassProperty("Transform") : nullptr};
     return Property != nullptr && EditProperty(Root->GetHandle(), Property, FPropertyValue{Transform}, Interactive);
 }
@@ -458,4 +470,84 @@ void FEditorContext::ExecuteConsoleCommand(const FString& Command) {
 /** @brief 새 액터 배치 변환 제공자를 저장합니다. */
 void FEditorContext::SetPlacementProvider(std::function<FTransform()> Provider) {
     mPlacementProvider = std::move(Provider);
+}
+
+TArray<FObjectHandle> FEditorContext::GetSelectedActors() const {
+    TArray<FObjectHandle> Result{};
+    for (FObjectHandle Handle : mSelectedActors) {
+        if (const auto* Actor{Cast<AActor>(ResolveObject(Handle))}; Actor != nullptr && !Actor->IsPendingDestroy()) {
+            Result.push_back(Handle);
+        }
+    }
+    return Result;
+}
+
+TArray<FObjectHandle> FEditorContext::GetTransformTargets() const {
+    if (auto* Component{Cast<USceneComponent>(GetSelectedObject())}; Component != nullptr) {
+        return {Component->GetHandle()};
+    }
+    TArray<FObjectHandle> Result{};
+    for (FObjectHandle Handle : GetSelectedActors()) {
+        const auto* Actor{Cast<AActor>(ResolveObject(Handle))};
+        if (Actor->GetRootComponent() != nullptr) {
+            Result.push_back(Actor->GetRootComponent()->GetHandle());
+        }
+    }
+    return Result;
+}
+
+bool FEditorContext::SetSelectedActors(const TArray<FObjectHandle>& Actors) {
+    if (mChangingState || mEditingProperty) {
+        return false;
+    }
+    TArray<FObjectHandle> Valid{};
+    for (FObjectHandle Handle : Actors) {
+        if (Cast<AActor>(ResolveObject(Handle)) == nullptr || std::find(Valid.begin(), Valid.end(), Handle) != Valid.end()) {
+            return false;
+        }
+        Valid.push_back(Handle);
+    }
+    const FObjectHandle Primary{Valid.empty() ? FObjectHandle{} : Valid.back()};
+    if (mSelectedActors == Valid && mSelectedObject == Primary) {
+        return true;
+    }
+    mSelectedActor = Primary;
+    mSelectedObject = Primary;
+    mSelectedActors = std::move(Valid);
+    ++mSelectionRevision;
+    return true;
+}
+
+bool FEditorContext::ToggleActorSelection(FObjectHandle Actor) {
+    TArray<FObjectHandle> Actors{GetSelectedActors()};
+    const auto Position{std::find(Actors.begin(), Actors.end(), Actor)};
+    if (Position != Actors.end()) {
+        Actors.erase(Position);
+    } else {
+        Actors.push_back(Actor);
+    }
+    return SetSelectedActors(Actors);
+}
+
+Uint64 FEditorContext::GetSelectionRevision() const {
+    return mSelectionRevision;
+}
+
+TArray<FObjectHandle> FEditorContext::DuplicateSelectedActors() {
+    if (!CanEditWorld() || mChangingState || mEditingProperty || mEngine->IsDispatching()) {
+        return {};
+    }
+    FString Error{};
+    TArray<FObjectHandle> Copies{};
+    {
+        FOperationScope Scope{&mChangingState};
+        Copies = FWorldCloner::DuplicateActors(GetWorld(), GetSelectedActors(), Error);
+    }
+    if (!Copies.empty()) {
+        SetSelectedActors(Copies);
+        mDirty = true;
+    } else if (!Error.empty()) {
+        AddLog(Error);
+    }
+    return Copies;
 }

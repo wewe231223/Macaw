@@ -12,6 +12,7 @@
 #include "Engine/Component/UActorComponent.h"
 #include "Engine/Component/USceneComponent.h"
 #include "CoreUObject/FObjectDuplicationContext.h"
+#include "CoreUObject/FObjectRegistry.h"
 #include "CoreUObject/Reflection/Cast.h"
 #include "CoreUObject/Reflection/FProperty.h"
 #include "CoreUObject/Reflection/UClass.h"
@@ -135,4 +136,56 @@ std::unique_ptr<FWorldContext> FWorldCloner::Clone(const FWorldContext* Source, 
 
     *Duplication = std::move(Objects);
     return Context;
+}
+
+TArray<FObjectHandle> FWorldCloner::DuplicateActors(UWorld* World, const TArray<FObjectHandle>& Actors, FString& Error) {
+    Error.clear();
+    if (World == nullptr || !World->CanAddActor() || World->IsDispatching() || Actors.empty()) {
+        Error = "Invalid actor duplication request";
+        return {};
+    }
+    UWorld::FDispatchScope Scope{World};
+    FObjectDuplicationContext Objects{};
+    TArray<std::unique_ptr<AActor>> Copies{};
+    for (FObjectHandle Handle : Actors) {
+        const auto* Source{Cast<AActor>(FObjectRegistry::Get()->Resolve(Handle))};
+        if (Source == nullptr || Source->GetWorld() != World || Source->IsPendingDestroy() || Objects.FindDuplicate(Source) != nullptr) {
+            Error = "Invalid source actor";
+            return {};
+        }
+        auto Object{CreateObject(Source, &Objects, Error)};
+        if (Object == nullptr) {
+            return {};
+        }
+        std::unique_ptr<AActor> Copy{static_cast<AActor*>(Object.release())};
+        for (const auto& Component : Source->GetComponents()) {
+            auto Duplicate{CreateObject(Component.get(), &Objects, Error)};
+            if (Duplicate == nullptr || !Copy->AddComponent(std::unique_ptr<UActorComponent>{static_cast<UActorComponent*>(Duplicate.release())})) {
+                return {};
+            }
+        }
+        if (Source->GetRootComponent() != nullptr && !Copy->SetRootComponent(Cast<USceneComponent>(Objects.FindDuplicate(Source->GetRootComponent())))) {
+            return {};
+        }
+        Copies.push_back(std::move(Copy));
+    }
+    for (const auto& [Original, Duplicate] : Objects.GetObjects()) {
+        if (!Duplicate->PostDuplicate(Original, &Objects)) {
+            Error = "Actor reference fixup failed";
+            return {};
+        }
+    }
+    TArray<FObjectHandle> Result{};
+    for (auto& Copy : Copies) {
+        const FObjectHandle Handle{Copy->GetHandle()};
+        if (!World->GetPersistentLevel()->AddActor(std::move(Copy))) {
+            for (FObjectHandle Added : Result) {
+                World->DestroyActor(Added);
+            }
+            Error = "Duplicated actor registration failed";
+            return {};
+        }
+        Result.push_back(Handle);
+    }
+    return Result;
 }

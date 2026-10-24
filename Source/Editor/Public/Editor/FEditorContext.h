@@ -106,18 +106,25 @@ public:
     void ClearSelection();
     /** @brief 선택한 액터를 검증하여 조회합니다. @return 살아 있는 선택 액터의 비소유 주소이며 선택이 없으면 nullptr입니다. */
     AActor* GetSelectedActor() const;
+    TArray<FObjectHandle> GetSelectedActors() const;
+    TArray<FObjectHandle> GetTransformTargets() const;
+    bool SetSelectedActors(const TArray<FObjectHandle>& Actors);
+    bool ToggleActorSelection(FObjectHandle Actor);
+    Uint64 GetSelectionRevision() const;
+    TArray<FObjectHandle> DuplicateSelectedActors();
+
     /** @brief 현재 프로퍼티 편집 대상을 조회합니다. @return 선택 객체의 비소유 주소이며 선택이 없으면 nullptr입니다. */
     UObject* GetSelectedObject() const;
 
     /** @brief 액터를 생성하고 배치한 뒤 선택과 장면 변경 상태를 갱신합니다. @param[in] Type 생성할 기본 메시 종류입니다. @return 생성한 액터의 비소유 주소이며 실패하면 nullptr입니다. */
     AStaticMeshActor* SpawnPrimitive(EPrimitiveType Type);
-    /** @brief 현재 선택 액터를 삭제하고 관련 선택을 해제합니다. @return 삭제 요청을 수락하면 true입니다. */
+    /** @brief 선택한 액터들을 삭제하고 관련 선택을 해제합니다. @return 삭제 요청을 수락하면 true입니다. */
     bool DestroySelectedActor();
     /** @brief 객체 소속과 프로퍼티 편집 권한을 검사합니다. @param[in] Handle 편집할 객체 핸들입니다. @param[in] Property 객체 클래스의 프로퍼티입니다. @return 현재 편집할 수 있으면 true입니다. */
     bool CanEditProperty(FObjectHandle Handle, const FProperty* Property) const;
     /** @brief 공통 검증과 변경 전후 알림을 거쳐 프로퍼티를 편집합니다. @param[in] Handle 편집할 객체 핸들입니다. @param[in] Property 객체 클래스의 프로퍼티입니다. @param[in] Value 적용할 값입니다. @param[in] Interactive 드래그 중 연속 변경인지 지정합니다. @return 값 쓰기에 성공하면 true입니다. @note 콜백 중 삭제와 재진입을 검사하며 성공한 변경은 장면을 수정 상태로 만듭니다. */
     bool EditProperty(FObjectHandle Handle, const FProperty* Property, const FPropertyValue& Value, bool Interactive = false);
-    /** @brief 액터 루트의 변환을 공통 프로퍼티 편집 경로로 변경합니다. @param[in] Handle 변환할 액터의 핸들입니다. @param[in] Transform 적용할 변환입니다. @param[in] Interactive 연속 편집 여부입니다. @return 변환을 적용하면 true입니다. */
+    /** @brief 액터 루트 또는 공간 컴포넌트의 변환을 공통 프로퍼티 편집 경로로 변경합니다. @param[in] Handle 변환할 액터 또는 공간 컴포넌트의 핸들입니다. @param[in] Transform 적용할 변환입니다. @param[in] Interactive 연속 편집 여부입니다. @return 변환을 적용하면 true입니다. */
     bool ApplyTransform(FObjectHandle Handle, const FTransform& Transform, bool Interactive = false);
 
     /** @brief 편집 월드를 장면 파일로 저장합니다. @param[in] Path 절대 경로 또는 Scenes 아래 상대 경로입니다. @return 저장에 성공하면 true입니다. */
@@ -188,4 +195,8 @@ private:
     /** @brief 활성 뷰포트 등에 따른 새 액터의 배치 변환 제공자입니다. */
     std::function<FTransform()> mPlacementProvider{};
     ReflectProperty(mPlacementProvider, "PlacementProvider", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    TArray<FObjectHandle> mSelectedActors{};
+    ReflectProperty(mSelectedActors, "SelectedActors", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    Uint64 mSelectionRevision{};
+    ReflectProperty(mSelectionRevision, "SelectionRevision", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 };

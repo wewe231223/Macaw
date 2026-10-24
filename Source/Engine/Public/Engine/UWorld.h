@@ -223,11 +223,12 @@ public:
     /**
      * @brief 월드 프리미티브의 메시를 검사하여 광선에 가장 가까운 충돌을 찾습니다.
      * @param[in] Ray 교차를 검사하거나 역투영 결과를 기록할 광선입니다.
-     * @param[in,out] Hit 교차 성공 시 충돌 정보 또는 교점을 기록합니다.
+     * @param[in,out] Hit 교차 성공 시 충돌 위치, 거리와 월드 법선을 기록합니다.
+     * @param[in] ExcludedActors 질의에서 제외할 액터 핸들 목록의 비소유 주소이며 nullptr이면 제외하지 않습니다.
      * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
      * @note 입력 방향을 내부에서 정규화합니다. 원점이 유한하지 않거나 방향을 정규화할 수 없으면 실패합니다.
      */
-    bool Raycast(const FRay& Ray, FWorldHit& Hit) const;
+    bool Raycast(const FRay& Ray, FWorldHit& Hit, const TArray<FObjectHandle>* ExcludedActors = nullptr) const;
     /**
      * @brief 종속 객체를 역순으로 정리하고 여러 번 호출해도 안전한 종료 상태로 만듭니다.
      */

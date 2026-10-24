@@ -90,7 +90,7 @@ public:
      */
     void Draw(FSceneViewport* Viewport) override;
     /**
-     * @brief 기즈모 화면 거리 검사와 기존 월드 광선 질의로 선택 정보를 구합니다.
+     * @brief 기즈모 메시와 월드 메시의 CPU 광선 질의로 선택 정보를 구합니다.
      * @param[in] Viewport 입력 좌표와 크기를 제공하는 비소유 뷰포트입니다.
      * @param[in] Position 뷰포트 기준 마우스 픽셀 좌표입니다.
      * @return 기즈모 축을 우선하며 그 외에는 가장 가까운 메시 컴포넌트 또는 빈 프록시를 반환합니다.
@@ -214,7 +214,7 @@ private:
 
     /**
      * @brief 현재 프레임의 에디터 보조 선분 수집기입니다.
-     */
+     **/
     FPrimitiveDrawInterface mDrawInterface{};
     ReflectProperty(mDrawInterface, "DrawInterface", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 };

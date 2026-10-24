@@ -1,0 +1,30 @@
+digraph Editor {
+    graph [rankdir=LR, bgcolor="transparent", fontname="Malgun Gothic", nodesep=0.35, ranksep=0.65, pad=0.2];
+    node [shape=box, style="rounded,filled", fillcolor="#e7f1fb", color="#8ba8c3", fontname="Malgun Gothic", fontsize=11, margin="0.16,0.10"];
+    edge [color="#57718a", fontname="Malgun Gothic", fontsize=10, arrowsize=0.75];
+    Editor [label="UEditorEngine\n엔진 · 편집 상태 · UI 조합"];
+    Engine [label="UEngine\n월드 실행 · 렌더 동기화", fillcolor="#f0f2f5"];
+    Context [label="FEditorContext\n편집 월드 · 선택 · 공통 편집"];
+    UI [label="FEditorUI\nImGui · 도킹 · 입력"];
+    Panels [label="FOutlinerPanel · FDetailsPanel\nFConsolePanel · FStatisticsPanel"];
+    Viewport [label="FEditorViewport\n창 · 입력 전달 · 타깃 표시"];
+    Client [label="FEditorViewportClient\n카메라 · 명령 · 피킹"];
+    Gizmo [label="FTransformGizmo\n변환 핸들 · 드래그"];
+    SceneViewport [label="FSceneViewport\n입력 · 드로 호출 연결", fillcolor="#f0f2f5"];
+    BaseClient [label="FViewportClient\n뷰포트 동작 계약", fillcolor="#f0f2f5"];
+    Target [label="FRenderTarget\n뷰포트 출력", fillcolor="#f0f2f5"];
+    Editor -> Engine [label="상속", arrowhead=empty];
+    Editor -> Context [label="소유"];
+    Editor -> UI [label="소유"];
+    Editor -> Viewport [label="소유"];
+    UI -> Panels [label="소유"];
+    UI -> Viewport [label="배치 · 표시", style=dashed, constraint=false];
+    Panels -> Context [label="공통 편집 경로 참조", style=dashed, constraint=false];
+    Viewport -> Client [label="소유"];
+    Viewport -> SceneViewport [label="소유"];
+    Client -> BaseClient [label="상속", arrowhead=empty];
+    Client -> Gizmo [label="소유"];
+    Client -> Context [label="참조", style=dashed, constraint=false];
+    SceneViewport -> Client [label="참조 · 입력 / 드로 전달", style=dashed, constraint=false];
+    SceneViewport -> Target [label="소유"];
+}

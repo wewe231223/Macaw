@@ -25,6 +25,9 @@
 #include "RenderTarget.h"
 #include "FScene.h"
 #include "FSceneRenderer.h"
+#include "FEditorMeshConstants.h"
+#include "Engine/EditorMesh.h"
+#include "Core/Math/FVector4.h"
 
 #include <d3dcompiler.h>
 #include <algorithm>
@@ -77,20 +80,47 @@ cbuffer ViewConstants : register(b1) {
 };
 struct FInput {
     float3 mPosition : POSITION;
-    float3 mColor : COLOR;
+    float4 mColor : COLOR;
 };
 struct FOutput {
     float4 mPosition : SV_POSITION;
-    float3 mColor : COLOR;
+    float4 mColor : COLOR;
 };
 FOutput VertexMain(FInput Input) {
-    FOutput Output = {float4(0, 0, 0, 0), float3(0, 0, 0)};
+    FOutput Output = {float4(0, 0, 0, 0), float4(0, 0, 0, 0)};
     Output.mPosition = mul(float4(Input.mPosition, 1), ViewProjection);
     Output.mColor = Input.mColor;
     return Output;
 }
 float4 PixelMain(FOutput Input) : SV_TARGET {
-    return float4(Input.mColor, 1);
+    return Input.mColor;
+}
+)"};
+
+    /**
+     * @brief 기즈모의 월드 행렬 변환과 조명 없는 RGBA 출력을 수행하는 내장 HLSL 소스입니다.
+     */
+    constexpr char GizmoShader[]{R"(
+cbuffer EditorMeshConstants : register(b0) {
+    row_major float4x4 World;
+    float4 Color;
+};
+cbuffer ViewConstants : register(b1) {
+    row_major float4x4 ViewProjection;
+};
+struct FInput {
+    float3 mPosition : POSITION;
+};
+struct FOutput {
+    float4 mPosition : SV_POSITION;
+};
+FOutput VertexMain(FInput Input) {
+    FOutput Output = {float4(0, 0, 0, 0)};
+    Output.mPosition = mul(mul(float4(Input.mPosition, 1), World), ViewProjection);
+    return Output;
+}
+float4 PixelMain() : SV_TARGET {
+    return Color;
 }
 )"};
 
@@ -154,7 +184,7 @@ bool FRenderer::Initialize(void* WindowHandle, Uint32 Width, Uint32 Height) {
         Factory->MakeWindowAssociation(Description.OutputWindow, DXGI_MWA_NO_ALT_ENTER);
     }
 
-    if (!CreateBackBuffer(Width, Height) || !CreatePipeline()) {
+    if (!CreateBackBuffer(Width, Height) || !CreatePipeline() || !CreateEditorMeshes()) {
         ErrorHandler::Fatal("Renderer", "Render pipeline creation failed");
     }
 
@@ -171,8 +201,12 @@ void FRenderer::Shutdown() {
     }
 
     mMeshes = {};
+    mEditorMeshes = {};
     mLineVertices = TArray<FLineVertex>{};
 
+    mOverlayLayout.Reset();
+    mEditorMeshBuffer.Reset();
+    mOverlayBlend.Reset();
     mViewBuffer.Reset();
     mLineBuffer.Reset();
 
@@ -183,6 +217,9 @@ void FRenderer::Shutdown() {
     mLineVertexShader.Reset();
     mLinePixelShader.Reset();
     mLineLayout.Reset();
+
+    mGizmoVertexShader.Reset();
+    mGizmoPixelShader.Reset();
 
     mRasterizer.Reset();
     mDepthEnabled.Reset();
@@ -329,13 +366,19 @@ void FRenderer::BeginRenderingViewFamily(const FSceneViewFamily& Family) {
     SceneRenderer.Render();
 
     if (Family.mEditorElements != nullptr) {
+        DrawMeshes(Family.mEditorElements, true);
         DrawLines(Family.mEditorElements, true);
+        mContext->ClearDepthStencilView(Target->GetDepthView(), D3D11_CLEAR_DEPTH, 1.0f, 0);
+        DrawMeshes(Family.mEditorElements, false);
         DrawLines(Family.mEditorElements, false);
     }
 
-    mStats.mGpuBytes = Scene->GetPrimitiveCount() * sizeof(FObjectConstants) + sizeof(FMatrix) + mLineCapacity * sizeof(FLineVertex) + static_cast<std::size_t>(Target->GetWidth()) * Target->GetHeight() * 8;
+    mStats.mGpuBytes = Scene->GetPrimitiveCount() * sizeof(FObjectConstants) + sizeof(FMatrix) + sizeof(FEditorMeshConstants) + mLineCapacity * sizeof(FLineVertex) + static_cast<std::size_t>(Target->GetWidth()) * Target->GetHeight() * 8;
 
     for (const FMeshResource& Mesh : mMeshes) {
+        mStats.mGpuBytes += Mesh.mBytes;
+    }
+    for (const FMeshResource& Mesh : mEditorMeshes) {
         mStats.mGpuBytes += Mesh.mBytes;
     }
 
@@ -423,7 +466,7 @@ bool FRenderer::CreateBackBuffer(Uint32 Width, Uint32 Height) {
 }
 
 /**
- * @brief 메시·선분 셰이더, 입력 레이아웃과 고정 파이프라인 상태를 생성합니다.
+ * @brief 메시·선분·기즈모 셰이더, 입력 레이아웃과 고정 파이프라인 상태를 생성합니다.
  */
 bool FRenderer::CreatePipeline() {
     ComPtr<ID3DBlob> VertexCode{};
@@ -452,6 +495,24 @@ bool FRenderer::CreatePipeline() {
         ErrorHandler::Fatal("Renderer", "Line pipeline allocation failed");
     }
 
+    VertexCode.Reset();
+    PixelCode.Reset();
+
+    if (!Compile(GizmoShader, sizeof(GizmoShader), "VertexMain", "vs_5_0", VertexCode) || !Compile(GizmoShader, sizeof(GizmoShader), "PixelMain", "ps_5_0", PixelCode)) {
+        return false;
+    }
+
+    const std::array<D3D11_INPUT_ELEMENT_DESC, 1> OverlayElements{{{"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0}}};
+    if (FAILED(mDevice->CreateVertexShader(VertexCode->GetBufferPointer(), VertexCode->GetBufferSize(), nullptr, mGizmoVertexShader.GetAddressOf())) || FAILED(mDevice->CreatePixelShader(PixelCode->GetBufferPointer(), PixelCode->GetBufferSize(), nullptr, mGizmoPixelShader.GetAddressOf())) || FAILED(mDevice->CreateInputLayout(OverlayElements.data(), static_cast<UINT>(OverlayElements.size()), VertexCode->GetBufferPointer(), VertexCode->GetBufferSize(), mOverlayLayout.GetAddressOf()))) {
+        ErrorHandler::Fatal("Renderer", "Gizmo pipeline allocation failed");
+    }
+
+    D3D11_BLEND_DESC Blend{};
+    Blend.RenderTarget[0] = {true, D3D11_BLEND_SRC_ALPHA, D3D11_BLEND_INV_SRC_ALPHA, D3D11_BLEND_OP_ADD, D3D11_BLEND_ONE, D3D11_BLEND_INV_SRC_ALPHA, D3D11_BLEND_OP_ADD, D3D11_COLOR_WRITE_ENABLE_ALL};
+    if (FAILED(mDevice->CreateBlendState(&Blend, mOverlayBlend.GetAddressOf()))) {
+        return false;
+    }
+
     D3D11_BUFFER_DESC Buffer{};
     Buffer.ByteWidth = sizeof(FMatrix);
     Buffer.Usage = D3D11_USAGE_DEFAULT;
@@ -459,6 +520,11 @@ bool FRenderer::CreatePipeline() {
 
     if (FAILED(mDevice->CreateBuffer(&Buffer, nullptr, mViewBuffer.GetAddressOf()))) {
         ErrorHandler::Fatal("Renderer", "View buffer allocation failed");
+    }
+
+    Buffer.ByteWidth = sizeof(FEditorMeshConstants);
+    if (FAILED(mDevice->CreateBuffer(&Buffer, nullptr, mEditorMeshBuffer.GetAddressOf()))) {
+        ErrorHandler::Fatal("Renderer", "Editor mesh constant buffer allocation failed");
     }
 
     D3D11_RASTERIZER_DESC Rasterizer{};
@@ -553,4 +619,71 @@ void FRenderer::DrawLines(const FPrimitiveDrawInterface* Elements, bool DepthTes
     mContext->Draw(Count, 0);
 
     ++mStats.mDrawCalls;
+}
+
+/**
+ * @brief 고정 에디터 메시의 로컬 정점과 인덱스를 종류별 불변 GPU 버퍼에 업로드합니다.
+ */
+bool FRenderer::CreateEditorMeshes() {
+    for (std::size_t Index{}; Index < mEditorMeshes.size(); ++Index) {
+        const FMeshData* Mesh{&GetEditorMesh(static_cast<EEditorMesh>(Index))};
+        TArray<std::array<float, 3>> Vertices{};
+        Vertices.reserve(Mesh->mVertices.size());
+        for (const FMeshVertex& Vertex : Mesh->mVertices) {
+            Vertices.push_back(Vertex.mPosition.ToArray());
+        }
+
+        FMeshResource Resource{};
+        D3D11_BUFFER_DESC Description{};
+        Description.ByteWidth = static_cast<UINT>(Vertices.size() * sizeof(std::array<float, 3>));
+        Description.Usage = D3D11_USAGE_IMMUTABLE;
+        Description.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+        D3D11_SUBRESOURCE_DATA Data{};
+        Data.pSysMem = Vertices.data();
+        if (FAILED(mDevice->CreateBuffer(&Description, &Data, Resource.mVertices.GetAddressOf()))) {
+            ErrorHandler::Fatal("Renderer", "Editor mesh vertex buffer allocation failed");
+        }
+        Resource.mBytes = Description.ByteWidth;
+
+        Description.ByteWidth = static_cast<UINT>(Mesh->mIndices.size() * sizeof(Uint32));
+        Description.BindFlags = D3D11_BIND_INDEX_BUFFER;
+        Data.pSysMem = Mesh->mIndices.data();
+        if (FAILED(mDevice->CreateBuffer(&Description, &Data, Resource.mIndices.GetAddressOf()))) {
+            ErrorHandler::Fatal("Renderer", "Editor mesh index buffer allocation failed");
+        }
+        Resource.mBytes += Description.ByteWidth;
+        Resource.mIndexCount = static_cast<Uint32>(Mesh->mIndices.size());
+        mEditorMeshes[Index] = std::move(Resource);
+    }
+    return true;
+}
+
+void FRenderer::DrawMeshes(const FPrimitiveDrawInterface* Elements, bool DepthTest) {
+    const UINT Stride{sizeof(std::array<float, 3>)};
+    const UINT Offset{};
+    mContext->IASetInputLayout(mOverlayLayout.Get());
+    mContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    mContext->VSSetShader(mGizmoVertexShader.Get(), nullptr, 0);
+    mContext->PSSetShader(mGizmoPixelShader.Get(), nullptr, 0);
+    ID3D11Buffer* ConstantsBuffer{mEditorMeshBuffer.Get()};
+    mContext->VSSetConstantBuffers(0, 1, &ConstantsBuffer);
+    mContext->PSSetConstantBuffers(0, 1, &ConstantsBuffer);
+    mContext->OMSetDepthStencilState(DepthTest ? mDepthReadOnly.Get() : mDepthEnabled.Get(), 0);
+    mContext->OMSetBlendState(mOverlayBlend.Get(), nullptr, 0xFFFFFFFFu);
+
+    for (const FDrawMesh& Draw : Elements->GetMeshes()) {
+        if (Draw.mMesh >= EEditorMesh::Count || Draw.mDepthTest != DepthTest) {
+            continue;
+        }
+        const FMeshResource* Mesh{&mEditorMeshes[static_cast<std::size_t>(Draw.mMesh)]};
+        const FEditorMeshConstants Constants{Draw.mWorld, {Draw.mColor.x, Draw.mColor.y, Draw.mColor.z, Draw.mColor.w}};
+        mContext->UpdateSubresource(mEditorMeshBuffer.Get(), 0, nullptr, &Constants, 0, 0);
+        ID3D11Buffer* Buffer{Mesh->mVertices.Get()};
+        mContext->IASetVertexBuffers(0, 1, &Buffer, &Stride, &Offset);
+        mContext->IASetIndexBuffer(Mesh->mIndices.Get(), DXGI_FORMAT_R32_UINT, 0);
+        mContext->DrawIndexed(Mesh->mIndexCount, 0, 0);
+        ++mStats.mDrawCalls;
+    }
+
+    mContext->OMSetBlendState(nullptr, nullptr, 0xFFFFFFFFu);
 }

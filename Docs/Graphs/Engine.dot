@@ -1,0 +1,29 @@
+digraph Engine {
+    graph [rankdir=LR, bgcolor="transparent", fontname="Malgun Gothic", nodesep=0.4, ranksep=0.45, pad=0.2];
+    node [shape=box, style="rounded,filled", fillcolor="#e7f1fb", color="#8ba8c3", fontname="Malgun Gothic", fontsize=11, margin="0.16,0.10"];
+    edge [color="#57718a", fontname="Malgun Gothic", fontsize=10, arrowsize=0.75];
+    Engine [label="UEngine\n여러 월드 관리"];
+    Context [label="FWorldContext\n월드 핸들 · 용도"];
+    World [label="UWorld\n게임 실행 · 렌더 갱신 큐"];
+    Level [label="ULevel\n영속 레벨"];
+    Actor [label="AActor\n컴포넌트 소유 · 생명주기"];
+    Component [label="UActorComponent\n등록 · 생명주기"];
+    Spatial [label="USceneComponent\n공간 변환"];
+    Primitive [label="UPrimitiveComponent\n렌더 상태 · 프록시"];
+    StaticMesh [label="UStaticMeshComponent\n기본 메시 종류"];
+    Scene [label="FSceneInterface\n렌더 장면 계약"];
+    { rank=same; Engine; StaticMesh; }
+    { rank=same; Context; Primitive; }
+    { rank=same; World; Scene; Spatial; }
+    { rank=same; Level; Actor; Component; }
+    Engine -> Context [label="소유 · 여러 개"];
+    Context -> World [label="소유"];
+    World -> Level [label="소유"];
+    World -> Scene [label="소유", constraint=false];
+    Scene -> Spatial [style=invis, weight=100];
+    Level -> Actor [label="소유 · 여러 개", constraint=false];
+    Actor -> Component [label="소유 · 여러 개", constraint=false];
+    StaticMesh -> Primitive [label="상속", arrowhead=empty];
+    Primitive -> Spatial [label="상속", arrowhead=empty];
+    Spatial -> Component [label="상속", arrowhead=empty];
+}

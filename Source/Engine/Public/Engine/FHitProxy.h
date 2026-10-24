@@ -24,7 +24,7 @@ enum class EHitProxyType : Uint8 {
      */
     Object,
     /**
-     * @brief 선택 액터에 연결된 변환 기즈모 축입니다.
+     * @brief 선택 액터에 연결된 축, 평면, 화면 또는 균일 스케일 조작 핸들입니다.
      */
     GizmoAxis
 };
@@ -79,7 +79,7 @@ public:
     FObjectHandle mObject{};
     ReflectProperty(mObject, "Object", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
     /**
-     * @brief 기즈모의 X, Y, Z 축을 각각 0, 1, 2로 나타내며 그 외에는 -1입니다.
+     * @brief 기즈모 핸들을 X/Y/Z=0/1/2, XY/XZ/YZ=3/4/5, 화면=6, 균일 스케일=7로 나타내며 객체 피킹에서는 -1입니다.
      */
     Int32 mAxis{-1};
     ReflectProperty(mAxis, "Axis", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);

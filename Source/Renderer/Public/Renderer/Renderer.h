@@ -12,6 +12,7 @@
 #include "Engine/FRenderTarget.h"
 #include "Engine/FSceneViewFamily.h"
 #include "Engine/EPrimitiveType.h"
+#include "Engine/EEditorMesh.h"
 #include "RenderCore/FRenderStats.h"
 #include "RenderCore/IRendererModule.h"
 #include "Renderer/FMeshResource.h"
@@ -145,10 +146,15 @@ private:
      */
     bool CreateBackBuffer(Uint32 Width, Uint32 Height);
     /**
-     * @brief 메시·선분 셰이더, 입력 레이아웃과 고정 파이프라인 상태를 생성합니다.
+     * @brief 메시·선분·기즈모 셰이더, 입력 레이아웃과 고정 파이프라인 상태를 생성합니다.
      * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
      */
     bool CreatePipeline();
+    /**
+     * @brief 고정 에디터 메시의 로컬 정점과 인덱스를 종류별 불변 GPU 버퍼에 업로드합니다.
+     * @return 모든 버퍼를 생성하면 true이며 GPU 자원 생성 실패는 치명적 오류로 처리합니다.
+     */
+    bool CreateEditorMeshes();
     /**
      * @brief 내장 HLSL 소스를 지정한 진입점과 프로파일로 컴파일합니다.
      * @param[in] Source 컴파일할 HLSL 소스의 주소입니다.
@@ -165,6 +171,7 @@ private:
      * @param[in] DepthTest 깊이 검사를 적용할지 지정합니다.
      */
     void DrawLines(const FPrimitiveDrawInterface* Elements, bool DepthTest);
+    void DrawMeshes(const FPrimitiveDrawInterface* Elements, bool DepthTest);
 
 private:
     /**
@@ -312,4 +319,22 @@ private:
      */
     FRenderStats mStats{};
     ReflectProperty(mStats, "Stats", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /**
+     * @brief 고정 에디터 메시의 로컬 정점에 월드 행렬과 뷰·투영 행렬을 적용하는 기즈모 정점 셰이더입니다.
+     */
+    Microsoft::WRL::ComPtr<ID3D11VertexShader> mGizmoVertexShader{};
+    ReflectProperty(mGizmoVertexShader, "GizmoVertexShader", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /**
+     * @brief 조명 계산 없이 요청의 RGBA 색상을 출력하는 기즈모 픽셀 셰이더입니다.
+     */
+    Microsoft::WRL::ComPtr<ID3D11PixelShader> mGizmoPixelShader{};
+    ReflectProperty(mGizmoPixelShader, "GizmoPixelShader", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    Microsoft::WRL::ComPtr<ID3D11InputLayout> mOverlayLayout{};
+    ReflectProperty(mOverlayLayout, "OverlayLayout", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    Microsoft::WRL::ComPtr<ID3D11Buffer> mEditorMeshBuffer{};
+    ReflectProperty(mEditorMeshBuffer, "EditorMeshBuffer", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    Microsoft::WRL::ComPtr<ID3D11BlendState> mOverlayBlend{};
+    ReflectProperty(mOverlayBlend, "OverlayBlend", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    std::array<FMeshResource, static_cast<std::size_t>(EEditorMesh::Count)> mEditorMeshes{};
+    ReflectProperty(mEditorMeshes, "EditorMeshes", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 };

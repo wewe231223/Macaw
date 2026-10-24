@@ -46,5 +46,6 @@ enum class EViewportCommand {
      * @brief 향후 그리드 표시 전환에 사용할 명령입니다.
      * @note 현재 미구현이므로 실행 가능 여부와 선택 상태 조회는 false를 반환합니다.
      */
-    ToggleGrid
+    ToggleGrid,
+    Select
 };

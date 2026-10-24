@@ -51,6 +51,9 @@ bool FEditorViewportClient::ExecuteCommand(EViewportCommand Command) {
     }
 
     switch (Command) {
+    case EViewportCommand::Select:
+        SetGizmoMode(EGizmoMode::None);
+        break;
     case EViewportCommand::Translate:
         SetGizmoMode(EGizmoMode::Translate);
         break;
@@ -88,6 +91,7 @@ bool FEditorViewportClient::CanExecuteCommand(EViewportCommand Command) const {
     }
 
     switch (Command) {
+    case EViewportCommand::Select:
     case EViewportCommand::Translate:
     case EViewportCommand::Rotate:
     case EViewportCommand::Scale:
@@ -107,6 +111,8 @@ bool FEditorViewportClient::CanExecuteCommand(EViewportCommand Command) const {
  */
 bool FEditorViewportClient::IsCommandChecked(EViewportCommand Command) const {
     switch (Command) {
+    case EViewportCommand::Select:
+        return mGizmoMode == EGizmoMode::None;
     case EViewportCommand::Translate:
         return mGizmoMode == EGizmoMode::Translate;
     case EViewportCommand::Rotate:
@@ -130,37 +136,63 @@ void FEditorViewportClient::Input(FSceneViewport* Viewport, const FViewportInput
     if (Viewport == nullptr) {
         return;
     }
-
     const FVector2 Size{Viewport->GetSize()};
-    if (!mGizmo.IsDragging() && NavigateCamera(Input, Size, DeltaTime)) {
+    if (!mGizmo.IsDragging() && Input.mFocused && !Input.mRightDown && !Input.mAlt && !Input.mControl) {
+        if (Input.mSelectMode) {
+            ExecuteCommand(EViewportCommand::Select);
+        } else if (Input.mTranslateMode) {
+            ExecuteCommand(EViewportCommand::Translate);
+        } else if (Input.mRotateMode) {
+            ExecuteCommand(EViewportCommand::Rotate);
+        } else if (Input.mScaleMode) {
+            ExecuteCommand(EViewportCommand::Scale);
+        } else if (Input.mCycleGizmo && !Input.mLeftDown) {
+            ExecuteCommand(EViewportCommand::CycleTransformMode);
+        }
+        if (Input.mToggleSpace) {
+            ExecuteCommand(EViewportCommand::ToggleCoordinateSystem);
+        }
+        if (CanExecuteCommand(EViewportCommand::Translate)) {
+            auto* Settings{mGizmo.GetSettings()};
+            if (Input.mToggleSnap) {
+                if (mGizmoMode == EGizmoMode::Translate) {
+                    Settings->mTranslationSnap = !Settings->mTranslationSnap;
+                } else if (mGizmoMode == EGizmoMode::Rotate) {
+                    Settings->mRotationSnap = !Settings->mRotationSnap;
+                } else if (mGizmoMode == EGizmoMode::Scale) {
+                    Settings->mScaleSnap = !Settings->mScaleSnap;
+                }
+            }
+            if (Input.mToggleSurface) {
+                Settings->mSurfaceSnap = !Settings->mSurfaceSnap;
+            }
+        }
+    }
+    const FSceneView View{CalcSceneView(Size)};
+    const FHitProxy Hit{!mGizmo.IsDragging() && Input.mHovered ? Viewport->GetHitProxy(Input.mMouse) : FHitProxy{}};
+    if (mGizmo.Input(Input, View, Hit)) {
         return;
     }
-
-    if (Input.mCycleGizmo && Input.mFocused && !Input.mAlt && !Input.mLeftDown) {
-        ExecuteCommand(EViewportCommand::CycleTransformMode);
+    if (NavigateCamera(Input, Size, DeltaTime)) {
+        return;
     }
-
-    const FSceneView View{CalcSceneView(Size)};
-    const FHitProxy Hit{!mGizmo.IsDragging() && Input.mHovered && !Input.mAlt ? Viewport->GetHitProxy(Input.mMouse) : FHitProxy{}};
-    const bool GizmoConsumed{mGizmo.Input(Input, View, Hit)};
-
-    if (Input.mDelete && Input.mFocused && !mGizmo.IsDragging()) {
+    if (Input.mDelete && Input.mFocused) {
         mContext->DestroySelectedActor();
         return;
     }
-
-    if (Input.mLeftPressed && Input.mHovered && !Input.mAlt && !GizmoConsumed && mContext->GetWorld() != nullptr) {
+    if (Input.mLeftPressed && Input.mHovered && !Input.mAlt && mContext->GetWorld() != nullptr) {
         if (Hit.mType == EHitProxyType::Object) {
             UObject* Object{mContext->ResolveObject(Hit.mObject)};
             const auto* Component{Cast<UActorComponent>(Object)};
             AActor* Actor{Component != nullptr ? Component->GetOwner() : Cast<AActor>(Object)};
-
             if (Actor != nullptr) {
-                mContext->SelectActor(Actor->GetHandle());
-            } else {
-                mContext->ClearSelection();
+                if (Input.mControl) {
+                    mContext->ToggleActorSelection(Actor->GetHandle());
+                } else {
+                    mContext->SelectActor(Actor->GetHandle());
+                }
             }
-        } else if (Hit.mType == EHitProxyType::None) {
+        } else if (Hit.mType == EHitProxyType::None && !Input.mControl) {
             mContext->ClearSelection();
         }
     }
@@ -276,16 +308,6 @@ void FEditorViewportClient::Draw(FSceneViewport* Viewport) {
     mDrawInterface.DrawLine({}, {0.0f, 2.0f, 0.0f}, {0.3f, 0.9f, 0.4f}, true);
     mDrawInterface.DrawLine({}, {0.0f, 0.0f, 2.0f}, {0.3f, 0.55f, 1.0f}, true);
 
-    if (const AActor* Actor{mContext->GetSelectedActor()}; Actor != nullptr && Actor->GetRootComponent() != nullptr) {
-        const FTransform& Transform{Actor->GetRootComponent()->GetTransform()};
-        const std::array<FVector, 3> Axes{Transform.mRotation.ForwardVector(), Transform.mRotation.RightVector(), Transform.mRotation.UpVector()};
-        const std::array<FVector, 3> Colors{{{0.65f, 0.15f, 0.12f}, {0.12f, 0.65f, 0.2f}, {0.15f, 0.35f, 0.8f}}};
-
-        for (Int32 Index{}; Index < 3; ++Index) {
-            mDrawInterface.DrawLine(Transform.mLocation, Transform.mLocation + Axes[Index] * 0.6f, Colors[Index]);
-        }
-    }
-
     mGizmo.Draw(View, mDrawInterface);
 
     const FSceneViewFamily Family{World->GetScene(), Viewport->GetRenderTarget(), View, &mDrawInterface};
@@ -378,7 +400,7 @@ EGizmoSpace FEditorViewportClient::GetGizmoSpace() const {
 }
 
 /**
- * @brief 기즈모 축을 우선 검사하고 기존 CPU 광선 질의로 메시 컴포넌트의 핸들을 구합니다.
+ * @brief 기즈모 메시를 우선 검사하고 공통 CPU 광선 질의로 메시 컴포넌트의 핸들을 구합니다.
  */
 FHitProxy FEditorViewportClient::GetHitProxy(const FSceneViewport* Viewport, const FVector2& Position) const {
     UWorld* World{mContext->GetWorld()};

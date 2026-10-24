@@ -1,0 +1,16 @@
+digraph Serialization {
+    graph [rankdir=LR, bgcolor="transparent", fontname="Malgun Gothic", nodesep=0.4, ranksep=0.7];
+    node [shape=box, style="rounded,filled", fillcolor="#e8f3ff", color="#8eb6d9", fontname="Malgun Gothic", fontsize=11, margin="0.16,0.12"];
+    edge [color="#52677d", fontname="Malgun Gothic", fontsize=9];
+    JsonArchive [label="FJsonArchive\nJSON 로드·저장"];
+    Archive [label="FArchive\nCore · 직렬화 인터페이스", fillcolor="#f0f2f5", color="#b9c2cc"];
+    Document [label="rapidjson::Document\n외부 · JSON 문서", fillcolor="#f0f2f5", color="#b9c2cc"];
+    Value [label="rapidjson::Value\n외부 · 컨테이너 값", fillcolor="#f0f2f5", color="#b9c2cc"];
+    Serializer [label="FSceneSerializer\nEngine · 장면 저장·복원", fillcolor="#f0f2f5", color="#b9c2cc"];
+    Object [label="UObject\nCoreUObject · 프로퍼티 직렬화", fillcolor="#f0f2f5", color="#b9c2cc"];
+    JsonArchive -> Archive [arrowhead=empty, label="상속"];
+    JsonArchive -> Document [label="소유 · JSON 문서"];
+    JsonArchive -> Value [style=dashed, label="참조 · 컨테이너 탐색 스택"];
+    Serializer -> JsonArchive [style=dashed, label="사용 · 파일 입출력"];
+    Object -> Archive [style=dashed, label="사용 · Serialize 호출"];
+}

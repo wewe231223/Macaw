@@ -127,6 +127,9 @@ void FEditorViewport::DrawUI(float DeltaTime) {
             State.mLeftReleased = ImGui::IsMouseReleased(ImGuiMouseButton_Left);
             State.mRightDown = ImGui::IsMouseDown(ImGuiMouseButton_Right);
             State.mMiddleDown = ImGui::IsMouseDown(ImGuiMouseButton_Middle);
+            State.mMiddlePressed = ImGui::IsMouseClicked(ImGuiMouseButton_Middle);
+            State.mMiddleReleased = ImGui::IsMouseReleased(ImGuiMouseButton_Middle);
+            State.mControl = Input.KeyCtrl;
 
             State.mAlt = Input.KeyAlt;
             State.mWheel = Input.MouseWheel;
@@ -144,6 +147,13 @@ void FEditorViewport::DrawUI(float DeltaTime) {
             State.mUp = Keyboard && ImGui::IsKeyDown(ImGuiKey_E);
             State.mDown = Keyboard && ImGui::IsKeyDown(ImGuiKey_Q);
             State.mFast = Input.KeyShift;
+            State.mTranslateMode = Keyboard && ImGui::IsKeyPressed(ImGuiKey_W, false);
+            State.mRotateMode = Keyboard && ImGui::IsKeyPressed(ImGuiKey_E, false);
+            State.mScaleMode = Keyboard && ImGui::IsKeyPressed(ImGuiKey_R, false);
+            State.mSelectMode = Keyboard && ImGui::IsKeyPressed(ImGuiKey_Q, false);
+            State.mToggleSpace = Keyboard && ImGui::IsKeyPressed(ImGuiKey_Tab, false);
+            State.mToggleSnap = Keyboard && ImGui::IsKeyPressed(ImGuiKey_X, false);
+            State.mToggleSurface = Keyboard && ImGui::IsKeyPressed(ImGuiKey_Z, false);
 
             mViewport->Input(State, DeltaTime);
             Submitted = true;
@@ -152,9 +162,10 @@ void FEditorViewport::DrawUI(float DeltaTime) {
 
     ImGui::End();
 
-    if (!Submitted && mClient.GetGizmo().IsDragging() && (!ImGui::IsMouseDown(ImGuiMouseButton_Left) || ImGui::IsKeyPressed(ImGuiKey_Escape))) {
+    if (!Submitted && mClient.GetGizmo().IsDragging() && ((mClient.GetGizmo().IsPivotDrag() ? !ImGui::IsMouseDown(ImGuiMouseButton_Middle) : !ImGui::IsMouseDown(ImGuiMouseButton_Left)) || ImGui::IsKeyPressed(ImGuiKey_Escape))) {
         FViewportInput State{};
         State.mLeftDown = ImGui::IsMouseDown(ImGuiMouseButton_Left);
+        State.mMiddleDown = ImGui::IsMouseDown(ImGuiMouseButton_Middle);
         State.mEscape = ImGui::IsKeyPressed(ImGuiKey_Escape);
         mViewport->Input(State, DeltaTime);
     }

@@ -1,0 +1,18 @@
+digraph Core {
+    graph [rankdir=LR, bgcolor="transparent", fontname="Malgun Gothic", nodesep=0.4, ranksep=0.7];
+    node [shape=box, style="rounded,filled", fillcolor="#e8f3ff", color="#8eb6d9", fontname="Malgun Gothic", fontsize=11, margin="0.16,0.12"];
+    edge [color="#52677d", fontname="Malgun Gothic", fontsize=9];
+    Transform [label="FTransform\n위치·회전·스케일"];
+    Vector [label="FVector\n3차원 벡터"];
+    Quat [label="FQuat\n쿼터니언 회전"];
+    Rotator [label="FRotator\n도 단위 오일러 회전"];
+    Matrix [label="FMatrix\n4 × 4 변환 행렬"];
+    Box [label="FBox\n축 정렬 경계 상자"];
+    Ray [label="FRay\n원점·방향"];
+    Transform -> Vector [label="소유 · 위치·스케일 값"];
+    Transform -> Quat [label="소유 · 회전 값"];
+    Transform -> Matrix [style=dashed, label="사용 · 행렬로 변환"];
+    Transform -> Rotator [style=dashed, label="사용 · 회전 읽기·쓰기"];
+    Box -> Vector [label="소유 · 최솟값·최댓값"];
+    Ray -> Vector [label="소유 · 원점·방향 값"];
+}

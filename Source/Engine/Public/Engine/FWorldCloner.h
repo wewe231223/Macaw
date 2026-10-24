@@ -12,6 +12,8 @@
 #include "Engine/EWorldType.h"
 
 class UObject;
+class UWorld;
+struct FObjectHandle;
 class FWorldContext;
 class FObjectDuplicationContext;
 
@@ -33,6 +35,7 @@ public:
      * @return 등록된 메타데이터의 비소유 주소입니다.
      */
     ReflectStruct(FWorldCloner);
+    static TArray<FObjectHandle> DuplicateActors(UWorld* World, const TArray<FObjectHandle>& Actors, FString& Error);
     /**
      * @brief 월드, 영속 레벨, 액터와 컴포넌트를 독립 컨텍스트로 복제합니다.
      * @param[in] Source 콜백을 전달 중이지 않은 원본 컨텍스트입니다.
