@@ -5,6 +5,5 @@
 struct FMeshData;
 struct FMatrix;
 struct FRay;
-struct FVector;
 
-bool RaycastMesh(const FMeshData* Mesh, const FMatrix& World, const FRay& Ray, float& Distance, FVector* Normal = nullptr);
+bool RaycastMesh(const FMeshData* Mesh, const FMatrix& World, const FRay& Ray, float& Distance);

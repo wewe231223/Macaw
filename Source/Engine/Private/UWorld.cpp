@@ -215,7 +215,7 @@ void UWorld::SendAllEndOfFrameUpdates() {
 /**
  * @brief 월드 프리미티브의 메시를 검사하여 광선에 가장 가까운 충돌을 찾습니다.
  */
-bool UWorld::Raycast(const FRay& Ray, FWorldHit& Hit, const TArray<FObjectHandle>* ExcludedActors) const {
+bool UWorld::Raycast(const FRay& Ray, FWorldHit& Hit) const {
     FRay NormalizedRay{Ray};
     if (mPersistentLevel == nullptr || !NormalizedRay.mOrigin.IsFinite() || !NormalizedRay.mDirection.Normalize()) {
         return false;
@@ -224,14 +224,13 @@ bool UWorld::Raycast(const FRay& Ray, FWorldHit& Hit, const TArray<FObjectHandle
     bool Found{};
     float Closest{std::numeric_limits<float>::max()};
     for (const auto& Actor : mPersistentLevel->GetActors()) {
-        if (Actor->IsPendingDestroy() || (ExcludedActors != nullptr && std::find(ExcludedActors->begin(), ExcludedActors->end(), Actor->GetHandle()) != ExcludedActors->end())) {
+        if (Actor->IsPendingDestroy()) {
             continue;
         }
         for (const auto& Component : Actor->GetComponents()) {
             const auto* Primitive{Cast<UPrimitiveComponent>(Component.get())};
-            FVector Normal{};
-            if (Primitive != nullptr && RaycastMesh(&GetPrimitiveMesh(Primitive->GetPrimitiveType()), Primitive->GetWorldMatrix(), NormalizedRay, Closest, &Normal)) {
-                Hit = {Actor->GetHandle(), Primitive->GetHandle(), NormalizedRay.mOrigin + NormalizedRay.mDirection * Closest, Closest, Normal};
+            if (Primitive != nullptr && RaycastMesh(&GetPrimitiveMesh(Primitive->GetPrimitiveType()), Primitive->GetWorldMatrix(), NormalizedRay, Closest)) {
+                Hit = {Actor->GetHandle(), Primitive->GetHandle(), NormalizedRay.mOrigin + NormalizedRay.mDirection * Closest, Closest};
                 Found = true;
             }
         }

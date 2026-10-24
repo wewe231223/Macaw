@@ -154,10 +154,19 @@ public:
 private:
     /** @brief 리플렉션 등록 함수의 접근 권한입니다. */
     ReflectMembers();
-    /** @brief 재진입을 차단하고 요청 대상을 검증하여 선택을 적용합니다. @param[in] Actor 액터 선택 핸들입니다. @param[in] Object 편집 대상 핸들입니다. @return 요청을 수락하면 true입니다. */
-    bool SetSelection(FObjectHandle Actor, FObjectHandle Object);
-    /** @brief 검증한 선택 핸들을 저장합니다. @param[in] Actor 액터 선택입니다. @param[in] Object 프로퍼티 편집 대상입니다. */
-    void AssignSelection(FObjectHandle Actor, FObjectHandle Object);
+    /**
+     * @brief 재진입을 차단하고 단일·다중 선택 대상을 공통 검증하여 적용합니다.
+     * @param[in] Actors 순서와 중복 여부를 검증할 액터 선택 목록입니다.
+     * @param[in] Object 편집 대상 핸들입니다.
+     * @return 요청을 수락하면 true이며 잘못된 요청은 기존 선택을 유지합니다.
+     */
+    bool SetSelection(const TArray<FObjectHandle>& Actors, FObjectHandle Object);
+    /**
+     * @brief 검증한 선택 목록과 편집 대상을 저장하고 선택 변경 번호를 갱신합니다.
+     * @param[in] Actors 마지막 항목을 대표 액터로 사용하는 선택 목록입니다.
+     * @param[in] Object 프로퍼티 편집 대상입니다.
+     */
+    void AssignSelection(const TArray<FObjectHandle>& Actors, FObjectHandle Object);
     /** @brief 새 컨텍스트를 엔진에 등록하고 이전 편집 월드를 교체합니다. @param[in] Context 엔진으로 소유권을 이전할 새 월드입니다. @param[in] Path 새 장면 파일 경로입니다. @return 교체에 성공하면 true입니다. */
     bool ReplaceScene(std::unique_ptr<FWorldContext> Context, const std::filesystem::path& Path);
 
@@ -168,9 +177,6 @@ private:
     /** @brief 엔진의 현재 실행 대상과 독립적인 편집 월드 핸들입니다. */
     FWorldHandle mWorld{};
     ReflectProperty(mWorld, "World", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
-    /** @brief 선택한 액터의 세대 핸들입니다. */
-    FObjectHandle mSelectedActor{};
-    ReflectProperty(mSelectedActor, "SelectedActor", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
     /** @brief 프로퍼티 편집 대상의 세대 핸들입니다. */
     FObjectHandle mSelectedObject{};
     ReflectProperty(mSelectedObject, "SelectedObject", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
@@ -195,6 +201,9 @@ private:
     /** @brief 활성 뷰포트 등에 따른 새 액터의 배치 변환 제공자입니다. */
     std::function<FTransform()> mPlacementProvider{};
     ReflectProperty(mPlacementProvider, "PlacementProvider", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /**
+     * @brief 선택한 액터의 세대 핸들 목록이며 마지막 유효 항목이 대표 액터입니다.
+     */
     TArray<FObjectHandle> mSelectedActors{};
     ReflectProperty(mSelectedActors, "SelectedActors", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
     Uint64 mSelectionRevision{};

@@ -134,7 +134,12 @@ public:
      * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
      */
     bool IsDragging() const;
-    FGizmoSettings* GetSettings();
+    /**
+     * @brief 이 기즈모의 스냅과 크기 설정을 읽기 전용으로 반환합니다.
+     * @return 기즈모가 유지하는 설정의 비소유 주소이며 기즈모 수명 동안 유효합니다.
+     * @note 설정 변경은 소유 뷰포트 클라이언트의 명령 또는 수치 설정 API를 사용합니다.
+     */
+    const FGizmoSettings* GetSettings() const;
     FVector GetPivot() const;
     bool IsPivotDrag() const;
     /**
@@ -144,6 +149,23 @@ public:
     Int32 GetHoveredAxis() const;
 
 private:
+    /**
+     * @brief 편집 권한과 값의 범위를 검증한 뷰포트 클라이언트에 설정 저장을 허용합니다.
+     */
+    friend class FEditorViewportClient;
+
+    /**
+     * @brief 기존 대상 스냅샷을 비우고 현재 선택된 변환 대상들의 핸들과 변환을 수집합니다.
+     * @return 유효한 장면 컴포넌트를 하나 이상 수집하면 true입니다.
+     * @note 드래그 시작과 Alt 복제 직후에 사용하며 해석할 수 없는 대상은 제외합니다.
+     */
+    bool CaptureTargets();
+    /**
+     * @brief 뷰포트 클라이언트가 검증한 설정의 사본을 저장합니다.
+     * @param[in] Settings 이 기즈모에 적용할 설정입니다.
+     * @pre 호출자가 편집 가능 여부와 각 설정 값의 유효 범위를 검증해야 합니다.
+     */
+    void SetSettings(const FGizmoSettings& Settings);
     /**
      * @brief 선택한 좌표 공간에 맞는 기즈모 단위 축을 구합니다.
      * @param[in] Transform 적용할 위치, 회전과 스케일입니다.
@@ -175,7 +197,7 @@ private:
     void EndDrag(bool Restore);
     USceneComponent* GetPrimaryTarget() const;
     void BuildHandles(const FSceneView& View, FPrimitiveDrawInterface* DrawInterface) const;
-    void DrawFeedback(const FSceneView& View, FPrimitiveDrawInterface* DrawInterface) const;
+    void DrawFeedback(FPrimitiveDrawInterface* DrawInterface) const;
 
 private:
     /**
@@ -282,8 +304,6 @@ private:
     ReflectProperty(mStartDirection, "StartDirection", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
     FVector mPreviousDirection{};
     ReflectProperty(mPreviousDirection, "PreviousDirection", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
-    FVector mSnapPosition{};
-    ReflectProperty(mSnapPosition, "SnapPosition", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
     FVector mTranslation{};
     ReflectProperty(mTranslation, "Translation", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
     std::array<FVector, 3> mDragAxes{};
@@ -306,6 +326,4 @@ private:
     ReflectProperty(mDuplicatePending, "DuplicatePending", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
     bool mScreenFallback{};
     ReflectProperty(mScreenFallback, "ScreenFallback", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
-    bool mShowSnap{};
-    ReflectProperty(mShowSnap, "ShowSnap", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 };

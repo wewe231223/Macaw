@@ -47,5 +47,25 @@ enum class EViewportCommand {
      * @note 현재 미구현이므로 실행 가능 여부와 선택 상태 조회는 false를 반환합니다.
      */
     ToggleGrid,
-    Select
+    /**
+     * @brief 기즈모를 숨기고 객체 선택만 수행하는 모드를 선택합니다.
+     */
+    Select,
+    /**
+     * @brief 이동량을 지정한 거리 간격에 맞추는 스냅의 사용 여부를 전환합니다.
+     */
+    ToggleTranslationSnap,
+    /**
+     * @brief 회전량을 지정한 각도 간격에 맞추는 스냅의 사용 여부를 전환합니다.
+     */
+    ToggleRotationSnap,
+    /**
+     * @brief 스케일 변화량을 지정한 간격에 맞추는 스냅의 사용 여부를 전환합니다.
+     */
+    ToggleScaleSnap,
+    /**
+     * @brief 현재 이동·회전·스케일 모드에 대응하는 스냅의 사용 여부를 전환합니다.
+     * @note 선택 전용 모드에서는 실행할 수 없습니다.
+     */
+    ToggleTransformSnap
 };

@@ -7,6 +7,7 @@
 #pragma once
 
 #include <imgui.h>
+#include "Editor/EEditorIcon.h"
 
 /**
  * @brief 에디터 UI의 아이콘, 버튼과 툴바 스타일을 제공합니다.
@@ -15,38 +16,9 @@
  */
 namespace EditorStyle {
     /**
-     * @brief 공통 벡터 아이콘의 종류입니다.
+     * @brief 명령 정의와 UI가 공유하는 아이콘 식별자의 스타일 네임스페이스 별칭입니다.
      */
-    enum class EIcon {
-        /**
-         * @brief 변환 도구 메뉴를 나타내는 아이콘입니다.
-         */
-        Tools,
-        /**
-         * @brief 이동을 나타내는 축 화살표 아이콘입니다.
-         */
-        Translate,
-        /**
-         * @brief 회전을 나타내는 원형 화살표 아이콘입니다.
-         */
-        Rotate,
-        /**
-         * @brief 스케일을 나타내는 사각 끝점 아이콘입니다.
-         */
-        Scale,
-        /**
-         * @brief 월드 좌표계를 나타내는 지구본 아이콘입니다.
-         */
-        World,
-        /**
-         * @brief 로컬 좌표계를 나타내는 입방체 아이콘입니다.
-         */
-        Local,
-        /**
-         * @brief 그리드 설정을 나타내는 격자 아이콘입니다.
-         */
-        Grid
-    };
+    using EIcon = EEditorIcon;
 
     /**
      * @brief 현재 ImGui 스타일 스택에 뷰포트 툴바의 간격, 모서리와 버튼 색상을 적용합니다.

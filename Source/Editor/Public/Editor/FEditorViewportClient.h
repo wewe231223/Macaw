@@ -47,26 +47,26 @@ public:
      * @brief 실행 가능 여부를 검사한 뒤 뷰포트 명령을 처리합니다.
      * @param[in] Command 툴바, 메뉴 또는 단축키에서 요청한 동작입니다.
      * @return 명령을 처리하면 true이며 차단되거나 지원하지 않는 명령이면 상태를 변경하지 않고 false입니다.
-     * @note 드래그 중에는 변환 명령을 차단합니다. 스케일 진입 시 로컬 좌표계로 바꾸며 그리드 명령은 아직 지원하지 않습니다.
+     * @note 편집할 수 없는 월드와 드래그 중에는 도구·설정 명령을 차단합니다. 스케일 진입 시 로컬 좌표계로 바꾸며 그리드 명령은 아직 지원하지 않습니다.
      */
     bool ExecuteCommand(EViewportCommand Command);
     /**
-     * @brief 현재 드래그 상태와 변환 모드에서 명령을 실행할 수 있는지 검사합니다.
+     * @brief 현재 월드의 편집 가능 여부, 드래그 상태와 변환 모드에서 명령을 실행할 수 있는지 검사합니다.
      * @param[in] Command 실행 가능 여부를 조회할 동작입니다.
-     * @return 처리 가능한 명령이면 true이며 드래그 중이거나 스케일 모드의 월드 좌표계 전환, 미지원 명령이면 false입니다.
+     * @return 처리 가능한 명령이면 true입니다. 편집 불가 월드, 드래그 중, 스케일 모드의 월드 좌표계 전환, 선택 전용 모드의 현재 모드 스냅, 미지원 명령이면 false입니다.
      */
     bool CanExecuteCommand(EViewportCommand Command) const;
     /**
-     * @brief 명령에 대응하는 모드 또는 좌표계가 선택되어 있는지 검사합니다.
+     * @brief 명령에 대응하는 모드, 좌표계 또는 스냅 설정의 선택 상태를 검사합니다.
      * @param[in] Command 선택 상태를 조회할 동작입니다.
-     * @return 해당 모드나 좌표계가 선택되어 있으면 true입니다. 좌표계 전환 명령은 로컬일 때 true이며 순환 및 미지원 명령은 false입니다.
+     * @return 해당 모드나 좌표계가 선택되었거나 스냅 설정이 켜져 있으면 true입니다. 좌표계 전환은 로컬일 때, 현재 모드 스냅은 활성 변환의 스냅이 켜져 있을 때 true이며 순환 및 미지원 명령은 false입니다.
      * @note 실행 가능 여부와 독립적으로 조회하므로 드래그 중에도 현재 선택을 표시할 수 있습니다.
      */
     bool IsCommandChecked(EViewportCommand Command) const;
 
     /**
      * @brief 클라이언트가 관리하는 변환 기즈모 모드를 반환합니다.
-     * @return 이동, 회전 또는 스케일 중 현재 선택한 모드입니다.
+     * @return 현재 선택한 이동·회전·스케일 모드이며 선택 전용 모드이면 EGizmoMode::None입니다.
      */
     EGizmoMode GetGizmoMode() const;
 
@@ -128,7 +128,35 @@ public:
      */
     FTransformGizmo& GetGizmo();
 
+    /**
+     * @brief 이 뷰포트의 기즈모 스냅과 크기 설정을 읽기 전용으로 조회합니다.
+     * @return 클라이언트가 유지하는 설정의 비소유 주소이며 클라이언트 수명 동안 유효합니다.
+     * @note 설정 변경은 ExecuteCommand() 또는 SetGizmoSetting()을 사용합니다.
+     */
+    const FGizmoSettings* GetGizmoSettings() const;
+    /**
+     * @brief 기즈모 도구와 설정을 변경할 수 있는지 검사합니다.
+     * @return 컨텍스트의 월드를 편집할 수 있고 진행 중인 기즈모 드래그가 없으면 true입니다.
+     * @note 선택 대상의 존재 여부와 개별 명령의 모드 제한은 검사하지 않습니다.
+     */
+    bool CanEditGizmoSettings() const;
+    /**
+     * @brief 편집 가능 여부와 값의 범위를 검증하여 기즈모 수치 설정을 변경합니다.
+     * @param[in] Setting 변경할 수치 항목입니다.
+     * @param[in] Value 유한한 설정 값입니다.
+     * @return 값을 수락하면 true이며 편집 불가 상태, 알 수 없는 항목, 유효하지 않은 값이면 설정을 유지하고 false입니다.
+     * @note 스냅 간격은 양수여야 하며 크기 배율은 0.5부터 2.0까지로 제한합니다.
+     */
+    bool SetGizmoSetting(EGizmoSetting Setting, float Value);
+
 private:
+    /**
+     * @brief 실행 검사를 통과한 스냅 전환 명령을 기즈모 설정에 반영합니다.
+     * @param[in] Command 전환할 스냅 설정의 명령입니다.
+     * @return 설정을 전환하면 true이며 지원하지 않는 명령이거나 현재 모드 스냅에 대응하는 변환 모드가 없으면 false입니다.
+     * @pre ExecuteCommand()에서 편집 가능 여부와 드래그 상태를 검증해야 합니다.
+     */
+    bool ToggleGizmoSetting(EViewportCommand Command);
     /**
      * @brief 기즈모의 이동, 회전 또는 스케일 모드를 선택합니다.
      * @param[in] Mode 적용할 변환 기즈모 모드입니다.
@@ -146,9 +174,10 @@ private:
     /**
      * @brief 뷰포트 입력으로 카메라 이동, 회전, 팬 또는 오빗을 적용합니다.
      * @param[in] Input 현재 프레임의 뷰포트 입력 스냅샷입니다.
-     * @param[in] Size 뷰포트 크기 또는 데이터의 바이트 수입니다.
+     * @param[in] Size 픽셀 단위의 뷰포트 크기입니다.
      * @param[in] DeltaTime 이전 프레임 이후 경과한 시간(초)입니다.
-     * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
+     * @return 입력을 카메라 조작으로 소비하여 이후 선택·삭제 처리를 생략할 때 true입니다.
+     * @note 자유 시점 조작은 피벗까지의 거리를 유지하며 갱신한 카메라의 시선 앞에 피벗을 배치합니다.
      */
     bool NavigateCamera(const FViewportInput& Input, const FVector2& Size, float DeltaTime);
     /**

@@ -150,7 +150,7 @@ UObject* FEditorContext::ResolveObject(FObjectHandle Handle) const {
 
 /** @brief 유효한 액터를 선택하고 프로퍼티 편집 대상으로 지정합니다. */
 bool FEditorContext::SelectActor(FObjectHandle Handle) {
-    return Cast<AActor>(ResolveObject(Handle)) != nullptr && SetSelection(Handle, Handle);
+    return Cast<AActor>(ResolveObject(Handle)) != nullptr && SetSelection({Handle}, Handle);
 }
 
 /** @brief 객체 선택과 소유 액터 선택을 함께 갱신합니다. */
@@ -167,7 +167,7 @@ bool FEditorContext::SelectObject(FObjectHandle Handle) {
         Actor = Component->GetOwner();
     }
 
-    return SetSelection(Actor != nullptr ? Actor->GetHandle() : FObjectHandle{}, Handle);
+    return SetSelection(Actor != nullptr ? TArray<FObjectHandle>{Actor->GetHandle()} : TArray<FObjectHandle>{}, Handle);
 }
 
 /** @brief 액터와 객체 선택 핸들을 모두 무효화합니다. */
@@ -176,41 +176,39 @@ void FEditorContext::ClearSelection() {
 }
 
 /** @brief 요청 대상이 유효한지 확인하고 선택을 적용합니다. */
-bool FEditorContext::SetSelection(FObjectHandle Actor, FObjectHandle Object) {
+bool FEditorContext::SetSelection(const TArray<FObjectHandle>& Actors, FObjectHandle Object) {
     if (mChangingState || mEditingProperty) {
         return false;
     }
 
-    if (mSelectedActor == Actor && mSelectedObject == Object && mSelectedActors.size() <= 1) {
-        return true;
-    }
-
     FOperationScope Scope{&mChangingState};
-
-    if ((Actor.IsValid() && ResolveObject(Actor) == nullptr) || (Object.IsValid() && ResolveObject(Object) == nullptr)) {
+    TArray<FObjectHandle> Valid{};
+    for (FObjectHandle Handle : Actors) {
+        const auto* Actor{Cast<AActor>(ResolveObject(Handle))};
+        if (Actor == nullptr || Actor->IsPendingDestroy() || std::find(Valid.begin(), Valid.end(), Handle) != Valid.end()) {
+            return false;
+        }
+        Valid.push_back(Handle);
+    }
+    if (Object.IsValid() && ResolveObject(Object) == nullptr) {
         return false;
     }
-
-    AssignSelection(Actor, Object);
+    if (mSelectedActors == Valid && mSelectedObject == Object) {
+        return true;
+    }
+    AssignSelection(Valid, Object);
     return true;
 }
 
 /** @brief 검증한 선택 상태를 저장합니다. */
-void FEditorContext::AssignSelection(FObjectHandle Actor, FObjectHandle Object) {
-    mSelectedActor = Actor;
+void FEditorContext::AssignSelection(const TArray<FObjectHandle>& Actors, FObjectHandle Object) {
+    mSelectedActors = Actors;
     mSelectedObject = Object;
-    mSelectedActors.clear();
-    if (Actor.IsValid()) {
-        mSelectedActors.push_back(Actor);
-    }
     ++mSelectionRevision;
 }
 
 /** @brief 선택한 액터를 월드 소속과 함께 검증합니다. */
 AActor* FEditorContext::GetSelectedActor() const {
-    if (auto* Actor{Cast<AActor>(ResolveObject(mSelectedActor))}; Actor != nullptr && !Actor->IsPendingDestroy()) {
-        return Actor;
-    }
     const TArray<FObjectHandle> Actors{GetSelectedActors()};
     return Actors.empty() ? nullptr : Cast<AActor>(ResolveObject(Actors.back()));
 }
@@ -242,7 +240,7 @@ AStaticMeshActor* FEditorContext::SpawnPrimitive(EPrimitiveType Type) {
             return nullptr;
         }
 
-        AssignSelection(Actor->GetHandle(), Actor->GetHandle());
+        AssignSelection({Actor->GetHandle()}, Actor->GetHandle());
         mDirty = true;
         AddLog("Spawned " + Actor->GetName());
     }
@@ -497,25 +495,7 @@ TArray<FObjectHandle> FEditorContext::GetTransformTargets() const {
 }
 
 bool FEditorContext::SetSelectedActors(const TArray<FObjectHandle>& Actors) {
-    if (mChangingState || mEditingProperty) {
-        return false;
-    }
-    TArray<FObjectHandle> Valid{};
-    for (FObjectHandle Handle : Actors) {
-        if (Cast<AActor>(ResolveObject(Handle)) == nullptr || std::find(Valid.begin(), Valid.end(), Handle) != Valid.end()) {
-            return false;
-        }
-        Valid.push_back(Handle);
-    }
-    const FObjectHandle Primary{Valid.empty() ? FObjectHandle{} : Valid.back()};
-    if (mSelectedActors == Valid && mSelectedObject == Primary) {
-        return true;
-    }
-    mSelectedActor = Primary;
-    mSelectedObject = Primary;
-    mSelectedActors = std::move(Valid);
-    ++mSelectionRevision;
-    return true;
+    return SetSelection(Actors, Actors.empty() ? FObjectHandle{} : Actors.back());
 }
 
 bool FEditorContext::ToggleActorSelection(FObjectHandle Actor) {

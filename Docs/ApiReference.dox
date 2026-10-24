@@ -101,15 +101,14 @@ FEditorViewportClient::IsCommandChecked()는 현재 선택 상태를 제공하�
 
 FSceneViewport::GetHitProxy()는 좌표를 검증하고 FEditorViewportClient의 CPU 피킹으로 전달합니다.
 기즈모와 객체 모두 RaycastMesh()로 경계 상자와 메시 삼각형을 검사하며,
-객체 질의는 UWorld::Raycast()를 통해 월드 소속과 제외 대상을 적용합니다. 기즈모 축을 우선하며 두 경로는 모두 FHitProxy를 반환합니다.
+객체 질의는 UWorld::Raycast()를 통해 해당 월드의 유효한 액터를 검사합니다. 기즈모 축을 우선하며 두 경로는 모두 FHitProxy를 반환합니다.
 FHitProxy는 객체 또는 기즈모 소유 액터의 전역 세대 핸들과 축 번호를 보관합니다.
 피킹은 현재 카메라와 변환을 직접 조회하며 별도 GPU 패스나 피킹 캐시를 사용하지 않습니다.
 마우스 버튼을 놓으면 변환을 유지하고 Esc는 해당 뷰포트의 드래그 시작 변환을 복원합니다.
 축 및 평면 이동과 스케일, 화면 기준 이동과 회전, 균일 스케일을 지원합니다.
 가운데 버튼은 피벗만 이동하고 Alt 이동 드래그는 액터를 복제합니다. Ctrl 클릭은 다중 선택을 전환합니다.
-Q/W/E/R은 선택/이동/회전/스케일, Tab은 좌표계, X는 현재 모드 스냅, Z는 표면 스냅을 전환합니다.
-표면 스냅은 선택 액터를 제외하고 오프셋과 법선 정렬을 적용합니다.
-Snap 메뉴에서 간격, 각도, 스케일 단계, 표면 오프셋과 기즈모 크기를 조절합니다.
+Q/W/E/R은 선택/이동/회전/스케일, Tab은 좌표계, X는 현재 모드 스냅을 전환합니다.
+Snap 메뉴에서 이동 간격, 회전 각도, 스케일 단계와 기즈모 크기를 조절합니다.
 선택한 공간 컴포넌트와 다중 선택 액터는 같은 프로퍼티 편집 경로를 사용합니다.
 
 \section ApiHeaders 헤더와 빌드
@@ -222,24 +221,12 @@ Windows 창과 메시지 처리입니다.
 */
 
 /**
-\fn bool RaycastMesh(const FMeshData *Mesh, const FMatrix &World, const FRay &Ray, float &Distance, FVector *Normal)
+\fn bool RaycastMesh(const FMeshData *Mesh, const FMatrix &World, const FRay &Ray, float &Distance)
 \brief 월드 경계 상자와 로컬 삼각형을 검사하여 지정 거리보다 가까운 CPU 교차를 구합니다.
 \param[in,out] Mesh 읽거나 삼각형을 추가할 CPU 메시의 비소유 주소입니다.
 \param[in] World 메시의 월드 변환이며 액터 복제에서는 대상 월드의 비소유 주소입니다.
 \param[in] Ray 월드 좌표의 광선이며 방향은 정규화되어 있어야 합니다.
 \param[in,out] Distance 입력은 검사할 최대 거리이며 적중하면 더 가까운 거리를 기록합니다.
-\param[out] Normal 선택적인 월드 법선 출력이며 nullptr이면 법선을 기록하지 않습니다.
-\return 요청한 선택, 검사 또는 복제 작업을 완료하면 true입니다.
-*/
-
-/**
-\fn bool RaycastMesh(const FMeshData *Mesh, const FMatrix &World, const FRay &Ray, float &Distance, FVector *Normal=nullptr)
-\brief 월드 경계 상자와 로컬 삼각형을 검사하여 지정 거리보다 가까운 CPU 교차를 구합니다.
-\param[in,out] Mesh 읽거나 삼각형을 추가할 CPU 메시의 비소유 주소입니다.
-\param[in] World 메시의 월드 변환이며 액터 복제에서는 대상 월드의 비소유 주소입니다.
-\param[in] Ray 월드 좌표의 광선이며 방향은 정규화되어 있어야 합니다.
-\param[in,out] Distance 입력은 검사할 최대 거리이며 적중하면 더 가까운 거리를 기록합니다.
-\param[out] Normal 선택적인 월드 법선 출력이며 nullptr이면 법선을 기록하지 않습니다.
 \return 요청한 선택, 검사 또는 복제 작업을 완료하면 true입니다.
 */
 
@@ -427,17 +414,7 @@ Windows 창과 메시지 처리입니다.
 
 /**
 \var FGizmoSettings FTransformGizmo::mSettings
-\brief 이 뷰포트의 스냅 간격, 표면 정렬과 기즈모 크기 설정입니다.
-*/
-
-/**
-\var bool FTransformGizmo::mShowSnap
-\brief 현재 표면 스냅 위치 마커를 표시할지 여부입니다.
-*/
-
-/**
-\var FVector FTransformGizmo::mSnapPosition
-\brief 표면에 스냅한 위치이며 피드백 마커를 표시합니다.
+\brief 이 뷰포트의 이동·회전·스케일 스냅 간격과 기즈모 크기 설정입니다.
 */
 
 /**
@@ -462,9 +439,9 @@ Windows 창과 메시지 처리입니다.
 */
 
 /**
-\fn FGizmoSettings * FTransformGizmo::GetSettings()
-\brief 이 뷰포트의 기즈모 스냅과 크기 설정의 비소유 주소를 반환합니다.
-\return 요청한 데이터 또는 연산 결과이며 객체 포인터는 소유권을 이전하지 않습니다.
+\fn const FGizmoSettings * FTransformGizmo::GetSettings() const
+\brief 이 기즈모의 스냅과 크기 설정을 읽기 전용으로 반환합니다.
+\return 기즈모 수명 동안 유효한 설정의 비소유 주소입니다.
 */
 
 /**
@@ -481,9 +458,8 @@ Windows 창과 메시지 처리입니다.
 */
 
 /**
-\fn void FTransformGizmo::DrawFeedback(const FSceneView &View, FPrimitiveDrawInterface *DrawInterface) const
-\brief 드래그 이동선, 회전 호와 표면 스냅 마커를 글자 없이 표시합니다.
-\param[in] View 카메라 행렬, 위치와 뷰포트 크기입니다.
+\fn void FTransformGizmo::DrawFeedback(FPrimitiveDrawInterface *DrawInterface) const
+\brief 드래그 이동선과 회전 호를 글자 없이 표시합니다.
 \param[in,out] DrawInterface 메시 또는 피드백 선분을 추가할 수집기의 비소유 주소입니다.
 */
 
@@ -524,14 +500,6 @@ Windows 창과 메시지 처리입니다.
 \param[in] Handle 검사할 기즈모 조작 핸들 번호입니다.
 \param[in] Axis 검사할 X, Y, Z 축의 인덱스입니다.
 \return 요청한 선택, 검사 또는 복제 작업을 완료하면 true입니다.
-*/
-
-/**
-\fn FQuat anonymous_namespace{Gizmo.cpp}::Align(const FVector &From, const FVector &To)
-\brief 원본 방향을 목표 법선에 맞추는 회전 쿼터니언을 구합니다.
-\param[in] From 정렬할 원본 단위 방향입니다.
-\param[in] To 정렬할 목표 단위 방향입니다.
-\return 요청한 데이터 또는 연산 결과이며 객체 포인터는 소유권을 이전하지 않습니다.
 */
 
 /**
@@ -614,11 +582,6 @@ Windows 창과 메시지 처리입니다.
 */
 
 /**
-\var bool FGizmoSettings::mAlignToSurface
-\brief 표면 스냅 시 대상의 위쪽 방향을 표면 법선에 정렬할지 지정합니다.
-*/
-
-/**
 \var bool FGizmoSettings::mRotationSnap
 \brief 회전 각도를 설정한 각도 간격으로 양자화할지 지정합니다.
 */
@@ -641,16 +604,6 @@ Windows 창과 메시지 처리입니다.
 /**
 \var float FGizmoSettings::mSize
 \brief 화면에서 유지할 기즈모 크기의 배율이며 0.5에서 2 사이를 사용합니다.
-*/
-
-/**
-\var float FGizmoSettings::mSurfaceOffset
-\brief 표면 법선 방향으로 더하는 이동 오프셋입니다.
-*/
-
-/**
-\var bool FGizmoSettings::mSurfaceSnap
-\brief 선택하지 않은 메시 표면에 이동 피벗을 맞출지 지정합니다.
 */
 
 /**
@@ -742,18 +695,8 @@ Windows 창과 메시지 처리입니다.
 */
 
 /**
-\var bool FViewportInput::mToggleSurface
-\brief Z 키로 표면 스냅 전환을 요청한 상태입니다.
-*/
-
-/**
 \var bool FViewportInput::mTranslateMode
 \brief W 키로 이동 모드를 요청한 상태입니다.
-*/
-
-/**
-\var FVector FWorldHit::mNormal
-\brief 가장 가까운 적중 삼각형에서 구한 광선 반대 방향의 정규화된 월드 법선입니다.
 */
 
 /**
@@ -798,7 +741,6 @@ Windows 창과 메시지 처리입니다.
 \ingroup Engine
 */
 
-
 /**
 \struct FDrawMesh
 \brief 에디터 메시의 enum 종류, 월드 변환, 표시 색상과 선택 의미를 프레임 요청으로 전달합니다.
@@ -806,7 +748,7 @@ Windows 창과 메시지 처리입니다.
 
 /**
 \struct FGizmoSettings
-\brief 뷰포트별 스냅 단계, 표면 정렬과 화면 표시 크기를 보관합니다.
+\brief 뷰포트별 이동·회전·스케일 스냅 단계와 화면 표시 크기를 보관합니다.
 */
 
 /**

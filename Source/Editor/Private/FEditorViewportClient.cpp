@@ -25,6 +25,7 @@
 #include "Engine/FWorldHit.h"
 #include "CoreUObject/Reflection/Cast.h"
 #include "Editor/FEditorContext.h"
+#include "Editor/FViewportCommandInfo.h"
 
 #include <algorithm>
 #include <cmath>
@@ -43,7 +44,7 @@ FEditorViewportClient::FEditorViewportClient(FEditorContext* Context)
 FEditorViewportClient::~FEditorViewportClient() = default;
 
 /**
- * @brief 공통 실행 검사를 통과한 명령으로 변환 모드 또는 좌표계를 변경합니다.
+ * @brief 공통 실행 검사를 통과한 명령으로 변환 모드, 좌표계 또는 스냅 설정을 변경합니다.
  */
 bool FEditorViewportClient::ExecuteCommand(EViewportCommand Command) {
     if (!CanExecuteCommand(Command)) {
@@ -75,6 +76,11 @@ bool FEditorViewportClient::ExecuteCommand(EViewportCommand Command) {
     case EViewportCommand::CycleTransformMode:
         SetGizmoMode(mGizmoMode == EGizmoMode::Translate ? EGizmoMode::Rotate : mGizmoMode == EGizmoMode::Rotate ? EGizmoMode::Scale : EGizmoMode::Translate);
         break;
+    case EViewportCommand::ToggleTranslationSnap:
+    case EViewportCommand::ToggleRotationSnap:
+    case EViewportCommand::ToggleScaleSnap:
+    case EViewportCommand::ToggleTransformSnap:
+        return ToggleGizmoSetting(Command);
     default:
         return false;
     }
@@ -86,7 +92,7 @@ bool FEditorViewportClient::ExecuteCommand(EViewportCommand Command) {
  * @brief 드래그 잠금, 스케일 좌표계 제한과 명령 지원 여부를 검사합니다.
  */
 bool FEditorViewportClient::CanExecuteCommand(EViewportCommand Command) const {
-    if (mGizmo.IsDragging() || !mContext->CanEditWorld()) {
+    if (!CanEditGizmoSettings()) {
         return false;
     }
 
@@ -97,7 +103,12 @@ bool FEditorViewportClient::CanExecuteCommand(EViewportCommand Command) const {
     case EViewportCommand::Scale:
     case EViewportCommand::LocalSpace:
     case EViewportCommand::CycleTransformMode:
+    case EViewportCommand::ToggleTranslationSnap:
+    case EViewportCommand::ToggleRotationSnap:
+    case EViewportCommand::ToggleScaleSnap:
         return true;
+    case EViewportCommand::ToggleTransformSnap:
+        return mGizmoMode != EGizmoMode::None;
     case EViewportCommand::WorldSpace:
     case EViewportCommand::ToggleCoordinateSystem:
         return mGizmoMode != EGizmoMode::Scale;
@@ -124,6 +135,14 @@ bool FEditorViewportClient::IsCommandChecked(EViewportCommand Command) const {
     case EViewportCommand::LocalSpace:
     case EViewportCommand::ToggleCoordinateSystem:
         return mGizmoSpace == EGizmoSpace::Local;
+    case EViewportCommand::ToggleTranslationSnap:
+        return mGizmo.GetSettings()->mTranslationSnap;
+    case EViewportCommand::ToggleRotationSnap:
+        return mGizmo.GetSettings()->mRotationSnap;
+    case EViewportCommand::ToggleScaleSnap:
+        return mGizmo.GetSettings()->mScaleSnap;
+    case EViewportCommand::ToggleTransformSnap:
+        return mGizmoMode == EGizmoMode::Translate ? IsCommandChecked(EViewportCommand::ToggleTranslationSnap) : mGizmoMode == EGizmoMode::Rotate ? IsCommandChecked(EViewportCommand::ToggleRotationSnap) : mGizmoMode == EGizmoMode::Scale && IsCommandChecked(EViewportCommand::ToggleScaleSnap);
     default:
         return false;
     }
@@ -138,34 +157,17 @@ void FEditorViewportClient::Input(FSceneViewport* Viewport, const FViewportInput
     }
     const FVector2 Size{Viewport->GetSize()};
     if (!mGizmo.IsDragging() && Input.mFocused && !Input.mRightDown && !Input.mAlt && !Input.mControl) {
-        if (Input.mSelectMode) {
-            ExecuteCommand(EViewportCommand::Select);
-        } else if (Input.mTranslateMode) {
-            ExecuteCommand(EViewportCommand::Translate);
-        } else if (Input.mRotateMode) {
-            ExecuteCommand(EViewportCommand::Rotate);
-        } else if (Input.mScaleMode) {
-            ExecuteCommand(EViewportCommand::Scale);
-        } else if (Input.mCycleGizmo && !Input.mLeftDown) {
-            ExecuteCommand(EViewportCommand::CycleTransformMode);
-        }
-        if (Input.mToggleSpace) {
-            ExecuteCommand(EViewportCommand::ToggleCoordinateSystem);
-        }
-        if (CanExecuteCommand(EViewportCommand::Translate)) {
-            auto* Settings{mGizmo.GetSettings()};
-            if (Input.mToggleSnap) {
-                if (mGizmoMode == EGizmoMode::Translate) {
-                    Settings->mTranslationSnap = !Settings->mTranslationSnap;
-                } else if (mGizmoMode == EGizmoMode::Rotate) {
-                    Settings->mRotationSnap = !Settings->mRotationSnap;
-                } else if (mGizmoMode == EGizmoMode::Scale) {
-                    Settings->mScaleSnap = !Settings->mScaleSnap;
-                }
+        bool ModeRequested{};
+        for (const FViewportCommandInfo& Info : FViewportCommandInfo::GetCommands()) {
+            if (Info.mInput == nullptr || !(Input.*Info.mInput)) {
+                continue;
             }
-            if (Input.mToggleSurface) {
-                Settings->mSurfaceSnap = !Settings->mSurfaceSnap;
+            const bool ModeCommand{Info.mTransformMode || Info.mCommand == EViewportCommand::CycleTransformMode};
+            if ((ModeCommand && ModeRequested) || (Info.mCommand == EViewportCommand::CycleTransformMode && Input.mLeftDown)) {
+                continue;
             }
+            ModeRequested = ModeRequested || ModeCommand;
+            ExecuteCommand(Info.mCommand);
         }
     }
     const FSceneView View{CalcSceneView(Size)};
@@ -200,6 +202,7 @@ void FEditorViewportClient::Input(FSceneViewport* Viewport, const FViewportInput
 
 /**
  * @brief 뷰포트 입력으로 카메라 이동, 회전, 팬 또는 오빗을 적용합니다.
+ * @note 자유 시점 조작은 피벗까지의 거리를 유지하며 갱신한 카메라의 시선 앞에 피벗을 배치합니다.
  */
 bool FEditorViewportClient::NavigateCamera(const FViewportInput& Input, const FVector2& Size, float DeltaTime) {
     if (!Input.mHovered && !Input.mFocused) {
@@ -253,6 +256,7 @@ bool FEditorViewportClient::NavigateCamera(const FViewportInput& Input, const FV
     }
 
     if (Input.mRightDown) {
+        const float OrbitDistance{std::max(mCameraLocation.Distance(mOrbitPivot), 0.1f)};
         mCameraRotation.yaw += Input.mDelta.x * 0.2f;
         mCameraRotation.pitch = std::clamp(mCameraRotation.pitch - Input.mDelta.y * 0.2f, -89.0f, 89.0f);
 
@@ -262,6 +266,7 @@ bool FEditorViewportClient::NavigateCamera(const FViewportInput& Input, const FV
         Movement.z += static_cast<float>(Input.mUp) - static_cast<float>(Input.mDown);
 
         mCameraLocation += Movement.Normalized() * std::max(DeltaTime, 0.0f) * mCameraSpeed * (Input.mFast ? 3.0f : 1.0f);
+        mOrbitPivot = mCameraLocation + FlightRotation.ForwardVector() * OrbitDistance;
 
         return true;
     }
@@ -365,6 +370,65 @@ const FVector& FEditorViewportClient::GetCameraLocation() const {
  */
 FTransformGizmo& FEditorViewportClient::GetGizmo() {
     return mGizmo;
+}
+
+const FGizmoSettings* FEditorViewportClient::GetGizmoSettings() const {
+    return mGizmo.GetSettings();
+}
+
+bool FEditorViewportClient::CanEditGizmoSettings() const {
+    return !mGizmo.IsDragging() && mContext->CanEditWorld();
+}
+
+bool FEditorViewportClient::SetGizmoSetting(EGizmoSetting Setting, float Value) {
+    if (!CanEditGizmoSettings() || !std::isfinite(Value)) {
+        return false;
+    }
+    FGizmoSettings Settings{*mGizmo.GetSettings()};
+    switch (Setting) {
+    case EGizmoSetting::TranslationStep:
+    case EGizmoSetting::RotationStep:
+    case EGizmoSetting::ScaleStep:
+        if (Value <= 0.0f) {
+            return false;
+        }
+        if (Setting == EGizmoSetting::TranslationStep) {
+            Settings.mTranslationStep = Value;
+        } else if (Setting == EGizmoSetting::RotationStep) {
+            Settings.mRotationStep = Value;
+        } else {
+            Settings.mScaleStep = Value;
+        }
+        break;
+    case EGizmoSetting::Size:
+        Settings.mSize = std::clamp(Value, 0.5f, 2.0f);
+        break;
+    default:
+        return false;
+    }
+    mGizmo.SetSettings(Settings);
+    return true;
+}
+
+bool FEditorViewportClient::ToggleGizmoSetting(EViewportCommand Command) {
+    FGizmoSettings Settings{*mGizmo.GetSettings()};
+    switch (Command) {
+    case EViewportCommand::ToggleTranslationSnap:
+        Settings.mTranslationSnap = !Settings.mTranslationSnap;
+        break;
+    case EViewportCommand::ToggleRotationSnap:
+        Settings.mRotationSnap = !Settings.mRotationSnap;
+        break;
+    case EViewportCommand::ToggleScaleSnap:
+        Settings.mScaleSnap = !Settings.mScaleSnap;
+        break;
+    case EViewportCommand::ToggleTransformSnap:
+        return mGizmoMode == EGizmoMode::Translate ? ToggleGizmoSetting(EViewportCommand::ToggleTranslationSnap) : mGizmoMode == EGizmoMode::Rotate ? ToggleGizmoSetting(EViewportCommand::ToggleRotationSnap) : mGizmoMode == EGizmoMode::Scale && ToggleGizmoSetting(EViewportCommand::ToggleScaleSnap);
+    default:
+        return false;
+    }
+    mGizmo.SetSettings(Settings);
+    return true;
 }
 
 /**

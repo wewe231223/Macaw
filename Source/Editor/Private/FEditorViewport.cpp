@@ -8,9 +8,27 @@
 #include "Engine/FSceneViewport.h"
 #include "Engine/FRenderTarget.h"
 #include "ViewportToolbar.h"
+#include "Editor/FViewportCommandInfo.h"
 
 #include <imgui.h>
 #include <utility>
+
+/**
+ * @brief UI와 독립적인 단축키 정의를 ImGui 입력으로 연결하는 보조 함수를 제공합니다.
+ */
+namespace {
+    /**
+     * @brief 공통 명령에 정의된 단축키 문자를 ImGui 키 식별자로 변환합니다.
+     * @param[in] Shortcut 영문 대문자, 공백 또는 탭으로 표현한 단축키입니다.
+     * @return 대응하는 ImGui 키이며 지원하지 않는 문자나 0이면 ImGuiKey_None입니다.
+     */
+    ImGuiKey ShortcutKey(char Shortcut) {
+        if (Shortcut >= 'A' && Shortcut <= 'Z') {
+            return static_cast<ImGuiKey>(ImGuiKey_A + Shortcut - 'A');
+        }
+        return Shortcut == ' ' ? ImGuiKey_Space : Shortcut == '\t' ? ImGuiKey_Tab : ImGuiKey_None;
+    }
+}
 
 /**
  * @brief 공유 편집 컨텍스트와 창 이름으로 자체 클라이언트를 구성합니다.
@@ -137,7 +155,6 @@ void FEditorViewport::DrawUI(float DeltaTime) {
 
             const bool Keyboard{State.mFocused && !Input.WantTextInput && !Input.KeyCtrl && !Input.KeyAlt};
             State.mDelete = Keyboard && ImGui::IsKeyPressed(ImGuiKey_Delete, false);
-            State.mCycleGizmo = Keyboard && ImGui::IsKeyPressed(ImGuiKey_Space, false);
             State.mFocusSelection = Keyboard && ImGui::IsKeyPressed(ImGuiKey_F, false);
 
             State.mForward = Keyboard && ImGui::IsKeyDown(ImGuiKey_W);
@@ -147,13 +164,12 @@ void FEditorViewport::DrawUI(float DeltaTime) {
             State.mUp = Keyboard && ImGui::IsKeyDown(ImGuiKey_E);
             State.mDown = Keyboard && ImGui::IsKeyDown(ImGuiKey_Q);
             State.mFast = Input.KeyShift;
-            State.mTranslateMode = Keyboard && ImGui::IsKeyPressed(ImGuiKey_W, false);
-            State.mRotateMode = Keyboard && ImGui::IsKeyPressed(ImGuiKey_E, false);
-            State.mScaleMode = Keyboard && ImGui::IsKeyPressed(ImGuiKey_R, false);
-            State.mSelectMode = Keyboard && ImGui::IsKeyPressed(ImGuiKey_Q, false);
-            State.mToggleSpace = Keyboard && ImGui::IsKeyPressed(ImGuiKey_Tab, false);
-            State.mToggleSnap = Keyboard && ImGui::IsKeyPressed(ImGuiKey_X, false);
-            State.mToggleSurface = Keyboard && ImGui::IsKeyPressed(ImGuiKey_Z, false);
+            for (const FViewportCommandInfo& Info : FViewportCommandInfo::GetCommands()) {
+                if (Info.mInput != nullptr) {
+                    const ImGuiKey Key{ShortcutKey(Info.mShortcut)};
+                    State.*Info.mInput = Keyboard && Key != ImGuiKey_None && ImGui::IsKeyPressed(Key, false);
+                }
+            }
 
             mViewport->Input(State, DeltaTime);
             Submitted = true;

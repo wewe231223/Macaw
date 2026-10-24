@@ -49,7 +49,7 @@ public:
 
 
     /**
-     * @brief 정점 또는 충돌 위치입니다.
+     * @brief 월드 좌표의 충돌 위치입니다.
      */
     FVector mPosition{};
     ReflectProperty(mPosition, "Position", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
@@ -59,6 +59,4 @@ public:
      */
     float mDistance{};
     ReflectProperty(mDistance, "Distance", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
-    FVector mNormal{};
-    ReflectProperty(mNormal, "Normal", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 };

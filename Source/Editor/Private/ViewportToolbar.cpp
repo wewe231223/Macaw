@@ -7,41 +7,34 @@
 #include "ViewportToolbar.h"
 #include "EditorStyle.h"
 #include "Editor/FEditorViewportClient.h"
-
-#include <array>
+#include "Editor/FViewportCommandInfo.h"
 
 /**
  * @brief 툴바와 메뉴에서 공유하는 변환 명령 목록과 표시 보조 함수를 제공합니다.
  */
 namespace {
     /**
-     * @brief 이동, 회전, 스케일 순서로 표시할 공통 명령 목록입니다.
-     */
-    const std::array<EViewportCommand, 3> TransformCommands{EViewportCommand::Translate, EViewportCommand::Rotate, EViewportCommand::Scale};
-    /**
-     * @brief TransformCommands와 같은 인덱스에 대응하는 버튼 및 메뉴 항목 이름입니다.
-     */
-    const std::array<const char*, 3> TransformLabels{"Translate", "Rotate", "Scale"};
-    /**
-     * @brief TransformCommands와 같은 인덱스에 대응하는 공통 스타일 아이콘입니다.
-     */
-    const std::array<EditorStyle::EIcon, 3> TransformIcons{EditorStyle::EIcon::Translate, EditorStyle::EIcon::Rotate, EditorStyle::EIcon::Scale};
-
-    /**
      * @brief 동일한 변환 명령 목록을 아이콘 버튼 또는 메뉴 항목으로 표시합니다.
      * @param[in,out] Client 명령 실행과 상태 조회에 사용할 뷰포트 클라이언트입니다.
      * @param[in] Menu true이면 메뉴 항목으로 표시하며 false이면 한 줄의 버튼으로 표시합니다.
      */
     void DrawModeCommands(FEditorViewportClient* Client, bool Menu) {
-        for (std::size_t Index{}; Index < TransformCommands.size(); ++Index) {
-            if (!Menu && Index > 0) {
+        bool Drawn{};
+        for (const FViewportCommandInfo& Info : FViewportCommandInfo::GetCommands()) {
+            if (!Info.mTransformMode || (!Menu && Info.mCommand == EViewportCommand::Select)) {
+                continue;
+            }
+            if (!Menu && Drawn) {
                 ImGui::SameLine();
             }
 
-            const EViewportCommand Command{TransformCommands[Index]};
+            const EViewportCommand Command{Info.mCommand};
             const bool Selected{Client->IsCommandChecked(Command)};
             const bool Enabled{Client->CanExecuteCommand(Command)};
-            const bool Pressed{Menu ? EditorStyle::IconMenuItem(TransformLabels[Index], TransformIcons[Index], Selected, Enabled) : EditorStyle::IconButton(TransformLabels[Index], TransformIcons[Index], Selected, Enabled)};
+            const FString Shortcut{Info.GetShortcutLabel()};
+            const FString Tooltip{FString{Info.mLabel} + " (" + Shortcut + ")"};
+            const bool Pressed{Menu ? Command == EViewportCommand::Select ? ImGui::MenuItem(Info.mLabel, Shortcut.c_str(), Selected, Enabled) : EditorStyle::IconMenuItem(Info.mLabel, Info.mIcon, Selected, Enabled) : EditorStyle::IconButton(Info.mLabel, Info.mIcon, Selected, Enabled, false, Tooltip.c_str())};
+            Drawn = true;
 
             if (Pressed) {
                 Client->ExecuteCommand(Command);
@@ -54,12 +47,11 @@ namespace {
      * @param[in,out] Client 좌표계 조회와 변경 명령을 처리할 뷰포트 클라이언트입니다.
      */
     void DrawCoordinateMenu(FEditorViewportClient* Client) {
-        if (EditorStyle::IconMenuItem("World", EditorStyle::EIcon::World, Client->IsCommandChecked(EViewportCommand::WorldSpace), Client->CanExecuteCommand(EViewportCommand::WorldSpace))) {
-            Client->ExecuteCommand(EViewportCommand::WorldSpace);
-        }
-
-        if (EditorStyle::IconMenuItem("Local", EditorStyle::EIcon::Local, Client->IsCommandChecked(EViewportCommand::LocalSpace), Client->CanExecuteCommand(EViewportCommand::LocalSpace))) {
-            Client->ExecuteCommand(EViewportCommand::LocalSpace);
+        for (EViewportCommand Command : {EViewportCommand::WorldSpace, EViewportCommand::LocalSpace}) {
+            const FViewportCommandInfo* Info{FViewportCommandInfo::Find(Command)};
+            if (EditorStyle::IconMenuItem(Info->mLabel, Info->mIcon, Client->IsCommandChecked(Command), Client->CanExecuteCommand(Command))) {
+                Client->ExecuteCommand(Command);
+            }
         }
     }
 
@@ -71,7 +63,8 @@ namespace {
     void DrawGridSettings(FEditorViewportClient* Client) {
         ImGui::SeparatorText("Viewport Grid");
 
-        if (ImGui::MenuItem("Show Grid", nullptr, Client->IsCommandChecked(EViewportCommand::ToggleGrid), Client->CanExecuteCommand(EViewportCommand::ToggleGrid))) {
+        const FViewportCommandInfo* Info{FViewportCommandInfo::Find(EViewportCommand::ToggleGrid)};
+        if (ImGui::MenuItem(Info->mLabel, nullptr, Client->IsCommandChecked(EViewportCommand::ToggleGrid), Client->CanExecuteCommand(EViewportCommand::ToggleGrid))) {
             Client->ExecuteCommand(EViewportCommand::ToggleGrid);
         }
 
@@ -79,6 +72,36 @@ namespace {
         ImGui::Separator();
         ImGui::TextDisabled("Viewport grid is not available yet.");
     }
+
+    /**
+     * @brief 스냅 명령의 체크 상태를 표시하고 변경 요청을 공통 명령 경로로 전달합니다.
+     * @param[in,out] Client 상태 조회와 명령 실행에 사용할 클라이언트입니다.
+     * @param[in] Command 체크 상자에 연결할 스냅 전환 명령입니다.
+     * @pre Client는 유효해야 하며 Command는 공통 명령 정보에 등록되어 있어야 합니다.
+     */
+    void DrawSettingToggle(FEditorViewportClient* Client, EViewportCommand Command) {
+        const FViewportCommandInfo* Info{FViewportCommandInfo::Find(Command)};
+        bool Checked{Client->IsCommandChecked(Command)};
+        if (ImGui::Checkbox(Info->mLabel, &Checked)) {
+            Client->ExecuteCommand(Command);
+        }
+    }
+
+    /**
+     * @brief 기즈모 수치 설정의 입력을 표시하고 변경 값을 클라이언트의 검증 경로로 전달합니다.
+     * @param[in,out] Client 변경 값을 검증하고 적용할 유효한 클라이언트입니다.
+     * @param[in] Setting 변경할 수치 항목입니다.
+     * @param[in] Label 현재 UI 범위에서 입력을 식별할 표시 이름입니다.
+     * @param[in] Value 현재 설정 값이며 입력 중에는 지역 사본만 수정합니다.
+     * @note 크기는 슬라이더로, 나머지는 수치 입력으로 표시하며 기즈모 설정의 주소를 UI에 직접 전달하지 않습니다.
+     */
+    void DrawNumericSetting(FEditorViewportClient* Client, EGizmoSetting Setting, const char* Label, float Value) {
+        const bool Changed{Setting == EGizmoSetting::Size ? ImGui::SliderFloat(Label, &Value, 0.5f, 2.0f) : ImGui::InputFloat(Label, &Value)};
+        if (Changed) {
+            Client->SetGizmoSetting(Setting, Value);
+        }
+    }
+
 }
 
 /**
@@ -97,9 +120,6 @@ void ViewportToolbar::Draw(FEditorViewportClient* Client) {
 
     if (ImGui::BeginPopup("TransformTools")) {
         ImGui::SeparatorText("Transform Tools");
-        if (ImGui::MenuItem("Select", "Q", Client->IsCommandChecked(EViewportCommand::Select), Client->CanExecuteCommand(EViewportCommand::Select))) {
-            Client->ExecuteCommand(EViewportCommand::Select);
-        }
         DrawModeCommands(Client, true);
         ImGui::Separator();
 
@@ -114,7 +134,9 @@ void ViewportToolbar::Draw(FEditorViewportClient* Client) {
         }
 
         ImGui::Separator();
-        ImGui::TextDisabled("Space: Cycle transform mode");
+        const FViewportCommandInfo* Cycle{FViewportCommandInfo::Find(EViewportCommand::CycleTransformMode)};
+        const FString Shortcut{Cycle->GetShortcutLabel()};
+        ImGui::TextDisabled("%s: %s", Shortcut.c_str(), Cycle->mLabel);
         ImGui::EndPopup();
     }
 
@@ -147,22 +169,16 @@ void ViewportToolbar::Draw(FEditorViewportClient* Client) {
         ImGui::OpenPopup("GizmoSnapping");
     }
     if (ImGui::BeginPopup("GizmoSnapping")) {
-        ImGui::BeginDisabled(!Client->CanExecuteCommand(EViewportCommand::Translate));
-        auto* Settings{Client->GetGizmo().GetSettings()};
-        ImGui::Checkbox("Translation Snap", &Settings->mTranslationSnap);
-        ImGui::InputFloat("Translation Step", &Settings->mTranslationStep);
-        ImGui::Checkbox("Rotation Snap", &Settings->mRotationSnap);
-        ImGui::InputFloat("Rotation Degrees", &Settings->mRotationStep);
-        ImGui::Checkbox("Scale Snap", &Settings->mScaleSnap);
-        ImGui::InputFloat("Scale Step", &Settings->mScaleStep);
-        ImGui::Checkbox("Surface Snap", &Settings->mSurfaceSnap);
-        ImGui::Checkbox("Align to Surface", &Settings->mAlignToSurface);
-        ImGui::InputFloat("Surface Offset", &Settings->mSurfaceOffset);
-        ImGui::SliderFloat("Gizmo Size", &Settings->mSize, 0.5f, 2.0f);
+        ImGui::BeginDisabled(!Client->CanEditGizmoSettings());
+        const FGizmoSettings* Settings{Client->GetGizmoSettings()};
+        DrawSettingToggle(Client, EViewportCommand::ToggleTranslationSnap);
+        DrawNumericSetting(Client, EGizmoSetting::TranslationStep, "Translation Step", Settings->mTranslationStep);
+        DrawSettingToggle(Client, EViewportCommand::ToggleRotationSnap);
+        DrawNumericSetting(Client, EGizmoSetting::RotationStep, "Rotation Degrees", Settings->mRotationStep);
+        DrawSettingToggle(Client, EViewportCommand::ToggleScaleSnap);
+        DrawNumericSetting(Client, EGizmoSetting::ScaleStep, "Scale Step", Settings->mScaleStep);
+        DrawNumericSetting(Client, EGizmoSetting::Size, "Gizmo Size", Settings->mSize);
         ImGui::EndDisabled();
-        ImGui::Separator();
-        ImGui::TextDisabled("Q/W/E/R: Mode | Tab: World/Local | X: Snap | Z: Surface");
-        ImGui::TextDisabled("V: Vertex | MMB: Pivot | Alt+Drag: Duplicate");
         ImGui::EndPopup();
     }
     ImGui::EndGroup();

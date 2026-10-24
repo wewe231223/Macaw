@@ -4,7 +4,7 @@
 #include "Core/Math/FRay.h"
 #include "Core/Math/FMatrix.h"
 
-bool RaycastMesh(const FMeshData* Mesh, const FMatrix& World, const FRay& Ray, float& Distance, FVector* Normal) {
+bool RaycastMesh(const FMeshData* Mesh, const FMatrix& World, const FRay& Ray, float& Distance) {
     if (Mesh == nullptr || !Mesh->mBounds.Transformed(World).Intersects(Ray, Distance)) {
         return false;
     }
@@ -24,12 +24,6 @@ bool RaycastMesh(const FMeshData* Mesh, const FMatrix& World, const FRay& Ray, f
         if (Math::IntersectTriangle(Local, A, B, C, HitDistance) && HitDistance < Distance) {
             Distance = HitDistance;
             Found = true;
-            if (Normal != nullptr) {
-                *Normal = Inverse.Transposed().TransformVector((B - A).Cross(C - A)).Normalized();
-                if (Normal->Dot(Ray.mDirection) > 0.0f) {
-                    *Normal = -*Normal;
-                }
-            }
         }
     }
     return Found;

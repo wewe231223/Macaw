@@ -7,7 +7,6 @@
 #include "Editor/Gizmo.h"
 #include "Engine/EditorMesh.h"
 #include "Engine/MeshPicking.h"
-#include "Engine/FWorldHit.h"
 #include "Engine/UWorld.h"
 #include <limits>
 #include <numbers>
@@ -35,26 +34,6 @@
  * @brief 이 구현 파일에서만 사용하는 내부 상태와 보조 함수입니다.
  */
 namespace {
-    /**
-     * @brief 기즈모 회전 링에 사용하는 닫힌 단위 원의 65개 점을 생성합니다.
-     * @return 연산을 적용한 새 값입니다.
-     */
-    std::array<FVector2, 65> BuildUnitCircle() {
-        std::array<FVector2, 65> Points{};
-
-        for (std::size_t Index{}; Index + 1 < Points.size(); ++Index) {
-            Points[Index] = FVector2{1.0f, 0.0f}.Rotated(360.0f * static_cast<float>(Index) / 64.0f);
-        }
-
-        Points.back() = Points.front();
-
-        return Points;
-    }
-
-    /**
-     * @brief 기즈모 회전 링의 캐시된 단위 원 좌표입니다.
-     */
-    const std::array<FVector2, 65> UnitCircle{BuildUnitCircle()};
     /**
      * @brief 기즈모의 기본 X·Y·Z 단위 축입니다.
      */
@@ -90,11 +69,6 @@ namespace {
 
     float Snap(float Value, float Step, bool Enabled) {
         return Enabled && std::isfinite(Step) && Step > 0.0f ? std::round(Value / Step) * Step : Value;
-    }
-
-    FQuat Align(const FVector& From, const FVector& To) {
-        const float Dot{std::clamp(From.Dot(To), -1.0f, 1.0f)};
-        return Dot > 0.99999f ? FQuat{} : FQuat{Dot < -0.99999f ? Perpendicular(From) : From.Cross(To).Normalized(), std::acos(Dot)};
     }
 
 }
@@ -161,14 +135,7 @@ bool FTransformGizmo::BeginDrag(Int32 Axis, const FViewportInput* Input, const F
     if (Input == nullptr || Target == nullptr || !mContext->CanEditWorld() || Axis < 0 || Axis > 7) {
         return false;
     }
-    mTargets.clear();
-    for (FObjectHandle Handle : mContext->GetTransformTargets()) {
-        const auto* Component{Cast<USceneComponent>(mContext->ResolveObject(Handle))};
-        if (Component != nullptr) {
-            mTargets.push_back({Handle, Component->GetTransform()});
-        }
-    }
-    if (mTargets.empty()) {
+    if (!CaptureTargets()) {
         return false;
     }
     mStartTransform = Target->GetTransform();
@@ -187,7 +154,6 @@ bool FTransformGizmo::BeginDrag(Int32 Axis, const FViewportInput* Input, const F
     mTranslation = {};
     mRawAngle = 0.0f;
     mAppliedAngle = 0.0f;
-    mShowSnap = false;
     mDuplicates.clear();
     for (Int32 Index{}; Index < 3; ++Index) {
         mDragAxes[Index] = GetAxis(mStartTransform, Index);
@@ -267,15 +233,12 @@ void FTransformGizmo::UpdateDrag(const FViewportInput* Input) {
             Cancel();
             return;
         }
-        mTargets.clear();
-        for (FObjectHandle Handle : mContext->GetTransformTargets()) {
-            const auto* Component{Cast<USceneComponent>(mContext->ResolveObject(Handle))};
-            if (Component != nullptr) {
-                mTargets.push_back({Handle, Component->GetTransform()});
-            }
-        }
         mSelectionRevision = mContext->GetSelectionRevision();
         mPivotRevision = mSelectionRevision;
+        if (!CaptureTargets()) {
+            Cancel();
+            return;
+        }
         mDuplicatePending = false;
     }
     for (const FTargetState& State : mTargets) {
@@ -347,40 +310,20 @@ void FTransformGizmo::UpdateDrag(const FViewportInput* Input) {
         return;
     }
     FVector Delta{};
-    FVector Position{};
-    FVector Normal{};
-    bool Snapped{};
-    bool SurfaceAligned{};
-    if (mSettings.mSurfaceSnap && !mPivotOnly) {
-        FWorldHit Surface{};
-        const auto Excluded{mContext->GetSelectedActors()};
-        if (mContext->GetWorld()->Raycast(Ray, Surface, &Excluded)) {
-            Position = Surface.mPosition + Surface.mNormal * (std::isfinite(mSettings.mSurfaceOffset) ? mSettings.mSurfaceOffset : 0.0f);
-            Normal = Surface.mNormal;
-            Snapped = true;
-            SurfaceAligned = mSettings.mAlignToSurface;
-        }
-    }
-    mShowSnap = Snapped;
-    if (Snapped) {
-        Delta = Position - mStartPivot;
-        mSnapPosition = Position;
+    FVector Movement{};
+    if (mScreenFallback) {
+        Movement = mActiveAxis < 3 ? mDragAxes[mActiveAxis] * ScreenMovement * mDragSize : (Right * MouseDelta.x - Up * MouseDelta.y) * mDragSize;
     } else {
-        FVector Movement{};
-        if (mScreenFallback) {
-            Movement = mActiveAxis < 3 ? mDragAxes[mActiveAxis] * ScreenMovement * mDragSize : (Right * MouseDelta.x - Up * MouseDelta.y) * mDragSize;
-        } else {
-            FVector Intersection{};
-            if (!Math::IntersectPlane(Ray, mStartPivot, mPlaneNormal, Intersection)) {
-                return;
-            }
-            Movement = Intersection - mStartIntersection;
+        FVector Intersection{};
+        if (!Math::IntersectPlane(Ray, mStartPivot, mPlaneNormal, Intersection)) {
+            return;
         }
-        for (Int32 Index{}; Index < 3; ++Index) {
-            const FVector Axis{mActiveAxis == 6 ? UnitAxes[Index] : mDragAxes[Index]};
-            if (mActiveAxis == 6 || Affects(mActiveAxis, Index)) {
-                Delta += Axis * Snap(Movement.Dot(Axis), mSettings.mTranslationStep, mSettings.mTranslationSnap);
-            }
+        Movement = Intersection - mStartIntersection;
+    }
+    for (Int32 Index{}; Index < 3; ++Index) {
+        const FVector Axis{mActiveAxis == 6 ? UnitAxes[Index] : mDragAxes[Index]};
+        if (mActiveAxis == 6 || Affects(mActiveAxis, Index)) {
+            Delta += Axis * Snap(Movement.Dot(Axis), mSettings.mTranslationStep, mSettings.mTranslationSnap);
         }
     }
     if (!Delta.IsFinite()) {
@@ -398,9 +341,6 @@ void FTransformGizmo::UpdateDrag(const FViewportInput* Input) {
     for (const FTargetState& State : mTargets) {
         FTransform Desired{State.mTransform};
         Desired.mLocation += Delta;
-        if (SurfaceAligned) {
-            Desired.mRotation = (Align(Desired.mRotation.UpVector(), Normal) * Desired.mRotation).Normalized();
-        }
         if (!mContext->ApplyTransform(State.mObject, Desired, true)) {
             Cancel();
             return;
@@ -437,7 +377,7 @@ bool FTransformGizmo::Input(const FViewportInput& Input, const FSceneView& View,
  */
 void FTransformGizmo::Draw(const FSceneView& View, FPrimitiveDrawInterface& DrawInterface) {
     BuildHandles(View, &DrawInterface);
-    DrawFeedback(View, &DrawInterface);
+    DrawFeedback(&DrawInterface);
 }
 
 /**
@@ -478,8 +418,23 @@ bool FTransformGizmo::IsPivotDrag() const {
     return IsDragging() && mPivotOnly;
 }
 
-FGizmoSettings* FTransformGizmo::GetSettings() {
+const FGizmoSettings* FTransformGizmo::GetSettings() const {
     return &mSettings;
+}
+
+bool FTransformGizmo::CaptureTargets() {
+    mTargets.clear();
+    for (FObjectHandle Handle : mContext->GetTransformTargets()) {
+        const auto* Component{Cast<USceneComponent>(mContext->ResolveObject(Handle))};
+        if (Component != nullptr) {
+            mTargets.push_back({Handle, Component->GetTransform()});
+        }
+    }
+    return !mTargets.empty();
+}
+
+void FTransformGizmo::SetSettings(const FGizmoSettings& Settings) {
+    mSettings = Settings;
 }
 
 void FTransformGizmo::EndDrag(bool Restore) {
@@ -509,7 +464,6 @@ void FTransformGizmo::EndDrag(bool Restore) {
     mDuplicates.clear();
     mActiveAxis = -1;
     mHoveredAxis = -1;
-    mShowSnap = false;
 }
 
 void FTransformGizmo::BuildHandles(const FSceneView& View, FPrimitiveDrawInterface* DrawInterface) const {
@@ -588,22 +542,8 @@ void FTransformGizmo::BuildHandles(const FSceneView& View, FPrimitiveDrawInterfa
     }
 }
 
-void FTransformGizmo::DrawFeedback(const FSceneView& View, FPrimitiveDrawInterface* DrawInterface) const {
-    FMatrix CameraWorld{};
-    if (!View.mView.TryInverse(CameraWorld)) {
-        return;
-    }
-    const FVector Right{CameraWorld.GetAxis(0)};
-    const FVector Up{CameraWorld.GetAxis(1)};
+void FTransformGizmo::DrawFeedback(FPrimitiveDrawInterface* DrawInterface) const {
     const FVector Color{1.0f, 0.85f, 0.05f};
-    if (mShowSnap) {
-        const float Radius{GetSize(View, mSnapPosition) * 5.0f};
-        DrawInterface->DrawLine(mSnapPosition - Right * Radius, mSnapPosition + Right * Radius, Color);
-        DrawInterface->DrawLine(mSnapPosition - Up * Radius, mSnapPosition + Up * Radius, Color);
-        for (std::size_t Index{}; Index + 1 < UnitCircle.size(); ++Index) {
-            DrawInterface->DrawLine(mSnapPosition + (Right * UnitCircle[Index].x + Up * UnitCircle[Index].y) * Radius, mSnapPosition + (Right * UnitCircle[Index + 1].x + Up * UnitCircle[Index + 1].y) * Radius, Color);
-        }
-    }
     if (!IsDragging()) {
         return;
     }

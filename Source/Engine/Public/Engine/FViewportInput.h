@@ -225,9 +225,4 @@ public:
     bool mToggleSnap{};
     ReflectProperty(mToggleSnap, "ToggleSnap", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 
-    /**
-     * @brief 이번 프레임에 Z 키를 눌러 표면 스냅 사용 여부 전환을 요청한 상태입니다.
-     */
-    bool mToggleSurface{};
-    ReflectProperty(mToggleSurface, "ToggleSurface", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 };
