@@ -15,6 +15,7 @@
 #include "Engine/FWorldHandle.h"
 #include "Engine/FPrimitiveDrawInterface.h"
 #include "Engine/FViewportInput.h"
+#include "Engine/FHitProxy.h"
 
 class FEditorContext;
 class FEditorViewportClient;
@@ -85,9 +86,17 @@ public:
      * @brief 현재 프레임의 뷰포트 입력을 처리합니다.
      * @param[in] Input 현재 프레임의 뷰포트 입력 스냅샷입니다.
      * @param[in] View 입력 해석이나 그리기에 사용할 카메라 뷰입니다.
+     * @param[in] Hit CPU 교차 판정으로 찾은 객체 또는 기즈모 축입니다.
      * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
      */
-    bool Input(const FViewportInput& Input, const FSceneView& View);
+    bool Input(const FViewportInput& Input, const FSceneView& View, const FHitProxy& Hit);
+    /**
+     * @brief 마우스와 투영된 축의 거리로 선택 액터의 기즈모 HitProxy를 구합니다.
+     * @param[in] Mouse 뷰포트 기준 마우스 픽셀 좌표입니다.
+     * @param[in] View 입력 해석이나 그리기에 사용할 카메라 뷰입니다.
+     * @return 선택 액터와 기즈모 축을 나타내며 편집할 수 없거나 유효한 루트 또는 적중 축이 없으면 빈 프록시입니다.
+     */
+    FHitProxy HitTest(const FVector2& Mouse, const FSceneView& View) const;
     /**
      * @brief 뷰포트 또는 패널의 현재 내용을 그립니다.
      * @param[in] View 입력 해석이나 그리기에 사용할 카메라 뷰입니다.
@@ -125,14 +134,6 @@ private:
      * @return 크기입니다.
      */
     float GetSize(const FSceneView& View, const FVector& Pivot) const;
-    /**
-     * @brief 마우스와 투영된 기즈모 축의 거리를 검사하여 선택할 축을 구합니다.
-     * @param[in] Mouse 뷰포트 기준 마우스 픽셀 좌표입니다.
-     * @param[in] View 입력 해석이나 그리기에 사용할 카메라 뷰입니다.
-     * @param[in] Transform 적용할 위치, 회전과 스케일입니다.
-     * @return 연산을 적용한 새 값입니다.
-     */
-    Int32 HitTest(const FVector2& Mouse, const FSceneView& View, const FTransform& Transform) const;
 
     /**
      * @brief 선택 축과 대상의 시작 변환을 저장하고 드래그 평면을 구성합니다.

@@ -15,10 +15,10 @@
  */
 UEditorEngine::UEditorEngine()
 	: mContext{this},
-	  mClient{&mContext},
-	  mUI{std::make_unique<FEditorUI>(&mContext, &mClient)} {
+	  mViewport{&mContext},
+	  mUI{std::make_unique<FEditorUI>(&mContext, &mViewport)} {
     mContext.SetPlacementProvider([this]() {
-        const FSceneView View{mClient.CalcSceneView({960.0f, 640.0f})};
+        const FSceneView View{mViewport.GetClient()->CalcSceneView({960.0f, 640.0f})};
         return FTransform{View.mLocation + View.mForward * 6.0f, {}, {1.0f, 1.0f, 1.0f}};
     });
 }
@@ -72,7 +72,7 @@ bool UEditorEngine::InitializeEditor(IRendererModule* Renderer, FWindowsApplicat
         return false;
     }
 
-    if (!mUI->Initialize(Renderer, Platform)) {
+    if (!mViewport.Initialize(Renderer) || !mUI->Initialize(Renderer, Platform)) {
         Shutdown();
         return false;
     }
@@ -105,8 +105,8 @@ void UEditorEngine::Shutdown() {
         return;
     }
 
-    mClient.GetGizmo().Cancel();
     mUI->Shutdown();
+    mViewport.Shutdown();
     mContext.Reset();
     UEngine::Shutdown();
 }
@@ -134,15 +134,15 @@ FEditorContext* UEditorEngine::GetEditorContext() {
 /**
  * @brief 에디터 뷰포트 클라이언트를 반환합니다.
  */
-FEditorViewportClient& UEditorEngine::GetViewportClient() {
-    return mClient;
+FEditorViewportClient* UEditorEngine::GetViewportClient() {
+    return mViewport.GetClient();
 }
 
 /**
- * @brief UI가 소유한 뷰포트 렌더 타깃을 반환합니다.
+ * @brief 독립 뷰포트가 소유한 렌더 타깃을 반환합니다.
  */
 FRenderTarget* UEditorEngine::GetViewportTarget() const {
-    return mUI->GetViewportTarget();
+    return mViewport.GetRenderTarget();
 }
 
 /**
@@ -150,4 +150,11 @@ FRenderTarget* UEditorEngine::GetViewportTarget() const {
  */
 bool UEditorEngine::WantsExit() const {
     return mUI->WantsExit();
+}
+
+/**
+ * @brief 엔진이 소유한 기본 독립 에디터 뷰포트의 비소유 주소를 반환합니다.
+ */
+FEditorViewport* UEditorEngine::GetEditorViewport() {
+    return &mViewport;
 }

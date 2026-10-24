@@ -16,9 +16,7 @@
 #include <filesystem>
 
 class FEditorContext;
-class FEditorViewportClient;
-class FSceneViewport;
-class FRenderTarget;
+class FEditorViewport;
 class FWindowsApplication;
 class IRendererModule;
 
@@ -38,9 +36,9 @@ public:
     /**
      * @brief UI가 참조할 편집 경로와 뷰포트를 연결합니다.
      * @param[in,out] Context 패널이 공유하는 비소유 편집 컨텍스트입니다.
-     * @param[in,out] Client 뷰포트 입력과 장면 뷰를 제공할 비소유 클라이언트입니다.
+     * @param[in,out] Viewport 화면에 배치할 독립 뷰포트입니다.
      */
-    FEditorUI(FEditorContext* Context, FEditorViewportClient* Client);
+    FEditorUI(FEditorContext* Context, FEditorViewport* Viewport);
     /**
      * @brief UI 백엔드와 소유 표시 리소스를 정리합니다.
      */
@@ -53,8 +51,8 @@ public:
      */
     ReflectStruct(FEditorUI);
     /**
-     * @brief 창에 UI 백엔드와 표시용 뷰포트를 준비합니다.
-     * @param[in,out] Renderer 표시 리소스를 제공하는 렌더러입니다.
+     * @brief 독립 뷰포트를 배치할 창의 ImGui 백엔드를 준비합니다.
+     * @param[in,out] Renderer ImGui 표시 리소스를 제공하는 렌더러입니다.
      * @param[in,out] Platform UI 입력을 연결할 플랫폼 창입니다.
      * @return 준비에 성공하면 true입니다.
      */
@@ -76,11 +74,6 @@ public:
      */
     void EndFrame(float DeltaTime);
     /**
-     * @brief 에디터 뷰포트 렌더 타깃의 비소유 주소를 반환합니다.
-     * @return 조회한 값의 비소유 주소이며, 해당 값이 없으면 nullptr입니다.
-     */
-    FRenderTarget* GetViewportTarget() const;
-    /**
      * @brief 에디터에서 프로그램 종료를 요청했는지 검사합니다.
      * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
      */
@@ -95,10 +88,6 @@ private:
      * @brief 장면 파일과 패널 표시 메뉴를 그립니다.
      */
     void DrawMenu();
-    /**
-     * @brief 장면 타깃을 표시하고 뷰포트 입력 및 크기 변경을 전달합니다.
-     */
-    void DrawViewport();
     /**
      * @brief 에디터 패널의 초기 ImGui 도킹 레이아웃을 구성합니다.
      */
@@ -117,21 +106,16 @@ private:
     FEditorContext* mContext{};
     ReflectProperty(mContext, "Context", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
     /**
-     * @brief 입력과 장면 뷰를 제공하는 클라이언트의 비소유 주소입니다.
+     * @brief UI에 배치할 독립 뷰포트의 비소유 주소입니다.
      */
-    FEditorViewportClient* mClient{};
-    ReflectProperty(mClient, "Client", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    FEditorViewport* mViewport{};
+    ReflectProperty(mViewport, "Viewport", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
     /**
      * @brief Windows 창과 메시지 처리 객체입니다.
      */
     FWindowsApplication* mPlatform{};
     ReflectProperty(mPlatform, "Platform", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 
-    /**
-     * @brief 에디터가 소유한 장면 뷰포트입니다.
-     */
-    std::unique_ptr<FSceneViewport> mViewport{};
-    ReflectProperty(mViewport, "Viewport", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 
     /**
      * @brief 액터·컴포넌트 계층 패널입니다.
@@ -163,11 +147,6 @@ private:
     FString mIniPath{};
     ReflectProperty(mIniPath, "IniPath", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 
-    /**
-     * @brief 현재 프레임의 경과 시간(초)입니다.
-     */
-    float mDeltaTime{0.016f};
-    ReflectProperty(mDeltaTime, "DeltaTime", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 
     /**
      * @brief 에디터 초기화 완료 여부입니다.

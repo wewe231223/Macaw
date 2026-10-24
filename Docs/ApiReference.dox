@@ -1,3 +1,4 @@
+/**
 \mainpage Macaw API Reference
 
 Macaw는 C++20, Windows x64와 Direct3D 11을 사용하는 엔진입니다.
@@ -23,7 +24,7 @@ Macaw는 C++20, Windows x64와 Direct3D 11을 사용하는 엔진입니다.
 | \ref Engine | 월드, 레벨, 액터, 컴포넌트, 장면·뷰포트 및 장면 저장 | \ref UEngine, \ref UWorld, \ref AActor, \ref FSceneSerializer |
 | \ref Renderer | Direct3D 11 장치, 장면, 타깃과 드로 제출 | \ref FRenderer, \ref FScene, \ref FSceneRenderer |
 | \ref Platform | Win32 창과 메시지 펌프 | \ref FWindowsApplication |
-| \ref Editor | UI 독립 편집 컨텍스트, 카메라, 변환 명령, 기즈모와 ImGui 패널 | \ref UEditorEngine, \ref FEditorContext, \ref FEditorUI, \ref FEditorViewportClient, \ref EViewportCommand |
+| \ref Editor | UI 독립 편집 컨텍스트, 카메라, 변환 명령, 기즈모와 ImGui 패널 | \ref UEditorEngine, \ref FEditorContext, \ref FEditorUI, \ref FEditorViewport, \ref FEditorViewportClient, \ref EViewportCommand |
 | \ref App | 플랫폼·렌더러·에디터를 조합하는 실행 진입점 | \ref FApplication |
 
 외부 ImGui는 `ThirdParty/ImGui`에서 별도 정적 라이브러리로 빌드합니다.
@@ -69,10 +70,12 @@ FObjectDuplicationContext는 원본과 복제본의 비소유 대응표이며,
 
 \section ApiViewport 뷰포트 UI와 공통 명령
 
-UEditorEngine은 FEditorContext, FEditorViewportClient와 FEditorUI의 수명을 조합합니다.
+UEditorEngine은 FEditorContext, FEditorViewport와 FEditorUI의 수명을 조합합니다.
 FEditorContext는 편집 대상 FWorldHandle, 액터·객체 선택, 장면 파일 경로와 변경 여부,
 콘솔 로그를 소유합니다. 엔진의 현재 실행 월드 선택과 편집 대상 월드는 독립적입니다.
-FEditorUI는 ImGui 백엔드, 창, 도킹, 패널과 표시용 FSceneViewport를 소유합니다.
+FEditorViewport는 창 이름, 자체 FEditorViewportClient와 FSceneViewport를 소유합니다.
+카메라, 기즈모와 컬러 타깃은 뷰포트별로 독립적이며 편집 컨텍스트는 공유할 수 있습니다.
+FEditorUI는 ImGui 백엔드, 도킹과 패널을 소유하고 독립 뷰포트를 화면에 배치합니다.
 UI를 만들지 않고도 엔진과 편집 컨텍스트를 초기화하여 같은 편집 경로를 사용할 수 있습니다.
 
 패널, 콘솔과 기즈모는 FEditorContext의 선택, 생성·삭제, EditProperty()와 ApplyTransform()
@@ -95,6 +98,13 @@ FEditorViewportClient::IsCommandChecked()는 현재 선택 상태를 제공하�
 기즈모 표시, 피킹과 드래그 변환을 처리합니다. 드래그 중에는 변환 명령을 차단하고,
 스케일 모드에서는 로컬 좌표계를 유지합니다. ToggleGrid는 향후 그리드 기능을 위한 명령이며
 현재 실행할 수 없습니다. 그리드 설정 메뉴의 표시 및 간격 항목도 비활성입니다.
+
+FSceneViewport::GetHitProxy()는 좌표를 검증하고 FEditorViewportClient의 CPU 피킹으로 전달합니다.
+기즈모는 화면에 투영한 축과 마우스의 거리를 검사하고, 객체는 기존 UWorld::Raycast()로
+경계 상자와 메시 삼각형을 검사합니다. 기즈모 축을 우선하며 두 경로는 모두 FHitProxy를 반환합니다.
+FHitProxy는 객체 또는 기즈모 소유 액터의 전역 세대 핸들과 축 번호를 보관합니다.
+피킹은 현재 카메라와 변환을 직접 조회하며 별도 GPU 패스나 피킹 캐시를 사용하지 않습니다.
+마우스 버튼을 놓으면 변환을 유지하고 Esc는 해당 뷰포트의 드래그 시작 변환을 복원합니다.
 
 \section ApiHeaders 헤더와 빌드
 
@@ -148,3 +158,4 @@ Windows 창과 메시지 처리입니다.
 에디터 엔진, 뷰포트, 기즈모와 패널입니다.
 \defgroup App App
 실행 진입점과 애플리케이션 수명입니다.
+*/

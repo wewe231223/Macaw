@@ -22,6 +22,7 @@
 #include "Engine/FSceneViewFamily.h"
 #include "Engine/FViewportInput.h"
 #include "Engine/FSceneViewport.h"
+#include "Engine/FWorldHit.h"
 #include "CoreUObject/Reflection/Cast.h"
 #include "Editor/FEditorContext.h"
 
@@ -125,7 +126,12 @@ bool FEditorViewportClient::IsCommandChecked(EViewportCommand Command) const {
 /**
  * @brief 현재 프레임의 뷰포트 입력을 처리합니다.
  */
-void FEditorViewportClient::Input(const FViewportInput& Input, const FVector2& Size, float DeltaTime) {
+void FEditorViewportClient::Input(FSceneViewport* Viewport, const FViewportInput& Input, float DeltaTime) {
+    if (Viewport == nullptr) {
+        return;
+    }
+
+    const FVector2 Size{Viewport->GetSize()};
     if (!mGizmo.IsDragging() && NavigateCamera(Input, Size, DeltaTime)) {
         return;
     }
@@ -135,7 +141,8 @@ void FEditorViewportClient::Input(const FViewportInput& Input, const FVector2& S
     }
 
     const FSceneView View{CalcSceneView(Size)};
-    const bool GizmoConsumed{mGizmo.Input(Input, View)};
+    const FHitProxy Hit{!mGizmo.IsDragging() && Input.mHovered && !Input.mAlt ? Viewport->GetHitProxy(Input.mMouse) : FHitProxy{}};
+    const bool GizmoConsumed{mGizmo.Input(Input, View, Hit)};
 
     if (Input.mDelete && Input.mFocused && !mGizmo.IsDragging()) {
         mContext->DestroySelectedActor();
@@ -143,12 +150,17 @@ void FEditorViewportClient::Input(const FViewportInput& Input, const FVector2& S
     }
 
     if (Input.mLeftPressed && Input.mHovered && !Input.mAlt && !GizmoConsumed && mContext->GetWorld() != nullptr) {
-        FRay Ray{};
-        FWorldHit Hit{};
+        if (Hit.mType == EHitProxyType::Object) {
+            UObject* Object{mContext->ResolveObject(Hit.mObject)};
+            const auto* Component{Cast<UActorComponent>(Object)};
+            AActor* Actor{Component != nullptr ? Component->GetOwner() : Cast<AActor>(Object)};
 
-        if (Math::Deproject(Input.mMouse, Size, View.mViewProjection, Ray) && mContext->GetWorld()->Raycast(Ray, Hit)) {
-            mContext->SelectActor(Hit.mActor);
-        } else {
+            if (Actor != nullptr) {
+                mContext->SelectActor(Actor->GetHandle());
+            } else {
+                mContext->ClearSelection();
+            }
+        } else if (Hit.mType == EHitProxyType::None) {
             mContext->ClearSelection();
         }
     }
@@ -363,4 +375,31 @@ void FEditorViewportClient::SetGizmoSpace(EGizmoSpace Space) {
  */
 EGizmoSpace FEditorViewportClient::GetGizmoSpace() const {
     return mGizmoSpace;
+}
+
+/**
+ * @brief 기즈모 축을 우선 검사하고 기존 CPU 광선 질의로 메시 컴포넌트의 핸들을 구합니다.
+ */
+FHitProxy FEditorViewportClient::GetHitProxy(const FSceneViewport* Viewport, const FVector2& Position) const {
+    UWorld* World{mContext->GetWorld()};
+
+    if (Viewport == nullptr || World == nullptr) {
+        return {};
+    }
+
+    const FSceneView View{CalcSceneView(Viewport->GetSize())};
+    const FHitProxy GizmoHit{mGizmo.HitTest(Position, View)};
+
+    if (GizmoHit.mType != EHitProxyType::None) {
+        return GizmoHit;
+    }
+
+    FRay Ray{};
+    FWorldHit Hit{};
+
+    if (Math::Deproject(Position, View.mSize, View.mViewProjection, Ray) && World->Raycast(Ray, Hit)) {
+        return {EHitProxyType::Object, Hit.mComponent};
+    }
+
+    return {};
 }

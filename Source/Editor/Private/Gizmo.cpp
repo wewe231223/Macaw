@@ -91,9 +91,16 @@ float FTransformGizmo::GetSize(const FSceneView& View, const FVector& Pivot) con
 }
 
 /**
- * @brief 마우스와 투영된 기즈모 축의 거리를 검사하여 선택할 축을 구합니다.
+ * @brief 마우스와 투영된 축의 거리로 선택 액터의 기즈모 HitProxy를 구합니다.
  */
-Int32 FTransformGizmo::HitTest(const FVector2& Mouse, const FSceneView& View, const FTransform& Transform) const {
+FHitProxy FTransformGizmo::HitTest(const FVector2& Mouse, const FSceneView& View) const {
+    const AActor* Actor{mContext->GetSelectedActor()};
+
+    if (Actor == nullptr || Actor->GetRootComponent() == nullptr || !mContext->CanEditWorld()) {
+        return {};
+    }
+
+    const FTransform Transform{Actor->GetRootComponent()->GetTransform()};
     const float Size{GetSize(View, Transform.mLocation)};
     float Closest{9.0f};
     Int32 Hit{-1};
@@ -136,7 +143,7 @@ Int32 FTransformGizmo::HitTest(const FVector2& Mouse, const FSceneView& View, co
         }
     }
 
-    return Hit;
+    return Hit >= 0 ? FHitProxy{EHitProxyType::GizmoAxis, Actor->GetHandle(), Hit} : FHitProxy{};
 }
 
 /**
@@ -227,7 +234,7 @@ void FTransformGizmo::UpdateDrag(const FVector2& Mouse) {
 /**
  * @brief 현재 프레임의 뷰포트 입력을 처리합니다.
  */
-bool FTransformGizmo::Input(const FViewportInput& Input, const FSceneView& View) {
+bool FTransformGizmo::Input(const FViewportInput& Input, const FSceneView& View, const FHitProxy& Hit) {
     if (IsDragging()) {
         if (Input.mEscape) {
             Cancel();
@@ -241,7 +248,7 @@ bool FTransformGizmo::Input(const FViewportInput& Input, const FSceneView& View)
     }
 
     const AActor* Actor{mContext->GetSelectedActor()};
-    mHoveredAxis = Actor != nullptr && Actor->GetRootComponent() != nullptr && Input.mHovered ? HitTest(Input.mMouse, View, Actor->GetRootComponent()->GetTransform()) : -1;
+    mHoveredAxis = Actor != nullptr && Actor->GetRootComponent() != nullptr && mContext->CanEditWorld() && Input.mHovered && Hit.mType == EHitProxyType::GizmoAxis && Hit.mObject == Actor->GetHandle() && Hit.mAxis >= 0 && Hit.mAxis < 3 ? Hit.mAxis : -1;
 
     return Input.mLeftPressed && mHoveredAxis >= 0 && BeginDrag(mHoveredAxis, Input.mMouse, View);
 }

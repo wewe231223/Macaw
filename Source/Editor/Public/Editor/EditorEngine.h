@@ -9,7 +9,7 @@
 #include "Core/ReflectionMacros.h"
 #include "Engine/Engine.h"
 #include "Editor/FEditorContext.h"
-#include "Editor/FEditorViewportClient.h"
+#include "Editor/FEditorViewport.h"
 
 class FEditorUI;
 class FWindowsApplication;
@@ -81,9 +81,14 @@ public:
     FEditorContext* GetEditorContext();
     /**
      * @brief 에디터 뷰포트 클라이언트를 반환합니다.
-     * @return 소유 객체가 유지하는 값의 참조입니다.
+     * @return 독립 뷰포트가 소유한 클라이언트의 비소유 주소입니다.
      */
-    FEditorViewportClient& GetViewportClient();
+    FEditorViewportClient* GetViewportClient();
+    /**
+     * @brief 엔진이 소유한 기본 독립 에디터 뷰포트를 반환합니다.
+     * @return 기본 독립 뷰포트의 비소유 주소입니다.
+     */
+    FEditorViewport* GetEditorViewport();
     /**
      * @brief 에디터 뷰포트 렌더 타깃의 비소유 주소를 반환합니다.
      * @return 조회한 값의 비소유 주소이며, 해당 값이 없으면 nullptr입니다.
@@ -108,10 +113,10 @@ private:
     FEditorContext mContext;
     ReflectProperty(mContext, "Context", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
     /**
-     * @brief 엔진이 소유한 에디터 뷰포트 클라이언트입니다.
+     * @brief 카메라와 기즈모 상태를 가진 클라이언트 및 컬러 타깃을 소유한 독립 뷰포트입니다.
      */
-    FEditorViewportClient mClient;
-    ReflectProperty(mClient, "Client", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    FEditorViewport mViewport;
+    ReflectProperty(mViewport, "Viewport", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
     /**
      * @brief 편집 모델을 표시하는 UI 호스트입니다.
      */

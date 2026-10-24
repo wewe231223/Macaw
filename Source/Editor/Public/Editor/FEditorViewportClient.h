@@ -80,15 +80,23 @@ public:
     /**
      * @brief 현재 프레임의 뷰포트 입력을 처리합니다.
      * @param[in] Input 현재 프레임의 뷰포트 입력 스냅샷입니다.
-     * @param[in] Size 뷰포트 크기 또는 데이터의 바이트 수입니다.
+     * @param[in,out] Viewport 입력 좌표와 크기를 제공하는 뷰포트입니다.
      * @param[in] DeltaTime 이전 프레임 이후 경과한 시간(초)입니다.
      */
-    void Input(const FViewportInput& Input, const FVector2& Size, float DeltaTime) override;
+    void Input(FSceneViewport* Viewport, const FViewportInput& Input, float DeltaTime) override;
     /**
      * @brief 뷰포트 또는 패널의 현재 내용을 그립니다.
      * @param[in,out] Viewport 출력 타깃과 크기를 제공하는 뷰포트입니다.
      */
     void Draw(FSceneViewport* Viewport) override;
+    /**
+     * @brief 기즈모 화면 거리 검사와 기존 월드 광선 질의로 선택 정보를 구합니다.
+     * @param[in] Viewport 입력 좌표와 크기를 제공하는 비소유 뷰포트입니다.
+     * @param[in] Position 뷰포트 기준 마우스 픽셀 좌표입니다.
+     * @return 기즈모 축을 우선하며 그 외에는 가장 가까운 메시 컴포넌트 또는 빈 프록시를 반환합니다.
+     * @note 편집 컨텍스트에 연결된 월드를 조회하며 GPU 렌더링이나 렌더 장면 동기화를 수행하지 않습니다.
+     */
+    FHitProxy GetHitProxy(const FSceneViewport* Viewport, const FVector2& Position) const override;
 
     /**
      * @brief 현재 카메라와 뷰포트 크기로 뷰·투영 행렬을 계산합니다.

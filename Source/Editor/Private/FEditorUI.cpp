@@ -5,12 +5,8 @@
  */
 
 #include "FEditorUI.h"
-#include "ViewportToolbar.h"
 #include "Editor/FEditorContext.h"
-#include "Editor/FEditorViewportClient.h"
-#include "Engine/FSceneViewport.h"
-#include "Engine/FRenderTarget.h"
-#include "Engine/FViewportInput.h"
+#include "Editor/FEditorViewport.h"
 #include "Platform/Window.h"
 #include "RenderCore/IRendererModule.h"
 
@@ -49,11 +45,11 @@ namespace {
 }
 
 /**
- * @brief 편집 컨텍스트와 뷰포트 클라이언트를 패널에 연결합니다.
+ * @brief 편집 컨텍스트를 패널에 연결하고 독립 뷰포트의 배치 연결을 구성합니다.
  */
-FEditorUI::FEditorUI(FEditorContext* Context, FEditorViewportClient* Client)
+FEditorUI::FEditorUI(FEditorContext* Context, FEditorViewport* Viewport)
 	: mContext{Context},
-	  mClient{Client},
+	  mViewport{Viewport},
 	  mOutlinerPanel{Context},
 	  mDetailsPanel{Context},
 	  mConsolePanel{Context},
@@ -68,7 +64,7 @@ FEditorUI::~FEditorUI() {
 }
 
 /**
- * @brief ImGui 백엔드와 장면 표시용 뷰포트를 준비합니다.
+ * @brief 독립 뷰포트를 배치할 ImGui 백엔드를 준비합니다.
  */
 bool FEditorUI::Initialize(IRendererModule* Renderer, FWindowsApplication* Platform) {
     if (Renderer == nullptr || Platform == nullptr || mContextCreated) {
@@ -112,14 +108,6 @@ bool FEditorUI::Initialize(IRendererModule* Renderer, FWindowsApplication* Platf
         return ImGui_ImplWin32_WndProcHandler(Window, Message, WParam, LParam) != 0;
     });
 
-    mViewport = std::make_unique<FSceneViewport>(Renderer, mClient);
-
-    if (!mViewport->Resize(960, 640)) {
-        Shutdown();
-
-        return false;
-    }
-
     mInitialized = true;
     mExit = false;
     return true;
@@ -132,8 +120,6 @@ void FEditorUI::Shutdown() {
     if (mPlatform != nullptr) {
         mPlatform->SetMessageHandler({});
     }
-
-    mViewport.reset();
 
     if (mDxReady) {
         ImGui_ImplDX11_Shutdown();
@@ -165,7 +151,6 @@ bool FEditorUI::BeginFrame(float DeltaTime) {
         return false;
     }
 
-    mDeltaTime = DeltaTime;
     mContext->GetRenderer()->BeginFrame(mPlatform->GetWidth(), mPlatform->GetHeight());
 
     ImGui_ImplDX11_NewFrame();
@@ -176,7 +161,7 @@ bool FEditorUI::BeginFrame(float DeltaTime) {
     BuildLayout();
     mOutlinerPanel.Draw(DeltaTime);
     mDetailsPanel.Draw(DeltaTime);
-    DrawViewport();
+    mViewport->DrawUI(DeltaTime);
     mConsolePanel.Draw(DeltaTime);
 
     return true;
@@ -197,13 +182,6 @@ void FEditorUI::EndFrame(float DeltaTime) {
     ImGui::Render();
     mContext->GetRenderer()->BeginUiRender();
     ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
-}
-
-/**
- * @brief 에디터 뷰포트 렌더 타깃의 비소유 주소를 반환합니다.
- */
-FRenderTarget* FEditorUI::GetViewportTarget() const {
-    return mViewport != nullptr ? mViewport->GetRenderTarget() : nullptr;
 }
 
 /**
@@ -269,7 +247,7 @@ void FEditorUI::BuildLayout() {
         ImGui::DockBuilderDockWindow(mStatisticsPanel.GetName().c_str(), Statistics);
         ImGui::DockBuilderDockWindow(mDetailsPanel.GetName().c_str(), Right);
         ImGui::DockBuilderDockWindow(mConsolePanel.GetName().c_str(), Bottom);
-        ImGui::DockBuilderDockWindow("Viewport", Center);
+        ImGui::DockBuilderDockWindow(mViewport->GetName().c_str(), Center);
 
         ImGui::DockBuilderFinish(Dockspace);
     }
@@ -355,59 +333,4 @@ void FEditorUI::DrawMenu() {
             mContext->NewScene();
         }
     }
-}
-
-/**
- * @brief 장면 타깃을 표시하고 뷰포트 입력 및 크기 변경을 전달합니다.
- */
-void FEditorUI::DrawViewport() {
-    if (ImGui::Begin("Viewport", nullptr, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoNavInputs)) {
-        ViewportToolbar::Draw(mClient);
-
-        const ImVec2 Available{ImGui::GetContentRegionAvail()};
-
-        if (Available.x >= 1.0f && Available.y >= 1.0f && mViewport->Resize(static_cast<Uint32>(Available.x), static_cast<Uint32>(Available.y))) {
-            FRenderTarget* Target{mViewport->GetRenderTarget()};
-            ImGui::Image(ImTextureRef{static_cast<ImTextureID>(reinterpret_cast<std::uintptr_t>(Target->GetNativeTexture()))}, Available);
-
-            const ImVec2 Origin{ImGui::GetItemRectMin()};
-            const ImGuiIO& Input{ImGui::GetIO()};
-            FViewportInput State{};
-            const float ScaleX{Target->GetWidth() / Available.x};
-            const float ScaleY{Target->GetHeight() / Available.y};
-
-            State.mMouse = {(Input.MousePos.x - Origin.x) * ScaleX, (Input.MousePos.y - Origin.y) * ScaleY};
-            State.mDelta = {Input.MouseDelta.x * ScaleX, Input.MouseDelta.y * ScaleY};
-
-            State.mHovered = ImGui::IsItemHovered();
-            State.mFocused = ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) && !ImGui::IsPopupOpen(nullptr, ImGuiPopupFlags_AnyPopup);
-
-            State.mLeftPressed = ImGui::IsMouseClicked(ImGuiMouseButton_Left);
-            State.mLeftDown = ImGui::IsMouseDown(ImGuiMouseButton_Left);
-            State.mLeftReleased = ImGui::IsMouseReleased(ImGuiMouseButton_Left);
-            State.mRightDown = ImGui::IsMouseDown(ImGuiMouseButton_Right);
-            State.mMiddleDown = ImGui::IsMouseDown(ImGuiMouseButton_Middle);
-
-            State.mAlt = Input.KeyAlt;
-            State.mWheel = Input.MouseWheel;
-            State.mEscape = ImGui::IsKeyPressed(ImGuiKey_Escape);
-
-            const bool Keyboard{State.mFocused && !Input.WantTextInput && !Input.KeyCtrl && !Input.KeyAlt};
-            State.mDelete = Keyboard && ImGui::IsKeyPressed(ImGuiKey_Delete, false);
-            State.mCycleGizmo = Keyboard && ImGui::IsKeyPressed(ImGuiKey_Space, false);
-            State.mFocusSelection = Keyboard && ImGui::IsKeyPressed(ImGuiKey_F, false);
-
-            State.mForward = Keyboard && ImGui::IsKeyDown(ImGuiKey_W);
-            State.mBackward = Keyboard && ImGui::IsKeyDown(ImGuiKey_S);
-            State.mLeft = Keyboard && ImGui::IsKeyDown(ImGuiKey_A);
-            State.mRight = Keyboard && ImGui::IsKeyDown(ImGuiKey_D);
-            State.mUp = Keyboard && ImGui::IsKeyDown(ImGuiKey_E);
-            State.mDown = Keyboard && ImGui::IsKeyDown(ImGuiKey_Q);
-            State.mFast = Input.KeyShift;
-
-            mViewport->Input(State, mDeltaTime);
-        }
-    }
-
-    ImGui::End();
 }
