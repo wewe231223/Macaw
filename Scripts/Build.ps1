@@ -3,6 +3,7 @@ $ErrorActionPreference = 'Stop'
 $WorkspaceRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 Push-Location -LiteralPath $WorkspaceRoot
 try {
+    & (Join-Path $PSScriptRoot 'SetupDependencies.ps1')
     $MSBuild = 'C:/Program Files/Microsoft Visual Studio/18/Community/MSBuild/Current/Bin/MSBuild.exe'
     $Generator = 'vs2026'
     if (-not (Test-Path -LiteralPath $MSBuild)) {

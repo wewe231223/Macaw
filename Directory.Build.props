@@ -1,7 +1,11 @@
 <Project>
   <PropertyGroup>
-    <VcpkgEnabled>false</VcpkgEnabled>
-    <VcpkgEnableManifest>false</VcpkgEnableManifest>
+    <VcpkgEnabled>true</VcpkgEnabled>
+    <VcpkgEnableManifest>true</VcpkgEnableManifest>
+    <VcpkgRoot>$(MSBuildThisFileDirectory).tools\vcpkg\</VcpkgRoot>
+    <VcpkgInstalledDir>$(MSBuildThisFileDirectory)vcpkg_installed\</VcpkgInstalledDir>
+    <VcpkgTriplet>x64-windows</VcpkgTriplet>
+    <VCPkgLocalAppDataDisabled>true</VCPkgLocalAppDataDisabled>
   </PropertyGroup>
 
 </Project>
