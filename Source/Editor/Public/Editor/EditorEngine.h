@@ -10,6 +10,7 @@
 #include "Engine/Engine.h"
 #include "Editor/FEditorContext.h"
 #include "Editor/FEditorViewport.h"
+#include "Editor/FPlayInEditorSession.h"
 
 class FEditorUI;
 class FWindowsApplication;
@@ -79,6 +80,7 @@ public:
      * @return 엔진이 소유한 편집 컨텍스트의 비소유 주소입니다.
      */
     FEditorContext* GetEditorContext();
+    FPlayInEditorSession* GetPlaySession();
     /**
      * @brief 에디터 뷰포트 클라이언트를 반환합니다.
      * @return 독립 뷰포트가 소유한 클라이언트의 비소유 주소입니다.
@@ -117,6 +119,8 @@ private:
      */
     FEditorViewport mViewport;
     ReflectProperty(mViewport, "Viewport", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    FPlayInEditorSession mPlaySession;
+    ReflectProperty(mPlaySession, "PlaySession", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
     /**
      * @brief 편집 모델을 표시하는 UI 호스트입니다.
      */

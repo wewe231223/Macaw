@@ -53,7 +53,7 @@ bool FEditorViewport::Initialize(IRendererModule* Renderer) {
         return false;
     }
 
-    mViewport = std::make_unique<FSceneViewport>(Renderer, &mClient);
+    mViewport = std::make_unique<FSceneViewport>(Renderer, GetActiveClient());
 
     if (!mViewport->Resize(960, 640)) {
         mViewport.reset();
@@ -68,6 +68,7 @@ bool FEditorViewport::Initialize(IRendererModule* Renderer) {
  */
 void FEditorViewport::Shutdown() {
     mClient.GetGizmo().Cancel();
+    mPlayInputCaptured = false;
     mImageSize = {};
     mViewport.reset();
 }
@@ -110,6 +111,23 @@ FEditorViewportClient* FEditorViewport::GetClient() {
     return &mClient;
 }
 
+FViewportClient* FEditorViewport::GetActiveClient() {
+    return mPlayClient != nullptr ? mPlayClient : &mClient;
+}
+
+void FEditorViewport::SetPlayClient(FViewportClient* Client) {
+    mClient.GetGizmo().Cancel();
+    mPlayClient = Client;
+    mPlayInputCaptured = false;
+    if (mViewport != nullptr) {
+        mViewport->SetClient(GetActiveClient());
+    }
+}
+
+bool FEditorViewport::IsPlayInputCaptured() const {
+    return mPlayInputCaptured;
+}
+
 /**
  * @brief 초기화된 장면 뷰포트의 비소유 주소를 반환합니다.
  */
@@ -137,7 +155,11 @@ void FEditorViewport::DrawUI(float DeltaTime) {
     bool Submitted{};
 
     if (ImGui::Begin(mName.c_str(), nullptr, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoNavInputs)) {
-        ViewportToolbar::Draw(&mClient);
+        if (mPlayClient != nullptr) {
+            ImGui::TextDisabled(mPlayInputCaptured ? "Playing | Shift+F1: Release input | Esc: Stop" : "Playing | Click viewport to control | Esc: Stop");
+        } else {
+            ViewportToolbar::Draw(&mClient);
+        }
 
         const ImVec2 Available{ImGui::GetContentRegionAvail()};
 
@@ -172,6 +194,20 @@ void FEditorViewport::DrawUI(float DeltaTime) {
             State.mWheel = Input.MouseWheel;
             State.mEscape = ImGui::IsKeyPressed(ImGuiKey_Escape);
 
+            if (mPlayClient != nullptr) {
+                if (Input.KeyShift && ImGui::IsKeyPressed(ImGuiKey_F1, false)) {
+                    mPlayInputCaptured = false;
+                } else if (State.mHovered && State.mLeftPressed) {
+                    ImGui::SetWindowFocus();
+                    State.mFocused = true;
+                    mPlayInputCaptured = true;
+                    State.mDelta = {};
+                } else if (!State.mFocused) {
+                    mPlayInputCaptured = false;
+                }
+                State.mFocused = State.mFocused && mPlayInputCaptured;
+            }
+
             const bool Keyboard{State.mFocused && !Input.WantTextInput && !Input.KeyCtrl && !Input.KeyAlt};
             State.mDelete = Keyboard && ImGui::IsKeyPressed(ImGuiKey_Delete, false);
             State.mFocusSelection = Keyboard && ImGui::IsKeyPressed(ImGuiKey_F, false);
@@ -184,7 +220,7 @@ void FEditorViewport::DrawUI(float DeltaTime) {
             State.mDown = Keyboard && ImGui::IsKeyDown(ImGuiKey_Q);
             State.mFast = Input.KeyShift;
             for (const FViewportCommandInfo& Info : FViewportCommandInfo::GetCommands()) {
-                if (Info.mInput != nullptr) {
+                if (mPlayClient == nullptr && Info.mInput != nullptr) {
                     const ImGuiKey Key{ShortcutKey(Info.mShortcut)};
                     State.*Info.mInput = Keyboard && Key != ImGuiKey_None && ImGui::IsKeyPressed(Key, false);
                 }

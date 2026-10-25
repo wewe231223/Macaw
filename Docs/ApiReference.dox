@@ -113,12 +113,26 @@ Snap 메뉴에서 이동 간격, 회전 각도, 스케일 단계와 기즈모 �
 
 \section ApiPIE Play In Editor
 
+UEditorEngine은 FPlayInEditorSession으로 편집 월드의 복제, 실행, 일시정지와 종료를 조율합니다.
+Play 또는 Alt+P는 원본 상태를 잠그고 별도 PIE 월드에서 BeginPlay를 호출합니다.
+FGameViewportClient가 같은 렌더 타깃의 입력과 장면 출력을 담당하며 편집 기즈모와 피킹은 전달하지 않습니다.
+실행 시점은 PIE 월드의 활성 UCameraComponent가 제공하며 GameViewportClient는 카메라 위치나 조작 상태를 소유하지 않습니다.
 UWorld는 활성 카메라와 실행 입력 대상 액터를 각각 세대 핸들로 연결하고 복제 시 두 참조를 복제본에 재연결합니다.
 기본 ACameraActor는 실행 입력으로 WASD/QE 이동과 우클릭 시선 회전을 처리하며 입력 대상은 활성 카메라의 소유 액터와 별도로 지정할 수 있습니다.
 Outliner의 + Camera로 카메라를 만들고 Use as PIE Camera로 선택한 카메라를 활성화합니다. 두 연결은 장면 저장·로드에도 유지됩니다.
+활성 카메라가 없으면 PIE를 시작하지 않으며 실행 중 활성 카메라가 사라지면 세션을 종료합니다.
 
+실행 뷰포트를 클릭하면 게임 입력이 활성화되며 Shift+F1은 입력을 해제합니다.
+Pause/Resume은 월드 실행을 전환하고 Step은 일시정지를 유지한 채 1/60초의 Tick을 한 번 수행합니다.
+Stop 또는 Esc는 실행 월드를 정리하고 원래 편집 카메라, 선택, 장면 경로와 변경 상태로 돌아갑니다.
+콜백 중 Stop은 안전한 프레임 경계에서 처리하며 실패한 복제는 원본 변경 없이 되돌립니다.
+
+재생 중 Outliner·Details는 별도의 FEditorContext로 실행 월드를 검사합니다.
 통계는 독립 패널 대신 현재 뷰포트 이미지 위에 입력을 받지 않는 오버레이로 표시합니다.
 콘솔의 stat fps/scene/memory/render는 각 그룹을 전환하고 on/off 인수는 표시 상태를 명시합니다. stat all은 전체 전환, stat none은 전체 해제입니다.
+표시 상태는 뷰포트가 소유하므로 PIE 전환에도 유지됩니다. Actor 수는 표시 중인 월드, UObject·메모리는 전역, 렌더 통계는 현재 렌더러 프레임 기준입니다.
+복제 객체의 대응 관계는 주소 대신 세대 핸들로 유지하며 실행 월드의 편집과 저장은 허용하지 않습니다.
+SIE 전환, 실행 결과를 편집 월드로 반영하는 기능과 Undo/Redo는 포함하지 않습니다.
 
 \section ApiHeaders 헤더와 빌드
 

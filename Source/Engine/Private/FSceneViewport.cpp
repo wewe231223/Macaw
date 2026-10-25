@@ -26,6 +26,10 @@ FSceneViewport::FSceneViewport(IRendererModule* Renderer, FViewportClient* Clien
  */
 FSceneViewport::~FSceneViewport() = default;
 
+void FSceneViewport::SetClient(FViewportClient* Client) {
+    mClient = Client;
+}
+
 /**
  * @brief 새 크기에 맞추어 렌더 타깃 리소스를 생성하거나 교체합니다.
  */

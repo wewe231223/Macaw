@@ -78,6 +78,7 @@ public:
      * @return 연결된 공통 편집 컨텍스트의 비소유 주소입니다.
      */
     FEditorContext* GetEditorContext() const;
+    void SetEditorContext(FEditorContext* Context);
 
 private:
     /**

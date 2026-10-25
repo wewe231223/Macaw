@@ -7,6 +7,7 @@
 #include "FEditorUI.h"
 #include "Editor/FEditorContext.h"
 #include "Editor/FEditorViewport.h"
+#include "Editor/FPlayInEditorSession.h"
 #include "Platform/Window.h"
 #include "RenderCore/IRendererModule.h"
 
@@ -47,9 +48,10 @@ namespace {
 /**
  * @brief 편집 컨텍스트를 패널에 연결하고 독립 뷰포트의 배치 연결을 구성합니다.
  */
-FEditorUI::FEditorUI(FEditorContext* Context, FEditorViewport* Viewport)
+FEditorUI::FEditorUI(FEditorContext* Context, FEditorViewport* Viewport, FPlayInEditorSession* PlaySession)
 	: mContext{Context},
 	  mViewport{Viewport},
+	  mPlaySession{PlaySession},
 	  mOutlinerPanel{Context},
 	  mDetailsPanel{Context},
 	  mConsolePanel{Context} {
@@ -158,6 +160,9 @@ bool FEditorUI::BeginFrame(float DeltaTime) {
 
     DrawMenu();
     BuildLayout();
+    FEditorContext* Inspection{mPlaySession->IsActive() ? mPlaySession->GetInspectionContext() : mContext};
+    mOutlinerPanel.SetEditorContext(Inspection);
+    mDetailsPanel.SetEditorContext(Inspection);
     mOutlinerPanel.Draw(DeltaTime);
     mDetailsPanel.Draw(DeltaTime);
     mViewport->DrawUI(DeltaTime);
@@ -176,7 +181,8 @@ void FEditorUI::EndFrame(float DeltaTime) {
 
     mViewport->Draw();
 
-    mViewport->DrawStatistics(DeltaTime, mContext->GetWorld(), mContext->GetRenderer()->GetStats());
+    const FEditorContext* Inspection{mPlaySession->IsActive() ? mPlaySession->GetInspectionContext() : mContext};
+    mViewport->DrawStatistics(DeltaTime, Inspection->GetWorld(), mContext->GetRenderer()->GetStats());
 
     ImGui::Render();
     mContext->GetRenderer()->BeginUiRender();
@@ -254,6 +260,7 @@ void FEditorUI::BuildLayout() {
 void FEditorUI::DrawMenu() {
     if (ImGui::BeginMainMenuBar()) {
         if (ImGui::BeginMenu("File")) {
+            ImGui::BeginDisabled(!mContext->CanEditWorld());
             if (ImGui::MenuItem("New Scene", "Ctrl+N")) {
                 mContext->NewScene();
             }
@@ -282,6 +289,7 @@ void FEditorUI::DrawMenu() {
                 }
             }
 
+            ImGui::EndDisabled();
             ImGui::Separator();
 
             if (ImGui::MenuItem("Exit")) {
@@ -301,13 +309,45 @@ void FEditorUI::DrawMenu() {
 
         ImGui::Separator();
 
-        ImGui::TextDisabled("%s%s", mContext->GetScenePath().empty() ? "Untitled" : PathText(mContext->GetScenePath().filename()).c_str(), mContext->IsSceneDirty() ? " *" : "");
+        if (!mPlaySession->IsActive()) {
+            ImGui::BeginDisabled(!mPlaySession->CanStart());
+            if (ImGui::Button("Play")) {
+                mPlaySession->Start();
+            }
+            ImGui::EndDisabled();
+            if (!mPlaySession->CanStart() && ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
+                ImGui::SetTooltip("PIE requires an active world camera and an idle editor");
+            }
+        } else {
+            if (ImGui::Button(mPlaySession->IsPaused() ? "Resume" : "Pause")) {
+                mPlaySession->SetPaused(!mPlaySession->IsPaused());
+            }
+            ImGui::SameLine();
+            ImGui::BeginDisabled(!mPlaySession->IsPaused());
+            if (ImGui::Button("Step")) {
+                mPlaySession->Step();
+            }
+            ImGui::EndDisabled();
+            ImGui::SameLine();
+            if (ImGui::Button("Stop")) {
+                mPlaySession->Stop();
+            }
+        }
+        ImGui::SameLine();
+        ImGui::TextDisabled("%s%s%s", mPlaySession->IsActive() ? mPlaySession->IsPaused() ? "[Paused] " : "[Playing] " : "", mContext->GetScenePath().empty() ? "Untitled" : PathText(mContext->GetScenePath().filename()).c_str(), mContext->IsSceneDirty() ? " *" : "");
         ImGui::EndMainMenuBar();
     }
 
     const ImGuiIO& Input{ImGui::GetIO()};
 
-    if (Input.KeyCtrl && !Input.WantTextInput) {
+    if (!Input.WantTextInput && !ImGui::IsPopupOpen(nullptr, ImGuiPopupFlags_AnyPopup)) {
+        if (Input.KeyAlt && ImGui::IsKeyPressed(ImGuiKey_P, false)) {
+            mPlaySession->Start();
+        } else if (mPlaySession->IsActive() && ImGui::IsKeyPressed(ImGuiKey_Escape, false)) {
+            mPlaySession->Stop();
+        }
+    }
+    if (Input.KeyCtrl && !Input.WantTextInput && mContext->CanEditWorld()) {
         if (ImGui::IsKeyPressed(ImGuiKey_S)) {
             const auto Path{mContext->GetScenePath().empty() ? ChooseFile(true) : mContext->GetScenePath()};
 

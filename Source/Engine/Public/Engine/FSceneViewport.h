@@ -53,6 +53,7 @@ public:
      * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
      */
     bool Resize(Uint32 Width, Uint32 Height);
+    void SetClient(FViewportClient* Client);
 
     /**
      * @brief 현재 프레임의 뷰포트 입력을 처리합니다.

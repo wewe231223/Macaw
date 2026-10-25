@@ -65,3 +65,9 @@ void FEditorPanel::SetVisible(bool Visible) {
 FEditorContext* FEditorPanel::GetEditorContext() const {
     return mContext;
 }
+
+void FEditorPanel::SetEditorContext(FEditorContext* Context) {
+    if (Context != nullptr) {
+        mContext = Context;
+    }
+}

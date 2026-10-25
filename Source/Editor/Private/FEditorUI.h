@@ -18,6 +18,7 @@ class FEditorContext;
 class FEditorViewport;
 class FWindowsApplication;
 class IRendererModule;
+class FPlayInEditorSession;
 
 /**
  * @brief 편집 모델을 참조하여 창과 패널을 표시하고 ImGui 백엔드 수명을 관리합니다.
@@ -37,7 +38,7 @@ public:
      * @param[in,out] Context 패널이 공유하는 비소유 편집 컨텍스트입니다.
      * @param[in,out] Viewport 화면에 배치할 독립 뷰포트입니다.
      */
-    FEditorUI(FEditorContext* Context, FEditorViewport* Viewport);
+    FEditorUI(FEditorContext* Context, FEditorViewport* Viewport, FPlayInEditorSession* PlaySession);
     /**
      * @brief UI 백엔드와 소유 표시 리소스를 정리합니다.
      */
@@ -109,6 +110,8 @@ private:
      */
     FEditorViewport* mViewport{};
     ReflectProperty(mViewport, "Viewport", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    FPlayInEditorSession* mPlaySession{};
+    ReflectProperty(mPlaySession, "PlaySession", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
     /**
      * @brief Windows 창과 메시지 처리 객체입니다.
      */

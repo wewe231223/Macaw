@@ -60,7 +60,7 @@ FEditorContext::~FEditorContext() = default;
 
 /** @brief 명시적인 편집 월드 연결을 변경합니다. */
 bool FEditorContext::SetWorld(FWorldHandle Handle) {
-    if (mEngine == nullptr || mEngine->GetWorld(Handle) == nullptr || mChangingState || mEditingProperty || mEngine->IsDispatching()) {
+    if (mPlayLocked || mEngine == nullptr || mEngine->GetWorld(Handle) == nullptr || mChangingState || mEditingProperty || mEngine->IsDispatching()) {
         return false;
     }
 
@@ -74,7 +74,7 @@ bool FEditorContext::SetWorld(FWorldHandle Handle) {
 
 /** @brief UI와 월드 사이의 비소유 편집 연결을 해제합니다. */
 void FEditorContext::Reset() {
-    if (mChangingState || mEditingProperty) {
+    if (mPlayLocked || mChangingState || mEditingProperty) {
         return;
     }
 
@@ -99,7 +99,11 @@ UWorld* FEditorContext::GetWorld() const {
 /** @brief 정지한 편집 용도 월드인지 검사합니다. */
 bool FEditorContext::CanEditWorld() const {
     const UWorld* World{GetWorld()};
-    return World != nullptr && (World->GetWorldType() == EWorldType::Editor || World->GetWorldType() == EWorldType::EditorPreview) && World->GetPlayState() == EWorldPlayState::Stopped;
+    return !mPlayLocked && World != nullptr && (World->GetWorldType() == EWorldType::Editor || World->GetWorldType() == EWorldType::EditorPreview) && World->GetPlayState() == EWorldPlayState::Stopped;
+}
+
+bool FEditorContext::IsChangingState() const {
+    return mChangingState || mEditingProperty;
 }
 
 /** @brief 렌더러의 비소유 연결을 반환합니다. */
@@ -179,7 +183,7 @@ void FEditorContext::ClearSelection() {
 
 /** @brief 요청 대상이 유효한지 확인하고 선택을 적용합니다. */
 bool FEditorContext::SetSelection(const TArray<FObjectHandle>& Actors, FObjectHandle Object) {
-    if (mChangingState || mEditingProperty) {
+    if (mPlayLocked || mChangingState || mEditingProperty) {
         return false;
     }
 

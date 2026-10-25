@@ -91,6 +91,7 @@ public:
     UWorld* GetWorld() const;
     /** @brief 편집 월드의 수정 허용 여부를 검사합니다. @return 정지한 Editor 또는 EditorPreview 월드이면 true입니다. */
     bool CanEditWorld() const;
+    bool IsChangingState() const;
     /** @brief 엔진의 렌더러를 조회합니다. @return 렌더러의 비소유 주소이며 헤드리스 환경에서는 nullptr입니다. */
     IRendererModule* GetRenderer() const;
     /** @brief 편집 월드에서 살아 있는 액터 핸들의 스냅샷을 만듭니다. @return 삭제 예정 액터를 제외한 핸들 목록입니다. */
@@ -158,6 +159,7 @@ public:
     void SetPlacementProvider(std::function<FTransform()> Provider);
 
 private:
+    friend class FPlayInEditorSession;
     /** @brief 리플렉션 등록 함수의 접근 권한입니다. */
     ReflectMembers();
     /**
@@ -180,6 +182,8 @@ private:
     /** @brief 월드의 소유권과 렌더러를 제공하는 엔진의 비소유 주소입니다. */
     UEngine* mEngine{};
     ReflectProperty(mEngine, "Engine", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    bool mPlayLocked{};
+    ReflectProperty(mPlayLocked, "PlayLocked", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
     /** @brief 엔진의 현재 실행 대상과 독립적인 편집 월드 핸들입니다. */
     FWorldHandle mWorld{};
     ReflectProperty(mWorld, "World", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);

@@ -18,7 +18,8 @@
 UEditorEngine::UEditorEngine()
 	: mContext{this},
 	  mViewport{&mContext},
-	  mUI{std::make_unique<FEditorUI>(&mContext, &mViewport)} {
+	  mPlaySession{this, &mContext, &mViewport},
+	  mUI{std::make_unique<FEditorUI>(&mContext, &mViewport, &mPlaySession)} {
     mContext.SetPlacementProvider([this]() {
         const FSceneView View{mViewport.GetClient()->CalcSceneView({960.0f, 640.0f})};
         return FTransform{View.mLocation + View.mForward * 6.0f, {}, {1.0f, 1.0f, 1.0f}};
@@ -111,6 +112,10 @@ void UEditorEngine::Shutdown() {
         return;
     }
 
+    mPlaySession.Stop();
+    if (mPlaySession.IsActive()) {
+        return;
+    }
     mUI->Shutdown();
     mViewport.Shutdown();
     mContext.Reset();
@@ -121,13 +126,22 @@ void UEditorEngine::Shutdown() {
  * @brief UI 입력, 월드 실행과 렌더 동기화를 순서대로 진행합니다.
  */
 void UEditorEngine::TickFrame(float DeltaTime) {
-    if (!mUI->BeginFrame(DeltaTime)) {
+    if (IsDispatching()) {
         return;
     }
-
+    mPlaySession.Update();
+    const bool HasUI{mUI->BeginFrame(DeltaTime)};
+    mPlaySession.Update();
     UEngine::Tick(DeltaTime);
+    mPlaySession.Update();
     SynchronizeWorld();
-    mUI->EndFrame(DeltaTime);
+    if (HasUI) {
+        mUI->EndFrame(DeltaTime);
+    }
+}
+
+FPlayInEditorSession* UEditorEngine::GetPlaySession() {
+    return &mPlaySession;
 }
 
 /**

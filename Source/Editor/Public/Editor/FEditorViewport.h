@@ -88,6 +88,9 @@ public:
      * @return 이 뷰포트가 소유한 클라이언트의 비소유 주소입니다.
      */
     FEditorViewportClient* GetClient();
+    FViewportClient* GetActiveClient();
+    void SetPlayClient(FViewportClient* Client);
+    bool IsPlayInputCaptured() const;
     /**
      * @brief 입력, 크기 변경과 피킹 요청을 연결하는 장면 뷰포트를 반환합니다.
      * @return 소유한 장면 뷰포트의 비소유 주소이며 초기화 전이나 종료 후에는 nullptr입니다.
@@ -116,6 +119,10 @@ private:
      */
     FEditorViewportClient mClient;
     ReflectProperty(mClient, "Client", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    FViewportClient* mPlayClient{};
+    ReflectProperty(mPlayClient, "PlayClient", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    bool mPlayInputCaptured{};
+    ReflectProperty(mPlayInputCaptured, "PlayInputCaptured", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
     /**
      * @brief 프레임 및 리소스 통계의 뷰포트 표시 상태입니다.
      */
