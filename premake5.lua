@@ -2,6 +2,7 @@ local Reflection = dofile("Scripts/GenerateReflection.lua")
 
 newoption { trigger = "reflection-module", value = "MODULE", description = "Generate reflection for one module" }
 newoption { trigger = "serialization-tests", description = "Build serialization regression tests" }
+newoption { trigger = "script-tests", description = "Build script runtime regression tests" }
 newaction { trigger = "generate-reflection", description = "Generate reflection from property annotations", execute = function() Reflection.Generate(_OPTIONS["reflection-module"]) end }
 
 if _ACTION == "generate-reflection" then
@@ -67,7 +68,7 @@ local function Configure(Name, Kind)
         externalincludedirs { "Externals/Include", "ThirdParty/ImGui/Public/ImGui", "vcpkg_installed/x64-windows/include/luajit" }
 end
 
-for _, Name in ipairs({ "Core", "CoreUObject", "Serialization", "RenderCore", "Engine", "Renderer", "Platform", "Editor" }) do
+for _, Name in ipairs({ "Core", "CoreUObject", "Serialization", "RenderCore", "Engine", "Script", "Renderer", "Platform", "Editor" }) do
     Configure(Name, "StaticLib")
     files { "Source/" .. Name .. "/Public/**.h", "Source/" .. Name .. "/Private/**.h", "Source/" .. Name .. "/Private/**.cpp" }
     includedirs { "Source/" .. Name .. "/Private" }
@@ -110,7 +111,7 @@ local function ConfigureExecutable(Name, Kind, Directory)
     prebuildcommands { '"' .. _PREMAKE_COMMAND .. '" --file="' .. path.getabsolute("premake5.lua") .. '" generate-reflection --reflection-module=App' }
     AddIncludes("Editor", {})
     AddIncludes("Renderer", {})
-    links { "Editor", "Engine", "Renderer", "Platform", "Serialization", "RenderCore", "CoreUObject", "Core", "ImGui", "DirectXTex", "d3d11", "dxgi", "d3dcompiler", "user32", "gdi32", "dwmapi", "imm32", "ole32", "windowscodecs", "comdlg32", "shell32" }
+    links { "Editor", "Script", "Engine", "Renderer", "Platform", "Serialization", "RenderCore", "CoreUObject", "Core", "ImGui", "DirectXTex", "lua51", "d3d11", "dxgi", "d3dcompiler", "user32", "gdi32", "dwmapi", "imm32", "ole32", "windowscodecs", "comdlg32", "shell32" }
     filter "configurations:Debug"
         libdirs { "Externals/bin/debug" }
     filter "configurations:Release"
@@ -123,4 +124,10 @@ ConfigureExecutable("Macaw", "WindowedApp", "Source/App")
 
 if _OPTIONS["serialization-tests"] then
     ConfigureExecutable("SerializationTests", "ConsoleApp", "Tests/Serialization")
+end
+
+if _OPTIONS["script-tests"] then
+    ConfigureExecutable("ScriptTests", "ConsoleApp", "Tests/Script")
+    AddIncludes("Script", {})
+    links { "Script", "lua51" }
 end
