@@ -8,6 +8,8 @@
 #include "RenderCore/IRendererModule.h"
 #include "Core/Math.h"
 #include "Engine/Component/UPrimitiveComponent.h"
+#include "Engine/Component/UShapeComponent.h"
+#include "Engine/ULevel.h"
 #include "Engine/AActor.h"
 #include "Engine/UWorld.h"
 #include "Engine/FWorldHit.h"
@@ -312,6 +314,19 @@ void FEditorViewportClient::Draw(FSceneViewport* Viewport) {
     mDrawInterface.DrawLine({}, {2.0f, 0.0f, 0.0f}, {1.0f, 0.25f, 0.2f}, true);
     mDrawInterface.DrawLine({}, {0.0f, 2.0f, 0.0f}, {0.3f, 0.9f, 0.4f}, true);
     mDrawInterface.DrawLine({}, {0.0f, 0.0f, 2.0f}, {0.3f, 0.55f, 1.0f}, true);
+
+    if (World->GetPersistentLevel() != nullptr) {
+        const TArray<FObjectHandle> SelectedActors{mContext->GetSelectedActors()};
+        for (const auto& Actor : World->GetPersistentLevel()->GetActors()) {
+            const bool Highlight{std::find(SelectedActors.begin(), SelectedActors.end(), Actor->GetHandle()) != SelectedActors.end()};
+            for (const auto& Component : Actor->GetComponents()) {
+                const auto* Shape{Cast<UShapeComponent>(Component.get())};
+                if (Shape != nullptr && (!Shape->ShouldDrawOnlyIfSelected() || Highlight)) {
+                    Shape->DrawDebug(mDrawInterface, Highlight);
+                }
+            }
+        }
+    }
 
     mGizmo.Draw(View, mDrawInterface);
 

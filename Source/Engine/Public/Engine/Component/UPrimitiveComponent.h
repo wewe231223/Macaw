@@ -90,7 +90,8 @@ public:
      * @brief 월드 공간의 축 정렬 경계 상자를 반환합니다.
      * @return 월드 공간의 축 정렬 경계 상자입니다.
      */
-    FBox GetWorldBounds() const;
+    virtual FBox GetWorldBounds() const;
+    virtual bool ShouldCreateRenderState() const;
 
 private:
     /**

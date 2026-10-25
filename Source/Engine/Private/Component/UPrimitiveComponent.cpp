@@ -110,6 +110,16 @@ void UPrimitiveComponent::SendRenderUpdates() {
         return;
     }
 
+    if (!ShouldCreateRenderState()) {
+        if (mRenderStateCreated) {
+            GetWorld()->GetScene()->RemovePrimitive(GetGuid());
+            mRenderStateCreated = false;
+        }
+        mRenderStateDirty = false;
+        mRenderTransformDirty = false;
+        return;
+    }
+
     FSceneInterface* Scene{GetWorld()->GetScene()};
 
     if (mRenderStateDirty || !mRenderStateCreated) {
@@ -138,4 +148,8 @@ FPrimitiveSceneProxy UPrimitiveComponent::CreateSceneProxy() const {
  */
 FBox UPrimitiveComponent::GetWorldBounds() const {
     return GetPrimitiveMesh(GetPrimitiveType()).GetBounds().Transformed(GetWorldMatrix());
+}
+
+bool UPrimitiveComponent::ShouldCreateRenderState() const {
+    return true;
 }
