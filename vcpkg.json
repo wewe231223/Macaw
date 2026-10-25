@@ -9,6 +9,8 @@
       "name": "freetype",
       "default-features": false
     },
-    "nvapi"
+    "luajit",
+    "nvapi",
+    "sol2"
   ]
 }

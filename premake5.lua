@@ -59,11 +59,11 @@ local function Configure(Name, Kind)
         staticruntime "Off"
         targetdir "Binaries/%{cfg.buildcfg}"
         objdir "Intermediate/%{prj.name}/%{cfg.buildcfg}"
-        defines { "NOMINMAX", "WIN32_LEAN_AND_MEAN" }
+        defines { "NOMINMAX", "WIN32_LEAN_AND_MEAN", "SOL_LUAJIT=1" }
         buildoptions { "/utf-8", "/Zc:preprocessor", "/permissive-" }
         multiprocessorcompile "On"
         warnings "Extra"
-        externalincludedirs { "Externals/Include", "ThirdParty/ImGui/Public/ImGui" }
+        externalincludedirs { "Externals/Include", "ThirdParty/ImGui/Public/ImGui", "vcpkg_installed/x64-windows/include/luajit" }
 end
 
 for _, Name in ipairs({ "Core", "CoreUObject", "Serialization", "RenderCore", "Engine", "Renderer", "Platform", "Editor" }) do
