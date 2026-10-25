@@ -50,9 +50,8 @@ int FApplication::Run() {
         mRenderer.Present();
     }
 
-    mEngine.Shutdown();
-    ErrorHandler::Report(FMemory::GetStats().mHeapBytes != 0, "Application", "UObject allocations remain after editor shutdown", ErrorHandler::EErrorLevel::Critical);
     Shutdown();
+    ErrorHandler::Report(FMemory::GetStats().mHeapBytes != 0, "Application", "UObject allocations remain after application shutdown", ErrorHandler::EErrorLevel::Critical);
 
     return 0;
 }
