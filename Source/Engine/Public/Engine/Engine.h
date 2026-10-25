@@ -12,6 +12,7 @@
 #include "Engine/FWorldHandle.h"
 
 class UWorld;
+class FProject;
 class FWorldContext;
 class FObjectDuplicationContext;
 class IRendererModule;
@@ -171,6 +172,16 @@ public:
      * @return 안전한 월드 제거 경계가 아니면 true입니다.
      */
     bool IsDispatching() const;
+    /**
+     * @brief 현재 월드에서 사용할 프로젝트와 에셋 관리자를 연결합니다.
+     * @param[in] Project 엔진에 연결할 프로젝트의 비소유 주소입니다.
+     */
+    void SetProject(FProject* Project);
+    /**
+     * @brief 현재 연결된 프로젝트의 비소유 주소를 반환합니다.
+     * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며, 사용할 수 없으면 nullptr입니다.
+     */
+    FProject* GetProject() const;
 
 private:
     /**
@@ -217,6 +228,11 @@ private:
      */
     bool mInitialized{};
     ReflectProperty(mInitialized, "Initialized", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /**
+     * @brief 월드와 에셋 접근에 사용할 프로젝트의 비소유 주소입니다.
+     */
+    FProject* mProject{};
+    ReflectProperty(mProject, "Project", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
     /**
      * @brief 갱신이나 복제 및 정리 도중 엔진 변경의 재진입을 막습니다.
      */

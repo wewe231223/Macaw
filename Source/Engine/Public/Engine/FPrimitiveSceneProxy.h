@@ -12,6 +12,8 @@
 #include "Core/Math/FBox.h"
 #include "Engine/EPrimitiveType.h"
 
+class UStaticMesh;
+
 /**
  * @brief 컴포넌트에서 복사한 식별자, 메시 종류, 월드 행렬과 경계 상자입니다.
  * @ingroup Engine
@@ -61,4 +63,9 @@ public:
      */
     FBox mBounds{};
     ReflectProperty(mBounds, "Bounds", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /**
+     * @brief 렌더링할 정적 메시의 비소유 주소입니다.
+     */
+    UStaticMesh* mMesh{};
+    ReflectProperty(mMesh, "Mesh", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 };

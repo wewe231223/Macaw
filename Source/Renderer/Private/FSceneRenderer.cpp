@@ -76,7 +76,13 @@ void FSceneRenderer::Render() {
             continue;
         }
 
-        const UStaticMesh* Mesh{(*mDrawContext.mMeshes)[static_cast<std::size_t>(Primitive.mProxy.mPrimitive)].get()};
+        UStaticMesh* Mesh{Primitive.mProxy.mMesh != nullptr ? Primitive.mProxy.mMesh : (*mDrawContext.mMeshes)[static_cast<std::size_t>(Primitive.mProxy.mPrimitive)].get()};
+
+        if (Mesh != nullptr && !Mesh->HasResources()) {
+            Microsoft::WRL::ComPtr<ID3D11Device> Device{};
+            Context->GetDevice(Device.GetAddressOf());
+            Mesh->CreateResources(Device.Get());
+        }
 
         if (Mesh == nullptr || !Mesh->HasResources()) {
             continue;

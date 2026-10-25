@@ -22,6 +22,15 @@ UTexture2D::UTexture2D(const std::filesystem::path& ImagePath, bool SRGB) {
 
 UTexture2D::~UTexture2D() = default;
 
+bool UTexture2D::SetDDSData(std::span<const Uint8> Data, bool SRGB) {
+    ScratchImage Image{};
+    return !Data.empty() && SUCCEEDED(LoadFromDDSMemory(Data.data(), Data.size(), DDS_FLAGS_NONE, nullptr, Image)) && SetImageData(Image, SRGB);
+}
+
+const TArray<Uint8>& UTexture2D::GetDDSData() const {
+    return mDDSData;
+}
+
 bool UTexture2D::LoadFromFile(const std::filesystem::path& ImagePath, bool SRGB) {
     if (ImagePath.empty()) {
         return false;

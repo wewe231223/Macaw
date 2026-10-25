@@ -11,6 +11,7 @@
 #include "Editor/EditorEngine.h"
 #include "Platform/Window.h"
 #include "Renderer/Renderer.h"
+#include "Engine/FProject.h"
 
 /**
  * @brief Windows 창, 렌더러와 에디터의 초기화 순서 및 메인 루프를 관리합니다.
@@ -51,6 +52,14 @@ private:
      * @brief 종속 객체를 역순으로 정리하고 여러 번 호출해도 안전한 종료 상태로 만듭니다.
      */
     void Shutdown();
+    bool BrowseProjects(std::filesystem::path Path, bool Create);
+    /**
+     * @brief 현재 실행을 정리하고 프로젝트를 생성하거나 열어 시작 장면을 연결합니다.
+     * @param[in] Path 조회·로드·저장 또는 정규화할 파일 경로입니다.
+     * @param[in] Create true이면 새 프로젝트를 생성하고 false이면 기존 프로젝트를 엽니다.
+     * @return 요청한 처리를 완료하면 true, 실패하면 false입니다.
+     */
+    bool OpenProject(const std::filesystem::path& Path, bool Create, FString& Error);
 
 private:
     /**
@@ -82,4 +91,26 @@ private:
      */
     FFrameTimer mTimer{};
     ReflectProperty(mTimer, "Timer", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /**
+     * @brief 현재 프로젝트를 단독 소유하는 객체입니다.
+     */
+    std::unique_ptr<FProject> mProject{};
+    ReflectProperty(mProject, "Project", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /**
+     * @brief 새 프로젝트에 복사할 템플릿의 기준 폴더입니다.
+     */
+    std::filesystem::path mTemplateDirectory{};
+    ReflectProperty(mTemplateDirectory, "TemplateDirectory", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /**
+     * @brief 다음 안전한 전환 시점에 처리할 프로젝트 파일 경로입니다.
+     */
+    std::filesystem::path mPendingProject{};
+    ReflectProperty(mPendingProject, "PendingProject", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /**
+     * @brief 보류 중인 프로젝트 요청이 새 프로젝트 생성인지 나타냅니다.
+     */
+    bool mCreateProject{};
+    ReflectProperty(mCreateProject, "CreateProject", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    bool mBrowseProjects{};
+    ReflectProperty(mBrowseProjects, "BrowseProjects", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 };

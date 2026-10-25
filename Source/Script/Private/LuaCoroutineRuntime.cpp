@@ -31,7 +31,7 @@ bool FLuaCoroutineRuntime::Initialize() {
         mScheduler.RunCoroutine(State, Resume, LuaCoroutine);
     });
 
-    if (!mLuaVM.ExecuteFile("Content/Scripts/Coroutine.lua")) {
+    if (!mLuaVM.ExecuteString("function Wait(Seconds) coroutine.yield(\"wait\", Seconds) end\nfunction WaitUntil(Condition) coroutine.yield(\"wait_until\", Condition) end", "Coroutine")) {
         Shutdown();
         return false;
     }

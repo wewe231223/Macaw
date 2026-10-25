@@ -10,7 +10,6 @@ public:
     ReflectClass(USphereComponent);
     FCollisionShape GetCollisionShape() const override;
     FBox CalcLocalBounds() const override;
-    void PostEditChangeProperty(const FPropertyChangedEvent& Event) override;
     void SetSphereRadius(float InRadius);
     float GetScaledSphereRadius() const;
 

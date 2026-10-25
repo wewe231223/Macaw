@@ -140,14 +140,22 @@ void UPrimitiveComponent::SendRenderUpdates() {
  */
 FPrimitiveSceneProxy UPrimitiveComponent::CreateSceneProxy() const {
     const FMatrix World{GetWorldMatrix()};
-    return {GetGuid(), GetPrimitiveType(), World, GetPrimitiveMesh(GetPrimitiveType()).GetBounds().Transformed(World)};
+    return {GetGuid(), GetPrimitiveType(), World, GetMeshData().GetBounds().Transformed(World), GetStaticMesh()};
+}
+
+UStaticMesh* UPrimitiveComponent::GetStaticMesh() const {
+    return nullptr;
+}
+
+const FMeshData& UPrimitiveComponent::GetMeshData() const {
+    return GetPrimitiveMesh(GetPrimitiveType());
 }
 
 /**
  * @brief 월드 공간의 축 정렬 경계 상자를 반환합니다.
  */
 FBox UPrimitiveComponent::GetWorldBounds() const {
-    return GetPrimitiveMesh(GetPrimitiveType()).GetBounds().Transformed(GetWorldMatrix());
+    return GetMeshData().GetBounds().Transformed(GetWorldMatrix());
 }
 
 bool UPrimitiveComponent::ShouldCreateRenderState() const {

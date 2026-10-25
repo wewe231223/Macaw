@@ -13,6 +13,7 @@
 #include "Engine/FWorldHandle.h"
 
 class ULevel;
+class FAssetManager;
 class AActor;
 class FWorldContext;
 class FSceneInterface;
@@ -224,6 +225,16 @@ public:
      */
     FSceneInterface* GetScene() const;
     /**
+     * @brief 월드의 에셋 로드에 사용할 관리자의 비소유 주소를 설정합니다.
+     * @param[in] Assets 월드가 사용할 에셋 관리자의 비소유 주소입니다.
+     */
+    void SetAssets(FAssetManager* Assets);
+    /**
+     * @brief 프로젝트의 에셋 관리자를 비소유 주소로 반환합니다.
+     * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며, 사용할 수 없으면 nullptr입니다.
+     */
+    FAssetManager* GetAssets() const;
+    /**
      * @brief 지정한 액터 클래스의 기본 컴포넌트를 생성하고 영속 레벨에 추가합니다.
      * @param[in] Class 팩터리를 제공하는 AActor 파생 클래스 메타데이터입니다.
      * @return 생성 후 살아 있는 액터의 비소유 주소이며 실패하거나 시작 콜백에서 삭제되면 nullptr입니다.
@@ -341,6 +352,11 @@ private:
      */
     FObjectHandle mActiveCamera{};
     ReflectProperty(mActiveCamera, "ActiveCamera", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /**
+     * @brief 프로젝트 에셋을 조회할 관리자의 비소유 주소입니다.
+     */
+    FAssetManager* mAssets{};
+    ReflectProperty(mAssets, "Assets", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
     /**
      * @brief 뷰포트 입력을 전달할 액터의 비소유 객체 핸들입니다.
      */

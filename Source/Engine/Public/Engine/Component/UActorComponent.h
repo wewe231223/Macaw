@@ -103,6 +103,7 @@ private:
      * @brief 생성된 프로퍼티 등록 함수와 빌더 접근 권한입니다.
      */
     ReflectMembers();
+    virtual void OnRegister();
     /**
      * @brief 컴포넌트의 소유 액터를 지정합니다.
      * @param[in] Owner 컴포넌트 또는 메타데이터의 소유자입니다.

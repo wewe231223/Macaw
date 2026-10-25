@@ -84,8 +84,6 @@ void FArchive::SetError(const FString& Message) {
     if (mError.empty()) {
         mError = Message;
     }
-
-    ErrorHandler::Fatal("Archive", mError);
 }
 
 /**

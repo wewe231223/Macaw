@@ -10,7 +10,6 @@ public:
     ReflectClass(UBoxComponent);
     FCollisionShape GetCollisionShape() const override;
     FBox CalcLocalBounds() const override;
-    void PostEditChangeProperty(const FPropertyChangedEvent& Event) override;
     void SetBoxExtent(const FVector& InExtent);
     FVector GetScaledBoxExtent() const;
 

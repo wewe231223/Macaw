@@ -68,6 +68,7 @@ public:
      * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
      */
     bool Initialize(void* WindowHandle, Uint32 Width, Uint32 Height) override;
+    bool InitializeUi(void* WindowHandle, Uint32 Width, Uint32 Height);
     /**
      * @brief 종속 객체를 역순으로 정리하고 여러 번 호출해도 안전한 종료 상태로 만듭니다.
      */
@@ -143,6 +144,12 @@ public:
      * @return 요청한 처리를 완료하면 true, 실패하면 false입니다.
      */
     bool ReloadChangedShaders() override;
+    /**
+     * @brief 프로젝트 콘텐츠의 셰이더 경로와 컴파일 캐시 경로를 설정합니다.
+     * @param[in] ContentRoot 프로젝트 에셋 경로의 기준 콘텐츠 폴더입니다.
+     * @param[in] CacheDirectory 컴파일된 셰이더의 캐시 파일을 보관할 폴더입니다.
+     */
+    void SetProjectPaths(const std::filesystem::path& ContentRoot, const std::filesystem::path& CacheDirectory);
 
 private:
     /**
@@ -197,6 +204,11 @@ private:
 private:
     FShaderManager mShaderManager{};
     ReflectProperty(mShaderManager, "ShaderManager", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /**
+     * @brief 현재 프로젝트의 HLSL 소스와 include 파일을 찾는 폴더입니다.
+     */
+    std::filesystem::path mShaderDirectory{};
+    ReflectProperty(mShaderDirectory, "ShaderDirectory", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
     /**
      * @brief 다음 렌더링에서 GPU 셰이더를 다시 준비할지 나타냅니다.
      */

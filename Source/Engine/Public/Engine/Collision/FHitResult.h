@@ -23,39 +23,11 @@ public:
     AActor* GetActor() const;
     UPrimitiveComponent* GetComponent() const;
     static FHitResult GetReversedHit(const FHitResult& Hit, UPrimitiveComponent* MovedComponent, AActor* MovedActor);
-    Int32 GetFaceIndex() const;
-    void SetFaceIndex(Int32 Value);
-    float GetTime() const;
-    void SetTime(float Value);
-    float GetDistance() const;
-    void SetDistance(float Value);
-    const FVector& GetLocation() const;
-    void SetLocation(const FVector& Value);
-    const FVector& GetImpactPoint() const;
-    void SetImpactPoint(const FVector& Value);
-    const FVector& GetNormal() const;
-    void SetNormal(const FVector& Value);
-    const FVector& GetImpactNormal() const;
-    void SetImpactNormal(const FVector& Value);
-    const FVector& GetTraceStart() const;
-    void SetTraceStart(const FVector& Value);
-    const FVector& GetTraceEnd() const;
-    void SetTraceEnd(const FVector& Value);
-    float GetPenetrationDepth() const;
-    void SetPenetrationDepth(float Value);
-    bool GetBlockingHit() const;
-    void SetBlockingHit(bool Value);
-    bool GetStartPenetrating() const;
-    void SetStartPenetrating(bool Value);
-    UPrimitiveComponent* GetHitComponent() const;
-    void SetHitComponent(UPrimitiveComponent* Value);
-    AActor* GetHitActor() const;
-    void SetHitActor(AActor* Value);
 
 private:
     ReflectMembers();
 
-private:
+public:
     Int32 mFaceIndex{-1};
     ReflectProperty(mFaceIndex, "FaceIndex", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
     float mTime{1.0f};

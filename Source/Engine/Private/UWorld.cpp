@@ -5,6 +5,7 @@
  */
 
 #include "Engine/UWorld.h"
+
 #include "Engine/MeshPicking.h"
 #include "Engine/Component/UStaticMeshComponent.h"
 #include "Engine/Component/UCameraComponent.h"
@@ -42,6 +43,28 @@ UWorld::UWorld() = default;
  */
 UWorld::~UWorld() {
     Shutdown();
+}
+
+void UWorld::SetAssets(FAssetManager* Assets) {
+    if (mAssets == Assets) {
+        return;
+    }
+
+    mAssets = Assets;
+
+    if (mPersistentLevel != nullptr) {
+        for (const auto& Actor : mPersistentLevel->GetActors()) {
+            for (const auto& Component : Actor->GetComponents()) {
+                if (auto* Mesh{Cast<UStaticMeshComponent>(Component.get())}) {
+                    Mesh->ResolveMesh();
+                }
+            }
+        }
+    }
+}
+
+FAssetManager* UWorld::GetAssets() const {
+    return mAssets;
 }
 
 /**
@@ -231,7 +254,7 @@ bool UWorld::Raycast(const FRay& Ray, FWorldHit& Hit) const {
         }
         for (const auto& Component : Actor->GetComponents()) {
             const auto* Primitive{Cast<UPrimitiveComponent>(Component.get())};
-            if (Primitive != nullptr && RaycastMesh(&GetPrimitiveMesh(Primitive->GetPrimitiveType()), Primitive->GetWorldMatrix(), NormalizedRay, Closest)) {
+            if (Primitive != nullptr && RaycastMesh(&Primitive->GetMeshData(), Primitive->GetWorldMatrix(), NormalizedRay, Closest)) {
                 Hit = {Actor->GetHandle(), Primitive->GetHandle(), NormalizedRay.mOrigin + NormalizedRay.mDirection * Closest, Closest};
                 Found = true;
             }

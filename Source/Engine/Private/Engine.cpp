@@ -5,6 +5,7 @@
  */
 
 #include "Engine/Engine.h"
+#include "Engine/FProject.h"
 #include "Engine/FSceneInterface.h"
 #include "Engine/UWorld.h"
 #include "Engine/FWorldContext.h"
@@ -42,6 +43,16 @@ UEngine::UEngine() = default;
  */
 UEngine::~UEngine() {
     Shutdown();
+}
+
+void UEngine::SetProject(FProject* Project) {
+    if (!mInitialized && !IsDispatching()) {
+        mProject = Project;
+    }
+}
+
+FProject* UEngine::GetProject() const {
+    return mProject;
 }
 
 /**
@@ -185,6 +196,7 @@ FWorldHandle UEngine::AdoptWorld(std::unique_ptr<FWorldContext> Context) {
         return {};
     }
 
+    Context->GetWorld()->SetAssets(mProject != nullptr ? mProject->GetAssets() : nullptr);
     if (mRenderer != nullptr && !Context->GetWorld()->AttachScene(mRenderer->AllocateScene())) {
         return {};
     }

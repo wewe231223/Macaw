@@ -9,6 +9,7 @@
 #include "Engine/FRenderTarget.h"
 #include "ViewportToolbar.h"
 #include "Editor/FViewportCommandInfo.h"
+#include "Editor/FAssetDragDrop.h"
 
 #include <imgui.h>
 #include <utility>
@@ -194,6 +195,21 @@ void FEditorViewport::DrawUI(float DeltaTime) {
             State.mWheel = Input.MouseWheel;
             State.mEscape = ImGui::IsKeyPressed(ImGuiKey_Escape);
 
+            bool AssetDrag{};
+            if (mPlayClient == nullptr && ImGui::BeginDragDropTarget()) {
+                if (const ImGuiPayload* Payload{ImGui::AcceptDragDropPayload(EditorAssetDragDrop::MeshPayload, ImGuiDragDropFlags_AcceptBeforeDelivery)}) {
+                    AssetDrag = true;
+                    if (Payload->IsDelivery() && Payload->Data != nullptr && Payload->DataSize > 1) {
+                        const auto* Data{static_cast<const char*>(Payload->Data)};
+                        if (Data[Payload->DataSize - 1] == '\0') {
+                            const std::filesystem::path Path{std::u8string_view{reinterpret_cast<const char8_t*>(Data), static_cast<std::size_t>(Payload->DataSize - 1)}};
+                            mClient.DropMesh(Path, State.mMouse, mViewport->GetSize());
+                        }
+                    }
+                }
+                ImGui::EndDragDropTarget();
+            }
+
             if (mPlayClient != nullptr) {
                 if (Input.KeyShift && ImGui::IsKeyPressed(ImGuiKey_F1, false)) {
                     mPlayInputCaptured = false;
@@ -226,7 +242,9 @@ void FEditorViewport::DrawUI(float DeltaTime) {
                 }
             }
 
-            mViewport->Input(State, DeltaTime);
+            if (!AssetDrag) {
+                mViewport->Input(State, DeltaTime);
+            }
             Submitted = true;
         }
     }

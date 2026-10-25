@@ -77,6 +77,11 @@ public:
      * @brief 관리 중인 셰이더의 공유 참조를 모두 제거합니다.
      */
     void Clear();
+    /**
+     * @brief 이후 셰이더 로드·저장에 사용할 캐시 폴더를 변경합니다.
+     * @param[in] Directory 이후 셰이더 캐시에 사용할 폴더 경로입니다.
+     */
+    void SetCacheDirectory(std::filesystem::path Directory);
 
 private:
     /**

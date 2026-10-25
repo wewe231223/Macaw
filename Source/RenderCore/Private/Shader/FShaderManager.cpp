@@ -76,6 +76,11 @@ void FShaderManager::Clear() {
     mShaders.clear();
 }
 
+void FShaderManager::SetCacheDirectory(std::filesystem::path Directory) {
+    Clear();
+    mCache = FShaderCache{std::move(Directory)};
+}
+
 bool FShaderManager::LoadCompilation(const FShaderDescription& Description, FShaderCompilation& Compilation, bool& LoadedFromCache, FString& Diagnostics) const {
     LoadedFromCache = mCache.Load(Description, Compilation, Diagnostics);
     if (LoadedFromCache) {

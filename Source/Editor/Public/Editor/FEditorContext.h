@@ -15,6 +15,7 @@
 #include <functional>
 
 class UEngine;
+class FProject;
 class UWorld;
 class UObject;
 class AActor;
@@ -159,6 +160,29 @@ public:
     const std::filesystem::path& GetScenePath() const;
     /** @brief 마지막 저장 이후 변경 여부를 반환합니다. @return 저장하지 않은 변경이 있으면 true입니다. */
     bool IsSceneDirty() const;
+    /**
+     * @brief 현재 연결된 프로젝트의 비소유 주소를 반환합니다.
+     * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며, 사용할 수 없으면 nullptr입니다.
+     */
+    FProject* GetProject() const;
+    /**
+     * @brief 프로젝트의 메시 에셋을 사용하는 액터를 편집 월드에 생성합니다.
+     * @param[in] Path 조회·로드·저장 또는 정규화할 파일 경로입니다.
+     * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며, 사용할 수 없으면 nullptr입니다.
+     */
+    AStaticMeshActor* SpawnMesh(const std::filesystem::path& Path);
+    AStaticMeshActor* SpawnMesh(const std::filesystem::path& Path, const FTransform& Placement);
+    /**
+     * @brief 애플리케이션에 프로젝트 전환을 요청할 콜백을 설정합니다.
+     * @param[in] Handler 요청 또는 명령을 처리할 콜백입니다.
+     */
+    void SetProjectRequestHandler(std::function<void(const std::filesystem::path&, bool)> Handler);
+    /**
+     * @brief 등록된 처리기에 프로젝트 생성 또는 열기 요청을 전달합니다.
+     * @param[in] Path 조회·로드·저장 또는 정규화할 파일 경로입니다.
+     * @param[in] Create true이면 새 프로젝트를 생성하고 false이면 기존 프로젝트를 엽니다.
+     */
+    void RequestProject(const std::filesystem::path& Path, bool Create);
 
     /** @brief UI와 독립적인 콘솔 로그를 추가합니다. @param[in] Message 추가할 메시지입니다. */
     void AddLog(const FString& Message);
@@ -249,4 +273,9 @@ private:
     ReflectProperty(mSelectedActors, "SelectedActors", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
     Uint64 mSelectionRevision{};
     ReflectProperty(mSelectionRevision, "SelectionRevision", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /**
+     * @brief 프로젝트 생성 또는 열기를 애플리케이션에 전달하는 콜백입니다.
+     */
+    std::function<void(const std::filesystem::path&, bool)> mProjectRequestHandler{};
+    ReflectProperty(mProjectRequestHandler, "ProjectRequestHandler", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 };

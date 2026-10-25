@@ -11,6 +11,7 @@
 #include "Engine/ACameraActor.h"
 #include "CoreUObject/Reflection/Cast.h"
 #include "Engine/EPrimitiveType.h"
+#include "Engine/FProject.h"
 
 /**
  * @brief 편집 상태와 UI의 비소유 연결 및 새 액터 배치 변환 제공 경로를 구성합니다.
@@ -83,20 +84,13 @@ bool UEditorEngine::InitializeEditor(IRendererModule* Renderer, FWindowsApplicat
         return false;
     }
 
-    AStaticMeshActor* Cube{GetWorld()->SpawnPrimitive(EPrimitiveType::Cube)};
-    AStaticMeshActor* Sphere{GetWorld()->SpawnPrimitive(EPrimitiveType::Sphere)};
-    AStaticMeshActor* Plane{GetWorld()->SpawnPrimitive(EPrimitiveType::Plane)};
-    auto* Camera{Cast<ACameraActor>(GetWorld()->SpawnActor(ACameraActor::StaticClass()))};
-
-    if (Cube == nullptr || Sphere == nullptr || Plane == nullptr || Camera == nullptr || !Camera->SetActorTransform(FTransform{mViewport.GetClient()->GetCameraLocation(), mViewport.GetClient()->GetCameraRotation().Quaternion(), {1.0f, 1.0f, 1.0f}}) || !GetWorld()->SetActiveCamera(Camera->GetCameraComponent()) || !GetWorld()->SetInputTarget(Camera)) {
-        Shutdown();
-
-        return false;
+    if (GetProject() != nullptr) {
+        const FString& Startup{GetProject()->GetStartupScene()};
+        if (!mContext.LoadScene(std::filesystem::path{std::u8string_view{reinterpret_cast<const char8_t*>(Startup.data()), Startup.size()}})) {
+            Shutdown();
+            return false;
+        }
     }
-
-    Sphere->SetActorTransform(FTransform{{0.0f, 2.0f, 0.0f}, {}, {1.0f, 1.0f, 1.0f}});
-    Plane->SetActorTransform(FTransform{{0.0f, 0.0f, -0.55f}, {}, {12.0f, 12.0f, 1.0f}});
-    mContext.SelectActor(Cube->GetHandle());
 
     SynchronizeWorld();
 

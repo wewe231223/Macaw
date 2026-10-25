@@ -41,17 +41,17 @@ namespace {
     /**
      * @brief 메시 정점 및 픽셀 셰이더의 내장 HLSL 소스입니다.
      */
-    constexpr char MeshShader[]{"Content/Shaders/Mesh.hlsl"};
+    constexpr char MeshShader[]{"Mesh.hlsl"};
 
     /**
      * @brief 보조 선분 정점 및 픽셀 셰이더의 내장 HLSL 소스입니다.
      */
-    constexpr char LineShader[]{"Content/Shaders/Line.hlsl"};
+    constexpr char LineShader[]{"Line.hlsl"};
 
     /**
      * @brief 기즈모의 월드 행렬 변환과 조명 없는 RGBA 출력을 수행하는 내장 HLSL 소스입니다.
      */
-    constexpr char GizmoShader[]{"Content/Shaders/Gizmo.hlsl"};
+    constexpr char GizmoShader[]{"Gizmo.hlsl"};
 
 }
 
@@ -67,10 +67,22 @@ FRenderer::~FRenderer() {
     Shutdown();
 }
 
+void FRenderer::SetProjectPaths(const std::filesystem::path& ContentRoot, const std::filesystem::path& CacheDirectory) {
+    mShaderDirectory = ContentRoot / "Shaders";
+    mShaderManager.SetCacheDirectory(CacheDirectory);
+}
+
 /**
  * @brief Direct3D 11 장치, 스왑 체인과 렌더 파이프라인을 준비합니다.
  */
 bool FRenderer::Initialize(void* WindowHandle, Uint32 Width, Uint32 Height) {
+    if (!InitializeUi(WindowHandle, Width, Height) || !CreatePipeline() || !CreateEditorMeshes()) {
+        ErrorHandler::Fatal("Renderer", "Render pipeline creation failed");
+    }
+    return true;
+}
+
+bool FRenderer::InitializeUi(void* WindowHandle, Uint32 Width, Uint32 Height) {
     if (mDevice != nullptr || WindowHandle == nullptr || Width == 0 || Height == 0) {
         ErrorHandler::Fatal("Renderer", "Invalid renderer initialization state");
     }
@@ -113,11 +125,7 @@ bool FRenderer::Initialize(void* WindowHandle, Uint32 Width, Uint32 Height) {
         Factory->MakeWindowAssociation(Description.OutputWindow, DXGI_MWA_NO_ALT_ENTER);
     }
 
-    if (!CreateBackBuffer(Width, Height) || !CreatePipeline() || !CreateEditorMeshes()) {
-        ErrorHandler::Fatal("Renderer", "Render pipeline creation failed");
-    }
-
-    return true;
+    return CreateBackBuffer(Width, Height);
 }
 
 /**
@@ -159,6 +167,9 @@ void FRenderer::Shutdown() {
 
     mBackBuffer.reset();
     mSwapChain.Reset();
+    if (mContext != nullptr) {
+        mContext->Flush();
+    }
     mContext.Reset();
     mDevice.Reset();
 
@@ -341,7 +352,7 @@ bool FRenderer::ReloadChangedShaders() {
     const bool Success{mShaderManager.ReloadChanged(ChangedShaders, Diagnostics)};
     mShadersDirty = mShadersDirty || !ChangedShaders.empty();
     if (!Diagnostics.empty()) {
-        ErrorHandler::Report("Shader", Diagnostics, Success ? ErrorHandler::EErrorLevel::Warning : ErrorHandler::EErrorLevel::Error);
+        ErrorHandler::Report("Shader", Diagnostics, ErrorHandler::EErrorLevel::Warning);
     }
 
     return Success && (!mShadersDirty || CreateShaders());
@@ -352,7 +363,8 @@ bool FRenderer::ReloadChangedShaders() {
  */
 bool FRenderer::Compile(const char* Source, const char* Entry, const char* Target, std::shared_ptr<const FShader>& Code) {
     FShaderDescription Description{};
-    Description.mSourcePath = Source;
+    Description.mSourcePath = mShaderDirectory / Source;
+    Description.mIncludeDirectories = {mShaderDirectory};
     Description.mEntryPoint = Entry;
     Description.mTargetProfile = Target;
 #ifdef _DEBUG

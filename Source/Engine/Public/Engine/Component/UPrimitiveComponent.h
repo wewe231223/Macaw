@@ -12,6 +12,8 @@
 enum class EPrimitiveType : Uint8;
 struct FPrimitiveSceneProxy;
 struct FBox;
+struct FMeshData;
+class UStaticMesh;
 
 /**
  * @brief 장면 프록시 생성과 지연된 렌더 상태 및 변환 갱신을 제공하는 기반 클래스입니다.
@@ -81,6 +83,16 @@ public:
      * @return 표시할 프리미티브 메시 종류입니다.
      */
     virtual EPrimitiveType GetPrimitiveType() const = 0;
+    /**
+     * @brief 프리미티브가 사용하는 정적 메시의 비소유 주소를 반환합니다.
+     * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며, 사용할 수 없으면 nullptr입니다.
+     */
+    virtual UStaticMesh* GetStaticMesh() const;
+    /**
+     * @brief 메시의 CPU 정점 속성·인덱스 데이터 참조를 반환합니다.
+     * @return 객체가 보유한 데이터의 참조이며 소유 객체의 수명 동안 유효합니다.
+     */
+    virtual const FMeshData& GetMeshData() const;
     /**
      * @brief 컴포넌트의 현재 상태를 복사한 프리미티브 프록시를 만듭니다.
      * @return 연산을 적용한 새 값입니다.

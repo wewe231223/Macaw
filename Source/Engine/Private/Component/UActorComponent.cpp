@@ -56,6 +56,7 @@ void UActorComponent::RegisterComponent(UWorld* World) {
     }
 
     mWorld = World;
+    OnRegister();
 
     if (mOwner != nullptr && mOwner->HasBegunPlay() && World->CanBeginActor()) {
         DispatchBeginPlay();
@@ -76,6 +77,9 @@ void UActorComponent::UnregisterComponent() {
  */
 bool UActorComponent::IsRegistered() const {
     return mWorld != nullptr;
+}
+
+void UActorComponent::OnRegister() {
 }
 
 /**

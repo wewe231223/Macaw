@@ -11,6 +11,7 @@
 
 #include <d3d11.h>
 #include <filesystem>
+#include <span>
 #include <wrl/client.h>
 
 /**
@@ -61,6 +62,18 @@ public:
      * @return 요청한 처리를 완료하면 true, 실패하면 false입니다.
      */
     bool LoadFromFile(const std::filesystem::path& ImagePath, bool SRGB = true);
+    /**
+     * @brief DDS 데이터를 읽어 이미지 형식과 크기 및 CPU 이미지 데이터를 설정합니다.
+     * @param[in] Data 처리할 바이트 데이터 또는 include 파일 버퍼입니다.
+     * @param[in] SRGB 이미지를 sRGB 색 공간으로 해석할지 나타냅니다.
+     * @return 요청한 처리를 완료하면 true, 실패하면 false입니다.
+     */
+    bool SetDDSData(std::span<const Uint8> Data, bool SRGB);
+    /**
+     * @brief 보존 중인 DDS 형식의 이미지 바이트 배열을 반환합니다.
+     * @return 객체가 보유한 데이터의 참조이며 소유 객체의 수명 동안 유효합니다.
+     */
+    const TArray<Uint8>& GetDDSData() const;
     /**
      * @brief 크기·형식·용도·색 공간을 검증하여 텍스처 생성 구성을 설정합니다.
      * @param[in] SizeX 텍스처의 가로 픽셀 수입니다.

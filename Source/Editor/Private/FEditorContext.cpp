@@ -5,6 +5,8 @@
  */
 
 #include "Editor/FEditorContext.h"
+#include "Engine/FProject.h"
+#include "Engine/Component/UStaticMeshComponent.h"
 #include "Engine/Engine.h"
 #include "Engine/UWorld.h"
 #include "Engine/ULevel.h"
@@ -378,11 +380,17 @@ bool FEditorContext::SaveScene(const std::filesystem::path& Path) {
     }
 
     FOperationScope Scope{&mChangingState};
-    const std::filesystem::path ScenePath{std::filesystem::absolute(Path.is_absolute() ? Path : std::filesystem::path{"Scenes"} / Path)};
     FString Error{};
+    FProject* Project{GetProject()};
+    const std::filesystem::path ScenePath{Project != nullptr ? Project->GetAssets()->ResolvePath(Path, Error) : std::filesystem::path{}};
+    if (ScenePath.empty()) {
+        AddLog(Error.empty() ? "Open a project before saving a scene" : Error);
+        return false;
+    }
 
     if (!FSceneSerializer::Save(ScenePath, mEngine->GetWorldContext(mWorld), Error)) {
-        ErrorHandler::Fatal("Scene save", Error);
+        AddLog(Error);
+        return false;
     }
 
     mScenePath = ScenePath;
@@ -424,12 +432,18 @@ bool FEditorContext::LoadScene(const std::filesystem::path& Path) {
     }
 
     FOperationScope Scope{&mChangingState};
-    const std::filesystem::path ScenePath{std::filesystem::absolute(Path.is_absolute() ? Path : std::filesystem::path{"Scenes"} / Path)};
     FString Error{};
-    auto Context{FSceneSerializer::Load(ScenePath, Error)};
+    FProject* Project{GetProject()};
+    const std::filesystem::path ScenePath{Project != nullptr ? Project->GetAssets()->ResolvePath(Path, Error) : std::filesystem::path{}};
+    if (ScenePath.empty()) {
+        AddLog(Error.empty() ? "Open a project before loading a scene" : Error);
+        return false;
+    }
+    auto Context{FSceneSerializer::Load(ScenePath, Error, Project->GetAssets())};
 
     if (Context == nullptr) {
-        ErrorHandler::Fatal("Scene load", Error);
+        AddLog(Error);
+        return false;
     }
 
     if (!ReplaceScene(std::move(Context), ScenePath)) {
@@ -458,6 +472,51 @@ const std::filesystem::path& FEditorContext::GetScenePath() const {
 /** @brief 저장 후 변경되어 저장이 필요한 장면인지 검사합니다. */
 bool FEditorContext::IsSceneDirty() const {
     return mDirty;
+}
+
+FProject* FEditorContext::GetProject() const {
+    return mEngine != nullptr ? mEngine->GetProject() : nullptr;
+}
+
+AStaticMeshActor* FEditorContext::SpawnMesh(const std::filesystem::path& Path) {
+    return SpawnMesh(Path, mPlacementProvider ? mPlacementProvider() : FTransform{});
+}
+
+AStaticMeshActor* FEditorContext::SpawnMesh(const std::filesystem::path& Path, const FTransform& Placement) {
+    if (!CanEditWorld() || mChangingState || mEditingProperty || mEngine->IsDispatching() || !Placement.IsValid()) {
+        return nullptr;
+    }
+    FOperationScope Scope{&mChangingState};
+    FProject* Project{GetProject()};
+    FString Error{};
+    if (Project == nullptr || Project->GetAssets()->LoadMesh(Path, Error) == nullptr) {
+        AddLog(Error.empty() ? "Cannot place the mesh" : Error);
+        return nullptr;
+    }
+    AStaticMeshActor* Actor{GetWorld()->SpawnPrimitive(EPrimitiveType::Cube)};
+    if (Actor == nullptr) {
+        return nullptr;
+    }
+    if (!Actor->SetActorTransform(Placement) || !Actor->GetStaticMeshComponent()->SetMeshPath(Project->GetAssets()->GetRelativePath(Path, Error))) {
+        GetWorld()->DestroyActor(Actor->GetHandle());
+        return nullptr;
+    }
+    const auto Name{Path.stem().u8string()};
+    Actor->SetName(FString{reinterpret_cast<const char*>(Name.data()), Name.size()});
+    AssignSelection({Actor->GetHandle()}, Actor->GetHandle());
+    mDirty = true;
+    AddLog("Placed " + Actor->GetName());
+    return Actor;
+}
+
+void FEditorContext::SetProjectRequestHandler(std::function<void(const std::filesystem::path&, bool)> Handler) {
+    mProjectRequestHandler = std::move(Handler);
+}
+
+void FEditorContext::RequestProject(const std::filesystem::path& Path, bool Create) {
+    if (CanEditWorld() && mProjectRequestHandler) {
+        mProjectRequestHandler(Path, Create);
+    }
 }
 
 /** @brief 콘솔 로그 모델에 메시지를 추가합니다. */
@@ -497,7 +556,7 @@ void FEditorContext::ExecuteConsoleCommand(const FString& Command) {
     if (Verb == "clear") {
         ClearLogs();
     } else if (Verb == "help") {
-        AddLog("help | clear | spawn plane/cube/sphere | save <path.json> | load <path.json>");
+        AddLog("help | clear | spawn plane/cube/sphere | save <Maps/Scene.masset> | load <Maps/Scene.masset>");
         if (mViewportCommandHandler) {
             AddLog("stat fps/scene/memory/render/all [on/off] | stat none");
         }

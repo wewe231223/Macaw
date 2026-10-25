@@ -1,0 +1,147 @@
+/**
+ * @file FAssetFile.cpp
+ * @brief 에셋 파일의 종류, 버전, 무결성 검사와 바이너리 입출력에 대한 구현입니다.
+ * @ingroup Engine
+ */
+
+#include "Engine/FAssetFile.h"
+#include "Core/Guid.h"
+
+#include <Windows.h>
+#include <array>
+#include <fstream>
+
+/**
+ * @brief 이 구현 파일에서만 사용하는 내부 상태와 보조 함수입니다.
+ */
+namespace {
+    /**
+     * @brief Macaw 에셋 파일을 식별하는 헤더의 매직 바이트입니다.
+     */
+    constexpr std::array<char, 8> AssetMagic{'M', 'A', 'C', 'A', 'W', 'A', 'S', 'T'};
+    /**
+     * @brief 현재 지원하는 에셋 파일 형식 버전입니다.
+     */
+    constexpr Uint32 AssetVersion{1};
+    /**
+     * @brief 에셋 파일에서 허용하는 최대 페이로드 바이트 수입니다.
+     */
+    constexpr Uint64 MaximumPayload{512ULL * 1024 * 1024};
+    /**
+     * @brief 페이로드 앞에 저장하는 에셋 헤더의 바이트 수입니다.
+     */
+    constexpr Uint64 HeaderSize{24};
+
+    /**
+     * @brief 에셋 파일을 열고 매직·버전·종류·데이터 크기를 검증합니다.
+     * @param[in] Path 조회·로드·저장 또는 정규화할 파일 경로입니다.
+     * @param[in,out] Input 검증할 에셋 파일을 열고 헤더를 읽을 입력 스트림입니다.
+     * @param[out] Type 에셋 파일에 기록하거나 검사할 종류입니다.
+     * @param[out] Size 처리할 데이터의 바이트 수입니다.
+     * @param[out] Error 실패 원인을 받을 오류 문자열입니다.
+     * @return 요청한 처리를 완료하면 true, 실패하면 false입니다.
+     */
+    bool ReadHeader(const std::filesystem::path& Path, std::ifstream& Input, EAssetType& Type, Uint64& Size, FString& Error) {
+        Error.clear();
+        std::error_code Code{};
+        const Uint64 FileSize{std::filesystem::file_size(Path, Code)};
+        if (Code || Path.extension() != L".masset" || FileSize < HeaderSize || FileSize - HeaderSize > MaximumPayload) {
+            Error = "Cannot read asset file or invalid asset size";
+            return false;
+        }
+        Input.open(Path, std::ios::binary);
+        std::array<char, 8> Magic{};
+        Uint32 Version{};
+        Uint32 TypeValue{};
+        Input.read(Magic.data(), Magic.size());
+        Input.read(reinterpret_cast<char*>(&Version), sizeof(Version));
+        Input.read(reinterpret_cast<char*>(&TypeValue), sizeof(TypeValue));
+        Input.read(reinterpret_cast<char*>(&Size), sizeof(Size));
+        if (!Input || Magic != AssetMagic || Version != AssetVersion || TypeValue < static_cast<Uint32>(EAssetType::Scene) || TypeValue > static_cast<Uint32>(EAssetType::Texture) || Size == 0 || Size != FileSize - HeaderSize) {
+            Error = "Invalid asset header, version or type";
+            return false;
+        }
+        Type = static_cast<EAssetType>(TypeValue);
+        return true;
+    }
+}
+
+bool FAssetFile::GetType(const std::filesystem::path& Path, EAssetType& Type, FString& Error) {
+    std::ifstream Input{};
+    Uint64 Size{};
+    return ReadHeader(Path, Input, Type, Size, Error);
+}
+
+bool FAssetFile::Save(const std::filesystem::path& Path, EAssetType Type, std::span<const Uint8> Payload, FString& Error) {
+    Error.clear();
+    if (Path.extension() != L".masset" || Payload.empty() || Payload.size() > MaximumPayload || Type < EAssetType::Scene || Type > EAssetType::Texture) {
+        Error = "Invalid asset path, type or payload";
+        return false;
+    }
+
+    std::error_code Code{};
+    const std::filesystem::path Target{std::filesystem::absolute(Path, Code)};
+    if (!Code) {
+        std::filesystem::create_directories(Target.parent_path(), Code);
+    }
+    if (Code) {
+        Error = "Cannot create asset directory: " + Code.message();
+        return false;
+    }
+    EAssetType ExistingType{Type};
+    FString ExistingError{};
+    if (GetType(Target, ExistingType, ExistingError) && ExistingType != Type) {
+        Error = "Cannot overwrite an asset with a different asset type";
+        return false;
+    }
+
+    std::filesystem::path Temporary{Target};
+    Temporary += L"." + std::filesystem::path{FGuid{}.ToString()}.wstring() + L".tmp";
+    const Uint32 TypeValue{static_cast<Uint32>(Type)};
+    const Uint64 Size{Payload.size()};
+    {
+        std::ofstream Output{Temporary, std::ios::binary | std::ios::trunc};
+        Output.write(AssetMagic.data(), AssetMagic.size());
+        Output.write(reinterpret_cast<const char*>(&AssetVersion), sizeof(AssetVersion));
+        Output.write(reinterpret_cast<const char*>(&TypeValue), sizeof(TypeValue));
+        Output.write(reinterpret_cast<const char*>(&Size), sizeof(Size));
+        Output.write(reinterpret_cast<const char*>(Payload.data()), static_cast<std::streamsize>(Size));
+        Output.flush();
+        Output.close();
+        if (!Output) {
+            std::filesystem::remove(Temporary, Code);
+            Error = "Cannot write asset file";
+            return false;
+        }
+    }
+
+    if (!MoveFileExW(Temporary.c_str(), Target.c_str(), MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH)) {
+        std::filesystem::remove(Temporary, Code);
+        Error = "Cannot replace asset file";
+        return false;
+    }
+    return true;
+}
+
+bool FAssetFile::Load(const std::filesystem::path& Path, EAssetType Type, TArray<Uint8>& Payload, FString& Error) {
+    std::ifstream Input{};
+    EAssetType ActualType{Type};
+    Uint64 Size{};
+    if (!ReadHeader(Path, Input, ActualType, Size, Error)) {
+        return false;
+    }
+    if (ActualType != Type) {
+        Error = "The asset type does not match the requested type";
+        return false;
+    }
+
+    TArray<Uint8> Candidate{};
+    Candidate.resize(static_cast<std::size_t>(Size));
+    Input.read(reinterpret_cast<char*>(Candidate.data()), static_cast<std::streamsize>(Size));
+    if (!Input) {
+        Error = "Truncated asset payload";
+        return false;
+    }
+    Payload = std::move(Candidate);
+    return true;
+}

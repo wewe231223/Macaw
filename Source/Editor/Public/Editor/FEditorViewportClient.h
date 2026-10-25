@@ -11,6 +11,8 @@
 #include "Editor/Gizmo.h"
 #include "Editor/EViewportCommand.h"
 
+#include <filesystem>
+
 class FEditorContext;
 
 /**
@@ -104,6 +106,7 @@ public:
      * @return 연산을 적용한 새 값입니다.
      */
     FSceneView CalcSceneView(const FVector2& Size) const;
+    bool DropMesh(const std::filesystem::path& Path, const FVector2& Position, const FVector2& Size);
 
     /**
      * @brief 에디터 카메라를 초기 위치와 회전으로 되돌립니다.

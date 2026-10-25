@@ -6,6 +6,7 @@
 
 #include "Serialization/JsonArchive.h"
 #include "Core/Archive.h"
+#include <Windows.h>
 
 #include <rapidjson/document.h>
 #include <rapidjson/error/en.h>
@@ -139,9 +140,7 @@ bool FJsonArchive::Save(const std::filesystem::path& Path) {
         }
     }
 
-    std::filesystem::rename(Temporary, Target, Error);
-
-    if (Error) {
+    if (!MoveFileExW(Temporary.c_str(), Target.c_str(), MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH)) {
         std::filesystem::remove(Temporary, Error);
         SetError("Cannot replace scene file");
 

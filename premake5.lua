@@ -1,9 +1,6 @@
 local Reflection = dofile("Scripts/GenerateReflection.lua")
 
 newoption { trigger = "reflection-module", value = "MODULE", description = "Generate reflection for one module" }
-newoption { trigger = "serialization-tests", description = "Build serialization regression tests" }
-newoption { trigger = "script-tests", description = "Build script runtime regression tests" }
-newoption { trigger = "shader-tests", description = "Build shader compilation and cache regression tests" }
 newaction { trigger = "generate-reflection", description = "Generate reflection from property annotations", execute = function() Reflection.Generate(_OPTIONS["reflection-module"]) end }
 
 if _ACTION == "generate-reflection" then
@@ -122,21 +119,4 @@ local function ConfigureExecutable(Name, Kind, Directory)
 end
 
 ConfigureExecutable("Macaw", "WindowedApp", "Source/App")
-
-if _OPTIONS["serialization-tests"] then
-    ConfigureExecutable("SerializationTests", "ConsoleApp", "Tests/Serialization")
-end
-
-if _OPTIONS["script-tests"] then
-    ConfigureExecutable("ScriptTests", "ConsoleApp", "Tests/Script")
-    AddIncludes("Script", {})
-    links { "Script", "lua51" }
-end
-
-if _OPTIONS["shader-tests"] then
-    Configure("ShaderTests", "ConsoleApp")
-    files { "Tests/Shader/**.h", "Tests/Shader/**.cpp" }
-    AddIncludes("RenderCore", {})
-    links { "RenderCore", "Core", "d3d11", "d3dcompiler", "bcrypt" }
-    debugdir "%{wks.location}"
-end
+    postbuildcommands { '{COPYDIR} "%{wks.location}/Templates/Project" "%{cfg.targetdir}/Templates/Project"' }

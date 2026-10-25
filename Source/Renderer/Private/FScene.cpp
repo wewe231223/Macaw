@@ -9,6 +9,7 @@
 #include "Core/Math/FBox.h"
 #include "Engine/FPrimitiveSceneProxy.h"
 #include "Engine/EPrimitiveType.h"
+#include "Engine/UStaticMesh.h"
 #include "FObjectConstants.h"
 #include "FScenePrimitive.h"
 #include "Core/Base/ErrorHandler.h"
@@ -30,6 +31,10 @@ FScene::~FScene() = default;
  * @brief 프록시의 식별자로 렌더 장면에 프리미티브를 추가하거나 교체합니다.
  */
 void FScene::AddPrimitive(const FPrimitiveSceneProxy& Proxy) {
+    if (Proxy.mMesh != nullptr && !Proxy.mMesh->CreateResources(mDevice)) {
+        ErrorHandler::Report("Mesh", "Cannot create project mesh resources", ErrorHandler::EErrorLevel::Error);
+        return;
+    }
     const auto Position{mIndices.find(Proxy.mId)};
 
     if (Position != mIndices.end()) {

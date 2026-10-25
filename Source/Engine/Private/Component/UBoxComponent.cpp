@@ -1,7 +1,4 @@
 #include "Engine/Component/UBoxComponent.h"
-#include "Core/Math/FBox.h"
-#include "CoreUObject/FPropertyChangedEvent.h"
-#include "CoreUObject/Reflection/FProperty.h"
 
 #include <algorithm>
 #include <cmath>
@@ -12,11 +9,6 @@ FCollisionShape UBoxComponent::GetCollisionShape() const {
 
 FBox UBoxComponent::CalcLocalBounds() const {
     return FBox{ -mBoxExtent, mBoxExtent };
-}
-
-void UBoxComponent::PostEditChangeProperty(const FPropertyChangedEvent& Event) {
-    Super::PostEditChangeProperty(Event);
-    mBoxExtent = FVector{ std::max(mBoxExtent.x, 0.0f), std::max(mBoxExtent.y, 0.0f), std::max(mBoxExtent.z, 0.0f) };
 }
 
 void UBoxComponent::SetBoxExtent(const FVector& InExtent) {

@@ -8,6 +8,7 @@
 
 #include "Core/ReflectionMacros.h"
 #include "Core/Types.h"
+#include "Engine/FAssetFile.h"
 #include "Editor/Panel/FOutlinerPanel.h"
 #include "Editor/Panel/FDetailsPanel.h"
 #include "Editor/Panel/FConsolePanel.h"
@@ -19,6 +20,7 @@ class FEditorViewport;
 class FWindowsApplication;
 class IRendererModule;
 class FPlayInEditorSession;
+class UTexture2D;
 
 /**
  * @brief 편집 모델을 참조하여 창과 패널을 표시하고 ImGui 백엔드 수명을 관리합니다.
@@ -96,6 +98,31 @@ private:
      * @brief PIE 시작·일시정지·단계 실행·종료 버튼을 그립니다.
      */
     void DrawPlayControls();
+    /**
+     * @brief 프로젝트 에셋 목록과 메시 생성·텍스처 미리보기 UI를 그립니다.
+     */
+    void DrawContent();
+    void RefreshContent();
+    void NavigateContent(const std::filesystem::path& Directory);
+    void DrawContentTree(const std::filesystem::path& Directory);
+    void DrawContentBreadcrumbs();
+    void DrawContentEntries();
+    void OpenContentAsset(const std::filesystem::path& Path, EAssetType Type);
+    /**
+     * @brief 파일 대화상자에서 고른 메시 또는 이미지를 프로젝트 에셋으로 가져옵니다.
+     * @param[in] Texture true이면 이미지를, false이면 메시를 가져옵니다.
+     */
+    void ImportAsset(bool Texture);
+    /**
+     * @brief 프로젝트 파일 대화상자를 열고 선택한 경로의 전환을 요청합니다.
+     * @param[in] Create true이면 새 프로젝트를 생성하고 false이면 기존 프로젝트를 엽니다.
+     */
+    void ChooseProject(bool Create);
+    /**
+     * @brief 저장하지 않은 장면 변경을 확인하고 전환을 계속할 수 있는지 판정합니다.
+     * @return 요청한 처리를 완료하면 true, 실패하면 false입니다.
+     */
+    bool ConfirmSceneChange();
     /**
      * @brief 에디터 패널의 초기 ImGui 도킹 레이아웃을 구성합니다.
      */
@@ -184,5 +211,32 @@ private:
      */
     bool mExit{};
     ReflectProperty(mExit, "Exit", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /**
+     * @brief 콘텐츠 패널에 표시할 프로젝트 상대 에셋 경로 목록입니다.
+     */
+    TArray<std::filesystem::path> mAssetPaths{};
+    ReflectProperty(mAssetPaths, "AssetPaths", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /**
+     * @brief 다음 콘텐츠 패널 갱신에서 에셋 목록을 다시 읽을지 나타냅니다.
+     */
+    bool mRefreshContent{true};
+    ReflectProperty(mRefreshContent, "RefreshContent", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /**
+     * @brief 미리보기에 사용하는 에셋 관리자 소유 텍스처의 비소유 주소입니다.
+     */
+    UTexture2D* mPreviewTexture{};
+    ReflectProperty(mPreviewTexture, "PreviewTexture", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    TMap<std::filesystem::path, TArray<std::filesystem::path>> mContentFolders{};
+    ReflectProperty(mContentFolders, "ContentFolders", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    TMap<std::filesystem::path, EAssetType> mAssetTypes{};
+    ReflectProperty(mAssetTypes, "AssetTypes", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    std::filesystem::path mContentDirectory{};
+    ReflectProperty(mContentDirectory, "ContentDirectory", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    std::filesystem::path mSelectedContentPath{};
+    ReflectProperty(mSelectedContentPath, "SelectedContentPath", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    FString mContentError{};
+    ReflectProperty(mContentError, "ContentError", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    bool mRevealContentDirectory{true};
+    ReflectProperty(mRevealContentDirectory, "RevealContentDirectory", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 
 };

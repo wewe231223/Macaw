@@ -13,6 +13,7 @@
 
 class FArchive;
 class FWorldContext;
+class FAssetManager;
 
 /**
  * @brief 리플렉션 프로퍼티를 사용하여 월드와 액터·컴포넌트를 JSON으로 저장하고 복원합니다.
@@ -46,7 +47,10 @@ public:
      * @param[in,out] Error 실패 시 원인을 기록할 문자열입니다.
      * @return 생성한 객체의 단독 소유권이며, 생성 또는 검증 실패 시 nullptr입니다.
      */
-    static std::unique_ptr<FWorldContext> Load(const std::filesystem::path& Path, FString& Error);
+    /**
+     * @param[in] Assets 로드한 월드의 에셋을 조회할 관리자의 비소유 주소이며 생략할 수 있습니다.
+     */
+    static std::unique_ptr<FWorldContext> Load(const std::filesystem::path& Path, FString& Error, FAssetManager* Assets = nullptr);
     /**
      * @brief 아카이브 모드에 따라 값을 읽거나 저장합니다.
      * @param[in,out] Archive 로드 또는 저장 모드를 가진 아카이브입니다.

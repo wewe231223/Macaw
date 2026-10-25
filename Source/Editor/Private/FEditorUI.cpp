@@ -11,6 +11,12 @@
 #include "Editor/FPlayInEditorSession.h"
 #include "Platform/Window.h"
 #include "RenderCore/IRendererModule.h"
+#include "Engine/FProject.h"
+#include "Engine/FAssetFile.h"
+#include "Engine/UTexture2D.h"
+#include "Engine/SceneSerializer.h"
+#include "Engine/FWorldContext.h"
+#include "Editor/FAssetDragDrop.h"
 
 #include <d3d11.h>
 #include <commdlg.h>
@@ -70,7 +76,7 @@ FEditorUI::~FEditorUI() {
  * @brief 독립 뷰포트를 배치할 ImGui 백엔드를 준비합니다.
  */
 bool FEditorUI::Initialize(IRendererModule* Renderer, FWindowsApplication* Platform) {
-    if (Renderer == nullptr || Platform == nullptr || mContextCreated) {
+    if (Renderer == nullptr || Platform == nullptr || mContextCreated || mContext->GetProject() == nullptr) {
         return false;
     }
 
@@ -82,11 +88,16 @@ bool FEditorUI::Initialize(IRendererModule* Renderer, FWindowsApplication* Platf
     ImGuiIO& Input{ImGui::GetIO()};
     Input.ConfigFlags |= ImGuiConfigFlags_DockingEnable | ImGuiConfigFlags_NavEnableKeyboard;
 
-    mIniPath = "EditorLayout.ini";
+    const std::filesystem::path Layout{mContext->GetProject()->GetRootPath() / "Saved/EditorLayout.ini"};
+    std::error_code LayoutError{};
+    std::filesystem::create_directories(Layout.parent_path(), LayoutError);
+    mIniPath = PathText(Layout);
     Input.IniFilename = mIniPath.c_str();
     Input.LogFilename = nullptr;
 
-    if (std::filesystem::exists("C:/Windows/Fonts/segoeui.ttf")) {
+    if (std::filesystem::exists("C:/Windows/Fonts/malgun.ttf")) {
+        Input.Fonts->AddFontFromFileTTF("C:/Windows/Fonts/malgun.ttf", 16.0f);
+    } else if (std::filesystem::exists("C:/Windows/Fonts/segoeui.ttf")) {
         Input.Fonts->AddFontFromFileTTF("C:/Windows/Fonts/segoeui.ttf", 16.0f);
     } else {
         Input.Fonts->AddFontDefault();
@@ -113,6 +124,7 @@ bool FEditorUI::Initialize(IRendererModule* Renderer, FWindowsApplication* Platf
 
     mInitialized = true;
     mExit = false;
+    mRefreshContent = true;
     return true;
 }
 
@@ -141,6 +153,14 @@ void FEditorUI::Shutdown() {
     }
 
     mInitialized = false;
+    mAssetPaths.clear();
+    mContentFolders.clear();
+    mAssetTypes.clear();
+    mContentDirectory.clear();
+    mSelectedContentPath.clear();
+    mContentError.clear();
+    mRevealContentDirectory = true;
+    mPreviewTexture = nullptr;
     mPlatform = nullptr;
 
     mExit = true;
@@ -170,6 +190,7 @@ bool FEditorUI::BeginFrame(float DeltaTime) {
     mDetailsPanel.Draw(DeltaTime);
     mViewport->DrawUI(DeltaTime);
     mConsolePanel.Draw(DeltaTime);
+    DrawContent();
 
     return true;
 }
@@ -206,11 +227,11 @@ std::filesystem::path FEditorUI::ChooseFile(bool Save) {
     std::array<wchar_t, 4096> Buffer{};
 
     if (Save) {
-        const std::wstring Filename{mContext->GetScenePath().empty() ? L"Scene.json" : mContext->GetScenePath().filename().wstring()};
+        const std::wstring Filename{mContext->GetScenePath().empty() ? L"Scene.masset" : mContext->GetScenePath().filename().wstring()};
         std::copy_n(Filename.begin(), std::min(Filename.size(), Buffer.size() - 1), Buffer.begin());
     }
 
-    const std::filesystem::path Directory{std::filesystem::absolute("Scenes")};
+    const std::filesystem::path Directory{mContext->GetProject()->GetAssets()->GetContentRoot() / "Maps"};
 
     std::error_code Error{};
     std::filesystem::create_directories(Directory, Error);
@@ -218,11 +239,11 @@ std::filesystem::path FEditorUI::ChooseFile(bool Save) {
     OPENFILENAMEW Dialog{};
     Dialog.lStructSize = sizeof(Dialog);
     Dialog.hwndOwner = mPlatform->GetWindowHandle();
-    Dialog.lpstrFilter = L"Scene JSON (*.json)\0*.json\0All files (*.*)\0*.*\0";
+    Dialog.lpstrFilter = L"Macaw Scene (*.masset)\0*.masset\0";
     Dialog.lpstrFile = Buffer.data();
     Dialog.nMaxFile = static_cast<DWORD>(Buffer.size());
     Dialog.lpstrInitialDir = Directory.c_str();
-    Dialog.lpstrDefExt = L"json";
+    Dialog.lpstrDefExt = L"masset";
     Dialog.Flags = OFN_EXPLORER | OFN_NOCHANGEDIR | (Save ? OFN_OVERWRITEPROMPT : OFN_FILEMUSTEXIST);
 
     if (Save ? GetSaveFileNameW(&Dialog) : GetOpenFileNameW(&Dialog)) {
@@ -251,6 +272,7 @@ void FEditorUI::BuildLayout() {
         ImGui::DockBuilderDockWindow(mOutlinerPanel.GetName().c_str(), Left);
         ImGui::DockBuilderDockWindow(mDetailsPanel.GetName().c_str(), Right);
         ImGui::DockBuilderDockWindow(mConsolePanel.GetName().c_str(), Bottom);
+        ImGui::DockBuilderDockWindow("Content", Bottom);
         ImGui::DockBuilderDockWindow(mViewport->GetName().c_str(), Center);
 
         ImGui::DockBuilderFinish(Dockspace);
@@ -309,14 +331,23 @@ void FEditorUI::DrawMenu() {
     if (ImGui::BeginMainMenuBar()) {
         if (ImGui::BeginMenu("File")) {
             ImGui::BeginDisabled(!mContext->CanEditWorld());
+            if (ImGui::MenuItem("New Project...")) {
+                ChooseProject(true);
+            }
+            if (ImGui::MenuItem("Open Project...")) {
+                ChooseProject(false);
+            }
+            ImGui::Separator();
             if (ImGui::MenuItem("New Scene", "Ctrl+N")) {
-                mContext->NewScene();
+                if (ConfirmSceneChange()) {
+                    mContext->NewScene();
+                }
             }
 
             if (ImGui::MenuItem("Open Scene...", "Ctrl+O")) {
                 const auto Path{ChooseFile(false)};
 
-                if (!Path.empty()) {
+                if (!Path.empty() && ConfirmSceneChange()) {
                     mContext->LoadScene(Path);
                 }
             }
@@ -326,6 +357,7 @@ void FEditorUI::DrawMenu() {
 
                 if (!Path.empty()) {
                     mContext->SaveScene(Path);
+                    mRefreshContent = true;
                 }
             }
 
@@ -334,13 +366,21 @@ void FEditorUI::DrawMenu() {
 
                 if (!Path.empty()) {
                     mContext->SaveScene(Path);
+                    mRefreshContent = true;
+                }
+            }
+
+            if (ImGui::MenuItem("Set Current Scene as Startup", nullptr, false, !mContext->GetScenePath().empty())) {
+                FString Error{};
+                if (!mContext->SaveScene(mContext->GetScenePath()) || !mContext->GetProject()->SetStartupScene(mContext->GetScenePath(), Error)) {
+                    mContext->AddLog(Error);
                 }
             }
 
             ImGui::EndDisabled();
             ImGui::Separator();
 
-            if (ImGui::MenuItem("Exit")) {
+            if (ImGui::MenuItem("Exit") && ConfirmSceneChange()) {
                 mExit = true;
             }
 
@@ -373,15 +413,336 @@ void FEditorUI::DrawMenu() {
 
             if (!Path.empty()) {
                 mContext->SaveScene(Path);
+                mRefreshContent = true;
             }
         } else if (ImGui::IsKeyPressed(ImGuiKey_O)) {
             const auto Path{ChooseFile(false)};
 
-            if (!Path.empty()) {
+            if (!Path.empty() && ConfirmSceneChange()) {
                 mContext->LoadScene(Path);
             }
         } else if (ImGui::IsKeyPressed(ImGuiKey_N)) {
-            mContext->NewScene();
+            if (ConfirmSceneChange()) {
+                mContext->NewScene();
+            }
+        }
+    }
+}
+
+bool FEditorUI::ConfirmSceneChange() {
+    if (!mContext->IsSceneDirty()) {
+        return true;
+    }
+    const Int32 Choice{MessageBoxW(mPlatform->GetWindowHandle(), L"Save changes to the current scene?", L"Scene", MB_YESNOCANCEL | MB_ICONQUESTION)};
+    if (Choice == IDCANCEL) {
+        return false;
+    }
+    if (Choice == IDNO) {
+        return true;
+    }
+    const auto Path{mContext->GetScenePath().empty() ? ChooseFile(true) : mContext->GetScenePath()};
+    const bool Saved{!Path.empty() && mContext->SaveScene(Path)};
+    mRefreshContent = mRefreshContent || Saved;
+    return Saved;
+}
+
+void FEditorUI::ChooseProject(bool Create) {
+    if (!ConfirmSceneChange()) {
+        return;
+    }
+    mContext->RequestProject({}, Create);
+}
+
+void FEditorUI::ImportAsset(bool Texture) {
+    std::array<wchar_t, 32768> Buffer{};
+    OPENFILENAMEW Dialog{};
+    Dialog.lStructSize = sizeof(Dialog);
+    Dialog.hwndOwner = mPlatform->GetWindowHandle();
+    Dialog.lpstrTitle = Texture ? L"Import Texture" : L"Import Mesh";
+    Dialog.lpstrFilter = Texture ? L"Images\0*.png;*.jpg;*.jpeg;*.bmp;*.tga;*.dds;*.hdr\0" : L"Meshes\0*.obj;*.fbx;*.gltf;*.glb\0";
+    Dialog.lpstrFile = Buffer.data();
+    Dialog.nMaxFile = static_cast<DWORD>(Buffer.size());
+    Dialog.Flags = OFN_EXPLORER | OFN_NOCHANGEDIR | OFN_FILEMUSTEXIST;
+    if (!GetOpenFileNameW(&Dialog)) {
+        return;
+    }
+    const std::filesystem::path Source{Buffer.data()};
+    FAssetManager* Assets{mContext->GetProject()->GetAssets()};
+    const std::filesystem::path Folder{mContentDirectory};
+    std::filesystem::path Target{Folder / Source.stem()};
+    Target += L".masset";
+    std::error_code Code{};
+    for (Uint32 Index{1}; std::filesystem::exists(Assets->GetContentRoot() / Target, Code) && !Code; ++Index) {
+        Target = Folder / (Source.stem().wstring() + L"_" + std::to_wstring(Index) + L".masset");
+    }
+    FString Error{};
+    const bool Imported{!Code && (Texture ? Assets->ImportTexture(Source, Target, Error) : Assets->ImportMesh(Source, Target, Error))};
+    mRefreshContent = true;
+    mContext->AddLog(Imported ? "Imported " + PathText(Target) : Error.empty() ? "Cannot choose the import destination" : Error);
+}
+
+void FEditorUI::DrawContent() {
+    if (ImGui::Begin("Content")) {
+        ImGui::TextUnformatted(mContext->GetProject()->GetName().c_str());
+        ImGui::BeginDisabled(!mContext->CanEditWorld());
+        if (ImGui::Button("Import Mesh...")) {
+            ImportAsset(false);
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Import Texture...")) {
+            ImportAsset(true);
+        }
+        ImGui::EndDisabled();
+        ImGui::SameLine();
+        if (ImGui::Button("Refresh")) {
+            mRefreshContent = true;
+        }
+        if (mRefreshContent) {
+            RefreshContent();
+        }
+        ImGui::Separator();
+        DrawContentBreadcrumbs();
+        if (!mContentError.empty()) {
+            ImGui::TextWrapped("%s", mContentError.c_str());
+        }
+        const float PreviewHeight{mPreviewTexture != nullptr && mPreviewTexture->HasResources() ? 280.0f : 0.0f};
+        const float Height{std::max(64.0f, ImGui::GetContentRegionAvail().y - ImGui::GetTextLineHeightWithSpacing() - PreviewHeight)};
+        if (ImGui::BeginTable("Content Browser", 2, ImGuiTableFlags_Resizable | ImGuiTableFlags_BordersInnerV)) {
+            ImGui::TableSetupColumn("Folders", ImGuiTableColumnFlags_WidthFixed, 190.0f);
+            ImGui::TableSetupColumn("Assets", ImGuiTableColumnFlags_WidthStretch);
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex(0);
+            ImGui::BeginChild("Content Folders", ImVec2{0.0f, Height});
+            DrawContentTree({});
+            mRevealContentDirectory = false;
+            ImGui::EndChild();
+            ImGui::TableSetColumnIndex(1);
+            ImGui::BeginChild("Content Files", ImVec2{0.0f, Height});
+            DrawContentEntries();
+            ImGui::EndChild();
+            ImGui::EndTable();
+        }
+        ImGui::TextDisabled("Double-click folders to browse. Drag meshes into the viewport to place.");
+        if (mPreviewTexture != nullptr && mPreviewTexture->HasResources()) {
+            ImGui::Separator();
+            if (ImGui::SmallButton("Close Preview")) {
+                mPreviewTexture = nullptr;
+            } else {
+                const float SizeX{static_cast<float>(mPreviewTexture->GetSizeX())};
+                const float SizeY{static_cast<float>(mPreviewTexture->GetSizeY())};
+                const float Scale{std::min({std::max(1.0f, ImGui::GetContentRegionAvail().x) / SizeX, 256.0f / SizeX, 256.0f / SizeY})};
+                ImGui::Image(ImTextureRef{static_cast<ImTextureID>(reinterpret_cast<std::uintptr_t>(mPreviewTexture->GetShaderResourceView()))}, ImVec2{SizeX * Scale, SizeY * Scale});
+            }
+        }
+    }
+    ImGui::End();
+}
+
+void FEditorUI::RefreshContent() {
+    mAssetPaths.clear();
+    mAssetTypes.clear();
+    mContentFolders.clear();
+    mContentFolders[{}] = {};
+    mContentError.clear();
+    FAssetManager* Assets{mContext->GetProject()->GetAssets()};
+    const std::filesystem::path& Root{Assets->GetContentRoot()};
+    std::error_code Code{};
+    std::filesystem::recursive_directory_iterator Iterator{Root, Code};
+    const std::filesystem::recursive_directory_iterator End{};
+    while (!Code && Iterator != End) {
+        const bool Directory{Iterator->is_directory(Code)};
+        const bool Link{!Code && Iterator->is_symlink(Code)};
+        FString Error{};
+        const auto Resolved{!Code && !Link ? Assets->ResolvePath(Iterator->path(), Error) : std::filesystem::path{}};
+        if (Resolved.empty()) {
+            Iterator.disable_recursion_pending();
+        } else {
+            const std::filesystem::path Relative{Iterator->path().lexically_relative(Root)};
+            if (Directory) {
+                mContentFolders[Relative.parent_path()].push_back(Relative);
+                mContentFolders.try_emplace(Relative);
+            } else if (Iterator->is_regular_file(Code)) {
+                mAssetPaths.push_back(Relative);
+                if (Relative.extension() == L".masset") {
+                    EAssetType Type{};
+                    if (FAssetFile::GetType(Resolved, Type, Error)) {
+                        mAssetTypes.emplace(Relative, Type);
+                    } else if (mContentError.empty()) {
+                        mContentError = PathText(Relative) + ": " + Error;
+                    }
+                }
+            }
+        }
+        if (!Code) {
+            Iterator.increment(Code);
+        }
+    }
+    if (Code) {
+        mContentError = "Cannot read Content: " + Code.message();
+    }
+    std::sort(mAssetPaths.begin(), mAssetPaths.end());
+    for (auto& Entry : mContentFolders) {
+        std::sort(Entry.second.begin(), Entry.second.end());
+    }
+    while (!mContentDirectory.empty() && !mContentFolders.contains(mContentDirectory)) {
+        mContentDirectory = mContentDirectory.parent_path();
+    }
+    mRefreshContent = false;
+    mRevealContentDirectory = true;
+}
+
+void FEditorUI::NavigateContent(const std::filesystem::path& Directory) {
+    if (mContentFolders.contains(Directory)) {
+        mContentDirectory = Directory;
+        mSelectedContentPath.clear();
+        mRevealContentDirectory = true;
+    }
+}
+
+void FEditorUI::DrawContentTree(const std::filesystem::path& Directory) {
+    const auto Entry{mContentFolders.find(Directory)};
+    if (Entry == mContentFolders.end()) {
+        return;
+    }
+    const FString Label{Directory.empty() ? "Content" : PathText(Directory.filename())};
+    const FString Id{PathText(Directory)};
+    ImGuiTreeNodeFlags Flags{ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_SpanAvailWidth};
+    if (Directory == mContentDirectory) {
+        Flags |= ImGuiTreeNodeFlags_Selected;
+    }
+    if (Entry->second.empty()) {
+        Flags |= ImGuiTreeNodeFlags_Leaf;
+    }
+    if (Directory.empty()) {
+        Flags |= ImGuiTreeNodeFlags_DefaultOpen;
+    }
+    const auto Relative{mContentDirectory.lexically_relative(Directory)};
+    if (mRevealContentDirectory && (Directory.empty() || Directory == mContentDirectory || (!Relative.empty() && *Relative.begin() != L".."))) {
+        ImGui::SetNextItemOpen(true);
+    }
+    ImGui::PushID(Id.c_str());
+    const bool Open{ImGui::TreeNodeEx(Label.c_str(), Flags)};
+    if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen()) {
+        NavigateContent(Directory);
+    }
+    if (Open) {
+        for (const auto& Child : Entry->second) {
+            DrawContentTree(Child);
+        }
+        ImGui::TreePop();
+    }
+    ImGui::PopID();
+}
+
+void FEditorUI::DrawContentBreadcrumbs() {
+    ImGui::PushID("Content Path");
+    ImGui::BeginDisabled(mContentDirectory.empty());
+    if (ImGui::SmallButton("Up")) {
+        NavigateContent(mContentDirectory.parent_path());
+    }
+    ImGui::EndDisabled();
+    ImGui::SameLine();
+    if (ImGui::SmallButton("Content")) {
+        NavigateContent({});
+    }
+    const std::filesystem::path Current{mContentDirectory};
+    std::filesystem::path Path{};
+    for (const auto& Part : Current) {
+        Path /= Part;
+        const FString Label{PathText(Part)};
+        const float Right{ImGui::GetCursorScreenPos().x + ImGui::GetContentRegionAvail().x};
+        if (Right - ImGui::GetItemRectMax().x > ImGui::CalcTextSize(Label.c_str()).x + 48.0f) {
+            ImGui::SameLine();
+        }
+        ImGui::TextUnformatted("/");
+        ImGui::SameLine();
+        const FString Id{PathText(Path)};
+        ImGui::PushID(Id.c_str());
+        if (ImGui::SmallButton(Label.c_str())) {
+            NavigateContent(Path);
+        }
+        ImGui::PopID();
+    }
+    ImGui::PopID();
+}
+
+void FEditorUI::DrawContentEntries() {
+    if (!ImGui::BeginTable("Entries", 2, ImGuiTableFlags_RowBg | ImGuiTableFlags_SizingStretchProp)) {
+        return;
+    }
+    ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthStretch, 3.0f);
+    ImGui::TableSetupColumn("Type", ImGuiTableColumnFlags_WidthStretch, 1.0f);
+    ImGui::TableHeadersRow();
+    bool Empty{true};
+    bool Navigate{};
+    std::filesystem::path Requested{};
+    const auto Folder{mContentFolders.find(mContentDirectory)};
+    if (Folder != mContentFolders.end()) {
+        for (const auto& Path : Folder->second) {
+            Empty = false;
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex(0);
+            const FString Label{"[Folder] " + PathText(Path.filename())};
+            if (ImGui::Selectable(Label.c_str(), mSelectedContentPath == Path, ImGuiSelectableFlags_AllowDoubleClick | ImGuiSelectableFlags_SpanAllColumns)) {
+                mSelectedContentPath = Path;
+                if (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
+                    Requested = Path;
+                    Navigate = true;
+                }
+            }
+            ImGui::TableSetColumnIndex(1);
+            ImGui::TextDisabled("Folder");
+        }
+    }
+    for (const auto& Path : mAssetPaths) {
+        if (Path.parent_path() != mContentDirectory) {
+            continue;
+        }
+        Empty = false;
+        ImGui::TableNextRow();
+        ImGui::TableSetColumnIndex(0);
+        const FString Label{PathText(Path.filename())};
+        const auto Type{mAssetTypes.find(Path)};
+        if (ImGui::Selectable(Label.c_str(), mSelectedContentPath == Path, ImGuiSelectableFlags_AllowDoubleClick | ImGuiSelectableFlags_SpanAllColumns)) {
+            mSelectedContentPath = Path;
+            if (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left) && Type != mAssetTypes.end() && mContext->CanEditWorld()) {
+                OpenContentAsset(Path, Type->second);
+            }
+        }
+        if (Type != mAssetTypes.end() && Type->second == EAssetType::Mesh && mContext->CanEditWorld() && ImGui::BeginDragDropSource()) {
+            const FString Relative{PathText(Path)};
+            ImGui::SetDragDropPayload(EditorAssetDragDrop::MeshPayload, Relative.c_str(), Relative.size() + 1);
+            ImGui::TextUnformatted(Label.c_str());
+            ImGui::TextDisabled("Drop into the viewport to place");
+            ImGui::EndDragDropSource();
+        }
+        ImGui::TableSetColumnIndex(1);
+        const char* Kind{Type != mAssetTypes.end() ? Type->second == EAssetType::Mesh ? "Mesh" : Type->second == EAssetType::Scene ? "Scene" : "Texture" : Path.extension() == L".hlsl" || Path.extension() == L".hlsli" ? "Shader" : Path.extension() == L".lua" ? "Script" : Path.extension() == L".masset" ? "Invalid Asset" : "File"};
+        ImGui::TextDisabled("%s", Kind);
+    }
+    ImGui::EndTable();
+    if (Empty) {
+        ImGui::TextDisabled("This folder is empty.");
+    }
+    if (Navigate) {
+        NavigateContent(Requested);
+    }
+}
+
+void FEditorUI::OpenContentAsset(const std::filesystem::path& Path, EAssetType Type) {
+    if (Type == EAssetType::Scene) {
+        if (ConfirmSceneChange()) {
+            mContext->LoadScene(Path);
+        }
+    } else if (Type == EAssetType::Mesh) {
+        mContext->SpawnMesh(Path);
+    } else if (Type == EAssetType::Texture) {
+        FString Error{};
+        mPreviewTexture = mContext->GetProject()->GetAssets()->LoadTexture(Path, Error);
+        if (mPreviewTexture != nullptr && mPreviewTexture->CreateResources(static_cast<ID3D11Device*>(mContext->GetRenderer()->GetNativeDevice()))) {
+            mContext->AddLog("Loaded " + PathText(Path));
+        } else {
+            mContext->AddLog(Error.empty() ? "Cannot preview the texture" : Error);
         }
     }
 }

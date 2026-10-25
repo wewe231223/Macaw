@@ -1,10 +1,7 @@
 #include "Engine/Component/UCapsuleComponent.h"
-#include "Core/Math/FBox.h"
-#include "CoreUObject/FPropertyChangedEvent.h"
-#include "CoreUObject/Reflection/FProperty.h"
+#include "Core/Archive.h"
 
 #include <algorithm>
-#include <cmath>
 
 FCollisionShape UCapsuleComponent::GetCollisionShape() const {
     return FCollisionShape::MakeCapsule(GetScaledCapsuleRadius(), GetScaledCapsuleHalfHeight());
@@ -14,14 +11,11 @@ FBox UCapsuleComponent::CalcLocalBounds() const {
     return FBox{ FVector{ -mCapsuleRadius, -mCapsuleRadius, -mCapsuleHalfHeight }, FVector{ mCapsuleRadius, mCapsuleRadius, mCapsuleHalfHeight } };
 }
 
-void UCapsuleComponent::PostEditChangeProperty(const FPropertyChangedEvent& Event) {
-    Super::PostEditChangeProperty(Event);
-    if (Event.mProperty != nullptr && Event.mProperty->GetName() == "CapsuleRadius") {
-        mCapsuleRadius = std::clamp(mCapsuleRadius, 0.0f, mCapsuleHalfHeight);
+void UCapsuleComponent::Serialize(FArchive& Archive) {
+    if (Archive.IsLoading() && !Archive.HasError() && Archive.HasField("CapsuleRadius")) {
+        SetCapsuleRadius(0.0f);
     }
-    else if (Event.mProperty != nullptr && Event.mProperty->GetName() == "CapsuleHalfHeight") {
-        mCapsuleHalfHeight = std::max(mCapsuleHalfHeight, mCapsuleRadius);
-    }
+    Super::Serialize(Archive);
 }
 
 void UCapsuleComponent::SetCapsuleSize(float InRadius, float InHalfHeight) {
@@ -45,6 +39,14 @@ float UCapsuleComponent::GetCapsuleHalfHeight() const {
     return mCapsuleHalfHeight;
 }
 
+void UCapsuleComponent::SetCapsuleHalfHeight(float InHalfHeight) {
+    mCapsuleHalfHeight = std::max(InHalfHeight, mCapsuleRadius);
+}
+
 float UCapsuleComponent::GetCapsuleRadius() const {
     return mCapsuleRadius;
+}
+
+void UCapsuleComponent::SetCapsuleRadius(float InRadius) {
+    mCapsuleRadius = std::clamp(InRadius, 0.0f, mCapsuleHalfHeight);
 }

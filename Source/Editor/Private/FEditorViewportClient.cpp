@@ -28,6 +28,8 @@
 #include "CoreUObject/Reflection/Cast.h"
 #include "Editor/FEditorContext.h"
 #include "Editor/FViewportCommandInfo.h"
+#include "Engine/FProject.h"
+#include "Engine/UStaticMesh.h"
 
 #include <algorithm>
 #include <cmath>
@@ -507,4 +509,34 @@ FHitProxy FEditorViewportClient::GetHitProxy(const FSceneViewport* Viewport, con
     }
 
     return {};
+}
+
+bool FEditorViewportClient::DropMesh(const std::filesystem::path& Path, const FVector2& Position, const FVector2& Size) {
+    UWorld* World{mContext->GetWorld()};
+    FProject* Project{mContext->GetProject()};
+    if (!mContext->CanEditWorld() || mGizmo.IsDragging() || World == nullptr || Project == nullptr) {
+        return false;
+    }
+    const FSceneView View{CalcSceneView(Size)};
+    FRay Ray{};
+    if (!Math::Deproject(Position, View.mSize, View.mViewProjection, Ray)) {
+        return false;
+    }
+    FWorldHit Hit{};
+    FVector Location{Ray.mOrigin + Ray.mDirection * 6.0f};
+    const bool OnSurface{World->Raycast(Ray, Hit)};
+    const bool OnGround{!OnSurface && Math::IntersectPlane(Ray, FVector{}, FVector{0.0f, 0.0f, 1.0f}, Location)};
+    if (OnSurface) {
+        Location = Hit.mPosition;
+    }
+    FString Error{};
+    const UStaticMesh* Mesh{Project->GetAssets()->LoadMesh(Path, Error)};
+    if (Mesh == nullptr) {
+        mContext->AddLog(Error);
+        return false;
+    }
+    if (OnSurface || OnGround) {
+        Location.z -= Mesh->GetBounds().mMinimum.z;
+    }
+    return mContext->SpawnMesh(Path, FTransform{Location, {}, {1.0f, 1.0f, 1.0f}}) != nullptr;
 }
