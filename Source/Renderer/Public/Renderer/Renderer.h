@@ -16,6 +16,7 @@
 #include "RenderCore/FRenderStats.h"
 #include "RenderCore/IRendererModule.h"
 #include "Engine/UStaticMesh.h"
+#include "Engine/UTexture2D.h"
 #include "Renderer/FLineVertex.h"
 
 #include <d3d11.h>
@@ -202,7 +203,7 @@ private:
     /**
      * @brief 스왑 체인 백 버퍼의 렌더 타깃 뷰입니다.
      */
-    Microsoft::WRL::ComPtr<ID3D11RenderTargetView> mBackBuffer{};
+    std::unique_ptr<UTexture2D> mBackBuffer{};
     ReflectProperty(mBackBuffer, "BackBuffer", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 
 

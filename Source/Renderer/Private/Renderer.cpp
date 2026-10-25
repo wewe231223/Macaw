@@ -228,7 +228,7 @@ void FRenderer::Shutdown() {
     mDepthReadOnly.Reset();
     mDepthDisabled.Reset();
 
-    mBackBuffer.Reset();
+    mBackBuffer.reset();
     mSwapChain.Reset();
     mContext.Reset();
     mDevice.Reset();
@@ -347,7 +347,7 @@ void FRenderer::BeginRenderingViewFamily(const FSceneViewFamily& Family) {
         DrawLines(Family.mEditorElements, false);
     }
 
-    mStats.mGpuBytes = Scene->GetPrimitiveCount() * sizeof(FObjectConstants) + sizeof(FMatrix) + sizeof(FEditorMeshConstants) + mLineCapacity * sizeof(FLineVertex) + static_cast<std::size_t>(Target->GetWidth()) * Target->GetHeight() * 8;
+    mStats.mGpuBytes = Scene->GetPrimitiveCount() * sizeof(FObjectConstants) + sizeof(FMatrix) + sizeof(FEditorMeshConstants) + mLineCapacity * sizeof(FLineVertex) + Target->GetResourceBytes();
 
     for (const auto& Mesh : mMeshes) {
         mStats.mGpuBytes += Mesh != nullptr ? Mesh->GetResourceBytes() : 0;
@@ -363,8 +363,8 @@ void FRenderer::BeginRenderingViewFamily(const FSceneViewFamily& Family) {
  * @brief UI 렌더링에 사용할 백 버퍼와 뷰포트를 설정합니다.
  */
 void FRenderer::BeginUiRender() {
-    if (mBackBuffer != nullptr) {
-        ID3D11RenderTargetView* Target{mBackBuffer.Get()};
+    if (mBackBuffer != nullptr && mBackBuffer->HasResources()) {
+        ID3D11RenderTargetView* Target{mBackBuffer->GetRenderTargetView()};
         mContext->OMSetRenderTargets(1, &Target, nullptr);
 
         constexpr float Clear[]{0.045f, 0.05f, 0.065f, 1.0f};
@@ -421,18 +421,20 @@ bool FRenderer::Compile(const char* Source, std::size_t Size, const char* Entry,
  */
 bool FRenderer::CreateBackBuffer(Uint32 Width, Uint32 Height) {
     mContext->OMSetRenderTargets(0, nullptr, nullptr);
-    mBackBuffer.Reset();
+    mBackBuffer.reset();
 
     if (FAILED(mSwapChain->ResizeBuffers(0, Width, Height, DXGI_FORMAT_UNKNOWN, 0))) {
         ErrorHandler::Fatal("Renderer", "Swap chain resize failed");
     }
 
     ComPtr<ID3D11Texture2D> Texture{};
+    auto BackBuffer{NewObject<UTexture2D>()};
 
-    if (FAILED(mSwapChain->GetBuffer(0, IID_PPV_ARGS(Texture.GetAddressOf()))) || FAILED(mDevice->CreateRenderTargetView(Texture.Get(), nullptr, mBackBuffer.GetAddressOf()))) {
+    if (FAILED(mSwapChain->GetBuffer(0, IID_PPV_ARGS(Texture.GetAddressOf()))) || !BackBuffer->AttachResource(Texture.Get(), ETextureUsage::RenderTarget)) {
         ErrorHandler::Fatal("Renderer", "Back buffer allocation failed");
     }
 
+    mBackBuffer = std::move(BackBuffer);
     mWidth = Width;
     mHeight = Height;
 

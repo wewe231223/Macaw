@@ -8,6 +8,7 @@
 
 #include "Core/ReflectionMacros.h"
 #include "Engine/FRenderTarget.h"
+#include "Engine/UTexture2D.h"
 
 #include <d3d11.h>
 #include <wrl/client.h>
@@ -73,6 +74,7 @@ public:
      * @return 조회한 값의 비소유 주소이며, 해당 값이 없으면 nullptr입니다.
      */
     ID3D11DepthStencilView* GetDepthView() const;
+    std::size_t GetResourceBytes() const;
 
 private:
     /**
@@ -84,33 +86,23 @@ private:
     /**
      * @brief UI 표시용 셰이더 리소스 뷰가 참조하는 컬러 텍스처입니다.
      */
-    Microsoft::WRL::ComPtr<ID3D11Texture2D> mColor{};
+    /**
+     * @brief 컬러 렌더 타깃 뷰입니다.
+     */
+    /**
+     * @brief UI 샘플링에 사용할 셰이더 리소스 뷰입니다.
+     */
+    std::unique_ptr<UTexture2D> mColor{};
     ReflectProperty(mColor, "Color", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 
     /**
      * @brief 깊이 텍스처입니다.
      */
-    Microsoft::WRL::ComPtr<ID3D11Texture2D> mDepth{};
-    ReflectProperty(mDepth, "Depth", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
-
-
-    /**
-     * @brief 컬러 렌더 타깃 뷰입니다.
-     */
-    Microsoft::WRL::ComPtr<ID3D11RenderTargetView> mRenderTarget{};
-    ReflectProperty(mRenderTarget, "RenderTarget", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
-
-    /**
-     * @brief UI 샘플링에 사용할 셰이더 리소스 뷰입니다.
-     */
-    Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> mResourceView{};
-    ReflectProperty(mResourceView, "ResourceView", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
-
     /**
      * @brief 깊이 스텐실 뷰입니다.
      */
-    Microsoft::WRL::ComPtr<ID3D11DepthStencilView> mDepthView{};
-    ReflectProperty(mDepthView, "DepthView", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    std::unique_ptr<UTexture2D> mDepth{};
+    ReflectProperty(mDepth, "Depth", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 
 
     /**
