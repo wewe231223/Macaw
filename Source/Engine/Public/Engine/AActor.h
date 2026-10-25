@@ -13,6 +13,7 @@ class UWorld;
 class ULevel;
 class UActorComponent;
 class USceneComponent;
+struct FViewportInput;
 struct FTransform;
 
 /**
@@ -99,6 +100,7 @@ public:
      * @brief 액터의 게임 실행 종료 시 호출되는 확장 지점입니다.
      */
     virtual void EndPlay();
+    virtual void Input(const FViewportInput& Input, float DeltaTime);
     /**
      * @brief 액터가 실행 시작 전달에 진입했는지 검사합니다.
      * @return 실행 시작 전달 이후 종료 전달 전이면 true입니다.

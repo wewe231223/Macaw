@@ -7,6 +7,8 @@
 #include "Editor/Panel/FOutlinerPanel.h"
 #include "Editor/FEditorContext.h"
 #include "Engine/AActor.h"
+#include "Engine/UWorld.h"
+#include "Engine/Component/UCameraComponent.h"
 #include "Engine/Component/UActorComponent.h"
 #include "CoreUObject/Reflection/Cast.h"
 #include "Engine/EPrimitiveType.h"
@@ -50,7 +52,20 @@ void FOutlinerPanel::DrawContent(float) {
         Context->SpawnPrimitive(EPrimitiveType::Sphere);
     }
 
+    if (ImGui::Button("+ Camera")) {
+        Context->SpawnCamera();
+    }
+
+    ImGui::SameLine();
+    ImGui::BeginDisabled(Context->GetSelectedCamera() == nullptr);
+    if (ImGui::Button("Use as PIE Camera")) {
+        Context->UseSelectedCamera();
+    }
     ImGui::EndDisabled();
+
+    ImGui::EndDisabled();
+    const UCameraComponent* Camera{Context->GetWorld() != nullptr ? Context->GetWorld()->GetActiveCamera() : nullptr};
+    ImGui::TextDisabled("PIE Camera: %s", Camera != nullptr ? Camera->GetOwner()->GetName().c_str() : "None");
     ImGui::Separator();
     const auto Actors{Context->GetActorHandles()};
     ImGui::TextUnformatted(std::format("PersistentLevel ({})", Actors.size()).c_str());

@@ -150,6 +150,9 @@ void AActor::Tick(float DeltaTime) {
 void AActor::EndPlay() {
 }
 
+void AActor::Input(const FViewportInput&, float) {
+}
+
 /**
  * @brief 액터가 실행 시작 전달에 진입했는지 검사합니다.
  */

@@ -10,6 +10,7 @@
 #include "Engine/Component/UActorComponent.h"
 #include "Engine/Component/UStaticMeshComponent.h"
 #include "Engine/Component/USceneComponent.h"
+#include "Engine/Component/UCameraComponent.h"
 #include "CoreUObject/Reflection/Cast.h"
 #include "Engine/AActor.h"
 #include "Engine/AStaticMeshActor.h"
@@ -25,6 +26,36 @@
  * @brief 이 구현 파일에서만 사용하는 내부 상태와 보조 함수입니다.
  */
 namespace {
+    void SerializeWorldReferences(FArchive& Archive, UWorld* World, TMap<FGuid, UObject*, FGuidHash>* Objects) {
+        constexpr const char* Names[]{"ActiveCamera", "InputTarget"};
+        for (Uint32 Index{}; Index < 2 && !Archive.HasError(); ++Index) {
+            const char* Name{Names[Index]};
+            if (Archive.IsLoading() && !Archive.HasField(Name)) {
+                continue;
+            }
+            UObject* Object{Index == 0 ? static_cast<UObject*>(World->GetActiveCamera()) : World->GetInputTarget()};
+            FString Reference{Object != nullptr ? Object->GetGuid().ToString() : FString{}};
+            Archive.Serialize(Name, Reference);
+            if (!Archive.IsLoading() || Archive.HasError()) {
+                continue;
+            }
+            Object = nullptr;
+            if (!Reference.empty()) {
+                FGuid Guid{};
+                const bool Parsed{FGuid::Parse(Reference, Guid)};
+                const auto Position{Objects->find(Guid)};
+                if (!Parsed || Position == Objects->end() || !World->ContainsObject(Position->second) || (Index == 0 ? Cast<UCameraComponent>(Position->second) == nullptr : Cast<AActor>(Position->second) == nullptr)) {
+                    Archive.SetError(FString{"Invalid world reference: "} + Name);
+                    return;
+                }
+                Object = Position->second;
+            }
+            if (!(Index == 0 ? World->SetActiveCamera(Cast<UCameraComponent>(Object)) : World->SetInputTarget(Cast<AActor>(Object)))) {
+                Archive.SetError(FString{"Cannot restore world reference: "} + Name);
+            }
+        }
+    }
+
     /**
      * @brief 객체의 클래스 이름과 식별 프로퍼티를 직렬화합니다.
      * @param[in,out] Archive 로드 또는 저장 모드를 가진 아카이브입니다.
@@ -242,5 +273,6 @@ void FSceneSerializer::Serialize(FArchive& Archive, FWorldContext* Context) {
         Archive.EndObject();
     }
 
+    SerializeWorldReferences(Archive, World, &Objects);
     Archive.EndObject();
 }

@@ -19,6 +19,8 @@ class UWorld;
 class UObject;
 class AActor;
 class AStaticMeshActor;
+class ACameraActor;
+class UCameraComponent;
 class FProperty;
 class FWorldContext;
 class IRendererModule;
@@ -118,6 +120,9 @@ public:
 
     /** @brief 액터를 생성하고 배치한 뒤 선택과 장면 변경 상태를 갱신합니다. @param[in] Type 생성할 기본 메시 종류입니다. @return 생성한 액터의 비소유 주소이며 실패하면 nullptr입니다. */
     AStaticMeshActor* SpawnPrimitive(EPrimitiveType Type);
+    ACameraActor* SpawnCamera();
+    UCameraComponent* GetSelectedCamera() const;
+    bool UseSelectedCamera();
     /** @brief 선택한 액터들을 삭제하고 관련 선택을 해제합니다. @return 삭제 요청을 수락하면 true입니다. */
     bool DestroySelectedActor();
     /** @brief 객체 소속과 프로퍼티 편집 권한을 검사합니다. @param[in] Handle 편집할 객체 핸들입니다. @param[in] Property 객체 클래스의 프로퍼티입니다. @return 현재 편집할 수 있으면 true입니다. */

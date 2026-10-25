@@ -365,6 +365,10 @@ const FVector& FEditorViewportClient::GetCameraLocation() const {
     return mCameraLocation;
 }
 
+const FRotator& FEditorViewportClient::GetCameraRotation() const {
+    return mCameraRotation;
+}
+
 /**
  * @brief 뷰포트 변환 편집 기즈모를 반환합니다.
  */

@@ -8,6 +8,8 @@
 #include "FEditorUI.h"
 #include "Engine/UWorld.h"
 #include "Engine/AStaticMeshActor.h"
+#include "Engine/ACameraActor.h"
+#include "CoreUObject/Reflection/Cast.h"
 #include "Engine/EPrimitiveType.h"
 
 /**
@@ -83,8 +85,9 @@ bool UEditorEngine::InitializeEditor(IRendererModule* Renderer, FWindowsApplicat
     AStaticMeshActor* Cube{GetWorld()->SpawnPrimitive(EPrimitiveType::Cube)};
     AStaticMeshActor* Sphere{GetWorld()->SpawnPrimitive(EPrimitiveType::Sphere)};
     AStaticMeshActor* Plane{GetWorld()->SpawnPrimitive(EPrimitiveType::Plane)};
+    auto* Camera{Cast<ACameraActor>(GetWorld()->SpawnActor(ACameraActor::StaticClass()))};
 
-    if (Cube == nullptr || Sphere == nullptr || Plane == nullptr) {
+    if (Cube == nullptr || Sphere == nullptr || Plane == nullptr || Camera == nullptr || !Camera->SetActorTransform(FTransform{mViewport.GetClient()->GetCameraLocation(), mViewport.GetClient()->GetCameraRotation().Quaternion(), {1.0f, 1.0f, 1.0f}}) || !GetWorld()->SetActiveCamera(Camera->GetCameraComponent()) || !GetWorld()->SetInputTarget(Camera)) {
         Shutdown();
 
         return false;

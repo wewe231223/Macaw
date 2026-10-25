@@ -17,6 +17,8 @@ class AActor;
 class FWorldContext;
 class FSceneInterface;
 class AStaticMeshActor;
+class UCameraComponent;
+struct FViewportInput;
 struct FWorldHit;
 struct FRay;
 enum class EPrimitiveType : Uint8;
@@ -159,6 +161,12 @@ public:
      * @return 월드의 즉시 구조 변경을 제한해야 하는 동안 true입니다.
      */
     bool IsDispatching() const;
+    bool SetActiveCamera(UCameraComponent* Camera);
+    UCameraComponent* GetActiveCamera() const;
+    bool SetInputTarget(AActor* Actor);
+    AActor* GetInputTarget() const;
+    bool Input(const FViewportInput& Input, float DeltaTime);
+    bool PostDuplicate(const UObject* Source, const FObjectDuplicationContext* Context) override;
     /**
      * @fn UClass* UWorld::GetClass() const
      * @brief 객체의 실제 클래스 메타데이터를 반환합니다.
@@ -304,6 +312,10 @@ private:
     AActor* ResolveActor(FObjectHandle Handle) const;
 
 private:
+    FObjectHandle mActiveCamera{};
+    ReflectProperty(mActiveCamera, "ActiveCamera", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    FObjectHandle mInputTarget{};
+    ReflectProperty(mInputTarget, "InputTarget", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
     /**
      * @brief 엔진이 발급한 이 월드의 비소유 식별자입니다.
      */

@@ -120,6 +120,7 @@ public:
      * @return 소유 객체가 유지하는 값의 참조입니다.
      */
     const FVector& GetCameraLocation() const;
+    const FRotator& GetCameraRotation() const;
 
     /**
      * @brief 뷰포트 변환 편집 기즈모를 반환합니다.

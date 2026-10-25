@@ -11,6 +11,8 @@
 #include "Engine/FWorldContext.h"
 #include "Engine/AActor.h"
 #include "Engine/AStaticMeshActor.h"
+#include "Engine/ACameraActor.h"
+#include "Engine/Component/UCameraComponent.h"
 #include "Engine/EPrimitiveType.h"
 #include "Engine/Component/UActorComponent.h"
 #include "Engine/Component/USceneComponent.h"
@@ -246,6 +248,59 @@ AStaticMeshActor* FEditorContext::SpawnPrimitive(EPrimitiveType Type) {
     }
 
     return Actor;
+}
+
+ACameraActor* FEditorContext::SpawnCamera() {
+    if (!CanEditWorld() || mChangingState || mEditingProperty || mEngine->IsDispatching()) {
+        return nullptr;
+    }
+    FOperationScope Scope{&mChangingState};
+    const FTransform Placement{mPlacementProvider ? mPlacementProvider() : FTransform{}};
+    UWorld* World{GetWorld()};
+    auto* Actor{World != nullptr ? Cast<ACameraActor>(World->SpawnActor(ACameraActor::StaticClass())) : nullptr};
+    if (Actor == nullptr) {
+        return nullptr;
+    }
+    if (!Actor->SetActorTransform(Placement)) {
+        World->DestroyActor(Actor->GetHandle());
+        return nullptr;
+    }
+    if (World->GetActiveCamera() == nullptr) {
+        World->SetActiveCamera(Actor->GetCameraComponent());
+        if (World->GetInputTarget() == nullptr) {
+            World->SetInputTarget(Actor);
+        }
+    }
+    AssignSelection({Actor->GetHandle()}, Actor->GetHandle());
+    mDirty = true;
+    AddLog("Spawned " + Actor->GetName());
+    return Actor;
+}
+
+UCameraComponent* FEditorContext::GetSelectedCamera() const {
+    if (auto* Camera{Cast<UCameraComponent>(GetSelectedObject())}) {
+        return Camera;
+    }
+    if (const AActor* Actor{GetSelectedActor()}) {
+        for (const auto& Component : Actor->GetComponents()) {
+            if (auto* Camera{Cast<UCameraComponent>(Component.get())}) {
+                return Camera;
+            }
+        }
+    }
+    return nullptr;
+}
+
+bool FEditorContext::UseSelectedCamera() {
+    UCameraComponent* Camera{GetSelectedCamera()};
+    if (!CanEditWorld() || mChangingState || mEditingProperty || mEngine->IsDispatching() || Camera == nullptr) {
+        return false;
+    }
+    if (!GetWorld()->SetActiveCamera(Camera) || !GetWorld()->SetInputTarget(Camera->GetOwner())) {
+        return false;
+    }
+    mDirty = true;
+    return true;
 }
 
 /** @brief 현재 선택한 액터를 제거하고 관련 선택 상태를 초기화합니다. */

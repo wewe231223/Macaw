@@ -7,6 +7,9 @@
 #include "Engine/UWorld.h"
 #include "Engine/MeshPicking.h"
 #include "Engine/Component/UStaticMeshComponent.h"
+#include "Engine/Component/UCameraComponent.h"
+#include "Engine/FViewportInput.h"
+#include "CoreUObject/FObjectDuplicationContext.h"
 #include "Core/Math.h"
 #include "Engine/Component/UPrimitiveComponent.h"
 #include "Engine/AStaticMeshActor.h"
@@ -257,6 +260,8 @@ void UWorld::Shutdown() {
 
     mPendingActors.clear();
     mDirtyComponents.clear();
+    mActiveCamera = {};
+    mInputTarget = {};
     mPersistentLevel.reset();
     mScene.reset();
 }
@@ -402,6 +407,54 @@ Uint64 UWorld::GetTickCount() const {
  */
 bool UWorld::IsDispatching() const {
     return mDispatchDepth != 0 || mFlushing;
+}
+
+bool UWorld::SetActiveCamera(UCameraComponent* Camera) {
+    if (!CanAddActor() || (Camera != nullptr && (Camera->GetWorld() != this || !ContainsObject(Camera)))) {
+        return false;
+    }
+    mActiveCamera = Camera != nullptr ? Camera->GetHandle() : FObjectHandle{};
+    return true;
+}
+
+UCameraComponent* UWorld::GetActiveCamera() const {
+    auto* Camera{Cast<UCameraComponent>(FObjectRegistry::Get()->Resolve(mActiveCamera))};
+    return Camera != nullptr && Camera->GetWorld() == this && ContainsObject(Camera) ? Camera : nullptr;
+}
+
+bool UWorld::SetInputTarget(AActor* Actor) {
+    if (!CanAddActor() || (Actor != nullptr && !ContainsObject(Actor))) {
+        return false;
+    }
+    mInputTarget = Actor != nullptr ? Actor->GetHandle() : FObjectHandle{};
+    return true;
+}
+
+AActor* UWorld::GetInputTarget() const {
+    AActor* Actor{ResolveActor(mInputTarget)};
+    return Actor != nullptr && !Actor->IsPendingDestroy() ? Actor : nullptr;
+}
+
+bool UWorld::Input(const FViewportInput& Input, float DeltaTime) {
+    AActor* Actor{GetInputTarget()};
+    if ((mWorldType != EWorldType::Game && mWorldType != EWorldType::PIE) || mPlayState != EWorldPlayState::Playing || IsDispatching() || !CanBeginActor() || !Input.mFocused || !std::isfinite(DeltaTime) || DeltaTime < 0.0f || Actor == nullptr || !Actor->HasBegunPlay()) {
+        return false;
+    }
+    FDispatchScope Scope{this};
+    Actor->Input(Input, DeltaTime);
+    return true;
+}
+
+bool UWorld::PostDuplicate(const UObject* Source, const FObjectDuplicationContext* Context) {
+    const auto* Original{Cast<UWorld>(Source)};
+    if (!Super::PostDuplicate(Source, Context) || Original == nullptr || Context == nullptr) {
+        return false;
+    }
+    UCameraComponent* Camera{Original->GetActiveCamera()};
+    AActor* Actor{Original->GetInputTarget()};
+    auto* CameraCopy{Cast<UCameraComponent>(Context->FindDuplicate(Camera))};
+    auto* ActorCopy{Cast<AActor>(Context->FindDuplicate(Actor))};
+    return (Camera == nullptr || CameraCopy != nullptr) && (Actor == nullptr || ActorCopy != nullptr) && SetActiveCamera(CameraCopy) && SetInputTarget(ActorCopy);
 }
 
 /**
