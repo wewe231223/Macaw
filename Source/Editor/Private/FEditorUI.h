@@ -88,7 +88,13 @@ private:
      * @brief 장면 파일과 패널 표시 메뉴를 그립니다.
      */
     void DrawMenu();
+    /**
+     * @brief 프로젝트·장면 작업과 편집 도구를 제공하는 툴바를 그립니다.
+     */
     void DrawEditorToolbar();
+    /**
+     * @brief PIE 시작·일시정지·단계 실행·종료 버튼을 그립니다.
+     */
     void DrawPlayControls();
     /**
      * @brief 에디터 패널의 초기 ImGui 도킹 레이아웃을 구성합니다.
@@ -112,6 +118,9 @@ private:
      */
     FEditorViewport* mViewport{};
     ReflectProperty(mViewport, "Viewport", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /**
+     * @brief PIE 제어와 조회를 위한 세션의 비소유 주소입니다.
+     */
     FPlayInEditorSession* mPlaySession{};
     ReflectProperty(mPlaySession, "PlaySession", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
     /**

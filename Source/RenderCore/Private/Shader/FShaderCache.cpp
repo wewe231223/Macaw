@@ -1,3 +1,9 @@
+/**
+ * @file FShaderCache.cpp
+ * @brief 컴파일된 셰이더의 디스크 캐시와 의존성 유효성 검사에 대한 구현입니다.
+ * @ingroup RenderCore
+ */
+
 #include "RenderCore/Shader/FShaderCache.h"
 #include "FShaderFile.h"
 
@@ -7,19 +13,48 @@
 #include <bit>
 #include <utility>
 
+/**
+ * @brief 이 구현 파일에서만 사용하는 내부 상태와 보조 함수입니다.
+ */
 namespace {
+    /**
+     * @brief 셰이더 캐시 파일에서 지원하는 형식 버전입니다.
+     */
     constexpr Uint64 FormatVersion{1};
+    /**
+     * @brief 셰이더 캐시에 저장할 수 있는 최대 의존 파일 개수입니다.
+     */
     constexpr Uint64 MaxDependencies{4096};
+    /**
+     * @brief 16진수 SHA-256 체크섬의 바이트 수입니다.
+     */
     constexpr std::size_t ChecksumSize{64};
 
+    /**
+     * @brief 파일 수정 시각을 캐시 직렬화에 사용하는 64비트 값으로 변환합니다.
+     * @param[in] Time 캐시 형식으로 인코딩하거나 복원할 파일 시각입니다.
+     * @return 변환 또는 계산된 부호 없는 정수 값입니다.
+     */
     Uint64 EncodeTime(std::filesystem::file_time_type Time) {
         return std::bit_cast<Uint64>(static_cast<std::int64_t>(Time.time_since_epoch().count()));
     }
 
+    /**
+     * @brief 캐시에 저장한 64비트 값을 파일 수정 시각으로 복원합니다.
+     * @param[in] Time 캐시 형식으로 인코딩하거나 복원할 파일 시각입니다.
+     * @return 요청하거나 변환한 파일 시스템 경로 또는 시각입니다.
+     */
     std::filesystem::file_time_type DecodeTime(Uint64 Time) {
         return std::filesystem::file_time_type{std::filesystem::file_time_type::duration{std::bit_cast<std::int64_t>(Time)}};
     }
 
+    /**
+     * @brief 캐시 헤더와 셰이더 식별자를 검증하여 컴파일 결과를 복원합니다.
+     * @param[in] Data 처리할 바이트 데이터 또는 include 파일 버퍼입니다.
+     * @param[in] ExpectedIdentity 캐시에 저장된 값과 일치해야 하는 셰이더 식별 문자열입니다.
+     * @param[out] Compilation 셰이더 바이트코드와 의존성을 포함하는 컴파일 결과입니다.
+     * @return 요청한 처리를 완료하면 true, 실패하면 false입니다.
+     */
     bool ReadCompilation(std::span<const Uint8> Data, const FString& ExpectedIdentity, FShaderCompilation& Compilation) {
         std::size_t Position{};
         FString Magic{};

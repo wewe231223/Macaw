@@ -1,3 +1,9 @@
+/**
+ * @file UCameraComponent.cpp
+ * @brief 시야각 설정과 월드 변환으로부터 카메라 뷰 생성에 대한 구현입니다.
+ * @ingroup Engine
+ */
+
 #include "Engine/Component/UCameraComponent.h"
 #include "Engine/FSceneView.h"
 #include <cmath>

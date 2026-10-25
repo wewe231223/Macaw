@@ -1,3 +1,9 @@
+/**
+ * @file FGameViewportClient.cpp
+ * @brief 실행 월드의 활성 카메라 선택과 입력·뷰포트 갱신에 대한 구현입니다.
+ * @ingroup Engine
+ */
+
 #include "Engine/FGameViewportClient.h"
 #include "Engine/Engine.h"
 #include "Engine/UWorld.h"

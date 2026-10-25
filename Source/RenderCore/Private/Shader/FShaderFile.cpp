@@ -1,3 +1,9 @@
+/**
+ * @file FShaderFile.cpp
+ * @brief 셰이더 경로·파일 의존성·해시와 캐시 데이터 입출력에 대한 구현입니다.
+ * @ingroup RenderCore
+ */
+
 #include "FShaderFile.h"
 
 #include <Windows.h>
@@ -8,9 +14,19 @@
 #include <fstream>
 #include <limits>
 
+/**
+ * @brief 이 구현 파일에서만 사용하는 내부 상태와 보조 함수입니다.
+ */
 namespace {
+    /**
+     * @brief 셰이더 파일을 읽을 때 허용하는 최대 바이트 수입니다.
+     */
     constexpr Uint64 MaxFileSize{64 * 1024 * 1024};
 
+    /**
+     * @brief 사용하는 컴파일러 모듈의 정보를 읽어 캐시 식별 문자열을 만듭니다.
+     * @return 컴파일러를 구분하는 문자열이며 식별 실패 시 비어 있습니다.
+     */
     FString MakeCompilerIdentity() {
         const HMODULE Module{GetModuleHandleW(D3DCOMPILER_DLL_W)};
         if (Module == nullptr) {

@@ -1,3 +1,9 @@
+/**
+ * @file FWorldSerializer.cpp
+ * @brief 월드 액터와 컴포넌트의 직렬화 및 객체 참조 복원에 대한 구현입니다.
+ * @ingroup Engine
+ */
+
 #include "Engine/FWorldSerializer.h"
 #include "CoreUObject/Reflection/FReflectionRegistry.h"
 #include "Core/Archive.h"
@@ -21,6 +27,12 @@
  * @brief 이 구현 파일에서만 사용하는 내부 상태와 보조 함수입니다.
  */
 namespace {
+    /**
+     * @brief 월드의 활성 카메라와 입력 대상 참조를 저장하거나 검증하여 복원합니다.
+     * @param[in,out] Archive 로드 또는 저장 모드와 오류 상태를 제공하는 아카이브입니다.
+     * @param[in] World 조회·설정 또는 직렬화할 월드입니다.
+     * @param[in,out] Objects 수집할 객체 목록 또는 GUID별 비소유 객체 대응표입니다.
+     */
     void SerializeWorldReferences(FArchive& Archive, UWorld* World, TMap<FGuid, UObject*, FGuidHash>* Objects) {
         constexpr const char* Names[]{"ActiveCamera", "InputTarget"};
         for (Uint32 Index{}; Index < 2 && !Archive.HasError(); ++Index) {
@@ -58,14 +70,20 @@ namespace {
      * @param[in,out] Objects 장면 내부 참조를 복원할 비소유 대응표입니다.
      */
     /**
+     * @par 이전 복제 구현의 설명
+     * @verbatim
      * @brief 객체 식별자와 Transient를 제외한 리플렉션 프로퍼티를 복사합니다.
+     * @endverbatim
      */
     /**
+     * @par 이전 복제 구현의 설명
+     * @verbatim
      * @brief 객체 식별자와 Transient를 제외한 리플렉션 프로퍼티를 복사합니다.
      * @param[in] Source 읽을 원본 객체입니다.
      * @param[in,out] Destination 같은 클래스의 복제 대상입니다.
      * @param[out] Error 복사할 수 없는 프로퍼티의 진단입니다.
      * @return 대상 프로퍼티를 모두 복사하면 true입니다.
+     * @endverbatim
      */
     void SerializeHeader(FArchive& Archive, UObject* Object, TMap<FGuid, UObject*, FGuidHash>* Objects) {
         FString ClassName{Object->GetClass()->GetName()};
@@ -91,14 +109,20 @@ namespace {
      * @return 생성한 객체의 단독 소유권이며, 생성 또는 검증 실패 시 nullptr입니다.
      */
     /**
+     * @par 이전 복제 구현의 설명
+     * @verbatim
      * @brief 원본 클래스의 객체를 생성하고 등록한 뒤 프로퍼티를 복사합니다.
+     * @endverbatim
      */
     /**
+     * @par 이전 복제 구현의 설명
+     * @verbatim
      * @brief 원본 클래스의 객체를 생성하고 등록한 뒤 프로퍼티를 복사합니다.
      * @param[in] Source 생성할 클래스와 복사 값을 제공하는 원본입니다.
      * @param[in,out] Duplication 원본과 새 객체의 대응 관계를 추가할 표입니다.
      * @param[out] Error 생성, 등록 또는 프로퍼티 복사의 실패 원인입니다.
      * @return 새 객체의 단독 소유권이며 실패하면 nullptr입니다.
+     * @endverbatim
      */
     std::unique_ptr<UObject> CreateSerializedObject(FArchive& Archive, TMap<FGuid, UObject*, FGuidHash>* Objects, const UClass* Expected) {
         FString ClassName{};
@@ -191,6 +215,13 @@ namespace {
         }
     }
 
+    /**
+     * @brief 액터 배열과 컴포넌트를 직렬화하고 로드한 객체의 소유권을 모읍니다.
+     * @param[in,out] Archive 로드 또는 저장 모드와 오류 상태를 제공하는 아카이브입니다.
+     * @param[in] Sources 저장할 원본 액터의 비소유 주소 목록입니다.
+     * @param[in,out] Actors 직렬화하거나 수집할 액터 목록입니다.
+     * @param[in,out] Objects 수집할 객체 목록 또는 GUID별 비소유 객체 대응표입니다.
+     */
     void SerializeActors(FArchive& Archive, const TArray<AActor*>& Sources, TArray<std::unique_ptr<AActor>>& Actors, TMap<FGuid, UObject*, FGuidHash>* Objects) {
         Uint32 Count{static_cast<Uint32>(Sources.size())};
 

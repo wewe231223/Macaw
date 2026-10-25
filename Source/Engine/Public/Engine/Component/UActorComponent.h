@@ -87,7 +87,15 @@ public:
      * @return 실행 시작 전달 이후 종료 전달 전이면 true입니다.
      */
     bool HasBegunPlay() const;
+    /**
+     * @brief 정지한 편집 월드에서도 Tick을 허용하는지 반환합니다.
+     * @return 검사 조건을 만족하면 true, 그렇지 않으면 false입니다.
+     */
     bool IsEditorTickable() const;
+    /**
+     * @brief 정지한 편집 월드에서의 Tick 허용 여부를 설정합니다.
+     * @param[in] EditorTickable 정지한 편집 월드에서 Tick을 허용할지 나타냅니다.
+     */
     void SetEditorTickable(bool EditorTickable);
 
 private:
@@ -135,6 +143,9 @@ private:
      */
     bool mHasBegunPlay{};
     ReflectProperty(mHasBegunPlay, "HasBegunPlay", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /**
+     * @brief 정지한 편집 월드에서도 이 객체의 Tick을 허용하는 설정입니다.
+     */
     bool mEditorTickable{};
     ReflectProperty(mEditorTickable, "EditorTickable", EPropertyFlags::Edit | EPropertyFlags::Serialize);
 };

@@ -1,3 +1,9 @@
+/**
+ * @file MemoryArchive.cpp
+ * @brief 바이트 배열을 순차적으로 읽고 쓰는 바이너리 아카이브에 대한 구현입니다.
+ * @ingroup Serialization
+ */
+
 #include "Serialization/MemoryArchive.h"
 
 #include <cmath>

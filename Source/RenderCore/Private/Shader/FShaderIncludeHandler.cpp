@@ -1,3 +1,9 @@
+/**
+ * @file FShaderIncludeHandler.cpp
+ * @brief 셰이더 include 탐색과 열린 파일 및 의존성 추적에 대한 구현입니다.
+ * @ingroup RenderCore
+ */
+
 #include "FShaderIncludeHandler.h"
 #include "FShaderFile.h"
 

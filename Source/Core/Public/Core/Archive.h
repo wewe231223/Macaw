@@ -63,9 +63,27 @@ public:
      */
     bool IsLoading() const;
 
+    /**
+     * @brief 객체 GUID를 재매핑하는 복제용 아카이브인지 반환합니다.
+     * @return 검사 조건을 만족하면 true, 그렇지 않으면 false입니다.
+     */
     bool IsDuplicating() const;
+    /**
+     * @brief 객체 복제에 사용할 GUID 대응표의 비소유 주소를 설정합니다.
+     * @param[in] Remapping 원본 GUID와 복제 GUID 사이의 대응표입니다.
+     */
     void SetObjectGuidRemapping(const TMap<FGuid, FGuid, FGuidHash>* Remapping);
+    /**
+     * @brief 객체 GUID를 직렬화하고 로드 시 복제용 GUID 재매핑을 적용합니다.
+     * @param[in] Name 직렬화할 필드의 이름입니다.
+     * @param[in,out] Value 읽거나 기록·변환할 값입니다.
+     */
     void SerializeObjectGuid(std::string_view Name, FGuid& Value);
+    /**
+     * @brief 등록된 GUID 대응표로 객체 참조를 복제 대상의 GUID로 변환합니다.
+     * @param[in,out] Value 읽거나 기록·변환할 값입니다.
+     * @return 요청한 처리를 완료하면 true, 실패하면 false입니다.
+     */
     bool RemapObjectReference(FGuid& Value);
 
     /**
@@ -225,6 +243,9 @@ private:
     EArchiveMode mMode{};
     ReflectProperty(mMode, "Mode", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 
+    /**
+     * @brief 복제 시 원본 GUID를 새 GUID로 변환하는 비소유 대응표입니다.
+     */
     const TMap<FGuid, FGuid, FGuidHash>* mObjectGuidRemapping{};
     ReflectProperty(mObjectGuidRemapping, "ObjectGuidRemapping", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 

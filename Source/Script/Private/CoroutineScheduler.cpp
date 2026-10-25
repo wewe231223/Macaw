@@ -1,3 +1,8 @@
+/**
+ * @file CoroutineScheduler.cpp
+ * @brief 시간·조건 대기 콜백과 Lua 코루틴의 실행 예약에 대한 구현입니다.
+ */
+
 #include "Script/CoroutineScheduler.h"
 
 #include <utility>

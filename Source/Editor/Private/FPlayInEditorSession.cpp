@@ -1,3 +1,9 @@
+/**
+ * @file FPlayInEditorSession.cpp
+ * @brief 편집 월드 복제와 PIE 실행 세션의 수명 관리에 대한 구현입니다.
+ * @ingroup Editor
+ */
+
 #include "Editor/FPlayInEditorSession.h"
 #include "Editor/FEditorViewport.h"
 #include "Engine/Engine.h"

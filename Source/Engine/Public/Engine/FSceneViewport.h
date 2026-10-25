@@ -53,6 +53,10 @@ public:
      * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
      */
     bool Resize(Uint32 Width, Uint32 Height);
+    /**
+     * @brief 이 장면 뷰포트가 입력과 그리기를 전달할 클라이언트를 교체합니다.
+     * @param[in] Client 입력과 그리기를 처리할 클라이언트의 비소유 주소입니다.
+     */
     void SetClient(FViewportClient* Client);
 
     /**

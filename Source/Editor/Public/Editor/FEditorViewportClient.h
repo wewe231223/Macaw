@@ -120,6 +120,10 @@ public:
      * @return 소유 객체가 유지하는 값의 참조입니다.
      */
     const FVector& GetCameraLocation() const;
+    /**
+     * @brief 편집 카메라의 현재 오일러 회전을 반환합니다.
+     * @return 객체가 보유한 데이터의 참조이며 소유 객체의 수명 동안 유효합니다.
+     */
     const FRotator& GetCameraRotation() const;
 
     /**

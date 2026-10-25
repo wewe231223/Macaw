@@ -101,6 +101,9 @@ public:
      * @param[in] Container 프로퍼티 소유 타입의 유효한 인스턴스 주소입니다.
      * @param[in,out] Archive 로드 또는 저장 모드를 가진 아카이브입니다.
      */
+    /**
+     * @param[in] Excluded 직렬화에서 제외할 프로퍼티이며 nullptr이면 제외하지 않습니다.
+     */
     void SerializeClassProperties(void* Container, FArchive& Archive, const FProperty* Excluded = nullptr) const;
 
 private:

@@ -1,3 +1,9 @@
+/**
+ * @file FShaderCompiler.cpp
+ * @brief HLSL 컴파일과 진단 및 include 의존성 수집에 대한 구현입니다.
+ * @ingroup RenderCore
+ */
+
 #include "RenderCore/Shader/FShaderCompiler.h"
 #include "FShaderIncludeHandler.h"
 #include "FShaderFile.h"

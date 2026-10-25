@@ -1,3 +1,9 @@
+/**
+ * @file EditorMesh.cpp
+ * @brief 기즈모에 사용하는 편집기 기본 메시 데이터에 대한 구현입니다.
+ * @ingroup Engine
+ */
+
 #include "Engine/EditorMesh.h"
 #include "Engine/PrimitiveMesh.h"
 #include "Engine/EPrimitiveType.h"

@@ -1,3 +1,9 @@
+/**
+ * @file UTexture2D.cpp
+ * @brief 2차원 텍스처의 CPU 픽셀과 Direct3D 리소스 관리에 대한 구현입니다.
+ * @ingroup Engine
+ */
+
 #include "Engine/UTexture2D.h"
 
 #include <DirectXTex.h>

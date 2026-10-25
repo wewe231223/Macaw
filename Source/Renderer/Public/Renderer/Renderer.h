@@ -138,6 +138,10 @@ public:
      * @return 프레임 렌더링 통계입니다.
      */
     FRenderStats GetStats() const override;
+    /**
+     * @brief 변경된 셰이더를 다시 컴파일하고 필요한 GPU 셰이더를 갱신합니다.
+     * @return 요청한 처리를 완료하면 true, 실패하면 false입니다.
+     */
     bool ReloadChangedShaders() override;
 
 private:
@@ -153,6 +157,10 @@ private:
      * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
      */
     bool CreatePipeline();
+    /**
+     * @brief 장면 렌더링에 사용할 셰이더와 입력 레이아웃을 생성합니다.
+     * @return 요청한 처리를 완료하면 true, 실패하면 false입니다.
+     */
     bool CreateShaders();
     /**
      * @brief 고정 에디터 메시의 로컬 정점과 인덱스를 종류별 불변 GPU 버퍼에 업로드합니다.
@@ -162,7 +170,10 @@ private:
     /**
      * @brief 내장 HLSL 소스를 지정한 진입점과 프로파일로 컴파일합니다.
      * @param[in] Source 컴파일할 HLSL 소스의 주소입니다.
+     * @par 이전 시그니처의 인수 설명
+     * @verbatim
      * @param[in] Size 뷰포트 크기 또는 데이터의 바이트 수입니다.
+     * @endverbatim
      * @param[in] Entry 셰이더 진입점 이름입니다.
      * @param[in] Target 렌더 타깃 또는 셰이더 컴파일 프로파일입니다.
      * @param[in,out] Code 성공 시 컴파일된 셰이더 바이트코드를 받습니다.
@@ -186,6 +197,9 @@ private:
 private:
     FShaderManager mShaderManager{};
     ReflectProperty(mShaderManager, "ShaderManager", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /**
+     * @brief 다음 렌더링에서 GPU 셰이더를 다시 준비할지 나타냅니다.
+     */
     bool mShadersDirty{};
     ReflectProperty(mShadersDirty, "ShadersDirty", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 

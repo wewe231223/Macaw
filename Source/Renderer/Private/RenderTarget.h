@@ -74,6 +74,10 @@ public:
      * @return 조회한 값의 비소유 주소이며, 해당 값이 없으면 nullptr입니다.
      */
     ID3D11DepthStencilView* GetDepthView() const;
+    /**
+     * @brief 현재 보유한 GPU 리소스의 추정 바이트 수를 반환합니다.
+     * @return 현재 보유한 GPU 리소스의 추정 바이트 수를 나타내는 정수 값입니다.
+     */
     std::size_t GetResourceBytes() const;
 
 private:

@@ -72,12 +72,18 @@ public:
 private:
     struct FTargetState {
     public:
+        /**
+         * @brief 리플렉션에서 사용하는 소유 타입과 선택적 부모 타입의 별칭을 선언합니다.
+         */
         ReflectTypes(FTargetState);
 
     public:
         ReflectStruct(FTargetState);
 
     private:
+        /**
+         * @brief 자동 생성된 프로퍼티 등록 코드와 리플렉션 빌더의 접근을 허용합니다.
+         */
         ReflectMembers();
 
     public:

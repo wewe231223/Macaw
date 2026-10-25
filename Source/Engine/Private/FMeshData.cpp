@@ -1,3 +1,9 @@
+/**
+ * @file FMeshData.cpp
+ * @brief 메시 정점 속성·인덱스의 검증과 CPU 데이터 처리에 대한 구현입니다.
+ * @ingroup Engine
+ */
+
 #include "Engine/FMeshData.h"
 
 TArray<FVector>& FMeshData::GetPositions() {

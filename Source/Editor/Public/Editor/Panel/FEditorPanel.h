@@ -78,6 +78,10 @@ public:
      * @return 연결된 공통 편집 컨텍스트의 비소유 주소입니다.
      */
     FEditorContext* GetEditorContext() const;
+    /**
+     * @brief 패널이 사용할 편집 컨텍스트의 비소유 주소를 교체합니다.
+     * @param[in] Context 조회 또는 직렬화에 사용할 컨텍스트의 비소유 주소입니다.
+     */
     void SetEditorContext(FEditorContext* Context);
 
 private:

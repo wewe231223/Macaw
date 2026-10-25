@@ -161,10 +161,34 @@ public:
      * @return 월드의 즉시 구조 변경을 제한해야 하는 동안 true입니다.
      */
     bool IsDispatching() const;
+    /**
+     * @brief 월드 소속을 검증하여 활성 카메라를 선택하거나 해제합니다.
+     * @param[in] Camera 활성화할 이 월드 소속 카메라이며 nullptr이면 선택을 해제합니다.
+     * @return 요청한 처리를 완료하면 true, 실패하면 false입니다.
+     */
     bool SetActiveCamera(UCameraComponent* Camera);
+    /**
+     * @brief 월드에 등록된 활성 카메라를 핸들로 검증하여 조회합니다.
+     * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며, 사용할 수 없으면 nullptr입니다.
+     */
     UCameraComponent* GetActiveCamera() const;
+    /**
+     * @brief 월드 소속을 검증하여 입력 대상 액터를 선택하거나 해제합니다.
+     * @param[in,out] Actor 조회하거나 변경할 액터이며 소유권을 이전하지 않습니다.
+     * @return 요청한 처리를 완료하면 true, 실패하면 false입니다.
+     */
     bool SetInputTarget(AActor* Actor);
+    /**
+     * @brief 월드의 뷰포트 입력을 받을 액터를 핸들로 검증하여 조회합니다.
+     * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며, 사용할 수 없으면 nullptr입니다.
+     */
     AActor* GetInputTarget() const;
+    /**
+     * @brief 뷰포트 입력을 받아 프레임 시간에 따라 액터의 동작을 갱신합니다.
+     * @param[in] Input 현재 프레임의 키보드·마우스 입력 상태입니다.
+     * @param[in] DeltaTime 이전 갱신 이후의 경과 시간이며 초 단위입니다.
+     * @return 요청한 처리를 완료하면 true, 실패하면 false입니다.
+     */
     bool Input(const FViewportInput& Input, float DeltaTime);
     /**
      * @fn UClass* UWorld::GetClass() const
@@ -312,8 +336,14 @@ private:
     AActor* ResolveActor(FObjectHandle Handle) const;
 
 private:
+    /**
+     * @brief 활성 카메라 컴포넌트의 비소유 객체 핸들입니다.
+     */
     FObjectHandle mActiveCamera{};
     ReflectProperty(mActiveCamera, "ActiveCamera", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /**
+     * @brief 뷰포트 입력을 전달할 액터의 비소유 객체 핸들입니다.
+     */
     FObjectHandle mInputTarget{};
     ReflectProperty(mInputTarget, "InputTarget", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
     /**

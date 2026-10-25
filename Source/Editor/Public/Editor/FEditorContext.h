@@ -91,6 +91,10 @@ public:
     UWorld* GetWorld() const;
     /** @brief 편집 월드의 수정 허용 여부를 검사합니다. @return 정지한 Editor 또는 EditorPreview 월드이면 true입니다. */
     bool CanEditWorld() const;
+    /**
+     * @brief 편집 상태 변경을 처리 중이어서 재진입이 제한되는지 반환합니다.
+     * @return 검사 조건을 만족하면 true, 그렇지 않으면 false입니다.
+     */
     bool IsChangingState() const;
     /** @brief 엔진의 렌더러를 조회합니다. @return 렌더러의 비소유 주소이며 헤드리스 환경에서는 nullptr입니다. */
     IRendererModule* GetRenderer() const;
@@ -121,8 +125,20 @@ public:
 
     /** @brief 액터를 생성하고 배치한 뒤 선택과 장면 변경 상태를 갱신합니다. @param[in] Type 생성할 기본 메시 종류입니다. @return 생성한 액터의 비소유 주소이며 실패하면 nullptr입니다. */
     AStaticMeshActor* SpawnPrimitive(EPrimitiveType Type);
+    /**
+     * @brief 편집 월드에 기본 카메라 액터를 생성합니다.
+     * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며, 사용할 수 없으면 nullptr입니다.
+     */
     ACameraActor* SpawnCamera();
+    /**
+     * @brief 현재 선택에서 사용할 수 있는 카메라 컴포넌트를 조회합니다.
+     * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며, 사용할 수 없으면 nullptr입니다.
+     */
     UCameraComponent* GetSelectedCamera() const;
+    /**
+     * @brief 선택한 카메라를 월드의 활성 카메라로 지정합니다.
+     * @return 요청한 처리를 완료하면 true, 실패하면 false입니다.
+     */
     bool UseSelectedCamera();
     /** @brief 선택한 액터들을 삭제하고 관련 선택을 해제합니다. @return 삭제 요청을 수락하면 true입니다. */
     bool DestroySelectedActor();
@@ -154,11 +170,18 @@ public:
     Uint64 GetLogRevision() const;
     /** @brief 콘솔 문자열을 공통 편집 동작으로 전달합니다. @param[in] Command 실행할 문자열입니다. */
     void ExecuteConsoleCommand(const FString& Command);
+    /**
+     * @brief 뷰포트 관련 콘솔 명령을 처리할 콜백을 설정합니다.
+     * @param[in] Handler 요청 또는 명령을 처리할 콜백입니다.
+     */
     void SetViewportCommandHandler(std::function<bool(const FString&, FString&)> Handler);
     /** @brief 새 액터의 배치 변환을 제공하는 경로를 연결합니다. @param[in] Provider 뷰포트 카메라 등에 따른 배치 변환 제공자이며 비어 있으면 기본 변환을 사용합니다. */
     void SetPlacementProvider(std::function<FTransform()> Provider);
 
 private:
+    /**
+     * @brief PIE 세션이 편집 잠금과 원본·복제 조회 상태를 관리하도록 접근을 허용합니다.
+     */
     friend class FPlayInEditorSession;
     /** @brief 리플렉션 등록 함수의 접근 권한입니다. */
     ReflectMembers();
@@ -182,6 +205,9 @@ private:
     /** @brief 월드의 소유권과 렌더러를 제공하는 엔진의 비소유 주소입니다. */
     UEngine* mEngine{};
     ReflectProperty(mEngine, "Engine", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /**
+     * @brief PIE 실행 중 원본 편집 상태의 수정을 제한하는 플래그입니다.
+     */
     bool mPlayLocked{};
     ReflectProperty(mPlayLocked, "PlayLocked", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
     /** @brief 엔진의 현재 실행 대상과 독립적인 편집 월드 핸들입니다. */
@@ -211,6 +237,9 @@ private:
     /** @brief 활성 뷰포트 등에 따른 새 액터의 배치 변환 제공자입니다. */
     std::function<FTransform()> mPlacementProvider{};
     ReflectProperty(mPlacementProvider, "PlacementProvider", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /**
+     * @brief 뷰포트 관련 명령의 처리 여부와 결과를 반환하는 콜백입니다.
+     */
     std::function<bool(const FString&, FString&)> mViewportCommandHandler{};
     ReflectProperty(mViewportCommandHandler, "ViewportCommandHandler", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
     /**

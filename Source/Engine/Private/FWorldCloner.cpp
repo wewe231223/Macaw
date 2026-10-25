@@ -19,7 +19,15 @@
 
 #include <utility>
 
+/**
+ * @brief 이 구현 파일에서만 사용하는 내부 상태와 보조 함수입니다.
+ */
 namespace {
+    /**
+     * @brief 액터와 소유 컴포넌트를 포함한 월드 객체의 비소유 목록을 수집합니다.
+     * @param[in] Actors 직렬화하거나 수집할 액터 목록입니다.
+     * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며, 사용할 수 없으면 nullptr입니다.
+     */
     TArray<UObject*> CollectObjects(const TArray<AActor*>& Actors) {
         TArray<UObject*> Objects{};
 
@@ -34,6 +42,11 @@ namespace {
         return Objects;
     }
 
+    /**
+     * @brief 액터와 소유 컴포넌트를 포함한 월드 객체의 비소유 목록을 수집합니다.
+     * @param[in] World 조회·설정 또는 직렬화할 월드입니다.
+     * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며, 사용할 수 없으면 nullptr입니다.
+     */
     TArray<UObject*> CollectObjects(UWorld* World) {
         TArray<AActor*> Actors{};
 
@@ -49,6 +62,13 @@ namespace {
         return Objects;
     }
 
+    /**
+     * @brief 객체 GUID의 중복을 검사하고 각 원본에 새 GUID를 할당합니다.
+     * @param[in] Objects 수집할 객체 목록 또는 GUID별 비소유 객체 대응표입니다.
+     * @param[in,out] Remapping 원본 GUID와 복제 GUID 사이의 대응표입니다.
+     * @param[out] Error 실패 원인을 받을 오류 문자열입니다.
+     * @return 요청한 처리를 완료하면 true, 실패하면 false입니다.
+     */
     bool BuildRemapping(const TArray<UObject*>& Objects, TMap<FGuid, FGuid, FGuidHash>& Remapping, FString& Error) {
         for (const UObject* Object : Objects) {
             if (!Object->GetGuid().IsValid() || !Remapping.emplace(Object->GetGuid(), FGuid{}).second) {
@@ -60,6 +80,15 @@ namespace {
         return true;
     }
 
+    /**
+     * @brief GUID 대응표로 원본 객체와 복제 객체를 검증하여 복제 컨텍스트에 등록합니다.
+     * @param[in] Originals 복제할 원본 객체의 비소유 주소 목록입니다.
+     * @param[in] Copies 원본 목록과 대응하는 복제 객체의 비소유 주소 목록입니다.
+     * @param[in] Remapping 원본 GUID와 복제 GUID 사이의 대응표입니다.
+     * @param[in,out] Duplication 원본과 복제 객체의 대응 관계를 기록할 컨텍스트입니다.
+     * @param[out] Error 실패 원인을 받을 오류 문자열입니다.
+     * @return 요청한 처리를 완료하면 true, 실패하면 false입니다.
+     */
     bool BuildDuplication(const TArray<UObject*>& Originals, const TArray<UObject*>& Copies, const TMap<FGuid, FGuid, FGuidHash>& Remapping, FObjectDuplicationContext& Duplication, FString& Error) {
         TMap<FGuid, UObject*, FGuidHash> Objects{};
 

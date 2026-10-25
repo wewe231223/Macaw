@@ -21,6 +21,9 @@
 
 /**
  * @brief 뷰포트별 통계 표시 상태를 명령에 따라 변경합니다.
+ * @param[in] Command 해석할 stat 명령과 인수입니다.
+ * @param[out] Output 처리 결과 또는 사용법 진단을 받을 문자열입니다.
+ * @return stat 명령을 처리했으면 true이며 다른 종류의 명령이면 false입니다.
  */
 bool FViewportStatistics::ExecuteCommand(const FString& Command, FString& Output) {
     std::istringstream Input{Command};
@@ -67,6 +70,8 @@ bool FViewportStatistics::ExecuteCommand(const FString& Command, FString& Output
 
 /**
  * @brief 선택한 통계 그룹의 표시 여부를 반환합니다.
+ * @param[in] Group 표시 여부를 조회할 통계 그룹 비트 조합입니다.
+ * @return 모든 요청 그룹이 유효하고 표시 중이면 true입니다.
  */
 bool FViewportStatistics::IsEnabled(EGroup Group) const {
     const Uint8 Mask{static_cast<Uint8>(Group)};

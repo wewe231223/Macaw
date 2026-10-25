@@ -117,6 +117,10 @@ public:
      * @return 프레임 렌더링 통계입니다.
      */
     virtual FRenderStats GetStats() const = 0;
+    /**
+     * @brief 변경된 셰이더를 다시 컴파일하고 필요한 GPU 셰이더를 갱신합니다.
+     * @return 요청한 처리를 완료하면 true, 실패하면 false입니다.
+     */
     virtual bool ReloadChangedShaders() = 0;
 
 private:

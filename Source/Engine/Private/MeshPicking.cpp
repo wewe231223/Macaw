@@ -1,3 +1,9 @@
+/**
+ * @file MeshPicking.cpp
+ * @brief 월드 공간 광선과 CPU 메시 삼각형의 교차 검사에 대한 구현입니다.
+ * @ingroup Engine
+ */
+
 #include "Engine/MeshPicking.h"
 #include "Engine/FMeshData.h"
 #include "Core/Math.h"

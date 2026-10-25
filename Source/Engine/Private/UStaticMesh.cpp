@@ -1,3 +1,9 @@
+/**
+ * @file UStaticMesh.cpp
+ * @brief CPU 메시 데이터와 Direct3D 정점·인덱스 버퍼 관리에 대한 구현입니다.
+ * @ingroup Engine
+ */
+
 #include "Engine/UStaticMesh.h"
 
 #include <algorithm>
@@ -10,6 +16,10 @@
 #include <string>
 #include <utility>
 
+/**
+ * @brief 외부 메시 파일을 가져오는 Assimp 타입을 참조합니다.
+ * @namespace Assimp
+ */
 using namespace Assimp;
 using namespace Microsoft::WRL;
 

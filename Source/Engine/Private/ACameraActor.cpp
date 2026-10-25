@@ -1,3 +1,9 @@
+/**
+ * @file ACameraActor.cpp
+ * @brief 카메라 컴포넌트를 갖고 이동·회전 입력을 처리하는 액터에 대한 구현입니다.
+ * @ingroup Engine
+ */
+
 #include "Engine/ACameraActor.h"
 #include "Engine/Component/UCameraComponent.h"
 #include "Engine/FViewportInput.h"

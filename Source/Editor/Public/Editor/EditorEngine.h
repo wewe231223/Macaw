@@ -80,6 +80,10 @@ public:
      * @return 엔진이 소유한 편집 컨텍스트의 비소유 주소입니다.
      */
     FEditorContext* GetEditorContext();
+    /**
+     * @brief 에디터 엔진이 소유한 PIE 실행 세션의 주소를 반환합니다.
+     * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며, 사용할 수 없으면 nullptr입니다.
+     */
     FPlayInEditorSession* GetPlaySession();
     /**
      * @brief 에디터 뷰포트 클라이언트를 반환합니다.
@@ -119,6 +123,9 @@ private:
      */
     FEditorViewport mViewport;
     ReflectProperty(mViewport, "Viewport", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /**
+     * @brief 에디터 엔진이 소유한 PIE 실행 세션입니다.
+     */
     FPlayInEditorSession mPlaySession;
     ReflectProperty(mPlaySession, "PlaySession", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
     /**

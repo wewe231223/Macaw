@@ -100,6 +100,11 @@ public:
      * @brief 액터의 게임 실행 종료 시 호출되는 확장 지점입니다.
      */
     virtual void EndPlay();
+    /**
+     * @brief 뷰포트 입력을 받아 프레임 시간에 따라 액터의 동작을 갱신합니다.
+     * @param[in] Input 현재 프레임의 키보드·마우스 입력 상태입니다.
+     * @param[in] DeltaTime 이전 갱신 이후의 경과 시간이며 초 단위입니다.
+     */
     virtual void Input(const FViewportInput& Input, float DeltaTime);
     /**
      * @brief 액터가 실행 시작 전달에 진입했는지 검사합니다.
@@ -111,7 +116,15 @@ public:
      * @return 삭제 요청을 수락한 뒤 실제 해제 전이면 true입니다.
      */
     bool IsPendingDestroy() const;
+    /**
+     * @brief 정지한 편집 월드에서도 Tick을 허용하는지 반환합니다.
+     * @return 검사 조건을 만족하면 true, 그렇지 않으면 false입니다.
+     */
     bool IsEditorTickable() const;
+    /**
+     * @brief 정지한 편집 월드에서의 Tick 허용 여부를 설정합니다.
+     * @param[in] EditorTickable 정지한 편집 월드에서 Tick을 허용할지 나타냅니다.
+     */
     void SetEditorTickable(bool EditorTickable);
 
 private:
@@ -188,6 +201,9 @@ private:
      */
     bool mChangingWorld{};
     ReflectProperty(mChangingWorld, "ChangingWorld", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /**
+     * @brief 정지한 편집 월드에서도 이 객체의 Tick을 허용하는 설정입니다.
+     */
     bool mEditorTickable{};
     ReflectProperty(mEditorTickable, "EditorTickable", EPropertyFlags::Edit | EPropertyFlags::Serialize);
 };

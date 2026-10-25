@@ -76,7 +76,17 @@ public:
      * @note 엔진의 월드 렌더 동기화 이후 호출하며 초기화 전에는 아무 작업도 하지 않습니다.
      */
     void Draw();
+    /**
+     * @brief 뷰포트 이미지 영역 위에 월드와 렌더링 통계를 표시합니다.
+     * @param[in] DeltaTime 이전 갱신 이후의 경과 시간이며 초 단위입니다.
+     * @param[in] World 조회·설정 또는 직렬화할 월드입니다.
+     * @param[in] Render 표시할 현재 프레임의 렌더링 통계입니다.
+     */
     void DrawStatistics(float DeltaTime, const UWorld* World, const FRenderStats& Render);
+    /**
+     * @brief 이 뷰포트가 소유한 통계 표시 객체의 주소를 반환합니다.
+     * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며, 사용할 수 없으면 nullptr입니다.
+     */
     FViewportStatistics* GetStatistics();
     /**
      * @brief 창 표시와 도킹 식별에 사용하는 뷰포트 이름을 반환합니다.
@@ -88,8 +98,20 @@ public:
      * @return 이 뷰포트가 소유한 클라이언트의 비소유 주소입니다.
      */
     FEditorViewportClient* GetClient();
+    /**
+     * @brief PIE 연결 상태에 따라 현재 사용할 뷰포트 클라이언트를 반환합니다.
+     * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며, 사용할 수 없으면 nullptr입니다.
+     */
     FViewportClient* GetActiveClient();
+    /**
+     * @brief PIE에 사용할 클라이언트를 연결하거나 해제하고 입력 캡처를 초기화합니다.
+     * @param[in] Client 입력과 그리기를 처리할 클라이언트의 비소유 주소입니다.
+     */
     void SetPlayClient(FViewportClient* Client);
+    /**
+     * @brief PIE 뷰포트가 마우스와 키보드 입력을 캡처했는지 반환합니다.
+     * @return 검사 조건을 만족하면 true, 그렇지 않으면 false입니다.
+     */
     bool IsPlayInputCaptured() const;
     /**
      * @brief 입력, 크기 변경과 피킹 요청을 연결하는 장면 뷰포트를 반환합니다.
@@ -119,8 +141,14 @@ private:
      */
     FEditorViewportClient mClient;
     ReflectProperty(mClient, "Client", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /**
+     * @brief PIE 중 입력과 뷰를 제공하는 클라이언트의 비소유 주소입니다.
+     */
     FViewportClient* mPlayClient{};
     ReflectProperty(mPlayClient, "PlayClient", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /**
+     * @brief PIE 뷰포트가 입력 캡처를 소유하는지 나타냅니다.
+     */
     bool mPlayInputCaptured{};
     ReflectProperty(mPlayInputCaptured, "PlayInputCaptured", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
     /**
@@ -128,8 +156,14 @@ private:
      */
     FViewportStatistics mStatistics{};
     ReflectProperty(mStatistics, "Statistics", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /**
+     * @brief 뷰포트 이미지의 화면상 좌측 상단 좌표입니다.
+     */
     FVector2 mImageOrigin{};
     ReflectProperty(mImageOrigin, "ImageOrigin", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /**
+     * @brief 현재 표시한 뷰포트 이미지의 픽셀 크기입니다.
+     */
     FVector2 mImageSize{};
     ReflectProperty(mImageSize, "ImageSize", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
     /**

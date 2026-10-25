@@ -1,3 +1,9 @@
+/**
+ * @file FShaderManager.cpp
+ * @brief 셰이더 캐시 로드와 변경 감지 및 재컴파일에 대한 구현입니다.
+ * @ingroup RenderCore
+ */
+
 #include "RenderCore/Shader/FShaderManager.h"
 
 #include <utility>

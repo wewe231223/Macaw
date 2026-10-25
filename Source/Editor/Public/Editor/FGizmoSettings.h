@@ -1,3 +1,9 @@
+/**
+ * @file FGizmoSettings.h
+ * @brief 뷰포트 기즈모의 스냅 간격과 화면 크기 설정에 대한 선언입니다.
+ * @ingroup Editor
+ */
+
 #pragma once
 
 #include "Core/ReflectionMacros.h"
@@ -27,12 +33,18 @@ enum class EGizmoSetting {
 
 struct FGizmoSettings {
 public:
+    /**
+     * @brief 리플렉션에서 사용하는 소유 타입과 선택적 부모 타입의 별칭을 선언합니다.
+     */
     ReflectTypes(FGizmoSettings);
 
 public:
     ReflectStruct(FGizmoSettings);
 
 private:
+    /**
+     * @brief 자동 생성된 프로퍼티 등록 코드와 리플렉션 빌더의 접근을 허용합니다.
+     */
     ReflectMembers();
 
 public:

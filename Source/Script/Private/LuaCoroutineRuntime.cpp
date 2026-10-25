@@ -1,3 +1,8 @@
+/**
+ * @file LuaCoroutineRuntime.cpp
+ * @brief Lua VM과 코루틴 스케줄러의 초기화 및 프레임 갱신에 대한 구현입니다.
+ */
+
 #include "Script/LuaCoroutineRuntime.h"
 
 FLuaCoroutineRuntime::~FLuaCoroutineRuntime() {

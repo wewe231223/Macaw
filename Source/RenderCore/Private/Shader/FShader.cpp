@@ -1,3 +1,9 @@
+/**
+ * @file FShader.cpp
+ * @brief 셰이더 설명과 공유 컴파일 결과 및 갱신 세대 관리에 대한 구현입니다.
+ * @ingroup RenderCore
+ */
+
 #include "RenderCore/Shader/FShader.h"
 
 #include <utility>

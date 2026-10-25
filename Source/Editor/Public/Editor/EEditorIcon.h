@@ -39,8 +39,20 @@ enum class EEditorIcon {
      * @brief 그리드 설정을 나타내는 격자 아이콘입니다.
      */
     Grid,
+    /**
+     * @brief PIE 실행 시작 아이콘입니다.
+     */
     Play,
+    /**
+     * @brief PIE 일시정지 아이콘입니다.
+     */
     Pause,
+    /**
+     * @brief PIE 한 프레임 실행 아이콘입니다.
+     */
     Step,
+    /**
+     * @brief PIE 실행 종료 아이콘입니다.
+     */
     Stop
 };

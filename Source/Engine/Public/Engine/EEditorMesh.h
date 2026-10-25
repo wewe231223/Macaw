@@ -1,3 +1,9 @@
+/**
+ * @file EEditorMesh.h
+ * @brief 편집기 기본 메시 종류와 열거형 리플렉션에 대한 선언입니다.
+ * @ingroup Engine
+ */
+
 #pragma once
 
 #include "Core/Types.h"
