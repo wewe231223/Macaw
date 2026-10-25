@@ -41,90 +41,17 @@ namespace {
     /**
      * @brief 메시 정점 및 픽셀 셰이더의 내장 HLSL 소스입니다.
      */
-    constexpr char MeshShader[]{R"(
-cbuffer ObjectConstants : register(b0) {
-    row_major float4x4 World;
-    row_major float4x4 WorldInverse;
-    float4 Color;
-};
-cbuffer ViewConstants : register(b1) {
-    row_major float4x4 ViewProjection;
-};
-struct FInput {
-    float3 mPosition : POSITION;
-    float3 mNormal : NORMAL;
-    float4 mColor : COLOR;
-};
-struct FOutput {
-    float4 mPosition : SV_POSITION;
-    float3 mNormal : NORMAL;
-    float4 mColor : COLOR;
-};
-FOutput VertexMain(FInput Input) {
-    FOutput Output = {float4(0, 0, 0, 0), float3(0, 0, 0), float4(0, 0, 0, 0)};
-    Output.mPosition = mul(mul(float4(Input.mPosition, 1), World), ViewProjection);
-    Output.mNormal = normalize(mul(Input.mNormal, transpose((float3x3)WorldInverse)));
-    Output.mColor = Input.mColor;
-    return Output;
-}
-float4 PixelMain(FOutput Input) : SV_TARGET {
-    float Diffuse = {saturate(dot(normalize(Input.mNormal), normalize(float3(-0.35, -0.6, 1.0))))};
-    return float4(Color.rgb * Input.mColor.rgb * (0.32 + 0.68 * Diffuse), Color.a * Input.mColor.a);
-}
-)"};
+    constexpr char MeshShader[]{"Content/Shaders/Mesh.hlsl"};
 
     /**
      * @brief 보조 선분 정점 및 픽셀 셰이더의 내장 HLSL 소스입니다.
      */
-    constexpr char LineShader[]{R"(
-cbuffer ViewConstants : register(b1) {
-    row_major float4x4 ViewProjection;
-};
-struct FInput {
-    float3 mPosition : POSITION;
-    float4 mColor : COLOR;
-};
-struct FOutput {
-    float4 mPosition : SV_POSITION;
-    float4 mColor : COLOR;
-};
-FOutput VertexMain(FInput Input) {
-    FOutput Output = {float4(0, 0, 0, 0), float4(0, 0, 0, 0)};
-    Output.mPosition = mul(float4(Input.mPosition, 1), ViewProjection);
-    Output.mColor = Input.mColor;
-    return Output;
-}
-float4 PixelMain(FOutput Input) : SV_TARGET {
-    return Input.mColor;
-}
-)"};
+    constexpr char LineShader[]{"Content/Shaders/Line.hlsl"};
 
     /**
      * @brief 기즈모의 월드 행렬 변환과 조명 없는 RGBA 출력을 수행하는 내장 HLSL 소스입니다.
      */
-    constexpr char GizmoShader[]{R"(
-cbuffer EditorMeshConstants : register(b0) {
-    row_major float4x4 World;
-    float4 Color;
-};
-cbuffer ViewConstants : register(b1) {
-    row_major float4x4 ViewProjection;
-};
-struct FInput {
-    float3 mPosition : POSITION;
-};
-struct FOutput {
-    float4 mPosition : SV_POSITION;
-};
-FOutput VertexMain(FInput Input) {
-    FOutput Output = {float4(0, 0, 0, 0)};
-    Output.mPosition = mul(mul(float4(Input.mPosition, 1), World), ViewProjection);
-    return Output;
-}
-float4 PixelMain() : SV_TARGET {
-    return Color;
-}
-)"};
+    constexpr char GizmoShader[]{"Content/Shaders/Gizmo.hlsl"};
 
 }
 
@@ -222,6 +149,8 @@ void FRenderer::Shutdown() {
 
     mGizmoVertexShader.Reset();
     mGizmoPixelShader.Reset();
+    mShaderManager.Clear();
+    mShadersDirty = false;
 
     mRasterizer.Reset();
     mDepthEnabled.Reset();
@@ -402,17 +331,104 @@ FRenderStats FRenderer::GetStats() const {
     return mStats;
 }
 
+bool FRenderer::ReloadChangedShaders() {
+    if (mDevice == nullptr) {
+        return false;
+    }
+
+    TArray<std::shared_ptr<const FShader>> ChangedShaders{};
+    FString Diagnostics{};
+    const bool Success{mShaderManager.ReloadChanged(ChangedShaders, Diagnostics)};
+    mShadersDirty = mShadersDirty || !ChangedShaders.empty();
+    if (!Diagnostics.empty()) {
+        ErrorHandler::Report("Shader", Diagnostics, Success ? ErrorHandler::EErrorLevel::Warning : ErrorHandler::EErrorLevel::Error);
+    }
+
+    return Success && (!mShadersDirty || CreateShaders());
+}
+
 /**
  * @brief 내장 HLSL 소스를 지정한 진입점과 프로파일로 컴파일합니다.
  */
-bool FRenderer::Compile(const char* Source, std::size_t Size, const char* Entry, const char* Target, ComPtr<ID3DBlob>& Code) {
-    ComPtr<ID3DBlob> Errors{};
-    const HRESULT Result{D3DCompile(Source, Size, "Macaw", nullptr, nullptr, Entry, Target, D3DCOMPILE_ENABLE_STRICTNESS, 0, Code.GetAddressOf(), Errors.GetAddressOf())};
+bool FRenderer::Compile(const char* Source, const char* Entry, const char* Target, std::shared_ptr<const FShader>& Code) {
+    FShaderDescription Description{};
+    Description.mSourcePath = Source;
+    Description.mEntryPoint = Entry;
+    Description.mTargetProfile = Target;
+#ifdef _DEBUG
+    Description.mCompileFlags |= D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
+#endif
 
-    if (FAILED(Result)) {
-        ErrorHandler::Fatal("Renderer", Errors != nullptr ? FString{static_cast<const char*>(Errors->GetBufferPointer()), Errors->GetBufferSize()} : "Shader compilation failed");
+    FString Diagnostics{};
+    Code = mShaderManager.Load(Description, Diagnostics);
+    if (!Diagnostics.empty()) {
+        ErrorHandler::Report("Shader", Diagnostics, Code != nullptr ? ErrorHandler::EErrorLevel::Warning : ErrorHandler::EErrorLevel::Error);
     }
 
+    return Code != nullptr;
+}
+
+bool FRenderer::CreateShaders() {
+    std::shared_ptr<const FShader> VertexCode{};
+    std::shared_ptr<const FShader> PixelCode{};
+    ComPtr<ID3D11VertexShader> MeshVertex{};
+    ComPtr<ID3D11PixelShader> MeshPixel{};
+    ComPtr<ID3D11InputLayout> MeshLayout{};
+    ComPtr<ID3D11VertexShader> LineVertex{};
+    ComPtr<ID3D11PixelShader> LinePixel{};
+    ComPtr<ID3D11InputLayout> LineLayout{};
+    ComPtr<ID3D11VertexShader> GizmoVertex{};
+    ComPtr<ID3D11PixelShader> GizmoPixel{};
+    ComPtr<ID3D11InputLayout> OverlayLayout{};
+
+    if (!Compile(MeshShader, "VertexMain", "vs_5_0", VertexCode) || !Compile(MeshShader, "PixelMain", "ps_5_0", PixelCode)) {
+        return false;
+    }
+
+    const std::array<D3D11_INPUT_ELEMENT_DESC, 3> MeshElements{{{"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0}, {"NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 1, 0, D3D11_INPUT_PER_VERTEX_DATA, 0}, {"COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 3, 0, D3D11_INPUT_PER_VERTEX_DATA, 0}}};
+
+    if (FAILED(mDevice->CreateVertexShader(VertexCode->GetByteCode().data(), VertexCode->GetByteCode().size(), nullptr, MeshVertex.GetAddressOf())) || FAILED(mDevice->CreatePixelShader(PixelCode->GetByteCode().data(), PixelCode->GetByteCode().size(), nullptr, MeshPixel.GetAddressOf())) || FAILED(mDevice->CreateInputLayout(MeshElements.data(), static_cast<UINT>(MeshElements.size()), VertexCode->GetByteCode().data(), VertexCode->GetByteCode().size(), MeshLayout.GetAddressOf()))) {
+        ErrorHandler::Report("Renderer", "Mesh pipeline allocation failed", ErrorHandler::EErrorLevel::Error);
+        return false;
+    }
+
+    VertexCode.reset();
+    PixelCode.reset();
+
+    if (!Compile(LineShader, "VertexMain", "vs_5_0", VertexCode) || !Compile(LineShader, "PixelMain", "ps_5_0", PixelCode)) {
+        return false;
+    }
+
+    const std::array<D3D11_INPUT_ELEMENT_DESC, 2> LineElements{{{"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(FLineVertex, mPosition), D3D11_INPUT_PER_VERTEX_DATA, 0}, {"COLOR", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(FLineVertex, mColor), D3D11_INPUT_PER_VERTEX_DATA, 0}}};
+
+    if (FAILED(mDevice->CreateVertexShader(VertexCode->GetByteCode().data(), VertexCode->GetByteCode().size(), nullptr, LineVertex.GetAddressOf())) || FAILED(mDevice->CreatePixelShader(PixelCode->GetByteCode().data(), PixelCode->GetByteCode().size(), nullptr, LinePixel.GetAddressOf())) || FAILED(mDevice->CreateInputLayout(LineElements.data(), static_cast<UINT>(LineElements.size()), VertexCode->GetByteCode().data(), VertexCode->GetByteCode().size(), LineLayout.GetAddressOf()))) {
+        ErrorHandler::Report("Renderer", "Line pipeline allocation failed", ErrorHandler::EErrorLevel::Error);
+        return false;
+    }
+
+    VertexCode.reset();
+    PixelCode.reset();
+
+    if (!Compile(GizmoShader, "VertexMain", "vs_5_0", VertexCode) || !Compile(GizmoShader, "PixelMain", "ps_5_0", PixelCode)) {
+        return false;
+    }
+
+    const std::array<D3D11_INPUT_ELEMENT_DESC, 1> OverlayElements{{{"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0}}};
+    if (FAILED(mDevice->CreateVertexShader(VertexCode->GetByteCode().data(), VertexCode->GetByteCode().size(), nullptr, GizmoVertex.GetAddressOf())) || FAILED(mDevice->CreatePixelShader(PixelCode->GetByteCode().data(), PixelCode->GetByteCode().size(), nullptr, GizmoPixel.GetAddressOf())) || FAILED(mDevice->CreateInputLayout(OverlayElements.data(), static_cast<UINT>(OverlayElements.size()), VertexCode->GetByteCode().data(), VertexCode->GetByteCode().size(), OverlayLayout.GetAddressOf()))) {
+        ErrorHandler::Report("Renderer", "Gizmo pipeline allocation failed", ErrorHandler::EErrorLevel::Error);
+        return false;
+    }
+
+    mMeshVertexShader = std::move(MeshVertex);
+    mMeshPixelShader = std::move(MeshPixel);
+    mMeshLayout = std::move(MeshLayout);
+    mLineVertexShader = std::move(LineVertex);
+    mLinePixelShader = std::move(LinePixel);
+    mLineLayout = std::move(LineLayout);
+    mGizmoVertexShader = std::move(GizmoVertex);
+    mGizmoPixelShader = std::move(GizmoPixel);
+    mOverlayLayout = std::move(OverlayLayout);
+    mShadersDirty = false;
     return true;
 }
 
@@ -445,42 +461,8 @@ bool FRenderer::CreateBackBuffer(Uint32 Width, Uint32 Height) {
  * @brief 메시·선분·기즈모 셰이더, 입력 레이아웃과 고정 파이프라인 상태를 생성합니다.
  */
 bool FRenderer::CreatePipeline() {
-    ComPtr<ID3DBlob> VertexCode{};
-    ComPtr<ID3DBlob> PixelCode{};
-
-    if (!Compile(MeshShader, sizeof(MeshShader), "VertexMain", "vs_5_0", VertexCode) || !Compile(MeshShader, sizeof(MeshShader), "PixelMain", "ps_5_0", PixelCode)) {
+    if (!CreateShaders()) {
         return false;
-    }
-
-    const std::array<D3D11_INPUT_ELEMENT_DESC, 3> MeshElements{{{"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0}, {"NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 1, 0, D3D11_INPUT_PER_VERTEX_DATA, 0}, {"COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 3, 0, D3D11_INPUT_PER_VERTEX_DATA, 0}}};
-
-    if (FAILED(mDevice->CreateVertexShader(VertexCode->GetBufferPointer(), VertexCode->GetBufferSize(), nullptr, mMeshVertexShader.GetAddressOf())) || FAILED(mDevice->CreatePixelShader(PixelCode->GetBufferPointer(), PixelCode->GetBufferSize(), nullptr, mMeshPixelShader.GetAddressOf())) || FAILED(mDevice->CreateInputLayout(MeshElements.data(), static_cast<UINT>(MeshElements.size()), VertexCode->GetBufferPointer(), VertexCode->GetBufferSize(), mMeshLayout.GetAddressOf()))) {
-        ErrorHandler::Fatal("Renderer", "Mesh pipeline allocation failed");
-    }
-
-    VertexCode.Reset();
-    PixelCode.Reset();
-
-    if (!Compile(LineShader, sizeof(LineShader), "VertexMain", "vs_5_0", VertexCode) || !Compile(LineShader, sizeof(LineShader), "PixelMain", "ps_5_0", PixelCode)) {
-        return false;
-    }
-
-    const std::array<D3D11_INPUT_ELEMENT_DESC, 2> LineElements{{{"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(FLineVertex, mPosition), D3D11_INPUT_PER_VERTEX_DATA, 0}, {"COLOR", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(FLineVertex, mColor), D3D11_INPUT_PER_VERTEX_DATA, 0}}};
-
-    if (FAILED(mDevice->CreateVertexShader(VertexCode->GetBufferPointer(), VertexCode->GetBufferSize(), nullptr, mLineVertexShader.GetAddressOf())) || FAILED(mDevice->CreatePixelShader(PixelCode->GetBufferPointer(), PixelCode->GetBufferSize(), nullptr, mLinePixelShader.GetAddressOf())) || FAILED(mDevice->CreateInputLayout(LineElements.data(), static_cast<UINT>(LineElements.size()), VertexCode->GetBufferPointer(), VertexCode->GetBufferSize(), mLineLayout.GetAddressOf()))) {
-        ErrorHandler::Fatal("Renderer", "Line pipeline allocation failed");
-    }
-
-    VertexCode.Reset();
-    PixelCode.Reset();
-
-    if (!Compile(GizmoShader, sizeof(GizmoShader), "VertexMain", "vs_5_0", VertexCode) || !Compile(GizmoShader, sizeof(GizmoShader), "PixelMain", "ps_5_0", PixelCode)) {
-        return false;
-    }
-
-    const std::array<D3D11_INPUT_ELEMENT_DESC, 1> OverlayElements{{{"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0}}};
-    if (FAILED(mDevice->CreateVertexShader(VertexCode->GetBufferPointer(), VertexCode->GetBufferSize(), nullptr, mGizmoVertexShader.GetAddressOf())) || FAILED(mDevice->CreatePixelShader(PixelCode->GetBufferPointer(), PixelCode->GetBufferSize(), nullptr, mGizmoPixelShader.GetAddressOf())) || FAILED(mDevice->CreateInputLayout(OverlayElements.data(), static_cast<UINT>(OverlayElements.size()), VertexCode->GetBufferPointer(), VertexCode->GetBufferSize(), mOverlayLayout.GetAddressOf()))) {
-        ErrorHandler::Fatal("Renderer", "Gizmo pipeline allocation failed");
     }
 
     D3D11_BLEND_DESC Blend{};

@@ -3,6 +3,7 @@ local Reflection = dofile("Scripts/GenerateReflection.lua")
 newoption { trigger = "reflection-module", value = "MODULE", description = "Generate reflection for one module" }
 newoption { trigger = "serialization-tests", description = "Build serialization regression tests" }
 newoption { trigger = "script-tests", description = "Build script runtime regression tests" }
+newoption { trigger = "shader-tests", description = "Build shader compilation and cache regression tests" }
 newaction { trigger = "generate-reflection", description = "Generate reflection from property annotations", execute = function() Reflection.Generate(_OPTIONS["reflection-module"]) end }
 
 if _ACTION == "generate-reflection" then
@@ -111,7 +112,7 @@ local function ConfigureExecutable(Name, Kind, Directory)
     prebuildcommands { '"' .. _PREMAKE_COMMAND .. '" --file="' .. path.getabsolute("premake5.lua") .. '" generate-reflection --reflection-module=App' }
     AddIncludes("Editor", {})
     AddIncludes("Renderer", {})
-    links { "Editor", "Script", "Engine", "Renderer", "Platform", "Serialization", "RenderCore", "CoreUObject", "Core", "ImGui", "DirectXTex", "lua51", "d3d11", "dxgi", "d3dcompiler", "user32", "gdi32", "dwmapi", "imm32", "ole32", "windowscodecs", "comdlg32", "shell32" }
+    links { "Editor", "Script", "Engine", "Renderer", "Platform", "Serialization", "RenderCore", "CoreUObject", "Core", "ImGui", "DirectXTex", "lua51", "d3d11", "dxgi", "d3dcompiler", "bcrypt", "user32", "gdi32", "dwmapi", "imm32", "ole32", "windowscodecs", "comdlg32", "shell32" }
     filter "configurations:Debug"
         libdirs { "Externals/bin/debug" }
     filter "configurations:Release"
@@ -130,4 +131,12 @@ if _OPTIONS["script-tests"] then
     ConfigureExecutable("ScriptTests", "ConsoleApp", "Tests/Script")
     AddIncludes("Script", {})
     links { "Script", "lua51" }
+end
+
+if _OPTIONS["shader-tests"] then
+    Configure("ShaderTests", "ConsoleApp")
+    files { "Tests/Shader/**.h", "Tests/Shader/**.cpp" }
+    AddIncludes("RenderCore", {})
+    links { "RenderCore", "Core", "d3d11", "d3dcompiler", "bcrypt" }
+    debugdir "%{wks.location}"
 end

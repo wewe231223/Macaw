@@ -15,6 +15,7 @@
 #include "Engine/EEditorMesh.h"
 #include "RenderCore/FRenderStats.h"
 #include "RenderCore/IRendererModule.h"
+#include "RenderCore/Shader/FShaderManager.h"
 #include "Engine/UStaticMesh.h"
 #include "Engine/UTexture2D.h"
 #include "Renderer/FLineVertex.h"
@@ -137,6 +138,7 @@ public:
      * @return 프레임 렌더링 통계입니다.
      */
     FRenderStats GetStats() const override;
+    bool ReloadChangedShaders() override;
 
 private:
     /**
@@ -151,6 +153,7 @@ private:
      * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
      */
     bool CreatePipeline();
+    bool CreateShaders();
     /**
      * @brief 고정 에디터 메시의 로컬 정점과 인덱스를 종류별 불변 GPU 버퍼에 업로드합니다.
      * @return 모든 버퍼를 생성하면 true이며 GPU 자원 생성 실패는 치명적 오류로 처리합니다.
@@ -165,7 +168,7 @@ private:
      * @param[in,out] Code 성공 시 컴파일된 셰이더 바이트코드를 받습니다.
      * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
      */
-    bool Compile(const char* Source, std::size_t Size, const char* Entry, const char* Target, Microsoft::WRL::ComPtr<ID3DBlob>& Code);
+    bool Compile(const char* Source, const char* Entry, const char* Target, std::shared_ptr<const FShader>& Code);
     /**
      * @brief 깊이 검사 정책에 맞는 보조 선분을 동적 정점 버퍼로 그립니다.
      * @param[in] Elements 이번 프레임의 에디터 보조 도형입니다.
@@ -181,6 +184,11 @@ private:
     ReflectMembers();
 
 private:
+    FShaderManager mShaderManager{};
+    ReflectProperty(mShaderManager, "ShaderManager", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    bool mShadersDirty{};
+    ReflectProperty(mShadersDirty, "ShadersDirty", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief Direct3D 11 장치입니다.
      */

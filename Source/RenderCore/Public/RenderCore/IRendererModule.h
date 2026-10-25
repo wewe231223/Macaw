@@ -117,6 +117,7 @@ public:
      * @return 프레임 렌더링 통계입니다.
      */
     virtual FRenderStats GetStats() const = 0;
+    virtual bool ReloadChangedShaders() = 0;
 
 private:
     /**
