@@ -97,7 +97,7 @@ public:
      * @brief 컴포넌트의 현재 상태를 복사한 프리미티브 프록시를 만듭니다.
      * @return 연산을 적용한 새 값입니다.
      */
-    FPrimitiveSceneProxy CreateSceneProxy() const;
+    virtual FPrimitiveSceneProxy CreateSceneProxy() const;
     /**
      * @brief 월드 공간의 축 정렬 경계 상자를 반환합니다.
      * @return 월드 공간의 축 정렬 경계 상자입니다.

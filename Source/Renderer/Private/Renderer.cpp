@@ -25,12 +25,14 @@
 #include "FScene.h"
 #include "FSceneRenderer.h"
 #include "FEditorMeshConstants.h"
+#include "FTextRenderer.h"
 #include "Engine/EditorMesh.h"
 #include "Core/Math/FVector4.h"
 
 #include <d3dcompiler.h>
 #include <algorithm>
 #include <span>
+#include <cmath>
 
 using namespace Microsoft::WRL;
 
@@ -38,6 +40,16 @@ using namespace Microsoft::WRL;
  * @brief 이 구현 파일에서만 사용하는 내부 상태와 보조 함수입니다.
  */
 namespace {
+    std::filesystem::path FindTextContent(const std::filesystem::path& ContentRoot, const std::filesystem::path& RelativePath) {
+        std::error_code Error{};
+        const std::filesystem::path ProjectPath{ContentRoot / RelativePath};
+        if (std::filesystem::is_regular_file(ProjectPath, Error)) {
+            return ProjectPath;
+        }
+        std::array<wchar_t, 32768> Executable{};
+        const DWORD Length{GetModuleFileNameW(nullptr, Executable.data(), static_cast<DWORD>(Executable.size()))};
+        return Length > 0 && Length < Executable.size() ? std::filesystem::path{Executable.data()}.parent_path() / "Templates/Project/Content" / RelativePath : ProjectPath;
+    }
     /**
      * @brief 메시 정점 및 픽셀 셰이더의 내장 HLSL 소스입니다.
      */
@@ -140,6 +152,7 @@ void FRenderer::Shutdown() {
     mMeshes = {};
     mEditorMeshes = {};
     mLineVertices = TArray<FLineVertex>{};
+    mTextRenderer.reset();
 
     mOverlayLayout.Reset();
     mEditorMeshBuffer.Reset();
@@ -278,6 +291,7 @@ void FRenderer::BeginRenderingViewFamily(const FSceneViewFamily& Family) {
     const FSceneDrawContext Context{mContext.Get(), &mMeshes, mMeshVertexShader.Get(), mMeshPixelShader.Get(), mMeshLayout.Get(), mViewBuffer.Get()};
     FSceneRenderer SceneRenderer{Family, Scene, Context, mStats};
     SceneRenderer.Render();
+    DrawTexts(Family, true);
 
     if (Family.mEditorElements != nullptr) {
         DrawMeshes(Family.mEditorElements, true);
@@ -286,8 +300,10 @@ void FRenderer::BeginRenderingViewFamily(const FSceneViewFamily& Family) {
         DrawMeshes(Family.mEditorElements, false);
         DrawLines(Family.mEditorElements, false);
     }
+    DrawTexts(Family, false);
 
     mStats.mGpuBytes = Scene->GetPrimitiveCount() * sizeof(FObjectConstants) + sizeof(FMatrix) + sizeof(FEditorMeshConstants) + mLineCapacity * sizeof(FLineVertex) + Target->GetResourceBytes();
+    mStats.mGpuBytes += mTextRenderer != nullptr ? mTextRenderer->GetResourceBytes() : 0;
 
     for (const auto& Mesh : mMeshes) {
         mStats.mGpuBytes += Mesh != nullptr ? Mesh->GetResourceBytes() : 0;
@@ -358,12 +374,19 @@ bool FRenderer::ReloadChangedShaders() {
     return Success && (!mShadersDirty || CreateShaders());
 }
 
+bool FRenderer::GetTextBounds(const FString& Text, FVector2& Minimum, FVector2& Maximum) const {
+    return mTextRenderer != nullptr && mTextRenderer->GetBounds(Text, Minimum, Maximum);
+}
+
 /**
  * @brief 내장 HLSL 소스를 지정한 진입점과 프로파일로 컴파일합니다.
  */
 bool FRenderer::Compile(const char* Source, const char* Entry, const char* Target, std::shared_ptr<const FShader>& Code) {
     FShaderDescription Description{};
     Description.mSourcePath = mShaderDirectory / Source;
+    if (std::string_view{Source} == "Text.hlsl") {
+        Description.mSourcePath = FindTextContent(mShaderDirectory.parent_path(), "Shaders/Text.hlsl");
+    }
     Description.mIncludeDirectories = {mShaderDirectory};
     Description.mEntryPoint = Entry;
     Description.mTargetProfile = Target;
@@ -431,6 +454,10 @@ bool FRenderer::CreateShaders() {
         return false;
     }
 
+    if (!Compile("Text.hlsl", "VertexMain", "vs_5_0", VertexCode) || !Compile("Text.hlsl", "PixelMain", "ps_5_0", PixelCode) || !mTextRenderer->CreateShaders(mDevice.Get(), VertexCode->GetByteCode(), PixelCode->GetByteCode())) {
+        return false;
+    }
+
     mMeshVertexShader = std::move(MeshVertex);
     mMeshPixelShader = std::move(MeshPixel);
     mMeshLayout = std::move(MeshLayout);
@@ -473,6 +500,10 @@ bool FRenderer::CreateBackBuffer(Uint32 Width, Uint32 Height) {
  * @brief 메시·선분·기즈모 셰이더, 입력 레이아웃과 고정 파이프라인 상태를 생성합니다.
  */
 bool FRenderer::CreatePipeline() {
+    mTextRenderer = std::make_unique<FTextRenderer>();
+    if (!mTextRenderer->Initialize(mDevice.Get(), FindTextContent(mShaderDirectory.parent_path(), "Fonts/Default.json"))) {
+        return false;
+    }
     if (!CreateShaders()) {
         return false;
     }
@@ -639,5 +670,45 @@ void FRenderer::DrawMeshes(const FPrimitiveDrawInterface* Elements, bool DepthTe
         ++mStats.mDrawCalls;
     }
 
+    mContext->OMSetBlendState(nullptr, nullptr, 0xFFFFFFFFu);
+}
+
+void FRenderer::DrawTexts(const FSceneViewFamily& Family, bool DepthTest) {
+    if (mTextRenderer == nullptr) {
+        return;
+    }
+    TArray<FDrawText> Texts{};
+    if (DepthTest) {
+        const auto* Scene{static_cast<const FScene*>(Family.mScene)};
+        for (const FScenePrimitive& Primitive : Scene->GetPrimitives()) {
+            if (!Primitive.mProxy.mText.has_value()) {
+                continue;
+            }
+            FDrawText Text{*Primitive.mProxy.mText};
+            const FMatrix& World{Primitive.mProxy.mWorld};
+            Text.mPosition = World.TransformPosition(Text.mPosition);
+            Text.mScale.x *= World.TransformVector({0.0f, 1.0f, 0.0f}).Length();
+            Text.mScale.y *= World.TransformVector({0.0f, 0.0f, 1.0f}).Length();
+            Texts.push_back(std::move(Text));
+        }
+    }
+    if (Family.mEditorElements != nullptr) {
+        for (const FDrawText& Text : Family.mEditorElements->GetTexts()) {
+            if (Text.mDepthTest == DepthTest) {
+                Texts.push_back(Text);
+            }
+        }
+    }
+    std::stable_sort(Texts.begin(), Texts.end(), [&Family](const FDrawText& First, const FDrawText& Second) {
+        return (First.mPosition - Family.mView.mLocation).Dot(Family.mView.mForward) > (Second.mPosition - Family.mView.mLocation).Dot(Family.mView.mForward);
+    });
+    mContext->OMSetBlendState(mOverlayBlend.Get(), nullptr, 0xFFFFFFFFu);
+    mContext->OMSetDepthStencilState(DepthTest ? mDepthReadOnly.Get() : mDepthDisabled.Get(), 0);
+    for (const FDrawText& Text : Texts) {
+        if (mTextRenderer->Draw(mContext.Get(), Text, Family.mView)) {
+            ++mStats.mDrawCalls;
+            mStats.mVisiblePrimitives += DepthTest ? 1 : 0;
+        }
+    }
     mContext->OMSetBlendState(nullptr, nullptr, 0xFFFFFFFFu);
 }

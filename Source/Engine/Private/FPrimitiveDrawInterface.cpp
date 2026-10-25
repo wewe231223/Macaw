@@ -21,6 +21,7 @@ void FPrimitiveDrawInterface::DrawLine(const FVector& Start, const FVector& End,
 void FPrimitiveDrawInterface::Clear() {
     mLines.clear();
     mMeshes.clear();
+    mTexts.clear();
 }
 
 /**
@@ -36,4 +37,12 @@ void FPrimitiveDrawInterface::DrawMesh(const FDrawMesh& Mesh) {
 
 const TArray<FDrawMesh>& FPrimitiveDrawInterface::GetMeshes() const {
     return mMeshes;
+}
+
+void FPrimitiveDrawInterface::DrawString(const FDrawText& Text) {
+    mTexts.push_back(Text);
+}
+
+const TArray<FDrawText>& FPrimitiveDrawInterface::GetTexts() const {
+    return mTexts;
 }

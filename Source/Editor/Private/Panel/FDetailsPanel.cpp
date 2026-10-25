@@ -166,6 +166,16 @@ bool FDetailsPanel::DrawPropertyValue(const FProperty* Property, FPropertyValue&
             return true;
         }
     } else if (auto* String{std::get_if<FString>(&Value)}) {
+        if (Property->GetName() == "Text") {
+            TArray<char> TextBuffer{};
+            TextBuffer.resize(std::max<std::size_t>(4096, String->size() + 1024));
+            std::copy(String->begin(), String->end(), TextBuffer.begin());
+            if (ImGui::InputTextMultiline(Label, TextBuffer.data(), TextBuffer.size(), {0.0f, ImGui::GetTextLineHeight() * 4.0f}, ImGuiInputTextFlags_AllowTabInput)) {
+                *String = TextBuffer.data();
+                return true;
+            }
+            return false;
+        }
         std::array<char, 512> Buffer{};
         std::copy_n(String->begin(), std::min(String->size(), Buffer.size() - 1), Buffer.begin());
 

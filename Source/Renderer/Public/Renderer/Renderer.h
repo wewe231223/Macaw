@@ -23,6 +23,8 @@
 #include <d3d11.h>
 #include <wrl/client.h>
 
+class FTextRenderer;
+
 /**
  * @brief Direct3D 11 장치, 스왑 체인, 메시와 프레임 렌더링을 관리합니다.
  * @ingroup Renderer
@@ -144,6 +146,7 @@ public:
      * @return 요청한 처리를 완료하면 true, 실패하면 false입니다.
      */
     bool ReloadChangedShaders() override;
+    bool GetTextBounds(const FString& Text, FVector2& Minimum, FVector2& Maximum) const override;
     /**
      * @brief 프로젝트 콘텐츠의 셰이더 경로와 컴파일 캐시 경로를 설정합니다.
      * @param[in] ContentRoot 프로젝트 에셋 경로의 기준 콘텐츠 폴더입니다.
@@ -194,6 +197,7 @@ private:
      */
     void DrawLines(const FPrimitiveDrawInterface* Elements, bool DepthTest);
     void DrawMeshes(const FPrimitiveDrawInterface* Elements, bool DepthTest);
+    void DrawTexts(const FSceneViewFamily& Family, bool DepthTest);
 
 private:
     /**
@@ -202,6 +206,8 @@ private:
     ReflectMembers();
 
 private:
+    std::unique_ptr<FTextRenderer> mTextRenderer{};
+    ReflectProperty(mTextRenderer, "TextRenderer", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
     FShaderManager mShaderManager{};
     ReflectProperty(mShaderManager, "ShaderManager", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
     /**

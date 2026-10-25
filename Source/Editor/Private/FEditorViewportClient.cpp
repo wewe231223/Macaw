@@ -8,6 +8,7 @@
 #include "RenderCore/IRendererModule.h"
 #include "Core/Math.h"
 #include "Engine/Component/UPrimitiveComponent.h"
+#include "Engine/Component/UBillboardTextComponent.h"
 #include "Engine/Component/UShapeComponent.h"
 #include "Engine/ULevel.h"
 #include "Engine/AActor.h"
@@ -33,6 +34,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <limits>
 
 /**
  * @brief FEditorViewportClient의 초기 상태와 전달받은 의존성을 구성합니다.
@@ -289,7 +291,7 @@ void FEditorViewportClient::FocusSelection(const FVector2& Size) {
         return;
     }
 
-    const FBox Bounds{Component->GetWorldBounds()};
+    const FBox Bounds{CalcComponentBounds(Component, CalcSceneView(Size))};
     mOrbitPivot = Bounds.mMinimum.Lerp(Bounds.mMaximum, 0.5f);
 
     const float Radius{Bounds.mMinimum.Distance(Bounds.mMaximum) * 0.5f};
@@ -319,8 +321,38 @@ void FEditorViewportClient::Draw(FSceneViewport* Viewport) {
 
     if (World->GetPersistentLevel() != nullptr) {
         const TArray<FObjectHandle> SelectedActors{mContext->GetSelectedActors()};
+        const auto* SelectedComponent{Cast<UActorComponent>(mContext->GetSelectedObject())};
         for (const auto& Actor : World->GetPersistentLevel()->GetActors()) {
             const bool Highlight{std::find(SelectedActors.begin(), SelectedActors.end(), Actor->GetHandle()) != SelectedActors.end()};
+            if (Highlight && Actor->GetRootComponent() != nullptr) {
+                const auto* SelectedSceneComponent{SelectedComponent != nullptr && SelectedComponent->GetOwner() == Actor.get() ? Cast<USceneComponent>(SelectedComponent) : nullptr};
+                FVector Minimum{SelectedSceneComponent != nullptr ? SelectedSceneComponent->GetTransform().mLocation : Actor->GetRootComponent()->GetTransform().mLocation};
+                FVector Maximum{Minimum};
+                bool HasBounds{};
+                for (const auto& Component : Actor->GetComponents()) {
+                    const auto* Primitive{Cast<UPrimitiveComponent>(Component.get())};
+                    if (Primitive == nullptr || (SelectedSceneComponent != nullptr && Primitive != SelectedSceneComponent)) {
+                        continue;
+                    }
+                    const FBox Bounds{CalcComponentBounds(Primitive, View)};
+                    if (!HasBounds) {
+                        Minimum = Bounds.mMinimum;
+                        Maximum = Bounds.mMaximum;
+                        HasBounds = true;
+                    } else {
+                        Minimum = {std::min(Minimum.x, Bounds.mMinimum.x), std::min(Minimum.y, Bounds.mMinimum.y), std::min(Minimum.z, Bounds.mMinimum.z)};
+                        Maximum = {std::max(Maximum.x, Bounds.mMaximum.x), std::max(Maximum.y, Bounds.mMaximum.y), std::max(Maximum.z, Bounds.mMaximum.z)};
+                    }
+                }
+                const FVector ScreenUp{View.mView(0, 1), View.mView(1, 1), View.mView(2, 1)};
+                const FVector Extent{(Maximum - Minimum) * 0.5f};
+                const float Height{std::abs(ScreenUp.x) * Extent.x + std::abs(ScreenUp.y) * Extent.y + std::abs(ScreenUp.z) * Extent.z};
+                const FVector Center{(Minimum + Maximum) * 0.5f};
+                const FVector4 Clip{FVector4{Center, 1.0f} * View.mViewProjection};
+                const float Margin{Clip.w > 0.0f ? 32.0f * Clip.w / (std::max(View.mSize.y, 1.0f) * View.mProjection(1, 1)) : 0.0f};
+                const FString& Name{SelectedComponent != nullptr && SelectedComponent->GetOwner() == Actor.get() ? SelectedComponent->GetName() : Actor->GetName()};
+                mDrawInterface.DrawString({Center + ScreenUp * (Height + Margin), Name, {1.0f, 0.9f, 0.55f, 1.0f}, 18.0f, {1.0f, 1.0f}, true, false});
+            }
             for (const auto& Component : Actor->GetComponents()) {
                 const auto* Shape{Cast<UShapeComponent>(Component.get())};
                 if (Shape != nullptr && (!Shape->ShouldDrawOnlyIfSelected() || Highlight)) {
@@ -504,11 +536,61 @@ FHitProxy FEditorViewportClient::GetHitProxy(const FSceneViewport* Viewport, con
     FRay Ray{};
     FWorldHit Hit{};
 
-    if (Math::Deproject(Position, View.mSize, View.mViewProjection, Ray) && World->Raycast(Ray, Hit)) {
-        return {EHitProxyType::Object, Hit.mComponent};
+    if (!Math::Deproject(Position, View.mSize, View.mViewProjection, Ray)) {
+        return {};
     }
+    const bool HasMeshHit{World->Raycast(Ray, Hit)};
+    FHitProxy Result{HasMeshHit ? FHitProxy{EHitProxyType::Object, Hit.mComponent} : FHitProxy{}};
+    float Closest{HasMeshHit ? Hit.mDistance : std::numeric_limits<float>::max()};
+    if (World->GetPersistentLevel() == nullptr || mContext->GetRenderer() == nullptr) {
+        return Result;
+    }
+    const FVector Right{View.mView(0, 0), View.mView(1, 0), View.mView(2, 0)};
+    const FVector Up{View.mView(0, 1), View.mView(1, 1), View.mView(2, 1)};
+    for (const auto& Actor : World->GetPersistentLevel()->GetActors()) {
+        for (const auto& Component : Actor->GetComponents()) {
+            const auto* Text{Cast<UBillboardTextComponent>(Component.get())};
+            FVector2 Minimum{};
+            FVector2 Maximum{};
+            if (Text == nullptr || !Text->ShouldCreateRenderState() || Actor->IsPendingDestroy() || !mContext->GetRenderer()->GetTextBounds(Text->GetText(), Minimum, Maximum)) {
+                continue;
+            }
+            const FTransform& Transform{Text->GetTransform()};
+            const FVector4 Clip{FVector4{Transform.mLocation, 1.0f} * View.mViewProjection};
+            FVector Intersection{};
+            if (Clip.w <= 0.0f || Clip.z < 0.0f || Clip.z > Clip.w || !Math::IntersectPlane(Ray, Transform.mLocation, View.mForward, Intersection)) {
+                continue;
+            }
+            const float Distance{(Intersection - Ray.mOrigin).Dot(Ray.mDirection)};
+            const FVector Offset{Intersection - Transform.mLocation};
+            const float Horizontal{Offset.Dot(Right) / (Text->GetTextSize() * std::abs(Transform.mScale.y))};
+            const float Vertical{Offset.Dot(Up) / (Text->GetTextSize() * std::abs(Transform.mScale.z))};
+            if (Distance < Closest && Horizontal >= Minimum.x && Horizontal <= Maximum.x && Vertical >= Minimum.y && Vertical <= Maximum.y) {
+                Closest = Distance;
+                Result = {EHitProxyType::Object, Text->GetHandle()};
+            }
+        }
+    }
+    return Result;
+}
 
-    return {};
+FBox FEditorViewportClient::CalcComponentBounds(const UPrimitiveComponent* Component, const FSceneView& View) const {
+    const auto* Text{Cast<UBillboardTextComponent>(Component)};
+    FVector2 Minimum{};
+    FVector2 Maximum{};
+    if (Text == nullptr || mContext->GetRenderer() == nullptr || !mContext->GetRenderer()->GetTextBounds(Text->GetText(), Minimum, Maximum)) {
+        return Component->GetWorldBounds();
+    }
+    const FTransform& Transform{Text->GetTransform()};
+    const FVector Right{View.mView(0, 0), View.mView(1, 0), View.mView(2, 0)};
+    const FVector Up{View.mView(0, 1), View.mView(1, 1), View.mView(2, 1)};
+    const float WidthScale{Text->GetTextSize() * std::abs(Transform.mScale.y)};
+    const float HeightScale{Text->GetTextSize() * std::abs(Transform.mScale.z)};
+    const FVector Center{Transform.mLocation + Right * ((Minimum.x + Maximum.x) * 0.5f * WidthScale) + Up * ((Minimum.y + Maximum.y) * 0.5f * HeightScale)};
+    const float HalfWidth{(Maximum.x - Minimum.x) * 0.5f * WidthScale};
+    const float HalfHeight{(Maximum.y - Minimum.y) * 0.5f * HeightScale};
+    const FVector Extent{std::abs(Right.x) * HalfWidth + std::abs(Up.x) * HalfHeight, std::abs(Right.y) * HalfWidth + std::abs(Up.y) * HalfHeight, std::abs(Right.z) * HalfWidth + std::abs(Up.z) * HalfHeight};
+    return {Center - Extent, Center + Extent};
 }
 
 bool FEditorViewportClient::DropMesh(const std::filesystem::path& Path, const FVector2& Position, const FVector2& Size) {

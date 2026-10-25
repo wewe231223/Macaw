@@ -14,6 +14,8 @@
 #include <filesystem>
 
 class FEditorContext;
+class UPrimitiveComponent;
+struct FBox;
 
 /**
  * @brief 에디터 카메라, 선택, 변환 도구 상태와 공통 명령을 관리하고 기즈모 입력 및 장면 뷰 생성을 담당합니다.
@@ -193,6 +195,7 @@ private:
      * @param[in] Size 뷰포트 크기 또는 데이터의 바이트 수입니다.
      */
     void FocusSelection(const FVector2& Size);
+    FBox CalcComponentBounds(const UPrimitiveComponent* Component, const FSceneView& View) const;
 
 private:
     /**

@@ -11,7 +11,6 @@
 #include "Core/Memory.h"
 #include "Editor/FProjectBrowser.h"
 
-#include <shellapi.h>
 #include <array>
 
 /**
@@ -43,20 +42,7 @@ int FApplication::Run() {
     }
     mTemplateDirectory = std::filesystem::path{Executable.data()}.parent_path() / "Templates/Project";
 
-    Int32 ArgumentCount{};
-    wchar_t** Arguments{CommandLineToArgvW(GetCommandLineW(), &ArgumentCount)};
-    std::filesystem::path InitialProject{};
-    bool Create{};
-    if (Arguments != nullptr) {
-        if (ArgumentCount == 3 && std::wstring_view{Arguments[1]} == L"--create") {
-            Create = true;
-            InitialProject = Arguments[2];
-        } else if (ArgumentCount == 2) {
-            InitialProject = Arguments[1];
-        }
-        LocalFree(Arguments);
-    }
-    if (!BrowseProjects(InitialProject, Create)) {
+    if (!BrowseProjects({}, false)) {
         Shutdown();
         return 0;
     }

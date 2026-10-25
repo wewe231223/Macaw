@@ -57,6 +57,11 @@ void FOutlinerPanel::DrawContent(float) {
     }
 
     ImGui::SameLine();
+    if (ImGui::Button("+ Text")) {
+        Context->SpawnText();
+    }
+
+    ImGui::SameLine();
     ImGui::BeginDisabled(Context->GetSelectedCamera() == nullptr);
     if (ImGui::Button("Use as PIE Camera")) {
         Context->UseSelectedCamera();

@@ -72,6 +72,9 @@ void FSceneRenderer::Render() {
     const std::array<UINT, 4> Offsets{};
 
     for (const FScenePrimitive& Primitive : mScene->GetPrimitives()) {
+        if (Primitive.mProxy.mText.has_value()) {
+            continue;
+        }
         if (!IsVisible(Primitive.mProxy.mBounds)) {
             continue;
         }

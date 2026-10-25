@@ -9,6 +9,7 @@
 #include "Core/ReflectionMacros.h"
 #include "Engine/FDrawLine.h"
 #include "Engine/FDrawMesh.h"
+#include "Engine/FDrawText.h"
 
 /**
  * @brief 에디터 보조 선분과 메시를 프레임 단위로 수집합니다.
@@ -42,6 +43,8 @@ public:
     void Clear();
     void DrawMesh(const FDrawMesh& Mesh);
     const TArray<FDrawMesh>& GetMeshes() const;
+    void DrawString(const FDrawText& Text);
+    const TArray<FDrawText>& GetTexts() const;
 
     /**
      * @brief 현재 프레임에 수집한 보조 선분을 반환합니다.
@@ -63,4 +66,6 @@ private:
     ReflectProperty(mLines, "Lines", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
     TArray<FDrawMesh> mMeshes{};
     ReflectProperty(mMeshes, "Meshes", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    TArray<FDrawText> mTexts{};
+    ReflectProperty(mTexts, "Texts", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 };

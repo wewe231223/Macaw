@@ -7,6 +7,7 @@
 #include "Editor/FEditorContext.h"
 #include "Engine/FProject.h"
 #include "Engine/Component/UStaticMeshComponent.h"
+#include "Engine/ABillboardTextActor.h"
 #include "Engine/Engine.h"
 #include "Engine/UWorld.h"
 #include "Engine/ULevel.h"
@@ -276,6 +277,27 @@ ACameraActor* FEditorContext::SpawnCamera() {
         if (World->GetInputTarget() == nullptr) {
             World->SetInputTarget(Actor);
         }
+    }
+    AssignSelection({Actor->GetHandle()}, Actor->GetHandle());
+    mDirty = true;
+    AddLog("Spawned " + Actor->GetName());
+    return Actor;
+}
+
+ABillboardTextActor* FEditorContext::SpawnText() {
+    if (!CanEditWorld() || mChangingState || mEditingProperty || mEngine->IsDispatching()) {
+        return nullptr;
+    }
+    FOperationScope Scope{&mChangingState};
+    UWorld* World{GetWorld()};
+    auto* Actor{World != nullptr ? Cast<ABillboardTextActor>(World->SpawnActor(ABillboardTextActor::StaticClass())) : nullptr};
+    if (Actor == nullptr) {
+        return nullptr;
+    }
+    const FTransform Placement{mPlacementProvider ? mPlacementProvider() : FTransform{}};
+    if (!Actor->SetActorTransform(Placement)) {
+        World->DestroyActor(Actor->GetHandle());
+        return nullptr;
     }
     AssignSelection({Actor->GetHandle()}, Actor->GetHandle());
     mDirty = true;

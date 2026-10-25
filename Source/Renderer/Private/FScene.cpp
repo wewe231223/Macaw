@@ -136,6 +136,10 @@ Uint32 FScene::TakeTransformUpdates() const {
  * @brief 프리미티브의 객체 상수 버퍼를 현재 프록시 값으로 갱신합니다.
  */
 void FScene::Upload(FScenePrimitive& Primitive) {
+    if (Primitive.mProxy.mText.has_value()) {
+        Primitive.mObjectBuffer.Reset();
+        return;
+    }
     FObjectConstants Constants{};
     Constants.mWorld = Primitive.mProxy.mWorld;
 

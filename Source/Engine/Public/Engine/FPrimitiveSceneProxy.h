@@ -11,6 +11,9 @@
 #include "Core/Math/FMatrix.h"
 #include "Core/Math/FBox.h"
 #include "Engine/EPrimitiveType.h"
+#include "Engine/FDrawText.h"
+
+#include <optional>
 
 class UStaticMesh;
 
@@ -68,4 +71,6 @@ public:
      */
     UStaticMesh* mMesh{};
     ReflectProperty(mMesh, "Mesh", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    std::optional<FDrawText> mText{};
+    ReflectProperty(mText, "Text", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 };
