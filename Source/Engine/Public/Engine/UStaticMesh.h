@@ -4,6 +4,7 @@
 #include "Engine/FMeshData.h"
 
 #include <d3d11.h>
+#include <filesystem>
 #include <wrl/client.h>
 
 class UStaticMesh final : public UObject {
@@ -12,11 +13,13 @@ public:
 
 public:
     UStaticMesh();
+    explicit UStaticMesh(const std::filesystem::path& MeshPath);
     ~UStaticMesh() override;
 
 public:
     ReflectClass(UStaticMesh);
 
+    bool LoadFromFile(const std::filesystem::path& MeshPath);
     bool SetMeshData(FMeshData MeshData);
     const FMeshData& GetMeshData() const;
     const FBox& GetBounds() const;
