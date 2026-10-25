@@ -130,12 +130,12 @@ void UPrimitiveComponent::SendRenderUpdates() {
  */
 FPrimitiveSceneProxy UPrimitiveComponent::CreateSceneProxy() const {
     const FMatrix World{GetWorldMatrix()};
-    return {GetGuid(), GetPrimitiveType(), World, GetPrimitiveMesh(GetPrimitiveType()).mBounds.Transformed(World)};
+    return {GetGuid(), GetPrimitiveType(), World, GetPrimitiveMesh(GetPrimitiveType()).GetBounds().Transformed(World)};
 }
 
 /**
  * @brief 월드 공간의 축 정렬 경계 상자를 반환합니다.
  */
 FBox UPrimitiveComponent::GetWorldBounds() const {
-    return GetPrimitiveMesh(GetPrimitiveType()).mBounds.Transformed(GetWorldMatrix());
+    return GetPrimitiveMesh(GetPrimitiveType()).GetBounds().Transformed(GetWorldMatrix());
 }

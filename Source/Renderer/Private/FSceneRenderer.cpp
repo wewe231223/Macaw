@@ -9,12 +9,11 @@
 #include "Core/Math/FVector4.h"
 #include "Core/Math/FMatrix.h"
 #include "Core/Math/FBox.h"
-#include "FGpuMeshVertex.h"
 #include "Engine/FSceneViewFamily.h"
 #include "RenderCore/FRenderStats.h"
 #include "FScenePrimitive.h"
 #include "FScene.h"
-#include "Renderer/FMeshResource.h"
+#include "Engine/UStaticMesh.h"
 #include "FSceneDrawContext.h"
 
 #include <algorithm>
@@ -70,30 +69,30 @@ void FSceneRenderer::Render() {
     Context->VSSetShader(mDrawContext.mVertexShader, nullptr, 0);
     Context->PSSetShader(mDrawContext.mPixelShader, nullptr, 0);
 
-    const UINT Stride{sizeof(FGpuMeshVertex)};
-    const UINT Offset{};
+    const std::array<UINT, 4> Offsets{};
 
     for (const FScenePrimitive& Primitive : mScene->GetPrimitives()) {
         if (!IsVisible(Primitive.mProxy.mBounds)) {
             continue;
         }
 
-        const FMeshResource* Mesh{mDrawContext.mMeshes->data() + static_cast<std::size_t>(Primitive.mProxy.mPrimitive)};
+        const UStaticMesh* Mesh{(*mDrawContext.mMeshes)[static_cast<std::size_t>(Primitive.mProxy.mPrimitive)].get()};
 
-        if (Mesh->mVertices == nullptr) {
+        if (Mesh == nullptr || !Mesh->HasResources()) {
             continue;
         }
 
-        ID3D11Buffer* VertexBuffer{Mesh->mVertices.Get()};
+        const std::array<ID3D11Buffer*, 4> VertexBuffers{Mesh->GetPositionBuffer(), Mesh->GetTangentBuffer(), Mesh->GetUVBuffer(), Mesh->GetColorBuffer()};
+        const std::array<UINT, 4> Strides{UStaticMesh::GetPositionStride(), UStaticMesh::GetTangentStride(), Mesh->GetUVStride(), UStaticMesh::GetColorStride()};
         ID3D11Buffer* ObjectBuffer{Primitive.mObjectBuffer.Get()};
 
-        Context->IASetVertexBuffers(0, 1, &VertexBuffer, &Stride, &Offset);
-        Context->IASetIndexBuffer(Mesh->mIndices.Get(), DXGI_FORMAT_R32_UINT, 0);
+        Context->IASetVertexBuffers(0, static_cast<UINT>(VertexBuffers.size()), VertexBuffers.data(), Strides.data(), Offsets.data());
+        Context->IASetIndexBuffer(Mesh->GetIndexBuffer(), DXGI_FORMAT_R32_UINT, 0);
 
         Context->VSSetConstantBuffers(0, 1, &ObjectBuffer);
         Context->PSSetConstantBuffers(0, 1, &ObjectBuffer);
 
-        Context->DrawIndexed(Mesh->mIndexCount, 0, 0);
+        Context->DrawIndexed(Mesh->GetIndexCount(), 0, 0);
 
         ++mStats->mDrawCalls;
         ++mStats->mVisiblePrimitives;

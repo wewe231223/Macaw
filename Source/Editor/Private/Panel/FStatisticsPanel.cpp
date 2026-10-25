@@ -49,7 +49,7 @@ void FStatisticsPanel::DrawContent(float DeltaTime) {
 
     for (Uint32 Index{}; Index < static_cast<Uint32>(EPrimitiveType::Count); ++Index) {
         const FMeshData& Mesh{GetPrimitiveMesh(static_cast<EPrimitiveType>(Index))};
-        GeometryBytes += Mesh.mVertices.capacity() * sizeof(FMeshVertex) + Mesh.mIndices.capacity() * sizeof(Uint32);
+        GeometryBytes += Mesh.GetAllocatedBytes();
     }
 
     ImGui::TextUnformatted(std::format("Shared CPU meshes: {:.2f} KiB", GeometryBytes / 1024.0).c_str());

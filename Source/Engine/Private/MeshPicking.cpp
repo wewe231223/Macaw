@@ -5,7 +5,7 @@
 #include "Core/Math/FMatrix.h"
 
 bool RaycastMesh(const FMeshData* Mesh, const FMatrix& World, const FRay& Ray, float& Distance) {
-    if (Mesh == nullptr || !Mesh->mBounds.Transformed(World).Intersects(Ray, Distance)) {
+    if (Mesh == nullptr || !Mesh->GetBounds().Transformed(World).Intersects(Ray, Distance)) {
         return false;
     }
 
@@ -16,10 +16,10 @@ bool RaycastMesh(const FMeshData* Mesh, const FMatrix& World, const FRay& Ray, f
 
     const FRay Local{Inverse.TransformPosition(Ray.mOrigin), Inverse.TransformVector(Ray.mDirection)};
     bool Found{};
-    for (std::size_t Index{}; Index + 2 < Mesh->mIndices.size(); Index += 3) {
-        const FVector A{Mesh->mVertices[Mesh->mIndices[Index]].mPosition};
-        const FVector B{Mesh->mVertices[Mesh->mIndices[Index + 1]].mPosition};
-        const FVector C{Mesh->mVertices[Mesh->mIndices[Index + 2]].mPosition};
+    for (std::size_t Index{}; Index + 2 < Mesh->GetIndices().size(); Index += 3) {
+        const FVector A{Mesh->GetPositions()[Mesh->GetIndices()[Index]]};
+        const FVector B{Mesh->GetPositions()[Mesh->GetIndices()[Index + 1]]};
+        const FVector C{Mesh->GetPositions()[Mesh->GetIndices()[Index + 2]]};
         float HitDistance{};
         if (Math::IntersectTriangle(Local, A, B, C, HitDistance) && HitDistance < Distance) {
             Distance = HitDistance;

@@ -37,29 +37,38 @@ FString PrimitiveName(EPrimitiveType Type) {
  */
 FMeshData BuildPrimitive(EPrimitiveType Type) {
     FMeshData Mesh{};
+    TArray<FVector>& Positions{Mesh.GetPositions()};
+    TArray<FVector>& Normals{Mesh.GetNormals()};
+    TArray<FVector4>& Tangents{Mesh.GetTangents()};
+    TArray<Uint32>& Indices{Mesh.GetIndices()};
+    Mesh.GetUVChannels().resize(1);
+    TArray<FVector2>& UVs{Mesh.GetUVChannels().front()};
 
     if (Type == EPrimitiveType::Plane) {
-        Mesh.mVertices = {{{-0.5f, -0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}}, {{0.5f, -0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}}, {{0.5f, 0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}}, {{-0.5f, 0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}}};
-        Mesh.mIndices = {0, 1, 2, 0, 2, 3};
+        Positions = {{-0.5f, -0.5f, 0.0f}, {0.5f, -0.5f, 0.0f}, {0.5f, 0.5f, 0.0f}, {-0.5f, 0.5f, 0.0f}};
+        Normals.assign(4, {0.0f, 0.0f, 1.0f});
+        Tangents.assign(4, {1.0f, 0.0f, 0.0f, 1.0f});
+        UVs = {{0.0f, 0.0f}, {1.0f, 0.0f}, {1.0f, 1.0f}, {0.0f, 1.0f}};
+        Indices = {0, 1, 2, 0, 2, 3};
 
-        Mesh.mBounds = {{-0.5f, -0.5f, -0.001f}, {0.5f, 0.5f, 0.001f}};
+        Mesh.SetBounds({{-0.5f, -0.5f, -0.001f}, {0.5f, 0.5f, 0.001f}});
     } else if (Type == EPrimitiveType::Cube) {
-        const std::array<FVector, 6> Normals{{{1.0f, 0.0f, 0.0f}, {-1.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, -1.0f, 0.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 0.0f, -1.0f}}};
+        const std::array<FVector, 6> FaceNormals{{{1.0f, 0.0f, 0.0f}, {-1.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, -1.0f, 0.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 0.0f, -1.0f}}};
 
-        for (const FVector& Normal : Normals) {
+        for (const FVector& Normal : FaceNormals) {
             const FVector Up{std::abs(Normal.z) > 0.5f ? FVector{0.0f, 1.0f, 0.0f} : FVector{0.0f, 0.0f, 1.0f}};
             const FVector Right{Up.Cross(Normal)};
-            const Uint32 Base{static_cast<Uint32>(Mesh.mVertices.size())};
+            const Uint32 Base{static_cast<Uint32>(Positions.size())};
 
-            Mesh.mVertices.push_back({(Normal - Right - Up) * 0.5f, Normal});
-            Mesh.mVertices.push_back({(Normal + Right - Up) * 0.5f, Normal});
-            Mesh.mVertices.push_back({(Normal + Right + Up) * 0.5f, Normal});
-            Mesh.mVertices.push_back({(Normal - Right + Up) * 0.5f, Normal});
+            Positions.insert(Positions.end(), {(Normal - Right - Up) * 0.5f, (Normal + Right - Up) * 0.5f, (Normal + Right + Up) * 0.5f, (Normal - Right + Up) * 0.5f});
+            Normals.insert(Normals.end(), 4, Normal);
+            Tangents.insert(Tangents.end(), 4, FVector4{Right, 1.0f});
+            UVs.insert(UVs.end(), {{0.0f, 0.0f}, {1.0f, 0.0f}, {1.0f, 1.0f}, {0.0f, 1.0f}});
 
-            Mesh.mIndices.insert(Mesh.mIndices.end(), {Base, Base + 1, Base + 2, Base, Base + 2, Base + 3});
+            Indices.insert(Indices.end(), {Base, Base + 1, Base + 2, Base, Base + 2, Base + 3});
         }
 
-        Mesh.mBounds = {{-0.5f, -0.5f, -0.5f}, {0.5f, 0.5f, 0.5f}};
+        Mesh.SetBounds({{-0.5f, -0.5f, -0.5f}, {0.5f, 0.5f, 0.5f}});
     } else if (Type == EPrimitiveType::Sphere) {
         constexpr Uint32 Rings{20};
         constexpr Uint32 Segments{32};
@@ -72,7 +81,10 @@ FMeshData BuildPrimitive(EPrimitiveType Type) {
 
         Circle.back() = Circle.front();
 
-        Mesh.mVertices.reserve((Rings + 1) * (Segments + 1));
+        Positions.reserve((Rings + 1) * (Segments + 1));
+        Normals.reserve((Rings + 1) * (Segments + 1));
+        Tangents.reserve((Rings + 1) * (Segments + 1));
+        UVs.reserve((Rings + 1) * (Segments + 1));
 
         for (Uint32 Ring{}; Ring <= Rings; ++Ring) {
             const float Phi{std::numbers::pi_v<float> * static_cast<float>(Ring) / Rings};
@@ -83,7 +95,10 @@ FMeshData BuildPrimitive(EPrimitiveType Type) {
                 const FVector2 Radial{Circle[Segment] * Radius};
                 const FVector Normal{Radial.x, Radial.y, Height};
 
-                Mesh.mVertices.push_back({Normal * 0.5f, Normal});
+                Positions.push_back(Normal * 0.5f);
+                Normals.push_back(Normal);
+                Tangents.push_back({-Circle[Segment].y, Circle[Segment].x, 0.0f, -1.0f});
+                UVs.push_back({static_cast<float>(Segment) / Segments, static_cast<float>(Ring) / Rings});
             }
         }
 
@@ -92,13 +107,14 @@ FMeshData BuildPrimitive(EPrimitiveType Type) {
                 const Uint32 A{Ring * (Segments + 1) + Segment};
                 const Uint32 B{A + Segments + 1};
 
-                Mesh.mIndices.insert(Mesh.mIndices.end(), {A, B, A + 1, A + 1, B, B + 1});
+                Indices.insert(Indices.end(), {A, B, A + 1, A + 1, B, B + 1});
             }
         }
 
-        Mesh.mBounds = {{-0.5f, -0.5f, -0.5f}, {0.5f, 0.5f, 0.5f}};
+        Mesh.SetBounds({{-0.5f, -0.5f, -0.5f}, {0.5f, 0.5f, 0.5f}});
     }
 
+    Mesh.GetColors().assign(Positions.size(), {1.0f, 1.0f, 1.0f, 1.0f});
     return Mesh;
 }
 

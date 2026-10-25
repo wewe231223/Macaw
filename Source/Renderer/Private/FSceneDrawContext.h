@@ -7,7 +7,7 @@
 #pragma once
 
 #include "Core/ReflectionMacros.h"
-#include "Renderer/FMeshResource.h"
+#include "Engine/UStaticMesh.h"
 
 /**
  * @brief 장면 렌더링에 빌려 쓰는 장치 컨텍스트, 메시 및 파이프라인 리소스입니다.
@@ -42,7 +42,7 @@ public:
     /**
      * @brief 프리미티브 종류별 GPU 메시입니다.
      */
-    const std::array<FMeshResource, 3>* mMeshes{};
+    const std::array<std::unique_ptr<UStaticMesh>, 3>* mMeshes{};
     ReflectProperty(mMeshes, "Meshes", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 
     /**

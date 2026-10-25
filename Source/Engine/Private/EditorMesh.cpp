@@ -6,18 +6,19 @@
 #include <limits>
 
 static void AddTriangle(FMeshData* Mesh, const FVector& A, const FVector& B, const FVector& C) {
-    const Uint32 Base{static_cast<Uint32>(Mesh->mVertices.size())};
+    const Uint32 Base{static_cast<Uint32>(Mesh->GetPositions().size())};
     const FVector Normal{(B - A).Cross(C - A).Normalized()};
-    Mesh->mVertices.insert(Mesh->mVertices.end(), {{A, Normal}, {B, Normal}, {C, Normal}});
-    Mesh->mIndices.insert(Mesh->mIndices.end(), {Base, Base + 1, Base + 2});
+    Mesh->GetPositions().insert(Mesh->GetPositions().end(), {A, B, C});
+    Mesh->GetNormals().insert(Mesh->GetNormals().end(), 3, Normal);
+    Mesh->GetIndices().insert(Mesh->GetIndices().end(), {Base, Base + 1, Base + 2});
 }
 
 static void AddBox(FMeshData* Mesh, const FVector& Minimum, const FVector& Maximum) {
     const FMeshData* Cube{&GetPrimitiveMesh(EPrimitiveType::Cube)};
     const FVector Size{Maximum - Minimum};
     const FVector Center{(Maximum + Minimum) * 0.5f};
-    for (std::size_t Index{}; Index < Cube->mIndices.size(); Index += 3) {
-        AddTriangle(Mesh, Cube->mVertices[Cube->mIndices[Index]].mPosition * Size + Center, Cube->mVertices[Cube->mIndices[Index + 1]].mPosition * Size + Center, Cube->mVertices[Cube->mIndices[Index + 2]].mPosition * Size + Center);
+    for (std::size_t Index{}; Index < Cube->GetIndices().size(); Index += 3) {
+        AddTriangle(Mesh, Cube->GetPositions()[Cube->GetIndices()[Index]] * Size + Center, Cube->GetPositions()[Cube->GetIndices()[Index + 1]] * Size + Center, Cube->GetPositions()[Cube->GetIndices()[Index + 2]] * Size + Center);
     }
 }
 
@@ -70,15 +71,11 @@ static FMeshData BuildMesh(EEditorMesh Type) {
     const float Largest{std::numeric_limits<float>::max()};
     FVector Minimum{Largest, Largest, Largest};
     FVector Maximum{-Largest, -Largest, -Largest};
-    for (const FMeshVertex& Vertex : Mesh.mVertices) {
-        Minimum.x = std::min(Minimum.x, Vertex.mPosition.x);
-        Minimum.y = std::min(Minimum.y, Vertex.mPosition.y);
-        Minimum.z = std::min(Minimum.z, Vertex.mPosition.z);
-        Maximum.x = std::max(Maximum.x, Vertex.mPosition.x);
-        Maximum.y = std::max(Maximum.y, Vertex.mPosition.y);
-        Maximum.z = std::max(Maximum.z, Vertex.mPosition.z);
+    for (const FVector& Position : Mesh.GetPositions()) {
+        Minimum = Minimum.Min(Position);
+        Maximum = Maximum.Max(Position);
     }
-    Mesh.mBounds = {Minimum - FVector{0.001f, 0.001f, 0.001f}, Maximum + FVector{0.001f, 0.001f, 0.001f}};
+    Mesh.SetBounds({Minimum - FVector{0.001f, 0.001f, 0.001f}, Maximum + FVector{0.001f, 0.001f, 0.001f}});
     return Mesh;
 }
 

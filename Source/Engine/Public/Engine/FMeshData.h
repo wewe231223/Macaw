@@ -7,8 +7,9 @@
 #pragma once
 
 #include "Core/ReflectionMacros.h"
-#include "Engine/FMeshVertex.h"
 #include "Core/Math/FBox.h"
+#include "Core/Math/FVector2.h"
+#include "Core/Math/FVector4.h"
 
 /**
  * @brief CPU 메시의 위치·법선 정점, 인덱스와 로컬 경계 상자입니다.
@@ -28,18 +29,42 @@ public:
      */
     ReflectStruct(FMeshData);
 
+    TArray<FVector>& GetPositions();
+    const TArray<FVector>& GetPositions() const;
+    TArray<FVector>& GetNormals();
+    const TArray<FVector>& GetNormals() const;
+    TArray<FVector4>& GetTangents();
+    const TArray<FVector4>& GetTangents() const;
+    TArray<TArray<FVector2>>& GetUVChannels();
+    const TArray<TArray<FVector2>>& GetUVChannels() const;
+    TArray<FVector4>& GetColors();
+    const TArray<FVector4>& GetColors() const;
+    TArray<Uint32>& GetIndices();
+    const TArray<Uint32>& GetIndices() const;
+    const FBox& GetBounds() const;
+    void SetBounds(const FBox& Bounds);
+    std::size_t GetAllocatedBytes() const;
+
 private:
     /**
      * @brief 생성된 프로퍼티 등록 함수와 빌더 접근 권한입니다.
      */
     ReflectMembers();
 
-public:
+private:
     /**
      * @brief CPU 위치·법선 정점 목록입니다.
      */
-    TArray<FMeshVertex> mVertices{};
-    ReflectProperty(mVertices, "Vertices", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    TArray<FVector> mPositions{};
+    ReflectProperty(mPositions, "Positions", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    TArray<FVector> mNormals{};
+    ReflectProperty(mNormals, "Normals", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    TArray<FVector4> mTangents{};
+    ReflectProperty(mTangents, "Tangents", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    TArray<TArray<FVector2>> mUVChannels{};
+    ReflectProperty(mUVChannels, "UVChannels", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    TArray<FVector4> mColors{};
+    ReflectProperty(mColors, "Colors", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 
     /**
      * @brief 삼각형을 구성하는 정점 인덱스 목록입니다.

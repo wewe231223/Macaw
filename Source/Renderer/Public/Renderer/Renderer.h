@@ -15,7 +15,7 @@
 #include "Engine/EEditorMesh.h"
 #include "RenderCore/FRenderStats.h"
 #include "RenderCore/IRendererModule.h"
-#include "Renderer/FMeshResource.h"
+#include "Engine/UStaticMesh.h"
 #include "Renderer/FLineVertex.h"
 
 #include <d3d11.h>
@@ -284,7 +284,7 @@ private:
     /**
      * @brief 프리미티브 종류별 GPU 메시입니다.
      */
-    std::array<FMeshResource, 3> mMeshes{};
+    std::array<std::unique_ptr<UStaticMesh>, 3> mMeshes{};
     ReflectProperty(mMeshes, "Meshes", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 
 
@@ -335,6 +335,6 @@ private:
     ReflectProperty(mEditorMeshBuffer, "EditorMeshBuffer", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
     Microsoft::WRL::ComPtr<ID3D11BlendState> mOverlayBlend{};
     ReflectProperty(mOverlayBlend, "OverlayBlend", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
-    std::array<FMeshResource, static_cast<std::size_t>(EEditorMesh::Count)> mEditorMeshes{};
+    std::array<std::unique_ptr<UStaticMesh>, static_cast<std::size_t>(EEditorMesh::Count)> mEditorMeshes{};
     ReflectProperty(mEditorMeshes, "EditorMeshes", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 };

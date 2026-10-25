@@ -8,7 +8,6 @@
 #include "Renderer/FLineVertex.h"
 #include "Core/Math/FVector.h"
 #include "Core/Math/FMatrix.h"
-#include "Engine/FMeshVertex.h"
 #include "Engine/FMeshData.h"
 #include "Engine/FSceneInterface.h"
 #include "Engine/FRenderTarget.h"
@@ -18,8 +17,8 @@
 #include "Engine/EPrimitiveType.h"
 #include "RenderCore/FRenderStats.h"
 #include "FObjectConstants.h"
-#include "FGpuMeshVertex.h"
-#include "Renderer/FMeshResource.h"
+#include "Engine/UStaticMesh.h"
+#include "CoreUObject/Reflection/NewObject.h"
 #include "FSceneDrawContext.h"
 #include "Core/Base/ErrorHandler.h"
 #include "RenderTarget.h"
@@ -54,20 +53,23 @@ cbuffer ViewConstants : register(b1) {
 struct FInput {
     float3 mPosition : POSITION;
     float3 mNormal : NORMAL;
+    float4 mColor : COLOR;
 };
 struct FOutput {
     float4 mPosition : SV_POSITION;
     float3 mNormal : NORMAL;
+    float4 mColor : COLOR;
 };
 FOutput VertexMain(FInput Input) {
-    FOutput Output = {float4(0, 0, 0, 0), float3(0, 0, 0)};
+    FOutput Output = {float4(0, 0, 0, 0), float3(0, 0, 0), float4(0, 0, 0, 0)};
     Output.mPosition = mul(mul(float4(Input.mPosition, 1), World), ViewProjection);
     Output.mNormal = normalize(mul(Input.mNormal, transpose((float3x3)WorldInverse)));
+    Output.mColor = Input.mColor;
     return Output;
 }
 float4 PixelMain(FOutput Input) : SV_TARGET {
     float Diffuse = {saturate(dot(normalize(Input.mNormal), normalize(float3(-0.35, -0.6, 1.0))))};
-    return float4(Color.rgb * (0.32 + 0.68 * Diffuse), 1);
+    return float4(Color.rgb * Input.mColor.rgb * (0.32 + 0.68 * Diffuse), Color.a * Input.mColor.a);
 }
 )"};
 
@@ -250,43 +252,15 @@ std::unique_ptr<FSceneInterface> FRenderer::AllocateScene() {
  * @brief CPU 메시를 종류별 GPU 정점·인덱스 버퍼에 업로드합니다.
  */
 bool FRenderer::UploadMesh(EPrimitiveType Type, const FMeshData& Mesh) {
-    if (Type >= EPrimitiveType::Count || Mesh.mVertices.empty() || Mesh.mIndices.empty() || mDevice == nullptr) {
-        ErrorHandler::Fatal("Renderer", "Invalid mesh upload state");
+    if (Type >= EPrimitiveType::Count || mDevice == nullptr) {
+        return false;
     }
 
-    TArray<FGpuMeshVertex> Vertices{};
-    Vertices.reserve(Mesh.mVertices.size());
+    auto Resource{NewObject<UStaticMesh>()};
 
-    for (const FMeshVertex& Vertex : Mesh.mVertices) {
-        Vertices.emplace_back(Vertex);
+    if (!Resource->SetMeshData(Mesh) || !Resource->CreateResources(mDevice.Get())) {
+        return false;
     }
-
-    FMeshResource Resource{};
-
-    D3D11_BUFFER_DESC Description{};
-    Description.ByteWidth = static_cast<UINT>(Vertices.size() * sizeof(FGpuMeshVertex));
-    Description.Usage = D3D11_USAGE_IMMUTABLE;
-    Description.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-
-    D3D11_SUBRESOURCE_DATA Data{};
-    Data.pSysMem = Vertices.data();
-
-    if (FAILED(mDevice->CreateBuffer(&Description, &Data, Resource.mVertices.GetAddressOf()))) {
-        ErrorHandler::Fatal("Renderer", "Mesh vertex buffer allocation failed");
-    }
-
-    Resource.mBytes = Description.ByteWidth;
-
-    Description.ByteWidth = static_cast<UINT>(Mesh.mIndices.size() * sizeof(Uint32));
-    Description.BindFlags = D3D11_BIND_INDEX_BUFFER;
-    Data.pSysMem = Mesh.mIndices.data();
-
-    if (FAILED(mDevice->CreateBuffer(&Description, &Data, Resource.mIndices.GetAddressOf()))) {
-        ErrorHandler::Fatal("Renderer", "Mesh index buffer allocation failed");
-    }
-
-    Resource.mBytes += Description.ByteWidth;
-    Resource.mIndexCount = static_cast<Uint32>(Mesh.mIndices.size());
 
     mMeshes[static_cast<std::size_t>(Type)] = std::move(Resource);
 
@@ -375,11 +349,11 @@ void FRenderer::BeginRenderingViewFamily(const FSceneViewFamily& Family) {
 
     mStats.mGpuBytes = Scene->GetPrimitiveCount() * sizeof(FObjectConstants) + sizeof(FMatrix) + sizeof(FEditorMeshConstants) + mLineCapacity * sizeof(FLineVertex) + static_cast<std::size_t>(Target->GetWidth()) * Target->GetHeight() * 8;
 
-    for (const FMeshResource& Mesh : mMeshes) {
-        mStats.mGpuBytes += Mesh.mBytes;
+    for (const auto& Mesh : mMeshes) {
+        mStats.mGpuBytes += Mesh != nullptr ? Mesh->GetResourceBytes() : 0;
     }
-    for (const FMeshResource& Mesh : mEditorMeshes) {
-        mStats.mGpuBytes += Mesh.mBytes;
+    for (const auto& Mesh : mEditorMeshes) {
+        mStats.mGpuBytes += Mesh != nullptr ? Mesh->GetResourceBytes() : 0;
     }
 
     mContext->OMSetRenderTargets(0, nullptr, nullptr);
@@ -476,7 +450,7 @@ bool FRenderer::CreatePipeline() {
         return false;
     }
 
-    const std::array<D3D11_INPUT_ELEMENT_DESC, 2> MeshElements{{{"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(FGpuMeshVertex, mPosition), D3D11_INPUT_PER_VERTEX_DATA, 0}, {"NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(FGpuMeshVertex, mNormal), D3D11_INPUT_PER_VERTEX_DATA, 0}}};
+    const std::array<D3D11_INPUT_ELEMENT_DESC, 3> MeshElements{{{"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0}, {"NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 1, 0, D3D11_INPUT_PER_VERTEX_DATA, 0}, {"COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 3, 0, D3D11_INPUT_PER_VERTEX_DATA, 0}}};
 
     if (FAILED(mDevice->CreateVertexShader(VertexCode->GetBufferPointer(), VertexCode->GetBufferSize(), nullptr, mMeshVertexShader.GetAddressOf())) || FAILED(mDevice->CreatePixelShader(PixelCode->GetBufferPointer(), PixelCode->GetBufferSize(), nullptr, mMeshPixelShader.GetAddressOf())) || FAILED(mDevice->CreateInputLayout(MeshElements.data(), static_cast<UINT>(MeshElements.size()), VertexCode->GetBufferPointer(), VertexCode->GetBufferSize(), mMeshLayout.GetAddressOf()))) {
         ErrorHandler::Fatal("Renderer", "Mesh pipeline allocation failed");
@@ -626,40 +600,19 @@ void FRenderer::DrawLines(const FPrimitiveDrawInterface* Elements, bool DepthTes
  */
 bool FRenderer::CreateEditorMeshes() {
     for (std::size_t Index{}; Index < mEditorMeshes.size(); ++Index) {
-        const FMeshData* Mesh{&GetEditorMesh(static_cast<EEditorMesh>(Index))};
-        TArray<std::array<float, 3>> Vertices{};
-        Vertices.reserve(Mesh->mVertices.size());
-        for (const FMeshVertex& Vertex : Mesh->mVertices) {
-            Vertices.push_back(Vertex.mPosition.ToArray());
+        auto Resource{NewObject<UStaticMesh>()};
+
+        if (!Resource->SetMeshData(GetEditorMesh(static_cast<EEditorMesh>(Index))) || !Resource->CreateResources(mDevice.Get())) {
+            return false;
         }
 
-        FMeshResource Resource{};
-        D3D11_BUFFER_DESC Description{};
-        Description.ByteWidth = static_cast<UINT>(Vertices.size() * sizeof(std::array<float, 3>));
-        Description.Usage = D3D11_USAGE_IMMUTABLE;
-        Description.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-        D3D11_SUBRESOURCE_DATA Data{};
-        Data.pSysMem = Vertices.data();
-        if (FAILED(mDevice->CreateBuffer(&Description, &Data, Resource.mVertices.GetAddressOf()))) {
-            ErrorHandler::Fatal("Renderer", "Editor mesh vertex buffer allocation failed");
-        }
-        Resource.mBytes = Description.ByteWidth;
-
-        Description.ByteWidth = static_cast<UINT>(Mesh->mIndices.size() * sizeof(Uint32));
-        Description.BindFlags = D3D11_BIND_INDEX_BUFFER;
-        Data.pSysMem = Mesh->mIndices.data();
-        if (FAILED(mDevice->CreateBuffer(&Description, &Data, Resource.mIndices.GetAddressOf()))) {
-            ErrorHandler::Fatal("Renderer", "Editor mesh index buffer allocation failed");
-        }
-        Resource.mBytes += Description.ByteWidth;
-        Resource.mIndexCount = static_cast<Uint32>(Mesh->mIndices.size());
         mEditorMeshes[Index] = std::move(Resource);
     }
     return true;
 }
 
 void FRenderer::DrawMeshes(const FPrimitiveDrawInterface* Elements, bool DepthTest) {
-    const UINT Stride{sizeof(std::array<float, 3>)};
+    const UINT Stride{UStaticMesh::GetPositionStride()};
     const UINT Offset{};
     mContext->IASetInputLayout(mOverlayLayout.Get());
     mContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -675,13 +628,18 @@ void FRenderer::DrawMeshes(const FPrimitiveDrawInterface* Elements, bool DepthTe
         if (Draw.mMesh >= EEditorMesh::Count || Draw.mDepthTest != DepthTest) {
             continue;
         }
-        const FMeshResource* Mesh{&mEditorMeshes[static_cast<std::size_t>(Draw.mMesh)]};
+        const UStaticMesh* Mesh{mEditorMeshes[static_cast<std::size_t>(Draw.mMesh)].get()};
+
+        if (Mesh == nullptr || !Mesh->HasResources()) {
+            continue;
+        }
+
         const FEditorMeshConstants Constants{Draw.mWorld, {Draw.mColor.x, Draw.mColor.y, Draw.mColor.z, Draw.mColor.w}};
         mContext->UpdateSubresource(mEditorMeshBuffer.Get(), 0, nullptr, &Constants, 0, 0);
-        ID3D11Buffer* Buffer{Mesh->mVertices.Get()};
+        ID3D11Buffer* Buffer{Mesh->GetPositionBuffer()};
         mContext->IASetVertexBuffers(0, 1, &Buffer, &Stride, &Offset);
-        mContext->IASetIndexBuffer(Mesh->mIndices.Get(), DXGI_FORMAT_R32_UINT, 0);
-        mContext->DrawIndexed(Mesh->mIndexCount, 0, 0);
+        mContext->IASetIndexBuffer(Mesh->GetIndexBuffer(), DXGI_FORMAT_R32_UINT, 0);
+        mContext->DrawIndexed(Mesh->GetIndexCount(), 0, 0);
         ++mStats.mDrawCalls;
     }
 
