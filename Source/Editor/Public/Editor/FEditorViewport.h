@@ -7,6 +7,7 @@
 #pragma once
 
 #include "Editor/FEditorViewportClient.h"
+#include "Editor/FViewportStatistics.h"
 
 class FSceneViewport;
 class IRendererModule;
@@ -75,6 +76,8 @@ public:
      * @note 엔진의 월드 렌더 동기화 이후 호출하며 초기화 전에는 아무 작업도 하지 않습니다.
      */
     void Draw();
+    void DrawStatistics(float DeltaTime, const UWorld* World, const FRenderStats& Render);
+    FViewportStatistics* GetStatistics();
     /**
      * @brief 창 표시와 도킹 식별에 사용하는 뷰포트 이름을 반환합니다.
      * @return 이 뷰포트가 소유한 이름의 참조입니다.
@@ -113,6 +116,15 @@ private:
      */
     FEditorViewportClient mClient;
     ReflectProperty(mClient, "Client", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /**
+     * @brief 프레임 및 리소스 통계의 뷰포트 표시 상태입니다.
+     */
+    FViewportStatistics mStatistics{};
+    ReflectProperty(mStatistics, "Statistics", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    FVector2 mImageOrigin{};
+    ReflectProperty(mImageOrigin, "ImageOrigin", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    FVector2 mImageSize{};
+    ReflectProperty(mImageSize, "ImageSize", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
     /**
      * @brief 컬러 타깃을 소유하고 입력, 그리기와 CPU 피킹을 클라이언트에 연결합니다.
      */

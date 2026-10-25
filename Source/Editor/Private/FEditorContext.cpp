@@ -439,6 +439,9 @@ void FEditorContext::ExecuteConsoleCommand(const FString& Command) {
         ClearLogs();
     } else if (Verb == "help") {
         AddLog("help | clear | spawn plane/cube/sphere | save <path.json> | load <path.json>");
+        if (mViewportCommandHandler) {
+            AddLog("stat fps/scene/memory/render/all [on/off] | stat none");
+        }
     } else if (Verb == "spawn") {
         FString Type{};
         Input >> Type;
@@ -461,8 +464,19 @@ void FEditorContext::ExecuteConsoleCommand(const FString& Command) {
             LoadScene(Path);
         }
     } else if (!Verb.empty()) {
-        AddLog("Unknown command.");
+        FString Output{};
+        if (mViewportCommandHandler && mViewportCommandHandler(Command, Output)) {
+            if (!Output.empty()) {
+                AddLog(Output);
+            }
+        } else {
+            AddLog("Unknown command.");
+        }
     }
+}
+
+void FEditorContext::SetViewportCommandHandler(std::function<bool(const FString&, FString&)> Handler) {
+    mViewportCommandHandler = std::move(Handler);
 }
 
 /** @brief 새 액터 배치 변환 제공자를 저장합니다. */

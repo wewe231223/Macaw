@@ -21,6 +21,9 @@ UEditorEngine::UEditorEngine()
         const FSceneView View{mViewport.GetClient()->CalcSceneView({960.0f, 640.0f})};
         return FTransform{View.mLocation + View.mForward * 6.0f, {}, {1.0f, 1.0f, 1.0f}};
     });
+    mContext.SetViewportCommandHandler([this](const FString& Command, FString& Output) {
+        return mViewport.GetStatistics()->ExecuteCommand(Command, Output);
+    });
 }
 
 /**

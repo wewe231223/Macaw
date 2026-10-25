@@ -148,6 +148,7 @@ public:
     Uint64 GetLogRevision() const;
     /** @brief 콘솔 문자열을 공통 편집 동작으로 전달합니다. @param[in] Command 실행할 문자열입니다. */
     void ExecuteConsoleCommand(const FString& Command);
+    void SetViewportCommandHandler(std::function<bool(const FString&, FString&)> Handler);
     /** @brief 새 액터의 배치 변환을 제공하는 경로를 연결합니다. @param[in] Provider 뷰포트 카메라 등에 따른 배치 변환 제공자이며 비어 있으면 기본 변환을 사용합니다. */
     void SetPlacementProvider(std::function<FTransform()> Provider);
 
@@ -201,6 +202,8 @@ private:
     /** @brief 활성 뷰포트 등에 따른 새 액터의 배치 변환 제공자입니다. */
     std::function<FTransform()> mPlacementProvider{};
     ReflectProperty(mPlacementProvider, "PlacementProvider", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    std::function<bool(const FString&, FString&)> mViewportCommandHandler{};
+    ReflectProperty(mViewportCommandHandler, "ViewportCommandHandler", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
     /**
      * @brief 선택한 액터의 세대 핸들 목록이며 마지막 유효 항목이 대표 액터입니다.
      */

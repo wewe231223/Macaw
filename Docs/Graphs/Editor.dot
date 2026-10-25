@@ -6,8 +6,8 @@ digraph Editor {
     Engine [label="UEngine\n월드 실행 · 렌더 동기화", fillcolor="#f0f2f5"];
     Context [label="FEditorContext\n편집 월드 · 선택 · 공통 편집"];
     UI [label="FEditorUI\nImGui · 도킹 · 입력"];
-    Panels [label="FOutlinerPanel · FDetailsPanel\nFConsolePanel · FStatisticsPanel"];
-    Viewport [label="FEditorViewport\n창 · 입력 전달 · 타깃 표시"];
+    Panels [label="FOutlinerPanel · FDetailsPanel\nFConsolePanel"];
+    Viewport [label="FEditorViewport\n창 · 입력 전달 · 타깃 표시 · 통계 오버레이"];
     Client [label="FEditorViewportClient\n카메라 · 명령 · 피킹"];
     Gizmo [label="FTransformGizmo\n변환 핸들 · 드래그"];
     SceneViewport [label="FSceneViewport\n입력 · 드로 호출 연결", fillcolor="#f0f2f5"];

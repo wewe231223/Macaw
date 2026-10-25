@@ -11,7 +11,6 @@
 #include "Editor/Panel/FOutlinerPanel.h"
 #include "Editor/Panel/FDetailsPanel.h"
 #include "Editor/Panel/FConsolePanel.h"
-#include "Editor/Panel/FStatisticsPanel.h"
 
 #include <filesystem>
 
@@ -134,12 +133,6 @@ private:
      */
     FConsolePanel mConsolePanel;
     ReflectProperty(mConsolePanel, "ConsolePanel", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
-
-    /**
-     * @brief 프레임 및 리소스 통계 패널입니다.
-     */
-    FStatisticsPanel mStatisticsPanel;
-    ReflectProperty(mStatisticsPanel, "StatisticsPanel", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 
     /**
      * @brief ImGui 설정 파일 경로입니다.

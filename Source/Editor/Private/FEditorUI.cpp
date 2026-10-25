@@ -52,8 +52,7 @@ FEditorUI::FEditorUI(FEditorContext* Context, FEditorViewport* Viewport)
 	  mViewport{Viewport},
 	  mOutlinerPanel{Context},
 	  mDetailsPanel{Context},
-	  mConsolePanel{Context},
-	  mStatisticsPanel{Context} {
+	  mConsolePanel{Context} {
 }
 
 /**
@@ -177,7 +176,7 @@ void FEditorUI::EndFrame(float DeltaTime) {
 
     mViewport->Draw();
 
-    mStatisticsPanel.Draw(DeltaTime);
+    mViewport->DrawStatistics(DeltaTime, mContext->GetWorld(), mContext->GetRenderer()->GetStats());
 
     ImGui::Render();
     mContext->GetRenderer()->BeginUiRender();
@@ -240,11 +239,7 @@ void FEditorUI::BuildLayout() {
         const ImGuiID Right{ImGui::DockBuilderSplitNode(Center, ImGuiDir_Right, 0.32f, nullptr, &Center)};
         const ImGuiID Bottom{ImGui::DockBuilderSplitNode(Center, ImGuiDir_Down, 0.24f, nullptr, &Center)};
 
-        ImGuiID Outliner{Left};
-        const ImGuiID Statistics{ImGui::DockBuilderSplitNode(Outliner, ImGuiDir_Down, 0.42f, nullptr, &Outliner)};
-
-        ImGui::DockBuilderDockWindow(mOutlinerPanel.GetName().c_str(), Outliner);
-        ImGui::DockBuilderDockWindow(mStatisticsPanel.GetName().c_str(), Statistics);
+        ImGui::DockBuilderDockWindow(mOutlinerPanel.GetName().c_str(), Left);
         ImGui::DockBuilderDockWindow(mDetailsPanel.GetName().c_str(), Right);
         ImGui::DockBuilderDockWindow(mConsolePanel.GetName().c_str(), Bottom);
         ImGui::DockBuilderDockWindow(mViewport->GetName().c_str(), Center);
@@ -299,10 +294,6 @@ void FEditorUI::DrawMenu() {
         if (ImGui::BeginMenu("View")) {
             if (ImGui::MenuItem(mConsolePanel.GetName().c_str(), nullptr, mConsolePanel.IsVisible())) {
                 mConsolePanel.SetVisible(!mConsolePanel.IsVisible());
-            }
-
-            if (ImGui::MenuItem(mStatisticsPanel.GetName().c_str(), nullptr, mStatisticsPanel.IsVisible())) {
-                mStatisticsPanel.SetVisible(!mStatisticsPanel.IsVisible());
             }
 
             ImGui::EndMenu();

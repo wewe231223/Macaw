@@ -68,6 +68,7 @@ bool FEditorViewport::Initialize(IRendererModule* Renderer) {
  */
 void FEditorViewport::Shutdown() {
     mClient.GetGizmo().Cancel();
+    mImageSize = {};
     mViewport.reset();
 }
 
@@ -78,6 +79,21 @@ void FEditorViewport::Draw() {
     if (mViewport != nullptr) {
         mViewport->Draw();
     }
+}
+
+void FEditorViewport::DrawStatistics(float DeltaTime, const UWorld* World, const FRenderStats& Render) {
+    if (mImageSize.x < 1.0f || mImageSize.y < 1.0f || !mStatistics.IsVisible()) {
+        return;
+    }
+
+    if (ImGui::Begin(mName.c_str(), nullptr, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoNavInputs)) {
+        mStatistics.Draw(DeltaTime, World, Render, mImageOrigin, mImageSize);
+    }
+    ImGui::End();
+}
+
+FViewportStatistics* FEditorViewport::GetStatistics() {
+    return &mStatistics;
 }
 
 /**
@@ -113,6 +129,7 @@ FRenderTarget* FEditorViewport::GetRenderTarget() const {
  * @note 이미지가 표시되지 않을 때에도 진행 중인 드래그의 종료 입력을 전달합니다.
  */
 void FEditorViewport::DrawUI(float DeltaTime) {
+    mImageSize = {};
     if (mViewport == nullptr) {
         return;
     }
@@ -129,6 +146,8 @@ void FEditorViewport::DrawUI(float DeltaTime) {
             ImGui::Image(ImTextureRef{static_cast<ImTextureID>(reinterpret_cast<std::uintptr_t>(Target->GetNativeTexture()))}, Available);
 
             const ImVec2 Origin{ImGui::GetItemRectMin()};
+            mImageOrigin = {Origin.x, Origin.y};
+            mImageSize = {Available.x, Available.y};
             const ImGuiIO& Input{ImGui::GetIO()};
             FViewportInput State{};
             const float ScaleX{Target->GetWidth() / Available.x};
