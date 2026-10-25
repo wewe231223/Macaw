@@ -27,7 +27,6 @@ public:
     bool SetSRGB(bool SRGB);
     ETextureUsage GetUsage() const;
     bool SetUsage(ETextureUsage Usage);
-    Uint64 GetRenderRevision() const override;
     bool IsValid() const override;
     bool CreateResources(ID3D11Device* Device);
     bool AttachResource(ID3D11Texture2D* Texture, ETextureUsage Usage);
@@ -64,8 +63,6 @@ private:
     ReflectAccessor(mSRGB, IsSRGB, SetSRGB, "SRGB", EPropertyFlags::Edit | EPropertyFlags::Serialize);
     ETextureUsage mUsage{ETextureUsage::ShaderResource};
     ReflectAccessor(mUsage, GetUsage, SetUsage, "Usage", EPropertyFlags::Edit | EPropertyFlags::Transient);
-    Uint64 mRenderRevision{1};
-    ReflectProperty(mRenderRevision, "RenderRevision", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
     Microsoft::WRL::ComPtr<ID3D11Texture2D> mTexture{};
     ReflectProperty(mTexture, "Texture", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
     Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> mShaderResourceView{};
@@ -76,8 +73,6 @@ private:
     ReflectProperty(mDepthStencilView, "DepthStencilView", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
     bool mExternalResource{};
     ReflectProperty(mExternalResource, "ExternalResource", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
-    Uint64 mResourceRevision{};
-    ReflectProperty(mResourceRevision, "ResourceRevision", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
     std::size_t mResourceBytes{};
     ReflectProperty(mResourceBytes, "ResourceBytes", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 };

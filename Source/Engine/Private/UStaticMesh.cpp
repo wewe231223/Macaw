@@ -74,7 +74,6 @@ bool UStaticMesh::SetMeshData(FMeshData MeshData) {
 
     MeshData.SetBounds({Minimum, Maximum});
     mMeshData = std::move(MeshData);
-    ++mRenderRevision;
     ReleaseResources();
     return true;
 }
@@ -97,10 +96,6 @@ Uint32 UStaticMesh::GetIndexCount() const {
 
 Uint32 UStaticMesh::GetUVChannelCount() const {
     return static_cast<Uint32>(mMeshData.GetUVChannels().size());
-}
-
-Uint64 UStaticMesh::GetRenderRevision() const {
-    return mRenderRevision;
 }
 
 bool UStaticMesh::IsValid() const {
@@ -160,7 +155,6 @@ bool UStaticMesh::CreateResources(ID3D11Device* Device) {
     mColorBuffer = std::move(Buffers[3]);
     mIndexBuffer = std::move(Buffers[4]);
     mResourceBytes = VertexCount * (static_cast<std::size_t>(GetPositionStride()) + GetTangentStride() + GetUVStride() + GetColorStride()) + mMeshData.GetIndices().size() * sizeof(Uint32);
-    mResourceRevision = mRenderRevision;
     return true;
 }
 
@@ -170,12 +164,11 @@ void UStaticMesh::ReleaseResources() {
     mUVBuffer.Reset();
     mColorBuffer.Reset();
     mIndexBuffer.Reset();
-    mResourceRevision = 0;
     mResourceBytes = 0;
 }
 
 bool UStaticMesh::HasResources() const {
-    return mResourceRevision == mRenderRevision && mPositionBuffer != nullptr && mTangentBuffer != nullptr && mUVBuffer != nullptr && mColorBuffer != nullptr && mIndexBuffer != nullptr;
+    return mPositionBuffer != nullptr && mTangentBuffer != nullptr && mUVBuffer != nullptr && mColorBuffer != nullptr && mIndexBuffer != nullptr;
 }
 
 ID3D11Buffer* UStaticMesh::GetPositionBuffer() const {

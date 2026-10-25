@@ -26,7 +26,6 @@ bool UTexture2D::Configure(Uint32 SizeX, Uint32 SizeY, ETextureFormat Format, ET
     mSRGB = SRGB;
     mPixels = TArray<Uint8>{};
     mExternalResource = false;
-    ++mRenderRevision;
     return true;
 }
 
@@ -50,7 +49,6 @@ bool UTexture2D::SetPixels(Uint32 SizeX, Uint32 SizeY, ETextureFormat Format, TA
     mPixels = std::move(Pixels);
     mSRGB = SRGB;
     mExternalResource = false;
-    ++mRenderRevision;
     ReleaseResources();
     return true;
 }
@@ -82,7 +80,6 @@ bool UTexture2D::SetSRGB(bool SRGB) {
 
     if (mSRGB != SRGB) {
         mSRGB = SRGB;
-        ++mRenderRevision;
         ReleaseResources();
     }
 
@@ -100,15 +97,10 @@ bool UTexture2D::SetUsage(ETextureUsage Usage) {
 
     if (mUsage != Usage) {
         mUsage = Usage;
-        ++mRenderRevision;
         ReleaseResources();
     }
 
     return true;
-}
-
-Uint64 UTexture2D::GetRenderRevision() const {
-    return mRenderRevision;
 }
 
 bool UTexture2D::IsValid() const {
@@ -159,7 +151,6 @@ bool UTexture2D::CreateResources(ID3D11Device* Device) {
     mShaderResourceView = std::move(ShaderResourceView);
     mRenderTargetView = std::move(RenderTargetView);
     mDepthStencilView = std::move(DepthStencilView);
-    mResourceRevision = mRenderRevision;
     mResourceBytes = static_cast<std::size_t>(mSizeX) * mSizeY * GetBytesPerPixel(mFormat);
     return true;
 }
@@ -247,8 +238,6 @@ bool UTexture2D::AttachResource(ID3D11Texture2D* Texture, ETextureUsage Usage) {
     mSRGB = SRGB;
     mPixels = TArray<Uint8>{};
     mExternalResource = true;
-    ++mRenderRevision;
-    mResourceRevision = mRenderRevision;
     mResourceBytes = static_cast<std::size_t>(mSizeX) * mSizeY * GetBytesPerPixel(mFormat);
     return true;
 }
@@ -258,12 +247,11 @@ void UTexture2D::ReleaseResources() {
     mRenderTargetView.Reset();
     mShaderResourceView.Reset();
     mTexture.Reset();
-    mResourceRevision = 0;
     mResourceBytes = 0;
 }
 
 bool UTexture2D::HasResources() const {
-    return mResourceRevision == mRenderRevision && mTexture != nullptr && ((mUsage & ETextureUsage::ShaderResource) == ETextureUsage::None || mShaderResourceView != nullptr) && ((mUsage & ETextureUsage::RenderTarget) == ETextureUsage::None || mRenderTargetView != nullptr) && ((mUsage & ETextureUsage::DepthStencil) == ETextureUsage::None || mDepthStencilView != nullptr);
+    return mTexture != nullptr && ((mUsage & ETextureUsage::ShaderResource) == ETextureUsage::None || mShaderResourceView != nullptr) && ((mUsage & ETextureUsage::RenderTarget) == ETextureUsage::None || mRenderTargetView != nullptr) && ((mUsage & ETextureUsage::DepthStencil) == ETextureUsage::None || mDepthStencilView != nullptr);
 }
 
 ID3D11Texture2D* UTexture2D::GetTexture() const {

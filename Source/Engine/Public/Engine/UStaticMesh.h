@@ -23,7 +23,6 @@ public:
     Uint32 GetVertexCount() const;
     Uint32 GetIndexCount() const;
     Uint32 GetUVChannelCount() const;
-    Uint64 GetRenderRevision() const;
     bool IsValid() const;
     bool CreateResources(ID3D11Device* Device);
     void ReleaseResources();
@@ -46,8 +45,6 @@ private:
 private:
     FMeshData mMeshData{};
     ReflectProperty(mMeshData, "MeshData", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
-    Uint64 mRenderRevision{1};
-    ReflectProperty(mRenderRevision, "RenderRevision", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
     Microsoft::WRL::ComPtr<ID3D11Buffer> mPositionBuffer{};
     ReflectProperty(mPositionBuffer, "PositionBuffer", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
     Microsoft::WRL::ComPtr<ID3D11Buffer> mTangentBuffer{};
@@ -58,8 +55,6 @@ private:
     ReflectProperty(mColorBuffer, "ColorBuffer", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
     Microsoft::WRL::ComPtr<ID3D11Buffer> mIndexBuffer{};
     ReflectProperty(mIndexBuffer, "IndexBuffer", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
-    Uint64 mResourceRevision{};
-    ReflectProperty(mResourceRevision, "ResourceRevision", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
     std::size_t mResourceBytes{};
     ReflectProperty(mResourceBytes, "ResourceBytes", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 };

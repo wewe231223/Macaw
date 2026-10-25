@@ -18,7 +18,6 @@ public:
     virtual Uint32 GetSizeY() const = 0;
     virtual ETextureFormat GetFormat() const = 0;
     virtual bool IsSRGB() const = 0;
-    virtual Uint64 GetRenderRevision() const = 0;
     virtual bool IsValid() const = 0;
 
 private:
