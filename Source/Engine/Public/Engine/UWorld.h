@@ -166,7 +166,6 @@ public:
     bool SetInputTarget(AActor* Actor);
     AActor* GetInputTarget() const;
     bool Input(const FViewportInput& Input, float DeltaTime);
-    bool PostDuplicate(const UObject* Source, const FObjectDuplicationContext* Context) override;
     /**
      * @fn UClass* UWorld::GetClass() const
      * @brief 객체의 실제 클래스 메타데이터를 반환합니다.

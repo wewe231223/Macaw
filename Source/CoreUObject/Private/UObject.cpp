@@ -91,7 +91,16 @@ bool UObject::RestoreGuid(const FGuid& Guid) {
  * @brief 아카이브 모드에 따라 값을 읽거나 저장합니다.
  */
 void UObject::Serialize(FArchive& Archive) {
-    GetClass()->SerializeClassProperties(this, Archive);
+    if (!Archive.IsLoading() || Archive.HasField("Id")) {
+        FGuid Guid{mGuid};
+        Archive.SerializeObjectGuid("Id", Guid);
+
+        if (Archive.IsLoading() && !Archive.HasError() && !RestoreGuid(Guid)) {
+            Archive.SetError("Invalid object identity");
+        }
+    }
+
+    GetClass()->SerializeClassProperties(this, Archive, UObject::StaticClass()->FindClassProperty("Id"));
 }
 
 /**

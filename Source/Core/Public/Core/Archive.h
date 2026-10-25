@@ -8,6 +8,7 @@
 
 #include "Core/ReflectionMacros.h"
 #include "Core/Guid.h"
+#include "Core/GuidHash.h"
 #include "Core/Math.h"
 
 #include <string_view>
@@ -61,6 +62,11 @@ public:
      * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
      */
     bool IsLoading() const;
+
+    bool IsDuplicating() const;
+    void SetObjectGuidRemapping(const TMap<FGuid, FGuid, FGuidHash>* Remapping);
+    void SerializeObjectGuid(std::string_view Name, FGuid& Value);
+    bool RemapObjectReference(FGuid& Value);
 
     /**
      * @brief 아카이브에 오류 메시지가 기록되어 있는지 검사합니다.
@@ -218,6 +224,9 @@ private:
      */
     EArchiveMode mMode{};
     ReflectProperty(mMode, "Mode", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
+    const TMap<FGuid, FGuid, FGuidHash>* mObjectGuidRemapping{};
+    ReflectProperty(mObjectGuidRemapping, "ObjectGuidRemapping", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 
     /**
      * @brief 처음 발생한 오류 메시지입니다.

@@ -1,6 +1,7 @@
 local Reflection = dofile("Scripts/GenerateReflection.lua")
 
 newoption { trigger = "reflection-module", value = "MODULE", description = "Generate reflection for one module" }
+newoption { trigger = "serialization-tests", description = "Build serialization regression tests" }
 newaction { trigger = "generate-reflection", description = "Generate reflection from property annotations", execute = function() Reflection.Generate(_OPTIONS["reflection-module"]) end }
 
 if _ACTION == "generate-reflection" then
@@ -119,3 +120,7 @@ local function ConfigureExecutable(Name, Kind, Directory)
 end
 
 ConfigureExecutable("Macaw", "WindowedApp", "Source/App")
+
+if _OPTIONS["serialization-tests"] then
+    ConfigureExecutable("SerializationTests", "ConsoleApp", "Tests/Serialization")
+end

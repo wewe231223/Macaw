@@ -52,20 +52,4 @@ private:
      * @brief 월드 복제기의 리플렉션 등록 함수와 빌더 접근 권한입니다.
      */
     ReflectMembers();
-    /**
-     * @brief 객체 식별자와 Transient를 제외한 리플렉션 프로퍼티를 복사합니다.
-     * @param[in] Source 읽을 원본 객체입니다.
-     * @param[in,out] Destination 같은 클래스의 복제 대상입니다.
-     * @param[out] Error 복사할 수 없는 프로퍼티의 진단입니다.
-     * @return 대상 프로퍼티를 모두 복사하면 true입니다.
-     */
-    static bool CopyProperties(const UObject* Source, UObject* Destination, FString& Error);
-    /**
-     * @brief 원본 클래스의 객체를 생성하고 등록한 뒤 프로퍼티를 복사합니다.
-     * @param[in] Source 생성할 클래스와 복사 값을 제공하는 원본입니다.
-     * @param[in,out] Duplication 원본과 새 객체의 대응 관계를 추가할 표입니다.
-     * @param[out] Error 생성, 등록 또는 프로퍼티 복사의 실패 원인입니다.
-     * @return 새 객체의 단독 소유권이며 실패하면 nullptr입니다.
-     */
-    static std::unique_ptr<UObject> CreateObject(const UObject* Source, FObjectDuplicationContext* Duplication, FString& Error);
 };

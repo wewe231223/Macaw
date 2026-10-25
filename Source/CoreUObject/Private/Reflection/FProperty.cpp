@@ -133,7 +133,7 @@ bool FProperty::WriteValue(void* Container, const FPropertyValue& Value, FWriter
  * @brief 프로퍼티의 저장 정책과 타입에 맞추어 값을 직렬화합니다.
  */
 void FProperty::SerializeValue(void* Container, FArchive& Archive) const {
-    if (!HasFlag(EPropertyFlags::Serialize) || HasFlag(EPropertyFlags::Transient) || Archive.HasError() || (Archive.IsLoading() && !Archive.HasField(mName))) {
+    if ((!Archive.IsDuplicating() && !HasFlag(EPropertyFlags::Serialize)) || HasFlag(EPropertyFlags::Transient) || Archive.HasError() || (Archive.IsLoading() && !Archive.HasField(mName))) {
         return;
     }
 

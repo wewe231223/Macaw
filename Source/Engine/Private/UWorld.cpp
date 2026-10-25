@@ -9,7 +9,6 @@
 #include "Engine/Component/UStaticMeshComponent.h"
 #include "Engine/Component/UCameraComponent.h"
 #include "Engine/FViewportInput.h"
-#include "CoreUObject/FObjectDuplicationContext.h"
 #include "Core/Math.h"
 #include "Engine/Component/UPrimitiveComponent.h"
 #include "Engine/AStaticMeshActor.h"
@@ -444,18 +443,6 @@ bool UWorld::Input(const FViewportInput& Input, float DeltaTime) {
     FDispatchScope Scope{this};
     Actor->Input(Input, DeltaTime);
     return true;
-}
-
-bool UWorld::PostDuplicate(const UObject* Source, const FObjectDuplicationContext* Context) {
-    const auto* Original{Cast<UWorld>(Source)};
-    if (!Super::PostDuplicate(Source, Context) || Original == nullptr || Context == nullptr) {
-        return false;
-    }
-    UCameraComponent* Camera{Original->GetActiveCamera()};
-    AActor* Actor{Original->GetInputTarget()};
-    auto* CameraCopy{Cast<UCameraComponent>(Context->FindDuplicate(Camera))};
-    auto* ActorCopy{Cast<AActor>(Context->FindDuplicate(Actor))};
-    return (Camera == nullptr || CameraCopy != nullptr) && (Actor == nullptr || ActorCopy != nullptr) && SetActiveCamera(CameraCopy) && SetInputTarget(ActorCopy);
 }
 
 /**

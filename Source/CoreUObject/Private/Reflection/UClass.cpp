@@ -118,8 +118,10 @@ const FProperty* UClass::FindClassProperty(const FString& Name) const {
 /**
  * @brief 상속된 프로퍼티를 포함하여 클래스 값을 직렬화합니다.
  */
-void UClass::SerializeClassProperties(void* Container, FArchive& Archive) const {
+void UClass::SerializeClassProperties(void* Container, FArchive& Archive, const FProperty* Excluded) const {
     for (const FProperty* Property : mAllProperties) {
-        Property->SerializeValue(Container, Archive);
+        if (Property != Excluded) {
+            Property->SerializeValue(Container, Archive);
+        }
     }
 }

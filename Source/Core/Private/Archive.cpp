@@ -31,6 +31,38 @@ bool FArchive::IsLoading() const {
     return mMode == EArchiveMode::Loading;
 }
 
+bool FArchive::IsDuplicating() const {
+    return mObjectGuidRemapping != nullptr;
+}
+
+void FArchive::SetObjectGuidRemapping(const TMap<FGuid, FGuid, FGuidHash>* Remapping) {
+    mObjectGuidRemapping = Remapping;
+}
+
+void FArchive::SerializeObjectGuid(std::string_view Name, FGuid& Value) {
+    Serialize(Name, Value);
+
+    if (IsLoading() && !HasError()) {
+        RemapObjectReference(Value);
+    }
+}
+
+bool FArchive::RemapObjectReference(FGuid& Value) {
+    if (mObjectGuidRemapping == nullptr || !Value.IsValid()) {
+        return true;
+    }
+
+    const auto Position{mObjectGuidRemapping->find(Value)};
+
+    if (Position == mObjectGuidRemapping->end() || !Position->second.IsValid()) {
+        SetError("Object reference is outside the duplication graph");
+        return false;
+    }
+
+    Value = Position->second;
+    return true;
+}
+
 /**
  * @brief 아카이브에 오류 메시지가 기록되어 있는지 검사합니다.
  */
