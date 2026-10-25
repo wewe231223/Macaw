@@ -4,7 +4,12 @@
 #include "Engine/ETextureUsage.h"
 
 #include <d3d11.h>
+#include <filesystem>
 #include <wrl/client.h>
+
+namespace DirectX {
+    class ScratchImage;
+}
 
 class UTexture2D final : public UTexture {
 public:
@@ -12,15 +17,18 @@ public:
 
 public:
     UTexture2D();
+    explicit UTexture2D(const std::filesystem::path& ImagePath, bool SRGB = true);
     ~UTexture2D() override;
 
 public:
     ReflectClass(UTexture2D);
 
+    bool LoadFromFile(const std::filesystem::path& ImagePath, bool SRGB = true);
     bool Configure(Uint32 SizeX, Uint32 SizeY, ETextureFormat Format, ETextureUsage Usage, bool SRGB = false);
     bool SetPixels(Uint32 SizeX, Uint32 SizeY, ETextureFormat Format, TArray<Uint8> Pixels);
     Uint32 GetSizeX() const override;
     Uint32 GetSizeY() const override;
+    Uint32 GetMipLevels() const;
     ETextureFormat GetFormat() const override;
     const TArray<Uint8>& GetPixels() const;
     bool IsSRGB() const override;
@@ -40,6 +48,7 @@ public:
 
 private:
     ReflectMembers();
+    bool SetImageData(DirectX::ScratchImage& SourceImage, bool SRGB);
     static bool IsValidSize(Uint32 SizeX, Uint32 SizeY);
     static bool IsDepthFormat(ETextureFormat Format);
     static bool ValidateUsage(ETextureFormat Format, ETextureUsage Usage, bool SRGB);
@@ -55,10 +64,14 @@ private:
     ReflectProperty(mSizeX, "SizeX", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
     Uint32 mSizeY{};
     ReflectProperty(mSizeY, "SizeY", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    Uint32 mMipLevels{1};
+    ReflectProperty(mMipLevels, "MipLevels", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
     ETextureFormat mFormat{ETextureFormat::RGBA8};
     ReflectProperty(mFormat, "Format", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
     TArray<Uint8> mPixels{};
     ReflectProperty(mPixels, "Pixels", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    TArray<Uint8> mDDSData{};
+    ReflectProperty(mDDSData, "DDSData", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
     bool mSRGB{true};
     ReflectAccessor(mSRGB, IsSRGB, SetSRGB, "SRGB", EPropertyFlags::Edit | EPropertyFlags::Serialize);
     ETextureUsage mUsage{ETextureUsage::ShaderResource};

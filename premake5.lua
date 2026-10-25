@@ -109,7 +109,12 @@ local function ConfigureExecutable(Name, Kind, Directory)
     prebuildcommands { '"' .. _PREMAKE_COMMAND .. '" --file="' .. path.getabsolute("premake5.lua") .. '" generate-reflection --reflection-module=App' }
     AddIncludes("Editor", {})
     AddIncludes("Renderer", {})
-    links { "Editor", "Engine", "Renderer", "Platform", "Serialization", "RenderCore", "CoreUObject", "Core", "ImGui", "d3d11", "dxgi", "d3dcompiler", "user32", "gdi32", "dwmapi", "imm32", "ole32", "comdlg32", "shell32" }
+    links { "Editor", "Engine", "Renderer", "Platform", "Serialization", "RenderCore", "CoreUObject", "Core", "ImGui", "DirectXTex", "d3d11", "dxgi", "d3dcompiler", "user32", "gdi32", "dwmapi", "imm32", "ole32", "windowscodecs", "comdlg32", "shell32" }
+    filter "configurations:Debug"
+        libdirs { "Externals/bin/debug" }
+    filter "configurations:Release"
+        libdirs { "Externals/bin/release" }
+    filter {}
     debugdir "%{wks.location}"
 end
 
