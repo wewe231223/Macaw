@@ -88,6 +88,8 @@ private:
      * @brief 장면 파일과 패널 표시 메뉴를 그립니다.
      */
     void DrawMenu();
+    void DrawEditorToolbar();
+    void DrawPlayControls();
     /**
      * @brief 에디터 패널의 초기 ImGui 도킹 레이아웃을 구성합니다.
      */

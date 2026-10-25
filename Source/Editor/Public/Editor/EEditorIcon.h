@@ -38,5 +38,9 @@ enum class EEditorIcon {
     /**
      * @brief 그리드 설정을 나타내는 격자 아이콘입니다.
      */
-    Grid
+    Grid,
+    Play,
+    Pause,
+    Step,
+    Stop
 };

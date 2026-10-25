@@ -75,6 +75,20 @@ void EditorStyle::DrawIcon(EIcon Icon, const ImVec2& Origin, float Size, ImU32 C
         }
 
         break;
+    case EIcon::Play:
+        DrawList->AddTriangleFilled(Point(6.0f, 3.0f), Point(17.0f, 10.0f), Point(6.0f, 17.0f), Color);
+        break;
+    case EIcon::Pause:
+        DrawList->AddRectFilled(Point(4.0f, 4.0f), Point(8.0f, 16.0f), Color, Scale);
+        DrawList->AddRectFilled(Point(12.0f, 4.0f), Point(16.0f, 16.0f), Color, Scale);
+        break;
+    case EIcon::Step:
+        DrawList->AddTriangleFilled(Point(3.0f, 4.0f), Point(13.0f, 10.0f), Point(3.0f, 16.0f), Color);
+        DrawList->AddRectFilled(Point(15.0f, 4.0f), Point(18.0f, 16.0f), Color, Scale);
+        break;
+    case EIcon::Stop:
+        DrawList->AddRectFilled(Point(4.0f, 4.0f), Point(16.0f, 16.0f), Color, Scale);
+        break;
     }
 }
 
@@ -95,7 +109,8 @@ bool EditorStyle::IconButton(const char* Label, EIcon Icon, bool Selected, bool 
     const bool Pressed{ImGui::Button("##Button", ImVec2{Height + (Dropdown ? 12.0f : 0.0f), Height})};
     const ImVec2 Minimum{ImGui::GetItemRectMin()};
     const ImVec2 Origin{Minimum.x + (Height - IconSize) * 0.5f, Minimum.y + (Height - IconSize) * 0.5f};
-    const ImU32 Color{ImGui::GetColorU32(Selected ? ImVec4{0.30f, 0.72f, 1.0f, 1.0f} : ImGui::GetStyleColorVec4(ImGuiCol_Text))};
+    const ImVec4 Foreground{Icon == EIcon::Play ? ImVec4{0.30f, 0.85f, 0.40f, 1.0f} : Icon == EIcon::Stop ? ImVec4{0.95f, 0.30f, 0.28f, 1.0f} : Selected ? ImVec4{0.30f, 0.72f, 1.0f, 1.0f} : ImGui::GetStyleColorVec4(ImGuiCol_Text)};
+    const ImU32 Color{ImGui::GetColorU32(Foreground)};
     DrawIcon(Icon, Origin, IconSize, Color);
 
     if (Dropdown) {

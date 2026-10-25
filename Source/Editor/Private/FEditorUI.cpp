@@ -5,6 +5,7 @@
  */
 
 #include "FEditorUI.h"
+#include "EditorStyle.h"
 #include "Editor/FEditorContext.h"
 #include "Editor/FEditorViewport.h"
 #include "Editor/FPlayInEditorSession.h"
@@ -159,6 +160,7 @@ bool FEditorUI::BeginFrame(float DeltaTime) {
     ImGui::NewFrame();
 
     DrawMenu();
+    DrawEditorToolbar();
     BuildLayout();
     FEditorContext* Inspection{mPlaySession->IsActive() ? mPlaySession->GetInspectionContext() : mContext};
     mOutlinerPanel.SetEditorContext(Inspection);
@@ -254,6 +256,51 @@ void FEditorUI::BuildLayout() {
     }
 }
 
+void FEditorUI::DrawEditorToolbar() {
+    EditorStyle::PushViewportToolbar();
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{8.0f, 4.0f});
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+    ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4{0.10f, 0.10f, 0.10f, 1.0f});
+    const float Height{ImGui::GetFrameHeight() + ImGui::GetStyle().WindowPadding.y * 2.0f};
+    const ImGuiWindowFlags Flags{ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoFocusOnAppearing};
+
+    if (ImGui::BeginViewportSideBar("##EditorToolbar", ImGui::GetMainViewport(), ImGuiDir_Up, Height, Flags)) {
+        DrawPlayControls();
+        ImGui::SameLine(0.0f, 12.0f);
+        ImGui::AlignTextToFramePadding();
+        ImGui::TextDisabled("%s%s%s", mPlaySession->IsActive() ? mPlaySession->IsPaused() ? "[Paused] " : "[Playing] " : "", mContext->GetScenePath().empty() ? "Untitled" : PathText(mContext->GetScenePath().filename()).c_str(), mContext->IsSceneDirty() ? " *" : "");
+    }
+    ImGui::End();
+    ImGui::PopStyleColor();
+    ImGui::PopStyleVar(2);
+    EditorStyle::PopViewportToolbar();
+}
+
+void FEditorUI::DrawPlayControls() {
+    ImGui::PushID("PIEControls");
+    const bool Active{mPlaySession->IsActive()};
+    const bool Paused{mPlaySession->IsPaused()};
+    const bool CanStart{!Active && mPlaySession->CanStart()};
+    const char* PlayTooltip{Active ? "Stop (Esc)" : CanStart ? "Play (Alt+P)" : "Play requires an active world camera and an idle editor"};
+
+    if (EditorStyle::IconButton("PlayStop", Active ? EditorStyle::EIcon::Stop : EditorStyle::EIcon::Play, false, Active || CanStart, false, PlayTooltip)) {
+        if (Active) {
+            mPlaySession->Stop();
+        } else {
+            mPlaySession->Start();
+        }
+    }
+    ImGui::SameLine(0.0f, 4.0f);
+    if (EditorStyle::IconButton("PauseResume", Paused ? EditorStyle::EIcon::Play : EditorStyle::EIcon::Pause, Paused, Active, false, Paused ? "Resume" : "Pause")) {
+        mPlaySession->SetPaused(!Paused);
+    }
+    ImGui::SameLine(0.0f, 4.0f);
+    if (EditorStyle::IconButton("Step", EditorStyle::EIcon::Step, false, Active && Paused, false, "Advance 1 Tick")) {
+        mPlaySession->Step();
+    }
+    ImGui::PopID();
+}
+
 /**
  * @brief 장면 파일과 패널 표시 메뉴를 그립니다.
  */
@@ -307,34 +354,6 @@ void FEditorUI::DrawMenu() {
             ImGui::EndMenu();
         }
 
-        ImGui::Separator();
-
-        if (!mPlaySession->IsActive()) {
-            ImGui::BeginDisabled(!mPlaySession->CanStart());
-            if (ImGui::Button("Play")) {
-                mPlaySession->Start();
-            }
-            ImGui::EndDisabled();
-            if (!mPlaySession->CanStart() && ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
-                ImGui::SetTooltip("PIE requires an active world camera and an idle editor");
-            }
-        } else {
-            if (ImGui::Button(mPlaySession->IsPaused() ? "Resume" : "Pause")) {
-                mPlaySession->SetPaused(!mPlaySession->IsPaused());
-            }
-            ImGui::SameLine();
-            ImGui::BeginDisabled(!mPlaySession->IsPaused());
-            if (ImGui::Button("Step")) {
-                mPlaySession->Step();
-            }
-            ImGui::EndDisabled();
-            ImGui::SameLine();
-            if (ImGui::Button("Stop")) {
-                mPlaySession->Stop();
-            }
-        }
-        ImGui::SameLine();
-        ImGui::TextDisabled("%s%s%s", mPlaySession->IsActive() ? mPlaySession->IsPaused() ? "[Paused] " : "[Playing] " : "", mContext->GetScenePath().empty() ? "Untitled" : PathText(mContext->GetScenePath().filename()).c_str(), mContext->IsSceneDirty() ? " *" : "");
         ImGui::EndMainMenuBar();
     }
 
