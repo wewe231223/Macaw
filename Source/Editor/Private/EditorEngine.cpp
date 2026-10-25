@@ -132,7 +132,7 @@ void UEditorEngine::TickFrame(float DeltaTime) {
     mPlaySession.Update();
     const bool HasUI{mUI->BeginFrame(DeltaTime)};
     mPlaySession.Update();
-    UEngine::Tick(DeltaTime);
+    UEngine::Tick(DeltaTime, !mPlaySession.IsActive());
     mPlaySession.Update();
     SynchronizeWorld();
     if (HasUI) {

@@ -85,7 +85,7 @@ void UActorComponent::BeginPlay() {
 }
 
 /**
- * @brief 컴포넌트의 게임 갱신 시 호출되는 확장 지점입니다.
+ * @brief 컴포넌트의 실행 또는 허용된 편집 갱신 시 호출되는 확장 지점입니다.
  */
 void UActorComponent::Tick(float DeltaTime) {
 }
@@ -103,6 +103,14 @@ bool UActorComponent::HasBegunPlay() const {
     return mHasBegunPlay;
 }
 
+bool UActorComponent::IsEditorTickable() const {
+    return mEditorTickable;
+}
+
+void UActorComponent::SetEditorTickable(bool EditorTickable) {
+    mEditorTickable = EditorTickable;
+}
+
 /**
  * @brief 시작 상태를 설정하고 중복되지 않도록 시작 콜백을 전달합니다.
  */
@@ -114,10 +122,10 @@ void UActorComponent::DispatchBeginPlay() {
 }
 
 /**
- * @brief 시작되었고 삭제 예정이 아닌 컴포넌트의 갱신 콜백을 전달합니다.
+ * @brief 등록된 컴포넌트의 실행 상태 또는 편집 Tick 설정에 따라 갱신을 전달합니다.
  */
-void UActorComponent::DispatchTick(float DeltaTime) {
-    if (mHasBegunPlay && mWorld != nullptr && mOwner != nullptr && !mOwner->IsPendingDestroy()) {
+void UActorComponent::DispatchTick(float DeltaTime, bool EditorTick) {
+    if (mWorld != nullptr && mOwner != nullptr && mOwner->GetWorld() == mWorld && !mOwner->IsPendingDestroy() && (EditorTick ? mEditorTickable : mHasBegunPlay)) {
         Tick(DeltaTime);
     }
 }

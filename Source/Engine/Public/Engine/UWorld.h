@@ -129,9 +129,9 @@ public:
      */
     void EndPlay();
     /**
-     * @brief Playing 상태에서 한 번의 게임 갱신을 수행합니다.
+     * @brief Playing 상태의 게임 갱신 또는 정지한 편집 월드의 선택적 갱신을 수행합니다.
      * @param[in] DeltaTime 진행할 초 단위 시간이며 유한한 0 이상의 값이어야 합니다.
-     * @return 시간과 Tick 횟수를 갱신하여 전달을 수행하면 true입니다.
+     * @return 갱신 전달을 수행하면 true이며 편집 Tick은 게임 시간과 횟수에 합산하지 않습니다.
      */
     bool Tick(float DeltaTime);
     /**
@@ -296,9 +296,10 @@ private:
     /**
      * @brief 시간을 검증하고 액터 핸들 스냅샷으로 갱신을 전달합니다.
      * @param[in] DeltaTime 진행할 유한한 0 이상의 초 단위 시간입니다.
-     * @return 재진입 없이 시간과 횟수를 갱신하면 true입니다.
+     * @param[in] EditorTick 객체별 편집 Tick 설정을 검사하고 게임 시간은 유지할지 지정합니다.
+     * @return 재진입 없이 갱신 전달을 수행하면 true입니다.
      */
-    bool TickActors(float DeltaTime);
+    bool TickActors(float DeltaTime, bool EditorTick);
     /**
      * @brief 컨테이너 변경에 영향받지 않는 액터 핸들 스냅샷을 만듭니다.
      * @return 영속 레벨에 속한 액터의 전역 핸들 목록입니다.

@@ -139,7 +139,7 @@ void AActor::BeginPlay() {
 }
 
 /**
- * @brief 액터의 게임 갱신 시 호출되는 확장 지점입니다.
+ * @brief 액터의 실행 또는 허용된 편집 갱신 시 호출되는 확장 지점입니다.
  */
 void AActor::Tick(float DeltaTime) {
 }
@@ -165,6 +165,14 @@ bool AActor::HasBegunPlay() const {
  */
 bool AActor::IsPendingDestroy() const {
     return mPendingDestroy;
+}
+
+bool AActor::IsEditorTickable() const {
+    return mEditorTickable;
+}
+
+void AActor::SetEditorTickable(bool EditorTickable) {
+    mEditorTickable = EditorTickable;
 }
 
 /**
@@ -209,23 +217,25 @@ void AActor::DispatchBeginPlay() {
 }
 
 /**
- * @brief 시작되었고 삭제 예정이 아닌 액터의 갱신 콜백을 전달합니다.
+ * @brief 액터와 각 컴포넌트의 실행 상태 및 편집 Tick 설정에 따라 갱신을 전달합니다.
  */
-void AActor::DispatchTick(float DeltaTime) {
-    if (!mHasBegunPlay || mPendingDestroy) {
+void AActor::DispatchTick(float DeltaTime, bool EditorTick) {
+    if (mWorld == nullptr || mPendingDestroy || (!EditorTick && !mHasBegunPlay)) {
         return;
     }
 
     const auto Handles{GetComponentHandles()};
-    Tick(DeltaTime);
+    if (!EditorTick || mEditorTickable) {
+        Tick(DeltaTime);
+    }
 
     for (const FObjectHandle Handle : Handles) {
-        if (mPendingDestroy || !mHasBegunPlay || mWorld == nullptr || mWorld->mEndPlayRequested || mWorld->mShutdownRequested) {
+        if (mPendingDestroy || mWorld == nullptr || (!EditorTick && !mHasBegunPlay) || mWorld->mEndPlayRequested || mWorld->mShutdownRequested) {
             break;
         }
 
         if (auto* Component{Cast<UActorComponent>(FObjectRegistry::Get()->Resolve(Handle))}; Component != nullptr && Component->GetOwner() == this) {
-            Component->DispatchTick(DeltaTime);
+            Component->DispatchTick(DeltaTime, EditorTick);
         }
     }
 }

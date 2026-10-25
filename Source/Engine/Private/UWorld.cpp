@@ -363,10 +363,11 @@ void UWorld::EndPlay() {
 }
 
 /**
- * @brief Playing 상태에서 한 번의 게임 갱신을 수행합니다.
+ * @brief Playing 상태의 게임 갱신 또는 정지한 편집 월드의 선택적 갱신을 수행합니다.
  */
 bool UWorld::Tick(float DeltaTime) {
-    return mPlayState == EWorldPlayState::Playing && TickActors(DeltaTime);
+    const bool EditorTick{mPlayState == EWorldPlayState::Stopped && (mWorldType == EWorldType::Editor || mWorldType == EWorldType::EditorPreview)};
+    return (mPlayState == EWorldPlayState::Playing || EditorTick) && TickActors(DeltaTime, EditorTick);
 }
 
 /**
@@ -385,7 +386,7 @@ bool UWorld::SetPaused(bool Paused) {
  * @brief Paused 상태를 유지하면서 게임 갱신을 한 번 수행합니다.
  */
 bool UWorld::Step(float DeltaTime) {
-    return mPlayState == EWorldPlayState::Paused && DeltaTime > 0.0f && TickActors(DeltaTime);
+    return mPlayState == EWorldPlayState::Paused && DeltaTime > 0.0f && TickActors(DeltaTime, false);
 }
 
 /**
@@ -460,14 +461,16 @@ bool UWorld::PostDuplicate(const UObject* Source, const FObjectDuplicationContex
 /**
  * @brief 시간을 검증하고 액터 핸들 스냅샷으로 갱신을 전달합니다.
  */
-bool UWorld::TickActors(float DeltaTime) {
-    if (!std::isfinite(DeltaTime) || DeltaTime < 0.0f || !std::isfinite(mTimeSeconds + DeltaTime) || IsDispatching() || mShuttingDown) {
+bool UWorld::TickActors(float DeltaTime, bool EditorTick) {
+    if (!std::isfinite(DeltaTime) || DeltaTime < 0.0f || (!EditorTick && !std::isfinite(mTimeSeconds + DeltaTime)) || IsDispatching() || mShuttingDown) {
         return false;
     }
 
     FDispatchScope Scope{this};
-    mTimeSeconds += DeltaTime;
-    ++mTickCount;
+    if (!EditorTick) {
+        mTimeSeconds += DeltaTime;
+        ++mTickCount;
+    }
     const auto Handles{GetActorHandles()};
 
     for (const FObjectHandle Handle : Handles) {
@@ -476,7 +479,7 @@ bool UWorld::TickActors(float DeltaTime) {
         }
 
         if (AActor* Actor{ResolveActor(Handle)}; Actor != nullptr && !Actor->IsPendingDestroy()) {
-            Actor->DispatchTick(DeltaTime);
+            Actor->DispatchTick(DeltaTime, EditorTick);
         }
     }
 

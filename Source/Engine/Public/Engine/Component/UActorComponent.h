@@ -74,8 +74,8 @@ public:
      */
     virtual void BeginPlay();
     /**
-     * @brief 컴포넌트의 게임 갱신 시 호출되는 확장 지점입니다.
-     * @param[in] DeltaTime 이번 갱신이 진행하는 초 단위 게임 시간입니다.
+     * @brief 컴포넌트의 실행 또는 허용된 편집 갱신 시 호출되는 확장 지점입니다.
+     * @param[in] DeltaTime 이번 갱신이 진행하는 초 단위 시간입니다.
      */
     virtual void Tick(float DeltaTime);
     /**
@@ -87,6 +87,8 @@ public:
      * @return 실행 시작 전달 이후 종료 전달 전이면 true입니다.
      */
     bool HasBegunPlay() const;
+    bool IsEditorTickable() const;
+    void SetEditorTickable(bool EditorTickable);
 
 private:
     /**
@@ -107,10 +109,11 @@ private:
      */
     void DispatchBeginPlay();
     /**
-     * @brief 시작되었고 삭제 예정이 아닌 컴포넌트의 갱신 콜백을 전달합니다.
-     * @param[in] DeltaTime 이번 갱신의 초 단위 게임 시간입니다.
+     * @brief 등록된 컴포넌트의 실행 상태 또는 편집 Tick 설정에 따라 갱신을 전달합니다.
+     * @param[in] DeltaTime 이번 갱신의 초 단위 시간입니다.
+     * @param[in] EditorTick BeginPlay 없이 편집 Tick 설정을 검사할지 지정합니다.
      */
-    void DispatchTick(float DeltaTime);
+    void DispatchTick(float DeltaTime, bool EditorTick);
     /**
      * @brief 시작 상태를 먼저 해제하여 종료 콜백의 중복 전달을 막습니다.
      */
@@ -132,4 +135,6 @@ private:
      */
     bool mHasBegunPlay{};
     ReflectProperty(mHasBegunPlay, "HasBegunPlay", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    bool mEditorTickable{};
+    ReflectProperty(mEditorTickable, "EditorTickable", EPropertyFlags::Edit | EPropertyFlags::Serialize);
 };

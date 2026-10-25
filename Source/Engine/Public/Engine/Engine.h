@@ -66,9 +66,10 @@ public:
     /**
      * @brief 등록된 월드의 핸들 스냅샷을 순회하여 실행을 갱신합니다.
      * @param[in] DeltaTime 진행할 초 단위 시간이며 유한한 0 이상의 값이어야 합니다.
-     * @note 실행 중인 월드만 일반 Tick을 수행합니다. 콜백에서 요청한 엔진 종료는 순회를 마친 뒤 처리합니다.
+     * @param[in] TickEditorWorlds 편집 및 편집 미리보기 월드의 Tick 전달을 허용할지 지정합니다.
+     * @note 월드 상태와 객체별 설정으로 Tick을 제어하며 콜백에서 요청한 엔진 종료는 순회를 마친 뒤 처리합니다.
      */
-    void Tick(float DeltaTime);
+    void Tick(float DeltaTime, bool TickEditorWorlds = true);
     /**
      * @brief 지정한 용도의 월드 컨텍스트를 생성하여 엔진이 소유합니다.
      * @param[in] Type 새 월드의 편집 또는 실행 용도입니다.

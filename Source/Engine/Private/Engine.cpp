@@ -119,7 +119,7 @@ void UEngine::Shutdown() {
 /**
  * @brief 등록된 월드의 핸들 스냅샷을 순회하여 실행을 갱신합니다.
  */
-void UEngine::Tick(float DeltaTime) {
+void UEngine::Tick(float DeltaTime, bool TickEditorWorlds) {
     if (!mInitialized || IsDispatching() || !std::isfinite(DeltaTime) || DeltaTime < 0.0f) {
         return;
     }
@@ -138,6 +138,9 @@ void UEngine::Tick(float DeltaTime) {
         }
 
         if (UWorld* World{GetWorld(Handle)}) {
+            if (!TickEditorWorlds && (World->GetWorldType() == EWorldType::Editor || World->GetWorldType() == EWorldType::EditorPreview)) {
+                continue;
+            }
             World->Tick(DeltaTime);
         }
     }
