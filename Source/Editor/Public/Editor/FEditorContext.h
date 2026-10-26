@@ -21,8 +21,9 @@ class UObject;
 class AActor;
 class AStaticMeshActor;
 class ACameraActor;
-class ABillboardTextActor;
 class UCameraComponent;
+class UActorComponent;
+class UClass;
 class FProperty;
 class FWorldContext;
 class IRendererModule;
@@ -132,7 +133,9 @@ public:
      * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며, 사용할 수 없으면 nullptr입니다.
      */
     ACameraActor* SpawnCamera();
-    ABillboardTextActor* SpawnText();
+    AActor* SpawnText();
+    bool CanAddComponent(const UClass* Class) const;
+    UActorComponent* AddComponent(const UClass* Class);
     /**
      * @brief 현재 선택에서 사용할 수 있는 카메라 컴포넌트를 조회합니다.
      * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며, 사용할 수 없으면 nullptr입니다.

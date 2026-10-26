@@ -13,6 +13,33 @@
 struct FSceneViewFamily;
 class FScene;
 struct FBox;
+class FMaterialPipeline;
+class UMaterial;
+
+struct FMeshDrawCommand {
+public:
+    ReflectTypes(FMeshDrawCommand);
+
+public:
+    FMeshDrawCommand(FMaterialPipeline* Pipeline, UMaterial* Material, UStaticMesh* Mesh, ID3D11Buffer* ObjectBuffer);
+
+public:
+    ReflectStruct(FMeshDrawCommand);
+
+private:
+    ReflectMembers();
+    friend class FSceneRenderer;
+
+private:
+    FMaterialPipeline* mPipeline{};
+    ReflectProperty(mPipeline, "Pipeline", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    UMaterial* mMaterial{};
+    ReflectProperty(mMaterial, "Material", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    UStaticMesh* mMesh{};
+    ReflectProperty(mMesh, "Mesh", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    ID3D11Buffer* mObjectBuffer{};
+    ReflectProperty(mObjectBuffer, "ObjectBuffer", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+};
 
 /**
  * @brief 뷰 프러스텀으로 프리미티브를 선별하여 장면 드로 호출을 제출합니다.

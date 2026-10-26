@@ -67,6 +67,16 @@ namespace {
 }
 
 bool FAssetFile::GetType(const std::filesystem::path& Path, EAssetType& Type, FString& Error) {
+    if (Path.extension() == L".mtl") {
+        Error.clear();
+        std::error_code Code{};
+        if (!std::filesystem::is_regular_file(Path, Code) || Code) {
+            Error = "Cannot read the MTL material";
+            return false;
+        }
+        Type = EAssetType::Material;
+        return true;
+    }
     std::ifstream Input{};
     Uint64 Size{};
     return ReadHeader(Path, Input, Type, Size, Error);

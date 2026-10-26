@@ -71,6 +71,9 @@ public:
      * @note 이미지가 표시되지 않을 때에도 진행 중인 드래그의 버튼 해제와 Esc 취소를 처리합니다.
      */
     void DrawUI(float DeltaTime);
+    void DrawContents(float DeltaTime, bool AllowInput = true);
+    bool IsMouseCaptured() const;
+    void ReleaseInput();
     /**
      * @brief 클라이언트의 현재 카메라로 장면을 자체 컬러 타깃에 그립니다.
      * @note 엔진의 월드 렌더 동기화 이후 호출하며 초기화 전에는 아무 작업도 하지 않습니다.
@@ -166,6 +169,10 @@ private:
      */
     FVector2 mImageSize{};
     ReflectProperty(mImageSize, "ImageSize", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    ImDrawList* mDrawList{};
+    ReflectProperty(mDrawList, "DrawList", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    bool mMouseCaptured{};
+    ReflectProperty(mMouseCaptured, "MouseCaptured", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
     /**
      * @brief 컬러 타깃을 소유하고 입력, 그리기와 CPU 피킹을 클라이언트에 연결합니다.
      */

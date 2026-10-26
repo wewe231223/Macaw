@@ -24,6 +24,7 @@
 #include "RenderTarget.h"
 #include "FScene.h"
 #include "FSceneRenderer.h"
+#include "FMaterialPipeline.h"
 #include "FEditorMeshConstants.h"
 #include "FTextRenderer.h"
 #include "Engine/EditorMesh.h"
@@ -33,6 +34,7 @@
 #include <algorithm>
 #include <span>
 #include <cmath>
+#include <cctype>
 
 using namespace Microsoft::WRL;
 
@@ -53,7 +55,7 @@ namespace {
     /**
      * @brief 메시 정점 및 픽셀 셰이더의 내장 HLSL 소스입니다.
      */
-    constexpr char MeshShader[]{"Mesh.hlsl"};
+    constexpr char MeshShader[]{"Lit.hlsl"};
 
     /**
      * @brief 보조 선분 정점 및 픽셀 셰이더의 내장 HLSL 소스입니다.
@@ -160,9 +162,10 @@ void FRenderer::Shutdown() {
     mViewBuffer.Reset();
     mLineBuffer.Reset();
 
-    mMeshVertexShader.Reset();
-    mMeshPixelShader.Reset();
-    mMeshLayout.Reset();
+    mMaterialPipelines.clear();
+    mDefaultMaterial.reset();
+    mDefaultMaterialTexture.reset();
+    mMaterialSampler.Reset();
 
     mLineVertexShader.Reset();
     mLinePixelShader.Reset();
@@ -288,7 +291,7 @@ void FRenderer::BeginRenderingViewFamily(const FSceneViewFamily& Family) {
     mContext->HSSetShader(nullptr, nullptr, 0);
     mContext->DSSetShader(nullptr, nullptr, 0);
 
-    const FSceneDrawContext Context{mContext.Get(), &mMeshes, mMeshVertexShader.Get(), mMeshPixelShader.Get(), mMeshLayout.Get(), mViewBuffer.Get()};
+    const FSceneDrawContext Context{this, mContext.Get(), &mMeshes, mViewBuffer.Get()};
     FSceneRenderer SceneRenderer{Family, Scene, Context, mStats};
     SceneRenderer.Render();
     DrawTexts(Family, true);
@@ -371,7 +374,22 @@ bool FRenderer::ReloadChangedShaders() {
         ErrorHandler::Report("Shader", Diagnostics, ErrorHandler::EErrorLevel::Warning);
     }
 
-    return Success && (!mShadersDirty || CreateShaders());
+    bool PipelinesReady{true};
+    if (Success) {
+        for (auto Iterator{mMaterialPipelines.begin()}; Iterator != mMaterialPipelines.end();) {
+            if (Iterator->second == nullptr) {
+                Iterator = mMaterialPipelines.erase(Iterator);
+                continue;
+            }
+            FString Error{};
+            if (!Iterator->second->IsCurrent() && !Iterator->second->CreateResources(mDevice.Get(), Error)) {
+                ErrorHandler::Report("Material", Error, ErrorHandler::EErrorLevel::Warning);
+                PipelinesReady = false;
+            }
+            ++Iterator;
+        }
+    }
+    return Success && (!mShadersDirty || CreateShaders()) && PipelinesReady;
 }
 
 bool FRenderer::GetTextBounds(const FString& Text, FVector2& Minimum, FVector2& Maximum) const {
@@ -406,29 +424,12 @@ bool FRenderer::Compile(const char* Source, const char* Entry, const char* Targe
 bool FRenderer::CreateShaders() {
     std::shared_ptr<const FShader> VertexCode{};
     std::shared_ptr<const FShader> PixelCode{};
-    ComPtr<ID3D11VertexShader> MeshVertex{};
-    ComPtr<ID3D11PixelShader> MeshPixel{};
-    ComPtr<ID3D11InputLayout> MeshLayout{};
     ComPtr<ID3D11VertexShader> LineVertex{};
     ComPtr<ID3D11PixelShader> LinePixel{};
     ComPtr<ID3D11InputLayout> LineLayout{};
     ComPtr<ID3D11VertexShader> GizmoVertex{};
     ComPtr<ID3D11PixelShader> GizmoPixel{};
     ComPtr<ID3D11InputLayout> OverlayLayout{};
-
-    if (!Compile(MeshShader, "VertexMain", "vs_5_0", VertexCode) || !Compile(MeshShader, "PixelMain", "ps_5_0", PixelCode)) {
-        return false;
-    }
-
-    const std::array<D3D11_INPUT_ELEMENT_DESC, 3> MeshElements{{{"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0}, {"NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 1, 0, D3D11_INPUT_PER_VERTEX_DATA, 0}, {"COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 3, 0, D3D11_INPUT_PER_VERTEX_DATA, 0}}};
-
-    if (FAILED(mDevice->CreateVertexShader(VertexCode->GetByteCode().data(), VertexCode->GetByteCode().size(), nullptr, MeshVertex.GetAddressOf())) || FAILED(mDevice->CreatePixelShader(PixelCode->GetByteCode().data(), PixelCode->GetByteCode().size(), nullptr, MeshPixel.GetAddressOf())) || FAILED(mDevice->CreateInputLayout(MeshElements.data(), static_cast<UINT>(MeshElements.size()), VertexCode->GetByteCode().data(), VertexCode->GetByteCode().size(), MeshLayout.GetAddressOf()))) {
-        ErrorHandler::Report("Renderer", "Mesh pipeline allocation failed", ErrorHandler::EErrorLevel::Error);
-        return false;
-    }
-
-    VertexCode.reset();
-    PixelCode.reset();
 
     if (!Compile(LineShader, "VertexMain", "vs_5_0", VertexCode) || !Compile(LineShader, "PixelMain", "ps_5_0", PixelCode)) {
         return false;
@@ -458,9 +459,6 @@ bool FRenderer::CreateShaders() {
         return false;
     }
 
-    mMeshVertexShader = std::move(MeshVertex);
-    mMeshPixelShader = std::move(MeshPixel);
-    mMeshLayout = std::move(MeshLayout);
     mLineVertexShader = std::move(LineVertex);
     mLinePixelShader = std::move(LinePixel);
     mLineLayout = std::move(LineLayout);
@@ -505,6 +503,22 @@ bool FRenderer::CreatePipeline() {
         return false;
     }
     if (!CreateShaders()) {
+        return false;
+    }
+
+    mDefaultMaterial = NewObject<UMaterial>();
+    mDefaultMaterial->SetShaderPath(FString{"Shaders/"} + MeshShader);
+    mDefaultMaterialTexture = NewObject<UTexture2D>();
+    if (!mDefaultMaterialTexture->SetPixels(1, 1, ETextureFormat::RGBA8, TArray<Uint8>{255, 255, 255, 255}) || !mDefaultMaterialTexture->CreateResources(mDevice.Get()) || GetMaterialPipeline(*mDefaultMaterial) == nullptr) {
+        return false;
+    }
+    D3D11_SAMPLER_DESC Sampler{};
+    Sampler.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+    Sampler.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
+    Sampler.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
+    Sampler.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+    Sampler.MaxLOD = D3D11_FLOAT32_MAX;
+    if (FAILED(mDevice->CreateSamplerState(&Sampler, mMaterialSampler.GetAddressOf()))) {
         return false;
     }
 
@@ -563,6 +577,7 @@ bool FRenderer::CreatePipeline() {
  * @brief 깊이 검사 정책에 맞는 보조 선분을 동적 정점 버퍼로 그립니다.
  */
 void FRenderer::DrawLines(const FPrimitiveDrawInterface* Elements, bool DepthTest) {
+    mContext->RSSetState(mRasterizer.Get());
     mLineVertices.clear();
 
     for (const FDrawLine& Line : Elements->GetLines()) {
@@ -639,6 +654,7 @@ bool FRenderer::CreateEditorMeshes() {
 }
 
 void FRenderer::DrawMeshes(const FPrimitiveDrawInterface* Elements, bool DepthTest) {
+    mContext->RSSetState(mRasterizer.Get());
     const UINT Stride{UStaticMesh::GetPositionStride()};
     const UINT Offset{};
     mContext->IASetInputLayout(mOverlayLayout.Get());
@@ -674,6 +690,7 @@ void FRenderer::DrawMeshes(const FPrimitiveDrawInterface* Elements, bool DepthTe
 }
 
 void FRenderer::DrawTexts(const FSceneViewFamily& Family, bool DepthTest) {
+    mContext->RSSetState(mRasterizer.Get());
     if (mTextRenderer == nullptr) {
         return;
     }
@@ -700,6 +717,12 @@ void FRenderer::DrawTexts(const FSceneViewFamily& Family, bool DepthTest) {
         }
     }
     std::stable_sort(Texts.begin(), Texts.end(), [&Family](const FDrawText& First, const FDrawText& Second) {
+        if (First.mScreenSpace != Second.mScreenSpace) {
+            return !First.mScreenSpace;
+        }
+        if (First.mScreenSpace) {
+            return First.mPosition.z > Second.mPosition.z;
+        }
         return (First.mPosition - Family.mView.mLocation).Dot(Family.mView.mForward) > (Second.mPosition - Family.mView.mLocation).Dot(Family.mView.mForward);
     });
     mContext->OMSetBlendState(mOverlayBlend.Get(), nullptr, 0xFFFFFFFFu);
@@ -711,4 +734,63 @@ void FRenderer::DrawTexts(const FSceneViewFamily& Family, bool DepthTest) {
         }
     }
     mContext->OMSetBlendState(nullptr, nullptr, 0xFFFFFFFFu);
+}
+
+FMaterialPipeline* FRenderer::GetMaterialPipeline(const UMaterial& Material) {
+    const FString& Relative{Material.GetShaderPath()};
+    const std::filesystem::path RelativePath{std::filesystem::path{std::u8string_view{reinterpret_cast<const char8_t*>(Relative.data()), Relative.size()}}.lexically_normal()};
+    const auto SourceText{RelativePath.generic_u8string()};
+    FString Key{FString{reinterpret_cast<const char*>(SourceText.data()), SourceText.size()} + (Material.IsTwoSided() ? "|TwoSided" : "|OneSided")};
+    std::transform(Key.begin(), Key.end(), Key.begin(), [](unsigned char Character) {
+        return static_cast<char>(std::tolower(Character));
+    });
+    const auto Existing{mMaterialPipelines.find(Key)};
+    if (Existing != mMaterialPipelines.end()) {
+        return Existing->second.get();
+    }
+    if (mShadersDirty) {
+        return nullptr;
+    }
+    const std::filesystem::path Source{FindTextContent(mShaderDirectory.parent_path(), RelativePath)};
+    FShaderDescription Description{};
+    Description.mSourcePath = Source;
+    Description.mIncludeDirectories = {Source.parent_path(), mShaderDirectory};
+    Description.mEntryPoint = "VertexMain";
+    Description.mTargetProfile = "vs_5_0";
+#ifdef _DEBUG
+    Description.mCompileFlags |= D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
+#endif
+    FString Diagnostics{};
+    std::shared_ptr<const FShader> Vertex{mShaderManager.Load(Description, Diagnostics)};
+    FString Error{Diagnostics};
+    Description.mEntryPoint = "PixelMain";
+    Description.mTargetProfile = "ps_5_0";
+    std::shared_ptr<const FShader> Pixel{mShaderManager.Load(Description, Diagnostics)};
+    Error += Diagnostics;
+    std::unique_ptr<FMaterialPipeline> Pipeline{};
+    if (Vertex != nullptr && Pixel != nullptr) {
+        Pipeline = std::make_unique<FMaterialPipeline>(std::move(Vertex), std::move(Pixel), Material.IsTwoSided());
+        if (!Pipeline->CreateResources(mDevice.Get(), Diagnostics)) {
+            Error += Diagnostics;
+            Pipeline.reset();
+        }
+    }
+    if (!Error.empty()) {
+        ErrorHandler::Report("Material", Error, ErrorHandler::EErrorLevel::Warning);
+    }
+    FMaterialPipeline* Result{Pipeline.get()};
+    mMaterialPipelines.emplace(std::move(Key), std::move(Pipeline));
+    return Result;
+}
+
+UMaterial* FRenderer::GetDefaultMaterial() const {
+    return mDefaultMaterial.get();
+}
+
+ID3D11ShaderResourceView* FRenderer::GetDefaultMaterialTexture() const {
+    return mDefaultMaterialTexture->GetShaderResourceView();
+}
+
+ID3D11SamplerState* FRenderer::GetMaterialSampler() const {
+    return mMaterialSampler.Get();
 }

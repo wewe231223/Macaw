@@ -48,6 +48,7 @@ private:
      * @param[in] DeltaTime 이전 프레임 이후 경과한 시간(초)입니다.
      */
     void DrawContent(float DeltaTime) override;
+    void DrawComponentMenu();
 
     /**
      * @brief 객체 타입의 편집 가능한 리플렉션 프로퍼티를 순회하여 표시합니다.
@@ -67,4 +68,8 @@ private:
      * @brief 생성된 프로퍼티 등록 함수와 빌더 접근 권한입니다.
      */
     ReflectMembers();
+
+private:
+    std::array<char, 128> mComponentSearch{};
+    ReflectProperty(mComponentSearch, "ComponentSearch", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 };

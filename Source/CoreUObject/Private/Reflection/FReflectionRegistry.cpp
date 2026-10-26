@@ -14,6 +14,8 @@
 #include "CoreUObject/Reflection/FNativeType.h"
 #include "Core/Base/ErrorHandler.h"
 
+#include <algorithm>
+
 /**
  * @brief 이 구현 파일에서만 사용하는 내부 상태와 보조 함수입니다.
  */
@@ -150,6 +152,26 @@ void FReflectionRegistry::AddEnumValues(UEnum* Information, std::initializer_lis
  */
 UClass* FReflectionRegistry::FindClass(const FString& Name) {
     return static_cast<UClass*>(FindType(Name, EReflectionType::Class));
+}
+
+TArray<const UClass*> FReflectionRegistry::GetDerivedClasses(const UClass* Parent) {
+    TArray<const UClass*> Classes{};
+    if (Parent == nullptr) {
+        return Classes;
+    }
+    for (const auto& Entry : GetRegisteredTypes()) {
+        if (Entry.second.mDefinition.mKind != EReflectionType::Class) {
+            continue;
+        }
+        const auto* Class{static_cast<const UClass*>(Entry.second.mInformation.get())};
+        if (Class != Parent && Class->IsChildOf(Parent)) {
+            Classes.push_back(Class);
+        }
+    }
+    std::sort(Classes.begin(), Classes.end(), [](const UClass* First, const UClass* Second) {
+        return First->GetName() < Second->GetName();
+    });
+    return Classes;
 }
 
 /**

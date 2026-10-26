@@ -8,6 +8,8 @@
 #include "Engine/FAssetFile.h"
 #include "Engine/UStaticMesh.h"
 #include "Engine/UTexture2D.h"
+#include "Engine/UMaterial.h"
+#include "FMaterialFile.h"
 #include "CoreUObject/Reflection/NewObject.h"
 #include "Serialization/MemoryArchive.h"
 #include "FAssetSerialization.h"
@@ -128,7 +130,7 @@ TArray<std::filesystem::path> FAssetManager::GetAssetPaths(FString& Error) const
     std::filesystem::recursive_directory_iterator Iterator{mContentRoot, Code};
     const std::filesystem::recursive_directory_iterator End{};
     while (!Code && Iterator != End) {
-        if (Iterator->is_regular_file(Code) && Iterator->path().extension() == L".masset") {
+        if (Iterator->is_regular_file(Code) && (Iterator->path().extension() == L".masset" || Iterator->path().extension() == L".mtl")) {
             const auto Resolved{ResolvePath(Iterator->path(), Error)};
             if (Resolved.empty()) {
                 return {};
@@ -178,6 +180,20 @@ UTexture2D* FAssetManager::LoadTexture(const std::filesystem::path& Path, FStrin
     const auto Existing{mTextures.find(Key)};
     if (Existing != mTextures.end()) {
         return Existing->second.get();
+    }
+    const auto Source{ResolvePath(Path, Error)};
+    if (Source.empty()) {
+        return nullptr;
+    }
+    if (Source.extension() != L".masset") {
+        auto Texture{NewObject<UTexture2D>()};
+        if (!Texture->LoadFromFile(Source)) {
+            Error = "Cannot load the material texture";
+            return nullptr;
+        }
+        UTexture2D* Result{Texture.get()};
+        mTextures.emplace(Key, std::move(Texture));
+        return Result;
     }
     TArray<Uint8> Payload{};
     if (!FAssetFile::Load(ResolvePath(Path, Error), EAssetType::Texture, Payload, Error)) {
@@ -296,4 +312,62 @@ bool FAssetManager::ImportTexture(const std::filesystem::path& Source, const std
         return false;
     }
     return SaveTexture(Target, *Texture, Error);
+}
+
+UMaterial* FAssetManager::LoadMaterial(const std::filesystem::path& Path, FString& Error) {
+    const FString Key{CacheKey(GetRelativePath(Path, Error))};
+    if (Key.empty()) {
+        return nullptr;
+    }
+    const auto Existing{mMaterials.find(Key)};
+    if (Existing != mMaterials.end()) {
+        return Existing->second.get();
+    }
+    auto Material{NewObject<UMaterial>()};
+    if (!FMaterialFile::Load(ResolvePath(Path, Error), *this, *Material, Error)) {
+        return nullptr;
+    }
+    UMaterial* Result{Material.get()};
+    mMaterials.emplace(Key, std::move(Material));
+    return Result;
+}
+
+bool FAssetManager::SaveMaterial(const std::filesystem::path& Path, const UMaterial& Material, FString& Error) {
+    const auto Target{ResolvePath(Path, Error)};
+    if (Target.empty() || !FMaterialFile::Save(Target, *this, Material, Error)) {
+        return false;
+    }
+    const auto Existing{mMaterials.find(CacheKey(GetRelativePath(Path, Error)))};
+    if (Existing != mMaterials.end() && Existing->second.get() != &Material) {
+        UMaterial& Cached{*Existing->second};
+        Cached.SetName(Material.GetName());
+        Cached.SetShaderPath(Material.GetShaderPath());
+        Cached.SetBaseColor(Material.GetBaseColor());
+        Cached.SetBaseColorTexturePath(Material.GetBaseColorTexturePath());
+        Cached.SetTwoSided(Material.IsTwoSided());
+        return Cached.ResolveTexture(*this, Error);
+    }
+    return true;
+}
+
+bool FAssetManager::ReloadMaterial(const std::filesystem::path& Path, FString& Error) {
+    const FString Key{CacheKey(GetRelativePath(Path, Error))};
+    if (Key.empty()) {
+        return false;
+    }
+    const auto Existing{mMaterials.find(Key)};
+    if (Existing == mMaterials.end()) {
+        return LoadMaterial(Path, Error) != nullptr;
+    }
+    auto Candidate{NewObject<UMaterial>()};
+    if (!FMaterialFile::Load(ResolvePath(Path, Error), *this, *Candidate, Error)) {
+        return false;
+    }
+    UMaterial& Material{*Existing->second};
+    Material.SetName(Candidate->GetName());
+    Material.SetShaderPath(Candidate->GetShaderPath());
+    Material.SetBaseColor(Candidate->GetBaseColor());
+    Material.SetBaseColorTexturePath(Candidate->GetBaseColorTexturePath());
+    Material.SetTwoSided(Candidate->IsTwoSided());
+    return Material.ResolveTexture(*this, Error);
 }

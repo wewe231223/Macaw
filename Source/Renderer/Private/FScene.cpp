@@ -147,20 +147,6 @@ void FScene::Upload(FScenePrimitive& Primitive) {
         ErrorHandler::Fatal("Renderer", "Singular render transform");
     }
 
-    switch (Primitive.mProxy.mPrimitive) {
-    case EPrimitiveType::Plane:
-        Constants.mColor = {0.28f, 0.39f, 0.43f, 1.0f};
-        break;
-
-    case EPrimitiveType::Sphere:
-        Constants.mColor = {0.88f, 0.53f, 0.23f, 1.0f};
-        break;
-
-    default:
-        Constants.mColor = {0.28f, 0.60f, 0.78f, 1.0f};
-        break;
-    }
-
     if (Primitive.mObjectBuffer == nullptr) {
         D3D11_BUFFER_DESC Description{};
         Description.ByteWidth = sizeof(FObjectConstants);

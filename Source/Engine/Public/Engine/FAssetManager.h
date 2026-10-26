@@ -14,6 +14,7 @@
 
 class UStaticMesh;
 class UTexture2D;
+class UMaterial;
 
 /**
  * @brief 프로젝트 콘텐츠 경로와 메시·텍스처 에셋의 로드 및 캐시를 담당합니다.
@@ -89,6 +90,9 @@ public:
      * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며, 사용할 수 없으면 nullptr입니다.
      */
     UTexture2D* LoadTexture(const std::filesystem::path& Path, FString& Error);
+    UMaterial* LoadMaterial(const std::filesystem::path& Path, FString& Error);
+    bool ReloadMaterial(const std::filesystem::path& Path, FString& Error);
+    bool SaveMaterial(const std::filesystem::path& Path, const UMaterial& Material, FString& Error);
     /**
      * @brief 검증한 CPU 메시 데이터를 바이너리 에셋 파일로 저장합니다.
      * @param[in] Path 조회·로드·저장 또는 정규화할 파일 경로입니다.
@@ -144,4 +148,6 @@ private:
      */
     TMap<FString, std::unique_ptr<UTexture2D>> mTextures{};
     ReflectProperty(mTextures, "Textures", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    TMap<FString, std::unique_ptr<UMaterial>> mMaterials{};
+    ReflectProperty(mMaterials, "Materials", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 };

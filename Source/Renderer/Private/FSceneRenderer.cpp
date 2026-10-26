@@ -15,8 +15,13 @@
 #include "FScene.h"
 #include "Engine/UStaticMesh.h"
 #include "FSceneDrawContext.h"
+#include "FMaterialPipeline.h"
+#include "Renderer/Renderer.h"
+#include "Engine/UMaterial.h"
+#include "Engine/UTexture2D.h"
 
 #include <algorithm>
+#include <functional>
 
 /**
  * @brief FSceneRenderer의 초기 상태와 전달받은 의존성을 구성합니다.
@@ -58,54 +63,92 @@ bool FSceneRenderer::IsVisible(const FBox& Bounds) const {
  */
 void FSceneRenderer::Render() {
     ID3D11DeviceContext* Context{mDrawContext.mContext};
+    FRenderer* Renderer{mDrawContext.mRenderer};
+    Microsoft::WRL::ComPtr<ID3D11Device> Device{};
+    Context->GetDevice(Device.GetAddressOf());
     Context->UpdateSubresource(mDrawContext.mViewBuffer, 0, nullptr, &mFamily->mView.mViewProjection, 0, 0);
-
     ID3D11Buffer* ViewBuffer{mDrawContext.mViewBuffer};
     Context->VSSetConstantBuffers(1, 1, &ViewBuffer);
-
-    Context->IASetInputLayout(mDrawContext.mInputLayout);
+    Context->PSSetConstantBuffers(1, 1, &ViewBuffer);
     Context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-    Context->VSSetShader(mDrawContext.mVertexShader, nullptr, 0);
-    Context->PSSetShader(mDrawContext.mPixelShader, nullptr, 0);
-
-    const std::array<UINT, 4> Offsets{};
-
+    TArray<FMeshDrawCommand> Commands{};
+    Commands.reserve(mScene->GetPrimitives().size());
+    UMaterial* DefaultMaterial{Renderer->GetDefaultMaterial()};
+    FMaterialPipeline* DefaultPipeline{Renderer->GetMaterialPipeline(*DefaultMaterial)};
+    if (DefaultPipeline == nullptr || !DefaultMaterial->CreateResources(Device.Get(), Context)) {
+        return;
+    }
     for (const FScenePrimitive& Primitive : mScene->GetPrimitives()) {
-        if (Primitive.mProxy.mText.has_value()) {
+        if (Primitive.mProxy.mText.has_value() || !IsVisible(Primitive.mProxy.mBounds)) {
             continue;
         }
-        if (!IsVisible(Primitive.mProxy.mBounds)) {
-            continue;
-        }
-
         UStaticMesh* Mesh{Primitive.mProxy.mMesh != nullptr ? Primitive.mProxy.mMesh : (*mDrawContext.mMeshes)[static_cast<std::size_t>(Primitive.mProxy.mPrimitive)].get()};
-
-        if (Mesh != nullptr && !Mesh->HasResources()) {
-            Microsoft::WRL::ComPtr<ID3D11Device> Device{};
-            Context->GetDevice(Device.GetAddressOf());
-            Mesh->CreateResources(Device.Get());
-        }
-
-        if (Mesh == nullptr || !Mesh->HasResources()) {
+        if (Mesh == nullptr || (!Mesh->HasResources() && !Mesh->CreateResources(Device.Get())) || Primitive.mObjectBuffer == nullptr) {
             continue;
         }
+        UMaterial* Material{Primitive.mProxy.mMaterial != nullptr ? Primitive.mProxy.mMaterial : DefaultMaterial};
+        if (!Material->CreateResources(Device.Get(), Context)) {
+            Material = DefaultMaterial;
+        }
+        FMaterialPipeline* Pipeline{Renderer->GetMaterialPipeline(*Material)};
+        Commands.emplace_back(Pipeline != nullptr ? Pipeline : DefaultPipeline, Material, Mesh, Primitive.mObjectBuffer.Get());
+    }
+    std::stable_sort(Commands.begin(), Commands.end(), [](const FMeshDrawCommand& First, const FMeshDrawCommand& Second) {
+        const std::less<const void*> Less{};
+        if (First.mPipeline != Second.mPipeline) {
+            return Less(First.mPipeline, Second.mPipeline);
+        }
+        if (First.mMaterial != Second.mMaterial) {
+            return Less(First.mMaterial, Second.mMaterial);
+        }
+        return Less(First.mMesh, Second.mMesh);
+    });
 
-        const std::array<ID3D11Buffer*, 4> VertexBuffers{Mesh->GetPositionBuffer(), Mesh->GetTangentBuffer(), Mesh->GetUVBuffer(), Mesh->GetColorBuffer()};
-        const std::array<UINT, 4> Strides{UStaticMesh::GetPositionStride(), UStaticMesh::GetTangentStride(), Mesh->GetUVStride(), UStaticMesh::GetColorStride()};
-        ID3D11Buffer* ObjectBuffer{Primitive.mObjectBuffer.Get()};
-
-        Context->IASetVertexBuffers(0, static_cast<UINT>(VertexBuffers.size()), VertexBuffers.data(), Strides.data(), Offsets.data());
-        Context->IASetIndexBuffer(Mesh->GetIndexBuffer(), DXGI_FORMAT_R32_UINT, 0);
-
+    FMaterialPipeline* LastPipeline{};
+    UMaterial* LastMaterial{};
+    UStaticMesh* LastMesh{};
+    const std::array<UINT, 4> Offsets{};
+    for (const FMeshDrawCommand& Command : Commands) {
+        if (LastPipeline != Command.mPipeline) {
+            Command.mPipeline->Bind(Context);
+            LastPipeline = Command.mPipeline;
+            LastMaterial = nullptr;
+        }
+        if (LastMaterial != Command.mMaterial) {
+            ID3D11Buffer* Constants{Command.mMaterial->GetConstantBuffer()};
+            UTexture2D* Texture{Command.mMaterial->GetBaseColorTexture()};
+            ID3D11ShaderResourceView* Resource{Texture != nullptr ? Texture->GetShaderResourceView() : Renderer->GetDefaultMaterialTexture()};
+            ID3D11SamplerState* Sampler{Renderer->GetMaterialSampler()};
+            Context->VSSetConstantBuffers(2, 1, &Constants);
+            Context->PSSetConstantBuffers(2, 1, &Constants);
+            Context->PSSetShaderResources(0, 1, &Resource);
+            Context->PSSetSamplers(0, 1, &Sampler);
+            LastMaterial = Command.mMaterial;
+        }
+        if (LastMesh != Command.mMesh) {
+            UStaticMesh* Mesh{Command.mMesh};
+            const std::array<ID3D11Buffer*, 4> Buffers{Mesh->GetPositionBuffer(), Mesh->GetTangentBuffer(), Mesh->GetUVBuffer(), Mesh->GetColorBuffer()};
+            const std::array<UINT, 4> Strides{UStaticMesh::GetPositionStride(), UStaticMesh::GetTangentStride(), Mesh->GetUVStride(), UStaticMesh::GetColorStride()};
+            Context->IASetVertexBuffers(0, static_cast<UINT>(Buffers.size()), Buffers.data(), Strides.data(), Offsets.data());
+            Context->IASetIndexBuffer(Mesh->GetIndexBuffer(), DXGI_FORMAT_R32_UINT, 0);
+            LastMesh = Mesh;
+        }
+        ID3D11Buffer* ObjectBuffer{Command.mObjectBuffer};
         Context->VSSetConstantBuffers(0, 1, &ObjectBuffer);
         Context->PSSetConstantBuffers(0, 1, &ObjectBuffer);
-
-        Context->DrawIndexed(Mesh->GetIndexCount(), 0, 0);
-
+        Context->DrawIndexed(Command.mMesh->GetIndexCount(), 0, 0);
         ++mStats->mDrawCalls;
         ++mStats->mVisiblePrimitives;
     }
-
+    ID3D11ShaderResourceView* Empty{};
+    Context->PSSetShaderResources(0, 1, &Empty);
     mStats->mTransformUpdates += mScene->TakeTransformUpdates();
+}
+
+FMeshDrawCommand::FMeshDrawCommand(FMaterialPipeline* Pipeline, UMaterial* Material, UStaticMesh* Mesh, ID3D11Buffer* ObjectBuffer)
+	: mPipeline{Pipeline},
+	  mMaterial{Material},
+	  mMesh{Mesh},
+	  mObjectBuffer{ObjectBuffer} {
 }

@@ -10,6 +10,8 @@
 #include "Core/Math/FVector2.h"
 #include "Core/Math/FMatrix.h"
 
+struct FRay;
+
 /**
  * @brief 카메라 위치와 방향, 뷰·투영 행렬 및 뷰포트 크기입니다.
  * @ingroup Engine
@@ -27,6 +29,7 @@ public:
      * @return 등록된 타입 메타데이터의 비소유 주소입니다.
      */
     ReflectStruct(FSceneView);
+    bool Deproject(const FVector2& Position, FRay& Ray) const;
 
 private:
     /**
@@ -78,4 +81,8 @@ public:
      */
     float mFieldOfView{60.0f};
     ReflectProperty(mFieldOfView, "FieldOfView", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    bool mOrthographic{};
+    ReflectProperty(mOrthographic, "Orthographic", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    float mOrthographicWidth{20.0f};
+    ReflectProperty(mOrthographicWidth, "OrthographicWidth", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 };

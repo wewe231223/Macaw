@@ -134,6 +134,7 @@ public:
      * @return 연산을 적용한 새 값입니다.
      */
     static FMatrix Perspective(float FieldOfView, float Aspect, float NearPlane, float FarPlane);
+    static FMatrix Orthographic(float Width, float Height, float NearPlane, float FarPlane);
 
     /**
      * @brief 대응 성분을 더한 값을 반환합니다.

@@ -49,13 +49,8 @@ public:
     FMatrix mWorldInverse{};
     ReflectProperty(mWorldInverse, "WorldInverse", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 
-    /**
-     * @brief 표시 색상입니다.
-     */
-    std::array<float, 4> mColor{};
-    ReflectProperty(mColor, "Color", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 };
 
 static_assert(sizeof(FMatrix) == 64 && alignof(FMatrix) == 16 && std::is_trivially_copyable_v<FMatrix>);
-static_assert(std::is_standard_layout_v<FObjectConstants> && sizeof(FObjectConstants) == 144);
-static_assert(offsetof(FObjectConstants, mWorld) == 0 && offsetof(FObjectConstants, mWorldInverse) == 64 && offsetof(FObjectConstants, mColor) == 128);
+static_assert(std::is_standard_layout_v<FObjectConstants> && sizeof(FObjectConstants) == 128);
+static_assert(offsetof(FObjectConstants, mWorld) == 0 && offsetof(FObjectConstants, mWorldInverse) == 64);

@@ -147,6 +147,15 @@ FMatrix FMatrix::Perspective(float FieldOfView, float Aspect, float NearPlane, f
     return Result;
 }
 
+FMatrix FMatrix::Orthographic(float Width, float Height, float NearPlane, float FarPlane) {
+    FMatrix Result{};
+    Result(0, 0) = 2.0f / Width;
+    Result(1, 1) = 2.0f / Height;
+    Result(2, 2) = 1.0f / (FarPlane - NearPlane);
+    Result(3, 2) = -NearPlane / (FarPlane - NearPlane);
+    return Result;
+}
+
 /**
  * @brief 대응 성분을 더한 값을 반환합니다.
  */

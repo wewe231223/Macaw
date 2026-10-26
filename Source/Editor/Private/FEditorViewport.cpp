@@ -71,6 +71,8 @@ void FEditorViewport::Shutdown() {
     mClient.GetGizmo().Cancel();
     mPlayInputCaptured = false;
     mImageSize = {};
+    mDrawList = nullptr;
+    mMouseCaptured = false;
     mViewport.reset();
 }
 
@@ -84,14 +86,11 @@ void FEditorViewport::Draw() {
 }
 
 void FEditorViewport::DrawStatistics(float DeltaTime, const UWorld* World, const FRenderStats& Render) {
-    if (mImageSize.x < 1.0f || mImageSize.y < 1.0f || !mStatistics.IsVisible()) {
+    if (mImageSize.x < 1.0f || mImageSize.y < 1.0f || mDrawList == nullptr || !mStatistics.IsVisible()) {
         return;
     }
 
-    if (ImGui::Begin(mName.c_str(), nullptr, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoNavInputs)) {
-        mStatistics.Draw(DeltaTime, World, Render, mImageOrigin, mImageSize);
-    }
-    ImGui::End();
+    mStatistics.Draw(DeltaTime, World, Render, mImageOrigin, mImageSize, mDrawList);
 }
 
 FViewportStatistics* FEditorViewport::GetStatistics() {
@@ -118,6 +117,7 @@ FViewportClient* FEditorViewport::GetActiveClient() {
 
 void FEditorViewport::SetPlayClient(FViewportClient* Client) {
     mClient.GetGizmo().Cancel();
+    mMouseCaptured = false;
     mPlayClient = Client;
     mPlayInputCaptured = false;
     if (mViewport != nullptr) {
@@ -148,18 +148,42 @@ FRenderTarget* FEditorViewport::GetRenderTarget() const {
  * @note 이미지가 표시되지 않을 때에도 진행 중인 드래그의 종료 입력을 전달합니다.
  */
 void FEditorViewport::DrawUI(float DeltaTime) {
+    if (ImGui::Begin(mName.c_str(), nullptr, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoNavInputs)) {
+        DrawContents(DeltaTime);
+    } else {
+        ReleaseInput();
+    }
+    ImGui::End();
+}
+
+bool FEditorViewport::IsMouseCaptured() const {
+    return mMouseCaptured;
+}
+
+void FEditorViewport::ReleaseInput() {
+    mClient.GetGizmo().Cancel();
+    mMouseCaptured = false;
+    mPlayInputCaptured = false;
     mImageSize = {};
+    mDrawList = nullptr;
+}
+
+void FEditorViewport::DrawContents(float DeltaTime, bool AllowInput) {
+    mImageSize = {};
+    mDrawList = nullptr;
     if (mViewport == nullptr) {
         return;
     }
 
     bool Submitted{};
 
-    if (ImGui::Begin(mName.c_str(), nullptr, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoNavInputs)) {
+    {
         if (mPlayClient != nullptr) {
             ImGui::TextDisabled(mPlayInputCaptured ? "Playing | Shift+F1: Release input | Esc: Stop" : "Playing | Click viewport to control | Esc: Stop");
         } else {
+            ImGui::BeginDisabled(!AllowInput);
             ViewportToolbar::Draw(&mClient);
+            ImGui::EndDisabled();
         }
 
         const ImVec2 Available{ImGui::GetContentRegionAvail()};
@@ -171,6 +195,7 @@ void FEditorViewport::DrawUI(float DeltaTime) {
             const ImVec2 Origin{ImGui::GetItemRectMin()};
             mImageOrigin = {Origin.x, Origin.y};
             mImageSize = {Available.x, Available.y};
+            mDrawList = ImGui::GetWindowDrawList();
             const ImGuiIO& Input{ImGui::GetIO()};
             FViewportInput State{};
             const float ScaleX{Target->GetWidth() / Available.x};
@@ -179,8 +204,15 @@ void FEditorViewport::DrawUI(float DeltaTime) {
             State.mMouse = {(Input.MousePos.x - Origin.x) * ScaleX, (Input.MousePos.y - Origin.y) * ScaleY};
             State.mDelta = {Input.MouseDelta.x * ScaleX, Input.MouseDelta.y * ScaleY};
 
-            State.mHovered = ImGui::IsItemHovered();
-            State.mFocused = ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) && !ImGui::IsPopupOpen(nullptr, ImGuiPopupFlags_AnyPopup);
+            State.mHovered = AllowInput && ImGui::IsItemHovered();
+            if (State.mHovered && (ImGui::IsMouseClicked(ImGuiMouseButton_Left) || ImGui::IsMouseClicked(ImGuiMouseButton_Right) || ImGui::IsMouseClicked(ImGuiMouseButton_Middle))) {
+                ImGui::SetWindowFocus();
+                if (!mMouseCaptured) {
+                    State.mDelta = {};
+                }
+                mMouseCaptured = true;
+            }
+            State.mFocused = AllowInput && ImGui::IsWindowFocused() && !ImGui::IsPopupOpen(nullptr, ImGuiPopupFlags_AnyPopup);
 
             State.mLeftPressed = ImGui::IsMouseClicked(ImGuiMouseButton_Left);
             State.mLeftDown = ImGui::IsMouseDown(ImGuiMouseButton_Left);
@@ -196,7 +228,7 @@ void FEditorViewport::DrawUI(float DeltaTime) {
             State.mEscape = ImGui::IsKeyPressed(ImGuiKey_Escape);
 
             bool AssetDrag{};
-            if (mPlayClient == nullptr && ImGui::BeginDragDropTarget()) {
+            if (AllowInput && mPlayClient == nullptr && ImGui::BeginDragDropTarget()) {
                 if (const ImGuiPayload* Payload{ImGui::AcceptDragDropPayload(EditorAssetDragDrop::MeshPayload, ImGuiDragDropFlags_AcceptBeforeDelivery)}) {
                     AssetDrag = true;
                     if (Payload->IsDelivery() && Payload->Data != nullptr && Payload->DataSize > 1) {
@@ -242,14 +274,18 @@ void FEditorViewport::DrawUI(float DeltaTime) {
                 }
             }
 
-            if (!AssetDrag) {
+            if (!AssetDrag && AllowInput) {
+                if (!mMouseCaptured && mPlayClient == nullptr) {
+                    State.mLeftDown = false;
+                    State.mRightDown = false;
+                    State.mMiddleDown = false;
+                    State.mDelta = {};
+                }
                 mViewport->Input(State, DeltaTime);
             }
             Submitted = true;
         }
     }
-
-    ImGui::End();
 
     if (!Submitted && mClient.GetGizmo().IsDragging() && ((mClient.GetGizmo().IsPivotDrag() ? !ImGui::IsMouseDown(ImGuiMouseButton_Middle) : !ImGui::IsMouseDown(ImGuiMouseButton_Left)) || ImGui::IsKeyPressed(ImGuiKey_Escape))) {
         FViewportInput State{};
@@ -257,5 +293,8 @@ void FEditorViewport::DrawUI(float DeltaTime) {
         State.mMiddleDown = ImGui::IsMouseDown(ImGuiMouseButton_Middle);
         State.mEscape = ImGui::IsKeyPressed(ImGuiKey_Escape);
         mViewport->Input(State, DeltaTime);
+    }
+    if (!ImGui::IsMouseDown(ImGuiMouseButton_Left) && !ImGui::IsMouseDown(ImGuiMouseButton_Right) && !ImGui::IsMouseDown(ImGuiMouseButton_Middle)) {
+        mMouseCaptured = false;
     }
 }

@@ -14,6 +14,9 @@
 #include "Engine/FProject.h"
 #include "Engine/FAssetFile.h"
 #include "Engine/UTexture2D.h"
+#include "Engine/UMaterial.h"
+#include "CoreUObject/Reflection/NewObject.h"
+#include "Renderer/Renderer.h"
 #include "Engine/SceneSerializer.h"
 #include "Engine/FWorldContext.h"
 #include "Editor/FAssetDragDrop.h"
@@ -60,6 +63,7 @@ FEditorUI::FEditorUI(FEditorContext* Context, FEditorViewport* Viewport, FPlayIn
 	: mContext{Context},
 	  mViewport{Viewport},
 	  mPlaySession{PlaySession},
+	  mViewportLayout{Context, Viewport, PlaySession},
 	  mOutlinerPanel{Context},
 	  mDetailsPanel{Context},
 	  mConsolePanel{Context} {
@@ -112,7 +116,7 @@ bool FEditorUI::Initialize(IRendererModule* Renderer, FWindowsApplication* Platf
     mWin32Ready = ImGui_ImplWin32_Init(Platform->GetWindowHandle());
     mDxReady = mWin32Ready && ImGui_ImplDX11_Init(static_cast<ID3D11Device*>(Renderer->GetNativeDevice()), static_cast<ID3D11DeviceContext*>(Renderer->GetNativeContext()));
 
-    if (!mDxReady) {
+    if (!mDxReady || !mViewportLayout.Initialize(Renderer)) {
         Shutdown();
 
         return false;
@@ -132,6 +136,7 @@ bool FEditorUI::Initialize(IRendererModule* Renderer, FWindowsApplication* Platf
  * @brief 종속 객체를 역순으로 정리하고 여러 번 호출해도 안전한 종료 상태로 만듭니다.
  */
 void FEditorUI::Shutdown() {
+    mViewportLayout.Shutdown();
     if (mPlatform != nullptr) {
         mPlatform->SetMessageHandler({});
     }
@@ -161,6 +166,10 @@ void FEditorUI::Shutdown() {
     mContentError.clear();
     mRevealContentDirectory = true;
     mPreviewTexture = nullptr;
+    mEditingMaterial = nullptr;
+    mMaterialPath.clear();
+    mMaterialError.clear();
+    mMaterialDirty = false;
     mPlatform = nullptr;
 
     mExit = true;
@@ -188,9 +197,10 @@ bool FEditorUI::BeginFrame(float DeltaTime) {
     mDetailsPanel.SetEditorContext(Inspection);
     mOutlinerPanel.Draw(DeltaTime);
     mDetailsPanel.Draw(DeltaTime);
-    mViewport->DrawUI(DeltaTime);
+    mViewportLayout.DrawUI(DeltaTime);
     mConsolePanel.Draw(DeltaTime);
     DrawContent();
+    DrawMaterialEditor();
 
     return true;
 }
@@ -203,10 +213,7 @@ void FEditorUI::EndFrame(float DeltaTime) {
         return;
     }
 
-    mViewport->Draw();
-
-    const FEditorContext* Inspection{mPlaySession->IsActive() ? mPlaySession->GetInspectionContext() : mContext};
-    mViewport->DrawStatistics(DeltaTime, Inspection->GetWorld(), mContext->GetRenderer()->GetStats());
+    mViewportLayout.Draw(DeltaTime);
 
     ImGui::Render();
     mContext->GetRenderer()->BeginUiRender();
@@ -218,6 +225,10 @@ void FEditorUI::EndFrame(float DeltaTime) {
  */
 bool FEditorUI::WantsExit() const {
     return mExit;
+}
+
+FEditorViewport* FEditorUI::GetActiveViewport() const {
+    return mViewportLayout.GetActiveViewport();
 }
 
 /**
@@ -292,6 +303,12 @@ void FEditorUI::DrawEditorToolbar() {
         ImGui::SameLine(0.0f, 12.0f);
         ImGui::AlignTextToFramePadding();
         ImGui::TextDisabled("%s%s%s", mPlaySession->IsActive() ? mPlaySession->IsPaused() ? "[Paused] " : "[Playing] " : "", mContext->GetScenePath().empty() ? "Untitled" : PathText(mContext->GetScenePath().filename()).c_str(), mContext->IsSceneDirty() ? " *" : "");
+        ImGui::SameLine(0.0f, 16.0f);
+        ImGui::BeginDisabled(!mViewportLayout.CanChangeLayout());
+        if (ImGui::Button(mViewportLayout.IsQuadView() ? "Single View" : "Four Views")) {
+            mViewportLayout.SetQuadView(!mViewportLayout.IsQuadView());
+        }
+        ImGui::EndDisabled();
     }
     ImGui::End();
     ImGui::PopStyleColor();
@@ -303,7 +320,7 @@ void FEditorUI::DrawPlayControls() {
     ImGui::PushID("PIEControls");
     const bool Active{mPlaySession->IsActive()};
     const bool Paused{mPlaySession->IsPaused()};
-    const bool CanStart{!Active && mPlaySession->CanStart()};
+    const bool CanStart{!Active && mViewportLayout.CanChangeLayout() && mPlaySession->CanStart()};
     const char* PlayTooltip{Active ? "Stop (Esc)" : CanStart ? "Play (Alt+P)" : "Play requires an active world camera and an idle editor"};
 
     if (EditorStyle::IconButton("PlayStop", Active ? EditorStyle::EIcon::Stop : EditorStyle::EIcon::Play, false, Active || CanStart, false, PlayTooltip)) {
@@ -388,6 +405,9 @@ void FEditorUI::DrawMenu() {
         }
 
         if (ImGui::BeginMenu("View")) {
+            if (ImGui::MenuItem("Four Viewports", nullptr, mViewportLayout.IsQuadView(), mViewportLayout.CanChangeLayout())) {
+                mViewportLayout.SetQuadView(!mViewportLayout.IsQuadView());
+            }
             if (ImGui::MenuItem(mConsolePanel.GetName().c_str(), nullptr, mConsolePanel.IsVisible())) {
                 mConsolePanel.SetVisible(!mConsolePanel.IsVisible());
             }
@@ -401,7 +421,7 @@ void FEditorUI::DrawMenu() {
     const ImGuiIO& Input{ImGui::GetIO()};
 
     if (!Input.WantTextInput && !ImGui::IsPopupOpen(nullptr, ImGuiPopupFlags_AnyPopup)) {
-        if (Input.KeyAlt && ImGui::IsKeyPressed(ImGuiKey_P, false)) {
+        if (Input.KeyAlt && ImGui::IsKeyPressed(ImGuiKey_P, false) && mViewportLayout.CanChangeLayout()) {
             mPlaySession->Start();
         } else if (mPlaySession->IsActive() && ImGui::IsKeyPressed(ImGuiKey_Escape, false)) {
             mPlaySession->Stop();
@@ -430,6 +450,9 @@ void FEditorUI::DrawMenu() {
 }
 
 bool FEditorUI::ConfirmSceneChange() {
+    if (!ConfirmMaterialChange()) {
+        return false;
+    }
     if (!mContext->IsSceneDirty()) {
         return true;
     }
@@ -491,6 +514,10 @@ void FEditorUI::DrawContent() {
         ImGui::SameLine();
         if (ImGui::Button("Import Texture...")) {
             ImportAsset(true);
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("New Material")) {
+            CreateMaterial();
         }
         ImGui::EndDisabled();
         ImGui::SameLine();
@@ -563,7 +590,7 @@ void FEditorUI::RefreshContent() {
                 mContentFolders.try_emplace(Relative);
             } else if (Iterator->is_regular_file(Code)) {
                 mAssetPaths.push_back(Relative);
-                if (Relative.extension() == L".masset") {
+                if (Relative.extension() == L".masset" || Relative.extension() == L".mtl") {
                     EAssetType Type{};
                     if (FAssetFile::GetType(Resolved, Type, Error)) {
                         mAssetTypes.emplace(Relative, Type);
@@ -709,15 +736,16 @@ void FEditorUI::DrawContentEntries() {
                 OpenContentAsset(Path, Type->second);
             }
         }
-        if (Type != mAssetTypes.end() && Type->second == EAssetType::Mesh && mContext->CanEditWorld() && ImGui::BeginDragDropSource()) {
+        if (Type != mAssetTypes.end() && (Type->second == EAssetType::Mesh || Type->second == EAssetType::Material || Type->second == EAssetType::Texture) && mContext->CanEditWorld() && ImGui::BeginDragDropSource()) {
             const FString Relative{PathText(Path)};
-            ImGui::SetDragDropPayload(EditorAssetDragDrop::MeshPayload, Relative.c_str(), Relative.size() + 1);
+            const char* Payload{Type->second == EAssetType::Mesh ? EditorAssetDragDrop::MeshPayload : Type->second == EAssetType::Material ? EditorAssetDragDrop::MaterialPayload : EditorAssetDragDrop::TexturePayload};
+            ImGui::SetDragDropPayload(Payload, Relative.c_str(), Relative.size() + 1);
             ImGui::TextUnformatted(Label.c_str());
-            ImGui::TextDisabled("Drop into the viewport to place");
+            ImGui::TextDisabled("%s", Type->second == EAssetType::Mesh ? "Drop into the viewport to place" : Type->second == EAssetType::Material ? "Drop onto a Material field" : "Drop onto the material Texture field");
             ImGui::EndDragDropSource();
         }
         ImGui::TableSetColumnIndex(1);
-        const char* Kind{Type != mAssetTypes.end() ? Type->second == EAssetType::Mesh ? "Mesh" : Type->second == EAssetType::Scene ? "Scene" : "Texture" : Path.extension() == L".hlsl" || Path.extension() == L".hlsli" ? "Shader" : Path.extension() == L".lua" ? "Script" : Path.extension() == L".masset" ? "Invalid Asset" : "File"};
+        const char* Kind{Type != mAssetTypes.end() ? Type->second == EAssetType::Mesh ? "Mesh" : Type->second == EAssetType::Scene ? "Scene" : Type->second == EAssetType::Material ? "Material" : "Texture" : Path.extension() == L".hlsl" || Path.extension() == L".hlsli" ? "Shader" : Path.extension() == L".lua" ? "Script" : Path.extension() == L".masset" ? "Invalid Asset" : "File"};
         ImGui::TextDisabled("%s", Kind);
     }
     ImGui::EndTable();
@@ -736,6 +764,18 @@ void FEditorUI::OpenContentAsset(const std::filesystem::path& Path, EAssetType T
         }
     } else if (Type == EAssetType::Mesh) {
         mContext->SpawnMesh(Path);
+    } else if (Type == EAssetType::Material) {
+        if (!ConfirmMaterialChange()) {
+            return;
+        }
+        UMaterial* Material{mContext->GetProject()->GetAssets()->LoadMaterial(Path, mMaterialError)};
+        if (Material != nullptr) {
+            mEditingMaterial = Material;
+            mMaterialPath = Path;
+            mMaterialDirty = false;
+        } else {
+            mContext->AddLog(mMaterialError);
+        }
     } else if (Type == EAssetType::Texture) {
         FString Error{};
         mPreviewTexture = mContext->GetProject()->GetAssets()->LoadTexture(Path, Error);
@@ -744,5 +784,168 @@ void FEditorUI::OpenContentAsset(const std::filesystem::path& Path, EAssetType T
         } else {
             mContext->AddLog(Error.empty() ? "Cannot preview the texture" : Error);
         }
+    }
+}
+
+void FEditorUI::CreateMaterial() {
+    if (!ConfirmMaterialChange()) {
+        return;
+    }
+    FAssetManager* Assets{mContext->GetProject()->GetAssets()};
+    std::filesystem::path Path{mContentDirectory / "Material.mtl"};
+    std::error_code Code{};
+    for (Uint32 Index{1}; std::filesystem::exists(Assets->GetContentRoot() / Path, Code) && !Code; ++Index) {
+        Path = mContentDirectory / ("Material_" + std::to_string(Index) + ".mtl");
+    }
+    auto Material{NewObject<UMaterial>()};
+    Material->SetName(PathText(Path.stem()));
+    if (Code || !Assets->SaveMaterial(Path, *Material, mMaterialError)) {
+        mContext->AddLog(mMaterialError.empty() ? "Cannot create the material" : mMaterialError);
+        return;
+    }
+    mRefreshContent = true;
+    mSelectedContentPath = Path;
+    OpenContentAsset(Path, EAssetType::Material);
+}
+
+bool FEditorUI::SaveMaterial() {
+    if (mEditingMaterial == nullptr || !mContext->GetProject()->GetAssets()->SaveMaterial(mMaterialPath, *mEditingMaterial, mMaterialError)) {
+        return false;
+    }
+    mMaterialDirty = false;
+    mRefreshContent = true;
+    mContext->AddLog("Saved " + PathText(mMaterialPath));
+    return true;
+}
+
+bool FEditorUI::ConfirmMaterialChange() {
+    if (!mMaterialDirty || mEditingMaterial == nullptr) {
+        return true;
+    }
+    const Int32 Choice{MessageBoxW(mPlatform->GetWindowHandle(), L"Save changes to the current material?", L"Material", MB_YESNOCANCEL | MB_ICONQUESTION)};
+    if (Choice == IDCANCEL) {
+        return false;
+    }
+    if (Choice == IDYES) {
+        return SaveMaterial();
+    }
+    if (!mContext->GetProject()->GetAssets()->ReloadMaterial(mMaterialPath, mMaterialError)) {
+        return false;
+    }
+    mMaterialDirty = false;
+    return true;
+}
+
+bool FEditorUI::SetMaterialTexture(const FString& Path) {
+    FAssetManager* Assets{mContext->GetProject()->GetAssets()};
+    if (!Path.empty() && Assets->LoadTexture(std::filesystem::path{std::u8string_view{reinterpret_cast<const char8_t*>(Path.data()), Path.size()}}, mMaterialError) == nullptr) {
+        return false;
+    }
+    if (!mEditingMaterial->SetBaseColorTexturePath(Path) || !mEditingMaterial->ResolveTexture(*Assets, mMaterialError)) {
+        if (mMaterialError.empty()) {
+            mMaterialError = "Invalid texture path";
+        }
+        return false;
+    }
+    mMaterialError.clear();
+    mMaterialDirty = true;
+    return true;
+}
+
+bool FEditorUI::SetMaterialShader(const FString& Path) {
+    auto Candidate{NewObject<UMaterial>()};
+    Candidate->SetTwoSided(mEditingMaterial->IsTwoSided());
+    FRenderer* Renderer{dynamic_cast<FRenderer*>(mContext->GetRenderer())};
+    if (!Candidate->SetShaderPath(Path) || Renderer == nullptr || Renderer->GetMaterialPipeline(*Candidate) == nullptr) {
+        mMaterialError = "Cannot use this material shader. Check the shader diagnostics in the log.";
+        return false;
+    }
+    mEditingMaterial->SetShaderPath(Path);
+    mMaterialError.clear();
+    mMaterialDirty = true;
+    return true;
+}
+
+void FEditorUI::DrawMaterialEditor() {
+    if (mEditingMaterial == nullptr) {
+        return;
+    }
+    bool Open{true};
+    ImGui::SetNextWindowSize({480.0f, 360.0f}, ImGuiCond_FirstUseEver);
+    if (ImGui::Begin(mMaterialDirty ? "Material Editor*###MaterialEditor" : "Material Editor###MaterialEditor", &Open)) {
+        ImGui::TextUnformatted(PathText(mMaterialPath).c_str());
+        ImGui::BeginDisabled(!mContext->CanEditWorld());
+        if (ImGui::Button("Save")) {
+            SaveMaterial();
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Reload") && ConfirmMaterialChange()) {
+            mContext->GetProject()->GetAssets()->ReloadMaterial(mMaterialPath, mMaterialError);
+        }
+        ImGui::Separator();
+        if (ImGui::BeginCombo("Shader", mEditingMaterial->GetShaderPath().c_str())) {
+            TArray<FString> Shaders{"Shaders/Lit.hlsl", "Shaders/Unlit.hlsl"};
+            for (const auto& Path : mAssetPaths) {
+                const FString Name{PathText(Path)};
+                if (Path.extension() == L".hlsl" && Path.filename() != L"Line.hlsl" && Path.filename() != L"Gizmo.hlsl" && Path.filename() != L"Text.hlsl" && std::find(Shaders.begin(), Shaders.end(), Name) == Shaders.end()) {
+                    Shaders.push_back(Name);
+                }
+            }
+            for (const FString& Shader : Shaders) {
+                if (ImGui::Selectable(Shader.c_str(), mEditingMaterial->GetShaderPath() == Shader)) {
+                    SetMaterialShader(Shader);
+                }
+            }
+            ImGui::EndCombo();
+        }
+        std::array<char, 512> ShaderPath{};
+        const FString& CurrentShader{mEditingMaterial->GetShaderPath()};
+        std::copy_n(CurrentShader.begin(), std::min(CurrentShader.size(), ShaderPath.size() - 1), ShaderPath.begin());
+        if (ImGui::InputText("Shader Path", ShaderPath.data(), ShaderPath.size(), ImGuiInputTextFlags_EnterReturnsTrue)) {
+            SetMaterialShader(ShaderPath.data());
+        }
+        auto Color{mEditingMaterial->GetBaseColor().ToArray()};
+        if (ImGui::ColorEdit4("Base Color", Color.data()) && mEditingMaterial->SetBaseColor({Color[0], Color[1], Color[2], Color[3]})) {
+            mMaterialDirty = true;
+        }
+        bool TwoSided{mEditingMaterial->IsTwoSided()};
+        if (ImGui::Checkbox("Two Sided", &TwoSided)) {
+            mEditingMaterial->SetTwoSided(TwoSided);
+            mMaterialDirty = true;
+        }
+        const FString& CurrentTexture{mEditingMaterial->GetBaseColorTexturePath()};
+        if (ImGui::BeginCombo("Texture", CurrentTexture.empty() ? "None" : CurrentTexture.c_str())) {
+            if (ImGui::Selectable("None", CurrentTexture.empty())) {
+                SetMaterialTexture({});
+            }
+            for (const auto& Path : mAssetPaths) {
+                const auto Type{mAssetTypes.find(Path)};
+                const auto Extension{Path.extension()};
+                if ((Type != mAssetTypes.end() && Type->second == EAssetType::Texture) || Extension == L".png" || Extension == L".jpg" || Extension == L".jpeg" || Extension == L".dds" || Extension == L".tga" || Extension == L".bmp") {
+                    const FString Relative{PathText(Path)};
+                    if (ImGui::Selectable(Relative.c_str(), CurrentTexture == Relative)) {
+                        SetMaterialTexture(Relative);
+                    }
+                }
+            }
+            ImGui::EndCombo();
+        }
+        if (ImGui::BeginDragDropTarget()) {
+            const ImGuiPayload* Payload{ImGui::AcceptDragDropPayload(EditorAssetDragDrop::TexturePayload)};
+            if (Payload != nullptr && Payload->DataSize > 0 && static_cast<const char*>(Payload->Data)[Payload->DataSize - 1] == '\0') {
+                SetMaterialTexture(FString{static_cast<const char*>(Payload->Data), static_cast<std::size_t>(Payload->DataSize - 1)});
+            }
+            ImGui::EndDragDropTarget();
+        }
+        ImGui::EndDisabled();
+        if (!mMaterialError.empty()) {
+            ImGui::TextWrapped("%s", mMaterialError.c_str());
+        }
+    }
+    ImGui::End();
+    if (!Open && ConfirmMaterialChange()) {
+        mEditingMaterial = nullptr;
+        mMaterialPath.clear();
+        mMaterialError.clear();
     }
 }

@@ -90,6 +90,7 @@ public:
      * @return 조회한 값의 비소유 주소이며, 해당 값이 없으면 nullptr입니다.
      */
     static UClass* FindClass(const FString& Name);
+    static TArray<const UClass*> GetDerivedClasses(const UClass* Parent);
     /**
      * @brief 등록된 구조체 메타데이터를 이름으로 조회합니다.
      * @param[in] Name 조회하거나 기록할 이름입니다.

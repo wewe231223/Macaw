@@ -81,6 +81,16 @@ FTransformGizmo::FTransformGizmo(FEditorContext* Context, const FEditorViewportC
 	  mClient{Client} {
 }
 
+void FTransformGizmo::SetEditorContext(FEditorContext* Context) {
+    if (Context == nullptr || Context == mContext) {
+        return;
+    }
+    Cancel();
+    mContext = Context;
+    mHasPivot = false;
+    mPivotRevision = 0;
+}
+
 /**
  * @brief 선택한 좌표 공간에 맞는 기즈모 단위 축을 구합니다.
  */
@@ -94,6 +104,9 @@ FVector FTransformGizmo::GetAxis(const FTransform& Transform, Int32 Index) const
 float FTransformGizmo::GetSize(const FSceneView& View, const FVector& Pivot) const {
     const float Depth{(Pivot - View.mLocation).Dot(View.mForward)};
     const float Size{std::isfinite(mSettings.mSize) ? std::clamp(mSettings.mSize, 0.5f, 2.0f) : 1.0f};
+    if (View.mOrthographic) {
+        return 2.0f / (View.mProjection(1, 1) * std::max(View.mSize.y, 1.0f)) * Size;
+    }
     return Depth > 0.05f ? 2.0f * Depth * std::tan(Math::ToRadians(View.mFieldOfView) * 0.5f) / std::max(View.mSize.y, 1.0f) * Size : 0.0f;
 }
 
@@ -105,7 +118,7 @@ FHitProxy FTransformGizmo::HitTest(const FVector2& Mouse, const FSceneView& View
         return {};
     }
     FRay Ray{};
-    if (!Math::Deproject(Mouse, View.mSize, View.mViewProjection, Ray)) {
+    if (!View.Deproject(Mouse, Ray)) {
         return {};
     }
     FPrimitiveDrawInterface Shapes{};
@@ -185,7 +198,7 @@ bool FTransformGizmo::BeginDrag(Int32 Axis, const FViewportInput* Input, const F
     const float Length{std::sqrt(mScreenAxis.x * mScreenAxis.x + mScreenAxis.y * mScreenAxis.y)};
     mScreenAxis = Axis >= 6 ? FVector2{0.70710678f, -0.70710678f} : Length > 0.00001f ? mScreenAxis / Length : FVector2{};
     FRay Ray{};
-    if (!Math::Deproject(Input->mMouse, View.mSize, View.mViewProjection, Ray) || mDragSize <= 0.0f) {
+    if (!View.Deproject(Input->mMouse, Ray) || mDragSize <= 0.0f) {
         return false;
     }
     mScreenFallback = std::abs(Ray.mDirection.Dot(mPlaneNormal)) < 0.12f || !Math::IntersectPlane(Ray, mStartPivot, mPlaneNormal, mStartIntersection);
@@ -248,7 +261,7 @@ void FTransformGizmo::UpdateDrag(const FViewportInput* Input) {
         }
     }
     FRay Ray{};
-    if (!Math::Deproject(Input->mMouse, mDragView.mSize, mDragView.mViewProjection, Ray)) {
+    if (!mDragView.Deproject(Input->mMouse, Ray)) {
         return;
     }
     const float ScreenMovement{MouseDelta.x * mScreenAxis.x + MouseDelta.y * mScreenAxis.y};

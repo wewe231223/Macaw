@@ -22,11 +22,10 @@ UEditorEngine::UEditorEngine()
 	  mPlaySession{this, &mContext, &mViewport},
 	  mUI{std::make_unique<FEditorUI>(&mContext, &mViewport, &mPlaySession)} {
     mContext.SetPlacementProvider([this]() {
-        const FSceneView View{mViewport.GetClient()->CalcSceneView({960.0f, 640.0f})};
-        return FTransform{View.mLocation + View.mForward * 6.0f, {}, {1.0f, 1.0f, 1.0f}};
+        return FTransform{mUI->GetActiveViewport()->GetClient()->GetPlacementLocation(), {}, {1.0f, 1.0f, 1.0f}};
     });
     mContext.SetViewportCommandHandler([this](const FString& Command, FString& Output) {
-        return mViewport.GetStatistics()->ExecuteCommand(Command, Output);
+        return mUI->GetActiveViewport()->GetStatistics()->ExecuteCommand(Command, Output);
     });
 }
 

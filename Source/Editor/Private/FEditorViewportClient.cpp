@@ -221,6 +221,25 @@ bool FEditorViewportClient::NavigateCamera(const FViewportInput& Input, const FV
 
     const FQuat Rotation{mCameraRotation.Quaternion()};
 
+    if (mViewType != EEditorViewportType::Perspective) {
+        if (Input.mWheel != 0.0f && Input.mHovered) {
+            const float PreviousWidth{mOrthographicWidth};
+            mOrthographicWidth = std::clamp(mOrthographicWidth * std::pow(0.85f, Input.mWheel), 0.1f, 10000.0f);
+            const float PixelScale{(PreviousWidth - mOrthographicWidth) / std::max(Size.x, 1.0f)};
+            const FVector Offset{Rotation.RightVector() * ((Input.mMouse.x - Size.x * 0.5f) * PixelScale) + Rotation.UpVector() * ((Size.y * 0.5f - Input.mMouse.y) * PixelScale)};
+            mCameraLocation += Offset;
+            mOrbitPivot += Offset;
+        }
+        if (Input.mRightDown || Input.mMiddleDown) {
+            const float PixelScale{mOrthographicWidth / std::max(Size.x, 1.0f)};
+            const FVector Offset{(Rotation.RightVector() * -Input.mDelta.x + Rotation.UpVector() * Input.mDelta.y) * PixelScale};
+            mCameraLocation += Offset;
+            mOrbitPivot += Offset;
+            return true;
+        }
+        return Input.mAlt || (Input.mWheel != 0.0f && Input.mHovered);
+    }
+
     if (Input.mWheel != 0.0f && Input.mHovered) {
         if (Input.mRightDown && !Input.mAlt) {
             mCameraSpeed = std::clamp(mCameraSpeed * std::pow(1.25f, Input.mWheel), 0.1f, 128.0f);
@@ -295,6 +314,12 @@ void FEditorViewportClient::FocusSelection(const FVector2& Size) {
     mOrbitPivot = Bounds.mMinimum.Lerp(Bounds.mMaximum, 0.5f);
 
     const float Radius{Bounds.mMinimum.Distance(Bounds.mMaximum) * 0.5f};
+    if (mViewType != EEditorViewportType::Perspective) {
+        const float Aspect{std::max(Size.x, 1.0f) / std::max(Size.y, 1.0f)};
+        mOrthographicWidth = std::clamp(Radius * 2.4f * std::max(Aspect, 1.0f), 0.1f, 10000.0f);
+        mCameraLocation = mOrbitPivot - mCameraRotation.Vector() * 5000.0f;
+        return;
+    }
     const float HalfFieldOfView{std::atan(std::tan(Math::ToRadians(30.0f)) * std::min(std::max(Size.x, 1.0f) / std::max(Size.y, 1.0f), 1.0f))};
     const float Distance{std::max(0.5f, Radius / std::sin(HalfFieldOfView) * 1.2f)};
 
@@ -378,10 +403,13 @@ FSceneView FEditorViewportClient::CalcSceneView(const FVector2& Size) const {
     View.mLocation = mCameraLocation;
     View.mForward = Rotation.ForwardVector();
     View.mSize = Size;
+    View.mOrthographic = mViewType != EEditorViewportType::Perspective;
+    View.mOrthographicWidth = mOrthographicWidth;
 
     View.mView = FMatrix::LookTo(mCameraLocation, View.mForward, Rotation.UpVector());
 
-    View.mProjection = FMatrix::Perspective(View.mFieldOfView, std::max(Size.x, 1.0f) / std::max(Size.y, 1.0f), 0.05f, 10000.0f);
+    const float Aspect{std::max(Size.x, 1.0f) / std::max(Size.y, 1.0f)};
+    View.mProjection = View.mOrthographic ? FMatrix::Orthographic(mOrthographicWidth, mOrthographicWidth / Aspect, 0.05f, 10000.0f) : FMatrix::Perspective(View.mFieldOfView, Aspect, 0.05f, 10000.0f);
     View.mViewProjection = View.mView * View.mProjection;
 
     return View;
@@ -396,15 +424,93 @@ void FEditorViewportClient::ResetCamera() {
 
     mOrbitPivot = {};
     mCameraSpeed = 4.0f;
+    mPerspectiveLocation = mCameraLocation;
+    mPerspectiveRotation = mCameraRotation;
+    mPerspectivePivot = {};
+    mOrthographicWidth = 20.0f;
+    if (mViewType != EEditorViewportType::Perspective) {
+        const EEditorViewportType Type{mViewType};
+        mViewType = EEditorViewportType::Perspective;
+        SetViewType(Type);
+    }
 }
 
 /**
  * @brief 유효한 위치와 회전으로 에디터 카메라를 설정합니다.
  */
 void FEditorViewportClient::SetCamera(const FVector& Location, const FRotator& Rotation) {
+    SetViewType(EEditorViewportType::Perspective);
     mCameraLocation = Location;
     mCameraRotation = Rotation;
     mOrbitPivot = Location + Rotation.Vector() * 10.0f;
+}
+
+void FEditorViewportClient::SetViewType(EEditorViewportType Type) {
+    if (Type < EEditorViewportType::Perspective || Type > EEditorViewportType::Right || mViewType == Type || mGizmo.IsDragging()) {
+        return;
+    }
+    if (mViewType == EEditorViewportType::Perspective) {
+        mPerspectiveLocation = mCameraLocation;
+        mPerspectiveRotation = mCameraRotation;
+        mPerspectivePivot = mOrbitPivot;
+    }
+    mViewType = Type;
+    if (Type == EEditorViewportType::Perspective) {
+        mCameraLocation = mPerspectiveLocation;
+        mCameraRotation = mPerspectiveRotation;
+        mOrbitPivot = mPerspectivePivot;
+        return;
+    }
+    switch (Type) {
+    case EEditorViewportType::Top:
+        mCameraRotation = {-90.0f, 0.0f, 0.0f};
+        break;
+    case EEditorViewportType::Bottom:
+        mCameraRotation = {90.0f, 0.0f, 0.0f};
+        break;
+    case EEditorViewportType::Front:
+        mCameraRotation = {0.0f, 180.0f, 0.0f};
+        break;
+    case EEditorViewportType::Back:
+        mCameraRotation = {};
+        break;
+    case EEditorViewportType::Left:
+        mCameraRotation = {0.0f, -90.0f, 0.0f};
+        break;
+    case EEditorViewportType::Right:
+        mCameraRotation = {0.0f, 90.0f, 0.0f};
+        break;
+    default:
+        break;
+    }
+    mCameraLocation = mOrbitPivot - mCameraRotation.Vector() * 5000.0f;
+}
+
+EEditorViewportType FEditorViewportClient::GetViewType() const {
+    return mViewType;
+}
+
+const char* FEditorViewportClient::GetViewTypeName() const {
+    switch (mViewType) {
+    case EEditorViewportType::Top:
+        return "Top";
+    case EEditorViewportType::Bottom:
+        return "Bottom";
+    case EEditorViewportType::Front:
+        return "Front";
+    case EEditorViewportType::Back:
+        return "Back";
+    case EEditorViewportType::Left:
+        return "Left";
+    case EEditorViewportType::Right:
+        return "Right";
+    default:
+        return "Perspective";
+    }
+}
+
+FVector FEditorViewportClient::GetPlacementLocation() const {
+    return mViewType == EEditorViewportType::Perspective ? mCameraLocation + mCameraRotation.Vector() * 6.0f : mOrbitPivot;
 }
 
 /**
@@ -536,7 +642,7 @@ FHitProxy FEditorViewportClient::GetHitProxy(const FSceneViewport* Viewport, con
     FRay Ray{};
     FWorldHit Hit{};
 
-    if (!Math::Deproject(Position, View.mSize, View.mViewProjection, Ray)) {
+    if (!View.Deproject(Position, Ray)) {
         return {};
     }
     const bool HasMeshHit{World->Raycast(Ray, Hit)};
@@ -601,13 +707,13 @@ bool FEditorViewportClient::DropMesh(const std::filesystem::path& Path, const FV
     }
     const FSceneView View{CalcSceneView(Size)};
     FRay Ray{};
-    if (!Math::Deproject(Position, View.mSize, View.mViewProjection, Ray)) {
+    if (!View.Deproject(Position, Ray)) {
         return false;
     }
     FWorldHit Hit{};
-    FVector Location{Ray.mOrigin + Ray.mDirection * 6.0f};
+    FVector Location{mViewType == EEditorViewportType::Perspective ? Ray.mOrigin + Ray.mDirection * 6.0f : mOrbitPivot};
     const bool OnSurface{World->Raycast(Ray, Hit)};
-    const bool OnGround{!OnSurface && Math::IntersectPlane(Ray, FVector{}, FVector{0.0f, 0.0f, 1.0f}, Location)};
+    const bool OnGround{!OnSurface && Math::IntersectPlane(Ray, mViewType == EEditorViewportType::Perspective ? FVector{} : mOrbitPivot, mViewType == EEditorViewportType::Perspective ? FVector{0.0f, 0.0f, 1.0f} : View.mForward, Location)};
     if (OnSurface) {
         Location = Hit.mPosition;
     }
@@ -617,7 +723,7 @@ bool FEditorViewportClient::DropMesh(const std::filesystem::path& Path, const FV
         mContext->AddLog(Error);
         return false;
     }
-    if (OnSurface || OnGround) {
+    if (OnSurface || (OnGround && mViewType == EEditorViewportType::Perspective)) {
         Location.z -= Mesh->GetBounds().mMinimum.z;
     }
     return mContext->SpawnMesh(Path, FTransform{Location, {}, {1.0f, 1.0f, 1.0f}}) != nullptr;

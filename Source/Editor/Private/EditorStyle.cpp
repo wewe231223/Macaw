@@ -89,6 +89,21 @@ void EditorStyle::DrawIcon(EIcon Icon, const ImVec2& Origin, float Size, ImU32 C
     case EIcon::Stop:
         DrawList->AddRectFilled(Point(4.0f, 4.0f), Point(16.0f, 16.0f), Color, Scale);
         break;
+    case EIcon::QuadView:
+        DrawList->AddRect(Point(2.0f, 2.0f), Point(18.0f, 18.0f), Color, Scale, ImDrawFlags_None, Thickness);
+        Line(10.0f, 2.0f, 10.0f, 18.0f);
+        Line(2.0f, 10.0f, 18.0f, 10.0f);
+        break;
+    case EIcon::Maximize:
+        Line(3.0f, 8.0f, 3.0f, 3.0f);
+        Line(3.0f, 3.0f, 8.0f, 3.0f);
+        Line(12.0f, 3.0f, 17.0f, 3.0f);
+        Line(17.0f, 3.0f, 17.0f, 8.0f);
+        Line(17.0f, 12.0f, 17.0f, 17.0f);
+        Line(17.0f, 17.0f, 12.0f, 17.0f);
+        Line(8.0f, 17.0f, 3.0f, 17.0f);
+        Line(3.0f, 17.0f, 3.0f, 12.0f);
+        break;
     }
 }
 

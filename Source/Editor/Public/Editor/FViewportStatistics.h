@@ -12,6 +12,7 @@
 class UWorld;
 struct FRenderStats;
 struct FVector2;
+struct ImDrawList;
 
 /**
  * @brief 프레임 시간, 객체, 메모리와 렌더링 통계를 표시합니다.
@@ -83,7 +84,7 @@ public:
      * @param[in] Origin 뷰포트 이미지의 화면상 좌측 상단 좌표입니다.
      * @param[in] Size 뷰포트 이미지의 가로·세로 픽셀 크기입니다.
      */
-    void Draw(float DeltaTime, const UWorld* World, const FRenderStats& Render, const FVector2& Origin, const FVector2& Size) const;
+    void Draw(float DeltaTime, const UWorld* World, const FRenderStats& Render, const FVector2& Origin, const FVector2& Size, ImDrawList* DrawList = nullptr) const;
 
 private:
     /**

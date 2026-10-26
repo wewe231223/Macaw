@@ -18,12 +18,14 @@
 #include "RenderCore/Shader/FShaderManager.h"
 #include "Engine/UStaticMesh.h"
 #include "Engine/UTexture2D.h"
+#include "Engine/UMaterial.h"
 #include "Renderer/FLineVertex.h"
 
 #include <d3d11.h>
 #include <wrl/client.h>
 
 class FTextRenderer;
+class FMaterialPipeline;
 
 /**
  * @brief Direct3D 11 장치, 스왑 체인, 메시와 프레임 렌더링을 관리합니다.
@@ -147,6 +149,10 @@ public:
      */
     bool ReloadChangedShaders() override;
     bool GetTextBounds(const FString& Text, FVector2& Minimum, FVector2& Maximum) const override;
+    FMaterialPipeline* GetMaterialPipeline(const UMaterial& Material);
+    UMaterial* GetDefaultMaterial() const;
+    ID3D11ShaderResourceView* GetDefaultMaterialTexture() const;
+    ID3D11SamplerState* GetMaterialSampler() const;
     /**
      * @brief 프로젝트 콘텐츠의 셰이더 경로와 컴파일 캐시 경로를 설정합니다.
      * @param[in] ContentRoot 프로젝트 에셋 경로의 기준 콘텐츠 폴더입니다.
@@ -206,6 +212,14 @@ private:
     ReflectMembers();
 
 private:
+    std::unique_ptr<UMaterial> mDefaultMaterial{};
+    ReflectProperty(mDefaultMaterial, "DefaultMaterial", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    std::unique_ptr<UTexture2D> mDefaultMaterialTexture{};
+    ReflectProperty(mDefaultMaterialTexture, "DefaultMaterialTexture", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    Microsoft::WRL::ComPtr<ID3D11SamplerState> mMaterialSampler{};
+    ReflectProperty(mMaterialSampler, "MaterialSampler", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    TMap<FString, std::unique_ptr<FMaterialPipeline>> mMaterialPipelines{};
+    ReflectProperty(mMaterialPipelines, "MaterialPipelines", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
     std::unique_ptr<FTextRenderer> mTextRenderer{};
     ReflectProperty(mTextRenderer, "TextRenderer", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
     FShaderManager mShaderManager{};
@@ -247,23 +261,8 @@ private:
     ReflectProperty(mBackBuffer, "BackBuffer", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 
 
-    /**
-     * @brief 메시용 정점 셰이더입니다.
-     */
-    Microsoft::WRL::ComPtr<ID3D11VertexShader> mMeshVertexShader{};
-    ReflectProperty(mMeshVertexShader, "MeshVertexShader", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 
-    /**
-     * @brief 메시용 픽셀 셰이더입니다.
-     */
-    Microsoft::WRL::ComPtr<ID3D11PixelShader> mMeshPixelShader{};
-    ReflectProperty(mMeshPixelShader, "MeshPixelShader", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 
-    /**
-     * @brief 메시 정점 입력 레이아웃입니다.
-     */
-    Microsoft::WRL::ComPtr<ID3D11InputLayout> mMeshLayout{};
-    ReflectProperty(mMeshLayout, "MeshLayout", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 
 
     /**

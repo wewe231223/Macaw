@@ -36,29 +36,26 @@ void FOutlinerPanel::DrawContent(float) {
     FEditorContext* Context{GetEditorContext()};
     ImGui::BeginDisabled(!Context->CanEditWorld());
 
-    if (ImGui::Button("+ Plane")) {
-        Context->SpawnPrimitive(EPrimitiveType::Plane);
+    if (ImGui::Button("+ 액터")) {
+        ImGui::OpenPopup("AddActor");
     }
-
-    ImGui::SameLine();
-
-    if (ImGui::Button("+ Cube")) {
-        Context->SpawnPrimitive(EPrimitiveType::Cube);
-    }
-
-    ImGui::SameLine();
-
-    if (ImGui::Button("+ Sphere")) {
-        Context->SpawnPrimitive(EPrimitiveType::Sphere);
-    }
-
-    if (ImGui::Button("+ Camera")) {
-        Context->SpawnCamera();
-    }
-
-    ImGui::SameLine();
-    if (ImGui::Button("+ Text")) {
-        Context->SpawnText();
+    if (ImGui::BeginPopup("AddActor")) {
+        if (ImGui::MenuItem("Plane")) {
+            Context->SpawnPrimitive(EPrimitiveType::Plane);
+        }
+        if (ImGui::MenuItem("Cube")) {
+            Context->SpawnPrimitive(EPrimitiveType::Cube);
+        }
+        if (ImGui::MenuItem("Sphere")) {
+            Context->SpawnPrimitive(EPrimitiveType::Sphere);
+        }
+        if (ImGui::MenuItem("Camera")) {
+            Context->SpawnCamera();
+        }
+        if (ImGui::MenuItem("Text")) {
+            Context->SpawnText();
+        }
+        ImGui::EndPopup();
     }
 
     ImGui::SameLine();

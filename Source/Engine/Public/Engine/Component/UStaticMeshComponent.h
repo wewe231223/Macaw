@@ -10,6 +10,8 @@
 #include "Engine/Component/UPrimitiveComponent.h"
 #include "Engine/EPrimitiveType.h"
 
+class UMaterial;
+
 /**
  * @brief Plane, Cube 또는 Sphere 프리미티브를 표시하는 메시 컴포넌트입니다.
  * @ingroup Engine
@@ -77,6 +79,11 @@ public:
     const FMeshData& GetMeshData() const override;
     void UnregisterComponent() override;
     bool ResolveMesh();
+    const FString& GetMaterialPath() const;
+    bool SetMaterialPath(const FString& Path);
+    UMaterial* GetMaterial() const;
+    bool ResolveMaterial();
+    FPrimitiveSceneProxy CreateSceneProxy() const override;
     bool ShouldCreateRenderState() const override;
 
 private:
@@ -86,6 +93,7 @@ private:
     ReflectMembers();
     void OnRegister() override;
     UStaticMesh* LoadMesh(const FString& Path) const;
+    UMaterial* LoadMaterial(const FString& Path) const;
 
 private:
     /**
@@ -100,4 +108,8 @@ private:
     ReflectAccessor(mMeshPath, GetMeshPath, SetMeshPath, "Mesh", EPropertyFlags::Edit | EPropertyFlags::Serialize);
     UStaticMesh* mStaticMesh{};
     ReflectProperty(mStaticMesh, "StaticMesh", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    FString mMaterialPath{};
+    ReflectAccessor(mMaterialPath, GetMaterialPath, SetMaterialPath, "Material", EPropertyFlags::Edit | EPropertyFlags::Serialize);
+    UMaterial* mMaterial{};
+    ReflectProperty(mMaterial, "ResolvedMaterial", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 };

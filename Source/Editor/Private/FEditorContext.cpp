@@ -7,7 +7,7 @@
 #include "Editor/FEditorContext.h"
 #include "Engine/FProject.h"
 #include "Engine/Component/UStaticMeshComponent.h"
-#include "Engine/ABillboardTextActor.h"
+#include "Engine/Component/UBillboardTextComponent.h"
 #include "Engine/Engine.h"
 #include "Engine/UWorld.h"
 #include "Engine/ULevel.h"
@@ -25,6 +25,7 @@
 #include "CoreUObject/FObjectRegistry.h"
 #include "CoreUObject/FPropertyChangedEvent.h"
 #include "CoreUObject/Reflection/Cast.h"
+#include "CoreUObject/Reflection/NewObject.h"
 #include "CoreUObject/Reflection/FProperty.h"
 #include "CoreUObject/Reflection/UClass.h"
 #include "Core/Base/ErrorHandler.h"
@@ -284,16 +285,23 @@ ACameraActor* FEditorContext::SpawnCamera() {
     return Actor;
 }
 
-ABillboardTextActor* FEditorContext::SpawnText() {
+AActor* FEditorContext::SpawnText() {
     if (!CanEditWorld() || mChangingState || mEditingProperty || mEngine->IsDispatching()) {
         return nullptr;
     }
     FOperationScope Scope{&mChangingState};
     UWorld* World{GetWorld()};
-    auto* Actor{World != nullptr ? Cast<ABillboardTextActor>(World->SpawnActor(ABillboardTextActor::StaticClass())) : nullptr};
+    AActor* Actor{World != nullptr ? World->SpawnActor(AActor::StaticClass()) : nullptr};
     if (Actor == nullptr) {
         return nullptr;
     }
+    auto Component{NewObject<UBillboardTextComponent>()};
+    Component->SetName("BillboardTextComponent");
+    if (!Actor->AddComponent(std::move(Component))) {
+        World->DestroyActor(Actor->GetHandle());
+        return nullptr;
+    }
+    Actor->SetName("Text");
     const FTransform Placement{mPlacementProvider ? mPlacementProvider() : FTransform{}};
     if (!Actor->SetActorTransform(Placement)) {
         World->DestroyActor(Actor->GetHandle());
@@ -303,6 +311,53 @@ ABillboardTextActor* FEditorContext::SpawnText() {
     mDirty = true;
     AddLog("Spawned " + Actor->GetName());
     return Actor;
+}
+
+bool FEditorContext::CanAddComponent(const UClass* Class) const {
+    return CanEditWorld() && !mChangingState && !mEditingProperty && !mEngine->IsDispatching() && GetSelectedActors().size() == 1 && Class != nullptr && Class != UActorComponent::StaticClass() && Class->IsChildOf(UActorComponent::StaticClass()) && Class->CanCreate();
+}
+
+UActorComponent* FEditorContext::AddComponent(const UClass* Class) {
+    if (!CanAddComponent(Class)) {
+        return nullptr;
+    }
+    FOperationScope Scope{&mChangingState};
+    AActor* Actor{GetSelectedActor()};
+    const FObjectHandle ActorHandle{Actor->GetHandle()};
+    auto Object{Class->CreateInstance()};
+    if (Object == nullptr || Object->GetClass() != Class) {
+        return nullptr;
+    }
+    std::unique_ptr<UActorComponent> Component{static_cast<UActorComponent*>(Object.release())};
+    FString BaseName{Class->GetName()};
+    if (BaseName.starts_with("U")) {
+        BaseName.erase(0, 1);
+    }
+    FString Name{BaseName};
+    Uint32 Suffix{2};
+    while (std::any_of(Actor->GetComponents().begin(), Actor->GetComponents().end(), [&Name](const auto& Existing) {
+        return Existing->GetName() == Name;
+    })) {
+        Name = BaseName + "_" + std::to_string(Suffix++);
+    }
+    Component->SetName(Name);
+    if (auto* SceneComponent{Cast<USceneComponent>(Component.get())}; SceneComponent != nullptr && Actor->GetRootComponent() != nullptr) {
+        if (!SceneComponent->SetTransform(Actor->GetRootComponent()->GetTransform())) {
+            return nullptr;
+        }
+    }
+    const FObjectHandle ComponentHandle{Component->GetHandle()};
+    if (!Actor->AddComponent(std::move(Component))) {
+        return nullptr;
+    }
+    auto* Added{Cast<UActorComponent>(ResolveObject(ComponentHandle))};
+    if (Added == nullptr) {
+        return nullptr;
+    }
+    AssignSelection({ActorHandle}, ComponentHandle);
+    mDirty = true;
+    AddLog("Added " + Name);
+    return Added;
 }
 
 UCameraComponent* FEditorContext::GetSelectedCamera() const {

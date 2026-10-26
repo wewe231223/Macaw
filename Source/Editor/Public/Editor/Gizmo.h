@@ -108,6 +108,7 @@ public:
      * @return 등록된 타입 메타데이터의 비소유 주소입니다.
      */
     ReflectStruct(FTransformGizmo);
+    void SetEditorContext(FEditorContext* Context);
 
     /**
      * @brief 현재 프레임의 뷰포트 입력을 처리합니다.

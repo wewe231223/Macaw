@@ -10,7 +10,9 @@
 #include "Engine/FViewportClient.h"
 #include "Editor/Gizmo.h"
 #include "Editor/EViewportCommand.h"
+#include "Editor/EEditorViewportType.h"
 
+#include <array>
 #include <filesystem>
 
 class FEditorContext;
@@ -46,6 +48,7 @@ public:
      * @return 등록된 타입 메타데이터의 비소유 주소입니다.
      */
     ReflectStruct(FEditorViewportClient);
+    void SetEditorContext(FEditorContext* Context);
 
     /**
      * @brief 실행 가능 여부를 검사한 뒤 뷰포트 명령을 처리합니다.
@@ -120,6 +123,10 @@ public:
      * @param[in] Rotation 적용할 오일러 또는 쿼터니언 회전입니다.
      */
     void SetCamera(const FVector& Location, const FRotator& Rotation);
+    void SetViewType(EEditorViewportType Type);
+    EEditorViewportType GetViewType() const;
+    const char* GetViewTypeName() const;
+    FVector GetPlacementLocation() const;
     /**
      * @brief 에디터 카메라의 월드 위치를 반환합니다.
      * @return 소유 객체가 유지하는 값의 참조입니다.
@@ -196,6 +203,7 @@ private:
      */
     void FocusSelection(const FVector2& Size);
     FBox CalcComponentBounds(const UPrimitiveComponent* Component, const FSceneView& View) const;
+    std::array<FVector, 8> CalcComponentCorners(const UPrimitiveComponent* Component, const FSceneView& View) const;
 
 private:
     /**
@@ -233,6 +241,16 @@ private:
      */
     float mCameraSpeed{4.0f};
     ReflectProperty(mCameraSpeed, "CameraSpeed", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    EEditorViewportType mViewType{EEditorViewportType::Perspective};
+    ReflectProperty(mViewType, "ViewType", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    FVector mPerspectiveLocation{-7.0f, -9.0f, 6.0f};
+    ReflectProperty(mPerspectiveLocation, "PerspectiveLocation", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    FRotator mPerspectiveRotation{-26.0f, 50.0f, 0.0f};
+    ReflectProperty(mPerspectiveRotation, "PerspectiveRotation", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    FVector mPerspectivePivot{};
+    ReflectProperty(mPerspectivePivot, "PerspectivePivot", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    float mOrthographicWidth{20.0f};
+    ReflectProperty(mOrthographicWidth, "OrthographicWidth", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 
     /**
      * @brief 클라이언트가 소유하며 기즈모와 UI가 함께 조회하는 변환 모드입니다.

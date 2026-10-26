@@ -12,6 +12,7 @@
 #include "Editor/Panel/FOutlinerPanel.h"
 #include "Editor/Panel/FDetailsPanel.h"
 #include "Editor/Panel/FConsolePanel.h"
+#include "FEditorViewportLayout.h"
 
 #include <filesystem>
 
@@ -21,6 +22,7 @@ class FWindowsApplication;
 class IRendererModule;
 class FPlayInEditorSession;
 class UTexture2D;
+class UMaterial;
 
 /**
  * @brief 편집 모델을 참조하여 창과 패널을 표시하고 ImGui 백엔드 수명을 관리합니다.
@@ -80,6 +82,7 @@ public:
      * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
      */
     bool WantsExit() const;
+    FEditorViewport* GetActiveViewport() const;
 
 private:
     /**
@@ -108,6 +111,12 @@ private:
     void DrawContentBreadcrumbs();
     void DrawContentEntries();
     void OpenContentAsset(const std::filesystem::path& Path, EAssetType Type);
+    void CreateMaterial();
+    void DrawMaterialEditor();
+    bool SaveMaterial();
+    bool ConfirmMaterialChange();
+    bool SetMaterialTexture(const FString& Path);
+    bool SetMaterialShader(const FString& Path);
     /**
      * @brief 파일 대화상자에서 고른 메시 또는 이미지를 프로젝트 에셋으로 가져옵니다.
      * @param[in] Texture true이면 이미지를, false이면 메시를 가져옵니다.
@@ -150,6 +159,8 @@ private:
      */
     FPlayInEditorSession* mPlaySession{};
     ReflectProperty(mPlaySession, "PlaySession", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    FEditorViewportLayout mViewportLayout;
+    ReflectProperty(mViewportLayout, "ViewportLayout", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
     /**
      * @brief Windows 창과 메시지 처리 객체입니다.
      */
@@ -238,5 +249,13 @@ private:
     ReflectProperty(mContentError, "ContentError", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
     bool mRevealContentDirectory{true};
     ReflectProperty(mRevealContentDirectory, "RevealContentDirectory", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    UMaterial* mEditingMaterial{};
+    ReflectProperty(mEditingMaterial, "EditingMaterial", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    std::filesystem::path mMaterialPath{};
+    ReflectProperty(mMaterialPath, "MaterialPath", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    FString mMaterialError{};
+    ReflectProperty(mMaterialError, "MaterialError", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    bool mMaterialDirty{};
+    ReflectProperty(mMaterialDirty, "MaterialDirty", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 
 };

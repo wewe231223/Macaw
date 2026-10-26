@@ -16,6 +16,7 @@
 #include <optional>
 
 class UStaticMesh;
+class UMaterial;
 
 /**
  * @brief 컴포넌트에서 복사한 식별자, 메시 종류, 월드 행렬과 경계 상자입니다.
@@ -73,4 +74,6 @@ public:
     ReflectProperty(mMesh, "Mesh", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
     std::optional<FDrawText> mText{};
     ReflectProperty(mText, "Text", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    UMaterial* mMaterial{};
+    ReflectProperty(mMaterial, "Material", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 };

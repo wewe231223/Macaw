@@ -9,6 +9,8 @@
 #include "Core/ReflectionMacros.h"
 #include "Engine/UStaticMesh.h"
 
+class FRenderer;
+
 /**
  * @brief 장면 렌더링에 빌려 쓰는 장치 컨텍스트, 메시 및 파이프라인 리소스입니다.
  * @ingroup Renderer
@@ -34,6 +36,8 @@ private:
     ReflectMembers();
 
 public:
+    FRenderer* mRenderer{};
+    ReflectProperty(mRenderer, "Renderer", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
     /**
      * @brief Direct3D 11 즉시 컨텍스트입니다.
      */
@@ -45,21 +49,6 @@ public:
     const std::array<std::unique_ptr<UStaticMesh>, 3>* mMeshes{};
     ReflectProperty(mMeshes, "Meshes", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 
-    /**
-     * @brief 사용할 정점 셰이더의 비소유 주소입니다.
-     */
-    ID3D11VertexShader* mVertexShader{};
-    ReflectProperty(mVertexShader, "VertexShader", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
-    /**
-     * @brief 사용할 픽셀 셰이더의 비소유 주소입니다.
-     */
-    ID3D11PixelShader* mPixelShader{};
-    ReflectProperty(mPixelShader, "PixelShader", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
-    /**
-     * @brief 사용할 정점 입력 레이아웃의 비소유 주소입니다.
-     */
-    ID3D11InputLayout* mInputLayout{};
-    ReflectProperty(mInputLayout, "InputLayout", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 
     /**
      * @brief 뷰·투영 상수 버퍼입니다.

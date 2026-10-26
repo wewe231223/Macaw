@@ -57,6 +57,7 @@ void UWorld::SetAssets(FAssetManager* Assets) {
             for (const auto& Component : Actor->GetComponents()) {
                 if (auto* Mesh{Cast<UStaticMeshComponent>(Component.get())}) {
                     Mesh->ResolveMesh();
+                    Mesh->ResolveMaterial();
                 }
             }
         }

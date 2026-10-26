@@ -127,6 +127,9 @@ namespace {
     std::unique_ptr<UObject> CreateSerializedObject(FArchive& Archive, TMap<FGuid, UObject*, FGuidHash>* Objects, const UClass* Expected) {
         FString ClassName{};
         Archive.Serialize("Class", ClassName);
+        if (ClassName == "ABillboardTextActor") {
+            ClassName = "AActor";
+        }
         const UClass* Class{FReflectionRegistry::FindClass(ClassName)};
 
         if (Archive.HasError() || Class == nullptr || !Class->IsChildOf(Expected) || !Class->CanCreate()) {

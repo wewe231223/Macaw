@@ -6,6 +6,7 @@
 
 #include "Editor/Panel/FDetailsPanel.h"
 #include "Editor/FEditorContext.h"
+#include "Editor/FAssetDragDrop.h"
 #include "Engine/AActor.h"
 #include "Engine/Component/UActorComponent.h"
 #include "CoreUObject/UObject.h"
@@ -13,10 +14,33 @@
 #include "CoreUObject/Reflection/UStruct.h"
 #include "CoreUObject/Reflection/UClass.h"
 #include "CoreUObject/Reflection/Cast.h"
+#include "CoreUObject/Reflection/FReflectionRegistry.h"
 
 #include <imgui.h>
 #include <algorithm>
 #include <array>
+#include <cctype>
+
+namespace {
+    FString ComponentLabel(const UClass* Class) {
+        FString Name{Class->GetName()};
+        if (Name.starts_with("U")) {
+            Name.erase(0, 1);
+        }
+        if (Name.ends_with("Component")) {
+            Name.resize(Name.size() - 9);
+        }
+        FString Label{};
+        for (std::size_t Index{}; Index < Name.size(); ++Index) {
+            const auto Character{static_cast<unsigned char>(Name[Index])};
+            if (Index > 0 && std::isupper(Character) && (std::islower(static_cast<unsigned char>(Name[Index - 1])) || (Index + 1 < Name.size() && std::islower(static_cast<unsigned char>(Name[Index + 1]))))) {
+                Label.push_back(' ');
+            }
+            Label.push_back(Name[Index]);
+        }
+        return Label;
+    }
+}
 
 /**
  * @brief FDetailsPanel의 초기 상태와 전달받은 의존성을 구성합니다.
@@ -35,6 +59,7 @@ FDetailsPanel::~FDetailsPanel() = default;
  */
 void FDetailsPanel::DrawContent(float) {
     FEditorContext* Context{GetEditorContext()};
+    DrawComponentMenu();
     const auto Objects{Context->GetDetailsObjects()};
 
     for (FObjectHandle Handle : Objects) {
@@ -48,6 +73,53 @@ void FDetailsPanel::DrawContent(float) {
             ImGui::PopID();
         }
     }
+}
+
+void FDetailsPanel::DrawComponentMenu() {
+    FEditorContext* Context{GetEditorContext()};
+    const bool CanAdd{Context->CanEditWorld() && Context->GetSelectedActors().size() == 1};
+    ImGui::BeginDisabled(!CanAdd);
+    if (ImGui::Button("+ 추가")) {
+        mComponentSearch.fill('\0');
+        ImGui::OpenPopup("AddComponent");
+    }
+    ImGui::EndDisabled();
+    if (!CanAdd && ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
+        ImGui::SetTooltip("컴포넌트를 추가할 액터 하나를 선택하세요.");
+    }
+    if (const AActor* Actor{Context->GetSelectedActor()}) {
+        ImGui::SameLine();
+        ImGui::TextDisabled("%s", Actor->GetName().c_str());
+    }
+    if (ImGui::BeginPopup("AddComponent")) {
+        if (ImGui::IsWindowAppearing()) {
+            ImGui::SetKeyboardFocusHere();
+        }
+        ImGui::SetNextItemWidth(260.0f);
+        ImGui::InputTextWithHint("##ComponentSearch", "컴포넌트 검색", mComponentSearch.data(), mComponentSearch.size());
+        ImGui::Separator();
+        const ImGuiTextFilter Filter{mComponentSearch.data()};
+        bool HasEntries{};
+        for (const UClass* Class : FReflectionRegistry::GetDerivedClasses(UActorComponent::StaticClass())) {
+            const FString Label{ComponentLabel(Class)};
+            if (!Class->CanCreate() || (!Filter.PassFilter(Label.c_str()) && !Filter.PassFilter(Class->GetName().c_str()))) {
+                continue;
+            }
+            HasEntries = true;
+            ImGui::PushID(Class);
+            ImGui::BeginDisabled(!Context->CanAddComponent(Class));
+            if (ImGui::Selectable(Label.c_str(), false, ImGuiSelectableFlags_DontClosePopups) && Context->AddComponent(Class) != nullptr) {
+                ImGui::CloseCurrentPopup();
+            }
+            ImGui::EndDisabled();
+            ImGui::PopID();
+        }
+        if (!HasEntries) {
+            ImGui::TextDisabled("검색 결과가 없습니다.");
+        }
+        ImGui::EndPopup();
+    }
+    ImGui::Separator();
 }
 
 /**
@@ -179,11 +251,19 @@ bool FDetailsPanel::DrawPropertyValue(const FProperty* Property, FPropertyValue&
         std::array<char, 512> Buffer{};
         std::copy_n(String->begin(), std::min(String->size(), Buffer.size() - 1), Buffer.begin());
 
-        if (ImGui::InputText(Label, Buffer.data(), Buffer.size(), ImGuiInputTextFlags_EnterReturnsTrue)) {
+        bool Changed{ImGui::InputText(Label, Buffer.data(), Buffer.size(), ImGuiInputTextFlags_EnterReturnsTrue)};
+        if (Changed) {
             *String = Buffer.data();
-
-            return true;
         }
+        if (Property->GetName() == "Material" && ImGui::BeginDragDropTarget()) {
+            const ImGuiPayload* Payload{ImGui::AcceptDragDropPayload(EditorAssetDragDrop::MaterialPayload)};
+            if (Payload != nullptr && Payload->DataSize > 0 && static_cast<const char*>(Payload->Data)[Payload->DataSize - 1] == '\0') {
+                *String = FString{static_cast<const char*>(Payload->Data), static_cast<std::size_t>(Payload->DataSize - 1)};
+                Changed = true;
+            }
+            ImGui::EndDragDropTarget();
+        }
+        return Changed;
     } else if (auto* Boolean{std::get_if<bool>(&Value)}) {
         return ImGui::Checkbox(Label, Boolean);
     } else if (auto* FloatValue{std::get_if<float>(&Value)}) {

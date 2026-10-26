@@ -54,7 +54,7 @@ bool FTextRenderer::Draw(ID3D11DeviceContext* Context, const FDrawText& Text, co
     if (Text.mText.empty() || Text.mText.size() > 65536 || !std::isfinite(Text.mSize) || Text.mSize <= 0.0f || !Text.mPosition.IsFinite() || !Text.mScale.IsFinite() || !Text.mColor.IsFinite() || Text.mColor.w <= 0.0f || View.mSize.x <= 0.0f || View.mSize.y <= 0.0f) {
         return false;
     }
-    const FVector4 Clip{FVector4{Text.mPosition, 1.0f} * View.mViewProjection};
+    const FVector4 Clip{Text.mScreenSpace ? FVector4{2.0f * Text.mPosition.x / View.mSize.x - 1.0f, 1.0f - 2.0f * Text.mPosition.y / View.mSize.y, Text.mPosition.z, 1.0f} : FVector4{Text.mPosition, 1.0f} * View.mViewProjection};
     if (Clip.w <= 0.0001f) {
         return false;
     }

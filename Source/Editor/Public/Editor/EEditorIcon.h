@@ -54,5 +54,7 @@ enum class EEditorIcon {
     /**
      * @brief PIE 실행 종료 아이콘입니다.
      */
-    Stop
+    Stop,
+    QuadView,
+    Maximize
 };

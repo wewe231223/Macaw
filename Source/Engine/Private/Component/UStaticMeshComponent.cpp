@@ -10,6 +10,8 @@
 #include "Engine/EPrimitiveType.h"
 #include "Engine/FAssetManager.h"
 #include "Engine/UStaticMesh.h"
+#include "Engine/UMaterial.h"
+#include "Engine/FPrimitiveSceneProxy.h"
 #include "Engine/UWorld.h"
 
 /**
@@ -100,6 +102,7 @@ void UStaticMeshComponent::UnregisterComponent() {
     UWorld::FDispatchScope Scope{GetWorld()};
     UPrimitiveComponent::UnregisterComponent();
     mStaticMesh = nullptr;
+    mMaterial = nullptr;
 }
 
 bool UStaticMeshComponent::ResolveMesh() {
@@ -118,6 +121,7 @@ bool UStaticMeshComponent::ShouldCreateRenderState() const {
 
 void UStaticMeshComponent::OnRegister() {
     ResolveMesh();
+    ResolveMaterial();
 }
 
 UStaticMesh* UStaticMeshComponent::LoadMesh(const FString& Path) const {
@@ -133,4 +137,66 @@ UStaticMesh* UStaticMeshComponent::LoadMesh(const FString& Path) const {
     }
 
     return Mesh;
+}
+
+const FString& UStaticMeshComponent::GetMaterialPath() const {
+    return mMaterialPath;
+}
+
+bool UStaticMeshComponent::SetMaterialPath(const FString& Path) {
+    if (Path.find('\0') != FString::npos) {
+        return false;
+    }
+    const std::filesystem::path AssetPath{std::u8string_view{reinterpret_cast<const char8_t*>(Path.data()), Path.size()}};
+    if (!Path.empty() && (AssetPath.has_root_path() || AssetPath.extension() != L".mtl")) {
+        return false;
+    }
+    for (const auto& Part : AssetPath) {
+        if (Part == L"..") {
+            return false;
+        }
+    }
+    if (mMaterialPath == Path && (Path.empty() || mMaterial != nullptr)) {
+        return true;
+    }
+    UMaterial* Material{LoadMaterial(Path)};
+    if (!Path.empty() && GetWorld() != nullptr && GetWorld()->GetAssets() != nullptr && Material == nullptr) {
+        return false;
+    }
+    mMaterialPath = Path;
+    mMaterial = Material;
+    MarkRenderStateDirty();
+    return true;
+}
+
+UMaterial* UStaticMeshComponent::GetMaterial() const {
+    return mMaterial;
+}
+
+bool UStaticMeshComponent::ResolveMaterial() {
+    UMaterial* Material{LoadMaterial(mMaterialPath)};
+    if (mMaterial != Material) {
+        mMaterial = Material;
+        MarkRenderStateDirty();
+    }
+    return mMaterialPath.empty() || mMaterial != nullptr;
+}
+
+FPrimitiveSceneProxy UStaticMeshComponent::CreateSceneProxy() const {
+    FPrimitiveSceneProxy Proxy{UPrimitiveComponent::CreateSceneProxy()};
+    Proxy.mMaterial = mMaterial;
+    return Proxy;
+}
+
+UMaterial* UStaticMeshComponent::LoadMaterial(const FString& Path) const {
+    FAssetManager* Assets{GetWorld() != nullptr ? GetWorld()->GetAssets() : nullptr};
+    if (Assets == nullptr || Path.empty()) {
+        return nullptr;
+    }
+    FString Error{};
+    UMaterial* Material{Assets->LoadMaterial(std::filesystem::path{std::u8string_view{reinterpret_cast<const char8_t*>(Path.data()), Path.size()}}, Error)};
+    if (Material == nullptr) {
+        ErrorHandler::Report("Material", "Cannot load material '" + Path + "': " + Error, ErrorHandler::EErrorLevel::Warning);
+    }
+    return Material;
 }

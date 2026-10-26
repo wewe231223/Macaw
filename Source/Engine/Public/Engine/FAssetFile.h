@@ -28,14 +28,15 @@ enum class EAssetType : Uint32 {
     /**
      * @brief 픽셀 데이터와 텍스처 설정을 저장하는 이미지 에셋입니다.
      */
-    Texture
+    Texture,
+    Material
 };
 
 /**
  * @brief 이 열거형의 리플렉션 메타데이터를 반환합니다.
  * @return 등록된 열거형 메타데이터의 비소유 주소입니다.
  */
-ReflectEnum(EAssetType, Scene, Mesh, Texture);
+ReflectEnum(EAssetType, Scene, Mesh, Texture, Material);
 /**
  * @brief 타입 태그로 EAssetType의 열거형 메타데이터를 조회합니다.
  * @fn UEnum* GetNativeEnum(TNativeEnum<EAssetType>)

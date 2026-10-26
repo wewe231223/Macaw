@@ -85,7 +85,7 @@ bool FViewportStatistics::IsVisible() const {
 /**
  * @brief 뷰포트 이미지 위에 입력을 받지 않는 통계 내용을 그립니다.
  */
-void FViewportStatistics::Draw(float DeltaTime, const UWorld* World, const FRenderStats& Render, const FVector2& Origin, const FVector2& Size) const {
+void FViewportStatistics::Draw(float DeltaTime, const UWorld* World, const FRenderStats& Render, const FVector2& Origin, const FVector2& Size, ImDrawList* DrawList) const {
     if (!IsVisible() || Size.x < 1.0f || Size.y < 1.0f) {
         return;
     }
@@ -125,7 +125,9 @@ void FViewportStatistics::Draw(float DeltaTime, const UWorld* World, const FRend
     const float LineHeight{ImGui::GetTextLineHeightWithSpacing()};
     const ImVec2 Minimum{std::max(Origin.x + 8.0f, Origin.x + Size.x - Width - 24.0f), Origin.y + 8.0f};
     const ImVec2 Maximum{Minimum.x + Width + 16.0f, Minimum.y + static_cast<float>(Lines.size()) * LineHeight + 16.0f};
-    ImDrawList* DrawList{ImGui::GetWindowDrawList()};
+    if (DrawList == nullptr) {
+        DrawList = ImGui::GetWindowDrawList();
+    }
     DrawList->PushClipRect({Origin.x, Origin.y}, {Origin.x + Size.x, Origin.y + Size.y}, true);
     DrawList->AddRectFilled(Minimum, Maximum, IM_COL32(15, 18, 22, 195), 4.0f);
     ImVec2 Position{Minimum.x + 8.0f, Minimum.y + 8.0f};
