@@ -133,6 +133,7 @@ public:
      * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며, 사용할 수 없으면 nullptr입니다.
      */
     ACameraActor* SpawnCamera();
+    /** @brief 배치 위치에 빌보드 텍스트 액터를 생성하고 선택합니다. @return 생성한 월드 소유 액터이며 실패하면 nullptr입니다. */
     AActor* SpawnText();
     bool CanAddComponent(const UClass* Class) const;
     UActorComponent* AddComponent(const UClass* Class);
@@ -175,7 +176,9 @@ public:
      * @param[in] Path 조회·로드·저장 또는 정규화할 파일 경로입니다.
      * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며, 사용할 수 없으면 nullptr입니다.
      */
+    /** @brief 배치 제공자가 반환한 위치에 메시 에셋 액터를 생성합니다. @param[in] Path 프로젝트 메시 에셋 경로입니다. @return 생성한 월드 소유 액터이며 실패하면 nullptr입니다. */
     AStaticMeshActor* SpawnMesh(const std::filesystem::path& Path);
+    /** @brief 지정한 변환에 메시 에셋 액터를 생성하고 선택합니다. @param[in] Path 프로젝트 메시 에셋 경로입니다. @param[in] Placement 생성할 액터의 월드 변환입니다. @return 생성한 월드 소유 액터이며 실패하면 nullptr입니다. */
     AStaticMeshActor* SpawnMesh(const std::filesystem::path& Path, const FTransform& Placement);
     /**
      * @brief 애플리케이션에 프로젝트 전환을 요청할 콜백을 설정합니다.
@@ -227,6 +230,14 @@ private:
      * @param[in] Object 프로퍼티 편집 대상입니다.
      */
     void AssignSelection(const TArray<FObjectHandle>& Actors, FObjectHandle Object);
+
+    /** @brief 월드 편집, 재진입과 디스패치 상태를 확인하여 액터 생성 가능 여부를 반환합니다. @return 생성 연산을 시작할 수 있으면 true입니다. */
+    bool CanSpawnActor() const;
+    /** @brief 새 액터에 배치 변환을 적용하고 실패하면 생성한 액터를 제거합니다. @param[in,out] Actor 새로 생성한 월드 소유 액터입니다. @param[in] Placement 적용할 월드 변환입니다. @return 배치에 성공하면 true입니다. */
+    bool ApplySpawnPlacement(AActor* Actor, const FTransform& Placement);
+    /** @brief 생성한 액터를 선택하고 장면 변경 상태와 로그를 갱신합니다. @param[in] Actor 배치와 개별 설정을 마친 액터입니다. @param[in] Action 로그에 사용할 동작 접두사입니다. */
+    void CompleteActorSpawn(AActor* Actor, const char* Action);
+
     /** @brief 새 컨텍스트를 엔진에 등록하고 이전 편집 월드를 교체합니다. @param[in] Context 엔진으로 소유권을 이전할 새 월드입니다. @param[in] Path 새 장면 파일 경로입니다. @return 교체에 성공하면 true입니다. */
     bool ReplaceScene(std::unique_ptr<FWorldContext> Context, const std::filesystem::path& Path);
 

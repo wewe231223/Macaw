@@ -6,7 +6,7 @@
 
 #include "Serialization/JsonArchive.h"
 #include "Core/Archive.h"
-#include <Windows.h>
+#include "Core/FAtomicFileWriter.h"
 
 #include <rapidjson/document.h>
 #include <rapidjson/error/en.h>
@@ -105,48 +105,18 @@ bool FJsonArchive::Save(const std::filesystem::path& Path) {
         return false;
     }
 
-    std::error_code Error{};
-    const std::filesystem::path Target{std::filesystem::absolute(Path, Error)};
-
-    if (Error) {
-        SetError("Invalid save path");
-
+    FString Error{};
+    FAtomicFileWriter Writer{};
+    if (!Writer.Open(Path, Error)) {
+        SetError(Error);
         return false;
     }
-
-    std::filesystem::create_directories(Target.parent_path(), Error);
-
-    if (Error) {
-        SetError("Cannot create scene directory");
-
-        return false;
-    }
-
-    std::filesystem::path Temporary{Target};
-    Temporary += "." + FGuid{}.ToString() + ".tmp";
-
     const FString Text{ToString()};
-    {
-        std::ofstream Output{Temporary, std::ios::binary | std::ios::trunc};
-        Output.write(Text.data(), static_cast<std::streamsize>(Text.size()));
-        Output.flush();
-
-        if (!Output.good()) {
-            Output.close();
-            std::filesystem::remove(Temporary, Error);
-            SetError("Scene write failed");
-
-            return false;
-        }
-    }
-
-    if (!MoveFileExW(Temporary.c_str(), Target.c_str(), MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH)) {
-        std::filesystem::remove(Temporary, Error);
-        SetError("Cannot replace scene file");
-
+    Writer.GetStream().write(Text.data(), static_cast<std::streamsize>(Text.size()));
+    if (!Writer.Commit(Error)) {
+        SetError(Error);
         return false;
     }
-
     return true;
 }
 

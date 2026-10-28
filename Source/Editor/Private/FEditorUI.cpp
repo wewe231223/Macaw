@@ -5,6 +5,7 @@
  */
 
 #include "FEditorUI.h"
+#include "Core/FilePath.h"
 #include "EditorStyle.h"
 #include "Editor/FEditorContext.h"
 #include "Editor/FEditorViewport.h"
@@ -39,21 +40,6 @@
  * @return 연산을 적용한 새 값입니다.
  */
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND Window, UINT Message, WPARAM WParam, LPARAM LParam);
-
-/**
- * @brief 이 구현 파일에서만 사용하는 내부 상태와 보조 함수입니다.
- */
-namespace {
-    /**
-     * @brief 파일시스템 경로를 UI에 표시할 UTF-8 문자열로 변환합니다.
-     * @param[in] Path 읽거나 쓸 파일 경로입니다.
-     * @return 연산을 적용한 새 값입니다.
-     */
-    FString PathText(const std::filesystem::path& Path) {
-        const auto Text{Path.u8string()};
-        return FString{reinterpret_cast<const char*>(Text.data()), Text.size()};
-    }
-}
 
 /**
  * @brief 편집 컨텍스트를 패널에 연결하고 독립 뷰포트의 배치 연결을 구성합니다.
@@ -95,7 +81,7 @@ bool FEditorUI::Initialize(IRendererModule* Renderer, FWindowsApplication* Platf
     const std::filesystem::path Layout{mContext->GetProject()->GetRootPath() / "Saved/EditorLayout.ini"};
     std::error_code LayoutError{};
     std::filesystem::create_directories(Layout.parent_path(), LayoutError);
-    mIniPath = PathText(Layout);
+    mIniPath = FilePath::ToUtf8(Layout);
     Input.IniFilename = mIniPath.c_str();
     Input.LogFilename = nullptr;
 
@@ -302,7 +288,7 @@ void FEditorUI::DrawEditorToolbar() {
         DrawPlayControls();
         ImGui::SameLine(0.0f, 12.0f);
         ImGui::AlignTextToFramePadding();
-        ImGui::TextDisabled("%s%s%s", mPlaySession->IsActive() ? mPlaySession->IsPaused() ? "[Paused] " : "[Playing] " : "", mContext->GetScenePath().empty() ? "Untitled" : PathText(mContext->GetScenePath().filename()).c_str(), mContext->IsSceneDirty() ? " *" : "");
+        ImGui::TextDisabled("%s%s%s", mPlaySession->IsActive() ? mPlaySession->IsPaused() ? "[Paused] " : "[Playing] " : "", mContext->GetScenePath().empty() ? "Untitled" : FilePath::ToUtf8(mContext->GetScenePath().filename()).c_str(), mContext->IsSceneDirty() ? " *" : "");
         ImGui::SameLine(0.0f, 16.0f);
         ImGui::BeginDisabled(!mViewportLayout.CanChangeLayout());
         if (ImGui::Button(mViewportLayout.IsQuadView() ? "Single View" : "Four Views")) {
@@ -501,7 +487,7 @@ void FEditorUI::ImportAsset(bool Texture) {
     FString Error{};
     const bool Imported{!Code && (Texture ? Assets->ImportTexture(Source, Target, Error) : Assets->ImportMesh(Source, Target, Error))};
     mRefreshContent = true;
-    mContext->AddLog(Imported ? "Imported " + PathText(Target) : Error.empty() ? "Cannot choose the import destination" : Error);
+    mContext->AddLog(Imported ? "Imported " + FilePath::ToUtf8(Target) : Error.empty() ? "Cannot choose the import destination" : Error);
 }
 
 void FEditorUI::DrawContent() {
@@ -595,7 +581,7 @@ void FEditorUI::RefreshContent() {
                     if (FAssetFile::GetType(Resolved, Type, Error)) {
                         mAssetTypes.emplace(Relative, Type);
                     } else if (mContentError.empty()) {
-                        mContentError = PathText(Relative) + ": " + Error;
+                        mContentError = FilePath::ToUtf8(Relative) + ": " + Error;
                     }
                 }
             }
@@ -631,8 +617,8 @@ void FEditorUI::DrawContentTree(const std::filesystem::path& Directory) {
     if (Entry == mContentFolders.end()) {
         return;
     }
-    const FString Label{Directory.empty() ? "Content" : PathText(Directory.filename())};
-    const FString Id{PathText(Directory)};
+    const FString Label{Directory.empty() ? "Content" : FilePath::ToUtf8(Directory.filename())};
+    const FString Id{FilePath::ToUtf8(Directory)};
     ImGuiTreeNodeFlags Flags{ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_SpanAvailWidth};
     if (Directory == mContentDirectory) {
         Flags |= ImGuiTreeNodeFlags_Selected;
@@ -676,14 +662,14 @@ void FEditorUI::DrawContentBreadcrumbs() {
     std::filesystem::path Path{};
     for (const auto& Part : Current) {
         Path /= Part;
-        const FString Label{PathText(Part)};
+        const FString Label{FilePath::ToUtf8(Part)};
         const float Right{ImGui::GetCursorScreenPos().x + ImGui::GetContentRegionAvail().x};
         if (Right - ImGui::GetItemRectMax().x > ImGui::CalcTextSize(Label.c_str()).x + 48.0f) {
             ImGui::SameLine();
         }
         ImGui::TextUnformatted("/");
         ImGui::SameLine();
-        const FString Id{PathText(Path)};
+        const FString Id{FilePath::ToUtf8(Path)};
         ImGui::PushID(Id.c_str());
         if (ImGui::SmallButton(Label.c_str())) {
             NavigateContent(Path);
@@ -709,7 +695,7 @@ void FEditorUI::DrawContentEntries() {
             Empty = false;
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex(0);
-            const FString Label{"[Folder] " + PathText(Path.filename())};
+            const FString Label{"[Folder] " + FilePath::ToUtf8(Path.filename())};
             if (ImGui::Selectable(Label.c_str(), mSelectedContentPath == Path, ImGuiSelectableFlags_AllowDoubleClick | ImGuiSelectableFlags_SpanAllColumns)) {
                 mSelectedContentPath = Path;
                 if (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
@@ -728,7 +714,7 @@ void FEditorUI::DrawContentEntries() {
         Empty = false;
         ImGui::TableNextRow();
         ImGui::TableSetColumnIndex(0);
-        const FString Label{PathText(Path.filename())};
+        const FString Label{FilePath::ToUtf8(Path.filename())};
         const auto Type{mAssetTypes.find(Path)};
         if (ImGui::Selectable(Label.c_str(), mSelectedContentPath == Path, ImGuiSelectableFlags_AllowDoubleClick | ImGuiSelectableFlags_SpanAllColumns)) {
             mSelectedContentPath = Path;
@@ -737,7 +723,7 @@ void FEditorUI::DrawContentEntries() {
             }
         }
         if (Type != mAssetTypes.end() && (Type->second == EAssetType::Mesh || Type->second == EAssetType::Material || Type->second == EAssetType::Texture) && mContext->CanEditWorld() && ImGui::BeginDragDropSource()) {
-            const FString Relative{PathText(Path)};
+            const FString Relative{FilePath::ToUtf8(Path)};
             const char* Payload{Type->second == EAssetType::Mesh ? EditorAssetDragDrop::MeshPayload : Type->second == EAssetType::Material ? EditorAssetDragDrop::MaterialPayload : EditorAssetDragDrop::TexturePayload};
             ImGui::SetDragDropPayload(Payload, Relative.c_str(), Relative.size() + 1);
             ImGui::TextUnformatted(Label.c_str());
@@ -780,7 +766,7 @@ void FEditorUI::OpenContentAsset(const std::filesystem::path& Path, EAssetType T
         FString Error{};
         mPreviewTexture = mContext->GetProject()->GetAssets()->LoadTexture(Path, Error);
         if (mPreviewTexture != nullptr && mPreviewTexture->CreateResources(static_cast<ID3D11Device*>(mContext->GetRenderer()->GetNativeDevice()))) {
-            mContext->AddLog("Loaded " + PathText(Path));
+            mContext->AddLog("Loaded " + FilePath::ToUtf8(Path));
         } else {
             mContext->AddLog(Error.empty() ? "Cannot preview the texture" : Error);
         }
@@ -798,7 +784,7 @@ void FEditorUI::CreateMaterial() {
         Path = mContentDirectory / ("Material_" + std::to_string(Index) + ".mtl");
     }
     auto Material{NewObject<UMaterial>()};
-    Material->SetName(PathText(Path.stem()));
+    Material->SetName(FilePath::ToUtf8(Path.stem()));
     if (Code || !Assets->SaveMaterial(Path, *Material, mMaterialError)) {
         mContext->AddLog(mMaterialError.empty() ? "Cannot create the material" : mMaterialError);
         return;
@@ -814,7 +800,7 @@ bool FEditorUI::SaveMaterial() {
     }
     mMaterialDirty = false;
     mRefreshContent = true;
-    mContext->AddLog("Saved " + PathText(mMaterialPath));
+    mContext->AddLog("Saved " + FilePath::ToUtf8(mMaterialPath));
     return true;
 }
 
@@ -838,7 +824,7 @@ bool FEditorUI::ConfirmMaterialChange() {
 
 bool FEditorUI::SetMaterialTexture(const FString& Path) {
     FAssetManager* Assets{mContext->GetProject()->GetAssets()};
-    if (!Path.empty() && Assets->LoadTexture(std::filesystem::path{std::u8string_view{reinterpret_cast<const char8_t*>(Path.data()), Path.size()}}, mMaterialError) == nullptr) {
+    if (!Path.empty() && Assets->LoadTexture(FilePath::FromUtf8(Path), mMaterialError) == nullptr) {
         return false;
     }
     if (!mEditingMaterial->SetBaseColorTexturePath(Path) || !mEditingMaterial->ResolveTexture(*Assets, mMaterialError)) {
@@ -873,7 +859,7 @@ void FEditorUI::DrawMaterialEditor() {
     bool Open{true};
     ImGui::SetNextWindowSize({480.0f, 360.0f}, ImGuiCond_FirstUseEver);
     if (ImGui::Begin(mMaterialDirty ? "Material Editor*###MaterialEditor" : "Material Editor###MaterialEditor", &Open)) {
-        ImGui::TextUnformatted(PathText(mMaterialPath).c_str());
+        ImGui::TextUnformatted(FilePath::ToUtf8(mMaterialPath).c_str());
         ImGui::BeginDisabled(!mContext->CanEditWorld());
         if (ImGui::Button("Save")) {
             SaveMaterial();
@@ -886,7 +872,7 @@ void FEditorUI::DrawMaterialEditor() {
         if (ImGui::BeginCombo("Shader", mEditingMaterial->GetShaderPath().c_str())) {
             TArray<FString> Shaders{"Shaders/Lit.hlsl", "Shaders/Unlit.hlsl"};
             for (const auto& Path : mAssetPaths) {
-                const FString Name{PathText(Path)};
+                const FString Name{FilePath::ToUtf8(Path)};
                 if (Path.extension() == L".hlsl" && Path.filename() != L"Line.hlsl" && Path.filename() != L"Gizmo.hlsl" && Path.filename() != L"Text.hlsl" && std::find(Shaders.begin(), Shaders.end(), Name) == Shaders.end()) {
                     Shaders.push_back(Name);
                 }
@@ -922,7 +908,7 @@ void FEditorUI::DrawMaterialEditor() {
                 const auto Type{mAssetTypes.find(Path)};
                 const auto Extension{Path.extension()};
                 if ((Type != mAssetTypes.end() && Type->second == EAssetType::Texture) || Extension == L".png" || Extension == L".jpg" || Extension == L".jpeg" || Extension == L".dds" || Extension == L".tga" || Extension == L".bmp") {
-                    const FString Relative{PathText(Path)};
+                    const FString Relative{FilePath::ToUtf8(Path)};
                     if (ImGui::Selectable(Relative.c_str(), CurrentTexture == Relative)) {
                         SetMaterialTexture(Relative);
                     }

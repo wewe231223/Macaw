@@ -5,6 +5,7 @@
  */
 
 #include "FShaderIncludeHandler.h"
+#include "Core/FilePath.h"
 #include "FShaderFile.h"
 
 #include <algorithm>
@@ -23,7 +24,7 @@ HRESULT STDMETHODCALLTYPE FShaderIncludeHandler::Open(D3D_INCLUDE_TYPE IncludeTy
 
     *Data = nullptr;
     *Bytes = 0;
-    const std::filesystem::path Requested{ShaderFile::FromText(FileName)};
+    const std::filesystem::path Requested{FilePath::FromUtf8(FileName)};
     TArray<std::filesystem::path> Candidates{};
     if (Requested.is_absolute()) {
         Candidates.push_back(Requested);
@@ -50,7 +51,7 @@ HRESULT STDMETHODCALLTYPE FShaderIncludeHandler::Open(D3D_INCLUDE_TYPE IncludeTy
         const std::filesystem::path Path{Candidate.lexically_normal()};
         FShaderDependency Dependency{};
         if (!ShaderFile::Inspect(Path, Dependency)) {
-            mDiagnostics = "Cannot inspect shader include: " + ShaderFile::ToText(Path);
+            mDiagnostics = "Cannot inspect shader include: " + FilePath::ToGenericUtf8(Path);
             return E_FAIL;
         }
 
@@ -95,7 +96,7 @@ bool FShaderIncludeHandler::TrackDependency(const FShaderDependency& Dependency)
     for (const FShaderDependency& Existing : mDependencies) {
         if (Existing.mPath == Dependency.mPath) {
             if (Existing.mExists != Dependency.mExists || Existing.mWriteTime != Dependency.mWriteTime || Existing.mSize != Dependency.mSize) {
-                mDiagnostics = "Shader dependency changed during compilation: " + ShaderFile::ToText(Dependency.mPath);
+                mDiagnostics = "Shader dependency changed during compilation: " + FilePath::ToGenericUtf8(Dependency.mPath);
                 return false;
             }
 

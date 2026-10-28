@@ -5,6 +5,7 @@
  */
 
 #include "Editor/FEditorContext.h"
+#include "Core/FilePath.h"
 #include "Engine/FProject.h"
 #include "Engine/Component/UStaticMeshComponent.h"
 #include "Engine/Component/UBillboardTextComponent.h"
@@ -33,15 +34,6 @@
 #include <Windows.h>
 #include <sstream>
 #include <utility>
-
-/** @brief 편집 로그에서 사용할 UTF-8 경로 표시를 제공합니다. */
-namespace {
-    /** @brief 파일시스템 경로를 로그용 UTF-8 문자열로 변환합니다. @param[in] Path 표시할 경로입니다. @return UTF-8 경로 문자열입니다. */
-    FString PathText(const std::filesystem::path& Path) {
-        const auto Text{Path.u8string()};
-        return FString{reinterpret_cast<const char*>(Text.data()), Text.size()};
-    }
-}
 
 /** @brief 범위 동안 재진입 제한 플래그를 설정합니다. */
 FEditorContext::FOperationScope::FOperationScope(bool* Flag)
@@ -230,7 +222,7 @@ UObject* FEditorContext::GetSelectedObject() const {
 
 /** @brief 지정한 기본 메시 종류의 액터를 생성하여 영속 레벨에 추가합니다. */
 AStaticMeshActor* FEditorContext::SpawnPrimitive(EPrimitiveType Type) {
-    if (!CanEditWorld() || mChangingState || mEditingProperty || mEngine->IsDispatching()) {
+    if (!CanSpawnActor()) {
         return nullptr;
     }
 
@@ -244,33 +236,22 @@ AStaticMeshActor* FEditorContext::SpawnPrimitive(EPrimitiveType Type) {
 
     AStaticMeshActor* Actor{World->SpawnPrimitive(Type)};
 
-    if (Actor != nullptr) {
-        if (!Actor->SetActorTransform(Placement)) {
-            World->DestroyActor(Actor->GetHandle());
-            return nullptr;
-        }
-
-        AssignSelection({Actor->GetHandle()}, Actor->GetHandle());
-        mDirty = true;
-        AddLog("Spawned " + Actor->GetName());
+    if (!ApplySpawnPlacement(Actor, Placement)) {
+        return nullptr;
     }
-
+    CompleteActorSpawn(Actor, "Spawned ");
     return Actor;
 }
 
 ACameraActor* FEditorContext::SpawnCamera() {
-    if (!CanEditWorld() || mChangingState || mEditingProperty || mEngine->IsDispatching()) {
+    if (!CanSpawnActor()) {
         return nullptr;
     }
     FOperationScope Scope{&mChangingState};
     const FTransform Placement{mPlacementProvider ? mPlacementProvider() : FTransform{}};
     UWorld* World{GetWorld()};
     auto* Actor{World != nullptr ? Cast<ACameraActor>(World->SpawnActor(ACameraActor::StaticClass())) : nullptr};
-    if (Actor == nullptr) {
-        return nullptr;
-    }
-    if (!Actor->SetActorTransform(Placement)) {
-        World->DestroyActor(Actor->GetHandle());
+    if (!ApplySpawnPlacement(Actor, Placement)) {
         return nullptr;
     }
     if (World->GetActiveCamera() == nullptr) {
@@ -279,14 +260,12 @@ ACameraActor* FEditorContext::SpawnCamera() {
             World->SetInputTarget(Actor);
         }
     }
-    AssignSelection({Actor->GetHandle()}, Actor->GetHandle());
-    mDirty = true;
-    AddLog("Spawned " + Actor->GetName());
+    CompleteActorSpawn(Actor, "Spawned ");
     return Actor;
 }
 
 AActor* FEditorContext::SpawnText() {
-    if (!CanEditWorld() || mChangingState || mEditingProperty || mEngine->IsDispatching()) {
+    if (!CanSpawnActor()) {
         return nullptr;
     }
     FOperationScope Scope{&mChangingState};
@@ -303,14 +282,32 @@ AActor* FEditorContext::SpawnText() {
     }
     Actor->SetName("Text");
     const FTransform Placement{mPlacementProvider ? mPlacementProvider() : FTransform{}};
-    if (!Actor->SetActorTransform(Placement)) {
-        World->DestroyActor(Actor->GetHandle());
+    if (!ApplySpawnPlacement(Actor, Placement)) {
         return nullptr;
     }
+    CompleteActorSpawn(Actor, "Spawned ");
+    return Actor;
+}
+
+bool FEditorContext::CanSpawnActor() const {
+    return CanEditWorld() && !mChangingState && !mEditingProperty && !mEngine->IsDispatching();
+}
+
+bool FEditorContext::ApplySpawnPlacement(AActor* Actor, const FTransform& Placement) {
+    if (Actor == nullptr) {
+        return false;
+    }
+    if (!Actor->SetActorTransform(Placement)) {
+        GetWorld()->DestroyActor(Actor->GetHandle());
+        return false;
+    }
+    return true;
+}
+
+void FEditorContext::CompleteActorSpawn(AActor* Actor, const char* Action) {
     AssignSelection({Actor->GetHandle()}, Actor->GetHandle());
     mDirty = true;
-    AddLog("Spawned " + Actor->GetName());
-    return Actor;
+    AddLog(Action + Actor->GetName());
 }
 
 bool FEditorContext::CanAddComponent(const UClass* Class) const {
@@ -472,7 +469,7 @@ bool FEditorContext::SaveScene(const std::filesystem::path& Path) {
 
     mScenePath = ScenePath;
     mDirty = false;
-    AddLog("Saved " + PathText(ScenePath));
+    AddLog("Saved " + FilePath::ToUtf8(ScenePath));
     return true;
 }
 
@@ -527,7 +524,7 @@ bool FEditorContext::LoadScene(const std::filesystem::path& Path) {
         return false;
     }
 
-    AddLog("Loaded " + PathText(ScenePath));
+    AddLog("Loaded " + FilePath::ToUtf8(ScenePath));
     return true;
 }
 
@@ -560,7 +557,7 @@ AStaticMeshActor* FEditorContext::SpawnMesh(const std::filesystem::path& Path) {
 }
 
 AStaticMeshActor* FEditorContext::SpawnMesh(const std::filesystem::path& Path, const FTransform& Placement) {
-    if (!CanEditWorld() || mChangingState || mEditingProperty || mEngine->IsDispatching() || !Placement.IsValid()) {
+    if (!CanSpawnActor() || !Placement.IsValid()) {
         return nullptr;
     }
     FOperationScope Scope{&mChangingState};
@@ -571,18 +568,15 @@ AStaticMeshActor* FEditorContext::SpawnMesh(const std::filesystem::path& Path, c
         return nullptr;
     }
     AStaticMeshActor* Actor{GetWorld()->SpawnPrimitive(EPrimitiveType::Cube)};
-    if (Actor == nullptr) {
+    if (!ApplySpawnPlacement(Actor, Placement)) {
         return nullptr;
     }
-    if (!Actor->SetActorTransform(Placement) || !Actor->GetStaticMeshComponent()->SetMeshPath(Project->GetAssets()->GetRelativePath(Path, Error))) {
+    if (!Actor->GetStaticMeshComponent()->SetMeshPath(Project->GetAssets()->GetRelativePath(Path, Error))) {
         GetWorld()->DestroyActor(Actor->GetHandle());
         return nullptr;
     }
-    const auto Name{Path.stem().u8string()};
-    Actor->SetName(FString{reinterpret_cast<const char*>(Name.data()), Name.size()});
-    AssignSelection({Actor->GetHandle()}, Actor->GetHandle());
-    mDirty = true;
-    AddLog("Placed " + Actor->GetName());
+    Actor->SetName(FilePath::ToUtf8(Path.stem()));
+    CompleteActorSpawn(Actor, "Placed ");
     return Actor;
 }
 
@@ -649,7 +643,7 @@ void FEditorContext::ExecuteConsoleCommand(const FString& Command) {
     } else if (Verb == "save" || Verb == "load") {
         FString Text{};
         std::getline(Input >> std::ws, Text);
-        const std::filesystem::path Path{Text.empty() ? mScenePath : std::filesystem::path{std::u8string_view{reinterpret_cast<const char8_t*>(Text.data()), Text.size()}}};
+        const std::filesystem::path Path{Text.empty() ? mScenePath : FilePath::FromUtf8(Text)};
 
         if (Path.empty()) {
             AddLog("Specify a scene path.");

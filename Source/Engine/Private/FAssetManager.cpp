@@ -5,6 +5,7 @@
  */
 
 #include "Engine/FAssetManager.h"
+#include "Core/FilePath.h"
 #include "Engine/FAssetFile.h"
 #include "Engine/UStaticMesh.h"
 #include "Engine/UTexture2D.h"
@@ -13,6 +14,7 @@
 #include "CoreUObject/Reflection/NewObject.h"
 #include "Serialization/MemoryArchive.h"
 #include "FAssetSerialization.h"
+#include "FTextureAssetData.h"
 
 #include <algorithm>
 #include <cwctype>
@@ -24,26 +26,16 @@
  */
 namespace {
     /**
-     * @brief 파일 시스템 경로를 슬래시 구분자의 UTF-8 문자열로 변환합니다.
-     * @param[in] Path 조회·로드·저장 또는 정규화할 파일 경로입니다.
-     * @return 입력 값을 변환한 문자열입니다.
-     */
-    FString PathText(const std::filesystem::path& Path) {
-        const std::u8string Text{Path.generic_u8string()};
-        return {reinterpret_cast<const char*>(Text.data()), Text.size()};
-    }
-
-    /**
      * @brief 에셋 상대 경로를 대소문자 구분 없이 조회할 캐시 키로 변환합니다.
      * @param[in] Relative 캐시 키로 변환할 프로젝트 상대 에셋 경로입니다.
      * @return 입력 값을 변환한 문자열입니다.
      */
     FString CacheKey(const FString& Relative) {
-        std::wstring Key{std::filesystem::path{std::u8string_view{reinterpret_cast<const char8_t*>(Relative.data()), Relative.size()}}.wstring()};
+        std::wstring Key{FilePath::FromUtf8(Relative).wstring()};
         for (wchar_t& Character : Key) {
             Character = static_cast<wchar_t>(std::towlower(Character));
         }
-        return PathText(std::filesystem::path{Key});
+        return FilePath::ToGenericUtf8(std::filesystem::path{Key});
     }
 
     /**
@@ -120,7 +112,7 @@ FString FAssetManager::GetRelativePath(const std::filesystem::path& Path, FStrin
         Error = "Cannot make a project relative asset path";
         return {};
     }
-    return PathText(Relative);
+    return FilePath::ToGenericUtf8(Relative);
 }
 
 TArray<std::filesystem::path> FAssetManager::GetAssetPaths(FString& Error) const {
@@ -200,27 +192,14 @@ UTexture2D* FAssetManager::LoadTexture(const std::filesystem::path& Path, FStrin
         return nullptr;
     }
     FMemoryArchive Archive{static_cast<const TArray<Uint8>&>(Payload)};
-    Uint32 Width{};
-    Uint32 Height{};
-    Uint32 Format{};
-    bool SRGB{};
-    bool DDS{};
-    FString ImageData{};
-    Archive.Serialize("Width", Width);
-    Archive.Serialize("Height", Height);
-    Archive.Serialize("Format", Format);
-    Archive.Serialize("SRGB", SRGB);
-    Archive.Serialize("DDS", DDS);
-    Archive.Serialize("ImageData", ImageData);
+    FTextureAssetData Data{};
+    Data.Serialize(Archive);
     auto Texture{NewObject<UTexture2D>()};
-    if (Archive.HasError() || Archive.GetRemainingBytes() != 0 || Format >= static_cast<Uint32>(ETextureFormat::D24S8)) {
+    if (Archive.HasError() || Archive.GetRemainingBytes() != 0) {
         Error = Archive.HasError() ? Archive.GetError() : "Invalid texture asset data";
         return nullptr;
     }
-    TArray<Uint8> Bytes{ImageData.begin(), ImageData.end()};
-    const bool Loaded{DDS ? Texture->SetDDSData(Bytes, SRGB) : Texture->SetPixels(Width, Height, static_cast<ETextureFormat>(Format), std::move(Bytes)) && Texture->SetSRGB(SRGB)};
-    if (!Loaded || Texture->GetSizeX() != Width || Texture->GetSizeY() != Height || Texture->GetFormat() != static_cast<ETextureFormat>(Format)) {
-        Error = "Invalid texture image data";
+    if (!Data.ApplyTo(*Texture, Error)) {
         return nullptr;
     }
     UTexture2D* Result{Texture.get()};
@@ -264,19 +243,8 @@ bool FAssetManager::SaveTexture(const std::filesystem::path& Path, const UTextur
     }
     TArray<Uint8> Payload{};
     FMemoryArchive Archive{Payload};
-    Uint32 Width{Texture.GetSizeX()};
-    Uint32 Height{Texture.GetSizeY()};
-    Uint32 Format{static_cast<Uint32>(Texture.GetFormat())};
-    bool SRGB{Texture.IsSRGB()};
-    bool DDS{!Texture.GetDDSData().empty()};
-    const auto& Data{DDS ? Texture.GetDDSData() : Texture.GetPixels()};
-    FString ImageData{reinterpret_cast<const char*>(Data.data()), Data.size()};
-    Archive.Serialize("Width", Width);
-    Archive.Serialize("Height", Height);
-    Archive.Serialize("Format", Format);
-    Archive.Serialize("SRGB", SRGB);
-    Archive.Serialize("DDS", DDS);
-    Archive.Serialize("ImageData", ImageData);
+    FTextureAssetData Data{Texture};
+    Data.Serialize(Archive);
     if (Archive.HasError()) {
         Error = Archive.GetError();
         return false;
@@ -286,12 +254,7 @@ bool FAssetManager::SaveTexture(const std::filesystem::path& Path, const UTextur
     }
     const auto Existing{mTextures.find(CacheKey(GetRelativePath(Path, Error)))};
     if (Existing != mTextures.end() && Existing->second.get() != &Texture) {
-        if (DDS) {
-            Existing->second->SetDDSData(Data, SRGB);
-        } else {
-            Existing->second->SetPixels(Width, Height, Texture.GetFormat(), Data);
-            Existing->second->SetSRGB(SRGB);
-        }
+        return Data.ApplyTo(*Existing->second, Error);
     }
     return true;
 }
@@ -339,13 +302,7 @@ bool FAssetManager::SaveMaterial(const std::filesystem::path& Path, const UMater
     }
     const auto Existing{mMaterials.find(CacheKey(GetRelativePath(Path, Error)))};
     if (Existing != mMaterials.end() && Existing->second.get() != &Material) {
-        UMaterial& Cached{*Existing->second};
-        Cached.SetName(Material.GetName());
-        Cached.SetShaderPath(Material.GetShaderPath());
-        Cached.SetBaseColor(Material.GetBaseColor());
-        Cached.SetBaseColorTexturePath(Material.GetBaseColorTexturePath());
-        Cached.SetTwoSided(Material.IsTwoSided());
-        return Cached.ResolveTexture(*this, Error);
+        return ApplyMaterialSettings(*Existing->second, Material, Error);
     }
     return true;
 }
@@ -363,11 +320,14 @@ bool FAssetManager::ReloadMaterial(const std::filesystem::path& Path, FString& E
     if (!FMaterialFile::Load(ResolvePath(Path, Error), *this, *Candidate, Error)) {
         return false;
     }
-    UMaterial& Material{*Existing->second};
-    Material.SetName(Candidate->GetName());
-    Material.SetShaderPath(Candidate->GetShaderPath());
-    Material.SetBaseColor(Candidate->GetBaseColor());
-    Material.SetBaseColorTexturePath(Candidate->GetBaseColorTexturePath());
-    Material.SetTwoSided(Candidate->IsTwoSided());
-    return Material.ResolveTexture(*this, Error);
+    return ApplyMaterialSettings(*Existing->second, *Candidate, Error);
+}
+
+bool FAssetManager::ApplyMaterialSettings(UMaterial& Target, const UMaterial& Source, FString& Error) {
+    Target.SetName(Source.GetName());
+    Target.SetShaderPath(Source.GetShaderPath());
+    Target.SetBaseColor(Source.GetBaseColor());
+    Target.SetBaseColorTexturePath(Source.GetBaseColorTexturePath());
+    Target.SetTwoSided(Source.IsTwoSided());
+    return Target.ResolveTexture(*this, Error);
 }

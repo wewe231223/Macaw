@@ -5,6 +5,7 @@
  */
 
 #include "FShaderFile.h"
+#include "Core/FilePath.h"
 
 #include <Windows.h>
 #include <bcrypt.h>
@@ -50,15 +51,6 @@ namespace {
     }
 }
 
-FString ShaderFile::ToText(const std::filesystem::path& Path) {
-    const std::u8string Text{Path.generic_u8string()};
-    return FString{reinterpret_cast<const char*>(Text.data()), Text.size()};
-}
-
-std::filesystem::path ShaderFile::FromText(std::string_view Text) {
-    return std::filesystem::path{std::u8string_view{reinterpret_cast<const char8_t*>(Text.data()), Text.size()}};
-}
-
 bool ShaderFile::NormalizePath(const std::filesystem::path& Path, std::filesystem::path& Normalized, FString& Diagnostics) {
     if (Path.empty()) {
         Diagnostics = "Shader paths must not be empty";
@@ -68,7 +60,7 @@ bool ShaderFile::NormalizePath(const std::filesystem::path& Path, std::filesyste
     std::error_code Error{};
     Normalized = std::filesystem::absolute(Path, Error).lexically_normal();
     if (Error) {
-        Diagnostics = "Invalid shader path: " + ToText(Path);
+        Diagnostics = "Invalid shader path: " + FilePath::ToGenericUtf8(Path);
         return false;
     }
 
@@ -99,20 +91,20 @@ bool ShaderFile::Inspect(const std::filesystem::path& Path, FShaderDependency& D
 
 bool ShaderFile::Read(const std::filesystem::path& Path, TArray<Uint8>& Data, FShaderDependency& Dependency, FString& Diagnostics) {
     if (!Inspect(Path, Dependency) || !Dependency.mExists || Dependency.mSize > MaxFileSize) {
-        Diagnostics = "Cannot read shader file: " + ToText(Path);
+        Diagnostics = "Cannot read shader file: " + FilePath::ToGenericUtf8(Path);
         return false;
     }
 
     std::ifstream Stream{Path, std::ios::binary};
     Data.resize(static_cast<std::size_t>(Dependency.mSize));
     if (!Stream || (!Data.empty() && !Stream.read(reinterpret_cast<char*>(Data.data()), static_cast<std::streamsize>(Data.size())))) {
-        Diagnostics = "Cannot read shader file: " + ToText(Path);
+        Diagnostics = "Cannot read shader file: " + FilePath::ToGenericUtf8(Path);
         return false;
     }
 
     FShaderDependency Current{};
     if (!Inspect(Path, Current) || !Current.mExists || Current.mWriteTime != Dependency.mWriteTime || Current.mSize != Dependency.mSize) {
-        Diagnostics = "Shader file changed while reading: " + ToText(Path);
+        Diagnostics = "Shader file changed while reading: " + FilePath::ToGenericUtf8(Path);
         return false;
     }
 

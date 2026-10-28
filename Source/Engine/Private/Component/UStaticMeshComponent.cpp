@@ -5,6 +5,7 @@
  */
 
 #include "Engine/Component/UStaticMeshComponent.h"
+#include "Core/FilePath.h"
 #include "Core/Reflection/EPropertyFlags.h"
 #include "Core/Base/ErrorHandler.h"
 #include "Engine/EPrimitiveType.h"
@@ -55,7 +56,7 @@ bool UStaticMeshComponent::SetMeshPath(const FString& Path) {
     if (Path.find('\0') != FString::npos) {
         return false;
     }
-    const std::filesystem::path AssetPath{std::u8string_view{reinterpret_cast<const char8_t*>(Path.data()), Path.size()}};
+    const std::filesystem::path AssetPath{FilePath::FromUtf8(Path)};
     if (!Path.empty() && (AssetPath.is_absolute() || AssetPath.has_root_name() || AssetPath.extension() != L".masset")) {
         return false;
     }
@@ -131,7 +132,7 @@ UStaticMesh* UStaticMeshComponent::LoadMesh(const FString& Path) const {
     }
 
     FString Error{};
-    UStaticMesh* Mesh{Assets->LoadMesh(std::filesystem::path{std::u8string_view{reinterpret_cast<const char8_t*>(Path.data()), Path.size()}}, Error)};
+    UStaticMesh* Mesh{Assets->LoadMesh(FilePath::FromUtf8(Path), Error)};
     if (Mesh == nullptr) {
         ErrorHandler::Report("StaticMesh", "Cannot load mesh '" + Path + "': " + Error, ErrorHandler::EErrorLevel::Warning);
     }
@@ -147,7 +148,7 @@ bool UStaticMeshComponent::SetMaterialPath(const FString& Path) {
     if (Path.find('\0') != FString::npos) {
         return false;
     }
-    const std::filesystem::path AssetPath{std::u8string_view{reinterpret_cast<const char8_t*>(Path.data()), Path.size()}};
+    const std::filesystem::path AssetPath{FilePath::FromUtf8(Path)};
     if (!Path.empty() && (AssetPath.has_root_path() || AssetPath.extension() != L".mtl")) {
         return false;
     }
@@ -194,7 +195,7 @@ UMaterial* UStaticMeshComponent::LoadMaterial(const FString& Path) const {
         return nullptr;
     }
     FString Error{};
-    UMaterial* Material{Assets->LoadMaterial(std::filesystem::path{std::u8string_view{reinterpret_cast<const char8_t*>(Path.data()), Path.size()}}, Error)};
+    UMaterial* Material{Assets->LoadMaterial(FilePath::FromUtf8(Path), Error)};
     if (Material == nullptr) {
         ErrorHandler::Report("Material", "Cannot load material '" + Path + "': " + Error, ErrorHandler::EErrorLevel::Warning);
     }

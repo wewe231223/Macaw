@@ -1,4 +1,5 @@
 #include "Engine/UMaterial.h"
+#include "Core/FilePath.h"
 #include "Engine/FAssetManager.h"
 #include "Engine/UTexture2D.h"
 
@@ -13,7 +14,7 @@ namespace {
         if (Path.empty() || Path.find('\0') != FString::npos || Path.find_first_of("\r\n#\"") != FString::npos) {
             return false;
         }
-        const std::filesystem::path File{std::u8string_view{reinterpret_cast<const char8_t*>(Path.data()), Path.size()}};
+        const std::filesystem::path File{FilePath::FromUtf8(Path)};
         if (File.is_absolute() || File.has_root_path()) {
             return false;
         }
@@ -91,7 +92,7 @@ bool UMaterial::ResolveTexture(FAssetManager& Assets, FString& Error) {
         mBaseColorTexture = nullptr;
         return true;
     }
-    UTexture2D* Texture{Assets.LoadTexture(std::filesystem::path{std::u8string_view{reinterpret_cast<const char8_t*>(mBaseColorTexturePath.data()), mBaseColorTexturePath.size()}}, Error)};
+    UTexture2D* Texture{Assets.LoadTexture(FilePath::FromUtf8(mBaseColorTexturePath), Error)};
     if (Texture == nullptr) {
         return false;
     }

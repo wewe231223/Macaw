@@ -1,4 +1,5 @@
 #include "Editor/FProjectBrowser.h"
+#include "Core/FilePath.h"
 #include "Editor/FProjectDialog.h"
 #include "Platform/Window.h"
 #include "Renderer/Renderer.h"
@@ -14,15 +15,6 @@
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND Window, UINT Message, WPARAM WParam, LPARAM LParam);
 
 namespace {
-    FString PathText(const std::filesystem::path& Path) {
-        const auto Text{Path.u8string()};
-        return FString{reinterpret_cast<const char*>(Text.data()), Text.size()};
-    }
-
-    std::filesystem::path TextPath(const char* Text) {
-        return std::filesystem::path{std::u8string_view{reinterpret_cast<const char8_t*>(Text)}};
-    }
-
     std::filesystem::path KnownFolder(REFKNOWNFOLDERID Folder) {
         PWSTR Buffer{};
         if (FAILED(SHGetKnownFolderPath(Folder, 0, nullptr, &Buffer))) {
@@ -40,7 +32,7 @@ namespace {
 }
 
 FProjectBrowser::FProjectBrowser() {
-    const FString Location{PathText(KnownFolder(FOLDERID_Documents) / "Macaw Projects")};
+    const FString Location{FilePath::ToUtf8(KnownFolder(FOLDERID_Documents) / "Macaw Projects")};
     std::copy_n(Location.data(), std::min(Location.size(), mLocation.size() - 1), mLocation.data());
     const FString Name{"NewProject"};
     std::copy(Name.begin(), Name.end(), mProjectName.begin());
@@ -51,8 +43,8 @@ bool FProjectBrowser::Show(FWindowsApplication& Platform, FRenderer& Renderer, s
     mSubmitted = false;
     mSelectedFile = ProjectFile;
     if (Create && !ProjectFile.empty()) {
-        const FString Name{PathText(ProjectFile.stem())};
-        const FString Location{PathText(ProjectFile.parent_path().filename() == ProjectFile.stem() ? ProjectFile.parent_path().parent_path() : ProjectFile.parent_path())};
+        const FString Name{FilePath::ToUtf8(ProjectFile.stem())};
+        const FString Location{FilePath::ToUtf8(ProjectFile.parent_path().filename() == ProjectFile.stem() ? ProjectFile.parent_path().parent_path() : ProjectFile.parent_path())};
         mProjectName.fill(0);
         mLocation.fill(0);
         std::copy_n(Name.data(), std::min(Name.size(), mProjectName.size() - 1), mProjectName.data());
@@ -173,12 +165,12 @@ void FProjectBrowser::DrawOpenProject(FWindowsApplication& Platform) {
     }
     for (std::size_t Index{}; Index < mRecentProjects.size(); ++Index) {
         const auto& Path{mRecentProjects[Index]};
-        const FString Label{PathText(Path.stem()) + "##" + std::to_string(Index)};
+        const FString Label{FilePath::ToUtf8(Path.stem()) + "##" + std::to_string(Index)};
         if (ImGui::Selectable(Label.c_str(), mSelectedFile == Path, ImGuiSelectableFlags_AllowDoubleClick)) {
             mSelectedFile = Path;
             mSubmitted = ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left);
         }
-        ImGui::TextDisabled("%s", PathText(Path).c_str());
+        ImGui::TextDisabled("%s", FilePath::ToUtf8(Path).c_str());
         ImGui::Separator();
     }
     ImGui::EndChild();
@@ -189,7 +181,7 @@ void FProjectBrowser::DrawOpenProject(FWindowsApplication& Platform) {
         }
     }
     ImGui::SameLine();
-    ImGui::TextWrapped("%s", mSelectedFile.empty() ? "Select a .mproject file" : PathText(mSelectedFile).c_str());
+    ImGui::TextWrapped("%s", mSelectedFile.empty() ? "Select a .mproject file" : FilePath::ToUtf8(mSelectedFile).c_str());
     ImGui::BeginDisabled(mSelectedFile.empty());
     if (ImGui::Button("Open Selected Project", ImVec2{240.0f, 44.0f})) {
         mSubmitted = true;
@@ -216,16 +208,16 @@ void FProjectBrowser::DrawNewProject(FWindowsApplication& Platform) {
     if (ImGui::Button("Browse...", ImVec2{138.0f, 0.0f})) {
         const auto Path{FProjectDialog::ChooseDirectory(Platform.GetWindowHandle())};
         if (!Path.empty()) {
-            const FString Location{PathText(Path)};
+            const FString Location{FilePath::ToUtf8(Path)};
             mLocation.fill(0);
             std::copy_n(Location.data(), std::min(Location.size(), mLocation.size() - 1), mLocation.data());
         }
     }
     const bool ValidName{IsProjectNameValid()};
-    const bool ValidLocation{mLocation[0] != '\0' && TextPath(mLocation.data()).is_absolute()};
+    const bool ValidLocation{mLocation[0] != '\0' && FilePath::FromUtf8(mLocation.data()).is_absolute()};
     if (ValidName && ValidLocation) {
         ImGui::TextDisabled("Project folder");
-        ImGui::TextWrapped("%s", PathText(GetNewProjectFile().parent_path()).c_str());
+        ImGui::TextWrapped("%s", FilePath::ToUtf8(GetNewProjectFile().parent_path()).c_str());
     } else {
         ImGui::TextWrapped("Enter a valid project name and an absolute location.");
     }
@@ -238,8 +230,8 @@ void FProjectBrowser::DrawNewProject(FWindowsApplication& Platform) {
 }
 
 std::filesystem::path FProjectBrowser::GetNewProjectFile() const {
-    const std::filesystem::path Name{TextPath(mProjectName.data())};
-    return TextPath(mLocation.data()) / Name / (Name.wstring() + L".mproject");
+    const std::filesystem::path Name{FilePath::FromUtf8(mProjectName.data())};
+    return FilePath::FromUtf8(mLocation.data()) / Name / (Name.wstring() + L".mproject");
 }
 
 bool FProjectBrowser::IsProjectNameValid() const {
@@ -261,7 +253,7 @@ void FProjectBrowser::LoadRecentProjects() {
     FString Line{};
     while (mRecentProjects.size() < 12 && std::getline(Input, Line)) {
         std::error_code Code{};
-        const std::filesystem::path Path{TextPath(Line.c_str())};
+        const std::filesystem::path Path{FilePath::FromUtf8(Line.c_str())};
         if (Path.extension() == L".mproject" && std::filesystem::is_regular_file(Path, Code) && std::find(mRecentProjects.begin(), mRecentProjects.end(), Path) == mRecentProjects.end()) {
             mRecentProjects.push_back(Path);
         }
@@ -284,6 +276,6 @@ void FProjectBrowser::RememberProject(const std::filesystem::path& ProjectFile) 
     }
     std::ofstream Output{File, std::ios::binary | std::ios::trunc};
     for (std::size_t Index{}; Index < std::min<std::size_t>(12, Browser.mRecentProjects.size()); ++Index) {
-        Output << PathText(Browser.mRecentProjects[Index]) << '\n';
+        Output << FilePath::ToUtf8(Browser.mRecentProjects[Index]) << '\n';
     }
 }

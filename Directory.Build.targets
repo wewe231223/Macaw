@@ -1,6 +1,6 @@
 <Project>
   <Import Project="$(VcpkgRoot)scripts\buildsystems\msbuild\vcpkg.targets" Condition="Exists('$(VcpkgRoot)scripts\buildsystems\msbuild\vcpkg.targets')" />
   <Target Name="CheckDependencies" BeforeTargets="PrepareForBuild" Condition="!Exists('$(VcpkgRoot)vcpkg.exe')">
-    <Error Text="Run Scripts\SetupDependencies.ps1 before building to restore project dependencies." />
+    <Error Text="Run Build.bat from the repository root to prepare tools, restore dependencies, and generate the solution." />
   </Target>
 </Project>

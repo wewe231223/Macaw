@@ -1,3 +1,5 @@
+/** @file FTextRenderer.cpp @brief 텍스트 배치, 정점 업로드와 거리 필드 렌더링을 구현합니다. @ingroup Renderer */
+
 #include "FTextRenderer.h"
 #include "Engine/FDrawText.h"
 #include "Engine/FSceneView.h"
@@ -6,7 +8,6 @@
 
 #include <algorithm>
 #include <cmath>
-#include <cstring>
 
 using namespace Microsoft::WRL;
 
@@ -95,31 +96,14 @@ bool FTextRenderer::Draw(ID3D11DeviceContext* Context, const FDrawText& Text, co
         return false;
     }
     const Uint32 Count{static_cast<Uint32>(Vertices.size())};
-    if (Count > mCapacity) {
-        D3D11_BUFFER_DESC Description{};
-        Description.ByteWidth = std::max(Count, 256u) * sizeof(FTextVertex);
-        Description.Usage = D3D11_USAGE_DYNAMIC;
-        Description.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-        Description.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-        ComPtr<ID3D11Device> Device{};
-        Context->GetDevice(Device.GetAddressOf());
-        ComPtr<ID3D11Buffer> Buffer{};
-        if (FAILED(Device->CreateBuffer(&Description, nullptr, Buffer.GetAddressOf()))) {
-            ErrorHandler::Report("Text", "Text vertex buffer allocation failed", ErrorHandler::EErrorLevel::Error);
-            return false;
-        }
-        mVertices = std::move(Buffer);
-        mCapacity = std::max(Count, 256u);
-    }
-    D3D11_MAPPED_SUBRESOURCE Mapped{};
-    if (FAILED(Context->Map(mVertices.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &Mapped))) {
+    FString Error{};
+    if (!mVertices.Upload(Context, std::as_bytes(std::span{Vertices}), sizeof(FTextVertex), std::max(Count, 256u), Error)) {
+        ErrorHandler::Report("Text", Error, ErrorHandler::EErrorLevel::Error);
         return false;
     }
-    std::memcpy(Mapped.pData, Vertices.data(), Vertices.size() * sizeof(FTextVertex));
-    Context->Unmap(mVertices.Get(), 0);
     Context->UpdateSubresource(mConstants.Get(), 0, nullptr, &Constants, 0, 0);
 
-    ID3D11Buffer* VertexBuffer{mVertices.Get()};
+    ID3D11Buffer* VertexBuffer{mVertices.GetBuffer()};
     ID3D11Buffer* ConstantBuffer{mConstants.Get()};
     ID3D11ShaderResourceView* Atlas{mTexture->GetShaderResourceView()};
     ID3D11SamplerState* Sampler{mSampler.Get()};
@@ -141,7 +125,7 @@ bool FTextRenderer::Draw(ID3D11DeviceContext* Context, const FDrawText& Text, co
 }
 
 std::size_t FTextRenderer::GetResourceBytes() const {
-    return (mTexture != nullptr ? mTexture->GetResourceBytes() : 0) + mCapacity * sizeof(FTextVertex) + sizeof(FTextConstants);
+    return (mTexture != nullptr ? mTexture->GetResourceBytes() : 0) + mVertices.GetResourceBytes() + sizeof(FTextConstants);
 }
 
 bool FTextRenderer::GetBounds(const FString& Text, FVector2& Minimum, FVector2& Maximum) const {

@@ -14,6 +14,7 @@
 #include "Engine/EPrimitiveType.h"
 #include "Engine/EEditorMesh.h"
 #include "RenderCore/FRenderStats.h"
+#include "RenderCore/FDynamicVertexBuffer.h"
 #include "RenderCore/IRendererModule.h"
 #include "RenderCore/Shader/FShaderManager.h"
 #include "Engine/UStaticMesh.h"
@@ -293,7 +294,7 @@ private:
     /**
      * @brief 보조 선분용 동적 정점 버퍼입니다.
      */
-    Microsoft::WRL::ComPtr<ID3D11Buffer> mLineBuffer{};
+    FDynamicVertexBuffer mLineBuffer{};
     ReflectProperty(mLineBuffer, "LineBuffer", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 
 
@@ -333,13 +334,6 @@ private:
      */
     TArray<FLineVertex> mLineVertices{};
     ReflectProperty(mLineVertices, "LineVertices", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
-
-    /**
-     * @brief 동적 선분 버퍼 정점 용량입니다.
-     */
-    Uint32 mLineCapacity{};
-    ReflectProperty(mLineCapacity, "LineCapacity", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
-
 
     /**
      * @brief 가로 픽셀 수입니다.

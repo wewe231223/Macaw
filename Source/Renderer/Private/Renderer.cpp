@@ -5,6 +5,7 @@
  */
 
 #include "Renderer/Renderer.h"
+#include "Core/FilePath.h"
 #include "Renderer/FLineVertex.h"
 #include "Core/Math/FVector.h"
 #include "Core/Math/FMatrix.h"
@@ -189,7 +190,6 @@ void FRenderer::Shutdown() {
     mContext.Reset();
     mDevice.Reset();
 
-    mLineCapacity = 0;
     mWidth = 0;
     mHeight = 0;
     mStats = {};
@@ -305,7 +305,7 @@ void FRenderer::BeginRenderingViewFamily(const FSceneViewFamily& Family) {
     }
     DrawTexts(Family, false);
 
-    mStats.mGpuBytes = Scene->GetPrimitiveCount() * sizeof(FObjectConstants) + sizeof(FMatrix) + sizeof(FEditorMeshConstants) + mLineCapacity * sizeof(FLineVertex) + Target->GetResourceBytes();
+    mStats.mGpuBytes = Scene->GetPrimitiveCount() * sizeof(FObjectConstants) + sizeof(FMatrix) + sizeof(FEditorMeshConstants) + mLineBuffer.GetResourceBytes() + Target->GetResourceBytes();
     mStats.mGpuBytes += mTextRenderer != nullptr ? mTextRenderer->GetResourceBytes() : 0;
 
     for (const auto& Mesh : mMeshes) {
@@ -593,36 +593,15 @@ void FRenderer::DrawLines(const FPrimitiveDrawInterface* Elements, bool DepthTes
 
     const Uint32 Count{static_cast<Uint32>(mLineVertices.size())};
 
-    if (Count > mLineCapacity) {
-        D3D11_BUFFER_DESC Description{};
-        Description.ByteWidth = (Count + 256) * sizeof(FLineVertex);
-        Description.Usage = D3D11_USAGE_DYNAMIC;
-        Description.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-        Description.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-
-        ComPtr<ID3D11Buffer> Buffer{};
-
-        if (FAILED(mDevice->CreateBuffer(&Description, nullptr, Buffer.GetAddressOf()))) {
-            ErrorHandler::Fatal("Renderer", "Line buffer allocation failed");
-            return;
-        }
-
-        mLineBuffer = std::move(Buffer);
-        mLineCapacity = Count + 256;
+    FString Error{};
+    if (!mLineBuffer.Upload(mContext.Get(), std::as_bytes(std::span{mLineVertices}), sizeof(FLineVertex), Count + 256, Error)) {
+        ErrorHandler::Fatal("Renderer", Error);
+        return;
     }
-
-    D3D11_MAPPED_SUBRESOURCE Mapped{};
-
-    if (FAILED(mContext->Map(mLineBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &Mapped))) {
-        ErrorHandler::Fatal("Renderer", "Line buffer mapping failed");
-    }
-
-    std::ranges::copy(std::as_bytes(std::span{mLineVertices}), static_cast<std::byte*>(Mapped.pData));
-    mContext->Unmap(mLineBuffer.Get(), 0);
 
     const UINT Stride{sizeof(FLineVertex)};
     const UINT Offset{};
-    ID3D11Buffer* Buffer{mLineBuffer.Get()};
+    ID3D11Buffer* Buffer{mLineBuffer.GetBuffer()};
 
     mContext->IASetInputLayout(mLineLayout.Get());
     mContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
@@ -738,9 +717,8 @@ void FRenderer::DrawTexts(const FSceneViewFamily& Family, bool DepthTest) {
 
 FMaterialPipeline* FRenderer::GetMaterialPipeline(const UMaterial& Material) {
     const FString& Relative{Material.GetShaderPath()};
-    const std::filesystem::path RelativePath{std::filesystem::path{std::u8string_view{reinterpret_cast<const char8_t*>(Relative.data()), Relative.size()}}.lexically_normal()};
-    const auto SourceText{RelativePath.generic_u8string()};
-    FString Key{FString{reinterpret_cast<const char*>(SourceText.data()), SourceText.size()} + (Material.IsTwoSided() ? "|TwoSided" : "|OneSided")};
+    const std::filesystem::path RelativePath{FilePath::FromUtf8(Relative).lexically_normal()};
+    FString Key{FilePath::ToGenericUtf8(RelativePath) + (Material.IsTwoSided() ? "|TwoSided" : "|OneSided")};
     std::transform(Key.begin(), Key.end(), Key.begin(), [](unsigned char Character) {
         return static_cast<char>(std::tolower(Character));
     });

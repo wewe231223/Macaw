@@ -5,6 +5,7 @@
  */
 
 #include "Engine/UStaticMesh.h"
+#include "Core/FilePath.h"
 
 #include <algorithm>
 #include <assimp/Importer.hpp>
@@ -40,8 +41,7 @@ bool UStaticMesh::LoadFromFile(const std::filesystem::path& MeshPath) {
     MeshImporter.SetPropertyInteger(AI_CONFIG_PP_SBP_REMOVE, aiPrimitiveType_POINT | aiPrimitiveType_LINE);
     MeshImporter.SetPropertyBool(AI_CONFIG_PP_PTV_KEEP_HIERARCHY, true);
     MeshImporter.SetPropertyBool(AI_CONFIG_PP_FID_IGNORE_TEXTURECOORDS, true);
-    const std::u8string UTF8Path{MeshPath.u8string()};
-    const std::string ImportPath{UTF8Path.begin(), UTF8Path.end()};
+    const FString ImportPath{FilePath::ToUtf8(MeshPath)};
     constexpr Uint32 ImportFlags{aiProcess_Triangulate | aiProcess_JoinIdenticalVertices | aiProcess_GenSmoothNormals | aiProcess_CalcTangentSpace | aiProcess_SortByPType | aiProcess_PreTransformVertices | aiProcess_ConvertToLeftHanded | aiProcess_FindInvalidData | aiProcess_ValidateDataStructure};
     const aiScene* Scene{MeshImporter.ReadFile(ImportPath, ImportFlags)};
 

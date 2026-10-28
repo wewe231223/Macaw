@@ -5,6 +5,7 @@
  */
 
 #include "Engine/FProject.h"
+#include "Core/FilePath.h"
 #include "Serialization/JsonArchive.h"
 
 FProject::FProject() = default;
@@ -38,8 +39,7 @@ bool FProject::Create(const std::filesystem::path& ProjectFile, const std::files
     }
 
     Candidate.mFilePath = File;
-    const auto Name{File.stem().u8string()};
-    Candidate.mName.assign(reinterpret_cast<const char*>(Name.data()), Name.size());
+    Candidate.mName = FilePath::ToUtf8(File.stem());
     Candidate.mAssets = std::make_unique<FAssetManager>(File.parent_path() / "Content");
     if (!Candidate.Save(Error)) {
         return false;
@@ -71,7 +71,7 @@ bool FProject::Open(const std::filesystem::path& ProjectFile, FString& Error) {
         return false;
     }
     auto Assets{std::make_unique<FAssetManager>(File.parent_path() / "Content")};
-    const std::filesystem::path RelativeScene{std::u8string_view{reinterpret_cast<const char8_t*>(StartupScene.data()), StartupScene.size()}};
+    const std::filesystem::path RelativeScene{FilePath::FromUtf8(StartupScene)};
     if (RelativeScene.is_absolute() || RelativeScene.has_root_name()) {
         Error = "The startup scene must use a Content relative path";
         return false;

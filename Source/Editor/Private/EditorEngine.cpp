@@ -5,6 +5,7 @@
  */
 
 #include "Editor/EditorEngine.h"
+#include "Core/FilePath.h"
 #include "FEditorUI.h"
 #include "Engine/UWorld.h"
 #include "Engine/AStaticMeshActor.h"
@@ -85,7 +86,7 @@ bool UEditorEngine::InitializeEditor(IRendererModule* Renderer, FWindowsApplicat
 
     if (GetProject() != nullptr) {
         const FString& Startup{GetProject()->GetStartupScene()};
-        if (!mContext.LoadScene(std::filesystem::path{std::u8string_view{reinterpret_cast<const char8_t*>(Startup.data()), Startup.size()}})) {
+        if (!mContext.LoadScene(FilePath::FromUtf8(Startup))) {
             Shutdown();
             return false;
         }

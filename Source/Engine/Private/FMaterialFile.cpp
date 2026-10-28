@@ -1,9 +1,11 @@
+/** @file FMaterialFile.cpp @brief MTL 파싱, 프로젝트 참조 검증과 임시 파일 저장을 구현합니다. @ingroup Engine */
+
 #include "FMaterialFile.h"
+#include "Core/FilePath.h"
 #include "Engine/FAssetManager.h"
 #include "Engine/UMaterial.h"
-#include "Core/Guid.h"
+#include "Core/FAtomicFileWriter.h"
 
-#include <Windows.h>
 #include <fstream>
 #include <iomanip>
 #include <limits>
@@ -11,6 +13,7 @@
 #include <sstream>
 
 namespace {
+    /** @brief 남은 행의 공백과 선택적인 인용부호를 제거합니다. @param[in,out] Input 현재 MTL 행의 입력 스트림입니다. @return 남아 있는 필드 문자열입니다. */
     FString ReadRemainder(std::istream& Input) {
         FString Value{};
         std::getline(Input >> std::ws, Value);
@@ -23,15 +26,6 @@ namespace {
             return Value.substr(1, Value.size() - 2);
         }
         return Value;
-    }
-
-    std::filesystem::path FromText(const FString& Text) {
-        return std::filesystem::path{std::u8string_view{reinterpret_cast<const char8_t*>(Text.data()), Text.size()}};
-    }
-
-    FString ToText(const std::filesystem::path& Path) {
-        const auto Text{Path.generic_u8string()};
-        return {reinterpret_cast<const char*>(Text.data()), Text.size()};
     }
 }
 
@@ -83,11 +77,11 @@ bool FMaterialFile::Load(const std::filesystem::path& Path, FAssetManager& Asset
                 Error = "map_Kd requires a texture path without map options";
                 return false;
             }
-            const FString Relative{Assets.GetRelativePath(Path.parent_path() / FromText(Reference), Error)};
+            const FString Relative{Assets.GetRelativePath(Path.parent_path() / FilePath::FromUtf8(Reference), Error)};
             Valid = !Relative.empty() && Material.SetBaseColorTexturePath(Relative);
         } else if (Keyword == "shader") {
             const FString Shader{ReadRemainder(Values)};
-            Valid = Material.SetShaderPath(Shader) && !Assets.ResolvePath(FromText(Shader), Error).empty();
+            Valid = Material.SetShaderPath(Shader) && !Assets.ResolvePath(FilePath::FromUtf8(Shader), Error).empty();
         } else if (Keyword == "two_sided") {
             Int32 TwoSided{};
             Valid = static_cast<bool>(Values >> TwoSided) && (TwoSided == 0 || TwoSided == 1) && Material.SetTwoSided(TwoSided != 0);
@@ -106,48 +100,30 @@ bool FMaterialFile::Load(const std::filesystem::path& Path, FAssetManager& Asset
 
 bool FMaterialFile::Save(const std::filesystem::path& Path, const FAssetManager& Assets, const UMaterial& Material, FString& Error) {
     Error.clear();
-    if (Path.extension() != L".mtl" || Material.GetName().empty() || Material.GetName().find_first_of("\r\n#") != FString::npos || Assets.ResolvePath(FromText(Material.GetShaderPath()), Error).empty()) {
+    if (Path.extension() != L".mtl" || Material.GetName().empty() || Material.GetName().find_first_of("\r\n#") != FString::npos || Assets.ResolvePath(FilePath::FromUtf8(Material.GetShaderPath()), Error).empty()) {
         Error = "Invalid MTL material path or settings";
-        return false;
-    }
-    std::error_code Code{};
-    std::filesystem::create_directories(Path.parent_path(), Code);
-    if (Code) {
-        Error = "Cannot create the material directory: " + Code.message();
         return false;
     }
     FString TexturePath{};
     if (!Material.GetBaseColorTexturePath().empty()) {
-        const auto Texture{Assets.ResolvePath(FromText(Material.GetBaseColorTexturePath()), Error)};
+        const auto Texture{Assets.ResolvePath(FilePath::FromUtf8(Material.GetBaseColorTexturePath()), Error)};
         if (Texture.empty()) {
             return false;
         }
-        TexturePath = ToText(Texture.lexically_relative(Path.parent_path()));
+        TexturePath = FilePath::ToGenericUtf8(Texture.lexically_relative(Path.parent_path()));
     }
-    std::filesystem::path Temporary{Path};
-    Temporary += L"." + FromText(FGuid{}.ToString()).wstring() + L".tmp";
-    {
-        std::ofstream Output{Temporary, std::ios::binary | std::ios::trunc};
-        Output.imbue(std::locale::classic());
-        const FVector4& Color{Material.GetBaseColor()};
-        Output << std::setprecision(std::numeric_limits<float>::max_digits10);
-        Output << "newmtl " << Material.GetName() << "\r\nKd " << Color.x << ' ' << Color.y << ' ' << Color.z << "\r\nd " << Color.w << "\r\n";
-        if (!TexturePath.empty()) {
-            Output << "map_Kd " << TexturePath << "\r\n";
-        }
-        Output << "shader " << Material.GetShaderPath() << "\r\ntwo_sided " << (Material.IsTwoSided() ? 1 : 0) << "\r\n";
-        Output.flush();
-        Output.close();
-        if (!Output) {
-            std::filesystem::remove(Temporary, Code);
-            Error = "Cannot write the MTL material";
-            return false;
-        }
-    }
-    if (!MoveFileExW(Temporary.c_str(), Path.c_str(), MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH)) {
-        std::filesystem::remove(Temporary, Code);
-        Error = "Cannot replace the MTL material";
+    FAtomicFileWriter Writer{};
+    if (!Writer.Open(Path, Error)) {
         return false;
     }
-    return true;
+    std::ostream& Output{Writer.GetStream()};
+    Output.imbue(std::locale::classic());
+    const FVector4& Color{Material.GetBaseColor()};
+    Output << std::setprecision(std::numeric_limits<float>::max_digits10);
+    Output << "newmtl " << Material.GetName() << "\r\nKd " << Color.x << ' ' << Color.y << ' ' << Color.z << "\r\nd " << Color.w << "\r\n";
+    if (!TexturePath.empty()) {
+        Output << "map_Kd " << TexturePath << "\r\n";
+    }
+    Output << "shader " << Material.GetShaderPath() << "\r\ntwo_sided " << (Material.IsTwoSided() ? 1 : 0) << "\r\n";
+    return Writer.Commit(Error);
 }

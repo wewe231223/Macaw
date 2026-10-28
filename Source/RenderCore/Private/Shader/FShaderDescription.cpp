@@ -5,6 +5,7 @@
  */
 
 #include "RenderCore/Shader/FShaderDescription.h"
+#include "Core/FilePath.h"
 #include "FShaderFile.h"
 
 #include <algorithm>
@@ -84,7 +85,7 @@ FString FShaderDescription::GetIdentity() const {
     TArray<Uint8> Data{};
     ShaderFile::AppendString(Data, "Macaw-D3DCompile-Shader-1");
     ShaderFile::AppendString(Data, ShaderFile::GetCompilerIdentity());
-    ShaderFile::AppendString(Data, ShaderFile::ToText(mSourcePath));
+    ShaderFile::AppendString(Data, FilePath::ToGenericUtf8(mSourcePath));
     ShaderFile::AppendString(Data, mEntryPoint);
     ShaderFile::AppendString(Data, mTargetProfile);
     ShaderFile::AppendUint64(Data, mCompileFlags);
@@ -96,7 +97,7 @@ FString FShaderDescription::GetIdentity() const {
 
     ShaderFile::AppendUint64(Data, mIncludeDirectories.size());
     for (const std::filesystem::path& Directory : mIncludeDirectories) {
-        ShaderFile::AppendString(Data, ShaderFile::ToText(Directory));
+        ShaderFile::AppendString(Data, FilePath::ToGenericUtf8(Directory));
     }
 
     return FString{reinterpret_cast<const char*>(Data.data()), Data.size()};

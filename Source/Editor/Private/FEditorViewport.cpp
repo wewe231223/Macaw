@@ -5,6 +5,7 @@
  */
 
 #include "Editor/FEditorViewport.h"
+#include "Core/FilePath.h"
 #include "Engine/FSceneViewport.h"
 #include "Engine/FRenderTarget.h"
 #include "ViewportToolbar.h"
@@ -234,7 +235,7 @@ void FEditorViewport::DrawContents(float DeltaTime, bool AllowInput) {
                     if (Payload->IsDelivery() && Payload->Data != nullptr && Payload->DataSize > 1) {
                         const auto* Data{static_cast<const char*>(Payload->Data)};
                         if (Data[Payload->DataSize - 1] == '\0') {
-                            const std::filesystem::path Path{std::u8string_view{reinterpret_cast<const char8_t*>(Data), static_cast<std::size_t>(Payload->DataSize - 1)}};
+                            const std::filesystem::path Path{FilePath::FromUtf8(std::string_view{Data, static_cast<std::size_t>(Payload->DataSize - 1)})};
                             mClient.DropMesh(Path, State.mMouse, mViewport->GetSize());
                         }
                     }

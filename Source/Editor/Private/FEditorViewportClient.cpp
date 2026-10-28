@@ -49,6 +49,14 @@ FEditorViewportClient::FEditorViewportClient(FEditorContext* Context)
  */
 FEditorViewportClient::~FEditorViewportClient() = default;
 
+void FEditorViewportClient::SetEditorContext(FEditorContext* Context) {
+    if (Context == nullptr || Context == mContext) {
+        return;
+    }
+    mGizmo.SetEditorContext(Context);
+    mContext = Context;
+}
+
 /**
  * @brief 공통 실행 검사를 통과한 명령으로 변환 모드, 좌표계 또는 스냅 설정을 변경합니다.
  */

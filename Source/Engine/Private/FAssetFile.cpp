@@ -5,9 +5,8 @@
  */
 
 #include "Engine/FAssetFile.h"
-#include "Core/Guid.h"
+#include "Core/FAtomicFileWriter.h"
 
-#include <Windows.h>
 #include <array>
 #include <fstream>
 
@@ -91,11 +90,8 @@ bool FAssetFile::Save(const std::filesystem::path& Path, EAssetType Type, std::s
 
     std::error_code Code{};
     const std::filesystem::path Target{std::filesystem::absolute(Path, Code)};
-    if (!Code) {
-        std::filesystem::create_directories(Target.parent_path(), Code);
-    }
     if (Code) {
-        Error = "Cannot create asset directory: " + Code.message();
+        Error = "Invalid asset path: " + Code.message();
         return false;
     }
     EAssetType ExistingType{Type};
@@ -105,32 +101,19 @@ bool FAssetFile::Save(const std::filesystem::path& Path, EAssetType Type, std::s
         return false;
     }
 
-    std::filesystem::path Temporary{Target};
-    Temporary += L"." + std::filesystem::path{FGuid{}.ToString()}.wstring() + L".tmp";
-    const Uint32 TypeValue{static_cast<Uint32>(Type)};
-    const Uint64 Size{Payload.size()};
-    {
-        std::ofstream Output{Temporary, std::ios::binary | std::ios::trunc};
-        Output.write(AssetMagic.data(), AssetMagic.size());
-        Output.write(reinterpret_cast<const char*>(&AssetVersion), sizeof(AssetVersion));
-        Output.write(reinterpret_cast<const char*>(&TypeValue), sizeof(TypeValue));
-        Output.write(reinterpret_cast<const char*>(&Size), sizeof(Size));
-        Output.write(reinterpret_cast<const char*>(Payload.data()), static_cast<std::streamsize>(Size));
-        Output.flush();
-        Output.close();
-        if (!Output) {
-            std::filesystem::remove(Temporary, Code);
-            Error = "Cannot write asset file";
-            return false;
-        }
-    }
-
-    if (!MoveFileExW(Temporary.c_str(), Target.c_str(), MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH)) {
-        std::filesystem::remove(Temporary, Code);
-        Error = "Cannot replace asset file";
+    FAtomicFileWriter Writer{};
+    if (!Writer.Open(Target, Error)) {
         return false;
     }
-    return true;
+    const Uint32 TypeValue{static_cast<Uint32>(Type)};
+    const Uint64 Size{Payload.size()};
+    std::ostream& Output{Writer.GetStream()};
+    Output.write(AssetMagic.data(), AssetMagic.size());
+    Output.write(reinterpret_cast<const char*>(&AssetVersion), sizeof(AssetVersion));
+    Output.write(reinterpret_cast<const char*>(&TypeValue), sizeof(TypeValue));
+    Output.write(reinterpret_cast<const char*>(&Size), sizeof(Size));
+    Output.write(reinterpret_cast<const char*>(Payload.data()), static_cast<std::streamsize>(Size));
+    return Writer.Commit(Error);
 }
 
 bool FAssetFile::Load(const std::filesystem::path& Path, EAssetType Type, TArray<Uint8>& Payload, FString& Error) {

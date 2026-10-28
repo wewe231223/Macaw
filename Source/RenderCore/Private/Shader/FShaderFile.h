@@ -17,18 +17,6 @@
  */
 namespace ShaderFile {
     /**
-     * @brief 파일 시스템 경로를 구분자가 통일된 UTF-8 문자열로 변환합니다.
-     * @param[in] Path 조회·로드·저장 또는 정규화할 파일 경로입니다.
-     * @return 입력 값을 변환한 문자열입니다.
-     */
-    FString ToText(const std::filesystem::path& Path);
-    /**
-     * @brief UTF-8 경로 문자열을 파일 시스템 경로로 변환합니다.
-     * @param[in] Text 변환하거나 검사할 UTF-8 문자열입니다.
-     * @return 요청하거나 변환한 파일 시스템 경로 또는 시각입니다.
-     */
-    std::filesystem::path FromText(std::string_view Text);
-    /**
      * @brief 경로를 절대 경로로 정규화하고 실패 진단을 반환합니다.
      * @param[in] Path 조회·로드·저장 또는 정규화할 파일 경로입니다.
      * @param[out] Normalized 정규화한 절대 경로를 받을 출력입니다.

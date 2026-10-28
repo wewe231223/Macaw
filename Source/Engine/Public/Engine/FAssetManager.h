@@ -90,8 +90,11 @@ public:
      * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며, 사용할 수 없으면 nullptr입니다.
      */
     UTexture2D* LoadTexture(const std::filesystem::path& Path, FString& Error);
+    /** @brief MTL 머티리얼과 텍스처 참조를 로드하여 캐시에 보관합니다. @param[in] Path 프로젝트 머티리얼 경로입니다. @param[out] Error 실패 원인입니다. @return 캐시 소유 머티리얼의 비소유 주소이며 실패하면 nullptr입니다. */
     UMaterial* LoadMaterial(const std::filesystem::path& Path, FString& Error);
+    /** @brief 캐시 객체의 주소를 유지하면서 파일의 최신 설정을 다시 적용합니다. @param[in] Path 다시 읽을 프로젝트 머티리얼 경로입니다. @param[out] Error 실패 원인입니다. @return 설정과 참조 갱신에 성공하면 true입니다. */
     bool ReloadMaterial(const std::filesystem::path& Path, FString& Error);
+    /** @brief 머티리얼을 안전하게 저장하고 같은 경로의 캐시 객체를 갱신합니다. @param[in] Path 저장할 프로젝트 머티리얼 경로입니다. @param[in] Material 저장할 설정입니다. @param[out] Error 저장 또는 캐시 갱신의 실패 원인입니다. @return 저장과 캐시 갱신에 성공하면 true입니다. */
     bool SaveMaterial(const std::filesystem::path& Path, const UMaterial& Material, FString& Error);
     /**
      * @brief 검증한 CPU 메시 데이터를 바이너리 에셋 파일로 저장합니다.
@@ -127,6 +130,9 @@ public:
     bool ImportTexture(const std::filesystem::path& Source, const std::filesystem::path& Target, FString& Error);
 
 private:
+    /** @brief 캐시 객체의 주소를 유지하면서 머티리얼 설정과 텍스처 참조를 갱신합니다. @param[in,out] Target 설정을 적용할 기존 객체입니다. @param[in] Source 복사할 설정을 제공하는 객체입니다. @param[out] Error 텍스처 참조를 해석할 수 없는 경우의 원인입니다. @return 텍스처 참조까지 복원하면 true입니다. */
+    bool ApplyMaterialSettings(UMaterial& Target, const UMaterial& Source, FString& Error);
+
     /**
      * @brief 자동 생성된 프로퍼티 등록 코드와 리플렉션 빌더의 접근을 허용합니다.
      */
@@ -148,6 +154,7 @@ private:
      */
     TMap<FString, std::unique_ptr<UTexture2D>> mTextures{};
     ReflectProperty(mTextures, "Textures", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /** @brief 정규화한 상대 경로별로 소유하는 머티리얼 캐시입니다. */
     TMap<FString, std::unique_ptr<UMaterial>> mMaterials{};
     ReflectProperty(mMaterials, "Materials", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 };

@@ -5,6 +5,7 @@
  */
 
 #include "RenderCore/Shader/FShaderCache.h"
+#include "Core/FilePath.h"
 #include "FShaderFile.h"
 
 #include <Windows.h>
@@ -78,7 +79,7 @@ namespace {
                 return false;
             }
 
-            Dependency.mPath = ShaderFile::FromText(Path);
+            Dependency.mPath = FilePath::FromUtf8(Path);
             Dependency.mExists = Exists != 0;
             Dependency.mWriteTime = DecodeTime(WriteTime);
             Candidate.mDependencies.push_back(std::move(Dependency));
@@ -123,7 +124,7 @@ bool FShaderCache::Load(const FShaderDescription& Description, FShaderCompilatio
     }
 
     if (Data.size() <= ChecksumSize) {
-        Diagnostics = "Invalid shader cache: " + ShaderFile::ToText(Path);
+        Diagnostics = "Invalid shader cache: " + FilePath::ToGenericUtf8(Path);
         return false;
     }
 
@@ -131,7 +132,7 @@ bool FShaderCache::Load(const FShaderDescription& Description, FShaderCompilatio
     const FString ExpectedChecksum{reinterpret_cast<const char*>(Data.data()), ChecksumSize};
     FShaderCompilation Candidate{};
     if (ShaderFile::Hash(Payload) != ExpectedChecksum || !ReadCompilation(Payload, Normalized.GetIdentity(), Candidate) || !IsCurrent(Candidate)) {
-        Diagnostics = "Invalid or outdated shader cache: " + ShaderFile::ToText(Path);
+        Diagnostics = "Invalid or outdated shader cache: " + FilePath::ToGenericUtf8(Path);
         return false;
     }
 
@@ -164,7 +165,7 @@ bool FShaderCache::Save(const FShaderDescription& Description, const FShaderComp
     ShaderFile::AppendUint64(Payload, EncodeTime(Compilation.mBuildTime));
     ShaderFile::AppendUint64(Payload, Compilation.mDependencies.size());
     for (const FShaderDependency& Dependency : Compilation.mDependencies) {
-        ShaderFile::AppendString(Payload, ShaderFile::ToText(Dependency.mPath));
+        ShaderFile::AppendString(Payload, FilePath::ToGenericUtf8(Dependency.mPath));
         ShaderFile::AppendUint64(Payload, Dependency.mExists ? 1 : 0);
         ShaderFile::AppendUint64(Payload, EncodeTime(Dependency.mWriteTime));
         ShaderFile::AppendUint64(Payload, Dependency.mSize);
@@ -181,7 +182,7 @@ bool FShaderCache::Save(const FShaderDescription& Description, const FShaderComp
     std::error_code Error{};
     std::filesystem::create_directories(mDirectory, Error);
     if (Error) {
-        Diagnostics = "Cannot create shader cache directory: " + ShaderFile::ToText(mDirectory);
+        Diagnostics = "Cannot create shader cache directory: " + FilePath::ToGenericUtf8(mDirectory);
         return false;
     }
 
@@ -191,7 +192,7 @@ bool FShaderCache::Save(const FShaderDescription& Description, const FShaderComp
     Temporary += L"." + std::to_wstring(GetCurrentProcessId()) + L"." + std::to_wstring(GetTickCount64()) + L"." + std::to_wstring(Sequence.fetch_add(1)) + L".tmp";
     const HANDLE File{CreateFileW(Temporary.c_str(), GENERIC_WRITE, 0, nullptr, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, nullptr)};
     if (File == INVALID_HANDLE_VALUE) {
-        Diagnostics = "Cannot create shader cache: " + ShaderFile::ToText(Temporary);
+        Diagnostics = "Cannot create shader cache: " + FilePath::ToGenericUtf8(Temporary);
         return false;
     }
 
@@ -202,7 +203,7 @@ bool FShaderCache::Save(const FShaderDescription& Description, const FShaderComp
     const bool Closed{CloseHandle(File) != FALSE};
     if (!Success || !Closed || !MoveFileExW(Temporary.c_str(), Path.c_str(), MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH)) {
         DeleteFileW(Temporary.c_str());
-        Diagnostics = "Cannot replace shader cache: " + ShaderFile::ToText(Path);
+        Diagnostics = "Cannot replace shader cache: " + FilePath::ToGenericUtf8(Path);
         return false;
     }
 

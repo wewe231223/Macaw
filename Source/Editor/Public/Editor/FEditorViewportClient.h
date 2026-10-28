@@ -48,6 +48,7 @@ public:
      * @return 등록된 타입 메타데이터의 비소유 주소입니다.
      */
     ReflectStruct(FEditorViewportClient);
+    /** @brief 기즈모의 진행 중인 변환을 취소하고 공유할 편집 컨텍스트를 변경합니다. @param[in] Context 새 비소유 컨텍스트이며 nullptr이면 기존 연결을 유지합니다. */
     void SetEditorContext(FEditorContext* Context);
 
     /**

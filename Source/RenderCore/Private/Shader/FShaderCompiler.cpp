@@ -5,6 +5,7 @@
  */
 
 #include "RenderCore/Shader/FShaderCompiler.h"
+#include "Core/FilePath.h"
 #include "FShaderIncludeHandler.h"
 #include "FShaderFile.h"
 
@@ -27,7 +28,7 @@ bool FShaderCompiler::Compile(const FShaderDescription& Description, FShaderComp
     }
 
     if (Source.empty()) {
-        Diagnostics = "Shader source is empty: " + ShaderFile::ToText(Normalized.mSourcePath);
+        Diagnostics = "Shader source is empty: " + FilePath::ToGenericUtf8(Normalized.mSourcePath);
         return false;
     }
 
@@ -41,7 +42,7 @@ bool FShaderCompiler::Compile(const FShaderDescription& Description, FShaderComp
     FShaderIncludeHandler Includes{Normalized, Source.data(), RootDependency};
     ComPtr<ID3DBlob> Code{};
     ComPtr<ID3DBlob> Errors{};
-    const FString SourceName{ShaderFile::ToText(Normalized.mSourcePath)};
+    const FString SourceName{FilePath::ToGenericUtf8(Normalized.mSourcePath)};
     const HRESULT Result{D3DCompile(Source.data(), Source.size(), SourceName.c_str(), Macros.data(), &Includes, Normalized.mEntryPoint.c_str(), Normalized.mTargetProfile.c_str(), Normalized.mCompileFlags, 0, Code.GetAddressOf(), Errors.GetAddressOf())};
     if (Errors != nullptr) {
         Diagnostics.assign(static_cast<const char*>(Errors->GetBufferPointer()), Errors->GetBufferSize());
