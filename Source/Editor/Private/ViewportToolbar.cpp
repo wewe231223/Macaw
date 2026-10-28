@@ -58,7 +58,6 @@ namespace {
     /**
      * @brief 그리드 표시와 간격 설정을 위한 메뉴 항목을 표시합니다.
      * @param[in,out] Client 그리드 명령 지원 여부를 조회하고 선택 요청을 전달할 뷰포트 클라이언트입니다.
-     * @note 현재 그리드 명령을 지원하지 않으므로 실제 표시와 간격 조절 항목은 비활성입니다.
      */
     void DrawGridSettings(FEditorViewportClient* Client) {
         ImGui::SeparatorText("Viewport Grid");
@@ -68,9 +67,10 @@ namespace {
             Client->ExecuteCommand(EViewportCommand::ToggleGrid);
         }
 
-        ImGui::MenuItem("Grid Spacing...", nullptr, false, Client->CanExecuteCommand(EViewportCommand::ToggleGrid));
-        ImGui::Separator();
-        ImGui::TextDisabled("Viewport grid is not available yet.");
+        float Spacing{Client->GetGridSpacing()};
+        if (ImGui::InputFloat("Grid Spacing", &Spacing)) {
+            Client->SetGridSpacing(Spacing);
+        }
     }
 
     /**
@@ -102,6 +102,65 @@ namespace {
         }
     }
 
+    /**
+     * @brief View Mode, View Filter 체크박스와 카메라 감도 드롭다운을 표시합니다.
+     * @param[in] Client 설정을 읽고 변경할 뷰포트 클라이언트입니다.
+     */
+    void DrawViewSettings(FEditorViewportClient* Client) {
+        const char* Mode{Client->GetViewMode() == EViewMode::Wireframe ? "View Mode: Wireframe" : "View Mode: Lit"};
+        ImGui::SetNextItemWidth(175.0f);
+        if (ImGui::BeginCombo("##ViewMode", Mode)) {
+            ImGui::SeparatorText("View Mode");
+            if (ImGui::Selectable("Lit", Client->GetViewMode() == EViewMode::Lit)) {
+                Client->SetViewMode(EViewMode::Lit);
+            }
+            if (ImGui::Selectable("Wireframe", Client->GetViewMode() == EViewMode::Wireframe)) {
+                Client->SetViewMode(EViewMode::Wireframe);
+            }
+            ImGui::EndCombo();
+        }
+        ImGui::SameLine();
+        ImGui::SetNextItemWidth(115.0f);
+        if (ImGui::BeginCombo("##ViewFilter", "View Filter")) {
+            ImGui::SeparatorText("Show Flags");
+            FEngineShowFlags Flags{Client->GetShowFlags()};
+            bool Changed{ImGui::Checkbox("Primitives", &Flags.mPrimitives)};
+            Changed = ImGui::Checkbox("Sprites / Billboards", &Flags.mSprites) || Changed;
+            Changed = ImGui::Checkbox("Text", &Flags.mText) || Changed;
+            Changed = ImGui::Checkbox("Bounding Boxes (AABB)", &Flags.mBounds) || Changed;
+            Changed = ImGui::Checkbox("Grid", &Flags.mGrid) || Changed;
+            Changed = ImGui::Checkbox("World Axes", &Flags.mAxes) || Changed;
+            ImGui::Separator();
+            float Thickness{Client->GetLineThickness()};
+            if (ImGui::SliderFloat("Line Width (px)", &Thickness, 0.5f, 10.0f, "%.1f")) {
+                Client->SetLineThickness(Thickness);
+            }
+            if (ImGui::MenuItem("Use Defaults")) {
+                Flags = {};
+                Changed = true;
+                Client->SetLineThickness(1.5f);
+            }
+            if (Changed) {
+                Client->SetShowFlags(Flags);
+            }
+            ImGui::EndCombo();
+        }
+        ImGui::SameLine();
+        ImGui::SetNextItemWidth(95.0f);
+        if (ImGui::BeginCombo("##CameraSettings", "Camera")) {
+            ImGui::SeparatorText("Camera Settings");
+            float Sensitivity{Client->GetCameraSensitivity()};
+            if (ImGui::SliderFloat("Sensitivity", &Sensitivity, 0.01f, 2.0f, "%.2f")) {
+                Client->SetCameraSensitivity(Sensitivity);
+            }
+            float Speed{Client->GetCameraSpeed()};
+            if (ImGui::SliderFloat("Movement Speed", &Speed, 0.1f, 128.0f, "%.1f", ImGuiSliderFlags_Logarithmic)) {
+                Client->SetCameraSpeed(Speed);
+            }
+            ImGui::EndCombo();
+        }
+    }
+
 }
 
 /**
@@ -111,6 +170,7 @@ void ViewportToolbar::Draw(FEditorViewportClient* Client) {
     ImGui::PushID("ViewportToolbar");
     EditorStyle::PushViewportToolbar();
     ImGui::BeginGroup();
+    DrawViewSettings(Client);
 
     if (EditorStyle::IconButton("Transform Tools", EditorStyle::EIcon::Tools, ImGui::IsPopupOpen("TransformTools"), true, true)) {
         ImGui::OpenPopup("TransformTools");

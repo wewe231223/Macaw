@@ -8,6 +8,7 @@
 
 #include "Engine/MeshPicking.h"
 #include "Engine/Component/UStaticMeshComponent.h"
+#include "Engine/Component/UBillboardComponent.h"
 #include "Engine/Component/UCameraComponent.h"
 #include "Engine/FViewportInput.h"
 #include "Core/Math.h"
@@ -59,6 +60,9 @@ void UWorld::SetAssets(FAssetManager* Assets) {
                     Mesh->ResolveMesh();
                     Mesh->ResolveMaterial();
                 }
+                if (auto* Sprite{Cast<UBillboardComponent>(Component.get())}) {
+                    Sprite->ResolveTexture();
+                }
             }
         }
     }
@@ -77,6 +81,7 @@ bool UWorld::SetPersistentLevel(std::unique_ptr<ULevel> Level) {
     }
 
     mPersistentLevel = std::move(Level);
+    mPersistentLevel->SetOuter(this);
     mPersistentLevel->SetWorld(this);
 
     return true;
@@ -184,9 +189,7 @@ AStaticMeshActor* UWorld::SpawnPrimitive(EPrimitiveType Type) {
 
     do {
         Name = PrimitiveName(Type) + "_" + std::to_string(++mSpawnSerial);
-    } while (std::any_of(mPersistentLevel->GetActors().begin(), mPersistentLevel->GetActors().end(), [&Name](const auto& Existing) {
-        return Existing->GetName() == Name;
-    }));
+    } while (FObjectRegistry::Get()->FindObject(FName{Name}, mPersistentLevel.get()) != nullptr);
 
     Actor->SetName(Name);
     Actor->GetStaticMeshComponent()->SetPrimitiveType(Type);

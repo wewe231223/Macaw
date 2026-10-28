@@ -48,6 +48,9 @@ private:
      * @param[in] DeltaTime 이전 프레임 이후 경과한 시간(초)입니다.
      */
     void DrawContent(float DeltaTime) override;
+    /**
+     * @brief 생성 가능한 컴포넌트의 검색·추가 메뉴를 표시합니다.
+     */
     void DrawComponentMenu();
 
     /**

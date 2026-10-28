@@ -136,12 +136,13 @@ Uint32 FScene::TakeTransformUpdates() const {
  * @brief 프리미티브의 객체 상수 버퍼를 현재 프록시 값으로 갱신합니다.
  */
 void FScene::Upload(FScenePrimitive& Primitive) {
-    if (Primitive.mProxy.mText.has_value()) {
+    if (Primitive.mProxy.mText.has_value() || Primitive.mProxy.mSprite.has_value()) {
         Primitive.mObjectBuffer.Reset();
         return;
     }
     FObjectConstants Constants{};
     Constants.mWorld = Primitive.mProxy.mWorld;
+    Constants.mUVTransform = {Primitive.mProxy.mUVScale.x, Primitive.mProxy.mUVScale.y, Primitive.mProxy.mUVOffset.x, Primitive.mProxy.mUVOffset.y};
 
     if (!Constants.mWorld.TryInverse(Constants.mWorldInverse)) {
         ErrorHandler::Fatal("Renderer", "Singular render transform");

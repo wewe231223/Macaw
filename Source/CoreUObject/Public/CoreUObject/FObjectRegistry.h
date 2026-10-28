@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include "Core/FName.h"
+
 #include "Core/ReflectionMacros.h"
 #include "Core/Types.h"
 #include "CoreUObject/FObjectHandle.h"
@@ -100,6 +102,13 @@ public:
      * @return 조회한 값의 비소유 주소이며, 해당 값이 없으면 nullptr입니다.
      */
     UObject* Resolve(FObjectHandle Handle) const;
+    /**
+     * @brief 동일 Outer 범위에서 FName이 같은 첫 유효 객체를 조회합니다.
+     * @param[in] Name 조회하거나 설정할 이름입니다.
+     * @param[out] Outer 이름 범위의 상위 객체이며 소유권을 이전하지 않습니다.
+     * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며 사용할 수 없으면 nullptr입니다.
+     */
+    UObject* FindObject(const FName& Name, const UObject* Outer) const;
 
     /**
      * @brief 현재 레지스트리에 등록된 객체 개수를 반환합니다.

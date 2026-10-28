@@ -1,3 +1,9 @@
+/**
+ * @file FCollisionShape.cpp
+ * @brief 구·상자·캡슐의 로컬 치수를 담는 충돌 형상 값입니다.
+ * @ingroup Engine
+ */
+
 #include "Engine/Collision/FCollisionShape.h"
 
 #include <algorithm>

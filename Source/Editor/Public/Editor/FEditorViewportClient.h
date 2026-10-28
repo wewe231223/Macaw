@@ -11,6 +11,8 @@
 #include "Editor/Gizmo.h"
 #include "Editor/EViewportCommand.h"
 #include "Editor/EEditorViewportType.h"
+#include "Engine/EViewMode.h"
+#include "Engine/FEngineShowFlags.h"
 
 #include <array>
 #include <filesystem>
@@ -112,6 +114,13 @@ public:
      * @return 연산을 적용한 새 값입니다.
      */
     FSceneView CalcSceneView(const FVector2& Size) const;
+    /**
+     * @brief 드롭한 메시 에셋을 광선 적중점이나 배치 평면에 생성합니다.
+     * @param[in] Path Content 상대 에셋 경로 또는 작업할 파일 경로입니다.
+     * @param[in] Position 뷰포트 픽셀 좌표입니다.
+     * @param[in] Size 쿼드의 크기 또는 뷰포트 픽셀 크기입니다.
+     * @return 검증 또는 요청한 처리에 성공하면 true입니다.
+     */
     bool DropMesh(const std::filesystem::path& Path, const FVector2& Position, const FVector2& Size);
 
     /**
@@ -124,9 +133,25 @@ public:
      * @param[in] Rotation 적용할 오일러 또는 쿼터니언 회전입니다.
      */
     void SetCamera(const FVector& Location, const FRotator& Rotation);
+    /**
+     * @brief 원근 또는 정사영 뷰 방향을 설정합니다.
+     * @param[in] Type 선택할 뷰 방향 또는 에셋 종류입니다.
+     */
     void SetViewType(EEditorViewportType Type);
+    /**
+     * @brief 원근 또는 정사영 뷰 방향을 반환합니다.
+     * @return 계산하거나 조회한 값입니다.
+     */
     EEditorViewportType GetViewType() const;
+    /**
+     * @brief 현재 뷰 방향의 표시 이름을 반환합니다.
+     * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며 사용할 수 없으면 nullptr입니다.
+     */
     const char* GetViewTypeName() const;
+    /**
+     * @brief 활성 뷰포트의 기본 배치 위치를 반환합니다.
+     * @return 계산하거나 조회한 값입니다.
+     */
     FVector GetPlacementLocation() const;
     /**
      * @brief 에디터 카메라의 월드 위치를 반환합니다.
@@ -166,6 +191,71 @@ public:
      * @note 스냅 간격은 양수여야 하며 크기 배율은 0.5부터 2.0까지로 제한합니다.
      */
     bool SetGizmoSetting(EGizmoSetting Setting, float Value);
+    /**
+     * @brief 장면의 Lit 또는 Wireframe 표시 모드를 반환합니다.
+     * @return 계산하거나 조회한 값입니다.
+     */
+    EViewMode GetViewMode() const;
+    /**
+     * @brief 장면의 Lit 또는 Wireframe 표시 모드를 설정합니다.
+     * @param[in] Mode 적용할 장면 표시 모드입니다.
+     */
+    void SetViewMode(EViewMode Mode);
+    /**
+     * @brief 뷰포트별 장면·보조 표시 필터를 반환합니다.
+     * @return 이 객체 또는 공유 이름 풀이 유지하는 값의 참조입니다.
+     */
+    const FEngineShowFlags& GetShowFlags() const;
+    /**
+     * @brief 진행 중인 기즈모 조작을 취소하고 이 뷰포트의 표시 필터를 교체합니다.
+     * @param[in] Flags 적용할 뷰포트 표시 필터입니다.
+     */
+    void SetShowFlags(const FEngineShowFlags& Flags);
+    /**
+     * @brief 축과 AABB 선의 픽셀 두께를 반환합니다.
+     * @return 계산하거나 조회한 값입니다.
+     */
+    float GetLineThickness() const;
+    /**
+     * @brief 축과 AABB 선의 픽셀 두께를 설정합니다.
+     * @param[in] Thickness 픽셀 단위 선 두께입니다.
+     * @return 검증 또는 요청한 처리에 성공하면 true입니다.
+     */
+    bool SetLineThickness(float Thickness);
+    /**
+     * @brief 그리드 선 사이의 월드 거리를 반환합니다.
+     * @return 계산하거나 조회한 값입니다.
+     */
+    float GetGridSpacing() const;
+    /**
+     * @brief 그리드 선 사이의 월드 거리를 설정합니다.
+     * @param[in] Spacing 그리드의 월드 단위 간격입니다.
+     * @return 검증 또는 요청한 처리에 성공하면 true입니다.
+     */
+    bool SetGridSpacing(float Spacing);
+    /**
+     * @brief 마우스 이동 1픽셀당 카메라 회전 각도를 반환합니다.
+     * @return 계산하거나 조회한 값입니다.
+     */
+    float GetCameraSensitivity() const;
+    /**
+     * @brief 마우스 이동 1픽셀당 카메라 회전 각도를 설정합니다.
+     * @param[in] Sensitivity 마우스 1픽셀당 회전 각도입니다.
+     * @return 검증 또는 요청한 처리에 성공하면 true입니다.
+     */
+    bool SetCameraSensitivity(float Sensitivity);
+
+    /**
+     * @brief 자유 시점 카메라의 기본 이동 속도를 반환합니다.
+     * @return 초당 이동할 월드 단위 수이며 빠른 이동 시에는 3배를 적용합니다.
+     */
+    float GetCameraSpeed() const;
+    /**
+     * @brief 자유 시점 카메라의 기본 이동 속도를 설정합니다.
+     * @param[in] Speed 0.1에서 128 사이의 유한한 초당 월드 이동 거리입니다.
+     * @return 유효한 속도를 적용하면 true, 범위를 벗어나거나 유한하지 않으면 false입니다.
+     */
+    bool SetCameraSpeed(float Speed);
 
 private:
     /**
@@ -203,7 +293,19 @@ private:
      * @param[in] Size 뷰포트 크기 또는 데이터의 바이트 수입니다.
      */
     void FocusSelection(const FVector2& Size);
+    /**
+     * @brief 텍스트·Billboard의 뷰 정렬을 반영한 월드 AABB를 계산합니다.
+     * @param[in] Component 경계를 계산할 컴포넌트의 비소유 주소입니다.
+     * @param[in] View 카메라 행렬과 뷰포트 크기입니다.
+     * @return 계산하거나 조회한 값입니다.
+     */
     FBox CalcComponentBounds(const UPrimitiveComponent* Component, const FSceneView& View) const;
+    /**
+     * @brief 컴포넌트 경계 상자의 여덟 월드 모서리를 계산합니다.
+     * @param[in] Component 경계를 계산할 컴포넌트의 비소유 주소입니다.
+     * @param[in] View 카메라 행렬과 뷰포트 크기입니다.
+     * @return 계산하거나 조회한 값입니다.
+     */
     std::array<FVector, 8> CalcComponentCorners(const UPrimitiveComponent* Component, const FSceneView& View) const;
 
 private:
@@ -242,14 +344,54 @@ private:
      */
     float mCameraSpeed{4.0f};
     ReflectProperty(mCameraSpeed, "CameraSpeed", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /**
+     * @brief 마우스 이동 1픽셀당 카메라 회전 각도입니다.
+     */
+    float mCameraSensitivity{0.2f};
+    ReflectProperty(mCameraSensitivity, "CameraSensitivity", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /**
+     * @brief 장면의 Lit 또는 Wireframe 표시 모드입니다.
+     */
+    EViewMode mViewMode{EViewMode::Lit};
+    ReflectProperty(mViewMode, "ViewMode", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /**
+     * @brief 뷰포트별 장면·보조 표시 필터입니다.
+     */
+    FEngineShowFlags mShowFlags{};
+    ReflectProperty(mShowFlags, "ShowFlags", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /**
+     * @brief 축과 AABB 선의 픽셀 두께입니다.
+     */
+    float mLineThickness{1.5f};
+    ReflectProperty(mLineThickness, "LineThickness", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /**
+     * @brief 그리드 선 사이의 월드 거리입니다.
+     */
+    float mGridSpacing{1.0f};
+    ReflectProperty(mGridSpacing, "GridSpacing", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /**
+     * @brief 원근 또는 정사영 뷰 방향입니다.
+     */
     EEditorViewportType mViewType{EEditorViewportType::Perspective};
     ReflectProperty(mViewType, "ViewType", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /**
+     * @brief 정사영 전환 전 원근 카메라 위치입니다.
+     */
     FVector mPerspectiveLocation{-7.0f, -9.0f, 6.0f};
     ReflectProperty(mPerspectiveLocation, "PerspectiveLocation", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /**
+     * @brief 정사영 전환 전 원근 카메라 회전입니다.
+     */
     FRotator mPerspectiveRotation{-26.0f, 50.0f, 0.0f};
     ReflectProperty(mPerspectiveRotation, "PerspectiveRotation", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /**
+     * @brief 정사영 전환 전 원근 카메라 피벗입니다.
+     */
     FVector mPerspectivePivot{};
     ReflectProperty(mPerspectivePivot, "PerspectivePivot", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /**
+     * @brief 정사영 가로 가시 범위의 월드 길이입니다.
+     */
     float mOrthographicWidth{20.0f};
     ReflectProperty(mOrthographicWidth, "OrthographicWidth", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 

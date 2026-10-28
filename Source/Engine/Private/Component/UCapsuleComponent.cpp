@@ -1,3 +1,9 @@
+/**
+ * @file UCapsuleComponent.cpp
+ * @brief Z축 중심 선분과 반구를 가진 캡슐 충돌 컴포넌트입니다.
+ * @ingroup Engine
+ */
+
 #include "Engine/Component/UCapsuleComponent.h"
 #include "Core/Archive.h"
 

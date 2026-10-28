@@ -12,6 +12,7 @@
 #include "Core/Math/FBox.h"
 #include "Engine/EPrimitiveType.h"
 #include "Engine/FDrawText.h"
+#include "Engine/FDrawSprite.h"
 
 #include <optional>
 
@@ -72,8 +73,29 @@ public:
      */
     UStaticMesh* mMesh{};
     ReflectProperty(mMesh, "Mesh", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /**
+     * @brief UTF-8 문자열입니다.
+     */
     std::optional<FDrawText> mText{};
     ReflectProperty(mText, "Text", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /**
+     * @brief 연결된 머티리얼의 비소유 주소입니다.
+     */
     UMaterial* mMaterial{};
     ReflectProperty(mMaterial, "Material", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /**
+     * @brief 스프라이트 전용 렌더 데이터입니다.
+     */
+    std::optional<FDrawSprite> mSprite{};
+    ReflectProperty(mSprite, "Sprite", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /**
+     * @brief 기본 UV에 곱할 셀 크기입니다.
+     */
+    FVector2 mUVScale{1.0f, 1.0f};
+    ReflectProperty(mUVScale, "UVScale", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /**
+     * @brief 기본 UV에 더할 셀 원점입니다.
+     */
+    FVector2 mUVOffset{};
+    ReflectProperty(mUVOffset, "UVOffset", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 };

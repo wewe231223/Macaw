@@ -78,12 +78,37 @@ public:
      */
     const FMeshData& GetMeshData() const override;
     void UnregisterComponent() override;
+    /**
+     * @brief 저장된 메시 경로를 에셋 관리자에서 해석하고 렌더 상태를 갱신합니다.
+     * @return 검증 또는 요청한 처리에 성공하면 true입니다.
+     */
     bool ResolveMesh();
+    /**
+     * @brief Content 기준 머티리얼 파일 경로를 반환합니다.
+     * @return 이 객체 또는 공유 이름 풀이 유지하는 값의 참조입니다.
+     */
     const FString& GetMaterialPath() const;
+    /**
+     * @brief Content 기준 머티리얼 파일 경로를 설정합니다.
+     * @param[in] Path Content 상대 에셋 경로 또는 작업할 파일 경로입니다.
+     * @return 검증 또는 요청한 처리에 성공하면 true입니다.
+     */
     bool SetMaterialPath(const FString& Path);
+    /**
+     * @brief 연결된 머티리얼의 비소유 주소를 반환합니다.
+     * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며 사용할 수 없으면 nullptr입니다.
+     */
     UMaterial* GetMaterial() const;
+    /**
+     * @brief 저장된 머티리얼 경로를 에셋 관리자에서 해석하고 렌더 상태를 갱신합니다.
+     * @return 검증 또는 요청한 처리에 성공하면 true입니다.
+     */
     bool ResolveMaterial();
     FPrimitiveSceneProxy CreateSceneProxy() const override;
+    /**
+     * @brief 현재 표시·에셋 상태에서 렌더 프록시를 생성할지 판정합니다.
+     * @return 조건을 만족하면 true입니다.
+     */
     bool ShouldCreateRenderState() const override;
 
 private:
@@ -92,7 +117,17 @@ private:
      */
     ReflectMembers();
     void OnRegister() override;
+    /**
+     * @brief Content 상대 경로의 메시를 에셋 관리자에서 조회합니다.
+     * @param[in] Path Content 상대 에셋 경로 또는 작업할 파일 경로입니다.
+     * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며 사용할 수 없으면 nullptr입니다.
+     */
     UStaticMesh* LoadMesh(const FString& Path) const;
+    /**
+     * @brief Content 상대 경로의 머티리얼을 에셋 관리자에서 조회합니다.
+     * @param[in] Path Content 상대 에셋 경로 또는 작업할 파일 경로입니다.
+     * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며 사용할 수 없으면 nullptr입니다.
+     */
     UMaterial* LoadMaterial(const FString& Path) const;
 
 private:
@@ -106,10 +141,19 @@ private:
      */
     FString mMeshPath{};
     ReflectAccessor(mMeshPath, GetMeshPath, SetMeshPath, "Mesh", EPropertyFlags::Edit | EPropertyFlags::Serialize);
+    /**
+     * @brief 에셋 관리자가 보유한 정적 메시의 비소유 주소입니다.
+     */
     UStaticMesh* mStaticMesh{};
     ReflectProperty(mStaticMesh, "StaticMesh", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /**
+     * @brief Content 기준 머티리얼 파일 경로입니다.
+     */
     FString mMaterialPath{};
     ReflectAccessor(mMaterialPath, GetMaterialPath, SetMaterialPath, "Material", EPropertyFlags::Edit | EPropertyFlags::Serialize);
+    /**
+     * @brief 연결된 머티리얼의 비소유 주소입니다.
+     */
     UMaterial* mMaterial{};
     ReflectProperty(mMaterial, "ResolvedMaterial", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 };

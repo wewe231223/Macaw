@@ -1,3 +1,9 @@
+/**
+ * @file FMaterialPipeline.cpp
+ * @brief 머티리얼 셰이더와 양면 정책별 GPU 파이프라인을 관리합니다.
+ * @ingroup Renderer
+ */
+
 #include "FMaterialPipeline.h"
 
 #include <array>

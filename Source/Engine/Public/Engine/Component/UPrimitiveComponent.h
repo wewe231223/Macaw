@@ -8,6 +8,7 @@
 
 #include "Core/ReflectionMacros.h"
 #include "Engine/Component/USceneComponent.h"
+#include "Core/Math/FVector2.h"
 
 enum class EPrimitiveType : Uint8;
 struct FPrimitiveSceneProxy;
@@ -103,7 +104,34 @@ public:
      * @return 월드 공간의 축 정렬 경계 상자입니다.
      */
     virtual FBox GetWorldBounds() const;
+    /**
+     * @brief 현재 표시·에셋 상태에서 렌더 프록시를 생성할지 판정합니다.
+     * @return 조건을 만족하면 true입니다.
+     */
     virtual bool ShouldCreateRenderState() const;
+    /**
+     * @brief 다른 살아 있는 제어자의 변환을 덮어쓰지 않고 UV 배율과 오프셋을 적용합니다.
+     * @param[in] Scale UV 또는 크기에 적용할 배율입니다.
+     * @param[in] Offset UV에 더할 셀 원점입니다.
+     * @param[in] Source UV 제어자의 유효한 세대 핸들입니다.
+     * @return 검증 또는 요청한 처리에 성공하면 true입니다.
+     */
+    bool SetUVTransform(const FVector2& Scale, const FVector2& Offset, FObjectHandle Source);
+    /**
+     * @brief 요청한 제어자가 설정한 UV만 기본 변환으로 복원합니다.
+     * @param[in] Source UV 제어자의 유효한 세대 핸들입니다.
+     */
+    void ClearUVTransform(FObjectHandle Source);
+    /**
+     * @brief 기본 UV에 곱할 셀 크기를 반환합니다.
+     * @return 이 객체 또는 공유 이름 풀이 유지하는 값의 참조입니다.
+     */
+    const FVector2& GetUVScale() const;
+    /**
+     * @brief 기본 UV에 더할 셀 원점을 반환합니다.
+     * @return 이 객체 또는 공유 이름 풀이 유지하는 값의 참조입니다.
+     */
+    const FVector2& GetUVOffset() const;
 
 private:
     /**
@@ -141,4 +169,19 @@ private:
      */
     bool mRenderStateCreated{};
     ReflectProperty(mRenderStateCreated, "RenderStateCreated", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /**
+     * @brief 기본 UV에 곱할 셀 크기입니다.
+     */
+    FVector2 mUVScale{1.0f, 1.0f};
+    ReflectProperty(mUVScale, "UVScale", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /**
+     * @brief 기본 UV에 더할 셀 원점입니다.
+     */
+    FVector2 mUVOffset{};
+    ReflectProperty(mUVOffset, "UVOffset", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /**
+     * @brief 현재 UV 변환을 제어하는 컴포넌트 핸들입니다.
+     */
+    FObjectHandle mUVSource{};
+    ReflectProperty(mUVSource, "UVSource", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 };

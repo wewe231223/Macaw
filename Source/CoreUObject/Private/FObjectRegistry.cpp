@@ -90,3 +90,12 @@ UObject* FObjectRegistry::Resolve(FObjectHandle Handle) const {
 std::size_t FObjectRegistry::GetObjectCount() const {
     return mObjectCount;
 }
+
+UObject* FObjectRegistry::FindObject(const FName& Name, const UObject* Outer) const {
+    for (const FSlot& Slot : mSlots) {
+        if (Slot.mObject != nullptr && Slot.mObject->GetFName() == Name && Slot.mObject->GetOuter() == Outer) {
+            return Slot.mObject;
+        }
+    }
+    return nullptr;
+}

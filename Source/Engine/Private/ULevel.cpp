@@ -45,6 +45,9 @@ bool ULevel::AddActor(std::unique_ptr<AActor> Actor) {
 
     UWorld::FDispatchScope Scope{mWorld};
     AActor* Added{Actor.get()};
+    if (!Added->SetOuter(this)) {
+        return false;
+    }
     mActors.push_back(std::move(Actor));
     Added->SetWorld(mWorld);
 

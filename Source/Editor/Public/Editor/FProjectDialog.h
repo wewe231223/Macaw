@@ -33,6 +33,11 @@ public:
      * @return 선택한 프로젝트 파일 경로이며 취소하면 빈 경로입니다.
      */
     static std::filesystem::path Choose(void* Owner, bool Create);
+    /**
+     * @brief 소유 창이 지정된 폴더 선택 대화상자를 열고 선택 경로를 반환합니다.
+     * @param[in] Owner 대화상자를 소유할 창의 네이티브 핸들입니다.
+     * @return 계산하거나 조회한 값입니다.
+     */
     static std::filesystem::path ChooseDirectory(void* Owner);
 
 private:

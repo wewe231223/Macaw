@@ -36,6 +36,7 @@ UWorld* UActorComponent::GetWorld() const {
  * @brief 컴포넌트의 소유 액터를 지정합니다.
  */
 void UActorComponent::SetOwner(AActor* Owner) {
+    SetOuter(Owner);
     mOwner = Owner;
 }
 

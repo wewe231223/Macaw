@@ -1,3 +1,9 @@
+/**
+ * @file FProjectBrowser.cpp
+ * @brief 프로젝트 열기·생성 및 최근 프로젝트 선택 UI를 처리합니다.
+ * @ingroup Editor
+ */
+
 #include "Editor/FProjectBrowser.h"
 #include "Core/FilePath.h"
 #include "Editor/FProjectDialog.h"
@@ -12,9 +18,22 @@
 #include <algorithm>
 #include <fstream>
 
+/**
+ * @brief Win32 입력 메시지를 ImGui 플랫폼 백엔드로 전달합니다.
+ * @param[in] Window 입력 메시지의 대상 창입니다.
+ * @param[in] Message Win32 메시지 번호입니다.
+ * @param[in] WParam Win32 메시지의 첫 인수입니다.
+ * @param[in] LParam Win32 메시지의 둘째 인수입니다.
+ * @return 계산하거나 조회한 값입니다.
+ */
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND Window, UINT Message, WPARAM WParam, LPARAM LParam);
 
 namespace {
+    /**
+     * @brief Windows의 알려진 폴더 식별자를 실제 경로로 해석합니다.
+     * @param[in] Folder Windows의 알려진 폴더 식별자입니다.
+     * @return 계산하거나 조회한 값입니다.
+     */
     std::filesystem::path KnownFolder(REFKNOWNFOLDERID Folder) {
         PWSTR Buffer{};
         if (FAILED(SHGetKnownFolderPath(Folder, 0, nullptr, &Buffer))) {
@@ -25,6 +44,10 @@ namespace {
         return Path;
     }
 
+    /**
+     * @brief 최근 프로젝트 목록을 저장할 사용자 파일 경로를 반환합니다.
+     * @return 계산하거나 조회한 값입니다.
+     */
     std::filesystem::path RecentProjectsFile() {
         const std::filesystem::path Directory{KnownFolder(FOLDERID_LocalAppData)};
         return Directory.empty() ? std::filesystem::path{} : Directory / "Macaw/RecentProjects.txt";

@@ -76,6 +76,7 @@ public:
 
     /**
      * @brief 뷰포트 이미지 위에 입력을 받지 않는 통계 내용을 그립니다.
+     * @param[in,out] DrawList 오버레이를 추가할 ImGui 목록이며 nullptr이면 통계 그리기를 생략합니다.
      * @param[in] DeltaTime 이전 프레임 이후 경과한 시간(초)입니다.
      */
     /**

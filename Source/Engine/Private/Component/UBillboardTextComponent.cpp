@@ -1,3 +1,9 @@
+/**
+ * @file UBillboardTextComponent.cpp
+ * @brief 카메라에 정렬한 월드 텍스트를 렌더 장면에 등록합니다.
+ * @ingroup Engine
+ */
+
 #include "Engine/Component/UBillboardTextComponent.h"
 #include "Engine/FPrimitiveSceneProxy.h"
 #include "Engine/FMeshData.h"

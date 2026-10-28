@@ -4,7 +4,7 @@ FOutput VertexMain(FInput Input) {
     FOutput Output = {float4(0, 0, 0, 0), float3(0, 0, 0), float2(0, 0), float4(0, 0, 0, 0)};
     Output.mPosition = mul(mul(float4(Input.mPosition, 1), World), ViewProjection);
     Output.mNormal = normalize(mul(Input.mNormal, transpose((float3x3)WorldInverse)));
-    Output.mUV = Input.mUV;
+    Output.mUV = Input.mUV * UVTransform.xy + UVTransform.zw;
     Output.mColor = Input.mColor;
     return Output;
 }

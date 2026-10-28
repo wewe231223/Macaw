@@ -1,3 +1,9 @@
+/**
+ * @file UBoxComponent.cpp
+ * @brief 로컬 반길이로 정의한 상자 충돌 컴포넌트입니다.
+ * @ingroup Engine
+ */
+
 #include "Engine/Component/UBoxComponent.h"
 
 #include <algorithm>

@@ -332,9 +332,7 @@ UActorComponent* FEditorContext::AddComponent(const UClass* Class) {
     }
     FString Name{BaseName};
     Uint32 Suffix{2};
-    while (std::any_of(Actor->GetComponents().begin(), Actor->GetComponents().end(), [&Name](const auto& Existing) {
-        return Existing->GetName() == Name;
-    })) {
+    while (FObjectRegistry::Get()->FindObject(FName{Name}, Actor) != nullptr) {
         Name = BaseName + "_" + std::to_string(Suffix++);
     }
     Component->SetName(Name);

@@ -29,6 +29,7 @@ ENABLE_PREPROCESSING = YES
 MACRO_EXPANSION = YES
 EXPAND_ONLY_PREDEF = YES
 PREDEFINED = _WIN32 _WIN64 WIN32 NOMINMAX __cplusplus=202002L "__declspec(...)= " "__vectorcall= " "WINAPI= " "CALLBACK= " "IMGUI_IMPL_API= " "ReflectTypes(...)= " "ReflectClass(...)=static UClass* StaticClass(); UClass* GetClass() const override;" "ReflectRootClass(...)=static UClass* StaticClass(); virtual UClass* GetClass() const;" "ReflectStruct(...)=static UScriptStruct* StaticStruct();" "ReflectTemplate(...)=static UScriptStruct* StaticStruct();" "ReflectProperty(...)= " "ReflectAccessor(...)= " "ReflectSetter(...)= " "ReflectReadOnlyProperty(...)= " "ReflectReadOnlyAccessor(...)= " "ReflectMembers(...)= " "ImplementReflection(...)= " "ImplementRootReflection(...)= " "ImplementStructReflection(...)= " "ImplementEnumReflection(...)= "
+PREDEFINED += "ReflectEnum(Type,...)=UEnum* StaticEnum##Type(); UEnum* GetNativeEnum(TNativeEnum<Type>);"
 SKIP_FUNCTION_MACROS = YES
 EXPAND_AS_DEFINED = ReflectEnum
 GENERATE_HTML = YES

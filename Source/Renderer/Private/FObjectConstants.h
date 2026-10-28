@@ -1,6 +1,6 @@
 /**
  * @file FObjectConstants.h
- * @brief 객체별 월드 행렬, 역행렬과 색상을 전달하는 GPU 상수 버퍼 레이아웃입니다.
+ * @brief 객체별 월드 행렬, 역행렬과 UV 변환을 전달하는 GPU 상수 버퍼 레이아웃입니다.
  * @ingroup Renderer
  */
 
@@ -8,12 +8,13 @@
 
 #include "Core/ReflectionMacros.h"
 #include "Core/Math/FMatrix.h"
+#include "Core/Math/FVector4.h"
 
 #include <cstddef>
 #include <type_traits>
 
 /**
- * @brief 객체별 월드 행렬, 역행렬과 색상을 전달하는 GPU 상수 버퍼 레이아웃입니다.
+ * @brief 객체별 월드 행렬, 역행렬과 UV 변환을 전달하는 GPU 상수 버퍼 레이아웃입니다.
  * @ingroup Renderer
  */
 struct FObjectConstants {
@@ -48,9 +49,14 @@ public:
      */
     FMatrix mWorldInverse{};
     ReflectProperty(mWorldInverse, "WorldInverse", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /**
+     * @brief XY 배율과 ZW 오프셋으로 구성된 UV 변환입니다.
+     */
+    FVector4 mUVTransform{1.0f, 1.0f, 0.0f, 0.0f};
+    ReflectProperty(mUVTransform, "UVTransform", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 
 };
 
 static_assert(sizeof(FMatrix) == 64 && alignof(FMatrix) == 16 && std::is_trivially_copyable_v<FMatrix>);
-static_assert(std::is_standard_layout_v<FObjectConstants> && sizeof(FObjectConstants) == 128);
+static_assert(std::is_standard_layout_v<FObjectConstants> && sizeof(FObjectConstants) == 144);
 static_assert(offsetof(FObjectConstants, mWorld) == 0 && offsetof(FObjectConstants, mWorldInverse) == 64);

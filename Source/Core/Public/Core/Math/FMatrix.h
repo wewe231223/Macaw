@@ -134,6 +134,14 @@ public:
      * @return 연산을 적용한 새 값입니다.
      */
     static FMatrix Perspective(float FieldOfView, float Aspect, float NearPlane, float FarPlane);
+    /**
+     * @brief 지정한 가로·세로 범위와 깊이 구간의 정사영 행렬을 만듭니다.
+     * @param[in] Width 가로 길이 또는 픽셀 수입니다.
+     * @param[in] Height 세로 길이 또는 픽셀 수입니다.
+     * @param[in] NearPlane 가까운 클리핑 평면 거리입니다.
+     * @param[in] FarPlane 먼 클리핑 평면 거리입니다.
+     * @return 계산하거나 조회한 값입니다.
+     */
     static FMatrix Orthographic(float Width, float Height, float NearPlane, float FarPlane);
 
     /**

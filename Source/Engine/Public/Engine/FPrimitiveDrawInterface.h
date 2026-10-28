@@ -11,6 +11,8 @@
 #include "Engine/FDrawMesh.h"
 #include "Engine/FDrawText.h"
 
+struct FBox;
+
 /**
  * @brief 에디터 보조 선분과 메시를 프레임 단위로 수집합니다.
  * @ingroup Engine
@@ -35,15 +37,32 @@ public:
      * @param[in] End 선분 끝점입니다.
      * @param[in] Color 선분에 사용할 RGB 색상입니다.
      * @param[in] DepthTest 깊이 검사를 적용할지 지정합니다.
+     * @param[in] Thickness 유한한 양수인 픽셀 단위 선 두께입니다.
      */
-    void DrawLine(const FVector& Start, const FVector& End, const FVector& Color, bool DepthTest = false);
+    void DrawLine(const FVector& Start, const FVector& End, const FVector& Color, bool DepthTest = false, float Thickness = 1.0f);
+    /**
+     * @brief AABB의 열두 모서리를 지정한 픽셀 두께의 선분으로 수집합니다.
+     * @param[in] Bounds 표시하거나 읽을 경계 상자입니다.
+     * @param[in] Color 적용할 색상입니다.
+     * @param[in] DepthTest 장면 깊이 검사를 적용할지 지정합니다.
+     * @param[in] Thickness 픽셀 단위 선 두께입니다.
+     */
+    void DrawBox(const FBox& Bounds, const FVector& Color, bool DepthTest = true, float Thickness = 1.5f);
     /**
      * @brief 현재 프레임의 보조 선분과 메시 목록을 비웁니다.
      */
     void Clear();
     void DrawMesh(const FDrawMesh& Mesh);
     const TArray<FDrawMesh>& GetMeshes() const;
+    /**
+     * @brief 이번 프레임에 표시할 텍스트 요청을 수집합니다.
+     * @param[in] Text 표시하거나 측정할 UTF-8 문자열 또는 텍스트 요청입니다.
+     */
     void DrawString(const FDrawText& Text);
+    /**
+     * @brief 현재 프레임의 텍스트 요청 목록을 반환합니다.
+     * @return 이 객체 또는 공유 이름 풀이 유지하는 값의 참조입니다.
+     */
     const TArray<FDrawText>& GetTexts() const;
 
     /**
@@ -66,6 +85,9 @@ private:
     ReflectProperty(mLines, "Lines", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
     TArray<FDrawMesh> mMeshes{};
     ReflectProperty(mMeshes, "Meshes", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /**
+     * @brief 현재 프레임의 텍스트 요청 목록입니다.
+     */
     TArray<FDrawText> mTexts{};
     ReflectProperty(mTexts, "Texts", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 };

@@ -1,3 +1,9 @@
+/**
+ * @file FEditorViewportLayout.cpp
+ * @brief 활성 뷰와 입력 캡처를 유지하며 단일·4분할 뷰를 배치합니다.
+ * @ingroup Editor
+ */
+
 #include "FEditorViewportLayout.h"
 #include "EditorStyle.h"
 #include "Editor/FEditorContext.h"

@@ -71,8 +71,20 @@ public:
      * @note 이미지가 표시되지 않을 때에도 진행 중인 드래그의 버튼 해제와 Esc 취소를 처리합니다.
      */
     void DrawUI(float DeltaTime);
+    /**
+     * @brief 뷰포트 타깃 이미지·툴바를 표시하고 입력과 리사이즈를 전달합니다.
+     * @param[in] DeltaTime 이전 갱신 이후의 초 단위 시간입니다.
+     * @param[in] AllowInput 뷰포트 입력을 받을지 지정합니다.
+     */
     void DrawContents(float DeltaTime, bool AllowInput = true);
+    /**
+     * @brief 뷰포트가 마우스 입력을 캡처 중인지 검사합니다.
+     * @return 조건을 만족하면 true입니다.
+     */
     bool IsMouseCaptured() const;
+    /**
+     * @brief 기즈모 조작과 마우스·PIE 입력 캡처를 해제합니다.
+     */
     void ReleaseInput();
     /**
      * @brief 클라이언트의 현재 카메라로 장면을 자체 컬러 타깃에 그립니다.
@@ -169,8 +181,14 @@ private:
      */
     FVector2 mImageSize{};
     ReflectProperty(mImageSize, "ImageSize", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /**
+     * @brief 현재 프레임 통계 오버레이용 ImGui 그리기 목록입니다.
+     */
     ImDrawList* mDrawList{};
     ReflectProperty(mDrawList, "DrawList", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /**
+     * @brief 뷰포트의 마우스 입력 캡처 상태입니다.
+     */
     bool mMouseCaptured{};
     ReflectProperty(mMouseCaptured, "MouseCaptured", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
     /**

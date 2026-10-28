@@ -123,6 +123,13 @@ public:
      * @return 요청한 처리를 완료하면 true, 실패하면 false입니다.
      */
     virtual bool ReloadChangedShaders() = 0;
+    /**
+     * @brief 폰트 메트릭으로 텍스트의 로컬 평면 경계를 계산합니다.
+     * @param[in] Text 표시하거나 측정할 UTF-8 문자열 또는 텍스트 요청입니다.
+     * @param[out] Minimum 계산한 최소 경계 좌표입니다.
+     * @param[out] Maximum 계산한 최대 경계 좌표입니다.
+     * @return 조건을 만족하면 true입니다.
+     */
     virtual bool GetTextBounds(const FString& Text, FVector2& Minimum, FVector2& Maximum) const;
 
 private:

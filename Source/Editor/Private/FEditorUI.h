@@ -82,6 +82,10 @@ public:
      * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
      */
     bool WantsExit() const;
+    /**
+     * @brief 가장 최근 입력을 받은 유효한 뷰포트를 반환합니다.
+     * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며 사용할 수 없으면 nullptr입니다.
+     */
     FEditorViewport* GetActiveViewport() const;
 
 private:
@@ -105,17 +109,63 @@ private:
      * @brief 프로젝트 에셋 목록과 메시 생성·텍스처 미리보기 UI를 그립니다.
      */
     void DrawContent();
+    /**
+     * @brief 현재 Content 폴더와 에셋 종류 목록을 다시 읽습니다.
+     */
     void RefreshContent();
+    /**
+     * @brief 콘텐츠 브라우저의 현재 폴더와 선택을 변경합니다.
+     * @param[in] Directory 탐색할 Content 디렉터리입니다.
+     */
     void NavigateContent(const std::filesystem::path& Directory);
+    /**
+     * @brief Content 하위 폴더 트리를 재귀적으로 표시합니다.
+     * @param[in] Directory 탐색할 Content 디렉터리입니다.
+     */
     void DrawContentTree(const std::filesystem::path& Directory);
+    /**
+     * @brief 현재 콘텐츠 폴더의 상위 경로 탐색 항목을 표시합니다.
+     */
     void DrawContentBreadcrumbs();
+    /**
+     * @brief 현재 폴더의 하위 폴더·에셋 항목과 드래그 원본을 표시합니다.
+     */
     void DrawContentEntries();
+    /**
+     * @brief 종류에 맞게 선택 에셋을 열거나 액터 배치에 사용합니다.
+     * @param[in] Path Content 상대 에셋 경로 또는 작업할 파일 경로입니다.
+     * @param[in] Type 선택할 뷰 방향 또는 에셋 종류입니다.
+     */
     void OpenContentAsset(const std::filesystem::path& Path, EAssetType Type);
+    /**
+     * @brief 기본 설정으로 새 머티리얼 에셋을 만듭니다.
+     */
     void CreateMaterial();
+    /**
+     * @brief 편집 중인 머티리얼의 프로퍼티와 저장 상태를 표시합니다.
+     */
     void DrawMaterialEditor();
+    /**
+     * @brief 편집 사본을 프로젝트 머티리얼에 저장합니다.
+     * @return 검증 또는 요청한 처리에 성공하면 true입니다.
+     */
     bool SaveMaterial();
+    /**
+     * @brief 미저장 머티리얼을 닫기 전 사용자 선택을 처리합니다.
+     * @return 검증 또는 요청한 처리에 성공하면 true입니다.
+     */
     bool ConfirmMaterialChange();
+    /**
+     * @brief 머티리얼 편집 사본의 텍스처 에셋을 검증하여 교체합니다.
+     * @param[in] Path Content 상대 에셋 경로 또는 작업할 파일 경로입니다.
+     * @return 검증 또는 요청한 처리에 성공하면 true입니다.
+     */
     bool SetMaterialTexture(const FString& Path);
+    /**
+     * @brief 머티리얼 편집 사본의 셰이더 경로를 검증하여 교체합니다.
+     * @param[in] Path Content 상대 에셋 경로 또는 작업할 파일 경로입니다.
+     * @return 검증 또는 요청한 처리에 성공하면 true입니다.
+     */
     bool SetMaterialShader(const FString& Path);
     /**
      * @brief 파일 대화상자에서 고른 메시 또는 이미지를 프로젝트 에셋으로 가져옵니다.
@@ -159,6 +209,9 @@ private:
      */
     FPlayInEditorSession* mPlaySession{};
     ReflectProperty(mPlaySession, "PlaySession", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /**
+     * @brief 단일·4분할 뷰포트 배치 관리자입니다.
+     */
     FEditorViewportLayout mViewportLayout;
     ReflectProperty(mViewportLayout, "ViewportLayout", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
     /**
@@ -237,24 +290,54 @@ private:
      */
     UTexture2D* mPreviewTexture{};
     ReflectProperty(mPreviewTexture, "PreviewTexture", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /**
+     * @brief 콘텐츠 트리에 표시할 폴더 목록입니다.
+     */
     TMap<std::filesystem::path, TArray<std::filesystem::path>> mContentFolders{};
     ReflectProperty(mContentFolders, "ContentFolders", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /**
+     * @brief 콘텐츠 파일별 에셋 종류입니다.
+     */
     TMap<std::filesystem::path, EAssetType> mAssetTypes{};
     ReflectProperty(mAssetTypes, "AssetTypes", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /**
+     * @brief 현재 콘텐츠 브라우저 디렉터리입니다.
+     */
     std::filesystem::path mContentDirectory{};
     ReflectProperty(mContentDirectory, "ContentDirectory", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /**
+     * @brief 선택한 콘텐츠 에셋 경로입니다.
+     */
     std::filesystem::path mSelectedContentPath{};
     ReflectProperty(mSelectedContentPath, "SelectedContentPath", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /**
+     * @brief 콘텐츠 검색 또는 에셋 작업의 오류입니다.
+     */
     FString mContentError{};
     ReflectProperty(mContentError, "ContentError", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /**
+     * @brief 선택 에셋의 폴더를 트리에서 펼칠지 여부입니다.
+     */
     bool mRevealContentDirectory{true};
     ReflectProperty(mRevealContentDirectory, "RevealContentDirectory", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /**
+     * @brief 편집 중인 머티리얼의 독립 사본입니다.
+     */
     UMaterial* mEditingMaterial{};
     ReflectProperty(mEditingMaterial, "EditingMaterial", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /**
+     * @brief Content 기준 머티리얼 파일 경로입니다.
+     */
     std::filesystem::path mMaterialPath{};
     ReflectProperty(mMaterialPath, "MaterialPath", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /**
+     * @brief 머티리얼 편집 또는 저장 오류입니다.
+     */
     FString mMaterialError{};
     ReflectProperty(mMaterialError, "MaterialError", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /**
+     * @brief 미저장 머티리얼 변경 여부입니다.
+     */
     bool mMaterialDirty{};
     ReflectProperty(mMaterialDirty, "MaterialDirty", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 

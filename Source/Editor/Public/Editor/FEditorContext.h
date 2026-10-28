@@ -135,7 +135,17 @@ public:
     ACameraActor* SpawnCamera();
     /** @brief 배치 위치에 빌보드 텍스트 액터를 생성하고 선택합니다. @return 생성한 월드 소유 액터이며 실패하면 nullptr입니다. */
     AActor* SpawnText();
+    /**
+     * @brief 현재 선택 액터와 편집 상태에서 해당 컴포넌트를 생성할 수 있는지 검사합니다.
+     * @param[in] Class 생성하거나 이름을 표시할 리플렉션 클래스입니다.
+     * @return 조건을 만족하면 true입니다.
+     */
     bool CanAddComponent(const UClass* Class) const;
+    /**
+     * @brief 선택한 액터에 리플렉션 클래스로 컴포넌트를 생성하여 등록합니다.
+     * @param[in] Class 생성하거나 이름을 표시할 리플렉션 클래스입니다.
+     * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며 사용할 수 없으면 nullptr입니다.
+     */
     UActorComponent* AddComponent(const UClass* Class);
     /**
      * @brief 현재 선택에서 사용할 수 있는 카메라 컴포넌트를 조회합니다.
@@ -171,11 +181,6 @@ public:
      * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며, 사용할 수 없으면 nullptr입니다.
      */
     FProject* GetProject() const;
-    /**
-     * @brief 프로젝트의 메시 에셋을 사용하는 액터를 편집 월드에 생성합니다.
-     * @param[in] Path 조회·로드·저장 또는 정규화할 파일 경로입니다.
-     * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며, 사용할 수 없으면 nullptr입니다.
-     */
     /** @brief 배치 제공자가 반환한 위치에 메시 에셋 액터를 생성합니다. @param[in] Path 프로젝트 메시 에셋 경로입니다. @return 생성한 월드 소유 액터이며 실패하면 nullptr입니다. */
     AStaticMeshActor* SpawnMesh(const std::filesystem::path& Path);
     /** @brief 지정한 변환에 메시 에셋 액터를 생성하고 선택합니다. @param[in] Path 프로젝트 메시 에셋 경로입니다. @param[in] Placement 생성할 액터의 월드 변환입니다. @return 생성한 월드 소유 액터이며 실패하면 nullptr입니다. */

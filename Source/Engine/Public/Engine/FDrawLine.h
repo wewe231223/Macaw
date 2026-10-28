@@ -57,4 +57,9 @@ public:
      */
     bool mDepthTest{};
     ReflectProperty(mDepthTest, "DepthTest", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /**
+     * @brief 선분의 픽셀 두께입니다.
+     */
+    float mThickness{1.0f};
+    ReflectProperty(mThickness, "Thickness", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 };

@@ -9,6 +9,11 @@
 #include "Core/Math.h"
 #include "Engine/Component/UPrimitiveComponent.h"
 #include "Engine/Component/UBillboardTextComponent.h"
+#include "Engine/Component/UBillboardComponent.h"
+#include "Engine/FPrimitiveSceneProxy.h"
+#include "Engine/SpriteGeometry.h"
+#include "Engine/MeshPicking.h"
+#include "Engine/PrimitiveMesh.h"
 #include "Engine/Component/UShapeComponent.h"
 #include "Engine/ULevel.h"
 #include "Engine/AActor.h"
@@ -66,6 +71,9 @@ bool FEditorViewportClient::ExecuteCommand(EViewportCommand Command) {
     }
 
     switch (Command) {
+    case EViewportCommand::ToggleGrid:
+        mShowFlags.mGrid = !mShowFlags.mGrid;
+        return true;
     case EViewportCommand::Select:
         SetGizmoMode(EGizmoMode::None);
         break;
@@ -106,6 +114,9 @@ bool FEditorViewportClient::ExecuteCommand(EViewportCommand Command) {
  * @brief 드래그 잠금, 스케일 좌표계 제한과 명령 지원 여부를 검사합니다.
  */
 bool FEditorViewportClient::CanExecuteCommand(EViewportCommand Command) const {
+    if (Command == EViewportCommand::ToggleGrid) {
+        return true;
+    }
     if (!CanEditGizmoSettings()) {
         return false;
     }
@@ -136,6 +147,8 @@ bool FEditorViewportClient::CanExecuteCommand(EViewportCommand Command) const {
  */
 bool FEditorViewportClient::IsCommandChecked(EViewportCommand Command) const {
     switch (Command) {
+    case EViewportCommand::ToggleGrid:
+        return mShowFlags.mGrid;
     case EViewportCommand::Select:
         return mGizmoMode == EGizmoMode::None;
     case EViewportCommand::Translate:
@@ -250,7 +263,7 @@ bool FEditorViewportClient::NavigateCamera(const FViewportInput& Input, const FV
 
     if (Input.mWheel != 0.0f && Input.mHovered) {
         if (Input.mRightDown && !Input.mAlt) {
-            mCameraSpeed = std::clamp(mCameraSpeed * std::pow(1.25f, Input.mWheel), 0.1f, 128.0f);
+            SetCameraSpeed(std::clamp(mCameraSpeed * std::pow(1.25f, Input.mWheel), 0.1f, 128.0f));
         } else {
             mCameraLocation += Rotation.ForwardVector() * Input.mWheel * mCameraSpeed * 0.5f;
         }
@@ -277,8 +290,8 @@ bool FEditorViewportClient::NavigateCamera(const FViewportInput& Input, const FV
         }
 
         if (Input.mLeftDown) {
-            mCameraRotation.yaw += Input.mDelta.x * 0.2f;
-            mCameraRotation.pitch = std::clamp(mCameraRotation.pitch - Input.mDelta.y * 0.2f, -89.0f, 89.0f);
+            mCameraRotation.yaw += Input.mDelta.x * mCameraSensitivity;
+            mCameraRotation.pitch = std::clamp(mCameraRotation.pitch - Input.mDelta.y * mCameraSensitivity, -89.0f, 89.0f);
         } else {
             Distance = std::clamp(Distance * std::exp((Input.mDelta.y - Input.mDelta.x) * 0.01f), 0.1f, 100000.0f);
         }
@@ -290,8 +303,8 @@ bool FEditorViewportClient::NavigateCamera(const FViewportInput& Input, const FV
 
     if (Input.mRightDown) {
         const float OrbitDistance{std::max(mCameraLocation.Distance(mOrbitPivot), 0.1f)};
-        mCameraRotation.yaw += Input.mDelta.x * 0.2f;
-        mCameraRotation.pitch = std::clamp(mCameraRotation.pitch - Input.mDelta.y * 0.2f, -89.0f, 89.0f);
+        mCameraRotation.yaw += Input.mDelta.x * mCameraSensitivity;
+        mCameraRotation.pitch = std::clamp(mCameraRotation.pitch - Input.mDelta.y * mCameraSensitivity, -89.0f, 89.0f);
 
         const FQuat FlightRotation{mCameraRotation.Quaternion()};
         const FVector LocalMovement{static_cast<float>(Input.mForward) - static_cast<float>(Input.mBackward), static_cast<float>(Input.mRight) - static_cast<float>(Input.mLeft), 0.0f};
@@ -335,7 +348,7 @@ void FEditorViewportClient::FocusSelection(const FVector2& Size) {
 }
 
 /**
- * @brief 뷰포트 또는 패널의 현재 내용을 그립니다.
+ * @brief 월드 원점에 고정한 그리드와 에디터 보조 요소를 포함한 뷰포트를 그립니다.
  */
 void FEditorViewportClient::Draw(FSceneViewport* Viewport) {
     UWorld* World{mContext->GetWorld()};
@@ -348,9 +361,21 @@ void FEditorViewportClient::Draw(FSceneViewport* Viewport) {
 
     mDrawInterface.Clear();
 
-    mDrawInterface.DrawLine({}, {2.0f, 0.0f, 0.0f}, {1.0f, 0.25f, 0.2f}, true);
-    mDrawInterface.DrawLine({}, {0.0f, 2.0f, 0.0f}, {0.3f, 0.9f, 0.4f}, true);
-    mDrawInterface.DrawLine({}, {0.0f, 0.0f, 2.0f}, {0.3f, 0.55f, 1.0f}, true);
+    if (mShowFlags.mGrid) {
+        const float Spacing{mGridSpacing};
+        const float Extent{50.0f * Spacing};
+        for (Int32 Index{-50}; Index <= 50; ++Index) {
+            const float Offset{Index * Spacing};
+            const FVector Color{Index % 10 == 0 ? FVector{0.22f, 0.25f, 0.30f} : FVector{0.13f, 0.15f, 0.19f}};
+            mDrawInterface.DrawLine({Offset, -Extent, 0.0f}, {Offset, Extent, 0.0f}, Color, true);
+            mDrawInterface.DrawLine({-Extent, Offset, 0.0f}, {Extent, Offset, 0.0f}, Color, true);
+        }
+    }
+    if (mShowFlags.mAxes) {
+        mDrawInterface.DrawLine({}, {2.0f, 0.0f, 0.0f}, {1.0f, 0.25f, 0.2f}, true, mLineThickness);
+        mDrawInterface.DrawLine({}, {0.0f, 2.0f, 0.0f}, {0.3f, 0.9f, 0.4f}, true, mLineThickness);
+        mDrawInterface.DrawLine({}, {0.0f, 0.0f, 2.0f}, {0.3f, 0.55f, 1.0f}, true, mLineThickness);
+    }
 
     if (World->GetPersistentLevel() != nullptr) {
         const TArray<FObjectHandle> SelectedActors{mContext->GetSelectedActors()};
@@ -387,6 +412,11 @@ void FEditorViewportClient::Draw(FSceneViewport* Viewport) {
                 mDrawInterface.DrawString({Center + ScreenUp * (Height + Margin), Name, {1.0f, 0.9f, 0.55f, 1.0f}, 18.0f, {1.0f, 1.0f}, true, false});
             }
             for (const auto& Component : Actor->GetComponents()) {
+                const auto* Primitive{Cast<UPrimitiveComponent>(Component.get())};
+                if (Primitive != nullptr && Primitive->ShouldCreateRenderState() && (mShowFlags.mBounds || Highlight)) {
+                    const bool DepthTest{!Highlight || Cast<UBillboardComponent>(Primitive) != nullptr || Cast<UBillboardTextComponent>(Primitive) != nullptr};
+                    mDrawInterface.DrawBox(CalcComponentBounds(Primitive, View), Highlight ? FVector{1.0f, 0.65f, 0.15f} : FVector{0.25f, 0.8f, 0.95f}, DepthTest, mLineThickness);
+                }
                 const auto* Shape{Cast<UShapeComponent>(Component.get())};
                 if (Shape != nullptr && (!Shape->ShouldDrawOnlyIfSelected() || Highlight)) {
                     Shape->DrawDebug(mDrawInterface, Highlight);
@@ -397,7 +427,7 @@ void FEditorViewportClient::Draw(FSceneViewport* Viewport) {
 
     mGizmo.Draw(View, mDrawInterface);
 
-    const FSceneViewFamily Family{World->GetScene(), Viewport->GetRenderTarget(), View, &mDrawInterface};
+    const FSceneViewFamily Family{World->GetScene(), Viewport->GetRenderTarget(), View, &mDrawInterface, mViewMode, mShowFlags};
     mContext->GetRenderer()->BeginRenderingViewFamily(Family);
 }
 
@@ -648,14 +678,12 @@ FHitProxy FEditorViewportClient::GetHitProxy(const FSceneViewport* Viewport, con
     }
 
     FRay Ray{};
-    FWorldHit Hit{};
 
     if (!View.Deproject(Position, Ray)) {
         return {};
     }
-    const bool HasMeshHit{World->Raycast(Ray, Hit)};
-    FHitProxy Result{HasMeshHit ? FHitProxy{EHitProxyType::Object, Hit.mComponent} : FHitProxy{}};
-    float Closest{HasMeshHit ? Hit.mDistance : std::numeric_limits<float>::max()};
+    FHitProxy Result{};
+    float Closest{std::numeric_limits<float>::max()};
     if (World->GetPersistentLevel() == nullptr || mContext->GetRenderer() == nullptr) {
         return Result;
     }
@@ -663,10 +691,28 @@ FHitProxy FEditorViewportClient::GetHitProxy(const FSceneViewport* Viewport, con
     const FVector Up{View.mView(0, 1), View.mView(1, 1), View.mView(2, 1)};
     for (const auto& Actor : World->GetPersistentLevel()->GetActors()) {
         for (const auto& Component : Actor->GetComponents()) {
+            const auto* Primitive{Cast<UPrimitiveComponent>(Component.get())};
+            const auto* Sprite{Cast<UBillboardComponent>(Component.get())};
             const auto* Text{Cast<UBillboardTextComponent>(Component.get())};
+            if (!mShowFlags.mPrimitives || Actor->IsPendingDestroy() || Primitive == nullptr || !Primitive->ShouldCreateRenderState()) {
+                continue;
+            }
+            if (Sprite != nullptr) {
+                const FPrimitiveSceneProxy Proxy{Sprite->CreateSceneProxy()};
+                if (mShowFlags.mSprites && RaycastMesh(&GetPrimitiveMesh(EPrimitiveType::Plane), MakeSpriteWorld(Proxy.mWorld, *Proxy.mSprite, View), Ray, Closest)) {
+                    Result = {EHitProxyType::Object, Sprite->GetHandle()};
+                }
+                continue;
+            }
+            if (Text == nullptr) {
+                if (RaycastMesh(&Primitive->GetMeshData(), Primitive->GetWorldMatrix(), Ray, Closest)) {
+                    Result = {EHitProxyType::Object, Primitive->GetHandle()};
+                }
+                continue;
+            }
             FVector2 Minimum{};
             FVector2 Maximum{};
-            if (Text == nullptr || !Text->ShouldCreateRenderState() || Actor->IsPendingDestroy() || !mContext->GetRenderer()->GetTextBounds(Text->GetText(), Minimum, Maximum)) {
+            if (!mShowFlags.mText || !mContext->GetRenderer()->GetTextBounds(Text->GetText(), Minimum, Maximum)) {
                 continue;
             }
             const FTransform& Transform{Text->GetTransform()};
@@ -689,6 +735,10 @@ FHitProxy FEditorViewportClient::GetHitProxy(const FSceneViewport* Viewport, con
 }
 
 FBox FEditorViewportClient::CalcComponentBounds(const UPrimitiveComponent* Component, const FSceneView& View) const {
+    if (const auto* Sprite{Cast<UBillboardComponent>(Component)}) {
+        const FPrimitiveSceneProxy Proxy{Sprite->CreateSceneProxy()};
+        return FBox{{-0.5f, -0.5f, -0.001f}, {0.5f, 0.5f, 0.001f}}.Transformed(MakeSpriteWorld(Proxy.mWorld, *Proxy.mSprite, View));
+    }
     const auto* Text{Cast<UBillboardTextComponent>(Component)};
     FVector2 Minimum{};
     FVector2 Maximum{};
@@ -735,4 +785,71 @@ bool FEditorViewportClient::DropMesh(const std::filesystem::path& Path, const FV
         Location.z -= Mesh->GetBounds().mMinimum.z;
     }
     return mContext->SpawnMesh(Path, FTransform{Location, {}, {1.0f, 1.0f, 1.0f}}) != nullptr;
+}
+
+EViewMode FEditorViewportClient::GetViewMode() const {
+    return mViewMode;
+}
+
+void FEditorViewportClient::SetViewMode(EViewMode Mode) {
+    if (Mode == EViewMode::Lit || Mode == EViewMode::Wireframe) {
+        mViewMode = Mode;
+    }
+}
+
+const FEngineShowFlags& FEditorViewportClient::GetShowFlags() const {
+    return mShowFlags;
+}
+
+void FEditorViewportClient::SetShowFlags(const FEngineShowFlags& Flags) {
+    mGizmo.Cancel();
+    mShowFlags = Flags;
+}
+
+float FEditorViewportClient::GetLineThickness() const {
+    return mLineThickness;
+}
+
+bool FEditorViewportClient::SetLineThickness(float Thickness) {
+    if (!std::isfinite(Thickness) || Thickness < 0.5f || Thickness > 10.0f) {
+        return false;
+    }
+    mLineThickness = Thickness;
+    return true;
+}
+
+float FEditorViewportClient::GetGridSpacing() const {
+    return mGridSpacing;
+}
+
+bool FEditorViewportClient::SetGridSpacing(float Spacing) {
+    if (!std::isfinite(Spacing) || Spacing < 0.01f || Spacing > 1000.0f) {
+        return false;
+    }
+    mGridSpacing = Spacing;
+    return true;
+}
+
+float FEditorViewportClient::GetCameraSensitivity() const {
+    return mCameraSensitivity;
+}
+
+bool FEditorViewportClient::SetCameraSensitivity(float Sensitivity) {
+    if (!std::isfinite(Sensitivity) || Sensitivity < 0.01f || Sensitivity > 2.0f) {
+        return false;
+    }
+    mCameraSensitivity = Sensitivity;
+    return true;
+}
+
+float FEditorViewportClient::GetCameraSpeed() const {
+    return mCameraSpeed;
+}
+
+bool FEditorViewportClient::SetCameraSpeed(float Speed) {
+    if (!std::isfinite(Speed) || Speed < 0.1f || Speed > 128.0f) {
+        return false;
+    }
+    mCameraSpeed = Speed;
+    return true;
 }

@@ -1,3 +1,9 @@
+/**
+ * @file FHitResult.cpp
+ * @brief 광선 또는 도형 추적의 적중 위치·법선과 비소유 객체 참조입니다.
+ * @ingroup Engine
+ */
+
 #include "Engine/Collision/FHitResult.h"
 
 FHitResult::FHitResult(float InTime)

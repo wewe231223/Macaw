@@ -26,6 +26,7 @@
 #include <wrl/client.h>
 
 class FTextRenderer;
+class FSpriteRenderer;
 class FMaterialPipeline;
 
 /**
@@ -73,6 +74,13 @@ public:
      * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
      */
     bool Initialize(void* WindowHandle, Uint32 Width, Uint32 Height) override;
+    /**
+     * @brief 장면 파이프라인 없이 창과 스왑체인·장치를 초기화합니다.
+     * @param[in] WindowHandle 연결할 네이티브 창 핸들입니다.
+     * @param[in] Width 가로 길이 또는 픽셀 수입니다.
+     * @param[in] Height 세로 길이 또는 픽셀 수입니다.
+     * @return 검증 또는 요청한 처리에 성공하면 true입니다.
+     */
     bool InitializeUi(void* WindowHandle, Uint32 Width, Uint32 Height);
     /**
      * @brief 종속 객체를 역순으로 정리하고 여러 번 호출해도 안전한 종료 상태로 만듭니다.
@@ -149,11 +157,40 @@ public:
      * @return 요청한 처리를 완료하면 true, 실패하면 false입니다.
      */
     bool ReloadChangedShaders() override;
+    /**
+     * @brief 폰트 메트릭으로 텍스트의 로컬 평면 경계를 계산합니다.
+     * @param[in] Text 표시하거나 측정할 UTF-8 문자열 또는 텍스트 요청입니다.
+     * @param[out] Minimum 계산한 최소 경계 좌표입니다.
+     * @param[out] Maximum 계산한 최대 경계 좌표입니다.
+     * @return 조건을 만족하면 true입니다.
+     */
     bool GetTextBounds(const FString& Text, FVector2& Minimum, FVector2& Maximum) const override;
+    /**
+     * @brief 머티리얼별 GPU 파이프라인을 반환합니다.
+     * @param[in] Material 조회할 머티리얼 설정입니다.
+     * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며 사용할 수 없으면 nullptr입니다.
+     */
     FMaterialPipeline* GetMaterialPipeline(const UMaterial& Material);
+    /**
+     * @brief 기본 머티리얼의 비소유 주소를 반환합니다.
+     * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며 사용할 수 없으면 nullptr입니다.
+     */
     UMaterial* GetDefaultMaterial() const;
+    /**
+     * @brief 텍스처 없는 머티리얼의 흰색 기본 텍스처를 반환합니다.
+     * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며 사용할 수 없으면 nullptr입니다.
+     */
     ID3D11ShaderResourceView* GetDefaultMaterialTexture() const;
+    /**
+     * @brief 머티리얼 텍스처용 반복 샘플러를 반환합니다.
+     * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며 사용할 수 없으면 nullptr입니다.
+     */
     ID3D11SamplerState* GetMaterialSampler() const;
+    /**
+     * @brief 장면 전체를 와이어프레임으로 표시할 래스터라이저를 반환합니다.
+     * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며 사용할 수 없으면 nullptr입니다.
+     */
+    ID3D11RasterizerState* GetWireframeRasterizer() const;
     /**
      * @brief 프로젝트 콘텐츠의 셰이더 경로와 컴파일 캐시 경로를 설정합니다.
      * @param[in] ContentRoot 프로젝트 에셋 경로의 기준 콘텐츠 폴더입니다.
@@ -198,13 +235,22 @@ private:
      */
     bool Compile(const char* Source, const char* Entry, const char* Target, std::shared_ptr<const FShader>& Code);
     /**
-     * @brief 깊이 검사 정책에 맞는 보조 선분을 동적 정점 버퍼로 그립니다.
+     * @brief 월드 선은 깊이를 기록하고 편집 오버레이 선은 깊이 검사 없이 그립니다.
      * @param[in] Elements 이번 프레임의 에디터 보조 도형입니다.
      * @param[in] DepthTest 깊이 검사를 적용할지 지정합니다.
      */
     void DrawLines(const FPrimitiveDrawInterface* Elements, bool DepthTest);
     void DrawMeshes(const FPrimitiveDrawInterface* Elements, bool DepthTest);
-    void DrawTexts(const FSceneViewFamily& Family, bool DepthTest);
+    /**
+     * @brief 깊이 검사 없이 표시할 에디터 텍스트를 마지막 오버레이로 그립니다.
+     * @param[in] Family 출력 타깃·카메라·표시 필터를 포함한 뷰 요청입니다.
+     */
+    void DrawOverlayTexts(const FSceneViewFamily& Family);
+    /**
+     * @brief 월드 글자와 스프라이트를 함께 깊이 역순으로 정렬하여 투명 영역을 합성합니다.
+     * @param[in] Family 출력 타깃·카메라·표시 필터를 포함한 뷰 요청입니다.
+     */
+    void DrawTranslucency(const FSceneViewFamily& Family);
 
 private:
     /**
@@ -215,14 +261,34 @@ private:
 private:
     std::unique_ptr<UMaterial> mDefaultMaterial{};
     ReflectProperty(mDefaultMaterial, "DefaultMaterial", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /**
+     * @brief 텍스처 없는 머티리얼의 흰색 기본 텍스처입니다.
+     */
     std::unique_ptr<UTexture2D> mDefaultMaterialTexture{};
     ReflectProperty(mDefaultMaterialTexture, "DefaultMaterialTexture", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /**
+     * @brief 머티리얼 텍스처용 반복 샘플러입니다.
+     */
     Microsoft::WRL::ComPtr<ID3D11SamplerState> mMaterialSampler{};
     ReflectProperty(mMaterialSampler, "MaterialSampler", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /**
+     * @brief 셰이더와 양면 정책별 파이프라인 캐시입니다.
+     */
     TMap<FString, std::unique_ptr<FMaterialPipeline>> mMaterialPipelines{};
     ReflectProperty(mMaterialPipelines, "MaterialPipelines", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /**
+     * @brief 폰트 아틀라스 텍스트 렌더러입니다.
+     */
     std::unique_ptr<FTextRenderer> mTextRenderer{};
     ReflectProperty(mTextRenderer, "TextRenderer", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /**
+     * @brief 투명 텍스처 쿼드 렌더러입니다.
+     */
+    std::unique_ptr<FSpriteRenderer> mSpriteRenderer{};
+    ReflectProperty(mSpriteRenderer, "SpriteRenderer", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /**
+     * @brief 셰이더 컴파일·캐시·재로드 관리자입니다.
+     */
     FShaderManager mShaderManager{};
     ReflectProperty(mShaderManager, "ShaderManager", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
     /**
@@ -290,6 +356,11 @@ private:
      */
     Microsoft::WRL::ComPtr<ID3D11Buffer> mViewBuffer{};
     ReflectProperty(mViewBuffer, "ViewBuffer", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /**
+     * @brief 화면 크기와 역수를 전달하는 선분 상수 버퍼입니다.
+     */
+    Microsoft::WRL::ComPtr<ID3D11Buffer> mLineViewBuffer{};
+    ReflectProperty(mLineViewBuffer, "LineViewBuffer", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 
     /**
      * @brief 보조 선분용 동적 정점 버퍼입니다.
@@ -303,6 +374,11 @@ private:
      */
     Microsoft::WRL::ComPtr<ID3D11RasterizerState> mRasterizer{};
     ReflectProperty(mRasterizer, "Rasterizer", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /**
+     * @brief 장면 전체를 와이어프레임으로 표시할 래스터라이저입니다.
+     */
+    Microsoft::WRL::ComPtr<ID3D11RasterizerState> mWireframeRasterizer{};
+    ReflectProperty(mWireframeRasterizer, "WireframeRasterizer", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 
     /**
      * @brief 깊이 검사가 켜진 깊이 상태입니다.

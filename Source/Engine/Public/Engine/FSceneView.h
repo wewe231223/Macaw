@@ -29,6 +29,12 @@ public:
      * @return 등록된 타입 메타데이터의 비소유 주소입니다.
      */
     ReflectStruct(FSceneView);
+    /**
+     * @brief 뷰포트 픽셀 좌표를 월드 공간의 정규화된 광선으로 역투영합니다.
+     * @param[in] Position 뷰포트 픽셀 좌표입니다.
+     * @param[out] Ray 계산한 월드 광선입니다.
+     * @return 검증 또는 요청한 처리에 성공하면 true입니다.
+     */
     bool Deproject(const FVector2& Position, FRay& Ray) const;
 
 private:
@@ -81,8 +87,14 @@ public:
      */
     float mFieldOfView{60.0f};
     ReflectProperty(mFieldOfView, "FieldOfView", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /**
+     * @brief 정사영 카메라 여부입니다.
+     */
     bool mOrthographic{};
     ReflectProperty(mOrthographic, "Orthographic", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /**
+     * @brief 정사영 가로 가시 범위의 월드 길이입니다.
+     */
     float mOrthographicWidth{20.0f};
     ReflectProperty(mOrthographicWidth, "OrthographicWidth", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 };

@@ -80,7 +80,7 @@ void FSceneRenderer::Render() {
         return;
     }
     for (const FScenePrimitive& Primitive : mScene->GetPrimitives()) {
-        if (Primitive.mProxy.mText.has_value() || !IsVisible(Primitive.mProxy.mBounds)) {
+        if (!mFamily->mShowFlags.mPrimitives || Primitive.mProxy.mText.has_value() || Primitive.mProxy.mSprite.has_value() || !IsVisible(Primitive.mProxy.mBounds)) {
             continue;
         }
         UStaticMesh* Mesh{Primitive.mProxy.mMesh != nullptr ? Primitive.mProxy.mMesh : (*mDrawContext.mMeshes)[static_cast<std::size_t>(Primitive.mProxy.mPrimitive)].get()};
@@ -112,6 +112,9 @@ void FSceneRenderer::Render() {
     for (const FMeshDrawCommand& Command : Commands) {
         if (LastPipeline != Command.mPipeline) {
             Command.mPipeline->Bind(Context);
+            if (mFamily->mViewMode == EViewMode::Wireframe) {
+                Context->RSSetState(Renderer->GetWireframeRasterizer());
+            }
             LastPipeline = Command.mPipeline;
             LastMaterial = nullptr;
         }

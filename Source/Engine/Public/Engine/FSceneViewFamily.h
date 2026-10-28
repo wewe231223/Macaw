@@ -8,6 +8,8 @@
 
 #include "Core/ReflectionMacros.h"
 #include "Engine/FSceneView.h"
+#include "Engine/EViewMode.h"
+#include "Engine/FEngineShowFlags.h"
 
 class FSceneInterface;
 class FRenderTarget;
@@ -61,4 +63,14 @@ public:
      */
     const FPrimitiveDrawInterface* mEditorElements{};
     ReflectProperty(mEditorElements, "EditorElements", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /**
+     * @brief 장면의 Lit 또는 Wireframe 표시 모드입니다.
+     */
+    EViewMode mViewMode{EViewMode::Lit};
+    ReflectProperty(mViewMode, "ViewMode", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /**
+     * @brief 뷰포트별 장면·보조 표시 필터입니다.
+     */
+    FEngineShowFlags mShowFlags{};
+    ReflectProperty(mShowFlags, "ShowFlags", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 };

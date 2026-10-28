@@ -1,3 +1,9 @@
+/**
+ * @file USphereComponent.cpp
+ * @brief 로컬 반지름으로 정의한 구 충돌 컴포넌트입니다.
+ * @ingroup Engine
+ */
+
 #include "Engine/Component/USphereComponent.h"
 
 #include <algorithm>

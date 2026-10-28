@@ -7,6 +7,7 @@
 #pragma once
 
 #include "Core/Guid.h"
+#include "Core/FName.h"
 #include "Core/ReflectionMacros.h"
 #include "CoreUObject/FObjectHandle.h"
 
@@ -106,6 +107,28 @@ public:
      */
     bool SetName(const FString& Name);
     /**
+     * @brief 문자열 비교 없이 사용할 공유 이름 식별자를 반환합니다.
+     * @return 이 객체 또는 공유 이름 풀이 유지하는 값의 참조입니다.
+     */
+    const FName& GetFName() const;
+    /**
+     * @brief 세대 핸들로 Outer를 조회하며 소멸한 객체는 nullptr로 처리합니다.
+     * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며 사용할 수 없으면 nullptr입니다.
+     */
+    UObject* GetOuter() const;
+    /**
+     * @brief 자기 참조와 순환 참조를 거부하고 Outer의 세대 핸들을 설정합니다.
+     * @param[out] Outer 이름 범위의 상위 객체이며 소유권을 이전하지 않습니다.
+     * @return 검증 또는 요청한 처리에 성공하면 true입니다.
+     * @note Outer는 이름 범위만 나타내며 메모리 소유권을 이전하지 않습니다.
+     */
+    bool SetOuter(UObject* Outer);
+    /**
+     * @brief 살아 있는 Outer의 이름을 점으로 연결한 객체 경로를 만듭니다.
+     * @return 계산하거나 조회한 값입니다.
+     */
+    FString GetPathName() const;
+    /**
      * @brief 유효한 장면 GUID로 객체의 영속 식별자를 복원합니다.
      * @param[in] Guid 복원 또는 조회할 영속 GUID입니다.
      * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
@@ -187,8 +210,14 @@ private:
     /**
      * @brief 이름 또는 표시 문자열입니다.
      */
-    FString mName{"Object"};
+    FName mName{"Object"};
     ReflectAccessor(mName, GetName, SetName, "Name", EPropertyFlags::Edit | EPropertyFlags::Serialize);
+
+    /**
+     * @brief 이름 범위를 구성하는 상위 객체의 세대 핸들입니다.
+     */
+    FObjectHandle mOuter{};
+    ReflectProperty(mOuter, "Outer", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 
 };
 

@@ -52,9 +52,16 @@ private:
      * @brief 종속 객체를 역순으로 정리하고 여러 번 호출해도 안전한 종료 상태로 만듭니다.
      */
     void Shutdown();
+    /**
+     * @brief 프로젝트 선택 화면을 반복 표시하고 선택한 프로젝트를 엽니다.
+     * @param[in] Path Content 상대 에셋 경로 또는 작업할 파일 경로입니다.
+     * @param[in] Create 새 프로젝트를 생성할지 지정합니다.
+     * @return 검증 또는 요청한 처리에 성공하면 true입니다.
+     */
     bool BrowseProjects(std::filesystem::path Path, bool Create);
     /**
      * @brief 현재 실행을 정리하고 프로젝트를 생성하거나 열어 시작 장면을 연결합니다.
+     * @param[out] Error 프로젝트를 열지 못한 원인입니다.
      * @param[in] Path 조회·로드·저장 또는 정규화할 파일 경로입니다.
      * @param[in] Create true이면 새 프로젝트를 생성하고 false이면 기존 프로젝트를 엽니다.
      * @return 요청한 처리를 완료하면 true, 실패하면 false입니다.
@@ -111,6 +118,9 @@ private:
      */
     bool mCreateProject{};
     ReflectProperty(mCreateProject, "CreateProject", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /**
+     * @brief 다음 프레임의 프로젝트 브라우저 전환 요청입니다.
+     */
     bool mBrowseProjects{};
     ReflectProperty(mBrowseProjects, "BrowseProjects", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 };

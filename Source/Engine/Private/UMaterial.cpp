@@ -1,3 +1,9 @@
+/**
+ * @file UMaterial.cpp
+ * @brief 셰이더 경로·기본색·텍스처·양면 정책과 GPU 상수를 관리합니다.
+ * @ingroup Engine
+ */
+
 #include "Engine/UMaterial.h"
 #include "Core/FilePath.h"
 #include "Engine/FAssetManager.h"
@@ -10,6 +16,11 @@
 using namespace Microsoft::WRL;
 
 namespace {
+    /**
+     * @brief 절대 경로와 상위 폴더 이동을 제외한 Content 상대 경로인지 검사합니다.
+     * @param[in] Path Content 상대 에셋 경로 또는 작업할 파일 경로입니다.
+     * @return 조건을 만족하면 true입니다.
+     */
     bool IsContentPath(const FString& Path) {
         if (Path.empty() || Path.find('\0') != FString::npos || Path.find_first_of("\r\n#\"") != FString::npos) {
             return false;

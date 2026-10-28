@@ -28,6 +28,7 @@
 #include "FMaterialPipeline.h"
 #include "FEditorMeshConstants.h"
 #include "FTextRenderer.h"
+#include "FSpriteRenderer.h"
 #include "Engine/EditorMesh.h"
 #include "Core/Math/FVector4.h"
 
@@ -36,6 +37,7 @@
 #include <span>
 #include <cmath>
 #include <cctype>
+#include <variant>
 
 using namespace Microsoft::WRL;
 
@@ -43,15 +45,23 @@ using namespace Microsoft::WRL;
  * @brief 이 구현 파일에서만 사용하는 내부 상태와 보조 함수입니다.
  */
 namespace {
-    std::filesystem::path FindTextContent(const std::filesystem::path& ContentRoot, const std::filesystem::path& RelativePath) {
+    /**
+     * @brief 프로젝트 또는 실행 파일의 기본 콘텐츠에서 우선순위에 맞는 경로를 반환합니다.
+     * @param[in] ContentRoot 프로젝트 Content 루트입니다.
+     * @param[in] RelativePath Content 기준 파일 경로입니다.
+     * @param[in] EngineFirst true이면 GPU 입력 형식과 함께 배포한 엔진 셰이더를 우선 사용합니다.
+     * @return 계산하거나 조회한 값입니다.
+     */
+    std::filesystem::path FindTextContent(const std::filesystem::path& ContentRoot, const std::filesystem::path& RelativePath, bool EngineFirst = false) {
         std::error_code Error{};
         const std::filesystem::path ProjectPath{ContentRoot / RelativePath};
-        if (std::filesystem::is_regular_file(ProjectPath, Error)) {
+        if (!EngineFirst && std::filesystem::is_regular_file(ProjectPath, Error)) {
             return ProjectPath;
         }
         std::array<wchar_t, 32768> Executable{};
         const DWORD Length{GetModuleFileNameW(nullptr, Executable.data(), static_cast<DWORD>(Executable.size()))};
-        return Length > 0 && Length < Executable.size() ? std::filesystem::path{Executable.data()}.parent_path() / "Templates/Project/Content" / RelativePath : ProjectPath;
+        const std::filesystem::path EnginePath{Length > 0 && Length < Executable.size() ? std::filesystem::path{Executable.data()}.parent_path() / "Templates/Project/Content" / RelativePath : ProjectPath};
+        return EngineFirst && !std::filesystem::is_regular_file(EnginePath, Error) ? ProjectPath : EnginePath;
     }
     /**
      * @brief 메시 정점 및 픽셀 셰이더의 내장 HLSL 소스입니다.
@@ -156,11 +166,13 @@ void FRenderer::Shutdown() {
     mEditorMeshes = {};
     mLineVertices = TArray<FLineVertex>{};
     mTextRenderer.reset();
+    mSpriteRenderer.reset();
 
     mOverlayLayout.Reset();
     mEditorMeshBuffer.Reset();
     mOverlayBlend.Reset();
     mViewBuffer.Reset();
+    mLineViewBuffer.Reset();
     mLineBuffer.Reset();
 
     mMaterialPipelines.clear();
@@ -178,6 +190,7 @@ void FRenderer::Shutdown() {
     mShadersDirty = false;
 
     mRasterizer.Reset();
+    mWireframeRasterizer.Reset();
     mDepthEnabled.Reset();
     mDepthReadOnly.Reset();
     mDepthDisabled.Reset();
@@ -294,19 +307,24 @@ void FRenderer::BeginRenderingViewFamily(const FSceneViewFamily& Family) {
     const FSceneDrawContext Context{this, mContext.Get(), &mMeshes, mViewBuffer.Get()};
     FSceneRenderer SceneRenderer{Family, Scene, Context, mStats};
     SceneRenderer.Render();
-    DrawTexts(Family, true);
+    const FVector4 LineView{Family.mView.mSize.x, Family.mView.mSize.y, 1.0f / std::max(Family.mView.mSize.x, 1.0f), 1.0f / std::max(Family.mView.mSize.y, 1.0f)};
+    mContext->UpdateSubresource(mLineViewBuffer.Get(), 0, nullptr, &LineView, 0, 0);
 
     if (Family.mEditorElements != nullptr) {
         DrawMeshes(Family.mEditorElements, true);
         DrawLines(Family.mEditorElements, true);
+    }
+    DrawTranslucency(Family);
+    if (Family.mEditorElements != nullptr) {
         mContext->ClearDepthStencilView(Target->GetDepthView(), D3D11_CLEAR_DEPTH, 1.0f, 0);
         DrawMeshes(Family.mEditorElements, false);
         DrawLines(Family.mEditorElements, false);
     }
-    DrawTexts(Family, false);
+    DrawOverlayTexts(Family);
 
     mStats.mGpuBytes = Scene->GetPrimitiveCount() * sizeof(FObjectConstants) + sizeof(FMatrix) + sizeof(FEditorMeshConstants) + mLineBuffer.GetResourceBytes() + Target->GetResourceBytes();
     mStats.mGpuBytes += mTextRenderer != nullptr ? mTextRenderer->GetResourceBytes() : 0;
+    mStats.mGpuBytes += mSpriteRenderer != nullptr ? mSpriteRenderer->GetResourceBytes() : 0;
 
     for (const auto& Mesh : mMeshes) {
         mStats.mGpuBytes += Mesh != nullptr ? Mesh->GetResourceBytes() : 0;
@@ -401,10 +419,8 @@ bool FRenderer::GetTextBounds(const FString& Text, FVector2& Minimum, FVector2& 
  */
 bool FRenderer::Compile(const char* Source, const char* Entry, const char* Target, std::shared_ptr<const FShader>& Code) {
     FShaderDescription Description{};
-    Description.mSourcePath = mShaderDirectory / Source;
-    if (std::string_view{Source} == "Text.hlsl") {
-        Description.mSourcePath = FindTextContent(mShaderDirectory.parent_path(), "Shaders/Text.hlsl");
-    }
+    const bool EngineFirst{std::string_view{Source} == LineShader || std::string_view{Source} == "Sprite.hlsl"};
+    Description.mSourcePath = FindTextContent(mShaderDirectory.parent_path(), std::filesystem::path{"Shaders"} / Source, EngineFirst);
     Description.mIncludeDirectories = {mShaderDirectory};
     Description.mEntryPoint = Entry;
     Description.mTargetProfile = Target;
@@ -435,7 +451,7 @@ bool FRenderer::CreateShaders() {
         return false;
     }
 
-    const std::array<D3D11_INPUT_ELEMENT_DESC, 2> LineElements{{{"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(FLineVertex, mPosition), D3D11_INPUT_PER_VERTEX_DATA, 0}, {"COLOR", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(FLineVertex, mColor), D3D11_INPUT_PER_VERTEX_DATA, 0}}};
+    const std::array<D3D11_INPUT_ELEMENT_DESC, 3> LineElements{{{"START", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, offsetof(FLineVertex, mStartAndWidth), D3D11_INPUT_PER_INSTANCE_DATA, 1}, {"END", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, offsetof(FLineVertex, mEnd), D3D11_INPUT_PER_INSTANCE_DATA, 1}, {"COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, offsetof(FLineVertex, mColor), D3D11_INPUT_PER_INSTANCE_DATA, 1}}};
 
     if (FAILED(mDevice->CreateVertexShader(VertexCode->GetByteCode().data(), VertexCode->GetByteCode().size(), nullptr, LineVertex.GetAddressOf())) || FAILED(mDevice->CreatePixelShader(PixelCode->GetByteCode().data(), PixelCode->GetByteCode().size(), nullptr, LinePixel.GetAddressOf())) || FAILED(mDevice->CreateInputLayout(LineElements.data(), static_cast<UINT>(LineElements.size()), VertexCode->GetByteCode().data(), VertexCode->GetByteCode().size(), LineLayout.GetAddressOf()))) {
         ErrorHandler::Report("Renderer", "Line pipeline allocation failed", ErrorHandler::EErrorLevel::Error);
@@ -456,6 +472,9 @@ bool FRenderer::CreateShaders() {
     }
 
     if (!Compile("Text.hlsl", "VertexMain", "vs_5_0", VertexCode) || !Compile("Text.hlsl", "PixelMain", "ps_5_0", PixelCode) || !mTextRenderer->CreateShaders(mDevice.Get(), VertexCode->GetByteCode(), PixelCode->GetByteCode())) {
+        return false;
+    }
+    if (!Compile("Sprite.hlsl", "VertexMain", "vs_5_0", VertexCode) || !Compile("Sprite.hlsl", "PixelMain", "ps_5_0", PixelCode) || !mSpriteRenderer->CreateShaders(mDevice.Get(), VertexCode->GetByteCode(), PixelCode->GetByteCode())) {
         return false;
     }
 
@@ -499,6 +518,10 @@ bool FRenderer::CreateBackBuffer(Uint32 Width, Uint32 Height) {
  */
 bool FRenderer::CreatePipeline() {
     mTextRenderer = std::make_unique<FTextRenderer>();
+    mSpriteRenderer = std::make_unique<FSpriteRenderer>();
+    if (!mSpriteRenderer->Initialize(mDevice.Get())) {
+        return false;
+    }
     if (!mTextRenderer->Initialize(mDevice.Get(), FindTextContent(mShaderDirectory.parent_path(), "Fonts/Default.json"))) {
         return false;
     }
@@ -536,6 +559,10 @@ bool FRenderer::CreatePipeline() {
     if (FAILED(mDevice->CreateBuffer(&Buffer, nullptr, mViewBuffer.GetAddressOf()))) {
         ErrorHandler::Fatal("Renderer", "View buffer allocation failed");
     }
+    Buffer.ByteWidth = sizeof(FVector4);
+    if (FAILED(mDevice->CreateBuffer(&Buffer, nullptr, mLineViewBuffer.GetAddressOf()))) {
+        return false;
+    }
 
     Buffer.ByteWidth = sizeof(FEditorMeshConstants);
     if (FAILED(mDevice->CreateBuffer(&Buffer, nullptr, mEditorMeshBuffer.GetAddressOf()))) {
@@ -550,6 +577,10 @@ bool FRenderer::CreatePipeline() {
 
     if (FAILED(mDevice->CreateRasterizerState(&Rasterizer, mRasterizer.GetAddressOf()))) {
         ErrorHandler::Fatal("Renderer", "Rasterizer allocation failed");
+    }
+    Rasterizer.FillMode = D3D11_FILL_WIREFRAME;
+    if (FAILED(mDevice->CreateRasterizerState(&Rasterizer, mWireframeRasterizer.GetAddressOf()))) {
+        return false;
     }
 
     D3D11_DEPTH_STENCIL_DESC Depth{};
@@ -574,7 +605,7 @@ bool FRenderer::CreatePipeline() {
 }
 
 /**
- * @brief 깊이 검사 정책에 맞는 보조 선분을 동적 정점 버퍼로 그립니다.
+ * @brief 월드 선은 깊이를 기록하고 편집 오버레이 선은 깊이 검사 없이 그립니다.
  */
 void FRenderer::DrawLines(const FPrimitiveDrawInterface* Elements, bool DepthTest) {
     mContext->RSSetState(mRasterizer.Get());
@@ -582,8 +613,7 @@ void FRenderer::DrawLines(const FPrimitiveDrawInterface* Elements, bool DepthTes
 
     for (const FDrawLine& Line : Elements->GetLines()) {
         if (Line.mDepthTest == DepthTest) {
-            mLineVertices.push_back({Line.mStart, Line.mColor});
-            mLineVertices.push_back({Line.mEnd, Line.mColor});
+            mLineVertices.emplace_back(Line);
         }
     }
 
@@ -604,14 +634,20 @@ void FRenderer::DrawLines(const FPrimitiveDrawInterface* Elements, bool DepthTes
     ID3D11Buffer* Buffer{mLineBuffer.GetBuffer()};
 
     mContext->IASetInputLayout(mLineLayout.Get());
-    mContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
+    mContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     mContext->IASetVertexBuffers(0, 1, &Buffer, &Stride, &Offset);
 
     mContext->VSSetShader(mLineVertexShader.Get(), nullptr, 0);
     mContext->PSSetShader(mLinePixelShader.Get(), nullptr, 0);
-    mContext->OMSetDepthStencilState(DepthTest ? mDepthReadOnly.Get() : mDepthDisabled.Get(), 0);
+    ID3D11Buffer* Constants{mLineViewBuffer.Get()};
+    ID3D11Buffer* ViewBuffer{mViewBuffer.Get()};
+    mContext->VSSetConstantBuffers(0, 1, &Constants);
+    mContext->VSSetConstantBuffers(1, 1, &ViewBuffer);
+    mContext->OMSetBlendState(mOverlayBlend.Get(), nullptr, 0xFFFFFFFFu);
+    mContext->OMSetDepthStencilState(DepthTest ? mDepthEnabled.Get() : mDepthDisabled.Get(), 0);
 
-    mContext->Draw(Count, 0);
+    mContext->DrawInstanced(6, Count, 0, 0);
+    mContext->OMSetBlendState(nullptr, nullptr, 0xFFFFFFFFu);
 
     ++mStats.mDrawCalls;
 }
@@ -668,29 +704,15 @@ void FRenderer::DrawMeshes(const FPrimitiveDrawInterface* Elements, bool DepthTe
     mContext->OMSetBlendState(nullptr, nullptr, 0xFFFFFFFFu);
 }
 
-void FRenderer::DrawTexts(const FSceneViewFamily& Family, bool DepthTest) {
+void FRenderer::DrawOverlayTexts(const FSceneViewFamily& Family) {
     mContext->RSSetState(mRasterizer.Get());
-    if (mTextRenderer == nullptr) {
+    if (mTextRenderer == nullptr || !Family.mShowFlags.mText) {
         return;
     }
     TArray<FDrawText> Texts{};
-    if (DepthTest) {
-        const auto* Scene{static_cast<const FScene*>(Family.mScene)};
-        for (const FScenePrimitive& Primitive : Scene->GetPrimitives()) {
-            if (!Primitive.mProxy.mText.has_value()) {
-                continue;
-            }
-            FDrawText Text{*Primitive.mProxy.mText};
-            const FMatrix& World{Primitive.mProxy.mWorld};
-            Text.mPosition = World.TransformPosition(Text.mPosition);
-            Text.mScale.x *= World.TransformVector({0.0f, 1.0f, 0.0f}).Length();
-            Text.mScale.y *= World.TransformVector({0.0f, 0.0f, 1.0f}).Length();
-            Texts.push_back(std::move(Text));
-        }
-    }
     if (Family.mEditorElements != nullptr) {
         for (const FDrawText& Text : Family.mEditorElements->GetTexts()) {
-            if (Text.mDepthTest == DepthTest) {
+            if (!Text.mDepthTest) {
                 Texts.push_back(Text);
             }
         }
@@ -705,11 +727,10 @@ void FRenderer::DrawTexts(const FSceneViewFamily& Family, bool DepthTest) {
         return (First.mPosition - Family.mView.mLocation).Dot(Family.mView.mForward) > (Second.mPosition - Family.mView.mLocation).Dot(Family.mView.mForward);
     });
     mContext->OMSetBlendState(mOverlayBlend.Get(), nullptr, 0xFFFFFFFFu);
-    mContext->OMSetDepthStencilState(DepthTest ? mDepthReadOnly.Get() : mDepthDisabled.Get(), 0);
+    mContext->OMSetDepthStencilState(mDepthDisabled.Get(), 0);
     for (const FDrawText& Text : Texts) {
         if (mTextRenderer->Draw(mContext.Get(), Text, Family.mView)) {
             ++mStats.mDrawCalls;
-            mStats.mVisiblePrimitives += DepthTest ? 1 : 0;
         }
     }
     mContext->OMSetBlendState(nullptr, nullptr, 0xFFFFFFFFu);
@@ -771,4 +792,62 @@ ID3D11ShaderResourceView* FRenderer::GetDefaultMaterialTexture() const {
 
 ID3D11SamplerState* FRenderer::GetMaterialSampler() const {
     return mMaterialSampler.Get();
+}
+
+ID3D11RasterizerState* FRenderer::GetWireframeRasterizer() const {
+    return mWireframeRasterizer.Get();
+}
+
+void FRenderer::DrawTranslucency(const FSceneViewFamily& Family) {
+    using FPrimitive = std::variant<const FPrimitiveSceneProxy*, FDrawText>;
+    using FCommand = std::pair<float, FPrimitive>;
+    TArray<FCommand> Commands{};
+    const auto Depth{[&Family](const FVector& Position, bool ScreenSpace) {
+        const FVector4 Clip{FVector4{Position, 1.0f} * Family.mView.mViewProjection};
+        const float Value{ScreenSpace ? Position.z : Clip.w > 0.0f ? Clip.z / Clip.w : -1.0f};
+        return std::isfinite(Value) ? Value : -1.0f;
+    }};
+    if (Family.mShowFlags.mPrimitives) {
+        const auto* Scene{static_cast<const FScene*>(Family.mScene)};
+        for (const FScenePrimitive& Primitive : Scene->GetPrimitives()) {
+            const FPrimitiveSceneProxy& Proxy{Primitive.mProxy};
+            if (Proxy.mSprite.has_value() && Family.mShowFlags.mSprites) {
+                Commands.emplace_back(Depth(Proxy.mWorld.TransformPosition({}), false), FPrimitive{&Proxy});
+            } else if (Proxy.mText.has_value() && Family.mShowFlags.mText) {
+                FDrawText Text{*Proxy.mText};
+                Text.mPosition = Proxy.mWorld.TransformPosition(Text.mPosition);
+                Text.mScale.x *= Proxy.mWorld.TransformVector({0.0f, 1.0f, 0.0f}).Length();
+                Text.mScale.y *= Proxy.mWorld.TransformVector({0.0f, 0.0f, 1.0f}).Length();
+                const float Value{Depth(Text.mPosition, Text.mScreenSpace)};
+                Commands.emplace_back(Value, FPrimitive{std::move(Text)});
+            }
+        }
+    }
+    if (Family.mEditorElements != nullptr && Family.mShowFlags.mText) {
+        for (const FDrawText& Text : Family.mEditorElements->GetTexts()) {
+            if (Text.mDepthTest) {
+                Commands.emplace_back(Depth(Text.mPosition, Text.mScreenSpace), FPrimitive{Text});
+            }
+        }
+    }
+    std::stable_sort(Commands.begin(), Commands.end(), [](const FCommand& First, const FCommand& Second) {
+        return First.first > Second.first;
+    });
+    mContext->OMSetBlendState(mOverlayBlend.Get(), nullptr, 0xFFFFFFFFu);
+    mContext->OMSetDepthStencilState(mDepthReadOnly.Get(), 0);
+    for (const FCommand& Command : Commands) {
+        bool Drawn{};
+        if (const auto* Sprite{std::get_if<const FPrimitiveSceneProxy*>(&Command.second)}) {
+            mContext->RSSetState(Family.mViewMode == EViewMode::Wireframe ? mWireframeRasterizer.Get() : mRasterizer.Get());
+            Drawn = mSpriteRenderer != nullptr && mSpriteRenderer->Draw(mContext.Get(), **Sprite, Family.mView);
+        } else {
+            mContext->RSSetState(mRasterizer.Get());
+            Drawn = mTextRenderer != nullptr && mTextRenderer->Draw(mContext.Get(), std::get<FDrawText>(Command.second), Family.mView);
+        }
+        if (Drawn) {
+            ++mStats.mDrawCalls;
+            ++mStats.mVisiblePrimitives;
+        }
+    }
+    mContext->OMSetBlendState(nullptr, nullptr, 0xFFFFFFFFu);
 }

@@ -59,7 +59,7 @@ FObjectHandle UObject::GetHandle() const {
  * @brief 이름 또는 표시 문자열을 반환합니다.
  */
 const FString& UObject::GetName() const {
-    return mName;
+    return mName.ToString();
 }
 
 /**
@@ -70,7 +70,7 @@ bool UObject::SetName(const FString& Name) {
         return false;
     }
 
-    mName = Name;
+    mName = FName{Name};
 
     return true;
 }
@@ -85,6 +85,32 @@ bool UObject::RestoreGuid(const FGuid& Guid) {
 
     mGuid = Guid;
     return true;
+}
+
+const FName& UObject::GetFName() const {
+    return mName;
+}
+
+UObject* UObject::GetOuter() const {
+    return FObjectRegistry::Get()->Resolve(mOuter);
+}
+
+bool UObject::SetOuter(UObject* Outer) {
+    for (const UObject* Ancestor{Outer}; Ancestor != nullptr; Ancestor = Ancestor->GetOuter()) {
+        if (Ancestor == this) {
+            return false;
+        }
+    }
+    mOuter = Outer != nullptr ? Outer->GetHandle() : FObjectHandle{};
+    return true;
+}
+
+FString UObject::GetPathName() const {
+    FString Path{GetName()};
+    for (const UObject* Ancestor{GetOuter()}; Ancestor != nullptr; Ancestor = Ancestor->GetOuter()) {
+        Path = Ancestor->GetName() + "." + Path;
+    }
+    return Path;
 }
 
 /**

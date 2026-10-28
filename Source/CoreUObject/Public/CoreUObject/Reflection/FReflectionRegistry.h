@@ -90,6 +90,11 @@ public:
      * @return 조회한 값의 비소유 주소이며, 해당 값이 없으면 nullptr입니다.
      */
     static UClass* FindClass(const FString& Name);
+    /**
+     * @brief 지정한 부모 클래스를 상속한 등록 클래스를 수집합니다.
+     * @param[in] Parent 파생 클래스를 찾을 부모 클래스입니다.
+     * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며 사용할 수 없으면 nullptr입니다.
+     */
     static TArray<const UClass*> GetDerivedClasses(const UClass* Parent);
     /**
      * @brief 등록된 구조체 메타데이터를 이름으로 조회합니다.

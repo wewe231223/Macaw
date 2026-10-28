@@ -14,6 +14,9 @@
 #include "Engine/FPrimitiveSceneProxy.h"
 #include "Engine/FSceneInterface.h"
 #include "Engine/PrimitiveMesh.h"
+#include "CoreUObject/FObjectRegistry.h"
+
+#include <cmath>
 
 /**
  * @brief UPrimitiveComponent의 초기 상태와 전달받은 의존성을 구성합니다.
@@ -140,7 +143,10 @@ void UPrimitiveComponent::SendRenderUpdates() {
  */
 FPrimitiveSceneProxy UPrimitiveComponent::CreateSceneProxy() const {
     const FMatrix World{GetWorldMatrix()};
-    return {GetGuid(), GetPrimitiveType(), World, GetMeshData().GetBounds().Transformed(World), GetStaticMesh()};
+    FPrimitiveSceneProxy Proxy{GetGuid(), GetPrimitiveType(), World, GetWorldBounds(), GetStaticMesh()};
+    Proxy.mUVScale = mUVScale;
+    Proxy.mUVOffset = mUVOffset;
+    return Proxy;
 }
 
 UStaticMesh* UPrimitiveComponent::GetStaticMesh() const {
@@ -160,4 +166,34 @@ FBox UPrimitiveComponent::GetWorldBounds() const {
 
 bool UPrimitiveComponent::ShouldCreateRenderState() const {
     return true;
+}
+
+bool UPrimitiveComponent::SetUVTransform(const FVector2& Scale, const FVector2& Offset, FObjectHandle Source) {
+    if (!std::isfinite(Scale.x) || !std::isfinite(Scale.y) || !std::isfinite(Offset.x) || !std::isfinite(Offset.y) || FObjectRegistry::Get()->Resolve(Source) == nullptr || (mUVSource != Source && FObjectRegistry::Get()->Resolve(mUVSource) != nullptr)) {
+        return false;
+    }
+    if (mUVScale != Scale || mUVOffset != Offset || mUVSource != Source) {
+        mUVScale = Scale;
+        mUVOffset = Offset;
+        mUVSource = Source;
+        MarkRenderStateDirty();
+    }
+    return true;
+}
+
+void UPrimitiveComponent::ClearUVTransform(FObjectHandle Source) {
+    if (mUVSource == Source) {
+        mUVScale = {1.0f, 1.0f};
+        mUVOffset = {};
+        mUVSource = {};
+        MarkRenderStateDirty();
+    }
+}
+
+const FVector2& UPrimitiveComponent::GetUVScale() const {
+    return mUVScale;
+}
+
+const FVector2& UPrimitiveComponent::GetUVOffset() const {
+    return mUVOffset;
 }

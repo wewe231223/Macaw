@@ -22,6 +22,11 @@
 #include <cctype>
 
 namespace {
+    /**
+     * @brief 클래스 접두사와 Component 접미사를 제거해 컴포넌트 메뉴 이름을 만듭니다.
+     * @param[in] Class 생성하거나 이름을 표시할 리플렉션 클래스입니다.
+     * @return 계산하거나 조회한 값입니다.
+     */
     FString ComponentLabel(const UClass* Class) {
         FString Name{Class->GetName()};
         if (Name.starts_with("U")) {
@@ -255,8 +260,9 @@ bool FDetailsPanel::DrawPropertyValue(const FProperty* Property, FPropertyValue&
         if (Changed) {
             *String = Buffer.data();
         }
-        if (Property->GetName() == "Material" && ImGui::BeginDragDropTarget()) {
-            const ImGuiPayload* Payload{ImGui::AcceptDragDropPayload(EditorAssetDragDrop::MaterialPayload)};
+        const char* AssetPayload{Property->GetName() == "Material" ? EditorAssetDragDrop::MaterialPayload : Property->GetName() == "Texture" ? EditorAssetDragDrop::TexturePayload : Property->GetName() == "Mesh" ? EditorAssetDragDrop::MeshPayload : nullptr};
+        if (AssetPayload != nullptr && ImGui::BeginDragDropTarget()) {
+            const ImGuiPayload* Payload{ImGui::AcceptDragDropPayload(AssetPayload)};
             if (Payload != nullptr && Payload->DataSize > 0 && static_cast<const char*>(Payload->Data)[Payload->DataSize - 1] == '\0') {
                 *String = FString{static_cast<const char*>(Payload->Data), static_cast<std::size_t>(Payload->DataSize - 1)};
                 Changed = true;
