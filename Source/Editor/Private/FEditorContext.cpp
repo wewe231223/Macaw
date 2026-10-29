@@ -9,6 +9,7 @@
 #include "Engine/FProject.h"
 #include "Engine/Component/UStaticMeshComponent.h"
 #include "Engine/Component/UBillboardTextComponent.h"
+#include "Engine/Component/UBillboardComponent.h"
 #include "Engine/Engine.h"
 #include "Engine/UWorld.h"
 #include "Engine/ULevel.h"
@@ -281,6 +282,32 @@ AActor* FEditorContext::SpawnText() {
         return nullptr;
     }
     Actor->SetName("Text");
+    const FTransform Placement{mPlacementProvider ? mPlacementProvider() : FTransform{}};
+    if (!ApplySpawnPlacement(Actor, Placement)) {
+        return nullptr;
+    }
+    CompleteActorSpawn(Actor, "Spawned ");
+    return Actor;
+}
+
+AActor* FEditorContext::SpawnBillboard(const FString& SpritePath) {
+    if (!CanSpawnActor()) {
+        return nullptr;
+    }
+    FOperationScope Scope{&mChangingState};
+    UWorld* World{GetWorld()};
+    AActor* Actor{World != nullptr ? World->SpawnActor(AActor::StaticClass()) : nullptr};
+    if (Actor == nullptr) {
+        return nullptr;
+    }
+    auto Component{NewObject<UBillboardComponent>()};
+    Component->SetName("BillboardComponent");
+    UBillboardComponent* Billboard{Component.get()};
+    if (!Actor->AddComponent(std::move(Component)) || !Billboard->SetTexturePath(SpritePath)) {
+        World->DestroyActor(Actor->GetHandle());
+        return nullptr;
+    }
+    Actor->SetName(SpritePath.empty() ? "Billboard" : FilePath::ToUtf8(FilePath::FromUtf8(SpritePath).stem()));
     const FTransform Placement{mPlacementProvider ? mPlacementProvider() : FTransform{}};
     if (!ApplySpawnPlacement(Actor, Placement)) {
         return nullptr;

@@ -16,8 +16,6 @@ Macaw는 C++20, Windows x64와 Direct3D 11을 사용하는 엔진입니다.
 
 `Scripts/premake5.exe vs2026` 또는 `Build.bat`로 솔루션을 생성한 뒤 `ObjViewerDebug` 또는 `ObjViewerRelease` 구성을 빌드하면 프로젝트 브라우저 없이 OBJ 뷰어를 실행합니다. 실행 파일은 `Binaries/ObjViewerDebug/Macaw.exe` 또는 `Binaries/ObjViewerRelease/Macaw.exe`이며 첫 명령줄 인수로 원본 OBJ 경로를 전달할 수 있습니다. 일반 편집기는 Debug와 Release 구성을 사용합니다.
 
-`Scripts/TestWeek3.ps1 -Configuration Debug` 또는 `Release`는 해당 구성의 빌드가 있는 상태에서 임포트·직렬화·객체 순회·INI 복원·GPU 재질 구간 회귀 검사를 실행합니다.
-
 \section ObjectIteration 객체 타입별 순회
 
 \ref TObjectIterator 는 생성 시 수집한 세대 핸들 스냅샷을 순회하며 소멸한 객체와 이후 재사용된 슬롯을 건너뜁니다. UObject 파생 타입과 const 타입, 파생 타입 포함 여부 및 재귀 Outer 필터를 지원합니다. \ref TObjectRange 는 같은 동작을 range-for로 제공합니다. 객체 수명은 소유하지 않으며 레지스트리 소유 스레드에서 사용합니다.

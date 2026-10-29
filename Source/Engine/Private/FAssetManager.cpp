@@ -134,6 +134,15 @@ FString FAssetManager::GetMeshPath(const UStaticMesh* Mesh) const {
     return {};
 }
 
+FString FAssetManager::GetTexturePath(const UTexture2D* Texture) const {
+    for (const auto& Entry : mTextures) {
+        if (Entry.second.get() == Texture) {
+            return Entry.first;
+        }
+    }
+    return {};
+}
+
 std::filesystem::path FAssetManager::ResolvePath(const std::filesystem::path& Path, FString& Error) const {
     Error.clear();
     if (Path.empty() || (Path.has_root_name() && !Path.is_absolute())) {

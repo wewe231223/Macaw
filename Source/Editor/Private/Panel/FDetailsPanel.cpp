@@ -286,8 +286,8 @@ bool FDetailsPanel::DrawPropertyValue(const FProperty* Property, FPropertyValue&
         if (Property->GetName() == "Mesh") {
             return DrawAssetPicker(Label, *String, true);
         }
-        if (mAssetCatalog != nullptr && mThumbnails != nullptr && (Property->GetName() == "Material" || Property->GetName() == "Texture")) {
-            return mAssetPicker.Draw(*mAssetCatalog, *mThumbnails, Property->GetName() == "Material" ? "All Slots Override" : Label, *String, Property->GetName() == "Material" ? EAssetType::Material : EAssetType::Texture, {}, Property->GetName() == "Material" ? "Use mesh materials" : "None");
+        if (mAssetCatalog != nullptr && mThumbnails != nullptr && (Property->GetName() == "Material" || Property->GetName() == "Texture" || Property->GetName() == "Sprite")) {
+            return mAssetPicker.Draw(*mAssetCatalog, *mThumbnails, Property->GetName() == "Material" ? "All Slots Override" : Label, *String, Property->GetName() == "Material" ? EAssetType::Material : EAssetType::Texture, {}, Property->GetName() == "Material" ? "Use mesh materials" : Property->GetName() == "Sprite" ? "Default atlas" : "None");
         }
         if (Property->GetName() == "Text") {
             TArray<char> TextBuffer{};
@@ -306,7 +306,7 @@ bool FDetailsPanel::DrawPropertyValue(const FProperty* Property, FPropertyValue&
         if (Changed) {
             *String = Buffer.data();
         }
-        const char* AssetPayload{Property->GetName() == "Material" ? EditorAssetDragDrop::MaterialPayload : Property->GetName() == "Texture" ? EditorAssetDragDrop::TexturePayload : Property->GetName() == "Mesh" ? EditorAssetDragDrop::MeshPayload : nullptr};
+        const char* AssetPayload{Property->GetName() == "Material" ? EditorAssetDragDrop::MaterialPayload : Property->GetName() == "Texture" || Property->GetName() == "Sprite" ? EditorAssetDragDrop::TexturePayload : Property->GetName() == "Mesh" ? EditorAssetDragDrop::MeshPayload : nullptr};
         if (AssetPayload != nullptr && ImGui::BeginDragDropTarget()) {
             const ImGuiPayload* Payload{ImGui::AcceptDragDropPayload(AssetPayload)};
             if (Payload != nullptr && Payload->DataSize > 0 && static_cast<const char*>(Payload->Data)[Payload->DataSize - 1] == '\0') {

@@ -99,6 +99,12 @@ private:
      */
     ReflectMembers();
     /**
+     * @brief 프로젝트의 Editor/Icon 폴더에 없는 언리얼 아이콘과 출처 파일을 배포 템플릿에서 복사합니다.
+     * @note 기존 파일을 유지하며 원본 탐색이나 복사에 실패하면 에디터 로그에 원인을 기록합니다.
+     */
+    void InstallEditorIcons();
+
+    /**
      * @brief 장면 파일과 패널 표시 메뉴를 그립니다.
      */
     void DrawMenu();

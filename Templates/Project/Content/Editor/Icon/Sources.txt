@@ -1,0 +1,18 @@
+Unreal Engine editor icons
+Copyright Epic Games, Inc. All rights reserved.
+
+Original engine directory: Engine/Content/Editor/Slate/Icons/AssetIcons/
+All three files match the original Unreal Engine dependency manifest hashes:
+https://github.com/folgerwang/UnrealEngine/blob/release/Engine/Build/Commit.gitdeps.xml
+
+SpotLight_64x.png
+Source copy: https://raw.githubusercontent.com/sadoe3/TechLab_Week9_Team8/95d4a793c859ccf4a9c1bea98aa59b25c7d7bfc0/Resources/Icons/SpotLight_64x.png
+Verified Unreal Engine SHA-1: 292a9f135d5b0bf6c0db4e250548b2dc9f1d549a
+
+PointLight_64x.png
+Source copy: https://raw.githubusercontent.com/sadoe3/TechLab_Week9_Team8/95d4a793c859ccf4a9c1bea98aa59b25c7d7bfc0/Resources/Icons/PointLight_64x.png
+Verified Unreal Engine SHA-1: 05a3c830090fc1fa4145039bfb564abb86d7e76c
+
+Pawn_64x.png
+Source copy: https://raw.githubusercontent.com/sadoe3/TechLab_Week9_Team8/95d4a793c859ccf4a9c1bea98aa59b25c7d7bfc0/Resources/Icons/Pawn_64x.png
+Verified Unreal Engine SHA-1: 74a4980db66d73bb4ed7816d92d19732b9221f08

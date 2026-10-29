@@ -9,14 +9,35 @@
 #include "Engine/FPrimitiveSceneProxy.h"
 #include "Engine/FMeshData.h"
 #include "Engine/UWorld.h"
+#include "Engine/UTexture2D.h"
+#include "Core/Archive.h"
 #include "Core/FilePath.h"
 #include "Core/Base/ErrorHandler.h"
+#include "CoreUObject/Reflection/Cast.h"
 
 #include <algorithm>
 #include <cmath>
+#include <cwctype>
 
 UBillboardComponent::UBillboardComponent() = default;
 UBillboardComponent::~UBillboardComponent() = default;
+
+UTexture* UBillboardComponent::GetSprite() const {
+    return mSprite;
+}
+
+bool UBillboardComponent::SetSprite(UTexture* Sprite) {
+    if (Sprite == nullptr) {
+        return SetTexturePath({});
+    }
+    const auto* Texture{Cast<UTexture2D>(Sprite)};
+    FAssetManager* Assets{GetWorld() != nullptr ? GetWorld()->GetAssets() : nullptr};
+    if (Texture == nullptr || !Texture->IsValid() || Assets == nullptr) {
+        return false;
+    }
+    const FString Path{Assets->GetTexturePath(Texture)};
+    return !Path.empty() && SetTexturePath(Path);
+}
 
 const FString& UBillboardComponent::GetTexturePath() const {
     return mTexturePath;
@@ -24,7 +45,12 @@ const FString& UBillboardComponent::GetTexturePath() const {
 
 bool UBillboardComponent::SetTexturePath(const FString& Path) {
     const std::filesystem::path AssetPath{FilePath::FromUtf8(Path)};
-    if (Path.find('\0') != FString::npos || (!Path.empty() && (AssetPath.has_root_path() || AssetPath.extension() != L".masset"))) {
+    std::wstring Extension{AssetPath.extension().wstring()};
+    std::transform(Extension.begin(), Extension.end(), Extension.begin(), [](wchar_t Character) {
+        return static_cast<wchar_t>(std::towlower(Character));
+    });
+    const bool Supported{Extension == L".masset" || Extension == L".png" || Extension == L".jpg" || Extension == L".jpeg" || Extension == L".bmp" || Extension == L".tga" || Extension == L".dds" || Extension == L".hdr"};
+    if (Path.find('\0') != FString::npos || (!Path.empty() && (AssetPath.has_root_path() || !Supported))) {
         return false;
     }
     for (const auto& Part : AssetPath) {
@@ -36,8 +62,8 @@ bool UBillboardComponent::SetTexturePath(const FString& Path) {
     if (!Path.empty() && GetWorld() != nullptr && GetWorld()->GetAssets() != nullptr && Texture == nullptr) {
         return false;
     }
-    mTexturePath = Path;
-    mTexture = Texture;
+    mTexturePath = FilePath::ToGenericUtf8(AssetPath.lexically_normal());
+    mSprite = Texture;
     MarkRenderStateDirty();
     return true;
 }
@@ -56,13 +82,13 @@ UTexture2D* UBillboardComponent::LoadTexture(const FString& Path) const {
 }
 
 bool UBillboardComponent::ResolveTexture() {
-    mTexture = LoadTexture(mTexturePath);
+    mSprite = LoadTexture(mTexturePath);
     MarkRenderStateDirty();
-    return mTexturePath.empty() || mTexture != nullptr;
+    return mTexturePath.empty() || mSprite != nullptr;
 }
 
 UTexture2D* UBillboardComponent::GetTexture() const {
-    return mTexture;
+    return Cast<UTexture2D>(mSprite);
 }
 
 const FVector2& UBillboardComponent::GetSize() const {
@@ -124,7 +150,7 @@ const FMeshData& UBillboardComponent::GetMeshData() const {
 FPrimitiveSceneProxy UBillboardComponent::CreateSceneProxy() const {
     FPrimitiveSceneProxy Proxy{UPrimitiveComponent::CreateSceneProxy()};
     Proxy.mBounds = GetWorldBounds();
-    Proxy.mSprite = FDrawSprite{mTexture, mSize, mColor, mScreenAligned};
+    Proxy.mSprite = FDrawSprite{GetTexture(), mSize, mColor, mScreenAligned};
     return Proxy;
 }
 
@@ -139,7 +165,7 @@ FBox UBillboardComponent::GetWorldBounds() const {
 }
 
 bool UBillboardComponent::ShouldCreateRenderState() const {
-    return mVisible && mColor.w > 0.0f && (mTexturePath.empty() || mTexture != nullptr);
+    return mVisible && mColor.w > 0.0f && (mTexturePath.empty() || mSprite != nullptr);
 }
 
 void UBillboardComponent::OnRegister() {
@@ -148,5 +174,16 @@ void UBillboardComponent::OnRegister() {
 
 void UBillboardComponent::UnregisterComponent() {
     UPrimitiveComponent::UnregisterComponent();
-    mTexture = nullptr;
+    mSprite = nullptr;
+}
+
+void UBillboardComponent::Serialize(FArchive& Archive) {
+    UPrimitiveComponent::Serialize(Archive);
+    if (Archive.IsLoading() && !Archive.HasError() && !Archive.HasField("Sprite") && Archive.HasField("Texture")) {
+        FString Path{};
+        Archive.Serialize("Texture", Path);
+        if (!Archive.HasError() && !SetTexturePath(Path)) {
+            Archive.SetError("Invalid billboard texture path");
+        }
+    }
 }

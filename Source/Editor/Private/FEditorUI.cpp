@@ -116,6 +116,7 @@ bool FEditorUI::Initialize(IRendererModule* Renderer, FWindowsApplication* Platf
     });
 
     mInitialized = true;
+    InstallEditorIcons();
     mAssetCatalog = std::make_unique<FEditorAssetCatalog>(mContext->GetProject()->GetAssets());
     mThumbnails = std::make_unique<FAssetThumbnailCache>(mContext->GetProject()->GetAssets(), Renderer);
     mDetailsPanel.SetAssetServices(mAssetCatalog.get(), mThumbnails.get());
@@ -124,6 +125,40 @@ bool FEditorUI::Initialize(IRendererModule* Renderer, FWindowsApplication* Platf
     mRefreshContent = true;
     RefreshContent();
     return true;
+}
+
+void FEditorUI::InstallEditorIcons() {
+    std::array<wchar_t, 32768> Executable{};
+    const DWORD Length{GetModuleFileNameW(nullptr, Executable.data(), static_cast<DWORD>(Executable.size()))};
+    const std::filesystem::path Bundled{Length > 0 && Length < Executable.size() ? std::filesystem::path{Executable.data()}.parent_path() / "Templates/Project/Content/Editor/Icon" : std::filesystem::path{}};
+    FAssetManager* Assets{mContext->GetProject()->GetAssets()};
+    for (const char* Name : {"SpotLight_64x.png", "PointLight_64x.png", "Pawn_64x.png", "Sources.txt"}) {
+        FString Error{};
+        const std::filesystem::path Target{Assets->ResolvePath(std::filesystem::path{"Editor/Icon"} / Name, Error)};
+        std::error_code Code{};
+        if (Target.empty()) {
+            mContext->AddLog(Error);
+            continue;
+        }
+        if (std::filesystem::is_regular_file(Target, Code)) {
+            continue;
+        }
+        std::filesystem::path Source{Bundled / Name};
+        if (Bundled.empty() || !std::filesystem::is_regular_file(Source, Code)) {
+            Source = std::filesystem::path{"Templates/Project/Content/Editor/Icon"} / Name;
+        }
+        if (!std::filesystem::is_regular_file(Source, Code)) {
+            mContext->AddLog("Cannot find bundled editor icon: " + FString{Name});
+            continue;
+        }
+        std::filesystem::create_directories(Target.parent_path(), Code);
+        if (!Code) {
+            std::filesystem::copy_file(Source, Target, std::filesystem::copy_options::skip_existing, Code);
+        }
+        if (Code) {
+            mContext->AddLog("Cannot install editor icon '" + FString{Name} + "': " + Code.message());
+        }
+    }
 }
 
 /**

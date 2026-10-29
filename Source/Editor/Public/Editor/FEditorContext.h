@@ -163,6 +163,12 @@ public:
     /** @brief 배치 위치에 빌보드 텍스트 액터를 생성하고 선택합니다. @return 생성한 월드 소유 액터이며 실패하면 nullptr입니다. */
     AActor* SpawnText();
     /**
+     * @brief 배치 위치에 텍스처 빌보드 액터를 생성하고 선택과 장면 변경 상태를 갱신합니다.
+     * @param[in] SpritePath Sprite에 할당할 Content 상대 텍스처 경로이며 빈 문자열이면 기본 아틀라스를 사용합니다.
+     * @return 생성한 월드 소유 액터의 비소유 주소이며 생성, 텍스처 할당 또는 배치에 실패하면 nullptr입니다.
+     */
+    AActor* SpawnBillboard(const FString& SpritePath = {});
+    /**
      * @brief 현재 선택 액터와 편집 상태에서 해당 컴포넌트를 생성할 수 있는지 검사합니다.
      * @param[in] Class 생성하거나 이름을 표시할 리플렉션 클래스입니다.
      * @return 조건을 만족하면 true입니다.
