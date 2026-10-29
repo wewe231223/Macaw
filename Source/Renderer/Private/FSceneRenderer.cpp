@@ -87,12 +87,16 @@ void FSceneRenderer::Render() {
         if (Mesh == nullptr || (!Mesh->HasResources() && !Mesh->CreateResources(Device.Get())) || Primitive.mObjectBuffer == nullptr) {
             continue;
         }
-        UMaterial* Material{Primitive.mProxy.mMaterial != nullptr ? Primitive.mProxy.mMaterial : DefaultMaterial};
-        if (!Material->CreateResources(Device.Get(), Context)) {
-            Material = DefaultMaterial;
+        for (const FSubMesh& SubMesh : Mesh->GetMeshData().GetSubMeshes()) {
+            UMaterial* SlotMaterial{SubMesh.GetMaterialIndex() < Primitive.mProxy.mMaterials.size() ? Primitive.mProxy.mMaterials[SubMesh.GetMaterialIndex()] : nullptr};
+            UMaterial* Material{Primitive.mProxy.mMaterial != nullptr ? Primitive.mProxy.mMaterial : SlotMaterial != nullptr ? SlotMaterial : DefaultMaterial};
+            if (!Material->CreateResources(Device.Get(), Context)) {
+                Material = DefaultMaterial;
+            }
+            FMaterialPipeline* Pipeline{Renderer->GetMaterialPipeline(*Material)};
+            Commands.emplace_back(Pipeline != nullptr ? Pipeline : DefaultPipeline, Material, Mesh, Primitive.mObjectBuffer.Get(), SubMesh.GetFirstIndex(), SubMesh.GetIndexCount());
         }
-        FMaterialPipeline* Pipeline{Renderer->GetMaterialPipeline(*Material)};
-        Commands.emplace_back(Pipeline != nullptr ? Pipeline : DefaultPipeline, Material, Mesh, Primitive.mObjectBuffer.Get());
+        ++mStats->mVisiblePrimitives;
     }
     std::stable_sort(Commands.begin(), Commands.end(), [](const FMeshDrawCommand& First, const FMeshDrawCommand& Second) {
         const std::less<const void*> Less{};
@@ -140,18 +144,19 @@ void FSceneRenderer::Render() {
         ID3D11Buffer* ObjectBuffer{Command.mObjectBuffer};
         Context->VSSetConstantBuffers(0, 1, &ObjectBuffer);
         Context->PSSetConstantBuffers(0, 1, &ObjectBuffer);
-        Context->DrawIndexed(Command.mMesh->GetIndexCount(), 0, 0);
+        Context->DrawIndexed(Command.mIndexCount, Command.mFirstIndex, 0);
         ++mStats->mDrawCalls;
-        ++mStats->mVisiblePrimitives;
     }
     ID3D11ShaderResourceView* Empty{};
     Context->PSSetShaderResources(0, 1, &Empty);
     mStats->mTransformUpdates += mScene->TakeTransformUpdates();
 }
 
-FMeshDrawCommand::FMeshDrawCommand(FMaterialPipeline* Pipeline, UMaterial* Material, UStaticMesh* Mesh, ID3D11Buffer* ObjectBuffer)
+FMeshDrawCommand::FMeshDrawCommand(FMaterialPipeline* Pipeline, UMaterial* Material, UStaticMesh* Mesh, ID3D11Buffer* ObjectBuffer, Uint32 FirstIndex, Uint32 IndexCount)
 	: mPipeline{Pipeline},
 	  mMaterial{Material},
 	  mMesh{Mesh},
-	  mObjectBuffer{ObjectBuffer} {
+	  mObjectBuffer{ObjectBuffer},
+	  mFirstIndex{FirstIndex},
+	  mIndexCount{IndexCount} {
 }

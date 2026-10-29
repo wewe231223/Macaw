@@ -16,9 +16,13 @@
  * @brief 검사할 충돌 형상 종류입니다.
  */
 enum class ECollisionShape : Uint8 {
+    /** @brief 충돌 형상을 사용하지 않습니다. */
     None,
+    /** @brief 축별 반길이를 갖는 상자 형상입니다. */
     Box,
+    /** @brief 반지름을 갖는 구 형상입니다. */
     Sphere,
+    /** @brief 선분 양 끝의 반구를 포함하는 캡슐 형상입니다. */
     Capsule
 };
 
@@ -509,6 +513,7 @@ private:
     ReflectProperty(mContact, "Contact", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 };
 
+/** @brief 구·상자·캡슐의 겹침과 스윕 질의를 제공합니다. */
 namespace Collision {
     /**
      * @brief 충돌 캡슐을 월드 중심 선분과 반지름으로 변환합니다.

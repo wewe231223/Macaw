@@ -14,6 +14,7 @@
 #include <iostream>
 #include <numbers>
 
+/** @brief 충돌 도형의 접촉 검사와 디버그 형상 생성 보조 함수입니다. */
 namespace {
     /**
      * @brief 두 AABB의 모든 축 구간이 겹치는지 검사합니다.

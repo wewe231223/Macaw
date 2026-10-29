@@ -55,4 +55,11 @@ std::unique_ptr<FWorldContext> FSceneSerializer::Load(const std::filesystem::pat
  */
 void FSceneSerializer::Serialize(FArchive& Archive, FWorldContext* Context) {
     FWorldSerializer::Serialize(Archive, Context);
+    if (Archive.HasError() || Context == nullptr || (Archive.IsLoading() && !Archive.HasField("PerspectiveCamera"))) {
+        return;
+    }
+    if (Archive.BeginObject("PerspectiveCamera")) {
+        Context->GetEditorCamera().Serialize(Archive);
+        Archive.EndObject();
+    }
 }

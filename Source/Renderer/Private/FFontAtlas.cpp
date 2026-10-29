@@ -12,6 +12,7 @@
 #include <fstream>
 #include <iterator>
 
+/** @brief 폰트 메트릭과 아틀라스 파일을 읽는 내부 보조 함수입니다. */
 namespace {
     /**
      * @brief JSON 필드가 유한한 수인지 검사하여 실수로 읽습니다.

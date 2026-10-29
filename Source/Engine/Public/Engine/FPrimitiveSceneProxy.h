@@ -83,6 +83,9 @@ public:
      */
     UMaterial* mMaterial{};
     ReflectProperty(mMaterial, "Material", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /** @brief SubMesh의 재질 인덱스로 조회하는 슬롯별 비소유 재질 주소입니다. */
+    TArray<UMaterial*> mMaterials{};
+    ReflectProperty(mMaterials, "Materials", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
     /**
      * @brief 스프라이트 전용 렌더 데이터입니다.
      */

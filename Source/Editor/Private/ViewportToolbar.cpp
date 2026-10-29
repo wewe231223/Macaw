@@ -157,6 +157,16 @@ namespace {
             if (ImGui::SliderFloat("Movement Speed", &Speed, 0.1f, 128.0f, "%.1f", ImGuiSliderFlags_Logarithmic)) {
                 Client->SetCameraSpeed(Speed);
             }
+            FEditorCameraState Camera{Client->GetPerspectiveCamera()};
+            float FieldOfView{Camera.GetFieldOfView()};
+            float NearClip{Camera.GetNearClip()};
+            float FarClip{Camera.GetFarClip()};
+            bool ProjectionChanged{ImGui::SliderFloat("FOV", &FieldOfView, 1.0f, 179.0f, "%.1f")};
+            ProjectionChanged = ImGui::InputFloat("Near Clip", &NearClip) || ProjectionChanged;
+            ProjectionChanged = ImGui::InputFloat("Far Clip", &FarClip) || ProjectionChanged;
+            if (ProjectionChanged && Camera.Set(Camera.GetLocation(), Camera.GetRotation(), FieldOfView, NearClip, FarClip)) {
+                Client->SetPerspectiveCamera(Camera);
+            }
             ImGui::EndCombo();
         }
     }

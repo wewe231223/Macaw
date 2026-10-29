@@ -11,6 +11,13 @@
 #include <numbers>
 #include <limits>
 
+/**
+ * @brief 세 정점과 면 법선 및 삼각형 인덱스를 메시 데이터에 추가합니다.
+ * @param[in,out] Mesh 정점·인덱스 데이터 또는 에디터 메시 요청입니다.
+ * @param[in] A 삼각형의 첫 정점입니다.
+ * @param[in] B 삼각형의 둘째 정점입니다.
+ * @param[in] C 삼각형의 셋째 정점입니다.
+ */
 static void AddTriangle(FMeshData* Mesh, const FVector& A, const FVector& B, const FVector& C) {
     const Uint32 Base{static_cast<Uint32>(Mesh->GetPositions().size())};
     const FVector Normal{(B - A).Cross(C - A).Normalized()};
@@ -19,6 +26,12 @@ static void AddTriangle(FMeshData* Mesh, const FVector& A, const FVector& B, con
     Mesh->GetIndices().insert(Mesh->GetIndices().end(), {Base, Base + 1, Base + 2});
 }
 
+/**
+ * @brief 경계 상자를 구성하는 삼각형들을 메시 데이터에 추가합니다.
+ * @param[in,out] Mesh 정점·인덱스 데이터 또는 에디터 메시 요청입니다.
+ * @param[in] Minimum 상자의 최소 경계입니다.
+ * @param[in] Maximum 상자의 최대 경계입니다.
+ */
 static void AddBox(FMeshData* Mesh, const FVector& Minimum, const FVector& Maximum) {
     const FMeshData* Cube{&GetPrimitiveMesh(EPrimitiveType::Cube)};
     const FVector Size{Maximum - Minimum};
@@ -28,6 +41,11 @@ static void AddBox(FMeshData* Mesh, const FVector& Minimum, const FVector& Maxim
     }
 }
 
+/**
+ * @brief 기즈모 도형 종류에 맞는 정점·인덱스와 경계를 생성합니다.
+ * @param[in] Type 생성하거나 조회할 에디터 도형입니다.
+ * @return 생성한 CPU 메시의 값입니다.
+ */
 static FMeshData BuildMesh(EEditorMesh Type) {
     FMeshData Mesh{};
     constexpr float Pi{std::numbers::pi_v<float>};
@@ -85,6 +103,11 @@ static FMeshData BuildMesh(EEditorMesh Type) {
     return Mesh;
 }
 
+/**
+ * @brief 기즈모 도형의 공유 CPU 메시 데이터를 조회합니다.
+ * @param[in] Type 생성하거나 조회할 에디터 도형입니다.
+ * @return 공유 메시의 읽기 전용 참조이며 잘못된 종류이면 빈 메시입니다.
+ */
 const FMeshData& GetEditorMesh(EEditorMesh Type) {
     if (Type >= EEditorMesh::Count) {
         static const FMeshData Empty{};

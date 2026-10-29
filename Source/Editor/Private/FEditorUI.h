@@ -13,8 +13,10 @@
 #include "Editor/Panel/FDetailsPanel.h"
 #include "Editor/Panel/FConsolePanel.h"
 #include "FEditorViewportLayout.h"
+#include "Editor/FAssetPicker.h"
 
 #include <filesystem>
+#include <optional>
 
 class FEditorContext;
 class FEditorViewport;
@@ -23,6 +25,9 @@ class IRendererModule;
 class FPlayInEditorSession;
 class UTexture2D;
 class UMaterial;
+class FMeshViewer;
+class FEditorAssetCatalog;
+class FAssetThumbnailCache;
 
 /**
  * @brief 편집 모델을 참조하여 창과 패널을 표시하고 ImGui 백엔드 수명을 관리합니다.
@@ -340,5 +345,26 @@ private:
      */
     bool mMaterialDirty{};
     ReflectProperty(mMaterialDirty, "MaterialDirty", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /** @brief 편집 월드와 분리한 정적 메시 미리보기 창입니다. */
+    std::unique_ptr<FMeshViewer> mMeshViewer{};
+    ReflectProperty(mMeshViewer, "MeshViewer", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /** @brief 브라우저와 Details가 공유하는 논리 에셋 목록입니다. */
+    std::unique_ptr<FEditorAssetCatalog> mAssetCatalog{};
+    ReflectProperty(mAssetCatalog, "AssetCatalog", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /** @brief 재질·메시 썸네일과 재질 편집 미리보기의 공유 캐시입니다. */
+    std::unique_ptr<FAssetThumbnailCache> mThumbnails{};
+    ReflectProperty(mThumbnails, "Thumbnails", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /** @brief 물리 경로에 대응하는 표시 경로입니다. */
+    TMap<std::filesystem::path, std::filesystem::path> mAssetDisplayPaths{};
+    ReflectProperty(mAssetDisplayPaths, "AssetDisplayPaths", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /** @brief 재질 에디터의 텍스처 선택기입니다. */
+    FAssetPicker mAssetPicker{};
+    ReflectProperty(mAssetPicker, "AssetPicker", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /** @brief 에셋 브라우저 검색 문자열입니다. */
+    std::array<char, 128> mContentSearch{};
+    ReflectProperty(mContentSearch, "ContentSearch", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /** @brief 선택한 에셋 종류 필터입니다. */
+    std::optional<EAssetType> mContentFilter{};
+    ReflectProperty(mContentFilter, "ContentFilter", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 
 };

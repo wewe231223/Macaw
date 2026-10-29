@@ -11,7 +11,9 @@
 
 /** @brief 장면 전체에 적용하는 메시 채우기 방식입니다. */
 enum class EViewMode : Uint8 {
+    /** @brief 재질과 기본 조명을 사용하여 면을 채웁니다. */
     Lit,
+    /** @brief 삼각형의 변을 와이어프레임으로 표시합니다. */
     Wireframe
 };
 

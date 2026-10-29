@@ -52,7 +52,15 @@ public:
      * @brief 현재 프레임의 보조 선분과 메시 목록을 비웁니다.
      */
     void Clear();
+    /**
+     * @brief 깊이 검사와 우선순위를 가진 에디터 메시 그리기 요청을 추가합니다.
+     * @param[in] Mesh 정점·인덱스 데이터 또는 에디터 메시 요청입니다.
+     */
     void DrawMesh(const FDrawMesh& Mesh);
+    /**
+     * @brief 이번 프레임의 에디터 메시 그리기 요청들을 반환합니다.
+     * @return 소유 그리기 인터페이스가 유지하는 요청 배열의 참조입니다.
+     */
     const TArray<FDrawMesh>& GetMeshes() const;
     /**
      * @brief 이번 프레임에 표시할 텍스트 요청을 수집합니다.
@@ -83,6 +91,7 @@ private:
      */
     TArray<FDrawLine> mLines{};
     ReflectProperty(mLines, "Lines", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /** @brief 현재 프레임에 표시할 에디터 메시와 피킹 의미의 목록입니다. */
     TArray<FDrawMesh> mMeshes{};
     ReflectProperty(mMeshes, "Meshes", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
     /**

@@ -460,6 +460,9 @@ bool FEditorContext::SaveScene(const std::filesystem::path& Path) {
         return false;
     }
 
+    if (mCameraProvider) {
+        mEngine->GetWorldContext(mWorld)->GetEditorCamera() = mCameraProvider();
+    }
     if (!FSceneSerializer::Save(ScenePath, mEngine->GetWorldContext(mWorld), Error)) {
         AddLog(Error);
         return false;
@@ -494,6 +497,26 @@ bool FEditorContext::ReplaceScene(std::unique_ptr<FWorldContext> Context, const 
     AssignSelection({}, {});
     mScenePath = Path;
     mDirty = false;
+    if (mCameraRestorer) {
+        mCameraRestorer(mEngine->GetWorldContext(mWorld)->GetEditorCamera());
+    }
+    return true;
+}
+
+void FEditorContext::SetCameraHandlers(std::function<FEditorCameraState()> Provider, std::function<void(const FEditorCameraState&)> Restorer) {
+    mCameraProvider = std::move(Provider);
+    mCameraRestorer = std::move(Restorer);
+}
+
+bool FEditorContext::SetMaterialOverride(FObjectHandle Handle, Uint32 Slot, const FString& Path) {
+    if (!CanEditWorld() || IsChangingState() || mEngine->IsDispatching()) {
+        return false;
+    }
+    auto* Component{Cast<UStaticMeshComponent>(ResolveObject(Handle))};
+    if (Component == nullptr || !Component->SetSlotMaterialPath(Slot, Path)) {
+        return false;
+    }
+    mDirty = true;
     return true;
 }
 
@@ -543,7 +566,8 @@ const std::filesystem::path& FEditorContext::GetScenePath() const {
 
 /** @brief 저장 후 변경되어 저장이 필요한 장면인지 검사합니다. */
 bool FEditorContext::IsSceneDirty() const {
-    return mDirty;
+    const FWorldContext* Context{mEngine != nullptr ? mEngine->GetWorldContext(mWorld) : nullptr};
+    return mDirty || (Context != nullptr && mCameraProvider && Context->GetEditorCamera() != mCameraProvider());
 }
 
 FProject* FEditorContext::GetProject() const {

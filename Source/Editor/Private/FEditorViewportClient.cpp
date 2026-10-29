@@ -341,7 +341,7 @@ void FEditorViewportClient::FocusSelection(const FVector2& Size) {
         mCameraLocation = mOrbitPivot - mCameraRotation.Vector() * 5000.0f;
         return;
     }
-    const float HalfFieldOfView{std::atan(std::tan(Math::ToRadians(30.0f)) * std::min(std::max(Size.x, 1.0f) / std::max(Size.y, 1.0f), 1.0f))};
+    const float HalfFieldOfView{std::atan(std::tan(Math::ToRadians(mFieldOfView * 0.5f)) * std::min(std::max(Size.x, 1.0f) / std::max(Size.y, 1.0f), 1.0f))};
     const float Distance{std::max(0.5f, Radius / std::sin(HalfFieldOfView) * 1.2f)};
 
     mCameraLocation = mOrbitPivot - mCameraRotation.Vector() * Distance;
@@ -443,11 +443,12 @@ FSceneView FEditorViewportClient::CalcSceneView(const FVector2& Size) const {
     View.mSize = Size;
     View.mOrthographic = mViewType != EEditorViewportType::Perspective;
     View.mOrthographicWidth = mOrthographicWidth;
+    View.mFieldOfView = mFieldOfView;
 
     View.mView = FMatrix::LookTo(mCameraLocation, View.mForward, Rotation.UpVector());
 
     const float Aspect{std::max(Size.x, 1.0f) / std::max(Size.y, 1.0f)};
-    View.mProjection = View.mOrthographic ? FMatrix::Orthographic(mOrthographicWidth, mOrthographicWidth / Aspect, 0.05f, 10000.0f) : FMatrix::Perspective(View.mFieldOfView, Aspect, 0.05f, 10000.0f);
+    View.mProjection = View.mOrthographic ? FMatrix::Orthographic(mOrthographicWidth, mOrthographicWidth / Aspect, 0.05f, 10000.0f) : FMatrix::Perspective(mFieldOfView, Aspect, mNearClip, mFarClip);
     View.mViewProjection = View.mView * View.mProjection;
 
     return View;
@@ -466,6 +467,9 @@ void FEditorViewportClient::ResetCamera() {
     mPerspectiveRotation = mCameraRotation;
     mPerspectivePivot = {};
     mOrthographicWidth = 20.0f;
+    mFieldOfView = 60.0f;
+    mNearClip = 0.05f;
+    mFarClip = 10000.0f;
     if (mViewType != EEditorViewportType::Perspective) {
         const EEditorViewportType Type{mViewType};
         mViewType = EEditorViewportType::Perspective;
@@ -560,6 +564,30 @@ const FVector& FEditorViewportClient::GetCameraLocation() const {
 
 const FRotator& FEditorViewportClient::GetCameraRotation() const {
     return mCameraRotation;
+}
+
+FEditorCameraState FEditorViewportClient::GetPerspectiveCamera() const {
+    FEditorCameraState State{};
+    State.Set(mViewType == EEditorViewportType::Perspective ? mCameraLocation : mPerspectiveLocation, mViewType == EEditorViewportType::Perspective ? mCameraRotation : mPerspectiveRotation, mFieldOfView, mNearClip, mFarClip);
+    return State;
+}
+
+bool FEditorViewportClient::SetPerspectiveCamera(const FEditorCameraState& State) {
+    if (!State.IsValid()) {
+        return false;
+    }
+    mPerspectiveLocation = State.GetLocation();
+    mPerspectiveRotation = State.GetRotation();
+    mPerspectivePivot = mPerspectiveLocation + mPerspectiveRotation.Vector() * 10.0f;
+    mFieldOfView = State.GetFieldOfView();
+    mNearClip = State.GetNearClip();
+    mFarClip = State.GetFarClip();
+    if (mViewType == EEditorViewportType::Perspective) {
+        mCameraLocation = mPerspectiveLocation;
+        mCameraRotation = mPerspectiveRotation;
+        mOrbitPivot = mPerspectivePivot;
+    }
+    return true;
 }
 
 /**

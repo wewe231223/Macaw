@@ -62,11 +62,32 @@ void FMeshData::SetBounds(const FBox& Bounds) {
     mBounds = Bounds;
 }
 
+TArray<FSubMesh>& FMeshData::GetSubMeshes() {
+    return mSubMeshes;
+}
+
+const TArray<FSubMesh>& FMeshData::GetSubMeshes() const {
+    return mSubMeshes;
+}
+
+TArray<FMeshMaterialSlot>& FMeshData::GetMaterialSlots() {
+    return mMaterialSlots;
+}
+
+const TArray<FMeshMaterialSlot>& FMeshData::GetMaterialSlots() const {
+    return mMaterialSlots;
+}
+
 std::size_t FMeshData::GetAllocatedBytes() const {
     std::size_t Bytes{mPositions.capacity() * sizeof(FVector) + mNormals.capacity() * sizeof(FVector) + mTangents.capacity() * sizeof(FVector4) + mUVChannels.capacity() * sizeof(TArray<FVector2>) + mColors.capacity() * sizeof(FVector4) + mIndices.capacity() * sizeof(Uint32)};
 
     for (const TArray<FVector2>& Channel : mUVChannels) {
         Bytes += Channel.capacity() * sizeof(FVector2);
+    }
+
+    Bytes += mSubMeshes.capacity() * sizeof(FSubMesh) + mMaterialSlots.capacity() * sizeof(FMeshMaterialSlot);
+    for (const FMeshMaterialSlot& Slot : mMaterialSlots) {
+        Bytes += Slot.GetName().capacity() + Slot.GetMaterialPath().capacity();
     }
 
     return Bytes;

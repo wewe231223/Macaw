@@ -99,3 +99,25 @@ UObject* FObjectRegistry::FindObject(const FName& Name, const UObject* Outer) co
     }
     return nullptr;
 }
+
+TArray<FObjectHandle> FObjectRegistry::GetObjects(const UClass* Class, const UObject* Outer, bool IncludeDerived) const {
+    TArray<FObjectHandle> Objects{};
+    if (Class == nullptr) {
+        return Objects;
+    }
+    Objects.reserve(mObjectCount);
+    for (const FSlot& Slot : mSlots) {
+        const UObject* Object{Slot.mObject};
+        if (Object == nullptr || (IncludeDerived ? !Object->IsA(Class) : Object->GetClass() != Class)) {
+            continue;
+        }
+        const UObject* Parent{Object->GetOuter()};
+        while (Parent != nullptr && Parent != Outer) {
+            Parent = Parent->GetOuter();
+        }
+        if (Outer == nullptr || Parent == Outer) {
+            Objects.push_back(Object->GetHandle());
+        }
+    }
+    return Objects;
+}

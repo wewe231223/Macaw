@@ -52,6 +52,14 @@ namespace {
         return Axis.Cross(std::abs(Axis.z) < 0.8f ? FVector{0.0f, 0.0f, 1.0f} : FVector{0.0f, 1.0f, 0.0f}).Normalized();
     }
 
+    /**
+     * @brief 세 기저 축과 원점으로 변환 행렬을 구성합니다.
+     * @param[in] X 행렬의 X 기저 축입니다.
+     * @param[in] Y 행렬의 Y 기저 축입니다.
+     * @param[in] Z 행렬의 Z 기저 축입니다.
+     * @param[in] Position 기저 행렬의 월드 원점입니다.
+     * @return 기저 축과 평행이동을 반영한 행렬입니다.
+     */
     FMatrix Basis(const FVector& X, const FVector& Y, const FVector& Z, const FVector& Position) {
         FMatrix Result{FMatrix::Identity()};
         const std::array<FVector, 4> Rows{X, Y, Z, Position};
@@ -63,10 +71,23 @@ namespace {
         return Result;
     }
 
+    /**
+     * @brief 기즈모 핸들이 주어진 로컬 축에 영향을 주는지 검사합니다.
+     * @param[in] Handle 검사할 기즈모 핸들 또는 객체의 식별자입니다.
+     * @param[in] Axis 검사할 축의 인덱스입니다.
+     * @return 조건을 만족하거나 변경을 적용하면 true입니다.
+     */
     bool Affects(Int32 Handle, Int32 Axis) {
         return Handle == Axis || (Handle == 3 && Axis != 2) || (Handle == 4 && Axis != 1) || (Handle == 5 && Axis != 0);
     }
 
+    /**
+     * @brief 스냅이 켜져 있고 간격이 유효하면 값을 가장 가까운 배수로 반올림합니다.
+     * @param[in] Value 스냅을 적용할 값입니다.
+     * @param[in] Step 스냅 간격입니다.
+     * @param[in] Enabled 스냅을 활성화할지 여부입니다.
+     * @return 유효한 스냅을 적용한 값 또는 원본 값입니다.
+     */
     float Snap(float Value, float Step, bool Enabled) {
         return Enabled && std::isfinite(Step) && Step > 0.0f ? std::round(Value / Step) * Step : Value;
     }

@@ -99,6 +99,14 @@ public:
      * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며 사용할 수 없으면 nullptr입니다.
      */
     UMaterial* GetMaterial() const;
+    /** @brief 슬롯별 유효 재질을 조회합니다. @param Slot 재질 슬롯 번호입니다. @return 오버라이드 또는 메시 기본 재질의 비소유 주소입니다. */
+    UMaterial* GetSlotMaterial(Uint32 Slot) const;
+    /** @brief 슬롯 오버라이드 경로를 조회합니다. @param Slot 재질 슬롯 번호입니다. @return 오버라이드 경로 또는 빈 문자열입니다. */
+    const FString& GetSlotMaterialPath(Uint32 Slot) const;
+    /** @brief 슬롯 재질을 교체합니다. @param Slot 재질 슬롯 번호입니다. @param Path Content 기준 재질 경로이며 빈 경로는 메시 기본값입니다. @return 유효한 재질을 할당하면 true입니다. */
+    bool SetSlotMaterialPath(Uint32 Slot, const FString& Path);
+    /** @brief 리플렉션 프로퍼티와 슬롯별 재질 오버라이드를 직렬화합니다. @param Archive 저장 또는 복원할 아카이브입니다. */
+    void Serialize(FArchive& Archive) override;
     /**
      * @brief 저장된 머티리얼 경로를 에셋 관리자에서 해석하고 렌더 상태를 갱신합니다.
      * @return 검증 또는 요청한 처리에 성공하면 true입니다.
@@ -156,4 +164,7 @@ private:
      */
     UMaterial* mMaterial{};
     ReflectProperty(mMaterial, "ResolvedMaterial", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /** @brief 재질 슬롯별 Content 기준 오버라이드 경로입니다. */
+    TArray<FString> mMaterialOverrides{};
+    ReflectProperty(mMaterialOverrides, "MaterialOverrides", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 };

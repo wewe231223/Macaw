@@ -171,57 +171,39 @@ public:
     bool mFast{};
     ReflectProperty(mFast, "Fast", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 
-    /**
-     * @brief 이번 프레임에 가운데 마우스 버튼을 눌렀는지 여부이며 이동 기즈모의 피벗 드래그를 시작할 때 사용합니다.
-     */
+    /** @brief 현재 프레임에 가운데 마우스 버튼을 누른 상태입니다. */
     bool mMiddlePressed{};
     ReflectProperty(mMiddlePressed, "MiddlePressed", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 
-    /**
-     * @brief 이번 프레임에 가운데 마우스 버튼을 놓았는지 여부이며 피벗 드래그의 마지막 위치를 적용하고 종료할 때 사용합니다.
-     */
+    /** @brief 현재 프레임에 가운데 마우스 버튼을 놓은 상태입니다. */
     bool mMiddleReleased{};
     ReflectProperty(mMiddleReleased, "MiddleReleased", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 
-    /**
-     * @brief Ctrl 키가 눌려 있는 상태이며 물체 클릭 시 다중 선택을 전환할 때 사용합니다.
-     */
+    /** @brief Ctrl 키가 눌려 다중 선택을 요청하는 상태입니다. */
     bool mControl{};
     ReflectProperty(mControl, "Control", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 
-    /**
-     * @brief 이번 프레임에 W 키를 눌러 이동 기즈모 모드로 전환하는 요청이며 카메라 비행 중에는 처리하지 않습니다.
-     */
+    /** @brief W 키로 이동 모드를 요청한 상태입니다. */
     bool mTranslateMode{};
     ReflectProperty(mTranslateMode, "TranslateMode", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 
-    /**
-     * @brief 이번 프레임에 E 키를 눌러 회전 기즈모 모드로 전환하는 요청이며 카메라 비행 중에는 처리하지 않습니다.
-     */
+    /** @brief E 키로 회전 모드를 요청한 상태입니다. */
     bool mRotateMode{};
     ReflectProperty(mRotateMode, "RotateMode", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 
-    /**
-     * @brief 이번 프레임에 R 키를 눌러 스케일 기즈모 모드로 전환하는 요청입니다.
-     */
+    /** @brief R 키로 스케일 모드를 요청한 상태입니다. */
     bool mScaleMode{};
     ReflectProperty(mScaleMode, "ScaleMode", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 
-    /**
-     * @brief 이번 프레임에 Q 키를 눌러 기즈모를 숨기는 선택 전용 모드로 전환하는 요청이며 카메라 비행 중에는 처리하지 않습니다.
-     */
+    /** @brief Q 키로 선택 전용 모드를 요청한 상태입니다. */
     bool mSelectMode{};
     ReflectProperty(mSelectMode, "SelectMode", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 
-    /**
-     * @brief 이번 프레임에 Tab 키를 눌러 기즈모의 월드·로컬 좌표계 전환을 요청한 상태입니다.
-     */
+    /** @brief Tab 키로 월드와 로컬 좌표계 전환을 요청한 상태입니다. */
     bool mToggleSpace{};
     ReflectProperty(mToggleSpace, "ToggleSpace", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 
-    /**
-     * @brief 이번 프레임에 X 키를 눌러 현재 변환 모드의 스냅 사용 여부 전환을 요청한 상태입니다.
-     */
+    /** @brief X 키로 현재 변환 모드의 스냅 전환을 요청한 상태입니다. */
     bool mToggleSnap{};
     ReflectProperty(mToggleSnap, "ToggleSnap", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 

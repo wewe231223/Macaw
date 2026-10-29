@@ -12,6 +12,7 @@
 #include <locale>
 #include <sstream>
 
+/** @brief MTL 한 줄의 문자열 값을 해석하는 내부 보조 함수입니다. */
 namespace {
     /** @brief 남은 행의 공백과 선택적인 인용부호를 제거합니다. @param[in,out] Input 현재 MTL 행의 입력 스트림입니다. @return 남아 있는 필드 문자열입니다. */
     FString ReadRemainder(std::istream& Input) {

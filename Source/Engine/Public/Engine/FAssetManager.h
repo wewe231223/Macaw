@@ -56,6 +56,8 @@ public:
      * @return 객체가 보유한 데이터의 참조이며 소유 객체의 수명 동안 유효합니다.
      */
     const std::filesystem::path& GetContentRoot() const;
+    /** @brief 이 관리자가 보유한 메시의 경로를 조회합니다. @param Mesh 조회할 메시의 비소유 주소입니다. @return Content 기준 경로이며 관리하지 않는 메시이면 빈 문자열입니다. */
+    FString GetMeshPath(const UStaticMesh* Mesh) const;
     /**
      * @brief 콘텐츠 폴더를 벗어나는 경로를 거부하고 정규화된 절대 경로를 반환합니다.
      * @param[in] Path 조회·로드·저장 또는 정규화할 파일 경로입니다.

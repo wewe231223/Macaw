@@ -67,3 +67,11 @@ void FWorldContext::SetHandle(FWorldHandle Handle) {
     mHandle = Handle;
     mWorld->mWorldHandle = Handle;
 }
+
+FEditorCameraState& FWorldContext::GetEditorCamera() {
+    return mEditorCamera;
+}
+
+const FEditorCameraState& FWorldContext::GetEditorCamera() const {
+    return mEditorCamera;
+}

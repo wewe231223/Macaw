@@ -10,6 +10,7 @@
 #include "CoreUObject/FObjectHandle.h"
 #include "CoreUObject/Reflection/FPropertyValue.h"
 #include "Engine/FWorldHandle.h"
+#include "Engine/FEditorCameraState.h"
 
 #include <filesystem>
 #include <functional>
@@ -116,11 +117,37 @@ public:
     void ClearSelection();
     /** @brief 선택한 액터를 검증하여 조회합니다. @return 살아 있는 선택 액터의 비소유 주소이며 선택이 없으면 nullptr입니다. */
     AActor* GetSelectedActor() const;
+    /**
+     * @brief 아직 살아 있는 선택 액터들의 세대 핸들을 수집합니다.
+     * @return 대상 객체들의 세대 핸들을 담은 배열입니다.
+     */
     TArray<FObjectHandle> GetSelectedActors() const;
+    /**
+     * @brief 선택 컴포넌트 또는 선택 액터들의 루트 변환 대상을 수집합니다.
+     * @return 대상 객체들의 세대 핸들을 담은 배열입니다.
+     */
     TArray<FObjectHandle> GetTransformTargets() const;
+    /**
+     * @brief 유효한 액터 핸들들로 현재 다중 선택을 교체합니다.
+     * @param[in] Actors 선택하거나 복제할 액터들의 세대 핸들입니다.
+     * @return 조건을 만족하거나 변경을 적용하면 true입니다.
+     */
     bool SetSelectedActors(const TArray<FObjectHandle>& Actors);
+    /**
+     * @brief 지정 액터의 다중 선택 포함 상태를 반전합니다.
+     * @param[in] Actor 선택 상태를 반전할 액터의 핸들입니다.
+     * @return 조건을 만족하거나 변경을 적용하면 true입니다.
+     */
     bool ToggleActorSelection(FObjectHandle Actor);
+    /**
+     * @brief 선택 대상 변경을 추적할 개정 번호를 반환합니다.
+     * @return 단조 증가하는 선택 개정 번호입니다.
+     */
     Uint64 GetSelectionRevision() const;
+    /**
+     * @brief 현재 선택 액터들을 새 GUID로 복제하고 복제본들을 선택합니다.
+     * @return 대상 객체들의 세대 핸들을 담은 배열입니다.
+     */
     TArray<FObjectHandle> DuplicateSelectedActors();
 
     /** @brief 현재 프로퍼티 편집 대상을 조회합니다. @return 선택 객체의 비소유 주소이며 선택이 없으면 nullptr입니다. */
@@ -214,6 +241,10 @@ public:
     void SetViewportCommandHandler(std::function<bool(const FString&, FString&)> Handler);
     /** @brief 새 액터의 배치 변환을 제공하는 경로를 연결합니다. @param[in] Provider 뷰포트 카메라 등에 따른 배치 변환 제공자이며 비어 있으면 기본 변환을 사용합니다. */
     void SetPlacementProvider(std::function<FTransform()> Provider);
+    /** @brief 장면 저장·복원에 사용할 원근 카메라 콜백을 연결합니다. @param Provider 현재 원근 카메라를 반환합니다. @param Restorer 읽은 카메라를 적용합니다. */
+    void SetCameraHandlers(std::function<FEditorCameraState()> Provider, std::function<void(const FEditorCameraState&)> Restorer);
+    /** @brief 슬롯 재질을 변경하고 장면을 수정 상태로 표시합니다. @param Handle 대상 정적 메시 컴포넌트입니다. @param Slot 재질 슬롯 번호입니다. @param Path Content 기준 재질 경로입니다. @return 변경을 적용하면 true입니다. */
+    bool SetMaterialOverride(FObjectHandle Handle, Uint32 Slot, const FString& Path);
 
 private:
     /**
@@ -287,11 +318,10 @@ private:
      */
     std::function<bool(const FString&, FString&)> mViewportCommandHandler{};
     ReflectProperty(mViewportCommandHandler, "ViewportCommandHandler", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
-    /**
-     * @brief 선택한 액터의 세대 핸들 목록이며 마지막 유효 항목이 대표 액터입니다.
-     */
+    /** @brief 마지막 항목을 주 대상으로 사용하는 편집 월드의 액터 선택 집합입니다. */
     TArray<FObjectHandle> mSelectedActors{};
     ReflectProperty(mSelectedActors, "SelectedActors", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /** @brief 선택 변경을 감지하거나 드래그 시작 시 선택을 검증하는 세대 값입니다. */
     Uint64 mSelectionRevision{};
     ReflectProperty(mSelectionRevision, "SelectionRevision", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
     /**
@@ -299,4 +329,10 @@ private:
      */
     std::function<void(const std::filesystem::path&, bool)> mProjectRequestHandler{};
     ReflectProperty(mProjectRequestHandler, "ProjectRequestHandler", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /** @brief 저장할 원근 편집 카메라의 조회 함수입니다. */
+    std::function<FEditorCameraState()> mCameraProvider{};
+    ReflectProperty(mCameraProvider, "CameraProvider", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /** @brief 장면 교체 후 원근 카메라를 적용하는 함수입니다. */
+    std::function<void(const FEditorCameraState&)> mCameraRestorer{};
+    ReflectProperty(mCameraRestorer, "CameraRestorer", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 };

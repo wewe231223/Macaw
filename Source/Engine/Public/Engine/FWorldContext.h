@@ -9,6 +9,7 @@
 #include "Core/ReflectionMacros.h"
 #include "Engine/EWorldType.h"
 #include "Engine/FWorldHandle.h"
+#include "Engine/FEditorCameraState.h"
 
 class UWorld;
 class UEngine;
@@ -54,6 +55,10 @@ public:
      * @return 엔진 등록 전에는 무효인 비소유 핸들입니다.
      */
     FWorldHandle GetHandle() const;
+    /** @brief 장면의 편집 카메라 상태를 반환합니다. @return 수정 가능한 원근 카메라 상태입니다. */
+    FEditorCameraState& GetEditorCamera();
+    /** @brief 장면의 편집 카메라 상태를 반환합니다. @return 읽기 전용 원근 카메라 상태입니다. */
+    const FEditorCameraState& GetEditorCamera() const;
 
 private:
     /**
@@ -78,4 +83,7 @@ private:
      */
     FWorldHandle mHandle{};
     ReflectProperty(mHandle, "Handle", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /** @brief 장면 파일에 저장하는 원근 편집 카메라입니다. */
+    FEditorCameraState mEditorCamera{};
+    ReflectProperty(mEditorCamera, "EditorCamera", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 };

@@ -13,6 +13,7 @@
 #include "Editor/EEditorViewportType.h"
 #include "Engine/EViewMode.h"
 #include "Engine/FEngineShowFlags.h"
+#include "Engine/FEditorCameraState.h"
 
 #include <array>
 #include <filesystem>
@@ -163,6 +164,10 @@ public:
      * @return 객체가 보유한 데이터의 참조이며 소유 객체의 수명 동안 유효합니다.
      */
     const FRotator& GetCameraRotation() const;
+    /** @brief 정사영 전환 중에도 보관한 원근 카메라를 반환합니다. @return 장면 저장에 사용할 원근 카메라입니다. */
+    FEditorCameraState GetPerspectiveCamera() const;
+    /** @brief 원근 카메라를 복원합니다. @param State 검증하여 복원할 카메라입니다. @return 유효한 상태를 적용하면 true입니다. */
+    bool SetPerspectiveCamera(const FEditorCameraState& State);
 
     /**
      * @brief 뷰포트 변환 편집 기즈모를 반환합니다.
@@ -394,6 +399,15 @@ private:
      */
     float mOrthographicWidth{20.0f};
     ReflectProperty(mOrthographicWidth, "OrthographicWidth", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /** @brief 원근 카메라의 수직 시야각입니다. */
+    float mFieldOfView{60.0f};
+    ReflectProperty(mFieldOfView, "FieldOfView", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /** @brief 원근 투영의 근평면 거리입니다. */
+    float mNearClip{0.05f};
+    ReflectProperty(mNearClip, "NearClip", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /** @brief 원근 투영의 원평면 거리입니다. */
+    float mFarClip{10000.0f};
+    ReflectProperty(mFarClip, "FarClip", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 
     /**
      * @brief 클라이언트가 소유하며 기즈모와 UI가 함께 조회하는 변환 모드입니다.

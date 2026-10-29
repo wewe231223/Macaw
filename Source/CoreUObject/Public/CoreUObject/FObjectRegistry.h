@@ -13,6 +13,7 @@
 #include "CoreUObject/FObjectHandle.h"
 
 class UObject;
+class UClass;
 
 /**
  * @brief 프로세스 전역 객체 등록과 슬롯 세대 검사를 통한 핸들 해석을 담당합니다.
@@ -115,6 +116,15 @@ public:
      * @return 현재 레지스트리에 등록된 객체 개수입니다.
      */
     std::size_t GetObjectCount() const;
+    /**
+     * @brief 타입과 Outer 범위에 일치하는 객체의 세대 핸들을 스냅샷으로 수집합니다.
+     * @param Class 순회할 기준 클래스입니다.
+     * @param Outer 하위 객체를 포함할 Outer이며 nullptr이면 전체 레지스트리입니다.
+     * @param IncludeDerived 파생 클래스도 포함할지 여부입니다.
+     * @return 등록 순서의 비소유 핸들 배열입니다. 이후 생성된 객체는 포함하지 않습니다.
+     * @note 객체 생성·소멸과 마찬가지로 레지스트리 소유 스레드에서 사용합니다.
+     */
+    TArray<FObjectHandle> GetObjects(const UClass* Class, const UObject* Outer = nullptr, bool IncludeDerived = true) const;
 
 private:
     /**

@@ -16,6 +16,9 @@ class FEditorContext;
 class FEditorViewport;
 class FPlayInEditorSession;
 class IRendererModule;
+struct ImGuiContext;
+struct ImGuiSettingsHandler;
+struct ImGuiTextBuffer;
 
 /** @brief 활성 뷰와 입력 캡처를 유지하며 단일·4분할 뷰를 배치합니다. */
 class FEditorViewportLayout {
@@ -89,6 +92,12 @@ public:
      * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며 사용할 수 없으면 nullptr입니다.
      */
     FEditorViewport* GetActiveViewport() const;
+    /** @brief 분할 비율을 반환합니다. @return 가로 분할 위치의 비율입니다. */
+    float GetHorizontalRatio() const;
+    /** @brief 분할 비율을 반환합니다. @return 세로 분할 위치의 비율입니다. */
+    float GetVerticalRatio() const;
+    /** @brief 유효한 분할 비율을 적용합니다. @param Horizontal 가로 비율입니다. @param Vertical 세로 비율입니다. @return 두 비율이 유효하면 true입니다. */
+    bool SetSplitRatios(float Horizontal, float Vertical);
 
 private:
     ReflectMembers();
@@ -109,6 +118,12 @@ private:
      * @param[in,out] CapturedViewport 입력을 캡처한 뷰포트의 비소유 주소입니다.
      */
     void DrawViewport(Uint32 Index, float DeltaTime, FEditorViewport*& CapturedViewport);
+    /** @brief INI 레이아웃 섹션을 엽니다. @param Context ImGui 컨텍스트입니다. @param Handler 등록한 설정 핸들러입니다. @param Name 섹션 이름입니다. @return 일치하는 레이아웃 주소 또는 nullptr입니다. */
+    static void* ReadSettingsOpen(ImGuiContext* Context, ImGuiSettingsHandler* Handler, const char* Name);
+    /** @brief 검증한 INI 레이아웃 값을 읽습니다. @param Context ImGui 컨텍스트입니다. @param Handler 등록한 설정 핸들러입니다. @param Entry 레이아웃 주소입니다. @param Line 읽을 설정 한 줄입니다. */
+    static void ReadSettingsLine(ImGuiContext* Context, ImGuiSettingsHandler* Handler, void* Entry, const char* Line);
+    /** @brief 분할 비율과 뷰 모드를 INI에 씁니다. @param Context ImGui 컨텍스트입니다. @param Handler 등록한 설정 핸들러입니다. @param Buffer 출력할 INI 버퍼입니다. */
+    static void WriteSettings(ImGuiContext* Context, ImGuiSettingsHandler* Handler, ImGuiTextBuffer* Buffer);
 
 private:
     /**

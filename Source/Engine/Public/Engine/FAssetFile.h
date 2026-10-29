@@ -29,6 +29,7 @@ enum class EAssetType : Uint32 {
      * @brief 픽셀 데이터와 텍스처 설정을 저장하는 이미지 에셋입니다.
      */
     Texture,
+    /** @brief 셰이더·기본색과 텍스처 참조를 가진 재질 에셋입니다. */
     Material
 };
 

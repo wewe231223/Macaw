@@ -28,6 +28,11 @@ UEditorEngine::UEditorEngine()
     mContext.SetViewportCommandHandler([this](const FString& Command, FString& Output) {
         return mUI->GetActiveViewport()->GetStatistics()->ExecuteCommand(Command, Output);
     });
+    mContext.SetCameraHandlers([this]() {
+        return mViewport.GetClient()->GetPerspectiveCamera();
+    }, [this](const FEditorCameraState& State) {
+        mViewport.GetClient()->SetPerspectiveCamera(State);
+    });
 }
 
 /**

@@ -14,6 +14,9 @@
 #include <imgui.h>
 #include <imgui_internal.h>
 #include <algorithm>
+#include <cmath>
+#include <cstdio>
+#include <cstring>
 
 FEditorViewportLayout::FEditorViewportLayout(FEditorContext* Context, FEditorViewport* Viewport, FPlayInEditorSession* PlaySession)
 	: mContext{Context},
@@ -38,10 +41,26 @@ bool FEditorViewportLayout::Initialize(IRendererModule* Renderer) {
             return false;
         }
     }
+    if (ImGui::GetCurrentContext() != nullptr) {
+        ImGuiSettingsHandler Handler{};
+        Handler.TypeName = "MacawViewport";
+        Handler.TypeHash = ImHashStr(Handler.TypeName);
+        Handler.UserData = this;
+        Handler.ReadOpenFn = ReadSettingsOpen;
+        Handler.ReadLineFn = ReadSettingsLine;
+        Handler.WriteAllFn = WriteSettings;
+        ImGui::AddSettingsHandler(&Handler);
+    }
     return true;
 }
 
 void FEditorViewportLayout::Shutdown() {
+    if (ImGui::GetCurrentContext() != nullptr) {
+        ImGuiSettingsHandler* Handler{ImGui::FindSettingsHandler("MacawViewport")};
+        if (Handler != nullptr && Handler->UserData == this) {
+            ImGui::RemoveSettingsHandler("MacawViewport");
+        }
+    }
     for (auto& Viewport : mOrthographicViewports) {
         Viewport.reset();
     }
@@ -89,6 +108,9 @@ void FEditorViewportLayout::SetQuadView(bool QuadView) {
     }
     mSingleViewport = mActiveViewport;
     mQuadView = QuadView;
+    if (ImGui::GetCurrentContext() != nullptr) {
+        ImGui::MarkIniSettingsDirty();
+    }
 }
 
 bool FEditorViewportLayout::IsQuadView() const {
@@ -173,15 +195,16 @@ void FEditorViewportLayout::DrawUI(float DeltaTime) {
             const bool CanResize{CapturedViewport == nullptr};
             ImGui::BeginDisabled(!CanResize);
             ImGui::SetCursorScreenPos({Origin.x + Left, Origin.y});
-            ImGui::SplitterBehavior(ImRect{{Origin.x + Left, Origin.y}, {Origin.x + Left + SplitterSize, Origin.y + Available.y}}, ImGui::GetID("ViewportVerticalSplitter"), ImGuiAxis_X, &Left, &Right, MinimumWidth, MinimumWidth);
+            const bool HorizontalChanged{ImGui::SplitterBehavior(ImRect{{Origin.x + Left, Origin.y}, {Origin.x + Left + SplitterSize, Origin.y + Available.y}}, ImGui::GetID("ViewportVerticalSplitter"), ImGuiAxis_X, &Left, &Right, MinimumWidth, MinimumWidth)};
             ImGui::EndDisabled();
-            mHorizontalRatio = Left / Size.x;
             ImGui::BeginDisabled(!CanResize);
             ImGui::SetCursorScreenPos({Origin.x, Origin.y + Top});
             float Bottom{Size.y - Top};
-            ImGui::SplitterBehavior(ImRect{{Origin.x, Origin.y + Top}, {Origin.x + Available.x, Origin.y + Top + SplitterSize}}, ImGui::GetID("ViewportHorizontalSplitter"), ImGuiAxis_Y, &Top, &Bottom, MinimumHeight, MinimumHeight);
+            const bool VerticalChanged{ImGui::SplitterBehavior(ImRect{{Origin.x, Origin.y + Top}, {Origin.x + Available.x, Origin.y + Top + SplitterSize}}, ImGui::GetID("ViewportHorizontalSplitter"), ImGuiAxis_Y, &Top, &Bottom, MinimumHeight, MinimumHeight)};
             ImGui::EndDisabled();
-            mVerticalRatio = Top / Size.y;
+            if (HorizontalChanged || VerticalChanged) {
+                SetSplitRatios(HorizontalChanged ? Left / Size.x : mHorizontalRatio, VerticalChanged ? Top / Size.y : mVerticalRatio);
+            }
 
             const std::array<ImVec2, 4> Positions{{Origin, {Origin.x + Left + SplitterSize, Origin.y}, {Origin.x, Origin.y + Top + SplitterSize}, {Origin.x + Left + SplitterSize, Origin.y + Top + SplitterSize}}};
             const std::array<ImVec2, 4> Sizes{{{Left, Top}, {Size.x - Left, Top}, {Left, Size.y - Top}, {Size.x - Left, Size.y - Top}}};
@@ -222,4 +245,51 @@ void FEditorViewportLayout::Draw(float DeltaTime) {
             GetViewport(Index)->DrawStatistics(DeltaTime, Inspection->GetWorld(), mContext->GetRenderer()->GetStats());
         }
     }
+}
+
+float FEditorViewportLayout::GetHorizontalRatio() const {
+    return mHorizontalRatio;
+}
+
+float FEditorViewportLayout::GetVerticalRatio() const {
+    return mVerticalRatio;
+}
+
+bool FEditorViewportLayout::SetSplitRatios(float Horizontal, float Vertical) {
+    if (!std::isfinite(Horizontal) || !std::isfinite(Vertical) || Horizontal < 0.01f || Horizontal > 0.99f || Vertical < 0.01f || Vertical > 0.99f) {
+        return false;
+    }
+    if (mHorizontalRatio != Horizontal || mVerticalRatio != Vertical) {
+        mHorizontalRatio = Horizontal;
+        mVerticalRatio = Vertical;
+        if (ImGui::GetCurrentContext() != nullptr) {
+            ImGui::MarkIniSettingsDirty();
+        }
+    }
+    return true;
+}
+
+void* FEditorViewportLayout::ReadSettingsOpen(ImGuiContext*, ImGuiSettingsHandler* Handler, const char* Name) {
+    return std::strcmp(Name, "Layout") == 0 ? Handler->UserData : nullptr;
+}
+
+void FEditorViewportLayout::ReadSettingsLine(ImGuiContext*, ImGuiSettingsHandler*, void* Entry, const char* Line) {
+    auto* Layout{static_cast<FEditorViewportLayout*>(Entry)};
+    float Ratio{};
+    int Value{};
+    if (sscanf_s(Line, "HorizontalRatio=%f", &Ratio) == 1) {
+        Layout->SetSplitRatios(Ratio, Layout->mVerticalRatio);
+    } else if (sscanf_s(Line, "VerticalRatio=%f", &Ratio) == 1) {
+        Layout->SetSplitRatios(Layout->mHorizontalRatio, Ratio);
+    } else if (sscanf_s(Line, "QuadView=%d", &Value) == 1 && (Value == 0 || Value == 1)) {
+        Layout->mQuadView = Value != 0;
+    } else if (sscanf_s(Line, "SingleViewport=%d", &Value) == 1 && Value >= 0 && Value < 4) {
+        Layout->mSingleViewport = static_cast<Uint32>(Value);
+        Layout->mActiveViewport = Layout->mSingleViewport;
+    }
+}
+
+void FEditorViewportLayout::WriteSettings(ImGuiContext*, ImGuiSettingsHandler* Handler, ImGuiTextBuffer* Buffer) {
+    const auto* Layout{static_cast<const FEditorViewportLayout*>(Handler->UserData)};
+    Buffer->appendf("[MacawViewport][Layout]\nHorizontalRatio=%.9g\nVerticalRatio=%.9g\nQuadView=%d\nSingleViewport=%u\n\n", Layout->mHorizontalRatio, Layout->mVerticalRatio, Layout->mQuadView ? 1 : 0, Layout->mSingleViewport);
 }

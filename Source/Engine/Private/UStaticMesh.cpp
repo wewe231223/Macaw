@@ -12,6 +12,7 @@
 #include <assimp/config.h>
 #include <assimp/postprocess.h>
 #include <assimp/scene.h>
+#include <assimp/material.h>
 #include <cmath>
 #include <limits>
 #include <string>
@@ -97,9 +98,16 @@ bool UStaticMesh::LoadFromFile(const std::filesystem::path& MeshPath) {
         Channel.reserve(VertexCount);
     }
 
+    for (Uint32 MaterialIndex{}; MaterialIndex < Scene->mNumMaterials; ++MaterialIndex) {
+        aiString Name{};
+        Scene->mMaterials[MaterialIndex]->Get(AI_MATKEY_NAME, Name);
+        MeshData.GetMaterialSlots().emplace_back(Name.C_Str(), FString{});
+    }
+
     for (Uint32 MeshIndex{}; MeshIndex < Scene->mNumMeshes; ++MeshIndex) {
         const aiMesh& SourceMesh{*Scene->mMeshes[MeshIndex]};
         const Uint32 BaseVertex{static_cast<Uint32>(Positions.size())};
+        const Uint32 FirstIndex{static_cast<Uint32>(Indices.size())};
 
         for (Uint32 VertexIndex{}; VertexIndex < SourceMesh.mNumVertices; ++VertexIndex) {
             const aiVector3D& Position{SourceMesh.mVertices[VertexIndex]};
@@ -151,6 +159,7 @@ bool UStaticMesh::LoadFromFile(const std::filesystem::path& MeshPath) {
                 Indices.push_back(BaseVertex + Face.mIndices[Corner]);
             }
         }
+        MeshData.GetSubMeshes().emplace_back(FirstIndex, static_cast<Uint32>(SourceMesh.mNumFaces * 3), SourceMesh.mMaterialIndex);
     }
 
     return SetMeshData(std::move(MeshData));
@@ -217,6 +226,33 @@ bool UStaticMesh::SetMeshData(FMeshData MeshData) {
         Maximum = Maximum.Max(Position);
     }
 
+    if (MeshData.GetMaterialSlots().empty()) {
+        MeshData.GetMaterialSlots().emplace_back("Default", FString{});
+    }
+    if (MeshData.GetSubMeshes().empty()) {
+        MeshData.GetSubMeshes().emplace_back(0, static_cast<Uint32>(MeshData.GetIndices().size()), 0);
+    }
+    Uint32 NextIndex{};
+    for (const FSubMesh& SubMesh : MeshData.GetSubMeshes()) {
+        if (SubMesh.GetFirstIndex() != NextIndex || SubMesh.GetIndexCount() == 0 || SubMesh.GetIndexCount() % 3 != 0 || SubMesh.GetIndexCount() > MeshData.GetIndices().size() - NextIndex || SubMesh.GetMaterialIndex() >= MeshData.GetMaterialSlots().size()) {
+            return false;
+        }
+        NextIndex += SubMesh.GetIndexCount();
+    }
+    if (NextIndex != MeshData.GetIndices().size()) {
+        return false;
+    }
+    for (const FMeshMaterialSlot& Slot : MeshData.GetMaterialSlots()) {
+        const std::filesystem::path Path{FilePath::FromUtf8(Slot.GetMaterialPath())};
+        if (Slot.GetMaterialPath().find('\0') != FString::npos || (!Path.empty() && (Path.has_root_path() || Path.extension() != L".mtl"))) {
+            return false;
+        }
+        for (const auto& Part : Path) {
+            if (Part == L"..") {
+                return false;
+            }
+        }
+    }
     MeshData.SetBounds({Minimum, Maximum});
     mMeshData = std::move(MeshData);
     ReleaseResources();

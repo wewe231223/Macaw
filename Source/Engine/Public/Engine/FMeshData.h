@@ -10,6 +10,8 @@
 #include "Core/Math/FBox.h"
 #include "Core/Math/FVector2.h"
 #include "Core/Math/FVector4.h"
+#include "Engine/FSubMesh.h"
+#include "Engine/FMeshMaterialSlot.h"
 
 /**
  * @brief CPU 메시의 위치·법선 정점, 인덱스와 로컬 경계 상자입니다.
@@ -94,6 +96,15 @@ public:
      * @return 객체가 보유한 데이터의 참조이며 소유 객체의 수명 동안 유효합니다.
      */
     const FBox& GetBounds() const;
+    /** @brief 재질별 인덱스 구간을 반환합니다. @return 수정 가능한 SubMesh 배열입니다. */
+    TArray<FSubMesh>& GetSubMeshes();
+    /** @brief 재질별 인덱스 구간을 반환합니다. @return 읽기 전용 SubMesh 배열입니다. */
+    const TArray<FSubMesh>& GetSubMeshes() const;
+
+    /** @brief 재질 슬롯을 반환합니다. @return 수정 가능한 재질 슬롯 배열입니다. */
+    TArray<FMeshMaterialSlot>& GetMaterialSlots();
+    /** @brief 재질 슬롯을 반환합니다. @return 읽기 전용 재질 슬롯 배열입니다. */
+    const TArray<FMeshMaterialSlot>& GetMaterialSlots() const;
     /**
      * @brief 메시의 로컬 공간 경계 상자를 교체합니다.
      * @param[in] Bounds 메시에 설정할 로컬 공간 경계 상자입니다.
@@ -149,4 +160,10 @@ private:
      */
     FBox mBounds{};
     ReflectProperty(mBounds, "Bounds", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /** @brief 공유 인덱스 버퍼를 분할하는 재질별 구간입니다. */
+    TArray<FSubMesh> mSubMeshes{};
+    ReflectProperty(mSubMeshes, "SubMeshes", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /** @brief 원본 재질 이름과 프로젝트 재질 에셋 경로입니다. */
+    TArray<FMeshMaterialSlot> mMaterialSlots{};
+    ReflectProperty(mMaterialSlots, "MaterialSlots", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 };

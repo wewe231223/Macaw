@@ -28,8 +28,10 @@ public:
      * @param[in] Material 조회할 머티리얼 설정입니다.
      * @param[in] Mesh 드로에 사용할 정적 메시입니다.
      * @param[in] ObjectBuffer 월드 행렬과 UV가 저장된 상수 버퍼입니다.
+     * @param[in] FirstIndex SubMesh의 첫 인덱스 오프셋입니다.
+     * @param[in] IndexCount SubMesh의 삼각형 인덱스 개수입니다.
      */
-    FMeshDrawCommand(FMaterialPipeline* Pipeline, UMaterial* Material, UStaticMesh* Mesh, ID3D11Buffer* ObjectBuffer);
+    FMeshDrawCommand(FMaterialPipeline* Pipeline, UMaterial* Material, UStaticMesh* Mesh, ID3D11Buffer* ObjectBuffer, Uint32 FirstIndex, Uint32 IndexCount);
 
 public:
     /**
@@ -40,6 +42,7 @@ public:
 
 private:
     ReflectMembers();
+    /** @brief 렌더러가 정렬한 드로의 구간과 GPU 자원을 읽도록 허용합니다. */
     friend class FSceneRenderer;
 
 private:
@@ -63,6 +66,12 @@ private:
      */
     ID3D11Buffer* mObjectBuffer{};
     ReflectProperty(mObjectBuffer, "ObjectBuffer", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /** @brief 이 드로의 첫 인덱스 오프셋입니다. */
+    Uint32 mFirstIndex{};
+    ReflectProperty(mFirstIndex, "FirstIndex", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /** @brief 이 드로의 삼각형 인덱스 개수입니다. */
+    Uint32 mIndexCount{};
+    ReflectProperty(mIndexCount, "IndexCount", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 };
 
 /**

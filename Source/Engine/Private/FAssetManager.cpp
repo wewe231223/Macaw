@@ -15,11 +15,15 @@
 #include "Serialization/MemoryArchive.h"
 #include "FAssetSerialization.h"
 #include "FTextureAssetData.h"
+#include "FAssetImportScope.h"
 
 #include <algorithm>
 #include <cwctype>
 #include <limits>
 #include <utility>
+#include <assimp/Importer.hpp>
+#include <assimp/material.h>
+#include <assimp/scene.h>
 
 /**
  * @brief 이 구현 파일에서만 사용하는 내부 상태와 보조 함수입니다.
@@ -61,6 +65,53 @@ namespace {
             FAssetSerialization::SerializeValues(Archive, Channel);
         }
         FAssetSerialization::SerializeValues(Archive, Mesh.GetIndices());
+        if (Archive.HasError() || (Archive.IsLoading() && Archive.GetRemainingBytes() == 0)) {
+            return;
+        }
+        Uint32 ExtensionVersion{1};
+        Archive.Serialize("SectionsVersion", ExtensionVersion);
+        if (ExtensionVersion != 1) {
+            Archive.SetError("Unsupported mesh section version");
+            return;
+        }
+        Uint32 SlotCount{Archive.IsLoading() ? 0 : static_cast<Uint32>(Mesh.GetMaterialSlots().size())};
+        if (!Archive.BeginArray("MaterialSlots", SlotCount) || (Archive.IsLoading() && SlotCount > Archive.GetRemainingBytes() / 8)) {
+            Archive.SetError("Invalid mesh material slot count");
+            return;
+        }
+        if (Archive.IsLoading()) {
+            Mesh.GetMaterialSlots().clear();
+        }
+        for (Uint32 Index{}; Index < SlotCount && !Archive.HasError(); ++Index) {
+            FString Name{Archive.IsLoading() ? FString{} : Mesh.GetMaterialSlots()[Index].GetName()};
+            FString Path{Archive.IsLoading() ? FString{} : Mesh.GetMaterialSlots()[Index].GetMaterialPath()};
+            Archive.Serialize("Name", Name);
+            Archive.Serialize("Material", Path);
+            if (Archive.IsLoading()) {
+                Mesh.GetMaterialSlots().emplace_back(std::move(Name), std::move(Path));
+            }
+        }
+        Archive.EndArray();
+        Uint32 SectionCount{Archive.IsLoading() ? 0 : static_cast<Uint32>(Mesh.GetSubMeshes().size())};
+        if (!Archive.BeginArray("SubMeshes", SectionCount) || (Archive.IsLoading() && SectionCount > Archive.GetRemainingBytes() / 12)) {
+            Archive.SetError("Invalid submesh count");
+            return;
+        }
+        if (Archive.IsLoading()) {
+            Mesh.GetSubMeshes().clear();
+        }
+        for (Uint32 Index{}; Index < SectionCount && !Archive.HasError(); ++Index) {
+            Uint32 First{Archive.IsLoading() ? 0 : Mesh.GetSubMeshes()[Index].GetFirstIndex()};
+            Uint32 Count{Archive.IsLoading() ? 0 : Mesh.GetSubMeshes()[Index].GetIndexCount()};
+            Uint32 Slot{Archive.IsLoading() ? 0 : Mesh.GetSubMeshes()[Index].GetMaterialIndex()};
+            Archive.Serialize("FirstIndex", First);
+            Archive.Serialize("IndexCount", Count);
+            Archive.Serialize("MaterialIndex", Slot);
+            if (Archive.IsLoading()) {
+                Mesh.GetSubMeshes().emplace_back(First, Count, Slot);
+            }
+        }
+        Archive.EndArray();
     }
 }
 
@@ -72,6 +123,15 @@ FAssetManager::~FAssetManager() = default;
 
 const std::filesystem::path& FAssetManager::GetContentRoot() const {
     return mContentRoot;
+}
+
+FString FAssetManager::GetMeshPath(const UStaticMesh* Mesh) const {
+    for (const auto& Entry : mMeshes) {
+        if (Entry.second.get() == Mesh) {
+            return Entry.first;
+        }
+    }
+    return {};
 }
 
 std::filesystem::path FAssetManager::ResolvePath(const std::filesystem::path& Path, FString& Error) const {
@@ -160,6 +220,7 @@ UStaticMesh* FAssetManager::LoadMesh(const std::filesystem::path& Path, FString&
         return nullptr;
     }
     UStaticMesh* Result{Mesh.get()};
+    Mesh->SetName(FilePath::ToUtf8(Path.stem()));
     mMeshes.emplace(Key, std::move(Mesh));
     return Result;
 }
@@ -260,12 +321,77 @@ bool FAssetManager::SaveTexture(const std::filesystem::path& Path, const UTextur
 }
 
 bool FAssetManager::ImportMesh(const std::filesystem::path& Source, const std::filesystem::path& Target, FString& Error) {
+    const auto Destination{ResolvePath(Target, Error)};
+    if (Destination.empty()) {
+        return false;
+    }
     auto Mesh{NewObject<UStaticMesh>()};
     if (!Mesh->LoadFromFile(Source)) {
         Error = "Cannot import mesh source";
         return false;
     }
-    return SaveMesh(Target, *Mesh, Error);
+    Assimp::Importer Importer{};
+    const aiScene* Scene{Importer.ReadFile(FilePath::ToUtf8(Source), 0)};
+    if (Scene == nullptr || Scene->mNumMaterials != Mesh->GetMeshData().GetMaterialSlots().size()) {
+        Error = "Cannot import mesh material library";
+        return false;
+    }
+    FMeshData Data{Mesh->GetMeshData()};
+    const auto DependencyDirectory{mContentRoot / ".Imported" / Destination.stem() / FilePath::FromUtf8(FGuid{}.ToString())};
+    FAssetImportScope ImportScope{DependencyDirectory};
+    TMap<FString, FString> Textures{};
+    for (Uint32 Index{}; Index < Scene->mNumMaterials; ++Index) {
+        const aiMaterial& SourceMaterial{*Scene->mMaterials[Index]};
+        auto Material{NewObject<UMaterial>()};
+        const FString Name{Data.GetMaterialSlots()[Index].GetName()};
+        Material->SetName(Name.empty() ? "Material_" + std::to_string(Index) : Name);
+        aiColor4D Color{1.0f, 1.0f, 1.0f, 1.0f};
+        aiGetMaterialColor(&SourceMaterial, AI_MATKEY_COLOR_DIFFUSE, &Color);
+        float Opacity{1.0f};
+        SourceMaterial.Get(AI_MATKEY_OPACITY, Opacity);
+        if (!Material->SetBaseColor({Color.r, Color.g, Color.b, Opacity})) {
+            Error = "Invalid imported material color: " + Name;
+            return false;
+        }
+        Int32 TwoSided{};
+        SourceMaterial.Get(AI_MATKEY_TWOSIDED, TwoSided);
+        Material->SetTwoSided(TwoSided != 0);
+        aiString Texture{};
+        if (SourceMaterial.GetTexture(aiTextureType_BASE_COLOR, 0, &Texture) == AI_SUCCESS || SourceMaterial.GetTexture(aiTextureType_DIFFUSE, 0, &Texture) == AI_SUCCESS) {
+            FString Reference{Texture.C_Str()};
+            std::replace(Reference.begin(), Reference.end(), '\\', '/');
+            if (Reference.starts_with("*")) {
+                Error = "Embedded material textures are not supported: " + Name;
+                return false;
+            }
+            const auto TextureSource{(Source.parent_path() / FilePath::FromUtf8(Reference)).lexically_normal()};
+            const FString Key{CacheKey(FilePath::ToUtf8(TextureSource))};
+            auto Existing{Textures.find(Key)};
+            if (Existing == Textures.end()) {
+                const auto TextureTarget{DependencyDirectory / ("Texture_" + std::to_string(Textures.size()) + ".masset")};
+                if (!ImportTexture(TextureSource, TextureTarget, Error)) {
+                    Error = "Cannot import material texture '" + Reference + "': " + Error;
+                    return false;
+                }
+                Existing = Textures.emplace(Key, GetRelativePath(TextureTarget, Error)).first;
+            }
+            Material->SetBaseColorTexturePath(Existing->second);
+        }
+        const auto MaterialTarget{DependencyDirectory / ("Material_" + std::to_string(Index) + ".mtl")};
+        if (!SaveMaterial(MaterialTarget, *Material, Error)) {
+            return false;
+        }
+        Data.GetMaterialSlots()[Index] = FMeshMaterialSlot{Material->GetName(), GetRelativePath(MaterialTarget, Error)};
+    }
+    if (!Mesh->SetMeshData(std::move(Data))) {
+        Error = "Invalid imported mesh sections";
+        return false;
+    }
+    if (!SaveMesh(Destination, *Mesh, Error)) {
+        return false;
+    }
+    ImportScope.Commit();
+    return true;
 }
 
 bool FAssetManager::ImportTexture(const std::filesystem::path& Source, const std::filesystem::path& Target, FString& Error) {

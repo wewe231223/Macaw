@@ -14,6 +14,7 @@
 #include "Engine/UMaterial.h"
 #include "Engine/FPrimitiveSceneProxy.h"
 #include "Engine/UWorld.h"
+#include "Core/Archive.h"
 
 /**
  * @brief UStaticMeshComponent의 초기 상태와 전달받은 의존성을 구성합니다.
@@ -75,6 +76,9 @@ bool UStaticMeshComponent::SetMeshPath(const FString& Path) {
     }
 
     if (mMeshPath != Path || mStaticMesh != Mesh) {
+        if (mMeshPath != Path) {
+            mMaterialOverrides.clear();
+        }
         mMeshPath = Path;
         mStaticMesh = Mesh;
         MarkRenderStateDirty();
@@ -186,7 +190,77 @@ bool UStaticMeshComponent::ResolveMaterial() {
 FPrimitiveSceneProxy UStaticMeshComponent::CreateSceneProxy() const {
     FPrimitiveSceneProxy Proxy{UPrimitiveComponent::CreateSceneProxy()};
     Proxy.mMaterial = mMaterial;
+    if (mStaticMesh != nullptr) {
+        for (Uint32 Slot{}; Slot < mStaticMesh->GetMeshData().GetMaterialSlots().size(); ++Slot) {
+            Proxy.mMaterials.push_back(GetSlotMaterial(Slot));
+        }
+    }
     return Proxy;
+}
+
+const FString& UStaticMeshComponent::GetSlotMaterialPath(Uint32 Slot) const {
+    static const FString Empty{};
+    return Slot < mMaterialOverrides.size() ? mMaterialOverrides[Slot] : Empty;
+}
+
+UMaterial* UStaticMeshComponent::GetSlotMaterial(Uint32 Slot) const {
+    if (mMaterial != nullptr) {
+        return mMaterial;
+    }
+    if (!GetSlotMaterialPath(Slot).empty()) {
+        return LoadMaterial(GetSlotMaterialPath(Slot));
+    }
+    return mStaticMesh != nullptr && Slot < mStaticMesh->GetMeshData().GetMaterialSlots().size() ? LoadMaterial(mStaticMesh->GetMeshData().GetMaterialSlots()[Slot].GetMaterialPath()) : nullptr;
+}
+
+bool UStaticMeshComponent::SetSlotMaterialPath(Uint32 Slot, const FString& Path) {
+    if (mStaticMesh == nullptr || Slot >= mStaticMesh->GetMeshData().GetMaterialSlots().size()) {
+        return false;
+    }
+    const std::filesystem::path AssetPath{FilePath::FromUtf8(Path)};
+    if (Path.find('\0') != FString::npos || (!Path.empty() && (AssetPath.has_root_path() || AssetPath.extension() != L".mtl" || LoadMaterial(Path) == nullptr))) {
+        return false;
+    }
+    for (const auto& Part : AssetPath) {
+        if (Part == L"..") {
+            return false;
+        }
+    }
+    if (mMaterialOverrides.size() <= Slot) {
+        mMaterialOverrides.resize(Slot + 1);
+    }
+    mMaterialOverrides[Slot] = Path;
+    MarkRenderStateDirty();
+    return true;
+}
+
+void UStaticMeshComponent::Serialize(FArchive& Archive) {
+    UPrimitiveComponent::Serialize(Archive);
+    if (Archive.HasError() || (Archive.IsLoading() && !Archive.HasField("SlotMaterials"))) {
+        return;
+    }
+    Uint32 Count{Archive.IsLoading() ? 0 : static_cast<Uint32>(mMaterialOverrides.size())};
+    if (!Archive.BeginArray("SlotMaterials", Count)) {
+        return;
+    }
+    if (Archive.IsLoading()) {
+        mMaterialOverrides.resize(Count);
+    }
+    for (Uint32 Slot{}; Slot < Count && !Archive.HasError(); ++Slot) {
+        Archive.Serialize(std::to_string(Slot), mMaterialOverrides[Slot]);
+        const auto Path{FilePath::FromUtf8(mMaterialOverrides[Slot])};
+        bool Valid{mMaterialOverrides[Slot].find('\0') == FString::npos && (Path.empty() || (!Path.has_root_path() && Path.extension() == L".mtl"))};
+        for (const auto& Part : Path) {
+            Valid = Valid && Part != L"..";
+        }
+        if (!Valid) {
+            Archive.SetError("Invalid slot material reference");
+        }
+    }
+    Archive.EndArray();
+    if (Archive.IsLoading()) {
+        MarkRenderStateDirty();
+    }
 }
 
 UMaterial* UStaticMeshComponent::LoadMaterial(const FString& Path) const {

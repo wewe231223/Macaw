@@ -11,24 +11,28 @@ local ReflectedModules = Reflection.Generate()
 
 workspace "Macaw"
     location "."
-    configurations { "Debug", "Release" }
+    configurations { "Debug", "Release", "ObjViewerDebug", "ObjViewerRelease" }
     platforms { "x64" }
     defaultplatform "x64"
     startproject "Macaw"
     system "windows"
     architecture "x86_64"
 
-filter "configurations:Debug"
+filter "configurations:*Debug"
     symbols "On"
     runtime "Debug"
     defines { "_DEBUG" }
 
-filter "configurations:Release"
+filter "configurations:*Release"
     optimize "Speed"
     linktimeoptimization "On"
     runtime "Release"
     defines { "NDEBUG" }
 
+filter {}
+
+filter "configurations:ObjViewer*"
+    defines { "MACAW_OBJ_VIEWER=1" }
 filter {}
 
 local Modules = json.decode(io.readfile("ModuleDependencies.json"))
@@ -110,9 +114,9 @@ local function ConfigureExecutable(Name, Kind, Directory)
     AddIncludes("Editor", {})
     AddIncludes("Renderer", {})
     links { "Editor", "Script", "Engine", "Renderer", "Platform", "Serialization", "RenderCore", "CoreUObject", "Core", "ImGui", "DirectXTex", "lua51", "d3d11", "dxgi", "d3dcompiler", "bcrypt", "user32", "gdi32", "dwmapi", "imm32", "ole32", "windowscodecs", "comdlg32", "shell32" }
-    filter "configurations:Debug"
+    filter "configurations:*Debug"
         libdirs { "Externals/bin/debug" }
-    filter "configurations:Release"
+    filter "configurations:*Release"
         libdirs { "Externals/bin/release" }
     filter {}
     debugdir "%{wks.location}"
@@ -120,3 +124,4 @@ end
 
 ConfigureExecutable("Macaw", "WindowedApp", "Source/App")
     postbuildcommands { '{COPYDIR} "%{wks.location}/Templates/Project" "%{cfg.targetdir}/Templates/Project"' }
+    postbuildcommands { '{COPYFILE} "%{wks.location}/vcpkg_installed/x64-windows/tools/luajit/lua51.dll" "%{cfg.targetdir}/lua51.dll"' }

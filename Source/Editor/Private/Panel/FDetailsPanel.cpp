@@ -9,6 +9,15 @@
 #include "Editor/FAssetDragDrop.h"
 #include "Engine/AActor.h"
 #include "Engine/Component/UActorComponent.h"
+#include "Engine/Component/UStaticMeshComponent.h"
+#include "Engine/FProject.h"
+#include "Engine/FAssetManager.h"
+#include "Engine/FAssetFile.h"
+#include "Engine/UStaticMesh.h"
+#include "Core/FilePath.h"
+#include "CoreUObject/TObjectIterator.h"
+#include "Editor/FEditorAssetCatalog.h"
+#include "Editor/FAssetThumbnailCache.h"
 #include "CoreUObject/UObject.h"
 #include "CoreUObject/Reflection/FProperty.h"
 #include "CoreUObject/Reflection/UStruct.h"
@@ -21,6 +30,7 @@
 #include <array>
 #include <cctype>
 
+/** @brief Details 패널에서 사용하는 컴포넌트 표시 이름 변환입니다. */
 namespace {
     /**
      * @brief 클래스 접두사와 Component 접미사를 제거해 컴포넌트 메뉴 이름을 만듭니다.
@@ -58,6 +68,11 @@ FDetailsPanel::FDetailsPanel(FEditorContext* Context)
  * @brief 객체의 수명을 끝내고 소유한 리소스를 정리합니다.
  */
 FDetailsPanel::~FDetailsPanel() = default;
+
+void FDetailsPanel::SetAssetServices(FEditorAssetCatalog* Catalog, FAssetThumbnailCache* Thumbnails) {
+    mAssetCatalog = Catalog;
+    mThumbnails = Thumbnails;
+}
 
 /**
  * @brief 패널 고유의 ImGui 위젯과 내용을 그립니다.
@@ -157,6 +172,31 @@ void FDetailsPanel::DrawReflectedObject(UObject* Object) {
         }
     }
 
+    if (auto* Component{Context->ResolveObject(Handle) == Object ? Cast<UStaticMeshComponent>(Object) : nullptr}; Component != nullptr && Component->GetStaticMesh() != nullptr) {
+        const bool AllSlotsOverride{!Component->GetMaterialPath().empty()};
+        ImGui::SeparatorText("Material Slots");
+        if (AllSlotsOverride) {
+            ImGui::TextWrapped("Clear the all-slots override to edit individual slots.");
+        }
+        ImGui::BeginDisabled(!Context->CanEditWorld() || AllSlotsOverride);
+        const auto& Slots{Component->GetStaticMesh()->GetMeshData().GetMaterialSlots()};
+        for (Uint32 Slot{}; Slot < Slots.size(); ++Slot) {
+            const auto& SubMeshes{Component->GetStaticMesh()->GetMeshData().GetSubMeshes()};
+            if (std::none_of(SubMeshes.begin(), SubMeshes.end(), [Slot](const FSubMesh& SubMesh) {
+                return SubMesh.GetMaterialIndex() == Slot;
+            })) {
+                continue;
+            }
+            ImGui::PushID(static_cast<int>(Slot));
+            FString Path{AllSlotsOverride ? FString{} : Component->GetSlotMaterialPath(Slot)};
+            const FString& Inherited{AllSlotsOverride ? Component->GetMaterialPath() : Slots[Slot].GetMaterialPath()};
+            if (mAssetCatalog != nullptr && mThumbnails != nullptr && mAssetPicker.Draw(*mAssetCatalog, *mThumbnails, Slots[Slot].GetName().c_str(), Path, EAssetType::Material, Inherited, "Use mesh material", AllSlotsOverride ? "All slots" : "Mesh")) {
+                Context->SetMaterialOverride(Handle, Slot, Path);
+            }
+            ImGui::PopID();
+        }
+        ImGui::EndDisabled();
+    }
     ImGui::PopID();
 }
 
@@ -243,6 +283,12 @@ bool FDetailsPanel::DrawPropertyValue(const FProperty* Property, FPropertyValue&
             return true;
         }
     } else if (auto* String{std::get_if<FString>(&Value)}) {
+        if (Property->GetName() == "Mesh") {
+            return DrawAssetPicker(Label, *String, true);
+        }
+        if (mAssetCatalog != nullptr && mThumbnails != nullptr && (Property->GetName() == "Material" || Property->GetName() == "Texture")) {
+            return mAssetPicker.Draw(*mAssetCatalog, *mThumbnails, Property->GetName() == "Material" ? "All Slots Override" : Label, *String, Property->GetName() == "Material" ? EAssetType::Material : EAssetType::Texture, {}, Property->GetName() == "Material" ? "Use mesh materials" : "None");
+        }
         if (Property->GetName() == "Text") {
             TArray<char> TextBuffer{};
             TextBuffer.resize(std::max<std::size_t>(4096, String->size() + 1024));
@@ -310,4 +356,12 @@ bool FDetailsPanel::DrawPropertyValue(const FProperty* Property, FPropertyValue&
     }
 
     return false;
+}
+
+bool FDetailsPanel::DrawAssetPicker(const char* Label, FString& Path, bool Mesh) {
+    if (mAssetCatalog == nullptr || mThumbnails == nullptr) {
+        ImGui::TextDisabled("%s: %s", Label, Path.c_str());
+        return false;
+    }
+    return mAssetPicker.Draw(*mAssetCatalog, *mThumbnails, Label, Path, Mesh ? EAssetType::Mesh : EAssetType::Material, {}, Mesh ? "Primitive mesh" : "Default material");
 }

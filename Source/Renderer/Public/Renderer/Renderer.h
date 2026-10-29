@@ -240,6 +240,11 @@ private:
      * @param[in] DepthTest 깊이 검사를 적용할지 지정합니다.
      */
     void DrawLines(const FPrimitiveDrawInterface* Elements, bool DepthTest);
+    /**
+     * @brief 깊이 검사 단계에 해당하는 에디터 메시들을 GPU에 제출합니다.
+     * @param[in] Elements 이번 프레임의 에디터 도형 요청 목록입니다.
+     * @param[in] DepthTest 현재 제출할 깊이 검사 단계입니다.
+     */
     void DrawMeshes(const FPrimitiveDrawInterface* Elements, bool DepthTest);
     /**
      * @brief 깊이 검사 없이 표시할 에디터 텍스트를 마지막 오버레이로 그립니다.
@@ -439,12 +444,16 @@ private:
      */
     Microsoft::WRL::ComPtr<ID3D11PixelShader> mGizmoPixelShader{};
     ReflectProperty(mGizmoPixelShader, "GizmoPixelShader", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /** @brief 고정 에디터 메시의 로컬 위치를 읽는 입력 레이아웃입니다. */
     Microsoft::WRL::ComPtr<ID3D11InputLayout> mOverlayLayout{};
     ReflectProperty(mOverlayLayout, "OverlayLayout", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /** @brief 에디터 메시 요청의 월드 행렬과 RGBA 색상을 전달하는 80바이트 상수 버퍼입니다. */
     Microsoft::WRL::ComPtr<ID3D11Buffer> mEditorMeshBuffer{};
     ReflectProperty(mEditorMeshBuffer, "EditorMeshBuffer", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /** @brief 평면 핸들의 투명도를 표시하는 소스 알파 혼합 상태입니다. */
     Microsoft::WRL::ComPtr<ID3D11BlendState> mOverlayBlend{};
     ReflectProperty(mOverlayBlend, "OverlayBlend", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /** @brief 렌더러가 초기화 때 생성하고 종료 때 해제하는 enum별 불변 GPU 정점·인덱스 버퍼입니다. */
     std::array<std::unique_ptr<UStaticMesh>, static_cast<std::size_t>(EEditorMesh::Count)> mEditorMeshes{};
     ReflectProperty(mEditorMeshes, "EditorMeshes", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 };
