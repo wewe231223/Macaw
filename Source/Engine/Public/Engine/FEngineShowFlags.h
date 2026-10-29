@@ -29,6 +29,8 @@ public:
      */
     bool mLightIcons{true};
     ReflectProperty(mLightIcons, "LightIcons", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    bool mShadows{true};
+    ReflectProperty(mShadows, "Shadows", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
     bool mLightVisualizers{true};
     ReflectProperty(mLightVisualizers, "LightVisualizers", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
     bool mPrimitives{true};

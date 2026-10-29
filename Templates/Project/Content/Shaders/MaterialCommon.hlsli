@@ -2,6 +2,7 @@ cbuffer ObjectConstants : register(b0) {
     row_major float4x4 World;
     row_major float4x4 WorldInverse;
     float4 UVTransform;
+    float4 ShadowFlags;
 };
 
 #include "ViewConstants.hlsli"

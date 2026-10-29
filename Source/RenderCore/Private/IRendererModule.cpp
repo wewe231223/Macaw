@@ -11,6 +11,10 @@
  */
 IRendererModule::~IRendererModule() = default;
 
+FShadowAtlasView IRendererModule::GetShadowAtlasView() const {
+    return {};
+}
+
 bool IRendererModule::GetTextBounds(const FString&, FVector2&, FVector2&) const {
     return false;
 }

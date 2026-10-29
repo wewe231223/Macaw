@@ -24,6 +24,8 @@ public:
     ReflectProperty(mColorAndIntensity, "ColorAndIntensity", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
     FVector4 mFalloffAndCones{};
     ReflectProperty(mFalloffAndCones, "FalloffAndCones", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    FVector4 mShadowInfo{};
+    ReflectProperty(mShadowInfo, "ShadowInfo", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 };
 
 class FTiledLightGrid {
@@ -34,7 +36,7 @@ public:
     ReflectStruct(FTiledLightGrid);
 
 public:
-    void Build(std::span<const FLightSceneProxy> Lights, const FSceneView& View);
+    void Build(std::span<const FLightSceneProxy> Lights, const FSceneView& View, std::span<const std::array<Uint32, 2>> ShadowRanges = {});
     const TArray<FGpuLight>& GetLights() const;
     const TArray<std::array<Uint32, 2>>& GetRanges() const;
     const TArray<Uint32>& GetIndices() const;

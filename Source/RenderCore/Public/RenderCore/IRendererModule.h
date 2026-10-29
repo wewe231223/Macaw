@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include "RenderCore/FShadowAtlasView.h"
+
 #include "Core/ReflectionMacros.h"
 #include "RenderCore/FRenderStats.h"
 
@@ -103,6 +105,10 @@ public:
      */
     virtual void Present() = 0;
 
+    virtual bool SetAllowTearing(bool Allow) = 0;
+    virtual bool IsTearingAllowed() const = 0;
+    virtual bool IsTearingSupported() const = 0;
+
     /**
      * @brief Direct3D 11 장치의 비소유 주소를 반환합니다.
      * @return 조회한 값의 비소유 주소이며, 해당 값이 없으면 nullptr입니다.
@@ -118,6 +124,7 @@ public:
      * @return 프레임 렌더링 통계입니다.
      */
     virtual FRenderStats GetStats() const = 0;
+    virtual FShadowAtlasView GetShadowAtlasView() const;
     /**
      * @brief 변경된 셰이더를 다시 컴파일하고 필요한 GPU 셰이더를 갱신합니다.
      * @return 요청한 처리를 완료하면 true, 실패하면 false입니다.

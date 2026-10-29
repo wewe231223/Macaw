@@ -5,6 +5,7 @@
  */
 
 #include "Engine/UWorld.h"
+#include "Engine/EngineStats.h"
 #include "Engine/Component/ULightComponentBase.h"
 
 #include "Engine/MeshPicking.h"
@@ -63,6 +64,9 @@ void UWorld::SetAssets(FAssetManager* Assets) {
                 }
                 if (auto* Sprite{Cast<UBillboardComponent>(Component.get())}) {
                     Sprite->ResolveTexture();
+                }
+                if (auto* Light{Cast<ULightComponentBase>(Component.get())}) {
+                    Light->SynchronizeLight();
                 }
             }
         }
@@ -232,6 +236,7 @@ void UWorld::EnqueueRenderUpdate(FObjectHandle Handle) {
  * @brief 큐에 쌓인 컴포넌트 핸들을 해석하여 지연된 렌더 갱신을 반영합니다.
  */
 void UWorld::SendAllEndOfFrameUpdates() {
+    const FScopedStatTimer StatTimer{EngineStats::RenderUpdates};
     if (mScene == nullptr) {
         return;
     }
@@ -253,6 +258,7 @@ void UWorld::SendAllEndOfFrameUpdates() {
  * @brief 월드 프리미티브의 메시를 검사하여 광선에 가장 가까운 충돌을 찾습니다.
  */
 bool UWorld::Raycast(const FRay& Ray, FWorldHit& Hit) const {
+    const FScopedStatTimer StatTimer{EngineStats::Raycast};
     FRay NormalizedRay{Ray};
     if (mPersistentLevel == nullptr || !NormalizedRay.mOrigin.IsFinite() || !NormalizedRay.mDirection.Normalize()) {
         return false;
@@ -488,6 +494,8 @@ bool UWorld::TickActors(float DeltaTime, bool EditorTick) {
         return false;
     }
 
+    const FScopedStatTimer StatTimer{EngineStats::WorldTick};
+    EngineStats::WorldTicks.Add();
     FDispatchScope Scope{this};
     if (!EditorTick) {
         mTimeSeconds += DeltaTime;

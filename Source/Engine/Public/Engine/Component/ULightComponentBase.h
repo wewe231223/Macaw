@@ -4,6 +4,7 @@
 #include "Engine/FLightSceneProxy.h"
 
 class FPrimitiveDrawInterface;
+class FAssetManager;
 
 class ULightComponentBase : public USceneComponent {
 public:
@@ -32,6 +33,7 @@ public:
 private:
     ReflectMembers();
     void OnRegister() override;
+    void ResolveIcon(FAssetManager* Assets);
 
 private:
     float mIntensity{1.0f};
@@ -42,4 +44,8 @@ private:
     ReflectAccessor(mVisible, IsVisible, SetVisible, "Visible", EPropertyFlags::Edit | EPropertyFlags::Serialize);
     UTexture2D* mIcon{};
     ReflectProperty(mIcon, "Icon", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    FAssetManager* mIconAssets{};
+    ReflectProperty(mIconAssets, "IconAssets", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    std::unique_ptr<UTexture2D> mFallbackIcon{};
+    ReflectProperty(mFallbackIcon, "FallbackIcon", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 };

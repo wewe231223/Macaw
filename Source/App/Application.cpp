@@ -9,6 +9,7 @@
 #include "CoreUObject/UObject.h"
 #include "Core/Base/ErrorHandler.h"
 #include "Core/Memory.h"
+#include "Core/Stats.h"
 #include "Editor/FProjectBrowser.h"
 
 #include <array>
@@ -53,8 +54,11 @@ int FApplication::Run() {
             continue;
         }
 
-        mEngine.TickFrame(mTimer.Tick());
-        mRenderer.Present();
+        {
+            const FScopedStatFrame StatFrame{};
+            mEngine.TickFrame(mTimer.Tick());
+            mRenderer.Present();
+        }
         if (mBrowseProjects) {
             const std::filesystem::path Requested{std::move(mPendingProject)};
             mPendingProject.clear();

@@ -5,6 +5,7 @@ struct FLight {
     float4 mDirectionAndType;
     float4 mColorAndIntensity;
     float4 mFalloffAndCones;
+    float4 mShadowInfo;
 };
 
 struct FLighting {
@@ -24,6 +25,8 @@ StructuredBuffer<uint> TileLightIndices : register(t4);
 float3 SafeNormal(float3 Value) {
     return Value * rsqrt(max(dot(Value, Value), 0.00000001));
 }
+
+#include "ShadowSampling.hlsli"
 
 float3 MappedNormal(float3 Normal, float4 Tangent, float3 Sampled) {
     float3 N = {SafeNormal(Normal)};
@@ -104,17 +107,28 @@ float4 PixelMain(FOutput Input) : SV_TARGET {
     return float4(Normal * 0.5f + 0.5f, 1.0f);
 #elif defined(MACAW_UNLIT)
     return Surface;
-#elif defined(LIGHTING_MODEL_GOURAUD)
-    return float4(Surface.rgb * Input.mDiffuse + Input.mSpecular, Surface.a);
 #else
     FLighting Total = {(FLighting)0};
+    FLighting Unshadowed = {(FLighting)0};
+    float3 PositionDx = {ddx(Input.mWorldPosition)};
+    float3 PositionDy = {ddy(Input.mWorldPosition)};
     uint2 Tile = {min((uint2)Input.mPosition.xy / TileDimensions.z, TileDimensions.xy - 1)};
     uint2 Range = {TileRanges[Tile.y * TileDimensions.x + Tile.x]};
     for (uint Offset = {0}; Offset < Range.y; ++Offset) {
-        FLighting Lighting = {EvaluateLight(Lights[TileLightIndices[Range.x + Offset]], Input.mWorldPosition, Normal)};
-        Total.mDiffuse += Lighting.mDiffuse;
-        Total.mSpecular += Lighting.mSpecular;
+        FLight Light = {Lights[TileLightIndices[Range.x + Offset]]};
+        FLighting Lighting = {EvaluateLight(Light, Input.mWorldPosition, Normal)};
+        float Visibility = {ShadowVisibility(Light, Input.mWorldPosition, Normal, PositionDx, PositionDy)};
+        Unshadowed.mDiffuse += Lighting.mDiffuse;
+        Unshadowed.mSpecular += Lighting.mSpecular;
+        Total.mDiffuse += Lighting.mDiffuse * Visibility;
+        Total.mSpecular += Lighting.mSpecular * Visibility;
     }
+#if defined(LIGHTING_MODEL_GOURAUD)
+    float3 DiffuseRatio = {saturate((Total.mDiffuse + 0.000001f) / (Unshadowed.mDiffuse + 0.000001f))};
+    float3 SpecularRatio = {saturate((Total.mSpecular + 0.000001f) / (Unshadowed.mSpecular + 0.000001f))};
+    return float4(Surface.rgb * Input.mDiffuse * DiffuseRatio + Input.mSpecular * SpecularRatio, Surface.a);
+#else
     return float4(Surface.rgb * Total.mDiffuse + Total.mSpecular, Surface.a);
+#endif
 #endif
 }

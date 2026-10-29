@@ -4,8 +4,15 @@
  */
 
 #include "Script/CoroutineScheduler.h"
+#include "Core/Stats.h"
 
 #include <utility>
+
+namespace {
+    FStat SchedulerTime{"script", "Coroutine update CPU", EStatUnit::Milliseconds};
+    FStat PendingWaits{"script", "Pending waits (sum of updates)"};
+    FStat ResumeTime{"script", "Coroutine resume CPU", EStatUnit::Milliseconds};
+}
 
 CoroutineScheduler::CoroutineInfo::CoroutineInfo(CoroutineFunc Function, float WaitTime, CheckFunc Condition)
 	: mRemainTime{WaitTime},
@@ -19,6 +26,8 @@ void CoroutineScheduler::Wait(CoroutineFunc Function, float WaitTime) { // Funct
 }
 
 void CoroutineScheduler::Update(float DeltaTime) {
+    const FScopedStatTimer StatTimer{SchedulerTime};
+    PendingWaits.Add(static_cast<double>(mCoroutineInfoArray.size()));
     for (std::size_t Remaining{mCoroutineInfoArray.size()}; Remaining > 0; --Remaining) {
         const std::size_t Index{Remaining - 1};
         if (mCoroutineInfoArray[Index].mCheckFunction) { // 조건 Coroutine일 경우와 시간 Coroutine일 경우 분리
@@ -48,6 +57,7 @@ void CoroutineScheduler::RegisterLuaCoroutine(sol::thread LuaCoroutine) {
 }
 
 void CoroutineScheduler::RunCoroutine(sol::state& Lua, sol::protected_function Resume, sol::thread LuaCoroutine) { // Coroutine 반복 실행함수, Yield 만나고 값에 따라서 Wait Array에 값을 넣는 역할 담당
+    const FScopedStatTimer StatTimer{ResumeTime};
     auto YieldResult{Resume(LuaCoroutine)}; // Yield시 같이 넘기는 값을 Resume하면서 가져옴
     if (!YieldResult.valid()) {
         return;

@@ -142,6 +142,7 @@ void FScene::Upload(FScenePrimitive& Primitive) {
     }
     FObjectConstants Constants{};
     Constants.mWorld = Primitive.mProxy.mWorld;
+    Constants.mShadowFlags.x = Primitive.mProxy.mReceiveShadow ? 1.0f : 0.0f;
     Constants.mUVTransform = {Primitive.mProxy.mUVScale.x, Primitive.mProxy.mUVScale.y, Primitive.mProxy.mUVOffset.x, Primitive.mProxy.mUVOffset.y};
 
     if (!Constants.mWorld.TryInverse(Constants.mWorldInverse)) {

@@ -10,6 +10,8 @@
 #include "Engine/AActor.h"
 #include "Engine/Component/UActorComponent.h"
 #include "Engine/Component/UStaticMeshComponent.h"
+#include "Engine/Component/ULightComponent.h"
+#include "RenderCore/IRendererModule.h"
 #include "Engine/FProject.h"
 #include "Engine/FAssetManager.h"
 #include "Engine/FAssetFile.h"
@@ -172,6 +174,22 @@ void FDetailsPanel::DrawReflectedObject(UObject* Object) {
         }
     }
 
+    if (const auto* Light{Context->ResolveObject(Handle) == Object ? Cast<ULightComponent>(Object) : nullptr}; Light != nullptr && ImGui::CollapsingHeader("Shadow Depth Maps")) {
+        const FShadowAtlasView Atlas{Context->GetRenderer() != nullptr ? Context->GetRenderer()->GetShadowAtlasView() : FShadowAtlasView{}};
+        bool Found{};
+        for (const FShadowAtlasTile& Tile : Atlas.mTiles) {
+            if (Tile.mLightId != Light->GetGuid() || Atlas.mTexture == nullptr) {
+                continue;
+            }
+            Found = true;
+            ImGui::Text("Map %u | %u x %u", Tile.mFace, Tile.mResolution, Tile.mResolution);
+            const float Size{std::clamp(ImGui::GetContentRegionAvail().x, 64.0f, 320.0f)};
+            ImGui::Image(reinterpret_cast<ImTextureID>(Atlas.mTexture), {Size, Size}, {Tile.mRectangle.x, Tile.mRectangle.y}, {Tile.mRectangle.x + Tile.mRectangle.z, Tile.mRectangle.y + Tile.mRectangle.w});
+        }
+        if (!Found) {
+            ImGui::TextDisabled("No active shadow map in the last rendered view.");
+        }
+    }
     if (auto* Component{Context->ResolveObject(Handle) == Object ? Cast<UStaticMeshComponent>(Object) : nullptr}; Component != nullptr && Component->GetStaticMesh() != nullptr) {
         const bool AllSlotsOverride{!Component->GetMaterialPath().empty()};
         ImGui::SeparatorText("Material Slots");

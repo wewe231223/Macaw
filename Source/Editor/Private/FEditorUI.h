@@ -110,6 +110,7 @@ private:
      * @brief 장면 파일과 패널 표시 메뉴를 그립니다.
      */
     void DrawMenu();
+    void DrawShadowAtlas();
     /**
      * @brief 프로젝트·장면 작업과 편집 도구를 제공하는 툴바를 그립니다.
      */
@@ -272,6 +273,8 @@ private:
      */
     bool mInitialized{};
     ReflectProperty(mInitialized, "Initialized", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    float mShadowAtlasZoom{1.0f};
+    ReflectProperty(mShadowAtlasZoom, "ShadowAtlasZoom", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 
     /**
      * @brief ImGui 컨텍스트 생성 여부입니다.
@@ -294,6 +297,8 @@ private:
     /**
      * @brief 프로그램 종료 요청 여부입니다.
      */
+    bool mShowStatistics{};
+    ReflectProperty(mShowStatistics, "ShowStatistics", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
     bool mExit{};
     ReflectProperty(mExit, "Exit", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
     /**

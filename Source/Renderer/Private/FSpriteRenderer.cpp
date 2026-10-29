@@ -5,6 +5,7 @@
  */
 
 #include "FSpriteRenderer.h"
+#include "RendererStats.h"
 #include "Engine/FPrimitiveSceneProxy.h"
 #include "Engine/FSceneView.h"
 #include "Engine/SpriteGeometry.h"
@@ -85,6 +86,7 @@ bool FSpriteRenderer::Draw(ID3D11DeviceContext* Context, const FPrimitiveScenePr
     Context->PSSetShaderResources(0, 1, &Resource);
     Context->PSSetSamplers(0, 1, &Sampler);
     Context->Draw(6, 0);
+    RendererStats::Triangles.Add(2.0);
     ID3D11ShaderResourceView* Empty{};
     Context->PSSetShaderResources(0, 1, &Empty);
     return true;

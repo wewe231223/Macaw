@@ -101,4 +101,8 @@ public:
      */
     FVector2 mUVOffset{};
     ReflectProperty(mUVOffset, "UVOffset", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    bool mCastShadow{true};
+    ReflectProperty(mCastShadow, "CastShadow", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    bool mReceiveShadow{true};
+    ReflectProperty(mReceiveShadow, "ReceiveShadow", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 };

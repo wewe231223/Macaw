@@ -5,6 +5,7 @@
  */
 
 #include "FSceneRenderer.h"
+#include "RendererStats.h"
 #include "Core/Math/FVector.h"
 #include "Core/Math/FVector4.h"
 #include "Core/Math/FMatrix.h"
@@ -62,6 +63,8 @@ bool FSceneRenderer::IsVisible(const FBox& Bounds) const {
  * @brief 가시 프리미티브를 선별하여 드로 호출을 제출하고 통계를 갱신합니다.
  */
 void FSceneRenderer::Render() {
+    static FStat MeshPass{"render", "Opaque mesh pass CPU (inclusive)", EStatUnit::Milliseconds};
+    const FScopedStatTimer StatTimer{MeshPass};
     ID3D11DeviceContext* Context{mDrawContext.mContext};
     FRenderer* Renderer{mDrawContext.mRenderer};
     Microsoft::WRL::ComPtr<ID3D11Device> Device{};
@@ -119,6 +122,7 @@ void FSceneRenderer::Render() {
     const std::array<UINT, 4> Offsets{};
     for (const FMeshDrawCommand& Command : Commands) {
         if (LastPipeline != Command.mPipeline) {
+            RendererStats::PipelineBinds.Add();
             Command.mPipeline->Bind(Context);
             if (mFamily->mViewMode == EViewMode::Wireframe) {
                 Context->RSSetState(Renderer->GetWireframeRasterizer());
@@ -127,6 +131,7 @@ void FSceneRenderer::Render() {
             LastMaterial = nullptr;
         }
         if (LastMaterial != Command.mMaterial) {
+            RendererStats::MaterialBinds.Add();
             ID3D11Buffer* Constants{Command.mMaterial->GetConstantBuffer()};
             UTexture2D* Texture{Command.mMaterial->GetBaseColorTexture()};
             ID3D11ShaderResourceView* Resource{Texture != nullptr ? Texture->GetShaderResourceView() : Renderer->GetDefaultMaterialTexture()};
@@ -143,6 +148,7 @@ void FSceneRenderer::Render() {
             LastMaterial = Command.mMaterial;
         }
         if (LastMesh != Command.mMesh) {
+            RendererStats::MeshBinds.Add();
             UStaticMesh* Mesh{Command.mMesh};
             const std::array<ID3D11Buffer*, 4> Buffers{Mesh->GetPositionBuffer(), Mesh->GetTangentBuffer(), Mesh->GetUVBuffer(), Mesh->GetColorBuffer()};
             const std::array<UINT, 4> Strides{UStaticMesh::GetPositionStride(), UStaticMesh::GetTangentStride(), Mesh->GetUVStride(), UStaticMesh::GetColorStride()};
@@ -154,6 +160,7 @@ void FSceneRenderer::Render() {
         Context->VSSetConstantBuffers(0, 1, &ObjectBuffer);
         Context->PSSetConstantBuffers(0, 1, &ObjectBuffer);
         Context->DrawIndexed(Command.mIndexCount, Command.mFirstIndex, 0);
+        RendererStats::Triangles.Add(Command.mIndexCount / 3);
         ++mStats->mDrawCalls;
     }
     ID3D11ShaderResourceView* Empty{};

@@ -5,7 +5,10 @@
 #include "Engine/FPrimitiveDrawInterface.h"
 #include "Core/Math/FTransform.h"
 #include "Core/Math.h"
+#include "Engine/UTexture2D.h"
+#include "CoreUObject/Reflection/NewObject.h"
 
+#include <Windows.h>
 #include <algorithm>
 #include <cmath>
 
@@ -67,11 +70,14 @@ FLightSceneProxy ULightComponentBase::CreateLightProxy() const {
 }
 
 void ULightComponentBase::SynchronizeLight() {
-    if (mIcon == nullptr && GetWorld() != nullptr && GetWorld()->GetAssets() != nullptr) {
-        const ELightType Type{CreateLightProxy().mType};
-        const char* Name{Type == ELightType::Directional ? "DirectionalLight_64x.png" : Type == ELightType::Ambient ? "SkyLight_64x.png" : Type == ELightType::Spot ? "SpotLight_64x.png" : "PointLight_64x.png"};
-        FString Error{};
-        mIcon = GetWorld()->GetAssets()->LoadTexture(FString{"Editor/Icon/"} + Name, Error);
+    FAssetManager* Assets{GetWorld() != nullptr ? GetWorld()->GetAssets() : nullptr};
+    if (mIconAssets != Assets) {
+        mIcon = nullptr;
+        mFallbackIcon.reset();
+        mIconAssets = Assets;
+    }
+    if (mIcon == nullptr && GetWorld() != nullptr) {
+        ResolveIcon(Assets);
     }
 
     if (GetWorld() != nullptr && GetWorld()->GetScene() != nullptr) {
@@ -96,7 +102,33 @@ void ULightComponentBase::UnregisterComponent() {
         GetWorld()->GetScene()->RemoveLight(GetGuid());
     }
     mIcon = nullptr;
+    mIconAssets = nullptr;
+    mFallbackIcon.reset();
     UActorComponent::UnregisterComponent();
+}
+
+void ULightComponentBase::ResolveIcon(FAssetManager* Assets) {
+    const ELightType Type{CreateLightProxy().mType};
+    const char* Name{Type == ELightType::Directional ? "DirectionalLight_64x.png" : Type == ELightType::Ambient ? "SkyLight_64x.png" : Type == ELightType::Spot ? "SpotLight_64x.png" : "PointLight_64x.png"};
+    if (Assets != nullptr) {
+        FString Error{};
+        mIcon = Assets->LoadTexture(FString{"Editor/Icon/"} + Name, Error);
+    }
+    if (mIcon != nullptr) {
+        return;
+    }
+    std::array<wchar_t, 32768> Executable{};
+    const DWORD Length{GetModuleFileNameW(nullptr, Executable.data(), static_cast<DWORD>(Executable.size()))};
+    std::filesystem::path Path{Length > 0 && Length < Executable.size() ? std::filesystem::path{Executable.data()}.parent_path() / "Templates/Project/Content/Editor/Icon" / Name : std::filesystem::path{}};
+    std::error_code Error{};
+    if (Path.empty() || !std::filesystem::is_regular_file(Path, Error)) {
+        Path = std::filesystem::path{"Templates/Project/Content/Editor/Icon"} / Name;
+    }
+    auto Icon{NewObject<UTexture2D>()};
+    if (Icon->LoadFromFile(Path, true)) {
+        mFallbackIcon = std::move(Icon);
+        mIcon = mFallbackIcon.get();
+    }
 }
 
 void ULightComponentBase::DrawVisualization(FPrimitiveDrawInterface& Draw, bool Selected) const {

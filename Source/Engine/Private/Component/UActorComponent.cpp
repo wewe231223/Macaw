@@ -5,6 +5,7 @@
  */
 
 #include "Engine/Component/UActorComponent.h"
+#include "Engine/EngineStats.h"
 #include "Engine/AActor.h"
 #include "Engine/UWorld.h"
 
@@ -131,6 +132,7 @@ void UActorComponent::DispatchBeginPlay() {
  */
 void UActorComponent::DispatchTick(float DeltaTime, bool EditorTick) {
     if (mWorld != nullptr && mOwner != nullptr && mOwner->GetWorld() == mWorld && !mOwner->IsPendingDestroy() && (EditorTick ? mEditorTickable : mHasBegunPlay)) {
+        EngineStats::ComponentTicks.Add();
         Tick(DeltaTime);
     }
 }

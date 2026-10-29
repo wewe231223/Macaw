@@ -133,6 +133,11 @@ public:
      */
     const FVector2& GetUVOffset() const;
 
+    bool GetCastShadow() const;
+    bool SetCastShadow(bool CastShadow);
+    bool GetReceiveShadow() const;
+    bool SetReceiveShadow(bool ReceiveShadow);
+
 private:
     /**
      * @brief 생성된 프로퍼티 등록 함수와 빌더 접근 권한입니다.
@@ -151,6 +156,11 @@ private:
      */
     bool mRenderStateDirty{true};
     ReflectProperty(mRenderStateDirty, "RenderStateDirty", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
+    bool mCastShadow{true};
+    ReflectAccessor(mCastShadow, GetCastShadow, SetCastShadow, "CastShadow", EPropertyFlags::Edit | EPropertyFlags::Serialize);
+    bool mReceiveShadow{true};
+    ReflectAccessor(mReceiveShadow, GetReceiveShadow, SetReceiveShadow, "ReceiveShadow", EPropertyFlags::Edit | EPropertyFlags::Serialize);
 
     /**
      * @brief 변환 업로드가 필요한지 여부입니다.

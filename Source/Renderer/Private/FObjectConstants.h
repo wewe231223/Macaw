@@ -54,9 +54,11 @@ public:
      */
     FVector4 mUVTransform{1.0f, 1.0f, 0.0f, 0.0f};
     ReflectProperty(mUVTransform, "UVTransform", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    FVector4 mShadowFlags{1.0f, 0.0f, 0.0f, 0.0f};
+    ReflectProperty(mShadowFlags, "ShadowFlags", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 
 };
 
 static_assert(sizeof(FMatrix) == 64 && alignof(FMatrix) == 16 && std::is_trivially_copyable_v<FMatrix>);
-static_assert(std::is_standard_layout_v<FObjectConstants> && sizeof(FObjectConstants) == 144);
+static_assert(std::is_standard_layout_v<FObjectConstants> && sizeof(FObjectConstants) == 160);
 static_assert(offsetof(FObjectConstants, mWorld) == 0 && offsetof(FObjectConstants, mWorldInverse) == 64);

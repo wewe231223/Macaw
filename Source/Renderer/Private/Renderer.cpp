@@ -5,6 +5,7 @@
  */
 
 #include "Renderer/Renderer.h"
+#include "RendererStats.h"
 #include "Core/FilePath.h"
 #include "Renderer/FLineVertex.h"
 #include "Core/Math/FVector.h"
@@ -27,6 +28,7 @@
 #include "FSceneRenderer.h"
 #include "FMaterialPipeline.h"
 #include "FLightingResources.h"
+#include "FShadowResources.h"
 #include "FEditorMeshConstants.h"
 #include "FTextRenderer.h"
 #include "FSpriteRenderer.h"
@@ -34,6 +36,7 @@
 #include "Core/Math/FVector4.h"
 
 #include <d3dcompiler.h>
+#include <dxgi1_5.h>
 #include <algorithm>
 #include <span>
 #include <cmath>
@@ -113,6 +116,11 @@ bool FRenderer::InitializeUi(void* WindowHandle, Uint32 Width, Uint32 Height) {
         ErrorHandler::Fatal("Renderer", "Invalid renderer initialization state");
     }
 
+    ComPtr<IDXGIFactory1> TearingFactory{};
+    ComPtr<IDXGIFactory5> TearingFactory5{};
+    BOOL TearingSupported{FALSE};
+    mTearingSupported = SUCCEEDED(CreateDXGIFactory1(IID_PPV_ARGS(TearingFactory.GetAddressOf()))) && SUCCEEDED(TearingFactory.As(&TearingFactory5)) && SUCCEEDED(TearingFactory5->CheckFeatureSupport(DXGI_FEATURE_PRESENT_ALLOW_TEARING, &TearingSupported, sizeof(TearingSupported))) && TearingSupported != FALSE;
+
     DXGI_SWAP_CHAIN_DESC Description{};
     Description.BufferDesc.Width = Width;
     Description.BufferDesc.Height = Height;
@@ -125,6 +133,7 @@ bool FRenderer::InitializeUi(void* WindowHandle, Uint32 Width, Uint32 Height) {
     Description.OutputWindow = static_cast<HWND>(WindowHandle);
     Description.Windowed = true;
     Description.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
+    Description.Flags = mTearingSupported ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0;
 
     UINT Flags{D3D11_CREATE_DEVICE_BGRA_SUPPORT};
 #ifdef _DEBUG
@@ -178,6 +187,7 @@ void FRenderer::Shutdown() {
 
     mMaterialPipelines.clear();
     mLightingResources.reset();
+    mShadowResources.reset();
     mDefaultMaterial.reset();
     mDefaultMaterialTexture.reset();
     mMaterialSampler.Reset();
@@ -199,6 +209,8 @@ void FRenderer::Shutdown() {
 
     mBackBuffer.reset();
     mSwapChain.Reset();
+    mAllowTearing = false;
+    mTearingSupported = false;
     if (mContext != nullptr) {
         mContext->Flush();
     }
@@ -279,6 +291,14 @@ void FRenderer::BeginFrame(Uint32 Width, Uint32 Height) {
  * @brief 지정한 장면 뷰를 타깃에 렌더링하고 에디터 보조 선분을 그립니다.
  */
 void FRenderer::BeginRenderingViewFamily(const FSceneViewFamily& Family) {
+    static FStat RenderTime{"unit", "Render submission CPU (inclusive)", EStatUnit::Milliseconds};
+    static FStat Views{"render", "Rendered views"};
+    static FStat DrawCalls{"render", "Scene/editor draw calls"};
+    static FStat Primitives{"render", "Visible primitives (sum of views)"};
+    static FStat Uploads{"render", "Object uploads"};
+    static FStat GpuBytes{"memory", "GPU buffers/target estimate (last view)", EStatUnit::Bytes, EStatMode::Gauge};
+    const FScopedStatTimer StatTimer{RenderTime};
+    const FRenderStats PreviousStats{mStats};
     const auto* Scene{dynamic_cast<const FScene*>(Family.mScene)};
     auto* Target{dynamic_cast<FDXRenderTarget*>(Family.mTarget)};
 
@@ -290,6 +310,9 @@ void FRenderer::BeginRenderingViewFamily(const FSceneViewFamily& Family) {
     mContext->PSSetShaderResources(0, 1, &Empty);
 
     ID3D11RenderTargetView* RenderTarget{Target->GetRenderTargetView()};
+    if (mShadowResources != nullptr && !mShadowResources->Render(mDevice.Get(), mContext.Get(), *Scene, Family, mMeshes, mStats)) {
+        ErrorHandler::Report("Shadow", "Shadow atlas rendering failed", ErrorHandler::EErrorLevel::Error);
+    }
     mContext->OMSetRenderTargets(1, &RenderTarget, Target->GetDepthView());
 
     constexpr float ClearColor[]{0.065f, 0.078f, 0.10f, 1.0f};
@@ -327,6 +350,7 @@ void FRenderer::BeginRenderingViewFamily(const FSceneViewFamily& Family) {
     mStats.mGpuBytes = Scene->GetPrimitiveCount() * sizeof(FObjectConstants) + sizeof(FMatrix) + sizeof(FEditorMeshConstants) + mLineBuffer.GetResourceBytes() + Target->GetResourceBytes();
     mStats.mGpuBytes += mTextRenderer != nullptr ? mTextRenderer->GetResourceBytes() : 0;
     mStats.mGpuBytes += mSpriteRenderer != nullptr ? mSpriteRenderer->GetResourceBytes() : 0;
+    mStats.mGpuBytes += mStats.mShadowAtlasBytes;
 
     for (const auto& Mesh : mMeshes) {
         mStats.mGpuBytes += Mesh != nullptr ? Mesh->GetResourceBytes() : 0;
@@ -336,6 +360,20 @@ void FRenderer::BeginRenderingViewFamily(const FSceneViewFamily& Family) {
     }
 
     mContext->OMSetRenderTargets(0, nullptr, nullptr);
+    Views.Add();
+    DrawCalls.Add(mStats.mDrawCalls - PreviousStats.mDrawCalls);
+    Primitives.Add(mStats.mVisiblePrimitives - PreviousStats.mVisiblePrimitives);
+    Uploads.Add(mStats.mTransformUpdates - PreviousStats.mTransformUpdates);
+    GpuBytes.Set(static_cast<double>(mStats.mGpuBytes));
+    RendererStats::ShadowMaps.Add(mStats.mShadowMaps);
+    RendererStats::ShadowDrawCalls.Add(mStats.mShadowDrawCalls);
+    RendererStats::ShadowReducedLights.Add(mStats.mShadowReducedLights);
+    RendererStats::ShadowDroppedLights.Add(mStats.mShadowDroppedLights);
+    RendererStats::ShadowAtlasBytes.Set(static_cast<double>(mStats.mShadowAtlasBytes));
+    RendererStats::ShadowAllocatedBytes.Set(static_cast<double>(mStats.mShadowAllocatedBytes));
+    RendererStats::DirectionalLights.Add(mStats.mDirectionalLights);
+    RendererStats::PointLights.Add(mStats.mPointLights);
+    RendererStats::SpotLights.Add(mStats.mSpotLights);
 }
 
 /**
@@ -355,9 +393,35 @@ void FRenderer::BeginUiRender() {
  * @brief 스왑 체인의 백 버퍼를 화면에 표시합니다.
  */
 void FRenderer::Present() {
-    if (mSwapChain != nullptr && FAILED(mSwapChain->Present(1, 0))) {
+    static FStat PresentTime{"unit", "Present / VSync CPU", EStatUnit::Milliseconds};
+    const FScopedStatTimer StatTimer{PresentTime};
+    if (mSwapChain == nullptr) {
+        return;
+    }
+
+    BOOL Fullscreen{FALSE};
+    const bool AllowTearing{mAllowTearing && mTearingSupported && SUCCEEDED(mSwapChain->GetFullscreenState(&Fullscreen, nullptr)) && Fullscreen == FALSE};
+    const UINT SyncInterval{AllowTearing ? 0u : 1u};
+    const UINT Flags{AllowTearing ? DXGI_PRESENT_ALLOW_TEARING : 0u};
+    if (FAILED(mSwapChain->Present(SyncInterval, Flags))) {
         ErrorHandler::Fatal("Renderer", "Presentation failed");
     }
+}
+
+bool FRenderer::SetAllowTearing(bool Allow) {
+    if (mSwapChain == nullptr || (Allow && !mTearingSupported)) {
+        return false;
+    }
+    mAllowTearing = Allow;
+    return true;
+}
+
+bool FRenderer::IsTearingAllowed() const {
+    return mAllowTearing;
+}
+
+bool FRenderer::IsTearingSupported() const {
+    return mTearingSupported;
 }
 
 /**
@@ -379,6 +443,10 @@ void* FRenderer::GetNativeContext() const {
  */
 FRenderStats FRenderer::GetStats() const {
     return mStats;
+}
+
+FShadowAtlasView FRenderer::GetShadowAtlasView() const {
+    return mShadowResources != nullptr ? mShadowResources->GetView() : FShadowAtlasView{};
 }
 
 bool FRenderer::ReloadChangedShaders() {
@@ -497,7 +565,8 @@ bool FRenderer::CreateBackBuffer(Uint32 Width, Uint32 Height) {
     mContext->OMSetRenderTargets(0, nullptr, nullptr);
     mBackBuffer.reset();
 
-    if (FAILED(mSwapChain->ResizeBuffers(0, Width, Height, DXGI_FORMAT_UNKNOWN, 0))) {
+    const UINT Flags{mTearingSupported ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0u};
+    if (FAILED(mSwapChain->ResizeBuffers(0, Width, Height, DXGI_FORMAT_UNKNOWN, Flags))) {
         ErrorHandler::Fatal("Renderer", "Swap chain resize failed");
     }
 
@@ -520,6 +589,7 @@ bool FRenderer::CreateBackBuffer(Uint32 Width, Uint32 Height) {
  */
 bool FRenderer::CreatePipeline() {
     mLightingResources = std::make_unique<FLightingResources>();
+    mShadowResources = std::make_unique<FShadowResources>();
     mTextRenderer = std::make_unique<FTextRenderer>();
     mSpriteRenderer = std::make_unique<FSpriteRenderer>();
     if (!mSpriteRenderer->Initialize(mDevice.Get())) {
@@ -650,6 +720,7 @@ void FRenderer::DrawLines(const FPrimitiveDrawInterface* Elements, bool DepthTes
     mContext->OMSetDepthStencilState(DepthTest ? mDepthEnabled.Get() : mDepthDisabled.Get(), 0);
 
     mContext->DrawInstanced(6, Count, 0, 0);
+    RendererStats::Triangles.Add(static_cast<double>(Count) * 2.0);
     mContext->OMSetBlendState(nullptr, nullptr, 0xFFFFFFFFu);
 
     ++mStats.mDrawCalls;
@@ -701,6 +772,7 @@ void FRenderer::DrawMeshes(const FPrimitiveDrawInterface* Elements, bool DepthTe
         mContext->IASetVertexBuffers(0, 1, &Buffer, &Stride, &Offset);
         mContext->IASetIndexBuffer(Mesh->GetIndexBuffer(), DXGI_FORMAT_R32_UINT, 0);
         mContext->DrawIndexed(Mesh->GetIndexCount(), 0, 0);
+        RendererStats::Triangles.Add(Mesh->GetIndexCount() / 3);
         ++mStats.mDrawCalls;
     }
 
@@ -881,10 +953,16 @@ void FRenderer::DrawTranslucency(const FSceneViewFamily& Family) {
 
 bool FRenderer::PrepareLighting(const FSceneViewFamily& Family) {
     const auto* Scene{static_cast<const FScene*>(Family.mScene)};
-    return mLightingResources != nullptr && mLightingResources->Upload(mDevice.Get(), mContext.Get(), Scene->GetLights(), Family.mView);
+    if (mShadowResources != nullptr) {
+        mShadowResources->Bind(mContext.Get());
+    }
+    return mLightingResources != nullptr && mLightingResources->Upload(mDevice.Get(), mContext.Get(), Scene->GetLights(), Family.mView, mShadowResources != nullptr ? std::span<const std::array<Uint32, 2>>{mShadowResources->GetLightRanges()} : std::span<const std::array<Uint32, 2>>{});
 }
 
 void FRenderer::FinishLighting() {
+    if (mShadowResources != nullptr) {
+        mShadowResources->Unbind(mContext.Get());
+    }
     if (mLightingResources != nullptr) {
         mLightingResources->Unbind(mContext.Get());
     }

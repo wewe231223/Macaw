@@ -31,9 +31,9 @@ bool FLightingResources::UploadBuffer(ID3D11Device* Device, ID3D11DeviceContext*
     return true;
 }
 
-bool FLightingResources::Upload(ID3D11Device* Device, ID3D11DeviceContext* Context, std::span<const FLightSceneProxy> Lights, const FSceneView& View) {
+bool FLightingResources::Upload(ID3D11Device* Device, ID3D11DeviceContext* Context, std::span<const FLightSceneProxy> Lights, const FSceneView& View, std::span<const std::array<Uint32, 2>> ShadowRanges) {
     Unbind(Context);
-    mGrid.Build(Lights, View);
+    mGrid.Build(Lights, View, ShadowRanges);
     if (!UploadBuffer(Device, Context, 0, mGrid.GetLights().data(), static_cast<Uint32>(mGrid.GetLights().size()), sizeof(FGpuLight)) || !UploadBuffer(Device, Context, 1, mGrid.GetRanges().data(), static_cast<Uint32>(mGrid.GetRanges().size()), sizeof(std::array<Uint32, 2>)) || !UploadBuffer(Device, Context, 2, mGrid.GetIndices().data(), static_cast<Uint32>(mGrid.GetIndices().size()), sizeof(Uint32))) {
         return false;
     }

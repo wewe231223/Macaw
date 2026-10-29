@@ -1,5 +1,6 @@
 /** @file FObjViewerApplication.cpp @brief 독립 OBJ 뷰어의 실행과 파일 열기입니다. @ingroup App */
 #include "FObjViewerApplication.h"
+#include "Core/Stats.h"
 #include "Core/FilePath.h"
 #include "Engine/FAssetManager.h"
 #include "Editor/FMeshViewer.h"
@@ -74,6 +75,7 @@ int FObjViewerApplication::Run() {
             MsgWaitForMultipleObjects(0, nullptr, false, 16, QS_ALLINPUT);
             continue;
         }
+        const FScopedStatFrame StatFrame{};
         mRenderer.BeginFrame(mPlatform.GetWidth(), mPlatform.GetHeight());
         ImGui_ImplDX11_NewFrame();
         ImGui_ImplWin32_NewFrame();

@@ -4,6 +4,7 @@
  */
 
 #include "Script/LuaVM.h"
+#include "Core/Stats.h"
 
 #include "Core/Math/FVector.h"
 #include "Core/Math/FRotator.h"
@@ -21,6 +22,9 @@
  * @brief 이 구현 파일에서만 사용하는 내부 상태와 보조 함수입니다.
  */
 namespace {
+    FStat ExecuteStringTime{"script", "Execute string CPU", EStatUnit::Milliseconds};
+    FStat ExecuteFileTime{"script", "Execute file CPU", EStatUnit::Milliseconds};
+    FStat LuaErrors{"script", "Lua errors"};
     /**
      * @brief Lua 기본 타입의 값을 로그에 표시할 문자열로 변환합니다.
      * @param[in] Value 읽거나 기록·변환할 값입니다.
@@ -251,6 +255,7 @@ void FLuaVM::Shutdown() {
 }
 
 bool FLuaVM::ExecuteString(const FString& Source, const FString& ChunkName) {
+    const FScopedStatTimer StatTimer{ExecuteStringTime};
     if (mState == nullptr) {
         WriteLog(std::format("[Lua] Cannot execute '{}': VM is not initialized", ChunkName));
         return false;
@@ -261,6 +266,7 @@ bool FLuaVM::ExecuteString(const FString& Source, const FString& ChunkName) {
 }
 
 bool FLuaVM::ExecuteFile(const FString& ScriptPath) {
+    const FScopedStatTimer StatTimer{ExecuteFileTime};
     if (mState == nullptr) {
         WriteLog(std::format("[Lua] Cannot execute '{}': VM is not initialized", ScriptPath));
         return false;
@@ -331,6 +337,7 @@ bool FLuaVM::CheckLuaResult(sol::protected_function_result& Result, const FStrin
     }
 
     const sol::error Error{Result.get<sol::error>()};
+    LuaErrors.Add();
     WriteLog(std::format("[Lua] {} failed: {}", Context, Error.what()));
     return false;
 }

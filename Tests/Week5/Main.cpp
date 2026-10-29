@@ -28,6 +28,9 @@
 #include "FScene.h"
 #include "FTiledLightGrid.h"
 #include "MeshImportTests.h"
+#include "ShadowTests.h"
+#include "StatsTests.h"
+#include "Core/Stats.h"
 
 #include <Windows.h>
 #include <d3d11sdklayers.h>
@@ -226,12 +229,46 @@ void TestEditorPlacement(FRenderer& Renderer) {
     Engine.Shutdown();
 }
 
+void TestTearingCommands(FRenderer& Renderer) {
+    FEditorContext Detached{nullptr};
+    Detached.ExecuteConsoleCommand("Allow Tearing");
+    Require(Detached.GetLogs().back() == "Allow Tearing: renderer is unavailable.", "Tearing command did not handle a missing engine");
+
+    UEngine Engine{};
+    Require(Engine.Initialize(&Renderer), "Tearing command engine initialization failed");
+    FEditorContext Context{&Engine};
+    Require(!Renderer.IsTearingAllowed(), "Tearing must be opt-in");
+    Context.ExecuteConsoleCommand("Allow Tearing");
+    Require(Renderer.IsTearingAllowed() == Renderer.IsTearingSupported(), "Tearing enable did not respect device support");
+    Require(Context.GetLogs().back() == (Renderer.IsTearingSupported() ? "Allow Tearing: on (VSync off in windowed mode)." : "Allow Tearing: unsupported or renderer is not initialized."), "Tearing enable result was not reported");
+    Context.ExecuteConsoleCommand("Allow Tearing status");
+    Require(Renderer.IsTearingAllowed() == Renderer.IsTearingSupported(), "Tearing status changed the setting");
+    for (const char* Command : {"Allow", "Allow Other", "Allow Tearing maybe", "Allow Tearing off extra"}) {
+        Context.ExecuteConsoleCommand(Command);
+        Require(Context.GetLogs().back() == "Usage: Allow Tearing [on/off/status]" && Renderer.IsTearingAllowed() == Renderer.IsTearingSupported(), "Invalid tearing command changed the setting");
+    }
+    for (const bool Allow : {false, true, false, true}) {
+        Context.ExecuteConsoleCommand(Allow ? "  aLLoW   TeArInG  ON  " : "Allow Tearing off");
+        Require(Renderer.IsTearingAllowed() == (Allow && Renderer.IsTearingSupported()), "Tearing command did not apply the requested state");
+        Renderer.BeginFrame(Allow ? 320u : 256u, Allow ? 192u : 256u);
+        Renderer.BeginUiRender();
+        Renderer.Present();
+    }
+    Context.ExecuteConsoleCommand("Allow Tearing off");
+    Require(!Renderer.IsTearingAllowed() && Context.GetLogs().back() == "Allow Tearing: off (VSync on).", "Tearing disable did not restore VSync");
+    Renderer.BeginFrame(256, 256);
+    Engine.Shutdown();
+}
+
 void TestGpuRendering() {
     const HWND Window{CreateWindowExW(0, L"STATIC", L"Week5 integration tests", WS_OVERLAPPEDWINDOW, 0, 0, 256, 256, nullptr, nullptr, GetModuleHandleW(nullptr), nullptr)};
     Require(Window != nullptr, "Cannot create hidden test window");
     FRenderer Renderer{};
+    Require(!Renderer.IsTearingSupported() && !Renderer.IsTearingAllowed() && !Renderer.SetAllowTearing(true), "Uninitialized renderer accepted tearing");
+    Renderer.Present();
     Renderer.SetProjectPaths(std::filesystem::absolute("Templates/Project/Content"), std::filesystem::absolute("Intermediate/Week5ShaderCache"));
     Require(Renderer.Initialize(Window, 256, 256), "Renderer initialization failed");
+    TestTearingCommands(Renderer);
     auto Scene{Renderer.AllocateScene()};
     auto Target{Renderer.CreateRenderTarget(64, 64)};
     auto Mesh{NewObject<UStaticMesh>()};
@@ -252,10 +289,18 @@ void TestGpuRendering() {
     View.mProjection = FMatrix::Orthographic(1.0f, 1.0f, 0.1f, 10.0f);
     View.mViewProjection = View.mView * View.mProjection;
     const auto Render{[&](EViewMode Mode) {
+        const FScopedStatFrame StatFrame{};
         Renderer.BeginRenderingViewFamily({Scene.get(), Target.get(), View, nullptr, Mode});
         return ReadCenter(Renderer, *Target);
     }};
     const auto Dark{Render(EViewMode::Lit_Lambert)};
+    const auto FirstRenderStats{FStats::Get().GetSnapshots("render")};
+    Require(std::any_of(FirstRenderStats.begin(), FirstRenderStats.end(), [](const FStatSnapshot& Stat) {
+        return Stat.GetName() == "Rendered views" && Stat.GetValue() == 1.0;
+    }), "Rendered view stat was not published");
+    Require(std::any_of(FirstRenderStats.begin(), FirstRenderStats.end(), [](const FStatSnapshot& Stat) {
+        return Stat.GetName() == "Scene/editor triangles" && Stat.GetValue() == 2.0;
+    }), "Submitted triangle stat was not published");
     Require(Dark[0] < 3 && Dark[1] < 3 && Dark[2] < 3, "Scene without lights was not dark");
     FLightSceneProxy Ambient{};
     Ambient.mColor = {1.0f, 0.0f, 0.0f, 1.0f};
@@ -318,6 +363,21 @@ void TestGpuRendering() {
     UMaterial* Restored{Assets.LoadMaterial("Normal.mtl", Error)};
     Require(Restored != nullptr && Restored->GetNormalMapTexturePath() == "Normal.masset", "Normal map material save/load failed");
     Microsoft::WRL::ComPtr<ID3D11InfoQueue> Queue{};
+    {
+        const FScopedStatFrame StatFrame{};
+        Renderer.BeginFrame(256, 256);
+        Renderer.BeginRenderingViewFamily({Scene.get(), Target.get(), View, nullptr, EViewMode::Unlit});
+        Renderer.BeginRenderingViewFamily({Scene.get(), Target.get(), View, nullptr, EViewMode::Unlit});
+    }
+    const auto MultiViewStats{FStats::Get().GetSnapshots("render")};
+    Require(std::any_of(MultiViewStats.begin(), MultiViewStats.end(), [](const FStatSnapshot& Stat) {
+        return Stat.GetName() == "Rendered views" && Stat.GetValue() == 2.0;
+    }), "Multiple views did not accumulate in one stat frame");
+    Require(std::any_of(MultiViewStats.begin(), MultiViewStats.end(), [](const FStatSnapshot& Stat) {
+        return Stat.GetName() == "Scene/editor triangles" && Stat.GetValue() == 4.0;
+    }), "Multiple views did not accumulate triangle counts");
+    std::cout << "Render view, triangle and multiple-view stat accumulation passed\n";
+    TestShadowRendering(Renderer);
     if (SUCCEEDED(static_cast<ID3D11Device*>(Renderer.GetNativeDevice())->QueryInterface(IID_PPV_ARGS(Queue.GetAddressOf())))) {
         for (UINT64 Index{}; Index < Queue->GetNumStoredMessages(); ++Index) {
             SIZE_T Size{};
@@ -336,6 +396,13 @@ void TestGpuRendering() {
     Scene.reset();
     Target.reset();
     Renderer.Shutdown();
+    Require(!Renderer.IsTearingSupported() && !Renderer.IsTearingAllowed() && !Renderer.SetAllowTearing(true), "Renderer shutdown retained tearing state");
+    Require(Renderer.InitializeUi(Window, 256, 256), "Renderer reinitialization failed");
+    Require(!Renderer.IsTearingAllowed() && Renderer.SetAllowTearing(true) == Renderer.IsTearingSupported(), "Reinitialized renderer lost tearing support");
+    Renderer.BeginFrame(320, 192);
+    Renderer.BeginUiRender();
+    Renderer.Present();
+    Renderer.Shutdown();
     DestroyWindow(Window);
 }
 
@@ -343,14 +410,18 @@ int main() {
     ErrorHandler::Initialize();
     const HRESULT Com{CoInitializeEx(nullptr, COINIT_MULTITHREADED)};
     try {
+        TestStats();
+        std::cout << "Stat aggregation, history, concurrent writers, timers, engine counters, commands and UI passed\n";
         TestMeshImport();
         std::cout << "Mesh import, material textures, Unicode paths and source diagnostics passed\n";
         TestLightLifecycle();
         std::cout << "Light lifecycle, serialization and PIE clone passed\n";
         TestTileCoverage();
+        TestShadowAllocation();
+        std::cout << "Shadow quadtree allocation, CSM stability, Unreal icons and shadow property serialization passed\n";
         std::cout << "Perspective/orthographic tile coverage and 300-light lists passed\n";
         TestGpuRendering();
-        std::cout << "GPU lighting, shader permutations, normal mapping, material roundtrip and actor drag/drop passed\n";
+        std::cout << "Tearing commands, presentation, resize, reinitialization, GPU lighting, shader permutations, normal mapping, material roundtrip and actor drag/drop passed\n";
     } catch (const std::exception& Error) {
         std::cerr << Error.what() << '\n';
         return 1;

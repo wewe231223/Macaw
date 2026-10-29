@@ -146,6 +146,8 @@ FPrimitiveSceneProxy UPrimitiveComponent::CreateSceneProxy() const {
     FPrimitiveSceneProxy Proxy{GetGuid(), GetPrimitiveType(), World, GetWorldBounds(), GetStaticMesh()};
     Proxy.mUVScale = mUVScale;
     Proxy.mUVOffset = mUVOffset;
+    Proxy.mCastShadow = mCastShadow;
+    Proxy.mReceiveShadow = mReceiveShadow;
     return Proxy;
 }
 
@@ -196,4 +198,24 @@ const FVector2& UPrimitiveComponent::GetUVScale() const {
 
 const FVector2& UPrimitiveComponent::GetUVOffset() const {
     return mUVOffset;
+}
+
+bool UPrimitiveComponent::GetCastShadow() const {
+    return mCastShadow;
+}
+
+bool UPrimitiveComponent::SetCastShadow(bool CastShadow) {
+    mCastShadow = CastShadow;
+    MarkRenderStateDirty();
+    return true;
+}
+
+bool UPrimitiveComponent::GetReceiveShadow() const {
+    return mReceiveShadow;
+}
+
+bool UPrimitiveComponent::SetReceiveShadow(bool ReceiveShadow) {
+    mReceiveShadow = ReceiveShadow;
+    MarkRenderStateDirty();
+    return true;
 }

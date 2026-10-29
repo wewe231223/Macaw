@@ -29,6 +29,7 @@ class FTextRenderer;
 class FSpriteRenderer;
 class FMaterialPipeline;
 class FLightingResources;
+class FShadowResources;
 
 /**
  * @brief Direct3D 11 장치, 스왑 체인, 메시와 프레임 렌더링을 관리합니다.
@@ -138,6 +139,10 @@ public:
      */
     void Present() override;
 
+    bool SetAllowTearing(bool Allow) override;
+    bool IsTearingAllowed() const override;
+    bool IsTearingSupported() const override;
+
     /**
      * @brief Direct3D 11 장치의 비소유 주소를 반환합니다.
      * @return 조회한 값의 비소유 주소이며, 해당 값이 없으면 nullptr입니다.
@@ -153,6 +158,7 @@ public:
      * @return 프레임 렌더링 통계입니다.
      */
     FRenderStats GetStats() const override;
+    FShadowAtlasView GetShadowAtlasView() const override;
     /**
      * @brief 변경된 셰이더를 다시 컴파일하고 필요한 GPU 셰이더를 갱신합니다.
      * @return 요청한 처리를 완료하면 true, 실패하면 false입니다.
@@ -269,6 +275,8 @@ private:
 private:
     std::unique_ptr<FLightingResources> mLightingResources{};
     ReflectProperty(mLightingResources, "LightingResources", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    std::unique_ptr<FShadowResources> mShadowResources{};
+    ReflectProperty(mShadowResources, "ShadowResources", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
     std::unique_ptr<UMaterial> mDefaultMaterial{};
     ReflectProperty(mDefaultMaterial, "DefaultMaterial", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
     /**
@@ -330,6 +338,11 @@ private:
      */
     Microsoft::WRL::ComPtr<IDXGISwapChain> mSwapChain{};
     ReflectProperty(mSwapChain, "SwapChain", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
+    bool mAllowTearing{};
+    ReflectProperty(mAllowTearing, "AllowTearing", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    bool mTearingSupported{};
+    ReflectProperty(mTearingSupported, "TearingSupported", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 
     /**
      * @brief 스왑 체인 백 버퍼의 렌더 타깃 뷰입니다.

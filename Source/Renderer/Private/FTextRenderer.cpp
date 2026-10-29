@@ -1,6 +1,7 @@
 /** @file FTextRenderer.cpp @brief 텍스트 배치, 정점 업로드와 거리 필드 렌더링을 구현합니다. @ingroup Renderer */
 
 #include "FTextRenderer.h"
+#include "RendererStats.h"
 #include "Engine/FDrawText.h"
 #include "Engine/FSceneView.h"
 #include "CoreUObject/Reflection/NewObject.h"
@@ -119,6 +120,7 @@ bool FTextRenderer::Draw(ID3D11DeviceContext* Context, const FDrawText& Text, co
     Context->PSSetShaderResources(0, 1, &Atlas);
     Context->PSSetSamplers(0, 1, &Sampler);
     Context->Draw(Count, 0);
+    RendererStats::Triangles.Add(Count / 3);
     ID3D11ShaderResourceView* Empty{};
     Context->PSSetShaderResources(0, 1, &Empty);
     return true;

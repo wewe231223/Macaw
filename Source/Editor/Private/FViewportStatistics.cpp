@@ -1,30 +1,37 @@
-/**
- * @file FViewportStatistics.cpp
- * @brief 프레임 시간, 객체, 메모리와 렌더링 통계를 표시합니다.
- * @ingroup Editor
- */
-
 #include "Editor/FViewportStatistics.h"
 #include "Core/Math/FVector2.h"
-#include "Core/Memory.h"
-#include "Engine/UWorld.h"
-#include "Engine/ULevel.h"
-#include "Engine/PrimitiveMesh.h"
-#include "RenderCore/FRenderStats.h"
+#include "Core/Stats.h"
 
 #include <imgui.h>
 #include <algorithm>
 #include <cctype>
-#include <cmath>
 #include <format>
 #include <sstream>
 
-/**
- * @brief 뷰포트별 통계 표시 상태를 명령에 따라 변경합니다.
- * @param[in] Command 해석할 stat 명령과 인수입니다.
- * @param[out] Output 처리 결과 또는 사용법 진단을 받을 문자열입니다.
- * @return stat 명령을 처리했으면 true이며 다른 종류의 명령이면 false입니다.
- */
+namespace {
+    FString ToLower(FString Text) {
+        std::transform(Text.begin(), Text.end(), Text.begin(), [](unsigned char Character) {
+            return static_cast<char>(std::tolower(Character));
+        });
+        return Text;
+    }
+
+    FString FormatValue(double Value, EStatUnit Unit, bool Average = false) {
+        switch (Unit) {
+        case EStatUnit::Milliseconds:
+            return std::format("{:.3f} ms", Value);
+        case EStatUnit::Bytes:
+            return Value >= 1024.0 * 1024.0 ? std::format("{:.2f} MiB", Value / (1024.0 * 1024.0)) : std::format("{:.2f} KiB", Value / 1024.0);
+        case EStatUnit::Hertz:
+            return std::format("{:.1f} FPS", Value);
+        case EStatUnit::Percent:
+            return std::format("{:.2f}%", Value);
+        default:
+            return Average ? std::format("{:.2f}", Value) : std::format("{:.0f}", Value);
+        }
+    }
+}
+
 bool FViewportStatistics::ExecuteCommand(const FString& Command, FString& Output) {
     std::istringstream Input{Command};
     FString Verb{};
@@ -32,97 +39,155 @@ bool FViewportStatistics::ExecuteCommand(const FString& Command, FString& Output
     FString State{};
     FString Extra{};
     Input >> Verb >> Group >> State >> Extra;
-    for (FString* Token : {&Verb, &Group, &State}) {
-        std::transform(Token->begin(), Token->end(), Token->begin(), [](unsigned char Character) {
-            return static_cast<char>(std::tolower(Character));
-        });
-    }
+    Verb = ToLower(Verb);
+    Group = ToLower(Group);
+    State = ToLower(State);
     if (Verb != "stat") {
         return false;
     }
-
     if (Group.empty()) {
         Group = "all";
     }
-    Uint8 Mask{};
-    if (Group == "fps") {
-        Mask = static_cast<Uint8>(EGroup::Fps);
-    } else if (Group == "scene") {
-        Mask = static_cast<Uint8>(EGroup::Scene);
-    } else if (Group == "memory") {
-        Mask = static_cast<Uint8>(EGroup::Memory);
-    } else if (Group == "render") {
-        Mask = static_cast<Uint8>(EGroup::Render);
-    } else if (Group == "all" || Group == "none") {
-        Mask = static_cast<Uint8>(EGroup::All);
+    if (Group == "shadows") {
+        Group = "shadow";
     }
-
-    if (Mask == 0 || !Extra.empty() || (!State.empty() && State != "on" && State != "off") || (Group == "none" && !State.empty())) {
-        Output = "Usage: stat fps/scene/memory/render/all [on/off] | stat none";
+    const TArray<FString> Groups{FStats::Get().GetGroups()};
+    if ((Group == "list" || Group == "reset") && State.empty() && Extra.empty()) {
+        if (Group == "reset") {
+            FStats::Get().Reset();
+            Output = "Stat history reset.";
+        } else {
+            Output = "Stat groups:";
+            for (const FString& Name : Groups) {
+                Output += " " + Name;
+            }
+        }
         return true;
     }
-
-    const bool Enable{Group != "none" && (State == "on" || (State.empty() && (mEnabledGroups & Mask) != Mask))};
-    mEnabledGroups = Enable ? static_cast<Uint8>(mEnabledGroups | Mask) : static_cast<Uint8>(mEnabledGroups & ~Mask);
+    const auto Found{std::find_if(Groups.begin(), Groups.end(), [&Group](const FString& Name) {
+        return ToLower(Name) == Group;
+    })};
+    if (!Extra.empty() || (!State.empty() && State != "on" && State != "off") || (Group == "none" && !State.empty()) || (Found == Groups.end() && Group != "all" && Group != "none")) {
+        Output = "Usage: stat <group>/all [on/off] | stat none | stat list | stat reset";
+        return true;
+    }
+    bool Enable{};
+    if (Group == "all" || Group == "none") {
+        const bool AllEnabled{!Groups.empty() && std::all_of(Groups.begin(), Groups.end(), [this](const FString& Name) {
+            return IsEnabled(Name);
+        })};
+        Enable = Group != "none" && (State == "on" || (State.empty() && !AllEnabled));
+        mAllGroups = Enable;
+        mEnabledGroups.clear();
+    } else {
+        Group = *Found;
+        Enable = State == "on" || (State.empty() && !IsEnabled(Group));
+        std::erase(mEnabledGroups, Group);
+        if (Enable != mAllGroups) {
+            mEnabledGroups.push_back(Group);
+        }
+    }
     Output = std::format("stat {}: {}", Group, Enable ? "on" : "off");
     return true;
 }
 
-/**
- * @brief 선택한 통계 그룹의 표시 여부를 반환합니다.
- * @param[in] Group 표시 여부를 조회할 통계 그룹 비트 조합입니다.
- * @return 모든 요청 그룹이 유효하고 표시 중이면 true입니다.
- */
 bool FViewportStatistics::IsEnabled(EGroup Group) const {
-    const Uint8 Mask{static_cast<Uint8>(Group)};
-    return Mask != 0 && (Mask & static_cast<Uint8>(EGroup::All)) == Mask && (mEnabledGroups & Mask) == Mask;
+    const Uint32 Mask{static_cast<Uint32>(Group)};
+    if (Mask == 0 || (Mask & static_cast<Uint32>(EGroup::All)) != Mask) {
+        return false;
+    }
+    const std::array<FString, 10> Names{"fps", "scene", "memory", "render", "shadow", "unit", "game", "world", "script", "assets"};
+    for (std::size_t Index{}; Index < Names.size(); ++Index) {
+        if ((Mask & (1u << Index)) != 0 && !IsEnabled(Names[Index])) {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool FViewportStatistics::IsEnabled(const FString& Group) const {
+    const bool Found{std::find(mEnabledGroups.begin(), mEnabledGroups.end(), Group) != mEnabledGroups.end()};
+    return mAllGroups ? !Found : Found;
 }
 
 bool FViewportStatistics::IsVisible() const {
-    return mEnabledGroups != 0;
+    return mAllGroups || !mEnabledGroups.empty();
 }
 
-/**
- * @brief 뷰포트 이미지 위에 입력을 받지 않는 통계 내용을 그립니다.
- */
-void FViewportStatistics::Draw(float DeltaTime, const UWorld* World, const FRenderStats& Render, const FVector2& Origin, const FVector2& Size, ImDrawList* DrawList) const {
+void FViewportStatistics::DrawPanel(bool& Open) {
+    if (!Open) {
+        return;
+    }
+    ImGui::SetNextWindowSize({920.0f, 500.0f}, ImGuiCond_FirstUseEver);
+    if (ImGui::Begin("Statistics", &Open)) {
+        ImGui::Text("Completed frame: %llu | Average / Min / Max: last 120 frames", static_cast<unsigned long long>(FStats::Get().GetFrameNumber()));
+        if (ImGui::Button("Reset history")) {
+            FStats::Get().Reset();
+        }
+        ImGui::SameLine();
+        ImGui::SetNextItemWidth(260.0f);
+        ImGui::InputTextWithHint("##StatFilter", "Filter group or stat...", mFilter.data(), mFilter.size());
+        const FString Filter{ToLower(mFilter.data())};
+        const auto Snapshots{FStats::Get().GetSnapshots()};
+        if (Snapshots.empty()) {
+            ImGui::TextUnformatted("Waiting for a completed frame...");
+        } else if (ImGui::BeginTable("StatValues", 7, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable | ImGuiTableFlags_ScrollY, {0.0f, 0.0f})) {
+            ImGui::TableSetupColumn("Group");
+            ImGui::TableSetupColumn("Stat", ImGuiTableColumnFlags_WidthStretch, 3.0f);
+            ImGui::TableSetupColumn("Value");
+            ImGui::TableSetupColumn("Average");
+            ImGui::TableSetupColumn("Min");
+            ImGui::TableSetupColumn("Max");
+            ImGui::TableSetupColumn("Samples");
+            ImGui::TableSetupScrollFreeze(0, 1);
+            ImGui::TableHeadersRow();
+            for (const FStatSnapshot& Stat : Snapshots) {
+                if (!Filter.empty() && ToLower(Stat.GetGroup() + " " + Stat.GetName()).find(Filter) == FString::npos) {
+                    continue;
+                }
+                ImGui::TableNextRow();
+                ImGui::TableNextColumn();
+                ImGui::TextUnformatted(Stat.GetGroup().c_str());
+                ImGui::TableNextColumn();
+                ImGui::TextUnformatted(Stat.GetName().c_str());
+                std::size_t ValueIndex{};
+                for (const double Value : {Stat.GetValue(), Stat.GetAverage(), Stat.GetMinimum(), Stat.GetMaximum()}) {
+                    ImGui::TableNextColumn();
+                    ImGui::TextUnformatted(FormatValue(Value, Stat.GetUnit(), ValueIndex++ == 1).c_str());
+                }
+                ImGui::TableNextColumn();
+                ImGui::Text("%llu", static_cast<unsigned long long>(Stat.GetSamples()));
+            }
+            ImGui::EndTable();
+        }
+    }
+    ImGui::End();
+}
+
+void FViewportStatistics::Draw(float, const UWorld*, const FRenderStats&, const FVector2& Origin, const FVector2& Size, ImDrawList* DrawList) const {
     if (!IsVisible() || Size.x < 1.0f || Size.y < 1.0f) {
         return;
     }
-
     TArray<FString> Lines{};
-    const FMemoryStats Memory{FMemory::GetStats()};
-    if (IsEnabled(EGroup::Fps)) {
-        const float FrameTime{std::isfinite(DeltaTime) && DeltaTime > 0.0f ? DeltaTime : 0.0f};
-        Lines.push_back(std::format("FPS: {:.1f} | Frame: {:.2f} ms", FrameTime > 0.0f ? 1.0f / FrameTime : 0.0f, FrameTime * 1000.0f));
-    }
-    if (IsEnabled(EGroup::Scene)) {
-        Lines.push_back(std::format("Actors: {}", World != nullptr && World->GetPersistentLevel() != nullptr ? World->GetPersistentLevel()->GetActors().size() : 0));
-        Lines.push_back(std::format("Live UObjects (global): {}", Memory.mLiveObjects));
-        Lines.push_back(std::format("Created UObjects (global): {}", Memory.mCreatedObjects));
-    }
-    if (IsEnabled(EGroup::Memory)) {
-        std::size_t GeometryBytes{};
-        for (Uint32 Index{}; Index < static_cast<Uint32>(EPrimitiveType::Count); ++Index) {
-            const FMeshData& Mesh{GetPrimitiveMesh(static_cast<EPrimitiveType>(Index))};
-            GeometryBytes += Mesh.GetAllocatedBytes();
+    for (const FStatSnapshot& Stat : FStats::Get().GetSnapshots()) {
+        if (IsEnabled(Stat.GetGroup())) {
+            const FString Value{FormatValue(Stat.GetValue(), Stat.GetUnit())};
+            Lines.push_back(Stat.GetUnit() == EStatUnit::Milliseconds ? std::format("[{}] {}: {} (avg {} / max {})", Stat.GetGroup(), Stat.GetName(), Value, FormatValue(Stat.GetAverage(), Stat.GetUnit()), FormatValue(Stat.GetMaximum(), Stat.GetUnit())) : std::format("[{}] {}: {}", Stat.GetGroup(), Stat.GetName(), Value));
         }
-        Lines.push_back(std::format("UObject heap (global): {:.2f} KiB", Memory.mHeapBytes / 1024.0));
-        Lines.push_back(std::format("Peak UObject heap: {:.2f} KiB", Memory.mPeakHeapBytes / 1024.0));
-        Lines.push_back(std::format("Shared CPU meshes: {:.2f} KiB", GeometryBytes / 1024.0));
-        Lines.push_back(std::format("GPU buffers/target: {:.2f} MiB", Render.mGpuBytes / (1024.0 * 1024.0)));
     }
-    if (IsEnabled(EGroup::Render)) {
-        Lines.push_back(std::format("Visible primitives: {}", Render.mVisiblePrimitives));
-        Lines.push_back(std::format("Scene draw calls: {}", Render.mDrawCalls));
-        Lines.push_back(std::format("Object uploads: {}", Render.mTransformUpdates));
+    if (Lines.empty()) {
+        return;
     }
-
+    const float LineHeight{ImGui::GetTextLineHeightWithSpacing()};
+    const std::size_t MaximumLines{static_cast<std::size_t>(std::max(1.0f, (Size.y - 32.0f) / LineHeight))};
+    if (Lines.size() > MaximumLines) {
+        Lines.resize(MaximumLines);
+        Lines.back() = "More stats: View > Statistics";
+    }
     float Width{};
     for (const FString& Line : Lines) {
         Width = std::max(Width, ImGui::CalcTextSize(Line.c_str()).x);
     }
-    const float LineHeight{ImGui::GetTextLineHeightWithSpacing()};
     const ImVec2 Minimum{std::max(Origin.x + 8.0f, Origin.x + Size.x - Width - 24.0f), Origin.y + 8.0f};
     const ImVec2 Maximum{Minimum.x + Width + 16.0f, Minimum.y + static_cast<float>(Lines.size()) * LineHeight + 16.0f};
     if (DrawList == nullptr) {

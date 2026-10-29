@@ -11,6 +11,7 @@
 #include "Engine/Component/UBillboardTextComponent.h"
 #include "Engine/Component/UBillboardComponent.h"
 #include "Engine/Engine.h"
+#include "RenderCore/IRendererModule.h"
 #include "Engine/UWorld.h"
 #include "Engine/ULevel.h"
 #include "Engine/FWorldContext.h"
@@ -34,6 +35,7 @@
 #include "Core/Base/ErrorHandler.h"
 
 #include <Windows.h>
+#include <cctype>
 #include <sstream>
 #include <utility>
 
@@ -673,14 +675,59 @@ void FEditorContext::ExecuteConsoleCommand(const FString& Command) {
     std::istringstream Input{Command};
     FString Verb{};
     Input >> Verb;
+    std::transform(Verb.begin(), Verb.end(), Verb.begin(), [](unsigned char Character) {
+        return static_cast<char>(std::tolower(Character));
+    });
 
-    if (Verb == "clear") {
+    if (Verb == "shadow") {
+        FString Target{};
+        FString Extra{};
+        Input >> Target >> Extra;
+        std::transform(Target.begin(), Target.end(), Target.begin(), [](unsigned char Character) {
+            return static_cast<char>(std::tolower(Character));
+        });
+        if (Target == "atlas" && Extra.empty()) {
+            SetShadowAtlasOpen(true);
+        } else {
+            AddLog("Usage: Shadow Atlas");
+        }
+    } else if (Verb == "clear") {
         ClearLogs();
     } else if (Verb == "help") {
         AddLog("help | clear | spawn plane/cube/sphere | save <Maps/Scene.masset> | load <Maps/Scene.masset>");
+        AddLog("Shadow Atlas | ShowFlag.Shadows [on/off] | stat shadow [on/off]");
+        AddLog("Allow Tearing [on/off/status]");
         if (mViewportCommandHandler) {
-            AddLog("stat fps/scene/memory/render/all [on/off] | stat none");
+            AddLog("stat <group>/all [on/off] | stat none | stat list | stat reset | View > Statistics");
         }
+    } else if (Verb == "allow") {
+        FString Feature{};
+        FString State{};
+        FString Extra{};
+        Input >> Feature >> State >> Extra;
+        for (FString* Token : {&Feature, &State}) {
+            std::transform(Token->begin(), Token->end(), Token->begin(), [](unsigned char Character) {
+                return static_cast<char>(std::tolower(Character));
+            });
+        }
+        if (Feature != "tearing" || !Extra.empty() || (!State.empty() && State != "on" && State != "off" && State != "status")) {
+            AddLog("Usage: Allow Tearing [on/off/status]");
+            return;
+        }
+        IRendererModule* Renderer{mEngine != nullptr ? mEngine->GetRenderer() : nullptr};
+        if (Renderer == nullptr) {
+            AddLog("Allow Tearing: renderer is unavailable.");
+            return;
+        }
+        if (State == "status") {
+            AddLog(Renderer->IsTearingSupported() ? Renderer->IsTearingAllowed() ? "Allow Tearing: on (VSync off in windowed mode)." : "Allow Tearing: off (VSync on)." : "Allow Tearing: unsupported (VSync on).");
+            return;
+        }
+        if (!Renderer->SetAllowTearing(State != "off")) {
+            AddLog("Allow Tearing: unsupported or renderer is not initialized.");
+            return;
+        }
+        AddLog(Renderer->IsTearingAllowed() ? "Allow Tearing: on (VSync off in windowed mode)." : "Allow Tearing: off (VSync on).");
     } else if (Verb == "spawn") {
         FString Type{};
         Input >> Type;
@@ -716,6 +763,14 @@ void FEditorContext::ExecuteConsoleCommand(const FString& Command) {
 
 void FEditorContext::SetViewportCommandHandler(std::function<bool(const FString&, FString&)> Handler) {
     mViewportCommandHandler = std::move(Handler);
+}
+
+bool FEditorContext::IsShadowAtlasOpen() const {
+    return mShadowAtlasOpen;
+}
+
+void FEditorContext::SetShadowAtlasOpen(bool Open) {
+    mShadowAtlasOpen = Open;
 }
 
 /** @brief 새 액터 배치 변환 제공자를 저장합니다. */

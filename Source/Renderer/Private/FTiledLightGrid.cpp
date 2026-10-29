@@ -1,11 +1,16 @@
 #include "FTiledLightGrid.h"
+#include "Core/Stats.h"
 #include "Core/Math.h"
 
 #include <algorithm>
 #include <cmath>
 #include <limits>
 
-void FTiledLightGrid::Build(std::span<const FLightSceneProxy> Lights, const FSceneView& View) {
+void FTiledLightGrid::Build(std::span<const FLightSceneProxy> Lights, const FSceneView& View, std::span<const std::array<Uint32, 2>> ShadowRanges) {
+    static FStat LightGridTime{"render", "Tiled light grid CPU", EStatUnit::Milliseconds};
+    static FStat SubmittedLights{"render", "Input lights (sum of views)"};
+    const FScopedStatTimer StatTimer{LightGridTime};
+    SubmittedLights.Add(static_cast<double>(Lights.size()));
     mLights.clear();
     mRanges.clear();
     mIndices.clear();
@@ -13,12 +18,16 @@ void FTiledLightGrid::Build(std::span<const FLightSceneProxy> Lights, const FSce
     mRows = (static_cast<Uint32>(std::max(View.mSize.y, 1.0f)) + 15) / 16;
     TArray<TArray<Uint32>> Tiles{};
     Tiles.resize(static_cast<std::size_t>(mColumns) * mRows);
-    for (const FLightSceneProxy& Light : Lights) {
+    for (std::size_t SourceIndex{}; SourceIndex < Lights.size(); ++SourceIndex) {
+        const FLightSceneProxy& Light{Lights[SourceIndex]};
         if (!Light.mVisible || Light.mIntensity <= 0.0f) {
             continue;
         }
         const Uint32 LightIndex{static_cast<Uint32>(mLights.size())};
         mLights.push_back({{Light.mPosition, Light.mAttenuationRadius}, {Light.mDirection, static_cast<float>(Light.mType)}, {Light.mColor.x, Light.mColor.y, Light.mColor.z, Light.mIntensity}, {Light.mLightFalloffExponent, std::cos(Math::ToRadians(Light.mInnerConeAngle)), std::cos(Math::ToRadians(Light.mOuterConeAngle)), 0.0f}});
+        if (SourceIndex < ShadowRanges.size()) {
+            mLights.back().mShadowInfo = {static_cast<float>(ShadowRanges[SourceIndex][0]), static_cast<float>(ShadowRanges[SourceIndex][1]), 0.0f, 0.0f};
+        }
         Uint32 MinimumX{};
         Uint32 MinimumY{};
         Uint32 MaximumX{mColumns - 1};

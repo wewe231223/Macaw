@@ -130,6 +130,7 @@ namespace {
             Changed = ImGui::Checkbox("Sprites / Billboards", &Flags.mSprites) || Changed;
             Changed = ImGui::Checkbox("Text", &Flags.mText) || Changed;
             Changed = ImGui::Checkbox("Light Icons", &Flags.mLightIcons) || Changed;
+            Changed = ImGui::Checkbox("Shadows", &Flags.mShadows) || Changed;
             Changed = ImGui::Checkbox("Light Visualizers", &Flags.mLightVisualizers) || Changed;
             Changed = ImGui::Checkbox("Bounding Boxes (AABB)", &Flags.mBounds) || Changed;
             Changed = ImGui::Checkbox("Grid", &Flags.mGrid) || Changed;

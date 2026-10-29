@@ -30,7 +30,7 @@ public:
     ReflectStruct(FLightingResources);
 
 public:
-    bool Upload(ID3D11Device* Device, ID3D11DeviceContext* Context, std::span<const FLightSceneProxy> Lights, const FSceneView& View);
+    bool Upload(ID3D11Device* Device, ID3D11DeviceContext* Context, std::span<const FLightSceneProxy> Lights, const FSceneView& View, std::span<const std::array<Uint32, 2>> ShadowRanges = {});
     void Bind(ID3D11DeviceContext* Context) const;
     void Unbind(ID3D11DeviceContext* Context) const;
 

@@ -5,6 +5,7 @@
  */
 
 #include "FEditorUI.h"
+#include "Core/Stats.h"
 #include "Core/FilePath.h"
 #include "EditorStyle.h"
 #include "Editor/FEditorContext.h"
@@ -240,6 +241,8 @@ void FEditorUI::Shutdown() {
  * @brief 프레임 입력과 패널 UI를 구성합니다.
  */
 bool FEditorUI::BeginFrame(float DeltaTime) {
+    static FStat UiTime{"unit", "Editor UI CPU", EStatUnit::Milliseconds};
+    const FScopedStatTimer StatTimer{UiTime};
     if (!mInitialized) {
         return false;
     }
@@ -269,6 +272,7 @@ bool FEditorUI::BeginFrame(float DeltaTime) {
     mDetailsPanel.Draw(DeltaTime);
     mViewportLayout.DrawUI(DeltaTime);
     mConsolePanel.Draw(DeltaTime);
+    GetActiveViewport()->GetStatistics()->DrawPanel(mShowStatistics);
     DrawContent();
     DrawTexturePreview();
     DrawMaterialEditor();
@@ -288,10 +292,52 @@ void FEditorUI::EndFrame(float DeltaTime) {
     }
 
     mViewportLayout.Draw(DeltaTime);
+    DrawShadowAtlas();
 
+    static FStat UiSubmitTime{"unit", "ImGui submission CPU", EStatUnit::Milliseconds};
+    const FScopedStatTimer StatTimer{UiSubmitTime};
     ImGui::Render();
     mContext->GetRenderer()->BeginUiRender();
     ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
+}
+
+void FEditorUI::DrawShadowAtlas() {
+    if (!mContext->IsShadowAtlasOpen()) {
+        return;
+    }
+    bool Open{true};
+    ImGui::SetNextWindowSize({760.0f, 840.0f}, ImGuiCond_FirstUseEver);
+    if (ImGui::Begin("Shadow Atlas", &Open)) {
+        const FShadowAtlasView Atlas{mContext->GetRenderer()->GetShadowAtlasView()};
+        const FRenderStats Stats{mContext->GetRenderer()->GetStats()};
+        ImGui::Text("%u x %u | D24S8 | %u maps", Atlas.mSize, Atlas.mSize, Stats.mShadowMaps);
+        ImGui::Text("Resources: %.1f MiB | Allocated tiles: %.1f MiB", Stats.mShadowAtlasBytes / (1024.0 * 1024.0), Stats.mShadowAllocatedBytes / (1024.0 * 1024.0));
+        ImGui::Text("Directional: %u | Point: %u | Spot: %u", Stats.mDirectionalLights, Stats.mPointLights, Stats.mSpotLights);
+        ImGui::Text("Reduced: %u | Unallocated lights: %u", Stats.mShadowReducedLights, Stats.mShadowDroppedLights);
+        ImGui::SliderFloat("Zoom", &mShadowAtlasZoom, 1.0f, 8.0f, "%.1fx");
+        if (Atlas.mTexture != nullptr) {
+            const float Size{std::max(256.0f, ImGui::GetContentRegionAvail().x - 20.0f) * mShadowAtlasZoom};
+            if (ImGui::BeginChild("AtlasImage", {}, 0, ImGuiWindowFlags_HorizontalScrollbar)) {
+                const ImVec2 Origin{ImGui::GetCursorScreenPos()};
+                ImGui::Image(reinterpret_cast<ImTextureID>(Atlas.mTexture), {Size, Size});
+                ImDrawList* Draw{ImGui::GetWindowDrawList()};
+                Draw->AddRect(Origin, {Origin.x + Size, Origin.y + Size}, IM_COL32(255, 230, 0, 255));
+                for (const FShadowAtlasTile& Tile : Atlas.mTiles) {
+                    const ImVec2 Minimum{Origin.x + Tile.mRectangle.x * Size, Origin.y + Tile.mRectangle.y * Size};
+                    const ImVec2 Maximum{Minimum.x + Tile.mRectangle.z * Size, Minimum.y + Tile.mRectangle.w * Size};
+                    Draw->AddRect(Minimum, Maximum, IM_COL32(255, 230, 0, 255), 0.0f, 0, 1.5f);
+                    if (ImGui::IsMouseHoveringRect(Minimum, Maximum)) {
+                        ImGui::SetTooltip("Map %u | %u x %u", Tile.mFace, Tile.mResolution, Tile.mResolution);
+                    }
+                }
+            }
+            ImGui::EndChild();
+        } else {
+            ImGui::TextWrapped("No active shadow maps. Enable Shadows in a lit viewport and enable CastShadows on a light.");
+        }
+    }
+    ImGui::End();
+    mContext->SetShadowAtlasOpen(Open);
 }
 
 /**
@@ -477,6 +523,17 @@ void FEditorUI::DrawMenu() {
         }
 
         if (ImGui::BeginMenu("View")) {
+            ImGui::MenuItem("Statistics", nullptr, &mShowStatistics);
+            if (ImGui::BeginMenu("Stat Overlay")) {
+                FViewportStatistics* Statistics{GetActiveViewport()->GetStatistics()};
+                for (const FString& Group : FStats::Get().GetGroups()) {
+                    if (ImGui::MenuItem(Group.c_str(), nullptr, Statistics->IsEnabled(Group))) {
+                        FString Output{};
+                        Statistics->ExecuteCommand("stat " + Group, Output);
+                    }
+                }
+                ImGui::EndMenu();
+            }
             mUIScale.DrawMenu();
             ImGui::Separator();
             if (ImGui::MenuItem("Place Actors", nullptr, mPlaceActorsPanel.IsVisible())) {

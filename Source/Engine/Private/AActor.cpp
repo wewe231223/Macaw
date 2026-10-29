@@ -5,6 +5,7 @@
  */
 
 #include "Engine/AActor.h"
+#include "Engine/EngineStats.h"
 #include "Engine/Component/UActorComponent.h"
 #include "Engine/Component/USceneComponent.h"
 #include "Engine/UWorld.h"
@@ -226,6 +227,7 @@ void AActor::DispatchTick(float DeltaTime, bool EditorTick) {
 
     const auto Handles{GetComponentHandles()};
     if (!EditorTick || mEditorTickable) {
+        EngineStats::ActorTicks.Add();
         Tick(DeltaTime);
     }
 

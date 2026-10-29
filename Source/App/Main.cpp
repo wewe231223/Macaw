@@ -29,12 +29,15 @@ static int RunApplication() {
 int WINAPI WinMain(HINSTANCE Instance, HINSTANCE Previous, LPSTR CommandLine, int ShowCommand) {
     ErrorHandler::Initialize();
     const HRESULT ComResult{CoInitializeEx(nullptr, COINIT_MULTITHREADED)};
+
     if (FAILED(ComResult) && ComResult != RPC_E_CHANGED_MODE) {
         ErrorHandler::Fatal("Application", "Cannot initialize COM for texture loading");
     }
+
     const int Result{RunApplication()};
     if (SUCCEEDED(ComResult)) {
         CoUninitialize();
     }
+
     return Result;
 }

@@ -5,6 +5,8 @@
  */
 
 #include "Engine/Engine.h"
+#include "Engine/EngineStats.h"
+#include "Engine/ULevel.h"
 #include "Engine/FProject.h"
 #include "Engine/FSceneInterface.h"
 #include "Engine/UWorld.h"
@@ -93,6 +95,11 @@ bool UEngine::Initialize(IRendererModule* Renderer) {
     }
 
     mRenderer = Renderer;
+    std::size_t GeometryBytes{};
+    for (Uint32 Index{}; Index < static_cast<Uint32>(EPrimitiveType::Count); ++Index) {
+        GeometryBytes += GetPrimitiveMesh(static_cast<EPrimitiveType>(Index)).GetAllocatedBytes();
+    }
+    EngineStats::SharedGeometry.Set(static_cast<double>(GeometryBytes));
 
     if (!Initialize()) {
         mRenderer = nullptr;
@@ -140,6 +147,7 @@ void UEngine::Tick(float DeltaTime, bool TickEditorWorlds) {
         return;
     }
 
+    const FScopedStatTimer StatTimer{EngineStats::EngineTick};
     mUpdating = true;
     const auto Handles{GetWorldHandles()};
 
@@ -157,6 +165,26 @@ void UEngine::Tick(float DeltaTime, bool TickEditorWorlds) {
     }
 
     mUpdating = false;
+
+    std::size_t WorldCount{};
+    std::size_t ActorCount{};
+    std::size_t ComponentCount{};
+    for (const FWorldHandle Handle : GetWorldHandles()) {
+        const UWorld* World{GetWorld(Handle)};
+        if (World == nullptr) {
+            continue;
+        }
+        ++WorldCount;
+        if (World->GetPersistentLevel() != nullptr) {
+            for (const auto& Actor : World->GetPersistentLevel()->GetActors()) {
+                ++ActorCount;
+                ComponentCount += Actor->GetComponents().size();
+            }
+        }
+    }
+    EngineStats::Worlds.Set(static_cast<double>(WorldCount));
+    EngineStats::Actors.Set(static_cast<double>(ActorCount));
+    EngineStats::Components.Set(static_cast<double>(ComponentCount));
 
     if (mShutdownRequested) {
         Shutdown();
@@ -412,6 +440,7 @@ Uint64 UEngine::GetWorldGeneration() const {
  * @brief 월드의 프레임 말 렌더 갱신을 모두 반영합니다.
  */
 void UEngine::SynchronizeWorld() {
+    const FScopedStatTimer StatTimer{EngineStats::Synchronize};
     for (const FWorldHandle Handle : GetWorldHandles()) {
         if (UWorld* World{GetWorld(Handle)}) {
             World->SendAllEndOfFrameUpdates();

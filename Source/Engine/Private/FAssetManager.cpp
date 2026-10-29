@@ -5,6 +5,7 @@
  */
 
 #include "Engine/FAssetManager.h"
+#include "Engine/EngineStats.h"
 #include "Core/FilePath.h"
 #include "Engine/FAssetFile.h"
 #include "Engine/UStaticMesh.h"
@@ -209,12 +210,14 @@ TArray<std::filesystem::path> FAssetManager::GetAssetPaths(FString& Error) const
 }
 
 UStaticMesh* FAssetManager::LoadMesh(const std::filesystem::path& Path, FString& Error) {
+    const FScopedStatTimer StatTimer{EngineStats::MeshLoad};
     const FString Key{CacheKey(GetRelativePath(Path, Error))};
     if (Key.empty()) {
         return nullptr;
     }
     const auto Existing{mMeshes.find(Key)};
     if (Existing != mMeshes.end()) {
+        EngineStats::AssetCacheHits.Add();
         return Existing->second.get();
     }
     TArray<Uint8> Payload{};
@@ -236,12 +239,14 @@ UStaticMesh* FAssetManager::LoadMesh(const std::filesystem::path& Path, FString&
 }
 
 UTexture2D* FAssetManager::LoadTexture(const std::filesystem::path& Path, FString& Error) {
+    const FScopedStatTimer StatTimer{EngineStats::TextureLoad};
     const FString Key{CacheKey(GetRelativePath(Path, Error))};
     if (Key.empty()) {
         return nullptr;
     }
     const auto Existing{mTextures.find(Key)};
     if (Existing != mTextures.end()) {
+        EngineStats::AssetCacheHits.Add();
         return Existing->second.get();
     }
     const auto Source{ResolvePath(Path, Error)};
@@ -331,6 +336,7 @@ bool FAssetManager::SaveTexture(const std::filesystem::path& Path, const UTextur
 }
 
 bool FAssetManager::ImportMesh(const std::filesystem::path& Source, const std::filesystem::path& Target, FString& Error) {
+    const FScopedStatTimer StatTimer{EngineStats::MeshImport};
     const auto Destination{ResolvePath(Target, Error)};
     if (Destination.empty()) {
         return false;
@@ -431,6 +437,7 @@ bool FAssetManager::ImportMesh(const std::filesystem::path& Source, const std::f
 }
 
 bool FAssetManager::ImportTexture(const std::filesystem::path& Source, const std::filesystem::path& Target, FString& Error) {
+    const FScopedStatTimer StatTimer{EngineStats::TextureImport};
     auto Texture{NewObject<UTexture2D>()};
     if (!Texture->LoadFromFile(Source)) {
         Error = "Cannot import texture source";
@@ -440,12 +447,14 @@ bool FAssetManager::ImportTexture(const std::filesystem::path& Source, const std
 }
 
 UMaterial* FAssetManager::LoadMaterial(const std::filesystem::path& Path, FString& Error) {
+    const FScopedStatTimer StatTimer{EngineStats::MaterialLoad};
     const FString Key{CacheKey(GetRelativePath(Path, Error))};
     if (Key.empty()) {
         return nullptr;
     }
     const auto Existing{mMaterials.find(Key)};
     if (Existing != mMaterials.end()) {
+        EngineStats::AssetCacheHits.Add();
         return Existing->second.get();
     }
     auto Material{NewObject<UMaterial>()};

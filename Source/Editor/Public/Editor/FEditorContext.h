@@ -242,6 +242,8 @@ public:
     Uint64 GetLogRevision() const;
     /** @brief 콘솔 문자열을 공통 편집 동작으로 전달합니다. @param[in] Command 실행할 문자열입니다. */
     void ExecuteConsoleCommand(const FString& Command);
+    bool IsShadowAtlasOpen() const;
+    void SetShadowAtlasOpen(bool Open);
     /**
      * @brief 뷰포트 관련 콘솔 명령을 처리할 콜백을 설정합니다.
      * @param[in] Handler 요청 또는 명령을 처리할 콜백입니다.
@@ -326,6 +328,8 @@ private:
      */
     std::function<bool(const FString&, FString&)> mViewportCommandHandler{};
     ReflectProperty(mViewportCommandHandler, "ViewportCommandHandler", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    bool mShadowAtlasOpen{};
+    ReflectProperty(mShadowAtlasOpen, "ShadowAtlasOpen", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
     /** @brief 마지막 항목을 주 대상으로 사용하는 편집 월드의 액터 선택 집합입니다. */
     TArray<FObjectHandle> mSelectedActors{};
     ReflectProperty(mSelectedActors, "SelectedActors", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);

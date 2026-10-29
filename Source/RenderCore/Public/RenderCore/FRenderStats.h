@@ -58,4 +58,22 @@ public:
      */
     std::size_t mGpuBytes{};
     ReflectProperty(mGpuBytes, "GpuBytes", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    Uint32 mDirectionalLights{};
+    ReflectProperty(mDirectionalLights, "DirectionalLights", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    Uint32 mPointLights{};
+    ReflectProperty(mPointLights, "PointLights", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    Uint32 mSpotLights{};
+    ReflectProperty(mSpotLights, "SpotLights", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    Uint32 mShadowMaps{};
+    ReflectProperty(mShadowMaps, "ShadowMaps", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    Uint32 mShadowDrawCalls{};
+    ReflectProperty(mShadowDrawCalls, "ShadowDrawCalls", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    Uint32 mShadowDroppedLights{};
+    ReflectProperty(mShadowDroppedLights, "ShadowDroppedLights", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    Uint32 mShadowReducedLights{};
+    ReflectProperty(mShadowReducedLights, "ShadowReducedLights", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    std::size_t mShadowAtlasBytes{};
+    ReflectProperty(mShadowAtlasBytes, "ShadowAtlasBytes", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    std::size_t mShadowAllocatedBytes{};
+    ReflectProperty(mShadowAllocatedBytes, "ShadowAllocatedBytes", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 };

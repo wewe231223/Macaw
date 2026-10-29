@@ -27,7 +27,7 @@ public:
     /**
      * @brief 뷰포트 통계의 표시 그룹을 비트 플래그로 구분합니다.
      */
-    enum class EGroup : Uint8 {
+    enum class EGroup : Uint32 {
         /**
          * @brief 프레임 속도와 프레임 시간 통계입니다.
          */
@@ -47,7 +47,13 @@ public:
         /**
          * @brief 지원하는 모든 통계 그룹의 조합입니다.
          */
-        All = 15
+        Shadow = 16,
+        Unit = 32,
+        Game = 64,
+        World = 128,
+        Script = 256,
+        Assets = 512,
+        All = 1023
     };
 
 public:
@@ -68,6 +74,8 @@ public:
     ReflectStruct(FViewportStatistics);
     bool ExecuteCommand(const FString& Command, FString& Output);
     bool IsEnabled(EGroup Group) const;
+    bool IsEnabled(const FString& Group) const;
+    void DrawPanel(bool& Open);
     /**
      * @brief 하나 이상의 뷰포트 통계 그룹이 표시되도록 설정됐는지 반환합니다.
      * @return 검사 조건을 만족하면 true, 그렇지 않으면 false입니다.
@@ -97,6 +105,10 @@ private:
     /**
      * @brief 현재 표시하도록 설정된 통계 그룹의 비트 조합입니다.
      */
-    Uint8 mEnabledGroups{};
+    TArray<FString> mEnabledGroups{};
     ReflectProperty(mEnabledGroups, "EnabledGroups", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    bool mAllGroups{};
+    ReflectProperty(mAllGroups, "AllGroups", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    std::array<char, 128> mFilter{};
+    ReflectProperty(mFilter, "Filter", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 };
