@@ -16,6 +16,11 @@
 #include "Engine/FAssetFile.h"
 #include "Engine/UTexture2D.h"
 #include "Engine/UMaterial.h"
+#include "Engine/Component/ULightComponentBase.h"
+#include "Engine/UWorld.h"
+#include "Engine/ULevel.h"
+#include "Engine/AActor.h"
+#include "CoreUObject/Reflection/Cast.h"
 #include "CoreUObject/Reflection/NewObject.h"
 #include "Renderer/Renderer.h"
 #include "Engine/SceneSerializer.h"
@@ -53,6 +58,7 @@ FEditorUI::FEditorUI(FEditorContext* Context, FEditorViewport* Viewport, FPlayIn
 	  mViewport{Viewport},
 	  mPlaySession{PlaySession},
 	  mViewportLayout{Context, Viewport, PlaySession},
+	  mPlaceActorsPanel{Context},
 	  mOutlinerPanel{Context},
 	  mDetailsPanel{Context},
 	  mConsolePanel{Context} {
@@ -101,6 +107,8 @@ bool FEditorUI::Initialize(IRendererModule* Renderer, FWindowsApplication* Platf
     Style.WindowRounding = 3.0f;
     Style.FrameRounding = 3.0f;
     Style.GrabRounding = 3.0f;
+    mUIScale.Initialize(16.0f);
+    mUIScale.Update(*Platform);
 
     mWin32Ready = ImGui_ImplWin32_Init(Platform->GetWindowHandle());
     mDxReady = mWin32Ready && ImGui_ImplDX11_Init(static_cast<ID3D11Device*>(Renderer->GetNativeDevice()), static_cast<ID3D11DeviceContext*>(Renderer->GetNativeContext()));
@@ -117,6 +125,15 @@ bool FEditorUI::Initialize(IRendererModule* Renderer, FWindowsApplication* Platf
 
     mInitialized = true;
     InstallEditorIcons();
+    if (mContext->GetWorld() != nullptr && mContext->GetWorld()->GetPersistentLevel() != nullptr) {
+        for (const auto& Actor : mContext->GetWorld()->GetPersistentLevel()->GetActors()) {
+            for (const auto& Component : Actor->GetComponents()) {
+                if (auto* Light{Cast<ULightComponentBase>(Component.get())}) {
+                    Light->SynchronizeLight();
+                }
+            }
+        }
+    }
     mAssetCatalog = std::make_unique<FEditorAssetCatalog>(mContext->GetProject()->GetAssets());
     mThumbnails = std::make_unique<FAssetThumbnailCache>(mContext->GetProject()->GetAssets(), Renderer);
     mDetailsPanel.SetAssetServices(mAssetCatalog.get(), mThumbnails.get());
@@ -132,7 +149,7 @@ void FEditorUI::InstallEditorIcons() {
     const DWORD Length{GetModuleFileNameW(nullptr, Executable.data(), static_cast<DWORD>(Executable.size()))};
     const std::filesystem::path Bundled{Length > 0 && Length < Executable.size() ? std::filesystem::path{Executable.data()}.parent_path() / "Templates/Project/Content/Editor/Icon" : std::filesystem::path{}};
     FAssetManager* Assets{mContext->GetProject()->GetAssets()};
-    for (const char* Name : {"SpotLight_64x.png", "PointLight_64x.png", "Pawn_64x.png", "Sources.txt"}) {
+    for (const char* Name : {"SpotLight_64x.png", "PointLight_64x.png", "DirectionalLight_64x.png", "SkyLight_64x.png", "Pawn_64x.png", "Sources.txt"}) {
         FString Error{};
         const std::filesystem::path Target{Assets->ResolvePath(std::filesystem::path{"Editor/Icon"} / Name, Error)};
         std::error_code Code{};
@@ -208,6 +225,8 @@ void FEditorUI::Shutdown() {
     mContentError.clear();
     mRevealContentDirectory = true;
     mPreviewTexture = nullptr;
+    mPreviewTexturePath.clear();
+    mFocusTexturePreview = false;
     mEditingMaterial = nullptr;
     mMaterialPath.clear();
     mMaterialError.clear();
@@ -229,6 +248,7 @@ bool FEditorUI::BeginFrame(float DeltaTime) {
 
     ImGui_ImplDX11_NewFrame();
     ImGui_ImplWin32_NewFrame();
+    mUIScale.Update(*mPlatform);
     ImGui::NewFrame();
     mThumbnails->BeginFrame();
     if (mRefreshContent) {
@@ -244,11 +264,13 @@ bool FEditorUI::BeginFrame(float DeltaTime) {
     FEditorContext* Inspection{mPlaySession->IsActive() ? mPlaySession->GetInspectionContext() : mContext};
     mOutlinerPanel.SetEditorContext(Inspection);
     mDetailsPanel.SetEditorContext(Inspection);
+    mPlaceActorsPanel.Draw(DeltaTime);
     mOutlinerPanel.Draw(DeltaTime);
     mDetailsPanel.Draw(DeltaTime);
     mViewportLayout.DrawUI(DeltaTime);
     mConsolePanel.Draw(DeltaTime);
     DrawContent();
+    DrawTexturePreview();
     DrawMaterialEditor();
     if (mMeshViewer != nullptr) {
         mMeshViewer->DrawUI();
@@ -332,7 +354,10 @@ void FEditorUI::BuildLayout() {
         const ImGuiID Right{ImGui::DockBuilderSplitNode(Center, ImGuiDir_Right, 0.32f, nullptr, &Center)};
         const ImGuiID Bottom{ImGui::DockBuilderSplitNode(Center, ImGuiDir_Down, 0.24f, nullptr, &Center)};
 
-        ImGui::DockBuilderDockWindow(mOutlinerPanel.GetName().c_str(), Left);
+        ImGuiID Outliner{};
+        const ImGuiID Placement{ImGui::DockBuilderSplitNode(Left, ImGuiDir_Down, 0.55f, nullptr, &Outliner)};
+        ImGui::DockBuilderDockWindow(mPlaceActorsPanel.GetName().c_str(), Placement);
+        ImGui::DockBuilderDockWindow(mOutlinerPanel.GetName().c_str(), Outliner);
         ImGui::DockBuilderDockWindow(mDetailsPanel.GetName().c_str(), Right);
         ImGui::DockBuilderDockWindow(mConsolePanel.GetName().c_str(), Bottom);
         ImGui::DockBuilderDockWindow("Content", Bottom);
@@ -344,7 +369,8 @@ void FEditorUI::BuildLayout() {
 
 void FEditorUI::DrawEditorToolbar() {
     EditorStyle::PushViewportToolbar();
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{8.0f, 4.0f});
+    const float Scale{mUIScale.GetScale()};
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{8.0f * Scale, 4.0f * Scale});
     ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
     ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4{0.10f, 0.10f, 0.10f, 1.0f});
     const float Height{ImGui::GetFrameHeight() + ImGui::GetStyle().WindowPadding.y * 2.0f};
@@ -451,6 +477,11 @@ void FEditorUI::DrawMenu() {
         }
 
         if (ImGui::BeginMenu("View")) {
+            mUIScale.DrawMenu();
+            ImGui::Separator();
+            if (ImGui::MenuItem("Place Actors", nullptr, mPlaceActorsPanel.IsVisible())) {
+                mPlaceActorsPanel.SetVisible(!mPlaceActorsPanel.IsVisible());
+            }
             if (ImGui::MenuItem("Four Viewports", nullptr, mViewportLayout.IsQuadView(), mViewportLayout.CanChangeLayout())) {
                 mViewportLayout.SetQuadView(!mViewportLayout.IsQuadView());
             }
@@ -592,8 +623,7 @@ void FEditorUI::DrawContent() {
         if (!mContentError.empty()) {
             ImGui::TextWrapped("%s", mContentError.c_str());
         }
-        const float PreviewHeight{mPreviewTexture != nullptr && mPreviewTexture->HasResources() ? 280.0f : 0.0f};
-        const float Height{std::max(64.0f, ImGui::GetContentRegionAvail().y - ImGui::GetTextLineHeightWithSpacing() - PreviewHeight)};
+        const float Height{std::max(64.0f, ImGui::GetContentRegionAvail().y - ImGui::GetTextLineHeightWithSpacing())};
         if (ImGui::BeginTable("Content Browser", 2, ImGuiTableFlags_Resizable | ImGuiTableFlags_BordersInnerV)) {
             ImGui::TableSetupColumn("Folders", ImGuiTableColumnFlags_WidthFixed, 190.0f);
             ImGui::TableSetupColumn("Assets", ImGuiTableColumnFlags_WidthStretch);
@@ -610,19 +640,43 @@ void FEditorUI::DrawContent() {
             ImGui::EndTable();
         }
         ImGui::TextDisabled("Double-click to open. Drag a thumbnail onto Details to assign.");
-        if (mPreviewTexture != nullptr && mPreviewTexture->HasResources()) {
-            ImGui::Separator();
-            if (ImGui::SmallButton("Close Preview")) {
-                mPreviewTexture = nullptr;
-            } else {
-                const float SizeX{static_cast<float>(mPreviewTexture->GetSizeX())};
-                const float SizeY{static_cast<float>(mPreviewTexture->GetSizeY())};
-                const float Scale{std::min({std::max(1.0f, ImGui::GetContentRegionAvail().x) / SizeX, 256.0f / SizeX, 256.0f / SizeY})};
-                ImGui::Image(ImTextureRef{static_cast<ImTextureID>(reinterpret_cast<std::uintptr_t>(mPreviewTexture->GetShaderResourceView()))}, ImVec2{SizeX * Scale, SizeY * Scale});
-            }
+    }
+    ImGui::End();
+}
+
+void FEditorUI::DrawTexturePreview() {
+    if (mPreviewTexture == nullptr || !mPreviewTexture->HasResources()) {
+        return;
+    }
+
+    bool Open{true};
+    const float UIScale{mUIScale.GetScale()};
+    ImGui::SetNextWindowSize({640.0f * UIScale, 560.0f * UIScale}, ImGuiCond_FirstUseEver);
+    if (mFocusTexturePreview) {
+        ImGui::SetNextWindowFocus();
+        ImGui::SetNextWindowCollapsed(false);
+        mFocusTexturePreview = false;
+    }
+    if (ImGui::Begin("Texture Preview", &Open, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse)) {
+        ImGui::TextUnformatted(mAssetCatalog->GetDisplayPath(mPreviewTexturePath).c_str());
+        ImGui::Text("Size: %u x %u", mPreviewTexture->GetSizeX(), mPreviewTexture->GetSizeY());
+        ImGui::Separator();
+        const ImVec2 Available{ImGui::GetContentRegionAvail()};
+        if (Available.x > 0.0f && Available.y > 0.0f) {
+            const float SizeX{static_cast<float>(mPreviewTexture->GetSizeX())};
+            const float SizeY{static_cast<float>(mPreviewTexture->GetSizeY())};
+            const float Scale{std::min(Available.x / SizeX, Available.y / SizeY)};
+            const ImVec2 ImageSize{SizeX * Scale, SizeY * Scale};
+            const ImVec2 Origin{ImGui::GetCursorPos()};
+            ImGui::SetCursorPos({Origin.x + (Available.x - ImageSize.x) * 0.5f, Origin.y + (Available.y - ImageSize.y) * 0.5f});
+            ImGui::Image(ImTextureRef{static_cast<ImTextureID>(reinterpret_cast<std::uintptr_t>(mPreviewTexture->GetShaderResourceView()))}, ImageSize);
         }
     }
     ImGui::End();
+    if (!Open) {
+        mPreviewTexture = nullptr;
+        mPreviewTexturePath.clear();
+    }
 }
 
 void FEditorUI::RefreshContent() {
@@ -758,11 +812,18 @@ void FEditorUI::DrawContentEntries() {
         ImGui::TextDisabled("No assets match this folder or search.");
         return;
     }
-    const bool Compact{ImGui::GetContentRegionAvail().y < 164.0f};
-    const float TileWidth{Compact ? 180.0f : 120.0f};
-    const float TileHeight{Compact ? 68.0f : 160.0f};
-    const float ImageSize{Compact ? 48.0f : 96.0f};
-    const int Columns{std::clamp(static_cast<int>(ImGui::GetContentRegionAvail().x / (TileWidth + 8.0f)), 1, 12)};
+    const float Scale{mUIScale.GetScale()};
+    const float Padding{4.0f * Scale};
+    const bool Compact{ImGui::GetContentRegionAvail().y < 164.0f * Scale};
+    const float TileWidth{(Compact ? 180.0f : 120.0f) * Scale};
+    const float ImageSize{(Compact ? 48.0f : 96.0f) * Scale};
+    const float ImageOffset{(Compact ? 4.0f : 10.0f) * Scale};
+    const float TextX{Compact ? ImageOffset + ImageSize + 8.0f * Scale : Padding};
+    const float TypeY{Compact ? Padding : ImageSize + Padding * 2.0f};
+    const float NameY{TypeY + ImGui::GetTextLineHeightWithSpacing()};
+    const float NameHeight{ImGui::GetTextLineHeight() * 2.0f + ImGui::GetStyle().ItemSpacing.y};
+    const float TileHeight{std::max(Padding + ImageSize, NameY + NameHeight) + Padding * 2.0f};
+    const int Columns{std::clamp(static_cast<int>(ImGui::GetContentRegionAvail().x / (TileWidth + 8.0f * Scale)), 1, 12)};
     bool Navigate{};
     std::filesystem::path Requested{};
     if (ImGui::BeginTable("ContentGrid", Columns, ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_PadOuterX)) {
@@ -791,7 +852,7 @@ void FEditorUI::DrawContentEntries() {
                     const FString Name{FilePath::ToUtf8(Directory ? Display.filename() : Display.stem())};
                     ImGui::PushID(Actual.c_str());
                     const ImVec2 Origin{ImGui::GetCursorScreenPos()};
-                    if (ImGui::Selectable("##AssetTile", mSelectedContentPath == Path, ImGuiSelectableFlags_AllowDoubleClick, {TileWidth - 4.0f, TileHeight - 8.0f})) {
+                    if (ImGui::Selectable("##AssetTile", mSelectedContentPath == Path, ImGuiSelectableFlags_AllowDoubleClick, {TileWidth - Padding, TileHeight - Padding * 2.0f})) {
                         mSelectedContentPath = Path;
                         if (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
                             if (Directory) {
@@ -807,7 +868,7 @@ void FEditorUI::DrawContentEntries() {
                         const char* Payload{Type->second == EAssetType::Mesh ? EditorAssetDragDrop::MeshPayload : Type->second == EAssetType::Material ? EditorAssetDragDrop::MaterialPayload : EditorAssetDragDrop::TexturePayload};
                         ImGui::SetDragDropPayload(Payload, Actual.c_str(), Actual.size() + 1);
                         if (Thumbnail != nullptr) {
-                            ImGui::Image(ImTextureRef{static_cast<ImTextureID>(reinterpret_cast<std::uintptr_t>(Thumbnail))}, {64.0f, 64.0f});
+                            ImGui::Image(ImTextureRef{static_cast<ImTextureID>(reinterpret_cast<std::uintptr_t>(Thumbnail))}, {64.0f * Scale, 64.0f * Scale});
                         }
                         ImGui::TextUnformatted(Name.c_str());
                         ImGui::EndDragDropSource();
@@ -819,25 +880,22 @@ void FEditorUI::DrawContentEntries() {
                         ImGui::EndTooltip();
                     }
                     const ImVec2 Next{ImGui::GetCursorScreenPos()};
-                    const float ImageOffset{Compact ? 4.0f : 10.0f};
-                    ImGui::SetCursorScreenPos({Origin.x + ImageOffset, Origin.y + 4.0f});
+                    ImGui::SetCursorScreenPos({Origin.x + ImageOffset, Origin.y + Padding});
                     if (Thumbnail != nullptr) {
                         ImGui::Image(ImTextureRef{static_cast<ImTextureID>(reinterpret_cast<std::uintptr_t>(Thumbnail))}, {ImageSize, ImageSize});
                     } else {
-                        ImGui::GetWindowDrawList()->AddRectFilled({Origin.x + ImageOffset, Origin.y + 4.0f}, {Origin.x + ImageOffset + ImageSize, Origin.y + 4.0f + ImageSize}, Directory ? IM_COL32(79, 65, 34, 255) : IM_COL32(34, 42, 54, 255), 5.0f);
+                        ImGui::GetWindowDrawList()->AddRectFilled({Origin.x + ImageOffset, Origin.y + Padding}, {Origin.x + ImageOffset + ImageSize, Origin.y + Padding + ImageSize}, Directory ? IM_COL32(79, 65, 34, 255) : IM_COL32(34, 42, 54, 255), 5.0f * Scale);
                         if (!Compact) {
-                            ImGui::GetWindowDrawList()->AddText({Origin.x + 22.0f, Origin.y + 41.0f}, IM_COL32(200, 213, 230, 255), Kind);
+                            const ImVec2 TextSize{ImGui::CalcTextSize(Kind)};
+                            ImGui::GetWindowDrawList()->AddText({Origin.x + ImageOffset + (ImageSize - TextSize.x) * 0.5f, Origin.y + Padding + (ImageSize - TextSize.y) * 0.5f}, IM_COL32(200, 213, 230, 255), Kind);
                         }
                         ImGui::Dummy({ImageSize, ImageSize});
                     }
-                    const float TextX{Compact ? 60.0f : 4.0f};
-                    const float TypeY{Compact ? 4.0f : 104.0f};
-                    const float NameY{Compact ? 23.0f : 123.0f};
                     ImGui::SetCursorScreenPos({Origin.x + TextX, Origin.y + TypeY});
                     ImGui::TextDisabled("%s", Kind);
                     ImGui::SetCursorScreenPos({Origin.x + TextX, Origin.y + NameY});
-                    ImGui::PushClipRect({Origin.x + TextX, Origin.y + NameY}, {Origin.x + TileWidth - 4.0f, Origin.y + NameY + 30.0f}, true);
-                    ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + TileWidth - TextX - 10.0f);
+                    ImGui::PushClipRect({Origin.x + TextX, Origin.y + NameY}, {Origin.x + TileWidth - Padding, Origin.y + NameY + NameHeight}, true);
+                    ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + TileWidth - TextX - 10.0f * Scale);
                     ImGui::TextWrapped("%s", Name.c_str());
                     ImGui::PopTextWrapPos();
                     ImGui::PopClipRect();
@@ -878,8 +936,11 @@ void FEditorUI::OpenContentAsset(const std::filesystem::path& Path, EAssetType T
         }
     } else if (Type == EAssetType::Texture) {
         FString Error{};
-        mPreviewTexture = mContext->GetProject()->GetAssets()->LoadTexture(Path, Error);
-        if (mPreviewTexture != nullptr && mPreviewTexture->CreateResources(static_cast<ID3D11Device*>(mContext->GetRenderer()->GetNativeDevice()))) {
+        UTexture2D* Texture{mContext->GetProject()->GetAssets()->LoadTexture(Path, Error)};
+        if (Texture != nullptr && Texture->CreateResources(static_cast<ID3D11Device*>(mContext->GetRenderer()->GetNativeDevice()))) {
+            mPreviewTexture = Texture;
+            mPreviewTexturePath = Path;
+            mFocusTexturePreview = true;
             mContext->AddLog("Loaded " + FilePath::ToUtf8(Path));
         } else {
             mContext->AddLog(Error.empty() ? "Cannot preview the texture" : Error);
@@ -1019,6 +1080,29 @@ void FEditorUI::DrawMaterialEditor() {
         FString TexturePath{mEditingMaterial->GetBaseColorTexturePath()};
         if (mAssetPicker.Draw(*mAssetCatalog, *mThumbnails, "Base Color Texture", TexturePath, EAssetType::Texture)) {
             SetMaterialTexture(TexturePath);
+        }
+        FString NormalPath{mEditingMaterial->GetNormalMapTexturePath()};
+        if (mAssetPicker.Draw(*mAssetCatalog, *mThumbnails, "Normal Map", NormalPath, EAssetType::Texture)) {
+            const FString Previous{mEditingMaterial->GetNormalMapTexturePath()};
+            if (mEditingMaterial->SetNormalMapTexturePath(NormalPath) && mEditingMaterial->ResolveTexture(*mContext->GetProject()->GetAssets(), mMaterialError)) {
+                mMaterialDirty = true;
+            } else {
+                mEditingMaterial->SetNormalMapTexturePath(Previous);
+                FString RestoreError{};
+                mEditingMaterial->ResolveTexture(*mContext->GetProject()->GetAssets(), RestoreError);
+            }
+        }
+        float Specular{mEditingMaterial->GetSpecularStrength()};
+        float Shininess{mEditingMaterial->GetShininess()};
+        float NormalStrength{mEditingMaterial->GetNormalStrength()};
+        if (ImGui::SliderFloat("Specular Strength", &Specular, 0.0f, 1.0f) && mEditingMaterial->SetSpecularStrength(Specular)) {
+            mMaterialDirty = true;
+        }
+        if (ImGui::SliderFloat("Shininess", &Shininess, 1.0f, 1024.0f, "%.1f", ImGuiSliderFlags_Logarithmic) && mEditingMaterial->SetShininess(Shininess)) {
+            mMaterialDirty = true;
+        }
+        if (ImGui::SliderFloat("Normal Strength", &NormalStrength, 0.0f, 8.0f) && mEditingMaterial->SetNormalStrength(NormalStrength)) {
+            mMaterialDirty = true;
         }
         ImGui::EndDisabled();
         if (!mMaterialError.empty()) {

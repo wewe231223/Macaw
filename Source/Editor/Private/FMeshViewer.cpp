@@ -7,6 +7,7 @@
 #include "Engine/FSceneInterface.h"
 #include "Engine/FRenderTarget.h"
 #include "Engine/FPrimitiveSceneProxy.h"
+#include "Engine/FLightSceneProxy.h"
 #include "Engine/FSceneViewFamily.h"
 #include "Engine/UStaticMesh.h"
 #include "Engine/UMaterial.h"
@@ -52,6 +53,16 @@ bool FMeshViewer::Open(const std::filesystem::path& Path, FString& Error) {
         Materials.push_back(Material);
     }
     mScene = std::move(Scene);
+    if (mScene != nullptr) {
+        FLightSceneProxy Ambient{};
+        Ambient.mIntensity = 0.25f;
+        mScene->AddLight(Ambient);
+        FLightSceneProxy Directional{};
+        Directional.mType = ELightType::Directional;
+        Directional.mDirection = FVector{0.35f, 0.6f, -1.0f}.Normalized();
+        Directional.mIntensity = 0.75f;
+        mScene->AddLight(Directional);
+    }
     mMesh = Mesh;
     mMaterials = std::move(Materials);
     mMaterialPaths.assign(mMaterials.size(), FString{});

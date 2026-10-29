@@ -73,6 +73,16 @@ public:
      * @brief 메시 양면 렌더링 여부인지 검사합니다.
      * @return 조건을 만족하면 true입니다.
      */
+    const FString& GetNormalMapTexturePath() const;
+    bool SetNormalMapTexturePath(const FString& Path);
+    UTexture2D* GetNormalMapTexture() const;
+    float GetSpecularStrength() const;
+    bool SetSpecularStrength(float Strength);
+    float GetShininess() const;
+    bool SetShininess(float Shininess);
+    float GetNormalStrength() const;
+    bool SetNormalStrength(float Strength);
+
     bool IsTwoSided() const;
     /**
      * @brief 메시 양면 렌더링 여부를 설정합니다.
@@ -131,6 +141,16 @@ private:
     /**
      * @brief 메시 양면 렌더링 여부입니다.
      */
+    FString mNormalMapTexturePath{};
+    ReflectAccessor(mNormalMapTexturePath, GetNormalMapTexturePath, SetNormalMapTexturePath, "NormalMap", EPropertyFlags::Edit | EPropertyFlags::Serialize);
+    UTexture2D* mNormalMapTexture{};
+    ReflectProperty(mNormalMapTexture, "ResolvedNormalMap", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    float mSpecularStrength{0.35f};
+    ReflectAccessor(mSpecularStrength, GetSpecularStrength, SetSpecularStrength, "SpecularStrength", EPropertyFlags::Edit | EPropertyFlags::Serialize);
+    float mShininess{32.0f};
+    ReflectAccessor(mShininess, GetShininess, SetShininess, "Shininess", EPropertyFlags::Edit | EPropertyFlags::Serialize);
+    float mNormalStrength{1.0f};
+    ReflectAccessor(mNormalStrength, GetNormalStrength, SetNormalStrength, "NormalStrength", EPropertyFlags::Edit | EPropertyFlags::Serialize);
     bool mTwoSided{};
     ReflectAccessor(mTwoSided, IsTwoSided, SetTwoSided, "TwoSided", EPropertyFlags::Edit | EPropertyFlags::Serialize);
     /**

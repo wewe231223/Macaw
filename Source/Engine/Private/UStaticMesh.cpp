@@ -6,6 +6,7 @@
 
 #include "Engine/UStaticMesh.h"
 #include "Core/FilePath.h"
+#include "FMeshImportIOSystem.h"
 
 #include <algorithm>
 #include <assimp/Importer.hpp>
@@ -34,11 +35,19 @@ UStaticMesh::UStaticMesh(const std::filesystem::path& MeshPath) {
 UStaticMesh::~UStaticMesh() = default;
 
 bool UStaticMesh::LoadFromFile(const std::filesystem::path& MeshPath) {
+    FString Error{};
+    return LoadFromFile(MeshPath, Error);
+}
+
+bool UStaticMesh::LoadFromFile(const std::filesystem::path& MeshPath, FString& Error) {
+    Error.clear();
     if (MeshPath.empty()) {
+        Error = "A mesh source path is required";
         return false;
     }
 
     Importer MeshImporter{};
+    MeshImporter.SetIOHandler(new FMeshImportIOSystem{});
     MeshImporter.SetPropertyInteger(AI_CONFIG_PP_SBP_REMOVE, aiPrimitiveType_POINT | aiPrimitiveType_LINE);
     MeshImporter.SetPropertyBool(AI_CONFIG_PP_PTV_KEEP_HIERARCHY, true);
     MeshImporter.SetPropertyBool(AI_CONFIG_PP_FID_IGNORE_TEXTURECOORDS, true);
@@ -47,6 +56,7 @@ bool UStaticMesh::LoadFromFile(const std::filesystem::path& MeshPath) {
     const aiScene* Scene{MeshImporter.ReadFile(ImportPath, ImportFlags)};
 
     if (Scene == nullptr || (Scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE) != 0 || !Scene->HasMeshes()) {
+        Error = Scene == nullptr ? MeshImporter.GetErrorString() : "The source contains no complete mesh data";
         return false;
     }
 
@@ -61,6 +71,7 @@ bool UStaticMesh::LoadFromFile(const std::filesystem::path& MeshPath) {
         const aiMesh& SourceMesh{*Scene->mMeshes[MeshIndex]};
 
         if (!SourceMesh.HasPositions() || !SourceMesh.HasFaces() || SourceMesh.mNumVertices > MaximumVertices - VertexCount || SourceMesh.mNumFaces > (MaximumIndices - IndexCount) / 3) {
+            Error = "The source contains an empty mesh or exceeds mesh buffer limits";
             return false;
         }
 
@@ -77,6 +88,7 @@ bool UStaticMesh::LoadFromFile(const std::filesystem::path& MeshPath) {
     const std::size_t UVStride{std::max<std::size_t>(1, UVChannelCount) * sizeof(float) * 2};
 
     if (VertexCount == 0 || IndexCount == 0 || UVStride > D3D11_REQ_MULTI_ELEMENT_STRUCTURE_SIZE_IN_BYTES || VertexCount > MaximumBytes / UVStride) {
+        Error = "The source contains no triangles or exceeds mesh buffer limits";
         return false;
     }
 
@@ -148,11 +160,13 @@ bool UStaticMesh::LoadFromFile(const std::filesystem::path& MeshPath) {
             const aiFace& Face{SourceMesh.mFaces[FaceIndex]};
 
             if (Face.mNumIndices != 3) {
+                Error = "The source contains a face that could not be triangulated";
                 return false;
             }
 
             for (Uint32 Corner{}; Corner < 3; ++Corner) {
                 if (Face.mIndices[Corner] >= SourceMesh.mNumVertices) {
+                    Error = "The source contains an invalid vertex index";
                     return false;
                 }
 
@@ -162,7 +176,11 @@ bool UStaticMesh::LoadFromFile(const std::filesystem::path& MeshPath) {
         MeshData.GetSubMeshes().emplace_back(FirstIndex, static_cast<Uint32>(SourceMesh.mNumFaces * 3), SourceMesh.mMaterialIndex);
     }
 
-    return SetMeshData(std::move(MeshData));
+    if (!SetMeshData(std::move(MeshData))) {
+        Error = "The source contains invalid vertex attributes or mesh sections";
+        return false;
+    }
+    return true;
 }
 
 bool UStaticMesh::SetMeshData(FMeshData MeshData) {

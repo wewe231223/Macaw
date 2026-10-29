@@ -30,6 +30,7 @@
 #include "CoreUObject/Reflection/NewObject.h"
 #include "CoreUObject/Reflection/FProperty.h"
 #include "CoreUObject/Reflection/UClass.h"
+#include "CoreUObject/Reflection/FReflectionRegistry.h"
 #include "Core/Base/ErrorHandler.h"
 
 #include <Windows.h>
@@ -782,4 +783,43 @@ TArray<FObjectHandle> FEditorContext::DuplicateSelectedActors() {
         AddLog(Error);
     }
     return Copies;
+}
+
+AActor* FEditorContext::SpawnActorPreset(const FString& Preset) {
+    FTransform Placement{mPlacementProvider ? mPlacementProvider() : FTransform{}};
+    if (Preset.find("DirectionalLight") != FString::npos || Preset.find("SpotLight") != FString::npos) {
+        Placement.mRotation = FRotator{-45.0f, 0.0f, 0.0f}.Quaternion();
+    }
+    return SpawnActorPreset(Preset, Placement);
+}
+
+AActor* FEditorContext::SpawnActorPreset(const FString& Preset, const FTransform& Placement) {
+    if (!CanSpawnActor() || GetWorld() == nullptr || !Placement.IsValid()) {
+        return nullptr;
+    }
+    FOperationScope Scope{&mChangingState};
+    UWorld* World{GetWorld()};
+    const bool Primitive{Preset == "Cube" || Preset == "Sphere" || Preset == "Plane"};
+    const bool Text{Preset == "Text"};
+    const bool Billboard{Preset == "Billboard"};
+    AActor* Actor{Primitive ? World->SpawnPrimitive(Preset == "Sphere" ? EPrimitiveType::Sphere : Preset == "Plane" ? EPrimitiveType::Plane : EPrimitiveType::Cube) : World->SpawnActor(Text || Billboard ? AActor::StaticClass() : FReflectionRegistry::FindClass(Preset))};
+    if (Actor == nullptr) {
+        return nullptr;
+    }
+    if (Actor->GetRootComponent() == nullptr) {
+        std::unique_ptr<UActorComponent> Component{Text ? std::unique_ptr<UActorComponent>{NewObject<UBillboardTextComponent>()} : Billboard ? std::unique_ptr<UActorComponent>{NewObject<UBillboardComponent>()} : std::unique_ptr<UActorComponent>{NewObject<USceneComponent>()}};
+        Component->SetName(Text ? "BillboardTextComponent" : Billboard ? "BillboardComponent" : "SceneComponent");
+        if (!Actor->AddComponent(std::move(Component))) {
+            World->DestroyActor(Actor->GetHandle());
+            return nullptr;
+        }
+    }
+    if (!ApplySpawnPlacement(Actor, Placement)) {
+        return nullptr;
+    }
+    if (auto* Sprite{Cast<UBillboardComponent>(Actor->GetRootComponent())}) {
+        Sprite->SetTexturePath("Editor/Icon/Pawn_64x.png");
+    }
+    CompleteActorSpawn(Actor, "Placed ");
+    return Actor;
 }

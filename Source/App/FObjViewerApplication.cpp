@@ -50,6 +50,8 @@ int FObjViewerApplication::Run() {
     ImGui::GetIO().IniFilename = nullptr;
     ImGui::GetIO().LogFilename = nullptr;
     ImGui::StyleColorsDark();
+    mUIScale.Initialize(16.0f);
+    mUIScale.Update(mPlatform);
     mWin32Ready = ImGui_ImplWin32_Init(mPlatform.GetWindowHandle());
     mDxReady = mWin32Ready && ImGui_ImplDX11_Init(static_cast<ID3D11Device*>(mRenderer.GetNativeDevice()), static_cast<ID3D11DeviceContext*>(mRenderer.GetNativeContext()));
     if (!mDxReady) {
@@ -75,8 +77,10 @@ int FObjViewerApplication::Run() {
         mRenderer.BeginFrame(mPlatform.GetWidth(), mPlatform.GetHeight());
         ImGui_ImplDX11_NewFrame();
         ImGui_ImplWin32_NewFrame();
+        mUIScale.Update(mPlatform);
         ImGui::NewFrame();
         if (ImGui::BeginMainMenuBar()) {
+            mUIScale.DrawMenu();
             if (ImGui::MenuItem("Open OBJ / Mesh...")) {
                 const auto Source{ChooseSource()};
                 if (!Source.empty()) {

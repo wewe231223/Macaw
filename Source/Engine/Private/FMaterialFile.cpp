@@ -72,6 +72,13 @@ bool FMaterialFile::Load(const std::filesystem::path& Path, FAssetManager& Asset
             Valid = static_cast<bool>(Values >> Alpha);
             Color.w = Keyword == "Tr" ? 1.0f - Alpha : Alpha;
             Valid = Valid && Material.SetBaseColor(Color);
+        } else if (Keyword == "Ns" || Keyword == "specular_strength" || Keyword == "normal_strength") {
+            float Value{};
+            Valid = static_cast<bool>(Values >> Value) && (Keyword == "Ns" ? Material.SetShininess(Value) : Keyword == "specular_strength" ? Material.SetSpecularStrength(Value) : Material.SetNormalStrength(Value));
+        } else if (Keyword == "norm" || Keyword == "map_Bump" || Keyword == "map_bump" || Keyword == "bump") {
+            const FString Reference{ReadRemainder(Values)};
+            const FString Relative{Reference.empty() || Reference.front() == '-' ? FString{} : Assets.GetRelativePath(Path.parent_path() / FilePath::FromUtf8(Reference), Error)};
+            Valid = !Relative.empty() && Material.SetNormalMapTexturePath(Relative);
         } else if (Keyword == "map_Kd") {
             const FString Reference{ReadRemainder(Values)};
             if (Reference.empty() || Reference.front() == '-') {
@@ -113,6 +120,14 @@ bool FMaterialFile::Save(const std::filesystem::path& Path, const FAssetManager&
         }
         TexturePath = FilePath::ToGenericUtf8(Texture.lexically_relative(Path.parent_path()));
     }
+    FString NormalPath{};
+    if (!Material.GetNormalMapTexturePath().empty()) {
+        const auto Normal{Assets.ResolvePath(FilePath::FromUtf8(Material.GetNormalMapTexturePath()), Error)};
+        if (Normal.empty()) {
+            return false;
+        }
+        NormalPath = FilePath::ToGenericUtf8(Normal.lexically_relative(Path.parent_path()));
+    }
     FAtomicFileWriter Writer{};
     if (!Writer.Open(Path, Error)) {
         return false;
@@ -125,6 +140,10 @@ bool FMaterialFile::Save(const std::filesystem::path& Path, const FAssetManager&
     if (!TexturePath.empty()) {
         Output << "map_Kd " << TexturePath << "\r\n";
     }
+    if (!NormalPath.empty()) {
+        Output << "norm " << NormalPath << "\r\n";
+    }
+    Output << "Ns " << Material.GetShininess() << "\r\nspecular_strength " << Material.GetSpecularStrength() << "\r\nnormal_strength " << Material.GetNormalStrength() << "\r\n";
     Output << "shader " << Material.GetShaderPath() << "\r\ntwo_sided " << (Material.IsTwoSided() ? 1 : 0) << "\r\n";
     return Writer.Commit(Error);
 }

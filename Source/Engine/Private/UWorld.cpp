@@ -5,6 +5,7 @@
  */
 
 #include "Engine/UWorld.h"
+#include "Engine/Component/ULightComponentBase.h"
 
 #include "Engine/MeshPicking.h"
 #include "Engine/Component/UStaticMeshComponent.h"
@@ -127,6 +128,9 @@ bool UWorld::AttachScene(std::unique_ptr<FSceneInterface> Scene) {
     if (mPersistentLevel != nullptr) {
         for (const auto& Actor : mPersistentLevel->GetActors()) {
             for (const auto& Component : Actor->GetComponents()) {
+                if (auto* Light{Cast<ULightComponentBase>(Component.get())}) {
+                    Light->SynchronizeLight();
+                }
                 if (auto* Primitive{Cast<UPrimitiveComponent>(Component.get())}) {
                     Primitive->MarkRenderStateDirty();
                 }
@@ -161,7 +165,11 @@ AActor* UWorld::SpawnActor(const UClass* Class) {
     }
 
     std::unique_ptr<AActor> Actor{static_cast<AActor*>(Object.release())};
-    Actor->SetName(Class->GetName());
+    FString Name{};
+    do {
+        Name = Class->GetName() + "_" + std::to_string(++mSpawnSerial);
+    } while (FObjectRegistry::Get()->FindObject(FName{Name}, mPersistentLevel.get()) != nullptr);
+    Actor->SetName(Name);
 
     if (!Actor->InitializeDefaultComponents()) {
         return nullptr;

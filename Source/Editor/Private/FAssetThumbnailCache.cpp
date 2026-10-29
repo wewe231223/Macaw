@@ -7,6 +7,7 @@
 #include "Engine/FAssetManager.h"
 #include "Engine/FSceneInterface.h"
 #include "Engine/FPrimitiveSceneProxy.h"
+#include "Engine/FLightSceneProxy.h"
 #include "Engine/FSceneViewFamily.h"
 #include "Engine/PrimitiveMesh.h"
 #include "Engine/UStaticMesh.h"
@@ -54,6 +55,10 @@ std::size_t FAssetThumbnailCache::MaterialSignature(const UMaterial* Material) {
     }
     std::size_t Hash{std::hash<FString>{}(Material->GetShaderPath())};
     Hash ^= std::hash<FString>{}(Material->GetBaseColorTexturePath()) + 0x9E3779B9 + (Hash << 6) + (Hash >> 2);
+    Hash ^= std::hash<FString>{}(Material->GetNormalMapTexturePath()) + 0x9E3779B9 + (Hash << 6) + (Hash >> 2);
+    for (const float Value : {Material->GetSpecularStrength(), Material->GetShininess(), Material->GetNormalStrength()}) {
+        Hash ^= std::bit_cast<Uint32>(Value) + 0x9E3779B9 + (Hash << 6) + (Hash >> 2);
+    }
     for (float Value : Material->GetBaseColor().ToArray()) {
         Hash ^= std::bit_cast<Uint32>(Value) + 0x9E3779B9 + (Hash << 6) + (Hash >> 2);
     }
@@ -110,6 +115,16 @@ void* FAssetThumbnailCache::Render(const FString& Key, UStaticMesh* Mesh, UMater
     --mRenderBudget;
     if (mScene == nullptr) {
         mScene = mRenderer->AllocateScene();
+        if (mScene != nullptr) {
+            FLightSceneProxy Ambient{};
+            Ambient.mIntensity = 0.25f;
+            mScene->AddLight(Ambient);
+            FLightSceneProxy Directional{};
+            Directional.mType = ELightType::Directional;
+            Directional.mDirection = FVector{0.35f, 0.6f, -1.0f}.Normalized();
+            Directional.mIntensity = 0.75f;
+            mScene->AddLight(Directional);
+        }
     }
     if (mScene == nullptr || Mesh == nullptr || !Mesh->CreateResources(static_cast<ID3D11Device*>(mRenderer->GetNativeDevice()))) {
         return nullptr;

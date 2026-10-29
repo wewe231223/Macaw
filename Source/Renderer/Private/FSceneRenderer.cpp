@@ -71,12 +71,16 @@ void FSceneRenderer::Render() {
     Context->VSSetConstantBuffers(1, 1, &ViewBuffer);
     Context->PSSetConstantBuffers(1, 1, &ViewBuffer);
     Context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    if (!Renderer->PrepareLighting(*mFamily)) {
+        return;
+    }
 
     TArray<FMeshDrawCommand> Commands{};
     Commands.reserve(mScene->GetPrimitives().size());
     UMaterial* DefaultMaterial{Renderer->GetDefaultMaterial()};
-    FMaterialPipeline* DefaultPipeline{Renderer->GetMaterialPipeline(*DefaultMaterial)};
+    FMaterialPipeline* DefaultPipeline{Renderer->GetMaterialPipeline(*DefaultMaterial, mFamily->mViewMode)};
     if (DefaultPipeline == nullptr || !DefaultMaterial->CreateResources(Device.Get(), Context)) {
+        Renderer->FinishLighting();
         return;
     }
     for (const FScenePrimitive& Primitive : mScene->GetPrimitives()) {
@@ -93,7 +97,7 @@ void FSceneRenderer::Render() {
             if (!Material->CreateResources(Device.Get(), Context)) {
                 Material = DefaultMaterial;
             }
-            FMaterialPipeline* Pipeline{Renderer->GetMaterialPipeline(*Material)};
+            FMaterialPipeline* Pipeline{Renderer->GetMaterialPipeline(*Material, mFamily->mViewMode)};
             Commands.emplace_back(Pipeline != nullptr ? Pipeline : DefaultPipeline, Material, Mesh, Primitive.mObjectBuffer.Get(), SubMesh.GetFirstIndex(), SubMesh.GetIndexCount());
         }
         ++mStats->mVisiblePrimitives;
@@ -129,7 +133,12 @@ void FSceneRenderer::Render() {
             ID3D11SamplerState* Sampler{Renderer->GetMaterialSampler()};
             Context->VSSetConstantBuffers(2, 1, &Constants);
             Context->PSSetConstantBuffers(2, 1, &Constants);
+            UTexture2D* NormalTexture{Command.mMaterial->GetNormalMapTexture()};
+            ID3D11ShaderResourceView* NormalResource{NormalTexture != nullptr ? NormalTexture->GetShaderResourceView() : nullptr};
             Context->PSSetShaderResources(0, 1, &Resource);
+            Context->VSSetShaderResources(1, 1, &NormalResource);
+            Context->PSSetShaderResources(1, 1, &NormalResource);
+            Context->VSSetSamplers(0, 1, &Sampler);
             Context->PSSetSamplers(0, 1, &Sampler);
             LastMaterial = Command.mMaterial;
         }
@@ -149,6 +158,9 @@ void FSceneRenderer::Render() {
     }
     ID3D11ShaderResourceView* Empty{};
     Context->PSSetShaderResources(0, 1, &Empty);
+    Context->VSSetShaderResources(1, 1, &Empty);
+    Context->PSSetShaderResources(1, 1, &Empty);
+    Renderer->FinishLighting();
     mStats->mTransformUpdates += mScene->TakeTransformUpdates();
 }
 

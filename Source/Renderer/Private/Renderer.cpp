@@ -26,6 +26,7 @@
 #include "FScene.h"
 #include "FSceneRenderer.h"
 #include "FMaterialPipeline.h"
+#include "FLightingResources.h"
 #include "FEditorMeshConstants.h"
 #include "FTextRenderer.h"
 #include "FSpriteRenderer.h"
@@ -176,6 +177,7 @@ void FRenderer::Shutdown() {
     mLineBuffer.Reset();
 
     mMaterialPipelines.clear();
+    mLightingResources.reset();
     mDefaultMaterial.reset();
     mDefaultMaterialTexture.reset();
     mMaterialSampler.Reset();
@@ -517,6 +519,7 @@ bool FRenderer::CreateBackBuffer(Uint32 Width, Uint32 Height) {
  * @brief 메시·선분·기즈모 셰이더, 입력 레이아웃과 고정 파이프라인 상태를 생성합니다.
  */
 bool FRenderer::CreatePipeline() {
+    mLightingResources = std::make_unique<FLightingResources>();
     mTextRenderer = std::make_unique<FTextRenderer>();
     mSpriteRenderer = std::make_unique<FSpriteRenderer>();
     if (!mSpriteRenderer->Initialize(mDevice.Get())) {
@@ -736,13 +739,14 @@ void FRenderer::DrawOverlayTexts(const FSceneViewFamily& Family) {
     mContext->OMSetBlendState(nullptr, nullptr, 0xFFFFFFFFu);
 }
 
-FMaterialPipeline* FRenderer::GetMaterialPipeline(const UMaterial& Material) {
+FMaterialPipeline* FRenderer::GetMaterialPipeline(const UMaterial& Material, EViewMode Mode) {
     const FString& Relative{Material.GetShaderPath()};
     const std::filesystem::path RelativePath{FilePath::FromUtf8(Relative).lexically_normal()};
     FString Key{FilePath::ToGenericUtf8(RelativePath) + (Material.IsTwoSided() ? "|TwoSided" : "|OneSided")};
     std::transform(Key.begin(), Key.end(), Key.begin(), [](unsigned char Character) {
         return static_cast<char>(std::tolower(Character));
     });
+    Key += "|" + std::to_string(static_cast<Uint32>(Mode)) + (Material.GetNormalMapTexture() != nullptr ? "|NormalMap" : "|VertexNormal");
     const auto Existing{mMaterialPipelines.find(Key)};
     if (Existing != mMaterialPipelines.end()) {
         return Existing->second.get();
@@ -750,10 +754,22 @@ FMaterialPipeline* FRenderer::GetMaterialPipeline(const UMaterial& Material) {
     if (mShadersDirty) {
         return nullptr;
     }
-    const std::filesystem::path Source{FindTextContent(mShaderDirectory.parent_path(), RelativePath)};
+    const bool Builtin{RelativePath == "Shaders/Lit.hlsl" || RelativePath == "Shaders/Unlit.hlsl" || RelativePath == "Shaders/Mesh.hlsl" || Mode == EViewMode::Unlit || Mode == EViewMode::WorldNormal};
+    const std::filesystem::path Source{FindTextContent(mShaderDirectory.parent_path(), Mode == EViewMode::Unlit || Mode == EViewMode::WorldNormal ? std::filesystem::path{"Shaders/Lit.hlsl"} : RelativePath, Builtin)};
     FShaderDescription Description{};
     Description.mSourcePath = Source;
     Description.mIncludeDirectories = {Source.parent_path(), mShaderDirectory};
+    const char* Model{Mode == EViewMode::Lit_Gouraud ? "LIGHTING_MODEL_GOURAUD" : Mode == EViewMode::Lit_Lambert ? "LIGHTING_MODEL_LAMBERT" : "LIGHTING_MODEL_PHONG"};
+    Description.mMacros.push_back({Model, "1"});
+    if (Mode == EViewMode::Unlit) {
+        Description.mMacros.push_back({"MACAW_UNLIT", "1"});
+    }
+    if (Mode == EViewMode::WorldNormal) {
+        Description.mMacros.push_back({"WORLD_NORMAL", "1"});
+    }
+    if (Material.GetNormalMapTexture() != nullptr) {
+        Description.mMacros.push_back({"HAS_NORMAL_MAP", "1"});
+    }
     Description.mEntryPoint = "VertexMain";
     Description.mTargetProfile = "vs_5_0";
 #ifdef _DEBUG
@@ -807,6 +823,17 @@ void FRenderer::DrawTranslucency(const FSceneViewFamily& Family) {
         const float Value{ScreenSpace ? Position.z : Clip.w > 0.0f ? Clip.z / Clip.w : -1.0f};
         return std::isfinite(Value) ? Value : -1.0f;
     }};
+    TArray<FPrimitiveSceneProxy> LightIcons{};
+    if (Family.mEditorElements != nullptr && Family.mShowFlags.mLightIcons) {
+        const auto* Scene{static_cast<const FScene*>(Family.mScene)};
+        LightIcons.reserve(Scene->GetLights().size());
+        for (const FLightSceneProxy& Light : Scene->GetLights()) {
+            LightIcons.push_back(Light.CreateIconProxy());
+        }
+        for (const FPrimitiveSceneProxy& Icon : LightIcons) {
+            Commands.emplace_back(Depth(Icon.mWorld.TransformPosition({}), false), FPrimitive{&Icon});
+        }
+    }
     if (Family.mShowFlags.mPrimitives) {
         const auto* Scene{static_cast<const FScene*>(Family.mScene)};
         for (const FScenePrimitive& Primitive : Scene->GetPrimitives()) {
@@ -850,4 +877,15 @@ void FRenderer::DrawTranslucency(const FSceneViewFamily& Family) {
         }
     }
     mContext->OMSetBlendState(nullptr, nullptr, 0xFFFFFFFFu);
+}
+
+bool FRenderer::PrepareLighting(const FSceneViewFamily& Family) {
+    const auto* Scene{static_cast<const FScene*>(Family.mScene)};
+    return mLightingResources != nullptr && mLightingResources->Upload(mDevice.Get(), mContext.Get(), Scene->GetLights(), Family.mView);
+}
+
+void FRenderer::FinishLighting() {
+    if (mLightingResources != nullptr) {
+        mLightingResources->Unbind(mContext.Get());
+    }
 }

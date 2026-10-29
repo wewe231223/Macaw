@@ -28,6 +28,7 @@
 class FTextRenderer;
 class FSpriteRenderer;
 class FMaterialPipeline;
+class FLightingResources;
 
 /**
  * @brief Direct3D 11 장치, 스왑 체인, 메시와 프레임 렌더링을 관리합니다.
@@ -170,7 +171,9 @@ public:
      * @param[in] Material 조회할 머티리얼 설정입니다.
      * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며 사용할 수 없으면 nullptr입니다.
      */
-    FMaterialPipeline* GetMaterialPipeline(const UMaterial& Material);
+    FMaterialPipeline* GetMaterialPipeline(const UMaterial& Material, EViewMode Mode = EViewMode::Lit_Phong);
+    bool PrepareLighting(const FSceneViewFamily& Family);
+    void FinishLighting();
     /**
      * @brief 기본 머티리얼의 비소유 주소를 반환합니다.
      * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며 사용할 수 없으면 nullptr입니다.
@@ -264,6 +267,8 @@ private:
     ReflectMembers();
 
 private:
+    std::unique_ptr<FLightingResources> mLightingResources{};
+    ReflectProperty(mLightingResources, "LightingResources", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
     std::unique_ptr<UMaterial> mDefaultMaterial{};
     ReflectProperty(mDefaultMaterial, "DefaultMaterial", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
     /**

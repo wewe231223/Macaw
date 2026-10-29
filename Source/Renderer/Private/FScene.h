@@ -10,6 +10,7 @@
 #include "Engine/FSceneInterface.h"
 #include "Core/GuidHash.h"
 #include "FScenePrimitive.h"
+#include "Engine/FLightSceneProxy.h"
 
 #include <d3d11.h>
 #include <wrl/client.h>
@@ -48,6 +49,10 @@ public:
      * @brief 프록시의 식별자로 렌더 장면에 프리미티브를 추가하거나 교체합니다.
      * @param[in] Proxy 장면에 복사할 프리미티브 상태입니다.
      */
+    void AddLight(const FLightSceneProxy& Proxy) override;
+    void RemoveLight(const FGuid& Id) override;
+    const TArray<FLightSceneProxy>& GetLights() const;
+
     void AddPrimitive(const FPrimitiveSceneProxy& Proxy) override;
     /**
      * @brief 지정한 프리미티브의 월드 행렬과 경계 상자를 갱신합니다.
@@ -101,6 +106,10 @@ private:
     /**
      * @brief Direct3D 11 장치입니다.
      */
+    TArray<FLightSceneProxy> mLights{};
+    ReflectProperty(mLights, "Lights", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    TMap<FGuid, std::size_t, FGuidHash> mLightIndices{};
+    ReflectProperty(mLightIndices, "LightIndices", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
     ID3D11Device* mDevice{};
     ReflectProperty(mDevice, "Device", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
     /**

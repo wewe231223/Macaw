@@ -107,26 +107,30 @@ namespace {
      * @param[in] Client 설정을 읽고 변경할 뷰포트 클라이언트입니다.
      */
     void DrawViewSettings(FEditorViewportClient* Client) {
-        const char* Mode{Client->GetViewMode() == EViewMode::Wireframe ? "View Mode: Wireframe" : "View Mode: Lit"};
-        ImGui::SetNextItemWidth(175.0f);
-        if (ImGui::BeginCombo("##ViewMode", Mode)) {
-            ImGui::SeparatorText("View Mode");
-            if (ImGui::Selectable("Lit", Client->GetViewMode() == EViewMode::Lit)) {
-                Client->SetViewMode(EViewMode::Lit);
-            }
-            if (ImGui::Selectable("Wireframe", Client->GetViewMode() == EViewMode::Wireframe)) {
-                Client->SetViewMode(EViewMode::Wireframe);
+        const float Scale{ImGui::GetStyle().FontScaleMain * ImGui::GetStyle().FontScaleDpi};
+        const std::array<EViewMode, 6> Modes{EViewMode::Lit_Gouraud, EViewMode::Lit_Lambert, EViewMode::Lit_Phong, EViewMode::Unlit, EViewMode::WorldNormal, EViewMode::Wireframe};
+        const std::array<const char*, 6> Names{"Lit_Gouraud", "Lit_Lambert", "Lit_Phong", "Unlit", "World Normal", "Wireframe"};
+        const auto Current{std::find(Modes.begin(), Modes.end(), Client->GetViewMode())};
+        const std::size_t Index{Current != Modes.end() ? static_cast<std::size_t>(Current - Modes.begin()) : 2};
+        ImGui::SetNextItemWidth(175.0f * Scale);
+        if (ImGui::BeginCombo("##ViewMode", Names[Index])) {
+            for (std::size_t Mode{}; Mode < Modes.size(); ++Mode) {
+                if (ImGui::Selectable(Names[Mode], Client->GetViewMode() == Modes[Mode])) {
+                    Client->SetViewMode(Modes[Mode]);
+                }
             }
             ImGui::EndCombo();
         }
         ImGui::SameLine();
-        ImGui::SetNextItemWidth(115.0f);
+        ImGui::SetNextItemWidth(115.0f * Scale);
         if (ImGui::BeginCombo("##ViewFilter", "View Filter")) {
             ImGui::SeparatorText("Show Flags");
             FEngineShowFlags Flags{Client->GetShowFlags()};
             bool Changed{ImGui::Checkbox("Primitives", &Flags.mPrimitives)};
             Changed = ImGui::Checkbox("Sprites / Billboards", &Flags.mSprites) || Changed;
             Changed = ImGui::Checkbox("Text", &Flags.mText) || Changed;
+            Changed = ImGui::Checkbox("Light Icons", &Flags.mLightIcons) || Changed;
+            Changed = ImGui::Checkbox("Light Visualizers", &Flags.mLightVisualizers) || Changed;
             Changed = ImGui::Checkbox("Bounding Boxes (AABB)", &Flags.mBounds) || Changed;
             Changed = ImGui::Checkbox("Grid", &Flags.mGrid) || Changed;
             Changed = ImGui::Checkbox("World Axes", &Flags.mAxes) || Changed;
@@ -146,7 +150,7 @@ namespace {
             ImGui::EndCombo();
         }
         ImGui::SameLine();
-        ImGui::SetNextItemWidth(95.0f);
+        ImGui::SetNextItemWidth(95.0f * Scale);
         if (ImGui::BeginCombo("##CameraSettings", "Camera")) {
             ImGui::SeparatorText("Camera Settings");
             float Sensitivity{Client->GetCameraSensitivity()};

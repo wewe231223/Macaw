@@ -240,6 +240,15 @@ void FEditorViewport::DrawContents(float DeltaTime, bool AllowInput) {
                         }
                     }
                 }
+                if (const ImGuiPayload* Payload{ImGui::AcceptDragDropPayload(EditorAssetDragDrop::ActorPayload, ImGuiDragDropFlags_AcceptBeforeDelivery)}) {
+                    AssetDrag = true;
+                    if (Payload->IsDelivery() && Payload->Data != nullptr && Payload->DataSize > 1) {
+                        const auto* Data{static_cast<const char*>(Payload->Data)};
+                        if (Data[Payload->DataSize - 1] == '\0') {
+                            mClient.DropActor(FString{Data, static_cast<std::size_t>(Payload->DataSize - 1)}, State.mMouse, mViewport->GetSize());
+                        }
+                    }
+                }
                 ImGui::EndDragDropTarget();
             }
 

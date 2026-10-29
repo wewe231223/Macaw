@@ -111,6 +111,7 @@ void EditorStyle::DrawIcon(EIcon Icon, const ImVec2& Origin, float Size, ImU32 C
  * @brief 아이콘 버튼을 표시하고 선택 색상, 비활성 처리와 툴팁을 적용합니다.
  */
 bool EditorStyle::IconButton(const char* Label, EIcon Icon, bool Selected, bool Enabled, bool Dropdown, const char* Tooltip) {
+    const float Scale{ImGui::GetStyle().FontScaleMain * ImGui::GetStyle().FontScaleDpi};
     ImGui::PushID(Label);
     ImGui::BeginDisabled(!Enabled);
 
@@ -120,8 +121,8 @@ bool EditorStyle::IconButton(const char* Label, EIcon Icon, bool Selected, bool 
     }
 
     const float Height{ImGui::GetFrameHeight()};
-    const float IconSize{ImGui::GetFontSize() + 2.0f};
-    const bool Pressed{ImGui::Button("##Button", ImVec2{Height + (Dropdown ? 12.0f : 0.0f), Height})};
+    const float IconSize{ImGui::GetFontSize() + 2.0f * Scale};
+    const bool Pressed{ImGui::Button("##Button", ImVec2{Height + (Dropdown ? 12.0f * Scale : 0.0f), Height})};
     const ImVec2 Minimum{ImGui::GetItemRectMin()};
     const ImVec2 Origin{Minimum.x + (Height - IconSize) * 0.5f, Minimum.y + (Height - IconSize) * 0.5f};
     const ImVec4 Foreground{Icon == EIcon::Play ? ImVec4{0.30f, 0.85f, 0.40f, 1.0f} : Icon == EIcon::Stop ? ImVec4{0.95f, 0.30f, 0.28f, 1.0f} : Selected ? ImVec4{0.30f, 0.72f, 1.0f, 1.0f} : ImGui::GetStyleColorVec4(ImGuiCol_Text)};
@@ -130,9 +131,9 @@ bool EditorStyle::IconButton(const char* Label, EIcon Icon, bool Selected, bool 
 
     if (Dropdown) {
         ImDrawList* DrawList{ImGui::GetWindowDrawList()};
-        const float X{Minimum.x + Height + 3.0f};
+        const float X{Minimum.x + Height + 3.0f * Scale};
         const float Y{Minimum.y + Height * 0.5f};
-        DrawList->AddTriangleFilled(ImVec2{X - 3.0f, Y - 1.5f}, ImVec2{X + 3.0f, Y - 1.5f}, ImVec2{X, Y + 1.5f}, Color);
+        DrawList->AddTriangleFilled(ImVec2{X - 3.0f * Scale, Y - 1.5f * Scale}, ImVec2{X + 3.0f * Scale, Y - 1.5f * Scale}, ImVec2{X, Y + 1.5f * Scale}, Color);
     }
 
     if (Selected) {
@@ -154,9 +155,10 @@ bool EditorStyle::IconButton(const char* Label, EIcon Icon, bool Selected, bool 
  * @brief 뷰포트 툴바에서 사용할 스타일을 ImGui 스택에 추가합니다.
  */
 void EditorStyle::PushViewportToolbar() {
-    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{5.0f, 5.0f});
-    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2{2.0f, 4.0f});
-    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 3.0f);
+    const float Scale{ImGui::GetStyle().FontScaleMain * ImGui::GetStyle().FontScaleDpi};
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{5.0f * Scale, 5.0f * Scale});
+    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2{2.0f * Scale, 4.0f * Scale});
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 3.0f * Scale);
     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{0.12f, 0.12f, 0.12f, 1.0f});
     ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{0.23f, 0.23f, 0.23f, 1.0f});
     ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{0.10f, 0.29f, 0.44f, 1.0f});

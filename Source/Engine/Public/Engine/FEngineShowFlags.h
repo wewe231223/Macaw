@@ -27,6 +27,10 @@ public:
     /**
      * @brief 모든 장면 프리미티브의 표시 여부입니다.
      */
+    bool mLightIcons{true};
+    ReflectProperty(mLightIcons, "LightIcons", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    bool mLightVisualizers{true};
+    ReflectProperty(mLightVisualizers, "LightVisualizers", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
     bool mPrimitives{true};
     ReflectProperty(mPrimitives, "Primitives", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
     /**

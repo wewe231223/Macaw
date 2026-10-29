@@ -8,6 +8,7 @@
 
 #include "Core/ReflectionMacros.h"
 #include "Core/Types.h"
+#include "Editor/FImGuiUIScale.h"
 
 #include <array>
 #include <filesystem>
@@ -83,6 +84,9 @@ private:
     ReflectMembers();
 
 private:
+    FImGuiUIScale mUIScale{};
+    ReflectProperty(mUIScale, "UIScale", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 프로젝트 이름 입력 버퍼입니다.
      */

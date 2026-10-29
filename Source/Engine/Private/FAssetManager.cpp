@@ -16,6 +16,7 @@
 #include "FAssetSerialization.h"
 #include "FTextureAssetData.h"
 #include "FAssetImportScope.h"
+#include "FMeshImportIOSystem.h"
 
 #include <algorithm>
 #include <cwctype>
@@ -335,13 +336,18 @@ bool FAssetManager::ImportMesh(const std::filesystem::path& Source, const std::f
         return false;
     }
     auto Mesh{NewObject<UStaticMesh>()};
-    if (!Mesh->LoadFromFile(Source)) {
-        Error = "Cannot import mesh source";
+    if (!Mesh->LoadFromFile(Source, Error)) {
+        Error = "Cannot import mesh source '" + FilePath::ToUtf8(Source) + "': " + Error;
         return false;
     }
     Assimp::Importer Importer{};
+    Importer.SetIOHandler(new FMeshImportIOSystem{});
     const aiScene* Scene{Importer.ReadFile(FilePath::ToUtf8(Source), 0)};
-    if (Scene == nullptr || Scene->mNumMaterials != Mesh->GetMeshData().GetMaterialSlots().size()) {
+    if (Scene == nullptr) {
+        Error = "Cannot import mesh material library: " + FString{Importer.GetErrorString()};
+        return false;
+    }
+    if (Scene->mNumMaterials != Mesh->GetMeshData().GetMaterialSlots().size()) {
         Error = "Cannot import mesh material library";
         return false;
     }
@@ -385,6 +391,27 @@ bool FAssetManager::ImportMesh(const std::filesystem::path& Source, const std::f
                 Existing = Textures.emplace(Key, GetRelativePath(TextureTarget, Error)).first;
             }
             Material->SetBaseColorTexturePath(Existing->second);
+        }
+        aiString NormalTexture{};
+        if (SourceMaterial.GetTexture(aiTextureType_NORMALS, 0, &NormalTexture) == AI_SUCCESS || SourceMaterial.GetTexture(aiTextureType_HEIGHT, 0, &NormalTexture) == AI_SUCCESS) {
+            FString Reference{NormalTexture.C_Str()};
+            std::replace(Reference.begin(), Reference.end(), '\\', '/');
+            if (Reference.starts_with("*")) {
+                Error = "Embedded material textures are not supported: " + Name;
+                return false;
+            }
+            const auto TextureSource{(Source.parent_path() / FilePath::FromUtf8(Reference)).lexically_normal()};
+            const FString Key{CacheKey(FilePath::ToUtf8(TextureSource))};
+            auto Existing{Textures.find(Key)};
+            if (Existing == Textures.end()) {
+                const auto TextureTarget{DependencyDirectory / ("Texture_" + std::to_string(Textures.size()) + ".masset")};
+                if (!ImportTexture(TextureSource, TextureTarget, Error)) {
+                    Error = "Cannot import material texture '" + Reference + "': " + Error;
+                    return false;
+                }
+                Existing = Textures.emplace(Key, GetRelativePath(TextureTarget, Error)).first;
+            }
+            Material->SetNormalMapTexturePath(Existing->second);
         }
         const auto MaterialTarget{DependencyDirectory / ("Material_" + std::to_string(Index) + ".mtl")};
         if (!SaveMaterial(MaterialTarget, *Material, Error)) {
@@ -463,6 +490,34 @@ bool FAssetManager::ApplyMaterialSettings(UMaterial& Target, const UMaterial& So
     Target.SetShaderPath(Source.GetShaderPath());
     Target.SetBaseColor(Source.GetBaseColor());
     Target.SetBaseColorTexturePath(Source.GetBaseColorTexturePath());
+    Target.SetNormalMapTexturePath(Source.GetNormalMapTexturePath());
+    Target.SetSpecularStrength(Source.GetSpecularStrength());
+    Target.SetShininess(Source.GetShininess());
+    Target.SetNormalStrength(Source.GetNormalStrength());
     Target.SetTwoSided(Source.IsTwoSided());
     return Target.ResolveTexture(*this, Error);
+}
+
+UTexture2D* FAssetManager::LoadNormalMap(const std::filesystem::path& Path, FString& Error) {
+    const FString Key{CacheKey(GetRelativePath(Path, Error))};
+    if (Key.empty()) {
+        return nullptr;
+    }
+    const auto Existing{mNormalMaps.find(Key)};
+    if (Existing != mNormalMaps.end()) {
+        return Existing->second.get();
+    }
+    UTexture2D* Source{LoadTexture(Path, Error)};
+    if (Source == nullptr) {
+        return nullptr;
+    }
+    FTextureAssetData Data{*Source};
+    auto Texture{NewObject<UTexture2D>()};
+    if (!Data.ApplyTo(*Texture, Error) || !Texture->SetSRGB(false)) {
+        Error = "Cannot create a linear normal map: " + Error;
+        return nullptr;
+    }
+    UTexture2D* Result{Texture.get()};
+    mNormalMaps.emplace(Key, std::move(Texture));
+    return Result;
 }

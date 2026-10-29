@@ -241,7 +241,8 @@ bool FDetailsPanel::DrawPropertyValue(const FProperty* Property, FPropertyValue&
     } else if (auto* Vector4{std::get_if<FVector4>(&Value)}) {
         auto Values{Vector4->ToArray()};
 
-        if (ImGui::DragFloat4(Label, Values.data(), 0.025f)) {
+        const bool Changed{Property->GetName() == "LightColor" ? ImGui::ColorEdit4(Label, Values.data()) : ImGui::DragFloat4(Label, Values.data(), 0.025f)};
+        if (Changed) {
             *Vector4 = {Values[0], Values[1], Values[2], Values[3]};
 
             return true;

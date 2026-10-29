@@ -122,6 +122,7 @@ public:
      * @param[in] Size 쿼드의 크기 또는 뷰포트 픽셀 크기입니다.
      * @return 검증 또는 요청한 처리에 성공하면 true입니다.
      */
+    bool DropActor(const FString& Preset, const FVector2& Position, const FVector2& Size);
     bool DropMesh(const std::filesystem::path& Path, const FVector2& Position, const FVector2& Size);
 
     /**

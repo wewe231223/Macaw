@@ -126,9 +126,10 @@ void FEditorViewportLayout::DrawViewport(Uint32 Index, float DeltaTime, FEditorV
     const bool Playing{Viewport->GetActiveClient() != Client};
     const bool AllowInput{CapturedViewport == nullptr || CapturedViewport == Viewport};
     EditorStyle::PushViewportToolbar();
+    const float Scale{ImGui::GetStyle().FontScaleMain * ImGui::GetStyle().FontScaleDpi};
     const float LayoutButtonX{ImGui::GetCursorPosX() + ImGui::GetContentRegionAvail().x - ImGui::GetFrameHeight()};
     ImGui::BeginDisabled(Playing || !CanChangeLayout());
-    ImGui::SetNextItemWidth(std::min(120.0f, std::max(ImGui::GetContentRegionAvail().x - ImGui::GetFrameHeight() - ImGui::GetStyle().ItemSpacing.x, 60.0f)));
+    ImGui::SetNextItemWidth(std::min(120.0f * Scale, std::max(ImGui::GetContentRegionAvail().x - ImGui::GetFrameHeight() - ImGui::GetStyle().ItemSpacing.x, 60.0f * Scale)));
     if (ImGui::BeginCombo("##ViewType", Playing ? "Play" : Client->GetViewTypeName())) {
         const std::array<const char*, 7> Names{"Perspective", "Top", "Bottom", "Front", "Back", "Left", "Right"};
         for (Uint32 Type{}; Type < Names.size(); ++Type) {

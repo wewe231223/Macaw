@@ -1,5 +1,6 @@
 local Reflection = dofile("Scripts/GenerateReflection.lua")
 
+newoption { trigger = "with-tests", description = "Build integration tests" }
 newoption { trigger = "reflection-module", value = "MODULE", description = "Generate reflection for one module" }
 newaction { trigger = "generate-reflection", description = "Generate reflection from property annotations", execute = function() Reflection.Generate(_OPTIONS["reflection-module"]) end }
 
@@ -125,3 +126,9 @@ end
 ConfigureExecutable("Macaw", "WindowedApp", "Source/App")
     postbuildcommands { '{COPYDIR} "%{wks.location}/Templates/Project" "%{cfg.targetdir}/Templates/Project"' }
     postbuildcommands { '{COPYFILE} "%{wks.location}/vcpkg_installed/x64-windows/tools/luajit/lua51.dll" "%{cfg.targetdir}/lua51.dll"' }
+
+if _OPTIONS["with-tests"] then
+    ConfigureExecutable("Week5Tests", "ConsoleApp", "Tests/Week5")
+        includedirs { "Source/Renderer/Private" }
+        postbuildcommands { '{COPYDIR} "%{wks.location}/Templates/Project" "%{cfg.targetdir}/Templates/Project"' }
+end

@@ -103,6 +103,8 @@ bool FProjectBrowser::Show(FWindowsApplication& Platform, FRenderer& Renderer, s
     Style.Colors[ImGuiCol_Button] = ImVec4{0.11f, 0.31f, 0.48f, 1.0f};
     Style.Colors[ImGuiCol_ButtonHovered] = ImVec4{0.15f, 0.43f, 0.63f, 1.0f};
     Style.Colors[ImGuiCol_ButtonActive] = ImVec4{0.10f, 0.36f, 0.55f, 1.0f};
+    mUIScale.Initialize(18.0f);
+    mUIScale.Update(Platform);
 
     const bool Win32Ready{ImGui_ImplWin32_Init(Platform.GetWindowHandle())};
     const bool DxReady{Win32Ready && ImGui_ImplDX11_Init(static_cast<ID3D11Device*>(Renderer.GetNativeDevice()), static_cast<ID3D11DeviceContext*>(Renderer.GetNativeContext()))};
@@ -118,6 +120,7 @@ bool FProjectBrowser::Show(FWindowsApplication& Platform, FRenderer& Renderer, s
             Renderer.BeginFrame(Platform.GetWidth(), Platform.GetHeight());
             ImGui_ImplDX11_NewFrame();
             ImGui_ImplWin32_NewFrame();
+            mUIScale.Update(Platform);
             ImGui::NewFrame();
             Draw(Platform, Error);
             ImGui::Render();
@@ -146,6 +149,7 @@ bool FProjectBrowser::Show(FWindowsApplication& Platform, FRenderer& Renderer, s
 }
 
 void FProjectBrowser::Draw(FWindowsApplication& Platform, const FString& Error) {
+    const float Scale{mUIScale.GetScale()};
     const ImGuiViewport* Viewport{ImGui::GetMainViewport()};
     ImGui::SetNextWindowPos(Viewport->WorkPos);
     ImGui::SetNextWindowSize(Viewport->WorkSize);
@@ -155,15 +159,15 @@ void FProjectBrowser::Draw(FWindowsApplication& Platform, const FString& Error) 
     ImGui::PopFont();
     ImGui::TextDisabled("Choose a project or start something new.");
     ImGui::Spacing();
-    if (ImGui::Button("Open Project", ImVec2{180.0f, 44.0f})) {
+    if (ImGui::Button("Open Project", ImVec2{180.0f * Scale, 44.0f * Scale})) {
         mCreatePage = false;
     }
     ImGui::SameLine();
-    if (ImGui::Button("New Project", ImVec2{180.0f, 44.0f})) {
+    if (ImGui::Button("New Project", ImVec2{180.0f * Scale, 44.0f * Scale})) {
         mCreatePage = true;
     }
     ImGui::Separator();
-    const float Width{std::min(960.0f, ImGui::GetContentRegionAvail().x)};
+    const float Width{std::min(960.0f * Scale, ImGui::GetContentRegionAvail().x)};
     ImGui::SetCursorPosX(ImGui::GetCursorPosX() + (ImGui::GetContentRegionAvail().x - Width) * 0.5f);
     ImGui::BeginChild("Project Content", ImVec2{Width, 0.0f});
     if (!Error.empty()) {
@@ -181,8 +185,9 @@ void FProjectBrowser::Draw(FWindowsApplication& Platform, const FString& Error) 
 }
 
 void FProjectBrowser::DrawOpenProject(FWindowsApplication& Platform) {
+    const float Scale{mUIScale.GetScale()};
     ImGui::TextUnformatted("Recent projects");
-    ImGui::BeginChild("Recent Projects", ImVec2{0.0f, std::max(120.0f, ImGui::GetContentRegionAvail().y - 160.0f)}, ImGuiChildFlags_Borders);
+    ImGui::BeginChild("Recent Projects", ImVec2{0.0f, std::max(120.0f * Scale, ImGui::GetContentRegionAvail().y - 160.0f * Scale)}, ImGuiChildFlags_Borders);
     if (mRecentProjects.empty()) {
         ImGui::TextDisabled("No projects opened yet.");
         ImGui::TextWrapped("Use Browse to select an existing .mproject file, or create a new project.");
@@ -198,7 +203,7 @@ void FProjectBrowser::DrawOpenProject(FWindowsApplication& Platform) {
         ImGui::Separator();
     }
     ImGui::EndChild();
-    if (ImGui::Button("Browse...", ImVec2{140.0f, 0.0f})) {
+    if (ImGui::Button("Browse...", ImVec2{140.0f * Scale, 0.0f})) {
         const auto Path{FProjectDialog::Choose(Platform.GetWindowHandle(), false)};
         if (!Path.empty()) {
             mSelectedFile = Path;
@@ -207,15 +212,16 @@ void FProjectBrowser::DrawOpenProject(FWindowsApplication& Platform) {
     ImGui::SameLine();
     ImGui::TextWrapped("%s", mSelectedFile.empty() ? "Select a .mproject file" : FilePath::ToUtf8(mSelectedFile).c_str());
     ImGui::BeginDisabled(mSelectedFile.empty());
-    if (ImGui::Button("Open Selected Project", ImVec2{240.0f, 44.0f})) {
+    if (ImGui::Button("Open Selected Project", ImVec2{240.0f * Scale, 44.0f * Scale})) {
         mSubmitted = true;
     }
     ImGui::EndDisabled();
 }
 
 void FProjectBrowser::DrawNewProject(FWindowsApplication& Platform) {
+    const float Scale{mUIScale.GetScale()};
     ImGui::TextUnformatted("Create a new project");
-    ImGui::BeginChild("Default Template", ImVec2{0.0f, 140.0f}, ImGuiChildFlags_Borders);
+    ImGui::BeginChild("Default Template", ImVec2{0.0f, 140.0f * Scale}, ImGuiChildFlags_Borders);
     ImGui::PushFont(nullptr, 24.0f);
     ImGui::TextUnformatted("Default");
     ImGui::PopFont();
@@ -226,10 +232,10 @@ void FProjectBrowser::DrawNewProject(FWindowsApplication& Platform) {
     ImGui::SetNextItemWidth(-1.0f);
     ImGui::InputText("##ProjectName", mProjectName.data(), mProjectName.size());
     ImGui::TextUnformatted("Location");
-    ImGui::SetNextItemWidth(std::max(80.0f, ImGui::GetContentRegionAvail().x - 150.0f));
+    ImGui::SetNextItemWidth(std::max(80.0f * Scale, ImGui::GetContentRegionAvail().x - 150.0f * Scale));
     ImGui::InputText("##Location", mLocation.data(), mLocation.size());
     ImGui::SameLine();
-    if (ImGui::Button("Browse...", ImVec2{138.0f, 0.0f})) {
+    if (ImGui::Button("Browse...", ImVec2{138.0f * Scale, 0.0f})) {
         const auto Path{FProjectDialog::ChooseDirectory(Platform.GetWindowHandle())};
         if (!Path.empty()) {
             const FString Location{FilePath::ToUtf8(Path)};
@@ -246,7 +252,7 @@ void FProjectBrowser::DrawNewProject(FWindowsApplication& Platform) {
         ImGui::TextWrapped("Enter a valid project name and an absolute location.");
     }
     ImGui::BeginDisabled(!ValidName || !ValidLocation);
-    if (ImGui::Button("Create Project", ImVec2{220.0f, 44.0f})) {
+    if (ImGui::Button("Create Project", ImVec2{220.0f * Scale, 44.0f * Scale})) {
         mSelectedFile = GetNewProjectFile();
         mSubmitted = true;
     }

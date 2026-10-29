@@ -12,8 +12,10 @@
 #include "Editor/Panel/FOutlinerPanel.h"
 #include "Editor/Panel/FDetailsPanel.h"
 #include "Editor/Panel/FConsolePanel.h"
+#include "Editor/Panel/FPlaceActorsPanel.h"
 #include "FEditorViewportLayout.h"
 #include "Editor/FAssetPicker.h"
+#include "Editor/FImGuiUIScale.h"
 
 #include <filesystem>
 #include <optional>
@@ -117,9 +119,12 @@ private:
      */
     void DrawPlayControls();
     /**
-     * @brief 프로젝트 에셋 목록과 메시 생성·텍스처 미리보기 UI를 그립니다.
+     * @brief 프로젝트 에셋 목록과 생성·가져오기 UI를 그립니다.
      */
     void DrawContent();
+
+    void DrawTexturePreview();
+
     /**
      * @brief 현재 Content 폴더와 에셋 종류 목록을 다시 읽습니다.
      */
@@ -235,6 +240,8 @@ private:
     /**
      * @brief 액터·컴포넌트 계층 패널입니다.
      */
+    FPlaceActorsPanel mPlaceActorsPanel;
+    ReflectProperty(mPlaceActorsPanel, "PlaceActorsPanel", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
     FOutlinerPanel mOutlinerPanel;
     ReflectProperty(mOutlinerPanel, "OutlinerPanel", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 
@@ -255,6 +262,9 @@ private:
      */
     FString mIniPath{};
     ReflectProperty(mIniPath, "IniPath", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
+    FImGuiUIScale mUIScale{};
+    ReflectProperty(mUIScale, "UIScale", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 
 
     /**
@@ -301,6 +311,10 @@ private:
      */
     UTexture2D* mPreviewTexture{};
     ReflectProperty(mPreviewTexture, "PreviewTexture", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    std::filesystem::path mPreviewTexturePath{};
+    ReflectProperty(mPreviewTexturePath, "PreviewTexturePath", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    bool mFocusTexturePreview{};
+    ReflectProperty(mFocusTexturePreview, "FocusTexturePreview", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
     /**
      * @brief 콘텐츠 트리에 표시할 폴더 목록입니다.
      */

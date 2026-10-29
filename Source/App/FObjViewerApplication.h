@@ -6,6 +6,7 @@
 #include "Core/Types.h"
 #include "Platform/Window.h"
 #include "Renderer/Renderer.h"
+#include "Editor/FImGuiUIScale.h"
 
 #include <filesystem>
 
@@ -58,6 +59,9 @@ private:
     /** @brief 최근 임포트 오류입니다. */
     FString mError{};
     ReflectProperty(mError, "Error", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
+    FImGuiUIScale mUIScale{};
+    ReflectProperty(mUIScale, "UIScale", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
     /** @brief ImGui 컨텍스트의 생성 상태입니다. */
     bool mContextCreated{};
     ReflectProperty(mContextCreated, "ContextCreated", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);

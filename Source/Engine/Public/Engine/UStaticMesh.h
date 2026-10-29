@@ -51,6 +51,7 @@ public:
      * @return 요청한 처리를 완료하면 true, 실패하면 false입니다.
      */
     bool LoadFromFile(const std::filesystem::path& MeshPath);
+    bool LoadFromFile(const std::filesystem::path& MeshPath, FString& Error);
     /**
      * @brief CPU 메시 데이터의 유효성과 경계를 검사하여 교체하고 GPU 버퍼를 해제합니다.
      * @param[in] MeshData 검증 후 소유할 새 CPU 메시 데이터입니다.

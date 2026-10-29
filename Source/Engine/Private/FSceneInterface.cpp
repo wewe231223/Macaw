@@ -10,3 +10,9 @@
  * @brief 객체의 수명을 끝내고 소유한 리소스를 정리합니다.
  */
 FSceneInterface::~FSceneInterface() = default;
+
+void FSceneInterface::AddLight(const FLightSceneProxy&) {
+}
+
+void FSceneInterface::RemoveLight(const FGuid&) {
+}

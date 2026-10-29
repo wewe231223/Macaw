@@ -100,23 +100,24 @@ UTexture2D* UMaterial::GetBaseColorTexture() const {
 
 bool UMaterial::ResolveTexture(FAssetManager& Assets, FString& Error) {
     Error.clear();
-    if (mBaseColorTexturePath.empty()) {
-        mBaseColorTexture = nullptr;
-        return true;
-    }
-    UTexture2D* Texture{Assets.LoadTexture(FilePath::FromUtf8(mBaseColorTexturePath), Error)};
-    if (Texture == nullptr) {
+    UTexture2D* BaseTexture{mBaseColorTexturePath.empty() ? nullptr : Assets.LoadTexture(FilePath::FromUtf8(mBaseColorTexturePath), Error)};
+    if (!mBaseColorTexturePath.empty() && BaseTexture == nullptr) {
         return false;
     }
-    mBaseColorTexture = Texture;
+    UTexture2D* NormalTexture{mNormalMapTexturePath.empty() ? nullptr : Assets.LoadNormalMap(FilePath::FromUtf8(mNormalMapTexturePath), Error)};
+    if (!mNormalMapTexturePath.empty() && NormalTexture == nullptr) {
+        return false;
+    }
+    mBaseColorTexture = BaseTexture;
+    mNormalMapTexture = NormalTexture;
     return true;
 }
 
 bool UMaterial::CreateResources(ID3D11Device* Device, ID3D11DeviceContext* Context) {
-    if (Device == nullptr || Context == nullptr || (!mBaseColorTexturePath.empty() && mBaseColorTexture == nullptr) || (mBaseColorTexture != nullptr && !mBaseColorTexture->CreateResources(Device))) {
+    if (Device == nullptr || Context == nullptr || (!mBaseColorTexturePath.empty() && mBaseColorTexture == nullptr) || (mBaseColorTexture != nullptr && !mBaseColorTexture->CreateResources(Device)) || (!mNormalMapTexturePath.empty() && mNormalMapTexture == nullptr) || (mNormalMapTexture != nullptr && !mNormalMapTexture->CreateResources(Device))) {
         return false;
     }
-    const auto Color{mBaseColor.ToArray()};
+    const std::array<float, 8> Color{mBaseColor.x, mBaseColor.y, mBaseColor.z, mBaseColor.w, mSpecularStrength, mShininess, mNormalStrength, 0.0f};
     if (mConstantBuffer == nullptr) {
         D3D11_BUFFER_DESC Description{};
         Description.ByteWidth = sizeof(Color);
@@ -141,4 +142,62 @@ void UMaterial::ReleaseResources() {
 
 ID3D11Buffer* UMaterial::GetConstantBuffer() const {
     return mConstantBuffer.Get();
+}
+
+const FString& UMaterial::GetNormalMapTexturePath() const {
+    return mNormalMapTexturePath;
+}
+
+bool UMaterial::SetNormalMapTexturePath(const FString& Path) {
+    if (!Path.empty() && !IsContentPath(Path)) {
+        return false;
+    }
+    if (mNormalMapTexturePath != Path) {
+        mNormalMapTexturePath = Path;
+        mNormalMapTexture = nullptr;
+    }
+    return true;
+}
+
+UTexture2D* UMaterial::GetNormalMapTexture() const {
+    return mNormalMapTexture;
+}
+
+float UMaterial::GetSpecularStrength() const {
+    return mSpecularStrength;
+}
+
+bool UMaterial::SetSpecularStrength(float Strength) {
+    if (!std::isfinite(Strength) || Strength < 0.0f || Strength > 1.0f) {
+        return false;
+    }
+    mSpecularStrength = Strength;
+    mConstantsDirty = true;
+    return true;
+}
+
+float UMaterial::GetShininess() const {
+    return mShininess;
+}
+
+bool UMaterial::SetShininess(float Shininess) {
+    if (!std::isfinite(Shininess) || Shininess < 1.0f || Shininess > 1024.0f) {
+        return false;
+    }
+    mShininess = Shininess;
+    mConstantsDirty = true;
+    return true;
+}
+
+float UMaterial::GetNormalStrength() const {
+    return mNormalStrength;
+}
+
+bool UMaterial::SetNormalStrength(float Strength) {
+    if (!std::isfinite(Strength) || Strength < 0.0f || Strength > 8.0f) {
+        return false;
+    }
+    mNormalStrength = Strength;
+    mConstantsDirty = true;
+    return true;
 }

@@ -166,3 +166,33 @@ void FScene::Upload(FScenePrimitive& Primitive) {
 
     ++mTransformUpdates;
 }
+
+void FScene::AddLight(const FLightSceneProxy& Proxy) {
+    const auto Position{mLightIndices.find(Proxy.mId)};
+    if (Position == mLightIndices.end()) {
+        mLightIndices.emplace(Proxy.mId, mLights.size());
+        mLights.push_back(Proxy);
+    } else {
+        mLights[Position->second] = Proxy;
+    }
+    ++mRevision;
+}
+
+void FScene::RemoveLight(const FGuid& Id) {
+    const auto Position{mLightIndices.find(Id)};
+    if (Position == mLightIndices.end()) {
+        return;
+    }
+    const std::size_t Index{Position->second};
+    if (Index + 1 != mLights.size()) {
+        mLights[Index] = mLights.back();
+        mLightIndices[mLights[Index].mId] = Index;
+    }
+    mLights.pop_back();
+    mLightIndices.erase(Position);
+    ++mRevision;
+}
+
+const TArray<FLightSceneProxy>& FScene::GetLights() const {
+    return mLights;
+}

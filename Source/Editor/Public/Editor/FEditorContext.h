@@ -155,6 +155,8 @@ public:
 
     /** @brief 액터를 생성하고 배치한 뒤 선택과 장면 변경 상태를 갱신합니다. @param[in] Type 생성할 기본 메시 종류입니다. @return 생성한 액터의 비소유 주소이며 실패하면 nullptr입니다. */
     AStaticMeshActor* SpawnPrimitive(EPrimitiveType Type);
+    AActor* SpawnActorPreset(const FString& Preset);
+    AActor* SpawnActorPreset(const FString& Preset, const FTransform& Placement);
     /**
      * @brief 편집 월드에 기본 카메라 액터를 생성합니다.
      * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며, 사용할 수 없으면 nullptr입니다.

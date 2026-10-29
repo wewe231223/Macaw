@@ -10,6 +10,7 @@
 #include "Core/Guid.h"
 
 struct FPrimitiveSceneProxy;
+struct FLightSceneProxy;
 struct FMatrix;
 struct FBox;
 
@@ -41,6 +42,9 @@ public:
      * @brief 프록시의 식별자로 렌더 장면에 프리미티브를 추가하거나 교체합니다.
      * @param[in] Proxy 장면에 복사할 프리미티브 상태입니다.
      */
+    virtual void AddLight(const FLightSceneProxy& Proxy);
+    virtual void RemoveLight(const FGuid& Id);
+
     virtual void AddPrimitive(const FPrimitiveSceneProxy& Proxy) = 0;
     /**
      * @brief 지정한 프리미티브의 월드 행렬과 경계 상자를 갱신합니다.
