@@ -22,8 +22,17 @@
  * @brief 이 구현 파일에서만 사용하는 내부 상태와 보조 함수입니다.
  */
 namespace {
+    /**
+     * @brief Lua 문자열 실행 시간를 측정하는 통계 항목입니다.
+     */
     FStat ExecuteStringTime{"script", "Execute string CPU", EStatUnit::Milliseconds};
+    /**
+     * @brief Lua 파일 실행 시간를 측정하는 통계 항목입니다.
+     */
     FStat ExecuteFileTime{"script", "Execute file CPU", EStatUnit::Milliseconds};
+    /**
+     * @brief Lua 실행 오류 횟수를 측정하는 통계 항목입니다.
+     */
     FStat LuaErrors{"script", "Lua errors"};
     /**
      * @brief Lua 기본 타입의 값을 로그에 표시할 문자열로 변환합니다.

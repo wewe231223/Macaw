@@ -1,3 +1,9 @@
+/**
+ * @file FLightingResources.cpp
+ * @brief 타일별 광원 목록과 조명 상수를 GPU에 업로드하고 바인딩합니다.
+ * @ingroup Renderer
+ */
+
 #include "FLightingResources.h"
 
 #include <algorithm>

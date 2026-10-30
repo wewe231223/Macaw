@@ -83,7 +83,9 @@ public:
      */
     UMaterial* mMaterial{};
     ReflectProperty(mMaterial, "Material", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
-    /** @brief SubMesh의 재질 인덱스로 조회하는 슬롯별 비소유 재질 주소입니다. */
+    /**
+     * @brief SubMesh의 재질 인덱스로 조회하는 슬롯별 비소유 재질 주소입니다.
+     */
     TArray<UMaterial*> mMaterials{};
     ReflectProperty(mMaterials, "Materials", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
     /**
@@ -101,8 +103,14 @@ public:
      */
     FVector2 mUVOffset{};
     ReflectProperty(mUVOffset, "UVOffset", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /**
+     * @brief 프리미티브의 그림자 생성 여부입니다.
+     */
     bool mCastShadow{true};
     ReflectProperty(mCastShadow, "CastShadow", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /**
+     * @brief 프리미티브의 그림자 수신 여부입니다.
+     */
     bool mReceiveShadow{true};
     ReflectProperty(mReceiveShadow, "ReceiveShadow", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 };

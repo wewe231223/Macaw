@@ -1,4 +1,8 @@
-/** @file FObjViewerApplication.cpp @brief 독립 OBJ 뷰어의 실행과 파일 열기입니다. @ingroup App */
+/**
+ * @file FObjViewerApplication.cpp
+ * @brief 독립 OBJ 뷰어의 실행과 파일 열기입니다.
+ * @ingroup App
+ */
 #include "FObjViewerApplication.h"
 #include "Core/Stats.h"
 #include "Core/FilePath.h"
@@ -11,7 +15,14 @@
 #include <imgui_impl_dx11.h>
 #include <imgui_impl_win32.h>
 
-/** @brief ImGui의 Win32 메시지 처리 함수입니다. @param Window 창 핸들입니다. @param Message 메시지 종류입니다. @param WParam 메시지 인수입니다. @param LParam 메시지 인수입니다. @return 메시지 처리 결과입니다. */
+/**
+ * @brief ImGui의 Win32 메시지 처리 함수입니다.
+ * @param Window 창 핸들입니다.
+ * @param Message 메시지 종류입니다.
+ * @param WParam 메시지 인수입니다.
+ * @param LParam 메시지 인수입니다.
+ * @return 메시지 처리 결과입니다.
+ */
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND Window, UINT Message, WPARAM WParam, LPARAM LParam);
 
 FObjViewerApplication::FObjViewerApplication() = default;

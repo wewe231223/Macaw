@@ -1,3 +1,8 @@
+/**
+ * @file StatsTests.cpp
+ * @brief 통계의 프레임 집계·스레드 기록·타이머와 에디터 표시를 검증합니다.
+ */
+
 #include "StatsTests.h"
 #include "Core/Stats.h"
 #include "Core/Math/FVector2.h"
@@ -17,13 +22,27 @@
 #include <stdexcept>
 #include <thread>
 
+/**
+ * @brief 해당 검증 파일에서만 사용하는 내부 검증 도우미입니다.
+ */
 namespace {
+    /**
+     * @brief 통계 검증 조건이 거짓이면 실패 메시지로 예외를 발생시킵니다.
+     * @param[in] Condition 검증을 통과해야 하는 조건입니다.
+     * @param[in] Message 검증 실패 시 예외에 포함할 메시지입니다.
+     */
     void CheckStat(bool Condition, const char* Message) {
         if (!Condition) {
             throw std::runtime_error{Message};
         }
     }
 
+    /**
+     * @brief 그룹과 이름이 일치하는 완료 프레임의 통계 스냅샷을 찾습니다.
+     * @param[in] Group 조회 또는 표시 상태를 판정할 통계 그룹입니다.
+     * @param[in] Name 찾을 통계 항목의 이름입니다.
+     * @return 일치하는 통계 스냅샷의 복사본입니다.
+     */
     FStatSnapshot FindStat(const FString& Group, const FString& Name) {
         for (const FStatSnapshot& Snapshot : FStats::Get().GetSnapshots(Group)) {
             if (Snapshot.GetName() == Name) {
@@ -33,6 +52,9 @@ namespace {
         throw std::runtime_error{"Expected stat is missing"};
     }
 
+    /**
+     * @brief 프레임 누적값·유지값·최근 이력과 초기화 동작을 검증합니다.
+     */
     void TestStatAggregation() {
         FStats& Stats{FStats::Get()};
         Stats.Reset();
@@ -96,6 +118,9 @@ namespace {
         CheckStat(FindStat("stat_test", "Gauge").GetValue() == 8192.0, "Reset history destroyed a retained gauge value");
     }
 
+    /**
+     * @brief 여러 스레드의 통계 기록과 범위 타이머의 집계를 검증합니다.
+     */
     void TestStatThreadsAndTimers() {
         FStats& Stats{FStats::Get()};
         FStat Counter{"stat_test", "Thread count"};
@@ -136,6 +161,9 @@ namespace {
         CheckStat(std::find(Groups.begin(), Groups.end(), "temporary_stat_group") == Groups.end() && Stats.GetSnapshots("temporary_stat_group").empty(), "Destroyed stats left dangling registry entries");
     }
 
+    /**
+     * @brief 엔진·월드·에셋의 실제 작업이 통계에 반영되는지 검증합니다.
+     */
     void TestEngineStats() {
         UEngine Engine{};
         CheckStat(Engine.Initialize(), "Stats engine failed to initialize");
@@ -160,6 +188,9 @@ namespace {
         Engine.Shutdown();
     }
 
+    /**
+     * @brief 통계 표시 명령과 패널 그리기의 상태 변경을 검증합니다.
+     */
     void TestStatCommandsAndPanel() {
         FViewportStatistics Statistics{};
         FViewportStatistics OtherViewport{};
@@ -201,6 +232,9 @@ namespace {
     }
 }
 
+/**
+ * @brief 통계 집계·병렬 기록·타이머·명령과 엔진 통계 검증을 실행합니다.
+ */
 void TestStats() {
     TestStatAggregation();
     TestStatThreadsAndTimers();

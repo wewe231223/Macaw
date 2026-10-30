@@ -72,7 +72,8 @@ public:
     /**
      * @brief 좌표를 검증하고 연결된 클라이언트의 피킹 결과를 반환합니다.
      * @param[in] Position 컬러 타깃 기준 마우스 픽셀 좌표입니다.
-     * @return 적중한 대상의 선택 정보이며 타깃이나 클라이언트가 없거나 좌표가 유한한 타깃 범위 안에 없으면 빈 프록시입니다.
+     * @return 적중한 대상의 선택 정보이며 타깃이나 클라이언트가 없거나 좌표가 유한한 타깃 범위 안에 없으면 빈
+     * 프록시입니다.
      */
     FHitProxy GetHitProxy(const FVector2& Position) const;
 

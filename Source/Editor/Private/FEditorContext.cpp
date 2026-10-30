@@ -39,26 +39,36 @@
 #include <sstream>
 #include <utility>
 
-/** @brief 범위 동안 재진입 제한 플래그를 설정합니다. */
+/**
+ * @brief 범위 동안 재진입 제한 플래그를 설정합니다.
+ */
 FEditorContext::FOperationScope::FOperationScope(bool* Flag)
 	: mFlag{Flag} {
     *mFlag = true;
 }
 
-/** @brief 범위가 끝나면 재진입 제한을 해제합니다. */
+/**
+ * @brief 범위가 끝나면 재진입 제한을 해제합니다.
+ */
 FEditorContext::FOperationScope::~FOperationScope() {
     *mFlag = false;
 }
 
-/** @brief 편집에 필요한 엔진의 비소유 연결을 구성합니다. */
+/**
+ * @brief 편집에 필요한 엔진의 비소유 연결을 구성합니다.
+ */
 FEditorContext::FEditorContext(UEngine* Engine)
 	: mEngine{Engine} {
 }
 
-/** @brief 편집 상태와 콜백 저장소를 정리합니다. */
+/**
+ * @brief 편집 상태와 콜백 저장소를 정리합니다.
+ */
 FEditorContext::~FEditorContext() = default;
 
-/** @brief 명시적인 편집 월드 연결을 변경합니다. */
+/**
+ * @brief 명시적인 편집 월드 연결을 변경합니다.
+ */
 bool FEditorContext::SetWorld(FWorldHandle Handle) {
     if (mPlayLocked || mEngine == nullptr || mEngine->GetWorld(Handle) == nullptr || mChangingState || mEditingProperty || mEngine->IsDispatching()) {
         return false;
@@ -72,7 +82,9 @@ bool FEditorContext::SetWorld(FWorldHandle Handle) {
     return true;
 }
 
-/** @brief UI와 월드 사이의 비소유 편집 연결을 해제합니다. */
+/**
+ * @brief UI와 월드 사이의 비소유 편집 연결을 해제합니다.
+ */
 void FEditorContext::Reset() {
     if (mPlayLocked || mChangingState || mEditingProperty) {
         return;
@@ -86,17 +98,23 @@ void FEditorContext::Reset() {
     ClearLogs();
 }
 
-/** @brief 편집 대상 월드의 식별자를 반환합니다. */
+/**
+ * @brief 편집 대상 월드의 식별자를 반환합니다.
+ */
 FWorldHandle FEditorContext::GetWorldHandle() const {
     return mWorld;
 }
 
-/** @brief 엔진에서 편집 월드의 세대 핸들을 해석합니다. */
+/**
+ * @brief 엔진에서 편집 월드의 세대 핸들을 해석합니다.
+ */
 UWorld* FEditorContext::GetWorld() const {
     return mEngine != nullptr ? mEngine->GetWorld(mWorld) : nullptr;
 }
 
-/** @brief 정지한 편집 용도 월드인지 검사합니다. */
+/**
+ * @brief 정지한 편집 용도 월드인지 검사합니다.
+ */
 bool FEditorContext::CanEditWorld() const {
     const UWorld* World{GetWorld()};
     return !mPlayLocked && World != nullptr && (World->GetWorldType() == EWorldType::Editor || World->GetWorldType() == EWorldType::EditorPreview) && World->GetPlayState() == EWorldPlayState::Stopped;
@@ -106,12 +124,16 @@ bool FEditorContext::IsChangingState() const {
     return mChangingState || mEditingProperty;
 }
 
-/** @brief 렌더러의 비소유 연결을 반환합니다. */
+/**
+ * @brief 렌더러의 비소유 연결을 반환합니다.
+ */
 IRendererModule* FEditorContext::GetRenderer() const {
     return mEngine != nullptr ? mEngine->GetRenderer() : nullptr;
 }
 
-/** @brief 패널 순회 중 액터 수명 변경을 분리할 핸들 스냅샷을 만듭니다. */
+/**
+ * @brief 패널 순회 중 액터 수명 변경을 분리할 핸들 스냅샷을 만듭니다.
+ */
 TArray<FObjectHandle> FEditorContext::GetActorHandles() const {
     TArray<FObjectHandle> Handles{};
     const UWorld* World{GetWorld()};
@@ -127,7 +149,9 @@ TArray<FObjectHandle> FEditorContext::GetActorHandles() const {
     return Handles;
 }
 
-/** @brief 선택에 대응하는 프로퍼티 표시 대상의 핸들 스냅샷을 만듭니다. */
+/**
+ * @brief 선택에 대응하는 프로퍼티 표시 대상의 핸들 스냅샷을 만듭니다.
+ */
 TArray<FObjectHandle> FEditorContext::GetDetailsObjects() const {
     TArray<FObjectHandle> Handles{};
     UObject* Object{GetSelectedObject()};
@@ -147,19 +171,25 @@ TArray<FObjectHandle> FEditorContext::GetDetailsObjects() const {
     return Handles;
 }
 
-/** @brief 객체의 전역 식별과 실제 편집 월드 소속을 함께 검사합니다. */
+/**
+ * @brief 객체의 전역 식별과 실제 편집 월드 소속을 함께 검사합니다.
+ */
 UObject* FEditorContext::ResolveObject(FObjectHandle Handle) const {
     UWorld* World{GetWorld()};
     UObject* Object{FObjectRegistry::Get()->Resolve(Handle)};
     return World != nullptr && World->ContainsObject(Object) ? Object : nullptr;
 }
 
-/** @brief 유효한 액터를 선택하고 프로퍼티 편집 대상으로 지정합니다. */
+/**
+ * @brief 유효한 액터를 선택하고 프로퍼티 편집 대상으로 지정합니다.
+ */
 bool FEditorContext::SelectActor(FObjectHandle Handle) {
     return Cast<AActor>(ResolveObject(Handle)) != nullptr && SetSelection({Handle}, Handle);
 }
 
-/** @brief 객체 선택과 소유 액터 선택을 함께 갱신합니다. */
+/**
+ * @brief 객체 선택과 소유 액터 선택을 함께 갱신합니다.
+ */
 bool FEditorContext::SelectObject(FObjectHandle Handle) {
     UObject* Object{ResolveObject(Handle)};
 
@@ -176,12 +206,16 @@ bool FEditorContext::SelectObject(FObjectHandle Handle) {
     return SetSelection(Actor != nullptr ? TArray<FObjectHandle>{Actor->GetHandle()} : TArray<FObjectHandle>{}, Handle);
 }
 
-/** @brief 액터와 객체 선택 핸들을 모두 무효화합니다. */
+/**
+ * @brief 액터와 객체 선택 핸들을 모두 무효화합니다.
+ */
 void FEditorContext::ClearSelection() {
     SetSelection({}, {});
 }
 
-/** @brief 요청 대상이 유효한지 확인하고 선택을 적용합니다. */
+/**
+ * @brief 요청 대상이 유효한지 확인하고 선택을 적용합니다.
+ */
 bool FEditorContext::SetSelection(const TArray<FObjectHandle>& Actors, FObjectHandle Object) {
     if (mPlayLocked || mChangingState || mEditingProperty) {
         return false;
@@ -206,25 +240,33 @@ bool FEditorContext::SetSelection(const TArray<FObjectHandle>& Actors, FObjectHa
     return true;
 }
 
-/** @brief 검증한 선택 상태를 저장합니다. */
+/**
+ * @brief 검증한 선택 상태를 저장합니다.
+ */
 void FEditorContext::AssignSelection(const TArray<FObjectHandle>& Actors, FObjectHandle Object) {
     mSelectedActors = Actors;
     mSelectedObject = Object;
     ++mSelectionRevision;
 }
 
-/** @brief 선택한 액터를 월드 소속과 함께 검증합니다. */
+/**
+ * @brief 선택한 액터를 월드 소속과 함께 검증합니다.
+ */
 AActor* FEditorContext::GetSelectedActor() const {
     const TArray<FObjectHandle> Actors{GetSelectedActors()};
     return Actors.empty() ? nullptr : Cast<AActor>(ResolveObject(Actors.back()));
 }
 
-/** @brief 프로퍼티 편집 대상을 월드 소속과 함께 검증합니다. */
+/**
+ * @brief 프로퍼티 편집 대상을 월드 소속과 함께 검증합니다.
+ */
 UObject* FEditorContext::GetSelectedObject() const {
     return ResolveObject(mSelectedObject);
 }
 
-/** @brief 지정한 기본 메시 종류의 액터를 생성하여 영속 레벨에 추가합니다. */
+/**
+ * @brief 지정한 기본 메시 종류의 액터를 생성하여 영속 레벨에 추가합니다.
+ */
 AStaticMeshActor* FEditorContext::SpawnPrimitive(EPrimitiveType Type) {
     if (!CanSpawnActor()) {
         return nullptr;
@@ -411,7 +453,9 @@ bool FEditorContext::UseSelectedCamera() {
     return true;
 }
 
-/** @brief 현재 선택한 액터를 제거하고 관련 선택 상태를 초기화합니다. */
+/**
+ * @brief 현재 선택한 액터를 제거하고 관련 선택 상태를 초기화합니다.
+ */
 bool FEditorContext::DestroySelectedActor() {
     if (!CanEditWorld() || mChangingState || mEditingProperty || mEngine->IsDispatching()) {
         return false;
@@ -434,13 +478,17 @@ bool FEditorContext::DestroySelectedActor() {
     return Removed;
 }
 
-/** @brief 편집 월드, 객체, 프로퍼티 소속과 편집 권한을 함께 검사합니다. */
+/**
+ * @brief 편집 월드, 객체, 프로퍼티 소속과 편집 권한을 함께 검사합니다.
+ */
 bool FEditorContext::CanEditProperty(FObjectHandle Handle, const FProperty* Property) const {
     UObject* Object{ResolveObject(Handle)};
     return !mEditingProperty && CanEditWorld() && Object != nullptr && Property != nullptr && Object->GetClass()->FindClassProperty(Property->GetName()) == Property && Property->HasFlag(EPropertyFlags::Edit) && !Property->HasFlag(EPropertyFlags::ReadOnly);
 }
 
-/** @brief 프로퍼티 소속과 편집 권한을 확인하고 변경 전후 알림과 함께 값을 씁니다. */
+/**
+ * @brief 프로퍼티 소속과 편집 권한을 확인하고 변경 전후 알림과 함께 값을 씁니다.
+ */
 bool FEditorContext::EditProperty(FObjectHandle Handle, const FProperty* Property, const FPropertyValue& Value, bool Interactive) {
     if (!CanEditProperty(Handle, Property)) {
         return false;
@@ -466,7 +514,9 @@ bool FEditorContext::EditProperty(FObjectHandle Handle, const FProperty* Propert
     return true;
 }
 
-/** @brief 액터 루트의 변환 프로퍼티를 에디터 편집 경로로 변경합니다. */
+/**
+ * @brief 액터 루트의 변환 프로퍼티를 에디터 편집 경로로 변경합니다.
+ */
 bool FEditorContext::ApplyTransform(FObjectHandle Handle, const FTransform& Transform, bool Interactive) {
     UObject* Object{ResolveObject(Handle)};
     AActor* Actor{Cast<AActor>(Object)};
@@ -475,7 +525,9 @@ bool FEditorContext::ApplyTransform(FObjectHandle Handle, const FTransform& Tran
     return Property != nullptr && EditProperty(Root->GetHandle(), Property, FPropertyValue{Transform}, Interactive);
 }
 
-/** @brief 편집 월드를 지정한 장면 파일로 저장하고 변경 표시를 해제합니다. */
+/**
+ * @brief 편집 월드를 지정한 장면 파일로 저장하고 변경 표시를 해제합니다.
+ */
 bool FEditorContext::SaveScene(const std::filesystem::path& Path) {
     if (!CanEditWorld() || Path.empty() || mChangingState || mEditingProperty || mEngine->IsDispatching()) {
         return false;
@@ -504,7 +556,9 @@ bool FEditorContext::SaveScene(const std::filesystem::path& Path) {
     return true;
 }
 
-/** @brief 새 컨텍스트를 엔진에 등록하고 기존 편집 월드만 교체합니다. */
+/**
+ * @brief 새 컨텍스트를 엔진에 등록하고 기존 편집 월드만 교체합니다.
+ */
 bool FEditorContext::ReplaceScene(std::unique_ptr<FWorldContext> Context, const std::filesystem::path& Path) {
     const FWorldHandle Previous{mWorld};
     const FWorldHandle Current{mEngine->GetWorldHandle()};
@@ -550,7 +604,9 @@ bool FEditorContext::SetMaterialOverride(FObjectHandle Handle, Uint32 Slot, cons
     return true;
 }
 
-/** @brief 장면 파일을 새 컨텍스트에 읽고 편집 대상 월드만 교체합니다. */
+/**
+ * @brief 장면 파일을 새 컨텍스트에 읽고 편집 대상 월드만 교체합니다.
+ */
 bool FEditorContext::LoadScene(const std::filesystem::path& Path) {
     if (!CanEditWorld() || Path.empty() || mChangingState || mEditingProperty || mEngine->IsDispatching()) {
         return false;
@@ -579,7 +635,9 @@ bool FEditorContext::LoadScene(const std::filesystem::path& Path) {
     return true;
 }
 
-/** @brief 빈 편집 월드로 교체하고 선택 및 장면 파일 상태를 초기화합니다. */
+/**
+ * @brief 빈 편집 월드로 교체하고 선택 및 장면 파일 상태를 초기화합니다.
+ */
 bool FEditorContext::NewScene() {
     if (!CanEditWorld() || mChangingState || mEditingProperty || mEngine->IsDispatching()) {
         return false;
@@ -589,12 +647,16 @@ bool FEditorContext::NewScene() {
     return ReplaceScene(std::make_unique<FWorldContext>(), {});
 }
 
-/** @brief 현재 장면 파일 경로를 반환합니다. */
+/**
+ * @brief 현재 장면 파일 경로를 반환합니다.
+ */
 const std::filesystem::path& FEditorContext::GetScenePath() const {
     return mScenePath;
 }
 
-/** @brief 저장 후 변경되어 저장이 필요한 장면인지 검사합니다. */
+/**
+ * @brief 저장 후 변경되어 저장이 필요한 장면인지 검사합니다.
+ */
 bool FEditorContext::IsSceneDirty() const {
     const FWorldContext* Context{mEngine != nullptr ? mEngine->GetWorldContext(mWorld) : nullptr};
     return mDirty || (Context != nullptr && mCameraProvider && Context->GetEditorCamera() != mCameraProvider());
@@ -642,7 +704,9 @@ void FEditorContext::RequestProject(const std::filesystem::path& Path, bool Crea
     }
 }
 
-/** @brief 콘솔 로그 모델에 메시지를 추가합니다. */
+/**
+ * @brief 콘솔 로그 모델에 메시지를 추가합니다.
+ */
 void FEditorContext::AddLog(const FString& Message) {
     if (mLogs.size() >= 500) {
         mLogs.erase(mLogs.begin(), mLogs.begin() + 100);
@@ -653,23 +717,31 @@ void FEditorContext::AddLog(const FString& Message) {
     OutputDebugStringA((Message + "\n").c_str());
 }
 
-/** @brief 수집한 콘솔 로그를 모두 지웁니다. */
+/**
+ * @brief 수집한 콘솔 로그를 모두 지웁니다.
+ */
 void FEditorContext::ClearLogs() {
     mLogs.clear();
     ++mLogRevision;
 }
 
-/** @brief UI가 표시할 로그 목록을 반환합니다. */
+/**
+ * @brief UI가 표시할 로그 목록을 반환합니다.
+ */
 const TArray<FString>& FEditorContext::GetLogs() const {
     return mLogs;
 }
 
-/** @brief 로그의 변경 세대를 반환합니다. */
+/**
+ * @brief 로그의 변경 세대를 반환합니다.
+ */
 Uint64 FEditorContext::GetLogRevision() const {
     return mLogRevision;
 }
 
-/** @brief 입력한 콘솔 명령을 해석하여 공통 편집 동작을 실행합니다. */
+/**
+ * @brief 입력한 콘솔 명령을 해석하여 공통 편집 동작을 실행합니다.
+ */
 void FEditorContext::ExecuteConsoleCommand(const FString& Command) {
     AddLog("> " + Command);
     std::istringstream Input{Command};
@@ -773,7 +845,9 @@ void FEditorContext::SetShadowAtlasOpen(bool Open) {
     mShadowAtlasOpen = Open;
 }
 
-/** @brief 새 액터 배치 변환 제공자를 저장합니다. */
+/**
+ * @brief 새 액터 배치 변환 제공자를 저장합니다.
+ */
 void FEditorContext::SetPlacementProvider(std::function<FTransform()> Provider) {
     mPlacementProvider = std::move(Provider);
 }

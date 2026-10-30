@@ -1,3 +1,8 @@
+/**
+ * @file Main.cpp
+ * @brief 조명·타일·에디터 배치·GPU 렌더링의 Week5 통합 검증 진입점입니다.
+ */
+
 #include "Engine/FWorldContext.h"
 #include "Engine/Engine.h"
 #include "Editor/FEditorContext.h"
@@ -31,6 +36,7 @@
 #include "ShadowTests.h"
 #include "StatsTests.h"
 #include "Core/Stats.h"
+#include "FMaterialPipeline.h"
 
 #include <Windows.h>
 #include <d3d11sdklayers.h>
@@ -39,13 +45,23 @@
 #include <filesystem>
 #include <iostream>
 #include <stdexcept>
+#include <cstring>
+#include <fstream>
 
+/**
+ * @brief 검증 조건이 거짓이면 실패 메시지로 예외를 발생시킵니다.
+ * @param[in] Condition 검증을 통과해야 하는 조건입니다.
+ * @param[in] Message 검증 실패 시 예외에 포함할 메시지입니다.
+ */
 void Require(bool Condition, const char* Message) {
     if (!Condition) {
         throw std::runtime_error{Message};
     }
 }
 
+/**
+ * @brief 광원의 장면 등록·수정·직렬화·복제·해제를 검증합니다.
+ */
 void TestLightLifecycle() {
     FWorldContext Context{};
     UWorld* World{Context.GetWorld()};
@@ -91,6 +107,9 @@ void TestLightLifecycle() {
     World->Shutdown();
 }
 
+/**
+ * @brief 광원 영향 범위에 따른 화면 타일 목록과 클리핑을 검증합니다.
+ */
 void TestTileCoverage() {
     FSceneView View{};
     View.mSize = {257.0f, 193.0f};
@@ -139,6 +158,12 @@ void TestTileCoverage() {
     Require(Grid.GetLights().empty() && Grid.GetIndices().empty(), "Hidden lights entered shading lists");
 }
 
+/**
+ * @brief 렌더 타깃의 중앙 픽셀을 CPU로 읽습니다.
+ * @param[in] Renderer 검증에 사용할 렌더러입니다.
+ * @param[in] Target 픽셀을 읽을 렌더 타깃입니다.
+ * @return 중앙 픽셀의 RGBA 8비트 값입니다.
+ */
 std::array<Uint8, 4> ReadCenter(FRenderer& Renderer, FRenderTarget& Target) {
     auto* ResourceView{static_cast<ID3D11ShaderResourceView*>(Target.GetNativeTexture())};
     Microsoft::WRL::ComPtr<ID3D11Resource> Resource{};
@@ -164,6 +189,10 @@ std::array<Uint8, 4> ReadCenter(FRenderer& Renderer, FRenderTarget& Target) {
     return Color;
 }
 
+/**
+ * @brief 에디터 배치 패널과 액터 프리셋의 생성·드래그 동작을 검증합니다.
+ * @param[in] Renderer 검증에 사용할 렌더러입니다.
+ */
 void TestEditorPlacement(FRenderer& Renderer) {
     UEngine Engine{};
     Require(Engine.Initialize(&Renderer), "Placement engine initialization failed");
@@ -229,6 +258,10 @@ void TestEditorPlacement(FRenderer& Renderer) {
     Engine.Shutdown();
 }
 
+/**
+ * @brief 화면 찢김 허용 설정과 에디터 명령의 연동을 검증합니다.
+ * @param[in] Renderer 검증에 사용할 렌더러입니다.
+ */
 void TestTearingCommands(FRenderer& Renderer) {
     FEditorContext Detached{nullptr};
     Detached.ExecuteConsoleCommand("Allow Tearing");
@@ -260,6 +293,173 @@ void TestTearingCommands(FRenderer& Renderer) {
     Engine.Shutdown();
 }
 
+/**
+ * @brief 인스턴싱 결과를 비교하기 위해 렌더 타깃을 CPU로 읽습니다.
+ * @param[in] Renderer 검증에 사용할 렌더러입니다.
+ * @param[in] Target 픽셀을 읽을 렌더 타깃입니다.
+ * @return 렌더 타깃의 RGBA 픽셀 바이트 배열입니다.
+ */
+TArray<Uint8> ReadInstancingPixels(FRenderer& Renderer, FRenderTarget& Target) {
+    auto* View{static_cast<ID3D11ShaderResourceView*>(Target.GetNativeTexture())};
+    Microsoft::WRL::ComPtr<ID3D11Resource> Resource{};
+    View->GetResource(Resource.GetAddressOf());
+    Microsoft::WRL::ComPtr<ID3D11Texture2D> Texture{};
+    Require(SUCCEEDED(Resource.As(&Texture)), "Cannot read instancing render target");
+    D3D11_TEXTURE2D_DESC Description{};
+    Texture->GetDesc(&Description);
+    Description.Usage = D3D11_USAGE_STAGING;
+    Description.BindFlags = 0;
+    Description.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+    Description.MiscFlags = 0;
+    Microsoft::WRL::ComPtr<ID3D11Texture2D> Staging{};
+    auto* Device{static_cast<ID3D11Device*>(Renderer.GetNativeDevice())};
+    auto* Context{static_cast<ID3D11DeviceContext*>(Renderer.GetNativeContext())};
+    Require(SUCCEEDED(Device->CreateTexture2D(&Description, nullptr, Staging.GetAddressOf())), "Cannot create instancing readback texture");
+    Context->CopyResource(Staging.Get(), Texture.Get());
+    D3D11_MAPPED_SUBRESOURCE Data{};
+    Require(SUCCEEDED(Context->Map(Staging.Get(), 0, D3D11_MAP_READ, 0, &Data)), "Cannot map instancing pixels");
+    TArray<Uint8> Pixels{};
+    Pixels.resize(static_cast<std::size_t>(Description.Width) * Description.Height * 4);
+    for (Uint32 Row{}; Row < Description.Height; ++Row) {
+        std::memcpy(Pixels.data() + static_cast<std::size_t>(Row) * Description.Width * 4, static_cast<const Uint8*>(Data.pData) + static_cast<std::size_t>(Row) * Data.RowPitch, static_cast<std::size_t>(Description.Width) * 4);
+    }
+    Context->Unmap(Staging.Get(), 0);
+    return Pixels;
+}
+
+/**
+ * @brief 반복 메시의 인스턴싱과 일반 드로의 출력 및 호출 수를 비교합니다.
+ * @param[in] Renderer 검증에 사용할 렌더러입니다.
+ */
+void TestMeshInstancing(FRenderer& Renderer) {
+    const std::filesystem::path Content{std::filesystem::absolute("Intermediate/Instancing/Content")};
+    std::filesystem::create_directories(Content);
+    std::filesystem::copy("Templates/Project/Content/Shaders", Content / "Shaders", std::filesystem::copy_options::recursive | std::filesystem::copy_options::overwrite_existing);
+    {
+        std::ofstream Shader{Content / "Shaders/Reference.hlsl", std::ios::binary};
+        Shader << "#include \"UberLit.hlsli\"\n";
+        Require(static_cast<bool>(Shader), "Cannot write individual-draw reference shader");
+    }
+    Renderer.SetProjectPaths(Content, std::filesystem::absolute("Intermediate/InstancingShaderCache"));
+    FAssetManager Assets{Content};
+    FString Error{};
+    auto Texture{NewObject<UTexture2D>()};
+    Require(Texture->SetPixels(2, 1, ETextureFormat::RGBA8, {255, 0, 0, 255, 0, 0, 255, 255}) && Assets.SaveTexture("Checker.masset", *Texture, Error), "Cannot create instancing UV texture");
+    auto Material{NewObject<UMaterial>()};
+    Material->SetTwoSided(true);
+    Material->SetSpecularStrength(0.0f);
+    Material->SetBaseColorTexturePath("Checker.masset");
+    Require(Material->ResolveTexture(Assets, Error), "Cannot resolve instancing UV texture");
+    auto Mesh{NewObject<UStaticMesh>()};
+    FMeshData Data{GetPrimitiveMesh(EPrimitiveType::Plane)};
+    Data.GetNormals().assign(4, FVector{1.0f, 0.0f, 1.0f}.Normalized());
+    Data.GetTangents().assign(4, {0.0f, 1.0f, 0.0f, 1.0f});
+    Require(Mesh->SetMeshData(Data), "Cannot create instancing mesh");
+    auto Scene{Renderer.AllocateScene()};
+    auto Target{Renderer.CreateRenderTarget(128, 96)};
+    TArray<FPrimitiveSceneProxy> Primitives{};
+    for (Uint32 Index{}; Index < 9; ++Index) {
+        FPrimitiveSceneProxy Primitive{};
+        Primitive.mMesh = Mesh.get();
+        Primitive.mMaterial = Material.get();
+        Primitive.mWorld = FMatrix::Scale({Index % 2 == 0 ? -0.75f : 0.75f, 0.6f + Index * 0.02f, 1.2f}) * FMatrix::RotationAxis({0.0f, 0.0f, 1.0f}, Index * 0.15f) * FMatrix::Translation({Index == 8 ? 100.0f : (static_cast<float>(Index % 4) - 1.5f) * 1.3f, (static_cast<float>(Index / 4) - 0.5f) * 1.3f, 0.0f});
+        Primitive.mBounds = Mesh->GetBounds().Transformed(Primitive.mWorld);
+        Primitive.mUVScale = {0.0f, 1.0f};
+        Primitive.mUVOffset = {Index % 2 == 0 ? 0.25f : 0.75f, 0.0f};
+        Primitive.mCastShadow = false;
+        Primitives.push_back(Primitive);
+        Scene->AddPrimitive(Primitive);
+    }
+    FLightSceneProxy Light{};
+    Scene->AddLight(Light);
+    FSceneView View{};
+    View.mSize = {128.0f, 96.0f};
+    View.mLocation = {0.0f, 0.0f, 8.0f};
+    View.mForward = {0.0f, 0.0f, -1.0f};
+    View.mView = FMatrix::LookTo(View.mLocation, View.mForward, {0.0f, 1.0f, 0.0f});
+    View.mProjection = FMatrix::Orthographic(6.0f, 4.5f, 0.1f, 30.0f);
+    View.mViewProjection = View.mView * View.mProjection;
+    FSceneViewFamily Family{Scene.get(), Target.get(), View, nullptr, EViewMode::Lit_Phong};
+    Family.mShowFlags.mShadows = false;
+    const auto Render{[&](EViewMode Mode, bool Instanced, Uint32 DrawCalls, Uint32 Visible) {
+        Require(Material->SetShaderPath(Instanced ? "Shaders/Lit.hlsl" : "Shaders/Reference.hlsl"), "Cannot select instancing comparison shader");
+        FMaterialPipeline* Pipeline{Renderer.GetMaterialPipeline(*Material, Mode)};
+        Require(Pipeline != nullptr && Pipeline->IsInstanced() == Instanced, "Instanced or custom material pipeline selection failed");
+        Family.mScene = Scene.get();
+        Family.mViewMode = Mode;
+        Renderer.BeginFrame(256, 256);
+        Renderer.BeginRenderingViewFamily(Family);
+        Require(Renderer.GetStats().mDrawCalls == DrawCalls && Renderer.GetStats().mVisiblePrimitives == Visible, "Instancing draw count, submesh batching or visibility is incorrect");
+        return ReadInstancingPixels(Renderer, *Target);
+    }};
+    for (const EViewMode Mode : {EViewMode::Lit_Gouraud, EViewMode::Lit_Lambert, EViewMode::Lit_Phong, EViewMode::Wireframe}) {
+        const auto Reference{Render(Mode, false, 8, 8)};
+        const auto Instanced{Render(Mode, true, 1, 8)};
+        Require(std::equal(Reference.begin(), Reference.end(), Instanced.begin(), [](Uint8 First, Uint8 Second) {
+            return std::abs(static_cast<Int32>(First) - Second) <= 1;
+        }), "Instancing changed transformed geometry, normals, UVs or colors");
+    }
+    Light.mType = ELightType::Directional;
+    Light.mDirection = {-1.0f, 0.0f, -1.0f};
+    Scene->AddLight(Light);
+    Data.GetSubMeshes() = {{0, 3, 0}, {3, 3, 0}};
+    Require(Mesh->SetMeshData(Data), "Cannot create instancing submesh fixture");
+    const auto Reference{Render(EViewMode::Lit_Phong, false, 16, 8)};
+    const auto Instanced{Render(EViewMode::Lit_Phong, true, 2, 8)};
+    Require(std::equal(Reference.begin(), Reference.end(), Instanced.begin(), [](Uint8 First, Uint8 Second) {
+        return std::abs(static_cast<Int32>(First) - Second) <= 1;
+    }), "Instancing mixed distinct submesh ranges or inverse matrices");
+    Material->SetNormalMapTexturePath("Checker.masset");
+    Require(Material->ResolveTexture(Assets, Error), "Cannot resolve instancing normal texture");
+    for (const EViewMode Mode : {EViewMode::Lit_Gouraud, EViewMode::Lit_Lambert, EViewMode::Lit_Phong}) {
+        const auto NormalReference{Render(Mode, false, 16, 8)};
+        const auto NormalInstanced{Render(Mode, true, 2, 8)};
+        Require(std::equal(NormalReference.begin(), NormalReference.end(), NormalInstanced.begin(), [](Uint8 First, Uint8 Second) {
+            return std::abs(static_cast<Int32>(First) - Second) <= 1;
+        }), "Instancing changed normal maps or mirrored tangent frames");
+    }
+    auto OtherMaterial{NewObject<UMaterial>()};
+    OtherMaterial->SetTwoSided(true);
+    OtherMaterial->SetShaderPath("Shaders/Reference.hlsl");
+    Primitives[0].mMaterial = OtherMaterial.get();
+    Scene->AddPrimitive(Primitives[0]);
+    Render(EViewMode::Lit_Phong, true, 4, 8);
+    Primitives[0].mMaterial = Material.get();
+    Scene->AddPrimitive(Primitives[0]);
+    Primitives[0].mWorld = FMatrix::Translation({0.0f, 0.0f, 0.5f});
+    Primitives[0].mBounds = Mesh->GetBounds().Transformed(Primitives[0].mWorld);
+    Scene->UpdatePrimitiveTransform(Primitives[0].mId, Primitives[0].mWorld, Primitives[0].mBounds);
+    const auto MovedReference{Render(EViewMode::Lit_Lambert, false, 16, 8)};
+    const auto MovedInstanced{Render(EViewMode::Lit_Lambert, true, 2, 8)};
+    Require(std::equal(MovedReference.begin(), MovedReference.end(), MovedInstanced.begin(), [](Uint8 First, Uint8 Second) {
+        return std::abs(static_cast<Int32>(First) - Second) <= 1;
+    }), "Moving an instance left stale instance data");
+    Data.GetSubMeshes().clear();
+    Require(Mesh->SetMeshData(Data), "Cannot restore single-submesh geometry");
+    Scene = Renderer.AllocateScene();
+    Scene->AddLight(Light);
+    for (Uint32 Index{}; Index < 100; ++Index) {
+        FPrimitiveSceneProxy Primitive{};
+        Primitive.mMesh = Mesh.get();
+        Primitive.mMaterial = Material.get();
+        Primitive.mWorld = FMatrix::Scale({0.2f, 0.2f, 1.0f}) * FMatrix::Translation({(static_cast<float>(Index % 10) - 4.5f) * 0.4f, (static_cast<float>(Index / 10) - 4.5f) * 0.3f, 0.0f});
+        Primitive.mBounds = Mesh->GetBounds().Transformed(Primitive.mWorld);
+        Scene->AddPrimitive(Primitive);
+    }
+    const auto ManyReference{Render(EViewMode::Lit_Lambert, false, 100, 100)};
+    const auto ManyInstanced{Render(EViewMode::Lit_Lambert, true, 1, 100)};
+    Require(std::equal(ManyReference.begin(), ManyReference.end(), ManyInstanced.begin(), [](Uint8 First, Uint8 Second) {
+        return std::abs(static_cast<Int32>(First) - Second) <= 1;
+    }), "Growing the instance buffer changed the rendered image");
+    Family.mShowFlags.mPrimitives = false;
+    Render(EViewMode::Lit_Lambert, true, 0, 0);
+    Renderer.SetProjectPaths(std::filesystem::absolute("Templates/Project/Content"), std::filesystem::absolute("Intermediate/Week5ShaderCache"));
+    std::cout << "Instancing pixel equivalence, transforms, UVs, submeshes, materials, culling and buffer growth passed (100 draws -> 1)\n";
+}
+
+/**
+ * @brief Direct3D 장치에서 조명·재질·그림자·인스턴싱 출력을 검증합니다.
+ */
 void TestGpuRendering() {
     const HWND Window{CreateWindowExW(0, L"STATIC", L"Week5 integration tests", WS_OVERLAPPEDWINDOW, 0, 0, 256, 256, nullptr, nullptr, GetModuleHandleW(nullptr), nullptr)};
     Require(Window != nullptr, "Cannot create hidden test window");
@@ -269,6 +469,7 @@ void TestGpuRendering() {
     Renderer.SetProjectPaths(std::filesystem::absolute("Templates/Project/Content"), std::filesystem::absolute("Intermediate/Week5ShaderCache"));
     Require(Renderer.Initialize(Window, 256, 256), "Renderer initialization failed");
     TestTearingCommands(Renderer);
+    TestMeshInstancing(Renderer);
     auto Scene{Renderer.AllocateScene()};
     auto Target{Renderer.CreateRenderTarget(64, 64)};
     auto Mesh{NewObject<UStaticMesh>()};
@@ -406,6 +607,10 @@ void TestGpuRendering() {
     DestroyWindow(Window);
 }
 
+/**
+ * @brief Week5 통합 검증을 실행하고 성공 여부를 종료 코드로 반환합니다.
+ * @return 모든 검증에 성공하면 0, 예외가 발생하면 1입니다.
+ */
 int main() {
     ErrorHandler::Initialize();
     const HRESULT Com{CoInitializeEx(nullptr, COINIT_MULTITHREADED)};

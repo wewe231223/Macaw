@@ -8,6 +8,7 @@
 
 #include "Core/ReflectionMacros.h"
 #include "Engine/FPrimitiveSceneProxy.h"
+#include "FObjectConstants.h"
 
 #include <d3d11.h>
 #include <wrl/client.h>
@@ -48,4 +49,10 @@ public:
      */
     Microsoft::WRL::ComPtr<ID3D11Buffer> mObjectBuffer{};
     ReflectProperty(mObjectBuffer, "ObjectBuffer", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
+    /**
+     * @brief 프리미티브 드로에 사용하는 월드·UV·그림자 상수의 CPU 사본입니다.
+     */
+    FObjectConstants mObjectConstants{};
+    ReflectProperty(mObjectConstants, "ObjectConstants", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 };

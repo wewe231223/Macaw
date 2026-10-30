@@ -51,26 +51,32 @@ public:
      * @return 등록된 타입 메타데이터의 비소유 주소입니다.
      */
     ReflectStruct(FEditorViewportClient);
-    /** @brief 기즈모의 진행 중인 변환을 취소하고 공유할 편집 컨텍스트를 변경합니다. @param[in] Context 새 비소유 컨텍스트이며 nullptr이면 기존 연결을 유지합니다. */
+    /**
+     * @brief 기즈모의 진행 중인 변환을 취소하고 공유할 편집 컨텍스트를 변경합니다.
+     * @param[in] Context 새 비소유 컨텍스트이며 nullptr이면 기존 연결을 유지합니다.
+     */
     void SetEditorContext(FEditorContext* Context);
 
     /**
      * @brief 실행 가능 여부를 검사한 뒤 뷰포트 명령을 처리합니다.
      * @param[in] Command 툴바, 메뉴 또는 단축키에서 요청한 동작입니다.
      * @return 명령을 처리하면 true이며 차단되거나 지원하지 않는 명령이면 상태를 변경하지 않고 false입니다.
-     * @note 편집할 수 없는 월드와 드래그 중에는 도구·설정 명령을 차단합니다. 스케일 진입 시 로컬 좌표계로 바꾸며 그리드 명령은 아직 지원하지 않습니다.
+     * @note 편집할 수 없는 월드와 드래그 중에는 도구·설정 명령을 차단합니다. 스케일 진입 시 로컬 좌표계로 바꾸며 그리드
+     * 명령은 아직 지원하지 않습니다.
      */
     bool ExecuteCommand(EViewportCommand Command);
     /**
      * @brief 현재 월드의 편집 가능 여부, 드래그 상태와 변환 모드에서 명령을 실행할 수 있는지 검사합니다.
      * @param[in] Command 실행 가능 여부를 조회할 동작입니다.
-     * @return 처리 가능한 명령이면 true입니다. 편집 불가 월드, 드래그 중, 스케일 모드의 월드 좌표계 전환, 선택 전용 모드의 현재 모드 스냅, 미지원 명령이면 false입니다.
+     * @return 처리 가능한 명령이면 true입니다. 편집 불가 월드, 드래그 중, 스케일 모드의 월드 좌표계 전환, 선택 전용
+     * 모드의 현재 모드 스냅, 미지원 명령이면 false입니다.
      */
     bool CanExecuteCommand(EViewportCommand Command) const;
     /**
      * @brief 명령에 대응하는 모드, 좌표계 또는 스냅 설정의 선택 상태를 검사합니다.
      * @param[in] Command 선택 상태를 조회할 동작입니다.
-     * @return 해당 모드나 좌표계가 선택되었거나 스냅 설정이 켜져 있으면 true입니다. 좌표계 전환은 로컬일 때, 현재 모드 스냅은 활성 변환의 스냅이 켜져 있을 때 true이며 순환 및 미지원 명령은 false입니다.
+     * @return 해당 모드나 좌표계가 선택되었거나 스냅 설정이 켜져 있으면 true입니다. 좌표계 전환은 로컬일 때, 현재 모드
+     * 스냅은 활성 변환의 스냅이 켜져 있을 때 true이며 순환 및 미지원 명령은 false입니다.
      * @note 실행 가능 여부와 독립적으로 조회하므로 드래그 중에도 현재 선택을 표시할 수 있습니다.
      */
     bool IsCommandChecked(EViewportCommand Command) const;
@@ -116,13 +122,20 @@ public:
      */
     FSceneView CalcSceneView(const FVector2& Size) const;
     /**
-     * @brief 드롭한 메시 에셋을 광선 적중점이나 배치 평면에 생성합니다.
-     * @param[in] Path Content 상대 에셋 경로 또는 작업할 파일 경로입니다.
+     * @brief 드롭한 액터 프리셋을 광선 적중점이나 배치 평면에 생성합니다.
+     * @param[in] Preset 생성할 액터 프리셋의 식별자입니다.
      * @param[in] Position 뷰포트 픽셀 좌표입니다.
      * @param[in] Size 쿼드의 크기 또는 뷰포트 픽셀 크기입니다.
      * @return 검증 또는 요청한 처리에 성공하면 true입니다.
      */
     bool DropActor(const FString& Preset, const FVector2& Position, const FVector2& Size);
+    /**
+     * @brief 드롭한 메시 에셋을 뷰포트 위치에 배치합니다.
+     * @param[in] Path Content 상대 에셋 경로 또는 읽을 파일 경로입니다.
+     * @param[in] Position 뷰포트 안의 드롭 위치입니다.
+     * @param[in] Size 뷰포트의 가로·세로 픽셀 크기입니다.
+     * @return 메시를 로드하고 액터를 배치하면 true입니다.
+     */
     bool DropMesh(const std::filesystem::path& Path, const FVector2& Position, const FVector2& Size);
 
     /**
@@ -165,9 +178,16 @@ public:
      * @return 객체가 보유한 데이터의 참조이며 소유 객체의 수명 동안 유효합니다.
      */
     const FRotator& GetCameraRotation() const;
-    /** @brief 정사영 전환 중에도 보관한 원근 카메라를 반환합니다. @return 장면 저장에 사용할 원근 카메라입니다. */
+    /**
+     * @brief 정사영 전환 중에도 보관한 원근 카메라를 반환합니다.
+     * @return 장면 저장에 사용할 원근 카메라입니다.
+     */
     FEditorCameraState GetPerspectiveCamera() const;
-    /** @brief 원근 카메라를 복원합니다. @param State 검증하여 복원할 카메라입니다. @return 유효한 상태를 적용하면 true입니다. */
+    /**
+     * @brief 원근 카메라를 복원합니다.
+     * @param State 검증하여 복원할 카메라입니다.
+     * @return 유효한 상태를 적용하면 true입니다.
+     */
     bool SetPerspectiveCamera(const FEditorCameraState& State);
 
     /**
@@ -267,7 +287,8 @@ private:
     /**
      * @brief 실행 검사를 통과한 스냅 전환 명령을 기즈모 설정에 반영합니다.
      * @param[in] Command 전환할 스냅 설정의 명령입니다.
-     * @return 설정을 전환하면 true이며 지원하지 않는 명령이거나 현재 모드 스냅에 대응하는 변환 모드가 없으면 false입니다.
+     * @return 설정을 전환하면 true이며 지원하지 않는 명령이거나 현재 모드 스냅에 대응하는 변환 모드가 없으면
+     * false입니다.
      * @pre ExecuteCommand()에서 편집 가능 여부와 드래그 상태를 검증해야 합니다.
      */
     bool ToggleGizmoSetting(EViewportCommand Command);
@@ -400,13 +421,19 @@ private:
      */
     float mOrthographicWidth{20.0f};
     ReflectProperty(mOrthographicWidth, "OrthographicWidth", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
-    /** @brief 원근 카메라의 수직 시야각입니다. */
+    /**
+     * @brief 원근 카메라의 수직 시야각입니다.
+     */
     float mFieldOfView{60.0f};
     ReflectProperty(mFieldOfView, "FieldOfView", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
-    /** @brief 원근 투영의 근평면 거리입니다. */
+    /**
+     * @brief 원근 투영의 근평면 거리입니다.
+     */
     float mNearClip{0.05f};
     ReflectProperty(mNearClip, "NearClip", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
-    /** @brief 원근 투영의 원평면 거리입니다. */
+    /**
+     * @brief 원근 투영의 원평면 거리입니다.
+     */
     float mFarClip{10000.0f};
     ReflectProperty(mFarClip, "FarClip", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 
@@ -430,7 +457,7 @@ private:
 
     /**
      * @brief 현재 프레임의 에디터 보조 선분 수집기입니다.
-     **/
+     */
     FPrimitiveDrawInterface mDrawInterface{};
     ReflectProperty(mDrawInterface, "DrawInterface", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 };

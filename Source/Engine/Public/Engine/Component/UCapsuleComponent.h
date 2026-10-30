@@ -8,9 +8,14 @@
 
 #include "Engine/Component/UShapeComponent.h"
 
-/** @brief Z축 중심 선분과 반구를 가진 캡슐 충돌 컴포넌트입니다. */
+/**
+ * @brief Z축 중심 선분과 반구를 가진 캡슐 충돌 컴포넌트입니다.
+ */
 class UCapsuleComponent : public UShapeComponent {
 public:
+    /**
+     * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
+     */
     ReflectTypes(UCapsuleComponent, UShapeComponent);
 
 public:
@@ -74,6 +79,9 @@ public:
     void SetCapsuleRadius(float InRadius);
 
 private:
+    /**
+     * @brief 생성된 멤버 등록 함수와 리플렉션 빌더의 접근 권한입니다.
+     */
     ReflectMembers();
 
 private:

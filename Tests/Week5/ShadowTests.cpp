@@ -1,3 +1,8 @@
+/**
+ * @file ShadowTests.cpp
+ * @brief 그림자 아틀라스 할당과 광원별 그림자 렌더링을 검증합니다.
+ */
+
 #include "ShadowTests.h"
 #include "FShadowAtlasAllocator.h"
 #include "FShadowResources.h"
@@ -32,9 +37,26 @@
 #include <stdexcept>
 #include <iostream>
 
+/**
+ * @brief 검증 조건이 거짓이면 실패 메시지로 예외를 발생시킵니다.
+ * @param[in] Condition 검증을 통과해야 하는 조건입니다.
+ * @param[in] Message 검증 실패 시 예외에 포함할 메시지입니다.
+ */
 void Require(bool Condition, const char* Message);
+/**
+ * @brief 렌더 타깃의 중앙 픽셀을 CPU로 읽습니다.
+ * @param[in] Renderer 검증에 사용할 렌더러입니다.
+ * @param[in] Target 픽셀을 읽을 렌더 타깃입니다.
+ * @return 중앙 픽셀의 RGBA 8비트 값입니다.
+ */
 std::array<Uint8, 4> ReadCenter(FRenderer& Renderer, FRenderTarget& Target);
 
+/**
+ * @brief 그림자 비교를 위해 렌더 타깃의 가로 픽셀 행을 읽습니다.
+ * @param[in] Renderer 검증에 사용할 렌더러입니다.
+ * @param[in] Target 픽셀을 읽을 렌더 타깃입니다.
+ * @return 읽어 온 픽셀 바이트 배열입니다.
+ */
 TArray<Uint8> ReadShadowRow(FRenderer& Renderer, FRenderTarget& Target) {
     auto* View{static_cast<ID3D11ShaderResourceView*>(Target.GetNativeTexture())};
     Microsoft::WRL::ComPtr<ID3D11Resource> Resource{};
@@ -62,6 +84,9 @@ TArray<Uint8> ReadShadowRow(FRenderer& Renderer, FRenderTarget& Target) {
     return Row;
 }
 
+/**
+ * @brief 아틀라스 할당·캐스케이드 안정성과 광원 그림자 설정의 경계를 검증합니다.
+ */
 void TestShadowAllocation() {
     FShadowAtlasAllocator Allocator{1024};
     Require(!Allocator.Allocate(0).has_value() && !Allocator.Allocate(127).has_value() && !Allocator.Allocate(2048).has_value(), "Invalid shadow atlas allocation accepted");
@@ -140,6 +165,10 @@ void TestShadowAllocation() {
     Require(Statistics.ExecuteCommand("stat shadow on", Error) && Statistics.IsEnabled(FViewportStatistics::EGroup::Shadow), "Shadow statistics command failed");
 }
 
+/**
+ * @brief 광원별 그림자 생성과 그림자 표시 설정의 GPU 출력을 검증합니다.
+ * @param[in] Renderer 검증에 사용할 렌더러입니다.
+ */
 void TestShadowRendering(FRenderer& Renderer) {
     auto Scene{Renderer.AllocateScene()};
     auto Target{Renderer.CreateRenderTarget(128, 128)};
@@ -216,6 +245,17 @@ void TestShadowRendering(FRenderer& Renderer) {
     D3D11_TEXTURE2D_DESC Description{};
     DepthTexture->GetDesc(&Description);
     Require(Description.Width == 16384 && Description.Height == 16384 && Description.ArraySize == 1 && Description.Format == DXGI_FORMAT_R24G8_TYPELESS, "Shadow atlas dimensions or D24S8 storage mismatch");
+    Scene->RemovePrimitive(Receiver.mId);
+    FPrimitiveSceneProxy HiddenReceiver{Receiver};
+    HiddenReceiver.mId = FGuid{};
+    HiddenReceiver.mWorld = Receiver.mWorld * FMatrix::Translation({0.0f, 0.0f, -0.05f});
+    HiddenReceiver.mBounds = Plane->GetBounds().Transformed(HiddenReceiver.mWorld);
+    HiddenReceiver.mReceiveShadow = false;
+    HiddenReceiver.mCastShadow = false;
+    Scene->AddPrimitive(HiddenReceiver);
+    Scene->AddPrimitive(Receiver);
+    Require(Render()[0] < 20 && Renderer.GetStats().mDrawCalls == 2, "Batched receivers lost their individual shadow flags");
+    Scene->RemovePrimitive(HiddenReceiver.mId);
     Receiver.mReceiveShadow = false;
     Scene->AddPrimitive(Receiver);
     Require(Render()[0] > 150, "ReceiveShadow did not disable shadow reception");

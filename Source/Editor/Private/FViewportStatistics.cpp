@@ -1,3 +1,9 @@
+/**
+ * @file FViewportStatistics.cpp
+ * @brief 통계 그룹 명령을 처리하고 패널과 뷰포트 오버레이에 측정값을 표시합니다.
+ * @ingroup Editor
+ */
+
 #include "Editor/FViewportStatistics.h"
 #include "Core/Math/FVector2.h"
 #include "Core/Stats.h"
@@ -8,7 +14,15 @@
 #include <format>
 #include <sstream>
 
+/**
+ * @brief 통계 명령의 이름 정규화와 표시 문자열을 만드는 내부 도우미입니다.
+ */
 namespace {
+    /**
+     * @brief 문자열의 각 문자를 소문자로 변환합니다.
+     * @param[in] Text 소문자로 변환할 문자열입니다.
+     * @return 소문자로 변환한 문자열 사본입니다.
+     */
     FString ToLower(FString Text) {
         std::transform(Text.begin(), Text.end(), Text.begin(), [](unsigned char Character) {
             return static_cast<char>(std::tolower(Character));
@@ -16,6 +30,13 @@ namespace {
         return Text;
     }
 
+    /**
+     * @brief 통계 값을 단위와 평균 표시 여부에 맞는 문자열로 변환합니다.
+     * @param[in] Value 기록할 유한한 통계 값입니다.
+     * @param[in] Unit 기록하거나 표시할 값의 단위입니다.
+     * @param[in] Average 누적 개수에도 소수점 평균 형식을 사용하려면 true입니다.
+     * @return 단위 기호와 소수점 정밀도가 반영된 표시 문자열입니다.
+     */
     FString FormatValue(double Value, EStatUnit Unit, bool Average = false) {
         switch (Unit) {
         case EStatUnit::Milliseconds:

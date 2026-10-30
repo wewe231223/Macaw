@@ -1,3 +1,9 @@
+/**
+ * @file UPointLightComponent.cpp
+ * @brief 반경과 감쇠 지수를 갖는 점광원을 관리합니다.
+ * @ingroup Engine
+ */
+
 #include "Engine/Component/UPointLightComponent.h"
 
 #include <cmath>

@@ -78,7 +78,8 @@ public:
     char mShortcut{};
     ReflectProperty(mShortcut, "Shortcut", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
     /**
-     * @brief FViewportInput에서 이 명령의 요청 여부를 읽고 쓸 bool 멤버를 가리키며 nullptr이면 키 입력에 연결하지 않습니다.
+     * @brief FViewportInput에서 이 명령의 요청 여부를 읽고 쓸 bool 멤버를 가리키며 nullptr이면 키 입력에 연결하지
+     * 않습니다.
      */
     bool FViewportInput::* mInput{};
     ReflectProperty(mInput, "Input", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);

@@ -1,5 +1,14 @@
+/**
+ * @file RendererStats.cpp
+ * @brief 렌더링과 그림자 패스의 드로·바인딩·메모리 통계 항목입니다.
+ * @ingroup Renderer
+ */
+
 #include "RendererStats.h"
 
+/**
+ * @brief 렌더링과 그림자 패스의 드로·바인딩·메모리 통계 항목입니다.
+ */
 namespace RendererStats {
     FStat Triangles{"render", "Scene/editor triangles"};
     FStat PipelineBinds{"render", "Mesh pipeline binds"};

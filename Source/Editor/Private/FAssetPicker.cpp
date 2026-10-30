@@ -1,4 +1,8 @@
-/** @file FAssetPicker.cpp @brief 공유 에셋 선택기의 썸네일·검색·드롭 구현입니다. @ingroup Editor */
+/**
+ * @file FAssetPicker.cpp
+ * @brief 공유 에셋 선택기의 썸네일·검색·드롭 구현입니다.
+ * @ingroup Editor
+ */
 #include "Editor/FAssetPicker.h"
 #include "Editor/FEditorAssetCatalog.h"
 #include "Editor/FAssetThumbnailCache.h"
@@ -39,6 +43,8 @@ bool FAssetPicker::DrawOptions(FEditorAssetCatalog& Catalog, FAssetThumbnailCach
         Changed = true;
     }
     ImGui::Separator();
+    const float RowHeight{56.0f};
+    const float ContentOffsetY{10.0f};
     if (ImGui::BeginChild("##AssetOptions", {0.0f, 280.0f})) {
         for (const auto& Entry : Catalog.GetEntries()) {
             const FString Display{FilePath::ToGenericUtf8(Entry.GetDisplayPath())};
@@ -48,23 +54,23 @@ bool FAssetPicker::DrawOptions(FEditorAssetCatalog& Catalog, FAssetThumbnailCach
             const FString Actual{FilePath::ToGenericUtf8(Entry.GetPath())};
             ImGui::PushID(Actual.c_str());
             const ImVec2 Origin{ImGui::GetCursorScreenPos()};
-            const bool Visible{ImGui::IsRectVisible({ImGui::GetContentRegionAvail().x, 44.0f})};
-            if (ImGui::Selectable("##Asset", Path == Actual, ImGuiSelectableFlags_None, {0.0f, 44.0f})) {
+            const bool Visible{ImGui::IsRectVisible({ImGui::GetContentRegionAvail().x, RowHeight})};
+            if (ImGui::Selectable("##Asset", Path == Actual, ImGuiSelectableFlags_None, {0.0f, RowHeight})) {
                 Path = Actual;
                 Changed = true;
             }
             const ImVec2 Next{ImGui::GetCursorScreenPos()};
             if (Visible) {
-                ImGui::SetCursorScreenPos({Origin.x + 3.0f, Origin.y + 3.0f});
+                ImGui::SetCursorScreenPos({Origin.x + 3.0f, Origin.y + ContentOffsetY});
                 void* Thumbnail{Thumbnails.GetThumbnail(Entry.GetPath(), Type)};
                 if (Thumbnail != nullptr) {
                     ImGui::Image(ImTextureRef{static_cast<ImTextureID>(reinterpret_cast<std::uintptr_t>(Thumbnail))}, {36.0f, 36.0f});
                 } else {
                     ImGui::Dummy({36.0f, 36.0f});
                 }
-                ImGui::SetCursorScreenPos({Origin.x + 46.0f, Origin.y + 3.0f});
+                ImGui::SetCursorScreenPos({Origin.x + 46.0f, Origin.y + ContentOffsetY});
                 ImGui::TextUnformatted(FilePath::ToUtf8(Entry.GetDisplayPath().stem()).c_str());
-                ImGui::SetCursorScreenPos({Origin.x + 46.0f, Origin.y + 23.0f});
+                ImGui::SetCursorScreenPos({Origin.x + 46.0f, Origin.y + ContentOffsetY + 20.0f});
                 ImGui::TextDisabled("%s", FilePath::ToGenericUtf8(Entry.GetDisplayPath().parent_path()).c_str());
                 ImGui::SetCursorScreenPos(Next);
                 ImGui::Dummy({0.0f, 0.0f});
@@ -104,8 +110,9 @@ bool FAssetPicker::Draw(FEditorAssetCatalog& Catalog, FAssetThumbnailCache& Thum
         ImGui::EndTooltip();
     }
     ImGui::SameLine();
-    ImGui::SetNextItemWidth(std::max(60.0f, ImGui::GetContentRegionAvail().x));
-    ImGui::SetNextWindowSizeConstraints({280.0f, 0.0f}, {480.0f, 400.0f});
+    const float ComboWidth{std::max(60.0f, ImGui::GetContentRegionAvail().x)};
+    ImGui::SetNextItemWidth(ComboWidth);
+    ImGui::SetNextWindowSizeConstraints({280.0f, 0.0f}, {std::max(480.0f, ComboWidth), 400.0f});
     if (ImGui::BeginCombo("##Asset", Name.c_str())) {
         if (DrawOptions(Catalog, Thumbnails, Path, Type, EmptyLabel)) {
             Changed = true;

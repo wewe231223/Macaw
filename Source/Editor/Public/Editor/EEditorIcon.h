@@ -55,8 +55,12 @@ enum class EEditorIcon {
      * @brief PIE 실행 종료 아이콘입니다.
      */
     Stop,
-    /** @brief 4분할 뷰포트로 전환하는 아이콘입니다. */
+    /**
+     * @brief 4분할 뷰포트로 전환하는 아이콘입니다.
+     */
     QuadView,
-    /** @brief 활성 뷰포트를 최대화하는 아이콘입니다. */
+    /**
+     * @brief 활성 뷰포트를 최대화하는 아이콘입니다.
+     */
     Maximize
 };

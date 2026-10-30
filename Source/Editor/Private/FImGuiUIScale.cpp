@@ -1,3 +1,9 @@
+/**
+ * @file FImGuiUIScale.cpp
+ * @brief 창의 DPI와 사용자 설정에 따라 ImGui 스타일과 글꼴 배율을 적용합니다.
+ * @ingroup Editor
+ */
+
 #include "Editor/FImGuiUIScale.h"
 #include "Platform/Window.h"
 

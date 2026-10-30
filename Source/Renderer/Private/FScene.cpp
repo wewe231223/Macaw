@@ -27,9 +27,6 @@ FScene::FScene(ID3D11Device* Device, ID3D11DeviceContext* Context)
  */
 FScene::~FScene() = default;
 
-/**
- * @brief 프록시의 식별자로 렌더 장면에 프리미티브를 추가하거나 교체합니다.
- */
 void FScene::AddPrimitive(const FPrimitiveSceneProxy& Proxy) {
     if (Proxy.mMesh != nullptr && !Proxy.mMesh->CreateResources(mDevice)) {
         ErrorHandler::Report("Mesh", "Cannot create project mesh resources", ErrorHandler::EErrorLevel::Error);
@@ -140,7 +137,7 @@ void FScene::Upload(FScenePrimitive& Primitive) {
         Primitive.mObjectBuffer.Reset();
         return;
     }
-    FObjectConstants Constants{};
+    FObjectConstants& Constants{Primitive.mObjectConstants};
     Constants.mWorld = Primitive.mProxy.mWorld;
     Constants.mShadowFlags.x = Primitive.mProxy.mReceiveShadow ? 1.0f : 0.0f;
     Constants.mUVTransform = {Primitive.mProxy.mUVScale.x, Primitive.mProxy.mUVScale.y, Primitive.mProxy.mUVOffset.x, Primitive.mProxy.mUVOffset.y};

@@ -139,8 +139,21 @@ public:
      */
     void Present() override;
 
+    /**
+     * @brief 비동기 프레젠테이션의 화면 찢김 허용 설정을 변경합니다.
+     * @param[in] Allow 화면 찢김을 허용하려면 true입니다.
+     * @return 요청을 수락하면 true이며 지원하지 않는 허용 요청은 false입니다.
+     */
     bool SetAllowTearing(bool Allow) override;
+    /**
+     * @brief 화면 찢김을 허용하도록 설정했는지 반환합니다.
+     * @return 사용자 설정에서 화면 찢김을 허용하면 true입니다.
+     */
     bool IsTearingAllowed() const override;
+    /**
+     * @brief 현재 DXGI 환경이 화면 찢김 허용을 지원하는지 반환합니다.
+     * @return DXGI의 프레젠테이션 기능 검사에 성공하면 true입니다.
+     */
     bool IsTearingSupported() const override;
 
     /**
@@ -158,6 +171,10 @@ public:
      * @return 프레임 렌더링 통계입니다.
      */
     FRenderStats GetStats() const override;
+    /**
+     * @brief 현재 그림자 아틀라스의 검사 정보를 반환합니다.
+     * @return 미리보기·깊이 뷰의 비소유 주소와 타일 정보 사본입니다.
+     */
     FShadowAtlasView GetShadowAtlasView() const override;
     /**
      * @brief 변경된 셰이더를 다시 컴파일하고 필요한 GPU 셰이더를 갱신합니다.
@@ -175,10 +192,19 @@ public:
     /**
      * @brief 머티리얼별 GPU 파이프라인을 반환합니다.
      * @param[in] Material 조회할 머티리얼 설정입니다.
+     * @param[in] Mode 파이프라인에 적용할 조명·와이어프레임·법선 표시 모드입니다.
      * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며 사용할 수 없으면 nullptr입니다.
      */
     FMaterialPipeline* GetMaterialPipeline(const UMaterial& Material, EViewMode Mode = EViewMode::Lit_Phong);
+    /**
+     * @brief 현재 뷰의 그림자를 렌더링하고 타일 조명 자원을 업로드·바인딩합니다.
+     * @param[in] Family 장면·카메라·출력 타깃·표시 플래그를 묶은 현재 뷰 요청입니다.
+     * @return 필요한 조명 자원 준비에 성공하면 true입니다.
+     */
     bool PrepareLighting(const FSceneViewFamily& Family);
+    /**
+     * @brief 조명과 그림자 패스에서 사용한 셰이더 리소스 바인딩을 해제합니다.
+     */
     void FinishLighting();
     /**
      * @brief 기본 머티리얼의 비소유 주소를 반환합니다.
@@ -275,8 +301,14 @@ private:
 private:
     std::unique_ptr<FLightingResources> mLightingResources{};
     ReflectProperty(mLightingResources, "LightingResources", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /**
+     * @brief 그림자 아틀라스와 관련 GPU 자원을 관리하는 소유 객체입니다.
+     */
     std::unique_ptr<FShadowResources> mShadowResources{};
     ReflectProperty(mShadowResources, "ShadowResources", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /**
+     * @brief 머티리얼이 없는 메시 드로에 사용할 기본 머티리얼의 소유 객체입니다.
+     */
     std::unique_ptr<UMaterial> mDefaultMaterial{};
     ReflectProperty(mDefaultMaterial, "DefaultMaterial", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
     /**
@@ -339,8 +371,14 @@ private:
     Microsoft::WRL::ComPtr<IDXGISwapChain> mSwapChain{};
     ReflectProperty(mSwapChain, "SwapChain", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 
+    /**
+     * @brief 비동기 프레젠테이션에서 화면 찢김을 허용하는 사용자 설정입니다.
+     */
     bool mAllowTearing{};
     ReflectProperty(mAllowTearing, "AllowTearing", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /**
+     * @brief 현재 DXGI 환경의 화면 찢김 허용 지원 여부입니다.
+     */
     bool mTearingSupported{};
     ReflectProperty(mTearingSupported, "TearingSupported", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 
@@ -390,6 +428,12 @@ private:
      */
     FDynamicVertexBuffer mLineBuffer{};
     ReflectProperty(mLineBuffer, "LineBuffer", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
+    /**
+     * @brief 메시 인스턴스의 월드 행렬을 업로드하는 동적 정점 버퍼입니다.
+     */
+    FDynamicVertexBuffer mMeshInstanceBuffer{};
+    ReflectProperty(mMeshInstanceBuffer, "MeshInstanceBuffer", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 
 
     /**
@@ -462,16 +506,24 @@ private:
      */
     Microsoft::WRL::ComPtr<ID3D11PixelShader> mGizmoPixelShader{};
     ReflectProperty(mGizmoPixelShader, "GizmoPixelShader", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
-    /** @brief 고정 에디터 메시의 로컬 위치를 읽는 입력 레이아웃입니다. */
+    /**
+     * @brief 고정 에디터 메시의 로컬 위치를 읽는 입력 레이아웃입니다.
+     */
     Microsoft::WRL::ComPtr<ID3D11InputLayout> mOverlayLayout{};
     ReflectProperty(mOverlayLayout, "OverlayLayout", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
-    /** @brief 에디터 메시 요청의 월드 행렬과 RGBA 색상을 전달하는 80바이트 상수 버퍼입니다. */
+    /**
+     * @brief 에디터 메시 요청의 월드 행렬과 RGBA 색상을 전달하는 80바이트 상수 버퍼입니다.
+     */
     Microsoft::WRL::ComPtr<ID3D11Buffer> mEditorMeshBuffer{};
     ReflectProperty(mEditorMeshBuffer, "EditorMeshBuffer", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
-    /** @brief 평면 핸들의 투명도를 표시하는 소스 알파 혼합 상태입니다. */
+    /**
+     * @brief 평면 핸들의 투명도를 표시하는 소스 알파 혼합 상태입니다.
+     */
     Microsoft::WRL::ComPtr<ID3D11BlendState> mOverlayBlend{};
     ReflectProperty(mOverlayBlend, "OverlayBlend", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
-    /** @brief 렌더러가 초기화 때 생성하고 종료 때 해제하는 enum별 불변 GPU 정점·인덱스 버퍼입니다. */
+    /**
+     * @brief 렌더러가 초기화 때 생성하고 종료 때 해제하는 enum별 불변 GPU 정점·인덱스 버퍼입니다.
+     */
     std::array<std::unique_ptr<UStaticMesh>, static_cast<std::size_t>(EEditorMesh::Count)> mEditorMeshes{};
     ReflectProperty(mEditorMeshes, "EditorMeshes", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 };

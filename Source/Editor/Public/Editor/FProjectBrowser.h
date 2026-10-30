@@ -17,9 +17,14 @@
 class FWindowsApplication;
 class FRenderer;
 
-/** @brief 프로젝트 열기·생성 및 최근 프로젝트 선택 UI를 처리합니다. */
+/**
+ * @brief 프로젝트 열기·생성 및 최근 프로젝트 선택 UI를 처리합니다.
+ */
 class FProjectBrowser {
 public:
+    /**
+     * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
+     */
     ReflectTypes(FProjectBrowser);
 
 public:
@@ -81,9 +86,15 @@ private:
      * @return 조건을 만족하면 true입니다.
      */
     bool IsProjectNameValid() const;
+    /**
+     * @brief 생성된 멤버 등록 함수와 리플렉션 빌더의 접근 권한입니다.
+     */
     ReflectMembers();
 
 private:
+    /**
+     * @brief 에디터 ImGui 스타일의 화면 배율 관리자입니다.
+     */
     FImGuiUIScale mUIScale{};
     ReflectProperty(mUIScale, "UIScale", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 

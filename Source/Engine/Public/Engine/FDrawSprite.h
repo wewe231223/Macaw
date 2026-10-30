@@ -13,9 +13,14 @@
 
 class UTexture2D;
 
-/** @brief 텍스처 쿼드의 크기, 색상과 카메라 정렬 여부를 전달합니다. */
+/**
+ * @brief 텍스처 쿼드의 크기, 색상과 카메라 정렬 여부를 전달합니다.
+ */
 struct FDrawSprite {
 public:
+    /**
+     * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
+     */
     ReflectTypes(FDrawSprite);
 
 public:
@@ -26,6 +31,9 @@ public:
     ReflectStruct(FDrawSprite);
 
 private:
+    /**
+     * @brief 생성된 멤버 등록 함수와 리플렉션 빌더의 접근 권한입니다.
+     */
     ReflectMembers();
 
 public:

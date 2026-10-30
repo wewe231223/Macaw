@@ -14,10 +14,15 @@
 
 // Delegate 객체 이름, 전체 Parameter를 매크로에 넘기면 해당 TDelegate 객체 생성
 
-/** @brief 핸들로 호출 함수를 등록·해제하고 인수를 전달하는 델리게이트입니다. */
+/**
+ * @brief 핸들로 호출 함수를 등록·해제하고 인수를 전달하는 델리게이트입니다.
+ */
 template <typename TSignature>
 class TDelegate {
 public:
+    /**
+     * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
+     */
     ReflectTypes(TDelegate);
     /**
      * @brief 등록 함수의 호출 시그니처입니다.
@@ -75,6 +80,9 @@ public:
     void RemoveHandler(Uint32 HandleNumber);
 
 private:
+    /**
+     * @brief 생성된 멤버 등록 함수와 리플렉션 빌더의 접근 권한입니다.
+     */
     ReflectMembers();
 
 private:

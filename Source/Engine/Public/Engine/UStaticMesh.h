@@ -51,6 +51,12 @@ public:
      * @return 요청한 처리를 완료하면 true, 실패하면 false입니다.
      */
     bool LoadFromFile(const std::filesystem::path& MeshPath);
+    /**
+     * @brief 메시 파일을 읽고 지정된 에셋 관리자로 재질과 텍스처를 해석합니다.
+     * @param[in] MeshPath 읽을 메시 파일의 경로입니다.
+     * @param[out] Error 실패 원인을 받을 문자열입니다.
+     * @return 메시 데이터와 필요한 참조를 구성하면 true이며 실패하면 Error에 원인을 기록합니다.
+     */
     bool LoadFromFile(const std::filesystem::path& MeshPath, FString& Error);
     /**
      * @brief CPU 메시 데이터의 유효성과 경계를 검사하여 교체하고 GPU 버퍼를 해제합니다.

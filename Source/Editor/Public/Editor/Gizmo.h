@@ -39,7 +39,9 @@ enum class EGizmoMode {
      * @brief 축별 스케일을 편집합니다.
      */
     Scale,
-    /** @brief 기즈모를 표시하지 않는 선택 전용 모드입니다. */
+    /**
+     * @brief 기즈모를 표시하지 않는 선택 전용 모드입니다.
+     */
     None
 };
 
@@ -79,7 +81,10 @@ private:
         ReflectTypes(FTargetState);
 
     public:
-        /** @brief 정적 구조체 메타데이터를 반환합니다. @return 등록된 타입 정보입니다. */
+        /**
+         * @brief 정적 구조체 메타데이터를 반환합니다.
+         * @return 등록된 타입 정보입니다.
+         */
         ReflectStruct(FTargetState);
 
     private:
@@ -89,10 +94,14 @@ private:
         ReflectMembers();
 
     public:
-        /** @brief 드래그를 시작할 때 기록한 공간 컴포넌트의 전역 세대 핸들입니다. */
+        /**
+         * @brief 드래그를 시작할 때 기록한 공간 컴포넌트의 전역 세대 핸들입니다.
+         */
         FObjectHandle mObject{};
         ReflectProperty(mObject, "Object", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
-        /** @brief 드래그를 시작할 때 기록한 공간 컴포넌트의 월드 변환입니다. */
+        /**
+         * @brief 드래그를 시작할 때 기록한 공간 컴포넌트의 월드 변환입니다.
+         */
         FTransform mTransform{};
         ReflectProperty(mTransform, "Transform", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
     };
@@ -317,7 +326,9 @@ private:
      */
     float mDragSize{1.0f};
     ReflectProperty(mDragSize, "DragSize", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
-    /** @brief 이 뷰포트의 이동·회전·스케일 스냅 간격과 기즈모 크기 설정입니다. */
+    /**
+     * @brief 이 뷰포트의 이동·회전·스케일 스냅 간격과 기즈모 크기 설정입니다.
+     */
     FGizmoSettings mSettings{};
     ReflectProperty(mSettings, "Settings", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
     /**
@@ -325,67 +336,109 @@ private:
      */
     TArray<FTargetState> mTargets{};
     ReflectProperty(mTargets, "Targets", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
-    /** @brief Alt 복제 드래그를 취소할 때 복원할 원본 액터 선택입니다. */
+    /**
+     * @brief Alt 복제 드래그를 취소할 때 복원할 원본 액터 선택입니다.
+     */
     TArray<FObjectHandle> mOriginalSelection{};
     ReflectProperty(mOriginalSelection, "OriginalSelection", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
-    /** @brief 이번 Alt 드래그에서 생성하여 취소 시 제거할 액터 핸들입니다. */
+    /**
+     * @brief 이번 Alt 드래그에서 생성하여 취소 시 제거할 액터 핸들입니다.
+     */
     TArray<FObjectHandle> mDuplicates{};
     ReflectProperty(mDuplicates, "Duplicates", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
-    /** @brief 복제 취소 시 원래 컴포넌트 선택까지 복원할 객체 핸들입니다. */
+    /**
+     * @brief 복제 취소 시 원래 컴포넌트 선택까지 복원할 객체 핸들입니다.
+     */
     FObjectHandle mOriginalObject{};
     ReflectProperty(mOriginalObject, "OriginalObject", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
-    /** @brief 선택 변경을 감지하거나 드래그 시작 시 선택을 검증하는 세대 값입니다. */
+    /**
+     * @brief 선택 변경을 감지하거나 드래그 시작 시 선택을 검증하는 세대 값입니다.
+     */
     Uint64 mSelectionRevision{};
     ReflectProperty(mSelectionRevision, "SelectionRevision", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
-    /** @brief 사용자 피벗을 설정한 선택 세대이며 다른 선택에서는 피벗을 무시합니다. */
+    /**
+     * @brief 사용자 피벗을 설정한 선택 세대이며 다른 선택에서는 피벗을 무시합니다.
+     */
     Uint64 mPivotRevision{};
     ReflectProperty(mPivotRevision, "PivotRevision", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
-    /** @brief 현재 선택에서 유지할 사용자 지정 월드 피벗입니다. */
+    /**
+     * @brief 현재 선택에서 유지할 사용자 지정 월드 피벗입니다.
+     */
     FVector mPivot{};
     ReflectProperty(mPivot, "Pivot", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
-    /** @brief 드래그를 시작할 때 고정한 이동, 회전과 스케일의 기준 피벗입니다. */
+    /**
+     * @brief 드래그를 시작할 때 고정한 이동, 회전과 스케일의 기준 피벗입니다.
+     */
     FVector mStartPivot{};
     ReflectProperty(mStartPivot, "StartPivot", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
-    /** @brief 취소 시 복원할 드래그 이전 사용자 피벗입니다. */
+    /**
+     * @brief 취소 시 복원할 드래그 이전 사용자 피벗입니다.
+     */
     FVector mOriginalPivot{};
     ReflectProperty(mOriginalPivot, "OriginalPivot", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
-    /** @brief 회전 드래그의 시작 반지름 방향입니다. */
+    /**
+     * @brief 회전 드래그의 시작 반지름 방향입니다.
+     */
     FVector mStartDirection{};
     ReflectProperty(mStartDirection, "StartDirection", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
-    /** @brief 회전 누적각을 계산할 때 사용할 이전 프레임의 반지름 방향입니다. */
+    /**
+     * @brief 회전 누적각을 계산할 때 사용할 이전 프레임의 반지름 방향입니다.
+     */
     FVector mPreviousDirection{};
     ReflectProperty(mPreviousDirection, "PreviousDirection", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
-    /** @brief 현재 드래그에서 시작 피벗에 더할 누적 월드 이동량입니다. */
+    /**
+     * @brief 현재 드래그에서 시작 피벗에 더할 누적 월드 이동량입니다.
+     */
     FVector mTranslation{};
     ReflectProperty(mTranslation, "Translation", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
-    /** @brief 드래그 시작 시 고정하여 대상 회전과 독립적으로 유지할 세 기저 축입니다. */
+    /**
+     * @brief 드래그 시작 시 고정하여 대상 회전과 독립적으로 유지할 세 기저 축입니다.
+     */
     std::array<FVector, 3> mDragAxes{};
     ReflectProperty(mDragAxes, "DragAxes", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
-    /** @brief 퇴화한 드래그 평면의 대체 계산이나 스케일에 사용할 화면 방향입니다. */
+    /**
+     * @brief 퇴화한 드래그 평면의 대체 계산이나 스케일에 사용할 화면 방향입니다.
+     */
     FVector2 mScreenAxis{};
     ReflectProperty(mScreenAxis, "ScreenAxis", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
-    /** @brief 각 프레임의 회전을 더하여 여러 바퀴 회전도 유지하는 라디안 각도입니다. */
+    /**
+     * @brief 각 프레임의 회전을 더하여 여러 바퀴 회전도 유지하는 라디안 각도입니다.
+     */
     float mRawAngle{};
     ReflectProperty(mRawAngle, "RawAngle", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
-    /** @brief 각도 스냅을 적용한 실제 라디안 회전량입니다. */
+    /**
+     * @brief 각도 스냅을 적용한 실제 라디안 회전량입니다.
+     */
     float mAppliedAngle{};
     ReflectProperty(mAppliedAngle, "AppliedAngle", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
-    /** @brief 드래그 시작 시 고정한 변환 모드입니다. */
+    /**
+     * @brief 드래그 시작 시 고정한 변환 모드입니다.
+     */
     EGizmoMode mDragMode{EGizmoMode::Translate};
     ReflectProperty(mDragMode, "DragMode", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
-    /** @brief 현재 선택 세대에 적용할 사용자 피벗을 보관하는지 여부입니다. */
+    /**
+     * @brief 현재 선택 세대에 적용할 사용자 피벗을 보관하는지 여부입니다.
+     */
     bool mHasPivot{};
     ReflectProperty(mHasPivot, "HasPivot", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
-    /** @brief 드래그 이전에 유효한 사용자 피벗이 있었는지 여부입니다. */
+    /**
+     * @brief 드래그 이전에 유효한 사용자 피벗이 있었는지 여부입니다.
+     */
     bool mHadPivot{};
     ReflectProperty(mHadPivot, "HadPivot", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
-    /** @brief 가운데 버튼으로 대상 변환 대신 사용자 피벗만 이동 중인지 여부입니다. */
+    /**
+     * @brief 가운데 버튼으로 대상 변환 대신 사용자 피벗만 이동 중인지 여부입니다.
+     */
     bool mPivotOnly{};
     ReflectProperty(mPivotOnly, "PivotOnly", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
-    /** @brief Alt 이동 드래그가 3픽셀을 넘을 때 액터를 복제할지 여부입니다. */
+    /**
+     * @brief Alt 이동 드래그가 3픽셀을 넘을 때 액터를 복제할지 여부입니다.
+     */
     bool mDuplicatePending{};
     ReflectProperty(mDuplicatePending, "DuplicatePending", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
-    /** @brief 광선과 조작 평면이 거의 평행하여 화면 방향 계산을 사용할지 여부입니다. */
+    /**
+     * @brief 광선과 조작 평면이 거의 평행하여 화면 방향 계산을 사용할지 여부입니다.
+     */
     bool mScreenFallback{};
     ReflectProperty(mScreenFallback, "ScreenFallback", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 };

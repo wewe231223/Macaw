@@ -110,6 +110,9 @@ private:
      * @brief 장면 파일과 패널 표시 메뉴를 그립니다.
      */
     void DrawMenu();
+    /**
+     * @brief 그림자 아틀라스 미리보기와 타일별 광원 정보를 그립니다.
+     */
     void DrawShadowAtlas();
     /**
      * @brief 프로젝트·장면 작업과 편집 도구를 제공하는 툴바를 그립니다.
@@ -124,6 +127,9 @@ private:
      */
     void DrawContent();
 
+    /**
+     * @brief 선택한 텍스처의 미리보기 창을 그립니다.
+     */
     void DrawTexturePreview();
 
     /**
@@ -243,6 +249,9 @@ private:
      */
     FPlaceActorsPanel mPlaceActorsPanel;
     ReflectProperty(mPlaceActorsPanel, "PlaceActorsPanel", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /**
+     * @brief 액터 트리를 표시하는 아웃라이너 패널의 소유 객체입니다.
+     */
     FOutlinerPanel mOutlinerPanel;
     ReflectProperty(mOutlinerPanel, "OutlinerPanel", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 
@@ -264,6 +273,9 @@ private:
     FString mIniPath{};
     ReflectProperty(mIniPath, "IniPath", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 
+    /**
+     * @brief 에디터 ImGui 스타일의 화면 배율 관리자입니다.
+     */
     FImGuiUIScale mUIScale{};
     ReflectProperty(mUIScale, "UIScale", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 
@@ -273,6 +285,9 @@ private:
      */
     bool mInitialized{};
     ReflectProperty(mInitialized, "Initialized", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /**
+     * @brief 그림자 아틀라스 미리보기의 확대 배율입니다.
+     */
     float mShadowAtlasZoom{1.0f};
     ReflectProperty(mShadowAtlasZoom, "ShadowAtlasZoom", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 
@@ -299,6 +314,9 @@ private:
      */
     bool mShowStatistics{};
     ReflectProperty(mShowStatistics, "ShowStatistics", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /**
+     * @brief 에디터 종료 요청 여부입니다.
+     */
     bool mExit{};
     ReflectProperty(mExit, "Exit", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
     /**
@@ -316,8 +334,14 @@ private:
      */
     UTexture2D* mPreviewTexture{};
     ReflectProperty(mPreviewTexture, "PreviewTexture", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /**
+     * @brief 미리볼 텍스처의 Content 상대 경로입니다.
+     */
     std::filesystem::path mPreviewTexturePath{};
     ReflectProperty(mPreviewTexturePath, "PreviewTexturePath", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /**
+     * @brief 다음 그리기에서 텍스처 미리보기 창에 초점을 줄지 나타냅니다.
+     */
     bool mFocusTexturePreview{};
     ReflectProperty(mFocusTexturePreview, "FocusTexturePreview", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
     /**
@@ -370,25 +394,39 @@ private:
      */
     bool mMaterialDirty{};
     ReflectProperty(mMaterialDirty, "MaterialDirty", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
-    /** @brief 편집 월드와 분리한 정적 메시 미리보기 창입니다. */
+    /**
+     * @brief 편집 월드와 분리한 정적 메시 미리보기 창입니다.
+     */
     std::unique_ptr<FMeshViewer> mMeshViewer{};
     ReflectProperty(mMeshViewer, "MeshViewer", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
-    /** @brief 브라우저와 Details가 공유하는 논리 에셋 목록입니다. */
+    /**
+     * @brief 브라우저와 Details가 공유하는 논리 에셋 목록입니다.
+     */
     std::unique_ptr<FEditorAssetCatalog> mAssetCatalog{};
     ReflectProperty(mAssetCatalog, "AssetCatalog", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
-    /** @brief 재질·메시 썸네일과 재질 편집 미리보기의 공유 캐시입니다. */
+    /**
+     * @brief 재질·메시 썸네일과 재질 편집 미리보기의 공유 캐시입니다.
+     */
     std::unique_ptr<FAssetThumbnailCache> mThumbnails{};
     ReflectProperty(mThumbnails, "Thumbnails", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
-    /** @brief 물리 경로에 대응하는 표시 경로입니다. */
+    /**
+     * @brief 물리 경로에 대응하는 표시 경로입니다.
+     */
     TMap<std::filesystem::path, std::filesystem::path> mAssetDisplayPaths{};
     ReflectProperty(mAssetDisplayPaths, "AssetDisplayPaths", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
-    /** @brief 재질 에디터의 텍스처 선택기입니다. */
+    /**
+     * @brief 재질 에디터의 텍스처 선택기입니다.
+     */
     FAssetPicker mAssetPicker{};
     ReflectProperty(mAssetPicker, "AssetPicker", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
-    /** @brief 에셋 브라우저 검색 문자열입니다. */
+    /**
+     * @brief 에셋 브라우저 검색 문자열입니다.
+     */
     std::array<char, 128> mContentSearch{};
     ReflectProperty(mContentSearch, "ContentSearch", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
-    /** @brief 선택한 에셋 종류 필터입니다. */
+    /**
+     * @brief 선택한 에셋 종류 필터입니다.
+     */
     std::optional<EAssetType> mContentFilter{};
     ReflectProperty(mContentFilter, "ContentFilter", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 

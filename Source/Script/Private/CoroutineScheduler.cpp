@@ -8,9 +8,21 @@
 
 #include <utility>
 
+/**
+ * @brief 스크립트 실행 비용과 대기 상태를 측정하는 내부 통계입니다.
+ */
 namespace {
+    /**
+     * @brief Lua 코루틴 스케줄러 갱신 시간를 측정하는 통계 항목입니다.
+     */
     FStat SchedulerTime{"script", "Coroutine update CPU", EStatUnit::Milliseconds};
+    /**
+     * @brief 대기 중인 Lua 코루틴 수를 측정하는 통계 항목입니다.
+     */
     FStat PendingWaits{"script", "Pending waits (sum of updates)"};
+    /**
+     * @brief Lua 코루틴 재개 처리 시간를 측정하는 통계 항목입니다.
+     */
     FStat ResumeTime{"script", "Coroutine resume CPU", EStatUnit::Milliseconds};
 }
 

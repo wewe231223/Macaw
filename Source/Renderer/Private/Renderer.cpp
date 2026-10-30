@@ -184,6 +184,7 @@ void FRenderer::Shutdown() {
     mViewBuffer.Reset();
     mLineViewBuffer.Reset();
     mLineBuffer.Reset();
+    mMeshInstanceBuffer.Reset();
 
     mMaterialPipelines.clear();
     mLightingResources.reset();
@@ -329,7 +330,7 @@ void FRenderer::BeginRenderingViewFamily(const FSceneViewFamily& Family) {
     mContext->HSSetShader(nullptr, nullptr, 0);
     mContext->DSSetShader(nullptr, nullptr, 0);
 
-    const FSceneDrawContext Context{this, mContext.Get(), &mMeshes, mViewBuffer.Get()};
+    const FSceneDrawContext Context{this, mContext.Get(), &mMeshes, mViewBuffer.Get(), &mMeshInstanceBuffer};
     FSceneRenderer SceneRenderer{Family, Scene, Context, mStats};
     SceneRenderer.Render();
     const FVector4 LineView{Family.mView.mSize.x, Family.mView.mSize.y, 1.0f / std::max(Family.mView.mSize.x, 1.0f), 1.0f / std::max(Family.mView.mSize.y, 1.0f)};
@@ -351,6 +352,7 @@ void FRenderer::BeginRenderingViewFamily(const FSceneViewFamily& Family) {
     mStats.mGpuBytes += mTextRenderer != nullptr ? mTextRenderer->GetResourceBytes() : 0;
     mStats.mGpuBytes += mSpriteRenderer != nullptr ? mSpriteRenderer->GetResourceBytes() : 0;
     mStats.mGpuBytes += mStats.mShadowAtlasBytes;
+    mStats.mGpuBytes += mMeshInstanceBuffer.GetResourceBytes();
 
     for (const auto& Mesh : mMeshes) {
         mStats.mGpuBytes += Mesh != nullptr ? Mesh->GetResourceBytes() : 0;
@@ -833,6 +835,9 @@ FMaterialPipeline* FRenderer::GetMaterialPipeline(const UMaterial& Material, EVi
     Description.mIncludeDirectories = {Source.parent_path(), mShaderDirectory};
     const char* Model{Mode == EViewMode::Lit_Gouraud ? "LIGHTING_MODEL_GOURAUD" : Mode == EViewMode::Lit_Lambert ? "LIGHTING_MODEL_LAMBERT" : "LIGHTING_MODEL_PHONG"};
     Description.mMacros.push_back({Model, "1"});
+    if (Builtin) {
+        Description.mMacros.push_back({"MacawInstanced", "1"});
+    }
     if (Mode == EViewMode::Unlit) {
         Description.mMacros.push_back({"MACAW_UNLIT", "1"});
     }
@@ -856,7 +861,7 @@ FMaterialPipeline* FRenderer::GetMaterialPipeline(const UMaterial& Material, EVi
     Error += Diagnostics;
     std::unique_ptr<FMaterialPipeline> Pipeline{};
     if (Vertex != nullptr && Pixel != nullptr) {
-        Pipeline = std::make_unique<FMaterialPipeline>(std::move(Vertex), std::move(Pixel), Material.IsTwoSided());
+        Pipeline = std::make_unique<FMaterialPipeline>(std::move(Vertex), std::move(Pixel), Material.IsTwoSided(), Builtin);
         if (!Pipeline->CreateResources(mDevice.Get(), Diagnostics)) {
             Error += Diagnostics;
             Pipeline.reset();

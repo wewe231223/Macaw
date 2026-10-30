@@ -1,4 +1,8 @@
-/** @file FAssetImportScope.cpp @brief 임포트 전용 디렉터리의 롤백 구현입니다. @ingroup Engine */
+/**
+ * @file FAssetImportScope.cpp
+ * @brief 임포트 전용 디렉터리의 롤백 구현입니다.
+ * @ingroup Engine
+ */
 #include "FAssetImportScope.h"
 
 #include <utility>

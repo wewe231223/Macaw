@@ -47,7 +47,9 @@ enum class EViewportCommand {
      * @note 현재 미구현이므로 실행 가능 여부와 선택 상태 조회는 false를 반환합니다.
      */
     ToggleGrid,
-    /** @brief 선택 전용 모드로 전환하고 기즈모를 숨깁니다. */
+    /**
+     * @brief 선택 전용 모드로 전환하고 기즈모를 숨깁니다.
+     */
     Select,
     /**
      * @brief 이동량을 지정한 거리 간격에 맞추는 스냅의 사용 여부를 전환합니다.

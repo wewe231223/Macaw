@@ -1,3 +1,9 @@
+/**
+ * @file FMeshImportIOSystem.cpp
+ * @brief MTL 읽기에서 지원하지 않는 Prfl 행을 제거하는 Assimp 파일 입출력입니다.
+ * @ingroup Engine
+ */
+
 #include "FMeshImportIOSystem.h"
 #include "Core/FilePath.h"
 

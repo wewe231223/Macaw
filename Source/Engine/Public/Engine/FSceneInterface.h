@@ -39,12 +39,20 @@ public:
     ReflectStruct(FSceneInterface);
 
     /**
-     * @brief 프록시의 식별자로 렌더 장면에 프리미티브를 추가하거나 교체합니다.
-     * @param[in] Proxy 장면에 복사할 프리미티브 상태입니다.
+     * @brief 광원 프록시의 GUID로 렌더 장면에 광원을 추가하거나 교체합니다.
+     * @param[in] Proxy 장면에 복사할 광원 상태입니다.
      */
     virtual void AddLight(const FLightSceneProxy& Proxy);
+    /**
+     * @brief 지정한 GUID의 광원을 렌더 장면에서 제거합니다.
+     * @param[in] Id 제거할 광원의 GUID입니다.
+     */
     virtual void RemoveLight(const FGuid& Id);
 
+    /**
+     * @brief 프록시의 GUID로 렌더 장면에 프리미티브를 추가하거나 교체합니다.
+     * @param[in] Proxy 장면에 복사할 렌더 프록시입니다.
+     */
     virtual void AddPrimitive(const FPrimitiveSceneProxy& Proxy) = 0;
     /**
      * @brief 지정한 프리미티브의 월드 행렬과 경계 상자를 갱신합니다.

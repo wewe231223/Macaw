@@ -1,4 +1,8 @@
-/** @file FMeshMaterialSlot.cpp @brief 메시 재질 슬롯의 구현입니다. @ingroup Engine */
+/**
+ * @file FMeshMaterialSlot.cpp
+ * @brief 메시 재질 슬롯의 구현입니다.
+ * @ingroup Engine
+ */
 #include "Engine/FMeshMaterialSlot.h"
 
 #include <utility>

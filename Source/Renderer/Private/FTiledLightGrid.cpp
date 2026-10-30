@@ -1,3 +1,9 @@
+/**
+ * @file FTiledLightGrid.cpp
+ * @brief 16×16픽셀 타일마다 영향을 주는 광원의 인덱스 목록을 구성합니다.
+ * @ingroup Renderer
+ */
+
 #include "FTiledLightGrid.h"
 #include "Core/Stats.h"
 #include "Core/Math.h"

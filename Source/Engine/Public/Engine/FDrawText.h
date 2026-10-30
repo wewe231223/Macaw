@@ -11,9 +11,14 @@
 #include "Core/Math/FVector2.h"
 #include "Core/Math/FVector4.h"
 
-/** @brief 월드 또는 화면 크기 기준으로 그릴 UTF-8 텍스트 요청입니다. */
+/**
+ * @brief 월드 또는 화면 크기 기준으로 그릴 UTF-8 텍스트 요청입니다.
+ */
 struct FDrawText {
 public:
+    /**
+     * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
+     */
     ReflectTypes(FDrawText);
 
 public:
@@ -24,6 +29,9 @@ public:
     ReflectStruct(FDrawText);
 
 private:
+    /**
+     * @brief 생성된 멤버 등록 함수와 리플렉션 빌더의 접근 권한입니다.
+     */
     ReflectMembers();
 
 public:

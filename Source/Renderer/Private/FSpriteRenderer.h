@@ -17,15 +17,25 @@
 struct FPrimitiveSceneProxy;
 struct FSceneView;
 
-/** @brief 투명 스프라이트 쿼드와 기본 4×4 애니메이션 아틀라스의 GPU 자원을 관리합니다. */
+/**
+ * @brief 투명 스프라이트 쿼드와 기본 4×4 애니메이션 아틀라스의 GPU 자원을 관리합니다.
+ */
 class FSpriteRenderer {
 public:
+    /**
+     * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
+     */
     ReflectTypes(FSpriteRenderer);
 
 private:
-    /** @brief 스프라이트의 클립 행렬·UV 변환·색상 GPU 상수입니다. */
+    /**
+     * @brief 스프라이트의 클립 행렬·UV 변환·색상 GPU 상수입니다.
+     */
     struct FConstants {
     public:
+        /**
+         * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
+         */
         ReflectTypes(FConstants);
 
     public:
@@ -36,6 +46,9 @@ private:
         ReflectStruct(FConstants);
 
     private:
+        /**
+         * @brief 생성된 멤버 등록 함수와 리플렉션 빌더의 접근 권한입니다.
+         */
         ReflectMembers();
 
     public:
@@ -102,6 +115,9 @@ public:
     std::size_t GetResourceBytes() const;
 
 private:
+    /**
+     * @brief 생성된 멤버 등록 함수와 리플렉션 빌더의 접근 권한입니다.
+     */
     ReflectMembers();
 
 private:

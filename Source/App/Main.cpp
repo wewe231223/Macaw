@@ -8,7 +8,10 @@
 #include "Core/Base/ErrorHandler.h"
 #include "FObjViewerApplication.h"
 
-/** @brief 선택한 빌드 모드의 호스트를 실행하고 종료 전에 소유 자원을 해제합니다. @return 애플리케이션 종료 코드입니다. */
+/**
+ * @brief 선택한 빌드 모드의 호스트를 실행하고 종료 전에 소유 자원을 해제합니다.
+ * @return 애플리케이션 종료 코드입니다.
+ */
 static int RunApplication() {
 #if defined(MACAW_OBJ_VIEWER)
     FObjViewerApplication Application{};

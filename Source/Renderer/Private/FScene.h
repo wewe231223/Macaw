@@ -46,13 +46,24 @@ public:
     ReflectStruct(FScene);
 
     /**
-     * @brief 프록시의 식별자로 렌더 장면에 프리미티브를 추가하거나 교체합니다.
-     * @param[in] Proxy 장면에 복사할 프리미티브 상태입니다.
+     * @brief 광원 프록시의 GUID로 렌더 장면에 광원을 추가하거나 교체합니다.
+     * @param[in] Proxy 장면에 복사할 광원 상태입니다.
      */
     void AddLight(const FLightSceneProxy& Proxy) override;
+    /**
+     * @brief 지정한 GUID의 광원을 렌더 장면에서 제거합니다.
+     * @param[in] Id 제거할 광원의 GUID입니다.
+     */
     void RemoveLight(const FGuid& Id) override;
+    /**
+     * @brief 장면에 등록된 광원 목록을 반환합니다.
+     * @return 장면이 유지하는 광원 프록시 배열의 참조입니다.
+     */
     const TArray<FLightSceneProxy>& GetLights() const;
 
+    /**
+     * @copydoc FSceneInterface::AddPrimitive
+     */
     void AddPrimitive(const FPrimitiveSceneProxy& Proxy) override;
     /**
      * @brief 지정한 프리미티브의 월드 행렬과 경계 상자를 갱신합니다.
@@ -108,8 +119,14 @@ private:
      */
     TArray<FLightSceneProxy> mLights{};
     ReflectProperty(mLights, "Lights", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /**
+     * @brief 광원 GUID를 조밀한 광원 배열의 인덱스에 연결합니다.
+     */
     TMap<FGuid, std::size_t, FGuidHash> mLightIndices{};
     ReflectProperty(mLightIndices, "LightIndices", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /**
+     * @brief 장면의 GPU 자원 생성에 사용할 Direct3D 장치의 비소유 주소입니다.
+     */
     ID3D11Device* mDevice{};
     ReflectProperty(mDevice, "Device", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
     /**

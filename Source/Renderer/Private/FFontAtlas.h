@@ -12,9 +12,14 @@
 
 #include <filesystem>
 
-/** @brief 글리프 삼각형의 로컬 평면 위치와 UV입니다. */
+/**
+ * @brief 글리프 삼각형의 로컬 평면 위치와 UV입니다.
+ */
 struct FTextVertex {
 public:
+    /**
+     * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
+     */
     ReflectTypes(FTextVertex);
 
 public:
@@ -25,6 +30,9 @@ public:
     ReflectStruct(FTextVertex);
 
 private:
+    /**
+     * @brief 생성된 멤버 등록 함수와 리플렉션 빌더의 접근 권한입니다.
+     */
     ReflectMembers();
 
 public:
@@ -40,9 +48,14 @@ public:
     ReflectProperty(mUV, "UV", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 };
 
-/** @brief 한 코드포인트의 간격·평면 경계·아틀라스 UV 메트릭입니다. */
+/**
+ * @brief 한 코드포인트의 간격·평면 경계·아틀라스 UV 메트릭입니다.
+ */
 struct FFontGlyph {
 public:
+    /**
+     * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
+     */
     ReflectTypes(FFontGlyph);
 
 public:
@@ -53,6 +66,9 @@ public:
     ReflectStruct(FFontGlyph);
 
 private:
+    /**
+     * @brief 생성된 멤버 등록 함수와 리플렉션 빌더의 접근 권한입니다.
+     */
     ReflectMembers();
 
 public:
@@ -78,9 +94,14 @@ public:
     ReflectProperty(mHasBounds, "HasBounds", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 };
 
-/** @brief MSDF 폰트 메트릭을 읽어 UTF-8 텍스트를 글리프 정점으로 변환합니다. */
+/**
+ * @brief MSDF 폰트 메트릭을 읽어 UTF-8 텍스트를 글리프 정점으로 변환합니다.
+ */
 class FFontAtlas {
 public:
+    /**
+     * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
+     */
     ReflectTypes(FFontAtlas);
 
 public:
@@ -140,6 +161,9 @@ private:
     float GetKerning(Uint32 First, Uint32 Second) const;
 
 private:
+    /**
+     * @brief 생성된 멤버 등록 함수와 리플렉션 빌더의 접근 권한입니다.
+     */
     ReflectMembers();
 
 private:

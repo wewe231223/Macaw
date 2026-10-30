@@ -105,8 +105,21 @@ public:
      */
     virtual void Present() = 0;
 
+    /**
+     * @brief 비동기 프레젠테이션의 화면 찢김 허용 설정을 변경합니다.
+     * @param[in] Allow 화면 찢김을 허용하려면 true입니다.
+     * @return 요청을 수락하면 true이며 지원하지 않는 허용 요청은 false입니다.
+     */
     virtual bool SetAllowTearing(bool Allow) = 0;
+    /**
+     * @brief 화면 찢김을 허용하도록 설정했는지 반환합니다.
+     * @return 사용자 설정에서 화면 찢김을 허용하면 true입니다.
+     */
     virtual bool IsTearingAllowed() const = 0;
+    /**
+     * @brief 현재 DXGI 환경이 화면 찢김 허용을 지원하는지 반환합니다.
+     * @return DXGI의 프레젠테이션 기능 검사에 성공하면 true입니다.
+     */
     virtual bool IsTearingSupported() const = 0;
 
     /**
@@ -124,6 +137,10 @@ public:
      * @return 프레임 렌더링 통계입니다.
      */
     virtual FRenderStats GetStats() const = 0;
+    /**
+     * @brief 현재 그림자 아틀라스의 검사 정보를 반환합니다.
+     * @return 미리보기·깊이 뷰의 비소유 주소와 타일 정보 사본입니다.
+     */
     virtual FShadowAtlasView GetShadowAtlasView() const;
     /**
      * @brief 변경된 셰이더를 다시 컴파일하고 필요한 GPU 셰이더를 갱신합니다.

@@ -1,3 +1,9 @@
+/**
+ * @file ULightComponentBase.cpp
+ * @brief 광원의 색상·밝기·표시 상태와 렌더 장면 등록을 관리합니다.
+ * @ingroup Engine
+ */
+
 #include "Engine/Component/ULightComponentBase.h"
 #include "Engine/UWorld.h"
 #include "Engine/FSceneInterface.h"

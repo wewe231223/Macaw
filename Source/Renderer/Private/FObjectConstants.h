@@ -54,6 +54,9 @@ public:
      */
     FVector4 mUVTransform{1.0f, 1.0f, 0.0f, 0.0f};
     ReflectProperty(mUVTransform, "UVTransform", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /**
+     * @brief 그림자 수신 여부와 셰이더 정렬을 위한 예약값을 저장합니다.
+     */
     FVector4 mShadowFlags{1.0f, 0.0f, 0.0f, 0.0f};
     ReflectProperty(mShadowFlags, "ShadowFlags", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 

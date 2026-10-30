@@ -6,24 +6,15 @@
 
 #include "Engine/UStaticMesh.h"
 #include "Core/FilePath.h"
-#include "FMeshImportIOSystem.h"
+#include "Engine/Import/IMeshImporter.h"
+#include "Engine/Import/FMeshImportResult.h"
 
 #include <algorithm>
-#include <assimp/Importer.hpp>
-#include <assimp/config.h>
-#include <assimp/postprocess.h>
-#include <assimp/scene.h>
-#include <assimp/material.h>
 #include <cmath>
 #include <limits>
 #include <string>
 #include <utility>
 
-/**
- * @brief 외부 메시 파일을 가져오는 Assimp 타입을 참조합니다.
- * @namespace Assimp
- */
-using namespace Assimp;
 using namespace Microsoft::WRL;
 
 UStaticMesh::UStaticMesh() = default;
@@ -40,143 +31,11 @@ bool UStaticMesh::LoadFromFile(const std::filesystem::path& MeshPath) {
 }
 
 bool UStaticMesh::LoadFromFile(const std::filesystem::path& MeshPath, FString& Error) {
-    Error.clear();
-    if (MeshPath.empty()) {
-        Error = "A mesh source path is required";
+    FMeshImportResult Imported{};
+    if (!IMeshImporter::GetDefault().Import(MeshPath, Imported, Error)) {
         return false;
     }
-
-    Importer MeshImporter{};
-    MeshImporter.SetIOHandler(new FMeshImportIOSystem{});
-    MeshImporter.SetPropertyInteger(AI_CONFIG_PP_SBP_REMOVE, aiPrimitiveType_POINT | aiPrimitiveType_LINE);
-    MeshImporter.SetPropertyBool(AI_CONFIG_PP_PTV_KEEP_HIERARCHY, true);
-    MeshImporter.SetPropertyBool(AI_CONFIG_PP_FID_IGNORE_TEXTURECOORDS, true);
-    const FString ImportPath{FilePath::ToUtf8(MeshPath)};
-    constexpr Uint32 ImportFlags{aiProcess_Triangulate | aiProcess_JoinIdenticalVertices | aiProcess_GenSmoothNormals | aiProcess_CalcTangentSpace | aiProcess_SortByPType | aiProcess_PreTransformVertices | aiProcess_ConvertToLeftHanded | aiProcess_FindInvalidData | aiProcess_ValidateDataStructure};
-    const aiScene* Scene{MeshImporter.ReadFile(ImportPath, ImportFlags)};
-
-    if (Scene == nullptr || (Scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE) != 0 || !Scene->HasMeshes()) {
-        Error = Scene == nullptr ? MeshImporter.GetErrorString() : "The source contains no complete mesh data";
-        return false;
-    }
-
-    constexpr std::size_t MaximumBytes{std::numeric_limits<Uint32>::max()};
-    const std::size_t MaximumVertices{MaximumBytes / GetTangentStride()};
-    constexpr std::size_t MaximumIndices{MaximumBytes / sizeof(Uint32)};
-    std::size_t VertexCount{};
-    std::size_t IndexCount{};
-    Uint32 UVChannelCount{};
-
-    for (Uint32 MeshIndex{}; MeshIndex < Scene->mNumMeshes; ++MeshIndex) {
-        const aiMesh& SourceMesh{*Scene->mMeshes[MeshIndex]};
-
-        if (!SourceMesh.HasPositions() || !SourceMesh.HasFaces() || SourceMesh.mNumVertices > MaximumVertices - VertexCount || SourceMesh.mNumFaces > (MaximumIndices - IndexCount) / 3) {
-            Error = "The source contains an empty mesh or exceeds mesh buffer limits";
-            return false;
-        }
-
-        VertexCount += SourceMesh.mNumVertices;
-        IndexCount += static_cast<std::size_t>(SourceMesh.mNumFaces) * 3;
-
-        for (Uint32 Channel{}; Channel < AI_MAX_NUMBER_OF_TEXTURECOORDS; ++Channel) {
-            if (SourceMesh.HasTextureCoords(Channel)) {
-                UVChannelCount = std::max(UVChannelCount, Channel + 1);
-            }
-        }
-    }
-
-    const std::size_t UVStride{std::max<std::size_t>(1, UVChannelCount) * sizeof(float) * 2};
-
-    if (VertexCount == 0 || IndexCount == 0 || UVStride > D3D11_REQ_MULTI_ELEMENT_STRUCTURE_SIZE_IN_BYTES || VertexCount > MaximumBytes / UVStride) {
-        Error = "The source contains no triangles or exceeds mesh buffer limits";
-        return false;
-    }
-
-    FMeshData MeshData{};
-    TArray<FVector>& Positions{MeshData.GetPositions()};
-    TArray<FVector>& Normals{MeshData.GetNormals()};
-    TArray<FVector4>& Tangents{MeshData.GetTangents()};
-    TArray<TArray<FVector2>>& UVChannels{MeshData.GetUVChannels()};
-    TArray<FVector4>& Colors{MeshData.GetColors()};
-    TArray<Uint32>& Indices{MeshData.GetIndices()};
-    Positions.reserve(VertexCount);
-    Normals.reserve(VertexCount);
-    Tangents.reserve(VertexCount);
-    Colors.reserve(VertexCount);
-    Indices.reserve(IndexCount);
-    UVChannels.resize(UVChannelCount);
-
-    for (TArray<FVector2>& Channel : UVChannels) {
-        Channel.reserve(VertexCount);
-    }
-
-    for (Uint32 MaterialIndex{}; MaterialIndex < Scene->mNumMaterials; ++MaterialIndex) {
-        aiString Name{};
-        Scene->mMaterials[MaterialIndex]->Get(AI_MATKEY_NAME, Name);
-        MeshData.GetMaterialSlots().emplace_back(Name.C_Str(), FString{});
-    }
-
-    for (Uint32 MeshIndex{}; MeshIndex < Scene->mNumMeshes; ++MeshIndex) {
-        const aiMesh& SourceMesh{*Scene->mMeshes[MeshIndex]};
-        const Uint32 BaseVertex{static_cast<Uint32>(Positions.size())};
-        const Uint32 FirstIndex{static_cast<Uint32>(Indices.size())};
-
-        for (Uint32 VertexIndex{}; VertexIndex < SourceMesh.mNumVertices; ++VertexIndex) {
-            const aiVector3D& Position{SourceMesh.mVertices[VertexIndex]};
-            Positions.push_back({Position.x, Position.y, Position.z});
-            const FVector Normal{SourceMesh.HasNormals() ? FVector{SourceMesh.mNormals[VertexIndex].x, SourceMesh.mNormals[VertexIndex].y, SourceMesh.mNormals[VertexIndex].z}.Normalized() : FVector{0.0f, 0.0f, 1.0f}};
-            Normals.push_back(Normal);
-            const FVector Axis{std::abs(Normal.z) < 0.99f ? FVector{0.0f, 0.0f, 1.0f} : FVector{0.0f, 1.0f, 0.0f}};
-            FVector Tangent{Axis.Cross(Normal).Normalized()};
-            float Handedness{1.0f};
-
-            if (SourceMesh.HasTangentsAndBitangents()) {
-                const FVector SourceTangent{SourceMesh.mTangents[VertexIndex].x, SourceMesh.mTangents[VertexIndex].y, SourceMesh.mTangents[VertexIndex].z};
-                const FVector Bitangent{SourceMesh.mBitangents[VertexIndex].x, SourceMesh.mBitangents[VertexIndex].y, SourceMesh.mBitangents[VertexIndex].z};
-                FVector OrthogonalTangent{SourceTangent - Normal * Normal.Dot(SourceTangent)};
-
-                if (OrthogonalTangent.Normalize()) {
-                    Tangent = OrthogonalTangent;
-                    Handedness = Normal.Cross(Tangent).Dot(Bitangent) < 0.0f ? -1.0f : 1.0f;
-                }
-            }
-
-            Tangents.push_back({Tangent, Handedness});
-
-            if (SourceMesh.HasVertexColors(0)) {
-                const aiColor4D& Color{SourceMesh.mColors[0][VertexIndex]};
-                Colors.push_back({Color.r, Color.g, Color.b, Color.a});
-            } else {
-                Colors.push_back({1.0f, 1.0f, 1.0f, 1.0f});
-            }
-
-            for (Uint32 Channel{}; Channel < UVChannelCount; ++Channel) {
-                const FVector2 UV{SourceMesh.HasTextureCoords(Channel) ? FVector2{SourceMesh.mTextureCoords[Channel][VertexIndex].x, SourceMesh.mTextureCoords[Channel][VertexIndex].y} : FVector2{}};
-                UVChannels[Channel].push_back(UV);
-            }
-        }
-
-        for (Uint32 FaceIndex{}; FaceIndex < SourceMesh.mNumFaces; ++FaceIndex) {
-            const aiFace& Face{SourceMesh.mFaces[FaceIndex]};
-
-            if (Face.mNumIndices != 3) {
-                Error = "The source contains a face that could not be triangulated";
-                return false;
-            }
-
-            for (Uint32 Corner{}; Corner < 3; ++Corner) {
-                if (Face.mIndices[Corner] >= SourceMesh.mNumVertices) {
-                    Error = "The source contains an invalid vertex index";
-                    return false;
-                }
-
-                Indices.push_back(BaseVertex + Face.mIndices[Corner]);
-            }
-        }
-        MeshData.GetSubMeshes().emplace_back(FirstIndex, static_cast<Uint32>(SourceMesh.mNumFaces * 3), SourceMesh.mMaterialIndex);
-    }
-
-    if (!SetMeshData(std::move(MeshData))) {
+    if (!SetMeshData(std::move(Imported.GetMeshData()))) {
         Error = "The source contains invalid vertex attributes or mesh sections";
         return false;
     }

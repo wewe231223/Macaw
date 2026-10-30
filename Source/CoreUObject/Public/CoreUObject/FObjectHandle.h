@@ -30,7 +30,8 @@ public:
     ReflectStruct(FObjectHandle);
 
     /**
-     * @brief 슬롯 인덱스와 세대가 유효한 핸들 표현인지 검사합니다. 실제 객체 존재 여부는 레지스트리에서 확인해야 합니다.
+     * @brief 슬롯 인덱스와 세대가 유효한 핸들 표현인지 검사합니다. 실제 객체 존재 여부는 레지스트리에서 확인해야
+     * 합니다.
      * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
      * @note 객체 생존 여부는 FObjectRegistry::Resolve()로 별도 검사합니다.
      */

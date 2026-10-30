@@ -20,7 +20,8 @@ class FObjectDuplicationContext;
 /**
  * @brief 월드의 소유 그래프를 새로운 객체 식별자로 메모리 내 복제합니다.
  * @ingroup Engine
- * @note 런타임 상태와 렌더 장면은 공유하지 않습니다. 모든 객체를 만든 뒤 PostDuplicate()를 호출하여 사용자 참조를 재연결합니다.
+ * @note 런타임 상태와 렌더 장면은 공유하지 않습니다. 모든 객체를 만든 뒤 PostDuplicate()를 호출하여 사용자 참조를
+ * 재연결합니다.
  */
 class FWorldCloner {
 public:
@@ -50,7 +51,8 @@ public:
      * @param[out] Duplication 성공한 복제의 비소유 대응표이며 실패하면 비워집니다.
      * @param[out] Error 실패 원인이며 성공하면 비워집니다.
      * @return 엔진에 아직 등록되지 않은 정지 상태 컨텍스트의 단독 소유권이며 실패하면 nullptr입니다.
-     * @note Transient 필드와 UObject 식별자는 복사하지 않습니다. 지원하지 않는 프로퍼티나 참조 재연결 실패는 전체 복제를 취소합니다. 렌더 장면은 엔진이 인수할 때 별도로 할당합니다.
+     * @note Transient 필드와 UObject 식별자는 복사하지 않습니다. 지원하지 않는 프로퍼티나 참조 재연결 실패는 전체
+     * 복제를 취소합니다. 렌더 장면은 엔진이 인수할 때 별도로 할당합니다.
      */
     static std::unique_ptr<FWorldContext> Clone(const FWorldContext* Source, EWorldType Type, FObjectDuplicationContext* Duplication, FString& Error);
 

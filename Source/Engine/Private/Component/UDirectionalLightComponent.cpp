@@ -1,3 +1,9 @@
+/**
+ * @file UDirectionalLightComponent.cpp
+ * @brief 방향광과 캐스케이드 그림자 설정을 관리합니다.
+ * @ingroup Engine
+ */
+
 #include "Engine/Component/UDirectionalLightComponent.h"
 
 #include <cmath>

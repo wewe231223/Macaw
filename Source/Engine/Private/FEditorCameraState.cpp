@@ -1,4 +1,8 @@
-/** @file FEditorCameraState.cpp @brief 원근 편집 카메라의 검증과 직렬화입니다. @ingroup Engine */
+/**
+ * @file FEditorCameraState.cpp
+ * @brief 원근 편집 카메라의 검증과 직렬화입니다.
+ * @ingroup Engine
+ */
 #include "Engine/FEditorCameraState.h"
 #include "Core/Archive.h"
 

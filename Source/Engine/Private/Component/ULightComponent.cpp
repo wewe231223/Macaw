@@ -1,3 +1,9 @@
+/**
+ * @file ULightComponent.cpp
+ * @brief 광원의 그림자 생성 여부와 해상도·바이어스 설정을 관리합니다.
+ * @ingroup Engine
+ */
+
 #include "Engine/Component/ULightComponent.h"
 
 #include <cmath>

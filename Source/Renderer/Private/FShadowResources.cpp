@@ -1,3 +1,9 @@
+/**
+ * @file FShadowResources.cpp
+ * @brief 광원별 그림자 맵을 아틀라스에 렌더링하고 셰이더·미리보기 자원을 관리합니다.
+ * @ingroup Renderer
+ */
+
 #include "FShadowResources.h"
 
 #include "FScene.h"
@@ -13,16 +19,40 @@
 
 using namespace Microsoft::WRL;
 
+/**
+ * @brief 그림자 내장 셰이더와 아틀라스 구성에 사용하는 내부 도우미입니다.
+ */
 namespace {
+    /**
+     * @brief Direct3D 11에서 지원하는 그림자 아틀라스 한 변의 최대 픽셀 수입니다.
+     */
     constexpr Uint32 AtlasSize{D3D11_REQ_TEXTURE2D_U_OR_V_DIMENSION};
+    /**
+     * @brief 그림자 타일의 각 가장자리에 확보하는 보호 픽셀 수입니다.
+     */
     constexpr Uint32 Guard{4};
+    /**
+     * @brief 그림자 깊이와 아틀라스 미리보기 패스의 내장 HLSL 소스입니다.
+     */
     constexpr char ShadowShader[]{"cbuffer ObjectConstants : register(b0) { row_major float4x4 World; };" "cbuffer ShadowMatrix : register(b1) { row_major float4x4 ViewProjection; };" "float4 DepthMain(float3 Position : POSITION) : SV_POSITION { return mul(mul(float4(Position, 1), World), ViewProjection); }" "struct FOutput { float4 mPosition : SV_POSITION; float2 mUV : TEXCOORD0; };" "FOutput PreviewVertex(uint Index : SV_VertexID) { FOutput Output = {(FOutput)0}; Output.mUV = float2((Index << 1) & 2, Index & 2); Output.mPosition = float4(Output.mUV * float2(2, -2) + float2(-1, 1), 0, 1); return Output; }" "Texture2D<float> Atlas : register(t5);" "float4 PreviewPixel(FOutput Input) : SV_TARGET { uint Width = {0}; uint Height = {0}; Atlas.GetDimensions(Width, Height); float Depth = {Atlas.Load(int3(min(uint2(Input.mUV * float2(Width, Height)), uint2(Width - 1, Height - 1)), 0))}; float Value = {pow(saturate(Depth), 32)}; return float4(Value, Value, Value, 1); }"};
 
+    /**
+     * @brief 내장 그림자 HLSL의 지정한 진입점을 컴파일합니다.
+     * @param[in] Entry 컴파일할 HLSL 진입점 이름입니다.
+     * @param[in] Profile 컴파일 대상 셰이더 프로필입니다.
+     * @param[out] Code 생성한 셰이더 바이트코드를 받을 COM 포인터입니다.
+     * @return 셰이더 바이트코드 생성에 성공하면 true입니다.
+     */
     bool CompileShadow(const char* Entry, const char* Profile, ComPtr<ID3DBlob>& Code) {
         ComPtr<ID3DBlob> Errors{};
         return SUCCEEDED(D3DCompile(ShadowShader, sizeof(ShadowShader) - 1, "ShadowAtlas", nullptr, nullptr, Entry, Profile, D3DCOMPILE_ENABLE_STRICTNESS | D3DCOMPILE_OPTIMIZATION_LEVEL3, 0, Code.GetAddressOf(), Errors.GetAddressOf()));
     }
 
+    /**
+     * @brief 광원 방향과 평행하지 않은 뷰 행렬용 위쪽 축을 선택합니다.
+     * @param[in] Direction 광원이 비추는 월드 공간 방향입니다.
+     * @return 안정적인 LookTo() 계산에 사용할 월드 Y축 또는 Z축입니다.
+     */
     FVector LightUp(const FVector& Direction) {
         return std::abs(Direction.z) > 0.95f ? FVector{0.0f, 1.0f, 0.0f} : FVector{0.0f, 0.0f, 1.0f};
     }

@@ -171,39 +171,57 @@ public:
     bool mFast{};
     ReflectProperty(mFast, "Fast", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 
-    /** @brief 현재 프레임에 가운데 마우스 버튼을 누른 상태입니다. */
+    /**
+     * @brief 현재 프레임에 가운데 마우스 버튼을 누른 상태입니다.
+     */
     bool mMiddlePressed{};
     ReflectProperty(mMiddlePressed, "MiddlePressed", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 
-    /** @brief 현재 프레임에 가운데 마우스 버튼을 놓은 상태입니다. */
+    /**
+     * @brief 현재 프레임에 가운데 마우스 버튼을 놓은 상태입니다.
+     */
     bool mMiddleReleased{};
     ReflectProperty(mMiddleReleased, "MiddleReleased", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 
-    /** @brief Ctrl 키가 눌려 다중 선택을 요청하는 상태입니다. */
+    /**
+     * @brief Ctrl 키가 눌려 다중 선택을 요청하는 상태입니다.
+     */
     bool mControl{};
     ReflectProperty(mControl, "Control", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 
-    /** @brief W 키로 이동 모드를 요청한 상태입니다. */
+    /**
+     * @brief W 키로 이동 모드를 요청한 상태입니다.
+     */
     bool mTranslateMode{};
     ReflectProperty(mTranslateMode, "TranslateMode", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 
-    /** @brief E 키로 회전 모드를 요청한 상태입니다. */
+    /**
+     * @brief E 키로 회전 모드를 요청한 상태입니다.
+     */
     bool mRotateMode{};
     ReflectProperty(mRotateMode, "RotateMode", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 
-    /** @brief R 키로 스케일 모드를 요청한 상태입니다. */
+    /**
+     * @brief R 키로 스케일 모드를 요청한 상태입니다.
+     */
     bool mScaleMode{};
     ReflectProperty(mScaleMode, "ScaleMode", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 
-    /** @brief Q 키로 선택 전용 모드를 요청한 상태입니다. */
+    /**
+     * @brief Q 키로 선택 전용 모드를 요청한 상태입니다.
+     */
     bool mSelectMode{};
     ReflectProperty(mSelectMode, "SelectMode", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 
-    /** @brief Tab 키로 월드와 로컬 좌표계 전환을 요청한 상태입니다. */
+    /**
+     * @brief Tab 키로 월드와 로컬 좌표계 전환을 요청한 상태입니다.
+     */
     bool mToggleSpace{};
     ReflectProperty(mToggleSpace, "ToggleSpace", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 
-    /** @brief X 키로 현재 변환 모드의 스냅 전환을 요청한 상태입니다. */
+    /**
+     * @brief X 키로 현재 변환 모드의 스냅 전환을 요청한 상태입니다.
+     */
     bool mToggleSnap{};
     ReflectProperty(mToggleSnap, "ToggleSnap", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 

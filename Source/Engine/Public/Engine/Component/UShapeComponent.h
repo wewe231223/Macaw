@@ -15,9 +15,14 @@
 
 class FPrimitiveDrawInterface;
 
-/** @brief 충돌 형상·접촉 이벤트와 에디터 보조 선을 제공하는 기본 컴포넌트입니다. */
+/**
+ * @brief 충돌 형상·접촉 이벤트와 에디터 보조 선을 제공하는 기본 컴포넌트입니다.
+ */
 class UShapeComponent : public UPrimitiveComponent {
 public:
+    /**
+     * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
+     */
     ReflectTypes(UShapeComponent, UPrimitiveComponent);
     /**
      * @brief 겹친 컴포넌트를 전달하는 이벤트 시그니처입니다.
@@ -136,6 +141,9 @@ public:
     float GetShapeScale() const;
 
 private:
+    /**
+     * @brief 생성된 멤버 등록 함수와 리플렉션 빌더의 접근 권한입니다.
+     */
     ReflectMembers();
     /**
      * @brief 현재 표시·에셋 상태에서 렌더 프록시를 생성할지 판정합니다.

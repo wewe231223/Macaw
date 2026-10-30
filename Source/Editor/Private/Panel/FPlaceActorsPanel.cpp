@@ -1,3 +1,9 @@
+/**
+ * @file FPlaceActorsPanel.cpp
+ * @brief 검색과 분류를 통해 액터 프리셋을 배치하는 에디터 패널입니다.
+ * @ingroup Editor
+ */
+
 #include "Editor/Panel/FPlaceActorsPanel.h"
 #include "Editor/FEditorContext.h"
 #include "Editor/FAssetDragDrop.h"

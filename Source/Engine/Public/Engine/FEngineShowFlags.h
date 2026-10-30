@@ -8,9 +8,14 @@
 
 #include "Core/ReflectionMacros.h"
 
-/** @brief 뷰포트마다 독립적으로 적용하는 장면 및 보조 표시 필터입니다. */
+/**
+ * @brief 뷰포트마다 독립적으로 적용하는 장면 및 보조 표시 필터입니다.
+ */
 struct FEngineShowFlags {
 public:
+    /**
+     * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
+     */
     ReflectTypes(FEngineShowFlags);
 
 public:
@@ -21,6 +26,9 @@ public:
     ReflectStruct(FEngineShowFlags);
 
 private:
+    /**
+     * @brief 생성된 멤버 등록 함수와 리플렉션 빌더의 접근 권한입니다.
+     */
     ReflectMembers();
 
 public:
@@ -29,10 +37,19 @@ public:
      */
     bool mLightIcons{true};
     ReflectProperty(mLightIcons, "LightIcons", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /**
+     * @brief 현재 뷰에서 그림자 렌더링과 샘플링을 사용할지 나타냅니다.
+     */
     bool mShadows{true};
     ReflectProperty(mShadows, "Shadows", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /**
+     * @brief 광원 방향·반경·원뿔 보조선의 표시 여부입니다.
+     */
     bool mLightVisualizers{true};
     ReflectProperty(mLightVisualizers, "LightVisualizers", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    /**
+     * @brief 장면 프리미티브의 렌더링 여부입니다.
+     */
     bool mPrimitives{true};
     ReflectProperty(mPrimitives, "Primitives", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
     /**

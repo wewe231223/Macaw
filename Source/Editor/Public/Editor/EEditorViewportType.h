@@ -13,19 +13,33 @@
  * @brief 원근 및 여섯 정사영 카메라 방향입니다.
  */
 enum class EEditorViewportType : Uint8 {
-    /** @brief 자유 이동하는 원근 카메라 뷰입니다. */
+    /**
+     * @brief 자유 이동하는 원근 카메라 뷰입니다.
+     */
     Perspective,
-    /** @brief 위에서 내려다보는 정사영 뷰입니다. */
+    /**
+     * @brief 위에서 내려다보는 정사영 뷰입니다.
+     */
     Top,
-    /** @brief 아래에서 올려다보는 정사영 뷰입니다. */
+    /**
+     * @brief 아래에서 올려다보는 정사영 뷰입니다.
+     */
     Bottom,
-    /** @brief 정면 정사영 뷰입니다. */
+    /**
+     * @brief 정면 정사영 뷰입니다.
+     */
     Front,
-    /** @brief 후면 정사영 뷰입니다. */
+    /**
+     * @brief 후면 정사영 뷰입니다.
+     */
     Back,
-    /** @brief 좌측 정사영 뷰입니다. */
+    /**
+     * @brief 좌측 정사영 뷰입니다.
+     */
     Left,
-    /** @brief 우측 정사영 뷰입니다. */
+    /**
+     * @brief 우측 정사영 뷰입니다.
+     */
     Right
 };
 
@@ -35,7 +49,8 @@ enum class EEditorViewportType : Uint8 {
  */
 ReflectEnum(EEditorViewportType, Perspective, Top, Bottom, Front, Back, Left, Right);
 
-/** @fn UEnum* GetNativeEnum(TNativeEnum<EEditorViewportType>)
+/**
+ * @fn UEnum* GetNativeEnum(TNativeEnum<EEditorViewportType>)
  * @brief 타입 태그로 뷰 방향의 열거형 메타데이터를 조회합니다.
  * @return 등록된 열거형 메타데이터의 비소유 주소입니다.
  */

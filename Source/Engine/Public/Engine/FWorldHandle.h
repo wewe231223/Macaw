@@ -14,7 +14,8 @@
 /**
  * @brief 엔진이 소유한 월드를 슬롯과 세대로 식별하는 비소유 핸들입니다.
  * @ingroup Engine
- * @note 세대는 프로세스 전체에서 발급되어 다른 엔진이나 재사용된 슬롯의 월드와 구분됩니다. 실제 생존 여부는 UEngine::GetWorld(FWorldHandle)로 확인합니다.
+ * @note 세대는 프로세스 전체에서 발급되어 다른 엔진이나 재사용된 슬롯의 월드와 구분됩니다. 실제 생존 여부는
+ * UEngine::GetWorld(FWorldHandle)로 확인합니다.
  */
 class FWorldHandle {
 public:

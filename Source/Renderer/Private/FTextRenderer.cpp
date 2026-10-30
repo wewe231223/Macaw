@@ -1,4 +1,8 @@
-/** @file FTextRenderer.cpp @brief 텍스트 배치, 정점 업로드와 거리 필드 렌더링을 구현합니다. @ingroup Renderer */
+/**
+ * @file FTextRenderer.cpp
+ * @brief 텍스트 배치, 정점 업로드와 거리 필드 렌더링을 구현합니다.
+ * @ingroup Renderer
+ */
 
 #include "FTextRenderer.h"
 #include "RendererStats.h"

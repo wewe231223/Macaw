@@ -12,7 +12,10 @@
 #include <cstddef>
 #include <type_traits>
 
-/** @brief 에디터 메시의 변환과 색상을 전달하는 GPU 상수입니다. @ingroup Renderer */
+/**
+ * @brief 에디터 메시의 변환과 색상을 전달하는 GPU 상수입니다.
+ * @ingroup Renderer
+ */
 struct FEditorMeshConstants {
 public:
     /**
@@ -21,7 +24,10 @@ public:
     ReflectTypes(FEditorMeshConstants);
 
 public:
-    /** @brief 정적 구조체 메타데이터를 반환합니다. @return 등록된 타입 정보입니다. */
+    /**
+     * @brief 정적 구조체 메타데이터를 반환합니다.
+     * @return 등록된 타입 정보입니다.
+     */
     ReflectStruct(FEditorMeshConstants);
 
 private:
@@ -31,10 +37,14 @@ private:
     ReflectMembers();
 
 public:
-    /** @brief 에디터 메시 정점 셰이더가 로컬 위치를 변환하는 월드 행렬입니다. */
+    /**
+     * @brief 에디터 메시 정점 셰이더가 로컬 위치를 변환하는 월드 행렬입니다.
+     */
     FMatrix mWorld{};
     ReflectProperty(mWorld, "World", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
-    /** @brief 에디터 메시 픽셀 셰이더에 전달할 RGB 색상과 알파 값입니다. */
+    /**
+     * @brief 에디터 메시 픽셀 셰이더에 전달할 RGB 색상과 알파 값입니다.
+     */
     std::array<float, 4> mColor{};
     ReflectProperty(mColor, "Color", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 };

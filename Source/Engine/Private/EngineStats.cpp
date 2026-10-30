@@ -1,5 +1,14 @@
+/**
+ * @file EngineStats.cpp
+ * @brief 엔진·월드·에셋 처리의 시간과 개수를 측정하는 통계 항목입니다.
+ * @ingroup Engine
+ */
+
 #include "Engine/EngineStats.h"
 
+/**
+ * @brief 엔진·월드·에셋 처리의 시간과 개수를 측정하는 통계 항목입니다.
+ */
 namespace EngineStats {
     FStat EngineTick{"unit", "Engine tick CPU", EStatUnit::Milliseconds};
     FStat Synchronize{"unit", "Scene synchronization CPU", EStatUnit::Milliseconds};

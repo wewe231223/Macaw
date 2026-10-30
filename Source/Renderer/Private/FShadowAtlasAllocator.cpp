@@ -1,3 +1,9 @@
+/**
+ * @file FShadowAtlasAllocator.cpp
+ * @brief 정사각형 영역을 사분할하여 그림자 아틀라스의 공간을 할당합니다.
+ * @ingroup Renderer
+ */
+
 #include "FShadowAtlasAllocator.h"
 
 #include <bit>

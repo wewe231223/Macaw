@@ -11,9 +11,14 @@
 
 class UTexture;
 
-/** @brief 카메라를 향하는 텍스처 스프라이트이며 비활성 정렬 시 로컬 YZ 평면을 사용합니다. */
+/**
+ * @brief 카메라를 향하는 텍스처 스프라이트이며 비활성 정렬 시 로컬 YZ 평면을 사용합니다.
+ */
 class UBillboardComponent : public UPrimitiveComponent {
 public:
+    /**
+     * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
+     */
     ReflectTypes(UBillboardComponent, UPrimitiveComponent);
 
 public:
@@ -147,6 +152,9 @@ public:
     void Serialize(FArchive& Archive) override;
 
 private:
+    /**
+     * @brief 생성된 멤버 등록 함수와 리플렉션 빌더의 접근 권한입니다.
+     */
     ReflectMembers();
     /**
      * @brief 월드에 등록할 때 저장된 Sprite 경로를 해석하고 렌더 상태 갱신을 예약합니다.

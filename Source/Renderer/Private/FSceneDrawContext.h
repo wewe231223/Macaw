@@ -10,6 +10,7 @@
 #include "Engine/UStaticMesh.h"
 
 class FRenderer;
+class FDynamicVertexBuffer;
 
 /**
  * @brief 장면 렌더링에 빌려 쓰는 장치 컨텍스트, 메시 및 파이프라인 리소스입니다.
@@ -55,4 +56,10 @@ public:
      */
     ID3D11Buffer* mViewBuffer{};
     ReflectProperty(mViewBuffer, "ViewBuffer", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
+    /**
+     * @brief 메시 인스턴스의 월드 행렬을 업로드하는 동적 버퍼의 비소유 주소입니다.
+     */
+    FDynamicVertexBuffer* mInstanceBuffer{};
+    ReflectProperty(mInstanceBuffer, "InstanceBuffer", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 };

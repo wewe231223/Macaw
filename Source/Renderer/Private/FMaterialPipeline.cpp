@@ -5,16 +5,18 @@
  */
 
 #include "FMaterialPipeline.h"
+#include "FObjectConstants.h"
 
 #include <array>
 #include <utility>
 
 using namespace Microsoft::WRL;
 
-FMaterialPipeline::FMaterialPipeline(std::shared_ptr<const FShader> VertexCode, std::shared_ptr<const FShader> PixelCode, bool TwoSided)
+FMaterialPipeline::FMaterialPipeline(std::shared_ptr<const FShader> VertexCode, std::shared_ptr<const FShader> PixelCode, bool TwoSided, bool Instanced)
 	: mVertexCode{std::move(VertexCode)},
 	  mPixelCode{std::move(PixelCode)},
-	  mTwoSided{TwoSided} {
+	  mTwoSided{TwoSided},
+	  mInstanced{Instanced} {
 }
 
 FMaterialPipeline::~FMaterialPipeline() = default;
@@ -27,6 +29,10 @@ bool FMaterialPipeline::HasResources() const {
     return mVertexShader != nullptr && mPixelShader != nullptr && mInputLayout != nullptr && mRasterizer != nullptr;
 }
 
+bool FMaterialPipeline::IsInstanced() const {
+    return mInstanced;
+}
+
 bool FMaterialPipeline::CreateResources(ID3D11Device* Device, FString& Error) {
     Error.clear();
     if (Device == nullptr || mVertexCode == nullptr || mPixelCode == nullptr) {
@@ -37,7 +43,15 @@ bool FMaterialPipeline::CreateResources(ID3D11Device* Device, FString& Error) {
     const auto PixelCompilation{mPixelCode->GetCompilation()};
     const std::span<const Uint8> VertexBytes{VertexCompilation->mByteCode};
     const std::span<const Uint8> PixelBytes{PixelCompilation->mByteCode};
-    const std::array<D3D11_INPUT_ELEMENT_DESC, 5> Elements{{{"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0}, {"NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 1, 0, D3D11_INPUT_PER_VERTEX_DATA, 0}, {"TANGENT", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 12, D3D11_INPUT_PER_VERTEX_DATA, 0}, {"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 2, 0, D3D11_INPUT_PER_VERTEX_DATA, 0}, {"COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 3, 0, D3D11_INPUT_PER_VERTEX_DATA, 0}}};
+    TArray<D3D11_INPUT_ELEMENT_DESC> Elements{{"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0}, {"NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 1, 0, D3D11_INPUT_PER_VERTEX_DATA, 0}, {"TANGENT", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 12, D3D11_INPUT_PER_VERTEX_DATA, 0}, {"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 2, 0, D3D11_INPUT_PER_VERTEX_DATA, 0}, {"COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 3, 0, D3D11_INPUT_PER_VERTEX_DATA, 0}};
+    if (mInstanced) {
+        for (UINT Row{}; Row < 4; ++Row) {
+            Elements.push_back({"INSTANCE_WORLD", Row, DXGI_FORMAT_R32G32B32A32_FLOAT, 4, static_cast<UINT>(offsetof(FObjectConstants, mWorld)) + Row * 16, D3D11_INPUT_PER_INSTANCE_DATA, 1});
+            Elements.push_back({"INSTANCE_INVERSE", Row, DXGI_FORMAT_R32G32B32A32_FLOAT, 4, static_cast<UINT>(offsetof(FObjectConstants, mWorldInverse)) + Row * 16, D3D11_INPUT_PER_INSTANCE_DATA, 1});
+        }
+        Elements.push_back({"INSTANCE_UV", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 4, static_cast<UINT>(offsetof(FObjectConstants, mUVTransform)), D3D11_INPUT_PER_INSTANCE_DATA, 1});
+        Elements.push_back({"INSTANCE_SHADOW", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 4, static_cast<UINT>(offsetof(FObjectConstants, mShadowFlags)), D3D11_INPUT_PER_INSTANCE_DATA, 1});
+    }
     ComPtr<ID3D11VertexShader> Vertex{};
     ComPtr<ID3D11PixelShader> Pixel{};
     ComPtr<ID3D11InputLayout> Layout{};

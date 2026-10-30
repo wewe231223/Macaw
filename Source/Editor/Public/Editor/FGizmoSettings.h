@@ -31,7 +31,10 @@ enum class EGizmoSetting {
     Size
 };
 
-/** @brief 기즈모 스냅의 활성 상태·간격과 화면 크기 설정입니다. @ingroup Editor */
+/**
+ * @brief 기즈모 스냅의 활성 상태·간격과 화면 크기 설정입니다.
+ * @ingroup Editor
+ */
 struct FGizmoSettings {
 public:
     /**
@@ -40,7 +43,10 @@ public:
     ReflectTypes(FGizmoSettings);
 
 public:
-    /** @brief 정적 구조체 메타데이터를 반환합니다. @return 등록된 타입 정보입니다. */
+    /**
+     * @brief 정적 구조체 메타데이터를 반환합니다.
+     * @return 등록된 타입 정보입니다.
+     */
     ReflectStruct(FGizmoSettings);
 
 private:
@@ -50,25 +56,39 @@ private:
     ReflectMembers();
 
 public:
-    /** @brief 이동 거리를 설정한 간격으로 양자화할지 지정합니다. */
+    /**
+     * @brief 이동 거리를 설정한 간격으로 양자화할지 지정합니다.
+     */
     bool mTranslationSnap{};
     ReflectProperty(mTranslationSnap, "TranslationSnap", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
-    /** @brief 회전 각도를 설정한 각도 간격으로 양자화할지 지정합니다. */
+    /**
+     * @brief 회전 각도를 설정한 각도 간격으로 양자화할지 지정합니다.
+     */
     bool mRotationSnap{};
     ReflectProperty(mRotationSnap, "RotationSnap", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
-    /** @brief 축 스케일 증가량이나 균일 배율 증가량을 단계로 양자화할지 지정합니다. */
+    /**
+     * @brief 축 스케일 증가량이나 균일 배율 증가량을 단계로 양자화할지 지정합니다.
+     */
     bool mScaleSnap{};
     ReflectProperty(mScaleSnap, "ScaleSnap", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
-    /** @brief 이동 스냅의 월드 거리 간격이며 유한한 양수일 때 적용합니다. */
+    /**
+     * @brief 이동 스냅의 월드 거리 간격이며 유한한 양수일 때 적용합니다.
+     */
     float mTranslationStep{1.0f};
     ReflectProperty(mTranslationStep, "TranslationStep", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
-    /** @brief 회전 스냅의 도 단위 간격이며 유한한 양수일 때 적용합니다. */
+    /**
+     * @brief 회전 스냅의 도 단위 간격이며 유한한 양수일 때 적용합니다.
+     */
     float mRotationStep{15.0f};
     ReflectProperty(mRotationStep, "RotationStep", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
-    /** @brief 스케일 스냅의 증가량 간격이며 유한한 양수일 때 적용합니다. */
+    /**
+     * @brief 스케일 스냅의 증가량 간격이며 유한한 양수일 때 적용합니다.
+     */
     float mScaleStep{0.1f};
     ReflectProperty(mScaleStep, "ScaleStep", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
-    /** @brief 화면에서 유지할 기즈모 크기의 배율이며 0.5에서 2 사이를 사용합니다. */
+    /**
+     * @brief 화면에서 유지할 기즈모 크기의 배율이며 0.5에서 2 사이를 사용합니다.
+     */
     float mSize{1.0f};
     ReflectProperty(mSize, "Size", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 };

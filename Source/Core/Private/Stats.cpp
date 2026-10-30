@@ -1,3 +1,9 @@
+/**
+ * @file Stats.cpp
+ * @brief 프레임 통계의 등록·기록·집계와 범위 기반 시간 측정을 제공합니다.
+ * @ingroup Core
+ */
+
 #include "Core/Stats.h"
 #include "Core/Memory.h"
 
@@ -7,14 +13,41 @@
 #include <stdexcept>
 #include <utility>
 
+/**
+ * @brief 프레임·메모리·객체 수 통계와 프레임 간격 측정 상태입니다.
+ */
 namespace {
+    /**
+     * @brief 프레젠테이션을 포함한 프레임 작업 시간를 측정하는 통계 항목입니다.
+     */
     FStat FrameTime{"unit", "Frame work incl. present", EStatUnit::Milliseconds, EStatMode::Gauge};
+    /**
+     * @brief 연속 프레임 시작 사이의 밀리초 간격를 측정하는 통계 항목입니다.
+     */
     FStat FrameInterval{"fps", "Frame interval", EStatUnit::Milliseconds, EStatMode::Gauge};
+    /**
+     * @brief 프레임 시작 간격으로 계산한 초당 프레임 수를 측정하는 통계 항목입니다.
+     */
     FStat FrameRate{"fps", "FPS", EStatUnit::Hertz, EStatMode::Gauge};
+    /**
+     * @brief 현재 살아 있는 UObject 수를 측정하는 통계 항목입니다.
+     */
     FStat LiveObjects{"scene", "Live UObjects (global)", EStatUnit::Count, EStatMode::Gauge};
+    /**
+     * @brief 프로세스에서 생성한 UObject 누적 수를 측정하는 통계 항목입니다.
+     */
     FStat CreatedObjects{"scene", "Created UObjects (global)", EStatUnit::Count, EStatMode::Gauge};
+    /**
+     * @brief 추적 중인 UObject 힙 바이트 수를 측정하는 통계 항목입니다.
+     */
     FStat HeapBytes{"memory", "UObject heap (tracked)", EStatUnit::Bytes, EStatMode::Gauge};
+    /**
+     * @brief UObject 힙 사용량의 최대 바이트 수를 측정하는 통계 항목입니다.
+     */
     FStat PeakHeapBytes{"memory", "Peak UObject heap", EStatUnit::Bytes, EStatMode::Gauge};
+    /**
+     * @brief 연속 프레임의 시작 간격을 계산하기 위한 이전 시작 시각입니다.
+     */
     std::chrono::steady_clock::time_point PreviousFrameStart{};
 }
 

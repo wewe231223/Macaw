@@ -1,4 +1,8 @@
-/** @file FAssetThumbnailCache.cpp @brief 구형 재질과 정적 메시 썸네일의 GPU 캐시 구현입니다. @ingroup Editor */
+/**
+ * @file FAssetThumbnailCache.cpp
+ * @brief 구형 재질과 정적 메시 썸네일의 GPU 캐시 구현입니다.
+ * @ingroup Editor
+ */
 #include "Editor/FAssetThumbnailCache.h"
 #include "Core/FilePath.h"
 #include "Core/Math/FRotator.h"

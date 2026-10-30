@@ -14,9 +14,14 @@
 
 struct FDrawLine;
 
-/** @brief 한 선분을 화면상의 두 삼각형으로 확장할 48바이트 인스턴스 데이터입니다. */
+/**
+ * @brief 한 선분을 화면상의 두 삼각형으로 확장할 48바이트 인스턴스 데이터입니다.
+ */
 struct FLineVertex {
 public:
+    /**
+     * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
+     */
     ReflectTypes(FLineVertex);
 
     /**
@@ -33,6 +38,9 @@ public:
     ReflectStruct(FLineVertex);
 
 private:
+    /**
+     * @brief 생성된 멤버 등록 함수와 리플렉션 빌더의 접근 권한입니다.
+     */
     ReflectMembers();
 
 public:

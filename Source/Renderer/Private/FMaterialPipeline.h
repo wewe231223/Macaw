@@ -11,9 +11,14 @@
 #include <d3d11.h>
 #include <wrl/client.h>
 
-/** @brief 머티리얼 셰이더와 양면 정책별 GPU 파이프라인을 관리합니다. */
+/**
+ * @brief 머티리얼 셰이더와 양면 정책별 GPU 파이프라인을 관리합니다.
+ */
 class FMaterialPipeline {
 public:
+    /**
+     * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
+     */
     ReflectTypes(FMaterialPipeline);
 
 public:
@@ -22,8 +27,9 @@ public:
      * @param[in] VertexCode 컴파일된 정점 셰이더 바이트코드입니다.
      * @param[in] PixelCode 컴파일된 픽셀 셰이더 바이트코드입니다.
      * @param[in] TwoSided 양면 렌더링을 사용할지 지정합니다.
+     * @param[in] Instanced 메시 인스턴스의 월드 행렬을 정점 입력으로 사용하려면 true입니다.
      */
-    FMaterialPipeline(std::shared_ptr<const FShader> VertexCode, std::shared_ptr<const FShader> PixelCode, bool TwoSided);
+    FMaterialPipeline(std::shared_ptr<const FShader> VertexCode, std::shared_ptr<const FShader> PixelCode, bool TwoSided, bool Instanced = false);
     /**
      * @brief 객체를 소멸하고 소유한 GPU 자원 또는 UV 제어 상태를 해제합니다.
      */
@@ -46,6 +52,11 @@ public:
      */
     bool HasResources() const;
     /**
+     * @brief 메시 인스턴스 데이터를 사용하는 파이프라인인지 반환합니다.
+     * @return 인스턴스 월드 행렬을 입력으로 사용하면 true입니다.
+     */
+    bool IsInstanced() const;
+    /**
      * @brief 필요한 GPU 자원을 생성하거나 변경된 상수를 업로드합니다.
      * @param[in] Device 자원 생성에 사용할 Direct3D 장치의 비소유 주소입니다.
      * @param[out] Error 실패 시 원인을 받을 문자열입니다.
@@ -59,6 +70,9 @@ public:
     void Bind(ID3D11DeviceContext* Context) const;
 
 private:
+    /**
+     * @brief 생성된 멤버 등록 함수와 리플렉션 빌더의 접근 권한입니다.
+     */
     ReflectMembers();
 
 private:
@@ -77,6 +91,12 @@ private:
      */
     bool mTwoSided{};
     ReflectProperty(mTwoSided, "TwoSided", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
+    /**
+     * @brief 인스턴스 월드 행렬을 사용하는 메시 파이프라인인지 나타냅니다.
+     */
+    bool mInstanced{};
+    ReflectProperty(mInstanced, "Instanced", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
     /**
      * @brief GPU 생성에 사용한 정점 셰이더 개정 번호입니다.
      */

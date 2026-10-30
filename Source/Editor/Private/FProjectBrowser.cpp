@@ -28,7 +28,9 @@
  */
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND Window, UINT Message, WPARAM WParam, LPARAM LParam);
 
-/** @brief 프로젝트 선택 UI와 최근 프로젝트 목록의 내부 보조 함수입니다. */
+/**
+ * @brief 프로젝트 선택 UI와 최근 프로젝트 목록의 내부 보조 함수입니다.
+ */
 namespace {
     /**
      * @brief Windows의 알려진 폴더 식별자를 실제 경로로 해석합니다.

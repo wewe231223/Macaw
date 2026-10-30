@@ -16,13 +16,21 @@
  * @brief 검사할 충돌 형상 종류입니다.
  */
 enum class ECollisionShape : Uint8 {
-    /** @brief 충돌 형상을 사용하지 않습니다. */
+    /**
+     * @brief 충돌 형상을 사용하지 않습니다.
+     */
     None,
-    /** @brief 축별 반길이를 갖는 상자 형상입니다. */
+    /**
+     * @brief 축별 반길이를 갖는 상자 형상입니다.
+     */
     Box,
-    /** @brief 반지름을 갖는 구 형상입니다. */
+    /**
+     * @brief 반지름을 갖는 구 형상입니다.
+     */
     Sphere,
-    /** @brief 선분 양 끝의 반구를 포함하는 캡슐 형상입니다. */
+    /**
+     * @brief 선분 양 끝의 반구를 포함하는 캡슐 형상입니다.
+     */
     Capsule
 };
 
@@ -32,14 +40,20 @@ enum class ECollisionShape : Uint8 {
  */
 ReflectEnum(ECollisionShape, None, Box, Sphere, Capsule);
 
-/** @fn UEnum* GetNativeEnum(TNativeEnum<ECollisionShape>)
+/**
+ * @fn UEnum* GetNativeEnum(TNativeEnum<ECollisionShape>)
  * @brief 타입 태그로 충돌 형상 종류의 열거형 메타데이터를 조회합니다.
  * @return 등록된 열거형 메타데이터의 비소유 주소입니다.
  */
 
-/** @brief 구·상자·캡슐의 로컬 치수를 담는 충돌 형상 값입니다. */
+/**
+ * @brief 구·상자·캡슐의 로컬 치수를 담는 충돌 형상 값입니다.
+ */
 struct FCollisionShape {
 public:
+    /**
+     * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
+     */
     ReflectTypes(FCollisionShape);
 
 public:
@@ -104,6 +118,9 @@ public:
     float GetHalfHeight() const;
 
 private:
+    /**
+     * @brief 생성된 멤버 등록 함수와 리플렉션 빌더의 접근 권한입니다.
+     */
     ReflectMembers();
 
 private:
@@ -129,9 +146,14 @@ private:
     ReflectProperty(mHalfHeight, "HalfHeight", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 };
 
-/** @brief 겹침 검사에서 구한 월드 접촉 법선·위치·침투 깊이입니다. */
+/**
+ * @brief 겹침 검사에서 구한 월드 접촉 법선·위치·침투 깊이입니다.
+ */
 struct FCollisionContact {
 public:
+    /**
+     * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
+     */
     ReflectTypes(FCollisionContact);
 
 public:
@@ -172,6 +194,9 @@ public:
     void SetPoint(const FVector& Value);
 
 private:
+    /**
+     * @brief 생성된 멤버 등록 함수와 리플렉션 빌더의 접근 권한입니다.
+     */
     ReflectMembers();
 
 private:
@@ -192,9 +217,14 @@ private:
     ReflectProperty(mPoint, "Point", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 };
 
-/** @brief 월드 캡슐의 중심 선분 두 끝점과 반지름입니다. */
+/**
+ * @brief 월드 캡슐의 중심 선분 두 끝점과 반지름입니다.
+ */
 struct FCapsuleSegment {
 public:
+    /**
+     * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
+     */
     ReflectTypes(FCapsuleSegment);
 
 public:
@@ -248,6 +278,9 @@ public:
     void SetRadius(float Value);
 
 private:
+    /**
+     * @brief 생성된 멤버 등록 함수와 리플렉션 빌더의 접근 권한입니다.
+     */
     ReflectMembers();
 
 private:
@@ -268,9 +301,14 @@ private:
     ReflectProperty(mRadius, "Radius", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 };
 
-/** @brief 월드 중심·직교 기저·반길이로 표현한 회전 상자입니다. */
+/**
+ * @brief 월드 중심·직교 기저·반길이로 표현한 회전 상자입니다.
+ */
 struct FOrientedBox {
 public:
+    /**
+     * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
+     */
     ReflectTypes(FOrientedBox);
 
 public:
@@ -324,6 +362,9 @@ public:
     void SetExtent(const FVector& Value);
 
 private:
+    /**
+     * @brief 생성된 멤버 등록 함수와 리플렉션 빌더의 접근 권한입니다.
+     */
     ReflectMembers();
 
 private:
@@ -344,9 +385,14 @@ private:
     ReflectProperty(mExtent, "Extent", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 };
 
-/** @brief 스윕 대상의 충돌 형상과 월드 위치·회전입니다. */
+/**
+ * @brief 스윕 대상의 충돌 형상과 월드 위치·회전입니다.
+ */
 struct FSweepTarget {
 public:
+    /**
+     * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
+     */
     ReflectTypes(FSweepTarget);
 
 public:
@@ -400,6 +446,9 @@ public:
     void SetRot(const FQuat& Value);
 
 private:
+    /**
+     * @brief 생성된 멤버 등록 함수와 리플렉션 빌더의 접근 권한입니다.
+     */
     ReflectMembers();
 
 private:
@@ -420,9 +469,14 @@ private:
     ReflectProperty(mRot, "Rot", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 };
 
-/** @brief 최초 스윕 충돌 여부·시간 비율·대상·접촉 정보입니다. */
+/**
+ * @brief 최초 스윕 충돌 여부·시간 비율·대상·접촉 정보입니다.
+ */
 struct FSweepResult {
 public:
+    /**
+     * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
+     */
     ReflectTypes(FSweepResult);
 
 public:
@@ -483,6 +537,9 @@ public:
     void SetContact(const FCollisionContact& Value);
 
 private:
+    /**
+     * @brief 생성된 멤버 등록 함수와 리플렉션 빌더의 접근 권한입니다.
+     */
     ReflectMembers();
 
 private:
@@ -513,7 +570,9 @@ private:
     ReflectProperty(mContact, "Contact", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 };
 
-/** @brief 구·상자·캡슐의 겹침과 스윕 질의를 제공합니다. */
+/**
+ * @brief 구·상자·캡슐의 겹침과 스윕 질의를 제공합니다.
+ */
 namespace Collision {
     /**
      * @brief 충돌 캡슐을 월드 중심 선분과 반지름으로 변환합니다.

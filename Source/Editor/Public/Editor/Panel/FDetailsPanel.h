@@ -44,7 +44,11 @@ public:
      * @return 등록된 타입 메타데이터의 비소유 주소입니다.
      */
     ReflectStruct(FDetailsPanel);
-    /** @brief 브라우저와 공유할 에셋 표시 서비스를 연결합니다. @param Catalog 프로젝트 표시 목록입니다. @param Thumbnails 썸네일 캐시입니다. */
+    /**
+     * @brief 브라우저와 공유할 에셋 표시 서비스를 연결합니다.
+     * @param Catalog 프로젝트 표시 목록입니다.
+     * @param Thumbnails 썸네일 캐시입니다.
+     */
     void SetAssetServices(FEditorAssetCatalog* Catalog, FAssetThumbnailCache* Thumbnails);
 
 private:
@@ -70,7 +74,13 @@ private:
      * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
      */
     bool DrawPropertyValue(const FProperty* Property, FPropertyValue& Value);
-    /** @brief 메시 또는 재질 선택과 드래그 앤 드롭을 표시합니다. @param Label 위젯 이름입니다. @param Path 선택할 Content 기준 경로입니다. @param Mesh 메시 선택기이면 true입니다. @return 선택 경로가 변경되면 true입니다. */
+    /**
+     * @brief 메시 또는 재질 선택과 드래그 앤 드롭을 표시합니다.
+     * @param Label 위젯 이름입니다.
+     * @param Path 선택할 Content 기준 경로입니다.
+     * @param Mesh 메시 선택기이면 true입니다.
+     * @return 선택 경로가 변경되면 true입니다.
+     */
     bool DrawAssetPicker(const char* Label, FString& Path, bool Mesh);
 
 private:
@@ -82,13 +92,19 @@ private:
 private:
     std::array<char, 128> mComponentSearch{};
     ReflectProperty(mComponentSearch, "ComponentSearch", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
-    /** @brief 브라우저와 동일한 에셋 목록입니다. */
+    /**
+     * @brief 브라우저와 동일한 에셋 목록입니다.
+     */
     FEditorAssetCatalog* mAssetCatalog{};
     ReflectProperty(mAssetCatalog, "AssetCatalog", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
-    /** @brief 브라우저와 동일한 썸네일 캐시입니다. */
+    /**
+     * @brief 브라우저와 동일한 썸네일 캐시입니다.
+     */
     FAssetThumbnailCache* mThumbnails{};
     ReflectProperty(mThumbnails, "Thumbnails", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
-    /** @brief 썸네일과 드롭다운을 표시하는 선택기입니다. */
+    /**
+     * @brief 썸네일과 드롭다운을 표시하는 선택기입니다.
+     */
     FAssetPicker mAssetPicker{};
     ReflectProperty(mAssetPicker, "AssetPicker", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 };

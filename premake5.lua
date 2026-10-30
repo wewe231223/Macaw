@@ -90,11 +90,22 @@ for _, Name in ipairs({ "Core", "CoreUObject", "Serialization", "RenderCore", "E
     end
     links(Modules[Name].Public)
     links(Modules[Name].Private)
+
+    if Name == "Engine" then
+        defines { "FBXSDK_SHARED" }
+    end
 end
 
 Configure("ImGui", "StaticLib")
     warnings "Off"
     files { "ThirdParty/ImGui/Private/imgui.cpp", "ThirdParty/ImGui/Private/imgui_draw.cpp", "ThirdParty/ImGui/Private/imgui_tables.cpp", "ThirdParty/ImGui/Private/imgui_widgets.cpp", "ThirdParty/ImGui/Private/imgui_impl_dx11.cpp", "ThirdParty/ImGui/Private/imgui_impl_win32.cpp", "ThirdParty/ImGui/Public/ImGui/**.h" }
+
+Configure("Shaders", "Utility")
+    files { "Templates/Project/Content/Shaders/**.hlsl", "Templates/Project/Content/Shaders/**.hlsli" }
+    vpaths { ["*"] = "Templates/Project/Content/Shaders" }
+    filter "files:**"
+        buildaction "None"
+    filter {}
 
 local function ConfigureExecutable(Name, Kind, Directory)
     Configure(Name, Kind)
@@ -115,6 +126,7 @@ local function ConfigureExecutable(Name, Kind, Directory)
     AddIncludes("Editor", {})
     AddIncludes("Renderer", {})
     links { "Editor", "Script", "Engine", "Renderer", "Platform", "Serialization", "RenderCore", "CoreUObject", "Core", "ImGui", "DirectXTex", "lua51", "d3d11", "dxgi", "d3dcompiler", "bcrypt", "user32", "gdi32", "dwmapi", "imm32", "ole32", "windowscodecs", "comdlg32", "shell32" }
+    links { "libfbxsdk" }
     filter "configurations:*Debug"
         libdirs { "Externals/bin/debug" }
     filter "configurations:*Release"
@@ -128,6 +140,12 @@ ConfigureExecutable("Macaw", "WindowedApp", "Source/App")
     postbuildcommands { '{COPYFILE} "%{wks.location}/vcpkg_installed/x64-windows/tools/luajit/lua51.dll" "%{cfg.targetdir}/lua51.dll"' }
 
 if _OPTIONS["with-tests"] then
+    Configure("FbxSdkCheck", "ConsoleApp")
+        files { "Tests/FbxSdkCheck/**.cpp" }
+        defines { "FBXSDK_SHARED" }
+        links { "libfbxsdk" }
+        debugdir "%{wks.location}"
+
     ConfigureExecutable("Week5Tests", "ConsoleApp", "Tests/Week5")
         includedirs { "Source/Renderer/Private" }
         postbuildcommands { '{COPYDIR} "%{wks.location}/Templates/Project" "%{cfg.targetdir}/Templates/Project"' }

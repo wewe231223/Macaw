@@ -133,9 +133,27 @@ public:
      */
     const FVector2& GetUVOffset() const;
 
+    /**
+     * @brief 프리미티브의 그림자 생성 여부를 반환합니다.
+     * @return 프리미티브의 그림자 생성 여부입니다.
+     */
     bool GetCastShadow() const;
+    /**
+     * @brief 프리미티브의 그림자 생성 여부를 검증하고 변경합니다.
+     * @param[in] CastShadow 프리미티브가 그림자를 생성하도록 설정하려면 true입니다.
+     * @return 입력값을 수락하고 상태를 갱신하면 true이며 잘못된 값이면 false입니다.
+     */
     bool SetCastShadow(bool CastShadow);
+    /**
+     * @brief 프리미티브의 그림자 수신 여부를 반환합니다.
+     * @return 프리미티브의 그림자 수신 여부입니다.
+     */
     bool GetReceiveShadow() const;
+    /**
+     * @brief 프리미티브의 그림자 수신 여부를 검증하고 변경합니다.
+     * @param[in] ReceiveShadow 프리미티브가 그림자를 받도록 설정하려면 true입니다.
+     * @return 입력값을 수락하고 상태를 갱신하면 true이며 잘못된 값이면 false입니다.
+     */
     bool SetReceiveShadow(bool ReceiveShadow);
 
 private:
@@ -157,8 +175,14 @@ private:
     bool mRenderStateDirty{true};
     ReflectProperty(mRenderStateDirty, "RenderStateDirty", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 
+    /**
+     * @brief 프리미티브의 그림자 생성 여부입니다.
+     */
     bool mCastShadow{true};
     ReflectAccessor(mCastShadow, GetCastShadow, SetCastShadow, "CastShadow", EPropertyFlags::Edit | EPropertyFlags::Serialize);
+    /**
+     * @brief 프리미티브의 그림자 수신 여부입니다.
+     */
     bool mReceiveShadow{true};
     ReflectAccessor(mReceiveShadow, GetReceiveShadow, SetReceiveShadow, "ReceiveShadow", EPropertyFlags::Edit | EPropertyFlags::Serialize);
 

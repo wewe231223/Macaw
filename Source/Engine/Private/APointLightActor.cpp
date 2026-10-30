@@ -1,3 +1,9 @@
+/**
+ * @file APointLightActor.cpp
+ * @brief 점광원 컴포넌트를 기본으로 생성하는 액터입니다.
+ * @ingroup Engine
+ */
+
 #include "Engine/APointLightActor.h"
 #include "Engine/Component/UPointLightComponent.h"
 #include "CoreUObject/Reflection/NewObject.h"

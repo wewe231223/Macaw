@@ -32,7 +32,9 @@
 #include <array>
 #include <cctype>
 
-/** @brief Details 패널에서 사용하는 컴포넌트 표시 이름 변환입니다. */
+/**
+ * @brief Details 패널에서 사용하는 컴포넌트 표시 이름 변환입니다.
+ */
 namespace {
     /**
      * @brief 클래스 접두사와 Component 접미사를 제거해 컴포넌트 메뉴 이름을 만듭니다.

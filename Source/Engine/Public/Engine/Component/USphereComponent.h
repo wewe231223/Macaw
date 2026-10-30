@@ -8,9 +8,14 @@
 
 #include "Engine/Component/UShapeComponent.h"
 
-/** @brief 로컬 반지름으로 정의한 구 충돌 컴포넌트입니다. */
+/**
+ * @brief 로컬 반지름으로 정의한 구 충돌 컴포넌트입니다.
+ */
 class USphereComponent : public UShapeComponent {
 public:
+    /**
+     * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
+     */
     ReflectTypes(USphereComponent, UShapeComponent);
 
 public:
@@ -47,6 +52,9 @@ public:
     float GetSphereRadius() const;
 
 private:
+    /**
+     * @brief 생성된 멤버 등록 함수와 리플렉션 빌더의 접근 권한입니다.
+     */
     ReflectMembers();
 
 private:

@@ -1,3 +1,9 @@
+/**
+ * @file USpotLightComponent.cpp
+ * @brief 내부·외부 원뿔각으로 제한되는 스포트라이트를 관리합니다.
+ * @ingroup Engine
+ */
+
 #include "Engine/Component/USpotLightComponent.h"
 
 #include <algorithm>

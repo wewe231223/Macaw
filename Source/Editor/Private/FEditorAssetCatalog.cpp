@@ -1,4 +1,8 @@
-/** @file FEditorAssetCatalog.cpp @brief 임포트 내부 경로를 감춘 에셋 목록의 구현입니다. @ingroup Editor */
+/**
+ * @file FEditorAssetCatalog.cpp
+ * @brief 임포트 내부 경로를 감춘 에셋 목록의 구현입니다.
+ * @ingroup Editor
+ */
 #include "Editor/FEditorAssetCatalog.h"
 #include "Core/FilePath.h"
 #include "Core/Guid.h"

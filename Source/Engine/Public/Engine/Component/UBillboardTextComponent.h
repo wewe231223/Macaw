@@ -9,9 +9,14 @@
 #include "Engine/Component/UPrimitiveComponent.h"
 #include "Core/Math/FVector4.h"
 
-/** @brief 카메라에 정렬한 월드 텍스트를 렌더 장면에 등록합니다. */
+/**
+ * @brief 카메라에 정렬한 월드 텍스트를 렌더 장면에 등록합니다.
+ */
 class UBillboardTextComponent final : public UPrimitiveComponent {
 public:
+    /**
+     * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
+     */
     ReflectTypes(UBillboardTextComponent, UPrimitiveComponent);
 
 public:
@@ -85,6 +90,9 @@ public:
     bool ShouldCreateRenderState() const override;
 
 private:
+    /**
+     * @brief 생성된 멤버 등록 함수와 리플렉션 빌더의 접근 권한입니다.
+     */
     ReflectMembers();
 
 private:

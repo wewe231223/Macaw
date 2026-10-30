@@ -20,9 +20,13 @@
 #include "Renderer/Renderer.h"
 #include "Engine/UMaterial.h"
 #include "Engine/UTexture2D.h"
+#include "Core/Base/ErrorHandler.h"
 
 #include <algorithm>
 #include <functional>
+#include <bit>
+#include <limits>
+#include <span>
 
 /**
  * @brief FSceneRenderer의 초기 상태와 전달받은 의존성을 구성합니다.
@@ -101,7 +105,7 @@ void FSceneRenderer::Render() {
                 Material = DefaultMaterial;
             }
             FMaterialPipeline* Pipeline{Renderer->GetMaterialPipeline(*Material, mFamily->mViewMode)};
-            Commands.emplace_back(Pipeline != nullptr ? Pipeline : DefaultPipeline, Material, Mesh, Primitive.mObjectBuffer.Get(), SubMesh.GetFirstIndex(), SubMesh.GetIndexCount());
+            Commands.emplace_back(Pipeline != nullptr ? Pipeline : DefaultPipeline, Material, Mesh, &Primitive, SubMesh.GetFirstIndex(), SubMesh.GetIndexCount());
         }
         ++mStats->mVisiblePrimitives;
     }
@@ -113,14 +117,52 @@ void FSceneRenderer::Render() {
         if (First.mMaterial != Second.mMaterial) {
             return Less(First.mMaterial, Second.mMaterial);
         }
-        return Less(First.mMesh, Second.mMesh);
+        if (First.mMesh != Second.mMesh) {
+            return Less(First.mMesh, Second.mMesh);
+        }
+        if (First.mFirstIndex != Second.mFirstIndex) {
+            return First.mFirstIndex < Second.mFirstIndex;
+        }
+        return First.mIndexCount < Second.mIndexCount;
     });
+
+    if (std::any_of(Commands.begin(), Commands.end(), [](const FMeshDrawCommand& Command) {
+        return Command.mPipeline->IsInstanced();
+    })) {
+        constexpr Uint32 MaximumCapacity{std::numeric_limits<Uint32>::max() / sizeof(FObjectConstants)};
+        if (Commands.size() > MaximumCapacity) {
+            ErrorHandler::Fatal("Renderer", "Mesh instance buffer capacity exceeded");
+        }
+        TArray<FObjectConstants> Instances{};
+        Instances.reserve(Commands.size());
+        for (const FMeshDrawCommand& Command : Commands) {
+            Instances.push_back(Command.mPrimitive->mObjectConstants);
+        }
+        const Uint32 Count{static_cast<Uint32>(Instances.size())};
+        const Uint32 Capacity{std::min(std::bit_ceil(Count), MaximumCapacity)};
+        FString Error{};
+        if (!mDrawContext.mInstanceBuffer->Upload(Context, std::as_bytes(std::span<const FObjectConstants>{Instances}), sizeof(FObjectConstants), Capacity, Error)) {
+            ErrorHandler::Fatal("Renderer", Error);
+        }
+        ID3D11Buffer* InstanceBuffer{mDrawContext.mInstanceBuffer->GetBuffer()};
+        const UINT Stride{sizeof(FObjectConstants)};
+        const UINT Offset{};
+        Context->IASetVertexBuffers(4, 1, &InstanceBuffer, &Stride, &Offset);
+    }
 
     FMaterialPipeline* LastPipeline{};
     UMaterial* LastMaterial{};
     UStaticMesh* LastMesh{};
     const std::array<UINT, 4> Offsets{};
-    for (const FMeshDrawCommand& Command : Commands) {
+    for (std::size_t First{}; First < Commands.size();) {
+        const FMeshDrawCommand& Command{Commands[First]};
+        std::size_t End{First + 1};
+        if (Command.mPipeline->IsInstanced()) {
+            while (End < Commands.size() && Commands[End].mPipeline == Command.mPipeline && Commands[End].mMaterial == Command.mMaterial && Commands[End].mMesh == Command.mMesh && Commands[End].mFirstIndex == Command.mFirstIndex && Commands[End].mIndexCount == Command.mIndexCount) {
+                ++End;
+            }
+        }
+        const Uint32 InstanceCount{static_cast<Uint32>(End - First)};
         if (LastPipeline != Command.mPipeline) {
             RendererStats::PipelineBinds.Add();
             Command.mPipeline->Bind(Context);
@@ -156,13 +198,20 @@ void FSceneRenderer::Render() {
             Context->IASetIndexBuffer(Mesh->GetIndexBuffer(), DXGI_FORMAT_R32_UINT, 0);
             LastMesh = Mesh;
         }
-        ID3D11Buffer* ObjectBuffer{Command.mObjectBuffer};
-        Context->VSSetConstantBuffers(0, 1, &ObjectBuffer);
-        Context->PSSetConstantBuffers(0, 1, &ObjectBuffer);
-        Context->DrawIndexed(Command.mIndexCount, Command.mFirstIndex, 0);
-        RendererStats::Triangles.Add(Command.mIndexCount / 3);
+        if (Command.mPipeline->IsInstanced()) {
+            Context->DrawIndexedInstanced(Command.mIndexCount, InstanceCount, Command.mFirstIndex, 0, static_cast<UINT>(First));
+        } else {
+            ID3D11Buffer* ObjectBuffer{Command.mPrimitive->mObjectBuffer.Get()};
+            Context->VSSetConstantBuffers(0, 1, &ObjectBuffer);
+            Context->PSSetConstantBuffers(0, 1, &ObjectBuffer);
+            Context->DrawIndexed(Command.mIndexCount, Command.mFirstIndex, 0);
+        }
+        RendererStats::Triangles.Add(static_cast<double>(Command.mIndexCount / 3) * InstanceCount);
         ++mStats->mDrawCalls;
+        First = End;
     }
+    ID3D11Buffer* EmptyInstanceBuffer{};
+    Context->IASetVertexBuffers(4, 1, &EmptyInstanceBuffer, Offsets.data(), Offsets.data());
     ID3D11ShaderResourceView* Empty{};
     Context->PSSetShaderResources(0, 1, &Empty);
     Context->VSSetShaderResources(1, 1, &Empty);
@@ -171,11 +220,11 @@ void FSceneRenderer::Render() {
     mStats->mTransformUpdates += mScene->TakeTransformUpdates();
 }
 
-FMeshDrawCommand::FMeshDrawCommand(FMaterialPipeline* Pipeline, UMaterial* Material, UStaticMesh* Mesh, ID3D11Buffer* ObjectBuffer, Uint32 FirstIndex, Uint32 IndexCount)
+FMeshDrawCommand::FMeshDrawCommand(FMaterialPipeline* Pipeline, UMaterial* Material, UStaticMesh* Mesh, const FScenePrimitive* Primitive, Uint32 FirstIndex, Uint32 IndexCount)
 	: mPipeline{Pipeline},
 	  mMaterial{Material},
 	  mMesh{Mesh},
-	  mObjectBuffer{ObjectBuffer},
+	  mPrimitive{Primitive},
 	  mFirstIndex{FirstIndex},
 	  mIndexCount{IndexCount} {
 }

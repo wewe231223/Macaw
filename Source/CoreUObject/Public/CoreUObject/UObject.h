@@ -145,7 +145,8 @@ public:
      * @param[in] Source 이 객체에 대응하는 원본입니다.
      * @param[in] Context 모든 복제 객체의 비소유 대응표입니다.
      * @return 재연결에 성공하면 true이며 false이면 월드 복제 전체를 취소합니다.
-     * @note 기본 구현은 클래스 일치 여부만 확인합니다. 참조 필드는 Context로 조회하여 연결하며 대상 객체의 소유권은 이전하지 않습니다.
+     * @note 기본 구현은 클래스 일치 여부만 확인합니다. 참조 필드는 Context로 조회하여 연결하며 대상 객체의 소유권은
+     * 이전하지 않습니다.
      */
     virtual bool PostDuplicate(const UObject* Source, const FObjectDuplicationContext* Context);
     /**

@@ -13,9 +13,14 @@
 #include <memory>
 #include <string_view>
 
-/** @brief 같은 ASCII 대소문자 구분 없는 이름을 공유하여 포인터로 비교하는 식별자입니다. */
+/**
+ * @brief 같은 ASCII 대소문자 구분 없는 이름을 공유하여 포인터로 비교하는 식별자입니다.
+ */
 class FName {
 public:
+    /**
+     * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
+     */
     ReflectTypes(FName);
 
 public:
@@ -66,6 +71,9 @@ public:
     std::size_t GetHash() const;
 
 private:
+    /**
+     * @brief 생성된 멤버 등록 함수와 리플렉션 빌더의 접근 권한입니다.
+     */
     ReflectMembers();
 
 private:
@@ -76,9 +84,14 @@ private:
     ReflectProperty(mValue, "Value", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 };
 
-/** @brief 이름 비교와 같은 공유 문자열 주소를 해시하는 컨테이너 해시입니다. */
+/**
+ * @brief 이름 비교와 같은 공유 문자열 주소를 해시하는 컨테이너 해시입니다.
+ */
 struct FNameHash {
 public:
+    /**
+     * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
+     */
     ReflectTypes(FNameHash);
 
 public:
@@ -96,5 +109,8 @@ public:
     std::size_t operator()(const FName& Name) const;
 
 private:
+    /**
+     * @brief 생성된 멤버 등록 함수와 리플렉션 빌더의 접근 권한입니다.
+     */
     ReflectMembers();
 };

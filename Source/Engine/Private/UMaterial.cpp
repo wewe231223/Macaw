@@ -15,7 +15,9 @@
 
 using namespace Microsoft::WRL;
 
-/** @brief 머티리얼 경로 검증과 GPU 상수 표현의 내부 구현입니다. */
+/**
+ * @brief 머티리얼 경로 검증과 GPU 상수 표현의 내부 구현입니다.
+ */
 namespace {
     /**
      * @brief 절대 경로와 상위 폴더 이동을 제외한 Content 상대 경로인지 검사합니다.

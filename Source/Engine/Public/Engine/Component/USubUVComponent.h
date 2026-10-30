@@ -10,9 +10,14 @@
 
 class UPrimitiveComponent;
 
-/** @brief 같은 액터의 스프라이트 또는 메시 UV를 등록 직후부터 격자 프레임으로 재생합니다. */
+/**
+ * @brief 같은 액터의 스프라이트 또는 메시 UV를 등록 직후부터 격자 프레임으로 재생합니다.
+ */
 class USubUVComponent final : public UActorComponent {
 public:
+    /**
+     * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
+     */
     ReflectTypes(USubUVComponent, UActorComponent);
 
 public:
@@ -136,6 +141,9 @@ public:
     void UnregisterComponent() override;
 
 private:
+    /**
+     * @brief 생성된 멤버 등록 함수와 리플렉션 빌더의 접근 권한입니다.
+     */
     ReflectMembers();
     void OnRegister() override;
     /**
