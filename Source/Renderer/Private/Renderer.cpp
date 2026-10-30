@@ -10,7 +10,7 @@
 #include "Renderer/FLineVertex.h"
 #include "Core/Math/FVector.h"
 #include "Core/Math/FMatrix.h"
-#include "Engine/FMeshData.h"
+#include "Asset/FMeshData.h"
 #include "Engine/FSceneInterface.h"
 #include "Engine/FRenderTarget.h"
 #include "Engine/FDrawLine.h"
@@ -19,7 +19,7 @@
 #include "Engine/EPrimitiveType.h"
 #include "RenderCore/FRenderStats.h"
 #include "FObjectConstants.h"
-#include "Engine/UStaticMesh.h"
+#include "Asset/UStaticMesh.h"
 #include "CoreUObject/Reflection/NewObject.h"
 #include "FSceneDrawContext.h"
 #include "Core/Base/ErrorHandler.h"
@@ -245,12 +245,12 @@ namespace Renderer {
     /**
      * @brief CPU 메시를 종류별 GPU 정점·인덱스 버퍼에 업로드합니다.
      */
-    bool Renderer::FRenderer::UploadMesh(Engine::EPrimitiveType Type, const Engine::FMeshData& Mesh) {
+    bool Renderer::FRenderer::UploadMesh(Engine::EPrimitiveType Type, const Asset::FMeshData& Mesh) {
         if (Type >= Engine::EPrimitiveType::Count || mDevice == nullptr) {
             return false;
         }
 
-        auto Resource{CoreUObject::NewObject<Engine::UStaticMesh>()};
+        auto Resource{CoreUObject::NewObject<Asset::UStaticMesh>()};
 
         if (!Resource->SetMeshData(Mesh) || !Resource->CreateResources(mDevice.Get())) {
             return false;
@@ -635,9 +635,9 @@ namespace Renderer {
         }
 
         Microsoft::WRL::ComPtr<ID3D11Texture2D> Texture{};
-        auto BackBuffer{CoreUObject::NewObject<Engine::UTexture2D>()};
+        auto BackBuffer{CoreUObject::NewObject<Asset::UTexture2D>()};
 
-        if (FAILED(mSwapChain->GetBuffer(0, IID_PPV_ARGS(Texture.GetAddressOf()))) || !BackBuffer->AttachResource(Texture.Get(), Engine::ETextureUsage::RenderTarget)) {
+        if (FAILED(mSwapChain->GetBuffer(0, IID_PPV_ARGS(Texture.GetAddressOf()))) || !BackBuffer->AttachResource(Texture.Get(), Asset::ETextureUsage::RenderTarget)) {
             Core::ErrorHandler::Fatal("Renderer", "Back buffer allocation failed");
         }
 
@@ -674,11 +674,11 @@ namespace Renderer {
             return false;
         }
 
-        mDefaultMaterial = CoreUObject::NewObject<Engine::UMaterial>();
+        mDefaultMaterial = CoreUObject::NewObject<Asset::UMaterial>();
         mDefaultMaterial->SetShaderPath(Core::FString{"Shaders/"} + MeshShader);
-        mDefaultMaterialTexture = CoreUObject::NewObject<Engine::UTexture2D>();
+        mDefaultMaterialTexture = CoreUObject::NewObject<Asset::UTexture2D>();
 
-        if (!mDefaultMaterialTexture->SetPixels(1, 1, Engine::ETextureFormat::RGBA8, Core::TArray<Core::Uint8>{255, 255, 255, 255}) || !mDefaultMaterialTexture->CreateResources(mDevice.Get()) || GetMaterialPipeline(*mDefaultMaterial) == nullptr) {
+        if (!mDefaultMaterialTexture->SetPixels(1, 1, Asset::ETextureFormat::RGBA8, Core::TArray<Core::Uint8>{255, 255, 255, 255}) || !mDefaultMaterialTexture->CreateResources(mDevice.Get()) || GetMaterialPipeline(*mDefaultMaterial) == nullptr) {
             return false;
         }
 
@@ -814,7 +814,7 @@ namespace Renderer {
      */
     bool Renderer::FRenderer::CreateEditorMeshes() {
         for (std::size_t Index{}; Index < mEditorMeshes.size(); ++Index) {
-            auto Resource{CoreUObject::NewObject<Engine::UStaticMesh>()};
+            auto Resource{CoreUObject::NewObject<Asset::UStaticMesh>()};
 
             if (!Resource->SetMeshData(Engine::GetEditorMesh(static_cast<Engine::EEditorMesh>(Index))) || !Resource->CreateResources(mDevice.Get())) {
                 return false;
@@ -829,7 +829,7 @@ namespace Renderer {
     void Renderer::FRenderer::DrawMeshes(const Engine::FPrimitiveDrawInterface* Elements, bool DepthTest) {
         mContext->RSSetState(mRasterizer.Get());
 
-        const UINT Stride{Engine::UStaticMesh::GetPositionStride()};
+        const UINT Stride{Asset::UStaticMesh::GetPositionStride()};
         const UINT Offset{};
 
         mContext->IASetInputLayout(mOverlayLayout.Get());
@@ -848,7 +848,7 @@ namespace Renderer {
                 continue;
             }
 
-            const Engine::UStaticMesh* Mesh{mEditorMeshes[static_cast<std::size_t>(Draw.mMesh)].get()};
+            const Asset::UStaticMesh* Mesh{mEditorMeshes[static_cast<std::size_t>(Draw.mMesh)].get()};
 
             if (Mesh == nullptr || !Mesh->HasResources()) {
                 continue;
@@ -909,7 +909,7 @@ namespace Renderer {
         mContext->OMSetBlendState(nullptr, nullptr, 0xFFFFFFFFu);
     }
 
-    Renderer::FMaterialPipeline* Renderer::FRenderer::GetMaterialPipeline(const Engine::UMaterial& Material, Engine::EViewMode Mode) {
+    Renderer::FMaterialPipeline* Renderer::FRenderer::GetMaterialPipeline(const Asset::UMaterial& Material, Engine::EViewMode Mode) {
         const Core::FString& Relative{Material.GetShaderPath()};
         const std::filesystem::path RelativePath{Core::FilePath::FromUtf8(Relative).lexically_normal()};
         Core::FString Key{Core::FilePath::ToGenericUtf8(RelativePath) + (Material.IsTwoSided() ? "|TwoSided" : "|OneSided")};
@@ -994,7 +994,7 @@ namespace Renderer {
         return Result;
     }
 
-    Engine::UMaterial* Renderer::FRenderer::GetDefaultMaterial() const {
+    Asset::UMaterial* Renderer::FRenderer::GetDefaultMaterial() const {
         return mDefaultMaterial.get();
     }
 

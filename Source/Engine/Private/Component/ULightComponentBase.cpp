@@ -7,11 +7,11 @@
 #include "Engine/Component/ULightComponentBase.h"
 #include "Engine/UWorld.h"
 #include "Engine/FSceneInterface.h"
-#include "Engine/FAssetManager.h"
+#include "Asset/FAssetManager.h"
 #include "Engine/FPrimitiveDrawInterface.h"
 #include "Core/Math/FTransform.h"
 #include "Core/Math.h"
-#include "Engine/UTexture2D.h"
+#include "Asset/UTexture2D.h"
 #include "CoreUObject/Reflection/NewObject.h"
 
 #include <Windows.h>
@@ -84,7 +84,7 @@ namespace Engine {
     }
 
     void Engine::ULightComponentBase::SynchronizeLight() {
-        Engine::FAssetManager* Assets{GetWorld() != nullptr ? GetWorld()->GetAssets() : nullptr};
+        Asset::FAssetManager* Assets{GetWorld() != nullptr ? GetWorld()->GetAssets() : nullptr};
 
         if (mIconAssets != Assets) {
             mIcon = nullptr;
@@ -126,7 +126,7 @@ namespace Engine {
         Engine::UActorComponent::UnregisterComponent();
     }
 
-    void Engine::ULightComponentBase::ResolveIcon(Engine::FAssetManager* Assets) {
+    void Engine::ULightComponentBase::ResolveIcon(Asset::FAssetManager* Assets) {
         const Engine::ELightType Type{CreateLightProxy().mType};
         const char* Name{Type == Engine::ELightType::Directional ? "DirectionalLight_64x.png" : Type == Engine::ELightType::Ambient ? "SkyLight_64x.png" : Type == Engine::ELightType::Spot ? "SpotLight_64x.png" : "PointLight_64x.png"};
 
@@ -148,7 +148,7 @@ namespace Engine {
             Path = std::filesystem::path{"Templates/Project/Content/Editor/Icon"} / Name;
         }
 
-        auto Icon{CoreUObject::NewObject<Engine::UTexture2D>()};
+        auto Icon{CoreUObject::NewObject<Asset::UTexture2D>()};
 
         if (Icon->LoadFromFile(Path, true)) {
             mFallbackIcon = std::move(Icon);

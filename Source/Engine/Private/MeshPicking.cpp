@@ -5,7 +5,7 @@
  */
 
 #include "Engine/MeshPicking.h"
-#include "Engine/FMeshData.h"
+#include "Asset/FMeshData.h"
 #include "Core/Math.h"
 #include "Core/Math/FRay.h"
 #include "Core/Math/FMatrix.h"
@@ -20,7 +20,7 @@ namespace Engine {
      * @param[out] Distance 최근접 교차 거리의 출력입니다.
      * @return 최근접 교차를 찾으면 true이며 Distance에 월드 거리를 기록합니다.
      */
-    bool RaycastMesh(const Engine::FMeshData* Mesh, const Core::FMatrix& World, const Core::FRay& Ray, float& Distance) {
+    bool RaycastMesh(const Asset::FMeshData* Mesh, const Core::FMatrix& World, const Core::FRay& Ray, float& Distance) {
         if (Mesh == nullptr || !Mesh->GetBounds().Transformed(World).Intersects(Ray, Distance)) {
             return false;
         }

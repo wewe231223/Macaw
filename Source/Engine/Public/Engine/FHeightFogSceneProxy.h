@@ -10,9 +10,12 @@
 #include "Core/Math/FVector.h"
 #include "Core/Math/FVector4.h"
 
+namespace Asset {
+    class UTexture2D;
+}
+
 namespace Engine {
 
-    class UTexture2D;
     struct FPrimitiveSceneProxy;
 
     /**
@@ -107,7 +110,7 @@ namespace Engine {
         /**
          * @brief 프로젝트 에셋 또는 대체 텍스처가 소유하는 언리얼 안개 아이콘의 비소유 주소입니다.
          */
-        Engine::UTexture2D* mIcon{};
+        Asset::UTexture2D* mIcon{};
         ReflectProperty(mIcon, "Icon", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 

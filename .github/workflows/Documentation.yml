@@ -27,11 +27,11 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Install Graphviz
+      - name: Install Graphviz and Korean fonts
         shell: bash
         run: |
           sudo apt-get update
-          sudo apt-get install --yes --no-install-recommends graphviz
+          sudo apt-get install --yes --no-install-recommends graphviz fontconfig fonts-noto-cjk
 
       - name: Build and verify documentation
         shell: pwsh

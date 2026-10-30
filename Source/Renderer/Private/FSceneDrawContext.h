@@ -7,7 +7,7 @@
 #pragma once
 
 #include "Core/ReflectionMacros.h"
-#include "Engine/UStaticMesh.h"
+#include "Asset/UStaticMesh.h"
 
 namespace RenderCore {
     class FDynamicVertexBuffer;
@@ -54,7 +54,7 @@ namespace Renderer {
         /**
          * @brief 프리미티브 종류별 GPU 메시입니다.
          */
-        const std::array<std::unique_ptr<Engine::UStaticMesh>, 3>* mMeshes{};
+        const std::array<std::unique_ptr<Asset::UStaticMesh>, 3>* mMeshes{};
         ReflectProperty(mMeshes, "Meshes", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
 

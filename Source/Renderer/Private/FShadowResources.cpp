@@ -9,7 +9,7 @@
 #include "FScene.h"
 #include "FScenePrimitive.h"
 #include "CoreUObject/Reflection/NewObject.h"
-#include "Engine/UStaticMesh.h"
+#include "Asset/UStaticMesh.h"
 
 #include <d3dcompiler.h>
 #include <algorithm>
@@ -98,10 +98,10 @@ namespace Renderer {
             return true;
         }
 
-        auto Atlas{CoreUObject::NewObject<Engine::UTexture2D>()};
-        auto Preview{CoreUObject::NewObject<Engine::UTexture2D>()};
+        auto Atlas{CoreUObject::NewObject<Asset::UTexture2D>()};
+        auto Preview{CoreUObject::NewObject<Asset::UTexture2D>()};
 
-        if (!Atlas->Configure(AtlasSize, AtlasSize, Engine::ETextureFormat::D24S8, Engine::ETextureUsage::DepthStencil | Engine::ETextureUsage::ShaderResource) || !Atlas->CreateResources(Device) || !Preview->Configure(2048, 2048, Engine::ETextureFormat::RGBA8, Engine::ETextureUsage::RenderTarget | Engine::ETextureUsage::ShaderResource) || !Preview->CreateResources(Device)) {
+        if (!Atlas->Configure(AtlasSize, AtlasSize, Asset::ETextureFormat::D24S8, Asset::ETextureUsage::DepthStencil | Asset::ETextureUsage::ShaderResource) || !Atlas->CreateResources(Device) || !Preview->Configure(2048, 2048, Asset::ETextureFormat::RGBA8, Asset::ETextureUsage::RenderTarget | Asset::ETextureUsage::ShaderResource) || !Preview->CreateResources(Device)) {
             return false;
         }
 
@@ -313,7 +313,7 @@ namespace Renderer {
         return true;
     }
 
-    bool Renderer::FShadowResources::Render(ID3D11Device* Device, ID3D11DeviceContext* Context, const Renderer::FScene& Scene, const Engine::FSceneViewFamily& Family, const std::array<std::unique_ptr<Engine::UStaticMesh>, static_cast<std::size_t>(Engine::EPrimitiveType::Count)>& Meshes, RenderCore::FRenderStats& Stats) {
+    bool Renderer::FShadowResources::Render(ID3D11Device* Device, ID3D11DeviceContext* Context, const Renderer::FScene& Scene, const Engine::FSceneViewFamily& Family, const std::array<std::unique_ptr<Asset::UStaticMesh>, static_cast<std::size_t>(Engine::EPrimitiveType::Count)>& Meshes, RenderCore::FRenderStats& Stats) {
         Unbind(Context);
 
         if (mSampler == nullptr) {
@@ -399,7 +399,7 @@ namespace Renderer {
                     continue;
                 }
 
-                Engine::UStaticMesh* Mesh{Primitive.mProxy.mMesh != nullptr ? Primitive.mProxy.mMesh : Meshes[static_cast<std::size_t>(Primitive.mProxy.mPrimitive)].get()};
+                Asset::UStaticMesh* Mesh{Primitive.mProxy.mMesh != nullptr ? Primitive.mProxy.mMesh : Meshes[static_cast<std::size_t>(Primitive.mProxy.mPrimitive)].get()};
 
                 if (Mesh == nullptr || (!Mesh->HasResources() && !Mesh->CreateResources(Device))) {
                     continue;
@@ -407,13 +407,13 @@ namespace Renderer {
 
                 ID3D11Buffer* Position{Mesh->GetPositionBuffer()};
                 ID3D11Buffer* ObjectBuffer{Primitive.mObjectBuffer.Get()};
-                const UINT Stride{Engine::UStaticMesh::GetPositionStride()};
+                const UINT Stride{Asset::UStaticMesh::GetPositionStride()};
                 const UINT Offset{};
                 Context->IASetVertexBuffers(0, 1, &Position, &Stride, &Offset);
                 Context->IASetIndexBuffer(Mesh->GetIndexBuffer(), DXGI_FORMAT_R32_UINT, 0);
                 Context->VSSetConstantBuffers(0, 1, &ObjectBuffer);
 
-                for (const Engine::FSubMesh& SubMesh : Mesh->GetMeshData().GetSubMeshes()) {
+                for (const Asset::FSubMesh& SubMesh : Mesh->GetMeshData().GetSubMeshes()) {
                     Context->DrawIndexed(SubMesh.GetIndexCount(), SubMesh.GetFirstIndex(), 0);
                     ++Stats.mShadowDrawCalls;
                 }

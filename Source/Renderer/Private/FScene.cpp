@@ -9,7 +9,7 @@
 #include "Core/Math/FBox.h"
 #include "Engine/FPrimitiveSceneProxy.h"
 #include "Engine/EPrimitiveType.h"
-#include "Engine/UStaticMesh.h"
+#include "Asset/UStaticMesh.h"
 #include "FObjectConstants.h"
 #include "FScenePrimitive.h"
 #include "Core/Base/ErrorHandler.h"

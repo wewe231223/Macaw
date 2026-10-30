@@ -7,7 +7,7 @@
 #pragma once
 
 #include "Core/ReflectionMacros.h"
-#include "Engine/FAssetFile.h"
+#include "Asset/FAssetFile.h"
 
 namespace Editor {
 
@@ -49,7 +49,7 @@ namespace Editor {
          * @param InheritedLabel 상속 경로의 출처 설명입니다.
          * @return 선택 또는 드롭으로 경로를 바꾸면 true입니다.
          */
-        bool Draw(Editor::FEditorAssetCatalog& Catalog, Editor::FAssetThumbnailCache& Thumbnails, const char* Label, Core::FString& Path, Engine::EAssetType Type, const Core::FString& InheritedPath = {}, const char* EmptyLabel = "None", const char* InheritedLabel = "Mesh");
+        bool Draw(Editor::FEditorAssetCatalog& Catalog, Editor::FAssetThumbnailCache& Thumbnails, const char* Label, Core::FString& Path, Asset::EAssetType Type, const Core::FString& InheritedPath = {}, const char* EmptyLabel = "None", const char* InheritedLabel = "Mesh");
 
     private:
         /**
@@ -66,7 +66,7 @@ namespace Editor {
          * @param EmptyLabel 기본값 선택의 설명입니다.
          * @return 목록에서 값을 선택하면 true입니다.
          */
-        bool DrawOptions(Editor::FEditorAssetCatalog& Catalog, Editor::FAssetThumbnailCache& Thumbnails, Core::FString& Path, Engine::EAssetType Type, const char* EmptyLabel);
+        bool DrawOptions(Editor::FEditorAssetCatalog& Catalog, Editor::FAssetThumbnailCache& Thumbnails, Core::FString& Path, Asset::EAssetType Type, const char* EmptyLabel);
 
         /**
          * @brief 직전 위젯에서 같은 종류의 드롭을 받습니다.
@@ -75,7 +75,7 @@ namespace Editor {
          * @param Type 허용할 종류입니다.
          * @return 유효한 경로가 전달되면 true입니다.
          */
-        static bool AcceptDrop(Editor::FEditorAssetCatalog& Catalog, Core::FString& Path, Engine::EAssetType Type);
+        static bool AcceptDrop(Editor::FEditorAssetCatalog& Catalog, Core::FString& Path, Asset::EAssetType Type);
 
     private:
         /**

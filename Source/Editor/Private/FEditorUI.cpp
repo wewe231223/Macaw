@@ -14,9 +14,9 @@
 #include "Platform/Window.h"
 #include "RenderCore/IRendererModule.h"
 #include "Engine/FProject.h"
-#include "Engine/FAssetFile.h"
-#include "Engine/UTexture2D.h"
-#include "Engine/UMaterial.h"
+#include "Asset/FAssetFile.h"
+#include "Asset/UTexture2D.h"
+#include "Asset/UMaterial.h"
 #include "Engine/Component/ULightComponentBase.h"
 #include "Engine/UWorld.h"
 #include "Engine/ULevel.h"
@@ -57,7 +57,6 @@ namespace Editor {
 
     /**
      * @brief 편집 컨텍스트를 패널에 연결하고 독립 뷰포트의 배치 연결을 구성합니다.
-     * @param[in] PlaySession 실행 제어와 조회에 사용할 PIE 세션의 비소유 주소입니다.
      */
     Editor::FEditorUI::FEditorUI(Editor::FEditorContext* Context, Editor::FEditorViewport* Viewport, Editor::FPlayInEditorSession* PlaySession)
 		: mContext{Context},
@@ -166,7 +165,7 @@ namespace Editor {
         std::array<wchar_t, 32768> Executable{};
         const DWORD Length{GetModuleFileNameW(nullptr, Executable.data(), static_cast<DWORD>(Executable.size()))};
         const std::filesystem::path Bundled{Length > 0 && Length < Executable.size() ? std::filesystem::path{Executable.data()}.parent_path() / "Templates/Project/Content/Editor/Icon" : std::filesystem::path{}};
-        Engine::FAssetManager* Assets{mContext->GetProject()->GetAssets()};
+        Asset::FAssetManager* Assets{mContext->GetProject()->GetAssets()};
 
         for (const char* Name : {"SpotLight_64x.png", "PointLight_64x.png", "DirectionalLight_64x.png", "SkyLight_64x.png", "Pawn_64x.png", "ExponentialHeightFog_64x.png", "Sources.txt"}) {
             Core::FString Error{};
@@ -791,7 +790,7 @@ namespace Editor {
         }
 
         const std::filesystem::path Destination{Directory};
-        Engine::FAssetManager* Assets{mContext->GetProject()->GetAssets()};
+        Asset::FAssetManager* Assets{mContext->GetProject()->GetAssets()};
         std::filesystem::path LastImported{};
         Core::FString Failures{};
         Core::Uint32 Imported{};
@@ -953,15 +952,15 @@ namespace Editor {
             DrawContentBreadcrumbs();
             ImGui::SetNextItemWidth(120.0f);
 
-            const char* FilterName{!mContentFilter.has_value() ? "All Assets" : *mContentFilter == Engine::EAssetType::Mesh ? "Meshes" : *mContentFilter == Engine::EAssetType::Material ? "Materials" : *mContentFilter == Engine::EAssetType::Texture ? "Textures" : "Scenes"};
+            const char* FilterName{!mContentFilter.has_value() ? "All Assets" : *mContentFilter == Asset::EAssetType::Mesh ? "Meshes" : *mContentFilter == Asset::EAssetType::Material ? "Materials" : *mContentFilter == Asset::EAssetType::Texture ? "Textures" : "Scenes"};
 
             if (ImGui::BeginCombo("##AssetType", FilterName)) {
                 if (ImGui::Selectable("All Assets", !mContentFilter.has_value())) {
                     mContentFilter.reset();
                 }
 
-                for (Engine::EAssetType Type : {Engine::EAssetType::Mesh, Engine::EAssetType::Material, Engine::EAssetType::Texture, Engine::EAssetType::Scene}) {
-                    const char* Name{Type == Engine::EAssetType::Mesh ? "Meshes" : Type == Engine::EAssetType::Material ? "Materials" : Type == Engine::EAssetType::Texture ? "Textures" : "Scenes"};
+                for (Asset::EAssetType Type : {Asset::EAssetType::Mesh, Asset::EAssetType::Material, Asset::EAssetType::Texture, Asset::EAssetType::Scene}) {
+                    const char* Name{Type == Asset::EAssetType::Mesh ? "Meshes" : Type == Asset::EAssetType::Material ? "Materials" : Type == Asset::EAssetType::Texture ? "Textures" : "Scenes"};
 
                     if (ImGui::Selectable(Name, mContentFilter == Type)) {
                         mContentFilter = Type;
@@ -1256,9 +1255,9 @@ namespace Editor {
                         const bool Directory{static_cast<std::size_t>(Index) < Folders.size()};
                         const auto& Path{Directory ? Folders[Index] : Assets[Index - Folders.size()]};
                         const auto Type{mAssetTypes.find(Path)};
-                        const bool HasThumbnail{!Directory && Type != mAssetTypes.end() && (Type->second == Engine::EAssetType::Mesh || Type->second == Engine::EAssetType::Material || Type->second == Engine::EAssetType::Texture)};
+                        const bool HasThumbnail{!Directory && Type != mAssetTypes.end() && (Type->second == Asset::EAssetType::Mesh || Type->second == Asset::EAssetType::Material || Type->second == Asset::EAssetType::Texture)};
                         void* Thumbnail{HasThumbnail ? mThumbnails->GetThumbnail(Path, Type->second) : nullptr};
-                        const char* Kind{Directory ? "Folder" : Type == mAssetTypes.end() ? "File" : Type->second == Engine::EAssetType::Mesh ? "Mesh" : Type->second == Engine::EAssetType::Material ? "Material" : Type->second == Engine::EAssetType::Texture ? "Texture" : "Scene"};
+                        const char* Kind{Directory ? "Folder" : Type == mAssetTypes.end() ? "File" : Type->second == Asset::EAssetType::Mesh ? "Mesh" : Type->second == Asset::EAssetType::Material ? "Material" : Type->second == Asset::EAssetType::Texture ? "Texture" : "Scene"};
                         const Core::FString Actual{Core::FilePath::ToGenericUtf8(Path)};
                         const Core::FString Name{Core::FilePath::ToUtf8(Directory ? Path.filename() : Path.stem())};
                         ImGui::PushID(Actual.c_str());
@@ -1287,7 +1286,7 @@ namespace Editor {
                         }
 
                         if (HasThumbnail && mContext->CanEditWorld() && ImGui::BeginDragDropSource()) {
-                            const char* Payload{Type->second == Engine::EAssetType::Mesh ? Editor::EditorAssetDragDrop::MeshPayload : Type->second == Engine::EAssetType::Material ? Editor::EditorAssetDragDrop::MaterialPayload : Editor::EditorAssetDragDrop::TexturePayload};
+                            const char* Payload{Type->second == Asset::EAssetType::Mesh ? Editor::EditorAssetDragDrop::MeshPayload : Type->second == Asset::EAssetType::Material ? Editor::EditorAssetDragDrop::MaterialPayload : Editor::EditorAssetDragDrop::TexturePayload};
                             ImGui::SetDragDropPayload(Payload, Actual.c_str(), Actual.size() + 1);
 
                             if (Thumbnail != nullptr) {
@@ -1345,23 +1344,23 @@ namespace Editor {
         }
     }
 
-    void Editor::FEditorUI::OpenContentAsset(const std::filesystem::path& Path, Engine::EAssetType Type) {
-        if (Type == Engine::EAssetType::Scene) {
+    void Editor::FEditorUI::OpenContentAsset(const std::filesystem::path& Path, Asset::EAssetType Type) {
+        if (Type == Asset::EAssetType::Scene) {
             if (ConfirmSceneChange()) {
                 mContext->LoadScene(Path);
             }
-        } else if (Type == Engine::EAssetType::Mesh) {
+        } else if (Type == Asset::EAssetType::Mesh) {
             Core::FString Error{};
 
             if (mMeshViewer != nullptr && !mMeshViewer->Open(Path, Error)) {
                 mContext->AddLog(Error);
             }
-        } else if (Type == Engine::EAssetType::Material) {
+        } else if (Type == Asset::EAssetType::Material) {
             if (!ConfirmMaterialChange()) {
                 return;
             }
 
-            Engine::UMaterial* Material{mContext->GetProject()->GetAssets()->LoadMaterial(Path, mMaterialError)};
+            Asset::UMaterial* Material{mContext->GetProject()->GetAssets()->LoadMaterial(Path, mMaterialError)};
 
             if (Material != nullptr) {
                 mEditingMaterial = Material;
@@ -1370,9 +1369,9 @@ namespace Editor {
             } else {
                 mContext->AddLog(mMaterialError);
             }
-        } else if (Type == Engine::EAssetType::Texture) {
+        } else if (Type == Asset::EAssetType::Texture) {
             Core::FString Error{};
-            Engine::UTexture2D* Texture{mContext->GetProject()->GetAssets()->LoadTexture(Path, Error)};
+            Asset::UTexture2D* Texture{mContext->GetProject()->GetAssets()->LoadTexture(Path, Error)};
 
             if (Texture != nullptr && Texture->CreateResources(static_cast<ID3D11Device*>(mContext->GetRenderer()->GetNativeDevice()))) {
                 mPreviewTexture = Texture;
@@ -1390,7 +1389,7 @@ namespace Editor {
             return;
         }
 
-        Engine::FAssetManager* Assets{mContext->GetProject()->GetAssets()};
+        Asset::FAssetManager* Assets{mContext->GetProject()->GetAssets()};
         std::filesystem::path Path{mContentDirectory / "Material.masset"};
         std::error_code Code{};
 
@@ -1398,7 +1397,7 @@ namespace Editor {
             Path = mContentDirectory / ("Material_" + std::to_string(Index) + ".masset");
         }
 
-        auto Material{CoreUObject::NewObject<Engine::UMaterial>()};
+        auto Material{CoreUObject::NewObject<Asset::UMaterial>()};
         Material->SetName(Core::FilePath::ToUtf8(Path.stem()));
 
         if (Code || !Assets->SaveMaterial(Path, *Material, mMaterialError)) {
@@ -1408,7 +1407,7 @@ namespace Editor {
 
         mRefreshContent = true;
         mSelectedContentPath = Path;
-        OpenContentAsset(Path, Engine::EAssetType::Material);
+        OpenContentAsset(Path, Asset::EAssetType::Material);
     }
 
     bool Editor::FEditorUI::SaveMaterial() {
@@ -1448,7 +1447,7 @@ namespace Editor {
     }
 
     bool Editor::FEditorUI::SetMaterialTexture(const Core::FString& Path) {
-        Engine::FAssetManager* Assets{mContext->GetProject()->GetAssets()};
+        Asset::FAssetManager* Assets{mContext->GetProject()->GetAssets()};
 
         if (!Path.empty() && Assets->LoadTexture(Core::FilePath::FromUtf8(Path), mMaterialError) == nullptr) {
             return false;
@@ -1469,7 +1468,7 @@ namespace Editor {
     }
 
     bool Editor::FEditorUI::SetMaterialShader(const Core::FString& Path) {
-        auto Candidate{CoreUObject::NewObject<Engine::UMaterial>()};
+        auto Candidate{CoreUObject::NewObject<Asset::UMaterial>()};
         Candidate->SetTwoSided(mEditingMaterial->IsTwoSided());
 
         Renderer::FRenderer* Renderer{dynamic_cast<Renderer::FRenderer*>(mContext->GetRenderer())};
@@ -1559,13 +1558,13 @@ namespace Editor {
 
             Core::FString TexturePath{mEditingMaterial->GetBaseColorTexturePath()};
 
-            if (mAssetPicker.Draw(*mAssetCatalog, *mThumbnails, "Base Color Texture", TexturePath, Engine::EAssetType::Texture)) {
+            if (mAssetPicker.Draw(*mAssetCatalog, *mThumbnails, "Base Color Texture", TexturePath, Asset::EAssetType::Texture)) {
                 SetMaterialTexture(TexturePath);
             }
 
             Core::FString NormalPath{mEditingMaterial->GetNormalMapTexturePath()};
 
-            if (mAssetPicker.Draw(*mAssetCatalog, *mThumbnails, "Normal Map", NormalPath, Engine::EAssetType::Texture)) {
+            if (mAssetPicker.Draw(*mAssetCatalog, *mThumbnails, "Normal Map", NormalPath, Asset::EAssetType::Texture)) {
                 const Core::FString Previous{mEditingMaterial->GetNormalMapTexturePath()};
 
                 if (mEditingMaterial->SetNormalMapTexturePath(NormalPath) && mEditingMaterial->ResolveTexture(*mContext->GetProject()->GetAssets(), mMaterialError)) {

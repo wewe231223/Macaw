@@ -6,7 +6,8 @@
 #include "FObjViewerApplication.h"
 #include "Core/Stats.h"
 #include "Core/FilePath.h"
-#include "Engine/FAssetManager.h"
+#include "Asset/FAssetManager.h"
+#include "Engine/MaterialMigration.h"
 #include "Editor/FMeshViewer.h"
 
 #include <commdlg.h>
@@ -59,11 +60,11 @@ namespace App {
             return 1;
         }
 
-        mAssets = std::make_unique<Engine::FAssetManager>(Content);
+        mAssets = std::make_unique<Asset::FAssetManager>(Content);
 
         Core::FString MigrationError{};
 
-        if (!mAssets->MigrateMaterials(MigrationError)) {
+        if (!Engine::MaterialMigration::Migrate(*mAssets, MigrationError)) {
             MessageBoxW(mPlatform.GetWindowHandle(), Core::FilePath::FromUtf8(MigrationError).c_str(), L"Material Migration", MB_OK | MB_ICONERROR);
             return 1;
         }

@@ -7,7 +7,7 @@
 #pragma once
 
 #include "Engine/EEditorMesh.h"
-#include "Engine/FMeshData.h"
+#include "Asset/FMeshData.h"
 
 namespace Engine {
 
@@ -16,6 +16,6 @@ namespace Engine {
      * @param[in] Type 생성하거나 조회할 에디터 도형입니다.
      * @return 공유 메시의 읽기 전용 참조이며 잘못된 종류이면 빈 메시입니다.
      */
-    const Engine::FMeshData& GetEditorMesh(Engine::EEditorMesh Type);
+    const Asset::FMeshData& GetEditorMesh(Engine::EEditorMesh Type);
 
 }

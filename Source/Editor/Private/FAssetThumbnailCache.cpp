@@ -8,29 +8,28 @@
 #include "Core/Math/FRotator.h"
 #include "Core/Math/FQuat.h"
 #include "CoreUObject/Reflection/NewObject.h"
-#include "Engine/FAssetManager.h"
+#include "Asset/FAssetManager.h"
 #include "Engine/FSceneInterface.h"
 #include "Engine/FPrimitiveSceneProxy.h"
 #include "Engine/FLightSceneProxy.h"
 #include "Engine/FSceneViewFamily.h"
 #include "Engine/PrimitiveMesh.h"
-#include "Engine/UStaticMesh.h"
-#include "Engine/UMaterial.h"
-#include "Engine/UTexture2D.h"
+#include "Asset/UStaticMesh.h"
+#include "Asset/UMaterial.h"
+#include "Asset/UTexture2D.h"
 #include "RenderCore/IRendererModule.h"
 
 #include <algorithm>
 #include <bit>
 #include <cmath>
-#include <cwctype>
 
 namespace Editor {
 
-    Editor::FAssetThumbnailCache::FAssetThumbnailCache(Engine::FAssetManager* Assets, RenderCore::IRendererModule* Renderer)
+    Editor::FAssetThumbnailCache::FAssetThumbnailCache(Asset::FAssetManager* Assets, RenderCore::IRendererModule* Renderer)
 		: mAssets{Assets},
 		  mRenderer{Renderer},
-		  mSphere{CoreUObject::NewObject<Engine::UStaticMesh>()},
-		  mCube{CoreUObject::NewObject<Engine::UStaticMesh>()} {
+		  mSphere{CoreUObject::NewObject<Asset::UStaticMesh>()},
+		  mCube{CoreUObject::NewObject<Asset::UStaticMesh>()} {
         mSphere->SetMeshData(Engine::GetPrimitiveMesh(Engine::EPrimitiveType::Sphere));
         mCube->SetMeshData(Engine::GetPrimitiveMesh(Engine::EPrimitiveType::Cube));
     }
@@ -58,7 +57,7 @@ namespace Editor {
         ++mGeneration;
     }
 
-    std::size_t Editor::FAssetThumbnailCache::MaterialSignature(const Engine::UMaterial* Material) {
+    std::size_t Editor::FAssetThumbnailCache::MaterialSignature(const Asset::UMaterial* Material) {
         if (Material == nullptr) {
             return 0;
         }
@@ -78,35 +77,30 @@ namespace Editor {
         return Hash ^ static_cast<std::size_t>(Material->IsTwoSided());
     }
 
-    void* Editor::FAssetThumbnailCache::GetThumbnail(const std::filesystem::path& Path, Engine::EAssetType Type) {
+    void* Editor::FAssetThumbnailCache::GetThumbnail(const std::filesystem::path& Path, Asset::EAssetType Type) {
         if (mAssets == nullptr || mRenderer == nullptr) {
             return nullptr;
         }
 
         Core::FString Error{};
 
-        if (Type == Engine::EAssetType::Texture) {
-            Engine::UTexture2D* Texture{mAssets->LoadTexture(Path, Error)};
+        if (Type == Asset::EAssetType::Texture) {
+            Asset::UTexture2D* Texture{mAssets->LoadTexture(Path, Error)};
             return Texture != nullptr && Texture->CreateResources(static_cast<ID3D11Device*>(mRenderer->GetNativeDevice())) ? Texture->GetShaderResourceView() : nullptr;
         }
 
-        std::wstring KeyPath{Path.empty() ? std::wstring{} : Core::FilePath::FromUtf8(mAssets->GetRelativePath(Path, Error)).generic_wstring()};
-        std::transform(KeyPath.begin(), KeyPath.end(), KeyPath.begin(), [](wchar_t Value) {
-            return static_cast<wchar_t>(std::towlower(Value));
-        });
+        const Core::FString Key{Path.empty() ? Type == Asset::EAssetType::Mesh ? "@DefaultMesh" : "@DefaultMaterial" : Core::FilePath::ToGenericUtf8(Core::FilePath::ToLower(Core::FilePath::FromUtf8(mAssets->GetRelativePath(Path, Error))))};
 
-        const Core::FString Key{Path.empty() ? Type == Engine::EAssetType::Mesh ? "@DefaultMesh" : "@DefaultMaterial" : Core::FilePath::ToUtf8(std::filesystem::path{KeyPath})};
-
-        if (Type == Engine::EAssetType::Material) {
-            Engine::UMaterial* Material{Path.empty() ? nullptr : mAssets->LoadMaterial(Path, Error)};
+        if (Type == Asset::EAssetType::Material) {
+            Asset::UMaterial* Material{Path.empty() ? nullptr : mAssets->LoadMaterial(Path, Error)};
             return !Path.empty() && Material == nullptr ? nullptr : Render(Key, mSphere.get(), Material, MaterialSignature(Material) ^ mGeneration);
         }
 
-        if (Type != Engine::EAssetType::Mesh) {
+        if (Type != Asset::EAssetType::Mesh) {
             return nullptr;
         }
 
-        Engine::UStaticMesh* Mesh{Path.empty() ? mCube.get() : mAssets->LoadMesh(Path, Error)};
+        Asset::UStaticMesh* Mesh{Path.empty() ? mCube.get() : mAssets->LoadMesh(Path, Error)};
 
         if (Mesh == nullptr) {
             return nullptr;
@@ -114,8 +108,8 @@ namespace Editor {
 
         std::size_t Signature{mGeneration};
 
-        for (const Engine::FMeshMaterialSlot& Slot : Mesh->GetMeshData().GetMaterialSlots()) {
-            Engine::UMaterial* Material{Slot.GetMaterialPath().empty() ? nullptr : mAssets->LoadMaterial(Core::FilePath::FromUtf8(Slot.GetMaterialPath()), Error)};
+        for (const Asset::FMeshMaterialSlot& Slot : Mesh->GetMeshData().GetMaterialSlots()) {
+            Asset::UMaterial* Material{Slot.GetMaterialPath().empty() ? nullptr : mAssets->LoadMaterial(Core::FilePath::FromUtf8(Slot.GetMaterialPath()), Error)};
             const std::size_t Value{MaterialSignature(Material)};
             Signature ^= Value + 0x9E3779B9 + (Signature << 6) + (Signature >> 2);
         }
@@ -123,11 +117,11 @@ namespace Editor {
         return Render(Key, Mesh, nullptr, Signature);
     }
 
-    void* Editor::FAssetThumbnailCache::GetMaterialPreview(Engine::UMaterial* Material) {
+    void* Editor::FAssetThumbnailCache::GetMaterialPreview(Asset::UMaterial* Material) {
         return mRenderer != nullptr ? Render("@MaterialPreview", mSphere.get(), Material, MaterialSignature(Material) ^ mGeneration) : nullptr;
     }
 
-    void* Editor::FAssetThumbnailCache::Render(const Core::FString& Key, Engine::UStaticMesh* Mesh, Engine::UMaterial* Material, std::size_t Signature) {
+    void* Editor::FAssetThumbnailCache::Render(const Core::FString& Key, Asset::UStaticMesh* Mesh, Asset::UMaterial* Material, std::size_t Signature) {
         FThumbnail& Thumbnail{mThumbnails[Key]};
         Thumbnail.mLastUsed = mFrame;
 
@@ -177,7 +171,7 @@ namespace Editor {
 
         Core::FString Error{};
 
-        for (const Engine::FMeshMaterialSlot& Slot : Mesh->GetMeshData().GetMaterialSlots()) {
+        for (const Asset::FMeshMaterialSlot& Slot : Mesh->GetMeshData().GetMaterialSlots()) {
             Proxy.mMaterials.push_back(mAssets != nullptr && !Slot.GetMaterialPath().empty() ? mAssets->LoadMaterial(Core::FilePath::FromUtf8(Slot.GetMaterialPath()), Error) : nullptr);
         }
 

@@ -13,8 +13,11 @@
 #include <wrl/client.h>
 #include <span>
 
-namespace Engine {
+namespace Asset {
     class UTexture2D;
+}
+
+namespace Engine {
     struct FSceneViewFamily;
     struct FHeightFogSceneProxy;
 }
@@ -87,7 +90,7 @@ namespace Renderer {
          * @param[in] Destination 후처리 결과를 기록할 컬러 텍스처이며 Source와 다른 자원이어야 합니다.
          * @param[in] Depth ShaderResourceView로 읽을 장면 깊이 텍스처입니다.
          */
-        void Draw(ID3D11DeviceContext* Context, Engine::UTexture2D* Source, Engine::UTexture2D* Destination, Engine::UTexture2D* Depth);
+        void Draw(ID3D11DeviceContext* Context, Asset::UTexture2D* Source, Asset::UTexture2D* Destination, Asset::UTexture2D* Depth);
 
     private:
         /**

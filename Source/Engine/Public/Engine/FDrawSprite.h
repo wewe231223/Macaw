@@ -11,9 +11,11 @@
 #include "Core/Math/FVector2.h"
 #include "Core/Math/FVector4.h"
 
-namespace Engine {
-
+namespace Asset {
     class UTexture2D;
+}
+
+namespace Engine {
 
     /**
      * @brief 텍스처 쿼드의 크기, 색상과 카메라 정렬 여부를 전달합니다.
@@ -42,7 +44,7 @@ namespace Engine {
         /**
          * @brief 텍스처의 비소유 주소입니다.
          */
-        Engine::UTexture2D* mTexture{};
+        Asset::UTexture2D* mTexture{};
         ReflectProperty(mTexture, "Texture", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**

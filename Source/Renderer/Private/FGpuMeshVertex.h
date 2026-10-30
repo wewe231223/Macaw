@@ -12,7 +12,7 @@
 #include <cstddef>
 #include <type_traits>
 
-namespace Engine {
+namespace Asset {
     struct FMeshVertex;
 }
 
@@ -34,7 +34,7 @@ namespace Renderer {
          * @brief FGpuMeshVertex의 초기 상태와 전달받은 의존성을 구성합니다.
          * @param[in] Vertex GPU 레이아웃으로 변환할 CPU 정점입니다.
          */
-        explicit FGpuMeshVertex(const Engine::FMeshVertex& Vertex);
+        explicit FGpuMeshVertex(const Asset::FMeshVertex& Vertex);
 
     private:
         /**

@@ -37,7 +37,7 @@
 #include "Editor/FEditorContext.h"
 #include "Editor/FViewportCommandInfo.h"
 #include "Engine/FProject.h"
-#include "Engine/UStaticMesh.h"
+#include "Asset/UStaticMesh.h"
 
 #include <algorithm>
 #include <cmath>
@@ -919,7 +919,7 @@ namespace Editor {
         }
 
         Core::FString Error{};
-        const Engine::UStaticMesh* Mesh{Project->GetAssets()->LoadMesh(Path, Error)};
+        const Asset::UStaticMesh* Mesh{Project->GetAssets()->LoadMesh(Path, Error)};
 
         if (Mesh == nullptr) {
             mContext->AddLog(Error);

@@ -16,10 +16,12 @@
 
 #include <optional>
 
-namespace Engine {
-
+namespace Asset {
     class UStaticMesh;
     class UMaterial;
+}
+
+namespace Engine {
 
     /**
      * @brief 컴포넌트에서 복사한 식별자, 메시 종류, 월드 행렬과 경계 상자입니다.
@@ -74,7 +76,7 @@ namespace Engine {
         /**
          * @brief 렌더링할 정적 메시의 비소유 주소입니다.
          */
-        Engine::UStaticMesh* mMesh{};
+        Asset::UStaticMesh* mMesh{};
         ReflectProperty(mMesh, "Mesh", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
@@ -86,13 +88,13 @@ namespace Engine {
         /**
          * @brief 연결된 머티리얼의 비소유 주소입니다.
          */
-        Engine::UMaterial* mMaterial{};
+        Asset::UMaterial* mMaterial{};
         ReflectProperty(mMaterial, "Material", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief SubMesh의 재질 인덱스로 조회하는 슬롯별 비소유 재질 주소입니다.
          */
-        Core::TArray<Engine::UMaterial*> mMaterials{};
+        Core::TArray<Asset::UMaterial*> mMaterials{};
         ReflectProperty(mMaterials, "Materials", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**

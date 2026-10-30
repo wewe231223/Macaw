@@ -8,14 +8,16 @@
 
 #include "Core/Types.h"
 
+namespace Asset {
+    struct FMeshData;
+}
+
 namespace Core {
     struct FMatrix;
     struct FRay;
 }
 
 namespace Engine {
-
-    struct FMeshData;
 
     /**
      * @brief 월드 변환을 적용한 메시의 모든 삼각형과 광선의 최근접 교차를 검사합니다.
@@ -25,6 +27,6 @@ namespace Engine {
      * @param[out] Distance 최근접 교차 거리의 출력입니다.
      * @return 최근접 교차를 찾으면 true이며 Distance에 월드 거리를 기록합니다.
      */
-    bool RaycastMesh(const Engine::FMeshData* Mesh, const Core::FMatrix& World, const Core::FRay& Ray, float& Distance);
+    bool RaycastMesh(const Asset::FMeshData* Mesh, const Core::FMatrix& World, const Core::FRay& Ray, float& Distance);
 
 }

@@ -14,12 +14,12 @@
 #include "RenderCore/FRenderStats.h"
 #include "FScenePrimitive.h"
 #include "FScene.h"
-#include "Engine/UStaticMesh.h"
+#include "Asset/UStaticMesh.h"
 #include "FSceneDrawContext.h"
 #include "FMaterialPipeline.h"
 #include "Renderer/Renderer.h"
-#include "Engine/UMaterial.h"
-#include "Engine/UTexture2D.h"
+#include "Asset/UMaterial.h"
+#include "Asset/UTexture2D.h"
 #include "Core/Base/ErrorHandler.h"
 
 #include <algorithm>
@@ -89,7 +89,7 @@ namespace Renderer {
         Core::TArray<Renderer::FMeshDrawCommand> Commands{};
         Commands.reserve(mScene->GetPrimitives().size());
 
-        Engine::UMaterial* DefaultMaterial{Renderer->GetDefaultMaterial()};
+        Asset::UMaterial* DefaultMaterial{Renderer->GetDefaultMaterial()};
         Renderer::FMaterialPipeline* DefaultPipeline{Renderer->GetMaterialPipeline(*DefaultMaterial, mFamily->mViewMode)};
 
         if (DefaultPipeline == nullptr || !DefaultMaterial->CreateResources(Device.Get(), Context)) {
@@ -102,15 +102,15 @@ namespace Renderer {
                 continue;
             }
 
-            Engine::UStaticMesh* Mesh{Primitive.mProxy.mMesh != nullptr ? Primitive.mProxy.mMesh : (*mDrawContext.mMeshes)[static_cast<std::size_t>(Primitive.mProxy.mPrimitive)].get()};
+            Asset::UStaticMesh* Mesh{Primitive.mProxy.mMesh != nullptr ? Primitive.mProxy.mMesh : (*mDrawContext.mMeshes)[static_cast<std::size_t>(Primitive.mProxy.mPrimitive)].get()};
 
             if (Mesh == nullptr || (!Mesh->HasResources() && !Mesh->CreateResources(Device.Get())) || Primitive.mObjectBuffer == nullptr) {
                 continue;
             }
 
-            for (const Engine::FSubMesh& SubMesh : Mesh->GetMeshData().GetSubMeshes()) {
-                Engine::UMaterial* SlotMaterial{SubMesh.GetMaterialIndex() < Primitive.mProxy.mMaterials.size() ? Primitive.mProxy.mMaterials[SubMesh.GetMaterialIndex()] : nullptr};
-                Engine::UMaterial* Material{Primitive.mProxy.mMaterial != nullptr ? Primitive.mProxy.mMaterial : SlotMaterial != nullptr ? SlotMaterial : DefaultMaterial};
+            for (const Asset::FSubMesh& SubMesh : Mesh->GetMeshData().GetSubMeshes()) {
+                Asset::UMaterial* SlotMaterial{SubMesh.GetMaterialIndex() < Primitive.mProxy.mMaterials.size() ? Primitive.mProxy.mMaterials[SubMesh.GetMaterialIndex()] : nullptr};
+                Asset::UMaterial* Material{Primitive.mProxy.mMaterial != nullptr ? Primitive.mProxy.mMaterial : SlotMaterial != nullptr ? SlotMaterial : DefaultMaterial};
 
                 if (!Material->CreateResources(Device.Get(), Context)) {
                     Material = DefaultMaterial;
@@ -176,8 +176,8 @@ namespace Renderer {
         }
 
         Renderer::FMaterialPipeline* LastPipeline{};
-        Engine::UMaterial* LastMaterial{};
-        Engine::UStaticMesh* LastMesh{};
+        Asset::UMaterial* LastMaterial{};
+        Asset::UStaticMesh* LastMesh{};
         const std::array<UINT, 4> Offsets{};
 
         for (std::size_t First{}; First < Commands.size();) {
@@ -208,13 +208,13 @@ namespace Renderer {
                 Renderer::RendererStats::MaterialBinds.Add();
 
                 ID3D11Buffer* Constants{Command.mMaterial->GetConstantBuffer()};
-                Engine::UTexture2D* Texture{Command.mMaterial->GetBaseColorTexture()};
+                Asset::UTexture2D* Texture{Command.mMaterial->GetBaseColorTexture()};
                 ID3D11ShaderResourceView* Resource{Texture != nullptr ? Texture->GetShaderResourceView() : Renderer->GetDefaultMaterialTexture()};
                 ID3D11SamplerState* Sampler{Renderer->GetMaterialSampler()};
                 Context->VSSetConstantBuffers(2, 1, &Constants);
                 Context->PSSetConstantBuffers(2, 1, &Constants);
 
-                Engine::UTexture2D* NormalTexture{Command.mMaterial->GetNormalMapTexture()};
+                Asset::UTexture2D* NormalTexture{Command.mMaterial->GetNormalMapTexture()};
                 ID3D11ShaderResourceView* NormalResource{NormalTexture != nullptr ? NormalTexture->GetShaderResourceView() : nullptr};
 
                 Context->PSSetShaderResources(0, 1, &Resource);
@@ -228,9 +228,9 @@ namespace Renderer {
             if (LastMesh != Command.mMesh) {
                 Renderer::RendererStats::MeshBinds.Add();
 
-                Engine::UStaticMesh* Mesh{Command.mMesh};
+                Asset::UStaticMesh* Mesh{Command.mMesh};
                 const std::array<ID3D11Buffer*, 4> Buffers{Mesh->GetPositionBuffer(), Mesh->GetTangentBuffer(), Mesh->GetUVBuffer(), Mesh->GetColorBuffer()};
-                const std::array<UINT, 4> Strides{Engine::UStaticMesh::GetPositionStride(), Engine::UStaticMesh::GetTangentStride(), Mesh->GetUVStride(), Engine::UStaticMesh::GetColorStride()};
+                const std::array<UINT, 4> Strides{Asset::UStaticMesh::GetPositionStride(), Asset::UStaticMesh::GetTangentStride(), Mesh->GetUVStride(), Asset::UStaticMesh::GetColorStride()};
                 Context->IASetVertexBuffers(0, static_cast<UINT>(Buffers.size()), Buffers.data(), Strides.data(), Offsets.data());
                 Context->IASetIndexBuffer(Mesh->GetIndexBuffer(), DXGI_FORMAT_R32_UINT, 0);
                 LastMesh = Mesh;
@@ -261,7 +261,7 @@ namespace Renderer {
         mStats->mTransformUpdates += mScene->TakeTransformUpdates();
     }
 
-    Renderer::FMeshDrawCommand::FMeshDrawCommand(Renderer::FMaterialPipeline* Pipeline, Engine::UMaterial* Material, Engine::UStaticMesh* Mesh, const Renderer::FScenePrimitive* Primitive, Core::Uint32 FirstIndex, Core::Uint32 IndexCount)
+    Renderer::FMeshDrawCommand::FMeshDrawCommand(Renderer::FMaterialPipeline* Pipeline, Asset::UMaterial* Material, Asset::UStaticMesh* Mesh, const Renderer::FScenePrimitive* Primitive, Core::Uint32 FirstIndex, Core::Uint32 IndexCount)
 		: mPipeline{Pipeline},
 		  mMaterial{Material},
 		  mMesh{Mesh},

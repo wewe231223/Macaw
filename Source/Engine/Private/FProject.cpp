@@ -5,6 +5,7 @@
  */
 
 #include "Engine/FProject.h"
+#include "Engine/MaterialMigration.h"
 #include "Core/FilePath.h"
 #include "Serialization/JsonArchive.h"
 
@@ -50,7 +51,7 @@ namespace Engine {
 
         Candidate.mFilePath = File;
         Candidate.mName = Core::FilePath::ToUtf8(File.stem());
-        Candidate.mAssets = std::make_unique<Engine::FAssetManager>(File.parent_path() / "Content");
+        Candidate.mAssets = std::make_unique<Asset::FAssetManager>(File.parent_path() / "Content");
 
         if (!Candidate.Save(Error)) {
             return false;
@@ -89,7 +90,7 @@ namespace Engine {
             return false;
         }
 
-        auto Assets{std::make_unique<Engine::FAssetManager>(File.parent_path() / "Content")};
+        auto Assets{std::make_unique<Asset::FAssetManager>(File.parent_path() / "Content")};
         const std::filesystem::path RelativeScene{Core::FilePath::FromUtf8(StartupScene)};
 
         if (RelativeScene.is_absolute() || RelativeScene.has_root_name()) {
@@ -99,7 +100,7 @@ namespace Engine {
 
         const Core::FString RelativePath{Assets->GetRelativePath(RelativeScene, Error)};
 
-        if (RelativePath.empty() || !Assets->MigrateMaterials(Error)) {
+        if (RelativePath.empty() || !Engine::MaterialMigration::Migrate(*Assets, Error)) {
             return false;
         }
 
@@ -178,7 +179,7 @@ namespace Engine {
         return GetRootPath() / "Intermediate/ShaderCache";
     }
 
-    Engine::FAssetManager* Engine::FProject::GetAssets() const {
+    Asset::FAssetManager* Engine::FProject::GetAssets() const {
         return mAssets.get();
     }
 

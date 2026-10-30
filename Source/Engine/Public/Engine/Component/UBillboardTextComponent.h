@@ -90,7 +90,7 @@ namespace Engine {
          */
         void SetVisible(bool Visible);
         Engine::EPrimitiveType GetPrimitiveType() const override;
-        const Engine::FMeshData& GetMeshData() const override;
+        const Asset::FMeshData& GetMeshData() const override;
         Engine::FPrimitiveSceneProxy CreateSceneProxy() const override;
         Core::FBox GetWorldBounds() const override;
 

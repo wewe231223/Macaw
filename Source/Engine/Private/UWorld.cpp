@@ -22,7 +22,7 @@
 #include "CoreUObject/FObjectHandle.h"
 #include "Core/Math/FMatrix.h"
 #include "Core/Math/FRay.h"
-#include "Engine/FMeshData.h"
+#include "Asset/FMeshData.h"
 #include "Engine/FSceneInterface.h"
 #include "Engine/EPrimitiveType.h"
 #include "CoreUObject/Reflection/Cast.h"
@@ -51,7 +51,7 @@ namespace Engine {
         Shutdown();
     }
 
-    void Engine::UWorld::SetAssets(Engine::FAssetManager* Assets) {
+    void Engine::UWorld::SetAssets(Asset::FAssetManager* Assets) {
         if (mAssets == Assets) {
             return;
         }
@@ -82,7 +82,7 @@ namespace Engine {
         }
     }
 
-    Engine::FAssetManager* Engine::UWorld::GetAssets() const {
+    Asset::FAssetManager* Engine::UWorld::GetAssets() const {
         return mAssets;
     }
 

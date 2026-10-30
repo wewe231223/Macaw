@@ -157,11 +157,11 @@ namespace Engine {
         return Proxy;
     }
 
-    Engine::UStaticMesh* Engine::UPrimitiveComponent::GetStaticMesh() const {
+    Asset::UStaticMesh* Engine::UPrimitiveComponent::GetStaticMesh() const {
         return nullptr;
     }
 
-    const Engine::FMeshData& Engine::UPrimitiveComponent::GetMeshData() const {
+    const Asset::FMeshData& Engine::UPrimitiveComponent::GetMeshData() const {
         return Engine::GetPrimitiveMesh(GetPrimitiveType());
     }
 

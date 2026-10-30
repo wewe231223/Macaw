@@ -6,7 +6,7 @@
 
 #include "Engine/Component/UBillboardTextComponent.h"
 #include "Engine/FPrimitiveSceneProxy.h"
-#include "Engine/FMeshData.h"
+#include "Asset/FMeshData.h"
 #include "Core/Math/FTransform.h"
 
 #include <algorithm>
@@ -86,8 +86,8 @@ namespace Engine {
         return Engine::EPrimitiveType::Plane;
     }
 
-    const Engine::FMeshData& Engine::UBillboardTextComponent::GetMeshData() const {
-        static const Engine::FMeshData Mesh{};
+    const Asset::FMeshData& Engine::UBillboardTextComponent::GetMeshData() const {
+        static const Asset::FMeshData Mesh{};
         return Mesh;
     }
 

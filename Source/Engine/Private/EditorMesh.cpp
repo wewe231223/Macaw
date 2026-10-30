@@ -20,7 +20,7 @@ namespace Engine {
      * @param[in] B 삼각형의 둘째 정점입니다.
      * @param[in] C 삼각형의 셋째 정점입니다.
      */
-    static void AddTriangle(Engine::FMeshData* Mesh, const Core::FVector& A, const Core::FVector& B, const Core::FVector& C) {
+    static void AddTriangle(Asset::FMeshData* Mesh, const Core::FVector& A, const Core::FVector& B, const Core::FVector& C) {
         const Core::Uint32 Base{static_cast<Core::Uint32>(Mesh->GetPositions().size())};
         const Core::FVector Normal{(B - A).Cross(C - A).Normalized()};
 
@@ -35,8 +35,8 @@ namespace Engine {
      * @param[in] Minimum 상자의 최소 경계입니다.
      * @param[in] Maximum 상자의 최대 경계입니다.
      */
-    static void AddBox(Engine::FMeshData* Mesh, const Core::FVector& Minimum, const Core::FVector& Maximum) {
-        const Engine::FMeshData* Cube{&Engine::GetPrimitiveMesh(Engine::EPrimitiveType::Cube)};
+    static void AddBox(Asset::FMeshData* Mesh, const Core::FVector& Minimum, const Core::FVector& Maximum) {
+        const Asset::FMeshData* Cube{&Engine::GetPrimitiveMesh(Engine::EPrimitiveType::Cube)};
         const Core::FVector Size{Maximum - Minimum};
         const Core::FVector Center{(Maximum + Minimum) * 0.5f};
 
@@ -50,8 +50,8 @@ namespace Engine {
      * @param[in] Type 생성하거나 조회할 에디터 도형입니다.
      * @return 생성한 CPU 메시의 값입니다.
      */
-    static Engine::FMeshData BuildMesh(Engine::EEditorMesh Type) {
-        Engine::FMeshData Mesh{};
+    static Asset::FMeshData BuildMesh(Engine::EEditorMesh Type) {
+        Asset::FMeshData Mesh{};
         constexpr float Pi{std::numbers::pi_v<float>};
 
         if (Type == Engine::EEditorMesh::Arrow) {
@@ -121,13 +121,13 @@ namespace Engine {
      * @param[in] Type 생성하거나 조회할 에디터 도형입니다.
      * @return 공유 메시의 읽기 전용 참조이며 잘못된 종류이면 빈 메시입니다.
      */
-    const Engine::FMeshData& GetEditorMesh(Engine::EEditorMesh Type) {
+    const Asset::FMeshData& GetEditorMesh(Engine::EEditorMesh Type) {
         if (Type >= Engine::EEditorMesh::Count) {
-            static const Engine::FMeshData Empty{};
+            static const Asset::FMeshData Empty{};
             return Empty;
         }
 
-        static const std::array<Engine::FMeshData, static_cast<std::size_t>(Engine::EEditorMesh::Count)> Meshes{BuildMesh(Engine::EEditorMesh::Arrow), BuildMesh(Engine::EEditorMesh::Hammer), BuildMesh(Engine::EEditorMesh::Ring), BuildMesh(Engine::EEditorMesh::HalfRing), BuildMesh(Engine::EEditorMesh::Quad), BuildMesh(Engine::EEditorMesh::Triangle), BuildMesh(Engine::EEditorMesh::Cube)};
+        static const std::array<Asset::FMeshData, static_cast<std::size_t>(Engine::EEditorMesh::Count)> Meshes{BuildMesh(Engine::EEditorMesh::Arrow), BuildMesh(Engine::EEditorMesh::Hammer), BuildMesh(Engine::EEditorMesh::Ring), BuildMesh(Engine::EEditorMesh::HalfRing), BuildMesh(Engine::EEditorMesh::Quad), BuildMesh(Engine::EEditorMesh::Triangle), BuildMesh(Engine::EEditorMesh::Cube)};
 
         return Meshes[static_cast<std::size_t>(Type)];
     }

@@ -10,9 +10,12 @@
 #include "FSceneDrawContext.h"
 #include "RenderCore/FRenderStats.h"
 
+namespace Asset {
+    class UMaterial;
+}
+
 namespace Engine {
     struct FSceneViewFamily;
-    class UMaterial;
 }
 
 namespace Core {
@@ -45,7 +48,7 @@ namespace Renderer {
          * @param[in] FirstIndex SubMesh의 첫 인덱스 오프셋입니다.
          * @param[in] IndexCount SubMesh의 삼각형 인덱스 개수입니다.
          */
-        FMeshDrawCommand(Renderer::FMaterialPipeline* Pipeline, Engine::UMaterial* Material, Engine::UStaticMesh* Mesh, const Renderer::FScenePrimitive* Primitive, Core::Uint32 FirstIndex, Core::Uint32 IndexCount);
+        FMeshDrawCommand(Renderer::FMaterialPipeline* Pipeline, Asset::UMaterial* Material, Asset::UStaticMesh* Mesh, const Renderer::FScenePrimitive* Primitive, Core::Uint32 FirstIndex, Core::Uint32 IndexCount);
 
     public:
         /**
@@ -75,13 +78,13 @@ namespace Renderer {
         /**
          * @brief 연결된 머티리얼의 비소유 주소입니다.
          */
-        Engine::UMaterial* mMaterial{};
+        Asset::UMaterial* mMaterial{};
         ReflectProperty(mMaterial, "Material", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 이번 드로에 사용할 정적 메시입니다.
          */
-        Engine::UStaticMesh* mMesh{};
+        Asset::UStaticMesh* mMesh{};
         ReflectProperty(mMesh, "Mesh", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**

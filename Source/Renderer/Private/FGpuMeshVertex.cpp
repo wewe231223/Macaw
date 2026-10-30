@@ -5,14 +5,14 @@
  */
 
 #include "FGpuMeshVertex.h"
-#include "Engine/FMeshVertex.h"
+#include "Asset/FMeshVertex.h"
 
 namespace Renderer {
 
     /**
      * @brief FGpuMeshVertex의 초기 상태와 전달받은 의존성을 구성합니다.
      */
-    Renderer::FGpuMeshVertex::FGpuMeshVertex(const Engine::FMeshVertex& Vertex)
+    Renderer::FGpuMeshVertex::FGpuMeshVertex(const Asset::FMeshVertex& Vertex)
 		: mPosition{Vertex.mPosition.ToArray()},
 		  mNormal{Vertex.mNormal.ToArray()} {
     }

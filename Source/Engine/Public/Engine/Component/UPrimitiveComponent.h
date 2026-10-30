@@ -10,6 +10,11 @@
 #include "Engine/Component/USceneComponent.h"
 #include "Core/Math/FVector2.h"
 
+namespace Asset {
+    struct FMeshData;
+    class UStaticMesh;
+}
+
 namespace Core {
     struct FBox;
 }
@@ -18,8 +23,6 @@ namespace Engine {
 
     enum class EPrimitiveType : Core::Uint8;
     struct FPrimitiveSceneProxy;
-    struct FMeshData;
-    class UStaticMesh;
 
     /**
      * @brief 장면 프록시 생성과 지연된 렌더 상태 및 변환 갱신을 제공하는 기반 클래스입니다.
@@ -99,13 +102,13 @@ namespace Engine {
          * @brief 프리미티브가 사용하는 정적 메시의 비소유 주소를 반환합니다.
          * @return 대상의 비소유 주소이며, 없거나 유효하지 않으면 nullptr입니다.
          */
-        virtual Engine::UStaticMesh* GetStaticMesh() const;
+        virtual Asset::UStaticMesh* GetStaticMesh() const;
 
         /**
          * @brief 메시의 CPU 정점 속성·인덱스 데이터 참조를 반환합니다.
          * @return 객체가 보유한 데이터의 참조이며 소유 객체의 수명 동안 유효합니다.
          */
-        virtual const Engine::FMeshData& GetMeshData() const;
+        virtual const Asset::FMeshData& GetMeshData() const;
 
         /**
          * @brief 컴포넌트의 현재 상태를 복사한 프리미티브 프록시를 만듭니다.

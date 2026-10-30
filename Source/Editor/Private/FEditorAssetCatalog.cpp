@@ -5,14 +5,13 @@
  */
 #include "Editor/FEditorAssetCatalog.h"
 #include "Core/FilePath.h"
-#include "Engine/FAssetManager.h"
+#include "Asset/FAssetManager.h"
 
 #include <algorithm>
-#include <cwctype>
 
 namespace Editor {
 
-    Editor::FEditorAssetEntry::FEditorAssetEntry(std::filesystem::path Path, std::optional<Engine::EAssetType> Type)
+    Editor::FEditorAssetEntry::FEditorAssetEntry(std::filesystem::path Path, std::optional<Asset::EAssetType> Type)
 		: mPath{std::move(Path)},
 		  mType{Type} {
     }
@@ -21,22 +20,16 @@ namespace Editor {
         return mPath;
     }
 
-    std::optional<Engine::EAssetType> Editor::FEditorAssetEntry::GetType() const {
+    std::optional<Asset::EAssetType> Editor::FEditorAssetEntry::GetType() const {
         return mType;
     }
 
-    Editor::FEditorAssetCatalog::FEditorAssetCatalog(Engine::FAssetManager* Assets)
+    Editor::FEditorAssetCatalog::FEditorAssetCatalog(Asset::FAssetManager* Assets)
 		: mAssets{Assets} {
     }
 
     Core::FString Editor::FEditorAssetCatalog::MakeKey(const std::filesystem::path& Path) {
-        std::wstring Key{Path.lexically_normal().generic_wstring()};
-
-        for (wchar_t& Character : Key) {
-            Character = static_cast<wchar_t>(std::towlower(Character));
-        }
-
-        return Core::FilePath::ToUtf8(std::filesystem::path{Key});
+        return Core::FilePath::ToGenericUtf8(Core::FilePath::ToLower(Path.lexically_normal()));
     }
 
     bool Editor::FEditorAssetCatalog::Refresh(Core::FString& Error) {
@@ -66,23 +59,20 @@ namespace Editor {
             } else if (Directory) {
                 mDirectories.push_back(Path);
             } else if (!Code && Iterator->is_regular_file(Code)) {
-                std::wstring Extension{Path.extension().wstring()};
-                std::transform(Extension.begin(), Extension.end(), Extension.begin(), [](wchar_t Value) {
-                    return static_cast<wchar_t>(std::towlower(Value));
-                });
+                const std::wstring Extension{Core::FilePath::ToLowerExtension(Path)};
 
-                std::optional<Engine::EAssetType> Type{};
+                std::optional<Asset::EAssetType> Type{};
 
                 if (Extension == L".masset") {
-                    Engine::EAssetType Value{};
+                    Asset::EAssetType Value{};
 
-                    if (Engine::FAssetFile::GetType(Iterator->path(), Value, PathError)) {
+                    if (Asset::FAssetFile::GetType(Iterator->path(), Value, PathError)) {
                         Type = Value;
                     } else if (Error.empty()) {
                         Error = Core::FilePath::ToUtf8(Path) + ": " + PathError;
                     }
                 } else if (Extension == L".png" || Extension == L".jpg" || Extension == L".jpeg" || Extension == L".bmp" || Extension == L".tga" || Extension == L".dds" || Extension == L".hdr") {
-                    Type = Engine::EAssetType::Texture;
+                    Type = Asset::EAssetType::Texture;
                 }
 
                 mEntries.emplace_back(Path, Type);
@@ -128,7 +118,7 @@ namespace Editor {
         return Position == mIndices.end() ? nullptr : &mEntries[Position->second];
     }
 
-    Engine::FAssetManager* Editor::FEditorAssetCatalog::GetAssets() const {
+    Asset::FAssetManager* Editor::FEditorAssetCatalog::GetAssets() const {
         return mAssets;
     }
 

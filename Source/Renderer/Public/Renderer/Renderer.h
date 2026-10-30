@@ -7,7 +7,7 @@
 #pragma once
 
 #include "Core/ReflectionMacros.h"
-#include "Engine/FMeshData.h"
+#include "Asset/FMeshData.h"
 #include "Engine/FSceneInterface.h"
 #include "Engine/FRenderTarget.h"
 #include "Engine/FSceneViewFamily.h"
@@ -17,9 +17,9 @@
 #include "RenderCore/FDynamicVertexBuffer.h"
 #include "RenderCore/IRendererModule.h"
 #include "RenderCore/Shader/FShaderManager.h"
-#include "Engine/UStaticMesh.h"
-#include "Engine/UTexture2D.h"
-#include "Engine/UMaterial.h"
+#include "Asset/UStaticMesh.h"
+#include "Asset/UTexture2D.h"
+#include "Asset/UMaterial.h"
 #include "Renderer/FLineVertex.h"
 
 #include <d3d11.h>
@@ -109,7 +109,7 @@ namespace Renderer {
          * @param[in] Mesh 업로드할 CPU 메시입니다.
          * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
          */
-        bool UploadMesh(Engine::EPrimitiveType Type, const Engine::FMeshData& Mesh) override;
+        bool UploadMesh(Engine::EPrimitiveType Type, const Asset::FMeshData& Mesh) override;
 
         /**
          * @brief 지정한 픽셀 크기의 오프스크린 렌더 타깃을 생성합니다.
@@ -223,7 +223,7 @@ namespace Renderer {
          * @param[in] Mode 파이프라인에 적용할 조명·와이어프레임·법선 표시 모드입니다.
          * @return 대상의 비소유 주소이며, 없거나 유효하지 않으면 nullptr입니다.
          */
-        Renderer::FMaterialPipeline* GetMaterialPipeline(const Engine::UMaterial& Material, Engine::EViewMode Mode = Engine::EViewMode::Lit_Phong);
+        Renderer::FMaterialPipeline* GetMaterialPipeline(const Asset::UMaterial& Material, Engine::EViewMode Mode = Engine::EViewMode::Lit_Phong);
 
         /**
          * @brief 현재 뷰의 그림자를 렌더링하고 타일 조명 자원을 업로드·바인딩합니다.
@@ -241,7 +241,7 @@ namespace Renderer {
          * @brief 기본 머티리얼의 비소유 주소를 반환합니다.
          * @return 대상의 비소유 주소이며, 없거나 유효하지 않으면 nullptr입니다.
          */
-        Engine::UMaterial* GetDefaultMaterial() const;
+        Asset::UMaterial* GetDefaultMaterial() const;
 
         /**
          * @brief 텍스처 없는 머티리얼의 흰색 기본 텍스처를 반환합니다.
@@ -356,13 +356,13 @@ namespace Renderer {
         /**
          * @brief 머티리얼이 없는 메시 드로에 사용할 기본 머티리얼의 소유 객체입니다.
          */
-        std::unique_ptr<Engine::UMaterial> mDefaultMaterial{};
+        std::unique_ptr<Asset::UMaterial> mDefaultMaterial{};
         ReflectProperty(mDefaultMaterial, "DefaultMaterial", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 텍스처 없는 머티리얼의 흰색 기본 텍스처입니다.
          */
-        std::unique_ptr<Engine::UTexture2D> mDefaultMaterialTexture{};
+        std::unique_ptr<Asset::UTexture2D> mDefaultMaterialTexture{};
         ReflectProperty(mDefaultMaterialTexture, "DefaultMaterialTexture", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
@@ -441,7 +441,7 @@ namespace Renderer {
         /**
          * @brief 스왑 체인 백 버퍼의 렌더 타깃 뷰입니다.
          */
-        std::unique_ptr<Engine::UTexture2D> mBackBuffer{};
+        std::unique_ptr<Asset::UTexture2D> mBackBuffer{};
         ReflectProperty(mBackBuffer, "BackBuffer", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
 
@@ -526,7 +526,7 @@ namespace Renderer {
         /**
          * @brief 프리미티브 종류별 GPU 메시입니다.
          */
-        std::array<std::unique_ptr<Engine::UStaticMesh>, 3> mMeshes{};
+        std::array<std::unique_ptr<Asset::UStaticMesh>, 3> mMeshes{};
         ReflectProperty(mMeshes, "Meshes", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
 
@@ -588,7 +588,7 @@ namespace Renderer {
         /**
          * @brief 렌더러가 초기화 때 생성하고 종료 때 해제하는 enum별 불변 GPU 정점·인덱스 버퍼입니다.
          */
-        std::array<std::unique_ptr<Engine::UStaticMesh>, static_cast<std::size_t>(Engine::EEditorMesh::Count)> mEditorMeshes{};
+        std::array<std::unique_ptr<Asset::UStaticMesh>, static_cast<std::size_t>(Engine::EEditorMesh::Count)> mEditorMeshes{};
         ReflectProperty(mEditorMeshes, "EditorMeshes", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 

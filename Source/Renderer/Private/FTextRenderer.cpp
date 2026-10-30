@@ -17,7 +17,7 @@
 namespace Renderer {
 
     bool Renderer::FTextRenderer::Initialize(ID3D11Device* Device, const std::filesystem::path& FontPath) {
-        auto Texture{CoreUObject::NewObject<Engine::UTexture2D>()};
+        auto Texture{CoreUObject::NewObject<Asset::UTexture2D>()};
         std::filesystem::path ImagePath{FontPath};
         ImagePath.replace_extension(L".png");
 

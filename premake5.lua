@@ -44,6 +44,10 @@ local function AddIncludes(Name, Visited)
     Visited[Name] = true
     includedirs { "Source/" .. Name .. "/Public" }
 
+    if Name == "Asset" then
+        defines { "FBXSDK_SHARED" }
+    end
+
     if ReflectedModules[Name] then
         includedirs { Reflection.GetGeneratedDirectory(Name) }
     end
@@ -70,7 +74,7 @@ local function Configure(Name, Kind)
         externalincludedirs { "vcpkg_installed/x64-windows/include/luajit" }
 end
 
-for _, Name in ipairs({ "Core", "CoreUObject", "Serialization", "RenderCore", "Engine", "Script", "Renderer", "Platform", "Editor" }) do
+for _, Name in ipairs({ "Core", "CoreUObject", "Serialization", "Asset", "RenderCore", "Engine", "Script", "Renderer", "Platform", "Editor" }) do
     Configure(Name, "StaticLib")
     files { "Source/" .. Name .. "/Public/**.h", "Source/" .. Name .. "/Private/**.h", "Source/" .. Name .. "/Private/**.cpp" }
     includedirs { "Source/" .. Name .. "/Private" }
@@ -90,8 +94,7 @@ for _, Name in ipairs({ "Core", "CoreUObject", "Serialization", "RenderCore", "E
     links(Modules[Name].Public)
     links(Modules[Name].Private)
 
-    if Name == "Engine" then
-        defines { "FBXSDK_SHARED" }
+    if Name == "Asset" then
         defines { "DIRECTX_TEX_IMPORT" }
     end
 end
@@ -112,7 +115,7 @@ local function ConfigureRuntimeExecutable(Name, Kind, Directory)
         AddIncludes(Module, {})
     end
 
-    links { "Script", "Engine", "Renderer", "Platform", "Serialization", "RenderCore", "CoreUObject", "Core", "d3d11", "dxgi", "d3dcompiler", "bcrypt", "user32", "gdi32", "dwmapi", "imm32", "ole32", "windowscodecs", "comdlg32", "shell32" }
+    links { "Script", "Engine", "Renderer", "Platform", "Asset", "Serialization", "RenderCore", "CoreUObject", "Core", "d3d11", "dxgi", "d3dcompiler", "bcrypt", "user32", "gdi32", "dwmapi", "imm32", "ole32", "windowscodecs", "comdlg32", "shell32" }
     debugdir "%{wks.location}"
 end
 

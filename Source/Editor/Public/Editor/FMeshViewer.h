@@ -16,16 +16,19 @@
 
 #include <filesystem>
 
+namespace Asset {
+    class FAssetManager;
+    class UStaticMesh;
+    class UMaterial;
+}
+
 namespace RenderCore {
     class IRendererModule;
 }
 
 namespace Engine {
-    class FAssetManager;
     class FSceneInterface;
     class FRenderTarget;
-    class UStaticMesh;
-    class UMaterial;
 }
 
 namespace Editor {
@@ -46,7 +49,7 @@ namespace Editor {
          * @param Renderer 렌더러의 비소유 주소입니다.
          * @param Assets 에셋 관리자의 비소유 주소입니다.
          */
-        FMeshViewer(RenderCore::IRendererModule* Renderer, Engine::FAssetManager* Assets);
+        FMeshViewer(RenderCore::IRendererModule* Renderer, Asset::FAssetManager* Assets);
 
         /**
          * @brief 미리보기 장면과 렌더 타깃을 해제합니다.
@@ -130,7 +133,7 @@ namespace Editor {
         /**
          * @brief 프로젝트 에셋 관리자의 비소유 주소입니다.
          */
-        Engine::FAssetManager* mAssets{};
+        Asset::FAssetManager* mAssets{};
         ReflectProperty(mAssets, "Assets", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
@@ -148,13 +151,13 @@ namespace Editor {
         /**
          * @brief 현재 메시의 비소유 주소입니다.
          */
-        Engine::UStaticMesh* mMesh{};
+        Asset::UStaticMesh* mMesh{};
         ReflectProperty(mMesh, "Mesh", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 현재 슬롯별 미리보기 재질의 비소유 주소입니다.
          */
-        Core::TArray<Engine::UMaterial*> mMaterials{};
+        Core::TArray<Asset::UMaterial*> mMaterials{};
         ReflectProperty(mMaterials, "Materials", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**

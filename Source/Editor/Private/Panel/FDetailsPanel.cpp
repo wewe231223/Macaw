@@ -13,9 +13,9 @@
 #include "Engine/Component/ULightComponent.h"
 #include "RenderCore/IRendererModule.h"
 #include "Engine/FProject.h"
-#include "Engine/FAssetManager.h"
-#include "Engine/FAssetFile.h"
-#include "Engine/UStaticMesh.h"
+#include "Asset/FAssetManager.h"
+#include "Asset/FAssetFile.h"
+#include "Asset/UStaticMesh.h"
 #include "Core/FilePath.h"
 #include "CoreUObject/TObjectIterator.h"
 #include "Editor/FEditorAssetCatalog.h"
@@ -273,7 +273,7 @@ namespace Editor {
             for (Core::Uint32 Slot{}; Slot < Slots.size(); ++Slot) {
                 const auto& SubMeshes{Component->GetStaticMesh()->GetMeshData().GetSubMeshes()};
 
-                if (std::none_of(SubMeshes.begin(), SubMeshes.end(), [Slot](const Engine::FSubMesh& SubMesh) {
+                if (std::none_of(SubMeshes.begin(), SubMeshes.end(), [Slot](const Asset::FSubMesh& SubMesh) {
                     return SubMesh.GetMaterialIndex() == Slot;
                 })) {
                     continue;
@@ -284,7 +284,7 @@ namespace Editor {
                 Core::FString Path{AllSlotsOverride ? Core::FString{} : Component->GetSlotMaterialPath(Slot)};
                 const Core::FString& Inherited{AllSlotsOverride ? Component->GetMaterialPath() : Slots[Slot].GetMaterialPath()};
 
-                if (mAssetCatalog != nullptr && mThumbnails != nullptr && mAssetPicker.Draw(*mAssetCatalog, *mThumbnails, Slots[Slot].GetName().c_str(), Path, Engine::EAssetType::Material, Inherited, "Use mesh material", AllSlotsOverride ? "All slots" : "Mesh")) {
+                if (mAssetCatalog != nullptr && mThumbnails != nullptr && mAssetPicker.Draw(*mAssetCatalog, *mThumbnails, Slots[Slot].GetName().c_str(), Path, Asset::EAssetType::Material, Inherited, "Use mesh material", AllSlotsOverride ? "All slots" : "Mesh")) {
                     Context->SetMaterialOverride(Handle, Slot, Path);
                 }
 
@@ -388,7 +388,7 @@ namespace Editor {
             }
 
             if (mAssetCatalog != nullptr && mThumbnails != nullptr && (Property->GetName() == "Material" || Property->GetName() == "Texture" || Property->GetName() == "Sprite")) {
-                return mAssetPicker.Draw(*mAssetCatalog, *mThumbnails, Property->GetName() == "Material" ? "All Slots Override" : Label, *String, Property->GetName() == "Material" ? Engine::EAssetType::Material : Engine::EAssetType::Texture, {}, Property->GetName() == "Material" ? "Use mesh materials" : Property->GetName() == "Sprite" ? "Default atlas" : "None");
+                return mAssetPicker.Draw(*mAssetCatalog, *mThumbnails, Property->GetName() == "Material" ? "All Slots Override" : Label, *String, Property->GetName() == "Material" ? Asset::EAssetType::Material : Asset::EAssetType::Texture, {}, Property->GetName() == "Material" ? "Use mesh materials" : Property->GetName() == "Sprite" ? "Default atlas" : "None");
             }
 
             if (Property->GetName() == "Text") {
@@ -475,7 +475,7 @@ namespace Editor {
             return false;
         }
 
-        return mAssetPicker.Draw(*mAssetCatalog, *mThumbnails, Label, Path, Mesh ? Engine::EAssetType::Mesh : Engine::EAssetType::Material, {}, Mesh ? "Primitive mesh" : "Default material");
+        return mAssetPicker.Draw(*mAssetCatalog, *mThumbnails, Label, Path, Mesh ? Asset::EAssetType::Mesh : Asset::EAssetType::Material, {}, Mesh ? "Primitive mesh" : "Default material");
     }
 
 }

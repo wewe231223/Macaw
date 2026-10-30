@@ -9,6 +9,7 @@
 #include "Core/Types.h"
 
 #include <filesystem>
+#include <string>
 #include <string_view>
 
 namespace Core {
@@ -37,6 +38,20 @@ namespace Core {
          * @return 플랫폼의 파일 시스템 경로입니다.
          */
         std::filesystem::path FromUtf8(std::string_view Text);
+
+        /**
+         * @brief 대소문자 구분 없는 비교와 캐시 키에 쓰도록 경로의 모든 문자를 소문자로 바꿉니다.
+         * @param[in] Path 변환할 경로입니다.
+         * @return 소문자로 변환한 경로입니다.
+         */
+        std::filesystem::path ToLower(const std::filesystem::path& Path);
+
+        /**
+         * @brief 경로의 확장자를 소문자로 반환합니다.
+         * @param[in] Path 확장자를 읽을 경로입니다.
+         * @return 점을 포함한 소문자 확장자이며 확장자가 없으면 빈 문자열입니다.
+         */
+        std::wstring ToLowerExtension(const std::filesystem::path& Path);
     }
 
 }

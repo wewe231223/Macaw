@@ -7,15 +7,15 @@
 #include "Core/FilePath.h"
 #include "Core/Math/FBox.h"
 #include "Core/Math/FQuat.h"
-#include "Engine/FAssetManager.h"
-#include "Engine/FAssetFile.h"
+#include "Asset/FAssetManager.h"
+#include "Asset/FAssetFile.h"
 #include "Engine/FSceneInterface.h"
 #include "Engine/FRenderTarget.h"
 #include "Engine/FPrimitiveSceneProxy.h"
 #include "Engine/FLightSceneProxy.h"
 #include "Engine/FSceneViewFamily.h"
-#include "Engine/UStaticMesh.h"
-#include "Engine/UMaterial.h"
+#include "Asset/UStaticMesh.h"
+#include "Asset/UMaterial.h"
 #include "RenderCore/IRendererModule.h"
 
 #include <imgui.h>
@@ -25,7 +25,7 @@
 
 namespace Editor {
 
-    Editor::FMeshViewer::FMeshViewer(RenderCore::IRendererModule* Renderer, Engine::FAssetManager* Assets)
+    Editor::FMeshViewer::FMeshViewer(RenderCore::IRendererModule* Renderer, Asset::FAssetManager* Assets)
 		: mRenderer{Renderer},
 		  mAssets{Assets} {
     }
@@ -40,7 +40,7 @@ namespace Editor {
             return false;
         }
 
-        Engine::UStaticMesh* Mesh{mAssets->LoadMesh(Path, Error)};
+        Asset::UStaticMesh* Mesh{mAssets->LoadMesh(Path, Error)};
 
         if (Mesh == nullptr) {
             return false;
@@ -58,10 +58,10 @@ namespace Editor {
             return false;
         }
 
-        Core::TArray<Engine::UMaterial*> Materials{};
+        Core::TArray<Asset::UMaterial*> Materials{};
 
-        for (const Engine::FMeshMaterialSlot& Slot : Mesh->GetMeshData().GetMaterialSlots()) {
-            Engine::UMaterial* Material{Slot.GetMaterialPath().empty() ? nullptr : mAssets->LoadMaterial(Core::FilePath::FromUtf8(Slot.GetMaterialPath()), Error)};
+        for (const Asset::FMeshMaterialSlot& Slot : Mesh->GetMeshData().GetMaterialSlots()) {
+            Asset::UMaterial* Material{Slot.GetMaterialPath().empty() ? nullptr : mAssets->LoadMaterial(Core::FilePath::FromUtf8(Slot.GetMaterialPath()), Error)};
 
             if (!Slot.GetMaterialPath().empty() && Material == nullptr) {
                 return false;
@@ -144,9 +144,9 @@ namespace Editor {
                 }
 
                 for (const auto& Candidate : Paths) {
-                    Engine::EAssetType Type{};
+                    Asset::EAssetType Type{};
 
-                    if (Engine::FAssetFile::GetType(mAssets->ResolvePath(Candidate, Error), Type, Error) && Type == Engine::EAssetType::Material) {
+                    if (Asset::FAssetFile::GetType(mAssets->ResolvePath(Candidate, Error), Type, Error) && Type == Asset::EAssetType::Material) {
                         const Core::FString Relative{Core::FilePath::ToGenericUtf8(Candidate)};
 
                         if (ImGui::Selectable(Relative.c_str(), Path == Relative)) {
@@ -161,7 +161,7 @@ namespace Editor {
 
             if (Changed) {
                 const Core::FString Resolved{Path.empty() ? Slots[Slot].GetMaterialPath() : Path};
-                Engine::UMaterial* Material{Resolved.empty() ? nullptr : mAssets->LoadMaterial(Core::FilePath::FromUtf8(Resolved), mError)};
+                Asset::UMaterial* Material{Resolved.empty() ? nullptr : mAssets->LoadMaterial(Core::FilePath::FromUtf8(Resolved), mError)};
 
                 if (Resolved.empty() || Material != nullptr) {
                     mMaterials[Slot] = Material;

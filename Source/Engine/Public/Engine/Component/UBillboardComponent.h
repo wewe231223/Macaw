@@ -9,9 +9,11 @@
 #include "Engine/Component/UPrimitiveComponent.h"
 #include "Engine/FDrawSprite.h"
 
-namespace Engine {
-
+namespace Asset {
     class UTexture;
+}
+
+namespace Engine {
 
     /**
      * @brief 카메라를 향하는 텍스처 스프라이트이며 비활성 정렬 시 로컬 YZ 평면을 사용합니다.
@@ -45,14 +47,14 @@ namespace Engine {
          * @brief 빌보드에 할당된 Sprite 텍스처를 반환합니다.
          * @return 에셋 관리자가 소유한 텍스처의 비소유 주소이며 미할당 또는 해석 실패 시 nullptr입니다.
          */
-        Engine::UTexture* GetSprite() const;
+        Asset::UTexture* GetSprite() const;
 
         /**
          * @brief 현재 월드의 에셋 관리자가 보유한 2D 텍스처를 Sprite에 할당하고 저장할 경로를 갱신합니다.
          * @param[in] Sprite 할당할 텍스처의 비소유 주소이며 nullptr이면 기본 아틀라스로 복원합니다.
          * @return 할당 또는 초기화에 성공하면 true이며 유효하지 않거나 관리하지 않는 텍스처이면 false입니다.
          */
-        bool SetSprite(Engine::UTexture* Sprite);
+        bool SetSprite(Asset::UTexture* Sprite);
 
         /**
          * @brief Sprite 텍스처의 Content 기준 에셋 경로를 반환합니다.
@@ -78,7 +80,7 @@ namespace Engine {
          * @brief 텍스처의 비소유 주소를 반환합니다.
          * @return 대상의 비소유 주소이며, 없거나 유효하지 않으면 nullptr입니다.
          */
-        Engine::UTexture2D* GetTexture() const;
+        Asset::UTexture2D* GetTexture() const;
 
         /**
          * @brief 로컬 쿼드의 가로·세로 월드 크기를 반환합니다.
@@ -140,7 +142,7 @@ namespace Engine {
          * @brief 별도 스프라이트 렌더러를 사용하는 빌보드의 빈 메시 데이터를 반환합니다.
          * @return 프로세스 수명 동안 유지되는 빈 메시 데이터의 참조입니다.
          */
-        const Engine::FMeshData& GetMeshData() const override;
+        const Asset::FMeshData& GetMeshData() const override;
 
         /**
          * @brief Sprite 텍스처, 크기, 색상과 카메라 정렬 설정을 담은 렌더 프록시를 생성합니다.
@@ -187,7 +189,7 @@ namespace Engine {
          * @param[in] Path Content 기준 텍스처 에셋 경로입니다.
          * @return 캐시된 에셋의 비소유 주소이며, 로드에 실패하면 nullptr입니다.
          */
-        Engine::UTexture2D* LoadTexture(const Core::FString& Path) const;
+        Asset::UTexture2D* LoadTexture(const Core::FString& Path) const;
 
     private:
         /**
@@ -223,7 +225,7 @@ namespace Engine {
         /**
          * @brief 텍스처의 비소유 주소입니다.
          */
-        Engine::UTexture* mSprite{};
+        Asset::UTexture* mSprite{};
         ReflectProperty(mSprite, "ResolvedSprite", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 

@@ -6,6 +6,10 @@
 
 #include "Core/FilePath.h"
 
+#include <algorithm>
+#include <cwctype>
+#include <utility>
+
 namespace Core {
 
     Core::FString Core::FilePath::ToUtf8(const std::filesystem::path& Path) {
@@ -20,6 +24,18 @@ namespace Core {
 
     std::filesystem::path Core::FilePath::FromUtf8(std::string_view Text) {
         return std::filesystem::path{std::u8string_view{reinterpret_cast<const char8_t*>(Text.data()), Text.size()}};
+    }
+
+    std::filesystem::path Core::FilePath::ToLower(const std::filesystem::path& Path) {
+        std::wstring Text{Path.wstring()};
+        std::transform(Text.begin(), Text.end(), Text.begin(), [](wchar_t Character) {
+            return static_cast<wchar_t>(std::towlower(Character));
+        });
+        return std::filesystem::path{std::move(Text)};
+    }
+
+    std::wstring Core::FilePath::ToLowerExtension(const std::filesystem::path& Path) {
+        return ToLower(Path.extension()).wstring();
     }
 
 }

@@ -7,7 +7,7 @@
 #pragma once
 
 #include "Engine/EPrimitiveType.h"
-#include "Engine/FMeshData.h"
+#include "Asset/FMeshData.h"
 
 namespace Engine {
 
@@ -23,13 +23,13 @@ namespace Engine {
      * @param[in] Type 기본 프리미티브 종류입니다.
      * @return 생성한 CPU 메시 데이터입니다.
      */
-    Engine::FMeshData BuildPrimitive(Engine::EPrimitiveType Type);
+    Asset::FMeshData BuildPrimitive(Engine::EPrimitiveType Type);
 
     /**
      * @brief 종류별로 캐시된 읽기 전용 기본 메시를 반환합니다.
      * @param[in] Type 기본 프리미티브 종류입니다.
      * @return 소유 객체가 유지하는 값의 참조입니다.
      */
-    const Engine::FMeshData& GetPrimitiveMesh(Engine::EPrimitiveType Type);
+    const Asset::FMeshData& GetPrimitiveMesh(Engine::EPrimitiveType Type);
 
 }

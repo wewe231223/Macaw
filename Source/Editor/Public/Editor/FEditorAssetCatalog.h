@@ -7,11 +7,11 @@
 #pragma once
 
 #include "Core/ReflectionMacros.h"
-#include "Engine/FAssetFile.h"
+#include "Asset/FAssetFile.h"
 
 #include <optional>
 
-namespace Engine {
+namespace Asset {
     class FAssetManager;
 }
 
@@ -33,7 +33,7 @@ namespace Editor {
          * @param Path Content 기준 실제 경로입니다.
          * @param Type 에셋 종류이며 일반 파일이면 비어 있습니다.
          */
-        FEditorAssetEntry(std::filesystem::path Path, std::optional<Engine::EAssetType> Type);
+        FEditorAssetEntry(std::filesystem::path Path, std::optional<Asset::EAssetType> Type);
 
     public:
         /**
@@ -52,7 +52,7 @@ namespace Editor {
          * @brief 에셋 종류를 반환합니다.
          * @return 에셋 종류이며 일반 파일이면 비어 있습니다.
          */
-        std::optional<Engine::EAssetType> GetType() const;
+        std::optional<Asset::EAssetType> GetType() const;
 
     private:
         /**
@@ -70,7 +70,7 @@ namespace Editor {
         /**
          * @brief 식별한 에셋 종류입니다.
          */
-        std::optional<Engine::EAssetType> mType{};
+        std::optional<Asset::EAssetType> mType{};
         ReflectProperty(mType, "Type", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
@@ -89,7 +89,7 @@ namespace Editor {
          * @brief 프로젝트 관리자를 연결합니다.
          * @param Assets 프로젝트 에셋 관리자의 비소유 주소입니다.
          */
-        explicit FEditorAssetCatalog(Engine::FAssetManager* Assets);
+        explicit FEditorAssetCatalog(Asset::FAssetManager* Assets);
 
     public:
         /**
@@ -128,7 +128,7 @@ namespace Editor {
          * @brief 프로젝트 에셋 관리자를 반환합니다.
          * @return 생성 때 연결한 비소유 주소입니다.
          */
-        Engine::FAssetManager* GetAssets() const;
+        Asset::FAssetManager* GetAssets() const;
 
     private:
         /**
@@ -147,7 +147,7 @@ namespace Editor {
         /**
          * @brief 프로젝트 에셋 관리자입니다.
          */
-        Engine::FAssetManager* mAssets{};
+        Asset::FAssetManager* mAssets{};
         ReflectProperty(mAssets, "Assets", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**

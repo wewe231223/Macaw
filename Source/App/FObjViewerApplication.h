@@ -15,7 +15,7 @@
 
 #include <filesystem>
 
-namespace Engine {
+namespace Asset {
     class FAssetManager;
 }
 
@@ -100,7 +100,7 @@ namespace App {
         /**
          * @brief 임포트한 뷰어 에셋의 소유 관리자입니다.
          */
-        std::unique_ptr<Engine::FAssetManager> mAssets{};
+        std::unique_ptr<Asset::FAssetManager> mAssets{};
         ReflectProperty(mAssets, "Assets", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**

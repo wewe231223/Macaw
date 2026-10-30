@@ -11,11 +11,14 @@
 #include "Core/ReflectionMacros.h"
 #include "RenderCore/FRenderStats.h"
 
+namespace Asset {
+    struct FMeshData;
+}
+
 namespace Engine {
     class FSceneInterface;
     class FRenderTarget;
     struct FSceneViewFamily;
-    struct FMeshData;
     enum class EPrimitiveType : Core::Uint8;
 }
 
@@ -75,7 +78,7 @@ namespace RenderCore {
          * @param[in] Mesh 업로드할 CPU 메시입니다.
          * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
          */
-        virtual bool UploadMesh(Engine::EPrimitiveType Type, const Engine::FMeshData& Mesh) = 0;
+        virtual bool UploadMesh(Engine::EPrimitiveType Type, const Asset::FMeshData& Mesh) = 0;
 
         /**
          * @brief 지정한 픽셀 크기의 오프스크린 렌더 타깃을 생성합니다.

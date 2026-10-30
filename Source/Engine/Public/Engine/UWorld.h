@@ -12,6 +12,10 @@
 #include "Engine/EWorldPlayState.h"
 #include "Engine/FWorldHandle.h"
 
+namespace Asset {
+    class FAssetManager;
+}
+
 namespace Core {
     struct FRay;
 }
@@ -19,7 +23,6 @@ namespace Core {
 namespace Engine {
 
     class ULevel;
-    class FAssetManager;
     class AActor;
     class FWorldContext;
     class FSceneInterface;
@@ -259,13 +262,13 @@ namespace Engine {
          * @brief 월드의 에셋 로드에 사용할 관리자의 비소유 주소를 설정합니다.
          * @param[in] Assets 월드가 사용할 에셋 관리자의 비소유 주소입니다.
          */
-        void SetAssets(Engine::FAssetManager* Assets);
+        void SetAssets(Asset::FAssetManager* Assets);
 
         /**
          * @brief 프로젝트의 에셋 관리자를 비소유 주소로 반환합니다.
          * @return 대상의 비소유 주소이며, 없거나 유효하지 않으면 nullptr입니다.
          */
-        Engine::FAssetManager* GetAssets() const;
+        Asset::FAssetManager* GetAssets() const;
 
         /**
          * @brief 지정한 액터 클래스의 기본 컴포넌트를 생성하고 영속 레벨에 추가합니다.
@@ -409,7 +412,7 @@ namespace Engine {
         /**
          * @brief 프로젝트 에셋을 조회할 관리자의 비소유 주소입니다.
          */
-        Engine::FAssetManager* mAssets{};
+        Asset::FAssetManager* mAssets{};
         ReflectProperty(mAssets, "Assets", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**

@@ -53,7 +53,7 @@ $SiteDirectory = Join-Path $OutputDirectory 'Site'
 $Manifest = Get-Content -LiteralPath (Join-Path $RepositoryRoot 'Docs/Tools.json') -Raw | ConvertFrom-Json
 $Modules = Get-Content -LiteralPath (Join-Path $RepositoryRoot 'ModuleDependencies.json') -Raw | ConvertFrom-Json -AsHashtable
 $Premake = Get-Content -LiteralPath (Join-Path $RepositoryRoot 'premake5.lua') -Raw
-$ExecutableConfiguration = [regex]::Match($Premake, '(?s)local function ConfigureRuntimeExecutable\(.*?\r?\nend')
+$ExecutableConfiguration = [regex]::Match($Premake, '(?s)local function Configure(?:Runtime)?Executable\(.*?\r?\nend')
 $ExecutableLinks = [regex]::Match($ExecutableConfiguration.Value, '(?s)\blinks\s*\{(?<Libraries>[^}]*)\}')
 if (-not $ExecutableLinks.Success) {
     throw 'Could not read executable links from premake5.lua.'
@@ -89,6 +89,13 @@ $GraphvizVersion = (& $Dot -V 2>&1 | Out-String).Trim()
 if ($LASTEXITCODE -ne 0) {
     throw 'Graphviz could not start.'
 }
+$GraphFont = if ($IsWindows) { 'Malgun Gothic' } else { 'Noto Sans CJK KR' }
+if ($IsLinux) {
+    $ResolvedFont = (& fc-match --format='%{family}' $GraphFont | Out-String).Trim()
+    if ($LASTEXITCODE -ne 0 -or $ResolvedFont -notlike '*Noto Sans CJK KR*') {
+        throw 'The Noto Sans CJK KR font is required. Install fonts-noto-cjk before building documentation.'
+    }
+}
 $ThemePath = Join-Path $ToolsDirectory 'doxygen-awesome.css'
 $ThemeLicensePath = Join-Path $ToolsDirectory 'ThemeLicense.txt'
 GetVerifiedDownload $Manifest.ThemeStylesheet $ThemePath
@@ -101,8 +108,8 @@ $ModuleRows = [Collections.Generic.List[string]]::new()
 $ModuleCount = 0
 $GraphLines.Add('digraph Macaw {')
 $GraphLines.Add('    graph [rankdir=LR, bgcolor="transparent", pad="0.3", nodesep="0.45", ranksep="0.8", outputorder=edgesfirst];')
-$GraphLines.Add('    node [shape=box, style="rounded,filled", fillcolor="#eef7f8", color="#9ebec5", fontname="Arial", fontsize=15, margin="0.18,0.12"];')
-$GraphLines.Add('    edge [color="#247b88", arrowsize=0.7];')
+$GraphLines.Add('    node [shape=box, style="rounded,filled", fillcolor="#eef7f8", color="#9ebec5", fontname="' + $GraphFont + '", fontsize=15, margin="0.18,0.12"];')
+$GraphLines.Add('    edge [color="#247b88", fontname="' + $GraphFont + '", arrowsize=0.7];')
 foreach ($ModuleName in $Modules.Keys) {
     if ($ModuleName -notmatch '^[A-Za-z][A-Za-z0-9]*$') {
         throw "Invalid module name: $ModuleName"
@@ -143,7 +150,7 @@ foreach ($ModuleName in $Modules.Keys) {
     }
 }
 $GraphLines.Add('}')
-foreach ($ApplicationPath in @('Source/App')) {
+foreach ($ApplicationPath in @('Source/App', 'Source/Game')) {
     $InputPaths.Add((GetDoxygenPath (Join-Path $RepositoryRoot $ApplicationPath)))
 }
 $InputPaths.Add((GetDoxygenPath (Join-Path $RepositoryRoot 'Docs/ApiReference.dox')))
@@ -177,7 +184,7 @@ try {
     New-Item -ItemType Directory -Path $SiteDirectory -Force | Out-Null
     $GraphPath = Join-Path $OutputDirectory 'ModuleDependencies.dot'
     $GraphLines | Set-Content -LiteralPath $GraphPath -Encoding utf8
-    & $Dot -Tsvg $GraphPath -o (Join-Path $SiteDirectory 'ModuleDependencies.svg')
+    & $Dot -Tsvg:cairo $GraphPath -o (Join-Path $SiteDirectory 'ModuleDependencies.svg')
     if ($LASTEXITCODE -ne 0) {
         throw 'Module dependency graph generation failed.'
     }
@@ -186,11 +193,13 @@ try {
     New-Item -ItemType Directory -Path $GraphOutputDirectory -Force | Out-Null
     foreach ($GraphSource in Get-ChildItem -LiteralPath $GraphSourceDirectory -Filter '*.dot' -File | Sort-Object Name) {
         $GraphOutput = Join-Path $GraphOutputDirectory ($GraphSource.BaseName + '.svg')
-        & $Dot -Tsvg $GraphSource.FullName -o $GraphOutput
+        $GraphSourcePath = Join-Path $GraphOutputDirectory $GraphSource.Name
+        $GraphContents = (Get-Content -LiteralPath $GraphSource.FullName -Raw).Replace('fontname="Malgun Gothic"', 'fontname="' + $GraphFont + '"')
+        Set-Content -LiteralPath $GraphSourcePath -Value $GraphContents -Encoding utf8
+        & $Dot -Tsvg:cairo $GraphSourcePath -o $GraphOutput
         if ($LASTEXITCODE -ne 0) {
             throw "Architecture graph generation failed: $($GraphSource.Name)"
         }
-        Copy-Item -LiteralPath $GraphSource.FullName -Destination $GraphOutputDirectory
     }
 
     $Configuration = Get-Content -LiteralPath (Join-Path $RepositoryRoot 'Docs/Doxyfile') -Raw

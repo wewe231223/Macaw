@@ -11,8 +11,8 @@
 #include "FShadowAtlasAllocator.h"
 #include "Engine/FLightSceneProxy.h"
 #include "Engine/FSceneViewFamily.h"
-#include "Engine/UTexture2D.h"
-#include "Engine/UStaticMesh.h"
+#include "Asset/UTexture2D.h"
+#include "Asset/UStaticMesh.h"
 #include "Engine/EPrimitiveType.h"
 #include "Core/Math/FBox.h"
 #include "RenderCore/FRenderStats.h"
@@ -103,7 +103,7 @@ namespace Renderer {
          * @param[in,out] Stats 그림자 패스의 드로·할당 결과를 누적할 렌더 통계입니다.
          * @return 필요한 자원 생성·업로드·렌더링에 성공하면 true입니다.
          */
-        bool Render(ID3D11Device* Device, ID3D11DeviceContext* Context, const Renderer::FScene& Scene, const Engine::FSceneViewFamily& Family, const std::array<std::unique_ptr<Engine::UStaticMesh>, static_cast<std::size_t>(Engine::EPrimitiveType::Count)>& Meshes, RenderCore::FRenderStats& Stats);
+        bool Render(ID3D11Device* Device, ID3D11DeviceContext* Context, const Renderer::FScene& Scene, const Engine::FSceneViewFamily& Family, const std::array<std::unique_ptr<Asset::UStaticMesh>, static_cast<std::size_t>(Engine::EPrimitiveType::Count)>& Meshes, RenderCore::FRenderStats& Stats);
 
         /**
          * @brief 그림자 아틀라스와 샘플링 정보의 셰이더 바인딩을 설정합니다.
@@ -180,13 +180,13 @@ namespace Renderer {
         /**
          * @brief 그림자 깊이를 저장하는 아틀라스 텍스처의 소유 객체입니다.
          */
-        std::unique_ptr<Engine::UTexture2D> mAtlas{};
+        std::unique_ptr<Asset::UTexture2D> mAtlas{};
         ReflectProperty(mAtlas, "Atlas", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 깊이 아틀라스를 색상으로 표시하는 미리보기 텍스처의 소유 객체입니다.
          */
-        std::unique_ptr<Engine::UTexture2D> mPreview{};
+        std::unique_ptr<Asset::UTexture2D> mPreview{};
         ReflectProperty(mPreview, "Preview", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**

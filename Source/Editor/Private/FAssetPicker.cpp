@@ -14,11 +14,11 @@
 
 namespace Editor {
 
-    bool Editor::FAssetPicker::AcceptDrop(Editor::FEditorAssetCatalog& Catalog, Core::FString& Path, Engine::EAssetType Type) {
+    bool Editor::FAssetPicker::AcceptDrop(Editor::FEditorAssetCatalog& Catalog, Core::FString& Path, Asset::EAssetType Type) {
         bool Changed{};
 
         if (ImGui::BeginDragDropTarget()) {
-            const char* PayloadType{Type == Engine::EAssetType::Mesh ? Editor::EditorAssetDragDrop::MeshPayload : Type == Engine::EAssetType::Material ? Editor::EditorAssetDragDrop::MaterialPayload : Editor::EditorAssetDragDrop::TexturePayload};
+            const char* PayloadType{Type == Asset::EAssetType::Mesh ? Editor::EditorAssetDragDrop::MeshPayload : Type == Asset::EAssetType::Material ? Editor::EditorAssetDragDrop::MaterialPayload : Editor::EditorAssetDragDrop::TexturePayload};
 
             if (const ImGuiPayload* Payload{ImGui::AcceptDragDropPayload(PayloadType)}; Payload != nullptr && Payload->Data != nullptr && Payload->DataSize > 1 && static_cast<const char*>(Payload->Data)[Payload->DataSize - 1] == '\0') {
                 const Core::FString Candidate{static_cast<const char*>(Payload->Data), static_cast<std::size_t>(Payload->DataSize - 1)};
@@ -36,7 +36,7 @@ namespace Editor {
         return Changed;
     }
 
-    bool Editor::FAssetPicker::DrawOptions(Editor::FEditorAssetCatalog& Catalog, Editor::FAssetThumbnailCache& Thumbnails, Core::FString& Path, Engine::EAssetType Type, const char* EmptyLabel) {
+    bool Editor::FAssetPicker::DrawOptions(Editor::FEditorAssetCatalog& Catalog, Editor::FAssetThumbnailCache& Thumbnails, Core::FString& Path, Asset::EAssetType Type, const char* EmptyLabel) {
         if (ImGui::IsWindowAppearing()) {
             mSearch.fill('\0');
             ImGui::SetKeyboardFocusHere();
@@ -106,7 +106,7 @@ namespace Editor {
         return Changed;
     }
 
-    bool Editor::FAssetPicker::Draw(Editor::FEditorAssetCatalog& Catalog, Editor::FAssetThumbnailCache& Thumbnails, const char* Label, Core::FString& Path, Engine::EAssetType Type, const Core::FString& InheritedPath, const char* EmptyLabel, const char* InheritedLabel) {
+    bool Editor::FAssetPicker::Draw(Editor::FEditorAssetCatalog& Catalog, Editor::FAssetThumbnailCache& Thumbnails, const char* Label, Core::FString& Path, Asset::EAssetType Type, const Core::FString& InheritedPath, const char* EmptyLabel, const char* InheritedLabel) {
         ImGui::PushID(Label);
 
         const Core::FString Effective{Path.empty() ? InheritedPath : Path};
@@ -120,7 +120,7 @@ namespace Editor {
         ImGui::TextUnformatted(Label);
 
         const bool Visible{ImGui::IsRectVisible({52.0f, 52.0f})};
-        void* Thumbnail{Visible && (!Effective.empty() || Type != Engine::EAssetType::Texture) ? Thumbnails.GetThumbnail(Core::FilePath::FromUtf8(Effective), Type) : nullptr};
+        void* Thumbnail{Visible && (!Effective.empty() || Type != Asset::EAssetType::Texture) ? Thumbnails.GetThumbnail(Core::FilePath::FromUtf8(Effective), Type) : nullptr};
 
         if (Thumbnail != nullptr) {
             if (ImGui::ImageButton("##Thumbnail", ImTextureRef{static_cast<ImTextureID>(reinterpret_cast<std::uintptr_t>(Thumbnail))}, {48.0f, 48.0f})) {

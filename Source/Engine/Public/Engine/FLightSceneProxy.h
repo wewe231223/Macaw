@@ -12,9 +12,12 @@
 #include "Core/Math/FVector4.h"
 #include "Engine/ELightType.h"
 
+namespace Asset {
+    class UTexture2D;
+}
+
 namespace Engine {
 
-    class UTexture2D;
     struct FPrimitiveSceneProxy;
 
     /**
@@ -117,7 +120,7 @@ namespace Engine {
         /**
          * @brief 에디터에 표시할 광원 아이콘 텍스처의 비소유 주소입니다.
          */
-        Engine::UTexture2D* mIcon{};
+        Asset::UTexture2D* mIcon{};
         ReflectProperty(mIcon, "Icon", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
