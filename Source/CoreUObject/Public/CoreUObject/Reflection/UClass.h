@@ -108,8 +108,6 @@ namespace CoreUObject {
          * @brief 상속된 프로퍼티를 포함하여 클래스 값을 직렬화합니다.
          * @param[in] Container 프로퍼티 소유 타입의 유효한 인스턴스 주소입니다.
          * @param[in,out] Archive 모드에 따라 값을 읽거나 쓸 아카이브입니다.
-         */
-        /**
          * @param[in] Excluded 직렬화에서 제외할 프로퍼티이며 nullptr이면 제외하지 않습니다.
          */
         void SerializeClassProperties(void* Container, Core::FArchive& Archive, const CoreUObject::FProperty* Excluded = nullptr) const;

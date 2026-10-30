@@ -140,14 +140,12 @@ namespace Editor {
 
         /**
          * @brief 뷰포트 이미지 위에 입력을 받지 않는 통계 내용을 그립니다.
-         * @param[in,out] DrawList 오버레이를 추가할 ImGui 목록이며 nullptr이면 통계 그리기를 생략합니다.
          * @param[in] DeltaTime 이전 프레임 이후 경과한 시간(초)입니다.
-         */
-        /**
          * @param[in] World 액터 수를 조회할 월드의 비소유 주소입니다.
          * @param[in] Render 이번 프레임의 렌더링 통계입니다.
          * @param[in] Origin 뷰포트 이미지의 화면상 좌측 상단 좌표입니다.
          * @param[in] Size 뷰포트 이미지의 가로·세로 픽셀 크기입니다.
+         * @param[in,out] DrawList 오버레이를 추가할 ImGui 목록이며 nullptr이면 통계 그리기를 생략합니다.
          */
         void Draw(float DeltaTime, const Engine::UWorld* World, const RenderCore::FRenderStats& Render, const Core::FVector2& Origin, const Core::FVector2& Size, ImDrawList* DrawList = nullptr) const;
 

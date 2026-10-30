@@ -1,6 +1,6 @@
 /**
  * @file UProjectileMovementComponent.cpp
- * @brief PIE 월드에서만 초기 속도·중력·최대 속도에 따라 소유 액터를 이동하는 발사체 컴포넌트입니다.
+ * @brief Game과 PIE 월드에서 초기 속도·중력·최대 속도에 따라 소유 액터를 이동하는 발사체 컴포넌트입니다.
  * @ingroup Engine
  */
 
@@ -35,7 +35,7 @@ namespace Engine {
         Engine::UWorld* World{GetWorld()};
         Engine::AActor* Owner{GetOwner()};
 
-        if (World == nullptr || World->GetWorldType() != Engine::EWorldType::PIE || !HasBegunPlay() || mStopped || Owner == nullptr || Owner->IsPendingDestroy() || Owner->GetRootComponent() == nullptr || !std::isfinite(DeltaTime) || DeltaTime <= 0.0f) {
+        if (World == nullptr || (World->GetWorldType() != Engine::EWorldType::Game && World->GetWorldType() != Engine::EWorldType::PIE) || !HasBegunPlay() || mStopped || Owner == nullptr || Owner->IsPendingDestroy() || Owner->GetRootComponent() == nullptr || !std::isfinite(DeltaTime) || DeltaTime <= 0.0f) {
             return;
         }
 

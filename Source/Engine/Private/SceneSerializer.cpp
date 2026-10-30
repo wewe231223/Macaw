@@ -33,7 +33,7 @@ namespace Engine {
     /**
      * @brief 파일을 읽고 검증한 새 월드 컨텍스트를 반환합니다.
      */
-    std::unique_ptr<Engine::FWorldContext> Engine::FSceneSerializer::Load(const std::filesystem::path& Path, Core::FString& Error, Engine::FAssetManager* Assets) {
+    std::unique_ptr<Engine::FWorldContext> Engine::FSceneSerializer::Load(const std::filesystem::path& Path, Core::FString& Error, Engine::FAssetManager* Assets, Engine::EWorldType Type) {
         Serialization::FJsonArchive Archive{Core::EArchiveMode::Loading};
 
         Core::TArray<Core::Uint8> Payload{};
@@ -48,7 +48,7 @@ namespace Engine {
             return nullptr;
         }
 
-        auto Context{std::make_unique<Engine::FWorldContext>()};
+        auto Context{std::make_unique<Engine::FWorldContext>(Type)};
         Context->GetWorld()->SetAssets(Assets);
         Serialize(Archive, Context.get());
         Error = Archive.GetError();

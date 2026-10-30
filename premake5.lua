@@ -106,25 +106,16 @@ Configure("Shaders", "Utility")
         buildaction "None"
     filter {}
 
-local function ConfigureExecutable(Name, Kind, Directory)
+local function ConfigureRuntimeExecutable(Name, Kind, Directory)
     Configure(Name, Kind)
     files { Directory .. "/**.h", Directory .. "/**.cpp" }
     includedirs { Directory }
 
-    for Module, _ in pairs(ReflectedModules) do
-        includedirs { Reflection.GetGeneratedDirectory(Module) }
-
-        if Modules[Module] then
-            AddIncludes(Module, {})
-        end
+    for _, Module in ipairs({ "Engine", "Renderer", "Platform", "Script" }) do
+        AddIncludes(Module, {})
     end
 
-    local GeneratedDirectory = Reflection.GetGeneratedDirectory("App")
-    files { GeneratedDirectory .. "/**.h", GeneratedDirectory .. "/AppReflection.cpp" }
-    prebuildcommands { '"' .. _PREMAKE_COMMAND .. '" --file="' .. path.getabsolute("premake5.lua") .. '" generate-reflection --reflection-module=App' }
-    AddIncludes("Editor", {})
-    AddIncludes("Renderer", {})
-    links { "Editor", "Script", "Engine", "Renderer", "Platform", "Serialization", "RenderCore", "CoreUObject", "Core", "ImGui", "DirectXTex", "lua51", "d3d11", "dxgi", "d3dcompiler", "bcrypt", "user32", "gdi32", "dwmapi", "imm32", "ole32", "windowscodecs", "comdlg32", "shell32" }
+    links { "Script", "Engine", "Renderer", "Platform", "Serialization", "RenderCore", "CoreUObject", "Core", "DirectXTex", "lua51", "d3d11", "dxgi", "d3dcompiler", "bcrypt", "user32", "gdi32", "dwmapi", "imm32", "ole32", "windowscodecs", "comdlg32", "shell32" }
     links { "libfbxsdk" }
     filter "configurations:*Debug"
         libdirs { "Externals/bin/debug" }
@@ -134,7 +125,36 @@ local function ConfigureExecutable(Name, Kind, Directory)
     debugdir "%{wks.location}"
 end
 
-ConfigureExecutable("Macaw", "WindowedApp", "Source/App")
+ConfigureRuntimeExecutable("MacawGame", "WindowedApp", "Source/Game")
+    local GameGeneratedDirectory = Reflection.GetGeneratedDirectory("Game")
+    files { GameGeneratedDirectory .. "/**.h", GameGeneratedDirectory .. "/GameReflection.cpp" }
+    includedirs { GameGeneratedDirectory }
+    prebuildcommands { '"' .. _PREMAKE_COMMAND .. '" --file="' .. path.getabsolute("premake5.lua") .. '" generate-reflection --reflection-module=Game' }
+    targetdir "Binaries/%{cfg.buildcfg}/GameRuntime"
+    files { "Source/App/**.rc", "Macaw.ico" }
+    resincludedirs { "." }
+    postbuildcommands { '{COPYDIR} "%{wks.location}/Templates/Project/Content" "%{cfg.targetdir}/Templates/Project/Content"' }
+    postbuildcommands { '{COPYFILE} "%{wks.location}/vcpkg_installed/x64-windows/tools/luajit/lua51.dll" "%{cfg.targetdir}/lua51.dll"' }
+    postbuildcommands { 'powershell -NoProfile -ExecutionPolicy Bypass -File "%{wks.location}/Scripts/StageGameRuntime.ps1" -RuntimeDirectory "%{cfg.targetdir}" -RedistDirectory "$(VCToolsRedistInstallDir)." -Configuration "%{cfg.buildcfg}"' }
+
+ConfigureRuntimeExecutable("Macaw", "WindowedApp", "Source/App")
+    for Module, _ in pairs(ReflectedModules) do
+        if Module ~= "Game" then
+            includedirs { Reflection.GetGeneratedDirectory(Module) }
+
+            if Modules[Module] then
+                AddIncludes(Module, {})
+            end
+        end
+    end
+
+    local GeneratedDirectory = Reflection.GetGeneratedDirectory("App")
+    files { GeneratedDirectory .. "/**.h", GeneratedDirectory .. "/AppReflection.cpp" }
+    includedirs { GeneratedDirectory }
+    prebuildcommands { '"' .. _PREMAKE_COMMAND .. '" --file="' .. path.getabsolute("premake5.lua") .. '" generate-reflection --reflection-module=App' }
+    AddIncludes("Editor", {})
+    links { "Editor", "ImGui" }
+    dependson { "MacawGame" }
     files { "Source/App/**.rc", "Macaw.ico" }
     resincludedirs { "." }
     postbuildcommands { '{COPYDIR} "%{wks.location}/Templates/Project" "%{cfg.targetdir}/Templates/Project"' }

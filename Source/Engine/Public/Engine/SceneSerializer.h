@@ -8,6 +8,7 @@
 
 #include "Core/ReflectionMacros.h"
 #include "Core/Types.h"
+#include "Engine/EWorldType.h"
 
 #include <filesystem>
 
@@ -41,27 +42,26 @@ namespace Engine {
         /**
          * @brief 월드 컨텍스트를 JSON 장면 파일로 저장합니다.
          * @param[in] Path 읽거나 쓸 파일 경로입니다.
-         * @param[in,out] Context 월드 컨텍스트 또는 Direct3D 11 컨텍스트입니다.
+         * @param[in,out] Context 저장할 월드 컨텍스트입니다.
          * @param[in,out] Error 실패 시 원인을 기록할 문자열입니다.
          * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
          */
         static bool Save(const std::filesystem::path& Path, Engine::FWorldContext* Context, Core::FString& Error);
 
         /**
-         * @brief 파일을 읽고 검증한 새 월드 컨텍스트를 반환합니다.
-         * @param[in] Path 읽거나 쓸 파일 경로입니다.
-         * @param[in,out] Error 실패 시 원인을 기록할 문자열입니다.
-         * @return 생성한 객체의 단독 소유권이며, 생성 또는 검증 실패 시 nullptr입니다.
-         */
-        /**
+         * @brief 장면 파일을 읽고 검증한 새 월드 컨텍스트를 반환합니다.
+         * @param[in] Path 읽을 장면 파일 경로입니다.
+         * @param[out] Error 실패 시 원인을 기록할 문자열입니다.
          * @param[in] Assets 로드한 월드의 에셋을 조회할 관리자의 비소유 주소이며 생략할 수 있습니다.
+         * @param[in] Type 새 월드의 용도입니다. 게임 실행에는 Game을, 편집에는 기본값 Editor를 사용합니다.
+         * @return 생성한 월드 컨텍스트의 단독 소유권이며, 실패하면 nullptr입니다.
          */
-        static std::unique_ptr<Engine::FWorldContext> Load(const std::filesystem::path& Path, Core::FString& Error, Engine::FAssetManager* Assets = nullptr);
+        static std::unique_ptr<Engine::FWorldContext> Load(const std::filesystem::path& Path, Core::FString& Error, Engine::FAssetManager* Assets = nullptr, Engine::EWorldType Type = Engine::EWorldType::Editor);
 
         /**
          * @brief 아카이브 모드에 따라 값을 읽거나 저장합니다.
-         * @param[in,out] Archive 로드 또는 저장 모드를 가진 아카이브입니다.
-         * @param[in,out] Context 월드 컨텍스트 또는 Direct3D 11 컨텍스트입니다.
+         * @param[in,out] Archive 모드에 따라 값을 읽거나 쓸 아카이브입니다.
+         * @param[in,out] Context 직렬화할 월드 컨텍스트입니다.
          */
         static void Serialize(Core::FArchive& Archive, Engine::FWorldContext* Context);
 

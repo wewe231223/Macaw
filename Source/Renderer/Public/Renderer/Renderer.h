@@ -57,13 +57,13 @@ namespace Renderer {
         ~FRenderer() override;
 
         /**
-         * @brief 고유한 객체 수명을 유지하기 위해 복사 또는 이동 생성을 금지합니다.
+         * @brief 레지스트리에 등록된 고유 객체이므로 복사·이동 생성을 금지합니다.
          */
         FRenderer(const Renderer::FRenderer&) = delete;
 
         /**
          * @brief 고유한 객체 수명을 유지하기 위해 대입을 금지합니다.
-         * @return 소유 객체가 유지하는 값의 참조입니다.
+         * @return 갱신된 자기 자신(*this)의 참조입니다.
          */
         Renderer::FRenderer& operator=(const Renderer::FRenderer&) = delete;
 
@@ -77,8 +77,8 @@ namespace Renderer {
         /**
          * @brief Direct3D 11 장치, 스왑 체인과 렌더 파이프라인을 준비합니다.
          * @param[in] WindowHandle 렌더링할 네이티브 Win32 창 핸들입니다.
-         * @param[in] Width 클라이언트 영역 또는 타깃의 가로 픽셀 수입니다.
-         * @param[in] Height 클라이언트 영역 또는 타깃의 세로 픽셀 수입니다.
+         * @param[in] Width 창 클라이언트 영역의 가로 픽셀 수입니다.
+         * @param[in] Height 창 클라이언트 영역의 세로 픽셀 수입니다.
          * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
          */
         bool Initialize(void* WindowHandle, Core::Uint32 Width, Core::Uint32 Height) override;
@@ -86,9 +86,9 @@ namespace Renderer {
         /**
          * @brief 장면 파이프라인 없이 창과 스왑체인·장치를 초기화합니다.
          * @param[in] WindowHandle 연결할 네이티브 창 핸들입니다.
-         * @param[in] Width 가로 길이 또는 픽셀 수입니다.
-         * @param[in] Height 세로 길이 또는 픽셀 수입니다.
-         * @return 검증 또는 요청한 처리에 성공하면 true입니다.
+         * @param[in] Width 창 클라이언트 영역의 가로 픽셀 수입니다.
+         * @param[in] Height 창 클라이언트 영역의 세로 픽셀 수입니다.
+         * @return 성공하면 true, 실패하면 false입니다.
          */
         bool InitializeUi(void* WindowHandle, Core::Uint32 Width, Core::Uint32 Height);
 
@@ -99,13 +99,13 @@ namespace Renderer {
 
         /**
          * @brief 렌더러 장치를 참조하는 새로운 렌더 장면을 생성합니다.
-         * @return 생성한 객체의 단독 소유권이며, 생성 또는 검증 실패 시 nullptr입니다.
+         * @return 생성한 객체의 단독 소유권이며, 실패하면 nullptr입니다.
          */
         std::unique_ptr<Engine::FSceneInterface> AllocateScene() override;
 
         /**
          * @brief CPU 메시를 종류별 GPU 정점·인덱스 버퍼에 업로드합니다.
-         * @param[in] Type 생성, 조회 또는 표시할 타입입니다.
+         * @param[in] Type 기본 프리미티브 종류입니다.
          * @param[in] Mesh 업로드할 CPU 메시입니다.
          * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
          */
@@ -113,25 +113,25 @@ namespace Renderer {
 
         /**
          * @brief 지정한 픽셀 크기의 오프스크린 렌더 타깃을 생성합니다.
-         * @param[in] Width 클라이언트 영역 또는 타깃의 가로 픽셀 수입니다.
-         * @param[in] Height 클라이언트 영역 또는 타깃의 세로 픽셀 수입니다.
-         * @return 생성한 객체의 단독 소유권이며, 생성 또는 검증 실패 시 nullptr입니다.
+         * @param[in] Width 렌더 타깃의 가로 픽셀 수입니다.
+         * @param[in] Height 렌더 타깃의 세로 픽셀 수입니다.
+         * @return 생성한 객체의 단독 소유권이며, 실패하면 nullptr입니다.
          */
         std::unique_ptr<Engine::FRenderTarget> CreateRenderTarget(Core::Uint32 Width, Core::Uint32 Height) override;
 
         /**
          * @brief 기존 오프스크린 렌더 타깃을 새 픽셀 크기로 변경합니다.
-         * @param[in,out] Target 렌더 타깃 또는 셰이더 컴파일 프로파일입니다.
-         * @param[in] Width 클라이언트 영역 또는 타깃의 가로 픽셀 수입니다.
-         * @param[in] Height 클라이언트 영역 또는 타깃의 세로 픽셀 수입니다.
+         * @param[in,out] Target 크기를 바꿀 렌더 타깃입니다.
+         * @param[in] Width 렌더 타깃의 가로 픽셀 수입니다.
+         * @param[in] Height 렌더 타깃의 세로 픽셀 수입니다.
          * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
          */
         bool ResizeRenderTarget(Engine::FRenderTarget* Target, Core::Uint32 Width, Core::Uint32 Height) override;
 
         /**
          * @brief 백 버퍼 크기를 동기화하고 프레임 렌더링 통계를 초기화합니다.
-         * @param[in] Width 클라이언트 영역 또는 타깃의 가로 픽셀 수입니다.
-         * @param[in] Height 클라이언트 영역 또는 타깃의 세로 픽셀 수입니다.
+         * @param[in] Width 창 클라이언트 영역의 가로 픽셀 수입니다.
+         * @param[in] Height 창 클라이언트 영역의 세로 픽셀 수입니다.
          */
         void BeginFrame(Core::Uint32 Width, Core::Uint32 Height) override;
 
@@ -150,6 +150,14 @@ namespace Renderer {
          * @brief 스왑 체인의 백 버퍼를 화면에 표시합니다.
          */
         void Present() override;
+
+        /**
+         * @brief 렌더 타깃의 최종 컬러를 스왑 체인 백 버퍼에 복사합니다.
+         * @param[in] Target 복사할 렌더러 소유 렌더 타깃입니다.
+         * @return 복사했으면 true, 렌더러 타깃이 아니거나 출력이 없거나 크기가 백 버퍼와 다르면 false입니다.
+         * @note 복사 전에 픽셀 셰이더 0번 리소스와 출력 렌더 타깃 바인딩을 해제합니다.
+         */
+        bool CopyToBackBuffer(Engine::FRenderTarget* Target);
 
         /**
          * @brief 비동기 프레젠테이션의 화면 찢김 허용 설정을 변경합니다.
@@ -202,7 +210,7 @@ namespace Renderer {
 
         /**
          * @brief 폰트 메트릭으로 텍스트의 로컬 평면 경계를 계산합니다.
-         * @param[in] Text 표시하거나 측정할 UTF-8 문자열 또는 텍스트 요청입니다.
+         * @param[in] Text UTF-8 문자열입니다.
          * @param[out] Minimum 계산한 최소 경계 좌표입니다.
          * @param[out] Maximum 계산한 최대 경계 좌표입니다.
          * @return 조건을 만족하면 true입니다.
@@ -213,7 +221,7 @@ namespace Renderer {
          * @brief 머티리얼별 GPU 파이프라인을 반환합니다.
          * @param[in] Material 조회할 머티리얼 설정입니다.
          * @param[in] Mode 파이프라인에 적용할 조명·와이어프레임·법선 표시 모드입니다.
-         * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며 사용할 수 없으면 nullptr입니다.
+         * @return 대상의 비소유 주소이며, 없거나 유효하지 않으면 nullptr입니다.
          */
         Renderer::FMaterialPipeline* GetMaterialPipeline(const Engine::UMaterial& Material, Engine::EViewMode Mode = Engine::EViewMode::Lit_Phong);
 
@@ -231,25 +239,25 @@ namespace Renderer {
 
         /**
          * @brief 기본 머티리얼의 비소유 주소를 반환합니다.
-         * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며 사용할 수 없으면 nullptr입니다.
+         * @return 대상의 비소유 주소이며, 없거나 유효하지 않으면 nullptr입니다.
          */
         Engine::UMaterial* GetDefaultMaterial() const;
 
         /**
          * @brief 텍스처 없는 머티리얼의 흰색 기본 텍스처를 반환합니다.
-         * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며 사용할 수 없으면 nullptr입니다.
+         * @return GPU 자원의 비소유 주소이며, 아직 생성하지 않았으면 nullptr입니다.
          */
         ID3D11ShaderResourceView* GetDefaultMaterialTexture() const;
 
         /**
          * @brief 머티리얼 텍스처용 반복 샘플러를 반환합니다.
-         * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며 사용할 수 없으면 nullptr입니다.
+         * @return GPU 자원의 비소유 주소이며, 아직 생성하지 않았으면 nullptr입니다.
          */
         ID3D11SamplerState* GetMaterialSampler() const;
 
         /**
          * @brief 장면 전체를 와이어프레임으로 표시할 래스터라이저를 반환합니다.
-         * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며 사용할 수 없으면 nullptr입니다.
+         * @return GPU 자원의 비소유 주소이며, 아직 생성하지 않았으면 nullptr입니다.
          */
         ID3D11RasterizerState* GetWireframeRasterizer() const;
 
@@ -263,8 +271,8 @@ namespace Renderer {
     private:
         /**
          * @brief 스왑 체인을 조정하고 백 버퍼 렌더 타깃 뷰를 생성합니다.
-         * @param[in] Width 클라이언트 영역 또는 타깃의 가로 픽셀 수입니다.
-         * @param[in] Height 클라이언트 영역 또는 타깃의 세로 픽셀 수입니다.
+         * @param[in] Width 창 클라이언트 영역의 가로 픽셀 수입니다.
+         * @param[in] Height 창 클라이언트 영역의 세로 픽셀 수입니다.
          * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
          */
         bool CreateBackBuffer(Core::Uint32 Width, Core::Uint32 Height);
@@ -290,14 +298,10 @@ namespace Renderer {
         /**
          * @brief 내장 HLSL 소스를 지정한 진입점과 프로파일로 컴파일합니다.
          * @param[in] Source 컴파일할 HLSL 소스의 주소입니다.
-         * @par 이전 시그니처의 인수 설명
-         * @verbatim
-         * @param[in] Size 뷰포트 크기 또는 데이터의 바이트 수입니다.
-         * @endverbatim
          * @param[in] Entry 셰이더 진입점 이름입니다.
-         * @param[in] Target 렌더 타깃 또는 셰이더 컴파일 프로파일입니다.
-         * @param[in,out] Code 성공 시 컴파일된 셰이더 바이트코드를 받습니다.
-         * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
+         * @param[in] Target 셰이더 컴파일 프로파일(예: vs_5_0)입니다.
+         * @param[out] Code 성공 시 컴파일된 셰이더를 받습니다.
+         * @return 성공하면 true, 컴파일에 실패하면 false입니다.
          */
         bool Compile(const char* Source, const char* Entry, const char* Target, std::shared_ptr<const RenderCore::FShader>& Code);
 

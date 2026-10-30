@@ -30,6 +30,8 @@
 #include "Editor/FMeshViewer.h"
 #include "Editor/FEditorAssetCatalog.h"
 #include "Editor/FAssetThumbnailCache.h"
+#include "Editor/FGameExporter.h"
+#include "Editor/FProjectDialog.h"
 
 #include <d3d11.h>
 #include <commdlg.h>
@@ -612,6 +614,12 @@ namespace Editor {
                     }
                 }
 
+                ImGui::Separator();
+
+                if (ImGui::MenuItem("Export Game...", nullptr, false, mContext->GetProject() != nullptr)) {
+                    ExportGame();
+                }
+
                 ImGui::EndDisabled();
                 ImGui::Separator();
 
@@ -694,6 +702,37 @@ namespace Editor {
                 }
             }
         }
+    }
+
+    /**
+     * @brief 내보낼 폴더를 고르고 저장하지 않은 장면을 확인한 뒤 현재 프로젝트를 독립 실행 게임으로 내보냅니다.
+     */
+    void Editor::FEditorUI::ExportGame() {
+        const auto Destination{Editor::FProjectDialog::ChooseDirectory(mPlatform->GetWindowHandle())};
+
+        if (Destination.empty()) {
+            return;
+        }
+
+        if (!ConfirmSceneChange()) {
+            return;
+        }
+
+        std::array<wchar_t, 32768> Executable{};
+        const DWORD Length{GetModuleFileNameW(nullptr, Executable.data(), static_cast<DWORD>(Executable.size()))};
+        Core::FString Error{};
+        bool Exported{};
+
+        if (Length == 0 || Length >= Executable.size()) {
+            Error = "Cannot locate the game executable";
+        } else {
+            const auto Runtime{std::filesystem::path{Executable.data()}.parent_path() / "GameRuntime"};
+            Exported = Editor::FGameExporter::Export(*mContext->GetProject(), Runtime, Destination, Error);
+        }
+
+        const Core::FString Message{Exported ? "Exported game to " + Core::FilePath::ToUtf8(Destination) : Error};
+        mContext->AddLog(Message);
+        MessageBoxW(mPlatform->GetWindowHandle(), Core::FilePath::FromUtf8(Message).c_str(), Exported ? L"Game Exported" : L"Cannot Export Game", MB_OK | (Exported ? MB_ICONINFORMATION : MB_ICONERROR));
     }
 
     bool Editor::FEditorUI::ConfirmSceneChange() {

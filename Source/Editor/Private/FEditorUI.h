@@ -65,6 +65,7 @@ namespace Editor {
          * @brief UI가 참조할 편집 경로와 뷰포트를 연결합니다.
          * @param[in,out] Context 패널이 공유하는 비소유 편집 컨텍스트입니다.
          * @param[in,out] Viewport 화면에 배치할 독립 뷰포트입니다.
+         * @param[in] PlaySession 실행 제어와 조회에 사용할 PIE 세션의 비소유 주소입니다.
          */
         FEditorUI(Editor::FEditorContext* Context, Editor::FEditorViewport* Viewport, Editor::FPlayInEditorSession* PlaySession);
 
@@ -115,7 +116,7 @@ namespace Editor {
 
         /**
          * @brief 가장 최근 입력을 받은 유효한 뷰포트를 반환합니다.
-         * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며 사용할 수 없으면 nullptr입니다.
+         * @return 대상의 비소유 주소이며, 없거나 유효하지 않으면 nullptr입니다.
          */
         Editor::FEditorViewport* GetActiveViewport() const;
 
@@ -137,6 +138,12 @@ namespace Editor {
         void DrawMenu();
 
         /**
+         * @brief 내보낼 폴더를 고르고 저장하지 않은 장면을 확인한 뒤 현재 프로젝트를 독립 실행 게임으로 내보냅니다.
+         * @note 게임 런타임은 에디터 실행 파일 옆의 GameRuntime 폴더에서 찾습니다. 결과는 로그와 메시지 상자로 알립니다.
+         */
+        void ExportGame();
+
+        /**
          * @brief 기본값과 테마 카탈로그를 준비하고 프로젝트의 저장된 에디터 환경 설정을 복원합니다.
          */
         void InitializeSettings();
@@ -151,7 +158,7 @@ namespace Editor {
         bool SaveSettings();
         /**
          * @brief 테마·폰트·입력·패널과 네 뷰포트의 환경 설정을 아카이브로 저장하거나 복원합니다.
-         * @param[in,out] Archive 저장 또는 로드 모드와 오류 상태를 제공하는 아카이브입니다.
+         * @param[in,out] Archive 모드에 따라 값을 읽거나 쓸 아카이브입니다.
          */
         void SerializeSettings(Serialization::FJsonArchive& Archive);
         /**
@@ -249,8 +256,8 @@ namespace Editor {
 
         /**
          * @brief 종류에 맞게 선택 에셋을 열거나 액터 배치에 사용합니다.
-         * @param[in] Path Content 상대 에셋 경로 또는 작업할 파일 경로입니다.
-         * @param[in] Type 선택할 뷰 방향 또는 에셋 종류입니다.
+         * @param[in] Path Content 기준 에셋 경로입니다.
+         * @param[in] Type 에셋 종류입니다.
          */
         void OpenContentAsset(const std::filesystem::path& Path, Engine::EAssetType Type);
 
@@ -266,27 +273,27 @@ namespace Editor {
 
         /**
          * @brief 편집 사본을 프로젝트 머티리얼에 저장합니다.
-         * @return 검증 또는 요청한 처리에 성공하면 true입니다.
+         * @return 성공하면 true, 실패하면 false입니다.
          */
         bool SaveMaterial();
 
         /**
          * @brief 미저장 머티리얼을 닫기 전 사용자 선택을 처리합니다.
-         * @return 검증 또는 요청한 처리에 성공하면 true입니다.
+         * @return 성공하면 true, 실패하면 false입니다.
          */
         bool ConfirmMaterialChange();
 
         /**
          * @brief 머티리얼 편집 사본의 텍스처 에셋을 검증하여 교체합니다.
-         * @param[in] Path Content 상대 에셋 경로 또는 작업할 파일 경로입니다.
-         * @return 검증 또는 요청한 처리에 성공하면 true입니다.
+         * @param[in] Path Content 기준 텍스처 에셋 경로이며 비우면 텍스처를 제거합니다.
+         * @return 값이 유효해 적용했으면 true, 거부했으면 false입니다.
          */
         bool SetMaterialTexture(const Core::FString& Path);
 
         /**
          * @brief 머티리얼 편집 사본의 셰이더 경로를 검증하여 교체합니다.
-         * @param[in] Path Content 상대 에셋 경로 또는 작업할 파일 경로입니다.
-         * @return 검증 또는 요청한 처리에 성공하면 true입니다.
+         * @param[in] Path Content 기준 셰이더 경로입니다.
+         * @return 값이 유효해 적용했으면 true, 거부했으면 false입니다.
          */
         bool SetMaterialShader(const Core::FString& Path);
 
@@ -298,7 +305,7 @@ namespace Editor {
         /**
          * @brief 원본 파일 목록을 대상 콘텐츠 디렉터리에 가져오고 에셋 목록과 결과 로그를 갱신합니다.
          * @param[in] Sources 가져올 원본 파일 경로 목록입니다.
-         * @param[in] Directory 대상 에셋 또는 원본 텍스처의 기준 디렉터리입니다.
+         * @param[in] Directory 가져온 에셋을 저장할 Content 폴더입니다.
          */
         void ImportFiles(const Core::TArray<std::filesystem::path>& Sources, const std::filesystem::path& Directory);
         /**
@@ -312,7 +319,7 @@ namespace Editor {
         void ImportDroppedFiles();
         /**
          * @brief 콘텐츠 영역을 현재 ImGui 클립 사각형으로 잘라 파일 드롭 대상으로 등록합니다.
-         * @param[in] Directory 대상 에셋 또는 원본 텍스처의 기준 디렉터리입니다.
+         * @param[in] Directory 드롭한 파일을 가져올 Content 폴더입니다.
          * @param[in] Bounds 드롭 영역의 화면 좌표 최소 XY와 최대 ZW입니다.
          */
         void RegisterContentDropTarget(const std::filesystem::path& Directory, const Core::FVector4& Bounds);
@@ -337,7 +344,7 @@ namespace Editor {
         /**
          * @brief 장면 로드 또는 저장용 Windows 파일 대화상자를 표시합니다.
          * @param[in] Save 저장용 대화상자를 열지 지정합니다.
-         * @return 연산을 적용한 새 값입니다.
+         * @return 선택한 파일 경로이며, 취소하면 빈 경로입니다.
          */
         std::filesystem::path ChooseFile(bool Save);
 

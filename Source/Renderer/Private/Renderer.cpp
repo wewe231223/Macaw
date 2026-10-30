@@ -436,6 +436,24 @@ namespace Renderer {
         }
     }
 
+    /**
+     * @brief 렌더 타깃의 최종 컬러를 스왑 체인 백 버퍼에 복사합니다.
+     */
+    bool Renderer::FRenderer::CopyToBackBuffer(Engine::FRenderTarget* Target) {
+        const auto* Native{dynamic_cast<Renderer::FDXRenderTarget*>(Target)};
+
+        if (Native == nullptr || Native->GetOutputColor() == nullptr || mBackBuffer == nullptr || Native->GetWidth() != mWidth || Native->GetHeight() != mHeight) {
+            return false;
+        }
+
+        ID3D11ShaderResourceView* Empty{};
+        mContext->PSSetShaderResources(0, 1, &Empty);
+        mContext->OMSetRenderTargets(0, nullptr, nullptr);
+        mContext->CopyResource(mBackBuffer->GetTexture(), Native->GetOutputColor()->GetTexture());
+
+        return true;
+    }
+
     bool Renderer::FRenderer::SetAllowTearing(bool Allow) {
         if (mSwapChain == nullptr || (Allow && !mTearingSupported)) {
             return false;

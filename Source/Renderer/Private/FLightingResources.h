@@ -102,8 +102,8 @@ namespace Renderer {
     private:
         /**
          * @brief 필요하면 구조화 버퍼를 확장하고 원소 데이터를 업로드합니다.
-         * @param[in] Context 버퍼를 갱신할 Direct3D 11 장치 컨텍스트입니다.
-         * @param[in] Context 명령을 기록할 Direct3D 11 장치 컨텍스트의 비소유 주소입니다.
+         * @param[in] Device 버퍼를 생성할 Direct3D 11 장치의 비소유 주소입니다.
+         * @param[in] Context 버퍼를 갱신할 Direct3D 11 장치 컨텍스트의 비소유 주소입니다.
          * @param[in] Index 갱신할 구조화 버퍼의 번호입니다.
          * @param[in] Data 업로드할 CPU 원소 데이터의 비소유 주소입니다.
          * @param[in] Count 업로드할 원소 개수입니다.

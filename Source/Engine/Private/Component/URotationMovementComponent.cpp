@@ -1,6 +1,6 @@
 /**
  * @file URotationMovementComponent.cpp
- * @brief PIE 월드에서만 소유 액터의 루트를 초당 회전 속도에 따라 로컬 또는 월드 공간으로 회전합니다.
+ * @brief Game과 PIE 월드에서 소유 액터의 루트를 초당 회전 속도에 따라 로컬 또는 월드 공간으로 회전합니다.
  * @ingroup Engine
  */
 
@@ -20,7 +20,7 @@ namespace Engine {
         Engine::UWorld* World{GetWorld()};
         Engine::AActor* Owner{GetOwner()};
 
-        if (World == nullptr || World->GetWorldType() != Engine::EWorldType::PIE || !HasBegunPlay() || Owner == nullptr || Owner->IsPendingDestroy() || Owner->GetRootComponent() == nullptr || !std::isfinite(DeltaTime) || DeltaTime <= 0.0f) {
+        if (World == nullptr || (World->GetWorldType() != Engine::EWorldType::Game && World->GetWorldType() != Engine::EWorldType::PIE) || !HasBegunPlay() || Owner == nullptr || Owner->IsPendingDestroy() || Owner->GetRootComponent() == nullptr || !std::isfinite(DeltaTime) || DeltaTime <= 0.0f) {
             return;
         }
 

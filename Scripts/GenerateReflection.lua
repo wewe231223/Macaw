@@ -353,7 +353,7 @@ function Reflection.Generate(SelectedModule)
     end
 
     for _, File in ipairs(os.matchfiles("Source/**.cpp")) do
-        local Calls, Mask = ReadCalls(assert(io.readfile(File)), File)
+        local Calls, Mask = ReadCalls(assert(io.readfile(File), File .. ": Cannot read reflection source"), File)
         assert(#ReadDefinitions(Mask, File) == 0, File .. ": Move named class definitions into headers so reflection can be generated")
         assert(not Mask:match("%f[%a_]Implement[%w_]*Reflection%s*%("), File .. ": Reflection implementations must be generated from header annotations")
 
@@ -429,7 +429,7 @@ function Reflection.Generate(SelectedModule)
                 table.sort(Names)
 
                 for _, Name in ipairs(Names) do
-                    if Name ~= "App" then
+                    if Name ~= "App" and Name ~= "Game" then
                         table.insert(Source, 3, '#include "' .. Name .. 'Reflection.h"')
                         Source[#Source + 1] = "    " .. Name .. "::ReflectionModules::Register" .. Name .. "Types();"
                     end
