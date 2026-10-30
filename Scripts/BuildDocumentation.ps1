@@ -52,9 +52,8 @@ $OutputDirectory = Join-Path $RepositoryRoot 'Build/Documentation'
 $SiteDirectory = Join-Path $OutputDirectory 'Site'
 $Manifest = Get-Content -LiteralPath (Join-Path $RepositoryRoot 'Docs/Tools.json') -Raw | ConvertFrom-Json
 $Modules = Get-Content -LiteralPath (Join-Path $RepositoryRoot 'ModuleDependencies.json') -Raw | ConvertFrom-Json -AsHashtable
-$Modules['ImGui'] = @{ Public = @(); Private = @(); External = $true }
 $Premake = Get-Content -LiteralPath (Join-Path $RepositoryRoot 'premake5.lua') -Raw
-$ExecutableConfiguration = [regex]::Match($Premake, '(?s)local function ConfigureExecutable\(.*?\r?\nend')
+$ExecutableConfiguration = [regex]::Match($Premake, '(?s)local function ConfigureRuntimeExecutable\(.*?\r?\nend')
 $ExecutableLinks = [regex]::Match($ExecutableConfiguration.Value, '(?s)\blinks\s*\{(?<Libraries>[^}]*)\}')
 if (-not $ExecutableLinks.Success) {
     throw 'Could not read executable links from premake5.lua.'
@@ -109,12 +108,9 @@ foreach ($ModuleName in $Modules.Keys) {
         throw "Invalid module name: $ModuleName"
     }
     $Module = $Modules[$ModuleName]
-    $External = $Module.Contains('External') -and $Module['External']
     $Executable = $Module.Contains('Executable') -and $Module['Executable']
     if ($Executable) {
         $GraphLines.Add('    "' + $ModuleName + '" [fillcolor="#182b44", color="#182b44", fontcolor="white", penwidth=2];')
-    } elseif ($External) {
-        $GraphLines.Add('    "' + $ModuleName + '" [fillcolor="#f1f2f5", color="#a0a6b2", style="rounded,filled,dashed"];')
     } else {
         $ModuleCount += 1
         $GraphLines.Add('    "' + $ModuleName + '";')
@@ -131,10 +127,9 @@ foreach ($ModuleName in $Modules.Keys) {
     $Description = if ($ModuleDescriptions.Contains($ModuleName)) { $ModuleDescriptions[$ModuleName] } else { 'API에서 공개 타입과 구현을 확인하세요.' }
     $PublicDependencies = if ($Module.Public.Count -gt 0) { $Module.Public -join ', ' } else { '—' }
     $PrivateDependencies = if ($Executable) { '링크: ' + ($Module.Links -join ', ') } elseif ($Module.Private.Count -gt 0) { $Module.Private -join ', ' } else { '—' }
-    $ModuleSource = if ($Executable) { 'Source/App' } elseif ($External) { 'ThirdParty/ImGui' } else { "Source/$ModuleName/Public" }
-    $ProjectBadge = if ($Executable) { '<span class="Tag">실행</span>' } elseif ($External) { '<span class="Tag">외부</span>' } else { '' }
-    $RowClass = if ($External) { ' class="ExternalRow"' } else { '' }
-    $ModuleRows.Add('<tr' + $RowClass + '><th scope="row"><a href="#Project-' + $ModuleName + '">' + $ModuleName + '</a>' + $ProjectBadge + '</th><td>' + [Net.WebUtility]::HtmlEncode($Description) + ' <a href="https://github.com/wewe231223/Macaw/tree/@@Revision@@/' + $ModuleSource + '">소스</a></td><td>' + [Net.WebUtility]::HtmlEncode($PublicDependencies) + '</td><td>' + [Net.WebUtility]::HtmlEncode($PrivateDependencies) + '</td></tr>')
+    $ModuleSource = if ($Executable) { 'Source/App' } else { "Source/$ModuleName/Public" }
+    $ProjectBadge = if ($Executable) { '<span class="Tag">실행</span>' } else { '' }
+    $ModuleRows.Add('<tr><th scope="row"><a href="#Project-' + $ModuleName + '">' + $ModuleName + '</a>' + $ProjectBadge + '</th><td>' + [Net.WebUtility]::HtmlEncode($Description) + ' <a href="https://github.com/wewe231223/Macaw/tree/@@Revision@@/' + $ModuleSource + '">소스</a></td><td>' + [Net.WebUtility]::HtmlEncode($PublicDependencies) + '</td><td>' + [Net.WebUtility]::HtmlEncode($PrivateDependencies) + '</td></tr>')
     $Visibilities = if ($Executable) { @('Links') } else { @('Public', 'Private') }
     foreach ($Visibility in $Visibilities) {
         foreach ($Dependency in $Module[$Visibility]) {

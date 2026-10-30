@@ -57,7 +57,7 @@ for (CoreUObject::TObjectIterator<Engine::UStaticMesh> Iterator{}; Iterator; ++I
 | \ref Editor | UI 독립 편집 컨텍스트, 카메라, 변환 명령, 기즈모와 ImGui 패널 | \ref Editor::UEditorEngine, \ref Editor::FEditorContext, \ref Editor::FEditorUI, \ref Editor::FEditorViewport, \ref Editor::FEditorViewportClient, \ref Editor::EViewportCommand |
 | \ref App | 플랫폼·렌더러·에디터를 조합하는 실행 진입점 | \ref App::FApplication |
 
-외부 ImGui는 `ThirdParty/ImGui`에서 별도 정적 라이브러리로 빌드합니다.
+외부 라이브러리는 `vcpkg.json`에 선언하고 `Build.bat`로 복원합니다. ImGui의 도킹·Win32·Direct3D 11 백엔드와 DirectXTex도 vcpkg에서 빌드하며, 헤더·라이브러리·디버그 심볼은 `vcpkg_installed/`에서 관리합니다.
 `Regacy/`, 외부 라이브러리와 `Intermediate/` 생성물은 현재 자체 소스 문서의 입력에서 제외합니다.
 
 \section ApiLifetime 객체와 월드 수명
