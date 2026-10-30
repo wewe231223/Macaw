@@ -44,7 +44,7 @@ namespace Core {
         ReflectProperty(mRaw, "Raw", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
-         * @brief 크기입니다.
+         * @brief 요청한 할당 크기(바이트)입니다.
          */
         std::size_t mSize{};
         ReflectProperty(mSize, "Size", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);

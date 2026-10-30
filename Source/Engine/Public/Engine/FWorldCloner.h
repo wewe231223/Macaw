@@ -44,7 +44,7 @@ namespace Engine {
 
         /**
          * @brief 지정 월드에 액터들과 소유 컴포넌트를 새 식별자로 복제합니다.
-         * @param[in] World 메시의 월드 변환 또는 액터를 소유한 월드입니다.
+         * @param[in] World 액터를 복제할 월드입니다.
          * @param[in] Actors 선택하거나 복제할 액터들의 세대 핸들입니다.
          * @param[out] Error 실패 원인을 받을 문자열입니다.
          * @return 복제본들의 핸들이며 실패하면 빈 배열입니다.

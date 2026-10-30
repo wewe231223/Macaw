@@ -57,8 +57,8 @@ namespace Engine {
 
         /**
          * @brief 새 크기에 맞추어 렌더 타깃 리소스를 생성하거나 교체합니다.
-         * @param[in] Width 클라이언트 영역 또는 타깃의 가로 픽셀 수입니다.
-         * @param[in] Height 클라이언트 영역 또는 타깃의 세로 픽셀 수입니다.
+         * @param[in] Width 렌더 타깃의 가로 픽셀 수입니다.
+         * @param[in] Height 렌더 타깃의 세로 픽셀 수입니다.
          * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
          */
         bool Resize(Core::Uint32 Width, Core::Uint32 Height);
@@ -121,7 +121,7 @@ namespace Engine {
         ReflectProperty(mClient, "Client", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
-         * @brief 렌더 타깃 또는 편집 대상입니다.
+         * @brief 뷰포트가 소유한 렌더 타깃입니다.
          */
         std::unique_ptr<Engine::FRenderTarget> mTarget{};
         ReflectProperty(mTarget, "Target", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);

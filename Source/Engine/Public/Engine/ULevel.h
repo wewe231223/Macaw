@@ -52,21 +52,21 @@ namespace Engine {
 
         /**
          * @brief 검증한 액터의 소유권을 레벨로 옮기고 컴포넌트를 월드에 등록합니다.
-         * @param[in] Actor 생성, 편집 또는 직렬화할 액터입니다.
+         * @param[in] Actor 추가할 액터의 소유권입니다.
          * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
          */
         bool AddActor(std::unique_ptr<Engine::AActor> Actor);
 
         /**
          * @brief 핸들에 해당하는 액터의 컴포넌트를 등록 해제하고 액터를 제거합니다.
-         * @param[in] Handle 조회 또는 제거할 객체의 슬롯 세대 핸들입니다.
+         * @param[in] Handle 제거할 액터의 핸들입니다.
          * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
          */
         bool DestroyActor(CoreUObject::FObjectHandle Handle);
 
         /**
          * @brief 레벨이 소유한 액터 목록을 반환합니다.
-         * @return 생성한 객체의 단독 소유권이며, 생성 또는 검증 실패 시 nullptr입니다.
+         * @return 소유 목록의 읽기 전용 참조입니다.
          */
         const Core::TArray<std::unique_ptr<Engine::AActor>>& GetActors() const;
 
@@ -78,7 +78,7 @@ namespace Engine {
 
         /**
          * @brief 객체가 소속된 월드 연결을 지정합니다.
-         * @param[in] World 연결할 월드 또는 적용할 월드 행렬입니다.
+         * @param[in] World 연결할 월드이며, nullptr이면 연결을 해제합니다.
          */
         void SetWorld(Engine::UWorld* World);
 
@@ -96,7 +96,7 @@ namespace Engine {
 
     private:
         /**
-         * @brief 월드 연결 또는 월드 변환 행렬입니다.
+         * @brief 레벨이 속한 월드입니다.
          */
         Engine::UWorld* mWorld{};
         ReflectProperty(mWorld, "World", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);

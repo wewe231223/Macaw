@@ -1,6 +1,6 @@
 /**
  * @file UStaticMeshComponent.h
- * @brief Plane, Cube 또는 Sphere 프리미티브를 표시하는 메시 컴포넌트입니다.
+ * @brief 기본 프리미티브 또는 정적 메시 에셋을 머티리얼과 함께 표시하는 컴포넌트입니다.
  * @ingroup Engine
  */
 
@@ -15,7 +15,7 @@ namespace Engine {
     class UMaterial;
 
     /**
-     * @brief Plane, Cube 또는 Sphere 프리미티브를 표시하는 메시 컴포넌트입니다.
+     * @brief 기본 프리미티브 또는 정적 메시 에셋을 머티리얼과 함께 표시하는 컴포넌트입니다.
      * @ingroup Engine
      */
     class UStaticMeshComponent final : public Engine::UPrimitiveComponent {
@@ -57,7 +57,7 @@ namespace Engine {
 
         /**
          * @brief 지원되는 프리미티브 종류를 검증하고 렌더 상태 갱신을 예약합니다.
-         * @param[in] Type 생성, 조회 또는 표시할 타입입니다.
+         * @param[in] Type 기본 프리미티브 종류입니다.
          * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
          */
         bool SetPrimitiveType(Engine::EPrimitiveType Type);
@@ -70,14 +70,14 @@ namespace Engine {
 
         /**
          * @brief 프로젝트의 메시 에셋 경로를 검증하고 컴포넌트의 렌더 상태를 갱신합니다.
-         * @param[in] Path 조회·로드·저장 또는 정규화할 파일 경로입니다.
+         * @param[in] Path Content 기준 메시 에셋 경로이며 비우면 프리미티브를 사용합니다.
          * @return 요청한 처리를 완료하면 true, 실패하면 false입니다.
          */
         bool SetMeshPath(const Core::FString& Path);
 
         /**
          * @brief 프리미티브가 사용하는 정적 메시의 비소유 주소를 반환합니다.
-         * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며, 사용할 수 없으면 nullptr입니다.
+         * @return 대상의 비소유 주소이며, 없거나 유효하지 않으면 nullptr입니다.
          */
         Engine::UStaticMesh* GetStaticMesh() const override;
 
@@ -90,26 +90,26 @@ namespace Engine {
 
         /**
          * @brief 저장된 메시 경로를 에셋 관리자에서 해석하고 렌더 상태를 갱신합니다.
-         * @return 검증 또는 요청한 처리에 성공하면 true입니다.
+         * @return 경로가 비어 있거나 에셋을 찾았으면 true, 로드에 실패하면 false입니다.
          */
         bool ResolveMesh();
 
         /**
          * @brief Content 기준 머티리얼 파일 경로를 반환합니다.
-         * @return 이 객체 또는 공유 이름 풀이 유지하는 값의 참조입니다.
+         * @return 이 객체가 보관하는 값의 참조입니다.
          */
         const Core::FString& GetMaterialPath() const;
 
         /**
          * @brief Content 기준 머티리얼 파일 경로를 설정합니다.
-         * @param[in] Path Content 상대 에셋 경로 또는 작업할 파일 경로입니다.
-         * @return 검증 또는 요청한 처리에 성공하면 true입니다.
+         * @param[in] Path Content 기준 머티리얼 경로이며 비우면 메시 머티리얼을 사용합니다.
+         * @return 값이 유효해 적용했으면 true, 거부했으면 false입니다.
          */
         bool SetMaterialPath(const Core::FString& Path);
 
         /**
          * @brief 연결된 머티리얼의 비소유 주소를 반환합니다.
-         * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며 사용할 수 없으면 nullptr입니다.
+         * @return 대상의 비소유 주소이며, 없거나 유효하지 않으면 nullptr입니다.
          */
         Engine::UMaterial* GetMaterial() const;
 
@@ -143,7 +143,7 @@ namespace Engine {
 
         /**
          * @brief 저장된 머티리얼 경로를 에셋 관리자에서 해석하고 렌더 상태를 갱신합니다.
-         * @return 검증 또는 요청한 처리에 성공하면 true입니다.
+         * @return 경로가 비어 있거나 에셋을 찾았으면 true, 로드에 실패하면 false입니다.
          */
         bool ResolveMaterial();
         Engine::FPrimitiveSceneProxy CreateSceneProxy() const override;
@@ -164,15 +164,15 @@ namespace Engine {
 
         /**
          * @brief Content 상대 경로의 메시를 에셋 관리자에서 조회합니다.
-         * @param[in] Path Content 상대 에셋 경로 또는 작업할 파일 경로입니다.
-         * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며 사용할 수 없으면 nullptr입니다.
+         * @param[in] Path Content 기준 메시 에셋 경로입니다.
+         * @return 캐시된 에셋의 비소유 주소이며, 로드에 실패하면 nullptr입니다.
          */
         Engine::UStaticMesh* LoadMesh(const Core::FString& Path) const;
 
         /**
          * @brief Content 상대 경로의 머티리얼을 에셋 관리자에서 조회합니다.
-         * @param[in] Path Content 상대 에셋 경로 또는 작업할 파일 경로입니다.
-         * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며 사용할 수 없으면 nullptr입니다.
+         * @param[in] Path Content 기준 머티리얼 에셋 경로입니다.
+         * @return 캐시된 에셋의 비소유 주소이며, 로드에 실패하면 nullptr입니다.
          */
         Engine::UMaterial* LoadMaterial(const Core::FString& Path) const;
 

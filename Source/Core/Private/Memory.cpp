@@ -21,7 +21,7 @@ namespace Core {
      */
     namespace {
         /**
-         * @brief 프레임 렌더링 통계입니다.
+         * @brief UObject 수와 추적 중인 힙 사용량 통계입니다.
          */
         Core::FMemoryStats Stats{};
     }

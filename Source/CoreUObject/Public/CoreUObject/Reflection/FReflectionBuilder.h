@@ -28,7 +28,7 @@ namespace CoreUObject {
     public:
         /**
          * @brief FReflectionBuilder의 초기 상태와 전달받은 의존성을 구성합니다.
-         * @param[in,out] Owner 컴포넌트 또는 메타데이터의 소유자입니다.
+         * @param[in,out] Owner 프로퍼티를 등록할 대상 타입 메타데이터입니다.
          */
         explicit FReflectionBuilder(CoreUObject::UStruct* Owner);
 
@@ -40,14 +40,14 @@ namespace CoreUObject {
         ReflectStruct(FReflectionBuilder);
 
         /**
-         * @brief 소유 객체 또는 메타데이터를 반환합니다.
+         * @brief 프로퍼티를 등록할 대상 타입 메타데이터를 반환합니다.
          * @return 조회한 값의 비소유 주소이며, 해당 값이 없으면 nullptr입니다.
          */
         CoreUObject::UStruct* GetOwner() const;
 
         /**
          * @brief 타입 메타데이터에 프로퍼티를 추가합니다.
-         * @param[in] Property 읽기, 쓰기 또는 알림을 적용할 프로퍼티 메타데이터입니다.
+         * @param[in] Property 등록할 프로퍼티입니다.
          */
         void AddProperty(std::unique_ptr<CoreUObject::FProperty> Property);
 
@@ -59,7 +59,7 @@ namespace CoreUObject {
 
     private:
         /**
-         * @brief 소유 객체 또는 메타데이터입니다.
+         * @brief 프로퍼티를 등록할 대상 타입 메타데이터입니다.
          */
         CoreUObject::UStruct* mOwner{};
         ReflectProperty(mOwner, "Owner", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);

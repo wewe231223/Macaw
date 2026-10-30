@@ -49,14 +49,14 @@ namespace Core {
     }
 
     /**
-     * @brief 위치 또는 벡터에 역변환을 적용합니다.
+     * @brief 월드 위치를 이 변환의 로컬 공간 위치로 되돌립니다.
      */
     Core::FVector Core::FTransform::InverseTransformPosition(const Core::FVector& Position) const {
         return InverseTransformPositionNoScale(Position) / mScale;
     }
 
     /**
-     * @brief 위치 또는 벡터에 역변환을 적용합니다.
+     * @brief 방향 벡터에 역회전과 역스케일을 적용하며 이동은 무시합니다.
      */
     Core::FVector Core::FTransform::InverseTransformVector(const Core::FVector& Vector) const {
         return InverseTransformVectorNoScale(Vector) / mScale;

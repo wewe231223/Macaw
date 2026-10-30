@@ -38,7 +38,7 @@ namespace Engine {
 
     /**
      * @brief 해당 열거형의 정적 리플렉션 메타데이터를 반환합니다.
-     * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며 사용할 수 없으면 nullptr입니다.
+     * @return 등록된 타입 메타데이터의 비소유 주소입니다.
      */
     ReflectEnum(ECollisionShape, None, Box, Sphere, Capsule);
 
@@ -61,7 +61,7 @@ namespace Engine {
     public:
         /**
          * @brief 이 타입의 정적 리플렉션 메타데이터를 반환합니다.
-         * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며 사용할 수 없으면 nullptr입니다.
+         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
          */
         ReflectStruct(FCollisionShape);
 
@@ -113,7 +113,7 @@ namespace Engine {
 
         /**
          * @brief 상자의 로컬 축별 반길이를 반환합니다.
-         * @return 이 객체 또는 공유 이름 풀이 유지하는 값의 참조입니다.
+         * @return 이 객체가 보관하는 값의 참조입니다.
          */
         const Core::FVector& GetBoxHalfExtent() const;
 
@@ -174,13 +174,13 @@ namespace Engine {
     public:
         /**
          * @brief 이 타입의 정적 리플렉션 메타데이터를 반환합니다.
-         * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며 사용할 수 없으면 nullptr입니다.
+         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
          */
         ReflectStruct(FCollisionContact);
 
         /**
          * @brief 충돌면의 단위 법선을 반환합니다.
-         * @return 이 객체 또는 공유 이름 풀이 유지하는 값의 참조입니다.
+         * @return 이 객체가 보관하는 값의 참조입니다.
          */
         const Core::FVector& GetNormal() const;
 
@@ -204,7 +204,7 @@ namespace Engine {
 
         /**
          * @brief 월드 접촉점을 반환합니다.
-         * @return 이 객체 또는 공유 이름 풀이 유지하는 값의 참조입니다.
+         * @return 이 객체가 보관하는 값의 참조입니다.
          */
         const Core::FVector& GetPoint() const;
 
@@ -267,13 +267,13 @@ namespace Engine {
     public:
         /**
          * @brief 이 타입의 정적 리플렉션 메타데이터를 반환합니다.
-         * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며 사용할 수 없으면 nullptr입니다.
+         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
          */
         ReflectStruct(FCapsuleSegment);
 
         /**
          * @brief 캡슐 중심 선분의 시작점을 반환합니다.
-         * @return 이 객체 또는 공유 이름 풀이 유지하는 값의 참조입니다.
+         * @return 이 객체가 보관하는 값의 참조입니다.
          */
         const Core::FVector& GetA() const;
 
@@ -285,7 +285,7 @@ namespace Engine {
 
         /**
          * @brief 캡슐 중심 선분의 끝점을 반환합니다.
-         * @return 이 객체 또는 공유 이름 풀이 유지하는 값의 참조입니다.
+         * @return 이 객체가 보관하는 값의 참조입니다.
          */
         const Core::FVector& GetB() const;
 
@@ -360,13 +360,13 @@ namespace Engine {
     public:
         /**
          * @brief 이 타입의 정적 리플렉션 메타데이터를 반환합니다.
-         * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며 사용할 수 없으면 nullptr입니다.
+         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
          */
         ReflectStruct(FOrientedBox);
 
         /**
          * @brief 월드 중심 위치를 반환합니다.
-         * @return 이 객체 또는 공유 이름 풀이 유지하는 값의 참조입니다.
+         * @return 이 객체가 보관하는 값의 참조입니다.
          */
         const Core::FVector& GetCenter() const;
 
@@ -378,7 +378,7 @@ namespace Engine {
 
         /**
          * @brief 회전 상자의 세 기저 축을 반환합니다.
-         * @return 이 객체 또는 공유 이름 풀이 유지하는 값의 참조입니다.
+         * @return 이 객체가 보관하는 값의 참조입니다.
          */
         const std::array<Core::FVector, 3>& GetAxis() const;
 
@@ -390,7 +390,7 @@ namespace Engine {
 
         /**
          * @brief 각 축의 반길이를 반환합니다.
-         * @return 이 객체 또는 공유 이름 풀이 유지하는 값의 참조입니다.
+         * @return 이 객체가 보관하는 값의 참조입니다.
          */
         const Core::FVector& GetExtent() const;
 
@@ -453,13 +453,13 @@ namespace Engine {
     public:
         /**
          * @brief 이 타입의 정적 리플렉션 메타데이터를 반환합니다.
-         * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며 사용할 수 없으면 nullptr입니다.
+         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
          */
         ReflectStruct(FSweepTarget);
 
         /**
          * @brief 충돌 형상을 반환합니다.
-         * @return 이 객체 또는 공유 이름 풀이 유지하는 값의 참조입니다.
+         * @return 이 객체가 보관하는 값의 참조입니다.
          */
         const Engine::FCollisionShape& GetShape() const;
 
@@ -471,7 +471,7 @@ namespace Engine {
 
         /**
          * @brief 월드 위치를 반환합니다.
-         * @return 이 객체 또는 공유 이름 풀이 유지하는 값의 참조입니다.
+         * @return 이 객체가 보관하는 값의 참조입니다.
          */
         const Core::FVector& GetPos() const;
 
@@ -483,7 +483,7 @@ namespace Engine {
 
         /**
          * @brief 월드 회전을 반환합니다.
-         * @return 이 객체 또는 공유 이름 풀이 유지하는 값의 참조입니다.
+         * @return 이 객체가 보관하는 값의 참조입니다.
          */
         const Core::FQuat& GetRot() const;
 
@@ -532,7 +532,7 @@ namespace Engine {
     public:
         /**
          * @brief 이 타입의 정적 리플렉션 메타데이터를 반환합니다.
-         * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며 사용할 수 없으면 nullptr입니다.
+         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
          */
         ReflectStruct(FSweepResult);
 
@@ -586,7 +586,7 @@ namespace Engine {
 
         /**
          * @brief 충돌 접촉 정보를 반환합니다.
-         * @return 이 객체 또는 공유 이름 풀이 유지하는 값의 참조입니다.
+         * @return 이 객체가 보관하는 값의 참조입니다.
          */
         const Engine::FCollisionContact& GetContact() const;
 
@@ -665,7 +665,7 @@ namespace Engine {
          * @param[in] PosB 둘째 형상의 월드 위치입니다.
          * @param[in] RotB 둘째 형상의 월드 회전입니다.
          * @param[out] OutContact 접촉 정보를 기록할 선택적 출력 주소입니다.
-         * @return 검증 또는 요청한 처리에 성공하면 true입니다.
+         * @return 두 형상이 겹치면 true입니다.
          */
         bool Overlap(const Engine::FCollisionShape& A, const Core::FVector& PosA, const Core::FQuat& RotA, const Engine::FCollisionShape& B, const Core::FVector& PosB, const Core::FQuat& RotB, Engine::FCollisionContact* OutContact = nullptr);
 
@@ -674,7 +674,7 @@ namespace Engine {
          * @param[in] A 첫 번째 검사 대상입니다.
          * @param[in] B 두 번째 검사 대상입니다.
          * @param[out] OutContact 접촉 정보를 기록할 선택적 출력 주소입니다.
-         * @return 검증 또는 요청한 처리에 성공하면 true입니다.
+         * @return 두 형상이 겹치면 true입니다.
          */
         bool OverlapCapsuleCapsule(const Engine::FCapsuleSegment& A, const Engine::FCapsuleSegment& B, Engine::FCollisionContact* OutContact);
 
@@ -683,7 +683,7 @@ namespace Engine {
          * @param[in] Capsule 검사할 월드 캡슐입니다.
          * @param[in] Box 검사할 회전 상자입니다.
          * @param[out] OutContact 접촉 정보를 기록할 선택적 출력 주소입니다.
-         * @return 검증 또는 요청한 처리에 성공하면 true입니다.
+         * @return 두 형상이 겹치면 true입니다.
          */
         bool OverlapCapsuleBox(const Engine::FCapsuleSegment& Capsule, const Engine::FOrientedBox& Box, Engine::FCollisionContact* OutContact);
 
@@ -692,7 +692,7 @@ namespace Engine {
          * @param[in] A 첫 번째 검사 대상입니다.
          * @param[in] B 두 번째 검사 대상입니다.
          * @param[out] OutContact 접촉 정보를 기록할 선택적 출력 주소입니다.
-         * @return 검증 또는 요청한 처리에 성공하면 true입니다.
+         * @return 두 형상이 겹치면 true입니다.
          */
         bool OverlapBoxBox(const Engine::FOrientedBox& A, const Engine::FOrientedBox& B, Engine::FCollisionContact* OutContact);
 
@@ -728,7 +728,7 @@ namespace Engine {
         /**
          * @brief 형상을 이동시켜 대상 목록 중 최초 차단 접촉을 찾습니다.
          * @param[in] Shape 검사할 로컬 충돌 형상입니다.
-         * @param[in] Start 추적 또는 선분의 시작점입니다.
+         * @param[in] Start 스윕을 시작할 위치입니다.
          * @param[in] Delta 형상을 이동할 월드 변위입니다.
          * @param[in] Rot 형상의 월드 회전입니다.
          * @param[in] Targets 검사할 스윕 대상 목록입니다.

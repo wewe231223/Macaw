@@ -21,7 +21,7 @@ namespace Engine {
     namespace {
         /**
          * @brief 절대 경로와 상위 폴더 이동을 제외한 Content 상대 경로인지 검사합니다.
-         * @param[in] Path Content 상대 에셋 경로 또는 작업할 파일 경로입니다.
+         * @param[in] Path 검사할 경로 문자열입니다.
          * @return 조건을 만족하면 true입니다.
          */
         bool IsContentPath(const Core::FString& Path) {

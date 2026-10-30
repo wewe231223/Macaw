@@ -49,7 +49,7 @@ namespace Engine {
          * @return 실제 클래스 메타데이터의 비소유 주소입니다.
          */
         /**
-         * @brief 소유 객체 또는 메타데이터를 반환합니다.
+         * @brief 컴포넌트를 소유한 액터를 반환합니다.
          * @return 조회한 값의 비소유 주소이며, 해당 값이 없으면 nullptr입니다.
          */
         Engine::AActor* GetOwner() const;
@@ -62,7 +62,7 @@ namespace Engine {
 
         /**
          * @brief 컴포넌트를 월드에 연결하고 필요한 렌더 상태를 등록합니다.
-         * @param[in,out] World 연결할 월드 또는 적용할 월드 행렬입니다.
+         * @param[in,out] World 컴포넌트를 등록할 월드입니다.
          */
         virtual void RegisterComponent(Engine::UWorld* World);
 
@@ -121,7 +121,7 @@ namespace Engine {
 
         /**
          * @brief 컴포넌트의 소유 액터를 지정합니다.
-         * @param[in] Owner 컴포넌트 또는 메타데이터의 소유자입니다.
+         * @param[in] Owner 컴포넌트를 소유할 액터입니다.
          */
         void SetOwner(Engine::AActor* Owner);
 
@@ -149,13 +149,13 @@ namespace Engine {
 
     private:
         /**
-         * @brief 소유 객체 또는 메타데이터입니다.
+         * @brief 컴포넌트를 소유한 액터입니다.
          */
         Engine::AActor* mOwner{};
         ReflectProperty(mOwner, "Owner", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
-         * @brief 월드 연결 또는 월드 변환 행렬입니다.
+         * @brief 등록된 월드이며, 등록 전에는 nullptr입니다.
          */
         Engine::UWorld* mWorld{};
         ReflectProperty(mWorld, "World", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);

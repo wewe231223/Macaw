@@ -45,27 +45,27 @@ namespace Core {
 
         /**
          * @brief 상대 값의 상태로 객체를 복사하거나 이동 생성합니다.
-         * @param[in] Other 비교, 복사 또는 연산할 상대 값입니다.
+         * @param[in] Other 복사할 원본 값입니다.
          */
         FBox(const Core::FBox& Other) = default;
 
         /**
          * @brief 상대 값의 상태를 대입합니다.
-         * @param[in] Other 비교, 복사 또는 연산할 상대 값입니다.
-         * @return 소유 객체가 유지하는 값의 참조입니다.
+         * @param[in] Other 복사할 원본 값입니다.
+         * @return 갱신된 자기 자신(*this)의 참조입니다.
          */
         Core::FBox& operator=(const Core::FBox& Other) = default;
 
         /**
          * @brief 상대 값의 상태로 객체를 복사하거나 이동 생성합니다.
-         * @param[in] Other 비교, 복사 또는 연산할 상대 값입니다.
+         * @param[in] Other 이동할 원본 값입니다.
          */
         FBox(Core::FBox&& Other) noexcept = default;
 
         /**
          * @brief 상대 값의 상태를 대입합니다.
-         * @param[in] Other 비교, 복사 또는 연산할 상대 값입니다.
-         * @return 소유 객체가 유지하는 값의 참조입니다.
+         * @param[in] Other 이동할 원본 값입니다.
+         * @return 갱신된 자기 자신(*this)의 참조입니다.
          */
         Core::FBox& operator=(Core::FBox&& Other) noexcept = default;
 

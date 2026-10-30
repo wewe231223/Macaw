@@ -42,16 +42,16 @@ namespace Core {
 
     /**
      * @brief 동적으로 크기가 변하는 연속 배열입니다.
-     * @tparam T 컨테이너의 값, 키 또는 해시 타입입니다.
+     * @tparam T 원소 타입입니다.
      */
     template <typename T>
     using TArray = std::vector<T>;
 
     /**
      * @brief 키와 값 및 선택한 해시 함수로 구성하는 해시 맵입니다.
-     * @tparam K 컨테이너의 값, 키 또는 해시 타입입니다.
-     * @tparam V 컨테이너의 값, 키 또는 해시 타입입니다.
-     * @tparam H 컨테이너의 값, 키 또는 해시 타입입니다.
+     * @tparam K 키 타입입니다.
+     * @tparam V 값 타입입니다.
+     * @tparam H 키 해시 함수 타입입니다.
      */
     template <typename K, typename V, typename H = std::hash<K>>
     using TMap = std::unordered_map<K, V, H>;

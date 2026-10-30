@@ -230,25 +230,25 @@ namespace Core {
 
         /**
          * @brief 수명과 등록 상태의 중복 관리를 막기 위해 복사·이동 생성을 금지합니다.
-         * @param[in] Other 복사 또는 이동을 금지할 상대 객체입니다.
+         * @param[in] Other 사용하지 않는 상대 객체입니다.
          */
         FStat(const Core::FStat& Other) = delete;
 
         /**
          * @brief 수명과 등록 상태의 중복 관리를 막기 위해 복사·이동 대입을 금지합니다.
-         * @param[in] Other 복사 또는 이동을 금지할 상대 객체입니다.
+         * @param[in] Other 사용하지 않는 상대 객체입니다.
          */
         Core::FStat& operator=(const Core::FStat& Other) = delete;
 
         /**
          * @brief 수명과 등록 상태의 중복 관리를 막기 위해 복사·이동 생성을 금지합니다.
-         * @param[in] Other 복사 또는 이동을 금지할 상대 객체입니다.
+         * @param[in] Other 사용하지 않는 상대 객체입니다.
          */
         FStat(Core::FStat&& Other) = delete;
 
         /**
          * @brief 수명과 등록 상태의 중복 관리를 막기 위해 복사·이동 대입을 금지합니다.
-         * @param[in] Other 복사 또는 이동을 금지할 상대 객체입니다.
+         * @param[in] Other 사용하지 않는 상대 객체입니다.
          */
         Core::FStat& operator=(Core::FStat&& Other) = delete;
 
@@ -357,13 +357,13 @@ namespace Core {
 
         /**
          * @brief 수명과 등록 상태의 중복 관리를 막기 위해 복사·이동 생성을 금지합니다.
-         * @param[in] Other 복사 또는 이동을 금지할 상대 객체입니다.
+         * @param[in] Other 사용하지 않는 상대 객체입니다.
          */
         FStats(const Core::FStats& Other) = delete;
 
         /**
          * @brief 수명과 등록 상태의 중복 관리를 막기 위해 복사·이동 대입을 금지합니다.
-         * @param[in] Other 복사 또는 이동을 금지할 상대 객체입니다.
+         * @param[in] Other 사용하지 않는 상대 객체입니다.
          */
         Core::FStats& operator=(const Core::FStats& Other) = delete;
 
@@ -566,25 +566,25 @@ namespace Core {
 
         /**
          * @brief 수명과 등록 상태의 중복 관리를 막기 위해 복사·이동 생성을 금지합니다.
-         * @param[in] Other 복사 또는 이동을 금지할 상대 객체입니다.
+         * @param[in] Other 사용하지 않는 상대 객체입니다.
          */
         FScopedStatTimer(const Core::FScopedStatTimer& Other) = delete;
 
         /**
          * @brief 수명과 등록 상태의 중복 관리를 막기 위해 복사·이동 대입을 금지합니다.
-         * @param[in] Other 복사 또는 이동을 금지할 상대 객체입니다.
+         * @param[in] Other 사용하지 않는 상대 객체입니다.
          */
         Core::FScopedStatTimer& operator=(const Core::FScopedStatTimer& Other) = delete;
 
         /**
          * @brief 수명과 등록 상태의 중복 관리를 막기 위해 복사·이동 생성을 금지합니다.
-         * @param[in] Other 복사 또는 이동을 금지할 상대 객체입니다.
+         * @param[in] Other 사용하지 않는 상대 객체입니다.
          */
         FScopedStatTimer(Core::FScopedStatTimer&& Other) = delete;
 
         /**
          * @brief 수명과 등록 상태의 중복 관리를 막기 위해 복사·이동 대입을 금지합니다.
-         * @param[in] Other 복사 또는 이동을 금지할 상대 객체입니다.
+         * @param[in] Other 사용하지 않는 상대 객체입니다.
          */
         Core::FScopedStatTimer& operator=(Core::FScopedStatTimer&& Other) = delete;
 
@@ -639,25 +639,25 @@ namespace Core {
 
         /**
          * @brief 수명과 등록 상태의 중복 관리를 막기 위해 복사·이동 생성을 금지합니다.
-         * @param[in] Other 복사 또는 이동을 금지할 상대 객체입니다.
+         * @param[in] Other 사용하지 않는 상대 객체입니다.
          */
         FScopedStatFrame(const Core::FScopedStatFrame& Other) = delete;
 
         /**
          * @brief 수명과 등록 상태의 중복 관리를 막기 위해 복사·이동 대입을 금지합니다.
-         * @param[in] Other 복사 또는 이동을 금지할 상대 객체입니다.
+         * @param[in] Other 사용하지 않는 상대 객체입니다.
          */
         Core::FScopedStatFrame& operator=(const Core::FScopedStatFrame& Other) = delete;
 
         /**
          * @brief 수명과 등록 상태의 중복 관리를 막기 위해 복사·이동 생성을 금지합니다.
-         * @param[in] Other 복사 또는 이동을 금지할 상대 객체입니다.
+         * @param[in] Other 사용하지 않는 상대 객체입니다.
          */
         FScopedStatFrame(Core::FScopedStatFrame&& Other) = delete;
 
         /**
          * @brief 수명과 등록 상태의 중복 관리를 막기 위해 복사·이동 대입을 금지합니다.
-         * @param[in] Other 복사 또는 이동을 금지할 상대 객체입니다.
+         * @param[in] Other 사용하지 않는 상대 객체입니다.
          */
         Core::FScopedStatFrame& operator=(Core::FScopedStatFrame&& Other) = delete;
 

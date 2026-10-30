@@ -30,14 +30,14 @@ namespace Engine {
         UBillboardComponent();
 
         /**
-         * @brief 객체를 소멸하고 소유한 GPU 자원 또는 UV 제어 상태를 해제합니다.
+         * @brief 기본 소멸자이며, 렌더 장면 등록 해제는 UPrimitiveComponent 소멸자가 처리합니다.
          */
         ~UBillboardComponent() override;
 
     public:
         /**
          * @brief 이 타입의 정적 리플렉션 메타데이터를 반환합니다.
-         * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며 사용할 수 없으면 nullptr입니다.
+         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
          */
         ReflectClass(UBillboardComponent);
 
@@ -70,39 +70,39 @@ namespace Engine {
 
         /**
          * @brief 저장된 텍스처 경로를 에셋 관리자에서 해석하고 렌더 상태를 갱신합니다.
-         * @return 검증 또는 요청한 처리에 성공하면 true입니다.
+         * @return 경로가 비어 있거나 에셋을 찾았으면 true, 로드에 실패하면 false입니다.
          */
         bool ResolveTexture();
 
         /**
          * @brief 텍스처의 비소유 주소를 반환합니다.
-         * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며 사용할 수 없으면 nullptr입니다.
+         * @return 대상의 비소유 주소이며, 없거나 유효하지 않으면 nullptr입니다.
          */
         Engine::UTexture2D* GetTexture() const;
 
         /**
          * @brief 로컬 쿼드의 가로·세로 월드 크기를 반환합니다.
-         * @return 이 객체 또는 공유 이름 풀이 유지하는 값의 참조입니다.
+         * @return 이 객체가 보관하는 값의 참조입니다.
          */
         const Core::FVector2& GetSize() const;
 
         /**
          * @brief 로컬 쿼드의 가로·세로 월드 크기를 설정합니다.
-         * @param[in] Size 쿼드의 크기 또는 뷰포트 픽셀 크기입니다.
-         * @return 검증 또는 요청한 처리에 성공하면 true입니다.
+         * @param[in] Size 쿼드의 가로·세로 월드 크기입니다.
+         * @return 값이 유효해 적용했으면 true, 거부했으면 false입니다.
          */
         bool SetSize(const Core::FVector2& Size);
 
         /**
          * @brief 표시할 RGBA 색상을 반환합니다.
-         * @return 이 객체 또는 공유 이름 풀이 유지하는 값의 참조입니다.
+         * @return 이 객체가 보관하는 값의 참조입니다.
          */
         const Core::FVector4& GetColor() const;
 
         /**
          * @brief 표시할 RGBA 색상을 설정합니다.
          * @param[in] Color 적용할 색상입니다.
-         * @return 검증 또는 요청한 처리에 성공하면 true입니다.
+         * @return 값이 유효해 적용했으면 true, 거부했으면 false입니다.
          */
         bool SetColor(const Core::FVector4& Color);
 
@@ -184,8 +184,8 @@ namespace Engine {
 
         /**
          * @brief Content 상대 경로의 텍스처를 에셋 관리자에서 조회합니다.
-         * @param[in] Path Content 상대 에셋 경로 또는 작업할 파일 경로입니다.
-         * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며 사용할 수 없으면 nullptr입니다.
+         * @param[in] Path Content 기준 텍스처 에셋 경로입니다.
+         * @return 캐시된 에셋의 비소유 주소이며, 로드에 실패하면 nullptr입니다.
          */
         Engine::UTexture2D* LoadTexture(const Core::FString& Path) const;
 

@@ -49,7 +49,7 @@ namespace Engine {
 
         /**
          * @brief 버전 1 재질 설정을 바이너리 아카이브에 기록하거나 읽고 지원하지 않는 버전을 거부합니다.
-         * @param[in,out] Archive 저장 또는 로드 모드와 오류 상태를 제공하는 아카이브입니다.
+         * @param[in,out] Archive 모드에 따라 값을 읽거나 쓸 아카이브입니다.
          */
         void Serialize(Serialization::FMemoryArchive& Archive);
         /**

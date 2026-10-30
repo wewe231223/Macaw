@@ -43,7 +43,7 @@ namespace CoreUObject {
         ReflectStruct(UStruct);
 
         /**
-         * @brief 이름 또는 표시 문자열을 반환합니다.
+         * @brief 타입 이름을 반환합니다.
          * @return 소유 객체가 유지하는 값의 참조입니다.
          */
         const Core::FString& GetName() const;
@@ -56,7 +56,7 @@ namespace CoreUObject {
 
         /**
          * @brief 타입 메타데이터에 프로퍼티를 추가합니다.
-         * @param[in] Property 읽기, 쓰기 또는 알림을 적용할 프로퍼티 메타데이터입니다.
+         * @param[in] Property 등록할 프로퍼티입니다.
          */
         void AddProperty(CoreUObject::FProperty Property);
 
@@ -80,7 +80,7 @@ namespace CoreUObject {
 
         /**
          * @brief 지정한 프로퍼티가 타입의 프로퍼티 목록에 속하는지 검사합니다.
-         * @param[in] Property 읽기, 쓰기 또는 알림을 적용할 프로퍼티 메타데이터입니다.
+         * @param[in] Property 소속을 확인할 프로퍼티입니다.
          * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
          */
         bool ContainsProperty(const CoreUObject::FProperty* Property) const;
@@ -88,7 +88,7 @@ namespace CoreUObject {
         /**
          * @brief 저장 가능한 선언 프로퍼티를 아카이브에 순서대로 전달합니다.
          * @param[in] Container 프로퍼티 소유 타입의 유효한 인스턴스 주소입니다.
-         * @param[in,out] Archive 로드 또는 저장 모드를 가진 아카이브입니다.
+         * @param[in,out] Archive 모드에 따라 값을 읽거나 쓸 아카이브입니다.
          */
         void SerializeProperties(void* Container, Core::FArchive& Archive) const;
 
@@ -100,13 +100,13 @@ namespace CoreUObject {
 
     private:
         /**
-         * @brief 이름 또는 표시 문자열입니다.
+         * @brief 타입 이름입니다.
          */
         Core::FString mName{};
         ReflectProperty(mName, "Name", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
-         * @brief 크기입니다.
+         * @brief 네이티브 타입의 sizeof 바이트 수입니다.
          */
         std::size_t mSize{};
         ReflectProperty(mSize, "Size", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);

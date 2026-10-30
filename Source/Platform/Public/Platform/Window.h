@@ -43,13 +43,13 @@ namespace Platform {
         ~FWindowsApplication();
 
         /**
-         * @brief 고유한 객체 수명을 유지하기 위해 복사 또는 이동 생성을 금지합니다.
+         * @brief 레지스트리에 등록된 고유 객체이므로 복사·이동 생성을 금지합니다.
          */
         FWindowsApplication(const Platform::FWindowsApplication&) = delete;
 
         /**
          * @brief 고유한 객체 수명을 유지하기 위해 대입을 금지합니다.
-         * @return 소유 객체가 유지하는 값의 참조입니다.
+         * @return 갱신된 자기 자신(*this)의 참조입니다.
          */
         Platform::FWindowsApplication& operator=(const Platform::FWindowsApplication&) = delete;
 
@@ -62,9 +62,9 @@ namespace Platform {
 
         /**
          * @brief 지정한 제목과 클라이언트 크기로 Win32 창을 생성합니다.
-         * @param[in] Title 창 또는 오류 보고 제목입니다.
-         * @param[in] Width 클라이언트 영역 또는 타깃의 가로 픽셀 수입니다.
-         * @param[in] Height 클라이언트 영역 또는 타깃의 세로 픽셀 수입니다.
+         * @param[in] Title 창 제목입니다.
+         * @param[in] Width 창 클라이언트 영역의 가로 픽셀 수입니다.
+         * @param[in] Height 창 클라이언트 영역의 세로 픽셀 수입니다.
          * @param[in] Visible 창이나 패널을 표시할지 지정합니다.
          * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
          */
@@ -115,10 +115,10 @@ namespace Platform {
         /**
          * @brief 창 메시지를 인스턴스에 전달하고 크기 및 종료 상태를 갱신합니다.
          * @param[in] Window 메시지를 받은 Win32 창입니다.
-         * @param[in] Message 보고할 내용 또는 Windows 메시지 번호입니다.
+         * @param[in] Message Windows 메시지 번호입니다.
          * @param[in] WParam Windows 메시지의 WPARAM 인수입니다.
          * @param[in] LParam Windows 메시지의 LPARAM 인수입니다.
-         * @return 연산을 적용한 새 값입니다.
+         * @return Windows에 돌려줄 메시지 처리 결과입니다.
          */
         static LRESULT CALLBACK WindowProcedure(HWND Window, UINT Message, WPARAM WParam, LPARAM LParam);
 

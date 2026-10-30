@@ -38,7 +38,7 @@ namespace RenderCore {
         /**
          * @brief 캐시 키에 대응하는 셰이더 캐시 파일 경로를 반환합니다.
          * @param[in] CacheKey 캐시 파일을 구분하는 셰이더 해시 키입니다.
-         * @return 요청하거나 변환한 파일 시스템 경로 또는 시각입니다.
+         * @return 캐시 키에 대응하는 캐시 파일 경로입니다.
          */
         std::filesystem::path GetPath(const Core::FString& CacheKey) const;
 

@@ -45,7 +45,7 @@ namespace Editor {
     public:
         /**
          * @brief FEditorViewportClient의 초기 상태와 전달받은 의존성을 구성합니다.
-         * @param[in,out] Context 패널 또는 뷰포트가 공유할 편집 컨텍스트입니다.
+         * @param[in,out] Context 패널이 조회하고 편집할 에디터 컨텍스트입니다.
          */
         explicit FEditorViewportClient(Editor::FEditorContext* Context);
 
@@ -115,7 +115,7 @@ namespace Editor {
         void Input(Engine::FSceneViewport* Viewport, const Engine::FViewportInput& Input, float DeltaTime) override;
 
         /**
-         * @brief 뷰포트 또는 패널의 현재 내용을 그립니다.
+         * @brief 카메라 뷰로 장면, 그리드와 기즈모를 뷰포트 렌더 타깃에 그립니다.
          * @param[in,out] Viewport 출력 타깃과 크기를 제공하는 뷰포트입니다.
          */
         void Draw(Engine::FSceneViewport* Viewport) override;
@@ -131,8 +131,8 @@ namespace Editor {
 
         /**
          * @brief 현재 카메라와 뷰포트 크기로 뷰·투영 행렬을 계산합니다.
-         * @param[in] Size 뷰포트 크기 또는 데이터의 바이트 수입니다.
-         * @return 연산을 적용한 새 값입니다.
+         * @param[in] Size 뷰포트의 픽셀 크기입니다.
+         * @return 계산한 장면 뷰입니다.
          */
         Engine::FSceneView CalcSceneView(const Core::FVector2& Size) const;
 
@@ -140,14 +140,14 @@ namespace Editor {
          * @brief 드롭한 액터 프리셋을 광선 적중점이나 배치 평면에 생성합니다.
          * @param[in] Preset 생성할 액터 프리셋의 식별자입니다.
          * @param[in] Position 뷰포트 픽셀 좌표입니다.
-         * @param[in] Size 쿼드의 크기 또는 뷰포트 픽셀 크기입니다.
-         * @return 검증 또는 요청한 처리에 성공하면 true입니다.
+         * @param[in] Size 뷰포트의 픽셀 크기입니다.
+         * @return 성공하면 true, 실패하면 false입니다.
          */
         bool DropActor(const Core::FString& Preset, const Core::FVector2& Position, const Core::FVector2& Size);
 
         /**
          * @brief 드롭한 메시 에셋을 뷰포트 위치에 배치합니다.
-         * @param[in] Path Content 상대 에셋 경로 또는 읽을 파일 경로입니다.
+         * @param[in] Path 드롭한 메시 에셋의 경로입니다.
          * @param[in] Position 뷰포트 안의 드롭 위치입니다.
          * @param[in] Size 뷰포트의 가로·세로 픽셀 크기입니다.
          * @return 메시를 로드하고 액터를 배치하면 true입니다.
@@ -162,13 +162,13 @@ namespace Editor {
         /**
          * @brief 유효한 위치와 회전으로 에디터 카메라를 설정합니다.
          * @param[in] Location 오류가 발생한 원래 호출 위치입니다.
-         * @param[in] Rotation 적용할 오일러 또는 쿼터니언 회전입니다.
+         * @param[in] Rotation 적용할 오일러 회전(도 단위)입니다.
          */
         void SetCamera(const Core::FVector& Location, const Core::FRotator& Rotation);
 
         /**
          * @brief 원근 또는 정사영 뷰 방향을 설정합니다.
-         * @param[in] Type 선택할 뷰 방향 또는 에셋 종류입니다.
+         * @param[in] Type 뷰 방향입니다.
          */
         void SetViewType(Editor::EEditorViewportType Type);
 
@@ -180,7 +180,7 @@ namespace Editor {
 
         /**
          * @brief 현재 뷰 방향의 표시 이름을 반환합니다.
-         * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며 사용할 수 없으면 nullptr입니다.
+         * @return 정적 수명을 가진 표시 이름 문자열입니다.
          */
         const char* GetViewTypeName() const;
 
@@ -265,7 +265,7 @@ namespace Editor {
 
         /**
          * @brief 뷰포트별 장면·보조 표시 필터를 반환합니다.
-         * @return 이 객체 또는 공유 이름 풀이 유지하는 값의 참조입니다.
+         * @return 이 객체가 보관하는 값의 참조입니다.
          */
         const Engine::FEngineShowFlags& GetShowFlags() const;
 
@@ -284,7 +284,7 @@ namespace Editor {
         /**
          * @brief 축과 AABB 선의 픽셀 두께를 설정합니다.
          * @param[in] Thickness 픽셀 단위 선 두께입니다.
-         * @return 검증 또는 요청한 처리에 성공하면 true입니다.
+         * @return 값이 유효해 적용했으면 true, 거부했으면 false입니다.
          */
         bool SetLineThickness(float Thickness);
 
@@ -297,7 +297,7 @@ namespace Editor {
         /**
          * @brief 그리드 선 사이의 월드 거리를 설정합니다.
          * @param[in] Spacing 그리드의 월드 단위 간격입니다.
-         * @return 검증 또는 요청한 처리에 성공하면 true입니다.
+         * @return 값이 유효해 적용했으면 true, 거부했으면 false입니다.
          */
         bool SetGridSpacing(float Spacing);
 
@@ -310,7 +310,7 @@ namespace Editor {
         /**
          * @brief 마우스 이동 1픽셀당 카메라 회전 각도를 설정합니다.
          * @param[in] Sensitivity 마우스 1픽셀당 회전 각도입니다.
-         * @return 검증 또는 요청한 처리에 성공하면 true입니다.
+         * @return 값이 유효해 적용했으면 true, 거부했으면 false입니다.
          */
         bool SetCameraSensitivity(float Sensitivity);
 
@@ -375,7 +375,7 @@ namespace Editor {
 
         /**
          * @brief 선택한 액터가 화면에 들어오도록 카메라 위치와 중심을 조정합니다.
-         * @param[in] Size 뷰포트 크기 또는 데이터의 바이트 수입니다.
+         * @param[in] Size 뷰포트의 픽셀 크기입니다.
          */
         void FocusSelection(const Core::FVector2& Size);
 

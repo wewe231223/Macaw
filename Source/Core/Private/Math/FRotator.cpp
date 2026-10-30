@@ -43,14 +43,14 @@ namespace Core {
     }
 
     /**
-     * @brief 성분의 부호를 반전하거나 상대 값을 뺍니다.
+     * @brief 대응 성분끼리 뺀 값을 반환합니다.
      */
     Core::FRotator Core::FRotator::operator-(const Core::FRotator& Other) const {
         return Core::FRotator{_mm_sub_ps(mValue, Other.mValue)};
     }
 
     /**
-     * @brief 성분의 부호를 반전하거나 상대 값을 뺍니다.
+     * @brief 모든 성분의 부호를 반전한 값을 반환합니다.
      */
     Core::FRotator Core::FRotator::operator-() const {
         return Core::FRotator{_mm_xor_ps(mValue, _mm_set1_ps(-0.0f))};
@@ -64,7 +64,7 @@ namespace Core {
     }
 
     /**
-     * @brief 성분별 또는 스칼라 나눗셈 결과를 반환합니다.
+     * @brief 각 성분을 스칼라 값으로 나눈 결과를 반환합니다.
      */
     Core::FRotator Core::FRotator::operator/(float Value) const {
         return *this * (1.0f / Value);
@@ -98,7 +98,7 @@ namespace Core {
     }
 
     /**
-     * @brief 나눗셈 결과를 현재 값에 반영합니다.
+     * @brief 각 성분을 스칼라 값으로 나누어 현재 값에 반영합니다.
      */
     Core::FRotator& Core::FRotator::operator/=(float Value) {
         *this = *this / Value;
@@ -107,7 +107,7 @@ namespace Core {
     }
 
     /**
-     * @brief 저장된 성분 또는 식별 상태가 정확히 같은지 검사합니다.
+     * @brief 모든 성분이 허용 오차 없이 정확히 같은지 검사합니다.
      */
     bool Core::FRotator::operator==(const Core::FRotator& Other) const {
         return Core::Math::Simd::Equal<3>(mValue, Other.mValue);

@@ -32,8 +32,8 @@ namespace Core {
         /**
          * @brief FTransform의 초기 상태와 전달받은 의존성을 구성합니다.
          * @param[in] Location 오류가 발생한 원래 호출 위치입니다.
-         * @param[in] Rotation 적용할 오일러 또는 쿼터니언 회전입니다.
-         * @param[in] Scale Scale에 적용할 입력 값입니다.
+         * @param[in] Rotation 적용할 단위 쿼터니언 회전입니다.
+         * @param[in] Scale 축별 스케일입니다.
          */
         FTransform(const Core::FVector& Location, const Core::FQuat& Rotation, const Core::FVector& Scale);
 
@@ -44,27 +44,27 @@ namespace Core {
 
         /**
          * @brief 상대 값의 상태로 객체를 복사하거나 이동 생성합니다.
-         * @param[in] Other 비교, 복사 또는 연산할 상대 값입니다.
+         * @param[in] Other 복사할 원본 값입니다.
          */
         FTransform(const Core::FTransform& Other) = default;
 
         /**
          * @brief 상대 값의 상태를 대입합니다.
-         * @param[in] Other 비교, 복사 또는 연산할 상대 값입니다.
-         * @return 소유 객체가 유지하는 값의 참조입니다.
+         * @param[in] Other 복사할 원본 값입니다.
+         * @return 갱신된 자기 자신(*this)의 참조입니다.
          */
         Core::FTransform& operator=(const Core::FTransform& Other) = default;
 
         /**
          * @brief 상대 값의 상태로 객체를 복사하거나 이동 생성합니다.
-         * @param[in] Other 비교, 복사 또는 연산할 상대 값입니다.
+         * @param[in] Other 이동할 원본 값입니다.
          */
         FTransform(Core::FTransform&& Other) noexcept = default;
 
         /**
          * @brief 상대 값의 상태를 대입합니다.
-         * @param[in] Other 비교, 복사 또는 연산할 상대 값입니다.
-         * @return 소유 객체가 유지하는 값의 참조입니다.
+         * @param[in] Other 이동할 원본 값입니다.
+         * @return 갱신된 자기 자신(*this)의 참조입니다.
          */
         Core::FTransform& operator=(Core::FTransform&& Other) noexcept = default;
 
@@ -77,15 +77,15 @@ namespace Core {
 
         /**
          * @brief 현재 변환 뒤에 상대 변환을 적용하도록 위치, 회전과 축별 스케일을 합성합니다.
-         * @param[in] Other 비교, 복사 또는 연산할 상대 값입니다.
+         * @param[in] Other 현재 변환 다음에 적용할 변환입니다.
          * @return 연산을 적용한 새 값입니다.
          */
         Core::FTransform operator*(const Core::FTransform& Other) const;
 
         /**
          * @brief 현재 변환 뒤에 상대 변환을 적용하도록 위치, 회전과 축별 스케일을 합성합니다.
-         * @param[in] Other 비교, 복사 또는 연산할 상대 값입니다.
-         * @return 소유 객체가 유지하는 값의 참조입니다.
+         * @param[in] Other 현재 변환 다음에 적용할 변환입니다.
+         * @return 갱신된 자기 자신(*this)의 참조입니다.
          */
         Core::FTransform& operator*=(const Core::FTransform& Other);
 
@@ -104,14 +104,14 @@ namespace Core {
         Core::FVector TransformVector(const Core::FVector& Vector) const;
 
         /**
-         * @brief 위치 또는 벡터에 역변환을 적용합니다.
+         * @brief 월드 위치를 이 변환의 로컬 공간 위치로 되돌립니다.
          * @param[in] Position 변환하거나 투영할 위치입니다.
          * @return 연산을 적용한 새 값입니다.
          */
         Core::FVector InverseTransformPosition(const Core::FVector& Position) const;
 
         /**
-         * @brief 위치 또는 벡터에 역변환을 적용합니다.
+         * @brief 방향 벡터에 역회전과 역스케일을 적용하며 이동은 무시합니다.
          * @param[in] Vector 연산에 사용할 벡터입니다.
          * @return 연산을 적용한 새 값입니다.
          */
@@ -147,7 +147,7 @@ namespace Core {
 
         /**
          * @brief 위치·스케일 선형 보간과 회전 보간을 결합한 변환을 구합니다.
-         * @param[in] Other 비교, 복사 또는 연산할 상대 값입니다.
+         * @param[in] Other Alpha가 1일 때의 목표 값입니다.
          * @param[in] Alpha 보간 비율입니다.
          * @return 연산을 적용한 새 값입니다.
          */
@@ -161,15 +161,15 @@ namespace Core {
 
         /**
          * @brief 현재 변환이 허용 오차 이내에서 항등 변환인지 검사합니다.
-         * @param[in] Tolerance 같음 또는 유효성을 판단하는 허용 오차입니다.
+         * @param[in] Tolerance 항등 행렬과 비교할 성분별 허용 차이입니다.
          * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
          */
         bool IsIdentity(float Tolerance = 0.0001f) const;
 
         /**
          * @brief 각 성분의 차이가 지정한 허용 오차 이내인지 검사합니다.
-         * @param[in] Other 비교, 복사 또는 연산할 상대 값입니다.
-         * @param[in] Tolerance 같음 또는 유효성을 판단하는 허용 오차입니다.
+         * @param[in] Other 비교할 상대 값입니다.
+         * @param[in] Tolerance 같다고 볼 성분별 최대 차이입니다.
          * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
          */
         bool Equals(const Core::FTransform& Other, float Tolerance = 0.0001f) const;
@@ -182,7 +182,7 @@ namespace Core {
 
         /**
          * @brief 유효한 도 단위 오일러 회전을 쿼터니언으로 변환하여 적용합니다.
-         * @param[in] Rotation 적용할 오일러 또는 쿼터니언 회전입니다.
+         * @param[in] Rotation 적용할 오일러 회전(도 단위)입니다.
          * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
          */
         bool SetRotator(const Core::FRotator& Rotation);

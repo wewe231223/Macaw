@@ -32,7 +32,7 @@ namespace Core {
 
     private:
         /**
-         * @brief SIMD 저장소를 사용하는 수학 연산 또는 객체 등록을 위해 내부 접근을 허용합니다.
+         * @brief FRotator가 내부 SIMD 저장소에 직접 접근하도록 허용합니다.
          */
         friend struct FRotator;
 
@@ -53,13 +53,13 @@ namespace Core {
 
         /**
          * @brief FQuat의 초기 상태와 전달받은 의존성을 구성합니다.
-         * @param[in] Rotation 적용할 오일러 또는 쿼터니언 회전입니다.
+         * @param[in] Rotation 적용할 오일러 회전(도 단위)입니다.
          */
         explicit FQuat(const Core::FRotator& Rotation);
 
         /**
          * @brief FQuat의 초기 상태와 전달받은 의존성을 구성합니다.
-         * @param[in] Axis 회전 또는 편집에 사용할 축입니다.
+         * @param[in] Axis 회전축입니다.
          * @param[in] Radians 라디안 단위 각도입니다.
          */
         FQuat(const Core::FVector& Axis, float Radians);
@@ -79,27 +79,27 @@ namespace Core {
 
         /**
          * @brief 상대 값의 상태로 객체를 복사하거나 이동 생성합니다.
-         * @param[in] Other 비교, 복사 또는 연산할 상대 값입니다.
+         * @param[in] Other 복사할 원본 값입니다.
          */
         FQuat(const Core::FQuat& Other) = default;
 
         /**
          * @brief 상대 값의 상태를 대입합니다.
-         * @param[in] Other 비교, 복사 또는 연산할 상대 값입니다.
-         * @return 소유 객체가 유지하는 값의 참조입니다.
+         * @param[in] Other 복사할 원본 값입니다.
+         * @return 갱신된 자기 자신(*this)의 참조입니다.
          */
         Core::FQuat& operator=(const Core::FQuat& Other) = default;
 
         /**
          * @brief 상대 값의 상태로 객체를 복사하거나 이동 생성합니다.
-         * @param[in] Other 비교, 복사 또는 연산할 상대 값입니다.
+         * @param[in] Other 이동할 원본 값입니다.
          */
         FQuat(Core::FQuat&& Other) noexcept = default;
 
         /**
          * @brief 상대 값의 상태를 대입합니다.
-         * @param[in] Other 비교, 복사 또는 연산할 상대 값입니다.
-         * @return 소유 객체가 유지하는 값의 참조입니다.
+         * @param[in] Other 이동할 원본 값입니다.
+         * @return 갱신된 자기 자신(*this)의 참조입니다.
          */
         Core::FQuat& operator=(Core::FQuat&& Other) noexcept = default;
 
@@ -112,15 +112,15 @@ namespace Core {
 
         /**
          * @brief 두 쿼터니언의 회전 합성 곱을 계산합니다.
-         * @param[in] Other 비교, 복사 또는 연산할 상대 값입니다.
+         * @param[in] Other 오른쪽에 곱할 쿼터니언입니다.
          * @return 연산을 적용한 새 값입니다.
          */
         Core::FQuat operator*(const Core::FQuat& Other) const;
 
         /**
          * @brief 두 쿼터니언의 회전 합성 곱을 계산합니다.
-         * @param[in] Other 비교, 복사 또는 연산할 상대 값입니다.
-         * @return 소유 객체가 유지하는 값의 참조입니다.
+         * @param[in] Other 오른쪽에 곱할 쿼터니언입니다.
+         * @return 갱신된 자기 자신(*this)의 참조입니다.
          */
         Core::FQuat& operator*=(const Core::FQuat& Other);
 
@@ -132,21 +132,21 @@ namespace Core {
         Core::FVector operator*(const Core::FVector& Vector) const;
 
         /**
-         * @brief 성분의 부호를 반전하거나 상대 값을 뺍니다.
+         * @brief 모든 성분의 부호를 반전한 값을 반환합니다.
          * @return 연산을 적용한 새 값입니다.
          */
         Core::FQuat operator-() const;
 
         /**
-         * @brief 저장된 성분 또는 식별 상태가 정확히 같은지 검사합니다.
-         * @param[in] Other 비교, 복사 또는 연산할 상대 값입니다.
+         * @brief 모든 성분이 허용 오차 없이 정확히 같은지 검사합니다.
+         * @param[in] Other 비교할 상대 값입니다.
          * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
          */
         bool operator==(const Core::FQuat& Other) const;
 
         /**
          * @brief 대응 성분의 곱을 합산하여 내적을 계산합니다.
-         * @param[in] Other 비교, 복사 또는 연산할 상대 값입니다.
+         * @param[in] Other 내적할 상대 벡터입니다.
          * @return 대응 성분 곱의 합입니다.
          */
         float Dot(const Core::FQuat& Other) const;
@@ -198,7 +198,7 @@ namespace Core {
 
         /**
          * @brief 최단 회전 경로를 선택하여 선형 보간한 뒤 정규화합니다.
-         * @param[in] Other 비교, 복사 또는 연산할 상대 값입니다.
+         * @param[in] Other Alpha가 1일 때의 목표 값입니다.
          * @param[in] Alpha 보간 비율입니다.
          * @return 연산을 적용한 새 값입니다.
          */
@@ -206,7 +206,7 @@ namespace Core {
 
         /**
          * @brief 최단 회전 경로를 따라 구면 선형 보간합니다.
-         * @param[in] Other 비교, 복사 또는 연산할 상대 값입니다.
+         * @param[in] Other Alpha가 1일 때의 목표 값입니다.
          * @param[in] Alpha 보간 비율입니다.
          * @return 연산을 적용한 새 값입니다.
          */
@@ -214,14 +214,14 @@ namespace Core {
 
         /**
          * @brief 두 쿼터니언 회전 사이의 각도 차이를 라디안으로 구합니다.
-         * @param[in] Other 비교, 복사 또는 연산할 상대 값입니다.
+         * @param[in] Other 각도 차이를 잴 상대 회전입니다.
          * @return 최단 회전 경로의 라디안 각도입니다.
          */
         float AngularDistance(const Core::FQuat& Other) const;
 
         /**
          * @brief 쿼터니언 회전을 단위 축과 라디안 각도로 분해합니다.
-         * @param[in,out] Axis 회전 또는 편집에 사용할 축입니다.
+         * @param[out] Axis 회전축을 받을 출력 값입니다.
          * @param[in,out] Radians 라디안 단위 각도입니다.
          */
         void ToAxisAngle(Core::FVector& Axis, float& Radians) const;
@@ -266,15 +266,15 @@ namespace Core {
 
         /**
          * @brief 제곱 길이가 허용 오차 이내에서 1인지 검사합니다.
-         * @param[in] Tolerance 같음 또는 유효성을 판단하는 허용 오차입니다.
+         * @param[in] Tolerance 제곱 길이와 1의 허용 차이입니다.
          * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
          */
         bool IsNormalized(float Tolerance = 0.0001f) const;
 
         /**
          * @brief 각 성분의 차이가 지정한 허용 오차 이내인지 검사합니다.
-         * @param[in] Other 비교, 복사 또는 연산할 상대 값입니다.
-         * @param[in] Tolerance 같음 또는 유효성을 판단하는 허용 오차입니다.
+         * @param[in] Other 비교할 상대 값입니다.
+         * @param[in] Tolerance 같다고 볼 성분별 최대 차이입니다.
          * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
          */
         bool Equals(const Core::FQuat& Other, float Tolerance = 0.0001f) const;
@@ -319,7 +319,7 @@ namespace Core {
                 ReflectProperty(z, "Z", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
 
                 /**
-                 * @brief 동차 좌표 또는 쿼터니언의 W 성분입니다.
+                 * @brief 쿼터니언의 실수(스칼라) 성분입니다.
                  */
                 float w;
                 ReflectProperty(w, "W", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);

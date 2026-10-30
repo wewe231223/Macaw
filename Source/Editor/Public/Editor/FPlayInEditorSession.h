@@ -32,7 +32,7 @@ namespace Editor {
         /**
          * @brief 전달받은 설정과 의존성으로 FPlayInEditorSession의 초기 상태를 구성합니다.
          * @param[in] Engine 월드 조회와 실행을 제공할 엔진의 비소유 주소입니다.
-         * @param[in] Context 조회 또는 직렬화에 사용할 컨텍스트의 비소유 주소입니다.
+         * @param[in] Context PIE 원본 월드를 가진 에디터 컨텍스트입니다.
          * @param[in] Viewport PIE 입력과 출력을 연결할 편집 뷰포트의 비소유 주소입니다.
          */
         FPlayInEditorSession(Engine::UEngine* Engine, Editor::FEditorContext* Context, Editor::FEditorViewport* Viewport);
@@ -43,12 +43,12 @@ namespace Editor {
         ~FPlayInEditorSession();
 
         /**
-         * @brief 소유 상태와 의존성의 중복을 막기 위해 복사 또는 이동을 금지합니다.
+         * @brief 소유 상태가 중복되지 않도록 복사·이동 생성을 금지합니다.
          */
         FPlayInEditorSession(const Editor::FPlayInEditorSession&) = delete;
 
         /**
-         * @brief 소유 상태와 의존성의 중복을 막기 위해 복사 또는 이동을 금지합니다.
+         * @brief 소유 상태가 중복되지 않도록 대입을 금지합니다.
          */
         Editor::FPlayInEditorSession& operator=(const Editor::FPlayInEditorSession&) = delete;
 
@@ -109,20 +109,20 @@ namespace Editor {
         bool IsPaused() const;
 
         /**
-         * @brief 클라이언트 또는 세션이 사용하는 월드의 세대 핸들을 반환합니다.
+         * @brief PIE 월드의 핸들을 반환합니다.
          * @return 조회한 대상의 세대 핸들이며, 대상이 없으면 무효 핸들입니다.
          */
         Engine::FWorldHandle GetWorldHandle() const;
 
         /**
          * @brief PIE 월드의 선택과 조회에 사용하는 편집 컨텍스트를 반환합니다.
-         * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며, 사용할 수 없으면 nullptr입니다.
+         * @return 대상의 비소유 주소이며, 없거나 유효하지 않으면 nullptr입니다.
          */
         Editor::FEditorContext* GetInspectionContext();
 
         /**
          * @brief PIE 월드의 입력과 장면 뷰를 처리하는 클라이언트를 반환합니다.
-         * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며, 사용할 수 없으면 nullptr입니다.
+         * @return 대상의 비소유 주소이며, 없거나 유효하지 않으면 nullptr입니다.
          */
         Engine::FGameViewportClient* GetViewportClient();
 

@@ -55,7 +55,7 @@ namespace CoreUObject {
      * @brief 타입이 생성한 멤버 등록 함수를 리플렉션 빌더로 실행합니다.
      * @tparam T 적용할 네이티브 타입입니다.
      * @tparam TMetadata 프로퍼티를 등록할 메타데이터 타입입니다.
-     * @param[in,out] Information 프로퍼티 또는 열거값을 추가할 메타데이터나 빌더입니다.
+     * @param[in,out] Information 프로퍼티를 등록할 클래스 또는 구조체 메타데이터입니다.
      */
     template <typename T, typename TMetadata>
     void BuildNativeReflection(TMetadata* Information);
@@ -65,7 +65,7 @@ namespace CoreUObject {
      * @tparam Member 등록할 멤버 포인터입니다.
      * @tparam Getter 선택적인 getter 포인터이며 nullptr이면 멤버를 직접 읽습니다.
      * @param[in] Object 대상 객체입니다.
-     * @return 연산을 적용한 새 값입니다.
+     * @return getter 또는 멤버에서 읽은 값입니다.
      */
     template <auto Member, auto Getter = nullptr>
     decltype(auto) ReadMemberValue(const typename CoreUObject::TMemberPointerTraits<decltype(Member)>::FOwner* Object);
@@ -75,7 +75,7 @@ namespace CoreUObject {
      * @tparam Member 등록할 멤버 포인터입니다.
      * @tparam Getter 선택적인 getter 포인터이며 nullptr이면 멤버를 직접 읽습니다.
      * @param[in] Container 프로퍼티 소유 타입의 유효한 인스턴스 주소입니다.
-     * @return 연산을 적용한 새 값입니다.
+     * @return 프로퍼티 variant에 담을 수 있도록 변환한 값입니다.
      */
     template <auto Member, auto Getter = nullptr>
     CoreUObject::FPropertyValue ReadMemberProperty(const void* Container);
@@ -97,9 +97,9 @@ namespace CoreUObject {
      * @tparam Member 등록할 멤버 포인터입니다.
      * @tparam Getter 선택적인 getter 포인터이며 nullptr이면 멤버를 직접 읽습니다.
      * @tparam Setter 선택적인 setter 포인터이며 nullptr이면 멤버에 직접 씁니다.
-     * @param[in,out] Information 프로퍼티 또는 열거값을 추가할 메타데이터나 빌더입니다.
+     * @param[in,out] Information 프로퍼티를 추가할 리플렉션 빌더입니다.
      * @param[in] Name 조회하거나 기록할 이름입니다.
-     * @param[in] Flags 타입 또는 프로퍼티의 정책 비트 플래그입니다.
+     * @param[in] Flags 프로퍼티의 편집·직렬화 정책 플래그입니다.
      */
     template <auto Member, auto Getter, auto Setter>
     void RegisterProperty(CoreUObject::FReflectionBuilder& Information, Core::FString Name, Core::EPropertyFlags Flags);
@@ -108,9 +108,9 @@ namespace CoreUObject {
      * @brief 읽기 전용 프로퍼티와 로드에 사용하는 별도 쓰기 함수를 등록합니다.
      * @tparam Member 등록할 멤버 포인터입니다.
      * @tparam Getter 선택적인 getter 포인터이며 nullptr이면 멤버를 직접 읽습니다.
-     * @param[in,out] Information 프로퍼티 또는 열거값을 추가할 메타데이터나 빌더입니다.
+     * @param[in,out] Information 프로퍼티를 추가할 리플렉션 빌더입니다.
      * @param[in] Name 조회하거나 기록할 이름입니다.
-     * @param[in] Flags 타입 또는 프로퍼티의 정책 비트 플래그입니다.
+     * @param[in] Flags 프로퍼티의 편집·직렬화 정책 플래그입니다.
      */
     template <auto Member, auto Getter>
     void RegisterReadOnlyProperty(CoreUObject::FReflectionBuilder& Information, Core::FString Name, Core::EPropertyFlags Flags);

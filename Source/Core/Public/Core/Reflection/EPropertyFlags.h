@@ -41,7 +41,7 @@ namespace Core {
      * @brief 두 플래그 집합의 비트 OR 결합을 반환합니다.
      * @param[in] Left 왼쪽 피연산자입니다.
      * @param[in] Right 오른쪽 피연산자입니다.
-     * @return 연산을 적용한 새 값입니다.
+     * @return 두 플래그를 OR로 합친 값입니다.
      */
     Core::EPropertyFlags operator|(Core::EPropertyFlags Left, Core::EPropertyFlags Right);
 

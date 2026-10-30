@@ -32,7 +32,7 @@ namespace Core {
         /**
          * @brief GUID의 해시를 계산합니다.
          * @param[in] Value 입력 값입니다.
-         * @return 연산을 적용한 새 값입니다.
+         * @return GUID 바이트로 계산한 해시 값입니다.
          */
         std::size_t operator()(const Core::FGuid& Value) const noexcept;
 

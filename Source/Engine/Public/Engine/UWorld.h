@@ -192,7 +192,7 @@ namespace Engine {
 
         /**
          * @brief 월드에 등록된 활성 카메라를 핸들로 검증하여 조회합니다.
-         * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며, 사용할 수 없으면 nullptr입니다.
+         * @return 대상의 비소유 주소이며, 없거나 유효하지 않으면 nullptr입니다.
          */
         Engine::UCameraComponent* GetActiveCamera() const;
 
@@ -205,7 +205,7 @@ namespace Engine {
 
         /**
          * @brief 월드의 뷰포트 입력을 받을 액터를 핸들로 검증하여 조회합니다.
-         * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며, 사용할 수 없으면 nullptr입니다.
+         * @return 대상의 비소유 주소이며, 없거나 유효하지 않으면 nullptr입니다.
          */
         Engine::AActor* GetInputTarget() const;
 
@@ -263,7 +263,7 @@ namespace Engine {
 
         /**
          * @brief 프로젝트의 에셋 관리자를 비소유 주소로 반환합니다.
-         * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며, 사용할 수 없으면 nullptr입니다.
+         * @return 대상의 비소유 주소이며, 없거나 유효하지 않으면 nullptr입니다.
          */
         Engine::FAssetManager* GetAssets() const;
 
@@ -277,21 +277,21 @@ namespace Engine {
 
         /**
          * @brief 지정한 기본 메시 종류의 액터를 생성하여 영속 레벨에 추가합니다.
-         * @param[in] Type 생성, 조회 또는 표시할 타입입니다.
+         * @param[in] Type 기본 프리미티브 종류입니다.
          * @return 조회한 값의 비소유 주소이며, 해당 값이 없으면 nullptr입니다.
          */
         Engine::AStaticMeshActor* SpawnPrimitive(Engine::EPrimitiveType Type);
 
         /**
          * @brief 핸들에 해당하는 액터의 컴포넌트를 등록 해제하고 액터를 제거합니다.
-         * @param[in] Handle 조회 또는 제거할 객체의 슬롯 세대 핸들입니다.
+         * @param[in] Handle 제거할 액터의 핸들입니다.
          * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
          */
         bool DestroyActor(CoreUObject::FObjectHandle Handle);
 
         /**
          * @brief 컴포넌트 핸들을 프레임 말 렌더 갱신 큐에 추가합니다.
-         * @param[in] Handle 조회 또는 제거할 객체의 슬롯 세대 핸들입니다.
+         * @param[in] Handle 렌더 갱신을 예약할 프리미티브 컴포넌트의 핸들입니다.
          */
         void EnqueueRenderUpdate(CoreUObject::FObjectHandle Handle);
 

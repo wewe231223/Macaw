@@ -95,7 +95,7 @@ namespace RenderCore {
         ReflectProperty(mTexture, "Texture", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
-         * @brief 아틀라스 또는 할당 블록 한 변의 픽셀 수입니다.
+         * @brief 아틀라스 텍스처 한 변의 픽셀 수입니다.
          */
         Core::Uint32 mSize{};
         ReflectProperty(mSize, "Size", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);

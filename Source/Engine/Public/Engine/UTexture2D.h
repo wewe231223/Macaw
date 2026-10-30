@@ -69,7 +69,7 @@ namespace Engine {
 
         /**
          * @brief DDS 데이터를 읽어 이미지 형식과 크기 및 CPU 이미지 데이터를 설정합니다.
-         * @param[in] Data 처리할 바이트 데이터 또는 include 파일 버퍼입니다.
+         * @param[in] Data DDS 파일 전체 바이트입니다.
          * @param[in] SRGB 이미지를 sRGB 색 공간으로 해석할지 나타냅니다.
          * @return 요청한 처리를 완료하면 true, 실패하면 false입니다.
          */
@@ -85,7 +85,7 @@ namespace Engine {
          * @brief 크기·형식·용도·색 공간을 검증하여 텍스처 생성 구성을 설정합니다.
          * @param[in] SizeX 텍스처의 가로 픽셀 수입니다.
          * @param[in] SizeY 텍스처의 세로 픽셀 수입니다.
-         * @param[in] Format 처리할 텍스처 픽셀 또는 깊이 형식입니다.
+         * @param[in] Format 텍스처 형식입니다.
          * @param[in] Usage 셰이더 읽기·색상 출력·깊이 출력의 용도 플래그입니다.
          * @param[in] SRGB 이미지를 sRGB 색 공간으로 해석할지 나타냅니다.
          * @return 요청한 처리를 완료하면 true, 실패하면 false입니다.
@@ -96,7 +96,7 @@ namespace Engine {
          * @brief 크기와 형식에 맞는 CPU 픽셀 데이터를 검증하여 교체합니다.
          * @param[in] SizeX 텍스처의 가로 픽셀 수입니다.
          * @param[in] SizeY 텍스처의 세로 픽셀 수입니다.
-         * @param[in] Format 처리할 텍스처 픽셀 또는 깊이 형식입니다.
+         * @param[in] Format 픽셀 데이터의 형식입니다.
          * @param[in] Pixels 크기와 픽셀 형식에 맞는 새 CPU 이미지 데이터입니다.
          * @return 요청한 처리를 완료하면 true, 실패하면 false입니다.
          */
@@ -122,7 +122,7 @@ namespace Engine {
 
         /**
          * @brief 텍스처의 픽셀 또는 깊이 형식을 반환합니다.
-         * @return 요청한 텍스처 형식 또는 사용 용도 값입니다.
+         * @return 텍스처 형식입니다.
          */
         Engine::ETextureFormat GetFormat() const override;
 
@@ -147,7 +147,7 @@ namespace Engine {
 
         /**
          * @brief 텍스처에 설정된 GPU 사용 용도 플래그를 반환합니다.
-         * @return 요청한 텍스처 형식 또는 사용 용도 값입니다.
+         * @return 텍스처 사용 용도 플래그입니다.
          */
         Engine::ETextureUsage GetUsage() const;
 
@@ -192,25 +192,25 @@ namespace Engine {
 
         /**
          * @brief Direct3D 2차원 텍스처의 비소유 주소를 반환합니다.
-         * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며, 사용할 수 없으면 nullptr입니다.
+         * @return GPU 자원의 비소유 주소이며, 아직 생성하지 않았으면 nullptr입니다.
          */
         ID3D11Texture2D* GetTexture() const;
 
         /**
          * @brief 셰이더에서 읽을 리소스 뷰의 비소유 주소를 반환합니다.
-         * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며, 사용할 수 없으면 nullptr입니다.
+         * @return GPU 자원의 비소유 주소이며, 아직 생성하지 않았으면 nullptr입니다.
          */
         ID3D11ShaderResourceView* GetShaderResourceView() const;
 
         /**
          * @brief 렌더 타깃 출력 뷰의 비소유 주소를 반환합니다.
-         * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며, 사용할 수 없으면 nullptr입니다.
+         * @return GPU 자원의 비소유 주소이며, 아직 생성하지 않았으면 nullptr입니다.
          */
         ID3D11RenderTargetView* GetRenderTargetView() const;
 
         /**
          * @brief 깊이·스텐실 출력 뷰의 비소유 주소를 반환합니다.
-         * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며, 사용할 수 없으면 nullptr입니다.
+         * @return GPU 자원의 비소유 주소이며, 아직 생성하지 않았으면 nullptr입니다.
          */
         ID3D11DepthStencilView* GetDepthStencilView() const;
 
@@ -244,14 +244,14 @@ namespace Engine {
 
         /**
          * @brief 지정한 형식이 깊이 또는 깊이·스텐실 형식인지 검사합니다.
-         * @param[in] Format 처리할 텍스처 픽셀 또는 깊이 형식입니다.
+         * @param[in] Format 검사할 텍스처 형식입니다.
          * @return 검사 조건을 만족하면 true, 그렇지 않으면 false입니다.
          */
         static bool IsDepthFormat(Engine::ETextureFormat Format);
 
         /**
          * @brief 픽셀 형식·용도 플래그·sRGB 설정의 조합이 지원되는지 검사합니다.
-         * @param[in] Format 처리할 텍스처 픽셀 또는 깊이 형식입니다.
+         * @param[in] Format 검사할 텍스처 형식입니다.
          * @param[in] Usage 셰이더 읽기·색상 출력·깊이 출력의 용도 플래그입니다.
          * @param[in] SRGB 이미지를 sRGB 색 공간으로 해석할지 나타냅니다.
          * @return 검사 조건을 만족하면 true, 그렇지 않으면 false입니다.
@@ -260,7 +260,7 @@ namespace Engine {
 
         /**
          * @brief 텍스처 형식의 픽셀 하나가 차지하는 바이트 수를 반환합니다.
-         * @param[in] Format 처리할 텍스처 픽셀 또는 깊이 형식입니다.
+         * @param[in] Format 픽셀 크기를 구할 텍스처 형식입니다.
          * @return 텍스처 형식의 픽셀 하나가 차지하는 바이트 수를 나타내는 정수 값입니다.
          */
         static Core::Uint32 GetBytesPerPixel(Engine::ETextureFormat Format);
@@ -268,30 +268,30 @@ namespace Engine {
         /**
          * @brief 텍스처 용도 플래그를 Direct3D 바인딩 플래그로 변환합니다.
          * @param[in] Usage 셰이더 읽기·색상 출력·깊이 출력의 용도 플래그입니다.
-         * @return 변환 또는 계산된 부호 없는 정수 값입니다.
+         * @return D3D11_BIND_FLAG 비트 조합입니다.
          */
         static Core::Uint32 GetBindFlags(Engine::ETextureUsage Usage);
 
         /**
          * @brief 픽셀 형식과 색 공간에 대응하는 Direct3D 리소스 형식을 반환합니다.
-         * @param[in] Format 처리할 텍스처 픽셀 또는 깊이 형식입니다.
+         * @param[in] Format 변환할 텍스처 형식입니다.
          * @param[in] SRGB 이미지를 sRGB 색 공간으로 해석할지 나타냅니다.
-         * @return 요청한 텍스처 형식 또는 사용 용도 값입니다.
+         * @return 리소스 생성에 사용할 DXGI 형식입니다.
          */
         static DXGI_FORMAT GetResourceFormat(Engine::ETextureFormat Format, bool SRGB);
 
         /**
          * @brief 픽셀·깊이 형식과 색 공간에 대응하는 셰이더 리소스 뷰 형식을 반환합니다.
-         * @param[in] Format 처리할 텍스처 픽셀 또는 깊이 형식입니다.
+         * @param[in] Format 변환할 텍스처 형식입니다.
          * @param[in] SRGB 이미지를 sRGB 색 공간으로 해석할지 나타냅니다.
-         * @return 요청한 텍스처 형식 또는 사용 용도 값입니다.
+         * @return 셰이더 리소스 뷰에 사용할 DXGI 형식입니다.
          */
         static DXGI_FORMAT GetShaderResourceFormat(Engine::ETextureFormat Format, bool SRGB);
 
         /**
          * @brief 깊이 형식에 대응하는 Direct3D 깊이·스텐실 뷰 형식을 반환합니다.
-         * @param[in] Format 처리할 텍스처 픽셀 또는 깊이 형식입니다.
-         * @return 요청한 텍스처 형식 또는 사용 용도 값입니다.
+         * @param[in] Format 변환할 깊이 텍스처 형식입니다.
+         * @return 깊이·스텐실 뷰에 사용할 DXGI 형식입니다.
          */
         static DXGI_FORMAT GetDepthStencilFormat(Engine::ETextureFormat Format);
 
@@ -299,7 +299,7 @@ namespace Engine {
          * @brief 텍스처 용도에 따라 셰이더 리소스·렌더 타깃·깊이 뷰를 생성합니다.
          * @param[in] Device GPU 리소스를 생성할 Direct3D 장치의 비소유 주소입니다.
          * @param[in] Texture 데이터를 읽거나 뷰를 생성할 텍스처이며 소유권을 이전하지 않습니다.
-         * @param[in] Format 처리할 텍스처 픽셀 또는 깊이 형식입니다.
+         * @param[in] Format 생성할 뷰의 텍스처 형식입니다.
          * @param[in] Usage 셰이더 읽기·색상 출력·깊이 출력의 용도 플래그입니다.
          * @param[in] SRGB 이미지를 sRGB 색 공간으로 해석할지 나타냅니다.
          * @param[out] ShaderResourceView 생성한 셰이더 리소스 뷰를 받을 COM 소유 참조입니다.

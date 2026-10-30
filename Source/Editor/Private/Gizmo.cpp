@@ -48,8 +48,8 @@ namespace Editor {
 
         /**
          * @brief 지정한 축과 수직인 안정적인 단위 벡터를 구합니다.
-         * @param[in] Axis 회전 또는 편집에 사용할 축입니다.
-         * @return 연산을 적용한 새 값입니다.
+         * @param[in] Axis 수직 벡터를 구할 기준 축입니다.
+         * @return Axis와 수직인 단위 벡터입니다.
          */
         Core::FVector Perpendicular(const Core::FVector& Axis) {
             return Axis.Cross(std::abs(Axis.z) < 0.8f ? Core::FVector{0.0f, 0.0f, 1.0f} : Core::FVector{0.0f, 1.0f, 0.0f}).Normalized();
@@ -78,7 +78,7 @@ namespace Editor {
 
         /**
          * @brief 기즈모 핸들이 주어진 로컬 축에 영향을 주는지 검사합니다.
-         * @param[in] Handle 검사할 기즈모 핸들 또는 객체의 식별자입니다.
+         * @param[in] Handle 기즈모 핸들 번호입니다.
          * @param[in] Axis 검사할 축의 인덱스입니다.
          * @return 조건을 만족하거나 변경을 적용하면 true입니다.
          */
@@ -498,7 +498,7 @@ namespace Editor {
     }
 
     /**
-     * @brief 뷰포트 또는 패널의 현재 내용을 그립니다.
+     * @brief 기즈모 핸들과 드래그 피드백을 그리기 요청에 추가합니다.
      */
     void Editor::FTransformGizmo::Draw(const Engine::FSceneView& View, Engine::FPrimitiveDrawInterface& DrawInterface) {
         BuildHandles(View, &DrawInterface);

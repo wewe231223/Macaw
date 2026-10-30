@@ -96,7 +96,7 @@ namespace Renderer {
         /**
          * @brief 현재 뷰에 필요한 광원별 그림자 맵을 아틀라스에 렌더링합니다.
          * @param[in] Device GPU 자원 생성에 사용할 Direct3D 장치의 비소유 주소입니다.
-         * @param[in] Context GPU 자원 업로드 또는 바인딩에 사용할 Direct3D 컨텍스트의 비소유 주소입니다.
+         * @param[in] Context 명령을 기록할 Direct3D 11 장치 컨텍스트의 비소유 주소입니다.
          * @param[in] Scene 광원과 그림자 생성 프리미티브를 조회할 렌더 장면입니다.
          * @param[in] Family 장면·카메라·출력 타깃·표시 플래그를 묶은 현재 뷰 요청입니다.
          * @param[in] Meshes 기본 프리미티브 종류별 공유 메시의 소유 배열입니다.
@@ -107,13 +107,13 @@ namespace Renderer {
 
         /**
          * @brief 그림자 아틀라스와 샘플링 정보의 셰이더 바인딩을 설정합니다.
-         * @param[in] Context GPU 자원 업로드 또는 바인딩에 사용할 Direct3D 컨텍스트의 비소유 주소입니다.
+         * @param[in] Context 명령을 기록할 Direct3D 11 장치 컨텍스트의 비소유 주소입니다.
          */
         void Bind(ID3D11DeviceContext* Context) const;
 
         /**
          * @brief 그림자 아틀라스와 샘플링 정보의 셰이더 바인딩을 해제합니다.
-         * @param[in] Context GPU 자원 업로드 또는 바인딩에 사용할 Direct3D 컨텍스트의 비소유 주소입니다.
+         * @param[in] Context 명령을 기록할 Direct3D 11 장치 컨텍스트의 비소유 주소입니다.
          */
         void Unbind(ID3D11DeviceContext* Context) const;
 
@@ -165,14 +165,14 @@ namespace Renderer {
         /**
          * @brief 구성한 그림자 맵의 샘플링 정보를 GPU 구조화 버퍼에 업로드합니다.
          * @param[in] Device GPU 자원 생성에 사용할 Direct3D 장치의 비소유 주소입니다.
-         * @param[in] Context GPU 자원 업로드 또는 바인딩에 사용할 Direct3D 컨텍스트의 비소유 주소입니다.
+         * @param[in] Context 명령을 기록할 Direct3D 11 장치 컨텍스트의 비소유 주소입니다.
          * @return 필요한 버퍼 생성과 업로드에 성공하면 true입니다.
          */
         bool Upload(ID3D11Device* Device, ID3D11DeviceContext* Context);
 
         /**
          * @brief 깊이 아틀라스를 색상 미리보기 텍스처로 변환합니다.
-         * @param[in] Context GPU 자원 업로드 또는 바인딩에 사용할 Direct3D 컨텍스트의 비소유 주소입니다.
+         * @param[in] Context 명령을 기록할 Direct3D 11 장치 컨텍스트의 비소유 주소입니다.
          */
         void RenderPreview(ID3D11DeviceContext* Context);
 

@@ -61,7 +61,7 @@ namespace Core {
          * @tparam Components 연산할 유효 성분 수이며 2부터 4까지입니다.
          * @param[in] Left 왼쪽 피연산자입니다.
          * @param[in] Right 오른쪽 피연산자입니다.
-         * @param[in] Tolerance 같음 또는 유효성을 판단하는 허용 오차입니다.
+         * @param[in] Tolerance 같다고 볼 성분별 최대 차이입니다.
          * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
          */
         template <std::size_t Components>

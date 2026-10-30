@@ -1,6 +1,6 @@
 /**
  * @file UStaticMeshComponent.cpp
- * @brief Plane, Cube 또는 Sphere 프리미티브를 표시하는 메시 컴포넌트입니다.
+ * @brief 기본 프리미티브 또는 정적 메시 에셋을 머티리얼과 함께 표시하는 컴포넌트입니다.
  * @ingroup Engine
  */
 

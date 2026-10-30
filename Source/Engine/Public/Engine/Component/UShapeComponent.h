@@ -46,37 +46,37 @@ namespace Engine {
     public:
         /**
          * @brief 이 타입의 정적 리플렉션 메타데이터를 반환합니다.
-         * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며 사용할 수 없으면 nullptr입니다.
+         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
          */
         ReflectClass(UShapeComponent, CoreUObject::EClassFlags::Abstract);
 
         /**
          * @brief 컴포넌트 겹침 시작 이벤트를 반환합니다.
-         * @return 이 객체 또는 공유 이름 풀이 유지하는 값의 참조입니다.
+         * @return 이 컴포넌트가 소유한 이벤트 델리게이트의 참조입니다.
          */
         FOverlapDelegate& GetOnComponentBeginOverlap();
 
         /**
          * @brief 컴포넌트 겹침 종료 이벤트를 반환합니다.
-         * @return 이 객체 또는 공유 이름 풀이 유지하는 값의 참조입니다.
+         * @return 이 컴포넌트가 소유한 이벤트 델리게이트의 참조입니다.
          */
         FOverlapDelegate& GetOnComponentEndOverlap();
 
         /**
          * @brief 컴포넌트 충돌 이벤트를 반환합니다.
-         * @return 이 객체 또는 공유 이름 풀이 유지하는 값의 참조입니다.
+         * @return 이 컴포넌트가 소유한 이벤트 델리게이트의 참조입니다.
          */
         FHitDelegate& GetOnComponentHit();
 
         /**
          * @brief 겹침 시작 델리게이트를 호출합니다.
-         * @param[in] Other 비교하거나 검사할 상대 값입니다.
+         * @param[in] Other 비교할 상대 값입니다.
          */
         void OnBeginOverlap(Engine::UShapeComponent* Other);
 
         /**
          * @brief 겹침 종료 델리게이트를 호출합니다.
-         * @param[in] Other 비교하거나 검사할 상대 값입니다.
+         * @param[in] Other 비교할 상대 값입니다.
          */
         void OnEndOverlap(Engine::UShapeComponent* Other);
 
@@ -117,29 +117,29 @@ namespace Engine {
 
         /**
          * @brief 두 컴포넌트의 월드 충돌 형상이 겹치는지 검사합니다.
-         * @param[in] Other 비교하거나 검사할 상대 값입니다.
+         * @param[in] Other 비교할 상대 값입니다.
          * @return 조건을 만족하면 true입니다.
          */
         bool IsOverlapping(const Engine::UShapeComponent& Other) const;
 
         /**
          * @brief 두 형상의 월드 접촉 법선·깊이·위치를 계산합니다.
-         * @param[in] Other 비교하거나 검사할 상대 값입니다.
+         * @param[in] Other 비교할 상대 값입니다.
          * @param[out] OutContact 접촉 정보를 기록할 선택적 출력 주소입니다.
-         * @return 검증 또는 요청한 처리에 성공하면 true입니다.
+         * @return 두 형상이 겹쳐 접촉 정보를 계산했으면 true입니다.
          */
         bool ComputeContact(const Engine::UShapeComponent& Other, Engine::FCollisionContact& OutContact) const;
 
         /**
          * @brief 충돌 도형을 표시할 RGBA 색상을 반환합니다.
-         * @return 이 객체 또는 공유 이름 풀이 유지하는 값의 참조입니다.
+         * @return 이 객체가 보관하는 값의 참조입니다.
          */
         const Core::FVector4& GetShapeColor() const;
 
         /**
          * @brief 충돌 도형을 표시할 RGBA 색상을 설정합니다.
          * @param[in] Color 적용할 색상입니다.
-         * @return 검증 또는 요청한 처리에 성공하면 true입니다.
+         * @return 값이 유효해 적용했으면 true, 거부했으면 false입니다.
          */
         bool SetShapeColor(const Core::FVector4& Color);
 

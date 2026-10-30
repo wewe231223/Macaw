@@ -28,7 +28,7 @@ namespace Engine {
         /**
          * @brief 액터와 소유 컴포넌트를 포함한 월드 객체의 비소유 목록을 수집합니다.
          * @param[in] Actors 직렬화하거나 수집할 액터 목록입니다.
-         * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며, 사용할 수 없으면 nullptr입니다.
+         * @return 수집한 객체의 비소유 주소 목록입니다.
          */
         Core::TArray<CoreUObject::UObject*> CollectObjects(const Core::TArray<Engine::AActor*>& Actors) {
             Core::TArray<CoreUObject::UObject*> Objects{};
@@ -46,8 +46,8 @@ namespace Engine {
 
         /**
          * @brief 액터와 소유 컴포넌트를 포함한 월드 객체의 비소유 목록을 수집합니다.
-         * @param[in] World 조회·설정 또는 직렬화할 월드입니다.
-         * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며, 사용할 수 없으면 nullptr입니다.
+         * @param[in] World 객체를 수집할 월드입니다.
+         * @return 수집한 객체의 비소유 주소 목록입니다.
          */
         Core::TArray<CoreUObject::UObject*> CollectObjects(Engine::UWorld* World) {
             Core::TArray<Engine::AActor*> Actors{};
@@ -67,7 +67,7 @@ namespace Engine {
 
         /**
          * @brief 객체 GUID의 중복을 검사하고 각 원본에 새 GUID를 할당합니다.
-         * @param[in] Objects 수집할 객체 목록 또는 GUID별 비소유 객체 대응표입니다.
+         * @param[in] Objects GUID 대응표에 등록할 원본 객체 목록입니다.
          * @param[in,out] Remapping 원본 GUID와 복제 GUID 사이의 대응표입니다.
          * @param[out] Error 실패 원인을 받을 오류 문자열입니다.
          * @return 요청한 처리를 완료하면 true, 실패하면 false입니다.

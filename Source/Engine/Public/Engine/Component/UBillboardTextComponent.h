@@ -28,27 +28,27 @@ namespace Engine {
         UBillboardTextComponent();
 
         /**
-         * @brief 객체를 소멸하고 소유한 GPU 자원 또는 UV 제어 상태를 해제합니다.
+         * @brief 기본 소멸자이며, 렌더 장면 등록 해제는 UPrimitiveComponent 소멸자가 처리합니다.
          */
         ~UBillboardTextComponent() override;
 
     public:
         /**
          * @brief 이 타입의 정적 리플렉션 메타데이터를 반환합니다.
-         * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며 사용할 수 없으면 nullptr입니다.
+         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
          */
         ReflectClass(UBillboardTextComponent);
 
         /**
          * @brief UTF-8 문자열을 반환합니다.
-         * @return 이 객체 또는 공유 이름 풀이 유지하는 값의 참조입니다.
+         * @return 이 객체가 보관하는 값의 참조입니다.
          */
         const Core::FString& GetText() const;
 
         /**
          * @brief UTF-8 문자열을 설정합니다.
-         * @param[in] Text 표시하거나 측정할 UTF-8 문자열 또는 텍스트 요청입니다.
-         * @return 검증 또는 요청한 처리에 성공하면 true입니다.
+         * @param[in] Text UTF-8 문자열입니다.
+         * @return 값이 유효해 적용했으면 true, 거부했으면 false입니다.
          */
         bool SetText(const Core::FString& Text);
 
@@ -60,21 +60,21 @@ namespace Engine {
 
         /**
          * @brief 월드 텍스트의 글자 크기를 설정합니다.
-         * @param[in] Size 쿼드의 크기 또는 뷰포트 픽셀 크기입니다.
-         * @return 검증 또는 요청한 처리에 성공하면 true입니다.
+         * @param[in] Size 글자 크기입니다.
+         * @return 값이 유효해 적용했으면 true, 거부했으면 false입니다.
          */
         bool SetTextSize(float Size);
 
         /**
          * @brief 글자의 RGBA 색상을 반환합니다.
-         * @return 이 객체 또는 공유 이름 풀이 유지하는 값의 참조입니다.
+         * @return 이 객체가 보관하는 값의 참조입니다.
          */
         const Core::FVector4& GetTextColor() const;
 
         /**
          * @brief 글자의 RGBA 색상을 설정합니다.
          * @param[in] Color 적용할 색상입니다.
-         * @return 검증 또는 요청한 처리에 성공하면 true입니다.
+         * @return 값이 유효해 적용했으면 true, 거부했으면 false입니다.
          */
         bool SetTextColor(const Core::FVector4& Color);
 

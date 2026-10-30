@@ -41,22 +41,22 @@ namespace RenderCore {
         ~FShader() = default;
 
         /**
-         * @brief 소유 상태와 의존성의 중복을 막기 위해 복사 또는 이동을 금지합니다.
+         * @brief 소유 상태가 중복되지 않도록 복사·이동 생성을 금지합니다.
          */
         FShader(const RenderCore::FShader&) = delete;
 
         /**
-         * @brief 소유 상태와 의존성의 중복을 막기 위해 복사 또는 이동을 금지합니다.
+         * @brief 소유 상태가 중복되지 않도록 대입을 금지합니다.
          */
         RenderCore::FShader& operator=(const RenderCore::FShader&) = delete;
 
         /**
-         * @brief 소유 상태와 의존성의 중복을 막기 위해 복사 또는 이동을 금지합니다.
+         * @brief 소유 상태가 중복되지 않도록 복사·이동 생성을 금지합니다.
          */
         FShader(RenderCore::FShader&&) = delete;
 
         /**
-         * @brief 소유 상태와 의존성의 중복을 막기 위해 복사 또는 이동을 금지합니다.
+         * @brief 소유 상태가 중복되지 않도록 대입을 금지합니다.
          */
         RenderCore::FShader& operator=(RenderCore::FShader&&) = delete;
 

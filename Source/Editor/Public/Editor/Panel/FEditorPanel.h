@@ -27,7 +27,7 @@ namespace Editor {
     public:
         /**
          * @brief FEditorPanel의 초기 상태와 전달받은 의존성을 구성합니다.
-         * @param[in,out] Context 패널 또는 뷰포트가 공유할 편집 컨텍스트입니다.
+         * @param[in,out] Context 패널이 조회하고 편집할 에디터 컨텍스트입니다.
          * @param[in] Name 조회하거나 기록할 이름입니다.
          * @param[in] Closable 사용자가 패널을 닫을 수 있는지 지정합니다.
          */
@@ -39,13 +39,13 @@ namespace Editor {
         virtual ~FEditorPanel();
 
         /**
-         * @brief 고유한 객체 수명을 유지하기 위해 복사 또는 이동 생성을 금지합니다.
+         * @brief 레지스트리에 등록된 고유 객체이므로 복사·이동 생성을 금지합니다.
          */
         FEditorPanel(const Editor::FEditorPanel&) = delete;
 
         /**
          * @brief 고유한 객체 수명을 유지하기 위해 대입을 금지합니다.
-         * @return 소유 객체가 유지하는 값의 참조입니다.
+         * @return 갱신된 자기 자신(*this)의 참조입니다.
          */
         Editor::FEditorPanel& operator=(const Editor::FEditorPanel&) = delete;
 
@@ -57,13 +57,13 @@ namespace Editor {
         ReflectStruct(FEditorPanel);
 
         /**
-         * @brief 뷰포트 또는 패널의 현재 내용을 그립니다.
+         * @brief 패널이 표시 상태이면 ImGui 창을 열고 내용을 그립니다.
          * @param[in] DeltaTime 이전 프레임 이후 경과한 시간(초)입니다.
          */
         void Draw(float DeltaTime);
 
         /**
-         * @brief 이름 또는 표시 문자열을 반환합니다.
+         * @brief 패널 창 이름을 반환합니다.
          * @return 소유 객체가 유지하는 값의 참조입니다.
          */
         const Core::FString& GetName() const;
@@ -88,7 +88,7 @@ namespace Editor {
 
         /**
          * @brief 패널이 사용할 편집 컨텍스트의 비소유 주소를 교체합니다.
-         * @param[in] Context 조회 또는 직렬화에 사용할 컨텍스트의 비소유 주소입니다.
+         * @param[in] Context 패널이 조회하고 편집할 에디터 컨텍스트입니다.
          */
         void SetEditorContext(Editor::FEditorContext* Context);
 
@@ -113,7 +113,7 @@ namespace Editor {
         ReflectProperty(mContext, "Context", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
-         * @brief 이름 또는 표시 문자열입니다.
+         * @brief 패널 창 이름입니다.
          */
         Core::FString mName{};
         ReflectProperty(mName, "Name", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);

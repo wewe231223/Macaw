@@ -180,7 +180,7 @@ namespace Engine {
 
         /**
          * @brief 새 월드 컨텍스트를 검증하고 장면을 연결한 뒤 현재 월드를 교체합니다.
-         * @param[in] Context 월드 컨텍스트 또는 Direct3D 11 컨텍스트입니다.
+         * @param[in] Context 새 현재 월드로 등록할 월드 컨텍스트입니다.
          * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
          */
         bool ReplaceWorld(std::unique_ptr<Engine::FWorldContext> Context);
@@ -210,7 +210,7 @@ namespace Engine {
 
         /**
          * @brief 현재 연결된 프로젝트의 비소유 주소를 반환합니다.
-         * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며, 사용할 수 없으면 nullptr입니다.
+         * @return 대상의 비소유 주소이며, 없거나 유효하지 않으면 nullptr입니다.
          */
         Engine::FProject* GetProject() const;
 

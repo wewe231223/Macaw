@@ -127,31 +127,31 @@ namespace Engine {
 
         /**
          * @brief 정점 위치 GPU 버퍼의 비소유 주소를 반환합니다.
-         * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며, 사용할 수 없으면 nullptr입니다.
+         * @return GPU 자원의 비소유 주소이며, 아직 생성하지 않았으면 nullptr입니다.
          */
         ID3D11Buffer* GetPositionBuffer() const;
 
         /**
          * @brief 법선과 탄젠트 GPU 버퍼의 비소유 주소를 반환합니다.
-         * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며, 사용할 수 없으면 nullptr입니다.
+         * @return GPU 자원의 비소유 주소이며, 아직 생성하지 않았으면 nullptr입니다.
          */
         ID3D11Buffer* GetTangentBuffer() const;
 
         /**
          * @brief UV 채널을 담은 GPU 버퍼의 비소유 주소를 반환합니다.
-         * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며, 사용할 수 없으면 nullptr입니다.
+         * @return GPU 자원의 비소유 주소이며, 아직 생성하지 않았으면 nullptr입니다.
          */
         ID3D11Buffer* GetUVBuffer() const;
 
         /**
          * @brief 정점 색상 GPU 버퍼의 비소유 주소를 반환합니다.
-         * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며, 사용할 수 없으면 nullptr입니다.
+         * @return GPU 자원의 비소유 주소이며, 아직 생성하지 않았으면 nullptr입니다.
          */
         ID3D11Buffer* GetColorBuffer() const;
 
         /**
          * @brief 삼각형 인덱스 GPU 버퍼의 비소유 주소를 반환합니다.
-         * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며, 사용할 수 없으면 nullptr입니다.
+         * @return GPU 자원의 비소유 주소이며, 아직 생성하지 않았으면 nullptr입니다.
          */
         ID3D11Buffer* GetIndexBuffer() const;
 
@@ -194,7 +194,7 @@ namespace Engine {
         /**
          * @brief 크기와 입력을 검증하여 초기 데이터가 있는 GPU 버퍼를 생성합니다.
          * @param[in] Device GPU 리소스를 생성할 Direct3D 장치의 비소유 주소입니다.
-         * @param[in] Data 처리할 바이트 데이터 또는 include 파일 버퍼입니다.
+         * @param[in] Data 버퍼 초기 데이터의 주소입니다.
          * @param[in] Bytes 직렬화할 바이트 수입니다.
          * @param[in] BindFlags 생성할 Direct3D 버퍼의 바인딩 용도입니다.
          * @param[out] Buffer 생성한 GPU 버퍼를 받을 COM 소유 참조입니다.

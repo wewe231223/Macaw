@@ -1,6 +1,6 @@
 /**
  * @file URotationMovementComponent.h
- * @brief PIE 월드에서만 소유 액터의 루트를 초당 회전 속도에 따라 로컬 또는 월드 공간으로 회전합니다.
+ * @brief Game과 PIE 월드에서 소유 액터의 루트를 초당 회전 속도에 따라 로컬 또는 월드 공간으로 회전합니다.
  * @ingroup Engine
  */
 
@@ -12,7 +12,7 @@
 namespace Engine {
 
     /**
-     * @brief PIE 월드에서만 소유 액터의 루트를 초당 회전 속도에 따라 로컬 또는 월드 공간으로 회전합니다.
+     * @brief Game과 PIE 월드에서 소유 액터의 루트를 초당 회전 속도에 따라 로컬 또는 월드 공간으로 회전합니다.
      */
     class URotationMovementComponent final : public Engine::UActorComponent {
     public:
@@ -39,7 +39,7 @@ namespace Engine {
         ReflectClass(URotationMovementComponent);
 
         /**
-         * @brief PIE와 실행 시작 상태를 확인한 뒤 축별 속도로 소유 액터의 루트 회전을 갱신합니다.
+         * @brief Game 또는 PIE의 실행 시작 상태를 확인한 뒤 축별 속도로 소유 액터의 루트 회전을 갱신합니다.
          * @param[in] DeltaTime 이번 갱신에서 적분할 유한한 초 단위 시간입니다.
          */
         void Tick(float DeltaTime) override;

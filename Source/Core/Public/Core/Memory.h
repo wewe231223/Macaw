@@ -31,7 +31,7 @@ namespace Core {
 
         /**
          * @brief 요청한 정렬을 만족하는 힙 블록을 할당하고 사용량을 기록합니다.
-         * @param[in] Size 뷰포트 크기 또는 데이터의 바이트 수입니다.
+         * @param[in] Size 할당할 바이트 수입니다.
          * @param[in] Alignment 요청하는 바이트 정렬입니다.
          * @return FMemory::Free()로 해제해야 하는 정렬된 할당 주소입니다.
          */
@@ -39,7 +39,7 @@ namespace Core {
 
         /**
          * @brief 정렬된 블록의 원본 주소를 해제하고 추적 중인 사용량을 차감합니다.
-         * @param[in] Pointer 할당 또는 해제할 블록의 주소입니다.
+         * @param[in] Pointer FMemory::Allocate()가 반환한 주소이며, nullptr이면 아무것도 하지 않습니다.
          */
         static void Free(void* Pointer) noexcept;
 

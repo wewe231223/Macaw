@@ -92,7 +92,7 @@ namespace RenderCore {
 
         /**
          * @brief 컴파일러가 반환한 include 데이터에 대응하는 열린 파일 버퍼를 해제합니다.
-         * @param[in] Data 처리할 바이트 데이터 또는 include 파일 버퍼입니다.
+         * @param[in] Data Open()이 반환한 include 파일 버퍼입니다.
          * @return 성공하면 S_OK, 실패하면 원인을 나타내는 HRESULT입니다.
          */
         HRESULT STDMETHODCALLTYPE Close(LPCVOID Data) override;

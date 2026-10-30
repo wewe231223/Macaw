@@ -26,7 +26,7 @@ namespace Editor {
     Editor::FEditorPanel::~FEditorPanel() = default;
 
     /**
-     * @brief 뷰포트 또는 패널의 현재 내용을 그립니다.
+     * @brief 패널이 표시 상태이면 ImGui 창을 열고 내용을 그립니다.
      */
     void Editor::FEditorPanel::Draw(float DeltaTime) {
         if (!mVisible) {
@@ -41,7 +41,7 @@ namespace Editor {
     }
 
     /**
-     * @brief 이름 또는 표시 문자열을 반환합니다.
+     * @brief 패널 창 이름을 반환합니다.
      */
     const Core::FString& Editor::FEditorPanel::GetName() const {
         return mName;

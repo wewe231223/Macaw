@@ -32,12 +32,12 @@ namespace Engine {
         ~FProject();
 
         /**
-         * @brief 소유 상태와 의존성의 중복을 막기 위해 복사 또는 이동을 금지합니다.
+         * @brief 소유 상태가 중복되지 않도록 복사·이동 생성을 금지합니다.
          */
         FProject(const Engine::FProject&) = delete;
 
         /**
-         * @brief 소유 상태와 의존성의 중복을 막기 위해 복사 또는 이동을 금지합니다.
+         * @brief 소유 상태가 중복되지 않도록 대입을 금지합니다.
          */
         Engine::FProject& operator=(const Engine::FProject&) = delete;
 
@@ -74,7 +74,7 @@ namespace Engine {
 
         /**
          * @brief 콘텐츠 경로를 검증하여 시작 장면을 변경하고 프로젝트 설정을 저장합니다.
-         * @param[in] Path 조회·로드·저장 또는 정규화할 파일 경로입니다.
+         * @param[in] Path 시작 장면으로 지정할 장면 파일의 경로입니다.
          * @param[out] Error 실패 원인을 받을 오류 문자열입니다.
          * @return 요청한 처리를 완료하면 true, 실패하면 false입니다.
          */
@@ -100,19 +100,19 @@ namespace Engine {
 
         /**
          * @brief 프로젝트 설정 파일을 포함하는 루트 폴더를 반환합니다.
-         * @return 요청하거나 변환한 파일 시스템 경로 또는 시각입니다.
+         * @return 프로젝트 루트 폴더 경로입니다.
          */
         std::filesystem::path GetRootPath() const;
 
         /**
          * @brief 현재 프로젝트에서 사용할 셰이더 캐시 폴더를 반환합니다.
-         * @return 요청하거나 변환한 파일 시스템 경로 또는 시각입니다.
+         * @return 셰이더 캐시 폴더 경로입니다.
          */
         std::filesystem::path GetShaderCachePath() const;
 
         /**
          * @brief 프로젝트의 에셋 관리자를 비소유 주소로 반환합니다.
-         * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며, 사용할 수 없으면 nullptr입니다.
+         * @return 대상의 비소유 주소이며, 없거나 유효하지 않으면 nullptr입니다.
          */
         Engine::FAssetManager* GetAssets() const;
 

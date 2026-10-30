@@ -29,34 +29,34 @@ namespace Engine {
         USubUVComponent();
 
         /**
-         * @brief 객체를 소멸하고 소유한 GPU 자원 또는 UV 제어 상태를 해제합니다.
+         * @brief 대상 컴포넌트에 적용한 UV 변환을 해제합니다.
          */
         ~USubUVComponent() override;
 
     public:
         /**
          * @brief 이 타입의 정적 리플렉션 메타데이터를 반환합니다.
-         * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며 사용할 수 없으면 nullptr입니다.
+         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
          */
         ReflectClass(USubUVComponent);
 
         /**
          * @brief 대상 컴포넌트 이름을 반환합니다. 빈 이름은 자동 선택을 뜻합니다.
-         * @return 이 객체 또는 공유 이름 풀이 유지하는 값의 참조입니다.
+         * @return 이 객체가 보관하는 값의 참조입니다.
          */
         const Core::FString& GetTargetName() const;
 
         /**
          * @brief 같은 액터에서 이름으로 찾을 대상 컴포넌트를 설정합니다.
          * @param[in] Name 조회하거나 설정할 이름입니다.
-         * @return 검증 또는 요청한 처리에 성공하면 true입니다.
+         * @return 값이 유효해 적용했으면 true, 거부했으면 false입니다.
          * @note 빈 이름이면 같은 액터의 첫 Billboard 또는 Sprite를 선택하며, 없으면 첫 정적 메시를 사용합니다.
          */
         bool SetTargetName(const Core::FString& Name);
 
         /**
          * @brief 현재 SubUV 대상 컴포넌트의 비소유 주소를 반환합니다.
-         * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며 사용할 수 없으면 nullptr입니다.
+         * @return 대상의 비소유 주소이며, 없거나 유효하지 않으면 nullptr입니다.
          */
         Engine::UPrimitiveComponent* GetTarget() const;
 
@@ -69,7 +69,7 @@ namespace Engine {
         /**
          * @brief 아틀라스의 가로 셀 수를 설정합니다.
          * @param[in] Columns 1에서 256 사이의 가로 셀 수입니다.
-         * @return 검증 또는 요청한 처리에 성공하면 true입니다.
+         * @return 값이 유효해 적용했으면 true, 거부했으면 false입니다.
          */
         bool SetColumns(Core::Uint32 Columns);
 
@@ -82,7 +82,7 @@ namespace Engine {
         /**
          * @brief 아틀라스의 세로 셀 수를 설정합니다.
          * @param[in] Rows 1에서 256 사이의 세로 셀 수입니다.
-         * @return 검증 또는 요청한 처리에 성공하면 true입니다.
+         * @return 값이 유효해 적용했으면 true, 거부했으면 false입니다.
          */
         bool SetRows(Core::Uint32 Rows);
 
@@ -95,7 +95,7 @@ namespace Engine {
         /**
          * @brief 재생할 셀 수를 설정합니다. 0이면 전체 격자를 재생합니다.
          * @param[in] FrameCount 최대 65536개이며 0은 전체 격자를 뜻합니다.
-         * @return 검증 또는 요청한 처리에 성공하면 true입니다.
+         * @return 값이 유효해 적용했으면 true, 거부했으면 false입니다.
          */
         bool SetFrameCount(Core::Uint32 FrameCount);
 
@@ -108,7 +108,7 @@ namespace Engine {
         /**
          * @brief 초당 재생 프레임 수를 설정합니다.
          * @param[in] FramesPerSecond 0에서 10000 사이의 유한한 초당 프레임 수입니다.
-         * @return 검증 또는 요청한 처리에 성공하면 true입니다.
+         * @return 값이 유효해 적용했으면 true, 거부했으면 false입니다.
          */
         bool SetFramesPerSecond(float FramesPerSecond);
 

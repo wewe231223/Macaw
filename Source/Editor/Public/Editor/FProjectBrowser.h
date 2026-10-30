@@ -43,7 +43,7 @@ namespace Editor {
     public:
         /**
          * @brief 이 타입의 정적 리플렉션 메타데이터를 반환합니다.
-         * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며 사용할 수 없으면 nullptr입니다.
+         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
          */
         ReflectStruct(FProjectBrowser);
 
@@ -51,10 +51,10 @@ namespace Editor {
          * @brief 프로젝트 선택 화면의 이벤트·그리기 루프를 실행합니다.
          * @param[in] Platform 창과 플랫폼 입력을 제공하는 객체입니다.
          * @param[in] Renderer 뷰포트 자원을 생성할 렌더 모듈입니다.
-         * @param[in] ProjectFile 열거나 기록할 프로젝트 파일 경로입니다.
-         * @param[in] Create 새 프로젝트를 생성할지 지정합니다.
-         * @param[out] Error 실패 시 원인을 받을 문자열입니다.
-         * @return 검증 또는 요청한 처리에 성공하면 true입니다.
+         * @param[in,out] ProjectFile 처음 선택할 프로젝트 경로이며, 사용자가 고른 프로젝트 파일 경로를 받습니다.
+         * @param[in,out] Create 새 프로젝트 생성 여부이며, 사용자의 선택을 받습니다.
+         * @param[in] Error 화면에 표시할 이전 오류 메시지입니다.
+         * @return 프로젝트를 골랐으면 true, 사용자가 창을 닫았으면 false입니다.
          */
         bool Show(Platform::FWindowsApplication& Platform, Renderer::FRenderer& Renderer, std::filesystem::path& ProjectFile, bool& Create, const Core::FString& Error);
 
@@ -68,7 +68,7 @@ namespace Editor {
         /**
          * @brief 프로젝트 열기·생성 페이지와 오류 상태를 표시합니다.
          * @param[in] Platform 창과 플랫폼 입력을 제공하는 객체입니다.
-         * @param[out] Error 실패 시 원인을 받을 문자열입니다.
+         * @param[in] Error 화면에 표시할 오류 메시지입니다.
          */
         void Draw(Platform::FWindowsApplication& Platform, const Core::FString& Error);
 

@@ -61,7 +61,7 @@ namespace Engine {
 
         /**
          * @brief 깊이 검사와 우선순위를 가진 에디터 메시 그리기 요청을 추가합니다.
-         * @param[in] Mesh 정점·인덱스 데이터 또는 에디터 메시 요청입니다.
+         * @param[in] Mesh 그릴 에디터 메시 요청입니다.
          */
         void DrawMesh(const Engine::FDrawMesh& Mesh);
 
@@ -73,13 +73,13 @@ namespace Engine {
 
         /**
          * @brief 이번 프레임에 표시할 텍스트 요청을 수집합니다.
-         * @param[in] Text 표시하거나 측정할 UTF-8 문자열 또는 텍스트 요청입니다.
+         * @param[in] Text 그릴 텍스트 요청입니다.
          */
         void DrawString(const Engine::FDrawText& Text);
 
         /**
          * @brief 현재 프레임의 텍스트 요청 목록을 반환합니다.
-         * @return 이 객체 또는 공유 이름 풀이 유지하는 값의 참조입니다.
+         * @return 이 객체가 보관하는 값의 참조입니다.
          */
         const Core::TArray<Engine::FDrawText>& GetTexts() const;
 

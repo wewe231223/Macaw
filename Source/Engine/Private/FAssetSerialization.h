@@ -31,7 +31,7 @@ namespace Engine {
 
         /**
          * @brief 배열의 개수와 원소를 직렬화하고 로드할 개수와 남은 바이트를 검증합니다.
-         * @param[in,out] Archive 로드 또는 저장 모드와 오류 상태를 제공하는 아카이브입니다.
+         * @param[in,out] Archive 모드에 따라 값을 읽거나 쓸 아카이브입니다.
          * @param[in,out] Values 원소 개수와 함께 읽거나 기록할 배열입니다.
          */
         template <typename T>

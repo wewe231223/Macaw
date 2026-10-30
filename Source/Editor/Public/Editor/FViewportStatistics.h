@@ -114,15 +114,15 @@ namespace Editor {
 
         /**
          * @brief 지정한 통계 그룹이 표시되도록 설정됐는지 검사합니다.
-         * @param[in] Group 조회 또는 표시 상태를 판정할 통계 그룹입니다.
-         * @return 이름으로 지정한 그룹 또는 비트 조합의 모든 그룹이 켜져 있으면 true입니다.
+         * @param[in] Group 확인할 통계 그룹 비트입니다.
+         * @return 지정한 모든 그룹 비트가 켜져 있으면 true입니다.
          */
         bool IsEnabled(EGroup Group) const;
 
         /**
          * @brief 지정한 통계 그룹이 표시되도록 설정됐는지 검사합니다.
-         * @param[in] Group 조회 또는 표시 상태를 판정할 통계 그룹입니다.
-         * @return 이름으로 지정한 그룹 또는 비트 조합의 모든 그룹이 켜져 있으면 true입니다.
+         * @param[in] Group 확인할 통계 그룹 이름입니다.
+         * @return 이름이 가리키는 그룹이 켜져 있으면 true입니다.
          */
         bool IsEnabled(const Core::FString& Group) const;
 

@@ -29,12 +29,12 @@ namespace Core {
 
     private:
         /**
-         * @brief SIMD 저장소를 사용하는 수학 연산 또는 객체 등록을 위해 내부 접근을 허용합니다.
+         * @brief FBox가 내부 SIMD 저장소에 직접 접근하도록 허용합니다.
          */
         friend struct FBox;
 
         /**
-         * @brief SIMD 저장소를 사용하는 수학 연산 또는 객체 등록을 위해 내부 접근을 허용합니다.
+         * @brief FVector4가 내부 SIMD 저장소에 직접 접근하도록 허용합니다.
          */
         friend struct FVector4;
 
@@ -51,27 +51,27 @@ namespace Core {
 
         /**
          * @brief 상대 값의 상태로 객체를 복사하거나 이동 생성합니다.
-         * @param[in] Other 비교, 복사 또는 연산할 상대 값입니다.
+         * @param[in] Other 복사할 원본 값입니다.
          */
         FMatrix(const Core::FMatrix& Other) = default;
 
         /**
          * @brief 상대 값의 상태를 대입합니다.
-         * @param[in] Other 비교, 복사 또는 연산할 상대 값입니다.
-         * @return 소유 객체가 유지하는 값의 참조입니다.
+         * @param[in] Other 복사할 원본 값입니다.
+         * @return 갱신된 자기 자신(*this)의 참조입니다.
          */
         Core::FMatrix& operator=(const Core::FMatrix& Other) = default;
 
         /**
          * @brief 상대 값의 상태로 객체를 복사하거나 이동 생성합니다.
-         * @param[in] Other 비교, 복사 또는 연산할 상대 값입니다.
+         * @param[in] Other 이동할 원본 값입니다.
          */
         FMatrix(Core::FMatrix&& Other) noexcept = default;
 
         /**
          * @brief 상대 값의 상태를 대입합니다.
-         * @param[in] Other 비교, 복사 또는 연산할 상대 값입니다.
-         * @return 소유 객체가 유지하는 값의 참조입니다.
+         * @param[in] Other 이동할 원본 값입니다.
+         * @return 갱신된 자기 자신(*this)의 참조입니다.
          */
         Core::FMatrix& operator=(Core::FMatrix&& Other) noexcept = default;
 
@@ -103,14 +103,14 @@ namespace Core {
         static Core::FMatrix Scale(const Core::FVector& Value);
 
         /**
-         * @brief 회전 값에 대응하는 회전 행렬 또는 오일러 회전을 구합니다.
+         * @brief 오일러 회전을 회전 행렬로 변환합니다.
          * @param[in] Value 입력 값입니다.
          * @return 연산을 적용한 새 값입니다.
          */
         static Core::FMatrix Rotation(const Core::FRotator& Value);
 
         /**
-         * @brief 회전 값에 대응하는 회전 행렬 또는 오일러 회전을 구합니다.
+         * @brief 쿼터니언 회전을 회전 행렬로 변환합니다.
          * @param[in] Value 입력 값입니다.
          * @return 연산을 적용한 새 값입니다.
          */
@@ -118,7 +118,7 @@ namespace Core {
 
         /**
          * @brief 지정한 축을 중심으로 라디안 단위 회전 행렬을 생성합니다.
-         * @param[in] Axis 회전 또는 편집에 사용할 축입니다.
+         * @param[in] Axis 회전축입니다.
          * @param[in] Radians 라디안 단위 각도입니다.
          * @return 연산을 적용한 새 값입니다.
          */
@@ -152,8 +152,8 @@ namespace Core {
 
         /**
          * @brief 지정한 가로·세로 범위와 깊이 구간의 정사영 행렬을 만듭니다.
-         * @param[in] Width 가로 길이 또는 픽셀 수입니다.
-         * @param[in] Height 세로 길이 또는 픽셀 수입니다.
+         * @param[in] Width 뷰 볼륨의 가로 월드 길이입니다.
+         * @param[in] Height 뷰 볼륨의 세로 월드 길이입니다.
          * @param[in] NearPlane 가까운 클리핑 평면 거리입니다.
          * @param[in] FarPlane 먼 클리핑 평면 거리입니다.
          * @return 계산하거나 조회한 값입니다.
@@ -162,77 +162,77 @@ namespace Core {
 
         /**
          * @brief 대응 성분을 더한 값을 반환합니다.
-         * @param[in] Other 비교, 복사 또는 연산할 상대 값입니다.
+         * @param[in] Other 더할 값입니다.
          * @return 연산을 적용한 새 값입니다.
          */
         Core::FMatrix operator+(const Core::FMatrix& Other) const;
 
         /**
-         * @brief 성분의 부호를 반전하거나 상대 값을 뺍니다.
-         * @param[in] Other 비교, 복사 또는 연산할 상대 값입니다.
+         * @brief 대응 성분끼리 뺀 값을 반환합니다.
+         * @param[in] Other 뺄 값입니다.
          * @return 연산을 적용한 새 값입니다.
          */
         Core::FMatrix operator-(const Core::FMatrix& Other) const;
 
         /**
          * @brief 현재 행렬 뒤에 상대 행렬을 적용하는 행 벡터 규약의 곱을 계산합니다.
-         * @param[in] Other 비교, 복사 또는 연산할 상대 값입니다.
+         * @param[in] Other 현재 행렬 다음에 적용할 오른쪽 행렬입니다.
          * @return 연산을 적용한 새 값입니다.
          */
         Core::FMatrix operator*(const Core::FMatrix& Other) const;
 
         /**
          * @brief 각 성분에 스칼라 값을 곱합니다.
-         * @param[in] Value 입력 값입니다.
+         * @param[in] Value 각 성분에 곱할 스칼라 값입니다.
          * @return 연산을 적용한 새 값입니다.
          */
         Core::FMatrix operator*(float Value) const;
 
         /**
-         * @brief 성분별 또는 스칼라 나눗셈 결과를 반환합니다.
-         * @param[in] Value 입력 값입니다.
+         * @brief 각 성분을 스칼라 값으로 나눈 결과를 반환합니다.
+         * @param[in] Value 각 성분을 나눌 스칼라 값입니다.
          * @return 연산을 적용한 새 값입니다.
          */
         Core::FMatrix operator/(float Value) const;
 
         /**
          * @brief 대응 성분을 현재 값에 더합니다.
-         * @param[in] Other 비교, 복사 또는 연산할 상대 값입니다.
-         * @return 소유 객체가 유지하는 값의 참조입니다.
+         * @param[in] Other 더할 값입니다.
+         * @return 갱신된 자기 자신(*this)의 참조입니다.
          */
         Core::FMatrix& operator+=(const Core::FMatrix& Other);
 
         /**
          * @brief 대응 성분을 현재 값에서 뺍니다.
-         * @param[in] Other 비교, 복사 또는 연산할 상대 값입니다.
-         * @return 소유 객체가 유지하는 값의 참조입니다.
+         * @param[in] Other 뺄 값입니다.
+         * @return 갱신된 자기 자신(*this)의 참조입니다.
          */
         Core::FMatrix& operator-=(const Core::FMatrix& Other);
 
         /**
          * @brief 현재 행렬 뒤에 상대 행렬을 적용하는 행 벡터 규약의 곱을 계산합니다.
-         * @param[in] Other 비교, 복사 또는 연산할 상대 값입니다.
-         * @return 소유 객체가 유지하는 값의 참조입니다.
+         * @param[in] Other 현재 행렬 다음에 적용할 오른쪽 행렬입니다.
+         * @return 갱신된 자기 자신(*this)의 참조입니다.
          */
         Core::FMatrix& operator*=(const Core::FMatrix& Other);
 
         /**
          * @brief 각 성분에 스칼라 값을 곱합니다.
-         * @param[in] Value 입력 값입니다.
-         * @return 소유 객체가 유지하는 값의 참조입니다.
+         * @param[in] Value 각 성분에 곱할 스칼라 값입니다.
+         * @return 갱신된 자기 자신(*this)의 참조입니다.
          */
         Core::FMatrix& operator*=(float Value);
 
         /**
-         * @brief 나눗셈 결과를 현재 값에 반영합니다.
-         * @param[in] Value 입력 값입니다.
-         * @return 소유 객체가 유지하는 값의 참조입니다.
+         * @brief 각 성분을 스칼라 값으로 나누어 현재 값에 반영합니다.
+         * @param[in] Value 각 성분을 나눌 스칼라 값입니다.
+         * @return 갱신된 자기 자신(*this)의 참조입니다.
          */
         Core::FMatrix& operator/=(float Value);
 
         /**
-         * @brief 저장된 성분 또는 식별 상태가 정확히 같은지 검사합니다.
-         * @param[in] Other 비교, 복사 또는 연산할 상대 값입니다.
+         * @brief 모든 성분이 허용 오차 없이 정확히 같은지 검사합니다.
+         * @param[in] Other 비교할 상대 값입니다.
          * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
          */
         bool operator==(const Core::FMatrix& Other) const;
@@ -253,7 +253,7 @@ namespace Core {
 
         /**
          * @brief 행렬에서 지정한 행의 XYZ 축 성분을 반환합니다.
-         * @param[in] Index 선택할 요소 또는 축의 0부터 시작하는 인덱스입니다.
+         * @param[in] Index 가져올 축의 인덱스(0=X, 1=Y, 2=Z)입니다.
          * @return 행렬에서 지정한 행의 XYZ 축 성분입니다.
          * @note Index는 0부터 3까지여야 합니다.
          */
@@ -273,7 +273,7 @@ namespace Core {
 
         /**
          * @brief 역행렬의 유효성을 검사하고 계산 가능한 경우 결과에 기록합니다.
-         * @param[in,out] Result 변환 또는 파싱이 성공한 경우 결과를 기록합니다.
+         * @param[out] Result 역행렬을 받을 출력 값입니다.
          * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
          */
         bool TryInverse(Core::FMatrix& Result) const;
@@ -304,15 +304,15 @@ namespace Core {
 
         /**
          * @brief 현재 변환이 허용 오차 이내에서 항등 변환인지 검사합니다.
-         * @param[in] Tolerance 같음 또는 유효성을 판단하는 허용 오차입니다.
+         * @param[in] Tolerance 항등 행렬과 비교할 성분별 허용 차이입니다.
          * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
          */
         bool IsIdentity(float Tolerance = 0.0001f) const;
 
         /**
          * @brief 각 성분의 차이가 지정한 허용 오차 이내인지 검사합니다.
-         * @param[in] Other 비교, 복사 또는 연산할 상대 값입니다.
-         * @param[in] Tolerance 같음 또는 유효성을 판단하는 허용 오차입니다.
+         * @param[in] Other 비교할 상대 값입니다.
+         * @param[in] Tolerance 같다고 볼 성분별 최대 차이입니다.
          * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
          */
         bool Equals(const Core::FMatrix& Other, float Tolerance = 0.0001f) const;
@@ -351,7 +351,7 @@ namespace Core {
 
     /**
      * @brief 각 성분에 스칼라 값을 곱합니다.
-     * @param[in] Value 입력 값입니다.
+     * @param[in] Value 각 성분에 곱할 스칼라 값입니다.
      * @param[in] Matrix 적용할 변환 행렬입니다.
      * @return 연산을 적용한 새 값입니다.
      */

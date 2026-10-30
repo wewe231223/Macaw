@@ -75,7 +75,7 @@ namespace Editor {
 
         /**
          * @brief 카메라 조작·표시·변환 스냅·통계 그룹 설정을 뷰포트별로 저장하거나 복원합니다.
-         * @param[in,out] Archive 저장 또는 로드 모드와 오류 상태를 제공하는 아카이브입니다.
+         * @param[in,out] Archive 모드에 따라 값을 읽거나 쓸 아카이브입니다.
          * @param[in,out] Client 설정을 조회하고 변경할 뷰포트 클라이언트입니다.
          * @param[in,out] Statistics 저장하거나 복원할 뷰포트 통계 그룹 설정입니다.
          */

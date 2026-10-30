@@ -31,8 +31,8 @@ namespace CoreUObject {
         ReflectStruct(FReflectionDefinition);
 
         /**
-         * @brief 저장된 성분 또는 식별 상태가 정확히 같은지 검사합니다.
-         * @param[in] Other 비교, 복사 또는 연산할 상대 값입니다.
+         * @brief 종류, 네이티브 타입, 부모, 플래그, 팩터리와 빌더가 모두 같은지 검사합니다.
+         * @param[in] Other 비교할 상대 값입니다.
          * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
          */
         bool operator==(const CoreUObject::FReflectionDefinition& Other) const;
@@ -57,7 +57,7 @@ namespace CoreUObject {
         ReflectProperty(mNativeType, "NativeType", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
-         * @brief 부모 타입 또는 부모 조회 콜백입니다.
+         * @brief 부모 클래스 메타데이터를 반환하는 함수입니다.
          */
         CoreUObject::UClass* (*mParent)(){};
         ReflectProperty(mParent, "Parent", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);

@@ -22,7 +22,7 @@ namespace CoreUObject {
          */
         Struct,
         /**
-         * @brief 열거형 메타데이터 또는 Int32로 저장하는 열거값입니다.
+         * @brief 열거형 정의입니다.
          */
         Enum
     };

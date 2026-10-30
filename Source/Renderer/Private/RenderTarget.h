@@ -47,8 +47,8 @@ namespace Renderer {
         /**
          * @brief 새 크기에 맞추어 렌더 타깃 리소스를 생성하거나 교체합니다.
          * @param[in,out] Device 리소스 생성에 사용할 Direct3D 11 장치입니다.
-         * @param[in] Width 클라이언트 영역 또는 타깃의 가로 픽셀 수입니다.
-         * @param[in] Height 클라이언트 영역 또는 타깃의 세로 픽셀 수입니다.
+         * @param[in] Width 렌더 타깃의 가로 픽셀 수입니다.
+         * @param[in] Height 렌더 타깃의 세로 픽셀 수입니다.
          * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
          */
         bool Resize(ID3D11Device* Device, Core::Uint32 Width, Core::Uint32 Height);

@@ -28,7 +28,7 @@ namespace CoreUObject {
         /**
          * @brief UEnum의 초기 상태와 전달받은 의존성을 구성합니다.
          * @param[in] Name 조회하거나 기록할 이름입니다.
-         * @param[in] Size 뷰포트 크기 또는 데이터의 바이트 수입니다.
+         * @param[in] Size 네이티브 타입의 sizeof 바이트 수입니다.
          */
         UEnum(Core::FString Name, std::size_t Size);
 

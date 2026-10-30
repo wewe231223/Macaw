@@ -25,7 +25,7 @@ namespace Editor {
     public:
         /**
          * @brief FOutlinerPanel의 초기 상태와 전달받은 의존성을 구성합니다.
-         * @param[in,out] Context 패널 또는 뷰포트가 공유할 편집 컨텍스트입니다.
+         * @param[in,out] Context 패널이 조회하고 편집할 에디터 컨텍스트입니다.
          */
         explicit FOutlinerPanel(Editor::FEditorContext* Context);
 

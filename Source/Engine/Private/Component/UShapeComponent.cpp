@@ -24,7 +24,7 @@ namespace Engine {
          * @brief 두 AABB의 모든 축 구간이 겹치는지 검사합니다.
          * @param[in] A 첫 번째 검사 대상입니다.
          * @param[in] B 두 번째 검사 대상입니다.
-         * @return 검증 또는 요청한 처리에 성공하면 true입니다.
+         * @return 두 형상이 겹치면 true입니다.
          */
         bool BoundsOverlap(const Core::FBox& A, const Core::FBox& B) {
             return A.mMinimum.x <= B.mMaximum.x && A.mMaximum.x >= B.mMinimum.x && A.mMinimum.y <= B.mMaximum.y && A.mMaximum.y >= B.mMinimum.y && A.mMinimum.z <= B.mMaximum.z && A.mMaximum.z >= B.mMinimum.z;

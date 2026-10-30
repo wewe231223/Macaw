@@ -41,12 +41,12 @@ namespace Engine {
         ~FAssetManager();
 
         /**
-         * @brief 소유 상태와 의존성의 중복을 막기 위해 복사 또는 이동을 금지합니다.
+         * @brief 소유 상태가 중복되지 않도록 복사·이동 생성을 금지합니다.
          */
         FAssetManager(const Engine::FAssetManager&) = delete;
 
         /**
-         * @brief 소유 상태와 의존성의 중복을 막기 위해 복사 또는 이동을 금지합니다.
+         * @brief 소유 상태가 중복되지 않도록 대입을 금지합니다.
          */
         Engine::FAssetManager& operator=(const Engine::FAssetManager&) = delete;
 
@@ -79,7 +79,7 @@ namespace Engine {
 
         /**
          * @brief 콘텐츠 폴더를 벗어나는 경로를 거부하고 정규화된 절대 경로를 반환합니다.
-         * @param[in] Path 조회·로드·저장 또는 정규화할 파일 경로입니다.
+         * @param[in] Path Content 기준 상대 경로 또는 절대 경로입니다.
          * @param[out] Error 실패 원인을 받을 오류 문자열입니다.
          * @return 검증한 콘텐츠 내부 경로이며 실패하면 비어 있습니다.
          */
@@ -87,7 +87,7 @@ namespace Engine {
 
         /**
          * @brief 경로가 콘텐츠 폴더 안에 있는지 검증하고 UTF-8 상대 경로를 반환합니다.
-         * @param[in] Path 조회·로드·저장 또는 정규화할 파일 경로입니다.
+         * @param[in] Path Content 기준 상대 경로 또는 절대 경로입니다.
          * @param[out] Error 실패 원인을 받을 오류 문자열입니다.
          * @return 검증한 콘텐츠 내부 경로이며 실패하면 비어 있습니다.
          */
@@ -102,23 +102,23 @@ namespace Engine {
 
         /**
          * @brief 메시 에셋을 캐시에서 조회하거나 파일에서 로드하여 보관합니다.
-         * @param[in] Path 조회·로드·저장 또는 정규화할 파일 경로입니다.
+         * @param[in] Path 불러올 메시 에셋의 경로입니다.
          * @param[out] Error 실패 원인을 받을 오류 문자열입니다.
-         * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며, 사용할 수 없으면 nullptr입니다.
+         * @return 캐시된 에셋의 비소유 주소이며, 로드에 실패하면 nullptr입니다.
          */
         Engine::UStaticMesh* LoadMesh(const std::filesystem::path& Path, Core::FString& Error);
 
         /**
          * @brief 텍스처 에셋을 캐시에서 조회하거나 파일에서 로드하여 보관합니다.
-         * @param[in] Path 조회·로드·저장 또는 정규화할 파일 경로입니다.
+         * @param[in] Path 불러올 텍스처 에셋 또는 이미지 파일의 경로입니다.
          * @param[out] Error 실패 원인을 받을 오류 문자열입니다.
-         * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며, 사용할 수 없으면 nullptr입니다.
+         * @return 캐시된 에셋의 비소유 주소이며, 로드에 실패하면 nullptr입니다.
          */
         Engine::UTexture2D* LoadTexture(const std::filesystem::path& Path, Core::FString& Error);
 
         /**
          * @brief 노멀 맵을 선형 색상으로 로드하고 전용 캐시에 보관합니다.
-         * @param[in] Path Content 상대 에셋 경로 또는 읽을 파일 경로입니다.
+         * @param[in] Path 불러올 노멀 맵 텍스처의 경로입니다.
          * @param[out] Error 실패 원인을 받을 문자열입니다.
          * @return 캐시가 소유한 텍스처의 비소유 주소이며 실패하면 nullptr입니다.
          */
@@ -158,7 +158,7 @@ namespace Engine {
 
         /**
          * @brief 검증한 CPU 메시 데이터를 바이너리 에셋 파일로 저장합니다.
-         * @param[in] Path 조회·로드·저장 또는 정규화할 파일 경로입니다.
+         * @param[in] Path 저장할 메시 에셋의 경로입니다.
          * @param[in] Mesh 읽거나 직렬화할 메시 데이터입니다.
          * @param[out] Error 실패 원인을 받을 오류 문자열입니다.
          * @return 요청한 처리를 완료하면 true, 실패하면 false입니다.
@@ -167,7 +167,7 @@ namespace Engine {
 
         /**
          * @brief 텍스처의 크기·형식·색 공간과 이미지 데이터를 에셋 파일로 저장합니다.
-         * @param[in] Path 조회·로드·저장 또는 정규화할 파일 경로입니다.
+         * @param[in] Path 저장할 텍스처 에셋의 경로입니다.
          * @param[in] Texture 데이터를 읽거나 뷰를 생성할 텍스처이며 소유권을 이전하지 않습니다.
          * @param[out] Error 실패 원인을 받을 오류 문자열입니다.
          * @return 요청한 처리를 완료하면 true, 실패하면 false입니다.

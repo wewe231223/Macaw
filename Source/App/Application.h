@@ -58,16 +58,16 @@ namespace App {
 
         /**
          * @brief 프로젝트 선택 화면을 반복 표시하고 선택한 프로젝트를 엽니다.
-         * @param[in] Path Content 상대 에셋 경로 또는 작업할 파일 경로입니다.
+         * @param[in] Path 처음 선택해 둘 프로젝트 경로이며 비어 있을 수 있습니다.
          * @param[in] Create 새 프로젝트를 생성할지 지정합니다.
-         * @return 검증 또는 요청한 처리에 성공하면 true입니다.
+         * @return 성공하면 true, 실패하면 false입니다.
          */
         bool BrowseProjects(std::filesystem::path Path, bool Create);
 
         /**
          * @brief 현재 실행을 정리하고 프로젝트를 생성하거나 열어 시작 장면을 연결합니다.
          * @param[out] Error 프로젝트를 열지 못한 원인입니다.
-         * @param[in] Path 조회·로드·저장 또는 정규화할 파일 경로입니다.
+         * @param[in] Path 열거나 생성할 프로젝트 경로입니다.
          * @param[in] Create true이면 새 프로젝트를 생성하고 false이면 기존 프로젝트를 엽니다.
          * @return 요청한 처리를 완료하면 true, 실패하면 false입니다.
          */
@@ -87,7 +87,7 @@ namespace App {
         ReflectProperty(mPlatform, "Platform", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
-         * @brief 연결된 렌더러의 비소유 주소입니다.
+         * @brief 애플리케이션이 소유한 렌더러입니다.
          */
         Renderer::FRenderer mRenderer{};
         ReflectProperty(mRenderer, "Renderer", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);

@@ -34,53 +34,53 @@ namespace Engine {
         UMaterial();
 
         /**
-         * @brief 객체를 소멸하고 소유한 GPU 자원 또는 UV 제어 상태를 해제합니다.
+         * @brief 기본 소멸자이며, GPU 상수 버퍼는 ComPtr 멤버가 해제합니다.
          */
         ~UMaterial() override;
 
     public:
         /**
          * @brief 이 타입의 정적 리플렉션 메타데이터를 반환합니다.
-         * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며 사용할 수 없으면 nullptr입니다.
+         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
          */
         ReflectClass(UMaterial);
 
         /**
          * @brief Content 기준 머티리얼 셰이더 경로를 반환합니다.
-         * @return 이 객체 또는 공유 이름 풀이 유지하는 값의 참조입니다.
+         * @return 이 객체가 보관하는 값의 참조입니다.
          */
         const Core::FString& GetShaderPath() const;
 
         /**
          * @brief Content 기준 머티리얼 셰이더 경로를 설정합니다.
-         * @param[in] Path Content 상대 에셋 경로 또는 작업할 파일 경로입니다.
-         * @return 검증 또는 요청한 처리에 성공하면 true입니다.
+         * @param[in] Path Content 기준 셰이더 경로입니다.
+         * @return 값이 유효해 적용했으면 true, 거부했으면 false입니다.
          */
         bool SetShaderPath(const Core::FString& Path);
 
         /**
          * @brief 머티리얼 기본 RGBA 색상을 반환합니다.
-         * @return 이 객체 또는 공유 이름 풀이 유지하는 값의 참조입니다.
+         * @return 이 객체가 보관하는 값의 참조입니다.
          */
         const Core::FVector4& GetBaseColor() const;
 
         /**
          * @brief 머티리얼 기본 RGBA 색상을 설정합니다.
          * @param[in] Color 적용할 색상입니다.
-         * @return 검증 또는 요청한 처리에 성공하면 true입니다.
+         * @return 값이 유효해 적용했으면 true, 거부했으면 false입니다.
          */
         bool SetBaseColor(const Core::FVector4& Color);
 
         /**
          * @brief Content 기준 기본색 텍스처 경로를 반환합니다.
-         * @return 이 객체 또는 공유 이름 풀이 유지하는 값의 참조입니다.
+         * @return 이 객체가 보관하는 값의 참조입니다.
          */
         const Core::FString& GetBaseColorTexturePath() const;
 
         /**
          * @brief Content 기준 기본색 텍스처 경로를 설정합니다.
-         * @param[in] Path Content 상대 에셋 경로 또는 작업할 파일 경로입니다.
-         * @return 검증 또는 요청한 처리에 성공하면 true입니다.
+         * @param[in] Path Content 기준 텍스처 경로이며 비우면 텍스처를 사용하지 않습니다.
+         * @return 값이 유효해 적용했으면 true, 거부했으면 false입니다.
          */
         bool SetBaseColorTexturePath(const Core::FString& Path);
 
@@ -92,7 +92,7 @@ namespace Engine {
 
         /**
          * @brief Content 상대 노멀 맵 경로를 변경하고 해석된 참조를 초기화합니다.
-         * @param[in] Path Content 상대 에셋 경로 또는 읽을 파일 경로입니다.
+         * @param[in] Path Content 기준 노멀 맵 텍스처 경로이며, 비우면 노멀 맵을 사용하지 않습니다.
          * @return 경로 변경을 수락하면 true입니다.
          */
         bool SetNormalMapTexturePath(const Core::FString& Path);
@@ -151,13 +151,13 @@ namespace Engine {
         /**
          * @brief 메시 양면 렌더링 여부를 설정합니다.
          * @param[in] TwoSided 양면 렌더링을 사용할지 지정합니다.
-         * @return 검증 또는 요청한 처리에 성공하면 true입니다.
+         * @return 값이 유효해 적용했으면 true, 거부했으면 false입니다.
          */
         bool SetTwoSided(bool TwoSided);
 
         /**
          * @brief 기본색 텍스처의 비소유 주소를 반환합니다.
-         * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며 사용할 수 없으면 nullptr입니다.
+         * @return 대상의 비소유 주소이며, 없거나 유효하지 않으면 nullptr입니다.
          */
         Engine::UTexture2D* GetBaseColorTexture() const;
 
@@ -165,15 +165,15 @@ namespace Engine {
          * @brief 저장된 텍스처 경로를 에셋 관리자에서 해석하고 렌더 상태를 갱신합니다.
          * @param[in] Assets 텍스처를 해석할 프로젝트 에셋 관리자입니다.
          * @param[out] Error 실패 시 원인을 받을 문자열입니다.
-         * @return 검증 또는 요청한 처리에 성공하면 true입니다.
+         * @return 경로가 비어 있거나 에셋을 찾았으면 true, 로드에 실패하면 false입니다.
          */
         bool ResolveTexture(Engine::FAssetManager& Assets, Core::FString& Error);
 
         /**
          * @brief 필요한 GPU 자원을 생성하거나 변경된 상수를 업로드합니다.
          * @param[in] Device 자원 생성에 사용할 Direct3D 장치의 비소유 주소입니다.
-         * @param[in] Context 그리기 또는 편집에 사용할 컨텍스트의 비소유 주소입니다.
-         * @return 검증 또는 요청한 처리에 성공하면 true입니다.
+         * @param[in] Context 상수 버퍼를 갱신할 Direct3D 11 장치 컨텍스트입니다.
+         * @return 성공하면 true, 실패하면 false입니다.
          */
         bool CreateResources(ID3D11Device* Device, ID3D11DeviceContext* Context);
 
@@ -184,7 +184,7 @@ namespace Engine {
 
         /**
          * @brief GPU 상수 버퍼를 반환합니다.
-         * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며 사용할 수 없으면 nullptr입니다.
+         * @return GPU 자원의 비소유 주소이며, 아직 생성하지 않았으면 nullptr입니다.
          */
         ID3D11Buffer* GetConstantBuffer() const;
 
@@ -202,7 +202,7 @@ namespace Engine {
         ReflectAccessor(mShaderPath, GetShaderPath, SetShaderPath, "Shader", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
 
         /**
-         * @brief 표시 색상입니다.
+         * @brief 머티리얼의 기본 RGBA 색상입니다.
          */
         Core::FVector4 mBaseColor{1.0f, 1.0f, 1.0f, 1.0f};
         ReflectAccessor(mBaseColor, GetBaseColor, SetBaseColor, "BaseColor", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);

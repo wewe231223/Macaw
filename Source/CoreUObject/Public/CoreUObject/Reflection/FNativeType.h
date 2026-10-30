@@ -52,7 +52,7 @@ namespace CoreUObject {
 
 
         /**
-         * @brief 이름 또는 표시 문자열입니다.
+         * @brief 네이티브 타입 이름입니다.
          */
         std::string_view mName{};
         ReflectProperty(mName, "Name", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);

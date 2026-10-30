@@ -58,7 +58,7 @@ namespace CoreUObject {
     }
 
     /**
-     * @brief 이름 또는 표시 문자열을 반환합니다.
+     * @brief 객체 이름을 반환합니다.
      */
     const Core::FString& CoreUObject::UObject::GetName() const {
         return mName.ToString();

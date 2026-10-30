@@ -35,22 +35,22 @@ namespace RenderCore {
         ~FShaderManager() = default;
 
         /**
-         * @brief 소유 상태와 의존성의 중복을 막기 위해 복사 또는 이동을 금지합니다.
+         * @brief 소유 상태가 중복되지 않도록 복사·이동 생성을 금지합니다.
          */
         FShaderManager(const RenderCore::FShaderManager&) = delete;
 
         /**
-         * @brief 소유 상태와 의존성의 중복을 막기 위해 복사 또는 이동을 금지합니다.
+         * @brief 소유 상태가 중복되지 않도록 대입을 금지합니다.
          */
         RenderCore::FShaderManager& operator=(const RenderCore::FShaderManager&) = delete;
 
         /**
-         * @brief 소유 상태와 의존성의 중복을 막기 위해 복사 또는 이동을 금지합니다.
+         * @brief 소유 상태가 중복되지 않도록 복사·이동 생성을 금지합니다.
          */
         FShaderManager(RenderCore::FShaderManager&&) = delete;
 
         /**
-         * @brief 소유 상태와 의존성의 중복을 막기 위해 복사 또는 이동을 금지합니다.
+         * @brief 소유 상태가 중복되지 않도록 대입을 금지합니다.
          */
         RenderCore::FShaderManager& operator=(RenderCore::FShaderManager&&) = delete;
 
@@ -65,7 +65,7 @@ namespace RenderCore {
          * @brief 셰이더를 메모리 캐시에서 조회하거나 디스크 캐시·컴파일로 준비합니다.
          * @param[in] Description 소스 경로·진입점·프로필·매크로 등의 컴파일 설정입니다.
          * @param[out] Diagnostics 실패 원인과 컴파일 메시지를 받을 문자열입니다.
-         * @return 요청한 텍스처 형식 또는 사용 용도 값입니다.
+         * @return 준비한 셰이더이며, 실패하면 nullptr입니다.
          */
         std::shared_ptr<const RenderCore::FShader> Load(const RenderCore::FShaderDescription& Description, Core::FString& Diagnostics);
 

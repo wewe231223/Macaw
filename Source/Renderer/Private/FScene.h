@@ -33,7 +33,7 @@ namespace Renderer {
         /**
          * @brief FScene의 초기 상태와 전달받은 의존성을 구성합니다.
          * @param[in,out] Device 리소스 생성에 사용할 Direct3D 11 장치입니다.
-         * @param[in,out] Context 월드 컨텍스트 또는 Direct3D 11 컨텍스트입니다.
+         * @param[in,out] Context GPU 명령을 기록할 Direct3D 11 장치 컨텍스트입니다.
          */
         FScene(ID3D11Device* Device, ID3D11DeviceContext* Context);
 
@@ -91,8 +91,8 @@ namespace Renderer {
         /**
          * @brief 지정한 프리미티브의 월드 행렬과 경계 상자를 갱신합니다.
          * @param[in] Id 장면 프리미티브의 식별자입니다.
-         * @param[in] World 연결할 월드 또는 적용할 월드 행렬입니다.
-         * @param[in] Bounds 프리미티브의 월드 또는 로컬 경계 상자입니다.
+         * @param[in] World 프리미티브의 새 월드 변환 행렬입니다.
+         * @param[in] Bounds 프리미티브의 새 월드 경계 상자입니다.
          */
         void UpdatePrimitiveTransform(const Core::FGuid& Id, const Core::FMatrix& World, const Core::FBox& Bounds) override;
 
@@ -122,14 +122,14 @@ namespace Renderer {
 
         /**
          * @brief 누적 변환 업로드 횟수를 반환하고 카운터를 초기화합니다.
-         * @return 연산을 적용한 새 값입니다.
+         * @return 초기화하기 전까지 누적된 업로드 횟수입니다.
          */
         Core::Uint32 TakeTransformUpdates() const;
 
     private:
         /**
          * @brief 프리미티브의 객체 상수 버퍼를 현재 프록시 값으로 갱신합니다.
-         * @param[in,out] Primitive Primitive에 적용할 입력 값입니다.
+         * @param[in,out] Primitive 상수 버퍼를 갱신할 프리미티브입니다.
          */
         void Upload(Renderer::FScenePrimitive& Primitive);
 
@@ -141,7 +141,7 @@ namespace Renderer {
 
     private:
         /**
-         * @brief Direct3D 11 장치입니다.
+         * @brief 등록된 광원 프록시 목록입니다.
          */
         Core::TArray<Engine::FLightSceneProxy> mLights{};
         ReflectProperty(mLights, "Lights", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);

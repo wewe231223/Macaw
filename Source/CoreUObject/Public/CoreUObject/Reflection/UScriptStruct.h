@@ -26,8 +26,8 @@ namespace CoreUObject {
         /**
          * @brief UScriptStruct의 초기 상태와 전달받은 의존성을 구성합니다.
          * @param[in] Name 조회하거나 기록할 이름입니다.
-         * @param[in] Size 뷰포트 크기 또는 데이터의 바이트 수입니다.
-         * @param[in] Parent 부모 메타데이터 또는 부모를 조회하는 콜백입니다.
+         * @param[in] Size 네이티브 타입의 sizeof 바이트 수입니다.
+         * @param[in] Parent 부모 타입의 메타데이터이며, 없으면 nullptr입니다.
          */
         UScriptStruct(Core::FString Name, std::size_t Size, const CoreUObject::UScriptStruct* Parent = nullptr);
 
@@ -51,7 +51,7 @@ namespace CoreUObject {
 
         /**
          * @brief 자기 자신을 포함한 상속 체인에 지정한 부모 타입이 있는지 검사합니다.
-         * @param[in] Parent 부모 메타데이터 또는 부모를 조회하는 콜백입니다.
+         * @param[in] Parent 부모 타입의 메타데이터이며, 없으면 nullptr입니다.
          * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
          */
         bool IsChildOf(const CoreUObject::UScriptStruct* Parent) const;
@@ -64,7 +64,7 @@ namespace CoreUObject {
 
     private:
         /**
-         * @brief 부모 타입 또는 부모 조회 콜백입니다.
+         * @brief 부모 구조체 메타데이터이며, 없으면 nullptr입니다.
          */
         const CoreUObject::UScriptStruct* mParent{};
         ReflectProperty(mParent, "Parent", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);

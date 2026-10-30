@@ -38,7 +38,7 @@ namespace Engine {
          * @brief 뷰포트 픽셀 좌표를 월드 공간의 정규화된 광선으로 역투영합니다.
          * @param[in] Position 뷰포트 픽셀 좌표입니다.
          * @param[out] Ray 계산한 월드 광선입니다.
-         * @return 검증 또는 요청한 처리에 성공하면 true입니다.
+         * @return 역투영 광선을 구했으면 true입니다.
          */
         bool Deproject(const Core::FVector2& Position, Core::FRay& Ray) const;
 
@@ -63,7 +63,7 @@ namespace Engine {
 
 
         /**
-         * @brief 카메라 뷰 또는 뷰 행렬입니다.
+         * @brief 월드에서 뷰 공간으로 바꾸는 뷰 행렬입니다.
          */
         Core::FMatrix mView{};
         ReflectProperty(mView, "View", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);

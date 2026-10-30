@@ -58,7 +58,7 @@ namespace Engine {
 
         /**
          * @brief 컴포넌트를 월드에 연결하고 필요한 렌더 상태를 등록합니다.
-         * @param[in,out] World 연결할 월드 또는 적용할 월드 행렬입니다.
+         * @param[in,out] World 컴포넌트를 등록할 월드입니다.
          */
         void RegisterComponent(Engine::UWorld* World) override;
 
@@ -97,7 +97,7 @@ namespace Engine {
 
         /**
          * @brief 프리미티브가 사용하는 정적 메시의 비소유 주소를 반환합니다.
-         * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며, 사용할 수 없으면 nullptr입니다.
+         * @return 대상의 비소유 주소이며, 없거나 유효하지 않으면 nullptr입니다.
          */
         virtual Engine::UStaticMesh* GetStaticMesh() const;
 
@@ -109,7 +109,7 @@ namespace Engine {
 
         /**
          * @brief 컴포넌트의 현재 상태를 복사한 프리미티브 프록시를 만듭니다.
-         * @return 연산을 적용한 새 값입니다.
+         * @return 현재 상태를 담은 프록시입니다.
          */
         virtual Engine::FPrimitiveSceneProxy CreateSceneProxy() const;
 
@@ -127,10 +127,10 @@ namespace Engine {
 
         /**
          * @brief 다른 살아 있는 제어자의 변환을 덮어쓰지 않고 UV 배율과 오프셋을 적용합니다.
-         * @param[in] Scale UV 또는 크기에 적용할 배율입니다.
+         * @param[in] Scale 기본 UV에 곱할 배율입니다.
          * @param[in] Offset UV에 더할 셀 원점입니다.
          * @param[in] Source UV 제어자의 유효한 세대 핸들입니다.
-         * @return 검증 또는 요청한 처리에 성공하면 true입니다.
+         * @return 값이 유효해 적용했으면 true, 거부했으면 false입니다.
          */
         bool SetUVTransform(const Core::FVector2& Scale, const Core::FVector2& Offset, CoreUObject::FObjectHandle Source);
 
@@ -142,13 +142,13 @@ namespace Engine {
 
         /**
          * @brief 기본 UV에 곱할 셀 크기를 반환합니다.
-         * @return 이 객체 또는 공유 이름 풀이 유지하는 값의 참조입니다.
+         * @return 이 객체가 보관하는 값의 참조입니다.
          */
         const Core::FVector2& GetUVScale() const;
 
         /**
          * @brief 기본 UV에 더할 셀 원점을 반환합니다.
-         * @return 이 객체 또는 공유 이름 풀이 유지하는 값의 참조입니다.
+         * @return 이 객체가 보관하는 값의 참조입니다.
          */
         const Core::FVector2& GetUVOffset() const;
 

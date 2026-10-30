@@ -45,7 +45,7 @@ namespace Renderer {
         public:
             /**
              * @brief 이 타입의 정적 리플렉션 메타데이터를 반환합니다.
-             * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며 사용할 수 없으면 nullptr입니다.
+             * @return 등록된 타입 메타데이터의 비소유 주소입니다.
              */
             ReflectStruct(FConstants);
 
@@ -82,21 +82,21 @@ namespace Renderer {
         FSpriteRenderer();
 
         /**
-         * @brief 객체를 소멸하고 소유한 GPU 자원 또는 UV 제어 상태를 해제합니다.
+         * @brief 기본 소멸자이며, GPU 자원은 ComPtr 멤버가 해제합니다.
          */
         ~FSpriteRenderer();
 
     public:
         /**
          * @brief 이 타입의 정적 리플렉션 메타데이터를 반환합니다.
-         * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며 사용할 수 없으면 nullptr입니다.
+         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
          */
         ReflectStruct(FSpriteRenderer);
 
         /**
-         * @brief 뷰포트 또는 스프라이트의 GPU 자원과 기본 상태를 초기화합니다.
+         * @brief 스프라이트 셰이더, 정점 버퍼와 상수 버퍼를 생성합니다.
          * @param[in] Device 자원 생성에 사용할 Direct3D 장치의 비소유 주소입니다.
-         * @return 검증 또는 요청한 처리에 성공하면 true입니다.
+         * @return 성공하면 true, 실패하면 false입니다.
          */
         bool Initialize(ID3D11Device* Device);
 
@@ -105,16 +105,16 @@ namespace Renderer {
          * @param[in] Device 자원 생성에 사용할 Direct3D 장치의 비소유 주소입니다.
          * @param[in] VertexCode 컴파일된 정점 셰이더 바이트코드입니다.
          * @param[in] PixelCode 컴파일된 픽셀 셰이더 바이트코드입니다.
-         * @return 검증 또는 요청한 처리에 성공하면 true입니다.
+         * @return 성공하면 true, 실패하면 false입니다.
          */
         bool CreateShaders(ID3D11Device* Device, std::span<const Core::Uint8> VertexCode, std::span<const Core::Uint8> PixelCode);
 
         /**
          * @brief 쿼드 정렬과 UV 변환을 반영하여 텍스처 스프라이트를 그립니다.
-         * @param[in] Context 그리기 또는 편집에 사용할 컨텍스트의 비소유 주소입니다.
+         * @param[in] Context 그리기 명령을 기록할 Direct3D 11 장치 컨텍스트입니다.
          * @param[in] Proxy 이번 드로의 프리미티브 상태입니다.
          * @param[in] View 카메라 행렬과 뷰포트 크기입니다.
-         * @return 검증 또는 요청한 처리에 성공하면 true입니다.
+         * @return 성공하면 true, 실패하면 false입니다.
          */
         bool Draw(ID3D11DeviceContext* Context, const Engine::FPrimitiveSceneProxy& Proxy, const Engine::FSceneView& View);
 

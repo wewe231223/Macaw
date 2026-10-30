@@ -78,7 +78,7 @@ namespace Engine {
         ReflectProperty(mMesh, "Mesh", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
-         * @brief UTF-8 문자열입니다.
+         * @brief 텍스트 컴포넌트가 그릴 텍스트 요청이며, 텍스트가 없는 프리미티브는 비어 있습니다.
          */
         std::optional<Engine::FDrawText> mText{};
         ReflectProperty(mText, "Text", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);

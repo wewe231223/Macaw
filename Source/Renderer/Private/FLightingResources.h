@@ -73,7 +73,7 @@ namespace Renderer {
         /**
          * @brief 현재 뷰의 타일 광원 목록과 카메라 상수를 GPU에 업로드합니다.
          * @param[in] Device GPU 자원 생성에 사용할 Direct3D 장치의 비소유 주소입니다.
-         * @param[in] Context GPU 자원 업로드 또는 바인딩에 사용할 Direct3D 컨텍스트의 비소유 주소입니다.
+         * @param[in] Context 명령을 기록할 Direct3D 11 장치 컨텍스트의 비소유 주소입니다.
          * @param[in] Lights 렌더 장면에 등록된 원본 광원 프록시 목록입니다.
          * @param[in] View 카메라 행렬·위치와 출력 크기를 가진 뷰입니다.
          * @param[in] ShadowRanges 원본 광원 순서의 그림자 맵 시작 인덱스·개수이며 빈 범위면 그림자를 연결하지 않습니다.
@@ -83,13 +83,13 @@ namespace Renderer {
 
         /**
          * @brief 타일 조명 버퍼와 상수의 셰이더 바인딩을 설정합니다.
-         * @param[in] Context GPU 자원 업로드 또는 바인딩에 사용할 Direct3D 컨텍스트의 비소유 주소입니다.
+         * @param[in] Context 명령을 기록할 Direct3D 11 장치 컨텍스트의 비소유 주소입니다.
          */
         void Bind(ID3D11DeviceContext* Context) const;
 
         /**
          * @brief 타일 조명 버퍼와 상수의 셰이더 바인딩을 해제합니다.
-         * @param[in] Context GPU 자원 업로드 또는 바인딩에 사용할 Direct3D 컨텍스트의 비소유 주소입니다.
+         * @param[in] Context 명령을 기록할 Direct3D 11 장치 컨텍스트의 비소유 주소입니다.
          */
         void Unbind(ID3D11DeviceContext* Context) const;
 
@@ -102,11 +102,11 @@ namespace Renderer {
     private:
         /**
          * @brief 필요하면 구조화 버퍼를 확장하고 원소 데이터를 업로드합니다.
-         * @param[in] Device GPU 자원 생성에 사용할 Direct3D 장치의 비소유 주소입니다.
-         * @param[in] Context GPU 자원 업로드 또는 바인딩에 사용할 Direct3D 컨텍스트의 비소유 주소입니다.
-         * @param[in] Index 처리할 버퍼 또는 아틀라스 노드의 배열 인덱스입니다.
+         * @param[in] Context 버퍼를 갱신할 Direct3D 11 장치 컨텍스트입니다.
+         * @param[in] Context 명령을 기록할 Direct3D 11 장치 컨텍스트의 비소유 주소입니다.
+         * @param[in] Index 갱신할 구조화 버퍼의 번호입니다.
          * @param[in] Data 업로드할 CPU 원소 데이터의 비소유 주소입니다.
-         * @param[in] Count 처리할 원소 또는 캐스케이드의 개수입니다.
+         * @param[in] Count 업로드할 원소 개수입니다.
          * @param[in] Stride 구조화 버퍼 원소 하나의 바이트 수입니다.
          * @return 필요한 버퍼 생성과 데이터 업로드에 성공하면 true입니다.
          */

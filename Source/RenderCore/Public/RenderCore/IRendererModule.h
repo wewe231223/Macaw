@@ -52,8 +52,8 @@ namespace RenderCore {
         /**
          * @brief Direct3D 11 장치, 스왑 체인과 렌더 파이프라인을 준비합니다.
          * @param[in] WindowHandle 렌더링할 네이티브 Win32 창 핸들입니다.
-         * @param[in] Width 클라이언트 영역 또는 타깃의 가로 픽셀 수입니다.
-         * @param[in] Height 클라이언트 영역 또는 타깃의 세로 픽셀 수입니다.
+         * @param[in] Width 창 클라이언트 영역의 가로 픽셀 수입니다.
+         * @param[in] Height 창 클라이언트 영역의 세로 픽셀 수입니다.
          * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
          */
         virtual bool Initialize(void* WindowHandle, Core::Uint32 Width, Core::Uint32 Height) = 0;
@@ -65,13 +65,13 @@ namespace RenderCore {
 
         /**
          * @brief 렌더러 장치를 참조하는 새로운 렌더 장면을 생성합니다.
-         * @return 생성한 객체의 단독 소유권이며, 생성 또는 검증 실패 시 nullptr입니다.
+         * @return 생성한 객체의 단독 소유권이며, 실패하면 nullptr입니다.
          */
         virtual std::unique_ptr<Engine::FSceneInterface> AllocateScene() = 0;
 
         /**
          * @brief CPU 메시를 종류별 GPU 정점·인덱스 버퍼에 업로드합니다.
-         * @param[in] Type 생성, 조회 또는 표시할 타입입니다.
+         * @param[in] Type 기본 프리미티브 종류입니다.
          * @param[in] Mesh 업로드할 CPU 메시입니다.
          * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
          */
@@ -79,25 +79,25 @@ namespace RenderCore {
 
         /**
          * @brief 지정한 픽셀 크기의 오프스크린 렌더 타깃을 생성합니다.
-         * @param[in] Width 클라이언트 영역 또는 타깃의 가로 픽셀 수입니다.
-         * @param[in] Height 클라이언트 영역 또는 타깃의 세로 픽셀 수입니다.
-         * @return 생성한 객체의 단독 소유권이며, 생성 또는 검증 실패 시 nullptr입니다.
+         * @param[in] Width 렌더 타깃의 가로 픽셀 수입니다.
+         * @param[in] Height 렌더 타깃의 세로 픽셀 수입니다.
+         * @return 생성한 객체의 단독 소유권이며, 실패하면 nullptr입니다.
          */
         virtual std::unique_ptr<Engine::FRenderTarget> CreateRenderTarget(Core::Uint32 Width, Core::Uint32 Height) = 0;
 
         /**
          * @brief 기존 오프스크린 렌더 타깃을 새 픽셀 크기로 변경합니다.
-         * @param[in,out] Target 렌더 타깃 또는 셰이더 컴파일 프로파일입니다.
-         * @param[in] Width 클라이언트 영역 또는 타깃의 가로 픽셀 수입니다.
-         * @param[in] Height 클라이언트 영역 또는 타깃의 세로 픽셀 수입니다.
+         * @param[in,out] Target 크기를 바꿀 렌더 타깃입니다.
+         * @param[in] Width 렌더 타깃의 가로 픽셀 수입니다.
+         * @param[in] Height 렌더 타깃의 세로 픽셀 수입니다.
          * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
          */
         virtual bool ResizeRenderTarget(Engine::FRenderTarget* Target, Core::Uint32 Width, Core::Uint32 Height) = 0;
 
         /**
          * @brief 백 버퍼 크기를 동기화하고 프레임 렌더링 통계를 초기화합니다.
-         * @param[in] Width 클라이언트 영역 또는 타깃의 가로 픽셀 수입니다.
-         * @param[in] Height 클라이언트 영역 또는 타깃의 세로 픽셀 수입니다.
+         * @param[in] Width 창 클라이언트 영역의 가로 픽셀 수입니다.
+         * @param[in] Height 창 클라이언트 영역의 세로 픽셀 수입니다.
          */
         virtual void BeginFrame(Core::Uint32 Width, Core::Uint32 Height) = 0;
 
@@ -168,7 +168,7 @@ namespace RenderCore {
 
         /**
          * @brief 폰트 메트릭으로 텍스트의 로컬 평면 경계를 계산합니다.
-         * @param[in] Text 표시하거나 측정할 UTF-8 문자열 또는 텍스트 요청입니다.
+         * @param[in] Text UTF-8 문자열입니다.
          * @param[out] Minimum 계산한 최소 경계 좌표입니다.
          * @param[out] Maximum 계산한 최대 경계 좌표입니다.
          * @return 조건을 만족하면 true입니다.

@@ -31,9 +31,9 @@ namespace Engine {
     namespace {
         /**
          * @brief 월드의 활성 카메라와 입력 대상 참조를 저장하거나 검증하여 복원합니다.
-         * @param[in,out] Archive 로드 또는 저장 모드와 오류 상태를 제공하는 아카이브입니다.
-         * @param[in] World 조회·설정 또는 직렬화할 월드입니다.
-         * @param[in,out] Objects 수집할 객체 목록 또는 GUID별 비소유 객체 대응표입니다.
+         * @param[in,out] Archive 모드에 따라 값을 읽거나 쓸 아카이브입니다.
+         * @param[in] World 참조를 저장하거나 복원할 월드입니다.
+         * @param[in,out] Objects GUID별 객체 대응표이며 참조 복원에 사용합니다.
          */
         void SerializeWorldReferences(Core::FArchive& Archive, Engine::UWorld* World, Core::TMap<Core::FGuid, CoreUObject::UObject*, Core::FGuidHash>* Objects) {
             constexpr const char* Names[]{"ActiveCamera", "InputTarget"};
@@ -76,25 +76,9 @@ namespace Engine {
 
         /**
          * @brief 객체의 클래스 이름과 식별 프로퍼티를 직렬화합니다.
-         * @param[in,out] Archive 로드 또는 저장 모드를 가진 아카이브입니다.
+         * @param[in,out] Archive 모드에 따라 값을 읽거나 쓸 아카이브입니다.
          * @param[in,out] Object 대상 객체입니다.
          * @param[in,out] Objects 장면 내부 참조를 복원할 비소유 대응표입니다.
-         */
-        /**
-         * @par 이전 복제 구현의 설명
-         * @verbatim
-         * @brief 객체 식별자와 Transient를 제외한 리플렉션 프로퍼티를 복사합니다.
-         * @endverbatim
-         */
-        /**
-         * @par 이전 복제 구현의 설명
-         * @verbatim
-         * @brief 객체 식별자와 Transient를 제외한 리플렉션 프로퍼티를 복사합니다.
-         * @param[in] Source 읽을 원본 객체입니다.
-         * @param[in,out] Destination 같은 클래스의 복제 대상입니다.
-         * @param[out] Error 복사할 수 없는 프로퍼티의 진단입니다.
-         * @return 대상 프로퍼티를 모두 복사하면 true입니다.
-         * @endverbatim
          */
         void SerializeHeader(Core::FArchive& Archive, CoreUObject::UObject* Object, Core::TMap<Core::FGuid, CoreUObject::UObject*, Core::FGuidHash>* Objects) {
             Core::FString ClassName{Object->GetClass()->GetName()};
@@ -114,26 +98,10 @@ namespace Engine {
 
         /**
          * @brief 저장된 클래스가 예상 타입을 상속하는지 검사하고 객체를 생성·등록합니다.
-         * @param[in,out] Archive 로드 또는 저장 모드를 가진 아카이브입니다.
+         * @param[in,out] Archive 모드에 따라 값을 읽거나 쓸 아카이브입니다.
          * @param[in,out] Objects 이 장면에서 읽거나 저장한 객체의 비소유 대응표입니다.
-         * @param[in] Expected Expected에 적용할 입력 값입니다.
-         * @return 생성한 객체의 단독 소유권이며, 생성 또는 검증 실패 시 nullptr입니다.
-         */
-        /**
-         * @par 이전 복제 구현의 설명
-         * @verbatim
-         * @brief 원본 클래스의 객체를 생성하고 등록한 뒤 프로퍼티를 복사합니다.
-         * @endverbatim
-         */
-        /**
-         * @par 이전 복제 구현의 설명
-         * @verbatim
-         * @brief 원본 클래스의 객체를 생성하고 등록한 뒤 프로퍼티를 복사합니다.
-         * @param[in] Source 생성할 클래스와 복사 값을 제공하는 원본입니다.
-         * @param[in,out] Duplication 원본과 새 객체의 대응 관계를 추가할 표입니다.
-         * @param[out] Error 생성, 등록 또는 프로퍼티 복사의 실패 원인입니다.
-         * @return 새 객체의 단독 소유권이며 실패하면 nullptr입니다.
-         * @endverbatim
+         * @param[in] Expected 생성할 객체가 상속해야 하는 기반 클래스입니다.
+         * @return 생성한 객체의 단독 소유권이며, 실패하면 nullptr입니다.
          */
         std::unique_ptr<CoreUObject::UObject> CreateSerializedObject(Core::FArchive& Archive, Core::TMap<Core::FGuid, CoreUObject::UObject*, Core::FGuidHash>* Objects, const CoreUObject::UClass* Expected) {
             Core::FString ClassName{};
@@ -170,8 +138,8 @@ namespace Engine {
 
         /**
          * @brief 액터의 컴포넌트 목록과 장면 내부 참조를 직렬화합니다.
-         * @param[in,out] Archive 로드 또는 저장 모드를 가진 아카이브입니다.
-         * @param[in,out] Actor 생성, 편집 또는 직렬화할 액터입니다.
+         * @param[in,out] Archive 모드에 따라 값을 읽거나 쓸 아카이브입니다.
+         * @param[in,out] Actor 컴포넌트를 저장하거나 불러온 컴포넌트를 추가할 액터입니다.
          * @param[in,out] Objects 이 장면에서 읽거나 저장한 객체의 비소유 대응표입니다.
          */
         void SerializeComponents(Core::FArchive& Archive, Engine::AActor* Actor, Core::TMap<Core::FGuid, CoreUObject::UObject*, Core::FGuidHash>* Objects) {
@@ -233,10 +201,10 @@ namespace Engine {
 
         /**
          * @brief 액터 배열과 컴포넌트를 직렬화하고 로드한 객체의 소유권을 모읍니다.
-         * @param[in,out] Archive 로드 또는 저장 모드와 오류 상태를 제공하는 아카이브입니다.
+         * @param[in,out] Archive 모드에 따라 값을 읽거나 쓸 아카이브입니다.
          * @param[in] Sources 저장할 원본 액터의 비소유 주소 목록입니다.
          * @param[in,out] Actors 직렬화하거나 수집할 액터 목록입니다.
-         * @param[in,out] Objects 수집할 객체 목록 또는 GUID별 비소유 객체 대응표입니다.
+         * @param[in,out] Objects 저장하거나 불러온 객체를 GUID별로 기록할 대응표입니다.
          */
         void SerializeActors(Core::FArchive& Archive, const Core::TArray<Engine::AActor*>& Sources, Core::TArray<std::unique_ptr<Engine::AActor>>& Actors, Core::TMap<Core::FGuid, CoreUObject::UObject*, Core::FGuidHash>* Objects) {
             Core::Uint32 Count{static_cast<Core::Uint32>(Sources.size())};

@@ -1,6 +1,6 @@
 /**
  * @file UProjectileMovementComponent.h
- * @brief PIE 월드에서만 초기 속도·중력·최대 속도에 따라 소유 액터를 이동하는 발사체 컴포넌트입니다.
+ * @brief Game과 PIE 월드에서 초기 속도·중력·최대 속도에 따라 소유 액터를 이동하는 발사체 컴포넌트입니다.
  * @ingroup Engine
  */
 
@@ -12,7 +12,7 @@
 namespace Engine {
 
     /**
-     * @brief PIE 월드에서만 초기 속도·중력·최대 속도에 따라 소유 액터를 이동하는 발사체 컴포넌트입니다.
+     * @brief Game과 PIE 월드에서 초기 속도·중력·최대 속도에 따라 소유 액터를 이동하는 발사체 컴포넌트입니다.
      */
     class UProjectileMovementComponent final : public Engine::UActorComponent {
     public:
@@ -43,7 +43,7 @@ namespace Engine {
          */
         void BeginPlay() override;
         /**
-         * @brief PIE에서 중력·최대 속도를 반영하여 하위 시간 간격으로 적분하고 필요 시 속도 방향으로 회전합니다.
+         * @brief Game과 PIE에서 중력·최대 속도를 반영하여 하위 시간 간격으로 적분하고 필요 시 속도 방향으로 회전합니다.
          * @param[in] DeltaTime 이번 갱신에서 적분할 유한한 초 단위 시간입니다.
          */
         void Tick(float DeltaTime) override;

@@ -53,7 +53,7 @@ namespace Renderer {
         ReflectProperty(mY, "Y", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
-         * @brief 아틀라스 또는 할당 블록 한 변의 픽셀 수입니다.
+         * @brief 할당 블록 한 변의 픽셀 수입니다.
          */
         Core::Uint32 mSize{};
         ReflectProperty(mSize, "Size", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
@@ -154,7 +154,7 @@ namespace Renderer {
 
         /**
          * @brief 지정한 노드에서 빈 영역을 찾고 필요하면 사분할하여 할당합니다.
-         * @param[in] Index 처리할 버퍼 또는 아틀라스 노드의 배열 인덱스입니다.
+         * @param[in] Index 할당을 시도할 쿼드트리 노드의 인덱스입니다.
          * @param[in] Size 할당할 한 변의 픽셀 수이며 0이 아닌 2의 거듭제곱이어야 합니다.
          * @return 할당된 블록이며 해당 하위 트리에 공간이 없으면 std::nullopt입니다.
          */
@@ -162,7 +162,7 @@ namespace Renderer {
 
     private:
         /**
-         * @brief 아틀라스 또는 할당 블록 한 변의 픽셀 수입니다.
+         * @brief 아틀라스 한 변의 픽셀 수입니다.
          */
         Core::Uint32 mSize{};
         ReflectProperty(mSize, "Size", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);

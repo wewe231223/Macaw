@@ -33,7 +33,7 @@ namespace Engine {
          * @param[in] Material 텍스처 슬롯을 조회할 원본 Assimp 재질입니다.
          * @param[in] PrimaryType 우선 조회할 Assimp 재질 텍스처 슬롯 종류입니다.
          * @param[in] FallbackType 우선 슬롯이 없을 때 조회할 대체 텍스처 슬롯 종류입니다.
-         * @param[in] Directory 대상 에셋 또는 원본 텍스처의 기준 디렉터리입니다.
+         * @param[in] Directory 상대 텍스처 경로를 해석할 원본 파일의 폴더입니다.
          * @return 참조가 없으면 None이며 나머지는 출처를 구분한 텍스처 참조 값입니다.
          */
         Engine::FMeshImportTexture ReadTexture(const aiScene& Scene, const aiMaterial& Material, aiTextureType PrimaryType, aiTextureType FallbackType, const std::filesystem::path& Directory) {

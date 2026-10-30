@@ -44,7 +44,7 @@ namespace Core {
     public:
         /**
          * @brief FArchive의 초기 상태와 전달받은 의존성을 구성합니다.
-         * @param[in] Mode 로드·저장 또는 기즈모 동작 모드입니다.
+         * @param[in] Mode 로드 또는 저장 모드입니다.
          */
         explicit FArchive(Core::EArchiveMode Mode);
 
@@ -106,7 +106,7 @@ namespace Core {
 
         /**
          * @brief 아카이브에 처음 발생한 오류 메시지를 보관합니다.
-         * @param[in] Message 보고할 내용 또는 Windows 메시지 번호입니다.
+         * @param[in] Message 기록할 오류 메시지입니다.
          */
         void SetError(const Core::FString& Message);
 

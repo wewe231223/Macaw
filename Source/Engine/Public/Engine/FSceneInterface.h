@@ -76,8 +76,8 @@ namespace Engine {
         /**
          * @brief 지정한 프리미티브의 월드 행렬과 경계 상자를 갱신합니다.
          * @param[in] Id 장면 프리미티브의 식별자입니다.
-         * @param[in] World 연결할 월드 또는 적용할 월드 행렬입니다.
-         * @param[in] Bounds 프리미티브의 월드 또는 로컬 경계 상자입니다.
+         * @param[in] World 프리미티브의 새 월드 변환 행렬입니다.
+         * @param[in] Bounds 프리미티브의 새 월드 경계 상자입니다.
          */
         virtual void UpdatePrimitiveTransform(const Core::FGuid& Id, const Core::FMatrix& World, const Core::FBox& Bounds) = 0;
 

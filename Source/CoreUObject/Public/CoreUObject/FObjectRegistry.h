@@ -79,13 +79,13 @@ namespace CoreUObject {
         ~FObjectRegistry();
 
         /**
-         * @brief 고유한 객체 수명을 유지하기 위해 복사 또는 이동 생성을 금지합니다.
+         * @brief 레지스트리에 등록된 고유 객체이므로 복사·이동 생성을 금지합니다.
          */
         FObjectRegistry(const CoreUObject::FObjectRegistry&) = delete;
 
         /**
          * @brief 고유한 객체 수명을 유지하기 위해 대입을 금지합니다.
-         * @return 소유 객체가 유지하는 값의 참조입니다.
+         * @return 갱신된 자기 자신(*this)의 참조입니다.
          */
         CoreUObject::FObjectRegistry& operator=(const CoreUObject::FObjectRegistry&) = delete;
 
@@ -104,7 +104,7 @@ namespace CoreUObject {
 
         /**
          * @brief 핸들의 슬롯 범위와 세대가 일치하는 객체를 조회합니다.
-         * @param[in] Handle 조회 또는 제거할 객체의 슬롯 세대 핸들입니다.
+         * @param[in] Handle 조회할 객체 핸들입니다.
          * @return 조회한 값의 비소유 주소이며, 해당 값이 없으면 nullptr입니다.
          */
         CoreUObject::UObject* Resolve(CoreUObject::FObjectHandle Handle) const;
@@ -112,8 +112,8 @@ namespace CoreUObject {
         /**
          * @brief 동일 Outer 범위에서 FName이 같은 첫 유효 객체를 조회합니다.
          * @param[in] Name 조회하거나 설정할 이름입니다.
-         * @param[out] Outer 이름 범위의 상위 객체이며 소유권을 이전하지 않습니다.
-         * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며 사용할 수 없으면 nullptr입니다.
+         * @param[in] Outer 이름을 찾을 범위의 상위 객체이며, nullptr이면 Outer가 없는 객체를 찾습니다.
+         * @return 대상의 비소유 주소이며, 없거나 유효하지 않으면 nullptr입니다.
          */
         CoreUObject::UObject* FindObject(const Core::FName& Name, const CoreUObject::UObject* Outer) const;
 

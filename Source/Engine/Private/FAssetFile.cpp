@@ -38,7 +38,7 @@ namespace Engine {
 
         /**
          * @brief 에셋 파일을 열고 매직·버전·종류·데이터 크기를 검증합니다.
-         * @param[in] Path 조회·로드·저장 또는 정규화할 파일 경로입니다.
+         * @param[in] Path 열 에셋 파일의 경로입니다.
          * @param[in,out] Input 검증할 에셋 파일을 열고 헤더를 읽을 입력 스트림입니다.
          * @param[out] Type 에셋 파일에 기록하거나 검사할 종류입니다.
          * @param[out] Size 처리할 데이터의 바이트 수입니다.

@@ -35,7 +35,7 @@ namespace Editor {
     public:
         /**
          * @brief FDetailsPanel의 초기 상태와 전달받은 의존성을 구성합니다.
-         * @param[in,out] Context 패널 또는 뷰포트가 공유할 편집 컨텍스트입니다.
+         * @param[in,out] Context 패널이 조회하고 편집할 에디터 컨텍스트입니다.
          */
         explicit FDetailsPanel(Editor::FEditorContext* Context);
 
@@ -78,7 +78,7 @@ namespace Editor {
 
         /**
          * @brief 프로퍼티 타입에 맞는 편집 위젯을 표시하고 변경한 값을 돌려줍니다.
-         * @param[in] Property 읽기, 쓰기 또는 알림을 적용할 프로퍼티 메타데이터입니다.
+         * @param[in] Property 그릴 값의 프로퍼티 메타데이터입니다.
          * @param[in,out] Value 프로퍼티 타입에 대응하는 variant 값입니다.
          * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
          */

@@ -35,27 +35,27 @@ namespace Core {
 
         /**
          * @brief 상대 값의 상태로 객체를 복사하거나 이동 생성합니다.
-         * @param[in] Other 비교, 복사 또는 연산할 상대 값입니다.
+         * @param[in] Other 복사할 원본 값입니다.
          */
         FGuid(const Core::FGuid& Other) = default;
 
         /**
          * @brief 상대 값의 상태를 대입합니다.
-         * @param[in] Other 비교, 복사 또는 연산할 상대 값입니다.
-         * @return 소유 객체가 유지하는 값의 참조입니다.
+         * @param[in] Other 복사할 원본 값입니다.
+         * @return 갱신된 자기 자신(*this)의 참조입니다.
          */
         Core::FGuid& operator=(const Core::FGuid& Other) = default;
 
         /**
          * @brief 상대 값의 상태로 객체를 복사하거나 이동 생성합니다.
-         * @param[in] Other 비교, 복사 또는 연산할 상대 값입니다.
+         * @param[in] Other 이동할 원본 값입니다.
          */
         FGuid(Core::FGuid&& Other) noexcept = default;
 
         /**
          * @brief 상대 값의 상태를 대입합니다.
-         * @param[in] Other 비교, 복사 또는 연산할 상대 값입니다.
-         * @return 소유 객체가 유지하는 값의 참조입니다.
+         * @param[in] Other 이동할 원본 값입니다.
+         * @return 갱신된 자기 자신(*this)의 참조입니다.
          */
         Core::FGuid& operator=(Core::FGuid&& Other) noexcept = default;
 
@@ -69,7 +69,7 @@ namespace Core {
         /**
          * @brief GUID 문자열을 검증하여 결과에 기록합니다.
          * @param[in] Text 파싱하거나 버퍼에 복사할 문자열입니다.
-         * @param[in,out] Result 변환 또는 파싱이 성공한 경우 결과를 기록합니다.
+         * @param[out] Result 파싱한 GUID를 받을 출력 값입니다.
          * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
          * @note 실패하면 Result를 유효한 GUID로 사용할 수 없습니다.
          */
@@ -88,8 +88,8 @@ namespace Core {
         bool IsValid() const;
 
         /**
-         * @brief 저장된 성분 또는 식별 상태가 정확히 같은지 검사합니다.
-         * @param[in] Other 비교, 복사 또는 연산할 상대 값입니다.
+         * @brief 16바이트 GUID 값이 모두 같은지 검사합니다.
+         * @param[in] Other 비교할 상대 값입니다.
          * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
          */
         bool operator==(const Core::FGuid& Other) const;
@@ -102,7 +102,7 @@ namespace Core {
 
     public:
         /**
-         * @brief 바이트 저장소 또는 사용량입니다.
+         * @brief GUID의 16바이트 값입니다.
          */
         std::array<Core::Uint8, 16> mBytes{};
         ReflectProperty(mBytes, "Bytes", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);

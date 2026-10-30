@@ -90,7 +90,7 @@ namespace Core {
     }
 
     /**
-     * @brief 저장된 성분 또는 식별 상태가 정확히 같은지 검사합니다.
+     * @brief 16바이트 GUID 값이 모두 같은지 검사합니다.
      */
     bool Core::FGuid::operator==(const Core::FGuid& Other) const {
         return mBytes == Other.mBytes;

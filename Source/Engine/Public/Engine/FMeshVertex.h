@@ -37,13 +37,13 @@ namespace Engine {
 
     public:
         /**
-         * @brief 정점 또는 충돌 위치입니다.
+         * @brief 정점 위치입니다.
          */
         Core::FVector mPosition{};
         ReflectProperty(mPosition, "Position", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
-         * @brief 표면 또는 드래그 평면 법선입니다.
+         * @brief 정점 법선입니다.
          */
         Core::FVector mNormal{};
         ReflectProperty(mNormal, "Normal", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);

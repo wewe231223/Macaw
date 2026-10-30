@@ -36,7 +36,7 @@ namespace Serialization {
     public:
         /**
          * @brief FJsonArchive의 초기 상태와 전달받은 의존성을 구성합니다.
-         * @param[in] Mode 로드·저장 또는 기즈모 동작 모드입니다.
+         * @param[in] Mode 로드 또는 저장 모드입니다.
          */
         explicit FJsonArchive(Core::EArchiveMode Mode);
 
@@ -46,13 +46,13 @@ namespace Serialization {
         ~FJsonArchive() override;
 
         /**
-         * @brief 고유한 객체 수명을 유지하기 위해 복사 또는 이동 생성을 금지합니다.
+         * @brief 레지스트리에 등록된 고유 객체이므로 복사·이동 생성을 금지합니다.
          */
         FJsonArchive(const Serialization::FJsonArchive&) = delete;
 
         /**
          * @brief 고유한 객체 수명을 유지하기 위해 대입을 금지합니다.
-         * @return 소유 객체가 유지하는 값의 참조입니다.
+         * @return 갱신된 자기 자신(*this)의 참조입니다.
          */
         Serialization::FJsonArchive& operator=(const Serialization::FJsonArchive&) = delete;
 

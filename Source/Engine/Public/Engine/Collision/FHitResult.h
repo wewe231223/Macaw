@@ -41,7 +41,7 @@ namespace Engine {
     public:
         /**
          * @brief 이 타입의 정적 리플렉션 메타데이터를 반환합니다.
-         * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며 사용할 수 없으면 nullptr입니다.
+         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
          */
         ReflectStruct(FHitResult);
 
@@ -52,20 +52,20 @@ namespace Engine {
 
         /**
          * @brief 추적 시작·끝 위치와 빈 충돌 결과를 초기화합니다.
-         * @param[in] Start 추적 또는 선분의 시작점입니다.
-         * @param[in] End 추적 또는 선분의 끝점입니다.
+         * @param[in] Start 추적 시작점입니다.
+         * @param[in] End 추적 끝점입니다.
          */
         void Init(const Core::FVector& Start, const Core::FVector& End);
 
         /**
          * @brief 적중한 액터의 비소유 주소를 반환합니다.
-         * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며 사용할 수 없으면 nullptr입니다.
+         * @return 대상의 비소유 주소이며, 없거나 유효하지 않으면 nullptr입니다.
          */
         Engine::AActor* GetActor() const;
 
         /**
          * @brief 적중한 프리미티브 컴포넌트의 비소유 주소를 반환합니다.
-         * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며 사용할 수 없으면 nullptr입니다.
+         * @return 대상의 비소유 주소이며, 없거나 유효하지 않으면 nullptr입니다.
          */
         Engine::UPrimitiveComponent* GetComponent() const;
 

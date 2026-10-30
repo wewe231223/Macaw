@@ -47,8 +47,8 @@ namespace CoreUObject {
         /**
          * @brief FProperty의 초기 상태와 전달받은 의존성을 구성합니다.
          * @param[in] Name 조회하거나 기록할 이름입니다.
-         * @param[in] Type 생성, 조회 또는 표시할 타입입니다.
-         * @param[in] Flags 타입 또는 프로퍼티의 정책 비트 플래그입니다.
+         * @param[in] Type 프로퍼티 값의 저장 형식입니다.
+         * @param[in] Flags 프로퍼티의 편집·직렬화 정책 플래그입니다.
          * @param[in] Reader 컨테이너에서 값을 읽는 콜백입니다.
          * @param[in] Writer 컨테이너에 값을 쓰는 콜백입니다.
          * @param[in] Struct 복합 프로퍼티의 선택적인 구조체 메타데이터입니다.
@@ -66,7 +66,7 @@ namespace CoreUObject {
         ReflectStruct(FProperty);
 
         /**
-         * @brief 이름 또는 표시 문자열을 반환합니다.
+         * @brief 프로퍼티 이름을 반환합니다.
          * @return 소유 객체가 유지하는 값의 참조입니다.
          */
         const Core::FString& GetName() const;
@@ -85,7 +85,7 @@ namespace CoreUObject {
 
         /**
          * @brief 요청한 프로퍼티 플래그가 설정되어 있는지 검사합니다.
-         * @param[in] Flag Flag에 적용할 입력 값입니다.
+         * @param[in] Flag 검사할 플래그 비트입니다.
          * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
          */
         bool HasFlag(Core::EPropertyFlags Flag) const;
@@ -105,7 +105,7 @@ namespace CoreUObject {
         /**
          * @brief 컨테이너에 등록된 읽기 함수를 호출하여 프로퍼티 값을 가져옵니다.
          * @param[in] Container 프로퍼티 소유 타입의 유효한 인스턴스 주소입니다.
-         * @return 연산을 적용한 새 값입니다.
+         * @return 읽은 프로퍼티 값입니다.
          */
         CoreUObject::FPropertyValue ReadValue(const void* Container) const;
 
@@ -131,7 +131,7 @@ namespace CoreUObject {
         /**
          * @brief 프로퍼티의 저장 정책과 타입에 맞추어 값을 직렬화합니다.
          * @param[in] Container 프로퍼티 소유 타입의 유효한 인스턴스 주소입니다.
-         * @param[in,out] Archive 로드 또는 저장 모드를 가진 아카이브입니다.
+         * @param[in,out] Archive 모드에 따라 값을 읽거나 쓸 아카이브입니다.
          */
         void SerializeValue(void* Container, Core::FArchive& Archive) const;
 
@@ -154,7 +154,7 @@ namespace CoreUObject {
 
     private:
         /**
-         * @brief 이름 또는 표시 문자열입니다.
+         * @brief 프로퍼티 이름입니다.
          */
         Core::FString mName{};
         ReflectProperty(mName, "Name", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);

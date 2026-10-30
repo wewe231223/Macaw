@@ -46,7 +46,7 @@ namespace Core {
 
         /**
          * @brief FRotator의 초기 상태와 전달받은 의존성을 구성합니다.
-         * @param[in] Rotation 적용할 오일러 또는 쿼터니언 회전입니다.
+         * @param[in] Rotation 적용할 단위 쿼터니언 회전입니다.
          */
         explicit FRotator(const Core::FQuat& Rotation);
 
@@ -65,27 +65,27 @@ namespace Core {
 
         /**
          * @brief 상대 값의 상태로 객체를 복사하거나 이동 생성합니다.
-         * @param[in] Other 비교, 복사 또는 연산할 상대 값입니다.
+         * @param[in] Other 복사할 원본 값입니다.
          */
         FRotator(const Core::FRotator& Other) = default;
 
         /**
          * @brief 상대 값의 상태를 대입합니다.
-         * @param[in] Other 비교, 복사 또는 연산할 상대 값입니다.
-         * @return 소유 객체가 유지하는 값의 참조입니다.
+         * @param[in] Other 복사할 원본 값입니다.
+         * @return 갱신된 자기 자신(*this)의 참조입니다.
          */
         Core::FRotator& operator=(const Core::FRotator& Other) = default;
 
         /**
          * @brief 상대 값의 상태로 객체를 복사하거나 이동 생성합니다.
-         * @param[in] Other 비교, 복사 또는 연산할 상대 값입니다.
+         * @param[in] Other 이동할 원본 값입니다.
          */
         FRotator(Core::FRotator&& Other) noexcept = default;
 
         /**
          * @brief 상대 값의 상태를 대입합니다.
-         * @param[in] Other 비교, 복사 또는 연산할 상대 값입니다.
-         * @return 소유 객체가 유지하는 값의 참조입니다.
+         * @param[in] Other 이동할 원본 값입니다.
+         * @return 갱신된 자기 자신(*this)의 참조입니다.
          */
         Core::FRotator& operator=(Core::FRotator&& Other) noexcept = default;
 
@@ -98,69 +98,69 @@ namespace Core {
 
         /**
          * @brief 대응 성분을 더한 값을 반환합니다.
-         * @param[in] Other 비교, 복사 또는 연산할 상대 값입니다.
+         * @param[in] Other 더할 값입니다.
          * @return 연산을 적용한 새 값입니다.
          */
         Core::FRotator operator+(const Core::FRotator& Other) const;
 
         /**
-         * @brief 성분의 부호를 반전하거나 상대 값을 뺍니다.
-         * @param[in] Other 비교, 복사 또는 연산할 상대 값입니다.
+         * @brief 대응 성분끼리 뺀 값을 반환합니다.
+         * @param[in] Other 뺄 값입니다.
          * @return 연산을 적용한 새 값입니다.
          */
         Core::FRotator operator-(const Core::FRotator& Other) const;
 
         /**
-         * @brief 성분의 부호를 반전하거나 상대 값을 뺍니다.
+         * @brief 모든 성분의 부호를 반전한 값을 반환합니다.
          * @return 연산을 적용한 새 값입니다.
          */
         Core::FRotator operator-() const;
 
         /**
          * @brief 각 성분에 스칼라 값을 곱합니다.
-         * @param[in] Value 입력 값입니다.
+         * @param[in] Value 각 성분에 곱할 스칼라 값입니다.
          * @return 연산을 적용한 새 값입니다.
          */
         Core::FRotator operator*(float Value) const;
 
         /**
-         * @brief 성분별 또는 스칼라 나눗셈 결과를 반환합니다.
-         * @param[in] Value 입력 값입니다.
+         * @brief 각 성분을 스칼라 값으로 나눈 결과를 반환합니다.
+         * @param[in] Value 각 성분을 나눌 스칼라 값입니다.
          * @return 연산을 적용한 새 값입니다.
          */
         Core::FRotator operator/(float Value) const;
 
         /**
          * @brief 대응 성분을 현재 값에 더합니다.
-         * @param[in] Other 비교, 복사 또는 연산할 상대 값입니다.
-         * @return 소유 객체가 유지하는 값의 참조입니다.
+         * @param[in] Other 더할 값입니다.
+         * @return 갱신된 자기 자신(*this)의 참조입니다.
          */
         Core::FRotator& operator+=(const Core::FRotator& Other);
 
         /**
          * @brief 대응 성분을 현재 값에서 뺍니다.
-         * @param[in] Other 비교, 복사 또는 연산할 상대 값입니다.
-         * @return 소유 객체가 유지하는 값의 참조입니다.
+         * @param[in] Other 뺄 값입니다.
+         * @return 갱신된 자기 자신(*this)의 참조입니다.
          */
         Core::FRotator& operator-=(const Core::FRotator& Other);
 
         /**
          * @brief 각 성분에 스칼라 값을 곱합니다.
-         * @param[in] Value 입력 값입니다.
-         * @return 소유 객체가 유지하는 값의 참조입니다.
+         * @param[in] Value 각 성분에 곱할 스칼라 값입니다.
+         * @return 갱신된 자기 자신(*this)의 참조입니다.
          */
         Core::FRotator& operator*=(float Value);
 
         /**
-         * @brief 나눗셈 결과를 현재 값에 반영합니다.
-         * @param[in] Value 입력 값입니다.
-         * @return 소유 객체가 유지하는 값의 참조입니다.
+         * @brief 각 성분을 스칼라 값으로 나누어 현재 값에 반영합니다.
+         * @param[in] Value 각 성분을 나눌 스칼라 값입니다.
+         * @return 갱신된 자기 자신(*this)의 참조입니다.
          */
         Core::FRotator& operator/=(float Value);
 
         /**
-         * @brief 저장된 성분 또는 식별 상태가 정확히 같은지 검사합니다.
-         * @param[in] Other 비교, 복사 또는 연산할 상대 값입니다.
+         * @brief 모든 성분이 허용 오차 없이 정확히 같은지 검사합니다.
+         * @param[in] Other 비교할 상대 값입니다.
          * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
          */
         bool operator==(const Core::FRotator& Other) const;
@@ -222,14 +222,14 @@ namespace Core {
 
         /**
          * @brief 상대 회전과의 오일러 각 차이를 정규화하여 반환합니다.
-         * @param[in] Other 비교, 복사 또는 연산할 상대 값입니다.
+         * @param[in] Other 기준으로 삼을 상대 회전입니다.
          * @return 연산을 적용한 새 값입니다.
          */
         Core::FRotator Delta(const Core::FRotator& Other) const;
 
         /**
          * @brief 두 값 사이를 주어진 비율로 선형 보간합니다.
-         * @param[in] Other 비교, 복사 또는 연산할 상대 값입니다.
+         * @param[in] Other Alpha가 1일 때의 목표 값입니다.
          * @param[in] Alpha 보간 비율입니다.
          * @return 연산을 적용한 새 값입니다.
          */
@@ -237,15 +237,15 @@ namespace Core {
 
         /**
          * @brief 모든 유효 성분이 허용 오차 이내에서 0인지 검사합니다.
-         * @param[in] Tolerance 같음 또는 유효성을 판단하는 허용 오차입니다.
+         * @param[in] Tolerance 0으로 볼 성분별 최대 절댓값입니다.
          * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
          */
         bool IsNearlyZero(float Tolerance = 0.0001f) const;
 
         /**
          * @brief 각 성분의 차이가 지정한 허용 오차 이내인지 검사합니다.
-         * @param[in] Other 비교, 복사 또는 연산할 상대 값입니다.
-         * @param[in] Tolerance 같음 또는 유효성을 판단하는 허용 오차입니다.
+         * @param[in] Other 비교할 상대 값입니다.
+         * @param[in] Tolerance 같다고 볼 성분별 최대 차이입니다.
          * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
          */
         bool Equals(const Core::FRotator& Other, float Tolerance = 0.0001f) const;
@@ -312,8 +312,8 @@ namespace Core {
 
     /**
      * @brief 각 성분에 스칼라 값을 곱합니다.
-     * @param[in] Value 입력 값입니다.
-     * @param[in] Rotation 적용할 오일러 또는 쿼터니언 회전입니다.
+     * @param[in] Value 각 성분에 곱할 스칼라 값입니다.
+     * @param[in] Rotation 적용할 오일러 회전(도 단위)입니다.
      * @return 연산을 적용한 새 값입니다.
      */
     Core::FRotator operator*(float Value, const Core::FRotator& Rotation);

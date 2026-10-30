@@ -15,7 +15,7 @@ namespace Engine {
 
     /**
      * @brief 세 정점과 면 법선 및 삼각형 인덱스를 메시 데이터에 추가합니다.
-     * @param[in,out] Mesh 정점·인덱스 데이터 또는 에디터 메시 요청입니다.
+     * @param[in,out] Mesh 삼각형을 추가할 메시입니다.
      * @param[in] A 삼각형의 첫 정점입니다.
      * @param[in] B 삼각형의 둘째 정점입니다.
      * @param[in] C 삼각형의 셋째 정점입니다.
@@ -31,7 +31,7 @@ namespace Engine {
 
     /**
      * @brief 경계 상자를 구성하는 삼각형들을 메시 데이터에 추가합니다.
-     * @param[in,out] Mesh 정점·인덱스 데이터 또는 에디터 메시 요청입니다.
+     * @param[in,out] Mesh 상자를 추가할 메시입니다.
      * @param[in] Minimum 상자의 최소 경계입니다.
      * @param[in] Maximum 상자의 최대 경계입니다.
      */

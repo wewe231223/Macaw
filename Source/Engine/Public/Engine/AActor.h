@@ -70,7 +70,7 @@ namespace Engine {
 
         /**
          * @brief 액터가 소유한 컴포넌트 목록을 반환합니다.
-         * @return 생성한 객체의 단독 소유권이며, 생성 또는 검증 실패 시 nullptr입니다.
+         * @return 소유 목록의 읽기 전용 참조입니다.
          */
         const Core::TArray<std::unique_ptr<Engine::UActorComponent>>& GetComponents() const;
 
@@ -156,7 +156,7 @@ namespace Engine {
 
         /**
          * @brief 객체가 소속된 월드 연결을 지정합니다.
-         * @param[in] World 연결할 월드 또는 적용할 월드 행렬입니다.
+         * @param[in] World 연결할 월드이며, nullptr이면 연결을 해제합니다.
          */
         void SetWorld(Engine::UWorld* World);
 
@@ -195,7 +195,7 @@ namespace Engine {
 
     private:
         /**
-         * @brief 월드 연결 또는 월드 변환 행렬입니다.
+         * @brief 액터가 속한 월드이며, 레벨에 추가되기 전에는 nullptr입니다.
          */
         Engine::UWorld* mWorld{};
         ReflectProperty(mWorld, "World", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);

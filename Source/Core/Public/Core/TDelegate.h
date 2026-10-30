@@ -35,7 +35,7 @@ namespace Core {
     public:
         /**
          * @brief 이 타입의 정적 리플렉션 메타데이터를 반환합니다.
-         * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며 사용할 수 없으면 nullptr입니다.
+         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
          */
         ReflectTemplate(TDelegate);
         // 일반 함수나 람다 바인딩, 등록 후 해당 Handle에 대한 번호 return
@@ -48,8 +48,8 @@ namespace Core {
         // 클래스 멤버 함수 바인딩, 람다로 handler 생성후 목록에 저장, 등록 후 해당 Handle에 대한 번호 return
         /**
          * @brief 인스턴스의 멤버 함수를 델리게이트에 바인딩합니다.
-         * @tparam T 호출 시그니처 또는 인수 타입입니다.
-         * @tparam Args 호출 시그니처 또는 인수 타입입니다.
+         * @tparam T 멤버 함수를 가진 인스턴스 타입입니다.
+         * @tparam Args 멤버 함수의 인수 타입입니다.
          * @param[in] Instance 멤버 함수의 대상 인스턴스이며 호출 시까지 살아 있어야 합니다.
          * @param[in] Func 등록할 멤버 함수 포인터입니다.
          * @return 계산하거나 조회한 값입니다.
@@ -60,7 +60,7 @@ namespace Core {
         // Todo : Instance가 중간에 Null이 된 경우 등 예외처리
         /**
          * @brief 등록 목록의 사본에 있는 모든 함수를 인수와 함께 호출합니다.
-         * @tparam Args 호출 시그니처 또는 인수 타입입니다.
+         * @tparam Args 핸들러에 전달할 인수 타입입니다.
          * @param[in] Arguments 등록된 함수에 전달할 인수입니다.
          */
         template <typename... Args>
@@ -69,7 +69,7 @@ namespace Core {
         // Todo : Instance가 중간에 Null이 된 경우 등 예외처리
         /**
          * @brief 지정 핸들이 유효하면 해당 함수를 인수와 함께 호출합니다.
-         * @tparam Args 호출 시그니처 또는 인수 타입입니다.
+         * @tparam Args 핸들러에 전달할 인수 타입입니다.
          * @param[in] HandleNum 호출할 델리게이트 핸들입니다.
          * @param[in] Arguments 등록된 함수에 전달할 인수입니다.
          */

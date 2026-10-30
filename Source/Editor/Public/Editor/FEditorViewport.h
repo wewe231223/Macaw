@@ -111,14 +111,14 @@ namespace Editor {
         /**
          * @brief 뷰포트 이미지 영역 위에 월드와 렌더링 통계를 표시합니다.
          * @param[in] DeltaTime 이전 갱신 이후의 경과 시간이며 초 단위입니다.
-         * @param[in] World 조회·설정 또는 직렬화할 월드입니다.
+         * @param[in] World 통계를 수집할 월드입니다.
          * @param[in] Render 표시할 현재 프레임의 렌더링 통계입니다.
          */
         void DrawStatistics(float DeltaTime, const Engine::UWorld* World, const RenderCore::FRenderStats& Render);
 
         /**
          * @brief 이 뷰포트가 소유한 통계 표시 객체의 주소를 반환합니다.
-         * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며, 사용할 수 없으면 nullptr입니다.
+         * @return 대상의 비소유 주소이며, 없거나 유효하지 않으면 nullptr입니다.
          */
         Editor::FViewportStatistics* GetStatistics();
 
@@ -136,7 +136,7 @@ namespace Editor {
 
         /**
          * @brief PIE 연결 상태에 따라 현재 사용할 뷰포트 클라이언트를 반환합니다.
-         * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며, 사용할 수 없으면 nullptr입니다.
+         * @return 대상의 비소유 주소이며, 없거나 유효하지 않으면 nullptr입니다.
          */
         Engine::FViewportClient* GetActiveClient();
 

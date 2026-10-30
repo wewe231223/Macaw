@@ -28,7 +28,7 @@ namespace CoreUObject {
     CoreUObject::UStruct::~UStruct() = default;
 
     /**
-     * @brief 이름 또는 표시 문자열을 반환합니다.
+     * @brief 타입 이름을 반환합니다.
      */
     const Core::FString& CoreUObject::UStruct::GetName() const {
         return mName;

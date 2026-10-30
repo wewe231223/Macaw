@@ -40,8 +40,8 @@ namespace CoreUObject {
         bool IsValid() const;
 
         /**
-         * @brief 저장된 성분 또는 식별 상태가 정확히 같은지 검사합니다.
-         * @param[in] Other 비교, 복사 또는 연산할 상대 값입니다.
+         * @brief 슬롯 인덱스와 세대가 모두 같은지 검사합니다.
+         * @param[in] Other 비교할 상대 값입니다.
          * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
          */
         bool operator==(const CoreUObject::FObjectHandle& Other) const;
@@ -54,7 +54,7 @@ namespace CoreUObject {
 
     public:
         /**
-         * @brief 슬롯 또는 요소 인덱스입니다.
+         * @brief 레지스트리 슬롯 인덱스입니다.
          */
         Core::Uint32 mIndex{std::numeric_limits<Core::Uint32>::max()};
         ReflectProperty(mIndex, "Index", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);

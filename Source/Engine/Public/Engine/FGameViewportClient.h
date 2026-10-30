@@ -46,7 +46,7 @@ namespace Engine {
         bool SetWorld(Engine::FWorldHandle World);
 
         /**
-         * @brief 클라이언트 또는 세션이 사용하는 월드의 세대 핸들을 반환합니다.
+         * @brief 이 클라이언트가 그리는 월드의 핸들을 반환합니다.
          * @return 조회한 대상의 세대 핸들이며, 대상이 없으면 무효 핸들입니다.
          */
         Engine::FWorldHandle GetWorldHandle() const;

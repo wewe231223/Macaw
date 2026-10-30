@@ -75,7 +75,7 @@ namespace Engine {
 
         /**
          * @brief 원본 장면 내부 텍스처의 이름 또는 인덱스를 보관하는 참조를 생성합니다.
-         * @param[in] Reference 원본 내부 텍스처 참조 또는 이전할 프로젝트 재질 경로입니다.
+         * @param[in] Reference 원본 장면 안 텍스처의 이름 또는 인덱스 참조입니다.
          * @return Embedded 출처와 지정한 내장 참조를 가진 값 객체입니다.
          */
         static Engine::FMeshImportTexture FromEmbedded(Core::FString Reference);

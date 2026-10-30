@@ -16,7 +16,7 @@ namespace CoreUObject {
     }
 
     /**
-     * @brief 저장된 성분 또는 식별 상태가 정확히 같은지 검사합니다.
+     * @brief 슬롯 인덱스와 세대가 모두 같은지 검사합니다.
      */
     bool CoreUObject::FObjectHandle::operator==(const CoreUObject::FObjectHandle& Other) const {
         return mIndex == Other.mIndex && mGeneration == Other.mGeneration;

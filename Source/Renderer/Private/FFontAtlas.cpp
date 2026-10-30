@@ -23,7 +23,7 @@ namespace Renderer {
          * @param[in] Value 설정하거나 읽을 값입니다.
          * @param[in] Name 조회하거나 설정할 이름입니다.
          * @param[out] Number 읽은 유한 실수를 기록합니다.
-         * @return 검증 또는 요청한 처리에 성공하면 true입니다.
+         * @return 성공하면 true, 실패하면 false입니다.
          */
         bool ReadNumber(const rapidjson::Value& Value, const char* Name, float& Number) {
             if (!Value.IsObject() || !Value.HasMember(Name) || !Value[Name].IsNumber()) {
@@ -39,7 +39,7 @@ namespace Renderer {
          * @brief JSON 객체에서 네 성분의 글리프 경계를 읽습니다.
          * @param[in] Value 설정하거나 읽을 값입니다.
          * @param[in] Bounds 표시하거나 읽을 경계 상자입니다.
-         * @return 검증 또는 요청한 처리에 성공하면 true입니다.
+         * @return 성공하면 true, 실패하면 false입니다.
          */
         bool ReadBounds(const rapidjson::Value& Value, Core::FVector4& Bounds) {
             return ReadNumber(Value, "left", Bounds.x) && ReadNumber(Value, "bottom", Bounds.y) && ReadNumber(Value, "right", Bounds.z) && ReadNumber(Value, "top", Bounds.w) && Bounds.x <= Bounds.z;

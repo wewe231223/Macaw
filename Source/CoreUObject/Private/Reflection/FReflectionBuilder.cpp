@@ -18,7 +18,7 @@ namespace CoreUObject {
     }
 
     /**
-     * @brief 소유 객체 또는 메타데이터를 반환합니다.
+     * @brief 프로퍼티를 등록할 대상 타입 메타데이터를 반환합니다.
      */
     CoreUObject::UStruct* CoreUObject::FReflectionBuilder::GetOwner() const {
         return mOwner;

@@ -42,7 +42,7 @@ namespace CoreUObject {
 
     /**
      * @brief 네이티브 열거형의 정적 조회와 ADL 조회 함수를 선언합니다.
-     * @param Type 생성, 조회 또는 표시할 타입입니다.
+     * @param Type 리플렉션할 열거형 타입입니다.
      */
 #define ReflectEnum(Type, ...) CoreUObject::UEnum* StaticEnum##Type(); CoreUObject::UEnum* GetNativeEnum(CoreUObject::TNativeEnum<Type>)
 

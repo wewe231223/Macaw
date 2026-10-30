@@ -20,7 +20,7 @@ namespace RenderCore {
     namespace ShaderFile {
         /**
          * @brief 경로를 절대 경로로 정규화하고 실패 진단을 반환합니다.
-         * @param[in] Path 조회·로드·저장 또는 정규화할 파일 경로입니다.
+         * @param[in] Path 정규화할 경로입니다.
          * @param[out] Normalized 정규화한 절대 경로를 받을 출력입니다.
          * @param[out] Diagnostics 실패 원인과 컴파일 메시지를 받을 문자열입니다.
          * @return 요청한 처리를 완료하면 true, 실패하면 false입니다.
@@ -29,7 +29,7 @@ namespace RenderCore {
 
         /**
          * @brief 파일의 존재 여부·크기·수정 시각을 의존성 스냅샷에 기록합니다.
-         * @param[in] Path 조회·로드·저장 또는 정규화할 파일 경로입니다.
+         * @param[in] Path 상태를 확인할 파일 경로입니다.
          * @param[out] Dependency 파일의 경로·존재 여부·크기·수정 시각 스냅샷입니다.
          * @return 요청한 처리를 완료하면 true, 실패하면 false입니다.
          */
@@ -37,8 +37,8 @@ namespace RenderCore {
 
         /**
          * @brief 셰이더 파일의 크기를 검증하여 바이트와 의존성 스냅샷을 읽습니다.
-         * @param[in] Path 조회·로드·저장 또는 정규화할 파일 경로입니다.
-         * @param[in,out] Data 처리할 바이트 데이터 또는 include 파일 버퍼입니다.
+         * @param[in] Path 읽을 셰이더 파일의 경로입니다.
+         * @param[in,out] Data 읽은 파일 내용을 받을 버퍼입니다.
          * @param[out] Dependency 파일의 경로·존재 여부·크기·수정 시각 스냅샷입니다.
          * @param[out] Diagnostics 실패 원인과 컴파일 메시지를 받을 문자열입니다.
          * @return 요청한 처리를 완료하면 true, 실패하면 false입니다.
@@ -54,7 +54,7 @@ namespace RenderCore {
 
         /**
          * @brief 입력 바이트의 SHA-256 해시를 16진수 문자열로 반환합니다.
-         * @param[in] Data 처리할 바이트 데이터 또는 include 파일 버퍼입니다.
+         * @param[in] Data 해시를 계산할 바이트입니다.
          * @return SHA-256 해시의 16진수 문자열이며 계산 실패 시 빈 문자열입니다.
          */
         Core::FString Hash(std::span<const Core::Uint8> Data);
@@ -67,14 +67,14 @@ namespace RenderCore {
 
         /**
          * @brief 64비트 부호 없는 값을 리틀 엔디언으로 버퍼 끝에 기록합니다.
-         * @param[in,out] Data 처리할 바이트 데이터 또는 include 파일 버퍼입니다.
+         * @param[in,out] Data 값을 덧붙일 바이트 버퍼입니다.
          * @param[in] Value 읽거나 기록·변환할 값입니다.
          */
         void AppendUint64(Core::TArray<Core::Uint8>& Data, Core::Uint64 Value);
 
         /**
          * @brief 버퍼 범위를 검사하여 리틀 엔디언 64비트 값을 읽고 위치를 전진시킵니다.
-         * @param[in] Data 처리할 바이트 데이터 또는 include 파일 버퍼입니다.
+         * @param[in] Data 읽을 바이트 버퍼입니다.
          * @param[in,out] Position 다음에 읽을 바이트 위치이며 성공한 읽기만큼 전진합니다.
          * @param[in,out] Value 읽거나 기록·변환할 값입니다.
          * @return 요청한 처리를 완료하면 true, 실패하면 false입니다.
@@ -83,14 +83,14 @@ namespace RenderCore {
 
         /**
          * @brief 문자열 길이와 바이트를 셰이더 캐시 버퍼 끝에 기록합니다.
-         * @param[in,out] Data 처리할 바이트 데이터 또는 include 파일 버퍼입니다.
+         * @param[in,out] Data 값을 덧붙일 바이트 버퍼입니다.
          * @param[in] Value 읽거나 기록·변환할 값입니다.
          */
         void AppendString(Core::TArray<Core::Uint8>& Data, std::string_view Value);
 
         /**
          * @brief 버퍼 범위를 검사하여 길이 접두사가 있는 문자열을 읽고 위치를 전진시킵니다.
-         * @param[in] Data 처리할 바이트 데이터 또는 include 파일 버퍼입니다.
+         * @param[in] Data 읽을 바이트 버퍼입니다.
          * @param[in,out] Position 다음에 읽을 바이트 위치이며 성공한 읽기만큼 전진합니다.
          * @param[in,out] Value 읽거나 기록·변환할 값입니다.
          * @return 요청한 처리를 완료하면 true, 실패하면 false입니다.

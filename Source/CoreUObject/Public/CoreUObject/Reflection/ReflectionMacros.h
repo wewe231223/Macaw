@@ -12,7 +12,7 @@
 
 /**
  * @brief UObject 파생 타입의 클래스 메타데이터 조회 함수를 정의합니다.
- * @param Type 생성, 조회 또는 표시할 타입입니다.
+ * @param Type 리플렉션할 소유 타입입니다.
  */
 #define ImplementReflection(Type, ...) CoreUObject::UClass* Type::StaticClass() { \
     static CoreUObject::UClass* Class{CoreUObject::DefineNativeClass<Type>(#Type, &Super::StaticClass, CoreUObject::EClassFlags::None __VA_OPT__(| __VA_ARGS__))}; \
@@ -24,7 +24,7 @@ CoreUObject::UClass* Type::GetClass() const { \
 
 /**
  * @brief 부모가 없는 UObject 타입의 클래스 메타데이터 조회 함수를 정의합니다.
- * @param Type 생성, 조회 또는 표시할 타입입니다.
+ * @param Type 리플렉션할 소유 타입입니다.
  */
 #define ImplementRootReflection(Type, ...) CoreUObject::UClass* Type::StaticClass() { \
     static CoreUObject::UClass* Class{CoreUObject::DefineNativeClass<Type>(#Type, nullptr, CoreUObject::EClassFlags::None __VA_OPT__(| __VA_ARGS__))}; \
@@ -36,7 +36,7 @@ CoreUObject::UClass* Type::GetClass() const { \
 
 /**
  * @brief 네이티브 구조체의 정적 메타데이터 조회 함수를 정의합니다.
- * @param Type 생성, 조회 또는 표시할 타입입니다.
+ * @param Type 리플렉션할 소유 타입입니다.
  */
 #define ImplementStructReflection(Type) CoreUObject::UScriptStruct* Type::StaticStruct() { \
     return CoreUObject::DefineNativeStruct<ReflectionOwner>(#Type); \
@@ -44,14 +44,14 @@ CoreUObject::UClass* Type::GetClass() const { \
 
 /**
  * @brief 네이티브 열거값에서 이름과 정수 저장 값을 만듭니다.
- * @param Type 생성, 조회 또는 표시할 타입입니다.
- * @param Value 입력 값 또는 아카이브 모드에 따라 읽고 쓸 값입니다.
+ * @param Type 열거값이 속한 열거형 타입입니다.
+ * @param Value 등록할 열거값 이름입니다.
  */
 #define ReflectEnumValue(Type, Value) CoreUObject::FEnumValue{#Value, static_cast<Core::Int32>(Type::Value)}
 
 /**
  * @brief 열거형 등록 빌더와 ADL 메타데이터 조회 함수를 정의합니다.
- * @param Type 생성, 조회 또는 표시할 타입입니다.
+ * @param Type 리플렉션할 열거형 타입입니다.
  */
 #define ImplementEnumReflection(Type, ...) void Build##Type##Reflection(CoreUObject::UEnum* Information) { \
     CoreUObject::FReflectionRegistry::AddEnumValues(Information, {__VA_ARGS__}); \

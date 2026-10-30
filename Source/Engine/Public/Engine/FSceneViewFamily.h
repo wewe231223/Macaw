@@ -49,14 +49,14 @@ namespace Engine {
         ReflectProperty(mScene, "Scene", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
-         * @brief 렌더 타깃 또는 편집 대상입니다.
+         * @brief 그릴 렌더 타깃입니다.
          */
         Engine::FRenderTarget* mTarget{};
         ReflectProperty(mTarget, "Target", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
 
         /**
-         * @brief 카메라 뷰 또는 뷰 행렬입니다.
+         * @brief 렌더링에 사용할 카메라 뷰입니다.
          */
         Engine::FSceneView mView{};
         ReflectProperty(mView, "View", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);

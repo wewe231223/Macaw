@@ -53,7 +53,7 @@ namespace Engine {
 
         /**
          * @brief 텍스처의 픽셀 또는 깊이 형식을 반환합니다.
-         * @return 요청한 텍스처 형식 또는 사용 용도 값입니다.
+         * @return 텍스처 형식입니다.
          */
         virtual Engine::ETextureFormat GetFormat() const = 0;
 

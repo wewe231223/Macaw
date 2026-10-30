@@ -292,7 +292,7 @@ namespace Editor {
 
         /**
          * @brief 편집 월드에 기본 카메라 액터를 생성합니다.
-         * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며, 사용할 수 없으면 nullptr입니다.
+         * @return 생성한 객체의 비소유 주소이며, 생성에 실패하면 nullptr입니다.
          */
         Engine::ACameraActor* SpawnCamera();
 
@@ -319,13 +319,13 @@ namespace Editor {
         /**
          * @brief 선택한 액터에 리플렉션 클래스로 컴포넌트를 생성하여 등록합니다.
          * @param[in] Class 생성하거나 이름을 표시할 리플렉션 클래스입니다.
-         * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며 사용할 수 없으면 nullptr입니다.
+         * @return 생성한 객체의 비소유 주소이며, 생성에 실패하면 nullptr입니다.
          */
         Engine::UActorComponent* AddComponent(const CoreUObject::UClass* Class);
 
         /**
          * @brief 현재 선택에서 사용할 수 있는 카메라 컴포넌트를 조회합니다.
-         * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며, 사용할 수 없으면 nullptr입니다.
+         * @return 대상의 비소유 주소이며, 없거나 유효하지 않으면 nullptr입니다.
          */
         Engine::UCameraComponent* GetSelectedCamera() const;
 
@@ -404,7 +404,7 @@ namespace Editor {
 
         /**
          * @brief 현재 연결된 프로젝트의 비소유 주소를 반환합니다.
-         * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며, 사용할 수 없으면 nullptr입니다.
+         * @return 대상의 비소유 주소이며, 없거나 유효하지 않으면 nullptr입니다.
          */
         Engine::FProject* GetProject() const;
 
@@ -425,13 +425,13 @@ namespace Editor {
 
         /**
          * @brief 애플리케이션에 프로젝트 전환을 요청할 콜백을 설정합니다.
-         * @param[in] Handler 요청 또는 명령을 처리할 콜백입니다.
+         * @param[in] Handler 프로젝트 열기·생성 요청을 처리할 콜백입니다.
          */
         void SetProjectRequestHandler(std::function<void(const std::filesystem::path&, bool)> Handler);
 
         /**
          * @brief 등록된 처리기에 프로젝트 생성 또는 열기 요청을 전달합니다.
-         * @param[in] Path 조회·로드·저장 또는 정규화할 파일 경로입니다.
+         * @param[in] Path 열거나 생성할 프로젝트 경로입니다.
          * @param[in] Create true이면 새 프로젝트를 생성하고 false이면 기존 프로젝트를 엽니다.
          */
         void RequestProject(const std::filesystem::path& Path, bool Create);
@@ -479,7 +479,7 @@ namespace Editor {
 
         /**
          * @brief 뷰포트 관련 콘솔 명령을 처리할 콜백을 설정합니다.
-         * @param[in] Handler 요청 또는 명령을 처리할 콜백입니다.
+         * @param[in] Handler 콘솔의 뷰포트 명령을 처리할 콜백입니다.
          */
         void SetViewportCommandHandler(std::function<bool(const Core::FString&, Core::FString&)> Handler);
 

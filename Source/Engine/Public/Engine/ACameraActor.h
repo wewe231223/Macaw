@@ -33,7 +33,7 @@ namespace Engine {
 
         /**
          * @brief 이 액터에 소속된 카메라 컴포넌트를 조회합니다.
-         * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며, 사용할 수 없으면 nullptr입니다.
+         * @return 대상의 비소유 주소이며, 없거나 유효하지 않으면 nullptr입니다.
          */
         Engine::UCameraComponent* GetCameraComponent() const;
 

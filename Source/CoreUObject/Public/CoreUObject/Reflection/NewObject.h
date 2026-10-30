@@ -17,7 +17,7 @@ namespace CoreUObject {
      * @tparam T 적용할 네이티브 타입입니다.
      * @tparam TArguments 생성자 인수의 타입 팩입니다.
      * @param[in] Arguments 객체 생성자에 전달할 인수 팩입니다.
-     * @return 생성한 객체의 단독 소유권이며, 생성 또는 검증 실패 시 nullptr입니다.
+     * @return 생성한 객체의 단독 소유권이며, 실패하면 nullptr입니다.
      */
     template <typename T, typename... TArguments>
     std::unique_ptr<T> NewObject(TArguments&&... Arguments);
@@ -25,7 +25,7 @@ namespace CoreUObject {
     /**
      * @brief 구체적이고 기본 생성 가능한 네이티브 타입의 인스턴스를 생성합니다.
      * @tparam T 적용할 네이티브 타입입니다.
-     * @return 생성한 객체의 단독 소유권이며, 생성 또는 검증 실패 시 nullptr입니다.
+     * @return 생성한 객체의 단독 소유권이며, 실패하면 nullptr입니다.
      */
     template <typename T>
     std::unique_ptr<CoreUObject::UObject> CreateNativeInstance();
@@ -34,8 +34,8 @@ namespace CoreUObject {
      * @brief 네이티브 클래스의 상속, 생성 정책과 멤버 빌더를 등록합니다.
      * @tparam T 적용할 네이티브 타입입니다.
      * @param[in] Name 조회하거나 기록할 이름입니다.
-     * @param[in] Parent 부모 메타데이터 또는 부모를 조회하는 콜백입니다.
-     * @param[in] Flags 타입 또는 프로퍼티의 정책 비트 플래그입니다.
+     * @param[in] Parent 부모 클래스 메타데이터를 반환하는 함수이며, 루트이면 nullptr입니다.
+     * @param[in] Flags 클래스 생성 정책 플래그입니다.
      * @return 조회한 값의 비소유 주소이며, 해당 값이 없으면 nullptr입니다.
      */
     template <typename T>

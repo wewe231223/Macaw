@@ -115,7 +115,7 @@ namespace Editor {
     public:
         /**
          * @brief FTransformGizmo의 초기 상태와 전달받은 의존성을 구성합니다.
-         * @param[in,out] Context 패널 또는 뷰포트가 공유할 편집 컨텍스트입니다.
+         * @param[in,out] Context 패널이 조회하고 편집할 에디터 컨텍스트입니다.
          * @param[in] Client 변환 모드와 좌표계를 제공하는 뷰포트 클라이언트의 비소유 주소입니다.
          * @pre Context와 Client는 nullptr이 아니며 기즈모를 사용하는 동안 유효해야 합니다.
          */
@@ -130,7 +130,7 @@ namespace Editor {
 
         /**
          * @brief 선택과 편집 월드에 사용할 컨텍스트를 교체합니다.
-         * @param[in] Context 그리기 또는 편집에 사용할 컨텍스트의 비소유 주소입니다.
+         * @param[in] Context 선택과 변환 편집에 사용할 에디터 컨텍스트입니다.
          */
         void SetEditorContext(Editor::FEditorContext* Context);
 
@@ -152,7 +152,7 @@ namespace Editor {
         Engine::FHitProxy HitTest(const Core::FVector2& Mouse, const Engine::FSceneView& View) const;
 
         /**
-         * @brief 뷰포트 또는 패널의 현재 내용을 그립니다.
+         * @brief 기즈모 핸들과 드래그 피드백을 그리기 요청에 추가합니다.
          * @param[in] View 입력 해석이나 그리기에 사용할 카메라 뷰입니다.
          * @param[in,out] DrawInterface 보조 선분을 추가할 그리기 인터페이스입니다.
          */
@@ -217,7 +217,7 @@ namespace Editor {
         /**
          * @brief 선택한 좌표 공간에 맞는 기즈모 단위 축을 구합니다.
          * @param[in] Transform 적용할 위치, 회전과 스케일입니다.
-         * @param[in] Index 선택할 요소 또는 축의 0부터 시작하는 인덱스입니다.
+         * @param[in] Index 축 인덱스(0=X, 1=Y, 2=Z)입니다.
          * @return 선택한 좌표 공간에 맞는 기즈모 단위 축을 구합니다.입니다.
          */
         Core::FVector GetAxis(const Core::FTransform& Transform, Core::Int32 Index) const;
@@ -225,14 +225,14 @@ namespace Editor {
         /**
          * @brief 피벗 깊이와 시야각으로 화면 픽셀당 월드 거리를 구합니다.
          * @param[in] View 입력 해석이나 그리기에 사용할 카메라 뷰입니다.
-         * @param[in] Pivot 기즈모 또는 카메라 회전의 월드 중심점입니다.
+         * @param[in] Pivot 기즈모의 월드 중심점입니다.
          * @return 기즈모 크기 배율을 반영한 픽셀당 월드 거리이며 카메라 뒤에서는 0입니다.
          */
         float GetSize(const Engine::FSceneView& View, const Core::FVector& Pivot) const;
 
         /**
          * @brief 선택 축과 대상의 시작 변환을 저장하고 드래그 평면을 구성합니다.
-         * @param[in] Axis 회전 또는 편집에 사용할 축입니다.
+         * @param[in] Axis 드래그를 시작할 기즈모 축 번호입니다.
          * @param[in] Input 마우스 시작 위치, 누른 버튼과 복제 키 상태를 제공합니다.
          * @param[in] View 입력 해석이나 그리기에 사용할 카메라 뷰입니다.
          * @return 드래그 대상과 시작 상태를 준비하면 true입니다.

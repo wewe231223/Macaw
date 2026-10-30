@@ -113,7 +113,7 @@ namespace Engine {
 
         /**
          * @brief 기존 파일과 겹치지 않도록 숫자 접미사를 붙인 .masset 경로를 선택합니다.
-         * @param[in] Directory 대상 에셋 또는 원본 텍스처의 기준 디렉터리입니다.
+         * @param[in] Directory 에셋 파일을 만들 폴더입니다.
          * @param[in] Name 조회하거나 지정할 이름입니다.
          * @param[out] Error 실패 원인을 기록할 문자열입니다.
          * @return 선택한 파일 경로이며 파일 시스템 검사 실패 시 빈 경로입니다.
@@ -139,8 +139,8 @@ namespace Engine {
         /**
          * @brief 외부 재질 텍스처를 중복 경로 캐시와 공유하여 가져오고 프로젝트 상대 참조를 반환합니다.
          * @param[in,out] Assets 경로 경계를 확인하고 에셋을 가져올 프로젝트 에셋 관리자입니다.
-         * @param[in] Texture 읽거나 가져올 텍스처 객체 또는 원본 텍스처 참조입니다.
-         * @param[in] Directory 대상 에셋 또는 원본 텍스처의 기준 디렉터리입니다.
+         * @param[in] Texture 가져올 원본 텍스처 참조입니다.
+         * @param[in] Directory 가져온 텍스처 에셋을 저장할 폴더입니다.
          * @param[in,out] Textures 원본 경로별로 이미 가져온 텍스처의 프로젝트 참조를 보관하는 캐시입니다.
          * @param[out] ImportedPath 가져온 텍스처의 프로젝트 상대 경로를 기록할 문자열입니다.
          * @param[out] Error 실패 원인을 기록할 문자열입니다.
@@ -186,7 +186,7 @@ namespace Engine {
 
         /**
          * @brief 메시 정점 속성과 UV 채널 및 인덱스를 바이너리로 직렬화합니다.
-         * @param[in,out] Archive 로드 또는 저장 모드와 오류 상태를 제공하는 아카이브입니다.
+         * @param[in,out] Archive 모드에 따라 값을 읽거나 쓸 아카이브입니다.
          * @param[in,out] Mesh 읽거나 직렬화할 메시 데이터입니다.
          */
         void SerializeMesh(Serialization::FMemoryArchive& Archive, Engine::FMeshData& Mesh) {
@@ -278,10 +278,10 @@ namespace Engine {
 
         /**
          * @brief MTL 참조를 새 재질 에셋 경로로 치환하고 필요한 재질을 임시 디렉터리에 준비합니다.
-         * @param[in,out] Reference 원본 내부 텍스처 참조 또는 이전할 프로젝트 재질 경로입니다.
+         * @param[in,out] Reference 장면의 머티리얼 참조이며, 이전하면 새 에셋 경로로 바뀝니다.
          * @param[in,out] Assets 경로 경계를 확인하고 에셋을 가져올 프로젝트 에셋 관리자입니다.
          * @param[in] Materials 이전 재질 경로에서 새 재질 에셋 경로로의 대응표입니다.
-         * @param[in] Directory 대상 에셋 또는 원본 텍스처의 기준 디렉터리입니다.
+         * @param[in] Directory 이전한 머티리얼을 임시로 저장할 폴더입니다.
          * @param[in,out] Targets 임시 파일을 최종 위치로 옮길 때 사용할 재질 에셋 경로 목록입니다.
          * @param[in,out] Changed 참조가 치환되면 true로 갱신할 변경 상태입니다.
          * @param[out] Error 실패 원인을 기록할 문자열입니다.
@@ -351,7 +351,7 @@ namespace Engine {
          * @param[in,out] Allocator 문자열 치환에 사용할 원본 JSON 문서의 할당자입니다.
          * @param[in,out] Assets 경로 경계를 확인하고 에셋을 가져올 프로젝트 에셋 관리자입니다.
          * @param[in] Materials 이전 재질 경로에서 새 재질 에셋 경로로의 대응표입니다.
-         * @param[in] Directory 대상 에셋 또는 원본 텍스처의 기준 디렉터리입니다.
+         * @param[in] Directory 이전한 머티리얼을 임시로 저장할 폴더입니다.
          * @param[in,out] Targets 임시 파일을 최종 위치로 옮길 때 사용할 재질 에셋 경로 목록입니다.
          * @param[in,out] Changed 참조가 치환되면 true로 갱신할 변경 상태입니다.
          * @param[out] Error 실패 원인을 기록할 문자열입니다.

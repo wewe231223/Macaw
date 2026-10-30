@@ -43,7 +43,7 @@ namespace CoreUObject {
         ReflectProperty(mName, "Name", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
-         * @brief 저장된 값입니다.
+         * @brief 열거값의 정수 값입니다.
          */
         Core::Int32 mValue{};
         ReflectProperty(mValue, "Value", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);

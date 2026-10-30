@@ -81,14 +81,14 @@ namespace Core {
     }
 
     /**
-     * @brief 성분의 부호를 반전하거나 상대 값을 뺍니다.
+     * @brief 모든 성분의 부호를 반전한 값을 반환합니다.
      */
     Core::FQuat Core::FQuat::operator-() const {
         return Core::FQuat{_mm_xor_ps(mValue, _mm_set1_ps(-0.0f))};
     }
 
     /**
-     * @brief 저장된 성분 또는 식별 상태가 정확히 같은지 검사합니다.
+     * @brief 모든 성분이 허용 오차 없이 정확히 같은지 검사합니다.
      */
     bool Core::FQuat::operator==(const Core::FQuat& Other) const {
         return Core::Math::Simd::Equal<4>(mValue, Other.mValue);

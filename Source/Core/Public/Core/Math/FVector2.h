@@ -55,27 +55,27 @@ namespace Core {
 
         /**
          * @brief 상대 값의 상태로 객체를 복사하거나 이동 생성합니다.
-         * @param[in] Other 비교, 복사 또는 연산할 상대 값입니다.
+         * @param[in] Other 복사할 원본 값입니다.
          */
         FVector2(const Core::FVector2& Other) = default;
 
         /**
          * @brief 상대 값의 상태를 대입합니다.
-         * @param[in] Other 비교, 복사 또는 연산할 상대 값입니다.
-         * @return 소유 객체가 유지하는 값의 참조입니다.
+         * @param[in] Other 복사할 원본 값입니다.
+         * @return 갱신된 자기 자신(*this)의 참조입니다.
          */
         Core::FVector2& operator=(const Core::FVector2& Other) = default;
 
         /**
          * @brief 상대 값의 상태로 객체를 복사하거나 이동 생성합니다.
-         * @param[in] Other 비교, 복사 또는 연산할 상대 값입니다.
+         * @param[in] Other 이동할 원본 값입니다.
          */
         FVector2(Core::FVector2&& Other) noexcept = default;
 
         /**
          * @brief 상대 값의 상태를 대입합니다.
-         * @param[in] Other 비교, 복사 또는 연산할 상대 값입니다.
-         * @return 소유 객체가 유지하는 값의 참조입니다.
+         * @param[in] Other 이동할 원본 값입니다.
+         * @return 갱신된 자기 자신(*this)의 참조입니다.
          */
         Core::FVector2& operator=(Core::FVector2&& Other) noexcept = default;
 
@@ -88,111 +88,111 @@ namespace Core {
 
         /**
          * @brief 대응 성분을 더한 값을 반환합니다.
-         * @param[in] Other 비교, 복사 또는 연산할 상대 값입니다.
+         * @param[in] Other 더할 값입니다.
          * @return 연산을 적용한 새 값입니다.
          */
         Core::FVector2 operator+(const Core::FVector2& Other) const;
 
         /**
-         * @brief 성분의 부호를 반전하거나 상대 값을 뺍니다.
-         * @param[in] Other 비교, 복사 또는 연산할 상대 값입니다.
+         * @brief 대응 성분끼리 뺀 값을 반환합니다.
+         * @param[in] Other 뺄 값입니다.
          * @return 연산을 적용한 새 값입니다.
          */
         Core::FVector2 operator-(const Core::FVector2& Other) const;
 
         /**
-         * @brief 성분의 부호를 반전하거나 상대 값을 뺍니다.
+         * @brief 모든 성분의 부호를 반전한 값을 반환합니다.
          * @return 연산을 적용한 새 값입니다.
          */
         Core::FVector2 operator-() const;
 
         /**
          * @brief 대응하는 성분끼리 곱합니다.
-         * @param[in] Other 비교, 복사 또는 연산할 상대 값입니다.
+         * @param[in] Other 대응 성분끼리 곱할 값입니다.
          * @return 연산을 적용한 새 값입니다.
          */
         Core::FVector2 operator*(const Core::FVector2& Other) const;
 
         /**
-         * @brief 성분별 또는 스칼라 나눗셈 결과를 반환합니다.
-         * @param[in] Other 비교, 복사 또는 연산할 상대 값입니다.
+         * @brief 대응 성분끼리 나눈 결과를 반환합니다.
+         * @param[in] Other 대응 성분끼리 나눌 제수입니다.
          * @return 연산을 적용한 새 값입니다.
          */
         Core::FVector2 operator/(const Core::FVector2& Other) const;
 
         /**
          * @brief 각 성분에 스칼라 값을 곱합니다.
-         * @param[in] Value 입력 값입니다.
+         * @param[in] Value 각 성분에 곱할 스칼라 값입니다.
          * @return 연산을 적용한 새 값입니다.
          */
         Core::FVector2 operator*(float Value) const;
 
         /**
-         * @brief 성분별 또는 스칼라 나눗셈 결과를 반환합니다.
-         * @param[in] Value 입력 값입니다.
+         * @brief 각 성분을 스칼라 값으로 나눈 결과를 반환합니다.
+         * @param[in] Value 각 성분을 나눌 스칼라 값입니다.
          * @return 연산을 적용한 새 값입니다.
          */
         Core::FVector2 operator/(float Value) const;
 
         /**
          * @brief 대응 성분을 현재 값에 더합니다.
-         * @param[in] Other 비교, 복사 또는 연산할 상대 값입니다.
-         * @return 소유 객체가 유지하는 값의 참조입니다.
+         * @param[in] Other 더할 값입니다.
+         * @return 갱신된 자기 자신(*this)의 참조입니다.
          */
         Core::FVector2& operator+=(const Core::FVector2& Other);
 
         /**
          * @brief 대응 성분을 현재 값에서 뺍니다.
-         * @param[in] Other 비교, 복사 또는 연산할 상대 값입니다.
-         * @return 소유 객체가 유지하는 값의 참조입니다.
+         * @param[in] Other 뺄 값입니다.
+         * @return 갱신된 자기 자신(*this)의 참조입니다.
          */
         Core::FVector2& operator-=(const Core::FVector2& Other);
 
         /**
          * @brief 대응 성분끼리 곱한 결과를 현재 값에 반영합니다.
-         * @param[in] Other 비교, 복사 또는 연산할 상대 값입니다.
-         * @return 소유 객체가 유지하는 값의 참조입니다.
+         * @param[in] Other 대응 성분끼리 곱할 값입니다.
+         * @return 갱신된 자기 자신(*this)의 참조입니다.
          */
         Core::FVector2& operator*=(const Core::FVector2& Other);
 
         /**
-         * @brief 나눗셈 결과를 현재 값에 반영합니다.
-         * @param[in] Other 비교, 복사 또는 연산할 상대 값입니다.
-         * @return 소유 객체가 유지하는 값의 참조입니다.
+         * @brief 대응 성분끼리 나누어 현재 값에 반영합니다.
+         * @param[in] Other 대응 성분끼리 나눌 제수입니다.
+         * @return 갱신된 자기 자신(*this)의 참조입니다.
          */
         Core::FVector2& operator/=(const Core::FVector2& Other);
 
         /**
          * @brief 각 성분에 스칼라 값을 곱합니다.
-         * @param[in] Value 입력 값입니다.
-         * @return 소유 객체가 유지하는 값의 참조입니다.
+         * @param[in] Value 각 성분에 곱할 스칼라 값입니다.
+         * @return 갱신된 자기 자신(*this)의 참조입니다.
          */
         Core::FVector2& operator*=(float Value);
 
         /**
-         * @brief 나눗셈 결과를 현재 값에 반영합니다.
-         * @param[in] Value 입력 값입니다.
-         * @return 소유 객체가 유지하는 값의 참조입니다.
+         * @brief 각 성분을 스칼라 값으로 나누어 현재 값에 반영합니다.
+         * @param[in] Value 각 성분을 나눌 스칼라 값입니다.
+         * @return 갱신된 자기 자신(*this)의 참조입니다.
          */
         Core::FVector2& operator/=(float Value);
 
         /**
-         * @brief 저장된 성분 또는 식별 상태가 정확히 같은지 검사합니다.
-         * @param[in] Other 비교, 복사 또는 연산할 상대 값입니다.
+         * @brief 모든 성분이 허용 오차 없이 정확히 같은지 검사합니다.
+         * @param[in] Other 비교할 상대 값입니다.
          * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
          */
         bool operator==(const Core::FVector2& Other) const;
 
         /**
          * @brief 대응 성분의 곱을 합산하여 내적을 계산합니다.
-         * @param[in] Other 비교, 복사 또는 연산할 상대 값입니다.
+         * @param[in] Other 내적할 상대 벡터입니다.
          * @return 대응 성분 곱의 합입니다.
          */
         float Dot(const Core::FVector2& Other) const;
 
         /**
          * @brief 두 벡터의 외적을 계산합니다.
-         * @param[in] Other 비교, 복사 또는 연산할 상대 값입니다.
+         * @param[in] Other 외적의 오른쪽 벡터입니다.
          * @return 연산을 적용한 새 값입니다.
          */
         float Cross(const Core::FVector2& Other) const;
@@ -238,21 +238,21 @@ namespace Core {
 
         /**
          * @brief 두 값 사이 유클리드 거리의 제곱을 구합니다.
-         * @param[in] Other 비교, 복사 또는 연산할 상대 값입니다.
+         * @param[in] Other 거리를 잴 상대 위치입니다.
          * @return 상대 값까지의 제곱 거리입니다.
          */
         float DistanceSquared(const Core::FVector2& Other) const;
 
         /**
          * @brief 두 값 사이 유클리드 거리를 구합니다.
-         * @param[in] Other 비교, 복사 또는 연산할 상대 값입니다.
+         * @param[in] Other 거리를 잴 상대 위치입니다.
          * @return 상대 값까지의 유클리드 거리입니다.
          */
         float Distance(const Core::FVector2& Other) const;
 
         /**
          * @brief 두 값 사이를 주어진 비율로 선형 보간합니다.
-         * @param[in] Other 비교, 복사 또는 연산할 상대 값입니다.
+         * @param[in] Other Alpha가 1일 때의 목표 값입니다.
          * @param[in] Alpha 보간 비율입니다.
          * @return 연산을 적용한 새 값입니다.
          */
@@ -266,14 +266,14 @@ namespace Core {
 
         /**
          * @brief 각 성분에서 두 값 중 작은 값을 선택합니다.
-         * @param[in] Other 비교, 복사 또는 연산할 상대 값입니다.
+         * @param[in] Other 성분별로 비교할 상대 값입니다.
          * @return 연산을 적용한 새 값입니다.
          */
         Core::FVector2 Min(const Core::FVector2& Other) const;
 
         /**
          * @brief 각 성분에서 두 값 중 큰 값을 선택합니다.
-         * @param[in] Other 비교, 복사 또는 연산할 상대 값입니다.
+         * @param[in] Other 성분별로 비교할 상대 값입니다.
          * @return 연산을 적용한 새 값입니다.
          */
         Core::FVector2 Max(const Core::FVector2& Other) const;
@@ -295,14 +295,14 @@ namespace Core {
 
         /**
          * @brief 모든 유효 성분이 허용 오차 이내에서 0인지 검사합니다.
-         * @param[in] Tolerance 같음 또는 유효성을 판단하는 허용 오차입니다.
+         * @param[in] Tolerance 0으로 볼 성분별 최대 절댓값입니다.
          * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
          */
         bool IsNearlyZero(float Tolerance = 0.0001f) const;
 
         /**
          * @brief 제곱 길이가 허용 오차 이내에서 1인지 검사합니다.
-         * @param[in] Tolerance 같음 또는 유효성을 판단하는 허용 오차입니다.
+         * @param[in] Tolerance 제곱 길이와 1의 허용 차이입니다.
          * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
          */
         bool IsNormalized(float Tolerance = 0.0001f) const;
@@ -315,8 +315,8 @@ namespace Core {
 
         /**
          * @brief 각 성분의 차이가 지정한 허용 오차 이내인지 검사합니다.
-         * @param[in] Other 비교, 복사 또는 연산할 상대 값입니다.
-         * @param[in] Tolerance 같음 또는 유효성을 판단하는 허용 오차입니다.
+         * @param[in] Other 비교할 상대 값입니다.
+         * @param[in] Tolerance 같다고 볼 성분별 최대 차이입니다.
          * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
          */
         bool Equals(const Core::FVector2& Other, float Tolerance = 0.0001f) const;
@@ -363,7 +363,7 @@ namespace Core {
 
     /**
      * @brief 각 성분에 스칼라 값을 곱합니다.
-     * @param[in] Value 입력 값입니다.
+     * @param[in] Value 각 성분에 곱할 스칼라 값입니다.
      * @param[in] Vector 연산에 사용할 벡터입니다.
      * @return 연산을 적용한 새 값입니다.
      */

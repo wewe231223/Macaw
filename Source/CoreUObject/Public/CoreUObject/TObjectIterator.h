@@ -63,13 +63,13 @@ namespace CoreUObject {
 
         /**
          * @brief 현재 객체를 반환합니다.
-         * @return 유효한 객체 주소 또는 nullptr입니다.
+         * @return 현재 객체이며, 끝에 도달하면 nullptr입니다.
          */
         T* Get() const;
 
         /**
          * @brief 현재 객체를 반환합니다.
-         * @return 유효한 객체 주소 또는 nullptr입니다.
+         * @return 현재 객체이며, 끝에 도달하면 nullptr입니다.
          */
         T* operator*() const;
 

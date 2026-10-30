@@ -59,7 +59,7 @@ namespace Renderer {
         ReflectProperty(mIndexCount, "IndexCount", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
-         * @brief 바이트 저장소 또는 사용량입니다.
+         * @brief GPU 버퍼가 차지하는 바이트 수입니다.
          */
         std::size_t mBytes{};
         ReflectProperty(mBytes, "Bytes", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);

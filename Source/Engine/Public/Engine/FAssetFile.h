@@ -68,7 +68,7 @@ namespace Engine {
 
         /**
          * @brief 에셋 파일 헤더를 검사하여 저장된 에셋 종류를 읽습니다.
-         * @param[in] Path 조회·로드·저장 또는 정규화할 파일 경로입니다.
+         * @param[in] Path 헤더를 읽을 에셋 파일의 경로입니다.
          * @param[out] Type 에셋 파일에 기록하거나 검사할 종류입니다.
          * @param[out] Error 실패 원인을 받을 오류 문자열입니다.
          * @return 요청한 처리를 완료하면 true, 실패하면 false입니다.
@@ -77,7 +77,7 @@ namespace Engine {
 
         /**
          * @brief 에셋 종류와 페이로드 및 무결성 해시를 파일로 저장합니다.
-         * @param[in] Path 조회·로드·저장 또는 정규화할 파일 경로입니다.
+         * @param[in] Path 저장할 에셋 파일의 경로입니다.
          * @param[in] Type 에셋 파일에 기록하거나 검사할 종류입니다.
          * @param[in] Payload 헤더를 제외한 에셋 본문의 바이트 데이터입니다.
          * @param[out] Error 실패 원인을 받을 오류 문자열입니다.
@@ -87,7 +87,7 @@ namespace Engine {
 
         /**
          * @brief 에셋 종류와 데이터 무결성을 검사하여 페이로드를 읽습니다.
-         * @param[in] Path 조회·로드·저장 또는 정규화할 파일 경로입니다.
+         * @param[in] Path 읽을 에셋 파일의 경로입니다.
          * @param[in] Type 에셋 파일에 기록하거나 검사할 종류입니다.
          * @param[out] Payload 헤더를 제외한 에셋 본문의 바이트 데이터입니다.
          * @param[out] Error 실패 원인을 받을 오류 문자열입니다.

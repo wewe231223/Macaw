@@ -26,7 +26,7 @@ namespace Engine {
     public:
         /**
          * @brief 이 타입의 정적 리플렉션 메타데이터를 반환합니다.
-         * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며 사용할 수 없으면 nullptr입니다.
+         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
          */
         ReflectStruct(FDrawText);
 
@@ -38,7 +38,7 @@ namespace Engine {
 
     public:
         /**
-         * @brief 정점 또는 표식의 위치입니다.
+         * @brief 텍스트를 그릴 월드 위치입니다.
          */
         Core::FVector mPosition{};
         ReflectProperty(mPosition, "Position", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
@@ -56,7 +56,7 @@ namespace Engine {
         ReflectProperty(mColor, "Color", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
-         * @brief 로컬 쿼드의 가로·세로 월드 크기입니다.
+         * @brief 텍스트의 글자 크기입니다.
          */
         float mSize{0.5f};
         ReflectProperty(mSize, "Size", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);

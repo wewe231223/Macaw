@@ -41,7 +41,7 @@ namespace Renderer {
 
     public:
         /**
-         * @brief 월드 연결 또는 월드 변환 행렬입니다.
+         * @brief 오브젝트의 월드 변환 행렬입니다.
          */
         Core::FMatrix mWorld{};
         ReflectProperty(mWorld, "World", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);

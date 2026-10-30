@@ -9,7 +9,7 @@
 namespace CoreUObject {
 
     /**
-     * @brief 저장된 성분 또는 식별 상태가 정확히 같은지 검사합니다.
+     * @brief 종류, 네이티브 타입, 부모, 플래그, 팩터리와 빌더가 모두 같은지 검사합니다.
      */
     bool CoreUObject::FReflectionDefinition::operator==(const CoreUObject::FReflectionDefinition& Other) const {
         return mKind == Other.mKind && mNativeType == Other.mNativeType && mParent == Other.mParent && mFlags == Other.mFlags && mFactory == Other.mFactory && mClassBuilder == Other.mClassBuilder && mStructBuilder == Other.mStructBuilder && mEnumBuilder == Other.mEnumBuilder && mStructParent == Other.mStructParent;

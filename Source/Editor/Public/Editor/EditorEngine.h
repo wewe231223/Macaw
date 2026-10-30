@@ -98,7 +98,7 @@ namespace Editor {
 
         /**
          * @brief 에디터 엔진이 소유한 PIE 실행 세션의 주소를 반환합니다.
-         * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며, 사용할 수 없으면 nullptr입니다.
+         * @return 대상의 비소유 주소이며, 없거나 유효하지 않으면 nullptr입니다.
          */
         Editor::FPlayInEditorSession* GetPlaySession();
 

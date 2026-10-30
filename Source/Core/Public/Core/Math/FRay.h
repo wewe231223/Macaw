@@ -30,8 +30,8 @@ namespace Core {
 
         /**
          * @brief FRay의 초기 상태와 전달받은 의존성을 구성합니다.
-         * @param[in] Origin Origin에 적용할 입력 값입니다.
-         * @param[in] Direction 투영 방향 또는 광선의 진행 방향입니다.
+         * @param[in] Origin 광선의 시작점입니다.
+         * @param[in] Direction 광선의 진행 방향입니다.
          */
         FRay(const Core::FVector& Origin, const Core::FVector& Direction);
 
@@ -42,27 +42,27 @@ namespace Core {
 
         /**
          * @brief 상대 값의 상태로 객체를 복사하거나 이동 생성합니다.
-         * @param[in] Other 비교, 복사 또는 연산할 상대 값입니다.
+         * @param[in] Other 복사할 원본 값입니다.
          */
         FRay(const Core::FRay& Other) = default;
 
         /**
          * @brief 상대 값의 상태를 대입합니다.
-         * @param[in] Other 비교, 복사 또는 연산할 상대 값입니다.
-         * @return 소유 객체가 유지하는 값의 참조입니다.
+         * @param[in] Other 복사할 원본 값입니다.
+         * @return 갱신된 자기 자신(*this)의 참조입니다.
          */
         Core::FRay& operator=(const Core::FRay& Other) = default;
 
         /**
          * @brief 상대 값의 상태로 객체를 복사하거나 이동 생성합니다.
-         * @param[in] Other 비교, 복사 또는 연산할 상대 값입니다.
+         * @param[in] Other 이동할 원본 값입니다.
          */
         FRay(Core::FRay&& Other) noexcept = default;
 
         /**
          * @brief 상대 값의 상태를 대입합니다.
-         * @param[in] Other 비교, 복사 또는 연산할 상대 값입니다.
-         * @return 소유 객체가 유지하는 값의 참조입니다.
+         * @param[in] Other 이동할 원본 값입니다.
+         * @return 갱신된 자기 자신(*this)의 참조입니다.
          */
         Core::FRay& operator=(Core::FRay&& Other) noexcept = default;
 

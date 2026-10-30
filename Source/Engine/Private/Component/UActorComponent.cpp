@@ -22,7 +22,7 @@ namespace Engine {
     Engine::UActorComponent::~UActorComponent() = default;
 
     /**
-     * @brief 소유 객체 또는 메타데이터를 반환합니다.
+     * @brief 컴포넌트를 소유한 액터를 반환합니다.
      */
     Engine::AActor* Engine::UActorComponent::GetOwner() const {
         return mOwner;

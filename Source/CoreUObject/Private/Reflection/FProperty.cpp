@@ -34,7 +34,7 @@ namespace CoreUObject {
     }
 
     /**
-     * @brief 이름 또는 표시 문자열을 반환합니다.
+     * @brief 프로퍼티 이름을 반환합니다.
      */
     const Core::FString& CoreUObject::FProperty::GetName() const {
         return mName;

@@ -56,9 +56,9 @@ namespace CoreUObject {
         /**
          * @brief 같은 이름의 정의와 호환성을 검사한 뒤 클래스 메타데이터를 등록합니다.
          * @param[in] Name 조회하거나 기록할 이름입니다.
-         * @param[in] Parent 부모 메타데이터 또는 부모를 조회하는 콜백입니다.
+         * @param[in] Parent 부모 클래스 메타데이터를 반환하는 함수이며, 루트이면 nullptr입니다.
          * @param[in] NativeType 네이티브 타입 식별 메타데이터입니다.
-         * @param[in] Flags 타입 또는 프로퍼티의 정책 비트 플래그입니다.
+         * @param[in] Flags 클래스 생성 정책 플래그입니다.
          * @param[in] Factory 선택적인 네이티브 인스턴스 생성 함수입니다.
          * @param[in] Builder 타입의 프로퍼티나 열거값을 채우는 함수입니다.
          * @return 조회한 값의 비소유 주소이며, 해당 값이 없으면 nullptr입니다.
@@ -70,7 +70,7 @@ namespace CoreUObject {
          * @param[in] Name 조회하거나 기록할 이름입니다.
          * @param[in] NativeType 네이티브 타입 식별 메타데이터입니다.
          * @param[in] Builder 타입의 프로퍼티나 열거값을 채우는 함수입니다.
-         * @param[in] Parent 부모 메타데이터 또는 부모를 조회하는 콜백입니다.
+         * @param[in] Parent 부모 타입의 메타데이터이며, 없으면 nullptr입니다.
          * @return 조회한 값의 비소유 주소이며, 해당 값이 없으면 nullptr입니다.
          */
         static CoreUObject::UScriptStruct* DefineStruct(Core::FString Name, const CoreUObject::FNativeType* NativeType, FStructBuilder Builder, const CoreUObject::UScriptStruct* Parent = nullptr);
@@ -86,7 +86,7 @@ namespace CoreUObject {
 
         /**
          * @brief 열거형 빌더에서 전달한 열거값 목록을 등록합니다.
-         * @param[in,out] Information 프로퍼티 또는 열거값을 추가할 메타데이터나 빌더입니다.
+         * @param[in,out] Information 열거값을 추가할 열거형 메타데이터입니다.
          * @param[in] Values 등록할 열거값 목록입니다.
          */
         static void AddEnumValues(CoreUObject::UEnum* Information, std::initializer_list<CoreUObject::FEnumValue> Values);
@@ -101,7 +101,7 @@ namespace CoreUObject {
         /**
          * @brief 지정한 부모 클래스를 상속한 등록 클래스를 수집합니다.
          * @param[in] Parent 파생 클래스를 찾을 부모 클래스입니다.
-         * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며 사용할 수 없으면 nullptr입니다.
+         * @return 상속한 클래스 메타데이터의 비소유 주소 목록입니다.
          */
         static Core::TArray<const CoreUObject::UClass*> GetDerivedClasses(const CoreUObject::UClass* Parent);
 

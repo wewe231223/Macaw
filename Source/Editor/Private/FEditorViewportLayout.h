@@ -39,14 +39,14 @@ namespace Editor {
     public:
         /**
          * @brief 전달된 설정과 기본값으로 FEditorViewportLayout 객체를 생성합니다.
-         * @param[in] Context 그리기 또는 편집에 사용할 컨텍스트의 비소유 주소입니다.
+         * @param[in] Context 뷰포트가 편집할 에디터 컨텍스트입니다.
          * @param[in] Viewport 기본 원근 뷰포트의 비소유 주소입니다.
          * @param[in] PlaySession PIE 생명주기를 제공하는 세션입니다.
          */
         FEditorViewportLayout(Editor::FEditorContext* Context, Editor::FEditorViewport* Viewport, Editor::FPlayInEditorSession* PlaySession);
 
         /**
-         * @brief 객체를 소멸하고 소유한 GPU 자원 또는 UV 제어 상태를 해제합니다.
+         * @brief ImGui 설정 핸들러 등록을 해제하고 정사영 뷰포트를 정리합니다.
          */
         ~FEditorViewportLayout();
 
@@ -63,14 +63,14 @@ namespace Editor {
     public:
         /**
          * @brief 이 타입의 정적 리플렉션 메타데이터를 반환합니다.
-         * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며 사용할 수 없으면 nullptr입니다.
+         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
          */
         ReflectStruct(FEditorViewportLayout);
 
         /**
-         * @brief 뷰포트 또는 스프라이트의 GPU 자원과 기본 상태를 초기화합니다.
+         * @brief Top·Front·Right 정사영 뷰포트를 생성하고 ImGui 설정 핸들러를 등록합니다.
          * @param[in] Renderer 뷰포트 자원을 생성할 렌더 모듈입니다.
-         * @return 검증 또는 요청한 처리에 성공하면 true입니다.
+         * @return 성공하면 true, 실패하면 false입니다.
          */
         bool Initialize(RenderCore::IRendererModule* Renderer);
 
@@ -111,14 +111,14 @@ namespace Editor {
 
         /**
          * @brief 가장 최근 입력을 받은 유효한 뷰포트를 반환합니다.
-         * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며 사용할 수 없으면 nullptr입니다.
+         * @return 대상의 비소유 주소이며, 없거나 유효하지 않으면 nullptr입니다.
          */
         Editor::FEditorViewport* GetActiveViewport() const;
 
         /**
          * @brief 0 기반 슬롯에 해당하는 뷰포트를 조회합니다.
          * @param[in] Index 0 기반 뷰포트 슬롯입니다.
-         * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며 사용할 수 없으면 nullptr입니다.
+         * @return 대상의 비소유 주소이며, 없거나 유효하지 않으면 nullptr입니다.
          */
         Editor::FEditorViewport* GetViewport(Core::Uint32 Index) const;
 
