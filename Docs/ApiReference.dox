@@ -257,6 +257,11 @@ Windows 창과 메시지 처리입니다.
  */
 
 /**
+ * @namespace Game
+ * @brief 독립 게임 실행 파일에서 프로젝트와 시작 장면의 수명을 관리합니다.
+ */
+
+/**
  * @namespace Platform
  * @brief Win32 창·DPI·입력 메시지와 플랫폼 애플리케이션을 제공합니다.
  */

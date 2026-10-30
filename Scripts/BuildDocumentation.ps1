@@ -54,7 +54,7 @@ $Manifest = Get-Content -LiteralPath (Join-Path $RepositoryRoot 'Docs/Tools.json
 $Modules = Get-Content -LiteralPath (Join-Path $RepositoryRoot 'ModuleDependencies.json') -Raw | ConvertFrom-Json -AsHashtable
 $Modules['ImGui'] = @{ Public = @(); Private = @(); External = $true }
 $Premake = Get-Content -LiteralPath (Join-Path $RepositoryRoot 'premake5.lua') -Raw
-$ExecutableConfiguration = [regex]::Match($Premake, '(?s)local function ConfigureExecutable\(.*?\r?\nend')
+$ExecutableConfiguration = [regex]::Match($Premake, '(?s)local function Configure(?:Runtime)?Executable\(.*?\r?\nend')
 $ExecutableLinks = [regex]::Match($ExecutableConfiguration.Value, '(?s)\blinks\s*\{(?<Libraries>[^}]*)\}')
 if (-not $ExecutableLinks.Success) {
     throw 'Could not read executable links from premake5.lua.'
@@ -148,7 +148,7 @@ foreach ($ModuleName in $Modules.Keys) {
     }
 }
 $GraphLines.Add('}')
-foreach ($ApplicationPath in @('Source/App')) {
+foreach ($ApplicationPath in @('Source/App', 'Source/Game')) {
     $InputPaths.Add((GetDoxygenPath (Join-Path $RepositoryRoot $ApplicationPath)))
 }
 $InputPaths.Add((GetDoxygenPath (Join-Path $RepositoryRoot 'Docs/ApiReference.dox')))
