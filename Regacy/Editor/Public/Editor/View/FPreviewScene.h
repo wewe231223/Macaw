@@ -2,6 +2,7 @@
  * @file FPreviewScene.h
  * @brief 전역 에셋을 공유하는 독립 프리뷰 월드의 수명을 정의합니다.
  */
+
 #pragma once
 #include "World/UWorld.h"
 #include "RenderCore/FPrimitiveSceneProxy.h"
@@ -15,8 +16,11 @@ public:
     FPreviewScene() = default;
     ~FPreviewScene();
     FPreviewScene(const FPreviewScene&) = delete;
+
     FPreviewScene& operator=(const FPreviewScene&) = delete;
+
     FPreviewScene(FPreviewScene&&) = delete;
+
     FPreviewScene& operator=(FPreviewScene&&) = delete;
 
 public:
@@ -35,6 +39,7 @@ public:
 private:
     UWorld mWorld{};
     FRenderer* mRenderer{nullptr};
+
     /** @brief 프리뷰 월드를 생성한 에셋 서비스 세대입니다. 세대 변경 시 프리뷰를 다시 생성합니다. */
     Uint64 mRegistryGeneration{};
     UStaticMeshComponent* mMesh{nullptr};

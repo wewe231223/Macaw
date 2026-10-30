@@ -25,11 +25,13 @@ namespace EditorStyle {
      * @note 같은 컨텍스트에서 PopViewportToolbar()와 짝지어 호출해야 합니다.
      */
     void PushViewportToolbar();
+
     /**
      * @brief PushViewportToolbar()로 적용한 스타일을 복원합니다.
      * @pre 대응하는 PushViewportToolbar() 호출이 있어야 합니다.
      */
     void PopViewportToolbar();
+
     /**
      * @brief 현재 창의 드로 목록에 지정한 벡터 아이콘을 그립니다.
      * @param[in] Icon 표시할 공통 아이콘입니다.
@@ -39,6 +41,7 @@ namespace EditorStyle {
      * @pre 현재 ImGui 프레임과 창이 유효해야 합니다.
      */
     void DrawIcon(EIcon Icon, const ImVec2& Origin, float Size, ImU32 Color);
+
     /**
      * @brief 선택 및 비활성 상태를 반영하는 아이콘 버튼과 툴팁을 표시합니다.
      * @param[in] Label 현재 ID 범위에서 버튼을 식별하며 기본 툴팁에도 사용할 문자열입니다.
@@ -51,6 +54,7 @@ namespace EditorStyle {
      * @note 팝업 열기와 명령 실행은 호출자가 처리합니다. 문자열은 호출 중 유효해야 합니다.
      */
     bool IconButton(const char* Label, EIcon Icon, bool Selected = false, bool Enabled = true, bool Dropdown = false, const char* Tooltip = nullptr);
+
     /**
      * @brief 메뉴의 아이콘 열을 확보하고 선택 및 비활성 상태를 반영한 항목을 표시합니다.
      * @param[in] Label 표시할 메뉴 항목 이름이며 호출 중 유효해야 합니다.

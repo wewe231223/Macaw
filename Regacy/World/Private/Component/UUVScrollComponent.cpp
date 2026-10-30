@@ -29,6 +29,7 @@ void UUVScrollComponent::Serialize(FArchive& Archive) {
 
     if (Archive.IsLoading()) {
         ResetPlaybackState();
+
         if (!std::isfinite(mScrollSpeed.mX) || !std::isfinite(mScrollSpeed.mY)) {
             mScrollSpeed = {};
         }

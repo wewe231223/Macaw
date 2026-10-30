@@ -28,6 +28,7 @@ namespace {
         if (Shortcut >= 'A' && Shortcut <= 'Z') {
             return static_cast<ImGuiKey>(ImGuiKey_A + Shortcut - 'A');
         }
+
         return Shortcut == ' ' ? ImGuiKey_Space : Shortcut == '\t' ? ImGuiKey_Tab : ImGuiKey_None;
     }
 }
@@ -121,6 +122,7 @@ void FEditorViewport::SetPlayClient(FViewportClient* Client) {
     mMouseCaptured = false;
     mPlayClient = Client;
     mPlayInputCaptured = false;
+
     if (mViewport != nullptr) {
         mViewport->SetClient(GetActiveClient());
     }
@@ -154,6 +156,7 @@ void FEditorViewport::DrawUI(float DeltaTime) {
     } else {
         ReleaseInput();
     }
+
     ImGui::End();
 }
 
@@ -172,6 +175,7 @@ void FEditorViewport::ReleaseInput() {
 void FEditorViewport::DrawContents(float DeltaTime, bool AllowInput) {
     mImageSize = {};
     mDrawList = nullptr;
+
     if (mViewport == nullptr) {
         return;
     }
@@ -197,6 +201,7 @@ void FEditorViewport::DrawContents(float DeltaTime, bool AllowInput) {
             mImageOrigin = {Origin.x, Origin.y};
             mImageSize = {Available.x, Available.y};
             mDrawList = ImGui::GetWindowDrawList();
+
             const ImGuiIO& Input{ImGui::GetIO()};
             FViewportInput State{};
             const float ScaleX{Target->GetWidth() / Available.x};
@@ -206,13 +211,17 @@ void FEditorViewport::DrawContents(float DeltaTime, bool AllowInput) {
             State.mDelta = {Input.MouseDelta.x * ScaleX, Input.MouseDelta.y * ScaleY};
 
             State.mHovered = AllowInput && ImGui::IsItemHovered();
+
             if (State.mHovered && (ImGui::IsMouseClicked(ImGuiMouseButton_Left) || ImGui::IsMouseClicked(ImGuiMouseButton_Right) || ImGui::IsMouseClicked(ImGuiMouseButton_Middle))) {
                 ImGui::SetWindowFocus();
+
                 if (!mMouseCaptured) {
                     State.mDelta = {};
                 }
+
                 mMouseCaptured = true;
             }
+
             State.mFocused = AllowInput && ImGui::IsWindowFocused() && !ImGui::IsPopupOpen(nullptr, ImGuiPopupFlags_AnyPopup);
 
             State.mLeftPressed = ImGui::IsMouseClicked(ImGuiMouseButton_Left);
@@ -229,26 +238,33 @@ void FEditorViewport::DrawContents(float DeltaTime, bool AllowInput) {
             State.mEscape = ImGui::IsKeyPressed(ImGuiKey_Escape);
 
             bool AssetDrag{};
+
             if (AllowInput && mPlayClient == nullptr && ImGui::BeginDragDropTarget()) {
                 if (const ImGuiPayload* Payload{ImGui::AcceptDragDropPayload(EditorAssetDragDrop::MeshPayload, ImGuiDragDropFlags_AcceptBeforeDelivery)}) {
                     AssetDrag = true;
+
                     if (Payload->IsDelivery() && Payload->Data != nullptr && Payload->DataSize > 1) {
                         const auto* Data{static_cast<const char*>(Payload->Data)};
+
                         if (Data[Payload->DataSize - 1] == '\0') {
                             const std::filesystem::path Path{FilePath::FromUtf8(std::string_view{Data, static_cast<std::size_t>(Payload->DataSize - 1)})};
                             mClient.DropMesh(Path, State.mMouse, mViewport->GetSize());
                         }
                     }
                 }
+
                 if (const ImGuiPayload* Payload{ImGui::AcceptDragDropPayload(EditorAssetDragDrop::ActorPayload, ImGuiDragDropFlags_AcceptBeforeDelivery)}) {
                     AssetDrag = true;
+
                     if (Payload->IsDelivery() && Payload->Data != nullptr && Payload->DataSize > 1) {
                         const auto* Data{static_cast<const char*>(Payload->Data)};
+
                         if (Data[Payload->DataSize - 1] == '\0') {
                             mClient.DropActor(FString{Data, static_cast<std::size_t>(Payload->DataSize - 1)}, State.mMouse, mViewport->GetSize());
                         }
                     }
                 }
+
                 ImGui::EndDragDropTarget();
             }
 
@@ -263,6 +279,7 @@ void FEditorViewport::DrawContents(float DeltaTime, bool AllowInput) {
                 } else if (!State.mFocused) {
                     mPlayInputCaptured = false;
                 }
+
                 State.mFocused = State.mFocused && mPlayInputCaptured;
             }
 
@@ -277,6 +294,7 @@ void FEditorViewport::DrawContents(float DeltaTime, bool AllowInput) {
             State.mUp = Keyboard && ImGui::IsKeyDown(ImGuiKey_E);
             State.mDown = Keyboard && ImGui::IsKeyDown(ImGuiKey_Q);
             State.mFast = Input.KeyShift;
+
             for (const FViewportCommandInfo& Info : FViewportCommandInfo::GetCommands()) {
                 if (mPlayClient == nullptr && Info.mInput != nullptr) {
                     const ImGuiKey Key{ShortcutKey(Info.mShortcut)};
@@ -291,8 +309,10 @@ void FEditorViewport::DrawContents(float DeltaTime, bool AllowInput) {
                     State.mMiddleDown = false;
                     State.mDelta = {};
                 }
+
                 mViewport->Input(State, DeltaTime);
             }
+
             Submitted = true;
         }
     }
@@ -304,6 +324,7 @@ void FEditorViewport::DrawContents(float DeltaTime, bool AllowInput) {
         State.mEscape = ImGui::IsKeyPressed(ImGuiKey_Escape);
         mViewport->Input(State, DeltaTime);
     }
+
     if (!ImGui::IsMouseDown(ImGuiMouseButton_Left) && !ImGui::IsMouseDown(ImGuiMouseButton_Right) && !ImGui::IsMouseDown(ImGuiMouseButton_Middle)) {
         mMouseCaptured = false;
     }

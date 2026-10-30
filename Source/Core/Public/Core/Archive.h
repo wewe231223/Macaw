@@ -45,6 +45,7 @@ public:
      * @param[in] Mode 로드·저장 또는 기즈모 동작 모드입니다.
      */
     explicit FArchive(EArchiveMode Mode);
+
     /**
      * @brief 객체의 수명을 끝내고 소유한 리소스를 정리합니다.
      */
@@ -68,17 +69,20 @@ public:
      * @return 검사 조건을 만족하면 true, 그렇지 않으면 false입니다.
      */
     bool IsDuplicating() const;
+
     /**
      * @brief 객체 복제에 사용할 GUID 대응표의 비소유 주소를 설정합니다.
      * @param[in] Remapping 원본 GUID와 복제 GUID 사이의 대응표입니다.
      */
     void SetObjectGuidRemapping(const TMap<FGuid, FGuid, FGuidHash>* Remapping);
+
     /**
      * @brief 객체 GUID를 직렬화하고 로드 시 복제용 GUID 재매핑을 적용합니다.
      * @param[in] Name 직렬화할 필드의 이름입니다.
      * @param[in,out] Value 읽거나 기록·변환할 값입니다.
      */
     void SerializeObjectGuid(std::string_view Name, FGuid& Value);
+
     /**
      * @brief 등록된 GUID 대응표로 객체 참조를 복제 대상의 GUID로 변환합니다.
      * @param[in,out] Value 읽거나 기록·변환할 값입니다.
@@ -91,11 +95,13 @@ public:
      * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
      */
     bool HasError() const;
+
     /**
      * @brief 처음 발생한 오류 메시지를 반환합니다.
      * @return 소유 객체가 유지하는 값의 참조입니다.
      */
     const FString& GetError() const;
+
     /**
      * @brief 아카이브에 처음 발생한 오류 메시지를 보관합니다.
      * @param[in] Message 보고할 내용 또는 Windows 메시지 번호입니다.
@@ -115,6 +121,7 @@ public:
      * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
      */
     virtual bool BeginObject(std::string_view Name) = 0;
+
     /**
      * @brief 현재 객체 컨테이너를 끝내고 상위 컨테이너로 돌아갑니다.
      */
@@ -127,6 +134,7 @@ public:
      * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
      */
     virtual bool BeginArray(std::string_view Name, Uint32& Count) = 0;
+
     /**
      * @brief 현재 배열 컨테이너를 끝내고 상위 컨테이너로 돌아갑니다.
      */
@@ -138,30 +146,35 @@ public:
      * @param[in,out] Value 저장 시 읽고 로드 시 덮어쓸 값입니다.
      */
     virtual void Serialize(std::string_view Name, bool& Value) = 0;
+
     /**
      * @brief 아카이브 모드에 따라 값을 읽거나 저장합니다.
      * @param[in] Name 조회하거나 기록할 이름입니다.
      * @param[in,out] Value 저장 시 읽고 로드 시 덮어쓸 값입니다.
      */
     virtual void Serialize(std::string_view Name, Int32& Value) = 0;
+
     /**
      * @brief 아카이브 모드에 따라 값을 읽거나 저장합니다.
      * @param[in] Name 조회하거나 기록할 이름입니다.
      * @param[in,out] Value 저장 시 읽고 로드 시 덮어쓸 값입니다.
      */
     virtual void Serialize(std::string_view Name, Uint32& Value) = 0;
+
     /**
      * @brief 아카이브 모드에 따라 값을 읽거나 저장합니다.
      * @param[in] Name 조회하거나 기록할 이름입니다.
      * @param[in,out] Value 저장 시 읽고 로드 시 덮어쓸 값입니다.
      */
     virtual void Serialize(std::string_view Name, Uint64& Value);
+
     /**
      * @brief 아카이브 모드에 따라 값을 읽거나 저장합니다.
      * @param[in] Name 조회하거나 기록할 이름입니다.
      * @param[in,out] Value 저장 시 읽고 로드 시 덮어쓸 값입니다.
      */
     virtual void Serialize(std::string_view Name, float& Value) = 0;
+
     /**
      * @brief 아카이브 모드에 따라 값을 읽거나 저장합니다.
      * @param[in] Name 조회하거나 기록할 이름입니다.
@@ -175,54 +188,63 @@ public:
      * @param[in,out] Value 저장 시 읽고 로드 시 덮어쓸 값입니다.
      */
     void Serialize(std::string_view Name, FGuid& Value);
+
     /**
      * @brief 아카이브 모드에 따라 값을 읽거나 저장합니다.
      * @param[in] Name 조회하거나 기록할 이름입니다.
      * @param[in,out] Value 저장 시 읽고 로드 시 덮어쓸 값입니다.
      */
     void Serialize(std::string_view Name, FVector2& Value);
+
     /**
      * @brief 아카이브 모드에 따라 값을 읽거나 저장합니다.
      * @param[in] Name 조회하거나 기록할 이름입니다.
      * @param[in,out] Value 저장 시 읽고 로드 시 덮어쓸 값입니다.
      */
     void Serialize(std::string_view Name, FVector& Value);
+
     /**
      * @brief 아카이브 모드에 따라 값을 읽거나 저장합니다.
      * @param[in] Name 조회하거나 기록할 이름입니다.
      * @param[in,out] Value 저장 시 읽고 로드 시 덮어쓸 값입니다.
      */
     void Serialize(std::string_view Name, FVector4& Value);
+
     /**
      * @brief 아카이브 모드에 따라 값을 읽거나 저장합니다.
      * @param[in] Name 조회하거나 기록할 이름입니다.
      * @param[in,out] Value 저장 시 읽고 로드 시 덮어쓸 값입니다.
      */
     void Serialize(std::string_view Name, FQuat& Value);
+
     /**
      * @brief 아카이브 모드에 따라 값을 읽거나 저장합니다.
      * @param[in] Name 조회하거나 기록할 이름입니다.
      * @param[in,out] Value 저장 시 읽고 로드 시 덮어쓸 값입니다.
      */
     void Serialize(std::string_view Name, FRotator& Value);
+
     /**
      * @brief 아카이브 모드에 따라 값을 읽거나 저장합니다.
      * @param[in] Name 조회하거나 기록할 이름입니다.
      * @param[in,out] Value 저장 시 읽고 로드 시 덮어쓸 값입니다.
      */
     void Serialize(std::string_view Name, FMatrix& Value);
+
     /**
      * @brief 아카이브 모드에 따라 값을 읽거나 저장합니다.
      * @param[in] Name 조회하거나 기록할 이름입니다.
      * @param[in,out] Value 저장 시 읽고 로드 시 덮어쓸 값입니다.
      */
     void Serialize(std::string_view Name, FTransform& Value);
+
     /**
      * @brief 아카이브 모드에 따라 값을 읽거나 저장합니다.
      * @param[in] Name 조회하거나 기록할 이름입니다.
      * @param[in,out] Value 저장 시 읽고 로드 시 덮어쓸 값입니다.
      */
     void Serialize(std::string_view Name, FBox& Value);
+
     /**
      * @brief 아카이브 모드에 따라 값을 읽거나 저장합니다.
      * @param[in] Name 조회하거나 기록할 이름입니다.

@@ -83,6 +83,7 @@ Uint64 FAssetRegistry::GetGeneration() noexcept {
 
 void FAssetRegistry::ActivateGlobal() {
     ErrorHandler::Report(AssetRegistryInstance != nullptr && AssetRegistryInstance != this, "FAssetRegistry", "Another asset registry is already active", ErrorHandler::EErrorLevel::Critical);
+
     if (AssetRegistryInstance != this) {
         ++AssetRegistryGeneration;
         AssetRegistryInstance = this;
@@ -324,6 +325,7 @@ FAssetHandle FAssetRegistry::LoadViewerAsset(const std::filesystem::path& Source
         }
 
         Material->Finalize(this);
+
         return RegisterImportedAsset(Source, {}, std::move(Material));
     }
 
@@ -361,6 +363,7 @@ FAssetReference FAssetRegistry::ImportLegacyMaterial(const FAssetReference& Libr
     FAssetReference ResolvedPipeline{Pipeline};
 
     ResolvedPipeline.Resolve(this);
+
     const FString PipelineName{std::filesystem::path{ResolvedPipeline.GetPath().mPath}.stem().string().c_str()};
     EMaterialShader Shader{EMaterialShader::Base};
 
@@ -414,6 +417,7 @@ bool FAssetRegistry::ConvertLegacyAssets() {
 
     for (const std::filesystem::path& Source : Sources) {
         TArray<FImportedMaterial> Imported{};
+
         const FObjImporter::FTextureResolver UnresolvedTexture{[](const std::filesystem::path&) {
             return FAssetReference{};
         }};
@@ -518,6 +522,7 @@ FAssetHandle FAssetRegistry::RegisterImportedAsset(const std::filesystem::path& 
         Handle = FindAsset(MakeAssetPath(Target));
     } else {
         Handle = AllocateHandle();
+
         FAssetEntry Entry{};
 
         Entry.mHandle = Handle;
@@ -542,6 +547,7 @@ FAssetHandle FAssetRegistry::RegisterImportedAsset(const std::filesystem::path& 
 
     Asset->SetAssetName(Entry->mAssetPath.mPath);
     Entry->mAsset = std::move(Asset);
+
     return Handle;
 }
 
@@ -572,6 +578,7 @@ FAssetHandle FAssetRegistry::ImportTexture(const std::filesystem::path& Source, 
 
     if (!TargetFolder.empty()) {
         Target = TargetFolder / (std::to_string(std::hash<std::string>{}(Source.generic_string())) + "_" + Source.filename().string());
+
         const FAssetHandle Imported{FindAsset(MakeAssetPath(Target))};
 
         if (ResolveAsset<UTexture>(Imported) != nullptr) {
@@ -589,6 +596,7 @@ FAssetHandle FAssetRegistry::ImportTexture(const std::filesystem::path& Source, 
         std::error_code Error{};
 
         std::filesystem::create_directories(TargetFolder, Error);
+
         if (Error || !std::filesystem::copy_file(Source, Target, std::filesystem::copy_options::none, Error)) {
             return {};
         }
@@ -679,6 +687,7 @@ FAssetHandle FAssetRegistry::ImportMeshAsset(const std::filesystem::path& Source
         if (!Target.empty() && Source != Target) {
             std::filesystem::remove(Target, Error);
             std::filesystem::remove(MakeSidecarPath(Target), Error);
+
             const std::filesystem::path Folder{Target.parent_path() / (Target.stem().string() + ".materials")};
             const std::filesystem::path ResolvedFolder{std::filesystem::weakly_canonical(Folder, Error)};
             const std::filesystem::path ResolvedContent{std::filesystem::weakly_canonical(mContentRoot, Error)};
@@ -691,6 +700,7 @@ FAssetHandle FAssetRegistry::ImportMeshAsset(const std::filesystem::path& Source
 
         return FAssetHandle{};
     }};
+
     FMeshData Data{};
 
     if (!FMeshAssetSerializer::Load(Source, Data)) {
@@ -938,6 +948,7 @@ bool FAssetRegistry::LoadMaterial(FAssetEntry& Entry) {
     Material->SetAssetName(Entry.mAssetPath.mPath);
     Material->Finalize(this);
     Entry.mAsset = std::move(Material);
+
     return true;
 }
 
@@ -975,6 +986,7 @@ bool FAssetRegistry::LoadMesh(FAssetEntry& Entry) {
     Mesh->SetAssetName(Entry.mAssetPath.mPath);
 
     Entry.mAsset = std::move(Mesh);
+
     return true;
 }
 

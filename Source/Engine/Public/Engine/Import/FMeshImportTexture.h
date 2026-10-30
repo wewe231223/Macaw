@@ -20,6 +20,7 @@ public:
 
 public:
     FMeshImportTexture() = default;
+
     explicit FMeshImportTexture(std::filesystem::path FilePath);
 
 public:
@@ -37,8 +38,10 @@ private:
 private:
     EMeshImportTextureSource mSource{EMeshImportTextureSource::None};
     ReflectProperty(mSource, "Source", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     std::filesystem::path mFilePath{};
     ReflectProperty(mFilePath, "FilePath", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     FString mEmbeddedReference{};
     ReflectProperty(mEmbeddedReference, "EmbeddedReference", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 };

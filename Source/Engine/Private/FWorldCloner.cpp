@@ -59,6 +59,7 @@ namespace {
         auto Objects{CollectObjects(Actors)};
         Objects.push_back(World);
         Objects.push_back(World->GetPersistentLevel());
+
         return Objects;
     }
 
@@ -148,6 +149,7 @@ std::unique_ptr<FWorldContext> FWorldCloner::Clone(const FWorldContext* Source, 
 
     Remapping.at(SourceWorld->GetGuid()) = World->GetGuid();
     Remapping.at(SourceWorld->GetPersistentLevel()->GetGuid()) = World->GetPersistentLevel()->GetGuid();
+
     TArray<Uint8> Bytes{};
     FMemoryArchive Writer{Bytes};
     Writer.SetObjectGuidRemapping(&Remapping);
@@ -161,6 +163,7 @@ std::unique_ptr<FWorldContext> FWorldCloner::Clone(const FWorldContext* Source, 
     FMemoryArchive Reader{static_cast<const TArray<Uint8>&>(Bytes)};
     Reader.SetObjectGuidRemapping(&Remapping);
     FWorldSerializer::Serialize(Reader, Context.get());
+
     FObjectDuplicationContext Objects{};
 
     if (Reader.HasError() || Reader.GetRemainingBytes() != 0 || !BuildDuplication(Originals, CollectObjects(World), Remapping, Objects, Error)) {
@@ -184,6 +187,7 @@ std::unique_ptr<FWorldContext> FWorldCloner::Clone(const FWorldContext* Source, 
     }
 
     *Duplication = std::move(Objects);
+
     return Context;
 }
 
@@ -218,6 +222,7 @@ TArray<FObjectHandle> FWorldCloner::DuplicateActors(UWorld* World, const TArray<
 
     Remapping.emplace(World->GetGuid(), World->GetGuid());
     Remapping.emplace(World->GetPersistentLevel()->GetGuid(), World->GetPersistentLevel()->GetGuid());
+
     TArray<Uint8> Bytes{};
     FMemoryArchive Writer{Bytes};
     Writer.SetObjectGuidRemapping(&Remapping);
@@ -230,6 +235,7 @@ TArray<FObjectHandle> FWorldCloner::DuplicateActors(UWorld* World, const TArray<
 
     FMemoryArchive Reader{static_cast<const TArray<Uint8>&>(Bytes)};
     Reader.SetObjectGuidRemapping(&Remapping);
+
     auto Copies{FWorldSerializer::LoadActors(Reader)};
     TArray<AActor*> Loaded{};
 
@@ -270,6 +276,7 @@ TArray<FObjectHandle> FWorldCloner::DuplicateActors(UWorld* World, const TArray<
             }
 
             Error = "Duplicated actor registration failed";
+
             return {};
         }
 

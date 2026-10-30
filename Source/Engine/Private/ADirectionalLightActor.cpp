@@ -16,8 +16,10 @@ bool ADirectionalLightActor::InitializeDefaultComponents() {
     if (!GetComponents().empty()) {
         return false;
     }
+
     auto Component{NewObject<UDirectionalLightComponent>()};
     Component->SetName("DirectionalLightComponent");
+
     return AddComponent(std::move(Component));
 }
 

@@ -40,31 +40,37 @@ public:
      */
     FVector mPosition{};
     ReflectProperty(mPosition, "Position", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief UTF-8 문자열입니다.
      */
     FString mText{};
     ReflectProperty(mText, "Text", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 표시할 RGBA 색상입니다.
      */
     FVector4 mColor{1.0f, 1.0f, 1.0f, 1.0f};
     ReflectProperty(mColor, "Color", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 로컬 쿼드의 가로·세로 월드 크기입니다.
      */
     float mSize{0.5f};
     ReflectProperty(mSize, "Size", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 가로·세로 크기 배율입니다.
      */
     FVector2 mScale{1.0f, 1.0f};
     ReflectProperty(mScale, "Scale", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 텍스트 크기를 화면 픽셀 단위로 유지할지 여부입니다.
      */
     bool mScreenSpace{};
     ReflectProperty(mScreenSpace, "ScreenSpace", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 장면의 깊이 검사를 적용할지 여부입니다.
      */

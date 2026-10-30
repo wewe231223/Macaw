@@ -62,9 +62,11 @@ void UWorld::SetAssets(FAssetManager* Assets) {
                     Mesh->ResolveMesh();
                     Mesh->ResolveMaterial();
                 }
+
                 if (auto* Sprite{Cast<UBillboardComponent>(Component.get())}) {
                     Sprite->ResolveTexture();
                 }
+
                 if (auto* Light{Cast<ULightComponentBase>(Component.get())}) {
                     Light->SynchronizeLight();
                 }
@@ -116,6 +118,7 @@ bool UWorld::ContainsObject(const UObject* Object) const {
     }
 
     const auto* Component{Cast<UActorComponent>(Object)};
+
     return Component != nullptr && Component->GetOwner() != nullptr && ContainsObject(Component->GetOwner());
 }
 
@@ -135,6 +138,7 @@ bool UWorld::AttachScene(std::unique_ptr<FSceneInterface> Scene) {
                 if (auto* Light{Cast<ULightComponentBase>(Component.get())}) {
                     Light->SynchronizeLight();
                 }
+
                 if (auto* Primitive{Cast<UPrimitiveComponent>(Component.get())}) {
                     Primitive->MarkRenderStateDirty();
                 }
@@ -170,6 +174,7 @@ AActor* UWorld::SpawnActor(const UClass* Class) {
 
     std::unique_ptr<AActor> Actor{static_cast<AActor*>(Object.release())};
     FString Name{};
+
     do {
         Name = Class->GetName() + "_" + std::to_string(++mSpawnSerial);
     } while (FObjectRegistry::Get()->FindObject(FName{Name}, mPersistentLevel.get()) != nullptr);
@@ -180,6 +185,7 @@ AActor* UWorld::SpawnActor(const UClass* Class) {
     }
 
     const FObjectHandle Handle{Actor->GetHandle()};
+
     return mPersistentLevel->AddActor(std::move(Actor)) ? ResolveActor(Handle) : nullptr;
 }
 
@@ -205,7 +211,9 @@ AStaticMeshActor* UWorld::SpawnPrimitive(EPrimitiveType Type) {
 
     Actor->SetName(Name);
     Actor->GetStaticMeshComponent()->SetPrimitiveType(Type);
+
     const FObjectHandle Handle{Actor->GetHandle()};
+
     return mPersistentLevel->AddActor(std::move(Actor)) ? Cast<AStaticMeshActor>(ResolveActor(Handle)) : nullptr;
 }
 
@@ -222,6 +230,7 @@ bool UWorld::DestroyActor(FObjectHandle Handle) {
     Actor->mPendingDestroy = true;
     mPendingActors.push_back(Handle);
     FlushPendingActors();
+
     return true;
 }
 
@@ -237,6 +246,7 @@ void UWorld::EnqueueRenderUpdate(FObjectHandle Handle) {
  */
 void UWorld::SendAllEndOfFrameUpdates() {
     const FScopedStatTimer StatTimer{EngineStats::RenderUpdates};
+
     if (mScene == nullptr) {
         return;
     }
@@ -260,24 +270,29 @@ void UWorld::SendAllEndOfFrameUpdates() {
 bool UWorld::Raycast(const FRay& Ray, FWorldHit& Hit) const {
     const FScopedStatTimer StatTimer{EngineStats::Raycast};
     FRay NormalizedRay{Ray};
+
     if (mPersistentLevel == nullptr || !NormalizedRay.mOrigin.IsFinite() || !NormalizedRay.mDirection.Normalize()) {
         return false;
     }
 
     bool Found{};
     float Closest{std::numeric_limits<float>::max()};
+
     for (const auto& Actor : mPersistentLevel->GetActors()) {
         if (Actor->IsPendingDestroy()) {
             continue;
         }
+
         for (const auto& Component : Actor->GetComponents()) {
             const auto* Primitive{Cast<UPrimitiveComponent>(Component.get())};
+
             if (Primitive != nullptr && RaycastMesh(&Primitive->GetMeshData(), Primitive->GetWorldMatrix(), NormalizedRay, Closest)) {
                 Hit = {Actor->GetHandle(), Primitive->GetHandle(), NormalizedRay.mOrigin + NormalizedRay.mDirection * Closest, Closest};
                 Found = true;
             }
         }
     }
+
     return Found;
 }
 
@@ -355,9 +370,11 @@ bool UWorld::BeginPlay() {
     }
 
     FDispatchScope Scope{this};
+
     mPlayState = EWorldPlayState::Starting;
     mTimeSeconds = 0.0f;
     mTickCount = 0;
+
     const auto Handles{GetActorHandles()};
 
     for (const FObjectHandle Handle : Handles) {
@@ -371,6 +388,7 @@ bool UWorld::BeginPlay() {
     }
 
     mPlayState = EWorldPlayState::Playing;
+
     return true;
 }
 
@@ -390,7 +408,9 @@ void UWorld::EndPlay() {
     }
 
     FDispatchScope Scope{this};
+
     mPlayState = EWorldPlayState::Stopping;
+
     const auto Handles{GetActorHandles()};
 
     for (const FObjectHandle Handle : Handles) {
@@ -419,6 +439,7 @@ bool UWorld::SetPaused(bool Paused) {
     }
 
     mPlayState = Paused ? EWorldPlayState::Paused : EWorldPlayState::Playing;
+
     return true;
 }
 
@@ -454,7 +475,9 @@ bool UWorld::SetActiveCamera(UCameraComponent* Camera) {
     if (!CanAddActor() || (Camera != nullptr && (Camera->GetWorld() != this || !ContainsObject(Camera)))) {
         return false;
     }
+
     mActiveCamera = Camera != nullptr ? Camera->GetHandle() : FObjectHandle{};
+
     return true;
 }
 
@@ -467,7 +490,9 @@ bool UWorld::SetInputTarget(AActor* Actor) {
     if (!CanAddActor() || (Actor != nullptr && !ContainsObject(Actor))) {
         return false;
     }
+
     mInputTarget = Actor != nullptr ? Actor->GetHandle() : FObjectHandle{};
+
     return true;
 }
 
@@ -478,11 +503,15 @@ AActor* UWorld::GetInputTarget() const {
 
 bool UWorld::Input(const FViewportInput& Input, float DeltaTime) {
     AActor* Actor{GetInputTarget()};
+
     if ((mWorldType != EWorldType::Game && mWorldType != EWorldType::PIE) || mPlayState != EWorldPlayState::Playing || IsDispatching() || !CanBeginActor() || !Input.mFocused || !std::isfinite(DeltaTime) || DeltaTime < 0.0f || Actor == nullptr || !Actor->HasBegunPlay()) {
         return false;
     }
+
     FDispatchScope Scope{this};
+
     Actor->Input(Input, DeltaTime);
+
     return true;
 }
 
@@ -495,12 +524,16 @@ bool UWorld::TickActors(float DeltaTime, bool EditorTick) {
     }
 
     const FScopedStatTimer StatTimer{EngineStats::WorldTick};
+
     EngineStats::WorldTicks.Add();
+
     FDispatchScope Scope{this};
+
     if (!EditorTick) {
         mTimeSeconds += DeltaTime;
         ++mTickCount;
     }
+
     const auto Handles{GetActorHandles()};
 
     for (const FObjectHandle Handle : Handles) {
@@ -540,6 +573,7 @@ void UWorld::FlushPendingActors() {
 
     while (!mPendingActors.empty() && mPersistentLevel != nullptr) {
         auto Pending{std::move(mPendingActors)};
+
         mPendingActors.clear();
 
         for (const FObjectHandle Handle : Pending) {

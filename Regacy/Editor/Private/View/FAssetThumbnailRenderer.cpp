@@ -100,6 +100,7 @@ void FAssetThumbnailRenderer::RenderThumbnail(const FAssetEntry& Entry, FSceneRe
         MeshData.mMeshHandle = Entry.mHandle;
     } else if (Entry.mAssetType == EAssetType::Material) {
         MeshData.mMeshHandle = FAssetRegistry::Get().FindAsset(FAssetPath{SphereMeshPath});
+
         const UMesh* PreviewMesh{FAssetRegistry::Get().ResolveAsset<UMesh>(MeshData.mMeshHandle)};
 
         if (PreviewMesh != nullptr) {
@@ -165,6 +166,7 @@ void FAssetThumbnailRenderer::RenderThumbnail(const FAssetEntry& Entry, FSceneRe
     View.SetPassEnabled(ERenderPass::Opaque, true);
     View.SetPassEnabled(ERenderPass::Translucent, true);
     View.SetPassEnabled(ERenderPass::PostProcessing, true);
+
     FOverlayRenderData Overlay{};
 
     Overlay.mPasses.reset();

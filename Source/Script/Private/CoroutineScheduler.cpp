@@ -16,10 +16,12 @@ namespace {
      * @brief Lua 코루틴 스케줄러 갱신 시간를 측정하는 통계 항목입니다.
      */
     FStat SchedulerTime{"script", "Coroutine update CPU", EStatUnit::Milliseconds};
+
     /**
      * @brief 대기 중인 Lua 코루틴 수를 측정하는 통계 항목입니다.
      */
     FStat PendingWaits{"script", "Pending waits (sum of updates)"};
+
     /**
      * @brief Lua 코루틴 재개 처리 시간를 측정하는 통계 항목입니다.
      */
@@ -39,9 +41,12 @@ void CoroutineScheduler::Wait(CoroutineFunc Function, float WaitTime) { // Funct
 
 void CoroutineScheduler::Update(float DeltaTime) {
     const FScopedStatTimer StatTimer{SchedulerTime};
+
     PendingWaits.Add(static_cast<double>(mCoroutineInfoArray.size()));
+
     for (std::size_t Remaining{mCoroutineInfoArray.size()}; Remaining > 0; --Remaining) {
         const std::size_t Index{Remaining - 1};
+
         if (mCoroutineInfoArray[Index].mCheckFunction) { // 조건 Coroutine일 경우와 시간 Coroutine일 경우 분리
             if (mCoroutineInfoArray[Index].mCheckFunction()) {
                 CoroutineFunc Callback{mCoroutineInfoArray[Index].mCoroutineFunction}; // Callback으로 실행
@@ -50,6 +55,7 @@ void CoroutineScheduler::Update(float DeltaTime) {
             }
         } else {
             mCoroutineInfoArray[Index].mRemainTime -= DeltaTime; // 시간 DeltaTime만큼 감소
+
             if (mCoroutineInfoArray[Index].mRemainTime <= 0.0f) {
                 CoroutineFunc Callback{mCoroutineInfoArray[Index].mCoroutineFunction}; // Callback으로 실행
                 Callback();
@@ -71,14 +77,17 @@ void CoroutineScheduler::RegisterLuaCoroutine(sol::thread LuaCoroutine) {
 void CoroutineScheduler::RunCoroutine(sol::state& Lua, sol::protected_function Resume, sol::thread LuaCoroutine) { // Coroutine 반복 실행함수, Yield 만나고 값에 따라서 Wait Array에 값을 넣는 역할 담당
     const FScopedStatTimer StatTimer{ResumeTime};
     auto YieldResult{Resume(LuaCoroutine)}; // Yield시 같이 넘기는 값을 Resume하면서 가져옴
+
     if (!YieldResult.valid()) {
         return;
     }
 
     const bool Success{YieldResult.get<bool>(0)};
+
     if (Success) { // Yield가 Success일 경우만 실행
         sol::protected_function Status{Lua["coroutine"]["status"]}; // Coroutine.status 실행해서 현재 상태 체크
         const auto StatusResult{Status(LuaCoroutine)};
+
         if (!StatusResult.valid()) {
             return;
         }
@@ -91,12 +100,15 @@ void CoroutineScheduler::RunCoroutine(sol::state& Lua, sol::protected_function R
 
         if (State == "suspended") { // 대기 상태이므로 Wait 체크
             const FString WaitType{YieldResult.get<FString>(1)};
+
             if (WaitType == "wait") {
                 const float WaitTime{YieldResult.get<float>(2)};
+
                 Wait([this, Resume, LuaCoroutine, &Lua]() { // Wait가 있으면 대기열에 현재 람다를 넣음, 현재 람다가 끝나고 다음 Wait에도 실행되도록 RunCoroutine을 넣음
                     RunCoroutine(Lua, Resume, LuaCoroutine);
                 }, WaitTime);
             }
+
             if (WaitType == "wait_until") {
                 const sol::protected_function Condition{YieldResult.get<sol::protected_function>(2)};
                 CheckFunc CheckFunction{[Condition]() {

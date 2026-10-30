@@ -37,9 +37,11 @@ public:
     ~UActorComponent() override = default;
 
     UActorComponent(const UActorComponent&) = delete;
+
     UActorComponent& operator=(const UActorComponent&) = delete;
 
     UActorComponent(UActorComponent&&) = delete;
+
     UActorComponent& operator=(UActorComponent&&) = delete;
 
 public:
@@ -72,8 +74,10 @@ public:
     void MarkRenderDynamicDataDirty();
     void DoDeferredRenderUpdates();
     ReflectFunction(IsActive);
+
     bool IsActive() const;
     ReflectFunction(SetActive, FName{"BInActive"});
+
     void SetActive(bool BInActive);
     /// <summary>컴포넌트를 활성화하고 Tick을 켭니다.</summary>
     ReflectFunction(Activate);
@@ -87,8 +91,10 @@ public:
     /// <summary>Tick 지원 여부를 설정하고 World의 Tick 등록을 갱신합니다.</summary>
     void SetCanEverTick(bool CanEverTick);
     ReflectFunction(IsTickEnabled);
+
     bool IsTickEnabled() const;
     ReflectFunction(SetTickEnabled, FName{"TickEnabled"});
+
     void SetTickEnabled(bool TickEnabled);
     bool IsTickInEditor() const;
     void SetTickInEditor(bool TickInEditor);
@@ -145,6 +151,7 @@ private:
 
     TStateFlags<EStateFlag> mState{};
     ReflectAccessor(mBActive, IsActive, SetActive, "bActive", EPropertyFlags::Edit | EPropertyFlags::Serialize, ReflectSerializer(mBActive), ReflectEditor("Component", "Active"));
+
     bool mBActive{true};
 
     ReflectMembers();

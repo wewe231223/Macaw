@@ -25,32 +25,38 @@ public:
      * @brief FRay의 초기 상태와 전달받은 의존성을 구성합니다.
      */
     FRay() = default;
+
     /**
      * @brief FRay의 초기 상태와 전달받은 의존성을 구성합니다.
      * @param[in] Origin Origin에 적용할 입력 값입니다.
      * @param[in] Direction 투영 방향 또는 광선의 진행 방향입니다.
      */
     FRay(const FVector& Origin, const FVector& Direction);
+
     /**
      * @brief 객체의 수명을 끝내고 소유한 리소스를 정리합니다.
      */
     ~FRay() = default;
+
     /**
      * @brief 상대 값의 상태로 객체를 복사하거나 이동 생성합니다.
      * @param[in] Other 비교, 복사 또는 연산할 상대 값입니다.
      */
     FRay(const FRay& Other) = default;
+
     /**
      * @brief 상대 값의 상태를 대입합니다.
      * @param[in] Other 비교, 복사 또는 연산할 상대 값입니다.
      * @return 소유 객체가 유지하는 값의 참조입니다.
      */
     FRay& operator=(const FRay& Other) = default;
+
     /**
      * @brief 상대 값의 상태로 객체를 복사하거나 이동 생성합니다.
      * @param[in] Other 비교, 복사 또는 연산할 상대 값입니다.
      */
     FRay(FRay&& Other) noexcept = default;
+
     /**
      * @brief 상대 값의 상태를 대입합니다.
      * @param[in] Other 비교, 복사 또는 연산할 상대 값입니다.

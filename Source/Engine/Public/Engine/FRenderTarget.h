@@ -38,6 +38,7 @@ public:
      * @return 가로 픽셀 수입니다.
      */
     virtual Uint32 GetWidth() const = 0;
+
     /**
      * @brief 세로 픽셀 수를 반환합니다.
      * @return 세로 픽셀 수입니다.

@@ -13,10 +13,12 @@ cbuffer TextConstants : register(b0) {
      * @brief 로컬 평면 위치를 클립 공간으로 변환하는 행 우선 행렬입니다.
      */
     float4x4 Transform;
+
     /**
      * @brief 드로에 적용할 RGBA 색상입니다.
      */
     float4 Color;
+
     /**
      * @brief MSDF 거리 범위 X와 아틀라스 폭·높이 YZ, 예약값입니다.
      */
@@ -31,6 +33,7 @@ struct FVertexInput {
      * @brief 정점의 로컬 공간 위치입니다.
      */
     float2 Position : POSITION;
+
     /**
      * @brief 폰트 아틀라스 안의 글리프 텍스처 좌표입니다.
      */
@@ -45,6 +48,7 @@ struct FPixelInput {
      * @brief 래스터라이저에 전달하거나 픽셀 단계에서 읽는 투영 위치입니다.
      */
     float4 Position : SV_POSITION;
+
     /**
      * @brief 폰트 아틀라스 안의 글리프 텍스처 좌표입니다.
      */
@@ -55,6 +59,7 @@ struct FPixelInput {
  * @brief RGB 채널에 부호 거리 정보를 저장한 MSDF 폰트 아틀라스입니다.
  */
 Texture2D FontAtlas : register(t0);
+
 /**
  * @brief 폰트 아틀라스의 거리 정보를 읽는 샘플러입니다.
  */

@@ -34,6 +34,7 @@ public:
      * @brief 멤버 포인터가 소속된 C++ 타입입니다.
      */
     using FOwner = TOwner;
+
     /**
      * @brief 멤버 포인터가 가리키는 값의 C++ 타입입니다.
      */

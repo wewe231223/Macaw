@@ -32,6 +32,7 @@ void FScene::AddPrimitive(const FPrimitiveSceneProxy& Proxy) {
         ErrorHandler::Report("Mesh", "Cannot create project mesh resources", ErrorHandler::EErrorLevel::Error);
         return;
     }
+
     const auto Position{mIndices.find(Proxy.mId)};
 
     if (Position != mIndices.end()) {
@@ -124,6 +125,7 @@ const TArray<FScenePrimitive>& FScene::GetPrimitives() const {
  */
 Uint32 FScene::TakeTransformUpdates() const {
     const Uint32 Count{mTransformUpdates};
+
     mTransformUpdates = 0;
 
     return Count;
@@ -137,6 +139,7 @@ void FScene::Upload(FScenePrimitive& Primitive) {
         Primitive.mObjectBuffer.Reset();
         return;
     }
+
     FObjectConstants& Constants{Primitive.mObjectConstants};
     Constants.mWorld = Primitive.mProxy.mWorld;
     Constants.mShadowFlags.x = Primitive.mProxy.mReceiveShadow ? 1.0f : 0.0f;
@@ -167,25 +170,31 @@ void FScene::Upload(FScenePrimitive& Primitive) {
 
 void FScene::AddLight(const FLightSceneProxy& Proxy) {
     const auto Position{mLightIndices.find(Proxy.mId)};
+
     if (Position == mLightIndices.end()) {
         mLightIndices.emplace(Proxy.mId, mLights.size());
         mLights.push_back(Proxy);
     } else {
         mLights[Position->second] = Proxy;
     }
+
     ++mRevision;
 }
 
 void FScene::RemoveLight(const FGuid& Id) {
     const auto Position{mLightIndices.find(Id)};
+
     if (Position == mLightIndices.end()) {
         return;
     }
+
     const std::size_t Index{Position->second};
+
     if (Index + 1 != mLights.size()) {
         mLights[Index] = mLights.back();
         mLightIndices[mLights[Index].mId] = Index;
     }
+
     mLights.pop_back();
     mLightIndices.erase(Position);
     ++mRevision;

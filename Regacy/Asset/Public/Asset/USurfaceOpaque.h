@@ -11,8 +11,11 @@ public:
     USurfaceOpaque();
     ~USurfaceOpaque() override = default;
     USurfaceOpaque(const USurfaceOpaque&) = delete;
+
     USurfaceOpaque& operator=(const USurfaceOpaque&) = delete;
+
     USurfaceOpaque(USurfaceOpaque&&) noexcept = default;
+
     USurfaceOpaque& operator=(USurfaceOpaque&&) noexcept = default;
 
 public:
@@ -27,6 +30,7 @@ public:
 
 private:
     ReflectAccessor(mParameters, GetParameters, SetParameters, "Parameters", EPropertyFlags::Edit | EPropertyFlags::Serialize, ReflectSerializer(mParameters), ReflectEditor("Material", "Surface"));
+
     FSurfaceParameters mParameters{};
 
     ReflectMembers();

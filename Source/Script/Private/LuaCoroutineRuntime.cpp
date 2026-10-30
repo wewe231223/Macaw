@@ -25,6 +25,7 @@ bool FLuaCoroutineRuntime::Initialize() {
     Lua.set_function("RegisterCoroutine", [this](sol::thread LuaCoroutine) { // Coroutine에 대한 정보를 Scheduler에서 저장 (Coroutine이 다수일경우 구분해서 처리 필요)
         mScheduler.RegisterLuaCoroutine(LuaCoroutine);
     });
+
     Lua.set_function("StartCoroutine", [this](sol::thread LuaCoroutine) { // Coroutine 시작 후 Yield결과를 판정, Wait 및 WaitUntil 처리
         sol::state& State{*mLuaVM.GetState()};
         sol::protected_function Resume{State["coroutine"]["resume"]};

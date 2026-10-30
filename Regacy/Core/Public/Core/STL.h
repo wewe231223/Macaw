@@ -2,6 +2,7 @@
  * @file STL.h
  * @brief 엔진 메모리 추적 할당자를 사용하는 문자열과 STL 컨테이너 별칭을 제공합니다.
  */
+
 #pragma once
 #include "Core/Memory/TEngineAllocator.h"
 
@@ -48,6 +49,7 @@ using TArray = std::vector<T, TEngineAllocator<T, Memory::EMemoryTag::Container>
  */
 template <typename Key, typename Value>
 using TMap = std::unordered_map<Key, Value, std::hash<Key>, std::equal_to<Key>, TEngineAllocator<std::pair<const Key, Value>, Memory::EMemoryTag::Container>>;
+
 /**
  * @brief Container 메모리 태그를 사용하는 중복 없는 해시 집합입니다.
  * @tparam T std::hash와 std::equal_to로 처리할 원소 타입입니다.

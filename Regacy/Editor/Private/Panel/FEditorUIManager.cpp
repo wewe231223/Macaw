@@ -165,6 +165,7 @@ void FEditorUIManager::RenderViews(FRenderer& Renderer, const FRenderScene* Rend
 
         FRenderView View{};
         FOverlayRenderData Overlay{mOverlayData};
+
         {
             const Stat::FScopedRenderPreparationStatTimer StageStat{Stat::ERenderPreparationStage::ViewSetup};
 

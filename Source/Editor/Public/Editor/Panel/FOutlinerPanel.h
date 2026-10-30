@@ -26,6 +26,7 @@ public:
      * @param[in,out] Context 패널 또는 뷰포트가 공유할 편집 컨텍스트입니다.
      */
     explicit FOutlinerPanel(FEditorContext* Context);
+
     /**
      * @brief 객체의 수명을 끝내고 소유한 리소스를 정리합니다.
      */

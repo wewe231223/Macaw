@@ -23,8 +23,11 @@ public:
     FEditorViewport(FViewportId InViewportId, ID3D11Device* InDevice, FWorldEditorContext& InEditorContext);
 
     FEditorViewport(const FEditorViewport&) = delete;
+
     FEditorViewport& operator=(const FEditorViewport&) = delete;
+
     FEditorViewport(FEditorViewport&&) = delete;
+
     FEditorViewport& operator=(FEditorViewport&&) = delete;
 
 public:

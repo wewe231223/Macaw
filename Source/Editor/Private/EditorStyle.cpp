@@ -34,6 +34,7 @@ void EditorStyle::DrawIcon(EIcon Icon, const ImVec2& Origin, float Size, ImU32 C
         Line(14.0f, 14.0f, 16.0f, 18.0f);
         break;
     }
+
     case EIcon::Translate:
         Line(10.0f, 3.0f, 10.0f, 17.0f);
         Line(3.0f, 10.0f, 17.0f, 10.0f);
@@ -67,6 +68,7 @@ void EditorStyle::DrawIcon(EIcon Icon, const ImVec2& Origin, float Size, ImU32 C
         Line(10.0f, 10.0f, 10.0f, 18.0f);
         break;
     }
+
     case EIcon::Grid:
         for (int Index{}; Index < 4; ++Index) {
             const float Offset{3.0f + static_cast<float>(Index) * 4.5f};
@@ -112,6 +114,7 @@ void EditorStyle::DrawIcon(EIcon Icon, const ImVec2& Origin, float Size, ImU32 C
  */
 bool EditorStyle::IconButton(const char* Label, EIcon Icon, bool Selected, bool Enabled, bool Dropdown, const char* Tooltip) {
     const float Scale{ImGui::GetStyle().FontScaleMain * ImGui::GetStyle().FontScaleDpi};
+
     ImGui::PushID(Label);
     ImGui::BeginDisabled(!Enabled);
 
@@ -180,6 +183,7 @@ bool EditorStyle::IconMenuItem(const char* Label, EIcon Icon, bool Selected, boo
     const float Size{ImGui::GetFontSize()};
     ImGui::GetCurrentWindow()->DC.MenuColumns.DeclColumns(Size, 0.0f, 0.0f, 0.0f);
     ImGui::BeginDisabled(!Enabled);
+
     const bool Pressed{ImGui::MenuItem(Label, nullptr, Selected)};
     const ImVec2 Minimum{ImGui::GetItemRectMin()};
     const ImVec2 Maximum{ImGui::GetItemRectMax()};

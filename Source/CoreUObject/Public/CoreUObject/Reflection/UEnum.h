@@ -29,6 +29,7 @@ public:
      * @param[in] Size 뷰포트 크기 또는 데이터의 바이트 수입니다.
      */
     UEnum(FString Name, std::size_t Size);
+
     /**
      * @brief 객체의 수명을 끝내고 소유한 리소스를 정리합니다.
      */
@@ -46,6 +47,7 @@ public:
      * @param[in] Values 등록할 열거값 목록입니다.
      */
     void AddValues(std::initializer_list<FEnumValue> Values);
+
     /**
      * @brief 열거형 이름과 정수 값 목록을 반환합니다.
      * @return 소유 객체가 유지하는 값의 참조입니다.

@@ -34,6 +34,7 @@ public:
      * @param[in,out] Client 입력과 그리기를 처리할 뷰포트 클라이언트입니다.
      */
     FSceneViewport(IRendererModule* Renderer, FViewportClient* Client);
+
     /**
      * @brief 객체의 수명을 끝내고 소유한 리소스를 정리합니다.
      */
@@ -53,6 +54,7 @@ public:
      * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
      */
     bool Resize(Uint32 Width, Uint32 Height);
+
     /**
      * @brief 이 장면 뷰포트가 입력과 그리기를 전달할 클라이언트를 교체합니다.
      * @param[in] Client 입력과 그리기를 처리할 클라이언트의 비소유 주소입니다.
@@ -65,10 +67,12 @@ public:
      * @param[in] DeltaTime 이전 프레임 이후 경과한 시간(초)입니다.
      */
     void Input(const FViewportInput& Input, float DeltaTime);
+
     /**
      * @brief 뷰포트 또는 패널의 현재 내용을 그립니다.
      */
     void Draw();
+
     /**
      * @brief 좌표를 검증하고 연결된 클라이언트의 피킹 결과를 반환합니다.
      * @param[in] Position 컬러 타깃 기준 마우스 픽셀 좌표입니다.
@@ -82,6 +86,7 @@ public:
      * @return 조회한 값의 비소유 주소이며, 해당 값이 없으면 nullptr입니다.
      */
     FRenderTarget* GetRenderTarget() const;
+
     /**
      * @brief 크기를 반환합니다.
      * @return 크기입니다.
@@ -100,6 +105,7 @@ private:
      */
     IRendererModule* mRenderer{};
     ReflectProperty(mRenderer, "Renderer", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 뷰포트 클라이언트의 비소유 주소입니다.
      */

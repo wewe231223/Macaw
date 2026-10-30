@@ -9,8 +9,11 @@ public:
     ~FEditorWindow() override = default;
 
     FEditorWindow(const FEditorWindow&) = delete;
+
     FEditorWindow& operator=(const FEditorWindow&) = delete;
+
     FEditorWindow(FEditorWindow&&) = delete;
+
     FEditorWindow& operator=(FEditorWindow&&) = delete;
 
     void DrawPanel() final;

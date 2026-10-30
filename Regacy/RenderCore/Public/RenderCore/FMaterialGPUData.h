@@ -2,6 +2,7 @@
  * @file FMaterialGPUData.h
  * @brief GPU 머티리얼 버퍼의 고정 슬롯 크기와 원시 바이트 저장 형식을 정의합니다.
  */
+
 #pragma once
 
 #include "Core/Common.h"

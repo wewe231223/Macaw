@@ -11,14 +11,17 @@ struct FShadowMap {
      * @brief 월드 위치를 그림자 클립 공간으로 변환하는 행 우선 행렬입니다.
      */
     row_major float4x4 mViewProjection;
+
     /**
      * @brief 보호 여백을 제외한 아틀라스 UV 시작점 XY와 크기 ZW입니다.
      */
     float4 mAtlasRectangle;
+
     /**
      * @brief 깊이 바이어스·기울기 바이어스·선명도·아틀라스 역크기입니다.
      */
     float4 mParameters;
+
     /**
      * @brief 캐스케이드 시작·끝 거리와 혼합 시작 거리, 예약값입니다.
      */
@@ -29,10 +32,12 @@ struct FShadowMap {
  * @brief 광원별 깊이 맵을 저장하는 그림자 아틀라스입니다.
  */
 Texture2D<float> ShadowAtlas : register(t5);
+
 /**
  * @brief 그림자 면·캐스케이드의 변환과 샘플링 정보입니다.
  */
 StructuredBuffer<FShadowMap> ShadowMaps : register(t6);
+
 /**
  * @brief 그림자 깊이를 비교하는 필터 샘플러입니다.
  */
@@ -46,6 +51,7 @@ cbuffer ShadowViewConstants : register(b4) {
      * @brief 캐스케이드 깊이 판정의 기준 카메라 위치와 예약값입니다.
      */
     float4 ShadowCamera;
+
     /**
      * @brief 캐스케이드 깊이를 투영할 카메라 전방 방향과 예약값입니다.
      */
@@ -65,14 +71,18 @@ cbuffer ShadowViewConstants : register(b4) {
 float SampleShadowMap(uint Index, float3 Position, float3 Normal, float3 LightDirection, float3 PositionDx, float3 PositionDy) {
     FShadowMap Map = {ShadowMaps[Index]};
     float4 Clip = {mul(float4(Position, 1.0f), Map.mViewProjection)};
+
     if (Clip.w <= 0.0f) {
         return 1.0f;
     }
+
     float3 Projected = {Clip.xyz / Clip.w};
     float2 UV = {Projected.xy * float2(0.5f, -0.5f) + 0.5f};
+
     if (any(UV < 0.0f) || any(UV > 1.0f) || Projected.z < 0.0f || Projected.z > 1.0f) {
         return 1.0f;
     }
+
     float Cosine = {saturate(dot(Normal, LightDirection))};
     float Slope = {min(sqrt(saturate(1.0f - Cosine * Cosine)) / max(Cosine, 0.05f), 16.0f)};
     float4 ClipDx = {mul(float4(Position + PositionDx, 1.0f), Map.mViewProjection)};
@@ -92,6 +102,7 @@ float SampleShadowMap(uint Index, float3 Position, float3 Normal, float3 LightDi
     float2 MinimumUV = {Map.mAtlasRectangle.xy + Texel * 0.5f};
     float2 MaximumUV = {Map.mAtlasRectangle.xy + Map.mAtlasRectangle.zw - Texel * 0.5f};
     float Visibility = {0.0f};
+
     [unroll]
     for (int Y = {-1}; Y <= 1; ++Y) {
         [unroll]
@@ -99,7 +110,9 @@ float SampleShadowMap(uint Index, float3 Position, float3 Normal, float3 LightDi
             Visibility += ShadowAtlas.SampleCmpLevelZero(ShadowSampler, clamp(AtlasUV + float2(X, Y) * Texel, MinimumUV, MaximumUV), Projected.z - Bias);
         }
     }
+
     Visibility /= 9.0f;
+
     return saturate((Visibility - 0.5f) * (1.0f + Map.mParameters.z) + 0.5f);
 }
 
@@ -117,30 +130,40 @@ float ShadowVisibility(FLight Light, float3 Position, float3 Normal, float3 Posi
     if (Light.mShadowInfo.x < 1.0f || ReceiveShadow < 0.5f) {
         return 1.0f;
     }
+
     uint Start = {(uint)Light.mShadowInfo.x - 1};
     uint Count = {(uint)Light.mShadowInfo.y};
     uint Type = {(uint)Light.mDirectionAndType.w};
     float3 L = {Type >= 2 ? SafeNormal(Light.mPositionAndRadius.xyz - Position) : -Light.mDirectionAndType.xyz};
+
     if (Type == 1) {
         float Depth = {dot(Position - ShadowCamera.xyz, ShadowForward.xyz)};
+
         for (uint Cascade = {0}; Cascade < Count; ++Cascade) {
             FShadowMap Map = {ShadowMaps[Start + Cascade]};
+
             if (Depth <= Map.mCascade.y) {
                 float Current = {SampleShadowMap(Start + Cascade, Position, Normal, L, PositionDx, PositionDy)};
+
                 if (Depth > Map.mCascade.z && Map.mCascade.y > Map.mCascade.z) {
                     float Next = {Cascade + 1 < Count ? SampleShadowMap(Start + Cascade + 1, Position, Normal, L, PositionDx, PositionDy) : 1.0f};
                     float Blend = {smoothstep(Map.mCascade.z, Map.mCascade.y, Depth)};
                     return lerp(Current, Next, Blend);
                 }
+
                 return Current;
             }
         }
+
         return 1.0f;
     }
+
     uint Face = {0};
+
     if (Type == 2) {
         float3 Offset = {Position - Light.mPositionAndRadius.xyz};
         float3 Magnitude = {abs(Offset)};
+
         if (Magnitude.x >= Magnitude.y && Magnitude.x >= Magnitude.z) {
             Face = Offset.x >= 0.0f ? 0 : 1;
         } else if (Magnitude.y >= Magnitude.z) {
@@ -149,6 +172,7 @@ float ShadowVisibility(FLight Light, float3 Position, float3 Normal, float3 Posi
             Face = Offset.z >= 0.0f ? 4 : 5;
         }
     }
+
     return SampleShadowMap(Start + Face, Position, Normal, L, PositionDx, PositionDy);
 }
 

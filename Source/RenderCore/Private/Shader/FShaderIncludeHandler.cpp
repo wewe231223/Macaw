@@ -24,13 +24,16 @@ HRESULT STDMETHODCALLTYPE FShaderIncludeHandler::Open(D3D_INCLUDE_TYPE IncludeTy
 
     *Data = nullptr;
     *Bytes = 0;
+
     const std::filesystem::path Requested{FilePath::FromUtf8(FileName)};
     TArray<std::filesystem::path> Candidates{};
+
     if (Requested.is_absolute()) {
         Candidates.push_back(Requested);
     } else {
         if (IncludeType == D3D_INCLUDE_LOCAL) {
             const auto Parent{mOpenFiles.find(ParentData)};
+
             if (ParentData != nullptr && ParentData != mRootData && Parent != mOpenFiles.end()) {
                 Candidates.push_back(Parent->second.mPath.parent_path() / Requested);
             }
@@ -50,6 +53,7 @@ HRESULT STDMETHODCALLTYPE FShaderIncludeHandler::Open(D3D_INCLUDE_TYPE IncludeTy
     for (const std::filesystem::path& Candidate : Candidates) {
         const std::filesystem::path Path{Candidate.lexically_normal()};
         FShaderDependency Dependency{};
+
         if (!ShaderFile::Inspect(Path, Dependency)) {
             mDiagnostics = "Cannot inspect shader include: " + FilePath::ToGenericUtf8(Path);
             return E_FAIL;
@@ -65,6 +69,7 @@ HRESULT STDMETHODCALLTYPE FShaderIncludeHandler::Open(D3D_INCLUDE_TYPE IncludeTy
 
         FOpenFile File{};
         File.mPath = Path;
+
         if (!ShaderFile::Read(Path, File.mData, Dependency, mDiagnostics) || !TrackDependency(Dependency) || File.mData.size() > std::numeric_limits<UINT>::max()) {
             return E_FAIL;
         }
@@ -73,10 +78,12 @@ HRESULT STDMETHODCALLTYPE FShaderIncludeHandler::Open(D3D_INCLUDE_TYPE IncludeTy
         File.mData.push_back(0);
         *Data = File.mData.data();
         mOpenFiles.emplace(*Data, std::move(File));
+
         return S_OK;
     }
 
     mDiagnostics = "Shader include not found: " + FString{FileName};
+
     return HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND);
 }
 
@@ -105,5 +112,6 @@ bool FShaderIncludeHandler::TrackDependency(const FShaderDependency& Dependency)
     }
 
     mDependencies.push_back(Dependency);
+
     return true;
 }

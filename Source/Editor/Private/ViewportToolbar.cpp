@@ -20,10 +20,12 @@ namespace {
      */
     void DrawModeCommands(FEditorViewportClient* Client, bool Menu) {
         bool Drawn{};
+
         for (const FViewportCommandInfo& Info : FViewportCommandInfo::GetCommands()) {
             if (!Info.mTransformMode || (!Menu && Info.mCommand == EViewportCommand::Select)) {
                 continue;
             }
+
             if (!Menu && Drawn) {
                 ImGui::SameLine();
             }
@@ -34,6 +36,7 @@ namespace {
             const FString Shortcut{Info.GetShortcutLabel()};
             const FString Tooltip{FString{Info.mLabel} + " (" + Shortcut + ")"};
             const bool Pressed{Menu ? Command == EViewportCommand::Select ? ImGui::MenuItem(Info.mLabel, Shortcut.c_str(), Selected, Enabled) : EditorStyle::IconMenuItem(Info.mLabel, Info.mIcon, Selected, Enabled) : EditorStyle::IconButton(Info.mLabel, Info.mIcon, Selected, Enabled, false, Tooltip.c_str())};
+
             Drawn = true;
 
             if (Pressed) {
@@ -49,6 +52,7 @@ namespace {
     void DrawCoordinateMenu(FEditorViewportClient* Client) {
         for (EViewportCommand Command : {EViewportCommand::WorldSpace, EViewportCommand::LocalSpace}) {
             const FViewportCommandInfo* Info{FViewportCommandInfo::Find(Command)};
+
             if (EditorStyle::IconMenuItem(Info->mLabel, Info->mIcon, Client->IsCommandChecked(Command), Client->CanExecuteCommand(Command))) {
                 Client->ExecuteCommand(Command);
             }
@@ -63,11 +67,13 @@ namespace {
         ImGui::SeparatorText("Viewport Grid");
 
         const FViewportCommandInfo* Info{FViewportCommandInfo::Find(EViewportCommand::ToggleGrid)};
+
         if (ImGui::MenuItem(Info->mLabel, nullptr, Client->IsCommandChecked(EViewportCommand::ToggleGrid), Client->CanExecuteCommand(EViewportCommand::ToggleGrid))) {
             Client->ExecuteCommand(EViewportCommand::ToggleGrid);
         }
 
         float Spacing{Client->GetGridSpacing()};
+
         if (ImGui::InputFloat("Grid Spacing", &Spacing)) {
             Client->SetGridSpacing(Spacing);
         }
@@ -82,6 +88,7 @@ namespace {
     void DrawSettingToggle(FEditorViewportClient* Client, EViewportCommand Command) {
         const FViewportCommandInfo* Info{FViewportCommandInfo::Find(Command)};
         bool Checked{Client->IsCommandChecked(Command)};
+
         if (ImGui::Checkbox(Info->mLabel, &Checked)) {
             Client->ExecuteCommand(Command);
         }
@@ -97,6 +104,7 @@ namespace {
      */
     void DrawNumericSetting(FEditorViewportClient* Client, EGizmoSetting Setting, const char* Label, float Value) {
         const bool Changed{Setting == EGizmoSetting::Size ? ImGui::SliderFloat(Label, &Value, 0.5f, 2.0f) : ImGui::InputFloat(Label, &Value)};
+
         if (Changed) {
             Client->SetGizmoSetting(Setting, Value);
         }
@@ -113,18 +121,23 @@ namespace {
         const auto Current{std::find(Modes.begin(), Modes.end(), Client->GetViewMode())};
         const std::size_t Index{Current != Modes.end() ? static_cast<std::size_t>(Current - Modes.begin()) : 2};
         ImGui::SetNextItemWidth(175.0f * Scale);
+
         if (ImGui::BeginCombo("##ViewMode", Names[Index])) {
             for (std::size_t Mode{}; Mode < Modes.size(); ++Mode) {
                 if (ImGui::Selectable(Names[Mode], Client->GetViewMode() == Modes[Mode])) {
                     Client->SetViewMode(Modes[Mode]);
                 }
             }
+
             ImGui::EndCombo();
         }
+
         ImGui::SameLine();
         ImGui::SetNextItemWidth(115.0f * Scale);
+
         if (ImGui::BeginCombo("##ViewFilter", "View Filter")) {
             ImGui::SeparatorText("Show Flags");
+
             FEngineShowFlags Flags{Client->GetShowFlags()};
             bool Changed{ImGui::Checkbox("Primitives", &Flags.mPrimitives)};
             Changed = ImGui::Checkbox("Sprites / Billboards", &Flags.mSprites) || Changed;
@@ -136,32 +149,44 @@ namespace {
             Changed = ImGui::Checkbox("Grid", &Flags.mGrid) || Changed;
             Changed = ImGui::Checkbox("World Axes", &Flags.mAxes) || Changed;
             ImGui::Separator();
+
             float Thickness{Client->GetLineThickness()};
+
             if (ImGui::SliderFloat("Line Width (px)", &Thickness, 0.5f, 10.0f, "%.1f")) {
                 Client->SetLineThickness(Thickness);
             }
+
             if (ImGui::MenuItem("Use Defaults")) {
                 Flags = {};
                 Changed = true;
                 Client->SetLineThickness(1.5f);
             }
+
             if (Changed) {
                 Client->SetShowFlags(Flags);
             }
+
             ImGui::EndCombo();
         }
+
         ImGui::SameLine();
         ImGui::SetNextItemWidth(95.0f * Scale);
+
         if (ImGui::BeginCombo("##CameraSettings", "Camera")) {
             ImGui::SeparatorText("Camera Settings");
+
             float Sensitivity{Client->GetCameraSensitivity()};
+
             if (ImGui::SliderFloat("Sensitivity", &Sensitivity, 0.01f, 2.0f, "%.2f")) {
                 Client->SetCameraSensitivity(Sensitivity);
             }
+
             float Speed{Client->GetCameraSpeed()};
+
             if (ImGui::SliderFloat("Movement Speed", &Speed, 0.1f, 128.0f, "%.1f", ImGuiSliderFlags_Logarithmic)) {
                 Client->SetCameraSpeed(Speed);
             }
+
             FEditorCameraState Camera{Client->GetPerspectiveCamera()};
             float FieldOfView{Camera.GetFieldOfView()};
             float NearClip{Camera.GetNearClip()};
@@ -169,9 +194,11 @@ namespace {
             bool ProjectionChanged{ImGui::SliderFloat("FOV", &FieldOfView, 1.0f, 179.0f, "%.1f")};
             ProjectionChanged = ImGui::InputFloat("Near Clip", &NearClip) || ProjectionChanged;
             ProjectionChanged = ImGui::InputFloat("Far Clip", &FarClip) || ProjectionChanged;
+
             if (ProjectionChanged && Camera.Set(Camera.GetLocation(), Camera.GetRotation(), FieldOfView, NearClip, FarClip)) {
                 Client->SetPerspectiveCamera(Camera);
             }
+
             ImGui::EndCombo();
         }
     }
@@ -209,6 +236,7 @@ void ViewportToolbar::Draw(FEditorViewportClient* Client) {
         }
 
         ImGui::Separator();
+
         const FViewportCommandInfo* Cycle{FViewportCommandInfo::Find(EViewportCommand::CycleTransformMode)};
         const FString Shortcut{Cycle->GetShortcutLabel()};
         ImGui::TextDisabled("%s: %s", Shortcut.c_str(), Cycle->mLabel);
@@ -240,12 +268,16 @@ void ViewportToolbar::Draw(FEditorViewportClient* Client) {
     }
 
     ImGui::SameLine(0.0f, 6.0f);
+
     if (ImGui::Button("Snap")) {
         ImGui::OpenPopup("GizmoSnapping");
     }
+
     if (ImGui::BeginPopup("GizmoSnapping")) {
         ImGui::BeginDisabled(!Client->CanEditGizmoSettings());
+
         const FGizmoSettings* Settings{Client->GetGizmoSettings()};
+
         DrawSettingToggle(Client, EViewportCommand::ToggleTranslationSnap);
         DrawNumericSetting(Client, EGizmoSetting::TranslationStep, "Translation Step", Settings->mTranslationStep);
         DrawSettingToggle(Client, EViewportCommand::ToggleRotationSnap);
@@ -256,6 +288,7 @@ void ViewportToolbar::Draw(FEditorViewportClient* Client) {
         ImGui::EndDisabled();
         ImGui::EndPopup();
     }
+
     ImGui::EndGroup();
     EditorStyle::PopViewportToolbar();
     ImGui::PopID();

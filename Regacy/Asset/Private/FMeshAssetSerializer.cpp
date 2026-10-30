@@ -15,6 +15,7 @@ namespace {
         SerializeNativeValue(Archive, "UVs", Data.mUVs);
         SerializeNativeValue(Archive, "Colors", Data.mColors);
         SerializeNativeValue(Archive, "Indices", Data.mIndices);
+
         std::size_t SectionCount{Data.mSections.size()};
 
         Archive.BeginArrayScope("Sections", SectionCount);
@@ -63,6 +64,7 @@ bool FMeshAssetSerializer::Save(const std::filesystem::path& Path, const FMeshDa
     std::error_code Error{};
 
     std::filesystem::remove(Temporary, Error);
+
     return false;
 }
 
@@ -106,5 +108,6 @@ bool FMeshAssetSerializer::Load(const std::filesystem::path& Path, FMeshData& Da
     }
 
     Data = std::move(Loaded);
+
     return true;
 }

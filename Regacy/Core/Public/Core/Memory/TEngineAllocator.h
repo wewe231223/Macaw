@@ -2,6 +2,7 @@
  * @file TEngineAllocator.h
  * @brief 엔진 메모리 통계와 정렬된 할당을 사용하는 표준 컨테이너용 할당자를 정의한다.
  */
+
 #pragma once
 #include "Core/Base/ErrorHandler.h"
 #include "Core/Memory/Memory.h"
@@ -24,10 +25,12 @@ public:
      * @brief 표준 할당자 인터페이스가 요구하는 요소 타입.
      */
     using value_type = T;
+
     /**
      * @brief 요소 개수와 저장 공간 크기에 사용하는 부호 없는 타입.
      */
     using size_type = std::size_t;
+
     /**
      * @brief 요소 간 거리 표현에 사용하는 부호 있는 타입.
      */

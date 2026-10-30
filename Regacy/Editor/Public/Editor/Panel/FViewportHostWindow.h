@@ -2,6 +2,7 @@
  * @file FViewportHostWindow.h
  * @brief 뷰포트별 레이아웃 상태와 전역 설정의 읽기 및 저장을 정의합니다.
  */
+
 #pragma once
 
 #include <array>
@@ -40,6 +41,7 @@ public:
      * @details 다른 호스트의 실행 중 레이아웃 상태는 변경하지 않습니다.
      */
     void ApplyLayoutSettings();
+
     /**
      * @brief 이 호스트의 현재 레이아웃을 전역 설정 원본에 기록합니다.
      * @note 파일 저장은 수행하지 않습니다.

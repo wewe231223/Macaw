@@ -66,6 +66,7 @@ namespace {
  */
 UClass* FReflectionRegistry::DefineClass(FString Name, UClass* (*Parent)(), const FNativeType* NativeType, EClassFlags Flags, FFactory Factory, FClassBuilder Builder) {
     ErrorHandler::Report(Name.empty() || NativeType == nullptr, "FReflectionRegistry", "Invalid class definition", ErrorHandler::EErrorLevel::Critical);
+
     const FReflectionDefinition Definition{EReflectionType::Class, NativeType, Parent, Flags, Factory, Builder};
 
     if (UStruct* Existing{FindDefinition(Name, Definition)}) {
@@ -92,6 +93,7 @@ UClass* FReflectionRegistry::DefineClass(FString Name, UClass* (*Parent)(), cons
  */
 UScriptStruct* FReflectionRegistry::DefineStruct(FString Name, const FNativeType* NativeType, FStructBuilder Builder, const UScriptStruct* Parent) {
     ErrorHandler::Report(Name.empty() || NativeType == nullptr, "FReflectionRegistry", "Invalid struct definition", ErrorHandler::EErrorLevel::Critical);
+
     FReflectionDefinition Definition{EReflectionType::Struct, NativeType};
     Definition.mStructBuilder = Builder;
     Definition.mStructParent = Parent;
@@ -119,6 +121,7 @@ UScriptStruct* FReflectionRegistry::DefineStruct(FString Name, const FNativeType
  */
 UEnum* FReflectionRegistry::DefineEnum(FString Name, const FNativeType* NativeType, FEnumBuilder Builder) {
     ErrorHandler::Report(Name.empty() || NativeType == nullptr, "FReflectionRegistry", "Invalid enum definition", ErrorHandler::EErrorLevel::Critical);
+
     FReflectionDefinition Definition{EReflectionType::Enum, NativeType};
     Definition.mEnumBuilder = Builder;
 
@@ -156,21 +159,27 @@ UClass* FReflectionRegistry::FindClass(const FString& Name) {
 
 TArray<const UClass*> FReflectionRegistry::GetDerivedClasses(const UClass* Parent) {
     TArray<const UClass*> Classes{};
+
     if (Parent == nullptr) {
         return Classes;
     }
+
     for (const auto& Entry : GetRegisteredTypes()) {
         if (Entry.second.mDefinition.mKind != EReflectionType::Class) {
             continue;
         }
+
         const auto* Class{static_cast<const UClass*>(Entry.second.mInformation.get())};
+
         if (Class != Parent && Class->IsChildOf(Parent)) {
             Classes.push_back(Class);
         }
     }
+
     std::sort(Classes.begin(), Classes.end(), [](const UClass* First, const UClass* Second) {
         return First->GetName() < Second->GetName();
     });
+
     return Classes;
 }
 

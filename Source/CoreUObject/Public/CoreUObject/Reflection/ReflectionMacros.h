@@ -48,6 +48,7 @@ UClass* Type::GetClass() const { \
  * @param Value 입력 값 또는 아카이브 모드에 따라 읽고 쓸 값입니다.
  */
 #define ReflectEnumValue(Type, Value) FEnumValue{#Value, static_cast<Int32>(Type::Value)}
+
 /**
  * @brief 열거형 등록 빌더와 ADL 메타데이터 조회 함수를 정의합니다.
  * @param Type 생성, 조회 또는 표시할 타입입니다.

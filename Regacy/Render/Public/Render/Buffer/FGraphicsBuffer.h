@@ -22,9 +22,11 @@ public:
     ~FGraphicsBuffer() = default;
 
     FGraphicsBuffer(const FGraphicsBuffer&) = delete;
+
     FGraphicsBuffer& operator=(const FGraphicsBuffer&) = delete;
 
     FGraphicsBuffer(FGraphicsBuffer&&) noexcept = default;
+
     FGraphicsBuffer& operator=(FGraphicsBuffer&&) noexcept = default;
 
 public:

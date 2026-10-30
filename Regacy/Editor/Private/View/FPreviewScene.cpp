@@ -69,6 +69,7 @@ void FPreviewScene::SetMesh(const FMeshSceneData& Mesh, const FMatrix& World) {
             mMesh->SetMaterialOverride(Slot.mName, Position != Mesh.mMaterialOverrides.end() ? Position->mMaterial : FAssetHandle{});
         }
     }
+
     mMesh->SetWorldTransform(World);
     mMesh->SetVisible(static_cast<bool>(Mesh.mMeshHandle));
 }

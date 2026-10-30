@@ -34,6 +34,7 @@ namespace {
         }
 
         Screen = {Viewport.TopLeftX + (Clip.mX + 1.0f) * Viewport.Width * 0.5f, Viewport.TopLeftY + (1.0f - Clip.mY) * Viewport.Height * 0.5f};
+
         return true;
     }
 
@@ -60,6 +61,7 @@ namespace {
         }
 
         Direction.Normalize();
+
         return FRay{Start.ToSimpleMath(), Direction.ToSimpleMath()};
     }
 
@@ -78,6 +80,7 @@ namespace {
         }
 
         Point = FVector3{Ray.position} + Direction * Distance;
+
         return std::isfinite(Point.mX) && std::isfinite(Point.mY) && std::isfinite(Point.mZ);
     }
 
@@ -132,6 +135,7 @@ namespace {
         }
 
         Axis.Normalize();
+
         return FQuat::CreateFromAxisAngle(Axis, std::acos(Dot));
     }
 }
@@ -241,6 +245,7 @@ void FTransformGizmo::Update(const FViewMatrices& Camera, const D3D11_VIEWPORT& 
     if (mDragSession.has_value() && (mEditorContext->GetWorld() != mDragSession->mWorld || !mEditorContext->IsWorldEditingAllowed() || mEditorContext->GetSelectionRevision() != mDragSession->mSelectionRevision)) {
         EndDrag(true);
     }
+
     mLastCamera = Camera;
     mLastViewport = Viewport;
     mHasCamera = Viewport.Width > 0.0f && Viewport.Height > 0.0f;
@@ -267,7 +272,9 @@ void FTransformGizmo::Update(const FViewMatrices& Camera, const D3D11_VIEWPORT& 
     }
 
     const bool Perspective{std::abs(Camera.mProjection.m_[2][3]) > 0.000001f};
+
     mPivot = mDragSession.has_value() ? mDragSession->mPivot + mDragSession->mTranslation : mEditorContext->GetGizmoPivot();
+
     const float Depth{FVector3::Transform(mPivot, Camera.mView).mZ};
     const float ProjectionScale{std::abs(Camera.mProjection.m_[1][1])};
 
@@ -316,6 +323,7 @@ void FTransformGizmo::BuildHandles() {
 
     BuildAxes();
     BuildPlanes();
+
     const float Radius{5.0f * mUnitsPerPixel * mSize};
     const EHandle Handle{mEditorContext->GetGizmoMode() == EGizmoMode::Scale ? EHandle::Uniform : EHandle::Screen};
     const std::array<FVector3, 4> Points{mPivot - mViewRight * Radius - mViewUp * Radius, mPivot + mViewRight * Radius - mViewUp * Radius, mPivot + mViewRight * Radius + mViewUp * Radius, mPivot - mViewRight * Radius + mViewUp * Radius};
@@ -345,6 +353,7 @@ void FTransformGizmo::BuildAxes() {
         const FVector3 Start{mPivot + mAxes[Index] * AxisStart * Unit};
         const FVector3 End{mPivot + mAxes[Index] * Length * Unit};
         mPickShapes.push_back({Handle, {Start, End, FVector3{}, FVector3{}}, 2, 8.0f, 2});
+
         const FMatrix World{FMatrix::CreateScale(Unit, Unit, Unit) * Rotations[Index] * mBasis * FMatrix::CreateTranslation(mPivot)};
 
         if (Mesh && (!mDragSession.has_value() || mDragSession->mHandle == Handle)) {
@@ -512,6 +521,7 @@ bool FTransformGizmo::BeginDrag(EHandle Handle, const POINT& Position, EMouseSid
     }
 
     FVector3 Axis{GetHandleAxis(Handle)};
+
     Session.mPlaneNormal = mViewDirection;
 
     if (Handle == EHandle::XY) {
@@ -534,6 +544,7 @@ bool FTransformGizmo::BeginDrag(EHandle Handle, const POINT& Position, EMouseSid
     }
 
     Session.mPlaneNormal.Normalize();
+
     FVector2 ScreenPivot{};
     FVector2 ScreenEnd{};
     ProjectPoint(mPivot, Session.mCamera, Session.mViewport, ScreenPivot);
@@ -552,6 +563,7 @@ bool FTransformGizmo::BeginDrag(EHandle Handle, const POINT& Position, EMouseSid
 
     if (Session.mMode == EGizmoMode::Rotate) {
         FVector2 PickTangent{};
+
         Session.mStartDirection = Session.mStartIntersection - mPivot;
 
         if (Session.mScreenFallback || Session.mStartDirection.LengthSquared() < 0.000001f) {
@@ -585,7 +597,9 @@ bool FTransformGizmo::BeginDrag(EHandle Handle, const POINT& Position, EMouseSid
 
         Session.mStartDirection.Normalize();
         Session.mPreviousDirection = Session.mStartDirection;
+
         const FVector3 Tangent{Session.mPlaneNormal.Cross(Session.mStartDirection)};
+
         ProjectPoint(mPivot + Session.mStartDirection * RingRadius * mUnitsPerPixel, Session.mCamera, Session.mViewport, ScreenPivot);
         ProjectPoint(mPivot + (Session.mStartDirection * RingRadius + Tangent * 10.0f) * mUnitsPerPixel, Session.mCamera, Session.mViewport, ScreenEnd);
         Session.mScreenAxis = ScreenEnd - ScreenPivot;
@@ -603,6 +617,7 @@ bool FTransformGizmo::BeginDrag(EHandle Handle, const POINT& Position, EMouseSid
 
     mDragSession = std::move(Session);
     mEditorContext->SetGizmoInteracting(true);
+
     return true;
 }
 
@@ -653,6 +668,7 @@ void FTransformGizmo::UpdateDrag(const POINT& Position, bool VertexSnap, bool Su
             }
 
             Direction.Normalize();
+
             const float SinAngle{Session.mPlaneNormal.Dot(Session.mPreviousDirection.Cross(Direction))};
             const float CosAngle{std::clamp(Session.mPreviousDirection.Dot(Direction), -1.0f, 1.0f)};
             Session.mRawAngle += std::atan2(SinAngle, CosAngle);
@@ -660,6 +676,7 @@ void FTransformGizmo::UpdateDrag(const POINT& Position, bool VertexSnap, bool Su
         }
 
         Session.mAppliedAngle = SnapValue(Session.mRawAngle, Settings.mRotationSnapDegrees * Pi / 180.0f, Settings.mRotationSnapEnabled);
+
         const FQuat Rotation{FQuat::CreateFromAxisAngle(Session.mPlaneNormal, Session.mAppliedAngle)};
 
         for (const FTargetState& State : Session.mTargets) {
@@ -675,6 +692,7 @@ void FTransformGizmo::UpdateDrag(const POINT& Position, bool VertexSnap, bool Su
     if (Session.mMode == EGizmoMode::Scale) {
         const float RawDelta{ScreenDot(MouseDelta, Session.mScreenAxis) / 100.0f};
         const float Delta{SnapValue(RawDelta, Settings.mScaleSnapStep, Settings.mScaleSnapEnabled)};
+
         Session.mScaleDelta = {};
         Session.mUniformFactor = 1.0f;
 
@@ -713,6 +731,7 @@ void FTransformGizmo::UpdateDrag(const POINT& Position, bool VertexSnap, bool Su
 
             Relative.SetScale(Scale);
             State.mTarget->SetRelativeTransform(Relative);
+
             const FVector3 Offset{State.mWorld.GetPosition() - Session.mPivot};
             FVector3 ScaledOffset{};
 
@@ -813,10 +832,12 @@ void FTransformGizmo::EndDrag(bool Cancel) {
     }
 
     FDragSession Session{std::move(*mDragSession)};
+
     mDragSession.reset();
     mEditorContext->SetGizmoInteracting(false);
     mHoveredHandle = EHandle::None;
     mSnapPosition.reset();
+
     const bool SelectionUnchanged{mEditorContext->GetSelectionRevision() == Session.mSelectionRevision};
 
     if (!Cancel || mEditorContext->GetWorld() != Session.mWorld) {
@@ -837,6 +858,7 @@ void FTransformGizmo::EndDrag(bool Cancel) {
         }
 
         Session.mWorld->FlushPendingDestroyActors();
+
         TArray<AActor*> Originals{};
 
         for (const TObjectRef<AActor>& Entry : Session.mOriginalSelection) {
@@ -898,6 +920,7 @@ bool FTransformGizmo::DuplicateSelection() {
     }
 
     Session.mDuplicatePending = false;
+
     return !Session.mTargets.empty();
 }
 
@@ -936,6 +959,7 @@ bool FTransformGizmo::FindSurface(const FRay& Ray, FVector3& Position, FVector3&
 
     Position = Hit.mPosition;
     Normal = Hit.mNormal;
+
     return true;
 }
 
@@ -971,6 +995,7 @@ bool FTransformGizmo::FindVertex(const POINT& MousePosition, FVector3& Position)
 
             std::array<DirectX::XMFLOAT3, 8> Corners{};
             MeshComponent->GetWorldOBB().GetCorners(Corners.data());
+
             FVector2 Minimum{std::numeric_limits<float>::max(), std::numeric_limits<float>::max()};
             FVector2 Maximum{std::numeric_limits<float>::lowest(), std::numeric_limits<float>::lowest()};
             bool AllProjected{true};
@@ -1101,6 +1126,7 @@ void FTransformGizmo::BuildFeedback(FOverlayRenderData& Overlay) const {
         const FVector3 End{FQuat::CreateFromAxisAngle(Session.mPlaneNormal, Session.mAppliedAngle).RotateVector(Start)};
         Overlay.mGizmoLines.AddLine(Session.mPivot, Session.mPivot + Start * Radius, {0.8f, 0.8f, 0.8f, 1.0f}, 1.5f, ELineDepthMode::Overlay);
         Overlay.mGizmoLines.AddLine(Session.mPivot, Session.mPivot + End * Radius, Color, 2.0f, ELineDepthMode::Overlay);
+
         const float DisplayAngle{std::clamp(Session.mAppliedAngle, -2.0f * Pi, 2.0f * Pi)};
         const Uint32 Segments{static_cast<Uint32>(std::max(1.0f, std::ceil(std::abs(DisplayAngle) * 18.0f)))};
 

@@ -61,16 +61,22 @@ private:
 
 private:
     ReflectAccessor(mTextureReference, GetTextureHandle, SetTextureHandle, "TextureHandle", EPropertyFlags::Edit | EPropertyFlags::Serialize | EPropertyFlags::Asset, &SerializeTextureHandleProperty, ReflectEditor("Billboard", "Texture"), ReflectAsset(UTexture));
+
     FAssetReference mTextureReference{};
     ReflectAccessor(mPipelineReference, GetPipelineHandle, SetPipelineHandle, "PipelineHandle", EPropertyFlags::Edit | EPropertyFlags::Serialize | EPropertyFlags::Asset, &SerializePipelineHandleProperty, ReflectEditor("Billboard", "Pipeline"), ReflectAsset(UPipeline));
+
     FAssetReference mPipelineReference{};
     ReflectAccessor(mSize, GetSize, SetSize, "Size", EPropertyFlags::Edit | EPropertyFlags::Serialize, ReflectSerializer(mSize), ReflectEditor("Billboard", "Size"), ReflectRange(0.001f, std::numeric_limits<float>::max()));
+
     FVector2 mSize{1.0f, 1.0f};
     ReflectReadOnlyAccessor(mUvMin, GetUVmin, "UVMin", EPropertyFlags::Serialize | EPropertyFlags::ReadOnly, ReflectSerializer(mUvMin), ReflectEditor("Billboard", "UV Min"));
+
     FVector2 mUvMin{0.0f, 0.0f};
     ReflectReadOnlyAccessor(mUvMax, GetUVMax, "UVMax", EPropertyFlags::Serialize | EPropertyFlags::ReadOnly, ReflectSerializer(mUvMax), ReflectEditor("Billboard", "UV Max"));
+
     FVector2 mUvMax{1.0f, 1.0f};
     ReflectAccessor(mColor, GetColor, SetColor, "Color", EPropertyFlags::Edit | EPropertyFlags::Serialize | EPropertyFlags::Color, ReflectSerializer(mColor), ReflectEditor("Billboard", "Color"));
+
     FVector4 mColor{1.0f, 1.0f, 1.0f, 1.0f};
 
     ReflectMembers();

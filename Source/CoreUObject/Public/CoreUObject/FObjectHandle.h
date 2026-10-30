@@ -36,6 +36,7 @@ public:
      * @note 객체 생존 여부는 FObjectRegistry::Resolve()로 별도 검사합니다.
      */
     bool IsValid() const;
+
     /**
      * @brief 저장된 성분 또는 식별 상태가 정확히 같은지 검사합니다.
      * @param[in] Other 비교, 복사 또는 연산할 상대 값입니다.

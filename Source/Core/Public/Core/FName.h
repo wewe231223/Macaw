@@ -28,6 +28,7 @@ public:
      * @brief 이름이 없는 식별자를 생성합니다.
      */
     FName() = default;
+
     /**
      * @brief 입력 이름을 ASCII 대소문자 구분 없이 공유 이름 풀에 등록합니다.
      * @param[in] Name 조회하거나 설정할 이름입니다.
@@ -47,6 +48,7 @@ public:
      * @return 조건을 만족하면 true입니다.
      */
     bool operator==(const FName& Other) const;
+
     /**
      * @brief 두 공유 이름 식별자가 서로 다른지 비교합니다.
      * @param[in] Other 비교하거나 검사할 상대 값입니다.
@@ -59,11 +61,13 @@ public:
      * @return 조건을 만족하면 true입니다.
      */
     bool IsNone() const;
+
     /**
      * @brief 이 이름이 처음 등록되었을 때의 표기 문자열을 반환합니다.
      * @return 이 객체 또는 공유 이름 풀이 유지하는 값의 참조입니다.
      */
     const FString& ToString() const;
+
     /**
      * @brief 동등한 이름에 같은 값을 부여하는 프로세스 내부 해시를 반환합니다.
      * @return 계산하거나 조회한 값입니다.

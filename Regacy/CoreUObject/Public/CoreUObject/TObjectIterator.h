@@ -2,6 +2,7 @@
  * @file TObjectIterator.h
  * @brief 등록된 UObject를 리플렉션 타입별로 순회하는 반복자와 범위를 제공합니다.
  */
+
 #pragma once
 #include "CoreUObject/Reflection/UClass.h"
 
@@ -125,6 +126,7 @@ namespace UObjectSystem {
          * @brief 현재 객체 슬롯 또는 끝 위치입니다.
          */
         Uint32 mCurrentIndex{};
+
         /**
          * @brief 순회에서 제외할 끝 슬롯입니다.
          */
@@ -144,11 +146,13 @@ namespace UObjectSystem {
          * @param End 범위에서 제외할 끝 인덱스입니다.
          */
         TObjectRange(Uint32 End);
+
         /**
          * @brief 인덱스 0부터 첫 타입 호환 객체를 찾는 반복자를 반환합니다.
          * @return 시작 반복자입니다.
          */
         TObjectIterator<TObject> begin() const;
+
         /**
          * @brief 저장된 끝 인덱스를 가리키는 반복자를 반환합니다.
          * @return 끝 반복자입니다.
@@ -335,6 +339,7 @@ namespace UObjectSystem {
         }
 
         mHandle = {}; // 초기화
+
         return false; // 범위의 끝
     }
 }

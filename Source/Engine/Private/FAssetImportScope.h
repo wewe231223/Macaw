@@ -3,6 +3,7 @@
  * @brief 임포트 실패 시 새로 만든 의존 에셋을 정리합니다.
  * @ingroup Engine
  */
+
 #pragma once
 
 #include "Core/ReflectionMacros.h"
@@ -25,15 +26,18 @@ public:
      * @param Directory GUID로 구분한 이번 임포트 전용 경로입니다.
      */
     explicit FAssetImportScope(std::filesystem::path Directory);
+
     /**
      * @brief 성공 확정 전이라면 이번 임포트가 만든 파일을 제거합니다.
      */
     ~FAssetImportScope();
+
     /**
      * @brief 롤백 소유권의 복사를 금지합니다.
      * @param Other 복사 대상입니다.
      */
     FAssetImportScope(const FAssetImportScope& Other) = delete;
+
     /**
      * @brief 롤백 소유권의 복사를 금지합니다.
      * @param Other 대입 대상입니다.
@@ -47,6 +51,7 @@ public:
      * @return 등록된 타입 정보입니다.
      */
     ReflectStruct(FAssetImportScope);
+
     /**
      * @brief 임포트가 완성되어 의존 에셋을 유지하도록 표시합니다.
      */
@@ -64,6 +69,7 @@ private:
      */
     std::filesystem::path mDirectory{};
     ReflectProperty(mDirectory, "Directory", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 메시 에셋 저장까지 성공했는지 여부입니다.
      */

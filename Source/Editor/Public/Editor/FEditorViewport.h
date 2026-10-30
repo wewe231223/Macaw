@@ -33,14 +33,17 @@ public:
      * @note 렌더 타깃과 ImGui 컨텍스트는 생성하지 않습니다.
      */
     explicit FEditorViewport(FEditorContext* Context, FString Name = "Viewport");
+
     /**
      * @brief 진행 중인 자체 드래그를 취소하고 소유한 장면 뷰포트와 타깃을 정리합니다.
      */
     ~FEditorViewport();
+
     /**
      * @brief 클라이언트와 타깃의 고유 소유권이 복제되지 않도록 복사 생성을 금지합니다.
      */
     FEditorViewport(const FEditorViewport&) = delete;
+
     /**
      * @brief 고유 소유권과 내부 비소유 연결이 대입되지 않도록 복사 할당을 금지합니다.
      */
@@ -59,11 +62,13 @@ public:
      * @return 준비에 성공하면 true이며 렌더러가 없거나 이미 초기화했거나 타깃 생성에 실패하면 false입니다.
      */
     bool Initialize(IRendererModule* Renderer);
+
     /**
      * @brief 자체 기즈모 드래그를 취소하고 장면 뷰포트와 컬러 타깃을 해제합니다.
      * @note 드래그 중이었다면 시작 변환을 복원하며 여러 번 호출해도 안전합니다.
      */
     void Shutdown();
+
     /**
      * @brief 툴바와 장면 이미지를 표시하고 크기 변경 및 입력을 장면 뷰포트에 전달합니다.
      * @param[in] DeltaTime 현재 프레임의 초 단위 경과 시간입니다.
@@ -71,26 +76,31 @@ public:
      * @note 이미지가 표시되지 않을 때에도 진행 중인 드래그의 버튼 해제와 Esc 취소를 처리합니다.
      */
     void DrawUI(float DeltaTime);
+
     /**
      * @brief 뷰포트 타깃 이미지·툴바를 표시하고 입력과 리사이즈를 전달합니다.
      * @param[in] DeltaTime 이전 갱신 이후의 초 단위 시간입니다.
      * @param[in] AllowInput 뷰포트 입력을 받을지 지정합니다.
      */
     void DrawContents(float DeltaTime, bool AllowInput = true);
+
     /**
      * @brief 뷰포트가 마우스 입력을 캡처 중인지 검사합니다.
      * @return 조건을 만족하면 true입니다.
      */
     bool IsMouseCaptured() const;
+
     /**
      * @brief 기즈모 조작과 마우스·PIE 입력 캡처를 해제합니다.
      */
     void ReleaseInput();
+
     /**
      * @brief 클라이언트의 현재 카메라로 장면을 자체 컬러 타깃에 그립니다.
      * @note 엔진의 월드 렌더 동기화 이후 호출하며 초기화 전에는 아무 작업도 하지 않습니다.
      */
     void Draw();
+
     /**
      * @brief 뷰포트 이미지 영역 위에 월드와 렌더링 통계를 표시합니다.
      * @param[in] DeltaTime 이전 갱신 이후의 경과 시간이며 초 단위입니다.
@@ -98,41 +108,49 @@ public:
      * @param[in] Render 표시할 현재 프레임의 렌더링 통계입니다.
      */
     void DrawStatistics(float DeltaTime, const UWorld* World, const FRenderStats& Render);
+
     /**
      * @brief 이 뷰포트가 소유한 통계 표시 객체의 주소를 반환합니다.
      * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며, 사용할 수 없으면 nullptr입니다.
      */
     FViewportStatistics* GetStatistics();
+
     /**
      * @brief 창 표시와 도킹 식별에 사용하는 뷰포트 이름을 반환합니다.
      * @return 이 뷰포트가 소유한 이름의 참조입니다.
      */
     const FString& GetName() const;
+
     /**
      * @brief 이 뷰포트의 카메라, 명령과 기즈모를 관리하는 클라이언트를 반환합니다.
      * @return 이 뷰포트가 소유한 클라이언트의 비소유 주소입니다.
      */
     FEditorViewportClient* GetClient();
+
     /**
      * @brief PIE 연결 상태에 따라 현재 사용할 뷰포트 클라이언트를 반환합니다.
      * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며, 사용할 수 없으면 nullptr입니다.
      */
     FViewportClient* GetActiveClient();
+
     /**
      * @brief PIE에 사용할 클라이언트를 연결하거나 해제하고 입력 캡처를 초기화합니다.
      * @param[in] Client 입력과 그리기를 처리할 클라이언트의 비소유 주소입니다.
      */
     void SetPlayClient(FViewportClient* Client);
+
     /**
      * @brief PIE 뷰포트가 마우스와 키보드 입력을 캡처했는지 반환합니다.
      * @return 검사 조건을 만족하면 true, 그렇지 않으면 false입니다.
      */
     bool IsPlayInputCaptured() const;
+
     /**
      * @brief 입력, 크기 변경과 피킹 요청을 연결하는 장면 뷰포트를 반환합니다.
      * @return 소유한 장면 뷰포트의 비소유 주소이며 초기화 전이나 종료 후에는 nullptr입니다.
      */
     FSceneViewport* GetSceneViewport() const;
+
     /**
      * @brief 장면 이미지를 보관하는 컬러 렌더 타깃을 반환합니다.
      * @return 소유한 타깃의 비소유 주소이며 준비되지 않았으면 nullptr입니다.
@@ -151,46 +169,55 @@ private:
      */
     FString mName{};
     ReflectProperty(mName, "Name", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 이 뷰포트만의 카메라, 변환 명령과 기즈모 상태를 소유합니다.
      */
     FEditorViewportClient mClient;
     ReflectProperty(mClient, "Client", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief PIE 중 입력과 뷰를 제공하는 클라이언트의 비소유 주소입니다.
      */
     FViewportClient* mPlayClient{};
     ReflectProperty(mPlayClient, "PlayClient", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief PIE 뷰포트가 입력 캡처를 소유하는지 나타냅니다.
      */
     bool mPlayInputCaptured{};
     ReflectProperty(mPlayInputCaptured, "PlayInputCaptured", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 프레임 및 리소스 통계의 뷰포트 표시 상태입니다.
      */
     FViewportStatistics mStatistics{};
     ReflectProperty(mStatistics, "Statistics", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 뷰포트 이미지의 화면상 좌측 상단 좌표입니다.
      */
     FVector2 mImageOrigin{};
     ReflectProperty(mImageOrigin, "ImageOrigin", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 현재 표시한 뷰포트 이미지의 픽셀 크기입니다.
      */
     FVector2 mImageSize{};
     ReflectProperty(mImageSize, "ImageSize", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 현재 프레임 통계 오버레이용 ImGui 그리기 목록입니다.
      */
     ImDrawList* mDrawList{};
     ReflectProperty(mDrawList, "DrawList", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 뷰포트의 마우스 입력 캡처 상태입니다.
      */
     bool mMouseCaptured{};
     ReflectProperty(mMouseCaptured, "MouseCaptured", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 컬러 타깃을 소유하고 입력, 그리기와 CPU 피킹을 클라이언트에 연결합니다.
      */

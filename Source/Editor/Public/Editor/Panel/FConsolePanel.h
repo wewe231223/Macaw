@@ -28,6 +28,7 @@ public:
      * @param[in,out] Context 패널 또는 뷰포트가 공유할 편집 컨텍스트입니다.
      */
     explicit FConsolePanel(FEditorContext* Context);
+
     /**
      * @brief 객체의 수명을 끝내고 소유한 리소스를 정리합니다.
      */
@@ -45,6 +46,7 @@ public:
      * @param[in] Message 보고할 내용 또는 Windows 메시지 번호입니다.
      */
     void AddLog(const FString& Message);
+
     /**
      * @brief 수집한 콘솔 로그를 모두 지웁니다.
      */

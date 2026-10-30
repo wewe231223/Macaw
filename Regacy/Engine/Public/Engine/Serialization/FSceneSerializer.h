@@ -2,6 +2,7 @@
  * @file FSceneSerializer.h
  * @brief 씬 JSON 파일의 저장, 검증, 호환 데이터 변환과 월드 로드를 제공합니다.
  */
+
 #pragma once
 
 #include <filesystem>
@@ -21,6 +22,7 @@ public:
      * @note 저장 준비 시 월드의 지연 액터 삭제를 처리합니다.
      */
     static bool Save(UWorld& World, const std::filesystem::path& ScenePath);
+
     /**
      * @brief JSON 씬을 검사·변환하고 GUID 충돌을 재매핑한 뒤 월드에 적용합니다.
      * @param World 로드 대상 월드입니다. 초기화되어 있고 바쁘지 않으며 에셋 레지스트리가 있어야 합니다.

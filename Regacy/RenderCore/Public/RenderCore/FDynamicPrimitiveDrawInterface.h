@@ -2,6 +2,7 @@
  * @file FDynamicPrimitiveDrawInterface.h
  * @brief 프록시가 텍스트와 빌보드 그리기 데이터를 제출하는 인터페이스를 정의합니다.
  */
+
 #pragma once
 #include "RenderCore/FRenderData.h"
 
@@ -22,6 +23,7 @@ public:
      * @param World 이번 그리기에 적용할 현재 월드 행렬입니다.
      */
     virtual void DrawText(const FTextDrawData& Text, const FMatrix& World) = 0;
+
     /**
      * @brief 빌보드 그리기 데이터를 현재 월드 변환과 함께 제출합니다.
      * @param Billboard 텍스처·파이프라인·크기·색상과 UV 범위입니다.

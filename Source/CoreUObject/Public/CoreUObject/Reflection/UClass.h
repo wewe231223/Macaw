@@ -39,6 +39,7 @@ public:
      * @param[in] Flags 타입 또는 프로퍼티의 정책 비트 플래그입니다.
      */
     UClass(FString Name, std::size_t Size, const UClass* Parent, FFactory Factory, EClassFlags Flags = EClassFlags::None);
+
     /**
      * @brief 객체의 수명을 끝내고 소유한 리소스를 정리합니다.
      */
@@ -56,6 +57,7 @@ public:
      * @return 조회한 값의 비소유 주소이며, 해당 값이 없으면 nullptr입니다.
      */
     const UClass* GetSuperClass() const;
+
     /**
      * @brief 자기 자신을 포함한 상속 체인에 지정한 부모 타입이 있는지 검사합니다.
      * @param[in] Parent 부모 메타데이터 또는 부모를 조회하는 콜백입니다.
@@ -69,11 +71,13 @@ public:
      * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
      */
     bool HasAnyFlags(EClassFlags Flags) const;
+
     /**
      * @brief 클래스 정책과 팩터리가 인스턴스 생성을 허용하는지 검사합니다.
      * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
      */
     bool CanCreate() const;
+
     /**
      * @brief 생성 가능한 클래스의 등록된 팩터리를 호출합니다.
      * @return 생성한 객체의 단독 소유권이며, 생성 또는 검증 실패 시 nullptr입니다.
@@ -84,11 +88,13 @@ public:
      * @brief 프로퍼티 등록을 마무리하고 조회용 목록을 확정합니다.
      */
     void Seal() override;
+
     /**
      * @brief 상속된 항목을 포함한 프로퍼티 주소 목록을 반환합니다.
      * @return 소유 객체가 유지하는 값의 참조입니다.
      */
     const TArray<const FProperty*>& GetAllProperties() const;
+
     /**
      * @brief 상속된 프로퍼티를 포함하여 이름으로 프로퍼티를 조회합니다.
      * @param[in] Name 조회하거나 기록할 이름입니다.

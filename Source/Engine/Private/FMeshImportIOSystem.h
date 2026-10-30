@@ -34,11 +34,13 @@ public:
      * @return 파일이 존재하면 true입니다.
      */
     bool Exists(const char* File) const override;
+
     /**
      * @brief 기본 Assimp 파일 시스템의 경로 구분자를 반환합니다.
      * @return 운영체제의 디렉터리 구분 문자입니다.
      */
     char getOsSeparator() const override;
+
     /**
      * @brief 파일을 열고 읽기용 MTL이면 Prfl 행을 제거한 메모리 스트림을 생성합니다.
      * @param[in] File 처리할 파일의 경로입니다.
@@ -46,11 +48,13 @@ public:
      * @return 호출자가 Close()로 해제할 스트림이며 실패하면 nullptr입니다.
      */
     Assimp::IOStream* Open(const char* File, const char* Mode = "rb") override;
+
     /**
      * @brief Assimp 스트림을 삭제하고 스트림이 소유한 메모리를 해제합니다.
      * @param[in] Stream Close()로 해제할 Assimp 스트림입니다.
      */
     void Close(Assimp::IOStream* Stream) override;
+
     /**
      * @brief 기본 Assimp 파일 시스템으로 두 경로가 같은지 비교합니다.
      * @param[in] First 비교할 첫 번째 파일 경로입니다.

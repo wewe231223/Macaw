@@ -28,6 +28,7 @@ public:
      * @param[in] Parent 부모 메타데이터 또는 부모를 조회하는 콜백입니다.
      */
     UScriptStruct(FString Name, std::size_t Size, const UScriptStruct* Parent = nullptr);
+
     /**
      * @brief 객체의 수명을 끝내고 소유한 리소스를 정리합니다.
      */
@@ -45,6 +46,7 @@ public:
      * @return 조회한 값의 비소유 주소이며, 해당 값이 없으면 nullptr입니다.
      */
     const UScriptStruct* GetSuperStruct() const;
+
     /**
      * @brief 자기 자신을 포함한 상속 체인에 지정한 부모 타입이 있는지 검사합니다.
      * @param[in] Parent 부모 메타데이터 또는 부모를 조회하는 콜백입니다.

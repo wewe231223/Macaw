@@ -11,8 +11,11 @@ public:
     explicit FWorldContext(std::unique_ptr<UWorld> World);
     ~FWorldContext();
     FWorldContext(const FWorldContext&) = delete;
+
     FWorldContext& operator=(const FWorldContext&) = delete;
+
     FWorldContext(FWorldContext&&) = delete;
+
     FWorldContext& operator=(FWorldContext&&) = delete;
 
 public:

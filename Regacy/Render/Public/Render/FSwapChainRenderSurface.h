@@ -8,8 +8,11 @@ public:
     ~FSwapChainRenderSurface() override = default;
 
     FSwapChainRenderSurface(const FSwapChainRenderSurface&) = delete;
+
     FSwapChainRenderSurface& operator=(const FSwapChainRenderSurface&) = delete;
+
     FSwapChainRenderSurface(FSwapChainRenderSurface&&) = delete;
+
     FSwapChainRenderSurface& operator=(FSwapChainRenderSurface&&) = delete;
 
 public:

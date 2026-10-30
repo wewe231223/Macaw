@@ -21,12 +21,14 @@ namespace Math {
      * @return 연산을 적용한 새 값입니다.
      */
     float ToRadians(float Degrees);
+
     /**
      * @brief 라디안 단위 각도를 도로 변환합니다.
      * @param[in] Radians 라디안 단위 각도입니다.
      * @return 연산을 적용한 새 값입니다.
      */
     float ToDegrees(float Radians);
+
     /**
      * @brief 두 스칼라의 차이가 지정한 허용 오차 이내인지 검사합니다.
      * @param[in] Left 왼쪽 피연산자입니다.
@@ -35,6 +37,7 @@ namespace Math {
      * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
      */
     bool NearlyEqual(float Left, float Right, float Tolerance = 0.0001f);
+
     /**
      * @brief 광선과 평면의 앞쪽 교점을 계산합니다.
      * @param[in] Ray 교차를 검사하거나 역투영 결과를 기록할 광선입니다.
@@ -44,6 +47,7 @@ namespace Math {
      * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
      */
     bool IntersectPlane(const FRay& Ray, const FVector& Point, const FVector& Normal, FVector& Hit);
+
     /**
      * @brief 광선과 삼각형의 교차를 검사하여 광선상의 거리를 구합니다.
      * @param[in] Ray 교차를 검사하거나 역투영 결과를 기록할 광선입니다.
@@ -54,6 +58,7 @@ namespace Math {
      * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
      */
     bool IntersectTriangle(const FRay& Ray, const FVector& A, const FVector& B, const FVector& C, float& Distance);
+
     /**
      * @brief 월드 위치를 뷰포트 픽셀 좌표로 투영합니다.
      * @param[in] Position 변환하거나 투영할 위치입니다.
@@ -63,6 +68,7 @@ namespace Math {
      * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
      */
     bool Project(const FVector& Position, const FMatrix& ViewProjection, const FVector2& Size, FVector2& Screen);
+
     /**
      * @brief 뷰포트 픽셀 좌표에서 월드 공간 피킹 광선을 생성합니다.
      * @param[in] Screen 뷰포트 기준 픽셀 좌표입니다.
@@ -72,6 +78,7 @@ namespace Math {
      * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
      */
     bool Deproject(const FVector2& Screen, const FVector2& Size, const FMatrix& ViewProjection, FRay& Ray);
+
     /**
      * @brief 2차원 점에서 유한 선분까지의 최단 거리를 구합니다.
      * @param[in] Point 기준 평면이나 거리 질의의 점입니다.

@@ -56,6 +56,7 @@ void FApplication::Tick(float DeltaTime) {
     mEngine.TickFrame(DeltaTime, [this]() {
         DrawTitleBar();
     });
+
     EnableExternalDropsForImGuiViewports();
 }
 

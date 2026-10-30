@@ -112,6 +112,7 @@ float Math::Simd::Extract(__m128 Value) {
 template <std::size_t Components>
 __m128 Math::Simd::Dot(__m128 Left, __m128 Right) {
     static_assert(Components >= 2 && Components <= 4);
+
     const __m128 Mask{_mm_castsi128_ps(_mm_set_epi32(Components == 4 ? -1 : 0, Components >= 3 ? -1 : 0, -1, -1))};
     const __m128 Product{_mm_and_ps(_mm_mul_ps(Left, Right), Mask)};
     const __m128 Pair{_mm_add_ps(Product, _mm_movehl_ps(Product, Product))};
@@ -126,6 +127,7 @@ __m128 Math::Simd::Dot(__m128 Left, __m128 Right) {
 template <std::size_t Components>
 bool Math::Simd::Equal(__m128 Left, __m128 Right) {
     static_assert(Components >= 2 && Components <= 4);
+
     constexpr int Mask{(1 << Components) - 1};
     return (_mm_movemask_ps(_mm_cmpeq_ps(Left, Right)) & Mask) == Mask;
 }
@@ -136,6 +138,7 @@ bool Math::Simd::Equal(__m128 Left, __m128 Right) {
 template <std::size_t Components>
 bool Math::Simd::NearEqual(__m128 Left, __m128 Right, float Tolerance) {
     static_assert(Components >= 2 && Components <= 4);
+
     constexpr int Mask{(1 << Components) - 1};
     const __m128 Difference{_mm_andnot_ps(_mm_set1_ps(-0.0f), _mm_sub_ps(Left, Right))};
 
@@ -148,6 +151,7 @@ bool Math::Simd::NearEqual(__m128 Left, __m128 Right, float Tolerance) {
 template <std::size_t Components>
 bool Math::Simd::IsFinite(__m128 Value) {
     static_assert(Components >= 2 && Components <= 4);
+
     constexpr int Mask{(1 << Components) - 1};
     const __m128 Magnitude{_mm_andnot_ps(_mm_set1_ps(-0.0f), Value)};
 
@@ -160,6 +164,7 @@ bool Math::Simd::IsFinite(__m128 Value) {
 template <std::size_t Components>
 bool Math::Simd::Normalize(__m128& Value) {
     static_assert(Components >= 2 && Components <= 4);
+
     const __m128 Mask{_mm_castsi128_ps(_mm_set_epi32(Components == 4 ? -1 : 0, Components >= 3 ? -1 : 0, -1, -1))};
     Value = _mm_and_ps(Value, Mask);
 

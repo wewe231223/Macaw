@@ -24,6 +24,7 @@ public:
      * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
      */
     ReflectTypes(TDelegate);
+
     /**
      * @brief 등록 함수의 호출 시그니처입니다.
      */
@@ -91,6 +92,7 @@ private:
      */
     TMap<Uint32, HandlerType> mHandlers{};
     ReflectProperty(mHandlers, "Handlers", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 가장 최근 발급한 델리게이트 핸들입니다.
      */
@@ -118,6 +120,7 @@ template <typename TSignature>
 template <typename... Args>
 void TDelegate<TSignature>::Broadcast(Args&&... Arguments) {
     const TMap<Uint32, HandlerType> Handlers{mHandlers};
+
     for (const auto& Entry : Handlers) {
         Entry.second(Arguments...);
     }
@@ -127,6 +130,7 @@ template <typename TSignature>
 template <typename... Args>
 void TDelegate<TSignature>::Execute(Uint32 HandleNum, Args&&... Arguments) {
     const auto Position{mHandlers.find(HandleNum)};
+
     if (Position != mHandlers.end()) {
         const HandlerType Handler{Position->second};
         Handler(Arguments...);

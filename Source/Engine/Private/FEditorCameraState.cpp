@@ -43,10 +43,13 @@ bool FEditorCameraState::Set(const FVector& Location, const FRotator& Rotation, 
     Candidate.mFieldOfView = FieldOfView;
     Candidate.mNearClip = NearClip;
     Candidate.mFarClip = FarClip;
+
     if (!Candidate.IsValid()) {
         return false;
     }
+
     *this = Candidate;
+
     return true;
 }
 
@@ -57,9 +60,11 @@ void FEditorCameraState::Serialize(FArchive& Archive) {
     Archive.Serialize("FOV", Candidate.mFieldOfView);
     Archive.Serialize("NearClip", Candidate.mNearClip);
     Archive.Serialize("FarClip", Candidate.mFarClip);
+
     if (!Archive.HasError() && !Candidate.IsValid()) {
         Archive.SetError("Invalid perspective editor camera");
     }
+
     if (Archive.IsLoading() && !Archive.HasError()) {
         *this = Candidate;
     }

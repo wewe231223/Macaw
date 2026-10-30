@@ -75,10 +75,12 @@ bool FEditorContext::SetWorld(FWorldHandle Handle) {
     }
 
     FOperationScope Scope{&mChangingState};
+
     mWorld = Handle;
     AssignSelection({}, {});
     mScenePath.clear();
     mDirty = false;
+
     return true;
 }
 
@@ -91,6 +93,7 @@ void FEditorContext::Reset() {
     }
 
     FOperationScope Scope{&mChangingState};
+
     AssignSelection({}, {});
     mWorld = {};
     mScenePath.clear();
@@ -223,20 +226,27 @@ bool FEditorContext::SetSelection(const TArray<FObjectHandle>& Actors, FObjectHa
 
     FOperationScope Scope{&mChangingState};
     TArray<FObjectHandle> Valid{};
+
     for (FObjectHandle Handle : Actors) {
         const auto* Actor{Cast<AActor>(ResolveObject(Handle))};
+
         if (Actor == nullptr || Actor->IsPendingDestroy() || std::find(Valid.begin(), Valid.end(), Handle) != Valid.end()) {
             return false;
         }
+
         Valid.push_back(Handle);
     }
+
     if (Object.IsValid() && ResolveObject(Object) == nullptr) {
         return false;
     }
+
     if (mSelectedActors == Valid && mSelectedObject == Object) {
         return true;
     }
+
     AssignSelection(Valid, Object);
+
     return true;
 }
 
@@ -285,7 +295,9 @@ AStaticMeshActor* FEditorContext::SpawnPrimitive(EPrimitiveType Type) {
     if (!ApplySpawnPlacement(Actor, Placement)) {
         return nullptr;
     }
+
     CompleteActorSpawn(Actor, "Spawned ");
+
     return Actor;
 }
 
@@ -293,20 +305,26 @@ ACameraActor* FEditorContext::SpawnCamera() {
     if (!CanSpawnActor()) {
         return nullptr;
     }
+
     FOperationScope Scope{&mChangingState};
     const FTransform Placement{mPlacementProvider ? mPlacementProvider() : FTransform{}};
     UWorld* World{GetWorld()};
     auto* Actor{World != nullptr ? Cast<ACameraActor>(World->SpawnActor(ACameraActor::StaticClass())) : nullptr};
+
     if (!ApplySpawnPlacement(Actor, Placement)) {
         return nullptr;
     }
+
     if (World->GetActiveCamera() == nullptr) {
         World->SetActiveCamera(Actor->GetCameraComponent());
+
         if (World->GetInputTarget() == nullptr) {
             World->SetInputTarget(Actor);
         }
     }
+
     CompleteActorSpawn(Actor, "Spawned ");
+
     return Actor;
 }
 
@@ -314,24 +332,33 @@ AActor* FEditorContext::SpawnText() {
     if (!CanSpawnActor()) {
         return nullptr;
     }
+
     FOperationScope Scope{&mChangingState};
     UWorld* World{GetWorld()};
     AActor* Actor{World != nullptr ? World->SpawnActor(AActor::StaticClass()) : nullptr};
+
     if (Actor == nullptr) {
         return nullptr;
     }
+
     auto Component{NewObject<UBillboardTextComponent>()};
     Component->SetName("BillboardTextComponent");
+
     if (!Actor->AddComponent(std::move(Component))) {
         World->DestroyActor(Actor->GetHandle());
         return nullptr;
     }
+
     Actor->SetName("Text");
+
     const FTransform Placement{mPlacementProvider ? mPlacementProvider() : FTransform{}};
+
     if (!ApplySpawnPlacement(Actor, Placement)) {
         return nullptr;
     }
+
     CompleteActorSpawn(Actor, "Spawned ");
+
     return Actor;
 }
 
@@ -339,25 +366,35 @@ AActor* FEditorContext::SpawnBillboard(const FString& SpritePath) {
     if (!CanSpawnActor()) {
         return nullptr;
     }
+
     FOperationScope Scope{&mChangingState};
     UWorld* World{GetWorld()};
     AActor* Actor{World != nullptr ? World->SpawnActor(AActor::StaticClass()) : nullptr};
+
     if (Actor == nullptr) {
         return nullptr;
     }
+
     auto Component{NewObject<UBillboardComponent>()};
     Component->SetName("BillboardComponent");
+
     UBillboardComponent* Billboard{Component.get()};
+
     if (!Actor->AddComponent(std::move(Component)) || !Billboard->SetTexturePath(SpritePath)) {
         World->DestroyActor(Actor->GetHandle());
         return nullptr;
     }
+
     Actor->SetName(SpritePath.empty() ? "Billboard" : FilePath::ToUtf8(FilePath::FromUtf8(SpritePath).stem()));
+
     const FTransform Placement{mPlacementProvider ? mPlacementProvider() : FTransform{}};
+
     if (!ApplySpawnPlacement(Actor, Placement)) {
         return nullptr;
     }
+
     CompleteActorSpawn(Actor, "Spawned ");
+
     return Actor;
 }
 
@@ -369,10 +406,12 @@ bool FEditorContext::ApplySpawnPlacement(AActor* Actor, const FTransform& Placem
     if (Actor == nullptr) {
         return false;
     }
+
     if (!Actor->SetActorTransform(Placement)) {
         GetWorld()->DestroyActor(Actor->GetHandle());
         return false;
     }
+
     return true;
 }
 
@@ -390,40 +429,54 @@ UActorComponent* FEditorContext::AddComponent(const UClass* Class) {
     if (!CanAddComponent(Class)) {
         return nullptr;
     }
+
     FOperationScope Scope{&mChangingState};
     AActor* Actor{GetSelectedActor()};
     const FObjectHandle ActorHandle{Actor->GetHandle()};
     auto Object{Class->CreateInstance()};
+
     if (Object == nullptr || Object->GetClass() != Class) {
         return nullptr;
     }
+
     std::unique_ptr<UActorComponent> Component{static_cast<UActorComponent*>(Object.release())};
     FString BaseName{Class->GetName()};
+
     if (BaseName.starts_with("U")) {
         BaseName.erase(0, 1);
     }
+
     FString Name{BaseName};
     Uint32 Suffix{2};
+
     while (FObjectRegistry::Get()->FindObject(FName{Name}, Actor) != nullptr) {
         Name = BaseName + "_" + std::to_string(Suffix++);
     }
+
     Component->SetName(Name);
+
     if (auto* SceneComponent{Cast<USceneComponent>(Component.get())}; SceneComponent != nullptr && Actor->GetRootComponent() != nullptr) {
         if (!SceneComponent->SetTransform(Actor->GetRootComponent()->GetTransform())) {
             return nullptr;
         }
     }
+
     const FObjectHandle ComponentHandle{Component->GetHandle()};
+
     if (!Actor->AddComponent(std::move(Component))) {
         return nullptr;
     }
+
     auto* Added{Cast<UActorComponent>(ResolveObject(ComponentHandle))};
+
     if (Added == nullptr) {
         return nullptr;
     }
+
     AssignSelection({ActorHandle}, ComponentHandle);
     mDirty = true;
     AddLog("Added " + Name);
+
     return Added;
 }
 
@@ -431,6 +484,7 @@ UCameraComponent* FEditorContext::GetSelectedCamera() const {
     if (auto* Camera{Cast<UCameraComponent>(GetSelectedObject())}) {
         return Camera;
     }
+
     if (const AActor* Actor{GetSelectedActor()}) {
         for (const auto& Component : Actor->GetComponents()) {
             if (auto* Camera{Cast<UCameraComponent>(Component.get())}) {
@@ -438,18 +492,23 @@ UCameraComponent* FEditorContext::GetSelectedCamera() const {
             }
         }
     }
+
     return nullptr;
 }
 
 bool FEditorContext::UseSelectedCamera() {
     UCameraComponent* Camera{GetSelectedCamera()};
+
     if (!CanEditWorld() || mChangingState || mEditingProperty || mEngine->IsDispatching() || Camera == nullptr) {
         return false;
     }
+
     if (!GetWorld()->SetActiveCamera(Camera) || !GetWorld()->SetInputTarget(Camera->GetOwner())) {
         return false;
     }
+
     mDirty = true;
+
     return true;
 }
 
@@ -460,21 +519,27 @@ bool FEditorContext::DestroySelectedActor() {
     if (!CanEditWorld() || mChangingState || mEditingProperty || mEngine->IsDispatching()) {
         return false;
     }
+
     const TArray<FObjectHandle> Actors{GetSelectedActors()};
+
     if (Actors.empty()) {
         return false;
     }
+
     FOperationScope Scope{&mChangingState};
     UWorld* World{GetWorld()};
     bool Removed{};
+
     for (FObjectHandle Handle : Actors) {
         Removed = World->DestroyActor(Handle) || Removed;
     }
+
     if (Removed) {
         AssignSelection({}, {});
         mDirty = true;
         AddLog("Deleted selected actors");
     }
+
     return Removed;
 }
 
@@ -511,6 +576,7 @@ bool FEditorContext::EditProperty(FObjectHandle Handle, const FProperty* Propert
 
     Object->PostEditChangeProperty(FPropertyChangedEvent{Property, Interactive});
     mDirty = true;
+
     return true;
 }
 
@@ -522,6 +588,7 @@ bool FEditorContext::ApplyTransform(FObjectHandle Handle, const FTransform& Tran
     AActor* Actor{Cast<AActor>(Object)};
     USceneComponent* Root{Actor != nullptr ? Actor->GetRootComponent() : Cast<USceneComponent>(Object)};
     const FProperty* Property{Root != nullptr ? Root->GetClass()->FindClassProperty("Transform") : nullptr};
+
     return Property != nullptr && EditProperty(Root->GetHandle(), Property, FPropertyValue{Transform}, Interactive);
 }
 
@@ -537,6 +604,7 @@ bool FEditorContext::SaveScene(const std::filesystem::path& Path) {
     FString Error{};
     FProject* Project{GetProject()};
     const std::filesystem::path ScenePath{Project != nullptr ? Project->GetAssets()->ResolvePath(Path, Error) : std::filesystem::path{}};
+
     if (ScenePath.empty()) {
         AddLog(Error.empty() ? "Open a project before saving a scene" : Error);
         return false;
@@ -545,6 +613,7 @@ bool FEditorContext::SaveScene(const std::filesystem::path& Path) {
     if (mCameraProvider) {
         mEngine->GetWorldContext(mWorld)->GetEditorCamera() = mCameraProvider();
     }
+
     if (!FSceneSerializer::Save(ScenePath, mEngine->GetWorldContext(mWorld), Error)) {
         AddLog(Error);
         return false;
@@ -553,6 +622,7 @@ bool FEditorContext::SaveScene(const std::filesystem::path& Path) {
     mScenePath = ScenePath;
     mDirty = false;
     AddLog("Saved " + FilePath::ToUtf8(ScenePath));
+
     return true;
 }
 
@@ -581,9 +651,11 @@ bool FEditorContext::ReplaceScene(std::unique_ptr<FWorldContext> Context, const 
     AssignSelection({}, {});
     mScenePath = Path;
     mDirty = false;
+
     if (mCameraRestorer) {
         mCameraRestorer(mEngine->GetWorldContext(mWorld)->GetEditorCamera());
     }
+
     return true;
 }
 
@@ -596,11 +668,15 @@ bool FEditorContext::SetMaterialOverride(FObjectHandle Handle, Uint32 Slot, cons
     if (!CanEditWorld() || IsChangingState() || mEngine->IsDispatching()) {
         return false;
     }
+
     auto* Component{Cast<UStaticMeshComponent>(ResolveObject(Handle))};
+
     if (Component == nullptr || !Component->SetSlotMaterialPath(Slot, Path)) {
         return false;
     }
+
     mDirty = true;
+
     return true;
 }
 
@@ -616,10 +692,12 @@ bool FEditorContext::LoadScene(const std::filesystem::path& Path) {
     FString Error{};
     FProject* Project{GetProject()};
     const std::filesystem::path ScenePath{Project != nullptr ? Project->GetAssets()->ResolvePath(Path, Error) : std::filesystem::path{}};
+
     if (ScenePath.empty()) {
         AddLog(Error.empty() ? "Open a project before loading a scene" : Error);
         return false;
     }
+
     auto Context{FSceneSerializer::Load(ScenePath, Error, Project->GetAssets())};
 
     if (Context == nullptr) {
@@ -632,6 +710,7 @@ bool FEditorContext::LoadScene(const std::filesystem::path& Path) {
     }
 
     AddLog("Loaded " + FilePath::ToUtf8(ScenePath));
+
     return true;
 }
 
@@ -644,6 +723,7 @@ bool FEditorContext::NewScene() {
     }
 
     FOperationScope Scope{&mChangingState};
+
     return ReplaceScene(std::make_unique<FWorldContext>(), {});
 }
 
@@ -674,23 +754,30 @@ AStaticMeshActor* FEditorContext::SpawnMesh(const std::filesystem::path& Path, c
     if (!CanSpawnActor() || !Placement.IsValid()) {
         return nullptr;
     }
+
     FOperationScope Scope{&mChangingState};
     FProject* Project{GetProject()};
     FString Error{};
+
     if (Project == nullptr || Project->GetAssets()->LoadMesh(Path, Error) == nullptr) {
         AddLog(Error.empty() ? "Cannot place the mesh" : Error);
         return nullptr;
     }
+
     AStaticMeshActor* Actor{GetWorld()->SpawnPrimitive(EPrimitiveType::Cube)};
+
     if (!ApplySpawnPlacement(Actor, Placement)) {
         return nullptr;
     }
+
     if (!Actor->GetStaticMeshComponent()->SetMeshPath(Project->GetAssets()->GetRelativePath(Path, Error))) {
         GetWorld()->DestroyActor(Actor->GetHandle());
         return nullptr;
     }
+
     Actor->SetName(FilePath::ToUtf8(Path.stem()));
     CompleteActorSpawn(Actor, "Placed ");
+
     return Actor;
 }
 
@@ -744,6 +831,7 @@ Uint64 FEditorContext::GetLogRevision() const {
  */
 void FEditorContext::ExecuteConsoleCommand(const FString& Command) {
     AddLog("> " + Command);
+
     std::istringstream Input{Command};
     FString Verb{};
     Input >> Verb;
@@ -758,6 +846,7 @@ void FEditorContext::ExecuteConsoleCommand(const FString& Command) {
         std::transform(Target.begin(), Target.end(), Target.begin(), [](unsigned char Character) {
             return static_cast<char>(std::tolower(Character));
         });
+
         if (Target == "atlas" && Extra.empty()) {
             SetShadowAtlasOpen(true);
         } else {
@@ -769,6 +858,7 @@ void FEditorContext::ExecuteConsoleCommand(const FString& Command) {
         AddLog("help | clear | spawn plane/cube/sphere | save <Maps/Scene.masset> | load <Maps/Scene.masset>");
         AddLog("Shadow Atlas | ShowFlag.Shadows [on/off] | stat shadow [on/off]");
         AddLog("Allow Tearing [on/off/status]");
+
         if (mViewportCommandHandler) {
             AddLog("stat <group>/all [on/off] | stat none | stat list | stat reset | View > Statistics");
         }
@@ -777,28 +867,35 @@ void FEditorContext::ExecuteConsoleCommand(const FString& Command) {
         FString State{};
         FString Extra{};
         Input >> Feature >> State >> Extra;
+
         for (FString* Token : {&Feature, &State}) {
             std::transform(Token->begin(), Token->end(), Token->begin(), [](unsigned char Character) {
                 return static_cast<char>(std::tolower(Character));
             });
         }
+
         if (Feature != "tearing" || !Extra.empty() || (!State.empty() && State != "on" && State != "off" && State != "status")) {
             AddLog("Usage: Allow Tearing [on/off/status]");
             return;
         }
+
         IRendererModule* Renderer{mEngine != nullptr ? mEngine->GetRenderer() : nullptr};
+
         if (Renderer == nullptr) {
             AddLog("Allow Tearing: renderer is unavailable.");
             return;
         }
+
         if (State == "status") {
             AddLog(Renderer->IsTearingSupported() ? Renderer->IsTearingAllowed() ? "Allow Tearing: on (VSync off in windowed mode)." : "Allow Tearing: off (VSync on)." : "Allow Tearing: unsupported (VSync on).");
             return;
         }
+
         if (!Renderer->SetAllowTearing(State != "off")) {
             AddLog("Allow Tearing: unsupported or renderer is not initialized.");
             return;
         }
+
         AddLog(Renderer->IsTearingAllowed() ? "Allow Tearing: on (VSync off in windowed mode)." : "Allow Tearing: off (VSync on).");
     } else if (Verb == "spawn") {
         FString Type{};
@@ -812,6 +909,7 @@ void FEditorContext::ExecuteConsoleCommand(const FString& Command) {
     } else if (Verb == "save" || Verb == "load") {
         FString Text{};
         std::getline(Input >> std::ws, Text);
+
         const std::filesystem::path Path{Text.empty() ? mScenePath : FilePath::FromUtf8(Text)};
 
         if (Path.empty()) {
@@ -823,6 +921,7 @@ void FEditorContext::ExecuteConsoleCommand(const FString& Command) {
         }
     } else if (!Verb.empty()) {
         FString Output{};
+
         if (mViewportCommandHandler && mViewportCommandHandler(Command, Output)) {
             if (!Output.empty()) {
                 AddLog(Output);
@@ -854,11 +953,13 @@ void FEditorContext::SetPlacementProvider(std::function<FTransform()> Provider) 
 
 TArray<FObjectHandle> FEditorContext::GetSelectedActors() const {
     TArray<FObjectHandle> Result{};
+
     for (FObjectHandle Handle : mSelectedActors) {
         if (const auto* Actor{Cast<AActor>(ResolveObject(Handle))}; Actor != nullptr && !Actor->IsPendingDestroy()) {
             Result.push_back(Handle);
         }
     }
+
     return Result;
 }
 
@@ -866,13 +967,17 @@ TArray<FObjectHandle> FEditorContext::GetTransformTargets() const {
     if (auto* Component{Cast<USceneComponent>(GetSelectedObject())}; Component != nullptr) {
         return {Component->GetHandle()};
     }
+
     TArray<FObjectHandle> Result{};
+
     for (FObjectHandle Handle : GetSelectedActors()) {
         const auto* Actor{Cast<AActor>(ResolveObject(Handle))};
+
         if (Actor->GetRootComponent() != nullptr) {
             Result.push_back(Actor->GetRootComponent()->GetHandle());
         }
     }
+
     return Result;
 }
 
@@ -883,11 +988,13 @@ bool FEditorContext::SetSelectedActors(const TArray<FObjectHandle>& Actors) {
 bool FEditorContext::ToggleActorSelection(FObjectHandle Actor) {
     TArray<FObjectHandle> Actors{GetSelectedActors()};
     const auto Position{std::find(Actors.begin(), Actors.end(), Actor)};
+
     if (Position != Actors.end()) {
         Actors.erase(Position);
     } else {
         Actors.push_back(Actor);
     }
+
     return SetSelectedActors(Actors);
 }
 
@@ -899,26 +1006,33 @@ TArray<FObjectHandle> FEditorContext::DuplicateSelectedActors() {
     if (!CanEditWorld() || mChangingState || mEditingProperty || mEngine->IsDispatching()) {
         return {};
     }
+
     FString Error{};
     TArray<FObjectHandle> Copies{};
+
     {
         FOperationScope Scope{&mChangingState};
+
         Copies = FWorldCloner::DuplicateActors(GetWorld(), GetSelectedActors(), Error);
     }
+
     if (!Copies.empty()) {
         SetSelectedActors(Copies);
         mDirty = true;
     } else if (!Error.empty()) {
         AddLog(Error);
     }
+
     return Copies;
 }
 
 AActor* FEditorContext::SpawnActorPreset(const FString& Preset) {
     FTransform Placement{mPlacementProvider ? mPlacementProvider() : FTransform{}};
+
     if (Preset.find("DirectionalLight") != FString::npos || Preset.find("SpotLight") != FString::npos) {
         Placement.mRotation = FRotator{-45.0f, 0.0f, 0.0f}.Quaternion();
     }
+
     return SpawnActorPreset(Preset, Placement);
 }
 
@@ -926,29 +1040,37 @@ AActor* FEditorContext::SpawnActorPreset(const FString& Preset, const FTransform
     if (!CanSpawnActor() || GetWorld() == nullptr || !Placement.IsValid()) {
         return nullptr;
     }
+
     FOperationScope Scope{&mChangingState};
     UWorld* World{GetWorld()};
     const bool Primitive{Preset == "Cube" || Preset == "Sphere" || Preset == "Plane"};
     const bool Text{Preset == "Text"};
     const bool Billboard{Preset == "Billboard"};
     AActor* Actor{Primitive ? World->SpawnPrimitive(Preset == "Sphere" ? EPrimitiveType::Sphere : Preset == "Plane" ? EPrimitiveType::Plane : EPrimitiveType::Cube) : World->SpawnActor(Text || Billboard ? AActor::StaticClass() : FReflectionRegistry::FindClass(Preset))};
+
     if (Actor == nullptr) {
         return nullptr;
     }
+
     if (Actor->GetRootComponent() == nullptr) {
         std::unique_ptr<UActorComponent> Component{Text ? std::unique_ptr<UActorComponent>{NewObject<UBillboardTextComponent>()} : Billboard ? std::unique_ptr<UActorComponent>{NewObject<UBillboardComponent>()} : std::unique_ptr<UActorComponent>{NewObject<USceneComponent>()}};
         Component->SetName(Text ? "BillboardTextComponent" : Billboard ? "BillboardComponent" : "SceneComponent");
+
         if (!Actor->AddComponent(std::move(Component))) {
             World->DestroyActor(Actor->GetHandle());
             return nullptr;
         }
     }
+
     if (!ApplySpawnPlacement(Actor, Placement)) {
         return nullptr;
     }
+
     if (auto* Sprite{Cast<UBillboardComponent>(Actor->GetRootComponent())}) {
         Sprite->SetTexturePath("Editor/Icon/Pawn_64x.png");
     }
+
     CompleteActorSpawn(Actor, "Placed ");
+
     return Actor;
 }

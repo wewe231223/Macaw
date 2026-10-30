@@ -79,6 +79,7 @@ bool FMeshPickingProxy::Raycast(const FRay& Ray, FWorldRaycastHit& OutHit, float
     }
 
     OutHit.mPosition = FVector3{WorldRay.position} + FVector3{WorldRay.direction} * OutHit.mDistance;
+
     return true;
 }
 
@@ -97,5 +98,6 @@ FVector3 FMeshPickingProxy::TransformNormal(const FVector3& Normal, bool Reverse
     DirectX::XMFLOAT3 Result{};
 
     DirectX::XMStoreFloat3(&Result, DirectX::XMVector3Rotate(Scaled, DirectX::XMLoadFloat4(&mRotation)));
+
     return FVector3{Result};
 }

@@ -153,6 +153,7 @@ FMatrix FMatrix::Orthographic(float Width, float Height, float NearPlane, float 
     Result(1, 1) = 2.0f / Height;
     Result(2, 2) = 1.0f / (FarPlane - NearPlane);
     Result(3, 2) = -NearPlane / (FarPlane - NearPlane);
+
     return Result;
 }
 
@@ -397,6 +398,7 @@ bool FMatrix::TryInverse(FMatrix& Result) const {
         if (Pivot != Column) {
             const __m128 WorkingRow{Working.mRows[Column]};
             const __m128 InverseRow{Inverse.mRows[Column]};
+
             Working.mRows[Column] = Working.mRows[Pivot];
             Inverse.mRows[Column] = Inverse.mRows[Pivot];
             Working.mRows[Pivot] = WorkingRow;
@@ -406,6 +408,7 @@ bool FMatrix::TryInverse(FMatrix& Result) const {
         }
 
         Determinant *= Divisor;
+
         const __m128 Denominator{_mm_set1_ps(Divisor)};
         const __m128 WorkingPivot{_mm_div_ps(Working.mRows[Column], Denominator)};
         const __m128 InversePivot{_mm_div_ps(Inverse.mRows[Column], Denominator)};

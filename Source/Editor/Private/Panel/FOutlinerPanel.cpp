@@ -39,51 +39,66 @@ void FOutlinerPanel::DrawContent(float) {
     if (ImGui::Button("+ 액터")) {
         ImGui::OpenPopup("AddActor");
     }
+
     if (ImGui::BeginPopup("AddActor")) {
         if (ImGui::MenuItem("Plane")) {
             Context->SpawnPrimitive(EPrimitiveType::Plane);
         }
+
         if (ImGui::MenuItem("Cube")) {
             Context->SpawnPrimitive(EPrimitiveType::Cube);
         }
+
         if (ImGui::MenuItem("Sphere")) {
             Context->SpawnPrimitive(EPrimitiveType::Sphere);
         }
+
         if (ImGui::MenuItem("Camera")) {
             Context->SpawnCamera();
         }
+
         if (ImGui::MenuItem("Text")) {
             Context->SpawnText();
         }
+
         if (ImGui::MenuItem("Billboard")) {
             Context->SpawnBillboard();
         }
+
         if (ImGui::BeginMenu("Editor Icons")) {
             if (ImGui::MenuItem("Spot Light Icon")) {
                 Context->SpawnBillboard("Editor/Icon/SpotLight_64x.png");
             }
+
             if (ImGui::MenuItem("Point Light Icon")) {
                 Context->SpawnBillboard("Editor/Icon/PointLight_64x.png");
             }
+
             if (ImGui::MenuItem("Pawn Icon")) {
                 Context->SpawnBillboard("Editor/Icon/Pawn_64x.png");
             }
+
             ImGui::EndMenu();
         }
+
         ImGui::EndPopup();
     }
 
     ImGui::SameLine();
     ImGui::BeginDisabled(Context->GetSelectedCamera() == nullptr);
+
     if (ImGui::Button("Use as PIE Camera")) {
         Context->UseSelectedCamera();
     }
+
     ImGui::EndDisabled();
 
     ImGui::EndDisabled();
+
     const UCameraComponent* Camera{Context->GetWorld() != nullptr ? Context->GetWorld()->GetActiveCamera() : nullptr};
     ImGui::TextDisabled("PIE Camera: %s", Camera != nullptr ? Camera->GetOwner()->GetName().c_str() : "None");
     ImGui::Separator();
+
     const auto Actors{Context->GetActorHandles()};
     ImGui::TextUnformatted(std::format("PersistentLevel ({})", Actors.size()).c_str());
 
@@ -101,6 +116,7 @@ void FOutlinerPanel::DrawContent(float) {
         }
 
         ImGui::PushID(Actor);
+
         const TArray<FObjectHandle> Selection{Context->GetSelectedActors()};
         const bool Selected{std::find(Selection.begin(), Selection.end(), Handle) != Selection.end()};
         const ImGuiTreeNodeFlags Flags{ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_SpanAvailWidth | (Selected ? ImGuiTreeNodeFlags_Selected : 0) | (Components.empty() ? ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen : 0)};

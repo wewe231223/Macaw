@@ -16,7 +16,9 @@ bool UCameraComponent::SetFieldOfView(float FieldOfView) {
     if (!std::isfinite(FieldOfView) || FieldOfView <= 0.0f || FieldOfView >= 180.0f) {
         return false;
     }
+
     mFieldOfView = FieldOfView;
+
     return true;
 }
 
@@ -24,6 +26,7 @@ bool UCameraComponent::GetCameraView(const FVector2& Size, FSceneView& View) con
     if (!std::isfinite(Size.x) || !std::isfinite(Size.y) || Size.x <= 0.0f || Size.y <= 0.0f || !GetTransform().IsValid()) {
         return false;
     }
+
     const FTransform& Transform{GetTransform()};
     FSceneView CameraView{};
     CameraView.mLocation = Transform.mLocation;
@@ -34,5 +37,6 @@ bool UCameraComponent::GetCameraView(const FVector2& Size, FSceneView& View) con
     CameraView.mProjection = FMatrix::Perspective(mFieldOfView, Size.x / Size.y, 0.05f, 10000.0f);
     CameraView.mViewProjection = CameraView.mView * CameraView.mProjection;
     View = CameraView;
+
     return true;
 }

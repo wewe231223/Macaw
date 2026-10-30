@@ -34,5 +34,6 @@ FHitResult FHitResult::GetReversedHit(const FHitResult& Hit, UPrimitiveComponent
     Result.mImpactNormal = -Hit.mImpactNormal;
     Result.mHitComponent = MovedComponent;
     Result.mHitActor = MovedActor;
+
     return Result;
 }

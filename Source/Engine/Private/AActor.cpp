@@ -44,6 +44,7 @@ void AActor::SetWorld(UWorld* World) {
     }
 
     UWorld::FDispatchScope Scope{mWorld};
+
     mChangingWorld = true;
     DispatchEndPlay();
 
@@ -116,6 +117,7 @@ bool AActor::SetRootComponent(USceneComponent* Component) {
     }
 
     mRootComponent = Component;
+
     return true;
 }
 
@@ -199,6 +201,7 @@ void AActor::DispatchBeginPlay() {
     }
 
     mHasBegunPlay = true;
+
     const auto Handles{GetComponentHandles()};
 
     for (const FObjectHandle Handle : Handles) {
@@ -226,6 +229,7 @@ void AActor::DispatchTick(float DeltaTime, bool EditorTick) {
     }
 
     const auto Handles{GetComponentHandles()};
+
     if (!EditorTick || mEditorTickable) {
         EngineStats::ActorTicks.Add();
         Tick(DeltaTime);
@@ -251,6 +255,7 @@ void AActor::DispatchEndPlay() {
     }
 
     mHasBegunPlay = false;
+
     const auto Handles{GetComponentHandles()};
 
     if (mBeginPlayCalled) {

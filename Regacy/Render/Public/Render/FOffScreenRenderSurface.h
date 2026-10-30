@@ -8,8 +8,11 @@ public:
     ~FOffScreenRenderSurface() override = default;
 
     FOffScreenRenderSurface(const FOffScreenRenderSurface&) = delete;
+
     FOffScreenRenderSurface& operator=(const FOffScreenRenderSurface&) = delete;
+
     FOffScreenRenderSurface(FOffScreenRenderSurface&&) = delete;
+
     FOffScreenRenderSurface& operator=(FOffScreenRenderSurface&&) = delete;
 
 public:

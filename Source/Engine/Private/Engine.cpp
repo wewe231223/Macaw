@@ -77,6 +77,7 @@ bool UEngine::Initialize() {
     }
 
     ++mWorldGeneration;
+
     return true;
 }
 
@@ -95,10 +96,13 @@ bool UEngine::Initialize(IRendererModule* Renderer) {
     }
 
     mRenderer = Renderer;
+
     std::size_t GeometryBytes{};
+
     for (Uint32 Index{}; Index < static_cast<Uint32>(EPrimitiveType::Count); ++Index) {
         GeometryBytes += GetPrimitiveMesh(static_cast<EPrimitiveType>(Index)).GetAllocatedBytes();
     }
+
     EngineStats::SharedGeometry.Set(static_cast<double>(GeometryBytes));
 
     if (!Initialize()) {
@@ -148,7 +152,9 @@ void UEngine::Tick(float DeltaTime, bool TickEditorWorlds) {
     }
 
     const FScopedStatTimer StatTimer{EngineStats::EngineTick};
+
     mUpdating = true;
+
     const auto Handles{GetWorldHandles()};
 
     for (const FWorldHandle Handle : Handles) {
@@ -160,6 +166,7 @@ void UEngine::Tick(float DeltaTime, bool TickEditorWorlds) {
             if (!TickEditorWorlds && (World->GetWorldType() == EWorldType::Editor || World->GetWorldType() == EWorldType::EditorPreview)) {
                 continue;
             }
+
             World->Tick(DeltaTime);
         }
     }
@@ -169,12 +176,16 @@ void UEngine::Tick(float DeltaTime, bool TickEditorWorlds) {
     std::size_t WorldCount{};
     std::size_t ActorCount{};
     std::size_t ComponentCount{};
+
     for (const FWorldHandle Handle : GetWorldHandles()) {
         const UWorld* World{GetWorld(Handle)};
+
         if (World == nullptr) {
             continue;
         }
+
         ++WorldCount;
+
         if (World->GetPersistentLevel() != nullptr) {
             for (const auto& Actor : World->GetPersistentLevel()->GetActors()) {
                 ++ActorCount;
@@ -182,6 +193,7 @@ void UEngine::Tick(float DeltaTime, bool TickEditorWorlds) {
             }
         }
     }
+
     EngineStats::Worlds.Set(static_cast<double>(WorldCount));
     EngineStats::Actors.Set(static_cast<double>(ActorCount));
     EngineStats::Components.Set(static_cast<double>(ComponentCount));
@@ -225,6 +237,7 @@ FWorldHandle UEngine::AdoptWorld(std::unique_ptr<FWorldContext> Context) {
     }
 
     Context->GetWorld()->SetAssets(mProject != nullptr ? mProject->GetAssets() : nullptr);
+
     if (mRenderer != nullptr && !Context->GetWorld()->AttachScene(mRenderer->AllocateScene())) {
         return {};
     }
@@ -289,8 +302,11 @@ FWorldHandle UEngine::DuplicateWorld(FWorldHandle Source, EWorldType Type, FStri
     }
 
     FObjectDuplicationContext Objects{};
+
     mUpdating = true;
+
     auto Duplicate{FWorldCloner::Clone(Context, Type, &Objects, Error)};
+
     mUpdating = false;
 
     if (mShutdownRequested) {
@@ -326,6 +342,7 @@ FWorldContext* UEngine::FindContext(FWorldHandle Handle) const {
     }
 
     FWorldContext* Context{mWorldContexts[Handle.GetIndex()].get()};
+
     return Context != nullptr && Context->GetHandle() == Handle ? Context : nullptr;
 }
 
@@ -426,6 +443,7 @@ bool UEngine::ReplaceWorld(std::unique_ptr<FWorldContext> Context) {
 
     mCurrentWorld = Replacement;
     ++mWorldGeneration;
+
     return true;
 }
 
@@ -441,6 +459,7 @@ Uint64 UEngine::GetWorldGeneration() const {
  */
 void UEngine::SynchronizeWorld() {
     const FScopedStatTimer StatTimer{EngineStats::Synchronize};
+
     for (const FWorldHandle Handle : GetWorldHandles()) {
         if (UWorld* World{GetWorld(Handle)}) {
             World->SendAllEndOfFrameUpdates();

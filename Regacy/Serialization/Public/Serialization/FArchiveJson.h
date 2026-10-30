@@ -2,6 +2,7 @@
  * @file FArchiveJson.h
  * @brief RapidJSON DOM을 사용하는 이름 기반 저장·로드 아카이브를 제공합니다.
  */
+
 #pragma once
 #include "Core/Archive/FArchive.h"
 #include <rapidjson/document.h>
@@ -23,6 +24,7 @@ public:
      * @param InAllocator 루트 문서와 새 노드에서 사용할 할당자입니다.
      */
     FArchiveJson(rapidjson::Value& RootNode, rapidjson::Document::AllocatorType& InAllocator);
+
     /**
      * @brief 기존 루트 노드를 탐색할 JSON 로드 아카이브를 생성합니다.
      * @param RootNode 읽을 외부 JSON 객체 또는 배열입니다.
@@ -35,6 +37,7 @@ public:
      * @return 항상 true입니다.
      */
     bool SupportsNamedFields() const override;
+
     /**
      * @brief 현재 스코프에서 이름 또는 배열 인덱스로 자식 노드 존재 여부를 검사합니다.
      * @param Name 객체 키 또는 배열의 숫자 인덱스 문자열입니다.
@@ -50,6 +53,7 @@ public:
      * @note 존재하는 로드 필드가 bool이 아니면 오류를 설정합니다.
      */
     virtual void Serialize(std::string_view Name, bool& Value) override;
+
     /**
      * @brief 바이트 값을 JSON 부호 없는 정수로 직렬화합니다.
      * @param Name 객체 키 또는 배열의 숫자 인덱스 문자열입니다.
@@ -57,6 +61,7 @@ public:
      * @note 로드 시 Uint32로 읽고 Uint8 최대값을 넘으면 오류를 설정합니다.
      */
     virtual void Serialize(std::string_view Name, Uint8& Value) override;
+
     /**
      * @brief Int32 값을 JSON 정수로 직렬화합니다.
      * @param Name 객체 키 또는 배열의 숫자 인덱스 문자열입니다.
@@ -64,6 +69,7 @@ public:
      * @note 로드 시 해당 Int32 범위를 지원하는 JSON 정수 타입인지 검사하고 불일치이면 오류를 설정합니다.
      */
     virtual void Serialize(std::string_view Name, Int32& Value) override;
+
     /**
      * @brief Uint32 값을 JSON 정수로 직렬화합니다.
      * @param Name 객체 키 또는 배열의 숫자 인덱스 문자열입니다.
@@ -71,6 +77,7 @@ public:
      * @note 로드 시 해당 Uint32 범위를 지원하는 JSON 정수 타입인지 검사하고 불일치이면 오류를 설정합니다.
      */
     virtual void Serialize(std::string_view Name, Uint32& Value) override;
+
     /**
      * @brief Int64 값을 JSON 정수로 직렬화합니다.
      * @param Name 객체 키 또는 배열의 숫자 인덱스 문자열입니다.
@@ -78,6 +85,7 @@ public:
      * @note 로드 시 해당 Int64 범위를 지원하는 JSON 정수 타입인지 검사하고 불일치이면 오류를 설정합니다.
      */
     virtual void Serialize(std::string_view Name, Int64& Value) override;
+
     /**
      * @brief Uint64 값을 JSON 정수로 직렬화합니다.
      * @param Name 객체 키 또는 배열의 숫자 인덱스 문자열입니다.
@@ -85,6 +93,7 @@ public:
      * @note 로드 시 해당 Uint64 범위를 지원하는 JSON 정수 타입인지 검사하고 불일치이면 오류를 설정합니다.
      */
     virtual void Serialize(std::string_view Name, Uint64& Value) override;
+
     /**
      * @brief 단정밀도 값을 JSON 수치로 직렬화합니다.
      * @param Name 객체 키 또는 배열의 숫자 인덱스 문자열입니다.
@@ -92,6 +101,7 @@ public:
      * @note 로드 시 double로 읽어 유한성과 Float32 범위를 검사하고 위반하면 오류를 설정합니다.
      */
     virtual void Serialize(std::string_view Name, Float32& Value) override;
+
     /**
      * @brief 배정밀도 값을 JSON 수치로 직렬화합니다.
      * @param Name 객체 키 또는 배열의 숫자 인덱스 문자열입니다.
@@ -108,6 +118,7 @@ public:
      * @note 로드 시 JSON 문자열이 아니면 오류를 설정합니다.
      */
     virtual void Serialize(std::string_view Name, FString& Value) override;
+
     /**
      * @brief GUID를 문자열로 직렬화하고 로드 시 파싱합니다.
      * @param Name 객체 키 또는 배열의 숫자 인덱스 문자열입니다.
@@ -124,6 +135,7 @@ public:
      * @note 로드 시 배열 크기와 모든 성분의 수치 타입·유한성·Float32 범위를 검사한 뒤 값을 반영합니다.
      */
     virtual void Serialize(std::string_view Name, FVector2D& Value) override;
+
     /**
      * @brief 벡터를 X, Y, Z 순서의 숫자 3개 배열로 직렬화합니다.
      * @param Name 객체 키 또는 배열의 숫자 인덱스 문자열입니다.
@@ -131,6 +143,7 @@ public:
      * @note 로드 시 배열 크기와 모든 성분의 수치 타입·유한성·Float32 범위를 검사한 뒤 값을 반영합니다.
      */
     virtual void Serialize(std::string_view Name, FVector3& Value) override;
+
     /**
      * @brief 벡터를 X, Y, Z, W 순서의 숫자 4개 배열로 직렬화합니다.
      * @param Name 객체 키 또는 배열의 숫자 인덱스 문자열입니다.
@@ -138,6 +151,7 @@ public:
      * @note 로드 시 배열 크기와 모든 성분의 수치 타입·유한성·Float32 범위를 검사한 뒤 값을 반영합니다.
      */
     virtual void Serialize(std::string_view Name, FVector4& Value) override;
+
     /**
      * @brief 쿼터니언을 X, Y, Z, W 순서의 숫자 4개 배열로 직렬화합니다.
      * @param Name 객체 키 또는 배열의 숫자 인덱스 문자열입니다.
@@ -145,6 +159,7 @@ public:
      * @note FVector4 직렬화의 크기·성분 검사를 사용하며 정규화하지 않습니다.
      */
     virtual void Serialize(std::string_view Name, FQuat& Value) override;
+
     /**
      * @brief 4×4 행렬을 행 우선 순서의 숫자 16개 배열로 직렬화합니다.
      * @param Name 객체 키 또는 배열의 숫자 인덱스 문자열입니다.
@@ -208,6 +223,7 @@ private:
      * @brief 저장 노드를 할당하는 비소유 할당자 포인터입니다. 로드 모드에서는 nullptr입니다.
      */
     rapidjson::Document::AllocatorType* mAllocator{};
+
     /**
      * @brief 루트부터 현재 스코프까지의 비소유 노드 포인터 스택입니다. 누락된 로드 스코프는 nullptr로 표현합니다.
      */

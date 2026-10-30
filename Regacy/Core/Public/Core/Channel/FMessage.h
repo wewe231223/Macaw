@@ -2,6 +2,7 @@
  * @file FMessage.h
  * @brief 메시지 타입 제약과 인라인 또는 힙 저장소를 사용하는 이동 전용 메시지 컨테이너를 정의한다.
  */
+
 #pragma once
 
 #include <concepts>
@@ -43,6 +44,7 @@ public:
      * @brief 인라인 저장소의 크기. 단위는 바이트이며 기본 크기는 64이다.
      */
     static constexpr std::size_t InlineSize{64};
+
     /**
      * @brief 인라인 저장소가 제공하는 정렬 크기.
      */
@@ -53,6 +55,7 @@ private:
      * @brief 저장된 페이로드를 소멸시키고 필요하면 힙을 해제하는 예외 없는 콜백 타입.
      */
     using FDestroyFunction = void (*)(FMessage&) noexcept;
+
     /**
      * @brief 목적지와 원본 메시지를 받아 인라인 페이로드를 이동하는 예외 없는 콜백 타입.
      */
@@ -68,6 +71,7 @@ public:
      * @brief 메시지 소유권의 복사 생성을 금지한다.
      */
     FMessage(const FMessage&) = delete;
+
     /**
      * @brief 메시지 소유권의 복사 할당을 금지한다.
      */
@@ -78,6 +82,7 @@ public:
      * @param Other 이동할 메시지. 이동 후 빈 상태가 된다.
      */
     FMessage(FMessage&& Other) noexcept;
+
     /**
      * @brief 기존 메시지를 정리한 뒤 원본의 메시지를 이동한다.
      * @param Other 이동할 메시지. 자기 자신이 아니면 이동 후 빈 상태가 된다.
@@ -108,6 +113,7 @@ public:
      * @return 페이로드 포인터가 있으면 true, 빈 메시지이면 false.
      */
     [[nodiscard]] bool IsValid() const noexcept;
+
     /**
      * @brief 저장된 메시지의 타입 정보를 조회한다.
      * @return 해당 메시지 타입의 정적 타입 정보 포인터.
@@ -190,6 +196,7 @@ private:
      * @details 힙 페이로드는 포인터를 이전하고 인라인 페이로드는 이동 콜백으로 생성한다. 원본이 비어 있으면 아무 작업도 하지 않는다.
      */
     void MoveFrom(FMessage&& Other) noexcept;
+
     /**
      * @brief 페이로드 자체를 소멸시키지 않고 타입, 데이터, 콜백 포인터와 힙 할당 상태를 초기화한다.
      */
@@ -200,18 +207,22 @@ private:
      * @brief 페이로드 타입을 식별하는 외부 정적 타입 정보의 포인터.
      */
     const FMessageTypeInfo* mType{nullptr};
+
     /**
      * @brief 현재 소유하는 페이로드의 주소. 빈 메시지이면 nullptr이다.
      */
     void* mData{nullptr};
+
     /**
      * @brief 현재 페이로드의 소멸 및 메모리 해제를 담당하는 콜백.
      */
     FDestroyFunction mDestroyFunction{nullptr};
+
     /**
      * @brief 인라인 페이로드의 이동 콜백. 힙 저장 시에는 사용하지 않는다.
      */
     FMoveFunction mMoveFunction{nullptr};
+
     /**
      * @brief 페이로드가 힙 할당을 사용하는지 나타내는 상태.
      */

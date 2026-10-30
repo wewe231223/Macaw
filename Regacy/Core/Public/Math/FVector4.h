@@ -2,6 +2,7 @@
  * @file FVector4.h
  * @brief 4차원 단정밀도 벡터의 성분 접근과 산술 연산을 제공합니다.
  */
+
 #pragma once
 #include "Core/Types.h"
 
@@ -33,14 +34,17 @@ struct FVector4 {
              * @brief X 성분입니다.
              */
             float X;
+
             /**
              * @brief Y 성분입니다.
              */
             float Y;
+
             /**
              * @brief Z 성분입니다.
              */
             float Z;
+
             /**
              * @brief W 성분입니다.
              */
@@ -56,14 +60,17 @@ struct FVector4 {
              * @brief X와 저장 공간을 공유하는 성분 별칭입니다.
              */
             float mX;
+
             /**
              * @brief Y와 저장 공간을 공유하는 성분 별칭입니다.
              */
             float mY;
+
             /**
              * @brief Z와 저장 공간을 공유하는 성분 별칭입니다.
              */
             float mZ;
+
             /**
              * @brief W와 저장 공간을 공유하는 성분 별칭입니다.
              */
@@ -76,6 +83,7 @@ struct FVector4 {
      * @brief 모든 성분을 0으로 초기화합니다.
      */
     FVector4();
+
     /**
      * @brief 각 성분을 지정한 값으로 초기화합니다.
      * @param x X 성분입니다.
@@ -84,11 +92,13 @@ struct FVector4 {
      * @param w W 성분입니다.
      */
     FVector4(float x, float y, float z, float w);
+
     /**
      * @brief 모든 성분을 같은 값으로 초기화합니다.
      * @param f 모든 성분에 적용할 값입니다.
      */
     explicit FVector4(float f);
+
     /**
      * @brief 3차원 벡터에 W 성분을 추가해 초기화합니다.
      * @param V1 복사할 X, Y, Z 값입니다.
@@ -107,12 +117,14 @@ public:
      * @param w W 성분입니다.
      */
     void Set(float x, float y, float z, float w);
+
     /**
      * @brief 3차원 벡터와 W 값으로 성분을 설정합니다.
      * @param V1 복사할 X, Y, Z 값입니다.
      * @param w W 성분입니다.
      */
     void Set(const FVector& V1, float w = 0.0f);
+
     /**
      * @brief 다른 벡터의 모든 성분을 복사합니다.
      * @param V1 복사할 벡터입니다.
@@ -124,16 +136,19 @@ public:
      * @return 4개 성분으로 계산한 길이입니다.
      */
     float Size() const;   // 길이 반환
+
     /**
      * @brief 벡터의 유클리드 길이를 반환합니다.
      * @return Size와 같은 길이입니다.
      */
     float Length() const; // ==  size()
+
     /**
      * @brief 4개 성분의 제곱합을 반환합니다.
      * @return 벡터 길이의 제곱입니다.
      */
     float LengthSquared() const;
+
     /**
      * @brief 다른 벡터와 4차원 내적을 계산합니다.
      * @param V1 내적할 벡터입니다.
@@ -146,12 +161,14 @@ public:
      * @note 길이가 1e-8 이하이면 성분을 유지합니다.
      */
     void Normalize();
+
     /**
      * @brief X, Y, Z 성분으로 외적을 계산합니다.
      * @param V1 오른쪽 피연산자입니다.
      * @return this와 V1의 순서로 계산한 외적이며 W는 0입니다.
      */
     FVector4 Cross(const FVector4& V1) const;
+
     /**
      * @brief 각 성분의 절댓값을 갖는 벡터를 반환합니다.
      * @return 성분별 절댓값 벡터입니다.
@@ -181,6 +198,7 @@ public:
      * @return 원본을 변경하지 않은 연산 결과입니다.
      */
     FVector4 operator-(const FVector4& V1) const;
+
     /**
      * @brief 다른 벡터의 각 성분을 현재 성분에 빼고 결과를 저장합니다.
      * @param V1 오른쪽 피연산자입니다.
@@ -194,6 +212,7 @@ public:
      * @return 원본을 변경하지 않은 연산 결과입니다.
      */
     FVector4 operator+(const FVector4& V1) const;
+
     /**
      * @brief 다른 벡터의 각 성분을 현재 성분에 더하고 결과를 저장합니다.
      * @param V1 오른쪽 피연산자입니다.
@@ -207,12 +226,14 @@ public:
      * @return 성분별 연산 결과입니다.
      */
     FVector4 operator*(const FVector4& V1) const;
+
     /**
      * @brief 각 성분을 스칼라로 곱한 벡터를 반환합니다.
      * @param f 곱할 스칼라입니다.
      * @return 연산 결과 벡터입니다.
      */
     FVector4 operator*(const float& f) const;
+
     /**
      * @brief 현재 벡터를 행 벡터로 취급해 행렬로 변환합니다.
      * @param M 적용할 행렬입니다.
@@ -226,6 +247,7 @@ public:
      * @return 수정된 현재 벡터의 참조입니다.
      */
     FVector4& operator*=(const FVector4& V1);
+
     /**
      * @brief 모든 성분을 스칼라로 곱해 현재 벡터에 저장합니다.
      * @param f 곱할 스칼라입니다.
@@ -240,6 +262,7 @@ public:
      * @return 성분별 연산 결과입니다.
      */
     FVector4 operator/(const FVector4& V1) const;
+
     /**
      * @brief 각 성분을 스칼라로 나눈 벡터를 반환합니다.
      * @param f 나눌 스칼라입니다.
@@ -247,6 +270,7 @@ public:
      * @return 연산 결과 벡터입니다.
      */
     FVector4 operator/(const float& f) const;
+
     /**
      * @brief 다른 벡터의 각 성분을 현재 성분에 나누고 결과를 저장합니다.
      * @param V1 오른쪽 피연산자입니다.
@@ -254,6 +278,7 @@ public:
      * @return 수정된 현재 벡터의 참조입니다.
      */
     FVector4& operator/=(const FVector4& V1);
+
     /**
      * @brief 모든 성분을 스칼라로 나누어 현재 벡터에 저장합니다.
      * @param f 나눌 스칼라입니다.
@@ -275,6 +300,7 @@ public:
      * @return 모든 성분이 같으면 true입니다.
      */
     bool operator==(const FVector4& V1) const;
+
     /**
      * @brief 성분을 허용 오차 없이 비교합니다.
      * @param V1 비교할 벡터입니다.
@@ -289,6 +315,7 @@ public:
      * @return 선택한 성분 값입니다.
      */
     float operator[](int32 Index) const;
+
     /**
      * @brief 인덱스에 해당하는 성분의 수정 가능한 참조를 반환합니다.
      * @param Index X, Y, Z, W 순서의 0부터 시작하는 인덱스입니다.

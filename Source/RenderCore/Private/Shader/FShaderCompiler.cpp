@@ -17,12 +17,14 @@ using namespace Microsoft::WRL;
 
 bool FShaderCompiler::Compile(const FShaderDescription& Description, FShaderCompilation& Compilation, FString& Diagnostics) const {
     FShaderDescription Normalized{Description};
+
     if (!Normalized.Normalize(Diagnostics)) {
         return false;
     }
 
     TArray<Uint8> Source{};
     FShaderDependency RootDependency{};
+
     if (!ShaderFile::Read(Normalized.mSourcePath, Source, RootDependency, Diagnostics)) {
         return false;
     }
@@ -34,18 +36,22 @@ bool FShaderCompiler::Compile(const FShaderDescription& Description, FShaderComp
 
     TArray<D3D_SHADER_MACRO> Macros{};
     Macros.reserve(Normalized.mMacros.size() + 1);
+
     for (const FShaderMacro& Macro : Normalized.mMacros) {
         Macros.push_back({Macro.mName.c_str(), Macro.mValue.c_str()});
     }
 
     Macros.push_back({nullptr, nullptr});
+
     FShaderIncludeHandler Includes{Normalized, Source.data(), RootDependency};
     ComPtr<ID3DBlob> Code{};
     ComPtr<ID3DBlob> Errors{};
     const FString SourceName{FilePath::ToGenericUtf8(Normalized.mSourcePath)};
     const HRESULT Result{D3DCompile(Source.data(), Source.size(), SourceName.c_str(), Macros.data(), &Includes, Normalized.mEntryPoint.c_str(), Normalized.mTargetProfile.c_str(), Normalized.mCompileFlags, 0, Code.GetAddressOf(), Errors.GetAddressOf())};
+
     if (Errors != nullptr) {
         Diagnostics.assign(static_cast<const char*>(Errors->GetBufferPointer()), Errors->GetBufferSize());
+
         while (!Diagnostics.empty() && Diagnostics.back() == '\0') {
             Diagnostics.pop_back();
         }
@@ -64,6 +70,7 @@ bool FShaderCompiler::Compile(const FShaderDescription& Description, FShaderComp
     }
 
     const auto BuildTime{std::filesystem::file_time_type::clock::now()};
+
     if (!ShaderFile::IsSnapshotCurrent(Includes.GetDependencies())) {
         Diagnostics = "Shader dependencies changed during compilation; retry the request: " + SourceName;
         return false;
@@ -75,5 +82,6 @@ bool FShaderCompiler::Compile(const FShaderDescription& Description, FShaderComp
     Candidate.mDependencies = Includes.GetDependencies();
     Candidate.mBuildTime = BuildTime;
     Compilation = std::move(Candidate);
+
     return true;
 }

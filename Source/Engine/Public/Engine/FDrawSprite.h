@@ -42,16 +42,19 @@ public:
      */
     UTexture2D* mTexture{};
     ReflectProperty(mTexture, "Texture", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 로컬 쿼드의 가로·세로 월드 크기입니다.
      */
     FVector2 mSize{2.0f, 2.0f};
     ReflectProperty(mSize, "Size", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 표시할 RGBA 색상입니다.
      */
     FVector4 mColor{1.0f, 1.0f, 1.0f, 1.0f};
     ReflectProperty(mColor, "Color", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 카메라의 오른쪽·위쪽 축에 쿼드를 맞출지 여부입니다.
      */

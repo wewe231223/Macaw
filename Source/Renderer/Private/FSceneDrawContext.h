@@ -39,11 +39,13 @@ private:
 public:
     FRenderer* mRenderer{};
     ReflectProperty(mRenderer, "Renderer", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief Direct3D 11 즉시 컨텍스트입니다.
      */
     ID3D11DeviceContext* mContext{};
     ReflectProperty(mContext, "Context", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 프리미티브 종류별 GPU 메시입니다.
      */

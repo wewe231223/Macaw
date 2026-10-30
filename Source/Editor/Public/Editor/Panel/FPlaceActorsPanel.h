@@ -25,6 +25,7 @@ public:
      * @param[in] Context 액터 생성과 선택을 수행할 편집 컨텍스트의 비소유 주소입니다.
      */
     explicit FPlaceActorsPanel(FEditorContext* Context);
+
     /**
      * @brief FPlaceActorsPanel 객체의 수명을 끝내고 소유 자원을 정리합니다.
      */
@@ -42,11 +43,13 @@ private:
      * @brief 생성된 멤버 등록 함수와 리플렉션 빌더의 접근 권한입니다.
      */
     ReflectMembers();
+
     /**
      * @brief 검색·분류와 액터 배치 항목을 패널 안에 그립니다.
      * @param[in] DeltaTime 이전 프레임 이후 경과한 초 단위 시간입니다.
      */
     void DrawContent(float DeltaTime) override;
+
     /**
      * @brief 아이콘·설명과 드래그 페이로드를 갖는 액터 프리셋 항목을 그립니다.
      * @param[in] Preset 생성하거나 표시할 액터 프리셋의 식별자입니다.
@@ -62,6 +65,7 @@ private:
      */
     std::array<char, 128> mSearch{};
     ReflectProperty(mSearch, "Search", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 배치 패널에서 선택한 액터 분류 인덱스입니다.
      */

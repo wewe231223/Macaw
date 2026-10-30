@@ -37,6 +37,7 @@ private:
     void QueueExternalFileDrops(HWND WindowHandle, HDROP DropHandle);
     void EnableExternalDropsForImGuiViewports();
     LRESULT ProcessWindowMessage(HWND WindowHandle, UINT Message, WPARAM WParam, LPARAM LParam) override;
+
     static LRESULT CALLBACK ExternalDropWindowProcedure(HWND WindowHandle, UINT Message, WPARAM WParam, LPARAM LParam);
 
 private:

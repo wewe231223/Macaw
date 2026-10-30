@@ -42,26 +42,31 @@ public:
      */
     EEditorMesh mMesh{EEditorMesh::Count};
     ReflectProperty(mMesh, "Mesh", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 로컬 메시 정점을 월드로 옮기는 변환 행렬입니다.
      */
     FMatrix mWorld{};
     ReflectProperty(mWorld, "World", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 편집 메시의 RGBA 색상이며 알파 값으로 평면 핸들의 투명도를 표현합니다.
      */
     FVector4 mColor{1.0f, 1.0f, 1.0f, 1.0f};
     ReflectProperty(mColor, "Color", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 이 메시를 클릭했을 때 반환할 대상 핸들과 조작 핸들 번호입니다.
      */
     FHitProxy mHitProxy{};
     ReflectProperty(mHitProxy, "HitProxy", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 겹치는 핸들의 CPU 선택 우선순위이며 작은 값이 우선합니다.
      */
     Uint32 mPriority{2};
     ReflectProperty(mPriority, "Priority", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 장면 깊이를 검사할지 지정하며 false이면 별도 오버레이 깊이를 사용합니다.
      */

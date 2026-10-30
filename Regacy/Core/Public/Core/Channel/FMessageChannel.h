@@ -2,6 +2,7 @@
  * @file FMessageChannel.h
  * @brief 메시지 큐, 타입별 핸들러 등록, 송신 인터페이스 및 디스패치 결과를 정의한다.
  */
+
 #pragma once
 
 #include <cstddef>
@@ -21,10 +22,12 @@ struct FMessageDispatchResult {
      * @brief 등록된 핸들러의 호출을 완료한 메시지 수.
      */
     std::size_t mDispatchedCount{};
+
     /**
      * @brief 대응하는 핸들러가 없어 폐기한 메시지 수.
      */
     std::size_t mUnhandledCount{};
+
     /**
      * @brief 이미 디스패치 중이어서 이번 호출을 지연 요청으로만 처리했는지 나타내는 상태.
      */
@@ -55,22 +58,27 @@ public:
          * @param InChannel 메시지를 받을 채널.
          */
         explicit FSender(FMessageChannel& InChannel) noexcept;
+
         /**
          * @brief 송신 인터페이스를 소멸한다. 대상 채널은 소멸시키지 않는다.
          */
         ~FSender() noexcept = default;
+
         /**
          * @brief 같은 채널을 가리키는 송신 인터페이스를 복사 생성한다.
          */
         FSender(const FSender&) = default;
+
         /**
          * @brief 원본과 같은 채널을 가리키도록 복사 할당한다.
          */
         FSender& operator=(const FSender&) = default;
+
         /**
          * @brief 같은 채널 포인터를 가진 송신 인터페이스를 이동 생성한다. 원본 포인터도 유지된다.
          */
         FSender(FSender&&) = default;
+
         /**
          * @brief 원본과 같은 채널 포인터를 이동 할당한다. 원본 포인터도 유지된다.
          */
@@ -87,6 +95,7 @@ public:
         template <CMessageType TMessage, typename... Args>
             requires CMessageConstructible<TMessage, Args...>
         bool TryEmplace(Args&&... Arguments);
+
         /**
          * @brief 기존 메시지 값을 대상 채널에 전달한다.
          * @tparam TMessage 참조와 cv 한정자를 제거한 타입이 CMessageType을 만족하며 전달한 값으로 예외 없이 생성 가능해야 한다.
@@ -116,6 +125,7 @@ public:
      * @brief 메시지 큐와 등록 상태를 가진 채널의 복사 생성을 금지한다.
      */
     FMessageChannel(const FMessageChannel&) = delete;
+
     /**
      * @brief 채널의 복사 할당을 금지한다.
      */
@@ -125,6 +135,7 @@ public:
      * @brief 송신 인터페이스가 참조하는 채널의 이동 생성을 금지한다.
      */
     FMessageChannel(FMessageChannel&&) = delete;
+
     /**
      * @brief 채널의 이동 할당을 금지한다.
      */
@@ -177,6 +188,7 @@ public:
      * @details 각 순회 끝에 대기 핸들러를 등록한다. 재진입 호출은 처리 수가 0이고 mDeferred가 true인 결과를 즉시 반환한다.
      */
     FMessageDispatchResult Dispatch();
+
     /**
      * @brief 큐의 모든 메시지를 소멸시켜 비운다.
      * @details 등록된 핸들러와 채널 용량은 유지한다.
@@ -215,6 +227,7 @@ private:
      * @return 대응하는 핸들러의 포인터, 없으면 nullptr.
      */
     FMessageHandler* FindHandler(const FMessageTypeInfo* Type) noexcept;
+
     /**
      * @brief 지연 등록 목록에서 타입 정보에 대응하는 핸들러를 찾는다.
      * @param Type 조회할 메시지 타입 정보 포인터.
@@ -232,10 +245,12 @@ private:
      * @brief 아직 처리하지 않은 메시지를 소유하는 선입선출 큐.
      */
     std::deque<FMessage> mMessages{};
+
     /**
      * @brief 현재 디스패치에 사용할 활성 핸들러 목록.
      */
     std::vector<FMessageHandler> mHandlers{};
+
     /**
      * @brief 디스패치 중 등록 요청되어 현재 순회 종료를 기다리는 핸들러 목록.
      */
@@ -250,6 +265,7 @@ private:
      * @brief 외부 Dispatch() 호출의 순회가 진행 중인지 나타내는 상태.
      */
     bool mIsDispatching{false};
+
     /**
      * @brief 재진입 호출이 현재 순회 이후 추가 처리를 요청했는지 나타내는 상태.
      */

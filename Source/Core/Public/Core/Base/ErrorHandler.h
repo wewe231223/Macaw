@@ -47,6 +47,7 @@ namespace ErrorHandler {
      * @param[in] Location 오류가 발생한 원래 호출 위치입니다.
      */
     void Report(std::string_view Title, std::string_view Message, EErrorLevel Level, const std::source_location& Location = std::source_location::current());
+
     /**
      * @brief 심각도와 호출 위치를 포함하여 오류를 기록하고 Critical이면 프로그램을 중단합니다.
      * @param[in] Condition 참일 때만 보고합니다.
@@ -66,6 +67,7 @@ namespace ErrorHandler {
      * @param[in] Location 오류가 발생한 원래 호출 위치입니다.
      */
     void ReportHRESULT(HRESULT Result, std::string_view Title, std::string_view Message, EErrorLevel Level, const std::source_location& Location = std::source_location::current());
+
     /**
      * @brief 0이 아닌 Win32 오류 코드에 시스템 오류 문자열을 붙여 보고합니다.
      * @param[in] ErrorCode 실패 여부를 검사할 Win32 오류 코드입니다.

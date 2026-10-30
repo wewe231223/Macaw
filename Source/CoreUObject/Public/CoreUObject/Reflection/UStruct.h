@@ -27,6 +27,7 @@ public:
      * @param[in] Size 네이티브 타입의 바이트 크기입니다.
      */
     UStruct(FString Name, std::size_t Size);
+
     /**
      * @brief 객체의 수명을 끝내고 소유한 리소스를 정리합니다.
      */
@@ -44,6 +45,7 @@ public:
      * @return 소유 객체가 유지하는 값의 참조입니다.
      */
     const FString& GetName() const;
+
     /**
      * @brief 크기를 반환합니다.
      * @return 크기입니다.
@@ -55,6 +57,7 @@ public:
      * @param[in] Property 읽기, 쓰기 또는 알림을 적용할 프로퍼티 메타데이터입니다.
      */
     void AddProperty(FProperty Property);
+
     /**
      * @brief 프로퍼티 등록을 마무리하고 조회용 목록을 확정합니다.
      */
@@ -65,12 +68,14 @@ public:
      * @return 소유 객체가 유지하는 값의 참조입니다.
      */
     const TArray<const FProperty*>& GetProperties() const;
+
     /**
      * @brief 타입에 선언된 프로퍼티를 이름으로 조회합니다.
      * @param[in] Name 조회하거나 기록할 이름입니다.
      * @return 조회한 값의 비소유 주소이며, 해당 값이 없으면 nullptr입니다.
      */
     const FProperty* FindProperty(const FString& Name) const;
+
     /**
      * @brief 지정한 프로퍼티가 타입의 프로퍼티 목록에 속하는지 검사합니다.
      * @param[in] Property 읽기, 쓰기 또는 알림을 적용할 프로퍼티 메타데이터입니다.
@@ -110,6 +115,7 @@ private:
      */
     TArray<FProperty> mDeclaredProperties{};
     ReflectProperty(mDeclaredProperties, "DeclaredProperties", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 조회에 사용하는 프로퍼티 비소유 주소 목록입니다.
      */

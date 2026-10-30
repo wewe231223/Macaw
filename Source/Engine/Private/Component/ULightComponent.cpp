@@ -29,8 +29,10 @@ bool ULightComponent::SetShadowResolution(Uint32 Resolution) {
     if (Resolution < 64 || Resolution > 8192 || (Resolution & (Resolution - 1)) != 0) {
         return false;
     }
+
     mShadowResolution = Resolution;
     SynchronizeLight();
+
     return true;
 }
 
@@ -42,8 +44,10 @@ bool ULightComponent::SetShadowResolutionScale(float Scale) {
     if (!std::isfinite(Scale) || Scale < 0.125f || Scale > 8.0f) {
         return false;
     }
+
     mShadowResolutionScale = Scale;
     SynchronizeLight();
+
     return true;
 }
 
@@ -55,8 +59,10 @@ bool ULightComponent::SetShadowBias(float Bias) {
     if (!std::isfinite(Bias) || Bias < 0.0f || Bias > 0.1f) {
         return false;
     }
+
     mShadowBias = Bias;
     SynchronizeLight();
+
     return true;
 }
 
@@ -68,8 +74,10 @@ bool ULightComponent::SetShadowSlopeBias(float Bias) {
     if (!std::isfinite(Bias) || Bias < 0.0f || Bias > 16.0f) {
         return false;
     }
+
     mShadowSlopeBias = Bias;
     SynchronizeLight();
+
     return true;
 }
 
@@ -81,8 +89,10 @@ bool ULightComponent::SetShadowSharpen(float Sharpen) {
     if (!std::isfinite(Sharpen) || Sharpen < 0.0f || Sharpen > 10.0f) {
         return false;
     }
+
     mShadowSharpen = Sharpen;
     SynchronizeLight();
+
     return true;
 }
 
@@ -94,5 +104,6 @@ FLightSceneProxy ULightComponent::CreateLightProxy() const {
     Proxy.mShadowBias = mShadowBias;
     Proxy.mShadowSlopeBias = mShadowSlopeBias;
     Proxy.mShadowSharpen = mShadowSharpen;
+
     return Proxy;
 }

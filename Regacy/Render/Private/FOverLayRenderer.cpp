@@ -36,6 +36,7 @@ void FOverLayRenderer::BeginFrame(Uint64 FrameSerial) {
     mGizmoDraws.clear();
 
     constexpr Uint64 MaximumUnusedFrames{120};
+
     std::erase_if(mViewDepths, [FrameSerial](const auto& Entry) {
         return FrameSerial - Entry.second.mLastUsedFrame > MaximumUnusedFrames;
     });

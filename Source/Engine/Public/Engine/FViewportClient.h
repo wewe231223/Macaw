@@ -45,11 +45,13 @@ public:
      * @param[in] DeltaTime 이전 프레임 이후 경과한 시간(초)입니다.
      */
     virtual void Input(FSceneViewport* Viewport, const FViewportInput& Input, float DeltaTime) = 0;
+
     /**
      * @brief 뷰포트 또는 패널의 현재 내용을 그립니다.
      * @param[in,out] Viewport 출력 타깃과 크기를 제공하는 뷰포트입니다.
      */
     virtual void Draw(FSceneViewport* Viewport) = 0;
+
     /**
      * @brief 뷰포트 좌표에 대응하는 선택 정보를 반환합니다.
      * @param[in] Viewport 입력 좌표와 크기를 제공하는 비소유 뷰포트입니다.

@@ -28,6 +28,7 @@ namespace {
         for (std::size_t Index{}; Index < Name.size(); ++Index) {
             const char Character{Name[Index]};
             const bool Letter{(Character >= 'A' && Character <= 'Z') || (Character >= 'a' && Character <= 'z') || Character == '_'};
+
             if (!Letter && !(Index > 0 && Character >= '0' && Character <= '9')) {
                 return false;
             }
@@ -49,6 +50,7 @@ namespace {
 
 bool FShaderDescription::Normalize(FString& Diagnostics) {
     Diagnostics.clear();
+
     if (!IsIdentifier(mEntryPoint) || mTargetProfile.empty() || mTargetProfile.find('\0') != FString::npos) {
         Diagnostics = "A shader requires a valid entry point and target profile";
         return false;
@@ -65,8 +67,10 @@ bool FShaderDescription::Normalize(FString& Diagnostics) {
     }
 
     std::sort(mMacros.begin(), mMacros.end(), MacroLess);
+
     for (std::size_t Index{}; Index < mMacros.size(); ++Index) {
         const FShaderMacro& Macro{mMacros[Index]};
+
         if (!IsIdentifier(Macro.mName) || Macro.mValue.find('\0') != FString::npos || (Index > 0 && mMacros[Index - 1].mName == Macro.mName)) {
             Diagnostics = "Invalid or duplicate shader macro: " + Macro.mName;
             return false;
@@ -90,12 +94,14 @@ FString FShaderDescription::GetIdentity() const {
     ShaderFile::AppendString(Data, mTargetProfile);
     ShaderFile::AppendUint64(Data, mCompileFlags);
     ShaderFile::AppendUint64(Data, mMacros.size());
+
     for (const FShaderMacro& Macro : mMacros) {
         ShaderFile::AppendString(Data, Macro.mName);
         ShaderFile::AppendString(Data, Macro.mValue);
     }
 
     ShaderFile::AppendUint64(Data, mIncludeDirectories.size());
+
     for (const std::filesystem::path& Directory : mIncludeDirectories) {
         ShaderFile::AppendString(Data, FilePath::ToGenericUtf8(Directory));
     }

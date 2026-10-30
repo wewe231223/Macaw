@@ -35,27 +35,35 @@ int FObjViewerApplication::Run() {
     if (!mPlatform.Create(L"Macaw OBJ Viewer", 1280, 900)) {
         return 1;
     }
+
     std::array<wchar_t, 32768> Executable{};
     const DWORD Length{GetModuleFileNameW(nullptr, Executable.data(), static_cast<DWORD>(Executable.size()))};
+
     if (Length == 0 || Length >= Executable.size()) {
         return 1;
     }
+
     const auto Directory{std::filesystem::path{Executable.data()}.parent_path()};
     const auto Content{Directory / "Viewer/Content"};
     std::error_code Code{};
     std::filesystem::create_directories(Content, Code);
+
     if (!Code) {
         std::filesystem::copy(Directory / "Templates/Project/Content", Content, std::filesystem::copy_options::recursive | std::filesystem::copy_options::skip_existing, Code);
     }
+
     if (Code) {
         MessageBoxW(mPlatform.GetWindowHandle(), L"Cannot prepare viewer content. Build the application with its project templates.", L"OBJ Viewer", MB_OK | MB_ICONERROR);
         return 1;
     }
+
     mAssets = std::make_unique<FAssetManager>(Content);
     mRenderer.SetProjectPaths(Content, Directory / "Viewer/Saved/ShaderCache");
+
     if (!mRenderer.Initialize(mPlatform.GetWindowHandle(), mPlatform.GetWidth(), mPlatform.GetHeight())) {
         return 1;
     }
+
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     mContextCreated = true;
@@ -66,74 +74,99 @@ int FObjViewerApplication::Run() {
     mUIScale.Update(mPlatform);
     mWin32Ready = ImGui_ImplWin32_Init(mPlatform.GetWindowHandle());
     mDxReady = mWin32Ready && ImGui_ImplDX11_Init(static_cast<ID3D11Device*>(mRenderer.GetNativeDevice()), static_cast<ID3D11DeviceContext*>(mRenderer.GetNativeContext()));
+
     if (!mDxReady) {
         return 1;
     }
+
     mPlatform.SetMessageHandler([](HWND Window, UINT Message, WPARAM WParam, LPARAM LParam) {
         return ImGui_ImplWin32_WndProcHandler(Window, Message, WParam, LParam) != 0;
     });
+
     mViewer = std::make_unique<FMeshViewer>(&mRenderer, mAssets.get());
+
     int ArgumentCount{};
     wchar_t** Arguments{CommandLineToArgvW(GetCommandLineW(), &ArgumentCount)};
+
     if (Arguments != nullptr) {
         if (ArgumentCount > 1) {
             OpenSource(std::filesystem::path{Arguments[1]});
         }
+
         LocalFree(Arguments);
     }
+
     while (mPlatform.PumpMessages()) {
         if (mPlatform.IsMinimized()) {
             MsgWaitForMultipleObjects(0, nullptr, false, 16, QS_ALLINPUT);
             continue;
         }
+
         const FScopedStatFrame StatFrame{};
+
         mRenderer.BeginFrame(mPlatform.GetWidth(), mPlatform.GetHeight());
         ImGui_ImplDX11_NewFrame();
         ImGui_ImplWin32_NewFrame();
         mUIScale.Update(mPlatform);
         ImGui::NewFrame();
+
         if (ImGui::BeginMainMenuBar()) {
             mUIScale.DrawMenu();
+
             if (ImGui::MenuItem("Open OBJ / Mesh...")) {
                 const auto Source{ChooseSource()};
+
                 if (!Source.empty()) {
                     OpenSource(Source);
                 }
             }
+
             ImGui::EndMainMenuBar();
         }
+
         if (!mViewer->IsOpen()) {
             ImGui::Begin("Open Mesh");
             ImGui::TextUnformatted("Choose Open OBJ / Mesh to load an OBJ, FBX or glTF file.");
             ImGui::End();
         }
+
         mViewer->DrawUI(true);
+
         if (!mError.empty()) {
             ImGui::OpenPopup("Cannot Open Mesh");
         }
+
         if (ImGui::BeginPopupModal("Cannot Open Mesh", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
             ImGui::TextWrapped("%s", mError.c_str());
+
             if (ImGui::Button("Close")) {
                 mError.clear();
                 ImGui::CloseCurrentPopup();
             }
+
             ImGui::EndPopup();
         }
+
         ImGui::Render();
         mRenderer.BeginUiRender();
         ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
         mRenderer.Present();
     }
+
     Shutdown();
+
     return 0;
 }
 
 bool FObjViewerApplication::OpenSource(const std::filesystem::path& Source) {
     const auto Target{std::filesystem::path{"Meshes"} / Source.filename().replace_extension(".masset")};
+
     if (!mAssets->ImportMesh(Source, Target, mError) || !mViewer->Open(Target, mError)) {
         return false;
     }
+
     mError.clear();
+
     return true;
 }
 
@@ -147,24 +180,29 @@ std::filesystem::path FObjViewerApplication::ChooseSource() {
     Dialog.lpstrFile = Buffer.data();
     Dialog.nMaxFile = static_cast<DWORD>(Buffer.size());
     Dialog.Flags = OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST | OFN_NOCHANGEDIR;
+
     return GetOpenFileNameW(&Dialog) ? std::filesystem::path{Buffer.data()} : std::filesystem::path{};
 }
 
 void FObjViewerApplication::Shutdown() {
     mPlatform.SetMessageHandler({});
     mViewer.reset();
+
     if (mDxReady) {
         ImGui_ImplDX11_Shutdown();
         mDxReady = false;
     }
+
     if (mWin32Ready) {
         ImGui_ImplWin32_Shutdown();
         mWin32Ready = false;
     }
+
     if (mContextCreated) {
         ImGui::DestroyContext();
         mContextCreated = false;
     }
+
     mAssets.reset();
     mRenderer.Shutdown();
     mPlatform.Shutdown();

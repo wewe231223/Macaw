@@ -29,6 +29,7 @@ public:
      * @brief FDXRenderTarget의 초기 상태와 전달받은 의존성을 구성합니다.
      */
     FDXRenderTarget();
+
     /**
      * @brief 객체의 수명을 끝내고 소유한 리소스를 정리합니다.
      */
@@ -49,31 +50,37 @@ public:
      * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
      */
     bool Resize(ID3D11Device* Device, Uint32 Width, Uint32 Height);
+
     /**
      * @brief 가로 픽셀 수를 반환합니다.
      * @return 가로 픽셀 수입니다.
      */
     Uint32 GetWidth() const override;
+
     /**
      * @brief 세로 픽셀 수를 반환합니다.
      * @return 세로 픽셀 수입니다.
      */
     Uint32 GetHeight() const override;
+
     /**
      * @brief UI에서 샘플링할 셰이더 리소스 뷰의 비소유 주소를 반환합니다.
      * @return 조회한 값의 비소유 주소이며, 해당 값이 없으면 nullptr입니다.
      */
     void* GetNativeTexture() const override;
+
     /**
      * @brief 컬러 출력용 Direct3D 11 렌더 타깃 뷰의 비소유 주소를 반환합니다.
      * @return 조회한 값의 비소유 주소이며, 해당 값이 없으면 nullptr입니다.
      */
     ID3D11RenderTargetView* GetRenderTargetView() const;
+
     /**
      * @brief 깊이 스텐실 뷰를 반환합니다.
      * @return 조회한 값의 비소유 주소이며, 해당 값이 없으면 nullptr입니다.
      */
     ID3D11DepthStencilView* GetDepthView() const;
+
     /**
      * @brief 현재 보유한 GPU 리소스의 추정 바이트 수를 반환합니다.
      * @return 현재 보유한 GPU 리소스의 추정 바이트 수를 나타내는 정수 값입니다.

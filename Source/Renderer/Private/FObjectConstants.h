@@ -49,11 +49,13 @@ public:
      */
     FMatrix mWorldInverse{};
     ReflectProperty(mWorldInverse, "WorldInverse", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief XY 배율과 ZW 오프셋으로 구성된 UV 변환입니다.
      */
     FVector4 mUVTransform{1.0f, 1.0f, 0.0f, 0.0f};
     ReflectProperty(mUVTransform, "UVTransform", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 그림자 수신 여부와 셰이더 정렬을 위한 예약값을 저장합니다.
      */

@@ -23,6 +23,7 @@ void FSceneRenderer::BeginFrame(Uint64 FrameSerial) {
     mFrameSerial = FrameSerial;
 
     constexpr Uint64 MaximumUnusedFrames{120};
+
     std::erase_if(mViews, [FrameSerial](const auto& Entry) {
         return FrameSerial - Entry.second.mLastUsedFrame > MaximumUnusedFrames;
     });
@@ -38,6 +39,7 @@ void FSceneRenderer::ReleaseScene(Uint64 SceneId) {
     std::erase_if(mViews, [SceneId](const auto& Entry) {
         return Entry.second.mSceneId == SceneId;
     });
+
     mVisibleCommands.clear();
     mRenderQueue = {};
 }

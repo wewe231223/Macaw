@@ -23,10 +23,12 @@ struct FInput {
      * @brief 선분의 시작 월드 위치 XYZ와 픽셀 두께 W입니다.
      */
     float4 mStartAndWidth : START;
+
     /**
      * @brief 선분의 끝 월드 위치 XYZ와 예약값입니다.
      */
     float4 mEnd : END;
+
     /**
      * @brief 정점에서 전달하는 RGBA 색상입니다.
      */
@@ -41,14 +43,17 @@ struct FOutput {
      * @brief 래스터라이저에 전달하거나 픽셀 단계에서 읽는 투영 위치입니다.
      */
     float4 mPosition : SV_POSITION;
+
     /**
      * @brief 정점에서 전달하는 RGBA 색상입니다.
      */
     float4 mColor : COLOR;
+
     /**
      * @brief 선 중심에서의 화면상 거리이며 원근 보정을 적용하지 않습니다.
      */
     noperspective float mEdgeDistance : TEXCOORD0;
+
     /**
      * @brief 선 두께의 절반을 픽셀 단위로 저장하며 보간하지 않습니다.
      */
@@ -67,18 +72,22 @@ FOutput VertexMain(FInput Input, uint Vertex : SV_VertexID) {
     float4 End = mul(float4(Input.mEnd.xyz, 1.0f), ViewProjection);
     float StartDistance = Start.z - 0.00001f;
     float EndDistance = End.z - 0.00001f;
+
     if (StartDistance < 0.0f && EndDistance < 0.0f) {
         Output.mPosition = float4(0.0f, 0.0f, -1.0f, 1.0f);
         return Output;
     }
+
     if (StartDistance < 0.0f) {
         Start = lerp(Start, End, saturate(-StartDistance / (EndDistance - StartDistance)));
     } else if (EndDistance < 0.0f) {
         End = lerp(End, Start, saturate(-EndDistance / (StartDistance - EndDistance)));
     }
+
     float2 Direction = (End.xy / End.w - Start.xy / Start.w) * float2(Viewport.x, -Viewport.y);
     float Length = length(Direction);
     Direction = Length > 0.0001f ? Direction / Length : float2(1.0f, 0.0f);
+
     const float2 Corners[6] = {float2(0.0f, -1.0f), float2(0.0f, 1.0f), float2(1.0f, -1.0f), float2(1.0f, -1.0f), float2(0.0f, 1.0f), float2(1.0f, 1.0f)};
     float2 Corner = Corners[Vertex];
     float HalfWidth = max(Input.mStartAndWidth.w * 0.5f, 0.5f);
@@ -88,6 +97,7 @@ FOutput VertexMain(FInput Input, uint Vertex : SV_VertexID) {
     Output.mColor = Input.mColor;
     Output.mEdgeDistance = Corner.y * (HalfWidth + 0.5f);
     Output.mHalfWidth = HalfWidth;
+
     return Output;
 }
 

@@ -19,8 +19,11 @@ public:
     ~FMeshRenderResource() = default;
 
     FMeshRenderResource(const FMeshRenderResource&) = delete;
+
     FMeshRenderResource& operator=(const FMeshRenderResource&) = delete;
+
     FMeshRenderResource(FMeshRenderResource&&) noexcept = default;
+
     FMeshRenderResource& operator=(FMeshRenderResource&&) noexcept = default;
 
 public:

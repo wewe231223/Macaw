@@ -20,17 +20,20 @@ struct FOutlineGeometryInput {
 
 float4 ExpandOutline(float4 ClipPosition, float3 WorldNormal) {
     const float NormalLengthSquared = {dot(WorldNormal, WorldNormal)};
+
     if (!(NormalLengthSquared > 0.0f) || ClipPosition.w <= 0.00001f) {
         return ClipPosition;
     }
 
     WorldNormal *= rsqrt(NormalLengthSquared);
+
     const float4 ClipNormal = {mul(float4(WorldNormal, 0.0f), ViewProjection)};
     const float2 ProjectedNormal = {(ClipNormal.xy - ClipPosition.xy * (ClipNormal.w / ClipPosition.w)) * Viewport.xy};
     const float2 Direction = {ProjectedNormal / max(length(ProjectedNormal), 0.01f)};
 
     const float OutlineWidth = {2.0f};
     ClipPosition.xy += Direction * (OutlineWidth * 2.0f * Viewport.zw) * ClipPosition.w;
+
     return ClipPosition;
 }
 

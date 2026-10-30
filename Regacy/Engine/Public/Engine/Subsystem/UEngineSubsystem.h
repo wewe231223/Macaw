@@ -2,6 +2,7 @@
  * @file UEngineSubsystem.h
  * @brief 엔진 서브시스템의 소유 관계와 실행 수명을 정의합니다.
  */
+
 #pragma once
 #include "CoreUObject/Reflection/ReflectionMacros.h"
 
@@ -27,6 +28,7 @@ public:
      */
     void Initialize(UEngine* Engine);
     void Deinitialize();
+
     /**
      * @brief 초기화된 서브시스템의 Outer에서 실제 소유 엔진을 조회합니다.
      * @return 초기화 전과 종료 후에는 nullptr입니다.
@@ -36,6 +38,7 @@ public:
 
 private:
     bool CanChangeOuter(const UObject* NewOuter) const override;
+
     virtual void OnInitialize();
     virtual void OnDeinitialize();
 

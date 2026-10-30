@@ -2,6 +2,7 @@
  * @file ErrorHandler.h
  * @brief 오류 수준별 보고, 종료 처리기 등록 및 Windows 오류 코드 보고 인터페이스를 정의한다.
  */
+
 #pragma once
 
 #include <source_location>
@@ -39,6 +40,7 @@ namespace ErrorHandler {
      * @note Critical 수준은 std::_Exit(EXIT_FAILURE)로 프로세스를 종료하므로 반환하지 않으며 자동 객체의 소멸자도 호출하지 않는다.
      */
     void Report(std::string_view Title, std::string_view Message, EErrorLevel Level);
+
     /**
      * @brief 조건이 참일 때만 오류를 보고한다.
      * @param BCondition true이면 오류를 보고하고, false이면 아무 처리 없이 반환한다.
@@ -61,6 +63,7 @@ namespace ErrorHandler {
      * @note Windows에서만 제공된다. 실패한 결과를 Critical 수준으로 보고하면 프로세스를 종료한다.
      */
     void ReportHRESULT(HRESULT Result, std::string_view Title, std::string_view Message, EErrorLevel Level, const std::source_location& Location = std::source_location::current());
+
     /**
      * @brief Win32 오류 코드를 HRESULT로 변환하여 시스템 오류 정보와 호출 위치를 보고한다.
      * @param ErrorCode 검사할 Win32 오류 코드. ERROR_SUCCESS이면 아무 처리 없이 반환한다.

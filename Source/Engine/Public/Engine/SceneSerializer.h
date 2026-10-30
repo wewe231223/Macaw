@@ -41,6 +41,7 @@ public:
      * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
      */
     static bool Save(const std::filesystem::path& Path, FWorldContext* Context, FString& Error);
+
     /**
      * @brief 파일을 읽고 검증한 새 월드 컨텍스트를 반환합니다.
      * @param[in] Path 읽거나 쓸 파일 경로입니다.
@@ -51,6 +52,7 @@ public:
      * @param[in] Assets 로드한 월드의 에셋을 조회할 관리자의 비소유 주소이며 생략할 수 있습니다.
      */
     static std::unique_ptr<FWorldContext> Load(const std::filesystem::path& Path, FString& Error, FAssetManager* Assets = nullptr);
+
     /**
      * @brief 아카이브 모드에 따라 값을 읽거나 저장합니다.
      * @param[in,out] Archive 로드 또는 저장 모드를 가진 아카이브입니다.

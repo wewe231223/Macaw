@@ -27,14 +27,17 @@ namespace {
      * @brief 실행 중인 프로세스의 로그 출력 스트림입니다.
      */
     std::ofstream LogFile{};
+
     /**
      * @brief 현재 스레드가 치명적 오류를 보고 중인지 여부입니다.
      */
     thread_local bool ReportingCritical{};
+
     /**
      * @brief 치명적 오류 재진입 대비 고정 크기 제목 버퍼입니다.
      */
     thread_local std::array<char, 257> CriticalTitle{};
+
     /**
      * @brief 치명적 오류 재진입 대비 고정 크기 메시지 버퍼입니다.
      */
@@ -198,6 +201,7 @@ void ErrorHandler::Report(std::string_view Title, std::string_view Message, EErr
     }
 
     EnsureLogFileOpen();
+
     const std::string_view LevelName{Level == EErrorLevel::Warning ? "WARNING" : Level == EErrorLevel::Error ? "ERROR" : "CRITICAL"};
     std::string Content{std::format("[{:%Y-%m-%d %H:%M:%S} UTC] [{}] {}\n{}\n{}:{}\n{}\n", std::chrono::system_clock::now(), LevelName, Title, Message, Location.file_name(), Location.line(), Location.function_name())};
 

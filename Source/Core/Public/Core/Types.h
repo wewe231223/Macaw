@@ -17,18 +17,22 @@
  * @brief 32비트 부호 있는 정수 타입입니다.
  */
 using Int32 = std::int32_t;
+
 /**
  * @brief 8비트 부호 없는 정수 타입입니다.
  */
 using Uint8 = std::uint8_t;
+
 /**
  * @brief 32비트 부호 없는 정수 타입입니다.
  */
 using Uint32 = std::uint32_t;
+
 /**
  * @brief 64비트 부호 없는 정수 타입입니다.
  */
 using Uint64 = std::uint64_t;
+
 /**
  * @brief UTF-8 텍스트에 사용하는 표준 문자열 타입입니다.
  */

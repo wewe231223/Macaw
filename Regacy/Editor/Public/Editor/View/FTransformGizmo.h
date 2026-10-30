@@ -2,6 +2,7 @@
  * @file FTransformGizmo.h
  * @brief 월드별 편집 상태와 전역 에셋 및 설정을 사용하는 뷰포트 도구를 정의합니다.
  */
+
 #pragma once
 
 #include <array>
@@ -81,8 +82,11 @@ public:
     FTransformGizmo() = default;
     ~FTransformGizmo() = default;
     FTransformGizmo(const FTransformGizmo&) = delete;
+
     FTransformGizmo& operator=(const FTransformGizmo&) = delete;
+
     FTransformGizmo(FTransformGizmo&&) = default;
+
     FTransformGizmo& operator=(FTransformGizmo&&) = default;
 
 public:

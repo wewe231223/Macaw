@@ -35,11 +35,13 @@ public:
      * @param[in] FontSize 배율 적용 전의 기준 글꼴 크기입니다.
      */
     void Initialize(float FontSize);
+
     /**
      * @brief 현재 창의 DPI·크기와 사용자 설정에 맞춰 ImGui 배율을 갱신합니다.
      * @param[in] Platform 창 크기와 DPI를 조회할 플랫폼 객체입니다.
      */
     void Update(const FWindowsApplication& Platform);
+
     /**
      * @brief 자동·사용자 UI 배율을 선택하는 메뉴를 그립니다.
      */
@@ -63,11 +65,13 @@ private:
      */
     ImGuiStyle mBaseStyle{};
     ReflectProperty(mBaseStyle, "BaseStyle", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 현재 ImGui 스타일에 적용한 최종 배율입니다.
      */
     float mAppliedScale{};
     ReflectProperty(mAppliedScale, "AppliedScale", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief DPI 배율에 곱할 사용자 배율이며 0이면 자동 크기를 선택합니다.
      */

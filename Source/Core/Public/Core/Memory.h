@@ -34,6 +34,7 @@ public:
      * @return FMemory::Free()로 해제해야 하는 정렬된 할당 주소입니다.
      */
     static void* Allocate(std::size_t Size, std::size_t Alignment);
+
     /**
      * @brief 정렬된 블록의 원본 주소를 해제하고 추적 중인 사용량을 차감합니다.
      * @param[in] Pointer 할당 또는 해제할 블록의 주소입니다.
@@ -44,6 +45,7 @@ public:
      * @brief 생존 객체와 누적 생성 객체 수를 증가시킵니다.
      */
     static void ObjectCreated();
+
     /**
      * @brief 생존 객체 수를 감소시킵니다.
      */

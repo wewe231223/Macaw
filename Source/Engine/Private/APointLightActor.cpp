@@ -16,8 +16,10 @@ bool APointLightActor::InitializeDefaultComponents() {
     if (!GetComponents().empty()) {
         return false;
     }
+
     auto Component{NewObject<UPointLightComponent>()};
     Component->SetName("PointLightComponent");
+
     return AddComponent(std::move(Component));
 }
 

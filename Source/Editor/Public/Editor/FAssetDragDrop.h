@@ -14,14 +14,17 @@ namespace EditorAssetDragDrop {
      * @brief 액터 프리셋을 뷰포트로 전달하는 ImGui 드래그 페이로드 이름입니다.
      */
     inline constexpr char ActorPayload[]{"MACAW_ACTOR_PRESET"};
+
     /**
      * @brief 메시 에셋 경로를 전달하는 드래그 페이로드 식별자입니다.
      */
     inline constexpr char MeshPayload[]{"MACAW_MESH_ASSET"};
+
     /**
      * @brief 머티리얼 에셋 경로를 전달하는 드래그 페이로드 식별자입니다.
      */
     inline constexpr char MaterialPayload[]{"MACAW_MATERIAL_ASSET"};
+
     /**
      * @brief 텍스처 에셋 경로를 전달하는 드래그 페이로드 식별자입니다.
      */

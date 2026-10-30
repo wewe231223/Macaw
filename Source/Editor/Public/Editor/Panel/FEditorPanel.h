@@ -30,14 +30,17 @@ public:
      * @param[in] Closable 사용자가 패널을 닫을 수 있는지 지정합니다.
      */
     FEditorPanel(FEditorContext* Context, FString Name, bool Closable = false);
+
     /**
      * @brief 객체의 수명을 끝내고 소유한 리소스를 정리합니다.
      */
     virtual ~FEditorPanel();
+
     /**
      * @brief 고유한 객체 수명을 유지하기 위해 복사 또는 이동 생성을 금지합니다.
      */
     FEditorPanel(const FEditorPanel&) = delete;
+
     /**
      * @brief 고유한 객체 수명을 유지하기 위해 대입을 금지합니다.
      * @return 소유 객체가 유지하는 값의 참조입니다.
@@ -62,11 +65,13 @@ public:
      * @return 소유 객체가 유지하는 값의 참조입니다.
      */
     const FString& GetName() const;
+
     /**
      * @brief 패널 창의 표시 여부를 반환합니다.
      * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
      */
     bool IsVisible() const;
+
     /**
      * @brief 패널 창의 표시 상태를 설정합니다.
      * @param[in] Visible 창이나 패널을 표시할지 지정합니다.
@@ -78,6 +83,7 @@ public:
      * @return 연결된 공통 편집 컨텍스트의 비소유 주소입니다.
      */
     FEditorContext* GetEditorContext() const;
+
     /**
      * @brief 패널이 사용할 편집 컨텍스트의 비소유 주소를 교체합니다.
      * @param[in] Context 조회 또는 직렬화에 사용할 컨텍스트의 비소유 주소입니다.

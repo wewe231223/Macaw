@@ -24,10 +24,12 @@ bool UBillboardTextComponent::SetText(const FString& Text) {
     if (Text.size() > 65536 || Text.find('\0') != FString::npos) {
         return false;
     }
+
     if (mText != Text) {
         mText = Text;
         MarkRenderStateDirty();
     }
+
     return true;
 }
 
@@ -39,10 +41,12 @@ bool UBillboardTextComponent::SetTextSize(float Size) {
     if (!std::isfinite(Size) || Size <= 0.0f || Size > 10000.0f) {
         return false;
     }
+
     if (mTextSize != Size) {
         mTextSize = Size;
         MarkRenderStateDirty();
     }
+
     return true;
 }
 
@@ -52,13 +56,16 @@ const FVector4& UBillboardTextComponent::GetTextColor() const {
 
 bool UBillboardTextComponent::SetTextColor(const FVector4& Color) {
     const auto Values{Color.ToArray()};
+
     if (!std::all_of(Values.begin(), Values.end(), [](float Value) {
         return std::isfinite(Value) && Value >= 0.0f && Value <= 1.0f;
     })) {
         return false;
     }
+
     mTextColor = Color;
     MarkRenderStateDirty();
+
     return true;
 }
 

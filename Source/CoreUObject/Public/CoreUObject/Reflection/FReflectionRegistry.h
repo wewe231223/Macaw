@@ -34,14 +34,17 @@ public:
      * @brief 소유권을 가진 UObject를 반환하는 선택적인 네이티브 팩터리입니다.
      */
     using FFactory = UClass::FFactory;
+
     /**
      * @brief UClass의 멤버 메타데이터를 채우는 함수 포인터입니다.
      */
     using FClassBuilder = void (*)(UClass*);
+
     /**
      * @brief UScriptStruct의 멤버 메타데이터를 채우는 함수 포인터입니다.
      */
     using FStructBuilder = void (*)(UScriptStruct*);
+
     /**
      * @brief UEnum의 열거값을 채우는 함수 포인터입니다.
      */
@@ -59,6 +62,7 @@ public:
      * @return 조회한 값의 비소유 주소이며, 해당 값이 없으면 nullptr입니다.
      */
     static UClass* DefineClass(FString Name, UClass* (*Parent)(), const FNativeType* NativeType, EClassFlags Flags, FFactory Factory, FClassBuilder Builder);
+
     /**
      * @brief 같은 이름의 정의와 호환성을 검사한 뒤 구조체 메타데이터를 등록합니다.
      * @param[in] Name 조회하거나 기록할 이름입니다.
@@ -68,6 +72,7 @@ public:
      * @return 조회한 값의 비소유 주소이며, 해당 값이 없으면 nullptr입니다.
      */
     static UScriptStruct* DefineStruct(FString Name, const FNativeType* NativeType, FStructBuilder Builder, const UScriptStruct* Parent = nullptr);
+
     /**
      * @brief 같은 이름의 정의와 호환성을 검사한 뒤 열거형 메타데이터를 등록합니다.
      * @param[in] Name 조회하거나 기록할 이름입니다.
@@ -90,18 +95,21 @@ public:
      * @return 조회한 값의 비소유 주소이며, 해당 값이 없으면 nullptr입니다.
      */
     static UClass* FindClass(const FString& Name);
+
     /**
      * @brief 지정한 부모 클래스를 상속한 등록 클래스를 수집합니다.
      * @param[in] Parent 파생 클래스를 찾을 부모 클래스입니다.
      * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며 사용할 수 없으면 nullptr입니다.
      */
     static TArray<const UClass*> GetDerivedClasses(const UClass* Parent);
+
     /**
      * @brief 등록된 구조체 메타데이터를 이름으로 조회합니다.
      * @param[in] Name 조회하거나 기록할 이름입니다.
      * @return 조회한 값의 비소유 주소이며, 해당 값이 없으면 nullptr입니다.
      */
     static UScriptStruct* FindStruct(const FString& Name);
+
     /**
      * @brief 등록된 열거형 메타데이터를 이름으로 조회합니다.
      * @param[in] Name 조회하거나 기록할 이름입니다.

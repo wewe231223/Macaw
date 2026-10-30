@@ -45,6 +45,7 @@ public:
      */
     const FSceneInterface* mScene{};
     ReflectProperty(mScene, "Scene", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 렌더 타깃 또는 편집 대상입니다.
      */
@@ -63,11 +64,13 @@ public:
      */
     const FPrimitiveDrawInterface* mEditorElements{};
     ReflectProperty(mEditorElements, "EditorElements", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 장면의 Lit 또는 Wireframe 표시 모드입니다.
      */
     EViewMode mViewMode{EViewMode::Lit};
     ReflectProperty(mViewMode, "ViewMode", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 뷰포트별 장면·보조 표시 필터입니다.
      */

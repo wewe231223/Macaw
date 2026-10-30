@@ -2,6 +2,7 @@
  * @file FPIEViewportSession.h
  * @brief 전역 에디터 엔진을 사용하며 뷰포트별 입력과 표시 상태를 유지하는 PIE 세션을 정의합니다.
  */
+
 #pragma once
 #include <memory>
 #include <optional>
@@ -32,8 +33,11 @@ public:
     FPIEViewportSession(FRenderer& Renderer, FViewportHostWindow* Host);
     ~FPIEViewportSession();
     FPIEViewportSession(const FPIEViewportSession&) = delete;
+
     FPIEViewportSession& operator=(const FPIEViewportSession&) = delete;
+
     FPIEViewportSession(FPIEViewportSession&&) = delete;
+
     FPIEViewportSession& operator=(FPIEViewportSession&&) = delete;
 
 public:

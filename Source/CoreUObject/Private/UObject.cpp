@@ -84,6 +84,7 @@ bool UObject::RestoreGuid(const FGuid& Guid) {
     }
 
     mGuid = Guid;
+
     return true;
 }
 
@@ -101,15 +102,19 @@ bool UObject::SetOuter(UObject* Outer) {
             return false;
         }
     }
+
     mOuter = Outer != nullptr ? Outer->GetHandle() : FObjectHandle{};
+
     return true;
 }
 
 FString UObject::GetPathName() const {
     FString Path{GetName()};
+
     for (const UObject* Ancestor{GetOuter()}; Ancestor != nullptr; Ancestor = Ancestor->GetOuter()) {
         Path = Ancestor->GetName() + "." + Path;
     }
+
     return Path;
 }
 

@@ -52,6 +52,7 @@ void UPrimitiveComponent::RegisterComponent(UWorld* World) {
  */
 void UPrimitiveComponent::UnregisterComponent() {
     UWorld::FDispatchScope Scope{GetWorld()};
+
     if (mRenderStateCreated && GetWorld() != nullptr && GetWorld()->GetScene() != nullptr) {
         GetWorld()->GetScene()->RemovePrimitive(GetGuid());
     }
@@ -118,8 +119,10 @@ void UPrimitiveComponent::SendRenderUpdates() {
             GetWorld()->GetScene()->RemovePrimitive(GetGuid());
             mRenderStateCreated = false;
         }
+
         mRenderStateDirty = false;
         mRenderTransformDirty = false;
+
         return;
     }
 
@@ -148,6 +151,7 @@ FPrimitiveSceneProxy UPrimitiveComponent::CreateSceneProxy() const {
     Proxy.mUVOffset = mUVOffset;
     Proxy.mCastShadow = mCastShadow;
     Proxy.mReceiveShadow = mReceiveShadow;
+
     return Proxy;
 }
 
@@ -174,12 +178,14 @@ bool UPrimitiveComponent::SetUVTransform(const FVector2& Scale, const FVector2& 
     if (!std::isfinite(Scale.x) || !std::isfinite(Scale.y) || !std::isfinite(Offset.x) || !std::isfinite(Offset.y) || FObjectRegistry::Get()->Resolve(Source) == nullptr || (mUVSource != Source && FObjectRegistry::Get()->Resolve(mUVSource) != nullptr)) {
         return false;
     }
+
     if (mUVScale != Scale || mUVOffset != Offset || mUVSource != Source) {
         mUVScale = Scale;
         mUVOffset = Offset;
         mUVSource = Source;
         MarkRenderStateDirty();
     }
+
     return true;
 }
 

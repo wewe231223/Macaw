@@ -28,32 +28,38 @@ public:
      * @brief FBox의 초기 상태와 전달받은 의존성을 구성합니다.
      */
     FBox() = default;
+
     /**
      * @brief FBox의 초기 상태와 전달받은 의존성을 구성합니다.
      * @param[in] Minimum 성분별 하한입니다.
      * @param[in] Maximum 성분별 상한입니다.
      */
     FBox(const FVector& Minimum, const FVector& Maximum);
+
     /**
      * @brief 객체의 수명을 끝내고 소유한 리소스를 정리합니다.
      */
     ~FBox() = default;
+
     /**
      * @brief 상대 값의 상태로 객체를 복사하거나 이동 생성합니다.
      * @param[in] Other 비교, 복사 또는 연산할 상대 값입니다.
      */
     FBox(const FBox& Other) = default;
+
     /**
      * @brief 상대 값의 상태를 대입합니다.
      * @param[in] Other 비교, 복사 또는 연산할 상대 값입니다.
      * @return 소유 객체가 유지하는 값의 참조입니다.
      */
     FBox& operator=(const FBox& Other) = default;
+
     /**
      * @brief 상대 값의 상태로 객체를 복사하거나 이동 생성합니다.
      * @param[in] Other 비교, 복사 또는 연산할 상대 값입니다.
      */
     FBox(FBox&& Other) noexcept = default;
+
     /**
      * @brief 상대 값의 상태를 대입합니다.
      * @param[in] Other 비교, 복사 또는 연산할 상대 값입니다.
@@ -75,6 +81,7 @@ public:
      * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
      */
     bool Intersects(const FRay& Ray, float MaximumDistance) const;
+
     /**
      * @brief 경계 상자의 모서리를 변환한 뒤 새 축 정렬 경계 상자를 계산합니다.
      * @param[in] Matrix 적용할 변환 행렬입니다.

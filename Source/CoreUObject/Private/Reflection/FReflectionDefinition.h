@@ -47,6 +47,7 @@ public:
      */
     EReflectionType mKind{};
     ReflectProperty(mKind, "Kind", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 네이티브 타입 식별 메타데이터입니다.
      */

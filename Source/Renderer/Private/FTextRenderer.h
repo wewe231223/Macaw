@@ -58,11 +58,13 @@ private:
          */
         FMatrix mTransform{};
         ReflectProperty(mTransform, "Transform", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
         /**
          * @brief 텍스트에 곱할 RGBA 색상입니다.
          */
         FVector4 mColor{};
         ReflectProperty(mColor, "Color", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
         /**
          * @brief 거리 필드 범위와 아틀라스의 픽셀 크기입니다.
          */
@@ -84,6 +86,7 @@ public:
      * @return 초기화에 성공하면 true입니다.
      */
     bool Initialize(ID3D11Device* Device, const std::filesystem::path& FontPath);
+
     /**
      * @brief 컴파일한 바이트코드로 셰이더와 입력 레이아웃을 교체합니다.
      * @param[in] Device 자원을 생성할 장치입니다.
@@ -92,6 +95,7 @@ public:
      * @return 모든 자원을 생성하면 true입니다.
      */
     bool CreateShaders(ID3D11Device* Device, std::span<const Uint8> VertexCode, std::span<const Uint8> PixelCode);
+
     /**
      * @brief 문자 정점을 공통 동적 버퍼에 업로드하고 텍스트를 그립니다.
      * @param[in] Context 업로드와 그리기에 사용할 컨텍스트입니다.
@@ -106,6 +110,7 @@ public:
      * @return 소유한 GPU 자원의 바이트 수입니다.
      */
     std::size_t GetResourceBytes() const;
+
     /**
      * @brief 문자 평면에서 문자열이 차지하는 경계 사각형을 계산합니다.
      * @param[in] Text 경계를 계산할 문자열입니다.
@@ -127,41 +132,49 @@ private:
      */
     FFontAtlas mAtlas{};
     ReflectProperty(mAtlas, "Atlas", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 거리 필드 폰트 이미지와 GPU 텍스처입니다.
      */
     std::unique_ptr<UTexture2D> mTexture{};
     ReflectProperty(mTexture, "Texture", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 문자 평면을 클립 공간으로 변환하는 정점 셰이더입니다.
      */
     Microsoft::WRL::ComPtr<ID3D11VertexShader> mVertexShader{};
     ReflectProperty(mVertexShader, "VertexShader", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 거리 필드를 샘플링하는 픽셀 셰이더입니다.
      */
     Microsoft::WRL::ComPtr<ID3D11PixelShader> mPixelShader{};
     ReflectProperty(mPixelShader, "PixelShader", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 문자 정점의 위치와 UV 입력 레이아웃입니다.
      */
     Microsoft::WRL::ComPtr<ID3D11InputLayout> mLayout{};
     ReflectProperty(mLayout, "Layout", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 폰트 아틀라스를 샘플링하는 상태입니다.
      */
     Microsoft::WRL::ComPtr<ID3D11SamplerState> mSampler{};
     ReflectProperty(mSampler, "Sampler", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 현재 텍스트 요청의 셰이더 상수 버퍼입니다.
      */
     Microsoft::WRL::ComPtr<ID3D11Buffer> mConstants{};
     ReflectProperty(mConstants, "Constants", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 텍스트 정점의 동적 GPU 버퍼와 재사용할 용량입니다.
      */
     FDynamicVertexBuffer mVertices{};
     ReflectProperty(mVertices, "Vertices", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 문자열별로 재사용하는 문자 정점 배치입니다.
      */

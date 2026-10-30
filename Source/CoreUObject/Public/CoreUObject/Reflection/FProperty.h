@@ -32,6 +32,7 @@ public:
      * @brief 컨테이너에서 프로퍼티 variant를 읽는 함수 포인터입니다.
      */
     using FReader = FPropertyValue (*)(const void*);
+
     /**
      * @brief 컨테이너에 프로퍼티 variant를 쓰고 성공 여부를 반환하는 함수 포인터입니다.
      */
@@ -64,16 +65,19 @@ public:
      * @return 소유 객체가 유지하는 값의 참조입니다.
      */
     const FString& GetName() const;
+
     /**
      * @brief 프로퍼티 저장 타입을 반환합니다.
      * @return 프로퍼티 저장 타입입니다.
      */
     EPropertyType GetType() const;
+
     /**
      * @brief 프로퍼티 값의 네이티브 타입 식별 메타데이터를 반환합니다.
      * @return 조회한 값의 비소유 주소이며, 해당 값이 없으면 nullptr입니다.
      */
     const FNativeType* GetNativeType() const;
+
     /**
      * @brief 요청한 프로퍼티 플래그가 설정되어 있는지 검사합니다.
      * @param[in] Flag Flag에 적용할 입력 값입니다.
@@ -86,6 +90,7 @@ public:
      * @return 조회한 값의 비소유 주소이며, 해당 값이 없으면 nullptr입니다.
      */
     const UStruct* GetStruct() const;
+
     /**
      * @brief 열거값 이름과 정수 값 목록을 반환합니다.
      * @return 소유 객체가 유지하는 값의 참조입니다.
@@ -98,6 +103,7 @@ public:
      * @return 연산을 적용한 새 값입니다.
      */
     FPropertyValue ReadValue(const void* Container) const;
+
     /**
      * @brief 값 타입과 쓰기 정책을 검사한 뒤 등록된 함수로 프로퍼티를 변경합니다.
      * @param[in] Container 프로퍼티 소유 타입의 유효한 인스턴스 주소입니다.
@@ -106,6 +112,7 @@ public:
      * @note 일반 편집 경로는 ReadOnly 프로퍼티를 거부합니다. 로드 전용 콜백은 SerializeValue()에서 선택합니다.
      */
     bool WriteValue(void* Container, const FPropertyValue& Value) const;
+
     /**
      * @brief 로드 전용 쓰기 경로로 동일 프로퍼티의 값을 복사합니다.
      * @param[in,out] Destination 이 프로퍼티를 포함한 대상 컨테이너입니다.

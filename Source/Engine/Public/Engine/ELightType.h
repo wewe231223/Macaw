@@ -37,6 +37,7 @@ enum class ELightType : Uint8 {
  * @return 등록된 열거형 메타데이터의 비소유 주소입니다.
  */
 ReflectEnum(ELightType, Ambient, Directional, Point, Spot);
+
 /**
  * @fn UEnum* GetNativeEnum(TNativeEnum<ELightType>)
  * @brief 타입 태그에 대응하는 광원 종류의 메타데이터를 반환합니다.

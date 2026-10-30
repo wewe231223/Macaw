@@ -23,10 +23,13 @@ std::filesystem::path FProjectDialog::Choose(void* Owner, bool Create) {
     Dialog.nMaxFile = static_cast<DWORD>(Buffer.size());
     Dialog.lpstrDefExt = L"mproject";
     Dialog.Flags = OFN_EXPLORER | OFN_NOCHANGEDIR | OFN_PATHMUSTEXIST | (Create ? OFN_OVERWRITEPROMPT : OFN_FILEMUSTEXIST);
+
     if (!(Create ? GetSaveFileNameW(&Dialog) : GetOpenFileNameW(&Dialog))) {
         return {};
     }
+
     const std::filesystem::path Selected{Buffer.data()};
+
     return Create ? Selected.parent_path() / Selected.stem() / Selected.filename() : Selected;
 }
 
@@ -34,23 +37,29 @@ std::filesystem::path FProjectDialog::ChooseDirectory(void* Owner) {
     const HRESULT Initialized{CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED)};
     std::filesystem::path Selected{};
     Microsoft::WRL::ComPtr<IFileOpenDialog> Dialog{};
+
     if ((SUCCEEDED(Initialized) || Initialized == RPC_E_CHANGED_MODE) && SUCCEEDED(CoCreateInstance(CLSID_FileOpenDialog, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(Dialog.GetAddressOf())))) {
         FILEOPENDIALOGOPTIONS Options{};
         Dialog->GetOptions(&Options);
         Dialog->SetOptions(Options | FOS_PICKFOLDERS | FOS_FORCEFILESYSTEM | FOS_PATHMUSTEXIST | FOS_NOCHANGEDIR);
         Dialog->SetTitle(L"Choose Project Location");
+
         if (SUCCEEDED(Dialog->Show(static_cast<HWND>(Owner)))) {
             Microsoft::WRL::ComPtr<IShellItem> Item{};
             PWSTR Path{};
+
             if (SUCCEEDED(Dialog->GetResult(Item.GetAddressOf())) && SUCCEEDED(Item->GetDisplayName(SIGDN_FILESYSPATH, &Path))) {
                 Selected = Path;
                 CoTaskMemFree(Path);
             }
         }
     }
+
     Dialog.Reset();
+
     if (SUCCEEDED(Initialized)) {
         CoUninitialize();
     }
+
     return Selected;
 }

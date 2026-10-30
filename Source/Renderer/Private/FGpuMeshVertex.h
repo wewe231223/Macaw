@@ -50,6 +50,7 @@ public:
      */
     std::array<float, 3> mPosition{};
     ReflectProperty(mPosition, "Position", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 표면 또는 드래그 평면 법선입니다.
      */

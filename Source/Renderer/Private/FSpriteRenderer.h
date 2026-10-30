@@ -57,11 +57,13 @@ private:
          */
         FMatrix mTransform{};
         ReflectProperty(mTransform, "Transform", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
         /**
          * @brief XY 배율과 ZW 오프셋으로 구성된 UV 변환입니다.
          */
         FVector4 mUVTransform{1.0f, 1.0f, 0.0f, 0.0f};
         ReflectProperty(mUVTransform, "UVTransform", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
         /**
          * @brief 표시할 RGBA 색상입니다.
          */
@@ -74,6 +76,7 @@ public:
      * @brief 전달된 설정과 기본값으로 FSpriteRenderer 객체를 생성합니다.
      */
     FSpriteRenderer();
+
     /**
      * @brief 객체를 소멸하고 소유한 GPU 자원 또는 UV 제어 상태를 해제합니다.
      */
@@ -92,6 +95,7 @@ public:
      * @return 검증 또는 요청한 처리에 성공하면 true입니다.
      */
     bool Initialize(ID3D11Device* Device);
+
     /**
      * @brief 컴파일된 바이트코드로 정점·픽셀 셰이더를 생성하고 성공 시 교체합니다.
      * @param[in] Device 자원 생성에 사용할 Direct3D 장치의 비소유 주소입니다.
@@ -100,6 +104,7 @@ public:
      * @return 검증 또는 요청한 처리에 성공하면 true입니다.
      */
     bool CreateShaders(ID3D11Device* Device, std::span<const Uint8> VertexCode, std::span<const Uint8> PixelCode);
+
     /**
      * @brief 쿼드 정렬과 UV 변환을 반영하여 텍스처 스프라이트를 그립니다.
      * @param[in] Context 그리기 또는 편집에 사용할 컨텍스트의 비소유 주소입니다.
@@ -108,6 +113,7 @@ public:
      * @return 검증 또는 요청한 처리에 성공하면 true입니다.
      */
     bool Draw(ID3D11DeviceContext* Context, const FPrimitiveSceneProxy& Proxy, const FSceneView& View);
+
     /**
      * @brief 소유한 GPU 버퍼와 텍스처의 추정 바이트 수를 반환합니다.
      * @return 계산하거나 조회한 값입니다.
@@ -126,21 +132,25 @@ private:
      */
     Microsoft::WRL::ComPtr<ID3D11Buffer> mConstants{};
     ReflectProperty(mConstants, "Constants", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief GPU 정점 셰이더입니다.
      */
     Microsoft::WRL::ComPtr<ID3D11VertexShader> mVertexShader{};
     ReflectProperty(mVertexShader, "VertexShader", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief GPU 픽셀 셰이더입니다.
      */
     Microsoft::WRL::ComPtr<ID3D11PixelShader> mPixelShader{};
     ReflectProperty(mPixelShader, "PixelShader", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 텍스처 경계에서 클램프하는 샘플러입니다.
      */
     Microsoft::WRL::ComPtr<ID3D11SamplerState> mSampler{};
     ReflectProperty(mSampler, "Sampler", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 기본 4×4 SubUV 아틀라스의 소유 객체입니다.
      */

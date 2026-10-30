@@ -16,6 +16,7 @@ FLightSceneProxy UPointLightComponent::CreateLightProxy() const {
     Proxy.mType = ELightType::Point;
     Proxy.mAttenuationRadius = mAttenuationRadius;
     Proxy.mLightFalloffExponent = mLightFalloffExponent;
+
     return Proxy;
 }
 
@@ -27,8 +28,10 @@ bool UPointLightComponent::SetAttenuationRadius(float AttenuationRadius) {
     if (!std::isfinite(AttenuationRadius) || AttenuationRadius <= 0.0f) {
         return false;
     }
+
     mAttenuationRadius = AttenuationRadius;
     SynchronizeLight();
+
     return true;
 }
 
@@ -40,7 +43,9 @@ bool UPointLightComponent::SetLightFalloffExponent(float LightFalloffExponent) {
     if (!std::isfinite(LightFalloffExponent) || LightFalloffExponent < 0.0f) {
         return false;
     }
+
     mLightFalloffExponent = LightFalloffExponent;
     SynchronizeLight();
+
     return true;
 }

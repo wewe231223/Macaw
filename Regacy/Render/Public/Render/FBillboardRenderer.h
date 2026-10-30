@@ -2,6 +2,7 @@
  * @file FBillboardRenderer.h
  * @brief 전역 에셋 조회를 사용하는 빌보드 렌더러를 정의합니다.
  */
+
 #pragma once
 #include "Render/FRenderAssetResources.h"
 #include <d3d11.h>
@@ -58,6 +59,7 @@ public:
 
 public:
     bool Initialize(ID3D11Device* InDevice, std::uint32_t InitialCapacity = 256);
+
     /**
      * @brief 전역 텍스처와 파이프라인으로 빌보드를 렌더링합니다.
      * @param Context 그래픽 명령 컨텍스트입니다.

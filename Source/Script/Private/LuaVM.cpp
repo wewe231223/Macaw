@@ -26,14 +26,17 @@ namespace {
      * @brief Lua 문자열 실행 시간를 측정하는 통계 항목입니다.
      */
     FStat ExecuteStringTime{"script", "Execute string CPU", EStatUnit::Milliseconds};
+
     /**
      * @brief Lua 파일 실행 시간를 측정하는 통계 항목입니다.
      */
     FStat ExecuteFileTime{"script", "Execute file CPU", EStatUnit::Milliseconds};
+
     /**
      * @brief Lua 실행 오류 횟수를 측정하는 통계 항목입니다.
      */
     FStat LuaErrors{"script", "Lua errors"};
+
     /**
      * @brief Lua 기본 타입의 값을 로그에 표시할 문자열로 변환합니다.
      * @param[in] Value 읽거나 기록·변환할 값입니다.
@@ -148,12 +151,14 @@ namespace {
      */
     bool SetActorLocation(AActor& Actor, const FVector& NewLocation) {
         USceneComponent* RootComponent{Actor.GetRootComponent()};
+
         if (RootComponent == nullptr) {
             return false;
         }
 
         FTransform Transform{RootComponent->GetTransform()};
         Transform.mLocation = NewLocation;
+
         return RootComponent->SetTransform(Transform);
     }
 
@@ -175,11 +180,13 @@ namespace {
      */
     bool SetActorRotation(AActor& Actor, const FRotator& NewRotation) {
         USceneComponent* RootComponent{Actor.GetRootComponent()};
+
         if (RootComponent == nullptr) {
             return false;
         }
 
         FTransform Transform{RootComponent->GetTransform()};
+
         return Transform.SetRotator(NewRotation) && RootComponent->SetTransform(Transform);
     }
 
@@ -201,12 +208,14 @@ namespace {
      */
     bool SetActorScale3D(AActor& Actor, const FVector& NewScale) {
         USceneComponent* RootComponent{Actor.GetRootComponent()};
+
         if (RootComponent == nullptr) {
             return false;
         }
 
         FTransform Transform{RootComponent->GetTransform()};
         Transform.mScale = NewScale;
+
         return RootComponent->SetTransform(Transform);
     }
 
@@ -246,6 +255,7 @@ bool FLuaVM::Initialize() {
         mState->open_libraries(sol::lib::base, sol::lib::package, sol::lib::coroutine, sol::lib::string, sol::lib::table, sol::lib::math);
         BindEngineAPI();
         WriteLog(std::format("[Lua] VM initialized with {}", LUAJIT_VERSION));
+
         return true;
     } catch (const std::exception& Exception) {
         WriteLog(std::format("[Lua] VM initialization failed: {}", Exception.what()));
@@ -265,17 +275,20 @@ void FLuaVM::Shutdown() {
 
 bool FLuaVM::ExecuteString(const FString& Source, const FString& ChunkName) {
     const FScopedStatTimer StatTimer{ExecuteStringTime};
+
     if (mState == nullptr) {
         WriteLog(std::format("[Lua] Cannot execute '{}': VM is not initialized", ChunkName));
         return false;
     }
 
     sol::protected_function_result Result{mState->safe_script(Source, sol::script_pass_on_error, ChunkName)};
+
     return CheckLuaResult(Result, ChunkName);
 }
 
 bool FLuaVM::ExecuteFile(const FString& ScriptPath) {
     const FScopedStatTimer StatTimer{ExecuteFileTime};
+
     if (mState == nullptr) {
         WriteLog(std::format("[Lua] Cannot execute '{}': VM is not initialized", ScriptPath));
         return false;
@@ -287,6 +300,7 @@ bool FLuaVM::ExecuteFile(const FString& ScriptPath) {
     }
 
     sol::protected_function_result Result{mState->safe_script_file(ScriptPath, sol::script_pass_on_error)};
+
     return CheckLuaResult(Result, ScriptPath);
 }
 
@@ -346,8 +360,10 @@ bool FLuaVM::CheckLuaResult(sol::protected_function_result& Result, const FStrin
     }
 
     const sol::error Error{Result.get<sol::error>()};
+
     LuaErrors.Add();
     WriteLog(std::format("[Lua] {} failed: {}", Context, Error.what()));
+
     return false;
 }
 

@@ -24,6 +24,7 @@ public:
      * @brief ULightComponent의 기본 상태를 초기화합니다.
      */
     ULightComponent();
+
     /**
      * @brief ULightComponent 객체의 수명을 끝내고 소유 자원을 정리합니다.
      */
@@ -41,61 +42,72 @@ public:
      * @return 광원의 그림자 생성 여부입니다.
      */
     bool GetCastShadows() const;
+
     /**
      * @brief 광원의 그림자 생성 여부를 검증하고 변경합니다.
      * @param[in] CastShadows 광원이 그림자를 생성하도록 설정하려면 true입니다.
      * @return 입력값을 수락하고 상태를 갱신하면 true이며 잘못된 값이면 false입니다.
      */
     bool SetCastShadows(bool CastShadows);
+
     /**
      * @brief 기본 그림자 맵의 한 변 해상도를 반환합니다.
      * @return 기본 그림자 맵의 한 변 해상도입니다.
      */
     Uint32 GetShadowResolution() const;
+
     /**
      * @brief 기본 그림자 맵의 한 변 해상도를 검증하고 변경합니다.
      * @param[in] Resolution 64 이상 8192 이하인 2의 거듭제곱 해상도입니다.
      * @return 입력값을 수락하고 상태를 갱신하면 true이며 잘못된 값이면 false입니다.
      */
     bool SetShadowResolution(Uint32 Resolution);
+
     /**
      * @brief 그림자 해상도 배율을 반환합니다.
      * @return 그림자 해상도 배율입니다.
      */
     float GetShadowResolutionScale() const;
+
     /**
      * @brief 그림자 해상도 배율을 검증하고 변경합니다.
      * @param[in] Scale 0.125 이상 8 이하인 유한한 해상도 배율입니다.
      * @return 입력값을 수락하고 상태를 갱신하면 true이며 잘못된 값이면 false입니다.
      */
     bool SetShadowResolutionScale(float Scale);
+
     /**
      * @brief 그림자 깊이 비교의 상수 바이어스를 반환합니다.
      * @return 그림자 깊이 비교의 상수 바이어스입니다.
      */
     float GetShadowBias() const;
+
     /**
      * @brief 그림자 깊이 비교의 상수 바이어스를 검증하고 변경합니다.
      * @param[in] Bias 0 이상 0.1 이하인 유한한 깊이 바이어스입니다.
      * @return 입력값을 수락하고 상태를 갱신하면 true이며 잘못된 값이면 false입니다.
      */
     bool SetShadowBias(float Bias);
+
     /**
      * @brief 표면 기울기에 따른 그림자 바이어스 배율을 반환합니다.
      * @return 표면 기울기에 따른 그림자 바이어스 배율입니다.
      */
     float GetShadowSlopeBias() const;
+
     /**
      * @brief 표면 기울기에 따른 그림자 바이어스 배율을 검증하고 변경합니다.
      * @param[in] Bias 0 이상 16 이하인 유한한 기울기 바이어스입니다.
      * @return 입력값을 수락하고 상태를 갱신하면 true이며 잘못된 값이면 false입니다.
      */
     bool SetShadowSlopeBias(float Bias);
+
     /**
      * @brief 그림자 경계의 선명도 조절값을 반환합니다.
      * @return 그림자 경계의 선명도 조절값입니다.
      */
     float GetShadowSharpen() const;
+
     /**
      * @brief 그림자 경계의 선명도 조절값을 검증하고 변경합니다.
      * @param[in] Sharpen 0 이상 10 이하인 유한한 경계 선명도입니다.
@@ -121,26 +133,31 @@ private:
      */
     bool mCastShadows{true};
     ReflectAccessor(mCastShadows, GetCastShadows, SetCastShadows, "CastShadows", EPropertyFlags::Edit | EPropertyFlags::Serialize);
+
     /**
      * @brief 기본 그림자 맵의 한 변 해상도입니다.
      */
     Uint32 mShadowResolution{1024};
     ReflectAccessor(mShadowResolution, GetShadowResolution, SetShadowResolution, "ShadowResolution", EPropertyFlags::Edit | EPropertyFlags::Serialize);
+
     /**
      * @brief 그림자 해상도 배율입니다.
      */
     float mShadowResolutionScale{1.0f};
     ReflectAccessor(mShadowResolutionScale, GetShadowResolutionScale, SetShadowResolutionScale, "ShadowResolutionScale", EPropertyFlags::Edit | EPropertyFlags::Serialize);
+
     /**
      * @brief 그림자 깊이 비교의 상수 바이어스입니다.
      */
     float mShadowBias{0.0005f};
     ReflectAccessor(mShadowBias, GetShadowBias, SetShadowBias, "ShadowBias", EPropertyFlags::Edit | EPropertyFlags::Serialize);
+
     /**
      * @brief 표면 기울기에 따른 그림자 바이어스 배율입니다.
      */
     float mShadowSlopeBias{1.0f};
     ReflectAccessor(mShadowSlopeBias, GetShadowSlopeBias, SetShadowSlopeBias, "ShadowSlopeBias", EPropertyFlags::Edit | EPropertyFlags::Serialize);
+
     /**
      * @brief 그림자 경계의 선명도 조절값입니다.
      */

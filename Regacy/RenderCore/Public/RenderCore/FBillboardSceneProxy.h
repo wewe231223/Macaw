@@ -2,6 +2,7 @@
  * @file FBillboardSceneProxy.h
  * @brief 빌보드 상태와 UV 범위를 동적 그리기 인터페이스에 전달하는 프록시를 정의합니다.
  */
+
 #pragma once
 #include "RenderCore/FPrimitiveSceneProxy.h"
 #include "RenderCore/FRenderData.h"
@@ -19,6 +20,7 @@ public:
      * @param Data 보관할 빌보드 그리기 데이터입니다.
      */
     FBillboardSceneProxy(FObjectHandle ComponentHandle, FObjectHandle OwnerHandle, const FPrimitiveTransform& Transform, FBillboardDrawData Data);
+
     /**
      * @brief 빌보드 프록시를 해제합니다. 참조한 에셋을 직접 삭제하지 않습니다.
      */
@@ -31,6 +33,7 @@ public:
      * @note 저장된 원본 UV는 유지하며 현재 프록시의 월드 행렬을 별도 인수로 전달합니다.
      */
     void GetDynamicMeshElements(FDynamicPrimitiveDrawInterface& DrawInterface) const override;
+
     /**
      * @brief UV 변환 적용 전의 빌보드 UV 범위를 교체합니다.
      * @param UVMin 최소 UV 좌표입니다.

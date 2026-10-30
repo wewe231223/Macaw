@@ -2,6 +2,7 @@
  * @file IAssetRegistry.h
  * @brief 에셋 식별자 해석, 타입별 핸들 조회와 기본 렌더링 에셋 확보의 인터페이스를 제공합니다.
  */
+
 #pragma once
 #include "CoreUObject/Reflection/UClass.h"
 #include "Core/Base/FAssetHandle.h"

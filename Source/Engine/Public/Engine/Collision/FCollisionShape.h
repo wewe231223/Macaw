@@ -62,18 +62,21 @@ public:
      * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며 사용할 수 없으면 nullptr입니다.
      */
     ReflectStruct(FCollisionShape);
+
     /**
      * @brief 축별 반길이로 상자 충돌 형상을 만듭니다.
      * @param[in] HalfExtent 상자의 로컬 축별 반길이입니다.
      * @return 계산하거나 조회한 값입니다.
      */
     static FCollisionShape MakeBox(const FVector& HalfExtent);
+
     /**
      * @brief 반지름으로 구 충돌 형상을 만듭니다.
      * @param[in] Radius 형상 반지름입니다.
      * @return 계산하거나 조회한 값입니다.
      */
     static FCollisionShape MakeSphere(float Radius);
+
     /**
      * @brief 반지름과 전체 반높이로 캡슐 충돌 형상을 만듭니다.
      * @param[in] Radius 형상 반지름입니다.
@@ -81,36 +84,43 @@ public:
      * @return 계산하거나 조회한 값입니다.
      */
     static FCollisionShape MakeCapsule(float Radius, float HalfHeight);
+
     /**
      * @brief 상자 충돌 형상인지 검사합니다.
      * @return 조건을 만족하면 true입니다.
      */
     bool IsBox() const;
+
     /**
      * @brief 구 충돌 형상인지 검사합니다.
      * @return 조건을 만족하면 true입니다.
      */
     bool IsSphere() const;
+
     /**
      * @brief 캡슐 충돌 형상인지 검사합니다.
      * @return 조건을 만족하면 true입니다.
      */
     bool IsCapsule() const;
+
     /**
      * @brief 반구를 제외한 캡슐 중심 선분 반길이를 반환합니다.
      * @return 계산하거나 조회한 값입니다.
      */
     float GetCapsuleAxisHalfLength() const;
+
     /**
      * @brief 상자의 로컬 축별 반길이를 반환합니다.
      * @return 이 객체 또는 공유 이름 풀이 유지하는 값의 참조입니다.
      */
     const FVector& GetBoxHalfExtent() const;
+
     /**
      * @brief 충돌 형상의 반지름을 반환합니다.
      * @return 계산하거나 조회한 값입니다.
      */
     float GetRadius() const;
+
     /**
      * @brief 반구를 포함한 캡슐 반높이를 반환합니다.
      * @return 계산하거나 조회한 값입니다.
@@ -129,16 +139,19 @@ private:
      */
     ECollisionShape mShapeType{ECollisionShape::None};
     ReflectProperty(mShapeType, "ShapeType", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 상자의 로컬 축별 반길이입니다.
      */
     FVector mBoxHalfExtent{};
     ReflectProperty(mBoxHalfExtent, "BoxHalfExtent", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 충돌 형상의 반지름입니다.
      */
     float mRadius{};
     ReflectProperty(mRadius, "Radius", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 반구를 포함한 캡슐 반높이입니다.
      */
@@ -162,31 +175,37 @@ public:
      * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며 사용할 수 없으면 nullptr입니다.
      */
     ReflectStruct(FCollisionContact);
+
     /**
      * @brief 충돌면의 단위 법선을 반환합니다.
      * @return 이 객체 또는 공유 이름 풀이 유지하는 값의 참조입니다.
      */
     const FVector& GetNormal() const;
+
     /**
      * @brief 충돌면의 단위 법선을 설정합니다.
      * @param[in] Value 설정하거나 읽을 값입니다.
      */
     void SetNormal(const FVector& Value);
+
     /**
      * @brief 초기 겹침을 해소할 침투 깊이를 반환합니다.
      * @return 계산하거나 조회한 값입니다.
      */
     float GetPenetrationDepth() const;
+
     /**
      * @brief 초기 겹침을 해소할 침투 깊이를 설정합니다.
      * @param[in] Value 설정하거나 읽을 값입니다.
      */
     void SetPenetrationDepth(float Value);
+
     /**
      * @brief 월드 접촉점을 반환합니다.
      * @return 이 객체 또는 공유 이름 풀이 유지하는 값의 참조입니다.
      */
     const FVector& GetPoint() const;
+
     /**
      * @brief 월드 접촉점을 설정합니다.
      * @param[in] Value 설정하거나 읽을 값입니다.
@@ -205,11 +224,13 @@ private:
      */
     FVector mNormal{};
     ReflectProperty(mNormal, "Normal", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 초기 겹침을 해소할 침투 깊이입니다.
      */
     float mPenetrationDepth{};
     ReflectProperty(mPenetrationDepth, "PenetrationDepth", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 월드 접촉점입니다.
      */
@@ -232,6 +253,7 @@ public:
      * @brief 전달된 설정과 기본값으로 FCapsuleSegment 객체를 생성합니다.
      */
     FCapsuleSegment() = default;
+
     /**
      * @brief 전달된 설정과 기본값으로 FCapsuleSegment 객체를 생성합니다.
      * @param[in] InA 캡슐 중심 선분의 시작점입니다.
@@ -246,31 +268,37 @@ public:
      * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며 사용할 수 없으면 nullptr입니다.
      */
     ReflectStruct(FCapsuleSegment);
+
     /**
      * @brief 캡슐 중심 선분의 시작점을 반환합니다.
      * @return 이 객체 또는 공유 이름 풀이 유지하는 값의 참조입니다.
      */
     const FVector& GetA() const;
+
     /**
      * @brief 캡슐 중심 선분의 시작점을 설정합니다.
      * @param[in] Value 설정하거나 읽을 값입니다.
      */
     void SetA(const FVector& Value);
+
     /**
      * @brief 캡슐 중심 선분의 끝점을 반환합니다.
      * @return 이 객체 또는 공유 이름 풀이 유지하는 값의 참조입니다.
      */
     const FVector& GetB() const;
+
     /**
      * @brief 캡슐 중심 선분의 끝점을 설정합니다.
      * @param[in] Value 설정하거나 읽을 값입니다.
      */
     void SetB(const FVector& Value);
+
     /**
      * @brief 충돌 형상의 반지름을 반환합니다.
      * @return 계산하거나 조회한 값입니다.
      */
     float GetRadius() const;
+
     /**
      * @brief 충돌 형상의 반지름을 설정합니다.
      * @param[in] Value 설정하거나 읽을 값입니다.
@@ -289,11 +317,13 @@ private:
      */
     FVector mA{};
     ReflectProperty(mA, "A", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 캡슐 중심 선분의 끝점입니다.
      */
     FVector mB{};
     ReflectProperty(mB, "B", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 충돌 형상의 반지름입니다.
      */
@@ -316,6 +346,7 @@ public:
      * @brief 전달된 설정과 기본값으로 FOrientedBox 객체를 생성합니다.
      */
     FOrientedBox() = default;
+
     /**
      * @brief 전달된 설정과 기본값으로 FOrientedBox 객체를 생성합니다.
      * @param[in] InCenter 상자의 월드 중심입니다.
@@ -330,31 +361,37 @@ public:
      * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며 사용할 수 없으면 nullptr입니다.
      */
     ReflectStruct(FOrientedBox);
+
     /**
      * @brief 월드 중심 위치를 반환합니다.
      * @return 이 객체 또는 공유 이름 풀이 유지하는 값의 참조입니다.
      */
     const FVector& GetCenter() const;
+
     /**
      * @brief 월드 중심 위치를 설정합니다.
      * @param[in] Value 설정하거나 읽을 값입니다.
      */
     void SetCenter(const FVector& Value);
+
     /**
      * @brief 회전 상자의 세 기저 축을 반환합니다.
      * @return 이 객체 또는 공유 이름 풀이 유지하는 값의 참조입니다.
      */
     const std::array<FVector, 3>& GetAxis() const;
+
     /**
      * @brief 회전 상자의 세 기저 축을 설정합니다.
      * @param[in] Value 설정하거나 읽을 값입니다.
      */
     void SetAxis(const std::array<FVector, 3>& Value);
+
     /**
      * @brief 각 축의 반길이를 반환합니다.
      * @return 이 객체 또는 공유 이름 풀이 유지하는 값의 참조입니다.
      */
     const FVector& GetExtent() const;
+
     /**
      * @brief 각 축의 반길이를 설정합니다.
      * @param[in] Value 설정하거나 읽을 값입니다.
@@ -373,11 +410,13 @@ private:
      */
     FVector mCenter{};
     ReflectProperty(mCenter, "Center", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 회전 상자의 세 기저 축입니다.
      */
     std::array<FVector, 3> mAxis{};
     ReflectProperty(mAxis, "Axis", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 각 축의 반길이입니다.
      */
@@ -400,6 +439,7 @@ public:
      * @brief 전달된 설정과 기본값으로 FSweepTarget 객체를 생성합니다.
      */
     FSweepTarget() = default;
+
     /**
      * @brief 전달된 설정과 기본값으로 FSweepTarget 객체를 생성합니다.
      * @param[in] InShape 대상의 충돌 형상입니다.
@@ -414,31 +454,37 @@ public:
      * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며 사용할 수 없으면 nullptr입니다.
      */
     ReflectStruct(FSweepTarget);
+
     /**
      * @brief 충돌 형상을 반환합니다.
      * @return 이 객체 또는 공유 이름 풀이 유지하는 값의 참조입니다.
      */
     const FCollisionShape& GetShape() const;
+
     /**
      * @brief 충돌 형상을 설정합니다.
      * @param[in] Value 설정하거나 읽을 값입니다.
      */
     void SetShape(const FCollisionShape& Value);
+
     /**
      * @brief 월드 위치를 반환합니다.
      * @return 이 객체 또는 공유 이름 풀이 유지하는 값의 참조입니다.
      */
     const FVector& GetPos() const;
+
     /**
      * @brief 월드 위치를 설정합니다.
      * @param[in] Value 설정하거나 읽을 값입니다.
      */
     void SetPos(const FVector& Value);
+
     /**
      * @brief 월드 회전을 반환합니다.
      * @return 이 객체 또는 공유 이름 풀이 유지하는 값의 참조입니다.
      */
     const FQuat& GetRot() const;
+
     /**
      * @brief 월드 회전을 설정합니다.
      * @param[in] Value 설정하거나 읽을 값입니다.
@@ -457,11 +503,13 @@ private:
      */
     FCollisionShape mShape{};
     ReflectProperty(mShape, "Shape", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 월드 위치입니다.
      */
     FVector mPos{};
     ReflectProperty(mPos, "Pos", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 월드 회전입니다.
      */
@@ -485,51 +533,61 @@ public:
      * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며 사용할 수 없으면 nullptr입니다.
      */
     ReflectStruct(FSweepResult);
+
     /**
      * @brief 이동을 차단하는 충돌 여부를 반환합니다.
      * @return 조건을 만족하면 true입니다.
      */
     bool GetBlockingHit() const;
+
     /**
      * @brief 이동을 차단하는 충돌 여부를 설정합니다.
      * @param[in] Value 설정하거나 읽을 값입니다.
      */
     void SetBlockingHit(bool Value);
+
     /**
      * @brief 추적 시작부터 겹친 상태를 반환합니다.
      * @return 조건을 만족하면 true입니다.
      */
     bool GetStartPenetrating() const;
+
     /**
      * @brief 추적 시작부터 겹친 상태를 설정합니다.
      * @param[in] Value 설정하거나 읽을 값입니다.
      */
     void SetStartPenetrating(bool Value);
+
     /**
      * @brief 전체 추적 거리에서 적중한 비율을 반환합니다.
      * @return 계산하거나 조회한 값입니다.
      */
     float GetTime() const;
+
     /**
      * @brief 전체 추적 거리에서 적중한 비율을 설정합니다.
      * @param[in] Value 설정하거나 읽을 값입니다.
      */
     void SetTime(float Value);
+
     /**
      * @brief 적중한 스윕 대상의 인덱스를 반환합니다.
      * @return 계산하거나 조회한 값입니다.
      */
     Int32 GetTargetIndex() const;
+
     /**
      * @brief 적중한 스윕 대상의 인덱스를 설정합니다.
      * @param[in] Value 설정하거나 읽을 값입니다.
      */
     void SetTargetIndex(Int32 Value);
+
     /**
      * @brief 충돌 접촉 정보를 반환합니다.
      * @return 이 객체 또는 공유 이름 풀이 유지하는 값의 참조입니다.
      */
     const FCollisionContact& GetContact() const;
+
     /**
      * @brief 충돌 접촉 정보를 설정합니다.
      * @param[in] Value 설정하거나 읽을 값입니다.
@@ -548,21 +606,25 @@ private:
      */
     bool mBlockingHit{};
     ReflectProperty(mBlockingHit, "BlockingHit", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 추적 시작부터 겹친 상태입니다.
      */
     bool mStartPenetrating{};
     ReflectProperty(mStartPenetrating, "StartPenetrating", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 전체 추적 거리에서 적중한 비율입니다.
      */
     float mTime{1.0f};
     ReflectProperty(mTime, "Time", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 적중한 스윕 대상의 인덱스입니다.
      */
     Int32 mTargetIndex{-1};
     ReflectProperty(mTargetIndex, "TargetIndex", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 충돌 접촉 정보입니다.
      */
@@ -582,6 +644,7 @@ namespace Collision {
      * @return 계산하거나 조회한 값입니다.
      */
     FCapsuleSegment ToCapsuleSegment(const FCollisionShape& Shape, const FVector& Pos, const FQuat& Rot);
+
     /**
      * @brief 로컬 상자를 월드 중심·기저·반길이로 변환합니다.
      * @param[in] Shape 검사할 로컬 충돌 형상입니다.
@@ -612,6 +675,7 @@ namespace Collision {
      * @return 검증 또는 요청한 처리에 성공하면 true입니다.
      */
     bool OverlapCapsuleCapsule(const FCapsuleSegment& A, const FCapsuleSegment& B, FCollisionContact* OutContact);
+
     /**
      * @brief 캡슐 선분과 회전 상자의 거리로 겹침을 계산합니다.
      * @param[in] Capsule 검사할 월드 캡슐입니다.
@@ -620,6 +684,7 @@ namespace Collision {
      * @return 검증 또는 요청한 처리에 성공하면 true입니다.
      */
     bool OverlapCapsuleBox(const FCapsuleSegment& Capsule, const FOrientedBox& Box, FCollisionContact* OutContact);
+
     /**
      * @brief 분리 축 검사로 두 회전 상자의 겹침을 계산합니다.
      * @param[in] A 첫 번째 검사 대상입니다.
@@ -637,6 +702,7 @@ namespace Collision {
      * @return 계산하거나 조회한 값입니다.
      */
     FVector ClosestPointOnSegment(const FVector& P, const FVector& A, const FVector& B);
+
     /**
      * @brief 두 선분의 최근접 점과 그 사이의 제곱 거리를 계산합니다.
      * @param[in] P1 첫 선분의 시작점입니다.
@@ -648,6 +714,7 @@ namespace Collision {
      * @return 계산하거나 조회한 값입니다.
      */
     float ClosestPointsSegmentSegment(const FVector& P1, const FVector& Q1, const FVector& P2, const FVector& Q2, FVector& OutC1, FVector& OutC2);
+
     /**
      * @brief 점을 회전 상자의 각 축 범위로 제한한 최근접 위치를 계산합니다.
      * @param[in] P 최근접 점을 구할 원본 위치입니다.

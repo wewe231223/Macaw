@@ -33,6 +33,7 @@ public:
      * @param[in,out] Context 월드 컨텍스트 또는 Direct3D 11 컨텍스트입니다.
      */
     FScene(ID3D11Device* Device, ID3D11DeviceContext* Context);
+
     /**
      * @brief 객체의 수명을 끝내고 소유한 리소스를 정리합니다.
      */
@@ -50,11 +51,13 @@ public:
      * @param[in] Proxy 장면에 복사할 광원 상태입니다.
      */
     void AddLight(const FLightSceneProxy& Proxy) override;
+
     /**
      * @brief 지정한 GUID의 광원을 렌더 장면에서 제거합니다.
      * @param[in] Id 제거할 광원의 GUID입니다.
      */
     void RemoveLight(const FGuid& Id) override;
+
     /**
      * @brief 장면에 등록된 광원 목록을 반환합니다.
      * @return 장면이 유지하는 광원 프록시 배열의 참조입니다.
@@ -65,6 +68,7 @@ public:
      * @copydoc FSceneInterface::AddPrimitive
      */
     void AddPrimitive(const FPrimitiveSceneProxy& Proxy) override;
+
     /**
      * @brief 지정한 프리미티브의 월드 행렬과 경계 상자를 갱신합니다.
      * @param[in] Id 장면 프리미티브의 식별자입니다.
@@ -72,6 +76,7 @@ public:
      * @param[in] Bounds 프리미티브의 월드 또는 로컬 경계 상자입니다.
      */
     void UpdatePrimitiveTransform(const FGuid& Id, const FMatrix& World, const FBox& Bounds) override;
+
     /**
      * @brief 식별자에 해당하는 프리미티브와 관련 GPU 리소스를 제거합니다.
      * @param[in] Id 장면 프리미티브의 식별자입니다.
@@ -83,6 +88,7 @@ public:
      * @return 현재 장면에 등록된 프리미티브 개수입니다.
      */
     std::size_t GetPrimitiveCount() const override;
+
     /**
      * @brief 프리미티브 추가, 제거 또는 변환 갱신 시 증가하는 장면 개정 번호를 반환합니다.
      * @return 프리미티브 추가, 제거 또는 변환 갱신 시 증가하는 장면 개정 번호입니다.
@@ -94,6 +100,7 @@ public:
      * @return 소유 객체가 유지하는 값의 참조입니다.
      */
     const TArray<FScenePrimitive>& GetPrimitives() const;
+
     /**
      * @brief 누적 변환 업로드 횟수를 반환하고 카운터를 초기화합니다.
      * @return 연산을 적용한 새 값입니다.
@@ -119,16 +126,19 @@ private:
      */
     TArray<FLightSceneProxy> mLights{};
     ReflectProperty(mLights, "Lights", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 광원 GUID를 조밀한 광원 배열의 인덱스에 연결합니다.
      */
     TMap<FGuid, std::size_t, FGuidHash> mLightIndices{};
     ReflectProperty(mLightIndices, "LightIndices", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 장면의 GPU 자원 생성에 사용할 Direct3D 장치의 비소유 주소입니다.
      */
     ID3D11Device* mDevice{};
     ReflectProperty(mDevice, "Device", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief Direct3D 11 즉시 컨텍스트입니다.
      */
@@ -141,6 +151,7 @@ private:
      */
     TArray<FScenePrimitive> mPrimitives{};
     ReflectProperty(mPrimitives, "Primitives", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 프리미티브 GUID에서 밀집 배열 인덱스로의 조회 맵입니다.
      */
@@ -153,6 +164,7 @@ private:
      */
     Uint64 mRevision{};
     ReflectProperty(mRevision, "Revision", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 소비 전 누적된 객체 상수 버퍼 갱신 수입니다.
      */

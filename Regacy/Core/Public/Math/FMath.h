@@ -2,6 +2,7 @@
  * @file FMath.h
  * @brief 엔진 수학 타입, 기하 타입 별칭과 스칼라 비교·각도 변환 함수를 제공합니다.
  */
+
 #pragma once
 
 #include <cmath>
@@ -23,10 +24,12 @@
  * @brief DirectX SimpleMath의 평면 타입 별칭입니다.
  */
 using FPlane = DirectX::SimpleMath::Plane;
+
 /**
  * @brief DirectX SimpleMath의 시작점과 방향으로 표현하는 광선 타입 별칭입니다.
  */
 using FRay = DirectX::SimpleMath::Ray;
+
 /**
  * @brief DirectX의 시야 절두체 타입 별칭입니다.
  */

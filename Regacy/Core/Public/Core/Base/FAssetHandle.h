@@ -2,6 +2,7 @@
  * @file FAssetHandle.h
  * @brief 에셋 슬롯 ID와 세대 값으로 구성된 런타임 핸들을 정의한다.
  */
+
 #pragma once
 
 #include "Core/CoreMinimal.h"
@@ -17,6 +18,7 @@ class FArchive;
 struct FAssetHandle {
     /** @brief 레지스트리 내 에셋 슬롯 인덱스. Uint32의 최댓값은 슬롯이 지정되지 않았음을 나타낸다. */
     Uint32 mId{std::numeric_limits<Uint32>::max()};
+
     /** @brief 같은 슬롯을 재사용할 때 이전 핸들과 구분하는 세대 값. 기본값은 0이다. */
     Uint32 mGeneration{0};
 

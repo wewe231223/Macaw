@@ -24,6 +24,7 @@ public:
      * @brief UDirectionalLightComponent의 기본 상태를 초기화합니다.
      */
     UDirectionalLightComponent();
+
     /**
      * @brief UDirectionalLightComponent 객체의 수명을 끝내고 소유 자원을 정리합니다.
      */
@@ -41,28 +42,33 @@ public:
      * @return 방향광 그림자의 캐스케이드 개수입니다.
      */
     Uint32 GetCascadeCount() const;
+
     /**
      * @brief 방향광 그림자의 캐스케이드 개수를 검증하고 변경합니다.
      * @param[in] Count 1 이상 4 이하인 캐스케이드 개수입니다.
      * @return 입력값을 수락하고 상태를 갱신하면 true이며 잘못된 값이면 false입니다.
      */
     bool SetCascadeCount(Uint32 Count);
+
     /**
      * @brief 방향광 그림자의 최대 표시 거리를 반환합니다.
      * @return 방향광 그림자의 최대 표시 거리입니다.
      */
     float GetShadowDistance() const;
+
     /**
      * @brief 방향광 그림자의 최대 표시 거리를 검증하고 변경합니다.
      * @param[in] Distance 1 이상 100000 이하인 유한한 그림자 표시 거리입니다.
      * @return 입력값을 수락하고 상태를 갱신하면 true이며 잘못된 값이면 false입니다.
      */
     bool SetShadowDistance(float Distance);
+
     /**
      * @brief 각 캐스케이드 구간에서 전환에 사용하는 비율을 반환합니다.
      * @return 각 캐스케이드 구간에서 전환에 사용하는 비율입니다.
      */
     float GetCascadeTransitionFraction() const;
+
     /**
      * @brief 각 캐스케이드 구간에서 전환에 사용하는 비율을 검증하고 변경합니다.
      * @param[in] Fraction 0 이상 0.5 이하인 유한한 캐스케이드 전환 비율입니다.
@@ -88,11 +94,13 @@ private:
      */
     Uint32 mCascadeCount{4};
     ReflectAccessor(mCascadeCount, GetCascadeCount, SetCascadeCount, "CascadeCount", EPropertyFlags::Edit | EPropertyFlags::Serialize);
+
     /**
      * @brief 방향광 그림자의 최대 표시 거리입니다.
      */
     float mShadowDistance{100.0f};
     ReflectAccessor(mShadowDistance, GetShadowDistance, SetShadowDistance, "ShadowDistance", EPropertyFlags::Edit | EPropertyFlags::Serialize);
+
     /**
      * @brief 각 캐스케이드 구간에서 전환에 사용하는 비율입니다.
      */

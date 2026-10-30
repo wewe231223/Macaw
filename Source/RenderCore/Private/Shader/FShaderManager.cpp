@@ -14,29 +14,34 @@ FShaderManager::FShaderManager(std::filesystem::path CacheDirectory)
 
 std::shared_ptr<const FShader> FShaderManager::Load(const FShaderDescription& Description, FString& Diagnostics) {
     FShaderDescription Normalized{Description};
+
     if (!Normalized.Normalize(Diagnostics)) {
         return nullptr;
     }
 
     const FString Key{Normalized.GetCacheKey()};
+
     if (Key.empty()) {
         Diagnostics = "Cannot compute shader cache key";
         return nullptr;
     }
 
     const auto Existing{mShaders.find(Key)};
+
     if (Existing != mShaders.end()) {
         return Existing->second;
     }
 
     FShaderCompilation Compilation{};
     bool LoadedFromCache{};
+
     if (!LoadCompilation(Normalized, Compilation, LoadedFromCache, Diagnostics)) {
         return nullptr;
     }
 
     auto Shader{std::make_shared<FShader>(std::move(Normalized), Key, std::move(Compilation), LoadedFromCache)};
     mShaders.emplace(Key, Shader);
+
     return Shader;
 }
 
@@ -47,9 +52,12 @@ bool FShaderManager::HasChanges(const FShader& Shader) const {
 bool FShaderManager::ReloadChanged(TArray<std::shared_ptr<const FShader>>& ChangedShaders, FString& Diagnostics) {
     ChangedShaders.clear();
     Diagnostics.clear();
+
     bool Success{true};
+
     for (const auto& Entry : mShaders) {
         const std::shared_ptr<FShader>& Shader{Entry.second};
+
         if (!HasChanges(*Shader)) {
             continue;
         }
@@ -57,6 +65,7 @@ bool FShaderManager::ReloadChanged(TArray<std::shared_ptr<const FShader>>& Chang
         FShaderCompilation Compilation{};
         bool LoadedFromCache{};
         FString Message{};
+
         if (!LoadCompilation(Shader->GetDescription(), Compilation, LoadedFromCache, Message)) {
             Success = false;
         } else {
@@ -83,6 +92,7 @@ void FShaderManager::SetCacheDirectory(std::filesystem::path Directory) {
 
 bool FShaderManager::LoadCompilation(const FShaderDescription& Description, FShaderCompilation& Compilation, bool& LoadedFromCache, FString& Diagnostics) const {
     LoadedFromCache = mCache.Load(Description, Compilation, Diagnostics);
+
     if (LoadedFromCache) {
         return true;
     }
@@ -92,6 +102,7 @@ bool FShaderManager::LoadCompilation(const FShaderDescription& Description, FSha
     }
 
     FString CacheDiagnostics{};
+
     if (!mCache.Save(Description, Compilation, CacheDiagnostics)) {
         Diagnostics += "\n" + CacheDiagnostics;
     }

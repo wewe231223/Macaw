@@ -16,8 +16,10 @@ bool AAmbientLightActor::InitializeDefaultComponents() {
     if (!GetComponents().empty()) {
         return false;
     }
+
     auto Component{NewObject<UAmbientLightComponent>()};
     Component->SetName("AmbientLightComponent");
+
     return AddComponent(std::move(Component));
 }
 

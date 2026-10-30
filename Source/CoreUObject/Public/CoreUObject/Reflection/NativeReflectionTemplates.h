@@ -83,6 +83,7 @@ UScriptStruct* DefineNativeStruct(const char* Name) {
     }
 
     static UScriptStruct* Struct{FReflectionRegistry::DefineStruct(Name, GetNativeType<T>(), &BuildNativeReflection<T, UScriptStruct>, Parent)};
+
     return Struct;
 }
 
@@ -142,6 +143,7 @@ template <auto Member, auto Getter, auto Setter>
 bool WriteMemberProperty(void* Container, const FPropertyValue& Value) {
     using FOwner = typename TMemberPointerTraits<decltype(Member)>::FOwner;
     using FValue = std::remove_cvref_t<decltype(ReadMemberValue<Member, Getter>(std::declval<const FOwner*>()))>;
+
     if constexpr (GetNativePropertyType<FValue>() == EPropertyType::Opaque) {
         return false;
     } else {

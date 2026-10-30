@@ -58,46 +58,55 @@ public:
      */
     std::size_t mGpuBytes{};
     ReflectProperty(mGpuBytes, "GpuBytes", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 현재 뷰에 제출한 가시 방향광 개수입니다.
      */
     Uint32 mDirectionalLights{};
     ReflectProperty(mDirectionalLights, "DirectionalLights", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 현재 뷰에 제출한 가시 점광원 개수입니다.
      */
     Uint32 mPointLights{};
     ReflectProperty(mPointLights, "PointLights", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 현재 뷰에 제출한 가시 스포트라이트 개수입니다.
      */
     Uint32 mSpotLights{};
     ReflectProperty(mSpotLights, "SpotLights", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 현재 뷰에 할당한 그림자 맵 면·캐스케이드의 총개수입니다.
      */
     Uint32 mShadowMaps{};
     ReflectProperty(mShadowMaps, "ShadowMaps", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 그림자 깊이 패스에 제출한 드로 호출 수입니다.
      */
     Uint32 mShadowDrawCalls{};
     ReflectProperty(mShadowDrawCalls, "ShadowDrawCalls", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 아틀라스 공간 부족 등으로 그림자 생성을 생략한 광원 수입니다.
      */
     Uint32 mShadowDroppedLights{};
     ReflectProperty(mShadowDroppedLights, "ShadowDroppedLights", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 공간 확보를 위해 요청 해상도를 줄인 광원 수입니다.
      */
     Uint32 mShadowReducedLights{};
     ReflectProperty(mShadowReducedLights, "ShadowReducedLights", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 그림자 깊이 아틀라스의 전체 바이트 수입니다.
      */
     std::size_t mShadowAtlasBytes{};
     ReflectProperty(mShadowAtlasBytes, "ShadowAtlasBytes", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 보호 여백을 포함해 그림자 타일에 할당한 바이트 수입니다.
      */

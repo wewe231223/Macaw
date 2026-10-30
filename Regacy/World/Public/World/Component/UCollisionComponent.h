@@ -22,6 +22,7 @@ public:
     void SetCollisionEnabled(bool BEnabled);
 
     bool Raycast(const FRay& Ray, FWorldRaycastHit& OutHit, float MaxDistance) const;
+
     virtual void DrawEditorBounds(ILineDrawContext* LineContext, ELineDepthMode DepthMode) const = 0;
 
     ReflectClass(UCollisionComponent, EClassFlags::Abstract);
@@ -35,6 +36,7 @@ protected:
 
 private:
     ReflectAccessor(mBCollisionEnabled, IsCollisionEnabled, SetCollisionEnabled, "bCollisionEnabled", EPropertyFlags::Edit | EPropertyFlags::Serialize, ReflectSerializer(mBCollisionEnabled), ReflectEditor("Collision", "Collision Enabled"));
+
     bool mBCollisionEnabled{true};
 
     ReflectMembers();

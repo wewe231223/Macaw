@@ -47,9 +47,11 @@ public:
     ~AActor() override;
 
     AActor(const AActor&) = delete;
+
     AActor& operator=(const AActor&) = delete;
 
     AActor(AActor&&) = delete;
+
     AActor& operator=(AActor&&) = delete;
 
 public:
@@ -63,6 +65,7 @@ public:
     T* AddComponent();
 
     UActorComponent* AddComponent(const UClass& Type);
+
     template <typename T>
         requires std::is_base_of_v<UActorComponent, T>
     T* CreateDefaultComponent(FName Name);
@@ -238,11 +241,13 @@ private:
 
 private:
     ReflectReadOnlyProperty(mComponents, "Components", EPropertyFlags::ReadOnly | EPropertyFlags::Owned);
+
     std::vector<std::unique_ptr<UActorComponent>> mComponents{};
     // 파괴 처리 후 메모리 해제를 기다리는 컴포넌트입니다.
     std::vector<std::unique_ptr<UActorComponent>> mPendingDestroyComponents{};
     FActorTickFunction mPrimaryActorTick{*this};
     ReflectReadOnlyProperty(mRootComponent, "GuidRootComponent", EPropertyFlags::Serialize | EPropertyFlags::ReadOnly | EPropertyFlags::Reference, &SerializeRootComponentProperty);
+
     USceneComponent* mRootComponent{nullptr};
 
     FGuid mPendingRootComponentGuid{};

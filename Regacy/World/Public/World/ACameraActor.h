@@ -12,6 +12,7 @@ public:
 
 public:
     ReflectClass(ACameraActor);
+
     UCameraComponent* GetCameraComponent() const;
 
 private:

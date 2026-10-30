@@ -3,6 +3,7 @@
  * @brief 메시 재질 슬롯의 이름과 에셋 경로입니다.
  * @ingroup Engine
  */
+
 #pragma once
 
 #include "Core/ReflectionMacros.h"
@@ -24,6 +25,7 @@ public:
      * @brief 비어 있는 재질 슬롯을 구성합니다.
      */
     FMeshMaterialSlot() = default;
+
     /**
      * @brief 재질 슬롯을 구성합니다.
      * @param Name 원본 재질 이름입니다.
@@ -37,11 +39,13 @@ public:
      * @return 등록된 구조체 메타데이터입니다.
      */
     ReflectStruct(FMeshMaterialSlot);
+
     /**
      * @brief 슬롯 이름을 반환합니다.
      * @return 원본 재질 이름의 참조입니다.
      */
     const FString& GetName() const;
+
     /**
      * @brief 재질 경로를 반환합니다.
      * @return Content 기준 재질 경로의 참조입니다.
@@ -60,6 +64,7 @@ private:
      */
     FString mName{};
     ReflectProperty(mName, "Name", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief Content 기준 .mtl 에셋 경로이며 빈 경로는 기본 재질입니다.
      */

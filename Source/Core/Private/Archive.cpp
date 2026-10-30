@@ -60,6 +60,7 @@ bool FArchive::RemapObjectReference(FGuid& Value) {
     }
 
     Value = Position->second;
+
     return true;
 }
 

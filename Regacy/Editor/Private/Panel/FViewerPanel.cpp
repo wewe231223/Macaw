@@ -34,6 +34,7 @@ FViewerPanel::FViewerPanel(HWND InputWindowHandle, FMessageChannel::FSender InEd
 void FViewerPanel::SetMesh(FAssetHandle InMeshHandle) {
     mMeshHandle = FAssetRegistry::Get().ResolveAsset<UMesh>(InMeshHandle) != nullptr ? InMeshHandle : FAssetRegistry::Get().FindAsset(FAssetPath{DefaultMeshPath});
     mMaterialOverrides.clear();
+
     const UMesh* Mesh{FAssetRegistry::Get().ResolveAsset<UMesh>(mMeshHandle)};
 
     mSelectedMaterialSlot = Mesh != nullptr ? Mesh->GetMaterialSlotName(0) : FName{};
@@ -150,6 +151,7 @@ void FViewerPanel::DrawMenuBar() {
 #else
             FString FilePath{OpenFileDialog(mWindowHandle, "./Content/ModelingFiles", "OBJ Files(*.obj)\0*.obj\0All Files(*.*)\0*.*\0", "obj")};
 #endif
+
             if (!FilePath.empty()) {
 #ifdef OBJ_VIEWER
                 OpenViewerFile(std::filesystem::path{FilePath.c_str()});
@@ -238,6 +240,7 @@ FMatrix FViewerPanel::MakeCameraWorldMatrix(const FVector3& Eye) const {
     Result.m_[3][0] = Eye.mX;
     Result.m_[3][1] = Eye.mY;
     Result.m_[3][2] = Eye.mZ;
+
     return Result;
 }
 
@@ -333,6 +336,7 @@ void FViewerPanel::RenderOffscreen(FRenderer& InRenderer) {
     View.mCamera = BuildPreviewCamera();
     View.mUseLOD = false;
     View.mSettings = PreviewSettings;
+
     FOverlayRenderData Overlay{};
 
     Overlay.mOrientationAxisSize = 100.0f;

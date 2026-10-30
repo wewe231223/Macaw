@@ -16,8 +16,10 @@ bool ASpotLightActor::InitializeDefaultComponents() {
     if (!GetComponents().empty()) {
         return false;
     }
+
     auto Component{NewObject<USpotLightComponent>()};
     Component->SetName("SpotLightComponent");
+
     return AddComponent(std::move(Component));
 }
 

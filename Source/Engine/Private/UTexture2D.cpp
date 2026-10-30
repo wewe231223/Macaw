@@ -87,6 +87,7 @@ bool UTexture2D::Configure(Uint32 SizeX, Uint32 SizeY, ETextureFormat Format, ET
     mPixels = TArray<Uint8>{};
     mDDSData = TArray<Uint8>{};
     mExternalResource = false;
+
     return true;
 }
 
@@ -113,6 +114,7 @@ bool UTexture2D::SetPixels(Uint32 SizeX, Uint32 SizeY, ETextureFormat Format, TA
     mSRGB = SRGB;
     mExternalResource = false;
     ReleaseResources();
+
     return true;
 }
 
@@ -247,6 +249,7 @@ bool UTexture2D::CreateResources(ID3D11Device* Device) {
     mRenderTargetView = std::move(RenderTargetView);
     mDepthStencilView = std::move(DepthStencilView);
     mResourceBytes = ResourceBytes;
+
     return true;
 }
 
@@ -261,6 +264,7 @@ bool UTexture2D::AttachResource(ID3D11Texture2D* Texture, ETextureUsage Usage) {
 
     D3D11_TEXTURE2D_DESC Description{};
     Texture->GetDesc(&Description);
+
     ETextureFormat Format{};
     bool SRGB{};
 
@@ -313,6 +317,7 @@ bool UTexture2D::AttachResource(ID3D11Texture2D* Texture, ETextureUsage Usage) {
 
     ComPtr<ID3D11Device> Device{};
     Texture->GetDevice(Device.GetAddressOf());
+
     ComPtr<ID3D11Texture2D> Resource{Texture};
     ComPtr<ID3D11ShaderResourceView> ShaderResourceView{};
     ComPtr<ID3D11RenderTargetView> RenderTargetView{};
@@ -336,6 +341,7 @@ bool UTexture2D::AttachResource(ID3D11Texture2D* Texture, ETextureUsage Usage) {
     mDDSData = TArray<Uint8>{};
     mExternalResource = true;
     mResourceBytes = static_cast<std::size_t>(mSizeX) * mSizeY * GetBytesPerPixel(mFormat);
+
     return true;
 }
 
@@ -469,6 +475,7 @@ bool UTexture2D::SetImageData(ScratchImage& SourceImage, bool SRGB) {
     const Uint8* DDSBytes{static_cast<const Uint8*>(DDSBlob.GetBufferPointer())};
     TArray<Uint8> Pixels{TopMip->pixels, TopMip->pixels + TopMip->slicePitch};
     TArray<Uint8> DDSData{DDSBytes, DDSBytes + DDSBlob.GetBufferSize()};
+
     ReleaseResources();
     mSizeX = static_cast<Uint32>(MipChain.GetMetadata().width);
     mSizeY = static_cast<Uint32>(MipChain.GetMetadata().height);
@@ -478,6 +485,7 @@ bool UTexture2D::SetImageData(ScratchImage& SourceImage, bool SRGB) {
     mDDSData = std::move(DDSData);
     mSRGB = SRGB;
     mExternalResource = false;
+
     return true;
 }
 
@@ -524,6 +532,7 @@ Uint32 UTexture2D::GetBindFlags(ETextureUsage Usage) {
     Flags |= (Usage & ETextureUsage::ShaderResource) != ETextureUsage::None ? D3D11_BIND_SHADER_RESOURCE : 0;
     Flags |= (Usage & ETextureUsage::RenderTarget) != ETextureUsage::None ? D3D11_BIND_RENDER_TARGET : 0;
     Flags |= (Usage & ETextureUsage::DepthStencil) != ETextureUsage::None ? D3D11_BIND_DEPTH_STENCIL : 0;
+
     return Flags;
 }
 
@@ -579,6 +588,7 @@ bool UTexture2D::CreateViews(ID3D11Device* Device, ID3D11Texture2D* Texture, ETe
     if ((Usage & ETextureUsage::ShaderResource) != ETextureUsage::None) {
         D3D11_TEXTURE2D_DESC TextureDescription{};
         Texture->GetDesc(&TextureDescription);
+
         D3D11_SHADER_RESOURCE_VIEW_DESC Description{};
         Description.Format = GetShaderResourceFormat(Format, SRGB);
         Description.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;

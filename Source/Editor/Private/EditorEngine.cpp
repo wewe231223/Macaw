@@ -29,6 +29,7 @@ UEditorEngine::UEditorEngine()
     mContext.SetPlacementProvider([this]() {
         return FTransform{mUI->GetActiveViewport()->GetClient()->GetPlacementLocation(), {}, {1.0f, 1.0f, 1.0f}};
     });
+
     mContext.SetViewportCommandHandler([this](const FString& Command, FString& Output) {
         std::istringstream Input{Command};
         FString Verb{};
@@ -38,23 +39,29 @@ UEditorEngine::UEditorEngine()
         std::transform(Verb.begin(), Verb.end(), Verb.begin(), [](unsigned char Character) {
             return static_cast<char>(std::tolower(Character));
         });
+
         std::transform(State.begin(), State.end(), State.begin(), [](unsigned char Character) {
             return static_cast<char>(std::tolower(Character));
         });
+
         if (Verb == "showflag.shadows") {
             if (!Extra.empty() || (!State.empty() && State != "on" && State != "off" && State != "0" && State != "1")) {
                 Output = "Usage: ShowFlag.Shadows [on/off]";
                 return true;
             }
+
             FEditorViewportClient* Client{mUI->GetActiveViewport()->GetClient()};
             FEngineShowFlags Flags{Client->GetShowFlags()};
             Flags.mShadows = State.empty() ? !Flags.mShadows : State == "on" || State == "1";
             Client->SetShowFlags(Flags);
             Output = Flags.mShadows ? "Shadows: on" : "Shadows: off";
+
             return true;
         }
+
         return mUI->GetActiveViewport()->GetStatistics()->ExecuteCommand(Command, Output);
     });
+
     mContext.SetCameraHandlers([this]() {
         return mViewport.GetClient()->GetPerspectiveCamera();
     }, [this](const FEditorCameraState& State) {
@@ -78,6 +85,7 @@ bool UEditorEngine::Initialize() {
     }
 
     StaticClass();
+
     if (!mContext.SetWorld(GetWorldHandle())) {
         UEngine::Shutdown();
         return false;
@@ -95,6 +103,7 @@ bool UEditorEngine::Initialize(IRendererModule* Renderer) {
     }
 
     StaticClass();
+
     if (!mContext.SetWorld(GetWorldHandle())) {
         UEngine::Shutdown();
         return false;
@@ -118,6 +127,7 @@ bool UEditorEngine::InitializeEditor(IRendererModule* Renderer, FWindowsApplicat
 
     if (GetProject() != nullptr) {
         const FString& Startup{GetProject()->GetStartupScene()};
+
         if (!mContext.LoadScene(FilePath::FromUtf8(Startup))) {
             Shutdown();
             return false;
@@ -139,9 +149,11 @@ void UEditorEngine::Shutdown() {
     }
 
     mPlaySession.Stop();
+
     if (mPlaySession.IsActive()) {
         return;
     }
+
     mUI->Shutdown();
     mViewport.Shutdown();
     mContext.Reset();
@@ -155,12 +167,16 @@ void UEditorEngine::TickFrame(float DeltaTime) {
     if (IsDispatching()) {
         return;
     }
+
     mPlaySession.Update();
+
     const bool HasUI{mUI->BeginFrame(DeltaTime)};
+
     mPlaySession.Update();
     UEngine::Tick(DeltaTime, !mPlaySession.IsActive());
     mPlaySession.Update();
     SynchronizeWorld();
+
     if (HasUI) {
         mUI->EndFrame(DeltaTime);
     }

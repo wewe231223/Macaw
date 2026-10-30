@@ -2,6 +2,7 @@
  * @file Console.h
  * @brief 출력 핸들별 콘솔 메시지 이력, 로그 추가 및 대기 로그 반영 인터페이스를 정의한다.
  */
+
 #pragma once
 #include "Core/CoreMinimal.h"
 
@@ -26,6 +27,7 @@ enum class ELogLevel {
      */
     Fatal
 };
+
 /**
  * @brief 콘솔 메시지가 발생한 기능 영역을 구분한다.
  */
@@ -56,14 +58,17 @@ struct FConsoleMessage {
      * @brief HH:MM:SS 형식의 로컬 기록 시각. Print() 또는 AddLog()에서 설정한다.
      */
     FString mTime{};
+
     /**
      * @brief 메시지의 로그 수준. 기본값은 일반 정보 수준이다.
      */
     ELogLevel mLevel{ELogLevel::Log};
+
     /**
      * @brief 메시지의 기능 영역 분류. 기본값은 Etc이다.
      */
     ELogCategory mCategory{ELogCategory::Etc};
+
     /**
      * @brief 콘솔에 표시할 메시지 본문.
      */
@@ -97,6 +102,7 @@ namespace Console {
      * @brief 일반 로그용 기본 출력 저장소의 핸들. 인덱스는 0이다.
      */
     inline constexpr FConsoleOutputHandle STDOutHandle{0};
+
     /**
      * @brief 오류 로그용 기본 출력 저장소의 핸들. 인덱스는 1이다.
      */
@@ -109,12 +115,14 @@ namespace Console {
      * @details 대응하는 출력 저장소가 없으면 기록하지 않는다. 이력이 가득 차면 가장 오래된 메시지를 덮어쓴다.
      */
     void Print(FConsoleOutputHandle Handle, FConsoleMessage Message);
+
     /**
      * @brief 지정한 출력의 표시 이력을 비운다.
      * @param Handle 이력을 비울 출력 핸들.
      * @details 대응하는 저장소가 없으면 아무 작업도 하지 않는다. 메시지 수와 이력 시작 위치만 초기화하므로 대기 로그는 유지되며 이후 Flush()로 반영된다.
      */
     void Clear(FConsoleOutputHandle Handle);
+
     /**
      * @brief printf 형식의 로그를 생성하여 출력별 대기 버퍼에 추가한다.
      * @param Handle 로그를 받을 출력 핸들.
@@ -125,6 +133,7 @@ namespace Console {
      * @details 시간은 로그를 추가할 때 설정하며 이력에는 Flush() 호출 후 반영된다. 대기 버퍼에 추가하는 작업은 뮤텍스로 보호한다.
      */
     void AddLog(FConsoleOutputHandle Handle, ELogLevel Level, ELogCategory Categor, const char* Format, ...);
+
     /**
      * @brief 지정한 출력의 대기 로그를 표시 이력에 반영한다.
      * @param Handle 대기 로그를 반영할 출력 핸들.
@@ -140,6 +149,7 @@ namespace Console {
      * @details 아직 Flush()하지 않은 대기 로그는 포함하지 않는다.
      */
     std::size_t GetMessageCount(FConsoleOutputHandle Handle);
+
     /**
      * @brief 지정한 출력 이력에서 오래된 순서로 메시지를 조회한다.
      * @param Handle 조회할 출력 핸들.

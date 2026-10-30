@@ -36,6 +36,7 @@ enum class ETextureUsage : Uint8 {
  * @return 등록된 열거형 메타데이터의 비소유 주소입니다.
  */
 ReflectEnum(ETextureUsage, None, ShaderResource, RenderTarget, DepthStencil);
+
 /**
  * @brief 타입 태그로 ETextureUsage의 열거형 메타데이터를 조회합니다.
  * @fn UEnum* GetNativeEnum(TNativeEnum<ETextureUsage>)
@@ -49,6 +50,7 @@ ReflectEnum(ETextureUsage, None, ShaderResource, RenderTarget, DepthStencil);
  * @return 비트 연산을 적용한 텍스처 사용 용도 플래그입니다.
  */
 ETextureUsage operator|(ETextureUsage Left, ETextureUsage Right);
+
 /**
  * @brief 텍스처 사용 용도 플래그에서 공통으로 설정된 비트를 구합니다.
  * @param[in] Left 비교하거나 결합할 왼쪽 값입니다.

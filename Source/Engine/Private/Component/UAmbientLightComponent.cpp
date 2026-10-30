@@ -11,6 +11,7 @@
 UAmbientLightComponent::UAmbientLightComponent() {
     SetIntensity(0.15f);
 }
+
 UAmbientLightComponent::~UAmbientLightComponent() = default;
 
 FLightSceneProxy UAmbientLightComponent::CreateLightProxy() const {

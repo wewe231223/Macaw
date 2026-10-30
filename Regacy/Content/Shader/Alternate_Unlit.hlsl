@@ -56,6 +56,7 @@ PS_INPUT mainVS(VS_INPUT Input, uint DrawRecordIndex : MODEL_INDEX)
 float4 mainPS(PS_INPUT Input) : SV_TARGET
 {
     ApplyLODDither(Input.Position.xy, Input.LODDither);
+
     float4 MaterialColor = MaterialBuffer[Input.MaterialIndex].BaseColor;
     float Stripe = step(0.5f, frac((Input.UV.x + Input.UV.y) * 6.0f));
     float3 AlternateColor = lerp(MaterialColor.bgr, float3(0.1f, 0.85f, 1.0f), 0.7f);

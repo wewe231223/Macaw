@@ -27,12 +27,16 @@ private:
 private:
     FString mName{};
     ReflectProperty(mName, "Name", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     FVector4 mBaseColor{1.0f, 1.0f, 1.0f, 1.0f};
     ReflectProperty(mBaseColor, "BaseColor", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     bool mTwoSided{};
     ReflectProperty(mTwoSided, "TwoSided", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     FMeshImportTexture mBaseColorTexture{};
     ReflectProperty(mBaseColorTexture, "BaseColorTexture", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     FMeshImportTexture mNormalMapTexture{};
     ReflectProperty(mNormalMapTexture, "NormalMapTexture", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 };

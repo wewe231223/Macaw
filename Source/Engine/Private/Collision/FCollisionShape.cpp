@@ -31,6 +31,7 @@ FCollisionShape FCollisionShape::MakeCapsule(float Radius, float HalfHeight) {
     Capsule.mShapeType = ECollisionShape::Capsule;
     Capsule.mRadius = Radius;
     Capsule.mHalfHeight = HalfHeight;
+
     return Capsule;
 }
 
@@ -77,10 +78,12 @@ bool Collision::Overlap(const FCollisionShape& A, const FVector& PosA, const FQu
         FCapsuleSegment CapB{Collision::ToCapsuleSegment(B, PosB, RotB)};
 
         const bool Overlap{OverlapCapsuleBox(CapB, BoxA, OutContact)};
+
         if (Overlap && OutContact) {
             OutContact->SetNormal(-OutContact->GetNormal());
             OutContact->SetPoint(OutContact->GetPoint() + OutContact->GetNormal() * OutContact->GetPenetrationDepth());
         }
+
         return Overlap;
     }
     else if (A.IsBox() && B.IsBox()) {
@@ -99,11 +102,13 @@ bool Collision::OverlapCapsuleCapsule(const FCapsuleSegment& A, const FCapsuleSe
     float SumR{A.GetRadius() + B.GetRadius()};
     float DistSq{ClosestPointsSegmentSegment(A.GetA(), A.GetB(), B.GetA(), B.GetB(), C1, C2)};
     bool IsOverlap{DistSq <= SumR * SumR};
+
     if (IsOverlap && OutContact) {
         constexpr float Epsilon{1e-6f};
         FVector D{C1 - C2};
         float Len{D.Length()};
         FVector Normal{0.0f, 0.0f, 1.0f};
+
         if (Len > Epsilon) {
             Normal = D / Len;
         }
@@ -112,6 +117,7 @@ bool Collision::OverlapCapsuleCapsule(const FCapsuleSegment& A, const FCapsuleSe
             const FVector Perp{(A.GetB() - A.GetA()).Cross(B.GetB() - B.GetA())};
             const float PerpLen{Perp.Length()};
             const float CenterLen{CenterDiff.Length()};
+
             if (PerpLen > Epsilon)
                 Normal = (Perp.Dot(CenterDiff) < 0.0f ? -Perp : Perp) / PerpLen;
             else if (CenterLen > Epsilon)
@@ -128,6 +134,7 @@ bool Collision::OverlapCapsuleCapsule(const FCapsuleSegment& A, const FCapsuleSe
 
 bool Collision::OverlapCapsuleBox(const FCapsuleSegment& Capsule, const FOrientedBox& Box, FCollisionContact* OutContact) {
     const FVector Dir{Capsule.GetB() - Capsule.GetA()};
+
     const auto DistSqAt{[&](float T) {
         const FVector P{Capsule.GetA() + Dir * T};
         const FVector D{P - ClosestPointOnBox(P, Box)};
@@ -136,9 +143,11 @@ bool Collision::OverlapCapsuleBox(const FCapsuleSegment& Capsule, const FOriente
 
     float Lo{0.0f};
     float Hi{1.0f};
+
     for (Int32 Iter{0}; Iter < 30; ++Iter) {
         const float M1{Lo + (Hi - Lo) / 3.0f};
         const float M2{Hi - (Hi - Lo) / 3.0f};
+
         if (DistSqAt(M1) <= DistSqAt(M2))
             Hi = M2;
         else
@@ -150,10 +159,12 @@ bool Collision::OverlapCapsuleBox(const FCapsuleSegment& Capsule, const FOriente
     const FVector D{P - Q};
     const float DistSq{D.Dot(D)};
     const bool Overlap{DistSq <= Capsule.GetRadius() * Capsule.GetRadius()};
+
     if (!Overlap || !OutContact)
         return Overlap;
 
     const float Len{std::sqrt(DistSq)};
+
     if (Len > 1e-6f) {
         OutContact->SetNormal(D / Len);
         OutContact->SetPenetrationDepth(Capsule.GetRadius() - Len);
@@ -165,9 +176,11 @@ bool Collision::OverlapCapsuleBox(const FCapsuleSegment& Capsule, const FOriente
     Int32 MinAxis{0};
     float MinGap{FLT_MAX};
     float MinCoord{0.0f};
+
     for (Int32 Index{0}; Index < 3; ++Index) {
         const float S{Local.Dot(Box.GetAxis()[Index])};
         const float Gap{Box.GetExtent().ToArray()[Index] - std::abs(S)};
+
         if (Gap < MinGap) {
             MinGap = Gap;
             MinAxis = Index;
@@ -178,6 +191,7 @@ bool Collision::OverlapCapsuleBox(const FCapsuleSegment& Capsule, const FOriente
     OutContact->SetNormal(Box.GetAxis()[MinAxis] * (MinCoord >= 0.0f ? 1.0f : -1.0f));
     OutContact->SetPenetrationDepth(Capsule.GetRadius() + MinGap);
     OutContact->SetPoint(P + OutContact->GetNormal() * MinGap);
+
     return true;
 }
 
@@ -186,6 +200,7 @@ bool Collision::OverlapBoxBox(const FOrientedBox& A, const FOrientedBox& B, FCol
 
     float R[3][3]{};
     float AbsR[3][3]{};
+
     for (Int32 Index{0}; Index < 3; ++Index) {
         for (Int32 OtherIndex{0}; OtherIndex < 3; ++OtherIndex) {
             R[Index][OtherIndex] = A.GetAxis()[Index].Dot(B.GetAxis()[OtherIndex]);
@@ -201,6 +216,7 @@ bool Collision::OverlapBoxBox(const FOrientedBox& A, const FOrientedBox& B, FCol
 
     float MinOverlap{FLT_MAX};
     FVector MinAxis{A.GetAxis()[0]};
+
     const auto TrackMin{[&](float Overlap, const FVector& Axis) {
         if (OutContact && Overlap < MinOverlap) {
             MinOverlap = Overlap;
@@ -211,6 +227,7 @@ bool Collision::OverlapBoxBox(const FOrientedBox& A, const FOrientedBox& B, FCol
     for (Int32 Index{0}; Index < 3; ++Index) {
         const float RA{EA.ToArray()[Index]};
         const float RB{EB.ToArray()[0] * AbsR[Index][0] + EB.ToArray()[1] * AbsR[Index][1] + EB.ToArray()[2] * AbsR[Index][2]};
+
         if (std::abs(T[Index]) > RA + RB)
             return false;
         TrackMin(RA + RB - std::abs(T[Index]), A.GetAxis()[Index]);
@@ -220,6 +237,7 @@ bool Collision::OverlapBoxBox(const FOrientedBox& A, const FOrientedBox& B, FCol
         const float RA{EA.ToArray()[0] * AbsR[0][OtherIndex] + EA.ToArray()[1] * AbsR[1][OtherIndex] + EA.ToArray()[2] * AbsR[2][OtherIndex]};
         const float RB{EB.ToArray()[OtherIndex]};
         const float Dist{T[0] * R[0][OtherIndex] + T[1] * R[1][OtherIndex] + T[2] * R[2][OtherIndex]};
+
         if (std::abs(Dist) > RA + RB)
             return false;
         TrackMin(RA + RB - std::abs(Dist), B.GetAxis()[OtherIndex]);
@@ -228,6 +246,7 @@ bool Collision::OverlapBoxBox(const FOrientedBox& A, const FOrientedBox& B, FCol
     for (Int32 Index{0}; Index < 3; ++Index) {
         const Int32 I1{(Index + 1) % 3};
         const Int32 I2{(Index + 2) % 3};
+
         for (Int32 OtherIndex{0}; OtherIndex < 3; ++OtherIndex) {
             const Int32 J1{(OtherIndex + 1) % 3};
             const Int32 J2{(OtherIndex + 2) % 3};
@@ -235,10 +254,12 @@ bool Collision::OverlapBoxBox(const FOrientedBox& A, const FOrientedBox& B, FCol
             const float RA{EA.ToArray()[I1] * AbsR[I2][OtherIndex] + EA.ToArray()[I2] * AbsR[I1][OtherIndex]};
             const float RB{EB.ToArray()[J1] * AbsR[Index][J2] + EB.ToArray()[J2] * AbsR[Index][J1]};
             const float Dist{T[I2] * R[I1][OtherIndex] - T[I1] * R[I2][OtherIndex]};
+
             if (std::abs(Dist) > RA + RB)
                 return false;
 
             const float AxisLen{std::sqrt(std::max(0.0f, 1.0f - R[Index][OtherIndex] * R[Index][OtherIndex]))};
+
             if (AxisLen > 1e-3f)
                 TrackMin((RA + RB - std::abs(Dist)) / AxisLen, A.GetAxis()[Index].Cross(B.GetAxis()[OtherIndex]) / AxisLen);
         }
@@ -288,6 +309,7 @@ float Collision::ClosestPointsSegmentSegment(const FVector& P1, const FVector& Q
     else if (A < 1e-8f) {
         OutC1 = P1;
         OutC2 = P2 + D2 * std::clamp(F / E, 0.0f, 1.0f);
+
         FVector D{OutC2 - OutC1};
         return D.Dot(D);
     }
@@ -295,7 +317,9 @@ float Collision::ClosestPointsSegmentSegment(const FVector& P1, const FVector& Q
         float C{D1.Dot(R)};
         OutC1 = P1 + D1 * std::clamp(-C / A, 0.0f, 1.0f);
         OutC2 = P2;
+
         FVector D{OutC2 - OutC1};
+
         return D.Dot(D);
     }
     else {
@@ -317,7 +341,9 @@ float Collision::ClosestPointsSegmentSegment(const FVector& P1, const FVector& Q
 
         OutC1 = P1 + D1 * S;
         OutC2 = P2 + D2 * T;
+
         FVector D{OutC2 - OutC1};
+
         return D.Dot(D);
     }
 }
@@ -326,10 +352,12 @@ FVector Collision::ClosestPointOnBox(const FVector& P, const FOrientedBox& Box) 
     const FVector D{P - Box.GetCenter()};
 
     FVector Result{Box.GetCenter()};
+
     for (Int32 Index{0}; Index < 3; ++Index) {
         const float S{std::clamp(D.Dot(Box.GetAxis()[Index]), -Box.GetExtent().ToArray()[Index], Box.GetExtent().ToArray()[Index])};
         Result += Box.GetAxis()[Index] * S;
     }
+
     return Result;
 }
 
@@ -337,6 +365,7 @@ FSweepResult Collision::Sweep(const FCollisionShape& Shape, const FVector& Start
     FSweepResult Result{};
 
     const float DeltaLen{Delta.Length()};
+
     if (DeltaLen < 1e-8f || Targets.size() == 0)
         return Result;
 
@@ -349,6 +378,7 @@ FSweepResult Collision::Sweep(const FCollisionShape& Shape, const FVector& Start
             if (Ignored[Index])
                 continue;
             const FSweepTarget& Target{Targets[Index]};
+
             if (Overlap(Shape, Pos, Rot, Target.GetShape(), Target.GetPos(), Target.GetRot(), OutContact))
                 return Index;
         }
@@ -358,6 +388,7 @@ FSweepResult Collision::Sweep(const FCollisionShape& Shape, const FVector& Start
     for (Int32 Index{0}; Index < static_cast<Int32>(Targets.size()); ++Index) {
         FCollisionContact Contact{};
         const FSweepTarget& Target{Targets[Index]};
+
         if (!Overlap(Shape, Start, Rot, Target.GetShape(), Target.GetPos(), Target.GetRot(), &Contact))
             continue;
 
@@ -371,10 +402,12 @@ FSweepResult Collision::Sweep(const FCollisionShape& Shape, const FVector& Start
         Result.SetTime(0.0f);
         Result.SetTargetIndex(Index);
         Result.SetContact(Contact);
+
         return Result;
     }
 
     float MinHalfSize{Shape.GetRadius()};
+
     if (Shape.IsBox())
         MinHalfSize = std::min({ Shape.GetBoxHalfExtent().x, Shape.GetBoxHalfExtent().y, Shape.GetBoxHalfExtent().z });
     const Int32 Steps{MinHalfSize > 1e-4f ? std::clamp(static_cast<Int32>(std::ceil(DeltaLen / MinHalfSize)), 1, 64) : 1};
@@ -382,11 +415,13 @@ FSweepResult Collision::Sweep(const FCollisionShape& Shape, const FVector& Start
     for (Int32 Step{0}; Step < Steps; ++Step) {
         float Lo{static_cast<float>(Step) / Steps};
         float Hi{static_cast<float>(Step + 1) / Steps};
+
         if (FirstOverlapAt(Hi, nullptr) < 0)
             continue;
 
         for (Int32 Iter{0}; Iter < 10; ++Iter) {
             const float Mid{(Lo + Hi) * 0.5f};
+
             if (FirstOverlapAt(Mid, nullptr) >= 0)
                 Hi = Mid;
             else
@@ -394,10 +429,12 @@ FSweepResult Collision::Sweep(const FCollisionShape& Shape, const FVector& Start
         }
 
         Result.SetBlockingHit(true);
+
         FCollisionContact Contact{};
         Result.SetTargetIndex(FirstOverlapAt(Hi, &Contact));
         Result.SetContact(Contact);
         Result.SetTime(std::max(0.0f, Lo - 1e-3f / DeltaLen));
+
         return Result;
     }
 

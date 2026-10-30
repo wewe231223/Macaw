@@ -70,14 +70,17 @@ private:
      * @brief FObjectRegistry의 초기 상태와 전달받은 의존성을 구성합니다.
      */
     FObjectRegistry();
+
     /**
      * @brief 객체의 수명을 끝내고 소유한 리소스를 정리합니다.
      */
     ~FObjectRegistry();
+
     /**
      * @brief 고유한 객체 수명을 유지하기 위해 복사 또는 이동 생성을 금지합니다.
      */
     FObjectRegistry(const FObjectRegistry&) = delete;
+
     /**
      * @brief 고유한 객체 수명을 유지하기 위해 대입을 금지합니다.
      * @return 소유 객체가 유지하는 값의 참조입니다.
@@ -103,6 +106,7 @@ public:
      * @return 조회한 값의 비소유 주소이며, 해당 값이 없으면 nullptr입니다.
      */
     UObject* Resolve(FObjectHandle Handle) const;
+
     /**
      * @brief 동일 Outer 범위에서 FName이 같은 첫 유효 객체를 조회합니다.
      * @param[in] Name 조회하거나 설정할 이름입니다.
@@ -116,6 +120,7 @@ public:
      * @return 현재 레지스트리에 등록된 객체 개수입니다.
      */
     std::size_t GetObjectCount() const;
+
     /**
      * @brief 타입과 Outer 범위에 일치하는 객체의 세대 핸들을 스냅샷으로 수집합니다.
      * @param Class 순회할 기준 클래스입니다.
@@ -131,16 +136,19 @@ private:
      * @brief 생성된 프로퍼티 등록 함수와 빌더 접근 권한입니다.
      */
     ReflectMembers();
+
     /**
      * @brief UObject의 생성과 소멸에서 전역 등록 상태를 관리하도록 허용합니다.
      */
     friend class UObject;
+
     /**
      * @brief 객체를 전역 슬롯에 등록하고 핸들을 부여합니다.
      * @param[in,out] Object 대상 객체입니다.
      * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
      */
     bool Register(UObject* Object);
+
     /**
      * @brief 객체를 등록 해제하고 슬롯 세대를 올려 기존 핸들을 무효화합니다.
      * @param[in,out] Object 대상 객체입니다.

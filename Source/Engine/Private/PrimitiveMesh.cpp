@@ -42,6 +42,7 @@ FMeshData BuildPrimitive(EPrimitiveType Type) {
     TArray<FVector4>& Tangents{Mesh.GetTangents()};
     TArray<Uint32>& Indices{Mesh.GetIndices()};
     Mesh.GetUVChannels().resize(1);
+
     TArray<FVector2>& UVs{Mesh.GetUVChannels().front()};
 
     if (Type == EPrimitiveType::Plane) {
@@ -115,6 +116,7 @@ FMeshData BuildPrimitive(EPrimitiveType Type) {
     }
 
     Mesh.GetColors().assign(Positions.size(), {1.0f, 1.0f, 1.0f, 1.0f});
+
     return Mesh;
 }
 

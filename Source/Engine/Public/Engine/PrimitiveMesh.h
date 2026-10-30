@@ -15,12 +15,14 @@
  * @return 연산을 적용한 새 값입니다.
  */
 FString PrimitiveName(EPrimitiveType Type);
+
 /**
  * @brief 기본 프리미티브의 CPU 정점, 삼각형 인덱스와 경계 상자를 생성합니다.
  * @param[in] Type 생성, 조회 또는 표시할 타입입니다.
  * @return 연산을 적용한 새 값입니다.
  */
 FMeshData BuildPrimitive(EPrimitiveType Type);
+
 /**
  * @brief 종류별로 캐시된 읽기 전용 기본 메시를 반환합니다.
  * @param[in] Type 생성, 조회 또는 표시할 타입입니다.

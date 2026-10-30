@@ -40,6 +40,7 @@ public:
      * @param[in,out] Context 패널 또는 뷰포트가 공유할 편집 컨텍스트입니다.
      */
     explicit FEditorViewportClient(FEditorContext* Context);
+
     /**
      * @brief 객체의 수명을 끝내고 소유한 리소스를 정리합니다.
      */
@@ -51,6 +52,7 @@ public:
      * @return 등록된 타입 메타데이터의 비소유 주소입니다.
      */
     ReflectStruct(FEditorViewportClient);
+
     /**
      * @brief 기즈모의 진행 중인 변환을 취소하고 공유할 편집 컨텍스트를 변경합니다.
      * @param[in] Context 새 비소유 컨텍스트이며 nullptr이면 기존 연결을 유지합니다.
@@ -65,6 +67,7 @@ public:
      * 명령은 아직 지원하지 않습니다.
      */
     bool ExecuteCommand(EViewportCommand Command);
+
     /**
      * @brief 현재 월드의 편집 가능 여부, 드래그 상태와 변환 모드에서 명령을 실행할 수 있는지 검사합니다.
      * @param[in] Command 실행 가능 여부를 조회할 동작입니다.
@@ -72,6 +75,7 @@ public:
      * 모드의 현재 모드 스냅, 미지원 명령이면 false입니다.
      */
     bool CanExecuteCommand(EViewportCommand Command) const;
+
     /**
      * @brief 명령에 대응하는 모드, 좌표계 또는 스냅 설정의 선택 상태를 검사합니다.
      * @param[in] Command 선택 상태를 조회할 동작입니다.
@@ -101,11 +105,13 @@ public:
      * @param[in] DeltaTime 이전 프레임 이후 경과한 시간(초)입니다.
      */
     void Input(FSceneViewport* Viewport, const FViewportInput& Input, float DeltaTime) override;
+
     /**
      * @brief 뷰포트 또는 패널의 현재 내용을 그립니다.
      * @param[in,out] Viewport 출력 타깃과 크기를 제공하는 뷰포트입니다.
      */
     void Draw(FSceneViewport* Viewport) override;
+
     /**
      * @brief 기즈모 메시와 월드 메시의 CPU 광선 질의로 선택 정보를 구합니다.
      * @param[in] Viewport 입력 좌표와 크기를 제공하는 비소유 뷰포트입니다.
@@ -121,6 +127,7 @@ public:
      * @return 연산을 적용한 새 값입니다.
      */
     FSceneView CalcSceneView(const FVector2& Size) const;
+
     /**
      * @brief 드롭한 액터 프리셋을 광선 적중점이나 배치 평면에 생성합니다.
      * @param[in] Preset 생성할 액터 프리셋의 식별자입니다.
@@ -129,6 +136,7 @@ public:
      * @return 검증 또는 요청한 처리에 성공하면 true입니다.
      */
     bool DropActor(const FString& Preset, const FVector2& Position, const FVector2& Size);
+
     /**
      * @brief 드롭한 메시 에셋을 뷰포트 위치에 배치합니다.
      * @param[in] Path Content 상대 에셋 경로 또는 읽을 파일 경로입니다.
@@ -142,47 +150,56 @@ public:
      * @brief 에디터 카메라를 초기 위치와 회전으로 되돌립니다.
      */
     void ResetCamera();
+
     /**
      * @brief 유효한 위치와 회전으로 에디터 카메라를 설정합니다.
      * @param[in] Location 오류가 발생한 원래 호출 위치입니다.
      * @param[in] Rotation 적용할 오일러 또는 쿼터니언 회전입니다.
      */
     void SetCamera(const FVector& Location, const FRotator& Rotation);
+
     /**
      * @brief 원근 또는 정사영 뷰 방향을 설정합니다.
      * @param[in] Type 선택할 뷰 방향 또는 에셋 종류입니다.
      */
     void SetViewType(EEditorViewportType Type);
+
     /**
      * @brief 원근 또는 정사영 뷰 방향을 반환합니다.
      * @return 계산하거나 조회한 값입니다.
      */
     EEditorViewportType GetViewType() const;
+
     /**
      * @brief 현재 뷰 방향의 표시 이름을 반환합니다.
      * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며 사용할 수 없으면 nullptr입니다.
      */
     const char* GetViewTypeName() const;
+
     /**
      * @brief 활성 뷰포트의 기본 배치 위치를 반환합니다.
      * @return 계산하거나 조회한 값입니다.
      */
     FVector GetPlacementLocation() const;
+
     /**
      * @brief 에디터 카메라의 월드 위치를 반환합니다.
      * @return 소유 객체가 유지하는 값의 참조입니다.
      */
     const FVector& GetCameraLocation() const;
+
     /**
      * @brief 편집 카메라의 현재 오일러 회전을 반환합니다.
      * @return 객체가 보유한 데이터의 참조이며 소유 객체의 수명 동안 유효합니다.
      */
     const FRotator& GetCameraRotation() const;
+
     /**
      * @brief 정사영 전환 중에도 보관한 원근 카메라를 반환합니다.
      * @return 장면 저장에 사용할 원근 카메라입니다.
      */
     FEditorCameraState GetPerspectiveCamera() const;
+
     /**
      * @brief 원근 카메라를 복원합니다.
      * @param State 검증하여 복원할 카메라입니다.
@@ -203,12 +220,14 @@ public:
      * @note 설정 변경은 ExecuteCommand() 또는 SetGizmoSetting()을 사용합니다.
      */
     const FGizmoSettings* GetGizmoSettings() const;
+
     /**
      * @brief 기즈모 도구와 설정을 변경할 수 있는지 검사합니다.
      * @return 컨텍스트의 월드를 편집할 수 있고 진행 중인 기즈모 드래그가 없으면 true입니다.
      * @note 선택 대상의 존재 여부와 개별 명령의 모드 제한은 검사하지 않습니다.
      */
     bool CanEditGizmoSettings() const;
+
     /**
      * @brief 편집 가능 여부와 값의 범위를 검증하여 기즈모 수치 설정을 변경합니다.
      * @param[in] Setting 변경할 수치 항목입니다.
@@ -217,53 +236,63 @@ public:
      * @note 스냅 간격은 양수여야 하며 크기 배율은 0.5부터 2.0까지로 제한합니다.
      */
     bool SetGizmoSetting(EGizmoSetting Setting, float Value);
+
     /**
      * @brief 장면의 Lit 또는 Wireframe 표시 모드를 반환합니다.
      * @return 계산하거나 조회한 값입니다.
      */
     EViewMode GetViewMode() const;
+
     /**
      * @brief 장면의 Lit 또는 Wireframe 표시 모드를 설정합니다.
      * @param[in] Mode 적용할 장면 표시 모드입니다.
      */
     void SetViewMode(EViewMode Mode);
+
     /**
      * @brief 뷰포트별 장면·보조 표시 필터를 반환합니다.
      * @return 이 객체 또는 공유 이름 풀이 유지하는 값의 참조입니다.
      */
     const FEngineShowFlags& GetShowFlags() const;
+
     /**
      * @brief 진행 중인 기즈모 조작을 취소하고 이 뷰포트의 표시 필터를 교체합니다.
      * @param[in] Flags 적용할 뷰포트 표시 필터입니다.
      */
     void SetShowFlags(const FEngineShowFlags& Flags);
+
     /**
      * @brief 축과 AABB 선의 픽셀 두께를 반환합니다.
      * @return 계산하거나 조회한 값입니다.
      */
     float GetLineThickness() const;
+
     /**
      * @brief 축과 AABB 선의 픽셀 두께를 설정합니다.
      * @param[in] Thickness 픽셀 단위 선 두께입니다.
      * @return 검증 또는 요청한 처리에 성공하면 true입니다.
      */
     bool SetLineThickness(float Thickness);
+
     /**
      * @brief 그리드 선 사이의 월드 거리를 반환합니다.
      * @return 계산하거나 조회한 값입니다.
      */
     float GetGridSpacing() const;
+
     /**
      * @brief 그리드 선 사이의 월드 거리를 설정합니다.
      * @param[in] Spacing 그리드의 월드 단위 간격입니다.
      * @return 검증 또는 요청한 처리에 성공하면 true입니다.
      */
     bool SetGridSpacing(float Spacing);
+
     /**
      * @brief 마우스 이동 1픽셀당 카메라 회전 각도를 반환합니다.
      * @return 계산하거나 조회한 값입니다.
      */
     float GetCameraSensitivity() const;
+
     /**
      * @brief 마우스 이동 1픽셀당 카메라 회전 각도를 설정합니다.
      * @param[in] Sensitivity 마우스 1픽셀당 회전 각도입니다.
@@ -276,6 +305,7 @@ public:
      * @return 초당 이동할 월드 단위 수이며 빠른 이동 시에는 3배를 적용합니다.
      */
     float GetCameraSpeed() const;
+
     /**
      * @brief 자유 시점 카메라의 기본 이동 속도를 설정합니다.
      * @param[in] Speed 0.1에서 128 사이의 유한한 초당 월드 이동 거리입니다.
@@ -292,6 +322,7 @@ private:
      * @pre ExecuteCommand()에서 편집 가능 여부와 드래그 상태를 검증해야 합니다.
      */
     bool ToggleGizmoSetting(EViewportCommand Command);
+
     /**
      * @brief 기즈모의 이동, 회전 또는 스케일 모드를 선택합니다.
      * @param[in] Mode 적용할 변환 기즈모 모드입니다.
@@ -315,11 +346,13 @@ private:
      * @note 자유 시점 조작은 피벗까지의 거리를 유지하며 갱신한 카메라의 시선 앞에 피벗을 배치합니다.
      */
     bool NavigateCamera(const FViewportInput& Input, const FVector2& Size, float DeltaTime);
+
     /**
      * @brief 선택한 액터가 화면에 들어오도록 카메라 위치와 중심을 조정합니다.
      * @param[in] Size 뷰포트 크기 또는 데이터의 바이트 수입니다.
      */
     void FocusSelection(const FVector2& Size);
+
     /**
      * @brief 텍스트·Billboard의 뷰 정렬을 반영한 월드 AABB를 계산합니다.
      * @param[in] Component 경계를 계산할 컴포넌트의 비소유 주소입니다.
@@ -327,6 +360,7 @@ private:
      * @return 계산하거나 조회한 값입니다.
      */
     FBox CalcComponentBounds(const UPrimitiveComponent* Component, const FSceneView& View) const;
+
     /**
      * @brief 컴포넌트 경계 상자의 여덟 월드 모서리를 계산합니다.
      * @param[in] Component 경계를 계산할 컴포넌트의 비소유 주소입니다.
@@ -371,66 +405,79 @@ private:
      */
     float mCameraSpeed{4.0f};
     ReflectProperty(mCameraSpeed, "CameraSpeed", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 마우스 이동 1픽셀당 카메라 회전 각도입니다.
      */
     float mCameraSensitivity{0.2f};
     ReflectProperty(mCameraSensitivity, "CameraSensitivity", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 장면의 Lit 또는 Wireframe 표시 모드입니다.
      */
     EViewMode mViewMode{EViewMode::Lit};
     ReflectProperty(mViewMode, "ViewMode", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 뷰포트별 장면·보조 표시 필터입니다.
      */
     FEngineShowFlags mShowFlags{};
     ReflectProperty(mShowFlags, "ShowFlags", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 축과 AABB 선의 픽셀 두께입니다.
      */
     float mLineThickness{1.5f};
     ReflectProperty(mLineThickness, "LineThickness", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 그리드 선 사이의 월드 거리입니다.
      */
     float mGridSpacing{1.0f};
     ReflectProperty(mGridSpacing, "GridSpacing", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 원근 또는 정사영 뷰 방향입니다.
      */
     EEditorViewportType mViewType{EEditorViewportType::Perspective};
     ReflectProperty(mViewType, "ViewType", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 정사영 전환 전 원근 카메라 위치입니다.
      */
     FVector mPerspectiveLocation{-7.0f, -9.0f, 6.0f};
     ReflectProperty(mPerspectiveLocation, "PerspectiveLocation", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 정사영 전환 전 원근 카메라 회전입니다.
      */
     FRotator mPerspectiveRotation{-26.0f, 50.0f, 0.0f};
     ReflectProperty(mPerspectiveRotation, "PerspectiveRotation", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 정사영 전환 전 원근 카메라 피벗입니다.
      */
     FVector mPerspectivePivot{};
     ReflectProperty(mPerspectivePivot, "PerspectivePivot", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 정사영 가로 가시 범위의 월드 길이입니다.
      */
     float mOrthographicWidth{20.0f};
     ReflectProperty(mOrthographicWidth, "OrthographicWidth", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 원근 카메라의 수직 시야각입니다.
      */
     float mFieldOfView{60.0f};
     ReflectProperty(mFieldOfView, "FieldOfView", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 원근 투영의 근평면 거리입니다.
      */
     float mNearClip{0.05f};
     ReflectProperty(mNearClip, "NearClip", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 원근 투영의 원평면 거리입니다.
      */

@@ -23,14 +23,17 @@ public:
      * @brief FProject의 초기 상태를 구성합니다.
      */
     FProject();
+
     /**
      * @brief 객체의 수명을 끝내고 소유한 자원을 정리합니다.
      */
     ~FProject();
+
     /**
      * @brief 소유 상태와 의존성의 중복을 막기 위해 복사 또는 이동을 금지합니다.
      */
     FProject(const FProject&) = delete;
+
     /**
      * @brief 소유 상태와 의존성의 중복을 막기 위해 복사 또는 이동을 금지합니다.
      */
@@ -42,6 +45,7 @@ public:
      * @return 등록된 타입 메타데이터의 비소유 주소입니다.
      */
     ReflectStruct(FProject);
+
     /**
      * @brief 빈 프로젝트 폴더에 템플릿 콘텐츠와 초기 장면 및 설정 파일을 생성합니다.
      * @param[in] ProjectFile 생성하거나 열 프로젝트의 .mproject 파일 경로입니다.
@@ -50,6 +54,7 @@ public:
      * @return 요청한 처리를 완료하면 true, 실패하면 false입니다.
      */
     bool Create(const std::filesystem::path& ProjectFile, const std::filesystem::path& TemplateDirectory, FString& Error);
+
     /**
      * @brief 프로젝트 설정의 버전과 콘텐츠 경로를 검증하여 현재 프로젝트로 엽니다.
      * @param[in] ProjectFile 생성하거나 열 프로젝트의 .mproject 파일 경로입니다.
@@ -57,12 +62,14 @@ public:
      * @return 요청한 처리를 완료하면 true, 실패하면 false입니다.
      */
     bool Open(const std::filesystem::path& ProjectFile, FString& Error);
+
     /**
      * @brief 프로젝트 이름과 시작 장면 경로를 설정 파일에 저장합니다.
      * @param[out] Error 실패 원인을 받을 오류 문자열입니다.
      * @return 요청한 처리를 완료하면 true, 실패하면 false입니다.
      */
     bool Save(FString& Error) const;
+
     /**
      * @brief 콘텐츠 경로를 검증하여 시작 장면을 변경하고 프로젝트 설정을 저장합니다.
      * @param[in] Path 조회·로드·저장 또는 정규화할 파일 경로입니다.
@@ -70,31 +77,37 @@ public:
      * @return 요청한 처리를 완료하면 true, 실패하면 false입니다.
      */
     bool SetStartupScene(const std::filesystem::path& Path, FString& Error);
+
     /**
      * @brief 프로젝트의 표시 이름을 반환합니다.
      * @return 객체가 보유한 데이터의 참조이며 소유 객체의 수명 동안 유효합니다.
      */
     const FString& GetName() const;
+
     /**
      * @brief 프로젝트 콘텐츠 폴더를 기준으로 한 시작 장면 경로를 반환합니다.
      * @return 객체가 보유한 데이터의 참조이며 소유 객체의 수명 동안 유효합니다.
      */
     const FString& GetStartupScene() const;
+
     /**
      * @brief 현재 프로젝트 설정 파일의 절대 경로를 반환합니다.
      * @return 객체가 보유한 데이터의 참조이며 소유 객체의 수명 동안 유효합니다.
      */
     const std::filesystem::path& GetFilePath() const;
+
     /**
      * @brief 프로젝트 설정 파일을 포함하는 루트 폴더를 반환합니다.
      * @return 요청하거나 변환한 파일 시스템 경로 또는 시각입니다.
      */
     std::filesystem::path GetRootPath() const;
+
     /**
      * @brief 현재 프로젝트에서 사용할 셰이더 캐시 폴더를 반환합니다.
      * @return 요청하거나 변환한 파일 시스템 경로 또는 시각입니다.
      */
     std::filesystem::path GetShaderCachePath() const;
+
     /**
      * @brief 프로젝트의 에셋 관리자를 비소유 주소로 반환합니다.
      * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며, 사용할 수 없으면 nullptr입니다.
@@ -113,16 +126,19 @@ private:
      */
     FString mName{};
     ReflectProperty(mName, "Name", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 콘텐츠 폴더 기준으로 저장하는 시작 장면의 상대 경로입니다.
      */
     FString mStartupScene{"Maps/Main.masset"};
     ReflectProperty(mStartupScene, "StartupScene", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 현재 프로젝트 설정 파일의 절대 경로입니다.
      */
     std::filesystem::path mFilePath{};
     ReflectProperty(mFilePath, "FilePath", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 프로젝트 콘텐츠를 읽고 캐시하는 소유 에셋 관리자입니다.
      */

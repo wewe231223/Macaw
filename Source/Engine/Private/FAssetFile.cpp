@@ -18,14 +18,17 @@ namespace {
      * @brief Macaw 에셋 파일을 식별하는 헤더의 매직 바이트입니다.
      */
     constexpr std::array<char, 8> AssetMagic{'M', 'A', 'C', 'A', 'W', 'A', 'S', 'T'};
+
     /**
      * @brief 현재 지원하는 에셋 파일 형식 버전입니다.
      */
     constexpr Uint32 AssetVersion{1};
+
     /**
      * @brief 에셋 파일에서 허용하는 최대 페이로드 바이트 수입니다.
      */
     constexpr Uint64 MaximumPayload{512ULL * 1024 * 1024};
+
     /**
      * @brief 페이로드 앞에 저장하는 에셋 헤더의 바이트 수입니다.
      */
@@ -42,13 +45,17 @@ namespace {
      */
     bool ReadHeader(const std::filesystem::path& Path, std::ifstream& Input, EAssetType& Type, Uint64& Size, FString& Error) {
         Error.clear();
+
         std::error_code Code{};
         const Uint64 FileSize{std::filesystem::file_size(Path, Code)};
+
         if (Code || Path.extension() != L".masset" || FileSize < HeaderSize || FileSize - HeaderSize > MaximumPayload) {
             Error = "Cannot read asset file or invalid asset size";
             return false;
         }
+
         Input.open(Path, std::ios::binary);
+
         std::array<char, 8> Magic{};
         Uint32 Version{};
         Uint32 TypeValue{};
@@ -56,11 +63,14 @@ namespace {
         Input.read(reinterpret_cast<char*>(&Version), sizeof(Version));
         Input.read(reinterpret_cast<char*>(&TypeValue), sizeof(TypeValue));
         Input.read(reinterpret_cast<char*>(&Size), sizeof(Size));
+
         if (!Input || Magic != AssetMagic || Version != AssetVersion || TypeValue < static_cast<Uint32>(EAssetType::Scene) || TypeValue > static_cast<Uint32>(EAssetType::Texture) || Size == 0 || Size != FileSize - HeaderSize) {
             Error = "Invalid asset header, version or type";
             return false;
         }
+
         Type = static_cast<EAssetType>(TypeValue);
+
         return true;
     }
 }
@@ -68,21 +78,28 @@ namespace {
 bool FAssetFile::GetType(const std::filesystem::path& Path, EAssetType& Type, FString& Error) {
     if (Path.extension() == L".mtl") {
         Error.clear();
+
         std::error_code Code{};
+
         if (!std::filesystem::is_regular_file(Path, Code) || Code) {
             Error = "Cannot read the MTL material";
             return false;
         }
+
         Type = EAssetType::Material;
+
         return true;
     }
+
     std::ifstream Input{};
     Uint64 Size{};
+
     return ReadHeader(Path, Input, Type, Size, Error);
 }
 
 bool FAssetFile::Save(const std::filesystem::path& Path, EAssetType Type, std::span<const Uint8> Payload, FString& Error) {
     Error.clear();
+
     if (Path.extension() != L".masset" || Payload.empty() || Payload.size() > MaximumPayload || Type < EAssetType::Scene || Type > EAssetType::Texture) {
         Error = "Invalid asset path, type or payload";
         return false;
@@ -90,21 +107,26 @@ bool FAssetFile::Save(const std::filesystem::path& Path, EAssetType Type, std::s
 
     std::error_code Code{};
     const std::filesystem::path Target{std::filesystem::absolute(Path, Code)};
+
     if (Code) {
         Error = "Invalid asset path: " + Code.message();
         return false;
     }
+
     EAssetType ExistingType{Type};
     FString ExistingError{};
+
     if (GetType(Target, ExistingType, ExistingError) && ExistingType != Type) {
         Error = "Cannot overwrite an asset with a different asset type";
         return false;
     }
 
     FAtomicFileWriter Writer{};
+
     if (!Writer.Open(Target, Error)) {
         return false;
     }
+
     const Uint32 TypeValue{static_cast<Uint32>(Type)};
     const Uint64 Size{Payload.size()};
     std::ostream& Output{Writer.GetStream()};
@@ -113,6 +135,7 @@ bool FAssetFile::Save(const std::filesystem::path& Path, EAssetType Type, std::s
     Output.write(reinterpret_cast<const char*>(&TypeValue), sizeof(TypeValue));
     Output.write(reinterpret_cast<const char*>(&Size), sizeof(Size));
     Output.write(reinterpret_cast<const char*>(Payload.data()), static_cast<std::streamsize>(Size));
+
     return Writer.Commit(Error);
 }
 
@@ -120,9 +143,11 @@ bool FAssetFile::Load(const std::filesystem::path& Path, EAssetType Type, TArray
     std::ifstream Input{};
     EAssetType ActualType{Type};
     Uint64 Size{};
+
     if (!ReadHeader(Path, Input, ActualType, Size, Error)) {
         return false;
     }
+
     if (ActualType != Type) {
         Error = "The asset type does not match the requested type";
         return false;
@@ -131,10 +156,13 @@ bool FAssetFile::Load(const std::filesystem::path& Path, EAssetType Type, TArray
     TArray<Uint8> Candidate{};
     Candidate.resize(static_cast<std::size_t>(Size));
     Input.read(reinterpret_cast<char*>(Candidate.data()), static_cast<std::streamsize>(Size));
+
     if (!Input) {
         Error = "Truncated asset payload";
         return false;
     }
+
     Payload = std::move(Candidate);
+
     return true;
 }

@@ -38,9 +38,11 @@ int FApplication::Run() {
 
     std::array<wchar_t, 32768> Executable{};
     const DWORD Length{GetModuleFileNameW(nullptr, Executable.data(), static_cast<DWORD>(Executable.size()))};
+
     if (Length == 0 || Length >= Executable.size()) {
         ErrorHandler::Fatal("Application", "Cannot locate the project templates");
     }
+
     mTemplateDirectory = std::filesystem::path{Executable.data()}.parent_path() / "Templates/Project";
 
     if (!BrowseProjects({}, false)) {
@@ -56,17 +58,21 @@ int FApplication::Run() {
 
         {
             const FScopedStatFrame StatFrame{};
+
             mEngine.TickFrame(mTimer.Tick());
             mRenderer.Present();
         }
+
         if (mBrowseProjects) {
             const std::filesystem::path Requested{std::move(mPendingProject)};
+
             mPendingProject.clear();
             mBrowseProjects = false;
             mEngine.Shutdown();
             mRenderer.Shutdown();
             mEngine.SetProject(nullptr);
             mProject.reset();
+
             if (!BrowseProjects(Requested, mCreateProject)) {
                 break;
             }
@@ -93,36 +99,44 @@ void FApplication::Shutdown() {
 bool FApplication::BrowseProjects(std::filesystem::path Path, bool Create) {
     FProjectBrowser Browser{};
     FString Error{};
+
     while (Browser.Show(mPlatform, mRenderer, Path, Create, Error)) {
         if (OpenProject(Path, Create, Error)) {
             return true;
         }
     }
+
     return false;
 }
 
 bool FApplication::OpenProject(const std::filesystem::path& Path, bool Create, FString& Error) {
     auto Project{std::make_unique<FProject>()};
+
     if (!(Create ? Project->Create(Path, mTemplateDirectory, Error) : Project->Open(Path, Error))) {
         return false;
     }
+
     mEngine.Shutdown();
     mRenderer.Shutdown();
     mProject = std::move(Project);
     mEngine.SetProject(mProject.get());
     mRenderer.SetProjectPaths(mProject->GetAssets()->GetContentRoot(), mProject->GetShaderCachePath());
+
     if (!mRenderer.Initialize(mPlatform.GetWindowHandle(), mPlatform.GetWidth(), mPlatform.GetHeight()) || !mEngine.InitializeEditor(&mRenderer, &mPlatform)) {
         ErrorHandler::Fatal("Project", "Cannot initialize the project editor");
     }
+
     mEngine.GetEditorContext()->SetProjectRequestHandler([this](const std::filesystem::path& Requested, bool CreateRequested) {
         mPendingProject = Requested;
         mCreateProject = CreateRequested;
         mBrowseProjects = true;
     });
+
     const std::u8string Name{reinterpret_cast<const char8_t*>(mProject->GetName().data()), mProject->GetName().size()};
     const std::wstring Title{L"Macaw - " + std::filesystem::path{Name}.wstring()};
     SetWindowTextW(mPlatform.GetWindowHandle(), Title.c_str());
     FProjectBrowser::RememberProject(mProject->GetFilePath());
     mTimer.Tick();
+
     return true;
 }

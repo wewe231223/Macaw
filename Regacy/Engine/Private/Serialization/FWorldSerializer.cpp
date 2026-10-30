@@ -551,6 +551,7 @@ TArray<AActor*> FWorldSerializer::DuplicateActors(UWorld& World, const TArray<AA
 
     FArchiveMemory Reader{static_cast<const TArray<Uint8>&>(Bytes)};
     Reader.SetAssetResolver(FAssetRegistry::TryGet());
+
     const FObjectGuidScope GuidScope{Reader, &Remapping};
     TArray<std::unique_ptr<AActor>> Copies{};
 
@@ -618,6 +619,7 @@ TArray<AActor*> FWorldSerializer::DuplicateActors(UWorld& World, const TArray<AA
             }
 
             World.FlushPendingDestroyActors();
+
             return {};
         }
 

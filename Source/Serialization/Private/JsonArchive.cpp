@@ -107,16 +107,20 @@ bool FJsonArchive::Save(const std::filesystem::path& Path) {
 
     FString Error{};
     FAtomicFileWriter Writer{};
+
     if (!Writer.Open(Path, Error)) {
         SetError(Error);
         return false;
     }
+
     const FString Text{ToString()};
     Writer.GetStream().write(Text.data(), static_cast<std::streamsize>(Text.size()));
+
     if (!Writer.Commit(Error)) {
         SetError(Error);
         return false;
     }
+
     return true;
 }
 

@@ -49,11 +49,13 @@ public:
      */
     FVector4 mStartAndWidth{};
     ReflectProperty(mStartAndWidth, "StartAndWidth", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 선분의 끝점입니다.
      */
     FVector4 mEnd{};
     ReflectProperty(mEnd, "End", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 표시할 RGBA 색상입니다.
      */

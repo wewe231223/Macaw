@@ -86,6 +86,7 @@ std::size_t FMeshData::GetAllocatedBytes() const {
     }
 
     Bytes += mSubMeshes.capacity() * sizeof(FSubMesh) + mMaterialSlots.capacity() * sizeof(FMeshMaterialSlot);
+
     for (const FMeshMaterialSlot& Slot : mMaterialSlots) {
         Bytes += Slot.GetName().capacity() + Slot.GetMaterialPath().capacity();
     }

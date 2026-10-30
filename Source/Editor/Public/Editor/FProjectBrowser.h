@@ -39,6 +39,7 @@ public:
      * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며 사용할 수 없으면 nullptr입니다.
      */
     ReflectStruct(FProjectBrowser);
+
     /**
      * @brief 프로젝트 선택 화면의 이벤트·그리기 루프를 실행합니다.
      * @param[in] Platform 창과 플랫폼 입력을 제공하는 객체입니다.
@@ -49,6 +50,7 @@ public:
      * @return 검증 또는 요청한 처리에 성공하면 true입니다.
      */
     bool Show(FWindowsApplication& Platform, FRenderer& Renderer, std::filesystem::path& ProjectFile, bool& Create, const FString& Error);
+
     /**
      * @brief 최근 사용한 프로젝트 목록에 경로를 기록합니다.
      * @param[in] ProjectFile 열거나 기록할 프로젝트 파일 경로입니다.
@@ -62,30 +64,36 @@ private:
      * @param[out] Error 실패 시 원인을 받을 문자열입니다.
      */
     void Draw(FWindowsApplication& Platform, const FString& Error);
+
     /**
      * @brief 기존 프로젝트 열기 UI를 표시합니다.
      * @param[in] Platform 창과 플랫폼 입력을 제공하는 객체입니다.
      */
     void DrawOpenProject(FWindowsApplication& Platform);
+
     /**
      * @brief 프로젝트 이름과 폴더를 지정하는 생성 UI를 표시합니다.
      * @param[in] Platform 창과 플랫폼 입력을 제공하는 객체입니다.
      */
     void DrawNewProject(FWindowsApplication& Platform);
+
     /**
      * @brief 최근 프로젝트 목록을 디스크에서 읽습니다.
      */
     void LoadRecentProjects();
+
     /**
      * @brief 입력 이름과 폴더로 구성한 프로젝트 파일 경로를 반환합니다.
      * @return 계산하거나 조회한 값입니다.
      */
     std::filesystem::path GetNewProjectFile() const;
+
     /**
      * @brief 프로젝트 이름이 파일 이름으로 사용 가능한지 검사합니다.
      * @return 조건을 만족하면 true입니다.
      */
     bool IsProjectNameValid() const;
+
     /**
      * @brief 생성된 멤버 등록 함수와 리플렉션 빌더의 접근 권한입니다.
      */
@@ -103,26 +111,31 @@ private:
      */
     std::array<char, 256> mProjectName{};
     ReflectProperty(mProjectName, "ProjectName", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 프로젝트 생성 폴더의 UTF-8 입력 버퍼입니다.
      */
     std::array<char, 4096> mLocation{};
     ReflectProperty(mLocation, "Location", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 최근 사용한 프로젝트 경로 목록입니다.
      */
     std::vector<std::filesystem::path> mRecentProjects{};
     ReflectProperty(mRecentProjects, "RecentProjects", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 열기 또는 생성할 프로젝트 파일 경로입니다.
      */
     std::filesystem::path mSelectedFile{};
     ReflectProperty(mSelectedFile, "SelectedFile", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 프로젝트 생성 화면 표시 여부입니다.
      */
     bool mCreatePage{};
     ReflectProperty(mCreatePage, "CreatePage", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 프로젝트 선택 완료 여부입니다.
      */

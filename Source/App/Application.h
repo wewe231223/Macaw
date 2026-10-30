@@ -29,6 +29,7 @@ public:
      * @brief FApplication의 초기 상태와 전달받은 의존성을 구성합니다.
      */
     FApplication();
+
     /**
      * @brief 객체의 수명을 끝내고 소유한 리소스를 정리합니다.
      */
@@ -52,6 +53,7 @@ private:
      * @brief 종속 객체를 역순으로 정리하고 여러 번 호출해도 안전한 종료 상태로 만듭니다.
      */
     void Shutdown();
+
     /**
      * @brief 프로젝트 선택 화면을 반복 표시하고 선택한 프로젝트를 엽니다.
      * @param[in] Path Content 상대 에셋 경로 또는 작업할 파일 경로입니다.
@@ -59,6 +61,7 @@ private:
      * @return 검증 또는 요청한 처리에 성공하면 true입니다.
      */
     bool BrowseProjects(std::filesystem::path Path, bool Create);
+
     /**
      * @brief 현재 실행을 정리하고 프로젝트를 생성하거나 열어 시작 장면을 연결합니다.
      * @param[out] Error 프로젝트를 열지 못한 원인입니다.
@@ -98,26 +101,31 @@ private:
      */
     FFrameTimer mTimer{};
     ReflectProperty(mTimer, "Timer", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 현재 프로젝트를 단독 소유하는 객체입니다.
      */
     std::unique_ptr<FProject> mProject{};
     ReflectProperty(mProject, "Project", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 새 프로젝트에 복사할 템플릿의 기준 폴더입니다.
      */
     std::filesystem::path mTemplateDirectory{};
     ReflectProperty(mTemplateDirectory, "TemplateDirectory", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 다음 안전한 전환 시점에 처리할 프로젝트 파일 경로입니다.
      */
     std::filesystem::path mPendingProject{};
     ReflectProperty(mPendingProject, "PendingProject", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 보류 중인 프로젝트 요청이 새 프로젝트 생성인지 나타냅니다.
      */
     bool mCreateProject{};
     ReflectProperty(mCreateProject, "CreateProject", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 다음 프레임의 프로젝트 브라우저 전환 요청입니다.
      */

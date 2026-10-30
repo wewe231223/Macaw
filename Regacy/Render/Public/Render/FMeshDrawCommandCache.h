@@ -2,6 +2,7 @@
  * @file FMeshDrawCommandCache.h
  * @brief 전역 에셋을 조회하며 씬별 메시 명령을 유지하는 캐시를 정의합니다.
  */
+
 #pragma once
 #include "Render/FMeshDrawCommand.h"
 #include "Render/FRenderAssetStamp.h"
@@ -46,6 +47,7 @@ private:
 public:
     void BeginUpdate();
     void EndUpdate();
+
     /**
      * @brief 전역 에셋으로 메시 배치의 렌더 명령을 생성하거나 갱신합니다.
      * @param Mesh 처리할 메시 배치입니다.

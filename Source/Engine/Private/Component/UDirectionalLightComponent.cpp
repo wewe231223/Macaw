@@ -17,6 +17,7 @@ FLightSceneProxy UDirectionalLightComponent::CreateLightProxy() const {
     Proxy.mCascadeCount = mCascadeCount;
     Proxy.mShadowDistance = mShadowDistance;
     Proxy.mCascadeTransitionFraction = mCascadeTransitionFraction;
+
     return Proxy;
 }
 
@@ -28,8 +29,10 @@ bool UDirectionalLightComponent::SetCascadeCount(Uint32 Count) {
     if (Count < 1 || Count > 4) {
         return false;
     }
+
     mCascadeCount = Count;
     SynchronizeLight();
+
     return true;
 }
 
@@ -41,8 +44,10 @@ bool UDirectionalLightComponent::SetShadowDistance(float Distance) {
     if (!std::isfinite(Distance) || Distance < 1.0f || Distance > 100000.0f) {
         return false;
     }
+
     mShadowDistance = Distance;
     SynchronizeLight();
+
     return true;
 }
 
@@ -54,7 +59,9 @@ bool UDirectionalLightComponent::SetCascadeTransitionFraction(float Fraction) {
     if (!std::isfinite(Fraction) || Fraction < 0.0f || Fraction > 0.5f) {
         return false;
     }
+
     mCascadeTransitionFraction = Fraction;
     SynchronizeLight();
+
     return true;
 }

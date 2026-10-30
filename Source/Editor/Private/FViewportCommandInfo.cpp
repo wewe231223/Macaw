@@ -28,6 +28,7 @@ const FViewportCommandInfo* FViewportCommandInfo::Find(EViewportCommand Command)
             return &Info;
         }
     }
+
     return nullptr;
 }
 
@@ -35,12 +36,16 @@ FString FViewportCommandInfo::GetShortcutLabel() const {
     if (mShortcut == '\0') {
         return {};
     }
+
     if (mShortcut == ' ') {
         return "Space";
     }
+
     if (mShortcut == '\t') {
         return "Tab";
     }
+
     const std::array<char, 2> Name{mShortcut, '\0'};
+
     return FString{Name.data()};
 }

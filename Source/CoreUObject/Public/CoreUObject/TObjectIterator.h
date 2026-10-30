@@ -3,6 +3,7 @@
  * @brief 타입과 Outer로 필터링하는 객체 스냅샷 반복자입니다.
  * @ingroup CoreUObject
  */
+
 #pragma once
 
 #include "Core/ReflectionMacros.h"
@@ -57,42 +58,50 @@ public:
      * @return 등록된 구조체 메타데이터입니다.
      */
     ReflectTemplate(TObjectIterator);
+
     /**
      * @brief 현재 객체를 반환합니다.
      * @return 유효한 객체 주소 또는 nullptr입니다.
      */
     T* Get() const;
+
     /**
      * @brief 현재 객체를 반환합니다.
      * @return 유효한 객체 주소 또는 nullptr입니다.
      */
     T* operator*() const;
+
     /**
      * @brief 현재 객체의 멤버에 접근합니다.
      * @return 유효한 객체 주소이며 끝에서는 nullptr입니다.
      */
     T* operator->() const;
+
     /**
      * @brief 남은 유효 객체를 검사합니다.
      * @return 순회할 객체가 있으면 true입니다.
      */
     explicit operator bool() const;
+
     /**
      * @brief 다음 살아 있는 객체로 이동합니다.
      * @return 이 반복자의 참조입니다.
      */
     TObjectIterator& operator++();
+
     /**
      * @brief 이동 전 반복자를 보관하고 전진합니다.
      * @return 이동 전 반복자의 사본입니다.
      */
     TObjectIterator operator++(int);
+
     /**
      * @brief 끝 센티널과 비교합니다.
      * @param Sentinel 범위의 끝입니다.
      * @return 유효한 객체가 없으면 true입니다.
      */
     bool operator==(std::default_sentinel_t Sentinel) const;
+
     /**
      * @brief 반복자의 위치를 비교합니다.
      * @param Other 비교할 반복자입니다.
@@ -118,6 +127,7 @@ private:
      */
     std::shared_ptr<const TArray<FObjectHandle>> mHandles{};
     ReflectProperty(mHandles, "Handles", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 소멸한 객체를 건너뛴 현재 위치입니다.
      */
@@ -152,11 +162,13 @@ public:
      * @return 등록된 구조체 메타데이터입니다.
      */
     ReflectTemplate(TObjectRange);
+
     /**
      * @brief 범위 시작을 반환합니다.
      * @return 스냅샷을 공유하는 반복자입니다.
      */
     TObjectIterator<T> begin() const;
+
     /**
      * @brief 범위 끝을 반환합니다.
      * @return 객체가 남지 않았음을 나타내는 센티널입니다.
@@ -191,11 +203,14 @@ template <typename T>
 T* TObjectIterator<T>::Get() const {
     while (mHandles != nullptr && mIndex < mHandles->size()) {
         UObject* Object{FObjectRegistry::Get()->Resolve((*mHandles)[mIndex])};
+
         if (Object != nullptr && Object->IsA(T::StaticClass())) {
             return static_cast<T*>(Object);
         }
+
         ++mIndex;
     }
+
     return nullptr;
 }
 
@@ -219,13 +234,16 @@ TObjectIterator<T>& TObjectIterator<T>::operator++() {
     if (mHandles != nullptr && mIndex < mHandles->size()) {
         ++mIndex;
     }
+
     Get();
+
     return *this;
 }
 
 template <typename T>
 TObjectIterator<T> TObjectIterator<T>::operator++(int) {
     TObjectIterator Previous{*this};
+
     ++*this;
     return Previous;
 }

@@ -35,23 +35,28 @@ public:
      * @brief UObject의 초기 상태와 전달받은 의존성을 구성합니다.
      */
     UObject();
+
     /**
      * @brief 객체의 수명을 끝내고 소유한 리소스를 정리합니다.
      */
     virtual ~UObject();
+
     /**
      * @brief 고유한 객체 수명을 유지하기 위해 복사 또는 이동 생성을 금지합니다.
      */
     UObject(const UObject&) = delete;
+
     /**
      * @brief 고유한 객체 수명을 유지하기 위해 대입을 금지합니다.
      * @return 소유 객체가 유지하는 값의 참조입니다.
      */
     UObject& operator=(const UObject&) = delete;
+
     /**
      * @brief 고유한 객체 수명을 유지하기 위해 복사 또는 이동 생성을 금지합니다.
      */
     UObject(UObject&&) = delete;
+
     /**
      * @brief 고유한 객체 수명을 유지하기 위해 대입을 금지합니다.
      * @return 소유 객체가 유지하는 값의 참조입니다.
@@ -64,6 +69,7 @@ public:
      * @return 등록된 타입 메타데이터의 비소유 주소입니다.
      */
     ReflectRootClass(UObject, EClassFlags::NoFactory);
+
     /**
      * @fn UClass* UObject::GetClass() const
      * @brief 객체의 실제 클래스 메타데이터를 반환합니다.
@@ -76,6 +82,7 @@ public:
      * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
      */
     bool IsA(const UClass* Class) const;
+
     /**
      * @brief 리플렉션 상속 관계를 기준으로 객체가 요청한 타입인지 검사합니다.
      * @tparam T 적용할 네이티브 타입입니다.
@@ -89,6 +96,7 @@ public:
      * @return 소유 객체가 유지하는 값의 참조입니다.
      */
     const FGuid& GetGuid() const;
+
     /**
      * @brief 레지스트리 슬롯과 세대 핸들을 반환합니다.
      * @return 레지스트리 슬롯과 세대 핸들입니다.
@@ -100,22 +108,26 @@ public:
      * @return 소유 객체가 유지하는 값의 참조입니다.
      */
     const FString& GetName() const;
+
     /**
      * @brief 비어 있지 않은 이름을 검증하여 객체 이름을 변경합니다.
      * @param[in] Name 조회하거나 기록할 이름입니다.
      * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
      */
     bool SetName(const FString& Name);
+
     /**
      * @brief 문자열 비교 없이 사용할 공유 이름 식별자를 반환합니다.
      * @return 이 객체 또는 공유 이름 풀이 유지하는 값의 참조입니다.
      */
     const FName& GetFName() const;
+
     /**
      * @brief 세대 핸들로 Outer를 조회하며 소멸한 객체는 nullptr로 처리합니다.
      * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며 사용할 수 없으면 nullptr입니다.
      */
     UObject* GetOuter() const;
+
     /**
      * @brief 자기 참조와 순환 참조를 거부하고 Outer의 세대 핸들을 설정합니다.
      * @param[out] Outer 이름 범위의 상위 객체이며 소유권을 이전하지 않습니다.
@@ -123,11 +135,13 @@ public:
      * @note Outer는 이름 범위만 나타내며 메모리 소유권을 이전하지 않습니다.
      */
     bool SetOuter(UObject* Outer);
+
     /**
      * @brief 살아 있는 Outer의 이름을 점으로 연결한 객체 경로를 만듭니다.
      * @return 계산하거나 조회한 값입니다.
      */
     FString GetPathName() const;
+
     /**
      * @brief 유효한 장면 GUID로 객체의 영속 식별자를 복원합니다.
      * @param[in] Guid 복원 또는 조회할 영속 GUID입니다.
@@ -140,6 +154,7 @@ public:
      * @param[in,out] Archive 로드 또는 저장 모드를 가진 아카이브입니다.
      */
     virtual void Serialize(FArchive& Archive);
+
     /**
      * @brief 복제 그래프 생성 후 사용자 참조를 복제본으로 재연결하는 확장 지점입니다.
      * @param[in] Source 이 객체에 대응하는 원본입니다.
@@ -149,11 +164,13 @@ public:
      * 이전하지 않습니다.
      */
     virtual bool PostDuplicate(const UObject* Source, const FObjectDuplicationContext* Context);
+
     /**
      * @brief 프로퍼티 값을 편집하기 직전에 호출되는 확장 지점입니다.
      * @param[in] Property 읽기, 쓰기 또는 알림을 적용할 프로퍼티 메타데이터입니다.
      */
     virtual void PreEditChange(const FProperty* Property);
+
     /**
      * @brief 프로퍼티 값이 변경된 뒤 호출되는 확장 지점입니다.
      * @param[in] Event Event에 적용할 입력 값입니다.
@@ -166,6 +183,7 @@ public:
      * @return FMemory::Free()로 해제해야 하는 정렬된 할당 주소입니다.
      */
     static void* operator new(std::size_t Size);
+
     /**
      * @brief 객체 통계에 포함되는 정렬된 메모리를 할당합니다.
      * @param[in] Size 뷰포트 크기 또는 데이터의 바이트 수입니다.
@@ -173,11 +191,13 @@ public:
      * @return FMemory::Free()로 해제해야 하는 정렬된 할당 주소입니다.
      */
     static void* operator new(std::size_t Size, std::align_val_t Alignment);
+
     /**
      * @brief 객체 통계에 포함된 정렬 메모리를 해제합니다.
      * @param[in] Pointer 할당 또는 해제할 블록의 주소입니다.
      */
     static void operator delete(void* Pointer) noexcept;
+
     /**
      * @brief 객체 통계에 포함된 정렬 메모리를 해제합니다.
      * @param[in] Pointer 할당 또는 해제할 블록의 주소입니다.
@@ -190,6 +210,7 @@ private:
      * @brief 생성된 프로퍼티 등록 함수와 빌더 접근 권한입니다.
      */
     ReflectMembers();
+
     /**
      * @brief SIMD 저장소를 사용하는 수학 연산 또는 객체 등록을 위해 내부 접근을 허용합니다.
      */

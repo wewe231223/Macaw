@@ -68,46 +68,55 @@ public:
      */
     FBox mBounds{};
     ReflectProperty(mBounds, "Bounds", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 렌더링할 정적 메시의 비소유 주소입니다.
      */
     UStaticMesh* mMesh{};
     ReflectProperty(mMesh, "Mesh", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief UTF-8 문자열입니다.
      */
     std::optional<FDrawText> mText{};
     ReflectProperty(mText, "Text", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 연결된 머티리얼의 비소유 주소입니다.
      */
     UMaterial* mMaterial{};
     ReflectProperty(mMaterial, "Material", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief SubMesh의 재질 인덱스로 조회하는 슬롯별 비소유 재질 주소입니다.
      */
     TArray<UMaterial*> mMaterials{};
     ReflectProperty(mMaterials, "Materials", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 스프라이트 전용 렌더 데이터입니다.
      */
     std::optional<FDrawSprite> mSprite{};
     ReflectProperty(mSprite, "Sprite", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 기본 UV에 곱할 셀 크기입니다.
      */
     FVector2 mUVScale{1.0f, 1.0f};
     ReflectProperty(mUVScale, "UVScale", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 기본 UV에 더할 셀 원점입니다.
      */
     FVector2 mUVOffset{};
     ReflectProperty(mUVOffset, "UVOffset", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 프리미티브의 그림자 생성 여부입니다.
      */
     bool mCastShadow{true};
     ReflectProperty(mCastShadow, "CastShadow", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 프리미티브의 그림자 수신 여부입니다.
      */

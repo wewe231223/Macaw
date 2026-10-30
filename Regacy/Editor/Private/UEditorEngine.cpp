@@ -423,6 +423,7 @@ bool UEditorEngine::InitializeEditorResources(FLoadingProgress& Progress, HWND W
     const FAssetRegistry::FProgressCallback AssetProgressCallback{[&Progress](float AssetProgress, const std::string& Status) {
         Progress.SetProgress(0.15f + AssetProgress * 0.55f, Status);
     }};
+
     FAssetRegistry& Assets{FAssetRegistry::Get()};
 
     if (!Assets.Initialize(AssetProgressCallback)) {
@@ -449,16 +450,20 @@ bool UEditorEngine::InitializeEditorResources(FLoadingProgress& Progress, HWND W
         mWorldCommandChannel->TryBind<FMouseCameraRotateRequestMessage>([this](const FMouseCameraRotateRequestMessage& Message) {
             mEditorContext->HandleMouseCameraRotateRequest(Message);
         });
+
         mWorldCommandChannel->TryBind<FKeyboardCameraMoveRequestMessage>([this](const FKeyboardCameraMoveRequestMessage& Message) {
             mEditorContext->HandleKeyboardCameraMoveRequest(Message);
         });
+
         mWorldCommandChannel->TryBind<FMouseCameraMoveRequestMessage>([this](const FMouseCameraMoveRequestMessage& Message) {
             mEditorContext->HandleMouseCameraMoveRequestMessage(Message);
         });
+
         mWorldCommandChannel->TryBind<FMouseCameraDollyRequestMessage>([this](const FMouseCameraDollyRequestMessage& Message) {
             mEditorContext->HandleMouseCameraDollyRequestMessage(Message);
         });
 #endif
+
         mEditorUI->InitializeViewer(WindowHandle, mThumbnailRenderer.get());
     } else {
         mEditorUI->Initialize(Renderer, WindowHandle, mThumbnailRenderer.get());
@@ -480,6 +485,7 @@ void UEditorEngine::TickFrame(float DeltaTime, const std::function<void()>& Draw
     }
 
     Stat::BeginFrame();
+
     {
         const Stat::FScopedSystemStatTimer StageStat{Stat::ESystemStatStage::FrameSetup};
 

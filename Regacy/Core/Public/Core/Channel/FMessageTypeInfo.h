@@ -2,6 +2,7 @@
  * @file FMessageTypeInfo.h
  * @brief 메시지 타입의 주소 기반 식별 정보와 메시지 선언 매크로를 정의한다.
  */
+
 #pragma once
 
 #include <string_view>

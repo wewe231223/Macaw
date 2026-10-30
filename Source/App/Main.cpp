@@ -18,6 +18,7 @@ static int RunApplication() {
 #else
     FApplication Application{};
 #endif
+
     return Application.Run();
 }
 
@@ -31,6 +32,7 @@ static int RunApplication() {
  */
 int WINAPI WinMain(HINSTANCE Instance, HINSTANCE Previous, LPSTR CommandLine, int ShowCommand) {
     ErrorHandler::Initialize();
+
     const HRESULT ComResult{CoInitializeEx(nullptr, COINIT_MULTITHREADED)};
 
     if (FAILED(ComResult) && ComResult != RPC_E_CHANGED_MODE) {
@@ -38,6 +40,7 @@ int WINAPI WinMain(HINSTANCE Instance, HINSTANCE Previous, LPSTR CommandLine, in
     }
 
     const int Result{RunApplication()};
+
     if (SUCCEEDED(ComResult)) {
         CoUninitialize();
     }

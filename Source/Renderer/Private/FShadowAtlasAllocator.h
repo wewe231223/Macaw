@@ -43,11 +43,13 @@ public:
      */
     Uint32 mX{};
     ReflectProperty(mX, "X", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 할당 블록 위쪽 가장자리의 픽셀 좌표입니다.
      */
     Uint32 mY{};
     ReflectProperty(mY, "Y", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 아틀라스 또는 할당 블록 한 변의 픽셀 수입니다.
      */
@@ -96,16 +98,19 @@ private:
          */
         FShadowAtlasBlock mBlock{};
         ReflectProperty(mBlock, "Block", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
         /**
          * @brief 사분할된 네 자식 노드의 배열 인덱스입니다.
          */
         std::array<Uint32, 4> mChildren{};
         ReflectProperty(mChildren, "Children", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
         /**
          * @brief 이 노드가 네 자식 영역으로 분할되었는지 나타냅니다.
          */
         bool mSplit{};
         ReflectProperty(mSplit, "Split", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
         /**
          * @brief 이 노드의 전체 영역이 할당되었는지 나타냅니다.
          */
@@ -131,6 +136,7 @@ public:
      * @brief 모든 할당을 해제하고 아틀라스 전체를 하나의 빈 영역으로 되돌립니다.
      */
     void Reset();
+
     /**
      * @brief 요청한 크기의 비어 있는 정사각형 아틀라스 영역을 할당합니다.
      * @param[in] Size 할당할 한 변의 픽셀 수이며 0이 아닌 2의 거듭제곱이어야 합니다.
@@ -158,6 +164,7 @@ private:
      */
     Uint32 mSize{};
     ReflectProperty(mSize, "Size", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 아틀라스 사분할 트리의 노드 저장소입니다.
      */

@@ -21,6 +21,7 @@ void UCapsuleComponent::Serialize(FArchive& Archive) {
     if (Archive.IsLoading() && !Archive.HasError() && Archive.HasField("CapsuleRadius")) {
         SetCapsuleRadius(0.0f);
     }
+
     Super::Serialize(Archive);
 }
 

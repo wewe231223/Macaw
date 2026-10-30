@@ -31,6 +31,7 @@ bool USubUVComponent::SetTargetComponent(UPrimitiveComponent* Target) {
 
     ApplyUVTransform();
     UpdateTickEnabled();
+
     return true;
 }
 

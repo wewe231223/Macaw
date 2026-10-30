@@ -37,41 +37,49 @@ public:
      */
     bool mLightIcons{true};
     ReflectProperty(mLightIcons, "LightIcons", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 현재 뷰에서 그림자 렌더링과 샘플링을 사용할지 나타냅니다.
      */
     bool mShadows{true};
     ReflectProperty(mShadows, "Shadows", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 광원 방향·반경·원뿔 보조선의 표시 여부입니다.
      */
     bool mLightVisualizers{true};
     ReflectProperty(mLightVisualizers, "LightVisualizers", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 장면 프리미티브의 렌더링 여부입니다.
      */
     bool mPrimitives{true};
     ReflectProperty(mPrimitives, "Primitives", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 스프라이트와 Billboard의 표시 여부입니다.
      */
     bool mSprites{true};
     ReflectProperty(mSprites, "Sprites", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 장면 텍스트와 에디터 이름 표식의 표시 여부입니다.
      */
     bool mText{true};
     ReflectProperty(mText, "Text", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 월드 AABB 표시 여부입니다.
      */
     bool mBounds{};
     ReflectProperty(mBounds, "Bounds", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 월드 그리드 표시 여부입니다.
      */
     bool mGrid{true};
     ReflectProperty(mGrid, "Grid", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 월드 축 표시 여부입니다.
      */

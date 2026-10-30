@@ -51,6 +51,7 @@ private:
      * @brief 생성된 멤버 등록 함수와 리플렉션 빌더의 접근 권한입니다.
      */
     ReflectMembers();
+
     /**
      * @brief 렌더러가 정렬한 드로의 구간과 GPU 자원을 읽도록 허용합니다.
      */
@@ -62,26 +63,31 @@ private:
      */
     FMaterialPipeline* mPipeline{};
     ReflectProperty(mPipeline, "Pipeline", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 연결된 머티리얼의 비소유 주소입니다.
      */
     UMaterial* mMaterial{};
     ReflectProperty(mMaterial, "Material", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 이번 드로에 사용할 정적 메시입니다.
      */
     UStaticMesh* mMesh{};
     ReflectProperty(mMesh, "Mesh", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 객체 행렬과 UV 변환을 가진 렌더 프리미티브입니다.
      */
     const FScenePrimitive* mPrimitive{};
     ReflectProperty(mPrimitive, "Primitive", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 이 드로의 첫 인덱스 오프셋입니다.
      */
     Uint32 mFirstIndex{};
     ReflectProperty(mFirstIndex, "FirstIndex", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 이 드로의 삼각형 인덱스 개수입니다.
      */
@@ -142,6 +148,7 @@ private:
      */
     const FSceneViewFamily* mFamily{};
     ReflectProperty(mFamily, "Family", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 연결된 렌더 장면입니다.
      */
@@ -153,6 +160,7 @@ private:
      */
     FSceneDrawContext mDrawContext{};
     ReflectProperty(mDrawContext, "DrawContext", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 프레임 렌더링 통계입니다.
      */

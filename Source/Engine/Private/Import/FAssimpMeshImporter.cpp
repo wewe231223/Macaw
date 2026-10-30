@@ -18,14 +18,18 @@
 namespace {
     FMeshImportTexture ReadTexture(const aiScene& Scene, const aiMaterial& Material, aiTextureType PrimaryType, aiTextureType FallbackType, const std::filesystem::path& Directory) {
         aiString Texture{};
+
         if (Material.GetTexture(PrimaryType, 0, &Texture) != AI_SUCCESS && Material.GetTexture(FallbackType, 0, &Texture) != AI_SUCCESS) {
             return {};
         }
+
         FString Reference{Texture.C_Str()};
         std::replace(Reference.begin(), Reference.end(), '\\', '/');
+
         if (Reference.starts_with("*") || Scene.GetEmbeddedTexture(Texture.C_Str()) != nullptr) {
             return FMeshImportTexture::FromEmbedded(std::move(Reference));
         }
+
         return FMeshImportTexture{(Directory / FilePath::FromUtf8(Reference)).lexically_normal()};
     }
 
@@ -82,6 +86,7 @@ namespace {
         for (Uint32 MaterialIndex{}; MaterialIndex < Scene->mNumMaterials; ++MaterialIndex) {
             aiString Name{};
             Scene->mMaterials[MaterialIndex]->Get(AI_MATKEY_NAME, Name);
+
             const FString MaterialName{Name.length == 0 ? "Material_" + std::to_string(MaterialIndex) : FString{Name.C_Str()}};
             MeshData.GetMaterialSlots().emplace_back(MaterialName, FString{});
         }
@@ -94,8 +99,10 @@ namespace {
             for (Uint32 VertexIndex{}; VertexIndex < SourceMesh.mNumVertices; ++VertexIndex) {
                 const aiVector3D& Position{SourceMesh.mVertices[VertexIndex]};
                 Positions.push_back({Position.x, Position.y, Position.z});
+
                 const FVector Normal{SourceMesh.HasNormals() ? FVector{SourceMesh.mNormals[VertexIndex].x, SourceMesh.mNormals[VertexIndex].y, SourceMesh.mNormals[VertexIndex].z}.Normalized() : FVector{0.0f, 0.0f, 1.0f}};
                 Normals.push_back(Normal);
+
                 const FVector Axis{std::abs(Normal.z) < 0.99f ? FVector{0.0f, 0.0f, 1.0f} : FVector{0.0f, 1.0f, 0.0f}};
                 FVector Tangent{Axis.Cross(Normal).Normalized()};
                 float Handedness{1.0f};
@@ -143,18 +150,22 @@ namespace {
                     Indices.push_back(BaseVertex + Face.mIndices[Corner]);
                 }
             }
+
             MeshData.GetSubMeshes().emplace_back(FirstIndex, static_cast<Uint32>(SourceMesh.mNumFaces * 3), SourceMesh.mMaterialIndex);
         }
 
         FVector Minimum{Positions.front()};
         FVector Maximum{Minimum};
+
         for (std::size_t Index{}; Index < Positions.size(); ++Index) {
             if (!Positions[Index].IsFinite() || !Normals[Index].IsFinite() || !Tangents[Index].IsFinite() || !Colors[Index].IsFinite()) {
                 Error = "The source contains invalid vertex attributes";
                 return false;
             }
+
             Minimum = Minimum.Min(Positions[Index]);
             Maximum = Maximum.Max(Positions[Index]);
+
             for (const auto& Channel : UVChannels) {
                 if (!Channel[Index].IsFinite()) {
                     Error = "The source contains invalid texture coordinates";
@@ -162,51 +173,67 @@ namespace {
                 }
             }
         }
+
         MeshData.SetBounds({Minimum, Maximum});
+
         return true;
     }
 }
 
 bool FAssimpMeshImporter::Import(const std::filesystem::path& Source, FMeshImportResult& Result, FString& Error) const {
     Error.clear();
+
     if (Source.empty()) {
         Error = "A mesh source path is required";
         return false;
     }
+
     std::error_code Code{};
     const auto SourcePath{std::filesystem::absolute(Source, Code).lexically_normal()};
+
     if (Code) {
         Error = "Cannot resolve the mesh source path: " + Code.message();
         return false;
     }
+
     Assimp::Importer Importer{};
     Importer.SetIOHandler(new FMeshImportIOSystem{});
     Importer.SetPropertyInteger(AI_CONFIG_PP_SBP_REMOVE, aiPrimitiveType_POINT | aiPrimitiveType_LINE);
     Importer.SetPropertyBool(AI_CONFIG_PP_PTV_KEEP_HIERARCHY, true);
     Importer.SetPropertyBool(AI_CONFIG_PP_FID_IGNORE_TEXTURECOORDS, true);
+
     constexpr Uint32 ImportFlags{aiProcess_Triangulate | aiProcess_JoinIdenticalVertices | aiProcess_GenSmoothNormals | aiProcess_CalcTangentSpace | aiProcess_SortByPType | aiProcess_PreTransformVertices | aiProcess_ConvertToLeftHanded | aiProcess_FindInvalidData | aiProcess_ValidateDataStructure};
     const aiScene* Scene{Importer.ReadFile(FilePath::ToUtf8(SourcePath), ImportFlags)};
+
     if (Scene == nullptr || (Scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE) != 0 || !Scene->HasMeshes()) {
         Error = Scene == nullptr ? Importer.GetErrorString() : "The source contains no complete mesh data";
         return false;
     }
+
     FMeshImportResult Imported{};
+
     if (!ReadMesh(Scene, Imported.GetMeshData(), Error)) {
         return false;
     }
+
     TArray<FMeshImportMaterial>& Materials{Imported.GetMaterials()};
     Materials.reserve(Scene->mNumMaterials);
+
     for (Uint32 Index{}; Index < Scene->mNumMaterials; ++Index) {
         const aiMaterial& Material{*Scene->mMaterials[Index]};
         const FString& Name{Imported.GetMeshData().GetMaterialSlots()[Index].GetName()};
         aiColor4D Color{1.0f, 1.0f, 1.0f, 1.0f};
         aiGetMaterialColor(&Material, AI_MATKEY_COLOR_DIFFUSE, &Color);
+
         float Opacity{1.0f};
         Material.Get(AI_MATKEY_OPACITY, Opacity);
+
         Int32 TwoSided{};
         Material.Get(AI_MATKEY_TWOSIDED, TwoSided);
         Materials.emplace_back(Name, FVector4{Color.r, Color.g, Color.b, Opacity}, TwoSided != 0, ReadTexture(*Scene, Material, aiTextureType_BASE_COLOR, aiTextureType_DIFFUSE, SourcePath.parent_path()), ReadTexture(*Scene, Material, aiTextureType_NORMALS, aiTextureType_HEIGHT, SourcePath.parent_path()));
     }
+
     Result = std::move(Imported);
+
     return true;
 }

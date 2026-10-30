@@ -37,6 +37,7 @@ enum class EWorldType : Uint8 {
  * @return 등록된 열거형 메타데이터의 비소유 주소입니다.
  */
 ReflectEnum(EWorldType, Editor, Game, PIE, EditorPreview);
+
 /**
  * @fn UEnum* GetNativeEnum(TNativeEnum<EWorldType>)
  * @brief 타입 태그를 통해 이 열거형의 메타데이터를 조회합니다.

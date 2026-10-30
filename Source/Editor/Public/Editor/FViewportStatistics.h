@@ -24,6 +24,7 @@ public:
      * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
      */
     ReflectTypes(FViewportStatistics);
+
     /**
      * @brief 뷰포트 통계의 표시 그룹을 비트 플래그로 구분합니다.
      */
@@ -79,6 +80,7 @@ public:
      * @brief FViewportStatistics의 초기 표시 상태를 구성합니다.
      */
     FViewportStatistics() = default;
+
     /**
      * @brief 객체의 수명을 끝내고 소유한 리소스를 정리합니다.
      */
@@ -90,6 +92,7 @@ public:
      * @return 등록된 타입 메타데이터의 비소유 주소입니다.
      */
     ReflectStruct(FViewportStatistics);
+
     /**
      * @brief stat 그룹 표시·목록·이력 초기화 명령을 처리합니다.
      * @param[in] Command 처리할 콘솔 명령 문자열입니다.
@@ -97,23 +100,27 @@ public:
      * @return stat 명령이면 구문 오류를 포함해 true이며 다른 명령이면 false입니다.
      */
     bool ExecuteCommand(const FString& Command, FString& Output);
+
     /**
      * @brief 지정한 통계 그룹이 표시되도록 설정됐는지 검사합니다.
      * @param[in] Group 조회 또는 표시 상태를 판정할 통계 그룹입니다.
      * @return 이름으로 지정한 그룹 또는 비트 조합의 모든 그룹이 켜져 있으면 true입니다.
      */
     bool IsEnabled(EGroup Group) const;
+
     /**
      * @brief 지정한 통계 그룹이 표시되도록 설정됐는지 검사합니다.
      * @param[in] Group 조회 또는 표시 상태를 판정할 통계 그룹입니다.
      * @return 이름으로 지정한 그룹 또는 비트 조합의 모든 그룹이 켜져 있으면 true입니다.
      */
     bool IsEnabled(const FString& Group) const;
+
     /**
      * @brief 검색 가능한 통계 표와 이력 초기화 버튼을 별도 창에 그립니다.
      * @param[in,out] Open 창을 열지 지정하며 그리기 함수에서는 닫기 동작도 반영합니다.
      */
     void DrawPanel(bool& Open);
+
     /**
      * @brief 하나 이상의 뷰포트 통계 그룹이 표시되도록 설정됐는지 반환합니다.
      * @return 검사 조건을 만족하면 true, 그렇지 않으면 false입니다.
@@ -145,11 +152,13 @@ private:
      */
     TArray<FString> mEnabledGroups{};
     ReflectProperty(mEnabledGroups, "EnabledGroups", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 기본적으로 모든 통계 그룹을 켜고 예외 목록을 적용할지 나타냅니다.
      */
     bool mAllGroups{};
     ReflectProperty(mAllGroups, "AllGroups", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 통계 패널의 그룹·항목 이름 검색 버퍼입니다.
      */

@@ -64,6 +64,7 @@ private:
         float mMaxZ{std::numeric_limits<float>::lowest()};
 
         MinMaxBox() = default;
+
         void Expand(const DirectX::BoundingBox& Box);
         float SurfaceArea() const;
         static MinMaxBox Merge(const MinMaxBox& Box1, const MinMaxBox& Box2);
@@ -118,7 +119,9 @@ private:
         std::array<double, 10> mValues{};
 
         void AddPlane(double X, double Y, double Z, double D);
+
         FLODQuadric& operator+=(const FLODQuadric& Other);
+
         double Evaluate(const FVector3& Position, const FVector3& Origin) const;
         float FindEdgeInterpolation(const FVector3& P0, const FVector3& P1, const FVector3& Origin, double UVSlope = 0.0, double UVCurvature = 0.0) const;
     };
@@ -222,9 +225,11 @@ public:
     ~UMesh() override;
 
     UMesh(const UMesh&) = delete;
+
     UMesh& operator=(const UMesh&) = delete;
 
     UMesh(UMesh&&) = delete;
+
     UMesh& operator=(UMesh&&) = delete;
 
 public:

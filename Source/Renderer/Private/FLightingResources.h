@@ -41,6 +41,7 @@ public:
      */
     FVector4 mCameraAndCount{};
     ReflectProperty(mCameraAndCount, "CameraAndCount", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 타일 열·행 개수, 타일 한 변의 픽셀 수와 예약값을 저장합니다.
      */
@@ -77,11 +78,13 @@ public:
      * @return 필요한 버퍼 생성과 업로드에 성공하면 true입니다.
      */
     bool Upload(ID3D11Device* Device, ID3D11DeviceContext* Context, std::span<const FLightSceneProxy> Lights, const FSceneView& View, std::span<const std::array<Uint32, 2>> ShadowRanges = {});
+
     /**
      * @brief 타일 조명 버퍼와 상수의 셰이더 바인딩을 설정합니다.
      * @param[in] Context GPU 자원 업로드 또는 바인딩에 사용할 Direct3D 컨텍스트의 비소유 주소입니다.
      */
     void Bind(ID3D11DeviceContext* Context) const;
+
     /**
      * @brief 타일 조명 버퍼와 상수의 셰이더 바인딩을 해제합니다.
      * @param[in] Context GPU 자원 업로드 또는 바인딩에 사용할 Direct3D 컨텍스트의 비소유 주소입니다.
@@ -113,21 +116,25 @@ private:
      */
     FTiledLightGrid mGrid{};
     ReflectProperty(mGrid, "Grid", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 광원·타일 구간·광원 인덱스를 담는 GPU 구조화 버퍼입니다.
      */
     std::array<Microsoft::WRL::ComPtr<ID3D11Buffer>, 3> mBuffers{};
     ReflectProperty(mBuffers, "Buffers", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 각 조명 구조화 버퍼의 셰이더 리소스 뷰입니다.
      */
     std::array<Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>, 3> mViews{};
     ReflectProperty(mViews, "Views", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 각 조명 구조화 버퍼에 확보한 원소 수입니다.
      */
     std::array<Uint32, 3> mCapacities{};
     ReflectProperty(mCapacities, "Capacities", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 카메라와 타일 격자 정보를 담는 상수 버퍼입니다.
      */

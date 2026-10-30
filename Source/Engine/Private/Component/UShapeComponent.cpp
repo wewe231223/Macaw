@@ -50,6 +50,7 @@ namespace {
         const float StepRad{(EndAngleRad - StartAngleRad) / Segments};
 
         FVector Prev{C + U * (std::cos(StartAngleRad) * R) + V * (std::sin(StartAngleRad) * R)};
+
         for (Int32 Index{1}; Index <= Segments; ++Index) {
             const float AngleRad{StartAngleRad + StepRad * Index};
             const FVector Point{C + U * (std::cos(AngleRad) * R) + V * (std::sin(AngleRad) * R)};
@@ -63,6 +64,7 @@ UShapeComponent::UShapeComponent() {
     mOnComponentBeginOverlap.Add([](UPrimitiveComponent*, AActor*, UPrimitiveComponent*) {
         std::clog << "BeginOverlap\n";
     });
+
     mOnComponentEndOverlap.Add([](UPrimitiveComponent*, AActor*, UPrimitiveComponent*) {
         std::clog << "EndOverlap\n";
     });
@@ -207,7 +209,9 @@ bool UShapeComponent::SetShapeColor(const FVector4& Color) {
     if (!std::isfinite(Color.x) || !std::isfinite(Color.y) || !std::isfinite(Color.z) || !std::isfinite(Color.w)) {
         return false;
     }
+
     mShapeColor = Color;
+
     return true;
 }
 

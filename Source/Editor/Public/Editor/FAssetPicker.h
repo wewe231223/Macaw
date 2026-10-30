@@ -3,6 +3,7 @@
  * @brief 썸네일·검색·드래그 앤 드롭을 공유하는 에셋 선택기입니다.
  * @ingroup Editor
  */
+
 #pragma once
 
 #include "Core/ReflectionMacros.h"
@@ -33,6 +34,7 @@ public:
      * @return 등록한 구조체 정보입니다.
      */
     ReflectStruct(FAssetPicker);
+
     /**
      * @brief 썸네일과 검색 가능한 선택기를 표시합니다.
      * @param Catalog 표시 목록입니다.
@@ -52,6 +54,7 @@ private:
      * @brief 자동 멤버 등록 접근을 허용합니다.
      */
     ReflectMembers();
+
     /**
      * @brief 목록을 검색하여 썸네일과 함께 표시합니다.
      * @param Catalog 에셋 목록입니다.
@@ -62,6 +65,7 @@ private:
      * @return 목록에서 값을 선택하면 true입니다.
      */
     bool DrawOptions(FEditorAssetCatalog& Catalog, FAssetThumbnailCache& Thumbnails, FString& Path, EAssetType Type, const char* EmptyLabel);
+
     /**
      * @brief 직전 위젯에서 같은 종류의 드롭을 받습니다.
      * @param Catalog 경로와 타입을 검증할 목록입니다.

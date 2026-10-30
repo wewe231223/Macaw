@@ -27,17 +27,20 @@ public:
      * @return 등록된 타입 메타데이터의 비소유 주소입니다.
      */
     ReflectClass(UCameraComponent);
+
     /**
      * @brief 카메라의 수직 시야각을 도 단위로 반환합니다.
      * @return 카메라의 시야각이며 도 단위입니다.
      */
     float GetFieldOfView() const;
+
     /**
      * @brief 유효한 범위의 시야각을 검사하여 카메라에 설정합니다.
      * @param[in] FieldOfView 설정할 카메라 시야각이며 도 단위입니다.
      * @return 요청한 처리를 완료하면 true, 실패하면 false입니다.
      */
     bool SetFieldOfView(float FieldOfView);
+
     /**
      * @brief 카메라의 월드 변환과 시야각으로 뷰·투영 행렬을 계산합니다.
      * @param[in] Size 계산할 뷰포트의 가로·세로 픽셀 크기입니다.

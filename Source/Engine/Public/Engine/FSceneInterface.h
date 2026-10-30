@@ -43,6 +43,7 @@ public:
      * @param[in] Proxy 장면에 복사할 광원 상태입니다.
      */
     virtual void AddLight(const FLightSceneProxy& Proxy);
+
     /**
      * @brief 지정한 GUID의 광원을 렌더 장면에서 제거합니다.
      * @param[in] Id 제거할 광원의 GUID입니다.
@@ -54,6 +55,7 @@ public:
      * @param[in] Proxy 장면에 복사할 렌더 프록시입니다.
      */
     virtual void AddPrimitive(const FPrimitiveSceneProxy& Proxy) = 0;
+
     /**
      * @brief 지정한 프리미티브의 월드 행렬과 경계 상자를 갱신합니다.
      * @param[in] Id 장면 프리미티브의 식별자입니다.
@@ -61,6 +63,7 @@ public:
      * @param[in] Bounds 프리미티브의 월드 또는 로컬 경계 상자입니다.
      */
     virtual void UpdatePrimitiveTransform(const FGuid& Id, const FMatrix& World, const FBox& Bounds) = 0;
+
     /**
      * @brief 식별자에 해당하는 프리미티브와 관련 GPU 리소스를 제거합니다.
      * @param[in] Id 장면 프리미티브의 식별자입니다.
@@ -72,6 +75,7 @@ public:
      * @return 현재 장면에 등록된 프리미티브 개수입니다.
      */
     virtual std::size_t GetPrimitiveCount() const = 0;
+
     /**
      * @brief 프리미티브 추가, 제거 또는 변환 갱신 시 증가하는 장면 개정 번호를 반환합니다.
      * @return 프리미티브 추가, 제거 또는 변환 갱신 시 증가하는 장면 개정 번호입니다.

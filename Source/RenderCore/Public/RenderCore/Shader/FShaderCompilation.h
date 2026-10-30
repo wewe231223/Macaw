@@ -33,16 +33,19 @@ public:
      */
     std::filesystem::path mPath{};
     ReflectProperty(mPath, "Path", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 의존성 검사 시 파일의 마지막 수정 시각입니다.
      */
     std::filesystem::file_time_type mWriteTime{};
     ReflectProperty(mWriteTime, "WriteTime", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 의존성 검사 시 파일의 바이트 수입니다.
      */
     Uint64 mSize{};
     ReflectProperty(mSize, "Size", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 의존성 검사 시 파일이 존재했는지 나타냅니다.
      */
@@ -78,11 +81,13 @@ public:
      */
     TArray<Uint8> mByteCode{};
     ReflectProperty(mByteCode, "ByteCode", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 소스 및 include 파일의 존재·크기·수정 시각 스냅샷입니다.
      */
     TArray<FShaderDependency> mDependencies{};
     ReflectProperty(mDependencies, "Dependencies", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 셰이더 컴파일 결과를 생성한 시각입니다.
      */

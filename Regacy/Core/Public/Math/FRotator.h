@@ -2,6 +2,7 @@
  * @file FRotator.h
  * @brief 도 단위의 Pitch, Yaw, Roll 회전을 표현합니다.
  */
+
 #pragma once
 
 struct FVector;
@@ -26,14 +27,17 @@ struct FRotator {
              * @note 현재 선언에서 Pitch, Yaw, Roll과 저장 공간을 공유하지 않으며 생성자가 이 배열을 초기화하지 않습니다.
              */
             float V[3];
+
             /**
              * @brief Y축 주위의 도 단위 회전 각도입니다.
              */
             float Pitch;
+
             /**
              * @brief Z축 주위의 도 단위 회전 각도입니다.
              */
             float Yaw;
+
             /**
              * @brief X축 주위의 도 단위 회전 각도입니다.
              */
@@ -45,6 +49,7 @@ struct FRotator {
      * @brief Pitch, Yaw, Roll을 모두 0도로 초기화합니다.
      */
     FRotator();
+
     /**
      * @brief 세 회전 각도를 지정한 값으로 초기화합니다.
      * @param P 도 단위 Pitch입니다.
@@ -52,6 +57,7 @@ struct FRotator {
      * @param R 도 단위 Roll입니다.
      */
     FRotator(float P, float Y, float R);
+
     /**
      * @brief 벡터의 X, Y, Z를 각각 Pitch, Yaw, Roll에 복사합니다.
      * @param Vector 각 성분을 도 단위 각도로 취급할 벡터입니다.

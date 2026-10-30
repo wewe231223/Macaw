@@ -57,20 +57,25 @@ bool UStaticMeshComponent::SetMeshPath(const FString& Path) {
     if (Path.find('\0') != FString::npos) {
         return false;
     }
+
     const std::filesystem::path AssetPath{FilePath::FromUtf8(Path)};
+
     if (!Path.empty() && (AssetPath.is_absolute() || AssetPath.has_root_name() || AssetPath.extension() != L".masset")) {
         return false;
     }
+
     for (const auto& Part : AssetPath) {
         if (Part == L"..") {
             return false;
         }
     }
+
     if (mMeshPath == Path && (Path.empty() || mStaticMesh != nullptr)) {
         return true;
     }
 
     UStaticMesh* Mesh{LoadMesh(Path)};
+
     if (!Path.empty() && GetWorld() != nullptr && GetWorld()->GetAssets() != nullptr && Mesh == nullptr) {
         return false;
     }
@@ -79,10 +84,12 @@ bool UStaticMeshComponent::SetMeshPath(const FString& Path) {
         if (mMeshPath != Path) {
             mMaterialOverrides.clear();
         }
+
         mMeshPath = Path;
         mStaticMesh = Mesh;
         MarkRenderStateDirty();
     }
+
     return true;
 }
 
@@ -100,11 +107,13 @@ const FMeshData& UStaticMeshComponent::GetMeshData() const {
     }
 
     static const FMeshData EmptyMesh{};
+
     return EmptyMesh;
 }
 
 void UStaticMeshComponent::UnregisterComponent() {
     UWorld::FDispatchScope Scope{GetWorld()};
+
     UPrimitiveComponent::UnregisterComponent();
     mStaticMesh = nullptr;
     mMaterial = nullptr;
@@ -112,6 +121,7 @@ void UStaticMeshComponent::UnregisterComponent() {
 
 bool UStaticMeshComponent::ResolveMesh() {
     UStaticMesh* Mesh{LoadMesh(mMeshPath)};
+
     if (mStaticMesh != Mesh) {
         mStaticMesh = Mesh;
         MarkRenderStateDirty();
@@ -131,12 +141,14 @@ void UStaticMeshComponent::OnRegister() {
 
 UStaticMesh* UStaticMeshComponent::LoadMesh(const FString& Path) const {
     FAssetManager* Assets{GetWorld() != nullptr ? GetWorld()->GetAssets() : nullptr};
+
     if (Assets == nullptr || Path.empty()) {
         return nullptr;
     }
 
     FString Error{};
     UStaticMesh* Mesh{Assets->LoadMesh(FilePath::FromUtf8(Path), Error)};
+
     if (Mesh == nullptr) {
         ErrorHandler::Report("StaticMesh", "Cannot load mesh '" + Path + "': " + Error, ErrorHandler::EErrorLevel::Warning);
     }
@@ -152,25 +164,33 @@ bool UStaticMeshComponent::SetMaterialPath(const FString& Path) {
     if (Path.find('\0') != FString::npos) {
         return false;
     }
+
     const std::filesystem::path AssetPath{FilePath::FromUtf8(Path)};
+
     if (!Path.empty() && (AssetPath.has_root_path() || AssetPath.extension() != L".mtl")) {
         return false;
     }
+
     for (const auto& Part : AssetPath) {
         if (Part == L"..") {
             return false;
         }
     }
+
     if (mMaterialPath == Path && (Path.empty() || mMaterial != nullptr)) {
         return true;
     }
+
     UMaterial* Material{LoadMaterial(Path)};
+
     if (!Path.empty() && GetWorld() != nullptr && GetWorld()->GetAssets() != nullptr && Material == nullptr) {
         return false;
     }
+
     mMaterialPath = Path;
     mMaterial = Material;
     MarkRenderStateDirty();
+
     return true;
 }
 
@@ -180,21 +200,25 @@ UMaterial* UStaticMeshComponent::GetMaterial() const {
 
 bool UStaticMeshComponent::ResolveMaterial() {
     UMaterial* Material{LoadMaterial(mMaterialPath)};
+
     if (mMaterial != Material) {
         mMaterial = Material;
         MarkRenderStateDirty();
     }
+
     return mMaterialPath.empty() || mMaterial != nullptr;
 }
 
 FPrimitiveSceneProxy UStaticMeshComponent::CreateSceneProxy() const {
     FPrimitiveSceneProxy Proxy{UPrimitiveComponent::CreateSceneProxy()};
     Proxy.mMaterial = mMaterial;
+
     if (mStaticMesh != nullptr) {
         for (Uint32 Slot{}; Slot < mStaticMesh->GetMeshData().GetMaterialSlots().size(); ++Slot) {
             Proxy.mMaterials.push_back(GetSlotMaterial(Slot));
         }
     }
+
     return Proxy;
 }
 
@@ -207,9 +231,11 @@ UMaterial* UStaticMeshComponent::GetSlotMaterial(Uint32 Slot) const {
     if (mMaterial != nullptr) {
         return mMaterial;
     }
+
     if (!GetSlotMaterialPath(Slot).empty()) {
         return LoadMaterial(GetSlotMaterialPath(Slot));
     }
+
     return mStaticMesh != nullptr && Slot < mStaticMesh->GetMeshData().GetMaterialSlots().size() ? LoadMaterial(mStaticMesh->GetMeshData().GetMaterialSlots()[Slot].GetMaterialPath()) : nullptr;
 }
 
@@ -217,47 +243,63 @@ bool UStaticMeshComponent::SetSlotMaterialPath(Uint32 Slot, const FString& Path)
     if (mStaticMesh == nullptr || Slot >= mStaticMesh->GetMeshData().GetMaterialSlots().size()) {
         return false;
     }
+
     const std::filesystem::path AssetPath{FilePath::FromUtf8(Path)};
+
     if (Path.find('\0') != FString::npos || (!Path.empty() && (AssetPath.has_root_path() || AssetPath.extension() != L".mtl" || LoadMaterial(Path) == nullptr))) {
         return false;
     }
+
     for (const auto& Part : AssetPath) {
         if (Part == L"..") {
             return false;
         }
     }
+
     if (mMaterialOverrides.size() <= Slot) {
         mMaterialOverrides.resize(Slot + 1);
     }
+
     mMaterialOverrides[Slot] = Path;
     MarkRenderStateDirty();
+
     return true;
 }
 
 void UStaticMeshComponent::Serialize(FArchive& Archive) {
     UPrimitiveComponent::Serialize(Archive);
+
     if (Archive.HasError() || (Archive.IsLoading() && !Archive.HasField("SlotMaterials"))) {
         return;
     }
+
     Uint32 Count{Archive.IsLoading() ? 0 : static_cast<Uint32>(mMaterialOverrides.size())};
+
     if (!Archive.BeginArray("SlotMaterials", Count)) {
         return;
     }
+
     if (Archive.IsLoading()) {
         mMaterialOverrides.resize(Count);
     }
+
     for (Uint32 Slot{}; Slot < Count && !Archive.HasError(); ++Slot) {
         Archive.Serialize(std::to_string(Slot), mMaterialOverrides[Slot]);
+
         const auto Path{FilePath::FromUtf8(mMaterialOverrides[Slot])};
         bool Valid{mMaterialOverrides[Slot].find('\0') == FString::npos && (Path.empty() || (!Path.has_root_path() && Path.extension() == L".mtl"))};
+
         for (const auto& Part : Path) {
             Valid = Valid && Part != L"..";
         }
+
         if (!Valid) {
             Archive.SetError("Invalid slot material reference");
         }
     }
+
     Archive.EndArray();
+
     if (Archive.IsLoading()) {
         MarkRenderStateDirty();
     }
@@ -265,13 +307,17 @@ void UStaticMeshComponent::Serialize(FArchive& Archive) {
 
 UMaterial* UStaticMeshComponent::LoadMaterial(const FString& Path) const {
     FAssetManager* Assets{GetWorld() != nullptr ? GetWorld()->GetAssets() : nullptr};
+
     if (Assets == nullptr || Path.empty()) {
         return nullptr;
     }
+
     FString Error{};
     UMaterial* Material{Assets->LoadMaterial(FilePath::FromUtf8(Path), Error)};
+
     if (Material == nullptr) {
         ErrorHandler::Report("Material", "Cannot load material '" + Path + "': " + Error, ErrorHandler::EErrorLevel::Warning);
     }
+
     return Material;
 }

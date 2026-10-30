@@ -2,6 +2,7 @@
  * @file FRenderData.h
  * @brief 텍스트·빌보드 그리기, 뷰 행렬, 렌더 설정과 광원 셰이더 파라미터를 정의합니다.
  */
+
 #pragma once
 #include "CoreUObject/Reflection/ReflectionMacros.h"
 #include "Core/CoreMinimal.h"
@@ -24,21 +25,25 @@ public:
 
 public:
     ReflectProperty(mLocalPosition, "LocalPosition", EPropertyFlags::Serialize, ReflectSerializer(mLocalPosition));
+
     /**
      * @brief 글리프 사각형 왼쪽 위의 로컬 위치입니다.
      */
     FVector2 mLocalPosition{};
     ReflectProperty(mSize, "Size", EPropertyFlags::Serialize, ReflectSerializer(mSize));
+
     /**
      * @brief 글리프 사각형의 가로·세로 크기입니다.
      */
     FVector2 mSize{};
     ReflectProperty(mUvMin, "UvMin", EPropertyFlags::Serialize, ReflectSerializer(mUvMin));
+
     /**
      * @brief 글리프 아틀라스 영역의 최소 UV 좌표입니다.
      */
     FVector2 mUvMin{};
     ReflectProperty(mUvMax, "UvMax", EPropertyFlags::Serialize, ReflectSerializer(mUvMax));
+
     /**
      * @brief 글리프 아틀라스 영역의 최대 UV 좌표입니다.
      */
@@ -55,18 +60,22 @@ struct FTextDrawData {
      * @brief 월드 텍스트의 배치 기준 행렬입니다.
      */
     FMatrix mWorld{};
+
     /**
      * @brief 글리프 아틀라스를 제공할 글꼴 에셋 핸들입니다.
      */
     FAssetHandle mFontHandle{};
+
     /**
      * @brief 텍스트 그리기에 사용할 파이프라인 에셋 핸들입니다.
      */
     FAssetHandle mPipelineHandle{};
+
     /**
      * @brief 텍스트에 적용할 RGBA 색상입니다.
      */
     FVector4 mColor{1.0f, 1.0f, 1.0f, 1.0f};
+
     /**
      * @brief 문자 사각형을 생성할 글리프 레코드 목록입니다.
      */
@@ -81,26 +90,32 @@ struct FBillboardDrawData {
      * @brief 빌보드의 월드 배치 행렬입니다.
      */
     FMatrix mWorld{};
+
     /**
      * @brief 빌보드에서 샘플링할 텍스처 에셋 핸들입니다.
      */
     FAssetHandle mTextureHandle{};
+
     /**
      * @brief 빌보드 그리기에 사용할 파이프라인 에셋 핸들입니다.
      */
     FAssetHandle mPipelineHandle{};
+
     /**
      * @brief 빌보드 사각형의 가로·세로 크기입니다.
      */
     FVector2 mSize{};
+
     /**
      * @brief 빌보드 텍스처 영역의 최소 UV 좌표입니다.
      */
     FVector2 mUvMin{};
+
     /**
      * @brief 빌보드 텍스처 영역의 최대 UV 좌표입니다.
      */
     FVector2 mUvMax{};
+
     /**
      * @brief 빌보드 텍스처에 적용할 RGBA 색상입니다.
      */
@@ -115,14 +130,17 @@ struct FViewMatrices {
      * @brief 행 벡터 규약에서 mView * mProjection 순서로 합성한 행렬입니다.
      */
     FMatrix mViewProjection{};
+
     /**
      * @brief 월드 공간을 뷰 공간으로 변환하는 행렬입니다.
      */
     FMatrix mView{};
+
     /**
      * @brief 뷰 공간을 클립 공간으로 변환하는 투영 행렬입니다.
      */
     FMatrix mProjection{};
+
     /**
      * @brief 월드 공간의 뷰 절두체입니다. 직교 뷰 등에서는 별도 행렬 컬링을 사용할 수 있습니다.
      */
@@ -145,6 +163,7 @@ public:
 
 public:
     ReflectProperty(mFXAA, "FXAA", EPropertyFlags::Serialize, ReflectSerializer(mFXAA));
+
     /**
      * @brief FXAA 후처리 안티앨리어싱을 활성화할지 여부입니다.
      */
@@ -169,16 +188,19 @@ public:
 
 public:
     ReflectProperty(mClearColor, "ClearColor", EPropertyFlags::Serialize, ReflectSerializer(mClearColor));
+
     /**
      * @brief 렌더 타깃을 지울 때 사용할 RGBA 배경 색상입니다.
      */
     FVector4 mClearColor{0.2f, 0.2f, 0.7f, 1.0f};
     ReflectProperty(mBRenderSky, "BRenderSky", EPropertyFlags::Serialize, ReflectSerializer(mBRenderSky));
+
     /**
      * @brief 하늘 렌더링을 활성화할지 여부입니다.
      */
     bool mBRenderSky{true};
     ReflectProperty(mPostProcessing, "PostProcessing", EPropertyFlags::Serialize, ReflectSerializer(mPostProcessing));
+
     /**
      * @brief 뷰에 적용할 후처리 설정입니다.
      */
@@ -216,34 +238,42 @@ struct FLightShaderParameters {
      * @brief 광원의 RGB 색상입니다.
      */
     FVector3 mColor{1.0f, 1.0f, 1.0f};
+
     /**
      * @brief 광원의 밝기 배율입니다.
      */
     float mIntensity{1.0f};
+
     /**
      * @brief 광원의 월드 공간 위치입니다.
      */
     FVector3 mPosition{};
+
     /**
      * @brief 점·스포트 광원에서 사용하는 감쇠 반경입니다.
      */
     float mAttenuationRadius{};
+
     /**
      * @brief 광원의 월드 공간 방향입니다.
      */
     FVector3 mDirection{0.0f, 0.0f, 1.0f};
+
     /**
      * @brief 스포트 광원의 내부 원뿔 각도에 대한 코사인 값입니다.
      */
     float mInnerConeCos{1.0f};
+
     /**
      * @brief 스포트 광원의 외부 원뿔 각도에 대한 코사인 값입니다.
      */
     float mOuterConeCos{1.0f};
+
     /**
      * @brief 적용할 광원 종류입니다.
      */
     ELightType mType{ELightType::Directional};
+
     /**
      * @brief 셰이더 저장 레이아웃의 64바이트 크기를 맞추는 패딩입니다.
      */

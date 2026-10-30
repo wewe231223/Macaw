@@ -2,6 +2,7 @@
  * @file FAssetThumbnailRenderer.h
  * @brief 전역 에셋을 사용하는 썸네일과 프리뷰 렌더링을 정의합니다.
  */
+
 #pragma once
 
 #include <d3d11.h>
@@ -24,9 +25,11 @@ public:
     ~FAssetThumbnailRenderer() = default;
 
     FAssetThumbnailRenderer(const FAssetThumbnailRenderer&) = delete;
+
     FAssetThumbnailRenderer& operator=(const FAssetThumbnailRenderer&) = delete;
 
     FAssetThumbnailRenderer(FAssetThumbnailRenderer&&) = delete;
+
     FAssetThumbnailRenderer& operator=(FAssetThumbnailRenderer&&) = delete;
 
 public:
@@ -66,6 +69,7 @@ private:
 
 private:
     FRenderer* mRenderer{nullptr};
+
     /** @brief 썸네일과 생성 대기 목록이 참조하는 전역 에셋 서비스 세대입니다. */
     Uint64 mRegistryGeneration{};
     FPreviewScene mPreviewScene{};

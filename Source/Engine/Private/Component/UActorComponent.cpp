@@ -70,6 +70,7 @@ void UActorComponent::RegisterComponent(UWorld* World) {
  */
 void UActorComponent::UnregisterComponent() {
     UWorld::FDispatchScope Scope{mWorld};
+
     DispatchEndPlay();
     mWorld = nullptr;
 }

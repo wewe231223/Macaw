@@ -16,9 +16,11 @@ public:
     ~FShader() = default;
 
     FShader(const FShader&) = delete;
+
     FShader& operator=(const FShader&) = delete;
 
     FShader(FShader&&) noexcept = default;
+
     FShader& operator=(FShader&&) noexcept = default;
 
 public:

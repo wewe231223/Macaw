@@ -34,9 +34,11 @@ public:
     ~UTexture() override;
 
     UTexture(const UTexture&) = delete;
+
     UTexture& operator=(const UTexture&) = delete;
 
     UTexture(UTexture&&) noexcept = delete;
+
     UTexture& operator=(UTexture&&) noexcept = delete;
 
 public:

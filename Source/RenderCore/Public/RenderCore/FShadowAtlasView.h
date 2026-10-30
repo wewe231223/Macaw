@@ -41,16 +41,19 @@ public:
      */
     FGuid mLightId{};
     ReflectProperty(mLightId, "LightId", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 보호 여백을 포함한 타일의 아틀라스 UV 시작점과 크기입니다.
      */
     FVector4 mRectangle{};
     ReflectProperty(mRectangle, "Rectangle", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 점광원 큐브 면 또는 방향광 캐스케이드의 0 기반 번호입니다.
      */
     Uint32 mFace{};
     ReflectProperty(mFace, "Face", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 보호 여백을 제외한 그림자 맵 한 변의 유효 픽셀 수입니다.
      */
@@ -88,16 +91,19 @@ public:
      */
     void* mTexture{};
     ReflectProperty(mTexture, "Texture", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 아틀라스 또는 할당 블록 한 변의 픽셀 수입니다.
      */
     Uint32 mSize{};
     ReflectProperty(mSize, "Size", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 현재 아틀라스에서 광원별 타일을 식별할 배치 정보 사본입니다.
      */
     TArray<FShadowAtlasTile> mTiles{};
     ReflectProperty(mTiles, "Tiles", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 깊이 아틀라스 셰이더 리소스 뷰의 비소유 주소입니다.
      */

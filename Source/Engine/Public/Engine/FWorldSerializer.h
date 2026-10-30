@@ -29,18 +29,21 @@ public:
      * @return 등록된 타입 메타데이터의 비소유 주소입니다.
      */
     ReflectStruct(FWorldSerializer);
+
     /**
      * @brief 월드의 액터·컴포넌트와 활성 카메라·입력 대상 참조를 직렬화합니다.
      * @param[in,out] Archive 로드 또는 저장 모드와 오류 상태를 제공하는 아카이브입니다.
      * @param[in] Context 조회 또는 직렬화에 사용할 컨텍스트의 비소유 주소입니다.
      */
     static void Serialize(FArchive& Archive, const FWorldContext* Context);
+
     /**
      * @brief 액터 목록과 소유 컴포넌트 및 객체 식별자를 아카이브에 저장합니다.
      * @param[in,out] Archive 로드 또는 저장 모드와 오류 상태를 제공하는 아카이브입니다.
      * @param[in] Actors 직렬화하거나 수집할 액터 목록입니다.
      */
     static void SaveActors(FArchive& Archive, const TArray<AActor*>& Actors);
+
     /**
      * @brief 아카이브에서 액터와 컴포넌트를 생성하고 내부 객체 참조를 복원합니다.
      * @param[in,out] Archive 로드 또는 저장 모드와 오류 상태를 제공하는 아카이브입니다.

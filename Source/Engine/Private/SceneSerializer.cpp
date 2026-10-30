@@ -22,7 +22,9 @@ bool FSceneSerializer::Save(const std::filesystem::path& Path, FWorldContext* Co
         Error = Archive.GetError();
         return false;
     }
+
     const FString Payload{Archive.ToString()};
+
     return FAssetFile::Save(Path, EAssetType::Scene, std::span<const Uint8>{reinterpret_cast<const Uint8*>(Payload.data()), Payload.size()}, Error);
 }
 
@@ -33,9 +35,11 @@ std::unique_ptr<FWorldContext> FSceneSerializer::Load(const std::filesystem::pat
     FJsonArchive Archive{EArchiveMode::Loading};
 
     TArray<Uint8> Payload{};
+
     if (!FAssetFile::Load(Path, EAssetType::Scene, Payload, Error)) {
         return nullptr;
     }
+
     if (!Archive.Parse(FString{reinterpret_cast<const char*>(Payload.data()), Payload.size()})) {
         Error = Archive.GetError();
 
@@ -55,9 +59,11 @@ std::unique_ptr<FWorldContext> FSceneSerializer::Load(const std::filesystem::pat
  */
 void FSceneSerializer::Serialize(FArchive& Archive, FWorldContext* Context) {
     FWorldSerializer::Serialize(Archive, Context);
+
     if (Archive.HasError() || Context == nullptr || (Archive.IsLoading() && !Archive.HasField("PerspectiveCamera"))) {
         return;
     }
+
     if (Archive.BeginObject("PerspectiveCamera")) {
         Context->GetEditorCamera().Serialize(Archive);
         Archive.EndObject();

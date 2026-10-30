@@ -13,8 +13,10 @@ public:
 public:
     ReflectClass(UUVScrollComponent, EClassFlags::None);
     ReflectFunction(SetScrollSpeed, FName{"Speed"});
+
     void SetScrollSpeed(const FVector2& Speed);
     ReflectFunction(GetScrollSpeed);
+
     const FVector2& GetScrollSpeed() const;
     void Serialize(FArchive& Archive) override;
 
@@ -25,6 +27,7 @@ private:
 
 private:
     ReflectAccessor(mScrollSpeed, GetScrollSpeed, SetScrollSpeed, "ScrollSpeed", EPropertyFlags::Edit | EPropertyFlags::Serialize, ReflectSerializer(mScrollSpeed), ReflectEditor("UV Animation", "Scroll Speed"));
+
     FVector2 mScrollSpeed{0.1f, 0.1f};
     FVector2 mOffsetBase{};
     double mSpeedChangeTime{};

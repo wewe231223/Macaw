@@ -35,28 +35,37 @@ namespace {
      */
     void SerializeWorldReferences(FArchive& Archive, UWorld* World, TMap<FGuid, UObject*, FGuidHash>* Objects) {
         constexpr const char* Names[]{"ActiveCamera", "InputTarget"};
+
         for (Uint32 Index{}; Index < 2 && !Archive.HasError(); ++Index) {
             const char* Name{Names[Index]};
+
             if (Archive.IsLoading() && !Archive.HasField(Name)) {
                 continue;
             }
+
             UObject* Object{Index == 0 ? static_cast<UObject*>(World->GetActiveCamera()) : World->GetInputTarget()};
             FString Reference{Object != nullptr ? Object->GetGuid().ToString() : FString{}};
             Archive.Serialize(Name, Reference);
+
             if (!Archive.IsLoading() || Archive.HasError()) {
                 continue;
             }
+
             Object = nullptr;
+
             if (!Reference.empty()) {
                 FGuid Guid{};
                 const bool Parsed{FGuid::Parse(Reference, Guid) && Archive.RemapObjectReference(Guid)};
                 const auto Position{Objects->find(Guid)};
+
                 if (!Parsed || Position == Objects->end() || !World->ContainsObject(Position->second) || (Index == 0 ? Cast<UCameraComponent>(Position->second) == nullptr : Cast<AActor>(Position->second) == nullptr)) {
                     Archive.SetError(FString{"Invalid world reference: "} + Name);
                     return;
                 }
+
                 Object = Position->second;
             }
+
             if (!(Index == 0 ? World->SetActiveCamera(Cast<UCameraComponent>(Object)) : World->SetInputTarget(Cast<AActor>(Object)))) {
                 Archive.SetError(FString{"Cannot restore world reference: "} + Name);
             }
@@ -127,9 +136,11 @@ namespace {
     std::unique_ptr<UObject> CreateSerializedObject(FArchive& Archive, TMap<FGuid, UObject*, FGuidHash>* Objects, const UClass* Expected) {
         FString ClassName{};
         Archive.Serialize("Class", ClassName);
+
         if (ClassName == "ABillboardTextActor") {
             ClassName = "AActor";
         }
+
         const UClass* Class{FReflectionRegistry::FindClass(ClassName)};
 
         if (Archive.HasError() || Class == nullptr || !Class->IsChildOf(Expected) || !Class->CanCreate()) {
@@ -281,10 +292,12 @@ void FWorldSerializer::Serialize(FArchive& Archive, const FWorldContext* Context
     }
 
     SerializeHeader(Archive, World, &Objects);
+
     ULevel* Level{World->GetPersistentLevel()};
 
     if (Archive.BeginObject("PersistentLevel")) {
         SerializeHeader(Archive, Level, &Objects);
+
         TArray<AActor*> Sources{};
         TArray<std::unique_ptr<AActor>> Actors{};
 
@@ -337,5 +350,6 @@ TArray<std::unique_ptr<AActor>> FWorldSerializer::LoadActors(FArchive& Archive) 
     TArray<std::unique_ptr<AActor>> Actors{};
     const TArray<AActor*> Sources{};
     SerializeActors(Archive, Sources, Actors, &Objects);
+
     return Actors;
 }

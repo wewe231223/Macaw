@@ -18,16 +18,19 @@ void FPrimitiveDrawInterface::DrawLine(const FVector& Start, const FVector& End,
     if (!Start.IsFinite() || !End.IsFinite() || !Color.IsFinite() || !std::isfinite(Thickness) || Thickness <= 0.0f || (End - Start).LengthSquared() <= 0.0f) {
         return;
     }
+
     mLines.push_back(FDrawLine{Start, End, Color, DepthTest, Thickness});
 }
 
 void FPrimitiveDrawInterface::DrawBox(const FBox& Bounds, const FVector& Color, bool DepthTest, float Thickness) {
     for (Int32 Corner{}; Corner < 8; ++Corner) {
         const FVector Start{(Corner & 1) != 0 ? Bounds.mMaximum.x : Bounds.mMinimum.x, (Corner & 2) != 0 ? Bounds.mMaximum.y : Bounds.mMinimum.y, (Corner & 4) != 0 ? Bounds.mMaximum.z : Bounds.mMinimum.z};
+
         for (Int32 Axis{}; Axis < 3; ++Axis) {
             if ((Corner & (1 << Axis)) != 0) {
                 continue;
             }
+
             const Int32 Other{Corner | (1 << Axis)};
             const FVector End{(Other & 1) != 0 ? Bounds.mMaximum.x : Bounds.mMinimum.x, (Other & 2) != 0 ? Bounds.mMaximum.y : Bounds.mMinimum.y, (Other & 4) != 0 ? Bounds.mMaximum.z : Bounds.mMinimum.z};
             DrawLine(Start, End, Color, DepthTest, Thickness);

@@ -24,6 +24,7 @@ public:
      * @brief UTexture의 초기 상태를 구성합니다.
      */
     UTexture();
+
     /**
      * @brief 객체의 수명을 끝내고 소유한 자원을 정리합니다.
      */
@@ -41,21 +42,25 @@ public:
      * @return 텍스처의 가로 픽셀 수를 나타내는 정수 값입니다.
      */
     virtual Uint32 GetSizeX() const = 0;
+
     /**
      * @brief 텍스처의 세로 픽셀 수를 반환합니다.
      * @return 텍스처의 세로 픽셀 수를 나타내는 정수 값입니다.
      */
     virtual Uint32 GetSizeY() const = 0;
+
     /**
      * @brief 텍스처의 픽셀 또는 깊이 형식을 반환합니다.
      * @return 요청한 텍스처 형식 또는 사용 용도 값입니다.
      */
     virtual ETextureFormat GetFormat() const = 0;
+
     /**
      * @brief 텍스처를 sRGB 색 공간으로 해석하는지 반환합니다.
      * @return 검사 조건을 만족하면 true, 그렇지 않으면 false입니다.
      */
     virtual bool IsSRGB() const = 0;
+
     /**
      * @brief 구현 텍스처가 사용할 수 있는 크기와 이미지 구성을 갖추었는지 검사합니다.
      * @return 검사 조건을 만족하면 true, 그렇지 않으면 false입니다.

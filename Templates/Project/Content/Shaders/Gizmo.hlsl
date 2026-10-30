@@ -11,6 +11,7 @@ cbuffer EditorMeshConstants : register(b0) {
      * @brief 객체 로컬 좌표를 월드 공간으로 변환하는 행 우선 행렬입니다.
      */
     row_major float4x4 World;
+
     /**
      * @brief 드로에 적용할 RGBA 색상입니다.
      */
@@ -26,6 +27,7 @@ struct FInput {
      */
     float3 mPosition : POSITION;
 };
+
 /**
  * @brief 래스터라이저를 거쳐 픽셀 셰이더로 전달할 정점 출력입니다.
  */
@@ -35,6 +37,7 @@ struct FOutput {
      */
     float4 mPosition : SV_POSITION;
 };
+
 /**
  * @brief 입력 정점의 클립 위치와 다음 단계의 보간 데이터를 계산합니다.
  * @param[in] Input 현재 단계에 전달된 정점 또는 픽셀 입력입니다.
@@ -45,6 +48,7 @@ FOutput VertexMain(FInput Input) {
     Output.mPosition = mul(mul(float4(Input.mPosition, 1), World), ViewProjection);
     return Output;
 }
+
 /**
  * @brief 드로 상수 또는 텍스처의 RGBA 색상을 출력합니다.
  * @return 출력 타깃에 기록할 RGBA 색상입니다.

@@ -164,6 +164,7 @@ bool UMesh::Initialize(const FMeshData& Data) {
 
     mSections = Data.mSections;
     mMaterialSlots = Data.mMaterialSlots;
+
     return BuildBoundingBoxFromMesh() && RebuildPickingStructure();
 }
 
@@ -1054,6 +1055,7 @@ bool UMesh::PrepareLODCollapse(const FLODCandidate& Candidate, const FLODGeometr
 
             const FVector2D KeepUV{Geometry.mAttributeGroups[KeepGroup].mUV};
             const FVector2D RemoveUV{Geometry.mAttributeGroups[RemoveGroup].mUV};
+
             Collapse.mAttributeMerges[Collapse.mMergeCount++] = {KeepGroup, RemoveGroup,
                                                                  Collapse.mFixedTarget ? KeepUV : KeepUV * (1.0f - Interpolation) + RemoveUV * Interpolation};
         }
@@ -1731,6 +1733,7 @@ bool FMeshPickingSource::Raycast(const FRay& Ray, FMeshRaycastHit& OutHit, float
     OutHit.mDistance = Distance;
     OutHit.mNormal = Edge1.Cross(Edge2);
     OutHit.mFaceIndex = Packet.mFaceIndices[Lane];
+
     return true;
 }
 
@@ -1781,6 +1784,7 @@ bool FMeshRaycastAccelerationStructure::BuildStructure(UMesh& Mesh) {
 
         for (Uint32 Lane = 0; Lane < Node.mIndexCount; ++Lane) {
             Packet.mFaceIndices[Lane] = mIndexGroups[Node.mIndexStart + Lane];
+
             const std::size_t TriangleIndex = static_cast<std::size_t>(mIndexGroups[Node.mIndexStart + Lane]) * 3;
             const auto V0 = Positions[Indices[TriangleIndex]].ToSimpleMath(), V1 = Positions[Indices[TriangleIndex + 1]].ToSimpleMath(), V2 = Positions[Indices[TriangleIndex + 2]].ToSimpleMath();
 

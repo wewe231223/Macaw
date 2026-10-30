@@ -29,14 +29,17 @@ public:
      * @brief GPU 자원이 없는 빈 버퍼를 생성합니다.
      */
     FDynamicVertexBuffer() = default;
+
     /**
      * @brief 소유한 GPU 버퍼를 해제합니다.
      */
     ~FDynamicVertexBuffer() = default;
+
     /**
      * @brief GPU 버퍼 소유 상태의 복사를 금지합니다.
      */
     FDynamicVertexBuffer(const FDynamicVertexBuffer&) = delete;
+
     /**
      * @brief GPU 버퍼 소유 상태의 복사 대입을 금지합니다.
      */
@@ -60,6 +63,7 @@ public:
      * @note 용량이 충분하면 기존 버퍼를 유지하므로 증가 정책은 호출자가 정합니다.
      */
     bool Upload(ID3D11DeviceContext* Context, std::span<const std::byte> Data, Uint32 Stride, Uint32 Capacity, FString& Error);
+
     /**
      * @brief 소유한 GPU 버퍼와 용량 정보를 초기화합니다.
      */
@@ -70,6 +74,7 @@ public:
      * @return 할당한 정점 버퍼이며 미할당 상태이면 nullptr입니다.
      */
     ID3D11Buffer* GetBuffer() const;
+
     /**
      * @brief 현재 확보한 GPU 버퍼 크기를 반환합니다.
      * @return 정점 용량에 정점 크기를 곱한 바이트 수입니다.
@@ -88,11 +93,13 @@ private:
      */
     Microsoft::WRL::ComPtr<ID3D11Buffer> mBuffer{};
     ReflectProperty(mBuffer, "Buffer", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 버퍼에 확보한 정점 수입니다.
      */
     Uint32 mCapacity{};
     ReflectProperty(mCapacity, "Capacity", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 정점 하나의 바이트 수입니다.
      */

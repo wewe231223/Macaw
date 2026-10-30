@@ -17,13 +17,16 @@ FName::FName(std::string_view Name) {
     static std::mutex Mutex{};
     static std::unordered_map<FString, std::shared_ptr<const FString>> Names{};
     FString Key{Name};
+
     for (char& Character : Key) {
         if (Character >= 'A' && Character <= 'Z') {
             Character = static_cast<char>(Character - 'A' + 'a');
         }
     }
+
     const std::lock_guard Lock{Mutex};
     const auto Existing{Names.find(Key)};
+
     if (Existing != Names.end()) {
         mValue = Existing->second;
     } else {

@@ -40,6 +40,7 @@ enum class EAssetType : Uint32 {
  * @return 등록된 열거형 메타데이터의 비소유 주소입니다.
  */
 ReflectEnum(EAssetType, Scene, Mesh, Texture, Material);
+
 /**
  * @brief 타입 태그로 EAssetType의 열거형 메타데이터를 조회합니다.
  * @fn UEnum* GetNativeEnum(TNativeEnum<EAssetType>)
@@ -62,6 +63,7 @@ public:
      * @return 등록된 타입 메타데이터의 비소유 주소입니다.
      */
     ReflectStruct(FAssetFile);
+
     /**
      * @brief 에셋 파일 헤더를 검사하여 저장된 에셋 종류를 읽습니다.
      * @param[in] Path 조회·로드·저장 또는 정규화할 파일 경로입니다.
@@ -70,6 +72,7 @@ public:
      * @return 요청한 처리를 완료하면 true, 실패하면 false입니다.
      */
     static bool GetType(const std::filesystem::path& Path, EAssetType& Type, FString& Error);
+
     /**
      * @brief 에셋 종류와 페이로드 및 무결성 해시를 파일로 저장합니다.
      * @param[in] Path 조회·로드·저장 또는 정규화할 파일 경로입니다.
@@ -79,6 +82,7 @@ public:
      * @return 요청한 처리를 완료하면 true, 실패하면 false입니다.
      */
     static bool Save(const std::filesystem::path& Path, EAssetType Type, std::span<const Uint8> Payload, FString& Error);
+
     /**
      * @brief 에셋 종류와 데이터 무결성을 검사하여 페이로드를 읽습니다.
      * @param[in] Path 조회·로드·저장 또는 정규화할 파일 경로입니다.

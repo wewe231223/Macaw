@@ -27,6 +27,7 @@ void FReflectionBuilder::AddFunction(FName Name, FInvoker Invoker, std::initiali
     }
 
     std::unique_ptr<UFunction> Function{std::make_unique<UFunction>(Name, mClass, Invoker)};
+
     const FNativeType* const* Type{ParameterTypes.begin()};
 
     for (FName ParameterName : ParameterNames) {

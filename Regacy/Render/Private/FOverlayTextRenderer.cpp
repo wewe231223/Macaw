@@ -86,6 +86,7 @@ const TArray<FTextVertex>* FOverlayTextRenderer::GetTextGeometry(const FOverlayT
     auto Found{std::ranges::find_if(Entries, [&Data, &Font, FontHandle, Generation](const FCachedText& Entry) {
         return Entry.mFontHandle == FontHandle && Entry.mFontGuid == Font.GetGuid() && Entry.mRegistryGeneration == Generation && Entry.mPixelHeight == Data.mPixelHeight && Entry.mLetterSpacing == Data.mLetterSpacing && Entry.mLineSpacing == Data.mLineSpacing;
     })};
+
     const bool NeedsRebuild{Found == Entries.end() || Found->mFontRevision != Font.GetAtlasRevision()};
 
     if (Found == Entries.end()) {

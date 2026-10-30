@@ -29,6 +29,7 @@ public:
      * @return 등록된 메타데이터의 비소유 주소입니다.
      */
     ReflectStruct(FObjectDuplicationContext);
+
     /**
      * @brief 서로 다른 동일 클래스 객체의 대응 관계를 등록합니다.
      * @param[in] Source 복제 원본입니다.
@@ -36,17 +37,20 @@ public:
      * @return 클래스가 같고 원본 키가 중복되지 않아 등록되면 true입니다.
      */
     bool Add(const UObject* Source, UObject* Duplicate);
+
     /**
      * @brief 원본 주소에 대응하는 복제본을 조회합니다.
      * @param[in] Source 조회할 원본의 비소유 주소입니다.
      * @return 등록된 복제본의 비소유 주소이며 대응 관계가 없으면 nullptr입니다.
      */
     UObject* FindDuplicate(const UObject* Source) const;
+
     /**
      * @brief 등록된 모든 대응 관계를 반환합니다.
      * @return 이 컨텍스트가 보유한 비소유 주소 대응표의 참조입니다.
      */
     const TMap<const UObject*, UObject*>& GetObjects() const;
+
     /**
      * @brief 객체를 삭제하지 않고 대응 관계만 비웁니다.
      */

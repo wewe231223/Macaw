@@ -59,6 +59,7 @@ void FEditorViewportClient::SetEditorContext(FEditorContext* Context) {
     if (Context == nullptr || Context == mContext) {
         return;
     }
+
     mGizmo.SetEditorContext(Context);
     mContext = Context;
 }
@@ -118,6 +119,7 @@ bool FEditorViewportClient::CanExecuteCommand(EViewportCommand Command) const {
     if (Command == EViewportCommand::ToggleGrid) {
         return true;
     }
+
     if (!CanEditGizmoSettings()) {
         return false;
     }
@@ -183,38 +185,50 @@ void FEditorViewportClient::Input(FSceneViewport* Viewport, const FViewportInput
     if (Viewport == nullptr) {
         return;
     }
+
     const FVector2 Size{Viewport->GetSize()};
+
     if (!mGizmo.IsDragging() && Input.mFocused && !Input.mRightDown && !Input.mAlt && !Input.mControl) {
         bool ModeRequested{};
+
         for (const FViewportCommandInfo& Info : FViewportCommandInfo::GetCommands()) {
             if (Info.mInput == nullptr || !(Input.*Info.mInput)) {
                 continue;
             }
+
             const bool ModeCommand{Info.mTransformMode || Info.mCommand == EViewportCommand::CycleTransformMode};
+
             if ((ModeCommand && ModeRequested) || (Info.mCommand == EViewportCommand::CycleTransformMode && Input.mLeftDown)) {
                 continue;
             }
+
             ModeRequested = ModeRequested || ModeCommand;
             ExecuteCommand(Info.mCommand);
         }
     }
+
     const FSceneView View{CalcSceneView(Size)};
     const FHitProxy Hit{!mGizmo.IsDragging() && Input.mHovered ? Viewport->GetHitProxy(Input.mMouse) : FHitProxy{}};
+
     if (mGizmo.Input(Input, View, Hit)) {
         return;
     }
+
     if (NavigateCamera(Input, Size, DeltaTime)) {
         return;
     }
+
     if (Input.mDelete && Input.mFocused) {
         mContext->DestroySelectedActor();
         return;
     }
+
     if (Input.mLeftPressed && Input.mHovered && !Input.mAlt && mContext->GetWorld() != nullptr) {
         if (Hit.mType == EHitProxyType::Object) {
             UObject* Object{mContext->ResolveObject(Hit.mObject)};
             const auto* Component{Cast<UActorComponent>(Object)};
             AActor* Actor{Component != nullptr ? Component->GetOwner() : Cast<AActor>(Object)};
+
             if (Actor != nullptr) {
                 if (Input.mControl) {
                     mContext->ToggleActorSelection(Actor->GetHandle());
@@ -246,19 +260,24 @@ bool FEditorViewportClient::NavigateCamera(const FViewportInput& Input, const FV
     if (mViewType != EEditorViewportType::Perspective) {
         if (Input.mWheel != 0.0f && Input.mHovered) {
             const float PreviousWidth{mOrthographicWidth};
+
             mOrthographicWidth = std::clamp(mOrthographicWidth * std::pow(0.85f, Input.mWheel), 0.1f, 10000.0f);
+
             const float PixelScale{(PreviousWidth - mOrthographicWidth) / std::max(Size.x, 1.0f)};
             const FVector Offset{Rotation.RightVector() * ((Input.mMouse.x - Size.x * 0.5f) * PixelScale) + Rotation.UpVector() * ((Size.y * 0.5f - Input.mMouse.y) * PixelScale)};
             mCameraLocation += Offset;
             mOrbitPivot += Offset;
         }
+
         if (Input.mRightDown || Input.mMiddleDown) {
             const float PixelScale{mOrthographicWidth / std::max(Size.x, 1.0f)};
             const FVector Offset{(Rotation.RightVector() * -Input.mDelta.x + Rotation.UpVector() * Input.mDelta.y) * PixelScale};
             mCameraLocation += Offset;
             mOrbitPivot += Offset;
+
             return true;
         }
+
         return Input.mAlt || (Input.mWheel != 0.0f && Input.mHovered);
     }
 
@@ -304,6 +323,7 @@ bool FEditorViewportClient::NavigateCamera(const FViewportInput& Input, const FV
 
     if (Input.mRightDown) {
         const float OrbitDistance{std::max(mCameraLocation.Distance(mOrbitPivot), 0.1f)};
+
         mCameraRotation.yaw += Input.mDelta.x * mCameraSensitivity;
         mCameraRotation.pitch = std::clamp(mCameraRotation.pitch - Input.mDelta.y * mCameraSensitivity, -89.0f, 89.0f);
 
@@ -329,6 +349,7 @@ void FEditorViewportClient::FocusSelection(const FVector2& Size) {
     const auto* Component{Actor != nullptr ? Cast<UPrimitiveComponent>(Actor->GetRootComponent()) : nullptr};
 
     const auto* Light{Actor != nullptr ? Cast<ULightComponentBase>(Actor->GetRootComponent()) : nullptr};
+
     if (Component == nullptr && Light == nullptr) {
         return;
     }
@@ -338,12 +359,14 @@ void FEditorViewportClient::FocusSelection(const FVector2& Size) {
     mOrbitPivot = Bounds.mMinimum.Lerp(Bounds.mMaximum, 0.5f);
 
     const float Radius{Bounds.mMinimum.Distance(Bounds.mMaximum) * 0.5f};
+
     if (mViewType != EEditorViewportType::Perspective) {
         const float Aspect{std::max(Size.x, 1.0f) / std::max(Size.y, 1.0f)};
         mOrthographicWidth = std::clamp(Radius * 2.4f * std::max(Aspect, 1.0f), 0.1f, 10000.0f);
         mCameraLocation = mOrbitPivot - mCameraRotation.Vector() * 5000.0f;
         return;
     }
+
     const float HalfFieldOfView{std::atan(std::tan(Math::ToRadians(mFieldOfView * 0.5f)) * std::min(std::max(Size.x, 1.0f) / std::max(Size.y, 1.0f), 1.0f))};
     const float Distance{std::max(0.5f, Radius / std::sin(HalfFieldOfView) * 1.2f)};
 
@@ -367,6 +390,7 @@ void FEditorViewportClient::Draw(FSceneViewport* Viewport) {
     if (mShowFlags.mGrid) {
         const float Spacing{mGridSpacing};
         const float Extent{50.0f * Spacing};
+
         for (Int32 Index{-50}; Index <= 50; ++Index) {
             const float Offset{Index * Spacing};
             const FVector Color{Index % 10 == 0 ? FVector{0.22f, 0.25f, 0.30f} : FVector{0.13f, 0.15f, 0.19f}};
@@ -374,6 +398,7 @@ void FEditorViewportClient::Draw(FSceneViewport* Viewport) {
             mDrawInterface.DrawLine({-Extent, Offset, 0.0f}, {Extent, Offset, 0.0f}, Color, true);
         }
     }
+
     if (mShowFlags.mAxes) {
         mDrawInterface.DrawLine({}, {2.0f, 0.0f, 0.0f}, {1.0f, 0.25f, 0.2f}, true, mLineThickness);
         mDrawInterface.DrawLine({}, {0.0f, 2.0f, 0.0f}, {0.3f, 0.9f, 0.4f}, true, mLineThickness);
@@ -383,19 +408,25 @@ void FEditorViewportClient::Draw(FSceneViewport* Viewport) {
     if (World->GetPersistentLevel() != nullptr) {
         const TArray<FObjectHandle> SelectedActors{mContext->GetSelectedActors()};
         const auto* SelectedComponent{Cast<UActorComponent>(mContext->GetSelectedObject())};
+
         for (const auto& Actor : World->GetPersistentLevel()->GetActors()) {
             const bool Highlight{std::find(SelectedActors.begin(), SelectedActors.end(), Actor->GetHandle()) != SelectedActors.end()};
+
             if (Highlight && Actor->GetRootComponent() != nullptr) {
                 const auto* SelectedSceneComponent{SelectedComponent != nullptr && SelectedComponent->GetOwner() == Actor.get() ? Cast<USceneComponent>(SelectedComponent) : nullptr};
                 FVector Minimum{SelectedSceneComponent != nullptr ? SelectedSceneComponent->GetTransform().mLocation : Actor->GetRootComponent()->GetTransform().mLocation};
                 FVector Maximum{Minimum};
                 bool HasBounds{};
+
                 for (const auto& Component : Actor->GetComponents()) {
                     const auto* Primitive{Cast<UPrimitiveComponent>(Component.get())};
+
                     if (Primitive == nullptr || (SelectedSceneComponent != nullptr && Primitive != SelectedSceneComponent)) {
                         continue;
                     }
+
                     const FBox Bounds{CalcComponentBounds(Primitive, View)};
+
                     if (!HasBounds) {
                         Minimum = Bounds.mMinimum;
                         Maximum = Bounds.mMaximum;
@@ -405,6 +436,7 @@ void FEditorViewportClient::Draw(FSceneViewport* Viewport) {
                         Maximum = {std::max(Maximum.x, Bounds.mMaximum.x), std::max(Maximum.y, Bounds.mMaximum.y), std::max(Maximum.z, Bounds.mMaximum.z)};
                     }
                 }
+
                 const FVector ScreenUp{View.mView(0, 1), View.mView(1, 1), View.mView(2, 1)};
                 const FVector Extent{(Maximum - Minimum) * 0.5f};
                 const float Height{std::abs(ScreenUp.x) * Extent.x + std::abs(ScreenUp.y) * Extent.y + std::abs(ScreenUp.z) * Extent.z};
@@ -414,16 +446,21 @@ void FEditorViewportClient::Draw(FSceneViewport* Viewport) {
                 const FString& Name{SelectedComponent != nullptr && SelectedComponent->GetOwner() == Actor.get() ? SelectedComponent->GetName() : Actor->GetName()};
                 mDrawInterface.DrawString({Center + ScreenUp * (Height + Margin), Name, {1.0f, 0.9f, 0.55f, 1.0f}, 18.0f, {1.0f, 1.0f}, true, false});
             }
+
             for (const auto& Component : Actor->GetComponents()) {
                 const auto* Primitive{Cast<UPrimitiveComponent>(Component.get())};
+
                 if (Primitive != nullptr && Primitive->ShouldCreateRenderState() && (mShowFlags.mBounds || Highlight)) {
                     const bool DepthTest{!Highlight || Cast<UBillboardComponent>(Primitive) != nullptr || Cast<UBillboardTextComponent>(Primitive) != nullptr};
                     mDrawInterface.DrawBox(CalcComponentBounds(Primitive, View), Highlight ? FVector{1.0f, 0.65f, 0.15f} : FVector{0.25f, 0.8f, 0.95f}, DepthTest, mLineThickness);
                 }
+
                 if (const auto* Light{Cast<ULightComponentBase>(Component.get())}; Light != nullptr && mShowFlags.mLightVisualizers) {
                     Light->DrawVisualization(mDrawInterface, Highlight);
                 }
+
                 const auto* Shape{Cast<UShapeComponent>(Component.get())};
+
                 if (Shape != nullptr && (!Shape->ShouldDrawOnlyIfSelected() || Highlight)) {
                     Shape->DrawDebug(mDrawInterface, Highlight);
                 }
@@ -476,8 +513,10 @@ void FEditorViewportClient::ResetCamera() {
     mFieldOfView = 60.0f;
     mNearClip = 0.05f;
     mFarClip = 10000.0f;
+
     if (mViewType != EEditorViewportType::Perspective) {
         const EEditorViewportType Type{mViewType};
+
         mViewType = EEditorViewportType::Perspective;
         SetViewType(Type);
     }
@@ -497,18 +536,22 @@ void FEditorViewportClient::SetViewType(EEditorViewportType Type) {
     if (Type < EEditorViewportType::Perspective || Type > EEditorViewportType::Right || mViewType == Type || mGizmo.IsDragging()) {
         return;
     }
+
     if (mViewType == EEditorViewportType::Perspective) {
         mPerspectiveLocation = mCameraLocation;
         mPerspectiveRotation = mCameraRotation;
         mPerspectivePivot = mOrbitPivot;
     }
+
     mViewType = Type;
+
     if (Type == EEditorViewportType::Perspective) {
         mCameraLocation = mPerspectiveLocation;
         mCameraRotation = mPerspectiveRotation;
         mOrbitPivot = mPerspectivePivot;
         return;
     }
+
     switch (Type) {
     case EEditorViewportType::Top:
         mCameraRotation = {-90.0f, 0.0f, 0.0f};
@@ -531,6 +574,7 @@ void FEditorViewportClient::SetViewType(EEditorViewportType Type) {
     default:
         break;
     }
+
     mCameraLocation = mOrbitPivot - mCameraRotation.Vector() * 5000.0f;
 }
 
@@ -582,17 +626,20 @@ bool FEditorViewportClient::SetPerspectiveCamera(const FEditorCameraState& State
     if (!State.IsValid()) {
         return false;
     }
+
     mPerspectiveLocation = State.GetLocation();
     mPerspectiveRotation = State.GetRotation();
     mPerspectivePivot = mPerspectiveLocation + mPerspectiveRotation.Vector() * 10.0f;
     mFieldOfView = State.GetFieldOfView();
     mNearClip = State.GetNearClip();
     mFarClip = State.GetFarClip();
+
     if (mViewType == EEditorViewportType::Perspective) {
         mCameraLocation = mPerspectiveLocation;
         mCameraRotation = mPerspectiveRotation;
         mOrbitPivot = mPerspectivePivot;
     }
+
     return true;
 }
 
@@ -615,7 +662,9 @@ bool FEditorViewportClient::SetGizmoSetting(EGizmoSetting Setting, float Value) 
     if (!CanEditGizmoSettings() || !std::isfinite(Value)) {
         return false;
     }
+
     FGizmoSettings Settings{*mGizmo.GetSettings()};
+
     switch (Setting) {
     case EGizmoSetting::TranslationStep:
     case EGizmoSetting::RotationStep:
@@ -623,6 +672,7 @@ bool FEditorViewportClient::SetGizmoSetting(EGizmoSetting Setting, float Value) 
         if (Value <= 0.0f) {
             return false;
         }
+
         if (Setting == EGizmoSetting::TranslationStep) {
             Settings.mTranslationStep = Value;
         } else if (Setting == EGizmoSetting::RotationStep) {
@@ -630,6 +680,7 @@ bool FEditorViewportClient::SetGizmoSetting(EGizmoSetting Setting, float Value) 
         } else {
             Settings.mScaleStep = Value;
         }
+
         break;
     case EGizmoSetting::Size:
         Settings.mSize = std::clamp(Value, 0.5f, 2.0f);
@@ -637,12 +688,15 @@ bool FEditorViewportClient::SetGizmoSetting(EGizmoSetting Setting, float Value) 
     default:
         return false;
     }
+
     mGizmo.SetSettings(Settings);
+
     return true;
 }
 
 bool FEditorViewportClient::ToggleGizmoSetting(EViewportCommand Command) {
     FGizmoSettings Settings{*mGizmo.GetSettings()};
+
     switch (Command) {
     case EViewportCommand::ToggleTranslationSnap:
         Settings.mTranslationSnap = !Settings.mTranslationSnap;
@@ -658,7 +712,9 @@ bool FEditorViewportClient::ToggleGizmoSetting(EViewportCommand Command) {
     default:
         return false;
     }
+
     mGizmo.SetSettings(Settings);
+
     return true;
 }
 
@@ -716,61 +772,80 @@ FHitProxy FEditorViewportClient::GetHitProxy(const FSceneViewport* Viewport, con
     if (!View.Deproject(Position, Ray)) {
         return {};
     }
+
     FHitProxy Result{};
     float Closest{std::numeric_limits<float>::max()};
+
     if (World->GetPersistentLevel() == nullptr || mContext->GetRenderer() == nullptr) {
         return Result;
     }
+
     const FVector Right{View.mView(0, 0), View.mView(1, 0), View.mView(2, 0)};
     const FVector Up{View.mView(0, 1), View.mView(1, 1), View.mView(2, 1)};
+
     for (const auto& Actor : World->GetPersistentLevel()->GetActors()) {
         for (const auto& Component : Actor->GetComponents()) {
             if (const auto* Light{Cast<ULightComponentBase>(Component.get())}; Light != nullptr && mShowFlags.mLightIcons && !Actor->IsPendingDestroy()) {
                 const FPrimitiveSceneProxy Proxy{Light->CreateLightProxy().CreateIconProxy()};
+
                 if (RaycastMesh(&GetPrimitiveMesh(EPrimitiveType::Plane), MakeSpriteWorld(Proxy.mWorld, *Proxy.mSprite, View), Ray, Closest)) {
                     Result = {EHitProxyType::Object, Light->GetHandle()};
                 }
             }
+
             const auto* Primitive{Cast<UPrimitiveComponent>(Component.get())};
             const auto* Sprite{Cast<UBillboardComponent>(Component.get())};
             const auto* Text{Cast<UBillboardTextComponent>(Component.get())};
+
             if (!mShowFlags.mPrimitives || Actor->IsPendingDestroy() || Primitive == nullptr || !Primitive->ShouldCreateRenderState()) {
                 continue;
             }
+
             if (Sprite != nullptr) {
                 const FPrimitiveSceneProxy Proxy{Sprite->CreateSceneProxy()};
+
                 if (mShowFlags.mSprites && RaycastMesh(&GetPrimitiveMesh(EPrimitiveType::Plane), MakeSpriteWorld(Proxy.mWorld, *Proxy.mSprite, View), Ray, Closest)) {
                     Result = {EHitProxyType::Object, Sprite->GetHandle()};
                 }
+
                 continue;
             }
+
             if (Text == nullptr) {
                 if (RaycastMesh(&Primitive->GetMeshData(), Primitive->GetWorldMatrix(), Ray, Closest)) {
                     Result = {EHitProxyType::Object, Primitive->GetHandle()};
                 }
+
                 continue;
             }
+
             FVector2 Minimum{};
             FVector2 Maximum{};
+
             if (!mShowFlags.mText || !mContext->GetRenderer()->GetTextBounds(Text->GetText(), Minimum, Maximum)) {
                 continue;
             }
+
             const FTransform& Transform{Text->GetTransform()};
             const FVector4 Clip{FVector4{Transform.mLocation, 1.0f} * View.mViewProjection};
             FVector Intersection{};
+
             if (Clip.w <= 0.0f || Clip.z < 0.0f || Clip.z > Clip.w || !Math::IntersectPlane(Ray, Transform.mLocation, View.mForward, Intersection)) {
                 continue;
             }
+
             const float Distance{(Intersection - Ray.mOrigin).Dot(Ray.mDirection)};
             const FVector Offset{Intersection - Transform.mLocation};
             const float Horizontal{Offset.Dot(Right) / (Text->GetTextSize() * std::abs(Transform.mScale.y))};
             const float Vertical{Offset.Dot(Up) / (Text->GetTextSize() * std::abs(Transform.mScale.z))};
+
             if (Distance < Closest && Horizontal >= Minimum.x && Horizontal <= Maximum.x && Vertical >= Minimum.y && Vertical <= Maximum.y) {
                 Closest = Distance;
                 Result = {EHitProxyType::Object, Text->GetHandle()};
             }
         }
     }
+
     return Result;
 }
 
@@ -779,12 +854,15 @@ FBox FEditorViewportClient::CalcComponentBounds(const UPrimitiveComponent* Compo
         const FPrimitiveSceneProxy Proxy{Sprite->CreateSceneProxy()};
         return FBox{{-0.5f, -0.5f, -0.001f}, {0.5f, 0.5f, 0.001f}}.Transformed(MakeSpriteWorld(Proxy.mWorld, *Proxy.mSprite, View));
     }
+
     const auto* Text{Cast<UBillboardTextComponent>(Component)};
     FVector2 Minimum{};
     FVector2 Maximum{};
+
     if (Text == nullptr || mContext->GetRenderer() == nullptr || !mContext->GetRenderer()->GetTextBounds(Text->GetText(), Minimum, Maximum)) {
         return Component->GetWorldBounds();
     }
+
     const FTransform& Transform{Text->GetTransform()};
     const FVector Right{View.mView(0, 0), View.mView(1, 0), View.mView(2, 0)};
     const FVector Up{View.mView(0, 1), View.mView(1, 1), View.mView(2, 1)};
@@ -794,36 +872,46 @@ FBox FEditorViewportClient::CalcComponentBounds(const UPrimitiveComponent* Compo
     const float HalfWidth{(Maximum.x - Minimum.x) * 0.5f * WidthScale};
     const float HalfHeight{(Maximum.y - Minimum.y) * 0.5f * HeightScale};
     const FVector Extent{std::abs(Right.x) * HalfWidth + std::abs(Up.x) * HalfHeight, std::abs(Right.y) * HalfWidth + std::abs(Up.y) * HalfHeight, std::abs(Right.z) * HalfWidth + std::abs(Up.z) * HalfHeight};
+
     return {Center - Extent, Center + Extent};
 }
 
 bool FEditorViewportClient::DropMesh(const std::filesystem::path& Path, const FVector2& Position, const FVector2& Size) {
     UWorld* World{mContext->GetWorld()};
     FProject* Project{mContext->GetProject()};
+
     if (!mContext->CanEditWorld() || mGizmo.IsDragging() || World == nullptr || Project == nullptr) {
         return false;
     }
+
     const FSceneView View{CalcSceneView(Size)};
     FRay Ray{};
+
     if (!View.Deproject(Position, Ray)) {
         return false;
     }
+
     FWorldHit Hit{};
     FVector Location{mViewType == EEditorViewportType::Perspective ? Ray.mOrigin + Ray.mDirection * 6.0f : mOrbitPivot};
     const bool OnSurface{World->Raycast(Ray, Hit)};
     const bool OnGround{!OnSurface && Math::IntersectPlane(Ray, mViewType == EEditorViewportType::Perspective ? FVector{} : mOrbitPivot, mViewType == EEditorViewportType::Perspective ? FVector{0.0f, 0.0f, 1.0f} : View.mForward, Location)};
+
     if (OnSurface) {
         Location = Hit.mPosition;
     }
+
     FString Error{};
     const UStaticMesh* Mesh{Project->GetAssets()->LoadMesh(Path, Error)};
+
     if (Mesh == nullptr) {
         mContext->AddLog(Error);
         return false;
     }
+
     if (OnSurface || (OnGround && mViewType == EEditorViewportType::Perspective)) {
         Location.z -= Mesh->GetBounds().mMinimum.z;
     }
+
     return mContext->SpawnMesh(Path, FTransform{Location, {}, {1.0f, 1.0f, 1.0f}}) != nullptr;
 }
 
@@ -854,7 +942,9 @@ bool FEditorViewportClient::SetLineThickness(float Thickness) {
     if (!std::isfinite(Thickness) || Thickness < 0.5f || Thickness > 10.0f) {
         return false;
     }
+
     mLineThickness = Thickness;
+
     return true;
 }
 
@@ -866,7 +956,9 @@ bool FEditorViewportClient::SetGridSpacing(float Spacing) {
     if (!std::isfinite(Spacing) || Spacing < 0.01f || Spacing > 1000.0f) {
         return false;
     }
+
     mGridSpacing = Spacing;
+
     return true;
 }
 
@@ -878,7 +970,9 @@ bool FEditorViewportClient::SetCameraSensitivity(float Sensitivity) {
     if (!std::isfinite(Sensitivity) || Sensitivity < 0.01f || Sensitivity > 2.0f) {
         return false;
     }
+
     mCameraSensitivity = Sensitivity;
+
     return true;
 }
 
@@ -890,29 +984,38 @@ bool FEditorViewportClient::SetCameraSpeed(float Speed) {
     if (!std::isfinite(Speed) || Speed < 0.1f || Speed > 128.0f) {
         return false;
     }
+
     mCameraSpeed = Speed;
+
     return true;
 }
 
 bool FEditorViewportClient::DropActor(const FString& Preset, const FVector2& Position, const FVector2& Size) {
     UWorld* World{mContext->GetWorld()};
+
     if (!mContext->CanEditWorld() || mGizmo.IsDragging() || World == nullptr) {
         return false;
     }
+
     const FSceneView View{CalcSceneView(Size)};
     FRay Ray{};
+
     if (!View.Deproject(Position, Ray)) {
         return false;
     }
+
     FVector Location{mViewType == EEditorViewportType::Perspective ? Ray.mOrigin + Ray.mDirection * 6.0f : mOrbitPivot};
     FWorldHit Hit{};
+
     if (World->Raycast(Ray, Hit)) {
         Location = Hit.mPosition;
     } else {
         Math::IntersectPlane(Ray, mViewType == EEditorViewportType::Perspective ? FVector{} : mOrbitPivot, mViewType == EEditorViewportType::Perspective ? FVector{0.0f, 0.0f, 1.0f} : View.mForward, Location);
     }
+
     const bool Light{Preset.find("Light") != FString::npos};
     const FRotator Rotation{Preset.find("Directional") != FString::npos || Preset.find("Spot") != FString::npos ? FRotator{-45.0f, 0.0f, 0.0f} : FRotator{}};
     const FVector Offset{0.0f, 0.0f, Light ? 1.0f : Preset == "Cube" || Preset == "Sphere" || Preset == "AStaticMeshActor" ? 0.5f : 0.0f};
+
     return mContext->SpawnActorPreset(Preset, FTransform{Location + Offset, Rotation.Quaternion(), {1.0f, 1.0f, 1.0f}}) != nullptr;
 }

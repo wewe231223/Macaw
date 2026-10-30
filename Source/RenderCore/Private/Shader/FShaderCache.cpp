@@ -22,10 +22,12 @@ namespace {
      * @brief 셰이더 캐시 파일에서 지원하는 형식 버전입니다.
      */
     constexpr Uint64 FormatVersion{1};
+
     /**
      * @brief 셰이더 캐시에 저장할 수 있는 최대 의존 파일 개수입니다.
      */
     constexpr Uint64 MaxDependencies{4096};
+
     /**
      * @brief 16진수 SHA-256 체크섬의 바이트 수입니다.
      */
@@ -63,6 +65,7 @@ namespace {
         Uint64 Version{};
         Uint64 BuildTime{};
         Uint64 Count{};
+
         if (!ShaderFile::ReadString(Data, Position, Magic) || Magic != "Macaw.Shader" || !ShaderFile::ReadUint64(Data, Position, Version) || Version != FormatVersion || !ShaderFile::ReadString(Data, Position, Identity) || Identity != ExpectedIdentity || !ShaderFile::ReadUint64(Data, Position, BuildTime) || !ShaderFile::ReadUint64(Data, Position, Count) || Count == 0 || Count > MaxDependencies) {
             return false;
         }
@@ -70,11 +73,13 @@ namespace {
         FShaderCompilation Candidate{};
         Candidate.mBuildTime = DecodeTime(BuildTime);
         Candidate.mDependencies.reserve(static_cast<std::size_t>(Count));
+
         for (Uint64 Index{}; Index < Count; ++Index) {
             FString Path{};
             Uint64 Exists{};
             Uint64 WriteTime{};
             FShaderDependency Dependency{};
+
             if (!ShaderFile::ReadString(Data, Position, Path) || Path.empty() || Path.find('\0') != FString::npos || !ShaderFile::ReadUint64(Data, Position, Exists) || Exists > 1 || !ShaderFile::ReadUint64(Data, Position, WriteTime) || !ShaderFile::ReadUint64(Data, Position, Dependency.mSize)) {
                 return false;
             }
@@ -86,12 +91,14 @@ namespace {
         }
 
         Uint64 ByteCodeSize{};
+
         if (!ShaderFile::ReadUint64(Data, Position, ByteCodeSize) || ByteCodeSize == 0 || ByteCodeSize != Data.size() - Position) {
             return false;
         }
 
         Candidate.mByteCode.assign(Data.begin() + Position, Data.end());
         Compilation = std::move(Candidate);
+
         return true;
     }
 }
@@ -106,11 +113,13 @@ std::filesystem::path FShaderCache::GetPath(const FString& CacheKey) const {
 
 bool FShaderCache::Load(const FShaderDescription& Description, FShaderCompilation& Compilation, FString& Diagnostics) const {
     FShaderDescription Normalized{Description};
+
     if (!Normalized.Normalize(Diagnostics)) {
         return false;
     }
 
     const FString Key{Normalized.GetCacheKey()};
+
     if (Key.empty()) {
         Diagnostics = "Cannot compute shader cache key";
         return false;
@@ -119,6 +128,7 @@ bool FShaderCache::Load(const FShaderDescription& Description, FShaderCompilatio
     const std::filesystem::path Path{GetPath(Key)};
     TArray<Uint8> Data{};
     FShaderDependency Dependency{};
+
     if (!ShaderFile::Read(Path, Data, Dependency, Diagnostics)) {
         return false;
     }
@@ -131,6 +141,7 @@ bool FShaderCache::Load(const FShaderDescription& Description, FShaderCompilatio
     const std::span<const Uint8> Payload{Data.data() + ChecksumSize, Data.size() - ChecksumSize};
     const FString ExpectedChecksum{reinterpret_cast<const char*>(Data.data()), ChecksumSize};
     FShaderCompilation Candidate{};
+
     if (ShaderFile::Hash(Payload) != ExpectedChecksum || !ReadCompilation(Payload, Normalized.GetIdentity(), Candidate) || !IsCurrent(Candidate)) {
         Diagnostics = "Invalid or outdated shader cache: " + FilePath::ToGenericUtf8(Path);
         return false;
@@ -138,11 +149,13 @@ bool FShaderCache::Load(const FShaderDescription& Description, FShaderCompilatio
 
     Compilation = std::move(Candidate);
     Diagnostics.clear();
+
     return true;
 }
 
 bool FShaderCache::Save(const FShaderDescription& Description, const FShaderCompilation& Compilation, FString& Diagnostics) const {
     FShaderDescription Normalized{Description};
+
     if (!Normalized.Normalize(Diagnostics)) {
         return false;
     }
@@ -153,6 +166,7 @@ bool FShaderCache::Save(const FShaderDescription& Description, const FShaderComp
     }
 
     const FString Key{Normalized.GetCacheKey()};
+
     if (Key.empty()) {
         Diagnostics = "Cannot compute shader cache key";
         return false;
@@ -164,6 +178,7 @@ bool FShaderCache::Save(const FShaderDescription& Description, const FShaderComp
     ShaderFile::AppendString(Payload, Normalized.GetIdentity());
     ShaderFile::AppendUint64(Payload, EncodeTime(Compilation.mBuildTime));
     ShaderFile::AppendUint64(Payload, Compilation.mDependencies.size());
+
     for (const FShaderDependency& Dependency : Compilation.mDependencies) {
         ShaderFile::AppendString(Payload, FilePath::ToGenericUtf8(Dependency.mPath));
         ShaderFile::AppendUint64(Payload, Dependency.mExists ? 1 : 0);
@@ -173,7 +188,9 @@ bool FShaderCache::Save(const FShaderDescription& Description, const FShaderComp
 
     ShaderFile::AppendUint64(Payload, Compilation.mByteCode.size());
     Payload.insert(Payload.end(), Compilation.mByteCode.begin(), Compilation.mByteCode.end());
+
     const FString Checksum{ShaderFile::Hash(Payload)};
+
     if (Checksum.size() != ChecksumSize || Payload.size() > 64 * 1024 * 1024 - ChecksumSize) {
         Diagnostics = "Cannot serialize shader cache";
         return false;
@@ -181,6 +198,7 @@ bool FShaderCache::Save(const FShaderDescription& Description, const FShaderComp
 
     std::error_code Error{};
     std::filesystem::create_directories(mDirectory, Error);
+
     if (Error) {
         Diagnostics = "Cannot create shader cache directory: " + FilePath::ToGenericUtf8(mDirectory);
         return false;
@@ -190,7 +208,9 @@ bool FShaderCache::Save(const FShaderDescription& Description, const FShaderComp
     static std::atomic<Uint64> Sequence{};
     std::filesystem::path Temporary{Path};
     Temporary += L"." + std::to_wstring(GetCurrentProcessId()) + L"." + std::to_wstring(GetTickCount64()) + L"." + std::to_wstring(Sequence.fetch_add(1)) + L".tmp";
+
     const HANDLE File{CreateFileW(Temporary.c_str(), GENERIC_WRITE, 0, nullptr, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, nullptr)};
+
     if (File == INVALID_HANDLE_VALUE) {
         Diagnostics = "Cannot create shader cache: " + FilePath::ToGenericUtf8(Temporary);
         return false;
@@ -200,7 +220,9 @@ bool FShaderCache::Save(const FShaderDescription& Description, const FShaderComp
     bool Success{WriteFile(File, Checksum.data(), static_cast<DWORD>(Checksum.size()), &Written, nullptr) != FALSE && Written == Checksum.size()};
     Success = Success && WriteFile(File, Payload.data(), static_cast<DWORD>(Payload.size()), &Written, nullptr) != FALSE && Written == Payload.size();
     Success = Success && FlushFileBuffers(File) != FALSE;
+
     const bool Closed{CloseHandle(File) != FALSE};
+
     if (!Success || !Closed || !MoveFileExW(Temporary.c_str(), Path.c_str(), MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH)) {
         DeleteFileW(Temporary.c_str());
         Diagnostics = "Cannot replace shader cache: " + FilePath::ToGenericUtf8(Path);
@@ -208,6 +230,7 @@ bool FShaderCache::Save(const FShaderDescription& Description, const FShaderComp
     }
 
     Diagnostics.clear();
+
     return true;
 }
 
@@ -218,6 +241,7 @@ bool FShaderCache::IsCurrent(const FShaderCompilation& Compilation) const {
 
     for (const FShaderDependency& Dependency : Compilation.mDependencies) {
         FShaderDependency Current{};
+
         if (!ShaderFile::Inspect(Dependency.mPath, Current) || Current.mExists != Dependency.mExists || (Current.mExists && Current.mWriteTime > Compilation.mBuildTime)) {
             return false;
         }

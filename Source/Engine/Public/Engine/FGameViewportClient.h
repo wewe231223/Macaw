@@ -35,17 +35,20 @@ public:
      * @return 등록된 타입 메타데이터의 비소유 주소입니다.
      */
     ReflectStruct(FGameViewportClient);
+
     /**
      * @brief 엔진에서 월드 핸들을 검증하고 실행 뷰포트의 대상을 교체합니다.
      * @param[in] World 클라이언트에 연결할 엔진 소유 월드의 세대 핸들입니다.
      * @return 요청한 처리를 완료하면 true, 실패하면 false입니다.
      */
     bool SetWorld(FWorldHandle World);
+
     /**
      * @brief 클라이언트 또는 세션이 사용하는 월드의 세대 핸들을 반환합니다.
      * @return 조회한 대상의 세대 핸들이며, 대상이 없으면 무효 핸들입니다.
      */
     FWorldHandle GetWorldHandle() const;
+
     /**
      * @brief 실행 월드의 활성 카메라로 뷰포트 크기에 맞는 장면 뷰를 계산합니다.
      * @param[in] Size 계산할 뷰포트의 가로·세로 픽셀 크기입니다.
@@ -68,6 +71,7 @@ private:
      */
     UEngine* mEngine{};
     ReflectProperty(mEngine, "Engine", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 클라이언트가 사용하는 실행 월드의 세대 핸들입니다.
      */

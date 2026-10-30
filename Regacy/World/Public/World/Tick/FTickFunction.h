@@ -11,8 +11,11 @@ public:
     FTickFunction() = default;
     virtual ~FTickFunction() = default;
     FTickFunction(const FTickFunction&) = delete;
+
     FTickFunction& operator=(const FTickFunction&) = delete;
+
     FTickFunction(FTickFunction&&) = delete;
+
     FTickFunction& operator=(FTickFunction&&) = delete;
 
 public:
@@ -25,6 +28,7 @@ public:
     bool IsTickWhenPaused() const;
     void SetTickWhenPaused(bool TickWhenPaused);
     bool ShouldTick(ETickType TickType, bool HasBegunPlay) const;
+
     virtual bool CanTick(ETickType TickType) const = 0;
     virtual void ExecuteTick(float DeltaTime) = 0;
 

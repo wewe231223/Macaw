@@ -26,9 +26,11 @@ public:
     ~UPipeline();
 
     UPipeline(const UPipeline&) = delete;
+
     UPipeline& operator=(const UPipeline&) = delete;
 
     UPipeline(UPipeline&&) noexcept = default;
+
     UPipeline& operator=(UPipeline&&) noexcept = default;
 
 public:

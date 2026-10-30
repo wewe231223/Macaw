@@ -34,14 +34,17 @@ public:
      * @brief FWindowsApplication의 초기 상태와 전달받은 의존성을 구성합니다.
      */
     FWindowsApplication();
+
     /**
      * @brief 객체의 수명을 끝내고 소유한 리소스를 정리합니다.
      */
     ~FWindowsApplication();
+
     /**
      * @brief 고유한 객체 수명을 유지하기 위해 복사 또는 이동 생성을 금지합니다.
      */
     FWindowsApplication(const FWindowsApplication&) = delete;
+
     /**
      * @brief 고유한 객체 수명을 유지하기 위해 대입을 금지합니다.
      * @return 소유 객체가 유지하는 값의 참조입니다.
@@ -64,11 +67,13 @@ public:
      * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
      */
     bool Create(const wchar_t* Title, Uint32 Width, Uint32 Height, bool Visible = true);
+
     /**
      * @brief 대기 중인 Windows 메시지를 처리하고 실행 지속 여부를 반환합니다.
      * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
      */
     bool PumpMessages();
+
     /**
      * @brief 종속 객체를 역순으로 정리하고 여러 번 호출해도 안전한 종료 상태로 만듭니다.
      */
@@ -85,16 +90,19 @@ public:
      * @return 네이티브 Win32 창 핸들입니다.
      */
     HWND GetWindowHandle() const;
+
     /**
      * @brief 가로 픽셀 수를 반환합니다.
      * @return 가로 픽셀 수입니다.
      */
     Uint32 GetWidth() const;
+
     /**
      * @brief 세로 픽셀 수를 반환합니다.
      * @return 세로 픽셀 수입니다.
      */
     Uint32 GetHeight() const;
+
     /**
      * @brief 창의 클라이언트 영역이 최소화된 크기인지 검사합니다.
      * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.

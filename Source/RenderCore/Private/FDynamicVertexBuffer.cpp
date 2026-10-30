@@ -14,6 +14,7 @@ using namespace Microsoft::WRL;
 
 bool FDynamicVertexBuffer::Upload(ID3D11DeviceContext* Context, std::span<const std::byte> Data, Uint32 Stride, Uint32 Capacity, FString& Error) {
     Error.clear();
+
     if (Context == nullptr || Stride == 0 || Data.empty() || Data.size() % Stride != 0 || Data.size() / Stride > Capacity || Capacity > std::numeric_limits<Uint32>::max() / Stride) {
         Error = "Invalid dynamic vertex buffer data or capacity";
         return false;
@@ -21,33 +22,42 @@ bool FDynamicVertexBuffer::Upload(ID3D11DeviceContext* Context, std::span<const 
 
     ComPtr<ID3D11Device> Device{};
     Context->GetDevice(Device.GetAddressOf());
+
     ComPtr<ID3D11Device> ResourceDevice{};
+
     if (mBuffer != nullptr) {
         mBuffer->GetDevice(ResourceDevice.GetAddressOf());
     }
+
     if (mBuffer == nullptr || Data.size() / Stride > mCapacity || Stride != mStride || ResourceDevice.Get() != Device.Get()) {
         D3D11_BUFFER_DESC Description{};
         Description.ByteWidth = Capacity * Stride;
         Description.Usage = D3D11_USAGE_DYNAMIC;
         Description.BindFlags = D3D11_BIND_VERTEX_BUFFER;
         Description.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+
         ComPtr<ID3D11Buffer> Buffer{};
+
         if (FAILED(Device->CreateBuffer(&Description, nullptr, Buffer.GetAddressOf()))) {
             Error = "Dynamic vertex buffer allocation failed";
             return false;
         }
+
         mBuffer = std::move(Buffer);
         mCapacity = Capacity;
         mStride = Stride;
     }
 
     D3D11_MAPPED_SUBRESOURCE Mapped{};
+
     if (FAILED(Context->Map(mBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &Mapped))) {
         Error = "Dynamic vertex buffer mapping failed";
         return false;
     }
+
     std::memcpy(Mapped.pData, Data.data(), Data.size());
     Context->Unmap(mBuffer.Get(), 0);
+
     return true;
 }
 

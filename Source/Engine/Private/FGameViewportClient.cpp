@@ -19,10 +19,13 @@ FGameViewportClient::FGameViewportClient(UEngine* Engine)
 
 bool FGameViewportClient::SetWorld(FWorldHandle World) {
     const UWorld* Target{mEngine != nullptr ? mEngine->GetWorld(World) : nullptr};
+
     if (World.IsValid() && (Target == nullptr || (Target->GetWorldType() != EWorldType::Game && Target->GetWorldType() != EWorldType::PIE))) {
         return false;
     }
+
     mWorld = World;
+
     return true;
 }
 
@@ -38,6 +41,7 @@ bool FGameViewportClient::CalcSceneView(const FVector2& Size, FSceneView& View) 
 
 void FGameViewportClient::Input(FSceneViewport*, const FViewportInput& Input, float DeltaTime) {
     UWorld* World{mEngine != nullptr ? mEngine->GetWorld(mWorld) : nullptr};
+
     if (World != nullptr) {
         World->Input(Input, DeltaTime);
     }
@@ -47,9 +51,11 @@ void FGameViewportClient::Draw(FSceneViewport* Viewport) {
     UWorld* World{mEngine != nullptr ? mEngine->GetWorld(mWorld) : nullptr};
     IRendererModule* Renderer{mEngine != nullptr ? mEngine->GetRenderer() : nullptr};
     FSceneView View{};
+
     if (Viewport == nullptr || World == nullptr || World->GetScene() == nullptr || Renderer == nullptr || !CalcSceneView(Viewport->GetSize(), View)) {
         return;
     }
+
     const FSceneViewFamily Family{World->GetScene(), Viewport->GetRenderTarget(), View, nullptr};
     Renderer->BeginRenderingViewFamily(Family);
 }

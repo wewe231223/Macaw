@@ -17,9 +17,11 @@ public:
     ~TGraphicsArray() = default;
 
     TGraphicsArray(const TGraphicsArray&) = delete;
+
     TGraphicsArray& operator=(const TGraphicsArray&) = delete;
 
     TGraphicsArray(TGraphicsArray&&) noexcept = default;
+
     TGraphicsArray& operator=(TGraphicsArray&&) noexcept = default;
 
 public:
@@ -136,6 +138,7 @@ bool TGraphicsArray<T, BAutoResize, BDynamic>::UploadDiscard(ID3D11Device* Devic
     }
 
     mCount = static_cast<Uint32>(Values.size());
+
     return true;
 }
 
@@ -144,14 +147,18 @@ bool TGraphicsArray<T, BAutoResize, BDynamic>::Upload(ID3D11Device* Device, ID3D
     if (Device == nullptr || Context == nullptr || Values.size() > UINT32_MAX / sizeof(T)) {
         return false;
     }
+
     if (Values.empty()) {
         mCount = 0;
         return true;
     }
+
     if (!EnsureCapacity(Device, Context, static_cast<Uint32>(Values.size())) || !mBuffer.Update(Context, Values.data(), static_cast<Uint32>(Values.size_bytes()))) {
         return false;
     }
+
     mCount = static_cast<Uint32>(Values.size());
+
     return true;
 }
 

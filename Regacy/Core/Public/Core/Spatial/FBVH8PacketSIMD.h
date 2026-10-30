@@ -3,6 +3,7 @@
  * @brief 삼각형 패킷 검사에 사용할 SSE 4레인 및 AVX 8레인 연산 인터페이스를 정의한다.
  * @details FSIMD8은 __AVX__가 정의된 컴파일에서 제공된다.
  */
+
 #pragma once
 
 #include "Core/Common.h"
@@ -18,6 +19,7 @@ namespace BVH8 {
          * @brief 네 float 레인과 비교 마스크를 담는 128비트 SIMD 타입.
          */
         using V = __m128;
+
         /**
          * @brief 한 번에 처리하는 float 레인 수. SSE 구현은 4이다.
          */
@@ -172,6 +174,7 @@ namespace BVH8 {
          * @brief 여덟 float 레인과 비교 마스크를 담는 256비트 SIMD 타입.
          */
         using V = __m256;
+
         /**
          * @brief 한 번에 처리하는 float 레인 수. AVX 구현은 8이다.
          */

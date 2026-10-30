@@ -37,14 +37,17 @@ public:
      * @param[in] Mode 로드·저장 또는 기즈모 동작 모드입니다.
      */
     explicit FJsonArchive(EArchiveMode Mode);
+
     /**
      * @brief 객체의 수명을 끝내고 소유한 리소스를 정리합니다.
      */
     ~FJsonArchive() override;
+
     /**
      * @brief 고유한 객체 수명을 유지하기 위해 복사 또는 이동 생성을 금지합니다.
      */
     FJsonArchive(const FJsonArchive&) = delete;
+
     /**
      * @brief 고유한 객체 수명을 유지하기 위해 대입을 금지합니다.
      * @return 소유 객체가 유지하는 값의 참조입니다.
@@ -64,6 +67,7 @@ public:
      * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
      */
     bool Load(const std::filesystem::path& Path);
+
     /**
      * @brief JSON 문서를 파일로 저장합니다.
      * @param[in] Path 읽거나 쓸 파일 경로입니다.
@@ -77,6 +81,7 @@ public:
      * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
      */
     bool Parse(const FString& Text);
+
     /**
      * @brief JSON 문서를 사람이 읽을 수 있는 문자열로 출력합니다.
      * @return 변환된 문자열입니다.
@@ -96,6 +101,7 @@ public:
      * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
      */
     bool BeginObject(std::string_view Name) override;
+
     /**
      * @brief 현재 객체 컨테이너를 끝내고 상위 컨테이너로 돌아갑니다.
      */
@@ -108,6 +114,7 @@ public:
      * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
      */
     bool BeginArray(std::string_view Name, Uint32& Count) override;
+
     /**
      * @brief 현재 배열 컨테이너를 끝내고 상위 컨테이너로 돌아갑니다.
      */
@@ -119,30 +126,35 @@ public:
      * @param[in,out] Value 저장 시 읽고 로드 시 덮어쓸 값입니다.
      */
     void Serialize(std::string_view Name, bool& Value) override;
+
     /**
      * @brief 아카이브 모드에 따라 값을 읽거나 저장합니다.
      * @param[in] Name 조회하거나 기록할 이름입니다.
      * @param[in,out] Value 저장 시 읽고 로드 시 덮어쓸 값입니다.
      */
     void Serialize(std::string_view Name, Int32& Value) override;
+
     /**
      * @brief 아카이브 모드에 따라 값을 읽거나 저장합니다.
      * @param[in] Name 조회하거나 기록할 이름입니다.
      * @param[in,out] Value 저장 시 읽고 로드 시 덮어쓸 값입니다.
      */
     void Serialize(std::string_view Name, Uint32& Value) override;
+
     /**
      * @brief 아카이브 모드에 따라 값을 읽거나 저장합니다.
      * @param[in] Name 조회하거나 기록할 이름입니다.
      * @param[in,out] Value 저장 시 읽고 로드 시 덮어쓸 값입니다.
      */
     void Serialize(std::string_view Name, Uint64& Value) override;
+
     /**
      * @brief 아카이브 모드에 따라 값을 읽거나 저장합니다.
      * @param[in] Name 조회하거나 기록할 이름입니다.
      * @param[in,out] Value 저장 시 읽고 로드 시 덮어쓸 값입니다.
      */
     void Serialize(std::string_view Name, float& Value) override;
+
     /**
      * @brief 아카이브 모드에 따라 값을 읽거나 저장합니다.
      * @param[in] Name 조회하거나 기록할 이름입니다.
@@ -171,6 +183,7 @@ private:
      */
     rapidjson::Document mDocument{};
     ReflectProperty(mDocument, "Document", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 현재 JSON 객체·배열의 비소유 탐색 스택입니다.
      */

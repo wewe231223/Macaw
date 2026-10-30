@@ -2,6 +2,7 @@
  * @file Renderer.h
  * @brief 전역 에셋을 조회하고 장치 및 렌더 씬별 GPU 자원을 소유하는 렌더러를 정의합니다.
  */
+
 #pragma once
 #include <d3d11.h>
 #include <wrl/client.h>
@@ -24,12 +25,16 @@ public:
     ~FRenderer();
 
     FRenderer(const FRenderer&) = delete;
+
     FRenderer& operator=(const FRenderer&) = delete;
+
     FRenderer(FRenderer&&) = delete;
+
     FRenderer& operator=(FRenderer&&) = delete;
 
 public:
     bool Create(HWND WindowHandle, UINT Width, UINT Height);
+
     /**
      * @brief 렌더러 소유의 GPU 에셋 캐시와 공용 렌더 자원을 초기화합니다.
      * @return 모든 렌더 자원 초기화에 성공하면 true입니다.
@@ -81,6 +86,7 @@ private:
 #ifdef _DEBUG
     Microsoft::WRL::ComPtr<ID3D11Debug> mDebugInterface{};
 #endif
+
     Microsoft::WRL::ComPtr<ID3D11Device> mDevice{};
     Microsoft::WRL::ComPtr<ID3D11DeviceContext> mDeviceContext{};
 

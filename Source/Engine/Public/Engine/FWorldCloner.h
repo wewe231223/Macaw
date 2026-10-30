@@ -36,6 +36,7 @@ public:
      * @return 등록된 메타데이터의 비소유 주소입니다.
      */
     ReflectStruct(FWorldCloner);
+
     /**
      * @brief 지정 월드에 액터들과 소유 컴포넌트를 새 식별자로 복제합니다.
      * @param[in] World 메시의 월드 변환 또는 액터를 소유한 월드입니다.
@@ -44,6 +45,7 @@ public:
      * @return 복제본들의 핸들이며 실패하면 빈 배열입니다.
      */
     static TArray<FObjectHandle> DuplicateActors(UWorld* World, const TArray<FObjectHandle>& Actors, FString& Error);
+
     /**
      * @brief 월드, 영속 레벨, 액터와 컴포넌트를 독립 컨텍스트로 복제합니다.
      * @param[in] Source 콜백을 전달 중이지 않은 원본 컨텍스트입니다.

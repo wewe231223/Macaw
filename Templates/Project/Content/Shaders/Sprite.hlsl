@@ -13,10 +13,12 @@ cbuffer SpriteConstants : register(b0) {
      * @brief 로컬 평면 위치를 클립 공간으로 변환하는 행 우선 행렬입니다.
      */
     float4x4 Transform;
+
     /**
      * @brief 텍스처 UV의 배율 XY와 오프셋 ZW입니다.
      */
     float4 UVTransform;
+
     /**
      * @brief 드로에 적용할 RGBA 색상입니다.
      */
@@ -27,6 +29,7 @@ cbuffer SpriteConstants : register(b0) {
  * @brief 스프라이트의 RGBA 텍스처입니다.
  */
 Texture2D SpriteTexture : register(t0);
+
 /**
  * @brief 스프라이트 텍스처를 읽는 샘플러입니다.
  */
@@ -40,6 +43,7 @@ struct FOutput {
      * @brief 래스터라이저에 전달하거나 픽셀 단계에서 읽는 투영 위치입니다.
      */
     float4 mPosition : SV_POSITION;
+
     /**
      * @brief 배율·오프셋을 적용할 텍스처 좌표입니다.
      */
@@ -56,6 +60,7 @@ FOutput VertexMain(uint Vertex : SV_VertexID) {
     FOutput Output = (FOutput)0;
     Output.mPosition = mul(float4(Corners[Vertex], 0.0f, 1.0f), Transform);
     Output.mUV = (Corners[Vertex] * float2(1.0f, -1.0f) + 0.5f) * UVTransform.xy + UVTransform.zw;
+
     return Output;
 }
 

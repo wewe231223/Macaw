@@ -16,6 +16,7 @@ class FRenderTarget;
 struct FSceneViewFamily;
 struct FMeshData;
 struct FVector2;
+
 enum class EPrimitiveType : Uint8;
 
 /**
@@ -50,6 +51,7 @@ public:
      * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
      */
     virtual bool Initialize(void* WindowHandle, Uint32 Width, Uint32 Height) = 0;
+
     /**
      * @brief 종속 객체를 역순으로 정리하고 여러 번 호출해도 안전한 종료 상태로 만듭니다.
      */
@@ -60,6 +62,7 @@ public:
      * @return 생성한 객체의 단독 소유권이며, 생성 또는 검증 실패 시 nullptr입니다.
      */
     virtual std::unique_ptr<FSceneInterface> AllocateScene() = 0;
+
     /**
      * @brief CPU 메시를 종류별 GPU 정점·인덱스 버퍼에 업로드합니다.
      * @param[in] Type 생성, 조회 또는 표시할 타입입니다.
@@ -75,6 +78,7 @@ public:
      * @return 생성한 객체의 단독 소유권이며, 생성 또는 검증 실패 시 nullptr입니다.
      */
     virtual std::unique_ptr<FRenderTarget> CreateRenderTarget(Uint32 Width, Uint32 Height) = 0;
+
     /**
      * @brief 기존 오프스크린 렌더 타깃을 새 픽셀 크기로 변경합니다.
      * @param[in,out] Target 렌더 타깃 또는 셰이더 컴파일 프로파일입니다.
@@ -90,6 +94,7 @@ public:
      * @param[in] Height 클라이언트 영역 또는 타깃의 세로 픽셀 수입니다.
      */
     virtual void BeginFrame(Uint32 Width, Uint32 Height) = 0;
+
     /**
      * @brief 지정한 장면 뷰를 타깃에 렌더링하고 에디터 보조 선분을 그립니다.
      * @param[in] Family 장면, 출력 타깃과 카메라를 묶은 렌더 요청입니다.
@@ -100,6 +105,7 @@ public:
      * @brief UI 렌더링에 사용할 백 버퍼와 뷰포트를 설정합니다.
      */
     virtual void BeginUiRender() = 0;
+
     /**
      * @brief 스왑 체인의 백 버퍼를 화면에 표시합니다.
      */
@@ -111,11 +117,13 @@ public:
      * @return 요청을 수락하면 true이며 지원하지 않는 허용 요청은 false입니다.
      */
     virtual bool SetAllowTearing(bool Allow) = 0;
+
     /**
      * @brief 화면 찢김을 허용하도록 설정했는지 반환합니다.
      * @return 사용자 설정에서 화면 찢김을 허용하면 true입니다.
      */
     virtual bool IsTearingAllowed() const = 0;
+
     /**
      * @brief 현재 DXGI 환경이 화면 찢김 허용을 지원하는지 반환합니다.
      * @return DXGI의 프레젠테이션 기능 검사에 성공하면 true입니다.
@@ -127,26 +135,31 @@ public:
      * @return 조회한 값의 비소유 주소이며, 해당 값이 없으면 nullptr입니다.
      */
     virtual void* GetNativeDevice() const = 0;
+
     /**
      * @brief Direct3D 11 즉시 컨텍스트의 비소유 주소를 반환합니다.
      * @return 조회한 값의 비소유 주소이며, 해당 값이 없으면 nullptr입니다.
      */
     virtual void* GetNativeContext() const = 0;
+
     /**
      * @brief 프레임 렌더링 통계를 반환합니다.
      * @return 프레임 렌더링 통계입니다.
      */
     virtual FRenderStats GetStats() const = 0;
+
     /**
      * @brief 현재 그림자 아틀라스의 검사 정보를 반환합니다.
      * @return 미리보기·깊이 뷰의 비소유 주소와 타일 정보 사본입니다.
      */
     virtual FShadowAtlasView GetShadowAtlasView() const;
+
     /**
      * @brief 변경된 셰이더를 다시 컴파일하고 필요한 GPU 셰이더를 갱신합니다.
      * @return 요청한 처리를 완료하면 true, 실패하면 false입니다.
      */
     virtual bool ReloadChangedShaders() = 0;
+
     /**
      * @brief 폰트 메트릭으로 텍스트의 로컬 평면 경계를 계산합니다.
      * @param[in] Text 표시하거나 측정할 UTF-8 문자열 또는 텍스트 요청입니다.

@@ -39,6 +39,7 @@ float3 CalculateDirectLighting(float3 WorldPosition, float3 Normal, uint LightCo
         {
             float3 ToLight = Light.Position - WorldPosition;
             float DistanceToLight = length(ToLight);
+
             if (Light.AttenuationRadius <= 0.0f || DistanceToLight >= Light.AttenuationRadius)
             {
                 continue;

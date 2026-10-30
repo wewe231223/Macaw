@@ -43,20 +43,27 @@ namespace {
      */
     FString ComponentLabel(const UClass* Class) {
         FString Name{Class->GetName()};
+
         if (Name.starts_with("U")) {
             Name.erase(0, 1);
         }
+
         if (Name.ends_with("Component")) {
             Name.resize(Name.size() - 9);
         }
+
         FString Label{};
+
         for (std::size_t Index{}; Index < Name.size(); ++Index) {
             const auto Character{static_cast<unsigned char>(Name[Index])};
+
             if (Index > 0 && std::isupper(Character) && (std::islower(static_cast<unsigned char>(Name[Index - 1])) || (Index + 1 < Name.size() && std::islower(static_cast<unsigned char>(Name[Index + 1]))))) {
                 Label.push_back(' ');
             }
+
             Label.push_back(Name[Index]);
         }
+
         return Label;
     }
 }
@@ -83,7 +90,9 @@ void FDetailsPanel::SetAssetServices(FEditorAssetCatalog* Catalog, FAssetThumbna
  */
 void FDetailsPanel::DrawContent(float) {
     FEditorContext* Context{GetEditorContext()};
+
     DrawComponentMenu();
+
     const auto Objects{Context->GetDetailsObjects()};
 
     for (FObjectHandle Handle : Objects) {
@@ -103,46 +112,61 @@ void FDetailsPanel::DrawComponentMenu() {
     FEditorContext* Context{GetEditorContext()};
     const bool CanAdd{Context->CanEditWorld() && Context->GetSelectedActors().size() == 1};
     ImGui::BeginDisabled(!CanAdd);
+
     if (ImGui::Button("+ 추가")) {
         mComponentSearch.fill('\0');
         ImGui::OpenPopup("AddComponent");
     }
+
     ImGui::EndDisabled();
+
     if (!CanAdd && ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
         ImGui::SetTooltip("컴포넌트를 추가할 액터 하나를 선택하세요.");
     }
+
     if (const AActor* Actor{Context->GetSelectedActor()}) {
         ImGui::SameLine();
         ImGui::TextDisabled("%s", Actor->GetName().c_str());
     }
+
     if (ImGui::BeginPopup("AddComponent")) {
         if (ImGui::IsWindowAppearing()) {
             ImGui::SetKeyboardFocusHere();
         }
+
         ImGui::SetNextItemWidth(260.0f);
         ImGui::InputTextWithHint("##ComponentSearch", "컴포넌트 검색", mComponentSearch.data(), mComponentSearch.size());
         ImGui::Separator();
+
         const ImGuiTextFilter Filter{mComponentSearch.data()};
         bool HasEntries{};
+
         for (const UClass* Class : FReflectionRegistry::GetDerivedClasses(UActorComponent::StaticClass())) {
             const FString Label{ComponentLabel(Class)};
+
             if (!Class->CanCreate() || (!Filter.PassFilter(Label.c_str()) && !Filter.PassFilter(Class->GetName().c_str()))) {
                 continue;
             }
+
             HasEntries = true;
             ImGui::PushID(Class);
             ImGui::BeginDisabled(!Context->CanAddComponent(Class));
+
             if (ImGui::Selectable(Label.c_str(), false, ImGuiSelectableFlags_DontClosePopups) && Context->AddComponent(Class) != nullptr) {
                 ImGui::CloseCurrentPopup();
             }
+
             ImGui::EndDisabled();
             ImGui::PopID();
         }
+
         if (!HasEntries) {
             ImGui::TextDisabled("검색 결과가 없습니다.");
         }
+
         ImGui::EndPopup();
     }
+
     ImGui::Separator();
 }
 
@@ -152,6 +176,7 @@ void FDetailsPanel::DrawComponentMenu() {
 void FDetailsPanel::DrawReflectedObject(UObject* Object) {
     FEditorContext* Context{GetEditorContext()};
     const FObjectHandle Handle{Object->GetHandle()};
+
     ImGui::PushID(Object);
     ImGui::TextDisabled("%s", Object->GetClass()->GetName().c_str());
 
@@ -179,44 +204,61 @@ void FDetailsPanel::DrawReflectedObject(UObject* Object) {
     if (const auto* Light{Context->ResolveObject(Handle) == Object ? Cast<ULightComponent>(Object) : nullptr}; Light != nullptr && ImGui::CollapsingHeader("Shadow Depth Maps")) {
         const FShadowAtlasView Atlas{Context->GetRenderer() != nullptr ? Context->GetRenderer()->GetShadowAtlasView() : FShadowAtlasView{}};
         bool Found{};
+
         for (const FShadowAtlasTile& Tile : Atlas.mTiles) {
             if (Tile.mLightId != Light->GetGuid() || Atlas.mTexture == nullptr) {
                 continue;
             }
+
             Found = true;
             ImGui::Text("Map %u | %u x %u", Tile.mFace, Tile.mResolution, Tile.mResolution);
+
             const float Size{std::clamp(ImGui::GetContentRegionAvail().x, 64.0f, 320.0f)};
             ImGui::Image(reinterpret_cast<ImTextureID>(Atlas.mTexture), {Size, Size}, {Tile.mRectangle.x, Tile.mRectangle.y}, {Tile.mRectangle.x + Tile.mRectangle.z, Tile.mRectangle.y + Tile.mRectangle.w});
         }
+
         if (!Found) {
             ImGui::TextDisabled("No active shadow map in the last rendered view.");
         }
     }
+
     if (auto* Component{Context->ResolveObject(Handle) == Object ? Cast<UStaticMeshComponent>(Object) : nullptr}; Component != nullptr && Component->GetStaticMesh() != nullptr) {
         const bool AllSlotsOverride{!Component->GetMaterialPath().empty()};
+
         ImGui::SeparatorText("Material Slots");
+
         if (AllSlotsOverride) {
             ImGui::TextWrapped("Clear the all-slots override to edit individual slots.");
         }
+
         ImGui::BeginDisabled(!Context->CanEditWorld() || AllSlotsOverride);
+
         const auto& Slots{Component->GetStaticMesh()->GetMeshData().GetMaterialSlots()};
+
         for (Uint32 Slot{}; Slot < Slots.size(); ++Slot) {
             const auto& SubMeshes{Component->GetStaticMesh()->GetMeshData().GetSubMeshes()};
+
             if (std::none_of(SubMeshes.begin(), SubMeshes.end(), [Slot](const FSubMesh& SubMesh) {
                 return SubMesh.GetMaterialIndex() == Slot;
             })) {
                 continue;
             }
+
             ImGui::PushID(static_cast<int>(Slot));
+
             FString Path{AllSlotsOverride ? FString{} : Component->GetSlotMaterialPath(Slot)};
             const FString& Inherited{AllSlotsOverride ? Component->GetMaterialPath() : Slots[Slot].GetMaterialPath()};
+
             if (mAssetCatalog != nullptr && mThumbnails != nullptr && mAssetPicker.Draw(*mAssetCatalog, *mThumbnails, Slots[Slot].GetName().c_str(), Path, EAssetType::Material, Inherited, "Use mesh material", AllSlotsOverride ? "All slots" : "Mesh")) {
                 Context->SetMaterialOverride(Handle, Slot, Path);
             }
+
             ImGui::PopID();
         }
+
         ImGui::EndDisabled();
     }
+
     ImGui::PopID();
 }
 
@@ -232,6 +274,7 @@ bool FDetailsPanel::DrawPropertyValue(const FProperty* Property, FPropertyValue&
         const auto Current{std::find_if(Choices.begin(), Choices.end(), [Number](const FEnumValue& Choice) {
             return Choice.mValue == Number;
         })};
+
         bool Changed{};
 
         if (ImGui::BeginCombo(Label, Current != Choices.end() ? Current->mName.c_str() : "Invalid")) {
@@ -262,6 +305,7 @@ bool FDetailsPanel::DrawPropertyValue(const FProperty* Property, FPropertyValue&
         auto Values{Vector4->ToArray()};
 
         const bool Changed{Property->GetName() == "LightColor" ? ImGui::ColorEdit4(Label, Values.data()) : ImGui::DragFloat4(Label, Values.data(), 0.025f)};
+
         if (Changed) {
             *Vector4 = {Values[0], Values[1], Values[2], Values[3]};
 
@@ -307,35 +351,46 @@ bool FDetailsPanel::DrawPropertyValue(const FProperty* Property, FPropertyValue&
         if (Property->GetName() == "Mesh") {
             return DrawAssetPicker(Label, *String, true);
         }
+
         if (mAssetCatalog != nullptr && mThumbnails != nullptr && (Property->GetName() == "Material" || Property->GetName() == "Texture" || Property->GetName() == "Sprite")) {
             return mAssetPicker.Draw(*mAssetCatalog, *mThumbnails, Property->GetName() == "Material" ? "All Slots Override" : Label, *String, Property->GetName() == "Material" ? EAssetType::Material : EAssetType::Texture, {}, Property->GetName() == "Material" ? "Use mesh materials" : Property->GetName() == "Sprite" ? "Default atlas" : "None");
         }
+
         if (Property->GetName() == "Text") {
             TArray<char> TextBuffer{};
             TextBuffer.resize(std::max<std::size_t>(4096, String->size() + 1024));
             std::copy(String->begin(), String->end(), TextBuffer.begin());
+
             if (ImGui::InputTextMultiline(Label, TextBuffer.data(), TextBuffer.size(), {0.0f, ImGui::GetTextLineHeight() * 4.0f}, ImGuiInputTextFlags_AllowTabInput)) {
                 *String = TextBuffer.data();
                 return true;
             }
+
             return false;
         }
+
         std::array<char, 512> Buffer{};
         std::copy_n(String->begin(), std::min(String->size(), Buffer.size() - 1), Buffer.begin());
 
         bool Changed{ImGui::InputText(Label, Buffer.data(), Buffer.size(), ImGuiInputTextFlags_EnterReturnsTrue)};
+
         if (Changed) {
             *String = Buffer.data();
         }
+
         const char* AssetPayload{Property->GetName() == "Material" ? EditorAssetDragDrop::MaterialPayload : Property->GetName() == "Texture" || Property->GetName() == "Sprite" ? EditorAssetDragDrop::TexturePayload : Property->GetName() == "Mesh" ? EditorAssetDragDrop::MeshPayload : nullptr};
+
         if (AssetPayload != nullptr && ImGui::BeginDragDropTarget()) {
             const ImGuiPayload* Payload{ImGui::AcceptDragDropPayload(AssetPayload)};
+
             if (Payload != nullptr && Payload->DataSize > 0 && static_cast<const char*>(Payload->Data)[Payload->DataSize - 1] == '\0') {
                 *String = FString{static_cast<const char*>(Payload->Data), static_cast<std::size_t>(Payload->DataSize - 1)};
                 Changed = true;
             }
+
             ImGui::EndDragDropTarget();
         }
+
         return Changed;
     } else if (auto* Boolean{std::get_if<bool>(&Value)}) {
         return ImGui::Checkbox(Label, Boolean);
@@ -384,5 +439,6 @@ bool FDetailsPanel::DrawAssetPicker(const char* Label, FString& Path, bool Mesh)
         ImGui::TextDisabled("%s: %s", Label, Path.c_str());
         return false;
     }
+
     return mAssetPicker.Draw(*mAssetCatalog, *mThumbnails, Label, Path, Mesh ? EAssetType::Mesh : EAssetType::Material, {}, Mesh ? "Primitive mesh" : "Default material");
 }

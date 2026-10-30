@@ -30,12 +30,16 @@ bool UBillboardComponent::SetSprite(UTexture* Sprite) {
     if (Sprite == nullptr) {
         return SetTexturePath({});
     }
+
     const auto* Texture{Cast<UTexture2D>(Sprite)};
     FAssetManager* Assets{GetWorld() != nullptr ? GetWorld()->GetAssets() : nullptr};
+
     if (Texture == nullptr || !Texture->IsValid() || Assets == nullptr) {
         return false;
     }
+
     const FString Path{Assets->GetTexturePath(Texture)};
+
     return !Path.empty() && SetTexturePath(Path);
 }
 
@@ -49,35 +53,46 @@ bool UBillboardComponent::SetTexturePath(const FString& Path) {
     std::transform(Extension.begin(), Extension.end(), Extension.begin(), [](wchar_t Character) {
         return static_cast<wchar_t>(std::towlower(Character));
     });
+
     const bool Supported{Extension == L".masset" || Extension == L".png" || Extension == L".jpg" || Extension == L".jpeg" || Extension == L".bmp" || Extension == L".tga" || Extension == L".dds" || Extension == L".hdr"};
+
     if (Path.find('\0') != FString::npos || (!Path.empty() && (AssetPath.has_root_path() || !Supported))) {
         return false;
     }
+
     for (const auto& Part : AssetPath) {
         if (Part == L"..") {
             return false;
         }
     }
+
     UTexture2D* Texture{LoadTexture(Path)};
+
     if (!Path.empty() && GetWorld() != nullptr && GetWorld()->GetAssets() != nullptr && Texture == nullptr) {
         return false;
     }
+
     mTexturePath = FilePath::ToGenericUtf8(AssetPath.lexically_normal());
     mSprite = Texture;
     MarkRenderStateDirty();
+
     return true;
 }
 
 UTexture2D* UBillboardComponent::LoadTexture(const FString& Path) const {
     FAssetManager* Assets{GetWorld() != nullptr ? GetWorld()->GetAssets() : nullptr};
+
     if (Assets == nullptr || Path.empty()) {
         return nullptr;
     }
+
     FString Error{};
     UTexture2D* Texture{Assets->LoadTexture(FilePath::FromUtf8(Path), Error)};
+
     if (Texture == nullptr) {
         ErrorHandler::Report("Sprite", "Cannot load texture '" + Path + "': " + Error, ErrorHandler::EErrorLevel::Warning);
     }
+
     return Texture;
 }
 
@@ -99,8 +114,10 @@ bool UBillboardComponent::SetSize(const FVector2& Size) {
     if (!std::isfinite(Size.x) || !std::isfinite(Size.y) || Size.x <= 0.0f || Size.y <= 0.0f || Size.x > 10000.0f || Size.y > 10000.0f) {
         return false;
     }
+
     mSize = Size;
     MarkRenderStateDirty();
+
     return true;
 }
 
@@ -110,13 +127,16 @@ const FVector4& UBillboardComponent::GetColor() const {
 
 bool UBillboardComponent::SetColor(const FVector4& Color) {
     const auto Values{Color.ToArray()};
+
     if (!std::all_of(Values.begin(), Values.end(), [](float Value) {
         return std::isfinite(Value) && Value >= 0.0f && Value <= 1.0f;
     })) {
         return false;
     }
+
     mColor = Color;
     MarkRenderStateDirty();
+
     return true;
 }
 
@@ -161,6 +181,7 @@ FBox UBillboardComponent::GetWorldBounds() const {
     const float Height{mSize.y * World.TransformVector({0.0f, 0.0f, 1.0f}).Length()};
     const float Radius{0.5f * std::sqrt(Width * Width + Height * Height)};
     const FVector Extent{Radius, Radius, Radius};
+
     return {Center - Extent, Center + Extent};
 }
 
@@ -179,9 +200,11 @@ void UBillboardComponent::UnregisterComponent() {
 
 void UBillboardComponent::Serialize(FArchive& Archive) {
     UPrimitiveComponent::Serialize(Archive);
+
     if (Archive.IsLoading() && !Archive.HasError() && !Archive.HasField("Sprite") && Archive.HasField("Texture")) {
         FString Path{};
         Archive.Serialize("Texture", Path);
+
         if (!Archive.HasError() && !SetTexturePath(Path)) {
             Archive.SetError("Invalid billboard texture path");
         }

@@ -22,6 +22,7 @@ private:
 private:
     FMeshData mMeshData{};
     ReflectProperty(mMeshData, "MeshData", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     TArray<FMeshImportMaterial> mMaterials{};
     ReflectProperty(mMaterials, "Materials", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 };

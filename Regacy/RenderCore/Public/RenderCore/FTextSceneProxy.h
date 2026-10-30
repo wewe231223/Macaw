@@ -2,6 +2,7 @@
  * @file FTextSceneProxy.h
  * @brief 저장한 글리프 데이터를 동적 그리기 인터페이스에 전달하는 텍스트 프록시를 정의합니다.
  */
+
 #pragma once
 #include "RenderCore/FPrimitiveSceneProxy.h"
 #include "RenderCore/FRenderData.h"
@@ -19,6 +20,7 @@ public:
      * @param Data 보관할 텍스트 그리기 데이터입니다.
      */
     FTextSceneProxy(FObjectHandle ComponentHandle, FObjectHandle OwnerHandle, const FPrimitiveTransform& Transform, FTextDrawData Data);
+
     /**
      * @brief 텍스트 프록시와 소유한 글리프 목록을 해제합니다.
      */

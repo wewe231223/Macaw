@@ -47,14 +47,17 @@ public:
      * @brief FRenderer의 초기 상태와 전달받은 의존성을 구성합니다.
      */
     FRenderer();
+
     /**
      * @brief 객체의 수명을 끝내고 소유한 리소스를 정리합니다.
      */
     ~FRenderer() override;
+
     /**
      * @brief 고유한 객체 수명을 유지하기 위해 복사 또는 이동 생성을 금지합니다.
      */
     FRenderer(const FRenderer&) = delete;
+
     /**
      * @brief 고유한 객체 수명을 유지하기 위해 대입을 금지합니다.
      * @return 소유 객체가 유지하는 값의 참조입니다.
@@ -76,6 +79,7 @@ public:
      * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
      */
     bool Initialize(void* WindowHandle, Uint32 Width, Uint32 Height) override;
+
     /**
      * @brief 장면 파이프라인 없이 창과 스왑체인·장치를 초기화합니다.
      * @param[in] WindowHandle 연결할 네이티브 창 핸들입니다.
@@ -84,6 +88,7 @@ public:
      * @return 검증 또는 요청한 처리에 성공하면 true입니다.
      */
     bool InitializeUi(void* WindowHandle, Uint32 Width, Uint32 Height);
+
     /**
      * @brief 종속 객체를 역순으로 정리하고 여러 번 호출해도 안전한 종료 상태로 만듭니다.
      */
@@ -94,6 +99,7 @@ public:
      * @return 생성한 객체의 단독 소유권이며, 생성 또는 검증 실패 시 nullptr입니다.
      */
     std::unique_ptr<FSceneInterface> AllocateScene() override;
+
     /**
      * @brief CPU 메시를 종류별 GPU 정점·인덱스 버퍼에 업로드합니다.
      * @param[in] Type 생성, 조회 또는 표시할 타입입니다.
@@ -109,6 +115,7 @@ public:
      * @return 생성한 객체의 단독 소유권이며, 생성 또는 검증 실패 시 nullptr입니다.
      */
     std::unique_ptr<FRenderTarget> CreateRenderTarget(Uint32 Width, Uint32 Height) override;
+
     /**
      * @brief 기존 오프스크린 렌더 타깃을 새 픽셀 크기로 변경합니다.
      * @param[in,out] Target 렌더 타깃 또는 셰이더 컴파일 프로파일입니다.
@@ -124,6 +131,7 @@ public:
      * @param[in] Height 클라이언트 영역 또는 타깃의 세로 픽셀 수입니다.
      */
     void BeginFrame(Uint32 Width, Uint32 Height) override;
+
     /**
      * @brief 지정한 장면 뷰를 타깃에 렌더링하고 에디터 보조 선분을 그립니다.
      * @param[in] Family 장면, 출력 타깃과 카메라를 묶은 렌더 요청입니다.
@@ -134,6 +142,7 @@ public:
      * @brief UI 렌더링에 사용할 백 버퍼와 뷰포트를 설정합니다.
      */
     void BeginUiRender() override;
+
     /**
      * @brief 스왑 체인의 백 버퍼를 화면에 표시합니다.
      */
@@ -145,11 +154,13 @@ public:
      * @return 요청을 수락하면 true이며 지원하지 않는 허용 요청은 false입니다.
      */
     bool SetAllowTearing(bool Allow) override;
+
     /**
      * @brief 화면 찢김을 허용하도록 설정했는지 반환합니다.
      * @return 사용자 설정에서 화면 찢김을 허용하면 true입니다.
      */
     bool IsTearingAllowed() const override;
+
     /**
      * @brief 현재 DXGI 환경이 화면 찢김 허용을 지원하는지 반환합니다.
      * @return DXGI의 프레젠테이션 기능 검사에 성공하면 true입니다.
@@ -161,26 +172,31 @@ public:
      * @return 조회한 값의 비소유 주소이며, 해당 값이 없으면 nullptr입니다.
      */
     void* GetNativeDevice() const override;
+
     /**
      * @brief Direct3D 11 즉시 컨텍스트의 비소유 주소를 반환합니다.
      * @return 조회한 값의 비소유 주소이며, 해당 값이 없으면 nullptr입니다.
      */
     void* GetNativeContext() const override;
+
     /**
      * @brief 프레임 렌더링 통계를 반환합니다.
      * @return 프레임 렌더링 통계입니다.
      */
     FRenderStats GetStats() const override;
+
     /**
      * @brief 현재 그림자 아틀라스의 검사 정보를 반환합니다.
      * @return 미리보기·깊이 뷰의 비소유 주소와 타일 정보 사본입니다.
      */
     FShadowAtlasView GetShadowAtlasView() const override;
+
     /**
      * @brief 변경된 셰이더를 다시 컴파일하고 필요한 GPU 셰이더를 갱신합니다.
      * @return 요청한 처리를 완료하면 true, 실패하면 false입니다.
      */
     bool ReloadChangedShaders() override;
+
     /**
      * @brief 폰트 메트릭으로 텍스트의 로컬 평면 경계를 계산합니다.
      * @param[in] Text 표시하거나 측정할 UTF-8 문자열 또는 텍스트 요청입니다.
@@ -189,6 +205,7 @@ public:
      * @return 조건을 만족하면 true입니다.
      */
     bool GetTextBounds(const FString& Text, FVector2& Minimum, FVector2& Maximum) const override;
+
     /**
      * @brief 머티리얼별 GPU 파이프라인을 반환합니다.
      * @param[in] Material 조회할 머티리얼 설정입니다.
@@ -196,36 +213,43 @@ public:
      * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며 사용할 수 없으면 nullptr입니다.
      */
     FMaterialPipeline* GetMaterialPipeline(const UMaterial& Material, EViewMode Mode = EViewMode::Lit_Phong);
+
     /**
      * @brief 현재 뷰의 그림자를 렌더링하고 타일 조명 자원을 업로드·바인딩합니다.
      * @param[in] Family 장면·카메라·출력 타깃·표시 플래그를 묶은 현재 뷰 요청입니다.
      * @return 필요한 조명 자원 준비에 성공하면 true입니다.
      */
     bool PrepareLighting(const FSceneViewFamily& Family);
+
     /**
      * @brief 조명과 그림자 패스에서 사용한 셰이더 리소스 바인딩을 해제합니다.
      */
     void FinishLighting();
+
     /**
      * @brief 기본 머티리얼의 비소유 주소를 반환합니다.
      * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며 사용할 수 없으면 nullptr입니다.
      */
     UMaterial* GetDefaultMaterial() const;
+
     /**
      * @brief 텍스처 없는 머티리얼의 흰색 기본 텍스처를 반환합니다.
      * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며 사용할 수 없으면 nullptr입니다.
      */
     ID3D11ShaderResourceView* GetDefaultMaterialTexture() const;
+
     /**
      * @brief 머티리얼 텍스처용 반복 샘플러를 반환합니다.
      * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며 사용할 수 없으면 nullptr입니다.
      */
     ID3D11SamplerState* GetMaterialSampler() const;
+
     /**
      * @brief 장면 전체를 와이어프레임으로 표시할 래스터라이저를 반환합니다.
      * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며 사용할 수 없으면 nullptr입니다.
      */
     ID3D11RasterizerState* GetWireframeRasterizer() const;
+
     /**
      * @brief 프로젝트 콘텐츠의 셰이더 경로와 컴파일 캐시 경로를 설정합니다.
      * @param[in] ContentRoot 프로젝트 에셋 경로의 기준 콘텐츠 폴더입니다.
@@ -241,21 +265,25 @@ private:
      * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
      */
     bool CreateBackBuffer(Uint32 Width, Uint32 Height);
+
     /**
      * @brief 메시·선분·기즈모 셰이더, 입력 레이아웃과 고정 파이프라인 상태를 생성합니다.
      * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
      */
     bool CreatePipeline();
+
     /**
      * @brief 장면 렌더링에 사용할 셰이더와 입력 레이아웃을 생성합니다.
      * @return 요청한 처리를 완료하면 true, 실패하면 false입니다.
      */
     bool CreateShaders();
+
     /**
      * @brief 고정 에디터 메시의 로컬 정점과 인덱스를 종류별 불변 GPU 버퍼에 업로드합니다.
      * @return 모든 버퍼를 생성하면 true이며 GPU 자원 생성 실패는 치명적 오류로 처리합니다.
      */
     bool CreateEditorMeshes();
+
     /**
      * @brief 내장 HLSL 소스를 지정한 진입점과 프로파일로 컴파일합니다.
      * @param[in] Source 컴파일할 HLSL 소스의 주소입니다.
@@ -269,23 +297,27 @@ private:
      * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
      */
     bool Compile(const char* Source, const char* Entry, const char* Target, std::shared_ptr<const FShader>& Code);
+
     /**
      * @brief 월드 선은 깊이를 기록하고 편집 오버레이 선은 깊이 검사 없이 그립니다.
      * @param[in] Elements 이번 프레임의 에디터 보조 도형입니다.
      * @param[in] DepthTest 깊이 검사를 적용할지 지정합니다.
      */
     void DrawLines(const FPrimitiveDrawInterface* Elements, bool DepthTest);
+
     /**
      * @brief 깊이 검사 단계에 해당하는 에디터 메시들을 GPU에 제출합니다.
      * @param[in] Elements 이번 프레임의 에디터 도형 요청 목록입니다.
      * @param[in] DepthTest 현재 제출할 깊이 검사 단계입니다.
      */
     void DrawMeshes(const FPrimitiveDrawInterface* Elements, bool DepthTest);
+
     /**
      * @brief 깊이 검사 없이 표시할 에디터 텍스트를 마지막 오버레이로 그립니다.
      * @param[in] Family 출력 타깃·카메라·표시 필터를 포함한 뷰 요청입니다.
      */
     void DrawOverlayTexts(const FSceneViewFamily& Family);
+
     /**
      * @brief 월드 글자와 스프라이트를 함께 깊이 역순으로 정렬하여 투명 영역을 합성합니다.
      * @param[in] Family 출력 타깃·카메라·표시 필터를 포함한 뷰 요청입니다.
@@ -301,51 +333,61 @@ private:
 private:
     std::unique_ptr<FLightingResources> mLightingResources{};
     ReflectProperty(mLightingResources, "LightingResources", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 그림자 아틀라스와 관련 GPU 자원을 관리하는 소유 객체입니다.
      */
     std::unique_ptr<FShadowResources> mShadowResources{};
     ReflectProperty(mShadowResources, "ShadowResources", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 머티리얼이 없는 메시 드로에 사용할 기본 머티리얼의 소유 객체입니다.
      */
     std::unique_ptr<UMaterial> mDefaultMaterial{};
     ReflectProperty(mDefaultMaterial, "DefaultMaterial", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 텍스처 없는 머티리얼의 흰색 기본 텍스처입니다.
      */
     std::unique_ptr<UTexture2D> mDefaultMaterialTexture{};
     ReflectProperty(mDefaultMaterialTexture, "DefaultMaterialTexture", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 머티리얼 텍스처용 반복 샘플러입니다.
      */
     Microsoft::WRL::ComPtr<ID3D11SamplerState> mMaterialSampler{};
     ReflectProperty(mMaterialSampler, "MaterialSampler", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 셰이더와 양면 정책별 파이프라인 캐시입니다.
      */
     TMap<FString, std::unique_ptr<FMaterialPipeline>> mMaterialPipelines{};
     ReflectProperty(mMaterialPipelines, "MaterialPipelines", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 폰트 아틀라스 텍스트 렌더러입니다.
      */
     std::unique_ptr<FTextRenderer> mTextRenderer{};
     ReflectProperty(mTextRenderer, "TextRenderer", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 투명 텍스처 쿼드 렌더러입니다.
      */
     std::unique_ptr<FSpriteRenderer> mSpriteRenderer{};
     ReflectProperty(mSpriteRenderer, "SpriteRenderer", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 셰이더 컴파일·캐시·재로드 관리자입니다.
      */
     FShaderManager mShaderManager{};
     ReflectProperty(mShaderManager, "ShaderManager", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 현재 프로젝트의 HLSL 소스와 include 파일을 찾는 폴더입니다.
      */
     std::filesystem::path mShaderDirectory{};
     ReflectProperty(mShaderDirectory, "ShaderDirectory", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 다음 렌더링에서 GPU 셰이더를 다시 준비할지 나타냅니다.
      */
@@ -376,6 +418,7 @@ private:
      */
     bool mAllowTearing{};
     ReflectProperty(mAllowTearing, "AllowTearing", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 현재 DXGI 환경의 화면 찢김 허용 지원 여부입니다.
      */
@@ -417,6 +460,7 @@ private:
      */
     Microsoft::WRL::ComPtr<ID3D11Buffer> mViewBuffer{};
     ReflectProperty(mViewBuffer, "ViewBuffer", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 화면 크기와 역수를 전달하는 선분 상수 버퍼입니다.
      */
@@ -441,6 +485,7 @@ private:
      */
     Microsoft::WRL::ComPtr<ID3D11RasterizerState> mRasterizer{};
     ReflectProperty(mRasterizer, "Rasterizer", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 장면 전체를 와이어프레임으로 표시할 래스터라이저입니다.
      */
@@ -496,31 +541,37 @@ private:
      */
     FRenderStats mStats{};
     ReflectProperty(mStats, "Stats", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 고정 에디터 메시의 로컬 정점에 월드 행렬과 뷰·투영 행렬을 적용하는 기즈모 정점 셰이더입니다.
      */
     Microsoft::WRL::ComPtr<ID3D11VertexShader> mGizmoVertexShader{};
     ReflectProperty(mGizmoVertexShader, "GizmoVertexShader", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 조명 계산 없이 요청의 RGBA 색상을 출력하는 기즈모 픽셀 셰이더입니다.
      */
     Microsoft::WRL::ComPtr<ID3D11PixelShader> mGizmoPixelShader{};
     ReflectProperty(mGizmoPixelShader, "GizmoPixelShader", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 고정 에디터 메시의 로컬 위치를 읽는 입력 레이아웃입니다.
      */
     Microsoft::WRL::ComPtr<ID3D11InputLayout> mOverlayLayout{};
     ReflectProperty(mOverlayLayout, "OverlayLayout", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 에디터 메시 요청의 월드 행렬과 RGBA 색상을 전달하는 80바이트 상수 버퍼입니다.
      */
     Microsoft::WRL::ComPtr<ID3D11Buffer> mEditorMeshBuffer{};
     ReflectProperty(mEditorMeshBuffer, "EditorMeshBuffer", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 평면 핸들의 투명도를 표시하는 소스 알파 혼합 상태입니다.
      */
     Microsoft::WRL::ComPtr<ID3D11BlendState> mOverlayBlend{};
     ReflectProperty(mOverlayBlend, "OverlayBlend", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 렌더러가 초기화 때 생성하고 종료 때 해제하는 enum별 불변 GPU 정점·인덱스 버퍼입니다.
      */

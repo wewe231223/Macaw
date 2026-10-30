@@ -24,6 +24,7 @@ public:
      * @brief USpotLightComponent의 기본 상태를 초기화합니다.
      */
     USpotLightComponent();
+
     /**
      * @brief USpotLightComponent 객체의 수명을 끝내고 소유 자원을 정리합니다.
      */
@@ -47,6 +48,7 @@ public:
      * @return 스포트라이트 내부 원뿔의 반각(도)입니다.
      */
     float GetInnerConeAngle() const;
+
     /**
      * @brief 스포트라이트 내부 원뿔의 반각(도)를 검증하고 변경합니다.
      * @param[in] InnerConeAngle 0 이상 89 미만인 유한한 내부 반각(도)입니다.
@@ -54,11 +56,13 @@ public:
      * @note 외부 원뿔각이 더 작으면 외부 각도도 함께 늘립니다.
      */
     bool SetInnerConeAngle(float InnerConeAngle);
+
     /**
      * @brief 스포트라이트 외부 원뿔의 반각(도)를 반환합니다.
      * @return 스포트라이트 외부 원뿔의 반각(도)입니다.
      */
     float GetOuterConeAngle() const;
+
     /**
      * @brief 스포트라이트 외부 원뿔의 반각(도)를 검증하고 변경합니다.
      * @param[in] OuterConeAngle 0 이상 89 미만인 유한한 외부 반각(도)입니다.
@@ -79,6 +83,7 @@ private:
      */
     float mInnerConeAngle{20.0f};
     ReflectAccessor(mInnerConeAngle, GetInnerConeAngle, SetInnerConeAngle, "InnerConeAngle", EPropertyFlags::Edit | EPropertyFlags::Serialize);
+
     /**
      * @brief 스포트라이트 외부 원뿔의 반각(도)입니다.
      */

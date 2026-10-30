@@ -25,6 +25,7 @@ public:
      * @return 등록된 타입 메타데이터의 비소유 주소입니다.
      */
     ReflectStruct(FShaderCompiler);
+
     /**
      * @brief 정규화한 설명으로 HLSL을 컴파일하고 바이트코드와 의존성을 수집합니다.
      * @param[in] Description 소스 경로·진입점·프로필·매크로 등의 컴파일 설정입니다.

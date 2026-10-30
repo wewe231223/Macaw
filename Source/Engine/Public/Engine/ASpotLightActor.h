@@ -26,6 +26,7 @@ public:
      * @brief ASpotLightActor의 기본 상태를 초기화합니다.
      */
     ASpotLightActor();
+
     /**
      * @brief ASpotLightActor 객체의 수명을 끝내고 소유 자원을 정리합니다.
      */
@@ -43,6 +44,7 @@ public:
      * @return 새 컴포넌트를 연결하면 true이며 이미 컴포넌트가 있거나 연결에 실패하면 false입니다.
      */
     bool InitializeDefaultComponents() override;
+
     /**
      * @brief 액터의 기본 광원 컴포넌트를 조회합니다.
      * @return 액터가 소유한 광원 컴포넌트의 비소유 주소이며 없으면 nullptr입니다.

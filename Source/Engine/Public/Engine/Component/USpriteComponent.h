@@ -23,6 +23,7 @@ public:
      * @brief 카메라 정렬을 끈 고정 평면 스프라이트를 생성합니다.
      */
     USpriteComponent();
+
     /**
      * @brief 객체를 소멸하고 소유한 GPU 자원 또는 UV 제어 상태를 해제합니다.
      */

@@ -82,6 +82,7 @@ void FRenderView::CollectMeshDrawCommands(const FRenderScene& Scene, TArray<FVis
         }
 
         const float Depth{CalculateSortDepth(Object, Scene.GetObjectTransforms()[ObjectIndex], mCamera.mView)};
+
         const auto AddLevel{[&](Uint32 Level, float Dither) {
             for (const Uint32 CommandIndex : Object.mCachedCommandsByLOD[Level]) {
                 if (mSettings.mBRenderSky || !Scene.GetCachedMeshDrawCommands()[CommandIndex]->mState.mSky) {

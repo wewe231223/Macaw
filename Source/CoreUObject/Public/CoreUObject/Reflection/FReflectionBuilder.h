@@ -42,6 +42,7 @@ public:
      * @return 조회한 값의 비소유 주소이며, 해당 값이 없으면 nullptr입니다.
      */
     UStruct* GetOwner() const;
+
     /**
      * @brief 타입 메타데이터에 프로퍼티를 추가합니다.
      * @param[in] Property 읽기, 쓰기 또는 알림을 적용할 프로퍼티 메타데이터입니다.

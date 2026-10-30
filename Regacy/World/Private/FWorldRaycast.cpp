@@ -41,6 +41,7 @@ bool FWorldRaycastQuery::PrepareRay(const FRay& Ray, FRay& OutRay) const {
     }
 
     OutRay = FRay{Ray.position, DirectX::SimpleMath::Vector3{static_cast<float>(X / Length), static_cast<float>(Y / Length), static_cast<float>(Z / Length)}};
+
     return true;
 }
 
@@ -76,5 +77,6 @@ bool RaycastBox(const DirectX::BoundingOrientedBox& Box, const FRay& Ray, FWorld
     OutHit.mPosition = Position;
     OutHit.mNormal = FVector3{WorldNormal};
     OutHit.mFaceIndex = std::numeric_limits<Uint32>::max();
+
     return true;
 }

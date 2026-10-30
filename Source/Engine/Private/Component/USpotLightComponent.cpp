@@ -17,6 +17,7 @@ FLightSceneProxy USpotLightComponent::CreateLightProxy() const {
     Proxy.mType = ELightType::Spot;
     Proxy.mInnerConeAngle = mInnerConeAngle;
     Proxy.mOuterConeAngle = mOuterConeAngle;
+
     return Proxy;
 }
 
@@ -28,9 +29,11 @@ bool USpotLightComponent::SetInnerConeAngle(float InnerConeAngle) {
     if (!std::isfinite(InnerConeAngle) || InnerConeAngle < 0.0f || InnerConeAngle >= 89.0f) {
         return false;
     }
+
     mInnerConeAngle = InnerConeAngle;
     mOuterConeAngle = std::max(mOuterConeAngle, mInnerConeAngle);
     SynchronizeLight();
+
     return true;
 }
 
@@ -42,8 +45,10 @@ bool USpotLightComponent::SetOuterConeAngle(float OuterConeAngle) {
     if (!std::isfinite(OuterConeAngle) || OuterConeAngle < 0.0f || OuterConeAngle >= 89.0f) {
         return false;
     }
+
     mOuterConeAngle = OuterConeAngle;
     mInnerConeAngle = std::min(mInnerConeAngle, mOuterConeAngle);
     SynchronizeLight();
+
     return true;
 }

@@ -12,6 +12,7 @@ public:
 
 public:
     ReflectClass(AStaticMeshActor);
+
     UStaticMeshComponent* GetStaticMeshComponent() const;
 
 private:

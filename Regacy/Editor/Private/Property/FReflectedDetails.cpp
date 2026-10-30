@@ -57,6 +57,7 @@ void FReflectedDetails::DrawProperty(const void* Container, const FProperty& Fie
     const double Maximum{std::max(Minimum, Property->GetMaximum(Container))};
     const float FloatMinimum{static_cast<float>(std::clamp(Minimum, -static_cast<double>(std::numeric_limits<float>::max()), static_cast<double>(std::numeric_limits<float>::max())))};
     const float FloatMaximum{static_cast<float>(std::clamp(Maximum, -static_cast<double>(std::numeric_limits<float>::max()), static_cast<double>(std::numeric_limits<float>::max())))};
+
     const auto Write{[Property, Writer](const auto& NewValue) {
         Writer(*Property, FPropertyValue{NewValue});
     }};
@@ -125,6 +126,7 @@ void FReflectedDetails::DrawProperty(const void* Container, const FProperty& Fie
                 Writer(*Property, Edited);
             }
         }};
+
         const TArray<const FProperty*> Children{Struct->GetProperties()};
         const auto Editable{std::ranges::count_if(Children, [](const FProperty* Child) {
             return Child->HasAnyFlags(EPropertyFlags::Edit) && Child->CanWrite();

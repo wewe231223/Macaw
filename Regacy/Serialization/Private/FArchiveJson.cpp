@@ -316,6 +316,7 @@ void FArchiveJson::BeginObjectScope(std::string_view Name) {
             if (Child != nullptr) {
                 SetError();
             }
+
             mNodeStack.push_back(nullptr);
         }
     }
@@ -351,6 +352,7 @@ void FArchiveJson::BeginArrayScope(std::string_view Name, std::size_t& ArraySize
             if (Child != nullptr) {
                 SetError();
             }
+
             ArraySize = 0;
             mNodeStack.push_back(nullptr);
         }

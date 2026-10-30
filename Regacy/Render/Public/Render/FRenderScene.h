@@ -2,6 +2,7 @@
  * @file FRenderScene.h
  * @brief 전역 에셋을 조회하며 씬별 프리미티브와 조명 및 명령 캐시를 유지하는 렌더 씬을 정의합니다.
  */
+
 #pragma once
 #include "RenderCore/FRenderData.h"
 #include "RenderCore/FSceneUpdateBatch.h"

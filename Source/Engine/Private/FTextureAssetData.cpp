@@ -17,6 +17,7 @@ FTextureAssetData::FTextureAssetData(const UTexture2D& Texture)
 	  mSRGB{Texture.IsSRGB()},
 	  mDDS{!Texture.GetDDSData().empty()} {
     const auto& Data{mDDS ? Texture.GetDDSData() : Texture.GetPixels()};
+
     if (!Data.empty()) {
         mImageData.assign(reinterpret_cast<const char*>(Data.data()), Data.size());
     }
@@ -33,15 +34,19 @@ void FTextureAssetData::Serialize(FMemoryArchive& Archive) {
 
 bool FTextureAssetData::ApplyTo(UTexture2D& Texture, FString& Error) const {
     Error.clear();
+
     if (mFormat >= static_cast<Uint32>(ETextureFormat::D24S8)) {
         Error = "Invalid texture asset data";
         return false;
     }
+
     TArray<Uint8> Bytes{mImageData.begin(), mImageData.end()};
     const bool Loaded{mDDS ? Texture.SetDDSData(Bytes, mSRGB) : Texture.SetPixels(mWidth, mHeight, static_cast<ETextureFormat>(mFormat), std::move(Bytes)) && Texture.SetSRGB(mSRGB)};
+
     if (!Loaded || Texture.GetSizeX() != mWidth || Texture.GetSizeY() != mHeight || Texture.GetFormat() != static_cast<ETextureFormat>(mFormat)) {
         Error = "Invalid texture image data";
         return false;
     }
+
     return true;
 }

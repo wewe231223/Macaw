@@ -2,6 +2,7 @@
  * @file EditorViewport.h
  * @brief 월드별 편집 상태와 전역 에셋 및 설정을 사용하는 뷰포트 도구를 정의합니다.
  */
+
 #pragma once
 
 #include <d3d11.h>
@@ -18,9 +19,11 @@ public:
     ~EditorViewport() = default;
 
     EditorViewport(const EditorViewport&) = delete;
+
     EditorViewport& operator=(const EditorViewport&) = delete;
 
     EditorViewport(EditorViewport&&) noexcept = default;
+
     EditorViewport& operator=(EditorViewport&&) noexcept = default;
 
 public:

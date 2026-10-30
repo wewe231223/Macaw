@@ -191,6 +191,7 @@ void FRenderer::RenderView(const FRenderView& View, const FRenderScene& Scene, c
     }
 
     const Stat::FScopedSystemStatTimer StageStat{Stat::ESystemStatStage::EditorOverlays};
+
     BindSamplerStates();
     mOverLayRenderer.RenderView(mDeviceContext.Get(), mRenderBuffers, View, Overlay, Output);
     View.mTarget->Bind(mDeviceContext.Get());
@@ -261,6 +262,7 @@ bool FRenderer::CreateDeviceAndSwapChain(HWND WindowHandle) {
     SwapChainDesc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH | DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
 
     UINT DeviceFlags{D3D11_CREATE_DEVICE_BGRA_SUPPORT};
+
 #ifdef _DEBUG
     DeviceFlags |= D3D11_CREATE_DEVICE_DEBUG;
 #endif
@@ -298,6 +300,7 @@ bool FRenderer::CreateDeviceAndSwapChain(HWND WindowHandle) {
         ErrorHandler::ReportHRESULT(Result, "[ FRenderer ]", "Failed to create Direct3D device and swap chain.", ErrorHandler::EErrorLevel::Warning);
         return false;
     }
+
     mSwapChain->GetDesc(&SwapChainDesc);
 
     Microsoft::WRL::ComPtr<IDXGIDevice1> DxgiDevice{};

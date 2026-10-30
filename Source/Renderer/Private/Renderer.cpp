@@ -59,14 +59,18 @@ namespace {
     std::filesystem::path FindTextContent(const std::filesystem::path& ContentRoot, const std::filesystem::path& RelativePath, bool EngineFirst = false) {
         std::error_code Error{};
         const std::filesystem::path ProjectPath{ContentRoot / RelativePath};
+
         if (!EngineFirst && std::filesystem::is_regular_file(ProjectPath, Error)) {
             return ProjectPath;
         }
+
         std::array<wchar_t, 32768> Executable{};
         const DWORD Length{GetModuleFileNameW(nullptr, Executable.data(), static_cast<DWORD>(Executable.size()))};
         const std::filesystem::path EnginePath{Length > 0 && Length < Executable.size() ? std::filesystem::path{Executable.data()}.parent_path() / "Templates/Project/Content" / RelativePath : ProjectPath};
+
         return EngineFirst && !std::filesystem::is_regular_file(EnginePath, Error) ? ProjectPath : EnginePath;
     }
+
     /**
      * @brief 메시 정점 및 픽셀 셰이더의 내장 HLSL 소스입니다.
      */
@@ -108,6 +112,7 @@ bool FRenderer::Initialize(void* WindowHandle, Uint32 Width, Uint32 Height) {
     if (!InitializeUi(WindowHandle, Width, Height) || !CreatePipeline() || !CreateEditorMeshes()) {
         ErrorHandler::Fatal("Renderer", "Render pipeline creation failed");
     }
+
     return true;
 }
 
@@ -136,6 +141,7 @@ bool FRenderer::InitializeUi(void* WindowHandle, Uint32 Width, Uint32 Height) {
     Description.Flags = mTearingSupported ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0;
 
     UINT Flags{D3D11_CREATE_DEVICE_BGRA_SUPPORT};
+
 #ifdef _DEBUG
     Flags |= D3D11_CREATE_DEVICE_DEBUG;
 #endif
@@ -212,9 +218,11 @@ void FRenderer::Shutdown() {
     mSwapChain.Reset();
     mAllowTearing = false;
     mTearingSupported = false;
+
     if (mContext != nullptr) {
         mContext->Flush();
     }
+
     mContext.Reset();
     mDevice.Reset();
 
@@ -311,9 +319,11 @@ void FRenderer::BeginRenderingViewFamily(const FSceneViewFamily& Family) {
     mContext->PSSetShaderResources(0, 1, &Empty);
 
     ID3D11RenderTargetView* RenderTarget{Target->GetRenderTargetView()};
+
     if (mShadowResources != nullptr && !mShadowResources->Render(mDevice.Get(), mContext.Get(), *Scene, Family, mMeshes, mStats)) {
         ErrorHandler::Report("Shadow", "Shadow atlas rendering failed", ErrorHandler::EErrorLevel::Error);
     }
+
     mContext->OMSetRenderTargets(1, &RenderTarget, Target->GetDepthView());
 
     constexpr float ClearColor[]{0.065f, 0.078f, 0.10f, 1.0f};
@@ -333,6 +343,7 @@ void FRenderer::BeginRenderingViewFamily(const FSceneViewFamily& Family) {
     const FSceneDrawContext Context{this, mContext.Get(), &mMeshes, mViewBuffer.Get(), &mMeshInstanceBuffer};
     FSceneRenderer SceneRenderer{Family, Scene, Context, mStats};
     SceneRenderer.Render();
+
     const FVector4 LineView{Family.mView.mSize.x, Family.mView.mSize.y, 1.0f / std::max(Family.mView.mSize.x, 1.0f), 1.0f / std::max(Family.mView.mSize.y, 1.0f)};
     mContext->UpdateSubresource(mLineViewBuffer.Get(), 0, nullptr, &LineView, 0, 0);
 
@@ -340,12 +351,15 @@ void FRenderer::BeginRenderingViewFamily(const FSceneViewFamily& Family) {
         DrawMeshes(Family.mEditorElements, true);
         DrawLines(Family.mEditorElements, true);
     }
+
     DrawTranslucency(Family);
+
     if (Family.mEditorElements != nullptr) {
         mContext->ClearDepthStencilView(Target->GetDepthView(), D3D11_CLEAR_DEPTH, 1.0f, 0);
         DrawMeshes(Family.mEditorElements, false);
         DrawLines(Family.mEditorElements, false);
     }
+
     DrawOverlayTexts(Family);
 
     mStats.mGpuBytes = Scene->GetPrimitiveCount() * sizeof(FObjectConstants) + sizeof(FMatrix) + sizeof(FEditorMeshConstants) + mLineBuffer.GetResourceBytes() + Target->GetResourceBytes();
@@ -357,6 +371,7 @@ void FRenderer::BeginRenderingViewFamily(const FSceneViewFamily& Family) {
     for (const auto& Mesh : mMeshes) {
         mStats.mGpuBytes += Mesh != nullptr ? Mesh->GetResourceBytes() : 0;
     }
+
     for (const auto& Mesh : mEditorMeshes) {
         mStats.mGpuBytes += Mesh != nullptr ? Mesh->GetResourceBytes() : 0;
     }
@@ -397,6 +412,7 @@ void FRenderer::BeginUiRender() {
 void FRenderer::Present() {
     static FStat PresentTime{"unit", "Present / VSync CPU", EStatUnit::Milliseconds};
     const FScopedStatTimer StatTimer{PresentTime};
+
     if (mSwapChain == nullptr) {
         return;
     }
@@ -405,6 +421,7 @@ void FRenderer::Present() {
     const bool AllowTearing{mAllowTearing && mTearingSupported && SUCCEEDED(mSwapChain->GetFullscreenState(&Fullscreen, nullptr)) && Fullscreen == FALSE};
     const UINT SyncInterval{AllowTearing ? 0u : 1u};
     const UINT Flags{AllowTearing ? DXGI_PRESENT_ALLOW_TEARING : 0u};
+
     if (FAILED(mSwapChain->Present(SyncInterval, Flags))) {
         ErrorHandler::Fatal("Renderer", "Presentation failed");
     }
@@ -414,7 +431,9 @@ bool FRenderer::SetAllowTearing(bool Allow) {
     if (mSwapChain == nullptr || (Allow && !mTearingSupported)) {
         return false;
     }
+
     mAllowTearing = Allow;
+
     return true;
 }
 
@@ -460,25 +479,31 @@ bool FRenderer::ReloadChangedShaders() {
     FString Diagnostics{};
     const bool Success{mShaderManager.ReloadChanged(ChangedShaders, Diagnostics)};
     mShadersDirty = mShadersDirty || !ChangedShaders.empty();
+
     if (!Diagnostics.empty()) {
         ErrorHandler::Report("Shader", Diagnostics, ErrorHandler::EErrorLevel::Warning);
     }
 
     bool PipelinesReady{true};
+
     if (Success) {
         for (auto Iterator{mMaterialPipelines.begin()}; Iterator != mMaterialPipelines.end();) {
             if (Iterator->second == nullptr) {
                 Iterator = mMaterialPipelines.erase(Iterator);
                 continue;
             }
+
             FString Error{};
+
             if (!Iterator->second->IsCurrent() && !Iterator->second->CreateResources(mDevice.Get(), Error)) {
                 ErrorHandler::Report("Material", Error, ErrorHandler::EErrorLevel::Warning);
                 PipelinesReady = false;
             }
+
             ++Iterator;
         }
     }
+
     return Success && (!mShadersDirty || CreateShaders()) && PipelinesReady;
 }
 
@@ -496,12 +521,14 @@ bool FRenderer::Compile(const char* Source, const char* Entry, const char* Targe
     Description.mIncludeDirectories = {mShaderDirectory};
     Description.mEntryPoint = Entry;
     Description.mTargetProfile = Target;
+
 #ifdef _DEBUG
     Description.mCompileFlags |= D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
 #endif
 
     FString Diagnostics{};
     Code = mShaderManager.Load(Description, Diagnostics);
+
     if (!Diagnostics.empty()) {
         ErrorHandler::Report("Shader", Diagnostics, Code != nullptr ? ErrorHandler::EErrorLevel::Warning : ErrorHandler::EErrorLevel::Error);
     }
@@ -538,6 +565,7 @@ bool FRenderer::CreateShaders() {
     }
 
     const std::array<D3D11_INPUT_ELEMENT_DESC, 1> OverlayElements{{{"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0}}};
+
     if (FAILED(mDevice->CreateVertexShader(VertexCode->GetByteCode().data(), VertexCode->GetByteCode().size(), nullptr, GizmoVertex.GetAddressOf())) || FAILED(mDevice->CreatePixelShader(PixelCode->GetByteCode().data(), PixelCode->GetByteCode().size(), nullptr, GizmoPixel.GetAddressOf())) || FAILED(mDevice->CreateInputLayout(OverlayElements.data(), static_cast<UINT>(OverlayElements.size()), VertexCode->GetByteCode().data(), VertexCode->GetByteCode().size(), OverlayLayout.GetAddressOf()))) {
         ErrorHandler::Report("Renderer", "Gizmo pipeline allocation failed", ErrorHandler::EErrorLevel::Error);
         return false;
@@ -546,6 +574,7 @@ bool FRenderer::CreateShaders() {
     if (!Compile("Text.hlsl", "VertexMain", "vs_5_0", VertexCode) || !Compile("Text.hlsl", "PixelMain", "ps_5_0", PixelCode) || !mTextRenderer->CreateShaders(mDevice.Get(), VertexCode->GetByteCode(), PixelCode->GetByteCode())) {
         return false;
     }
+
     if (!Compile("Sprite.hlsl", "VertexMain", "vs_5_0", VertexCode) || !Compile("Sprite.hlsl", "PixelMain", "ps_5_0", PixelCode) || !mSpriteRenderer->CreateShaders(mDevice.Get(), VertexCode->GetByteCode(), PixelCode->GetByteCode())) {
         return false;
     }
@@ -557,6 +586,7 @@ bool FRenderer::CreateShaders() {
     mGizmoPixelShader = std::move(GizmoPixel);
     mOverlayLayout = std::move(OverlayLayout);
     mShadersDirty = false;
+
     return true;
 }
 
@@ -568,6 +598,7 @@ bool FRenderer::CreateBackBuffer(Uint32 Width, Uint32 Height) {
     mBackBuffer.reset();
 
     const UINT Flags{mTearingSupported ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0u};
+
     if (FAILED(mSwapChain->ResizeBuffers(0, Width, Height, DXGI_FORMAT_UNKNOWN, Flags))) {
         ErrorHandler::Fatal("Renderer", "Swap chain resize failed");
     }
@@ -594,12 +625,15 @@ bool FRenderer::CreatePipeline() {
     mShadowResources = std::make_unique<FShadowResources>();
     mTextRenderer = std::make_unique<FTextRenderer>();
     mSpriteRenderer = std::make_unique<FSpriteRenderer>();
+
     if (!mSpriteRenderer->Initialize(mDevice.Get())) {
         return false;
     }
+
     if (!mTextRenderer->Initialize(mDevice.Get(), FindTextContent(mShaderDirectory.parent_path(), "Fonts/Default.json"))) {
         return false;
     }
+
     if (!CreateShaders()) {
         return false;
     }
@@ -607,21 +641,25 @@ bool FRenderer::CreatePipeline() {
     mDefaultMaterial = NewObject<UMaterial>();
     mDefaultMaterial->SetShaderPath(FString{"Shaders/"} + MeshShader);
     mDefaultMaterialTexture = NewObject<UTexture2D>();
+
     if (!mDefaultMaterialTexture->SetPixels(1, 1, ETextureFormat::RGBA8, TArray<Uint8>{255, 255, 255, 255}) || !mDefaultMaterialTexture->CreateResources(mDevice.Get()) || GetMaterialPipeline(*mDefaultMaterial) == nullptr) {
         return false;
     }
+
     D3D11_SAMPLER_DESC Sampler{};
     Sampler.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
     Sampler.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
     Sampler.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
     Sampler.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
     Sampler.MaxLOD = D3D11_FLOAT32_MAX;
+
     if (FAILED(mDevice->CreateSamplerState(&Sampler, mMaterialSampler.GetAddressOf()))) {
         return false;
     }
 
     D3D11_BLEND_DESC Blend{};
     Blend.RenderTarget[0] = {true, D3D11_BLEND_SRC_ALPHA, D3D11_BLEND_INV_SRC_ALPHA, D3D11_BLEND_OP_ADD, D3D11_BLEND_ONE, D3D11_BLEND_INV_SRC_ALPHA, D3D11_BLEND_OP_ADD, D3D11_COLOR_WRITE_ENABLE_ALL};
+
     if (FAILED(mDevice->CreateBlendState(&Blend, mOverlayBlend.GetAddressOf()))) {
         return false;
     }
@@ -634,12 +672,15 @@ bool FRenderer::CreatePipeline() {
     if (FAILED(mDevice->CreateBuffer(&Buffer, nullptr, mViewBuffer.GetAddressOf()))) {
         ErrorHandler::Fatal("Renderer", "View buffer allocation failed");
     }
+
     Buffer.ByteWidth = sizeof(FVector4);
+
     if (FAILED(mDevice->CreateBuffer(&Buffer, nullptr, mLineViewBuffer.GetAddressOf()))) {
         return false;
     }
 
     Buffer.ByteWidth = sizeof(FEditorMeshConstants);
+
     if (FAILED(mDevice->CreateBuffer(&Buffer, nullptr, mEditorMeshBuffer.GetAddressOf()))) {
         ErrorHandler::Fatal("Renderer", "Editor mesh constant buffer allocation failed");
     }
@@ -653,7 +694,9 @@ bool FRenderer::CreatePipeline() {
     if (FAILED(mDevice->CreateRasterizerState(&Rasterizer, mRasterizer.GetAddressOf()))) {
         ErrorHandler::Fatal("Renderer", "Rasterizer allocation failed");
     }
+
     Rasterizer.FillMode = D3D11_FILL_WIREFRAME;
+
     if (FAILED(mDevice->CreateRasterizerState(&Rasterizer, mWireframeRasterizer.GetAddressOf()))) {
         return false;
     }
@@ -699,6 +742,7 @@ void FRenderer::DrawLines(const FPrimitiveDrawInterface* Elements, bool DepthTes
     const Uint32 Count{static_cast<Uint32>(mLineVertices.size())};
 
     FString Error{};
+
     if (!mLineBuffer.Upload(mContext.Get(), std::as_bytes(std::span{mLineVertices}), sizeof(FLineVertex), Count + 256, Error)) {
         ErrorHandler::Fatal("Renderer", Error);
         return;
@@ -714,6 +758,7 @@ void FRenderer::DrawLines(const FPrimitiveDrawInterface* Elements, bool DepthTes
 
     mContext->VSSetShader(mLineVertexShader.Get(), nullptr, 0);
     mContext->PSSetShader(mLinePixelShader.Get(), nullptr, 0);
+
     ID3D11Buffer* Constants{mLineViewBuffer.Get()};
     ID3D11Buffer* ViewBuffer{mViewBuffer.Get()};
     mContext->VSSetConstantBuffers(0, 1, &Constants);
@@ -741,17 +786,21 @@ bool FRenderer::CreateEditorMeshes() {
 
         mEditorMeshes[Index] = std::move(Resource);
     }
+
     return true;
 }
 
 void FRenderer::DrawMeshes(const FPrimitiveDrawInterface* Elements, bool DepthTest) {
     mContext->RSSetState(mRasterizer.Get());
+
     const UINT Stride{UStaticMesh::GetPositionStride()};
     const UINT Offset{};
+
     mContext->IASetInputLayout(mOverlayLayout.Get());
     mContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     mContext->VSSetShader(mGizmoVertexShader.Get(), nullptr, 0);
     mContext->PSSetShader(mGizmoPixelShader.Get(), nullptr, 0);
+
     ID3D11Buffer* ConstantsBuffer{mEditorMeshBuffer.Get()};
     mContext->VSSetConstantBuffers(0, 1, &ConstantsBuffer);
     mContext->PSSetConstantBuffers(0, 1, &ConstantsBuffer);
@@ -762,6 +811,7 @@ void FRenderer::DrawMeshes(const FPrimitiveDrawInterface* Elements, bool DepthTe
         if (Draw.mMesh >= EEditorMesh::Count || Draw.mDepthTest != DepthTest) {
             continue;
         }
+
         const UStaticMesh* Mesh{mEditorMeshes[static_cast<std::size_t>(Draw.mMesh)].get()};
 
         if (Mesh == nullptr || !Mesh->HasResources()) {
@@ -770,6 +820,7 @@ void FRenderer::DrawMeshes(const FPrimitiveDrawInterface* Elements, bool DepthTe
 
         const FEditorMeshConstants Constants{Draw.mWorld, {Draw.mColor.x, Draw.mColor.y, Draw.mColor.z, Draw.mColor.w}};
         mContext->UpdateSubresource(mEditorMeshBuffer.Get(), 0, nullptr, &Constants, 0, 0);
+
         ID3D11Buffer* Buffer{Mesh->GetPositionBuffer()};
         mContext->IASetVertexBuffers(0, 1, &Buffer, &Stride, &Offset);
         mContext->IASetIndexBuffer(Mesh->GetIndexBuffer(), DXGI_FORMAT_R32_UINT, 0);
@@ -783,10 +834,13 @@ void FRenderer::DrawMeshes(const FPrimitiveDrawInterface* Elements, bool DepthTe
 
 void FRenderer::DrawOverlayTexts(const FSceneViewFamily& Family) {
     mContext->RSSetState(mRasterizer.Get());
+
     if (mTextRenderer == nullptr || !Family.mShowFlags.mText) {
         return;
     }
+
     TArray<FDrawText> Texts{};
+
     if (Family.mEditorElements != nullptr) {
         for (const FDrawText& Text : Family.mEditorElements->GetTexts()) {
             if (!Text.mDepthTest) {
@@ -794,22 +848,28 @@ void FRenderer::DrawOverlayTexts(const FSceneViewFamily& Family) {
             }
         }
     }
+
     std::stable_sort(Texts.begin(), Texts.end(), [&Family](const FDrawText& First, const FDrawText& Second) {
         if (First.mScreenSpace != Second.mScreenSpace) {
             return !First.mScreenSpace;
         }
+
         if (First.mScreenSpace) {
             return First.mPosition.z > Second.mPosition.z;
         }
+
         return (First.mPosition - Family.mView.mLocation).Dot(Family.mView.mForward) > (Second.mPosition - Family.mView.mLocation).Dot(Family.mView.mForward);
     });
+
     mContext->OMSetBlendState(mOverlayBlend.Get(), nullptr, 0xFFFFFFFFu);
     mContext->OMSetDepthStencilState(mDepthDisabled.Get(), 0);
+
     for (const FDrawText& Text : Texts) {
         if (mTextRenderer->Draw(mContext.Get(), Text, Family.mView)) {
             ++mStats.mDrawCalls;
         }
     }
+
     mContext->OMSetBlendState(nullptr, nullptr, 0xFFFFFFFFu);
 }
 
@@ -820,58 +880,81 @@ FMaterialPipeline* FRenderer::GetMaterialPipeline(const UMaterial& Material, EVi
     std::transform(Key.begin(), Key.end(), Key.begin(), [](unsigned char Character) {
         return static_cast<char>(std::tolower(Character));
     });
+
     Key += "|" + std::to_string(static_cast<Uint32>(Mode)) + (Material.GetNormalMapTexture() != nullptr ? "|NormalMap" : "|VertexNormal");
+
     const auto Existing{mMaterialPipelines.find(Key)};
+
     if (Existing != mMaterialPipelines.end()) {
         return Existing->second.get();
     }
+
     if (mShadersDirty) {
         return nullptr;
     }
+
     const bool Builtin{RelativePath == "Shaders/Lit.hlsl" || RelativePath == "Shaders/Unlit.hlsl" || RelativePath == "Shaders/Mesh.hlsl" || Mode == EViewMode::Unlit || Mode == EViewMode::WorldNormal};
     const std::filesystem::path Source{FindTextContent(mShaderDirectory.parent_path(), Mode == EViewMode::Unlit || Mode == EViewMode::WorldNormal ? std::filesystem::path{"Shaders/Lit.hlsl"} : RelativePath, Builtin)};
     FShaderDescription Description{};
     Description.mSourcePath = Source;
     Description.mIncludeDirectories = {Source.parent_path(), mShaderDirectory};
+
     const char* Model{Mode == EViewMode::Lit_Gouraud ? "LIGHTING_MODEL_GOURAUD" : Mode == EViewMode::Lit_Lambert ? "LIGHTING_MODEL_LAMBERT" : "LIGHTING_MODEL_PHONG"};
     Description.mMacros.push_back({Model, "1"});
+
     if (Builtin) {
         Description.mMacros.push_back({"MacawInstanced", "1"});
     }
+
     if (Mode == EViewMode::Unlit) {
         Description.mMacros.push_back({"MACAW_UNLIT", "1"});
     }
+
     if (Mode == EViewMode::WorldNormal) {
         Description.mMacros.push_back({"WORLD_NORMAL", "1"});
     }
+
     if (Material.GetNormalMapTexture() != nullptr) {
         Description.mMacros.push_back({"HAS_NORMAL_MAP", "1"});
     }
+
     Description.mEntryPoint = "VertexMain";
     Description.mTargetProfile = "vs_5_0";
+
 #ifdef _DEBUG
     Description.mCompileFlags |= D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
 #endif
+
     FString Diagnostics{};
     std::shared_ptr<const FShader> Vertex{mShaderManager.Load(Description, Diagnostics)};
     FString Error{Diagnostics};
+
     Description.mEntryPoint = "PixelMain";
     Description.mTargetProfile = "ps_5_0";
+
     std::shared_ptr<const FShader> Pixel{mShaderManager.Load(Description, Diagnostics)};
+
     Error += Diagnostics;
+
     std::unique_ptr<FMaterialPipeline> Pipeline{};
+
     if (Vertex != nullptr && Pixel != nullptr) {
         Pipeline = std::make_unique<FMaterialPipeline>(std::move(Vertex), std::move(Pixel), Material.IsTwoSided(), Builtin);
+
         if (!Pipeline->CreateResources(mDevice.Get(), Diagnostics)) {
             Error += Diagnostics;
             Pipeline.reset();
         }
     }
+
     if (!Error.empty()) {
         ErrorHandler::Report("Material", Error, ErrorHandler::EErrorLevel::Warning);
     }
+
     FMaterialPipeline* Result{Pipeline.get()};
+
     mMaterialPipelines.emplace(std::move(Key), std::move(Pipeline));
+
     return Result;
 }
 
@@ -895,26 +978,34 @@ void FRenderer::DrawTranslucency(const FSceneViewFamily& Family) {
     using FPrimitive = std::variant<const FPrimitiveSceneProxy*, FDrawText>;
     using FCommand = std::pair<float, FPrimitive>;
     TArray<FCommand> Commands{};
+
     const auto Depth{[&Family](const FVector& Position, bool ScreenSpace) {
         const FVector4 Clip{FVector4{Position, 1.0f} * Family.mView.mViewProjection};
         const float Value{ScreenSpace ? Position.z : Clip.w > 0.0f ? Clip.z / Clip.w : -1.0f};
         return std::isfinite(Value) ? Value : -1.0f;
     }};
+
     TArray<FPrimitiveSceneProxy> LightIcons{};
+
     if (Family.mEditorElements != nullptr && Family.mShowFlags.mLightIcons) {
         const auto* Scene{static_cast<const FScene*>(Family.mScene)};
         LightIcons.reserve(Scene->GetLights().size());
+
         for (const FLightSceneProxy& Light : Scene->GetLights()) {
             LightIcons.push_back(Light.CreateIconProxy());
         }
+
         for (const FPrimitiveSceneProxy& Icon : LightIcons) {
             Commands.emplace_back(Depth(Icon.mWorld.TransformPosition({}), false), FPrimitive{&Icon});
         }
     }
+
     if (Family.mShowFlags.mPrimitives) {
         const auto* Scene{static_cast<const FScene*>(Family.mScene)};
+
         for (const FScenePrimitive& Primitive : Scene->GetPrimitives()) {
             const FPrimitiveSceneProxy& Proxy{Primitive.mProxy};
+
             if (Proxy.mSprite.has_value() && Family.mShowFlags.mSprites) {
                 Commands.emplace_back(Depth(Proxy.mWorld.TransformPosition({}), false), FPrimitive{&Proxy});
             } else if (Proxy.mText.has_value() && Family.mShowFlags.mText) {
@@ -922,11 +1013,13 @@ void FRenderer::DrawTranslucency(const FSceneViewFamily& Family) {
                 Text.mPosition = Proxy.mWorld.TransformPosition(Text.mPosition);
                 Text.mScale.x *= Proxy.mWorld.TransformVector({0.0f, 1.0f, 0.0f}).Length();
                 Text.mScale.y *= Proxy.mWorld.TransformVector({0.0f, 0.0f, 1.0f}).Length();
+
                 const float Value{Depth(Text.mPosition, Text.mScreenSpace)};
                 Commands.emplace_back(Value, FPrimitive{std::move(Text)});
             }
         }
     }
+
     if (Family.mEditorElements != nullptr && Family.mShowFlags.mText) {
         for (const FDrawText& Text : Family.mEditorElements->GetTexts()) {
             if (Text.mDepthTest) {
@@ -934,13 +1027,17 @@ void FRenderer::DrawTranslucency(const FSceneViewFamily& Family) {
             }
         }
     }
+
     std::stable_sort(Commands.begin(), Commands.end(), [](const FCommand& First, const FCommand& Second) {
         return First.first > Second.first;
     });
+
     mContext->OMSetBlendState(mOverlayBlend.Get(), nullptr, 0xFFFFFFFFu);
     mContext->OMSetDepthStencilState(mDepthReadOnly.Get(), 0);
+
     for (const FCommand& Command : Commands) {
         bool Drawn{};
+
         if (const auto* Sprite{std::get_if<const FPrimitiveSceneProxy*>(&Command.second)}) {
             mContext->RSSetState(Family.mViewMode == EViewMode::Wireframe ? mWireframeRasterizer.Get() : mRasterizer.Get());
             Drawn = mSpriteRenderer != nullptr && mSpriteRenderer->Draw(mContext.Get(), **Sprite, Family.mView);
@@ -948,19 +1045,23 @@ void FRenderer::DrawTranslucency(const FSceneViewFamily& Family) {
             mContext->RSSetState(mRasterizer.Get());
             Drawn = mTextRenderer != nullptr && mTextRenderer->Draw(mContext.Get(), std::get<FDrawText>(Command.second), Family.mView);
         }
+
         if (Drawn) {
             ++mStats.mDrawCalls;
             ++mStats.mVisiblePrimitives;
         }
     }
+
     mContext->OMSetBlendState(nullptr, nullptr, 0xFFFFFFFFu);
 }
 
 bool FRenderer::PrepareLighting(const FSceneViewFamily& Family) {
     const auto* Scene{static_cast<const FScene*>(Family.mScene)};
+
     if (mShadowResources != nullptr) {
         mShadowResources->Bind(mContext.Get());
     }
+
     return mLightingResources != nullptr && mLightingResources->Upload(mDevice.Get(), mContext.Get(), Scene->GetLights(), Family.mView, mShadowResources != nullptr ? std::span<const std::array<Uint32, 2>>{mShadowResources->GetLightRanges()} : std::span<const std::array<Uint32, 2>>{});
 }
 
@@ -968,6 +1069,7 @@ void FRenderer::FinishLighting() {
     if (mShadowResources != nullptr) {
         mShadowResources->Unbind(mContext.Get());
     }
+
     if (mLightingResources != nullptr) {
         mLightingResources->Unbind(mContext.Get());
     }

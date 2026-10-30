@@ -32,13 +32,16 @@ bool UStaticMesh::LoadFromFile(const std::filesystem::path& MeshPath) {
 
 bool UStaticMesh::LoadFromFile(const std::filesystem::path& MeshPath, FString& Error) {
     FMeshImportResult Imported{};
+
     if (!IMeshImporter::GetDefault().Import(MeshPath, Imported, Error)) {
         return false;
     }
+
     if (!SetMeshData(std::move(Imported.GetMeshData()))) {
         Error = "The source contains invalid vertex attributes or mesh sections";
         return false;
     }
+
     return true;
 }
 
@@ -106,33 +109,43 @@ bool UStaticMesh::SetMeshData(FMeshData MeshData) {
     if (MeshData.GetMaterialSlots().empty()) {
         MeshData.GetMaterialSlots().emplace_back("Default", FString{});
     }
+
     if (MeshData.GetSubMeshes().empty()) {
         MeshData.GetSubMeshes().emplace_back(0, static_cast<Uint32>(MeshData.GetIndices().size()), 0);
     }
+
     Uint32 NextIndex{};
+
     for (const FSubMesh& SubMesh : MeshData.GetSubMeshes()) {
         if (SubMesh.GetFirstIndex() != NextIndex || SubMesh.GetIndexCount() == 0 || SubMesh.GetIndexCount() % 3 != 0 || SubMesh.GetIndexCount() > MeshData.GetIndices().size() - NextIndex || SubMesh.GetMaterialIndex() >= MeshData.GetMaterialSlots().size()) {
             return false;
         }
+
         NextIndex += SubMesh.GetIndexCount();
     }
+
     if (NextIndex != MeshData.GetIndices().size()) {
         return false;
     }
+
     for (const FMeshMaterialSlot& Slot : MeshData.GetMaterialSlots()) {
         const std::filesystem::path Path{FilePath::FromUtf8(Slot.GetMaterialPath())};
+
         if (Slot.GetMaterialPath().find('\0') != FString::npos || (!Path.empty() && (Path.has_root_path() || Path.extension() != L".mtl"))) {
             return false;
         }
+
         for (const auto& Part : Path) {
             if (Part == L"..") {
                 return false;
             }
         }
     }
+
     MeshData.SetBounds({Minimum, Maximum});
     mMeshData = std::move(MeshData);
     ReleaseResources();
+
     return true;
 }
 
@@ -187,11 +200,13 @@ bool UStaticMesh::CreateResources(ID3D11Device* Device) {
 
     for (std::size_t Index{}; Index < VertexCount; ++Index) {
         Positions.push_back(mMeshData.GetPositions()[Index].ToArray());
+
         const FVector Normal{mMeshData.GetNormals().empty() ? FVector{0.0f, 0.0f, 1.0f} : mMeshData.GetNormals()[Index]};
         const FVector Axis{std::abs(Normal.z) < 0.99f ? FVector{0.0f, 0.0f, 1.0f} : FVector{0.0f, 1.0f, 0.0f}};
         const FVector DefaultTangent{Axis.Cross(Normal).Normalized()};
         const FVector4 Tangent{mMeshData.GetTangents().empty() ? FVector4{DefaultTangent, 1.0f} : mMeshData.GetTangents()[Index]};
         Tangents.push_back({Normal.x, Normal.y, Normal.z, Tangent.x, Tangent.y, Tangent.z, Tangent.w});
+
         const FVector4 Color{mMeshData.GetColors().empty() ? FVector4{1.0f, 1.0f, 1.0f, 1.0f} : mMeshData.GetColors()[Index]};
         Colors.push_back({Color.x, Color.y, Color.z, Color.w});
 
@@ -213,6 +228,7 @@ bool UStaticMesh::CreateResources(ID3D11Device* Device) {
     mColorBuffer = std::move(Buffers[3]);
     mIndexBuffer = std::move(Buffers[4]);
     mResourceBytes = VertexCount * (static_cast<std::size_t>(GetPositionStride()) + GetTangentStride() + GetUVStride() + GetColorStride()) + mMeshData.GetIndices().size() * sizeof(Uint32);
+
     return true;
 }
 
@@ -278,7 +294,9 @@ bool UStaticMesh::CreateBuffer(ID3D11Device* Device, const void* Data, std::size
     Description.ByteWidth = static_cast<UINT>(Bytes);
     Description.Usage = D3D11_USAGE_IMMUTABLE;
     Description.BindFlags = BindFlags;
+
     D3D11_SUBRESOURCE_DATA InitialData{};
     InitialData.pSysMem = Data;
+
     return SUCCEEDED(Device->CreateBuffer(&Description, &InitialData, Buffer.GetAddressOf()));
 }
