@@ -2,6 +2,7 @@
  * @file FPipelineDescription.h
  * @brief 셰이더, 정점 입력과 래스터화·깊이·스텐실·혼합 상태의 파이프라인 기술자를 정의합니다.
  */
+
 #pragma once
 
 #include "Core/Common.h"
@@ -261,26 +262,32 @@ struct FInputElementDescription {
      * @brief POSITION, TEXCOORD 등 셰이더 입력 시맨틱 이름입니다.
      */
     std::string mSemanticName{};
+
     /**
      * @brief 같은 시맨틱 이름 안에서 입력을 구별하는 인덱스입니다.
      */
     Uint32 mSemanticIndex{0};
+
     /**
      * @brief 입력 성분의 저장 포맷입니다.
      */
     EVertexFormat mFormat{EVertexFormat::Float3};
+
     /**
      * @brief 입력을 읽을 정점 버퍼 슬롯입니다.
      */
     Uint32 mInputSlot{0};
+
     /**
      * @brief 해당 슬롯의 정점 레코드 안에서 요소가 시작하는 바이트 오프셋입니다.
      */
     Uint32 mAlignedByteOffset{0};
+
     /**
      * @brief 정점별 또는 인스턴스별 입력 진행 방식입니다.
      */
     EInputClassification mInputClassification{EInputClassification::PerVertex};
+
     /**
      * @brief 인스턴스 입력 원소를 전진시키는 인스턴스 수입니다. 정점별 입력에서는 0을 사용합니다.
      */
@@ -295,18 +302,22 @@ struct FRasterizerDescription {
      * @brief 면 채움 방식입니다.
      */
     EFillMode mFillMode{EFillMode::Solid};
+
     /**
      * @brief 제거할 면의 종류입니다.
      */
     ECullMode mCullMode{ECullMode::Back};
+
     /**
      * @brief 반시계 방향 와인딩을 앞면으로 판정할지 여부입니다. false이면 시계 방향을 앞면으로 판정합니다.
      */
     bool mFrontCounterClockwise{false};
+
     /**
      * @brief 깊이 범위 클리핑을 활성화할지 여부입니다.
      */
     bool mDepthClipEnable{true};
+
     /**
      * @brief 시저 사각형에 의한 화면 영역 제한을 활성화할지 여부입니다.
      */
@@ -322,10 +333,12 @@ struct FDepthStencilDescription {
      * @brief 깊이 테스트를 활성화할지 여부입니다.
      */
     bool mDepthEnable{true};
+
     /**
      * @brief 깊이 버퍼 쓰기를 활성화할지 여부입니다.
      */
     bool mDepthWriteEnable{true};
+
     /**
      * @brief 입력 깊이와 기존 깊이의 비교 함수입니다.
      */
@@ -335,10 +348,12 @@ struct FDepthStencilDescription {
      * @brief 스텐실 테스트를 활성화할지 여부입니다.
      */
     bool mStencilEnable{true};
+
     /**
      * @brief 스텐실 비교에서 읽을 비트 마스크입니다.
      */
     Uint8 mStencilReadMask{255};
+
     /**
      * @brief 스텐실 저장 값에서 변경을 허용할 비트 마스크입니다.
      */
@@ -348,14 +363,17 @@ struct FDepthStencilDescription {
      * @brief 스텐실 참조 값과 저장 값에 적용할 비교 함수입니다.
      */
     ECompareFunc mStencilFunc{ECompareFunc::Always};
+
     /**
      * @brief 스텐실과 깊이 테스트를 통과했을 때의 스텐실 연산입니다.
      */
     EStencillOp mStencilPassOp{EStencillOp::Replace};
+
     /**
      * @brief 스텐실 테스트에 실패했을 때의 스텐실 연산입니다.
      */
     EStencillOp mStencilFailOp{EStencillOp::Keep};
+
     /**
      * @brief 스텐실 테스트는 통과하고 깊이 테스트에 실패했을 때의 스텐실 연산입니다.
      */
@@ -370,26 +388,32 @@ struct FBlendDescription {
      * @brief 렌더 타깃의 색상 혼합을 활성화할지 여부입니다.
      */
     bool mBlendEnable{false};
+
     /**
      * @brief 원본 색상에 곱할 혼합 계수입니다.
      */
     EBlend mSrcBlend{EBlend::One};
+
     /**
      * @brief 대상 색상에 곱할 혼합 계수입니다.
      */
     EBlend mDestBlend{EBlend::Zero};
+
     /**
      * @brief 원본과 대상 색상 혼합 항을 결합할 연산입니다.
      */
     EBlendOp mBlendOp{EBlendOp::Add};
+
     /**
      * @brief 원본 알파에 곱할 혼합 계수입니다.
      */
     EBlend mSrcBlendAlpha{EBlend::One};
+
     /**
      * @brief 대상 알파에 곱할 혼합 계수입니다.
      */
     EBlend mDestBlendAlpha{EBlend::Zero};
+
     /**
      * @brief 원본과 대상 알파 혼합 항을 결합할 연산입니다.
      */
@@ -422,14 +446,17 @@ struct FShaderDescription {
      * @brief 셰이더 소스 파일 경로입니다.
      */
     std::filesystem::path mSource{};
+
     /**
      * @brief 컴파일할 셰이더 함수의 진입점 이름입니다.
      */
     std::string mEntryPoint{};
+
     /**
      * @brief vs_5_0 등 셰이더 컴파일 대상 프로파일입니다.
      */
     std::string mProfile{};
+
     /**
      * @brief 생성할 셰이더의 단계입니다. 프로파일과 일치하도록 설정해야 합니다.
      */
@@ -444,6 +471,7 @@ struct FPipelineDescription {
      * @brief 정점 셰이더의 컴파일 설정입니다.
      */
     FShaderDescription mVertexShader{};
+
     /**
      * @brief 픽셀 셰이더의 컴파일 설정입니다.
      */
@@ -453,6 +481,7 @@ struct FPipelineDescription {
      * @brief 선택적으로 사용하는 지오메트리 셰이더의 컴파일 설정입니다.
      */
     FShaderDescription mGeometryShader{};
+
     /**
      * @brief 지오메트리 셰이더를 생성·사용할지 여부입니다.
      */
@@ -472,10 +501,12 @@ struct FPipelineDescription {
      * @brief 채움·컬링·클리핑 상태입니다.
      */
     FRasterizerDescription mRasterizer{};
+
     /**
      * @brief 깊이·스텐실 비교와 갱신 상태입니다.
      */
     FDepthStencilDescription mDepthStencil{};
+
     /**
      * @brief 색상·알파 혼합 상태입니다.
      */

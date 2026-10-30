@@ -11,6 +11,7 @@ bool FSwapChainRenderSurface::Initialize(ID3D11Device* Device, IDXGISwapChain* I
     }
 
     mSwapChain = InSwapChain;
+
     return CreateResources(Device);
 }
 
@@ -25,6 +26,7 @@ bool FSwapChainRenderSurface::Resize(ID3D11Device* Device, std::uint32_t Width, 
 
     ErrorHandler::ReportHRESULT(mSwapChain->GetDesc(&SwapChainDescription), "[ FSwapChainRenderSurface ]", "Failed to get swap chain description.", ErrorHandler::EErrorLevel::Critical);
     ErrorHandler::ReportHRESULT(mSwapChain->ResizeBuffers(0, Width, Height, DXGI_FORMAT_UNKNOWN, SwapChainDescription.Flags), "[ FSwapChainRenderSurface ]", "Failed to resize swap chain buffers.", ErrorHandler::EErrorLevel::Critical);
+
     return CreateResources(Device);
 }
 

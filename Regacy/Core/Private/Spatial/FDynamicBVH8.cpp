@@ -113,6 +113,7 @@ Uint32 FDynamicBVH8::AllocateNode() {
         mCounts[Index] = 0;
         mBounds[Index] = {};
         mHeights[Index] = 0;
+
         return Index;
     }
 
@@ -314,6 +315,7 @@ void FDynamicBVH8::Insert(Uint32 Leaf, const DirectX::BoundingBox& Box) {
         mCounts[Root] = 1;
         WriteChild(Root, 0, LeafRef, LeafBounds);
         Refresh(Root);
+
         return;
     }
 
@@ -380,6 +382,7 @@ void FDynamicBVH8::Remove(Uint32 Leaf) {
             mParents[ChildIndex] = {};
             mRootReference = Child;
             FreeNode(Index);
+
             return;
         }
     }

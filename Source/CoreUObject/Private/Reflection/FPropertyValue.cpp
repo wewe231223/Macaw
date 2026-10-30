@@ -6,11 +6,15 @@
 
 #include "CoreUObject/Reflection/FPropertyValue.h"
 
-/**
- * @brief 프로퍼티 variant에 저장된 실제 값의 주소를 반환합니다.
- */
-void* GetPropertyData(FPropertyValue& Value) {
-    return std::visit([](auto& Typed) -> void* {
-        return &Typed;
-    }, Value);
+namespace CoreUObject {
+
+    /**
+     * @brief 프로퍼티 variant에 저장된 실제 값의 주소를 반환합니다.
+     */
+    void* GetPropertyData(CoreUObject::FPropertyValue& Value) {
+        return std::visit([](auto& Typed) -> void* {
+            return &Typed;
+        }, Value);
+    }
+
 }

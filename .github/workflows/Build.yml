@@ -25,16 +25,21 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Prepare Premake
-        shell: pwsh
-        run: |
-          $Archive = Join-Path $env:RUNNER_TEMP 'premake.zip'
-          $Destination = Join-Path $env:RUNNER_TEMP 'premake'
-          Invoke-WebRequest 'https://github.com/premake/premake-core/releases/download/v5.0.0-beta8/premake-5.0.0-beta8-windows.zip' -OutFile $Archive
-          if ((Get-FileHash -LiteralPath $Archive -Algorithm SHA256).Hash -ne 'E64CE2ED8778E0098F63674CCA61FE33941B5F0C8D9A4AFD651152BDEA3758AB') { throw 'Premake hash mismatch' }
-          Expand-Archive -LiteralPath $Archive -DestinationPath $Destination
-          $Destination | Out-File -LiteralPath $env:GITHUB_PATH -Append
+      - name: Prepare solution
+        shell: cmd
+        run: call Build.bat -NoPause
 
       - name: Build
         shell: pwsh
-        run: ./Scripts/Build.ps1 -Configuration ${{ matrix.Configuration }}
+        run: |
+          $Locator = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio/Installer/vswhere.exe'
+          $MSBuild = & $Locator -latest -products '*' -requires Microsoft.Component.MSBuild Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -find 'MSBuild/**/Bin/MSBuild.exe' | Select-Object -First 1
+          $Solution = if (Test-Path -LiteralPath 'Macaw.slnx') {
+              'Macaw.slnx'
+          } else {
+              'Macaw.sln'
+          }
+          & $MSBuild $Solution /m /nologo /verbosity:minimal /p:Configuration=${{ matrix.Configuration }} /p:Platform=x64 /p:VcpkgManifestInstall=false
+          if ($LASTEXITCODE -ne 0) {
+              exit $LASTEXITCODE
+          }

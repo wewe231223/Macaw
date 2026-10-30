@@ -1,2 +1,12 @@
 <Project>
+  <ItemGroup Condition="'$(MSBuildProjectName)' == 'Macaw'">
+    <ProjectReference Include="$(MSBuildThisFileDirectory)MacawGame.vcxproj">
+      <LinkLibraryDependencies>false</LinkLibraryDependencies>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(VcpkgRoot)scripts\buildsystems\msbuild\vcpkg.targets" Condition="Exists('$(VcpkgRoot)scripts\buildsystems\msbuild\vcpkg.targets')" />
+  <Target Name="CheckDependencies" BeforeTargets="PrepareForBuild" Condition="!Exists('$(VcpkgRoot)vcpkg.exe')">
+    <Error Text="Run Build.bat from the repository root to prepare tools, restore dependencies, and generate the solution." />
+  </Target>
 </Project>

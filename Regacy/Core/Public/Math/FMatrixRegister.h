@@ -2,6 +2,7 @@
  * @file FMatrixRegister.h
  * @brief 네 개의 SIMD 행 레지스터로 행렬의 전치, 행렬식과 역행렬 연산을 수행합니다.
  */
+
 #pragma once
 #include "Math/FMatrix.h"
 #include "Math/FVectorRegister.h"
@@ -21,6 +22,7 @@ public:
      * @brief 네 행 레지스터의 모든 성분을 0으로 초기화합니다.
      */
     FMatrixRegister();
+
     /**
      * @brief 전달한 네 레지스터로 행렬을 초기화합니다.
      * @param R0 첫 번째 행입니다.
@@ -35,6 +37,7 @@ public:
      * @return 같은 성분을 갖는 FMatrix입니다.
      */
     FMatrix ToFMatrix() const;
+
     /**
      * @brief 네 행 레지스터를 전치한 새 행렬을 반환합니다.
      * @return 행과 열을 교환한 결과입니다.

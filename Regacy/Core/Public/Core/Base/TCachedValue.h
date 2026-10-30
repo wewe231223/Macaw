@@ -2,6 +2,7 @@
  * @file TCachedValue.h
  * @brief 스탬프로 유효성을 확인하고 필요할 때 갱신하는 값 캐시를 정의한다.
  */
+
 #pragma once
 #include "Core/Common.h"
 
@@ -29,23 +30,27 @@ public:
      * @details 갱신 시 같은 저장 공간의 내용이 변경될 수 있으며 포인터의 대상은 캐시 객체가 소멸할 때까지 존재한다.
      */
     const TValue* GetValue() const;
+
     /**
      * @brief 저장된 스탬프를 조회한다.
      * @return 캐시가 소유하는 스탬프의 읽기 전용 참조.
      * @details 캐시가 무효해도 저장된 스탬프를 반환한다. 유효 상태는 IsValid()로 별도 확인한다.
      */
     const TStamp& GetStamp() const;
+
     /**
      * @brief 캐시에 유효한 값이 있는지 확인한다.
      * @return 성공적으로 갱신된 뒤 무효화되지 않았으면 true, 그 외에는 false.
      */
     bool IsValid() const;
+
     /**
      * @brief 유효한 캐시의 스탬프가 요청한 스탬프와 일치하는지 확인한다.
      * @param Stamp 비교할 스탬프.
      * @return 캐시가 유효하고 저장된 스탬프가 Stamp와 같으면 true, 그 외에는 false.
      */
     bool IsCurrent(const TStamp& Stamp) const;
+
     /**
      * @brief 값과 스탬프가 이미 같은 유효한 캐시를 제외하고 새 값을 저장한다.
      * @param Value 캐시에 이동 대입할 새 값.
@@ -76,8 +81,10 @@ public:
 private:
     /** @brief 캐시가 소유하는 값. 무효화 후에도 보관하며 빌더가 직접 수정한다. */
     TValue mValue{};
+
     /** @brief 마지막으로 성공한 갱신의 스탬프. 최초 갱신 전에는 기본 초기화된 값이다. */
     TStamp mStamp{};
+
     /** @brief 현재 값과 스탬프를 유효한 캐시로 사용할 수 있는지 나타내는 상태. */
     bool mValid{};
 };

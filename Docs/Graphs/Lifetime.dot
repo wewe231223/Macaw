@@ -1,0 +1,26 @@
+digraph Lifetime {
+    graph [rankdir=LR, bgcolor="transparent", fontname="Malgun Gothic", nodesep=0.35, ranksep=0.6, pad=0.2];
+    node [shape=box, style="rounded,filled", fillcolor="#e7f1fb", color="#8ba8c3", fontname="Malgun Gothic", fontsize=11, margin="0.16,0.10"];
+    edge [color="#57718a", fontname="Malgun Gothic", fontsize=10, arrowsize=0.75];
+    Engine [label="UEngine\n월드 컨텍스트 관리"];
+    Context [label="FWorldContext\n월드 단독 소유"];
+    World [label="UWorld"];
+    Level [label="ULevel"];
+    Actor [label="AActor"];
+    Component [label="UActorComponent"];
+    Scene [label="FSceneInterface\n렌더 장면"];
+    Registry [label="FObjectRegistry\n모든 UObject 비소유 등록", fillcolor="#f0f2f5"];
+    Handle [label="FObjectHandle\n슬롯 + 세대", fillcolor="#f0f2f5"];
+    Engine -> Context [label="소유 · 여러 개"];
+    Context -> World [label="소유"];
+    World -> Level [label="소유"];
+    World -> Scene [label="소유"];
+    Level -> Actor [label="소유 · 여러 개"];
+    Actor -> Component [label="소유 · 여러 개"];
+    Registry -> Engine [label="비소유 등록", style=dashed, constraint=false];
+    Registry -> World [label="비소유 등록", style=dashed];
+    Registry -> Level [label="비소유 등록", style=dashed];
+    Registry -> Actor [label="비소유 등록", style=dashed];
+    Registry -> Component [label="비소유 등록", style=dashed];
+    Handle -> Registry [label="Resolve: 슬롯 · 세대 검증", style=dashed];
+}

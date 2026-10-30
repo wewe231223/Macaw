@@ -18,6 +18,7 @@
  * @var float BVH8::FNode::MaxZ[8]
  * @brief 각 자식 경계의 Z축 최댓값을 저장한 여덟 레인 배열입니다.
  */
+
 #pragma once
 #include "Core/Base/ErrorHandler.h"
 #include "Core/Common.h"
@@ -34,10 +35,12 @@ namespace BVH8 {
      * @brief 참조의 최상위 비트에 사용하는 리프 표시 마스크.
      */
     constexpr Uint32 LeafBit = 0x80000000u;
+
     /**
      * @brief 참조에서 개수보다 1 작은 값을 저장하는 3비트 필드의 시작 위치.
      */
     constexpr Uint32 CountShift = 28;
+
     /**
      * @brief 참조의 하위 28비트에서 노드 또는 리프 인덱스를 추출하는 마스크.
      */
@@ -98,14 +101,17 @@ namespace BVH8 {
          * @brief 여덟 자식 경계의 X축 최솟값과 최댓값 배열.
          */
         float MinX[8]{}, MaxX[8]{};
+
         /**
          * @brief 여덟 자식 경계의 Y축 최솟값과 최댓값 배열.
          */
         float MinY[8]{}, MaxY[8]{};
+
         /**
          * @brief 여덟 자식 경계의 Z축 최솟값과 최댓값 배열.
          */
         float MinZ[8]{}, MaxZ[8]{};
+
         /**
          * @brief 각 자식의 인코딩된 내부 노드 또는 리프 참조. 유효한 배열 구간은 부모 참조의 개수로 결정한다.
          */
@@ -122,10 +128,12 @@ namespace BVH8 {
          * @brief 광선 원점의 X, Y, Z 성분.
          */
         float Origin[3];
+
         /**
          * @brief 방향 성분의 역수. 축 평행으로 판정한 성분은 검사 중 별도로 처리하며 이 값에는 1을 저장한다.
          */
         float InverseDirection[3];
+
         /**
          * @brief 방향 성분의 절댓값이 DirectX의 광선 오차 한계 이하인지 나타내는 축별 상태.
          */
@@ -142,11 +150,13 @@ namespace BVH8 {
      * @brief 문맥 포인터, 리프 인덱스 및 최근접 거리 참조를 받아 실제 충돌 여부를 반환하는 리프 콜백. 묶음 크기는 전달하지 않는다.
      */
     using FVisitLeaf = bool (*)(void*, Uint32, float&);
+
     /**
      * @brief 내부 노드 배열을 순회하며 사용자 리프 콜백을 호출하는 광선 검사 함수 포인터 타입.
      */
     using FRaycaster = bool (*)(const FNode*, Uint32, const FRayData&, float&, void*, FVisitLeaf);
     struct FTrianglePacket;
+
     /**
      * @brief 삼각형 패킷과 와인딩 방향을 사용하는 광선 검사 함수 포인터 타입.
      */
@@ -156,10 +166,12 @@ namespace BVH8 {
     };
 
     using FTrianglePacketRaycaster = bool (*)(const FNode*, Uint32, const FRayData&, const FRay&, float&, const FTrianglePacket*, bool, FTriangleHit*);
+
     /**
      * @brief CPU와 운영체제의 AVX 지원에 따라 일반 및 삼각형 패킷 순회의 SSE 또는 AVX 구현을 선택한다. 초기 선택은 SSE이다.
      */
     void Initialize();
+
     /**
      * @brief 선택된 SIMD 구현으로 경계 트리를 순회하고 사용자 리프 콜백을 호출한다.
      * @param Nodes 참조 인덱스로 접근할 내부 노드 배열.
@@ -171,6 +183,7 @@ namespace BVH8 {
      * @return 리프 콜백 중 하나라도 충돌을 보고하면 true.
      */
     bool Raycast(const FNode* Nodes, Uint32 RootReference, const FRayData& Ray, float& ClosestDistance, void* Context, FVisitLeaf VisitLeaf);
+
     /**
      * @brief SSE 구현으로 경계 트리를 순회하고 사용자 리프 콜백을 호출한다.
      * @param Nodes 참조 인덱스로 접근할 내부 노드 배열.
@@ -182,6 +195,7 @@ namespace BVH8 {
      * @return 리프 콜백 중 하나라도 충돌을 보고하면 true.
      */
     bool RaycastSSE(const FNode* Nodes, Uint32 RootReference, const FRayData& Ray, float& ClosestDistance, void* Context, FVisitLeaf VisitLeaf);
+
     /**
      * @brief AVX 구현으로 경계 트리를 순회하고 사용자 리프 콜백을 호출한다.
      * @param Nodes 참조 인덱스로 접근할 내부 노드 배열.
@@ -194,12 +208,14 @@ namespace BVH8 {
      * @pre CPU와 운영체제가 AVX를 지원해야 한다.
      */
     bool RaycastAVX(const FNode* Nodes, Uint32 RootReference, const FRayData& Ray, float& ClosestDistance, void* Context, FVisitLeaf VisitLeaf);
+
     /**
      * @brief CPU의 AVX 및 운영체제의 XMM/YMM 상태 저장 지원을 확인한다.
      * @return 필요한 CPU 기능과 운영체제 지원이 모두 있으면 true.
      * @details 처음 검사한 결과를 정적 값으로 보관한다.
      */
     bool SupportsAVX();
+
     /**
      * @brief 선택된 SIMD 구현으로 삼각형 패킷의 최근접 교차를 검사한다.
      * @param Nodes 참조 인덱스로 접근할 내부 노드 배열.
@@ -213,6 +229,7 @@ namespace BVH8 {
      * @details 리프 참조의 개수만큼 패킷의 유효한 삼각형을 검사하며 뒷면은 제외한다.
      */
     bool RaycastTrianglePackets(const FNode* Nodes, Uint32 RootReference, const FRayData& RayData, const FRay& Ray, float& ClosestDistance, const FTrianglePacket* Packets, bool ReverseWinding = false, FTriangleHit* Hit = nullptr);
+
     /**
      * @brief SSE 구현으로 삼각형 패킷의 최근접 교차를 검사한다.
      * @param Nodes 참조 인덱스로 접근할 내부 노드 배열.
@@ -226,6 +243,7 @@ namespace BVH8 {
      * @details 리프 참조의 개수만큼 패킷의 유효한 삼각형을 검사하며 뒷면은 제외한다.
      */
     bool RaycastTrianglePacketsSSE(const FNode* Nodes, Uint32 RootReference, const FRayData& RayData, const FRay& Ray, float& ClosestDistance, const FTrianglePacket* Packets, bool ReverseWinding = false, FTriangleHit* Hit = nullptr);
+
     /**
      * @brief AVX 구현으로 삼각형 패킷의 최근접 교차를 검사한다.
      * @param Nodes 참조 인덱스로 접근할 내부 노드 배열.
@@ -325,6 +343,7 @@ private:
      * @brief 구축된 8분기 내부 노드 배열.
      */
     TArray<BVH8::FNode> mNodes;
+
     /**
      * @brief 현재 트리의 인코딩된 루트 참조.
      */
@@ -358,10 +377,12 @@ void FBVH8::Build(const TArray<TNode>& BinaryNodes, TIsLeaf IsLeaf, TAddLeaf Add
          * @brief 인덱스 1부터 8까지의 분기 개수별 비용. 사용할 수 없는 구성은 무한대로 표시한다.
          */
         std::array<double, 9> mCost{};
+
         /**
          * @brief 각 분기 개수의 최소 비용 구성에서 왼쪽 하위 트리에 배분한 개수.
          */
         std::array<Uint8, 9> mLeftCount{};
+
         /**
          * @brief 현재 하위 트리에 선택한 출력 경계 개수.
          */

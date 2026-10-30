@@ -47,6 +47,7 @@ FAssetHandle FAssetReference::Resolve(const IAssetResolver* Resolver) {
     }
 
     RefreshIdentity(Resolver);
+
     return mHandle;
 }
 

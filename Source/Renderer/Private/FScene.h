@@ -10,126 +10,191 @@
 #include "Engine/FSceneInterface.h"
 #include "Core/GuidHash.h"
 #include "FScenePrimitive.h"
+#include "Engine/FLightSceneProxy.h"
+#include "Engine/FHeightFogSceneProxy.h"
 
 #include <d3d11.h>
 #include <wrl/client.h>
 
-/**
- * @brief 프리미티브 프록시와 객체 상수 버퍼를 소유하는 Direct3D 11 렌더 장면입니다.
- * @ingroup Renderer
- */
-class FScene final : public FSceneInterface {
-public:
-    /**
-     * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
-     */
-    ReflectTypes(FScene, FSceneInterface);
-
-public:
-    /**
-     * @brief FScene의 초기 상태와 전달받은 의존성을 구성합니다.
-     * @param[in,out] Device 리소스 생성에 사용할 Direct3D 11 장치입니다.
-     * @param[in,out] Context 월드 컨텍스트 또는 Direct3D 11 컨텍스트입니다.
-     */
-    FScene(ID3D11Device& Device, ID3D11DeviceContext& Context);
-    /**
-     * @brief 객체의 수명을 끝내고 소유한 리소스를 정리합니다.
-     */
-    ~FScene() override;
-
-public:
-    /**
-     * @brief 이 타입의 정적 구조체 메타데이터를 반환합니다.
-     * @return 등록된 타입 메타데이터의 비소유 주소입니다.
-     */
-    ReflectStruct(FScene);
+namespace Renderer {
 
     /**
-     * @brief 프록시의 식별자로 렌더 장면에 프리미티브를 추가하거나 교체합니다.
-     * @param[in] Proxy 장면에 복사할 프리미티브 상태입니다.
+     * @brief 프리미티브 프록시와 객체 상수 버퍼를 소유하는 Direct3D 11 렌더 장면입니다.
+     * @ingroup Renderer
      */
-    void AddPrimitive(const FPrimitiveSceneProxy& Proxy) override;
-    /**
-     * @brief 지정한 프리미티브의 월드 행렬과 경계 상자를 갱신합니다.
-     * @param[in] Id 장면 프리미티브의 식별자입니다.
-     * @param[in] World 연결할 월드 또는 적용할 월드 행렬입니다.
-     * @param[in] Bounds 프리미티브의 월드 또는 로컬 경계 상자입니다.
-     */
-    void UpdatePrimitiveTransform(const FGuid& Id, const FMatrix& World, const FBox& Bounds) override;
-    /**
-     * @brief 식별자에 해당하는 프리미티브와 관련 GPU 리소스를 제거합니다.
-     * @param[in] Id 장면 프리미티브의 식별자입니다.
-     */
-    void RemovePrimitive(const FGuid& Id) override;
+    class FScene final : public Engine::FSceneInterface {
+    public:
+        /**
+         * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
+         */
+        ReflectTypes(FScene, Engine::FSceneInterface);
 
-    /**
-     * @brief 현재 장면에 등록된 프리미티브 개수를 반환합니다.
-     * @return 현재 장면에 등록된 프리미티브 개수입니다.
-     */
-    std::size_t GetPrimitiveCount() const override;
-    /**
-     * @brief 프리미티브 추가, 제거 또는 변환 갱신 시 증가하는 장면 개정 번호를 반환합니다.
-     * @return 프리미티브 추가, 제거 또는 변환 갱신 시 증가하는 장면 개정 번호입니다.
-     */
-    Uint64 GetRevision() const override;
+    public:
+        /**
+         * @brief FScene의 초기 상태와 전달받은 의존성을 구성합니다.
+         * @param[in,out] Device 리소스 생성에 사용할 Direct3D 11 장치입니다.
+         * @param[in,out] Context GPU 명령을 기록할 Direct3D 11 장치 컨텍스트입니다.
+         */
+        FScene(ID3D11Device* Device, ID3D11DeviceContext* Context);
 
-    /**
-     * @brief 장면이 소유한 렌더 프리미티브를 반환합니다.
-     * @return 소유 객체가 유지하는 값의 참조입니다.
-     */
-    const TArray<FScenePrimitive>& GetPrimitives() const;
-    /**
-     * @brief 누적 변환 업로드 횟수를 반환하고 카운터를 초기화합니다.
-     * @return 연산을 적용한 새 값입니다.
-     */
-    Uint32 TakeTransformUpdates() const;
+        /**
+         * @brief 객체의 수명을 끝내고 소유한 리소스를 정리합니다.
+         */
+        ~FScene() override;
 
-private:
-    /**
-     * @brief 프리미티브의 객체 상수 버퍼를 현재 프록시 값으로 갱신합니다.
-     * @param[in,out] Primitive Primitive에 적용할 입력 값입니다.
-     */
-    void Upload(FScenePrimitive& Primitive);
+    public:
+        /**
+         * @brief 이 타입의 정적 구조체 메타데이터를 반환합니다.
+         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
+         */
+        ReflectStruct(FScene);
 
-private:
-    /**
-     * @brief 생성된 프로퍼티 등록 함수와 빌더 접근 권한입니다.
-     */
-    ReflectMembers();
+        /**
+         * @brief 광원 프록시의 GUID로 렌더 장면에 광원을 추가하거나 교체합니다.
+         * @param[in] Proxy 장면에 복사할 광원 상태입니다.
+         */
+        void AddLight(const Engine::FLightSceneProxy& Proxy) override;
 
-private:
-    /**
-     * @brief Direct3D 11 장치입니다.
-     */
-    ID3D11Device* mDevice{};
-    ReflectProperty(mDevice, "Device", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
-    /**
-     * @brief Direct3D 11 즉시 컨텍스트입니다.
-     */
-    ID3D11DeviceContext* mContext{};
-    ReflectProperty(mContext, "Context", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+        /**
+         * @brief 지정한 GUID의 광원을 렌더 장면에서 제거합니다.
+         * @param[in] Id 제거할 광원의 GUID입니다.
+         */
+        void RemoveLight(const Core::FGuid& Id) override;
+
+        /**
+         * @brief 장면에 등록된 광원 목록을 반환합니다.
+         * @return 장면이 유지하는 광원 프록시 배열의 참조입니다.
+         */
+        const Core::TArray<Engine::FLightSceneProxy>& GetLights() const;
+
+        /**
+         * @brief 컴포넌트 GUID를 키로 높이 안개 프록시를 렌더 장면에 추가하거나 교체합니다.
+         * @param[in] Proxy 장면에 복사할 높이 안개 프록시입니다.
+         */
+        void AddHeightFog(const Engine::FHeightFogSceneProxy& Proxy) override;
+        /**
+         * @brief 지정한 GUID의 높이 안개 프록시를 렌더 장면에서 제거합니다.
+         * @param[in] Id 제거할 안개 컴포넌트의 GUID입니다.
+         */
+        void RemoveHeightFog(const Core::FGuid& Id) override;
+        /**
+         * @brief 현재 렌더 장면에 등록된 높이 안개 프록시 목록을 조회합니다.
+         * @return 장면이 소유하는 안개 프록시 목록의 읽기 전용 참조입니다.
+         */
+        const Core::TArray<Engine::FHeightFogSceneProxy>& GetHeightFogs() const;
+
+        /**
+         * @copydoc Engine::FSceneInterface::AddPrimitive
+         */
+        void AddPrimitive(const Engine::FPrimitiveSceneProxy& Proxy) override;
+
+        /**
+         * @brief 지정한 프리미티브의 월드 행렬과 경계 상자를 갱신합니다.
+         * @param[in] Id 장면 프리미티브의 식별자입니다.
+         * @param[in] World 프리미티브의 새 월드 변환 행렬입니다.
+         * @param[in] Bounds 프리미티브의 새 월드 경계 상자입니다.
+         */
+        void UpdatePrimitiveTransform(const Core::FGuid& Id, const Core::FMatrix& World, const Core::FBox& Bounds) override;
+
+        /**
+         * @brief 식별자에 해당하는 프리미티브와 관련 GPU 리소스를 제거합니다.
+         * @param[in] Id 장면 프리미티브의 식별자입니다.
+         */
+        void RemovePrimitive(const Core::FGuid& Id) override;
+
+        /**
+         * @brief 현재 장면에 등록된 프리미티브 개수를 반환합니다.
+         * @return 현재 장면에 등록된 프리미티브 개수입니다.
+         */
+        std::size_t GetPrimitiveCount() const override;
+
+        /**
+         * @brief 프리미티브 추가, 제거 또는 변환 갱신 시 증가하는 장면 개정 번호를 반환합니다.
+         * @return 프리미티브 추가, 제거 또는 변환 갱신 시 증가하는 장면 개정 번호입니다.
+         */
+        Core::Uint64 GetRevision() const override;
+
+        /**
+         * @brief 장면이 소유한 렌더 프리미티브를 반환합니다.
+         * @return 소유 객체가 유지하는 값의 참조입니다.
+         */
+        const Core::TArray<Renderer::FScenePrimitive>& GetPrimitives() const;
+
+        /**
+         * @brief 누적 변환 업로드 횟수를 반환하고 카운터를 초기화합니다.
+         * @return 초기화하기 전까지 누적된 업로드 횟수입니다.
+         */
+        Core::Uint32 TakeTransformUpdates() const;
+
+    private:
+        /**
+         * @brief 프리미티브의 객체 상수 버퍼를 현재 프록시 값으로 갱신합니다.
+         * @param[in,out] Primitive 상수 버퍼를 갱신할 프리미티브입니다.
+         */
+        void Upload(Renderer::FScenePrimitive& Primitive);
+
+    private:
+        /**
+         * @brief 생성된 프로퍼티 등록 함수와 빌더 접근 권한입니다.
+         */
+        ReflectMembers();
+
+    private:
+        /**
+         * @brief 등록된 광원 프록시 목록입니다.
+         */
+        Core::TArray<Engine::FLightSceneProxy> mLights{};
+        ReflectProperty(mLights, "Lights", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+
+        /**
+         * @brief 컴포넌트 GUID별로 추가·갱신되는 높이 안개 프록시 목록입니다.
+         */
+        Core::TArray<Engine::FHeightFogSceneProxy> mHeightFogs{};
+        ReflectProperty(mHeightFogs, "HeightFogs", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+
+        /**
+         * @brief 광원 GUID를 조밀한 광원 배열의 인덱스에 연결합니다.
+         */
+        Core::TMap<Core::FGuid, std::size_t, Core::FGuidHash> mLightIndices{};
+        ReflectProperty(mLightIndices, "LightIndices", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+
+        /**
+         * @brief 장면의 GPU 자원 생성에 사용할 Direct3D 장치의 비소유 주소입니다.
+         */
+        ID3D11Device* mDevice{};
+        ReflectProperty(mDevice, "Device", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+
+        /**
+         * @brief Direct3D 11 즉시 컨텍스트입니다.
+         */
+        ID3D11DeviceContext* mContext{};
+        ReflectProperty(mContext, "Context", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
 
-    /**
-     * @brief 장면이 소유한 렌더 프리미티브입니다.
-     */
-    TArray<FScenePrimitive> mPrimitives{};
-    ReflectProperty(mPrimitives, "Primitives", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
-    /**
-     * @brief 프리미티브 GUID에서 밀집 배열 인덱스로의 조회 맵입니다.
-     */
-    TMap<FGuid, std::size_t, FGuidHash> mIndices{};
-    ReflectProperty(mIndices, "Indices", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+        /**
+         * @brief 장면이 소유한 렌더 프리미티브입니다.
+         */
+        Core::TArray<Renderer::FScenePrimitive> mPrimitives{};
+        ReflectProperty(mPrimitives, "Primitives", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+
+        /**
+         * @brief 프리미티브 GUID에서 밀집 배열 인덱스로의 조회 맵입니다.
+         */
+        Core::TMap<Core::FGuid, std::size_t, Core::FGuidHash> mIndices{};
+        ReflectProperty(mIndices, "Indices", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
 
-    /**
-     * @brief 프리미티브 추가·제거 또는 변환 갱신 시 증가하는 장면 개정 번호입니다.
-     */
-    Uint64 mRevision{};
-    ReflectProperty(mRevision, "Revision", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
-    /**
-     * @brief 소비 전 누적된 객체 상수 버퍼 갱신 수입니다.
-     */
-    mutable Uint32 mTransformUpdates{};
-    ReflectProperty(mTransformUpdates, "TransformUpdates", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
-};
+        /**
+         * @brief 프리미티브 추가·제거 또는 변환 갱신 시 증가하는 장면 개정 번호입니다.
+         */
+        Core::Uint64 mRevision{};
+        ReflectProperty(mRevision, "Revision", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+
+        /**
+         * @brief 소비 전 누적된 객체 상수 버퍼 갱신 수입니다.
+         */
+        mutable Core::Uint32 mTransformUpdates{};
+        ReflectProperty(mTransformUpdates, "TransformUpdates", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+    };
+
+}

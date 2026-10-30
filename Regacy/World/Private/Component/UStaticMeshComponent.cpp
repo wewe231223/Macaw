@@ -66,6 +66,7 @@ bool UStaticMeshComponent::SetMaterialOverride(FName Slot, FAssetHandle Material
     }
 
     OnRenderStateChanged();
+
     return true;
 }
 
@@ -104,6 +105,7 @@ std::unique_ptr<FPrimitiveSceneProxy> UStaticMeshComponent::CreateSceneProxy() c
     std::unique_ptr<FStaticMeshSceneProxy> Proxy{std::make_unique<FStaticMeshSceneProxy>(GetHandle(), Owner->GetHandle(), GetRenderTransform(), Data)};
 
     Proxy->SetUVTransforms(GetUVTransforms());
+
     return Proxy;
 }
 
@@ -112,6 +114,7 @@ void UStaticMeshComponent::Serialize(FArchive& Archive) {
 
     if (Archive.IsLoading() && Archive.SupportsNamedFields() && !Archive.HasField("MaterialOverrides") && (Archive.HasField("MaterialAssetGuid") || Archive.HasField("MaterialAssetPath"))) {
         mMaterialOverrides.clear();
+
         FGuid MaterialGuid{};
         FAssetPath MaterialPath{};
         FAssetReference Pipeline{};
@@ -119,6 +122,7 @@ void UStaticMeshComponent::Serialize(FArchive& Archive) {
         Archive.Serialize("MaterialAssetGuid", MaterialGuid);
         Archive.Serialize("MaterialAssetPath", MaterialPath.mPath);
         SerializeAssetReference(Archive, "PipelineAssetGuid", "PipelineAssetPath", Pipeline);
+
         const FAssetReference Library{MaterialGuid, MaterialPath};
         FAssetRegistry* Registry{FAssetRegistry::TryGet()};
         const UMesh* Mesh{ResolveMesh()};

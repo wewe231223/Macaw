@@ -376,7 +376,9 @@ void FWorldEditorContext::HandleMousePickRequest(const FMousePickRequestMessage&
                 return;
 
             mWorld->GetPickingSubsystem().Raycast(FRay{RayOrigin.ToSimpleMath(), RayDirection.ToSimpleMath()}, FWorldRaycastQuery{}, Hit, EPickingTarget::Primitives, &CameraWorld);
+
             UPrimitiveComponent* NearestPrimitive{Hit.mComponent.Get()};
+
 #if defined(MacawEnablePickingLog) && MacawEnablePickingLog
             if (NearestPrimitive != nullptr) {
                 Console::AddLog(Console::STDOutHandle, ELogLevel::Log, ELogCategory::Etc, "Raycast hit primitive component %f", Hit.mDistance);
@@ -510,6 +512,7 @@ void FWorldEditorContext::HandleMouseCameraDollyRequestMessage(const FMouseCamer
 
 void FWorldEditorContext::HandleSpawnComponent(const FMessageSpawnComponent& Message) {
     const IAssetRegistry* AssetRegistry{FAssetRegistry::TryGet()};
+
     if (!IsWorldEditingAllowed()) {
         return;
     }

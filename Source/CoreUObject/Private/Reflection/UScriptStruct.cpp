@@ -10,35 +10,39 @@
 
 #include <utility>
 
-/**
- * @brief UScriptStruct의 초기 상태와 전달받은 의존성을 구성합니다.
- */
-UScriptStruct::UScriptStruct(FString Name, std::size_t Size, const UScriptStruct* Parent)
-	: UStruct{std::move(Name), Size},
-	  mParent{Parent} {
-}
+namespace CoreUObject {
 
-/**
- * @brief 객체의 수명을 끝내고 소유한 리소스를 정리합니다.
- */
-UScriptStruct::~UScriptStruct() = default;
-
-/**
- * @brief 부모 구조체 메타데이터를 반환합니다.
- */
-const UScriptStruct* UScriptStruct::GetSuperStruct() const {
-    return mParent;
-}
-
-/**
- * @brief 자기 자신을 포함한 상속 체인에 지정한 부모 타입이 있는지 검사합니다.
- */
-bool UScriptStruct::IsChildOf(const UScriptStruct* Parent) const {
-    for (const UScriptStruct* Current{this}; Current != nullptr; Current = Current->mParent) {
-        if (Current == Parent) {
-            return true;
-        }
+    /**
+     * @brief UScriptStruct의 초기 상태와 전달받은 의존성을 구성합니다.
+     */
+    CoreUObject::UScriptStruct::UScriptStruct(Core::FString Name, std::size_t Size, const CoreUObject::UScriptStruct* Parent)
+		: CoreUObject::UStruct{std::move(Name), Size},
+		  mParent{Parent} {
     }
 
-    return false;
+    /**
+     * @brief 객체의 수명을 끝내고 소유한 리소스를 정리합니다.
+     */
+    CoreUObject::UScriptStruct::~UScriptStruct() = default;
+
+    /**
+     * @brief 부모 구조체 메타데이터를 반환합니다.
+     */
+    const CoreUObject::UScriptStruct* CoreUObject::UScriptStruct::GetSuperStruct() const {
+        return mParent;
+    }
+
+    /**
+     * @brief 자기 자신을 포함한 상속 체인에 지정한 부모 타입이 있는지 검사합니다.
+     */
+    bool CoreUObject::UScriptStruct::IsChildOf(const CoreUObject::UScriptStruct* Parent) const {
+        for (const CoreUObject::UScriptStruct* Current{this}; Current != nullptr; Current = Current->mParent) {
+            if (Current == Parent) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
 }

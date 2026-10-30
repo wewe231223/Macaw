@@ -53,6 +53,15 @@ $SiteDirectory = Join-Path $OutputDirectory 'Site'
 $Manifest = Get-Content -LiteralPath (Join-Path $RepositoryRoot 'Docs/Tools.json') -Raw | ConvertFrom-Json
 $Modules = Get-Content -LiteralPath (Join-Path $RepositoryRoot 'ModuleDependencies.json') -Raw | ConvertFrom-Json -AsHashtable
 $Modules['ImGui'] = @{ Public = @(); Private = @(); External = $true }
+$Premake = Get-Content -LiteralPath (Join-Path $RepositoryRoot 'premake5.lua') -Raw
+$ExecutableConfiguration = [regex]::Match($Premake, '(?s)local function ConfigureExecutable\(.*?\r?\nend')
+$ExecutableLinks = [regex]::Match($ExecutableConfiguration.Value, '(?s)\blinks\s*\{(?<Libraries>[^}]*)\}')
+if (-not $ExecutableLinks.Success) {
+    throw 'Could not read executable links from premake5.lua.'
+}
+$LinkedProjects = @([regex]::Matches($ExecutableLinks.Groups['Libraries'].Value, '"(?<Name>[A-Za-z][A-Za-z0-9]*)"') | ForEach-Object { $_.Groups['Name'].Value } | Where-Object { $Modules.Contains($_) })
+$Modules['Macaw'] = @{ Public = @(); Private = @(); Links = $LinkedProjects; Executable = $true }
+$ProjectCount = $Modules.Count
 $ModuleDescriptions = Get-Content -LiteralPath (Join-Path $RepositoryRoot 'Docs/Modules.json') -Raw | ConvertFrom-Json -AsHashtable
 New-Item -ItemType Directory -Path $ToolsDirectory -Force | Out-Null
 
@@ -92,15 +101,19 @@ $GraphLines = [Collections.Generic.List[string]]::new()
 $ModuleRows = [Collections.Generic.List[string]]::new()
 $ModuleCount = 0
 $GraphLines.Add('digraph Macaw {')
-$GraphLines.Add('    graph [rankdir=LR, bgcolor="transparent", pad="0.3", nodesep="0.35", ranksep="0.8"];')
-$GraphLines.Add('    node [shape=box, style="rounded,filled", fillcolor="#eef7f8", color="#9ebec5", fontname="Arial", fontsize=14, margin="0.18,0.12"];')
+$GraphLines.Add('    graph [rankdir=LR, bgcolor="transparent", pad="0.3", nodesep="0.45", ranksep="0.8", outputorder=edgesfirst];')
+$GraphLines.Add('    node [shape=box, style="rounded,filled", fillcolor="#eef7f8", color="#9ebec5", fontname="Arial", fontsize=15, margin="0.18,0.12"];')
 $GraphLines.Add('    edge [color="#247b88", arrowsize=0.7];')
 foreach ($ModuleName in $Modules.Keys) {
     if ($ModuleName -notmatch '^[A-Za-z][A-Za-z0-9]*$') {
         throw "Invalid module name: $ModuleName"
     }
     $Module = $Modules[$ModuleName]
-    if ($Module.Contains('External') -and $Module['External']) {
+    $External = $Module.Contains('External') -and $Module['External']
+    $Executable = $Module.Contains('Executable') -and $Module['Executable']
+    if ($Executable) {
+        $GraphLines.Add('    "' + $ModuleName + '" [fillcolor="#182b44", color="#182b44", fontcolor="white", penwidth=2];')
+    } elseif ($External) {
         $GraphLines.Add('    "' + $ModuleName + '" [fillcolor="#f1f2f5", color="#a0a6b2", style="rounded,filled,dashed"];')
     } else {
         $ModuleCount += 1
@@ -117,18 +130,20 @@ foreach ($ModuleName in $Modules.Keys) {
     }
     $Description = if ($ModuleDescriptions.Contains($ModuleName)) { $ModuleDescriptions[$ModuleName] } else { 'API에서 공개 타입과 구현을 확인하세요.' }
     $PublicDependencies = if ($Module.Public.Count -gt 0) { $Module.Public -join ', ' } else { '—' }
-    $PrivateDependencies = if ($Module.Private.Count -gt 0) { $Module.Private -join ', ' } else { '—' }
-    $External = $Module.Contains('External') -and $Module['External']
-    $ModuleSource = if ($External) { 'ThirdParty/ImGui' } else { "Source/$ModuleName/Public" }
-    $ExternalBadge = if ($External) { '<span class="Tag">외부</span>' } else { '' }
-    $ModuleRows.Add('<tr><th scope="row"><a href="https://github.com/wewe231223/Macaw/tree/@@Revision@@/' + $ModuleSource + '">' + $ModuleName + '</a>' + $ExternalBadge + '</th><td>' + [Net.WebUtility]::HtmlEncode($Description) + '</td><td>' + [Net.WebUtility]::HtmlEncode($PublicDependencies) + '</td><td>' + [Net.WebUtility]::HtmlEncode($PrivateDependencies) + '</td></tr>')
-    foreach ($Visibility in @('Public', 'Private')) {
+    $PrivateDependencies = if ($Executable) { '링크: ' + ($Module.Links -join ', ') } elseif ($Module.Private.Count -gt 0) { $Module.Private -join ', ' } else { '—' }
+    $ModuleSource = if ($Executable) { 'Source/App' } elseif ($External) { 'ThirdParty/ImGui' } else { "Source/$ModuleName/Public" }
+    $ProjectBadge = if ($Executable) { '<span class="Tag">실행</span>' } elseif ($External) { '<span class="Tag">외부</span>' } else { '' }
+    $RowClass = if ($External) { ' class="ExternalRow"' } else { '' }
+    $ModuleRows.Add('<tr' + $RowClass + '><th scope="row"><a href="#Project-' + $ModuleName + '">' + $ModuleName + '</a>' + $ProjectBadge + '</th><td>' + [Net.WebUtility]::HtmlEncode($Description) + ' <a href="https://github.com/wewe231223/Macaw/tree/@@Revision@@/' + $ModuleSource + '">소스</a></td><td>' + [Net.WebUtility]::HtmlEncode($PublicDependencies) + '</td><td>' + [Net.WebUtility]::HtmlEncode($PrivateDependencies) + '</td></tr>')
+    $Visibilities = if ($Executable) { @('Links') } else { @('Public', 'Private') }
+    foreach ($Visibility in $Visibilities) {
         foreach ($Dependency in $Module[$Visibility]) {
             if (-not $Modules.Contains($Dependency)) {
                 throw "Unknown dependency: $ModuleName -> $Dependency"
             }
-            $EdgeStyle = if ($Visibility -eq 'Public') { 'solid' } else { 'dashed' }
-            $GraphLines.Add('    "' + $ModuleName + '" -> "' + $Dependency + '" [style="' + $EdgeStyle + '", tooltip="' + $Visibility + '"];')
+            $EdgeStyle = if ($Visibility -eq 'Links') { 'dotted' } elseif ($Visibility -eq 'Public') { 'solid' } else { 'dashed' }
+            $EdgeColor = if ($Visibility -eq 'Links') { '#5474a6' } else { '#247b88' }
+            $GraphLines.Add('    "' + $ModuleName + '" -> "' + $Dependency + '" [style="' + $EdgeStyle + '", color="' + $EdgeColor + '", tooltip="' + $Visibility + '"];')
         }
     }
 }
@@ -170,6 +185,17 @@ try {
     & $Dot -Tsvg $GraphPath -o (Join-Path $SiteDirectory 'ModuleDependencies.svg')
     if ($LASTEXITCODE -ne 0) {
         throw 'Module dependency graph generation failed.'
+    }
+    $GraphSourceDirectory = Join-Path $RepositoryRoot 'Docs/Graphs'
+    $GraphOutputDirectory = Join-Path $SiteDirectory 'Graphs'
+    New-Item -ItemType Directory -Path $GraphOutputDirectory -Force | Out-Null
+    foreach ($GraphSource in Get-ChildItem -LiteralPath $GraphSourceDirectory -Filter '*.dot' -File | Sort-Object Name) {
+        $GraphOutput = Join-Path $GraphOutputDirectory ($GraphSource.BaseName + '.svg')
+        & $Dot -Tsvg $GraphSource.FullName -o $GraphOutput
+        if ($LASTEXITCODE -ne 0) {
+            throw "Architecture graph generation failed: $($GraphSource.Name)"
+        }
+        Copy-Item -LiteralPath $GraphSource.FullName -Destination $GraphOutputDirectory
     }
 
     $Configuration = Get-Content -LiteralPath (Join-Path $RepositoryRoot 'Docs/Doxyfile') -Raw
@@ -257,7 +283,7 @@ try {
     Write-Host "Documentation coverage: $($DocumentedFiles.Count)/$($SourceFiles.Count) source files; $($MissingDocumentation.Count) undocumented entities."
 
     $LandingPage = Get-Content -LiteralPath (Join-Path $RepositoryRoot 'Docs/Index.html') -Raw
-    $LandingPage = $LandingPage.Replace('@@ModuleRows@@', ($ModuleRows -join "`n")).Replace('@@ModuleCount@@', [string]$ModuleCount).Replace('@@Revision@@', $Revision)
+    $LandingPage = $LandingPage.Replace('@@ModuleRows@@', ($ModuleRows -join "`n")).Replace('@@ModuleCount@@', [string]$ModuleCount).Replace('@@ProjectCount@@', [string]$ProjectCount).Replace('@@Revision@@', $Revision)
     Set-Content -LiteralPath (Join-Path $SiteDirectory 'index.html') -Value $LandingPage -Encoding utf8
     Copy-Item -LiteralPath (Join-Path $RepositoryRoot 'Docs/Documentation.css') -Destination $SiteDirectory
     Copy-Item -LiteralPath $ThemeLicensePath -Destination $SiteDirectory

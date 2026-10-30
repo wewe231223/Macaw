@@ -25,8 +25,11 @@ public:
     ~FPipelineRenderResource() = default;
 
     FPipelineRenderResource(const FPipelineRenderResource&) = delete;
+
     FPipelineRenderResource& operator=(const FPipelineRenderResource&) = delete;
+
     FPipelineRenderResource(FPipelineRenderResource&&) noexcept = default;
+
     FPipelineRenderResource& operator=(FPipelineRenderResource&&) noexcept = default;
 
 public:

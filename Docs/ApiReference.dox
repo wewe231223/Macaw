@@ -1,14 +1,45 @@
+/**
+ * @file ApiReference.dox
+ * @brief 엔진 API의 개요·사용 흐름과 모듈별 Doxygen 그룹을 정의합니다.
+ */
+
+/**
 \mainpage Macaw API Reference
 
 Macaw는 C++20, Windows x64와 Direct3D 11을 사용하는 엔진입니다.
 현재 빌드의 자체 C++ 소스는 `Source/` 아래에 있으며, 공개 API와 비공개 구현을 함께 문서화합니다.
+
+\section MeshAssetWorkflow 정적 메시와 OBJ 뷰어
+
+- OBJ를 임포트하면 연결된 MTL의 기본색·불투명도·양면 설정과 기본색 텍스처를 프로젝트 에셋으로 가져옵니다. 같은 원본 텍스처를 여러 재질이 참조하면 한 에셋을 공유합니다.
+- \ref Engine::FSubMesh 는 공유 인덱스 버퍼의 시작 위치·개수·재질 슬롯을 보관합니다. \ref Engine::FMeshMaterialSlot 은 원본 재질 이름과 Content 기준 재질 경로를 보관합니다.
+- Details의 Mesh 드롭다운에서 프로젝트 메시를 선택하거나 에셋을 끌어다 놓을 수 있습니다. Material은 전체 메시의 재질을 바꾸고, 각 슬롯 선택기는 해당 구간만 바꿉니다. Default는 메시의 기본 재질을 사용합니다.
+- 에셋 브라우저에서 메시를 더블클릭하면 \ref Editor::FMeshViewer 가 편집 월드와 분리된 미리보기를 엽니다. 뷰포트로 드래그하면 장면에 배치합니다.
+- 뷰어에서 좌우 마우스 드래그로 궤도 회전, 가운데 드래그로 이동, 휠로 확대·축소, F로 전체 메시 보기를 실행합니다. 슬롯 재질 선택은 미리보기에서만 적용합니다.
+- 프로젝트의 `Saved/EditorLayout.ini`에 분할 비율과 단일·4분할 배치를 저장합니다. 장면 파일에는 \ref Engine::FEditorCameraState 의 위치·회전·FOV·Near/Far를 저장합니다. 카메라 설정은 뷰포트의 Camera 메뉴에서 편집합니다.
+- 이전 메시 에셋은 하나의 기본 재질 구간으로 읽습니다. 카메라 필드가 없는 이전 장면에는 기본 편집 카메라를 적용합니다.
+
+`Scripts/premake5.exe vs2026` 또는 `Build.bat`로 솔루션을 생성한 뒤 `ObjViewerDebug` 또는 `ObjViewerRelease` 구성을 빌드하면 프로젝트 브라우저 없이 OBJ 뷰어를 실행합니다. 실행 파일은 `Binaries/ObjViewerDebug/Macaw.exe` 또는 `Binaries/ObjViewerRelease/Macaw.exe`이며 첫 명령줄 인수로 원본 OBJ 경로를 전달할 수 있습니다. 일반 편집기는 Debug와 Release 구성을 사용합니다.
+
+\section ObjectIteration 객체 타입별 순회
+
+\ref CoreUObject::TObjectIterator 는 생성 시 수집한 세대 핸들 스냅샷을 순회하며 소멸한 객체와 이후 재사용된 슬롯을 건너뜁니다. UObject 파생 타입과 const 타입, 파생 타입 포함 여부 및 재귀 Outer 필터를 지원합니다. \ref CoreUObject::TObjectRange 는 같은 동작을 range-for로 제공합니다. 객체 수명은 소유하지 않으며 레지스트리 소유 스레드에서 사용합니다.
+
+\code{.cpp}
+for (Engine::UStaticMesh* Mesh : CoreUObject::TObjectRange<Engine::UStaticMesh>{}) {
+    Mesh->GetMeshData();
+}
+for (CoreUObject::TObjectIterator<Engine::UStaticMesh> Iterator{}; Iterator; ++Iterator) {
+    Iterator->GetMeshData();
+}
+\endcode
 
 \section ApiIndex API 찾기
 
 - <a href="annotated.html">클래스·구조체</a>: 역할, 생성·소멸, 함수 인수, 반환값과 상태 필드
 - <a href="hierarchy.html">상속 관계</a>: UObject, 액터, 컴포넌트와 렌더러 인터페이스
 - <a href="functions.html">멤버 인덱스</a>: 함수와 데이터 멤버의 이름별 검색
-- <a href="namespaces.html">네임스페이스</a>: Math, Math::Simd, ErrorHandler와 ReflectionModules
+- <a href="namespaces.html">네임스페이스</a>: 모듈별 API와 Core::Math, Core::Math::Simd, Core::ErrorHandler, Editor::EditorStyle, Editor::ViewportToolbar
 - <a href="files.html">소스 파일</a>: 모든 자체 헤더와 구현 파일
 - <a href="topics.html">모듈</a>: 빌드 모듈별 타입과 API
 
@@ -16,15 +47,15 @@ Macaw는 C++20, Windows x64와 Direct3D 11을 사용하는 엔진입니다.
 
 | 모듈 | 역할 | 주요 API |
 | --- | --- | --- |
-| \ref Core | 기본 타입, SIMD 수학, 메모리, 프레임 시간, 아카이브 | \ref FVector, \ref FMatrix, \ref FTransform, \ref FArchive |
-| \ref CoreUObject | 객체 수명, 세대 핸들, 타입·프로퍼티 리플렉션 | \ref UObject, \ref FObjectRegistry, \ref UClass, \ref FProperty |
-| \ref Serialization | JSON 아카이브와 파일 입출력 | \ref FJsonArchive |
-| \ref RenderCore | 렌더러 수명 및 프레임 제출 인터페이스 | \ref IRendererModule, \ref FRenderStats |
-| \ref Engine | 월드, 레벨, 액터, 컴포넌트, 장면·뷰포트 및 장면 저장 | \ref UEngine, \ref UWorld, \ref AActor, \ref FSceneSerializer |
-| \ref Renderer | Direct3D 11 장치, 장면, 타깃과 드로 제출 | \ref FRenderer, \ref FScene, \ref FSceneRenderer |
-| \ref Platform | Win32 창과 메시지 펌프 | \ref FWindowsApplication |
-| \ref Editor | 선택, 카메라, 기즈모, 프로퍼티 편집과 ImGui 패널 | \ref UEditorEngine, \ref FEditorViewportClient, \ref FTransformGizmo |
-| \ref App | 플랫폼·렌더러·에디터를 조합하는 실행 진입점 | \ref FApplication |
+| \ref Core | 기본 타입, SIMD 수학, 메모리, 프레임 시간, 아카이브 | \ref Core::FVector, \ref Core::FMatrix, \ref Core::FTransform, \ref Core::FArchive |
+| \ref CoreUObject | 객체 수명, 세대 핸들, 타입·프로퍼티 리플렉션 | \ref CoreUObject::UObject, \ref CoreUObject::FObjectRegistry, \ref CoreUObject::UClass, \ref CoreUObject::FProperty |
+| \ref Serialization | JSON 아카이브와 파일 입출력 | \ref Serialization::FJsonArchive |
+| \ref RenderCore | 렌더러 수명 및 프레임 제출 인터페이스 | \ref RenderCore::IRendererModule, \ref RenderCore::FRenderStats |
+| \ref Engine | 월드, 레벨, 액터, 컴포넌트, 장면·뷰포트 및 장면 저장 | \ref Engine::UEngine, \ref Engine::UWorld, \ref Engine::AActor, \ref Engine::FSceneSerializer |
+| \ref Renderer | Direct3D 11 장치, 장면, 타깃과 드로 제출 | \ref Renderer::FRenderer, \ref Renderer::FScene, \ref Renderer::FSceneRenderer |
+| \ref Platform | Win32 창과 메시지 펌프 | \ref Platform::FWindowsApplication |
+| \ref Editor | UI 독립 편집 컨텍스트, 카메라, 변환 명령, 기즈모와 ImGui 패널 | \ref Editor::UEditorEngine, \ref Editor::FEditorContext, \ref Editor::FEditorUI, \ref Editor::FEditorViewport, \ref Editor::FEditorViewportClient, \ref Editor::EViewportCommand |
+| \ref App | 플랫폼·렌더러·에디터를 조합하는 실행 진입점 | \ref App::FApplication |
 
 외부 ImGui는 `ThirdParty/ImGui`에서 별도 정적 라이브러리로 빌드합니다.
 `Regacy/`, 외부 라이브러리와 `Intermediate/` 생성물은 현재 자체 소스 문서의 입력에서 제외합니다.
@@ -32,11 +63,21 @@ Macaw는 C++20, Windows x64와 Direct3D 11을 사용하는 엔진입니다.
 \section ApiLifetime 객체와 월드 수명
 
 FApplication은 플랫폼, 렌더러와 에디터를 순서대로 초기화하고 종료 시 역순으로 정리합니다.
-FWorldContext는 FObjectRegistry와 UWorld를 소유합니다. 월드가 소유한 ULevel은 액터를,
+FObjectRegistry는 프로세스 전역에서 UObject의 생성과 소멸에 따라 비소유 등록 상태를 관리합니다.
+FWorldContext는 UWorld를 소유합니다. 월드가 소유한 ULevel은 액터를,
 각 AActor는 컴포넌트를 `std::unique_ptr`로 소유합니다.
 FObjectHandle은 슬롯 번호와 세대를 함께 검사하므로 객체가 삭제된 뒤 같은 슬롯을 재사용해도
 이전 핸들이 새 객체로 해석되지 않습니다. IsValid()는 핸들 표현만 검사하며 실제 객체 조회에는
-FObjectRegistry::Resolve()를 사용합니다.
+FObjectRegistry::Get()->Resolve()를 사용합니다.
+전역 런타임 식별은 FObjectHandle이 담당하며, 장면 GUID는 장면 파일 내부의 참조를 복원합니다.
+같은 장면을 여러 월드에 로드해도 객체 핸들은 서로 다르고 파일 내부 GUID는 유지됩니다.
+
+UEngine은 여러 FWorldContext를 소유하고 FWorldHandle의 슬롯과 세대로 월드를 구분합니다.
+EWorldType은 편집 및 실행 용도를 나타내며 Game과 PIE 월드는 BeginPlay, Tick, EndPlay,
+일시정지와 단계 실행으로 생명주기를 진행합니다. 액터 삭제와 실행 종료 요청은 콜백 처리가 끝나는 안전한 경계에서 반영합니다.
+Actor와 Component는 각각 EditorTickable 설정을 가지며 기본값은 false입니다. 정지한 Editor·EditorPreview 월드에서는 이 설정을 켠 객체만 BeginPlay 없이 Tick합니다.
+Actor와 Component의 설정은 독립적으로 판정하며 편집 Tick은 게임 시간과 Tick 횟수를 증가시키지 않습니다. 설정은 장면 저장·로드와 월드 복제에 유지됩니다.
+Game·PIE 월드에서는 BeginPlay를 거친 객체가 기존처럼 Tick하며 일시정지는 Step으로만 진행합니다. PIE 중에는 원본을 보존하도록 편집 월드의 Tick을 중지합니다.
 
 렌더 갱신은 UPrimitiveComponent의 dirty 상태에서 UWorld의 프레임 말 큐로 전달됩니다.
 UEngine::SynchronizeWorld()가 갱신을 반영하고, 렌더러는 복사된 FPrimitiveSceneProxy로 장면을 그립니다.
@@ -55,6 +96,78 @@ UObject의 Serialize()는 클래스 메타데이터를 통해 프로퍼티를 �
 FSceneSerializer는 GUID와 클래스 이름을 포함한 액터·컴포넌트 데이터를 FJsonArchive로 저장하고,
 로드 시 새 FWorldContext에 생성한 뒤 검증된 월드를 교체합니다.
 
+FWorldCloner는 Transient 프로퍼티와 원본 객체 식별자를 제외한 월드 소유 그래프를 복제합니다.
+FObjectDuplicationContext는 원본과 복제본의 비소유 대응표이며,
+모든 객체 생성 후 PostDuplicate()에서 사용자 참조를 복제본으로 재연결할 수 있습니다.
+복제 월드의 실행 상태와 렌더 장면은 원본과 공유하지 않습니다.
+
+\section ApiViewport 뷰포트 UI와 공통 명령
+
+UEditorEngine은 FEditorContext, FEditorViewport와 FEditorUI의 수명을 조합합니다.
+FEditorContext는 편집 대상 FWorldHandle, 액터·객체 선택, 장면 파일 경로와 변경 여부,
+콘솔 로그를 소유합니다. 엔진의 현재 실행 월드 선택과 편집 대상 월드는 독립적입니다.
+FEditorViewport는 창 이름, 자체 FEditorViewportClient와 FSceneViewport를 소유합니다.
+카메라, 기즈모와 컬러 타깃은 뷰포트별로 독립적이며 편집 컨텍스트는 공유할 수 있습니다.
+FEditorUI는 ImGui 백엔드, 도킹과 패널을 소유하고 독립 뷰포트를 화면에 배치합니다.
+UI를 만들지 않고도 엔진과 편집 컨텍스트를 초기화하여 같은 편집 경로를 사용할 수 있습니다.
+
+패널, 콘솔과 기즈모는 FEditorContext의 선택, 생성·삭제, EditProperty()와 ApplyTransform()
+경로를 공유합니다. 프로퍼티 변경은 객체 핸들과 월드 소속, 메타데이터와 편집 권한을 검증하고
+변경 전후 알림을 전달합니다. 알림 중 객체 삭제는 월드 전달 범위로 지연하며 재진입을 제한합니다.
+현재 Game과 PIE 월드의 조회·선택은 가능하지만 수정은 허용하지 않습니다.
+
+Outliner는 액터와 컴포넌트 선택을 요청하고 Details는 선택에 따른 핸들 스냅샷을 표시합니다.
+패널을 그리는 동작 자체는 선택을 변경하지 않습니다. 창 표시 여부, 입력 버퍼와 스크롤은 UI 상태로 유지합니다.
+장면 교체는 해당 편집 월드만 교체합니다.
+실제 Undo/Redo 기록과 SIE 편집 정책은 아직 구현하지 않았으며 공통 편집 경로에서 확장할 수 있습니다.
+
+ViewportToolbar는 변환 도구, 좌표계와 그리드 설정의 UI를 구성합니다.
+아이콘, 버튼 표시와 툴바 색상은 EditorStyle에서 공유합니다.
+툴바 버튼, 메뉴와 Space 단축키는 EViewportCommand를 통해 FEditorViewportClient의
+FEditorViewportClient::ExecuteCommand() 경로를 사용합니다. FEditorViewportClient::CanExecuteCommand()는 실행 가능 여부를,
+FEditorViewportClient::IsCommandChecked()는 현재 선택 상태를 제공하므로 UI에 별도 편집 상태를 보관하지 않습니다.
+
+변환 모드와 좌표계는 FEditorViewportClient가 소유하며 FTransformGizmo는 이를 읽어
+화살표, 스케일 핸들, 회전 링과 평면 메시의 표시, 피킹 및 드래그 변환을 처리합니다. 드래그 중에는 변환 명령을 차단하고,
+스케일 모드에서는 로컬 좌표계를 유지합니다. ToggleGrid는 향후 그리드 기능을 위한 명령이며
+현재 실행할 수 없습니다. 그리드 설정 메뉴의 표시 및 간격 항목도 비활성입니다.
+
+FSceneViewport::GetHitProxy()는 좌표를 검증하고 FEditorViewportClient의 CPU 피킹으로 전달합니다.
+기즈모와 객체 모두 RaycastMesh()로 경계 상자와 메시 삼각형을 검사하며,
+객체 질의는 UWorld::Raycast()를 통해 해당 월드의 유효한 액터를 검사합니다. 기즈모 축을 우선하며 두 경로는 모두 FHitProxy를 반환합니다.
+FHitProxy는 객체 또는 기즈모 소유 액터의 전역 세대 핸들과 축 번호를 보관합니다.
+피킹은 현재 카메라와 변환을 직접 조회하며 별도 GPU 패스나 피킹 캐시를 사용하지 않습니다.
+마우스 버튼을 놓으면 변환을 유지하고 Esc는 해당 뷰포트의 드래그 시작 변환을 복원합니다.
+축 및 평면 이동과 스케일, 화면 기준 이동과 회전, 균일 스케일을 지원합니다.
+가운데 버튼은 피벗만 이동하고 Alt 이동 드래그는 액터를 복제합니다. Ctrl 클릭은 다중 선택을 전환합니다.
+Q/W/E/R은 선택/이동/회전/스케일, Tab은 좌표계, X는 현재 모드 스냅을 전환합니다.
+Snap 메뉴에서 이동 간격, 회전 각도, 스케일 단계와 기즈모 크기를 조절합니다.
+선택한 공간 컴포넌트와 다중 선택 액터는 같은 프로퍼티 편집 경로를 사용합니다.
+
+\section ApiPIE Play In Editor
+
+UEditorEngine은 FPlayInEditorSession으로 편집 월드의 복제, 실행, 일시정지와 종료를 조율합니다.
+Play 또는 Alt+P는 원본 상태를 잠그고 별도 PIE 월드에서 BeginPlay를 호출합니다.
+메뉴바 바로 아래의 독립 에디터 툴바는 시작/종료, 일시정지/재개, 한 Tick 진행을 아이콘 버튼 세 개로 고정 배치하고 장면 이름과 실행 상태를 표시합니다. 한 Tick 진행은 일시정지 중에만 활성화하며 도킹 영역은 툴바 아래에 배치됩니다.
+FGameViewportClient가 같은 렌더 타깃의 입력과 장면 출력을 담당하며 편집 기즈모와 피킹은 전달하지 않습니다.
+실행 시점은 PIE 월드의 활성 UCameraComponent가 제공하며 GameViewportClient는 카메라 위치나 조작 상태를 소유하지 않습니다.
+UWorld는 활성 카메라와 실행 입력 대상 액터를 각각 세대 핸들로 연결하고 복제 시 두 참조를 복제본에 재연결합니다.
+기본 ACameraActor는 실행 입력으로 WASD/QE 이동과 우클릭 시선 회전을 처리하며 입력 대상은 활성 카메라의 소유 액터와 별도로 지정할 수 있습니다.
+Outliner의 + Camera로 카메라를 만들고 Use as PIE Camera로 선택한 카메라를 활성화합니다. 두 연결은 장면 저장·로드에도 유지됩니다.
+활성 카메라가 없으면 PIE를 시작하지 않으며 실행 중 활성 카메라가 사라지면 세션을 종료합니다.
+
+실행 뷰포트를 클릭하면 게임 입력이 활성화되며 Shift+F1은 입력을 해제합니다.
+Pause/Resume은 월드 실행을 전환하고 Step은 일시정지를 유지한 채 1/60초의 Tick을 한 번 수행합니다.
+Stop 또는 Esc는 실행 월드를 정리하고 원래 편집 카메라, 선택, 장면 경로와 변경 상태로 돌아갑니다.
+콜백 중 Stop은 안전한 프레임 경계에서 처리하며 실패한 복제는 원본 변경 없이 되돌립니다.
+
+재생 중 Outliner·Details는 별도의 FEditorContext로 실행 월드를 검사합니다.
+통계는 독립 패널 대신 현재 뷰포트 이미지 위에 입력을 받지 않는 오버레이로 표시합니다.
+콘솔의 stat fps/scene/memory/render는 각 그룹을 전환하고 on/off 인수는 표시 상태를 명시합니다. stat all은 전체 전환, stat none은 전체 해제입니다.
+표시 상태는 뷰포트가 소유하므로 PIE 전환에도 유지됩니다. Actor 수는 표시 중인 월드, UObject·메모리는 전역, 렌더 통계는 현재 렌더러 프레임 기준입니다.
+복제 객체의 대응 관계는 주소 대신 세대 핸들로 유지하며 실행 월드의 편집과 저장은 허용하지 않습니다.
+SIE 전환, 실행 결과를 편집 월드로 반영하는 기능과 Undo/Redo는 포함하지 않습니다.
+
 \section ApiHeaders 헤더와 빌드
 
 각 모듈의 `Source/<모듈>/Public/`을 include 루트로 사용합니다.
@@ -66,13 +179,20 @@ FSceneSerializer는 GUID와 클래스 이름을 포함한 액터·컴포넌트 �
 #include <Renderer/Renderer.h>
 \endcode
 
-프로젝트 생성 및 엔진 빌드:
+Windows x64에서 Visual Studio 2022/2026(또는 Build Tools)의 C++ 데스크톱 개발 도구,
+Windows 10/11 SDK와 Git이 필요합니다. 클론 후 루트의 `Build.bat`를 더블클릭하면
+Premake 다운로드, vcpkg 의존성 복원과 리플렉션·솔루션 생성을 순서대로 실행합니다.
+Windows 기본 PowerShell을 사용하므로 PowerShell 7이나 별도의 Premake 설치는 필요하지 않습니다.
+명령행에서는 다음과 같이 실행합니다.
 
-\code{.ps1}
-pwsh -File Scripts/Build.ps1 -Configuration Debug
-pwsh -File Scripts/Build.ps1 -Configuration Release
-\endcode
+\verbatim
+Build.bat
+\endverbatim
 
+Visual Studio 2026에서는 `Macaw.slnx`, 2022에서는 `Macaw.sln`을 생성합니다.
+생성된 솔루션을 Visual Studio에서 열고 Debug 또는 Release와 x64를 선택하여 직접 빌드합니다.
+다운로드한 도구는 `.tools/`, 의존성은 `vcpkg_installed/`에 캐시됩니다.
+자동화에서는 `Build.bat -NoPause`로 완료 후 키 입력 대기를 생략합니다.
 실행 파일은 `Binaries/<구성>/Macaw.exe`이며 작업 디렉터리는 저장소 루트입니다.
 
 \section ApiDocumentation 문서 생성과 검증
@@ -107,3 +227,61 @@ Windows 창과 메시지 처리입니다.
 에디터 엔진, 뷰포트, 기즈모와 패널입니다.
 \defgroup App App
 실행 진입점과 애플리케이션 수명입니다.
+\defgroup Game Game
+에디터 없이 프로젝트의 시작 장면을 실행하는 게임 런타임입니다.
+*/
+
+/**
+ * @namespace App
+ * @brief 실행 진입점과 편집기·OBJ 뷰어 애플리케이션의 수명을 관리합니다.
+ */
+
+/**
+ * @namespace Core
+ * @brief 기본 타입·컨테이너·수학·메모리·시간과 공통 아카이브를 제공합니다.
+ */
+
+/**
+ * @namespace CoreUObject
+ * @brief 객체 수명·세대 핸들·타입과 프로퍼티 리플렉션을 제공합니다.
+ */
+
+/**
+ * @namespace Editor
+ * @brief 편집 컨텍스트·뷰포트·패널·에셋 도구와 PIE 세션을 제공합니다.
+ */
+
+/**
+ * @namespace Engine
+ * @brief 월드·레벨·액터·컴포넌트와 장면·프로젝트 API를 제공합니다.
+ */
+
+/**
+ * @namespace Platform
+ * @brief Win32 창·DPI·입력 메시지와 플랫폼 애플리케이션을 제공합니다.
+ */
+
+/**
+ * @namespace RenderCore
+ * @brief 렌더러 인터페이스·렌더 통계와 셰이더 관리 API를 제공합니다.
+ */
+
+/**
+ * @namespace Renderer
+ * @brief Direct3D 11 장면 렌더링·GPU 리소스와 후처리를 구현합니다.
+ */
+
+/**
+ * @namespace Script
+ * @brief Lua 실행 환경·프로퍼티 바인딩과 코루틴 스케줄러를 제공합니다.
+ */
+
+/**
+ * @namespace Serialization
+ * @brief JSON 기반 아카이브와 객체·파일 직렬화를 제공합니다.
+ */
+
+/**
+ * @namespace Tests
+ * @brief 엔진 기능과 모듈 경계를 확인하는 독립 통합 검증 함수를 모읍니다.
+ */

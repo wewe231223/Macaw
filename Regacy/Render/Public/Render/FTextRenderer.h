@@ -2,6 +2,7 @@
  * @file FTextRenderer.h
  * @brief 전역 에셋 조회를 사용하는 월드 텍스트 렌더러를 정의합니다.
  */
+
 #pragma once
 
 #include <d3d11.h>
@@ -37,6 +38,7 @@ private:
 
 public:
     bool Initialize(ID3D11Device* InDevice, std::uint32_t InitialCapacity = 256);
+
     /**
      * @brief 전역 레지스트리의 폰트와 파이프라인으로 월드 텍스트를 렌더링합니다.
      * @param Context 그래픽 명령 컨텍스트입니다.

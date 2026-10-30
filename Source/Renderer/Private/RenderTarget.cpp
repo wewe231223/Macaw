@@ -5,100 +5,110 @@
  */
 
 #include "RenderTarget.h"
-#include "Core/Base/ErrorHandler.h"
+#include "CoreUObject/Reflection/NewObject.h"
 
-/**
- * @brief FDXRenderTarget의 초기 상태와 전달받은 의존성을 구성합니다.
- */
-FDXRenderTarget::FDXRenderTarget() = default;
+namespace Renderer {
 
-/**
- * @brief 객체의 수명을 끝내고 소유한 리소스를 정리합니다.
- */
-FDXRenderTarget::~FDXRenderTarget() = default;
+    /**
+     * @brief FDXRenderTarget의 초기 상태와 전달받은 의존성을 구성합니다.
+     */
+    Renderer::FDXRenderTarget::FDXRenderTarget() = default;
 
-/**
- * @brief 새 크기에 맞추어 렌더 타깃 리소스를 생성하거나 교체합니다.
- */
-bool FDXRenderTarget::Resize(ID3D11Device& Device, Uint32 Width, Uint32 Height) {
-    if (Width == 0 || Height == 0 || Width > D3D11_REQ_TEXTURE2D_U_OR_V_DIMENSION || Height > D3D11_REQ_TEXTURE2D_U_OR_V_DIMENSION) {
-        return false;
-    }
+    /**
+     * @brief 객체의 수명을 끝내고 소유한 리소스를 정리합니다.
+     */
+    Renderer::FDXRenderTarget::~FDXRenderTarget() = default;
 
-    if (Width == mWidth && Height == mHeight) {
+    /**
+     * @brief 새 크기에 맞추어 렌더 타깃 리소스를 생성하거나 교체합니다.
+     */
+    bool Renderer::FDXRenderTarget::Resize(ID3D11Device* Device, Core::Uint32 Width, Core::Uint32 Height) {
+        if (Device == nullptr || Width == 0 || Height == 0 || Width > D3D11_REQ_TEXTURE2D_U_OR_V_DIMENSION || Height > D3D11_REQ_TEXTURE2D_U_OR_V_DIMENSION) {
+            return false;
+        }
+
+        if (Width == mWidth && Height == mHeight && mColor != nullptr && mDepth != nullptr && mSceneColor != nullptr && mPostProcessColor != nullptr && mColor->HasResources() && mDepth->HasResources() && mSceneColor->HasResources() && mPostProcessColor->HasResources()) {
+            Microsoft::WRL::ComPtr<ID3D11Device> ResourceDevice{};
+            mColor->GetTexture()->GetDevice(ResourceDevice.GetAddressOf());
+
+            if (ResourceDevice.Get() == Device) {
+                return true;
+            }
+        }
+
+        auto Color{CoreUObject::NewObject<Engine::UTexture2D>()};
+        auto Depth{CoreUObject::NewObject<Engine::UTexture2D>()};
+        auto SceneColor{CoreUObject::NewObject<Engine::UTexture2D>()};
+        auto PostProcessColor{CoreUObject::NewObject<Engine::UTexture2D>()};
+
+        if (!Color->Configure(Width, Height, Engine::ETextureFormat::RGBA8, Engine::ETextureUsage::ShaderResource | Engine::ETextureUsage::RenderTarget) || !Depth->Configure(Width, Height, Engine::ETextureFormat::D24S8, Engine::ETextureUsage::DepthStencil | Engine::ETextureUsage::ShaderResource) || !SceneColor->Configure(Width, Height, Engine::ETextureFormat::RGBA8, Engine::ETextureUsage::ShaderResource | Engine::ETextureUsage::RenderTarget) || !PostProcessColor->Configure(Width, Height, Engine::ETextureFormat::RGBA8, Engine::ETextureUsage::ShaderResource | Engine::ETextureUsage::RenderTarget) || !Color->CreateResources(Device) || !Depth->CreateResources(Device) || !SceneColor->CreateResources(Device) || !PostProcessColor->CreateResources(Device)) {
+            return false;
+        }
+
+        mColor = std::move(Color);
+        mDepth = std::move(Depth);
+        mSceneColor = std::move(SceneColor);
+        mPostProcessColor = std::move(PostProcessColor);
+
+        mWidth = Width;
+        mHeight = Height;
+
         return true;
     }
 
-    Microsoft::WRL::ComPtr<ID3D11Texture2D> Color{};
-    Microsoft::WRL::ComPtr<ID3D11Texture2D> Depth{};
-    Microsoft::WRL::ComPtr<ID3D11RenderTargetView> RenderTarget{};
-    Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> ResourceView{};
-    Microsoft::WRL::ComPtr<ID3D11DepthStencilView> DepthView{};
-
-    D3D11_TEXTURE2D_DESC Description{};
-    Description.Width = Width;
-    Description.Height = Height;
-    Description.MipLevels = 1;
-    Description.ArraySize = 1;
-    Description.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-    Description.SampleDesc.Count = 1;
-    Description.Usage = D3D11_USAGE_DEFAULT;
-    Description.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
-
-    if (FAILED(Device.CreateTexture2D(&Description, nullptr, Color.GetAddressOf())) || FAILED(Device.CreateRenderTargetView(Color.Get(), nullptr, RenderTarget.GetAddressOf())) || FAILED(Device.CreateShaderResourceView(Color.Get(), nullptr, ResourceView.GetAddressOf()))) {
-        ErrorHandler::Fatal("Renderer", "Render target allocation failed");
+    /**
+     * @brief 가로 픽셀 수를 반환합니다.
+     */
+    Core::Uint32 Renderer::FDXRenderTarget::GetWidth() const {
+        return mWidth;
     }
 
-    Description.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
-    Description.BindFlags = D3D11_BIND_DEPTH_STENCIL;
-
-    if (FAILED(Device.CreateTexture2D(&Description, nullptr, Depth.GetAddressOf())) || FAILED(Device.CreateDepthStencilView(Depth.Get(), nullptr, DepthView.GetAddressOf()))) {
-        ErrorHandler::Fatal("Renderer", "Depth target allocation failed");
+    /**
+     * @brief 세로 픽셀 수를 반환합니다.
+     */
+    Core::Uint32 Renderer::FDXRenderTarget::GetHeight() const {
+        return mHeight;
     }
 
-    mColor = std::move(Color);
-    mDepth = std::move(Depth);
-    mRenderTarget = std::move(RenderTarget);
-    mResourceView = std::move(ResourceView);
-    mDepthView = std::move(DepthView);
+    /**
+     * @brief UI에서 샘플링할 셰이더 리소스 뷰의 비소유 주소를 반환합니다.
+     */
+    void* Renderer::FDXRenderTarget::GetNativeTexture() const {
+        return mColor != nullptr ? mColor->GetShaderResourceView() : nullptr;
+    }
 
-    mWidth = Width;
-    mHeight = Height;
+    /**
+     * @brief 컬러 출력용 Direct3D 11 렌더 타깃 뷰의 비소유 주소를 반환합니다.
+     */
+    ID3D11RenderTargetView* Renderer::FDXRenderTarget::GetRenderTargetView() const {
+        return mColor != nullptr ? mColor->GetRenderTargetView() : nullptr;
+    }
 
-    return true;
-}
+    /**
+     * @brief 깊이 스텐실 뷰를 반환합니다.
+     */
+    ID3D11DepthStencilView* Renderer::FDXRenderTarget::GetDepthView() const {
+        return mDepth != nullptr ? mDepth->GetDepthStencilView() : nullptr;
+    }
 
-/**
- * @brief 가로 픽셀 수를 반환합니다.
- */
-Uint32 FDXRenderTarget::GetWidth() const {
-    return mWidth;
-}
+    std::size_t Renderer::FDXRenderTarget::GetResourceBytes() const {
+        return (mColor != nullptr ? mColor->GetResourceBytes() : 0) + (mDepth != nullptr ? mDepth->GetResourceBytes() : 0) + (mSceneColor != nullptr ? mSceneColor->GetResourceBytes() : 0) + (mPostProcessColor != nullptr ? mPostProcessColor->GetResourceBytes() : 0);
+    }
 
-/**
- * @brief 세로 픽셀 수를 반환합니다.
- */
-Uint32 FDXRenderTarget::GetHeight() const {
-    return mHeight;
-}
+    Engine::UTexture2D* Renderer::FDXRenderTarget::GetSceneColor() const {
+        return mSceneColor.get();
+    }
 
-/**
- * @brief UI에서 샘플링할 셰이더 리소스 뷰의 비소유 주소를 반환합니다.
- */
-void* FDXRenderTarget::GetNativeTexture() const {
-    return mResourceView.Get();
-}
+    Engine::UTexture2D* Renderer::FDXRenderTarget::GetPostProcessColor() const {
+        return mPostProcessColor.get();
+    }
 
-/**
- * @brief 컬러 출력용 Direct3D 11 렌더 타깃 뷰의 비소유 주소를 반환합니다.
- */
-ID3D11RenderTargetView* FDXRenderTarget::GetRenderTargetView() const {
-    return mRenderTarget.Get();
-}
+    Engine::UTexture2D* Renderer::FDXRenderTarget::GetOutputColor() const {
+        return mColor.get();
+    }
 
-/**
- * @brief 깊이 스텐실 뷰를 반환합니다.
- */
-ID3D11DepthStencilView* FDXRenderTarget::GetDepthView() const {
-    return mDepthView.Get();
+    Engine::UTexture2D* Renderer::FDXRenderTarget::GetSceneDepth() const {
+        return mDepth.get();
+    }
+
 }

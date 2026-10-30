@@ -42,6 +42,7 @@ bool USurfaceOpaque::SetParameters(const FSurfaceParameters& Parameters) {
     mParameters = Parameters;
     mParameters.mDiffuse.mW = std::clamp(mParameters.mDiffuse.mW, 0.0f, 1.0f);
     MarkGPUDataDirty();
+
     return true;
 }
 

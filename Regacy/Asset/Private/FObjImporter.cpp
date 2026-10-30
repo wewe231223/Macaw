@@ -102,6 +102,7 @@ bool FObjImporter::ImportMesh(const std::filesystem::path& SourcePath, bool Flip
     Data.mColors = std::move(Geometry.mColors);
     Data.mIndices = std::move(Geometry.mIndices);
     OutData = std::move(Data);
+
     return true;
 } catch (const std::exception&) {
     return false;
@@ -448,6 +449,7 @@ bool FObjImporter::BuildPolygonGeometry(const FObjInfo& ObjInfo, FGeometry& OutG
             FVector CrossVector{Vector1.Cross(Vector2)};
 
             CrossVector.Normalize();
+
             float DotResult{CrossVector.Dot(FaceNormal)};
 
             //내적값이 음수라면 오목
@@ -817,6 +819,7 @@ bool FObjImporter::LoadMaterialFile(const std::filesystem::path& MtlPath, const 
 
     for (FImportedMaterial& Material : OutMaterials) {
         FSurfaceParameters& Parameters{Material.mParameters};
+
         if (!std::isfinite(Parameters.mDiffuse.mW)) {
             OutMaterials.clear();
             return false;

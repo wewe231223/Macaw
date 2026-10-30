@@ -12,6 +12,7 @@ public:
 
 public:
     ReflectClass(ADirectionalLightActor);
+
     UDirectionalLightComponent* GetLightComponent() const;
 
 private:

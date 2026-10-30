@@ -2,6 +2,7 @@
  * @file FMaterialChunkSignature.h
  * @brief 텍스처 바인딩 순서로 머티리얼 청크를 구별하는 서명과 빌더를 제공합니다.
  */
+
 #pragma once
 #include "Core/Base/FAssetHandle.h"
 
@@ -22,6 +23,7 @@ struct FMaterialChunkSignature {
      * @brief 필드 순서의 텍스처 핸들 배열입니다. 사용 구간은 mTextureFieldCount로 결정합니다.
      */
     std::array<FAssetHandle, MaxMaterialTextureFields> mTextureHandles{};
+
     /**
      * @brief 사용 중인 텍스처 필드 수입니다. MaxMaterialTextureFields 이하여야 합니다.
      */
@@ -33,6 +35,7 @@ struct FMaterialChunkSignature {
      * @note 개별 핸들의 유효성이나 에셋 생존 여부는 검사하지 않습니다.
      */
     bool IsValid() const;
+
     /**
      * @brief 사용 구간의 텍스처 핸들을 조회합니다.
      * @param TextureFieldIndex 0부터 시작하는 텍스처 필드 인덱스입니다.
@@ -40,6 +43,7 @@ struct FMaterialChunkSignature {
      * @return 해당 핸들입니다. 사용 구간 밖이면 무효 핸들입니다.
      */
     FAssetHandle GetTextureHandle(Uint8 TextureFieldIndex) const;
+
     /**
      * @brief 필드 수와 사용 구간의 핸들 ID·세대로 해시를 계산합니다.
      * @pre 서명의 필드 수가 배열 용량 이하여야 합니다.
@@ -53,6 +57,7 @@ struct FMaterialChunkSignature {
      * @return 모든 저장 값이 같으면 true입니다.
      */
     bool operator==(const FMaterialChunkSignature& Other) const = default;
+
     /**
      * @brief 필드 수 또는 전체 핸들 배열의 차이를 검사합니다.
      * @param Other 비교할 서명입니다.
@@ -78,6 +83,7 @@ public:
      * @return 현재 서명입니다. 빌더 상태는 유지합니다.
      */
     FMaterialChunkSignature Build() const;
+
     /**
      * @brief 필드 수와 전체 핸들 배열을 기본값으로 비웁니다.
      */

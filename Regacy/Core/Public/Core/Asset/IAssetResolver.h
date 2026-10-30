@@ -2,6 +2,7 @@
  * @file IAssetResolver.h
  * @brief 에셋 경로, 영속 GUID 및 런타임 핸들의 조회 인터페이스를 정의한다.
  */
+
 #pragma once
 #include "Core/Base/FAssetHandle.h"
 #include "Core/Base/FGuid.h"
@@ -24,12 +25,14 @@ public:
      * @return 대응하는 에셋 핸들. 에셋을 찾을 수 없으면 유효하지 않은 핸들.
      */
     virtual FAssetHandle FindAsset(const FAssetPath& AssetPath) const = 0;
+
     /**
      * @brief 영속 GUID에 대응하는 에셋 핸들을 조회한다.
      * @param PersistentGuid 조회할 에셋의 영속 식별 GUID.
      * @return 대응하는 에셋 핸들. 에셋을 찾을 수 없으면 유효하지 않은 핸들.
      */
     virtual FAssetHandle FindAsset(const FGuid& PersistentGuid) const = 0;
+
     /**
      * @brief 에셋 핸들에 대응하는 논리 경로를 조회한다.
      * @param Handle 경로를 조회할 에셋 핸들.
@@ -37,6 +40,7 @@ public:
      * @details 반환된 포인터의 소유권은 호출자에게 이전되지 않는다. 리졸버의 데이터 변경이나 소멸로 무효화될 수 있으므로 장기간 보관할 경로는 복사한다.
      */
     virtual const FAssetPath* GetAssetPath(FAssetHandle Handle) const = 0;
+
     /**
      * @brief 에셋 핸들에 대응하는 영속 GUID를 조회한다.
      * @param Handle GUID를 조회할 에셋 핸들.

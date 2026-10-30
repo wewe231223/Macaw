@@ -97,9 +97,11 @@ namespace DirectX {
             }
 
             Rectangle(const Rectangle&) = default;
+
             Rectangle& operator=(const Rectangle&) = default;
 
             Rectangle(Rectangle&&) = default;
+
             Rectangle& operator=(Rectangle&&) = default;
 
             operator RECT() noexcept {
@@ -112,6 +114,7 @@ namespace DirectX {
 
                 return rct;
             }
+
 #ifdef __cplusplus_winrt
             operator Windows::Foundation::Rect() noexcept {
                 return Windows::Foundation::Rect(float(x), float(y), float(width), float(height));
@@ -131,6 +134,7 @@ namespace DirectX {
                 return (x != r.x) || (y != r.y) || (width != r.width) || (height != r.height);
             }
 #endif
+
             bool operator==(const RECT& rct) const noexcept {
                 return (x == rct.left) && (y == rct.top) && (width == (rct.right - rct.left)) && (height == (rct.bottom - rct.top));
             }
@@ -228,9 +232,11 @@ namespace DirectX {
             }
 
             Vector2(const Vector2&) = default;
+
             Vector2& operator=(const Vector2&) = default;
 
             Vector2(Vector2&&) = default;
+
             Vector2& operator=(Vector2&&) = default;
 
             operator XMVECTOR() const noexcept {
@@ -450,9 +456,11 @@ namespace DirectX {
             }
 
             Vector3(const Vector3&) = default;
+
             Vector3& operator=(const Vector3&) = default;
 
             Vector3(Vector3&&) = default;
+
             Vector3& operator=(Vector3&&) = default;
 
             operator XMVECTOR() const noexcept {
@@ -687,9 +695,11 @@ namespace DirectX {
             }
 
             Vector4(const Vector4&) = default;
+
             Vector4& operator=(const Vector4&) = default;
 
             Vector4(Vector4&&) = default;
+
             Vector4& operator=(Vector4&&) = default;
 
             operator XMVECTOR() const noexcept {
@@ -854,9 +864,11 @@ namespace DirectX {
             }
 
             Matrix(const Matrix&) = default;
+
             Matrix& operator=(const Matrix&) = default;
 
             Matrix(Matrix&&) = default;
+
             Matrix& operator=(Matrix&&) = default;
 
             operator XMMATRIX() const noexcept {
@@ -1080,9 +1092,11 @@ namespace DirectX {
             }
 
             Plane(const Plane&) = default;
+
             Plane& operator=(const Plane&) = default;
 
             Plane(Plane&&) = default;
+
             Plane& operator=(Plane&&) = default;
 
             operator XMVECTOR() const noexcept {
@@ -1181,9 +1195,11 @@ namespace DirectX {
             }
 
             Quaternion(const Quaternion&) = default;
+
             Quaternion& operator=(const Quaternion&) = default;
 
             Quaternion(Quaternion&&) = default;
+
             Quaternion& operator=(Quaternion&&) = default;
 
             operator XMVECTOR() const noexcept {
@@ -1260,9 +1276,11 @@ namespace DirectX {
             static Quaternion Concatenate(const Quaternion& q1, const Quaternion& q2) noexcept;
 
             static void __cdecl FromToRotation(const Vector3& fromDir, const Vector3& toDir, Quaternion& result) noexcept;
+
             static Quaternion FromToRotation(const Vector3& fromDir, const Vector3& toDir) noexcept;
 
             static void __cdecl LookRotation(const Vector3& forward, const Vector3& up, Quaternion& result) noexcept;
+
             static Quaternion LookRotation(const Vector3& forward, const Vector3& up) noexcept;
 
             static float Angle(const Quaternion& q1, const Quaternion& q2) noexcept;
@@ -1331,9 +1349,11 @@ namespace DirectX {
             explicit Color(const DirectX::PackedVector::XMUBYTEN4& Packed) noexcept;
 
             Color(const Color&) = default;
+
             Color& operator=(const Color&) = default;
 
             Color(Color&&) = default;
+
             Color& operator=(Color&&) = default;
 
             operator XMVECTOR() const noexcept {
@@ -1469,9 +1489,11 @@ namespace DirectX {
             }
 
             Ray(const Ray&) = default;
+
             Ray& operator=(const Ray&) = default;
 
             Ray(Ray&&) = default;
+
             Ray& operator=(Ray&&) = default;
 
             // Comparison operators
@@ -1568,9 +1590,11 @@ namespace DirectX {
 #endif
 
             Viewport(const Viewport&) = default;
+
             Viewport& operator=(const Viewport&) = default;
 
             Viewport(Viewport&&) = default;
+
             Viewport& operator=(Viewport&&) = default;
 
             // Comparison operators
@@ -1598,6 +1622,7 @@ namespace DirectX {
 #if defined(__dxgi1_2_h__) || defined(__d3d11_x_h__) || defined(__d3d12_x_h__) || defined(__XBOX_D3D12_X__)
             static RECT __cdecl ComputeDisplayArea(DXGI_SCALING scaling, UINT backBufferWidth, UINT backBufferHeight, int outputWidth, int outputHeight) noexcept;
 #endif
+
             static RECT __cdecl ComputeTitleSafeArea(UINT backBufferWidth, UINT backBufferHeight) noexcept;
         };
 

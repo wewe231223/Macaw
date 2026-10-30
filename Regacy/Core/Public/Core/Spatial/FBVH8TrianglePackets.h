@@ -18,6 +18,7 @@
  * @var BVH8::TTrianglePacketVisitor::V BVH8::TTrianglePacketVisitor::Sign
  * @brief 와인딩을 뒤집을 때 부호 반전에 사용하는 SIMD 부호 비트 마스크입니다.
  */
+
 #pragma once
 #include "Core/Spatial/FBVH8.h"
 
@@ -115,6 +116,7 @@ namespace BVH8 {
                 continue;
 
             Limit = S::MinLane(S::Select(S::Mask(Hits), Distance, S::Set(Limit)));
+
             if (mHit != nullptr) {
                 mHit->mPacketIndex = Index;
                 mHit->mLane = Base + std::countr_zero(S::Bits(S::LE(Distance, S::Set(Limit))) & Hits);

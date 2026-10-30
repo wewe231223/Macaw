@@ -89,19 +89,25 @@ private:
     // 부모와 자식 연결을 정리하는 동안 파괴 처리의 중복 진입을 막습니다.
     bool mDestroyingHierarchy{};
     ReflectAccessor(mTransform, GetRelativeTransform, SetRelativeTransform, "Transform", EPropertyFlags::Edit | EPropertyFlags::Serialize, &SerializeTransformProperty, ReflectEditor("Transform", "Relative Transform"));
+
     FTransform mTransform{};
     FTransform mWorldTransform{};
     Uint64 mTransformRevision{1};
     ReflectAccessor(mAbsoluteLocation, IsAbsoluteLocation, SetAbsoluteLocation, "bAbsoluteLocation", EPropertyFlags::Edit, ReflectEditor("Transform", "Absolute Location"));
+
     bool mAbsoluteLocation{};
     ReflectAccessor(mAbsoluteRotation, IsAbsoluteRotation, SetAbsoluteRotation, "bAbsoluteRotation", EPropertyFlags::Edit, ReflectEditor("Transform", "Absolute Rotation"));
+
     bool mAbsoluteRotation{};
     ReflectAccessor(mAbsoluteScale, IsAbsoluteScale, SetAbsoluteScale, "bAbsoluteScale", EPropertyFlags::Edit, ReflectEditor("Transform", "Absolute Scale"));
+
     bool mAbsoluteScale{};
     FGuid mPendingParentGuid{};
     ReflectAccessor(mParent, GetParent, SetEditorParent, "Parent", EPropertyFlags::Edit | EPropertyFlags::Serialize | EPropertyFlags::Reference | EPropertyFlags::OwnerOnly, &SerializeParentProperty, ReflectEditor("Attachment", "Parent"), ReflectCondition(CanEditParent), ReflectFilter(CanSelectParent));
+
     TObjectRef<USceneComponent> mParent{};
     ReflectReadOnlyProperty(mChildren, "Children", EPropertyFlags::ReadOnly | EPropertyFlags::Reference);
+
     std::vector<TObjectRef<USceneComponent>> mChildren{};
 
     ReflectMembers();

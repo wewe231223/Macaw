@@ -77,14 +77,17 @@ void UWorld::ProcessPendingLifecycleChanges() {
                         Actor->PostActorCreated();
                     }
                 }
+
                 break;
             }
+
             case ELifecycleRequestType::FinishSpawningActor: {
                 AActor* Actor{static_cast<AActor*>(Request.mTarget)};
 
                 FinishSpawningActor(Actor, Request.mTransform);
                 break;
             }
+
             case ELifecycleRequestType::AddComponent: {
                 std::unique_ptr<UActorComponent> Owner{static_cast<UActorComponent*>(Request.mOwner.release())};
                 UActorComponent* Component{Owner.get()};
@@ -93,6 +96,7 @@ void UWorld::ProcessPendingLifecycleChanges() {
                 Actor->InstallComponent(std::move(Owner));
                 break;
             }
+
             case ELifecycleRequestType::RegisterComponent:
                 static_cast<UActorComponent*>(Request.mTarget)->RegisterComponent(this);
                 break;
@@ -105,12 +109,14 @@ void UWorld::ProcessPendingLifecycleChanges() {
                 Component->GetOwner()->OnComponentRegistered(*Component);
                 break;
             }
+
             case ELifecycleRequestType::DestroyActor: {
                 AActor* Actor{static_cast<AActor*>(Request.mTarget)};
 
                 DestroyActorInternal(Actor, Request.mReason);
                 break;
             }
+
             case ELifecycleRequestType::DestroyComponent: {
                 UActorComponent* Component{static_cast<UActorComponent*>(Request.mTarget)};
 
@@ -162,6 +168,7 @@ void UWorld::Initialize(EWorldType WorldType) {
 
 void UWorld::CleanupWorld() {
     mInput.Reset();
+
     if (mState.IsSet(EStateFlag::CleaningUp)) {
         return;
     }
@@ -230,6 +237,7 @@ void UWorld::BeginPlay() {
     }
 
     mTime.Reset();
+
     {
         const TScopedStateFlag BeginningPlay{mState, EStateFlag::BeginningPlay};
 
@@ -271,6 +279,7 @@ void UWorld::BeginPlay() {
 
 void UWorld::EndPlay(EEndPlayReason Reason) {
     mInput.Reset();
+
     if (mState.IsSet(EStateFlag::EndingPlay) || (!mState.IsSet(EStateFlag::HasBegunPlay) && !mState.IsSet(EStateFlag::BeginningPlay))) {
         return;
     }
@@ -353,6 +362,7 @@ bool UWorld::DestroyActorInternal(AActor* Actor, EEndPlayReason Reason) {
         if (Actor->RequestDestruction()) {
             mPendingLifecycleRequests.push_back({ELifecycleRequestType::DestroyActor, Actor, {}, {}, Reason});
         }
+
         return true;
     }
 
@@ -839,6 +849,7 @@ AActor* UWorld::SpawnActorDeferred(const UClass& Type, const FTransform& Transfo
     }
 
     Actor->SetActorTransform(Transform);
+
     if (!IsDeferringLifecycleChanges()) {
         Actor->PostActorCreated();
     }
@@ -857,6 +868,7 @@ bool UWorld::FinishSpawningActor(AActor* Actor, const FTransform& Transform) {
         }
 
         mPendingLifecycleRequests.push_back({ELifecycleRequestType::FinishSpawningActor, Actor, {}, Transform});
+
         return true;
     }
 

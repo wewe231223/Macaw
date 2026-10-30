@@ -2,6 +2,7 @@
  * @file UWorld.h
  * @brief 액터와 월드별 서브시스템 및 렌더 씬의 수명을 정의합니다. 에셋은 전역 FAssetRegistry에서 조회합니다.
  */
+
 #pragma once
 #include "CoreUObject/Reflection/ReflectionMacros.h"
 
@@ -79,6 +80,7 @@ private:
         explicit FLifecycleScope(UWorld& World);
         ~FLifecycleScope();
         FLifecycleScope(const FLifecycleScope&) = delete;
+
         FLifecycleScope& operator=(const FLifecycleScope&) = delete;
 
     private:

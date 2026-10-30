@@ -10,77 +10,170 @@
 #include "FSceneDrawContext.h"
 #include "RenderCore/FRenderStats.h"
 
-struct FSceneViewFamily;
-class FScene;
-struct FBox;
+namespace Engine {
+    struct FSceneViewFamily;
+    class UMaterial;
+}
 
-/**
- * @brief 뷰 프러스텀으로 프리미티브를 선별하여 장면 드로 호출을 제출합니다.
- * @ingroup Renderer
- */
-class FSceneRenderer {
-public:
-    /**
-     * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
-     */
-    ReflectTypes(FSceneRenderer);
+namespace Core {
+    struct FBox;
+}
 
-public:
-    /**
-     * @brief FSceneRenderer의 초기 상태와 전달받은 의존성을 구성합니다.
-     * @param[in] Family 장면, 출력 타깃과 카메라를 묶은 렌더 요청입니다.
-     * @param[in] Scene 연결하거나 렌더링할 장면입니다.
-     * @param[in] Context 월드 컨텍스트 또는 Direct3D 11 컨텍스트입니다.
-     * @param[in,out] Stats 렌더링 결과를 누적할 통계입니다.
-     */
-    FSceneRenderer(const FSceneViewFamily& Family, const FScene& Scene, const FSceneDrawContext& Context, FRenderStats& Stats);
+namespace Renderer {
 
-public:
-    /**
-     * @brief 이 타입의 정적 구조체 메타데이터를 반환합니다.
-     * @return 등록된 타입 메타데이터의 비소유 주소입니다.
-     */
-    ReflectStruct(FSceneRenderer);
+    class FScene;
+    class FMaterialPipeline;
+    struct FScenePrimitive;
 
     /**
-     * @brief 가시 프리미티브를 선별하여 드로 호출을 제출하고 통계를 갱신합니다.
+     * @brief 파이프라인·머티리얼·메시·객체 상수 버퍼의 비소유 드로 묶음입니다.
      */
-    void Render();
+    struct FMeshDrawCommand {
+    public:
+        /**
+         * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
+         */
+        ReflectTypes(FMeshDrawCommand);
 
-private:
-    /**
-     * @brief 경계 상자가 뷰 프러스텀과 겹치는지 검사합니다.
-     * @param[in] Bounds 프리미티브의 월드 또는 로컬 경계 상자입니다.
-     * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
-     */
-    bool IsVisible(const FBox& Bounds) const;
+    public:
+        /**
+         * @brief 전달된 설정과 기본값으로 FMeshDrawCommand 객체를 생성합니다.
+         * @param[in] Pipeline 드로에 사용할 GPU 파이프라인입니다.
+         * @param[in] Material 조회할 머티리얼 설정입니다.
+         * @param[in] Mesh 드로에 사용할 정적 메시입니다.
+         * @param[in] Primitive 월드 행렬과 UV가 저장된 렌더 프리미티브입니다.
+         * @param[in] FirstIndex SubMesh의 첫 인덱스 오프셋입니다.
+         * @param[in] IndexCount SubMesh의 삼각형 인덱스 개수입니다.
+         */
+        FMeshDrawCommand(Renderer::FMaterialPipeline* Pipeline, Engine::UMaterial* Material, Engine::UStaticMesh* Mesh, const Renderer::FScenePrimitive* Primitive, Core::Uint32 FirstIndex, Core::Uint32 IndexCount);
 
-private:
-    /**
-     * @brief 생성된 프로퍼티 등록 함수와 빌더 접근 권한입니다.
-     */
-    ReflectMembers();
+    public:
+        /**
+         * @brief 이 타입의 정적 리플렉션 메타데이터를 반환합니다.
+         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
+         */
+        ReflectStruct(FMeshDrawCommand);
 
-private:
-    /**
-     * @brief 렌더링할 뷰 패밀리의 비소유 주소입니다.
-     */
-    const FSceneViewFamily* mFamily{};
-    ReflectProperty(mFamily, "Family", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
-    /**
-     * @brief 연결된 렌더 장면입니다.
-     */
-    const FScene* mScene{};
-    ReflectProperty(mScene, "Scene", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    private:
+        /**
+         * @brief 생성된 멤버 등록 함수와 리플렉션 빌더의 접근 권한입니다.
+         */
+        ReflectMembers();
+
+        /**
+         * @brief 렌더러가 정렬한 드로의 구간과 GPU 자원을 읽도록 허용합니다.
+         */
+        friend class FSceneRenderer;
+
+    private:
+        /**
+         * @brief 이번 메시 드로에 사용할 머티리얼 파이프라인입니다.
+         */
+        Renderer::FMaterialPipeline* mPipeline{};
+        ReflectProperty(mPipeline, "Pipeline", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+
+        /**
+         * @brief 연결된 머티리얼의 비소유 주소입니다.
+         */
+        Engine::UMaterial* mMaterial{};
+        ReflectProperty(mMaterial, "Material", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+
+        /**
+         * @brief 이번 드로에 사용할 정적 메시입니다.
+         */
+        Engine::UStaticMesh* mMesh{};
+        ReflectProperty(mMesh, "Mesh", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+
+        /**
+         * @brief 객체 행렬과 UV 변환을 가진 렌더 프리미티브입니다.
+         */
+        const Renderer::FScenePrimitive* mPrimitive{};
+        ReflectProperty(mPrimitive, "Primitive", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+
+        /**
+         * @brief 이 드로의 첫 인덱스 오프셋입니다.
+         */
+        Core::Uint32 mFirstIndex{};
+        ReflectProperty(mFirstIndex, "FirstIndex", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+
+        /**
+         * @brief 이 드로의 삼각형 인덱스 개수입니다.
+         */
+        Core::Uint32 mIndexCount{};
+        ReflectProperty(mIndexCount, "IndexCount", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+    };
 
     /**
-     * @brief 드로 제출에 필요한 파이프라인 리소스 묶음입니다.
+     * @brief 뷰 프러스텀으로 프리미티브를 선별하여 장면 드로 호출을 제출합니다.
+     * @ingroup Renderer
      */
-    FSceneDrawContext mDrawContext{};
-    ReflectProperty(mDrawContext, "DrawContext", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
-    /**
-     * @brief 프레임 렌더링 통계입니다.
-     */
-    FRenderStats* mStats{};
-    ReflectProperty(mStats, "Stats", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
-};
+    class FSceneRenderer {
+    public:
+        /**
+         * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
+         */
+        ReflectTypes(FSceneRenderer);
+
+    public:
+        /**
+         * @brief FSceneRenderer의 초기 상태와 전달받은 의존성을 구성합니다.
+         * @param[in] Family 장면, 출력 타깃과 카메라를 묶은 렌더 요청입니다.
+         * @param[in] Scene 연결하거나 렌더링할 장면입니다.
+         * @param[in] Context 그리기에 사용할 공유 GPU 자원 묶음입니다.
+         * @param[in,out] Stats 렌더링 결과를 누적할 통계입니다.
+         */
+        FSceneRenderer(const Engine::FSceneViewFamily& Family, const Renderer::FScene* Scene, const Renderer::FSceneDrawContext& Context, RenderCore::FRenderStats& Stats);
+
+    public:
+        /**
+         * @brief 이 타입의 정적 구조체 메타데이터를 반환합니다.
+         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
+         */
+        ReflectStruct(FSceneRenderer);
+
+        /**
+         * @brief 가시 프리미티브를 선별하여 드로 호출을 제출하고 통계를 갱신합니다.
+         */
+        void Render();
+
+    private:
+        /**
+         * @brief 경계 상자가 뷰 프러스텀과 겹치는지 검사합니다.
+         * @param[in] Bounds 검사할 월드 경계 상자입니다.
+         * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
+         */
+        bool IsVisible(const Core::FBox& Bounds) const;
+
+    private:
+        /**
+         * @brief 생성된 프로퍼티 등록 함수와 빌더 접근 권한입니다.
+         */
+        ReflectMembers();
+
+    private:
+        /**
+         * @brief 렌더링할 뷰 패밀리의 비소유 주소입니다.
+         */
+        const Engine::FSceneViewFamily* mFamily{};
+        ReflectProperty(mFamily, "Family", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+
+        /**
+         * @brief 연결된 렌더 장면입니다.
+         */
+        const Renderer::FScene* mScene{};
+        ReflectProperty(mScene, "Scene", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+
+        /**
+         * @brief 드로 제출에 필요한 파이프라인 리소스 묶음입니다.
+         */
+        Renderer::FSceneDrawContext mDrawContext{};
+        ReflectProperty(mDrawContext, "DrawContext", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+
+        /**
+         * @brief 프레임 렌더링 통계입니다.
+         */
+        RenderCore::FRenderStats* mStats{};
+        ReflectProperty(mStats, "Stats", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+    };
+
+}

@@ -12,6 +12,7 @@ public:
 
 public:
     ReflectClass(APointLightActor);
+
     UPointLightComponent* GetLightComponent() const;
 
 private:

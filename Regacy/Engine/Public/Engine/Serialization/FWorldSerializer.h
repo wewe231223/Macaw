@@ -2,6 +2,7 @@
  * @file FWorldSerializer.h
  * @brief 월드 액터와 컴포넌트의 저장, 단계별 로드 검증, GUID 재매핑과 액터 복제를 제공합니다.
  */
+
 #pragma once
 
 #include "Core/Common.h"
@@ -27,6 +28,7 @@ private:
          * @brief 저장된 객체의 GUID 또는 복제 시 재매핑된 GUID입니다.
          */
         FGuid mGuid{};
+
         /**
          * @brief 객체를 생성할 등록 리플렉션 클래스 이름입니다.
          */
@@ -39,6 +41,7 @@ private:
          * @brief 액터의 GUID와 클래스 정보입니다.
          */
         FObjectRecord mObject{};
+
         /**
          * @brief 액터에 속한 컴포넌트의 GUID와 클래스 목록입니다.
          */
@@ -55,14 +58,17 @@ private:
          * @param World 로딩 상태를 설정할 월드입니다.
          */
         explicit FLoadScope(UWorld& World);
+
         /**
          * @brief 로딩 상태를 해제하고 액터 Tick을 갱신한 뒤 이전에 플레이 중이었으면 다시 시작합니다.
          */
         ~FLoadScope();
+
         /**
          * @brief 월드 로드 범위의 중복 복원을 방지하기 위해 복사 생성을 금지합니다.
          */
         FLoadScope(const FLoadScope&) = delete;
+
         /**
          * @brief 월드 로드 범위의 복사 대입을 금지합니다.
          */
@@ -73,6 +79,7 @@ private:
          * @brief 로딩 상태와 플레이 상태를 관리할 월드 참조입니다.
          */
         UWorld& mWorld;
+
         /**
          * @brief 범위 시작 전에 월드가 플레이 중이었는지 기록합니다.
          */
@@ -90,14 +97,17 @@ private:
          * @param Remapping 범위 동안 유효한 비소유 재매핑 테이블입니다. nullptr를 허용합니다.
          */
         FObjectGuidScope(FArchive& Archive, const TMap<FGuid, FGuid>* Remapping);
+
         /**
          * @brief 아카이브의 이전 GUID 재매핑 테이블을 복원합니다.
          */
         ~FObjectGuidScope();
+
         /**
          * @brief GUID 설정 범위의 중복 복원을 방지하기 위해 복사 생성을 금지합니다.
          */
         FObjectGuidScope(const FObjectGuidScope&) = delete;
+
         /**
          * @brief GUID 설정 범위의 복사 대입을 금지합니다.
          */
@@ -108,6 +118,7 @@ private:
          * @brief GUID 재매핑 설정을 관리하는 아카이브 참조입니다.
          */
         FArchive& mArchive;
+
         /**
          * @brief 범위 종료 시 복원할 이전 비소유 재매핑 테이블입니다.
          */
@@ -121,6 +132,7 @@ public:
      * @return 초기화되어 있고 IsBusy가 false이면 true입니다.
      */
     static bool CanSerialize(const UWorld& World);
+
     /**
      * @brief 생성이 완료되고 파괴 중이 아닌 액터를 아카이브에 저장합니다.
      * @param World 직렬화 가능한 월드입니다.
@@ -129,6 +141,7 @@ public:
      * @note 지연 액터 삭제를 먼저 처리하고 아카이브의 에셋 해석기를 월드 레지스트리로 설정합니다.
      */
     static bool Save(UWorld& World, FArchive& Archive);
+
     /**
      * @brief 로드 범위에서 객체 정보를 검증하고 액터를 생성·로드·설치합니다.
      * @param World 직렬화 가능한 대상 월드입니다.
@@ -137,6 +150,7 @@ public:
      * @note 설치 전에는 임시 객체로 로드합니다. 설치 단계 실패 시 기존 액터를 복원하지 않으며 월드가 비워질 수 있습니다.
      */
     static bool Load(UWorld& World, FArchive& Archive);
+
     /**
      * @brief 선택 액터와 컴포넌트를 새 GUID로 복제해 같은 월드에 추가합니다.
      * @param World 직렬화 가능한 대상 월드입니다.
@@ -151,6 +165,7 @@ private:
      * @brief 씬 파일 검증 후 내부 로드 범위와 로드 단계를 사용할 수 있게 합니다.
      */
     friend class FSceneSerializer;
+
     /**
      * @brief 원본 월드를 전달하는 내부 복제 로드 경로에 접근할 수 있게 합니다.
      */
@@ -164,6 +179,7 @@ private:
      * @pre 호출자가 월드의 로드 범위와 진입 상태를 관리해야 합니다.
      */
     static bool LoadInternal(UWorld& World, FArchive& Archive, const UWorld* SourceWorld = nullptr);
+
     /**
      * @brief 객체의 GUID와 타입 이름을 직렬화하고 식별 정보 형식을 검사합니다.
      * @param Archive 사용할 아카이브입니다.
@@ -171,6 +187,7 @@ private:
      * @return 아카이브 오류가 없고 GUID와 타입 이름이 유효하면 true입니다.
      */
     static bool SerializeObjectRecord(FArchive& Archive, FObjectRecord& Record, Uint32 FormatVersion);
+
     /**
      * @brief 액터와 각 컴포넌트의 식별 테이블을 저장하거나 읽습니다.
      * @param Archive 이름 기반이면 Actors, 순차 형식이면 ObjectTable 범위를 사용할 아카이브입니다.
@@ -178,6 +195,7 @@ private:
      * @return 모든 객체 레코드와 배열 범위를 처리하고 오류가 없으면 true입니다.
      */
     static bool SerializeObjectTable(FArchive& Archive, TArray<FActorRecord>& Records, Uint32 FormatVersion);
+
     /**
      * @brief GUID 중복, 생성 가능한 클래스와 기반 타입 호환성을 검사합니다.
      * @param World GUID 재사용을 허용할 기존 월드입니다.
@@ -186,6 +204,7 @@ private:
      * @return 모든 레코드가 유효하면 true입니다. 기본 정책에서는 대상 월드 밖의 등록 객체와 GUID가 충돌하면 false입니다.
      */
     static bool ValidateObjectTable(const UWorld& World, const TArray<FActorRecord>& Records, bool AllowExistingGuids = false);
+
     /**
      * @brief 원본 월드·레벨 참조를 대상에 연결하고 액터·컴포넌트에 새 GUID를 생성합니다.
      * @param SourceWorld 원본 월드입니다.
@@ -196,12 +215,14 @@ private:
      * @note 실패 시 이미 생성한 레코드와 매핑을 되돌리지 않습니다.
      */
     static bool RemapObjectTable(const UWorld& SourceWorld, const UWorld& World, TArray<FActorRecord>& Records, TMap<FGuid, FGuid>& Remapping);
+
     /**
      * @param Record 생성할 액터와 컴포넌트의 검증된 클래스·GUID 정보입니다.
      * @pre 각 클래스가 등록되어 있고 액터·컴포넌트 기반 타입과 호환되어야 합니다.
      * @return 생성 액터의 소유권입니다. 객체 생성이나 컴포넌트 GUID 복원이 실패하면 nullptr입니다.
      */
     static std::unique_ptr<AActor> CreateAndLoadActor(const FActorRecord& Record, FArchive& Archive);
+
     /**
      * @param Actors 로드한 유효한 액터 목록입니다.
      * @param Records 대응하는 식별 레코드 목록입니다.
@@ -209,6 +230,7 @@ private:
      * @return 모든 액터와 컴포넌트 정보가 레코드에 일치하고 이름이 유효하면 true입니다.
      */
     static bool ValidateLoadedActors(const TArray<std::unique_ptr<AActor>>& Actors, const TArray<FActorRecord>& Records);
+
     /**
      * @brief 기존 액터를 교체하고 등록, 참조 해석, 초기화와 피킹 구조 갱신을 수행합니다.
      * @param World 액터를 설치할 월드입니다.

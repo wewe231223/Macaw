@@ -239,6 +239,7 @@ void AActor::DispatchBeginPlay() {
 
     mState.Set(EStateFlag::HasBegunPlay);
     mLifecyclePhase = ELifecyclePhase::BeginningPlay;
+
     const UWorld::FLifecycleScope Lifecycle{*mWorld};
 
     for (const std::unique_ptr<UActorComponent>& Component : mComponents) {

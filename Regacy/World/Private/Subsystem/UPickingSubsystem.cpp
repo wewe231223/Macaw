@@ -65,6 +65,7 @@ FWorldRaycastAccelerationStructure::FProxy FWorldRaycastAccelerationStructure::M
 
         LocalBox.GetCorners(Corners);
         DirectX::BoundingBox::CreateFromPoints(Proxy.mBox, 8, Corners, sizeof(Corners[0]));
+
         const FMatrix WorldMatrix{Component->GetComponentToWorld()};
 
         for (DirectX::XMFLOAT3& Corner : Corners) {
@@ -77,6 +78,7 @@ FWorldRaycastAccelerationStructure::FProxy FWorldRaycastAccelerationStructure::M
 
         if (Proxy.mKind == EProxyKind::Mesh && Proxy.mMesh.GetMesh() != nullptr) {
             Proxy.mMesh.GetMesh()->GetBoundingBox().GetCorners(Corners);
+
             const auto Matrix{Component->GetComponentToWorld().ToSimpleMath()};
 
             for (DirectX::XMFLOAT3& Corner : Corners) {
@@ -211,6 +213,7 @@ bool FWorldRaycastAccelerationStructure::RaycastProxy(const FProxy& Proxy, const
     }
 
     OutHit.mPosition = FVector3{Ray.position} + FVector3{Ray.direction} * OutHit.mDistance;
+
     return true;
 }
 
@@ -476,6 +479,7 @@ Uint32 FWorldRaycastAccelerationStructure::MakeChild(TArray<FNode>& BuildNodes, 
 
 bool FWorldRaycastAccelerationStructure::Raycast(const FRay& Ray, const FWorldRaycastQuery& Query, FWorldRaycastHit& OutHit, EPickingTarget Target, const FMatrix* CameraWorld) const {
     OutHit = {};
+
     FRay WorldRay{};
 
     if (!Query.PrepareRay(Ray, WorldRay)) {
@@ -505,6 +509,7 @@ bool FWorldRaycastAccelerationStructure::Raycast(const FRay& Ray, const FWorldRa
         ClosestDistance = Hit.mDistance;
         Hit.mComponent = Proxy.mComponent;
         OutHit = Hit;
+
         return true;
     });
 
@@ -536,6 +541,7 @@ void FWorldRaycastAccelerationStructure::WarmupRaycast() const {
 
             BVH8::RaycastTrianglePackets(&Node, BVH8::MakeReference(0, 8), BVH8::FRayData{Ray}, Ray, Distance, &Packet, Reverse);
         }
+
     const FMatrix Camera{FMatrix::Identity};
     const size_t Count{(std::min)(mLeaves.size(), size_t{16})};
 

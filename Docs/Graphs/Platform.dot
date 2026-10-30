@@ -1,0 +1,13 @@
+digraph Platform {
+    graph [rankdir=LR, bgcolor="transparent", fontname="Malgun Gothic", nodesep=0.4, ranksep=0.7];
+    node [shape=box, style="rounded,filled", fillcolor="#e8f3ff", color="#8eb6d9", fontname="Malgun Gothic", fontsize=11, margin="0.16,0.12"];
+    edge [color="#52677d", fontname="Malgun Gothic", fontsize=9];
+    Platform [label="FWindowsApplication\n창 수명·메시지 펌프"];
+    Handler [label="FMessageHandler\n중첩 별칭 · 메시지 콜백"];
+    Window [label="HWND\nWin32 · 네이티브 창 핸들", fillcolor="#f0f2f5", color="#b9c2cc"];
+    Ui [label="FEditorUI\nEditor · ImGui 메시지 연결", fillcolor="#f0f2f5", color="#b9c2cc"];
+    Platform -> Window [label="소유 · 창 생성·파괴"];
+    Platform -> Handler [label="소유 · 콜백 값"];
+    Ui -> Platform [style=dashed, label="사용 · 메시지 콜백 설정"];
+    Handler -> Window [style=dashed, label="사용 · 메시지 대상 핸들"];
+}

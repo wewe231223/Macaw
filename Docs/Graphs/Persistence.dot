@@ -1,0 +1,35 @@
+digraph Persistence {
+    graph [rankdir=LR, bgcolor="transparent", fontname="Malgun Gothic", nodesep=0.4, ranksep=0.45, pad=0.2];
+    node [shape=box, style="rounded,filled", fillcolor="#e7f1fb", color="#8ba8c3", fontname="Malgun Gothic", fontsize=11, margin="0.16,0.10"];
+    edge [color="#57718a", fontname="Malgun Gothic", fontsize=10, arrowsize=0.75];
+    Context [label="FEditorContext\n편집 대상 · 저장 경로", fillcolor="#f0f2f5"];
+    Serializer [label="FSceneSerializer\n장면 저장 · 로드"];
+    Archive [label="FJsonArchive\nJSON 입출력", fillcolor="#f0f2f5"];
+    Json [label="장면 JSON\n클래스 이름 · GUID · 프로퍼티", shape=note, fillcolor="#f0f2f5"];
+    Object [label="UObject::Serialize\n저장 대상 프로퍼티 순회", fillcolor="#f0f2f5"];
+    Metadata [label="UClass · FProperty\n타입 · 팩터리 · 속성 플래그", fillcolor="#f0f2f5"];
+    Reflection [label="GenerateReflection.lua\n리플렉션 매크로 → 등록 코드", fillcolor="#f0f2f5"];
+    Fresh [label="새 FWorldContext\n로드 결과 / 복제본"];
+    Engine [label="UEngine\n새 컨텍스트 인수"];
+    World [label="원본 FWorldContext\n편집 월드"];
+    Cloner [label="FWorldCloner\n소유 객체 그래프 복제"];
+    Mapping [label="FObjectDuplicationContext\n원본 ↔ 복제본 비소유 대응표", fillcolor="#f0f2f5"];
+    { rank=same; Context; Reflection; Cloner; }
+    { rank=same; Serializer; World; }
+    { rank=same; Archive; Object; Fresh; Mapping; }
+    { rank=same; Json; Metadata; Engine; }
+    Context -> Serializer [label="저장 / 로드 요청", style=dashed];
+    Serializer -> Archive [label="사용", style=dashed];
+    Archive -> Json [label="쓰기 / 읽기", dir=both];
+    Serializer -> Object [label="직렬화 호출", style=dashed];
+    Object -> Metadata [label="메타데이터 조회", style=dashed];
+    Reflection -> Metadata [label="생성 코드가 타입 · 프로퍼티 등록", style=dashed];
+    Serializer -> Metadata [label="로드: 클래스 검증 · 생성", style=dashed];
+    Serializer -> Fresh [label="로드: 소유 관계 · GUID 검증", style=dashed];
+    Fresh -> Engine [label="검증 성공 시 등록", style=dashed];
+    Context -> Engine [label="로드: 편집 월드 교체", style=dashed, constraint=false];
+    Engine -> World [label="소유", constraint=false];
+    Cloner -> World [label="원본 참조", style=dashed];
+    Cloner -> Fresh [label="복제: 새 객체 · 독립 실행 상태", style=dashed];
+    Cloner -> Mapping [label="대응표 구성 · PostDuplicate", style=dashed];
+}

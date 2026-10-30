@@ -2,6 +2,7 @@
  * @file TSubsystemCollection.h
  * @brief 소유 객체에 연결된 서브시스템의 생성, 조회와 역순 종료를 관리합니다.
  */
+
 #pragma once
 #include "CoreUObject/Reflection/NewObject.h"
 #include "CoreUObject/Reflection/Cast.h"
@@ -24,22 +25,27 @@ public:
      * @brief 소유 객체와 서브시스템이 없는 컬렉션을 생성합니다.
      */
     TSubsystemCollection() = default;
+
     /**
      * @brief Deinitialize로 서브시스템을 역순 종료하고 해제합니다.
      */
     ~TSubsystemCollection();
+
     /**
      * @brief 서브시스템 소유권 복사를 금지합니다.
      */
     TSubsystemCollection(const TSubsystemCollection&) = delete;
+
     /**
      * @brief 서브시스템 소유권의 복사 대입을 금지합니다.
      */
     TSubsystemCollection& operator=(const TSubsystemCollection&) = delete;
+
     /**
      * @brief 소유 객체 연결을 유지하기 위해 이동 생성을 금지합니다.
      */
     TSubsystemCollection(TSubsystemCollection&&) = delete;
+
     /**
      * @brief 소유 객체 연결을 유지하기 위해 이동 대입을 금지합니다.
      */
@@ -52,6 +58,7 @@ public:
      * @note 다른 소유 객체가 이미 설정되었으면 Critical 오류를 보고합니다.
      */
     void Initialize(TOwner& Owner);
+
     /**
      * @brief 추가 역순으로 종료, 등록 해제와 객체 삭제를 수행하고 소유 객체를 비웁니다.
      * @note 종료 중 재진입하면 아무 작업도 하지 않습니다.
@@ -68,6 +75,7 @@ public:
     template <typename T>
         requires std::is_base_of_v<TSubsystem, T>
     T& Add();
+
     /**
      * @brief 추가 순서대로 T와 호환되는 첫 서브시스템을 찾습니다.
      * @tparam T TSubsystem 파생 타입입니다.
@@ -82,10 +90,12 @@ private:
      * @brief 서브시스템의 Outer로 사용하는 비소유 객체 포인터입니다.
      */
     TOwner* mOwner{};
+
     /**
      * @brief 추가 순서로 서브시스템의 소유권을 저장한 목록입니다.
      */
     std::vector<std::unique_ptr<TSubsystem>> mSubsystems{};
+
     /**
      * @brief 종료 재진입과 종료 중 추가를 차단하는 상태입니다.
      */

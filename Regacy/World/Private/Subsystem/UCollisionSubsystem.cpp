@@ -19,6 +19,7 @@ void UCollisionSubsystem::UnregisterComponent(UCollisionComponent* Component) {
 
 bool UCollisionSubsystem::Raycast(const FRay& Ray, const FWorldRaycastQuery& Query, FWorldRaycastHit& OutHit) const {
     OutHit = {};
+
     FRay WorldRay{};
 
     if (!Query.PrepareRay(Ray, WorldRay)) {

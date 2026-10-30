@@ -58,6 +58,7 @@ bool UMeshComponent::RaycastMesh(const FRay& Ray, FWorldRaycastHit& OutHit, floa
     }
 
     OutHit.mComponent.Set(const_cast<UMeshComponent*>(this));
+
     return true;
 }
 

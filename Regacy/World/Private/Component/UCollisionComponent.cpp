@@ -33,6 +33,7 @@ void UCollisionComponent::OnUnregister() {
 
 bool UCollisionComponent::Raycast(const FRay& Ray, FWorldRaycastHit& OutHit, float MaxDistance) const {
     OutHit = {};
+
     FRay WorldRay{};
     const FWorldRaycastQuery Query{MaxDistance};
 
@@ -47,6 +48,7 @@ bool UCollisionComponent::Raycast(const FRay& Ray, FWorldRaycastHit& OutHit, flo
     }
 
     OutHit.mComponent.Set(const_cast<UCollisionComponent*>(this));
+
     return true;
 }
 

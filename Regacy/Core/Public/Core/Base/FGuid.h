@@ -2,6 +2,7 @@
  * @file FGuid.h
  * @brief 128비트 GUID의 생성, 문자열 변환, 파싱, 비교 및 해시 기능을 정의한다.
  */
+
 #pragma once
 
 #include "Core/Common.h"
@@ -13,10 +14,13 @@
 struct FGuid {
     /** @brief GUID를 구성하는 첫 번째 32비트 블록. */
     Uint32 mA{0};
+
     /** @brief GUID를 구성하는 두 번째 32비트 블록. */
     Uint32 mB{0};
+
     /** @brief GUID를 구성하는 세 번째 32비트 블록. */
     Uint32 mC{0};
+
     /** @brief GUID를 구성하는 네 번째 32비트 블록. */
     Uint32 mD{0};
 
@@ -25,12 +29,14 @@ struct FGuid {
      * @return 생성된 GUID. 생성에 실패하면 모든 블록이 0인 유효하지 않은 GUID.
      */
     static FGuid NewGuid();
+
     /**
      * @brief GUID를 대문자 16진수와 하이픈으로 표현한다.
      * @return 8-4-4-4-12자리 형식의 36바이트 문자열.
      * @details 각 블록을 mA, mB, mC, mD 순서로 표현하며 중괄호는 포함하지 않는다.
      */
     FString ToString() const;
+
     /**
      * @brief 문자열에서 128비트 GUID를 읽어 현재 값을 갱신한다.
      * @param GuidString 파싱할 문자열. 하이픈은 건너뛰며 16진수 영문자의 대소문자는 구분하지 않는다.

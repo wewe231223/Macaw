@@ -1,0 +1,26 @@
+digraph Renderer {
+    graph [rankdir=LR, bgcolor="transparent", fontname="Malgun Gothic", nodesep=0.35, ranksep=0.65, pad=0.2];
+    node [shape=box, style="rounded,filled", fillcolor="#e7f1fb", color="#8ba8c3", fontname="Malgun Gothic", fontsize=11, margin="0.16,0.10"];
+    edge [color="#57718a", fontname="Malgun Gothic", fontsize=10, arrowsize=0.75];
+    Module [label="IRendererModule\n프레임 제출 계약", fillcolor="#f0f2f5"];
+    Renderer [label="FRenderer\n장치 · 파이프라인 · Present"];
+    Mesh [label="FMeshResource\nGPU 정점 · 인덱스 버퍼"];
+    Scene [label="FScene\n프록시 · 객체 상수 버퍼"];
+    SceneInterface [label="FSceneInterface\n장면 갱신 계약", fillcolor="#f0f2f5"];
+    Proxy [label="FPrimitiveSceneProxy\n메시 · 행렬 · 경계 상자", fillcolor="#f0f2f5"];
+    Target [label="FDXRenderTarget\n컬러 · 깊이 버퍼"];
+    TargetInterface [label="FRenderTarget\n출력 타깃 계약", fillcolor="#f0f2f5"];
+    SceneRenderer [label="FSceneRenderer\n프러스텀 선별 · 드로 호출"];
+    Family [label="FSceneViewFamily\n장면 · 카메라 · 출력 타깃", fillcolor="#f0f2f5"];
+    Renderer -> Module [label="상속", arrowhead=empty];
+    Renderer -> Mesh [label="소유"];
+    Renderer -> SceneRenderer [label="프레임마다 생성 · 호출", style=dashed];
+    Renderer -> Scene [label="생성 후 월드로 소유권 이전", style=dashed];
+    Renderer -> Target [label="생성 후 뷰포트로 소유권 이전", style=dashed];
+    Scene -> SceneInterface [label="상속", arrowhead=empty];
+    Scene -> Proxy [label="복사본 소유"];
+    Target -> TargetInterface [label="상속", arrowhead=empty];
+    SceneRenderer -> Family [label="참조", style=dashed];
+    SceneRenderer -> Scene [label="참조", style=dashed];
+    SceneRenderer -> Mesh [label="참조", style=dashed];
+}

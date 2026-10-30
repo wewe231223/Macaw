@@ -6,24 +6,28 @@
 
 #pragma once
 
-/**
- * @brief null 및 리플렉션 타입을 검사한 뒤 요청한 UObject 파생 포인터로 변환합니다.
- */
-template <typename T>
-T* Cast(UObject* Object) {
-    static_assert(std::is_base_of_v<UObject, T>);
-    static_assert(std::is_same_v<typename T::ReflectionOwner, T>);
+namespace CoreUObject {
 
-    return Object != nullptr && Object->IsA(T::StaticClass()) ? static_cast<T*>(Object) : nullptr;
-}
+    /**
+     * @brief null 및 리플렉션 타입을 검사한 뒤 요청한 UObject 파생 포인터로 변환합니다.
+     */
+    template <typename T>
+    T* Cast(CoreUObject::UObject* Object) {
+        static_assert(std::is_base_of_v<CoreUObject::UObject, T>);
+        static_assert(std::is_same_v<typename T::ReflectionOwner, T>);
 
-/**
- * @brief null 및 리플렉션 타입을 검사한 뒤 요청한 UObject 파생 포인터로 변환합니다.
- */
-template <typename T>
-const T* Cast(const UObject* Object) {
-    static_assert(std::is_base_of_v<UObject, T>);
-    static_assert(std::is_same_v<typename T::ReflectionOwner, T>);
+        return Object != nullptr && Object->IsA(T::StaticClass()) ? static_cast<T*>(Object) : nullptr;
+    }
 
-    return Object != nullptr && Object->IsA(T::StaticClass()) ? static_cast<const T*>(Object) : nullptr;
+    /**
+     * @brief null 및 리플렉션 타입을 검사한 뒤 요청한 UObject 파생 포인터로 변환합니다.
+     */
+    template <typename T>
+    const T* Cast(const CoreUObject::UObject* Object) {
+        static_assert(std::is_base_of_v<CoreUObject::UObject, T>);
+        static_assert(std::is_same_v<typename T::ReflectionOwner, T>);
+
+        return Object != nullptr && Object->IsA(T::StaticClass()) ? static_cast<const T*>(Object) : nullptr;
+    }
+
 }

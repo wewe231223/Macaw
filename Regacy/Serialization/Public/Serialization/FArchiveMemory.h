@@ -2,6 +2,7 @@
  * @file FArchiveMemory.h
  * @brief 바이트 배열을 사용하는 순차 이진 저장·로드 아카이브를 제공합니다.
  */
+
 #pragma once
 #include "Core/Archive/FArchive.h"
 
@@ -44,6 +45,7 @@ public:
      * @note 로드한 바이트가 1보다 크면 오류를 설정하고 기존 값을 유지합니다.
      */
     virtual void Serialize(std::string_view Name, bool& Value) override;
+
     /**
      * @brief Uint8 값의 네이티브 저장 표현을 그대로 복사합니다.
      * @param Name 형식에서 사용하지 않는 필드 이름입니다.
@@ -51,6 +53,7 @@ public:
      * @note sizeof(Uint8) 바이트를 기록하며 바이트 순서 변환이나 개별 성분 변환을 수행하지 않습니다.
      */
     virtual void Serialize(std::string_view Name, Uint8& Value) override;
+
     /**
      * @brief Int32 값의 네이티브 저장 표현을 그대로 복사합니다.
      * @param Name 형식에서 사용하지 않는 필드 이름입니다.
@@ -58,6 +61,7 @@ public:
      * @note sizeof(Int32) 바이트를 기록하며 바이트 순서 변환이나 개별 성분 변환을 수행하지 않습니다.
      */
     virtual void Serialize(std::string_view Name, Int32& Value) override;
+
     /**
      * @brief Uint32 값의 네이티브 저장 표현을 그대로 복사합니다.
      * @param Name 형식에서 사용하지 않는 필드 이름입니다.
@@ -65,6 +69,7 @@ public:
      * @note sizeof(Uint32) 바이트를 기록하며 바이트 순서 변환이나 개별 성분 변환을 수행하지 않습니다.
      */
     virtual void Serialize(std::string_view Name, Uint32& Value) override;
+
     /**
      * @brief Int64 값의 네이티브 저장 표현을 그대로 복사합니다.
      * @param Name 형식에서 사용하지 않는 필드 이름입니다.
@@ -72,6 +77,7 @@ public:
      * @note sizeof(Int64) 바이트를 기록하며 바이트 순서 변환이나 개별 성분 변환을 수행하지 않습니다.
      */
     virtual void Serialize(std::string_view Name, Int64& Value) override;
+
     /**
      * @brief Uint64 값의 네이티브 저장 표현을 그대로 복사합니다.
      * @param Name 형식에서 사용하지 않는 필드 이름입니다.
@@ -79,6 +85,7 @@ public:
      * @note sizeof(Uint64) 바이트를 기록하며 바이트 순서 변환이나 개별 성분 변환을 수행하지 않습니다.
      */
     virtual void Serialize(std::string_view Name, Uint64& Value) override;
+
     /**
      * @brief Float32 값의 네이티브 저장 표현을 그대로 복사합니다.
      * @param Name 형식에서 사용하지 않는 필드 이름입니다.
@@ -86,6 +93,7 @@ public:
      * @note sizeof(Float32) 바이트를 기록하며 바이트 순서 변환이나 개별 성분 변환을 수행하지 않습니다.
      */
     virtual void Serialize(std::string_view Name, Float32& Value) override;
+
     /**
      * @brief Float64 값의 네이티브 저장 표현을 그대로 복사합니다.
      * @param Name 형식에서 사용하지 않는 필드 이름입니다.
@@ -102,6 +110,7 @@ public:
      * @note 길이가 Uint32 범위를 넘거나 입력 바이트가 부족하면 오류를 설정합니다.
      */
     virtual void Serialize(std::string_view Name, FString& Value) override;
+
     /**
      * @brief FGuid 값의 네이티브 저장 표현을 그대로 복사합니다.
      * @param Name 형식에서 사용하지 않는 필드 이름입니다.
@@ -118,6 +127,7 @@ public:
      * @note sizeof(FVector2D) 바이트를 기록하며 바이트 순서 변환이나 개별 성분 변환을 수행하지 않습니다.
      */
     virtual void Serialize(std::string_view Name, FVector2D& Value) override;
+
     /**
      * @brief FVector3 값의 네이티브 저장 표현을 그대로 복사합니다.
      * @param Name 형식에서 사용하지 않는 필드 이름입니다.
@@ -125,6 +135,7 @@ public:
      * @note sizeof(FVector3) 바이트를 기록하며 바이트 순서 변환이나 개별 성분 변환을 수행하지 않습니다.
      */
     virtual void Serialize(std::string_view Name, FVector3& Value) override;
+
     /**
      * @brief FVector4 값의 네이티브 저장 표현을 그대로 복사합니다.
      * @param Name 형식에서 사용하지 않는 필드 이름입니다.
@@ -132,6 +143,7 @@ public:
      * @note sizeof(FVector4) 바이트를 기록하며 바이트 순서 변환이나 개별 성분 변환을 수행하지 않습니다.
      */
     virtual void Serialize(std::string_view Name, FVector4& Value) override;
+
     /**
      * @brief FQuat 값의 네이티브 저장 표현을 그대로 복사합니다.
      * @param Name 형식에서 사용하지 않는 필드 이름입니다.
@@ -139,6 +151,7 @@ public:
      * @note sizeof(FQuat) 바이트를 기록하며 바이트 순서 변환이나 개별 성분 변환을 수행하지 않습니다.
      */
     virtual void Serialize(std::string_view Name, FQuat& Value) override;
+
     /**
      * @brief FMatrix 값의 네이티브 저장 표현을 그대로 복사합니다.
      * @param Name 형식에서 사용하지 않는 필드 이름입니다.
@@ -153,10 +166,12 @@ public:
      * @param Name 사용하지 않는 객체 스코프 이름입니다.
      */
     virtual void BeginObjectScope(std::string_view Name) override;
+
     /**
      * @brief 순차 이진 형식에서는 객체 스코프 종료를 기록하지 않습니다.
      */
     virtual void EndObjectScope() override;
+
     /**
      * @brief 배열 원소 수를 Uint32로 기록하거나 읽습니다.
      * @param Name 형식에서 사용하지 않는 배열 이름입니다.
@@ -164,6 +179,7 @@ public:
      * @note 저장 크기가 Uint32 범위를 넘거나 로드한 개수가 남은 바이트 수보다 크면 오류를 설정합니다. 로드 실패 시 ArraySize는 0입니다.
      */
     virtual void BeginArrayScope(std::string_view Name, std::size_t& ArraySize) override;
+
     /**
      * @brief 순차 이진 형식에서는 배열 스코프 종료를 기록하지 않습니다.
      */
@@ -190,6 +206,7 @@ private:
      * @brief 로드 모드의 비소유 입력 배열 포인터입니다.
      */
     const TArray<Uint8>* mReadBytes{};
+
     /**
      * @brief 로드 버퍼에서 다음에 읽을 바이트 위치입니다.
      */

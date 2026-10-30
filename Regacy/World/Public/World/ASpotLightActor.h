@@ -12,6 +12,7 @@ public:
 
 public:
     ReflectClass(ASpotLightActor);
+
     USpotLightComponent* GetLightComponent() const;
 
 private:

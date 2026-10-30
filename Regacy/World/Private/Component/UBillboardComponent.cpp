@@ -166,6 +166,7 @@ std::unique_ptr<FPrimitiveSceneProxy> UBillboardComponent::CreateSceneProxy() co
     std::unique_ptr<FBillboardSceneProxy> Proxy{std::make_unique<FBillboardSceneProxy>(GetHandle(), Owner->GetHandle(), Transform, Data)};
 
     Proxy->SetUVTransforms(GetUVTransforms());
+
     return Proxy;
 }
 
@@ -179,6 +180,7 @@ void UBillboardComponent::SendRenderTransform() {
 
 void UBillboardComponent::SendRenderDynamicData() {
     Super::SendRenderDynamicData();
+
     if (GetBelongingWorld() != nullptr && IsRenderStateCreated()) {
         GetBelongingWorld()->GetRenderSubsystem().UpdateBillboardUV(GetHandle(), mUvMin, mUvMax);
     }

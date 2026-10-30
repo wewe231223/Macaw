@@ -2,6 +2,7 @@
  * @file FLightSceneProxy.h
  * @brief 광원 컴포넌트 핸들과 갱신 가능한 셰이더 파라미터를 보관합니다.
  */
+
 #pragma once
 #include "RenderCore/FRenderData.h"
 #include "CoreUObject/FObjectHandle.h"
@@ -24,11 +25,13 @@ public:
      * @return 생존 여부를 추가 검사하지 않은 비소유 핸들입니다.
      */
     FObjectHandle GetComponentHandle() const;
+
     /**
      * @brief 현재 광원 셰이더 데이터를 반환합니다.
      * @return 내부 파라미터의 상수 참조입니다.
      */
     const FLightShaderParameters& GetShaderParameters() const;
+
     /**
      * @brief 월드 행렬의 이동과 Forward 축으로 광원 위치·방향을 갱신합니다.
      * @param World 위치와 방향을 추출할 월드 행렬입니다.
@@ -41,6 +44,7 @@ private:
      * @brief 원본 광원 컴포넌트의 비소유 핸들입니다.
      */
     FObjectHandle mComponentHandle{};
+
     /**
      * @brief 현재 광원 셰이더 파라미터의 복사본입니다.
      */

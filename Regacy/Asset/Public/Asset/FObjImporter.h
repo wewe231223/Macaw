@@ -19,9 +19,11 @@ public:
     ~FObjImporter() = default;
 
     FObjImporter(const FObjImporter&) = delete;
+
     FObjImporter& operator=(const FObjImporter&) = delete;
 
     FObjImporter(FObjImporter&&) noexcept = default;
+
     FObjImporter& operator=(FObjImporter&&) noexcept = default;
 
 public:

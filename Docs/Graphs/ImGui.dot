@@ -1,0 +1,20 @@
+digraph ImGui {
+    graph [rankdir=LR, bgcolor="transparent", fontname="Malgun Gothic", nodesep=0.4, ranksep=0.7, label="컨텍스트·자료형·백엔드 함수 관계", labelloc=t, fontsize=12];
+    node [shape=box, style="rounded,filled", fillcolor="#e8f3ff", color="#8eb6d9", fontname="Malgun Gothic", fontsize=11, margin="0.16,0.12"];
+    edge [color="#52677d", fontname="Malgun Gothic", fontsize=9];
+    Context [label="ImGuiContext\n외부 라이브러리 UI 상태"];
+    Io [label="ImGuiIO\n입력·설정"];
+    Viewport [label="ImGuiViewportP\nImGui 내부 뷰포트"];
+    DrawData [label="ImDrawData\nUI 드로 데이터"];
+    Win32 [label="ImGui_ImplWin32_*\n함수 집합 · Windows 입력"];
+    Dx11 [label="ImGui_ImplDX11_*\n함수 집합 · GPU 제출"];
+    Ui [label="FEditorUI\nEditor · UI 수명·프레임 조합", fillcolor="#f0f2f5", color="#b9c2cc"];
+    Context -> Io [label="소유 · 입력·설정 값"];
+    Context -> Viewport [label="소유 · UI 뷰포트"];
+    Viewport -> DrawData [label="소유 · 드로 데이터 값"];
+    Ui -> Context [style=dashed, label="사용 · 생성·파괴 API"];
+    Ui -> Win32 [style=dashed, label="사용 · 초기화·프레임·종료"];
+    Ui -> Dx11 [style=dashed, label="사용 · 초기화·프레임·종료"];
+    Win32 -> Io [style=dashed, label="사용 · 입력 전달"];
+    Dx11 -> DrawData [style=dashed, label="사용 · 드로 제출"];
+}

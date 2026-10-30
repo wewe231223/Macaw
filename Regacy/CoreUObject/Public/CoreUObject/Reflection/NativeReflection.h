@@ -2,6 +2,7 @@
  * @file NativeReflection.h
  * @brief 멤버 포인터와 매크로 등록 정보를 네이티브 프로퍼티·함수 메타데이터로 연결합니다.
  */
+
 #pragma once
 
 #include "CoreUObject/Reflection/FReflectionRegistry.h"
@@ -30,6 +31,7 @@ public:
      * @param Class 프로퍼티와 함수를 추가할 클래스입니다.
      */
     explicit FReflectionBuilder(UClass& Class);
+
     /**
      * @brief 구조체 프로퍼티 등록 빌더를 초기화합니다.
      * @param Struct 프로퍼티를 추가할 구조체입니다.
@@ -42,11 +44,13 @@ public:
      * @return 클래스 또는 구조체 정보입니다.
      */
     UStruct* GetOwner() const;
+
     /**
      * @brief 소유 타입에 프로퍼티의 소유권을 전달합니다.
      * @param Property 등록할 프로퍼티입니다.
      */
     void AddProperty(std::unique_ptr<FProperty> Property);
+
     /**
      * @brief 클래스에 인수·반환 타입과 호출 어댑터를 갖는 함수를 추가합니다.
      * @param Name 함수 이름입니다.
@@ -63,6 +67,7 @@ private:
      * @brief 프로퍼티를 등록하는 소유 메타데이터입니다.
      */
     UStruct* mOwner{};
+
     /**
      * @brief 함수 등록을 허용할 클래스입니다. 구조체 빌더에서는 nullptr입니다.
      */
@@ -149,6 +154,7 @@ public:
      * @brief 데이터 멤버를 선언한 소유 타입입니다.
      */
     using FOwner = TOwner;
+
     /**
      * @brief 데이터 멤버의 네이티브 값 타입입니다.
      */
@@ -175,10 +181,12 @@ public:
      * @brief 멤버 함수를 선언한 소유 타입입니다.
      */
     using FOwner = TOwner;
+
     /**
      * @brief 멤버 함수 반환 타입입니다.
      */
     using FResult = TResult;
+
     /**
      * @brief 선언 순서의 인수 타입 튜플입니다.
      */

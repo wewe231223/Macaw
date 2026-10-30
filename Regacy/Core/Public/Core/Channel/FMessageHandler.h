@@ -2,6 +2,7 @@
  * @file FMessageHandler.h
  * @brief 메시지 타입 하나와 호출 대상을 연결하는 이동 전용 핸들러를 정의한다.
  */
+
 #pragma once
 
 #include <concepts>
@@ -21,6 +22,7 @@ public:
      * @brief 타입 정보와 호출 대상이 없는 핸들러를 생성한다.
      */
     FMessageHandler() = default;
+
     /**
      * @brief 저장된 호출 대상과 그 소유 자원을 정리한다.
      */
@@ -30,6 +32,7 @@ public:
      * @brief 핸들러의 복사 생성을 금지한다.
      */
     FMessageHandler(const FMessageHandler&) = delete;
+
     /**
      * @brief 핸들러의 복사 할당을 금지한다.
      */
@@ -39,6 +42,7 @@ public:
      * @brief 타입 정보와 호출 대상을 이동하여 핸들러를 생성한다.
      */
     FMessageHandler(FMessageHandler&&) = default;
+
     /**
      * @brief 타입 정보와 호출 대상을 이동하여 현재 핸들러를 갱신한다.
      */
@@ -64,6 +68,7 @@ public:
      * @pre 핸들러에 메시지 타입 정보가 등록되어 있어야 한다.
      */
     [[nodiscard]] bool Handles(const FMessageTypeInfo* Type) const noexcept;
+
     /**
      * @brief 등록된 메시지 타입 정보를 조회한다.
      * @return 등록된 정적 타입 정보의 읽기 전용 참조.
@@ -83,6 +88,7 @@ private:
      * @brief 처리할 메시지 타입의 외부 정적 타입 정보 포인터.
      */
     const FMessageTypeInfo* mMessageType{nullptr};
+
     /**
      * @brief 구체적인 메시지 타입 검사와 호출 대상 실행을 수행하는 함수 객체.
      */

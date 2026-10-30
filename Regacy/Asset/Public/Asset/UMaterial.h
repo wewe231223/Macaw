@@ -28,8 +28,11 @@ public:
     UMaterial();
     ~UMaterial() override = default;
     UMaterial(const UMaterial&) = delete;
+
     UMaterial& operator=(const UMaterial&) = delete;
+
     UMaterial(UMaterial&&) noexcept = default;
+
     UMaterial& operator=(UMaterial&&) noexcept = default;
 
 public:
@@ -39,6 +42,7 @@ public:
     virtual FMaterialChunkSignature BuildChunkSignature() const = 0;
     virtual void Finalize(const IAssetRegistry* Registry);
     virtual EMaterialBlendMode GetBlendMode() const;
+
     EMaterialShader GetShader() const;
     void SetShader(EMaterialShader Shader);
     void MarkGPUDataDirty();
@@ -46,6 +50,7 @@ public:
 
 private:
     ReflectAccessor(mShader, GetShader, SetShader, "Shader", EPropertyFlags::Edit | EPropertyFlags::Serialize, ReflectSerializer(mShader), ReflectEditor("Material", "Shader"));
+
     EMaterialShader mShader{EMaterialShader::Surface};
     Uint64 mRenderRevision{1};
 

@@ -1,0 +1,15 @@
+digraph Frame {
+    graph [rankdir=LR, bgcolor="transparent", fontname="Malgun Gothic", nodesep=0.35, ranksep=0.4, pad=0.2];
+    node [shape=box, style="rounded,filled", fillcolor="#e7f1fb", color="#8ba8c3", fontname="Malgun Gothic", fontsize=11, margin="0.16,0.12"];
+    edge [color="#57718a", fontname="Malgun Gothic", fontsize=10, arrowsize=0.75];
+    Input [label=<<FONT POINT-SIZE="13"><B>1. 입력 · UI</B></FONT><BR/><FONT POINT-SIZE="10">PumpMessages<BR/>BeginFrame</FONT>>];
+    Tick [label=<<FONT POINT-SIZE="13"><B>2. 월드 실행</B></FONT><BR/><FONT POINT-SIZE="10">UEngine::Tick</FONT>>];
+    Sync [label=<<FONT POINT-SIZE="13"><B>3. 렌더 동기화</B></FONT><BR/><FONT POINT-SIZE="10">SynchronizeWorld</FONT>>];
+    Draw [label=<<FONT POINT-SIZE="13"><B>4. 장면 · UI 그리기</B></FONT><BR/><FONT POINT-SIZE="10">FEditorUI::EndFrame</FONT>>];
+    Present [label=<<FONT POINT-SIZE="13"><B>5. 화면 출력</B></FONT><BR/><FONT POINT-SIZE="10">FRenderer::Present</FONT>>];
+    Input -> Tick;
+    Tick -> Sync;
+    Sync -> Draw;
+    Draw -> Present;
+    Present -> Input [label="다음 프레임", style=dashed, constraint=false];
+}

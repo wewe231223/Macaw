@@ -70,6 +70,7 @@ PS_INPUT mainVS(VS_INPUT Input)
         Output.GridSpacing = 0.0f;
         Output.ScreenNormal = float2(0.0f, 0.0f);
         Output.GridAxis = float2(0.0f, 0.0f);
+
         return Output;
     }
 
@@ -108,24 +109,30 @@ float4 mainPS(PS_INPUT Input) : SV_TARGET
 {
     float EffectiveHalfWidth = Input.HalfWidth;
     float4 FinalColor = Input.Color;
+
     if (Input.GridSpacing != 0.0f) {
         float Spacing = abs(Input.GridSpacing);
         float4 CurrentClip = mul(float4(Input.WorldPosition, 1.0f), ViewProjection);
         float4 AxisClip = mul(float4(Input.GridAxis, 0.0f, 0.0f), ViewProjection);
         float PixelSpacing = 0.0f;
+
         if (CurrentClip.w > 0.00001f) {
             float2 ScreenDelta = (AxisClip.xy - CurrentClip.xy * (AxisClip.w / CurrentClip.w)) * float2(Viewport.x, -Viewport.y) * (Spacing * 0.5f / CurrentClip.w);
             PixelSpacing = abs(dot(ScreenDelta, Input.ScreenNormal));
         }
+
         float Visibility = smoothstep(1.25f, 3.0f, PixelSpacing);
         FinalColor.a *= Visibility;
+
         if (Input.GridSpacing < 0.0f) {
             float ChildVisibility = smoothstep(1.25f, 3.0f, PixelSpacing * 0.1f);
             EffectiveHalfWidth = lerp(0.75f, 0.5f, ChildVisibility);
         }
+
         float GridDistance = length(Input.WorldPosition.xy - GridFade.xy);
         FinalColor.a *= 1.0f - smoothstep(GridFade.z, GridFade.w, GridDistance);
     }
+
     float Coverage = 1.0f - smoothstep(EffectiveHalfWidth - 0.5f, EffectiveHalfWidth + 0.5f, abs(Input.EdgeDistance));
     FinalColor.a *= Coverage;
 

@@ -2,6 +2,7 @@
  * @file NewObject.h
  * @brief 객체 생성 문맥, 타입별 생성 함수와 네이티브 클래스 등록을 제공합니다.
  */
+
 #pragma once
 
 #include "CoreUObject/Reflection/FReflectionRegistry.h"
@@ -20,14 +21,17 @@ public:
      * @note 같은 클래스의 기본 객체 생성 문맥에 중첩되면 기존 기본 객체 상태를 유지합니다.
      */
     explicit FObjectInitializer(UClass* Class, bool ClassDefaultObject = false);
+
     /**
      * @brief 현재 스레드의 이전 생성 문맥을 복원합니다.
      */
     ~FObjectInitializer();
+
     /**
      * @brief 생성 문맥 범위의 복사 생성을 금지합니다.
      */
     FObjectInitializer(const FObjectInitializer&) = delete;
+
     /**
      * @brief 생성 문맥 범위의 복사 대입을 금지합니다.
      */
@@ -39,6 +43,7 @@ public:
      * @return 생성 문맥의 클래스입니다. 문맥이 없으면 nullptr입니다.
      */
     static UClass* GetConstructingClass();
+
     /**
      * @brief 현재 스레드가 클래스 기본 객체를 생성 중인지 반환합니다.
      * @return 기본 객체 생성 문맥이면 true입니다.
@@ -50,6 +55,7 @@ private:
      * @brief 범위 종료 시 복원할 이전 클래스입니다.
      */
     UClass* mPreviousClass{};
+
     /**
      * @brief 범위 종료 시 복원할 이전 기본 객체 생성 상태입니다.
      */

@@ -11,24 +11,28 @@ local ReflectedModules = Reflection.Generate()
 
 workspace "Macaw"
     location "."
-    configurations { "Debug", "Release" }
+    configurations { "Debug", "Release", "ObjViewerDebug", "ObjViewerRelease" }
     platforms { "x64" }
     defaultplatform "x64"
     startproject "Macaw"
     system "windows"
     architecture "x86_64"
 
-filter "configurations:Debug"
+filter "configurations:*Debug"
     symbols "On"
     runtime "Debug"
     defines { "_DEBUG" }
 
-filter "configurations:Release"
+filter "configurations:*Release"
     optimize "Speed"
     linktimeoptimization "On"
     runtime "Release"
     defines { "NDEBUG" }
 
+filter {}
+
+filter "configurations:ObjViewer*"
+    defines { "MACAW_OBJ_VIEWER=1" }
 filter {}
 
 local Modules = json.decode(io.readfile("ModuleDependencies.json"))
@@ -59,14 +63,14 @@ local function Configure(Name, Kind)
         staticruntime "Off"
         targetdir "Binaries/%{cfg.buildcfg}"
         objdir "Intermediate/%{prj.name}/%{cfg.buildcfg}"
-        defines { "NOMINMAX", "WIN32_LEAN_AND_MEAN" }
+        defines { "NOMINMAX", "WIN32_LEAN_AND_MEAN", "SOL_LUAJIT=1" }
         buildoptions { "/utf-8", "/Zc:preprocessor", "/permissive-" }
         multiprocessorcompile "On"
         warnings "Extra"
-        externalincludedirs { "Externals/Include", "ThirdParty/ImGui/Public/ImGui" }
+        externalincludedirs { "Externals/Include", "ThirdParty/ImGui/Public/ImGui", "vcpkg_installed/x64-windows/include/luajit" }
 end
 
-for _, Name in ipairs({ "Core", "CoreUObject", "Serialization", "RenderCore", "Engine", "Renderer", "Platform", "Editor" }) do
+for _, Name in ipairs({ "Core", "CoreUObject", "Serialization", "RenderCore", "Engine", "Script", "Renderer", "Platform", "Editor" }) do
     Configure(Name, "StaticLib")
     files { "Source/" .. Name .. "/Public/**.h", "Source/" .. Name .. "/Private/**.h", "Source/" .. Name .. "/Private/**.cpp" }
     includedirs { "Source/" .. Name .. "/Private" }
@@ -85,32 +89,73 @@ for _, Name in ipairs({ "Core", "CoreUObject", "Serialization", "RenderCore", "E
     end
     links(Modules[Name].Public)
     links(Modules[Name].Private)
+
+    if Name == "Engine" then
+        defines { "FBXSDK_SHARED" }
+    end
 end
 
 Configure("ImGui", "StaticLib")
     warnings "Off"
     files { "ThirdParty/ImGui/Private/imgui.cpp", "ThirdParty/ImGui/Private/imgui_draw.cpp", "ThirdParty/ImGui/Private/imgui_tables.cpp", "ThirdParty/ImGui/Private/imgui_widgets.cpp", "ThirdParty/ImGui/Private/imgui_impl_dx11.cpp", "ThirdParty/ImGui/Private/imgui_impl_win32.cpp", "ThirdParty/ImGui/Public/ImGui/**.h" }
 
-local function ConfigureExecutable(Name, Kind, Directory)
+Configure("Shaders", "Utility")
+    files { "Templates/Project/Content/Shaders/**.hlsl", "Templates/Project/Content/Shaders/**.hlsli" }
+    vpaths { ["*"] = "Templates/Project/Content/Shaders" }
+    filter "files:**"
+        buildaction "None"
+    filter {}
+
+local function ConfigureRuntimeExecutable(Name, Kind, Directory)
     Configure(Name, Kind)
     files { Directory .. "/**.h", Directory .. "/**.cpp" }
     includedirs { Directory }
 
-    for Module, _ in pairs(ReflectedModules) do
-        includedirs { Reflection.GetGeneratedDirectory(Module) }
+    for _, Module in ipairs({ "Engine", "Renderer", "Platform", "Script" }) do
+        AddIncludes(Module, {})
+    end
 
-        if Modules[Module] then
-            AddIncludes(Module, {})
+    links { "Script", "Engine", "Renderer", "Platform", "Serialization", "RenderCore", "CoreUObject", "Core", "DirectXTex", "lua51", "d3d11", "dxgi", "d3dcompiler", "bcrypt", "user32", "gdi32", "dwmapi", "imm32", "ole32", "windowscodecs", "comdlg32", "shell32" }
+    links { "libfbxsdk" }
+    filter "configurations:*Debug"
+        libdirs { "Externals/bin/debug" }
+    filter "configurations:*Release"
+        libdirs { "Externals/bin/release" }
+    filter {}
+    debugdir "%{wks.location}"
+end
+
+ConfigureRuntimeExecutable("MacawGame", "WindowedApp", "Source/Game")
+    local GameGeneratedDirectory = Reflection.GetGeneratedDirectory("Game")
+    files { GameGeneratedDirectory .. "/**.h", GameGeneratedDirectory .. "/GameReflection.cpp" }
+    includedirs { GameGeneratedDirectory }
+    prebuildcommands { '"' .. _PREMAKE_COMMAND .. '" --file="' .. path.getabsolute("premake5.lua") .. '" generate-reflection --reflection-module=Game' }
+    targetdir "Binaries/%{cfg.buildcfg}/GameRuntime"
+    files { "Source/App/**.rc", "Macaw.ico" }
+    resincludedirs { "." }
+    postbuildcommands { '{COPYDIR} "%{wks.location}/Templates/Project/Content" "%{cfg.targetdir}/Templates/Project/Content"' }
+    postbuildcommands { '{COPYFILE} "%{wks.location}/vcpkg_installed/x64-windows/tools/luajit/lua51.dll" "%{cfg.targetdir}/lua51.dll"' }
+    postbuildcommands { 'powershell -NoProfile -ExecutionPolicy Bypass -File "%{wks.location}/Scripts/StageGameRuntime.ps1" -RuntimeDirectory "%{cfg.targetdir}" -RedistDirectory "$(VCToolsRedistInstallDir)." -Configuration "%{cfg.buildcfg}"' }
+
+ConfigureRuntimeExecutable("Macaw", "WindowedApp", "Source/App")
+    for Module, _ in pairs(ReflectedModules) do
+        if Module ~= "Game" then
+            includedirs { Reflection.GetGeneratedDirectory(Module) }
+
+            if Modules[Module] then
+                AddIncludes(Module, {})
+            end
         end
     end
 
     local GeneratedDirectory = Reflection.GetGeneratedDirectory("App")
     files { GeneratedDirectory .. "/**.h", GeneratedDirectory .. "/AppReflection.cpp" }
+    includedirs { GeneratedDirectory }
     prebuildcommands { '"' .. _PREMAKE_COMMAND .. '" --file="' .. path.getabsolute("premake5.lua") .. '" generate-reflection --reflection-module=App' }
     AddIncludes("Editor", {})
-    AddIncludes("Renderer", {})
-    links { "Editor", "Engine", "Renderer", "Platform", "Serialization", "RenderCore", "CoreUObject", "Core", "ImGui", "d3d11", "dxgi", "d3dcompiler", "user32", "gdi32", "dwmapi", "imm32", "ole32", "comdlg32", "shell32" }
-    debugdir "%{wks.location}"
-end
-
-ConfigureExecutable("Macaw", "WindowedApp", "Source/App")
+    links { "Editor", "ImGui" }
+    dependson { "MacawGame" }
+    files { "Source/App/**.rc", "Macaw.ico" }
+    resincludedirs { "." }
+    postbuildcommands { '{COPYDIR} "%{wks.location}/Templates/Project" "%{cfg.targetdir}/Templates/Project"' }
+    postbuildcommands { '{COPYFILE} "%{wks.location}/vcpkg_installed/x64-windows/tools/luajit/lua51.dll" "%{cfg.targetdir}/lua51.dll"' }

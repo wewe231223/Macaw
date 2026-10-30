@@ -2,6 +2,7 @@
  * @file FSceneHandle.h
  * @brief 렌더 씬의 식별 ID와 세대 핸들을 정의합니다.
  */
+
 #pragma once
 
 #include "Core/Common.h"
@@ -23,6 +24,7 @@ struct FSceneHandle {
      * @note 실제 씬의 존재 여부나 현재 세대 일치 여부는 검사하지 않습니다.
      */
     bool IsValid() const;
+
     /**
      * @brief 씬 ID와 세대를 함께 비교합니다.
      * @param Other 비교할 핸들입니다.
@@ -34,6 +36,7 @@ struct FSceneHandle {
      * @brief 렌더 씬을 식별하는 ID입니다. 0은 무효 값입니다.
      */
     Uint64 mId{};
+
     /**
      * @brief 씬 재설정에 따른 오래된 갱신 요청을 구별하는 세대입니다. 0은 무효 값입니다.
      */

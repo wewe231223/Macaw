@@ -9,59 +9,69 @@
 #include <imgui.h>
 #include <utility>
 
-/**
- * @brief FEditorPanel의 초기 상태와 전달받은 의존성을 구성합니다.
- */
-FEditorPanel::FEditorPanel(UEditorEngine& Engine, FString Name, bool Closable)
-	: mEngine{&Engine},
-	  mName{std::move(Name)},
-	  mClosable{Closable} {
-}
+namespace Editor {
 
-/**
- * @brief 객체의 수명을 끝내고 소유한 리소스를 정리합니다.
- */
-FEditorPanel::~FEditorPanel() = default;
-
-/**
- * @brief 뷰포트 또는 패널의 현재 내용을 그립니다.
- */
-void FEditorPanel::Draw(float DeltaTime) {
-    if (!mVisible) {
-        return;
+    /**
+     * @brief FEditorPanel의 초기 상태와 전달받은 의존성을 구성합니다.
+     */
+    Editor::FEditorPanel::FEditorPanel(Editor::FEditorContext* Context, Core::FString Name, bool Closable)
+		: mContext{Context},
+		  mName{std::move(Name)},
+		  mClosable{Closable} {
     }
 
-    if (ImGui::Begin(mName.c_str(), mClosable ? &mVisible : nullptr)) {
-        DrawContent(DeltaTime);
+    /**
+     * @brief 객체의 수명을 끝내고 소유한 리소스를 정리합니다.
+     */
+    Editor::FEditorPanel::~FEditorPanel() = default;
+
+    /**
+     * @brief 패널이 표시 상태이면 ImGui 창을 열고 내용을 그립니다.
+     */
+    void Editor::FEditorPanel::Draw(float DeltaTime) {
+        if (!mVisible) {
+            return;
+        }
+
+        if (ImGui::Begin(mName.c_str(), mClosable ? &mVisible : nullptr)) {
+            DrawContent(DeltaTime);
+        }
+
+        ImGui::End();
     }
 
-    ImGui::End();
-}
+    /**
+     * @brief 패널 창 이름을 반환합니다.
+     */
+    const Core::FString& Editor::FEditorPanel::GetName() const {
+        return mName;
+    }
 
-/**
- * @brief 이름 또는 표시 문자열을 반환합니다.
- */
-const FString& FEditorPanel::GetName() const {
-    return mName;
-}
+    /**
+     * @brief 패널 창의 표시 여부를 반환합니다.
+     */
+    bool Editor::FEditorPanel::IsVisible() const {
+        return mVisible;
+    }
 
-/**
- * @brief 경계 상자가 뷰 프러스텀과 겹치는지 검사합니다.
- */
-bool FEditorPanel::IsVisible() const {
-    return mVisible;
-}
+    /**
+     * @brief 패널 창의 표시 상태를 설정합니다.
+     */
+    void Editor::FEditorPanel::SetVisible(bool Visible) {
+        mVisible = Visible;
+    }
 
-/**
- * @brief 패널 창의 표시 상태를 설정합니다.
- */
-void FEditorPanel::SetVisible(bool Visible) {
-    mVisible = Visible;
-}
+    /**
+     * @brief 연결된 공통 편집 컨텍스트를 반환합니다.
+     */
+    Editor::FEditorContext* Editor::FEditorPanel::GetEditorContext() const {
+        return mContext;
+    }
 
-/**
- * @brief 연결된 에디터 엔진을 반환합니다.
- */
-UEditorEngine& FEditorPanel::GetEditorEngine() const {
-    return *mEngine;
+    void Editor::FEditorPanel::SetEditorContext(Editor::FEditorContext* Context) {
+        if (Context != nullptr) {
+            mContext = Context;
+        }
+    }
+
 }

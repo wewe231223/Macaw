@@ -53,18 +53,21 @@ bool UFreeTypeFont::InitializeFont(const std::filesystem::path& FontPath, Uint32
     mAtlasHeight = InAtlasHeight;
 
     FT_Error Error{FT_Init_FreeType(&mLibrary)}; // FreeType 라이브러리 시작
+
     if (Error != FT_Err_Ok) {
         Reset();
         return false;
     }
 
     Error = FT_New_Face(mLibrary, FontPath.string().c_str(), 0, &mFace); // TTF 파일에서 mFace 생성
+
     if (Error != FT_Err_Ok) {
         Reset();
         return false;
     }
 
     Error = FT_Select_Charmap(mFace, FT_ENCODING_UNICODE); // Unicode CodePoint를 사용할 charmap 선택
+
     if (Error != FT_Err_Ok) {
         Reset();
         return false;

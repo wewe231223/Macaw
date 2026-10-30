@@ -288,6 +288,7 @@ void FRenderScene::RefreshStaticMeshes(const FMaterialBuffer& Materials, FRender
 
         const UMesh* Mesh{Registry != nullptr ? Registry->ResolveAsset<UMesh>(MeshData->mMeshHandle) : nullptr};
         const Uint64 MeshRevision{Mesh != nullptr ? Mesh->GetRenderRevision() : 0};
+
         Primitive.mSky = false;
         Primitive.mAvailableLODMask = 0;
 

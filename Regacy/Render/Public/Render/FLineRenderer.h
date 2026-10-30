@@ -4,6 +4,7 @@
 #include "Render/Pipeline/FPipelineRenderResource.h"
 
 class FRenderBuffers;
+
 enum class ERenderStream : Uint8;
 
 class FLineRenderer final : public ILineDrawContext {
@@ -27,9 +28,11 @@ public:
     ~FLineRenderer() override = default;
 
     FLineRenderer(const FLineRenderer&) = delete;
+
     FLineRenderer& operator=(const FLineRenderer&) = delete;
 
     FLineRenderer(FLineRenderer&&) noexcept = default;
+
     FLineRenderer& operator=(FLineRenderer&&) noexcept = default;
 
 public:

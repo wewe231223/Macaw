@@ -11,9 +11,11 @@ public:
 
     // move 만 사용
     FUndoTransaction(const FUndoTransaction&) = delete;
+
     FUndoTransaction& operator=(const FUndoTransaction&) = delete;
 
     FUndoTransaction(FUndoTransaction&&) noexcept = default;
+
     FUndoTransaction& operator=(FUndoTransaction&&) noexcept = default;
 
 public:

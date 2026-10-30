@@ -2,6 +2,7 @@
  * @file Memory.h
  * @brief 정렬과 통계 태그를 지원하는 엔진 메모리 할당 및 해제 인터페이스를 정의한다.
  */
+
 #pragma once
 
 #include <cstddef>
@@ -25,6 +26,7 @@ namespace Memory {
      * @details 통계에는 내부 헤더와 정렬 여유 공간을 제외한 요청 크기를 기록한다. 잘못된 정렬, 크기 오버플로 또는 할당 실패는 치명적 오류로 보고한다.
      */
     void* Allocate(std::size_t Size, std::size_t Alignment, EMemoryTag Tag = EMemoryTag::Unknown);
+
     /**
      * @brief 엔진 메모리 할당을 해제하고 저장된 크기와 태그로 통계를 갱신한다.
      * @param Ptr Allocate()가 반환한 아직 해제하지 않은 포인터. nullptr이면 아무 작업도 하지 않는다.

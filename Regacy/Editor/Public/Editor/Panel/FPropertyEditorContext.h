@@ -2,6 +2,7 @@
  * @file FPropertyEditorContext.h
  * @brief 속성 UI의 편집 상태와 전역 에셋 선택 기능을 정의합니다.
  */
+
 #pragma once
 #include "Editor/Property/IPropertyEditorContext.h"
 #include "ImGui/imgui.h"
@@ -32,6 +33,7 @@ public:
     void DrawTransform(const char* Label, const FTransform& Value, const std::function<void(const FTransform&)>& Setter) override;
 
     void DrawReferencePicker(const char* Label, const char* Preview, bool BNoneSelected, const std::function<void()>& ClearSelection, const std::vector<FPropertyReferenceOption>& Options) const override;
+
     /**
      * @brief 전역 에셋 서비스를 사용해 타입별 에셋 선택 UI를 표시합니다.
      * @param Label 속성 이름입니다.

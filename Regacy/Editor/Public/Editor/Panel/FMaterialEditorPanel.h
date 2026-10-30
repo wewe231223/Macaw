@@ -2,6 +2,7 @@
  * @file FMaterialEditorPanel.h
  * @brief 전역 에셋을 편집하며 패널별 프리뷰를 보관하는 머티리얼 편집기를 정의합니다.
  */
+
 #pragma once
 #include "Editor/Panel/FEditorWindow.h"
 #include "Editor/Panel/FPropertyEditorContext.h"
@@ -24,12 +25,16 @@ public:
     ~FMaterialEditorPanel() override;
 
     FMaterialEditorPanel(const FMaterialEditorPanel&) = delete;
+
     FMaterialEditorPanel& operator=(const FMaterialEditorPanel&) = delete;
+
     FMaterialEditorPanel(FMaterialEditorPanel&&) = delete;
+
     FMaterialEditorPanel& operator=(FMaterialEditorPanel&&) = delete;
 
 public:
     void OpenMaterial(FAssetHandle MaterialHandle);
+
     /**
      * @brief 전역 레지스트리의 머티리얼로 이 패널의 프리뷰를 갱신합니다.
      * @param Renderer 프리뷰 표면에 사용할 렌더러입니다.

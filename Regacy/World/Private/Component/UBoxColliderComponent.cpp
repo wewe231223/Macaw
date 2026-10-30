@@ -53,6 +53,7 @@ bool UBoxColliderComponent::BuildBoundsFromMesh() {
     DirectX::BoundingBox Bounds{};
 
     DirectX::BoundingBox::CreateFromPoints(Bounds, Points.size(), Points.data(), sizeof(DirectX::XMFLOAT3));
+
     DirectX::BoundingOrientedBox OrientedBounds{};
 
     DirectX::BoundingOrientedBox::CreateFromBoundingBox(OrientedBounds, Bounds);
@@ -65,6 +66,7 @@ bool UBoxColliderComponent::BuildBoundsFromMesh() {
 bool UBoxColliderComponent::RaycastBounds(const FRay& Ray, FWorldRaycastHit& OutHit, float MaxDistance) const {
     FMeshPickingProxy Transform{};
     Transform.Update(nullptr, GetComponentTransform());
+
     FRay LocalRay{};
     double DirectionLength{};
     FWorldRaycastHit LocalHit{};
@@ -83,6 +85,7 @@ bool UBoxColliderComponent::RaycastBounds(const FRay& Ray, FWorldRaycastHit& Out
     OutHit.mPosition = FVector3{Ray.position} + FVector3{Ray.direction} * Distance;
     OutHit.mNormal = Transform.TransformNormal(LocalHit.mNormal);
     OutHit.mFaceIndex = std::numeric_limits<Uint32>::max();
+
     return true;
 }
 

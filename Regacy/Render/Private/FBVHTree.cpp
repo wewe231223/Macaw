@@ -220,6 +220,7 @@ Int32 FBVHTree::BuildRecursive(std::span<const DirectX::BoundingBox> Bounds, std
         mNodes[NodeIndex].mBounds = Bounds[ObjectIndex];
         mNodes[NodeIndex].mObjectIndex = static_cast<Int32>(ObjectIndex);
         mObjectLeaves[ObjectIndex] = NodeIndex;
+
         return NodeIndex;
     }
 

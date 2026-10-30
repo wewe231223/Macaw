@@ -11,9 +11,11 @@ public:
     ~FViewerToolBar() = default;
 
     FViewerToolBar(const FViewerToolBar&) = delete;
+
     FViewerToolBar& operator=(const FViewerToolBar&) = delete;
 
     FViewerToolBar(FViewerToolBar&&) = delete;
+
     FViewerToolBar& operator=(FViewerToolBar&&) = delete;
 
     void DrawPanel() override;

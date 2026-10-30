@@ -2,6 +2,7 @@
  * @file FObjectHandle.h
  * @brief UObject 등록 슬롯과 재사용 세대를 식별하는 핸들을 제공합니다.
  */
+
 #pragma once
 
 #include "Core/CoreMinimal.h"
@@ -23,6 +24,7 @@ struct FObjectHandle {
      * @brief 객체 저장소의 슬롯 인덱스입니다.
      */
     std::uint32_t mIndex{InvalidIndex};
+
     /**
      * @brief 슬롯 재사용에 따른 오래된 참조를 구별하는 세대 값입니다.
      */

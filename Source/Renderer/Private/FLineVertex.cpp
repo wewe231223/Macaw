@@ -1,16 +1,18 @@
 /**
  * @file FLineVertex.cpp
- * @brief GPU 입력 레이아웃에 맞춘 24바이트 위치·색상 선분 정점입니다.
+ * @brief 픽셀 두께를 가진 선분의 GPU 인스턴스 형식을 정의합니다.
  * @ingroup Renderer
  */
 
 #include "Renderer/FLineVertex.h"
-#include "Core/Math/FVector.h"
+#include "Engine/FDrawLine.h"
 
-/**
- * @brief FLineVertex의 초기 상태와 전달받은 의존성을 구성합니다.
- */
-FLineVertex::FLineVertex(const FVector& Position, const FVector& Color)
-	: mPosition{Position.ToArray()},
-	  mColor{Color.ToArray()} {
+namespace Renderer {
+
+    Renderer::FLineVertex::FLineVertex(const Engine::FDrawLine& Line)
+		: mStartAndWidth{Line.mStart, Line.mThickness},
+		  mEnd{Line.mEnd, 0.0f},
+		  mColor{Line.mColor, 1.0f} {
+    }
+
 }

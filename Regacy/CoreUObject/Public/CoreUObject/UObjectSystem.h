@@ -2,6 +2,7 @@
  * @file UObjectSystem.h
  * @brief UObject의 등록, 핸들 해석과 GUID·이름·Outer 기반 검색을 제공합니다.
  */
+
 #pragma once
 
 #include "Core/CoreMinimal.h"
@@ -22,6 +23,7 @@ namespace UObjectSystem {
      * @note 이름이 없으면 같은 Outer 안에서 고유한 이름을 생성합니다. 객체의 소유권은 인수하지 않습니다.
      */
     FObjectHandle Register(UObject* Object);
+
     /**
      * @brief GUID를 복원한 뒤 객체를 등록합니다.
      * @param Object 등록할 객체입니다.
@@ -29,6 +31,7 @@ namespace UObjectSystem {
      * @return 등록 핸들입니다. 실패하면 무효 핸들을 반환하고 등록 실패 시 이전 GUID로 복원합니다.
      */
     FObjectHandle RegisterWithGuid(UObject* Object, const FGuid& InGuid);
+
     /**
      * @brief 객체와 핸들이 일치하면 등록을 해제하고 슬롯 세대를 증가시킵니다.
      * @param Object 등록을 해제할 객체입니다.
@@ -43,12 +46,14 @@ namespace UObjectSystem {
      * @return 현재 객체입니다. 무효 핸들, 범위 밖 인덱스, 빈 슬롯 또는 세대 불일치이면 nullptr입니다.
      */
     UObject* Resolve(FObjectHandle Handle);
+
     /**
      * @brief GUID에 대응하는 등록 핸들을 찾습니다.
      * @param Guid 검색할 GUID입니다.
      * @return 등록 핸들입니다. 찾지 못하면 무효 핸들입니다.
      */
     FObjectHandle FindHandleByGuid(const FGuid& Guid);
+
     /**
      * @brief 객체에 저장된 등록 핸들을 반환합니다.
      * @param Object 조회할 객체입니다.
@@ -63,6 +68,7 @@ namespace UObjectSystem {
      * @return 일치하는 객체입니다. 없으면 nullptr입니다.
      */
     UObject* FindObject(const UObject* Outer, FName Name);
+
     /**
      * @brief 점으로 구분한 이름 경로를 Outer부터 차례로 탐색합니다.
      * @param Path 검색할 이름 경로입니다.
@@ -70,6 +76,7 @@ namespace UObjectSystem {
      * @return 마지막 경로 객체입니다. 빈 경로, 잘못된 성분 또는 찾을 수 없는 경로이면 nullptr입니다.
      */
     UObject* FindObjectByPath(std::string_view Path, const UObject* Outer = nullptr);
+
     /**
      * @brief 지정한 Outer에 속한 등록 객체들을 반환합니다.
      * @param Outer 기준 Outer입니다. nullptr이면 최상위 객체만 반환합니다.
@@ -77,6 +84,7 @@ namespace UObjectSystem {
      * @return 슬롯 순서로 수집한 객체 포인터 배열입니다.
      */
     TArray<UObject*> GetObjectsWithOuter(const UObject* Outer, bool IncludeNested = false);
+
     /**
      * @brief 등록된 이름과 겹치지 않도록 필요하면 번호를 붙인 이름을 생성합니다.
      * @param Outer 이름의 중복을 검사할 Outer입니다.
@@ -86,6 +94,7 @@ namespace UObjectSystem {
      * @note 이름을 예약하거나 객체를 등록하지 않습니다.
      */
     FName MakeUniqueObjectName(const UObject* Outer, FName BaseName, const UObject* IgnoreObject = nullptr);
+
     /**
      * @brief 객체 이름이 비어 있지 않고 경로 구분 문자를 포함하지 않는지 검사합니다.
      * @param Name 검사할 이름입니다.
@@ -102,6 +111,7 @@ namespace UObjectSystem {
      * @note 실제 변경이 있으면 OnIdentityChanged를 호출합니다.
      */
     bool Rename(UObject* Object, FName NewName, UObject* NewOuter);
+
     /**
      * @brief 객체 GUID와 등록된 GUID 검색 인덱스를 갱신합니다.
      * @param Object 변경할 객체입니다.
@@ -109,6 +119,7 @@ namespace UObjectSystem {
      * @return 성공하면 true입니다. null 객체, 무효 GUID 또는 등록 객체의 GUID 충돌이면 false입니다.
      */
     bool RestoreGuid(UObject* Object, const FGuid& Guid);
+
     /**
      * @brief 직접 속한 Inner들을 최상위로 분리하고 Object의 기존 Outer 관계도 해제합니다.
      * @param Object 관계를 해제할 유효한 객체입니다.
@@ -121,6 +132,7 @@ namespace UObjectSystem {
      * @return 빈 슬롯을 제외한 객체 포인터 배열입니다.
      */
     TArray<UObject*> GetObjects();
+
     /**
      * @brief 현재 등록된 객체 수를 반환합니다.
      * @return 빈 슬롯을 제외한 등록 객체 수입니다.

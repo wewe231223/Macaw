@@ -147,6 +147,7 @@ void FMouseInput::ProcessWindowMessage(UINT Message, WPARAM WParam, LPARAM LPara
                 mCaptureLost = true;
                 ResetKeyStates();
             }
+
             break;
 
         case WM_MOUSEWHEEL:
@@ -225,6 +226,7 @@ FViewportMouseNavigationInput FMouseInput::DispatchPendingViewportCommands(std::
 
 void FMouseInput::EndFrame() {
     mCaptureLost = false;
+
     for (std::size_t Side{0}; Side < MAX; ++Side) {
         EKeyState& State{mKeyStates[Side]};
 

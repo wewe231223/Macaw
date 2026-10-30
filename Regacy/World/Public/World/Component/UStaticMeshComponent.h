@@ -36,6 +36,7 @@ private:
 
 private:
     ReflectProperty(mMaterialOverrides, "MaterialOverrides", EPropertyFlags::Serialize, ReflectSerializer(mMaterialOverrides));
+
     TArray<FMeshMaterialOverride> mMaterialOverrides{};
 
     ReflectMembers();

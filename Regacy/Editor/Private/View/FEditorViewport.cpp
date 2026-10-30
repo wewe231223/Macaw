@@ -664,8 +664,10 @@ D3D11_VIEWPORT FEditorViewport::BuildInputViewport() const {
 
 bool FEditorViewport::DrawGizmoToolbar() {
     bool Activated{};
+
     ImGui::BeginGroup();
     ImGui::BeginDisabled(!mEditorContext->IsWorldEditingAllowed() || mEditorContext->IsGizmoInteracting());
+
     const EGizmoMode Mode{mEditorContext->GetGizmoMode()};
     const bool Local{Mode == EGizmoMode::Scale || mEditorContext->GetGizmoCoordinateSpace() == EGizmoCoordinateSpace::Local};
     ImGui::BeginDisabled(Mode == EGizmoMode::Scale);
@@ -746,5 +748,6 @@ bool FEditorViewport::DrawGizmoToolbar() {
 
     ImGui::EndDisabled();
     ImGui::EndGroup();
+
     return Activated;
 }

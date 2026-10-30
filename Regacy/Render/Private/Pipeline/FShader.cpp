@@ -34,6 +34,7 @@ bool FShader::Initialize(ID3D11Device* Device, const FShaderDescription& Descrip
         }
 
         ErrorHandler::ReportHRESULT(Result, "Shader::Initialize", "Shader compilation failed.", ErrorHandler::EErrorLevel::Error);
+
         return false;
     }
 
@@ -57,6 +58,7 @@ bool FShader::Initialize(ID3D11Device* Device, const FShaderDescription& Descrip
 
         default:
             ErrorHandler::Report("Shader::Initialize", "The shader description contains an invalid shader stage.", ErrorHandler::EErrorLevel::Error);
+
             return false;
     }
 

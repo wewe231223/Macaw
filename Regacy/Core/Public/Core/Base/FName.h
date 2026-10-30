@@ -2,6 +2,7 @@
  * @file FName.h
  * @brief 이름 풀의 엔트리와 표시 이름, 비교 이름 및 숫자 접미사를 가진 이름 타입을 정의한다.
  */
+
 #pragma once
 #include "Core/STL.h"
 #include "Core/Common.h"
@@ -63,6 +64,7 @@ private:
 struct FNameEntryHeader {
     /** @brief 와이드 문자 저장 여부를 나타내는 비트. 현재 이름 풀은 0으로 설정하여 char 문자열을 저장한다. */
     Uint16 mBIsWide : 1 {0};
+
     /** @brief 널 종료 문자를 제외한 저장 문자열의 바이트 수. */
     Uint16 mLen : 15 {0};
 };
@@ -75,10 +77,13 @@ struct FNameEntry {
 public:
     /** @brief 이름 풀 엔트리의 복사 생성을 금지한다. */
     FNameEntry(const FNameEntry&) = delete;
+
     /** @brief 이름 풀 엔트리의 이동 생성을 금지한다. */
     FNameEntry(FNameEntry&&) = delete;
+
     /** @brief 이름 풀 엔트리의 복사 할당을 금지한다. */
     FNameEntry& operator=(const FNameEntry&) = delete;
+
     /** @brief 이름 풀 엔트리의 이동 할당을 금지한다. */
     FNameEntry& operator=(FNameEntry&&) = delete;
 
@@ -109,8 +114,10 @@ public:
 private:
     /** @brief 저장 문자열의 형식과 길이를 보관하는 헤더. */
     FNameEntryHeader mHeader{};
+
     /** @brief 대소문자를 구분하지 않는 이름 비교에 사용하는 엔트리 식별자. */
     FNameEntryId mComparisonId{};
+
     /** @brief 문자열 저장 영역의 시작. 이름 풀에서 확보한 추가 공간에 널 종료 문자열을 저장한다. */
     Uint8 mNameData[1]{};
 };
@@ -125,22 +132,26 @@ class FName {
 public:
     /** @brief 식별자와 숫자 값이 모두 0인 None 상태의 이름을 생성한다. */
     FName() = default;
+
     /**
      * @brief 문자열의 기본 이름과 숫자 접미사를 분리하여 이름 풀에 등록한다.
      * @param Str 생성할 이름 문자열. 빈 문자열이면 None 상태를 유지한다.
      * @details SplitNameAndNumber()로 마지막 숫자 접미사를 분리하고 기본 이름의 표시용 및 비교용 식별자를 저장한다.
      */
     FName(std::string_view Str);
+
     /**
      * @brief 널 종료 문자열에서 이름을 생성한다.
      * @param PStr 기본 이름과 숫자 접미사를 포함할 수 있는 문자열. nullptr 또는 빈 문자열이면 None 상태의 이름을 생성한다.
      */
     FName(const char* PStr);
+
     /**
      * @brief FString에서 기본 이름과 숫자 접미사를 분리하여 이름을 생성한다.
      * @param Str 생성할 이름 문자열. 빈 문자열이면 None 상태의 이름을 생성한다.
      */
     FName(FString Str);
+
     /**
      * @brief 기본 이름과 표시할 숫자를 명시하여 이름을 생성한다.
      * @param BaseName 이름 풀에 등록할 기본 이름. 빈 문자열이면 None 상태의 이름을 생성한다.
@@ -156,12 +167,14 @@ public:
      * @details 정렬 순서는 문자열의 사전순이 아니라 이름 풀의 식별자 순서에 따라 결정되며 실행 간 안정성을 보장하지 않는다.
      */
     Int32 Compare(const FName& Rhs) const;
+
     /**
      * @brief 대소문자를 구분하지 않고 이름과 숫자 접미사의 동등성을 비교한다.
      * @param Rhs 비교할 이름.
      * @return 비교용 엔트리 식별자와 내부 숫자 값이 모두 같으면 true, 그 외에는 false.
      */
     bool operator==(const FName& Rhs) const;
+
     /**
      * @brief 현재 이름이 비교 대상보다 앞서는지 확인한다.
      * @param Rhs 비교할 이름.
@@ -174,12 +187,14 @@ public:
      * @return 비교용 엔트리 식별자의 내부 값이 0이면 true, 그 외에는 false.
      */
     bool IsNone() const;
+
     /**
      * @brief 기본 이름을 유지하면서 숫자 접미사를 바꾼 사본을 생성한다.
      * @param InNumber 새로 표시할 숫자. 0 이상이고 Int32의 최댓값 미만이면 적용하며, 그 외에는 접미사를 제거한다.
      * @return 표시용 및 비교용 식별자를 유지하고 숫자 값만 갱신한 이름. None 상태의 이름은 그대로 유지한다.
      */
     FName WithNumber(Int32 InNumber) const;
+
     /**
      * @brief 표시용 이름과 숫자 접미사를 문자열로 구성한다.
      * @return 숫자 접미사가 있으면 표시용 문자열에 밑줄과 표시 숫자를 붙인 값, 없으면 표시용 문자열. None 상태이면 빈 문자열.
@@ -208,8 +223,10 @@ public:
 private:
     /** @brief 문자열의 대소문자를 보존하는 표시용 엔트리 식별자. */
     FNameEntryId mDisplayId{};
+
     /** @brief 대소문자를 구분하지 않는 이름 비교에 사용하는 엔트리 식별자. */
     FNameEntryId mComparisonId{};
+
     /** @brief 숫자 접미사의 내부 값. 0이면 접미사가 없고, 양수이면 표시할 숫자에 1을 더한 값이다. */
     Int32 mNumber{0};
 };

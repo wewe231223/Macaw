@@ -1,0 +1,19 @@
+digraph CoreUObject {
+    graph [rankdir=LR, bgcolor="transparent", fontname="Malgun Gothic", nodesep=0.4, ranksep=0.7];
+    node [shape=box, style="rounded,filled", fillcolor="#e8f3ff", color="#8eb6d9", fontname="Malgun Gothic", fontsize=11, margin="0.16,0.12"];
+    edge [color="#52677d", fontname="Malgun Gothic", fontsize=9];
+    Object [label="UObject\n런타임 객체"];
+    ObjectRegistry [label="FObjectRegistry\n비소유 객체 등록·조회"];
+    ObjectHandle [label="FObjectHandle\n슬롯·세대 식별자"];
+    ReflectionRegistry [label="FReflectionRegistry\n타입 등록·조회"];
+    Struct [label="UStruct\n타입 메타데이터 기반"];
+    Class [label="UClass\n클래스·부모·팩토리"];
+    Property [label="FProperty\n프로퍼티 접근·직렬화"];
+    Object -> ObjectHandle [label="소유 · 핸들 값"];
+    ObjectRegistry -> Object [style=dashed, label="참조 · 등록·해제·조회"];
+    ObjectRegistry -> ObjectHandle [style=dashed, label="사용 · 슬롯·세대 검증"];
+    Object -> Class [style=dashed, constraint=false, label="참조 · 실제 클래스 조회"];
+    ReflectionRegistry -> Struct [label="소유 · 등록한 메타데이터"];
+    Class -> Struct [arrowhead=empty, label="상속"];
+    Struct -> Property [label="소유 · 선언한 프로퍼티"];
+}

@@ -13,7 +13,9 @@ namespace {
 
     struct FDefinition {
         EDefinitionKind mKind{};
+
         UClass* (*mParent)(){};
+
         std::size_t mSize{};
         std::size_t mAlignment{};
         EClassFlags mFlags{};

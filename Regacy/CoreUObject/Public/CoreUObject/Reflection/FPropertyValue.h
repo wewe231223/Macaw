@@ -2,6 +2,7 @@
  * @file FPropertyValue.h
  * @brief 네이티브 타입 기술자, 객체 참조 방문과 타입 소거 값 소유 컨테이너를 제공합니다.
  */
+
 #pragma once
 
 #include "Core/Common.h"
@@ -96,42 +97,52 @@ struct FNativeType {
      * @brief 네이티브 값의 종류입니다.
      */
     EPropertyKind mKind{};
+
     /**
      * @brief 네이티브 값의 바이트 크기입니다.
      */
     std::size_t mSize{};
+
     /**
      * @brief 네이티브 값의 바이트 정렬입니다.
      */
     std::size_t mAlignment{};
+
     /**
      * @brief 값을 새 저장 공간에 복사하는 함수입니다. 지원하지 않으면 nullptr를 반환합니다.
      */
     void* (*mCopy)(const void*){};
+
     /**
      * @brief 해당 타입으로 할당된 저장 값을 삭제하는 함수입니다.
      */
     void (*mDestroy)(void*){};
+
     /**
      * @brief 저장 값에서 UObject 참조를 방문하는 함수입니다.
      */
     void (*mVisitReferences)(const void*, const std::function<void(UObject*)>&){};
+
     /**
      * @brief 연결된 구조체 메타데이터를 조회하는 함수입니다.
      */
     UScriptStruct* (*mGetStruct)(){};
+
     /**
      * @brief 객체 참조의 클래스 메타데이터를 조회하는 함수입니다.
      */
     UClass* (*mGetObjectClass)(){};
+
     /**
      * @brief 컨테이너 원소 타입 정보를 조회하는 함수입니다.
      */
     const FNativeType* (*mGetElementType)(){};
+
     /**
      * @brief 저장 값에서 직접 객체 포인터를 읽는 함수입니다.
      */
     UObject* (*mReadObject)(const void*){};
+
     /**
      * @brief 호환 객체 포인터로 해당 타입의 소유 값을 구성하는 함수입니다.
      */
@@ -238,6 +249,7 @@ void VisitScriptStructReferences(const UScriptStruct* Struct, const void* Value,
  * @return UClass 포인터 값의 정적 네이티브 타입 정보입니다.
  */
 extern template const FNativeType* GetNativeType<UClass*>();
+
 /**
  * @brief UClass 포인터 참조 방문 함수의 외부 명시적 인스턴스화 선언입니다.
  * @param Value 유효한 UClass 포인터 값의 저장 공간입니다.
@@ -255,6 +267,7 @@ public:
      * @brief 타입과 저장 값이 없는 빈 컨테이너를 생성합니다.
      */
     FPropertyValue() = default;
+
     /**
      * @brief 네이티브 값의 복사본을 소유합니다.
      * @tparam T 저장할 정확한 네이티브 타입입니다.
@@ -263,26 +276,31 @@ public:
      */
     template <typename T>
     explicit FPropertyValue(const T& Value);
+
     /**
      * @brief 타입별 파괴 함수로 저장 값을 삭제합니다.
      */
     ~FPropertyValue();
+
     /**
      * @brief Other의 저장 값을 타입별 복사 함수로 복제합니다.
      * @param Other 복사할 값 컨테이너입니다.
      */
     FPropertyValue(const FPropertyValue& Other);
+
     /**
      * @brief 복사본을 만든 뒤 현재 저장 값을 교체합니다.
      * @param Other 복사할 값 컨테이너입니다.
      * @return 현재 컨테이너의 참조입니다.
      */
     FPropertyValue& operator=(const FPropertyValue& Other);
+
     /**
      * @brief Other의 타입 정보와 저장 공간 소유권을 이동합니다.
      * @param Other 이동 후 비워질 컨테이너입니다.
      */
     FPropertyValue(FPropertyValue&& Other) noexcept;
+
     /**
      * @brief 현재 값을 해제하고 Other의 저장 공간 소유권을 이동합니다.
      * @param Other 이동 후 비워질 컨테이너입니다.
@@ -312,21 +330,25 @@ public:
      * @return 타입 기술자입니다. 빈 기본 상태이면 nullptr입니다.
      */
     const FNativeType* GetType() const;
+
     /**
      * @brief 저장 값의 읽기 전용 주소를 반환합니다.
      * @return 내부 저장 공간입니다. 비어 있으면 nullptr입니다.
      */
     const void* GetData() const;
+
     /**
      * @brief 저장 값의 수정 가능한 주소를 반환합니다.
      * @return 내부 저장 공간입니다. 정확한 타입으로 접근해야 합니다.
      */
     void* GetMutableData();
+
     /**
      * @brief 소유한 저장 값의 유무를 검사합니다.
      * @return 저장 주소가 nullptr이면 true입니다.
      */
     bool IsEmpty() const;
+
     /**
      * @brief 저장 값을 삭제하고 타입과 주소를 비웁니다.
      */
@@ -337,6 +359,7 @@ private:
      * @brief 저장 값의 정확한 타입과 파괴 연산을 제공하는 정적 기술자입니다.
      */
     const FNativeType* mType{};
+
     /**
      * @brief 타입별 복사 함수로 확보한 소유 저장 공간입니다.
      */

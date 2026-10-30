@@ -26,6 +26,7 @@ public:
     void OnUnregister() override;
 
     virtual std::unique_ptr<FPrimitiveSceneProxy> CreateSceneProxy() const;
+
     void CreateRenderState() override;
     void DestroyRenderState() override;
     void SendRenderTransform() override;
@@ -56,6 +57,7 @@ public:
 private:
     TArray<FPrimitiveUVTransform> mUVTransforms{};
     ReflectAccessor(mBVisible, IsVisible, SetVisible, "bVisible", EPropertyFlags::Edit | EPropertyFlags::Serialize, ReflectSerializer(mBVisible), ReflectEditor("Rendering", "Visible"));
+
     bool mBVisible{true};
 
     DirectX::BoundingBox mLocalAABB{};

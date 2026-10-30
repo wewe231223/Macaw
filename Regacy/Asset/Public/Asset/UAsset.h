@@ -13,9 +13,11 @@ public:
     virtual ~UAsset();
 
     UAsset(const UAsset&) = delete;
+
     UAsset& operator=(const UAsset&) = delete;
 
     UAsset(UAsset&&) noexcept = default;
+
     UAsset& operator=(UAsset&&) noexcept = default;
 
 public:
@@ -32,8 +34,10 @@ protected:
 
 protected:
     ReflectReadOnlyProperty(mAssetPath, "AssetPath", EPropertyFlags::Serialize | EPropertyFlags::ReadOnly, ReflectSerializer(mAssetPath));
+
     std::filesystem::path mAssetPath{};
     ReflectReadOnlyProperty(mAssetName, "AssetName", EPropertyFlags::Serialize | EPropertyFlags::ReadOnly, ReflectSerializer(mAssetName));
+
     FString mAssetName{};
 
     ReflectMembers();

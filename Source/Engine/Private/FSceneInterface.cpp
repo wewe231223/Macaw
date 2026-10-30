@@ -6,7 +6,23 @@
 
 #include "Engine/FSceneInterface.h"
 
-/**
- * @brief 객체의 수명을 끝내고 소유한 리소스를 정리합니다.
- */
-FSceneInterface::~FSceneInterface() = default;
+namespace Engine {
+
+    /**
+     * @brief 객체의 수명을 끝내고 소유한 리소스를 정리합니다.
+     */
+    Engine::FSceneInterface::~FSceneInterface() = default;
+
+    void Engine::FSceneInterface::AddLight(const Engine::FLightSceneProxy&) {
+    }
+
+    void Engine::FSceneInterface::RemoveLight(const Core::FGuid&) {
+    }
+
+    void Engine::FSceneInterface::AddHeightFog(const Engine::FHeightFogSceneProxy&) {
+    }
+
+    void Engine::FSceneInterface::RemoveHeightFog(const Core::FGuid&) {
+    }
+
+}

@@ -43,5 +43,6 @@ bool FMaterialAssetSerializer::Load(const std::filesystem::path& Path, USurfaceO
     }
 
     Material.SetShader(Shader);
+
     return true;
 }

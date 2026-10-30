@@ -109,5 +109,6 @@ bool BuildMeshDrawState(const FMeshBatch& Mesh, const FMeshBatchElement& Element
     OutState.mLODLevel = Mesh.mLODLevel;
     OutState.mOriginalIndexCount = Element.mOriginalIndexCount;
     OutState.mMaterialSlotIndex = Element.mMaterialSlotIndex;
+
     return static_cast<bool>(OutState.mPipelineHandle);
 }

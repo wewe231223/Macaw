@@ -2,6 +2,7 @@
  * @file FVector2.h
  * @brief 2차원 단정밀도 벡터의 성분 접근과 산술 연산을 제공합니다.
  */
+
 #pragma once
 #include "Core/Types.h"
 #include <cmath>
@@ -29,6 +30,7 @@ struct FVector2 {
              * @brief X 성분입니다.
              */
             float X;
+
             /**
              * @brief Y 성분입니다.
              */
@@ -44,6 +46,7 @@ struct FVector2 {
              * @brief X와 저장 공간을 공유하는 성분 별칭입니다.
              */
             float mX;
+
             /**
              * @brief Y와 저장 공간을 공유하는 성분 별칭입니다.
              */

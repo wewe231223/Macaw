@@ -10,8 +10,11 @@ public:
     virtual ~FSceneRenderSurface() = default;
 
     FSceneRenderSurface(const FSceneRenderSurface&) = delete;
+
     FSceneRenderSurface& operator=(const FSceneRenderSurface&) = delete;
+
     FSceneRenderSurface(FSceneRenderSurface&&) = delete;
+
     FSceneRenderSurface& operator=(FSceneRenderSurface&&) = delete;
 
 public:
@@ -23,6 +26,7 @@ public:
     void ClearDepth(ID3D11DeviceContext* Context) const;
 
     virtual void Reset();
+
     bool IsValid() const;
 
     const D3D11_VIEWPORT& GetViewport() const;

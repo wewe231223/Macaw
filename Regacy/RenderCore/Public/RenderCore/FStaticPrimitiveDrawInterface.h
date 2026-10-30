@@ -2,6 +2,7 @@
  * @file FStaticPrimitiveDrawInterface.h
  * @brief 정적 메시 프록시가 LOD와 인덱스 구간을 조회하고 배치를 제출하는 인터페이스입니다.
  */
+
 #pragma once
 #include "RenderCore/FMeshBatch.h"
 
@@ -22,6 +23,7 @@ public:
      * @return 구현이 제공하는 LOD 수입니다.
      */
     virtual Uint32 GetMeshLODCount(FAssetHandle MeshHandle) const = 0;
+
     /**
      * @brief 메시의 지정 LOD에 대응하는 그리기 구간을 조회합니다.
      * @param MeshHandle 조회할 메시 에셋 핸들입니다.
@@ -29,6 +31,7 @@ public:
      * @param[out] OutElements 머티리얼 그룹별 인덱스 구간 결과입니다.
      */
     virtual void GetMeshElements(FAssetHandle MeshHandle, Uint32 LODLevel, TArray<FMeshBatchElement>& OutElements) const = 0;
+
     /**
      * @brief 정적 메시 배치를 수집 구현에 전달합니다.
      * @param Mesh 제출할 메시·머티리얼·파이프라인과 LOD 구간입니다.

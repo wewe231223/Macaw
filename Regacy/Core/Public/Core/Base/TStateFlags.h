@@ -2,6 +2,7 @@
  * @file TStateFlags.h
  * @brief 열거형 인덱스 기반 상태 비트와 범위 동안 상태를 바꾸고 복원하는 도우미를 제공합니다.
  */
+
 #pragma once
 #include <cstddef>
 #include <cstdint>
@@ -30,18 +31,21 @@ public:
      * @return 상태 비트가 켜져 있으면 true입니다. Count 범위 밖 값이면 false입니다.
      */
     bool IsSet(TEnum Flag) const;
+
     /**
      * @brief 지정한 상태 중 하나라도 켜져 있는지 검사합니다.
      * @param Flags 검사할 상태 인덱스 목록입니다.
      * @return 하나 이상의 상태가 켜져 있으면 true입니다. 빈 목록이면 false입니다.
      */
     bool HasAny(std::initializer_list<TEnum> Flags) const;
+
     /**
      * @brief 지정한 모든 상태가 켜져 있는지 검사합니다.
      * @param Flags 검사할 상태 인덱스 목록입니다.
      * @return 모든 상태가 켜져 있으면 true입니다. 빈 목록이면 true입니다.
      */
     bool HasAll(std::initializer_list<TEnum> Flags) const;
+
     /**
      * @brief 지정한 상태 비트를 설정하거나 해제합니다.
      * @param Flag 변경할 상태 인덱스입니다.
@@ -49,11 +53,13 @@ public:
      * @note Count 범위 밖 상태는 변경하지 않습니다.
      */
     void Set(TEnum Flag, bool Value = true);
+
     /**
      * @brief 지정한 상태 비트를 해제합니다.
      * @param Flag 해제할 상태 인덱스입니다.
      */
     void Clear(TEnum Flag);
+
     /**
      * @brief 모든 상태 비트를 해제합니다.
      */
@@ -69,6 +75,7 @@ private:
 
 private:
     static_assert(static_cast<std::size_t>(TEnum::Count) > 0 && static_cast<std::size_t>(TEnum::Count) <= std::numeric_limits<std::uint64_t>::digits);
+
     /**
      * @brief 상태 인덱스에 대응하는 현재 64비트 저장 값입니다.
      */
@@ -91,22 +98,27 @@ public:
      * @param Value 범위 진입 시 적용할 값입니다.
      */
     TScopedStateFlag(TStateFlags<TEnum>& Flags, TEnum Flag, bool Value = true);
+
     /**
      * @brief 지정한 상태를 범위 진입 전 값으로 복원합니다.
      */
     ~TScopedStateFlag();
+
     /**
      * @brief 상태 복원 책임의 복사 생성을 금지합니다.
      */
     TScopedStateFlag(const TScopedStateFlag&) = delete;
+
     /**
      * @brief 상태 복원 책임의 복사 대입을 금지합니다.
      */
     TScopedStateFlag& operator=(const TScopedStateFlag&) = delete;
+
     /**
      * @brief 상태 복원 책임의 이동 생성을 금지합니다.
      */
     TScopedStateFlag(TScopedStateFlag&&) = delete;
+
     /**
      * @brief 상태 복원 책임의 이동 대입을 금지합니다.
      */
@@ -117,10 +129,12 @@ private:
      * @brief 상태를 변경하고 복원할 외부 집합 참조입니다.
      */
     TStateFlags<TEnum>& mFlags;
+
     /**
      * @brief 복원할 상태 인덱스입니다.
      */
     TEnum mFlag;
+
     /**
      * @brief 범위 진입 직전의 상태 값입니다.
      */

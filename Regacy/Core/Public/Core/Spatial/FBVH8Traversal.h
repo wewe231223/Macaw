@@ -2,6 +2,7 @@
  * @file FBVH8Traversal.h
  * @brief 준비된 광선의 경계 검사와 리프 방문자를 사용하는 공용 8분기 BVH 순회를 정의한다.
  */
+
 #pragma once
 #include "Core/Spatial/FBVH8.h"
 
@@ -32,6 +33,7 @@ namespace BVH8 {
              * @brief 방문할 내부 노드 또는 리프의 인코딩된 참조.
              */
             Uint32 Reference;
+
             /**
              * @brief 해당 경계에 진입하는 광선 매개변수. 현재 상한을 넘으면 방문을 생략한다.
              */

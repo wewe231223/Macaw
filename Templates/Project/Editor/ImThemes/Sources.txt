@@ -1,0 +1,4 @@
+ImThemes by Patitotective
+https://github.com/Patitotective/ImThemes
+Revision: e3f3ed15a351420783f41989683a47a9dd5755c2
+The bundled themes.toml is distributed under the accompanying MIT license.

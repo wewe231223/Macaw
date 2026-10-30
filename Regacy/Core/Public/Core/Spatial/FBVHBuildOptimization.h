@@ -2,6 +2,7 @@
  * @file FBVHBuildOptimization.h
  * @brief 이진 구축 트리의 경계 병합, 8분기 비용 추정 및 작은 하위 트리 재구성을 정의한다.
  */
+
 #pragma once
 #include "Core/Common.h"
 #include "Math/FMath.h"
@@ -126,6 +127,7 @@ namespace BVH8 {
                         Best = i;
                         Largest = BuildArea(Candidate[Frontier[i]].BoundingBox);
                     }
+
                 if (Best == Count)
                     break;
 

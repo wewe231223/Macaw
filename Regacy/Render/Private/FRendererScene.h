@@ -12,8 +12,11 @@ public:
     FRendererScene(FRenderer& Renderer, FSceneHandle Handle);
     ~FRendererScene() override = default;
     FRendererScene(const FRendererScene&) = delete;
+
     FRendererScene& operator=(const FRendererScene&) = delete;
+
     FRendererScene(FRendererScene&&) = delete;
+
     FRendererScene& operator=(FRendererScene&&) = delete;
 
 public:

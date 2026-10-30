@@ -18,6 +18,7 @@ DXGI_FORMAT ConvertVertexFormat(EVertexFormat Value) {
 
         default:
             ErrorHandler::Report("ConvertVertexFormat", "The vertex format is invalid.", ErrorHandler::EErrorLevel::Error);
+
             return DXGI_FORMAT_UNKNOWN;
     }
 }
@@ -41,6 +42,7 @@ D3D11_PRIMITIVE_TOPOLOGY ConvertPrimitiveTopology(EPrimitiveTopology Value) {
 
         default:
             ErrorHandler::Report("ConvertPrimitiveTopology", "The primitive topology is invalid.", ErrorHandler::EErrorLevel::Error);
+
             return D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
     }
 }
@@ -55,6 +57,7 @@ D3D11_FILL_MODE ConvertFillMode(EFillMode Value) {
 
         default:
             ErrorHandler::Report("ConvertFillMode", "The fill mode is invalid.", ErrorHandler::EErrorLevel::Error);
+
             return D3D11_FILL_SOLID;
     }
 }
@@ -72,6 +75,7 @@ D3D11_CULL_MODE ConvertCullMode(ECullMode Value) {
 
         default:
             ErrorHandler::Report("ConvertCullMode", "The cull mode is invalid.", ErrorHandler::EErrorLevel::Error);
+
             return D3D11_CULL_BACK;
     }
 }
@@ -104,6 +108,7 @@ D3D11_COMPARISON_FUNC ConvertCompareFunc(ECompareFunc Value) {
 
         default:
             ErrorHandler::Report("ConvertCompareFunc", "The comparison function is invalid.", ErrorHandler::EErrorLevel::Error);
+
             return D3D11_COMPARISON_ALWAYS;
     }
 }
@@ -136,6 +141,7 @@ D3D11_STENCIL_OP ConvertStencillOp(EStencillOp Value) {
 
         default:
             ErrorHandler::Report("ConvertCompareFunc", "The comparison function is invalid.", ErrorHandler::EErrorLevel::Error);
+
             return D3D11_STENCIL_OP_KEEP;
     }
 }
@@ -174,6 +180,7 @@ D3D11_BLEND ConvertBlend(EBlend Value) {
 
         default:
             ErrorHandler::Report("ConvertBlend", "The blend value is invalid.", ErrorHandler::EErrorLevel::Error);
+
             return D3D11_BLEND_ONE;
     }
 }
@@ -197,6 +204,7 @@ D3D11_BLEND_OP ConvertBlendOp(EBlendOp Value) {
 
         default:
             ErrorHandler::Report("ConvertBlendOp", "The blend operation is invalid.", ErrorHandler::EErrorLevel::Error);
+
             return D3D11_BLEND_OP_ADD;
     }
 }

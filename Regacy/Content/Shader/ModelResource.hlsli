@@ -48,6 +48,7 @@ float2 ApplyUVTransform(float2 UV, FModelContext Model) {
 void ApplyLODDither(float2 PixelPosition, float Dither) {
     [branch] if (Dither != 0.0f) {
         const float Noise = frac(52.9829189f * frac(dot(floor(PixelPosition), float2(0.06711056f, 0.00583715f))));
+
         if (Dither > 0.0f ? Noise < Dither : Noise >= -Dither) { discard; }
     }
 }

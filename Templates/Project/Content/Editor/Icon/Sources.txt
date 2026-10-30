@@ -1,0 +1,35 @@
+Unreal Engine editor icons
+Copyright Epic Games, Inc. All rights reserved.
+
+Original engine directory: Engine/Content/Editor/Slate/Icons/AssetIcons/
+All three files match the original Unreal Engine dependency manifest hashes:
+https://github.com/folgerwang/UnrealEngine/blob/release/Engine/Build/Commit.gitdeps.xml
+
+SpotLight_64x.png
+Source copy: https://raw.githubusercontent.com/sadoe3/TechLab_Week9_Team8/95d4a793c859ccf4a9c1bea98aa59b25c7d7bfc0/Resources/Icons/SpotLight_64x.png
+Verified Unreal Engine SHA-1: 292a9f135d5b0bf6c0db4e250548b2dc9f1d549a
+
+PointLight_64x.png
+Source copy: https://raw.githubusercontent.com/sadoe3/TechLab_Week9_Team8/95d4a793c859ccf4a9c1bea98aa59b25c7d7bfc0/Resources/Icons/PointLight_64x.png
+Verified Unreal Engine SHA-1: 05a3c830090fc1fa4145039bfb564abb86d7e76c
+
+Pawn_64x.png
+Source copy: https://raw.githubusercontent.com/sadoe3/TechLab_Week9_Team8/95d4a793c859ccf4a9c1bea98aa59b25c7d7bfc0/Resources/Icons/Pawn_64x.png
+Verified Unreal Engine SHA-1: 74a4980db66d73bb4ed7816d92d19732b9221f08
+
+DirectionalLight_64x.png
+Unreal Engine editor resource export: S_LightDirectional.png
+Source copy: https://raw.githubusercontent.com/sadoe3/TechLab_Week9_Team8/95d4a793c859ccf4a9c1bea98aa59b25c7d7bfc0/Resources/Icons/S_LightDirectional.png
+Downloaded copy SHA-1: 891deeb74c883c3cbc92973d3c8afa1a2a936694
+
+SkyLight_64x.png
+Unreal Engine editor resource export: SkyLight.png
+Source copy: https://raw.githubusercontent.com/sadoe3/TechLab_Week9_Team8/95d4a793c859ccf4a9c1bea98aa59b25c7d7bfc0/Resources/Icons/SkyLight.png
+Downloaded copy SHA-1: 6430f753b4f09161f5c3568dc354d8c7e043185e
+
+ExponentialHeightFog_64x.png
+Original engine directory: Engine/Content/Editor/Slate/Icons/AssetIcons/
+Dependency manifest: https://github.com/chenyong2github/UnrealEngine/blob/5.3/Engine/Build/Commit.gitdeps.xml
+Source pack: https://cdn.unrealengine.com/dependencies/UnrealEngine-25328963/dd96d4839230d33af54b544692ae913c184bbbd0
+Uncompressed pack offset: 1229606, file size: 8021 bytes
+Verified Unreal Engine SHA-1: be4eb3e5a999a1719ff1307db9d546b8b759e88d

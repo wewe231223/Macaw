@@ -10,8 +10,11 @@ public:
     FWindowsApplication() = default;
     ~FWindowsApplication() override;
     FWindowsApplication(const FWindowsApplication&) = delete;
+
     FWindowsApplication& operator=(const FWindowsApplication&) = delete;
+
     FWindowsApplication(FWindowsApplication&&) = delete;
+
     FWindowsApplication& operator=(FWindowsApplication&&) = delete;
 
 public:

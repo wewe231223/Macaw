@@ -19,10 +19,13 @@ public:
     ReflectClass(UMeshComponent, EClassFlags::Abstract);
 
     FAssetHandle GetMeshHandle() const;
+
     virtual void SetMeshHandle(FAssetHandle InHandle);
+
     void OnRegister() override;
 
     virtual const UMesh* ResolveMesh() const;
+
     bool BuildPickingBoxFromMesh();
     bool RaycastMesh(const FRay& Ray, FWorldRaycastHit& OutHit, float MaxDistance = std::numeric_limits<float>::max()) const;
 
@@ -36,6 +39,7 @@ private:
     mutable Uint64 mRaycastTransformRevision{};
     mutable bool mRaycastTransformInitialized{};
     ReflectAccessor(mMeshReference, GetMeshHandle, SetMeshHandle, "MeshHandle", EPropertyFlags::Edit | EPropertyFlags::Serialize | EPropertyFlags::Asset, &SerializeMeshHandleProperty, ReflectEditor("Rendering", "Mesh"), ReflectAsset(UMesh));
+
     FAssetReference mMeshReference{};
 
     ReflectMembers();

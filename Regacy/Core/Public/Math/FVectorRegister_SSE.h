@@ -3,6 +3,7 @@
  * @brief x64 SSE 레지스터의 메모리 접근, 성분 연산, 내적과 재배치를 제공합니다.
  * @note Dot과 Dot4 및 이를 사용하는 연산은 SSE 4.1의 내적 명령을 사용합니다.
  */
+
 #pragma once
 #include <immintrin.h>
 
@@ -36,12 +37,14 @@ namespace VectorSIMD {
      * @return (Ptr[0], Ptr[1], Ptr[2], 0) 레지스터입니다.
      */
     FVectorRegister LoadFloat3(const float* Ptr);
+
     /**
      * @brief X, Y, Z를 연속된 세 float에 저장합니다.
      * @param[out] Ptr 세 float를 쓸 저장 공간입니다.
      * @param V 저장할 레지스터입니다. W는 저장하지 않습니다.
      */
     void StoreFloat3(float* Ptr, FVectorRegister V);
+
     /**
      * @brief 16바이트 정렬된 주소에서 네 float를 읽습니다.
      * @param Ptr 읽을 연속된 네 float의 포인터입니다.
@@ -49,6 +52,7 @@ namespace VectorSIMD {
      * @return 읽은 네 성분입니다.
      */
     FVectorRegister LoadAligned(const float* Ptr);
+
     /**
      * @brief 네 성분을 16바이트 정렬된 주소에 저장합니다.
      * @param[out] Ptr 네 float를 쓸 저장 공간입니다.
@@ -56,12 +60,14 @@ namespace VectorSIMD {
      * @pre Ptr은 16바이트 경계에 정렬되어 있어야 합니다.
      */
     void StoreAligned(float* Ptr, FVectorRegister V);
+
     /**
      * @brief X, Y, Z를 유지하고 W를 0으로 설정한 레지스터를 반환합니다.
      * @param A 입력 레지스터입니다.
      * @return W가 0인 결과입니다.
      */
     FVectorRegister SetWZero(FVectorRegister A);
+
     /**
      * @brief 각 성분의 제곱근 역수 근사값을 계산합니다.
      * @param V 입력 레지스터입니다.
@@ -69,6 +75,7 @@ namespace VectorSIMD {
      * @return SSE rsqrt 명령으로 계산한 성분별 근사값입니다.
      */
     FVectorRegister Rsqrt(FVectorRegister V);
+
     /**
      * @brief 각 성분을 분모로 하는 1 / A를 계산합니다.
      * @param A 입력 레지스터입니다.
@@ -76,6 +83,7 @@ namespace VectorSIMD {
      * @return 성분별 역수입니다.
      */
     FVectorRegister Reciprocal(FVectorRegister A);
+
     /**
      * @brief 대응하는 성분의 최솟값을 선택합니다.
      * @param A 첫 번째 레지스터입니다.
@@ -84,6 +92,7 @@ namespace VectorSIMD {
      * @note NaN 입력이나 값이 같은 경우에는 B의 해당 성분을 선택합니다.
      */
     FVectorRegister Min(FVectorRegister A, FVectorRegister B);
+
     /**
      * @brief 대응하는 성분의 최댓값을 선택합니다.
      * @param A 첫 번째 레지스터입니다.
@@ -92,12 +101,14 @@ namespace VectorSIMD {
      * @note NaN 입력이나 값이 같은 경우에는 B의 해당 성분을 선택합니다.
      */
     FVectorRegister Max(FVectorRegister A, FVectorRegister B);
+
     /**
      * @brief 각 성분의 부호 비트를 제거합니다.
      * @param A 입력 레지스터입니다.
      * @return 성분별 절댓값 레지스터입니다.
      */
     FVectorRegister Abs(FVectorRegister A);
+
     /**
      * @brief 네 성분 모두의 절댓값이 허용 오차 이하인지 검사합니다.
      * @param A 검사할 레지스터입니다.
@@ -105,6 +116,7 @@ namespace VectorSIMD {
      * @return 모든 성분이 조건을 만족하면 true입니다.
      */
     bool IsNearlyZero(FVectorRegister A, float Tolerance = 1e-4f);
+
     /**
      * @brief 네 성분 내적을 계산해 모든 결과 성분에 복제합니다.
      * @param A 첫 번째 벡터입니다.
@@ -112,6 +124,7 @@ namespace VectorSIMD {
      * @return 네 성분이 모두 같은 내적 값인 레지스터입니다.
      */
     FVectorRegister Dot4(FVectorRegister A, FVectorRegister B);
+
     /**
      * @brief float 저장 비트에 성분별 비트 AND를 수행합니다.
      * @param A 첫 번째 레지스터입니다.
@@ -119,6 +132,7 @@ namespace VectorSIMD {
      * @return 비트 연산 결과 레지스터입니다.
      */
     FVectorRegister And(FVectorRegister A, FVectorRegister B);
+
     /**
      * @brief float 저장 비트에 성분별 비트 OR를 수행합니다.
      * @param A 첫 번째 레지스터입니다.
@@ -126,6 +140,7 @@ namespace VectorSIMD {
      * @return 비트 연산 결과 레지스터입니다.
      */
     FVectorRegister Or(FVectorRegister A, FVectorRegister B);
+
     /**
      * @brief float 저장 비트에 성분별 비트 XOR를 수행합니다.
      * @param A 첫 번째 레지스터입니다.
@@ -133,6 +148,7 @@ namespace VectorSIMD {
      * @return 비트 연산 결과 레지스터입니다.
      */
     FVectorRegister Xor(FVectorRegister A, FVectorRegister B);
+
     /**
      * @brief A의 비트를 반전한 뒤 B와 비트 AND를 수행합니다.
      * @param A 비트를 반전할 레지스터입니다.
@@ -140,6 +156,7 @@ namespace VectorSIMD {
      * @return (~A) & B의 비트 패턴을 갖는 레지스터입니다.
      */
     FVectorRegister AndNot(FVectorRegister A, FVectorRegister B);
+
     /**
      * @brief 성분별 A * B + C를 계산합니다.
      * @param A 곱셈의 첫 번째 입력입니다.
@@ -149,6 +166,7 @@ namespace VectorSIMD {
      * @note 곱셈과 덧셈을 별도로 수행하며 단일 FMA 명령을 사용하지 않습니다.
      */
     FVectorRegister MultiplyAdd(FVectorRegister A, FVectorRegister B, FVectorRegister C);
+
     /**
      * @brief 성분별 C - A * B를 계산합니다.
      * @param A 곱셈의 첫 번째 입력입니다.
@@ -158,12 +176,14 @@ namespace VectorSIMD {
      * @note 곱셈과 뺄셈을 별도로 수행합니다.
      */
     FVectorRegister NegativeMultiplyAdd(FVectorRegister A, FVectorRegister B, FVectorRegister C);
+
     /**
      * @brief 네 성분을 합산해 스칼라로 반환합니다.
      * @param V 합산할 레지스터입니다.
      * @return X + Y + Z + W에 해당하는 값입니다.
      */
     float HorizontalAdd4(FVectorRegister V);
+
     /**
      * @brief W를 포함한 네 성분으로 벡터를 정규화합니다.
      * @param A 정규화할 레지스터입니다.

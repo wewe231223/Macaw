@@ -2,6 +2,7 @@
  * @file FMaterialBuffer.h
  * @brief 전역 머티리얼을 장치별 GPU 버퍼와 동기화하는 저장소를 정의합니다.
  */
+
 #pragma once
 
 #include <d3d11.h>
@@ -16,6 +17,7 @@ class FMaterialBuffer {
 private:
     struct FMaterialEntry {
         FAssetHandle mHandle{};
+
         /**
          * @brief 머티리얼 객체 재생성과 수정 여부를 구분하는 마지막 업로드 상태입니다.
          */
@@ -28,12 +30,16 @@ public:
     ~FMaterialBuffer() = default;
 
     FMaterialBuffer(const FMaterialBuffer&) = delete;
+
     FMaterialBuffer& operator=(const FMaterialBuffer&) = delete;
+
     FMaterialBuffer(FMaterialBuffer&&) = delete;
+
     FMaterialBuffer& operator=(FMaterialBuffer&&) = delete;
 
 public:
     bool Initialize(ID3D11Device* Device, Uint32 MaxMaterialCount = 4096);
+
     /**
      * @brief 전역 레지스트리의 머티리얼을 이 GPU 버퍼와 동기화합니다.
      * @param Context 업로드할 장치 컨텍스트입니다.

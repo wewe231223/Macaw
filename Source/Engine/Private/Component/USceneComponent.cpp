@@ -9,39 +9,43 @@
 #include "Core/Math/FMatrix.h"
 #include "Core/Math/FTransform.h"
 
-/**
- * @brief USceneComponent의 초기 상태와 전달받은 의존성을 구성합니다.
- */
-USceneComponent::USceneComponent() = default;
+namespace Engine {
 
-/**
- * @brief 객체의 수명을 끝내고 소유한 리소스를 정리합니다.
- */
-USceneComponent::~USceneComponent() = default;
+    /**
+     * @brief USceneComponent의 초기 상태와 전달받은 의존성을 구성합니다.
+     */
+    Engine::USceneComponent::USceneComponent() = default;
 
-/**
- * @brief 컴포넌트의 위치·회전·스케일을 반환합니다.
- */
-const FTransform& USceneComponent::GetTransform() const {
-    return mTransform;
-}
+    /**
+     * @brief 객체의 수명을 끝내고 소유한 리소스를 정리합니다.
+     */
+    Engine::USceneComponent::~USceneComponent() = default;
 
-/**
- * @brief 유한하고 유효한 변환을 검증하여 공간 컴포넌트에 적용합니다.
- */
-bool USceneComponent::SetTransform(const FTransform& Transform) {
-    if (!Transform.IsValid()) {
-        return false;
+    /**
+     * @brief 컴포넌트의 위치·회전·스케일을 반환합니다.
+     */
+    const Core::FTransform& Engine::USceneComponent::GetTransform() const {
+        return mTransform;
     }
 
-    mTransform = Transform;
+    /**
+     * @brief 유한하고 유효한 변환을 검증하여 공간 컴포넌트에 적용합니다.
+     */
+    bool Engine::USceneComponent::SetTransform(const Core::FTransform& Transform) {
+        if (!Transform.IsValid()) {
+            return false;
+        }
 
-    return true;
-}
+        mTransform = Transform;
 
-/**
- * @brief 위치, 회전과 스케일이 적용된 월드 행렬을 반환합니다.
- */
-FMatrix USceneComponent::GetWorldMatrix() const {
-    return mTransform.ToMatrix();
+        return true;
+    }
+
+    /**
+     * @brief 위치, 회전과 스케일이 적용된 월드 행렬을 반환합니다.
+     */
+    Core::FMatrix Engine::USceneComponent::GetWorldMatrix() const {
+        return mTransform.ToMatrix();
+    }
+
 }

@@ -3,6 +3,7 @@
  * @brief 대상 아키텍처에 따라 벡터 레지스터 선언을 선택합니다.
  * @note x64에서는 SSE 구현을 포함하고, 그 외 환경에는 VectorRegister 저장 구조체만 선언합니다.
  */
+
 #pragma once
 
 #if defined(__x86_64__) || defined(_M_X64)

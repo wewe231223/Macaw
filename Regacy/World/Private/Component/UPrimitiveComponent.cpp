@@ -121,11 +121,13 @@ bool UPrimitiveComponent::SetUVTransform(FName MaterialSlot, const FUVTransform&
         Entry.mTransform = Transform;
         Entry.mSourceHandle = SourceHandle;
         MarkRenderDynamicDataDirty();
+
         return true;
     }
 
     mUVTransforms.push_back(FPrimitiveUVTransform{MaterialSlot, Transform, SourceHandle});
     MarkRenderDynamicDataDirty();
+
     return true;
 }
 

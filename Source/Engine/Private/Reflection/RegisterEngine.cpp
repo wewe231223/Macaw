@@ -8,7 +8,11 @@
 #include "CoreUObject/Reflection/RegisterCoreUObject.h"
 #include "EngineReflection.h"
 
-void ReflectionModules::RegisterEngine() {
-    RegisterCoreUObject();
-    RegisterEngineTypes();
+namespace Engine {
+
+    void Engine::ReflectionModules::RegisterEngine() {
+        CoreUObject::ReflectionModules::RegisterCoreUObject();
+        Engine::ReflectionModules::RegisterEngineTypes();
+    }
+
 }
