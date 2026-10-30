@@ -33,6 +33,7 @@
 
 #include <d3d11.h>
 #include <commdlg.h>
+#include <shellapi.h>
 #include <imgui.h>
 #include <imgui_internal.h>
 #include <imgui_impl_dx11.h>
@@ -121,7 +122,12 @@ bool FEditorUI::Initialize(IRendererModule* Renderer, FWindowsApplication* Platf
         return false;
     }
 
-    Platform->SetMessageHandler([](HWND Window, UINT Message, WPARAM WParam, LPARAM LParam) {
+    Platform->SetMessageHandler([this](HWND Window, UINT Message, WPARAM WParam, LPARAM LParam) {
+        if (Message == WM_DROPFILES) {
+            QueueFileDrop(reinterpret_cast<void*>(WParam));
+            return true;
+        }
+
         return ImGui_ImplWin32_WndProcHandler(Window, Message, WParam, LParam) != 0;
     });
 
@@ -145,6 +151,7 @@ bool FEditorUI::Initialize(IRendererModule* Renderer, FWindowsApplication* Platf
     mExit = false;
     mRefreshContent = true;
     RefreshContent();
+    DragAcceptFiles(Platform->GetWindowHandle(), TRUE);
 
     return true;
 }
@@ -196,11 +203,28 @@ void FEditorUI::InstallEditorIcons() {
  * @brief 종속 객체를 역순으로 정리하고 여러 번 호출해도 안전한 종료 상태로 만듭니다.
  */
 void FEditorUI::Shutdown() {
+    if (mPlatform != nullptr) {
+        const HWND Window{mPlatform->GetWindowHandle()};
+
+        if (Window != nullptr) {
+            DragAcceptFiles(Window, FALSE);
+
+            MSG Message{};
+
+            while (PeekMessageW(&Message, Window, WM_DROPFILES, WM_DROPFILES, PM_REMOVE)) {
+                DragFinish(reinterpret_cast<HDROP>(Message.wParam));
+            }
+        }
+    }
+
+    mDroppedFiles.clear();
+    mDropDirectories.clear();
+    mContentDropDirectories.clear();
+    mContentDropBounds.clear();
     mMeshViewer.reset();
     mDetailsPanel.SetAssetServices(nullptr, nullptr);
     mThumbnails.reset();
     mAssetCatalog.reset();
-    mAssetDisplayPaths.clear();
     mContentSearch.fill('\0');
     mContentFilter.reset();
 
@@ -272,6 +296,7 @@ bool FEditorUI::BeginFrame(float DeltaTime) {
     mUIScale.Update(*mPlatform);
     ImGui::NewFrame();
     mThumbnails->BeginFrame();
+    ImportDroppedFiles();
 
     if (mRefreshContent) {
         RefreshContent();
@@ -673,53 +698,171 @@ void FEditorUI::ChooseProject(bool Create) {
     mContext->RequestProject({}, Create);
 }
 
-void FEditorUI::ImportAsset(bool Texture) {
+void FEditorUI::ImportAsset() {
     std::array<wchar_t, 32768> Buffer{};
     OPENFILENAMEW Dialog{};
     Dialog.lStructSize = sizeof(Dialog);
     Dialog.hwndOwner = mPlatform->GetWindowHandle();
-    Dialog.lpstrTitle = Texture ? L"Import Texture" : L"Import Mesh";
-    Dialog.lpstrFilter = Texture ? L"Images\0*.png;*.jpg;*.jpeg;*.bmp;*.tga;*.dds;*.hdr\0" : L"Meshes\0*.obj;*.fbx;*.gltf;*.glb\0";
+    Dialog.lpstrTitle = L"Import Asset";
+    Dialog.lpstrFilter = L"Supported Assets\0*.obj;*.fbx;*.gltf;*.glb;*.png;*.jpg;*.jpeg;*.bmp;*.tga;*.dds;*.hdr\0";
     Dialog.lpstrFile = Buffer.data();
     Dialog.nMaxFile = static_cast<DWORD>(Buffer.size());
-    Dialog.Flags = OFN_EXPLORER | OFN_NOCHANGEDIR | OFN_FILEMUSTEXIST;
+    Dialog.Flags = OFN_EXPLORER | OFN_NOCHANGEDIR | OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST;
 
-    if (!GetOpenFileNameW(&Dialog)) {
+    if (GetOpenFileNameW(&Dialog)) {
+        ImportFiles({std::filesystem::path{Buffer.data()}}, mContentDirectory);
+    }
+}
+
+void FEditorUI::ImportFiles(const TArray<std::filesystem::path>& Sources, const std::filesystem::path& Directory) {
+    if (!mContext->CanEditWorld()) {
         return;
     }
 
-    const std::filesystem::path Source{Buffer.data()};
+    const std::filesystem::path Destination{Directory};
     FAssetManager* Assets{mContext->GetProject()->GetAssets()};
-    const std::filesystem::path Folder{mContentDirectory};
-    std::filesystem::path Target{Folder / Source.stem()};
-    Target += L".masset";
+    std::filesystem::path LastImported{};
+    FString Failures{};
+    Uint32 Imported{};
 
-    std::error_code Code{};
+    for (const auto& Source : Sources) {
+        std::filesystem::path Target{};
+        FString Error{};
 
-    for (Uint32 Index{1}; std::filesystem::exists(Assets->GetContentRoot() / Target, Code) && !Code; ++Index) {
-        Target = Folder / (Source.stem().wstring() + L"_" + std::to_wstring(Index) + L".masset");
+        if (!Assets->ImportAsset(Source, Destination, Target, Error)) {
+            const FString Failure{"Cannot import '" + FilePath::ToUtf8(Source.filename()) + "': " + Error};
+            mContext->AddLog(Failure);
+            Failures += (Failures.empty() ? FString{} : "\n") + Failure;
+            continue;
+        }
+
+        ++Imported;
+        LastImported = Target;
+        mContext->AddLog("Imported " + FilePath::ToGenericUtf8(Target));
     }
 
-    FString Error{};
-    const bool Imported{!Code && (Texture ? Assets->ImportTexture(Source, Target, Error) : Assets->ImportMesh(Source, Target, Error))};
+    if (Imported != 0) {
+        mContentFilter.reset();
+        mContentSearch.fill('\0');
+        RefreshContent();
+        NavigateContent(Imported == 1 ? LastImported.parent_path() : Destination);
+        mSelectedContentPath = Imported == 1 ? LastImported : LastImported.parent_path();
+    }
 
-    mRefreshContent = true;
-    mContext->AddLog(Imported ? "Imported " + FilePath::ToUtf8(Target) : Error.empty() ? "Cannot choose the import destination" : Error);
+    mContentError = std::move(Failures);
+}
+
+void FEditorUI::QueueFileDrop(void* Handle) {
+    const HDROP Drop{static_cast<HDROP>(Handle)};
+    POINT Point{};
+
+    if (Drop == nullptr) {
+        return;
+    }
+
+    ImGuiContext* Context{ImGui::GetCurrentContext()};
+
+    if (!mInitialized || !mContext->CanEditWorld() || Context == nullptr || !DragQueryPoint(Drop, &Point) || Context->OpenPopupStack.Size != 0) {
+        DragFinish(Drop);
+        return;
+    }
+
+    if ((ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable) != 0) {
+        ClientToScreen(mPlatform->GetWindowHandle(), &Point);
+    }
+
+    const ImVec2 Position{static_cast<float>(Point.x), static_cast<float>(Point.y)};
+    ImGuiWindow* Browser{ImGui::FindWindowByName("Content")};
+    ImGuiWindow* Hovered{};
+
+    for (int Index{Context->Windows.Size}; Index > 0; --Index) {
+        ImGuiWindow* Window{Context->Windows[Index - 1]};
+
+        if (Window->WasActive && !Window->Hidden && (Window->Flags & ImGuiWindowFlags_NoMouseInputs) == 0 && Window->OuterRectClipped.Contains(Position)) {
+            Hovered = Window;
+            break;
+        }
+    }
+
+    if (Browser == nullptr || Browser->Collapsed || Hovered == nullptr || !ImGui::IsWindowChildOf(Hovered, Browser, false, false)) {
+        DragFinish(Drop);
+        return;
+    }
+
+    std::filesystem::path Directory{};
+    bool Found{};
+
+    for (std::size_t Index{mContentDropBounds.size()}; Index > 0; --Index) {
+        const FVector4& Bounds{mContentDropBounds[Index - 1]};
+
+        if (Position.x >= Bounds.x && Position.y >= Bounds.y && Position.x < Bounds.z && Position.y < Bounds.w) {
+            Directory = mContentDropDirectories[Index - 1];
+            Found = true;
+            break;
+        }
+    }
+
+    if (!Found) {
+        DragFinish(Drop);
+        return;
+    }
+
+    TArray<std::filesystem::path> Sources{};
+    const UINT Count{DragQueryFileW(Drop, 0xFFFFFFFF, nullptr, 0)};
+
+    for (UINT Index{}; Index < Count; ++Index) {
+        const UINT Length{DragQueryFileW(Drop, Index, nullptr, 0)};
+        std::wstring Path{};
+        Path.resize(static_cast<std::size_t>(Length) + 1);
+
+        if (Length != 0 && DragQueryFileW(Drop, Index, Path.data(), Length + 1) == Length) {
+            Path.resize(Length);
+            Sources.emplace_back(Path);
+        }
+    }
+
+    DragFinish(Drop);
+
+    if (!Sources.empty()) {
+        mDropDirectories.push_back(std::move(Directory));
+        mDroppedFiles.push_back(std::move(Sources));
+    }
+}
+
+void FEditorUI::ImportDroppedFiles() {
+    auto Files{std::move(mDroppedFiles)};
+    auto Directories{std::move(mDropDirectories)};
+    mDroppedFiles.clear();
+    mDropDirectories.clear();
+
+    for (std::size_t Index{}; Index < Files.size(); ++Index) {
+        ImportFiles(Files[Index], Directories[Index]);
+    }
+}
+
+void FEditorUI::RegisterContentDropTarget(const std::filesystem::path& Directory, const FVector4& Bounds) {
+    const ImRect Clip{ImGui::GetCurrentWindow()->ClipRect};
+    const FVector4 Visible{std::max(Bounds.x, Clip.Min.x), std::max(Bounds.y, Clip.Min.y), std::min(Bounds.z, Clip.Max.x), std::min(Bounds.w, Clip.Max.y)};
+
+    if (Visible.z > Visible.x && Visible.w > Visible.y) {
+        mContentDropDirectories.push_back(Directory);
+        mContentDropBounds.push_back(Visible);
+    }
 }
 
 void FEditorUI::DrawContent() {
+    mContentDropDirectories.clear();
+    mContentDropBounds.clear();
+
     if (ImGui::Begin("Content")) {
+        const ImVec2 Minimum{ImGui::GetWindowPos()};
+        const ImVec2 Size{ImGui::GetWindowSize()};
+        RegisterContentDropTarget(mContentDirectory, {Minimum.x, Minimum.y, Minimum.x + Size.x, Minimum.y + Size.y});
         ImGui::TextUnformatted(mContext->GetProject()->GetName().c_str());
         ImGui::BeginDisabled(!mContext->CanEditWorld());
 
-        if (ImGui::Button("Import Mesh...")) {
-            ImportAsset(false);
-        }
-
-        ImGui::SameLine();
-
-        if (ImGui::Button("Import Texture...")) {
-            ImportAsset(true);
+        if (ImGui::Button("Import...")) {
+            ImportAsset();
         }
 
         ImGui::SameLine();
@@ -783,7 +926,7 @@ void FEditorUI::DrawContent() {
             ImGui::EndTable();
         }
 
-        ImGui::TextDisabled("Double-click to open. Drag a thumbnail onto Details to assign.");
+        ImGui::TextDisabled("Drop files here to import. Double-click to open. Drag thumbnails onto Details to assign.");
     }
 
     ImGui::End();
@@ -805,7 +948,7 @@ void FEditorUI::DrawTexturePreview() {
     }
 
     if (ImGui::Begin("Texture Preview", &Open, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse)) {
-        ImGui::TextUnformatted(mAssetCatalog->GetDisplayPath(mPreviewTexturePath).c_str());
+        ImGui::TextUnformatted(FilePath::ToGenericUtf8(mPreviewTexturePath).c_str());
         ImGui::Text("Size: %u x %u", mPreviewTexture->GetSizeX(), mPreviewTexture->GetSizeY());
         ImGui::Separator();
 
@@ -833,7 +976,6 @@ void FEditorUI::DrawTexturePreview() {
 void FEditorUI::RefreshContent() {
     mAssetPaths.clear();
     mAssetTypes.clear();
-    mAssetDisplayPaths.clear();
     mContentFolders.clear();
     mContentFolders[{}] = {};
     mContentError.clear();
@@ -851,7 +993,6 @@ void FEditorUI::RefreshContent() {
 
     for (const auto& Entry : mAssetCatalog->GetEntries()) {
         mAssetPaths.push_back(Entry.GetPath());
-        mAssetDisplayPaths.emplace(Entry.GetPath(), Entry.GetDisplayPath());
 
         if (Entry.GetType().has_value()) {
             mAssetTypes.emplace(Entry.GetPath(), *Entry.GetType());
@@ -912,6 +1053,9 @@ void FEditorUI::DrawContentTree(const std::filesystem::path& Directory) {
     ImGui::PushID(Id.c_str());
 
     const bool Open{ImGui::TreeNodeEx(Label.c_str(), Flags)};
+    const ImVec2 Minimum{ImGui::GetItemRectMin()};
+    const ImVec2 Maximum{ImGui::GetItemRectMax()};
+    RegisterContentDropTarget(Directory, {Minimum.x, Minimum.y, Maximum.x, Maximum.y});
 
     if (ImGui::IsItemClicked()) {
         NavigateContent(Directory);
@@ -984,12 +1128,11 @@ void FEditorUI::DrawContentEntries() {
     }
 
     for (const auto& Path : mAssetPaths) {
-        const auto& Display{mAssetDisplayPaths.at(Path)};
         const auto Type{mAssetTypes.find(Path)};
-        const auto Relative{Display.lexically_relative(mContentDirectory)};
-        const bool InFolder{Recursive ? mContentDirectory.empty() || (!Relative.empty() && *Relative.begin() != L"..") : Display.parent_path() == mContentDirectory};
+        const auto Relative{Path.lexically_relative(mContentDirectory)};
+        const bool InFolder{Recursive ? mContentDirectory.empty() || (!Relative.empty() && *Relative.begin() != L"..") : Path.parent_path() == mContentDirectory};
 
-        if (!InFolder || (mContentFilter.has_value() && (Type == mAssetTypes.end() || Type->second != *mContentFilter)) || !Search.PassFilter(FilePath::ToGenericUtf8(Display).c_str())) {
+        if (!InFolder || (mContentFilter.has_value() && (Type == mAssetTypes.end() || Type->second != *mContentFilter)) || !Search.PassFilter(FilePath::ToGenericUtf8(Path).c_str())) {
             continue;
         }
 
@@ -1041,13 +1184,12 @@ void FEditorUI::DrawContentEntries() {
 
                     const bool Directory{static_cast<std::size_t>(Index) < Folders.size()};
                     const auto& Path{Directory ? Folders[Index] : Assets[Index - Folders.size()]};
-                    const auto& Display{Directory ? Path : mAssetDisplayPaths.at(Path)};
                     const auto Type{mAssetTypes.find(Path)};
                     const bool HasThumbnail{!Directory && Type != mAssetTypes.end() && (Type->second == EAssetType::Mesh || Type->second == EAssetType::Material || Type->second == EAssetType::Texture)};
                     void* Thumbnail{HasThumbnail ? mThumbnails->GetThumbnail(Path, Type->second) : nullptr};
                     const char* Kind{Directory ? "Folder" : Type == mAssetTypes.end() ? "File" : Type->second == EAssetType::Mesh ? "Mesh" : Type->second == EAssetType::Material ? "Material" : Type->second == EAssetType::Texture ? "Texture" : "Scene"};
                     const FString Actual{FilePath::ToGenericUtf8(Path)};
-                    const FString Name{FilePath::ToUtf8(Directory ? Display.filename() : Display.stem())};
+                    const FString Name{FilePath::ToUtf8(Directory ? Path.filename() : Path.stem())};
                     ImGui::PushID(Actual.c_str());
 
                     const ImVec2 Origin{ImGui::GetCursorScreenPos()};
@@ -1067,6 +1209,12 @@ void FEditorUI::DrawContentEntries() {
 
                     const bool Hovered{ImGui::IsItemHovered()};
 
+                    if (Directory) {
+                        const ImVec2 Minimum{ImGui::GetItemRectMin()};
+                        const ImVec2 Maximum{ImGui::GetItemRectMax()};
+                        RegisterContentDropTarget(Path, {Minimum.x, Minimum.y, Maximum.x, Maximum.y});
+                    }
+
                     if (HasThumbnail && mContext->CanEditWorld() && ImGui::BeginDragDropSource()) {
                         const char* Payload{Type->second == EAssetType::Mesh ? EditorAssetDragDrop::MeshPayload : Type->second == EAssetType::Material ? EditorAssetDragDrop::MaterialPayload : EditorAssetDragDrop::TexturePayload};
                         ImGui::SetDragDropPayload(Payload, Actual.c_str(), Actual.size() + 1);
@@ -1081,7 +1229,7 @@ void FEditorUI::DrawContentEntries() {
 
                     if (Hovered) {
                         ImGui::BeginTooltip();
-                        ImGui::TextUnformatted(FilePath::ToGenericUtf8(Display).c_str());
+                        ImGui::TextUnformatted(FilePath::ToGenericUtf8(Path).c_str());
                         ImGui::TextDisabled("%s", Kind);
                         ImGui::EndTooltip();
                     }
@@ -1172,11 +1320,11 @@ void FEditorUI::CreateMaterial() {
     }
 
     FAssetManager* Assets{mContext->GetProject()->GetAssets()};
-    std::filesystem::path Path{mContentDirectory / "Material.mtl"};
+    std::filesystem::path Path{mContentDirectory / "Material.masset"};
     std::error_code Code{};
 
     for (Uint32 Index{1}; std::filesystem::exists(Assets->GetContentRoot() / Path, Code) && !Code; ++Index) {
-        Path = mContentDirectory / ("Material_" + std::to_string(Index) + ".mtl");
+        Path = mContentDirectory / ("Material_" + std::to_string(Index) + ".masset");
     }
 
     auto Material{NewObject<UMaterial>()};
@@ -1277,7 +1425,7 @@ void FEditorUI::DrawMaterialEditor() {
     ImGui::SetNextWindowSize({560.0f, 700.0f}, ImGuiCond_FirstUseEver);
 
     if (ImGui::Begin(mMaterialDirty ? "Material Editor*###MaterialEditor" : "Material Editor###MaterialEditor", &Open)) {
-        ImGui::TextUnformatted(mAssetCatalog->GetDisplayPath(mMaterialPath).c_str());
+        ImGui::TextUnformatted(FilePath::ToGenericUtf8(mMaterialPath).c_str());
 
         if (void* Preview{mThumbnails->GetMaterialPreview(mEditingMaterial)}) {
             ImGui::Image(ImTextureRef{static_cast<ImTextureID>(reinterpret_cast<std::uintptr_t>(Preview))}, {192.0f, 192.0f});

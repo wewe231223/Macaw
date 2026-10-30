@@ -123,7 +123,7 @@ public:
     UTexture2D* LoadNormalMap(const std::filesystem::path& Path, FString& Error);
 
     /**
-     * @brief MTL 머티리얼과 텍스처 참조를 로드하여 캐시에 보관합니다.
+     * @brief 재질 에셋과 텍스처 참조를 로드하여 캐시에 보관합니다.
      * @param[in] Path 프로젝트 머티리얼 경로입니다.
      * @param[out] Error 실패 원인입니다.
      * @return 캐시 소유 머티리얼의 비소유 주소이며 실패하면 nullptr입니다.
@@ -147,6 +147,8 @@ public:
      */
     bool SaveMaterial(const std::filesystem::path& Path, const UMaterial& Material, FString& Error);
 
+    bool MigrateMaterials(FString& Error);
+
     /**
      * @brief 검증한 CPU 메시 데이터를 바이너리 에셋 파일로 저장합니다.
      * @param[in] Path 조회·로드·저장 또는 정규화할 파일 경로입니다.
@@ -166,13 +168,13 @@ public:
     bool SaveTexture(const std::filesystem::path& Path, const UTexture2D& Texture, FString& Error);
 
     /**
-     * @brief 외부 메시를 읽어 프로젝트의 메시 에셋 파일로 저장합니다.
+     * @brief 외부 에셋을 새 폴더에 가져오고 생성한 에셋 경로를 반환합니다.
      * @param[in] Source 프로젝트에 가져올 외부 파일 경로입니다.
-     * @param[in] Target 프로젝트 콘텐츠 폴더 안에 저장할 대상 에셋 경로입니다.
+     * @param[in] Directory 새 임포트 폴더를 생성할 Content 상대 디렉터리입니다.
      * @param[out] Error 실패 원인을 받을 오류 문자열입니다.
      * @return 요청한 처리를 완료하면 true, 실패하면 false입니다.
      */
-    bool ImportMesh(const std::filesystem::path& Source, const std::filesystem::path& Target, FString& Error);
+    bool ImportAsset(const std::filesystem::path& Source, const std::filesystem::path& Directory, std::filesystem::path& ImportedPath, FString& Error);
 
     /**
      * @brief 외부 이미지를 읽어 프로젝트의 텍스처 에셋 파일로 저장합니다.
@@ -184,6 +186,8 @@ public:
     bool ImportTexture(const std::filesystem::path& Source, const std::filesystem::path& Target, FString& Error);
 
 private:
+    bool ImportMesh(const std::filesystem::path& Source, const std::filesystem::path& Target, FString& Error);
+
     /**
      * @brief 캐시 객체의 주소를 유지하면서 머티리얼 설정과 텍스처 참조를 갱신합니다.
      * @param[in,out] Target 설정을 적용할 기존 객체입니다.

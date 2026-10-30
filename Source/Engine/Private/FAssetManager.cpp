@@ -12,6 +12,7 @@
 #include "Engine/UTexture2D.h"
 #include "Engine/UMaterial.h"
 #include "FMaterialFile.h"
+#include "FMaterialAssetData.h"
 #include "CoreUObject/Reflection/NewObject.h"
 #include "Serialization/MemoryArchive.h"
 #include "FAssetSerialization.h"
@@ -20,9 +21,15 @@
 #include "Engine/Import/IMeshImporter.h"
 #include "Engine/Import/FMeshImportResult.h"
 
+#include <rapidjson/document.h>
+#include <rapidjson/prettywriter.h>
+#include <rapidjson/stringbuffer.h>
+
 #include <algorithm>
 #include <cwctype>
+#include <fstream>
 #include <limits>
+#include <sstream>
 #include <utility>
 
 /**
@@ -44,6 +51,71 @@ namespace {
         return FilePath::ToGenericUtf8(std::filesystem::path{Key});
     }
 
+    bool IsLegacyMaterialAsset(const std::filesystem::path& Path) {
+        std::ifstream Input{Path};
+        FString Line{};
+
+        while (std::getline(Input, Line)) {
+            std::istringstream Values{Line};
+            FString Keyword{};
+            Values >> Keyword;
+
+            if (Keyword == "shader") {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    FString AssetFileName(FString Name, const FString& Fallback) {
+        for (char& Character : Name) {
+            if (static_cast<unsigned char>(Character) < 32 || FString{"<>:\"/\\|?*"}.find(Character) != FString::npos) {
+                Character = '_';
+            }
+        }
+
+        while (!Name.empty() && (Name.back() == '.' || Name.back() == ' ')) {
+            Name.pop_back();
+        }
+
+        if (Name.empty()) {
+            Name = Fallback;
+        }
+
+        FString Base{Name.substr(0, Name.find('.'))};
+
+        for (char& Character : Base) {
+            if (Character >= 'a' && Character <= 'z') {
+                Character = static_cast<char>(Character - 'a' + 'A');
+            }
+        }
+
+        if (Base == "CON" || Base == "PRN" || Base == "AUX" || Base == "NUL" || (Base.size() == 4 && (Base.starts_with("COM") || Base.starts_with("LPT")) && Base.back() >= '1' && Base.back() <= '9')) {
+            Name.insert(Name.begin(), '_');
+        }
+
+        return Name;
+    }
+
+    std::filesystem::path UniqueAssetPath(const std::filesystem::path& Directory, const FString& Name, FString& Error) {
+        const auto Base{FilePath::FromUtf8(Name)};
+        auto Target{Directory / Base};
+        Target += L".masset";
+        std::error_code Code{};
+
+        for (Uint32 Index{1}; std::filesystem::exists(Target, Code) && !Code; ++Index) {
+            Target = Directory / (Base.wstring() + L"_" + std::to_wstring(Index) + L".masset");
+        }
+
+        if (Code) {
+            Error = "Cannot choose an asset filename: " + Code.message();
+            return {};
+        }
+
+        return Target;
+    }
+
     bool ImportMeshTexture(FAssetManager& Assets, const FMeshImportTexture& Texture, const std::filesystem::path& Directory, TMap<FString, FString>& Textures, FString& ImportedPath, FString& Error) {
         ImportedPath.clear();
 
@@ -61,9 +133,9 @@ namespace {
         auto Existing{Textures.find(Key)};
 
         if (Existing == Textures.end()) {
-            const auto Target{Directory / ("Texture_" + std::to_string(Textures.size()) + ".masset")};
+            const auto Target{UniqueAssetPath(Directory, AssetFileName(FilePath::ToUtf8(Source.stem()), "Texture"), Error)};
 
-            if (!Assets.ImportTexture(Source, Target, Error)) {
+            if (Target.empty() || !Assets.ImportTexture(Source, Target, Error)) {
                 Error = "Cannot import material texture '" + FilePath::ToUtf8(Source) + "': " + Error;
                 return false;
             }
@@ -173,6 +245,101 @@ namespace {
 
         Archive.EndArray();
     }
+
+    bool MigrateMaterialReference(FString& Reference, FAssetManager& Assets, const TMap<FString, FString>& Materials, const std::filesystem::path& Directory, TArray<std::filesystem::path>& Targets, bool& Changed, FString& Error) {
+        const auto Path{FilePath::FromUtf8(Reference)};
+
+        if (Path.extension() != L".mtl") {
+            return true;
+        }
+
+        const FString Key{CacheKey(Assets.GetRelativePath(Path, Error))};
+        const auto Position{Materials.find(Key)};
+
+        if (Key.empty() || Position == Materials.end()) {
+            Error = "Cannot migrate material reference: " + Reference;
+            return false;
+        }
+
+        const auto Target{Assets.ResolvePath(FilePath::FromUtf8(Position->second), Error)};
+        std::error_code Code{};
+        const bool Exists{!Target.empty() && std::filesystem::exists(Target, Code)};
+
+        if (Target.empty() || Code) {
+            Error = "Cannot inspect material reference migration target: " + Reference;
+            return false;
+        }
+
+        if (Exists) {
+            auto Legacy{NewObject<UMaterial>()};
+            TArray<Uint8> Actual{};
+
+            if (!FMaterialFile::LoadLegacy(Assets.ResolvePath(Path, Error), Assets, *Legacy, Error) || !FAssetFile::Load(Target, EAssetType::Material, Actual, Error)) {
+                return false;
+            }
+
+            TArray<Uint8> Expected{};
+            FMemoryArchive Writer{Expected};
+            FMaterialAssetData Data{*Legacy};
+            Data.Serialize(Writer);
+
+            if (Writer.HasError() || Expected != Actual) {
+                Error = "Material migration target conflicts with the legacy material: " + Position->second;
+                return false;
+            }
+        } else if (std::find(Targets.begin(), Targets.end(), Target) == Targets.end()) {
+            auto Legacy{NewObject<UMaterial>()};
+            const auto Staged{Directory / (std::to_string(Targets.size()) + ".masset")};
+
+            if (!FMaterialFile::LoadLegacy(Assets.ResolvePath(Path, Error), Assets, *Legacy, Error) || !FMaterialFile::Save(Staged, Assets, *Legacy, Error)) {
+                return false;
+            }
+
+            Targets.push_back(Target);
+        }
+
+        Reference = Position->second;
+        Changed = true;
+
+        return true;
+    }
+
+    bool MigrateSceneReferences(rapidjson::Value& Value, rapidjson::Document::AllocatorType& Allocator, FAssetManager& Assets, const TMap<FString, FString>& Materials, const std::filesystem::path& Directory, TArray<std::filesystem::path>& Targets, bool& Changed, FString& Error, bool MaterialReference, Uint32 Depth) {
+        if (Depth > 32) {
+            Error = "Scene nesting exceeds the migration limit";
+            return false;
+        }
+
+        if (Value.IsObject()) {
+            for (auto Position{Value.MemberBegin()}; Position != Value.MemberEnd(); ++Position) {
+                const std::string_view Name{Position->name.GetString(), Position->name.GetStringLength()};
+
+                if (!MigrateSceneReferences(Position->value, Allocator, Assets, Materials, Directory, Targets, Changed, Error, Name == "Material" || Name == "SlotMaterials", Depth + 1)) {
+                    return false;
+                }
+            }
+        } else if (Value.IsArray()) {
+            for (auto& Child : Value.GetArray()) {
+                if (!MigrateSceneReferences(Child, Allocator, Assets, Materials, Directory, Targets, Changed, Error, MaterialReference, Depth + 1)) {
+                    return false;
+                }
+            }
+        } else if (MaterialReference && Value.IsString()) {
+            FString Reference{Value.GetString(), Value.GetStringLength()};
+            bool Replaced{};
+
+            if (!MigrateMaterialReference(Reference, Assets, Materials, Directory, Targets, Replaced, Error)) {
+                return false;
+            }
+
+            if (Replaced) {
+                Value.SetString(Reference.data(), static_cast<rapidjson::SizeType>(Reference.size()), Allocator);
+                Changed = true;
+            }
+        }
+
+        return true;
+    }
 }
 
 FAssetManager::FAssetManager(std::filesystem::path ContentRoot)
@@ -266,7 +433,7 @@ TArray<std::filesystem::path> FAssetManager::GetAssetPaths(FString& Error) const
     const std::filesystem::recursive_directory_iterator End{};
 
     while (!Code && Iterator != End) {
-        if (Iterator->is_regular_file(Code) && (Iterator->path().extension() == L".masset" || Iterator->path().extension() == L".mtl")) {
+        if (Iterator->is_regular_file(Code) && Iterator->path().extension() == L".masset") {
             const auto Resolved{ResolvePath(Iterator->path(), Error)};
 
             if (Resolved.empty()) {
@@ -460,6 +627,79 @@ bool FAssetManager::SaveTexture(const std::filesystem::path& Path, const UTextur
     return true;
 }
 
+bool FAssetManager::ImportAsset(const std::filesystem::path& Source, const std::filesystem::path& Directory, std::filesystem::path& ImportedPath, FString& Error) {
+    Error.clear();
+    ImportedPath.clear();
+
+    std::wstring Extension{Source.extension().wstring()};
+    std::transform(Extension.begin(), Extension.end(), Extension.begin(), [](wchar_t Character) {
+        return static_cast<wchar_t>(std::towlower(Character));
+    });
+    const bool Texture{Extension == L".png" || Extension == L".jpg" || Extension == L".jpeg" || Extension == L".bmp" || Extension == L".tga" || Extension == L".dds" || Extension == L".hdr"};
+
+    if (!Texture && Extension != L".obj" && Extension != L".fbx" && Extension != L".gltf" && Extension != L".glb") {
+        Error = "Unsupported import file type: " + FilePath::ToUtf8(Source.filename());
+        return false;
+    }
+
+    const auto Parent{Directory.empty() ? mContentRoot : ResolvePath(Directory, Error)};
+
+    if (Parent.empty()) {
+        return false;
+    }
+
+    std::error_code Code{};
+
+    if (!std::filesystem::is_regular_file(Source, Code) || Code) {
+        Error = "Cannot read the import source";
+        return false;
+    }
+
+    std::filesystem::create_directories(Parent, Code);
+
+    if (Code) {
+        Error = "Cannot create the import destination: " + Code.message();
+        return false;
+    }
+
+    const FString Name{AssetFileName(FilePath::ToUtf8(Source.stem()), "Asset")};
+    const auto Base{FilePath::FromUtf8(Name)};
+    auto Folder{Parent / Base};
+
+    for (Uint32 Index{}; !std::filesystem::create_directory(Folder, Code); ++Index) {
+        if (Code && Code != std::errc::file_exists) {
+            Error = "Cannot create the import folder: " + Code.message();
+            return false;
+        }
+
+        Code.clear();
+        Folder = Parent / (Base.wstring() + L"_" + std::to_wstring(Index + 1));
+    }
+
+    FAssetImportScope Scope{Folder};
+    auto Target{Folder / Base};
+    Target += L".masset";
+
+    if (!(Texture ? ImportTexture(Source, Target, Error) : ImportMesh(Source, Target, Error))) {
+        const FString Prefix{CacheKey(FilePath::ToGenericUtf8(Folder.lexically_relative(mContentRoot))) + "/"};
+        const auto RemoveCache{[&Prefix](auto& Cache) {
+            std::erase_if(Cache, [&Prefix](const auto& Entry) {
+                return Entry.first.starts_with(Prefix);
+            });
+        }};
+        RemoveCache(mMaterials);
+        RemoveCache(mMeshes);
+        RemoveCache(mNormalMaps);
+        RemoveCache(mTextures);
+        return false;
+    }
+
+    ImportedPath = Target.lexically_relative(mContentRoot);
+    Scope.Commit();
+
+    return true;
+}
+
 bool FAssetManager::ImportMesh(const std::filesystem::path& Source, const std::filesystem::path& Target, FString& Error) {
     const FScopedStatTimer StatTimer{EngineStats::MeshImport};
     const auto Destination{ResolvePath(Target, Error)};
@@ -483,8 +723,8 @@ bool FAssetManager::ImportMesh(const std::filesystem::path& Source, const std::f
         return false;
     }
 
-    const auto DependencyDirectory{mContentRoot / ".Imported" / Destination.stem() / FilePath::FromUtf8(FGuid{}.ToString())};
-    FAssetImportScope ImportScope{DependencyDirectory};
+    const auto MaterialDirectory{Destination.parent_path() / "Materials"};
+    const auto TextureDirectory{Destination.parent_path() / "Textures"};
     TMap<FString, FString> Textures{};
 
     for (std::size_t Index{}; Index < Materials.size(); ++Index) {
@@ -502,7 +742,7 @@ bool FAssetManager::ImportMesh(const std::filesystem::path& Source, const std::f
         FString BaseColorPath{};
         FString NormalMapPath{};
 
-        if (!ImportMeshTexture(*this, SourceMaterial.GetBaseColorTexture(), DependencyDirectory, Textures, BaseColorPath, Error) || !ImportMeshTexture(*this, SourceMaterial.GetNormalMapTexture(), DependencyDirectory, Textures, NormalMapPath, Error)) {
+        if (!ImportMeshTexture(*this, SourceMaterial.GetBaseColorTexture(), TextureDirectory, Textures, BaseColorPath, Error) || !ImportMeshTexture(*this, SourceMaterial.GetNormalMapTexture(), TextureDirectory, Textures, NormalMapPath, Error)) {
             return false;
         }
 
@@ -511,9 +751,9 @@ bool FAssetManager::ImportMesh(const std::filesystem::path& Source, const std::f
             return false;
         }
 
-        const auto MaterialTarget{DependencyDirectory / ("Material_" + std::to_string(Index) + ".mtl")};
+        const auto MaterialTarget{UniqueAssetPath(MaterialDirectory, AssetFileName(Material->GetName(), "Material_" + std::to_string(Index)), Error)};
 
-        if (!SaveMaterial(MaterialTarget, *Material, Error)) {
+        if (MaterialTarget.empty() || !SaveMaterial(MaterialTarget, *Material, Error)) {
             return false;
         }
 
@@ -536,8 +776,6 @@ bool FAssetManager::ImportMesh(const std::filesystem::path& Source, const std::f
     if (!SaveMesh(Destination, *Mesh, Error)) {
         return false;
     }
-
-    ImportScope.Commit();
 
     return true;
 }
@@ -584,8 +822,9 @@ UMaterial* FAssetManager::LoadMaterial(const std::filesystem::path& Path, FStrin
 
 bool FAssetManager::SaveMaterial(const std::filesystem::path& Path, const UMaterial& Material, FString& Error) {
     const auto Target{ResolvePath(Path, Error)};
+    auto Candidate{NewObject<UMaterial>()};
 
-    if (Target.empty() || !FMaterialFile::Save(Target, *this, Material, Error)) {
+    if (Target.empty() || !ApplyMaterialSettings(*Candidate, Material, Error) || !FMaterialFile::Save(Target, *this, *Candidate, Error)) {
         return false;
     }
 
@@ -666,4 +905,232 @@ UTexture2D* FAssetManager::LoadNormalMap(const std::filesystem::path& Path, FStr
     mNormalMaps.emplace(Key, std::move(Texture));
 
     return Result;
+}
+
+bool FAssetManager::MigrateMaterials(FString& Error) {
+    Error.clear();
+
+    TArray<std::filesystem::path> LegacyPaths{};
+    TArray<std::filesystem::path> AssetPaths{};
+    std::error_code Code{};
+    std::filesystem::recursive_directory_iterator Iterator{mContentRoot, Code};
+    const std::filesystem::recursive_directory_iterator End{};
+
+    while (!Code && Iterator != End) {
+        if (Iterator->is_symlink(Code)) {
+            Iterator.disable_recursion_pending();
+        } else if (!Code && Iterator->is_regular_file(Code)) {
+            const auto& Path{Iterator->path()};
+
+            if (Path.extension() == L".mtl") {
+                LegacyPaths.push_back(Path);
+            } else if (Path.extension() == L".masset") {
+                AssetPaths.push_back(Path);
+            }
+        }
+
+        if (!Code) {
+            Iterator.increment(Code);
+        }
+    }
+
+    if (Code) {
+        Error = "Cannot enumerate materials for migration: " + Code.message();
+        return false;
+    }
+
+    if (LegacyPaths.empty()) {
+        return true;
+    }
+
+    std::sort(LegacyPaths.begin(), LegacyPaths.end());
+    std::sort(AssetPaths.begin(), AssetPaths.end());
+
+    const auto Directory{mContentRoot.parent_path() / "Intermediate/MaterialMigration" / FilePath::FromUtf8(FGuid{}.ToString())};
+    FAssetImportScope Scope{Directory};
+    TMap<FString, FString> Materials{};
+    TArray<std::filesystem::path> Targets{};
+
+    for (const auto& Legacy : LegacyPaths) {
+        const auto Source{ResolvePath(Legacy, Error)};
+
+        if (Source.empty()) {
+            return false;
+        }
+
+        auto Target{Source};
+        Target.replace_extension(L".masset");
+        const FString Relative{GetRelativePath(Target, Error)};
+
+        if (Relative.empty()) {
+            return false;
+        }
+
+        Materials.emplace(CacheKey(GetRelativePath(Source, Error)), Relative);
+
+        if (!IsLegacyMaterialAsset(Source)) {
+            continue;
+        }
+
+        const bool Exists{std::filesystem::exists(Target, Code)};
+
+        if (Code) {
+            Error = "Cannot inspect material migration target: " + Code.message();
+            return false;
+        }
+
+        if (Exists) {
+            EAssetType Type{};
+
+            if (!FAssetFile::GetType(Target, Type, Error) || Type != EAssetType::Material) {
+                Error = "Material migration target already contains another asset: " + Relative;
+                return false;
+            }
+
+            auto Material{NewObject<UMaterial>()};
+
+            if (!FMaterialFile::Load(Target, *this, *Material, Error)) {
+                return false;
+            }
+
+            continue;
+        }
+
+        auto Material{NewObject<UMaterial>()};
+        const auto Staged{Directory / (std::to_string(Targets.size()) + ".masset")};
+
+        if (!FMaterialFile::LoadLegacy(Source, *this, *Material, Error) || !FMaterialFile::Save(Staged, *this, *Material, Error)) {
+            Error = "Cannot migrate material '" + FilePath::ToUtf8(Legacy) + "': " + Error;
+            return false;
+        }
+
+        Targets.push_back(Target);
+    }
+
+    for (const auto& Path : AssetPaths) {
+        EAssetType Type{};
+
+        if (!FAssetFile::GetType(Path, Type, Error)) {
+            return false;
+        }
+
+        if (Type != EAssetType::Mesh && Type != EAssetType::Scene) {
+            continue;
+        }
+
+        TArray<Uint8> Payload{};
+
+        if (ResolvePath(Path, Error).empty() || !FAssetFile::Load(Path, Type, Payload, Error)) {
+            return false;
+        }
+
+        bool Changed{};
+
+        if (Type == EAssetType::Mesh) {
+            FMemoryArchive Reader{static_cast<const TArray<Uint8>&>(Payload)};
+            FMeshData Data{};
+            SerializeMesh(Reader, Data);
+
+            if (Reader.HasError() || Reader.GetRemainingBytes() != 0) {
+                Error = Reader.HasError() ? Reader.GetError() : "Invalid mesh data during material migration";
+                return false;
+            }
+
+            for (auto& Slot : Data.GetMaterialSlots()) {
+                FString Reference{Slot.GetMaterialPath()};
+
+                if (!MigrateMaterialReference(Reference, *this, Materials, Directory, Targets, Changed, Error)) {
+                    return false;
+                }
+
+                Slot = FMeshMaterialSlot{Slot.GetName(), std::move(Reference)};
+            }
+
+            if (Changed) {
+                auto Mesh{NewObject<UStaticMesh>()};
+
+                if (!Mesh->SetMeshData(Data)) {
+                    Error = "Invalid mesh settings during material migration";
+                    return false;
+                }
+
+                Payload.clear();
+                FMemoryArchive Writer{Payload};
+                SerializeMesh(Writer, Data);
+
+                if (Writer.HasError()) {
+                    Error = Writer.GetError();
+                    return false;
+                }
+            }
+        } else {
+            rapidjson::Document Document{};
+            Document.Parse<rapidjson::kParseValidateEncodingFlag>(reinterpret_cast<const char*>(Payload.data()), Payload.size());
+
+            if (Document.HasParseError() || !Document.IsObject()) {
+                Error = "Invalid scene data during material migration";
+                return false;
+            }
+
+            if (!MigrateSceneReferences(Document, Document.GetAllocator(), *this, Materials, Directory, Targets, Changed, Error, false, 0)) {
+                return false;
+            }
+
+            if (Changed) {
+                rapidjson::StringBuffer Buffer{};
+                rapidjson::PrettyWriter<rapidjson::StringBuffer> Writer{Buffer};
+                Document.Accept(Writer);
+                const auto* Begin{reinterpret_cast<const Uint8*>(Buffer.GetString())};
+                Payload.assign(Begin, Begin + Buffer.GetSize());
+            }
+        }
+
+        if (Changed) {
+            const auto Staged{Directory / (std::to_string(Targets.size()) + ".masset")};
+            const auto Backup{Directory / "Backup" / Staged.filename()};
+            std::filesystem::create_directories(Backup.parent_path(), Code);
+
+            if (!Code) {
+                std::filesystem::copy_file(Path, Backup, Code);
+            }
+
+            if (Code || !FAssetFile::Save(Staged, Type, Payload, Error)) {
+                Error = Code ? "Cannot back up material references: " + Code.message() : Error;
+                return false;
+            }
+
+            Targets.push_back(Path);
+        }
+    }
+
+    for (std::size_t Index{}; Index < Targets.size(); ++Index) {
+        const auto Staged{Directory / (std::to_string(Index) + ".masset")};
+        EAssetType Type{};
+        TArray<Uint8> Payload{};
+
+        if (FAssetFile::GetType(Staged, Type, Error) && FAssetFile::Load(Staged, Type, Payload, Error) && FAssetFile::Save(Targets[Index], Type, Payload, Error)) {
+            continue;
+        }
+
+        const FString Failure{Error};
+
+        for (std::size_t Previous{}; Previous < Index; ++Previous) {
+            const auto Backup{Directory / "Backup" / (std::to_string(Previous) + ".masset")};
+
+            if (!std::filesystem::exists(Backup, Code)) {
+                continue;
+            }
+
+            if (!FAssetFile::GetType(Backup, Type, Error) || !FAssetFile::Load(Backup, Type, Payload, Error) || !FAssetFile::Save(Targets[Previous], Type, Payload, Error)) {
+                Scope.Commit();
+                Error = Failure + "; cannot restore material references. Backups: " + FilePath::ToUtf8(Directory);
+                return false;
+            }
+        }
+
+        Error = Failure;
+        return false;
+    }
+
+    return true;
 }

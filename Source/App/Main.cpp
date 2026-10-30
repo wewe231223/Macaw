@@ -33,10 +33,10 @@ static int RunApplication() {
 int WINAPI WinMain(HINSTANCE Instance, HINSTANCE Previous, LPSTR CommandLine, int ShowCommand) {
     ErrorHandler::Initialize();
 
-    const HRESULT ComResult{CoInitializeEx(nullptr, COINIT_MULTITHREADED)};
+    const HRESULT ComResult{CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED)};
 
-    if (FAILED(ComResult) && ComResult != RPC_E_CHANGED_MODE) {
-        ErrorHandler::Fatal("Application", "Cannot initialize COM for texture loading");
+    if (FAILED(ComResult)) {
+        ErrorHandler::Fatal("Application", "Cannot initialize COM for the application");
     }
 
     const int Result{RunApplication()};

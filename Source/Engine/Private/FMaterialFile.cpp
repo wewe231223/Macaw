@@ -1,18 +1,18 @@
 /**
  * @file FMaterialFile.cpp
- * @brief MTL 파싱, 프로젝트 참조 검증과 임시 파일 저장을 구현합니다.
+ * @brief 재질 직렬화, 기존 MTL 변환과 프로젝트 참조 검증을 구현합니다.
  * @ingroup Engine
  */
 
 #include "FMaterialFile.h"
+#include "FMaterialAssetData.h"
 #include "Core/FilePath.h"
 #include "Engine/FAssetManager.h"
 #include "Engine/UMaterial.h"
-#include "Core/FAtomicFileWriter.h"
+#include "Engine/FAssetFile.h"
+#include "Serialization/MemoryArchive.h"
 
 #include <fstream>
-#include <iomanip>
-#include <limits>
 #include <locale>
 #include <sstream>
 
@@ -45,7 +45,7 @@ namespace {
     }
 }
 
-bool FMaterialFile::Load(const std::filesystem::path& Path, FAssetManager& Assets, UMaterial& Material, FString& Error) {
+bool FMaterialFile::LoadLegacy(const std::filesystem::path& Path, FAssetManager& Assets, UMaterial& Material, FString& Error) {
     Error.clear();
 
     std::ifstream Input{Path};
@@ -139,62 +139,42 @@ bool FMaterialFile::Load(const std::filesystem::path& Path, FAssetManager& Asset
     return Material.ResolveTexture(Assets, Error);
 }
 
+bool FMaterialFile::Load(const std::filesystem::path& Path, FAssetManager& Assets, UMaterial& Material, FString& Error) {
+    TArray<Uint8> Payload{};
+
+    if (!FAssetFile::Load(Path, EAssetType::Material, Payload, Error)) {
+        return false;
+    }
+
+    FMemoryArchive Archive{static_cast<const TArray<Uint8>&>(Payload)};
+    FMaterialAssetData Data{};
+    Data.Serialize(Archive);
+
+    if (Archive.HasError() || Archive.GetRemainingBytes() != 0) {
+        Error = Archive.HasError() ? Archive.GetError() : "Unexpected material asset data";
+        return false;
+    }
+
+    return Data.ValidateReferences(Assets, Error) && Data.ApplyTo(Material, Error) && Material.ResolveTexture(Assets, Error);
+}
+
 bool FMaterialFile::Save(const std::filesystem::path& Path, const FAssetManager& Assets, const UMaterial& Material, FString& Error) {
     Error.clear();
 
-    if (Path.extension() != L".mtl" || Material.GetName().empty() || Material.GetName().find_first_of("\r\n#") != FString::npos || Assets.ResolvePath(FilePath::FromUtf8(Material.GetShaderPath()), Error).empty()) {
-        Error = "Invalid MTL material path or settings";
+    FMaterialAssetData Data{Material};
+
+    if (!Data.ValidateReferences(Assets, Error)) {
         return false;
     }
 
-    FString TexturePath{};
+    TArray<Uint8> Payload{};
+    FMemoryArchive Archive{Payload};
+    Data.Serialize(Archive);
 
-    if (!Material.GetBaseColorTexturePath().empty()) {
-        const auto Texture{Assets.ResolvePath(FilePath::FromUtf8(Material.GetBaseColorTexturePath()), Error)};
-
-        if (Texture.empty()) {
-            return false;
-        }
-
-        TexturePath = FilePath::ToGenericUtf8(Texture.lexically_relative(Path.parent_path()));
-    }
-
-    FString NormalPath{};
-
-    if (!Material.GetNormalMapTexturePath().empty()) {
-        const auto Normal{Assets.ResolvePath(FilePath::FromUtf8(Material.GetNormalMapTexturePath()), Error)};
-
-        if (Normal.empty()) {
-            return false;
-        }
-
-        NormalPath = FilePath::ToGenericUtf8(Normal.lexically_relative(Path.parent_path()));
-    }
-
-    FAtomicFileWriter Writer{};
-
-    if (!Writer.Open(Path, Error)) {
+    if (Archive.HasError()) {
+        Error = Archive.GetError();
         return false;
     }
 
-    std::ostream& Output{Writer.GetStream()};
-    Output.imbue(std::locale::classic());
-
-    const FVector4& Color{Material.GetBaseColor()};
-
-    Output << std::setprecision(std::numeric_limits<float>::max_digits10);
-    Output << "newmtl " << Material.GetName() << "\r\nKd " << Color.x << ' ' << Color.y << ' ' << Color.z << "\r\nd " << Color.w << "\r\n";
-
-    if (!TexturePath.empty()) {
-        Output << "map_Kd " << TexturePath << "\r\n";
-    }
-
-    if (!NormalPath.empty()) {
-        Output << "norm " << NormalPath << "\r\n";
-    }
-
-    Output << "Ns " << Material.GetShininess() << "\r\nspecular_strength " << Material.GetSpecularStrength() << "\r\nnormal_strength " << Material.GetNormalStrength() << "\r\n";
-    Output << "shader " << Material.GetShaderPath() << "\r\ntwo_sided " << (Material.IsTwoSided() ? 1 : 0) << "\r\n";
-
-    return Writer.Commit(Error);
+    return FAssetFile::Save(Path, EAssetType::Material, Payload, Error);
 }

@@ -66,7 +66,7 @@ private:
     ReflectProperty(mName, "Name", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 
     /**
-     * @brief Content 기준 .mtl 에셋 경로이며 빈 경로는 기본 재질입니다.
+     * @brief Content 기준 .masset 재질 에셋 경로이며 빈 경로는 기본 재질입니다.
      */
     FString mMaterialPath{};
     ReflectProperty(mMaterialPath, "MaterialPath", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);

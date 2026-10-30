@@ -8,6 +8,7 @@
 
 #include "Core/ReflectionMacros.h"
 #include "Core/Types.h"
+#include "Core/Math/FVector4.h"
 #include "Engine/FAssetFile.h"
 #include "Editor/Panel/FOutlinerPanel.h"
 #include "Editor/Panel/FDetailsPanel.h"
@@ -216,9 +217,13 @@ private:
 
     /**
      * @brief 파일 대화상자에서 고른 메시 또는 이미지를 프로젝트 에셋으로 가져옵니다.
-     * @param[in] Texture true이면 이미지를, false이면 메시를 가져옵니다.
      */
-    void ImportAsset(bool Texture);
+    void ImportAsset();
+
+    void ImportFiles(const TArray<std::filesystem::path>& Sources, const std::filesystem::path& Directory);
+    void QueueFileDrop(void* Handle);
+    void ImportDroppedFiles();
+    void RegisterContentDropTarget(const std::filesystem::path& Directory, const FVector4& Bounds);
 
     /**
      * @brief 프로젝트 파일 대화상자를 열고 선택한 경로의 전환을 요청합니다.
@@ -403,6 +408,18 @@ private:
     std::filesystem::path mContentDirectory{};
     ReflectProperty(mContentDirectory, "ContentDirectory", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 
+    TArray<std::filesystem::path> mContentDropDirectories{};
+    ReflectProperty(mContentDropDirectories, "ContentDropDirectories", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
+    TArray<FVector4> mContentDropBounds{};
+    ReflectProperty(mContentDropBounds, "ContentDropBounds", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
+    TArray<TArray<std::filesystem::path>> mDroppedFiles{};
+    ReflectProperty(mDroppedFiles, "DroppedFiles", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
+    TArray<std::filesystem::path> mDropDirectories{};
+    ReflectProperty(mDropDirectories, "DropDirectories", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
     /**
      * @brief 선택한 콘텐츠 에셋 경로입니다.
      */
@@ -452,7 +469,7 @@ private:
     ReflectProperty(mMeshViewer, "MeshViewer", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 
     /**
-     * @brief 브라우저와 Details가 공유하는 논리 에셋 목록입니다.
+     * @brief 브라우저와 Details가 공유하는 실제 에셋 목록입니다.
      */
     std::unique_ptr<FEditorAssetCatalog> mAssetCatalog{};
     ReflectProperty(mAssetCatalog, "AssetCatalog", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
@@ -462,12 +479,6 @@ private:
      */
     std::unique_ptr<FAssetThumbnailCache> mThumbnails{};
     ReflectProperty(mThumbnails, "Thumbnails", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
-
-    /**
-     * @brief 물리 경로에 대응하는 표시 경로입니다.
-     */
-    TMap<std::filesystem::path, std::filesystem::path> mAssetDisplayPaths{};
-    ReflectProperty(mAssetDisplayPaths, "AssetDisplayPaths", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 
     /**
      * @brief 재질 에디터의 텍스처 선택기입니다.

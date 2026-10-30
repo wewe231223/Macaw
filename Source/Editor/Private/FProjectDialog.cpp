@@ -35,10 +35,15 @@ std::filesystem::path FProjectDialog::Choose(void* Owner, bool Create) {
 
 std::filesystem::path FProjectDialog::ChooseDirectory(void* Owner) {
     const HRESULT Initialized{CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED)};
+
+    if (FAILED(Initialized)) {
+        return {};
+    }
+
     std::filesystem::path Selected{};
     Microsoft::WRL::ComPtr<IFileOpenDialog> Dialog{};
 
-    if ((SUCCEEDED(Initialized) || Initialized == RPC_E_CHANGED_MODE) && SUCCEEDED(CoCreateInstance(CLSID_FileOpenDialog, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(Dialog.GetAddressOf())))) {
+    if (SUCCEEDED(CoCreateInstance(CLSID_FileOpenDialog, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(Dialog.GetAddressOf())))) {
         FILEOPENDIALOGOPTIONS Options{};
         Dialog->GetOptions(&Options);
         Dialog->SetOptions(Options | FOS_PICKFOLDERS | FOS_FORCEFILESYSTEM | FOS_PATHMUSTEXIST | FOS_NOCHANGEDIR);
@@ -57,9 +62,7 @@ std::filesystem::path FProjectDialog::ChooseDirectory(void* Owner) {
 
     Dialog.Reset();
 
-    if (SUCCEEDED(Initialized)) {
-        CoUninitialize();
-    }
+    CoUninitialize();
 
     return Selected;
 }

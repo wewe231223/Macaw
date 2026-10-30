@@ -167,7 +167,7 @@ bool UStaticMeshComponent::SetMaterialPath(const FString& Path) {
 
     const std::filesystem::path AssetPath{FilePath::FromUtf8(Path)};
 
-    if (!Path.empty() && (AssetPath.has_root_path() || AssetPath.extension() != L".mtl")) {
+    if (!Path.empty() && (AssetPath.has_root_path() || AssetPath.extension() != L".masset")) {
         return false;
     }
 
@@ -246,7 +246,7 @@ bool UStaticMeshComponent::SetSlotMaterialPath(Uint32 Slot, const FString& Path)
 
     const std::filesystem::path AssetPath{FilePath::FromUtf8(Path)};
 
-    if (Path.find('\0') != FString::npos || (!Path.empty() && (AssetPath.has_root_path() || AssetPath.extension() != L".mtl" || LoadMaterial(Path) == nullptr))) {
+    if (Path.find('\0') != FString::npos || (!Path.empty() && (AssetPath.has_root_path() || AssetPath.extension() != L".masset" || LoadMaterial(Path) == nullptr))) {
         return false;
     }
 
@@ -287,7 +287,7 @@ void UStaticMeshComponent::Serialize(FArchive& Archive) {
         Archive.Serialize(std::to_string(Slot), mMaterialOverrides[Slot]);
 
         const auto Path{FilePath::FromUtf8(mMaterialOverrides[Slot])};
-        bool Valid{mMaterialOverrides[Slot].find('\0') == FString::npos && (Path.empty() || (!Path.has_root_path() && Path.extension() == L".mtl"))};
+        bool Valid{mMaterialOverrides[Slot].find('\0') == FString::npos && (Path.empty() || (!Path.has_root_path() && Path.extension() == L".masset"))};
 
         for (const auto& Part : Path) {
             Valid = Valid && Part != L"..";

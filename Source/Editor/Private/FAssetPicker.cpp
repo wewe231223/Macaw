@@ -58,13 +58,12 @@ bool FAssetPicker::DrawOptions(FEditorAssetCatalog& Catalog, FAssetThumbnailCach
 
     if (ImGui::BeginChild("##AssetOptions", {0.0f, 280.0f})) {
         for (const auto& Entry : Catalog.GetEntries()) {
-            const FString Display{FilePath::ToGenericUtf8(Entry.GetDisplayPath())};
+            const FString Actual{FilePath::ToGenericUtf8(Entry.GetPath())};
 
-            if (Entry.GetType() != Type || !Filter.PassFilter(Display.c_str())) {
+            if (Entry.GetType() != Type || !Filter.PassFilter(Actual.c_str())) {
                 continue;
             }
 
-            const FString Actual{FilePath::ToGenericUtf8(Entry.GetPath())};
             ImGui::PushID(Actual.c_str());
 
             const ImVec2 Origin{ImGui::GetCursorScreenPos()};
@@ -89,9 +88,9 @@ bool FAssetPicker::DrawOptions(FEditorAssetCatalog& Catalog, FAssetThumbnailCach
                 }
 
                 ImGui::SetCursorScreenPos({Origin.x + 46.0f, Origin.y + ContentOffsetY});
-                ImGui::TextUnformatted(FilePath::ToUtf8(Entry.GetDisplayPath().stem()).c_str());
+                ImGui::TextUnformatted(FilePath::ToUtf8(Entry.GetPath().stem()).c_str());
                 ImGui::SetCursorScreenPos({Origin.x + 46.0f, Origin.y + ContentOffsetY + 20.0f});
-                ImGui::TextDisabled("%s", FilePath::ToGenericUtf8(Entry.GetDisplayPath().parent_path()).c_str());
+                ImGui::TextDisabled("%s", FilePath::ToGenericUtf8(Entry.GetPath().parent_path()).c_str());
                 ImGui::SetCursorScreenPos(Next);
                 ImGui::Dummy({0.0f, 0.0f});
             }
@@ -109,7 +108,7 @@ bool FAssetPicker::Draw(FEditorAssetCatalog& Catalog, FAssetThumbnailCache& Thum
     ImGui::PushID(Label);
 
     const FString Effective{Path.empty() ? InheritedPath : Path};
-    const FString Display{Effective.empty() ? FString{EmptyLabel} : Catalog.GetDisplayPath(FilePath::FromUtf8(Effective))};
+    const FString Display{Effective.empty() ? FString{EmptyLabel} : Effective};
     FString Name{Effective.empty() ? FString{EmptyLabel} : FilePath::ToUtf8(FilePath::FromUtf8(Display).stem())};
 
     if (Path.empty() && !InheritedPath.empty()) {

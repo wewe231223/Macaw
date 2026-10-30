@@ -131,7 +131,7 @@ bool UStaticMesh::SetMeshData(FMeshData MeshData) {
     for (const FMeshMaterialSlot& Slot : MeshData.GetMaterialSlots()) {
         const std::filesystem::path Path{FilePath::FromUtf8(Slot.GetMaterialPath())};
 
-        if (Slot.GetMaterialPath().find('\0') != FString::npos || (!Path.empty() && (Path.has_root_path() || Path.extension() != L".mtl"))) {
+        if (Slot.GetMaterialPath().find('\0') != FString::npos || (!Path.empty() && (Path.has_root_path() || Path.extension() != L".masset"))) {
             return false;
         }
 

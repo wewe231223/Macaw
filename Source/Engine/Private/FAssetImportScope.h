@@ -23,7 +23,7 @@ public:
 public:
     /**
      * @brief 소유할 새 디렉터리 경로를 저장합니다.
-     * @param Directory GUID로 구분한 이번 임포트 전용 경로입니다.
+     * @param Directory 이번 작업이 새로 만든 전용 경로입니다.
      */
     explicit FAssetImportScope(std::filesystem::path Directory);
 

@@ -66,6 +66,10 @@ namespace {
 
         return Label;
     }
+
+    bool IsVisibleProperty(const FProperty* Property) {
+        return !Property->HasFlag(EPropertyFlags::Transient) && (Property->HasFlag(EPropertyFlags::Edit) || Property->HasFlag(EPropertyFlags::ReadOnly));
+    }
 }
 
 /**
@@ -180,21 +184,45 @@ void FDetailsPanel::DrawReflectedObject(UObject* Object) {
     ImGui::PushID(Object);
     ImGui::TextDisabled("%s", Object->GetClass()->GetName().c_str());
 
-    for (const FProperty* Property : Object->GetClass()->GetAllProperties()) {
-        if (Property->HasFlag(EPropertyFlags::Transient) || (!Property->HasFlag(EPropertyFlags::Edit) && !Property->HasFlag(EPropertyFlags::ReadOnly))) {
+    TArray<const UClass*> Classes{};
+
+    for (const UClass* Class{Object->GetClass()}; Class != nullptr; Class = Class->GetSuperClass()) {
+        Classes.push_back(Class);
+    }
+
+    std::reverse(Classes.begin(), Classes.end());
+
+    for (const UClass* Class : Classes) {
+        const auto& Properties{Class->GetProperties()};
+
+        if (std::none_of(Properties.begin(), Properties.end(), IsVisibleProperty)) {
             continue;
         }
 
-        FPropertyValue Value{Property->ReadValue(Object)};
-        const bool ReadOnly{!Context->CanEditProperty(Handle, Property)};
+        if (ImGui::TreeNodeEx(Class->GetName().c_str(), ImGuiTreeNodeFlags_DefaultOpen)) {
+            for (const FProperty* Property : Properties) {
+                if (!IsVisibleProperty(Property)) {
+                    continue;
+                }
 
-        ImGui::BeginDisabled(ReadOnly);
+                FPropertyValue Value{Property->ReadValue(Object)};
+                const bool ReadOnly{!Context->CanEditProperty(Handle, Property)};
 
-        if (DrawPropertyValue(Property, Value) && !ReadOnly) {
-            Context->EditProperty(Handle, Property, Value, ImGui::IsMouseDown(ImGuiMouseButton_Left));
+                ImGui::BeginDisabled(ReadOnly);
+
+                if (DrawPropertyValue(Property, Value) && !ReadOnly) {
+                    Context->EditProperty(Handle, Property, Value, ImGui::IsMouseDown(ImGuiMouseButton_Left));
+                }
+
+                ImGui::EndDisabled();
+
+                if (Context->ResolveObject(Handle) != Object) {
+                    break;
+                }
+            }
+
+            ImGui::TreePop();
         }
-
-        ImGui::EndDisabled();
 
         if (Context->ResolveObject(Handle) != Object) {
             break;

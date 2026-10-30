@@ -58,6 +58,14 @@ int FObjViewerApplication::Run() {
     }
 
     mAssets = std::make_unique<FAssetManager>(Content);
+
+    FString MigrationError{};
+
+    if (!mAssets->MigrateMaterials(MigrationError)) {
+        MessageBoxW(mPlatform.GetWindowHandle(), FilePath::FromUtf8(MigrationError).c_str(), L"Material Migration", MB_OK | MB_ICONERROR);
+        return 1;
+    }
+
     mRenderer.SetProjectPaths(Content, Directory / "Viewer/Saved/ShaderCache");
 
     if (!mRenderer.Initialize(mPlatform.GetWindowHandle(), mPlatform.GetWidth(), mPlatform.GetHeight())) {
@@ -159,9 +167,9 @@ int FObjViewerApplication::Run() {
 }
 
 bool FObjViewerApplication::OpenSource(const std::filesystem::path& Source) {
-    const auto Target{std::filesystem::path{"Meshes"} / Source.filename().replace_extension(".masset")};
+    std::filesystem::path Target{};
 
-    if (!mAssets->ImportMesh(Source, Target, mError) || !mViewer->Open(Target, mError)) {
+    if (!mAssets->ImportAsset(Source, "Meshes", Target, mError) || !mViewer->Open(Target, mError)) {
         return false;
     }
 

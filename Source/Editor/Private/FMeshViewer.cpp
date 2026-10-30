@@ -8,6 +8,7 @@
 #include "Core/Math/FBox.h"
 #include "Core/Math/FQuat.h"
 #include "Engine/FAssetManager.h"
+#include "Engine/FAssetFile.h"
 #include "Engine/FSceneInterface.h"
 #include "Engine/FRenderTarget.h"
 #include "Engine/FPrimitiveSceneProxy.h"
@@ -141,7 +142,9 @@ void FMeshViewer::DrawMaterials() {
             }
 
             for (const auto& Candidate : Paths) {
-                if (Candidate.extension() == L".mtl") {
+                EAssetType Type{};
+
+                if (FAssetFile::GetType(mAssets->ResolvePath(Candidate, Error), Type, Error) && Type == EAssetType::Material) {
                     const FString Relative{FilePath::ToGenericUtf8(Candidate)};
 
                     if (ImGui::Selectable(Relative.c_str(), Path == Relative)) {

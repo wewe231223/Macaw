@@ -97,7 +97,7 @@ bool FProject::Open(const std::filesystem::path& ProjectFile, FString& Error) {
 
     const FString RelativePath{Assets->GetRelativePath(RelativeScene, Error)};
 
-    if (RelativePath.empty()) {
+    if (RelativePath.empty() || !Assets->MigrateMaterials(Error)) {
         return false;
     }
 

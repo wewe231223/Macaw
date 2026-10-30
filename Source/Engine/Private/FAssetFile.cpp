@@ -64,7 +64,7 @@ namespace {
         Input.read(reinterpret_cast<char*>(&TypeValue), sizeof(TypeValue));
         Input.read(reinterpret_cast<char*>(&Size), sizeof(Size));
 
-        if (!Input || Magic != AssetMagic || Version != AssetVersion || TypeValue < static_cast<Uint32>(EAssetType::Scene) || TypeValue > static_cast<Uint32>(EAssetType::Texture) || Size == 0 || Size != FileSize - HeaderSize) {
+        if (!Input || Magic != AssetMagic || Version != AssetVersion || TypeValue < static_cast<Uint32>(EAssetType::Scene) || TypeValue > static_cast<Uint32>(EAssetType::Material) || Size == 0 || Size != FileSize - HeaderSize) {
             Error = "Invalid asset header, version or type";
             return false;
         }
@@ -76,21 +76,6 @@ namespace {
 }
 
 bool FAssetFile::GetType(const std::filesystem::path& Path, EAssetType& Type, FString& Error) {
-    if (Path.extension() == L".mtl") {
-        Error.clear();
-
-        std::error_code Code{};
-
-        if (!std::filesystem::is_regular_file(Path, Code) || Code) {
-            Error = "Cannot read the MTL material";
-            return false;
-        }
-
-        Type = EAssetType::Material;
-
-        return true;
-    }
-
     std::ifstream Input{};
     Uint64 Size{};
 
@@ -100,7 +85,7 @@ bool FAssetFile::GetType(const std::filesystem::path& Path, EAssetType& Type, FS
 bool FAssetFile::Save(const std::filesystem::path& Path, EAssetType Type, std::span<const Uint8> Payload, FString& Error) {
     Error.clear();
 
-    if (Path.extension() != L".masset" || Payload.empty() || Payload.size() > MaximumPayload || Type < EAssetType::Scene || Type > EAssetType::Texture) {
+    if (Path.extension() != L".masset" || Payload.empty() || Payload.size() > MaximumPayload || Type < EAssetType::Scene || Type > EAssetType::Material) {
         Error = "Invalid asset path, type or payload";
         return false;
     }
