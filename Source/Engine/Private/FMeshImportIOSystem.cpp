@@ -13,77 +13,81 @@
 #include <memory>
 #include <sstream>
 
-bool FMeshImportIOSystem::Exists(const char* File) const {
-    return mDefaultIOSystem.Exists(File);
-}
+namespace Engine {
 
-char FMeshImportIOSystem::getOsSeparator() const {
-    return mDefaultIOSystem.getOsSeparator();
-}
-
-Assimp::IOStream* FMeshImportIOSystem::Open(const char* File, const char* Mode) {
-    if (File == nullptr || Mode == nullptr) {
-        return nullptr;
+    bool Engine::FMeshImportIOSystem::Exists(const char* File) const {
+        return mDefaultIOSystem.Exists(File);
     }
 
-    std::wstring Extension{FilePath::FromUtf8(File).extension().wstring()};
-
-    for (wchar_t& Character : Extension) {
-        Character = static_cast<wchar_t>(std::towlower(Character));
+    char Engine::FMeshImportIOSystem::getOsSeparator() const {
+        return mDefaultIOSystem.getOsSeparator();
     }
 
-    if (Extension != L".mtl" || Mode[0] != 'r') {
-        return mDefaultIOSystem.Open(File, Mode);
-    }
-
-    std::unique_ptr<Assimp::IOStream> Source{mDefaultIOSystem.Open(File, Mode)};
-
-    if (Source == nullptr) {
-        return nullptr;
-    }
-
-    FString Text{};
-    Text.resize(Source->FileSize());
-
-    if (!Text.empty() && Source->Read(Text.data(), 1, Text.size()) != Text.size()) {
-        return nullptr;
-    }
-
-    std::istringstream Input{Text};
-    FString Filtered{};
-    Filtered.reserve(Text.size());
-
-    FString Line{};
-
-    while (std::getline(Input, Line)) {
-        std::istringstream Values{Line};
-        FString Keyword{};
-        Values >> Keyword;
-
-        if (Keyword != "Prfl") {
-            Filtered += Line;
+    Assimp::IOStream* Engine::FMeshImportIOSystem::Open(const char* File, const char* Mode) {
+        if (File == nullptr || Mode == nullptr) {
+            return nullptr;
         }
 
-        Filtered += '\n';
+        std::wstring Extension{Core::FilePath::FromUtf8(File).extension().wstring()};
+
+        for (wchar_t& Character : Extension) {
+            Character = static_cast<wchar_t>(std::towlower(Character));
+        }
+
+        if (Extension != L".mtl" || Mode[0] != 'r') {
+            return mDefaultIOSystem.Open(File, Mode);
+        }
+
+        std::unique_ptr<Assimp::IOStream> Source{mDefaultIOSystem.Open(File, Mode)};
+
+        if (Source == nullptr) {
+            return nullptr;
+        }
+
+        Core::FString Text{};
+        Text.resize(Source->FileSize());
+
+        if (!Text.empty() && Source->Read(Text.data(), 1, Text.size()) != Text.size()) {
+            return nullptr;
+        }
+
+        std::istringstream Input{Text};
+        Core::FString Filtered{};
+        Filtered.reserve(Text.size());
+
+        Core::FString Line{};
+
+        while (std::getline(Input, Line)) {
+            std::istringstream Values{Line};
+            Core::FString Keyword{};
+            Values >> Keyword;
+
+            if (Keyword != "Prfl") {
+                Filtered += Line;
+            }
+
+            Filtered += '\n';
+        }
+
+        auto Bytes{std::make_unique<Core::Uint8[]>(Filtered.size())};
+
+        if (!Filtered.empty()) {
+            std::memcpy(Bytes.get(), Filtered.data(), Filtered.size());
+        }
+
+        auto* Stream{new Assimp::MemoryIOStream{Bytes.get(), Filtered.size(), true}};
+
+        Bytes.release();
+
+        return Stream;
     }
 
-    auto Bytes{std::make_unique<Uint8[]>(Filtered.size())};
-
-    if (!Filtered.empty()) {
-        std::memcpy(Bytes.get(), Filtered.data(), Filtered.size());
+    void Engine::FMeshImportIOSystem::Close(Assimp::IOStream* Stream) {
+        delete Stream;
     }
 
-    auto* Stream{new Assimp::MemoryIOStream{Bytes.get(), Filtered.size(), true}};
+    bool Engine::FMeshImportIOSystem::ComparePaths(const char* First, const char* Second) const {
+        return mDefaultIOSystem.ComparePaths(First, Second);
+    }
 
-    Bytes.release();
-
-    return Stream;
-}
-
-void FMeshImportIOSystem::Close(Assimp::IOStream* Stream) {
-    delete Stream;
-}
-
-bool FMeshImportIOSystem::ComparePaths(const char* First, const char* Second) const {
-    return mDefaultIOSystem.ComparePaths(First, Second);
 }

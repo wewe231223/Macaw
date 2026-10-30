@@ -16,183 +16,187 @@
 
 #include <algorithm>
 
-/**
- * @brief 이 구현 파일에서만 사용하는 내부 상태와 보조 함수입니다.
- */
-namespace {
-    /**
-     * @brief 프로세스 수명 동안 유지하는 네이티브 타입 등록 맵을 반환합니다.
-     * @return 소유 객체가 유지하는 값의 참조입니다.
-     */
-    TMap<FString, FRegisteredType>& GetRegisteredTypes() {
-        static TMap<FString, FRegisteredType> Types{};
-        return Types;
-    }
+namespace CoreUObject {
 
     /**
-     * @brief 이미 등록된 정의의 일치 여부를 검사하고 대응 메타데이터를 반환합니다.
-     * @param[in] Name 조회하거나 기록할 이름입니다.
-     * @param[in] Definition 기존 등록과 비교할 타입 정의입니다.
-     * @return 조회한 값의 비소유 주소이며, 해당 값이 없으면 nullptr입니다.
+     * @brief 이 구현 파일에서만 사용하는 내부 상태와 보조 함수입니다.
      */
-    UStruct* FindDefinition(const FString& Name, const FReflectionDefinition& Definition) {
-        const auto Position{GetRegisteredTypes().find(Name)};
-
-        if (Position == GetRegisteredTypes().end()) {
-            return nullptr;
+    namespace {
+        /**
+         * @brief 프로세스 수명 동안 유지하는 네이티브 타입 등록 맵을 반환합니다.
+         * @return 소유 객체가 유지하는 값의 참조입니다.
+         */
+        Core::TMap<Core::FString, CoreUObject::FRegisteredType>& GetRegisteredTypes() {
+            static Core::TMap<Core::FString, CoreUObject::FRegisteredType> Types{};
+            return Types;
         }
 
-        if (!(Position->second.mDefinition == Definition)) {
-            ErrorHandler::Fatal("FReflectionRegistry", "Conflicting reflected type: " + Name);
+        /**
+         * @brief 이미 등록된 정의의 일치 여부를 검사하고 대응 메타데이터를 반환합니다.
+         * @param[in] Name 조회하거나 기록할 이름입니다.
+         * @param[in] Definition 기존 등록과 비교할 타입 정의입니다.
+         * @return 조회한 값의 비소유 주소이며, 해당 값이 없으면 nullptr입니다.
+         */
+        CoreUObject::UStruct* FindDefinition(const Core::FString& Name, const CoreUObject::FReflectionDefinition& Definition) {
+            const auto Position{GetRegisteredTypes().find(Name)};
+
+            if (Position == GetRegisteredTypes().end()) {
+                return nullptr;
+            }
+
+            if (!(Position->second.mDefinition == Definition)) {
+                Core::ErrorHandler::Fatal("FReflectionRegistry", "Conflicting reflected type: " + Name);
+            }
+
+            return Position->second.mInformation.get();
         }
 
-        return Position->second.mInformation.get();
+        /**
+         * @brief 이름과 타입 종류가 일치하는 등록 메타데이터를 조회합니다.
+         * @param[in] Name 조회하거나 기록할 이름입니다.
+         * @param[in] Kind 조회할 메타데이터 종류입니다.
+         * @return 조회한 값의 비소유 주소이며, 해당 값이 없으면 nullptr입니다.
+         */
+        CoreUObject::UStruct* FindType(const Core::FString& Name, CoreUObject::EReflectionType Kind) {
+            const auto Position{GetRegisteredTypes().find(Name)};
+            return Position != GetRegisteredTypes().end() && Position->second.mDefinition.mKind == Kind ? Position->second.mInformation.get() : nullptr;
+        }
     }
 
     /**
-     * @brief 이름과 타입 종류가 일치하는 등록 메타데이터를 조회합니다.
-     * @param[in] Name 조회하거나 기록할 이름입니다.
-     * @param[in] Kind 조회할 메타데이터 종류입니다.
-     * @return 조회한 값의 비소유 주소이며, 해당 값이 없으면 nullptr입니다.
+     * @brief 같은 이름의 정의와 호환성을 검사한 뒤 클래스 메타데이터를 등록합니다.
      */
-    UStruct* FindType(const FString& Name, EReflectionType Kind) {
-        const auto Position{GetRegisteredTypes().find(Name)};
-        return Position != GetRegisteredTypes().end() && Position->second.mDefinition.mKind == Kind ? Position->second.mInformation.get() : nullptr;
-    }
-}
+    CoreUObject::UClass* CoreUObject::FReflectionRegistry::DefineClass(Core::FString Name, CoreUObject::UClass* (*Parent)(), const CoreUObject::FNativeType* NativeType, CoreUObject::EClassFlags Flags, FFactory Factory, FClassBuilder Builder) {
+        Core::ErrorHandler::Report(Name.empty() || NativeType == nullptr, "FReflectionRegistry", "Invalid class definition", Core::ErrorHandler::EErrorLevel::Critical);
 
-/**
- * @brief 같은 이름의 정의와 호환성을 검사한 뒤 클래스 메타데이터를 등록합니다.
- */
-UClass* FReflectionRegistry::DefineClass(FString Name, UClass* (*Parent)(), const FNativeType* NativeType, EClassFlags Flags, FFactory Factory, FClassBuilder Builder) {
-    ErrorHandler::Report(Name.empty() || NativeType == nullptr, "FReflectionRegistry", "Invalid class definition", ErrorHandler::EErrorLevel::Critical);
+        const CoreUObject::FReflectionDefinition Definition{CoreUObject::EReflectionType::Class, NativeType, Parent, Flags, Factory, Builder};
 
-    const FReflectionDefinition Definition{EReflectionType::Class, NativeType, Parent, Flags, Factory, Builder};
+        if (CoreUObject::UStruct* Existing{FindDefinition(Name, Definition)}) {
+            return static_cast<CoreUObject::UClass*>(Existing);
+        }
 
-    if (UStruct* Existing{FindDefinition(Name, Definition)}) {
-        return static_cast<UClass*>(Existing);
-    }
+        CoreUObject::UClass* Super{Parent != nullptr ? Parent() : nullptr};
+        auto Owner{std::make_unique<CoreUObject::UClass>(Name, NativeType->mSize, Super, Factory, Flags)};
+        CoreUObject::UClass* Class{Owner.get()};
 
-    UClass* Super{Parent != nullptr ? Parent() : nullptr};
-    auto Owner{std::make_unique<UClass>(Name, NativeType->mSize, Super, Factory, Flags)};
-    UClass* Class{Owner.get()};
+        GetRegisteredTypes().emplace(std::move(Name), CoreUObject::FRegisteredType{Definition, std::move(Owner)});
 
-    GetRegisteredTypes().emplace(std::move(Name), FRegisteredType{Definition, std::move(Owner)});
+        if (Builder != nullptr) {
+            Builder(Class);
+        }
 
-    if (Builder != nullptr) {
-        Builder(Class);
+        Class->Seal();
+
+        return Class;
     }
 
-    Class->Seal();
+    /**
+     * @brief 같은 이름의 정의와 호환성을 검사한 뒤 구조체 메타데이터를 등록합니다.
+     */
+    CoreUObject::UScriptStruct* CoreUObject::FReflectionRegistry::DefineStruct(Core::FString Name, const CoreUObject::FNativeType* NativeType, FStructBuilder Builder, const CoreUObject::UScriptStruct* Parent) {
+        Core::ErrorHandler::Report(Name.empty() || NativeType == nullptr, "FReflectionRegistry", "Invalid struct definition", Core::ErrorHandler::EErrorLevel::Critical);
 
-    return Class;
-}
+        CoreUObject::FReflectionDefinition Definition{CoreUObject::EReflectionType::Struct, NativeType};
+        Definition.mStructBuilder = Builder;
+        Definition.mStructParent = Parent;
 
-/**
- * @brief 같은 이름의 정의와 호환성을 검사한 뒤 구조체 메타데이터를 등록합니다.
- */
-UScriptStruct* FReflectionRegistry::DefineStruct(FString Name, const FNativeType* NativeType, FStructBuilder Builder, const UScriptStruct* Parent) {
-    ErrorHandler::Report(Name.empty() || NativeType == nullptr, "FReflectionRegistry", "Invalid struct definition", ErrorHandler::EErrorLevel::Critical);
+        if (CoreUObject::UStruct* Existing{FindDefinition(Name, Definition)}) {
+            return static_cast<CoreUObject::UScriptStruct*>(Existing);
+        }
 
-    FReflectionDefinition Definition{EReflectionType::Struct, NativeType};
-    Definition.mStructBuilder = Builder;
-    Definition.mStructParent = Parent;
+        auto Owner{std::make_unique<CoreUObject::UScriptStruct>(Name, NativeType->mSize, Parent)};
+        CoreUObject::UScriptStruct* Struct{Owner.get()};
 
-    if (UStruct* Existing{FindDefinition(Name, Definition)}) {
-        return static_cast<UScriptStruct*>(Existing);
+        GetRegisteredTypes().emplace(std::move(Name), CoreUObject::FRegisteredType{Definition, std::move(Owner)});
+
+        if (Builder != nullptr) {
+            Builder(Struct);
+        }
+
+        Struct->Seal();
+
+        return Struct;
     }
 
-    auto Owner{std::make_unique<UScriptStruct>(Name, NativeType->mSize, Parent)};
-    UScriptStruct* Struct{Owner.get()};
+    /**
+     * @brief 같은 이름의 정의와 호환성을 검사한 뒤 열거형 메타데이터를 등록합니다.
+     */
+    CoreUObject::UEnum* CoreUObject::FReflectionRegistry::DefineEnum(Core::FString Name, const CoreUObject::FNativeType* NativeType, FEnumBuilder Builder) {
+        Core::ErrorHandler::Report(Name.empty() || NativeType == nullptr, "FReflectionRegistry", "Invalid enum definition", Core::ErrorHandler::EErrorLevel::Critical);
 
-    GetRegisteredTypes().emplace(std::move(Name), FRegisteredType{Definition, std::move(Owner)});
+        CoreUObject::FReflectionDefinition Definition{CoreUObject::EReflectionType::Enum, NativeType};
+        Definition.mEnumBuilder = Builder;
 
-    if (Builder != nullptr) {
-        Builder(Struct);
+        if (CoreUObject::UStruct* Existing{FindDefinition(Name, Definition)}) {
+            return static_cast<CoreUObject::UEnum*>(Existing);
+        }
+
+        auto Owner{std::make_unique<CoreUObject::UEnum>(Name, NativeType->mSize)};
+        CoreUObject::UEnum* Enum{Owner.get()};
+
+        GetRegisteredTypes().emplace(std::move(Name), CoreUObject::FRegisteredType{Definition, std::move(Owner)});
+
+        if (Builder != nullptr) {
+            Builder(Enum);
+        }
+
+        Enum->Seal();
+
+        return Enum;
     }
 
-    Struct->Seal();
-
-    return Struct;
-}
-
-/**
- * @brief 같은 이름의 정의와 호환성을 검사한 뒤 열거형 메타데이터를 등록합니다.
- */
-UEnum* FReflectionRegistry::DefineEnum(FString Name, const FNativeType* NativeType, FEnumBuilder Builder) {
-    ErrorHandler::Report(Name.empty() || NativeType == nullptr, "FReflectionRegistry", "Invalid enum definition", ErrorHandler::EErrorLevel::Critical);
-
-    FReflectionDefinition Definition{EReflectionType::Enum, NativeType};
-    Definition.mEnumBuilder = Builder;
-
-    if (UStruct* Existing{FindDefinition(Name, Definition)}) {
-        return static_cast<UEnum*>(Existing);
+    /**
+     * @brief 열거형 빌더에서 전달한 열거값 목록을 등록합니다.
+     */
+    void CoreUObject::FReflectionRegistry::AddEnumValues(CoreUObject::UEnum* Information, std::initializer_list<CoreUObject::FEnumValue> Values) {
+        Information->AddValues(Values);
     }
 
-    auto Owner{std::make_unique<UEnum>(Name, NativeType->mSize)};
-    UEnum* Enum{Owner.get()};
-
-    GetRegisteredTypes().emplace(std::move(Name), FRegisteredType{Definition, std::move(Owner)});
-
-    if (Builder != nullptr) {
-        Builder(Enum);
+    /**
+     * @brief 등록된 클래스 메타데이터를 이름으로 조회합니다.
+     */
+    CoreUObject::UClass* CoreUObject::FReflectionRegistry::FindClass(const Core::FString& Name) {
+        return static_cast<CoreUObject::UClass*>(FindType(Name, CoreUObject::EReflectionType::Class));
     }
 
-    Enum->Seal();
+    Core::TArray<const CoreUObject::UClass*> CoreUObject::FReflectionRegistry::GetDerivedClasses(const CoreUObject::UClass* Parent) {
+        Core::TArray<const CoreUObject::UClass*> Classes{};
 
-    return Enum;
-}
+        if (Parent == nullptr) {
+            return Classes;
+        }
 
-/**
- * @brief 열거형 빌더에서 전달한 열거값 목록을 등록합니다.
- */
-void FReflectionRegistry::AddEnumValues(UEnum* Information, std::initializer_list<FEnumValue> Values) {
-    Information->AddValues(Values);
-}
+        for (const auto& Entry : GetRegisteredTypes()) {
+            if (Entry.second.mDefinition.mKind != CoreUObject::EReflectionType::Class) {
+                continue;
+            }
 
-/**
- * @brief 등록된 클래스 메타데이터를 이름으로 조회합니다.
- */
-UClass* FReflectionRegistry::FindClass(const FString& Name) {
-    return static_cast<UClass*>(FindType(Name, EReflectionType::Class));
-}
+            const auto* Class{static_cast<const CoreUObject::UClass*>(Entry.second.mInformation.get())};
 
-TArray<const UClass*> FReflectionRegistry::GetDerivedClasses(const UClass* Parent) {
-    TArray<const UClass*> Classes{};
+            if (Class != Parent && Class->IsChildOf(Parent)) {
+                Classes.push_back(Class);
+            }
+        }
 
-    if (Parent == nullptr) {
+        std::sort(Classes.begin(), Classes.end(), [](const CoreUObject::UClass* First, const CoreUObject::UClass* Second) {
+            return First->GetName() < Second->GetName();
+        });
+
         return Classes;
     }
 
-    for (const auto& Entry : GetRegisteredTypes()) {
-        if (Entry.second.mDefinition.mKind != EReflectionType::Class) {
-            continue;
-        }
-
-        const auto* Class{static_cast<const UClass*>(Entry.second.mInformation.get())};
-
-        if (Class != Parent && Class->IsChildOf(Parent)) {
-            Classes.push_back(Class);
-        }
+    /**
+     * @brief 등록된 구조체 메타데이터를 이름으로 조회합니다.
+     */
+    CoreUObject::UScriptStruct* CoreUObject::FReflectionRegistry::FindStruct(const Core::FString& Name) {
+        return static_cast<CoreUObject::UScriptStruct*>(FindType(Name, CoreUObject::EReflectionType::Struct));
     }
 
-    std::sort(Classes.begin(), Classes.end(), [](const UClass* First, const UClass* Second) {
-        return First->GetName() < Second->GetName();
-    });
+    /**
+     * @brief 등록된 열거형 메타데이터를 이름으로 조회합니다.
+     */
+    CoreUObject::UEnum* CoreUObject::FReflectionRegistry::FindEnum(const Core::FString& Name) {
+        return static_cast<CoreUObject::UEnum*>(FindType(Name, CoreUObject::EReflectionType::Enum));
+    }
 
-    return Classes;
-}
-
-/**
- * @brief 등록된 구조체 메타데이터를 이름으로 조회합니다.
- */
-UScriptStruct* FReflectionRegistry::FindStruct(const FString& Name) {
-    return static_cast<UScriptStruct*>(FindType(Name, EReflectionType::Struct));
-}
-
-/**
- * @brief 등록된 열거형 메타데이터를 이름으로 조회합니다.
- */
-UEnum* FReflectionRegistry::FindEnum(const FString& Name) {
-    return static_cast<UEnum*>(FindType(Name, EReflectionType::Enum));
 }

@@ -7,15 +7,19 @@
 
 #include <utility>
 
-FMeshMaterialSlot::FMeshMaterialSlot(FString Name, FString MaterialPath)
-	: mName{std::move(Name)},
-	  mMaterialPath{std::move(MaterialPath)} {
-}
+namespace Engine {
 
-const FString& FMeshMaterialSlot::GetName() const {
-    return mName;
-}
+    Engine::FMeshMaterialSlot::FMeshMaterialSlot(Core::FString Name, Core::FString MaterialPath)
+		: mName{std::move(Name)},
+		  mMaterialPath{std::move(MaterialPath)} {
+    }
 
-const FString& FMeshMaterialSlot::GetMaterialPath() const {
-    return mMaterialPath;
+    const Core::FString& Engine::FMeshMaterialSlot::GetName() const {
+        return mName;
+    }
+
+    const Core::FString& Engine::FMeshMaterialSlot::GetMaterialPath() const {
+        return mMaterialPath;
+    }
+
 }

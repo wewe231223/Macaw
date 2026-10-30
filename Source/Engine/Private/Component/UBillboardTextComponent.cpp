@@ -12,96 +12,100 @@
 #include <algorithm>
 #include <cmath>
 
-UBillboardTextComponent::UBillboardTextComponent() = default;
+namespace Engine {
 
-UBillboardTextComponent::~UBillboardTextComponent() = default;
+    Engine::UBillboardTextComponent::UBillboardTextComponent() = default;
 
-const FString& UBillboardTextComponent::GetText() const {
-    return mText;
-}
+    Engine::UBillboardTextComponent::~UBillboardTextComponent() = default;
 
-bool UBillboardTextComponent::SetText(const FString& Text) {
-    if (Text.size() > 65536 || Text.find('\0') != FString::npos) {
-        return false;
+    const Core::FString& Engine::UBillboardTextComponent::GetText() const {
+        return mText;
     }
 
-    if (mText != Text) {
-        mText = Text;
+    bool Engine::UBillboardTextComponent::SetText(const Core::FString& Text) {
+        if (Text.size() > 65536 || Text.find('\0') != Core::FString::npos) {
+            return false;
+        }
+
+        if (mText != Text) {
+            mText = Text;
+            MarkRenderStateDirty();
+        }
+
+        return true;
+    }
+
+    float Engine::UBillboardTextComponent::GetTextSize() const {
+        return mTextSize;
+    }
+
+    bool Engine::UBillboardTextComponent::SetTextSize(float Size) {
+        if (!std::isfinite(Size) || Size <= 0.0f || Size > 10000.0f) {
+            return false;
+        }
+
+        if (mTextSize != Size) {
+            mTextSize = Size;
+            MarkRenderStateDirty();
+        }
+
+        return true;
+    }
+
+    const Core::FVector4& Engine::UBillboardTextComponent::GetTextColor() const {
+        return mTextColor;
+    }
+
+    bool Engine::UBillboardTextComponent::SetTextColor(const Core::FVector4& Color) {
+        const auto Values{Color.ToArray()};
+
+        if (!std::all_of(Values.begin(), Values.end(), [](float Value) {
+            return std::isfinite(Value) && Value >= 0.0f && Value <= 1.0f;
+        })) {
+            return false;
+        }
+
+        mTextColor = Color;
         MarkRenderStateDirty();
+
+        return true;
     }
 
-    return true;
-}
-
-float UBillboardTextComponent::GetTextSize() const {
-    return mTextSize;
-}
-
-bool UBillboardTextComponent::SetTextSize(float Size) {
-    if (!std::isfinite(Size) || Size <= 0.0f || Size > 10000.0f) {
-        return false;
+    bool Engine::UBillboardTextComponent::IsVisible() const {
+        return mVisible;
     }
 
-    if (mTextSize != Size) {
-        mTextSize = Size;
-        MarkRenderStateDirty();
+    void Engine::UBillboardTextComponent::SetVisible(bool Visible) {
+        if (mVisible != Visible) {
+            mVisible = Visible;
+            MarkRenderStateDirty();
+        }
     }
 
-    return true;
-}
-
-const FVector4& UBillboardTextComponent::GetTextColor() const {
-    return mTextColor;
-}
-
-bool UBillboardTextComponent::SetTextColor(const FVector4& Color) {
-    const auto Values{Color.ToArray()};
-
-    if (!std::all_of(Values.begin(), Values.end(), [](float Value) {
-        return std::isfinite(Value) && Value >= 0.0f && Value <= 1.0f;
-    })) {
-        return false;
+    Engine::EPrimitiveType Engine::UBillboardTextComponent::GetPrimitiveType() const {
+        return Engine::EPrimitiveType::Plane;
     }
 
-    mTextColor = Color;
-    MarkRenderStateDirty();
-
-    return true;
-}
-
-bool UBillboardTextComponent::IsVisible() const {
-    return mVisible;
-}
-
-void UBillboardTextComponent::SetVisible(bool Visible) {
-    if (mVisible != Visible) {
-        mVisible = Visible;
-        MarkRenderStateDirty();
+    const Engine::FMeshData& Engine::UBillboardTextComponent::GetMeshData() const {
+        static const Engine::FMeshData Mesh{};
+        return Mesh;
     }
-}
 
-EPrimitiveType UBillboardTextComponent::GetPrimitiveType() const {
-    return EPrimitiveType::Plane;
-}
+    Engine::FPrimitiveSceneProxy Engine::UBillboardTextComponent::CreateSceneProxy() const {
+        Engine::FPrimitiveSceneProxy Proxy{GetGuid(), GetPrimitiveType(), GetWorldMatrix(), GetWorldBounds()};
+        Proxy.mText = Engine::FDrawText{{}, mText, mTextColor, mTextSize};
+        return Proxy;
+    }
 
-const FMeshData& UBillboardTextComponent::GetMeshData() const {
-    static const FMeshData Mesh{};
-    return Mesh;
-}
+    Core::FBox Engine::UBillboardTextComponent::GetWorldBounds() const {
+        const Core::FTransform& Transform{GetTransform()};
+        const float Radius{mTextSize * static_cast<float>(mText.size() + 1) * 2.0f * std::max(std::abs(Transform.mScale.y), std::abs(Transform.mScale.z))};
+        const Core::FVector Extent{Radius, Radius, Radius};
+        return {Transform.mLocation - Extent, Transform.mLocation + Extent};
+    }
 
-FPrimitiveSceneProxy UBillboardTextComponent::CreateSceneProxy() const {
-    FPrimitiveSceneProxy Proxy{GetGuid(), GetPrimitiveType(), GetWorldMatrix(), GetWorldBounds()};
-    Proxy.mText = FDrawText{{}, mText, mTextColor, mTextSize};
-    return Proxy;
-}
+    bool Engine::UBillboardTextComponent::ShouldCreateRenderState() const {
+        return mVisible && !mText.empty() && mTextColor.w > 0.0f;
+    }
 
-FBox UBillboardTextComponent::GetWorldBounds() const {
-    const FTransform& Transform{GetTransform()};
-    const float Radius{mTextSize * static_cast<float>(mText.size() + 1) * 2.0f * std::max(std::abs(Transform.mScale.y), std::abs(Transform.mScale.z))};
-    const FVector Extent{Radius, Radius, Radius};
-    return {Transform.mLocation - Extent, Transform.mLocation + Extent};
-}
-
-bool UBillboardTextComponent::ShouldCreateRenderState() const {
-    return mVisible && !mText.empty() && mTextColor.w > 0.0f;
 }

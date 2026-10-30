@@ -8,35 +8,39 @@
 #include "Engine/FSceneView.h"
 #include <cmath>
 
-float UCameraComponent::GetFieldOfView() const {
-    return mFieldOfView;
-}
+namespace Engine {
 
-bool UCameraComponent::SetFieldOfView(float FieldOfView) {
-    if (!std::isfinite(FieldOfView) || FieldOfView <= 0.0f || FieldOfView >= 180.0f) {
-        return false;
+    float Engine::UCameraComponent::GetFieldOfView() const {
+        return mFieldOfView;
     }
 
-    mFieldOfView = FieldOfView;
+    bool Engine::UCameraComponent::SetFieldOfView(float FieldOfView) {
+        if (!std::isfinite(FieldOfView) || FieldOfView <= 0.0f || FieldOfView >= 180.0f) {
+            return false;
+        }
 
-    return true;
-}
+        mFieldOfView = FieldOfView;
 
-bool UCameraComponent::GetCameraView(const FVector2& Size, FSceneView& View) const {
-    if (!std::isfinite(Size.x) || !std::isfinite(Size.y) || Size.x <= 0.0f || Size.y <= 0.0f || !GetTransform().IsValid()) {
-        return false;
+        return true;
     }
 
-    const FTransform& Transform{GetTransform()};
-    FSceneView CameraView{};
-    CameraView.mLocation = Transform.mLocation;
-    CameraView.mForward = Transform.mRotation.ForwardVector();
-    CameraView.mSize = Size;
-    CameraView.mFieldOfView = mFieldOfView;
-    CameraView.mView = FMatrix::LookTo(CameraView.mLocation, CameraView.mForward, Transform.mRotation.UpVector());
-    CameraView.mProjection = FMatrix::Perspective(mFieldOfView, Size.x / Size.y, 0.05f, 10000.0f);
-    CameraView.mViewProjection = CameraView.mView * CameraView.mProjection;
-    View = CameraView;
+    bool Engine::UCameraComponent::GetCameraView(const Core::FVector2& Size, Engine::FSceneView& View) const {
+        if (!std::isfinite(Size.x) || !std::isfinite(Size.y) || Size.x <= 0.0f || Size.y <= 0.0f || !GetTransform().IsValid()) {
+            return false;
+        }
 
-    return true;
+        const Core::FTransform& Transform{GetTransform()};
+        Engine::FSceneView CameraView{};
+        CameraView.mLocation = Transform.mLocation;
+        CameraView.mForward = Transform.mRotation.ForwardVector();
+        CameraView.mSize = Size;
+        CameraView.mFieldOfView = mFieldOfView;
+        CameraView.mView = Core::FMatrix::LookTo(CameraView.mLocation, CameraView.mForward, Transform.mRotation.UpVector());
+        CameraView.mProjection = Core::FMatrix::Perspective(mFieldOfView, Size.x / Size.y, 0.05f, 10000.0f);
+        CameraView.mViewProjection = CameraView.mView * CameraView.mProjection;
+        View = CameraView;
+
+        return true;
+    }
+
 }

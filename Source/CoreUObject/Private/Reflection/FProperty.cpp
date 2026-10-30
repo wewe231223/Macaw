@@ -16,146 +16,150 @@
 #include <algorithm>
 #include <utility>
 
-/**
- * @brief FProperty의 초기 상태와 전달받은 의존성을 구성합니다.
- */
-FProperty::FProperty(FString Name, EPropertyType Type, EPropertyFlags Flags, FReader Reader, FWriter Writer, const UStruct* Struct, TArray<FEnumValue> Values, FWriter Loader, const FNativeType* NativeType)
-	: mName{std::move(Name)},
-	  mType{Type},
-	  mFlags{Flags},
-	  mReader{Reader},
-	  mWriter{Writer},
-	  mLoader{Loader != nullptr ? Loader : Writer},
-	  mStruct{Struct},
-	  mEnumValues{std::move(Values)},
-	  mNativeType{NativeType} {
-}
+namespace CoreUObject {
 
-/**
- * @brief 이름 또는 표시 문자열을 반환합니다.
- */
-const FString& FProperty::GetName() const {
-    return mName;
-}
-
-/**
- * @brief 프로퍼티 저장 타입을 반환합니다.
- */
-EPropertyType FProperty::GetType() const {
-    return mType;
-}
-
-/**
- * @brief 프로퍼티 값의 네이티브 타입 식별 메타데이터를 반환합니다.
- */
-const FNativeType* FProperty::GetNativeType() const {
-    return mNativeType;
-}
-
-/**
- * @brief 요청한 프로퍼티 플래그가 설정되어 있는지 검사합니다.
- */
-bool FProperty::HasFlag(EPropertyFlags Flag) const {
-    return (static_cast<Uint32>(mFlags) & static_cast<Uint32>(Flag)) != 0;
-}
-
-/**
- * @brief 복합 값의 구조체 메타데이터를 반환합니다.
- */
-const UStruct* FProperty::GetStruct() const {
-    return mStruct;
-}
-
-/**
- * @brief 열거값 이름과 정수 값 목록을 반환합니다.
- */
-const TArray<FEnumValue>& FProperty::GetEnumValues() const {
-    return mEnumValues;
-}
-
-/**
- * @brief 컨테이너에 등록된 읽기 함수를 호출하여 프로퍼티 값을 가져옵니다.
- */
-FPropertyValue FProperty::ReadValue(const void* Container) const {
-    return mReader(Container);
-}
-
-/**
- * @brief 값 타입과 쓰기 정책을 검사한 뒤 등록된 함수로 프로퍼티를 변경합니다.
- */
-bool FProperty::WriteValue(void* Container, const FPropertyValue& Value) const {
-    if (HasFlag(EPropertyFlags::ReadOnly)) {
-        return false;
+    /**
+     * @brief FProperty의 초기 상태와 전달받은 의존성을 구성합니다.
+     */
+    CoreUObject::FProperty::FProperty(Core::FString Name, CoreUObject::EPropertyType Type, Core::EPropertyFlags Flags, FReader Reader, FWriter Writer, const CoreUObject::UStruct* Struct, Core::TArray<CoreUObject::FEnumValue> Values, FWriter Loader, const CoreUObject::FNativeType* NativeType)
+		: mName{std::move(Name)},
+		  mType{Type},
+		  mFlags{Flags},
+		  mReader{Reader},
+		  mWriter{Writer},
+		  mLoader{Loader != nullptr ? Loader : Writer},
+		  mStruct{Struct},
+		  mEnumValues{std::move(Values)},
+		  mNativeType{NativeType} {
     }
 
-    return WriteValue(Container, Value, mWriter);
-}
-
-/**
- * @brief 로드 전용 쓰기 경로로 동일 프로퍼티의 값을 복사합니다.
- */
-bool FProperty::CopyValue(void* Destination, const void* Source) const {
-    if (Destination == nullptr || Source == nullptr || HasFlag(EPropertyFlags::Transient)) {
-        return false;
+    /**
+     * @brief 이름 또는 표시 문자열을 반환합니다.
+     */
+    const Core::FString& CoreUObject::FProperty::GetName() const {
+        return mName;
     }
 
-    const FPropertyValue Value{ReadValue(Source)};
-
-    if (std::holds_alternative<const void*>(Value)) {
-        return false;
+    /**
+     * @brief 프로퍼티 저장 타입을 반환합니다.
+     */
+    CoreUObject::EPropertyType CoreUObject::FProperty::GetType() const {
+        return mType;
     }
 
-    return WriteValue(Destination, Value, mLoader);
-}
-
-/**
- * @brief 값 타입과 쓰기 정책을 검사한 뒤 등록된 함수로 프로퍼티를 변경합니다.
- */
-bool FProperty::WriteValue(void* Container, const FPropertyValue& Value, FWriter Writer) const {
-    if (Writer == nullptr || Container == nullptr) {
-        return false;
+    /**
+     * @brief 프로퍼티 값의 네이티브 타입 식별 메타데이터를 반환합니다.
+     */
+    const CoreUObject::FNativeType* CoreUObject::FProperty::GetNativeType() const {
+        return mNativeType;
     }
 
-    if (mType == EPropertyType::Enum) {
-        const Int32* Number{std::get_if<Int32>(&Value)};
+    /**
+     * @brief 요청한 프로퍼티 플래그가 설정되어 있는지 검사합니다.
+     */
+    bool CoreUObject::FProperty::HasFlag(Core::EPropertyFlags Flag) const {
+        return (static_cast<Core::Uint32>(mFlags) & static_cast<Core::Uint32>(Flag)) != 0;
+    }
 
-        if (Number == nullptr || std::none_of(mEnumValues.begin(), mEnumValues.end(), [Number](const FEnumValue& Entry) {
-            return Entry.mValue == *Number;
-        })) {
+    /**
+     * @brief 복합 값의 구조체 메타데이터를 반환합니다.
+     */
+    const CoreUObject::UStruct* CoreUObject::FProperty::GetStruct() const {
+        return mStruct;
+    }
+
+    /**
+     * @brief 열거값 이름과 정수 값 목록을 반환합니다.
+     */
+    const Core::TArray<CoreUObject::FEnumValue>& CoreUObject::FProperty::GetEnumValues() const {
+        return mEnumValues;
+    }
+
+    /**
+     * @brief 컨테이너에 등록된 읽기 함수를 호출하여 프로퍼티 값을 가져옵니다.
+     */
+    CoreUObject::FPropertyValue CoreUObject::FProperty::ReadValue(const void* Container) const {
+        return mReader(Container);
+    }
+
+    /**
+     * @brief 값 타입과 쓰기 정책을 검사한 뒤 등록된 함수로 프로퍼티를 변경합니다.
+     */
+    bool CoreUObject::FProperty::WriteValue(void* Container, const CoreUObject::FPropertyValue& Value) const {
+        if (HasFlag(Core::EPropertyFlags::ReadOnly)) {
             return false;
         }
+
+        return WriteValue(Container, Value, mWriter);
     }
 
-    return Writer(Container, Value);
-}
-
-/**
- * @brief 프로퍼티의 저장 정책과 타입에 맞추어 값을 직렬화합니다.
- */
-void FProperty::SerializeValue(void* Container, FArchive& Archive) const {
-    if ((!Archive.IsDuplicating() && !HasFlag(EPropertyFlags::Serialize)) || HasFlag(EPropertyFlags::Transient) || Archive.HasError() || (Archive.IsLoading() && !Archive.HasField(mName))) {
-        return;
-    }
-
-    FPropertyValue Value{ReadValue(Container)};
-
-    if (mStruct != nullptr) {
-        if (Archive.BeginObject(mName)) {
-            mStruct->SerializeProperties(GetPropertyData(Value), Archive);
-
-            Archive.EndObject();
+    /**
+     * @brief 로드 전용 쓰기 경로로 동일 프로퍼티의 값을 복사합니다.
+     */
+    bool CoreUObject::FProperty::CopyValue(void* Destination, const void* Source) const {
+        if (Destination == nullptr || Source == nullptr || HasFlag(Core::EPropertyFlags::Transient)) {
+            return false;
         }
-    } else {
-        std::visit([&Archive, this](auto& Typed) {
-            if constexpr (!std::is_same_v<std::remove_cvref_t<decltype(Typed)>, const void*>) {
-                Archive.Serialize(mName, Typed);
-            } else {
-                Archive.SetError("Cannot serialize opaque property: " + mName);
-            }
-        }, Value);
+
+        const CoreUObject::FPropertyValue Value{ReadValue(Source)};
+
+        if (std::holds_alternative<const void*>(Value)) {
+            return false;
+        }
+
+        return WriteValue(Destination, Value, mLoader);
     }
 
-    if (Archive.IsLoading() && !Archive.HasError() && !WriteValue(Container, Value, mLoader)) {
-        Archive.SetError("Property validation failed: " + mName);
+    /**
+     * @brief 값 타입과 쓰기 정책을 검사한 뒤 등록된 함수로 프로퍼티를 변경합니다.
+     */
+    bool CoreUObject::FProperty::WriteValue(void* Container, const CoreUObject::FPropertyValue& Value, FWriter Writer) const {
+        if (Writer == nullptr || Container == nullptr) {
+            return false;
+        }
+
+        if (mType == CoreUObject::EPropertyType::Enum) {
+            const Core::Int32* Number{std::get_if<Core::Int32>(&Value)};
+
+            if (Number == nullptr || std::none_of(mEnumValues.begin(), mEnumValues.end(), [Number](const CoreUObject::FEnumValue& Entry) {
+                return Entry.mValue == *Number;
+            })) {
+                return false;
+            }
+        }
+
+        return Writer(Container, Value);
     }
+
+    /**
+     * @brief 프로퍼티의 저장 정책과 타입에 맞추어 값을 직렬화합니다.
+     */
+    void CoreUObject::FProperty::SerializeValue(void* Container, Core::FArchive& Archive) const {
+        if ((!Archive.IsDuplicating() && !HasFlag(Core::EPropertyFlags::Serialize)) || HasFlag(Core::EPropertyFlags::Transient) || Archive.HasError() || (Archive.IsLoading() && !Archive.HasField(mName))) {
+            return;
+        }
+
+        CoreUObject::FPropertyValue Value{ReadValue(Container)};
+
+        if (mStruct != nullptr) {
+            if (Archive.BeginObject(mName)) {
+                mStruct->SerializeProperties(CoreUObject::GetPropertyData(Value), Archive);
+
+                Archive.EndObject();
+            }
+        } else {
+            std::visit([&Archive, this](auto& Typed) {
+                if constexpr (!std::is_same_v<std::remove_cvref_t<decltype(Typed)>, const void*>) {
+                    Archive.Serialize(mName, Typed);
+                } else {
+                    Archive.SetError("Cannot serialize opaque property: " + mName);
+                }
+            }, Value);
+        }
+
+        if (Archive.IsLoading() && !Archive.HasError() && !WriteValue(Container, Value, mLoader)) {
+            Archive.SetError("Property validation failed: " + mName);
+        }
+    }
+
 }

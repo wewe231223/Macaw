@@ -6,16 +6,20 @@
 
 #include "Core/FilePath.h"
 
-FString FilePath::ToUtf8(const std::filesystem::path& Path) {
-    const std::u8string Text{Path.u8string()};
-    return FString{reinterpret_cast<const char*>(Text.data()), Text.size()};
-}
+namespace Core {
 
-FString FilePath::ToGenericUtf8(const std::filesystem::path& Path) {
-    const std::u8string Text{Path.generic_u8string()};
-    return FString{reinterpret_cast<const char*>(Text.data()), Text.size()};
-}
+    Core::FString Core::FilePath::ToUtf8(const std::filesystem::path& Path) {
+        const std::u8string Text{Path.u8string()};
+        return Core::FString{reinterpret_cast<const char*>(Text.data()), Text.size()};
+    }
 
-std::filesystem::path FilePath::FromUtf8(std::string_view Text) {
-    return std::filesystem::path{std::u8string_view{reinterpret_cast<const char8_t*>(Text.data()), Text.size()}};
+    Core::FString Core::FilePath::ToGenericUtf8(const std::filesystem::path& Path) {
+        const std::u8string Text{Path.generic_u8string()};
+        return Core::FString{reinterpret_cast<const char*>(Text.data()), Text.size()};
+    }
+
+    std::filesystem::path Core::FilePath::FromUtf8(std::string_view Text) {
+        return std::filesystem::path{std::u8string_view{reinterpret_cast<const char8_t*>(Text.data()), Text.size()}};
+    }
+
 }

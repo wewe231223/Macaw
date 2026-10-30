@@ -10,122 +10,126 @@
 #include <algorithm>
 #include <cwctype>
 
-FEditorAssetEntry::FEditorAssetEntry(std::filesystem::path Path, std::optional<EAssetType> Type)
-	: mPath{std::move(Path)},
-	  mType{Type} {
-}
+namespace Editor {
 
-const std::filesystem::path& FEditorAssetEntry::GetPath() const {
-    return mPath;
-}
-
-std::optional<EAssetType> FEditorAssetEntry::GetType() const {
-    return mType;
-}
-
-FEditorAssetCatalog::FEditorAssetCatalog(FAssetManager* Assets)
-	: mAssets{Assets} {
-}
-
-FString FEditorAssetCatalog::MakeKey(const std::filesystem::path& Path) {
-    std::wstring Key{Path.lexically_normal().generic_wstring()};
-
-    for (wchar_t& Character : Key) {
-        Character = static_cast<wchar_t>(std::towlower(Character));
+    Editor::FEditorAssetEntry::FEditorAssetEntry(std::filesystem::path Path, std::optional<Engine::EAssetType> Type)
+		: mPath{std::move(Path)},
+		  mType{Type} {
     }
 
-    return FilePath::ToUtf8(std::filesystem::path{Key});
-}
-
-bool FEditorAssetCatalog::Refresh(FString& Error) {
-    Error.clear();
-    mEntries.clear();
-    mIndices.clear();
-    mDirectories.clear();
-
-    if (mAssets == nullptr) {
-        Error = "The asset catalog requires an open project";
-        return false;
+    const std::filesystem::path& Editor::FEditorAssetEntry::GetPath() const {
+        return mPath;
     }
 
-    const auto& Root{mAssets->GetContentRoot()};
-    std::error_code Code{};
-    std::filesystem::recursive_directory_iterator Iterator{Root, Code};
-    const std::filesystem::recursive_directory_iterator End{};
+    std::optional<Engine::EAssetType> Editor::FEditorAssetEntry::GetType() const {
+        return mType;
+    }
 
-    while (!Code && Iterator != End) {
-        const auto Path{Iterator->path().lexically_relative(Root)};
-        const bool Link{Iterator->is_symlink(Code)};
-        const bool Directory{!Code && Iterator->is_directory(Code)};
-        FString PathError{};
+    Editor::FEditorAssetCatalog::FEditorAssetCatalog(Engine::FAssetManager* Assets)
+		: mAssets{Assets} {
+    }
 
-        if (Link || mAssets->ResolvePath(Iterator->path(), PathError).empty()) {
-            Iterator.disable_recursion_pending();
-        } else if (Directory) {
-            mDirectories.push_back(Path);
-        } else if (!Code && Iterator->is_regular_file(Code)) {
-            std::wstring Extension{Path.extension().wstring()};
-            std::transform(Extension.begin(), Extension.end(), Extension.begin(), [](wchar_t Value) {
-                return static_cast<wchar_t>(std::towlower(Value));
-            });
+    Core::FString Editor::FEditorAssetCatalog::MakeKey(const std::filesystem::path& Path) {
+        std::wstring Key{Path.lexically_normal().generic_wstring()};
 
-            std::optional<EAssetType> Type{};
+        for (wchar_t& Character : Key) {
+            Character = static_cast<wchar_t>(std::towlower(Character));
+        }
 
-            if (Extension == L".masset") {
-                EAssetType Value{};
+        return Core::FilePath::ToUtf8(std::filesystem::path{Key});
+    }
 
-                if (FAssetFile::GetType(Iterator->path(), Value, PathError)) {
-                    Type = Value;
-                } else if (Error.empty()) {
-                    Error = FilePath::ToUtf8(Path) + ": " + PathError;
+    bool Editor::FEditorAssetCatalog::Refresh(Core::FString& Error) {
+        Error.clear();
+        mEntries.clear();
+        mIndices.clear();
+        mDirectories.clear();
+
+        if (mAssets == nullptr) {
+            Error = "The asset catalog requires an open project";
+            return false;
+        }
+
+        const auto& Root{mAssets->GetContentRoot()};
+        std::error_code Code{};
+        std::filesystem::recursive_directory_iterator Iterator{Root, Code};
+        const std::filesystem::recursive_directory_iterator End{};
+
+        while (!Code && Iterator != End) {
+            const auto Path{Iterator->path().lexically_relative(Root)};
+            const bool Link{Iterator->is_symlink(Code)};
+            const bool Directory{!Code && Iterator->is_directory(Code)};
+            Core::FString PathError{};
+
+            if (Link || mAssets->ResolvePath(Iterator->path(), PathError).empty()) {
+                Iterator.disable_recursion_pending();
+            } else if (Directory) {
+                mDirectories.push_back(Path);
+            } else if (!Code && Iterator->is_regular_file(Code)) {
+                std::wstring Extension{Path.extension().wstring()};
+                std::transform(Extension.begin(), Extension.end(), Extension.begin(), [](wchar_t Value) {
+                    return static_cast<wchar_t>(std::towlower(Value));
+                });
+
+                std::optional<Engine::EAssetType> Type{};
+
+                if (Extension == L".masset") {
+                    Engine::EAssetType Value{};
+
+                    if (Engine::FAssetFile::GetType(Iterator->path(), Value, PathError)) {
+                        Type = Value;
+                    } else if (Error.empty()) {
+                        Error = Core::FilePath::ToUtf8(Path) + ": " + PathError;
+                    }
+                } else if (Extension == L".png" || Extension == L".jpg" || Extension == L".jpeg" || Extension == L".bmp" || Extension == L".tga" || Extension == L".dds" || Extension == L".hdr") {
+                    Type = Engine::EAssetType::Texture;
                 }
-            } else if (Extension == L".png" || Extension == L".jpg" || Extension == L".jpeg" || Extension == L".bmp" || Extension == L".tga" || Extension == L".dds" || Extension == L".hdr") {
-                Type = EAssetType::Texture;
+
+                mEntries.emplace_back(Path, Type);
             }
 
-            mEntries.emplace_back(Path, Type);
+            if (!Code) {
+                Iterator.increment(Code);
+            }
         }
 
-        if (!Code) {
-            Iterator.increment(Code);
+        std::sort(mEntries.begin(), mEntries.end(), [](const Editor::FEditorAssetEntry& First, const Editor::FEditorAssetEntry& Second) {
+            return First.GetPath() < Second.GetPath();
+        });
+
+        mIndices.clear();
+
+        for (std::size_t Index{}; Index < mEntries.size(); ++Index) {
+            mIndices.emplace(MakeKey(mEntries[Index].GetPath()), Index);
         }
+
+        std::sort(mDirectories.begin(), mDirectories.end());
+        mDirectories.erase(std::unique(mDirectories.begin(), mDirectories.end()), mDirectories.end());
+
+        if (Code) {
+            Error = "Cannot read Content: " + Code.message();
+        }
+
+        return !Code;
     }
 
-    std::sort(mEntries.begin(), mEntries.end(), [](const FEditorAssetEntry& First, const FEditorAssetEntry& Second) {
-        return First.GetPath() < Second.GetPath();
-    });
-
-    mIndices.clear();
-
-    for (std::size_t Index{}; Index < mEntries.size(); ++Index) {
-        mIndices.emplace(MakeKey(mEntries[Index].GetPath()), Index);
+    const Core::TArray<Editor::FEditorAssetEntry>& Editor::FEditorAssetCatalog::GetEntries() const {
+        return mEntries;
     }
 
-    std::sort(mDirectories.begin(), mDirectories.end());
-    mDirectories.erase(std::unique(mDirectories.begin(), mDirectories.end()), mDirectories.end());
-
-    if (Code) {
-        Error = "Cannot read Content: " + Code.message();
+    const Core::TArray<std::filesystem::path>& Editor::FEditorAssetCatalog::GetDirectories() const {
+        return mDirectories;
     }
 
-    return !Code;
-}
+    const Editor::FEditorAssetEntry* Editor::FEditorAssetCatalog::Find(const std::filesystem::path& Path) const {
+        Core::FString Error{};
+        const Core::FString Relative{mAssets != nullptr ? mAssets->GetRelativePath(Path, Error) : Core::FString{}};
+        const auto Position{mIndices.find(MakeKey(Core::FilePath::FromUtf8(Relative)))};
+        return Position == mIndices.end() ? nullptr : &mEntries[Position->second];
+    }
 
-const TArray<FEditorAssetEntry>& FEditorAssetCatalog::GetEntries() const {
-    return mEntries;
-}
+    Engine::FAssetManager* Editor::FEditorAssetCatalog::GetAssets() const {
+        return mAssets;
+    }
 
-const TArray<std::filesystem::path>& FEditorAssetCatalog::GetDirectories() const {
-    return mDirectories;
-}
-
-const FEditorAssetEntry* FEditorAssetCatalog::Find(const std::filesystem::path& Path) const {
-    FString Error{};
-    const FString Relative{mAssets != nullptr ? mAssets->GetRelativePath(Path, Error) : FString{}};
-    const auto Position{mIndices.find(MakeKey(FilePath::FromUtf8(Relative)))};
-    return Position == mIndices.end() ? nullptr : &mEntries[Position->second];
-}
-
-FAssetManager* FEditorAssetCatalog::GetAssets() const {
-    return mAssets;
 }

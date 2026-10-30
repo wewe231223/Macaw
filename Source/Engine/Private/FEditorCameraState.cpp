@@ -8,64 +8,68 @@
 
 #include <cmath>
 
-const FVector& FEditorCameraState::GetLocation() const {
-    return mLocation;
-}
+namespace Engine {
 
-const FRotator& FEditorCameraState::GetRotation() const {
-    return mRotation;
-}
-
-float FEditorCameraState::GetFieldOfView() const {
-    return mFieldOfView;
-}
-
-float FEditorCameraState::GetNearClip() const {
-    return mNearClip;
-}
-
-float FEditorCameraState::GetFarClip() const {
-    return mFarClip;
-}
-
-bool FEditorCameraState::IsValid() const {
-    return mLocation.IsFinite() && mRotation.IsFinite() && std::isfinite(mFieldOfView) && mFieldOfView >= 1.0f && mFieldOfView <= 179.0f && std::isfinite(mNearClip) && std::isfinite(mFarClip) && mNearClip > 0.0f && mFarClip > mNearClip;
-}
-
-bool FEditorCameraState::operator==(const FEditorCameraState& Other) const {
-    return mLocation == Other.mLocation && mRotation == Other.mRotation && mFieldOfView == Other.mFieldOfView && mNearClip == Other.mNearClip && mFarClip == Other.mFarClip;
-}
-
-bool FEditorCameraState::Set(const FVector& Location, const FRotator& Rotation, float FieldOfView, float NearClip, float FarClip) {
-    FEditorCameraState Candidate{};
-    Candidate.mLocation = Location;
-    Candidate.mRotation = Rotation;
-    Candidate.mFieldOfView = FieldOfView;
-    Candidate.mNearClip = NearClip;
-    Candidate.mFarClip = FarClip;
-
-    if (!Candidate.IsValid()) {
-        return false;
+    const Core::FVector& Engine::FEditorCameraState::GetLocation() const {
+        return mLocation;
     }
 
-    *this = Candidate;
-
-    return true;
-}
-
-void FEditorCameraState::Serialize(FArchive& Archive) {
-    FEditorCameraState Candidate{*this};
-    Archive.Serialize("Location", Candidate.mLocation);
-    Archive.Serialize("Rotation", Candidate.mRotation);
-    Archive.Serialize("FOV", Candidate.mFieldOfView);
-    Archive.Serialize("NearClip", Candidate.mNearClip);
-    Archive.Serialize("FarClip", Candidate.mFarClip);
-
-    if (!Archive.HasError() && !Candidate.IsValid()) {
-        Archive.SetError("Invalid perspective editor camera");
+    const Core::FRotator& Engine::FEditorCameraState::GetRotation() const {
+        return mRotation;
     }
 
-    if (Archive.IsLoading() && !Archive.HasError()) {
+    float Engine::FEditorCameraState::GetFieldOfView() const {
+        return mFieldOfView;
+    }
+
+    float Engine::FEditorCameraState::GetNearClip() const {
+        return mNearClip;
+    }
+
+    float Engine::FEditorCameraState::GetFarClip() const {
+        return mFarClip;
+    }
+
+    bool Engine::FEditorCameraState::IsValid() const {
+        return mLocation.IsFinite() && mRotation.IsFinite() && std::isfinite(mFieldOfView) && mFieldOfView >= 1.0f && mFieldOfView <= 179.0f && std::isfinite(mNearClip) && std::isfinite(mFarClip) && mNearClip > 0.0f && mFarClip > mNearClip;
+    }
+
+    bool Engine::FEditorCameraState::operator==(const Engine::FEditorCameraState& Other) const {
+        return mLocation == Other.mLocation && mRotation == Other.mRotation && mFieldOfView == Other.mFieldOfView && mNearClip == Other.mNearClip && mFarClip == Other.mFarClip;
+    }
+
+    bool Engine::FEditorCameraState::Set(const Core::FVector& Location, const Core::FRotator& Rotation, float FieldOfView, float NearClip, float FarClip) {
+        Engine::FEditorCameraState Candidate{};
+        Candidate.mLocation = Location;
+        Candidate.mRotation = Rotation;
+        Candidate.mFieldOfView = FieldOfView;
+        Candidate.mNearClip = NearClip;
+        Candidate.mFarClip = FarClip;
+
+        if (!Candidate.IsValid()) {
+            return false;
+        }
+
         *this = Candidate;
+
+        return true;
     }
+
+    void Engine::FEditorCameraState::Serialize(Core::FArchive& Archive) {
+        Engine::FEditorCameraState Candidate{*this};
+        Archive.Serialize("Location", Candidate.mLocation);
+        Archive.Serialize("Rotation", Candidate.mRotation);
+        Archive.Serialize("FOV", Candidate.mFieldOfView);
+        Archive.Serialize("NearClip", Candidate.mNearClip);
+        Archive.Serialize("FarClip", Candidate.mFarClip);
+
+        if (!Archive.HasError() && !Candidate.IsValid()) {
+            Archive.SetError("Invalid perspective editor camera");
+        }
+
+        if (Archive.IsLoading() && !Archive.HasError()) {
+            *this = Candidate;
+        }
+    }
+
 }

@@ -102,9 +102,50 @@ local function ReadCalls(Text, File)
     return Calls, Mask
 end
 
+local function ReadNamespaces(Mask)
+    local Namespaces = {}
+    local Position = 1
+
+    while Position <= #Mask do
+        local Start, Opening, Name = Mask:find("%f[%a_]namespace%s+([%a_][%w_:]*)%s*{", Position)
+
+        if not Start then
+            break
+        end
+
+        local Closing = Opening + 1
+        local Depth = 1
+
+        while Closing <= #Mask and Depth > 0 do
+            local Character = Mask:sub(Closing, Closing)
+            Depth = Depth + (Character == "{" and 1 or (Character == "}" and -1 or 0))
+            Closing = Closing + 1
+        end
+
+        assert(Depth == 0, "Unterminated reflection namespace " .. Name)
+        Namespaces[#Namespaces + 1] = { Name = Name, Opening = Opening, Closing = Closing }
+        Position = Opening + 1
+    end
+
+    return Namespaces
+end
+
+local function NamespaceAt(Namespaces, Position)
+    local Names = {}
+
+    for _, Namespace in ipairs(Namespaces) do
+        if Position > Namespace.Opening and Position < Namespace.Closing then
+            Names[#Names + 1] = Namespace.Name
+        end
+    end
+
+    return table.concat(Names, "::")
+end
+
 local function ReadDefinitions(Mask, File)
     local Types = {}
     local Position = 1
+    local Namespaces = ReadNamespaces(Mask)
 
     while Position <= #Mask do
         local Start, Finish, Keyword = Mask:find("%f[%a_]([%a_][%w_]*)", Position)
@@ -157,7 +198,7 @@ local function ReadDefinitions(Mask, File)
                     Template = Template:gsub("%s+", " ")
                 end
 
-                Types[#Types + 1] = { Name = QualifiedName, ShortName = Name, File = File, Opening = Opening, Closing = Closing, Outer = Outer, Template = Template, TemplateName = TemplateName, Properties = {}, Members = {}, Flags = {} }
+                Types[#Types + 1] = { Name = QualifiedName, ShortName = Name, Namespace = NamespaceAt(Namespaces, Start), File = File, Opening = Opening, Closing = Closing, Outer = Outer, Template = Template, TemplateName = TemplateName, Properties = {}, Members = {}, Flags = {} }
             end
         end
     end
@@ -170,6 +211,7 @@ local function ReadTypes(File)
     local Calls, Mask = ReadCalls(Text, File)
     local Types = ReadDefinitions(Mask, File)
     local Enums = {}
+    local Namespaces = ReadNamespaces(Mask)
 
     for _, Call in ipairs(Calls) do
         local Owner = nil
@@ -194,7 +236,7 @@ local function ReadTypes(File)
                 Values[#Values + 1] = "ReflectEnumValue(" .. Name .. ", " .. Value .. ")"
             end
 
-            Enums[#Enums + 1] = { Name = Name, ShortName = Name, File = File, Kind = "ReflectEnum", Values = Values }
+            Enums[#Enums + 1] = { Name = Name, ShortName = Name, Namespace = NamespaceAt(Namespaces, Call.Position), File = File, Kind = "ReflectEnum", Values = Values }
         elseif Call.Name == "ReflectTypes" then
             assert(Owner and not Owner.Owner and Owner.ShortName == Call.Arguments[1], File .. ": Inconsistent reflected owner")
             Owner.Owner = true
@@ -268,7 +310,7 @@ local function PropertyStatement(Property)
         Function = "RegisterReadOnlyProperty"
     end
 
-    return "    " .. Function .. "<" .. table.concat(Pointers, ", ") .. ">(Information, " .. Arguments[#Arguments - 1] .. ", " .. Arguments[#Arguments] .. ");"
+    return "        CoreUObject::" .. Function .. "<" .. table.concat(Pointers, ", ") .. ">(Information, " .. Arguments[#Arguments - 1] .. ", " .. Arguments[#Arguments] .. ");"
 end
 
 local function WriteIfChanged(File, Lines)
@@ -283,12 +325,14 @@ local function WriteIfChanged(File, Lines)
 end
 
 local function GenerateTemplate(Type, Directory)
-    local Header = { "#pragma once", "", Type.Template, "UScriptStruct* " .. Type.TemplateName .. "::StaticStruct() {", "    return DefineTemplateStruct<ReflectionOwner>(__FUNCSIG__);", "}", "", Type.Template, "void " .. Type.TemplateName .. "::RegisterReflectionMembers(FReflectionBuilder&" .. (#Type.Properties > 0 and " Information" or "") .. ") {" }
+    local Header = { "#pragma once", "", "namespace " .. Type.Namespace .. " {", "", "    " .. Type.Template, "    CoreUObject::UScriptStruct* " .. Type.TemplateName .. "::StaticStruct() {", "        return CoreUObject::DefineTemplateStruct<ReflectionOwner>(__FUNCSIG__);", "    }", "", "    " .. Type.Template, "    void " .. Type.TemplateName .. "::RegisterReflectionMembers(CoreUObject::FReflectionBuilder&" .. (#Type.Properties > 0 and " Information" or "") .. ") {" }
 
     for _, Property in ipairs(Type.Properties) do
         Header[#Header + 1] = PropertyStatement(Property)
     end
 
+    Header[#Header + 1] = "    }"
+    Header[#Header + 1] = ""
     Header[#Header + 1] = "}"
     WriteIfChanged(Directory .. "/" .. Type.ShortName .. "Reflection.generated.h", Header)
 end
@@ -341,19 +385,25 @@ function Reflection.Generate(SelectedModule)
                     GenerateTemplate(Type, Directory)
                 elseif Type.Kind == "ReflectEnum" then
                     Source[#Source + 1] = ""
-                    Source[#Source + 1] = "ImplementEnumReflection(" .. Type.Name .. ", " .. table.concat(Type.Values, ", ") .. ")"
+                    Source[#Source + 1] = "namespace " .. Type.Namespace .. " {"
+                    Source[#Source + 1] = ""
+                    Source[#Source + 1] = "    ImplementEnumReflection(" .. Type.Name .. ", " .. table.concat(Type.Values, ", ") .. ")"
+                    Source[#Source + 1] = ""
+                    Source[#Source + 1] = "}"
                 else
                     local Implementation = Type.Kind == "ReflectStruct" and "ImplementStructReflection" or (Type.Kind == "ReflectRootClass" and "ImplementRootReflection" or "ImplementReflection")
                     local Flags = #Type.Flags > 0 and (", " .. table.concat(Type.Flags, ", ")) or ""
                     Source[#Source + 1] = ""
-                    Source[#Source + 1] = Implementation .. "(" .. Type.Name .. Flags .. ")"
+                    Source[#Source + 1] = "namespace " .. Type.Namespace .. " {"
+                    Source[#Source + 1] = ""
+                    Source[#Source + 1] = "    " .. Implementation .. "(" .. Type.Name .. Flags .. ")"
 
                     Source[#Source + 1] = ""
-                    Source[#Source + 1] = "void " .. Type.Name .. "::RegisterReflectionMembers(FReflectionBuilder&" .. (#Type.Properties > 0 and " Information" or "") .. ") {"
+                    Source[#Source + 1] = "    void " .. Type.Name .. "::RegisterReflectionMembers(CoreUObject::FReflectionBuilder&" .. (#Type.Properties > 0 and " Information" or "") .. ") {"
 
                     for _, Child in ipairs(Types) do
                         if Child.Outer == Type and Child.Kind ~= "ReflectTemplate" then
-                            Source[#Source + 1] = "    " .. Child.ShortName .. "::StaticStruct();"
+                            Source[#Source + 1] = "        " .. Child.ShortName .. "::StaticStruct();"
                         end
                     end
 
@@ -361,16 +411,18 @@ function Reflection.Generate(SelectedModule)
                         Source[#Source + 1] = PropertyStatement(Property)
                     end
 
+                    Source[#Source + 1] = "    }"
+                    Source[#Source + 1] = ""
                     Source[#Source + 1] = "}"
                 end
             end
 
             Header[#Header + 1] = ""
-            Header[#Header + 1] = "namespace ReflectionModules {"
+            Header[#Header + 1] = "namespace " .. Module .. "::ReflectionModules {"
             Header[#Header + 1] = "    void Register" .. Module .. "Types();"
             Header[#Header + 1] = "}"
             Source[#Source + 1] = ""
-            Source[#Source + 1] = "void ReflectionModules::Register" .. Module .. "Types() {"
+            Source[#Source + 1] = "void " .. Module .. "::ReflectionModules::Register" .. Module .. "Types() {"
 
             if Module == "App" then
                 local Names = table.keys(Modules)
@@ -379,14 +431,14 @@ function Reflection.Generate(SelectedModule)
                 for _, Name in ipairs(Names) do
                     if Name ~= "App" then
                         table.insert(Source, 3, '#include "' .. Name .. 'Reflection.h"')
-                        Source[#Source + 1] = "    Register" .. Name .. "Types();"
+                        Source[#Source + 1] = "    " .. Name .. "::ReflectionModules::Register" .. Name .. "Types();"
                     end
                 end
             end
 
             for _, Type in ipairs(Types) do
                 if not Type.Outer and Type.Kind ~= "ReflectTemplate" then
-                    Source[#Source + 1] = "    " .. (Type.Kind == "ReflectEnum" and ("StaticEnum" .. Type.Name .. "();") or (Type.Name .. (Type.Kind == "ReflectStruct" and "::StaticStruct();" or "::StaticClass();")))
+                    Source[#Source + 1] = "    " .. Type.Namespace .. "::" .. (Type.Kind == "ReflectEnum" and ("StaticEnum" .. Type.Name .. "();") or (Type.Name .. (Type.Kind == "ReflectStruct" and "::StaticStruct();" or "::StaticClass();")))
                 end
             end
 

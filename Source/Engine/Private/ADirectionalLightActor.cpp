@@ -9,20 +9,24 @@
 #include "CoreUObject/Reflection/NewObject.h"
 #include "CoreUObject/Reflection/Cast.h"
 
-ADirectionalLightActor::ADirectionalLightActor() = default;
-ADirectionalLightActor::~ADirectionalLightActor() = default;
+namespace Engine {
 
-bool ADirectionalLightActor::InitializeDefaultComponents() {
-    if (!GetComponents().empty()) {
-        return false;
+    Engine::ADirectionalLightActor::ADirectionalLightActor() = default;
+    Engine::ADirectionalLightActor::~ADirectionalLightActor() = default;
+
+    bool Engine::ADirectionalLightActor::InitializeDefaultComponents() {
+        if (!GetComponents().empty()) {
+            return false;
+        }
+
+        auto Component{CoreUObject::NewObject<Engine::UDirectionalLightComponent>()};
+        Component->SetName("DirectionalLightComponent");
+
+        return AddComponent(std::move(Component));
     }
 
-    auto Component{NewObject<UDirectionalLightComponent>()};
-    Component->SetName("DirectionalLightComponent");
+    Engine::UDirectionalLightComponent* Engine::ADirectionalLightActor::GetLightComponent() const {
+        return CoreUObject::Cast<Engine::UDirectionalLightComponent>(GetRootComponent());
+    }
 
-    return AddComponent(std::move(Component));
-}
-
-UDirectionalLightComponent* ADirectionalLightActor::GetLightComponent() const {
-    return Cast<UDirectionalLightComponent>(GetRootComponent());
 }

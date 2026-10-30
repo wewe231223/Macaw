@@ -9,51 +9,55 @@
 
 #include <algorithm>
 
-FCollisionShape UCapsuleComponent::GetCollisionShape() const {
-    return FCollisionShape::MakeCapsule(GetScaledCapsuleRadius(), GetScaledCapsuleHalfHeight());
-}
+namespace Engine {
 
-FBox UCapsuleComponent::CalcLocalBounds() const {
-    return FBox{ FVector{ -mCapsuleRadius, -mCapsuleRadius, -mCapsuleHalfHeight }, FVector{ mCapsuleRadius, mCapsuleRadius, mCapsuleHalfHeight } };
-}
-
-void UCapsuleComponent::Serialize(FArchive& Archive) {
-    if (Archive.IsLoading() && !Archive.HasError() && Archive.HasField("CapsuleRadius")) {
-        SetCapsuleRadius(0.0f);
+    Engine::FCollisionShape Engine::UCapsuleComponent::GetCollisionShape() const {
+        return Engine::FCollisionShape::MakeCapsule(GetScaledCapsuleRadius(), GetScaledCapsuleHalfHeight());
     }
 
-    Super::Serialize(Archive);
-}
+    Core::FBox Engine::UCapsuleComponent::CalcLocalBounds() const {
+        return Core::FBox{ Core::FVector{ -mCapsuleRadius, -mCapsuleRadius, -mCapsuleHalfHeight }, Core::FVector{ mCapsuleRadius, mCapsuleRadius, mCapsuleHalfHeight } };
+    }
 
-void UCapsuleComponent::SetCapsuleSize(float InRadius, float InHalfHeight) {
-    mCapsuleRadius = std::max(0.0f, InRadius);
-    mCapsuleHalfHeight = std::max({ 0.0f, InHalfHeight, InRadius });
-}
+    void Engine::UCapsuleComponent::Serialize(Core::FArchive& Archive) {
+        if (Archive.IsLoading() && !Archive.HasError() && Archive.HasField("CapsuleRadius")) {
+            SetCapsuleRadius(0.0f);
+        }
 
-float UCapsuleComponent::GetScaledCapsuleRadius() const {
-    return mCapsuleRadius * GetShapeScale();
-}
+        Super::Serialize(Archive);
+    }
 
-float UCapsuleComponent::GetScaledCapsuleHalfHeight() const {
-    return mCapsuleHalfHeight * GetShapeScale();
-}
+    void Engine::UCapsuleComponent::SetCapsuleSize(float InRadius, float InHalfHeight) {
+        mCapsuleRadius = std::max(0.0f, InRadius);
+        mCapsuleHalfHeight = std::max({ 0.0f, InHalfHeight, InRadius });
+    }
 
-float UCapsuleComponent::GetScaledCapsuleHalfHeightWithoutHemisphere() const {
-    return (mCapsuleHalfHeight - mCapsuleRadius) * GetShapeScale();
-}
+    float Engine::UCapsuleComponent::GetScaledCapsuleRadius() const {
+        return mCapsuleRadius * GetShapeScale();
+    }
 
-float UCapsuleComponent::GetCapsuleHalfHeight() const {
-    return mCapsuleHalfHeight;
-}
+    float Engine::UCapsuleComponent::GetScaledCapsuleHalfHeight() const {
+        return mCapsuleHalfHeight * GetShapeScale();
+    }
 
-void UCapsuleComponent::SetCapsuleHalfHeight(float InHalfHeight) {
-    mCapsuleHalfHeight = std::max(InHalfHeight, mCapsuleRadius);
-}
+    float Engine::UCapsuleComponent::GetScaledCapsuleHalfHeightWithoutHemisphere() const {
+        return (mCapsuleHalfHeight - mCapsuleRadius) * GetShapeScale();
+    }
 
-float UCapsuleComponent::GetCapsuleRadius() const {
-    return mCapsuleRadius;
-}
+    float Engine::UCapsuleComponent::GetCapsuleHalfHeight() const {
+        return mCapsuleHalfHeight;
+    }
 
-void UCapsuleComponent::SetCapsuleRadius(float InRadius) {
-    mCapsuleRadius = std::clamp(InRadius, 0.0f, mCapsuleHalfHeight);
+    void Engine::UCapsuleComponent::SetCapsuleHalfHeight(float InHalfHeight) {
+        mCapsuleHalfHeight = std::max(InHalfHeight, mCapsuleRadius);
+    }
+
+    float Engine::UCapsuleComponent::GetCapsuleRadius() const {
+        return mCapsuleRadius;
+    }
+
+    void Engine::UCapsuleComponent::SetCapsuleRadius(float InRadius) {
+        mCapsuleRadius = std::clamp(InRadius, 0.0f, mCapsuleHalfHeight);
+    }
+
 }

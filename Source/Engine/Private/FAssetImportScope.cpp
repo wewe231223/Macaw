@@ -7,17 +7,21 @@
 
 #include <utility>
 
-FAssetImportScope::FAssetImportScope(std::filesystem::path Directory)
-	: mDirectory{std::move(Directory)} {
-}
+namespace Engine {
 
-FAssetImportScope::~FAssetImportScope() {
-    if (!mCommitted) {
-        std::error_code Code{};
-        std::filesystem::remove_all(mDirectory, Code);
+    Engine::FAssetImportScope::FAssetImportScope(std::filesystem::path Directory)
+		: mDirectory{std::move(Directory)} {
     }
-}
 
-void FAssetImportScope::Commit() {
-    mCommitted = true;
+    Engine::FAssetImportScope::~FAssetImportScope() {
+        if (!mCommitted) {
+            std::error_code Code{};
+            std::filesystem::remove_all(mDirectory, Code);
+        }
+    }
+
+    void Engine::FAssetImportScope::Commit() {
+        mCommitted = true;
+    }
+
 }

@@ -17,144 +17,148 @@
 #include <format>
 #include <algorithm>
 
-/**
- * @brief FOutlinerPanel의 초기 상태와 전달받은 의존성을 구성합니다.
- */
-FOutlinerPanel::FOutlinerPanel(FEditorContext* Context)
-	: FEditorPanel{Context, "World Outliner"} {
-}
+namespace Editor {
 
-/**
- * @brief 객체의 수명을 끝내고 소유한 리소스를 정리합니다.
- */
-FOutlinerPanel::~FOutlinerPanel() = default;
-
-/**
- * @brief 패널 고유의 ImGui 위젯과 내용을 그립니다.
- */
-void FOutlinerPanel::DrawContent(float) {
-    FEditorContext* Context{GetEditorContext()};
-    ImGui::BeginDisabled(!Context->CanEditWorld());
-
-    if (ImGui::Button("+ 액터")) {
-        ImGui::OpenPopup("AddActor");
+    /**
+     * @brief FOutlinerPanel의 초기 상태와 전달받은 의존성을 구성합니다.
+     */
+    Editor::FOutlinerPanel::FOutlinerPanel(Editor::FEditorContext* Context)
+		: Editor::FEditorPanel{Context, "World Outliner"} {
     }
 
-    if (ImGui::BeginPopup("AddActor")) {
-        if (ImGui::MenuItem("Plane")) {
-            Context->SpawnPrimitive(EPrimitiveType::Plane);
+    /**
+     * @brief 객체의 수명을 끝내고 소유한 리소스를 정리합니다.
+     */
+    Editor::FOutlinerPanel::~FOutlinerPanel() = default;
+
+    /**
+     * @brief 패널 고유의 ImGui 위젯과 내용을 그립니다.
+     */
+    void Editor::FOutlinerPanel::DrawContent(float) {
+        Editor::FEditorContext* Context{GetEditorContext()};
+        ImGui::BeginDisabled(!Context->CanEditWorld());
+
+        if (ImGui::Button("+ 액터")) {
+            ImGui::OpenPopup("AddActor");
         }
 
-        if (ImGui::MenuItem("Cube")) {
-            Context->SpawnPrimitive(EPrimitiveType::Cube);
-        }
-
-        if (ImGui::MenuItem("Sphere")) {
-            Context->SpawnPrimitive(EPrimitiveType::Sphere);
-        }
-
-        if (ImGui::MenuItem("Camera")) {
-            Context->SpawnCamera();
-        }
-
-        if (ImGui::MenuItem("Text")) {
-            Context->SpawnText();
-        }
-
-        if (ImGui::MenuItem("Billboard")) {
-            Context->SpawnBillboard();
-        }
-
-        if (ImGui::BeginMenu("Editor Icons")) {
-            if (ImGui::MenuItem("Spot Light Icon")) {
-                Context->SpawnBillboard("Editor/Icon/SpotLight_64x.png");
+        if (ImGui::BeginPopup("AddActor")) {
+            if (ImGui::MenuItem("Plane")) {
+                Context->SpawnPrimitive(Engine::EPrimitiveType::Plane);
             }
 
-            if (ImGui::MenuItem("Point Light Icon")) {
-                Context->SpawnBillboard("Editor/Icon/PointLight_64x.png");
+            if (ImGui::MenuItem("Cube")) {
+                Context->SpawnPrimitive(Engine::EPrimitiveType::Cube);
             }
 
-            if (ImGui::MenuItem("Pawn Icon")) {
-                Context->SpawnBillboard("Editor/Icon/Pawn_64x.png");
+            if (ImGui::MenuItem("Sphere")) {
+                Context->SpawnPrimitive(Engine::EPrimitiveType::Sphere);
             }
 
-            ImGui::EndMenu();
-        }
-
-        ImGui::EndPopup();
-    }
-
-    ImGui::SameLine();
-    ImGui::BeginDisabled(Context->GetSelectedCamera() == nullptr);
-
-    if (ImGui::Button("Use as PIE Camera")) {
-        Context->UseSelectedCamera();
-    }
-
-    ImGui::EndDisabled();
-
-    ImGui::EndDisabled();
-
-    const UCameraComponent* Camera{Context->GetWorld() != nullptr ? Context->GetWorld()->GetActiveCamera() : nullptr};
-    ImGui::TextDisabled("PIE Camera: %s", Camera != nullptr ? Camera->GetOwner()->GetName().c_str() : "None");
-    ImGui::Separator();
-
-    const auto Actors{Context->GetActorHandles()};
-    ImGui::TextUnformatted(std::format("PersistentLevel ({})", Actors.size()).c_str());
-
-    for (FObjectHandle Handle : Actors) {
-        AActor* Actor{Cast<AActor>(Context->ResolveObject(Handle))};
-
-        if (Actor == nullptr) {
-            continue;
-        }
-
-        TArray<FObjectHandle> Components{};
-
-        for (const auto& Component : Actor->GetComponents()) {
-            Components.push_back(Component->GetHandle());
-        }
-
-        ImGui::PushID(Actor);
-
-        const TArray<FObjectHandle> Selection{Context->GetSelectedActors()};
-        const bool Selected{std::find(Selection.begin(), Selection.end(), Handle) != Selection.end()};
-        const ImGuiTreeNodeFlags Flags{ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_SpanAvailWidth | (Selected ? ImGuiTreeNodeFlags_Selected : 0) | (Components.empty() ? ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen : 0)};
-        const bool Open{ImGui::TreeNodeEx(Actor->GetName().c_str(), Flags)};
-
-        if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen()) {
-            if (ImGui::GetIO().KeyCtrl) {
-                Context->ToggleActorSelection(Handle);
-            } else {
-                Context->SelectActor(Handle);
+            if (ImGui::MenuItem("Camera")) {
+                Context->SpawnCamera();
             }
+
+            if (ImGui::MenuItem("Text")) {
+                Context->SpawnText();
+            }
+
+            if (ImGui::MenuItem("Billboard")) {
+                Context->SpawnBillboard();
+            }
+
+            if (ImGui::BeginMenu("Editor Icons")) {
+                if (ImGui::MenuItem("Spot Light Icon")) {
+                    Context->SpawnBillboard("Editor/Icon/SpotLight_64x.png");
+                }
+
+                if (ImGui::MenuItem("Point Light Icon")) {
+                    Context->SpawnBillboard("Editor/Icon/PointLight_64x.png");
+                }
+
+                if (ImGui::MenuItem("Pawn Icon")) {
+                    Context->SpawnBillboard("Editor/Icon/Pawn_64x.png");
+                }
+
+                ImGui::EndMenu();
+            }
+
+            ImGui::EndPopup();
         }
 
-        if (Open && !Components.empty()) {
-            for (FObjectHandle ComponentHandle : Components) {
-                if (UObject* Component{Context->ResolveObject(ComponentHandle)}) {
-                    ImGui::PushID(Component);
+        ImGui::SameLine();
+        ImGui::BeginDisabled(Context->GetSelectedCamera() == nullptr);
 
-                    if (ImGui::Selectable(Component->GetName().c_str(), Context->GetSelectedObject() == Component)) {
-                        Context->SelectObject(ComponentHandle);
-                    }
+        if (ImGui::Button("Use as PIE Camera")) {
+            Context->UseSelectedCamera();
+        }
 
-                    ImGui::PopID();
+        ImGui::EndDisabled();
+
+        ImGui::EndDisabled();
+
+        const Engine::UCameraComponent* Camera{Context->GetWorld() != nullptr ? Context->GetWorld()->GetActiveCamera() : nullptr};
+        ImGui::TextDisabled("PIE Camera: %s", Camera != nullptr ? Camera->GetOwner()->GetName().c_str() : "None");
+        ImGui::Separator();
+
+        const auto Actors{Context->GetActorHandles()};
+        ImGui::TextUnformatted(std::format("PersistentLevel ({})", Actors.size()).c_str());
+
+        for (CoreUObject::FObjectHandle Handle : Actors) {
+            Engine::AActor* Actor{CoreUObject::Cast<Engine::AActor>(Context->ResolveObject(Handle))};
+
+            if (Actor == nullptr) {
+                continue;
+            }
+
+            Core::TArray<CoreUObject::FObjectHandle> Components{};
+
+            for (const auto& Component : Actor->GetComponents()) {
+                Components.push_back(Component->GetHandle());
+            }
+
+            ImGui::PushID(Actor);
+
+            const Core::TArray<CoreUObject::FObjectHandle> Selection{Context->GetSelectedActors()};
+            const bool Selected{std::find(Selection.begin(), Selection.end(), Handle) != Selection.end()};
+            const ImGuiTreeNodeFlags Flags{ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_SpanAvailWidth | (Selected ? ImGuiTreeNodeFlags_Selected : 0) | (Components.empty() ? ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen : 0)};
+            const bool Open{ImGui::TreeNodeEx(Actor->GetName().c_str(), Flags)};
+
+            if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen()) {
+                if (ImGui::GetIO().KeyCtrl) {
+                    Context->ToggleActorSelection(Handle);
+                } else {
+                    Context->SelectActor(Handle);
                 }
             }
 
-            ImGui::TreePop();
+            if (Open && !Components.empty()) {
+                for (CoreUObject::FObjectHandle ComponentHandle : Components) {
+                    if (CoreUObject::UObject* Component{Context->ResolveObject(ComponentHandle)}) {
+                        ImGui::PushID(Component);
+
+                        if (ImGui::Selectable(Component->GetName().c_str(), Context->GetSelectedObject() == Component)) {
+                            Context->SelectObject(ComponentHandle);
+                        }
+
+                        ImGui::PopID();
+                    }
+                }
+
+                ImGui::TreePop();
+            }
+
+            ImGui::PopID();
         }
 
-        ImGui::PopID();
+        ImGui::Separator();
+        ImGui::BeginDisabled(!Context->CanEditWorld() || Context->GetSelectedActor() == nullptr);
+
+        if (ImGui::Button("Delete Selected")) {
+            Context->DestroySelectedActor();
+        }
+
+        ImGui::EndDisabled();
     }
 
-    ImGui::Separator();
-    ImGui::BeginDisabled(!Context->CanEditWorld() || Context->GetSelectedActor() == nullptr);
-
-    if (ImGui::Button("Delete Selected")) {
-        Context->DestroySelectedActor();
-    }
-
-    ImGui::EndDisabled();
 }

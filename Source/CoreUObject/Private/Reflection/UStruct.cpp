@@ -12,91 +12,95 @@
 #include <algorithm>
 #include <utility>
 
-/**
- * @brief UStruct의 초기 상태와 전달받은 의존성을 구성합니다.
- */
-UStruct::UStruct(FString Name, std::size_t Size)
-	: mName{std::move(Name)},
-	  mSize{Size} {
-}
+namespace CoreUObject {
 
-/**
- * @brief 객체의 수명을 끝내고 소유한 리소스를 정리합니다.
- */
-UStruct::~UStruct() = default;
-
-/**
- * @brief 이름 또는 표시 문자열을 반환합니다.
- */
-const FString& UStruct::GetName() const {
-    return mName;
-}
-
-/**
- * @brief 크기를 반환합니다.
- */
-std::size_t UStruct::GetSize() const {
-    return mSize;
-}
-
-/**
- * @brief 타입 메타데이터에 프로퍼티를 추가합니다.
- */
-void UStruct::AddProperty(FProperty Property) {
-    if (mSealed || std::any_of(mDeclaredProperties.begin(), mDeclaredProperties.end(), [&Property](const FProperty& Existing) {
-        return Existing.GetName() == Property.GetName();
-    })) {
-        ErrorHandler::Fatal("Reflection", "Duplicate or sealed property: " + Property.GetName());
+    /**
+     * @brief UStruct의 초기 상태와 전달받은 의존성을 구성합니다.
+     */
+    CoreUObject::UStruct::UStruct(Core::FString Name, std::size_t Size)
+		: mName{std::move(Name)},
+		  mSize{Size} {
     }
 
-    mDeclaredProperties.push_back(std::move(Property));
-}
+    /**
+     * @brief 객체의 수명을 끝내고 소유한 리소스를 정리합니다.
+     */
+    CoreUObject::UStruct::~UStruct() = default;
 
-/**
- * @brief 프로퍼티 등록을 마무리하고 조회용 목록을 확정합니다.
- */
-void UStruct::Seal() {
-    if (mSealed) {
-        return;
+    /**
+     * @brief 이름 또는 표시 문자열을 반환합니다.
+     */
+    const Core::FString& CoreUObject::UStruct::GetName() const {
+        return mName;
     }
 
-    for (const FProperty& Property : mDeclaredProperties) {
-        mProperties.push_back(&Property);
+    /**
+     * @brief 크기를 반환합니다.
+     */
+    std::size_t CoreUObject::UStruct::GetSize() const {
+        return mSize;
     }
 
-    mSealed = true;
-}
+    /**
+     * @brief 타입 메타데이터에 프로퍼티를 추가합니다.
+     */
+    void CoreUObject::UStruct::AddProperty(CoreUObject::FProperty Property) {
+        if (mSealed || std::any_of(mDeclaredProperties.begin(), mDeclaredProperties.end(), [&Property](const CoreUObject::FProperty& Existing) {
+            return Existing.GetName() == Property.GetName();
+        })) {
+            Core::ErrorHandler::Fatal("Reflection", "Duplicate or sealed property: " + Property.GetName());
+        }
 
-/**
- * @brief 조회에 사용하는 프로퍼티 비소유 주소 목록을 반환합니다.
- */
-const TArray<const FProperty*>& UStruct::GetProperties() const {
-    return mProperties;
-}
-
-/**
- * @brief 타입에 선언된 프로퍼티를 이름으로 조회합니다.
- */
-const FProperty* UStruct::FindProperty(const FString& Name) const {
-    const auto Position{std::find_if(mProperties.begin(), mProperties.end(), [&Name](const FProperty* Property) {
-        return Property->GetName() == Name;
-    })};
-
-    return Position != mProperties.end() ? *Position : nullptr;
-}
-
-/**
- * @brief 지정한 프로퍼티가 타입의 프로퍼티 목록에 속하는지 검사합니다.
- */
-bool UStruct::ContainsProperty(const FProperty* Property) const {
-    return std::find(mProperties.begin(), mProperties.end(), Property) != mProperties.end();
-}
-
-/**
- * @brief 저장 가능한 선언 프로퍼티를 아카이브에 순서대로 전달합니다.
- */
-void UStruct::SerializeProperties(void* Container, FArchive& Archive) const {
-    for (const FProperty* Property : mProperties) {
-        Property->SerializeValue(Container, Archive);
+        mDeclaredProperties.push_back(std::move(Property));
     }
+
+    /**
+     * @brief 프로퍼티 등록을 마무리하고 조회용 목록을 확정합니다.
+     */
+    void CoreUObject::UStruct::Seal() {
+        if (mSealed) {
+            return;
+        }
+
+        for (const CoreUObject::FProperty& Property : mDeclaredProperties) {
+            mProperties.push_back(&Property);
+        }
+
+        mSealed = true;
+    }
+
+    /**
+     * @brief 조회에 사용하는 프로퍼티 비소유 주소 목록을 반환합니다.
+     */
+    const Core::TArray<const CoreUObject::FProperty*>& CoreUObject::UStruct::GetProperties() const {
+        return mProperties;
+    }
+
+    /**
+     * @brief 타입에 선언된 프로퍼티를 이름으로 조회합니다.
+     */
+    const CoreUObject::FProperty* CoreUObject::UStruct::FindProperty(const Core::FString& Name) const {
+        const auto Position{std::find_if(mProperties.begin(), mProperties.end(), [&Name](const CoreUObject::FProperty* Property) {
+            return Property->GetName() == Name;
+        })};
+
+        return Position != mProperties.end() ? *Position : nullptr;
+    }
+
+    /**
+     * @brief 지정한 프로퍼티가 타입의 프로퍼티 목록에 속하는지 검사합니다.
+     */
+    bool CoreUObject::UStruct::ContainsProperty(const CoreUObject::FProperty* Property) const {
+        return std::find(mProperties.begin(), mProperties.end(), Property) != mProperties.end();
+    }
+
+    /**
+     * @brief 저장 가능한 선언 프로퍼티를 아카이브에 순서대로 전달합니다.
+     */
+    void CoreUObject::UStruct::SerializeProperties(void* Container, Core::FArchive& Archive) const {
+        for (const CoreUObject::FProperty* Property : mProperties) {
+            Property->SerializeValue(Container, Archive);
+        }
+    }
+
 }

@@ -6,34 +6,38 @@
 
 #include "Engine/Collision/FHitResult.h"
 
-FHitResult::FHitResult(float InTime)
-	: mTime{InTime} {
-}
+namespace Engine {
 
-void FHitResult::Init() {
-    *this = FHitResult{};
-}
+    Engine::FHitResult::FHitResult(float InTime)
+		: mTime{InTime} {
+    }
 
-void FHitResult::Init(const FVector& Start, const FVector& End) {
-    Init();
-    mTraceStart = Start;
-    mTraceEnd = End;
-}
+    void Engine::FHitResult::Init() {
+        *this = Engine::FHitResult{};
+    }
 
-AActor* FHitResult::GetActor() const {
-    return mHitActor;
-}
+    void Engine::FHitResult::Init(const Core::FVector& Start, const Core::FVector& End) {
+        Init();
+        mTraceStart = Start;
+        mTraceEnd = End;
+    }
 
-UPrimitiveComponent* FHitResult::GetComponent() const {
-    return mHitComponent;
-}
+    Engine::AActor* Engine::FHitResult::GetActor() const {
+        return mHitActor;
+    }
 
-FHitResult FHitResult::GetReversedHit(const FHitResult& Hit, UPrimitiveComponent* MovedComponent, AActor* MovedActor) {
-    FHitResult Result{Hit};
-    Result.mNormal = -Hit.mNormal;
-    Result.mImpactNormal = -Hit.mImpactNormal;
-    Result.mHitComponent = MovedComponent;
-    Result.mHitActor = MovedActor;
+    Engine::UPrimitiveComponent* Engine::FHitResult::GetComponent() const {
+        return mHitComponent;
+    }
 
-    return Result;
+    Engine::FHitResult Engine::FHitResult::GetReversedHit(const Engine::FHitResult& Hit, Engine::UPrimitiveComponent* MovedComponent, Engine::AActor* MovedActor) {
+        Engine::FHitResult Result{Hit};
+        Result.mNormal = -Hit.mNormal;
+        Result.mImpactNormal = -Hit.mImpactNormal;
+        Result.mHitComponent = MovedComponent;
+        Result.mHitActor = MovedActor;
+
+        return Result;
+    }
+
 }

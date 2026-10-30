@@ -1,31 +1,41 @@
+/**
+ * @file FMeshImportMaterial.cpp
+ * @brief 메시 임포트에서 읽은 재질 이름·기본색·양면 설정과 텍스처 참조입니다.
+ * @ingroup Engine
+ */
+
 #include "Engine/Import/FMeshImportMaterial.h"
 
 #include <utility>
 
-FMeshImportMaterial::FMeshImportMaterial(FString Name, const FVector4& BaseColor, bool TwoSided, FMeshImportTexture BaseColorTexture, FMeshImportTexture NormalMapTexture)
-	: mName{std::move(Name)},
-	  mBaseColor{BaseColor},
-	  mTwoSided{TwoSided},
-	  mBaseColorTexture{std::move(BaseColorTexture)},
-	  mNormalMapTexture{std::move(NormalMapTexture)} {
-}
+namespace Engine {
 
-const FString& FMeshImportMaterial::GetName() const {
-    return mName;
-}
+    Engine::FMeshImportMaterial::FMeshImportMaterial(Core::FString Name, const Core::FVector4& BaseColor, bool TwoSided, Engine::FMeshImportTexture BaseColorTexture, Engine::FMeshImportTexture NormalMapTexture)
+		: mName{std::move(Name)},
+		  mBaseColor{BaseColor},
+		  mTwoSided{TwoSided},
+		  mBaseColorTexture{std::move(BaseColorTexture)},
+		  mNormalMapTexture{std::move(NormalMapTexture)} {
+    }
 
-const FVector4& FMeshImportMaterial::GetBaseColor() const {
-    return mBaseColor;
-}
+    const Core::FString& Engine::FMeshImportMaterial::GetName() const {
+        return mName;
+    }
 
-bool FMeshImportMaterial::IsTwoSided() const {
-    return mTwoSided;
-}
+    const Core::FVector4& Engine::FMeshImportMaterial::GetBaseColor() const {
+        return mBaseColor;
+    }
 
-const FMeshImportTexture& FMeshImportMaterial::GetBaseColorTexture() const {
-    return mBaseColorTexture;
-}
+    bool Engine::FMeshImportMaterial::IsTwoSided() const {
+        return mTwoSided;
+    }
 
-const FMeshImportTexture& FMeshImportMaterial::GetNormalMapTexture() const {
-    return mNormalMapTexture;
+    const Engine::FMeshImportTexture& Engine::FMeshImportMaterial::GetBaseColorTexture() const {
+        return mBaseColorTexture;
+    }
+
+    const Engine::FMeshImportTexture& Engine::FMeshImportMaterial::GetNormalMapTexture() const {
+        return mNormalMapTexture;
+    }
+
 }

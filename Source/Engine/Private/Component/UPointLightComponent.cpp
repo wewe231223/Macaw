@@ -8,44 +8,48 @@
 
 #include <cmath>
 
-UPointLightComponent::UPointLightComponent() = default;
-UPointLightComponent::~UPointLightComponent() = default;
+namespace Engine {
 
-FLightSceneProxy UPointLightComponent::CreateLightProxy() const {
-    FLightSceneProxy Proxy{ULightComponent::CreateLightProxy()};
-    Proxy.mType = ELightType::Point;
-    Proxy.mAttenuationRadius = mAttenuationRadius;
-    Proxy.mLightFalloffExponent = mLightFalloffExponent;
+    Engine::UPointLightComponent::UPointLightComponent() = default;
+    Engine::UPointLightComponent::~UPointLightComponent() = default;
 
-    return Proxy;
-}
+    Engine::FLightSceneProxy Engine::UPointLightComponent::CreateLightProxy() const {
+        Engine::FLightSceneProxy Proxy{Engine::ULightComponent::CreateLightProxy()};
+        Proxy.mType = Engine::ELightType::Point;
+        Proxy.mAttenuationRadius = mAttenuationRadius;
+        Proxy.mLightFalloffExponent = mLightFalloffExponent;
 
-float UPointLightComponent::GetAttenuationRadius() const {
-    return mAttenuationRadius;
-}
-
-bool UPointLightComponent::SetAttenuationRadius(float AttenuationRadius) {
-    if (!std::isfinite(AttenuationRadius) || AttenuationRadius <= 0.0f) {
-        return false;
+        return Proxy;
     }
 
-    mAttenuationRadius = AttenuationRadius;
-    SynchronizeLight();
-
-    return true;
-}
-
-float UPointLightComponent::GetLightFalloffExponent() const {
-    return mLightFalloffExponent;
-}
-
-bool UPointLightComponent::SetLightFalloffExponent(float LightFalloffExponent) {
-    if (!std::isfinite(LightFalloffExponent) || LightFalloffExponent < 0.0f) {
-        return false;
+    float Engine::UPointLightComponent::GetAttenuationRadius() const {
+        return mAttenuationRadius;
     }
 
-    mLightFalloffExponent = LightFalloffExponent;
-    SynchronizeLight();
+    bool Engine::UPointLightComponent::SetAttenuationRadius(float AttenuationRadius) {
+        if (!std::isfinite(AttenuationRadius) || AttenuationRadius <= 0.0f) {
+            return false;
+        }
 
-    return true;
+        mAttenuationRadius = AttenuationRadius;
+        SynchronizeLight();
+
+        return true;
+    }
+
+    float Engine::UPointLightComponent::GetLightFalloffExponent() const {
+        return mLightFalloffExponent;
+    }
+
+    bool Engine::UPointLightComponent::SetLightFalloffExponent(float LightFalloffExponent) {
+        if (!std::isfinite(LightFalloffExponent) || LightFalloffExponent < 0.0f) {
+            return false;
+        }
+
+        mLightFalloffExponent = LightFalloffExponent;
+        SynchronizeLight();
+
+        return true;
+    }
+
 }

@@ -7,8 +7,12 @@
 #include "Renderer/FLineVertex.h"
 #include "Engine/FDrawLine.h"
 
-FLineVertex::FLineVertex(const FDrawLine& Line)
-	: mStartAndWidth{Line.mStart, Line.mThickness},
-	  mEnd{Line.mEnd, 0.0f},
-	  mColor{Line.mColor, 1.0f} {
+namespace Renderer {
+
+    Renderer::FLineVertex::FLineVertex(const Engine::FDrawLine& Line)
+		: mStartAndWidth{Line.mStart, Line.mThickness},
+		  mEnd{Line.mEnd, 0.0f},
+		  mColor{Line.mColor, 1.0f} {
+    }
+
 }

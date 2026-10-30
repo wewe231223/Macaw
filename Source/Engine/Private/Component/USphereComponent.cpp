@@ -8,22 +8,26 @@
 
 #include <algorithm>
 
-FCollisionShape USphereComponent::GetCollisionShape() const {
-    return FCollisionShape::MakeSphere(GetScaledSphereRadius());
-}
+namespace Engine {
 
-FBox USphereComponent::CalcLocalBounds() const {
-    return FBox{ FVector{ -mSphereRadius, -mSphereRadius, -mSphereRadius }, FVector{ mSphereRadius, mSphereRadius, mSphereRadius } };
-}
+    Engine::FCollisionShape Engine::USphereComponent::GetCollisionShape() const {
+        return Engine::FCollisionShape::MakeSphere(GetScaledSphereRadius());
+    }
 
-void USphereComponent::SetSphereRadius(float InRadius) {
-    mSphereRadius = std::max(0.0f, InRadius);
-}
+    Core::FBox Engine::USphereComponent::CalcLocalBounds() const {
+        return Core::FBox{ Core::FVector{ -mSphereRadius, -mSphereRadius, -mSphereRadius }, Core::FVector{ mSphereRadius, mSphereRadius, mSphereRadius } };
+    }
 
-float USphereComponent::GetScaledSphereRadius() const {
-    return mSphereRadius * GetShapeScale();
-}
+    void Engine::USphereComponent::SetSphereRadius(float InRadius) {
+        mSphereRadius = std::max(0.0f, InRadius);
+    }
 
-float USphereComponent::GetSphereRadius() const {
-    return mSphereRadius;
+    float Engine::USphereComponent::GetScaledSphereRadius() const {
+        return mSphereRadius * GetShapeScale();
+    }
+
+    float Engine::USphereComponent::GetSphereRadius() const {
+        return mSphereRadius;
+    }
+
 }

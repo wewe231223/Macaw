@@ -13,117 +13,121 @@
 #include <cmath>
 #include <numbers>
 
-/**
- * @brief 프리미티브 종류의 표시 이름을 반환합니다.
- */
-FString PrimitiveName(EPrimitiveType Type) {
-    switch (Type) {
-    case EPrimitiveType::Plane:
-        return "Plane";
+namespace Engine {
 
-    case EPrimitiveType::Cube:
-        return "Cube";
+    /**
+     * @brief 프리미티브 종류의 표시 이름을 반환합니다.
+     */
+    Core::FString PrimitiveName(Engine::EPrimitiveType Type) {
+        switch (Type) {
+        case Engine::EPrimitiveType::Plane:
+            return "Plane";
 
-    case EPrimitiveType::Sphere:
-        return "Sphere";
+        case Engine::EPrimitiveType::Cube:
+            return "Cube";
 
-    default:
-        return "Unknown";
-    }
-}
+        case Engine::EPrimitiveType::Sphere:
+            return "Sphere";
 
-/**
- * @brief 기본 프리미티브의 CPU 정점, 삼각형 인덱스와 경계 상자를 생성합니다.
- */
-FMeshData BuildPrimitive(EPrimitiveType Type) {
-    FMeshData Mesh{};
-    TArray<FVector>& Positions{Mesh.GetPositions()};
-    TArray<FVector>& Normals{Mesh.GetNormals()};
-    TArray<FVector4>& Tangents{Mesh.GetTangents()};
-    TArray<Uint32>& Indices{Mesh.GetIndices()};
-    Mesh.GetUVChannels().resize(1);
-
-    TArray<FVector2>& UVs{Mesh.GetUVChannels().front()};
-
-    if (Type == EPrimitiveType::Plane) {
-        Positions = {{-0.5f, -0.5f, 0.0f}, {0.5f, -0.5f, 0.0f}, {0.5f, 0.5f, 0.0f}, {-0.5f, 0.5f, 0.0f}};
-        Normals.assign(4, {0.0f, 0.0f, 1.0f});
-        Tangents.assign(4, {1.0f, 0.0f, 0.0f, 1.0f});
-        UVs = {{0.0f, 0.0f}, {1.0f, 0.0f}, {1.0f, 1.0f}, {0.0f, 1.0f}};
-        Indices = {0, 1, 2, 0, 2, 3};
-
-        Mesh.SetBounds({{-0.5f, -0.5f, -0.001f}, {0.5f, 0.5f, 0.001f}});
-    } else if (Type == EPrimitiveType::Cube) {
-        const std::array<FVector, 6> FaceNormals{{{1.0f, 0.0f, 0.0f}, {-1.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, -1.0f, 0.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 0.0f, -1.0f}}};
-
-        for (const FVector& Normal : FaceNormals) {
-            const FVector Up{std::abs(Normal.z) > 0.5f ? FVector{0.0f, 1.0f, 0.0f} : FVector{0.0f, 0.0f, 1.0f}};
-            const FVector Right{Up.Cross(Normal)};
-            const Uint32 Base{static_cast<Uint32>(Positions.size())};
-
-            Positions.insert(Positions.end(), {(Normal - Right - Up) * 0.5f, (Normal + Right - Up) * 0.5f, (Normal + Right + Up) * 0.5f, (Normal - Right + Up) * 0.5f});
-            Normals.insert(Normals.end(), 4, Normal);
-            Tangents.insert(Tangents.end(), 4, FVector4{Right, 1.0f});
-            UVs.insert(UVs.end(), {{0.0f, 0.0f}, {1.0f, 0.0f}, {1.0f, 1.0f}, {0.0f, 1.0f}});
-
-            Indices.insert(Indices.end(), {Base, Base + 1, Base + 2, Base, Base + 2, Base + 3});
+        default:
+            return "Unknown";
         }
-
-        Mesh.SetBounds({{-0.5f, -0.5f, -0.5f}, {0.5f, 0.5f, 0.5f}});
-    } else if (Type == EPrimitiveType::Sphere) {
-        constexpr Uint32 Rings{20};
-        constexpr Uint32 Segments{32};
-
-        std::array<FVector2, Segments + 1> Circle{};
-
-        for (Uint32 Segment{}; Segment < Segments; ++Segment) {
-            Circle[Segment] = FVector2{1.0f, 0.0f}.Rotated(360.0f * Segment / Segments);
-        }
-
-        Circle.back() = Circle.front();
-
-        Positions.reserve((Rings + 1) * (Segments + 1));
-        Normals.reserve((Rings + 1) * (Segments + 1));
-        Tangents.reserve((Rings + 1) * (Segments + 1));
-        UVs.reserve((Rings + 1) * (Segments + 1));
-
-        for (Uint32 Ring{}; Ring <= Rings; ++Ring) {
-            const float Phi{std::numbers::pi_v<float> * static_cast<float>(Ring) / Rings};
-            const float Radius{std::sin(Phi)};
-            const float Height{std::cos(Phi)};
-
-            for (Uint32 Segment{}; Segment <= Segments; ++Segment) {
-                const FVector2 Radial{Circle[Segment] * Radius};
-                const FVector Normal{Radial.x, Radial.y, Height};
-
-                Positions.push_back(Normal * 0.5f);
-                Normals.push_back(Normal);
-                Tangents.push_back({-Circle[Segment].y, Circle[Segment].x, 0.0f, -1.0f});
-                UVs.push_back({static_cast<float>(Segment) / Segments, static_cast<float>(Ring) / Rings});
-            }
-        }
-
-        for (Uint32 Ring{}; Ring < Rings; ++Ring) {
-            for (Uint32 Segment{}; Segment < Segments; ++Segment) {
-                const Uint32 A{Ring * (Segments + 1) + Segment};
-                const Uint32 B{A + Segments + 1};
-
-                Indices.insert(Indices.end(), {A, B, A + 1, A + 1, B, B + 1});
-            }
-        }
-
-        Mesh.SetBounds({{-0.5f, -0.5f, -0.5f}, {0.5f, 0.5f, 0.5f}});
     }
 
-    Mesh.GetColors().assign(Positions.size(), {1.0f, 1.0f, 1.0f, 1.0f});
+    /**
+     * @brief 기본 프리미티브의 CPU 정점, 삼각형 인덱스와 경계 상자를 생성합니다.
+     */
+    Engine::FMeshData BuildPrimitive(Engine::EPrimitiveType Type) {
+        Engine::FMeshData Mesh{};
+        Core::TArray<Core::FVector>& Positions{Mesh.GetPositions()};
+        Core::TArray<Core::FVector>& Normals{Mesh.GetNormals()};
+        Core::TArray<Core::FVector4>& Tangents{Mesh.GetTangents()};
+        Core::TArray<Core::Uint32>& Indices{Mesh.GetIndices()};
+        Mesh.GetUVChannels().resize(1);
 
-    return Mesh;
-}
+        Core::TArray<Core::FVector2>& UVs{Mesh.GetUVChannels().front()};
 
-/**
- * @brief 종류별로 캐시된 읽기 전용 기본 메시를 반환합니다.
- */
-const FMeshData& GetPrimitiveMesh(EPrimitiveType Type) {
-    static const std::array<FMeshData, 3> Meshes{BuildPrimitive(EPrimitiveType::Plane), BuildPrimitive(EPrimitiveType::Cube), BuildPrimitive(EPrimitiveType::Sphere)};
-    return Meshes[static_cast<std::size_t>(Type)];
+        if (Type == Engine::EPrimitiveType::Plane) {
+            Positions = {{-0.5f, -0.5f, 0.0f}, {0.5f, -0.5f, 0.0f}, {0.5f, 0.5f, 0.0f}, {-0.5f, 0.5f, 0.0f}};
+            Normals.assign(4, {0.0f, 0.0f, 1.0f});
+            Tangents.assign(4, {1.0f, 0.0f, 0.0f, 1.0f});
+            UVs = {{0.0f, 0.0f}, {1.0f, 0.0f}, {1.0f, 1.0f}, {0.0f, 1.0f}};
+            Indices = {0, 1, 2, 0, 2, 3};
+
+            Mesh.SetBounds({{-0.5f, -0.5f, -0.001f}, {0.5f, 0.5f, 0.001f}});
+        } else if (Type == Engine::EPrimitiveType::Cube) {
+            const std::array<Core::FVector, 6> FaceNormals{{{1.0f, 0.0f, 0.0f}, {-1.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, -1.0f, 0.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 0.0f, -1.0f}}};
+
+            for (const Core::FVector& Normal : FaceNormals) {
+                const Core::FVector Up{std::abs(Normal.z) > 0.5f ? Core::FVector{0.0f, 1.0f, 0.0f} : Core::FVector{0.0f, 0.0f, 1.0f}};
+                const Core::FVector Right{Up.Cross(Normal)};
+                const Core::Uint32 Base{static_cast<Core::Uint32>(Positions.size())};
+
+                Positions.insert(Positions.end(), {(Normal - Right - Up) * 0.5f, (Normal + Right - Up) * 0.5f, (Normal + Right + Up) * 0.5f, (Normal - Right + Up) * 0.5f});
+                Normals.insert(Normals.end(), 4, Normal);
+                Tangents.insert(Tangents.end(), 4, Core::FVector4{Right, 1.0f});
+                UVs.insert(UVs.end(), {{0.0f, 0.0f}, {1.0f, 0.0f}, {1.0f, 1.0f}, {0.0f, 1.0f}});
+
+                Indices.insert(Indices.end(), {Base, Base + 1, Base + 2, Base, Base + 2, Base + 3});
+            }
+
+            Mesh.SetBounds({{-0.5f, -0.5f, -0.5f}, {0.5f, 0.5f, 0.5f}});
+        } else if (Type == Engine::EPrimitiveType::Sphere) {
+            constexpr Core::Uint32 Rings{20};
+            constexpr Core::Uint32 Segments{32};
+
+            std::array<Core::FVector2, Segments + 1> Circle{};
+
+            for (Core::Uint32 Segment{}; Segment < Segments; ++Segment) {
+                Circle[Segment] = Core::FVector2{1.0f, 0.0f}.Rotated(360.0f * Segment / Segments);
+            }
+
+            Circle.back() = Circle.front();
+
+            Positions.reserve((Rings + 1) * (Segments + 1));
+            Normals.reserve((Rings + 1) * (Segments + 1));
+            Tangents.reserve((Rings + 1) * (Segments + 1));
+            UVs.reserve((Rings + 1) * (Segments + 1));
+
+            for (Core::Uint32 Ring{}; Ring <= Rings; ++Ring) {
+                const float Phi{std::numbers::pi_v<float> * static_cast<float>(Ring) / Rings};
+                const float Radius{std::sin(Phi)};
+                const float Height{std::cos(Phi)};
+
+                for (Core::Uint32 Segment{}; Segment <= Segments; ++Segment) {
+                    const Core::FVector2 Radial{Circle[Segment] * Radius};
+                    const Core::FVector Normal{Radial.x, Radial.y, Height};
+
+                    Positions.push_back(Normal * 0.5f);
+                    Normals.push_back(Normal);
+                    Tangents.push_back({-Circle[Segment].y, Circle[Segment].x, 0.0f, -1.0f});
+                    UVs.push_back({static_cast<float>(Segment) / Segments, static_cast<float>(Ring) / Rings});
+                }
+            }
+
+            for (Core::Uint32 Ring{}; Ring < Rings; ++Ring) {
+                for (Core::Uint32 Segment{}; Segment < Segments; ++Segment) {
+                    const Core::Uint32 A{Ring * (Segments + 1) + Segment};
+                    const Core::Uint32 B{A + Segments + 1};
+
+                    Indices.insert(Indices.end(), {A, B, A + 1, A + 1, B, B + 1});
+                }
+            }
+
+            Mesh.SetBounds({{-0.5f, -0.5f, -0.5f}, {0.5f, 0.5f, 0.5f}});
+        }
+
+        Mesh.GetColors().assign(Positions.size(), {1.0f, 1.0f, 1.0f, 1.0f});
+
+        return Mesh;
+    }
+
+    /**
+     * @brief 종류별로 캐시된 읽기 전용 기본 메시를 반환합니다.
+     */
+    const Engine::FMeshData& GetPrimitiveMesh(Engine::EPrimitiveType Type) {
+        static const std::array<Engine::FMeshData, 3> Meshes{Engine::BuildPrimitive(Engine::EPrimitiveType::Plane), Engine::BuildPrimitive(Engine::EPrimitiveType::Cube), Engine::BuildPrimitive(Engine::EPrimitiveType::Sphere)};
+        return Meshes[static_cast<std::size_t>(Type)];
+    }
+
 }

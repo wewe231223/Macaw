@@ -6,8 +6,12 @@
 
 #include "Engine/Component/USpriteComponent.h"
 
-USpriteComponent::USpriteComponent() {
-    SetScreenAligned(false);
-}
+namespace Engine {
 
-USpriteComponent::~USpriteComponent() = default;
+    Engine::USpriteComponent::USpriteComponent() {
+        SetScreenAligned(false);
+    }
+
+    Engine::USpriteComponent::~USpriteComponent() = default;
+
+}

@@ -6,6 +6,10 @@
 
 #include "Engine/UTexture.h"
 
-UTexture::UTexture() = default;
+namespace Engine {
 
-UTexture::~UTexture() = default;
+    Engine::UTexture::UTexture() = default;
+
+    Engine::UTexture::~UTexture() = default;
+
+}

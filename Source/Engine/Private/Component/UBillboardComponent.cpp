@@ -19,194 +19,198 @@
 #include <cmath>
 #include <cwctype>
 
-UBillboardComponent::UBillboardComponent() = default;
-UBillboardComponent::~UBillboardComponent() = default;
+namespace Engine {
 
-UTexture* UBillboardComponent::GetSprite() const {
-    return mSprite;
-}
+    Engine::UBillboardComponent::UBillboardComponent() = default;
+    Engine::UBillboardComponent::~UBillboardComponent() = default;
 
-bool UBillboardComponent::SetSprite(UTexture* Sprite) {
-    if (Sprite == nullptr) {
-        return SetTexturePath({});
+    Engine::UTexture* Engine::UBillboardComponent::GetSprite() const {
+        return mSprite;
     }
 
-    const auto* Texture{Cast<UTexture2D>(Sprite)};
-    FAssetManager* Assets{GetWorld() != nullptr ? GetWorld()->GetAssets() : nullptr};
+    bool Engine::UBillboardComponent::SetSprite(Engine::UTexture* Sprite) {
+        if (Sprite == nullptr) {
+            return SetTexturePath({});
+        }
 
-    if (Texture == nullptr || !Texture->IsValid() || Assets == nullptr) {
-        return false;
-    }
+        const auto* Texture{CoreUObject::Cast<Engine::UTexture2D>(Sprite)};
+        Engine::FAssetManager* Assets{GetWorld() != nullptr ? GetWorld()->GetAssets() : nullptr};
 
-    const FString Path{Assets->GetTexturePath(Texture)};
-
-    return !Path.empty() && SetTexturePath(Path);
-}
-
-const FString& UBillboardComponent::GetTexturePath() const {
-    return mTexturePath;
-}
-
-bool UBillboardComponent::SetTexturePath(const FString& Path) {
-    const std::filesystem::path AssetPath{FilePath::FromUtf8(Path)};
-    std::wstring Extension{AssetPath.extension().wstring()};
-    std::transform(Extension.begin(), Extension.end(), Extension.begin(), [](wchar_t Character) {
-        return static_cast<wchar_t>(std::towlower(Character));
-    });
-
-    const bool Supported{Extension == L".masset" || Extension == L".png" || Extension == L".jpg" || Extension == L".jpeg" || Extension == L".bmp" || Extension == L".tga" || Extension == L".dds" || Extension == L".hdr"};
-
-    if (Path.find('\0') != FString::npos || (!Path.empty() && (AssetPath.has_root_path() || !Supported))) {
-        return false;
-    }
-
-    for (const auto& Part : AssetPath) {
-        if (Part == L"..") {
+        if (Texture == nullptr || !Texture->IsValid() || Assets == nullptr) {
             return false;
         }
+
+        const Core::FString Path{Assets->GetTexturePath(Texture)};
+
+        return !Path.empty() && SetTexturePath(Path);
     }
 
-    UTexture2D* Texture{LoadTexture(Path)};
-
-    if (!Path.empty() && GetWorld() != nullptr && GetWorld()->GetAssets() != nullptr && Texture == nullptr) {
-        return false;
+    const Core::FString& Engine::UBillboardComponent::GetTexturePath() const {
+        return mTexturePath;
     }
 
-    mTexturePath = FilePath::ToGenericUtf8(AssetPath.lexically_normal());
-    mSprite = Texture;
-    MarkRenderStateDirty();
+    bool Engine::UBillboardComponent::SetTexturePath(const Core::FString& Path) {
+        const std::filesystem::path AssetPath{Core::FilePath::FromUtf8(Path)};
+        std::wstring Extension{AssetPath.extension().wstring()};
+        std::transform(Extension.begin(), Extension.end(), Extension.begin(), [](wchar_t Character) {
+            return static_cast<wchar_t>(std::towlower(Character));
+        });
 
-    return true;
-}
+        const bool Supported{Extension == L".masset" || Extension == L".png" || Extension == L".jpg" || Extension == L".jpeg" || Extension == L".bmp" || Extension == L".tga" || Extension == L".dds" || Extension == L".hdr"};
 
-UTexture2D* UBillboardComponent::LoadTexture(const FString& Path) const {
-    FAssetManager* Assets{GetWorld() != nullptr ? GetWorld()->GetAssets() : nullptr};
+        if (Path.find('\0') != Core::FString::npos || (!Path.empty() && (AssetPath.has_root_path() || !Supported))) {
+            return false;
+        }
 
-    if (Assets == nullptr || Path.empty()) {
-        return nullptr;
+        for (const auto& Part : AssetPath) {
+            if (Part == L"..") {
+                return false;
+            }
+        }
+
+        Engine::UTexture2D* Texture{LoadTexture(Path)};
+
+        if (!Path.empty() && GetWorld() != nullptr && GetWorld()->GetAssets() != nullptr && Texture == nullptr) {
+            return false;
+        }
+
+        mTexturePath = Core::FilePath::ToGenericUtf8(AssetPath.lexically_normal());
+        mSprite = Texture;
+        MarkRenderStateDirty();
+
+        return true;
     }
 
-    FString Error{};
-    UTexture2D* Texture{Assets->LoadTexture(FilePath::FromUtf8(Path), Error)};
+    Engine::UTexture2D* Engine::UBillboardComponent::LoadTexture(const Core::FString& Path) const {
+        Engine::FAssetManager* Assets{GetWorld() != nullptr ? GetWorld()->GetAssets() : nullptr};
 
-    if (Texture == nullptr) {
-        ErrorHandler::Report("Sprite", "Cannot load texture '" + Path + "': " + Error, ErrorHandler::EErrorLevel::Warning);
+        if (Assets == nullptr || Path.empty()) {
+            return nullptr;
+        }
+
+        Core::FString Error{};
+        Engine::UTexture2D* Texture{Assets->LoadTexture(Core::FilePath::FromUtf8(Path), Error)};
+
+        if (Texture == nullptr) {
+            Core::ErrorHandler::Report("Sprite", "Cannot load texture '" + Path + "': " + Error, Core::ErrorHandler::EErrorLevel::Warning);
+        }
+
+        return Texture;
     }
 
-    return Texture;
-}
-
-bool UBillboardComponent::ResolveTexture() {
-    mSprite = LoadTexture(mTexturePath);
-    MarkRenderStateDirty();
-    return mTexturePath.empty() || mSprite != nullptr;
-}
-
-UTexture2D* UBillboardComponent::GetTexture() const {
-    return Cast<UTexture2D>(mSprite);
-}
-
-const FVector2& UBillboardComponent::GetSize() const {
-    return mSize;
-}
-
-bool UBillboardComponent::SetSize(const FVector2& Size) {
-    if (!std::isfinite(Size.x) || !std::isfinite(Size.y) || Size.x <= 0.0f || Size.y <= 0.0f || Size.x > 10000.0f || Size.y > 10000.0f) {
-        return false;
+    bool Engine::UBillboardComponent::ResolveTexture() {
+        mSprite = LoadTexture(mTexturePath);
+        MarkRenderStateDirty();
+        return mTexturePath.empty() || mSprite != nullptr;
     }
 
-    mSize = Size;
-    MarkRenderStateDirty();
-
-    return true;
-}
-
-const FVector4& UBillboardComponent::GetColor() const {
-    return mColor;
-}
-
-bool UBillboardComponent::SetColor(const FVector4& Color) {
-    const auto Values{Color.ToArray()};
-
-    if (!std::all_of(Values.begin(), Values.end(), [](float Value) {
-        return std::isfinite(Value) && Value >= 0.0f && Value <= 1.0f;
-    })) {
-        return false;
+    Engine::UTexture2D* Engine::UBillboardComponent::GetTexture() const {
+        return CoreUObject::Cast<Engine::UTexture2D>(mSprite);
     }
 
-    mColor = Color;
-    MarkRenderStateDirty();
+    const Core::FVector2& Engine::UBillboardComponent::GetSize() const {
+        return mSize;
+    }
 
-    return true;
-}
+    bool Engine::UBillboardComponent::SetSize(const Core::FVector2& Size) {
+        if (!std::isfinite(Size.x) || !std::isfinite(Size.y) || Size.x <= 0.0f || Size.y <= 0.0f || Size.x > 10000.0f || Size.y > 10000.0f) {
+            return false;
+        }
 
-bool UBillboardComponent::IsScreenAligned() const {
-    return mScreenAligned;
-}
+        mSize = Size;
+        MarkRenderStateDirty();
 
-void UBillboardComponent::SetScreenAligned(bool ScreenAligned) {
-    mScreenAligned = ScreenAligned;
-    MarkRenderStateDirty();
-}
+        return true;
+    }
 
-bool UBillboardComponent::IsVisible() const {
-    return mVisible;
-}
+    const Core::FVector4& Engine::UBillboardComponent::GetColor() const {
+        return mColor;
+    }
 
-void UBillboardComponent::SetVisible(bool Visible) {
-    mVisible = Visible;
-    MarkRenderStateDirty();
-}
+    bool Engine::UBillboardComponent::SetColor(const Core::FVector4& Color) {
+        const auto Values{Color.ToArray()};
 
-EPrimitiveType UBillboardComponent::GetPrimitiveType() const {
-    return EPrimitiveType::Plane;
-}
+        if (!std::all_of(Values.begin(), Values.end(), [](float Value) {
+            return std::isfinite(Value) && Value >= 0.0f && Value <= 1.0f;
+        })) {
+            return false;
+        }
 
-const FMeshData& UBillboardComponent::GetMeshData() const {
-    static const FMeshData Empty{};
-    return Empty;
-}
+        mColor = Color;
+        MarkRenderStateDirty();
 
-FPrimitiveSceneProxy UBillboardComponent::CreateSceneProxy() const {
-    FPrimitiveSceneProxy Proxy{UPrimitiveComponent::CreateSceneProxy()};
-    Proxy.mBounds = GetWorldBounds();
-    Proxy.mSprite = FDrawSprite{GetTexture(), mSize, mColor, mScreenAligned};
-    return Proxy;
-}
+        return true;
+    }
 
-FBox UBillboardComponent::GetWorldBounds() const {
-    const FMatrix World{GetWorldMatrix()};
-    const FVector Center{World.TransformPosition({})};
-    const float Width{mSize.x * World.TransformVector({0.0f, 1.0f, 0.0f}).Length()};
-    const float Height{mSize.y * World.TransformVector({0.0f, 0.0f, 1.0f}).Length()};
-    const float Radius{0.5f * std::sqrt(Width * Width + Height * Height)};
-    const FVector Extent{Radius, Radius, Radius};
+    bool Engine::UBillboardComponent::IsScreenAligned() const {
+        return mScreenAligned;
+    }
 
-    return {Center - Extent, Center + Extent};
-}
+    void Engine::UBillboardComponent::SetScreenAligned(bool ScreenAligned) {
+        mScreenAligned = ScreenAligned;
+        MarkRenderStateDirty();
+    }
 
-bool UBillboardComponent::ShouldCreateRenderState() const {
-    return mVisible && mColor.w > 0.0f && (mTexturePath.empty() || mSprite != nullptr);
-}
+    bool Engine::UBillboardComponent::IsVisible() const {
+        return mVisible;
+    }
 
-void UBillboardComponent::OnRegister() {
-    ResolveTexture();
-}
+    void Engine::UBillboardComponent::SetVisible(bool Visible) {
+        mVisible = Visible;
+        MarkRenderStateDirty();
+    }
 
-void UBillboardComponent::UnregisterComponent() {
-    UPrimitiveComponent::UnregisterComponent();
-    mSprite = nullptr;
-}
+    Engine::EPrimitiveType Engine::UBillboardComponent::GetPrimitiveType() const {
+        return Engine::EPrimitiveType::Plane;
+    }
 
-void UBillboardComponent::Serialize(FArchive& Archive) {
-    UPrimitiveComponent::Serialize(Archive);
+    const Engine::FMeshData& Engine::UBillboardComponent::GetMeshData() const {
+        static const Engine::FMeshData Empty{};
+        return Empty;
+    }
 
-    if (Archive.IsLoading() && !Archive.HasError() && !Archive.HasField("Sprite") && Archive.HasField("Texture")) {
-        FString Path{};
-        Archive.Serialize("Texture", Path);
+    Engine::FPrimitiveSceneProxy Engine::UBillboardComponent::CreateSceneProxy() const {
+        Engine::FPrimitiveSceneProxy Proxy{Engine::UPrimitiveComponent::CreateSceneProxy()};
+        Proxy.mBounds = GetWorldBounds();
+        Proxy.mSprite = Engine::FDrawSprite{GetTexture(), mSize, mColor, mScreenAligned};
+        return Proxy;
+    }
 
-        if (!Archive.HasError() && !SetTexturePath(Path)) {
-            Archive.SetError("Invalid billboard texture path");
+    Core::FBox Engine::UBillboardComponent::GetWorldBounds() const {
+        const Core::FMatrix World{GetWorldMatrix()};
+        const Core::FVector Center{World.TransformPosition({})};
+        const float Width{mSize.x * World.TransformVector({0.0f, 1.0f, 0.0f}).Length()};
+        const float Height{mSize.y * World.TransformVector({0.0f, 0.0f, 1.0f}).Length()};
+        const float Radius{0.5f * std::sqrt(Width * Width + Height * Height)};
+        const Core::FVector Extent{Radius, Radius, Radius};
+
+        return {Center - Extent, Center + Extent};
+    }
+
+    bool Engine::UBillboardComponent::ShouldCreateRenderState() const {
+        return mVisible && mColor.w > 0.0f && (mTexturePath.empty() || mSprite != nullptr);
+    }
+
+    void Engine::UBillboardComponent::OnRegister() {
+        ResolveTexture();
+    }
+
+    void Engine::UBillboardComponent::UnregisterComponent() {
+        Engine::UPrimitiveComponent::UnregisterComponent();
+        mSprite = nullptr;
+    }
+
+    void Engine::UBillboardComponent::Serialize(Core::FArchive& Archive) {
+        Engine::UPrimitiveComponent::Serialize(Archive);
+
+        if (Archive.IsLoading() && !Archive.HasError() && !Archive.HasField("Sprite") && Archive.HasField("Texture")) {
+            Core::FString Path{};
+            Archive.Serialize("Texture", Path);
+
+            if (!Archive.HasError() && !SetTexturePath(Path)) {
+                Archive.SetError("Invalid billboard texture path");
+            }
         }
     }
+
 }

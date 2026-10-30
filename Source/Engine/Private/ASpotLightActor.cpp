@@ -9,20 +9,24 @@
 #include "CoreUObject/Reflection/NewObject.h"
 #include "CoreUObject/Reflection/Cast.h"
 
-ASpotLightActor::ASpotLightActor() = default;
-ASpotLightActor::~ASpotLightActor() = default;
+namespace Engine {
 
-bool ASpotLightActor::InitializeDefaultComponents() {
-    if (!GetComponents().empty()) {
-        return false;
+    Engine::ASpotLightActor::ASpotLightActor() = default;
+    Engine::ASpotLightActor::~ASpotLightActor() = default;
+
+    bool Engine::ASpotLightActor::InitializeDefaultComponents() {
+        if (!GetComponents().empty()) {
+            return false;
+        }
+
+        auto Component{CoreUObject::NewObject<Engine::USpotLightComponent>()};
+        Component->SetName("SpotLightComponent");
+
+        return AddComponent(std::move(Component));
     }
 
-    auto Component{NewObject<USpotLightComponent>()};
-    Component->SetName("SpotLightComponent");
+    Engine::USpotLightComponent* Engine::ASpotLightActor::GetLightComponent() const {
+        return CoreUObject::Cast<Engine::USpotLightComponent>(GetRootComponent());
+    }
 
-    return AddComponent(std::move(Component));
-}
-
-USpotLightComponent* ASpotLightActor::GetLightComponent() const {
-    return Cast<USpotLightComponent>(GetRootComponent());
 }

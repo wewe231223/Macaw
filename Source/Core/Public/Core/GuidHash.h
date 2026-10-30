@@ -9,34 +9,38 @@
 #include "Core/ReflectionMacros.h"
 #include "Core/Guid.h"
 
-/**
- * @brief FGuid를 해시 컨테이너의 키로 사용하기 위한 해시 함수 객체입니다.
- * @ingroup Core
- */
-struct FGuidHash {
-public:
-    /**
-     * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
-     */
-    ReflectTypes(FGuidHash);
-
-public:
-    /**
-     * @brief 이 타입의 정적 구조체 메타데이터를 반환합니다.
-     * @return 등록된 타입 메타데이터의 비소유 주소입니다.
-     */
-    ReflectStruct(FGuidHash);
+namespace Core {
 
     /**
-     * @brief GUID의 해시를 계산합니다.
-     * @param[in] Value 입력 값입니다.
-     * @return 연산을 적용한 새 값입니다.
+     * @brief FGuid를 해시 컨테이너의 키로 사용하기 위한 해시 함수 객체입니다.
+     * @ingroup Core
      */
-    std::size_t operator()(const FGuid& Value) const noexcept;
+    struct FGuidHash {
+    public:
+        /**
+         * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
+         */
+        ReflectTypes(FGuidHash);
 
-private:
-    /**
-     * @brief 생성된 프로퍼티 등록 함수와 빌더 접근 권한입니다.
-     */
-    ReflectMembers();
-};
+    public:
+        /**
+         * @brief 이 타입의 정적 구조체 메타데이터를 반환합니다.
+         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
+         */
+        ReflectStruct(FGuidHash);
+
+        /**
+         * @brief GUID의 해시를 계산합니다.
+         * @param[in] Value 입력 값입니다.
+         * @return 연산을 적용한 새 값입니다.
+         */
+        std::size_t operator()(const Core::FGuid& Value) const noexcept;
+
+    private:
+        /**
+         * @brief 생성된 프로퍼티 등록 함수와 빌더 접근 권한입니다.
+         */
+        ReflectMembers();
+    };
+
+}

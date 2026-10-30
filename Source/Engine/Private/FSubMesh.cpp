@@ -5,20 +5,24 @@
  */
 #include "Engine/FSubMesh.h"
 
-FSubMesh::FSubMesh(Uint32 FirstIndex, Uint32 IndexCount, Uint32 MaterialIndex)
-	: mFirstIndex{FirstIndex},
-	  mIndexCount{IndexCount},
-	  mMaterialIndex{MaterialIndex} {
-}
+namespace Engine {
 
-Uint32 FSubMesh::GetFirstIndex() const {
-    return mFirstIndex;
-}
+    Engine::FSubMesh::FSubMesh(Core::Uint32 FirstIndex, Core::Uint32 IndexCount, Core::Uint32 MaterialIndex)
+		: mFirstIndex{FirstIndex},
+		  mIndexCount{IndexCount},
+		  mMaterialIndex{MaterialIndex} {
+    }
 
-Uint32 FSubMesh::GetIndexCount() const {
-    return mIndexCount;
-}
+    Core::Uint32 Engine::FSubMesh::GetFirstIndex() const {
+        return mFirstIndex;
+    }
 
-Uint32 FSubMesh::GetMaterialIndex() const {
-    return mMaterialIndex;
+    Core::Uint32 Engine::FSubMesh::GetIndexCount() const {
+        return mIndexCount;
+    }
+
+    Core::Uint32 Engine::FSubMesh::GetMaterialIndex() const {
+        return mMaterialIndex;
+    }
+
 }

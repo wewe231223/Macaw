@@ -10,134 +10,138 @@
 #include <cstring>
 #include <limits>
 
-FMemoryArchive::FMemoryArchive(TArray<Uint8>& Bytes)
-	: FArchive{EArchiveMode::Saving},
-	  mWriteBytes{&Bytes} {
-}
+namespace Serialization {
 
-FMemoryArchive::FMemoryArchive(const TArray<Uint8>& Bytes)
-	: FArchive{EArchiveMode::Loading},
-	  mReadBytes{&Bytes} {
-}
-
-std::size_t FMemoryArchive::GetRemainingBytes() const {
-    return mReadBytes != nullptr ? mReadBytes->size() - mReadOffset : 0;
-}
-
-bool FMemoryArchive::HasField(std::string_view) const {
-    return !HasError();
-}
-
-bool FMemoryArchive::BeginObject(std::string_view) {
-    return !HasError();
-}
-
-void FMemoryArchive::EndObject() {
-}
-
-bool FMemoryArchive::BeginArray(std::string_view Name, Uint32& Count) {
-    Serialize(Name, Count);
-
-    if (!HasError() && Count > 100000) {
-        SetError("Memory archive array exceeds the element limit");
+    Serialization::FMemoryArchive::FMemoryArchive(Core::TArray<Core::Uint8>& Bytes)
+		: Core::FArchive{Core::EArchiveMode::Saving},
+		  mWriteBytes{&Bytes} {
     }
 
-    return !HasError();
-}
+    Serialization::FMemoryArchive::FMemoryArchive(const Core::TArray<Core::Uint8>& Bytes)
+		: Core::FArchive{Core::EArchiveMode::Loading},
+		  mReadBytes{&Bytes} {
+    }
 
-void FMemoryArchive::EndArray() {
-}
+    std::size_t Serialization::FMemoryArchive::GetRemainingBytes() const {
+        return mReadBytes != nullptr ? mReadBytes->size() - mReadOffset : 0;
+    }
 
-void FMemoryArchive::Serialize(std::string_view, bool& Value) {
-    Uint8 Byte{static_cast<Uint8>(Value)};
-    SerializeBytes(&Byte, sizeof(Byte));
+    bool Serialization::FMemoryArchive::HasField(std::string_view) const {
+        return !HasError();
+    }
 
-    if (IsLoading() && !HasError()) {
-        if (Byte > 1) {
-            SetError("Invalid boolean in memory archive");
+    bool Serialization::FMemoryArchive::BeginObject(std::string_view) {
+        return !HasError();
+    }
+
+    void Serialization::FMemoryArchive::EndObject() {
+    }
+
+    bool Serialization::FMemoryArchive::BeginArray(std::string_view Name, Core::Uint32& Count) {
+        Serialize(Name, Count);
+
+        if (!HasError() && Count > 100000) {
+            SetError("Memory archive array exceeds the element limit");
+        }
+
+        return !HasError();
+    }
+
+    void Serialization::FMemoryArchive::EndArray() {
+    }
+
+    void Serialization::FMemoryArchive::Serialize(std::string_view, bool& Value) {
+        Core::Uint8 Byte{static_cast<Core::Uint8>(Value)};
+        SerializeBytes(&Byte, sizeof(Byte));
+
+        if (IsLoading() && !HasError()) {
+            if (Byte > 1) {
+                SetError("Invalid boolean in memory archive");
+                return;
+            }
+
+            Value = Byte != 0;
+        }
+    }
+
+    void Serialization::FMemoryArchive::Serialize(std::string_view, Core::Int32& Value) {
+        SerializeBytes(&Value, sizeof(Value));
+    }
+
+    void Serialization::FMemoryArchive::Serialize(std::string_view, Core::Uint32& Value) {
+        SerializeBytes(&Value, sizeof(Value));
+    }
+
+    void Serialization::FMemoryArchive::Serialize(std::string_view, Core::Uint64& Value) {
+        SerializeBytes(&Value, sizeof(Value));
+    }
+
+    void Serialization::FMemoryArchive::Serialize(std::string_view, float& Value) {
+        if (!IsLoading() && !std::isfinite(Value)) {
+            SetError("Cannot serialize a non-finite float");
             return;
         }
 
-        Value = Byte != 0;
-    }
-}
+        SerializeBytes(&Value, sizeof(Value));
 
-void FMemoryArchive::Serialize(std::string_view, Int32& Value) {
-    SerializeBytes(&Value, sizeof(Value));
-}
-
-void FMemoryArchive::Serialize(std::string_view, Uint32& Value) {
-    SerializeBytes(&Value, sizeof(Value));
-}
-
-void FMemoryArchive::Serialize(std::string_view, Uint64& Value) {
-    SerializeBytes(&Value, sizeof(Value));
-}
-
-void FMemoryArchive::Serialize(std::string_view, float& Value) {
-    if (!IsLoading() && !std::isfinite(Value)) {
-        SetError("Cannot serialize a non-finite float");
-        return;
+        if (!HasError() && !std::isfinite(Value)) {
+            SetError("Invalid float in memory archive");
+        }
     }
 
-    SerializeBytes(&Value, sizeof(Value));
-
-    if (!HasError() && !std::isfinite(Value)) {
-        SetError("Invalid float in memory archive");
-    }
-}
-
-void FMemoryArchive::Serialize(std::string_view Name, FString& Value) {
-    if (HasError()) {
-        return;
-    }
-
-    if (!IsLoading() && Value.size() > std::numeric_limits<Uint32>::max()) {
-        SetError("Memory archive string is too large");
-        return;
-    }
-
-    Uint32 Length{IsLoading() ? 0 : static_cast<Uint32>(Value.size())};
-    Serialize(Name, Length);
-
-    if (HasError()) {
-        return;
-    }
-
-    if (IsLoading()) {
-        if (Length > GetRemainingBytes()) {
-            SetError("Truncated string in memory archive");
+    void Serialization::FMemoryArchive::Serialize(std::string_view Name, Core::FString& Value) {
+        if (HasError()) {
             return;
         }
 
-        Value.resize(Length);
-    }
-
-    SerializeBytes(Value.data(), Length);
-}
-
-void FMemoryArchive::SerializeBytes(void* Value, std::size_t Size) {
-    if (HasError() || Size == 0) {
-        return;
-    }
-
-    if (IsLoading()) {
-        if (Size > GetRemainingBytes()) {
-            SetError("Truncated memory archive");
+        if (!IsLoading() && Value.size() > std::numeric_limits<Core::Uint32>::max()) {
+            SetError("Memory archive string is too large");
             return;
         }
 
-        std::memcpy(Value, mReadBytes->data() + mReadOffset, Size);
-        mReadOffset += Size;
-    } else {
-        const std::size_t Offset{mWriteBytes->size()};
+        Core::Uint32 Length{IsLoading() ? 0 : static_cast<Core::Uint32>(Value.size())};
+        Serialize(Name, Length);
 
-        if (Size > mWriteBytes->max_size() - Offset) {
-            SetError("Memory archive buffer is too large");
+        if (HasError()) {
             return;
         }
 
-        mWriteBytes->resize(Offset + Size);
-        std::memcpy(mWriteBytes->data() + Offset, Value, Size);
+        if (IsLoading()) {
+            if (Length > GetRemainingBytes()) {
+                SetError("Truncated string in memory archive");
+                return;
+            }
+
+            Value.resize(Length);
+        }
+
+        SerializeBytes(Value.data(), Length);
     }
+
+    void Serialization::FMemoryArchive::SerializeBytes(void* Value, std::size_t Size) {
+        if (HasError() || Size == 0) {
+            return;
+        }
+
+        if (IsLoading()) {
+            if (Size > GetRemainingBytes()) {
+                SetError("Truncated memory archive");
+                return;
+            }
+
+            std::memcpy(Value, mReadBytes->data() + mReadOffset, Size);
+            mReadOffset += Size;
+        } else {
+            const std::size_t Offset{mWriteBytes->size()};
+
+            if (Size > mWriteBytes->max_size() - Offset) {
+                SetError("Memory archive buffer is too large");
+                return;
+            }
+
+            mWriteBytes->resize(Offset + Size);
+            std::memcpy(mWriteBytes->data() + Offset, Value, Size);
+        }
+    }
+
 }

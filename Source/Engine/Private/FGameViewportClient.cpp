@@ -13,49 +13,53 @@
 #include "Engine/FSceneViewFamily.h"
 #include "RenderCore/IRendererModule.h"
 
-FGameViewportClient::FGameViewportClient(UEngine* Engine)
-	: mEngine{Engine} {
-}
+namespace Engine {
 
-bool FGameViewportClient::SetWorld(FWorldHandle World) {
-    const UWorld* Target{mEngine != nullptr ? mEngine->GetWorld(World) : nullptr};
-
-    if (World.IsValid() && (Target == nullptr || (Target->GetWorldType() != EWorldType::Game && Target->GetWorldType() != EWorldType::PIE))) {
-        return false;
+    Engine::FGameViewportClient::FGameViewportClient(Engine::UEngine* Engine)
+		: mEngine{Engine} {
     }
 
-    mWorld = World;
+    bool Engine::FGameViewportClient::SetWorld(Engine::FWorldHandle World) {
+        const Engine::UWorld* Target{mEngine != nullptr ? mEngine->GetWorld(World) : nullptr};
 
-    return true;
-}
+        if (World.IsValid() && (Target == nullptr || (Target->GetWorldType() != Engine::EWorldType::Game && Target->GetWorldType() != Engine::EWorldType::PIE))) {
+            return false;
+        }
 
-FWorldHandle FGameViewportClient::GetWorldHandle() const {
-    return mWorld;
-}
+        mWorld = World;
 
-bool FGameViewportClient::CalcSceneView(const FVector2& Size, FSceneView& View) const {
-    const UWorld* World{mEngine != nullptr ? mEngine->GetWorld(mWorld) : nullptr};
-    const UCameraComponent* Camera{World != nullptr ? World->GetActiveCamera() : nullptr};
-    return Camera != nullptr && Camera->GetCameraView(Size, View);
-}
-
-void FGameViewportClient::Input(FSceneViewport*, const FViewportInput& Input, float DeltaTime) {
-    UWorld* World{mEngine != nullptr ? mEngine->GetWorld(mWorld) : nullptr};
-
-    if (World != nullptr) {
-        World->Input(Input, DeltaTime);
-    }
-}
-
-void FGameViewportClient::Draw(FSceneViewport* Viewport) {
-    UWorld* World{mEngine != nullptr ? mEngine->GetWorld(mWorld) : nullptr};
-    IRendererModule* Renderer{mEngine != nullptr ? mEngine->GetRenderer() : nullptr};
-    FSceneView View{};
-
-    if (Viewport == nullptr || World == nullptr || World->GetScene() == nullptr || Renderer == nullptr || !CalcSceneView(Viewport->GetSize(), View)) {
-        return;
+        return true;
     }
 
-    const FSceneViewFamily Family{World->GetScene(), Viewport->GetRenderTarget(), View, nullptr};
-    Renderer->BeginRenderingViewFamily(Family);
+    Engine::FWorldHandle Engine::FGameViewportClient::GetWorldHandle() const {
+        return mWorld;
+    }
+
+    bool Engine::FGameViewportClient::CalcSceneView(const Core::FVector2& Size, Engine::FSceneView& View) const {
+        const Engine::UWorld* World{mEngine != nullptr ? mEngine->GetWorld(mWorld) : nullptr};
+        const Engine::UCameraComponent* Camera{World != nullptr ? World->GetActiveCamera() : nullptr};
+        return Camera != nullptr && Camera->GetCameraView(Size, View);
+    }
+
+    void Engine::FGameViewportClient::Input(Engine::FSceneViewport*, const Engine::FViewportInput& Input, float DeltaTime) {
+        Engine::UWorld* World{mEngine != nullptr ? mEngine->GetWorld(mWorld) : nullptr};
+
+        if (World != nullptr) {
+            World->Input(Input, DeltaTime);
+        }
+    }
+
+    void Engine::FGameViewportClient::Draw(Engine::FSceneViewport* Viewport) {
+        Engine::UWorld* World{mEngine != nullptr ? mEngine->GetWorld(mWorld) : nullptr};
+        RenderCore::IRendererModule* Renderer{mEngine != nullptr ? mEngine->GetRenderer() : nullptr};
+        Engine::FSceneView View{};
+
+        if (Viewport == nullptr || World == nullptr || World->GetScene() == nullptr || Renderer == nullptr || !CalcSceneView(Viewport->GetSize(), View)) {
+            return;
+        }
+
+        const Engine::FSceneViewFamily Family{World->GetScene(), Viewport->GetRenderTarget(), View, nullptr};
+        Renderer->BeginRenderingViewFamily(Family);
+    }
+
 }

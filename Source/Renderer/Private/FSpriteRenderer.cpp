@@ -13,101 +13,105 @@
 
 #include <cmath>
 
-FSpriteRenderer::FSpriteRenderer() = default;
-FSpriteRenderer::~FSpriteRenderer() = default;
+namespace Renderer {
 
-bool FSpriteRenderer::Initialize(ID3D11Device* Device) {
-    D3D11_BUFFER_DESC Buffer{};
-    Buffer.ByteWidth = sizeof(FConstants);
-    Buffer.Usage = D3D11_USAGE_DEFAULT;
-    Buffer.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+    Renderer::FSpriteRenderer::FSpriteRenderer() = default;
+    Renderer::FSpriteRenderer::~FSpriteRenderer() = default;
 
-    D3D11_SAMPLER_DESC Sampler{};
-    Sampler.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
-    Sampler.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
-    Sampler.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
-    Sampler.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
-    Sampler.MaxLOD = D3D11_FLOAT32_MAX;
+    bool Renderer::FSpriteRenderer::Initialize(ID3D11Device* Device) {
+        D3D11_BUFFER_DESC Buffer{};
+        Buffer.ByteWidth = sizeof(FConstants);
+        Buffer.Usage = D3D11_USAGE_DEFAULT;
+        Buffer.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 
-    if (FAILED(Device->CreateBuffer(&Buffer, nullptr, mConstants.GetAddressOf())) || FAILED(Device->CreateSamplerState(&Sampler, mSampler.GetAddressOf()))) {
-        return false;
-    }
+        D3D11_SAMPLER_DESC Sampler{};
+        Sampler.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+        Sampler.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+        Sampler.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+        Sampler.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+        Sampler.MaxLOD = D3D11_FLOAT32_MAX;
 
-    TArray<Uint8> Pixels{};
-    Pixels.resize(128 * 128 * 4);
-
-    for (Uint32 Y{}; Y < 128; ++Y) {
-        for (Uint32 X{}; X < 128; ++X) {
-            const Uint32 Frame{(Y / 32) * 4 + X / 32};
-            const float Horizontal{(static_cast<float>(X % 32) + 0.5f) / 16.0f - 1.0f};
-            const float Vertical{(static_cast<float>(Y % 32) + 0.5f) / 16.0f - 1.0f};
-            const float Radius{0.25f + 0.6f * (static_cast<float>(Frame) / 15.0f)};
-            const bool Visible{Horizontal * Horizontal + Vertical * Vertical <= Radius * Radius};
-            const std::size_t Offset{(static_cast<std::size_t>(Y) * 128 + X) * 4};
-            Pixels[Offset] = static_cast<Uint8>(64 + Frame * 12);
-            Pixels[Offset + 1] = static_cast<Uint8>(220 - Frame * 8);
-            Pixels[Offset + 2] = 240;
-            Pixels[Offset + 3] = Visible ? 255 : 0;
+        if (FAILED(Device->CreateBuffer(&Buffer, nullptr, mConstants.GetAddressOf())) || FAILED(Device->CreateSamplerState(&Sampler, mSampler.GetAddressOf()))) {
+            return false;
         }
+
+        Core::TArray<Core::Uint8> Pixels{};
+        Pixels.resize(128 * 128 * 4);
+
+        for (Core::Uint32 Y{}; Y < 128; ++Y) {
+            for (Core::Uint32 X{}; X < 128; ++X) {
+                const Core::Uint32 Frame{(Y / 32) * 4 + X / 32};
+                const float Horizontal{(static_cast<float>(X % 32) + 0.5f) / 16.0f - 1.0f};
+                const float Vertical{(static_cast<float>(Y % 32) + 0.5f) / 16.0f - 1.0f};
+                const float Radius{0.25f + 0.6f * (static_cast<float>(Frame) / 15.0f)};
+                const bool Visible{Horizontal * Horizontal + Vertical * Vertical <= Radius * Radius};
+                const std::size_t Offset{(static_cast<std::size_t>(Y) * 128 + X) * 4};
+                Pixels[Offset] = static_cast<Core::Uint8>(64 + Frame * 12);
+                Pixels[Offset + 1] = static_cast<Core::Uint8>(220 - Frame * 8);
+                Pixels[Offset + 2] = 240;
+                Pixels[Offset + 3] = Visible ? 255 : 0;
+            }
+        }
+
+        mDefaultAtlas = CoreUObject::NewObject<Engine::UTexture2D>();
+
+        return mDefaultAtlas->SetPixels(128, 128, Engine::ETextureFormat::RGBA8, std::move(Pixels)) && mDefaultAtlas->CreateResources(Device);
     }
 
-    mDefaultAtlas = NewObject<UTexture2D>();
+    bool Renderer::FSpriteRenderer::CreateShaders(ID3D11Device* Device, std::span<const Core::Uint8> VertexCode, std::span<const Core::Uint8> PixelCode) {
+        Microsoft::WRL::ComPtr<ID3D11VertexShader> Vertex{};
+        Microsoft::WRL::ComPtr<ID3D11PixelShader> Pixel{};
 
-    return mDefaultAtlas->SetPixels(128, 128, ETextureFormat::RGBA8, std::move(Pixels)) && mDefaultAtlas->CreateResources(Device);
-}
+        if (FAILED(Device->CreateVertexShader(VertexCode.data(), VertexCode.size(), nullptr, Vertex.GetAddressOf())) || FAILED(Device->CreatePixelShader(PixelCode.data(), PixelCode.size(), nullptr, Pixel.GetAddressOf()))) {
+            return false;
+        }
 
-bool FSpriteRenderer::CreateShaders(ID3D11Device* Device, std::span<const Uint8> VertexCode, std::span<const Uint8> PixelCode) {
-    Microsoft::WRL::ComPtr<ID3D11VertexShader> Vertex{};
-    Microsoft::WRL::ComPtr<ID3D11PixelShader> Pixel{};
+        mVertexShader = std::move(Vertex);
+        mPixelShader = std::move(Pixel);
 
-    if (FAILED(Device->CreateVertexShader(VertexCode.data(), VertexCode.size(), nullptr, Vertex.GetAddressOf())) || FAILED(Device->CreatePixelShader(PixelCode.data(), PixelCode.size(), nullptr, Pixel.GetAddressOf()))) {
-        return false;
+        return true;
     }
 
-    mVertexShader = std::move(Vertex);
-    mPixelShader = std::move(Pixel);
+    bool Renderer::FSpriteRenderer::Draw(ID3D11DeviceContext* Context, const Engine::FPrimitiveSceneProxy& Proxy, const Engine::FSceneView& View) {
+        if (!Proxy.mSprite.has_value() || mVertexShader == nullptr || mPixelShader == nullptr) {
+            return false;
+        }
 
-    return true;
-}
+        const Engine::FDrawSprite& Sprite{*Proxy.mSprite};
+        Engine::UTexture2D* Texture{Sprite.mTexture != nullptr ? Sprite.mTexture : mDefaultAtlas.get()};
+        Microsoft::WRL::ComPtr<ID3D11Device> Device{};
+        Context->GetDevice(Device.GetAddressOf());
 
-bool FSpriteRenderer::Draw(ID3D11DeviceContext* Context, const FPrimitiveSceneProxy& Proxy, const FSceneView& View) {
-    if (!Proxy.mSprite.has_value() || mVertexShader == nullptr || mPixelShader == nullptr) {
-        return false;
+        if (Texture == nullptr || (!Texture->HasResources() && !Texture->CreateResources(Device.Get()))) {
+            return false;
+        }
+
+        const FConstants Constants{Engine::MakeSpriteWorld(Proxy.mWorld, Sprite, View) * View.mViewProjection, {Proxy.mUVScale.x, Proxy.mUVScale.y, Proxy.mUVOffset.x, Proxy.mUVOffset.y}, Sprite.mColor};
+        Context->UpdateSubresource(mConstants.Get(), 0, nullptr, &Constants, 0, 0);
+
+        ID3D11Buffer* Buffer{mConstants.Get()};
+        ID3D11ShaderResourceView* Resource{Texture->GetShaderResourceView()};
+        ID3D11SamplerState* Sampler{mSampler.Get()};
+
+        Context->IASetInputLayout(nullptr);
+        Context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+        Context->VSSetShader(mVertexShader.Get(), nullptr, 0);
+        Context->PSSetShader(mPixelShader.Get(), nullptr, 0);
+        Context->VSSetConstantBuffers(0, 1, &Buffer);
+        Context->PSSetConstantBuffers(0, 1, &Buffer);
+        Context->PSSetShaderResources(0, 1, &Resource);
+        Context->PSSetSamplers(0, 1, &Sampler);
+        Context->Draw(6, 0);
+        Renderer::RendererStats::Triangles.Add(2.0);
+
+        ID3D11ShaderResourceView* Empty{};
+        Context->PSSetShaderResources(0, 1, &Empty);
+
+        return true;
     }
 
-    const FDrawSprite& Sprite{*Proxy.mSprite};
-    UTexture2D* Texture{Sprite.mTexture != nullptr ? Sprite.mTexture : mDefaultAtlas.get()};
-    Microsoft::WRL::ComPtr<ID3D11Device> Device{};
-    Context->GetDevice(Device.GetAddressOf());
-
-    if (Texture == nullptr || (!Texture->HasResources() && !Texture->CreateResources(Device.Get()))) {
-        return false;
+    std::size_t Renderer::FSpriteRenderer::GetResourceBytes() const {
+        return sizeof(FConstants) + (mDefaultAtlas != nullptr ? mDefaultAtlas->GetResourceBytes() : 0);
     }
 
-    const FConstants Constants{MakeSpriteWorld(Proxy.mWorld, Sprite, View) * View.mViewProjection, {Proxy.mUVScale.x, Proxy.mUVScale.y, Proxy.mUVOffset.x, Proxy.mUVOffset.y}, Sprite.mColor};
-    Context->UpdateSubresource(mConstants.Get(), 0, nullptr, &Constants, 0, 0);
-
-    ID3D11Buffer* Buffer{mConstants.Get()};
-    ID3D11ShaderResourceView* Resource{Texture->GetShaderResourceView()};
-    ID3D11SamplerState* Sampler{mSampler.Get()};
-
-    Context->IASetInputLayout(nullptr);
-    Context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-    Context->VSSetShader(mVertexShader.Get(), nullptr, 0);
-    Context->PSSetShader(mPixelShader.Get(), nullptr, 0);
-    Context->VSSetConstantBuffers(0, 1, &Buffer);
-    Context->PSSetConstantBuffers(0, 1, &Buffer);
-    Context->PSSetShaderResources(0, 1, &Resource);
-    Context->PSSetSamplers(0, 1, &Sampler);
-    Context->Draw(6, 0);
-    RendererStats::Triangles.Add(2.0);
-
-    ID3D11ShaderResourceView* Empty{};
-    Context->PSSetShaderResources(0, 1, &Empty);
-
-    return true;
-}
-
-std::size_t FSpriteRenderer::GetResourceBytes() const {
-    return sizeof(FConstants) + (mDefaultAtlas != nullptr ? mDefaultAtlas->GetResourceBytes() : 0);
 }

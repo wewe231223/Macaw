@@ -9,23 +9,27 @@
 #include <algorithm>
 #include <cmath>
 
-FCollisionShape UBoxComponent::GetCollisionShape() const {
-    return FCollisionShape::MakeBox(GetScaledBoxExtent());
-}
+namespace Engine {
 
-FBox UBoxComponent::CalcLocalBounds() const {
-    return FBox{ -mBoxExtent, mBoxExtent };
-}
+    Engine::FCollisionShape Engine::UBoxComponent::GetCollisionShape() const {
+        return Engine::FCollisionShape::MakeBox(GetScaledBoxExtent());
+    }
 
-void UBoxComponent::SetBoxExtent(const FVector& InExtent) {
-    mBoxExtent = FVector{ std::max(InExtent.x, 0.0f), std::max(InExtent.y, 0.0f), std::max(InExtent.z, 0.0f) };
-}
+    Core::FBox Engine::UBoxComponent::CalcLocalBounds() const {
+        return Core::FBox{ -mBoxExtent, mBoxExtent };
+    }
 
-FVector UBoxComponent::GetScaledBoxExtent() const {
-    const FVector Scale{GetTransform().mScale};
-    return FVector{mBoxExtent.x * std::abs(Scale.x), mBoxExtent.y * std::abs(Scale.y), mBoxExtent.z * std::abs(Scale.z)};
-}
+    void Engine::UBoxComponent::SetBoxExtent(const Core::FVector& InExtent) {
+        mBoxExtent = Core::FVector{ std::max(InExtent.x, 0.0f), std::max(InExtent.y, 0.0f), std::max(InExtent.z, 0.0f) };
+    }
 
-const FVector& UBoxComponent::GetBoxExtent() const {
-    return mBoxExtent;
+    Core::FVector Engine::UBoxComponent::GetScaledBoxExtent() const {
+        const Core::FVector Scale{GetTransform().mScale};
+        return Core::FVector{mBoxExtent.x * std::abs(Scale.x), mBoxExtent.y * std::abs(Scale.y), mBoxExtent.z * std::abs(Scale.z)};
+    }
+
+    const Core::FVector& Engine::UBoxComponent::GetBoxExtent() const {
+        return mBoxExtent;
+    }
+
 }

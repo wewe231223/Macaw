@@ -8,60 +8,64 @@
 
 #include <cmath>
 
-UDirectionalLightComponent::UDirectionalLightComponent() = default;
-UDirectionalLightComponent::~UDirectionalLightComponent() = default;
+namespace Engine {
 
-FLightSceneProxy UDirectionalLightComponent::CreateLightProxy() const {
-    FLightSceneProxy Proxy{ULightComponent::CreateLightProxy()};
-    Proxy.mType = ELightType::Directional;
-    Proxy.mCascadeCount = mCascadeCount;
-    Proxy.mShadowDistance = mShadowDistance;
-    Proxy.mCascadeTransitionFraction = mCascadeTransitionFraction;
+    Engine::UDirectionalLightComponent::UDirectionalLightComponent() = default;
+    Engine::UDirectionalLightComponent::~UDirectionalLightComponent() = default;
 
-    return Proxy;
-}
+    Engine::FLightSceneProxy Engine::UDirectionalLightComponent::CreateLightProxy() const {
+        Engine::FLightSceneProxy Proxy{Engine::ULightComponent::CreateLightProxy()};
+        Proxy.mType = Engine::ELightType::Directional;
+        Proxy.mCascadeCount = mCascadeCount;
+        Proxy.mShadowDistance = mShadowDistance;
+        Proxy.mCascadeTransitionFraction = mCascadeTransitionFraction;
 
-Uint32 UDirectionalLightComponent::GetCascadeCount() const {
-    return mCascadeCount;
-}
-
-bool UDirectionalLightComponent::SetCascadeCount(Uint32 Count) {
-    if (Count < 1 || Count > 4) {
-        return false;
+        return Proxy;
     }
 
-    mCascadeCount = Count;
-    SynchronizeLight();
-
-    return true;
-}
-
-float UDirectionalLightComponent::GetShadowDistance() const {
-    return mShadowDistance;
-}
-
-bool UDirectionalLightComponent::SetShadowDistance(float Distance) {
-    if (!std::isfinite(Distance) || Distance < 1.0f || Distance > 100000.0f) {
-        return false;
+    Core::Uint32 Engine::UDirectionalLightComponent::GetCascadeCount() const {
+        return mCascadeCount;
     }
 
-    mShadowDistance = Distance;
-    SynchronizeLight();
+    bool Engine::UDirectionalLightComponent::SetCascadeCount(Core::Uint32 Count) {
+        if (Count < 1 || Count > 4) {
+            return false;
+        }
 
-    return true;
-}
+        mCascadeCount = Count;
+        SynchronizeLight();
 
-float UDirectionalLightComponent::GetCascadeTransitionFraction() const {
-    return mCascadeTransitionFraction;
-}
-
-bool UDirectionalLightComponent::SetCascadeTransitionFraction(float Fraction) {
-    if (!std::isfinite(Fraction) || Fraction < 0.0f || Fraction > 0.5f) {
-        return false;
+        return true;
     }
 
-    mCascadeTransitionFraction = Fraction;
-    SynchronizeLight();
+    float Engine::UDirectionalLightComponent::GetShadowDistance() const {
+        return mShadowDistance;
+    }
 
-    return true;
+    bool Engine::UDirectionalLightComponent::SetShadowDistance(float Distance) {
+        if (!std::isfinite(Distance) || Distance < 1.0f || Distance > 100000.0f) {
+            return false;
+        }
+
+        mShadowDistance = Distance;
+        SynchronizeLight();
+
+        return true;
+    }
+
+    float Engine::UDirectionalLightComponent::GetCascadeTransitionFraction() const {
+        return mCascadeTransitionFraction;
+    }
+
+    bool Engine::UDirectionalLightComponent::SetCascadeTransitionFraction(float Fraction) {
+        if (!std::isfinite(Fraction) || Fraction < 0.0f || Fraction > 0.5f) {
+            return false;
+        }
+
+        mCascadeTransitionFraction = Fraction;
+        SynchronizeLight();
+
+        return true;
+    }
+
 }

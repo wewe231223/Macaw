@@ -8,14 +8,18 @@
 
 #include <cmath>
 
-UAmbientLightComponent::UAmbientLightComponent() {
-    SetIntensity(0.15f);
-}
+namespace Engine {
 
-UAmbientLightComponent::~UAmbientLightComponent() = default;
+    Engine::UAmbientLightComponent::UAmbientLightComponent() {
+        SetIntensity(0.15f);
+    }
 
-FLightSceneProxy UAmbientLightComponent::CreateLightProxy() const {
-    FLightSceneProxy Proxy{ULightComponent::CreateLightProxy()};
-    Proxy.mType = ELightType::Ambient;
-    return Proxy;
+    Engine::UAmbientLightComponent::~UAmbientLightComponent() = default;
+
+    Engine::FLightSceneProxy Engine::UAmbientLightComponent::CreateLightProxy() const {
+        Engine::FLightSceneProxy Proxy{Engine::ULightComponent::CreateLightProxy()};
+        Proxy.mType = Engine::ELightType::Ambient;
+        return Proxy;
+    }
+
 }

@@ -11,61 +11,65 @@
 #include "Engine/UWorld.h"
 #include "Serialization/JsonArchive.h"
 
-/**
- * @brief 월드 컨텍스트를 JSON 장면 파일로 저장합니다.
- */
-bool FSceneSerializer::Save(const std::filesystem::path& Path, FWorldContext* Context, FString& Error) {
-    FJsonArchive Archive{EArchiveMode::Saving};
-    Serialize(Archive, Context);
+namespace Engine {
 
-    if (Archive.HasError()) {
+    /**
+     * @brief 월드 컨텍스트를 JSON 장면 파일로 저장합니다.
+     */
+    bool Engine::FSceneSerializer::Save(const std::filesystem::path& Path, Engine::FWorldContext* Context, Core::FString& Error) {
+        Serialization::FJsonArchive Archive{Core::EArchiveMode::Saving};
+        Serialize(Archive, Context);
+
+        if (Archive.HasError()) {
+            Error = Archive.GetError();
+            return false;
+        }
+
+        const Core::FString Payload{Archive.ToString()};
+
+        return Engine::FAssetFile::Save(Path, Engine::EAssetType::Scene, std::span<const Core::Uint8>{reinterpret_cast<const Core::Uint8*>(Payload.data()), Payload.size()}, Error);
+    }
+
+    /**
+     * @brief 파일을 읽고 검증한 새 월드 컨텍스트를 반환합니다.
+     */
+    std::unique_ptr<Engine::FWorldContext> Engine::FSceneSerializer::Load(const std::filesystem::path& Path, Core::FString& Error, Engine::FAssetManager* Assets) {
+        Serialization::FJsonArchive Archive{Core::EArchiveMode::Loading};
+
+        Core::TArray<Core::Uint8> Payload{};
+
+        if (!Engine::FAssetFile::Load(Path, Engine::EAssetType::Scene, Payload, Error)) {
+            return nullptr;
+        }
+
+        if (!Archive.Parse(Core::FString{reinterpret_cast<const char*>(Payload.data()), Payload.size()})) {
+            Error = Archive.GetError();
+
+            return nullptr;
+        }
+
+        auto Context{std::make_unique<Engine::FWorldContext>()};
+        Context->GetWorld()->SetAssets(Assets);
+        Serialize(Archive, Context.get());
         Error = Archive.GetError();
-        return false;
+
+        return Archive.HasError() ? nullptr : std::move(Context);
     }
 
-    const FString Payload{Archive.ToString()};
+    /**
+     * @brief 아카이브 모드에 따라 값을 읽거나 저장합니다.
+     */
+    void Engine::FSceneSerializer::Serialize(Core::FArchive& Archive, Engine::FWorldContext* Context) {
+        Engine::FWorldSerializer::Serialize(Archive, Context);
 
-    return FAssetFile::Save(Path, EAssetType::Scene, std::span<const Uint8>{reinterpret_cast<const Uint8*>(Payload.data()), Payload.size()}, Error);
-}
+        if (Archive.HasError() || Context == nullptr || (Archive.IsLoading() && !Archive.HasField("PerspectiveCamera"))) {
+            return;
+        }
 
-/**
- * @brief 파일을 읽고 검증한 새 월드 컨텍스트를 반환합니다.
- */
-std::unique_ptr<FWorldContext> FSceneSerializer::Load(const std::filesystem::path& Path, FString& Error, FAssetManager* Assets) {
-    FJsonArchive Archive{EArchiveMode::Loading};
-
-    TArray<Uint8> Payload{};
-
-    if (!FAssetFile::Load(Path, EAssetType::Scene, Payload, Error)) {
-        return nullptr;
+        if (Archive.BeginObject("PerspectiveCamera")) {
+            Context->GetEditorCamera().Serialize(Archive);
+            Archive.EndObject();
+        }
     }
 
-    if (!Archive.Parse(FString{reinterpret_cast<const char*>(Payload.data()), Payload.size()})) {
-        Error = Archive.GetError();
-
-        return nullptr;
-    }
-
-    auto Context{std::make_unique<FWorldContext>()};
-    Context->GetWorld()->SetAssets(Assets);
-    Serialize(Archive, Context.get());
-    Error = Archive.GetError();
-
-    return Archive.HasError() ? nullptr : std::move(Context);
-}
-
-/**
- * @brief 아카이브 모드에 따라 값을 읽거나 저장합니다.
- */
-void FSceneSerializer::Serialize(FArchive& Archive, FWorldContext* Context) {
-    FWorldSerializer::Serialize(Archive, Context);
-
-    if (Archive.HasError() || Context == nullptr || (Archive.IsLoading() && !Archive.HasField("PerspectiveCamera"))) {
-        return;
-    }
-
-    if (Archive.BeginObject("PerspectiveCamera")) {
-        Context->GetEditorCamera().Serialize(Archive);
-        Archive.EndObject();
-    }
 }

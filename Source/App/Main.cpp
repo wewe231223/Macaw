@@ -8,18 +8,22 @@
 #include "Core/Base/ErrorHandler.h"
 #include "FObjViewerApplication.h"
 
-/**
- * @brief 선택한 빌드 모드의 호스트를 실행하고 종료 전에 소유 자원을 해제합니다.
- * @return 애플리케이션 종료 코드입니다.
- */
-static int RunApplication() {
+namespace App {
+
+    /**
+     * @brief 선택한 빌드 모드의 호스트를 실행하고 종료 전에 소유 자원을 해제합니다.
+     * @return 애플리케이션 종료 코드입니다.
+     */
+    static int RunApplication() {
 #if defined(MACAW_OBJ_VIEWER)
-    FObjViewerApplication Application{};
+        App::FObjViewerApplication Application{};
 #else
-    FApplication Application{};
+        App::FApplication Application{};
 #endif
 
-    return Application.Run();
+        return Application.Run();
+    }
+
 }
 
 /**
@@ -31,15 +35,15 @@ static int RunApplication() {
  * @return 정상 종료 시 0입니다.
  */
 int WINAPI WinMain(HINSTANCE Instance, HINSTANCE Previous, LPSTR CommandLine, int ShowCommand) {
-    ErrorHandler::Initialize();
+    Core::ErrorHandler::Initialize();
 
     const HRESULT ComResult{CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED)};
 
     if (FAILED(ComResult)) {
-        ErrorHandler::Fatal("Application", "Cannot initialize COM for the application");
+        Core::ErrorHandler::Fatal("Application", "Cannot initialize COM for the application");
     }
 
-    const int Result{RunApplication()};
+    const int Result{App::RunApplication()};
 
     if (SUCCEEDED(ComResult)) {
         CoUninitialize();

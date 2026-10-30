@@ -9,46 +9,50 @@
 #include <algorithm>
 #include <cmath>
 
-USpotLightComponent::USpotLightComponent() = default;
-USpotLightComponent::~USpotLightComponent() = default;
+namespace Engine {
 
-FLightSceneProxy USpotLightComponent::CreateLightProxy() const {
-    FLightSceneProxy Proxy{UPointLightComponent::CreateLightProxy()};
-    Proxy.mType = ELightType::Spot;
-    Proxy.mInnerConeAngle = mInnerConeAngle;
-    Proxy.mOuterConeAngle = mOuterConeAngle;
+    Engine::USpotLightComponent::USpotLightComponent() = default;
+    Engine::USpotLightComponent::~USpotLightComponent() = default;
 
-    return Proxy;
-}
+    Engine::FLightSceneProxy Engine::USpotLightComponent::CreateLightProxy() const {
+        Engine::FLightSceneProxy Proxy{Engine::UPointLightComponent::CreateLightProxy()};
+        Proxy.mType = Engine::ELightType::Spot;
+        Proxy.mInnerConeAngle = mInnerConeAngle;
+        Proxy.mOuterConeAngle = mOuterConeAngle;
 
-float USpotLightComponent::GetInnerConeAngle() const {
-    return mInnerConeAngle;
-}
-
-bool USpotLightComponent::SetInnerConeAngle(float InnerConeAngle) {
-    if (!std::isfinite(InnerConeAngle) || InnerConeAngle < 0.0f || InnerConeAngle >= 89.0f) {
-        return false;
+        return Proxy;
     }
 
-    mInnerConeAngle = InnerConeAngle;
-    mOuterConeAngle = std::max(mOuterConeAngle, mInnerConeAngle);
-    SynchronizeLight();
-
-    return true;
-}
-
-float USpotLightComponent::GetOuterConeAngle() const {
-    return mOuterConeAngle;
-}
-
-bool USpotLightComponent::SetOuterConeAngle(float OuterConeAngle) {
-    if (!std::isfinite(OuterConeAngle) || OuterConeAngle < 0.0f || OuterConeAngle >= 89.0f) {
-        return false;
+    float Engine::USpotLightComponent::GetInnerConeAngle() const {
+        return mInnerConeAngle;
     }
 
-    mOuterConeAngle = OuterConeAngle;
-    mInnerConeAngle = std::min(mInnerConeAngle, mOuterConeAngle);
-    SynchronizeLight();
+    bool Engine::USpotLightComponent::SetInnerConeAngle(float InnerConeAngle) {
+        if (!std::isfinite(InnerConeAngle) || InnerConeAngle < 0.0f || InnerConeAngle >= 89.0f) {
+            return false;
+        }
 
-    return true;
+        mInnerConeAngle = InnerConeAngle;
+        mOuterConeAngle = std::max(mOuterConeAngle, mInnerConeAngle);
+        SynchronizeLight();
+
+        return true;
+    }
+
+    float Engine::USpotLightComponent::GetOuterConeAngle() const {
+        return mOuterConeAngle;
+    }
+
+    bool Engine::USpotLightComponent::SetOuterConeAngle(float OuterConeAngle) {
+        if (!std::isfinite(OuterConeAngle) || OuterConeAngle < 0.0f || OuterConeAngle >= 89.0f) {
+            return false;
+        }
+
+        mOuterConeAngle = OuterConeAngle;
+        mInnerConeAngle = std::min(mInnerConeAngle, mOuterConeAngle);
+        SynchronizeLight();
+
+        return true;
+    }
+
 }

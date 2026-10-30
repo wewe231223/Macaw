@@ -1,4 +1,9 @@
 /**
+ * @file ApiReference.dox
+ * @brief 엔진 API의 개요·사용 흐름과 모듈별 Doxygen 그룹을 정의합니다.
+ */
+
+/**
 \mainpage Macaw API Reference
 
 Macaw는 C++20, Windows x64와 Direct3D 11을 사용하는 엔진입니다.
@@ -7,24 +12,24 @@ Macaw는 C++20, Windows x64와 Direct3D 11을 사용하는 엔진입니다.
 \section MeshAssetWorkflow 정적 메시와 OBJ 뷰어
 
 - OBJ를 임포트하면 연결된 MTL의 기본색·불투명도·양면 설정과 기본색 텍스처를 프로젝트 에셋으로 가져옵니다. 같은 원본 텍스처를 여러 재질이 참조하면 한 에셋을 공유합니다.
-- \ref FSubMesh 는 공유 인덱스 버퍼의 시작 위치·개수·재질 슬롯을 보관합니다. \ref FMeshMaterialSlot 은 원본 재질 이름과 Content 기준 재질 경로를 보관합니다.
+- \ref Engine::FSubMesh 는 공유 인덱스 버퍼의 시작 위치·개수·재질 슬롯을 보관합니다. \ref Engine::FMeshMaterialSlot 은 원본 재질 이름과 Content 기준 재질 경로를 보관합니다.
 - Details의 Mesh 드롭다운에서 프로젝트 메시를 선택하거나 에셋을 끌어다 놓을 수 있습니다. Material은 전체 메시의 재질을 바꾸고, 각 슬롯 선택기는 해당 구간만 바꿉니다. Default는 메시의 기본 재질을 사용합니다.
-- 에셋 브라우저에서 메시를 더블클릭하면 \ref FMeshViewer 가 편집 월드와 분리된 미리보기를 엽니다. 뷰포트로 드래그하면 장면에 배치합니다.
+- 에셋 브라우저에서 메시를 더블클릭하면 \ref Editor::FMeshViewer 가 편집 월드와 분리된 미리보기를 엽니다. 뷰포트로 드래그하면 장면에 배치합니다.
 - 뷰어에서 좌우 마우스 드래그로 궤도 회전, 가운데 드래그로 이동, 휠로 확대·축소, F로 전체 메시 보기를 실행합니다. 슬롯 재질 선택은 미리보기에서만 적용합니다.
-- 프로젝트의 `Saved/EditorLayout.ini`에 분할 비율과 단일·4분할 배치를 저장합니다. 장면 파일에는 \ref FEditorCameraState 의 위치·회전·FOV·Near/Far를 저장합니다. 카메라 설정은 뷰포트의 Camera 메뉴에서 편집합니다.
+- 프로젝트의 `Saved/EditorLayout.ini`에 분할 비율과 단일·4분할 배치를 저장합니다. 장면 파일에는 \ref Engine::FEditorCameraState 의 위치·회전·FOV·Near/Far를 저장합니다. 카메라 설정은 뷰포트의 Camera 메뉴에서 편집합니다.
 - 이전 메시 에셋은 하나의 기본 재질 구간으로 읽습니다. 카메라 필드가 없는 이전 장면에는 기본 편집 카메라를 적용합니다.
 
 `Scripts/premake5.exe vs2026` 또는 `Build.bat`로 솔루션을 생성한 뒤 `ObjViewerDebug` 또는 `ObjViewerRelease` 구성을 빌드하면 프로젝트 브라우저 없이 OBJ 뷰어를 실행합니다. 실행 파일은 `Binaries/ObjViewerDebug/Macaw.exe` 또는 `Binaries/ObjViewerRelease/Macaw.exe`이며 첫 명령줄 인수로 원본 OBJ 경로를 전달할 수 있습니다. 일반 편집기는 Debug와 Release 구성을 사용합니다.
 
 \section ObjectIteration 객체 타입별 순회
 
-\ref TObjectIterator 는 생성 시 수집한 세대 핸들 스냅샷을 순회하며 소멸한 객체와 이후 재사용된 슬롯을 건너뜁니다. UObject 파생 타입과 const 타입, 파생 타입 포함 여부 및 재귀 Outer 필터를 지원합니다. \ref TObjectRange 는 같은 동작을 range-for로 제공합니다. 객체 수명은 소유하지 않으며 레지스트리 소유 스레드에서 사용합니다.
+\ref CoreUObject::TObjectIterator 는 생성 시 수집한 세대 핸들 스냅샷을 순회하며 소멸한 객체와 이후 재사용된 슬롯을 건너뜁니다. UObject 파생 타입과 const 타입, 파생 타입 포함 여부 및 재귀 Outer 필터를 지원합니다. \ref CoreUObject::TObjectRange 는 같은 동작을 range-for로 제공합니다. 객체 수명은 소유하지 않으며 레지스트리 소유 스레드에서 사용합니다.
 
 \code{.cpp}
-for (UStaticMesh* Mesh : TObjectRange<UStaticMesh>{}) {
+for (Engine::UStaticMesh* Mesh : CoreUObject::TObjectRange<Engine::UStaticMesh>{}) {
     Mesh->GetMeshData();
 }
-for (TObjectIterator<UStaticMesh> Iterator{}; Iterator; ++Iterator) {
+for (CoreUObject::TObjectIterator<Engine::UStaticMesh> Iterator{}; Iterator; ++Iterator) {
     Iterator->GetMeshData();
 }
 \endcode
@@ -34,7 +39,7 @@ for (TObjectIterator<UStaticMesh> Iterator{}; Iterator; ++Iterator) {
 - <a href="annotated.html">클래스·구조체</a>: 역할, 생성·소멸, 함수 인수, 반환값과 상태 필드
 - <a href="hierarchy.html">상속 관계</a>: UObject, 액터, 컴포넌트와 렌더러 인터페이스
 - <a href="functions.html">멤버 인덱스</a>: 함수와 데이터 멤버의 이름별 검색
-- <a href="namespaces.html">네임스페이스</a>: Math, Math::Simd, ErrorHandler, ReflectionModules, EditorStyle과 ViewportToolbar
+- <a href="namespaces.html">네임스페이스</a>: 모듈별 API와 Core::Math, Core::Math::Simd, Core::ErrorHandler, Editor::EditorStyle, Editor::ViewportToolbar
 - <a href="files.html">소스 파일</a>: 모든 자체 헤더와 구현 파일
 - <a href="topics.html">모듈</a>: 빌드 모듈별 타입과 API
 
@@ -42,15 +47,15 @@ for (TObjectIterator<UStaticMesh> Iterator{}; Iterator; ++Iterator) {
 
 | 모듈 | 역할 | 주요 API |
 | --- | --- | --- |
-| \ref Core | 기본 타입, SIMD 수학, 메모리, 프레임 시간, 아카이브 | \ref FVector, \ref FMatrix, \ref FTransform, \ref FArchive |
-| \ref CoreUObject | 객체 수명, 세대 핸들, 타입·프로퍼티 리플렉션 | \ref UObject, \ref FObjectRegistry, \ref UClass, \ref FProperty |
-| \ref Serialization | JSON 아카이브와 파일 입출력 | \ref FJsonArchive |
-| \ref RenderCore | 렌더러 수명 및 프레임 제출 인터페이스 | \ref IRendererModule, \ref FRenderStats |
-| \ref Engine | 월드, 레벨, 액터, 컴포넌트, 장면·뷰포트 및 장면 저장 | \ref UEngine, \ref UWorld, \ref AActor, \ref FSceneSerializer |
-| \ref Renderer | Direct3D 11 장치, 장면, 타깃과 드로 제출 | \ref FRenderer, \ref FScene, \ref FSceneRenderer |
-| \ref Platform | Win32 창과 메시지 펌프 | \ref FWindowsApplication |
-| \ref Editor | UI 독립 편집 컨텍스트, 카메라, 변환 명령, 기즈모와 ImGui 패널 | \ref UEditorEngine, \ref FEditorContext, \ref FEditorUI, \ref FEditorViewport, \ref FEditorViewportClient, \ref EViewportCommand |
-| \ref App | 플랫폼·렌더러·에디터를 조합하는 실행 진입점 | \ref FApplication |
+| \ref Core | 기본 타입, SIMD 수학, 메모리, 프레임 시간, 아카이브 | \ref Core::FVector, \ref Core::FMatrix, \ref Core::FTransform, \ref Core::FArchive |
+| \ref CoreUObject | 객체 수명, 세대 핸들, 타입·프로퍼티 리플렉션 | \ref CoreUObject::UObject, \ref CoreUObject::FObjectRegistry, \ref CoreUObject::UClass, \ref CoreUObject::FProperty |
+| \ref Serialization | JSON 아카이브와 파일 입출력 | \ref Serialization::FJsonArchive |
+| \ref RenderCore | 렌더러 수명 및 프레임 제출 인터페이스 | \ref RenderCore::IRendererModule, \ref RenderCore::FRenderStats |
+| \ref Engine | 월드, 레벨, 액터, 컴포넌트, 장면·뷰포트 및 장면 저장 | \ref Engine::UEngine, \ref Engine::UWorld, \ref Engine::AActor, \ref Engine::FSceneSerializer |
+| \ref Renderer | Direct3D 11 장치, 장면, 타깃과 드로 제출 | \ref Renderer::FRenderer, \ref Renderer::FScene, \ref Renderer::FSceneRenderer |
+| \ref Platform | Win32 창과 메시지 펌프 | \ref Platform::FWindowsApplication |
+| \ref Editor | UI 독립 편집 컨텍스트, 카메라, 변환 명령, 기즈모와 ImGui 패널 | \ref Editor::UEditorEngine, \ref Editor::FEditorContext, \ref Editor::FEditorUI, \ref Editor::FEditorViewport, \ref Editor::FEditorViewportClient, \ref Editor::EViewportCommand |
+| \ref App | 플랫폼·렌더러·에디터를 조합하는 실행 진입점 | \ref App::FApplication |
 
 외부 ImGui는 `ThirdParty/ImGui`에서 별도 정적 라이브러리로 빌드합니다.
 `Regacy/`, 외부 라이브러리와 `Intermediate/` 생성물은 현재 자체 소스 문서의 입력에서 제외합니다.
@@ -223,3 +228,58 @@ Windows 창과 메시지 처리입니다.
 \defgroup App App
 실행 진입점과 애플리케이션 수명입니다.
 */
+
+/**
+ * @namespace App
+ * @brief 실행 진입점과 편집기·OBJ 뷰어 애플리케이션의 수명을 관리합니다.
+ */
+
+/**
+ * @namespace Core
+ * @brief 기본 타입·컨테이너·수학·메모리·시간과 공통 아카이브를 제공합니다.
+ */
+
+/**
+ * @namespace CoreUObject
+ * @brief 객체 수명·세대 핸들·타입과 프로퍼티 리플렉션을 제공합니다.
+ */
+
+/**
+ * @namespace Editor
+ * @brief 편집 컨텍스트·뷰포트·패널·에셋 도구와 PIE 세션을 제공합니다.
+ */
+
+/**
+ * @namespace Engine
+ * @brief 월드·레벨·액터·컴포넌트와 장면·프로젝트 API를 제공합니다.
+ */
+
+/**
+ * @namespace Platform
+ * @brief Win32 창·DPI·입력 메시지와 플랫폼 애플리케이션을 제공합니다.
+ */
+
+/**
+ * @namespace RenderCore
+ * @brief 렌더러 인터페이스·렌더 통계와 셰이더 관리 API를 제공합니다.
+ */
+
+/**
+ * @namespace Renderer
+ * @brief Direct3D 11 장면 렌더링·GPU 리소스와 후처리를 구현합니다.
+ */
+
+/**
+ * @namespace Script
+ * @brief Lua 실행 환경·프로퍼티 바인딩과 코루틴 스케줄러를 제공합니다.
+ */
+
+/**
+ * @namespace Serialization
+ * @brief JSON 기반 아카이브와 객체·파일 직렬화를 제공합니다.
+ */
+
+/**
+ * @namespace Tests
+ * @brief 엔진 기능과 모듈 경계를 확인하는 독립 통합 검증 함수를 모읍니다.
+ */

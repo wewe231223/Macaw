@@ -6,9 +6,13 @@
 
 #include "Core/Reflection/EPropertyFlags.h"
 
-/**
- * @brief 두 플래그 집합의 비트 OR 결합을 반환합니다.
- */
-EPropertyFlags operator|(EPropertyFlags Left, EPropertyFlags Right) {
-    return static_cast<EPropertyFlags>(static_cast<Uint32>(Left) | static_cast<Uint32>(Right));
+namespace Core {
+
+    /**
+     * @brief 두 플래그 집합의 비트 OR 결합을 반환합니다.
+     */
+    Core::EPropertyFlags operator|(Core::EPropertyFlags Left, Core::EPropertyFlags Right) {
+        return static_cast<Core::EPropertyFlags>(static_cast<Core::Uint32>(Left) | static_cast<Core::Uint32>(Right));
+    }
+
 }

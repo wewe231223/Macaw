@@ -6,90 +6,94 @@
 
 #include "Engine/FMeshData.h"
 
-TArray<FVector>& FMeshData::GetPositions() {
-    return mPositions;
-}
+namespace Engine {
 
-const TArray<FVector>& FMeshData::GetPositions() const {
-    return mPositions;
-}
-
-TArray<FVector>& FMeshData::GetNormals() {
-    return mNormals;
-}
-
-const TArray<FVector>& FMeshData::GetNormals() const {
-    return mNormals;
-}
-
-TArray<FVector4>& FMeshData::GetTangents() {
-    return mTangents;
-}
-
-const TArray<FVector4>& FMeshData::GetTangents() const {
-    return mTangents;
-}
-
-TArray<TArray<FVector2>>& FMeshData::GetUVChannels() {
-    return mUVChannels;
-}
-
-const TArray<TArray<FVector2>>& FMeshData::GetUVChannels() const {
-    return mUVChannels;
-}
-
-TArray<FVector4>& FMeshData::GetColors() {
-    return mColors;
-}
-
-const TArray<FVector4>& FMeshData::GetColors() const {
-    return mColors;
-}
-
-TArray<Uint32>& FMeshData::GetIndices() {
-    return mIndices;
-}
-
-const TArray<Uint32>& FMeshData::GetIndices() const {
-    return mIndices;
-}
-
-const FBox& FMeshData::GetBounds() const {
-    return mBounds;
-}
-
-void FMeshData::SetBounds(const FBox& Bounds) {
-    mBounds = Bounds;
-}
-
-TArray<FSubMesh>& FMeshData::GetSubMeshes() {
-    return mSubMeshes;
-}
-
-const TArray<FSubMesh>& FMeshData::GetSubMeshes() const {
-    return mSubMeshes;
-}
-
-TArray<FMeshMaterialSlot>& FMeshData::GetMaterialSlots() {
-    return mMaterialSlots;
-}
-
-const TArray<FMeshMaterialSlot>& FMeshData::GetMaterialSlots() const {
-    return mMaterialSlots;
-}
-
-std::size_t FMeshData::GetAllocatedBytes() const {
-    std::size_t Bytes{mPositions.capacity() * sizeof(FVector) + mNormals.capacity() * sizeof(FVector) + mTangents.capacity() * sizeof(FVector4) + mUVChannels.capacity() * sizeof(TArray<FVector2>) + mColors.capacity() * sizeof(FVector4) + mIndices.capacity() * sizeof(Uint32)};
-
-    for (const TArray<FVector2>& Channel : mUVChannels) {
-        Bytes += Channel.capacity() * sizeof(FVector2);
+    Core::TArray<Core::FVector>& Engine::FMeshData::GetPositions() {
+        return mPositions;
     }
 
-    Bytes += mSubMeshes.capacity() * sizeof(FSubMesh) + mMaterialSlots.capacity() * sizeof(FMeshMaterialSlot);
-
-    for (const FMeshMaterialSlot& Slot : mMaterialSlots) {
-        Bytes += Slot.GetName().capacity() + Slot.GetMaterialPath().capacity();
+    const Core::TArray<Core::FVector>& Engine::FMeshData::GetPositions() const {
+        return mPositions;
     }
 
-    return Bytes;
+    Core::TArray<Core::FVector>& Engine::FMeshData::GetNormals() {
+        return mNormals;
+    }
+
+    const Core::TArray<Core::FVector>& Engine::FMeshData::GetNormals() const {
+        return mNormals;
+    }
+
+    Core::TArray<Core::FVector4>& Engine::FMeshData::GetTangents() {
+        return mTangents;
+    }
+
+    const Core::TArray<Core::FVector4>& Engine::FMeshData::GetTangents() const {
+        return mTangents;
+    }
+
+    Core::TArray<Core::TArray<Core::FVector2>>& Engine::FMeshData::GetUVChannels() {
+        return mUVChannels;
+    }
+
+    const Core::TArray<Core::TArray<Core::FVector2>>& Engine::FMeshData::GetUVChannels() const {
+        return mUVChannels;
+    }
+
+    Core::TArray<Core::FVector4>& Engine::FMeshData::GetColors() {
+        return mColors;
+    }
+
+    const Core::TArray<Core::FVector4>& Engine::FMeshData::GetColors() const {
+        return mColors;
+    }
+
+    Core::TArray<Core::Uint32>& Engine::FMeshData::GetIndices() {
+        return mIndices;
+    }
+
+    const Core::TArray<Core::Uint32>& Engine::FMeshData::GetIndices() const {
+        return mIndices;
+    }
+
+    const Core::FBox& Engine::FMeshData::GetBounds() const {
+        return mBounds;
+    }
+
+    void Engine::FMeshData::SetBounds(const Core::FBox& Bounds) {
+        mBounds = Bounds;
+    }
+
+    Core::TArray<Engine::FSubMesh>& Engine::FMeshData::GetSubMeshes() {
+        return mSubMeshes;
+    }
+
+    const Core::TArray<Engine::FSubMesh>& Engine::FMeshData::GetSubMeshes() const {
+        return mSubMeshes;
+    }
+
+    Core::TArray<Engine::FMeshMaterialSlot>& Engine::FMeshData::GetMaterialSlots() {
+        return mMaterialSlots;
+    }
+
+    const Core::TArray<Engine::FMeshMaterialSlot>& Engine::FMeshData::GetMaterialSlots() const {
+        return mMaterialSlots;
+    }
+
+    std::size_t Engine::FMeshData::GetAllocatedBytes() const {
+        std::size_t Bytes{mPositions.capacity() * sizeof(Core::FVector) + mNormals.capacity() * sizeof(Core::FVector) + mTangents.capacity() * sizeof(Core::FVector4) + mUVChannels.capacity() * sizeof(Core::TArray<Core::FVector2>) + mColors.capacity() * sizeof(Core::FVector4) + mIndices.capacity() * sizeof(Core::Uint32)};
+
+        for (const Core::TArray<Core::FVector2>& Channel : mUVChannels) {
+            Bytes += Channel.capacity() * sizeof(Core::FVector2);
+        }
+
+        Bytes += mSubMeshes.capacity() * sizeof(Engine::FSubMesh) + mMaterialSlots.capacity() * sizeof(Engine::FMeshMaterialSlot);
+
+        for (const Engine::FMeshMaterialSlot& Slot : mMaterialSlots) {
+            Bytes += Slot.GetName().capacity() + Slot.GetMaterialPath().capacity();
+        }
+
+        return Bytes;
+    }
+
 }

@@ -8,39 +8,43 @@
 
 #include <utility>
 
-FShader::FShader(FShaderDescription Description, FString CacheKey, FShaderCompilation Compilation, bool LoadedFromCache)
-	: mDescription{std::move(Description)},
-	  mCacheKey{std::move(CacheKey)},
-	  mCompilation{std::make_shared<const FShaderCompilation>(std::move(Compilation))},
-	  mLoadedFromCache{LoadedFromCache} {
-}
+namespace RenderCore {
 
-const FShaderDescription& FShader::GetDescription() const {
-    return mDescription;
-}
+    RenderCore::FShader::FShader(RenderCore::FShaderDescription Description, Core::FString CacheKey, RenderCore::FShaderCompilation Compilation, bool LoadedFromCache)
+		: mDescription{std::move(Description)},
+		  mCacheKey{std::move(CacheKey)},
+		  mCompilation{std::make_shared<const RenderCore::FShaderCompilation>(std::move(Compilation))},
+		  mLoadedFromCache{LoadedFromCache} {
+    }
 
-const FString& FShader::GetCacheKey() const {
-    return mCacheKey;
-}
+    const RenderCore::FShaderDescription& RenderCore::FShader::GetDescription() const {
+        return mDescription;
+    }
 
-std::span<const Uint8> FShader::GetByteCode() const {
-    return mCompilation->mByteCode;
-}
+    const Core::FString& RenderCore::FShader::GetCacheKey() const {
+        return mCacheKey;
+    }
 
-std::shared_ptr<const FShaderCompilation> FShader::GetCompilation() const {
-    return mCompilation;
-}
+    std::span<const Core::Uint8> RenderCore::FShader::GetByteCode() const {
+        return mCompilation->mByteCode;
+    }
 
-Uint64 FShader::GetRevision() const {
-    return mRevision;
-}
+    std::shared_ptr<const RenderCore::FShaderCompilation> RenderCore::FShader::GetCompilation() const {
+        return mCompilation;
+    }
 
-bool FShader::IsLoadedFromCache() const {
-    return mLoadedFromCache;
-}
+    Core::Uint64 RenderCore::FShader::GetRevision() const {
+        return mRevision;
+    }
 
-void FShader::Commit(FShaderCompilation Compilation, bool LoadedFromCache) {
-    mCompilation = std::make_shared<const FShaderCompilation>(std::move(Compilation));
-    mLoadedFromCache = LoadedFromCache;
-    ++mRevision;
+    bool RenderCore::FShader::IsLoadedFromCache() const {
+        return mLoadedFromCache;
+    }
+
+    void RenderCore::FShader::Commit(RenderCore::FShaderCompilation Compilation, bool LoadedFromCache) {
+        mCompilation = std::make_shared<const RenderCore::FShaderCompilation>(std::move(Compilation));
+        mLoadedFromCache = LoadedFromCache;
+        ++mRevision;
+    }
+
 }

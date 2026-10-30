@@ -6,14 +6,18 @@
 
 #include "Engine/FViewportClient.h"
 
-/**
- * @brief 객체의 수명을 끝내고 소유한 리소스를 정리합니다.
- */
-FViewportClient::~FViewportClient() = default;
+namespace Engine {
 
-/**
- * @brief 피킹을 구현하지 않은 클라이언트의 기본 빈 선택 정보를 반환합니다.
- */
-FHitProxy FViewportClient::GetHitProxy(const FSceneViewport*, const FVector2&) const {
-    return {};
+    /**
+     * @brief 객체의 수명을 끝내고 소유한 리소스를 정리합니다.
+     */
+    Engine::FViewportClient::~FViewportClient() = default;
+
+    /**
+     * @brief 피킹을 구현하지 않은 클라이언트의 기본 빈 선택 정보를 반환합니다.
+     */
+    Engine::FHitProxy Engine::FViewportClient::GetHitProxy(const Engine::FSceneViewport*, const Core::FVector2&) const {
+        return {};
+    }
+
 }
