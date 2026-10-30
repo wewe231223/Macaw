@@ -110,6 +110,13 @@ public:
     FEditorViewport* GetActiveViewport() const;
 
     /**
+     * @brief 0 기반 슬롯에 해당하는 뷰포트를 조회합니다.
+     * @param[in] Index 0 기반 뷰포트 슬롯입니다.
+     * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며 사용할 수 없으면 nullptr입니다.
+     */
+    FEditorViewport* GetViewport(Uint32 Index) const;
+
+    /**
      * @brief 분할 비율을 반환합니다.
      * @return 가로 분할 위치의 비율입니다.
      */
@@ -134,13 +141,6 @@ private:
      * @brief 생성된 멤버 등록 함수와 리플렉션 빌더의 접근 권한입니다.
      */
     ReflectMembers();
-
-    /**
-     * @brief 0 기반 슬롯에 해당하는 뷰포트를 조회합니다.
-     * @param[in] Index 0 기반 뷰포트 슬롯입니다.
-     * @return 조회한 객체 또는 GPU 자원의 비소유 주소이며 사용할 수 없으면 nullptr입니다.
-     */
-    FEditorViewport* GetViewport(Uint32 Index) const;
 
     /**
      * @brief 현재 편집 또는 PIE 컨텍스트를 각 뷰포트에 연결합니다.

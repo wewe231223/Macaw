@@ -45,7 +45,11 @@ public:
     /**
      * @brief 자동·사용자 UI 배율을 선택하는 메뉴를 그립니다.
      */
-    void DrawMenu();
+    bool DrawMenu();
+
+    void SetBaseStyle(const ImGuiStyle& Style, float FontSize);
+    bool SetUserScale(float Scale);
+    float GetUserScale() const;
 
     /**
      * @brief 현재 ImGui 스타일에 적용한 최종 배율을 반환합니다.

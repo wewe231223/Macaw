@@ -990,6 +990,19 @@ bool FEditorViewportClient::SetCameraSpeed(float Speed) {
     return true;
 }
 
+float FEditorViewportClient::GetOrthographicWidth() const {
+    return mOrthographicWidth;
+}
+
+bool FEditorViewportClient::SetOrthographicWidth(float Width) {
+    if (!std::isfinite(Width) || Width < 0.01f || Width > 100000.0f) {
+        return false;
+    }
+
+    mOrthographicWidth = Width;
+    return true;
+}
+
 bool FEditorViewportClient::DropActor(const FString& Preset, const FVector2& Position, const FVector2& Size) {
     UWorld* World{mContext->GetWorld()};
 

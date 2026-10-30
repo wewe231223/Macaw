@@ -132,6 +132,8 @@ bool FEditorUI::Initialize(IRendererModule* Renderer, FWindowsApplication* Platf
     });
 
     mInitialized = true;
+    ImGui::LoadIniSettingsFromDisk(mIniPath.c_str());
+    InitializeSettings();
     InstallEditorIcons();
 
     if (mContext->GetWorld() != nullptr && mContext->GetWorld()->GetPersistentLevel() != nullptr) {
@@ -203,6 +205,10 @@ void FEditorUI::InstallEditorIcons() {
  * @brief 종속 객체를 역순으로 정리하고 여러 번 호출해도 안전한 종료 상태로 만듭니다.
  */
 void FEditorUI::Shutdown() {
+    if (mInitialized) {
+        SaveSettings();
+    }
+
     if (mPlatform != nullptr) {
         const HWND Window{mPlatform->GetWindowHandle()};
 
@@ -274,6 +280,9 @@ void FEditorUI::Shutdown() {
     mMaterialError.clear();
     mMaterialDirty = false;
     mPlatform = nullptr;
+    mSettingsOpen = false;
+    mFocusSettings = false;
+    mSettingsDirty = false;
 
     mExit = true;
 }
@@ -293,6 +302,12 @@ bool FEditorUI::BeginFrame(float DeltaTime) {
 
     ImGui_ImplDX11_NewFrame();
     ImGui_ImplWin32_NewFrame();
+
+    if (mAppearanceDirty) {
+        mUIScale.SetBaseStyle(mThemes.GetStyle(mThemeIndex), mFontSize);
+        mAppearanceDirty = false;
+    }
+
     mUIScale.Update(*mPlatform);
     ImGui::NewFrame();
     mThumbnails->BeginFrame();
@@ -322,6 +337,16 @@ bool FEditorUI::BeginFrame(float DeltaTime) {
     DrawContent();
     DrawTexturePreview();
     DrawMaterialEditor();
+    DrawSettings();
+
+    if (mSettingsDirty) {
+        mSettingsSaveDelay += DeltaTime;
+
+        if (mSettingsSaveDelay >= 2.0f) {
+            SaveSettings();
+            mSettingsSaveDelay = 0.0f;
+        }
+    }
 
     if (mMeshViewer != nullptr) {
         mMeshViewer->DrawUI();
@@ -478,7 +503,7 @@ void FEditorUI::DrawEditorToolbar() {
     const float Scale{mUIScale.GetScale()};
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{8.0f * Scale, 4.0f * Scale});
     ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
-    ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4{0.10f, 0.10f, 0.10f, 1.0f});
+    ImGui::PushStyleColor(ImGuiCol_WindowBg, ImGui::GetStyleColorVec4(ImGuiCol_MenuBarBg));
 
     const float Height{ImGui::GetFrameHeight() + ImGui::GetStyle().WindowPadding.y * 2.0f};
     const ImGuiWindowFlags Flags{ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoFocusOnAppearing};
@@ -611,7 +636,6 @@ void FEditorUI::DrawMenu() {
                 ImGui::EndMenu();
             }
 
-            mUIScale.DrawMenu();
             ImGui::Separator();
 
             if (ImGui::MenuItem("Place Actors", nullptr, mPlaceActorsPanel.IsVisible())) {
@@ -629,10 +653,16 @@ void FEditorUI::DrawMenu() {
             ImGui::EndMenu();
         }
 
+        DrawSettingsMenu();
         ImGui::EndMainMenuBar();
     }
 
     const ImGuiIO& Input{ImGui::GetIO()};
+
+    if (Input.KeyCtrl && !Input.WantTextInput && ImGui::IsKeyPressed(ImGuiKey_Comma, false)) {
+        mSettingsOpen = true;
+        mFocusSettings = true;
+    }
 
     if (!Input.WantTextInput && !ImGui::IsPopupOpen(nullptr, ImGuiPopupFlags_AnyPopup)) {
         if (Input.KeyAlt && ImGui::IsKeyPressed(ImGuiKey_P, false) && mViewportLayout.CanChangeLayout()) {

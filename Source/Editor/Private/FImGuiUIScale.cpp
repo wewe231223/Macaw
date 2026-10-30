@@ -45,27 +45,56 @@ void FImGuiUIScale::Update(const FWindowsApplication& Platform) {
     mAppliedScale = Scale;
 }
 
-void FImGuiUIScale::DrawMenu() {
+bool FImGuiUIScale::DrawMenu() {
     if (!ImGui::BeginMenu("UI Scale")) {
-        return;
+        return false;
     }
 
+    bool Changed{};
+
     if (ImGui::MenuItem("Automatic", nullptr, mUserScale == 0.0f)) {
-        mUserScale = 0.0f;
+        Changed = SetUserScale(0.0f);
     }
 
     ImGui::Separator();
 
-    for (int Percent : {100, 125, 150, 175, 200}) {
+    for (int Percent : {75, 100, 125, 150, 175, 200, 250, 300}) {
         const float Scale{static_cast<float>(Percent) / 100.0f};
         const std::string Label{std::to_string(Percent) + "%"};
 
         if (ImGui::MenuItem(Label.c_str(), nullptr, mUserScale == Scale)) {
-            mUserScale = Scale;
+            Changed = SetUserScale(Scale);
         }
     }
 
     ImGui::EndMenu();
+    return Changed;
+}
+
+void FImGuiUIScale::SetBaseStyle(const ImGuiStyle& Style, float FontSize) {
+    if (!std::isfinite(FontSize) || FontSize < 10.0f || FontSize > 32.0f) {
+        return;
+    }
+
+    mBaseStyle = Style;
+    mBaseStyle.FontSizeBase = FontSize;
+    mBaseStyle.FontScaleMain = 1.0f;
+    mBaseStyle.FontScaleDpi = 1.0f;
+    mAppliedScale = 0.0f;
+}
+
+bool FImGuiUIScale::SetUserScale(float Scale) {
+    if (!std::isfinite(Scale) || (Scale != 0.0f && (Scale < 0.75f || Scale > 3.0f))) {
+        return false;
+    }
+
+    const bool Changed{mUserScale != Scale};
+    mUserScale = Scale;
+    return Changed;
+}
+
+float FImGuiUIScale::GetUserScale() const {
+    return mUserScale;
 }
 
 float FImGuiUIScale::GetScale() const {

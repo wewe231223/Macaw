@@ -5,6 +5,7 @@
  */
 
 #include "Platform/Window.h"
+#include "Platform/WindowResources.h"
 #include "Core/Base/ErrorHandler.h"
 
 #include <utility>
@@ -38,6 +39,8 @@ bool FWindowsApplication::Create(const wchar_t* Title, Uint32 Width, Uint32 Heig
     Class.style = CS_HREDRAW | CS_VREDRAW;
     Class.lpfnWndProc = &WindowProcedure;
     Class.hInstance = Instance;
+    Class.hIcon = static_cast<HICON>(LoadImageW(Instance, MAKEINTRESOURCEW(MacawIconResource), IMAGE_ICON, GetSystemMetrics(SM_CXICON), GetSystemMetrics(SM_CYICON), LR_SHARED));
+    Class.hIconSm = static_cast<HICON>(LoadImageW(Instance, MAKEINTRESOURCEW(MacawIconResource), IMAGE_ICON, GetSystemMetrics(SM_CXSMICON), GetSystemMetrics(SM_CYSMICON), LR_SHARED));
     Class.hCursor = LoadCursorW(nullptr, IDC_ARROW);
     Class.lpszClassName = L"MacawWindow";
 
@@ -53,6 +56,9 @@ bool FWindowsApplication::Create(const wchar_t* Title, Uint32 Width, Uint32 Heig
         ErrorHandler::ReportWin32(GetLastError(), "Window", "Window creation failed", ErrorHandler::EErrorLevel::Critical);
         ErrorHandler::Fatal("Window", "Window creation failed");
     }
+
+    SendMessageW(mWindow, WM_SETICON, ICON_BIG, reinterpret_cast<LPARAM>(Class.hIcon));
+    SendMessageW(mWindow, WM_SETICON, ICON_SMALL, reinterpret_cast<LPARAM>(Class.hIconSm));
 
     RECT Client{};
     GetClientRect(mWindow, &Client);

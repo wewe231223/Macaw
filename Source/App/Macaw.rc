@@ -1,0 +1,3 @@
+#include "Platform/WindowResources.h"
+
+MacawIconResource ICON "Macaw.ico"

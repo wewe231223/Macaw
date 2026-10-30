@@ -313,6 +313,9 @@ public:
      */
     bool SetCameraSpeed(float Speed);
 
+    float GetOrthographicWidth() const;
+    bool SetOrthographicWidth(float Width);
+
 private:
     /**
      * @brief 실행 검사를 통과한 스냅 전환 명령을 기즈모 설정에 반영합니다.

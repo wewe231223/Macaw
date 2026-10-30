@@ -17,6 +17,7 @@
 #include "FEditorViewportLayout.h"
 #include "Editor/FAssetPicker.h"
 #include "Editor/FImGuiUIScale.h"
+#include "FImGuiThemeCatalog.h"
 
 #include <filesystem>
 #include <optional>
@@ -119,6 +120,21 @@ private:
      * @brief 장면 파일과 패널 표시 메뉴를 그립니다.
      */
     void DrawMenu();
+
+    void InitializeSettings();
+    void LoadSettings();
+    bool SaveSettings();
+    void SerializeSettings(class FJsonArchive& Archive);
+    void DrawSettingsMenu();
+    void DrawSettings();
+    void DrawInterfaceSettings();
+    void DrawViewportSettings();
+    void DrawGizmoSettings();
+    void DrawRenderingSettings();
+    void DrawPanelSettings();
+    void DrawProjectSettings();
+    void ImportTheme();
+    void ResetSettings();
 
     /**
      * @brief 그림자 아틀라스 미리보기와 타일별 광원 정보를 그립니다.
@@ -316,6 +332,35 @@ private:
      */
     FImGuiUIScale mUIScale{};
     ReflectProperty(mUIScale, "UIScale", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+
+    FImGuiThemeCatalog mThemes{};
+    ReflectProperty(mThemes, "Themes", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    std::filesystem::path mSettingsPath{};
+    ReflectProperty(mSettingsPath, "SettingsPath", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    FString mSettingsStatus{};
+    ReflectProperty(mSettingsStatus, "SettingsStatus", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    std::array<char, 256> mThemeFilter{};
+    ReflectProperty(mThemeFilter, "ThemeFilter", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    std::array<char, 1024> mStartupScene{};
+    ReflectProperty(mStartupScene, "StartupScene", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    Uint32 mThemeIndex{};
+    ReflectProperty(mThemeIndex, "ThemeIndex", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    Uint32 mSettingsViewport{};
+    ReflectProperty(mSettingsViewport, "SettingsViewport", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    int mSettingsSection{};
+    ReflectProperty(mSettingsSection, "SettingsSection", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    float mFontSize{16.0f};
+    ReflectProperty(mFontSize, "FontSize", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    float mSettingsSaveDelay{};
+    ReflectProperty(mSettingsSaveDelay, "SettingsSaveDelay", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    bool mSettingsOpen{};
+    ReflectProperty(mSettingsOpen, "SettingsOpen", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    bool mFocusSettings{};
+    ReflectProperty(mFocusSettings, "FocusSettings", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    bool mSettingsDirty{};
+    ReflectProperty(mSettingsDirty, "SettingsDirty", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
+    bool mAppearanceDirty{};
+    ReflectProperty(mAppearanceDirty, "AppearanceDirty", EPropertyFlags::Transient | EPropertyFlags::ReadOnly);
 
 
     /**

@@ -119,8 +119,8 @@ bool EditorStyle::IconButton(const char* Label, EIcon Icon, bool Selected, bool 
     ImGui::BeginDisabled(!Enabled);
 
     if (Selected) {
-        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{0.08f, 0.25f, 0.39f, 1.0f});
-        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{0.10f, 0.32f, 0.49f, 1.0f});
+        ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetStyleColorVec4(ImGuiCol_HeaderActive));
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImGui::GetStyleColorVec4(ImGuiCol_HeaderHovered));
     }
 
     const float Height{ImGui::GetFrameHeight()};
@@ -128,7 +128,7 @@ bool EditorStyle::IconButton(const char* Label, EIcon Icon, bool Selected, bool 
     const bool Pressed{ImGui::Button("##Button", ImVec2{Height + (Dropdown ? 12.0f * Scale : 0.0f), Height})};
     const ImVec2 Minimum{ImGui::GetItemRectMin()};
     const ImVec2 Origin{Minimum.x + (Height - IconSize) * 0.5f, Minimum.y + (Height - IconSize) * 0.5f};
-    const ImVec4 Foreground{Icon == EIcon::Play ? ImVec4{0.30f, 0.85f, 0.40f, 1.0f} : Icon == EIcon::Stop ? ImVec4{0.95f, 0.30f, 0.28f, 1.0f} : Selected ? ImVec4{0.30f, 0.72f, 1.0f, 1.0f} : ImGui::GetStyleColorVec4(ImGuiCol_Text)};
+    const ImVec4 Foreground{Icon == EIcon::Play ? ImVec4{0.30f, 0.85f, 0.40f, 1.0f} : Icon == EIcon::Stop ? ImVec4{0.95f, 0.30f, 0.28f, 1.0f} : ImGui::GetStyleColorVec4(ImGuiCol_Text)};
     const ImU32 Color{ImGui::GetColorU32(Foreground)};
     DrawIcon(Icon, Origin, IconSize, Color);
 
@@ -162,9 +162,9 @@ void EditorStyle::PushViewportToolbar() {
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{5.0f * Scale, 5.0f * Scale});
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2{2.0f * Scale, 4.0f * Scale});
     ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 3.0f * Scale);
-    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{0.12f, 0.12f, 0.12f, 1.0f});
-    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{0.23f, 0.23f, 0.23f, 1.0f});
-    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{0.10f, 0.29f, 0.44f, 1.0f});
+    ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetStyleColorVec4(ImGuiCol_MenuBarBg));
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImGui::GetStyleColorVec4(ImGuiCol_HeaderHovered));
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImGui::GetStyleColorVec4(ImGuiCol_HeaderActive));
 }
 
 /**

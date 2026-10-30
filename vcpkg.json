@@ -12,6 +12,7 @@
     },
     "luajit",
     "nvapi",
-    "sol2"
+    "sol2",
+    "tomlplusplus"
   ]
 }
