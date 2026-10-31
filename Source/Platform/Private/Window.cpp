@@ -159,6 +159,10 @@ namespace Platform {
         }
 
         if (Application != nullptr) {
+            if (Message == WM_LBUTTONDOWN || Message == WM_RBUTTONDOWN || Message == WM_MBUTTONDOWN || Message == WM_XBUTTONDOWN) {
+                SetFocus(Window);
+            }
+
             if (Application->mMessageHandler && Application->mMessageHandler(Window, Message, WParam, LParam)) {
                 return 1;
             }

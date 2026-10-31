@@ -129,9 +129,10 @@ namespace App {
             Splash.Finish();
         }
 
+        Splash.Close();
         ShowWindow(Window, SW_SHOW);
         SetForegroundWindow(Window);
-        Splash.Close();
+        SetFocus(Window);
 
         return Loaded;
     }
