@@ -12,8 +12,9 @@
 
 namespace Renderer {
 
-    Renderer::FMaterialPipeline::FMaterialPipeline(std::shared_ptr<const RenderCore::FShader> VertexCode, std::shared_ptr<const RenderCore::FShader> PixelCode, bool TwoSided, bool Instanced)
-		: mVertexCode{std::move(VertexCode)},
+    Renderer::FMaterialPipeline::FMaterialPipeline(Renderer::EMeshPass Pass, std::shared_ptr<const RenderCore::FShader> VertexCode, std::shared_ptr<const RenderCore::FShader> PixelCode, bool TwoSided, bool Instanced)
+		: mPass{Pass},
+		  mVertexCode{std::move(VertexCode)},
 		  mPixelCode{std::move(PixelCode)},
 		  mTwoSided{TwoSided},
 		  mInstanced{Instanced} {
@@ -22,11 +23,11 @@ namespace Renderer {
     Renderer::FMaterialPipeline::~FMaterialPipeline() = default;
 
     bool Renderer::FMaterialPipeline::IsCurrent() const {
-        return HasResources() && mVertexRevision == mVertexCode->GetRevision() && mPixelRevision == mPixelCode->GetRevision();
+        return HasResources() && mVertexRevision == mVertexCode->GetRevision() && (mPixelCode == nullptr || mPixelRevision == mPixelCode->GetRevision());
     }
 
     bool Renderer::FMaterialPipeline::HasResources() const {
-        return mVertexShader != nullptr && mPixelShader != nullptr && mInputLayout != nullptr && mRasterizer != nullptr;
+        return mVertexShader != nullptr && (mPixelCode == nullptr || mPixelShader != nullptr) && mInputLayout != nullptr && mRasterizer != nullptr;
     }
 
     bool Renderer::FMaterialPipeline::IsInstanced() const {
@@ -36,25 +37,34 @@ namespace Renderer {
     bool Renderer::FMaterialPipeline::CreateResources(ID3D11Device* Device, Core::FString& Error) {
         Error.clear();
 
-        if (Device == nullptr || mVertexCode == nullptr || mPixelCode == nullptr) {
+        const bool DepthOnly{mPass == Renderer::EMeshPass::ShadowDepth};
+
+        if (Device == nullptr || mVertexCode == nullptr || (!DepthOnly && mPixelCode == nullptr)) {
             Error = "Invalid material shader";
             return false;
         }
 
         const auto VertexCompilation{mVertexCode->GetCompilation()};
-        const auto PixelCompilation{mPixelCode->GetCompilation()};
         const std::span<const Core::Uint8> VertexBytes{VertexCompilation->mByteCode};
-        const std::span<const Core::Uint8> PixelBytes{PixelCompilation->mByteCode};
-        Core::TArray<D3D11_INPUT_ELEMENT_DESC> Elements{{"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0}, {"NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 1, 0, D3D11_INPUT_PER_VERTEX_DATA, 0}, {"TANGENT", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 12, D3D11_INPUT_PER_VERTEX_DATA, 0}, {"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 2, 0, D3D11_INPUT_PER_VERTEX_DATA, 0}, {"COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 3, 0, D3D11_INPUT_PER_VERTEX_DATA, 0}};
+        Core::TArray<D3D11_INPUT_ELEMENT_DESC> Elements{{"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0}};
+
+        if (!DepthOnly) {
+            Elements.insert(Elements.end(), {{"NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 1, 0, D3D11_INPUT_PER_VERTEX_DATA, 0}, {"TANGENT", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 12, D3D11_INPUT_PER_VERTEX_DATA, 0}, {"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 2, 0, D3D11_INPUT_PER_VERTEX_DATA, 0}, {"COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 3, 0, D3D11_INPUT_PER_VERTEX_DATA, 0}});
+        }
 
         if (mInstanced) {
             for (UINT Row{}; Row < 4; ++Row) {
                 Elements.push_back({"INSTANCE_WORLD", Row, DXGI_FORMAT_R32G32B32A32_FLOAT, 4, static_cast<UINT>(offsetof(Renderer::FObjectConstants, mWorld)) + Row * 16, D3D11_INPUT_PER_INSTANCE_DATA, 1});
-                Elements.push_back({"INSTANCE_INVERSE", Row, DXGI_FORMAT_R32G32B32A32_FLOAT, 4, static_cast<UINT>(offsetof(Renderer::FObjectConstants, mWorldInverse)) + Row * 16, D3D11_INPUT_PER_INSTANCE_DATA, 1});
+
+                if (!DepthOnly) {
+                    Elements.push_back({"INSTANCE_INVERSE", Row, DXGI_FORMAT_R32G32B32A32_FLOAT, 4, static_cast<UINT>(offsetof(Renderer::FObjectConstants, mWorldInverse)) + Row * 16, D3D11_INPUT_PER_INSTANCE_DATA, 1});
+                }
             }
 
-            Elements.push_back({"INSTANCE_UV", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 4, static_cast<UINT>(offsetof(Renderer::FObjectConstants, mUVTransform)), D3D11_INPUT_PER_INSTANCE_DATA, 1});
-            Elements.push_back({"INSTANCE_SHADOW", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 4, static_cast<UINT>(offsetof(Renderer::FObjectConstants, mShadowFlags)), D3D11_INPUT_PER_INSTANCE_DATA, 1});
+            if (!DepthOnly) {
+                Elements.push_back({"INSTANCE_UV", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 4, static_cast<UINT>(offsetof(Renderer::FObjectConstants, mUVTransform)), D3D11_INPUT_PER_INSTANCE_DATA, 1});
+                Elements.push_back({"INSTANCE_SHADOW", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 4, static_cast<UINT>(offsetof(Renderer::FObjectConstants, mShadowFlags)), D3D11_INPUT_PER_INSTANCE_DATA, 1});
+            }
         }
 
         Microsoft::WRL::ComPtr<ID3D11VertexShader> Vertex{};
@@ -65,8 +75,19 @@ namespace Renderer {
         Description.FillMode = D3D11_FILL_SOLID;
         Description.CullMode = mTwoSided ? D3D11_CULL_NONE : D3D11_CULL_BACK;
         Description.DepthClipEnable = true;
+        Description.ScissorEnable = DepthOnly;
 
-        if (FAILED(Device->CreateVertexShader(VertexBytes.data(), VertexBytes.size(), nullptr, Vertex.GetAddressOf())) || FAILED(Device->CreatePixelShader(PixelBytes.data(), PixelBytes.size(), nullptr, Pixel.GetAddressOf())) || FAILED(Device->CreateInputLayout(Elements.data(), static_cast<UINT>(Elements.size()), VertexBytes.data(), VertexBytes.size(), Layout.GetAddressOf())) || FAILED(Device->CreateRasterizerState(&Description, Rasterizer.GetAddressOf()))) {
+        if (mPixelCode != nullptr) {
+            const auto PixelCompilation{mPixelCode->GetCompilation()};
+            const std::span<const Core::Uint8> PixelBytes{PixelCompilation->mByteCode};
+
+            if (FAILED(Device->CreatePixelShader(PixelBytes.data(), PixelBytes.size(), nullptr, Pixel.GetAddressOf()))) {
+                Error = "Cannot create the material pipeline";
+                return false;
+            }
+        }
+
+        if (FAILED(Device->CreateVertexShader(VertexBytes.data(), VertexBytes.size(), nullptr, Vertex.GetAddressOf())) || FAILED(Device->CreateInputLayout(Elements.data(), static_cast<UINT>(Elements.size()), VertexBytes.data(), VertexBytes.size(), Layout.GetAddressOf())) || FAILED(Device->CreateRasterizerState(&Description, Rasterizer.GetAddressOf()))) {
             Error = "Cannot create the material pipeline";
             return false;
         }
@@ -76,7 +97,7 @@ namespace Renderer {
         mInputLayout = std::move(Layout);
         mRasterizer = std::move(Rasterizer);
         mVertexRevision = mVertexCode->GetRevision();
-        mPixelRevision = mPixelCode->GetRevision();
+        mPixelRevision = mPixelCode != nullptr ? mPixelCode->GetRevision() : 0;
 
         return true;
     }

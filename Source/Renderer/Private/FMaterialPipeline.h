@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "EMeshPass.h"
 #include "RenderCore/Shader/FShader.h"
 
 #include <d3d11.h>
@@ -26,12 +27,13 @@ namespace Renderer {
     public:
         /**
          * @brief 전달된 설정과 기본값으로 FMaterialPipeline 객체를 생성합니다.
+         * @param[in] Pass 입력 레이아웃·래스터 상태를 결정하는 메시 패스입니다.
          * @param[in] VertexCode 컴파일된 정점 셰이더 바이트코드입니다.
-         * @param[in] PixelCode 컴파일된 픽셀 셰이더 바이트코드입니다.
+         * @param[in] PixelCode 컴파일된 픽셀 셰이더 바이트코드이며, 깊이 전용 패스는 nullptr입니다.
          * @param[in] TwoSided 양면 렌더링을 사용할지 지정합니다.
          * @param[in] Instanced 메시 인스턴스의 월드 행렬을 정점 입력으로 사용하려면 true입니다.
          */
-        FMaterialPipeline(std::shared_ptr<const RenderCore::FShader> VertexCode, std::shared_ptr<const RenderCore::FShader> PixelCode, bool TwoSided, bool Instanced = false);
+        FMaterialPipeline(Renderer::EMeshPass Pass, std::shared_ptr<const RenderCore::FShader> VertexCode, std::shared_ptr<const RenderCore::FShader> PixelCode, bool TwoSided, bool Instanced = false);
 
         /**
          * @brief 기본 소멸자이며, GPU 자원은 ComPtr 멤버가 해제합니다.
@@ -85,13 +87,19 @@ namespace Renderer {
 
     private:
         /**
+         * @brief 입력 레이아웃·래스터 상태를 결정한 메시 패스입니다.
+         */
+        Renderer::EMeshPass mPass{};
+        ReflectProperty(mPass, "Pass", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+
+        /**
          * @brief 컴파일된 정점 셰이더입니다.
          */
         std::shared_ptr<const RenderCore::FShader> mVertexCode{};
         ReflectProperty(mVertexCode, "VertexCode", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
-         * @brief 컴파일된 픽셀 셰이더입니다.
+         * @brief 컴파일된 픽셀 셰이더이며, 깊이 전용 패스는 비어 있습니다.
          */
         std::shared_ptr<const RenderCore::FShader> mPixelCode{};
         ReflectProperty(mPixelCode, "PixelCode", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);

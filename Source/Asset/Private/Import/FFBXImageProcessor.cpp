@@ -41,8 +41,10 @@ namespace Asset {
             Core::FString Error{};
 
             if (ResolveTexture(*Texture, SourceDirectory, Resolved, Error)) {
+				// ResolveTexture 가 성공하면 mTextures에 넣습니다.  
                 mTextures.insert_or_assign(Texture, std::move(Resolved));
             } else {
+				// ResolveTexture 가 실패하면 mTextureErrors에 넣습니다.
                 mTextureErrors.insert_or_assign(Texture, std::move(Error));
             }
         }

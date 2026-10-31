@@ -1,6 +1,6 @@
 /**
  * @file FShadowResources.cpp
- * @brief 광원별 그림자 맵을 아틀라스에 렌더링하고 셰이더·미리보기 자원을 관리합니다.
+ * @brief 광원별 그림자 맵의 아틀라스 할당·행렬과 셰이더·미리보기 자원을 관리합니다.
  * @ingroup Renderer
  */
 
@@ -9,7 +9,6 @@
 #include "FScene.h"
 #include "FScenePrimitive.h"
 #include "CoreUObject/Reflection/NewObject.h"
-#include "Asset/UStaticMesh.h"
 
 #include <d3dcompiler.h>
 #include <algorithm>
@@ -34,9 +33,9 @@ namespace Renderer {
         constexpr Core::Uint32 Guard{4};
 
         /**
-         * @brief 그림자 깊이와 아틀라스 미리보기 패스의 내장 HLSL 소스입니다.
+         * @brief 그림자 아틀라스 미리보기 패스의 내장 HLSL 소스입니다.
          */
-        constexpr char ShadowShader[]{"cbuffer ObjectConstants : register(b0) { row_major float4x4 World; };" "cbuffer ShadowMatrix : register(b1) { row_major float4x4 ViewProjection; };" "float4 DepthMain(float3 Position : POSITION) : SV_POSITION { return mul(mul(float4(Position, 1), World), ViewProjection); }" "struct FOutput { float4 mPosition : SV_POSITION; float2 mUV : TEXCOORD0; };" "FOutput PreviewVertex(uint Index : SV_VertexID) { FOutput Output = {(FOutput)0}; Output.mUV = float2((Index << 1) & 2, Index & 2); Output.mPosition = float4(Output.mUV * float2(2, -2) + float2(-1, 1), 0, 1); return Output; }" "Texture2D<float> Atlas : register(t5);" "float4 PreviewPixel(FOutput Input) : SV_TARGET { uint Width = {0}; uint Height = {0}; Atlas.GetDimensions(Width, Height); float Depth = {Atlas.Load(int3(min(uint2(Input.mUV * float2(Width, Height)), uint2(Width - 1, Height - 1)), 0))}; float Value = {pow(saturate(Depth), 32)}; return float4(Value, Value, Value, 1); }"};
+        constexpr char ShadowShader[]{"struct FOutput { float4 mPosition : SV_POSITION; float2 mUV : TEXCOORD0; };" "FOutput PreviewVertex(uint Index : SV_VertexID) { FOutput Output = {(FOutput)0}; Output.mUV = float2((Index << 1) & 2, Index & 2); Output.mPosition = float4(Output.mUV * float2(2, -2) + float2(-1, 1), 0, 1); return Output; }" "Texture2D<float> Atlas : register(t5);" "float4 PreviewPixel(FOutput Input) : SV_TARGET { uint Width = {0}; uint Height = {0}; Atlas.GetDimensions(Width, Height); float Depth = {Atlas.Load(int3(min(uint2(Input.mUV * float2(Width, Height)), uint2(Width - 1, Height - 1)), 0))}; float Value = {pow(saturate(Depth), 32)}; return float4(Value, Value, Value, 1); }"};
 
         /**
          * @brief 내장 그림자 HLSL의 지정한 진입점을 컴파일합니다.
@@ -94,7 +93,7 @@ namespace Renderer {
     }
 
     bool Renderer::FShadowResources::CreateResources(ID3D11Device* Device) {
-        if (mAtlas != nullptr && mDepthShader != nullptr && mPreview != nullptr && mSampler != nullptr && mMapBuffer != nullptr && mViewBuffer != nullptr && mLayout != nullptr && mDepthState != nullptr && mPreviewDepthState != nullptr && mRasterizer != nullptr && mPreviewVertexShader != nullptr && mPreviewPixelShader != nullptr) {
+        if (mAtlas != nullptr && mPreview != nullptr && mSampler != nullptr && mViewBuffer != nullptr && mPreviewDepthState != nullptr && mPreviewVertexShader != nullptr && mPreviewPixelShader != nullptr) {
             return true;
         }
 
@@ -105,26 +104,19 @@ namespace Renderer {
             return false;
         }
 
-        Microsoft::WRL::ComPtr<ID3DBlob> DepthCode{};
         Microsoft::WRL::ComPtr<ID3DBlob> PreviewVertexCode{};
         Microsoft::WRL::ComPtr<ID3DBlob> PreviewPixelCode{};
 
-        if (!CompileShadow("DepthMain", "vs_5_0", DepthCode) || !CompileShadow("PreviewVertex", "vs_5_0", PreviewVertexCode) || !CompileShadow("PreviewPixel", "ps_5_0", PreviewPixelCode)) {
+        if (!CompileShadow("PreviewVertex", "vs_5_0", PreviewVertexCode) || !CompileShadow("PreviewPixel", "ps_5_0", PreviewPixelCode)) {
             return false;
         }
 
-        mDepthShader.Reset();
         mPreviewVertexShader.Reset();
         mPreviewPixelShader.Reset();
-        mLayout.Reset();
         mSampler.Reset();
-        mRasterizer.Reset();
-        mDepthState.Reset();
         mPreviewDepthState.Reset();
-        mMapBuffer.Reset();
         mViewBuffer.Reset();
 
-        const D3D11_INPUT_ELEMENT_DESC Element{"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0};
         D3D11_SAMPLER_DESC Sampler{};
         Sampler.Filter = D3D11_FILTER_COMPARISON_MIN_MAG_LINEAR_MIP_POINT;
         Sampler.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
@@ -133,31 +125,17 @@ namespace Renderer {
         Sampler.ComparisonFunc = D3D11_COMPARISON_LESS_EQUAL;
         Sampler.MaxLOD = D3D11_FLOAT32_MAX;
 
-        D3D11_RASTERIZER_DESC Rasterizer{};
-        Rasterizer.FillMode = D3D11_FILL_SOLID;
-        Rasterizer.CullMode = D3D11_CULL_NONE;
-        Rasterizer.DepthClipEnable = true;
-        Rasterizer.ScissorEnable = true;
-
         D3D11_DEPTH_STENCIL_DESC Depth{};
-        Depth.DepthEnable = true;
-        Depth.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
+        Depth.DepthEnable = false;
+        Depth.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
         Depth.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;
 
         D3D11_BUFFER_DESC Buffer{};
-        Buffer.ByteWidth = sizeof(Core::FMatrix);
+        Buffer.ByteWidth = sizeof(Core::FVector4) * 2;
         Buffer.Usage = D3D11_USAGE_DEFAULT;
         Buffer.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 
-        if (FAILED(Device->CreateVertexShader(DepthCode->GetBufferPointer(), DepthCode->GetBufferSize(), nullptr, mDepthShader.GetAddressOf())) || FAILED(Device->CreateInputLayout(&Element, 1, DepthCode->GetBufferPointer(), DepthCode->GetBufferSize(), mLayout.GetAddressOf())) || FAILED(Device->CreateVertexShader(PreviewVertexCode->GetBufferPointer(), PreviewVertexCode->GetBufferSize(), nullptr, mPreviewVertexShader.GetAddressOf())) || FAILED(Device->CreatePixelShader(PreviewPixelCode->GetBufferPointer(), PreviewPixelCode->GetBufferSize(), nullptr, mPreviewPixelShader.GetAddressOf())) || FAILED(Device->CreateSamplerState(&Sampler, mSampler.GetAddressOf())) || FAILED(Device->CreateRasterizerState(&Rasterizer, mRasterizer.GetAddressOf())) || FAILED(Device->CreateDepthStencilState(&Depth, mDepthState.GetAddressOf())) || FAILED(Device->CreateBuffer(&Buffer, nullptr, mMapBuffer.GetAddressOf()))) {
-            return false;
-        }
-
-        Buffer.ByteWidth = sizeof(Core::FVector4) * 2;
-        Depth.DepthEnable = false;
-        Depth.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
-
-        if (FAILED(Device->CreateBuffer(&Buffer, nullptr, mViewBuffer.GetAddressOf())) || FAILED(Device->CreateDepthStencilState(&Depth, mPreviewDepthState.GetAddressOf()))) {
+        if (FAILED(Device->CreateVertexShader(PreviewVertexCode->GetBufferPointer(), PreviewVertexCode->GetBufferSize(), nullptr, mPreviewVertexShader.GetAddressOf())) || FAILED(Device->CreatePixelShader(PreviewPixelCode->GetBufferPointer(), PreviewPixelCode->GetBufferSize(), nullptr, mPreviewPixelShader.GetAddressOf())) || FAILED(Device->CreateSamplerState(&Sampler, mSampler.GetAddressOf())) || FAILED(Device->CreateBuffer(&Buffer, nullptr, mViewBuffer.GetAddressOf())) || FAILED(Device->CreateDepthStencilState(&Depth, mPreviewDepthState.GetAddressOf()))) {
             return false;
         }
 
@@ -313,7 +291,7 @@ namespace Renderer {
         return true;
     }
 
-    bool Renderer::FShadowResources::Render(ID3D11Device* Device, ID3D11DeviceContext* Context, const Renderer::FScene& Scene, const Engine::FSceneViewFamily& Family, const std::array<std::unique_ptr<Asset::UStaticMesh>, static_cast<std::size_t>(Engine::EPrimitiveType::Count)>& Meshes, RenderCore::FRenderStats& Stats) {
+    bool Renderer::FShadowResources::Prepare(ID3D11Device* Device, ID3D11DeviceContext* Context, const Renderer::FScene& Scene, const Engine::FSceneViewFamily& Family, RenderCore::FRenderStats& Stats) {
         Unbind(Context);
 
         if (mSampler == nullptr) {
@@ -368,56 +346,14 @@ namespace Renderer {
             mLightRanges.assign(Scene.GetLights().size(), {});
             return false;
         }
-
         Stats.mShadowAtlasBytes = mAtlas->GetResourceBytes() + mPreview->GetResourceBytes();
-        Context->OMSetRenderTargets(0, nullptr, mAtlas->GetDepthStencilView());
-        Context->ClearDepthStencilView(mAtlas->GetDepthStencilView(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
-        Context->OMSetDepthStencilState(mDepthState.Get(), 0);
-        Context->OMSetBlendState(nullptr, nullptr, 0xFFFFFFFFu);
-        Context->RSSetState(mRasterizer.Get());
-        Context->VSSetShader(mDepthShader.Get(), nullptr, 0);
-        Context->PSSetShader(nullptr, nullptr, 0);
-        Context->GSSetShader(nullptr, nullptr, 0);
-        Context->HSSetShader(nullptr, nullptr, 0);
-        Context->DSSetShader(nullptr, nullptr, 0);
-        Context->IASetInputLayout(mLayout.Get());
-        Context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-        ID3D11Buffer* MapBuffer{mMapBuffer.Get()};
-        Context->VSSetConstantBuffers(1, 1, &MapBuffer);
+        return true;
+    }
 
-        for (const Renderer::FGpuShadow& Map : mMaps) {
-            Context->UpdateSubresource(mMapBuffer.Get(), 0, nullptr, &Map.mViewProjection, 0, 0);
-
-            const D3D11_VIEWPORT Viewport{Map.mAtlasRectangle.x * AtlasSize, Map.mAtlasRectangle.y * AtlasSize, Map.mAtlasRectangle.z * AtlasSize, Map.mAtlasRectangle.w * AtlasSize, 0.0f, 1.0f};
-            const D3D11_RECT Scissor{static_cast<LONG>(Viewport.TopLeftX), static_cast<LONG>(Viewport.TopLeftY), static_cast<LONG>(Viewport.TopLeftX + Viewport.Width), static_cast<LONG>(Viewport.TopLeftY + Viewport.Height)};
-            Context->RSSetViewports(1, &Viewport);
-            Context->RSSetScissorRects(1, &Scissor);
-
-            for (const Renderer::FScenePrimitive& Primitive : Scene.GetPrimitives()) {
-                if (!Primitive.mProxy.mCastShadow || Primitive.mProxy.mSprite.has_value() || Primitive.mProxy.mText.has_value() || Primitive.mObjectBuffer == nullptr) {
-                    continue;
-                }
-
-                Asset::UStaticMesh* Mesh{Primitive.mProxy.mMesh != nullptr ? Primitive.mProxy.mMesh : Meshes[static_cast<std::size_t>(Primitive.mProxy.mPrimitive)].get()};
-
-                if (Mesh == nullptr || (!Mesh->HasResources() && !Mesh->CreateResources(Device))) {
-                    continue;
-                }
-
-                ID3D11Buffer* Position{Mesh->GetPositionBuffer()};
-                ID3D11Buffer* ObjectBuffer{Primitive.mObjectBuffer.Get()};
-                const UINT Stride{Asset::UStaticMesh::GetPositionStride()};
-                const UINT Offset{};
-                Context->IASetVertexBuffers(0, 1, &Position, &Stride, &Offset);
-                Context->IASetIndexBuffer(Mesh->GetIndexBuffer(), DXGI_FORMAT_R32_UINT, 0);
-                Context->VSSetConstantBuffers(0, 1, &ObjectBuffer);
-
-                for (const Asset::FSubMesh& SubMesh : Mesh->GetMeshData().GetSubMeshes()) {
-                    Context->DrawIndexed(SubMesh.GetIndexCount(), SubMesh.GetFirstIndex(), 0);
-                    ++Stats.mShadowDrawCalls;
-                }
-            }
+    void Renderer::FShadowResources::Finish(ID3D11DeviceContext* Context, const Engine::FSceneViewFamily& Family) {
+        if (mMaps.empty()) {
+            return;
         }
 
         Context->OMSetRenderTargets(0, nullptr, nullptr);
@@ -426,8 +362,20 @@ namespace Renderer {
         Context->UpdateSubresource(mViewBuffer.Get(), 0, nullptr, ViewData.data(), 0, 0);
         RenderPreview(Context);
         mEnabled = true;
+    }
 
-        return true;
+    std::span<const Renderer::FGpuShadow> Renderer::FShadowResources::GetMaps() const {
+        return mMaps;
+    }
+
+    Renderer::FPassTarget Renderer::FShadowResources::GetTarget(Core::Uint32 Index) const {
+        const Core::FVector4& Rectangle{mMaps[Index].mAtlasRectangle};
+        Renderer::FPassTarget Target{};
+        Target.mDepth = mAtlas->GetDepthStencilView();
+        Target.mViewport = {Rectangle.x * AtlasSize, Rectangle.y * AtlasSize, Rectangle.z * AtlasSize, Rectangle.w * AtlasSize, 0.0f, 1.0f};
+        Target.mScissor = D3D11_RECT{static_cast<LONG>(Target.mViewport.TopLeftX), static_cast<LONG>(Target.mViewport.TopLeftY), static_cast<LONG>(Target.mViewport.TopLeftX + Target.mViewport.Width), static_cast<LONG>(Target.mViewport.TopLeftY + Target.mViewport.Height)};
+
+        return Target;
     }
 
     void Renderer::FShadowResources::RenderPreview(ID3D11DeviceContext* Context) {
@@ -439,6 +387,7 @@ namespace Renderer {
         const D3D11_RECT Scissor{0, 0, 2048, 2048};
         Context->RSSetViewports(1, &Viewport);
         Context->RSSetScissorRects(1, &Scissor);
+        Context->RSSetState(nullptr);
         Context->IASetInputLayout(nullptr);
         Context->VSSetShader(mPreviewVertexShader.Get(), nullptr, 0);
         Context->PSSetShader(mPreviewPixelShader.Get(), nullptr, 0);

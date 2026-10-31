@@ -21,11 +21,13 @@
 #include "FObjectConstants.h"
 #include "Asset/UStaticMesh.h"
 #include "CoreUObject/Reflection/NewObject.h"
-#include "FSceneDrawContext.h"
 #include "Core/Base/ErrorHandler.h"
 #include "RenderTarget.h"
 #include "FScene.h"
-#include "FSceneRenderer.h"
+#include "FMeshPassParameters.h"
+#include "FMeshDrawCommand.h"
+#include "FShadowDepthPass.h"
+#include "FBasePass.h"
 #include "FMaterialPipeline.h"
 #include "FLightingResources.h"
 #include "FShadowResources.h"
@@ -194,6 +196,8 @@ namespace Renderer {
         mLineBuffer.Reset();
         mMeshInstanceBuffer.Reset();
 
+        mShadowDepthPass.reset();
+        mBasePass.reset();
         mMaterialPipelines.clear();
         mLightingResources.reset();
         mShadowResources.reset();
@@ -320,31 +324,42 @@ namespace Renderer {
         ID3D11ShaderResourceView* Empty{};
         mContext->PSSetShaderResources(0, 1, &Empty);
 
-        ID3D11RenderTargetView* RenderTarget{Target->GetSceneColor()->GetRenderTargetView()};
-
-        if (mShadowResources != nullptr && !mShadowResources->Render(mDevice.Get(), mContext.Get(), *Scene, Family, mMeshes, mStats)) {
-            Core::ErrorHandler::Report("Shadow", "Shadow atlas rendering failed", Core::ErrorHandler::EErrorLevel::Error);
-        }
-
-        mContext->OMSetRenderTargets(1, &RenderTarget, Target->GetDepthView());
-
-        constexpr float ClearColor[]{0.065f, 0.078f, 0.10f, 1.0f};
-        mContext->ClearRenderTargetView(RenderTarget, ClearColor);
-        mContext->ClearDepthStencilView(Target->GetDepthView(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
-
-        const D3D11_VIEWPORT Viewport{0.0f, 0.0f, static_cast<float>(Target->GetWidth()), static_cast<float>(Target->GetHeight()), 0.0f, 1.0f};
-        mContext->RSSetViewports(1, &Viewport);
-        mContext->RSSetState(mRasterizer.Get());
-        mContext->OMSetDepthStencilState(mDepthEnabled.Get(), 0);
-        mContext->OMSetBlendState(nullptr, nullptr, 0xFFFFFFFFu);
-
         mContext->GSSetShader(nullptr, nullptr, 0);
         mContext->HSSetShader(nullptr, nullptr, 0);
         mContext->DSSetShader(nullptr, nullptr, 0);
 
-        const Renderer::FSceneDrawContext Context{this, mContext.Get(), &mMeshes, mViewBuffer.Get(), &mMeshInstanceBuffer};
-        Renderer::FSceneRenderer SceneRenderer{Family, Scene, Context, mStats};
-        SceneRenderer.Render();
+        if (mShadowResources != nullptr) {
+            if (!mShadowResources->Prepare(mDevice.Get(), mContext.Get(), *Scene, Family, mStats)) {
+                Core::ErrorHandler::Report("Shadow", "Shadow atlas preparation failed", Core::ErrorHandler::EErrorLevel::Error);
+            }
+
+            const std::span<const Renderer::FGpuShadow> Maps{mShadowResources->GetMaps()};
+
+            for (Core::Uint32 Index{}; Index < Maps.size(); ++Index) {
+                Renderer::FMeshPassParameters ShadowParameters{};
+                ShadowParameters.mTarget = mShadowResources->GetTarget(Index);
+                ShadowParameters.mViewProjection = Maps[Index].mViewProjection;
+
+                if (Index == 0) {
+                    ClearTarget(ShadowParameters.mTarget, nullptr);
+                }
+
+                DrawMeshPass(*mShadowDepthPass, *Scene, Family, ShadowParameters);
+            }
+
+            mShadowResources->Finish(mContext.Get(), Family);
+        }
+
+        constexpr float ClearColor[]{0.065f, 0.078f, 0.10f, 1.0f};
+        Renderer::FMeshPassParameters BaseParameters{};
+        BaseParameters.mTarget.mColor = Target->GetSceneColor()->GetRenderTargetView();
+        BaseParameters.mTarget.mDepth = Target->GetDepthView();
+        BaseParameters.mTarget.mViewport = {0.0f, 0.0f, static_cast<float>(Target->GetWidth()), static_cast<float>(Target->GetHeight()), 0.0f, 1.0f};
+        BaseParameters.mViewProjection = Family.mView.mViewProjection;
+        ClearTarget(BaseParameters.mTarget, ClearColor);
+        DrawMeshPass(*mBasePass, *Scene, Family, BaseParameters);
+
+        ID3D11RenderTargetView* RenderTarget{};
 
         const Core::FVector4 LineView{Family.mView.mSize.x, Family.mView.mSize.y, 1.0f / std::max(Family.mView.mSize.x, 1.0f), 1.0f / std::max(Family.mView.mSize.y, 1.0f)};
         mContext->UpdateSubresource(mLineViewBuffer.Get(), 0, nullptr, &LineView, 0, 0);
@@ -654,6 +669,8 @@ namespace Renderer {
     bool Renderer::FRenderer::CreatePipeline() {
         mLightingResources = std::make_unique<Renderer::FLightingResources>();
         mShadowResources = std::make_unique<Renderer::FShadowResources>();
+        mShadowDepthPass = std::make_unique<Renderer::FShadowDepthPass>(*this, mDevice.Get(), mContext.Get(), mMeshes);
+        mBasePass = std::make_unique<Renderer::FBasePass>(*this, mDevice.Get(), mContext.Get(), mMeshes);
         mTextRenderer = std::make_unique<Renderer::FTextRenderer>();
         mSpriteRenderer = std::make_unique<Renderer::FSpriteRenderer>();
         mPostProcessResources = std::make_unique<Renderer::FPostProcessResources>();
@@ -975,7 +992,7 @@ namespace Renderer {
         std::unique_ptr<Renderer::FMaterialPipeline> Pipeline{};
 
         if (Vertex != nullptr && Pixel != nullptr) {
-            Pipeline = std::make_unique<Renderer::FMaterialPipeline>(std::move(Vertex), std::move(Pixel), Material.IsTwoSided(), Builtin);
+            Pipeline = std::make_unique<Renderer::FMaterialPipeline>(Renderer::EMeshPass::BasePass, std::move(Vertex), std::move(Pixel), Material.IsTwoSided(), Builtin);
 
             if (!Pipeline->CreateResources(mDevice.Get(), Diagnostics)) {
                 Error += Diagnostics;
@@ -998,16 +1015,52 @@ namespace Renderer {
         return mDefaultMaterial.get();
     }
 
-    ID3D11ShaderResourceView* Renderer::FRenderer::GetDefaultMaterialTexture() const {
-        return mDefaultMaterialTexture->GetShaderResourceView();
-    }
+    Renderer::FMaterialPipeline* Renderer::FRenderer::GetDepthPipeline() {
+        const Core::FString Key{"shaders/depth.hlsl|depth"};
+        const auto Existing{mMaterialPipelines.find(Key)};
 
-    ID3D11SamplerState* Renderer::FRenderer::GetMaterialSampler() const {
-        return mMaterialSampler.Get();
-    }
+        if (Existing != mMaterialPipelines.end()) {
+            return Existing->second.get();
+        }
 
-    ID3D11RasterizerState* Renderer::FRenderer::GetWireframeRasterizer() const {
-        return mWireframeRasterizer.Get();
+        if (mShadersDirty) {
+            return nullptr;
+        }
+
+        RenderCore::FShaderDescription Description{};
+        Description.mSourcePath = FindTextContent(mShaderDirectory.parent_path(), "Shaders/Depth.hlsl", true);
+        Description.mIncludeDirectories = {Description.mSourcePath.parent_path(), mShaderDirectory};
+        Description.mMacros.push_back({"MacawInstanced", "1"});
+        Description.mEntryPoint = "VertexMain";
+        Description.mTargetProfile = "vs_5_0";
+
+#ifdef _DEBUG
+        Description.mCompileFlags |= D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
+#endif
+
+        Core::FString Diagnostics{};
+        std::shared_ptr<const RenderCore::FShader> Vertex{mShaderManager.Load(Description, Diagnostics)};
+        Core::FString Error{Diagnostics};
+        std::unique_ptr<Renderer::FMaterialPipeline> Pipeline{};
+
+        if (Vertex != nullptr) {
+            Pipeline = std::make_unique<Renderer::FMaterialPipeline>(Renderer::EMeshPass::ShadowDepth, std::move(Vertex), nullptr, true, true);
+
+            if (!Pipeline->CreateResources(mDevice.Get(), Diagnostics)) {
+                Error += Diagnostics;
+                Pipeline.reset();
+            }
+        }
+
+        if (!Error.empty()) {
+            Core::ErrorHandler::Report("Shadow", Error, Pipeline != nullptr ? Core::ErrorHandler::EErrorLevel::Warning : Core::ErrorHandler::EErrorLevel::Error);
+        }
+
+        Renderer::FMaterialPipeline* Result{Pipeline.get()};
+
+        mMaterialPipelines.emplace(Key, std::move(Pipeline));
+
+        return Result;
     }
 
     void Renderer::FRenderer::DrawTranslucency(const Engine::FSceneViewFamily& Family, bool EditorIcons) {
@@ -1117,6 +1170,188 @@ namespace Renderer {
         if (mLightingResources != nullptr) {
             mLightingResources->Unbind(mContext.Get());
         }
+    }
+
+    void Renderer::FRenderer::ClearTarget(const Renderer::FPassTarget& Target, const float* Color) {
+        if (Color != nullptr && Target.mColor != nullptr) {
+            mContext->ClearRenderTargetView(Target.mColor, Color);
+        }
+
+        if (Target.mDepth != nullptr) {
+            mContext->ClearDepthStencilView(Target.mDepth, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+        }
+    }
+
+    void Renderer::FRenderer::DrawMeshPass(Renderer::FMeshPass& Pass, const Renderer::FScene& Scene, const Engine::FSceneViewFamily& Family, const Renderer::FMeshPassParameters& Parameters) {
+        static Core::FStat OpaquePassTime{"render", "Opaque mesh pass CPU (inclusive)", Core::EStatUnit::Milliseconds};
+        static Core::FStat ShadowPassTime{"shadow", "Shadow depth pass CPU (inclusive)", Core::EStatUnit::Milliseconds};
+        const bool BasePass{Pass.GetType() == Renderer::EMeshPass::BasePass};
+        const Core::FScopedStatTimer StatTimer{BasePass ? OpaquePassTime : ShadowPassTime};
+
+        const Renderer::FPassTarget& Target{Parameters.mTarget};
+        ID3D11RenderTargetView* Color{Target.mColor};
+        mContext->OMSetRenderTargets(Color != nullptr ? 1u : 0u, Color != nullptr ? &Color : nullptr, Target.mDepth);
+        mContext->RSSetViewports(1, &Target.mViewport);
+
+        if (Target.mScissor.has_value()) {
+            mContext->RSSetScissorRects(1, &*Target.mScissor);
+        }
+
+        mContext->RSSetState(mRasterizer.Get());
+        mContext->OMSetDepthStencilState(mDepthEnabled.Get(), 0);
+        mContext->OMSetBlendState(nullptr, nullptr, 0xFFFFFFFFu);
+        mContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+        mContext->UpdateSubresource(mViewBuffer.Get(), 0, nullptr, &Parameters.mViewProjection, 0, 0);
+        ID3D11Buffer* ViewBuffer{mViewBuffer.Get()};
+        mContext->VSSetConstantBuffers(1, 1, &ViewBuffer);
+        mContext->PSSetConstantBuffers(1, 1, &ViewBuffer);
+
+        if (BasePass && !PrepareLighting(Family)) {
+            FinishLighting();
+            return;
+        }
+
+        Core::TArray<Renderer::FMeshDrawCommand> Commands{};
+        Core::Uint32 Primitives{};
+
+        if (Pass.BuildCommands(Scene, Family, Parameters.mViewProjection, Commands, Primitives)) {
+            const Core::Uint32 DrawCalls{SubmitMeshCommands(Family, Pass.GetType(), Commands)};
+            (BasePass ? mStats.mDrawCalls : mStats.mShadowDrawCalls) += DrawCalls;
+            mStats.mVisiblePrimitives += BasePass ? Primitives : 0u;
+        }
+
+        if (BasePass) {
+            FinishLighting();
+            mStats.mTransformUpdates += Scene.TakeTransformUpdates();
+        }
+    }
+
+    Core::Uint32 Renderer::FRenderer::SubmitMeshCommands(const Engine::FSceneViewFamily& Family, Renderer::EMeshPass Pass, std::span<const Renderer::FMeshDrawCommand> Commands) {
+        const bool BasePass{Pass == Renderer::EMeshPass::BasePass};
+
+        if (std::any_of(Commands.begin(), Commands.end(), [](const Renderer::FMeshDrawCommand& Command) {
+            return Command.mPipeline->IsInstanced();
+        })) {
+            constexpr Core::Uint32 MaximumCapacity{std::numeric_limits<Core::Uint32>::max() / sizeof(Renderer::FObjectConstants)};
+
+            if (Commands.size() > MaximumCapacity) {
+                Core::ErrorHandler::Fatal("Renderer", "Mesh instance buffer capacity exceeded");
+            }
+
+            Core::TArray<Renderer::FObjectConstants> Instances{};
+            Instances.reserve(Commands.size());
+
+            for (const Renderer::FMeshDrawCommand& Command : Commands) {
+                Instances.push_back(Command.mPrimitive->mObjectConstants);
+            }
+
+            const Core::Uint32 Count{static_cast<Core::Uint32>(Instances.size())};
+            const Core::Uint32 Capacity{std::min(std::bit_ceil(Count), MaximumCapacity)};
+            Core::FString Error{};
+
+            if (!mMeshInstanceBuffer.Upload(mContext.Get(), std::as_bytes(std::span<const Renderer::FObjectConstants>{Instances}), sizeof(Renderer::FObjectConstants), Capacity, Error)) {
+                Core::ErrorHandler::Fatal("Renderer", Error);
+            }
+
+            ID3D11Buffer* InstanceBuffer{mMeshInstanceBuffer.GetBuffer()};
+            const UINT Stride{sizeof(Renderer::FObjectConstants)};
+            const UINT Offset{};
+            mContext->IASetVertexBuffers(4, 1, &InstanceBuffer, &Stride, &Offset);
+        }
+
+        Renderer::FMaterialPipeline* LastPipeline{};
+        Asset::UMaterial* LastMaterial{};
+        Asset::UStaticMesh* LastMesh{};
+        Core::Uint32 DrawCalls{};
+        const std::array<UINT, 4> Offsets{};
+
+        for (std::size_t First{}; First < Commands.size();) {
+            const Renderer::FMeshDrawCommand& Command{Commands[First]};
+            std::size_t End{First + 1};
+
+            if (Command.mPipeline->IsInstanced()) {
+                while (End < Commands.size() && Commands[End].mPipeline == Command.mPipeline && Commands[End].mMaterial == Command.mMaterial && Commands[End].mMesh == Command.mMesh && Commands[End].mFirstIndex == Command.mFirstIndex && Commands[End].mIndexCount == Command.mIndexCount) {
+                    ++End;
+                }
+            }
+
+            const Core::Uint32 InstanceCount{static_cast<Core::Uint32>(End - First)};
+
+            if (LastPipeline != Command.mPipeline) {
+                if (BasePass) {
+                    Renderer::RendererStats::PipelineBinds.Add();
+                }
+
+                Command.mPipeline->Bind(mContext.Get());
+
+                if (BasePass && Family.mViewMode == Engine::EViewMode::Wireframe) {
+                    mContext->RSSetState(mWireframeRasterizer.Get());
+                }
+
+                LastPipeline = Command.mPipeline;
+                LastMaterial = nullptr;
+            }
+
+            if (Command.mMaterial != nullptr && LastMaterial != Command.mMaterial) {
+                Renderer::RendererStats::MaterialBinds.Add();
+                ID3D11Buffer* Constants{Command.mMaterial->GetConstantBuffer()};
+                Asset::UTexture2D* Texture{Command.mMaterial->GetBaseColorTexture()};
+                ID3D11ShaderResourceView* Resource{Texture != nullptr ? Texture->GetShaderResourceView() : mDefaultMaterialTexture->GetShaderResourceView()};
+                ID3D11SamplerState* Sampler{mMaterialSampler.Get()};
+                mContext->VSSetConstantBuffers(2, 1, &Constants);
+                mContext->PSSetConstantBuffers(2, 1, &Constants);
+                Asset::UTexture2D* NormalTexture{Command.mMaterial->GetNormalMapTexture()};
+                ID3D11ShaderResourceView* NormalResource{NormalTexture != nullptr ? NormalTexture->GetShaderResourceView() : nullptr};
+                mContext->PSSetShaderResources(0, 1, &Resource);
+                mContext->VSSetShaderResources(1, 1, &NormalResource);
+                mContext->PSSetShaderResources(1, 1, &NormalResource);
+                mContext->VSSetSamplers(0, 1, &Sampler);
+                mContext->PSSetSamplers(0, 1, &Sampler);
+                LastMaterial = Command.mMaterial;
+            }
+
+            if (LastMesh != Command.mMesh) {
+                if (BasePass) {
+                    Renderer::RendererStats::MeshBinds.Add();
+                }
+
+                Asset::UStaticMesh* Mesh{Command.mMesh};
+                const std::array<ID3D11Buffer*, 4> Buffers{Mesh->GetPositionBuffer(), Mesh->GetTangentBuffer(), Mesh->GetUVBuffer(), Mesh->GetColorBuffer()};
+                const std::array<UINT, 4> Strides{Asset::UStaticMesh::GetPositionStride(), Asset::UStaticMesh::GetTangentStride(), Mesh->GetUVStride(), Asset::UStaticMesh::GetColorStride()};
+                mContext->IASetVertexBuffers(0, static_cast<UINT>(Buffers.size()), Buffers.data(), Strides.data(), Offsets.data());
+                mContext->IASetIndexBuffer(Mesh->GetIndexBuffer(), DXGI_FORMAT_R32_UINT, 0);
+                LastMesh = Mesh;
+            }
+
+            if (Command.mPipeline->IsInstanced()) {
+                mContext->DrawIndexedInstanced(Command.mIndexCount, InstanceCount, Command.mFirstIndex, 0, static_cast<UINT>(First));
+            } else {
+                ID3D11Buffer* ObjectBuffer{Command.mPrimitive->mObjectBuffer.Get()};
+                mContext->VSSetConstantBuffers(0, 1, &ObjectBuffer);
+                mContext->PSSetConstantBuffers(0, 1, &ObjectBuffer);
+                mContext->DrawIndexed(Command.mIndexCount, Command.mFirstIndex, 0);
+            }
+
+            if (BasePass) {
+                Renderer::RendererStats::Triangles.Add(static_cast<double>(Command.mIndexCount / 3) * InstanceCount);
+            }
+
+            ++DrawCalls;
+            First = End;
+        }
+
+        ID3D11Buffer* EmptyInstanceBuffer{};
+        mContext->IASetVertexBuffers(4, 1, &EmptyInstanceBuffer, Offsets.data(), Offsets.data());
+
+        if (BasePass) {
+            ID3D11ShaderResourceView* Empty{};
+            mContext->PSSetShaderResources(0, 1, &Empty);
+            mContext->VSSetShaderResources(1, 1, &Empty);
+            mContext->PSSetShaderResources(1, 1, &Empty);
+        }
+
+        return DrawCalls;
     }
 
 }
