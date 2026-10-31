@@ -61,3 +61,14 @@ float4 VertexMain(FDepthInput Input) : SV_POSITION {
 
     return mul(mul(float4(Input.mPosition, 1.0f), ObjectWorld), ViewProjection);
 }
+
+/**
+ * @brief 뷰포트 전체를 덮는 삼각형을 최대 깊이에 그려 시저 영역의 깊이만 지웁니다.
+ * @param Index 0~2의 정점 번호입니다.
+ * @return 깊이가 1인 클립 공간 위치입니다.
+ */
+float4 ClearMain(uint Index : SV_VertexID) : SV_POSITION {
+    const float2 UV = float2((Index << 1) & 2, Index & 2);
+
+    return float4(UV * float2(2.0f, -2.0f) + float2(-1.0f, 1.0f), 1.0f, 1.0f);
+}

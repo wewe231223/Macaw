@@ -33,6 +33,20 @@ namespace Renderer {
          */
         ReflectStruct(FShadowAtlasBlock);
 
+        /**
+         * @brief 두 블록이 같은 위치와 크기인지 비교합니다.
+         * @param[in] Other 비교할 블록입니다.
+         * @return 위치와 크기가 모두 같으면 true입니다.
+         */
+        bool operator==(const Renderer::FShadowAtlasBlock& Other) const = default;
+
+        /**
+         * @brief 두 블록의 픽셀 영역이 겹치는지 검사합니다.
+         * @param[in] Other 검사할 블록입니다.
+         * @return 한 픽셀이라도 겹치면 true입니다.
+         */
+        bool Overlaps(const Renderer::FShadowAtlasBlock& Other) const;
+
     private:
         /**
          * @brief 생성된 멤버 등록 함수와 리플렉션 빌더의 접근 권한입니다.

@@ -141,6 +141,7 @@ namespace Renderer {
 
         mAtlas = std::move(Atlas);
         mPreview = std::move(Preview);
+        mAtlasRevision = Core::FRevision::Next();
 
         return true;
     }
@@ -148,6 +149,7 @@ namespace Renderer {
     void Renderer::FShadowResources::Build(const Renderer::FScene& Scene, const Engine::FSceneViewFamily& Family, RenderCore::FRenderStats& Stats) {
         mAllocator.Reset();
         mMaps.clear();
+        mBlocks.clear();
         mTiles.clear();
         mLightRanges.assign(Scene.GetLights().size(), {});
 
@@ -253,6 +255,7 @@ namespace Renderer {
                 }
 
                 mMaps.push_back(Map);
+                mBlocks.push_back(Block);
                 mTiles.push_back({Light.mId, {static_cast<float>(Block.mX) / AtlasSize, static_cast<float>(Block.mY) / AtlasSize, static_cast<float>(Block.mSize) / AtlasSize, static_cast<float>(Block.mSize) / AtlasSize}, Face, Resolution});
                 Stats.mShadowAllocatedBytes += static_cast<std::size_t>(Block.mSize) * Block.mSize * 4;
             }
@@ -310,6 +313,7 @@ namespace Renderer {
 
         mEnabled = false;
         mMaps.clear();
+        mBlocks.clear();
         mTiles.clear();
         mLightRanges.assign(Scene.GetLights().size(), {});
         Stats.mDirectionalLights = 0;
@@ -342,13 +346,50 @@ namespace Renderer {
 
         if (!CreateResources(Device) || !Upload(Device, Context)) {
             mMaps.clear();
+            mBlocks.clear();
             mTiles.clear();
             mLightRanges.assign(Scene.GetLights().size(), {});
             return false;
         }
         Stats.mShadowAtlasBytes = mAtlas->GetResourceBytes() + mPreview->GetResourceBytes();
+        mSceneIdentity = Scene.GetIdentity();
+        mCasterRevision = Scene.GetCasterRevision();
 
         return true;
+    }
+
+    void Renderer::FShadowResources::BeginFrame() {
+        mTileCache.BeginFrame();
+    }
+
+    Renderer::FShadowTileStamp Renderer::FShadowResources::MakeTileStamp(Core::Uint32 Index, Core::Uint64 DepthShaderRevision) const {
+        return {mBlocks[Index], mMaps[Index].mViewProjection, mCasterRevision, mAtlasRevision, DepthShaderRevision};
+    }
+
+    bool Renderer::FShadowResources::IsTileCurrent(Core::Uint32 Index, const Renderer::FShadowTileStamp& Stamp) {
+        return mTileCache.Find(MakeTileKey(Index), Stamp) != nullptr;
+    }
+
+    void Renderer::FShadowResources::CommitTile(Core::Uint32 Index, const Renderer::FShadowTileStamp& Stamp) {
+        const Renderer::FShadowAtlasBlock& Block{mBlocks[Index]};
+        mTileCache.InvalidateIf([&Block](const Renderer::FShadowTileKey&, const Renderer::FShadowTileStamp& Cached) {
+            return Cached.mBlock.Overlaps(Block);
+        });
+        mTileCache.Commit(MakeTileKey(Index), Stamp, {});
+    }
+
+    Renderer::FPassTarget Renderer::FShadowResources::GetClearTarget(Core::Uint32 Index) const {
+        const Renderer::FShadowAtlasBlock& Block{mBlocks[Index]};
+        Renderer::FPassTarget Target{};
+        Target.mDepth = mAtlas->GetDepthStencilView();
+        Target.mViewport = {static_cast<float>(Block.mX), static_cast<float>(Block.mY), static_cast<float>(Block.mSize), static_cast<float>(Block.mSize), 0.0f, 1.0f};
+        Target.mScissor = D3D11_RECT{static_cast<LONG>(Block.mX), static_cast<LONG>(Block.mY), static_cast<LONG>(Block.mX + Block.mSize), static_cast<LONG>(Block.mY + Block.mSize)};
+
+        return Target;
+    }
+
+    Renderer::FShadowTileKey Renderer::FShadowResources::MakeTileKey(Core::Uint32 Index) const {
+        return {mSceneIdentity, mTiles[Index].mLightId, mTiles[Index].mFace};
     }
 
     void Renderer::FShadowResources::Finish(ID3D11DeviceContext* Context, const Engine::FSceneViewFamily& Family) {

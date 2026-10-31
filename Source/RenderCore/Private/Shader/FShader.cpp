@@ -5,6 +5,7 @@
  */
 
 #include "RenderCore/Shader/FShader.h"
+#include "Core/FRevision.h"
 
 #include <utility>
 
@@ -14,6 +15,7 @@ namespace RenderCore {
 		: mDescription{std::move(Description)},
 		  mCacheKey{std::move(CacheKey)},
 		  mCompilation{std::make_shared<const RenderCore::FShaderCompilation>(std::move(Compilation))},
+		  mRevision{Core::FRevision::Next().GetValue()},
 		  mLoadedFromCache{LoadedFromCache} {
     }
 
@@ -44,7 +46,7 @@ namespace RenderCore {
     void RenderCore::FShader::Commit(RenderCore::FShaderCompilation Compilation, bool LoadedFromCache) {
         mCompilation = std::make_shared<const RenderCore::FShaderCompilation>(std::move(Compilation));
         mLoadedFromCache = LoadedFromCache;
-        ++mRevision;
+        mRevision = Core::FRevision::Next().GetValue();
     }
 
 }

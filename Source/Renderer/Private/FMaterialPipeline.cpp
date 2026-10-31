@@ -34,6 +34,10 @@ namespace Renderer {
         return mInstanced;
     }
 
+    Core::Uint64 Renderer::FMaterialPipeline::GetVertexRevision() const {
+        return mVertexRevision;
+    }
+
     bool Renderer::FMaterialPipeline::CreateResources(ID3D11Device* Device, Core::FString& Error) {
         Error.clear();
 

@@ -211,14 +211,17 @@ namespace Renderer {
 
         mGizmoVertexShader.Reset();
         mGizmoPixelShader.Reset();
+        mDepthClearVertexShader.Reset();
         mShaderManager.Clear();
         mShadersDirty = false;
 
         mRasterizer.Reset();
         mWireframeRasterizer.Reset();
+        mScissorRasterizer.Reset();
         mDepthEnabled.Reset();
         mDepthReadOnly.Reset();
         mDepthDisabled.Reset();
+        mDepthAlways.Reset();
 
         mBackBuffer.reset();
         mSwapChain.Reset();
@@ -297,6 +300,10 @@ namespace Renderer {
     void Renderer::FRenderer::BeginFrame(Core::Uint32 Width, Core::Uint32 Height) {
         mStats = {};
 
+        if (mShadowResources != nullptr) {
+            mShadowResources->BeginFrame();
+        }
+
         if (Width > 0 && Height > 0 && (mWidth != Width || mHeight != Height)) {
             CreateBackBuffer(Width, Height);
         }
@@ -333,20 +340,7 @@ namespace Renderer {
                 Core::ErrorHandler::Report("Shadow", "Shadow atlas preparation failed", Core::ErrorHandler::EErrorLevel::Error);
             }
 
-            const std::span<const Renderer::FGpuShadow> Maps{mShadowResources->GetMaps()};
-
-            for (Core::Uint32 Index{}; Index < Maps.size(); ++Index) {
-                Renderer::FMeshPassParameters ShadowParameters{};
-                ShadowParameters.mTarget = mShadowResources->GetTarget(Index);
-                ShadowParameters.mViewProjection = Maps[Index].mViewProjection;
-
-                if (Index == 0) {
-                    ClearTarget(ShadowParameters.mTarget, nullptr);
-                }
-
-                DrawMeshPass(*mShadowDepthPass, *Scene, Family, ShadowParameters);
-            }
-
+            DrawShadowDepths(*Scene, Family);
             mShadowResources->Finish(mContext.Get(), Family);
         }
 
@@ -558,7 +552,7 @@ namespace Renderer {
      */
     bool Renderer::FRenderer::Compile(const char* Source, const char* Entry, const char* Target, std::shared_ptr<const RenderCore::FShader>& Code) {
         RenderCore::FShaderDescription Description{};
-        const bool EngineFirst{std::string_view{Source} == LineShader || std::string_view{Source} == "Sprite.hlsl" || std::string_view{Source} == "PostProcess.hlsl"};
+        const bool EngineFirst{std::string_view{Source} == LineShader || std::string_view{Source} == "Sprite.hlsl" || std::string_view{Source} == "PostProcess.hlsl" || std::string_view{Source} == "Depth.hlsl"};
         Description.mSourcePath = FindTextContent(mShaderDirectory.parent_path(), std::filesystem::path{"Shaders"} / Source, EngineFirst);
         Description.mIncludeDirectories = {mShaderDirectory};
         Description.mEntryPoint = Entry;
@@ -625,6 +619,14 @@ namespace Renderer {
             return false;
         }
 
+        Microsoft::WRL::ComPtr<ID3D11VertexShader> DepthClearVertex{};
+
+        if (!Compile("Depth.hlsl", "ClearMain", "vs_5_0", VertexCode) || FAILED(mDevice->CreateVertexShader(VertexCode->GetByteCode().data(), VertexCode->GetByteCode().size(), nullptr, DepthClearVertex.GetAddressOf()))) {
+            Core::ErrorHandler::Report("Renderer", "Depth clear shader allocation failed", Core::ErrorHandler::EErrorLevel::Error);
+            return false;
+        }
+
+        mDepthClearVertexShader = std::move(DepthClearVertex);
         mLineVertexShader = std::move(LineVertex);
         mLinePixelShader = std::move(LinePixel);
         mLineLayout = std::move(LineLayout);
@@ -754,6 +756,14 @@ namespace Renderer {
             return false;
         }
 
+        Rasterizer.FillMode = D3D11_FILL_SOLID;
+        Rasterizer.AntialiasedLineEnable = false;
+        Rasterizer.ScissorEnable = true;
+
+        if (FAILED(mDevice->CreateRasterizerState(&Rasterizer, mScissorRasterizer.GetAddressOf()))) {
+            return false;
+        }
+
         D3D11_DEPTH_STENCIL_DESC Depth{};
         Depth.DepthEnable = true;
         Depth.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
@@ -769,7 +779,16 @@ namespace Renderer {
             Core::ErrorHandler::Fatal("Renderer", "Depth state allocation failed");
         }
 
+        Depth.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
+        Depth.DepthFunc = D3D11_COMPARISON_ALWAYS;
+
+        if (FAILED(mDevice->CreateDepthStencilState(&Depth, mDepthAlways.GetAddressOf()))) {
+            Core::ErrorHandler::Fatal("Renderer", "Depth state allocation failed");
+        }
+
         Depth.DepthEnable = false;
+        Depth.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
+        Depth.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;
         Core::ErrorHandler::ReportHRESULT(mDevice->CreateDepthStencilState(&Depth, mDepthDisabled.GetAddressOf()), "Renderer", "Depth state allocation failed", Core::ErrorHandler::EErrorLevel::Critical);
 
         return true;
@@ -1173,6 +1192,26 @@ namespace Renderer {
     }
 
     void Renderer::FRenderer::ClearTarget(const Renderer::FPassTarget& Target, const float* Color) {
+        if (Target.mScissor.has_value()) {
+            if (Target.mDepth == nullptr) {
+                return;
+            }
+
+            mContext->OMSetRenderTargets(0, nullptr, Target.mDepth);
+            mContext->RSSetViewports(1, &Target.mViewport);
+            mContext->RSSetScissorRects(1, &*Target.mScissor);
+            mContext->RSSetState(mScissorRasterizer.Get());
+            mContext->OMSetDepthStencilState(mDepthAlways.Get(), 0);
+            mContext->OMSetBlendState(nullptr, nullptr, 0xFFFFFFFFu);
+            mContext->IASetInputLayout(nullptr);
+            mContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+            mContext->VSSetShader(mDepthClearVertexShader.Get(), nullptr, 0);
+            mContext->PSSetShader(nullptr, nullptr, 0);
+            mContext->Draw(3, 0);
+
+            return;
+        }
+
         if (Color != nullptr && Target.mColor != nullptr) {
             mContext->ClearRenderTargetView(Target.mColor, Color);
         }
@@ -1182,7 +1221,31 @@ namespace Renderer {
         }
     }
 
-    void Renderer::FRenderer::DrawMeshPass(Renderer::FMeshPass& Pass, const Renderer::FScene& Scene, const Engine::FSceneViewFamily& Family, const Renderer::FMeshPassParameters& Parameters) {
+    void Renderer::FRenderer::DrawShadowDepths(const Renderer::FScene& Scene, const Engine::FSceneViewFamily& Family) {
+        const std::span<const Renderer::FGpuShadow> Maps{mShadowResources->GetMaps()};
+        const Renderer::FMaterialPipeline* DepthPipeline{Maps.empty() ? nullptr : GetDepthPipeline()};
+        const Core::Uint64 DepthShaderRevision{DepthPipeline != nullptr ? DepthPipeline->GetVertexRevision() : 0};
+
+        for (Core::Uint32 Index{}; Index < Maps.size(); ++Index) {
+            const Renderer::FShadowTileStamp Stamp{mShadowResources->MakeTileStamp(Index, DepthShaderRevision)};
+
+            if (mShadowResources->IsTileCurrent(Index, Stamp)) {
+                continue;
+            }
+
+            ClearTarget(mShadowResources->GetClearTarget(Index), nullptr);
+
+            Renderer::FMeshPassParameters ShadowParameters{};
+            ShadowParameters.mTarget = mShadowResources->GetTarget(Index);
+            ShadowParameters.mViewProjection = Maps[Index].mViewProjection;
+
+            if (DepthPipeline != nullptr && DrawMeshPass(*mShadowDepthPass, Scene, Family, ShadowParameters)) {
+                mShadowResources->CommitTile(Index, Stamp);
+            }
+        }
+    }
+
+    bool Renderer::FRenderer::DrawMeshPass(Renderer::FMeshPass& Pass, const Renderer::FScene& Scene, const Engine::FSceneViewFamily& Family, const Renderer::FMeshPassParameters& Parameters) {
         static Core::FStat OpaquePassTime{"render", "Opaque mesh pass CPU (inclusive)", Core::EStatUnit::Milliseconds};
         static Core::FStat ShadowPassTime{"shadow", "Shadow depth pass CPU (inclusive)", Core::EStatUnit::Milliseconds};
         const bool BasePass{Pass.GetType() == Renderer::EMeshPass::BasePass};
@@ -1209,13 +1272,14 @@ namespace Renderer {
 
         if (BasePass && !PrepareLighting(Family)) {
             FinishLighting();
-            return;
+            return false;
         }
 
         Core::TArray<Renderer::FMeshDrawCommand> Commands{};
         Core::Uint32 Primitives{};
+        const bool Built{Pass.BuildCommands(Scene, Family, Parameters.mViewProjection, Commands, Primitives)};
 
-        if (Pass.BuildCommands(Scene, Family, Parameters.mViewProjection, Commands, Primitives)) {
+        if (Built) {
             const Core::Uint32 DrawCalls{SubmitMeshCommands(Family, Pass.GetType(), Commands)};
             (BasePass ? mStats.mDrawCalls : mStats.mShadowDrawCalls) += DrawCalls;
             mStats.mVisiblePrimitives += BasePass ? Primitives : 0u;
@@ -1225,6 +1289,8 @@ namespace Renderer {
             FinishLighting();
             mStats.mTransformUpdates += Scene.TakeTransformUpdates();
         }
+
+        return Built;
     }
 
     Core::Uint32 Renderer::FRenderer::SubmitMeshCommands(const Engine::FSceneViewFamily& Family, Renderer::EMeshPass Pass, std::span<const Renderer::FMeshDrawCommand> Commands) {

@@ -10,6 +10,10 @@
 
 namespace Renderer {
 
+    bool Renderer::FShadowAtlasBlock::Overlaps(const Renderer::FShadowAtlasBlock& Other) const {
+        return mX < Other.mX + Other.mSize && Other.mX < mX + mSize && mY < Other.mY + Other.mSize && Other.mY < mY + mSize;
+    }
+
     Renderer::FShadowAtlasAllocator::FShadowAtlasAllocator(Core::Uint32 Size)
         : mSize{Size} {
         Reset();

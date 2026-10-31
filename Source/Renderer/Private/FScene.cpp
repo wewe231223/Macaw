@@ -65,8 +65,11 @@ namespace Renderer {
 
         const auto Position{mIndices.find(Proxy.mId)};
 
+        bool CasterChanged{IsShadowCaster(Proxy)};
+
         if (Position != mIndices.end()) {
             Renderer::FScenePrimitive& Primitive{mPrimitives[Position->second]};
+            CasterChanged = CasterChanged || IsShadowCaster(Primitive.mProxy);
             Primitive.mProxy = Proxy;
 
             Upload(Primitive);
@@ -77,6 +80,10 @@ namespace Renderer {
 
             mIndices.emplace(Proxy.mId, mPrimitives.size());
             mPrimitives.push_back(std::move(Primitive));
+        }
+
+        if (CasterChanged) {
+            mCasterRevision = Core::FRevision::Next();
         }
 
         ++mRevision;
@@ -103,6 +110,10 @@ namespace Renderer {
 
         Upload(Primitive);
 
+        if (IsShadowCaster(Primitive.mProxy)) {
+            mCasterRevision = Core::FRevision::Next();
+        }
+
         ++mRevision;
     }
 
@@ -117,6 +128,10 @@ namespace Renderer {
         }
 
         const std::size_t Index{Position->second};
+
+        if (IsShadowCaster(mPrimitives[Index].mProxy)) {
+            mCasterRevision = Core::FRevision::Next();
+        }
 
         if (Index + 1 != mPrimitives.size()) {
             mPrimitives[Index] = std::move(mPrimitives.back());
@@ -153,6 +168,26 @@ namespace Renderer {
     /**
      * @brief 누적 변환 업로드 횟수를 반환하고 카운터를 초기화합니다.
      */
+    Core::FRevision Renderer::FScene::GetIdentity() const {
+        return mIdentity;
+    }
+
+    Core::FRevision Renderer::FScene::GetCasterRevision() const {
+        Core::FRevision Revision{mCasterRevision};
+
+        for (const Renderer::FScenePrimitive& Primitive : mPrimitives) {
+            if (IsShadowCaster(Primitive.mProxy) && Primitive.mProxy.mMesh != nullptr && Primitive.mProxy.mMesh->GetRevision().GetValue() > Revision.GetValue()) {
+                Revision = Primitive.mProxy.mMesh->GetRevision();
+            }
+        }
+
+        return Revision;
+    }
+
+    bool Renderer::FScene::IsShadowCaster(const Engine::FPrimitiveSceneProxy& Proxy) {
+        return Proxy.mCastShadow && !Proxy.mSprite.has_value() && !Proxy.mText.has_value();
+    }
+
     Core::Uint32 Renderer::FScene::TakeTransformUpdates() const {
         const Core::Uint32 Count{mTransformUpdates};
 

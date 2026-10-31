@@ -8,6 +8,7 @@
 
 #include "CoreUObject/UObject.h"
 #include "Asset/FMeshData.h"
+#include "Core/FRevision.h"
 
 #include <d3d11.h>
 #include <filesystem>
@@ -126,6 +127,12 @@ namespace Asset {
         bool HasResources() const;
 
         /**
+         * @brief 메시 데이터를 교체할 때마다 새로 받는 리비전을 반환합니다.
+         * @return 현재 메시 데이터의 리비전입니다.
+         */
+        Core::FRevision GetRevision() const;
+
+        /**
          * @brief 정점 위치 GPU 버퍼의 비소유 주소를 반환합니다.
          * @return GPU 자원의 비소유 주소이며, 아직 생성하지 않았으면 nullptr입니다.
          */
@@ -208,6 +215,12 @@ namespace Asset {
          */
         Asset::FMeshData mMeshData{};
         ReflectProperty(mMeshData, "MeshData", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+
+        /**
+         * @brief 메시 데이터를 교체할 때마다 새로 받는 리비전입니다.
+         */
+        Core::FRevision mRevision{Core::FRevision::Next()};
+        ReflectProperty(mRevision, "Revision", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 정점 위치를 보관하는 소유 GPU 버퍼입니다.

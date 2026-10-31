@@ -148,6 +148,7 @@ namespace Asset {
 
         MeshData.SetBounds({Minimum, Maximum});
         mMeshData = std::move(MeshData);
+        mRevision = Core::FRevision::Next();
         ReleaseResources();
 
         return true;
@@ -247,6 +248,10 @@ namespace Asset {
 
     bool Asset::UStaticMesh::HasResources() const {
         return mPositionBuffer != nullptr && mTangentBuffer != nullptr && mUVBuffer != nullptr && mColorBuffer != nullptr && mIndexBuffer != nullptr;
+    }
+
+    Core::FRevision Asset::UStaticMesh::GetRevision() const {
+        return mRevision;
     }
 
     ID3D11Buffer* Asset::UStaticMesh::GetPositionBuffer() const {

@@ -141,9 +141,9 @@ namespace RenderCore {
         ReflectProperty(mCompilation, "Compilation", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
-         * @brief 성공한 컴파일 결과 교체마다 증가하는 갱신 세대입니다.
+         * @brief 생성과 성공한 컴파일 결과 교체마다 Core::FRevision에서 새로 받는 갱신 세대입니다.
          */
-        Core::Uint64 mRevision{1};
+        Core::Uint64 mRevision{};
         ReflectProperty(mRevision, "Revision", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**

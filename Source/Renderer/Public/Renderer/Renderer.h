@@ -331,10 +331,18 @@ namespace Renderer {
 
         /**
          * @brief 패스 타깃의 색상과 깊이·스텐실을 지웁니다.
-         * @param[in] Target 지울 색상·깊이 뷰를 가진 패스 타깃입니다.
+         * @details 시저가 없으면 뷰 전체를 지웁니다. 시저가 있으면 그 영역의 깊이만 클리어 드로로 1로 지우며, 이때 색상과 스텐실은 유지합니다.
+         * @param[in] Target 지울 색상·깊이 뷰와 선택적 시저 영역을 가진 패스 타깃입니다.
          * @param[in] Color 색상 뷰를 지울 RGBA 값이며, nullptr이면 색상은 유지합니다.
          */
         void ClearTarget(const Renderer::FPassTarget& Target, const float* Color);
+
+        /**
+         * @brief 그림자 맵마다 캐시된 아틀라스 타일이 현재 상태와 다를 때만 타일을 지우고 깊이를 다시 그립니다.
+         * @param[in] Scene 그림자 캐스터와 광원을 가진 렌더 장면입니다.
+         * @param[in] Family 현재 뷰 요청입니다.
+         */
+        void DrawShadowDepths(const Renderer::FScene& Scene, const Engine::FSceneViewFamily& Family);
 
         /**
          * @brief 메시 패스 인스턴스가 만든 드로 목록을 패스 타깃에 그립니다.
@@ -343,8 +351,9 @@ namespace Renderer {
          * @param[in] Scene 그릴 프리미티브와 광원을 가진 렌더 장면입니다.
          * @param[in] Family 표시 모드와 표시 플래그를 가진 현재 뷰 요청입니다.
          * @param[in] Parameters 출력 타깃과 뷰 투영 행렬입니다.
+         * @return 패스에 필요한 파이프라인과 조명을 준비해 드로 목록을 제출했으면 true입니다.
          */
-        void DrawMeshPass(Renderer::FMeshPass& Pass, const Renderer::FScene& Scene, const Engine::FSceneViewFamily& Family, const Renderer::FMeshPassParameters& Parameters);
+        bool DrawMeshPass(Renderer::FMeshPass& Pass, const Renderer::FScene& Scene, const Engine::FSceneViewFamily& Family, const Renderer::FMeshPassParameters& Parameters);
 
         /**
          * @brief 정렬된 드로 목록을 상태 변경을 줄여 제출하고 인스턴스를 묶어 그립니다.
@@ -541,6 +550,12 @@ namespace Renderer {
         ReflectProperty(mWireframeRasterizer, "WireframeRasterizer", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
+         * @brief 시저 영역만 지우는 깊이 클리어 드로의 양면·시저 래스터라이저입니다.
+         */
+        Microsoft::WRL::ComPtr<ID3D11RasterizerState> mScissorRasterizer{};
+        ReflectProperty(mScissorRasterizer, "ScissorRasterizer", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+
+        /**
          * @brief 깊이 검사가 켜진 깊이 상태입니다.
          */
         Microsoft::WRL::ComPtr<ID3D11DepthStencilState> mDepthEnabled{};
@@ -557,6 +572,12 @@ namespace Renderer {
          */
         Microsoft::WRL::ComPtr<ID3D11DepthStencilState> mDepthDisabled{};
         ReflectProperty(mDepthDisabled, "DepthDisabled", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+
+        /**
+         * @brief 깊이 비교 없이 항상 깊이를 기록하는 클리어 드로용 상태입니다.
+         */
+        Microsoft::WRL::ComPtr<ID3D11DepthStencilState> mDepthAlways{};
+        ReflectProperty(mDepthAlways, "DepthAlways", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 프리미티브 종류별 GPU 메시입니다.
@@ -601,6 +622,12 @@ namespace Renderer {
          */
         Microsoft::WRL::ComPtr<ID3D11PixelShader> mGizmoPixelShader{};
         ReflectProperty(mGizmoPixelShader, "GizmoPixelShader", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+
+        /**
+         * @brief 뷰포트를 덮는 삼각형을 최대 깊이에 그려 시저 영역의 깊이를 지우는 정점 셰이더입니다.
+         */
+        Microsoft::WRL::ComPtr<ID3D11VertexShader> mDepthClearVertexShader{};
+        ReflectProperty(mDepthClearVertexShader, "DepthClearVertexShader", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 고정 에디터 메시의 로컬 위치를 읽는 입력 레이아웃입니다.

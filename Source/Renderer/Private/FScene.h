@@ -9,6 +9,7 @@
 #include "Core/ReflectionMacros.h"
 #include "Engine/FSceneInterface.h"
 #include "Core/GuidHash.h"
+#include "Core/FRevision.h"
 #include "FScenePrimitive.h"
 #include "Engine/FLightSceneProxy.h"
 #include "Engine/FHeightFogSceneProxy.h"
@@ -126,12 +127,34 @@ namespace Renderer {
          */
         Core::Uint32 TakeTransformUpdates() const;
 
+        /**
+         * @brief 장면 인스턴스마다 생성 시 한 번 발급하는 고유 번호를 반환합니다.
+         * @details 여러 장면이 공유하는 캐시에서 장면을 구분하는 키로 사용하며, 같은 주소에 다시 만든 장면과도 겹치지 않습니다.
+         * @return 이 장면의 고유 번호입니다.
+         */
+        Core::FRevision GetIdentity() const;
+
+        /**
+         * @brief 그림자 깊이 결과에 영향을 주는 캐스터 상태의 리비전을 반환합니다.
+         * @details 그림자를 드리우는 메시 프리미티브의 추가·제거·변환·프록시 교체와, 그 프리미티브가 쓰는 메시 데이터의 교체를 모두 반영합니다.
+         * 모든 리비전이 전역에서 증가하므로 최댓값을 취하면 어떤 변경이든 값이 커집니다.
+         * @return 캐스터 상태가 바뀔 때마다 커지는 리비전입니다.
+         */
+        Core::FRevision GetCasterRevision() const;
+
     private:
         /**
          * @brief 프리미티브의 객체 상수 버퍼를 현재 프록시 값으로 갱신합니다.
          * @param[in,out] Primitive 상수 버퍼를 갱신할 프리미티브입니다.
          */
         void Upload(Renderer::FScenePrimitive& Primitive);
+
+        /**
+         * @brief 프록시가 그림자 깊이 패스에 그려지는 캐스터인지 검사합니다.
+         * @param[in] Proxy 검사할 프리미티브 프록시입니다.
+         * @return 그림자를 드리우는 메시 프리미티브이면 true입니다.
+         */
+        static bool IsShadowCaster(const Engine::FPrimitiveSceneProxy& Proxy);
 
     private:
         /**
@@ -195,6 +218,18 @@ namespace Renderer {
          */
         mutable Core::Uint32 mTransformUpdates{};
         ReflectProperty(mTransformUpdates, "TransformUpdates", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+
+        /**
+         * @brief 장면 생성 시 발급한 고유 번호입니다.
+         */
+        Core::FRevision mIdentity{Core::FRevision::Next()};
+        ReflectProperty(mIdentity, "Identity", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+
+        /**
+         * @brief 그림자 캐스터 프리미티브가 추가·제거·변경될 때 새로 받는 리비전입니다.
+         */
+        Core::FRevision mCasterRevision{Core::FRevision::Next()};
+        ReflectProperty(mCasterRevision, "CasterRevision", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
 }
