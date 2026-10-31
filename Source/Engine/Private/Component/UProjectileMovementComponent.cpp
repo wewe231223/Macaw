@@ -9,9 +9,12 @@
 #include "Engine/UWorld.h"
 #include "Engine/Component/USceneComponent.h"
 #include "Core/Math/FRotator.h"
+#include "Core/Literals.h"
 
 #include <algorithm>
 #include <cmath>
+
+using namespace Core::Literals;
 
 namespace Engine {
 
@@ -40,8 +43,10 @@ namespace Engine {
         }
 
         Core::FTransform Transform{Owner->GetRootComponent()->GetTransform()};
-        const Core::FVector Acceleration{0.0f, 0.0f, -9.81f * mGravityScale};
-        const float StepTime{DeltaTime / static_cast<float>(std::clamp(std::ceil(DeltaTime / (1.0f / 120.0f)), 1.0f, 128.0f))};
+        constexpr Core::FAcceleration StandardGravity{9.81_mps2};
+        constexpr Core::FTime MaxStepTime{1.0f / 120_Hz};
+        const Core::FVector Acceleration{0.0f, 0.0f, -(StandardGravity / 1_mps2) * mGravityScale};
+        const float StepTime{DeltaTime / static_cast<float>(std::clamp(std::ceil(DeltaTime / (MaxStepTime / 1_s)), 1.0f, 128.0f))};
         float Remaining{DeltaTime};
 
         while (Remaining > 0.0f) {

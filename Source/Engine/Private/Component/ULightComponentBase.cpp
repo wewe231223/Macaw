@@ -13,10 +13,13 @@
 #include "Core/Math.h"
 #include "Asset/UTexture2D.h"
 #include "CoreUObject/Reflection/NewObject.h"
+#include "Core/Literals.h"
 
 #include <Windows.h>
 #include <algorithm>
 #include <cmath>
+
+using namespace Core::Literals;
 
 namespace Engine {
 
@@ -184,9 +187,9 @@ namespace Engine {
 
             for (Core::Uint32 Axis{}; Axis < 3; ++Axis) {
                 for (Core::Uint32 Index{}; Index < Segments; ++Index) {
-                    const float Start{Core::Math::ToRadians(360.0f * Index / Segments)};
-                    const float End{Core::Math::ToRadians(360.0f * (Index + 1) / Segments)};
-                    Draw.DrawLine(Position + (Axes[Axis] * std::cos(Start) + Axes[(Axis + 1) % 3] * std::sin(Start)) * Radius, Position + (Axes[Axis] * std::cos(End) + Axes[(Axis + 1) % 3] * std::sin(End)) * Radius, Color, true);
+                    const Core::FAngle Start{1_turn * Index / Segments};
+                    const Core::FAngle End{1_turn * (Index + 1) / Segments};
+                    Draw.DrawLine(Position + (Axes[Axis] * Core::Math::Cos(Start) + Axes[(Axis + 1) % 3] * Core::Math::Sin(Start)) * Radius, Position + (Axes[Axis] * Core::Math::Cos(End) + Axes[(Axis + 1) % 3] * Core::Math::Sin(End)) * Radius, Color, true);
                 }
             }
 
@@ -194,15 +197,15 @@ namespace Engine {
         }
 
         for (const float Angle : {Proxy.mOuterConeAngle, Proxy.mInnerConeAngle}) {
-            const float ConeRadius{Radius * std::sin(Core::Math::ToRadians(Angle))};
-            const Core::FVector Center{Position + Forward * (Radius * std::cos(Core::Math::ToRadians(Angle)))};
+            const float ConeRadius{Radius * Core::Math::Sin(Angle * 1_deg)};
+            const Core::FVector Center{Position + Forward * (Radius * Core::Math::Cos(Angle * 1_deg))};
             const Core::FVector ConeColor{Angle == Proxy.mOuterConeAngle ? Color : Color * 0.5f};
 
             for (Core::Uint32 Index{}; Index < Segments; ++Index) {
-                const float Start{Core::Math::ToRadians(360.0f * Index / Segments)};
-                const float End{Core::Math::ToRadians(360.0f * (Index + 1) / Segments)};
-                const Core::FVector Edge{Center + (Right * std::cos(Start) + Up * std::sin(Start)) * ConeRadius};
-                Draw.DrawLine(Edge, Center + (Right * std::cos(End) + Up * std::sin(End)) * ConeRadius, ConeColor, true);
+                const Core::FAngle Start{1_turn * Index / Segments};
+                const Core::FAngle End{1_turn * (Index + 1) / Segments};
+                const Core::FVector Edge{Center + (Right * Core::Math::Cos(Start) + Up * Core::Math::Sin(Start)) * ConeRadius};
+                Draw.DrawLine(Edge, Center + (Right * Core::Math::Cos(End) + Up * Core::Math::Sin(End)) * ConeRadius, ConeColor, true);
 
                 if (Index % (Segments / 4) == 0) {
                     Draw.DrawLine(Position, Edge, ConeColor, true);

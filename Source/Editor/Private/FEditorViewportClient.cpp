@@ -38,10 +38,13 @@
 #include "Editor/FViewportCommandInfo.h"
 #include "Engine/FProject.h"
 #include "Asset/UStaticMesh.h"
+#include "Core/Literals.h"
 
 #include <algorithm>
 #include <cmath>
 #include <limits>
+
+using namespace Core::Literals;
 
 namespace Editor {
 
@@ -294,7 +297,7 @@ namespace Editor {
 
         if (Input.mMiddleDown || (Input.mLeftDown && Input.mRightDown && !Input.mAlt)) {
             const float Distance{std::max(mCameraLocation.Distance(mOrbitPivot), 1.0f)};
-            const float PixelScale{2.0f * Distance * std::tan(Core::Math::ToRadians(30.0f)) / std::max(Size.y, 1.0f)};
+            const float PixelScale{2.0f * Distance * Core::Math::Tan(30_deg) / std::max(Size.y, 1.0f)};
             const Core::FVector Pan{Rotation * Core::FVector{0.0f, -Input.mDelta.x, Input.mDelta.y} * PixelScale};
             mCameraLocation += Pan;
             mOrbitPivot += Pan;
@@ -372,8 +375,8 @@ namespace Editor {
             return;
         }
 
-        const float HalfFieldOfView{std::atan(std::tan(Core::Math::ToRadians(mFieldOfView * 0.5f)) * std::min(std::max(Size.x, 1.0f) / std::max(Size.y, 1.0f), 1.0f))};
-        const float Distance{std::max(0.5f, Radius / std::sin(HalfFieldOfView) * 1.2f)};
+        const Core::FAngle HalfFieldOfView{Core::Math::Atan2(Core::Math::Tan(mFieldOfView * 0.5_deg) * std::min(std::max(Size.x, 1.0f) / std::max(Size.y, 1.0f), 1.0f), 1.0f)};
+        const float Distance{std::max(0.5f, Radius / Core::Math::Sin(HalfFieldOfView) * 1.2f)};
 
         mCameraLocation = mOrbitPivot - mCameraRotation.Vector() * Distance;
     }

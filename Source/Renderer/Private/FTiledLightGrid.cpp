@@ -7,10 +7,13 @@
 #include "FTiledLightGrid.h"
 #include "Core/Stats.h"
 #include "Core/Math.h"
+#include "Core/Literals.h"
 
 #include <algorithm>
 #include <cmath>
 #include <limits>
+
+using namespace Core::Literals;
 
 namespace Renderer {
 
@@ -37,7 +40,7 @@ namespace Renderer {
 
             const Core::Uint32 LightIndex{static_cast<Core::Uint32>(mLights.size())};
 
-            mLights.push_back({{Light.mPosition, Light.mAttenuationRadius}, {Light.mDirection, static_cast<float>(Light.mType)}, {Light.mColor.x, Light.mColor.y, Light.mColor.z, Light.mIntensity}, {Light.mLightFalloffExponent, std::cos(Core::Math::ToRadians(Light.mInnerConeAngle)), std::cos(Core::Math::ToRadians(Light.mOuterConeAngle)), 0.0f}});
+            mLights.push_back({{Light.mPosition, Light.mAttenuationRadius}, {Light.mDirection, static_cast<float>(Light.mType)}, {Light.mColor.x, Light.mColor.y, Light.mColor.z, Light.mIntensity}, {Light.mLightFalloffExponent, Core::Math::Cos(Light.mInnerConeAngle * 1_deg), Core::Math::Cos(Light.mOuterConeAngle * 1_deg), 0.0f}});
 
             if (SourceIndex < ShadowRanges.size()) {
                 mLights.back().mShadowInfo = {static_cast<float>(ShadowRanges[SourceIndex][0]), static_cast<float>(ShadowRanges[SourceIndex][1]), 0.0f, 0.0f};

@@ -7,9 +7,11 @@
 #include "Engine/EditorMesh.h"
 #include "Engine/PrimitiveMesh.h"
 #include "Engine/EPrimitiveType.h"
+#include "Core/Literals.h"
 #include <cmath>
-#include <numbers>
 #include <limits>
+
+using namespace Core::Literals;
 
 namespace Engine {
 
@@ -52,22 +54,20 @@ namespace Engine {
      */
     static Asset::FMeshData BuildMesh(Engine::EEditorMesh Type) {
         Asset::FMeshData Mesh{};
-        constexpr float Pi{std::numbers::pi_v<float>};
-
         if (Type == Engine::EEditorMesh::Arrow) {
             for (Core::Uint32 Index{}; Index < 16; ++Index) {
-                const float A{2.0f * Pi * Index / 16.0f};
-                const float B{2.0f * Pi * (Index + 1) / 16.0f};
-                const Core::FVector BottomA{std::cos(A) * 2.0f, std::sin(A) * 2.0f, 11.0f};
-                const Core::FVector BottomB{std::cos(B) * 2.0f, std::sin(B) * 2.0f, 11.0f};
+                const Core::FAngle A{1_turn * Index / 16.0f};
+                const Core::FAngle B{1_turn * (Index + 1) / 16.0f};
+                const Core::FVector BottomA{Core::Math::Cos(A) * 2.0f, Core::Math::Sin(A) * 2.0f, 11.0f};
+                const Core::FVector BottomB{Core::Math::Cos(B) * 2.0f, Core::Math::Sin(B) * 2.0f, 11.0f};
                 const Core::FVector TopA{BottomA.x, BottomA.y, 72.5f};
                 const Core::FVector TopB{BottomB.x, BottomB.y, 72.5f};
                 AddTriangle(&Mesh, BottomA, BottomB, TopA);
                 AddTriangle(&Mesh, TopA, BottomB, TopB);
                 AddTriangle(&Mesh, {0.0f, 0.0f, 11.0f}, BottomB, BottomA);
 
-                const Core::FVector ConeA{std::cos(A) * 6.5f, std::sin(A) * 6.5f, 72.5f};
-                const Core::FVector ConeB{std::cos(B) * 6.5f, std::sin(B) * 6.5f, 72.5f};
+                const Core::FVector ConeA{Core::Math::Cos(A) * 6.5f, Core::Math::Sin(A) * 6.5f, 72.5f};
+                const Core::FVector ConeB{Core::Math::Cos(B) * 6.5f, Core::Math::Sin(B) * 6.5f, 72.5f};
                 AddTriangle(&Mesh, ConeA, ConeB, {0.0f, 0.0f, 87.5f});
                 AddTriangle(&Mesh, {0.0f, 0.0f, 72.5f}, ConeB, ConeA);
             }
@@ -78,16 +78,18 @@ namespace Engine {
             const Core::Uint32 Segments{Type == Engine::EEditorMesh::Ring ? 96u : 48u};
 
             for (Core::Uint32 Segment{}; Segment < Segments; ++Segment) {
-                const float A{Type == Engine::EEditorMesh::Ring ? Segment * 2.0f * Pi / Segments : -Pi * 0.5f + Segment * Pi / Segments};
-                const float B{Type == Engine::EEditorMesh::Ring ? (Segment + 1) * 2.0f * Pi / Segments : -Pi * 0.5f + (Segment + 1) * Pi / Segments};
+                const Core::FAngle Arc{Type == Engine::EEditorMesh::Ring ? 1_turn : 0.5_turn};
+                const Core::FAngle First{Type == Engine::EEditorMesh::Ring ? 0_deg : -90_deg};
+                const Core::FAngle A{First + Arc * Segment / Segments};
+                const Core::FAngle B{First + Arc * (Segment + 1) / Segments};
 
                 for (Core::Uint32 Side{}; Side < 8; ++Side) {
-                    const float C{Side * 2.0f * Pi / 8.0f};
-                    const float D{(Side + 1) * 2.0f * Pi / 8.0f};
-                    const Core::FVector P{(74.0f + std::cos(C) * 2.0f) * std::cos(A), (74.0f + std::cos(C) * 2.0f) * std::sin(A), std::sin(C) * 2.0f};
-                    const Core::FVector Q{(74.0f + std::cos(D) * 2.0f) * std::cos(A), (74.0f + std::cos(D) * 2.0f) * std::sin(A), std::sin(D) * 2.0f};
-                    const Core::FVector R{(74.0f + std::cos(C) * 2.0f) * std::cos(B), (74.0f + std::cos(C) * 2.0f) * std::sin(B), std::sin(C) * 2.0f};
-                    const Core::FVector S{(74.0f + std::cos(D) * 2.0f) * std::cos(B), (74.0f + std::cos(D) * 2.0f) * std::sin(B), std::sin(D) * 2.0f};
+                    const Core::FAngle C{1_turn * Side / 8.0f};
+                    const Core::FAngle D{1_turn * (Side + 1) / 8.0f};
+                    const Core::FVector P{(74.0f + Core::Math::Cos(C) * 2.0f) * Core::Math::Cos(A), (74.0f + Core::Math::Cos(C) * 2.0f) * Core::Math::Sin(A), Core::Math::Sin(C) * 2.0f};
+                    const Core::FVector Q{(74.0f + Core::Math::Cos(D) * 2.0f) * Core::Math::Cos(A), (74.0f + Core::Math::Cos(D) * 2.0f) * Core::Math::Sin(A), Core::Math::Sin(D) * 2.0f};
+                    const Core::FVector R{(74.0f + Core::Math::Cos(C) * 2.0f) * Core::Math::Cos(B), (74.0f + Core::Math::Cos(C) * 2.0f) * Core::Math::Sin(B), Core::Math::Sin(C) * 2.0f};
+                    const Core::FVector S{(74.0f + Core::Math::Cos(D) * 2.0f) * Core::Math::Cos(B), (74.0f + Core::Math::Cos(D) * 2.0f) * Core::Math::Sin(B), Core::Math::Sin(D) * 2.0f};
                     AddTriangle(&Mesh, P, Q, R);
                     AddTriangle(&Mesh, R, Q, S);
                 }

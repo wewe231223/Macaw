@@ -8,11 +8,13 @@
 #include "Engine/FPrimitiveDrawInterface.h"
 #include "Engine/EPrimitiveType.h"
 #include "Core/Math/FBox.h"
+#include "Core/Literals.h"
 
 #include <algorithm>
 #include <cmath>
 #include <iostream>
-#include <numbers>
+
+using namespace Core::Literals;
 
 namespace Engine {
 
@@ -35,7 +37,6 @@ namespace Engine {
          */
         constexpr Core::Int32 CircleSegment{32};
 
-        // 각도는 모두 라디안
         /**
          * @brief 두 기저 방향의 평면에서 원호를 선분으로 수집합니다.
          * @param[in] DrawInterface 보조 선분을 추가할 프레임 수집기입니다.
@@ -43,19 +44,19 @@ namespace Engine {
          * @param[in] U 원호 평면의 첫 기저입니다.
          * @param[in] V 원호 평면의 둘째 기저입니다.
          * @param[in] R 원호의 반지름입니다.
-         * @param[in] StartAngleRad 시작 라디안 각도입니다.
-         * @param[in] EndAngleRad 끝 라디안 각도입니다.
+         * @param[in] StartAngle 시작 각도입니다.
+         * @param[in] EndAngle 끝 각도입니다.
          * @param[in] Color 적용할 색상입니다.
          */
-        void AddArc(Engine::FPrimitiveDrawInterface& DrawInterface, const Core::FVector& C, const Core::FVector& U, const Core::FVector& V, float R, float StartAngleRad, float EndAngleRad, const Core::FVector& Color) {
-            const Core::Int32 Segments{std::max(1, static_cast<Core::Int32>(CircleSegment * (EndAngleRad - StartAngleRad) / (2.0f * std::numbers::pi_v<float>)))};
-            const float StepRad{(EndAngleRad - StartAngleRad) / Segments};
+        void AddArc(Engine::FPrimitiveDrawInterface& DrawInterface, const Core::FVector& C, const Core::FVector& U, const Core::FVector& V, float R, Core::FAngle StartAngle, Core::FAngle EndAngle, const Core::FVector& Color) {
+            const Core::Int32 Segments{std::max(1, static_cast<Core::Int32>(CircleSegment * ((EndAngle - StartAngle) / 1_turn)))};
+            const Core::FAngle Step{(EndAngle - StartAngle) / Segments};
 
-            Core::FVector Prev{C + U * (std::cos(StartAngleRad) * R) + V * (std::sin(StartAngleRad) * R)};
+            Core::FVector Prev{C + U * (Core::Math::Cos(StartAngle) * R) + V * (Core::Math::Sin(StartAngle) * R)};
 
             for (Core::Int32 Index{1}; Index <= Segments; ++Index) {
-                const float AngleRad{StartAngleRad + StepRad * Index};
-                const Core::FVector Point{C + U * (std::cos(AngleRad) * R) + V * (std::sin(AngleRad) * R)};
+                const Core::FAngle Angle{StartAngle + Step * Index};
+                const Core::FVector Point{C + U * (Core::Math::Cos(Angle) * R) + V * (Core::Math::Sin(Angle) * R)};
                 DrawInterface.DrawLine(Prev, Point, Color, true);
                 Prev = Point;
             }
@@ -127,9 +128,9 @@ namespace Engine {
             const Core::FVector Up{Rot.UpVector()};
             const float R{Sphere.GetRadius()};
 
-            AddArc(DrawInterface, Sphere.GetA(), F, Rt, R, 0.0f, 2.0f * std::numbers::pi_v<float>, Color);
-            AddArc(DrawInterface, Sphere.GetA(), F, Up, R, 0.0f, 2.0f * std::numbers::pi_v<float>, Color);
-            AddArc(DrawInterface, Sphere.GetA(), Rt, Up, R, 0.0f, 2.0f * std::numbers::pi_v<float>, Color);
+            AddArc(DrawInterface, Sphere.GetA(), F, Rt, R, 0_rad, 1_turn, Color);
+            AddArc(DrawInterface, Sphere.GetA(), F, Up, R, 0_rad, 1_turn, Color);
+            AddArc(DrawInterface, Sphere.GetA(), Rt, Up, R, 0_rad, 1_turn, Color);
         }
         else if (Shape.IsCapsule()) {
             Engine::FCapsuleSegment Capsule{Engine::Collision::ToCapsuleSegment(Shape, Pos, Rot)};
@@ -139,18 +140,18 @@ namespace Engine {
             const Core::FVector Up{Rot.UpVector()};
             const float R{Capsule.GetRadius()};
 
-            AddArc(DrawInterface, Capsule.GetA(), F, Rt, R, 0.0f, 2.0f * std::numbers::pi_v<float>, Color);
-            AddArc(DrawInterface, Capsule.GetB(), F, Rt, R, 0.0f, 2.0f * std::numbers::pi_v<float>, Color);
+            AddArc(DrawInterface, Capsule.GetA(), F, Rt, R, 0_rad, 1_turn, Color);
+            AddArc(DrawInterface, Capsule.GetB(), F, Rt, R, 0_rad, 1_turn, Color);
 
             DrawInterface.DrawLine(Capsule.GetA() + F * R, Capsule.GetB() + F * R, Color, true);
             DrawInterface.DrawLine(Capsule.GetA() - F * R, Capsule.GetB() - F * R, Color, true);
             DrawInterface.DrawLine(Capsule.GetA() + Rt * R, Capsule.GetB() + Rt * R, Color, true);
             DrawInterface.DrawLine(Capsule.GetA() - Rt * R, Capsule.GetB() - Rt * R, Color, true);
 
-            AddArc(DrawInterface, Capsule.GetB(), F, Up, R, 0.0f, std::numbers::pi_v<float>, Color);
-            AddArc(DrawInterface, Capsule.GetB(), Rt, Up, R, 0.0f, std::numbers::pi_v<float>, Color);
-            AddArc(DrawInterface, Capsule.GetA(), F, -Up, R, 0.0f, std::numbers::pi_v<float>, Color);
-            AddArc(DrawInterface, Capsule.GetA(), Rt, -Up, R, 0.0f, std::numbers::pi_v<float>, Color);
+            AddArc(DrawInterface, Capsule.GetB(), F, Up, R, 0_rad, 0.5_turn, Color);
+            AddArc(DrawInterface, Capsule.GetB(), Rt, Up, R, 0_rad, 0.5_turn, Color);
+            AddArc(DrawInterface, Capsule.GetA(), F, -Up, R, 0_rad, 0.5_turn, Color);
+            AddArc(DrawInterface, Capsule.GetA(), Rt, -Up, R, 0_rad, 0.5_turn, Color);
         }
     }
 
