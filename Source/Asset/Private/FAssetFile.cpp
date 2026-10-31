@@ -6,6 +6,7 @@
 
 #include "Asset/FAssetFile.h"
 #include "Core/FAtomicFileWriter.h"
+#include "Core/LoadingStatus.h"
 
 #include <array>
 #include <fstream>
@@ -127,6 +128,8 @@ namespace Asset {
     }
 
     bool Asset::FAssetFile::Load(const std::filesystem::path& Path, Asset::EAssetType Type, Core::TArray<Core::Uint8>& Payload, Core::FString& Error) {
+        Core::LoadingStatus::ReportFile("Loading", Path);
+
         std::ifstream Input{};
         Asset::EAssetType ActualType{Type};
         Core::Uint64 Size{};

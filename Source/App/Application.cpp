@@ -8,9 +8,11 @@
 #include "AppReflection.h"
 #include "CoreUObject/UObject.h"
 #include "Core/Base/ErrorHandler.h"
+#include "Core/LoadingStatus.h"
 #include "Core/Memory.h"
 #include "Core/Stats.h"
 #include "Editor/FProjectBrowser.h"
+#include "Platform/SplashWindow.h"
 
 #include <array>
 
@@ -112,6 +114,31 @@ namespace App {
     }
 
     bool App::FApplication::OpenProject(const std::filesystem::path& Path, bool Create, Core::FString& Error) {
+        const HWND Window{mPlatform.GetWindowHandle()};
+        Platform::FSplashWindow Splash{};
+
+        Splash.Show(Window, Path.stem().wstring(), Path.parent_path());
+        ShowWindow(Window, SW_HIDE);
+        Core::LoadingStatus::SetSink(&Splash);
+
+        const bool Loaded{LoadProject(Path, Create, Error)};
+
+        Core::LoadingStatus::SetSink(nullptr);
+
+        if (Loaded) {
+            Splash.Finish();
+        }
+
+        ShowWindow(Window, SW_SHOW);
+        SetForegroundWindow(Window);
+        Splash.Close();
+
+        return Loaded;
+    }
+
+    bool App::FApplication::LoadProject(const std::filesystem::path& Path, bool Create, Core::FString& Error) {
+        Core::LoadingStatus::BeginStage(Create ? "Creating project from template..." : "Opening project...", 0.0f);
+
         auto Project{std::make_unique<Engine::FProject>()};
 
         if (!(Create ? Project->Create(Path, mTemplateDirectory, Error) : Project->Open(Path, Error))) {
@@ -124,7 +151,11 @@ namespace App {
         mEngine.SetProject(mProject.get());
         mRenderer.SetProjectPaths(mProject->GetAssets()->GetContentRoot(), mProject->GetShaderCachePath());
 
-        if (!mRenderer.Initialize(mPlatform.GetWindowHandle(), mPlatform.GetWidth(), mPlatform.GetHeight()) || !mEngine.InitializeEditor(&mRenderer, &mPlatform)) {
+        const bool RendererReady{mRenderer.Initialize(mPlatform.GetWindowHandle(), mPlatform.GetWidth(), mPlatform.GetHeight())};
+
+        Core::LoadingStatus::BeginStage("Initializing editor...", 0.72f);
+
+        if (!RendererReady || !mEngine.InitializeEditor(&mRenderer, &mPlatform)) {
             Core::ErrorHandler::Fatal("Project", "Cannot initialize the project editor");
         }
 

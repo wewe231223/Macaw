@@ -149,7 +149,7 @@ ConfigureRuntimeExecutable("Macaw", "WindowedApp", "Source/App")
     AddIncludes("Editor", {})
     links { "Editor" }
     dependson { "MacawGame" }
-    files { "Source/App/**.rc", "Macaw.ico" }
+    files { "Source/App/**.rc", "Resources/Editor.rc", "Macaw.ico" }
     resincludedirs { "." }
     postbuildcommands { '{COPYDIR} "%{wks.location}/Templates/Project" "%{cfg.targetdir}/Templates/Project"' }
     postbuildcommands { '{COPYFILE} "%{wks.location}/vcpkg_installed/x64-windows/tools/luajit/lua51.dll" "%{cfg.targetdir}/lua51.dll"' }

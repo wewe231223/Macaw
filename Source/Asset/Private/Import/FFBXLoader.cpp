@@ -350,9 +350,43 @@ namespace Asset {
         // Import가 끝나 장면 연결과 내장 바이트가 모두 준비되었으므로 파일 텍스처를 판별합니다.
         mImageProcessor.ResolveTextures(*mScene, GetSourceDirectory());
 
-        const FbxAxisSystem AxisSystem{FbxAxisSystem::eZAxis, FbxAxisSystem::eParityOdd, FbxAxisSystem::eLeftHanded};
+        // Import한 Scene을 변환할 목표 좌표계를 정의합니다. 객체 생성만으로 Scene의 데이터가 바뀌지는 않습니다.
+        // 첫 번째 인자 eZAxis는 목표 좌표계에서 +Z 방향을 위쪽인 Up으로 사용한다는 뜻입니다.
+        // 
+        // 두 번째 인자는 Up을 제외한 나머지 두 축 중 FBX의 Front로 사용할 축을 선택합니다.
+        // X, Y, Z 순서에서 Up을 제외했을 때 eParityEven은 첫 번째 축, eParityOdd는 두 번째 축을 선택합니다.
+        // 
+        // Up = X이면 남은 축은 Y, Z이므로 Even의 Front는 +Y, Odd의 Front는 +Z입니다.
+        // Up = Y이면 남은 축은 X, Z이므로 Even의 Front는 +X, Odd의 Front는 +Z입니다.
+        // Up = Z이면 남은 축은 X, Y이므로 Even의 Front는 +X, Odd의 Front는 +Y입니다.
+        // 
+        // 따라서 현재 eZAxis와 eParityEven의 조합은 Up = +Z, FBX Front = +X를 의미합니다.
+        // Odd와 Even은 Front로 선택할 축을 구분하며, 오른손 좌표계인지 왼손 좌표계인지를 구분하지 않습니다.
+        // 
+        // Front의 부호도 별도입니다. Z-Up에서 양수 eParityEven은 +X, 음수 -eParityEven은 -X를 의미합니다.
+        // 여기서의 Front는 화면에서 관찰자 쪽으로 향하는 방향입니다. 따라서 우리는  
+        // 
+        // 세 번째 인자 eLeftHanded는 목표 좌표계가 왼손 좌표계임을 지정합니다.
+        // Up과 Front가 정해지면 남은 축의 종류가 결정되고, SDK가 왼손 좌표계에 맞도록 그 축의 부호를 결정합니다.
+        // 원본 Scene의 좌표계는 FBX에 저장된 설정에서 읽으며, 여기서는 변환 결과가 사용할 좌표계를 지정합니다.
+        // Macaw의 Forward = +X와 Up = +Z 규약에 맞추기 위해 eZAxis, eParityEven, eLeftHanded를 사용합니다.
+        const FbxAxisSystem AxisSystem{FbxAxisSystem::eZAxis, FbxAxisSystem::eParityEven, FbxAxisSystem::eLeftHanded};
+
+        // 원본 Scene의 좌표계에서 위에서 정의한 목표 좌표계로 실제 데이터를 변환합니다.
+        // Scene의 좌표계 정보뿐 아니라 계층 전반의 Transform, 정점 위치, 애니메이션 곡선 등을 함께 변환합니다.
+        // DeepConvertScene은 오른손 좌표계와 왼손 좌표계 사이의 변환도 처리할 수 있습니다.
+        // 사용자 정의 속성에 별도로 저장한 좌표 값은 자동으로 변환하지 않습니다.
         AxisSystem.DeepConvertScene(mScene);
+
+        // Scene의 길이 단위를 원본 FBX에 저장된 단위에서 미터로 변환합니다. FbxSystemUnit::m은 미터 단위입니다.
+        // 축 변환이 방향을 맞추는 작업이라면, 단위 변환은 동일한 실제 길이가 유지되도록 수치와 스케일을 맞추는 작업입니다.
+        // 예를 들어 센티미터 단위 Scene의 100cm 길이가 변환 후에도 1m에 해당하도록 조정합니다.
+        // 별도 옵션을 전달하지 않았으므로 SDK의 기본 단위 변환 옵션을 사용합니다.
         FbxSystemUnit::m.ConvertScene(mScene);
+
+        // 같은 FBX Manager를 사용하는 지오메트리 변환 도구를 생성합니다. 생성 시점에는 메시를 변환하지 않습니다.
+        // 아래 Triangulate 호출에서 Scene 내 변환 가능한 지오메트리를 삼각형으로 분할하는 데 사용합니다.
+        // Triangulate의 두 번째 인자 true는 기존 지오메트리를 삼각형으로 변환한 결과로 교체하도록 지정합니다.
         FbxGeometryConverter Converter{mManager};
 
         if (!Converter.Triangulate(mScene, true)) {

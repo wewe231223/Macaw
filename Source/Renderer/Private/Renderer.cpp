@@ -7,6 +7,7 @@
 #include "Renderer/Renderer.h"
 #include "RendererStats.h"
 #include "Core/FilePath.h"
+#include "Core/LoadingStatus.h"
 #include "Renderer/FLineVertex.h"
 #include "Core/Math/FVector.h"
 #include "Core/Math/FMatrix.h"
@@ -112,7 +113,21 @@ namespace Renderer {
      * @brief Direct3D 11 장치, 스왑 체인과 렌더 파이프라인을 준비합니다.
      */
     bool Renderer::FRenderer::Initialize(void* WindowHandle, Core::Uint32 Width, Core::Uint32 Height) {
-        if (!InitializeUi(WindowHandle, Width, Height) || !CreatePipeline() || !CreateEditorMeshes()) {
+        Core::LoadingStatus::BeginStage("Initializing graphics device...", 0.08f);
+
+        if (!InitializeUi(WindowHandle, Width, Height)) {
+            Core::ErrorHandler::Fatal("Renderer", "Render pipeline creation failed");
+        }
+
+        Core::LoadingStatus::BeginStage("Preparing shaders...", 0.15f);
+
+        if (!CreatePipeline()) {
+            Core::ErrorHandler::Fatal("Renderer", "Render pipeline creation failed");
+        }
+
+        Core::LoadingStatus::BeginStage("Building editor meshes...", 0.62f);
+
+        if (!CreateEditorMeshes()) {
             Core::ErrorHandler::Fatal("Renderer", "Render pipeline creation failed");
         }
 
@@ -561,6 +576,8 @@ namespace Renderer {
 #ifdef _DEBUG
         Description.mCompileFlags |= D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
 #endif
+
+        Core::LoadingStatus::ReportFile("Loading", Description.mSourcePath);
 
         Core::FString Diagnostics{};
         Code = mShaderManager.Load(Description, Diagnostics);

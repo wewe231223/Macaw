@@ -65,13 +65,22 @@ namespace App {
         bool BrowseProjects(std::filesystem::path Path, bool Create);
 
         /**
-         * @brief 현재 실행을 정리하고 프로젝트를 생성하거나 열어 시작 장면을 연결합니다.
-         * @param[out] Error 프로젝트를 열지 못한 원인입니다.
+         * @brief 메인 창 대신 스플래시 창을 띄운 채 프로젝트를 불러오고, 끝나면 메인 창을 다시 표시합니다.
          * @param[in] Path 열거나 생성할 프로젝트 경로입니다.
          * @param[in] Create true이면 새 프로젝트를 생성하고 false이면 기존 프로젝트를 엽니다.
+         * @param[out] Error 프로젝트를 열지 못한 원인입니다.
          * @return 요청한 처리를 완료하면 true, 실패하면 false입니다.
          */
         bool OpenProject(const std::filesystem::path& Path, bool Create, Core::FString& Error);
+
+        /**
+         * @brief 현재 실행을 정리하고 프로젝트를 생성하거나 열어 시작 장면을 연결합니다.
+         * @param[in] Path 열거나 생성할 프로젝트 경로입니다.
+         * @param[in] Create true이면 새 프로젝트를 생성하고 false이면 기존 프로젝트를 엽니다.
+         * @param[out] Error 프로젝트를 열지 못한 원인입니다.
+         * @return 요청한 처리를 완료하면 true, 실패하면 false입니다.
+         */
+        bool LoadProject(const std::filesystem::path& Path, bool Create, Core::FString& Error);
 
     private:
         /**

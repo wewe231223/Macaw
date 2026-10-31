@@ -6,6 +6,7 @@
 
 #include "Asset/UTexture2D.h"
 #include "Core/FilePath.h"
+#include "Core/LoadingStatus.h"
 
 #include <DirectXTex.h>
 #include <fstream>
@@ -31,6 +32,8 @@ namespace Asset {
     }
 
     bool Asset::UTexture2D::LoadFromFile(const std::filesystem::path& ImagePath, bool SRGB) {
+        Core::LoadingStatus::ReportFile("Importing", ImagePath);
+
         std::error_code Code{};
         const auto Size{ImagePath.empty() ? 0 : std::filesystem::file_size(ImagePath, Code)};
         std::ifstream Input{ImagePath, std::ios::binary};
