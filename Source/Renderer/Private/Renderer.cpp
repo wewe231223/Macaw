@@ -1389,6 +1389,11 @@ namespace Renderer {
                 mContext->PSSetShaderResources(0, 1, &Resource);
                 mContext->VSSetShaderResources(1, 1, &NormalResource);
                 mContext->PSSetShaderResources(1, 1, &NormalResource);
+
+                const std::array<Asset::UTexture2D*, 3> LightingTextures{Command.mMaterial->GetSpecularTexture(), Command.mMaterial->GetEmissiveTexture(), Command.mMaterial->GetReflectionTexture()};
+                const std::array<ID3D11ShaderResourceView*, 3> LightingResources{LightingTextures[0] != nullptr ? LightingTextures[0]->GetShaderResourceView() : nullptr, LightingTextures[1] != nullptr ? LightingTextures[1]->GetShaderResourceView() : nullptr, LightingTextures[2] != nullptr ? LightingTextures[2]->GetShaderResourceView() : nullptr};
+                mContext->PSSetShaderResources(7, static_cast<UINT>(LightingResources.size()), LightingResources.data());
+
                 mContext->VSSetSamplers(0, 1, &Sampler);
                 mContext->PSSetSamplers(0, 1, &Sampler);
                 LastMaterial = Command.mMaterial;
@@ -1432,6 +1437,9 @@ namespace Renderer {
             mContext->PSSetShaderResources(0, 1, &Empty);
             mContext->VSSetShaderResources(1, 1, &Empty);
             mContext->PSSetShaderResources(1, 1, &Empty);
+
+            const std::array<ID3D11ShaderResourceView*, 3> EmptyLightingResources{};
+            mContext->PSSetShaderResources(7, static_cast<UINT>(EmptyLightingResources.size()), EmptyLightingResources.data());
         }
 
         return DrawCalls;

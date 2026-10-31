@@ -70,6 +70,21 @@ namespace Asset {
          */
         const Asset::FMeshImportTexture& GetNormalMapTexture() const;
 
+        const Core::FVector4& GetSpecularColor() const;
+        const Core::FVector4& GetAmbientColor() const;
+        const Core::FVector4& GetEmissiveColor() const;
+        const Core::FVector4& GetReflectionColor() const;
+
+        float GetSpecularStrength() const;
+        float GetShininess() const;
+        float GetReflectionStrength() const;
+
+        const Asset::FMeshImportTexture& GetSpecularTexture() const;
+        const Asset::FMeshImportTexture& GetEmissiveTexture() const;
+        const Asset::FMeshImportTexture& GetReflectionTexture() const;
+
+        bool SetLighting(const Core::FVector4& SpecularColor, float SpecularStrength, float Shininess, const Core::FVector4& AmbientColor, const Core::FVector4& EmissiveColor, const Core::FVector4& ReflectionColor, float ReflectionStrength, Asset::FMeshImportTexture SpecularTexture, Asset::FMeshImportTexture EmissiveTexture, Asset::FMeshImportTexture ReflectionTexture);
+
     private:
         /**
          * @brief 생성된 멤버 등록 함수와 리플렉션 빌더의 접근 권한입니다.
@@ -77,6 +92,36 @@ namespace Asset {
         ReflectMembers();
 
     private:
+        Core::FVector4 mSpecularColor{1.0f, 1.0f, 1.0f, 1.0f};
+        ReflectProperty(mSpecularColor, "SpecularColor", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+
+        Core::FVector4 mAmbientColor{1.0f, 1.0f, 1.0f, 1.0f};
+        ReflectProperty(mAmbientColor, "AmbientColor", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+
+        Core::FVector4 mEmissiveColor{0.0f, 0.0f, 0.0f, 1.0f};
+        ReflectProperty(mEmissiveColor, "EmissiveColor", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+
+        Core::FVector4 mReflectionColor{1.0f, 1.0f, 1.0f, 1.0f};
+        ReflectProperty(mReflectionColor, "ReflectionColor", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+
+        float mSpecularStrength{0.0f};
+        ReflectProperty(mSpecularStrength, "SpecularStrength", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+
+        float mShininess{32.0f};
+        ReflectProperty(mShininess, "Shininess", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+
+        float mReflectionStrength{0.0f};
+        ReflectProperty(mReflectionStrength, "ReflectionStrength", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+
+        Asset::FMeshImportTexture mSpecularTexture{};
+        ReflectProperty(mSpecularTexture, "SpecularTexture", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+
+        Asset::FMeshImportTexture mEmissiveTexture{};
+        ReflectProperty(mEmissiveTexture, "EmissiveTexture", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+
+        Asset::FMeshImportTexture mReflectionTexture{};
+        ReflectProperty(mReflectionTexture, "ReflectionTexture", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+
         /**
          * @brief 저장하거나 원본 파일에서 읽은 재질 이름입니다.
          */

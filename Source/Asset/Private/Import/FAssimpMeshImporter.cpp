@@ -206,11 +206,10 @@ namespace Asset {
             return false;
         }
 
-        ReadMaterials();
-        return true;
+        return ReadMaterials();
     }
 
-    void Asset::FAssimpMeshImporter::ReadMaterials() {
+    bool Asset::FAssimpMeshImporter::ReadMaterials() {
         Core::TArray<Asset::FMeshImportMaterial>& Materials{GetResult().GetMaterials()};
         Materials.reserve(mScene->mNumMaterials);
 
@@ -225,8 +224,39 @@ namespace Asset {
 
             Core::Int32 TwoSided{};
             Material.Get(AI_MATKEY_TWOSIDED, TwoSided);
-            Materials.emplace_back(Name, Core::FVector4{Color.r, Color.g, Color.b, Opacity}, TwoSided != 0, ReadTexture(Material, aiTextureType_BASE_COLOR, aiTextureType_DIFFUSE), ReadTexture(Material, aiTextureType_NORMALS, aiTextureType_HEIGHT));
+
+            Asset::FMeshImportTexture SpecularTexture{ReadTexture(Material, aiTextureType_SPECULAR, aiTextureType_SPECULAR)};
+            Asset::FMeshImportTexture EmissiveTexture{ReadTexture(Material, aiTextureType_EMISSIVE, aiTextureType_EMISSION_COLOR)};
+            Asset::FMeshImportTexture ReflectionTexture{ReadTexture(Material, aiTextureType_REFLECTION, aiTextureType_REFLECTION)};
+            const auto ReadColor{[&](const char* Key, Core::Uint32 Type, Core::Uint32 PropertyIndex, const Core::FVector4& Default) {
+                aiColor4D Value{Default.x, Default.y, Default.z, Default.w};
+                aiGetMaterialColor(&Material, Key, Type, PropertyIndex, &Value);
+                return Core::FVector4{Value.r, Value.g, Value.b, 1.0f};
+            }};
+            const float SpecularDefault{SpecularTexture.GetSource() == Asset::EMeshImportTextureSource::None ? 0.0f : 1.0f};
+            const float EmissiveDefault{EmissiveTexture.GetSource() == Asset::EMeshImportTextureSource::None ? 0.0f : 1.0f};
+            const Core::FVector4 SpecularColor{ReadColor(AI_MATKEY_COLOR_SPECULAR, {SpecularDefault, SpecularDefault, SpecularDefault, 1.0f})};
+            const Core::FVector4 AmbientColor{ReadColor(AI_MATKEY_COLOR_AMBIENT, {1.0f, 1.0f, 1.0f, 1.0f})};
+            const Core::FVector4 EmissiveColor{ReadColor(AI_MATKEY_COLOR_EMISSIVE, {EmissiveDefault, EmissiveDefault, EmissiveDefault, 1.0f})};
+            const Core::FVector4 ReflectionColor{ReadColor(AI_MATKEY_COLOR_REFLECTIVE, {1.0f, 1.0f, 1.0f, 1.0f})};
+
+            float SpecularStrength{1.0f};
+            float Shininess{32.0f};
+            float ReflectionStrength{ReflectionTexture.GetSource() == Asset::EMeshImportTextureSource::None ? 0.0f : 1.0f};
+            Material.Get(AI_MATKEY_SHININESS_STRENGTH, SpecularStrength);
+            Material.Get(AI_MATKEY_SHININESS, Shininess);
+            Material.Get(AI_MATKEY_REFLECTIVITY, ReflectionStrength);
+            Asset::FMeshImportMaterial Imported{Name, Core::FVector4{Color.r, Color.g, Color.b, Opacity}, TwoSided != 0, ReadTexture(Material, aiTextureType_BASE_COLOR, aiTextureType_DIFFUSE), ReadTexture(Material, aiTextureType_NORMALS, aiTextureType_HEIGHT)};
+
+            if (!Imported.SetLighting(SpecularColor, SpecularStrength, Shininess, AmbientColor, EmissiveColor, ReflectionColor, ReflectionStrength, std::move(SpecularTexture), std::move(EmissiveTexture), std::move(ReflectionTexture))) {
+                GetError() = "The source material contains invalid lighting properties: " + Name;
+                return false;
+            }
+
+            Materials.push_back(std::move(Imported));
         }
+
+        return true;
     }
 
 }

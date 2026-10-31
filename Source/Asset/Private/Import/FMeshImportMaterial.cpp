@@ -6,6 +6,9 @@
 
 #include "Asset/Import/FMeshImportMaterial.h"
 
+#include <algorithm>
+#include <array>
+#include <cmath>
 #include <utility>
 
 namespace Asset {
@@ -36,6 +39,68 @@ namespace Asset {
 
     const Asset::FMeshImportTexture& Asset::FMeshImportMaterial::GetNormalMapTexture() const {
         return mNormalMapTexture;
+    }
+
+    const Core::FVector4& Asset::FMeshImportMaterial::GetSpecularColor() const {
+        return mSpecularColor;
+    }
+
+    const Core::FVector4& Asset::FMeshImportMaterial::GetAmbientColor() const {
+        return mAmbientColor;
+    }
+
+    const Core::FVector4& Asset::FMeshImportMaterial::GetEmissiveColor() const {
+        return mEmissiveColor;
+    }
+
+    const Core::FVector4& Asset::FMeshImportMaterial::GetReflectionColor() const {
+        return mReflectionColor;
+    }
+
+    float Asset::FMeshImportMaterial::GetSpecularStrength() const {
+        return mSpecularStrength;
+    }
+
+    float Asset::FMeshImportMaterial::GetShininess() const {
+        return mShininess;
+    }
+
+    float Asset::FMeshImportMaterial::GetReflectionStrength() const {
+        return mReflectionStrength;
+    }
+
+    const Asset::FMeshImportTexture& Asset::FMeshImportMaterial::GetSpecularTexture() const {
+        return mSpecularTexture;
+    }
+
+    const Asset::FMeshImportTexture& Asset::FMeshImportMaterial::GetEmissiveTexture() const {
+        return mEmissiveTexture;
+    }
+
+    const Asset::FMeshImportTexture& Asset::FMeshImportMaterial::GetReflectionTexture() const {
+        return mReflectionTexture;
+    }
+
+    bool Asset::FMeshImportMaterial::SetLighting(const Core::FVector4& SpecularColor, float SpecularStrength, float Shininess, const Core::FVector4& AmbientColor, const Core::FVector4& EmissiveColor, const Core::FVector4& ReflectionColor, float ReflectionStrength, Asset::FMeshImportTexture SpecularTexture, Asset::FMeshImportTexture EmissiveTexture, Asset::FMeshImportTexture ReflectionTexture) {
+        const std::array<Core::FVector4, 4> Colors{SpecularColor, AmbientColor, EmissiveColor, ReflectionColor};
+
+        if (!std::all_of(Colors.begin(), Colors.end(), [](const Core::FVector4& Color) {
+            return Color.IsFinite() && Color.x >= 0.0f && Color.y >= 0.0f && Color.z >= 0.0f && Color.w >= 0.0f && Color.w <= 1.0f;
+        }) || !std::isfinite(SpecularStrength) || SpecularStrength < 0.0f || SpecularStrength > 1.0f || !std::isfinite(Shininess) || Shininess < 0.0f || !std::isfinite(ReflectionStrength) || ReflectionStrength < 0.0f || ReflectionStrength > 1.0f) {
+            return false;
+        }
+
+        mSpecularColor = SpecularColor;
+        mAmbientColor = AmbientColor;
+        mEmissiveColor = EmissiveColor;
+        mReflectionColor = ReflectionColor;
+        mSpecularStrength = SpecularStrength;
+        mShininess = std::clamp(Shininess, 1.0f, 1024.0f);
+        mReflectionStrength = ReflectionStrength;
+        mSpecularTexture = std::move(SpecularTexture);
+        mEmissiveTexture = std::move(EmissiveTexture);
+        mReflectionTexture = std::move(ReflectionTexture);
+        return true;
     }
 
 }

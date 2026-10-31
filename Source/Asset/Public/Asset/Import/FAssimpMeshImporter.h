@@ -64,7 +64,7 @@ namespace Asset {
         /**
          * @brief 장면의 Assimp 재질마다 기본 색상·불투명도·양면 여부와 기본 색상·노멀 텍스처를 읽어 재질 목록에 추가합니다.
          */
-        void ReadMaterials();
+        bool ReadMaterials();
 
         /**
          * @brief 생성된 멤버 등록 함수와 리플렉션 빌더의 접근 권한입니다.

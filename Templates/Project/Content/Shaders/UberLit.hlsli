@@ -48,6 +48,7 @@ struct FLighting {
      * @brief 광원 계산으로 누적한 RGB 정반사 조명입니다.
      */
     float3 mSpecular;
+    float3 mAmbient;
 };
 
 /**
@@ -121,7 +122,8 @@ FLighting EvaluateLight(FLight Light, float3 Position, float3 Normal) {
     uint Type = {(uint)Light.mDirectionAndType.w};
 
     if (Type == 0) {
-        Result.mDiffuse = Radiance;
+        Result.mDiffuse = Radiance * AmbientColor.rgb;
+        Result.mAmbient = Radiance;
         return Result;
     }
 
@@ -227,6 +229,17 @@ float4 PixelMain(FOutput Input) : SV_TARGET {
 #else
     FLighting Total = {(FLighting)0};
     FLighting Unshadowed = {(FLighting)0};
+    float3 SpecularTint = {SpecularColor.rgb};
+    float3 Emissive = {EmissiveColor.rgb};
+
+    if (TextureFlags.x > 0.0f) {
+        SpecularTint *= SpecularTexture.Sample(MaterialSampler, Input.mUV).rgb;
+    }
+
+    if (TextureFlags.y > 0.0f) {
+        Emissive *= EmissiveTexture.Sample(MaterialSampler, Input.mUV).rgb;
+    }
+
     float3 PositionDx = {ddx(Input.mWorldPosition)};
     float3 PositionDy = {ddy(Input.mWorldPosition)};
     uint2 Tile = {min((uint2)Input.mPosition.xy / TileDimensions.z, TileDimensions.xy - 1)};
@@ -239,13 +252,35 @@ float4 PixelMain(FOutput Input) : SV_TARGET {
         Unshadowed.mSpecular += Lighting.mSpecular;
         Total.mDiffuse += Lighting.mDiffuse * Visibility;
         Total.mSpecular += Lighting.mSpecular * Visibility;
+        Total.mAmbient += Lighting.mAmbient;
     }
+
+    float3 Reflection = {float3(0.0f, 0.0f, 0.0f)};
+
+#if defined(LIGHTING_MODEL_PHONG) || defined(LIGHTING_MODEL_GOURAUD)
+    float3 Environment = {Total.mAmbient};
+
+    if (TextureFlags.z > 0.0f) {
+        float3 V = {SafeNormal(CameraAndLightCount.xyz - Input.mWorldPosition)};
+        float3 R = {reflect(-V, Normal)};
+        float2 ReflectionUV = {float2(atan2(R.y, R.x) * 0.159154943f + 0.5f, acos(clamp(R.z, -1.0f, 1.0f)) * 0.318309886f)};
+        uint2 ReflectionSize = {uint2(0, 0)};
+        ReflectionTexture.GetDimensions(ReflectionSize.x, ReflectionSize.y);
+
+        float PoleMargin = {0.5f / max((float)ReflectionSize.y, 1.0f)};
+        ReflectionUV.y = clamp(ReflectionUV.y, PoleMargin, 1.0f - PoleMargin);
+        Environment = ReflectionTexture.SampleLevel(MaterialSampler, ReflectionUV, 0).rgb;
+    }
+
+    Reflection = Environment * ReflectionColor.rgb * SurfaceParameters.w;
+#endif
+
 #if defined(LIGHTING_MODEL_GOURAUD)
     float3 DiffuseRatio = {saturate((Total.mDiffuse + 0.000001f) / (Unshadowed.mDiffuse + 0.000001f))};
     float3 SpecularRatio = {saturate((Total.mSpecular + 0.000001f) / (Unshadowed.mSpecular + 0.000001f))};
-    return float4(Surface.rgb * Input.mDiffuse * DiffuseRatio + Input.mSpecular * SpecularRatio, Surface.a);
+    return float4(Surface.rgb * Input.mDiffuse * DiffuseRatio + Input.mSpecular * SpecularRatio * SpecularTint + Emissive + Reflection, Surface.a);
 #else
-    return float4(Surface.rgb * Total.mDiffuse + Total.mSpecular, Surface.a);
+    return float4(Surface.rgb * Total.mDiffuse + Total.mSpecular * SpecularTint + Emissive + Reflection, Surface.a);
 #endif
 #endif
 }

@@ -40,10 +40,20 @@ cbuffer MaterialConstants : register(b2) {
     float4 BaseColor;
 
     /**
-     * @brief 정반사 강도·정반사 지수·노멀 맵 강도와 예약값입니다.
+     * @brief 정반사 강도·정반사 지수·노멀 맵 강도·환경 반사 강도입니다.
      */
     float4 SurfaceParameters;
+
+    float4 SpecularColor;
+    float4 AmbientColor;
+    float4 EmissiveColor;
+    float4 ReflectionColor;
+    float4 TextureFlags;
 };
+
+Texture2D SpecularTexture : register(t7);
+Texture2D EmissiveTexture : register(t8);
+Texture2D ReflectionTexture : register(t9);
 
 /**
  * @brief 재질의 기본색 텍스처입니다.

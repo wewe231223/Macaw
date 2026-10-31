@@ -747,14 +747,31 @@ namespace Asset {
 
             Material->SetTwoSided(SourceMaterial.IsTwoSided());
 
+            if (!Material->SetSpecularColor(SourceMaterial.GetSpecularColor()) || !Material->SetSpecularStrength(SourceMaterial.GetSpecularStrength()) || !Material->SetShininess(SourceMaterial.GetShininess()) || !Material->SetAmbientColor(SourceMaterial.GetAmbientColor()) || !Material->SetEmissiveColor(SourceMaterial.GetEmissiveColor()) || !Material->SetReflectionColor(SourceMaterial.GetReflectionColor()) || !Material->SetReflectionStrength(SourceMaterial.GetReflectionStrength())) {
+                Error = "Invalid imported material lighting: " + SourceMaterial.GetName();
+                return false;
+            }
+
             Core::FString BaseColorPath{};
             Core::FString NormalMapPath{};
+            Core::FString SpecularPath{};
+            Core::FString EmissivePath{};
+            Core::FString ReflectionPath{};
 
             if (!ImportMeshTexture(*this, SourceMaterial.GetBaseColorTexture(), TextureDirectory, Textures, BaseColorPath, Error) || !ImportMeshTexture(*this, SourceMaterial.GetNormalMapTexture(), TextureDirectory, Textures, NormalMapPath, Error)) {
                 return false;
             }
 
             if (!Material->SetBaseColorTexturePath(BaseColorPath) || !Material->SetNormalMapTexturePath(NormalMapPath)) {
+                Error = "Invalid imported material texture path: " + SourceMaterial.GetName();
+                return false;
+            }
+
+            if (!ImportMeshTexture(*this, SourceMaterial.GetSpecularTexture(), TextureDirectory, Textures, SpecularPath, Error) || !ImportMeshTexture(*this, SourceMaterial.GetEmissiveTexture(), TextureDirectory, Textures, EmissivePath, Error) || !ImportMeshTexture(*this, SourceMaterial.GetReflectionTexture(), TextureDirectory, Textures, ReflectionPath, Error)) {
+                return false;
+            }
+
+            if (!Material->SetSpecularTexturePath(SpecularPath) || !Material->SetEmissiveTexturePath(EmissivePath) || !Material->SetReflectionTexturePath(ReflectionPath)) {
                 Error = "Invalid imported material texture path: " + SourceMaterial.GetName();
                 return false;
             }
@@ -877,6 +894,14 @@ namespace Asset {
         Target.SetShininess(Source.GetShininess());
         Target.SetNormalStrength(Source.GetNormalStrength());
         Target.SetTwoSided(Source.IsTwoSided());
+        Target.SetSpecularColor(Source.GetSpecularColor());
+        Target.SetAmbientColor(Source.GetAmbientColor());
+        Target.SetEmissiveColor(Source.GetEmissiveColor());
+        Target.SetReflectionColor(Source.GetReflectionColor());
+        Target.SetReflectionStrength(Source.GetReflectionStrength());
+        Target.SetSpecularTexturePath(Source.GetSpecularTexturePath());
+        Target.SetEmissiveTexturePath(Source.GetEmissiveTexturePath());
+        Target.SetReflectionTexturePath(Source.GetReflectionTexturePath());
 
         return Target.ResolveTexture(*this, Error);
     }

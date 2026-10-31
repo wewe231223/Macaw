@@ -96,15 +96,22 @@ namespace Asset {
             } else if (Keyword == "Kd") {
                 Core::FVector4 Color{Material.GetBaseColor()};
                 Valid = static_cast<bool>(Values >> Color.x >> Color.y >> Color.z) && Material.SetBaseColor(Color);
+            } else if (Keyword == "Ks" || Keyword == "Ka" || Keyword == "Ke" || Keyword == "reflection_color") {
+                Core::FVector4 Color{0.0f, 0.0f, 0.0f, 1.0f};
+                Valid = static_cast<bool>(Values >> Color.x >> Color.y >> Color.z) && (Keyword == "Ks" ? Material.SetSpecularColor(Color) && Material.SetSpecularStrength(1.0f) : Keyword == "Ka" ? Material.SetAmbientColor(Color) : Keyword == "Ke" ? Material.SetEmissiveColor(Color) : Material.SetReflectionColor(Color));
             } else if (Keyword == "d" || Keyword == "Tr") {
                 float Alpha{};
                 Core::FVector4 Color{Material.GetBaseColor()};
                 Valid = static_cast<bool>(Values >> Alpha);
                 Color.w = Keyword == "Tr" ? 1.0f - Alpha : Alpha;
                 Valid = Valid && Material.SetBaseColor(Color);
-            } else if (Keyword == "Ns" || Keyword == "specular_strength" || Keyword == "normal_strength") {
+            } else if (Keyword == "Ns" || Keyword == "specular_strength" || Keyword == "normal_strength" || Keyword == "reflection_strength") {
                 float Value{};
-                Valid = static_cast<bool>(Values >> Value) && (Keyword == "Ns" ? Material.SetShininess(Value) : Keyword == "specular_strength" ? Material.SetSpecularStrength(Value) : Material.SetNormalStrength(Value));
+                Valid = static_cast<bool>(Values >> Value) && (Keyword == "Ns" ? Material.SetShininess(Value) : Keyword == "specular_strength" ? Material.SetSpecularStrength(Value) : Keyword == "reflection_strength" ? Material.SetReflectionStrength(Value) : Material.SetNormalStrength(Value));
+            } else if (Keyword == "map_Ks" || Keyword == "map_Ke" || Keyword == "refl") {
+                const Core::FString Reference{ReadRemainder(Values)};
+                const Core::FString Relative{Reference.empty() || Reference.front() == '-' ? Core::FString{} : Assets.GetRelativePath(Path.parent_path() / Core::FilePath::FromUtf8(Reference), Error)};
+                Valid = !Relative.empty() && (Keyword == "map_Ks" ? Material.SetSpecularTexturePath(Relative) : Keyword == "map_Ke" ? Material.SetEmissiveTexturePath(Relative) : Material.SetReflectionTexturePath(Relative));
             } else if (Keyword == "norm" || Keyword == "map_Bump" || Keyword == "map_bump" || Keyword == "bump") {
                 const Core::FString Reference{ReadRemainder(Values)};
                 const Core::FString Relative{Reference.empty() || Reference.front() == '-' ? Core::FString{} : Assets.GetRelativePath(Path.parent_path() / Core::FilePath::FromUtf8(Reference), Error)};

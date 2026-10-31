@@ -188,6 +188,33 @@ namespace Asset {
          */
         ID3D11Buffer* GetConstantBuffer() const;
 
+        const Core::FVector4& GetSpecularColor() const;
+        bool SetSpecularColor(const Core::FVector4& Color);
+
+        const Core::FVector4& GetAmbientColor() const;
+        bool SetAmbientColor(const Core::FVector4& Color);
+
+        const Core::FVector4& GetEmissiveColor() const;
+        bool SetEmissiveColor(const Core::FVector4& Color);
+
+        const Core::FVector4& GetReflectionColor() const;
+        bool SetReflectionColor(const Core::FVector4& Color);
+
+        float GetReflectionStrength() const;
+        bool SetReflectionStrength(float Strength);
+
+        const Core::FString& GetSpecularTexturePath() const;
+        bool SetSpecularTexturePath(const Core::FString& Path);
+        Asset::UTexture2D* GetSpecularTexture() const;
+
+        const Core::FString& GetEmissiveTexturePath() const;
+        bool SetEmissiveTexturePath(const Core::FString& Path);
+        Asset::UTexture2D* GetEmissiveTexture() const;
+
+        const Core::FString& GetReflectionTexturePath() const;
+        bool SetReflectionTexturePath(const Core::FString& Path);
+        Asset::UTexture2D* GetReflectionTexture() const;
+
     private:
         /**
          * @brief 생성된 멤버 등록 함수와 리플렉션 빌더의 접근 권한입니다.
@@ -254,6 +281,39 @@ namespace Asset {
          */
         Asset::UTexture2D* mBaseColorTexture{};
         ReflectProperty(mBaseColorTexture, "ResolvedBaseColorTexture", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+
+        Core::FVector4 mSpecularColor{1.0f, 1.0f, 1.0f, 1.0f};
+        ReflectAccessor(mSpecularColor, GetSpecularColor, SetSpecularColor, "SpecularColor", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
+
+        Core::FVector4 mAmbientColor{1.0f, 1.0f, 1.0f, 1.0f};
+        ReflectAccessor(mAmbientColor, GetAmbientColor, SetAmbientColor, "AmbientColor", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
+
+        Core::FVector4 mEmissiveColor{0.0f, 0.0f, 0.0f, 1.0f};
+        ReflectAccessor(mEmissiveColor, GetEmissiveColor, SetEmissiveColor, "EmissiveColor", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
+
+        Core::FVector4 mReflectionColor{1.0f, 1.0f, 1.0f, 1.0f};
+        ReflectAccessor(mReflectionColor, GetReflectionColor, SetReflectionColor, "ReflectionColor", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
+
+        float mReflectionStrength{};
+        ReflectAccessor(mReflectionStrength, GetReflectionStrength, SetReflectionStrength, "ReflectionStrength", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
+
+        Core::FString mSpecularTexturePath{};
+        ReflectAccessor(mSpecularTexturePath, GetSpecularTexturePath, SetSpecularTexturePath, "SpecularTexture", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
+
+        Asset::UTexture2D* mSpecularTexture{};
+        ReflectProperty(mSpecularTexture, "ResolvedSpecularTexture", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+
+        Core::FString mEmissiveTexturePath{};
+        ReflectAccessor(mEmissiveTexturePath, GetEmissiveTexturePath, SetEmissiveTexturePath, "EmissiveTexture", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
+
+        Asset::UTexture2D* mEmissiveTexture{};
+        ReflectProperty(mEmissiveTexture, "ResolvedEmissiveTexture", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+
+        Core::FString mReflectionTexturePath{};
+        ReflectAccessor(mReflectionTexturePath, GetReflectionTexturePath, SetReflectionTexturePath, "ReflectionTexture", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
+
+        Asset::UTexture2D* mReflectionTexture{};
+        ReflectProperty(mReflectionTexture, "ResolvedReflectionTexture", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief GPU 상수 버퍼입니다.

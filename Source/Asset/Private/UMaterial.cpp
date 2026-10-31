@@ -125,6 +125,29 @@ namespace Asset {
             return false;
         }
 
+        Asset::UTexture2D* SpecularTexture{mSpecularTexturePath.empty() ? nullptr : Assets.LoadTexture(Core::FilePath::FromUtf8(mSpecularTexturePath), Error)};
+
+        if (!mSpecularTexturePath.empty() && SpecularTexture == nullptr) {
+            return false;
+        }
+
+        Asset::UTexture2D* EmissiveTexture{mEmissiveTexturePath.empty() ? nullptr : Assets.LoadTexture(Core::FilePath::FromUtf8(mEmissiveTexturePath), Error)};
+
+        if (!mEmissiveTexturePath.empty() && EmissiveTexture == nullptr) {
+            return false;
+        }
+
+        Asset::UTexture2D* ReflectionTexture{mReflectionTexturePath.empty() ? nullptr : Assets.LoadTexture(Core::FilePath::FromUtf8(mReflectionTexturePath), Error)};
+
+        if (!mReflectionTexturePath.empty() && ReflectionTexture == nullptr) {
+            return false;
+        }
+
+        mSpecularTexture = SpecularTexture;
+        mEmissiveTexture = EmissiveTexture;
+        mReflectionTexture = ReflectionTexture;
+        mConstantsDirty = true;
+
         mBaseColorTexture = BaseTexture;
         mNormalMapTexture = NormalTexture;
 
@@ -136,7 +159,16 @@ namespace Asset {
             return false;
         }
 
-        const std::array<float, 8> Color{mBaseColor.x, mBaseColor.y, mBaseColor.z, mBaseColor.w, mSpecularStrength, mShininess, mNormalStrength, 0.0f};
+        const std::array<Asset::UTexture2D*, 3> Textures{mSpecularTexture, mEmissiveTexture, mReflectionTexture};
+        const std::array<const Core::FString*, 3> Paths{&mSpecularTexturePath, &mEmissiveTexturePath, &mReflectionTexturePath};
+
+        for (std::size_t Index{}; Index < Textures.size(); ++Index) {
+            if ((!Paths[Index]->empty() && Textures[Index] == nullptr) || (Textures[Index] != nullptr && !Textures[Index]->CreateResources(Device))) {
+                return false;
+            }
+        }
+
+        const std::array<float, 28> Color{mBaseColor.x, mBaseColor.y, mBaseColor.z, mBaseColor.w, mSpecularStrength, mShininess, mNormalStrength, mReflectionStrength, mSpecularColor.x, mSpecularColor.y, mSpecularColor.z, mSpecularColor.w, mAmbientColor.x, mAmbientColor.y, mAmbientColor.z, mAmbientColor.w, mEmissiveColor.x, mEmissiveColor.y, mEmissiveColor.z, mEmissiveColor.w, mReflectionColor.x, mReflectionColor.y, mReflectionColor.z, mReflectionColor.w, mSpecularTexture != nullptr ? 1.0f : 0.0f, mEmissiveTexture != nullptr ? 1.0f : 0.0f, mReflectionTexture != nullptr ? 1.0f : 0.0f, 0.0f};
 
         if (mConstantBuffer == nullptr) {
             D3D11_BUFFER_DESC Description{};
@@ -232,6 +264,142 @@ namespace Asset {
         mConstantsDirty = true;
 
         return true;
+    }
+
+    const Core::FVector4& Asset::UMaterial::GetSpecularColor() const {
+        return mSpecularColor;
+    }
+
+    bool Asset::UMaterial::SetSpecularColor(const Core::FVector4& Color) {
+        if (!Color.IsFinite() || Color.x < 0.0f || Color.y < 0.0f || Color.z < 0.0f || Color.w < 0.0f || Color.w > 1.0f) {
+            return false;
+        }
+
+        mSpecularColor = Color;
+        mConstantsDirty = true;
+        return true;
+    }
+
+    const Core::FVector4& Asset::UMaterial::GetAmbientColor() const {
+        return mAmbientColor;
+    }
+
+    bool Asset::UMaterial::SetAmbientColor(const Core::FVector4& Color) {
+        if (!Color.IsFinite() || Color.x < 0.0f || Color.y < 0.0f || Color.z < 0.0f || Color.w < 0.0f || Color.w > 1.0f) {
+            return false;
+        }
+
+        mAmbientColor = Color;
+        mConstantsDirty = true;
+        return true;
+    }
+
+    const Core::FVector4& Asset::UMaterial::GetEmissiveColor() const {
+        return mEmissiveColor;
+    }
+
+    bool Asset::UMaterial::SetEmissiveColor(const Core::FVector4& Color) {
+        if (!Color.IsFinite() || Color.x < 0.0f || Color.y < 0.0f || Color.z < 0.0f || Color.w < 0.0f || Color.w > 1.0f) {
+            return false;
+        }
+
+        mEmissiveColor = Color;
+        mConstantsDirty = true;
+        return true;
+    }
+
+    const Core::FVector4& Asset::UMaterial::GetReflectionColor() const {
+        return mReflectionColor;
+    }
+
+    bool Asset::UMaterial::SetReflectionColor(const Core::FVector4& Color) {
+        if (!Color.IsFinite() || Color.x < 0.0f || Color.y < 0.0f || Color.z < 0.0f || Color.w < 0.0f || Color.w > 1.0f) {
+            return false;
+        }
+
+        mReflectionColor = Color;
+        mConstantsDirty = true;
+        return true;
+    }
+
+    float Asset::UMaterial::GetReflectionStrength() const {
+        return mReflectionStrength;
+    }
+
+    bool Asset::UMaterial::SetReflectionStrength(float Strength) {
+        if (!std::isfinite(Strength) || Strength < 0.0f || Strength > 1.0f) {
+            return false;
+        }
+
+        mReflectionStrength = Strength;
+        mConstantsDirty = true;
+        return true;
+    }
+
+    const Core::FString& Asset::UMaterial::GetSpecularTexturePath() const {
+        return mSpecularTexturePath;
+    }
+
+    bool Asset::UMaterial::SetSpecularTexturePath(const Core::FString& Path) {
+        if (!Path.empty() && !IsContentPath(Path)) {
+            return false;
+        }
+
+        if (mSpecularTexturePath != Path) {
+            mSpecularTexturePath = Path;
+            mSpecularTexture = nullptr;
+            mConstantsDirty = true;
+        }
+
+        return true;
+    }
+
+    Asset::UTexture2D* Asset::UMaterial::GetSpecularTexture() const {
+        return mSpecularTexture;
+    }
+
+    const Core::FString& Asset::UMaterial::GetEmissiveTexturePath() const {
+        return mEmissiveTexturePath;
+    }
+
+    bool Asset::UMaterial::SetEmissiveTexturePath(const Core::FString& Path) {
+        if (!Path.empty() && !IsContentPath(Path)) {
+            return false;
+        }
+
+        if (mEmissiveTexturePath != Path) {
+            mEmissiveTexturePath = Path;
+            mEmissiveTexture = nullptr;
+            mConstantsDirty = true;
+        }
+
+        return true;
+    }
+
+    Asset::UTexture2D* Asset::UMaterial::GetEmissiveTexture() const {
+        return mEmissiveTexture;
+    }
+
+    const Core::FString& Asset::UMaterial::GetReflectionTexturePath() const {
+        return mReflectionTexturePath;
+    }
+
+    bool Asset::UMaterial::SetReflectionTexturePath(const Core::FString& Path) {
+        if (!Path.empty() && !IsContentPath(Path)) {
+            return false;
+        }
+
+        if (mReflectionTexturePath != Path) {
+            mReflectionTexturePath = Path;
+            mReflectionTexture = nullptr;
+            mConstantsDirty = true;
+        }
+
+        return true;
+    }
+
+    Asset::UTexture2D* Asset::UMaterial::GetReflectionTexture() const {
+        return mReflectionTexture;
     }
 
 }

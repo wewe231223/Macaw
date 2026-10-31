@@ -48,7 +48,7 @@ namespace Asset {
         ReflectStruct(FMaterialAssetData);
 
         /**
-         * @brief 버전 1 재질 설정을 바이너리 아카이브에 기록하거나 읽고 지원하지 않는 버전을 거부합니다.
+         * @brief 재질 설정을 바이너리 아카이브에 기록하거나 읽고 지원하지 않는 버전을 거부합니다.
          * @param[in,out] Archive 모드에 따라 값을 읽거나 쓸 아카이브입니다.
          */
         void Serialize(Serialization::FMemoryArchive& Archive);
@@ -74,6 +74,30 @@ namespace Asset {
         ReflectMembers();
 
     private:
+        Core::FVector4 mSpecularColor{1.0f, 1.0f, 1.0f, 1.0f};
+        ReflectProperty(mSpecularColor, "SpecularColor", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+
+        Core::FVector4 mAmbientColor{1.0f, 1.0f, 1.0f, 1.0f};
+        ReflectProperty(mAmbientColor, "AmbientColor", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+
+        Core::FVector4 mEmissiveColor{0.0f, 0.0f, 0.0f, 1.0f};
+        ReflectProperty(mEmissiveColor, "EmissiveColor", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+
+        Core::FVector4 mReflectionColor{1.0f, 1.0f, 1.0f, 1.0f};
+        ReflectProperty(mReflectionColor, "ReflectionColor", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+
+        float mReflectionStrength{};
+        ReflectProperty(mReflectionStrength, "ReflectionStrength", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+
+        Core::FString mSpecularTexturePath{};
+        ReflectProperty(mSpecularTexturePath, "SpecularTexturePath", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+
+        Core::FString mEmissiveTexturePath{};
+        ReflectProperty(mEmissiveTexturePath, "EmissiveTexturePath", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+
+        Core::FString mReflectionTexturePath{};
+        ReflectProperty(mReflectionTexturePath, "ReflectionTexturePath", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+
         /**
          * @brief 저장하거나 원본 파일에서 읽은 재질 이름입니다.
          */
