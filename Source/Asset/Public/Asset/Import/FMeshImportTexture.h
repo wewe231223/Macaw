@@ -45,6 +45,52 @@ namespace Asset {
      */
 
     /**
+     * @brief 임포터가 이미지 바이트와 원본 장면에서 판별한 텍스처의 형태를 구분합니다.
+     */
+    enum class EMeshImportTextureShape : Core::Uint8 {
+        /**
+         * @brief 임포터가 형태를 판별하지 않았습니다.
+         */
+        Unknown,
+        /**
+         * @brief 단일 정적 2D 이미지입니다.
+         */
+        Texture2D,
+        /**
+         * @brief 여러 장의 2D 이미지로 이루어진 배열입니다.
+         */
+        Texture2DArray,
+        /**
+         * @brief 6면 또는 그 배수로 이루어진 큐브맵입니다.
+         */
+        TextureCube,
+        /**
+         * @brief 깊이를 가진 볼륨 이미지입니다.
+         */
+        Texture3D,
+        /**
+         * @brief 여러 프레임을 가진 애니메이션 이미지입니다.
+         */
+        Animated,
+        /**
+         * @brief 원본 장면이 이미지 시퀀스로 지정한 텍스처입니다.
+         */
+        ImageSequence
+    };
+
+    /**
+     * @brief 이 타입의 정적 리플렉션 메타데이터를 반환합니다.
+     * @return 리플렉션 시스템이 보관하는 등록된 타입 메타데이터의 비소유 주소입니다.
+     */
+    ReflectEnum(EMeshImportTextureShape, Unknown, Texture2D, Texture2DArray, TextureCube, Texture3D, Animated, ImageSequence);
+
+    /**
+     * @fn UEnum* Asset::GetNativeEnum(TNativeEnum<EMeshImportTextureShape>)
+     * @brief 이 타입의 정적 리플렉션 메타데이터를 반환합니다.
+     * @return 리플렉션 시스템이 보관하는 등록된 타입 메타데이터의 비소유 주소입니다.
+     */
+
+    /**
      * @brief 원본 재질 텍스처가 없는지, 외부 파일인지, 내장 참조인지 구분하는 값 객체입니다.
      */
     class FMeshImportTexture {
@@ -63,8 +109,9 @@ namespace Asset {
         /**
          * @brief 전달받은 설정을 보관하도록 FMeshImportTexture 객체를 초기화합니다.
          * @param[in] FilePath 외부 텍스처 파일의 경로입니다.
+         * @param[in] Shape 임포터가 판별한 텍스처 형태입니다.
          */
-        explicit FMeshImportTexture(std::filesystem::path FilePath);
+        explicit FMeshImportTexture(std::filesystem::path FilePath, Asset::EMeshImportTextureShape Shape = Asset::EMeshImportTextureShape::Unknown);
 
     public:
         /**
@@ -77,9 +124,10 @@ namespace Asset {
          * @brief 원본 장면 내부 텍스처의 이름 또는 인덱스를 보관하는 참조를 생성합니다.
          * @param[in] Reference 원본 장면 안 텍스처의 이름 또는 인덱스 참조입니다.
          * @param[in] Data 원본에서 추출한 내장 텍스처의 인코딩된 바이트이며 비어 있으면 참조만 보관합니다.
+         * @param[in] Shape 임포터가 판별한 텍스처 형태입니다.
          * @return Embedded 출처와 지정한 내장 참조를 가진 값 객체입니다.
          */
-        static Asset::FMeshImportTexture FromEmbedded(Core::FString Reference, Core::TArray<Core::Uint8> Data = {});
+        static Asset::FMeshImportTexture FromEmbedded(Core::FString Reference, Core::TArray<Core::Uint8> Data = {}, Asset::EMeshImportTextureShape Shape = Asset::EMeshImportTextureShape::Unknown);
 
         /**
          * @brief 재질 텍스처의 출처 종류를 반환합니다.
@@ -102,6 +150,17 @@ namespace Asset {
          * @return 인코딩된 이미지 바이트의 읽기 전용 참조이며 추출한 데이터가 없으면 빈 배열입니다.
          */
         const Core::TArray<Core::Uint8>& GetEmbeddedData() const;
+
+        /**
+         * @brief 임포터가 판별한 텍스처 형태를 반환합니다.
+         * @return 판별하지 않았으면 Unknown입니다.
+         */
+        Asset::EMeshImportTextureShape GetShape() const;
+        /**
+         * @brief 원본 장면 정보로 판별한 텍스처 형태를 기록합니다.
+         * @param[in] Shape 기록할 텍스처 형태입니다.
+         */
+        void SetShape(Asset::EMeshImportTextureShape Shape);
 
     private:
         /**
@@ -133,6 +192,12 @@ namespace Asset {
          */
         Core::TArray<Core::Uint8> mEmbeddedData{};
         ReflectProperty(mEmbeddedData, "EmbeddedData", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+
+        /**
+         * @brief 임포터가 판별한 텍스처 형태입니다.
+         */
+        Asset::EMeshImportTextureShape mShape{Asset::EMeshImportTextureShape::Unknown};
+        ReflectProperty(mShape, "Shape", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
 }

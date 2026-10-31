@@ -7,6 +7,7 @@
 #pragma once
 
 #include "Asset/Import/IMeshImporter.h"
+#include "Asset/Import/FFBXImageProcessor.h"
 
 #include <fbxsdk.h>
 
@@ -23,10 +24,6 @@ namespace Asset {
         ReflectTypes(FFBXLoader, Asset::IMeshImporter);
 
     private:
-        /**
-         * @brief 정규화한 텍스처 경로 키와 FBX에 내장된 텍스처 바이트의 대응입니다.
-         */
-        using FEmbeddedTextures = Core::TMap<Core::FString, Core::TArray<Core::Uint8>>;
         /**
          * @brief FBX 재질과 임포트 결과 재질 목록 인덱스의 대응입니다.
          */
@@ -58,23 +55,6 @@ namespace Asset {
         bool ImportSource() override;
 
         /**
-         * @brief 텍스처 경로를 구분자와 대소문자에 무관하게 비교할 수 있는 키로 정규화합니다.
-         * @param[in] Path 정규화할 UTF-8 텍스처 경로입니다.
-         * @return 슬래시 구분자와 소문자로 정규화한 UTF-8 경로입니다.
-         */
-        Core::FString TextureKey(Core::FString Path) const;
-        /**
-         * @brief FBX SDK가 내장 파일을 읽을 때 호출하며 비디오(텍스처) 데이터를 mEmbeddedTextures에 복사합니다.
-         * @param[in] UserData 콜백을 등록한 FFBXLoader의 비소유 주소입니다.
-         * @param[in] DataHint 내장 데이터를 사용할 FBX 객체의 클래스 식별자입니다.
-         * @param[in] FileName FBX에 기록된 내장 파일 이름입니다.
-         * @param[in] Buffer 내장 파일 바이트의 비소유 주소입니다.
-         * @param[in] Size Buffer의 바이트 수입니다.
-         * @return 인수가 유효하면 eHandled이며 비어 있거나 null이면 eFailure입니다.
-         */
-        static fbxsdk::FbxCallback::State ReadEmbeddedTexture(void* UserData, fbxsdk::FbxClassId DataHint, const char* FileName, const void* Buffer, std::size_t Size);
-
-        /**
          * @brief 레이어 요소의 매핑·참조 모드에 따라 다각형 정점의 값을 읽습니다.
          * @tparam TValue 레이어 요소가 보관하는 값 형식입니다.
          * @param[in] Element 값을 읽을 레이어 요소이며 nullptr이면 Value를 바꾸지 않습니다.
@@ -95,13 +75,6 @@ namespace Asset {
          */
         Core::FVector TransformDirection(const fbxsdk::FbxAMatrix& Matrix, const fbxsdk::FbxVector4& Vector) const;
 
-        /**
-         * @brief 재질 속성에 연결된 파일 텍스처를 내장 데이터 또는 원본 디렉터리 기준 외부 파일 참조로 읽습니다.
-         * @param[in] Property 텍스처가 연결된 FBX 재질 속성입니다.
-         * @param[out] Result 찾은 텍스처 참조를 기록할 대상이며 연결된 텍스처가 없으면 바꾸지 않습니다.
-         * @return 텍스처를 찾았거나 연결되지 않았으면 true이며 레이어드 텍스처이거나 파일을 찾지 못하면 Error에 원인을 기록하고 false입니다.
-         */
-        bool ReadTexture(fbxsdk::FbxProperty Property, Asset::FMeshImportTexture& Result);
         /**
          * @brief FBX 재질의 기본 색상·불투명도·양면 여부와 기본 색상·노멀 텍스처를 읽어 재질 슬롯과 재질 목록에 추가합니다.
          * @param[in] Material 읽을 FBX 재질이며 nullptr이면 기본 재질을 추가합니다.
@@ -154,10 +127,10 @@ namespace Asset {
         ReflectProperty(mScene, "Scene", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
-         * @brief 내장 파일 콜백으로 수집한 텍스처 경로 키별 이미지 바이트입니다.
+         * @brief 파일 텍스처를 찾아 형태를 판별하고 재질 슬롯 정책을 적용하는 이미지 처리기입니다.
          */
-        FEmbeddedTextures mEmbeddedTextures{};
-        ReflectProperty(mEmbeddedTextures, "EmbeddedTextures", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+        Asset::FFBXImageProcessor mImageProcessor{};
+        ReflectProperty(mImageProcessor, "ImageProcessor", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 이미 읽은 FBX 재질의 결과 재질 인덱스 캐시입니다.

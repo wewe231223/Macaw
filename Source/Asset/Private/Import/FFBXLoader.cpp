@@ -22,82 +22,9 @@ namespace Asset {
         }
     }
 
-    Core::FString Asset::FFBXLoader::TextureKey(Core::FString Path) const {
-        std::replace(Path.begin(), Path.end(), '\\', '/');
-        return Core::FilePath::ToGenericUtf8(Core::FilePath::ToLower(Core::FilePath::FromUtf8(Path).lexically_normal()));
-    }
-
-    FbxCallback::State Asset::FFBXLoader::ReadEmbeddedTexture(void* UserData, FbxClassId DataHint, const char* FileName, const void* Buffer, std::size_t Size) {
-		// 무효한 인수는 실패를 반환합니다.
-        if (UserData == nullptr || FileName == nullptr || Buffer == nullptr || Size == 0) {
-            return FbxCallback::eFailure;
-        }
-        // FbxVideo 인 타입에 대해 콜백이 호출되었을 대에만 처리합니다.  
-		// FbxVideo는 FBX SDK가 내장된 비디오(텍스처) 데이터를 나타내는 클래스입니다.
-		// FBXVideo 는 다음을 포함합니다. 
-        // 정적 이미지 ( BaseColor, Normal, Roughness 등 ), 동영상 클립, 시퀀스 이미지 ( 001, 002, ... 처럼 이어지는 이미지 Set ) 
-        if (DataHint == FbxVideo::ClassId) {
-            auto& Importer{*static_cast<Asset::FFBXLoader*>(UserData)};
-            auto& Textures{Importer.mEmbeddedTextures};
-            const auto* Bytes{static_cast<const Core::Uint8*>(Buffer)};
-
-			// 유저 데이터로 넘어온 Loader 객체의 mEmbeddedTextures 맵에 내장된 텍스처 데이터를 복사합니다.
-            Textures.insert_or_assign(Importer.TextureKey(FileName), Core::TArray<Core::Uint8>{Bytes, Bytes + Size});
-        }
-
-		// 처리 유무에 무관하게 콜백이 호출되었음을 알리기 위해 eHandled를 반환합니다.
-        return FbxCallback::eHandled;
-    }
-
     Core::FVector Asset::FFBXLoader::TransformDirection(const FbxAMatrix& Matrix, const FbxVector4& Vector) const {
         const FbxVector4 Transformed{Matrix.MultT(Vector) - Matrix.GetT()};
         return {static_cast<float>(Transformed[0]), static_cast<float>(Transformed[1]), static_cast<float>(Transformed[2])};
-    }
-
-    bool Asset::FFBXLoader::ReadTexture(FbxProperty Property, Asset::FMeshImportTexture& Result) {
-        Core::FString& Error{GetError()};
-
-        if (!Property.IsValid()) {
-            return true;
-        }
-
-        if (Property.GetSrcObjectCount<FbxLayeredTexture>() != 0) {
-            Error = "Layered FBX material textures are not supported";
-            return false;
-        }
-
-        const auto* Texture{Property.GetSrcObject<FbxFileTexture>()};
-
-        if (Texture == nullptr) {
-            return true;
-        }
-
-        Core::FString FileName{Texture->GetFileName()};
-        Core::FString RelativeName{Texture->GetRelativeFileName()};
-        std::replace(FileName.begin(), FileName.end(), '\\', '/');
-        std::replace(RelativeName.begin(), RelativeName.end(), '\\', '/');
-        const auto EmbeddedFile{mEmbeddedTextures.find(TextureKey(FileName))};
-        const auto EmbeddedRelative{mEmbeddedTextures.find(TextureKey(RelativeName))};
-
-        if (EmbeddedFile != mEmbeddedTextures.end() || EmbeddedRelative != mEmbeddedTextures.end()) {
-            const auto& Entry{EmbeddedFile != mEmbeddedTextures.end() ? *EmbeddedFile : *EmbeddedRelative};
-            Result = Asset::FMeshImportTexture::FromEmbedded(Entry.first, Entry.second);
-            return true;
-        }
-
-        const std::array<std::filesystem::path, 3> Candidates{GetSourceDirectory() / Core::FilePath::FromUtf8(RelativeName), GetSourceDirectory() / Core::FilePath::FromUtf8(FileName), GetSourceDirectory() / Core::FilePath::FromUtf8(FileName).filename()};
-
-        for (const auto& Candidate : Candidates) {
-            std::error_code Code{};
-
-            if (std::filesystem::is_regular_file(Candidate, Code) && !Code) {
-                Result = Asset::FMeshImportTexture{Candidate.lexically_normal()};
-                return true;
-            }
-        }
-
-        Error = "Cannot find FBX material texture: " + (RelativeName.empty() ? FileName : RelativeName);
-        return false;
     }
 
     bool Asset::FFBXLoader::ReadMaterial(FbxSurfaceMaterial* Material) {
@@ -126,15 +53,18 @@ namespace Asset {
         if (Material != nullptr) {
             const FbxProperty DoubleSided{Material->FindProperty("DoubleSided")};
             TwoSided = DoubleSided.IsValid() && DoubleSided.Get<FbxBool>();
-            const auto Read{[&](const char* Property, Asset::FMeshImportTexture& Texture) {
-                return ReadTexture(Material->FindProperty(Property), Texture);
+            // 재질 슬롯별로 받아들이는 텍스처 형태입니다. 렌더러가 새 형태를 지원하면 여기에 추가합니다.
+            constexpr std::array BaseColorShapes{Asset::EMeshImportTextureShape::Texture2D};
+            constexpr std::array NormalShapes{Asset::EMeshImportTextureShape::Texture2D};
+            const auto Read{[&](const char* Property, std::span<const Asset::EMeshImportTextureShape> Accepted, Asset::FMeshImportTexture& Texture) {
+                return mImageProcessor.ReadTexture(Material->FindProperty(Property), Accepted, Texture, Error);
             }};
 
-            if (!Read(FbxSurfaceMaterial::sDiffuse, BaseColorTexture) || !Read(FbxSurfaceMaterial::sNormalMap, NormalTexture)) {
+            if (!Read(FbxSurfaceMaterial::sDiffuse, BaseColorShapes, BaseColorTexture) || !Read(FbxSurfaceMaterial::sNormalMap, NormalShapes, NormalTexture)) {
                 return false;
             }
 
-            if (NormalTexture.GetSource() == Asset::EMeshImportTextureSource::None && !Read(FbxSurfaceMaterial::sBump, NormalTexture)) {
+            if (NormalTexture.GetSource() == Asset::EMeshImportTextureSource::None && !Read(FbxSurfaceMaterial::sBump, NormalShapes, NormalTexture)) {
                 return false;
             }
         }
@@ -408,12 +338,8 @@ namespace Asset {
             return false;
         }
 
-		// FBX Load 의 EmbeddedFileCallback을 생성하고 ReadEmbeddedTexture를 등록합니다.
-        auto* Callback{FbxEmbeddedFileCallback::Create(mManager, "")};
-
-        // 에셋이 보관중인 내장 데이터를 만나면 콜백이 호출됩니다. 
-        Callback->RegisterReadFunction(&Asset::FFBXLoader::ReadEmbeddedTexture, this);
-        mImporter->SetEmbeddedFileReadCallback(Callback);
+		// Import 중 내장 텍스처 바이트를 이미지 처리기가 보관하도록 콜백을 등록합니다.
+        mImageProcessor.RegisterEmbeddedCallback(*mManager, *mImporter);
 
 		// FBX Importer 설정이 완료되었으로, FBX Scene을 읽어옵니다.
         if (!mImporter->Import(mScene)) {
@@ -421,7 +347,10 @@ namespace Asset {
             return false;
         }
 
-        const FbxAxisSystem AxisSystem{FbxAxisSystem::eZAxis, FbxAxisSystem::eParityEven, FbxAxisSystem::eLeftHanded};
+        // Import가 끝나 장면 연결과 내장 바이트가 모두 준비되었으므로 파일 텍스처를 판별합니다.
+        mImageProcessor.ResolveTextures(*mScene, GetSourceDirectory());
+
+        const FbxAxisSystem AxisSystem{FbxAxisSystem::eZAxis, FbxAxisSystem::eParityOdd, FbxAxisSystem::eLeftHanded};
         AxisSystem.DeepConvertScene(mScene);
         FbxSystemUnit::m.ConvertScene(mScene);
         FbxGeometryConverter Converter{mManager};

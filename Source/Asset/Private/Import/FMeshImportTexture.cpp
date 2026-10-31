@@ -10,16 +10,18 @@
 
 namespace Asset {
 
-    Asset::FMeshImportTexture::FMeshImportTexture(std::filesystem::path FilePath)
+    Asset::FMeshImportTexture::FMeshImportTexture(std::filesystem::path FilePath, Asset::EMeshImportTextureShape Shape)
 		: mSource{Asset::EMeshImportTextureSource::ExternalFile},
-		  mFilePath{std::move(FilePath)} {
+		  mFilePath{std::move(FilePath)},
+		  mShape{Shape} {
     }
 
-    Asset::FMeshImportTexture Asset::FMeshImportTexture::FromEmbedded(Core::FString Reference, Core::TArray<Core::Uint8> Data) {
+    Asset::FMeshImportTexture Asset::FMeshImportTexture::FromEmbedded(Core::FString Reference, Core::TArray<Core::Uint8> Data, Asset::EMeshImportTextureShape Shape) {
         Asset::FMeshImportTexture Texture{};
         Texture.mSource = Asset::EMeshImportTextureSource::Embedded;
         Texture.mEmbeddedReference = std::move(Reference);
         Texture.mEmbeddedData = std::move(Data);
+        Texture.mShape = Shape;
         return Texture;
     }
 
@@ -37,6 +39,14 @@ namespace Asset {
 
     const Core::TArray<Core::Uint8>& Asset::FMeshImportTexture::GetEmbeddedData() const {
         return mEmbeddedData;
+    }
+
+    Asset::EMeshImportTextureShape Asset::FMeshImportTexture::GetShape() const {
+        return mShape;
+    }
+
+    void Asset::FMeshImportTexture::SetShape(Asset::EMeshImportTextureShape Shape) {
+        mShape = Shape;
     }
 
 }

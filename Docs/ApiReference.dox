@@ -290,11 +290,6 @@ Windows 창과 메시지 처리입니다.
  */
 
 /**
- * @namespace Tests
- * @brief 엔진 기능과 모듈 경계를 확인하는 독립 통합 검증 함수를 모읍니다.
- */
-
-/**
  * @file Source/Asset/Public/Asset/AssetStats.h
  * @brief 에셋 로드·임포트와 캐시 사용 통계를 선언합니다.
  * @ingroup Asset
