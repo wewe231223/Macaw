@@ -38,6 +38,8 @@
 #include "Editor/FViewportCommandInfo.h"
 #include "Engine/FProject.h"
 #include "Asset/UStaticMesh.h"
+#include "Asset/USkeletalMesh.h"
+#include "Asset/FAssetFile.h"
 #include "Core/Literals.h"
 
 #include <algorithm>
@@ -922,7 +924,17 @@ namespace Editor {
         }
 
         Core::FString Error{};
-        const Asset::UStaticMesh* Mesh{Project->GetAssets()->LoadMesh(Path, Error)};
+        Asset::FAssetManager* Assets{Project->GetAssets()};
+        Asset::EAssetType Type{};
+
+        if (!Asset::FAssetFile::GetType(Assets->ResolvePath(Path, Error), Type, Error)) {
+            mContext->AddLog(Error);
+            return false;
+        }
+
+        // 같은 드롭 동작에서 에셋 종류를 판별하고 바인드 경계를 기준으로 바닥에 놓습니다.
+        Asset::USkeletalMesh* Skeletal{Type == Asset::EAssetType::SkeletalMesh ? Assets->LoadSkeletalMesh(Path, Error) : nullptr};
+        const Asset::UStaticMesh* Mesh{Skeletal != nullptr ? Skeletal->GetGeometry() : Type == Asset::EAssetType::Mesh ? Assets->LoadMesh(Path, Error) : nullptr};
 
         if (Mesh == nullptr) {
             mContext->AddLog(Error);
@@ -933,7 +945,8 @@ namespace Editor {
             Location.z -= Mesh->GetBounds().mMinimum.z;
         }
 
-        return mContext->SpawnMesh(Path, Core::FTransform{Location, {}, {1.0f, 1.0f, 1.0f}}) != nullptr;
+        const Core::FTransform Placement{Location, {}, {1.0f, 1.0f, 1.0f}};
+        return Skeletal != nullptr ? mContext->SpawnSkeletalMesh(Path, Placement) != nullptr : mContext->SpawnMesh(Path, Placement) != nullptr;
     }
 
     Engine::EViewMode Editor::FEditorViewportClient::GetViewMode() const {

@@ -21,8 +21,14 @@ namespace Renderer {
     }
 
     void Renderer::FShadowDepthPass::AddCommands(const Renderer::FScenePrimitive& Primitive, Asset::UStaticMesh& Mesh, const Engine::FSceneViewFamily&, Core::TArray<Renderer::FMeshDrawCommand>& Commands) {
+        Renderer::FMaterialPipeline* Pipeline{Primitive.mProxy.mSkeletalMesh != nullptr ? mRenderer->GetDepthPipeline(true) : mPipeline};
+
+        if (Pipeline == nullptr) {
+            return;
+        }
+
         for (const Asset::FSubMesh& SubMesh : Mesh.GetMeshData().GetSubMeshes()) {
-            Commands.emplace_back(mPipeline, nullptr, &Mesh, &Primitive, SubMesh.GetFirstIndex(), SubMesh.GetIndexCount());
+            Commands.emplace_back(Pipeline, nullptr, &Mesh, &Primitive, SubMesh.GetFirstIndex(), SubMesh.GetIndexCount());
         }
     }
 

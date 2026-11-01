@@ -8,6 +8,7 @@
 
 #include "Core/Types.h"
 #include "Core/ReflectionMacros.h"
+#include "Asset/Import/FAssetImportOption.h"
 #include "Asset/Import/FMeshImportResult.h"
 
 #include <filesystem>
@@ -31,7 +32,7 @@ namespace Asset {
         /**
          * @brief 원본 경로로 구체 메시 임포터를 생성하는 팩토리 함수 포인터입니다.
          */
-        using FImporterFactory = std::unique_ptr<Asset::IMeshImporter> (*)(const std::filesystem::path&);
+        using FImporterFactory = std::unique_ptr<Asset::IMeshImporter> (*)(const std::filesystem::path&, const Asset::FAssetImportOption&);
         /**
          * @brief 소문자 확장자와 그 확장자를 처리하는 임포터 팩토리의 쌍입니다.
          */
@@ -39,10 +40,11 @@ namespace Asset {
 
     public:
         /**
-         * @brief 가져올 원본 파일 경로를 보관하도록 임포터를 초기화합니다.
+         * @brief 가져올 원본 파일 경로와 임포트 옵션을 보관하도록 임포터를 초기화합니다.
          * @param[in] Source 가져올 원본 메시 파일 경로입니다.
+         * @param[in] Option 좌표축·메시 구성·노멀 처리 방식을 정하는 임포트 옵션입니다.
          */
-        explicit IMeshImporter(std::filesystem::path Source);
+        IMeshImporter(std::filesystem::path Source, const Asset::FAssetImportOption& Option);
 
         /**
          * @brief 객체 수명을 끝내고 소유한 자원을 정리합니다.
@@ -64,9 +66,10 @@ namespace Asset {
         /**
          * @brief 원본 파일 확장자에 맞는 메시 임포터를 생성합니다.
          * @param[in] Source 가져올 원본 메시 파일 경로입니다.
+         * @param[in] Option 좌표축·메시 구성·노멀 처리 방식을 정하는 임포트 옵션입니다.
          * @return 확장자에 등록된 임포터이며 등록되지 않은 확장자이면 Assimp 임포터입니다.
          */
-        static std::unique_ptr<Asset::IMeshImporter> CreateForSource(const std::filesystem::path& Source);
+        static std::unique_ptr<Asset::IMeshImporter> CreateForSource(const std::filesystem::path& Source, const Asset::FAssetImportOption& Option);
 
         /**
          * @brief 원본 파일 확장자에 등록된 메시 임포터가 있는지 확인합니다.
@@ -95,6 +98,11 @@ namespace Asset {
          */
         const std::filesystem::path& GetSourceDirectory() const;
         /**
+         * @brief 임포터가 따르는 임포트 옵션을 조회합니다.
+         * @return 생성 시 전달받은 옵션의 읽기 전용 참조입니다.
+         */
+        const Asset::FAssetImportOption& GetOption() const;
+        /**
          * @brief 파생 임포터가 채울 임포트 결과를 조회합니다.
          * @return 메시 데이터와 재질 목록을 기록할 결과 객체의 참조입니다.
          */
@@ -115,15 +123,17 @@ namespace Asset {
         /**
          * @brief Assimp 기반 메시 임포터를 생성합니다.
          * @param[in] Source 가져올 원본 메시 파일 경로입니다.
+         * @param[in] Option 좌표축·메시 구성·노멀 처리 방식을 정하는 임포트 옵션입니다.
          * @return 새로 생성한 FAssimpMeshImporter입니다.
          */
-        static std::unique_ptr<Asset::IMeshImporter> CreateAssimp(const std::filesystem::path& Source);
+        static std::unique_ptr<Asset::IMeshImporter> CreateAssimp(const std::filesystem::path& Source, const Asset::FAssetImportOption& Option);
         /**
          * @brief FBX SDK 기반 메시 임포터를 생성합니다.
          * @param[in] Source 가져올 원본 FBX 파일 경로입니다.
-         * @return 새로 생성한 FFBXLoader입니다.
+         * @param[in] Option 좌표축·메시 구성·노멀 처리 방식을 정하는 임포트 옵션입니다.
+         * @return 새로 생성한 FFBXImporter입니다.
          */
-        static std::unique_ptr<Asset::IMeshImporter> CreateFBX(const std::filesystem::path& Source);
+        static std::unique_ptr<Asset::IMeshImporter> CreateFBX(const std::filesystem::path& Source, const Asset::FAssetImportOption& Option);
 
         /**
          * @brief 파생 임포터가 원본 파일을 읽어 GetResult()의 메시 데이터와 재질 목록을 채웁니다.
@@ -148,6 +158,12 @@ namespace Asset {
          */
         std::filesystem::path mSourceDirectory{};
         ReflectProperty(mSourceDirectory, "SourceDirectory", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+
+        /**
+         * @brief 좌표축·메시 구성·노멀 처리 방식을 정하는 임포트 옵션입니다.
+         */
+        Asset::FAssetImportOption mOption{};
+        ReflectProperty(mOption, "Option", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 파생 임포터가 채우는 메시 데이터와 재질 목록입니다.

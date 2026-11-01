@@ -21,6 +21,7 @@ namespace Engine {
     class UWorld;
     class AActor;
     class AStaticMeshActor;
+    class ASkeletalMeshActor;
     class ACameraActor;
     class UCameraComponent;
     class UActorComponent;
@@ -422,6 +423,12 @@ namespace Editor {
          * @return 생성한 월드 소유 액터이며 실패하면 nullptr입니다.
          */
         Engine::AStaticMeshActor* SpawnMesh(const std::filesystem::path& Path, const Core::FTransform& Placement);
+
+        /** @brief 지정 위치에 스켈레탈 메시 액터를 배치하고 선택합니다. @param Path 스켈레탈 메시 에셋 경로입니다. @param Placement 월드 변환입니다. @return 생성한 액터이며 실패하면 nullptr입니다. */
+        Engine::ASkeletalMeshActor* SpawnSkeletalMesh(const std::filesystem::path& Path, const Core::FTransform& Placement);
+
+        /** @brief 본 로컬 변환을 편집하고 씬을 변경 상태로 표시합니다. @param Handle 컴포넌트 핸들입니다. @param Bone 본 번호입니다. @param Transform 부모 기준 변환입니다. @return 적용하면 true입니다. */
+        bool SetBoneLocalTransform(CoreUObject::FObjectHandle Handle, Core::Uint32 Bone, const Core::FMatrix& Transform);
 
         /**
          * @brief 애플리케이션에 프로젝트 전환을 요청할 콜백을 설정합니다.

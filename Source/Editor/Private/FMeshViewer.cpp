@@ -15,6 +15,8 @@
 #include "Engine/FLightSceneProxy.h"
 #include "Engine/FSceneViewFamily.h"
 #include "Asset/UStaticMesh.h"
+#include "Asset/USkeletalMesh.h"
+#include "Engine/FPrimitiveDrawInterface.h"
 #include "Asset/UMaterial.h"
 #include "RenderCore/IRendererModule.h"
 
@@ -40,7 +42,20 @@ namespace Editor {
             return false;
         }
 
-        Asset::UStaticMesh* Mesh{mAssets->LoadMesh(Path, Error)};
+        Asset::EAssetType Type{};
+
+        if (!Asset::FAssetFile::GetType(mAssets->ResolvePath(Path, Error), Type, Error)) {
+            return false;
+        }
+
+        Asset::USkeletalMesh* Skeletal{Type == Asset::EAssetType::SkeletalMesh ? mAssets->LoadSkeletalMesh(Path, Error) : nullptr};
+        Asset::UStaticMesh* Mesh{Skeletal != nullptr ? Skeletal->GetGeometry() : Type == Asset::EAssetType::Mesh ? mAssets->LoadMesh(Path, Error) : nullptr};
+        Engine::FSkeletalMeshPose Pose{};
+
+        if (Skeletal != nullptr && (!Pose.Reset(*Skeletal) || !Skeletal->CreateResources(static_cast<ID3D11Device*>(mRenderer->GetNativeDevice())))) {
+            Error = "Cannot prepare skeletal mesh pose or resources";
+            return false;
+        }
 
         if (Mesh == nullptr) {
             return false;
@@ -85,6 +100,10 @@ namespace Editor {
         }
 
         mMesh = Mesh;
+        mSkeletalMesh = Skeletal;
+        mPose = std::move(Pose);
+        mPoseBone = 0;
+        mBoneRotations.assign(Skeletal != nullptr ? Skeletal->GetBones().size() : 0, Core::FRotator{});
         mMaterials = std::move(Materials);
         mMaterialPaths.assign(mMaterials.size(), Core::FString{});
         mPath = Core::FilePath::ToGenericUtf8(Path);
@@ -106,7 +125,7 @@ namespace Editor {
             return;
         }
 
-        const Core::FBox& Bounds{mMesh->GetBounds()};
+        const Core::FBox& Bounds{mSkeletalMesh != nullptr ? mPose.GetMeshData().GetBounds() : mMesh->GetBounds()};
         mCenter = (Bounds.mMinimum + Bounds.mMaximum) * 0.5f;
         mRadius = std::max(Bounds.mMinimum.Distance(Bounds.mMaximum) * 0.5f, 0.01f);
         mDistance = mRadius * 3.0f;
@@ -117,7 +136,10 @@ namespace Editor {
         Engine::FPrimitiveSceneProxy Proxy{};
         Proxy.mId = mPrimitiveId;
         Proxy.mMesh = mMesh;
-        Proxy.mBounds = mMesh->GetBounds();
+        Proxy.mBounds = mSkeletalMesh != nullptr ? mPose.GetMeshData().GetBounds() : mMesh->GetBounds();
+        Proxy.mSkeletalMesh = mSkeletalMesh;
+        Proxy.mSkinMatrices = mPose.GetSkinMatrices();
+        Proxy.mPoseRevision = mPose.GetRevision();
         Proxy.mMaterials = mMaterials;
         mScene->AddPrimitive(Proxy);
     }
@@ -175,6 +197,17 @@ namespace Editor {
     }
 
     void Editor::FMeshViewer::DrawUI(bool Standalone) {
+        // 열린 에셋이 재임포트되면 본 번호와 재질 슬롯을 새 데이터에 맞춰 다시 만듭니다.
+        if (mOpen && mSkeletalMesh != nullptr && mPose.GetMeshRevision() != mSkeletalMesh->GetRevision()) {
+            const std::filesystem::path Path{Core::FilePath::FromUtf8(mPath)};
+            Core::FString Error{};
+
+            if (!Open(Path, Error)) {
+                mOpen = false;
+                mError = std::move(Error);
+            }
+        }
+
         if (!mOpen || mMesh == nullptr) {
             return;
         }
@@ -190,7 +223,7 @@ namespace Editor {
             ImGui::SetNextWindowSize({860.0f, 700.0f}, ImGuiCond_FirstUseEver);
         }
 
-        if (ImGui::Begin("Static Mesh Viewer", Standalone ? nullptr : &mOpen, Flags)) {
+        if (ImGui::Begin("Mesh Viewer", Standalone ? nullptr : &mOpen, Flags)) {
             ImGui::TextUnformatted(mPath.c_str());
             ImGui::Text("Vertices: %u | Triangles: %u | SubMeshes: %zu | Materials: %zu", mMesh->GetVertexCount(), mMesh->GetIndexCount() / 3, mMesh->GetMeshData().GetSubMeshes().size(), mMaterials.size());
 
@@ -209,6 +242,7 @@ namespace Editor {
             ImGui::SameLine();
             ImGui::TextDisabled("Drag: orbit | Middle: pan | Wheel: zoom | F: frame");
             DrawMaterials();
+            DrawPose();
 
             if (!mError.empty()) {
                 ImGui::TextWrapped("%s", mError.c_str());
@@ -284,8 +318,68 @@ namespace Editor {
         View.mProjection = Core::FMatrix::Perspective(60.0f, Size.x / Size.y, std::max(mRadius * 0.001f, 0.00001f), std::max(mDistance + mRadius * 3.0f, mRadius * 10.0f));
         View.mViewProjection = View.mView * View.mProjection;
 
-        const Engine::FSceneViewFamily Family{mScene.get(), mTarget.get(), View, nullptr, mViewMode};
+        Engine::FPrimitiveDrawInterface Bones{};
+
+        if (mSkeletalMesh != nullptr && mShowBones) {
+            // 전역 포즈의 원점을 부모와 연결하면 메시와 같은 변환의 본 계층을 볼 수 있습니다.
+            for (std::size_t Index{}; Index < mSkeletalMesh->GetBones().size(); ++Index) {
+                const Core::Int32 Parent{mSkeletalMesh->GetBones()[Index].GetParentIndex()};
+
+                if (Parent >= 0) {
+                    Bones.DrawLine(mPose.GetGlobalTransforms()[static_cast<std::size_t>(Parent)].TransformPosition({}), mPose.GetGlobalTransforms()[Index].TransformPosition({}), Index == mPoseBone ? Core::FVector{1.0f, 0.4f, 0.1f} : Core::FVector{0.2f, 1.0f, 0.4f}, false, 2.0f);
+                }
+            }
+        }
+
+        Engine::FSceneViewFamily Family{mScene.get(), mTarget.get(), View, &Bones, mViewMode};
+
+        // 공통 렌더링 경로에서 뷰어의 보조 표시는 본 선분으로 제한합니다.
+        Family.mShowFlags.mLightIcons = false;
+        Family.mShowFlags.mFogIcons = false;
+        Family.mShowFlags.mSprites = false;
+        Family.mShowFlags.mText = false;
+
         mRenderer->BeginRenderingViewFamily(Family);
+    }
+
+    void Editor::FMeshViewer::DrawPose() {
+        if (mSkeletalMesh == nullptr || !ImGui::CollapsingHeader("Skeleton / Pose")) {
+            return;
+        }
+
+        const auto& Bones{mSkeletalMesh->GetBones()};
+        ImGui::Text("Bones: %zu", Bones.size());
+        ImGui::Checkbox("Show Bones", &mShowBones);
+
+        if (ImGui::BeginCombo("Bone", Bones[mPoseBone].GetName().c_str())) {
+            for (Core::Uint32 Index{}; Index < Bones.size(); ++Index) {
+                ImGui::PushID(static_cast<int>(Index));
+
+                if (ImGui::Selectable(Bones[Index].GetName().c_str(), mPoseBone == Index)) {
+                    mPoseBone = Index;
+                }
+
+                ImGui::PopID();
+            }
+
+            ImGui::EndCombo();
+        }
+
+        auto Rotation{mBoneRotations[mPoseBone].ToArray()};
+
+        if (ImGui::DragFloat3("Local Rotation", Rotation.data(), 0.5f)) {
+            const Core::FRotator Value{Rotation[0], Rotation[1], Rotation[2]};
+
+            if (mPose.SetLocalTransform(*mSkeletalMesh, mPoseBone, Core::FMatrix::Rotation(Value) * Bones[mPoseBone].GetBindPose())) {
+                mBoneRotations[mPoseBone] = Value;
+                UpdateScene();
+            }
+        }
+
+        if (ImGui::Button("Reset Bind Pose") && mPose.Reset(*mSkeletalMesh)) {
+            mBoneRotations.assign(Bones.size(), Core::FRotator{});
+            UpdateScene();
+        }
     }
 
 }

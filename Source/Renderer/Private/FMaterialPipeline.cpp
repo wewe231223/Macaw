@@ -12,12 +12,13 @@
 
 namespace Renderer {
 
-    Renderer::FMaterialPipeline::FMaterialPipeline(Renderer::EMeshPass Pass, std::shared_ptr<const RenderCore::FShader> VertexCode, std::shared_ptr<const RenderCore::FShader> PixelCode, bool TwoSided, bool Instanced)
+    Renderer::FMaterialPipeline::FMaterialPipeline(Renderer::EMeshPass Pass, std::shared_ptr<const RenderCore::FShader> VertexCode, std::shared_ptr<const RenderCore::FShader> PixelCode, bool TwoSided, bool Instanced, bool Skinned)
 		: mPass{Pass},
+		  mSkinned{Skinned},
 		  mVertexCode{std::move(VertexCode)},
 		  mPixelCode{std::move(PixelCode)},
 		  mTwoSided{TwoSided},
-		  mInstanced{Instanced} {
+		  mInstanced{Instanced && !Skinned} {
     }
 
     Renderer::FMaterialPipeline::~FMaterialPipeline() = default;
@@ -32,6 +33,10 @@ namespace Renderer {
 
     bool Renderer::FMaterialPipeline::IsInstanced() const {
         return mInstanced;
+    }
+
+    bool Renderer::FMaterialPipeline::IsSkinned() const {
+        return mSkinned;
     }
 
     Core::Uint64 Renderer::FMaterialPipeline::GetVertexRevision() const {
@@ -51,6 +56,11 @@ namespace Renderer {
         const auto VertexCompilation{mVertexCode->GetCompilation()};
         const std::span<const Core::Uint8> VertexBytes{VertexCompilation->mByteCode};
         Core::TArray<D3D11_INPUT_ELEMENT_DESC> Elements{{"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0}};
+
+        // 슬롯 4는 기존 인스턴스 입력에 남겨 두고 스킨 입력은 슬롯 5를 사용합니다.
+        if (mSkinned) {
+            Elements.insert(Elements.end(), {{"BLENDINDICES", 0, DXGI_FORMAT_R32G32B32A32_UINT, 5, 0, D3D11_INPUT_PER_VERTEX_DATA, 0}, {"BLENDWEIGHT", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 5, 16, D3D11_INPUT_PER_VERTEX_DATA, 0}});
+        }
 
         if (!DepthOnly) {
             Elements.insert(Elements.end(), {{"NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 1, 0, D3D11_INPUT_PER_VERTEX_DATA, 0}, {"TANGENT", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 12, D3D11_INPUT_PER_VERTEX_DATA, 0}, {"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 2, 0, D3D11_INPUT_PER_VERTEX_DATA, 0}, {"COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 3, 0, D3D11_INPUT_PER_VERTEX_DATA, 0}});

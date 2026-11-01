@@ -15,6 +15,7 @@
 #include "Engine/FSceneViewFamily.h"
 #include "Engine/PrimitiveMesh.h"
 #include "Asset/UStaticMesh.h"
+#include "Asset/USkeletalMesh.h"
 #include "Asset/UMaterial.h"
 #include "Asset/UTexture2D.h"
 #include "RenderCore/IRendererModule.h"
@@ -96,17 +97,19 @@ namespace Editor {
             return !Path.empty() && Material == nullptr ? nullptr : Render(Key, mSphere.get(), Material, MaterialSignature(Material) ^ mGeneration);
         }
 
-        if (Type != Asset::EAssetType::Mesh) {
+        if (Type != Asset::EAssetType::Mesh && Type != Asset::EAssetType::SkeletalMesh) {
             return nullptr;
         }
 
-        Asset::UStaticMesh* Mesh{Path.empty() ? mCube.get() : mAssets->LoadMesh(Path, Error)};
+        // 썸네일은 바인드 포즈를 표시하므로 동일한 공유 형상으로 그릴 수 있습니다.
+        Asset::USkeletalMesh* Skeletal{Type == Asset::EAssetType::SkeletalMesh && !Path.empty() ? mAssets->LoadSkeletalMesh(Path, Error) : nullptr};
+        Asset::UStaticMesh* Mesh{Skeletal != nullptr ? Skeletal->GetGeometry() : Type == Asset::EAssetType::SkeletalMesh ? nullptr : Path.empty() ? mCube.get() : mAssets->LoadMesh(Path, Error)};
 
         if (Mesh == nullptr) {
             return nullptr;
         }
 
-        std::size_t Signature{mGeneration};
+        std::size_t Signature{mGeneration ^ static_cast<std::size_t>(Mesh->GetRevision().GetValue())};
 
         for (const Asset::FMeshMaterialSlot& Slot : Mesh->GetMeshData().GetMaterialSlots()) {
             Asset::UMaterial* Material{Slot.GetMaterialPath().empty() ? nullptr : mAssets->LoadMaterial(Core::FilePath::FromUtf8(Slot.GetMaterialPath()), Error)};

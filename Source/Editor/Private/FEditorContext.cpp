@@ -8,6 +8,8 @@
 #include "Core/FilePath.h"
 #include "Engine/FProject.h"
 #include "Engine/Component/UStaticMeshComponent.h"
+#include "Engine/Component/USkeletalMeshComponent.h"
+#include "Engine/ASkeletalMeshActor.h"
 #include "Engine/Component/UBillboardTextComponent.h"
 #include "Engine/Component/UBillboardComponent.h"
 #include "Engine/Engine.h"
@@ -673,12 +675,30 @@ namespace Editor {
 
         auto* Component{CoreUObject::Cast<Engine::UStaticMeshComponent>(ResolveObject(Handle))};
 
-        if (Component == nullptr || !Component->SetSlotMaterialPath(Slot, Path)) {
+        auto* Skeletal{CoreUObject::Cast<Engine::USkeletalMeshComponent>(ResolveObject(Handle))};
+
+        if (!(Component != nullptr ? Component->SetSlotMaterialPath(Slot, Path) : Skeletal != nullptr && Skeletal->SetSlotMaterialPath(Slot, Path))) {
             return false;
         }
 
         mDirty = true;
 
+        return true;
+    }
+
+    bool Editor::FEditorContext::SetBoneLocalTransform(CoreUObject::FObjectHandle Handle, Core::Uint32 Bone, const Core::FMatrix& Transform) {
+        if (!CanEditWorld() || IsChangingState() || mEngine->IsDispatching()) {
+            return false;
+        }
+
+        auto* Component{CoreUObject::Cast<Engine::USkeletalMeshComponent>(ResolveObject(Handle))};
+
+        if (Component == nullptr || !Component->SetBoneLocalTransform(Bone, Transform)) {
+            return false;
+        }
+
+        // 포즈도 씬에 저장되는 편집 데이터이므로 저장 안내에 반영합니다.
+        mDirty = true;
         return true;
     }
 
@@ -785,6 +805,36 @@ namespace Editor {
 
     void Editor::FEditorContext::SetProjectRequestHandler(std::function<void(const std::filesystem::path&, bool)> Handler) {
         mProjectRequestHandler = std::move(Handler);
+    }
+
+    Engine::ASkeletalMeshActor* Editor::FEditorContext::SpawnSkeletalMesh(const std::filesystem::path& Path, const Core::FTransform& Placement) {
+        if (!CanSpawnActor() || !Placement.IsValid() || GetProject() == nullptr) {
+            return nullptr;
+        }
+
+        FOperationScope Scope{&mChangingState};
+        Core::FString Error{};
+        Asset::FAssetManager* Assets{GetProject()->GetAssets()};
+
+        if (Assets->LoadSkeletalMesh(Path, Error) == nullptr) {
+            AddLog(Error);
+            return nullptr;
+        }
+
+        auto* Actor{CoreUObject::Cast<Engine::ASkeletalMeshActor>(GetWorld()->SpawnActor(Engine::ASkeletalMeshActor::StaticClass()))};
+
+        if (!ApplySpawnPlacement(Actor, Placement)) {
+            return nullptr;
+        }
+
+        if (Actor->GetSkeletalMeshComponent() == nullptr || !Actor->GetSkeletalMeshComponent()->SetMeshPath(Assets->GetRelativePath(Path, Error))) {
+            GetWorld()->DestroyActor(Actor->GetHandle());
+            return nullptr;
+        }
+
+        Actor->SetName(Core::FilePath::ToUtf8(Path.stem()));
+        CompleteActorSpawn(Actor, "Placed ");
+        return Actor;
     }
 
     void Editor::FEditorContext::RequestProject(const std::filesystem::path& Path, bool Create) {

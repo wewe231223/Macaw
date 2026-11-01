@@ -17,6 +17,7 @@
 #include "Asset/FAssetFile.h"
 #include "Asset/UTexture2D.h"
 #include "Asset/UMaterial.h"
+#include "Asset/Import/IMeshImporter.h"
 #include "Engine/Component/ULightComponentBase.h"
 #include "Engine/UWorld.h"
 #include "Engine/ULevel.h"
@@ -341,6 +342,7 @@ namespace Editor {
         DrawTexturePreview();
         DrawMaterialEditor();
         DrawSettings();
+        DrawImportOptions();
 
         if (mSettingsDirty) {
             mSettingsSaveDelay += DeltaTime;
@@ -780,11 +782,151 @@ namespace Editor {
         Dialog.Flags = OFN_EXPLORER | OFN_NOCHANGEDIR | OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST;
 
         if (GetOpenFileNameW(&Dialog)) {
-            ImportFiles({std::filesystem::path{Buffer.data()}}, mContentDirectory);
+            RequestImport({std::filesystem::path{Buffer.data()}}, mContentDirectory);
         }
     }
 
-    void Editor::FEditorUI::ImportFiles(const Core::TArray<std::filesystem::path>& Sources, const std::filesystem::path& Directory) {
+    void Editor::FEditorUI::RequestImport(Core::TArray<std::filesystem::path> Sources, const std::filesystem::path& Directory) {
+        if (!mContext->CanEditWorld() || Sources.empty()) {
+            return;
+        }
+
+        const bool HasMesh{std::any_of(Sources.begin(), Sources.end(), [](const std::filesystem::path& Source) {
+            return Asset::IMeshImporter::IsSupported(Source);
+        })};
+
+        // 이미지 원본만 있으면 받을 옵션이 없으므로 바로 가져옵니다.
+        if (!HasMesh) {
+            ImportFiles(Sources, Directory, mImportOption);
+            return;
+        }
+
+        mPendingImports.push_back(std::move(Sources));
+        mPendingImportDirectories.push_back(Directory);
+    }
+
+    void Editor::FEditorUI::DrawImportOptions() {
+        static constexpr const char* PopupName{"Import Options"};
+
+        if (mPendingImports.empty()) {
+            return;
+        }
+
+        if (!ImGui::IsPopupOpen(PopupName)) {
+            ImGui::OpenPopup(PopupName);
+        }
+
+        ImGui::SetNextWindowPos(ImGui::GetMainViewport()->GetCenter(), ImGuiCond_Appearing, {0.5f, 0.5f});
+
+        if (!ImGui::BeginPopupModal(PopupName, nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+            return;
+        }
+
+        const auto& Sources{mPendingImports.front()};
+        const auto Finish{[this]() {
+            mPendingImports.erase(mPendingImports.begin());
+            mPendingImportDirectories.erase(mPendingImportDirectories.begin());
+            ImGui::CloseCurrentPopup();
+        }};
+        constexpr std::size_t ListedSources{8};
+
+        ImGui::TextUnformatted(Sources.size() == 1 ? "Importing 1 file:" : ("Importing " + std::to_string(Sources.size()) + " files:").c_str());
+
+        for (std::size_t Index{}; Index < std::min(Sources.size(), ListedSources); ++Index) {
+            ImGui::BulletText("%s", Core::FilePath::ToUtf8(Sources[Index].filename()).c_str());
+        }
+
+        if (Sources.size() > ListedSources) {
+            ImGui::TextDisabled("... and %zu more", Sources.size() - ListedSources);
+        }
+
+        if (mPendingImports.size() > 1) {
+            ImGui::TextDisabled("%zu more import batches are waiting.", mPendingImports.size() - 1);
+        }
+
+        ImGui::SeparatorText("Transform");
+        ImGui::Checkbox("Convert Scene", &mImportOption.mConvertScene);
+        ImGui::SetItemTooltip("Convert the source axis system to the engine Z-up left-handed system.\nWhen off, only the source Y axis is flipped.");
+        ImGui::BeginDisabled(!mImportOption.mConvertScene);
+        ImGui::Checkbox("Force Front X Axis", &mImportOption.mForceFrontXAxis);
+        ImGui::SetItemTooltip("Make the source front axis face +X.\nWhen off, the front faces +Y like the Unreal FBX importer.");
+        ImGui::EndDisabled();
+        ImGui::Checkbox("Convert Scene Unit", &mImportOption.mConvertSceneUnit);
+        ImGui::SetItemTooltip("Convert the length unit stored in the source (FBX) to meters.");
+
+        std::array<float, 3> Translation{mImportOption.mImportTranslation.x, mImportOption.mImportTranslation.y, mImportOption.mImportTranslation.z};
+        std::array<float, 3> Rotation{mImportOption.mImportRotation.pitch, mImportOption.mImportRotation.yaw, mImportOption.mImportRotation.roll};
+
+        if (ImGui::DragFloat3("Import Translation", Translation.data(), 0.01f, 0.0f, 0.0f, "%.3f m")) {
+            mImportOption.mImportTranslation = {Translation[0], Translation[1], Translation[2]};
+        }
+
+        if (ImGui::DragFloat3("Import Rotation", Rotation.data(), 0.5f, -360.0f, 360.0f, "%.1f deg")) {
+            mImportOption.mImportRotation = {Rotation[0], Rotation[1], Rotation[2]};
+        }
+
+        ImGui::SetItemTooltip("Pitch, Yaw, Roll in degrees.");
+        ImGui::DragFloat("Import Uniform Scale", &mImportOption.mImportUniformScale, 0.01f, 0.001f, 1000.0f, "%.3f");
+
+        ImGui::SeparatorText("Mesh");
+        ImGui::Checkbox("Combine Meshes", &mImportOption.mCombineMeshes);
+        ImGui::SetItemTooltip("Merge every mesh in the file into one mesh asset.\nWhen off, each mesh node becomes its own mesh asset.");
+        ImGui::Checkbox("Import Skeleton", &mImportOption.mImportSkeleton);
+        ImGui::SetItemTooltip("Read the bone hierarchy, bind pose and per-vertex bone weights when the source has a skeleton.\nThe mesh is saved as a skeletal mesh asset and can be placed or opened in the mesh viewer.");
+
+        static constexpr std::array<const char*, 3> NormalMethods{"Compute Normals", "Import Normals", "Import Normals and Tangents"};
+        int NormalMethod{static_cast<int>(mImportOption.mNormalImportMethod)};
+
+        if (ImGui::Combo("Normal Import Method", &NormalMethod, NormalMethods.data(), static_cast<int>(NormalMethods.size()))) {
+            mImportOption.mNormalImportMethod = static_cast<Asset::ENormalImportMethod>(NormalMethod);
+        }
+
+        ImGui::SeparatorText("Material");
+        ImGui::Checkbox("Import Materials", &mImportOption.mImportMaterials);
+        ImGui::SetItemTooltip("Create material assets from the source materials.\nWhen off, mesh slots use the default material.");
+        ImGui::BeginDisabled(!mImportOption.mImportMaterials);
+        ImGui::Checkbox("Import Textures", &mImportOption.mImportTextures);
+        ImGui::EndDisabled();
+
+        if (std::any_of(Sources.begin(), Sources.end(), [](const std::filesystem::path& Source) {
+                return !Asset::IMeshImporter::IsSupported(Source);
+            })) {
+            ImGui::TextDisabled("Image files in this batch are imported without these options.");
+        }
+
+        ImGui::Separator();
+        const bool Valid{mImportOption.IsValid()};
+        ImGui::BeginDisabled(!Valid);
+
+        if (ImGui::Button("Import")) {
+            const auto Batch{Sources};
+            const auto Directory{mPendingImportDirectories.front()};
+            Finish();
+            ImportFiles(Batch, Directory, mImportOption);
+        }
+
+        ImGui::EndDisabled();
+        ImGui::SameLine();
+
+        if (ImGui::Button("Reset to Defaults")) {
+            mImportOption = Asset::FAssetImportOption{};
+        }
+
+        ImGui::SameLine();
+
+        if (ImGui::Button("Cancel")) {
+            mContext->AddLog("Import canceled");
+            Finish();
+        }
+
+        if (!Valid) {
+            ImGui::TextColored({1.0f, 0.4f, 0.4f, 1.0f}, "Translation, rotation and scale must be finite, and scale must not be zero.");
+        }
+
+        ImGui::EndPopup();
+    }
+
+    void Editor::FEditorUI::ImportFiles(const Core::TArray<std::filesystem::path>& Sources, const std::filesystem::path& Directory, const Asset::FAssetImportOption& Option) {
         if (!mContext->CanEditWorld()) {
             return;
         }
@@ -799,7 +941,7 @@ namespace Editor {
             std::filesystem::path Target{};
             Core::FString Error{};
 
-            if (!Assets->ImportAsset(Source, Destination, Target, Error)) {
+            if (!Assets->ImportAsset(Source, Destination, Option, Target, Error)) {
                 const Core::FString Failure{"Cannot import '" + Core::FilePath::ToUtf8(Source.filename()) + "': " + Error};
                 mContext->AddLog(Failure);
                 Failures += (Failures.empty() ? Core::FString{} : "\n") + Failure;
@@ -906,7 +1048,7 @@ namespace Editor {
         mDropDirectories.clear();
 
         for (std::size_t Index{}; Index < Files.size(); ++Index) {
-            ImportFiles(Files[Index], Directories[Index]);
+            RequestImport(std::move(Files[Index]), Directories[Index]);
         }
     }
 
@@ -952,15 +1094,15 @@ namespace Editor {
             DrawContentBreadcrumbs();
             ImGui::SetNextItemWidth(120.0f);
 
-            const char* FilterName{!mContentFilter.has_value() ? "All Assets" : *mContentFilter == Asset::EAssetType::Mesh ? "Meshes" : *mContentFilter == Asset::EAssetType::Material ? "Materials" : *mContentFilter == Asset::EAssetType::Texture ? "Textures" : "Scenes"};
+            const char* FilterName{!mContentFilter.has_value() ? "All Assets" : *mContentFilter == Asset::EAssetType::Mesh ? "Meshes" : *mContentFilter == Asset::EAssetType::SkeletalMesh ? "Skeletal Meshes" : *mContentFilter == Asset::EAssetType::Material ? "Materials" : *mContentFilter == Asset::EAssetType::Texture ? "Textures" : "Scenes"};
 
             if (ImGui::BeginCombo("##AssetType", FilterName)) {
                 if (ImGui::Selectable("All Assets", !mContentFilter.has_value())) {
                     mContentFilter.reset();
                 }
 
-                for (Asset::EAssetType Type : {Asset::EAssetType::Mesh, Asset::EAssetType::Material, Asset::EAssetType::Texture, Asset::EAssetType::Scene}) {
-                    const char* Name{Type == Asset::EAssetType::Mesh ? "Meshes" : Type == Asset::EAssetType::Material ? "Materials" : Type == Asset::EAssetType::Texture ? "Textures" : "Scenes"};
+                for (Asset::EAssetType Type : {Asset::EAssetType::Mesh, Asset::EAssetType::SkeletalMesh, Asset::EAssetType::Material, Asset::EAssetType::Texture, Asset::EAssetType::Scene}) {
+                    const char* Name{Type == Asset::EAssetType::Mesh ? "Meshes" : Type == Asset::EAssetType::SkeletalMesh ? "Skeletal Meshes" : Type == Asset::EAssetType::Material ? "Materials" : Type == Asset::EAssetType::Texture ? "Textures" : "Scenes"};
 
                     if (ImGui::Selectable(Name, mContentFilter == Type)) {
                         mContentFilter = Type;
@@ -1255,9 +1397,9 @@ namespace Editor {
                         const bool Directory{static_cast<std::size_t>(Index) < Folders.size()};
                         const auto& Path{Directory ? Folders[Index] : Assets[Index - Folders.size()]};
                         const auto Type{mAssetTypes.find(Path)};
-                        const bool HasThumbnail{!Directory && Type != mAssetTypes.end() && (Type->second == Asset::EAssetType::Mesh || Type->second == Asset::EAssetType::Material || Type->second == Asset::EAssetType::Texture)};
+                        const bool HasThumbnail{!Directory && Type != mAssetTypes.end() && (Type->second == Asset::EAssetType::Mesh || Type->second == Asset::EAssetType::SkeletalMesh || Type->second == Asset::EAssetType::Material || Type->second == Asset::EAssetType::Texture)};
                         void* Thumbnail{HasThumbnail ? mThumbnails->GetThumbnail(Path, Type->second) : nullptr};
-                        const char* Kind{Directory ? "Folder" : Type == mAssetTypes.end() ? "File" : Type->second == Asset::EAssetType::Mesh ? "Mesh" : Type->second == Asset::EAssetType::Material ? "Material" : Type->second == Asset::EAssetType::Texture ? "Texture" : "Scene"};
+                        const char* Kind{Directory ? "Folder" : Type == mAssetTypes.end() ? "File" : Type->second == Asset::EAssetType::Mesh ? "Mesh" : Type->second == Asset::EAssetType::SkeletalMesh ? "Skeletal Mesh" : Type->second == Asset::EAssetType::Material ? "Material" : Type->second == Asset::EAssetType::Texture ? "Texture" : "Scene"};
                         const Core::FString Actual{Core::FilePath::ToGenericUtf8(Path)};
                         const Core::FString Name{Core::FilePath::ToUtf8(Directory ? Path.filename() : Path.stem())};
                         ImGui::PushID(Actual.c_str());
@@ -1286,7 +1428,7 @@ namespace Editor {
                         }
 
                         if (HasThumbnail && mContext->CanEditWorld() && ImGui::BeginDragDropSource()) {
-                            const char* Payload{Type->second == Asset::EAssetType::Mesh ? Editor::EditorAssetDragDrop::MeshPayload : Type->second == Asset::EAssetType::Material ? Editor::EditorAssetDragDrop::MaterialPayload : Editor::EditorAssetDragDrop::TexturePayload};
+                            const char* Payload{Type->second == Asset::EAssetType::Mesh || Type->second == Asset::EAssetType::SkeletalMesh ? Editor::EditorAssetDragDrop::MeshPayload : Type->second == Asset::EAssetType::Material ? Editor::EditorAssetDragDrop::MaterialPayload : Editor::EditorAssetDragDrop::TexturePayload};
                             ImGui::SetDragDropPayload(Payload, Actual.c_str(), Actual.size() + 1);
 
                             if (Thumbnail != nullptr) {
@@ -1349,7 +1491,7 @@ namespace Editor {
             if (ConfirmSceneChange()) {
                 mContext->LoadScene(Path);
             }
-        } else if (Type == Asset::EAssetType::Mesh) {
+        } else if (Type == Asset::EAssetType::Mesh || Type == Asset::EAssetType::SkeletalMesh) {
             Core::FString Error{};
 
             if (mMeshViewer != nullptr && !mMeshViewer->Open(Path, Error)) {

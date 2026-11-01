@@ -149,6 +149,9 @@ namespace Renderer {
          */
         void Upload(Renderer::FScenePrimitive& Primitive);
 
+        /** @brief 객체별 본 행렬과 법선 변환을 구조화 버퍼에 반영합니다. @param Primitive 갱신할 프리미티브입니다. @return 스킨이 없거나 업로드했으면 true입니다. */
+        bool UploadSkinning(Renderer::FScenePrimitive& Primitive);
+
         /**
          * @brief 프록시가 그림자 깊이 패스에 그려지는 캐스터인지 검사합니다.
          * @param[in] Proxy 검사할 프리미티브 프록시입니다.

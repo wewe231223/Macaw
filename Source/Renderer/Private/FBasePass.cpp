@@ -24,6 +24,8 @@ namespace Renderer {
     }
 
     void Renderer::FBasePass::AddCommands(const Renderer::FScenePrimitive& Primitive, Asset::UStaticMesh& Mesh, const Engine::FSceneViewFamily& Family, Core::TArray<Renderer::FMeshDrawCommand>& Commands) {
+        const bool Skinned{Primitive.mProxy.mSkeletalMesh != nullptr};
+
         for (const Asset::FSubMesh& SubMesh : Mesh.GetMeshData().GetSubMeshes()) {
             Asset::UMaterial* SlotMaterial{SubMesh.GetMaterialIndex() < Primitive.mProxy.mMaterials.size() ? Primitive.mProxy.mMaterials[SubMesh.GetMaterialIndex()] : nullptr};
             Asset::UMaterial* Material{Primitive.mProxy.mMaterial != nullptr ? Primitive.mProxy.mMaterial : SlotMaterial != nullptr ? SlotMaterial : mDefaultMaterial};
@@ -32,8 +34,17 @@ namespace Renderer {
                 Material = mDefaultMaterial;
             }
 
-            Renderer::FMaterialPipeline* Pipeline{mRenderer->GetMaterialPipeline(*Material, Family.mViewMode)};
-            Commands.emplace_back(Pipeline != nullptr ? Pipeline : mDefaultPipeline, Material, &Mesh, &Primitive, SubMesh.GetFirstIndex(), SubMesh.GetIndexCount());
+            Renderer::FMaterialPipeline* Pipeline{mRenderer->GetMaterialPipeline(*Material, Family.mViewMode, Skinned)};
+
+            if (Pipeline == nullptr) {
+                // 실패한 스킨 셰이더를 정적 파이프라인으로 대신 그리면 바인드 포즈가 노출됩니다.
+                Material = mDefaultMaterial;
+                Pipeline = Skinned ? mRenderer->GetMaterialPipeline(*Material, Family.mViewMode, true) : mDefaultPipeline;
+            }
+
+            if (Pipeline != nullptr) {
+                Commands.emplace_back(Pipeline, Material, &Mesh, &Primitive, SubMesh.GetFirstIndex(), SubMesh.GetIndexCount());
+            }
         }
     }
 

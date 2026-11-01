@@ -1,5 +1,5 @@
 /**
- * @file FFBXLoader.h
+ * @file FFBXImporter.h
  * @brief Autodesk FBX SDK로 원본 FBX 장면을 삼각형·좌수 좌표계로 변환하고 재질과 텍스처 참조를 수집합니다.
  * @ingroup Asset
  */
@@ -16,12 +16,12 @@ namespace Asset {
     /**
      * @brief Autodesk FBX SDK로 원본 FBX 장면을 삼각형·좌수 좌표계로 변환하고 재질과 텍스처 참조를 수집합니다.
      */
-    class FFBXLoader final : public Asset::IMeshImporter {
+    class FFBXImporter final : public Asset::IMeshImporter {
     public:
         /**
          * @brief 리플렉션 소유 타입과 선택적 기반 타입의 별칭입니다.
          */
-        ReflectTypes(FFBXLoader, Asset::IMeshImporter);
+        ReflectTypes(FFBXImporter, Asset::IMeshImporter);
 
     private:
         /**
@@ -31,21 +31,22 @@ namespace Asset {
 
     public:
         /**
-         * @brief 가져올 원본 FBX 파일 경로를 보관하도록 임포터를 초기화합니다.
+         * @brief 가져올 원본 FBX 파일 경로와 임포트 옵션을 보관하도록 임포터를 초기화합니다.
          * @param[in] Source 가져올 원본 FBX 파일 경로입니다.
+         * @param[in] Option 좌표축·메시 구성·노멀 처리 방식을 정하는 임포트 옵션입니다.
          */
-        explicit FFBXLoader(std::filesystem::path Source);
+        FFBXImporter(std::filesystem::path Source, const Asset::FAssetImportOption& Option);
         /**
          * @brief FBX SDK 관리자와 그 관리자가 소유한 임포터·장면을 해제합니다.
          */
-        ~FFBXLoader() override;
+        ~FFBXImporter() override;
 
     public:
         /**
          * @brief 이 타입의 정적 리플렉션 메타데이터를 반환합니다.
          * @return 리플렉션 시스템이 보관하는 등록된 타입 메타데이터의 비소유 주소입니다.
          */
-        ReflectStruct(FFBXLoader);
+        ReflectStruct(FFBXImporter);
 
     private:
         /**
@@ -68,14 +69,6 @@ namespace Asset {
         bool ReadElement(const fbxsdk::FbxLayerElementTemplate<TValue>* Element, int ControlPoint, int Polygon, int PolygonVertex, TValue& Value) const;
 
         /**
-         * @brief 행렬의 이동 성분을 제외하고 방향 벡터를 변환합니다.
-         * @param[in] Matrix 적용할 FBX 아핀 행렬입니다.
-         * @param[in] Vector 변환할 방향 벡터입니다.
-         * @return 변환한 방향 벡터이며 정규화하지 않습니다.
-         */
-        Core::FVector TransformDirection(const fbxsdk::FbxAMatrix& Matrix, const fbxsdk::FbxVector4& Vector) const;
-
-        /**
          * @brief FBX 재질의 기본 색상·불투명도·양면 여부와 기본 색상·노멀 텍스처를 읽어 재질 슬롯과 재질 목록에 추가합니다.
          * @param[in] Material 읽을 FBX 재질이며 nullptr이면 기본 재질을 추가합니다.
          * @return 성공하면 true이며 텍스처를 읽지 못하거나 색상이 유효하지 않으면 Error에 원인을 기록하고 false입니다.
@@ -89,18 +82,41 @@ namespace Asset {
          */
         bool FindMaterialIndex(fbxsdk::FbxSurfaceMaterial* Material, Core::Uint32& Index);
         /**
-         * @brief 노드의 전역 변환을 적용해 FBX 메시의 정점·노멀·탄젠트·UV를 결과 메시 데이터에 추가하고 재질별 섹션을 구성합니다.
+         * @brief 노드의 전역 변환과 축 변환을 적용해 FBX 메시의 정점·노멀·탄젠트·UV를 대상 메시에 추가하고 재질별 섹션을 구성합니다.
          * @param[in] Node 메시를 소유하며 전역 변환을 제공하는 FBX 노드입니다.
          * @param[in] Mesh 읽을 삼각형화된 FBX 메시입니다.
+         * @param[in,out] Target 정점과 서브메시를 이어 붙일 결과 메시입니다.
          * @return 성공하면 true이며 버퍼 한계를 넘거나 정점 요소가 유효하지 않으면 Error에 원인을 기록하고 false입니다.
          */
-        bool ReadMesh(fbxsdk::FbxNode& Node, fbxsdk::FbxMesh& Mesh);
+        bool ReadMesh(fbxsdk::FbxNode& Node, fbxsdk::FbxMesh& Mesh, Asset::FMeshImportMesh& Target);
         /**
          * @brief 노드와 모든 자식 노드를 깊이 우선으로 순회하며 메시를 읽습니다.
+         * @details 메시 병합 옵션을 켜면 결과의 첫 메시에, 끄면 메시 노드마다 새 결과 메시에 추가합니다.
          * @param[in] Node 순회를 시작할 FBX 노드입니다.
          * @return 모든 메시를 읽으면 true이며 하나라도 실패하면 false입니다.
          */
         bool ReadNode(fbxsdk::FbxNode& Node);
+        /**
+         * @brief 스켈레톤 속성을 가진 노드를 깊이 우선으로 순회하며 결과 본 목록에 추가합니다.
+         * @param[in] Node 순회를 시작할 FBX 노드입니다.
+         * @param[in] ParentIndex 가장 가까운 조상 본의 결과 인덱스이며 없으면 -1입니다.
+         * @param[in] ParentBoneGlobal 가장 가까운 조상 본의 엔진 공간 전역 변환이며 없으면 항등 행렬입니다.
+         * @return 모든 본을 읽으면 true이며 바인드 포즈를 변환할 수 없으면 false입니다.
+         */
+        bool ReadSkeleton(fbxsdk::FbxNode& Node, Core::Int32 ParentIndex, const Core::FMatrix& ParentBoneGlobal);
+        /**
+         * @brief 장면의 모든 스킨 클러스터를 읽어 링크 노드별 바인드 시점 전역 변환을 모읍니다.
+         * @details 클러스터가 링크하는 노드는 스켈레톤 속성이 없어도 본으로 취급합니다.
+         */
+        void CollectBindPoses();
+        /**
+         * @brief 메시의 스킨 클러스터에서 제어점별 본 가중치를 읽습니다.
+         * @param[in] Mesh 가중치를 읽을 FBX 메시입니다.
+         * @param[out] Weights 제어점 수와 같은 길이의 가중치를 기록할 대상이며 스킨이 없으면 비웁니다.
+         * @param[out] MeshBindPose 첫 클러스터가 기록한 바인드 시점의 메시 전역 변환을 기록할 대상입니다.
+         * @return 스킨 클러스터가 있으면 true입니다.
+         */
+        bool ReadSkinWeights(fbxsdk::FbxMesh& Mesh, Core::TArray<Asset::FMeshImportSkinWeight>& Weights, fbxsdk::FbxAMatrix& MeshBindPose) const;
 
         /**
          * @brief 생성된 멤버 등록 함수와 리플렉션 빌더의 접근 권한입니다.
@@ -137,8 +153,26 @@ namespace Asset {
          */
         FMaterialIndices mMaterialIndices{};
         ReflectProperty(mMaterialIndices, "MaterialIndices", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+
+        /**
+         * @brief ConvertScene을 거친 FBX 전역 공간에서 엔진 공간으로 가는 행렬입니다. Y 반전과 임포트 이동·회전·스케일을 포함합니다.
+         */
+        Core::FMatrix mBasis{};
+        ReflectProperty(mBasis, "Basis", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+
+        /**
+         * @brief 스킨 클러스터 링크 노드별 바인드 시점 전역 변환이며 ConvertScene 뒤의 FBX 전역 공간 기준입니다.
+         */
+        Core::TMap<fbxsdk::FbxNode*, Core::FMatrix> mBindPoses{};
+        ReflectProperty(mBindPoses, "BindPoses", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+
+        /**
+         * @brief 본으로 읽은 FBX 노드별 결과 본 인덱스입니다.
+         */
+        Core::TMap<fbxsdk::FbxNode*, Core::Int32> mBoneIndices{};
+        ReflectProperty(mBoneIndices, "BoneIndices", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
 }
 
-#include "Asset/Import/FFBXLoaderTemplates.h"
+#include "Asset/Import/FFBXImporterTemplates.h"

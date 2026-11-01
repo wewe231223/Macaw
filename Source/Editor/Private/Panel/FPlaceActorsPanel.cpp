@@ -32,7 +32,6 @@ namespace Editor {
         ImGui::Combo("##Category", &mCategory, Categories, 4);
         ImGui::SetNextItemWidth(-1.0f);
         ImGui::InputTextWithHint("##SearchActors", "Search actors", mSearch.data(), mSearch.size());
-        ImGui::TextWrapped("Drag an actor into a viewport, or double-click to place it.");
         ImGui::Separator();
         ImGui::BeginDisabled(!GetEditorContext()->CanEditWorld());
 

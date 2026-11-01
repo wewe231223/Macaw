@@ -57,6 +57,18 @@ namespace Renderer {
          */
         Renderer::FObjectConstants mObjectConstants{};
         ReflectProperty(mObjectConstants, "ObjectConstants", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+
+        /** @brief 객체별 스키닝 행렬과 법선용 역전치 행렬을 담은 구조화 버퍼입니다. */
+        Microsoft::WRL::ComPtr<ID3D11Buffer> mSkinBuffer{};
+        ReflectProperty(mSkinBuffer, "SkinBuffer", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+
+        /** @brief 정점 셰이더에서 객체별 본 행렬을 읽는 SRV입니다. */
+        Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> mSkinView{};
+        ReflectProperty(mSkinView, "SkinView", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+
+        /** @brief 마지막으로 GPU에 업로드한 포즈 개정입니다. */
+        Core::FRevision mUploadedPoseRevision{};
+        ReflectProperty(mUploadedPoseRevision, "UploadedPoseRevision", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
 }

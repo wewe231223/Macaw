@@ -12,6 +12,7 @@
 #include "Core/Math/FVector.h"
 #include "Core/Math/FMatrix.h"
 #include "Asset/FMeshData.h"
+#include "Asset/USkeletalMesh.h"
 #include "Engine/FSceneInterface.h"
 #include "Engine/FRenderTarget.h"
 #include "Engine/FDrawLine.h"
@@ -962,7 +963,7 @@ namespace Renderer {
         mContext->OMSetBlendState(nullptr, nullptr, 0xFFFFFFFFu);
     }
 
-    Renderer::FMaterialPipeline* Renderer::FRenderer::GetMaterialPipeline(const Asset::UMaterial& Material, Engine::EViewMode Mode) {
+    Renderer::FMaterialPipeline* Renderer::FRenderer::GetMaterialPipeline(const Asset::UMaterial& Material, Engine::EViewMode Mode, bool Skinned) {
         const Core::FString& Relative{Material.GetShaderPath()};
         const std::filesystem::path RelativePath{Core::FilePath::FromUtf8(Relative).lexically_normal()};
         Core::FString Key{Core::FilePath::ToGenericUtf8(RelativePath) + (Material.IsTwoSided() ? "|TwoSided" : "|OneSided")};
@@ -971,6 +972,7 @@ namespace Renderer {
         });
 
         Key += "|" + std::to_string(static_cast<Core::Uint32>(Mode)) + (Material.GetNormalMapTexture() != nullptr ? "|NormalMap" : "|VertexNormal");
+        Key += Skinned ? "|Skinned" : "|Static";
 
         const auto Existing{mMaterialPipelines.find(Key)};
 
@@ -991,8 +993,13 @@ namespace Renderer {
         const char* Model{Mode == Engine::EViewMode::Lit_Gouraud ? "LIGHTING_MODEL_GOURAUD" : Mode == Engine::EViewMode::Lit_Lambert ? "LIGHTING_MODEL_LAMBERT" : "LIGHTING_MODEL_PHONG"};
         Description.mMacros.push_back({Model, "1"});
 
-        if (Builtin) {
+        // 객체별 포즈를 별도 바인딩하므로 스킨 드로는 정적 메시 인스턴싱과 분리합니다.
+        if (Builtin && !Skinned) {
             Description.mMacros.push_back({"MacawInstanced", "1"});
+        }
+
+        if (Skinned) {
+            Description.mMacros.push_back({"MacawSkinned", "1"});
         }
 
         if (Mode == Engine::EViewMode::Unlit) {
@@ -1028,7 +1035,7 @@ namespace Renderer {
         std::unique_ptr<Renderer::FMaterialPipeline> Pipeline{};
 
         if (Vertex != nullptr && Pixel != nullptr) {
-            Pipeline = std::make_unique<Renderer::FMaterialPipeline>(Renderer::EMeshPass::BasePass, std::move(Vertex), std::move(Pixel), Material.IsTwoSided(), Builtin);
+            Pipeline = std::make_unique<Renderer::FMaterialPipeline>(Renderer::EMeshPass::BasePass, std::move(Vertex), std::move(Pixel), Material.IsTwoSided(), Builtin && !Skinned, Skinned);
 
             if (!Pipeline->CreateResources(mDevice.Get(), Diagnostics)) {
                 Error += Diagnostics;
@@ -1051,8 +1058,8 @@ namespace Renderer {
         return mDefaultMaterial.get();
     }
 
-    Renderer::FMaterialPipeline* Renderer::FRenderer::GetDepthPipeline() {
-        const Core::FString Key{"shaders/depth.hlsl|depth"};
+    Renderer::FMaterialPipeline* Renderer::FRenderer::GetDepthPipeline(bool Skinned) {
+        const Core::FString Key{Skinned ? "shaders/depth.hlsl|depth|skinned" : "shaders/depth.hlsl|depth"};
         const auto Existing{mMaterialPipelines.find(Key)};
 
         if (Existing != mMaterialPipelines.end()) {
@@ -1066,7 +1073,7 @@ namespace Renderer {
         RenderCore::FShaderDescription Description{};
         Description.mSourcePath = FindTextContent(mShaderDirectory.parent_path(), "Shaders/Depth.hlsl", true);
         Description.mIncludeDirectories = {Description.mSourcePath.parent_path(), mShaderDirectory};
-        Description.mMacros.push_back({"MacawInstanced", "1"});
+        Description.mMacros.push_back({Skinned ? "MacawSkinned" : "MacawInstanced", "1"});
         Description.mEntryPoint = "VertexMain";
         Description.mTargetProfile = "vs_5_0";
 
@@ -1080,7 +1087,7 @@ namespace Renderer {
         std::unique_ptr<Renderer::FMaterialPipeline> Pipeline{};
 
         if (Vertex != nullptr) {
-            Pipeline = std::make_unique<Renderer::FMaterialPipeline>(Renderer::EMeshPass::ShadowDepth, std::move(Vertex), nullptr, true, true);
+            Pipeline = std::make_unique<Renderer::FMaterialPipeline>(Renderer::EMeshPass::ShadowDepth, std::move(Vertex), nullptr, true, !Skinned, Skinned);
 
             if (!Pipeline->CreateResources(mDevice.Get(), Diagnostics)) {
                 Error += Diagnostics;
@@ -1241,7 +1248,18 @@ namespace Renderer {
     void Renderer::FRenderer::DrawShadowDepths(const Renderer::FScene& Scene, const Engine::FSceneViewFamily& Family) {
         const std::span<const Renderer::FGpuShadow> Maps{mShadowResources->GetMaps()};
         const Renderer::FMaterialPipeline* DepthPipeline{Maps.empty() ? nullptr : GetDepthPipeline()};
-        const Core::Uint64 DepthShaderRevision{DepthPipeline != nullptr ? DepthPipeline->GetVertexRevision() : 0};
+        bool HasSkinned{};
+
+        for (const Renderer::FScenePrimitive& Primitive : Scene.GetPrimitives()) {
+            if (Primitive.mProxy.mSkeletalMesh != nullptr) {
+                HasSkinned = true;
+                break;
+            }
+        }
+
+        const Renderer::FMaterialPipeline* SkinDepthPipeline{!Maps.empty() && HasSkinned ? GetDepthPipeline(true) : nullptr};
+        // 두 깊이 셰이더 중 하나만 바뀌어도 이전 실루엣을 캐시에서 재사용하지 않습니다.
+        const Core::Uint64 DepthShaderRevision{std::max(DepthPipeline != nullptr ? DepthPipeline->GetVertexRevision() : 0, SkinDepthPipeline != nullptr ? SkinDepthPipeline->GetVertexRevision() : 0)};
 
         for (Core::Uint32 Index{}; Index < Maps.size(); ++Index) {
             const Renderer::FShadowTileStamp Stamp{mShadowResources->MakeTileStamp(Index, DepthShaderRevision)};
@@ -1361,6 +1379,16 @@ namespace Renderer {
 
             const Core::Uint32 InstanceCount{static_cast<Core::Uint32>(End - First)};
 
+            if (Command.mPipeline->IsSkinned()) {
+                // 같은 형상을 공유해도 객체마다 본 팔레트를 다시 바인딩합니다.
+                ID3D11Buffer* Weights{Command.mPrimitive->mProxy.mSkeletalMesh->GetSkinWeightBuffer()};
+                ID3D11ShaderResourceView* Bones{Command.mPrimitive->mSkinView.Get()};
+                const UINT SkinStride{Asset::USkeletalMesh::GetSkinWeightStride()};
+                const UINT SkinOffset{};
+                mContext->IASetVertexBuffers(5, 1, &Weights, &SkinStride, &SkinOffset);
+                mContext->VSSetShaderResources(10, 1, &Bones);
+            }
+
             if (LastPipeline != Command.mPipeline) {
                 if (BasePass) {
                     Renderer::RendererStats::PipelineBinds.Add();
@@ -1431,6 +1459,9 @@ namespace Renderer {
 
         ID3D11Buffer* EmptyInstanceBuffer{};
         mContext->IASetVertexBuffers(4, 1, &EmptyInstanceBuffer, Offsets.data(), Offsets.data());
+        mContext->IASetVertexBuffers(5, 1, &EmptyInstanceBuffer, Offsets.data(), Offsets.data());
+        ID3D11ShaderResourceView* EmptyBones{};
+        mContext->VSSetShaderResources(10, 1, &EmptyBones);
 
         if (BasePass) {
             ID3D11ShaderResourceView* Empty{};

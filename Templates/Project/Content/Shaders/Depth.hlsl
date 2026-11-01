@@ -4,6 +4,7 @@
  */
 
 #include "ViewConstants.hlsli"
+#include "Skinning.hlsl"
 
 /**
  * @brief 비인스턴스 드로에서 사용하는 메시 객체의 월드 행렬 상수입니다.
@@ -19,6 +20,12 @@ cbuffer ObjectConstants : register(b0) {
  * @brief 깊이 패스 정점 셰이더가 읽는 위치와 인스턴스 월드 행렬 입력입니다.
  */
 struct FDepthInput {
+#ifdef MacawSkinned
+    /** @brief 베이스 패스와 동일한 본 인덱스입니다. */
+    uint4 mBoneIndices : BLENDINDICES;
+    /** @brief 베이스 패스와 동일한 정점별 가중치입니다. */
+    float4 mBoneWeights : BLENDWEIGHT;
+#endif
     /**
      * @brief 정점의 로컬 공간 위치입니다.
      */
@@ -53,6 +60,10 @@ struct FDepthInput {
  * @return 깊이 패스 클립 공간 위치입니다.
  */
 float4 VertexMain(FDepthInput Input) : SV_POSITION {
+#ifdef MacawSkinned
+    // 그림자도 현재 포즈의 위치를 사용하여 본체와 실루엣을 일치시킵니다.
+    Input.mPosition = SkinPosition(Input.mPosition, Input.mBoneIndices, Input.mBoneWeights);
+#endif
 #ifdef MacawInstanced
     row_major float4x4 ObjectWorld = {float4x4(Input.mWorld0, Input.mWorld1, Input.mWorld2, Input.mWorld3)};
 #else

@@ -7,6 +7,7 @@
 #pragma once
 
 #include "Asset/FAssetFile.h"
+#include "Asset/Import/FAssetImportOption.h"
 #include "Core/Types.h"
 #include "Core/ReflectionMacros.h"
 
@@ -17,6 +18,7 @@
 namespace Asset {
 
     class UStaticMesh;
+    class USkeletalMesh;
     class UTexture2D;
     class UMaterial;
 
@@ -75,6 +77,8 @@ namespace Asset {
          */
         Core::FString GetMeshPath(const Asset::UStaticMesh* Mesh) const;
 
+        Core::FString GetSkeletalMeshPath(const Asset::USkeletalMesh* Mesh) const;
+
         /**
          * @brief 이 관리자의 캐시에서 텍스처에 대응하는 에셋 경로를 조회합니다.
          * @param[in] Texture 경로를 조회할 텍스처의 비소유 주소입니다.
@@ -112,6 +116,8 @@ namespace Asset {
          * @return 캐시된 에셋의 비소유 주소이며, 로드에 실패하면 nullptr입니다.
          */
         Asset::UStaticMesh* LoadMesh(const std::filesystem::path& Path, Core::FString& Error);
+
+        Asset::USkeletalMesh* LoadSkeletalMesh(const std::filesystem::path& Path, Core::FString& Error);
 
         /**
          * @brief 텍스처 에셋을 캐시에서 조회하거나 파일에서 로드하여 보관합니다.
@@ -170,6 +176,8 @@ namespace Asset {
          */
         bool SaveMesh(const std::filesystem::path& Path, const Asset::UStaticMesh& Mesh, Core::FString& Error);
 
+        bool SaveSkeletalMesh(const std::filesystem::path& Path, const Asset::USkeletalMesh& Mesh, Core::FString& Error);
+
         /**
          * @brief 텍스처의 크기·형식·색 공간과 이미지 데이터를 에셋 파일로 저장합니다.
          * @param[in] Path 저장할 텍스처 에셋의 경로입니다.
@@ -180,7 +188,7 @@ namespace Asset {
         bool SaveTexture(const std::filesystem::path& Path, const Asset::UTexture2D& Texture, Core::FString& Error);
 
         /**
-         * @brief 외부 에셋을 새 폴더에 가져오고 생성한 에셋 경로를 반환합니다.
+         * @brief 기본 임포트 옵션으로 외부 에셋을 새 폴더에 가져오고 생성한 에셋 경로를 반환합니다.
          * @param[in] Source 프로젝트에 가져올 외부 파일 경로입니다.
          * @param[in] Directory 새 임포트 폴더를 생성할 Content 상대 디렉터리입니다.
          * @param[out] ImportedPath 성공 시 생성한 주 에셋의 Content 상대 경로를 받습니다.
@@ -188,6 +196,17 @@ namespace Asset {
          * @return 요청한 처리를 완료하면 true, 실패하면 false입니다.
          */
         bool ImportAsset(const std::filesystem::path& Source, const std::filesystem::path& Directory, std::filesystem::path& ImportedPath, Core::FString& Error);
+
+        /**
+         * @brief 임포트 옵션을 따라 외부 에셋을 새 폴더에 가져오고 생성한 주 에셋 경로를 반환합니다.
+         * @param[in] Source 프로젝트에 가져올 외부 파일 경로입니다.
+         * @param[in] Directory 새 임포트 폴더를 생성할 Content 상대 디렉터리입니다.
+         * @param[in] Option 메시 원본에 적용할 좌표축·메시 구성·재질 임포트 옵션이며 텍스처 원본에는 쓰지 않습니다.
+         * @param[out] ImportedPath 성공 시 생성한 주 에셋의 Content 상대 경로를 받습니다. 메시를 여러 개 만들면 첫 메시입니다.
+         * @param[out] Error 실패 원인을 받을 오류 문자열입니다.
+         * @return 요청한 처리를 완료하면 true, 실패하면 false입니다.
+         */
+        bool ImportAsset(const std::filesystem::path& Source, const std::filesystem::path& Directory, const Asset::FAssetImportOption& Option, std::filesystem::path& ImportedPath, Core::FString& Error);
 
         /**
          * @brief 외부 이미지를 읽어 프로젝트의 텍스처 에셋 파일로 저장합니다.
@@ -200,13 +219,15 @@ namespace Asset {
 
     private:
         /**
-         * @brief 원본 메시와 재질·외부 텍스처를 프로젝트 에셋으로 가져와 메시 참조를 저장합니다.
+         * @brief 원본 메시와 재질·외부 텍스처를 임포트 옵션에 따라 프로젝트 에셋으로 가져와 메시 참조를 저장합니다.
          * @param[in] Source 임포트할 원본 메시 파일 경로입니다.
-         * @param[in] Target 임포트한 메시를 기록할 프로젝트 .masset 경로입니다.
+         * @param[in,out] Target 메시가 하나일 때 기록할 프로젝트 .masset 경로이며, 성공하면 첫 메시를 저장한 경로로 바뀝니다.
+         * 메시가 여러 개이면 같은 폴더에 메시 이름으로 저장합니다.
+         * @param[in] Option 좌표축·메시 구성·재질 임포트 옵션입니다.
          * @param[out] Error 실패 원인을 기록할 문자열입니다.
          * @return 메시와 연결 에셋을 저장하면 true이며 가져오기·검증·저장 실패 시 false입니다.
          */
-        bool ImportMesh(const std::filesystem::path& Source, const std::filesystem::path& Target, Core::FString& Error);
+        bool ImportMesh(const std::filesystem::path& Source, std::filesystem::path& Target, const Asset::FAssetImportOption& Option, Core::FString& Error);
 
         /**
          * @brief 캐시 객체의 주소를 유지하면서 머티리얼 설정과 텍스처 참조를 갱신합니다.
@@ -234,6 +255,9 @@ namespace Asset {
          */
         Core::TMap<Core::FString, std::unique_ptr<Asset::UStaticMesh>> mMeshes{};
         ReflectProperty(mMeshes, "Meshes", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+
+        Core::TMap<Core::FString, std::unique_ptr<Asset::USkeletalMesh>> mSkeletalMeshes{};
+        ReflectProperty(mSkeletalMeshes, "SkeletalMeshes", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 정규화한 상대 경로별로 소유하는 텍스처 에셋 캐시입니다.

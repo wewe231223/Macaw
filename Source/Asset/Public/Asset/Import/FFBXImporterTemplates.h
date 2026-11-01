@@ -1,17 +1,17 @@
 /**
- * @file FFBXLoaderTemplates.h
- * @brief FFBXLoader의 템플릿 멤버 함수 구현입니다.
+ * @file FFBXImporterTemplates.h
+ * @brief FFBXImporter의 템플릿 멤버 함수 구현입니다.
  * @ingroup Asset
  */
 
 #pragma once
 
-#include "Asset/Import/FFBXLoader.h"
+#include "Asset/Import/FFBXImporter.h"
 
 namespace Asset {
 
     template <typename TValue>
-    bool Asset::FFBXLoader::ReadElement(const fbxsdk::FbxLayerElementTemplate<TValue>* Element, int ControlPoint, int Polygon, int PolygonVertex, TValue& Value) const {
+    bool Asset::FFBXImporter::ReadElement(const fbxsdk::FbxLayerElementTemplate<TValue>* Element, int ControlPoint, int Polygon, int PolygonVertex, TValue& Value) const {
         if (Element == nullptr) {
             return true;
         }

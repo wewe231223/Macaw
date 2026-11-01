@@ -1,6 +1,6 @@
 /**
  * @file FMeshViewer.h
- * @brief 에디터와 독립 실행 모드에서 공유하는 정적 메시 뷰어입니다.
+ * @brief 에디터와 독립 실행 모드에서 공유하는 정적·스켈레탈 메시 뷰어입니다.
  * @ingroup Editor
  */
 
@@ -13,12 +13,14 @@
 #include "Core/Math/FRotator.h"
 #include "Core/Math/FVector.h"
 #include "Engine/EViewMode.h"
+#include "Engine/FSkeletalMeshPose.h"
 
 #include <filesystem>
 
 namespace Asset {
     class FAssetManager;
     class UStaticMesh;
+    class USkeletalMesh;
     class UMaterial;
 }
 
@@ -118,8 +120,11 @@ namespace Editor {
          */
         void DrawMaterials();
 
+        /** @brief 본 선택·회전·바인드 포즈 복원 UI를 표시합니다. */
+        void DrawPose();
+
         /**
-         * @brief 카메라 입력을 처리하고 독립 렌더 타깃을 그립니다.
+         * @brief 카메라 입력을 처리하고 공통 렌더 경로로 메시와 본 보조 선분을 그리며 아이콘·스프라이트·텍스트 표시는 제외합니다.
          */
         void DrawPreview();
 
@@ -153,6 +158,22 @@ namespace Editor {
          */
         Asset::UStaticMesh* mMesh{};
         ReflectProperty(mMesh, "Mesh", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+
+        /** @brief 스켈레탈 미리보기에서 사용하는 공유 에셋입니다. */
+        Asset::USkeletalMesh* mSkeletalMesh{};
+        ReflectProperty(mSkeletalMesh, "SkeletalMesh", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+        /** @brief 미리보기 객체만의 현재 포즈입니다. */
+        Engine::FSkeletalMeshPose mPose{};
+        ReflectProperty(mPose, "Pose", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+        /** @brief 본마다 바인드 포즈 앞에 적용할 임시 회전입니다. */
+        Core::TArray<Core::FRotator> mBoneRotations{};
+        ReflectProperty(mBoneRotations, "BoneRotations", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+        /** @brief 회전 조작 대상으로 선택한 본입니다. */
+        Core::Uint32 mPoseBone{};
+        ReflectProperty(mPoseBone, "PoseBone", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+        /** @brief 현재 본 계층을 보조 선분으로 표시할지 지정합니다. */
+        bool mShowBones{true};
+        ReflectProperty(mShowBones, "ShowBones", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 현재 슬롯별 미리보기 재질의 비소유 주소입니다.

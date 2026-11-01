@@ -230,15 +230,17 @@ namespace Renderer {
          * @brief 머티리얼별 GPU 파이프라인을 반환합니다.
          * @param[in] Material 조회할 머티리얼 설정입니다.
          * @param[in] Mode 파이프라인에 적용할 조명·와이어프레임·법선 표시 모드입니다.
+         * @param[in] Skinned 객체별 본 포즈를 적용하는 변형을 선택하려면 true입니다.
          * @return 대상의 비소유 주소이며, 없거나 유효하지 않으면 nullptr입니다.
          */
-        Renderer::FMaterialPipeline* GetMaterialPipeline(const Asset::UMaterial& Material, Engine::EViewMode Mode = Engine::EViewMode::Lit_Phong);
+        Renderer::FMaterialPipeline* GetMaterialPipeline(const Asset::UMaterial& Material, Engine::EViewMode Mode = Engine::EViewMode::Lit_Phong, bool Skinned = false);
 
         /**
          * @brief 그림자 아틀라스 깊이 패스에 사용할 깊이 전용 파이프라인을 반환합니다.
+         * @param[in] Skinned 베이스 패스와 같은 본 변형을 깊이에도 적용하려면 true입니다.
          * @return 대상의 비소유 주소이며, 셰이더를 다시 컴파일하는 중이거나 실패하면 nullptr입니다.
          */
-        Renderer::FMaterialPipeline* GetDepthPipeline();
+        Renderer::FMaterialPipeline* GetDepthPipeline(bool Skinned = false);
 
         /**
          * @brief 머티리얼이 없는 메시가 사용할 기본 머티리얼을 반환합니다.

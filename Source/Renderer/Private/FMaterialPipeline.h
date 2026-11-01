@@ -32,8 +32,9 @@ namespace Renderer {
          * @param[in] PixelCode 컴파일된 픽셀 셰이더 바이트코드이며, 깊이 전용 패스는 nullptr입니다.
          * @param[in] TwoSided 양면 렌더링을 사용할지 지정합니다.
          * @param[in] Instanced 메시 인스턴스의 월드 행렬을 정점 입력으로 사용하려면 true입니다.
+         * @param[in] Skinned 본 인덱스·가중치 입력을 사용하는 스키닝 파이프라인이면 true입니다.
          */
-        FMaterialPipeline(Renderer::EMeshPass Pass, std::shared_ptr<const RenderCore::FShader> VertexCode, std::shared_ptr<const RenderCore::FShader> PixelCode, bool TwoSided, bool Instanced = false);
+        FMaterialPipeline(Renderer::EMeshPass Pass, std::shared_ptr<const RenderCore::FShader> VertexCode, std::shared_ptr<const RenderCore::FShader> PixelCode, bool TwoSided, bool Instanced = false, bool Skinned = false);
 
         /**
          * @brief 기본 소멸자이며, GPU 자원은 ComPtr 멤버가 해제합니다.
@@ -64,6 +65,9 @@ namespace Renderer {
          * @return 인스턴스 월드 행렬을 입력으로 사용하면 true입니다.
          */
         bool IsInstanced() const;
+
+        /** @brief 객체별 본 행렬을 사용하는지 반환합니다. @return 스키닝 입력을 사용하면 true입니다. */
+        bool IsSkinned() const;
 
         /**
          * @brief GPU 파이프라인을 만들 때 사용한 정점 셰이더의 리비전을 반환합니다.
@@ -97,6 +101,10 @@ namespace Renderer {
          */
         Renderer::EMeshPass mPass{};
         ReflectProperty(mPass, "Pass", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+
+        /** @brief 스킨 정점 입력과 객체별 본 팔레트를 사용하는지 나타냅니다. */
+        bool mSkinned{};
+        ReflectProperty(mSkinned, "Skinned", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 컴파일된 정점 셰이더입니다.

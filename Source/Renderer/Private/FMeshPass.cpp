@@ -3,6 +3,7 @@
 #include "FScene.h"
 #include "FScenePrimitive.h"
 #include "Asset/UStaticMesh.h"
+#include "Asset/USkeletalMesh.h"
 #include "Core/Math/FBox.h"
 #include "Core/Math/FVector.h"
 #include "Core/Math/FVector4.h"
@@ -60,6 +61,10 @@ namespace Renderer {
             }
 
             Asset::UStaticMesh* Mesh{Primitive.mProxy.mMesh != nullptr ? Primitive.mProxy.mMesh : (*mMeshes)[static_cast<std::size_t>(Primitive.mProxy.mPrimitive)].get()};
+
+            if (Primitive.mProxy.mSkeletalMesh != nullptr && (Primitive.mSkinView == nullptr || !Primitive.mProxy.mSkeletalMesh->CreateResources(mDevice))) {
+                continue;
+            }
 
             if (Mesh == nullptr || (!Mesh->HasResources() && !Mesh->CreateResources(mDevice)) || Primitive.mObjectBuffer == nullptr) {
                 continue;

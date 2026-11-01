@@ -4,6 +4,7 @@
  */
 
 #include "MaterialCommon.hlsli"
+#include "Skinning.hlsl"
 
 /**
  * @brief GPU 타일 조명 계산에 사용하는 광원 정보입니다.
@@ -172,6 +173,11 @@ FLighting EvaluateLight(FLight Light, float3 Position, float3 Normal) {
  */
 FOutput VertexMain(FInput Input) {
     FOutput Output = {(FOutput)0};
+
+#ifdef MacawSkinned
+    // 월드 변환 전에 메시 공간에서 스키닝하여 기존 조명·재질 경로를 재사용합니다.
+    SkinVertex(Input.mPosition, Input.mNormal, Input.mTangent, Input.mBoneIndices, Input.mBoneWeights);
+#endif
 
 #ifdef MacawInstanced
     row_major float4x4 ObjectWorld = {float4x4(Input.mWorld0, Input.mWorld1, Input.mWorld2, Input.mWorld3)};

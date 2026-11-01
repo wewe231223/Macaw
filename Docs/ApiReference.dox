@@ -376,7 +376,7 @@ Windows 창과 메시지 처리입니다.
  */
 
 /**
- * @file Source/Asset/Private/Import/FFBXLoader.cpp
+ * @file Source/Asset/Private/Import/FFBXImporter.cpp
  * @brief FBX SDK의 메시·재질·임베디드 텍스처를 에셋 임포트 결과로 변환합니다.
  * @ingroup Asset
  */

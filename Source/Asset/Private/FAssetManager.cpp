@@ -9,6 +9,7 @@
 #include "Core/FilePath.h"
 #include "Asset/FAssetFile.h"
 #include "Asset/UStaticMesh.h"
+#include "Asset/USkeletalMesh.h"
 #include "Asset/UTexture2D.h"
 #include "Asset/UMaterial.h"
 #include "FMaterialFile.h"
@@ -22,6 +23,7 @@
 #include "Asset/Import/FMeshImportResult.h"
 
 #include <algorithm>
+#include <array>
 #include <fstream>
 #include <limits>
 #include <sstream>
@@ -278,6 +280,72 @@ namespace Asset {
             Archive.EndArray();
         }
 
+        void SerializeSkeletalMesh(Serialization::FMemoryArchive& Archive, Asset::FMeshData& Mesh, Core::TArray<Asset::FMeshImportBone>& Bones, Core::TArray<Asset::FMeshImportSkinWeight>& SkinWeights) {
+            Core::Uint32 Version{1};
+            Archive.Serialize("SkeletalMeshVersion", Version);
+
+            if (Archive.HasError() || Version != 1) {
+                Archive.SetError("Unsupported skeletal mesh version");
+                return;
+            }
+
+            SerializeMesh(Archive, Mesh);
+            Core::Uint32 BoneCount{Archive.IsLoading() ? 0 : static_cast<Core::Uint32>(Bones.size())};
+
+            if (Archive.HasError() || !Archive.BeginArray("Bones", BoneCount) || BoneCount == 0 || (Archive.IsLoading() && BoneCount > Archive.GetRemainingBytes() / 72)) {
+                Archive.SetError("Invalid skeletal mesh bone count");
+                return;
+            }
+
+            if (Archive.IsLoading()) {
+                Bones.clear();
+                Bones.reserve(BoneCount);
+            }
+
+            for (Core::Uint32 Index{}; Index < BoneCount && !Archive.HasError(); ++Index) {
+                Core::FString Name{Archive.IsLoading() ? Core::FString{} : Bones[Index].GetName()};
+                Core::Int32 Parent{Archive.IsLoading() ? -1 : Bones[Index].GetParentIndex()};
+                Core::FMatrix BindPose{Archive.IsLoading() ? Core::FMatrix{} : Bones[Index].GetBindPose()};
+                Archive.Serialize("Name", Name);
+                Archive.Serialize("ParentIndex", Parent);
+                Archive.Serialize("BindPose", BindPose);
+
+                if (Archive.IsLoading() && !Archive.HasError()) {
+                    Bones.emplace_back(std::move(Name), Parent, BindPose);
+                }
+            }
+
+            Archive.EndArray();
+
+            Core::Uint32 VertexCount{Archive.IsLoading() ? 0 : static_cast<Core::Uint32>(SkinWeights.size())};
+            Archive.Serialize("SkinWeightCount", VertexCount);
+            constexpr std::size_t WeightBytes{Asset::FMeshImportSkinWeight::MaxInfluences * (sizeof(Core::Uint32) + sizeof(float))};
+
+            if (Archive.HasError() || VertexCount != Mesh.GetPositions().size() || VertexCount > 16000000 || (Archive.IsLoading() && VertexCount > Archive.GetRemainingBytes() / WeightBytes)) {
+                Archive.SetError("Invalid skeletal mesh skin weight count");
+                return;
+            }
+
+            if (Archive.IsLoading()) {
+                SkinWeights.clear();
+                SkinWeights.reserve(VertexCount);
+            }
+
+            for (Core::Uint32 Vertex{}; Vertex < VertexCount && !Archive.HasError(); ++Vertex) {
+                std::array<Core::Uint32, Asset::FMeshImportSkinWeight::MaxInfluences> BoneIndices{Archive.IsLoading() ? std::array<Core::Uint32, Asset::FMeshImportSkinWeight::MaxInfluences>{} : SkinWeights[Vertex].GetBoneIndices()};
+                std::array<float, Asset::FMeshImportSkinWeight::MaxInfluences> Weights{Archive.IsLoading() ? std::array<float, Asset::FMeshImportSkinWeight::MaxInfluences>{} : SkinWeights[Vertex].GetWeights()};
+
+                for (std::size_t Influence{}; Influence < Asset::FMeshImportSkinWeight::MaxInfluences; ++Influence) {
+                    Archive.Serialize("BoneIndex", BoneIndices[Influence]);
+                    Archive.Serialize("Weight", Weights[Influence]);
+                }
+
+                if (Archive.IsLoading() && !Archive.HasError()) {
+                    SkinWeights.emplace_back(BoneIndices, Weights);
+                }
+            }
+        }
+
         /**
          * @brief MTL 참조를 새 재질 에셋 경로로 치환하고 필요한 재질을 임시 디렉터리에 준비합니다.
          * @param[in,out] Reference 장면의 머티리얼 참조이며, 이전하면 새 에셋 경로로 바뀝니다.
@@ -361,6 +429,16 @@ namespace Asset {
 
     Core::FString Asset::FAssetManager::GetMeshPath(const Asset::UStaticMesh* Mesh) const {
         for (const auto& Entry : mMeshes) {
+            if (Entry.second.get() == Mesh) {
+                return Entry.first;
+            }
+        }
+
+        return {};
+    }
+
+    Core::FString Asset::FAssetManager::GetSkeletalMeshPath(const Asset::USkeletalMesh* Mesh) const {
+        for (const auto& Entry : mSkeletalMeshes) {
             if (Entry.second.get() == Mesh) {
                 return Entry.first;
             }
@@ -502,6 +580,45 @@ namespace Asset {
         return Result;
     }
 
+    Asset::USkeletalMesh* Asset::FAssetManager::LoadSkeletalMesh(const std::filesystem::path& Path, Core::FString& Error) {
+        const Core::FScopedStatTimer StatTimer{Asset::AssetStats::MeshLoad};
+        const Core::FString Key{CacheKey(GetRelativePath(Path, Error))};
+
+        if (Key.empty()) {
+            return nullptr;
+        }
+
+        const auto Existing{mSkeletalMeshes.find(Key)};
+
+        if (Existing != mSkeletalMeshes.end()) {
+            Asset::AssetStats::AssetCacheHits.Add();
+            return Existing->second.get();
+        }
+
+        Core::TArray<Core::Uint8> Payload{};
+
+        if (!Asset::FAssetFile::Load(ResolvePath(Path, Error), Asset::EAssetType::SkeletalMesh, Payload, Error)) {
+            return nullptr;
+        }
+
+        Serialization::FMemoryArchive Archive{static_cast<const Core::TArray<Core::Uint8>&>(Payload)};
+        Asset::FMeshData Data{};
+        Core::TArray<Asset::FMeshImportBone> Bones{};
+        Core::TArray<Asset::FMeshImportSkinWeight> SkinWeights{};
+        SerializeSkeletalMesh(Archive, Data, Bones, SkinWeights);
+        auto Mesh{CoreUObject::NewObject<Asset::USkeletalMesh>()};
+
+        if (Archive.HasError() || Archive.GetRemainingBytes() != 0 || !Mesh->SetMeshData(std::move(Data), std::move(Bones), std::move(SkinWeights))) {
+            Error = Archive.HasError() ? Archive.GetError() : "Invalid skeletal mesh asset data";
+            return nullptr;
+        }
+
+        Asset::USkeletalMesh* Result{Mesh.get()};
+        Mesh->SetName(Core::FilePath::ToUtf8(Path.stem()));
+        mSkeletalMeshes.emplace(Key, std::move(Mesh));
+        return Result;
+    }
+
     Asset::UTexture2D* Asset::FAssetManager::LoadTexture(const std::filesystem::path& Path, Core::FString& Error) {
         const Core::FScopedStatTimer StatTimer{Asset::AssetStats::TextureLoad};
         const Core::FString Key{CacheKey(GetRelativePath(Path, Error))};
@@ -600,6 +717,43 @@ namespace Asset {
         return true;
     }
 
+    bool Asset::FAssetManager::SaveSkeletalMesh(const std::filesystem::path& Path, const Asset::USkeletalMesh& Mesh, Core::FString& Error) {
+        const auto Target{ResolvePath(Path, Error)};
+
+        if (Target.empty() || !Mesh.IsValid()) {
+            if (Error.empty()) {
+                Error = "Cannot save an invalid skeletal mesh";
+            }
+
+            return false;
+        }
+
+        Core::TArray<Core::Uint8> Payload{};
+        Serialization::FMemoryArchive Archive{Payload};
+        Asset::FMeshData Data{Mesh.GetMeshData()};
+        Core::TArray<Asset::FMeshImportBone> Bones{Mesh.GetBones()};
+        Core::TArray<Asset::FMeshImportSkinWeight> SkinWeights{Mesh.GetSkinWeights()};
+        SerializeSkeletalMesh(Archive, Data, Bones, SkinWeights);
+
+        if (Archive.HasError()) {
+            Error = Archive.GetError();
+            return false;
+        }
+
+        if (!Asset::FAssetFile::Save(Target, Asset::EAssetType::SkeletalMesh, Payload, Error)) {
+            return false;
+        }
+
+        const auto Existing{mSkeletalMeshes.find(CacheKey(GetRelativePath(Path, Error)))};
+
+        if (Existing != mSkeletalMeshes.end() && Existing->second.get() != &Mesh && !Existing->second->SetMeshData(std::move(Data), std::move(Bones), std::move(SkinWeights))) {
+            Error = "Cannot update the cached skeletal mesh";
+            return false;
+        }
+
+        return true;
+    }
+
     bool Asset::FAssetManager::SaveTexture(const std::filesystem::path& Path, const Asset::UTexture2D& Texture, Core::FString& Error) {
         const auto Target{ResolvePath(Path, Error)};
 
@@ -635,6 +789,10 @@ namespace Asset {
     }
 
     bool Asset::FAssetManager::ImportAsset(const std::filesystem::path& Source, const std::filesystem::path& Directory, std::filesystem::path& ImportedPath, Core::FString& Error) {
+        return ImportAsset(Source, Directory, Asset::FAssetImportOption{}, ImportedPath, Error);
+    }
+
+    bool Asset::FAssetManager::ImportAsset(const std::filesystem::path& Source, const std::filesystem::path& Directory, const Asset::FAssetImportOption& Option, std::filesystem::path& ImportedPath, Core::FString& Error) {
         Error.clear();
         ImportedPath.clear();
 
@@ -684,7 +842,7 @@ namespace Asset {
         auto Target{Folder / Base};
         Target += L".masset";
 
-        if (!(Texture ? ImportTexture(Source, Target, Error) : ImportMesh(Source, Target, Error))) {
+        if (!(Texture ? ImportTexture(Source, Target, Error) : ImportMesh(Source, Target, Option, Error))) {
             const Core::FString Prefix{CacheKey(Core::FilePath::ToGenericUtf8(Folder.lexically_relative(mContentRoot))) + "/"};
             const auto RemoveCache{[&Prefix](auto& Cache) {
                 std::erase_if(Cache, [&Prefix](const auto& Entry) {
@@ -704,7 +862,7 @@ namespace Asset {
         return true;
     }
 
-    bool Asset::FAssetManager::ImportMesh(const std::filesystem::path& Source, const std::filesystem::path& Target, Core::FString& Error) {
+    bool Asset::FAssetManager::ImportMesh(const std::filesystem::path& Source, std::filesystem::path& Target, const Asset::FAssetImportOption& Option, Core::FString& Error) {
         const Core::FScopedStatTimer StatTimer{Asset::AssetStats::MeshImport};
         const auto Destination{ResolvePath(Target, Error)};
 
@@ -715,7 +873,7 @@ namespace Asset {
         Asset::FMeshImportResult Imported{};
 
         {
-            auto Importer{Asset::IMeshImporter::CreateForSource(Source)};
+            auto Importer{Asset::IMeshImporter::CreateForSource(Source, Option)};
 
             if (!Importer->Import(Imported, Error)) {
                 Error = "Cannot import mesh source '" + Core::FilePath::ToUtf8(Source) + "': " + Error;
@@ -723,19 +881,14 @@ namespace Asset {
             }
         }
 
-        Asset::FMeshData& Data{Imported.GetMeshData()};
         const auto& Materials{Imported.GetMaterials()};
-
-        if (Materials.size() != Data.GetMaterialSlots().size()) {
-            Error = "Imported materials do not match the mesh material slots";
-            return false;
-        }
-
         const auto MaterialDirectory{Destination.parent_path() / "Materials"};
         const auto TextureDirectory{Destination.parent_path() / "Textures"};
         Core::TMap<Core::FString, Core::FString> Textures{};
+        // 결과 재질별로 저장한 머티리얼 에셋 경로입니다. 여러 메시가 같은 재질을 쓰면 한 번만 저장하고, 쓰이지 않는 재질은 저장하지 않습니다.
+        Core::TMap<Core::Uint32, Core::FString> MaterialPaths{};
 
-        for (std::size_t Index{}; Index < Materials.size(); ++Index) {
+        const auto ImportMaterial{[&](Core::Uint32 Index, Core::FString& MaterialPath) {
             const Asset::FMeshImportMaterial& SourceMaterial{Materials[Index]};
             auto Material{CoreUObject::NewObject<Asset::UMaterial>()};
             Material->SetName(SourceMaterial.GetName());
@@ -757,8 +910,12 @@ namespace Asset {
             Core::FString SpecularPath{};
             Core::FString EmissivePath{};
             Core::FString ReflectionPath{};
+            // 텍스처 임포트 옵션을 끄면 텍스처 경로를 비워 둔 채 머티리얼의 색상·조명 값만 저장합니다.
+            const auto ReadTexture{[&](const Asset::FMeshImportTexture& Texture, Core::FString& TexturePath) {
+                return !Option.mImportTextures || ImportMeshTexture(*this, Texture, TextureDirectory, Textures, TexturePath, Error);
+            }};
 
-            if (!ImportMeshTexture(*this, SourceMaterial.GetBaseColorTexture(), TextureDirectory, Textures, BaseColorPath, Error) || !ImportMeshTexture(*this, SourceMaterial.GetNormalMapTexture(), TextureDirectory, Textures, NormalMapPath, Error)) {
+            if (!ReadTexture(SourceMaterial.GetBaseColorTexture(), BaseColorPath) || !ReadTexture(SourceMaterial.GetNormalMapTexture(), NormalMapPath)) {
                 return false;
             }
 
@@ -767,7 +924,7 @@ namespace Asset {
                 return false;
             }
 
-            if (!ImportMeshTexture(*this, SourceMaterial.GetSpecularTexture(), TextureDirectory, Textures, SpecularPath, Error) || !ImportMeshTexture(*this, SourceMaterial.GetEmissiveTexture(), TextureDirectory, Textures, EmissivePath, Error) || !ImportMeshTexture(*this, SourceMaterial.GetReflectionTexture(), TextureDirectory, Textures, ReflectionPath, Error)) {
+            if (!ReadTexture(SourceMaterial.GetSpecularTexture(), SpecularPath) || !ReadTexture(SourceMaterial.GetEmissiveTexture(), EmissivePath) || !ReadTexture(SourceMaterial.GetReflectionTexture(), ReflectionPath)) {
                 return false;
             }
 
@@ -782,24 +939,89 @@ namespace Asset {
                 return false;
             }
 
-            const Core::FString MaterialPath{GetRelativePath(MaterialTarget, Error)};
+            MaterialPath = GetRelativePath(MaterialTarget, Error);
+            return !MaterialPath.empty();
+        }};
 
-            if (MaterialPath.empty()) {
+        auto& Meshes{Imported.GetMeshes()};
+
+        for (std::size_t MeshIndex{}; MeshIndex < Meshes.size(); ++MeshIndex) {
+            Asset::FMeshImportMesh& ImportedMesh{Meshes[MeshIndex]};
+            Asset::FMeshData& Data{ImportedMesh.GetMeshData()};
+            const auto& MaterialIndices{ImportedMesh.GetMaterialIndices()};
+
+            if (MaterialIndices.size() != Data.GetMaterialSlots().size()) {
+                Error = "Imported materials do not match the mesh material slots";
                 return false;
             }
 
-            Data.GetMaterialSlots()[Index] = Asset::FMeshMaterialSlot{Material->GetName(), MaterialPath};
-        }
+            for (std::size_t Slot{}; Slot < MaterialIndices.size(); ++Slot) {
+                const Core::Uint32 MaterialIndex{MaterialIndices[Slot]};
 
-        auto Mesh{CoreUObject::NewObject<Asset::UStaticMesh>()};
+                if (MaterialIndex >= Materials.size()) {
+                    Error = "An imported mesh slot references an invalid material";
+                    return false;
+                }
 
-        if (!Mesh->SetMeshData(std::move(Data))) {
-            Error = "Invalid imported mesh sections";
-            return false;
-        }
+                // 재질 임포트 옵션을 끄면 슬롯의 머티리얼 경로를 비워 기본 머티리얼을 사용하게 합니다.
+                Core::FString MaterialPath{};
 
-        if (!SaveMesh(Destination, *Mesh, Error)) {
-            return false;
+                if (Option.mImportMaterials) {
+                    auto Existing{MaterialPaths.find(MaterialIndex)};
+
+                    if (Existing == MaterialPaths.end()) {
+                        if (!ImportMaterial(MaterialIndex, MaterialPath)) {
+                            return false;
+                        }
+
+                        Existing = MaterialPaths.emplace(MaterialIndex, std::move(MaterialPath)).first;
+                    }
+
+                    MaterialPath = Existing->second;
+                }
+
+                Data.GetMaterialSlots()[Slot] = Asset::FMeshMaterialSlot{Materials[MaterialIndex].GetName(), std::move(MaterialPath)};
+            }
+
+            // 메시가 하나이면 요청한 경로에 저장하고, 여러 개이면 같은 폴더에 메시 이름으로 저장합니다. 첫 메시가 대표 경로가 됩니다.
+            const auto MeshTarget{Meshes.size() == 1 ? Destination : UniqueAssetPath(Destination.parent_path(), AssetFileName(ImportedMesh.GetName(), "Mesh_" + std::to_string(MeshIndex)), Error)};
+
+            if (MeshTarget.empty()) {
+                return false;
+            }
+
+            if (Option.mImportSkeleton && !Imported.GetBones().empty()) {
+                auto Mesh{CoreUObject::NewObject<Asset::USkeletalMesh>()};
+                Core::TArray<Asset::FMeshImportSkinWeight> SkinWeights{ImportedMesh.GetSkinWeights()};
+
+                if (SkinWeights.empty()) {
+                    SkinWeights.resize(Data.GetPositions().size());
+                }
+
+                if (!Mesh->SetMeshData(std::move(Data), Imported.GetBones(), std::move(SkinWeights))) {
+                    Error = "Invalid imported skeletal mesh data: " + ImportedMesh.GetName();
+                    return false;
+                }
+
+                if (!SaveSkeletalMesh(MeshTarget, *Mesh, Error)) {
+                    return false;
+                }
+            } else {
+                auto Mesh{CoreUObject::NewObject<Asset::UStaticMesh>()};
+
+                if (!Mesh->SetMeshData(std::move(Data))) {
+                    Error = "Invalid imported mesh sections: " + ImportedMesh.GetName();
+                    return false;
+                }
+
+                if (!SaveMesh(MeshTarget, *Mesh, Error)) {
+                    return false;
+                }
+            }
+
+            if (MeshIndex == 0) {
+                Target = MeshTarget;
+            }
         }
 
         return true;

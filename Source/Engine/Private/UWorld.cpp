@@ -11,6 +11,7 @@
 
 #include "Engine/MeshPicking.h"
 #include "Engine/Component/UStaticMeshComponent.h"
+#include "Engine/Component/USkeletalMeshComponent.h"
 #include "Engine/Component/UBillboardComponent.h"
 #include "Engine/Component/UCameraComponent.h"
 #include "Engine/FViewportInput.h"
@@ -62,6 +63,12 @@ namespace Engine {
             for (const auto& Actor : mPersistentLevel->GetActors()) {
                 for (const auto& Component : Actor->GetComponents()) {
                     if (auto* Mesh{CoreUObject::Cast<Engine::UStaticMeshComponent>(Component.get())}) {
+                        Mesh->ResolveMesh();
+                        Mesh->ResolveMaterial();
+                    }
+
+                    // 월드에 에셋 관리자가 늦게 연결되어도 저장된 본 포즈를 복원합니다.
+                    if (auto* Mesh{CoreUObject::Cast<Engine::USkeletalMeshComponent>(Component.get())}) {
                         Mesh->ResolveMesh();
                         Mesh->ResolveMaterial();
                     }

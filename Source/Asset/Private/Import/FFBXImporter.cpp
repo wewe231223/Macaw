@@ -1,5 +1,6 @@
-#include "Asset/Import/FFBXLoader.h"
+#include "Asset/Import/FFBXImporter.h"
 #include "Core/FilePath.h"
+#include "FMeshImportTransform.h"
 
 #include <algorithm>
 #include <array>
@@ -12,25 +13,48 @@ using namespace fbxsdk;
 
 namespace Asset {
 
-    Asset::FFBXLoader::FFBXLoader(std::filesystem::path Source)
-		: IMeshImporter{std::move(Source)} {
+    namespace {
+
+        Core::FVector ToVector(const FbxVector4& Vector) {
+            return {static_cast<float>(Vector[0]), static_cast<float>(Vector[1]), static_cast<float>(Vector[2])};
+        }
+
+        Core::FMatrix ToMatrix(const FbxAMatrix& Matrix) {
+            // FBX 행렬의 저장 순서에 의존하지 않도록 기저 벡터를 변환해 행 벡터 규약의 행렬을 만듭니다.
+            // MultT는 이동까지 포함해 점처럼 변환하므로, 결과에서 이동 성분(GetT)을 빼서 각 축이 향하는 방향을 얻습니다.
+            const FbxVector4 Origin{Matrix.GetT()};
+            Core::FMatrix Result{};
+
+            for (Core::Int32 Row{}; Row < 3; ++Row) {
+                FbxVector4 Axis{};
+                Axis[Row] = 1.0;
+                const Core::FVector Direction{ToVector(Matrix.MultT(Axis) - Origin)};
+                Result(Row, 0) = Direction.x;
+                Result(Row, 1) = Direction.y;
+                Result(Row, 2) = Direction.z;
+            }
+
+            const Core::FVector Translation{ToVector(Origin)};
+            Result(3, 0) = Translation.x;
+            Result(3, 1) = Translation.y;
+            Result(3, 2) = Translation.z;
+            return Result;
+        }
+
     }
 
-    Asset::FFBXLoader::~FFBXLoader() {
+    Asset::FFBXImporter::FFBXImporter(std::filesystem::path Source, const Asset::FAssetImportOption& Option)
+		: IMeshImporter{std::move(Source), Option} {
+    }
+
+    Asset::FFBXImporter::~FFBXImporter() {
         // FbxManager::Destroy는 이 Manager로 생성한 Importer, Scene, IOSettings까지 함께 해제하므로 Manager만 해제합니다.
         if (mManager != nullptr) {
             mManager->Destroy();
         }
     }
 
-    Core::FVector Asset::FFBXLoader::TransformDirection(const FbxAMatrix& Matrix, const FbxVector4& Vector) const {
-        // MultT는 이동까지 포함해 점처럼 변환하므로, 결과에서 이동 성분(GetT)을 빼서 회전·스케일만 적용된 방향을 얻습니다.
-        const FbxVector4 Transformed{Matrix.MultT(Vector) - Matrix.GetT()};
-        // FBX 중간 좌표계(오른손)에서 엔진 좌표계(왼손)로 옮기기 위해 Y를 반전합니다. ImportSource의 축 변환 설명을 참고합니다.
-        return {static_cast<float>(Transformed[0]), -static_cast<float>(Transformed[1]), static_cast<float>(Transformed[2])};
-    }
-
-    bool Asset::FFBXLoader::ReadMaterial(FbxSurfaceMaterial* Material) {
+    bool Asset::FFBXImporter::ReadMaterial(FbxSurfaceMaterial* Material) {
         Asset::FMeshImportResult& Result{GetResult()};
         Core::FString& Error{GetError()};
 
@@ -129,13 +153,12 @@ namespace Asset {
             return false;
         }
 
-        // 메시 데이터의 재질 슬롯과 임포트 결과의 재질 목록에 같은 순서로 추가하여, 두 목록의 인덱스가 항상 일치하도록 합니다.
-        Result.GetMeshData().GetMaterialSlots().emplace_back(Name, Core::FString{});
+        // 메시의 재질 슬롯은 ReadMesh가 FindOrAddMaterialSlot으로 이 목록의 인덱스를 가리키도록 추가합니다.
         Result.GetMaterials().push_back(std::move(Imported));
         return true;
     }
 
-    bool Asset::FFBXLoader::FindMaterialIndex(FbxSurfaceMaterial* Material, Core::Uint32& Index) {
+    bool Asset::FFBXImporter::FindMaterialIndex(FbxSurfaceMaterial* Material, Core::Uint32& Index) {
         // 여러 노드가 같은 FBX 재질을 공유할 수 있으므로, 이미 읽은 재질은 캐시된 인덱스를 재사용합니다.
         auto Existing{mMaterialIndices.find(Material)};
 
@@ -154,13 +177,14 @@ namespace Asset {
         return true;
     }
 
-    bool Asset::FFBXLoader::ReadMesh(FbxNode& Node, FbxMesh& Mesh) {
+    bool Asset::FFBXImporter::ReadMesh(FbxNode& Node, FbxMesh& Mesh, Asset::FMeshImportMesh& Target) {
         Asset::FMeshImportResult& Result{GetResult()};
         Core::FString& Error{GetError()};
+        const Asset::ENormalImportMethod NormalMethod{GetOption().mNormalImportMethod};
 
-        // 모든 FBX 메시는 하나의 결과 메시 데이터에 이어 붙입니다.
-        Asset::FMeshData& Data{Result.GetMeshData()};
-        // 정점을 공유하지 않고 삼각형의 각 모서리(Corner)마다 정점을 하나씩 만들므로, 추가될 정점 수는 삼각형 수 × 3입니다.
+        // FBX 메시를 대상 메시 데이터 뒤에 이어 붙입니다. 메시 병합 여부는 ReadNode가 대상을 골라 정합니다.
+        Asset::FMeshData& Data{Target.GetMeshData()};
+        // 정점을 공유하지 않고 삼각형의 각 꼭짓점(Corner, 폴리곤 정점)마다 정점을 하나씩 만들므로, 추가될 정점 수는 삼각형 수 × 3입니다.
         const std::size_t AddedVertices{static_cast<std::size_t>(Mesh.GetPolygonCount()) * 3};
         // 정점당 float 7개 크기의 정점 버퍼가 Uint32 바이트 크기를 넘지 않도록 하는 최대 정점 수입니다.
         constexpr std::size_t MaximumVertices{std::numeric_limits<Core::Uint32>::max() / (sizeof(float) * 7)};
@@ -191,36 +215,48 @@ namespace Asset {
         Geometry.SetT(Node.GetGeometricTranslation(FbxNode::eSourcePivot));
         Geometry.SetR(Node.GetGeometricRotation(FbxNode::eSourcePivot));
         Geometry.SetS(Node.GetGeometricScaling(FbxNode::eSourcePivot));
-        // 메시 로컬 공간의 정점을 Scene 전역 공간으로 옮기는 최종 변환입니다. 애니메이션은 끄므로 시간 0의 변환을 사용합니다.
-        const FbxAMatrix Transform{Node.EvaluateGlobalTransform(FBXSDK_TIME_ZERO) * Geometry};
-        const double Determinant{FbxMatrix{Transform}.Determinant()};
+        // 메시의 전역 변환입니다. 애니메이션은 끄므로 시간 0의 노드 변환을 사용합니다.
+        // 스킨 메시는 본 바인드 포즈(클러스터 링크 변환)와 같은 자세가 되도록 클러스터에 기록된 바인드 시점의 메시 변환을 사용합니다.
+        FbxAMatrix MeshGlobal{Node.EvaluateGlobalTransform(FBXSDK_TIME_ZERO)};
+        Core::TArray<Asset::FMeshImportSkinWeight> ControlPointWeights{};
 
-        // 행렬식이 0에 가까우면 스케일이 0인 축이 있어 역행렬(노멀 변환에 필요)을 구할 수 없으므로 실패시킵니다.
-        if (!std::isfinite(Determinant) || std::abs(Determinant) < 1.0e-12) {
+        if (FbxAMatrix MeshBindPose{}; GetOption().mImportSkeleton && ReadSkinWeights(Mesh, ControlPointWeights, MeshBindPose)) {
+            MeshGlobal = MeshBindPose;
+        }
+
+        // 메시 로컬 공간의 정점을 엔진 공간으로 옮기는 최종 변환입니다. 전역 변환 뒤에 Y 반전과 임포트 이동·회전·스케일(mBasis)을 적용합니다.
+        const Asset::FMeshImportTransform Transform{ToMatrix(MeshGlobal * Geometry) * mBasis};
+        // 삼각형 꼭짓점(폴리곤 정점)마다 만든 정점의 본 가중치입니다. 스킨이 없으면 비워 둡니다.
+        Core::TArray<Asset::FMeshImportSkinWeight> CornerWeights{};
+        CornerWeights.reserve(ControlPointWeights.empty() ? 0 : AddedVertices);
+
+        // 행렬식이 0이면 스케일이 0인 축이 있어 역행렬(노멀 변환에 필요)을 구할 수 없으므로 실패시킵니다.
+        if (!Transform.IsValid()) {
             Error = "The FBX mesh has a non-invertible node transform";
             return false;
         }
 
-        // 노멀은 비균일 스케일에서도 표면에 수직을 유지하도록 변환 행렬의 역전치 행렬로 변환합니다.
-        const FbxAMatrix NormalTransform{Transform.Inverse().Transpose()};
-        // 행렬식이 음수면 음수 스케일 등으로 메시가 거울처럼 뒤집혀 삼각형 감김 순서가 반대가 됩니다.
-        const bool Mirrored{Determinant < 0.0};
-
-        // 노멀이 없는 메시는 SDK로 노멀을 생성합니다. 노멀은 필수이므로 생성에 실패하면 임포트를 실패시킵니다.
-        if (Mesh.GetElementNormalCount() == 0 && !Mesh.GenerateNormals()) {
+        // 노멀 계산 옵션이면 기존 노멀을 덮어써서 다시 계산하고, 아니면 노멀이 없는 메시만 SDK로 생성합니다.
+        // 노멀은 필수이므로 생성에 실패하면 임포트를 실패시킵니다.
+        if (NormalMethod == Asset::ENormalImportMethod::ComputeNormals ? !Mesh.GenerateNormals(true) : Mesh.GetElementNormalCount() == 0 && !Mesh.GenerateNormals()) {
             Error = "Cannot generate FBX mesh normals";
             return false;
         }
 
-        // UV가 있는데 탄젠트가 없으면 첫 번째 UV 채널(0)을 기준으로 탄젠트·바이탄젠트를 생성합니다.
-        // 두 번째 인자 false는 기존 데이터를 덮어쓰지 않는다는 뜻입니다. 실패해도 아래에서 임의의 탄젠트로 대체하므로 결과를 확인하지 않습니다.
-        if (Mesh.GetElementUVCount() > 0 && Mesh.GetElementTangentCount() == 0) {
-            Mesh.GenerateTangentsData(0, false);
+        // 원본 탄젠트를 쓰는 옵션이고 탄젠트가 있으면 그대로 사용합니다. 그 외에는 첫 번째 UV 채널(0)을 기준으로 다시 생성합니다.
+        // 생성에 실패하거나 UV가 없으면 탄젠트 요소를 쓰지 않고 FMeshImportTransform::MakeTangent가 임의의 탄젠트로 대체합니다.
+        bool HasTangents{NormalMethod == Asset::ENormalImportMethod::ImportNormalsAndTangents && Mesh.GetElementTangentCount() > 0};
+
+        if (!HasTangents && Mesh.GetElementUVCount() > 0) {
+            HasTangents = Mesh.GenerateTangentsData(0, true);
         }
 
-        // 노드의 로컬 재질 인덱스(0..GetMaterialCount()-1)를 임포트 결과의 전역 재질 인덱스로 바꾸는 표입니다.
+        const FbxGeometryElementTangent* TangentElement{HasTangents ? Mesh.GetElementTangent() : nullptr};
+        const FbxGeometryElementBinormal* BitangentElement{HasTangents ? Mesh.GetElementBinormal() : nullptr};
+
+        // 노드의 로컬 재질 인덱스(0..GetMaterialCount()-1)를 대상 메시의 재질 슬롯 인덱스로 바꾸는 표입니다.
         Core::TArray<Core::Uint32> NodeMaterials{};
-        // FBX 재질의 전역 인덱스를 찾아(처음이면 읽어서) NodeMaterials 끝에 추가하는 도우미입니다.
+        // FBX 재질의 결과 재질 인덱스를 찾고(처음이면 읽어서) 그 재질을 가리키는 대상 메시의 슬롯을 NodeMaterials 끝에 추가하는 도우미입니다.
         const auto AddMaterial{[&](FbxSurfaceMaterial* Material) {
             Core::Uint32 MaterialIndex{};
 
@@ -228,7 +264,7 @@ namespace Asset {
                 return false;
             }
 
-            NodeMaterials.push_back(MaterialIndex);
+            NodeMaterials.push_back(Target.FindOrAddMaterialSlot(MaterialIndex, Result.GetMaterials()[MaterialIndex].GetName()));
             return true;
         }};
 
@@ -295,13 +331,14 @@ namespace Asset {
                 }
             }
 
-            // 삼각형의 세 모서리를 하나씩 정점으로 만듭니다.
+            // 삼각형의 세 꼭짓점을 하나씩 정점으로 만듭니다.
             for (int Corner{}; Corner < 3; ++Corner) {
-                // 거울 변환된 메시는 감김 순서가 뒤집히므로, 모서리를 역순(2, 1, 0)으로 읽어 원래 앞면 방향을 되돌립니다.
-                const int SourceCorner{Mirrored ? 2 - Corner : Corner};
-                // 이 모서리가 가리키는 컨트롤 포인트(위치 정점) 인덱스입니다. 여러 삼각형이 같은 컨트롤 포인트를 공유할 수 있습니다.
+                // FBX의 CCW 앞면은 손 방향이 바뀌는 변환(Y 반전) 뒤에도 화면에서 CCW로 보이므로, 엔진의 CW 앞면에 맞게 꼭짓점을 역순(2, 1, 0)으로 읽습니다.
+                // 노드가 거울 변환이면 두 반전이 상쇄되어 원래 순서를 유지합니다.
+                const int SourceCorner{Transform.ReversesWinding() ? 2 - Corner : Corner};
+                // 이 꼭짓점이 가리키는 컨트롤 포인트(위치 정점) 인덱스입니다. 여러 삼각형이 같은 컨트롤 포인트를 공유할 수 있습니다.
                 const int ControlPoint{Mesh.GetPolygonVertex(Polygon, SourceCorner)};
-                // 메시 전체에서 이 모서리의 순번(폴리곤 정점 인덱스)입니다. eByPolygonVertex 매핑 속성을 읽을 때 사용합니다.
+                // 메시 전체에서 이 꼭짓점의 순번(폴리곤 정점 인덱스)입니다. eByPolygonVertex 매핑 속성을 읽을 때 사용합니다.
                 const int PolygonVertex{Mesh.GetPolygonVertexIndex(Polygon) + SourceCorner};
                 // 노멀·탄젠트·색상·UV 같은 레이어 요소를 매핑 모드에 맞는 인덱스로 읽는 도우미입니다.
                 // 요소가 없으면 Value를 바꾸지 않고 true를 반환하므로, 아래에서 지정한 기본값이 그대로 사용됩니다.
@@ -314,58 +351,35 @@ namespace Asset {
                     return false;
                 }
 
-                // 위치는 이동을 포함한 전체 변환으로 전역 공간에 옮긴 뒤, 왼손 좌표계로 바꾸기 위해 Y를 반전합니다.
-                const FbxVector4 Position{Transform.MultT(Mesh.GetControlPointAt(ControlPoint))};
-                const Core::FVector Vertex{static_cast<float>(Position[0]), -static_cast<float>(Position[1]), static_cast<float>(Position[2])};
+                // 위치는 이동을 포함한 전체 변환(노드 변환, Y 반전, 임포트 변환)으로 엔진 공간에 옮깁니다.
+                const Core::FVector Vertex{Transform.TransformPosition(ToVector(Mesh.GetControlPointAt(ControlPoint)))};
                 // 요소가 없을 때의 기본값입니다. 탄젠트·바이탄젠트는 0 벡터, 정점 색상은 흰색입니다.
                 FbxVector4 SourceNormal{};
                 FbxVector4 SourceTangent{};
                 FbxVector4 SourceBitangent{};
                 FbxColor Color{1.0, 1.0, 1.0, 1.0};
 
-                if (!Read(Mesh.GetElementNormal(), SourceNormal) || !Read(Mesh.GetElementTangent(), SourceTangent) || !Read(Mesh.GetElementBinormal(), SourceBitangent) || !Read(Mesh.GetElementVertexColor(), Color)) {
+                if (!Read(Mesh.GetElementNormal(), SourceNormal) || !Read(TangentElement, SourceTangent) || !Read(BitangentElement, SourceBitangent) || !Read(Mesh.GetElementVertexColor(), Color)) {
                     Error = "The FBX mesh contains an invalid vertex attribute mapping";
                     return false;
                 }
 
-                // 노멀은 역전치 행렬로 변환하고(Y 반전 포함) 단위 길이로 정규화합니다. 길이가 0이면 정규화에 실패합니다.
-                Core::FVector Normal{TransformDirection(NormalTransform, SourceNormal)};
+                // 노멀은 역전치 행렬로 변환하고 단위 길이로 정규화합니다. 길이가 0이면 정규화에 실패합니다.
+                Core::FVector Normal{Transform.TransformNormal(ToVector(SourceNormal))};
 
                 if (!Normal.IsFinite() || !Normal.Normalize()) {
                     Error = "The FBX mesh contains an invalid normal";
                     return false;
                 }
 
-                // 탄젠트와 바이탄젠트는 표면을 따라 놓인 방향이므로 노멀과 달리 원래 변환 행렬로 변환합니다.
-                const Core::FVector TangentDirection{TransformDirection(Transform, SourceTangent)};
-                const Core::FVector Bitangent{TransformDirection(Transform, SourceBitangent)};
-                // 그람-슈미트 직교화: 탄젠트에서 노멀 방향 성분을 빼서 노멀과 정확히 수직이 되도록 만듭니다.
-                Core::FVector Tangent{TangentDirection - Normal * Normal.Dot(TangentDirection)};
-                // 바이탄젠트 = Handedness × (Normal × Tangent)로 복원할 때 쓰는 부호(±1)입니다. 탄젠트의 w 성분으로 저장됩니다.
-                float Handedness{1.0f};
-
-                // 탄젠트 데이터가 있는데 변환 결과가 유효하지 않으면 실패시킵니다.
-                if (Mesh.GetElementTangent() != nullptr && (!Tangent.IsFinite() || !Bitangent.IsFinite())) {
+                // 탄젠트 데이터가 있는데 값이 유효하지 않으면 실패시킵니다.
+                if (TangentElement != nullptr && (!ToVector(SourceTangent).IsFinite() || !ToVector(SourceBitangent).IsFinite())) {
                     Error = "The FBX mesh contains an invalid tangent";
                     return false;
                 }
 
-                if (!Tangent.Normalize()) {
-                    // 탄젠트가 없거나(0 벡터) 노멀과 평행해 직교화 후 길이가 0이면, 노멀에 수직인 임의의 탄젠트를 만듭니다.
-                    // 노멀과 거의 평행하지 않은 기준 축(기본 Z, 노멀이 Z에 가까우면 Y)과 노멀의 외적을 사용합니다.
-                    const Core::FVector Axis{std::abs(Normal.z) < 0.99f ? Core::FVector{0.0f, 0.0f, 1.0f} : Core::FVector{0.0f, 1.0f, 0.0f}};
-                    Tangent = Axis.Cross(Normal).Normalized();
-                } else if (Mesh.GetElementBinormal() != nullptr) {
-                    // 바이탄젠트가 있으면 (Normal × Tangent)와 실제 바이탄젠트가 같은 방향인지로 부호를 정합니다.
-                    // 위치·방향이 Y 반전(그리고 거울 변환)을 거쳐 외적의 방향이 뒤집힌 공간이므로, 양수일 때 -1이 원본 FBX 기준의 부호에 해당합니다.
-                    Handedness = Normal.Cross(Tangent).Dot(Bitangent) > 0.0f ? -1.0f : 1.0f;
-                } else {
-                    // 바이탄젠트가 없으면 FBX 탄젠트의 w 성분에 저장된 부호를 사용합니다.
-                    // 이 값은 노드 변환을 거치지 않았으므로, 거울 변환된 메시는 직접 부호를 반전합니다.
-                    Handedness = static_cast<float>(SourceTangent[3]) * (Mirrored ? -1.0f : 1.0f);
-                    // w가 0이거나 ±1이 아닌 값이어도 정확히 ±1이 되도록 정리합니다.
-                    Handedness = Handedness < 0.0f ? -1.0f : 1.0f;
-                }
+                // 탄젠트를 노멀에 직교화하고, 바이탄젠트(없으면 탄젠트 w 성분)로 탄젠트 공간 부호를 정합니다.
+                const Core::FVector4 Tangent{Transform.MakeTangent(Normal, ToVector(SourceTangent), ToVector(SourceBitangent), static_cast<float>(SourceTangent[3]))};
 
                 const Core::FVector4 VertexColor{static_cast<float>(Color.mRed), static_cast<float>(Color.mGreen), static_cast<float>(Color.mBlue), static_cast<float>(Color.mAlpha)};
 
@@ -378,8 +392,13 @@ namespace Asset {
                 Sections[LocalMaterial].push_back(static_cast<Core::Uint32>(Data.GetPositions().size()));
                 Data.GetPositions().push_back(Vertex);
                 Data.GetNormals().push_back(Normal);
-                Data.GetTangents().push_back({Tangent, Handedness});
+                Data.GetTangents().push_back(Tangent);
                 Data.GetColors().push_back(VertexColor);
+
+                // 스킨 가중치는 컨트롤 포인트 단위이므로 이 꼭짓점이 가리키는 컨트롤 포인트의 가중치를 그대로 씁니다.
+                if (!ControlPointWeights.empty()) {
+                    CornerWeights.push_back(ControlPointWeights[static_cast<std::size_t>(ControlPoint)]);
+                }
 
                 // 모든 UV 채널에 이 정점의 좌표를 하나씩 추가하여 채널 길이를 정점 수와 맞춥니다.
                 for (std::size_t Channel{}; Channel < UVCount; ++Channel) {
@@ -405,6 +424,10 @@ namespace Asset {
             }
         }
 
+        if (!CornerWeights.empty()) {
+            Target.AddSkinWeights(VertexCount, std::move(CornerWeights));
+        }
+
         // 재질별로 모은 정점 인덱스를 인덱스 버퍼에 이어 붙이고, 각 구간을 하나의 서브메시로 등록합니다.
         // 서브메시는 (인덱스 버퍼 시작 위치, 인덱스 수, 전역 재질 인덱스)이며, 삼각형이 없는 재질은 서브메시를 만들지 않습니다.
         for (std::size_t Index{}; Index < Sections.size(); ++Index) {
@@ -419,10 +442,19 @@ namespace Asset {
         return true;
     }
 
-    bool Asset::FFBXLoader::ReadNode(FbxNode& Node) {
+    bool Asset::FFBXImporter::ReadNode(FbxNode& Node) {
         // 노드에 메시가 붙어 있으면 먼저 읽습니다. 메시가 아닌 노드(카메라, 조명, 빈 그룹 등)는 건너뜁니다.
-        if (auto* Mesh{Node.GetMesh()}; Mesh != nullptr && !ReadMesh(Node, *Mesh)) {
-            return false;
+        if (auto* Mesh{Node.GetMesh()}; Mesh != nullptr) {
+            auto& Meshes{GetResult().GetMeshes()};
+
+            // 메시를 병합하지 않으면 메시 노드마다 노드 이름의 새 결과 메시를 만듭니다. 병합하면 ImportSource가 만든 첫 메시에 이어 붙입니다.
+            if (!GetOption().mCombineMeshes) {
+                Meshes.emplace_back(Core::FString{Node.GetName()});
+            }
+
+            if (!ReadMesh(Node, *Mesh, Meshes.back())) {
+                return false;
+            }
         }
 
         // 자식 노드를 재귀적으로 방문하여 Scene 트리 전체의 메시를 읽습니다. 하나라도 실패하면 즉시 중단합니다.
@@ -435,7 +467,111 @@ namespace Asset {
         return true;
     }
 
-    bool Asset::FFBXLoader::ImportSource() {
+    bool Asset::FFBXImporter::ReadSkeleton(FbxNode& Node, Core::Int32 ParentIndex, const Core::FMatrix& ParentBoneGlobal) {
+        Core::Int32 Index{ParentIndex};
+        Core::FMatrix BoneGlobal{ParentBoneGlobal};
+
+        // 스켈레톤 속성을 가졌거나 스킨 클러스터가 링크하는 노드를 본으로 추가합니다.
+        // 사이에 끼인 일반 노드는 건너뛰고 가장 가까운 조상 본을 부모로 연결합니다.
+        const auto BindPose{mBindPoses.find(&Node)};
+
+        if (Node.GetSkeleton() != nullptr || BindPose != mBindPoses.end()) {
+            auto& Bones{GetResult().GetBones()};
+            Core::FMatrix ParentInverse{};
+            // 클러스터가 있으면 클러스터의 바인드 시점 링크 변환을, 없으면(가중치가 없는 본) 시간 0의 전역 변환을 사용합니다.
+            const Core::FMatrix SourceGlobal{BindPose != mBindPoses.end() ? BindPose->second : ToMatrix(Node.EvaluateGlobalTransform(FBXSDK_TIME_ZERO))};
+
+            if (!Asset::FMeshImportTransform::ConvertTransform(mBasis, SourceGlobal, BoneGlobal) || !ParentBoneGlobal.TryInverse(ParentInverse)) {
+                GetError() = "The FBX skeleton cannot be converted to the engine space";
+                return false;
+            }
+
+            // EvaluateLocalTransform은 직계 부모 노드 기준이라 사이에 일반 노드가 끼면 부모 본 기준과 달라지므로,
+            // 전역 변환에서 부모 본의 전역 변환을 되돌려 부모 본 공간 기준의 로컬 변환을 구합니다. 루트 본은 장면 원점 기준입니다.
+            Index = static_cast<Core::Int32>(Bones.size());
+            mBoneIndices.emplace(&Node, Index);
+            Bones.emplace_back(Core::FString{Node.GetName()}, ParentIndex, BoneGlobal * ParentInverse);
+        }
+
+        for (int Child{}; Child < Node.GetChildCount(); ++Child) {
+            if (!ReadSkeleton(*Node.GetChild(Child), Index, BoneGlobal)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    void Asset::FFBXImporter::CollectBindPoses() {
+        for (int GeometryIndex{}; GeometryIndex < mScene->GetGeometryCount(); ++GeometryIndex) {
+            FbxGeometry* Geometry{mScene->GetGeometry(GeometryIndex)};
+
+            for (int DeformerIndex{}; Geometry != nullptr && DeformerIndex < Geometry->GetDeformerCount(FbxDeformer::eSkin); ++DeformerIndex) {
+                auto* Skin{static_cast<FbxSkin*>(Geometry->GetDeformer(DeformerIndex, FbxDeformer::eSkin))};
+
+                for (int ClusterIndex{}; ClusterIndex < Skin->GetClusterCount(); ++ClusterIndex) {
+                    FbxCluster* Cluster{Skin->GetCluster(ClusterIndex)};
+                    FbxNode* Link{Cluster->GetLink()};
+
+                    // 같은 본을 여러 메시가 링크하면 처음 만난 클러스터의 바인드 포즈를 사용합니다.
+                    if (Link != nullptr && !mBindPoses.contains(Link)) {
+                        FbxAMatrix LinkGlobal{};
+                        Cluster->GetTransformLinkMatrix(LinkGlobal);
+                        mBindPoses.emplace(Link, ToMatrix(LinkGlobal));
+                    }
+                }
+            }
+        }
+    }
+
+    bool Asset::FFBXImporter::ReadSkinWeights(FbxMesh& Mesh, Core::TArray<Asset::FMeshImportSkinWeight>& Weights, FbxAMatrix& MeshBindPose) const {
+        Weights.clear();
+        // 제어점별로 (결과 본 인덱스, 가중치)를 모읍니다. 정리는 FMeshImportSkinWeight::FromInfluences가 합니다.
+        Core::TArray<Core::TArray<std::pair<Core::Uint32, float>>> Influences(static_cast<std::size_t>(Mesh.GetControlPointsCount()));
+        bool Found{};
+
+        for (int DeformerIndex{}; DeformerIndex < Mesh.GetDeformerCount(FbxDeformer::eSkin); ++DeformerIndex) {
+            auto* Skin{static_cast<FbxSkin*>(Mesh.GetDeformer(DeformerIndex, FbxDeformer::eSkin))};
+
+            for (int ClusterIndex{}; ClusterIndex < Skin->GetClusterCount(); ++ClusterIndex) {
+                FbxCluster* Cluster{Skin->GetCluster(ClusterIndex)};
+                const auto Bone{mBoneIndices.find(Cluster->GetLink())};
+
+                if (Bone == mBoneIndices.end()) {
+                    continue;
+                }
+
+                // 클러스터의 TransformMatrix는 바인딩 시점의 메시 전역 변환이며, 메시의 모든 클러스터가 같은 값을 가집니다.
+                if (!Found) {
+                    Cluster->GetTransformMatrix(MeshBindPose);
+                    Found = true;
+                }
+
+                const int* ControlPoints{Cluster->GetControlPointIndices()};
+                const double* ControlPointWeights{Cluster->GetControlPointWeights()};
+
+                for (int Index{}; ControlPoints != nullptr && ControlPointWeights != nullptr && Index < Cluster->GetControlPointIndicesCount(); ++Index) {
+                    if (ControlPoints[Index] >= 0 && ControlPoints[Index] < Mesh.GetControlPointsCount()) {
+                        Influences[static_cast<std::size_t>(ControlPoints[Index])].emplace_back(static_cast<Core::Uint32>(Bone->second), static_cast<float>(ControlPointWeights[Index]));
+                    }
+                }
+            }
+        }
+
+        if (!Found) {
+            return false;
+        }
+
+        Weights.reserve(Influences.size());
+
+        for (auto& ControlPoint : Influences) {
+            Weights.push_back(Asset::FMeshImportSkinWeight::FromInfluences(std::move(ControlPoint)));
+        }
+
+        return true;
+    }
+
+    bool Asset::FFBXImporter::ImportSource() {
         Core::FString& Error{GetError()};
         // FBX SDK의 모든 객체를 생성·소유하는 Manager를 만듭니다. 소멸자에서 Destroy로 한 번에 해제합니다.
         mManager = FbxManager::Create();
@@ -472,32 +608,37 @@ namespace Asset {
         // Import가 끝나 장면 연결과 내장 바이트가 모두 준비되었으므로 파일 텍스처를 판별합니다.
         mImageProcessor.ResolveTextures(*mScene, GetSourceDirectory());
 
-        // 언리얼 FBX 임포터의 Convert Scene이 켜지고 Force Front XAxis가 꺼진 경우와 같은 축 변환을 사용합니다.
-        // 이 옵션은 임포트할 메시의 축을 정하는 정책이므로, 엔진 카메라의 Forward = +X만으로 값을 선택하지 않습니다.
-        // 언리얼은 먼저 FBX Scene을 Z-Up, Front = -Y인 오른손 좌표계로 변환합니다.
-        // 그다음 정점과 방향 벡터를 엔진 데이터로 읽을 때 Y를 반전하여 최종 왼손 좌표계로 옮깁니다.
+        const Asset::FAssetImportOption& Option{GetOption()};
+
+        // 언리얼 FBX 임포터의 Convert Scene / Force Front XAxis 옵션과 같은 축 변환을 사용합니다.
+        // 언리얼은 먼저 FBX Scene을 Z-Up 오른손 좌표계로 변환하고, 정점과 방향 벡터를 엔진 데이터로 읽을 때 Y를 반전하여 최종 왼손 좌표계로 옮깁니다.
         //
         // 첫 번째 인자 eZAxis는 이 중간 좌표계의 Up이 +Z라는 뜻입니다.
         // 두 번째 인자는 Up을 제외한 나머지 두 축 중 FBX Front로 사용할 축과 그 부호를 정합니다.
         // X, Y, Z 순서에서 Up을 제외했을 때 eParityEven은 첫 번째 축, eParityOdd는 두 번째 축을 선택합니다.
         // Z-Up에서는 남은 축이 X, Y이므로 eParityEven은 +X, eParityOdd는 +Y, -eParityOdd는 -Y를 의미합니다.
-        // 언리얼의 Force Front XAxis가 꺼져 있으면 -eParityOdd를 사용하고, 켜져 있으면 eParityEven을 사용합니다.
+        // Force Front XAxis가 꺼져 있으면 -eParityOdd(Y 반전 후 Front +Y), 켜져 있으면 eParityEven(Front +X)을 사용합니다.
         // 단항 - 연산의 결과는 int이므로 생성자가 받는 EFrontVector 타입으로 명시적으로 변환합니다.
         //
         // 세 번째 인자 eRightHanded는 최종 엔진 좌표계가 아니라 이 단계의 FBX 중간 좌표계가 오른손 좌표계라는 뜻입니다.
-        // Scene은 이 단계 이후에도 오른손 좌표계이며, ReadMesh의 위치와 TransformDirection의 방향 출력에서 Y를 반전합니다.
-        const FbxAxisSystem AxisSystem{FbxAxisSystem::eZAxis, static_cast<FbxAxisSystem::EFrontVector>(-FbxAxisSystem::eParityOdd), FbxAxisSystem::eRightHanded};
+        // Assimp 임포터는 같은 결과를 FMeshImportTransform::MakeYUpConversion으로 직접 계산합니다.
+        if (Option.mConvertScene) {
+            const auto Front{Option.mForceFrontXAxis ? FbxAxisSystem::eParityEven : static_cast<FbxAxisSystem::EFrontVector>(-FbxAxisSystem::eParityOdd)};
+            const FbxAxisSystem AxisSystem{FbxAxisSystem::eZAxis, Front, FbxAxisSystem::eRightHanded};
 
-        // 언리얼과 같은 ConvertScene을 사용하여 노드의 변환에 축 변환을 반영합니다.
-        // 이후 ReadMesh는 EvaluateGlobalTransform으로 이 변환을 포함한 정점과 방향을 계산합니다.
-        // DeepConvertScene으로 왼손 좌표계까지 한 번에 변환하면 삼각형 순서 등도 달라질 수 있으므로 두 단계를 유지합니다.
-        AxisSystem.ConvertScene(mScene);
+            // 언리얼과 같은 ConvertScene을 사용하여 노드의 변환에 축 변환을 반영합니다.
+            // DeepConvertScene으로 왼손 좌표계까지 한 번에 변환하면 삼각형 순서 등도 달라질 수 있으므로 두 단계를 유지합니다.
+            AxisSystem.ConvertScene(mScene);
+        }
 
         // Scene의 길이 단위를 원본 FBX에 저장된 단위에서 미터로 변환합니다. FbxSystemUnit::m은 미터 단위입니다.
-        // 축 변환이 방향을 맞추는 작업이라면, 단위 변환은 동일한 실제 길이가 유지되도록 수치와 스케일을 맞추는 작업입니다.
-        // 예를 들어 센티미터 단위 Scene의 100cm 길이가 변환 후에도 1m에 해당하도록 조정합니다.
-        // 별도 옵션을 전달하지 않았으므로 SDK의 기본 단위 변환 옵션을 사용합니다.
-        FbxSystemUnit::m.ConvertScene(mScene);
+        // 예를 들어 센티미터 단위 Scene의 100cm 길이가 변환 후에도 1m에 해당하도록 조정합니다. 끄면 원본 수치를 그대로 사용합니다.
+        if (Option.mConvertSceneUnit) {
+            FbxSystemUnit::m.ConvertScene(mScene);
+        }
+
+        // ConvertScene 뒤의 FBX 전역 공간에서 엔진 공간으로: 왼손 좌표계로 바꾸는 Y 반전 → 임포트 이동·회전·스케일 순서로 적용합니다.
+        mBasis = Asset::FMeshImportTransform::MakeFlipY() * Option.GetImportTransform();
 
         // 같은 FBX Manager를 사용하는 지오메트리 변환 도구를 생성합니다. 생성 시점에는 메시를 변환하지 않습니다.
         // 아래 Triangulate 호출에서 Scene 내 변환 가능한 지오메트리를 삼각형으로 분할하는 데 사용합니다.
@@ -515,7 +656,21 @@ namespace Asset {
             return false;
         }
 
-        // 루트 노드부터 Scene 트리를 재귀적으로 순회하며 모든 메시를 결과 메시 데이터에 추가합니다.
+        // 메시를 병합하면 모든 메시 노드가 이어 붙을 결과 메시 하나를 원본 파일 이름으로 미리 만듭니다.
+        if (Option.mCombineMeshes) {
+            GetResult().GetMeshes().emplace_back(Core::FilePath::ToUtf8(GetSourcePath().stem()));
+        }
+
+        // 스켈레톤은 메시보다 먼저 읽어야 ReadMesh가 클러스터 링크 노드를 결과 본 인덱스로 바꿀 수 있습니다.
+        if (Option.mImportSkeleton) {
+            CollectBindPoses();
+
+            if (!ReadSkeleton(*mScene->GetRootNode(), -1, Core::FMatrix{})) {
+                return false;
+            }
+        }
+
+        // 루트 노드부터 Scene 트리를 재귀적으로 순회하며 모든 메시를 결과 메시에 추가합니다.
         return ReadNode(*mScene->GetRootNode());
     }
 
