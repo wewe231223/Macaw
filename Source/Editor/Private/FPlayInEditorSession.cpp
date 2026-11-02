@@ -42,6 +42,8 @@ namespace Editor {
             return false;
         }
 
+        mContext->RestorePreview();
+
         mTransitioning = true;
         mStopRequested = false;
         mContext->mPlayLocked = true;

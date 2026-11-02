@@ -196,7 +196,9 @@ namespace Editor {
         View.mView = Core::FMatrix::LookTo(View.mLocation, View.mForward, Rotation.UpVector());
         View.mProjection = Core::FMatrix::Perspective(40.0f, 1.0f, std::max(Radius * 0.001f, 0.00001f), Radius * 10.0f);
         View.mViewProjection = View.mView * View.mProjection;
-        mRenderer->BeginRenderingViewFamily({mScene.get(), Thumbnail.mTarget.get(), View});
+        Engine::FSceneViewFamily Family{mScene.get(), Thumbnail.mTarget.get(), View};
+        Family.mShowFlags.mSky = false;
+        mRenderer->BeginRenderingViewFamily(Family);
         Thumbnail.mSignature = Signature;
 
         return Thumbnail.mTarget->GetNativeTexture();

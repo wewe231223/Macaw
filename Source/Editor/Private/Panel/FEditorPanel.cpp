@@ -33,6 +33,11 @@ namespace Editor {
             return;
         }
 
+        if (mFocusRequested) {
+            ImGui::SetNextWindowFocus();
+            mFocusRequested = false;
+        }
+
         if (ImGui::Begin(mName.c_str(), mClosable ? &mVisible : nullptr)) {
             DrawContent(DeltaTime);
         }
@@ -59,6 +64,11 @@ namespace Editor {
      */
     void Editor::FEditorPanel::SetVisible(bool Visible) {
         mVisible = Visible;
+    }
+
+    void Editor::FEditorPanel::Open() {
+        mVisible = true;
+        mFocusRequested = true;
     }
 
     /**

@@ -21,6 +21,7 @@ namespace Asset {
     class USkeletalMesh;
     class UTexture2D;
     class UMaterial;
+    class ULevelSequence;
 
     /**
      * @brief 프로젝트 콘텐츠 경로와 메시·텍스처 에셋의 로드 및 캐시를 담당합니다.
@@ -142,6 +143,32 @@ namespace Asset {
          * @return 캐시 소유 머티리얼의 비소유 주소이며 실패하면 nullptr입니다.
          */
         Asset::UMaterial* LoadMaterial(const std::filesystem::path& Path, Core::FString& Error);
+
+        /**
+         * @brief 시퀀스 에셋을 로드하여 캐시에 보관합니다.
+         * @param[in] Path 프로젝트 시퀀스 경로입니다.
+         * @param[out] Error 실패 원인입니다.
+         * @return 캐시 소유 시퀀스의 비소유 주소이며 실패하면 nullptr입니다.
+         */
+        Asset::ULevelSequence* LoadSequence(const std::filesystem::path& Path, Core::FString& Error);
+
+        /**
+         * @brief Sequences 폴더에 빈 시퀀스 에셋을 만들고 캐시에 보관합니다.
+         * @param[in] Name 파일 이름으로 사용할 이름이며 중복되면 번호를 붙입니다.
+         * @param[out] Path 생성한 에셋의 Content 상대 경로입니다.
+         * @param[out] Error 실패 원인입니다.
+         * @return 캐시 소유 시퀀스의 비소유 주소이며 실패하면 nullptr입니다.
+         */
+        Asset::ULevelSequence* CreateSequence(const Core::FString& Name, std::filesystem::path& Path, Core::FString& Error);
+
+        /**
+         * @brief 시퀀스를 에셋 파일로 저장합니다.
+         * @param[in] Path 프로젝트 시퀀스 경로입니다.
+         * @param[in] Sequence 저장할 시퀀스입니다.
+         * @param[out] Error 실패 원인입니다.
+         * @return 저장에 성공하면 true입니다.
+         */
+        bool SaveSequence(const std::filesystem::path& Path, Asset::ULevelSequence& Sequence, Core::FString& Error);
 
         /**
          * @brief 캐시 객체의 주소를 유지하면서 파일의 최신 설정을 다시 적용합니다.
@@ -276,6 +303,12 @@ namespace Asset {
          */
         Core::TMap<Core::FString, std::unique_ptr<Asset::UMaterial>> mMaterials{};
         ReflectProperty(mMaterials, "Materials", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+
+        /**
+         * @brief 경로별로 캐시한 시퀀스의 소유 저장소입니다.
+         */
+        Core::TMap<Core::FString, std::unique_ptr<Asset::ULevelSequence>> mSequences{};
+        ReflectProperty(mSequences, "Sequences", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
 }

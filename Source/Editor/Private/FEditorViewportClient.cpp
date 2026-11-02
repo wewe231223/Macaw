@@ -5,6 +5,7 @@
  */
 
 #include "Editor/FEditorViewportClient.h"
+#include "Engine/Component/UCameraComponent.h"
 #include "Engine/Component/UHeightFogComponent.h"
 #include "Engine/Component/ULightComponentBase.h"
 #include "RenderCore/IRendererModule.h"
@@ -494,6 +495,15 @@ namespace Editor {
      * @brief 현재 카메라와 뷰포트 크기로 뷰·투영 행렬을 계산합니다.
      */
     Engine::FSceneView Editor::FEditorViewportClient::CalcSceneView(const Core::FVector2& Size) const {
+        // 시퀀서 프리뷰 중에는 원근 뷰가 카메라 컷의 시점을 그대로 보여 줍니다.
+        if (const Engine::UCameraComponent* PreviewCamera{mViewType == Editor::EEditorViewportType::Perspective && mContext != nullptr ? mContext->GetPreviewCamera() : nullptr}; PreviewCamera != nullptr) {
+            Engine::FSceneView PreviewView{};
+
+            if (PreviewCamera->GetCameraView(Size, PreviewView)) {
+                return PreviewView;
+            }
+        }
+
         const Core::FQuat Rotation{mCameraRotation.Quaternion()};
 
         Engine::FSceneView View{};

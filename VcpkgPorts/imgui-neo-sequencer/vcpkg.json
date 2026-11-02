@@ -1,0 +1,14 @@
+{
+  "name": "imgui-neo-sequencer",
+  "version-date": "2026-01-23",
+  "description": "Timeline and keyframe sequencer widgets for Dear ImGui",
+  "homepage": "https://github.com/Daandelange/im-neo-sequencer",
+  "license": "MIT",
+  "dependencies": [
+    "imgui",
+    {
+      "name": "vcpkg-cmake",
+      "host": true
+    }
+  ]
+}

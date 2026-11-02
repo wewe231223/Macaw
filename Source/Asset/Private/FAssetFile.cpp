@@ -67,7 +67,7 @@ namespace Asset {
             Input.read(reinterpret_cast<char*>(&TypeValue), sizeof(TypeValue));
             Input.read(reinterpret_cast<char*>(&Size), sizeof(Size));
 
-            if (!Input || Magic != AssetMagic || Version != AssetVersion || TypeValue < static_cast<Core::Uint32>(Asset::EAssetType::Scene) || TypeValue > static_cast<Core::Uint32>(Asset::EAssetType::SkeletalMesh) || Size == 0 || Size != FileSize - HeaderSize) {
+            if (!Input || Magic != AssetMagic || Version != AssetVersion || TypeValue < static_cast<Core::Uint32>(Asset::EAssetType::Scene) || TypeValue > static_cast<Core::Uint32>(Asset::EAssetType::Sequence) || Size == 0 || Size != FileSize - HeaderSize) {
                 Error = "Invalid asset header, version or type";
                 return false;
             }
@@ -88,7 +88,7 @@ namespace Asset {
     bool Asset::FAssetFile::Save(const std::filesystem::path& Path, Asset::EAssetType Type, std::span<const Core::Uint8> Payload, Core::FString& Error) {
         Error.clear();
 
-        if (Path.extension() != L".masset" || Payload.empty() || Payload.size() > MaximumPayload || Type < Asset::EAssetType::Scene || Type > Asset::EAssetType::SkeletalMesh) {
+        if (Path.extension() != L".masset" || Payload.empty() || Payload.size() > MaximumPayload || Type < Asset::EAssetType::Scene || Type > Asset::EAssetType::Sequence) {
             Error = "Invalid asset path, type or payload";
             return false;
         }

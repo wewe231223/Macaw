@@ -49,6 +49,18 @@ namespace Core {
         }
     }
 
+    void Core::FArchive::RemapWeakObjectReference(Core::FGuid& Value) {
+        if (mObjectGuidRemapping == nullptr) {
+            return;
+        }
+
+        const auto Position{mObjectGuidRemapping->find(Value)};
+
+        if (Position != mObjectGuidRemapping->end() && Position->second.IsValid()) {
+            Value = Position->second;
+        }
+    }
+
     bool Core::FArchive::RemapObjectReference(Core::FGuid& Value) {
         if (mObjectGuidRemapping == nullptr || !Value.IsValid()) {
             return true;

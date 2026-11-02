@@ -404,6 +404,47 @@ namespace Editor {
         bool IsSceneDirty() const;
 
         /**
+         * @brief 프로퍼티 편집을 거치지 않은 장면 변경을 수정 상태로 표시합니다.
+         */
+        void MarkSceneDirty();
+
+        /**
+         * @brief 시퀀서 프리뷰가 월드에 쓴 값을 되돌리는 콜백을 설정합니다.
+         * @param[in] Restorer 저장, 장면 교체와 PIE 시작 전에 호출할 콜백이며 비어 있으면 해제합니다.
+         */
+        void SetPreviewRestorer(std::function<void()> Restorer);
+
+        /**
+         * @brief 시퀀서 프리뷰가 월드에 쓴 값을 되돌립니다.
+         */
+        void RestorePreview();
+
+        /**
+         * @brief 시퀀스 액터를 시퀀서에서 여는 콜백을 설정합니다.
+         * @param[in] Opener 시퀀스 액터의 핸들을 받아 패널을 여는 콜백이며 비어 있으면 해제합니다.
+         */
+        void SetSequencerOpener(std::function<void(CoreUObject::FObjectHandle)> Opener);
+
+        /**
+         * @brief 객체가 시퀀스 액터이면 시퀀서에서 엽니다.
+         * @param[in] Handle 열 객체의 핸들입니다.
+         * @return 시퀀서를 열었으면 true이며 시퀀스 액터가 아니거나 콜백이 없으면 false입니다.
+         */
+        bool OpenInSequencer(CoreUObject::FObjectHandle Handle);
+
+        /**
+         * @brief 원근 편집 뷰포트가 대신 사용할 시퀀서 프리뷰 카메라를 설정합니다.
+         * @param[in] Camera 사용할 카메라 컴포넌트의 핸들이며 비어 있으면 편집 카메라로 돌아갑니다.
+         */
+        void SetPreviewCamera(CoreUObject::FObjectHandle Camera);
+
+        /**
+         * @brief 시퀀서 프리뷰 카메라를 조회합니다.
+         * @return 살아 있는 카메라의 비소유 주소이며 없으면 nullptr입니다.
+         */
+        Engine::UCameraComponent* GetPreviewCamera() const;
+
+        /**
          * @brief 현재 연결된 프로젝트의 비소유 주소를 반환합니다.
          * @return 대상의 비소유 주소이며, 없거나 유효하지 않으면 nullptr입니다.
          */
@@ -686,6 +727,24 @@ namespace Editor {
          */
         std::function<void(const Engine::FEditorCameraState&)> mCameraRestorer{};
         ReflectProperty(mCameraRestorer, "CameraRestorer", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+
+        /**
+         * @brief 시퀀서 프리뷰가 월드에 쓴 값을 되돌리는 함수입니다.
+         */
+        std::function<void()> mPreviewRestorer{};
+        ReflectProperty(mPreviewRestorer, "PreviewRestorer", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+
+        /**
+         * @brief 시퀀스 액터를 시퀀서에서 여는 함수입니다.
+         */
+        std::function<void(CoreUObject::FObjectHandle)> mSequencerOpener{};
+        ReflectProperty(mSequencerOpener, "SequencerOpener", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+
+        /**
+         * @brief 원근 편집 뷰포트가 대신 사용할 시퀀서 프리뷰 카메라의 핸들입니다.
+         */
+        CoreUObject::FObjectHandle mPreviewCamera{};
+        ReflectProperty(mPreviewCamera, "PreviewCamera", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
 }

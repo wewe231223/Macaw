@@ -35,14 +35,18 @@ namespace Asset {
          * @brief 셰이더·기본색과 텍스처 참조를 가진 재질 에셋입니다.
          */
         Material,
-        SkeletalMesh
+        SkeletalMesh,
+        /**
+         * @brief 시네마틱 바인딩과 트랙을 저장하는 시퀀스 에셋입니다.
+         */
+        Sequence
     };
 
     /**
      * @brief 이 열거형의 리플렉션 메타데이터를 반환합니다.
      * @return 등록된 열거형 메타데이터의 비소유 주소입니다.
      */
-    ReflectEnum(EAssetType, Scene, Mesh, Texture, Material, SkeletalMesh);
+    ReflectEnum(EAssetType, Scene, Mesh, Texture, Material, SkeletalMesh, Sequence);
 
     /**
      * @brief 타입 태그로 EAssetType의 열거형 메타데이터를 조회합니다.

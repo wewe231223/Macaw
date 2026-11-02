@@ -93,6 +93,13 @@ namespace Core {
         bool RemapObjectReference(Core::FGuid& Value);
 
         /**
+         * @brief 복제 범위 안의 객체 참조만 복제 대상의 GUID로 변환합니다.
+         * @param[in,out] Value 변환할 참조이며 복제 범위 밖이면 그대로 유지합니다.
+         * @note 사라졌거나 함께 복제되지 않은 대상을 허용하는 약한 참조에 사용합니다.
+         */
+        void RemapWeakObjectReference(Core::FGuid& Value);
+
+        /**
          * @brief 아카이브에 오류 메시지가 기록되어 있는지 검사합니다.
          * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
          */

@@ -28,6 +28,7 @@
 #include "CoreUObject/Reflection/UClass.h"
 #include "CoreUObject/Reflection/Cast.h"
 #include "CoreUObject/Reflection/FReflectionRegistry.h"
+#include "Panel/ObjectRow.h"
 
 #include <imgui.h>
 #include <algorithm>
@@ -105,6 +106,7 @@ namespace Editor {
         Editor::FEditorContext* Context{GetEditorContext()};
 
         DrawComponentMenu();
+        DrawComponentTree();
 
         const auto Objects{Context->GetDetailsObjects()};
 
@@ -178,6 +180,68 @@ namespace Editor {
             }
 
             ImGui::EndPopup();
+        }
+
+        ImGui::Separator();
+    }
+
+    void Editor::FDetailsPanel::DrawComponentTree() {
+        Editor::FEditorContext* Context{GetEditorContext()};
+        Engine::AActor* Actor{Context->GetSelectedActor()};
+
+        if (Actor == nullptr || Context->GetSelectedActors().size() != 1) {
+            return;
+        }
+
+        const CoreUObject::FObjectHandle ActorHandle{Actor->GetHandle()};
+        const CoreUObject::UObject* Selected{Context->GetSelectedObject()};
+        Core::TArray<CoreUObject::FObjectHandle> Components{};
+
+        for (const auto& Component : Actor->GetComponents()) {
+            Components.push_back(Component->GetHandle());
+        }
+
+        // 컴포넌트가 많으면 프로퍼티 영역을 밀어내지 않도록 트리 안에서 스크롤합니다.
+        constexpr std::size_t MaxVisibleRows{8};
+        const float RowHeight{ImGui::GetFontSize() + ImGui::GetStyle().CellPadding.y * 2.0f};
+        const float Height{static_cast<float>(std::min(Components.size() + 1, MaxVisibleRows)) * RowHeight + 4.0f};
+        constexpr ImGuiTableFlags TableFlags{ImGuiTableFlags_Resizable | ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersOuter | ImGuiTableFlags_ScrollY};
+
+        if (ImGui::BeginTable("ComponentTree", 2, TableFlags, {0.0f, Height})) {
+            ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthStretch | ImGuiTableColumnFlags_NoHide);
+            ImGui::TableSetupColumn("Type", ImGuiTableColumnFlags_WidthFixed, ImGui::CalcTextSize("StaticMeshComponent").x);
+
+            ImGui::PushID(Actor);
+            ObjectRow::DrawLabel(Actor, Selected == Actor);
+
+            if (ImGui::IsItemClicked()) {
+                Context->SelectObject(ActorHandle);
+            }
+
+            if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
+                Context->OpenInSequencer(ActorHandle);
+            }
+
+            ObjectRow::DrawType(Actor);
+            ImGui::PopID();
+            ImGui::Indent();
+
+            for (CoreUObject::FObjectHandle Handle : Components) {
+                if (CoreUObject::UObject* Component{Context->ResolveObject(Handle)}) {
+                    ImGui::PushID(Component);
+                    ObjectRow::DrawLabel(Component, Selected == Component);
+
+                    if (ImGui::IsItemClicked()) {
+                        Context->SelectObject(Handle);
+                    }
+
+                    ObjectRow::DrawType(Component);
+                    ImGui::PopID();
+                }
+            }
+
+            ImGui::Unindent();
+            ImGui::EndTable();
         }
 
         ImGui::Separator();

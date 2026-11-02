@@ -67,7 +67,8 @@ namespace Editor {
 		  mPlaceActorsPanel{Context},
 		  mOutlinerPanel{Context},
 		  mDetailsPanel{Context},
-		  mConsolePanel{Context} {
+		  mConsolePanel{Context},
+		  mSequencerPanel{Context} {
     }
 
     /**
@@ -337,6 +338,13 @@ namespace Editor {
         mDetailsPanel.Draw(DeltaTime);
         mViewportLayout.DrawUI(DeltaTime);
         mConsolePanel.Draw(DeltaTime);
+
+        // 패널을 닫으면 그리기가 멈추므로 프리뷰 값이 월드에 남지 않도록 여기서 복원합니다.
+        if (!mSequencerPanel.IsVisible()) {
+            mSequencerPanel.RestorePreview();
+        }
+
+        mSequencerPanel.Draw(DeltaTime);
         GetActiveViewport()->GetStatistics()->DrawPanel(mShowStatistics);
         DrawContent();
         DrawTexturePreview();
@@ -495,6 +503,7 @@ namespace Editor {
             ImGui::DockBuilderDockWindow(mOutlinerPanel.GetName().c_str(), Outliner);
             ImGui::DockBuilderDockWindow(mDetailsPanel.GetName().c_str(), Right);
             ImGui::DockBuilderDockWindow(mConsolePanel.GetName().c_str(), Bottom);
+            ImGui::DockBuilderDockWindow(mSequencerPanel.GetName().c_str(), Bottom);
             ImGui::DockBuilderDockWindow("Content", Bottom);
             ImGui::DockBuilderDockWindow(mViewport->GetName().c_str(), Center);
 
@@ -645,20 +654,6 @@ namespace Editor {
                     }
 
                     ImGui::EndMenu();
-                }
-
-                ImGui::Separator();
-
-                if (ImGui::MenuItem("Place Actors", nullptr, mPlaceActorsPanel.IsVisible())) {
-                    mPlaceActorsPanel.SetVisible(!mPlaceActorsPanel.IsVisible());
-                }
-
-                if (ImGui::MenuItem("Four Viewports", nullptr, mViewportLayout.IsQuadView(), mViewportLayout.CanChangeLayout())) {
-                    mViewportLayout.SetQuadView(!mViewportLayout.IsQuadView());
-                }
-
-                if (ImGui::MenuItem(mConsolePanel.GetName().c_str(), nullptr, mConsolePanel.IsVisible())) {
-                    mConsolePanel.SetVisible(!mConsolePanel.IsVisible());
                 }
 
                 ImGui::EndMenu();
@@ -1094,15 +1089,15 @@ namespace Editor {
             DrawContentBreadcrumbs();
             ImGui::SetNextItemWidth(120.0f);
 
-            const char* FilterName{!mContentFilter.has_value() ? "All Assets" : *mContentFilter == Asset::EAssetType::Mesh ? "Meshes" : *mContentFilter == Asset::EAssetType::SkeletalMesh ? "Skeletal Meshes" : *mContentFilter == Asset::EAssetType::Material ? "Materials" : *mContentFilter == Asset::EAssetType::Texture ? "Textures" : "Scenes"};
+            const char* FilterName{!mContentFilter.has_value() ? "All Assets" : *mContentFilter == Asset::EAssetType::Mesh ? "Meshes" : *mContentFilter == Asset::EAssetType::SkeletalMesh ? "Skeletal Meshes" : *mContentFilter == Asset::EAssetType::Material ? "Materials" : *mContentFilter == Asset::EAssetType::Texture ? "Textures" : *mContentFilter == Asset::EAssetType::Sequence ? "Sequences" : "Scenes"};
 
             if (ImGui::BeginCombo("##AssetType", FilterName)) {
                 if (ImGui::Selectable("All Assets", !mContentFilter.has_value())) {
                     mContentFilter.reset();
                 }
 
-                for (Asset::EAssetType Type : {Asset::EAssetType::Mesh, Asset::EAssetType::SkeletalMesh, Asset::EAssetType::Material, Asset::EAssetType::Texture, Asset::EAssetType::Scene}) {
-                    const char* Name{Type == Asset::EAssetType::Mesh ? "Meshes" : Type == Asset::EAssetType::SkeletalMesh ? "Skeletal Meshes" : Type == Asset::EAssetType::Material ? "Materials" : Type == Asset::EAssetType::Texture ? "Textures" : "Scenes"};
+                for (Asset::EAssetType Type : {Asset::EAssetType::Mesh, Asset::EAssetType::SkeletalMesh, Asset::EAssetType::Material, Asset::EAssetType::Texture, Asset::EAssetType::Scene, Asset::EAssetType::Sequence}) {
+                    const char* Name{Type == Asset::EAssetType::Mesh ? "Meshes" : Type == Asset::EAssetType::SkeletalMesh ? "Skeletal Meshes" : Type == Asset::EAssetType::Material ? "Materials" : Type == Asset::EAssetType::Texture ? "Textures" : Type == Asset::EAssetType::Sequence ? "Sequences" : "Scenes"};
 
                     if (ImGui::Selectable(Name, mContentFilter == Type)) {
                         mContentFilter = Type;
@@ -1120,7 +1115,8 @@ namespace Editor {
                 ImGui::TextWrapped("%s", mContentError.c_str());
             }
 
-            const float Height{std::max(64.0f, ImGui::GetContentRegionAvail().y - ImGui::GetTextLineHeightWithSpacing())};
+            // 테이블 행의 위아래 셀 여백만큼 줄여 창 스크롤바가 생기지 않게 합니다.
+            const float Height{std::max(64.0f, ImGui::GetContentRegionAvail().y - ImGui::GetStyle().CellPadding.y * 2.0f)};
 
             if (ImGui::BeginTable("Content Browser", 2, ImGuiTableFlags_Resizable | ImGuiTableFlags_BordersInnerV)) {
                 ImGui::TableSetupColumn("Folders", ImGuiTableColumnFlags_WidthFixed, 190.0f);
@@ -1137,8 +1133,6 @@ namespace Editor {
                 ImGui::EndChild();
                 ImGui::EndTable();
             }
-
-            ImGui::TextDisabled("Drop files here to import. Double-click to open. Drag thumbnails onto Details to assign.");
         }
 
         ImGui::End();
@@ -1399,7 +1393,7 @@ namespace Editor {
                         const auto Type{mAssetTypes.find(Path)};
                         const bool HasThumbnail{!Directory && Type != mAssetTypes.end() && (Type->second == Asset::EAssetType::Mesh || Type->second == Asset::EAssetType::SkeletalMesh || Type->second == Asset::EAssetType::Material || Type->second == Asset::EAssetType::Texture)};
                         void* Thumbnail{HasThumbnail ? mThumbnails->GetThumbnail(Path, Type->second) : nullptr};
-                        const char* Kind{Directory ? "Folder" : Type == mAssetTypes.end() ? "File" : Type->second == Asset::EAssetType::Mesh ? "Mesh" : Type->second == Asset::EAssetType::SkeletalMesh ? "Skeletal Mesh" : Type->second == Asset::EAssetType::Material ? "Material" : Type->second == Asset::EAssetType::Texture ? "Texture" : "Scene"};
+                        const char* Kind{Directory ? "Folder" : Type == mAssetTypes.end() ? "File" : Type->second == Asset::EAssetType::Mesh ? "Mesh" : Type->second == Asset::EAssetType::SkeletalMesh ? "Skeletal Mesh" : Type->second == Asset::EAssetType::Material ? "Material" : Type->second == Asset::EAssetType::Texture ? "Texture" : Type->second == Asset::EAssetType::Sequence ? "Sequence" : "Scene"};
                         const Core::FString Actual{Core::FilePath::ToGenericUtf8(Path)};
                         const Core::FString Name{Core::FilePath::ToUtf8(Directory ? Path.filename() : Path.stem())};
                         ImGui::PushID(Actual.c_str());

@@ -35,6 +35,7 @@ namespace Renderer {
     class FLightingResources;
     class FShadowResources;
     class FPostProcessResources;
+    class FSkyResources;
     class FScene;
     struct FPassTarget;
     struct FMeshPassParameters;
@@ -383,6 +384,12 @@ namespace Renderer {
          */
         std::unique_ptr<Renderer::FPostProcessResources> mPostProcessResources{};
         ReflectProperty(mPostProcessResources, "PostProcessResources", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+
+        /**
+         * @brief 기본 하늘 파노라마와 셰이더의 소유 객체입니다.
+         */
+        std::unique_ptr<Renderer::FSkyResources> mSkyResources{};
+        ReflectProperty(mSkyResources, "SkyResources", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 그림자 아틀라스와 관련 GPU 자원을 관리하는 소유 객체입니다.

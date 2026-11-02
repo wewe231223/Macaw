@@ -349,6 +349,7 @@ namespace Editor {
         Engine::FSceneViewFamily Family{mScene.get(), mTarget.get(), View, &Bones, mViewMode};
 
         // 공통 렌더링 경로에서 뷰어의 보조 표시는 본 선분과 기즈모로 제한합니다.
+        Family.mShowFlags.mSky = false;
         Family.mShowFlags.mLightIcons = false;
         Family.mShowFlags.mFogIcons = false;
         Family.mShowFlags.mSprites = false;

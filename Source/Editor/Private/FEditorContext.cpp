@@ -21,6 +21,7 @@
 #include "Engine/AActor.h"
 #include "Engine/AStaticMeshActor.h"
 #include "Engine/ACameraActor.h"
+#include "Engine/ALevelSequenceActor.h"
 #include "Engine/Component/UCameraComponent.h"
 #include "Engine/EPrimitiveType.h"
 #include "Engine/Component/UActorComponent.h"
@@ -605,6 +606,8 @@ namespace Editor {
             return false;
         }
 
+        RestorePreview();
+
         FOperationScope Scope{&mChangingState};
         Core::FString Error{};
         Engine::FProject* Project{GetProject()};
@@ -635,6 +638,8 @@ namespace Editor {
      * @brief 새 컨텍스트를 엔진에 등록하고 기존 편집 월드만 교체합니다.
      */
     bool Editor::FEditorContext::ReplaceScene(std::unique_ptr<Engine::FWorldContext> Context, const std::filesystem::path& Path) {
+        RestorePreview();
+
         const Engine::FWorldHandle Previous{mWorld};
         const Engine::FWorldHandle Current{mEngine->GetWorldHandle()};
         const Engine::FWorldHandle Replacement{mEngine->RegisterWorld(std::move(Context))};
@@ -662,6 +667,42 @@ namespace Editor {
         }
 
         return true;
+    }
+
+    void Editor::FEditorContext::MarkSceneDirty() {
+        mDirty = true;
+    }
+
+    void Editor::FEditorContext::SetPreviewRestorer(std::function<void()> Restorer) {
+        mPreviewRestorer = std::move(Restorer);
+    }
+
+    void Editor::FEditorContext::RestorePreview() {
+        if (mPreviewRestorer) {
+            mPreviewRestorer();
+        }
+    }
+
+    void Editor::FEditorContext::SetSequencerOpener(std::function<void(CoreUObject::FObjectHandle)> Opener) {
+        mSequencerOpener = std::move(Opener);
+    }
+
+    bool Editor::FEditorContext::OpenInSequencer(CoreUObject::FObjectHandle Handle) {
+        if (!mSequencerOpener || CoreUObject::Cast<Engine::ALevelSequenceActor>(ResolveObject(Handle)) == nullptr) {
+            return false;
+        }
+
+        mSequencerOpener(Handle);
+
+        return true;
+    }
+
+    void Editor::FEditorContext::SetPreviewCamera(CoreUObject::FObjectHandle Camera) {
+        mPreviewCamera = Camera;
+    }
+
+    Engine::UCameraComponent* Editor::FEditorContext::GetPreviewCamera() const {
+        return CoreUObject::Cast<Engine::UCameraComponent>(ResolveObject(mPreviewCamera));
     }
 
     void Editor::FEditorContext::SetCameraHandlers(std::function<Engine::FEditorCameraState()> Provider, std::function<void(const Engine::FEditorCameraState&)> Restorer) {

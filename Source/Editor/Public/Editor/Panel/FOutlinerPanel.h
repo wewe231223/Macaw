@@ -1,6 +1,6 @@
 /**
  * @file FOutlinerPanel.h
- * @brief 월드의 액터와 컴포넌트 계층 및 선택 상태를 표시합니다.
+ * @brief 월드의 액터 목록과 선택 상태를 표시합니다.
  * @ingroup Editor
  */
 
@@ -9,10 +9,12 @@
 #include "Core/ReflectionMacros.h"
 #include "Editor/Panel/FEditorPanel.h"
 
+#include <array>
+
 namespace Editor {
 
     /**
-     * @brief 월드의 액터와 컴포넌트 계층 및 선택 상태를 표시합니다.
+     * @brief 월드의 액터 목록과 선택 상태를 표시합니다.
      * @ingroup Editor
      */
     class FOutlinerPanel final : public Editor::FEditorPanel {
@@ -53,6 +55,13 @@ namespace Editor {
          * @brief 생성된 프로퍼티 등록 함수와 빌더 접근 권한입니다.
          */
         ReflectMembers();
+
+    private:
+        /**
+         * @brief 액터의 이름과 타입을 거르는 검색어 버퍼입니다.
+         */
+        std::array<char, 128> mSearch{};
+        ReflectProperty(mSearch, "Search", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
 }

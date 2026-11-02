@@ -47,7 +47,7 @@ namespace Editor {
                 return static_cast<char>(std::tolower(Character));
             });
 
-            if (Verb == "showflag.shadows" || Verb == "showflag.fog" || Verb == "showflag.fxaa") {
+            if (Verb == "showflag.shadows" || Verb == "showflag.fog" || Verb == "showflag.fxaa" || Verb == "showflag.sky") {
                 if (!Extra.empty() || (!State.empty() && State != "on" && State != "off" && State != "0" && State != "1")) {
                     Output = "Usage: " + Verb + " [on/off]";
                     return true;
@@ -55,7 +55,7 @@ namespace Editor {
 
                 Editor::FEditorViewportClient* Client{mUI->GetActiveViewport()->GetClient()};
                 Engine::FEngineShowFlags Flags{Client->GetShowFlags()};
-                bool& Enabled{Verb == "showflag.fog" ? Flags.mFog : Verb == "showflag.fxaa" ? Flags.mFXAA : Flags.mShadows};
+                bool& Enabled{Verb == "showflag.fog" ? Flags.mFog : Verb == "showflag.fxaa" ? Flags.mFXAA : Verb == "showflag.sky" ? Flags.mSky : Flags.mShadows};
                 Enabled = State.empty() ? !Enabled : State == "on" || State == "1";
                 Client->SetShowFlags(Flags);
                 Output = Verb + (Enabled ? ": on" : ": off");

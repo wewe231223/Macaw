@@ -81,6 +81,12 @@ namespace Editor {
         void SetVisible(bool Visible);
 
         /**
+         * @brief 패널을 표시하고 다음 그리기에서 창에 포커스를 줍니다.
+         * @note 도킹된 패널은 해당 탭이 앞으로 나옵니다.
+         */
+        void Open();
+
+        /**
          * @brief 연결된 공통 편집 컨텍스트를 반환합니다.
          * @return 연결된 공통 편집 컨텍스트의 비소유 주소입니다.
          */
@@ -130,6 +136,12 @@ namespace Editor {
          */
         bool mVisible{true};
         ReflectProperty(mVisible, "Visible", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+
+        /**
+         * @brief 다음 그리기에서 창에 포커스를 줄지 여부입니다.
+         */
+        bool mFocusRequested{};
+        ReflectProperty(mFocusRequested, "FocusRequested", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
 }

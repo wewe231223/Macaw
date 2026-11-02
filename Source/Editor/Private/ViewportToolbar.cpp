@@ -163,6 +163,7 @@ namespace Editor {
                 Changed = ImGui::Checkbox("Text", &Flags.mText) || Changed;
                 Changed = ImGui::Checkbox("Light Icons", &Flags.mLightIcons) || Changed;
                 Changed = ImGui::Checkbox("Shadows", &Flags.mShadows) || Changed;
+                Changed = ImGui::Checkbox("Sky", &Flags.mSky) || Changed;
                 Changed = ImGui::Checkbox("Fog", &Flags.mFog) || Changed;
                 Changed = ImGui::Checkbox("FXAA", &Flags.mFXAA) || Changed;
                 Changed = ImGui::Checkbox("Fog Icons", &Flags.mFogIcons) || Changed;

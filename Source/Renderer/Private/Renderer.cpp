@@ -35,6 +35,7 @@
 #include "FLightingResources.h"
 #include "FShadowResources.h"
 #include "FPostProcessResources.h"
+#include "FSkyResources.h"
 #include "FEditorMeshConstants.h"
 #include "FTextRenderer.h"
 #include "FSpriteRenderer.h"
@@ -204,6 +205,7 @@ namespace Renderer {
         mTextRenderer.reset();
         mSpriteRenderer.reset();
         mPostProcessResources.reset();
+        mSkyResources.reset();
 
         mOverlayLayout.Reset();
         mEditorMeshBuffer.Reset();
@@ -370,6 +372,10 @@ namespace Renderer {
         BaseParameters.mViewProjection = Family.mView.mViewProjection;
         ClearTarget(BaseParameters.mTarget, ClearColor);
         DrawMeshPass(*mBasePass, *Scene, Family, BaseParameters);
+
+        if (Family.mShowFlags.mSky && !Family.mView.mOrthographic && Family.mViewMode != Engine::EViewMode::Wireframe && Family.mViewMode != Engine::EViewMode::WorldNormal && Family.mViewMode != Engine::EViewMode::SceneDepth) {
+            mStats.mDrawCalls += mSkyResources->Render(mContext.Get(), BaseParameters.mTarget, Family.mView);
+        }
 
         ID3D11RenderTargetView* RenderTarget{};
 
@@ -570,7 +576,7 @@ namespace Renderer {
      */
     bool Renderer::FRenderer::Compile(const char* Source, const char* Entry, const char* Target, std::shared_ptr<const RenderCore::FShader>& Code) {
         RenderCore::FShaderDescription Description{};
-        const bool EngineFirst{std::string_view{Source} == LineShader || std::string_view{Source} == "Sprite.hlsl" || std::string_view{Source} == "PostProcess.hlsl" || std::string_view{Source} == "Depth.hlsl"};
+        const bool EngineFirst{std::string_view{Source} == LineShader || std::string_view{Source} == "Sprite.hlsl" || std::string_view{Source} == "PostProcess.hlsl" || std::string_view{Source} == "Sky.hlsl" || std::string_view{Source} == "Depth.hlsl"};
         Description.mSourcePath = FindTextContent(mShaderDirectory.parent_path(), std::filesystem::path{"Shaders"} / Source, EngineFirst);
         Description.mIncludeDirectories = {mShaderDirectory};
         Description.mEntryPoint = Entry;
@@ -639,6 +645,10 @@ namespace Renderer {
             return false;
         }
 
+        if (!Compile("Sky.hlsl", "VertexMain", "vs_5_0", VertexCode) || !Compile("Sky.hlsl", "PixelMain", "ps_5_0", PixelCode) || !mSkyResources->CreateShaders(mDevice.Get(), VertexCode->GetByteCode(), PixelCode->GetByteCode())) {
+            return false;
+        }
+
         Microsoft::WRL::ComPtr<ID3D11VertexShader> DepthClearVertex{};
 
         if (!Compile("Depth.hlsl", "ClearMain", "vs_5_0", VertexCode) || FAILED(mDevice->CreateVertexShader(VertexCode->GetByteCode().data(), VertexCode->GetByteCode().size(), nullptr, DepthClearVertex.GetAddressOf()))) {
@@ -696,8 +706,13 @@ namespace Renderer {
         mTextRenderer = std::make_unique<Renderer::FTextRenderer>();
         mSpriteRenderer = std::make_unique<Renderer::FSpriteRenderer>();
         mPostProcessResources = std::make_unique<Renderer::FPostProcessResources>();
+        mSkyResources = std::make_unique<Renderer::FSkyResources>();
 
         if (!mPostProcessResources->Initialize(mDevice.Get())) {
+            return false;
+        }
+
+        if (!mSkyResources->Initialize(mDevice.Get(), FindTextContent(mShaderDirectory.parent_path(), "Sky/Epic_BlueSunset_EquiRect_flat.dds"))) {
             return false;
         }
 

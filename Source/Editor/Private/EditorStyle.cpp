@@ -87,6 +87,11 @@ namespace Editor {
             DrawList->AddRectFilled(Point(4.0f, 4.0f), Point(8.0f, 16.0f), Color, Scale);
             DrawList->AddRectFilled(Point(12.0f, 4.0f), Point(16.0f, 16.0f), Color, Scale);
             break;
+        case EIcon::JumpStart:
+            DrawList->AddRectFilled(Point(2.0f, 4.0f), Point(5.0f, 16.0f), Color, Scale);
+            DrawList->AddTriangleFilled(Point(17.0f, 4.0f), Point(17.0f, 16.0f), Point(7.0f, 10.0f), Color);
+            break;
+        case EIcon::JumpEnd:
         case EIcon::Step:
             DrawList->AddTriangleFilled(Point(3.0f, 4.0f), Point(13.0f, 10.0f), Point(3.0f, 16.0f), Color);
             DrawList->AddRectFilled(Point(15.0f, 4.0f), Point(18.0f, 16.0f), Color, Scale);
@@ -109,6 +114,54 @@ namespace Editor {
             Line(8.0f, 17.0f, 3.0f, 17.0f);
             Line(3.0f, 17.0f, 3.0f, 12.0f);
             break;
+        case EIcon::Light:
+            DrawList->AddCircle(Point(10.0f, 8.0f), 5.5f * Scale, Color, 24, Thickness);
+            Line(7.5f, 15.0f, 12.5f, 15.0f);
+            Line(8.5f, 18.0f, 11.5f, 18.0f);
+            break;
+        case EIcon::Camera: {
+            const std::array<ImVec2, 4> Lens{Point(13.0f, 9.0f), Point(18.0f, 6.0f), Point(18.0f, 15.0f), Point(13.0f, 12.0f)};
+            DrawList->AddRect(Point(2.0f, 6.0f), Point(13.0f, 15.0f), Color, Scale, ImDrawFlags_None, Thickness);
+            DrawList->AddPolyline(Lens.data(), static_cast<int>(Lens.size()), Color, Thickness, ImDrawFlags_Closed);
+            break;
+        }
+
+        case EIcon::Skeleton:
+            Line(6.0f, 14.0f, 14.0f, 6.0f);
+            DrawList->AddCircle(Point(4.5f, 15.5f), 2.5f * Scale, Color, 12, Thickness);
+            DrawList->AddCircle(Point(15.5f, 4.5f), 2.5f * Scale, Color, 12, Thickness);
+            break;
+        case EIcon::Collision:
+            DrawList->AddRect(Point(5.0f, 2.0f), Point(15.0f, 18.0f), Color, 5.0f * Scale, ImDrawFlags_None, Thickness);
+            break;
+        case EIcon::Sprite: {
+            const std::array<ImVec2, 4> Hills{Point(3.0f, 15.0f), Point(8.0f, 10.0f), Point(11.0f, 13.0f), Point(17.0f, 8.0f)};
+            DrawList->AddRect(Point(2.0f, 3.0f), Point(18.0f, 17.0f), Color, Scale, ImDrawFlags_None, Thickness);
+            DrawList->AddCircleFilled(Point(7.0f, 7.5f), 1.5f * Scale, Color);
+            DrawList->AddPolyline(Hills.data(), static_cast<int>(Hills.size()), Color, Thickness, ImDrawFlags_None);
+            break;
+        }
+
+        case EIcon::Text:
+            Line(4.0f, 4.0f, 16.0f, 4.0f);
+            Line(10.0f, 4.0f, 10.0f, 17.0f);
+            Line(7.0f, 17.0f, 13.0f, 17.0f);
+            break;
+        case EIcon::Fog:
+            Line(2.0f, 6.0f, 14.0f, 6.0f);
+            Line(6.0f, 10.0f, 18.0f, 10.0f);
+            Line(2.0f, 14.0f, 14.0f, 14.0f);
+            break;
+        case EIcon::Sequence:
+            DrawList->AddRect(Point(2.0f, 4.0f), Point(18.0f, 16.0f), Color, Scale, ImDrawFlags_None, Thickness);
+            Line(7.0f, 4.0f, 7.0f, 16.0f);
+            Line(13.0f, 4.0f, 13.0f, 16.0f);
+            break;
+        case EIcon::Component: {
+            const std::array<ImVec2, 4> Diamond{Point(10.0f, 3.0f), Point(17.0f, 10.0f), Point(10.0f, 17.0f), Point(3.0f, 10.0f)};
+            DrawList->AddPolyline(Diamond.data(), static_cast<int>(Diamond.size()), Color, Thickness, ImDrawFlags_Closed);
+            break;
+        }
         }
     }
 

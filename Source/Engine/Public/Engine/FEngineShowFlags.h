@@ -41,6 +41,12 @@ namespace Engine {
         ReflectProperty(mFog, "Fog", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
+         * @brief 원근 뷰의 빈 배경에 기본 하늘을 그릴지 나타냅니다.
+         */
+        bool mSky{true};
+        ReflectProperty(mSky, "Sky", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+
+        /**
          * @brief 현재 뷰포트의 Scene Color에 FXAA를 적용할지 나타냅니다.
          */
         bool mFXAA{true};

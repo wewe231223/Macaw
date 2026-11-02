@@ -12,9 +12,11 @@
 #include "Asset/USkeletalMesh.h"
 #include "Asset/UTexture2D.h"
 #include "Asset/UMaterial.h"
+#include "Asset/Sequence/ULevelSequence.h"
 #include "FMaterialFile.h"
 #include "FMaterialAssetData.h"
 #include "CoreUObject/Reflection/NewObject.h"
+#include "Serialization/JsonArchive.h"
 #include "Serialization/MemoryArchive.h"
 #include "FAssetSerialization.h"
 #include "FTextureAssetData.h"
@@ -1065,6 +1067,92 @@ namespace Asset {
         mMaterials.emplace(Key, std::move(Material));
 
         return Result;
+    }
+
+    Asset::ULevelSequence* Asset::FAssetManager::LoadSequence(const std::filesystem::path& Path, Core::FString& Error) {
+        const Core::FString Key{CacheKey(GetRelativePath(Path, Error))};
+
+        if (Key.empty()) {
+            return nullptr;
+        }
+
+        const auto Existing{mSequences.find(Key)};
+
+        if (Existing != mSequences.end()) {
+            Asset::AssetStats::AssetCacheHits.Add();
+            return Existing->second.get();
+        }
+
+        Core::TArray<Core::Uint8> Payload{};
+
+        if (!Asset::FAssetFile::Load(ResolvePath(Path, Error), Asset::EAssetType::Sequence, Payload, Error)) {
+            return nullptr;
+        }
+
+        Serialization::FJsonArchive Archive{Core::EArchiveMode::Loading};
+
+        if (!Archive.Parse(Core::FString{reinterpret_cast<const char*>(Payload.data()), Payload.size()})) {
+            Error = Archive.GetError();
+            return nullptr;
+        }
+
+        auto Sequence{CoreUObject::NewObject<Asset::ULevelSequence>()};
+        Sequence->Serialize(Archive);
+
+        if (Archive.HasError()) {
+            Error = Archive.GetError();
+            return nullptr;
+        }
+
+        Asset::ULevelSequence* Result{Sequence.get()};
+
+        mSequences.emplace(Key, std::move(Sequence));
+
+        return Result;
+    }
+
+    Asset::ULevelSequence* Asset::FAssetManager::CreateSequence(const Core::FString& Name, std::filesystem::path& Path, Core::FString& Error) {
+        const auto Directory{mContentRoot / "Sequences"};
+        std::error_code Code{};
+        std::filesystem::create_directories(Directory, Code);
+
+        if (Code) {
+            Error = "Cannot create the sequence folder: " + Code.message();
+            return nullptr;
+        }
+
+        const auto Target{UniqueAssetPath(Directory, AssetFileName(Name, "Sequence"), Error)};
+        auto Sequence{CoreUObject::NewObject<Asset::ULevelSequence>()};
+
+        if (Target.empty() || !SaveSequence(Target, *Sequence, Error)) {
+            return nullptr;
+        }
+
+        Path = Target.lexically_relative(mContentRoot);
+        Asset::ULevelSequence* Result{Sequence.get()};
+        mSequences.emplace(CacheKey(GetRelativePath(Target, Error)), std::move(Sequence));
+
+        return Result;
+    }
+
+    bool Asset::FAssetManager::SaveSequence(const std::filesystem::path& Path, Asset::ULevelSequence& Sequence, Core::FString& Error) {
+        const auto Target{ResolvePath(Path, Error)};
+
+        if (Target.empty()) {
+            return false;
+        }
+
+        Serialization::FJsonArchive Archive{Core::EArchiveMode::Saving};
+        Sequence.Serialize(Archive);
+
+        if (Archive.HasError()) {
+            Error = Archive.GetError();
+            return false;
+        }
+
+        const Core::FString Payload{Archive.ToString()};
+
+        return Asset::FAssetFile::Save(Target, Asset::EAssetType::Sequence, std::span<const Core::Uint8>{reinterpret_cast<const Core::Uint8*>(Payload.data()), Payload.size()}, Error);
     }
 
     bool Asset::FAssetManager::SaveMaterial(const std::filesystem::path& Path, const Asset::UMaterial& Material, Core::FString& Error) {

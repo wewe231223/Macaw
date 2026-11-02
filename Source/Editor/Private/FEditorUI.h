@@ -15,6 +15,7 @@
 #include "Editor/Panel/FDetailsPanel.h"
 #include "Editor/Panel/FConsolePanel.h"
 #include "Editor/Panel/FPlaceActorsPanel.h"
+#include "Editor/Panel/FSequencerPanel.h"
 #include "FEditorViewportLayout.h"
 #include "Editor/FAssetPicker.h"
 #include "Editor/FImGuiUIScale.h"
@@ -415,6 +416,12 @@ namespace Editor {
          */
         Editor::FConsolePanel mConsolePanel;
         ReflectProperty(mConsolePanel, "ConsolePanel", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+
+        /**
+         * @brief 시퀀스 타임라인 편집 패널입니다.
+         */
+        Editor::FSequencerPanel mSequencerPanel;
+        ReflectProperty(mSequencerPanel, "SequencerPanel", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief ImGui 설정 파일 경로입니다.

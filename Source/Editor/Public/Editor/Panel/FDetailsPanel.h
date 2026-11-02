@@ -75,6 +75,11 @@ namespace Editor {
         void DrawComponentMenu();
 
         /**
+         * @brief 선택한 액터 하나와 그 컴포넌트를 고르는 트리를 표시합니다.
+         */
+        void DrawComponentTree();
+
+        /**
          * @brief 본 로컬 행렬을 편집하고 씬 변경 상태를 갱신합니다.
          * @param Component 편집할 스켈레탈 메시 컴포넌트입니다.
          */
