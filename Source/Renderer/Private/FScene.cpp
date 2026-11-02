@@ -220,7 +220,6 @@ namespace Renderer {
 
         Renderer::FObjectConstants& Constants{Primitive.mObjectConstants};
         Constants.mWorld = Primitive.mProxy.mWorld;
-        Constants.mShadowFlags.x = Primitive.mProxy.mReceiveShadow ? 1.0f : 0.0f;
         Constants.mUVTransform = {Primitive.mProxy.mUVScale.x, Primitive.mProxy.mUVScale.y, Primitive.mProxy.mUVOffset.x, Primitive.mProxy.mUVOffset.y};
 
         if (!Constants.mWorld.TryInverse(Constants.mWorldInverse)) {
@@ -253,11 +252,13 @@ namespace Renderer {
             return true;
         }
 
+        // 프록시가 다시 만들어져도 포즈가 그대로이면 다시 올리지 않습니다.
         if (Primitive.mSkinView != nullptr && Primitive.mProxy.mPoseRevision.IsValid() && Primitive.mUploadedPoseRevision == Primitive.mProxy.mPoseRevision) {
             return true;
         }
 
         // 각 본의 위치 변환과 법선 역전치를 함께 올려 비균일 스케일도 처리합니다.
+        // 한 원소의 배치(행렬 2개)는 Skinning.hlsl의 FSkinBone과 일치해야 합니다.
         Core::TArray<std::array<Core::FMatrix, 2>> Bones{};
         Bones.reserve(Primitive.mProxy.mSkinMatrices.size());
 
@@ -275,6 +276,7 @@ namespace Renderer {
             return false;
         }
 
+        // 버퍼가 없으면 Existing.ByteWidth가 0으로 남아 아래에서 새로 만듭니다. 크기가 같으면 기존 버퍼의 내용만 갱신합니다.
         const UINT Bytes{static_cast<UINT>(Bones.size() * sizeof(Bones[0]))};
         D3D11_BUFFER_DESC Existing{};
 

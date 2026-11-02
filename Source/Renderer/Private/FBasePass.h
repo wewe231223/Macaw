@@ -80,11 +80,6 @@ namespace Renderer {
         Asset::UMaterial* mDefaultMaterial{};
         ReflectProperty(mDefaultMaterial, "DefaultMaterial", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
-        /**
-         * @brief 머티리얼 파이프라인을 만들지 못한 SubMesh가 쓰는 기본 파이프라인입니다.
-         */
-        Renderer::FMaterialPipeline* mDefaultPipeline{};
-        ReflectProperty(mDefaultPipeline, "DefaultPipeline", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
 }

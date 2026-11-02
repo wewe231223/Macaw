@@ -225,6 +225,7 @@ namespace Asset {
         }
 
         // 메시 로컬 공간의 정점을 엔진 공간으로 옮기는 최종 변환입니다. 전역 변환 뒤에 Y 반전과 임포트 이동·회전·스케일(mBasis)을 적용합니다.
+        // 스킨 메시의 정점은 여기서 바인드 자세 그대로 엔진 공간에 구워지며, 포즈 변형은 런타임에 스키닝 행렬이 맡습니다.
         const Asset::FMeshImportTransform Transform{ToMatrix(MeshGlobal * Geometry) * mBasis};
         // 삼각형 꼭짓점(폴리곤 정점)마다 만든 정점의 본 가중치입니다. 스킨이 없으면 비워 둡니다.
         Core::TArray<Asset::FMeshImportSkinWeight> CornerWeights{};
@@ -352,7 +353,7 @@ namespace Asset {
                 }
 
                 // 위치는 이동을 포함한 전체 변환(노드 변환, Y 반전, 임포트 변환)으로 엔진 공간에 옮깁니다.
-                const Core::FVector Vertex{Transform.TransformPosition(ToVector(Mesh.GetControlPointAt(ControlPoint)))};
+                const Core::FVector Position{Transform.TransformPosition(ToVector(Mesh.GetControlPointAt(ControlPoint)))};
                 // 요소가 없을 때의 기본값입니다. 탄젠트·바이탄젠트는 0 벡터, 정점 색상은 흰색입니다.
                 FbxVector4 SourceNormal{};
                 FbxVector4 SourceTangent{};
@@ -383,14 +384,14 @@ namespace Asset {
 
                 const Core::FVector4 VertexColor{static_cast<float>(Color.mRed), static_cast<float>(Color.mGreen), static_cast<float>(Color.mBlue), static_cast<float>(Color.mAlpha)};
 
-                if (!Vertex.IsFinite() || !VertexColor.IsFinite()) {
+                if (!Position.IsFinite() || !VertexColor.IsFinite()) {
                     Error = "The FBX mesh contains invalid vertex attributes";
                     return false;
                 }
 
                 // 새 정점의 인덱스(추가 직전의 정점 수)를 이 삼각형 재질의 Section에 기록하고, 정점 속성을 각 스트림에 추가합니다.
                 Sections[LocalMaterial].push_back(static_cast<Core::Uint32>(Data.GetPositions().size()));
-                Data.GetPositions().push_back(Vertex);
+                Data.GetPositions().push_back(Position);
                 Data.GetNormals().push_back(Normal);
                 Data.GetTangents().push_back(Tangent);
                 Data.GetColors().push_back(VertexColor);
@@ -468,6 +469,7 @@ namespace Asset {
     }
 
     bool Asset::FFBXImporter::ReadSkeleton(FbxNode& Node, Core::Int32 ParentIndex, const Core::FMatrix& ParentBoneGlobal) {
+        // 이 노드가 본이 아니면 부모 본의 인덱스와 전역 변환을 그대로 자식에게 넘깁니다.
         Core::Int32 Index{ParentIndex};
         Core::FMatrix BoneGlobal{ParentBoneGlobal};
 
@@ -481,6 +483,7 @@ namespace Asset {
             // 클러스터가 있으면 클러스터의 바인드 시점 링크 변환을, 없으면(가중치가 없는 본) 시간 0의 전역 변환을 사용합니다.
             const Core::FMatrix SourceGlobal{BindPose != mBindPoses.end() ? BindPose->second : ToMatrix(Node.EvaluateGlobalTransform(FBXSDK_TIME_ZERO))};
 
+            // FBX 전역 공간의 본 변환을 정점과 같은 엔진 공간의 변환으로 바꿉니다.
             if (!Asset::FMeshImportTransform::ConvertTransform(mBasis, SourceGlobal, BoneGlobal) || !ParentBoneGlobal.TryInverse(ParentInverse)) {
                 GetError() = "The FBX skeleton cannot be converted to the engine space";
                 return false;
@@ -488,7 +491,10 @@ namespace Asset {
 
             // EvaluateLocalTransform은 직계 부모 노드 기준이라 사이에 일반 노드가 끼면 부모 본 기준과 달라지므로,
             // 전역 변환에서 부모 본의 전역 변환을 되돌려 부모 본 공간 기준의 로컬 변환을 구합니다. 루트 본은 장면 원점 기준입니다.
+            // 행 벡터 규약에서 Global = Local * ParentGlobal이므로 Local = Global * ParentGlobal⁻¹입니다.
+            // 전위 순회로 번호를 매기므로 부모의 인덱스는 항상 자식보다 작으며, USkeletalMesh와 FSkeletalMeshPose가 이 순서에 의존합니다.
             Index = static_cast<Core::Int32>(Bones.size());
+            // ReadSkinWeights가 클러스터의 링크 노드를 결과 본 인덱스로 바꿀 때 사용합니다.
             mBoneIndices.emplace(&Node, Index);
             Bones.emplace_back(Core::FString{Node.GetName()}, ParentIndex, BoneGlobal * ParentInverse);
         }
@@ -503,6 +509,8 @@ namespace Asset {
     }
 
     void Asset::FFBXImporter::CollectBindPoses() {
+        // FBX의 스킨 구조는 지오메트리 → 스킨 디포머(FbxSkin) → 클러스터(FbxCluster) 순이며, 클러스터 하나가 본 하나에 대응합니다.
+        // 시간 0의 자세는 바인드 자세와 다를 수 있으므로, 스킨을 묶은 시점의 값이 기록된 클러스터 행렬을 본 순회 전에 모아 둡니다.
         for (int GeometryIndex{}; GeometryIndex < mScene->GetGeometryCount(); ++GeometryIndex) {
             FbxGeometry* Geometry{mScene->GetGeometry(GeometryIndex)};
 
@@ -515,6 +523,7 @@ namespace Asset {
 
                     // 같은 본을 여러 메시가 링크하면 처음 만난 클러스터의 바인드 포즈를 사용합니다.
                     if (Link != nullptr && !mBindPoses.contains(Link)) {
+                        // TransformLinkMatrix는 바인딩 시점에 링크 노드(본)가 가졌던 전역 변환입니다.
                         FbxAMatrix LinkGlobal{};
                         Cluster->GetTransformLinkMatrix(LinkGlobal);
                         mBindPoses.emplace(Link, ToMatrix(LinkGlobal));
@@ -537,6 +546,7 @@ namespace Asset {
                 FbxCluster* Cluster{Skin->GetCluster(ClusterIndex)};
                 const auto Bone{mBoneIndices.find(Cluster->GetLink())};
 
+                // 링크 노드가 본으로 등록되지 않은 클러스터는 가중치를 연결할 대상이 없으므로 건너뜁니다.
                 if (Bone == mBoneIndices.end()) {
                     continue;
                 }
@@ -547,6 +557,8 @@ namespace Asset {
                     Found = true;
                 }
 
+                // 클러스터는 "이 본이 움직이는 제어점 목록"과 같은 길이의 가중치 목록을 가집니다.
+                // 엔진은 정점별로 본을 찾으므로 (본 → 제어점들)을 (제어점 → 본들)로 뒤집어 모읍니다.
                 const int* ControlPoints{Cluster->GetControlPointIndices()};
                 const double* ControlPointWeights{Cluster->GetControlPointWeights()};
 
@@ -558,6 +570,7 @@ namespace Asset {
             }
         }
 
+        // 유효한 클러스터가 없으면 스킨이 없는 메시입니다. Weights가 비어 있으므로 ReadMesh는 가중치를 기록하지 않습니다.
         if (!Found) {
             return false;
         }
@@ -663,6 +676,7 @@ namespace Asset {
 
         // 스켈레톤은 메시보다 먼저 읽어야 ReadMesh가 클러스터 링크 노드를 결과 본 인덱스로 바꿀 수 있습니다.
         if (Option.mImportSkeleton) {
+            // 바인드 포즈 수집 → 본 계층 구성 순서입니다. 클러스터가 링크한 노드를 알아야 ReadSkeleton이 본을 판별할 수 있습니다.
             CollectBindPoses();
 
             if (!ReadSkeleton(*mScene->GetRootNode(), -1, Core::FMatrix{})) {

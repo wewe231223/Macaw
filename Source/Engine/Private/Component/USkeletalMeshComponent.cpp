@@ -6,7 +6,6 @@
 #include "Engine/Component/USkeletalMeshComponent.h"
 #include "Asset/USkeletalMesh.h"
 #include "Asset/FAssetManager.h"
-#include "Asset/UMaterial.h"
 #include "Core/Archive.h"
 #include "Core/FilePath.h"
 #include "Core/Base/ErrorHandler.h"
@@ -29,6 +28,7 @@ namespace Engine {
     }
 
     Asset::UStaticMesh* USkeletalMeshComponent::GetStaticMesh() const {
+        // 공통 드로 경로에는 바인드 형상 버퍼를 넘기며, 변형은 정점 셰이더가 본 팔레트로 처리합니다.
         return mSkeletalMesh != nullptr ? mSkeletalMesh->GetGeometry() : nullptr;
     }
 
@@ -37,6 +37,7 @@ namespace Engine {
     }
 
     const Asset::FMeshData& USkeletalMeshComponent::GetMeshData() const {
+        // 피킹이 실제 보이는 표면과 일치하도록 에셋의 바인드 형상이 아니라 현재 포즈로 변형한 형상을 반환합니다.
         return mPose.GetMeshData();
     }
 
@@ -69,8 +70,7 @@ namespace Engine {
 
         // 다른 에셋으로 바꾸면 이전 에셋의 본 번호와 슬롯 오버라이드는 폐기합니다.
         if (mMeshPath != Path) {
-            mMaterialOverrides.clear();
-            mPendingPose.clear();
+            ClearMaterialOverrides();
             mPose = Engine::FSkeletalMeshPose{};
         }
 
@@ -85,20 +85,25 @@ namespace Engine {
         Asset::USkeletalMesh* Mesh{LoadMesh(mMeshPath)};
 
         if (Mesh != mSkeletalMesh || (Mesh != nullptr && mPose.GetMeshRevision() != Mesh->GetRevision())) {
+            const bool MeshReimported{Mesh != nullptr && mPose.GetMeshRevision().IsValid() && mPose.GetMeshRevision() != Mesh->GetRevision()};
             mSkeletalMesh = Mesh;
-            mPose = Engine::FSkeletalMeshPose{};
+            mPose.Invalidate();
 
-            if (Mesh != nullptr && !mPose.Reset(*Mesh)) {
-                mSkeletalMesh = nullptr;
-                return false;
-            }
+            if (Mesh != nullptr) {
+                bool PoseReady{false};
 
-            if (Mesh != nullptr && !mPendingPose.empty()) {
-                if (!mPose.SetLocalTransforms(*Mesh, mPendingPose)) {
-                    Core::ErrorHandler::Report("SkeletalMesh", "Stored pose does not match the skeletal mesh; using bind pose", Core::ErrorHandler::EErrorLevel::Warning);
+                if (!MeshReimported && !mPose.GetLocalTransforms().empty()) {
+                    PoseReady = mPose.Recalculate(*Mesh);
+
+                    if (!PoseReady) {
+                        Core::ErrorHandler::Report("SkeletalMesh", "Stored pose does not match the skeletal mesh; using bind pose", Core::ErrorHandler::EErrorLevel::Warning);
+                    }
                 }
 
-                mPendingPose.clear();
+                if (!PoseReady && !mPose.Reset(*Mesh)) {
+                    mSkeletalMesh = nullptr;
+                    return false;
+                }
             }
 
             MarkRenderStateDirty();
@@ -122,7 +127,9 @@ namespace Engine {
     }
 
     bool USkeletalMeshComponent::SetLocalPose(const Core::TArray<Core::FMatrix>& Transforms) {
-        if (mSkeletalMesh == nullptr || !mPose.SetLocalTransforms(*mSkeletalMesh, Transforms)) {
+        const bool Updated{mSkeletalMesh != nullptr ? mPose.SetLocalTransforms(*mSkeletalMesh, Transforms) : mPose.SetLocalTransforms(Transforms)};
+
+        if (!Updated) {
             return false;
         }
 
@@ -140,28 +147,19 @@ namespace Engine {
     }
 
     bool USkeletalMeshComponent::ShouldCreateRenderState() const {
-        return mSkeletalMesh != nullptr && mPose.GetSkinMatrices().size() == mSkeletalMesh->GetBones().size();
-    }
-
-    void USkeletalMeshComponent::OnRegister() {
-        ResolveMesh();
-        ResolveMaterial();
+        return mSkeletalMesh != nullptr && mPose.GetMeshRevision() == mSkeletalMesh->GetRevision() && mPose.GetSkinMatrices().size() == mSkeletalMesh->GetBones().size();
     }
 
     void USkeletalMeshComponent::UnregisterComponent() {
-        // 복제·레벨 재연결 때 현재 로컬 포즈를 새 월드의 에셋에 다시 적용합니다.
-        if (mSkeletalMesh != nullptr) {
-            mPendingPose = mPose.GetLocalTransforms();
-        }
+        Engine::UWorld::FDispatchScope Scope{GetWorld()};
 
-        Engine::UPrimitiveComponent::UnregisterComponent();
+        Engine::UMeshComponent::UnregisterComponent();
         mSkeletalMesh = nullptr;
-        mMaterial = nullptr;
-        mPose = Engine::FSkeletalMeshPose{};
+        mPose.Invalidate();
     }
 
     void USkeletalMeshComponent::Tick(float DeltaTime) {
-        Engine::UPrimitiveComponent::Tick(DeltaTime);
+        Engine::UMeshComponent::Tick(DeltaTime);
 
         if (mSkeletalMesh != nullptr && mPose.GetMeshRevision() != mSkeletalMesh->GetRevision()) {
             ResolveMesh();
@@ -185,156 +183,22 @@ namespace Engine {
         return Mesh;
     }
 
-    const Core::FString& Engine::USkeletalMeshComponent::GetMaterialPath() const {
-        return mMaterialPath;
-    }
-
-    bool Engine::USkeletalMeshComponent::SetMaterialPath(const Core::FString& Path) {
-        if (Path.find('\0') != Core::FString::npos) {
-            return false;
-        }
-
-        const std::filesystem::path AssetPath{Core::FilePath::FromUtf8(Path)};
-
-        if (!Path.empty() && (AssetPath.has_root_path() || AssetPath.extension() != L".masset")) {
-            return false;
-        }
-
-        for (const auto& Part : AssetPath) {
-            if (Part == L"..") {
-                return false;
-            }
-        }
-
-        if (mMaterialPath == Path && (Path.empty() || mMaterial != nullptr)) {
-            return true;
-        }
-
-        Asset::UMaterial* Material{LoadMaterial(Path)};
-
-        if (!Path.empty() && GetWorld() != nullptr && GetWorld()->GetAssets() != nullptr && Material == nullptr) {
-            return false;
-        }
-
-        mMaterialPath = Path;
-        mMaterial = Material;
-        MarkRenderStateDirty();
-
-        return true;
-    }
-
-    Asset::UMaterial* Engine::USkeletalMeshComponent::GetMaterial() const {
-        return mMaterial;
-    }
-
-    bool Engine::USkeletalMeshComponent::ResolveMaterial() {
-        Asset::UMaterial* Material{LoadMaterial(mMaterialPath)};
-
-        if (mMaterial != Material) {
-            mMaterial = Material;
-            MarkRenderStateDirty();
-        }
-
-        return mMaterialPath.empty() || mMaterial != nullptr;
-    }
-
     Engine::FPrimitiveSceneProxy Engine::USkeletalMeshComponent::CreateSceneProxy() const {
-        Engine::FPrimitiveSceneProxy Proxy{Engine::UPrimitiveComponent::CreateSceneProxy()};
-        Proxy.mMaterial = mMaterial;
+        Engine::FPrimitiveSceneProxy Proxy{Engine::UMeshComponent::CreateSceneProxy()};
         Proxy.mSkeletalMesh = mSkeletalMesh;
+        // 렌더러는 프록시에 복사한 스키닝 행렬만 읽으며, 개정이 같으면 FScene::UploadSkinning이 업로드를 건너뜁니다.
         Proxy.mSkinMatrices = mPose.GetSkinMatrices();
         Proxy.mPoseRevision = mPose.GetRevision();
-
-        if (mSkeletalMesh != nullptr) {
-            for (Core::Uint32 Slot{}; Slot < mSkeletalMesh->GetMeshData().GetMaterialSlots().size(); ++Slot) {
-                Proxy.mMaterials.push_back(GetSlotMaterial(Slot));
-            }
-        }
 
         return Proxy;
     }
 
-    const Core::FString& Engine::USkeletalMeshComponent::GetSlotMaterialPath(Core::Uint32 Slot) const {
-        static const Core::FString Empty{};
-        return Slot < mMaterialOverrides.size() ? mMaterialOverrides[Slot] : Empty;
-    }
-
-    Asset::UMaterial* Engine::USkeletalMeshComponent::GetSlotMaterial(Core::Uint32 Slot) const {
-        if (mMaterial != nullptr) {
-            return mMaterial;
-        }
-
-        if (!GetSlotMaterialPath(Slot).empty()) {
-            return LoadMaterial(GetSlotMaterialPath(Slot));
-        }
-
-        return mSkeletalMesh != nullptr && Slot < mSkeletalMesh->GetMeshData().GetMaterialSlots().size() ? LoadMaterial(mSkeletalMesh->GetMeshData().GetMaterialSlots()[Slot].GetMaterialPath()) : nullptr;
-    }
-
-    bool Engine::USkeletalMeshComponent::SetSlotMaterialPath(Core::Uint32 Slot, const Core::FString& Path) {
-        if (mSkeletalMesh == nullptr || Slot >= mSkeletalMesh->GetMeshData().GetMaterialSlots().size()) {
-            return false;
-        }
-
-        const std::filesystem::path AssetPath{Core::FilePath::FromUtf8(Path)};
-
-        if (Path.find('\0') != Core::FString::npos || (!Path.empty() && (AssetPath.has_root_path() || AssetPath.extension() != L".masset" || LoadMaterial(Path) == nullptr))) {
-            return false;
-        }
-
-        for (const auto& Part : AssetPath) {
-            if (Part == L"..") {
-                return false;
-            }
-        }
-
-        if (mMaterialOverrides.size() <= Slot) {
-            mMaterialOverrides.resize(Slot + 1);
-        }
-
-        mMaterialOverrides[Slot] = Path;
-        MarkRenderStateDirty();
-
-        return true;
-    }
-
     void Engine::USkeletalMeshComponent::Serialize(Core::FArchive& Archive) {
-        Engine::UPrimitiveComponent::Serialize(Archive);
-
-        if (Archive.HasError() || (Archive.IsLoading() && !Archive.HasField("SlotMaterials"))) {
-            return;
-        }
-
-        Core::Uint32 Count{Archive.IsLoading() ? 0 : static_cast<Core::Uint32>(mMaterialOverrides.size())};
-
-        if (!Archive.BeginArray("SlotMaterials", Count)) {
-            return;
-        }
-
-        if (Archive.IsLoading()) {
-            mMaterialOverrides.resize(Count);
-        }
-
-        for (Core::Uint32 Slot{}; Slot < Count && !Archive.HasError(); ++Slot) {
-            Archive.Serialize(std::to_string(Slot), mMaterialOverrides[Slot]);
-
-            const auto Path{Core::FilePath::FromUtf8(mMaterialOverrides[Slot])};
-            bool Valid{mMaterialOverrides[Slot].find('\0') == Core::FString::npos && (Path.empty() || (!Path.has_root_path() && Path.extension() == L".masset"))};
-
-            for (const auto& Part : Path) {
-                Valid = Valid && Part != L"..";
-            }
-
-            if (!Valid) {
-                Archive.SetError("Invalid slot material reference");
-            }
-        }
-
-        Archive.EndArray();
+        Engine::UMeshComponent::Serialize(Archive);
 
         // 전역 행렬과 피킹 형상은 복원 시 다시 계산하고 로컬 포즈만 저장합니다.
         if (!Archive.HasError() && (!Archive.IsLoading() || Archive.HasField("BoneLocalTransforms"))) {
-            Core::TArray<Core::FMatrix> Transforms{Archive.IsLoading() ? Core::TArray<Core::FMatrix>{} : mSkeletalMesh != nullptr ? mPose.GetLocalTransforms() : mPendingPose};
+            Core::TArray<Core::FMatrix> Transforms{Archive.IsLoading() ? Core::TArray<Core::FMatrix>{} : mPose.GetLocalTransforms()};
             Core::Uint32 BoneCount{static_cast<Core::Uint32>(Transforms.size())};
 
             if (Archive.BeginArray("BoneLocalTransforms", BoneCount)) {
@@ -356,31 +220,18 @@ namespace Engine {
                 Archive.EndArray();
             }
 
-            if (Archive.IsLoading() && !Archive.HasError()) {
-                mPendingPose = std::move(Transforms);
+            if (Archive.IsLoading() && !Archive.HasError() && !mPose.SetLocalTransforms(std::move(Transforms))) {
+                Archive.SetError("Invalid skeletal pose transform");
             }
         }
 
         if (Archive.IsLoading()) {
+            if (!Archive.HasError() && mSkeletalMesh != nullptr) {
+                ResolveMesh();
+            }
+
             MarkRenderStateDirty();
         }
-    }
-
-    Asset::UMaterial* Engine::USkeletalMeshComponent::LoadMaterial(const Core::FString& Path) const {
-        Asset::FAssetManager* Assets{GetWorld() != nullptr ? GetWorld()->GetAssets() : nullptr};
-
-        if (Assets == nullptr || Path.empty()) {
-            return nullptr;
-        }
-
-        Core::FString Error{};
-        Asset::UMaterial* Material{Assets->LoadMaterial(Core::FilePath::FromUtf8(Path), Error)};
-
-        if (Material == nullptr) {
-            Core::ErrorHandler::Report("Material", "Cannot load material '" + Path + "': " + Error, Core::ErrorHandler::EErrorLevel::Warning);
-        }
-
-        return Material;
     }
 
 }

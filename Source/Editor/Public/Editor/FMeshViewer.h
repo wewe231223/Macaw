@@ -12,6 +12,10 @@
 #include "Core/Guid.h"
 #include "Core/Math/FRotator.h"
 #include "Core/Math/FVector.h"
+#include "Core/Math/FVector2.h"
+#include "Core/Math/FMatrix.h"
+#include "Editor/FGizmoCore.h"
+#include "Engine/FSceneView.h"
 #include "Engine/EViewMode.h"
 #include "Engine/FSkeletalMeshPose.h"
 
@@ -120,8 +124,44 @@ namespace Editor {
          */
         void DrawMaterials();
 
-        /** @brief 본 선택·회전·바인드 포즈 복원 UI를 표시합니다. */
+        /**
+         * @brief 미리보기 옆에 본 계층 선택·기즈모 설정·포즈 복원 패널을 표시합니다.
+         */
         void DrawPose();
+
+        /**
+         * @brief 본 하나와 그 자손을 계층 트리 노드로 표시하고 클릭하면 조작 대상으로 선택합니다.
+         * @param Bone 표시할 본 번호입니다.
+         * @param Children 본 번호별 자식 본 번호 목록입니다.
+         */
+        void DrawBoneNode(Core::Uint32 Bone, const Core::TArray<Core::TArray<Core::Uint32>>& Children);
+
+        /**
+         * @brief 현재 궤도 카메라의 렌더링과 입력 해석에 쓸 뷰를 계산합니다.
+         * @param Size 미리보기의 픽셀 크기입니다.
+         * @return 계산한 카메라 뷰입니다.
+         */
+        Engine::FSceneView CalcSceneView(const Core::FVector2& Size) const;
+
+        /**
+         * @brief 선택한 본의 현재 전역 포즈로 기즈모 배치를 구성합니다.
+         * @return 공통 코어에 전달할 기즈모 배치입니다.
+         */
+        Editor::FGizmoPlacement GetBonePlacement() const;
+
+        /**
+         * @brief 기즈모의 호버와 드래그 입력을 처리합니다.
+         * @param View 입력 해석에 사용할 카메라 뷰입니다.
+         * @param Mouse 미리보기 기준 마우스 픽셀 좌표입니다.
+         * @param Hovered 마우스가 미리보기 위에 있으면 true입니다.
+         * @return 기즈모가 마우스를 사용 중이어서 카메라 조작을 막아야 하면 true입니다.
+         */
+        bool UpdateBoneGizmo(const Engine::FSceneView& View, const Core::FVector2& Mouse, bool Hovered);
+
+        /**
+         * @brief 기즈모의 드래그 결과를 선택한 본의 부모 기준 로컬 변환으로 바꾸어 적용합니다.
+         */
+        void ApplyBoneGizmo();
 
         /**
          * @brief 카메라 입력을 처리하고 공통 렌더 경로로 메시와 본 보조 선분을 그리며 아이콘·스프라이트·텍스트 표시는 제외합니다.
@@ -159,19 +199,49 @@ namespace Editor {
         Asset::UStaticMesh* mMesh{};
         ReflectProperty(mMesh, "Mesh", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
-        /** @brief 스켈레탈 미리보기에서 사용하는 공유 에셋입니다. */
+        /**
+         * @brief 스켈레탈 미리보기에서 사용하는 공유 에셋입니다.
+         */
         Asset::USkeletalMesh* mSkeletalMesh{};
         ReflectProperty(mSkeletalMesh, "SkeletalMesh", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
-        /** @brief 미리보기 객체만의 현재 포즈입니다. */
+        /**
+         * @brief 미리보기 객체만의 현재 포즈입니다.
+         */
         Engine::FSkeletalMeshPose mPose{};
         ReflectProperty(mPose, "Pose", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
-        /** @brief 본마다 바인드 포즈 앞에 적용할 임시 회전입니다. */
-        Core::TArray<Core::FRotator> mBoneRotations{};
-        ReflectProperty(mBoneRotations, "BoneRotations", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
-        /** @brief 회전 조작 대상으로 선택한 본입니다. */
+        /**
+         * @brief 본 조작에 사용하는 기즈모 표시와 드래그 계산입니다.
+         */
+        Editor::FGizmoCore mGizmo{};
+        ReflectProperty(mGizmo, "Gizmo", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+        /**
+         * @brief 본 기즈모의 변환 모드입니다.
+         */
+        Editor::EGizmoMode mGizmoMode{Editor::EGizmoMode::Rotate};
+        ReflectProperty(mGizmoMode, "GizmoMode", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+        /**
+         * @brief 본 기즈모 축의 좌표계입니다.
+         */
+        Editor::EGizmoSpace mGizmoSpace{Editor::EGizmoSpace::Local};
+        ReflectProperty(mGizmoSpace, "GizmoSpace", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+        /**
+         * @brief 드래그 시작 시 선택한 본의 전역 변환입니다.
+         */
+        Core::FMatrix mDragStartGlobal{};
+        ReflectProperty(mDragStartGlobal, "DragStartGlobal", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+        /**
+         * @brief 드래그를 취소할 때 복원할 선택한 본의 로컬 변환입니다.
+         */
+        Core::FMatrix mDragStartLocal{};
+        ReflectProperty(mDragStartLocal, "DragStartLocal", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+        /**
+         * @brief 기즈모 조작 대상으로 선택한 본입니다.
+         */
         Core::Uint32 mPoseBone{};
         ReflectProperty(mPoseBone, "PoseBone", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
-        /** @brief 현재 본 계층을 보조 선분으로 표시할지 지정합니다. */
+        /**
+         * @brief 현재 본 계층을 보조 선분으로 표시할지 지정합니다.
+         */
         bool mShowBones{true};
         ReflectProperty(mShowBones, "ShowBones", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 

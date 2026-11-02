@@ -31,6 +31,7 @@ namespace Renderer {
     class FTextRenderer;
     class FSpriteRenderer;
     class FMaterialPipeline;
+    class FShaderInstance;
     class FLightingResources;
     class FShadowResources;
     class FPostProcessResources;
@@ -233,7 +234,7 @@ namespace Renderer {
          * @param[in] Skinned 객체별 본 포즈를 적용하는 변형을 선택하려면 true입니다.
          * @return 대상의 비소유 주소이며, 없거나 유효하지 않으면 nullptr입니다.
          */
-        Renderer::FMaterialPipeline* GetMaterialPipeline(const Asset::UMaterial& Material, Engine::EViewMode Mode = Engine::EViewMode::Lit_Phong, bool Skinned = false);
+        Renderer::FMaterialPipeline* GetMaterialPipeline(const Asset::UMaterial& Material, Engine::EViewMode Mode = Engine::EViewMode::Lit_Phong, bool Skinned = false, bool ReceiveShadows = true);
 
         /**
          * @brief 그림자 아틀라스 깊이 패스에 사용할 깊이 전용 파이프라인을 반환합니다.
@@ -256,6 +257,8 @@ namespace Renderer {
         void SetProjectPaths(const std::filesystem::path& ContentRoot, const std::filesystem::path& CacheDirectory);
 
     private:
+        std::shared_ptr<Renderer::FShaderInstance> GetShaderInstance(const RenderCore::FShaderDescription& Description, Renderer::EMeshPass Pass, bool Instanced, bool Skinned);
+
         /**
          * @brief 스왑 체인을 조정하고 백 버퍼 렌더 타깃 뷰를 생성합니다.
          * @param[in] Width 창 클라이언트 영역의 가로 픽셀 수입니다.
@@ -422,6 +425,9 @@ namespace Renderer {
          */
         Core::TMap<Core::FString, std::unique_ptr<Renderer::FMaterialPipeline>> mMaterialPipelines{};
         ReflectProperty(mMaterialPipelines, "MaterialPipelines", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+
+        Core::TMap<Core::FString, std::shared_ptr<Renderer::FShaderInstance>> mShaderInstances{};
+        ReflectProperty(mShaderInstances, "ShaderInstances", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 폰트 아틀라스 텍스트 렌더러입니다.

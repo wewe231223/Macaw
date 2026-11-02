@@ -81,15 +81,21 @@ namespace Engine {
         Asset::UStaticMesh* mMesh{};
         ReflectProperty(mMesh, "Mesh", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
-        /** @brief 스키닝할 공유 에셋이며 mMesh는 이 에셋의 바인드 형상을 가리킵니다. */
+        /**
+         * @brief 스키닝할 공유 에셋이며 mMesh는 이 에셋의 바인드 형상을 가리킵니다.
+         */
         Asset::USkeletalMesh* mSkeletalMesh{};
         ReflectProperty(mSkeletalMesh, "SkeletalMesh", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
-        /** @brief 이 객체의 바인드 위치를 현재 메시 공간 위치로 옮기는 본 행렬입니다. */
+        /**
+         * @brief 이 객체의 바인드 위치를 현재 메시 공간 위치로 옮기는 본 행렬입니다.
+         */
         Core::TArray<Core::FMatrix> mSkinMatrices{};
         ReflectProperty(mSkinMatrices, "SkinMatrices", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
-        /** @brief 월드 행렬이 같아도 포즈 업로드와 그림자 무효화를 구분하는 개정입니다. */
+        /**
+         * @brief 월드 행렬이 같아도 포즈 업로드와 그림자 무효화를 구분하는 개정입니다.
+         */
         Core::FRevision mPoseRevision{};
         ReflectProperty(mPoseRevision, "PoseRevision", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 

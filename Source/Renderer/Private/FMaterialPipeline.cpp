@@ -5,30 +5,30 @@
  */
 
 #include "FMaterialPipeline.h"
-#include "FObjectConstants.h"
 
-#include <array>
+#include "FShaderInstance.h"
+
 #include <utility>
 
 namespace Renderer {
 
-    Renderer::FMaterialPipeline::FMaterialPipeline(Renderer::EMeshPass Pass, std::shared_ptr<const RenderCore::FShader> VertexCode, std::shared_ptr<const RenderCore::FShader> PixelCode, bool TwoSided, bool Instanced, bool Skinned)
+    Renderer::FMaterialPipeline::FMaterialPipeline(Renderer::EMeshPass Pass, std::shared_ptr<Renderer::FShaderInstance> VertexShader, std::shared_ptr<Renderer::FShaderInstance> PixelShader, bool TwoSided, bool Instanced, bool Skinned)
 		: mPass{Pass},
 		  mSkinned{Skinned},
-		  mVertexCode{std::move(VertexCode)},
-		  mPixelCode{std::move(PixelCode)},
 		  mTwoSided{TwoSided},
-		  mInstanced{Instanced && !Skinned} {
+		  mInstanced{Instanced && !Skinned},
+		  mVertexShader{std::move(VertexShader)},
+		  mPixelShader{std::move(PixelShader)} {
     }
 
     Renderer::FMaterialPipeline::~FMaterialPipeline() = default;
 
     bool Renderer::FMaterialPipeline::IsCurrent() const {
-        return HasResources() && mVertexRevision == mVertexCode->GetRevision() && (mPixelCode == nullptr || mPixelRevision == mPixelCode->GetRevision());
+        return HasResources() && mVertexShader->IsCurrent() && (mPixelShader == nullptr || mPixelShader->IsCurrent());
     }
 
     bool Renderer::FMaterialPipeline::HasResources() const {
-        return mVertexShader != nullptr && (mPixelCode == nullptr || mPixelShader != nullptr) && mInputLayout != nullptr && mRasterizer != nullptr;
+        return mVertexShader != nullptr && mVertexShader->HasResources() && (mPixelShader == nullptr || mPixelShader->HasResources()) && mRasterizer != nullptr;
     }
 
     bool Renderer::FMaterialPipeline::IsInstanced() const {
@@ -40,101 +40,48 @@ namespace Renderer {
     }
 
     Core::Uint64 Renderer::FMaterialPipeline::GetVertexRevision() const {
-        return mVertexRevision;
+        return mVertexShader != nullptr ? mVertexShader->GetRevision() : 0;
     }
 
     bool Renderer::FMaterialPipeline::CreateResources(ID3D11Device* Device, Core::FString& Error) {
         Error.clear();
 
-        const bool DepthOnly{mPass == Renderer::EMeshPass::ShadowDepth};
-
-        if (Device == nullptr || mVertexCode == nullptr || (!DepthOnly && mPixelCode == nullptr)) {
+        if (Device == nullptr || mVertexShader == nullptr || (mPass != Renderer::EMeshPass::ShadowDepth && mPixelShader == nullptr)) {
             Error = "Invalid material shader";
             return false;
         }
 
-        const auto VertexCompilation{mVertexCode->GetCompilation()};
-        const std::span<const Core::Uint8> VertexBytes{VertexCompilation->mByteCode};
-        Core::TArray<D3D11_INPUT_ELEMENT_DESC> Elements{{"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0}};
-
-        // 슬롯 4는 기존 인스턴스 입력에 남겨 두고 스킨 입력은 슬롯 5를 사용합니다.
-        if (mSkinned) {
-            Elements.insert(Elements.end(), {{"BLENDINDICES", 0, DXGI_FORMAT_R32G32B32A32_UINT, 5, 0, D3D11_INPUT_PER_VERTEX_DATA, 0}, {"BLENDWEIGHT", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 5, 16, D3D11_INPUT_PER_VERTEX_DATA, 0}});
+        if (!mVertexShader->CreateResources(Device, Error) || (mPixelShader != nullptr && !mPixelShader->CreateResources(Device, Error))) {
+            return false;
         }
 
-        if (!DepthOnly) {
-            Elements.insert(Elements.end(), {{"NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 1, 0, D3D11_INPUT_PER_VERTEX_DATA, 0}, {"TANGENT", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 12, D3D11_INPUT_PER_VERTEX_DATA, 0}, {"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 2, 0, D3D11_INPUT_PER_VERTEX_DATA, 0}, {"COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 3, 0, D3D11_INPUT_PER_VERTEX_DATA, 0}});
+        if (mRasterizer != nullptr) {
+            return true;
         }
 
-        if (mInstanced) {
-            for (UINT Row{}; Row < 4; ++Row) {
-                Elements.push_back({"INSTANCE_WORLD", Row, DXGI_FORMAT_R32G32B32A32_FLOAT, 4, static_cast<UINT>(offsetof(Renderer::FObjectConstants, mWorld)) + Row * 16, D3D11_INPUT_PER_INSTANCE_DATA, 1});
-
-                if (!DepthOnly) {
-                    Elements.push_back({"INSTANCE_INVERSE", Row, DXGI_FORMAT_R32G32B32A32_FLOAT, 4, static_cast<UINT>(offsetof(Renderer::FObjectConstants, mWorldInverse)) + Row * 16, D3D11_INPUT_PER_INSTANCE_DATA, 1});
-                }
-            }
-
-            if (!DepthOnly) {
-                Elements.push_back({"INSTANCE_UV", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 4, static_cast<UINT>(offsetof(Renderer::FObjectConstants, mUVTransform)), D3D11_INPUT_PER_INSTANCE_DATA, 1});
-                Elements.push_back({"INSTANCE_SHADOW", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 4, static_cast<UINT>(offsetof(Renderer::FObjectConstants, mShadowFlags)), D3D11_INPUT_PER_INSTANCE_DATA, 1});
-            }
-        }
-
-        Microsoft::WRL::ComPtr<ID3D11VertexShader> Vertex{};
-        Microsoft::WRL::ComPtr<ID3D11PixelShader> Pixel{};
-        Microsoft::WRL::ComPtr<ID3D11InputLayout> Layout{};
-        Microsoft::WRL::ComPtr<ID3D11RasterizerState> Rasterizer{};
         D3D11_RASTERIZER_DESC Description{};
         Description.FillMode = D3D11_FILL_SOLID;
         Description.CullMode = mTwoSided ? D3D11_CULL_NONE : D3D11_CULL_BACK;
         Description.DepthClipEnable = true;
-        Description.ScissorEnable = DepthOnly;
+        Description.ScissorEnable = mPass == Renderer::EMeshPass::ShadowDepth;
 
-        if (mPixelCode != nullptr) {
-            const auto PixelCompilation{mPixelCode->GetCompilation()};
-            const std::span<const Core::Uint8> PixelBytes{PixelCompilation->mByteCode};
-
-            if (FAILED(Device->CreatePixelShader(PixelBytes.data(), PixelBytes.size(), nullptr, Pixel.GetAddressOf()))) {
-                Error = "Cannot create the material pipeline";
-                return false;
-            }
-        }
-
-        if (FAILED(Device->CreateVertexShader(VertexBytes.data(), VertexBytes.size(), nullptr, Vertex.GetAddressOf())) || FAILED(Device->CreateInputLayout(Elements.data(), static_cast<UINT>(Elements.size()), VertexBytes.data(), VertexBytes.size(), Layout.GetAddressOf())) || FAILED(Device->CreateRasterizerState(&Description, Rasterizer.GetAddressOf()))) {
-            Error = "Cannot create the material pipeline";
+        if (FAILED(Device->CreateRasterizerState(&Description, mRasterizer.GetAddressOf()))) {
+            Error = "Cannot create the material rasterizer";
             return false;
         }
-
-        mVertexShader = std::move(Vertex);
-        mPixelShader = std::move(Pixel);
-        mInputLayout = std::move(Layout);
-        mRasterizer = std::move(Rasterizer);
-        mVertexRevision = mVertexCode->GetRevision();
-        mPixelRevision = mPixelCode != nullptr ? mPixelCode->GetRevision() : 0;
 
         return true;
     }
 
     void Renderer::FMaterialPipeline::Bind(ID3D11DeviceContext* Context) const {
-        /**
-         * @brief 사용할 정점 셰이더의 비소유 주소입니다.
-         */
-        ID3D11VertexShader* VertexShader{mVertexShader.Get()};
+        mVertexShader->Bind(Context);
 
-        /**
-         * @brief 사용할 픽셀 셰이더의 비소유 주소입니다.
-         */
-        ID3D11PixelShader* PixelShader{mPixelShader.Get()};
+        if (mPixelShader != nullptr) {
+            mPixelShader->Bind(Context);
+        } else {
+            Context->PSSetShader(nullptr, nullptr, 0);
+        }
 
-        /**
-         * @brief 사용할 정점 입력 레이아웃의 비소유 주소입니다.
-         */
-        ID3D11InputLayout* InputLayout{mInputLayout.Get()};
-
-        Context->VSSetShader(VertexShader, nullptr, 0);
-        Context->PSSetShader(PixelShader, nullptr, 0);
-        Context->IASetInputLayout(InputLayout);
         Context->RSSetState(mRasterizer.Get());
     }
 

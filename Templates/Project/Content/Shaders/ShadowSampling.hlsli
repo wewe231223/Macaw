@@ -123,11 +123,10 @@ float SampleShadowMap(uint Index, float3 Position, float3 Normal, float3 LightDi
  * @param[in] Normal 월드 공간 표면 법선입니다.
  * @param[in] PositionDx 화면 X축에 대한 월드 위치 미분입니다.
  * @param[in] PositionDy 화면 Y축에 대한 월드 위치 미분입니다.
- * @param[in] ReceiveShadow 0.5 이상이면 그림자를 수신합니다.
- * @return 광원의 그림자 가시성 계수이며 그림자가 없거나 수신을 끄면 1입니다.
+ * @return 광원의 그림자 가시성 계수이며 그림자가 없으면 1입니다.
  */
-float ShadowVisibility(FLight Light, float3 Position, float3 Normal, float3 PositionDx, float3 PositionDy, float ReceiveShadow) {
-    if (Light.mShadowInfo.x < 1.0f || ReceiveShadow < 0.5f) {
+float ShadowVisibility(FLight Light, float3 Position, float3 Normal, float3 PositionDx, float3 PositionDy) {
+    if (Light.mShadowInfo.x < 1.0f) {
         return 1.0f;
     }
 
@@ -174,18 +173,4 @@ float ShadowVisibility(FLight Light, float3 Position, float3 Normal, float3 Posi
     }
 
     return SampleShadowMap(Start + Face, Position, Normal, L, PositionDx, PositionDy);
-}
-
-/**
- * @brief 광원 종류에 맞는 그림자 면·캐스케이드를 선택하고 전환 구간을 혼합합니다.
- * @param[in] Light 평가할 광원의 GPU 정보입니다.
- * @param[in] Position 조명을 평가할 월드 공간 위치입니다.
- * @param[in] Normal 월드 공간 표면 법선입니다.
- * @param[in] PositionDx 화면 X축에 대한 월드 위치 미분입니다.
- * @param[in] PositionDy 화면 Y축에 대한 월드 위치 미분입니다.
- * @return 광원의 그림자 가시성 계수이며 그림자가 없거나 수신을 끄면 1입니다.
- * @note 그림자 수신 여부는 현재 객체 상수 ShadowFlags.x를 사용합니다.
- */
-float ShadowVisibility(FLight Light, float3 Position, float3 Normal, float3 PositionDx, float3 PositionDy) {
-    return ShadowVisibility(Light, Position, Normal, PositionDx, PositionDy, ShadowFlags.x);
 }

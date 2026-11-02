@@ -333,9 +333,9 @@ namespace Renderer {
             }
         }
 
-        const bool Lit{Family.mViewMode == Engine::EViewMode::Lit_Gouraud || Family.mViewMode == Engine::EViewMode::Lit_Lambert || Family.mViewMode == Engine::EViewMode::Lit_Phong};
+        const bool SupportsShadows{Family.mViewMode == Engine::EViewMode::Lit_Lambert || Family.mViewMode == Engine::EViewMode::Lit_Phong};
 
-        if (Lit && Family.mShowFlags.mShadows && Family.mShowFlags.mPrimitives) {
+        if (SupportsShadows && Family.mShowFlags.mShadows && Family.mShowFlags.mPrimitives) {
             Build(Scene, Family, Stats);
         }
 

@@ -79,10 +79,19 @@ namespace Asset {
         static bool IsSupported(const std::filesystem::path& Source);
 
         /**
-         * @brief 원본 메시 파일을 읽어 정점·삼각형·재질 슬롯과 텍스처 참조를 수집하고 경계 상자를 계산합니다.
+         * @brief 메시 형상과 재질 슬롯을 검증하고 기본 슬롯·서브메시 및 경계 상자를 구성합니다.
+         * @param[in,out] MeshData 정점·인덱스·속성 배열을 검사하고 누락된 기본 구성과 경계를 채울 메시 데이터입니다.
+         * @return 임포트 결과 또는 에셋에 사용할 수 있는 형상이면 true이며 유효하지 않으면 false입니다.
+         * @details 에셋의 SetMeshData에서 호출하며 본 계층과 스킨 가중치는 검사하지 않습니다.
+         */
+        static bool ValidateMeshData(Asset::FMeshData& MeshData);
+
+        /**
+         * @brief 원본 메시 파일을 읽어 정점·삼각형·재질 슬롯과 텍스처 참조를 수집하고 스킨 가중치 수를 정리합니다.
          * @param[out] Result 가져온 메시 데이터와 재질 목록을 기록할 결과 객체입니다.
          * @param[out] Error 실패 원인을 기록할 문자열입니다.
-         * @return 유효한 임포트 결과를 구성하면 true이며 실패하면 Error에 원인을 기록하고 false입니다.
+         * @return 원본 읽기와 임포트 결과 수집에 성공하면 true이며 실패하면 Error에 원인을 기록하고 false입니다.
+         * @details 형상 검증과 기본 슬롯·서브메시 및 경계 계산은 결과를 에셋에 적용하는 SetMeshData에서 수행합니다.
          */
         bool Import(Asset::FMeshImportResult& Result, Core::FString& Error);
 

@@ -18,6 +18,8 @@ namespace Asset {
 
         int Index{};
 
+        // 매핑 모드는 값이 무엇을 단위로 저장되었는지를 나타내므로, 현재 꼭짓점에 맞는 인덱스를 고릅니다.
+        // eAllSame은 모든 꼭짓점이 같은 값을 쓰므로 인덱스 0을 그대로 둡니다.
         switch (Element->GetMappingMode()) {
         case fbxsdk::FbxLayerElement::eByControlPoint:
             Index = ControlPoint;
@@ -34,6 +36,7 @@ namespace Asset {
             return false;
         }
 
+        // 참조 모드는 위 인덱스의 해석 방법입니다. eDirect는 값 배열의 위치이고, 인덱스 모드는 인덱스 배열을 한 번 더 거쳐 값 배열의 위치를 얻습니다.
         if (Element->GetReferenceMode() == fbxsdk::FbxLayerElement::eIndexToDirect || Element->GetReferenceMode() == fbxsdk::FbxLayerElement::eIndex) {
             if (Index < 0 || Index >= Element->GetIndexArray().GetCount()) {
                 return false;
