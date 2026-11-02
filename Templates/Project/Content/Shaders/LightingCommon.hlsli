@@ -2,36 +2,7 @@
 #define MacawLightingCommonIncluded
 
 #include "MaterialCommon.hlsli"
-
-/**
- * @brief GPU 타일 조명 계산에 사용하는 광원 정보입니다.
- */
-struct FLight {
-    /**
-     * @brief 광원의 월드 위치 XYZ와 영향 반경 W입니다.
-     */
-    float4 mPositionAndRadius;
-
-    /**
-     * @brief 광원 방향 XYZ와 종류 번호 W입니다.
-     */
-    float4 mDirectionAndType;
-
-    /**
-     * @brief 광원의 RGB 색상과 밝기 배율 W입니다.
-     */
-    float4 mColorAndIntensity;
-
-    /**
-     * @brief 감쇠 지수와 내부·외부 반각의 코사인, 예약값입니다.
-     */
-    float4 mFalloffAndCones;
-
-    /**
-     * @brief 그림자 맵의 1 기반 시작 인덱스·개수와 예약값이며 시작값 0은 그림자 없음입니다.
-     */
-    float4 mShadowInfo;
-};
+#include "LightData.hlsli"
 
 /**
  * @brief 분리하여 누적하는 RGB 확산·정반사 조명 결과입니다.
@@ -59,7 +30,7 @@ cbuffer LightingConstants : register(b3) {
     float4 CameraAndLightCount;
 
     /**
-     * @brief 타일 열·행 개수, 한 변의 픽셀 수와 예약값입니다.
+     * @brief 타일 열·행 개수, 한 변의 픽셀 수와 광원 개수이며 마지막 값의 최상위 비트는 전체 광원 순회 여부입니다.
      */
     uint4 TileDimensions;
 };

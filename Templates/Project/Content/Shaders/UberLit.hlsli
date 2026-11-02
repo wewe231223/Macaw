@@ -56,13 +56,32 @@ float4 PixelMain(FPixelInput Input) : SV_TARGET {
     float3 PositionDx = {ddx(Input.mWorldPosition)};
     float3 PositionDy = {ddy(Input.mWorldPosition)};
 #endif
-    uint2 Tile = {min((uint2)Input.mPosition.xy / TileDimensions.z, TileDimensions.xy - 1)};
-    uint2 Range = {TileRanges[Tile.y * TileDimensions.x + Tile.x]};
+    bool Tiled = {(TileDimensions.w & 0x80000000u) == 0};
+    uint2 Range = {uint2(0, TileDimensions.w & 0x7fffffffu)};
+
+    [branch]
+    if (Tiled) {
+        uint2 Tile = {min((uint2)Input.mPosition.xy / TileDimensions.z, TileDimensions.xy - 1)};
+        Range = TileRanges[Tile.y * TileDimensions.x + Tile.x];
+    }
+
     for (uint Offset = {0}; Offset < Range.y; ++Offset) {
-        FLight Light = {Lights[TileLightIndices[Range.x + Offset]]};
+        uint LightIndex = {Offset};
+
+        [branch]
+        if (Tiled) {
+            LightIndex = TileLightIndices[Range.x + Offset];
+        }
+
+        FLight Light = {Lights[LightIndex]};
         FLighting Lighting = {EvaluateLight(Light, Input.mWorldPosition, Normal)};
 #if defined(MACAW_RECEIVE_SHADOWS)
-        float Visibility = {ShadowVisibility(Light, Input.mWorldPosition, Normal, PositionDx, PositionDy)};
+        float Visibility = {1.0f};
+
+        [branch]
+        if (Light.mShadowInfo.x >= 1.0f && (any(Lighting.mDiffuse != 0.0f) || any(Lighting.mSpecular != 0.0f))) {
+            Visibility = ShadowVisibility(Light, Input.mWorldPosition, Normal, PositionDx, PositionDy);
+        }
 #else
         float Visibility = {1.0f};
 #endif

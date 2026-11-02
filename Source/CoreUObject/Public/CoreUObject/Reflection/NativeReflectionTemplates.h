@@ -90,15 +90,6 @@ namespace CoreUObject {
     }
 
     /**
-     * @brief 템플릿 특수화의 구조체 메타데이터를 한 번 등록합니다.
-     */
-    template <typename T>
-    CoreUObject::UScriptStruct* DefineTemplateStruct(const char* Name) {
-        static CoreUObject::UScriptStruct* Struct{CoreUObject::FReflectionRegistry::DefineStruct(Name, CoreUObject::GetNativeType<T>(), &CoreUObject::BuildNativeReflection<T, CoreUObject::UScriptStruct>)};
-        return Struct;
-    }
-
-    /**
      * @brief 타입이 생성한 멤버 등록 함수를 리플렉션 빌더로 실행합니다.
      */
     template <typename T, typename TMetadata>

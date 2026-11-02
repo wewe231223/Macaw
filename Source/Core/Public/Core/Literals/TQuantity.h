@@ -7,8 +7,6 @@
 #pragma once
 
 #include "Core/Literals/FDimension.h"
-#include "Core/ReflectionMacros.h"
-#include "Core/Reflection/EPropertyFlags.h"
 
 #include <cmath>
 #include <compare>
@@ -21,18 +19,12 @@ namespace Core {
      * @details 값은 항상 SI 기본 단위(m, kg, s, rad)로 저장하며 단위 변환은 리터럴로 만들 때와
      *          같은 차원의 단위로 나눠 꺼낼 때만 일어납니다.
      * @tparam D 물리량의 차원입니다.
-     * @tparam T 값을 저장할 스칼라 타입입니다. 리플렉션 생성기가 기본 템플릿 인자를 지원하지 않으므로
-     *           float 기반 별칭은 QuantityTypes.h를 사용합니다.
+     * @tparam T 값을 저장할 스칼라 타입입니다. float 기반 별칭은 QuantityTypes.h를 사용합니다.
      * @ingroup Core
      */
     template <Core::FDimension D, typename T>
     struct TQuantity {
     public:
-        /**
-         * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
-         */
-        ReflectTypes(TQuantity);
-
         /**
          * @brief 값을 저장하는 스칼라 타입입니다.
          */
@@ -44,12 +36,6 @@ namespace Core {
         static constexpr Core::FDimension Dimension = D;
 
     public:
-        /**
-         * @brief 이 타입의 정적 리플렉션 메타데이터를 반환합니다.
-         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectTemplate(TQuantity);
-
         /**
          * @brief 값이 0인 물리량을 구성합니다.
          */
@@ -154,15 +140,9 @@ namespace Core {
 
     private:
         /**
-         * @brief 생성된 멤버 등록 함수와 리플렉션 빌더의 접근 권한입니다.
-         */
-        ReflectMembers();
-
-        /**
          * @brief SI 기본 단위로 저장한 값입니다.
          */
         T mValue{};
-        ReflectProperty(mValue, "Value", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
     };
 
     /**
@@ -329,5 +309,3 @@ namespace Core {
     }
 
 }
-
-#include "TQuantityReflection.generated.h"

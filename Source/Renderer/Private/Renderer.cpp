@@ -36,6 +36,7 @@
 #include "FShadowResources.h"
 #include "FPostProcessResources.h"
 #include "FSkyResources.h"
+#include "FGridResources.h"
 #include "FEditorMeshConstants.h"
 #include "FTextRenderer.h"
 #include "FSpriteRenderer.h"
@@ -206,6 +207,7 @@ namespace Renderer {
         mSpriteRenderer.reset();
         mPostProcessResources.reset();
         mSkyResources.reset();
+        mGridResources.reset();
 
         mOverlayLayout.Reset();
         mEditorMeshBuffer.Reset();
@@ -377,6 +379,13 @@ namespace Renderer {
             mStats.mDrawCalls += mSkyResources->Render(mContext.Get(), BaseParameters.mTarget, Family.mView);
         }
 
+        // 빌보드와 아이콘이 그리드 위에 혼합되도록 반투명 패스보다 먼저 그립니다. SceneDepth는 후처리가 색상을 덮어쓰므로 후처리 뒤에 그립니다.
+        const bool DrawGrid{Family.mGridSpacing > 0.0f};
+
+        if (DrawGrid && Family.mViewMode != Engine::EViewMode::SceneDepth) {
+            mStats.mDrawCalls += mGridResources->Render(mContext.Get(), BaseParameters.mTarget, Family.mView, Family.mGridSpacing);
+        }
+
         ID3D11RenderTargetView* RenderTarget{};
 
         const Core::FVector4 LineView{Family.mView.mSize.x, Family.mView.mSize.y, 1.0f / std::max(Family.mView.mSize.x, 1.0f), 1.0f / std::max(Family.mView.mSize.y, 1.0f)};
@@ -388,6 +397,13 @@ namespace Renderer {
 
         mStats.mDrawCalls += mPostProcessResources->Render(mContext.Get(), *Target, Family, Scene->GetHeightFogs());
         RenderTarget = Target->GetRenderTargetView();
+
+        if (DrawGrid && Family.mViewMode == Engine::EViewMode::SceneDepth) {
+            Renderer::FPassTarget OutputTarget{BaseParameters.mTarget};
+            OutputTarget.mColor = RenderTarget;
+            mStats.mDrawCalls += mGridResources->Render(mContext.Get(), OutputTarget, Family.mView, Family.mGridSpacing);
+        }
+
         mContext->OMSetRenderTargets(1, &RenderTarget, Target->GetDepthView());
         DrawTranslucency(Family, true);
 
@@ -439,6 +455,10 @@ namespace Renderer {
      * @brief UI 렌더링에 사용할 백 버퍼와 뷰포트를 설정합니다.
      */
     void Renderer::FRenderer::BeginUiRender() {
+        if (mShadowResources != nullptr) {
+            mShadowResources->UpdatePreview(mContext.Get());
+        }
+
         if (mBackBuffer != nullptr && mBackBuffer->HasResources()) {
             ID3D11RenderTargetView* Target{mBackBuffer->GetRenderTargetView()};
             mContext->OMSetRenderTargets(1, &Target, nullptr);
@@ -576,7 +596,7 @@ namespace Renderer {
      */
     bool Renderer::FRenderer::Compile(const char* Source, const char* Entry, const char* Target, std::shared_ptr<const RenderCore::FShader>& Code) {
         RenderCore::FShaderDescription Description{};
-        const bool EngineFirst{std::string_view{Source} == LineShader || std::string_view{Source} == "Sprite.hlsl" || std::string_view{Source} == "PostProcess.hlsl" || std::string_view{Source} == "Sky.hlsl" || std::string_view{Source} == "Depth.hlsl"};
+        const bool EngineFirst{std::string_view{Source} == LineShader || std::string_view{Source} == "Sprite.hlsl" || std::string_view{Source} == "PostProcess.hlsl" || std::string_view{Source} == "Sky.hlsl" || std::string_view{Source} == "Grid.hlsl" || std::string_view{Source} == "TileLightCulling.hlsl" || std::string_view{Source} == "Depth.hlsl"};
         Description.mSourcePath = FindTextContent(mShaderDirectory.parent_path(), std::filesystem::path{"Shaders"} / Source, EngineFirst);
         Description.mIncludeDirectories = {mShaderDirectory};
         Description.mEntryPoint = Entry;
@@ -584,6 +604,8 @@ namespace Renderer {
 
 #ifdef _DEBUG
         Description.mCompileFlags |= D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
+#else
+        Description.mCompileFlags |= D3DCOMPILE_OPTIMIZATION_LEVEL3;
 #endif
 
         Core::LoadingStatus::ReportFile("Loading", Description.mSourcePath);
@@ -601,6 +623,7 @@ namespace Renderer {
     bool Renderer::FRenderer::CreateShaders() {
         std::shared_ptr<const RenderCore::FShader> VertexCode{};
         std::shared_ptr<const RenderCore::FShader> PixelCode{};
+        std::shared_ptr<const RenderCore::FShader> ComputeCode{};
         Microsoft::WRL::ComPtr<ID3D11VertexShader> LineVertex{};
         Microsoft::WRL::ComPtr<ID3D11PixelShader> LinePixel{};
         Microsoft::WRL::ComPtr<ID3D11InputLayout> LineLayout{};
@@ -646,6 +669,14 @@ namespace Renderer {
         }
 
         if (!Compile("Sky.hlsl", "VertexMain", "vs_5_0", VertexCode) || !Compile("Sky.hlsl", "PixelMain", "ps_5_0", PixelCode) || !mSkyResources->CreateShaders(mDevice.Get(), VertexCode->GetByteCode(), PixelCode->GetByteCode())) {
+            return false;
+        }
+
+        if (!Compile("Grid.hlsl", "VertexMain", "vs_5_0", VertexCode) || !Compile("Grid.hlsl", "PixelMain", "ps_5_0", PixelCode) || !mGridResources->CreateShaders(mDevice.Get(), VertexCode->GetByteCode(), PixelCode->GetByteCode())) {
+            return false;
+        }
+
+        if (!Compile("TileLightCulling.hlsl", "ComputeMain", "cs_5_0", ComputeCode) || !mLightingResources->CreateShaders(mDevice.Get(), ComputeCode->GetByteCode())) {
             return false;
         }
 
@@ -707,8 +738,13 @@ namespace Renderer {
         mSpriteRenderer = std::make_unique<Renderer::FSpriteRenderer>();
         mPostProcessResources = std::make_unique<Renderer::FPostProcessResources>();
         mSkyResources = std::make_unique<Renderer::FSkyResources>();
+        mGridResources = std::make_unique<Renderer::FGridResources>();
 
         if (!mPostProcessResources->Initialize(mDevice.Get())) {
+            return false;
+        }
+
+        if (!mGridResources->Initialize(mDevice.Get())) {
             return false;
         }
 
@@ -1074,6 +1110,9 @@ namespace Renderer {
 #ifdef _DEBUG
         VertexDescription.mCompileFlags |= D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
         PixelDescription.mCompileFlags |= D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
+#else
+        VertexDescription.mCompileFlags |= D3DCOMPILE_OPTIMIZATION_LEVEL3;
+        PixelDescription.mCompileFlags |= D3DCOMPILE_OPTIMIZATION_LEVEL3;
 #endif
 
         std::shared_ptr<Renderer::FShaderInstance> Vertex{GetShaderInstance(VertexDescription, Renderer::EMeshPass::BasePass, !Skinned, Skinned)};
@@ -1120,6 +1159,8 @@ namespace Renderer {
 
 #ifdef _DEBUG
         Description.mCompileFlags |= D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
+#else
+        Description.mCompileFlags |= D3DCOMPILE_OPTIMIZATION_LEVEL3;
 #endif
 
         std::shared_ptr<Renderer::FShaderInstance> Vertex{GetShaderInstance(Description, Renderer::EMeshPass::ShadowDepth, !Skinned, Skinned)};
@@ -1341,7 +1382,9 @@ namespace Renderer {
         mContext->VSSetConstantBuffers(1, 1, &ViewBuffer);
         mContext->PSSetConstantBuffers(1, 1, &ViewBuffer);
 
-        if (BasePass && !PrepareLighting(Family)) {
+        const bool NeedsLighting{BasePass && Family.mViewMode != Engine::EViewMode::Unlit && Family.mViewMode != Engine::EViewMode::WorldNormal};
+
+        if (NeedsLighting && !PrepareLighting(Family)) {
             FinishLighting();
             return false;
         }

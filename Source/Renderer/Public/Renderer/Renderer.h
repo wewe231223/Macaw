@@ -36,6 +36,7 @@ namespace Renderer {
     class FShadowResources;
     class FPostProcessResources;
     class FSkyResources;
+    class FGridResources;
     class FScene;
     struct FPassTarget;
     struct FMeshPassParameters;
@@ -390,6 +391,12 @@ namespace Renderer {
          */
         std::unique_ptr<Renderer::FSkyResources> mSkyResources{};
         ReflectProperty(mSkyResources, "SkyResources", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+
+        /**
+         * @brief 에디터 그리드 셰이더와 GPU 상태의 소유 객체입니다.
+         */
+        std::unique_ptr<Renderer::FGridResources> mGridResources{};
+        ReflectProperty(mGridResources, "GridResources", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 그림자 아틀라스와 관련 GPU 자원을 관리하는 소유 객체입니다.

@@ -107,7 +107,7 @@ namespace Renderer {
         bool Prepare(ID3D11Device* Device, ID3D11DeviceContext* Context, const Renderer::FScene& Scene, const Engine::FSceneViewFamily& Family, RenderCore::FRenderStats& Stats);
 
         /**
-         * @brief 깊이 패스가 끝난 아틀라스로 미리보기를 갱신하고 장면 패스의 그림자 샘플링을 활성화합니다.
+         * @brief 깊이 패스가 끝난 아틀라스로 장면 패스의 그림자 샘플링을 활성화합니다.
          * @param[in] Context 명령을 기록할 Direct3D 11 장치 컨텍스트의 비소유 주소입니다.
          * @param[in] Family 캐스케이드 선택에 쓸 카메라를 가진 현재 뷰 요청입니다.
          */
@@ -184,7 +184,8 @@ namespace Renderer {
          * @brief 현재 그림자 아틀라스의 미리보기와 타일 정보를 반환합니다.
          * @return GPU 뷰의 비소유 주소와 타일 정보 사본입니다.
          */
-        RenderCore::FShadowAtlasView GetView() const;
+        RenderCore::FShadowAtlasView GetView();
+        void UpdatePreview(ID3D11DeviceContext* Context);
 
         /**
          * @brief 캐스케이드 구간과 그림자 생성 물체의 깊이를 포함하는 텍셀 정렬 방향광 행렬을 만듭니다.
@@ -360,6 +361,11 @@ namespace Renderer {
          */
         bool mEnabled{};
         ReflectProperty(mEnabled, "Enabled", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+
+        bool mPreviewRequested{};
+        ReflectProperty(mPreviewRequested, "PreviewRequested", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+        bool mPreviewDirty{true};
+        ReflectProperty(mPreviewDirty, "PreviewDirty", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
 }

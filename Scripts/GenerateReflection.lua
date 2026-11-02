@@ -181,24 +181,9 @@ local function ReadDefinitions(Mask, File)
                 end
 
                 local QualifiedName = Outer and (Outer.Name .. "::" .. Name) or Name
-                local Template = Mask:sub(1, Start - 1):match("(template%s*<[^<>]*>)%s*$")
-                local TemplateName = QualifiedName
+                local Template = Mask:sub(1, Start - 1):match("template%s*%b<>%s*$") ~= nil or (Outer ~= nil and Outer.Template)
 
-                if Template then
-                    local Declaration = Mask:sub(Position, Opening - 1)
-                    local _, NameEnd = Declaration:find(Name, 1, true)
-                    local Specialization = Declaration:sub(NameEnd + 1):match("^%s*(%b<>)")
-                    local Arguments = {}
-
-                    for Parameter in Template:match("<(.*)>"):gmatch("[^,]+") do
-                        Arguments[#Arguments + 1] = assert(Parameter:match("([%a_][%w_]*)%s*$"), File .. ": Unsupported template parameter")
-                    end
-
-                    TemplateName = QualifiedName .. (Specialization or ("<" .. table.concat(Arguments, ", ") .. ">"))
-                    Template = Template:gsub("%s+", " ")
-                end
-
-                Types[#Types + 1] = { Name = QualifiedName, ShortName = Name, Namespace = NamespaceAt(Namespaces, Start), File = File, Opening = Opening, Closing = Closing, Outer = Outer, Template = Template, TemplateName = TemplateName, Properties = {}, Members = {}, Flags = {} }
+                Types[#Types + 1] = { Name = QualifiedName, ShortName = Name, Namespace = NamespaceAt(Namespaces, Start), File = File, Opening = Opening, Closing = Closing, Outer = Outer, Template = Template, Properties = {}, Members = {}, Flags = {} }
             end
         end
     end
@@ -222,6 +207,8 @@ local function ReadTypes(File)
             end
         end
 
+        assert(not (Owner and Owner.Template), File .. ": Template types cannot use reflection: " .. Call.Name)
+
         if Call.Name == "ReflectEnum" then
             local Name = Call.Arguments[1]
             local Values = {}
@@ -240,7 +227,7 @@ local function ReadTypes(File)
         elseif Call.Name == "ReflectTypes" then
             assert(Owner and not Owner.Owner and Owner.ShortName == Call.Arguments[1], File .. ": Inconsistent reflected owner")
             Owner.Owner = true
-        elseif Call.Name == "ReflectStruct" or Call.Name == "ReflectClass" or Call.Name == "ReflectRootClass" or Call.Name == "ReflectTemplate" then
+        elseif Call.Name == "ReflectStruct" or Call.Name == "ReflectClass" or Call.Name == "ReflectRootClass" then
             assert(Owner and Owner.ShortName == Call.Arguments[1] and not Owner.Kind, File .. ": Inconsistent reflected type")
             Owner.Kind = Call.Name
 
@@ -260,9 +247,13 @@ local function ReadTypes(File)
         end
     end
 
+    local Reflected = {}
+
     for _, Type in ipairs(Types) do
-        assert(Type.Owner and Type.Kind and Type.HasMembers, File .. ": Missing reflection for " .. Type.Name)
-        assert((Type.Kind == "ReflectTemplate") == (Type.Template ~= nil), File .. ": Inconsistent template reflection for " .. Type.Name)
+        if not Type.Template then
+            assert(Type.Owner and Type.Kind and Type.HasMembers, File .. ": Missing reflection for " .. Type.Name)
+            Reflected[#Reflected + 1] = Type
+        end
     end
 
     for Position, Line in Mask:gmatch("()([^\n]+);") do
@@ -276,17 +267,17 @@ local function ReadTypes(File)
                 end
             end
 
-            if Member and Owner then
+            if Member and Owner and not Owner.Template then
                 assert(Owner.Members[Member], File .. ": Missing property reflection for " .. Owner.Name .. "::" .. Member)
             end
         end
     end
 
     for _, Enum in ipairs(Enums) do
-        Types[#Types + 1] = Enum
+        Reflected[#Reflected + 1] = Enum
     end
 
-    return Types
+    return Reflected
 end
 
 local function PropertyStatement(Property)
@@ -322,19 +313,6 @@ local function WriteIfChanged(File, Lines)
         Output:write(Text)
         Output:close()
     end
-end
-
-local function GenerateTemplate(Type, Directory)
-    local Header = { "#pragma once", "", "namespace " .. Type.Namespace .. " {", "", "    " .. Type.Template, "    CoreUObject::UScriptStruct* " .. Type.TemplateName .. "::StaticStruct() {", "        return CoreUObject::DefineTemplateStruct<ReflectionOwner>(__FUNCSIG__);", "    }", "", "    " .. Type.Template, "    void " .. Type.TemplateName .. "::RegisterReflectionMembers(CoreUObject::FReflectionBuilder&" .. (#Type.Properties > 0 and " Information" or "") .. ") {" }
-
-    for _, Property in ipairs(Type.Properties) do
-        Header[#Header + 1] = PropertyStatement(Property)
-    end
-
-    Header[#Header + 1] = "    }"
-    Header[#Header + 1] = ""
-    Header[#Header + 1] = "}"
-    WriteIfChanged(Directory .. "/" .. Type.ShortName .. "Reflection.generated.h", Header)
 end
 
 function Reflection.Generate(SelectedModule)
@@ -381,9 +359,7 @@ function Reflection.Generate(SelectedModule)
                     Includes[Include] = true
                 end
 
-                if Type.Kind == "ReflectTemplate" then
-                    GenerateTemplate(Type, Directory)
-                elseif Type.Kind == "ReflectEnum" then
+                if Type.Kind == "ReflectEnum" then
                     Source[#Source + 1] = ""
                     Source[#Source + 1] = "namespace " .. Type.Namespace .. " {"
                     Source[#Source + 1] = ""
@@ -402,7 +378,7 @@ function Reflection.Generate(SelectedModule)
                     Source[#Source + 1] = "    void " .. Type.Name .. "::RegisterReflectionMembers(CoreUObject::FReflectionBuilder&" .. (#Type.Properties > 0 and " Information" or "") .. ") {"
 
                     for _, Child in ipairs(Types) do
-                        if Child.Outer == Type and Child.Kind ~= "ReflectTemplate" then
+                        if Child.Outer == Type then
                             Source[#Source + 1] = "        " .. Child.ShortName .. "::StaticStruct();"
                         end
                     end
@@ -437,7 +413,7 @@ function Reflection.Generate(SelectedModule)
             end
 
             for _, Type in ipairs(Types) do
-                if not Type.Outer and Type.Kind ~= "ReflectTemplate" then
+                if not Type.Outer then
                     Source[#Source + 1] = "    " .. Type.Namespace .. "::" .. (Type.Kind == "ReflectEnum" and ("StaticEnum" .. Type.Name .. "();") or (Type.Name .. (Type.Kind == "ReflectStruct" and "::StaticStruct();" or "::StaticClass();")))
                 end
             end

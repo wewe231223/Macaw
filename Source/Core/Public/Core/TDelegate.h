@@ -7,8 +7,6 @@
 #pragma once
 
 #include "Core/Types.h"
-#include "Core/ReflectionMacros.h"
-#include "Core/Reflection/EPropertyFlags.h"
 
 #include <functional>
 
@@ -23,21 +21,11 @@ namespace Core {
     class TDelegate {
     public:
         /**
-         * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
-         */
-        ReflectTypes(TDelegate);
-
-        /**
          * @brief 등록 함수의 호출 시그니처입니다.
          */
         using HandlerType = std::function<TSignature>;
 
     public:
-        /**
-         * @brief 이 타입의 정적 리플렉션 메타데이터를 반환합니다.
-         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectTemplate(TDelegate);
         // 일반 함수나 람다 바인딩, 등록 후 해당 Handle에 대한 번호 return
         /**
          * @brief 호출 함수를 델리게이트에 추가하고 해제에 사용할 핸들을 반환합니다.
@@ -84,22 +72,14 @@ namespace Core {
 
     private:
         /**
-         * @brief 생성된 멤버 등록 함수와 리플렉션 빌더의 접근 권한입니다.
-         */
-        ReflectMembers();
-
-    private:
-        /**
          * @brief 등록 핸들별 호출 함수입니다.
          */
         Core::TMap<Core::Uint32, HandlerType> mHandlers{};
-        ReflectProperty(mHandlers, "Handlers", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 가장 최근 발급한 델리게이트 핸들입니다.
          */
         Core::Uint32 mCurrentHandleNum{};
-        ReflectProperty(mCurrentHandleNum, "CurrentHandleNum", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
     template <typename TSignature>
@@ -145,5 +125,3 @@ namespace Core {
     }
 
 }
-
-#include "TDelegateReflection.generated.h"

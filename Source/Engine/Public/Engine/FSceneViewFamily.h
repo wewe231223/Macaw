@@ -78,6 +78,12 @@ namespace Engine {
          */
         Engine::FEngineShowFlags mShowFlags{};
         ReflectProperty(mShowFlags, "ShowFlags", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+
+        /**
+         * @brief 에디터 그리드의 보조선 간격이며 0이면 그리드를 그리지 않습니다.
+         */
+        float mGridSpacing{};
+        ReflectProperty(mGridSpacing, "GridSpacing", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
 }

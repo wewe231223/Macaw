@@ -398,22 +398,11 @@ namespace Editor {
 
         mDrawInterface.Clear();
 
-        if (mShowFlags.mGrid) {
-            const float Spacing{mGridSpacing};
-            const float Extent{50.0f * Spacing};
-
-            for (Core::Int32 Index{-50}; Index <= 50; ++Index) {
-                const float Offset{Index * Spacing};
-                const Core::FVector Color{Index % 10 == 0 ? Core::FVector{0.22f, 0.25f, 0.30f} : Core::FVector{0.13f, 0.15f, 0.19f}};
-                mDrawInterface.DrawLine({Offset, -Extent, 0.0f}, {Offset, Extent, 0.0f}, Color, true);
-                mDrawInterface.DrawLine({-Extent, Offset, 0.0f}, {Extent, Offset, 0.0f}, Color, true);
-            }
-        }
-
         if (mShowFlags.mAxes) {
-            mDrawInterface.DrawLine({}, {2.0f, 0.0f, 0.0f}, {1.0f, 0.25f, 0.2f}, true, mLineThickness);
-            mDrawInterface.DrawLine({}, {0.0f, 2.0f, 0.0f}, {0.3f, 0.9f, 0.4f}, true, mLineThickness);
-            mDrawInterface.DrawLine({}, {0.0f, 0.0f, 2.0f}, {0.3f, 0.55f, 1.0f}, true, mLineThickness);
+            constexpr float AxisLength{1000.0f};
+            mDrawInterface.DrawLine({-AxisLength, 0.0f, 0.0f}, {AxisLength, 0.0f, 0.0f}, {1.0f, 0.25f, 0.2f}, true, mLineThickness);
+            mDrawInterface.DrawLine({0.0f, -AxisLength, 0.0f}, {0.0f, AxisLength, 0.0f}, {0.3f, 0.9f, 0.4f}, true, mLineThickness);
+            mDrawInterface.DrawLine({0.0f, 0.0f, -AxisLength}, {0.0f, 0.0f, AxisLength}, {0.3f, 0.55f, 1.0f}, true, mLineThickness);
         }
 
         if (World->GetPersistentLevel() != nullptr) {
@@ -487,7 +476,7 @@ namespace Editor {
 
         mGizmo.Draw(View, mDrawInterface);
 
-        const Engine::FSceneViewFamily Family{World->GetScene(), Viewport->GetRenderTarget(), View, &mDrawInterface, mViewMode, mShowFlags};
+        const Engine::FSceneViewFamily Family{World->GetScene(), Viewport->GetRenderTarget(), View, &mDrawInterface, mViewMode, mShowFlags, mShowFlags.mGrid ? mGridSpacing : 0.0f};
         mContext->GetRenderer()->BeginRenderingViewFamily(Family);
     }
 

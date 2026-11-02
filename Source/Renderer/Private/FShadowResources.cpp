@@ -46,7 +46,15 @@ namespace Renderer {
          */
         bool CompileShadow(const char* Entry, const char* Profile, Microsoft::WRL::ComPtr<ID3DBlob>& Code) {
             Microsoft::WRL::ComPtr<ID3DBlob> Errors{};
-            return SUCCEEDED(D3DCompile(ShadowShader, sizeof(ShadowShader) - 1, "ShadowAtlas", nullptr, nullptr, Entry, Profile, D3DCOMPILE_ENABLE_STRICTNESS | D3DCOMPILE_OPTIMIZATION_LEVEL3, 0, Code.GetAddressOf(), Errors.GetAddressOf()));
+            UINT CompileFlags{D3DCOMPILE_ENABLE_STRICTNESS};
+
+#ifdef _DEBUG
+            CompileFlags |= D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
+#else
+            CompileFlags |= D3DCOMPILE_OPTIMIZATION_LEVEL3;
+#endif
+
+            return SUCCEEDED(D3DCompile(ShadowShader, sizeof(ShadowShader) - 1, "ShadowAtlas", nullptr, nullptr, Entry, Profile, CompileFlags, 0, Code.GetAddressOf(), Errors.GetAddressOf()));
         }
 
         /**
@@ -142,6 +150,7 @@ namespace Renderer {
         mAtlas = std::move(Atlas);
         mPreview = std::move(Preview);
         mAtlasRevision = Core::FRevision::Next();
+        mPreviewDirty = true;
 
         return true;
     }
@@ -376,6 +385,7 @@ namespace Renderer {
             return Cached.mBlock.Overlaps(Block);
         });
         mTileCache.Commit(MakeTileKey(Index), Stamp, {});
+        mPreviewDirty = true;
     }
 
     Renderer::FPassTarget Renderer::FShadowResources::GetClearTarget(Core::Uint32 Index) const {
@@ -401,7 +411,6 @@ namespace Renderer {
 
         const std::array<Core::FVector4, 2> ViewData{{{Family.mView.mLocation, 0.0f}, {Family.mView.mForward, 0.0f}}};
         Context->UpdateSubresource(mViewBuffer.Get(), 0, nullptr, ViewData.data(), 0, 0);
-        RenderPreview(Context);
         mEnabled = true;
     }
 
@@ -461,8 +470,18 @@ namespace Renderer {
         return mLightRanges;
     }
 
-    RenderCore::FShadowAtlasView Renderer::FShadowResources::GetView() const {
+    RenderCore::FShadowAtlasView Renderer::FShadowResources::GetView() {
+        mPreviewRequested = mPreviewRequested || mEnabled;
         return {mEnabled && mPreview != nullptr ? mPreview->GetShaderResourceView() : nullptr, AtlasSize, mTiles, mEnabled ? mAtlas->GetShaderResourceView() : nullptr};
+    }
+
+    void Renderer::FShadowResources::UpdatePreview(ID3D11DeviceContext* Context) {
+        if (mPreviewRequested && mPreviewDirty && mPreview != nullptr) {
+            RenderPreview(Context);
+            mPreviewDirty = false;
+        }
+
+        mPreviewRequested = false;
     }
 
 }

@@ -26,15 +26,6 @@ namespace CoreUObject {
     template <typename T, typename TMetadata>
     void BuildNativeReflection(TMetadata* Information);
 
-    /**
-     * @brief 템플릿 특수화의 구조체 메타데이터를 한 번 등록합니다.
-     * @tparam T 적용할 네이티브 타입입니다.
-     * @param[in] Name 조회하거나 기록할 이름입니다.
-     * @return 조회한 값의 비소유 주소이며, 해당 값이 없으면 nullptr입니다.
-     */
-    template <typename T>
-    CoreUObject::UScriptStruct* DefineTemplateStruct(const char* Name);
-
     template <auto Member, auto Getter = nullptr, auto Setter = nullptr>
     void RegisterProperty(CoreUObject::FReflectionBuilder& Information, Core::FString Name, Core::EPropertyFlags Flags = Core::EPropertyFlags::None);
 
@@ -63,11 +54,6 @@ namespace CoreUObject {
  * @param Type 리플렉션할 소유 타입입니다.
  */
 #define ReflectStruct(Type) static_assert(std::is_same_v<ReflectionOwner, Type>); static CoreUObject::UScriptStruct* StaticStruct()
-/**
- * @brief 템플릿 타입의 정적 구조체 메타데이터 조회 함수를 선언합니다.
- * @param Type 리플렉션할 소유 타입입니다.
- */
-#define ReflectTemplate(Type) ReflectStruct(Type)
 /**
  * @brief 생성된 멤버 등록 함수와 네이티브 빌더에 필요한 접근 권한을 선언합니다.
  */
