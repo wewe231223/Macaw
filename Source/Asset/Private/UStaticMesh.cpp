@@ -5,7 +5,6 @@
  */
 
 #include "Asset/UStaticMesh.h"
-#include "FMeshDataValidation.h"
 #include "Core/FilePath.h"
 #include "Asset/Import/IMeshImporter.h"
 #include "Asset/Import/FMeshImportResult.h"
@@ -52,7 +51,8 @@ namespace Asset {
     }
 
     bool Asset::UStaticMesh::SetMeshData(Asset::FMeshData MeshData) {
-        if (!Asset::ValidateMeshData(MeshData)) {
+        // 파일 임포트 외에 에셋 로드와 직접 생성한 메시에도 동일한 데이터 규칙을 적용합니다.
+        if (!Asset::IMeshImporter::ValidateMeshData(MeshData)) {
             return false;
         }
 

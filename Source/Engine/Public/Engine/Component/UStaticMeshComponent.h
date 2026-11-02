@@ -7,12 +7,8 @@
 #pragma once
 
 #include "Core/ReflectionMacros.h"
-#include "Engine/Component/UPrimitiveComponent.h"
+#include "Engine/Component/UMeshComponent.h"
 #include "Engine/EPrimitiveType.h"
-
-namespace Asset {
-    class UMaterial;
-}
 
 namespace Engine {
 
@@ -20,12 +16,12 @@ namespace Engine {
      * @brief 기본 프리미티브 또는 정적 메시 에셋을 머티리얼과 함께 표시하는 컴포넌트입니다.
      * @ingroup Engine
      */
-    class UStaticMeshComponent final : public Engine::UPrimitiveComponent {
+    class UStaticMeshComponent final : public Engine::UMeshComponent {
     public:
         /**
          * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
          */
-        ReflectTypes(UStaticMeshComponent, Engine::UPrimitiveComponent);
+        ReflectTypes(UStaticMeshComponent, Engine::UMeshComponent);
 
     public:
         /**
@@ -94,61 +90,7 @@ namespace Engine {
          * @brief 저장된 메시 경로를 에셋 관리자에서 해석하고 렌더 상태를 갱신합니다.
          * @return 경로가 비어 있거나 에셋을 찾았으면 true, 로드에 실패하면 false입니다.
          */
-        bool ResolveMesh();
-
-        /**
-         * @brief Content 기준 머티리얼 파일 경로를 반환합니다.
-         * @return 이 객체가 보관하는 값의 참조입니다.
-         */
-        const Core::FString& GetMaterialPath() const;
-
-        /**
-         * @brief Content 기준 머티리얼 파일 경로를 설정합니다.
-         * @param[in] Path Content 기준 머티리얼 경로이며 비우면 메시 머티리얼을 사용합니다.
-         * @return 값이 유효해 적용했으면 true, 거부했으면 false입니다.
-         */
-        bool SetMaterialPath(const Core::FString& Path);
-
-        /**
-         * @brief 연결된 머티리얼의 비소유 주소를 반환합니다.
-         * @return 대상의 비소유 주소이며, 없거나 유효하지 않으면 nullptr입니다.
-         */
-        Asset::UMaterial* GetMaterial() const;
-
-        /**
-         * @brief 슬롯별 유효 재질을 조회합니다.
-         * @param Slot 재질 슬롯 번호입니다.
-         * @return 오버라이드 또는 메시 기본 재질의 비소유 주소입니다.
-         */
-        Asset::UMaterial* GetSlotMaterial(Core::Uint32 Slot) const;
-
-        /**
-         * @brief 슬롯 오버라이드 경로를 조회합니다.
-         * @param Slot 재질 슬롯 번호입니다.
-         * @return 오버라이드 경로 또는 빈 문자열입니다.
-         */
-        const Core::FString& GetSlotMaterialPath(Core::Uint32 Slot) const;
-
-        /**
-         * @brief 슬롯 재질을 교체합니다.
-         * @param Slot 재질 슬롯 번호입니다.
-         * @param Path Content 기준 재질 경로이며 빈 경로는 메시 기본값입니다.
-         * @return 유효한 재질을 할당하면 true입니다.
-         */
-        bool SetSlotMaterialPath(Core::Uint32 Slot, const Core::FString& Path);
-
-        /**
-         * @brief 리플렉션 프로퍼티와 슬롯별 재질 오버라이드를 직렬화합니다.
-         * @param Archive 저장 또는 복원할 아카이브입니다.
-         */
-        void Serialize(Core::FArchive& Archive) override;
-
-        /**
-         * @brief 저장된 머티리얼 경로를 에셋 관리자에서 해석하고 렌더 상태를 갱신합니다.
-         * @return 경로가 비어 있거나 에셋을 찾았으면 true, 로드에 실패하면 false입니다.
-         */
-        bool ResolveMaterial();
-        Engine::FPrimitiveSceneProxy CreateSceneProxy() const override;
+        bool ResolveMesh() override;
 
         /**
          * @brief 현재 표시·에셋 상태에서 렌더 프록시를 생성할지 판정합니다.
@@ -162,21 +104,12 @@ namespace Engine {
          */
         ReflectMembers();
 
-        void OnRegister() override;
-
         /**
          * @brief Content 상대 경로의 메시를 에셋 관리자에서 조회합니다.
          * @param[in] Path Content 기준 메시 에셋 경로입니다.
          * @return 캐시된 에셋의 비소유 주소이며, 로드에 실패하면 nullptr입니다.
          */
         Asset::UStaticMesh* LoadMesh(const Core::FString& Path) const;
-
-        /**
-         * @brief Content 상대 경로의 머티리얼을 에셋 관리자에서 조회합니다.
-         * @param[in] Path Content 기준 머티리얼 에셋 경로입니다.
-         * @return 캐시된 에셋의 비소유 주소이며, 로드에 실패하면 nullptr입니다.
-         */
-        Asset::UMaterial* LoadMaterial(const Core::FString& Path) const;
 
     private:
         /**
@@ -196,24 +129,6 @@ namespace Engine {
          */
         Asset::UStaticMesh* mStaticMesh{};
         ReflectProperty(mStaticMesh, "StaticMesh", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
-
-        /**
-         * @brief Content 기준 머티리얼 파일 경로입니다.
-         */
-        Core::FString mMaterialPath{};
-        ReflectAccessor(mMaterialPath, GetMaterialPath, SetMaterialPath, "Material", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
-
-        /**
-         * @brief 연결된 머티리얼의 비소유 주소입니다.
-         */
-        Asset::UMaterial* mMaterial{};
-        ReflectProperty(mMaterial, "ResolvedMaterial", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
-
-        /**
-         * @brief 재질 슬롯별 Content 기준 오버라이드 경로입니다.
-         */
-        Core::TArray<Core::FString> mMaterialOverrides{};
-        ReflectProperty(mMaterialOverrides, "MaterialOverrides", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
 }

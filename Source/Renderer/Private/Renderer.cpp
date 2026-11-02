@@ -31,6 +31,7 @@
 #include "FShadowDepthPass.h"
 #include "FBasePass.h"
 #include "FMaterialPipeline.h"
+#include "FShaderInstance.h"
 #include "FLightingResources.h"
 #include "FShadowResources.h"
 #include "FPostProcessResources.h"
@@ -215,6 +216,7 @@ namespace Renderer {
         mShadowDepthPass.reset();
         mBasePass.reset();
         mMaterialPipelines.clear();
+        mShaderInstances.clear();
         mLightingResources.reset();
         mShadowResources.reset();
         mDefaultMaterial.reset();
@@ -963,17 +965,46 @@ namespace Renderer {
         mContext->OMSetBlendState(nullptr, nullptr, 0xFFFFFFFFu);
     }
 
-    Renderer::FMaterialPipeline* Renderer::FRenderer::GetMaterialPipeline(const Asset::UMaterial& Material, Engine::EViewMode Mode, bool Skinned) {
-        const Core::FString& Relative{Material.GetShaderPath()};
-        const std::filesystem::path RelativePath{Core::FilePath::FromUtf8(Relative).lexically_normal()};
-        Core::FString Key{Core::FilePath::ToGenericUtf8(RelativePath) + (Material.IsTwoSided() ? "|TwoSided" : "|OneSided")};
-        std::transform(Key.begin(), Key.end(), Key.begin(), [](unsigned char Character) {
+    std::shared_ptr<Renderer::FShaderInstance> Renderer::FRenderer::GetShaderInstance(const RenderCore::FShaderDescription& Description, Renderer::EMeshPass Pass, bool Instanced, bool Skinned) {
+        Core::FString Diagnostics{};
+        std::shared_ptr<const RenderCore::FShader> Code{mShaderManager.Load(Description, Diagnostics)};
+
+        if (!Diagnostics.empty()) {
+            Core::ErrorHandler::Report("Shader", Diagnostics, Core::ErrorHandler::EErrorLevel::Warning);
+        }
+
+        if (Code == nullptr) {
+            return nullptr;
+        }
+
+        const Core::FString Key{Code->GetCacheKey() + "|" + std::to_string(static_cast<Core::Uint32>(Pass)) + (Instanced ? "|Instanced" : "|Single") + (Skinned ? "|Skinned" : "|Static")};
+        const auto Existing{mShaderInstances.find(Key)};
+        std::shared_ptr<Renderer::FShaderInstance> Shader{Existing != mShaderInstances.end() ? Existing->second : std::make_shared<Renderer::FShaderInstance>(std::move(Code), Pass, Instanced, Skinned)};
+
+        if (!Shader->CreateResources(mDevice.Get(), Diagnostics)) {
+            Core::ErrorHandler::Report("Shader", Diagnostics, Core::ErrorHandler::EErrorLevel::Warning);
+            return nullptr;
+        }
+
+        if (Existing == mShaderInstances.end()) {
+            mShaderInstances.emplace(Key, Shader);
+        }
+
+        return Shader;
+    }
+
+    Renderer::FMaterialPipeline* Renderer::FRenderer::GetMaterialPipeline(const Asset::UMaterial& Material, Engine::EViewMode Mode, bool Skinned, bool ReceiveShadows) {
+        const std::filesystem::path RelativePath{Core::FilePath::FromUtf8(Material.GetShaderPath()).lexically_normal()};
+        Core::FString ShaderPath{Core::FilePath::ToGenericUtf8(RelativePath)};
+        std::transform(ShaderPath.begin(), ShaderPath.end(), ShaderPath.begin(), [](unsigned char Character) {
             return static_cast<char>(std::tolower(Character));
         });
 
-        Key += "|" + std::to_string(static_cast<Core::Uint32>(Mode)) + (Material.GetNormalMapTexture() != nullptr ? "|NormalMap" : "|VertexNormal");
-        Key += Skinned ? "|Skinned" : "|Static";
-
+        const bool Unlit{Mode == Engine::EViewMode::Unlit || (ShaderPath == "shaders/unlit.hlsl" && Mode != Engine::EViewMode::WorldNormal)};
+        const Engine::EViewMode PixelMode{Unlit ? Engine::EViewMode::Unlit : Mode == Engine::EViewMode::Lit_Gouraud || Mode == Engine::EViewMode::Lit_Lambert || Mode == Engine::EViewMode::WorldNormal ? Mode : Engine::EViewMode::Lit_Phong};
+        const bool Shadowed{ReceiveShadows && !Unlit && (Mode == Engine::EViewMode::Lit_Lambert || Mode == Engine::EViewMode::Lit_Phong)};
+        const bool NormalMap{Material.GetNormalMapTexture() != nullptr};
+        const Core::FString Key{ShaderPath + (Material.IsTwoSided() ? "|TwoSided" : "|OneSided") + "|" + std::to_string(static_cast<Core::Uint32>(PixelMode)) + (NormalMap ? "|NormalMap" : "|VertexNormal") + (Skinned ? "|Skinned" : "|Static") + (Shadowed ? "|Shadowed" : "|Unshadowed")};
         const auto Existing{mMaterialPipelines.find(Key)};
 
         if (Existing != mMaterialPipelines.end()) {
@@ -984,73 +1015,68 @@ namespace Renderer {
             return nullptr;
         }
 
-        const bool Builtin{RelativePath == "Shaders/Lit.hlsl" || RelativePath == "Shaders/Unlit.hlsl" || RelativePath == "Shaders/Mesh.hlsl" || Mode == Engine::EViewMode::Unlit || Mode == Engine::EViewMode::WorldNormal};
-        const std::filesystem::path Source{FindTextContent(mShaderDirectory.parent_path(), Mode == Engine::EViewMode::Unlit || Mode == Engine::EViewMode::WorldNormal ? std::filesystem::path{"Shaders/Lit.hlsl"} : RelativePath, Builtin)};
-        RenderCore::FShaderDescription Description{};
-        Description.mSourcePath = Source;
-        Description.mIncludeDirectories = {Source.parent_path(), mShaderDirectory};
+        const std::filesystem::path VertexSource{FindTextContent(mShaderDirectory.parent_path(), Skinned ? "Shaders/SkinnedMesh.vs.hlsl" : "Shaders/StaticMesh.vs.hlsl", true)};
+        const bool Builtin{ShaderPath == "shaders/lit.hlsl" || ShaderPath == "shaders/unlit.hlsl" || ShaderPath == "shaders/mesh.hlsl"};
+        const bool OverridePixel{Mode == Engine::EViewMode::Unlit || Mode == Engine::EViewMode::WorldNormal};
+        const std::filesystem::path PixelSource{FindTextContent(mShaderDirectory.parent_path(), OverridePixel ? std::filesystem::path{"Shaders/Lit.hlsl"} : RelativePath, Builtin || OverridePixel)};
+        RenderCore::FShaderDescription VertexDescription{};
+        VertexDescription.mSourcePath = VertexSource;
+        VertexDescription.mIncludeDirectories = {VertexSource.parent_path(), mShaderDirectory};
+        VertexDescription.mEntryPoint = "VertexMain";
+        VertexDescription.mTargetProfile = "vs_5_0";
 
-        const char* Model{Mode == Engine::EViewMode::Lit_Gouraud ? "LIGHTING_MODEL_GOURAUD" : Mode == Engine::EViewMode::Lit_Lambert ? "LIGHTING_MODEL_LAMBERT" : "LIGHTING_MODEL_PHONG"};
-        Description.mMacros.push_back({Model, "1"});
+        if (PixelMode == Engine::EViewMode::Lit_Gouraud) {
+            VertexDescription.mMacros.push_back({"LIGHTING_MODEL_GOURAUD", "1"});
 
-        // 객체별 포즈를 별도 바인딩하므로 스킨 드로는 정적 메시 인스턴싱과 분리합니다.
-        if (Builtin && !Skinned) {
-            Description.mMacros.push_back({"MacawInstanced", "1"});
+            if (NormalMap) {
+                VertexDescription.mMacros.push_back({"HAS_NORMAL_MAP", "1"});
+            }
         }
 
-        if (Skinned) {
-            Description.mMacros.push_back({"MacawSkinned", "1"});
+        RenderCore::FShaderDescription PixelDescription{};
+        PixelDescription.mSourcePath = PixelSource;
+        PixelDescription.mIncludeDirectories = {PixelSource.parent_path(), VertexSource.parent_path(), mShaderDirectory};
+        PixelDescription.mEntryPoint = "PixelMain";
+        PixelDescription.mTargetProfile = "ps_5_0";
+
+        if (PixelMode == Engine::EViewMode::Unlit) {
+            PixelDescription.mMacros.push_back({"MACAW_UNLIT", "1"});
+        } else if (PixelMode == Engine::EViewMode::WorldNormal) {
+            PixelDescription.mMacros.push_back({"WORLD_NORMAL", "1"});
+        } else {
+            const char* Model{PixelMode == Engine::EViewMode::Lit_Gouraud ? "LIGHTING_MODEL_GOURAUD" : PixelMode == Engine::EViewMode::Lit_Lambert ? "LIGHTING_MODEL_LAMBERT" : "LIGHTING_MODEL_PHONG"};
+            PixelDescription.mMacros.push_back({Model, "1"});
         }
 
-        if (Mode == Engine::EViewMode::Unlit) {
-            Description.mMacros.push_back({"MACAW_UNLIT", "1"});
+        if (NormalMap) {
+            PixelDescription.mMacros.push_back({"HAS_NORMAL_MAP", "1"});
         }
 
-        if (Mode == Engine::EViewMode::WorldNormal) {
-            Description.mMacros.push_back({"WORLD_NORMAL", "1"});
+        if (Shadowed) {
+            PixelDescription.mMacros.push_back({"MACAW_RECEIVE_SHADOWS", "1"});
         }
-
-        if (Material.GetNormalMapTexture() != nullptr) {
-            Description.mMacros.push_back({"HAS_NORMAL_MAP", "1"});
-        }
-
-        Description.mEntryPoint = "VertexMain";
-        Description.mTargetProfile = "vs_5_0";
 
 #ifdef _DEBUG
-        Description.mCompileFlags |= D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
+        VertexDescription.mCompileFlags |= D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
+        PixelDescription.mCompileFlags |= D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
 #endif
 
-        Core::FString Diagnostics{};
-        std::shared_ptr<const RenderCore::FShader> Vertex{mShaderManager.Load(Description, Diagnostics)};
-        Core::FString Error{Diagnostics};
-
-        Description.mEntryPoint = "PixelMain";
-        Description.mTargetProfile = "ps_5_0";
-
-        std::shared_ptr<const RenderCore::FShader> Pixel{mShaderManager.Load(Description, Diagnostics)};
-
-        Error += Diagnostics;
-
+        std::shared_ptr<Renderer::FShaderInstance> Vertex{GetShaderInstance(VertexDescription, Renderer::EMeshPass::BasePass, !Skinned, Skinned)};
+        std::shared_ptr<Renderer::FShaderInstance> Pixel{GetShaderInstance(PixelDescription, Renderer::EMeshPass::BasePass, false, false)};
         std::unique_ptr<Renderer::FMaterialPipeline> Pipeline{};
 
         if (Vertex != nullptr && Pixel != nullptr) {
-            Pipeline = std::make_unique<Renderer::FMaterialPipeline>(Renderer::EMeshPass::BasePass, std::move(Vertex), std::move(Pixel), Material.IsTwoSided(), Builtin && !Skinned, Skinned);
+            Pipeline = std::make_unique<Renderer::FMaterialPipeline>(Renderer::EMeshPass::BasePass, std::move(Vertex), std::move(Pixel), Material.IsTwoSided(), !Skinned, Skinned);
+            Core::FString Diagnostics{};
 
             if (!Pipeline->CreateResources(mDevice.Get(), Diagnostics)) {
-                Error += Diagnostics;
+                Core::ErrorHandler::Report("Material", Diagnostics, Core::ErrorHandler::EErrorLevel::Warning);
                 Pipeline.reset();
             }
         }
 
-        if (!Error.empty()) {
-            Core::ErrorHandler::Report("Material", Error, Core::ErrorHandler::EErrorLevel::Warning);
-        }
-
         Renderer::FMaterialPipeline* Result{Pipeline.get()};
-
-        mMaterialPipelines.emplace(std::move(Key), std::move(Pipeline));
-
+        mMaterialPipelines.emplace(Key, std::move(Pipeline));
         return Result;
     }
 
@@ -1081,22 +1107,17 @@ namespace Renderer {
         Description.mCompileFlags |= D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
 #endif
 
-        Core::FString Diagnostics{};
-        std::shared_ptr<const RenderCore::FShader> Vertex{mShaderManager.Load(Description, Diagnostics)};
-        Core::FString Error{Diagnostics};
+        std::shared_ptr<Renderer::FShaderInstance> Vertex{GetShaderInstance(Description, Renderer::EMeshPass::ShadowDepth, !Skinned, Skinned)};
         std::unique_ptr<Renderer::FMaterialPipeline> Pipeline{};
 
         if (Vertex != nullptr) {
             Pipeline = std::make_unique<Renderer::FMaterialPipeline>(Renderer::EMeshPass::ShadowDepth, std::move(Vertex), nullptr, true, !Skinned, Skinned);
+            Core::FString Diagnostics{};
 
             if (!Pipeline->CreateResources(mDevice.Get(), Diagnostics)) {
-                Error += Diagnostics;
+                Core::ErrorHandler::Report("Shadow", Diagnostics, Core::ErrorHandler::EErrorLevel::Warning);
                 Pipeline.reset();
             }
-        }
-
-        if (!Error.empty()) {
-            Core::ErrorHandler::Report("Shadow", Error, Pipeline != nullptr ? Core::ErrorHandler::EErrorLevel::Warning : Core::ErrorHandler::EErrorLevel::Error);
         }
 
         Renderer::FMaterialPipeline* Result{Pipeline.get()};
@@ -1381,6 +1402,7 @@ namespace Renderer {
 
             if (Command.mPipeline->IsSkinned()) {
                 // 같은 형상을 공유해도 객체마다 본 팔레트를 다시 바인딩합니다.
+                // 가중치 정점 버퍼는 5번 입력 슬롯, 본 팔레트는 정점 셰이더의 t10(Skinning.hlsl의 SkinBones)에 연결합니다.
                 ID3D11Buffer* Weights{Command.mPrimitive->mProxy.mSkeletalMesh->GetSkinWeightBuffer()};
                 ID3D11ShaderResourceView* Bones{Command.mPrimitive->mSkinView.Get()};
                 const UINT SkinStride{Asset::USkeletalMesh::GetSkinWeightStride()};
@@ -1410,10 +1432,12 @@ namespace Renderer {
                 Asset::UTexture2D* Texture{Command.mMaterial->GetBaseColorTexture()};
                 ID3D11ShaderResourceView* Resource{Texture != nullptr ? Texture->GetShaderResourceView() : mDefaultMaterialTexture->GetShaderResourceView()};
                 ID3D11SamplerState* Sampler{mMaterialSampler.Get()};
+
                 mContext->VSSetConstantBuffers(2, 1, &Constants);
                 mContext->PSSetConstantBuffers(2, 1, &Constants);
                 Asset::UTexture2D* NormalTexture{Command.mMaterial->GetNormalMapTexture()};
                 ID3D11ShaderResourceView* NormalResource{NormalTexture != nullptr ? NormalTexture->GetShaderResourceView() : nullptr};
+
                 mContext->PSSetShaderResources(0, 1, &Resource);
                 mContext->VSSetShaderResources(1, 1, &NormalResource);
                 mContext->PSSetShaderResources(1, 1, &NormalResource);

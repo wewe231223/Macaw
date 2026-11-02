@@ -49,6 +49,7 @@ namespace Asset {
     }
 
     void Asset::FMeshImportMesh::FinalizeSkinWeights() {
+        // 마지막 스킨 메시 뒤에 붙은 스킨 없는 메시의 정점 몫도 영향 없는 가중치로 채워 정점 수와 길이를 맞춥니다.
         if (!mSkinWeights.empty()) {
             mSkinWeights.resize(mMeshData.GetPositions().size());
         }

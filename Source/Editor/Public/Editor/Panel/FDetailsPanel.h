@@ -74,7 +74,10 @@ namespace Editor {
          */
         void DrawComponentMenu();
 
-        /** @brief 본 로컬 행렬을 편집하고 씬 변경 상태를 갱신합니다. @param Component 편집할 스켈레탈 메시 컴포넌트입니다. */
+        /**
+         * @brief 본 로컬 행렬을 편집하고 씬 변경 상태를 갱신합니다.
+         * @param Component 편집할 스켈레탈 메시 컴포넌트입니다.
+         */
         void DrawSkeletalPose(Engine::USkeletalMeshComponent* Component);
 
         /**

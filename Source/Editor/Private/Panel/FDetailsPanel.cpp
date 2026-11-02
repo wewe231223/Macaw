@@ -9,7 +9,7 @@
 #include "Editor/FAssetDragDrop.h"
 #include "Engine/AActor.h"
 #include "Engine/Component/UActorComponent.h"
-#include "Engine/Component/UStaticMeshComponent.h"
+#include "Engine/Component/UMeshComponent.h"
 #include "Engine/Component/USkeletalMeshComponent.h"
 #include "Asset/USkeletalMesh.h"
 #include "Engine/Component/ULightComponent.h"
@@ -259,11 +259,11 @@ namespace Editor {
             }
         }
 
-        auto* Component{Context->ResolveObject(Handle) == Object ? CoreUObject::Cast<Engine::UStaticMeshComponent>(Object) : nullptr};
+        auto* Component{Context->ResolveObject(Handle) == Object ? CoreUObject::Cast<Engine::UMeshComponent>(Object) : nullptr};
         auto* Skeletal{Context->ResolveObject(Handle) == Object ? CoreUObject::Cast<Engine::USkeletalMeshComponent>(Object) : nullptr};
 
-        if ((Component != nullptr && Component->GetStaticMesh() != nullptr) || (Skeletal != nullptr && Skeletal->GetSkeletalMesh() != nullptr)) {
-            const Core::FString& Override{Component != nullptr ? Component->GetMaterialPath() : Skeletal->GetMaterialPath()};
+        if (Component != nullptr && Component->GetStaticMesh() != nullptr) {
+            const Core::FString& Override{Component->GetMaterialPath()};
             const bool AllSlotsOverride{!Override.empty()};
 
             ImGui::SeparatorText("Material Slots");
@@ -274,7 +274,7 @@ namespace Editor {
 
             ImGui::BeginDisabled(!Context->CanEditWorld() || AllSlotsOverride);
 
-            const Asset::FMeshData& Data{Component != nullptr ? Component->GetStaticMesh()->GetMeshData() : Skeletal->GetSkeletalMesh()->GetMeshData()};
+            const Asset::FMeshData& Data{Component->GetStaticMesh()->GetMeshData()};
             const auto& Slots{Data.GetMaterialSlots()};
 
             for (Core::Uint32 Slot{}; Slot < Slots.size(); ++Slot) {
@@ -288,7 +288,7 @@ namespace Editor {
 
                 ImGui::PushID(static_cast<int>(Slot));
 
-                Core::FString Path{AllSlotsOverride ? Core::FString{} : Component != nullptr ? Component->GetSlotMaterialPath(Slot) : Skeletal->GetSlotMaterialPath(Slot)};
+                Core::FString Path{AllSlotsOverride ? Core::FString{} : Component->GetSlotMaterialPath(Slot)};
                 const Core::FString& Inherited{AllSlotsOverride ? Override : Slots[Slot].GetMaterialPath()};
 
                 if (mAssetCatalog != nullptr && mThumbnails != nullptr && mAssetPicker.Draw(*mAssetCatalog, *mThumbnails, Slots[Slot].GetName().c_str(), Path, Asset::EAssetType::Material, Inherited, "Use mesh material", AllSlotsOverride ? "All slots" : "Mesh")) {

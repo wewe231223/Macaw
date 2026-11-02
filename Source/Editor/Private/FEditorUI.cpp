@@ -1663,7 +1663,7 @@ namespace Editor {
                 for (const auto& Path : mAssetPaths) {
                     const Core::FString Name{Core::FilePath::ToUtf8(Path)};
 
-                    if (Path.extension() == L".hlsl" && Path.filename() != L"Line.hlsl" && Path.filename() != L"Gizmo.hlsl" && Path.filename() != L"Text.hlsl" && std::find(Shaders.begin(), Shaders.end(), Name) == Shaders.end()) {
+                    if (Path.extension() == L".hlsl" && !Name.ends_with(".vs.hlsl") && Path.filename() != L"Line.hlsl" && Path.filename() != L"Gizmo.hlsl" && Path.filename() != L"Text.hlsl" && std::find(Shaders.begin(), Shaders.end(), Name) == Shaders.end()) {
                         Shaders.push_back(Name);
                     }
                 }

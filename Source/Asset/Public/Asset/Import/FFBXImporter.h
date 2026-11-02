@@ -15,6 +15,12 @@ namespace Asset {
 
     /**
      * @brief Autodesk FBX SDK로 원본 FBX 장면을 삼각형·좌수 좌표계로 변환하고 재질과 텍스처 참조를 수집합니다.
+     * @details 임포트는 ImportSource에서 다음 순서로 진행합니다.
+     * 1. 파일을 열어 장면을 읽고 텍스처를 판별한 뒤, 축·단위 변환과 삼각형 분할을 적용합니다.
+     * 2. 스켈레톤 옵션이 켜져 있으면 CollectBindPoses로 바인드 포즈를 모으고 ReadSkeleton으로 본 계층을 만듭니다.
+     * 3. ReadNode가 노드 트리를 순회하며 메시마다 ReadMesh를 호출합니다. ReadMesh는 ReadSkinWeights로 제어점별 가중치를 읽고, 삼각형 꼭짓점마다 정점을 만듭니다.
+     *
+     * 정점과 본은 모두 mBasis를 거쳐 같은 엔진 공간의 바인드 자세로 저장되며, 이 데이터로 USkeletalMesh가 역바인드 행렬을 계산합니다.
      */
     class FFBXImporter final : public Asset::IMeshImporter {
     public:

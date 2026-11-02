@@ -38,7 +38,7 @@ try {
     if (-not (Test-Path -LiteralPath $Locator)) {
         throw 'Install Visual Studio 2022/2026 or Build Tools with Desktop development with C++ and a Windows 10/11 SDK, then run Build.bat again.'
     }
-    $Installation = & $Locator -latest -products '*' -requires Microsoft.Component.MSBuild Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -format json | ConvertFrom-Json | Select-Object -First 1
+    $Installation = & $Locator -latest -prerelease -products '*' -requires Microsoft.Component.MSBuild Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -format json | ConvertFrom-Json | Select-Object -First 1
     if ($LASTEXITCODE -ne 0 -or -not $Installation) {
         throw 'Visual Studio C++ tools were not found. Install Desktop development with C++ and a Windows 10/11 SDK, then run Build.bat again.'
     }

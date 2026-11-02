@@ -58,16 +58,10 @@ namespace Renderer {
         Core::FVector4 mUVTransform{1.0f, 1.0f, 0.0f, 0.0f};
         ReflectProperty(mUVTransform, "UVTransform", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
-        /**
-         * @brief 그림자 수신 여부와 셰이더 정렬을 위한 예약값을 저장합니다.
-         */
-        Core::FVector4 mShadowFlags{1.0f, 0.0f, 0.0f, 0.0f};
-        ReflectProperty(mShadowFlags, "ShadowFlags", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
-
     };
 
     static_assert(sizeof(Core::FMatrix) == 64 && alignof(Core::FMatrix) == 16 && std::is_trivially_copyable_v<Core::FMatrix>);
-    static_assert(std::is_standard_layout_v<Renderer::FObjectConstants> && sizeof(Renderer::FObjectConstants) == 160);
+    static_assert(std::is_standard_layout_v<Renderer::FObjectConstants> && sizeof(Renderer::FObjectConstants) == 144);
     static_assert(offsetof(Renderer::FObjectConstants, mWorld) == 0 && offsetof(Renderer::FObjectConstants, mWorldInverse) == 64);
 
 }

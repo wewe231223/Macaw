@@ -21,9 +21,13 @@ cbuffer ObjectConstants : register(b0) {
  */
 struct FDepthInput {
 #ifdef MacawSkinned
-    /** @brief 베이스 패스와 동일한 본 인덱스입니다. */
+    /**
+     * @brief 베이스 패스와 동일한 본 인덱스입니다.
+     */
     uint4 mBoneIndices : BLENDINDICES;
-    /** @brief 베이스 패스와 동일한 정점별 가중치입니다. */
+    /**
+     * @brief 베이스 패스와 동일한 정점별 가중치입니다.
+     */
     float4 mBoneWeights : BLENDWEIGHT;
 #endif
     /**

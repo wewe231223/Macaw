@@ -7,6 +7,7 @@
 #include "Editor/FEditorContext.h"
 #include "Core/FilePath.h"
 #include "Engine/FProject.h"
+#include "Engine/Component/UMeshComponent.h"
 #include "Engine/Component/UStaticMeshComponent.h"
 #include "Engine/Component/USkeletalMeshComponent.h"
 #include "Engine/ASkeletalMeshActor.h"
@@ -673,11 +674,9 @@ namespace Editor {
             return false;
         }
 
-        auto* Component{CoreUObject::Cast<Engine::UStaticMeshComponent>(ResolveObject(Handle))};
+        auto* Component{CoreUObject::Cast<Engine::UMeshComponent>(ResolveObject(Handle))};
 
-        auto* Skeletal{CoreUObject::Cast<Engine::USkeletalMeshComponent>(ResolveObject(Handle))};
-
-        if (!(Component != nullptr ? Component->SetSlotMaterialPath(Slot, Path) : Skeletal != nullptr && Skeletal->SetSlotMaterialPath(Slot, Path))) {
+        if (Component == nullptr || !Component->SetSlotMaterialPath(Slot, Path)) {
             return false;
         }
 
