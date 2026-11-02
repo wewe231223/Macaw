@@ -9,7 +9,8 @@
 #include "Core/ReflectionMacros.h"
 #include "Core/Types.h"
 #include "Core/Math/FVector4.h"
-#include "Engine/FAssetFile.h"
+#include "Asset/FAssetFile.h"
+#include "Asset/Import/FAssetImportOption.h"
 #include "Editor/Panel/FOutlinerPanel.h"
 #include "Editor/Panel/FDetailsPanel.h"
 #include "Editor/Panel/FConsolePanel.h"
@@ -22,6 +23,11 @@
 #include <filesystem>
 #include <optional>
 
+namespace Asset {
+    class UTexture2D;
+    class UMaterial;
+}
+
 namespace Serialization {
     class FJsonArchive;
 }
@@ -32,11 +38,6 @@ namespace Platform {
 
 namespace RenderCore {
     class IRendererModule;
-}
-
-namespace Engine {
-    class UTexture2D;
-    class UMaterial;
 }
 
 namespace Editor {
@@ -259,7 +260,7 @@ namespace Editor {
          * @param[in] Path Content 기준 에셋 경로입니다.
          * @param[in] Type 에셋 종류입니다.
          */
-        void OpenContentAsset(const std::filesystem::path& Path, Engine::EAssetType Type);
+        void OpenContentAsset(const std::filesystem::path& Path, Asset::EAssetType Type);
 
         /**
          * @brief 기본 설정으로 새 머티리얼 에셋을 만듭니다.
@@ -303,11 +304,22 @@ namespace Editor {
         void ImportAsset();
 
         /**
-         * @brief 원본 파일 목록을 대상 콘텐츠 디렉터리에 가져오고 에셋 목록과 결과 로그를 갱신합니다.
+         * @brief 원본 파일 목록을 가져오기 요청합니다. 메시가 포함되어 있으면 임포트 옵션 창을 띄우고, 이미지뿐이면 바로 가져옵니다.
          * @param[in] Sources 가져올 원본 파일 경로 목록입니다.
          * @param[in] Directory 가져온 에셋을 저장할 Content 폴더입니다.
          */
-        void ImportFiles(const Core::TArray<std::filesystem::path>& Sources, const std::filesystem::path& Directory);
+        void RequestImport(Core::TArray<std::filesystem::path> Sources, const std::filesystem::path& Directory);
+        /**
+         * @brief 원본 파일 목록을 대상 콘텐츠 디렉터리에 가져오고 에셋 목록과 결과 로그를 갱신합니다.
+         * @param[in] Sources 가져올 원본 파일 경로 목록입니다.
+         * @param[in] Directory 가져온 에셋을 저장할 Content 폴더입니다.
+         * @param[in] Option 메시 원본에 적용할 임포트 옵션입니다.
+         */
+        void ImportFiles(const Core::TArray<std::filesystem::path>& Sources, const std::filesystem::path& Directory, const Asset::FAssetImportOption& Option);
+        /**
+         * @brief 대기 중인 메시 가져오기 묶음이 있으면 임포트 옵션 모달 창을 그리고, 확인하면 옵션대로 가져옵니다.
+         */
+        void DrawImportOptions();
         /**
          * @brief Windows 드롭 핸들에서 경로와 대상 영역을 수집하여 가져오기를 대기열에 넣고 핸들을 해제합니다.
          * @param[in] Handle 처리 후 DragFinish로 해제할 Windows HDROP 핸들입니다.
@@ -545,7 +557,7 @@ namespace Editor {
         /**
          * @brief 미리보기에 사용하는 에셋 관리자 소유 텍스처의 비소유 주소입니다.
          */
-        Engine::UTexture2D* mPreviewTexture{};
+        Asset::UTexture2D* mPreviewTexture{};
         ReflectProperty(mPreviewTexture, "PreviewTexture", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
@@ -569,7 +581,7 @@ namespace Editor {
         /**
          * @brief 콘텐츠 파일별 에셋 종류입니다.
          */
-        Core::TMap<std::filesystem::path, Engine::EAssetType> mAssetTypes{};
+        Core::TMap<std::filesystem::path, Asset::EAssetType> mAssetTypes{};
         ReflectProperty(mAssetTypes, "AssetTypes", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
@@ -603,6 +615,24 @@ namespace Editor {
         ReflectProperty(mDropDirectories, "DropDirectories", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
+         * @brief 임포트 옵션 창에서 확인을 기다리는 원본 경로 묶음입니다. 앞의 묶음부터 하나씩 옵션 창을 띄웁니다.
+         */
+        Core::TArray<Core::TArray<std::filesystem::path>> mPendingImports{};
+        ReflectProperty(mPendingImports, "PendingImports", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+
+        /**
+         * @brief 대기 중인 각 가져오기 묶음에 대응하는 콘텐츠 대상 디렉터리입니다.
+         */
+        Core::TArray<std::filesystem::path> mPendingImportDirectories{};
+        ReflectProperty(mPendingImportDirectories, "PendingImportDirectories", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+
+        /**
+         * @brief 임포트 옵션 창에서 편집하는 옵션입니다. 다음 가져오기에서도 마지막 값을 유지합니다.
+         */
+        Asset::FAssetImportOption mImportOption{};
+        ReflectProperty(mImportOption, "ImportOption", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+
+        /**
          * @brief 선택한 콘텐츠 에셋 경로입니다.
          */
         std::filesystem::path mSelectedContentPath{};
@@ -623,7 +653,7 @@ namespace Editor {
         /**
          * @brief 편집 중인 머티리얼의 독립 사본입니다.
          */
-        Engine::UMaterial* mEditingMaterial{};
+        Asset::UMaterial* mEditingMaterial{};
         ReflectProperty(mEditingMaterial, "EditingMaterial", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
@@ -677,7 +707,7 @@ namespace Editor {
         /**
          * @brief 선택한 에셋 종류 필터입니다.
          */
-        std::optional<Engine::EAssetType> mContentFilter{};
+        std::optional<Asset::EAssetType> mContentFilter{};
         ReflectProperty(mContentFilter, "ContentFilter", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
     };

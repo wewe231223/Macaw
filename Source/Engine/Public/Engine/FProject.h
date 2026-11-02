@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include "Engine/FAssetManager.h"
+#include "Asset/FAssetManager.h"
 
 namespace Engine {
 
@@ -114,7 +114,7 @@ namespace Engine {
          * @brief 프로젝트의 에셋 관리자를 비소유 주소로 반환합니다.
          * @return 대상의 비소유 주소이며, 없거나 유효하지 않으면 nullptr입니다.
          */
-        Engine::FAssetManager* GetAssets() const;
+        Asset::FAssetManager* GetAssets() const;
 
     private:
         /**
@@ -144,7 +144,7 @@ namespace Engine {
         /**
          * @brief 프로젝트 콘텐츠를 읽고 캐시하는 소유 에셋 관리자입니다.
          */
-        std::unique_ptr<Engine::FAssetManager> mAssets{};
+        std::unique_ptr<Asset::FAssetManager> mAssets{};
         ReflectProperty(mAssets, "Assets", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 

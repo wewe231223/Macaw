@@ -10,17 +10,23 @@ digraph Renderer {
     Proxy [label="FPrimitiveSceneProxy\n메시 · 행렬 · 경계 상자", fillcolor="#f0f2f5"];
     Target [label="FDXRenderTarget\n컬러 · 깊이 버퍼"];
     TargetInterface [label="FRenderTarget\n출력 타깃 계약", fillcolor="#f0f2f5"];
-    SceneRenderer [label="FSceneRenderer\n프러스텀 선별 · 드로 호출"];
+    MeshPass [label="FMeshPass\n프리미티브 선별 · 드로 목록 생성"];
+    ShadowDepthPass [label="FShadowDepthPass\n그림자 캐스터 · 깊이 전용"];
+    BasePass [label="FBasePass\n머티리얼 · 조명"];
+    Shadow [label="FShadowResources\n아틀라스 타일 · 광원 행렬"];
     Family [label="FSceneViewFamily\n장면 · 카메라 · 출력 타깃", fillcolor="#f0f2f5"];
     Renderer -> Module [label="상속", arrowhead=empty];
     Renderer -> Mesh [label="소유"];
-    Renderer -> SceneRenderer [label="프레임마다 생성 · 호출", style=dashed];
+    Renderer -> ShadowDepthPass [label="소유 · DrawMeshPass"];
+    Renderer -> BasePass [label="소유 · DrawMeshPass"];
+    ShadowDepthPass -> MeshPass [label="상속", arrowhead=empty];
+    BasePass -> MeshPass [label="상속", arrowhead=empty];
+    MeshPass -> Scene [label="참조", style=dashed];
+    Renderer -> Shadow [label="소유 · 타일 타깃 조회"];
     Renderer -> Scene [label="생성 후 월드로 소유권 이전", style=dashed];
     Renderer -> Target [label="생성 후 뷰포트로 소유권 이전", style=dashed];
     Scene -> SceneInterface [label="상속", arrowhead=empty];
     Scene -> Proxy [label="복사본 소유"];
     Target -> TargetInterface [label="상속", arrowhead=empty];
-    SceneRenderer -> Family [label="참조", style=dashed];
-    SceneRenderer -> Scene [label="참조", style=dashed];
-    SceneRenderer -> Mesh [label="참조", style=dashed];
+    Renderer -> Family [label="DrawMeshPass 참조", style=dashed];
 }

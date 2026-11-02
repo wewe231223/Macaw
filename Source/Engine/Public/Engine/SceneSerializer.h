@@ -12,6 +12,10 @@
 
 #include <filesystem>
 
+namespace Asset {
+    class FAssetManager;
+}
+
 namespace Core {
     class FArchive;
 }
@@ -19,7 +23,6 @@ namespace Core {
 namespace Engine {
 
     class FWorldContext;
-    class FAssetManager;
 
     /**
      * @brief 리플렉션 프로퍼티를 사용하여 월드와 액터·컴포넌트를 JSON으로 저장하고 복원합니다.
@@ -56,7 +59,7 @@ namespace Engine {
          * @param[in] Type 새 월드의 용도입니다. 게임 실행에는 Game을, 편집에는 기본값 Editor를 사용합니다.
          * @return 생성한 월드 컨텍스트의 단독 소유권이며, 실패하면 nullptr입니다.
          */
-        static std::unique_ptr<Engine::FWorldContext> Load(const std::filesystem::path& Path, Core::FString& Error, Engine::FAssetManager* Assets = nullptr, Engine::EWorldType Type = Engine::EWorldType::Editor);
+        static std::unique_ptr<Engine::FWorldContext> Load(const std::filesystem::path& Path, Core::FString& Error, Asset::FAssetManager* Assets = nullptr, Engine::EWorldType Type = Engine::EWorldType::Editor);
 
         /**
          * @brief 아카이브 모드에 따라 값을 읽거나 저장합니다.

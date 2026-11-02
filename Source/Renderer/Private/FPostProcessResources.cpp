@@ -68,7 +68,7 @@ namespace Renderer {
         Constants.mView = Family.mView.mView;
         Constants.mCameraPosition = Core::FVector4{Family.mView.mLocation, Family.mView.mOrthographic ? 1.0f : 0.0f};
         Constants.mScreenSize = {static_cast<float>(Target.GetWidth()), static_cast<float>(Target.GetHeight()), 1.0f / static_cast<float>(Target.GetWidth()), 1.0f / static_cast<float>(Target.GetHeight())};
-        Engine::UTexture2D* Source{Target.GetSceneColor()};
+        Asset::UTexture2D* Source{Target.GetSceneColor()};
         Core::Uint32 DrawCalls{};
         const bool Visualization{Family.mViewMode == Engine::EViewMode::WorldNormal || Family.mViewMode == Engine::EViewMode::SceneDepth};
 
@@ -84,7 +84,7 @@ namespace Renderer {
                 Constants.mSettings = {1.0f, 0.0f, 0.0f, 0.0f};
                 Context->UpdateSubresource(mConstants.Get(), 0, nullptr, &Constants, 0, 0);
 
-                Engine::UTexture2D* Destination{Source == Target.GetSceneColor() ? Target.GetPostProcessColor() : Target.GetSceneColor()};
+                Asset::UTexture2D* Destination{Source == Target.GetSceneColor() ? Target.GetPostProcessColor() : Target.GetSceneColor()};
                 Draw(Context, Source, Destination, Target.GetSceneDepth());
                 Source = Destination;
                 ++DrawCalls;
@@ -98,7 +98,7 @@ namespace Renderer {
         return DrawCalls + 1;
     }
 
-    void Renderer::FPostProcessResources::Draw(ID3D11DeviceContext* Context, Engine::UTexture2D* Source, Engine::UTexture2D* Destination, Engine::UTexture2D* Depth) {
+    void Renderer::FPostProcessResources::Draw(ID3D11DeviceContext* Context, Asset::UTexture2D* Source, Asset::UTexture2D* Destination, Asset::UTexture2D* Depth) {
         const std::array<ID3D11ShaderResourceView*, 2> Empty{};
         Context->PSSetShaderResources(0, static_cast<UINT>(Empty.size()), Empty.data());
 

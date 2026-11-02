@@ -6,6 +6,7 @@
 
 #include "Editor/EditorEngine.h"
 #include "Core/FilePath.h"
+#include "Core/LoadingStatus.h"
 #include "FEditorUI.h"
 #include "Engine/UWorld.h"
 #include "Engine/AStaticMeshActor.h"
@@ -130,6 +131,8 @@ namespace Editor {
 
         if (GetProject() != nullptr) {
             const Core::FString& Startup{GetProject()->GetStartupScene()};
+
+            Core::LoadingStatus::BeginStage("Loading startup scene...", 0.82f);
 
             if (!mContext.LoadScene(Core::FilePath::FromUtf8(Startup))) {
                 Shutdown();

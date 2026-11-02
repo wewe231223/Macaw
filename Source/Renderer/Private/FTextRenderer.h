@@ -7,7 +7,7 @@
 #pragma once
 
 #include "FFontAtlas.h"
-#include "Engine/UTexture2D.h"
+#include "Asset/UTexture2D.h"
 #include "Core/Math/FMatrix.h"
 #include "RenderCore/FDynamicVertexBuffer.h"
 
@@ -140,7 +140,7 @@ namespace Renderer {
         /**
          * @brief 거리 필드 폰트 이미지와 GPU 텍스처입니다.
          */
-        std::unique_ptr<Engine::UTexture2D> mTexture{};
+        std::unique_ptr<Asset::UTexture2D> mTexture{};
         ReflectProperty(mTexture, "Texture", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**

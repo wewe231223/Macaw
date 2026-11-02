@@ -9,7 +9,6 @@
 #include "Engine/MeshPicking.h"
 #include "Engine/UWorld.h"
 #include <limits>
-#include <numbers>
 #include "Editor/FEditorViewportClient.h"
 #include "Engine/Component/USceneComponent.h"
 #include "Engine/FWorldContext.h"
@@ -26,9 +25,12 @@
 #include "CoreUObject/Reflection/Cast.h"
 #include "CoreUObject/FObjectRegistry.h"
 #include "Editor/FEditorContext.h"
+#include "Core/Literals.h"
 
 #include <algorithm>
 #include <cmath>
+
+using namespace Core::Literals;
 
 namespace Editor {
 
@@ -136,7 +138,7 @@ namespace Editor {
             return 2.0f / (View.mProjection(1, 1) * std::max(View.mSize.y, 1.0f)) * Size;
         }
 
-        return Depth > 0.05f ? 2.0f * Depth * std::tan(Core::Math::ToRadians(View.mFieldOfView) * 0.5f) / std::max(View.mSize.y, 1.0f) * Size : 0.0f;
+        return Depth > 0.05f ? 2.0f * Depth * Core::Math::Tan(View.mFieldOfView * 0.5_deg) / std::max(View.mSize.y, 1.0f) * Size : 0.0f;
     }
 
     /**
@@ -361,7 +363,7 @@ namespace Editor {
                 mPreviousDirection = Direction;
             }
 
-            mAppliedAngle = Snap(mRawAngle, Core::Math::ToRadians(mSettings.mRotationStep), mSettings.mRotationSnap);
+            mAppliedAngle = Snap(mRawAngle, mSettings.mRotationStep * 1_deg / 1_rad, mSettings.mRotationSnap);
 
             const Core::FQuat Rotation{mPlaneNormal, mAppliedAngle};
 
@@ -708,7 +710,7 @@ namespace Editor {
         }
 
         if (mDragMode == Editor::EGizmoMode::Rotate) {
-            const float Angle{std::clamp(mAppliedAngle, -2.0f * std::numbers::pi_v<float>, 2.0f * std::numbers::pi_v<float>)};
+            const float Angle{Core::Math::Clamp(mAppliedAngle * 1_rad, -1_turn, 1_turn) / 1_rad};
             const float Radius{mDragSize * 74.0f};
             DrawInterface->DrawLine(mStartPivot, mStartPivot + mStartDirection * Radius, {0.8f, 0.8f, 0.8f});
             DrawInterface->DrawLine(mStartPivot, mStartPivot + Core::FQuat{mPlaneNormal, Angle} * mStartDirection * Radius, Color);

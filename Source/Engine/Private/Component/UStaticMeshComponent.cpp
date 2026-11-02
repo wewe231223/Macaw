@@ -9,9 +9,9 @@
 #include "Core/Reflection/EPropertyFlags.h"
 #include "Core/Base/ErrorHandler.h"
 #include "Engine/EPrimitiveType.h"
-#include "Engine/FAssetManager.h"
-#include "Engine/UStaticMesh.h"
-#include "Engine/UMaterial.h"
+#include "Asset/FAssetManager.h"
+#include "Asset/UStaticMesh.h"
+#include "Asset/UMaterial.h"
 #include "Engine/FPrimitiveSceneProxy.h"
 #include "Engine/UWorld.h"
 #include "Core/Archive.h"
@@ -76,7 +76,7 @@ namespace Engine {
             return true;
         }
 
-        Engine::UStaticMesh* Mesh{LoadMesh(Path)};
+        Asset::UStaticMesh* Mesh{LoadMesh(Path)};
 
         if (!Path.empty() && GetWorld() != nullptr && GetWorld()->GetAssets() != nullptr && Mesh == nullptr) {
             return false;
@@ -95,11 +95,11 @@ namespace Engine {
         return true;
     }
 
-    Engine::UStaticMesh* Engine::UStaticMeshComponent::GetStaticMesh() const {
+    Asset::UStaticMesh* Engine::UStaticMeshComponent::GetStaticMesh() const {
         return mStaticMesh;
     }
 
-    const Engine::FMeshData& Engine::UStaticMeshComponent::GetMeshData() const {
+    const Asset::FMeshData& Engine::UStaticMeshComponent::GetMeshData() const {
         if (mStaticMesh != nullptr) {
             return mStaticMesh->GetMeshData();
         }
@@ -108,7 +108,7 @@ namespace Engine {
             return Engine::UPrimitiveComponent::GetMeshData();
         }
 
-        static const Engine::FMeshData EmptyMesh{};
+        static const Asset::FMeshData EmptyMesh{};
 
         return EmptyMesh;
     }
@@ -122,7 +122,7 @@ namespace Engine {
     }
 
     bool Engine::UStaticMeshComponent::ResolveMesh() {
-        Engine::UStaticMesh* Mesh{LoadMesh(mMeshPath)};
+        Asset::UStaticMesh* Mesh{LoadMesh(mMeshPath)};
 
         if (mStaticMesh != Mesh) {
             mStaticMesh = Mesh;
@@ -141,15 +141,15 @@ namespace Engine {
         ResolveMaterial();
     }
 
-    Engine::UStaticMesh* Engine::UStaticMeshComponent::LoadMesh(const Core::FString& Path) const {
-        Engine::FAssetManager* Assets{GetWorld() != nullptr ? GetWorld()->GetAssets() : nullptr};
+    Asset::UStaticMesh* Engine::UStaticMeshComponent::LoadMesh(const Core::FString& Path) const {
+        Asset::FAssetManager* Assets{GetWorld() != nullptr ? GetWorld()->GetAssets() : nullptr};
 
         if (Assets == nullptr || Path.empty()) {
             return nullptr;
         }
 
         Core::FString Error{};
-        Engine::UStaticMesh* Mesh{Assets->LoadMesh(Core::FilePath::FromUtf8(Path), Error)};
+        Asset::UStaticMesh* Mesh{Assets->LoadMesh(Core::FilePath::FromUtf8(Path), Error)};
 
         if (Mesh == nullptr) {
             Core::ErrorHandler::Report("StaticMesh", "Cannot load mesh '" + Path + "': " + Error, Core::ErrorHandler::EErrorLevel::Warning);
@@ -183,7 +183,7 @@ namespace Engine {
             return true;
         }
 
-        Engine::UMaterial* Material{LoadMaterial(Path)};
+        Asset::UMaterial* Material{LoadMaterial(Path)};
 
         if (!Path.empty() && GetWorld() != nullptr && GetWorld()->GetAssets() != nullptr && Material == nullptr) {
             return false;
@@ -196,12 +196,12 @@ namespace Engine {
         return true;
     }
 
-    Engine::UMaterial* Engine::UStaticMeshComponent::GetMaterial() const {
+    Asset::UMaterial* Engine::UStaticMeshComponent::GetMaterial() const {
         return mMaterial;
     }
 
     bool Engine::UStaticMeshComponent::ResolveMaterial() {
-        Engine::UMaterial* Material{LoadMaterial(mMaterialPath)};
+        Asset::UMaterial* Material{LoadMaterial(mMaterialPath)};
 
         if (mMaterial != Material) {
             mMaterial = Material;
@@ -229,7 +229,7 @@ namespace Engine {
         return Slot < mMaterialOverrides.size() ? mMaterialOverrides[Slot] : Empty;
     }
 
-    Engine::UMaterial* Engine::UStaticMeshComponent::GetSlotMaterial(Core::Uint32 Slot) const {
+    Asset::UMaterial* Engine::UStaticMeshComponent::GetSlotMaterial(Core::Uint32 Slot) const {
         if (mMaterial != nullptr) {
             return mMaterial;
         }
@@ -307,15 +307,15 @@ namespace Engine {
         }
     }
 
-    Engine::UMaterial* Engine::UStaticMeshComponent::LoadMaterial(const Core::FString& Path) const {
-        Engine::FAssetManager* Assets{GetWorld() != nullptr ? GetWorld()->GetAssets() : nullptr};
+    Asset::UMaterial* Engine::UStaticMeshComponent::LoadMaterial(const Core::FString& Path) const {
+        Asset::FAssetManager* Assets{GetWorld() != nullptr ? GetWorld()->GetAssets() : nullptr};
 
         if (Assets == nullptr || Path.empty()) {
             return nullptr;
         }
 
         Core::FString Error{};
-        Engine::UMaterial* Material{Assets->LoadMaterial(Core::FilePath::FromUtf8(Path), Error)};
+        Asset::UMaterial* Material{Assets->LoadMaterial(Core::FilePath::FromUtf8(Path), Error)};
 
         if (Material == nullptr) {
             Core::ErrorHandler::Report("Material", "Cannot load material '" + Path + "': " + Error, Core::ErrorHandler::EErrorLevel::Warning);

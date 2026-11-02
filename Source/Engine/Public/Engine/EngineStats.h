@@ -1,6 +1,6 @@
 /**
  * @file EngineStats.h
- * @brief 엔진·월드·에셋 처리의 시간과 개수를 측정하는 통계 항목입니다.
+ * @brief 엔진·월드 처리의 시간과 개수를 측정하는 통계 항목입니다.
  * @ingroup Engine
  */
 
@@ -71,35 +71,6 @@ namespace Engine {
          */
         extern Core::FStat SharedGeometry;
 
-        /**
-         * @brief 메시 로드 처리 시간를 측정하는 통계 항목입니다.
-         */
-        extern Core::FStat MeshLoad;
-
-        /**
-         * @brief 텍스처 로드 처리 시간를 측정하는 통계 항목입니다.
-         */
-        extern Core::FStat TextureLoad;
-
-        /**
-         * @brief 머티리얼 로드 처리 시간를 측정하는 통계 항목입니다.
-         */
-        extern Core::FStat MaterialLoad;
-
-        /**
-         * @brief 메시 임포트 처리 시간를 측정하는 통계 항목입니다.
-         */
-        extern Core::FStat MeshImport;
-
-        /**
-         * @brief 텍스처 임포트 처리 시간를 측정하는 통계 항목입니다.
-         */
-        extern Core::FStat TextureImport;
-
-        /**
-         * @brief 에셋 캐시 적중 횟수를 측정하는 통계 항목입니다.
-         */
-        extern Core::FStat AssetCacheHits;
     }
 
 }

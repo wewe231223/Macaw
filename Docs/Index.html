@@ -28,7 +28,7 @@
         </section>
         <section id="Architecture" class="Section" aria-labelledby="ArchitectureTitle">
             <div class="SectionHeading"><h2 id="ArchitectureTitle">프로젝트 관계</h2><a href="ModuleDependencies.svg">확대 ↗</a></div>
-            <p class="SectionIntro">@@ProjectCount@@개 프로젝트: 실행 파일 Macaw · 자체 라이브러리 @@ModuleCount@@개 · 외부 ImGui.</p>
+            <p class="SectionIntro">@@ProjectCount@@개 프로젝트: 실행 파일 Macaw · 자체 라이브러리 @@ModuleCount@@개. 외부 라이브러리는 vcpkg로 관리합니다.</p>
             <figure class="GraphPanel">
                 <div class="GraphViewport"><img src="ModuleDependencies.svg" alt="Macaw 실행 파일과 9개 라이브러리의 의존성."></div>
                 <figcaption>화살표는 의존 대상. 실선 Public · 파선 Private · 파란 점선 실행 링크.</figcaption>
@@ -93,8 +93,8 @@
                     <div class="ProjectBody"><figure><div class="GraphViewport"><img src="Graphs/Editor.svg" loading="lazy" alt="UEditorEngine이 편집 컨텍스트, 뷰포트와 UI를 소유하고 패널과 뷰포트 클라이언트가 같은 편집 컨텍스트를 참조하는 관계."></div></figure><p class="SourceLinks"><a href="./api/class_u_editor_engine.html">UEditorEngine</a><a href="./api/class_f_editor_context.html">FEditorContext</a><a href="./api/class_f_editor_viewport.html">FEditorViewport</a><a href="./api/class_f_editor_viewport_client.html">FEditorViewportClient</a><a href="https://github.com/wewe231223/Macaw/tree/@@Revision@@/Source/Editor">소스 ↗</a><a href="Graphs/Editor.svg">그림 확대 ↗</a></p></div>
                 </details>
                 <details id="Project-ImGui" class="ProjectDetails">
-                    <summary><span class="ProjectName">ImGui <small>외부 라이브러리</small></span><span>UI·백엔드</span></summary>
-                    <div class="ProjectBody"><figure><div class="GraphViewport"><img src="Graphs/ImGui.svg" loading="lazy" alt="FEditorUI가 ImGui 컨텍스트와 백엔드를 초기화하고 Win32 입력 및 D3D11 드로 데이터를 연결하는 관계."></div></figure><p class="SourceLinks"><a href="https://github.com/wewe231223/Macaw/tree/@@Revision@@/ThirdParty/ImGui">소스 ↗</a><a href="Graphs/ImGui.svg">그림 확대 ↗</a></p></div>
+                    <summary><span class="ProjectName">ImGui <small>vcpkg 패키지</small></span><span>UI·백엔드</span></summary>
+                    <div class="ProjectBody"><figure><div class="GraphViewport"><img src="Graphs/ImGui.svg" loading="lazy" alt="FEditorUI가 ImGui 컨텍스트와 백엔드를 초기화하고 Win32 입력 및 D3D11 드로 데이터를 연결하는 관계."></div></figure><p class="SourceLinks"><a href="https://github.com/wewe231223/Macaw/blob/@@Revision@@/vcpkg.json">의존성 설정 ↗</a><a href="Graphs/ImGui.svg">그림 확대 ↗</a></p></div>
                 </details>
             </div>
         </section>

@@ -37,11 +37,16 @@
 #include "Editor/FEditorContext.h"
 #include "Editor/FViewportCommandInfo.h"
 #include "Engine/FProject.h"
-#include "Engine/UStaticMesh.h"
+#include "Asset/UStaticMesh.h"
+#include "Asset/USkeletalMesh.h"
+#include "Asset/FAssetFile.h"
+#include "Core/Literals.h"
 
 #include <algorithm>
 #include <cmath>
 #include <limits>
+
+using namespace Core::Literals;
 
 namespace Editor {
 
@@ -294,7 +299,7 @@ namespace Editor {
 
         if (Input.mMiddleDown || (Input.mLeftDown && Input.mRightDown && !Input.mAlt)) {
             const float Distance{std::max(mCameraLocation.Distance(mOrbitPivot), 1.0f)};
-            const float PixelScale{2.0f * Distance * std::tan(Core::Math::ToRadians(30.0f)) / std::max(Size.y, 1.0f)};
+            const float PixelScale{2.0f * Distance * Core::Math::Tan(30_deg) / std::max(Size.y, 1.0f)};
             const Core::FVector Pan{Rotation * Core::FVector{0.0f, -Input.mDelta.x, Input.mDelta.y} * PixelScale};
             mCameraLocation += Pan;
             mOrbitPivot += Pan;
@@ -372,8 +377,8 @@ namespace Editor {
             return;
         }
 
-        const float HalfFieldOfView{std::atan(std::tan(Core::Math::ToRadians(mFieldOfView * 0.5f)) * std::min(std::max(Size.x, 1.0f) / std::max(Size.y, 1.0f), 1.0f))};
-        const float Distance{std::max(0.5f, Radius / std::sin(HalfFieldOfView) * 1.2f)};
+        const Core::FAngle HalfFieldOfView{Core::Math::Atan2(Core::Math::Tan(mFieldOfView * 0.5_deg) * std::min(std::max(Size.x, 1.0f) / std::max(Size.y, 1.0f), 1.0f), 1.0f)};
+        const float Distance{std::max(0.5f, Radius / Core::Math::Sin(HalfFieldOfView) * 1.2f)};
 
         mCameraLocation = mOrbitPivot - mCameraRotation.Vector() * Distance;
     }
@@ -919,7 +924,17 @@ namespace Editor {
         }
 
         Core::FString Error{};
-        const Engine::UStaticMesh* Mesh{Project->GetAssets()->LoadMesh(Path, Error)};
+        Asset::FAssetManager* Assets{Project->GetAssets()};
+        Asset::EAssetType Type{};
+
+        if (!Asset::FAssetFile::GetType(Assets->ResolvePath(Path, Error), Type, Error)) {
+            mContext->AddLog(Error);
+            return false;
+        }
+
+        // 같은 드롭 동작에서 에셋 종류를 판별하고 바인드 경계를 기준으로 바닥에 놓습니다.
+        Asset::USkeletalMesh* Skeletal{Type == Asset::EAssetType::SkeletalMesh ? Assets->LoadSkeletalMesh(Path, Error) : nullptr};
+        const Asset::UStaticMesh* Mesh{Skeletal != nullptr ? Skeletal->GetGeometry() : Type == Asset::EAssetType::Mesh ? Assets->LoadMesh(Path, Error) : nullptr};
 
         if (Mesh == nullptr) {
             mContext->AddLog(Error);
@@ -930,7 +945,8 @@ namespace Editor {
             Location.z -= Mesh->GetBounds().mMinimum.z;
         }
 
-        return mContext->SpawnMesh(Path, Core::FTransform{Location, {}, {1.0f, 1.0f, 1.0f}}) != nullptr;
+        const Core::FTransform Placement{Location, {}, {1.0f, 1.0f, 1.0f}};
+        return Skeletal != nullptr ? mContext->SpawnSkeletalMesh(Path, Placement) != nullptr : mContext->SpawnMesh(Path, Placement) != nullptr;
     }
 
     Engine::EViewMode Editor::FEditorViewportClient::GetViewMode() const {

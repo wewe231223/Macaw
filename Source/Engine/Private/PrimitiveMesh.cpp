@@ -7,11 +7,13 @@
 #include "Engine/PrimitiveMesh.h"
 #include "Core/Math/FVector.h"
 #include "Core/Math/FVector2.h"
-#include "Engine/FMeshData.h"
+#include "Asset/FMeshData.h"
 #include "Engine/EPrimitiveType.h"
+#include "Core/Literals.h"
 
 #include <cmath>
-#include <numbers>
+
+using namespace Core::Literals;
 
 namespace Engine {
 
@@ -37,8 +39,8 @@ namespace Engine {
     /**
      * @brief 기본 프리미티브의 CPU 정점, 삼각형 인덱스와 경계 상자를 생성합니다.
      */
-    Engine::FMeshData BuildPrimitive(Engine::EPrimitiveType Type) {
-        Engine::FMeshData Mesh{};
+    Asset::FMeshData BuildPrimitive(Engine::EPrimitiveType Type) {
+        Asset::FMeshData Mesh{};
         Core::TArray<Core::FVector>& Positions{Mesh.GetPositions()};
         Core::TArray<Core::FVector>& Normals{Mesh.GetNormals()};
         Core::TArray<Core::FVector4>& Tangents{Mesh.GetTangents()};
@@ -79,7 +81,7 @@ namespace Engine {
             std::array<Core::FVector2, Segments + 1> Circle{};
 
             for (Core::Uint32 Segment{}; Segment < Segments; ++Segment) {
-                Circle[Segment] = Core::FVector2{1.0f, 0.0f}.Rotated(360.0f * Segment / Segments);
+                Circle[Segment] = Core::FVector2{1.0f, 0.0f}.Rotated(1_turn * Segment / Segments / 1_deg);
             }
 
             Circle.back() = Circle.front();
@@ -90,9 +92,9 @@ namespace Engine {
             UVs.reserve((Rings + 1) * (Segments + 1));
 
             for (Core::Uint32 Ring{}; Ring <= Rings; ++Ring) {
-                const float Phi{std::numbers::pi_v<float> * static_cast<float>(Ring) / Rings};
-                const float Radius{std::sin(Phi)};
-                const float Height{std::cos(Phi)};
+                const Core::FAngle Phi{0.5_turn * Ring / Rings};
+                const float Radius{Core::Math::Sin(Phi)};
+                const float Height{Core::Math::Cos(Phi)};
 
                 for (Core::Uint32 Segment{}; Segment <= Segments; ++Segment) {
                     const Core::FVector2 Radial{Circle[Segment] * Radius};
@@ -125,8 +127,8 @@ namespace Engine {
     /**
      * @brief 종류별로 캐시된 읽기 전용 기본 메시를 반환합니다.
      */
-    const Engine::FMeshData& GetPrimitiveMesh(Engine::EPrimitiveType Type) {
-        static const std::array<Engine::FMeshData, 3> Meshes{Engine::BuildPrimitive(Engine::EPrimitiveType::Plane), Engine::BuildPrimitive(Engine::EPrimitiveType::Cube), Engine::BuildPrimitive(Engine::EPrimitiveType::Sphere)};
+    const Asset::FMeshData& GetPrimitiveMesh(Engine::EPrimitiveType Type) {
+        static const std::array<Asset::FMeshData, 3> Meshes{Engine::BuildPrimitive(Engine::EPrimitiveType::Plane), Engine::BuildPrimitive(Engine::EPrimitiveType::Cube), Engine::BuildPrimitive(Engine::EPrimitiveType::Sphere)};
         return Meshes[static_cast<std::size_t>(Type)];
     }
 

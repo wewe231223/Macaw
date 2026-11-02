@@ -8,7 +8,7 @@
 
 #include "Core/ReflectionMacros.h"
 #include "Engine/FRenderTarget.h"
-#include "Engine/UTexture2D.h"
+#include "Asset/UTexture2D.h"
 
 #include <d3d11.h>
 #include <wrl/client.h>
@@ -87,22 +87,22 @@ namespace Renderer {
          * @brief 장면 드로와 교대 후처리 입력으로 사용하는 컬러 텍스처를 조회합니다.
          * @return 렌더 타깃이 소유하는 장면 컬러의 비소유 주소이며 할당 전에는 nullptr입니다.
          */
-        Engine::UTexture2D* GetSceneColor() const;
+        Asset::UTexture2D* GetSceneColor() const;
         /**
          * @brief 다중 안개 합성에 사용하는 교대 컬러 텍스처를 조회합니다.
          * @return 렌더 타깃이 소유하는 중간 컬러의 비소유 주소이며 할당 전에는 nullptr입니다.
          */
-        Engine::UTexture2D* GetPostProcessColor() const;
+        Asset::UTexture2D* GetPostProcessColor() const;
         /**
          * @brief 에디터와 UI에 표시하는 최종 컬러 텍스처를 조회합니다.
          * @return 렌더 타깃이 소유하는 최종 컬러의 비소유 주소이며 할당 전에는 nullptr입니다.
          */
-        Engine::UTexture2D* GetOutputColor() const;
+        Asset::UTexture2D* GetOutputColor() const;
         /**
          * @brief 깊이 검사와 후처리 샘플링에 공유하는 깊이 텍스처를 조회합니다.
          * @return 렌더 타깃이 소유하는 깊이 텍스처의 비소유 주소이며 할당 전에는 nullptr입니다.
          */
-        Engine::UTexture2D* GetSceneDepth() const;
+        Asset::UTexture2D* GetSceneDepth() const;
 
         /**
          * @brief 현재 보유한 GPU 리소스의 추정 바이트 수를 반환합니다.
@@ -126,18 +126,18 @@ namespace Renderer {
         /**
          * @brief UI 샘플링에 사용할 셰이더 리소스 뷰입니다.
          */
-        std::unique_ptr<Engine::UTexture2D> mColor{};
+        std::unique_ptr<Asset::UTexture2D> mColor{};
         ReflectProperty(mColor, "Color", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 후처리 입력 컬러와 다중 안개 합성의 교대 출력으로 사용하는 텍스처입니다.
          */
-        std::unique_ptr<Engine::UTexture2D> mSceneColor{};
+        std::unique_ptr<Asset::UTexture2D> mSceneColor{};
         ReflectProperty(mSceneColor, "SceneColor", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
         /**
          * @brief 다중 안개를 읽기·쓰기 충돌 없이 합성하기 위한 교대 컬러 텍스처입니다.
          */
-        std::unique_ptr<Engine::UTexture2D> mPostProcessColor{};
+        std::unique_ptr<Asset::UTexture2D> mPostProcessColor{};
         ReflectProperty(mPostProcessColor, "PostProcessColor", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
@@ -146,7 +146,7 @@ namespace Renderer {
         /**
          * @brief 깊이 스텐실 뷰입니다.
          */
-        std::unique_ptr<Engine::UTexture2D> mDepth{};
+        std::unique_ptr<Asset::UTexture2D> mDepth{};
         ReflectProperty(mDepth, "Depth", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
 

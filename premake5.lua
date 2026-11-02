@@ -44,6 +44,10 @@ local function AddIncludes(Name, Visited)
     Visited[Name] = true
     includedirs { "Source/" .. Name .. "/Public" }
 
+    if Name == "Asset" then
+        defines { "FBXSDK_SHARED" }
+    end
+
     if ReflectedModules[Name] then
         includedirs { Reflection.GetGeneratedDirectory(Name) }
     end
@@ -67,10 +71,10 @@ local function Configure(Name, Kind)
         buildoptions { "/utf-8", "/Zc:preprocessor", "/permissive-" }
         multiprocessorcompile "On"
         warnings "Extra"
-        externalincludedirs { "Externals/Include", "ThirdParty/ImGui/Public/ImGui", "vcpkg_installed/x64-windows/include/luajit" }
+        externalincludedirs { "vcpkg_installed/x64-windows/include/luajit" }
 end
 
-for _, Name in ipairs({ "Core", "CoreUObject", "Serialization", "RenderCore", "Engine", "Script", "Renderer", "Platform", "Editor" }) do
+for _, Name in ipairs({ "Core", "CoreUObject", "Serialization", "Asset", "RenderCore", "Engine", "Script", "Renderer", "Platform", "Editor" }) do
     Configure(Name, "StaticLib")
     files { "Source/" .. Name .. "/Public/**.h", "Source/" .. Name .. "/Private/**.h", "Source/" .. Name .. "/Private/**.cpp" }
     includedirs { "Source/" .. Name .. "/Private" }
@@ -90,14 +94,10 @@ for _, Name in ipairs({ "Core", "CoreUObject", "Serialization", "RenderCore", "E
     links(Modules[Name].Public)
     links(Modules[Name].Private)
 
-    if Name == "Engine" then
-        defines { "FBXSDK_SHARED" }
+    if Name == "Asset" then
+        defines { "DIRECTX_TEX_IMPORT" }
     end
 end
-
-Configure("ImGui", "StaticLib")
-    warnings "Off"
-    files { "ThirdParty/ImGui/Private/imgui.cpp", "ThirdParty/ImGui/Private/imgui_draw.cpp", "ThirdParty/ImGui/Private/imgui_tables.cpp", "ThirdParty/ImGui/Private/imgui_widgets.cpp", "ThirdParty/ImGui/Private/imgui_impl_dx11.cpp", "ThirdParty/ImGui/Private/imgui_impl_win32.cpp", "ThirdParty/ImGui/Public/ImGui/**.h" }
 
 Configure("Shaders", "Utility")
     files { "Templates/Project/Content/Shaders/**.hlsl", "Templates/Project/Content/Shaders/**.hlsli" }
@@ -115,13 +115,7 @@ local function ConfigureRuntimeExecutable(Name, Kind, Directory)
         AddIncludes(Module, {})
     end
 
-    links { "Script", "Engine", "Renderer", "Platform", "Serialization", "RenderCore", "CoreUObject", "Core", "DirectXTex", "lua51", "d3d11", "dxgi", "d3dcompiler", "bcrypt", "user32", "gdi32", "dwmapi", "imm32", "ole32", "windowscodecs", "comdlg32", "shell32" }
-    links { "libfbxsdk" }
-    filter "configurations:*Debug"
-        libdirs { "Externals/bin/debug" }
-    filter "configurations:*Release"
-        libdirs { "Externals/bin/release" }
-    filter {}
+    links { "Script", "Engine", "Renderer", "Platform", "Asset", "Serialization", "RenderCore", "CoreUObject", "Core", "d3d11", "dxgi", "d3dcompiler", "bcrypt", "user32", "gdi32", "dwmapi", "imm32", "ole32", "windowscodecs", "comdlg32", "shell32" }
     debugdir "%{wks.location}"
 end
 
@@ -153,9 +147,9 @@ ConfigureRuntimeExecutable("Macaw", "WindowedApp", "Source/App")
     includedirs { GeneratedDirectory }
     prebuildcommands { '"' .. _PREMAKE_COMMAND .. '" --file="' .. path.getabsolute("premake5.lua") .. '" generate-reflection --reflection-module=App' }
     AddIncludes("Editor", {})
-    links { "Editor", "ImGui" }
+    links { "Editor" }
     dependson { "MacawGame" }
-    files { "Source/App/**.rc", "Macaw.ico" }
+    files { "Source/App/**.rc", "Resources/Editor.rc", "Macaw.ico" }
     resincludedirs { "." }
     postbuildcommands { '{COPYDIR} "%{wks.location}/Templates/Project" "%{cfg.targetdir}/Templates/Project"' }
     postbuildcommands { '{COPYFILE} "%{wks.location}/vcpkg_installed/x64-windows/tools/luajit/lua51.dll" "%{cfg.targetdir}/lua51.dll"' }

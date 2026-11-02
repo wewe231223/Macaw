@@ -7,7 +7,7 @@
 #pragma once
 
 #include "Core/ReflectionMacros.h"
-#include "Engine/FMeshData.h"
+#include "Asset/FMeshData.h"
 #include "Engine/FSceneInterface.h"
 #include "Engine/FRenderTarget.h"
 #include "Engine/FSceneViewFamily.h"
@@ -17,12 +17,13 @@
 #include "RenderCore/FDynamicVertexBuffer.h"
 #include "RenderCore/IRendererModule.h"
 #include "RenderCore/Shader/FShaderManager.h"
-#include "Engine/UStaticMesh.h"
-#include "Engine/UTexture2D.h"
-#include "Engine/UMaterial.h"
+#include "Asset/UStaticMesh.h"
+#include "Asset/UTexture2D.h"
+#include "Asset/UMaterial.h"
 #include "Renderer/FLineVertex.h"
 
 #include <d3d11.h>
+#include <span>
 #include <wrl/client.h>
 
 namespace Renderer {
@@ -33,6 +34,14 @@ namespace Renderer {
     class FLightingResources;
     class FShadowResources;
     class FPostProcessResources;
+    class FScene;
+    struct FPassTarget;
+    struct FMeshPassParameters;
+    struct FMeshDrawCommand;
+    class FMeshPass;
+    class FShadowDepthPass;
+    class FBasePass;
+    enum class EMeshPass : Core::Uint8;
 
     /**
      * @brief Direct3D 11 장치, 스왑 체인, 메시와 프레임 렌더링을 관리합니다.
@@ -109,7 +118,7 @@ namespace Renderer {
          * @param[in] Mesh 업로드할 CPU 메시입니다.
          * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
          */
-        bool UploadMesh(Engine::EPrimitiveType Type, const Engine::FMeshData& Mesh) override;
+        bool UploadMesh(Engine::EPrimitiveType Type, const Asset::FMeshData& Mesh) override;
 
         /**
          * @brief 지정한 픽셀 크기의 오프스크린 렌더 타깃을 생성합니다.
@@ -221,45 +230,23 @@ namespace Renderer {
          * @brief 머티리얼별 GPU 파이프라인을 반환합니다.
          * @param[in] Material 조회할 머티리얼 설정입니다.
          * @param[in] Mode 파이프라인에 적용할 조명·와이어프레임·법선 표시 모드입니다.
+         * @param[in] Skinned 객체별 본 포즈를 적용하는 변형을 선택하려면 true입니다.
          * @return 대상의 비소유 주소이며, 없거나 유효하지 않으면 nullptr입니다.
          */
-        Renderer::FMaterialPipeline* GetMaterialPipeline(const Engine::UMaterial& Material, Engine::EViewMode Mode = Engine::EViewMode::Lit_Phong);
+        Renderer::FMaterialPipeline* GetMaterialPipeline(const Asset::UMaterial& Material, Engine::EViewMode Mode = Engine::EViewMode::Lit_Phong, bool Skinned = false);
 
         /**
-         * @brief 현재 뷰의 그림자를 렌더링하고 타일 조명 자원을 업로드·바인딩합니다.
-         * @param[in] Family 장면·카메라·출력 타깃·표시 플래그를 묶은 현재 뷰 요청입니다.
-         * @return 필요한 조명 자원 준비에 성공하면 true입니다.
+         * @brief 그림자 아틀라스 깊이 패스에 사용할 깊이 전용 파이프라인을 반환합니다.
+         * @param[in] Skinned 베이스 패스와 같은 본 변형을 깊이에도 적용하려면 true입니다.
+         * @return 대상의 비소유 주소이며, 셰이더를 다시 컴파일하는 중이거나 실패하면 nullptr입니다.
          */
-        bool PrepareLighting(const Engine::FSceneViewFamily& Family);
+        Renderer::FMaterialPipeline* GetDepthPipeline(bool Skinned = false);
 
         /**
-         * @brief 조명과 그림자 패스에서 사용한 셰이더 리소스 바인딩을 해제합니다.
+         * @brief 머티리얼이 없는 메시가 사용할 기본 머티리얼을 반환합니다.
+         * @return 대상의 비소유 주소이며, 아직 생성하지 않았으면 nullptr입니다.
          */
-        void FinishLighting();
-
-        /**
-         * @brief 기본 머티리얼의 비소유 주소를 반환합니다.
-         * @return 대상의 비소유 주소이며, 없거나 유효하지 않으면 nullptr입니다.
-         */
-        Engine::UMaterial* GetDefaultMaterial() const;
-
-        /**
-         * @brief 텍스처 없는 머티리얼의 흰색 기본 텍스처를 반환합니다.
-         * @return GPU 자원의 비소유 주소이며, 아직 생성하지 않았으면 nullptr입니다.
-         */
-        ID3D11ShaderResourceView* GetDefaultMaterialTexture() const;
-
-        /**
-         * @brief 머티리얼 텍스처용 반복 샘플러를 반환합니다.
-         * @return GPU 자원의 비소유 주소이며, 아직 생성하지 않았으면 nullptr입니다.
-         */
-        ID3D11SamplerState* GetMaterialSampler() const;
-
-        /**
-         * @brief 장면 전체를 와이어프레임으로 표시할 래스터라이저를 반환합니다.
-         * @return GPU 자원의 비소유 주소이며, 아직 생성하지 않았으면 nullptr입니다.
-         */
-        ID3D11RasterizerState* GetWireframeRasterizer() const;
+        Asset::UMaterial* GetDefaultMaterial() const;
 
         /**
          * @brief 프로젝트 콘텐츠의 셰이더 경로와 컴파일 캐시 경로를 설정합니다.
@@ -332,6 +319,53 @@ namespace Renderer {
          */
         void DrawTranslucency(const Engine::FSceneViewFamily& Family, bool EditorIcons);
 
+        /**
+         * @brief 장면 패스의 타일 조명 자원과 그림자 아틀라스를 업로드·바인딩합니다.
+         * @param[in] Family 장면·카메라·출력 타깃·표시 플래그를 묶은 현재 뷰 요청입니다.
+         * @return 필요한 조명 자원 준비에 성공하면 true입니다.
+         */
+        bool PrepareLighting(const Engine::FSceneViewFamily& Family);
+
+        /**
+         * @brief 조명과 그림자 샘플링에 사용한 셰이더 리소스 바인딩을 해제합니다.
+         */
+        void FinishLighting();
+
+        /**
+         * @brief 패스 타깃의 색상과 깊이·스텐실을 지웁니다.
+         * @details 시저가 없으면 뷰 전체를 지웁니다. 시저가 있으면 그 영역의 깊이만 클리어 드로로 1로 지우며, 이때 색상과 스텐실은 유지합니다.
+         * @param[in] Target 지울 색상·깊이 뷰와 선택적 시저 영역을 가진 패스 타깃입니다.
+         * @param[in] Color 색상 뷰를 지울 RGBA 값이며, nullptr이면 색상은 유지합니다.
+         */
+        void ClearTarget(const Renderer::FPassTarget& Target, const float* Color);
+
+        /**
+         * @brief 그림자 맵마다 캐시된 아틀라스 타일이 현재 상태와 다를 때만 타일을 지우고 깊이를 다시 그립니다.
+         * @param[in] Scene 그림자 캐스터와 광원을 가진 렌더 장면입니다.
+         * @param[in] Family 현재 뷰 요청입니다.
+         */
+        void DrawShadowDepths(const Renderer::FScene& Scene, const Engine::FSceneViewFamily& Family);
+
+        /**
+         * @brief 메시 패스 인스턴스가 만든 드로 목록을 패스 타깃에 그립니다.
+         * @details 무엇을 그릴지는 패스가 정하고, 모든 메시 패스의 타깃 바인딩·상태 설정·드로 제출은 이 함수 한 곳에서 수행합니다.
+         * @param[in,out] Pass 프리미티브 선별과 파이프라인·머티리얼 선택을 맡은 메시 패스입니다.
+         * @param[in] Scene 그릴 프리미티브와 광원을 가진 렌더 장면입니다.
+         * @param[in] Family 표시 모드와 표시 플래그를 가진 현재 뷰 요청입니다.
+         * @param[in] Parameters 출력 타깃과 뷰 투영 행렬입니다.
+         * @return 패스에 필요한 파이프라인과 조명을 준비해 드로 목록을 제출했으면 true입니다.
+         */
+        bool DrawMeshPass(Renderer::FMeshPass& Pass, const Renderer::FScene& Scene, const Engine::FSceneViewFamily& Family, const Renderer::FMeshPassParameters& Parameters);
+
+        /**
+         * @brief 정렬된 드로 목록을 상태 변경을 줄여 제출하고 인스턴스를 묶어 그립니다.
+         * @param[in] Family 와이어프레임 여부를 정할 현재 뷰 요청입니다.
+         * @param[in] Pass 머티리얼 바인딩과 통계 대상을 정할 메시 패스 종류입니다.
+         * @param[in] Commands 메시 패스가 만든 정렬된 드로 목록입니다.
+         * @return 제출한 드로 호출 수입니다.
+         */
+        Core::Uint32 SubmitMeshCommands(const Engine::FSceneViewFamily& Family, Renderer::EMeshPass Pass, std::span<const Renderer::FMeshDrawCommand> Commands);
+
     private:
         /**
          * @brief 생성된 프로퍼티 등록 함수와 빌더 접근 권한입니다.
@@ -354,15 +388,27 @@ namespace Renderer {
         ReflectProperty(mShadowResources, "ShadowResources", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
+         * @brief 그림자 아틀라스 타일마다 그림자 생성 메시의 깊이를 기록하는 메시 패스입니다.
+         */
+        std::unique_ptr<Renderer::FShadowDepthPass> mShadowDepthPass{};
+        ReflectProperty(mShadowDepthPass, "ShadowDepthPass", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+
+        /**
+         * @brief 보이는 메시를 머티리얼과 조명으로 장면 타깃에 그리는 메시 패스입니다.
+         */
+        std::unique_ptr<Renderer::FBasePass> mBasePass{};
+        ReflectProperty(mBasePass, "BasePass", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+
+        /**
          * @brief 머티리얼이 없는 메시 드로에 사용할 기본 머티리얼의 소유 객체입니다.
          */
-        std::unique_ptr<Engine::UMaterial> mDefaultMaterial{};
+        std::unique_ptr<Asset::UMaterial> mDefaultMaterial{};
         ReflectProperty(mDefaultMaterial, "DefaultMaterial", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 텍스처 없는 머티리얼의 흰색 기본 텍스처입니다.
          */
-        std::unique_ptr<Engine::UTexture2D> mDefaultMaterialTexture{};
+        std::unique_ptr<Asset::UTexture2D> mDefaultMaterialTexture{};
         ReflectProperty(mDefaultMaterialTexture, "DefaultMaterialTexture", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
@@ -441,7 +487,7 @@ namespace Renderer {
         /**
          * @brief 스왑 체인 백 버퍼의 렌더 타깃 뷰입니다.
          */
-        std::unique_ptr<Engine::UTexture2D> mBackBuffer{};
+        std::unique_ptr<Asset::UTexture2D> mBackBuffer{};
         ReflectProperty(mBackBuffer, "BackBuffer", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
 
@@ -506,6 +552,12 @@ namespace Renderer {
         ReflectProperty(mWireframeRasterizer, "WireframeRasterizer", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
+         * @brief 시저 영역만 지우는 깊이 클리어 드로의 양면·시저 래스터라이저입니다.
+         */
+        Microsoft::WRL::ComPtr<ID3D11RasterizerState> mScissorRasterizer{};
+        ReflectProperty(mScissorRasterizer, "ScissorRasterizer", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+
+        /**
          * @brief 깊이 검사가 켜진 깊이 상태입니다.
          */
         Microsoft::WRL::ComPtr<ID3D11DepthStencilState> mDepthEnabled{};
@@ -524,9 +576,15 @@ namespace Renderer {
         ReflectProperty(mDepthDisabled, "DepthDisabled", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
+         * @brief 깊이 비교 없이 항상 깊이를 기록하는 클리어 드로용 상태입니다.
+         */
+        Microsoft::WRL::ComPtr<ID3D11DepthStencilState> mDepthAlways{};
+        ReflectProperty(mDepthAlways, "DepthAlways", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+
+        /**
          * @brief 프리미티브 종류별 GPU 메시입니다.
          */
-        std::array<std::unique_ptr<Engine::UStaticMesh>, 3> mMeshes{};
+        std::array<std::unique_ptr<Asset::UStaticMesh>, 3> mMeshes{};
         ReflectProperty(mMeshes, "Meshes", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
 
@@ -568,6 +626,12 @@ namespace Renderer {
         ReflectProperty(mGizmoPixelShader, "GizmoPixelShader", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
+         * @brief 뷰포트를 덮는 삼각형을 최대 깊이에 그려 시저 영역의 깊이를 지우는 정점 셰이더입니다.
+         */
+        Microsoft::WRL::ComPtr<ID3D11VertexShader> mDepthClearVertexShader{};
+        ReflectProperty(mDepthClearVertexShader, "DepthClearVertexShader", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+
+        /**
          * @brief 고정 에디터 메시의 로컬 위치를 읽는 입력 레이아웃입니다.
          */
         Microsoft::WRL::ComPtr<ID3D11InputLayout> mOverlayLayout{};
@@ -588,7 +652,7 @@ namespace Renderer {
         /**
          * @brief 렌더러가 초기화 때 생성하고 종료 때 해제하는 enum별 불변 GPU 정점·인덱스 버퍼입니다.
          */
-        std::array<std::unique_ptr<Engine::UStaticMesh>, static_cast<std::size_t>(Engine::EEditorMesh::Count)> mEditorMeshes{};
+        std::array<std::unique_ptr<Asset::UStaticMesh>, static_cast<std::size_t>(Engine::EEditorMesh::Count)> mEditorMeshes{};
         ReflectProperty(mEditorMeshes, "EditorMeshes", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 

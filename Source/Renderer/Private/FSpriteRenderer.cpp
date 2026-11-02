@@ -53,9 +53,9 @@ namespace Renderer {
             }
         }
 
-        mDefaultAtlas = CoreUObject::NewObject<Engine::UTexture2D>();
+        mDefaultAtlas = CoreUObject::NewObject<Asset::UTexture2D>();
 
-        return mDefaultAtlas->SetPixels(128, 128, Engine::ETextureFormat::RGBA8, std::move(Pixels)) && mDefaultAtlas->CreateResources(Device);
+        return mDefaultAtlas->SetPixels(128, 128, Asset::ETextureFormat::RGBA8, std::move(Pixels)) && mDefaultAtlas->CreateResources(Device);
     }
 
     bool Renderer::FSpriteRenderer::CreateShaders(ID3D11Device* Device, std::span<const Core::Uint8> VertexCode, std::span<const Core::Uint8> PixelCode) {
@@ -78,7 +78,7 @@ namespace Renderer {
         }
 
         const Engine::FDrawSprite& Sprite{*Proxy.mSprite};
-        Engine::UTexture2D* Texture{Sprite.mTexture != nullptr ? Sprite.mTexture : mDefaultAtlas.get()};
+        Asset::UTexture2D* Texture{Sprite.mTexture != nullptr ? Sprite.mTexture : mDefaultAtlas.get()};
         Microsoft::WRL::ComPtr<ID3D11Device> Device{};
         Context->GetDevice(Device.GetAddressOf());
 

@@ -5,14 +5,26 @@
   "builtin-baseline": "a1cae005c39be7b18ba319fced856b68d7276271",
   "dependencies": [
     "assimp",
+    "directxtex",
     "fbxsdk",
     {
       "name": "freetype",
       "default-features": false
     },
+    {
+      "name": "imgui",
+      "features": [
+        "docking-experimental",
+        "dx11-binding",
+        "win32-binding"
+      ]
+    },
     "luajit",
     "nvapi",
+    "range-v3",
+    "rapidjson",
     "sol2",
+    "stb",
     "tomlplusplus"
   ]
 }

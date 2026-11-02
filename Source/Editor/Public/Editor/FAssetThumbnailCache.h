@@ -8,14 +8,17 @@
 
 #include "Core/ReflectionMacros.h"
 #include "Core/Guid.h"
-#include "Engine/FAssetFile.h"
+#include "Asset/FAssetFile.h"
 #include "Engine/FRenderTarget.h"
 
-namespace Engine {
+namespace Asset {
     class FAssetManager;
-    class FSceneInterface;
     class UStaticMesh;
     class UMaterial;
+}
+
+namespace Engine {
+    class FSceneInterface;
 }
 
 namespace RenderCore {
@@ -89,7 +92,7 @@ namespace Editor {
          * @param Assets 프로젝트 에셋 관리자입니다.
          * @param Renderer 미리보기를 그릴 렌더러입니다.
          */
-        FAssetThumbnailCache(Engine::FAssetManager* Assets, RenderCore::IRendererModule* Renderer);
+        FAssetThumbnailCache(Asset::FAssetManager* Assets, RenderCore::IRendererModule* Renderer);
 
         /**
          * @brief 장면과 썸네일 GPU 자원을 해제합니다.
@@ -120,14 +123,14 @@ namespace Editor {
          * @param Type 에셋 종류입니다.
          * @return UI에 표시할 SRV의 비소유 주소이며 준비 중이거나 실패하면 nullptr입니다.
          */
-        void* GetThumbnail(const std::filesystem::path& Path, Engine::EAssetType Type);
+        void* GetThumbnail(const std::filesystem::path& Path, Asset::EAssetType Type);
 
         /**
          * @brief 편집 중인 재질을 구에 적용한 미리보기를 조회합니다.
          * @param Material 재질의 비소유 주소입니다.
          * @return 변경된 설정을 반영한 SRV의 비소유 주소입니다.
          */
-        void* GetMaterialPreview(Engine::UMaterial* Material);
+        void* GetMaterialPreview(Asset::UMaterial* Material);
 
     private:
         /**
@@ -143,20 +146,20 @@ namespace Editor {
          * @param Signature 에셋 설정의 서명입니다.
          * @return 캐시 렌더 타깃의 SRV 주소입니다.
          */
-        void* Render(const Core::FString& Key, Engine::UStaticMesh* Mesh, Engine::UMaterial* Material, std::size_t Signature);
+        void* Render(const Core::FString& Key, Asset::UStaticMesh* Mesh, Asset::UMaterial* Material, std::size_t Signature);
 
         /**
          * @brief 재질 설정의 변경을 감지할 서명을 만듭니다.
          * @param Material 검사할 재질입니다.
          * @return 셰이더·색상·텍스처·양면 설정의 서명입니다.
          */
-        static std::size_t MaterialSignature(const Engine::UMaterial* Material);
+        static std::size_t MaterialSignature(const Asset::UMaterial* Material);
 
     private:
         /**
          * @brief 프로젝트 에셋 관리자입니다.
          */
-        Engine::FAssetManager* mAssets{};
+        Asset::FAssetManager* mAssets{};
         ReflectProperty(mAssets, "Assets", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
@@ -174,13 +177,13 @@ namespace Editor {
         /**
          * @brief 재질 미리보기에 사용할 구 메시입니다.
          */
-        std::unique_ptr<Engine::UStaticMesh> mSphere{};
+        std::unique_ptr<Asset::UStaticMesh> mSphere{};
         ReflectProperty(mSphere, "Sphere", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 빈 메시 선택기의 기본 큐브입니다.
          */
-        std::unique_ptr<Engine::UStaticMesh> mCube{};
+        std::unique_ptr<Asset::UStaticMesh> mCube{};
         ReflectProperty(mCube, "Cube", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**

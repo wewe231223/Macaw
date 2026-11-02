@@ -10,7 +10,7 @@
 
 #include "Core/Math/FMatrix.h"
 #include "Core/Math/FVector4.h"
-#include "Engine/UTexture2D.h"
+#include "Asset/UTexture2D.h"
 
 #include <span>
 
@@ -158,7 +158,7 @@ namespace Renderer {
         /**
          * @brief 기본 4×4 SubUV 아틀라스의 소유 객체입니다.
          */
-        std::unique_ptr<Engine::UTexture2D> mDefaultAtlas{};
+        std::unique_ptr<Asset::UTexture2D> mDefaultAtlas{};
         ReflectProperty(mDefaultAtlas, "DefaultAtlas", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 

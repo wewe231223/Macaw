@@ -374,7 +374,6 @@ namespace Core {
     bool Core::FMatrix::TryInverse(Core::FMatrix& Result) const {
         Core::FMatrix Working{*this};
         Core::FMatrix Inverse{};
-        double Determinant{1.0};
 
         if (!IsFinite()) {
             return false;
@@ -391,7 +390,7 @@ namespace Core {
 
             const float Divisor{Working.mRows[Pivot].m128_f32[Column]};
 
-            if (std::abs(Divisor) <= std::numeric_limits<float>::min()) {
+            if (!std::isfinite(Divisor) || Divisor == 0.0f) {
                 return false;
             }
 
@@ -403,11 +402,7 @@ namespace Core {
                 Inverse.mRows[Column] = Inverse.mRows[Pivot];
                 Working.mRows[Pivot] = WorkingRow;
                 Inverse.mRows[Pivot] = InverseRow;
-
-                Determinant = -Determinant;
             }
-
-            Determinant *= Divisor;
 
             const __m128 Denominator{_mm_set1_ps(Divisor)};
             const __m128 WorkingPivot{_mm_div_ps(Working.mRows[Column], Denominator)};
@@ -422,14 +417,10 @@ namespace Core {
                     Inverse.mRows[Row] = _mm_sub_ps(Inverse.mRows[Row], _mm_mul_ps(Factor, InversePivot));
                 }
             }
-        }
 
-        if (!std::isfinite(Determinant) || std::abs(Determinant) < 0.00000001) {
-            return false;
-        }
-
-        if (!Inverse.IsFinite()) {
-            return false;
+            if (!Working.IsFinite() || !Inverse.IsFinite()) {
+                return false;
+            }
         }
 
         Result = Inverse;

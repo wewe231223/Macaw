@@ -7,9 +7,11 @@
 #include "Engine/EditorMesh.h"
 #include "Engine/PrimitiveMesh.h"
 #include "Engine/EPrimitiveType.h"
+#include "Core/Literals.h"
 #include <cmath>
-#include <numbers>
 #include <limits>
+
+using namespace Core::Literals;
 
 namespace Engine {
 
@@ -20,7 +22,7 @@ namespace Engine {
      * @param[in] B 삼각형의 둘째 정점입니다.
      * @param[in] C 삼각형의 셋째 정점입니다.
      */
-    static void AddTriangle(Engine::FMeshData* Mesh, const Core::FVector& A, const Core::FVector& B, const Core::FVector& C) {
+    static void AddTriangle(Asset::FMeshData* Mesh, const Core::FVector& A, const Core::FVector& B, const Core::FVector& C) {
         const Core::Uint32 Base{static_cast<Core::Uint32>(Mesh->GetPositions().size())};
         const Core::FVector Normal{(B - A).Cross(C - A).Normalized()};
 
@@ -35,8 +37,8 @@ namespace Engine {
      * @param[in] Minimum 상자의 최소 경계입니다.
      * @param[in] Maximum 상자의 최대 경계입니다.
      */
-    static void AddBox(Engine::FMeshData* Mesh, const Core::FVector& Minimum, const Core::FVector& Maximum) {
-        const Engine::FMeshData* Cube{&Engine::GetPrimitiveMesh(Engine::EPrimitiveType::Cube)};
+    static void AddBox(Asset::FMeshData* Mesh, const Core::FVector& Minimum, const Core::FVector& Maximum) {
+        const Asset::FMeshData* Cube{&Engine::GetPrimitiveMesh(Engine::EPrimitiveType::Cube)};
         const Core::FVector Size{Maximum - Minimum};
         const Core::FVector Center{(Maximum + Minimum) * 0.5f};
 
@@ -50,24 +52,22 @@ namespace Engine {
      * @param[in] Type 생성하거나 조회할 에디터 도형입니다.
      * @return 생성한 CPU 메시의 값입니다.
      */
-    static Engine::FMeshData BuildMesh(Engine::EEditorMesh Type) {
-        Engine::FMeshData Mesh{};
-        constexpr float Pi{std::numbers::pi_v<float>};
-
+    static Asset::FMeshData BuildMesh(Engine::EEditorMesh Type) {
+        Asset::FMeshData Mesh{};
         if (Type == Engine::EEditorMesh::Arrow) {
             for (Core::Uint32 Index{}; Index < 16; ++Index) {
-                const float A{2.0f * Pi * Index / 16.0f};
-                const float B{2.0f * Pi * (Index + 1) / 16.0f};
-                const Core::FVector BottomA{std::cos(A) * 2.0f, std::sin(A) * 2.0f, 11.0f};
-                const Core::FVector BottomB{std::cos(B) * 2.0f, std::sin(B) * 2.0f, 11.0f};
+                const Core::FAngle A{1_turn * Index / 16.0f};
+                const Core::FAngle B{1_turn * (Index + 1) / 16.0f};
+                const Core::FVector BottomA{Core::Math::Cos(A) * 2.0f, Core::Math::Sin(A) * 2.0f, 11.0f};
+                const Core::FVector BottomB{Core::Math::Cos(B) * 2.0f, Core::Math::Sin(B) * 2.0f, 11.0f};
                 const Core::FVector TopA{BottomA.x, BottomA.y, 72.5f};
                 const Core::FVector TopB{BottomB.x, BottomB.y, 72.5f};
                 AddTriangle(&Mesh, BottomA, BottomB, TopA);
                 AddTriangle(&Mesh, TopA, BottomB, TopB);
                 AddTriangle(&Mesh, {0.0f, 0.0f, 11.0f}, BottomB, BottomA);
 
-                const Core::FVector ConeA{std::cos(A) * 6.5f, std::sin(A) * 6.5f, 72.5f};
-                const Core::FVector ConeB{std::cos(B) * 6.5f, std::sin(B) * 6.5f, 72.5f};
+                const Core::FVector ConeA{Core::Math::Cos(A) * 6.5f, Core::Math::Sin(A) * 6.5f, 72.5f};
+                const Core::FVector ConeB{Core::Math::Cos(B) * 6.5f, Core::Math::Sin(B) * 6.5f, 72.5f};
                 AddTriangle(&Mesh, ConeA, ConeB, {0.0f, 0.0f, 87.5f});
                 AddTriangle(&Mesh, {0.0f, 0.0f, 72.5f}, ConeB, ConeA);
             }
@@ -78,16 +78,18 @@ namespace Engine {
             const Core::Uint32 Segments{Type == Engine::EEditorMesh::Ring ? 96u : 48u};
 
             for (Core::Uint32 Segment{}; Segment < Segments; ++Segment) {
-                const float A{Type == Engine::EEditorMesh::Ring ? Segment * 2.0f * Pi / Segments : -Pi * 0.5f + Segment * Pi / Segments};
-                const float B{Type == Engine::EEditorMesh::Ring ? (Segment + 1) * 2.0f * Pi / Segments : -Pi * 0.5f + (Segment + 1) * Pi / Segments};
+                const Core::FAngle Arc{Type == Engine::EEditorMesh::Ring ? 1_turn : 0.5_turn};
+                const Core::FAngle First{Type == Engine::EEditorMesh::Ring ? 0_deg : -90_deg};
+                const Core::FAngle A{First + Arc * Segment / Segments};
+                const Core::FAngle B{First + Arc * (Segment + 1) / Segments};
 
                 for (Core::Uint32 Side{}; Side < 8; ++Side) {
-                    const float C{Side * 2.0f * Pi / 8.0f};
-                    const float D{(Side + 1) * 2.0f * Pi / 8.0f};
-                    const Core::FVector P{(74.0f + std::cos(C) * 2.0f) * std::cos(A), (74.0f + std::cos(C) * 2.0f) * std::sin(A), std::sin(C) * 2.0f};
-                    const Core::FVector Q{(74.0f + std::cos(D) * 2.0f) * std::cos(A), (74.0f + std::cos(D) * 2.0f) * std::sin(A), std::sin(D) * 2.0f};
-                    const Core::FVector R{(74.0f + std::cos(C) * 2.0f) * std::cos(B), (74.0f + std::cos(C) * 2.0f) * std::sin(B), std::sin(C) * 2.0f};
-                    const Core::FVector S{(74.0f + std::cos(D) * 2.0f) * std::cos(B), (74.0f + std::cos(D) * 2.0f) * std::sin(B), std::sin(D) * 2.0f};
+                    const Core::FAngle C{1_turn * Side / 8.0f};
+                    const Core::FAngle D{1_turn * (Side + 1) / 8.0f};
+                    const Core::FVector P{(74.0f + Core::Math::Cos(C) * 2.0f) * Core::Math::Cos(A), (74.0f + Core::Math::Cos(C) * 2.0f) * Core::Math::Sin(A), Core::Math::Sin(C) * 2.0f};
+                    const Core::FVector Q{(74.0f + Core::Math::Cos(D) * 2.0f) * Core::Math::Cos(A), (74.0f + Core::Math::Cos(D) * 2.0f) * Core::Math::Sin(A), Core::Math::Sin(D) * 2.0f};
+                    const Core::FVector R{(74.0f + Core::Math::Cos(C) * 2.0f) * Core::Math::Cos(B), (74.0f + Core::Math::Cos(C) * 2.0f) * Core::Math::Sin(B), Core::Math::Sin(C) * 2.0f};
+                    const Core::FVector S{(74.0f + Core::Math::Cos(D) * 2.0f) * Core::Math::Cos(B), (74.0f + Core::Math::Cos(D) * 2.0f) * Core::Math::Sin(B), Core::Math::Sin(D) * 2.0f};
                     AddTriangle(&Mesh, P, Q, R);
                     AddTriangle(&Mesh, R, Q, S);
                 }
@@ -121,13 +123,13 @@ namespace Engine {
      * @param[in] Type 생성하거나 조회할 에디터 도형입니다.
      * @return 공유 메시의 읽기 전용 참조이며 잘못된 종류이면 빈 메시입니다.
      */
-    const Engine::FMeshData& GetEditorMesh(Engine::EEditorMesh Type) {
+    const Asset::FMeshData& GetEditorMesh(Engine::EEditorMesh Type) {
         if (Type >= Engine::EEditorMesh::Count) {
-            static const Engine::FMeshData Empty{};
+            static const Asset::FMeshData Empty{};
             return Empty;
         }
 
-        static const std::array<Engine::FMeshData, static_cast<std::size_t>(Engine::EEditorMesh::Count)> Meshes{BuildMesh(Engine::EEditorMesh::Arrow), BuildMesh(Engine::EEditorMesh::Hammer), BuildMesh(Engine::EEditorMesh::Ring), BuildMesh(Engine::EEditorMesh::HalfRing), BuildMesh(Engine::EEditorMesh::Quad), BuildMesh(Engine::EEditorMesh::Triangle), BuildMesh(Engine::EEditorMesh::Cube)};
+        static const std::array<Asset::FMeshData, static_cast<std::size_t>(Engine::EEditorMesh::Count)> Meshes{BuildMesh(Engine::EEditorMesh::Arrow), BuildMesh(Engine::EEditorMesh::Hammer), BuildMesh(Engine::EEditorMesh::Ring), BuildMesh(Engine::EEditorMesh::HalfRing), BuildMesh(Engine::EEditorMesh::Quad), BuildMesh(Engine::EEditorMesh::Triangle), BuildMesh(Engine::EEditorMesh::Cube)};
 
         return Meshes[static_cast<std::size_t>(Type)];
     }

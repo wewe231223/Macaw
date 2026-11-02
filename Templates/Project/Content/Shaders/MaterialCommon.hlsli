@@ -40,10 +40,20 @@ cbuffer MaterialConstants : register(b2) {
     float4 BaseColor;
 
     /**
-     * @brief 정반사 강도·정반사 지수·노멀 맵 강도와 예약값입니다.
+     * @brief 정반사 강도·정반사 지수·노멀 맵 강도·환경 반사 강도입니다.
      */
     float4 SurfaceParameters;
+
+    float4 SpecularColor;
+    float4 AmbientColor;
+    float4 EmissiveColor;
+    float4 ReflectionColor;
+    float4 TextureFlags;
 };
+
+Texture2D SpecularTexture : register(t7);
+Texture2D EmissiveTexture : register(t8);
+Texture2D ReflectionTexture : register(t9);
 
 /**
  * @brief 재질의 기본색 텍스처입니다.
@@ -65,6 +75,13 @@ SamplerState MaterialSampler : register(s0);
  * @brief 정점 셰이더가 읽을 메시 또는 선분 입력 형식입니다.
  */
 struct FInput {
+#ifdef MacawSkinned
+    /** @brief 이 정점에 영향을 주는 본 인덱스 네 개입니다. */
+    uint4 mBoneIndices : BLENDINDICES;
+
+    /** @brief 본 인덱스에 대응하는 가중치입니다. */
+    float4 mBoneWeights : BLENDWEIGHT;
+#endif
     /**
      * @brief 정점의 로컬 공간 위치입니다.
      */

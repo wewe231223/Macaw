@@ -36,12 +36,12 @@ namespace Renderer {
             }
         }
 
-        auto Color{CoreUObject::NewObject<Engine::UTexture2D>()};
-        auto Depth{CoreUObject::NewObject<Engine::UTexture2D>()};
-        auto SceneColor{CoreUObject::NewObject<Engine::UTexture2D>()};
-        auto PostProcessColor{CoreUObject::NewObject<Engine::UTexture2D>()};
+        auto Color{CoreUObject::NewObject<Asset::UTexture2D>()};
+        auto Depth{CoreUObject::NewObject<Asset::UTexture2D>()};
+        auto SceneColor{CoreUObject::NewObject<Asset::UTexture2D>()};
+        auto PostProcessColor{CoreUObject::NewObject<Asset::UTexture2D>()};
 
-        if (!Color->Configure(Width, Height, Engine::ETextureFormat::RGBA8, Engine::ETextureUsage::ShaderResource | Engine::ETextureUsage::RenderTarget) || !Depth->Configure(Width, Height, Engine::ETextureFormat::D24S8, Engine::ETextureUsage::DepthStencil | Engine::ETextureUsage::ShaderResource) || !SceneColor->Configure(Width, Height, Engine::ETextureFormat::RGBA8, Engine::ETextureUsage::ShaderResource | Engine::ETextureUsage::RenderTarget) || !PostProcessColor->Configure(Width, Height, Engine::ETextureFormat::RGBA8, Engine::ETextureUsage::ShaderResource | Engine::ETextureUsage::RenderTarget) || !Color->CreateResources(Device) || !Depth->CreateResources(Device) || !SceneColor->CreateResources(Device) || !PostProcessColor->CreateResources(Device)) {
+        if (!Color->Configure(Width, Height, Asset::ETextureFormat::RGBA8, Asset::ETextureUsage::ShaderResource | Asset::ETextureUsage::RenderTarget) || !Depth->Configure(Width, Height, Asset::ETextureFormat::D24S8, Asset::ETextureUsage::DepthStencil | Asset::ETextureUsage::ShaderResource) || !SceneColor->Configure(Width, Height, Asset::ETextureFormat::RGBA8, Asset::ETextureUsage::ShaderResource | Asset::ETextureUsage::RenderTarget) || !PostProcessColor->Configure(Width, Height, Asset::ETextureFormat::RGBA8, Asset::ETextureUsage::ShaderResource | Asset::ETextureUsage::RenderTarget) || !Color->CreateResources(Device) || !Depth->CreateResources(Device) || !SceneColor->CreateResources(Device) || !PostProcessColor->CreateResources(Device)) {
             return false;
         }
 
@@ -95,19 +95,19 @@ namespace Renderer {
         return (mColor != nullptr ? mColor->GetResourceBytes() : 0) + (mDepth != nullptr ? mDepth->GetResourceBytes() : 0) + (mSceneColor != nullptr ? mSceneColor->GetResourceBytes() : 0) + (mPostProcessColor != nullptr ? mPostProcessColor->GetResourceBytes() : 0);
     }
 
-    Engine::UTexture2D* Renderer::FDXRenderTarget::GetSceneColor() const {
+    Asset::UTexture2D* Renderer::FDXRenderTarget::GetSceneColor() const {
         return mSceneColor.get();
     }
 
-    Engine::UTexture2D* Renderer::FDXRenderTarget::GetPostProcessColor() const {
+    Asset::UTexture2D* Renderer::FDXRenderTarget::GetPostProcessColor() const {
         return mPostProcessColor.get();
     }
 
-    Engine::UTexture2D* Renderer::FDXRenderTarget::GetOutputColor() const {
+    Asset::UTexture2D* Renderer::FDXRenderTarget::GetOutputColor() const {
         return mColor.get();
     }
 
-    Engine::UTexture2D* Renderer::FDXRenderTarget::GetSceneDepth() const {
+    Asset::UTexture2D* Renderer::FDXRenderTarget::GetSceneDepth() const {
         return mDepth.get();
     }
 

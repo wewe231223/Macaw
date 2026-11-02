@@ -9,10 +9,13 @@
 #include "Engine/Component/USceneComponent.h"
 #include "Engine/FLightSceneProxy.h"
 
+namespace Asset {
+    class FAssetManager;
+}
+
 namespace Engine {
 
     class FPrimitiveDrawInterface;
-    class FAssetManager;
 
     /**
      * @brief 광원의 색상·밝기·표시 상태와 렌더 장면 등록을 관리합니다.
@@ -127,7 +130,7 @@ namespace Engine {
          * @brief 광원 종류에 맞는 프로젝트 아이콘 또는 대체 아이콘을 로드합니다.
          * @param[in] Assets 아이콘 또는 재질·텍스처를 해석할 에셋 관리자의 비소유 주소입니다.
          */
-        void ResolveIcon(Engine::FAssetManager* Assets);
+        void ResolveIcon(Asset::FAssetManager* Assets);
 
     private:
         /**
@@ -151,19 +154,19 @@ namespace Engine {
         /**
          * @brief 에디터에 표시할 광원 아이콘 텍스처의 비소유 주소입니다.
          */
-        Engine::UTexture2D* mIcon{};
+        Asset::UTexture2D* mIcon{};
         ReflectProperty(mIcon, "Icon", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 현재 아이콘을 제공한 에셋 관리자의 비소유 주소입니다.
          */
-        Engine::FAssetManager* mIconAssets{};
+        Asset::FAssetManager* mIconAssets{};
         ReflectProperty(mIconAssets, "IconAssets", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 프로젝트에서 아이콘을 찾지 못했을 때 직접 로드한 대체 텍스처의 소유 객체입니다.
          */
-        std::unique_ptr<Engine::UTexture2D> mFallbackIcon{};
+        std::unique_ptr<Asset::UTexture2D> mFallbackIcon{};
         ReflectProperty(mFallbackIcon, "FallbackIcon", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 

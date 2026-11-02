@@ -5,6 +5,7 @@
  */
 
 #include "RenderCore/Shader/FShaderManager.h"
+#include "Core/LoadingStatus.h"
 
 #include <utility>
 
@@ -98,6 +99,8 @@ namespace RenderCore {
         if (LoadedFromCache) {
             return true;
         }
+
+        Core::LoadingStatus::ReportFile("Compiling", Description.mSourcePath);
 
         if (!mCompiler.Compile(Description, Compilation, Diagnostics)) {
             return false;

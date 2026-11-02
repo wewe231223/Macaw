@@ -5,36 +5,34 @@
  */
 
 #include "Engine/Component/UBillboardComponent.h"
-#include "Engine/FAssetManager.h"
+#include "Asset/FAssetManager.h"
 #include "Engine/FPrimitiveSceneProxy.h"
-#include "Engine/FMeshData.h"
+#include "Asset/FMeshData.h"
 #include "Engine/UWorld.h"
-#include "Engine/UTexture2D.h"
+#include "Asset/UTexture2D.h"
 #include "Core/Archive.h"
 #include "Core/FilePath.h"
 #include "Core/Base/ErrorHandler.h"
 #include "CoreUObject/Reflection/Cast.h"
 
-#include <algorithm>
 #include <cmath>
-#include <cwctype>
 
 namespace Engine {
 
     Engine::UBillboardComponent::UBillboardComponent() = default;
     Engine::UBillboardComponent::~UBillboardComponent() = default;
 
-    Engine::UTexture* Engine::UBillboardComponent::GetSprite() const {
+    Asset::UTexture* Engine::UBillboardComponent::GetSprite() const {
         return mSprite;
     }
 
-    bool Engine::UBillboardComponent::SetSprite(Engine::UTexture* Sprite) {
+    bool Engine::UBillboardComponent::SetSprite(Asset::UTexture* Sprite) {
         if (Sprite == nullptr) {
             return SetTexturePath({});
         }
 
-        const auto* Texture{CoreUObject::Cast<Engine::UTexture2D>(Sprite)};
-        Engine::FAssetManager* Assets{GetWorld() != nullptr ? GetWorld()->GetAssets() : nullptr};
+        const auto* Texture{CoreUObject::Cast<Asset::UTexture2D>(Sprite)};
+        Asset::FAssetManager* Assets{GetWorld() != nullptr ? GetWorld()->GetAssets() : nullptr};
 
         if (Texture == nullptr || !Texture->IsValid() || Assets == nullptr) {
             return false;
@@ -51,10 +49,7 @@ namespace Engine {
 
     bool Engine::UBillboardComponent::SetTexturePath(const Core::FString& Path) {
         const std::filesystem::path AssetPath{Core::FilePath::FromUtf8(Path)};
-        std::wstring Extension{AssetPath.extension().wstring()};
-        std::transform(Extension.begin(), Extension.end(), Extension.begin(), [](wchar_t Character) {
-            return static_cast<wchar_t>(std::towlower(Character));
-        });
+        const std::wstring Extension{Core::FilePath::ToLowerExtension(AssetPath)};
 
         const bool Supported{Extension == L".masset" || Extension == L".png" || Extension == L".jpg" || Extension == L".jpeg" || Extension == L".bmp" || Extension == L".tga" || Extension == L".dds" || Extension == L".hdr"};
 
@@ -68,7 +63,7 @@ namespace Engine {
             }
         }
 
-        Engine::UTexture2D* Texture{LoadTexture(Path)};
+        Asset::UTexture2D* Texture{LoadTexture(Path)};
 
         if (!Path.empty() && GetWorld() != nullptr && GetWorld()->GetAssets() != nullptr && Texture == nullptr) {
             return false;
@@ -81,15 +76,15 @@ namespace Engine {
         return true;
     }
 
-    Engine::UTexture2D* Engine::UBillboardComponent::LoadTexture(const Core::FString& Path) const {
-        Engine::FAssetManager* Assets{GetWorld() != nullptr ? GetWorld()->GetAssets() : nullptr};
+    Asset::UTexture2D* Engine::UBillboardComponent::LoadTexture(const Core::FString& Path) const {
+        Asset::FAssetManager* Assets{GetWorld() != nullptr ? GetWorld()->GetAssets() : nullptr};
 
         if (Assets == nullptr || Path.empty()) {
             return nullptr;
         }
 
         Core::FString Error{};
-        Engine::UTexture2D* Texture{Assets->LoadTexture(Core::FilePath::FromUtf8(Path), Error)};
+        Asset::UTexture2D* Texture{Assets->LoadTexture(Core::FilePath::FromUtf8(Path), Error)};
 
         if (Texture == nullptr) {
             Core::ErrorHandler::Report("Sprite", "Cannot load texture '" + Path + "': " + Error, Core::ErrorHandler::EErrorLevel::Warning);
@@ -104,8 +99,8 @@ namespace Engine {
         return mTexturePath.empty() || mSprite != nullptr;
     }
 
-    Engine::UTexture2D* Engine::UBillboardComponent::GetTexture() const {
-        return CoreUObject::Cast<Engine::UTexture2D>(mSprite);
+    Asset::UTexture2D* Engine::UBillboardComponent::GetTexture() const {
+        return CoreUObject::Cast<Asset::UTexture2D>(mSprite);
     }
 
     const Core::FVector2& Engine::UBillboardComponent::GetSize() const {
@@ -164,8 +159,8 @@ namespace Engine {
         return Engine::EPrimitiveType::Plane;
     }
 
-    const Engine::FMeshData& Engine::UBillboardComponent::GetMeshData() const {
-        static const Engine::FMeshData Empty{};
+    const Asset::FMeshData& Engine::UBillboardComponent::GetMeshData() const {
+        static const Asset::FMeshData Empty{};
         return Empty;
     }
 

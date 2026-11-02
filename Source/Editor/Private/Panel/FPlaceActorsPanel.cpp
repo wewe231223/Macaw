@@ -8,8 +8,8 @@
 #include "Editor/FEditorContext.h"
 #include "Editor/FAssetDragDrop.h"
 #include "Engine/FProject.h"
-#include "Engine/FAssetManager.h"
-#include "Engine/UTexture2D.h"
+#include "Asset/FAssetManager.h"
+#include "Asset/UTexture2D.h"
 #include "Engine/AActor.h"
 #include "CoreUObject/Reflection/FReflectionRegistry.h"
 #include "CoreUObject/Reflection/UClass.h"
@@ -32,7 +32,6 @@ namespace Editor {
         ImGui::Combo("##Category", &mCategory, Categories, 4);
         ImGui::SetNextItemWidth(-1.0f);
         ImGui::InputTextWithHint("##SearchActors", "Search actors", mSearch.data(), mSearch.size());
-        ImGui::TextWrapped("Drag an actor into a viewport, or double-click to place it.");
         ImGui::Separator();
         ImGui::BeginDisabled(!GetEditorContext()->CanEditWorld());
 
@@ -76,7 +75,7 @@ namespace Editor {
 
         if (Icon != nullptr && GetEditorContext()->GetProject() != nullptr) {
             Core::FString Error{};
-            Engine::UTexture2D* Texture{GetEditorContext()->GetProject()->GetAssets()->LoadTexture(Core::FString{"Editor/Icon/"} + Icon, Error)};
+            Asset::UTexture2D* Texture{GetEditorContext()->GetProject()->GetAssets()->LoadTexture(Core::FString{"Editor/Icon/"} + Icon, Error)};
 
             if (Texture != nullptr && Texture->CreateResources(static_cast<ID3D11Device*>(GetEditorContext()->GetRenderer()->GetNativeDevice()))) {
                 ImGui::Image(ImTextureRef{static_cast<ImTextureID>(reinterpret_cast<std::uintptr_t>(Texture->GetShaderResourceView()))}, {32.0f, 32.0f});

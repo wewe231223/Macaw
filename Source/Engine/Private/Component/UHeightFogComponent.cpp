@@ -7,8 +7,8 @@
 #include "Engine/Component/UHeightFogComponent.h"
 #include "Engine/UWorld.h"
 #include "Engine/FSceneInterface.h"
-#include "Engine/FAssetManager.h"
-#include "Engine/UTexture2D.h"
+#include "Asset/FAssetManager.h"
+#include "Asset/UTexture2D.h"
 #include "CoreUObject/Reflection/NewObject.h"
 
 #include <Windows.h>
@@ -169,7 +169,7 @@ namespace Engine {
     }
 
     void Engine::UHeightFogComponent::SynchronizeFog() {
-        Engine::FAssetManager* Assets{GetWorld() != nullptr ? GetWorld()->GetAssets() : nullptr};
+        Asset::FAssetManager* Assets{GetWorld() != nullptr ? GetWorld()->GetAssets() : nullptr};
 
         if (Assets != mIconAssets) {
             mIcon = nullptr;
@@ -222,7 +222,7 @@ namespace Engine {
             Path = "Templates/Project/Content/Editor/Icon/ExponentialHeightFog_64x.png";
         }
 
-        auto Icon{CoreUObject::NewObject<Engine::UTexture2D>()};
+        auto Icon{CoreUObject::NewObject<Asset::UTexture2D>()};
 
         if (Icon->LoadFromFile(Path, true)) {
             mFallbackIcon = std::move(Icon);

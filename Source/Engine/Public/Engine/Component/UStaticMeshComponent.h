@@ -10,9 +10,11 @@
 #include "Engine/Component/UPrimitiveComponent.h"
 #include "Engine/EPrimitiveType.h"
 
-namespace Engine {
-
+namespace Asset {
     class UMaterial;
+}
+
+namespace Engine {
 
     /**
      * @brief 기본 프리미티브 또는 정적 메시 에셋을 머티리얼과 함께 표시하는 컴포넌트입니다.
@@ -79,13 +81,13 @@ namespace Engine {
          * @brief 프리미티브가 사용하는 정적 메시의 비소유 주소를 반환합니다.
          * @return 대상의 비소유 주소이며, 없거나 유효하지 않으면 nullptr입니다.
          */
-        Engine::UStaticMesh* GetStaticMesh() const override;
+        Asset::UStaticMesh* GetStaticMesh() const override;
 
         /**
          * @brief 메시의 CPU 정점 속성·인덱스 데이터 참조를 반환합니다.
          * @return 객체가 보유한 데이터의 참조이며 소유 객체의 수명 동안 유효합니다.
          */
-        const Engine::FMeshData& GetMeshData() const override;
+        const Asset::FMeshData& GetMeshData() const override;
         void UnregisterComponent() override;
 
         /**
@@ -111,14 +113,14 @@ namespace Engine {
          * @brief 연결된 머티리얼의 비소유 주소를 반환합니다.
          * @return 대상의 비소유 주소이며, 없거나 유효하지 않으면 nullptr입니다.
          */
-        Engine::UMaterial* GetMaterial() const;
+        Asset::UMaterial* GetMaterial() const;
 
         /**
          * @brief 슬롯별 유효 재질을 조회합니다.
          * @param Slot 재질 슬롯 번호입니다.
          * @return 오버라이드 또는 메시 기본 재질의 비소유 주소입니다.
          */
-        Engine::UMaterial* GetSlotMaterial(Core::Uint32 Slot) const;
+        Asset::UMaterial* GetSlotMaterial(Core::Uint32 Slot) const;
 
         /**
          * @brief 슬롯 오버라이드 경로를 조회합니다.
@@ -167,14 +169,14 @@ namespace Engine {
          * @param[in] Path Content 기준 메시 에셋 경로입니다.
          * @return 캐시된 에셋의 비소유 주소이며, 로드에 실패하면 nullptr입니다.
          */
-        Engine::UStaticMesh* LoadMesh(const Core::FString& Path) const;
+        Asset::UStaticMesh* LoadMesh(const Core::FString& Path) const;
 
         /**
          * @brief Content 상대 경로의 머티리얼을 에셋 관리자에서 조회합니다.
          * @param[in] Path Content 기준 머티리얼 에셋 경로입니다.
          * @return 캐시된 에셋의 비소유 주소이며, 로드에 실패하면 nullptr입니다.
          */
-        Engine::UMaterial* LoadMaterial(const Core::FString& Path) const;
+        Asset::UMaterial* LoadMaterial(const Core::FString& Path) const;
 
     private:
         /**
@@ -192,7 +194,7 @@ namespace Engine {
         /**
          * @brief 에셋 관리자가 보유한 정적 메시의 비소유 주소입니다.
          */
-        Engine::UStaticMesh* mStaticMesh{};
+        Asset::UStaticMesh* mStaticMesh{};
         ReflectProperty(mStaticMesh, "StaticMesh", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
@@ -204,7 +206,7 @@ namespace Engine {
         /**
          * @brief 연결된 머티리얼의 비소유 주소입니다.
          */
-        Engine::UMaterial* mMaterial{};
+        Asset::UMaterial* mMaterial{};
         ReflectProperty(mMaterial, "ResolvedMaterial", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**

@@ -9,7 +9,8 @@
 #include "Core/Math/FBox.h"
 #include "Engine/FPrimitiveSceneProxy.h"
 #include "Engine/EPrimitiveType.h"
-#include "Engine/UStaticMesh.h"
+#include "Asset/UStaticMesh.h"
+#include "Asset/USkeletalMesh.h"
 #include "FObjectConstants.h"
 #include "FScenePrimitive.h"
 #include "Core/Base/ErrorHandler.h"
@@ -58,6 +59,12 @@ namespace Renderer {
     }
 
     void Renderer::FScene::AddPrimitive(const Engine::FPrimitiveSceneProxy& Proxy) {
+        // 공유 형상 버퍼 외에 스킨 정점 버퍼도 같은 장치에서 준비합니다.
+        if (Proxy.mSkeletalMesh != nullptr && (Proxy.mMesh != Proxy.mSkeletalMesh->GetGeometry() || Proxy.mSkinMatrices.size() != Proxy.mSkeletalMesh->GetBones().size() || !Proxy.mSkeletalMesh->CreateResources(mDevice))) {
+            Core::ErrorHandler::Report("SkeletalMesh", "Cannot prepare skeletal mesh resources or pose", Core::ErrorHandler::EErrorLevel::Error);
+            return;
+        }
+
         if (Proxy.mMesh != nullptr && !Proxy.mMesh->CreateResources(mDevice)) {
             Core::ErrorHandler::Report("Mesh", "Cannot create project mesh resources", Core::ErrorHandler::EErrorLevel::Error);
             return;
@@ -65,8 +72,11 @@ namespace Renderer {
 
         const auto Position{mIndices.find(Proxy.mId)};
 
+        bool CasterChanged{IsShadowCaster(Proxy)};
+
         if (Position != mIndices.end()) {
             Renderer::FScenePrimitive& Primitive{mPrimitives[Position->second]};
+            CasterChanged = CasterChanged || IsShadowCaster(Primitive.mProxy);
             Primitive.mProxy = Proxy;
 
             Upload(Primitive);
@@ -77,6 +87,10 @@ namespace Renderer {
 
             mIndices.emplace(Proxy.mId, mPrimitives.size());
             mPrimitives.push_back(std::move(Primitive));
+        }
+
+        if (CasterChanged) {
+            mCasterRevision = Core::FRevision::Next();
         }
 
         ++mRevision;
@@ -103,6 +117,10 @@ namespace Renderer {
 
         Upload(Primitive);
 
+        if (IsShadowCaster(Primitive.mProxy)) {
+            mCasterRevision = Core::FRevision::Next();
+        }
+
         ++mRevision;
     }
 
@@ -117,6 +135,10 @@ namespace Renderer {
         }
 
         const std::size_t Index{Position->second};
+
+        if (IsShadowCaster(mPrimitives[Index].mProxy)) {
+            mCasterRevision = Core::FRevision::Next();
+        }
 
         if (Index + 1 != mPrimitives.size()) {
             mPrimitives[Index] = std::move(mPrimitives.back());
@@ -153,6 +175,26 @@ namespace Renderer {
     /**
      * @brief 누적 변환 업로드 횟수를 반환하고 카운터를 초기화합니다.
      */
+    Core::FRevision Renderer::FScene::GetIdentity() const {
+        return mIdentity;
+    }
+
+    Core::FRevision Renderer::FScene::GetCasterRevision() const {
+        Core::FRevision Revision{mCasterRevision};
+
+        for (const Renderer::FScenePrimitive& Primitive : mPrimitives) {
+            if (IsShadowCaster(Primitive.mProxy) && Primitive.mProxy.mMesh != nullptr && Primitive.mProxy.mMesh->GetRevision().GetValue() > Revision.GetValue()) {
+                Revision = Primitive.mProxy.mMesh->GetRevision();
+            }
+        }
+
+        return Revision;
+    }
+
+    bool Renderer::FScene::IsShadowCaster(const Engine::FPrimitiveSceneProxy& Proxy) {
+        return Proxy.mCastShadow && !Proxy.mSprite.has_value() && !Proxy.mText.has_value();
+    }
+
     Core::Uint32 Renderer::FScene::TakeTransformUpdates() const {
         const Core::Uint32 Count{mTransformUpdates};
 
@@ -167,6 +209,12 @@ namespace Renderer {
     void Renderer::FScene::Upload(Renderer::FScenePrimitive& Primitive) {
         if (Primitive.mProxy.mText.has_value() || Primitive.mProxy.mSprite.has_value()) {
             Primitive.mObjectBuffer.Reset();
+            return;
+        }
+
+        if (!UploadSkinning(Primitive)) {
+            Primitive.mObjectBuffer.Reset();
+            Core::ErrorHandler::Report("SkeletalMesh", "Cannot upload skeletal pose", Core::ErrorHandler::EErrorLevel::Error);
             return;
         }
 
@@ -196,6 +244,72 @@ namespace Renderer {
         }
 
         ++mTransformUpdates;
+    }
+
+    bool Renderer::FScene::UploadSkinning(Renderer::FScenePrimitive& Primitive) {
+        if (Primitive.mProxy.mSkeletalMesh == nullptr) {
+            Primitive.mSkinBuffer.Reset();
+            Primitive.mSkinView.Reset();
+            return true;
+        }
+
+        if (Primitive.mSkinView != nullptr && Primitive.mProxy.mPoseRevision.IsValid() && Primitive.mUploadedPoseRevision == Primitive.mProxy.mPoseRevision) {
+            return true;
+        }
+
+        // 각 본의 위치 변환과 법선 역전치를 함께 올려 비균일 스케일도 처리합니다.
+        Core::TArray<std::array<Core::FMatrix, 2>> Bones{};
+        Bones.reserve(Primitive.mProxy.mSkinMatrices.size());
+
+        for (const Core::FMatrix& Skin : Primitive.mProxy.mSkinMatrices) {
+            Core::FMatrix Inverse{};
+
+            if (!Skin.IsFinite() || !Skin.TryInverse(Inverse) || !Inverse.IsFinite()) {
+                return false;
+            }
+
+            Bones.push_back({Skin, Inverse.Transposed()});
+        }
+
+        if (Bones.empty() || Bones.size() > 100000) {
+            return false;
+        }
+
+        const UINT Bytes{static_cast<UINT>(Bones.size() * sizeof(Bones[0]))};
+        D3D11_BUFFER_DESC Existing{};
+
+        if (Primitive.mSkinBuffer != nullptr) {
+            Primitive.mSkinBuffer->GetDesc(&Existing);
+        }
+
+        if (Existing.ByteWidth == Bytes) {
+            mContext->UpdateSubresource(Primitive.mSkinBuffer.Get(), 0, nullptr, Bones.data(), 0, 0);
+        } else {
+            D3D11_BUFFER_DESC Description{};
+            Description.ByteWidth = Bytes;
+            Description.Usage = D3D11_USAGE_DEFAULT;
+            Description.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+            Description.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
+            Description.StructureByteStride = sizeof(Bones[0]);
+            D3D11_SUBRESOURCE_DATA Data{};
+            Data.pSysMem = Bones.data();
+            Microsoft::WRL::ComPtr<ID3D11Buffer> Buffer{};
+            Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> View{};
+            D3D11_SHADER_RESOURCE_VIEW_DESC ViewDescription{};
+            ViewDescription.Format = DXGI_FORMAT_UNKNOWN;
+            ViewDescription.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
+            ViewDescription.Buffer.NumElements = static_cast<UINT>(Bones.size());
+
+            if (FAILED(mDevice->CreateBuffer(&Description, &Data, Buffer.GetAddressOf())) || FAILED(mDevice->CreateShaderResourceView(Buffer.Get(), &ViewDescription, View.GetAddressOf()))) {
+                return false;
+            }
+
+            Primitive.mSkinBuffer = std::move(Buffer);
+            Primitive.mSkinView = std::move(View);
+        }
+
+        Primitive.mUploadedPoseRevision = Primitive.mProxy.mPoseRevision;
+        return true;
     }
 
     void Renderer::FScene::AddLight(const Engine::FLightSceneProxy& Proxy) {

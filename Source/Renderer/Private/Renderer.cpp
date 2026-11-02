@@ -7,10 +7,12 @@
 #include "Renderer/Renderer.h"
 #include "RendererStats.h"
 #include "Core/FilePath.h"
+#include "Core/LoadingStatus.h"
 #include "Renderer/FLineVertex.h"
 #include "Core/Math/FVector.h"
 #include "Core/Math/FMatrix.h"
-#include "Engine/FMeshData.h"
+#include "Asset/FMeshData.h"
+#include "Asset/USkeletalMesh.h"
 #include "Engine/FSceneInterface.h"
 #include "Engine/FRenderTarget.h"
 #include "Engine/FDrawLine.h"
@@ -19,13 +21,15 @@
 #include "Engine/EPrimitiveType.h"
 #include "RenderCore/FRenderStats.h"
 #include "FObjectConstants.h"
-#include "Engine/UStaticMesh.h"
+#include "Asset/UStaticMesh.h"
 #include "CoreUObject/Reflection/NewObject.h"
-#include "FSceneDrawContext.h"
 #include "Core/Base/ErrorHandler.h"
 #include "RenderTarget.h"
 #include "FScene.h"
-#include "FSceneRenderer.h"
+#include "FMeshPassParameters.h"
+#include "FMeshDrawCommand.h"
+#include "FShadowDepthPass.h"
+#include "FBasePass.h"
 #include "FMaterialPipeline.h"
 #include "FLightingResources.h"
 #include "FShadowResources.h"
@@ -110,7 +114,21 @@ namespace Renderer {
      * @brief Direct3D 11 장치, 스왑 체인과 렌더 파이프라인을 준비합니다.
      */
     bool Renderer::FRenderer::Initialize(void* WindowHandle, Core::Uint32 Width, Core::Uint32 Height) {
-        if (!InitializeUi(WindowHandle, Width, Height) || !CreatePipeline() || !CreateEditorMeshes()) {
+        Core::LoadingStatus::BeginStage("Initializing graphics device...", 0.08f);
+
+        if (!InitializeUi(WindowHandle, Width, Height)) {
+            Core::ErrorHandler::Fatal("Renderer", "Render pipeline creation failed");
+        }
+
+        Core::LoadingStatus::BeginStage("Preparing shaders...", 0.15f);
+
+        if (!CreatePipeline()) {
+            Core::ErrorHandler::Fatal("Renderer", "Render pipeline creation failed");
+        }
+
+        Core::LoadingStatus::BeginStage("Building editor meshes...", 0.62f);
+
+        if (!CreateEditorMeshes()) {
             Core::ErrorHandler::Fatal("Renderer", "Render pipeline creation failed");
         }
 
@@ -194,6 +212,8 @@ namespace Renderer {
         mLineBuffer.Reset();
         mMeshInstanceBuffer.Reset();
 
+        mShadowDepthPass.reset();
+        mBasePass.reset();
         mMaterialPipelines.clear();
         mLightingResources.reset();
         mShadowResources.reset();
@@ -207,14 +227,17 @@ namespace Renderer {
 
         mGizmoVertexShader.Reset();
         mGizmoPixelShader.Reset();
+        mDepthClearVertexShader.Reset();
         mShaderManager.Clear();
         mShadersDirty = false;
 
         mRasterizer.Reset();
         mWireframeRasterizer.Reset();
+        mScissorRasterizer.Reset();
         mDepthEnabled.Reset();
         mDepthReadOnly.Reset();
         mDepthDisabled.Reset();
+        mDepthAlways.Reset();
 
         mBackBuffer.reset();
         mSwapChain.Reset();
@@ -245,12 +268,12 @@ namespace Renderer {
     /**
      * @brief CPU 메시를 종류별 GPU 정점·인덱스 버퍼에 업로드합니다.
      */
-    bool Renderer::FRenderer::UploadMesh(Engine::EPrimitiveType Type, const Engine::FMeshData& Mesh) {
+    bool Renderer::FRenderer::UploadMesh(Engine::EPrimitiveType Type, const Asset::FMeshData& Mesh) {
         if (Type >= Engine::EPrimitiveType::Count || mDevice == nullptr) {
             return false;
         }
 
-        auto Resource{CoreUObject::NewObject<Engine::UStaticMesh>()};
+        auto Resource{CoreUObject::NewObject<Asset::UStaticMesh>()};
 
         if (!Resource->SetMeshData(Mesh) || !Resource->CreateResources(mDevice.Get())) {
             return false;
@@ -293,6 +316,10 @@ namespace Renderer {
     void Renderer::FRenderer::BeginFrame(Core::Uint32 Width, Core::Uint32 Height) {
         mStats = {};
 
+        if (mShadowResources != nullptr) {
+            mShadowResources->BeginFrame();
+        }
+
         if (Width > 0 && Height > 0 && (mWidth != Width || mHeight != Height)) {
             CreateBackBuffer(Width, Height);
         }
@@ -320,31 +347,29 @@ namespace Renderer {
         ID3D11ShaderResourceView* Empty{};
         mContext->PSSetShaderResources(0, 1, &Empty);
 
-        ID3D11RenderTargetView* RenderTarget{Target->GetSceneColor()->GetRenderTargetView()};
-
-        if (mShadowResources != nullptr && !mShadowResources->Render(mDevice.Get(), mContext.Get(), *Scene, Family, mMeshes, mStats)) {
-            Core::ErrorHandler::Report("Shadow", "Shadow atlas rendering failed", Core::ErrorHandler::EErrorLevel::Error);
-        }
-
-        mContext->OMSetRenderTargets(1, &RenderTarget, Target->GetDepthView());
-
-        constexpr float ClearColor[]{0.065f, 0.078f, 0.10f, 1.0f};
-        mContext->ClearRenderTargetView(RenderTarget, ClearColor);
-        mContext->ClearDepthStencilView(Target->GetDepthView(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
-
-        const D3D11_VIEWPORT Viewport{0.0f, 0.0f, static_cast<float>(Target->GetWidth()), static_cast<float>(Target->GetHeight()), 0.0f, 1.0f};
-        mContext->RSSetViewports(1, &Viewport);
-        mContext->RSSetState(mRasterizer.Get());
-        mContext->OMSetDepthStencilState(mDepthEnabled.Get(), 0);
-        mContext->OMSetBlendState(nullptr, nullptr, 0xFFFFFFFFu);
-
         mContext->GSSetShader(nullptr, nullptr, 0);
         mContext->HSSetShader(nullptr, nullptr, 0);
         mContext->DSSetShader(nullptr, nullptr, 0);
 
-        const Renderer::FSceneDrawContext Context{this, mContext.Get(), &mMeshes, mViewBuffer.Get(), &mMeshInstanceBuffer};
-        Renderer::FSceneRenderer SceneRenderer{Family, Scene, Context, mStats};
-        SceneRenderer.Render();
+        if (mShadowResources != nullptr) {
+            if (!mShadowResources->Prepare(mDevice.Get(), mContext.Get(), *Scene, Family, mStats)) {
+                Core::ErrorHandler::Report("Shadow", "Shadow atlas preparation failed", Core::ErrorHandler::EErrorLevel::Error);
+            }
+
+            DrawShadowDepths(*Scene, Family);
+            mShadowResources->Finish(mContext.Get(), Family);
+        }
+
+        constexpr float ClearColor[]{0.065f, 0.078f, 0.10f, 1.0f};
+        Renderer::FMeshPassParameters BaseParameters{};
+        BaseParameters.mTarget.mColor = Target->GetSceneColor()->GetRenderTargetView();
+        BaseParameters.mTarget.mDepth = Target->GetDepthView();
+        BaseParameters.mTarget.mViewport = {0.0f, 0.0f, static_cast<float>(Target->GetWidth()), static_cast<float>(Target->GetHeight()), 0.0f, 1.0f};
+        BaseParameters.mViewProjection = Family.mView.mViewProjection;
+        ClearTarget(BaseParameters.mTarget, ClearColor);
+        DrawMeshPass(*mBasePass, *Scene, Family, BaseParameters);
+
+        ID3D11RenderTargetView* RenderTarget{};
 
         const Core::FVector4 LineView{Family.mView.mSize.x, Family.mView.mSize.y, 1.0f / std::max(Family.mView.mSize.x, 1.0f), 1.0f / std::max(Family.mView.mSize.y, 1.0f)};
         mContext->UpdateSubresource(mLineViewBuffer.Get(), 0, nullptr, &LineView, 0, 0);
@@ -543,7 +568,7 @@ namespace Renderer {
      */
     bool Renderer::FRenderer::Compile(const char* Source, const char* Entry, const char* Target, std::shared_ptr<const RenderCore::FShader>& Code) {
         RenderCore::FShaderDescription Description{};
-        const bool EngineFirst{std::string_view{Source} == LineShader || std::string_view{Source} == "Sprite.hlsl" || std::string_view{Source} == "PostProcess.hlsl"};
+        const bool EngineFirst{std::string_view{Source} == LineShader || std::string_view{Source} == "Sprite.hlsl" || std::string_view{Source} == "PostProcess.hlsl" || std::string_view{Source} == "Depth.hlsl"};
         Description.mSourcePath = FindTextContent(mShaderDirectory.parent_path(), std::filesystem::path{"Shaders"} / Source, EngineFirst);
         Description.mIncludeDirectories = {mShaderDirectory};
         Description.mEntryPoint = Entry;
@@ -552,6 +577,8 @@ namespace Renderer {
 #ifdef _DEBUG
         Description.mCompileFlags |= D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
 #endif
+
+        Core::LoadingStatus::ReportFile("Loading", Description.mSourcePath);
 
         Core::FString Diagnostics{};
         Code = mShaderManager.Load(Description, Diagnostics);
@@ -610,6 +637,14 @@ namespace Renderer {
             return false;
         }
 
+        Microsoft::WRL::ComPtr<ID3D11VertexShader> DepthClearVertex{};
+
+        if (!Compile("Depth.hlsl", "ClearMain", "vs_5_0", VertexCode) || FAILED(mDevice->CreateVertexShader(VertexCode->GetByteCode().data(), VertexCode->GetByteCode().size(), nullptr, DepthClearVertex.GetAddressOf()))) {
+            Core::ErrorHandler::Report("Renderer", "Depth clear shader allocation failed", Core::ErrorHandler::EErrorLevel::Error);
+            return false;
+        }
+
+        mDepthClearVertexShader = std::move(DepthClearVertex);
         mLineVertexShader = std::move(LineVertex);
         mLinePixelShader = std::move(LinePixel);
         mLineLayout = std::move(LineLayout);
@@ -635,9 +670,9 @@ namespace Renderer {
         }
 
         Microsoft::WRL::ComPtr<ID3D11Texture2D> Texture{};
-        auto BackBuffer{CoreUObject::NewObject<Engine::UTexture2D>()};
+        auto BackBuffer{CoreUObject::NewObject<Asset::UTexture2D>()};
 
-        if (FAILED(mSwapChain->GetBuffer(0, IID_PPV_ARGS(Texture.GetAddressOf()))) || !BackBuffer->AttachResource(Texture.Get(), Engine::ETextureUsage::RenderTarget)) {
+        if (FAILED(mSwapChain->GetBuffer(0, IID_PPV_ARGS(Texture.GetAddressOf()))) || !BackBuffer->AttachResource(Texture.Get(), Asset::ETextureUsage::RenderTarget)) {
             Core::ErrorHandler::Fatal("Renderer", "Back buffer allocation failed");
         }
 
@@ -654,6 +689,8 @@ namespace Renderer {
     bool Renderer::FRenderer::CreatePipeline() {
         mLightingResources = std::make_unique<Renderer::FLightingResources>();
         mShadowResources = std::make_unique<Renderer::FShadowResources>();
+        mShadowDepthPass = std::make_unique<Renderer::FShadowDepthPass>(*this, mDevice.Get(), mContext.Get(), mMeshes);
+        mBasePass = std::make_unique<Renderer::FBasePass>(*this, mDevice.Get(), mContext.Get(), mMeshes);
         mTextRenderer = std::make_unique<Renderer::FTextRenderer>();
         mSpriteRenderer = std::make_unique<Renderer::FSpriteRenderer>();
         mPostProcessResources = std::make_unique<Renderer::FPostProcessResources>();
@@ -674,11 +711,11 @@ namespace Renderer {
             return false;
         }
 
-        mDefaultMaterial = CoreUObject::NewObject<Engine::UMaterial>();
+        mDefaultMaterial = CoreUObject::NewObject<Asset::UMaterial>();
         mDefaultMaterial->SetShaderPath(Core::FString{"Shaders/"} + MeshShader);
-        mDefaultMaterialTexture = CoreUObject::NewObject<Engine::UTexture2D>();
+        mDefaultMaterialTexture = CoreUObject::NewObject<Asset::UTexture2D>();
 
-        if (!mDefaultMaterialTexture->SetPixels(1, 1, Engine::ETextureFormat::RGBA8, Core::TArray<Core::Uint8>{255, 255, 255, 255}) || !mDefaultMaterialTexture->CreateResources(mDevice.Get()) || GetMaterialPipeline(*mDefaultMaterial) == nullptr) {
+        if (!mDefaultMaterialTexture->SetPixels(1, 1, Asset::ETextureFormat::RGBA8, Core::TArray<Core::Uint8>{255, 255, 255, 255}) || !mDefaultMaterialTexture->CreateResources(mDevice.Get()) || GetMaterialPipeline(*mDefaultMaterial) == nullptr) {
             return false;
         }
 
@@ -737,6 +774,14 @@ namespace Renderer {
             return false;
         }
 
+        Rasterizer.FillMode = D3D11_FILL_SOLID;
+        Rasterizer.AntialiasedLineEnable = false;
+        Rasterizer.ScissorEnable = true;
+
+        if (FAILED(mDevice->CreateRasterizerState(&Rasterizer, mScissorRasterizer.GetAddressOf()))) {
+            return false;
+        }
+
         D3D11_DEPTH_STENCIL_DESC Depth{};
         Depth.DepthEnable = true;
         Depth.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
@@ -752,7 +797,16 @@ namespace Renderer {
             Core::ErrorHandler::Fatal("Renderer", "Depth state allocation failed");
         }
 
+        Depth.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
+        Depth.DepthFunc = D3D11_COMPARISON_ALWAYS;
+
+        if (FAILED(mDevice->CreateDepthStencilState(&Depth, mDepthAlways.GetAddressOf()))) {
+            Core::ErrorHandler::Fatal("Renderer", "Depth state allocation failed");
+        }
+
         Depth.DepthEnable = false;
+        Depth.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
+        Depth.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;
         Core::ErrorHandler::ReportHRESULT(mDevice->CreateDepthStencilState(&Depth, mDepthDisabled.GetAddressOf()), "Renderer", "Depth state allocation failed", Core::ErrorHandler::EErrorLevel::Critical);
 
         return true;
@@ -814,7 +868,7 @@ namespace Renderer {
      */
     bool Renderer::FRenderer::CreateEditorMeshes() {
         for (std::size_t Index{}; Index < mEditorMeshes.size(); ++Index) {
-            auto Resource{CoreUObject::NewObject<Engine::UStaticMesh>()};
+            auto Resource{CoreUObject::NewObject<Asset::UStaticMesh>()};
 
             if (!Resource->SetMeshData(Engine::GetEditorMesh(static_cast<Engine::EEditorMesh>(Index))) || !Resource->CreateResources(mDevice.Get())) {
                 return false;
@@ -829,7 +883,7 @@ namespace Renderer {
     void Renderer::FRenderer::DrawMeshes(const Engine::FPrimitiveDrawInterface* Elements, bool DepthTest) {
         mContext->RSSetState(mRasterizer.Get());
 
-        const UINT Stride{Engine::UStaticMesh::GetPositionStride()};
+        const UINT Stride{Asset::UStaticMesh::GetPositionStride()};
         const UINT Offset{};
 
         mContext->IASetInputLayout(mOverlayLayout.Get());
@@ -848,7 +902,7 @@ namespace Renderer {
                 continue;
             }
 
-            const Engine::UStaticMesh* Mesh{mEditorMeshes[static_cast<std::size_t>(Draw.mMesh)].get()};
+            const Asset::UStaticMesh* Mesh{mEditorMeshes[static_cast<std::size_t>(Draw.mMesh)].get()};
 
             if (Mesh == nullptr || !Mesh->HasResources()) {
                 continue;
@@ -909,7 +963,7 @@ namespace Renderer {
         mContext->OMSetBlendState(nullptr, nullptr, 0xFFFFFFFFu);
     }
 
-    Renderer::FMaterialPipeline* Renderer::FRenderer::GetMaterialPipeline(const Engine::UMaterial& Material, Engine::EViewMode Mode) {
+    Renderer::FMaterialPipeline* Renderer::FRenderer::GetMaterialPipeline(const Asset::UMaterial& Material, Engine::EViewMode Mode, bool Skinned) {
         const Core::FString& Relative{Material.GetShaderPath()};
         const std::filesystem::path RelativePath{Core::FilePath::FromUtf8(Relative).lexically_normal()};
         Core::FString Key{Core::FilePath::ToGenericUtf8(RelativePath) + (Material.IsTwoSided() ? "|TwoSided" : "|OneSided")};
@@ -918,6 +972,7 @@ namespace Renderer {
         });
 
         Key += "|" + std::to_string(static_cast<Core::Uint32>(Mode)) + (Material.GetNormalMapTexture() != nullptr ? "|NormalMap" : "|VertexNormal");
+        Key += Skinned ? "|Skinned" : "|Static";
 
         const auto Existing{mMaterialPipelines.find(Key)};
 
@@ -938,8 +993,13 @@ namespace Renderer {
         const char* Model{Mode == Engine::EViewMode::Lit_Gouraud ? "LIGHTING_MODEL_GOURAUD" : Mode == Engine::EViewMode::Lit_Lambert ? "LIGHTING_MODEL_LAMBERT" : "LIGHTING_MODEL_PHONG"};
         Description.mMacros.push_back({Model, "1"});
 
-        if (Builtin) {
+        // 객체별 포즈를 별도 바인딩하므로 스킨 드로는 정적 메시 인스턴싱과 분리합니다.
+        if (Builtin && !Skinned) {
             Description.mMacros.push_back({"MacawInstanced", "1"});
+        }
+
+        if (Skinned) {
+            Description.mMacros.push_back({"MacawSkinned", "1"});
         }
 
         if (Mode == Engine::EViewMode::Unlit) {
@@ -975,7 +1035,7 @@ namespace Renderer {
         std::unique_ptr<Renderer::FMaterialPipeline> Pipeline{};
 
         if (Vertex != nullptr && Pixel != nullptr) {
-            Pipeline = std::make_unique<Renderer::FMaterialPipeline>(std::move(Vertex), std::move(Pixel), Material.IsTwoSided(), Builtin);
+            Pipeline = std::make_unique<Renderer::FMaterialPipeline>(Renderer::EMeshPass::BasePass, std::move(Vertex), std::move(Pixel), Material.IsTwoSided(), Builtin && !Skinned, Skinned);
 
             if (!Pipeline->CreateResources(mDevice.Get(), Diagnostics)) {
                 Error += Diagnostics;
@@ -994,20 +1054,56 @@ namespace Renderer {
         return Result;
     }
 
-    Engine::UMaterial* Renderer::FRenderer::GetDefaultMaterial() const {
+    Asset::UMaterial* Renderer::FRenderer::GetDefaultMaterial() const {
         return mDefaultMaterial.get();
     }
 
-    ID3D11ShaderResourceView* Renderer::FRenderer::GetDefaultMaterialTexture() const {
-        return mDefaultMaterialTexture->GetShaderResourceView();
-    }
+    Renderer::FMaterialPipeline* Renderer::FRenderer::GetDepthPipeline(bool Skinned) {
+        const Core::FString Key{Skinned ? "shaders/depth.hlsl|depth|skinned" : "shaders/depth.hlsl|depth"};
+        const auto Existing{mMaterialPipelines.find(Key)};
 
-    ID3D11SamplerState* Renderer::FRenderer::GetMaterialSampler() const {
-        return mMaterialSampler.Get();
-    }
+        if (Existing != mMaterialPipelines.end()) {
+            return Existing->second.get();
+        }
 
-    ID3D11RasterizerState* Renderer::FRenderer::GetWireframeRasterizer() const {
-        return mWireframeRasterizer.Get();
+        if (mShadersDirty) {
+            return nullptr;
+        }
+
+        RenderCore::FShaderDescription Description{};
+        Description.mSourcePath = FindTextContent(mShaderDirectory.parent_path(), "Shaders/Depth.hlsl", true);
+        Description.mIncludeDirectories = {Description.mSourcePath.parent_path(), mShaderDirectory};
+        Description.mMacros.push_back({Skinned ? "MacawSkinned" : "MacawInstanced", "1"});
+        Description.mEntryPoint = "VertexMain";
+        Description.mTargetProfile = "vs_5_0";
+
+#ifdef _DEBUG
+        Description.mCompileFlags |= D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
+#endif
+
+        Core::FString Diagnostics{};
+        std::shared_ptr<const RenderCore::FShader> Vertex{mShaderManager.Load(Description, Diagnostics)};
+        Core::FString Error{Diagnostics};
+        std::unique_ptr<Renderer::FMaterialPipeline> Pipeline{};
+
+        if (Vertex != nullptr) {
+            Pipeline = std::make_unique<Renderer::FMaterialPipeline>(Renderer::EMeshPass::ShadowDepth, std::move(Vertex), nullptr, true, !Skinned, Skinned);
+
+            if (!Pipeline->CreateResources(mDevice.Get(), Diagnostics)) {
+                Error += Diagnostics;
+                Pipeline.reset();
+            }
+        }
+
+        if (!Error.empty()) {
+            Core::ErrorHandler::Report("Shadow", Error, Pipeline != nullptr ? Core::ErrorHandler::EErrorLevel::Warning : Core::ErrorHandler::EErrorLevel::Error);
+        }
+
+        Renderer::FMaterialPipeline* Result{Pipeline.get()};
+
+        mMaterialPipelines.emplace(Key, std::move(Pipeline));
+
+        return Result;
     }
 
     void Renderer::FRenderer::DrawTranslucency(const Engine::FSceneViewFamily& Family, bool EditorIcons) {
@@ -1117,6 +1213,267 @@ namespace Renderer {
         if (mLightingResources != nullptr) {
             mLightingResources->Unbind(mContext.Get());
         }
+    }
+
+    void Renderer::FRenderer::ClearTarget(const Renderer::FPassTarget& Target, const float* Color) {
+        if (Target.mScissor.has_value()) {
+            if (Target.mDepth == nullptr) {
+                return;
+            }
+
+            mContext->OMSetRenderTargets(0, nullptr, Target.mDepth);
+            mContext->RSSetViewports(1, &Target.mViewport);
+            mContext->RSSetScissorRects(1, &*Target.mScissor);
+            mContext->RSSetState(mScissorRasterizer.Get());
+            mContext->OMSetDepthStencilState(mDepthAlways.Get(), 0);
+            mContext->OMSetBlendState(nullptr, nullptr, 0xFFFFFFFFu);
+            mContext->IASetInputLayout(nullptr);
+            mContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+            mContext->VSSetShader(mDepthClearVertexShader.Get(), nullptr, 0);
+            mContext->PSSetShader(nullptr, nullptr, 0);
+            mContext->Draw(3, 0);
+
+            return;
+        }
+
+        if (Color != nullptr && Target.mColor != nullptr) {
+            mContext->ClearRenderTargetView(Target.mColor, Color);
+        }
+
+        if (Target.mDepth != nullptr) {
+            mContext->ClearDepthStencilView(Target.mDepth, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+        }
+    }
+
+    void Renderer::FRenderer::DrawShadowDepths(const Renderer::FScene& Scene, const Engine::FSceneViewFamily& Family) {
+        const std::span<const Renderer::FGpuShadow> Maps{mShadowResources->GetMaps()};
+        const Renderer::FMaterialPipeline* DepthPipeline{Maps.empty() ? nullptr : GetDepthPipeline()};
+        bool HasSkinned{};
+
+        for (const Renderer::FScenePrimitive& Primitive : Scene.GetPrimitives()) {
+            if (Primitive.mProxy.mSkeletalMesh != nullptr) {
+                HasSkinned = true;
+                break;
+            }
+        }
+
+        const Renderer::FMaterialPipeline* SkinDepthPipeline{!Maps.empty() && HasSkinned ? GetDepthPipeline(true) : nullptr};
+        // 두 깊이 셰이더 중 하나만 바뀌어도 이전 실루엣을 캐시에서 재사용하지 않습니다.
+        const Core::Uint64 DepthShaderRevision{std::max(DepthPipeline != nullptr ? DepthPipeline->GetVertexRevision() : 0, SkinDepthPipeline != nullptr ? SkinDepthPipeline->GetVertexRevision() : 0)};
+
+        for (Core::Uint32 Index{}; Index < Maps.size(); ++Index) {
+            const Renderer::FShadowTileStamp Stamp{mShadowResources->MakeTileStamp(Index, DepthShaderRevision)};
+
+            if (mShadowResources->IsTileCurrent(Index, Stamp)) {
+                continue;
+            }
+
+            ClearTarget(mShadowResources->GetClearTarget(Index), nullptr);
+
+            Renderer::FMeshPassParameters ShadowParameters{};
+            ShadowParameters.mTarget = mShadowResources->GetTarget(Index);
+            ShadowParameters.mViewProjection = Maps[Index].mViewProjection;
+
+            if (DepthPipeline != nullptr && DrawMeshPass(*mShadowDepthPass, Scene, Family, ShadowParameters)) {
+                mShadowResources->CommitTile(Index, Stamp);
+            }
+        }
+    }
+
+    bool Renderer::FRenderer::DrawMeshPass(Renderer::FMeshPass& Pass, const Renderer::FScene& Scene, const Engine::FSceneViewFamily& Family, const Renderer::FMeshPassParameters& Parameters) {
+        static Core::FStat OpaquePassTime{"render", "Opaque mesh pass CPU (inclusive)", Core::EStatUnit::Milliseconds};
+        static Core::FStat ShadowPassTime{"shadow", "Shadow depth pass CPU (inclusive)", Core::EStatUnit::Milliseconds};
+        const bool BasePass{Pass.GetType() == Renderer::EMeshPass::BasePass};
+        const Core::FScopedStatTimer StatTimer{BasePass ? OpaquePassTime : ShadowPassTime};
+
+        const Renderer::FPassTarget& Target{Parameters.mTarget};
+        ID3D11RenderTargetView* Color{Target.mColor};
+        mContext->OMSetRenderTargets(Color != nullptr ? 1u : 0u, Color != nullptr ? &Color : nullptr, Target.mDepth);
+        mContext->RSSetViewports(1, &Target.mViewport);
+
+        if (Target.mScissor.has_value()) {
+            mContext->RSSetScissorRects(1, &*Target.mScissor);
+        }
+
+        mContext->RSSetState(mRasterizer.Get());
+        mContext->OMSetDepthStencilState(mDepthEnabled.Get(), 0);
+        mContext->OMSetBlendState(nullptr, nullptr, 0xFFFFFFFFu);
+        mContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+        mContext->UpdateSubresource(mViewBuffer.Get(), 0, nullptr, &Parameters.mViewProjection, 0, 0);
+        ID3D11Buffer* ViewBuffer{mViewBuffer.Get()};
+        mContext->VSSetConstantBuffers(1, 1, &ViewBuffer);
+        mContext->PSSetConstantBuffers(1, 1, &ViewBuffer);
+
+        if (BasePass && !PrepareLighting(Family)) {
+            FinishLighting();
+            return false;
+        }
+
+        Core::TArray<Renderer::FMeshDrawCommand> Commands{};
+        Core::Uint32 Primitives{};
+        const bool Built{Pass.BuildCommands(Scene, Family, Parameters.mViewProjection, Commands, Primitives)};
+
+        if (Built) {
+            const Core::Uint32 DrawCalls{SubmitMeshCommands(Family, Pass.GetType(), Commands)};
+            (BasePass ? mStats.mDrawCalls : mStats.mShadowDrawCalls) += DrawCalls;
+            mStats.mVisiblePrimitives += BasePass ? Primitives : 0u;
+        }
+
+        if (BasePass) {
+            FinishLighting();
+            mStats.mTransformUpdates += Scene.TakeTransformUpdates();
+        }
+
+        return Built;
+    }
+
+    Core::Uint32 Renderer::FRenderer::SubmitMeshCommands(const Engine::FSceneViewFamily& Family, Renderer::EMeshPass Pass, std::span<const Renderer::FMeshDrawCommand> Commands) {
+        const bool BasePass{Pass == Renderer::EMeshPass::BasePass};
+
+        if (std::any_of(Commands.begin(), Commands.end(), [](const Renderer::FMeshDrawCommand& Command) {
+            return Command.mPipeline->IsInstanced();
+        })) {
+            constexpr Core::Uint32 MaximumCapacity{std::numeric_limits<Core::Uint32>::max() / sizeof(Renderer::FObjectConstants)};
+
+            if (Commands.size() > MaximumCapacity) {
+                Core::ErrorHandler::Fatal("Renderer", "Mesh instance buffer capacity exceeded");
+            }
+
+            Core::TArray<Renderer::FObjectConstants> Instances{};
+            Instances.reserve(Commands.size());
+
+            for (const Renderer::FMeshDrawCommand& Command : Commands) {
+                Instances.push_back(Command.mPrimitive->mObjectConstants);
+            }
+
+            const Core::Uint32 Count{static_cast<Core::Uint32>(Instances.size())};
+            const Core::Uint32 Capacity{std::min(std::bit_ceil(Count), MaximumCapacity)};
+            Core::FString Error{};
+
+            if (!mMeshInstanceBuffer.Upload(mContext.Get(), std::as_bytes(std::span<const Renderer::FObjectConstants>{Instances}), sizeof(Renderer::FObjectConstants), Capacity, Error)) {
+                Core::ErrorHandler::Fatal("Renderer", Error);
+            }
+
+            ID3D11Buffer* InstanceBuffer{mMeshInstanceBuffer.GetBuffer()};
+            const UINT Stride{sizeof(Renderer::FObjectConstants)};
+            const UINT Offset{};
+            mContext->IASetVertexBuffers(4, 1, &InstanceBuffer, &Stride, &Offset);
+        }
+
+        Renderer::FMaterialPipeline* LastPipeline{};
+        Asset::UMaterial* LastMaterial{};
+        Asset::UStaticMesh* LastMesh{};
+        Core::Uint32 DrawCalls{};
+        const std::array<UINT, 4> Offsets{};
+
+        for (std::size_t First{}; First < Commands.size();) {
+            const Renderer::FMeshDrawCommand& Command{Commands[First]};
+            std::size_t End{First + 1};
+
+            if (Command.mPipeline->IsInstanced()) {
+                while (End < Commands.size() && Commands[End].mPipeline == Command.mPipeline && Commands[End].mMaterial == Command.mMaterial && Commands[End].mMesh == Command.mMesh && Commands[End].mFirstIndex == Command.mFirstIndex && Commands[End].mIndexCount == Command.mIndexCount) {
+                    ++End;
+                }
+            }
+
+            const Core::Uint32 InstanceCount{static_cast<Core::Uint32>(End - First)};
+
+            if (Command.mPipeline->IsSkinned()) {
+                // 같은 형상을 공유해도 객체마다 본 팔레트를 다시 바인딩합니다.
+                ID3D11Buffer* Weights{Command.mPrimitive->mProxy.mSkeletalMesh->GetSkinWeightBuffer()};
+                ID3D11ShaderResourceView* Bones{Command.mPrimitive->mSkinView.Get()};
+                const UINT SkinStride{Asset::USkeletalMesh::GetSkinWeightStride()};
+                const UINT SkinOffset{};
+                mContext->IASetVertexBuffers(5, 1, &Weights, &SkinStride, &SkinOffset);
+                mContext->VSSetShaderResources(10, 1, &Bones);
+            }
+
+            if (LastPipeline != Command.mPipeline) {
+                if (BasePass) {
+                    Renderer::RendererStats::PipelineBinds.Add();
+                }
+
+                Command.mPipeline->Bind(mContext.Get());
+
+                if (BasePass && Family.mViewMode == Engine::EViewMode::Wireframe) {
+                    mContext->RSSetState(mWireframeRasterizer.Get());
+                }
+
+                LastPipeline = Command.mPipeline;
+                LastMaterial = nullptr;
+            }
+
+            if (Command.mMaterial != nullptr && LastMaterial != Command.mMaterial) {
+                Renderer::RendererStats::MaterialBinds.Add();
+                ID3D11Buffer* Constants{Command.mMaterial->GetConstantBuffer()};
+                Asset::UTexture2D* Texture{Command.mMaterial->GetBaseColorTexture()};
+                ID3D11ShaderResourceView* Resource{Texture != nullptr ? Texture->GetShaderResourceView() : mDefaultMaterialTexture->GetShaderResourceView()};
+                ID3D11SamplerState* Sampler{mMaterialSampler.Get()};
+                mContext->VSSetConstantBuffers(2, 1, &Constants);
+                mContext->PSSetConstantBuffers(2, 1, &Constants);
+                Asset::UTexture2D* NormalTexture{Command.mMaterial->GetNormalMapTexture()};
+                ID3D11ShaderResourceView* NormalResource{NormalTexture != nullptr ? NormalTexture->GetShaderResourceView() : nullptr};
+                mContext->PSSetShaderResources(0, 1, &Resource);
+                mContext->VSSetShaderResources(1, 1, &NormalResource);
+                mContext->PSSetShaderResources(1, 1, &NormalResource);
+
+                const std::array<Asset::UTexture2D*, 3> LightingTextures{Command.mMaterial->GetSpecularTexture(), Command.mMaterial->GetEmissiveTexture(), Command.mMaterial->GetReflectionTexture()};
+                const std::array<ID3D11ShaderResourceView*, 3> LightingResources{LightingTextures[0] != nullptr ? LightingTextures[0]->GetShaderResourceView() : nullptr, LightingTextures[1] != nullptr ? LightingTextures[1]->GetShaderResourceView() : nullptr, LightingTextures[2] != nullptr ? LightingTextures[2]->GetShaderResourceView() : nullptr};
+                mContext->PSSetShaderResources(7, static_cast<UINT>(LightingResources.size()), LightingResources.data());
+
+                mContext->VSSetSamplers(0, 1, &Sampler);
+                mContext->PSSetSamplers(0, 1, &Sampler);
+                LastMaterial = Command.mMaterial;
+            }
+
+            if (LastMesh != Command.mMesh) {
+                if (BasePass) {
+                    Renderer::RendererStats::MeshBinds.Add();
+                }
+
+                Asset::UStaticMesh* Mesh{Command.mMesh};
+                const std::array<ID3D11Buffer*, 4> Buffers{Mesh->GetPositionBuffer(), Mesh->GetTangentBuffer(), Mesh->GetUVBuffer(), Mesh->GetColorBuffer()};
+                const std::array<UINT, 4> Strides{Asset::UStaticMesh::GetPositionStride(), Asset::UStaticMesh::GetTangentStride(), Mesh->GetUVStride(), Asset::UStaticMesh::GetColorStride()};
+                mContext->IASetVertexBuffers(0, static_cast<UINT>(Buffers.size()), Buffers.data(), Strides.data(), Offsets.data());
+                mContext->IASetIndexBuffer(Mesh->GetIndexBuffer(), DXGI_FORMAT_R32_UINT, 0);
+                LastMesh = Mesh;
+            }
+
+            if (Command.mPipeline->IsInstanced()) {
+                mContext->DrawIndexedInstanced(Command.mIndexCount, InstanceCount, Command.mFirstIndex, 0, static_cast<UINT>(First));
+            } else {
+                ID3D11Buffer* ObjectBuffer{Command.mPrimitive->mObjectBuffer.Get()};
+                mContext->VSSetConstantBuffers(0, 1, &ObjectBuffer);
+                mContext->PSSetConstantBuffers(0, 1, &ObjectBuffer);
+                mContext->DrawIndexed(Command.mIndexCount, Command.mFirstIndex, 0);
+            }
+
+            if (BasePass) {
+                Renderer::RendererStats::Triangles.Add(static_cast<double>(Command.mIndexCount / 3) * InstanceCount);
+            }
+
+            ++DrawCalls;
+            First = End;
+        }
+
+        ID3D11Buffer* EmptyInstanceBuffer{};
+        mContext->IASetVertexBuffers(4, 1, &EmptyInstanceBuffer, Offsets.data(), Offsets.data());
+        mContext->IASetVertexBuffers(5, 1, &EmptyInstanceBuffer, Offsets.data(), Offsets.data());
+        ID3D11ShaderResourceView* EmptyBones{};
+        mContext->VSSetShaderResources(10, 1, &EmptyBones);
+
+        if (BasePass) {
+            ID3D11ShaderResourceView* Empty{};
+            mContext->PSSetShaderResources(0, 1, &Empty);
+            mContext->VSSetShaderResources(1, 1, &Empty);
+            mContext->PSSetShaderResources(1, 1, &Empty);
+
+            const std::array<ID3D11ShaderResourceView*, 3> EmptyLightingResources{};
+            mContext->PSSetShaderResources(7, static_cast<UINT>(EmptyLightingResources.size()), EmptyLightingResources.data());
+        }
+
+        return DrawCalls;
     }
 
 }

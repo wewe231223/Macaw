@@ -1,6 +1,6 @@
 /**
  * @file FShadowResources.h
- * @brief 광원별 그림자 맵을 아틀라스에 렌더링하고 셰이더·미리보기 자원을 관리합니다.
+ * @brief 광원별 그림자 맵의 아틀라스 할당·행렬과 셰이더·미리보기 자원을 관리합니다.
  * @ingroup Renderer
  */
 
@@ -8,12 +8,12 @@
 
 #include "Core/ReflectionMacros.h"
 
+#include "FPassTarget.h"
+#include "FShadowTileCache.h"
 #include "FShadowAtlasAllocator.h"
 #include "Engine/FLightSceneProxy.h"
 #include "Engine/FSceneViewFamily.h"
-#include "Engine/UTexture2D.h"
-#include "Engine/UStaticMesh.h"
-#include "Engine/EPrimitiveType.h"
+#include "Asset/UTexture2D.h"
 #include "Core/Math/FBox.h"
 #include "RenderCore/FRenderStats.h"
 #include "RenderCore/FShadowAtlasView.h"
@@ -75,7 +75,8 @@ namespace Renderer {
     };
 
     /**
-     * @brief 광원별 그림자 맵을 아틀라스에 렌더링하고 셰이더·미리보기 자원을 관리합니다.
+     * @brief 광원별 그림자 맵의 아틀라스 할당·행렬과 셰이더·미리보기 자원을 관리합니다.
+     * @details 깊이 패스 그리기는 렌더러가 담당하며, 이 클래스는 타일별 타깃과 행렬만 제공합니다.
      * @ingroup Renderer
      */
     class FShadowResources {
@@ -94,16 +95,72 @@ namespace Renderer {
 
     public:
         /**
-         * @brief 현재 뷰에 필요한 광원별 그림자 맵을 아틀라스에 렌더링합니다.
+         * @brief 현재 뷰에 필요한 광원별 그림자 타일과 행렬을 구성하고 샘플링 정보를 업로드합니다.
+         * @details 깊이는 그리지 않으며, 렌더러가 GetMaps와 GetTarget으로 타일마다 깊이 패스를 그린 뒤 Finish를 호출합니다.
          * @param[in] Device GPU 자원 생성에 사용할 Direct3D 장치의 비소유 주소입니다.
          * @param[in] Context 명령을 기록할 Direct3D 11 장치 컨텍스트의 비소유 주소입니다.
          * @param[in] Scene 광원과 그림자 생성 프리미티브를 조회할 렌더 장면입니다.
          * @param[in] Family 장면·카메라·출력 타깃·표시 플래그를 묶은 현재 뷰 요청입니다.
-         * @param[in] Meshes 기본 프리미티브 종류별 공유 메시의 소유 배열입니다.
-         * @param[in,out] Stats 그림자 패스의 드로·할당 결과를 누적할 렌더 통계입니다.
-         * @return 필요한 자원 생성·업로드·렌더링에 성공하면 true입니다.
+         * @param[in,out] Stats 그림자 패스의 할당 결과를 누적할 렌더 통계입니다.
+         * @return 필요한 자원 생성과 업로드에 성공하면 true입니다.
          */
-        bool Render(ID3D11Device* Device, ID3D11DeviceContext* Context, const Renderer::FScene& Scene, const Engine::FSceneViewFamily& Family, const std::array<std::unique_ptr<Engine::UStaticMesh>, static_cast<std::size_t>(Engine::EPrimitiveType::Count)>& Meshes, RenderCore::FRenderStats& Stats);
+        bool Prepare(ID3D11Device* Device, ID3D11DeviceContext* Context, const Renderer::FScene& Scene, const Engine::FSceneViewFamily& Family, RenderCore::FRenderStats& Stats);
+
+        /**
+         * @brief 깊이 패스가 끝난 아틀라스로 미리보기를 갱신하고 장면 패스의 그림자 샘플링을 활성화합니다.
+         * @param[in] Context 명령을 기록할 Direct3D 11 장치 컨텍스트의 비소유 주소입니다.
+         * @param[in] Family 캐스케이드 선택에 쓸 카메라를 가진 현재 뷰 요청입니다.
+         */
+        void Finish(ID3D11DeviceContext* Context, const Engine::FSceneViewFamily& Family);
+
+        /**
+         * @brief Prepare가 구성한 그림자 맵 목록을 반환합니다.
+         * @return 그림자 맵별 광원 행렬과 아틀라스 영역의 비소유 구간입니다.
+         */
+        std::span<const Renderer::FGpuShadow> GetMaps() const;
+
+        /**
+         * @brief 그림자 맵 하나의 깊이를 기록할 아틀라스 타일 타깃을 반환합니다.
+         * @param[in] Index GetMaps 기준 그림자 맵 인덱스입니다.
+         * @return 아틀라스 깊이 뷰와 보호 여백을 제외한 타일 뷰포트·시저입니다.
+         */
+        Renderer::FPassTarget GetTarget(Core::Uint32 Index) const;
+
+        /**
+         * @brief 그림자 맵 하나의 타일을 지울 아틀라스 영역을 반환합니다.
+         * @details 블록이 다른 맵에 재할당됐을 때 PCF가 이전 깊이를 읽지 않도록 보호 여백까지 포함합니다.
+         * @param[in] Index GetMaps 기준 그림자 맵 인덱스입니다.
+         * @return 아틀라스 깊이 뷰와 보호 여백을 포함한 블록 전체의 뷰포트·시저입니다.
+         */
+        Renderer::FPassTarget GetClearTarget(Core::Uint32 Index) const;
+
+        /**
+         * @brief 타일 캐시의 프레임을 진행하고 오래 쓰지 않은 항목을 제거합니다.
+         */
+        void BeginFrame();
+
+        /**
+         * @brief 그림자 맵 하나의 깊이 내용을 결정하는 현재 입력 스탬프를 만듭니다.
+         * @param[in] Index GetMaps 기준 그림자 맵 인덱스입니다.
+         * @param[in] DepthShaderRevision 깊이를 그릴 깊이 전용 정점 셰이더의 리비전입니다.
+         * @return 블록·광원 행렬·캐스터·아틀라스·셰이더 리비전을 묶은 스탬프입니다.
+         */
+        Renderer::FShadowTileStamp MakeTileStamp(Core::Uint32 Index, Core::Uint64 DepthShaderRevision) const;
+
+        /**
+         * @brief 아틀라스 타일이 이미 같은 입력으로 그려져 있는지 검사합니다.
+         * @param[in] Index GetMaps 기준 그림자 맵 인덱스입니다.
+         * @param[in] Stamp MakeTileStamp로 만든 현재 입력 스탬프입니다.
+         * @return 다시 그릴 필요가 없으면 true입니다.
+         */
+        bool IsTileCurrent(Core::Uint32 Index, const Renderer::FShadowTileStamp& Stamp);
+
+        /**
+         * @brief 타일을 다시 그리는 데 성공했음을 기록하고, 같은 아틀라스 영역을 덮어쓰인 다른 항목을 무효화합니다.
+         * @param[in] Index GetMaps 기준 그림자 맵 인덱스입니다.
+         * @param[in] Stamp 타일을 그릴 때 사용한 입력 스탬프입니다.
+         */
+        void CommitTile(Core::Uint32 Index, const Renderer::FShadowTileStamp& Stamp);
 
         /**
          * @brief 그림자 아틀라스와 샘플링 정보의 셰이더 바인딩을 설정합니다.
@@ -171,6 +228,13 @@ namespace Renderer {
         bool Upload(ID3D11Device* Device, ID3D11DeviceContext* Context);
 
         /**
+         * @brief 그림자 맵 하나를 타일 캐시에서 구분하는 키를 만듭니다.
+         * @param[in] Index GetMaps 기준 그림자 맵 인덱스입니다.
+         * @return 장면 고유 번호·광원 GUID·면 번호를 묶은 키입니다.
+         */
+        Renderer::FShadowTileKey MakeTileKey(Core::Uint32 Index) const;
+
+        /**
          * @brief 깊이 아틀라스를 색상 미리보기 텍스처로 변환합니다.
          * @param[in] Context 명령을 기록할 Direct3D 11 장치 컨텍스트의 비소유 주소입니다.
          */
@@ -180,13 +244,13 @@ namespace Renderer {
         /**
          * @brief 그림자 깊이를 저장하는 아틀라스 텍스처의 소유 객체입니다.
          */
-        std::unique_ptr<Engine::UTexture2D> mAtlas{};
+        std::unique_ptr<Asset::UTexture2D> mAtlas{};
         ReflectProperty(mAtlas, "Atlas", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 깊이 아틀라스를 색상으로 표시하는 미리보기 텍스처의 소유 객체입니다.
          */
-        std::unique_ptr<Engine::UTexture2D> mPreview{};
+        std::unique_ptr<Asset::UTexture2D> mPreview{};
         ReflectProperty(mPreview, "Preview", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
@@ -202,6 +266,36 @@ namespace Renderer {
         ReflectProperty(mMaps, "Maps", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
+         * @brief mMaps와 같은 순서로 저장한 보호 여백 포함 아틀라스 블록입니다.
+         */
+        Core::TArray<Renderer::FShadowAtlasBlock> mBlocks{};
+        ReflectProperty(mBlocks, "Blocks", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+
+        /**
+         * @brief Prepare가 그림자 맵을 구성한 장면의 고유 번호입니다.
+         */
+        Core::FRevision mSceneIdentity{};
+        ReflectProperty(mSceneIdentity, "SceneIdentity", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+
+        /**
+         * @brief Prepare가 그림자 맵을 구성할 때의 장면 캐스터 리비전입니다.
+         */
+        Core::FRevision mCasterRevision{};
+        ReflectProperty(mCasterRevision, "CasterRevision", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+
+        /**
+         * @brief 아틀라스 텍스처를 만들 때마다 새로 받는 리비전입니다.
+         */
+        Core::FRevision mAtlasRevision{};
+        ReflectProperty(mAtlasRevision, "AtlasRevision", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+
+        /**
+         * @brief 아틀라스 타일마다 마지막으로 그린 입력을 기억해 같은 입력이면 다시 그리지 않게 하는 캐시입니다.
+         */
+        Renderer::FShadowTileCache mTileCache{"Shadow tile", Core::FFrameAgeEviction{600}};
+        ReflectProperty(mTileCache, "TileCache", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+
+        /**
          * @brief 미리보기에 표시할 광원별 아틀라스 타일 목록입니다.
          */
         Core::TArray<RenderCore::FShadowAtlasTile> mTiles{};
@@ -214,12 +308,6 @@ namespace Renderer {
         ReflectProperty(mLightRanges, "LightRanges", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
-         * @brief 그림자 깊이 패스의 정점 셰이더입니다.
-         */
-        Microsoft::WRL::ComPtr<ID3D11VertexShader> mDepthShader{};
-        ReflectProperty(mDepthShader, "DepthShader", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
-
-        /**
          * @brief 미리보기 전체 화면 삼각형의 정점 셰이더입니다.
          */
         Microsoft::WRL::ComPtr<ID3D11VertexShader> mPreviewVertexShader{};
@@ -230,18 +318,6 @@ namespace Renderer {
          */
         Microsoft::WRL::ComPtr<ID3D11PixelShader> mPreviewPixelShader{};
         ReflectProperty(mPreviewPixelShader, "PreviewPixelShader", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
-
-        /**
-         * @brief 그림자 깊이 패스에서 위치 정점을 읽는 입력 레이아웃입니다.
-         */
-        Microsoft::WRL::ComPtr<ID3D11InputLayout> mLayout{};
-        ReflectProperty(mLayout, "Layout", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
-
-        /**
-         * @brief 현재 그림자 맵의 뷰·투영 행렬 상수 버퍼입니다.
-         */
-        Microsoft::WRL::ComPtr<ID3D11Buffer> mMapBuffer{};
-        ReflectProperty(mMapBuffer, "MapBuffer", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 모든 그림자 맵의 샘플링 정보를 담는 구조화 버퍼입니다.
@@ -266,18 +342,6 @@ namespace Renderer {
          */
         Microsoft::WRL::ComPtr<ID3D11SamplerState> mSampler{};
         ReflectProperty(mSampler, "Sampler", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
-
-        /**
-         * @brief 그림자 깊이 패스의 컬링과 래스터 상태입니다.
-         */
-        Microsoft::WRL::ComPtr<ID3D11RasterizerState> mRasterizer{};
-        ReflectProperty(mRasterizer, "Rasterizer", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
-
-        /**
-         * @brief 그림자 깊이 패스에서 깊이 검사와 쓰기를 수행하는 상태입니다.
-         */
-        Microsoft::WRL::ComPtr<ID3D11DepthStencilState> mDepthState{};
-        ReflectProperty(mDepthState, "DepthState", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 깊이 검사를 끈 미리보기 패스의 상태입니다.

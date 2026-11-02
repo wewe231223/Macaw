@@ -10,12 +10,14 @@
 #include "Engine/AActor.h"
 #include "Engine/Component/UActorComponent.h"
 #include "Engine/Component/UStaticMeshComponent.h"
+#include "Engine/Component/USkeletalMeshComponent.h"
+#include "Asset/USkeletalMesh.h"
 #include "Engine/Component/ULightComponent.h"
 #include "RenderCore/IRendererModule.h"
 #include "Engine/FProject.h"
-#include "Engine/FAssetManager.h"
-#include "Engine/FAssetFile.h"
-#include "Engine/UStaticMesh.h"
+#include "Asset/FAssetManager.h"
+#include "Asset/FAssetFile.h"
+#include "Asset/UStaticMesh.h"
 #include "Core/FilePath.h"
 #include "CoreUObject/TObjectIterator.h"
 #include "Editor/FEditorAssetCatalog.h"
@@ -257,8 +259,12 @@ namespace Editor {
             }
         }
 
-        if (auto* Component{Context->ResolveObject(Handle) == Object ? CoreUObject::Cast<Engine::UStaticMeshComponent>(Object) : nullptr}; Component != nullptr && Component->GetStaticMesh() != nullptr) {
-            const bool AllSlotsOverride{!Component->GetMaterialPath().empty()};
+        auto* Component{Context->ResolveObject(Handle) == Object ? CoreUObject::Cast<Engine::UStaticMeshComponent>(Object) : nullptr};
+        auto* Skeletal{Context->ResolveObject(Handle) == Object ? CoreUObject::Cast<Engine::USkeletalMeshComponent>(Object) : nullptr};
+
+        if ((Component != nullptr && Component->GetStaticMesh() != nullptr) || (Skeletal != nullptr && Skeletal->GetSkeletalMesh() != nullptr)) {
+            const Core::FString& Override{Component != nullptr ? Component->GetMaterialPath() : Skeletal->GetMaterialPath()};
+            const bool AllSlotsOverride{!Override.empty()};
 
             ImGui::SeparatorText("Material Slots");
 
@@ -268,12 +274,13 @@ namespace Editor {
 
             ImGui::BeginDisabled(!Context->CanEditWorld() || AllSlotsOverride);
 
-            const auto& Slots{Component->GetStaticMesh()->GetMeshData().GetMaterialSlots()};
+            const Asset::FMeshData& Data{Component != nullptr ? Component->GetStaticMesh()->GetMeshData() : Skeletal->GetSkeletalMesh()->GetMeshData()};
+            const auto& Slots{Data.GetMaterialSlots()};
 
             for (Core::Uint32 Slot{}; Slot < Slots.size(); ++Slot) {
-                const auto& SubMeshes{Component->GetStaticMesh()->GetMeshData().GetSubMeshes()};
+                const auto& SubMeshes{Data.GetSubMeshes()};
 
-                if (std::none_of(SubMeshes.begin(), SubMeshes.end(), [Slot](const Engine::FSubMesh& SubMesh) {
+                if (std::none_of(SubMeshes.begin(), SubMeshes.end(), [Slot](const Asset::FSubMesh& SubMesh) {
                     return SubMesh.GetMaterialIndex() == Slot;
                 })) {
                     continue;
@@ -281,10 +288,10 @@ namespace Editor {
 
                 ImGui::PushID(static_cast<int>(Slot));
 
-                Core::FString Path{AllSlotsOverride ? Core::FString{} : Component->GetSlotMaterialPath(Slot)};
-                const Core::FString& Inherited{AllSlotsOverride ? Component->GetMaterialPath() : Slots[Slot].GetMaterialPath()};
+                Core::FString Path{AllSlotsOverride ? Core::FString{} : Component != nullptr ? Component->GetSlotMaterialPath(Slot) : Skeletal->GetSlotMaterialPath(Slot)};
+                const Core::FString& Inherited{AllSlotsOverride ? Override : Slots[Slot].GetMaterialPath()};
 
-                if (mAssetCatalog != nullptr && mThumbnails != nullptr && mAssetPicker.Draw(*mAssetCatalog, *mThumbnails, Slots[Slot].GetName().c_str(), Path, Engine::EAssetType::Material, Inherited, "Use mesh material", AllSlotsOverride ? "All slots" : "Mesh")) {
+                if (mAssetCatalog != nullptr && mThumbnails != nullptr && mAssetPicker.Draw(*mAssetCatalog, *mThumbnails, Slots[Slot].GetName().c_str(), Path, Asset::EAssetType::Material, Inherited, "Use mesh material", AllSlotsOverride ? "All slots" : "Mesh")) {
                     Context->SetMaterialOverride(Handle, Slot, Path);
                 }
 
@@ -292,6 +299,10 @@ namespace Editor {
             }
 
             ImGui::EndDisabled();
+        }
+
+        if (Skeletal != nullptr && Skeletal->GetSkeletalMesh() != nullptr) {
+            DrawSkeletalPose(Skeletal);
         }
 
         ImGui::PopID();
@@ -383,12 +394,16 @@ namespace Editor {
                 return true;
             }
         } else if (auto* String{std::get_if<Core::FString>(&Value)}) {
+            if (Property->GetName() == "SkeletalMesh" && mAssetCatalog != nullptr && mThumbnails != nullptr) {
+                return mAssetPicker.Draw(*mAssetCatalog, *mThumbnails, Label, *String, Asset::EAssetType::SkeletalMesh, {}, "None");
+            }
+
             if (Property->GetName() == "Mesh") {
                 return DrawAssetPicker(Label, *String, true);
             }
 
             if (mAssetCatalog != nullptr && mThumbnails != nullptr && (Property->GetName() == "Material" || Property->GetName() == "Texture" || Property->GetName() == "Sprite")) {
-                return mAssetPicker.Draw(*mAssetCatalog, *mThumbnails, Property->GetName() == "Material" ? "All Slots Override" : Label, *String, Property->GetName() == "Material" ? Engine::EAssetType::Material : Engine::EAssetType::Texture, {}, Property->GetName() == "Material" ? "Use mesh materials" : Property->GetName() == "Sprite" ? "Default atlas" : "None");
+                return mAssetPicker.Draw(*mAssetCatalog, *mThumbnails, Property->GetName() == "Material" ? "All Slots Override" : Label, *String, Property->GetName() == "Material" ? Asset::EAssetType::Material : Asset::EAssetType::Texture, {}, Property->GetName() == "Material" ? "Use mesh materials" : Property->GetName() == "Sprite" ? "Default atlas" : "None");
             }
 
             if (Property->GetName() == "Text") {
@@ -475,7 +490,53 @@ namespace Editor {
             return false;
         }
 
-        return mAssetPicker.Draw(*mAssetCatalog, *mThumbnails, Label, Path, Mesh ? Engine::EAssetType::Mesh : Engine::EAssetType::Material, {}, Mesh ? "Primitive mesh" : "Default material");
+        return mAssetPicker.Draw(*mAssetCatalog, *mThumbnails, Label, Path, Mesh ? Asset::EAssetType::Mesh : Asset::EAssetType::Material, {}, Mesh ? "Primitive mesh" : "Default material");
+    }
+
+    void Editor::FDetailsPanel::DrawSkeletalPose(Engine::USkeletalMeshComponent* Component) {
+        if (!ImGui::CollapsingHeader("Bone Local Pose")) {
+            return;
+        }
+
+        ImGui::BeginDisabled(!GetEditorContext()->CanEditWorld());
+        const auto& Bones{Component->GetSkeletalMesh()->GetBones()};
+
+        for (Core::Uint32 Bone{}; Bone < Bones.size(); ++Bone) {
+            ImGui::PushID(static_cast<int>(Bone));
+
+            if (ImGui::TreeNode(Bones[Bone].GetName().c_str())) {
+                // 적용 뒤 자식 포즈와 CPU 경계 및 그림자가 함께 갱신됩니다.
+                Core::FMatrix Transform{Component->GetPose().GetLocalTransforms()[Bone]};
+                bool Changed{};
+
+                for (Core::Int32 Row{}; Row < 4; ++Row) {
+                    std::array<float, 4> Values{Transform(Row, 0), Transform(Row, 1), Transform(Row, 2), Transform(Row, 3)};
+
+                    if (ImGui::DragFloat4(std::to_string(Row).c_str(), Values.data(), 0.025f)) {
+                        for (Core::Int32 Column{}; Column < 4; ++Column) {
+                            Transform(Row, Column) = Values[static_cast<std::size_t>(Column)];
+                        }
+
+                        Changed = true;
+                    }
+                }
+
+                if (ImGui::Button("Reset Bone")) {
+                    Transform = Bones[Bone].GetBindPose();
+                    Changed = true;
+                }
+
+                if (Changed) {
+                    GetEditorContext()->SetBoneLocalTransform(Component->GetHandle(), Bone, Transform);
+                }
+
+                ImGui::TreePop();
+            }
+
+            ImGui::PopID();
+        }
+
+        ImGui::EndDisabled();
     }
 
 }

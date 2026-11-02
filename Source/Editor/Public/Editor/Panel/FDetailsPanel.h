@@ -16,6 +16,10 @@ namespace CoreUObject {
     class UObject;
 }
 
+namespace Engine {
+    class USkeletalMeshComponent;
+}
+
 namespace Editor {
 
     class FEditorAssetCatalog;
@@ -69,6 +73,9 @@ namespace Editor {
          * @brief 생성 가능한 컴포넌트의 검색·추가 메뉴를 표시합니다.
          */
         void DrawComponentMenu();
+
+        /** @brief 본 로컬 행렬을 편집하고 씬 변경 상태를 갱신합니다. @param Component 편집할 스켈레탈 메시 컴포넌트입니다. */
+        void DrawSkeletalPose(Engine::USkeletalMeshComponent* Component);
 
         /**
          * @brief 객체 타입의 편집 가능한 리플렉션 프로퍼티를 순회하여 표시합니다.

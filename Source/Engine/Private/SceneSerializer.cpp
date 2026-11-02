@@ -7,7 +7,7 @@
 #include "Engine/SceneSerializer.h"
 #include "Engine/FWorldSerializer.h"
 #include "Engine/FWorldContext.h"
-#include "Engine/FAssetFile.h"
+#include "Asset/FAssetFile.h"
 #include "Engine/UWorld.h"
 #include "Serialization/JsonArchive.h"
 
@@ -27,18 +27,18 @@ namespace Engine {
 
         const Core::FString Payload{Archive.ToString()};
 
-        return Engine::FAssetFile::Save(Path, Engine::EAssetType::Scene, std::span<const Core::Uint8>{reinterpret_cast<const Core::Uint8*>(Payload.data()), Payload.size()}, Error);
+        return Asset::FAssetFile::Save(Path, Asset::EAssetType::Scene, std::span<const Core::Uint8>{reinterpret_cast<const Core::Uint8*>(Payload.data()), Payload.size()}, Error);
     }
 
     /**
      * @brief 파일을 읽고 검증한 새 월드 컨텍스트를 반환합니다.
      */
-    std::unique_ptr<Engine::FWorldContext> Engine::FSceneSerializer::Load(const std::filesystem::path& Path, Core::FString& Error, Engine::FAssetManager* Assets, Engine::EWorldType Type) {
+    std::unique_ptr<Engine::FWorldContext> Engine::FSceneSerializer::Load(const std::filesystem::path& Path, Core::FString& Error, Asset::FAssetManager* Assets, Engine::EWorldType Type) {
         Serialization::FJsonArchive Archive{Core::EArchiveMode::Loading};
 
         Core::TArray<Core::Uint8> Payload{};
 
-        if (!Engine::FAssetFile::Load(Path, Engine::EAssetType::Scene, Payload, Error)) {
+        if (!Asset::FAssetFile::Load(Path, Asset::EAssetType::Scene, Payload, Error)) {
             return nullptr;
         }
 

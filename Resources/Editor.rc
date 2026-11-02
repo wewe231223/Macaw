@@ -1,0 +1,5 @@
+#include "Platform/WindowResources.h"
+
+MacawSplashRegularFontResource RCDATA "Resources/Fonts/Pretendard-Regular.otf"
+MacawSplashSemiBoldFontResource RCDATA "Resources/Fonts/Pretendard-SemiBold.otf"
+MacawSplashBoldFontResource RCDATA "Resources/Fonts/Pretendard-Bold.otf"
