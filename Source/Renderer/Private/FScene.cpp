@@ -226,21 +226,13 @@ namespace Renderer {
             Core::ErrorHandler::Fatal("Renderer", "Singular render transform");
         }
 
-        if (Primitive.mObjectBuffer == nullptr) {
-            D3D11_BUFFER_DESC Description{};
-            Description.ByteWidth = sizeof(Renderer::FObjectConstants);
-            Description.Usage = D3D11_USAGE_DEFAULT;
-            Description.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+        Core::FString Error{};
 
-            D3D11_SUBRESOURCE_DATA Data{};
-            Data.pSysMem = &Constants;
-
-            if (FAILED(mDevice->CreateBuffer(&Description, &Data, Primitive.mObjectBuffer.GetAddressOf()))) {
-                Core::ErrorHandler::Fatal("Renderer", "Object buffer allocation failed");
-            }
-        } else {
-            mContext->UpdateSubresource(Primitive.mObjectBuffer.Get(), 0, nullptr, &Constants, 0, 0);
+        if (!Primitive.mObjectBuffer.Create(mDevice, Error)) {
+            Core::ErrorHandler::Fatal("Renderer", "Object buffer allocation failed");
         }
+
+        Primitive.mObjectBuffer.Update(mContext, Constants);
 
         ++mTransformUpdates;
     }
@@ -248,12 +240,11 @@ namespace Renderer {
     bool Renderer::FScene::UploadSkinning(Renderer::FScenePrimitive& Primitive) {
         if (Primitive.mProxy.mSkeletalMesh == nullptr) {
             Primitive.mSkinBuffer.Reset();
-            Primitive.mSkinView.Reset();
             return true;
         }
 
         // 프록시가 다시 만들어져도 포즈가 그대로이면 다시 올리지 않습니다.
-        if (Primitive.mSkinView != nullptr && Primitive.mProxy.mPoseRevision.IsValid() && Primitive.mUploadedPoseRevision == Primitive.mProxy.mPoseRevision) {
+        if (Primitive.mSkinBuffer.IsCreated() && Primitive.mProxy.mPoseRevision.IsValid() && Primitive.mUploadedPoseRevision == Primitive.mProxy.mPoseRevision) {
             return true;
         }
 
@@ -276,38 +267,10 @@ namespace Renderer {
             return false;
         }
 
-        // 버퍼가 없으면 Existing.ByteWidth가 0으로 남아 아래에서 새로 만듭니다. 크기가 같으면 기존 버퍼의 내용만 갱신합니다.
-        const UINT Bytes{static_cast<UINT>(Bones.size() * sizeof(Bones[0]))};
-        D3D11_BUFFER_DESC Existing{};
+        Core::FString Error{};
 
-        if (Primitive.mSkinBuffer != nullptr) {
-            Primitive.mSkinBuffer->GetDesc(&Existing);
-        }
-
-        if (Existing.ByteWidth == Bytes) {
-            mContext->UpdateSubresource(Primitive.mSkinBuffer.Get(), 0, nullptr, Bones.data(), 0, 0);
-        } else {
-            D3D11_BUFFER_DESC Description{};
-            Description.ByteWidth = Bytes;
-            Description.Usage = D3D11_USAGE_DEFAULT;
-            Description.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-            Description.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
-            Description.StructureByteStride = sizeof(Bones[0]);
-            D3D11_SUBRESOURCE_DATA Data{};
-            Data.pSysMem = Bones.data();
-            Microsoft::WRL::ComPtr<ID3D11Buffer> Buffer{};
-            Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> View{};
-            D3D11_SHADER_RESOURCE_VIEW_DESC ViewDescription{};
-            ViewDescription.Format = DXGI_FORMAT_UNKNOWN;
-            ViewDescription.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
-            ViewDescription.Buffer.NumElements = static_cast<UINT>(Bones.size());
-
-            if (FAILED(mDevice->CreateBuffer(&Description, &Data, Buffer.GetAddressOf())) || FAILED(mDevice->CreateShaderResourceView(Buffer.Get(), &ViewDescription, View.GetAddressOf()))) {
-                return false;
-            }
-
-            Primitive.mSkinBuffer = std::move(Buffer);
-            Primitive.mSkinView = std::move(View);
+        if (!Primitive.mSkinBuffer.Upload(mContext, Bones, Error)) {
+            return false;
         }
 
         Primitive.mUploadedPoseRevision = Primitive.mProxy.mPoseRevision;

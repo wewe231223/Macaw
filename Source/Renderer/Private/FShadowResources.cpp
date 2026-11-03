@@ -101,7 +101,7 @@ namespace Renderer {
     }
 
     bool Renderer::FShadowResources::CreateResources(ID3D11Device* Device) {
-        if (mAtlas != nullptr && mPreview != nullptr && mSampler != nullptr && mViewBuffer != nullptr && mPreviewDepthState != nullptr && mPreviewVertexShader != nullptr && mPreviewPixelShader != nullptr) {
+        if (mAtlas != nullptr && mPreview != nullptr && mSampler != nullptr && mViewBuffer.IsCreated() && mPreviewDepthState != nullptr && mPreviewVertexShader != nullptr && mPreviewPixelShader != nullptr) {
             return true;
         }
 
@@ -138,12 +138,9 @@ namespace Renderer {
         Depth.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
         Depth.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;
 
-        D3D11_BUFFER_DESC Buffer{};
-        Buffer.ByteWidth = sizeof(Core::FVector4) * 2;
-        Buffer.Usage = D3D11_USAGE_DEFAULT;
-        Buffer.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+        Core::FString Error{};
 
-        if (FAILED(Device->CreateVertexShader(PreviewVertexCode->GetBufferPointer(), PreviewVertexCode->GetBufferSize(), nullptr, mPreviewVertexShader.GetAddressOf())) || FAILED(Device->CreatePixelShader(PreviewPixelCode->GetBufferPointer(), PreviewPixelCode->GetBufferSize(), nullptr, mPreviewPixelShader.GetAddressOf())) || FAILED(Device->CreateSamplerState(&Sampler, mSampler.GetAddressOf())) || FAILED(Device->CreateBuffer(&Buffer, nullptr, mViewBuffer.GetAddressOf())) || FAILED(Device->CreateDepthStencilState(&Depth, mPreviewDepthState.GetAddressOf()))) {
+        if (FAILED(Device->CreateVertexShader(PreviewVertexCode->GetBufferPointer(), PreviewVertexCode->GetBufferSize(), nullptr, mPreviewVertexShader.GetAddressOf())) || FAILED(Device->CreatePixelShader(PreviewPixelCode->GetBufferPointer(), PreviewPixelCode->GetBufferSize(), nullptr, mPreviewPixelShader.GetAddressOf())) || FAILED(Device->CreateSamplerState(&Sampler, mSampler.GetAddressOf())) || !mViewBuffer.Create(Device, Error) || FAILED(Device->CreateDepthStencilState(&Depth, mPreviewDepthState.GetAddressOf()))) {
             return false;
         }
 
@@ -274,33 +271,14 @@ namespace Renderer {
     }
 
     bool Renderer::FShadowResources::Upload(ID3D11Device* Device, ID3D11DeviceContext* Context) {
-        const Core::Uint32 Count{static_cast<Core::Uint32>(mMaps.size())};
+        Core::FString Error{};
 
-        if (mCapacity < std::max(Count, 1u)) {
-            mShadowView.Reset();
-            mShadowBuffer.Reset();
-            mCapacity = 0;
-
-            D3D11_BUFFER_DESC Buffer{};
-            Buffer.ByteWidth = std::max(Count, 1u) * sizeof(Renderer::FGpuShadow);
-            Buffer.Usage = D3D11_USAGE_DEFAULT;
-            Buffer.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-            Buffer.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
-            Buffer.StructureByteStride = sizeof(Renderer::FGpuShadow);
-
-            if (FAILED(Device->CreateBuffer(&Buffer, nullptr, mShadowBuffer.GetAddressOf())) || FAILED(Device->CreateShaderResourceView(mShadowBuffer.Get(), nullptr, mShadowView.GetAddressOf()))) {
-                return false;
-            }
-
-            mCapacity = std::max(Count, 1u);
+        // 그림자 맵이 없어도 셰이더가 읽을 뷰가 있어야 하므로 최소 한 칸을 확보합니다.
+        if (!mShadowBuffer.Reserve(Device, std::max<Core::Uint64>(mMaps.size(), 1), Error)) {
+            return false;
         }
 
-        if (Count > 0) {
-            const D3D11_BOX Box{0, 0, 0, Count * static_cast<Core::Uint32>(sizeof(Renderer::FGpuShadow)), 1, 1};
-            Context->UpdateSubresource(mShadowBuffer.Get(), 0, &Box, mMaps.data(), 0, 0);
-        }
-
-        return true;
+        return mMaps.empty() || mShadowBuffer.Upload(Context, mMaps, Error);
     }
 
     bool Renderer::FShadowResources::Prepare(ID3D11Device* Device, ID3D11DeviceContext* Context, const Renderer::FScene& Scene, const Engine::FSceneViewFamily& Family, RenderCore::FRenderStats& Stats) {
@@ -410,7 +388,7 @@ namespace Renderer {
         Context->OMSetRenderTargets(0, nullptr, nullptr);
 
         const std::array<Core::FVector4, 2> ViewData{{{Family.mView.mLocation, 0.0f}, {Family.mView.mForward, 0.0f}}};
-        Context->UpdateSubresource(mViewBuffer.Get(), 0, nullptr, ViewData.data(), 0, 0);
+        mViewBuffer.Update(Context, ViewData);
         mEnabled = true;
     }
 
@@ -452,18 +430,24 @@ namespace Renderer {
     }
 
     void Renderer::FShadowResources::Bind(ID3D11DeviceContext* Context) const {
-        const std::array<ID3D11ShaderResourceView*, 2> Views{mEnabled ? mAtlas->GetShaderResourceView() : nullptr, mEnabled ? mShadowView.Get() : nullptr};
-        Context->PSSetShaderResources(5, static_cast<UINT>(Views.size()), Views.data());
+        ID3D11ShaderResourceView* Atlas{mEnabled ? mAtlas->GetShaderResourceView() : nullptr};
+        Context->PSSetShaderResources(5, 1, &Atlas);
+
+        if (mEnabled) {
+            mShadowBuffer.Bind(Context, RenderCore::EShaderStage::Pixel, 6);
+        } else {
+            mShadowBuffer.Unbind(Context, RenderCore::EShaderStage::Pixel, 6);
+        }
 
         ID3D11SamplerState* Sampler{mSampler.Get()};
-        ID3D11Buffer* ViewBuffer{mViewBuffer.Get()};
         Context->PSSetSamplers(1, 1, &Sampler);
-        Context->PSSetConstantBuffers(4, 1, &ViewBuffer);
+        mViewBuffer.Bind(Context, RenderCore::EShaderStage::Pixel, 4);
     }
 
     void Renderer::FShadowResources::Unbind(ID3D11DeviceContext* Context) const {
-        const std::array<ID3D11ShaderResourceView*, 2> Empty{};
-        Context->PSSetShaderResources(5, static_cast<UINT>(Empty.size()), Empty.data());
+        ID3D11ShaderResourceView* Empty{};
+        Context->PSSetShaderResources(5, 1, &Empty);
+        mShadowBuffer.Unbind(Context, RenderCore::EShaderStage::Pixel, 6);
     }
 
     const Core::TArray<std::array<Core::Uint32, 2>>& Renderer::FShadowResources::GetLightRanges() const {

@@ -19,11 +19,6 @@ namespace Renderer {
     Renderer::FSpriteRenderer::~FSpriteRenderer() = default;
 
     bool Renderer::FSpriteRenderer::Initialize(ID3D11Device* Device) {
-        D3D11_BUFFER_DESC Buffer{};
-        Buffer.ByteWidth = sizeof(FConstants);
-        Buffer.Usage = D3D11_USAGE_DEFAULT;
-        Buffer.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-
         D3D11_SAMPLER_DESC Sampler{};
         Sampler.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
         Sampler.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
@@ -31,7 +26,9 @@ namespace Renderer {
         Sampler.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
         Sampler.MaxLOD = D3D11_FLOAT32_MAX;
 
-        if (FAILED(Device->CreateBuffer(&Buffer, nullptr, mConstants.GetAddressOf())) || FAILED(Device->CreateSamplerState(&Sampler, mSampler.GetAddressOf()))) {
+        Core::FString Error{};
+
+        if (!mConstants.Create(Device, Error) || FAILED(Device->CreateSamplerState(&Sampler, mSampler.GetAddressOf()))) {
             return false;
         }
 
@@ -87,9 +84,8 @@ namespace Renderer {
         }
 
         const FConstants Constants{Engine::MakeSpriteWorld(Proxy.mWorld, Sprite, View) * View.mViewProjection, {Proxy.mUVScale.x, Proxy.mUVScale.y, Proxy.mUVOffset.x, Proxy.mUVOffset.y}, Sprite.mColor};
-        Context->UpdateSubresource(mConstants.Get(), 0, nullptr, &Constants, 0, 0);
+        mConstants.Update(Context, Constants);
 
-        ID3D11Buffer* Buffer{mConstants.Get()};
         ID3D11ShaderResourceView* Resource{Texture->GetShaderResourceView()};
         ID3D11SamplerState* Sampler{mSampler.Get()};
 
@@ -97,8 +93,7 @@ namespace Renderer {
         Context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
         Context->VSSetShader(mVertexShader.Get(), nullptr, 0);
         Context->PSSetShader(mPixelShader.Get(), nullptr, 0);
-        Context->VSSetConstantBuffers(0, 1, &Buffer);
-        Context->PSSetConstantBuffers(0, 1, &Buffer);
+        mConstants.Bind(Context, RenderCore::EShaderStage::Vertex | RenderCore::EShaderStage::Pixel, 0);
         Context->PSSetShaderResources(0, 1, &Resource);
         Context->PSSetSamplers(0, 1, &Sampler);
         Context->Draw(6, 0);

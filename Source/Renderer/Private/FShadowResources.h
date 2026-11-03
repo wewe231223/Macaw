@@ -17,6 +17,8 @@
 #include "Core/Math/FBox.h"
 #include "RenderCore/FRenderStats.h"
 #include "RenderCore/FShadowAtlasView.h"
+#include "RenderCore/TConstantBuffer.h"
+#include "RenderCore/TStructuredBuffer.h"
 
 #include <span>
 
@@ -269,17 +271,12 @@ namespace Renderer {
         /**
          * @brief 모든 그림자 맵의 샘플링 정보를 담는 구조화 버퍼입니다.
          */
-        Microsoft::WRL::ComPtr<ID3D11Buffer> mShadowBuffer{};
+        RenderCore::TStructuredBuffer<Renderer::FGpuShadow> mShadowBuffer{};
 
         /**
          * @brief 그림자 캐스케이드 선택에 필요한 카메라 상수 버퍼입니다.
          */
-        Microsoft::WRL::ComPtr<ID3D11Buffer> mViewBuffer{};
-
-        /**
-         * @brief 그림자 정보 구조화 버퍼의 셰이더 리소스 뷰입니다.
-         */
-        Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> mShadowView{};
+        RenderCore::TConstantBuffer<std::array<Core::FVector4, 2>> mViewBuffer{};
 
         /**
          * @brief 그림자 깊이를 비교 샘플링하는 샘플러입니다.
@@ -290,11 +287,6 @@ namespace Renderer {
          * @brief 깊이 검사를 끈 미리보기 패스의 상태입니다.
          */
         Microsoft::WRL::ComPtr<ID3D11DepthStencilState> mPreviewDepthState{};
-
-        /**
-         * @brief 그림자 정보 구조화 버퍼에 확보한 원소 수입니다.
-         */
-        Core::Uint32 mCapacity{};
 
         /**
          * @brief 현재 뷰에서 유효한 그림자 맵을 셰이더에 제공할 수 있는지 나타냅니다.

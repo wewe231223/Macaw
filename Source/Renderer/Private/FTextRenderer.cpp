@@ -26,11 +26,6 @@ namespace Renderer {
             return false;
         }
 
-        D3D11_BUFFER_DESC Constants{};
-        Constants.ByteWidth = sizeof(FTextConstants);
-        Constants.Usage = D3D11_USAGE_DEFAULT;
-        Constants.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-
         D3D11_SAMPLER_DESC Sampler{};
         Sampler.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
         Sampler.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
@@ -38,7 +33,9 @@ namespace Renderer {
         Sampler.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
         Sampler.MaxLOD = D3D11_FLOAT32_MAX;
 
-        if (FAILED(Device->CreateBuffer(&Constants, nullptr, mConstants.GetAddressOf())) || FAILED(Device->CreateSamplerState(&Sampler, mSampler.GetAddressOf()))) {
+        Core::FString Error{};
+
+        if (!mConstants.Create(Device, Error) || FAILED(Device->CreateSamplerState(&Sampler, mSampler.GetAddressOf()))) {
             return false;
         }
 
@@ -122,27 +119,22 @@ namespace Renderer {
         const Core::Uint32 Count{static_cast<Core::Uint32>(Vertices.size())};
         Core::FString Error{};
 
-        if (!mVertices.Upload(Context, std::as_bytes(std::span{Vertices}), sizeof(Renderer::FTextVertex), std::max(Count, 256u), Error)) {
+        if (!mVertices.Upload(Context, Vertices, Error)) {
             Core::ErrorHandler::Report("Text", Error, Core::ErrorHandler::EErrorLevel::Error);
             return false;
         }
 
-        Context->UpdateSubresource(mConstants.Get(), 0, nullptr, &Constants, 0, 0);
+        mConstants.Update(Context, Constants);
 
-        ID3D11Buffer* VertexBuffer{mVertices.GetBuffer()};
-        ID3D11Buffer* ConstantBuffer{mConstants.Get()};
         ID3D11ShaderResourceView* Atlas{mTexture->GetShaderResourceView()};
         ID3D11SamplerState* Sampler{mSampler.Get()};
-        const UINT Stride{sizeof(Renderer::FTextVertex)};
-        const UINT Offset{};
 
         Context->IASetInputLayout(mLayout.Get());
         Context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-        Context->IASetVertexBuffers(0, 1, &VertexBuffer, &Stride, &Offset);
+        mVertices.Bind(Context, 0);
         Context->VSSetShader(mVertexShader.Get(), nullptr, 0);
         Context->PSSetShader(mPixelShader.Get(), nullptr, 0);
-        Context->VSSetConstantBuffers(0, 1, &ConstantBuffer);
-        Context->PSSetConstantBuffers(0, 1, &ConstantBuffer);
+        mConstants.Bind(Context, RenderCore::EShaderStage::Vertex | RenderCore::EShaderStage::Pixel, 0);
         Context->PSSetShaderResources(0, 1, &Atlas);
         Context->PSSetSamplers(0, 1, &Sampler);
         Context->Draw(Count, 0);

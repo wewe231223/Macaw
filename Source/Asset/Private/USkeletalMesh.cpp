@@ -102,41 +102,25 @@ namespace Asset {
         }
 
         // 가중치는 에셋을 교체하기 전까지 변하지 않으므로, 같은 장치에 이미 만든 버퍼가 있으면 재사용합니다.
-        if (mSkinWeightBuffer != nullptr) {
-            Microsoft::WRL::ComPtr<ID3D11Device> ExistingDevice{};
-            mSkinWeightBuffer->GetDevice(ExistingDevice.GetAddressOf());
-
-            if (ExistingDevice.Get() == Device) {
-                return true;
-            }
+        if (mSkinWeightBuffer.IsCreatedOn(Device)) {
+            return true;
         }
 
         // 임포트 클래스의 메모리 배치와 무관하게 uint4, float4 순으로 입력을 만듭니다.
-        const std::size_t Bytes{mSkinWeights.size() * GetSkinWeightStride()};
-
-        if (Bytes > std::numeric_limits<UINT>::max()) {
-            return false;
-        }
-
-        Core::TArray<Core::Uint8> Vertices{};
-        Vertices.resize(Bytes);
+        static_assert(sizeof(FSkinWeightVertex) == sizeof(Core::Uint32) * 4 + sizeof(float) * 4);
+        Core::TArray<FSkinWeightVertex> Vertices{};
+        Vertices.resize(mSkinWeights.size());
 
         for (std::size_t Index{}; Index < mSkinWeights.size(); ++Index) {
-            Core::Uint8* Target{Vertices.data() + Index * GetSkinWeightStride()};
-            std::memcpy(Target, mSkinWeights[Index].GetBoneIndices().data(), sizeof(Core::Uint32) * 4);
-            std::memcpy(Target + sizeof(Core::Uint32) * 4, mSkinWeights[Index].GetWeights().data(), sizeof(float) * 4);
+            std::memcpy(Vertices[Index].mBoneIndices.data(), mSkinWeights[Index].GetBoneIndices().data(), sizeof(Core::Uint32) * 4);
+            std::memcpy(Vertices[Index].mWeights.data(), mSkinWeights[Index].GetWeights().data(), sizeof(float) * 4);
         }
 
         // 객체마다 달라지는 포즈는 본 팔레트(FScene::UploadSkinning)에 있고, 이 버퍼는 같은 에셋을 쓰는 객체가 공유하므로 불변으로 만듭니다.
-        D3D11_BUFFER_DESC Description{};
-        Description.ByteWidth = static_cast<UINT>(Bytes);
-        Description.Usage = D3D11_USAGE_IMMUTABLE;
-        Description.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-        D3D11_SUBRESOURCE_DATA Data{};
-        Data.pSysMem = Vertices.data();
-        Microsoft::WRL::ComPtr<ID3D11Buffer> Buffer{};
+        FSkinWeightBuffer Buffer{};
+        Core::FString Error{};
 
-        if (FAILED(Device->CreateBuffer(&Description, &Data, Buffer.GetAddressOf()))) {
+        if (!Buffer.Create(Device, Vertices, Error)) {
             return false;
         }
 
@@ -149,12 +133,12 @@ namespace Asset {
         mSkinWeightBuffer.Reset();
     }
 
-    ID3D11Buffer* Asset::USkeletalMesh::GetSkinWeightBuffer() const {
-        return mSkinWeightBuffer.Get();
+    void Asset::USkeletalMesh::BindSkinWeights(ID3D11DeviceContext* Context, Core::Uint32 Slot) const {
+        mSkinWeightBuffer.Bind(Context, Slot);
     }
 
-    Core::Uint32 Asset::USkeletalMesh::GetSkinWeightStride() {
-        return sizeof(Core::Uint32) * 4 + sizeof(float) * 4;
+    void Asset::USkeletalMesh::UnbindSkinWeights(ID3D11DeviceContext* Context, Core::Uint32 Slot) {
+        FSkinWeightBuffer::Unbind(Context, Slot);
     }
 
     const Core::FBox& Asset::USkeletalMesh::GetBounds() const {

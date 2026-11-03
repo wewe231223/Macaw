@@ -8,6 +8,7 @@
 
 #include "Core/Types.h"
 #include "Core/ReflectionMacros.h"
+#include "RenderCore/TConstantBuffer.h"
 
 #include <d3d11.h>
 #include <wrl/client.h>
@@ -23,6 +24,8 @@ namespace Engine {
 }
 
 namespace Renderer {
+
+    struct FPostProcessConstants;
 
     class FDXRenderTarget;
 
@@ -90,7 +93,7 @@ namespace Renderer {
         /**
          * @brief FPostProcessConstants를 픽셀 셰이더 b0에 전달하는 GPU 상수 버퍼입니다.
          */
-        Microsoft::WRL::ComPtr<ID3D11Buffer> mConstants{};
+        RenderCore::TConstantBuffer<Renderer::FPostProcessConstants> mConstants{};
 
         /**
          * @brief SceneColor를 선형 필터와 가장자리 고정 주소 모드로 읽는 샘플러입니다.

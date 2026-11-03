@@ -389,7 +389,7 @@ namespace Renderer {
         ID3D11RenderTargetView* RenderTarget{};
 
         const Core::FVector4 LineView{Family.mView.mSize.x, Family.mView.mSize.y, 1.0f / std::max(Family.mView.mSize.x, 1.0f), 1.0f / std::max(Family.mView.mSize.y, 1.0f)};
-        mContext->UpdateSubresource(mLineViewBuffer.Get(), 0, nullptr, &LineView, 0, 0);
+        mLineViewBuffer.Update(mContext.Get(), LineView);
 
         if (Family.mViewMode != Engine::EViewMode::WorldNormal && Family.mViewMode != Engine::EViewMode::SceneDepth) {
             DrawTranslucency(Family, false);
@@ -790,24 +790,17 @@ namespace Renderer {
             return false;
         }
 
-        D3D11_BUFFER_DESC Buffer{};
-        Buffer.ByteWidth = sizeof(Core::FMatrix);
-        Buffer.Usage = D3D11_USAGE_DEFAULT;
-        Buffer.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+        Core::FString BufferError{};
 
-        if (FAILED(mDevice->CreateBuffer(&Buffer, nullptr, mViewBuffer.GetAddressOf()))) {
+        if (!mViewBuffer.Create(mDevice.Get(), BufferError)) {
             Core::ErrorHandler::Fatal("Renderer", "View buffer allocation failed");
         }
 
-        Buffer.ByteWidth = sizeof(Core::FVector4);
-
-        if (FAILED(mDevice->CreateBuffer(&Buffer, nullptr, mLineViewBuffer.GetAddressOf()))) {
+        if (!mLineViewBuffer.Create(mDevice.Get(), BufferError)) {
             return false;
         }
 
-        Buffer.ByteWidth = sizeof(Renderer::FEditorMeshConstants);
-
-        if (FAILED(mDevice->CreateBuffer(&Buffer, nullptr, mEditorMeshBuffer.GetAddressOf()))) {
+        if (!mEditorMeshBuffer.Create(mDevice.Get(), BufferError)) {
             Core::ErrorHandler::Fatal("Renderer", "Editor mesh constant buffer allocation failed");
         }
 
@@ -886,26 +879,20 @@ namespace Renderer {
 
         Core::FString Error{};
 
-        if (!mLineBuffer.Upload(mContext.Get(), std::as_bytes(std::span{mLineVertices}), sizeof(Renderer::FLineVertex), Count + 256, Error)) {
+        if (!mLineBuffer.Upload(mContext.Get(), mLineVertices, Error)) {
             Core::ErrorHandler::Fatal("Renderer", Error);
             return;
         }
 
-        const UINT Stride{sizeof(Renderer::FLineVertex)};
-        const UINT Offset{};
-        ID3D11Buffer* Buffer{mLineBuffer.GetBuffer()};
-
         mContext->IASetInputLayout(mLineLayout.Get());
         mContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-        mContext->IASetVertexBuffers(0, 1, &Buffer, &Stride, &Offset);
+        mLineBuffer.Bind(mContext.Get(), 0);
 
         mContext->VSSetShader(mLineVertexShader.Get(), nullptr, 0);
         mContext->PSSetShader(mLinePixelShader.Get(), nullptr, 0);
 
-        ID3D11Buffer* Constants{mLineViewBuffer.Get()};
-        ID3D11Buffer* ViewBuffer{mViewBuffer.Get()};
-        mContext->VSSetConstantBuffers(0, 1, &Constants);
-        mContext->VSSetConstantBuffers(1, 1, &ViewBuffer);
+        mLineViewBuffer.Bind(mContext.Get(), RenderCore::EShaderStage::Vertex, 0);
+        mViewBuffer.Bind(mContext.Get(), RenderCore::EShaderStage::Vertex, 1);
         mContext->OMSetBlendState(mOverlayBlend.Get(), nullptr, 0xFFFFFFFFu);
         mContext->OMSetDepthStencilState(DepthTest ? mDepthEnabled.Get() : mDepthDisabled.Get(), 0);
 
@@ -936,17 +923,12 @@ namespace Renderer {
     void Renderer::FRenderer::DrawMeshes(const Engine::FPrimitiveDrawInterface* Elements, bool DepthTest) {
         mContext->RSSetState(mRasterizer.Get());
 
-        const UINT Stride{Asset::UStaticMesh::GetPositionStride()};
-        const UINT Offset{};
-
         mContext->IASetInputLayout(mOverlayLayout.Get());
         mContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
         mContext->VSSetShader(mGizmoVertexShader.Get(), nullptr, 0);
         mContext->PSSetShader(mGizmoPixelShader.Get(), nullptr, 0);
 
-        ID3D11Buffer* ConstantsBuffer{mEditorMeshBuffer.Get()};
-        mContext->VSSetConstantBuffers(0, 1, &ConstantsBuffer);
-        mContext->PSSetConstantBuffers(0, 1, &ConstantsBuffer);
+        mEditorMeshBuffer.Bind(mContext.Get(), RenderCore::EShaderStage::Vertex | RenderCore::EShaderStage::Pixel, 0);
         mContext->OMSetDepthStencilState(DepthTest ? mDepthReadOnly.Get() : mDepthEnabled.Get(), 0);
         mContext->OMSetBlendState(mOverlayBlend.Get(), nullptr, 0xFFFFFFFFu);
 
@@ -962,11 +944,9 @@ namespace Renderer {
             }
 
             const Renderer::FEditorMeshConstants Constants{Draw.mWorld, {Draw.mColor.x, Draw.mColor.y, Draw.mColor.z, Draw.mColor.w}};
-            mContext->UpdateSubresource(mEditorMeshBuffer.Get(), 0, nullptr, &Constants, 0, 0);
+            mEditorMeshBuffer.Update(mContext.Get(), Constants);
 
-            ID3D11Buffer* Buffer{Mesh->GetPositionBuffer()};
-            mContext->IASetVertexBuffers(0, 1, &Buffer, &Stride, &Offset);
-            mContext->IASetIndexBuffer(Mesh->GetIndexBuffer(), DXGI_FORMAT_R32_UINT, 0);
+            Mesh->BindPositions(mContext.Get());
             mContext->DrawIndexed(Mesh->GetIndexCount(), 0, 0);
             Renderer::RendererStats::Triangles.Add(Mesh->GetIndexCount() / 3);
             ++mStats.mDrawCalls;
@@ -1377,10 +1357,8 @@ namespace Renderer {
         mContext->OMSetBlendState(nullptr, nullptr, 0xFFFFFFFFu);
         mContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-        mContext->UpdateSubresource(mViewBuffer.Get(), 0, nullptr, &Parameters.mViewProjection, 0, 0);
-        ID3D11Buffer* ViewBuffer{mViewBuffer.Get()};
-        mContext->VSSetConstantBuffers(1, 1, &ViewBuffer);
-        mContext->PSSetConstantBuffers(1, 1, &ViewBuffer);
+        mViewBuffer.Update(mContext.Get(), Parameters.mViewProjection);
+        mViewBuffer.Bind(mContext.Get(), RenderCore::EShaderStage::Vertex | RenderCore::EShaderStage::Pixel, 1);
 
         const bool NeedsLighting{BasePass && Family.mViewMode != Engine::EViewMode::Unlit && Family.mViewMode != Engine::EViewMode::WorldNormal};
 
@@ -1413,12 +1391,6 @@ namespace Renderer {
         if (std::any_of(Commands.begin(), Commands.end(), [](const Renderer::FMeshDrawCommand& Command) {
             return Command.mPipeline->IsInstanced();
         })) {
-            constexpr Core::Uint32 MaximumCapacity{std::numeric_limits<Core::Uint32>::max() / sizeof(Renderer::FObjectConstants)};
-
-            if (Commands.size() > MaximumCapacity) {
-                Core::ErrorHandler::Fatal("Renderer", "Mesh instance buffer capacity exceeded");
-            }
-
             Core::TArray<Renderer::FObjectConstants> Instances{};
             Instances.reserve(Commands.size());
 
@@ -1426,25 +1398,19 @@ namespace Renderer {
                 Instances.push_back(Command.mPrimitive->mObjectConstants);
             }
 
-            const Core::Uint32 Count{static_cast<Core::Uint32>(Instances.size())};
-            const Core::Uint32 Capacity{std::min(std::bit_ceil(Count), MaximumCapacity)};
             Core::FString Error{};
 
-            if (!mMeshInstanceBuffer.Upload(mContext.Get(), std::as_bytes(std::span<const Renderer::FObjectConstants>{Instances}), sizeof(Renderer::FObjectConstants), Capacity, Error)) {
+            if (!mMeshInstanceBuffer.Upload(mContext.Get(), Instances, Error)) {
                 Core::ErrorHandler::Fatal("Renderer", Error);
             }
 
-            ID3D11Buffer* InstanceBuffer{mMeshInstanceBuffer.GetBuffer()};
-            const UINT Stride{sizeof(Renderer::FObjectConstants)};
-            const UINT Offset{};
-            mContext->IASetVertexBuffers(4, 1, &InstanceBuffer, &Stride, &Offset);
+            mMeshInstanceBuffer.Bind(mContext.Get(), 4);
         }
 
         Renderer::FMaterialPipeline* LastPipeline{};
         Asset::UMaterial* LastMaterial{};
         Asset::UStaticMesh* LastMesh{};
         Core::Uint32 DrawCalls{};
-        const std::array<UINT, 4> Offsets{};
 
         for (std::size_t First{}; First < Commands.size();) {
             const Renderer::FMeshDrawCommand& Command{Commands[First]};
@@ -1461,12 +1427,8 @@ namespace Renderer {
             if (Command.mPipeline->IsSkinned()) {
                 // 같은 형상을 공유해도 객체마다 본 팔레트를 다시 바인딩합니다.
                 // 가중치 정점 버퍼는 5번 입력 슬롯, 본 팔레트는 정점 셰이더의 t10(Skinning.hlsl의 SkinBones)에 연결합니다.
-                ID3D11Buffer* Weights{Command.mPrimitive->mProxy.mSkeletalMesh->GetSkinWeightBuffer()};
-                ID3D11ShaderResourceView* Bones{Command.mPrimitive->mSkinView.Get()};
-                const UINT SkinStride{Asset::USkeletalMesh::GetSkinWeightStride()};
-                const UINT SkinOffset{};
-                mContext->IASetVertexBuffers(5, 1, &Weights, &SkinStride, &SkinOffset);
-                mContext->VSSetShaderResources(10, 1, &Bones);
+                Command.mPrimitive->mProxy.mSkeletalMesh->BindSkinWeights(mContext.Get(), 5);
+                Command.mPrimitive->mSkinBuffer.Bind(mContext.Get(), RenderCore::EShaderStage::Vertex, 10);
             }
 
             if (LastPipeline != Command.mPipeline) {
@@ -1486,13 +1448,11 @@ namespace Renderer {
 
             if (Command.mMaterial != nullptr && LastMaterial != Command.mMaterial) {
                 Renderer::RendererStats::MaterialBinds.Add();
-                ID3D11Buffer* Constants{Command.mMaterial->GetConstantBuffer()};
                 Asset::UTexture2D* Texture{Command.mMaterial->GetBaseColorTexture()};
                 ID3D11ShaderResourceView* Resource{Texture != nullptr ? Texture->GetShaderResourceView() : mDefaultMaterialTexture->GetShaderResourceView()};
                 ID3D11SamplerState* Sampler{mMaterialSampler.Get()};
 
-                mContext->VSSetConstantBuffers(2, 1, &Constants);
-                mContext->PSSetConstantBuffers(2, 1, &Constants);
+                Command.mMaterial->BindConstants(mContext.Get(), RenderCore::EShaderStage::Vertex | RenderCore::EShaderStage::Pixel, 2);
                 Asset::UTexture2D* NormalTexture{Command.mMaterial->GetNormalMapTexture()};
                 ID3D11ShaderResourceView* NormalResource{NormalTexture != nullptr ? NormalTexture->GetShaderResourceView() : nullptr};
 
@@ -1514,20 +1474,15 @@ namespace Renderer {
                     Renderer::RendererStats::MeshBinds.Add();
                 }
 
-                Asset::UStaticMesh* Mesh{Command.mMesh};
-                const std::array<ID3D11Buffer*, 4> Buffers{Mesh->GetPositionBuffer(), Mesh->GetTangentBuffer(), Mesh->GetUVBuffer(), Mesh->GetColorBuffer()};
-                const std::array<UINT, 4> Strides{Asset::UStaticMesh::GetPositionStride(), Asset::UStaticMesh::GetTangentStride(), Mesh->GetUVStride(), Asset::UStaticMesh::GetColorStride()};
-                mContext->IASetVertexBuffers(0, static_cast<UINT>(Buffers.size()), Buffers.data(), Strides.data(), Offsets.data());
-                mContext->IASetIndexBuffer(Mesh->GetIndexBuffer(), DXGI_FORMAT_R32_UINT, 0);
-                LastMesh = Mesh;
+                Command.mMesh->Bind(mContext.Get());
+                LastMesh = Command.mMesh;
             }
 
             if (Command.mPipeline->IsInstanced()) {
                 mContext->DrawIndexedInstanced(Command.mIndexCount, InstanceCount, Command.mFirstIndex, 0, static_cast<UINT>(First));
             } else {
-                ID3D11Buffer* ObjectBuffer{Command.mPrimitive->mObjectBuffer.Get()};
-                mContext->VSSetConstantBuffers(0, 1, &ObjectBuffer);
-                mContext->PSSetConstantBuffers(0, 1, &ObjectBuffer);
+                Command.mPrimitive->mObjectBuffer.Bind(mContext.Get(), RenderCore::EShaderStage::Vertex | RenderCore::EShaderStage::Pixel, 0);
+
                 mContext->DrawIndexed(Command.mIndexCount, Command.mFirstIndex, 0);
             }
 
@@ -1539,11 +1494,10 @@ namespace Renderer {
             First = End;
         }
 
-        ID3D11Buffer* EmptyInstanceBuffer{};
-        mContext->IASetVertexBuffers(4, 1, &EmptyInstanceBuffer, Offsets.data(), Offsets.data());
-        mContext->IASetVertexBuffers(5, 1, &EmptyInstanceBuffer, Offsets.data(), Offsets.data());
-        ID3D11ShaderResourceView* EmptyBones{};
-        mContext->VSSetShaderResources(10, 1, &EmptyBones);
+        mMeshInstanceBuffer.Unbind(mContext.Get(), 4);
+        Asset::USkeletalMesh::UnbindSkinWeights(mContext.Get(), 5);
+        Renderer::FScenePrimitive::FSkinBuffer::Unbind(mContext.Get(), RenderCore::EShaderStage::Vertex, 10);
+
 
         if (BasePass) {
             ID3D11ShaderResourceView* Empty{};

@@ -16,11 +16,6 @@ namespace Renderer {
     Renderer::FPostProcessResources::~FPostProcessResources() = default;
 
     bool Renderer::FPostProcessResources::Initialize(ID3D11Device* Device) {
-        D3D11_BUFFER_DESC Buffer{};
-        Buffer.ByteWidth = sizeof(Renderer::FPostProcessConstants);
-        Buffer.Usage = D3D11_USAGE_DEFAULT;
-        Buffer.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-
         D3D11_SAMPLER_DESC Sampler{};
         Sampler.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
         Sampler.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
@@ -38,7 +33,9 @@ namespace Renderer {
         Rasterizer.CullMode = D3D11_CULL_NONE;
         Rasterizer.DepthClipEnable = true;
 
-        return SUCCEEDED(Device->CreateBuffer(&Buffer, nullptr, mConstants.GetAddressOf())) && SUCCEEDED(Device->CreateSamplerState(&Sampler, mSampler.GetAddressOf())) && SUCCEEDED(Device->CreateDepthStencilState(&Depth, mDepthDisabled.GetAddressOf())) && SUCCEEDED(Device->CreateRasterizerState(&Rasterizer, mRasterizer.GetAddressOf()));
+        Core::FString Error{};
+
+        return mConstants.Create(Device, Error) && SUCCEEDED(Device->CreateSamplerState(&Sampler, mSampler.GetAddressOf())) && SUCCEEDED(Device->CreateDepthStencilState(&Depth, mDepthDisabled.GetAddressOf())) && SUCCEEDED(Device->CreateRasterizerState(&Rasterizer, mRasterizer.GetAddressOf()));
     }
 
     bool Renderer::FPostProcessResources::CreateShaders(ID3D11Device* Device, std::span<const Core::Uint8> VertexCode, std::span<const Core::Uint8> PixelCode) {
@@ -82,7 +79,7 @@ namespace Renderer {
                 Constants.mFogParameters = {Fog.mDensity, Fog.mHeightFalloff, Fog.mPosition.z, Fog.mMaxOpacity};
                 Constants.mFogDistances = {Fog.mStartDistance, Fog.mEndDistance, Fog.mCutoffDistance, 0.0f};
                 Constants.mSettings = {1.0f, 0.0f, 0.0f, 0.0f};
-                Context->UpdateSubresource(mConstants.Get(), 0, nullptr, &Constants, 0, 0);
+                mConstants.Update(Context, Constants);
 
                 Asset::UTexture2D* Destination{Source == Target.GetSceneColor() ? Target.GetPostProcessColor() : Target.GetSceneColor()};
                 Draw(Context, Source, Destination, Target.GetSceneDepth());
@@ -92,7 +89,7 @@ namespace Renderer {
         }
 
         Constants.mSettings = {Family.mViewMode == Engine::EViewMode::SceneDepth ? 2.0f : !Visualization && Family.mShowFlags.mFXAA ? 3.0f : 0.0f, 0.0f, 0.0f, 0.0f};
-        Context->UpdateSubresource(mConstants.Get(), 0, nullptr, &Constants, 0, 0);
+        mConstants.Update(Context, Constants);
         Draw(Context, Source, Target.GetOutputColor(), Target.GetSceneDepth());
 
         return DrawCalls + 1;
@@ -112,10 +109,9 @@ namespace Renderer {
         Context->VSSetShader(mVertexShader.Get(), nullptr, 0);
         Context->PSSetShader(mPixelShader.Get(), nullptr, 0);
 
-        ID3D11Buffer* Constants{mConstants.Get()};
         ID3D11SamplerState* Sampler{mSampler.Get()};
         const std::array<ID3D11ShaderResourceView*, 2> Resources{Source->GetShaderResourceView(), Depth->GetShaderResourceView()};
-        Context->PSSetConstantBuffers(0, 1, &Constants);
+        mConstants.Bind(Context, RenderCore::EShaderStage::Pixel, 0);
         Context->PSSetSamplers(0, 1, &Sampler);
         Context->PSSetShaderResources(0, static_cast<UINT>(Resources.size()), Resources.data());
         Context->Draw(3, 0);

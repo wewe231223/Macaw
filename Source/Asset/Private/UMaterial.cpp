@@ -170,20 +170,15 @@ namespace Asset {
 
         const std::array<float, 28> Color{mBaseColor.x, mBaseColor.y, mBaseColor.z, mBaseColor.w, mSpecularStrength, mShininess, mNormalStrength, mReflectionStrength, mSpecularColor.x, mSpecularColor.y, mSpecularColor.z, mSpecularColor.w, mAmbientColor.x, mAmbientColor.y, mAmbientColor.z, mAmbientColor.w, mEmissiveColor.x, mEmissiveColor.y, mEmissiveColor.z, mEmissiveColor.w, mReflectionColor.x, mReflectionColor.y, mReflectionColor.z, mReflectionColor.w, mSpecularTexture != nullptr ? 1.0f : 0.0f, mEmissiveTexture != nullptr ? 1.0f : 0.0f, mReflectionTexture != nullptr ? 1.0f : 0.0f, 0.0f};
 
-        if (mConstantBuffer == nullptr) {
-            D3D11_BUFFER_DESC Description{};
-            Description.ByteWidth = sizeof(Color);
-            Description.Usage = D3D11_USAGE_DEFAULT;
-            Description.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+        const bool Created{mConstantBuffer.IsCreated()};
+        Core::FString Error{};
 
-            D3D11_SUBRESOURCE_DATA Data{};
-            Data.pSysMem = Color.data();
+        if (!mConstantBuffer.Create(Device, Error)) {
+            return false;
+        }
 
-            if (FAILED(Device->CreateBuffer(&Description, &Data, mConstantBuffer.GetAddressOf()))) {
-                return false;
-            }
-        } else if (mConstantsDirty) {
-            Context->UpdateSubresource(mConstantBuffer.Get(), 0, nullptr, Color.data(), 0, 0);
+        if (!Created || mConstantsDirty) {
+            mConstantBuffer.Update(Context, Color);
         }
 
         mConstantsDirty = false;
@@ -196,8 +191,8 @@ namespace Asset {
         mConstantsDirty = true;
     }
 
-    ID3D11Buffer* Asset::UMaterial::GetConstantBuffer() const {
-        return mConstantBuffer.Get();
+    void Asset::UMaterial::BindConstants(ID3D11DeviceContext* Context, RenderCore::EShaderStage Stages, Core::Uint32 Slot) const {
+        mConstantBuffer.Bind(Context, Stages, Slot);
     }
 
     const Core::FString& Asset::UMaterial::GetNormalMapTexturePath() const {

@@ -33,11 +33,6 @@ namespace Renderer {
     Renderer::FSkyResources::~FSkyResources() = default;
 
     bool Renderer::FSkyResources::Initialize(ID3D11Device* Device, const std::filesystem::path& PanoramaPath) {
-        D3D11_BUFFER_DESC Buffer{};
-        Buffer.ByteWidth = sizeof(Core::FMatrix);
-        Buffer.Usage = D3D11_USAGE_DEFAULT;
-        Buffer.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-
         D3D11_SAMPLER_DESC Sampler{};
         Sampler.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
         Sampler.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
@@ -54,7 +49,9 @@ namespace Renderer {
         Rasterizer.FillMode = D3D11_FILL_SOLID;
         Rasterizer.CullMode = D3D11_CULL_NONE;
 
-        if (FAILED(Device->CreateBuffer(&Buffer, nullptr, mConstants.GetAddressOf())) || FAILED(Device->CreateSamplerState(&Sampler, mSampler.GetAddressOf())) || FAILED(Device->CreateDepthStencilState(&Depth, mDepthState.GetAddressOf())) || FAILED(Device->CreateRasterizerState(&Rasterizer, mRasterizer.GetAddressOf()))) {
+        Core::FString Error{};
+
+        if (!mConstants.Create(Device, Error) || FAILED(Device->CreateSamplerState(&Sampler, mSampler.GetAddressOf())) || FAILED(Device->CreateDepthStencilState(&Depth, mDepthState.GetAddressOf())) || FAILED(Device->CreateRasterizerState(&Rasterizer, mRasterizer.GetAddressOf()))) {
             return false;
         }
 
@@ -96,7 +93,7 @@ namespace Renderer {
             return 0;
         }
 
-        Context->UpdateSubresource(mConstants.Get(), 0, nullptr, &InverseViewRotationProjection, 0, 0);
+        mConstants.Update(Context, InverseViewRotationProjection);
         Context->OMSetRenderTargets(1, &Target.mColor, Target.mDepth);
         Context->OMSetDepthStencilState(mDepthState.Get(), 0);
         Context->OMSetBlendState(nullptr, nullptr, 0xFFFFFFFFu);
@@ -107,10 +104,9 @@ namespace Renderer {
         Context->VSSetShader(mVertexShader.Get(), nullptr, 0);
         Context->PSSetShader(mPixelShader.Get(), nullptr, 0);
 
-        ID3D11Buffer* Constants{mConstants.Get()};
         ID3D11SamplerState* Sampler{mSampler.Get()};
         ID3D11ShaderResourceView* Panorama{mPanorama.Get()};
-        Context->PSSetConstantBuffers(0, 1, &Constants);
+        mConstants.Bind(Context, RenderCore::EShaderStage::Pixel, 0);
         Context->PSSetSamplers(0, 1, &Sampler);
         Context->PSSetShaderResources(0, 1, &Panorama);
         Context->Draw(3, 0);

@@ -62,11 +62,11 @@ namespace Renderer {
 
             Asset::UStaticMesh* Mesh{Primitive.mProxy.mMesh != nullptr ? Primitive.mProxy.mMesh : (*mMeshes)[static_cast<std::size_t>(Primitive.mProxy.mPrimitive)].get()};
 
-            if (Primitive.mProxy.mSkeletalMesh != nullptr && (Primitive.mSkinView == nullptr || !Primitive.mProxy.mSkeletalMesh->CreateResources(mDevice))) {
+            if (Primitive.mProxy.mSkeletalMesh != nullptr && (!Primitive.mSkinBuffer.IsCreated() || !Primitive.mProxy.mSkeletalMesh->CreateResources(mDevice))) {
                 continue;
             }
 
-            if (Mesh == nullptr || (!Mesh->HasResources() && !Mesh->CreateResources(mDevice)) || Primitive.mObjectBuffer == nullptr) {
+            if (Mesh == nullptr || (!Mesh->HasResources() && !Mesh->CreateResources(mDevice)) || !Primitive.mObjectBuffer.IsCreated()) {
                 continue;
             }
 

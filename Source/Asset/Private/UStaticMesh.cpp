@@ -92,13 +92,8 @@ namespace Asset {
             return false;
         }
 
-        if (HasResources()) {
-            Microsoft::WRL::ComPtr<ID3D11Device> ResourceDevice{};
-            mPositionBuffer->GetDevice(ResourceDevice.GetAddressOf());
-
-            if (ResourceDevice.Get() == Device) {
-                return true;
-            }
+        if (HasResources() && mPositionBuffer.IsCreatedOn(Device)) {
+            return true;
         }
 
         const std::size_t VertexCount{mMeshData.GetPositions().size()};
@@ -130,18 +125,23 @@ namespace Asset {
             }
         }
 
-        std::array<Microsoft::WRL::ComPtr<ID3D11Buffer>, 5> Buffers{};
+        // 다섯 버퍼를 모두 만든 뒤에 교체하여 실패해도 기존 자원을 유지합니다.
+        TMeshVertexBuffer<std::array<float, 3>> PositionBuffer{};
+        TMeshVertexBuffer<std::array<float, 7>> TangentBuffer{};
+        TMeshVertexBuffer<std::array<float, 2>> UVBuffer{};
+        TMeshVertexBuffer<std::array<float, 4>> ColorBuffer{};
+        RenderCore::TIndexBuffer<Core::Uint32> IndexBuffer{};
+        Core::FString Error{};
 
-        if (!CreateBuffer(Device, Positions.data(), Positions.size() * GetPositionStride(), D3D11_BIND_VERTEX_BUFFER, Buffers[0]) || !CreateBuffer(Device, Tangents.data(), Tangents.size() * GetTangentStride(), D3D11_BIND_VERTEX_BUFFER, Buffers[1]) || !CreateBuffer(Device, UVs.data(), UVs.size() * sizeof(std::array<float, 2>), D3D11_BIND_VERTEX_BUFFER, Buffers[2]) || !CreateBuffer(Device, Colors.data(), Colors.size() * GetColorStride(), D3D11_BIND_VERTEX_BUFFER, Buffers[3]) || !CreateBuffer(Device, mMeshData.GetIndices().data(), mMeshData.GetIndices().size() * sizeof(Core::Uint32), D3D11_BIND_INDEX_BUFFER, Buffers[4])) {
+        if (!PositionBuffer.Create(Device, Positions, Error) || !TangentBuffer.Create(Device, Tangents, Error) || !UVBuffer.Create(Device, UVs, Error) || !ColorBuffer.Create(Device, Colors, Error) || !IndexBuffer.Create(Device, mMeshData.GetIndices(), Error)) {
             return false;
         }
 
-        mPositionBuffer = std::move(Buffers[0]);
-        mTangentBuffer = std::move(Buffers[1]);
-        mUVBuffer = std::move(Buffers[2]);
-        mColorBuffer = std::move(Buffers[3]);
-        mIndexBuffer = std::move(Buffers[4]);
-        mResourceBytes = VertexCount * (static_cast<std::size_t>(GetPositionStride()) + GetTangentStride() + GetUVStride() + GetColorStride()) + mMeshData.GetIndices().size() * sizeof(Core::Uint32);
+        mPositionBuffer = std::move(PositionBuffer);
+        mTangentBuffer = std::move(TangentBuffer);
+        mUVBuffer = std::move(UVBuffer);
+        mColorBuffer = std::move(ColorBuffer);
+        mIndexBuffer = std::move(IndexBuffer);
 
         return true;
     }
@@ -152,71 +152,31 @@ namespace Asset {
         mUVBuffer.Reset();
         mColorBuffer.Reset();
         mIndexBuffer.Reset();
-        mResourceBytes = 0;
     }
 
     bool Asset::UStaticMesh::HasResources() const {
-        return mPositionBuffer != nullptr && mTangentBuffer != nullptr && mUVBuffer != nullptr && mColorBuffer != nullptr && mIndexBuffer != nullptr;
+        return mPositionBuffer.IsCreated() && mTangentBuffer.IsCreated() && mUVBuffer.IsCreated() && mColorBuffer.IsCreated() && mIndexBuffer.IsCreated();
     }
 
     Core::FRevision Asset::UStaticMesh::GetRevision() const {
         return mRevision;
     }
 
-    ID3D11Buffer* Asset::UStaticMesh::GetPositionBuffer() const {
-        return mPositionBuffer.Get();
+    void Asset::UStaticMesh::Bind(ID3D11DeviceContext* Context) const {
+        mPositionBuffer.Bind(Context, 0);
+        mTangentBuffer.Bind(Context, 1);
+        mUVBuffer.Bind(Context, 2, std::max<Core::Uint32>(1, GetUVChannelCount()));
+        mColorBuffer.Bind(Context, 3);
+        mIndexBuffer.Bind(Context);
     }
 
-    ID3D11Buffer* Asset::UStaticMesh::GetTangentBuffer() const {
-        return mTangentBuffer.Get();
-    }
-
-    ID3D11Buffer* Asset::UStaticMesh::GetUVBuffer() const {
-        return mUVBuffer.Get();
-    }
-
-    ID3D11Buffer* Asset::UStaticMesh::GetColorBuffer() const {
-        return mColorBuffer.Get();
-    }
-
-    ID3D11Buffer* Asset::UStaticMesh::GetIndexBuffer() const {
-        return mIndexBuffer.Get();
-    }
-
-    Core::Uint32 Asset::UStaticMesh::GetUVStride() const {
-        return static_cast<Core::Uint32>(std::max<Core::Uint32>(1, GetUVChannelCount()) * sizeof(float) * 2);
+    void Asset::UStaticMesh::BindPositions(ID3D11DeviceContext* Context) const {
+        mPositionBuffer.Bind(Context, 0);
+        mIndexBuffer.Bind(Context);
     }
 
     std::size_t Asset::UStaticMesh::GetResourceBytes() const {
-        return mResourceBytes;
-    }
-
-    Core::Uint32 Asset::UStaticMesh::GetPositionStride() {
-        return sizeof(std::array<float, 3>);
-    }
-
-    Core::Uint32 Asset::UStaticMesh::GetTangentStride() {
-        return sizeof(std::array<float, 7>);
-    }
-
-    Core::Uint32 Asset::UStaticMesh::GetColorStride() {
-        return sizeof(std::array<float, 4>);
-    }
-
-    bool Asset::UStaticMesh::CreateBuffer(ID3D11Device* Device, const void* Data, std::size_t Bytes, Core::Uint32 BindFlags, Microsoft::WRL::ComPtr<ID3D11Buffer>& Buffer) {
-        if (Device == nullptr || Data == nullptr || Bytes == 0 || Bytes > std::numeric_limits<UINT>::max()) {
-            return false;
-        }
-
-        D3D11_BUFFER_DESC Description{};
-        Description.ByteWidth = static_cast<UINT>(Bytes);
-        Description.Usage = D3D11_USAGE_IMMUTABLE;
-        Description.BindFlags = BindFlags;
-
-        D3D11_SUBRESOURCE_DATA InitialData{};
-        InitialData.pSysMem = Data;
-
-        return SUCCEEDED(Device->CreateBuffer(&Description, &InitialData, Buffer.GetAddressOf()));
+        return mPositionBuffer.GetResourceBytes() + mTangentBuffer.GetResourceBytes() + mUVBuffer.GetResourceBytes() + mColorBuffer.GetResourceBytes() + mIndexBuffer.GetResourceBytes();
     }
 
 }

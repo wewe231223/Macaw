@@ -11,6 +11,9 @@
 #include "Asset/Import/FMeshImportSkinWeight.h"
 #include "Core/FRevision.h"
 #include "CoreUObject/UObject.h"
+#include "RenderCore/TVertexBuffer.h"
+
+#include <array>
 
 namespace Asset {
 
@@ -91,15 +94,17 @@ namespace Asset {
          */
         void ReleaseResources();
         /**
-         * @brief 본 인덱스 네 개와 가중치 네 개를 담은 정점 버퍼를 반환합니다.
-         * @return GPU 자원이 없으면 nullptr입니다.
+         * @brief 본 인덱스와 가중치를 담은 정점 버퍼를 입력 슬롯에 연결합니다.
+         * @param Context 바인딩할 장치 컨텍스트입니다.
+         * @param Slot 입력 슬롯입니다.
          */
-        ID3D11Buffer* GetSkinWeightBuffer() const;
+        void BindSkinWeights(ID3D11DeviceContext* Context, Core::Uint32 Slot) const;
         /**
-         * @brief GPU 스킨 정점의 바이트 간격을 반환합니다.
-         * @return uint4와 float4를 합한 크기입니다.
+         * @brief 입력 슬롯의 스킨 가중치 버퍼 연결을 해제합니다.
+         * @param Context 바인딩할 장치 컨텍스트입니다.
+         * @param Slot 입력 슬롯입니다.
          */
-        static Core::Uint32 GetSkinWeightStride();
+        static void UnbindSkinWeights(ID3D11DeviceContext* Context, Core::Uint32 Slot);
 
         /**
          * @brief 바인드 형상의 로컬 경계를 반환합니다.
@@ -132,6 +137,20 @@ namespace Asset {
 
     private:
         /**
+         * @brief BLENDINDICES(uint4)와 BLENDWEIGHT(float4) 입력 하나의 GPU 배치입니다.
+         */
+        struct FSkinWeightVertex {
+            std::array<Core::Uint32, 4> mBoneIndices{};
+            std::array<float, 4> mWeights{};
+        };
+
+        /**
+         * @brief 스킨 가중치를 담는 불변 정점 버퍼입니다.
+         */
+        using FSkinWeightBuffer = RenderCore::TVertexBuffer<FSkinWeightVertex, RenderCore::EBufferUpdate::Immutable>;
+
+    private:
+        /**
          * @brief 정적 메시와 공유하는 버퍼 구현이며 위치는 바인드 포즈를 유지합니다.
          */
         Asset::UStaticMesh mGeometry{};
@@ -159,7 +178,7 @@ namespace Asset {
         /**
          * @brief BLENDINDICES와 BLENDWEIGHT 입력의 공유 불변 버퍼입니다.
          */
-        Microsoft::WRL::ComPtr<ID3D11Buffer> mSkinWeightBuffer{};
+        FSkinWeightBuffer mSkinWeightBuffer{};
     };
 
 }

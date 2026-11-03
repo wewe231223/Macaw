@@ -10,6 +10,7 @@
 #include "Core/ReflectionMacros.h"
 #include "Core/Math/FMatrix.h"
 #include "Core/Math/FVector4.h"
+#include "RenderCore/TConstantBuffer.h"
 
 #include <d3d11.h>
 #include <wrl/client.h>
@@ -93,7 +94,7 @@ namespace Renderer {
         /**
          * @brief 뷰투영 행렬과 카메라·간격·반지름을 b0에 전달하는 상수 버퍼입니다.
          */
-        Microsoft::WRL::ComPtr<ID3D11Buffer> mConstants{};
+        RenderCore::TConstantBuffer<FConstants> mConstants{};
 
         /**
          * @brief 선 색상을 알파로 혼합하는 블렌드 상태입니다.

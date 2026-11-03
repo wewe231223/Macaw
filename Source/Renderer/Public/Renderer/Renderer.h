@@ -14,7 +14,9 @@
 #include "Engine/EPrimitiveType.h"
 #include "Engine/EEditorMesh.h"
 #include "RenderCore/FRenderStats.h"
-#include "RenderCore/FDynamicVertexBuffer.h"
+#include "RenderCore/TConstantBuffer.h"
+#include "RenderCore/TInstanceBuffer.h"
+#include "RenderCore/TVertexBuffer.h"
 #include "RenderCore/IRendererModule.h"
 #include "RenderCore/Shader/FShaderManager.h"
 #include "Asset/UStaticMesh.h"
@@ -41,6 +43,8 @@ namespace Renderer {
     struct FPassTarget;
     struct FMeshPassParameters;
     struct FMeshDrawCommand;
+    struct FObjectConstants;
+    struct FEditorMeshConstants;
     class FMeshPass;
     class FShadowDepthPass;
     class FBasePass;
@@ -486,22 +490,22 @@ namespace Renderer {
         /**
          * @brief 뷰·투영 상수 버퍼입니다.
          */
-        Microsoft::WRL::ComPtr<ID3D11Buffer> mViewBuffer{};
+        RenderCore::TConstantBuffer<Core::FMatrix> mViewBuffer{};
 
         /**
          * @brief 화면 크기와 역수를 전달하는 선분 상수 버퍼입니다.
          */
-        Microsoft::WRL::ComPtr<ID3D11Buffer> mLineViewBuffer{};
+        RenderCore::TConstantBuffer<Core::FVector4> mLineViewBuffer{};
 
         /**
          * @brief 보조 선분용 동적 정점 버퍼입니다.
          */
-        RenderCore::FDynamicVertexBuffer mLineBuffer{};
+        RenderCore::TVertexBuffer<Renderer::FLineVertex> mLineBuffer{};
 
         /**
-         * @brief 메시 인스턴스의 월드 행렬을 업로드하는 동적 정점 버퍼입니다.
+         * @brief 메시 인스턴스의 객체 상수를 업로드하는 인스턴스 버퍼입니다.
          */
-        RenderCore::FDynamicVertexBuffer mMeshInstanceBuffer{};
+        RenderCore::TInstanceBuffer<Renderer::FObjectConstants> mMeshInstanceBuffer{};
 
         /**
          * @brief 래스터라이저 상태입니다.
@@ -586,7 +590,7 @@ namespace Renderer {
         /**
          * @brief 에디터 메시 요청의 월드 행렬과 RGBA 색상을 전달하는 80바이트 상수 버퍼입니다.
          */
-        Microsoft::WRL::ComPtr<ID3D11Buffer> mEditorMeshBuffer{};
+        RenderCore::TConstantBuffer<Renderer::FEditorMeshConstants> mEditorMeshBuffer{};
 
         /**
          * @brief 평면 핸들의 투명도를 표시하는 소스 알파 혼합 상태입니다.

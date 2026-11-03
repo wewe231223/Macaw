@@ -9,7 +9,8 @@
 #include "FFontAtlas.h"
 #include "Asset/UTexture2D.h"
 #include "Core/Math/FMatrix.h"
-#include "RenderCore/FDynamicVertexBuffer.h"
+#include "RenderCore/TConstantBuffer.h"
+#include "RenderCore/TVertexBuffer.h"
 
 #include <d3d11.h>
 #include <wrl/client.h>
@@ -124,12 +125,12 @@ namespace Renderer {
         /**
          * @brief 현재 텍스트 요청의 셰이더 상수 버퍼입니다.
          */
-        Microsoft::WRL::ComPtr<ID3D11Buffer> mConstants{};
+        RenderCore::TConstantBuffer<FTextConstants> mConstants{};
 
         /**
          * @brief 텍스트 정점의 동적 GPU 버퍼와 재사용할 용량입니다.
          */
-        RenderCore::FDynamicVertexBuffer mVertices{};
+        RenderCore::TVertexBuffer<Renderer::FTextVertex> mVertices{};
 
         /**
          * @brief 문자열별로 재사용하는 문자 정점 배치입니다.

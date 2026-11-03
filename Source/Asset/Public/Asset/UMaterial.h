@@ -8,8 +8,10 @@
 
 #include "CoreUObject/UObject.h"
 #include "Core/Math/FVector4.h"
+#include "RenderCore/TConstantBuffer.h"
 
 #include <d3d11.h>
+#include <array>
 #include <wrl/client.h>
 
 namespace Asset {
@@ -183,10 +185,12 @@ namespace Asset {
         void ReleaseResources();
 
         /**
-         * @brief GPU 상수 버퍼를 반환합니다.
-         * @return GPU 자원의 비소유 주소이며, 아직 생성하지 않았으면 nullptr입니다.
+         * @brief GPU 상수 버퍼를 지정한 셰이더 단계에 연결합니다.
+         * @param[in] Context 바인딩할 장치 컨텍스트입니다.
+         * @param[in] Stages 연결할 셰이더 단계입니다.
+         * @param[in] Slot 상수 버퍼 슬롯(b 레지스터)입니다.
          */
-        ID3D11Buffer* GetConstantBuffer() const;
+        void BindConstants(ID3D11DeviceContext* Context, RenderCore::EShaderStage Stages, Core::Uint32 Slot) const;
 
         const Core::FVector4& GetSpecularColor() const;
         bool SetSpecularColor(const Core::FVector4& Color);
@@ -313,7 +317,7 @@ namespace Asset {
         /**
          * @brief GPU 상수 버퍼입니다.
          */
-        Microsoft::WRL::ComPtr<ID3D11Buffer> mConstantBuffer{};
+        RenderCore::TConstantBuffer<std::array<float, 28>> mConstantBuffer{};
 
         /**
          * @brief GPU 상수 버퍼 갱신 필요 여부입니다.

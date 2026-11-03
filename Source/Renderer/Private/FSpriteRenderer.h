@@ -11,6 +11,7 @@
 #include "Core/Math/FMatrix.h"
 #include "Core/Math/FVector4.h"
 #include "Asset/UTexture2D.h"
+#include "RenderCore/TConstantBuffer.h"
 
 #include <span>
 
@@ -94,7 +95,7 @@ namespace Renderer {
         /**
          * @brief 스프라이트 변환·UV·색상 상수 버퍼입니다.
          */
-        Microsoft::WRL::ComPtr<ID3D11Buffer> mConstants{};
+        RenderCore::TConstantBuffer<FConstants> mConstants{};
 
         /**
          * @brief GPU 정점 셰이더입니다.

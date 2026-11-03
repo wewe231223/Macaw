@@ -4,7 +4,7 @@ digraph Renderer {
     edge [color="#57718a", fontname="Malgun Gothic", fontsize=10, arrowsize=0.75];
     Module [label="IRendererModule\n프레임 제출 계약", fillcolor="#f0f2f5"];
     Renderer [label="FRenderer\n장치 · 파이프라인 · Present"];
-    Mesh [label="FMeshResource\nGPU 정점 · 인덱스 버퍼"];
+    Mesh [label="UStaticMesh\nGPU 정점 · 인덱스 버퍼"];
     Scene [label="FScene\n프록시 · 객체 상수 버퍼"];
     SceneInterface [label="FSceneInterface\n장면 갱신 계약", fillcolor="#f0f2f5"];
     Proxy [label="FPrimitiveSceneProxy\n메시 · 행렬 · 경계 상자", fillcolor="#f0f2f5"];

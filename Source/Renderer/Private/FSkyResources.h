@@ -8,6 +8,8 @@
 
 #include "Core/Types.h"
 #include "Core/ReflectionMacros.h"
+#include "Core/Math/FMatrix.h"
+#include "RenderCore/TConstantBuffer.h"
 
 #include <d3d11.h>
 #include <wrl/client.h>
@@ -85,7 +87,7 @@ namespace Renderer {
         /**
          * @brief 이동을 제거한 역뷰투영 행렬을 픽셀 셰이더 b0에 전달하는 상수 버퍼입니다.
          */
-        Microsoft::WRL::ComPtr<ID3D11Buffer> mConstants{};
+        RenderCore::TConstantBuffer<Core::FMatrix> mConstants{};
 
         /**
          * @brief 가로 반복·세로 고정 주소 모드의 선형 샘플러입니다.

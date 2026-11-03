@@ -9,6 +9,8 @@
 #include "FGpuLight.h"
 #include "FTileLightCulling.h"
 #include "Engine/FLightSceneProxy.h"
+#include "RenderCore/TConstantBuffer.h"
+#include "RenderCore/TStructuredBuffer.h"
 
 #include <d3d11.h>
 #include <wrl/client.h>
@@ -83,24 +85,14 @@ namespace Renderer {
         /**
          * @brief 광원 정보를 담는 GPU 구조화 버퍼입니다.
          */
-        Microsoft::WRL::ComPtr<ID3D11Buffer> mLightBuffer{};
-
-        /**
-         * @brief 조명 구조화 버퍼의 셰이더 리소스 뷰입니다.
-         */
-        Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> mLightView{};
-
-        /**
-         * @brief 조명 구조화 버퍼에 확보한 원소 수입니다.
-         */
-        Core::Uint32 mLightCapacity{};
+        RenderCore::TStructuredBuffer<Renderer::FGpuLight> mLightBuffer{};
 
         bool mUseGlobalLights{true};
 
         /**
          * @brief 카메라와 타일 격자 정보를 담는 상수 버퍼입니다.
          */
-        Microsoft::WRL::ComPtr<ID3D11Buffer> mConstants{};
+        RenderCore::TConstantBuffer<Renderer::FLightingConstants> mConstants{};
     };
 
 }
