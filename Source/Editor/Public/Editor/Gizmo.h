@@ -33,45 +33,18 @@ namespace Editor {
      * @note 변환 모드와 좌표계는 FEditorViewportClient가 소유하며 기즈모는 해당 상태를 읽어 사용합니다.
      */
     class FTransformGizmo {
-    public:
-        /**
-         * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
-         */
-        ReflectTypes(FTransformGizmo);
-
     private:
         struct FTargetState {
-        public:
-            /**
-             * @brief 리플렉션에서 사용하는 소유 타입과 선택적 부모 타입의 별칭을 선언합니다.
-             */
-            ReflectTypes(FTargetState);
-
-        public:
-            /**
-             * @brief 정적 구조체 메타데이터를 반환합니다.
-             * @return 등록된 타입 정보입니다.
-             */
-            ReflectStruct(FTargetState);
-
-        private:
-            /**
-             * @brief 자동 생성된 프로퍼티 등록 코드와 리플렉션 빌더의 접근을 허용합니다.
-             */
-            ReflectMembers();
-
         public:
             /**
              * @brief 드래그를 시작할 때 기록한 공간 컴포넌트의 전역 세대 핸들입니다.
              */
             CoreUObject::FObjectHandle mObject{};
-            ReflectProperty(mObject, "Object", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
             /**
              * @brief 드래그를 시작할 때 기록한 공간 컴포넌트의 월드 변환입니다.
              */
             Core::FTransform mTransform{};
-            ReflectProperty(mTransform, "Transform", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
         };
 
     public:
@@ -84,12 +57,6 @@ namespace Editor {
         FTransformGizmo(Editor::FEditorContext* Context, const Editor::FEditorViewportClient* Client);
 
     public:
-        /**
-         * @brief 이 타입의 정적 구조체 메타데이터를 반환합니다.
-         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectStruct(FTransformGizmo);
-
         /**
          * @brief 선택과 편집 월드에 사용할 컨텍스트를 교체합니다.
          * @param[in] Context 선택과 변환 편집에 사용할 에디터 컨텍스트입니다.
@@ -220,112 +187,89 @@ namespace Editor {
 
     private:
         /**
-         * @brief 생성된 프로퍼티 등록 함수와 빌더 접근 권한입니다.
-         */
-        ReflectMembers();
-
-    private:
-        /**
          * @brief 핸들 표시, 교차 판정과 드래그 계산을 맡는 공통 코어입니다.
          */
         Editor::FGizmoCore mCore{};
-        ReflectProperty(mCore, "Core", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 연결된 공통 편집 컨텍스트입니다.
          */
         Editor::FEditorContext* mContext{};
-        ReflectProperty(mContext, "Context", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 변환 모드와 좌표계를 읽을 뷰포트 클라이언트의 비소유 주소입니다.
          */
         const Editor::FEditorViewportClient* mClient{};
-        ReflectProperty(mClient, "ViewportClient", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 드래그 시작 시 편집 대상 월드의 세대 핸들입니다.
          */
         Engine::FWorldHandle mWorldHandle{};
-        ReflectProperty(mWorldHandle, "WorldHandle", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 드래그 시작 시 대상 변환입니다.
          */
         Core::FTransform mStartTransform{};
-        ReflectProperty(mStartTransform, "StartTransform", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 드래그 시작 시 기록한 편집 대상과 원본 변환입니다.
          */
         Core::TArray<FTargetState> mTargets{};
-        ReflectProperty(mTargets, "Targets", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief Alt 복제 드래그를 취소할 때 복원할 원본 액터 선택입니다.
          */
         Core::TArray<CoreUObject::FObjectHandle> mOriginalSelection{};
-        ReflectProperty(mOriginalSelection, "OriginalSelection", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 이번 Alt 드래그에서 생성하여 취소 시 제거할 액터 핸들입니다.
          */
         Core::TArray<CoreUObject::FObjectHandle> mDuplicates{};
-        ReflectProperty(mDuplicates, "Duplicates", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 복제 취소 시 원래 컴포넌트 선택까지 복원할 객체 핸들입니다.
          */
         CoreUObject::FObjectHandle mOriginalObject{};
-        ReflectProperty(mOriginalObject, "OriginalObject", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 선택 변경을 감지하거나 드래그 시작 시 선택을 검증하는 세대 값입니다.
          */
         Core::Uint64 mSelectionRevision{};
-        ReflectProperty(mSelectionRevision, "SelectionRevision", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 사용자 피벗을 설정한 선택 세대이며 다른 선택에서는 피벗을 무시합니다.
          */
         Core::Uint64 mPivotRevision{};
-        ReflectProperty(mPivotRevision, "PivotRevision", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 현재 선택에서 유지할 사용자 지정 월드 피벗입니다.
          */
         Core::FVector mPivot{};
-        ReflectProperty(mPivot, "Pivot", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 취소 시 복원할 드래그 이전 사용자 피벗입니다.
          */
         Core::FVector mOriginalPivot{};
-        ReflectProperty(mOriginalPivot, "OriginalPivot", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 현재 선택 세대에 적용할 사용자 피벗을 보관하는지 여부입니다.
          */
         bool mHasPivot{};
-        ReflectProperty(mHasPivot, "HasPivot", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 드래그 이전에 유효한 사용자 피벗이 있었는지 여부입니다.
          */
         bool mHadPivot{};
-        ReflectProperty(mHadPivot, "HadPivot", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 가운데 버튼으로 대상 변환 대신 사용자 피벗만 이동 중인지 여부입니다.
          */
         bool mPivotOnly{};
-        ReflectProperty(mPivotOnly, "PivotOnly", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief Alt 이동 드래그가 3픽셀을 넘을 때 액터를 복제할지 여부입니다.
          */
         bool mDuplicatePending{};
-        ReflectProperty(mDuplicatePending, "DuplicatePending", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
 }

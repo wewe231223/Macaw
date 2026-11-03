@@ -1,6 +1,6 @@
 local Reflection = {}
 
-local PropertyArguments = { ReflectProperty = 3, ReflectAccessor = 5, ReflectSetter = 4, ReflectReadOnlyProperty = 3, ReflectReadOnlyAccessor = 4 }
+local PropertyArguments = { ReflectProperty = 3, ReflectAccessor = 5, ReflectSetter = 4, ReflectReadOnlyProperty = 3, ReflectReadOnlyAccessor = 4, ReflectArray = 3, ReflectArrayAccessor = 5 }
 
 function Reflection.GetGeneratedDirectory(Module)
     return "Intermediate/" .. (Module == "App" and "Macaw" or Module) .. "/Generated"
@@ -250,26 +250,9 @@ local function ReadTypes(File)
     local Reflected = {}
 
     for _, Type in ipairs(Types) do
-        if not Type.Template then
-            assert(Type.Owner and Type.Kind and Type.HasMembers, File .. ": Missing reflection for " .. Type.Name)
+        if Type.Owner or Type.Kind or Type.HasMembers or #Type.Properties > 0 then
+            assert(Type.Owner and Type.Kind and Type.HasMembers, File .. ": Incomplete reflection for " .. Type.Name)
             Reflected[#Reflected + 1] = Type
-        end
-    end
-
-    for Position, Line in Mask:gmatch("()([^\n]+);") do
-        if not Line:match("^%s*Reflect") then
-            local Member = Line:match("%f[%a_](m%u[%w_]*)") or Line:match("^%s*float%s+([xyzw])%s*$") or Line:match("^%s*float%s+(pitch)%s*$") or Line:match("^%s*float%s+(yaw)%s*$") or Line:match("^%s*float%s+(roll)%s*$")
-            local Owner = nil
-
-            for _, Type in ipairs(Types) do
-                if Position > Type.Opening and Position < Type.Closing then
-                    Owner = Type
-                end
-            end
-
-            if Member and Owner and not Owner.Template then
-                assert(Owner.Members[Member], File .. ": Missing property reflection for " .. Owner.Name .. "::" .. Member)
-            end
         end
     end
 
@@ -285,13 +268,13 @@ local function PropertyStatement(Property)
     local Pointers = { "&ReflectionOwner::" .. Arguments[1] }
     local Function = "RegisterProperty"
 
-    if Property.Name == "ReflectAccessor" or Property.Name == "ReflectReadOnlyAccessor" then
+    if Property.Name == "ReflectAccessor" or Property.Name == "ReflectReadOnlyAccessor" or Property.Name == "ReflectArrayAccessor" then
         Pointers[#Pointers + 1] = "&ReflectionOwner::" .. Arguments[2]
     elseif Property.Name == "ReflectSetter" then
         Pointers[#Pointers + 1] = "nullptr"
     end
 
-    if Property.Name == "ReflectAccessor" then
+    if Property.Name == "ReflectAccessor" or Property.Name == "ReflectArrayAccessor" then
         Pointers[#Pointers + 1] = "&ReflectionOwner::" .. Arguments[3]
     elseif Property.Name == "ReflectSetter" then
         Pointers[#Pointers + 1] = "&ReflectionOwner::" .. Arguments[2]
@@ -299,6 +282,10 @@ local function PropertyStatement(Property)
 
     if Property.Name == "ReflectReadOnlyProperty" or Property.Name == "ReflectReadOnlyAccessor" then
         Function = "RegisterReadOnlyProperty"
+    end
+
+    if Property.Name == "ReflectArray" or Property.Name == "ReflectArrayAccessor" then
+        Function = "RegisterArrayProperty"
     end
 
     return "        CoreUObject::" .. Function .. "<" .. table.concat(Pointers, ", ") .. ">(Information, " .. Arguments[#Arguments - 1] .. ", " .. Arguments[#Arguments] .. ");"
@@ -332,13 +319,15 @@ function Reflection.Generate(SelectedModule)
 
     for _, File in ipairs(os.matchfiles("Source/**.cpp")) do
         local Calls, Mask = ReadCalls(assert(io.readfile(File), File .. ": Cannot read reflection source"), File)
-        assert(#ReadDefinitions(Mask, File) == 0, File .. ": Move named class definitions into headers so reflection can be generated")
         assert(not Mask:match("%f[%a_]Implement[%w_]*Reflection%s*%("), File .. ": Reflection implementations must be generated from header annotations")
 
         for _, Call in ipairs(Calls) do
-            assert(Call.Name ~= "ReflectEnum", File .. ": Move enum reflection annotations into headers")
+            assert(Call.Name ~= "ReflectEnum" and Call.Name ~= "ReflectTypes" and Call.Name ~= "ReflectStruct" and Call.Name ~= "ReflectClass" and Call.Name ~= "ReflectMembers" and not PropertyArguments[Call.Name], File .. ": Move reflection annotations into headers: " .. Call.Name)
         end
     end
+
+    Modules.App = Modules.App or {}
+    Modules.Game = Modules.Game or {}
 
     if SelectedModule then
         Modules[SelectedModule] = Modules[SelectedModule] or {}
@@ -413,7 +402,7 @@ function Reflection.Generate(SelectedModule)
             end
 
             for _, Type in ipairs(Types) do
-                if not Type.Outer then
+                if not Type.Outer or not Type.Outer.Kind then
                     Source[#Source + 1] = "    " .. Type.Namespace .. "::" .. (Type.Kind == "ReflectEnum" and ("StaticEnum" .. Type.Name .. "();") or (Type.Name .. (Type.Kind == "ReflectStruct" and "::StaticStruct();" or "::StaticClass();")))
                 end
             end

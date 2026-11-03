@@ -65,23 +65,11 @@ namespace Asset {
     class FSequenceTransformSection {
     public:
         /**
-         * @brief 리플렉션에서 사용할 소유 타입 별칭입니다.
-         */
-        ReflectTypes(FSequenceTransformSection);
-
-    public:
-        /**
          * @brief 섹션이 소유하는 채널의 개수입니다.
          */
         static constexpr std::size_t ChannelCount{9};
 
     public:
-        /**
-         * @brief 정적 구조체 메타데이터를 반환합니다.
-         * @return 메타데이터의 비소유 주소입니다.
-         */
-        ReflectStruct(FSequenceTransformSection);
-
         /**
          * @brief 시간이 섹션 구간에 포함되는지 검사합니다.
          * @param[in] Tick 검사할 시간이며 틱 단위입니다.
@@ -125,28 +113,19 @@ namespace Asset {
 
     private:
         /**
-         * @brief 생성된 멤버 등록 함수의 접근 권한입니다.
-         */
-        ReflectMembers();
-
-    private:
-        /**
          * @brief 틱 단위 시작 시간입니다.
          */
         Core::Int32 mStartTick{};
-        ReflectProperty(mStartTick, "StartTick", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 틱 단위 끝 시간이며 이 시간까지 포함합니다.
          */
         Core::Int32 mEndTick{};
-        ReflectProperty(mEndTick, "EndTick", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief ESequenceTransformChannel 순서의 채널입니다.
          */
         std::array<Asset::FSequenceChannel, ChannelCount> mChannels{};
-        ReflectProperty(mChannels, "Channels", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
 }

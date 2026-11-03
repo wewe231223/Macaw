@@ -24,6 +24,13 @@ namespace Core {
         mBytes = std::bit_cast<std::array<Core::Uint8, 16>>(Native);
     }
 
+    Core::FGuid Core::FGuid::Null() {
+        Core::FGuid Result{};
+        Result.mBytes.fill(0);
+
+        return Result;
+    }
+
     /**
      * @brief GUID 문자열을 검증하여 결과에 기록합니다.
      */

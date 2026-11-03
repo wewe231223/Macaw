@@ -32,12 +32,6 @@ namespace Editor {
     class FDetailsPanel final : public Editor::FEditorPanel {
     public:
         /**
-         * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
-         */
-        ReflectTypes(FDetailsPanel, Editor::FEditorPanel);
-
-    public:
-        /**
          * @brief FDetailsPanel의 초기 상태와 전달받은 의존성을 구성합니다.
          * @param[in,out] Context 패널이 조회하고 편집할 에디터 컨텍스트입니다.
          */
@@ -49,12 +43,6 @@ namespace Editor {
         ~FDetailsPanel() override;
 
     public:
-        /**
-         * @brief 이 타입의 정적 구조체 메타데이터를 반환합니다.
-         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectStruct(FDetailsPanel);
-
         /**
          * @brief 브라우저와 공유할 에셋 표시 서비스를 연결합니다.
          * @param Catalog 프로젝트 표시 목록입니다.
@@ -109,32 +97,22 @@ namespace Editor {
         bool DrawAssetPicker(const char* Label, Core::FString& Path, bool Mesh);
 
     private:
-        /**
-         * @brief 생성된 프로퍼티 등록 함수와 빌더 접근 권한입니다.
-         */
-        ReflectMembers();
-
-    private:
         std::array<char, 128> mComponentSearch{};
-        ReflectProperty(mComponentSearch, "ComponentSearch", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 브라우저와 동일한 에셋 목록입니다.
          */
         Editor::FEditorAssetCatalog* mAssetCatalog{};
-        ReflectProperty(mAssetCatalog, "AssetCatalog", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 브라우저와 동일한 썸네일 캐시입니다.
          */
         Editor::FAssetThumbnailCache* mThumbnails{};
-        ReflectProperty(mThumbnails, "Thumbnails", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 썸네일과 드롭다운을 표시하는 선택기입니다.
          */
         Editor::FAssetPicker mAssetPicker{};
-        ReflectProperty(mAssetPicker, "AssetPicker", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
 }

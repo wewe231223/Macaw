@@ -29,12 +29,6 @@ namespace Renderer {
     class FGridResources {
     public:
         /**
-         * @brief 리플렉션 소유 타입과 선택적 기반 타입의 별칭입니다.
-         */
-        ReflectTypes(FGridResources);
-
-    public:
-        /**
          * @brief 기본 설정으로 FGridResources 객체를 초기화합니다.
          */
         FGridResources();
@@ -44,12 +38,6 @@ namespace Renderer {
         ~FGridResources();
 
     public:
-        /**
-         * @brief 이 타입의 정적 리플렉션 메타데이터를 반환합니다.
-         * @return 리플렉션 시스템이 보관하는 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectStruct(FGridResources);
-
         /**
          * @brief 상수 버퍼·블렌드·깊이·래스터라이저 상태를 생성합니다.
          * @param[in] Device GPU 자원을 생성할 Direct3D 11 장치입니다.
@@ -76,45 +64,19 @@ namespace Renderer {
 
     private:
         /**
-         * @brief 생성된 멤버 등록 함수와 리플렉션 빌더의 접근 권한입니다.
-         */
-        ReflectMembers();
-
-        /**
          * @brief 정점·픽셀 셰이더의 b0에 전달하는 그리드 상수입니다.
          */
         struct FConstants {
         public:
             /**
-             * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
-             */
-            ReflectTypes(FConstants);
-
-        public:
-            /**
-             * @brief 이 타입의 정적 리플렉션 메타데이터를 반환합니다.
-             * @return 등록된 타입 메타데이터의 비소유 주소입니다.
-             */
-            ReflectStruct(FConstants);
-
-        private:
-            /**
-             * @brief 생성된 멤버 등록 함수와 리플렉션 빌더의 접근 권한입니다.
-             */
-            ReflectMembers();
-
-        public:
-            /**
              * @brief 월드 위치를 클립 공간으로 변환하는 행렬입니다.
              */
             Core::FMatrix mViewProjection{};
-            ReflectProperty(mViewProjection, "ViewProjection", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
             /**
              * @brief 카메라 월드 XY, 보조선 간격 Z와 평면 반지름 W입니다.
              */
             Core::FVector4 mCameraSpacingRadius{};
-            ReflectProperty(mCameraSpacingRadius, "CameraSpacingRadius", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
         };
 
     private:
@@ -122,37 +84,31 @@ namespace Renderer {
          * @brief 정점 버퍼 없이 카메라 중심의 평면 사각형을 생성하는 셰이더입니다.
          */
         Microsoft::WRL::ComPtr<ID3D11VertexShader> mVertexShader{};
-        ReflectProperty(mVertexShader, "VertexShader", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 평면 좌표로 선 불투명도를 계산하는 픽셀 셰이더입니다.
          */
         Microsoft::WRL::ComPtr<ID3D11PixelShader> mPixelShader{};
-        ReflectProperty(mPixelShader, "PixelShader", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 뷰투영 행렬과 카메라·간격·반지름을 b0에 전달하는 상수 버퍼입니다.
          */
         Microsoft::WRL::ComPtr<ID3D11Buffer> mConstants{};
-        ReflectProperty(mConstants, "Constants", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 선 색상을 알파로 혼합하는 블렌드 상태입니다.
          */
         Microsoft::WRL::ComPtr<ID3D11BlendState> mBlend{};
-        ReflectProperty(mBlend, "Blend", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 불투명 깊이를 검사하되 기록하지 않는 상태입니다.
          */
         Microsoft::WRL::ComPtr<ID3D11DepthStencilState> mDepthState{};
-        ReflectProperty(mDepthState, "DepthState", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 평면의 양면을 모두 채우는 래스터라이저 상태입니다.
          */
         Microsoft::WRL::ComPtr<ID3D11RasterizerState> mRasterizer{};
-        ReflectProperty(mRasterizer, "Rasterizer", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
 }

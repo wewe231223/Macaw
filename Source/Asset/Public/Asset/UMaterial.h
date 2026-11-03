@@ -250,7 +250,6 @@ namespace Asset {
          * @brief 로드한 노멀 맵 텍스처의 비소유 주소입니다.
          */
         Asset::UTexture2D* mNormalMapTexture{};
-        ReflectProperty(mNormalMapTexture, "ResolvedNormalMap", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 정반사 성분의 밝기 배율입니다.
@@ -280,7 +279,6 @@ namespace Asset {
          * @brief 기본색 텍스처의 비소유 주소입니다.
          */
         Asset::UTexture2D* mBaseColorTexture{};
-        ReflectProperty(mBaseColorTexture, "ResolvedBaseColorTexture", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         Core::FVector4 mSpecularColor{1.0f, 1.0f, 1.0f, 1.0f};
         ReflectAccessor(mSpecularColor, GetSpecularColor, SetSpecularColor, "SpecularColor", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
@@ -301,31 +299,26 @@ namespace Asset {
         ReflectAccessor(mSpecularTexturePath, GetSpecularTexturePath, SetSpecularTexturePath, "SpecularTexture", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
 
         Asset::UTexture2D* mSpecularTexture{};
-        ReflectProperty(mSpecularTexture, "ResolvedSpecularTexture", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         Core::FString mEmissiveTexturePath{};
         ReflectAccessor(mEmissiveTexturePath, GetEmissiveTexturePath, SetEmissiveTexturePath, "EmissiveTexture", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
 
         Asset::UTexture2D* mEmissiveTexture{};
-        ReflectProperty(mEmissiveTexture, "ResolvedEmissiveTexture", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         Core::FString mReflectionTexturePath{};
         ReflectAccessor(mReflectionTexturePath, GetReflectionTexturePath, SetReflectionTexturePath, "ReflectionTexture", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
 
         Asset::UTexture2D* mReflectionTexture{};
-        ReflectProperty(mReflectionTexture, "ResolvedReflectionTexture", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief GPU 상수 버퍼입니다.
          */
         Microsoft::WRL::ComPtr<ID3D11Buffer> mConstantBuffer{};
-        ReflectProperty(mConstantBuffer, "ConstantBuffer", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief GPU 상수 버퍼 갱신 필요 여부입니다.
          */
         bool mConstantsDirty{true};
-        ReflectProperty(mConstantsDirty, "ConstantsDirty", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
 }

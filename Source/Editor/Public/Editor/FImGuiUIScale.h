@@ -23,18 +23,6 @@ namespace Editor {
     class FImGuiUIScale {
     public:
         /**
-         * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
-         */
-        ReflectTypes(FImGuiUIScale);
-
-    public:
-        /**
-         * @brief 이 타입의 정적 구조체 메타데이터를 반환합니다.
-         * @return 등록된 구조체 메타데이터의 비소유 주소입니다.
-         */
-        ReflectStruct(FImGuiUIScale);
-
-        /**
          * @brief 현재 ImGui 스타일과 기본 글꼴 크기를 배율 적용의 기준으로 저장합니다.
          * @param[in] FontSize 배율 적용 전의 기준 글꼴 크기입니다.
          */
@@ -78,28 +66,19 @@ namespace Editor {
 
     private:
         /**
-         * @brief 생성된 멤버 등록 함수와 리플렉션 빌더의 접근 권한입니다.
-         */
-        ReflectMembers();
-
-    private:
-        /**
          * @brief 배율을 적용하기 전의 기준 ImGui 스타일입니다.
          */
         ImGuiStyle mBaseStyle{};
-        ReflectProperty(mBaseStyle, "BaseStyle", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 현재 ImGui 스타일에 적용한 최종 배율입니다.
          */
         float mAppliedScale{};
-        ReflectProperty(mAppliedScale, "AppliedScale", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief DPI 배율에 곱할 사용자 배율이며 0이면 자동 크기를 선택합니다.
          */
         float mUserScale{};
-        ReflectProperty(mUserScale, "UserScale", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
 }

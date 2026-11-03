@@ -19,11 +19,6 @@ namespace Script {
     class FLuaVM final {
     public:
         /**
-         * @brief 리플렉션에서 사용하는 소유 타입과 선택적 부모 타입의 별칭을 선언합니다.
-         */
-        ReflectTypes(FLuaVM);
-
-        /**
          * @brief Lua 로그 메시지를 전달받는 함수 타입입니다.
          */
         using FLogFunction = std::function<void(const Core::FString&)>;
@@ -60,12 +55,6 @@ namespace Script {
         Script::FLuaVM& operator=(Script::FLuaVM&&) = delete;
 
     public:
-        /**
-         * @brief 이 타입의 구조체 메타데이터를 반환합니다.
-         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectStruct(FLuaVM);
-
         /**
          * @brief Lua 상태와 표준 라이브러리를 준비하고 엔진 및 로그 API를 등록합니다.
          * @return 요청한 처리를 완료하면 true, 실패하면 false입니다.
@@ -118,11 +107,6 @@ namespace Script {
 
     private:
         /**
-         * @brief 자동 생성된 프로퍼티 등록 코드와 리플렉션 빌더의 접근을 허용합니다.
-         */
-        ReflectMembers();
-
-        /**
          * @brief 벡터·회전·액터 등 엔진 타입과 함수를 Lua에 등록합니다.
          */
         void BindEngineAPI();
@@ -151,13 +135,11 @@ namespace Script {
          * @brief 이 VM이 단독 소유하는 Lua 상태입니다.
          */
         std::unique_ptr<sol::state> mState{};
-        ReflectProperty(mState, "State", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 스크립트 출력과 실행 진단을 받는 선택적 로그 콜백입니다.
          */
         FLogFunction mLogFunction{};
-        ReflectProperty(mLogFunction, "LogFunction", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
 }

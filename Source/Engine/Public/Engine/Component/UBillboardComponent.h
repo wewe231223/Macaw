@@ -226,7 +226,6 @@ namespace Engine {
          * @brief 텍스처의 비소유 주소입니다.
          */
         Asset::UTexture* mSprite{};
-        ReflectProperty(mSprite, "ResolvedSprite", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
 }

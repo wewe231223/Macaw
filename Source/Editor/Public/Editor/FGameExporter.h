@@ -24,18 +24,6 @@ namespace Editor {
     class FGameExporter {
     public:
         /**
-         * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
-         */
-        ReflectTypes(FGameExporter);
-
-    public:
-        /**
-         * @brief 이 타입의 정적 구조체 메타데이터를 반환합니다.
-         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectStruct(FGameExporter);
-
-        /**
          * @brief 시작 장면을 검증한 뒤 게임 런타임과 프로젝트 파일을 내보낼 폴더에 복사합니다.
          * @param[in] Project 내보낼 프로젝트입니다.
          * @param[in] RuntimeDirectory MacawGame.exe와 런타임 DLL이 있는 폴더입니다.
@@ -46,12 +34,6 @@ namespace Editor {
          * @note 시작 장면을 불러올 수 없거나 활성 카메라가 없으면 아무것도 복사하지 않습니다.
          */
         static bool Export(const Engine::FProject& Project, const std::filesystem::path& RuntimeDirectory, const std::filesystem::path& Destination, Core::FString& Error);
-
-    private:
-        /**
-         * @brief 생성된 프로퍼티 등록 함수와 빌더 접근 권한입니다.
-         */
-        ReflectMembers();
     };
 
 }

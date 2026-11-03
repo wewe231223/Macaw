@@ -31,18 +31,6 @@ namespace Engine {
     class FWorldCloner {
     public:
         /**
-         * @brief 리플렉션에서 사용할 소유 타입 별칭입니다.
-         */
-        ReflectTypes(FWorldCloner);
-
-    public:
-        /**
-         * @brief 월드 복제기의 정적 구조체 메타데이터를 반환합니다.
-         * @return 등록된 메타데이터의 비소유 주소입니다.
-         */
-        ReflectStruct(FWorldCloner);
-
-        /**
          * @brief 지정 월드에 액터들과 소유 컴포넌트를 새 식별자로 복제합니다.
          * @param[in] World 액터를 복제할 월드입니다.
          * @param[in] Actors 선택하거나 복제할 액터들의 세대 핸들입니다.
@@ -62,12 +50,6 @@ namespace Engine {
          * 복제를 취소합니다. 렌더 장면은 엔진이 인수할 때 별도로 할당합니다.
          */
         static std::unique_ptr<Engine::FWorldContext> Clone(const Engine::FWorldContext* Source, Engine::EWorldType Type, CoreUObject::FObjectDuplicationContext* Duplication, Core::FString& Error);
-
-    private:
-        /**
-         * @brief 월드 복제기의 리플렉션 등록 함수와 빌더 접근 권한입니다.
-         */
-        ReflectMembers();
     };
 
 }

@@ -22,35 +22,14 @@ namespace Renderer {
     struct FLightingConstants {
     public:
         /**
-         * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
-         */
-        ReflectTypes(FLightingConstants);
-
-    public:
-        /**
-         * @brief 이 타입의 정적 구조체 메타데이터를 반환합니다.
-         * @return 등록된 구조체 메타데이터의 비소유 주소입니다.
-         */
-        ReflectStruct(FLightingConstants);
-
-    private:
-        /**
-         * @brief 생성된 멤버 등록 함수와 리플렉션 빌더의 접근 권한입니다.
-         */
-        ReflectMembers();
-
-    public:
-        /**
          * @brief 카메라 월드 위치 XYZ와 GPU 광원 개수를 저장합니다.
          */
         Core::FVector4 mCameraAndCount{};
-        ReflectProperty(mCameraAndCount, "CameraAndCount", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 타일 열·행 개수, 타일 한 변의 픽셀 수와 광원 개수·전체 순회 플래그를 저장합니다.
          */
         std::array<Core::Uint32, 4> mTileDimensions{};
-        ReflectProperty(mTileDimensions, "TileDimensions", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
     /**
@@ -58,19 +37,6 @@ namespace Renderer {
      * @ingroup Renderer
      */
     class FLightingResources {
-    public:
-        /**
-         * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
-         */
-        ReflectTypes(FLightingResources);
-
-    public:
-        /**
-         * @brief 이 타입의 정적 구조체 메타데이터를 반환합니다.
-         * @return 등록된 구조체 메타데이터의 비소유 주소입니다.
-         */
-        ReflectStruct(FLightingResources);
-
     public:
         bool CreateShaders(ID3D11Device* Device, std::span<const Core::Uint8> ComputeCode);
 
@@ -99,12 +65,6 @@ namespace Renderer {
 
     private:
         /**
-         * @brief 생성된 멤버 등록 함수와 리플렉션 빌더의 접근 권한입니다.
-         */
-        ReflectMembers();
-
-    private:
-        /**
          * @brief 필요하면 구조화 버퍼를 확장하고 원소 데이터를 업로드합니다.
          * @param[in] Device 버퍼를 생성할 Direct3D 11 장치의 비소유 주소입니다.
          * @param[in] Context 버퍼를 갱신할 Direct3D 11 장치 컨텍스트의 비소유 주소입니다.
@@ -117,37 +77,30 @@ namespace Renderer {
          * @brief 현재 뷰에 사용할 GPU 광원 정보입니다.
          */
         Core::TArray<Renderer::FGpuLight> mLights{};
-        ReflectProperty(mLights, "Lights", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         Renderer::FTileLightCulling mCulling{};
-        ReflectProperty(mCulling, "Culling", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 광원 정보를 담는 GPU 구조화 버퍼입니다.
          */
         Microsoft::WRL::ComPtr<ID3D11Buffer> mLightBuffer{};
-        ReflectProperty(mLightBuffer, "LightBuffer", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 조명 구조화 버퍼의 셰이더 리소스 뷰입니다.
          */
         Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> mLightView{};
-        ReflectProperty(mLightView, "LightView", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 조명 구조화 버퍼에 확보한 원소 수입니다.
          */
         Core::Uint32 mLightCapacity{};
-        ReflectProperty(mLightCapacity, "LightCapacity", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         bool mUseGlobalLights{true};
-        ReflectProperty(mUseGlobalLights, "UseGlobalLights", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 카메라와 타일 격자 정보를 담는 상수 버퍼입니다.
          */
         Microsoft::WRL::ComPtr<ID3D11Buffer> mConstants{};
-        ReflectProperty(mConstants, "Constants", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
 }

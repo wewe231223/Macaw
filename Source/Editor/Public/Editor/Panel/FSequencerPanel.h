@@ -29,12 +29,6 @@ namespace Editor {
      * @note 프리뷰 값은 편집 월드에 직접 쓰며 장면 수정 상태로 표시하지 않습니다. 저장, 장면 교체와 PIE 시작 전에 복원합니다.
      */
     class FSequencerPanel final : public Editor::FEditorPanel {
-    public:
-        /**
-         * @brief 리플렉션 소유 타입과 부모 타입의 별칭입니다.
-         */
-        ReflectTypes(FSequencerPanel, Editor::FEditorPanel);
-
     private:
         /**
          * @brief 타임라인에서 선택하거나 드래그 중인 키입니다.
@@ -42,41 +36,19 @@ namespace Editor {
         struct FKeySelection {
         public:
             /**
-             * @brief 리플렉션에서 사용할 소유 타입 별칭입니다.
-             */
-            ReflectTypes(FKeySelection);
-
-        public:
-            /**
-             * @brief 정적 구조체 메타데이터를 반환합니다.
-             * @return 메타데이터의 비소유 주소입니다.
-             */
-            ReflectStruct(FKeySelection);
-
-        private:
-            /**
-             * @brief 생성된 멤버 등록 함수의 접근 권한입니다.
-             */
-            ReflectMembers();
-
-        public:
-            /**
              * @brief 키가 속한 바인딩의 순서이며 음수이면 선택이 없습니다.
              */
             Core::Int32 mBinding{-1};
-            ReflectProperty(mBinding, "Binding", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
             /**
              * @brief 키가 속한 채널의 순서입니다.
              */
             Core::Int32 mChannel{};
-            ReflectProperty(mChannel, "Channel", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
             /**
              * @brief 키의 시간이며 틱 단위입니다.
              */
             Core::Int32 mTick{};
-            ReflectProperty(mTick, "Tick", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
         };
 
     public:
@@ -92,12 +64,6 @@ namespace Editor {
         ~FSequencerPanel() override;
 
     public:
-        /**
-         * @brief 이 타입의 정적 구조체 메타데이터를 반환합니다.
-         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectStruct(FSequencerPanel);
-
         /**
          * @brief 프리뷰를 끝내고 월드에 쓴 값을 원래대로 되돌립니다.
          * @note 프리뷰 중이 아니면 아무 작업도 하지 않습니다.
@@ -217,118 +183,94 @@ namespace Editor {
 
     private:
         /**
-         * @brief 생성된 프로퍼티 등록 함수와 빌더 접근 권한입니다.
-         */
-        ReflectMembers();
-
-    private:
-        /**
          * @brief 프리뷰에 사용하는 시퀀스 플레이어입니다.
          */
         Engine::FSequencePlayer mPlayer{};
-        ReflectProperty(mPlayer, "Player", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 편집 중인 시퀀스 액터의 핸들입니다.
          */
         CoreUObject::FObjectHandle mActor{};
-        ReflectProperty(mActor, "Actor", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 플레이어에 연결된 액터의 핸들입니다.
          */
         CoreUObject::FObjectHandle mBoundActor{};
-        ReflectProperty(mBoundActor, "BoundActor", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 플레이어에 연결된 시퀀스의 비소유 주소입니다.
          */
         const Asset::ULevelSequence* mBoundSequence{};
-        ReflectProperty(mBoundSequence, "BoundSequence", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 시퀀스 콤보에 표시할 Content 상대 경로 목록입니다.
          */
         Core::TArray<Core::FString> mSequencePaths{};
-        ReflectProperty(mSequencePaths, "SequencePaths", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 마지막으로 로드에 실패한 시퀀스 경로이며 매 프레임 재시도를 막습니다.
          */
         Core::FString mFailedPath{};
-        ReflectProperty(mFailedPath, "FailedPath", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 바인딩별 그룹의 펼침 상태입니다.
          */
         Core::TMap<Core::FString, bool> mOpenBindings{};
-        ReflectProperty(mOpenBindings, "OpenBindings", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 선택한 키입니다.
          */
         FKeySelection mSelection{};
-        ReflectProperty(mSelection, "Selection", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 마지막으로 확인한 에디터 선택의 개정 번호입니다.
          */
         Core::Uint64 mSelectionRevision{};
-        ReflectProperty(mSelectionRevision, "SelectionRevision", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 키를 찍고 제거할 바인딩의 순서입니다.
          */
         Core::Int32 mActiveBinding{};
-        ReflectProperty(mActiveBinding, "ActiveBinding", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 키 드래그를 시작한 프레임입니다.
          */
         Core::Int32 mDragStartFrame{};
-        ReflectProperty(mDragStartFrame, "DragStartFrame", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 키 드래그를 시작한 마우스 가로 위치입니다.
          */
         float mDragStartMouseX{};
-        ReflectProperty(mDragStartMouseX, "DragStartMouseX", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 키 드래그 동안 사용하는 프레임당 픽셀 수입니다.
          */
         float mDragFrameWidth{1.0f};
-        ReflectProperty(mDragFrameWidth, "DragFrameWidth", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 선택한 키를 드래그 중인지 여부입니다.
          */
         bool mDragging{};
-        ReflectProperty(mDragging, "Dragging", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 프리뷰 값이 월드에 적용되어 있는지 여부입니다.
          */
         bool mPreviewActive{};
-        ReflectProperty(mPreviewActive, "PreviewActive", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 프리뷰를 반복 재생할지 여부입니다.
          */
         bool mLoop{};
-        ReflectProperty(mLoop, "Loop", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 프리뷰 중 원근 뷰포트를 카메라 컷 시점으로 전환할지 여부입니다.
          */
         bool mPreviewCuts{true};
-        ReflectProperty(mPreviewCuts, "PreviewCuts", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 저장하지 않은 시퀀스 변경이 있는지 여부입니다.
          */
         bool mSequenceDirty{};
-        ReflectProperty(mSequenceDirty, "SequenceDirty", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
 }

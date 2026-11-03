@@ -21,30 +21,12 @@ namespace Core {
     struct FNoEviction {
     public:
         /**
-         * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
-         */
-        ReflectTypes(FNoEviction);
-
-    public:
-        /**
-         * @brief 이 타입의 정적 구조체 메타데이터를 반환합니다.
-         * @return 등록된 구조체 메타데이터의 비소유 주소입니다.
-         */
-        ReflectStruct(FNoEviction);
-
-        /**
          * @brief 항목을 축출할지 판단합니다.
          * @param[in] LastUsed 항목을 마지막으로 조회하거나 기록한 프레임입니다.
          * @param[in] Frame 현재 프레임입니다.
          * @return 항상 false입니다.
          */
         bool ShouldEvict(Core::Uint64 LastUsed, Core::Uint64 Frame) const;
-
-    private:
-        /**
-         * @brief 생성된 멤버 등록 함수와 리플렉션 빌더의 접근 권한입니다.
-         */
-        ReflectMembers();
     };
 
     /**
@@ -53,18 +35,6 @@ namespace Core {
     struct FFrameAgeEviction {
     public:
         /**
-         * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
-         */
-        ReflectTypes(FFrameAgeEviction);
-
-    public:
-        /**
-         * @brief 이 타입의 정적 구조체 메타데이터를 반환합니다.
-         * @return 등록된 구조체 메타데이터의 비소유 주소입니다.
-         */
-        ReflectStruct(FFrameAgeEviction);
-
-        /**
          * @brief 마지막 사용 이후 허용 프레임 수를 넘겼는지 판단합니다.
          * @param[in] LastUsed 항목을 마지막으로 조회하거나 기록한 프레임입니다.
          * @param[in] Frame 현재 프레임입니다.
@@ -72,43 +42,17 @@ namespace Core {
          */
         bool ShouldEvict(Core::Uint64 LastUsed, Core::Uint64 Frame) const;
 
-    private:
-        /**
-         * @brief 생성된 멤버 등록 함수와 리플렉션 빌더의 접근 권한입니다.
-         */
-        ReflectMembers();
-
     public:
         /**
          * @brief 조회하지 않아도 유지할 최대 프레임 수입니다.
          */
         Core::Uint64 mMaxAge{};
-        ReflectProperty(mMaxAge, "MaxAge", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
     /**
      * @brief 모든 TRevisionCache에 적용하는 디버그 설정입니다.
      */
     struct FRevisionCacheSettings {
-    public:
-        /**
-         * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
-         */
-        ReflectTypes(FRevisionCacheSettings);
-
-    public:
-        /**
-         * @brief 이 타입의 정적 구조체 메타데이터를 반환합니다.
-         * @return 등록된 구조체 메타데이터의 비소유 주소입니다.
-         */
-        ReflectStruct(FRevisionCacheSettings);
-
-    private:
-        /**
-         * @brief 생성된 멤버 등록 함수와 리플렉션 빌더의 접근 권한입니다.
-         */
-        ReflectMembers();
-
     public:
         /**
          * @brief true이면 모든 캐시 조회가 미스로 처리되어 매번 결과를 다시 만듭니다.

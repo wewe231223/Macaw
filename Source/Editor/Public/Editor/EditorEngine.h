@@ -137,25 +137,21 @@ namespace Editor {
          * @brief 명시적인 편집 월드, 선택과 공통 편집 경로입니다.
          */
         Editor::FEditorContext mContext;
-        ReflectProperty(mContext, "Context", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 카메라와 기즈모 상태를 가진 클라이언트 및 컬러 타깃을 소유한 독립 뷰포트입니다.
          */
         Editor::FEditorViewport mViewport;
-        ReflectProperty(mViewport, "Viewport", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 에디터 엔진이 소유한 PIE 실행 세션입니다.
          */
         Editor::FPlayInEditorSession mPlaySession;
-        ReflectProperty(mPlaySession, "PlaySession", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 편집 모델을 표시하는 UI 호스트입니다.
          */
         std::unique_ptr<Editor::FEditorUI> mUI{};
-        ReflectProperty(mUI, "UI", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
 }

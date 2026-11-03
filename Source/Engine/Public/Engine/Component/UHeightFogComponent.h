@@ -226,19 +226,16 @@ namespace Engine {
          * @brief 프로젝트 에셋 또는 대체 텍스처가 소유하는 언리얼 안개 아이콘의 비소유 주소입니다.
          */
         Asset::UTexture2D* mIcon{};
-        ReflectProperty(mIcon, "Icon", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 현재 아이콘을 조회한 에셋 관리자의 비소유 주소이며 관리자가 바뀌면 아이콘을 다시 찾습니다.
          */
         Asset::FAssetManager* mIconAssets{};
-        ReflectProperty(mIconAssets, "IconAssets", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 프로젝트에서 아이콘을 찾지 못했을 때 배포 템플릿에서 로드하는 소유 텍스처입니다.
          */
         std::unique_ptr<Asset::UTexture2D> mFallbackIcon{};
-        ReflectProperty(mFallbackIcon, "FallbackIcon", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
 }

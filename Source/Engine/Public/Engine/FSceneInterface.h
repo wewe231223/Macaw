@@ -27,23 +27,11 @@ namespace Engine {
     class FSceneInterface {
     public:
         /**
-         * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
-         */
-        ReflectTypes(FSceneInterface);
-
-    public:
-        /**
          * @brief 객체의 수명을 끝내고 소유한 리소스를 정리합니다.
          */
         virtual ~FSceneInterface();
 
     public:
-        /**
-         * @brief 이 타입의 정적 구조체 메타데이터를 반환합니다.
-         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectStruct(FSceneInterface);
-
         /**
          * @brief 광원 프록시의 GUID로 렌더 장면에 광원을 추가하거나 교체합니다.
          * @param[in] Proxy 장면에 복사할 광원 상태입니다.
@@ -98,12 +86,6 @@ namespace Engine {
          * @return 프리미티브 추가, 제거 또는 변환 갱신 시 증가하는 장면 개정 번호입니다.
          */
         virtual Core::Uint64 GetRevision() const = 0;
-
-    private:
-        /**
-         * @brief 생성된 프로퍼티 등록 함수와 빌더 접근 권한입니다.
-         */
-        ReflectMembers();
     };
 
 }

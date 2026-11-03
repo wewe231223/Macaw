@@ -128,7 +128,6 @@ namespace Engine {
          * @brief 에셋 관리자가 보유한 정적 메시의 비소유 주소입니다.
          */
         Asset::UStaticMesh* mStaticMesh{};
-        ReflectProperty(mStaticMesh, "StaticMesh", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
 }

@@ -18,12 +18,6 @@ namespace Asset {
     class FAssetImportScope {
     public:
         /**
-         * @brief 리플렉션 소유 타입의 별칭입니다.
-         */
-        ReflectTypes(FAssetImportScope);
-
-    public:
-        /**
          * @brief 소유할 새 디렉터리 경로를 저장합니다.
          * @param Directory 이번 작업이 새로 만든 전용 경로입니다.
          */
@@ -49,34 +43,20 @@ namespace Asset {
 
     public:
         /**
-         * @brief 정적 구조체 메타데이터를 반환합니다.
-         * @return 등록된 타입 정보입니다.
-         */
-        ReflectStruct(FAssetImportScope);
-
-        /**
          * @brief 임포트가 완성되어 의존 에셋을 유지하도록 표시합니다.
          */
         void Commit();
 
     private:
         /**
-         * @brief 생성된 리플렉션 등록 함수에 접근을 허용합니다.
-         */
-        ReflectMembers();
-
-    private:
-        /**
          * @brief 이번 임포트만 사용하는 의존 에셋 디렉터리입니다.
          */
         std::filesystem::path mDirectory{};
-        ReflectProperty(mDirectory, "Directory", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 메시 에셋 저장까지 성공했는지 여부입니다.
          */
         bool mCommitted{};
-        ReflectProperty(mCommitted, "Committed", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
 }

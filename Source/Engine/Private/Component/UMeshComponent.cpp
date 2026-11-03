@@ -126,43 +126,28 @@ namespace Engine {
         return true;
     }
 
-    void Engine::UMeshComponent::Serialize(Core::FArchive& Archive) {
-        Engine::UPrimitiveComponent::Serialize(Archive);
+    const Core::TArray<Core::FString>& Engine::UMeshComponent::GetSlotMaterialPaths() const {
+        return mMaterialOverrides;
+    }
 
-        if (Archive.HasError() || (Archive.IsLoading() && !Archive.HasField("SlotMaterials"))) {
-            return;
-        }
-
-        Core::Uint32 Count{Archive.IsLoading() ? 0 : static_cast<Core::Uint32>(mMaterialOverrides.size())};
-
-        if (!Archive.BeginArray("SlotMaterials", Count)) {
-            return;
-        }
-
-        if (Archive.IsLoading()) {
-            mMaterialOverrides.resize(Count);
-        }
-
-        for (Core::Uint32 Slot{}; Slot < Count && !Archive.HasError(); ++Slot) {
-            Archive.Serialize(std::to_string(Slot), mMaterialOverrides[Slot]);
-
-            const auto Path{Core::FilePath::FromUtf8(mMaterialOverrides[Slot])};
-            bool Valid{mMaterialOverrides[Slot].find('\0') == Core::FString::npos && (Path.empty() || (!Path.has_root_path() && Path.extension() == L".masset"))};
+    bool Engine::UMeshComponent::SetSlotMaterialPaths(const Core::TArray<Core::FString>& Paths) {
+        for (const Core::FString& Override : Paths) {
+            const auto Path{Core::FilePath::FromUtf8(Override)};
+            bool Valid{Override.find('\0') == Core::FString::npos && (Path.empty() || (!Path.has_root_path() && Path.extension() == L".masset"))};
 
             for (const auto& Part : Path) {
                 Valid = Valid && Part != L"..";
             }
 
             if (!Valid) {
-                Archive.SetError("Invalid slot material reference");
+                return false;
             }
         }
 
-        Archive.EndArray();
+        mMaterialOverrides = Paths;
+        MarkRenderStateDirty();
 
-        if (Archive.IsLoading()) {
-            MarkRenderStateDirty();
-        }
+        return true;
     }
 
     Asset::UMaterial* Engine::UMeshComponent::LoadMaterial(const Core::FString& Path) const {

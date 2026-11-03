@@ -146,31 +146,26 @@ namespace Asset {
          * @brief 편집 화면에 표시할 초당 프레임 수입니다.
          */
         Core::Int32 mDisplayRate{30};
-        ReflectProperty(mDisplayRate, "DisplayRate", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 틱 단위 재생 시작 시간입니다.
          */
         Core::Int32 mStartTick{};
-        ReflectProperty(mStartTick, "StartTick", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 틱 단위 재생 끝 시간입니다.
          */
         Core::Int32 mEndTick{5 * TicksPerSecond};
-        ReflectProperty(mEndTick, "EndTick", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 시퀀스가 소유한 바인딩 목록입니다.
          */
         Core::TArray<Asset::FSequenceBinding> mBindings{};
-        ReflectProperty(mBindings, "Bindings", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 시간순으로 정렬된 카메라 컷 목록입니다.
          */
         Core::TArray<Asset::FSequenceCameraCut> mCameraCuts{};
-        ReflectProperty(mCameraCuts, "CameraCuts", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
 }

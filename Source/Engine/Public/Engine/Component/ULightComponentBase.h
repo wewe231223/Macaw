@@ -155,19 +155,16 @@ namespace Engine {
          * @brief 에디터에 표시할 광원 아이콘 텍스처의 비소유 주소입니다.
          */
         Asset::UTexture2D* mIcon{};
-        ReflectProperty(mIcon, "Icon", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 현재 아이콘을 제공한 에셋 관리자의 비소유 주소입니다.
          */
         Asset::FAssetManager* mIconAssets{};
-        ReflectProperty(mIconAssets, "IconAssets", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 프로젝트에서 아이콘을 찾지 못했을 때 직접 로드한 대체 텍스처의 소유 객체입니다.
          */
         std::unique_ptr<Asset::UTexture2D> mFallbackIcon{};
-        ReflectProperty(mFallbackIcon, "FallbackIcon", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
 }

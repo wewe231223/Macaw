@@ -198,7 +198,6 @@ namespace Engine {
          * @brief 프록시 전체 재생성이 필요한지 여부입니다.
          */
         bool mRenderStateDirty{true};
-        ReflectProperty(mRenderStateDirty, "RenderStateDirty", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 프리미티브의 그림자 생성 여부입니다.
@@ -216,37 +215,31 @@ namespace Engine {
          * @brief 변환 업로드가 필요한지 여부입니다.
          */
         bool mRenderTransformDirty{};
-        ReflectProperty(mRenderTransformDirty, "RenderTransformDirty", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 월드 갱신 큐에 이미 등록되었는지 여부입니다.
          */
         bool mQueued{};
-        ReflectProperty(mQueued, "Queued", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 렌더 장면에 프록시가 생성되었는지 여부입니다.
          */
         bool mRenderStateCreated{};
-        ReflectProperty(mRenderStateCreated, "RenderStateCreated", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 기본 UV에 곱할 셀 크기입니다.
          */
         Core::FVector2 mUVScale{1.0f, 1.0f};
-        ReflectProperty(mUVScale, "UVScale", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 기본 UV에 더할 셀 원점입니다.
          */
         Core::FVector2 mUVOffset{};
-        ReflectProperty(mUVOffset, "UVOffset", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 현재 UV 변환을 제어하는 컴포넌트 핸들입니다.
          */
         CoreUObject::FObjectHandle mUVSource{};
-        ReflectProperty(mUVSource, "UVSource", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
 }

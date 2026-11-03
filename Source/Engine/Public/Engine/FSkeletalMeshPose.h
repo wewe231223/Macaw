@@ -20,21 +20,12 @@ namespace Engine {
      */
     class FSkeletalMeshPose {
     public:
-        ReflectTypes(FSkeletalMeshPose);
-
-    public:
         /**
          * @brief 비어 있는 포즈를 생성합니다.
          */
         FSkeletalMeshPose() = default;
 
     public:
-        /**
-         * @brief 포즈 구조체의 리플렉션 정보를 반환합니다.
-         * @return 등록된 타입입니다.
-         */
-        ReflectStruct(FSkeletalMeshPose);
-
         /**
          * @brief 에셋의 바인드 포즈로 초기화합니다.
          * @param Mesh 사용할 메시입니다.
@@ -94,39 +85,30 @@ namespace Engine {
         Core::FRevision GetMeshRevision() const;
 
     private:
-        ReflectMembers();
-
-    private:
         /**
          * @brief 부모 본 기준 현재 변환입니다.
          */
         Core::TArray<Core::FMatrix> mLocalTransforms{};
-        ReflectProperty(mLocalTransforms, "LocalTransforms", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
         /**
          * @brief 메시 공간 기준 현재 변환입니다.
          */
         Core::TArray<Core::FMatrix> mGlobalTransforms{};
-        ReflectProperty(mGlobalTransforms, "GlobalTransforms", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
         /**
          * @brief 바인드 위치를 현재 위치로 옮기는 행렬입니다.
          */
         Core::TArray<Core::FMatrix> mSkinMatrices{};
-        ReflectProperty(mSkinMatrices, "SkinMatrices", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
         /**
          * @brief CPU 피킹을 위해 현재 위치를 반영한 형상입니다.
          */
         Asset::FMeshData mMeshData{};
-        ReflectProperty(mMeshData, "MeshData", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
         /**
          * @brief 포즈 변경 개정입니다.
          */
         Core::FRevision mRevision{};
-        ReflectProperty(mRevision, "Revision", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
         /**
          * @brief 계산 원본의 데이터 개정입니다.
          */
         Core::FRevision mMeshRevision{};
-        ReflectProperty(mMeshRevision, "MeshRevision", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
 }

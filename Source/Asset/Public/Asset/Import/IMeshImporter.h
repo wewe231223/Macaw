@@ -22,12 +22,6 @@ namespace Asset {
      * @brief 원본 파일에서 메시 데이터와 재질 참조를 가져오는 임포터의 공통 인터페이스입니다.
      */
     class IMeshImporter {
-    public:
-        /**
-         * @brief 리플렉션 소유 타입과 선택적 기반 타입의 별칭입니다.
-         */
-        ReflectTypes(IMeshImporter);
-
     private:
         /**
          * @brief 원본 경로로 구체 메시 임포터를 생성하는 팩토리 함수 포인터입니다.
@@ -57,12 +51,6 @@ namespace Asset {
         Asset::IMeshImporter& operator=(Asset::IMeshImporter&&) = delete;
 
     public:
-        /**
-         * @brief 이 타입의 정적 리플렉션 메타데이터를 반환합니다.
-         * @return 리플렉션 시스템이 보관하는 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectStruct(IMeshImporter);
-
         /**
          * @brief 원본 파일 확장자에 맞는 메시 임포터를 생성합니다.
          * @param[in] Source 가져올 원본 메시 파일 경로입니다.
@@ -150,47 +138,36 @@ namespace Asset {
          */
         virtual bool ImportSource() = 0;
 
-        /**
-         * @brief 생성된 멤버 등록 함수와 리플렉션 빌더의 접근 권한입니다.
-         */
-        ReflectMembers();
-
     private:
         /**
          * @brief 가져올 원본 메시 파일 경로입니다.
          */
         std::filesystem::path mSourcePath{};
-        ReflectProperty(mSourcePath, "SourcePath", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 상대 텍스처 경로를 해석할 원본 파일의 디렉터리입니다.
          */
         std::filesystem::path mSourceDirectory{};
-        ReflectProperty(mSourceDirectory, "SourceDirectory", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 좌표축·메시 구성·노멀 처리 방식을 정하는 임포트 옵션입니다.
          */
         Asset::FAssetImportOption mOption{};
-        ReflectProperty(mOption, "Option", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 파생 임포터가 채우는 메시 데이터와 재질 목록입니다.
          */
         Asset::FMeshImportResult mResult{};
-        ReflectProperty(mResult, "Result", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 파생 임포터가 기록한 실패 원인입니다.
          */
         Core::FString mError{};
-        ReflectProperty(mError, "Error", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 임포터를 한 번만 사용하도록 Import 호출 여부를 기록합니다.
          */
         bool mImportStarted{};
-        ReflectProperty(mImportStarted, "ImportStarted", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
 }

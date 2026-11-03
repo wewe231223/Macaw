@@ -20,23 +20,11 @@ namespace Editor {
     class FImGuiThemeCatalog {
     public:
         /**
-         * @brief 리플렉션 소유 타입과 선택적 기반 타입의 별칭입니다.
-         */
-        ReflectTypes(FImGuiThemeCatalog);
-
-    public:
-        /**
          * @brief 기본 설정으로 FImGuiThemeCatalog 객체를 초기화합니다.
          */
         FImGuiThemeCatalog();
 
     public:
-        /**
-         * @brief 이 타입의 정적 리플렉션 메타데이터를 반환합니다.
-         * @return 리플렉션 시스템이 보관하는 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectStruct(FImGuiThemeCatalog);
-
         /**
          * @brief ImThemes TOML의 단일 테마 또는 테마 배열을 검증한 뒤 카탈로그에 추가하거나 교체합니다.
          * @param[in] Path 읽거나 기록할 파일 시스템 경로입니다.
@@ -86,31 +74,21 @@ namespace Editor {
 
     private:
         /**
-         * @brief 생성된 멤버 등록 함수와 리플렉션 빌더의 접근 권한입니다.
-         */
-        ReflectMembers();
-
-    private:
-        /**
          * @brief 테마 인덱스로 조회할 이름 목록이며 0번은 Macaw Dark입니다.
          */
         Core::TArray<Core::FString> mNames{};
-        ReflectProperty(mNames, "Names", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
         /**
          * @brief 각 테마와 같은 인덱스로 정렬한 작성자 문자열입니다.
          */
         Core::TArray<Core::FString> mAuthors{};
-        ReflectProperty(mAuthors, "Authors", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
         /**
          * @brief 각 테마와 같은 인덱스로 정렬한 설명 문자열입니다.
          */
         Core::TArray<Core::FString> mDescriptions{};
-        ReflectProperty(mDescriptions, "Descriptions", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
         /**
          * @brief 배율을 적용하기 전의 테마별 ImGui 스타일입니다.
          */
         Core::TArray<ImGuiStyle> mStyles{};
-        ReflectProperty(mStyles, "Styles", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
 }

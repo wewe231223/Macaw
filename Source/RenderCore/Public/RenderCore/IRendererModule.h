@@ -35,23 +35,11 @@ namespace RenderCore {
     class IRendererModule {
     public:
         /**
-         * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
-         */
-        ReflectTypes(IRendererModule);
-
-    public:
-        /**
          * @brief 객체의 수명을 끝내고 소유한 리소스를 정리합니다.
          */
         virtual ~IRendererModule();
 
     public:
-        /**
-         * @brief 이 타입의 정적 구조체 메타데이터를 반환합니다.
-         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectStruct(IRendererModule);
-
         /**
          * @brief Direct3D 11 장치, 스왑 체인과 렌더 파이프라인을 준비합니다.
          * @param[in] WindowHandle 렌더링할 네이티브 Win32 창 핸들입니다.
@@ -177,12 +165,6 @@ namespace RenderCore {
          * @return 조건을 만족하면 true입니다.
          */
         virtual bool GetTextBounds(const Core::FString& Text, Core::FVector2& Minimum, Core::FVector2& Maximum) const;
-
-    private:
-        /**
-         * @brief 생성된 프로퍼티 등록 함수와 빌더 접근 권한입니다.
-         */
-        ReflectMembers();
     };
 
 }

@@ -21,18 +21,6 @@ namespace CoreUObject {
     class FReflectionRegistry {
     public:
         /**
-         * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
-         */
-        ReflectTypes(FReflectionRegistry);
-
-    public:
-        /**
-         * @brief 이 타입의 정적 구조체 메타데이터를 반환합니다.
-         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectStruct(FReflectionRegistry);
-
-        /**
          * @brief 소유권을 가진 UObject를 반환하는 선택적인 네이티브 팩터리입니다.
          */
         using FFactory = CoreUObject::UClass::FFactory;
@@ -118,12 +106,6 @@ namespace CoreUObject {
          * @return 조회한 값의 비소유 주소이며, 해당 값이 없으면 nullptr입니다.
          */
         static CoreUObject::UEnum* FindEnum(const Core::FString& Name);
-
-    private:
-        /**
-         * @brief 생성된 프로퍼티 등록 함수와 빌더 접근 권한입니다.
-         */
-        ReflectMembers();
     };
 
 }

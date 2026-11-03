@@ -232,6 +232,7 @@ namespace Editor {
         mDropDirectories.clear();
         mContentDropDirectories.clear();
         mContentDropBounds.clear();
+        mPlaceActorsPanel.ClearIcons();
         mMeshViewer.reset();
         mDetailsPanel.SetAssetServices(nullptr, nullptr);
         mThumbnails.reset();
@@ -1215,6 +1216,7 @@ namespace Editor {
         }
 
         mThumbnails->Invalidate();
+        mPlaceActorsPanel.InvalidateIcons();
         mRefreshContent = false;
         mRevealContentDirectory = true;
     }

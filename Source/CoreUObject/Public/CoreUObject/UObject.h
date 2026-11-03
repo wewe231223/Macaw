@@ -232,7 +232,6 @@ namespace CoreUObject {
          * @brief 레지스트리 슬롯과 세대 핸들입니다.
          */
         CoreUObject::FObjectHandle mHandle{};
-        ReflectProperty(mHandle, "Handle", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 객체 이름입니다.
@@ -244,7 +243,6 @@ namespace CoreUObject {
          * @brief 이름 범위를 구성하는 상위 객체의 세대 핸들입니다.
          */
         CoreUObject::FObjectHandle mOuter{};
-        ReflectProperty(mOuter, "Outer", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
     };
 

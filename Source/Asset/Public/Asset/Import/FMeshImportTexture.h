@@ -96,12 +96,6 @@ namespace Asset {
     class FMeshImportTexture {
     public:
         /**
-         * @brief 리플렉션 소유 타입과 선택적 기반 타입의 별칭입니다.
-         */
-        ReflectTypes(FMeshImportTexture);
-
-    public:
-        /**
          * @brief 기본 설정으로 FMeshImportTexture 객체를 초기화합니다.
          */
         FMeshImportTexture() = default;
@@ -114,12 +108,6 @@ namespace Asset {
         explicit FMeshImportTexture(std::filesystem::path FilePath, Asset::EMeshImportTextureShape Shape = Asset::EMeshImportTextureShape::Unknown);
 
     public:
-        /**
-         * @brief 이 타입의 정적 리플렉션 메타데이터를 반환합니다.
-         * @return 리플렉션 시스템이 보관하는 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectStruct(FMeshImportTexture);
-
         /**
          * @brief 원본 장면 내부 텍스처의 이름 또는 인덱스를 보관하는 참조를 생성합니다.
          * @param[in] Reference 원본 장면 안 텍스처의 이름 또는 인덱스 참조입니다.
@@ -164,40 +152,29 @@ namespace Asset {
 
     private:
         /**
-         * @brief 생성된 멤버 등록 함수와 리플렉션 빌더의 접근 권한입니다.
-         */
-        ReflectMembers();
-
-    private:
-        /**
          * @brief 텍스처 없음·외부 파일·내장 참조 중 텍스처의 출처입니다.
          */
         Asset::EMeshImportTextureSource mSource{Asset::EMeshImportTextureSource::None};
-        ReflectProperty(mSource, "Source", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 외부 텍스처 파일을 읽을 파일 시스템 경로입니다.
          */
         std::filesystem::path mFilePath{};
-        ReflectProperty(mFilePath, "FilePath", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 원본 장면 안에 포함된 텍스처의 이름 또는 인덱스 참조입니다.
          */
         Core::FString mEmbeddedReference{};
-        ReflectProperty(mEmbeddedReference, "EmbeddedReference", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 원본에서 추출한 내장 텍스처의 인코딩된 이미지 바이트입니다.
          */
         Core::TArray<Core::Uint8> mEmbeddedData{};
-        ReflectProperty(mEmbeddedData, "EmbeddedData", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 임포터가 판별한 텍스처 형태입니다.
          */
         Asset::EMeshImportTextureShape mShape{Asset::EMeshImportTextureShape::Unknown};
-        ReflectProperty(mShape, "Shape", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
 }

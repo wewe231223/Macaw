@@ -152,19 +152,16 @@ namespace Engine {
          * @brief 컴포넌트를 소유한 액터입니다.
          */
         Engine::AActor* mOwner{};
-        ReflectProperty(mOwner, "Owner", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 등록된 월드이며, 등록 전에는 nullptr입니다.
          */
         Engine::UWorld* mWorld{};
-        ReflectProperty(mWorld, "World", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 컴포넌트가 시작 전달에 진입하여 아직 종료되지 않았는지 나타냅니다.
          */
         bool mHasBegunPlay{};
-        ReflectProperty(mHasBegunPlay, "HasBegunPlay", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 정지한 편집 월드에서도 이 객체의 Tick을 허용하는 설정입니다.

@@ -51,12 +51,6 @@ namespace Engine {
         class FDispatchScope {
         public:
             /**
-             * @brief 리플렉션에서 사용할 소유 타입 별칭입니다.
-             */
-            ReflectTypes(FDispatchScope);
-
-        public:
-            /**
              * @brief 월드의 콜백 전달 깊이를 증가시킵니다.
              * @param[in] World 보호할 월드의 비소유 주소이며 nullptr이면 아무 작업도 하지 않습니다.
              */
@@ -77,25 +71,11 @@ namespace Engine {
              */
             FDispatchScope& operator=(const FDispatchScope&) = delete;
 
-        public:
-            /**
-             * @brief 전달 범위의 정적 구조체 메타데이터를 반환합니다.
-             * @return 등록된 메타데이터의 비소유 주소입니다.
-             */
-            ReflectStruct(FDispatchScope);
-
-        private:
-            /**
-             * @brief 전달 범위의 리플렉션 등록 함수와 빌더 접근 권한입니다.
-             */
-            ReflectMembers();
-
         private:
             /**
              * @brief 전달 깊이를 관리하는 월드의 비소유 주소입니다.
              */
             Engine::UWorld* mWorld{};
-            ReflectProperty(mWorld, "World", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
         };
 
     public:
@@ -407,109 +387,91 @@ namespace Engine {
          * @brief 활성 카메라 컴포넌트의 비소유 객체 핸들입니다.
          */
         CoreUObject::FObjectHandle mActiveCamera{};
-        ReflectProperty(mActiveCamera, "ActiveCamera", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 프로젝트 에셋을 조회할 관리자의 비소유 주소입니다.
          */
         Asset::FAssetManager* mAssets{};
-        ReflectProperty(mAssets, "Assets", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 뷰포트 입력을 전달할 액터의 비소유 객체 핸들입니다.
          */
         CoreUObject::FObjectHandle mInputTarget{};
-        ReflectProperty(mInputTarget, "InputTarget", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 엔진이 발급한 이 월드의 비소유 식별자입니다.
          */
         Engine::FWorldHandle mWorldHandle{};
-        ReflectProperty(mWorldHandle, "WorldHandle", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 컨텍스트 생성 시 지정하는 월드의 용도입니다.
          */
         Engine::EWorldType mWorldType{Engine::EWorldType::Editor};
-        ReflectProperty(mWorldType, "WorldType", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 월드가 관리하는 현재 게임 실행 상태입니다.
          */
         Engine::EWorldPlayState mPlayState{Engine::EWorldPlayState::Stopped};
-        ReflectProperty(mPlayState, "PlayState", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 월드가 소유한 영속 레벨입니다.
          */
         std::unique_ptr<Engine::ULevel> mPersistentLevel{};
-        ReflectProperty(mPersistentLevel, "PersistentLevel", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 월드가 소유한 렌더 장면입니다.
          */
         std::unique_ptr<Engine::FSceneInterface> mScene{};
-        ReflectProperty(mScene, "Scene", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 프레임 말 갱신을 기다리는 컴포넌트 핸들입니다.
          */
         Core::TArray<CoreUObject::FObjectHandle> mDirtyComponents{};
-        ReflectProperty(mDirtyComponents, "DirtyComponents", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 가장 바깥 콜백 전달 종료 후 제거할 액터 핸들입니다.
          */
         Core::TArray<CoreUObject::FObjectHandle> mPendingActors{};
-        ReflectProperty(mPendingActors, "PendingActors", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 기본 액터 이름 생성용 일련번호입니다.
          */
         Core::Uint32 mSpawnSerial{};
-        ReflectProperty(mSpawnSerial, "SpawnSerial", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 중첩된 콜백 전달 범위의 깊이입니다.
          */
         Core::Uint32 mDispatchDepth{};
-        ReflectProperty(mDispatchDepth, "DispatchDepth", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 마지막 BeginPlay 이후 실제 처리한 게임 갱신 횟수입니다.
          */
         Core::Uint64 mTickCount{};
-        ReflectProperty(mTickCount, "TickCount", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 마지막 BeginPlay 이후 실제 진행한 게임 시간입니다.
          */
         float mTimeSeconds{};
-        ReflectProperty(mTimeSeconds, "TimeSeconds", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 지연된 정리 작업의 재진입을 막는 처리 상태입니다.
          */
         bool mFlushing{};
-        ReflectProperty(mFlushing, "Flushing", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 콜백 범위 종료 후 처리할 실행 종료 요청입니다.
          */
         bool mEndPlayRequested{};
-        ReflectProperty(mEndPlayRequested, "EndPlayRequested", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 콜백과 지연 삭제를 마친 뒤 처리할 월드 종료 요청입니다.
          */
         bool mShutdownRequested{};
-        ReflectProperty(mShutdownRequested, "ShutdownRequested", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 월드 리소스를 정리하며 새 등록을 거부하는 상태입니다.
          */
         bool mShuttingDown{};
-        ReflectProperty(mShuttingDown, "ShuttingDown", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
 }

@@ -25,7 +25,49 @@ namespace Editor {
 
     Editor::FPlaceActorsPanel::~FPlaceActorsPanel() = default;
 
+    void Editor::FPlaceActorsPanel::InvalidateIcons() {
+        mIconsDirty = true;
+    }
+
+    void Editor::FPlaceActorsPanel::ClearIcons() {
+        mIcons = {};
+        mIconsDirty = true;
+    }
+
+    void Editor::FPlaceActorsPanel::UpdateIcons() {
+        if (!mIconsDirty) {
+            return;
+        }
+
+        const Editor::FEditorContext* Context{GetEditorContext()};
+
+        if (Context == nullptr || Context->GetProject() == nullptr || Context->GetRenderer() == nullptr) {
+            return;
+        }
+
+        ID3D11Device* Device{static_cast<ID3D11Device*>(Context->GetRenderer()->GetNativeDevice())};
+
+        if (Device == nullptr) {
+            return;
+        }
+
+        static constexpr std::array<const char*, static_cast<std::size_t>(Editor::EPlaceActorIcon::Count)> Paths{nullptr, "Editor/Icon/Pawn_64x.png", "Editor/Icon/SkyLight_64x.png", "Editor/Icon/DirectionalLight_64x.png", "Editor/Icon/PointLight_64x.png", "Editor/Icon/SpotLight_64x.png", "Editor/Icon/ExponentialHeightFog_64x.png"};
+        mIcons = {};
+
+        for (std::size_t Index{1}; Index < Paths.size(); ++Index) {
+            Core::FString Error{};
+            Asset::UTexture2D* Texture{Context->GetProject()->GetAssets()->LoadTexture(Paths[Index], Error)};
+
+            if (Texture != nullptr && Texture->CreateResources(Device)) {
+                mIcons[Index] = Texture->GetShaderResourceView();
+            }
+        }
+
+        mIconsDirty = false;
+    }
+
     void Editor::FPlaceActorsPanel::DrawContent(float) {
+        UpdateIcons();
         const char* Categories[]{"All", "Lights", "Basic", "Visual Effects"};
 
         ImGui::SetNextItemWidth(-1.0f);
@@ -36,11 +78,11 @@ namespace Editor {
         ImGui::BeginDisabled(!GetEditorContext()->CanEditWorld());
 
         if (mCategory == 0 || mCategory == 2) {
-            DrawEntry("Cube", "Cube", "StaticMeshComponent", nullptr);
-            DrawEntry("Sphere", "Sphere", "StaticMeshComponent", nullptr);
-            DrawEntry("Plane", "Plane", "StaticMeshComponent", nullptr);
-            DrawEntry("Text", "Text", "BillboardTextComponent", nullptr);
-            DrawEntry("Billboard", "Billboard", "BillboardComponent", "Pawn_64x.png");
+            DrawEntry("Cube", "Cube", "StaticMeshComponent", Editor::EPlaceActorIcon::None);
+            DrawEntry("Sphere", "Sphere", "StaticMeshComponent", Editor::EPlaceActorIcon::None);
+            DrawEntry("Plane", "Plane", "StaticMeshComponent", Editor::EPlaceActorIcon::None);
+            DrawEntry("Text", "Text", "BillboardTextComponent", Editor::EPlaceActorIcon::None);
+            DrawEntry("Billboard", "Billboard", "BillboardComponent", Editor::EPlaceActorIcon::Billboard);
         }
 
         for (const CoreUObject::UClass* Class : CoreUObject::FReflectionRegistry::GetDerivedClasses(Engine::AActor::StaticClass())) {
@@ -56,7 +98,7 @@ namespace Editor {
                 continue;
             }
 
-            const char* Icon{Fog ? "ExponentialHeightFog_64x.png" : Name.find("Directional") != Core::FString::npos ? "DirectionalLight_64x.png" : Name.find("Ambient") != Core::FString::npos ? "SkyLight_64x.png" : Name.find("Spot") != Core::FString::npos ? "SpotLight_64x.png" : Light ? "PointLight_64x.png" : nullptr};
+            const Editor::EPlaceActorIcon Icon{Fog ? Editor::EPlaceActorIcon::HeightFog : Name.find("Directional") != Core::FString::npos ? Editor::EPlaceActorIcon::DirectionalLight : Name.find("Ambient") != Core::FString::npos ? Editor::EPlaceActorIcon::AmbientLight : Name.find("Spot") != Core::FString::npos ? Editor::EPlaceActorIcon::SpotLight : Light ? Editor::EPlaceActorIcon::PointLight : Editor::EPlaceActorIcon::None};
             Core::FString Label{Name.starts_with('A') ? Name.substr(1) : Name};
             DrawEntry(Name, Label, Fog ? "HeightFogComponent" : Light ? "LightComponent" : Name.find("Camera") != Core::FString::npos ? "CameraComponent" : "Default components", Icon);
         }
@@ -64,7 +106,7 @@ namespace Editor {
         ImGui::EndDisabled();
     }
 
-    void Editor::FPlaceActorsPanel::DrawEntry(const Core::FString& Preset, const Core::FString& Label, const char* Components, const char* Icon) {
+    void Editor::FPlaceActorsPanel::DrawEntry(const Core::FString& Preset, const Core::FString& Label, const char* Components, Editor::EPlaceActorIcon Icon) {
         const ImGuiTextFilter Filter{mSearch.data()};
 
         if (!Filter.PassFilter(Label.c_str())) {
@@ -73,14 +115,9 @@ namespace Editor {
 
         ImGui::PushID(Preset.c_str());
 
-        if (Icon != nullptr && GetEditorContext()->GetProject() != nullptr) {
-            Core::FString Error{};
-            Asset::UTexture2D* Texture{GetEditorContext()->GetProject()->GetAssets()->LoadTexture(Core::FString{"Editor/Icon/"} + Icon, Error)};
-
-            if (Texture != nullptr && Texture->CreateResources(static_cast<ID3D11Device*>(GetEditorContext()->GetRenderer()->GetNativeDevice()))) {
-                ImGui::Image(ImTextureRef{static_cast<ImTextureID>(reinterpret_cast<std::uintptr_t>(Texture->GetShaderResourceView()))}, {32.0f, 32.0f});
-                ImGui::SameLine();
-            }
+        if (ID3D11ShaderResourceView* Resource{mIcons[static_cast<std::size_t>(Icon)].Get()}; Resource != nullptr) {
+            ImGui::Image(ImTextureRef{static_cast<ImTextureID>(reinterpret_cast<std::uintptr_t>(Resource))}, {32.0f, 32.0f});
+            ImGui::SameLine();
         }
 
         ImGui::Selectable(Label.c_str(), false, ImGuiSelectableFlags_AllowDoubleClick, {0.0f, 32.0f});

@@ -214,49 +214,41 @@ namespace Asset {
          * @brief 메시의 CPU 정점 속성·인덱스·경계 데이터입니다.
          */
         Asset::FMeshData mMeshData{};
-        ReflectProperty(mMeshData, "MeshData", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 메시 데이터를 교체할 때마다 새로 받는 리비전입니다.
          */
         Core::FRevision mRevision{Core::FRevision::Next()};
-        ReflectProperty(mRevision, "Revision", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 정점 위치를 보관하는 소유 GPU 버퍼입니다.
          */
         Microsoft::WRL::ComPtr<ID3D11Buffer> mPositionBuffer{};
-        ReflectProperty(mPositionBuffer, "PositionBuffer", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 정점 법선과 탄젠트를 보관하는 소유 GPU 버퍼입니다.
          */
         Microsoft::WRL::ComPtr<ID3D11Buffer> mTangentBuffer{};
-        ReflectProperty(mTangentBuffer, "TangentBuffer", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 정점별 UV 채널을 보관하는 소유 GPU 버퍼입니다.
          */
         Microsoft::WRL::ComPtr<ID3D11Buffer> mUVBuffer{};
-        ReflectProperty(mUVBuffer, "UVBuffer", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 정점 색상을 보관하는 소유 GPU 버퍼입니다.
          */
         Microsoft::WRL::ComPtr<ID3D11Buffer> mColorBuffer{};
-        ReflectProperty(mColorBuffer, "ColorBuffer", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 삼각형 인덱스를 보관하는 소유 GPU 버퍼입니다.
          */
         Microsoft::WRL::ComPtr<ID3D11Buffer> mIndexBuffer{};
-        ReflectProperty(mIndexBuffer, "IndexBuffer", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 현재 보유한 GPU 리소스의 추정 바이트 수입니다.
          */
         std::size_t mResourceBytes{};
-        ReflectProperty(mResourceBytes, "ResourceBytes", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
 }

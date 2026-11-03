@@ -20,23 +20,11 @@ namespace Editor {
     class FAssetPicker {
     public:
         /**
-         * @brief 리플렉션 소유 타입입니다.
-         */
-        ReflectTypes(FAssetPicker);
-
-    public:
-        /**
          * @brief 빈 검색 상태를 구성합니다.
          */
         FAssetPicker() = default;
 
     public:
-        /**
-         * @brief 정적 메타데이터를 반환합니다.
-         * @return 등록한 구조체 정보입니다.
-         */
-        ReflectStruct(FAssetPicker);
-
         /**
          * @brief 썸네일과 검색 가능한 선택기를 표시합니다.
          * @param Catalog 표시 목록입니다.
@@ -52,11 +40,6 @@ namespace Editor {
         bool Draw(Editor::FEditorAssetCatalog& Catalog, Editor::FAssetThumbnailCache& Thumbnails, const char* Label, Core::FString& Path, Asset::EAssetType Type, const Core::FString& InheritedPath = {}, const char* EmptyLabel = "None", const char* InheritedLabel = "Mesh");
 
     private:
-        /**
-         * @brief 자동 멤버 등록 접근을 허용합니다.
-         */
-        ReflectMembers();
-
         /**
          * @brief 목록을 검색하여 썸네일과 함께 표시합니다.
          * @param Catalog 에셋 목록입니다.
@@ -82,7 +65,6 @@ namespace Editor {
          * @brief 현재 열린 선택기의 검색 문자열입니다.
          */
         std::array<char, 128> mSearch{};
-        ReflectProperty(mSearch, "Search", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
 }

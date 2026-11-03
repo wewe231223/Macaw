@@ -21,12 +21,6 @@ namespace Core {
      * @ingroup Core
      */
     struct alignas(16) FMatrix {
-    public:
-        /**
-         * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
-         */
-        ReflectTypes(FMatrix);
-
     private:
         /**
          * @brief FBox가 내부 SIMD 저장소에 직접 접근하도록 허용합니다.
@@ -76,12 +70,6 @@ namespace Core {
         Core::FMatrix& operator=(Core::FMatrix&& Other) noexcept = default;
 
     public:
-        /**
-         * @brief 이 타입의 정적 구조체 메타데이터를 반환합니다.
-         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectStruct(FMatrix);
-
         /**
          * @brief 항등행렬을 생성합니다.
          * @return 연산을 적용한 새 값입니다.
@@ -337,16 +325,9 @@ namespace Core {
 
     private:
         /**
-         * @brief 생성된 프로퍼티 등록 함수와 빌더 접근 권한입니다.
-         */
-        ReflectMembers();
-
-    private:
-        /**
          * @brief SIMD 행 벡터 네 개입니다.
          */
         __m128 mRows[4]{};
-        ReflectProperty(mRows, "Rows", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
     /**

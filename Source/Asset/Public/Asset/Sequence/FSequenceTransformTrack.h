@@ -17,18 +17,6 @@ namespace Asset {
      */
     class FSequenceTransformTrack final : public Asset::FSequenceTrack {
     public:
-        /**
-         * @brief 리플렉션에서 사용할 소유 타입과 부모 타입의 별칭입니다.
-         */
-        ReflectTypes(FSequenceTransformTrack, Asset::FSequenceTrack);
-
-    public:
-        /**
-         * @brief 정적 구조체 메타데이터를 반환합니다.
-         * @return 메타데이터의 비소유 주소입니다.
-         */
-        ReflectStruct(FSequenceTransformTrack);
-
         Asset::ESequenceTrackType GetType() const override;
 
         void Serialize(Core::FArchive& Archive) override;
@@ -54,16 +42,9 @@ namespace Asset {
 
     private:
         /**
-         * @brief 생성된 멤버 등록 함수의 접근 권한입니다.
-         */
-        ReflectMembers();
-
-    private:
-        /**
          * @brief 뒤쪽 항목이 우선하는 섹션 목록입니다.
          */
         Core::TArray<Asset::FSequenceTransformSection> mSections{};
-        ReflectProperty(mSections, "Sections", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
 }

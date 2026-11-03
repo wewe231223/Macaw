@@ -169,13 +169,11 @@ namespace Engine {
          * @brief 현재 월드 공간 속도이며 실행 시작·중력·속도 제한에 따라 갱신됩니다.
          */
         Core::FVector mVelocity{};
-        ReflectProperty(mVelocity, "Velocity", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 정지 요청 또는 EndPlay 이후 이동 적분을 생략할지 나타냅니다.
          */
         bool mStopped{};
-        ReflectProperty(mStopped, "Stopped", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
 }

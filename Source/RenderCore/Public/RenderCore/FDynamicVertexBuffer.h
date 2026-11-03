@@ -22,12 +22,6 @@ namespace RenderCore {
     class FDynamicVertexBuffer {
     public:
         /**
-         * @brief 리플렉션 소유 타입입니다.
-         */
-        ReflectTypes(FDynamicVertexBuffer);
-
-    public:
-        /**
          * @brief GPU 자원이 없는 빈 버퍼를 생성합니다.
          */
         FDynamicVertexBuffer() = default;
@@ -48,12 +42,6 @@ namespace RenderCore {
         RenderCore::FDynamicVertexBuffer& operator=(const RenderCore::FDynamicVertexBuffer&) = delete;
 
     public:
-        /**
-         * @brief 버퍼의 리플렉션 메타데이터를 반환합니다.
-         * @return 등록된 구조체 메타데이터의 비소유 주소입니다.
-         */
-        ReflectStruct(FDynamicVertexBuffer);
-
         /**
          * @brief 필요한 경우 버퍼를 재할당하고 정점 바이트를 업로드합니다.
          * @param[in] Context 업로드할 장치 컨텍스트입니다.
@@ -85,28 +73,19 @@ namespace RenderCore {
 
     private:
         /**
-         * @brief 리플렉션 등록 함수에 접근을 허용합니다.
-         */
-        ReflectMembers();
-
-    private:
-        /**
          * @brief 동적으로 기록하는 GPU 정점 버퍼입니다.
          */
         Microsoft::WRL::ComPtr<ID3D11Buffer> mBuffer{};
-        ReflectProperty(mBuffer, "Buffer", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 버퍼에 확보한 정점 수입니다.
          */
         Core::Uint32 mCapacity{};
-        ReflectProperty(mCapacity, "Capacity", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 정점 하나의 바이트 수입니다.
          */
         Core::Uint32 mStride{};
-        ReflectProperty(mStride, "Stride", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
 }

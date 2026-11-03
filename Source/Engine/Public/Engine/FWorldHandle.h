@@ -22,12 +22,6 @@ namespace Engine {
     class FWorldHandle {
     public:
         /**
-         * @brief 리플렉션에서 사용할 소유 타입 별칭입니다.
-         */
-        ReflectTypes(FWorldHandle);
-
-    public:
-        /**
          * @brief 어떤 월드도 가리키지 않는 무효 핸들을 구성합니다.
          */
         FWorldHandle() = default;
@@ -40,12 +34,6 @@ namespace Engine {
         FWorldHandle(Core::Uint32 Index, Core::Uint64 Generation);
 
     public:
-        /**
-         * @brief 월드 핸들의 정적 구조체 메타데이터를 반환합니다.
-         * @return 등록된 메타데이터의 비소유 주소입니다.
-         */
-        ReflectStruct(FWorldHandle);
-
         /**
          * @brief 슬롯과 세대가 무효 기본값이 아닌지 검사합니다.
          * @return 핸들 형식이 유효하면 true입니다.
@@ -74,22 +62,14 @@ namespace Engine {
 
     private:
         /**
-         * @brief 핸들 필드의 리플렉션 등록 함수와 빌더 접근 권한입니다.
-         */
-        ReflectMembers();
-
-    private:
-        /**
          * @brief 엔진의 월드 슬롯이며 최댓값은 무효 슬롯입니다.
          */
         Core::Uint32 mIndex{std::numeric_limits<Core::Uint32>::max()};
-        ReflectProperty(mIndex, "Index", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 월드 슬롯에 발급된 세대이며 0은 무효 세대입니다.
          */
         Core::Uint64 mGeneration{};
-        ReflectProperty(mGeneration, "Generation", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
 }

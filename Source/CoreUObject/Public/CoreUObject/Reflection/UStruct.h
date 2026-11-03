@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "CoreUObject/FObjectReference.h"
 #include "Core/ReflectionMacros.h"
 #include "CoreUObject/Reflection/FProperty.h"
 
@@ -16,12 +17,6 @@ namespace CoreUObject {
      * @ingroup CoreUObject
      */
     class UStruct {
-    public:
-        /**
-         * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
-         */
-        ReflectTypes(UStruct);
-
     public:
         /**
          * @brief UStruct의 초기 상태와 전달받은 의존성을 구성합니다.
@@ -36,12 +31,6 @@ namespace CoreUObject {
         virtual ~UStruct();
 
     public:
-        /**
-         * @brief 이 타입의 정적 구조체 메타데이터를 반환합니다.
-         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectStruct(UStruct);
-
         /**
          * @brief 타입 이름을 반환합니다.
          * @return 소유 객체가 유지하는 값의 참조입니다.
@@ -92,43 +81,38 @@ namespace CoreUObject {
          */
         void SerializeProperties(void* Container, Core::FArchive& Archive) const;
 
-    private:
         /**
-         * @brief 생성된 프로퍼티 등록 함수와 빌더 접근 권한입니다.
+         * @brief 선언 프로퍼티에 포함된 객체 참조에 핸들을 연결합니다.
+         * @param[in] Container 프로퍼티 소유 타입의 유효한 인스턴스 주소입니다.
+         * @param[in] Objects 이 장면에서 읽은 객체의 대응표입니다.
          */
-        ReflectMembers();
+        void BindObjectReferences(void* Container, const CoreUObject::FObjectGuidMap& Objects) const;
 
     private:
         /**
          * @brief 타입 이름입니다.
          */
         Core::FString mName{};
-        ReflectProperty(mName, "Name", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 네이티브 타입의 sizeof 바이트 수입니다.
          */
         std::size_t mSize{};
-        ReflectProperty(mSize, "Size", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
-
 
         /**
          * @brief 현재 타입이 소유한 프로퍼티 목록입니다.
          */
         Core::TArray<CoreUObject::FProperty> mDeclaredProperties{};
-        ReflectProperty(mDeclaredProperties, "DeclaredProperties", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 조회에 사용하는 프로퍼티 비소유 주소 목록입니다.
          */
         Core::TArray<const CoreUObject::FProperty*> mProperties{};
-        ReflectProperty(mProperties, "Properties", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 프로퍼티 등록을 마쳤는지 여부입니다.
          */
         bool mSealed{};
-        ReflectProperty(mSealed, "Sealed", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
 }

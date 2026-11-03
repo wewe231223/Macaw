@@ -30,6 +30,16 @@ namespace Engine {
      */
     namespace {
         /**
+         * @brief 장면의 모든 객체를 만든 뒤 객체 참조 프로퍼티에 핸들을 연결합니다.
+         * @param[in] Objects 이 장면에서 읽은 객체의 대응표입니다.
+         */
+        void BindObjectReferences(const CoreUObject::FObjectGuidMap& Objects) {
+            for (const auto& Entry : Objects) {
+                Entry.second->GetClass()->BindClassObjectReferences(Entry.second, Objects);
+            }
+        }
+
+        /**
          * @brief 월드의 활성 카메라와 입력 대상 참조를 저장하거나 검증하여 복원합니다.
          * @param[in,out] Archive 모드에 따라 값을 읽거나 쓸 아카이브입니다.
          * @param[in] World 참조를 저장하거나 복원할 월드입니다.
@@ -296,6 +306,11 @@ namespace Engine {
         }
 
         SerializeWorldReferences(Archive, World, &Objects);
+
+        if (Archive.IsLoading() && !Archive.HasError()) {
+            BindObjectReferences(Objects);
+        }
+
         Archive.EndObject();
     }
 
@@ -320,6 +335,10 @@ namespace Engine {
         Core::TArray<std::unique_ptr<Engine::AActor>> Actors{};
         const Core::TArray<Engine::AActor*> Sources{};
         SerializeActors(Archive, Sources, Actors, &Objects);
+
+        if (!Archive.HasError()) {
+            BindObjectReferences(Objects);
+        }
 
         return Actors;
     }

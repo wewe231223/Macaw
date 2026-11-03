@@ -8,6 +8,7 @@
 
 #include "Core/Types.h"
 #include "Core/ReflectionMacros.h"
+#include "CoreUObject/Reflection/TNativeEnum.h"
 
 namespace Editor {
 

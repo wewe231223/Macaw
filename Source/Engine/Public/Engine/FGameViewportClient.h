@@ -20,24 +20,12 @@ namespace Engine {
     class FGameViewportClient final : public Engine::FViewportClient {
     public:
         /**
-         * @brief 리플렉션에서 사용하는 소유 타입과 선택적 부모 타입의 별칭을 선언합니다.
-         */
-        ReflectTypes(FGameViewportClient, Engine::FViewportClient);
-
-    public:
-        /**
          * @brief 전달받은 설정과 의존성으로 FGameViewportClient의 초기 상태를 구성합니다.
          * @param[in] Engine 월드 조회와 실행을 제공할 엔진의 비소유 주소입니다.
          */
         explicit FGameViewportClient(Engine::UEngine* Engine);
 
     public:
-        /**
-         * @brief 이 타입의 구조체 메타데이터를 반환합니다.
-         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectStruct(FGameViewportClient);
-
         /**
          * @brief 엔진에서 월드 핸들을 검증하고 실행 뷰포트의 대상을 교체합니다.
          * @param[in] World 클라이언트에 연결할 엔진 소유 월드의 세대 핸들입니다.
@@ -63,22 +51,14 @@ namespace Engine {
 
     private:
         /**
-         * @brief 자동 생성된 프로퍼티 등록 코드와 리플렉션 빌더의 접근을 허용합니다.
-         */
-        ReflectMembers();
-
-    private:
-        /**
          * @brief 월드 조회와 실행을 제공하는 엔진의 비소유 주소입니다.
          */
         Engine::UEngine* mEngine{};
-        ReflectProperty(mEngine, "Engine", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 클라이언트가 사용하는 실행 월드의 세대 핸들입니다.
          */
         Engine::FWorldHandle mWorld{};
-        ReflectProperty(mWorld, "World", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
 }

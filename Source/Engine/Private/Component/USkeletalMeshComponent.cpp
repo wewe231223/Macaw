@@ -193,37 +193,25 @@ namespace Engine {
         return Proxy;
     }
 
-    void Engine::USkeletalMeshComponent::Serialize(Core::FArchive& Archive) {
-        Engine::UMeshComponent::Serialize(Archive);
+    const Core::TArray<Core::FMatrix>& Engine::USkeletalMeshComponent::GetSerializedPose() const {
+        return mPose.GetLocalTransforms();
+    }
 
-        // 전역 행렬과 피킹 형상은 복원 시 다시 계산하고 로컬 포즈만 저장합니다.
-        if (!Archive.HasError() && (!Archive.IsLoading() || Archive.HasField("BoneLocalTransforms"))) {
-            Core::TArray<Core::FMatrix> Transforms{Archive.IsLoading() ? Core::TArray<Core::FMatrix>{} : mPose.GetLocalTransforms()};
-            Core::Uint32 BoneCount{static_cast<Core::Uint32>(Transforms.size())};
+    // 전역 행렬과 피킹 형상은 복원 시 다시 계산하고 로컬 포즈만 저장합니다.
+    bool Engine::USkeletalMeshComponent::SetSerializedPose(const Core::TArray<Core::FMatrix>& Transforms) {
+        for (const Core::FMatrix& Transform : Transforms) {
+            Core::FMatrix Inverse{};
 
-            if (Archive.BeginArray("BoneLocalTransforms", BoneCount)) {
-                if (BoneCount > 100000) {
-                    Archive.SetError("Invalid skeletal pose bone count");
-                } else {
-                    Transforms.resize(BoneCount);
-
-                    for (Core::Uint32 Bone{}; Bone < BoneCount && !Archive.HasError(); ++Bone) {
-                        Archive.Serialize(std::to_string(Bone), Transforms[Bone]);
-                        Core::FMatrix Inverse{};
-
-                        if (!Transforms[Bone].IsFinite() || !Transforms[Bone].TryInverse(Inverse) || !Inverse.IsFinite()) {
-                            Archive.SetError("Invalid skeletal pose transform");
-                        }
-                    }
-                }
-
-                Archive.EndArray();
-            }
-
-            if (Archive.IsLoading() && !Archive.HasError() && !mPose.SetLocalTransforms(std::move(Transforms))) {
-                Archive.SetError("Invalid skeletal pose transform");
+            if (!Transform.IsFinite() || !Transform.TryInverse(Inverse) || !Inverse.IsFinite()) {
+                return false;
             }
         }
+
+        return mPose.SetLocalTransforms(Transforms);
+    }
+
+    void Engine::USkeletalMeshComponent::Serialize(Core::FArchive& Archive) {
+        Engine::UMeshComponent::Serialize(Archive);
 
         if (Archive.IsLoading()) {
             if (!Archive.HasError() && mSkeletalMesh != nullptr) {

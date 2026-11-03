@@ -57,7 +57,7 @@ namespace Engine {
             const auto Target{std::find_if(Targets.begin(), Targets.end(), [&Binding](const Engine::FSequenceBindingTarget& Candidate) {
                 return Candidate.mBindingId == Binding.GetId();
             })};
-            const Engine::USceneComponent* Component{Target != Targets.end() ? FindSceneComponent(World, Target->mObjectId) : nullptr};
+            const Engine::USceneComponent* Component{Target != Targets.end() ? FindSceneComponent(World, Target->mObject.GetGuid()) : nullptr};
 
             if (Component == nullptr) {
                 Core::ErrorHandler::Report("Sequencer", "Cannot resolve sequence binding '" + Binding.GetName() + "'", Core::ErrorHandler::EErrorLevel::Warning);

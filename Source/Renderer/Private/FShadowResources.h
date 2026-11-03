@@ -31,47 +31,24 @@ namespace Renderer {
     struct FGpuShadow {
     public:
         /**
-         * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
-         */
-        ReflectTypes(FGpuShadow);
-
-    public:
-        /**
-         * @brief 이 타입의 정적 구조체 메타데이터를 반환합니다.
-         * @return 등록된 구조체 메타데이터의 비소유 주소입니다.
-         */
-        ReflectStruct(FGpuShadow);
-
-    private:
-        /**
-         * @brief 생성된 멤버 등록 함수와 리플렉션 빌더의 접근 권한입니다.
-         */
-        ReflectMembers();
-
-    public:
-        /**
          * @brief 월드 좌표를 그림자 클립 공간으로 변환하는 행렬입니다.
          */
         Core::FMatrix mViewProjection{};
-        ReflectProperty(mViewProjection, "ViewProjection", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 보호 여백을 제외한 아틀라스 UV 시작점과 크기를 저장합니다.
          */
         Core::FVector4 mAtlasRectangle{};
-        ReflectProperty(mAtlasRectangle, "AtlasRectangle", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 깊이 바이어스·기울기 바이어스·선명도·아틀라스 역크기를 저장합니다.
          */
         Core::FVector4 mParameters{};
-        ReflectProperty(mParameters, "Parameters", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 캐스케이드의 시작·끝 거리와 혼합 시작 거리, 예약값을 저장합니다.
          */
         Core::FVector4 mCascade{};
-        ReflectProperty(mCascade, "Cascade", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
     /**
@@ -80,19 +57,6 @@ namespace Renderer {
      * @ingroup Renderer
      */
     class FShadowResources {
-    public:
-        /**
-         * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
-         */
-        ReflectTypes(FShadowResources);
-
-    public:
-        /**
-         * @brief 이 타입의 정적 구조체 메타데이터를 반환합니다.
-         * @return 등록된 구조체 메타데이터의 비소유 주소입니다.
-         */
-        ReflectStruct(FShadowResources);
-
     public:
         /**
          * @brief 현재 뷰에 필요한 광원별 그림자 타일과 행렬을 구성하고 샘플링 정보를 업로드합니다.
@@ -201,11 +165,6 @@ namespace Renderer {
 
     private:
         /**
-         * @brief 생성된 멤버 등록 함수와 리플렉션 빌더의 접근 권한입니다.
-         */
-        ReflectMembers();
-
-        /**
          * @brief 그림자 아틀라스·미리보기·셰이더·버퍼·깊이 상태를 필요할 때 생성합니다.
          * @param[in] Device GPU 자원 생성에 사용할 Direct3D 장치의 비소유 주소입니다.
          * @return 모든 필수 GPU 자원을 사용할 수 있으면 true입니다.
@@ -246,126 +205,104 @@ namespace Renderer {
          * @brief 그림자 깊이를 저장하는 아틀라스 텍스처의 소유 객체입니다.
          */
         std::unique_ptr<Asset::UTexture2D> mAtlas{};
-        ReflectProperty(mAtlas, "Atlas", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 깊이 아틀라스를 색상으로 표시하는 미리보기 텍스처의 소유 객체입니다.
          */
         std::unique_ptr<Asset::UTexture2D> mPreview{};
-        ReflectProperty(mPreview, "Preview", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 그림자 맵 타일의 아틀라스 공간 할당기입니다.
          */
         Renderer::FShadowAtlasAllocator mAllocator{};
-        ReflectProperty(mAllocator, "Allocator", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 현재 뷰에서 렌더링할 GPU 그림자 맵 정보입니다.
          */
         Core::TArray<Renderer::FGpuShadow> mMaps{};
-        ReflectProperty(mMaps, "Maps", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief mMaps와 같은 순서로 저장한 보호 여백 포함 아틀라스 블록입니다.
          */
         Core::TArray<Renderer::FShadowAtlasBlock> mBlocks{};
-        ReflectProperty(mBlocks, "Blocks", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief Prepare가 그림자 맵을 구성한 장면의 고유 번호입니다.
          */
         Core::FRevision mSceneIdentity{};
-        ReflectProperty(mSceneIdentity, "SceneIdentity", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief Prepare가 그림자 맵을 구성할 때의 장면 캐스터 리비전입니다.
          */
         Core::FRevision mCasterRevision{};
-        ReflectProperty(mCasterRevision, "CasterRevision", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 아틀라스 텍스처를 만들 때마다 새로 받는 리비전입니다.
          */
         Core::FRevision mAtlasRevision{};
-        ReflectProperty(mAtlasRevision, "AtlasRevision", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 아틀라스 타일마다 마지막으로 그린 입력을 기억해 같은 입력이면 다시 그리지 않게 하는 캐시입니다.
          */
         Renderer::FShadowTileCache mTileCache{"Shadow tile", Core::FFrameAgeEviction{600}};
-        ReflectProperty(mTileCache, "TileCache", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 미리보기에 표시할 광원별 아틀라스 타일 목록입니다.
          */
         Core::TArray<RenderCore::FShadowAtlasTile> mTiles{};
-        ReflectProperty(mTiles, "Tiles", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 원본 광원마다 그림자 맵의 1 기반 시작 인덱스와 개수를 저장합니다.
          */
         Core::TArray<std::array<Core::Uint32, 2>> mLightRanges{};
-        ReflectProperty(mLightRanges, "LightRanges", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 미리보기 전체 화면 삼각형의 정점 셰이더입니다.
          */
         Microsoft::WRL::ComPtr<ID3D11VertexShader> mPreviewVertexShader{};
-        ReflectProperty(mPreviewVertexShader, "PreviewVertexShader", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 깊이 값을 미리보기 명도로 변환하는 픽셀 셰이더입니다.
          */
         Microsoft::WRL::ComPtr<ID3D11PixelShader> mPreviewPixelShader{};
-        ReflectProperty(mPreviewPixelShader, "PreviewPixelShader", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 모든 그림자 맵의 샘플링 정보를 담는 구조화 버퍼입니다.
          */
         Microsoft::WRL::ComPtr<ID3D11Buffer> mShadowBuffer{};
-        ReflectProperty(mShadowBuffer, "ShadowBuffer", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 그림자 캐스케이드 선택에 필요한 카메라 상수 버퍼입니다.
          */
         Microsoft::WRL::ComPtr<ID3D11Buffer> mViewBuffer{};
-        ReflectProperty(mViewBuffer, "ViewBuffer", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 그림자 정보 구조화 버퍼의 셰이더 리소스 뷰입니다.
          */
         Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> mShadowView{};
-        ReflectProperty(mShadowView, "ShadowView", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 그림자 깊이를 비교 샘플링하는 샘플러입니다.
          */
         Microsoft::WRL::ComPtr<ID3D11SamplerState> mSampler{};
-        ReflectProperty(mSampler, "Sampler", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 깊이 검사를 끈 미리보기 패스의 상태입니다.
          */
         Microsoft::WRL::ComPtr<ID3D11DepthStencilState> mPreviewDepthState{};
-        ReflectProperty(mPreviewDepthState, "PreviewDepthState", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 그림자 정보 구조화 버퍼에 확보한 원소 수입니다.
          */
         Core::Uint32 mCapacity{};
-        ReflectProperty(mCapacity, "Capacity", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 현재 뷰에서 유효한 그림자 맵을 셰이더에 제공할 수 있는지 나타냅니다.
          */
         bool mEnabled{};
-        ReflectProperty(mEnabled, "Enabled", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         bool mPreviewRequested{};
-        ReflectProperty(mPreviewRequested, "PreviewRequested", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
         bool mPreviewDirty{true};
-        ReflectProperty(mPreviewDirty, "PreviewDirty", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
 }

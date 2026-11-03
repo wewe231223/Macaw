@@ -20,12 +20,6 @@ namespace Core {
     class FAtomicFileWriter {
     public:
         /**
-         * @brief 리플렉션 소유 타입입니다.
-         */
-        ReflectTypes(FAtomicFileWriter);
-
-    public:
-        /**
          * @brief 파일이 열리지 않은 저장 객체를 생성합니다.
          */
         FAtomicFileWriter() = default;
@@ -46,12 +40,6 @@ namespace Core {
         Core::FAtomicFileWriter& operator=(const Core::FAtomicFileWriter&) = delete;
 
     public:
-        /**
-         * @brief 저장 객체의 리플렉션 메타데이터를 반환합니다.
-         * @return 등록된 구조체 메타데이터의 비소유 주소입니다.
-         */
-        ReflectStruct(FAtomicFileWriter);
-
         /**
          * @brief 대상과 같은 폴더에 고유한 임시 파일을 엽니다.
          * @param[in] Path 교체할 대상 경로입니다.
@@ -76,11 +64,6 @@ namespace Core {
 
     private:
         /**
-         * @brief 리플렉션 등록 함수에 접근을 허용합니다.
-         */
-        ReflectMembers();
-
-        /**
          * @brief 열린 스트림을 닫고 남아 있는 임시 파일을 제거합니다.
          */
         void Discard();
@@ -90,19 +73,16 @@ namespace Core {
          * @brief 최종 교체할 파일의 절대 경로입니다.
          */
         std::filesystem::path mTarget{};
-        ReflectProperty(mTarget, "Target", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 커밋 전까지 소유하는 임시 파일 경로입니다.
          */
         std::filesystem::path mTemporary{};
-        ReflectProperty(mTemporary, "Temporary", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 임시 파일에 기록할 출력 스트림입니다.
          */
         std::ofstream mStream{};
-        ReflectProperty(mStream, "Stream", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
 }

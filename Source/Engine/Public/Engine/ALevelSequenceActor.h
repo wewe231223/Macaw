@@ -37,8 +37,6 @@ namespace Engine {
 
         void EndPlay() override;
 
-        void Serialize(Core::FArchive& Archive) override;
-
         /**
          * @brief 시퀀스 플레이어를 반환합니다.
          * @return 액터가 소유한 플레이어의 참조입니다.
@@ -105,13 +103,12 @@ namespace Engine {
          * @brief 시퀀스 바인딩과 씬 객체의 연결 목록입니다.
          */
         Core::TArray<Engine::FSequenceBindingTarget> mBindingTargets{};
-        ReflectProperty(mBindingTargets, "BindingTargets", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+        ReflectArray(mBindingTargets, "BindingTargets", Core::EPropertyFlags::Serialize);
 
         /**
          * @brief 실행 중 시퀀스를 재생하는 플레이어입니다.
          */
         Engine::FSequencePlayer mPlayer{};
-        ReflectProperty(mPlayer, "Player", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
 }

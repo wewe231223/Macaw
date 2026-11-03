@@ -103,4 +103,10 @@ namespace CoreUObject {
         }
     }
 
+    void CoreUObject::UStruct::BindObjectReferences(void* Container, const CoreUObject::FObjectGuidMap& Objects) const {
+        for (const CoreUObject::FProperty* Property : mProperties) {
+            Property->BindObjectReferences(Container, Objects);
+        }
+    }
+
 }

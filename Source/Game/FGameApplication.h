@@ -24,12 +24,6 @@ namespace Game {
     class FGameApplication {
     public:
         /**
-         * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
-         */
-        ReflectTypes(FGameApplication);
-
-    public:
-        /**
          * @brief Game 모듈의 리플렉션 타입을 등록합니다.
          */
         FGameApplication();
@@ -40,12 +34,6 @@ namespace Game {
 
     public:
         /**
-         * @brief 이 타입의 정적 구조체 메타데이터를 반환합니다.
-         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectStruct(FGameApplication);
-
-        /**
          * @brief 프로젝트를 초기화하고 창이 닫히거나 월드가 정지할 때까지 프레임 루프를 실행합니다.
          * @param[in] ProjectFile 실행할 프로젝트(.mproject) 파일 경로입니다.
          * @return 정상 종료하면 0, 초기화나 프레임 처리에 실패하면 1입니다.
@@ -53,11 +41,6 @@ namespace Game {
         int Run(const std::filesystem::path& ProjectFile);
 
     private:
-        /**
-         * @brief 생성된 프로퍼티 등록 함수와 빌더 접근 권한입니다.
-         */
-        ReflectMembers();
-
         /**
          * @brief 프로젝트를 열고 창, 렌더러, 엔진을 초기화한 뒤 시작 장면으로 게임 월드를 시작합니다.
          * @param[in] ProjectFile 열 프로젝트(.mproject) 파일 경로입니다.
@@ -97,73 +80,61 @@ namespace Game {
          * @brief 게임 창과 Windows 메시지 처리 객체입니다.
          */
         Platform::FWindowsApplication mPlatform{};
-        ReflectProperty(mPlatform, "Platform", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 애플리케이션이 소유한 렌더러입니다.
          */
         Renderer::FRenderer mRenderer{};
-        ReflectProperty(mRenderer, "Renderer", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 실행 중인 프로젝트입니다.
          */
         Engine::FProject mProject{};
-        ReflectProperty(mProject, "Project", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 게임 월드를 소유하고 갱신하는 엔진입니다.
          */
         Engine::UEngine mEngine{};
-        ReflectProperty(mEngine, "Engine", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 게임 월드의 입력과 장면 뷰를 처리하는 뷰포트 클라이언트입니다.
          */
         Engine::FGameViewportClient mGameClient{&mEngine};
-        ReflectProperty(mGameClient, "GameClient", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 게임 화면을 그릴 오프스크린 뷰포트이며, 초기화 전에는 비어 있습니다.
          */
         std::unique_ptr<Engine::FSceneViewport> mViewport{};
-        ReflectProperty(mViewport, "Viewport", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 프레임 경과 시간 측정기입니다.
          */
         Core::FFrameTimer mTimer{};
-        ReflectProperty(mTimer, "Timer", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 이전 프레임의 클라이언트 좌표 마우스 위치입니다.
          */
         Core::FVector2 mPreviousMouse{};
-        ReflectProperty(mPreviousMouse, "PreviousMouse", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 다음 입력 읽기 전까지 누적한 마우스 휠 칸 수입니다.
          */
         float mWheel{};
-        ReflectProperty(mWheel, "Wheel", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 이전 마우스 위치가 유효해 이동량을 계산할 수 있는지 나타냅니다.
          */
         bool mMouseReady{};
-        ReflectProperty(mMouseReady, "MouseReady", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 이전 프레임의 왼쪽 버튼 눌림 상태입니다.
          */
         bool mLeftDown{};
-        ReflectProperty(mLeftDown, "LeftDown", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 이전 프레임의 가운데 버튼 눌림 상태입니다.
          */
         bool mMiddleDown{};
-        ReflectProperty(mMiddleDown, "MiddleDown", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
 }

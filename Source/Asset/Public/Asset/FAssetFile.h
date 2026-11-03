@@ -60,18 +60,6 @@ namespace Asset {
     class FAssetFile {
     public:
         /**
-         * @brief 리플렉션에서 사용하는 소유 타입과 선택적 부모 타입의 별칭을 선언합니다.
-         */
-        ReflectTypes(FAssetFile);
-
-    public:
-        /**
-         * @brief 이 타입의 구조체 메타데이터를 반환합니다.
-         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectStruct(FAssetFile);
-
-        /**
          * @brief 에셋 파일 헤더를 검사하여 저장된 에셋 종류를 읽습니다.
          * @param[in] Path 헤더를 읽을 에셋 파일의 경로입니다.
          * @param[out] Type 에셋 파일에 기록하거나 검사할 종류입니다.
@@ -99,12 +87,6 @@ namespace Asset {
          * @return 요청한 처리를 완료하면 true, 실패하면 false입니다.
          */
         static bool Load(const std::filesystem::path& Path, Asset::EAssetType Type, Core::TArray<Core::Uint8>& Payload, Core::FString& Error);
-
-    private:
-        /**
-         * @brief 자동 생성된 프로퍼티 등록 코드와 리플렉션 빌더의 접근을 허용합니다.
-         */
-        ReflectMembers();
     };
 
 }

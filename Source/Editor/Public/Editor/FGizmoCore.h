@@ -65,47 +65,24 @@ namespace Editor {
     struct FGizmoPlacement {
     public:
         /**
-         * @brief 리플렉션에서 사용하는 소유 타입과 선택적 부모 타입의 별칭을 선언합니다.
-         */
-        ReflectTypes(FGizmoPlacement);
-
-    public:
-        /**
-         * @brief 정적 구조체 메타데이터를 반환합니다.
-         * @return 등록된 타입 정보입니다.
-         */
-        ReflectStruct(FGizmoPlacement);
-
-    private:
-        /**
-         * @brief 자동 생성된 프로퍼티 등록 코드와 리플렉션 빌더의 접근을 허용합니다.
-         */
-        ReflectMembers();
-
-    public:
-        /**
          * @brief 기즈모의 월드 중심점입니다.
          */
         Core::FVector mPivot{};
-        ReflectProperty(mPivot, "Pivot", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 기즈모의 세 단위 축입니다.
          */
         std::array<Core::FVector, 3> mAxes{};
-        ReflectProperty(mAxes, "Axes", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 표시하고 드래그할 변환 모드입니다.
          */
         Editor::EGizmoMode mMode{Editor::EGizmoMode::Translate};
-        ReflectProperty(mMode, "Mode", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 핸들의 HitProxy에 기록할 대상 객체의 핸들이며 객체가 아닌 대상은 비워 둡니다.
          */
         CoreUObject::FObjectHandle mOwner{};
-        ReflectProperty(mOwner, "Owner", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
     /**
@@ -115,18 +92,6 @@ namespace Editor {
      */
     class FGizmoCore {
     public:
-        /**
-         * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
-         */
-        ReflectTypes(FGizmoCore);
-
-    public:
-        /**
-         * @brief 이 타입의 정적 구조체 메타데이터를 반환합니다.
-         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectStruct(FGizmoCore);
-
         /**
          * @brief 기즈모의 기본 X·Y·Z 단위 축을 반환합니다.
          * @return 월드 좌표계의 세 단위 축입니다.
@@ -275,130 +240,104 @@ namespace Editor {
 
     private:
         /**
-         * @brief 생성된 프로퍼티 등록 함수와 빌더 접근 권한입니다.
-         */
-        ReflectMembers();
-
-    private:
-        /**
          * @brief 마우스가 가리키는 핸들 인덱스, 없으면 -1입니다.
          */
         Core::Int32 mHoveredAxis{-1};
-        ReflectProperty(mHoveredAxis, "HoveredAxis", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 드래그 중인 핸들 인덱스, 없으면 -1입니다.
          */
         Core::Int32 mActiveAxis{-1};
-        ReflectProperty(mActiveAxis, "ActiveAxis", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 드래그 시작 시 카메라 뷰입니다.
          */
         Engine::FSceneView mDragView{};
-        ReflectProperty(mDragView, "DragView", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 드래그 시작 마우스 픽셀 좌표입니다.
          */
         Core::FVector2 mStartMouse{};
-        ReflectProperty(mStartMouse, "StartMouse", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 드래그할 월드 단위 축입니다.
          */
         Core::FVector mAxis{};
-        ReflectProperty(mAxis, "Axis", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 드래그 평면의 단위 법선입니다.
          */
         Core::FVector mPlaneNormal{};
-        ReflectProperty(mPlaneNormal, "PlaneNormal", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 드래그 시작 광선과 평면의 교점입니다.
          */
         Core::FVector mStartIntersection{};
-        ReflectProperty(mStartIntersection, "StartIntersection", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 드래그 기준 기즈모 크기입니다.
          */
         float mDragSize{1.0f};
-        ReflectProperty(mDragSize, "DragSize", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 이동·회전·스케일 스냅 간격과 기즈모 크기 설정입니다.
          */
         Editor::FGizmoSettings mSettings{};
-        ReflectProperty(mSettings, "Settings", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 드래그를 시작할 때 고정한 이동, 회전과 스케일의 기준 피벗입니다.
          */
         Core::FVector mStartPivot{};
-        ReflectProperty(mStartPivot, "StartPivot", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 회전 드래그의 시작 반지름 방향입니다.
          */
         Core::FVector mStartDirection{};
-        ReflectProperty(mStartDirection, "StartDirection", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 회전 누적각을 계산할 때 사용할 이전 프레임의 반지름 방향입니다.
          */
         Core::FVector mPreviousDirection{};
-        ReflectProperty(mPreviousDirection, "PreviousDirection", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 현재 드래그에서 시작 피벗에 더할 누적 월드 이동량입니다.
          */
         Core::FVector mTranslation{};
-        ReflectProperty(mTranslation, "Translation", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 드래그 시작 시 고정하여 대상 회전과 독립적으로 유지할 세 기저 축입니다.
          */
         std::array<Core::FVector, 3> mDragAxes{};
-        ReflectProperty(mDragAxes, "DragAxes", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 퇴화한 드래그 평면의 대체 계산이나 스케일에 사용할 화면 방향입니다.
          */
         Core::FVector2 mScreenAxis{};
-        ReflectProperty(mScreenAxis, "ScreenAxis", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 각 프레임의 회전을 더하여 여러 바퀴 회전도 유지하는 라디안 각도입니다.
          */
         float mRawAngle{};
-        ReflectProperty(mRawAngle, "RawAngle", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 각도 스냅을 적용한 실제 라디안 회전량입니다.
          */
         float mAppliedAngle{};
-        ReflectProperty(mAppliedAngle, "AppliedAngle", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 스냅을 적용한 스케일 변화량입니다.
          */
         float mScaleDelta{};
-        ReflectProperty(mScaleDelta, "ScaleDelta", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 드래그 시작 시 고정한 변환 모드입니다.
          */
         Editor::EGizmoMode mDragMode{Editor::EGizmoMode::Translate};
-        ReflectProperty(mDragMode, "DragMode", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 광선과 조작 평면이 거의 평행하여 화면 방향 계산을 사용할지 여부입니다.
          */
         bool mScreenFallback{};
-        ReflectProperty(mScreenFallback, "ScreenFallback", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
 }

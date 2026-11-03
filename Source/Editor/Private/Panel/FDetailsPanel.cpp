@@ -519,6 +519,9 @@ namespace Editor {
         } else if (auto* Guid{std::get_if<Core::FGuid>(&Value)}) {
             ImGui::TextDisabled("%s", Label);
             ImGui::TextWrapped("%s", Guid->ToString().c_str());
+        } else if (auto* Reference{std::get_if<CoreUObject::FObjectReference>(&Value)}) {
+            ImGui::TextDisabled("%s", Label);
+            ImGui::TextWrapped("%s", Reference->GetGuid().ToString().c_str());
         } else if (const CoreUObject::UStruct* Struct{Property->GetStruct()}) {
             bool Changed{};
 

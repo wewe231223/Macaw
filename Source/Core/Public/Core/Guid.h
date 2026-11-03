@@ -18,12 +18,6 @@ namespace Core {
     struct FGuid {
     public:
         /**
-         * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
-         */
-        ReflectTypes(FGuid);
-
-    public:
-        /**
          * @brief 새로운 GUID를 생성합니다.
          */
         FGuid();
@@ -61,10 +55,10 @@ namespace Core {
 
     public:
         /**
-         * @brief 이 타입의 정적 구조체 메타데이터를 반환합니다.
-         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
+         * @brief 어떤 객체도 가리키지 않는 빈 GUID를 반환합니다.
+         * @return IsValid()가 false인 GUID입니다.
          */
-        ReflectStruct(FGuid);
+        static Core::FGuid Null();
 
         /**
          * @brief GUID 문자열을 검증하여 결과에 기록합니다.
@@ -94,18 +88,11 @@ namespace Core {
          */
         bool operator==(const Core::FGuid& Other) const;
 
-    private:
-        /**
-         * @brief 생성된 프로퍼티 등록 함수와 빌더 접근 권한입니다.
-         */
-        ReflectMembers();
-
     public:
         /**
          * @brief GUID의 16바이트 값입니다.
          */
         std::array<Core::Uint8, 16> mBytes{};
-        ReflectProperty(mBytes, "Bytes", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
 }

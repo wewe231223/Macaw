@@ -31,11 +31,6 @@ namespace Asset {
         using FMaterialReferenceMigrator = std::function<bool(Core::FString&, bool&, Core::FString&)>;
         using FAssetReferenceMigrator = bool (*)(Asset::EAssetType, Core::TArray<Core::Uint8>&, const Asset::FAssetManager::FMaterialReferenceMigrator&, bool&, Core::FString&);
 
-        /**
-         * @brief 리플렉션에서 사용하는 소유 타입과 선택적 부모 타입의 별칭을 선언합니다.
-         */
-        ReflectTypes(FAssetManager);
-
     public:
         /**
          * @brief 전달받은 설정과 의존성으로 FAssetManager의 초기 상태를 구성합니다.
@@ -59,12 +54,6 @@ namespace Asset {
         Asset::FAssetManager& operator=(const Asset::FAssetManager&) = delete;
 
     public:
-        /**
-         * @brief 이 타입의 구조체 메타데이터를 반환합니다.
-         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectStruct(FAssetManager);
-
         /**
          * @brief 에셋 경로의 기준이 되는 콘텐츠 폴더를 반환합니다.
          * @return 객체가 보유한 데이터의 참조이며 소유 객체의 수명 동안 유효합니다.
@@ -265,50 +254,38 @@ namespace Asset {
          */
         bool ApplyMaterialSettings(Asset::UMaterial& Target, const Asset::UMaterial& Source, Core::FString& Error);
 
-        /**
-         * @brief 자동 생성된 프로퍼티 등록 코드와 리플렉션 빌더의 접근을 허용합니다.
-         */
-        ReflectMembers();
-
     private:
         /**
          * @brief 에셋 접근을 제한하는 프로젝트 콘텐츠 폴더의 절대 경로입니다.
          */
         std::filesystem::path mContentRoot{};
-        ReflectProperty(mContentRoot, "ContentRoot", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 정규화한 상대 경로별로 소유하는 메시 에셋 캐시입니다.
          */
         Core::TMap<Core::FString, std::unique_ptr<Asset::UStaticMesh>> mMeshes{};
-        ReflectProperty(mMeshes, "Meshes", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         Core::TMap<Core::FString, std::unique_ptr<Asset::USkeletalMesh>> mSkeletalMeshes{};
-        ReflectProperty(mSkeletalMeshes, "SkeletalMeshes", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 정규화한 상대 경로별로 소유하는 텍스처 에셋 캐시입니다.
          */
         Core::TMap<Core::FString, std::unique_ptr<Asset::UTexture2D>> mTextures{};
-        ReflectProperty(mTextures, "Textures", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 정규화한 상대 경로별로 소유하는 머티리얼 캐시입니다.
          */
         Core::TMap<Core::FString, std::unique_ptr<Asset::UTexture2D>> mNormalMaps{};
-        ReflectProperty(mNormalMaps, "NormalMaps", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 경로별로 캐시한 머티리얼의 소유 저장소입니다.
          */
         Core::TMap<Core::FString, std::unique_ptr<Asset::UMaterial>> mMaterials{};
-        ReflectProperty(mMaterials, "Materials", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 경로별로 캐시한 시퀀스의 소유 저장소입니다.
          */
         Core::TMap<Core::FString, std::unique_ptr<Asset::ULevelSequence>> mSequences{};
-        ReflectProperty(mSequences, "Sequences", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
 }

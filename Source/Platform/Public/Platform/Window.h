@@ -21,12 +21,6 @@ namespace Platform {
     class FWindowsApplication {
     public:
         /**
-         * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
-         */
-        ReflectTypes(FWindowsApplication);
-
-    public:
-        /**
          * @brief 처리한 Win32 메시지이면 true를 반환하는 외부 메시지 콜백입니다.
          */
         using FMessageHandler = std::function<bool(HWND, UINT, WPARAM, LPARAM)>;
@@ -54,12 +48,6 @@ namespace Platform {
         Platform::FWindowsApplication& operator=(const Platform::FWindowsApplication&) = delete;
 
     public:
-        /**
-         * @brief 이 타입의 정적 구조체 메타데이터를 반환합니다.
-         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectStruct(FWindowsApplication);
-
         /**
          * @brief 지정한 제목과 클라이언트 크기로 Win32 창을 생성합니다.
          * @param[in] Title 창 제목입니다.
@@ -124,42 +112,29 @@ namespace Platform {
 
     private:
         /**
-         * @brief 생성된 프로퍼티 등록 함수와 빌더 접근 권한입니다.
-         */
-        ReflectMembers();
-
-    private:
-        /**
          * @brief Win32 창 핸들입니다.
          */
         HWND mWindow{};
-        ReflectProperty(mWindow, "Window", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 가로 픽셀 수입니다.
          */
         Core::Uint32 mWidth{};
-        ReflectProperty(mWidth, "Width", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 세로 픽셀 수입니다.
          */
         Core::Uint32 mHeight{};
-        ReflectProperty(mHeight, "Height", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
-
 
         /**
          * @brief 메시지 루프가 실행 중인지 여부입니다.
          */
         bool mRunning{};
-        ReflectProperty(mRunning, "Running", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
-
 
         /**
          * @brief 외부 UI 백엔드에 메시지를 전달하는 콜백입니다.
          */
         FMessageHandler mMessageHandler{};
-        ReflectProperty(mMessageHandler, "MessageHandler", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
 }

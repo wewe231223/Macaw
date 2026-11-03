@@ -23,24 +23,12 @@ namespace Asset {
     class FMeshImportTransform {
     public:
         /**
-         * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
-         */
-        ReflectTypes(FMeshImportTransform);
-
-    public:
-        /**
          * @brief 원본 메시 공간에서 엔진 공간으로 가는 행렬로 변환을 구성합니다.
          * @param[in] SourceToEngine 노드 변환·축 변환·임포트 옵션 변환을 모두 합친 행 벡터 규약의 아핀 행렬입니다.
          */
         explicit FMeshImportTransform(const Core::FMatrix& SourceToEngine);
 
     public:
-        /**
-         * @brief 이 타입의 정적 구조체 메타데이터를 반환합니다.
-         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectStruct(FMeshImportTransform);
-
         /**
          * @brief 원본 공간 좌표에서 Y만 반전해 왼손 좌표계로 옮기는 행렬을 만듭니다.
          * @return Y 성분의 부호를 바꾸는 행렬입니다.
@@ -111,34 +99,24 @@ namespace Asset {
 
     private:
         /**
-         * @brief 생성된 프로퍼티 등록 함수와 빌더 접근 권한입니다.
-         */
-        ReflectMembers();
-
-    private:
-        /**
          * @brief 원본 공간에서 엔진 공간으로 가는 아핀 행렬입니다.
          */
         Core::FMatrix mMatrix{};
-        ReflectProperty(mMatrix, "Matrix", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 노멀 변환에 쓰는 mMatrix의 역전치 행렬이며 이동 성분은 0입니다.
          */
         Core::FMatrix mNormalMatrix{};
-        ReflectProperty(mNormalMatrix, "NormalMatrix", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief mMatrix의 행렬식이 유한하고 0이 아닌지 여부입니다.
          */
         bool mValid{};
-        ReflectProperty(mValid, "Valid", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief mMatrix의 행렬식이 음수인지 여부입니다.
          */
         bool mReversesWinding{};
-        ReflectProperty(mReversesWinding, "ReversesWinding", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
 }

@@ -59,43 +59,6 @@ namespace Engine {
         Engine::AActor::EndPlay();
     }
 
-    void Engine::ALevelSequenceActor::Serialize(Core::FArchive& Archive) {
-        Engine::AActor::Serialize(Archive);
-
-        if (Archive.HasError() || (Archive.IsLoading() && !Archive.HasField("BindingTargets"))) {
-            return;
-        }
-
-        Core::Uint32 Count{static_cast<Core::Uint32>(mBindingTargets.size())};
-
-        if (!Archive.BeginArray("BindingTargets", Count)) {
-            return;
-        }
-
-        if (Archive.IsLoading()) {
-            mBindingTargets.assign(Count, Engine::FSequenceBindingTarget{});
-        }
-
-        for (Core::Uint32 Index{}; Index < Count && !Archive.HasError(); ++Index) {
-            if (!Archive.BeginObject(std::to_string(Index))) {
-                break;
-            }
-
-            Engine::FSequenceBindingTarget& Target{mBindingTargets[Index]};
-            Archive.Serialize("Binding", Target.mBindingId);
-            Archive.Serialize("Object", Target.mObjectId);
-
-            // 대상이 삭제되었거나 함께 복제되지 않아도 씬 복제가 실패하지 않도록 약한 참조로 변환합니다.
-            if (Archive.IsLoading() && !Archive.HasError()) {
-                Archive.RemapWeakObjectReference(Target.mObjectId);
-            }
-
-            Archive.EndObject();
-        }
-
-        Archive.EndArray();
-    }
-
     Engine::FSequencePlayer& Engine::ALevelSequenceActor::GetPlayer() {
         return mPlayer;
     }
@@ -113,7 +76,7 @@ namespace Engine {
 
         Engine::FSequenceBindingTarget Target{};
         Target.mBindingId = BindingId;
-        Target.mObjectId = ObjectId;
+        Target.mObject = CoreUObject::FObjectReference{ObjectId};
         mBindingTargets.push_back(Target);
     }
 

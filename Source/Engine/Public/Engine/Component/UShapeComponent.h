@@ -190,19 +190,16 @@ namespace Engine {
          * @brief 컴포넌트 겹침 시작 이벤트입니다.
          */
         FOverlapDelegate mOnComponentBeginOverlap{};
-        ReflectProperty(mOnComponentBeginOverlap, "OnComponentBeginOverlap", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 컴포넌트 겹침 종료 이벤트입니다.
          */
         FOverlapDelegate mOnComponentEndOverlap{};
-        ReflectProperty(mOnComponentEndOverlap, "OnComponentEndOverlap", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 컴포넌트 충돌 이벤트입니다.
          */
         FHitDelegate mOnComponentHit{};
-        ReflectProperty(mOnComponentHit, "OnComponentHit", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
 }

@@ -99,13 +99,11 @@ namespace Engine {
          * @brief 레벨이 속한 월드입니다.
          */
         Engine::UWorld* mWorld{};
-        ReflectProperty(mWorld, "World", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 레벨이 소유한 액터 목록입니다.
          */
         Core::TArray<std::unique_ptr<Engine::AActor>> mActors{};
-        ReflectProperty(mActors, "Actors", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
 }

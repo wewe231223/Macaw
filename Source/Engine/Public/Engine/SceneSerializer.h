@@ -31,18 +31,6 @@ namespace Engine {
     class FSceneSerializer {
     public:
         /**
-         * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
-         */
-        ReflectTypes(FSceneSerializer);
-
-    public:
-        /**
-         * @brief 이 타입의 정적 구조체 메타데이터를 반환합니다.
-         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectStruct(FSceneSerializer);
-
-        /**
          * @brief 월드 컨텍스트를 JSON 장면 파일로 저장합니다.
          * @param[in] Path 읽거나 쓸 파일 경로입니다.
          * @param[in,out] Context 저장할 월드 컨텍스트입니다.
@@ -67,12 +55,6 @@ namespace Engine {
          * @param[in,out] Context 직렬화할 월드 컨텍스트입니다.
          */
         static void Serialize(Core::FArchive& Archive, Engine::FWorldContext* Context);
-
-    private:
-        /**
-         * @brief 생성된 프로퍼티 등록 함수와 빌더 접근 권한입니다.
-         */
-        ReflectMembers();
     };
 
 }

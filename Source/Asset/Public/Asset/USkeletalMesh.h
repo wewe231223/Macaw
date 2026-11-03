@@ -135,37 +135,31 @@ namespace Asset {
          * @brief 정적 메시와 공유하는 버퍼 구현이며 위치는 바인드 포즈를 유지합니다.
          */
         Asset::UStaticMesh mGeometry{};
-        ReflectProperty(mGeometry, "Geometry", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 부모 인덱스와 로컬 바인드 포즈입니다.
          */
         Core::TArray<Asset::FMeshImportBone> mBones{};
-        ReflectProperty(mBones, "Bones", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 정점별 정규화한 본 영향입니다.
          */
         Core::TArray<Asset::FMeshImportSkinWeight> mSkinWeights{};
-        ReflectProperty(mSkinWeights, "SkinWeights", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 메시 공간 기준 전역 바인드 포즈의 역행렬입니다.
          */
         Core::TArray<Core::FMatrix> mInverseBindPoses{};
-        ReflectProperty(mInverseBindPoses, "InverseBindPoses", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 바인드 데이터 개정입니다.
          */
         Core::FRevision mRevision{};
-        ReflectProperty(mRevision, "Revision", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief BLENDINDICES와 BLENDWEIGHT 입력의 공유 불변 버퍼입니다.
          */
         Microsoft::WRL::ComPtr<ID3D11Buffer> mSkinWeightBuffer{};
-        ReflectProperty(mSkinWeightBuffer, "SkinWeightBuffer", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
 }

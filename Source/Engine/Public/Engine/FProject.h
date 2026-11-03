@@ -16,12 +16,6 @@ namespace Engine {
     class FProject {
     public:
         /**
-         * @brief 리플렉션에서 사용하는 소유 타입과 선택적 부모 타입의 별칭을 선언합니다.
-         */
-        ReflectTypes(FProject);
-
-    public:
-        /**
          * @brief FProject의 초기 상태를 구성합니다.
          */
         FProject();
@@ -42,12 +36,6 @@ namespace Engine {
         Engine::FProject& operator=(const Engine::FProject&) = delete;
 
     public:
-        /**
-         * @brief 이 타입의 구조체 메타데이터를 반환합니다.
-         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectStruct(FProject);
-
         /**
          * @brief 빈 프로젝트 폴더에 템플릿 콘텐츠와 초기 장면 및 설정 파일을 생성합니다.
          * @param[in] ProjectFile 생성하거나 열 프로젝트의 .mproject 파일 경로입니다.
@@ -118,34 +106,24 @@ namespace Engine {
 
     private:
         /**
-         * @brief 자동 생성된 프로퍼티 등록 코드와 리플렉션 빌더의 접근을 허용합니다.
-         */
-        ReflectMembers();
-
-    private:
-        /**
          * @brief 프로젝트 설정에 저장된 표시 이름입니다.
          */
         Core::FString mName{};
-        ReflectProperty(mName, "Name", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 콘텐츠 폴더 기준으로 저장하는 시작 장면의 상대 경로입니다.
          */
         Core::FString mStartupScene{"Maps/Main.masset"};
-        ReflectProperty(mStartupScene, "StartupScene", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 현재 프로젝트 설정 파일의 절대 경로입니다.
          */
         std::filesystem::path mFilePath{};
-        ReflectProperty(mFilePath, "FilePath", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 프로젝트 콘텐츠를 읽고 캐시하는 소유 에셋 관리자입니다.
          */
         std::unique_ptr<Asset::FAssetManager> mAssets{};
-        ReflectProperty(mAssets, "Assets", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
 }

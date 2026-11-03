@@ -22,18 +22,6 @@ namespace Renderer {
     struct FShadowAtlasBlock {
     public:
         /**
-         * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
-         */
-        ReflectTypes(FShadowAtlasBlock);
-
-    public:
-        /**
-         * @brief 이 타입의 정적 구조체 메타데이터를 반환합니다.
-         * @return 등록된 구조체 메타데이터의 비소유 주소입니다.
-         */
-        ReflectStruct(FShadowAtlasBlock);
-
-        /**
          * @brief 두 블록이 같은 위치와 크기인지 비교합니다.
          * @param[in] Other 비교할 블록입니다.
          * @return 위치와 크기가 모두 같으면 true입니다.
@@ -47,30 +35,21 @@ namespace Renderer {
          */
         bool Overlaps(const Renderer::FShadowAtlasBlock& Other) const;
 
-    private:
-        /**
-         * @brief 생성된 멤버 등록 함수와 리플렉션 빌더의 접근 권한입니다.
-         */
-        ReflectMembers();
-
     public:
         /**
          * @brief 할당 블록 왼쪽 가장자리의 픽셀 좌표입니다.
          */
         Core::Uint32 mX{};
-        ReflectProperty(mX, "X", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 할당 블록 위쪽 가장자리의 픽셀 좌표입니다.
          */
         Core::Uint32 mY{};
-        ReflectProperty(mY, "Y", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 할당 블록 한 변의 픽셀 수입니다.
          */
         Core::Uint32 mSize{};
-        ReflectProperty(mSize, "Size", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
     /**
@@ -78,12 +57,6 @@ namespace Renderer {
      * @ingroup Renderer
      */
     class FShadowAtlasAllocator {
-    public:
-        /**
-         * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
-         */
-        ReflectTypes(FShadowAtlasAllocator);
-
     private:
         /**
          * @brief 그림자 아틀라스의 영역과 네 자식 노드의 점유 상태입니다.
@@ -91,47 +64,24 @@ namespace Renderer {
         struct FNode {
         public:
             /**
-             * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
-             */
-            ReflectTypes(FNode);
-
-        public:
-            /**
-             * @brief 이 타입의 정적 구조체 메타데이터를 반환합니다.
-             * @return 등록된 구조체 메타데이터의 비소유 주소입니다.
-             */
-            ReflectStruct(FNode);
-
-        private:
-            /**
-             * @brief 생성된 멤버 등록 함수와 리플렉션 빌더의 접근 권한입니다.
-             */
-            ReflectMembers();
-
-        public:
-            /**
              * @brief 이 노드가 담당하는 아틀라스 정사각형 영역입니다.
              */
             Renderer::FShadowAtlasBlock mBlock{};
-            ReflectProperty(mBlock, "Block", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
             /**
              * @brief 사분할된 네 자식 노드의 배열 인덱스입니다.
              */
             std::array<Core::Uint32, 4> mChildren{};
-            ReflectProperty(mChildren, "Children", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
             /**
              * @brief 이 노드가 네 자식 영역으로 분할되었는지 나타냅니다.
              */
             bool mSplit{};
-            ReflectProperty(mSplit, "Split", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
             /**
              * @brief 이 노드의 전체 영역이 할당되었는지 나타냅니다.
              */
             bool mOccupied{};
-            ReflectProperty(mOccupied, "Occupied", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
         };
 
     public:
@@ -142,12 +92,6 @@ namespace Renderer {
         explicit FShadowAtlasAllocator(Core::Uint32 Size = 16384);
 
     public:
-        /**
-         * @brief 이 타입의 정적 구조체 메타데이터를 반환합니다.
-         * @return 등록된 구조체 메타데이터의 비소유 주소입니다.
-         */
-        ReflectStruct(FShadowAtlasAllocator);
-
         /**
          * @brief 모든 할당을 해제하고 아틀라스 전체를 하나의 빈 영역으로 되돌립니다.
          */
@@ -162,11 +106,6 @@ namespace Renderer {
 
     private:
         /**
-         * @brief 생성된 멤버 등록 함수와 리플렉션 빌더의 접근 권한입니다.
-         */
-        ReflectMembers();
-
-        /**
          * @brief 지정한 노드에서 빈 영역을 찾고 필요하면 사분할하여 할당합니다.
          * @param[in] Index 할당을 시도할 쿼드트리 노드의 인덱스입니다.
          * @param[in] Size 할당할 한 변의 픽셀 수이며 0이 아닌 2의 거듭제곱이어야 합니다.
@@ -179,13 +118,11 @@ namespace Renderer {
          * @brief 아틀라스 한 변의 픽셀 수입니다.
          */
         Core::Uint32 mSize{};
-        ReflectProperty(mSize, "Size", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 아틀라스 사분할 트리의 노드 저장소입니다.
          */
         Core::TArray<FNode> mNodes{};
-        ReflectProperty(mNodes, "Nodes", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
 }

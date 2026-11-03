@@ -32,6 +32,9 @@ namespace CoreUObject {
     template <auto Member, auto Getter = nullptr>
     void RegisterReadOnlyProperty(CoreUObject::FReflectionBuilder& Information, Core::FString Name, Core::EPropertyFlags Flags = Core::EPropertyFlags::None);
 
+    template <auto Member, auto Getter = nullptr, auto Setter = nullptr>
+    void RegisterArrayProperty(CoreUObject::FReflectionBuilder& Information, Core::FString Name, Core::EPropertyFlags Flags = Core::EPropertyFlags::None);
+
 }
 
 /**
@@ -98,3 +101,19 @@ namespace CoreUObject {
  * @param Flags 프로퍼티의 편집·직렬화 정책 플래그입니다.
  */
 #define ReflectReadOnlyAccessor(Member, Getter, Name, Flags)
+/**
+ * @brief 멤버에 직접 읽고 쓰는 TArray 프로퍼티를 표시합니다.
+ * @param Member 리플렉션 생성기에 전달할 인수입니다.
+ * @param Name 조회하거나 기록할 이름입니다.
+ * @param Flags 프로퍼티의 편집·직렬화 정책 플래그입니다.
+ */
+#define ReflectArray(Member, Name, Flags)
+/**
+ * @brief const TArray& getter와 배열 전체를 받는 setter를 사용하는 TArray 프로퍼티를 표시합니다.
+ * @param Member 리플렉션 생성기에 전달할 인수입니다.
+ * @param Getter 리플렉션 생성기에 전달할 인수입니다.
+ * @param Setter 리플렉션 생성기에 전달할 인수입니다.
+ * @param Name 조회하거나 기록할 이름입니다.
+ * @param Flags 프로퍼티의 편집·직렬화 정책 플래그입니다.
+ */
+#define ReflectArrayAccessor(Member, Getter, Setter, Name, Flags)

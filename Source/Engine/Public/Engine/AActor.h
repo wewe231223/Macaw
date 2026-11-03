@@ -198,43 +198,36 @@ namespace Engine {
          * @brief 액터가 속한 월드이며, 레벨에 추가되기 전에는 nullptr입니다.
          */
         Engine::UWorld* mWorld{};
-        ReflectProperty(mWorld, "World", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 액터가 소유한 컴포넌트 목록입니다.
          */
         Core::TArray<std::unique_ptr<Engine::UActorComponent>> mComponents{};
-        ReflectProperty(mComponents, "Components", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 액터 변환을 제공하는 루트 컴포넌트의 비소유 주소입니다.
          */
         Engine::USceneComponent* mRootComponent{};
-        ReflectProperty(mRootComponent, "RootComponent", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 액터가 시작 전달에 진입하여 아직 종료되지 않았는지 나타냅니다.
          */
         bool mHasBegunPlay{};
-        ReflectProperty(mHasBegunPlay, "HasBegunPlay", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 액터 자체의 BeginPlay 호출 여부이며 부분 시작 시 EndPlay 짝을 구분합니다.
          */
         bool mBeginPlayCalled{};
-        ReflectProperty(mBeginPlayCalled, "BeginPlayCalled", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 안전한 전달 경계에서 액터를 제거하도록 예약한 상태입니다.
          */
         bool mPendingDestroy{};
-        ReflectProperty(mPendingDestroy, "PendingDestroy", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 월드 연결 변경 중 재진입에 의한 컴포넌트 변경을 제한합니다.
          */
         bool mChangingWorld{};
-        ReflectProperty(mChangingWorld, "ChangingWorld", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 정지한 편집 월드에서도 이 객체의 Tick을 허용하는 설정입니다.

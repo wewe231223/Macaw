@@ -19,18 +19,6 @@ namespace Asset {
     class FMeshImportIOSystem final : public Assimp::IOSystem {
     public:
         /**
-         * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
-         */
-        ReflectTypes(FMeshImportIOSystem);
-
-    public:
-        /**
-         * @brief 이 타입의 정적 구조체 메타데이터를 반환합니다.
-         * @return 등록된 구조체 메타데이터의 비소유 주소입니다.
-         */
-        ReflectStruct(FMeshImportIOSystem);
-
-        /**
          * @brief 기본 Assimp 파일 시스템으로 파일의 존재 여부를 검사합니다.
          * @param[in] File 처리할 파일의 경로입니다.
          * @return 파일이 존재하면 true입니다.
@@ -67,16 +55,9 @@ namespace Asset {
 
     private:
         /**
-         * @brief 생성된 멤버 등록 함수와 리플렉션 빌더의 접근 권한입니다.
-         */
-        ReflectMembers();
-
-    private:
-        /**
          * @brief MTL 필터링 이외의 파일 처리를 위임할 Assimp 기본 입출력입니다.
          */
         Assimp::DefaultIOSystem mDefaultIOSystem{};
-        ReflectProperty(mDefaultIOSystem, "DefaultIOSystem", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
 }

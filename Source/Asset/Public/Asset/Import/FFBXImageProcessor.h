@@ -27,12 +27,6 @@ namespace Asset {
      * @details 내장 바이트 수집, Import 이후 일괄 판별, 재질 속성별 조회의 세 단계를 거치며 픽셀 디코딩은 하지 않습니다.
      */
     class FFBXImageProcessor final {
-    public:
-        /**
-         * @brief 리플렉션 소유 타입과 선택적 기반 타입의 별칭입니다.
-         */
-        ReflectTypes(FFBXImageProcessor);
-
     private:
         /**
          * @brief 정규화한 텍스처 경로 키와 FBX에 내장된 원본 바이트의 대응입니다.
@@ -46,13 +40,6 @@ namespace Asset {
          * @brief FBX 파일 텍스처와 판별에 실패한 원인의 대응입니다.
          */
         using FTextureErrors = Core::TMap<fbxsdk::FbxFileTexture*, Core::FString>;
-
-    public:
-        /**
-         * @brief 이 타입의 정적 리플렉션 메타데이터를 반환합니다.
-         * @return 리플렉션 시스템이 보관하는 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectStruct(FFBXImageProcessor);
 
     public:
         /**
@@ -172,29 +159,21 @@ namespace Asset {
          */
         bool ResolveTexture(const fbxsdk::FbxFileTexture& Texture, const std::filesystem::path& SourceDirectory, Asset::FMeshImportTexture& Result, Core::FString& Error) const;
 
-        /**
-         * @brief 생성된 멤버 등록 함수와 리플렉션 빌더의 접근 권한입니다.
-         */
-        ReflectMembers();
-
     private:
         /**
          * @brief 내장 파일 콜백으로 수집한 텍스처 경로 키별 원본 바이트이며 ResolveTextures 이후 비웁니다.
          */
         FEmbeddedData mEmbeddedData{};
-        ReflectProperty(mEmbeddedData, "EmbeddedData", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief ResolveTextures가 형태를 판별한 파일 텍스처별 임포트 텍스처입니다.
          */
         FResolvedTextures mTextures{};
-        ReflectProperty(mTextures, "Textures", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief ResolveTextures가 판별하지 못한 파일 텍스처별 오류 메시지입니다.
          */
         FTextureErrors mTextureErrors{};
-        ReflectProperty(mTextureErrors, "TextureErrors", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
 }

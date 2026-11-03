@@ -22,12 +22,6 @@ namespace Renderer {
     class FDXRenderTarget final : public Engine::FRenderTarget {
     public:
         /**
-         * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
-         */
-        ReflectTypes(FDXRenderTarget, Engine::FRenderTarget);
-
-    public:
-        /**
          * @brief FDXRenderTarget의 초기 상태와 전달받은 의존성을 구성합니다.
          */
         FDXRenderTarget();
@@ -38,12 +32,6 @@ namespace Renderer {
         ~FDXRenderTarget() override;
 
     public:
-        /**
-         * @brief 이 타입의 정적 구조체 메타데이터를 반환합니다.
-         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectStruct(FDXRenderTarget);
-
         /**
          * @brief 새 크기에 맞추어 렌더 타깃 리소스를 생성하거나 교체합니다.
          * @param[in,out] Device 리소스 생성에 사용할 Direct3D 11 장치입니다.
@@ -112,12 +100,6 @@ namespace Renderer {
 
     private:
         /**
-         * @brief 생성된 프로퍼티 등록 함수와 빌더 접근 권한입니다.
-         */
-        ReflectMembers();
-
-    private:
-        /**
          * @brief UI 표시용 셰이더 리소스 뷰가 참조하는 컬러 텍스처입니다.
          */
         /**
@@ -127,18 +109,15 @@ namespace Renderer {
          * @brief UI 샘플링에 사용할 셰이더 리소스 뷰입니다.
          */
         std::unique_ptr<Asset::UTexture2D> mColor{};
-        ReflectProperty(mColor, "Color", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 후처리 입력 컬러와 다중 안개 합성의 교대 출력으로 사용하는 텍스처입니다.
          */
         std::unique_ptr<Asset::UTexture2D> mSceneColor{};
-        ReflectProperty(mSceneColor, "SceneColor", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
         /**
          * @brief 다중 안개를 읽기·쓰기 충돌 없이 합성하기 위한 교대 컬러 텍스처입니다.
          */
         std::unique_ptr<Asset::UTexture2D> mPostProcessColor{};
-        ReflectProperty(mPostProcessColor, "PostProcessColor", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 깊이 텍스처입니다.
@@ -147,20 +126,16 @@ namespace Renderer {
          * @brief 깊이 스텐실 뷰입니다.
          */
         std::unique_ptr<Asset::UTexture2D> mDepth{};
-        ReflectProperty(mDepth, "Depth", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
-
 
         /**
          * @brief 가로 픽셀 수입니다.
          */
         Core::Uint32 mWidth{};
-        ReflectProperty(mWidth, "Width", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 세로 픽셀 수입니다.
          */
         Core::Uint32 mHeight{};
-        ReflectProperty(mHeight, "Height", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
 }

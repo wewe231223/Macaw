@@ -99,6 +99,17 @@ namespace Engine {
          * @return 복원하면 true입니다.
          */
         bool ResetPose();
+        /**
+         * @brief 저장 대상인 로컬 본 포즈를 반환합니다.
+         * @return 포즈가 유지하는 로컬 행렬의 참조입니다.
+         */
+        const Core::TArray<Core::FMatrix>& GetSerializedPose() const;
+        /**
+         * @brief 저장된 로컬 본 포즈를 검증하여 복원합니다.
+         * @param Transforms 복원할 로컬 행렬입니다.
+         * @return 모든 행렬이 유한하고 역행렬을 가지면 true입니다.
+         */
+        bool SetSerializedPose(const Core::TArray<Core::FMatrix>& Transforms);
 
         /**
          * @brief 현재 포즈와 재질을 복사한 프록시를 생성합니다.
@@ -120,7 +131,7 @@ namespace Engine {
          */
         void Tick(float DeltaTime) override;
         /**
-         * @brief 에셋 참조·슬롯 재질·로컬 본 포즈를 직렬화합니다.
+         * @brief 프로퍼티를 직렬화하고 로드한 포즈를 에셋에 다시 연결합니다.
          * @param Archive 저장 또는 복원할 아카이브입니다.
          */
         void Serialize(Core::FArchive& Archive) override;
@@ -145,12 +156,12 @@ namespace Engine {
          * @brief 에셋 관리자가 소유하는 메시입니다.
          */
         Asset::USkeletalMesh* mSkeletalMesh{};
-        ReflectProperty(mSkeletalMesh, "ResolvedSkeletalMesh", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
         /**
          * @brief 객체별 로컬·전역 포즈와 CPU 피킹 형상입니다.
          */
         Engine::FSkeletalMeshPose mPose{};
-        ReflectProperty(mPose, "Pose", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+        // 메시 setter가 포즈를 초기화하므로 메시 경로를 복원한 뒤에 로드합니다.
+        ReflectArrayAccessor(mPose, GetSerializedPose, SetSerializedPose, "BoneLocalTransforms", Core::EPropertyFlags::Serialize | Core::EPropertyFlags::SerializeLate);
     };
 
 }

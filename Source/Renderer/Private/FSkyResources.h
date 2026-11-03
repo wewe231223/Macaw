@@ -28,12 +28,6 @@ namespace Renderer {
     class FSkyResources {
     public:
         /**
-         * @brief 리플렉션 소유 타입과 선택적 기반 타입의 별칭입니다.
-         */
-        ReflectTypes(FSkyResources);
-
-    public:
-        /**
          * @brief 기본 설정으로 FSkyResources 객체를 초기화합니다.
          */
         FSkyResources();
@@ -43,12 +37,6 @@ namespace Renderer {
         ~FSkyResources();
 
     public:
-        /**
-         * @brief 이 타입의 정적 리플렉션 메타데이터를 반환합니다.
-         * @return 리플렉션 시스템이 보관하는 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectStruct(FSkyResources);
-
         /**
          * @brief 상수 버퍼·샘플러·깊이·래스터라이저 상태를 생성하고 파노라마를 불러옵니다.
          * @param[in] Device GPU 자원을 생성할 Direct3D 11 장치입니다.
@@ -76,10 +64,6 @@ namespace Renderer {
 
     private:
         /**
-         * @brief 생성된 멤버 등록 함수와 리플렉션 빌더의 접근 권한입니다.
-         */
-        ReflectMembers();
-        /**
          * @brief BC7 DDS를 CPU 변환 없이 밉 체인 그대로 GPU 텍스처로 생성합니다.
          * @param[in] Device GPU 자원을 생성할 Direct3D 11 장치입니다.
          * @param[in] Path 읽을 DDS 파일 경로입니다.
@@ -92,43 +76,36 @@ namespace Renderer {
          * @brief 정점 버퍼 없이 원평면 전체 화면 삼각형을 생성하는 셰이더입니다.
          */
         Microsoft::WRL::ComPtr<ID3D11VertexShader> mVertexShader{};
-        ReflectProperty(mVertexShader, "VertexShader", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 시선 방향으로 파노라마를 샘플링하는 픽셀 셰이더입니다.
          */
         Microsoft::WRL::ComPtr<ID3D11PixelShader> mPixelShader{};
-        ReflectProperty(mPixelShader, "PixelShader", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 이동을 제거한 역뷰투영 행렬을 픽셀 셰이더 b0에 전달하는 상수 버퍼입니다.
          */
         Microsoft::WRL::ComPtr<ID3D11Buffer> mConstants{};
-        ReflectProperty(mConstants, "Constants", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 가로 반복·세로 고정 주소 모드의 선형 샘플러입니다.
          */
         Microsoft::WRL::ComPtr<ID3D11SamplerState> mSampler{};
-        ReflectProperty(mSampler, "Sampler", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 원평면과 같거나 먼 픽셀만 통과시키고 깊이를 쓰지 않는 상태입니다.
          */
         Microsoft::WRL::ComPtr<ID3D11DepthStencilState> mDepthState{};
-        ReflectProperty(mDepthState, "DepthState", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 전체 화면 삼각형을 면 제거 없이 채우는 래스터라이저 상태입니다.
          */
         Microsoft::WRL::ComPtr<ID3D11RasterizerState> mRasterizer{};
-        ReflectProperty(mRasterizer, "Rasterizer", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 등장방형 파노라마의 셰이더 리소스 뷰이며 불러오지 못하면 비어 있습니다.
          */
         Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> mPanorama{};
-        ReflectProperty(mPanorama, "Panorama", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
 }

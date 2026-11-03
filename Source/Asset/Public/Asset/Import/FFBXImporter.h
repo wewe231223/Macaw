@@ -23,12 +23,6 @@ namespace Asset {
      * 정점과 본은 모두 mBasis를 거쳐 같은 엔진 공간의 바인드 자세로 저장되며, 이 데이터로 USkeletalMesh가 역바인드 행렬을 계산합니다.
      */
     class FFBXImporter final : public Asset::IMeshImporter {
-    public:
-        /**
-         * @brief 리플렉션 소유 타입과 선택적 기반 타입의 별칭입니다.
-         */
-        ReflectTypes(FFBXImporter, Asset::IMeshImporter);
-
     private:
         /**
          * @brief FBX 재질과 임포트 결과 재질 목록 인덱스의 대응입니다.
@@ -46,13 +40,6 @@ namespace Asset {
          * @brief FBX SDK 관리자와 그 관리자가 소유한 임포터·장면을 해제합니다.
          */
         ~FFBXImporter() override;
-
-    public:
-        /**
-         * @brief 이 타입의 정적 리플렉션 메타데이터를 반환합니다.
-         * @return 리플렉션 시스템이 보관하는 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectStruct(FFBXImporter);
 
     private:
         /**
@@ -124,59 +111,46 @@ namespace Asset {
          */
         bool ReadSkinWeights(fbxsdk::FbxMesh& Mesh, Core::TArray<Asset::FMeshImportSkinWeight>& Weights, fbxsdk::FbxAMatrix& MeshBindPose) const;
 
-        /**
-         * @brief 생성된 멤버 등록 함수와 리플렉션 빌더의 접근 권한입니다.
-         */
-        ReflectMembers();
-
     private:
         /**
          * @brief 임포터와 장면을 포함한 FBX SDK 객체의 수명을 소유하는 관리자입니다.
          */
         fbxsdk::FbxManager* mManager{};
-        ReflectProperty(mManager, "Manager", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief mManager가 소유하는 원본 FBX 파일 임포터의 비소유 주소입니다.
          */
         fbxsdk::FbxImporter* mImporter{};
-        ReflectProperty(mImporter, "Importer", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief mManager가 소유하는 읽어 들인 FBX 장면의 비소유 주소입니다.
          */
         fbxsdk::FbxScene* mScene{};
-        ReflectProperty(mScene, "Scene", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 파일 텍스처를 찾아 형태를 판별하고 재질 슬롯 정책을 적용하는 이미지 처리기입니다.
          */
         Asset::FFBXImageProcessor mImageProcessor{};
-        ReflectProperty(mImageProcessor, "ImageProcessor", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 이미 읽은 FBX 재질의 결과 재질 인덱스 캐시입니다.
          */
         FMaterialIndices mMaterialIndices{};
-        ReflectProperty(mMaterialIndices, "MaterialIndices", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief ConvertScene을 거친 FBX 전역 공간에서 엔진 공간으로 가는 행렬입니다. Y 반전과 임포트 이동·회전·스케일을 포함합니다.
          */
         Core::FMatrix mBasis{};
-        ReflectProperty(mBasis, "Basis", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 스킨 클러스터 링크 노드별 바인드 시점 전역 변환이며 ConvertScene 뒤의 FBX 전역 공간 기준입니다.
          */
         Core::TMap<fbxsdk::FbxNode*, Core::FMatrix> mBindPoses{};
-        ReflectProperty(mBindPoses, "BindPoses", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 본으로 읽은 FBX 노드별 결과 본 인덱스입니다.
          */
         Core::TMap<fbxsdk::FbxNode*, Core::Int32> mBoneIndices{};
-        ReflectProperty(mBoneIndices, "BoneIndices", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
 }

@@ -17,21 +17,9 @@ namespace Renderer {
      */
     class FShadowDepthPass final : public Renderer::FMeshPass {
     public:
-        /**
-         * @brief 리플렉션 소유 타입과 선택적 기반 타입의 별칭입니다.
-         */
-        ReflectTypes(FShadowDepthPass, Renderer::FMeshPass);
-
-    public:
         using Renderer::FMeshPass::FMeshPass;
 
     public:
-        /**
-         * @brief 이 타입의 정적 구조체 메타데이터를 반환합니다.
-         * @return 등록된 구조체 메타데이터의 비소유 주소입니다.
-         */
-        ReflectStruct(FShadowDepthPass);
-
         /**
          * @brief 깊이 전용 입력 레이아웃을 쓰는 그림자 깊이 패스 종류를 반환합니다.
          * @return EMeshPass::ShadowDepth입니다.
@@ -65,16 +53,9 @@ namespace Renderer {
 
     private:
         /**
-         * @brief 생성된 멤버 등록 함수와 리플렉션 빌더의 접근 권한입니다.
-         */
-        ReflectMembers();
-
-    private:
-        /**
          * @brief 이번 패스의 모든 드로가 공유하는 깊이 전용 파이프라인입니다.
          */
         Renderer::FMaterialPipeline* mPipeline{};
-        ReflectProperty(mPipeline, "Pipeline", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
 }

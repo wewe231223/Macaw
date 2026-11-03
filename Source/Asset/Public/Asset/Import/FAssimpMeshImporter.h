@@ -26,12 +26,6 @@ namespace Asset {
     class FAssimpMeshImporter final : public Asset::IMeshImporter {
     public:
         /**
-         * @brief 리플렉션 소유 타입과 선택적 기반 타입의 별칭입니다.
-         */
-        ReflectTypes(FAssimpMeshImporter, Asset::IMeshImporter);
-
-    public:
-        /**
          * @brief 가져올 원본 파일 경로와 임포트 옵션을 보관하도록 Assimp 임포터를 초기화합니다.
          * @param[in] Source 가져올 원본 메시 파일 경로입니다.
          * @param[in] Option 좌표축·메시 구성·노멀 처리 방식을 정하는 임포트 옵션입니다.
@@ -41,13 +35,6 @@ namespace Asset {
          * @brief Assimp 임포터와 읽어 들인 장면을 해제합니다.
          */
         ~FAssimpMeshImporter() override;
-
-    public:
-        /**
-         * @brief 이 타입의 정적 리플렉션 메타데이터를 반환합니다.
-         * @return 리플렉션 시스템이 보관하는 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectStruct(FAssimpMeshImporter);
 
     private:
         /**
@@ -101,41 +88,31 @@ namespace Asset {
          */
         bool ReadMaterials();
 
-        /**
-         * @brief 생성된 멤버 등록 함수와 리플렉션 빌더의 접근 권한입니다.
-         */
-        ReflectMembers();
-
     private:
         /**
          * @brief 원본 파일을 읽고 읽어 들인 장면의 수명을 소유하는 Assimp 임포터입니다.
          */
         Assimp::Importer mImporter{};
-        ReflectProperty(mImporter, "Importer", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief mImporter가 소유하는 읽어 들인 장면의 비소유 주소입니다.
          */
         const aiScene* mScene{};
-        ReflectProperty(mScene, "Scene", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 원본 전역 공간에서 엔진 공간으로 가는 행렬입니다. 축 변환과 임포트 이동·회전·스케일을 포함합니다.
          */
         Core::FMatrix mBasis{};
-        ReflectProperty(mBasis, "Basis", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 메시 본 이름별 바인드 시점 전역 변환이며 원본 전역 공간 기준입니다.
          */
         Core::TMap<Core::FString, Core::FMatrix> mBindPoses{};
-        ReflectProperty(mBindPoses, "BindPoses", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 본으로 읽은 노드 이름별 결과 본 인덱스입니다.
          */
         Core::TMap<Core::FString, Core::Int32> mBoneIndices{};
-        ReflectProperty(mBoneIndices, "BoneIndices", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
 }

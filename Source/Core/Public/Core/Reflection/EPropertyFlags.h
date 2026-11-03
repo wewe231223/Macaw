@@ -34,7 +34,12 @@ namespace Core {
         /**
          * @brief 런타임 전용이므로 직렬화에서 제외합니다.
          */
-        Transient = 8
+        Transient = 8,
+        /**
+         * @brief 클래스의 다른 프로퍼티를 모두 처리한 뒤에 직렬화합니다.
+         * @note 다른 프로퍼티의 setter가 초기화하는 값에 사용합니다.
+         */
+        SerializeLate = 16
     };
 
     /**

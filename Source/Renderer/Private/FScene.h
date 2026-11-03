@@ -26,12 +26,6 @@ namespace Renderer {
     class FScene final : public Engine::FSceneInterface {
     public:
         /**
-         * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
-         */
-        ReflectTypes(FScene, Engine::FSceneInterface);
-
-    public:
-        /**
          * @brief FScene의 초기 상태와 전달받은 의존성을 구성합니다.
          * @param[in,out] Device 리소스 생성에 사용할 Direct3D 11 장치입니다.
          * @param[in,out] Context GPU 명령을 기록할 Direct3D 11 장치 컨텍스트입니다.
@@ -44,12 +38,6 @@ namespace Renderer {
         ~FScene() override;
 
     public:
-        /**
-         * @brief 이 타입의 정적 구조체 메타데이터를 반환합니다.
-         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectStruct(FScene);
-
         /**
          * @brief 광원 프록시의 GUID로 렌더 장면에 광원을 추가하거나 교체합니다.
          * @param[in] Proxy 장면에 복사할 광원 상태입니다.
@@ -165,78 +153,59 @@ namespace Renderer {
 
     private:
         /**
-         * @brief 생성된 프로퍼티 등록 함수와 빌더 접근 권한입니다.
-         */
-        ReflectMembers();
-
-    private:
-        /**
          * @brief 등록된 광원 프록시 목록입니다.
          */
         Core::TArray<Engine::FLightSceneProxy> mLights{};
-        ReflectProperty(mLights, "Lights", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 컴포넌트 GUID별로 추가·갱신되는 높이 안개 프록시 목록입니다.
          */
         Core::TArray<Engine::FHeightFogSceneProxy> mHeightFogs{};
-        ReflectProperty(mHeightFogs, "HeightFogs", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 광원 GUID를 조밀한 광원 배열의 인덱스에 연결합니다.
          */
         Core::TMap<Core::FGuid, std::size_t, Core::FGuidHash> mLightIndices{};
-        ReflectProperty(mLightIndices, "LightIndices", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 장면의 GPU 자원 생성에 사용할 Direct3D 장치의 비소유 주소입니다.
          */
         ID3D11Device* mDevice{};
-        ReflectProperty(mDevice, "Device", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief Direct3D 11 즉시 컨텍스트입니다.
          */
         ID3D11DeviceContext* mContext{};
-        ReflectProperty(mContext, "Context", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
-
 
         /**
          * @brief 장면이 소유한 렌더 프리미티브입니다.
          */
         Core::TArray<Renderer::FScenePrimitive> mPrimitives{};
-        ReflectProperty(mPrimitives, "Primitives", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 프리미티브 GUID에서 밀집 배열 인덱스로의 조회 맵입니다.
          */
         Core::TMap<Core::FGuid, std::size_t, Core::FGuidHash> mIndices{};
-        ReflectProperty(mIndices, "Indices", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
-
 
         /**
          * @brief 프리미티브 추가·제거 또는 변환 갱신 시 증가하는 장면 개정 번호입니다.
          */
         Core::Uint64 mRevision{};
-        ReflectProperty(mRevision, "Revision", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 소비 전 누적된 객체 상수 버퍼 갱신 수입니다.
          */
         mutable Core::Uint32 mTransformUpdates{};
-        ReflectProperty(mTransformUpdates, "TransformUpdates", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 장면 생성 시 발급한 고유 번호입니다.
          */
         Core::FRevision mIdentity{Core::FRevision::Next()};
-        ReflectProperty(mIdentity, "Identity", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 그림자 캐스터 프리미티브가 추가·제거·변경될 때 새로 받는 리비전입니다.
          */
         Core::FRevision mCasterRevision{Core::FRevision::Next()};
-        ReflectProperty(mCasterRevision, "CasterRevision", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
 }

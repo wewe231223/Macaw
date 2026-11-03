@@ -20,12 +20,6 @@ namespace Editor {
     class FEditorPanel {
     public:
         /**
-         * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
-         */
-        ReflectTypes(FEditorPanel);
-
-    public:
-        /**
          * @brief FEditorPanel의 초기 상태와 전달받은 의존성을 구성합니다.
          * @param[in,out] Context 패널이 조회하고 편집할 에디터 컨텍스트입니다.
          * @param[in] Name 조회하거나 기록할 이름입니다.
@@ -50,12 +44,6 @@ namespace Editor {
         Editor::FEditorPanel& operator=(const Editor::FEditorPanel&) = delete;
 
     public:
-        /**
-         * @brief 이 타입의 정적 구조체 메타데이터를 반환합니다.
-         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectStruct(FEditorPanel);
-
         /**
          * @brief 패널이 표시 상태이면 ImGui 창을 열고 내용을 그립니다.
          * @param[in] DeltaTime 이전 프레임 이후 경과한 시간(초)입니다.
@@ -107,41 +95,29 @@ namespace Editor {
 
     private:
         /**
-         * @brief 생성된 프로퍼티 등록 함수와 빌더 접근 권한입니다.
-         */
-        ReflectMembers();
-
-    private:
-        /**
          * @brief 연결된 공통 편집 컨텍스트입니다.
          */
         Editor::FEditorContext* mContext{};
-        ReflectProperty(mContext, "Context", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 패널 창 이름입니다.
          */
         Core::FString mName{};
-        ReflectProperty(mName, "Name", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
-
 
         /**
          * @brief 패널 닫기 버튼을 표시할지 여부입니다.
          */
         bool mClosable{};
-        ReflectProperty(mClosable, "Closable", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 패널 표시 여부입니다.
          */
         bool mVisible{true};
-        ReflectProperty(mVisible, "Visible", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 다음 그리기에서 창에 포커스를 줄지 여부입니다.
          */
         bool mFocusRequested{};
-        ReflectProperty(mFocusRequested, "FocusRequested", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
 }

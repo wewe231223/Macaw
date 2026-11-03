@@ -240,49 +240,41 @@ namespace Engine {
          * @details 복수 컨텍스트를 슬롯별로 소유하며 현재 편집 대상은 mCurrentWorld 핸들로 선택합니다.
          */
         Core::TArray<std::unique_ptr<Engine::FWorldContext>> mWorldContexts{};
-        ReflectProperty(mWorldContexts, "WorldContexts", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 기존 편집 경로가 참조하는 현재 월드의 비소유 핸들입니다.
          */
         Engine::FWorldHandle mCurrentWorld{};
-        ReflectProperty(mCurrentWorld, "CurrentWorld", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 연결된 렌더러의 비소유 주소입니다.
          */
         RenderCore::IRendererModule* mRenderer{};
-        ReflectProperty(mRenderer, "Renderer", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 월드 교체 시 증가하는 컨텍스트 세대입니다.
          */
         Core::Uint64 mWorldGeneration{};
-        ReflectProperty(mWorldGeneration, "WorldGeneration", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 초기화가 완료되어 월드를 생성할 수 있는지 나타냅니다.
          */
         bool mInitialized{};
-        ReflectProperty(mInitialized, "Initialized", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 월드와 에셋 접근에 사용할 프로젝트의 비소유 주소입니다.
          */
         Engine::FProject* mProject{};
-        ReflectProperty(mProject, "Project", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 갱신이나 복제 및 정리 도중 엔진 변경의 재진입을 막습니다.
          */
         bool mUpdating{};
-        ReflectProperty(mUpdating, "Updating", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 안전한 갱신 경계에서 처리할 엔진 종료 요청입니다.
          */
         bool mShutdownRequested{};
-        ReflectProperty(mShutdownRequested, "ShutdownRequested", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
 }

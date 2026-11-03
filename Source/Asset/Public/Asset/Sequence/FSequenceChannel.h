@@ -21,18 +21,6 @@ namespace Asset {
     class FSequenceChannel {
     public:
         /**
-         * @brief 리플렉션에서 사용할 소유 타입 별칭입니다.
-         */
-        ReflectTypes(FSequenceChannel);
-
-    public:
-        /**
-         * @brief 정적 구조체 메타데이터를 반환합니다.
-         * @return 메타데이터의 비소유 주소입니다.
-         */
-        ReflectStruct(FSequenceChannel);
-
-        /**
          * @brief 시간순으로 정렬된 키 목록을 반환합니다.
          * @return 채널이 소유한 키 목록의 참조입니다.
          */
@@ -76,16 +64,9 @@ namespace Asset {
 
     private:
         /**
-         * @brief 생성된 멤버 등록 함수의 접근 권한입니다.
-         */
-        ReflectMembers();
-
-    private:
-        /**
          * @brief 시간순으로 정렬되고 시간이 중복되지 않는 키 목록입니다.
          */
         Core::TArray<Asset::FSequenceKey> mKeys{};
-        ReflectProperty(mKeys, "Keys", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
 }

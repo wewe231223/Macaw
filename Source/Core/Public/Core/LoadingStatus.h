@@ -24,23 +24,11 @@ namespace Core {
         class ISink {
         public:
             /**
-             * @brief 리플렉션 소유 타입과 선택적 기반 타입의 별칭입니다.
-             */
-            ReflectTypes(ISink);
-
-        public:
-            /**
              * @brief 객체 수명을 끝냅니다.
              */
             virtual ~ISink() = default;
 
         public:
-            /**
-             * @brief 이 타입의 정적 리플렉션 메타데이터를 반환합니다.
-             * @return 등록된 타입 메타데이터의 비소유 주소입니다.
-             */
-            ReflectStruct(ISink);
-
             /**
              * @brief 새 로딩 단계가 시작되었음을 받습니다.
              * @param[in] Stage 사용자에게 표시할 단계 이름입니다.
@@ -54,12 +42,6 @@ namespace Core {
              * @param[in] File 처리 중인 파일 경로입니다.
              */
             virtual void OnFile(std::string_view Action, const std::filesystem::path& File) = 0;
-
-        private:
-            /**
-             * @brief 생성된 멤버 등록 함수와 리플렉션 빌더의 접근 권한입니다.
-             */
-            ReflectMembers();
         };
 
         /**

@@ -45,12 +45,6 @@ namespace Editor {
     class FMeshViewer {
     public:
         /**
-         * @brief 리플렉션 소유 타입의 별칭입니다.
-         */
-        ReflectTypes(FMeshViewer);
-
-    public:
-        /**
          * @brief 렌더러와 프로젝트 에셋 관리자를 연결합니다.
          * @param Renderer 렌더러의 비소유 주소입니다.
          * @param Assets 에셋 관리자의 비소유 주소입니다.
@@ -77,12 +71,6 @@ namespace Editor {
 
     public:
         /**
-         * @brief 정적 타입 메타데이터를 반환합니다.
-         * @return 등록된 구조체 메타데이터입니다.
-         */
-        ReflectStruct(FMeshViewer);
-
-        /**
          * @brief 에셋을 독립 미리보기 장면에 엽니다.
          * @param Path Content 기준 또는 절대 메시 에셋 경로입니다.
          * @param Error 실패 설명을 받습니다.
@@ -106,12 +94,6 @@ namespace Editor {
          * @brief 전체 메시가 보이도록 카메라를 배치합니다.
          */
         void FrameMesh();
-
-    private:
-        /**
-         * @brief 생성된 리플렉션 멤버 등록 함수의 접근을 허용합니다.
-         */
-        ReflectMembers();
 
     private:
         /**
@@ -173,149 +155,123 @@ namespace Editor {
          * @brief 렌더러의 비소유 주소입니다.
          */
         RenderCore::IRendererModule* mRenderer{};
-        ReflectProperty(mRenderer, "Renderer", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 프로젝트 에셋 관리자의 비소유 주소입니다.
          */
         Asset::FAssetManager* mAssets{};
-        ReflectProperty(mAssets, "Assets", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 편집 월드와 분리한 미리보기 장면입니다.
          */
         std::unique_ptr<Engine::FSceneInterface> mScene{};
-        ReflectProperty(mScene, "Scene", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 미리보기 전용 렌더 타깃입니다.
          */
         std::unique_ptr<Engine::FRenderTarget> mTarget{};
-        ReflectProperty(mTarget, "Target", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 현재 메시의 비소유 주소입니다.
          */
         Asset::UStaticMesh* mMesh{};
-        ReflectProperty(mMesh, "Mesh", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 스켈레탈 미리보기에서 사용하는 공유 에셋입니다.
          */
         Asset::USkeletalMesh* mSkeletalMesh{};
-        ReflectProperty(mSkeletalMesh, "SkeletalMesh", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
         /**
          * @brief 미리보기 객체만의 현재 포즈입니다.
          */
         Engine::FSkeletalMeshPose mPose{};
-        ReflectProperty(mPose, "Pose", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
         /**
          * @brief 본 조작에 사용하는 기즈모 표시와 드래그 계산입니다.
          */
         Editor::FGizmoCore mGizmo{};
-        ReflectProperty(mGizmo, "Gizmo", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
         /**
          * @brief 본 기즈모의 변환 모드입니다.
          */
         Editor::EGizmoMode mGizmoMode{Editor::EGizmoMode::Rotate};
-        ReflectProperty(mGizmoMode, "GizmoMode", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
         /**
          * @brief 본 기즈모 축의 좌표계입니다.
          */
         Editor::EGizmoSpace mGizmoSpace{Editor::EGizmoSpace::Local};
-        ReflectProperty(mGizmoSpace, "GizmoSpace", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
         /**
          * @brief 드래그 시작 시 선택한 본의 전역 변환입니다.
          */
         Core::FMatrix mDragStartGlobal{};
-        ReflectProperty(mDragStartGlobal, "DragStartGlobal", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
         /**
          * @brief 드래그를 취소할 때 복원할 선택한 본의 로컬 변환입니다.
          */
         Core::FMatrix mDragStartLocal{};
-        ReflectProperty(mDragStartLocal, "DragStartLocal", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
         /**
          * @brief 기즈모 조작 대상으로 선택한 본입니다.
          */
         Core::Uint32 mPoseBone{};
-        ReflectProperty(mPoseBone, "PoseBone", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
         /**
          * @brief 현재 본 계층을 보조 선분으로 표시할지 지정합니다.
          */
         bool mShowBones{true};
-        ReflectProperty(mShowBones, "ShowBones", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 현재 슬롯별 미리보기 재질의 비소유 주소입니다.
          */
         Core::TArray<Asset::UMaterial*> mMaterials{};
-        ReflectProperty(mMaterials, "Materials", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 미리보기 슬롯별 오버라이드 경로입니다.
          */
         Core::TArray<Core::FString> mMaterialPaths{};
-        ReflectProperty(mMaterialPaths, "MaterialPaths", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 미리보기 프리미티브의 식별자입니다.
          */
         Core::FGuid mPrimitiveId{};
-        ReflectProperty(mPrimitiveId, "PrimitiveId", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 미리보기 에셋의 표시 경로입니다.
          */
         Core::FString mPath{};
-        ReflectProperty(mPath, "Path", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 최근 미리보기 실패의 설명입니다.
          */
         Core::FString mError{};
-        ReflectProperty(mError, "Error", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 카메라 회전의 도 단위 값입니다.
          */
         Core::FRotator mRotation{-20.0f, 45.0f, 0.0f};
-        ReflectProperty(mRotation, "Rotation", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 궤도 카메라의 중심입니다.
          */
         Core::FVector mCenter{};
-        ReflectProperty(mCenter, "Center", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 중심에서 카메라까지의 거리입니다.
          */
         float mDistance{10.0f};
-        ReflectProperty(mDistance, "Distance", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 메시 경계 구의 반지름입니다.
          */
         float mRadius{1.0f};
-        ReflectProperty(mRadius, "Radius", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 뷰어의 표시 모드입니다.
          */
         Engine::EViewMode mViewMode{Engine::EViewMode::Lit};
-        ReflectProperty(mViewMode, "ViewMode", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 창의 열림 여부입니다.
          */
         bool mOpen{};
-        ReflectProperty(mOpen, "Open", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 미리보기에서 시작한 마우스 드래그의 캡처 상태입니다.
          */
         bool mMouseCaptured{};
-        ReflectProperty(mMouseCaptured, "MouseCaptured", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
 }

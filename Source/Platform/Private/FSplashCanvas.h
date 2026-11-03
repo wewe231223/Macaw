@@ -23,12 +23,6 @@ namespace Platform {
     class FSplashCanvas {
     public:
         /**
-         * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
-         */
-        ReflectTypes(FSplashCanvas);
-
-    public:
-        /**
          * @brief 0~1 범위의 선형 RGB 색입니다.
          */
         using FColor = std::array<float, 3>;
@@ -56,12 +50,6 @@ namespace Platform {
         Platform::FSplashCanvas& operator=(const Platform::FSplashCanvas&) = delete;
 
     public:
-        /**
-         * @brief 이 타입의 정적 구조체 메타데이터를 반환합니다.
-         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectStruct(FSplashCanvas);
-
         /**
          * @brief 프레임 DIB와 글꼴을 만들고 고정 배경을 합성합니다.
          * @param[in] Width 프레임의 가로 픽셀 수입니다.
@@ -142,113 +130,91 @@ namespace Platform {
          */
         void DrawProgress(float Progress, float Time);
 
-        /**
-         * @brief 생성된 프로퍼티 등록 함수와 빌더 접근 권한입니다.
-         */
-        ReflectMembers();
-
     private:
         /**
          * @brief 프레임 가로 픽셀 수입니다.
          */
         Core::Int32 mWidth{};
-        ReflectProperty(mWidth, "Width", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 프레임 세로 픽셀 수입니다.
          */
         Core::Int32 mHeight{};
-        ReflectProperty(mHeight, "Height", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 96 DPI 기준 화면 배율입니다.
          */
         float mScale{1.0f};
-        ReflectProperty(mScale, "Scale", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 프레임 DIB를 선택한 메모리 DC입니다.
          */
         HDC mDC{};
-        ReflectProperty(mDC, "DC", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 32비트 프레임 DIB입니다.
          */
         HBITMAP mBitmap{};
-        ReflectProperty(mBitmap, "Bitmap", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 메모리 DC에 원래 선택되어 있던 비트맵입니다.
          */
         HGDIOBJ mOldBitmap{};
-        ReflectProperty(mOldBitmap, "OldBitmap", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 프레임 DIB의 0xRRGGBB 픽셀 주소입니다.
          */
         Core::Uint32* mBits{};
-        ReflectProperty(mBits, "Bits", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 매 프레임 복사해 쓰는 고정 배경 픽셀입니다.
          */
         std::vector<Core::Uint32> mBackground{};
-        ReflectProperty(mBackground, "Background", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 아이콘 한 변의 픽셀 수입니다.
          */
         Core::Int32 mIconSize{};
-        ReflectProperty(mIconSize, "IconSize", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 미리 곱한 알파의 RGBA 아이콘 픽셀입니다.
          */
         std::vector<float> mIconPixels{};
-        ReflectProperty(mIconPixels, "IconPixels", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief "MACAW" 제목 글꼴입니다.
          */
         HFONT mTitleFont{};
-        ReflectProperty(mTitleFont, "TitleFont", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 부제와 라벨 글꼴입니다.
          */
         HFONT mCaptionFont{};
-        ReflectProperty(mCaptionFont, "CaptionFont", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 프로젝트 이름 글꼴입니다.
          */
         HFONT mProjectFont{};
-        ReflectProperty(mProjectFont, "ProjectFont", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 로딩 단계 글꼴입니다.
          */
         HFONT mStageFont{};
-        ReflectProperty(mStageFont, "StageFont", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 처리 중 파일 글꼴입니다.
          */
         HFONT mDetailFont{};
-        ReflectProperty(mDetailFont, "DetailFont", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief AddFontMemResourceEx로 등록한 Pretendard 글꼴 핸들입니다.
          */
         std::vector<HANDLE> mFontResources{};
-        ReflectProperty(mFontResources, "FontResources", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief Pretendard 세 굵기를 모두 등록했는지 여부입니다.
          */
         bool mHasPretendard{};
-        ReflectProperty(mHasPretendard, "HasPretendard", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
 }

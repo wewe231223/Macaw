@@ -32,11 +32,6 @@ namespace Editor {
     class FViewportStatistics {
     public:
         /**
-         * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
-         */
-        ReflectTypes(FViewportStatistics);
-
-        /**
          * @brief 뷰포트 통계의 표시 그룹을 비트 플래그로 구분합니다.
          */
         enum class EGroup : Core::Uint32 {
@@ -99,12 +94,6 @@ namespace Editor {
 
     public:
         /**
-         * @brief 이 타입의 정적 구조체 메타데이터를 반환합니다.
-         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectStruct(FViewportStatistics);
-
-        /**
          * @brief stat 그룹 표시·목록·이력 초기화 명령을 처리합니다.
          * @param[in] Command 처리할 콘솔 명령 문자열입니다.
          * @param[out] Output 명령 처리 결과 또는 사용법을 받을 문자열입니다.
@@ -151,28 +140,19 @@ namespace Editor {
 
     private:
         /**
-         * @brief 생성된 프로퍼티 등록 함수와 빌더 접근 권한입니다.
-         */
-        ReflectMembers();
-
-    private:
-        /**
          * @brief 기본 표시 상태와 다르게 처리할 통계 그룹 이름 목록입니다.
          */
         Core::TArray<Core::FString> mEnabledGroups{};
-        ReflectProperty(mEnabledGroups, "EnabledGroups", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 기본적으로 모든 통계 그룹을 켜고 예외 목록을 적용할지 나타냅니다.
          */
         bool mAllGroups{};
-        ReflectProperty(mAllGroups, "AllGroups", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 통계 패널의 그룹·항목 이름 검색 버퍼입니다.
          */
         std::array<char, 128> mFilter{};
-        ReflectProperty(mFilter, "Filter", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
 }

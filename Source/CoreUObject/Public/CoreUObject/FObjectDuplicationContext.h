@@ -21,18 +21,6 @@ namespace CoreUObject {
     class FObjectDuplicationContext {
     public:
         /**
-         * @brief 리플렉션에서 사용할 소유 타입 별칭입니다.
-         */
-        ReflectTypes(FObjectDuplicationContext);
-
-    public:
-        /**
-         * @brief 복제 대응표의 정적 구조체 메타데이터를 반환합니다.
-         * @return 등록된 메타데이터의 비소유 주소입니다.
-         */
-        ReflectStruct(FObjectDuplicationContext);
-
-        /**
          * @brief 서로 다른 동일 클래스 객체의 대응 관계를 등록합니다.
          * @param[in] Source 복제 원본입니다.
          * @param[in,out] Duplicate 원본에 대응하는 복제본입니다.
@@ -60,16 +48,9 @@ namespace CoreUObject {
 
     private:
         /**
-         * @brief 대응표의 리플렉션 등록 함수와 빌더 접근 권한입니다.
-         */
-        ReflectMembers();
-
-    private:
-        /**
          * @brief 원본 주소를 복제본 주소로 연결하는 비소유 대응표입니다.
          */
         Core::TMap<const CoreUObject::UObject*, CoreUObject::UObject*> mObjects{};
-        ReflectProperty(mObjects, "Objects", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
 }

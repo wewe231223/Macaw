@@ -416,7 +416,7 @@ namespace Editor {
             bool Bound{};
 
             for (const Engine::FSequenceBindingTarget& Target : Actor->GetBindingTargets()) {
-                Bound = Bound || Target.mObjectId == Selected->GetGuid();
+                Bound = Bound || Target.mObject.GetGuid() == Selected->GetGuid();
             }
 
             if (!Bound) {

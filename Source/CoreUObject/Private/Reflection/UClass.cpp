@@ -121,10 +121,18 @@ namespace CoreUObject {
      * @brief 상속된 프로퍼티를 포함하여 클래스 값을 직렬화합니다.
      */
     void CoreUObject::UClass::SerializeClassProperties(void* Container, Core::FArchive& Archive, const CoreUObject::FProperty* Excluded) const {
-        for (const CoreUObject::FProperty* Property : mAllProperties) {
-            if (Property != Excluded) {
-                Property->SerializeValue(Container, Archive);
+        for (const bool Late : {false, true}) {
+            for (const CoreUObject::FProperty* Property : mAllProperties) {
+                if (Property != Excluded && Property->HasFlag(Core::EPropertyFlags::SerializeLate) == Late) {
+                    Property->SerializeValue(Container, Archive);
+                }
             }
+        }
+    }
+
+    void CoreUObject::UClass::BindClassObjectReferences(void* Container, const CoreUObject::FObjectGuidMap& Objects) const {
+        for (const CoreUObject::FProperty* Property : mAllProperties) {
+            Property->BindObjectReferences(Container, Objects);
         }
     }
 

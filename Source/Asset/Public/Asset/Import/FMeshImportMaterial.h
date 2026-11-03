@@ -17,12 +17,6 @@ namespace Asset {
     class FMeshImportMaterial {
     public:
         /**
-         * @brief 리플렉션 소유 타입과 선택적 기반 타입의 별칭입니다.
-         */
-        ReflectTypes(FMeshImportMaterial);
-
-    public:
-        /**
          * @brief 기본 설정으로 FMeshImportMaterial 객체를 초기화합니다.
          */
         FMeshImportMaterial() = default;
@@ -37,12 +31,6 @@ namespace Asset {
         FMeshImportMaterial(Core::FString Name, const Core::FVector4& BaseColor, bool TwoSided, Asset::FMeshImportTexture BaseColorTexture, Asset::FMeshImportTexture NormalMapTexture);
 
     public:
-        /**
-         * @brief 이 타입의 정적 리플렉션 메타데이터를 반환합니다.
-         * @return 리플렉션 시스템이 보관하는 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectStruct(FMeshImportMaterial);
-
         /**
          * @brief 임포트한 원본 재질 이름을 반환합니다.
          * @return 소유 객체가 보관하는 이름의 읽기 전용 문자열 참조입니다.
@@ -86,71 +74,50 @@ namespace Asset {
         bool SetLighting(const Core::FVector4& SpecularColor, float SpecularStrength, float Shininess, const Core::FVector4& AmbientColor, const Core::FVector4& EmissiveColor, const Core::FVector4& ReflectionColor, float ReflectionStrength, Asset::FMeshImportTexture SpecularTexture, Asset::FMeshImportTexture EmissiveTexture, Asset::FMeshImportTexture ReflectionTexture);
 
     private:
-        /**
-         * @brief 생성된 멤버 등록 함수와 리플렉션 빌더의 접근 권한입니다.
-         */
-        ReflectMembers();
-
-    private:
         Core::FVector4 mSpecularColor{1.0f, 1.0f, 1.0f, 1.0f};
-        ReflectProperty(mSpecularColor, "SpecularColor", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         Core::FVector4 mAmbientColor{1.0f, 1.0f, 1.0f, 1.0f};
-        ReflectProperty(mAmbientColor, "AmbientColor", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         Core::FVector4 mEmissiveColor{0.0f, 0.0f, 0.0f, 1.0f};
-        ReflectProperty(mEmissiveColor, "EmissiveColor", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         Core::FVector4 mReflectionColor{1.0f, 1.0f, 1.0f, 1.0f};
-        ReflectProperty(mReflectionColor, "ReflectionColor", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         float mSpecularStrength{0.0f};
-        ReflectProperty(mSpecularStrength, "SpecularStrength", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         float mShininess{32.0f};
-        ReflectProperty(mShininess, "Shininess", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         float mReflectionStrength{0.0f};
-        ReflectProperty(mReflectionStrength, "ReflectionStrength", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         Asset::FMeshImportTexture mSpecularTexture{};
-        ReflectProperty(mSpecularTexture, "SpecularTexture", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         Asset::FMeshImportTexture mEmissiveTexture{};
-        ReflectProperty(mEmissiveTexture, "EmissiveTexture", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         Asset::FMeshImportTexture mReflectionTexture{};
-        ReflectProperty(mReflectionTexture, "ReflectionTexture", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 저장하거나 원본 파일에서 읽은 재질 이름입니다.
          */
         Core::FString mName{};
-        ReflectProperty(mName, "Name", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 재질의 선형 RGBA 기본색입니다.
          */
         Core::FVector4 mBaseColor{1.0f, 1.0f, 1.0f, 1.0f};
-        ReflectProperty(mBaseColor, "BaseColor", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 뒷면을 제거하지 않고 양면으로 그릴지 나타냅니다.
          */
         bool mTwoSided{};
-        ReflectProperty(mTwoSided, "TwoSided", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 원본 재질의 기본색 텍스처 출처와 참조입니다.
          */
         Asset::FMeshImportTexture mBaseColorTexture{};
-        ReflectProperty(mBaseColorTexture, "BaseColorTexture", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 원본 재질의 노멀 맵 출처와 참조입니다.
          */
         Asset::FMeshImportTexture mNormalMapTexture{};
-        ReflectProperty(mNormalMapTexture, "NormalMapTexture", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
 }

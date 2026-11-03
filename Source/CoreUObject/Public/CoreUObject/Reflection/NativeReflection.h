@@ -8,6 +8,7 @@
 
 #include "Core/ReflectionMacros.h"
 #include "CoreUObject/Reflection/FReflectionRegistry.h"
+#include "CoreUObject/Reflection/FArrayOps.h"
 #include "CoreUObject/Reflection/FReflectionBuilder.h"
 #include "CoreUObject/Reflection/TMemberPointerTraits.h"
 #include "CoreUObject/Reflection/TNativeEnum.h"
@@ -15,6 +16,7 @@
 #include <type_traits>
 #include <functional>
 #include <limits>
+#include <optional>
 
 namespace CoreUObject {
 
@@ -114,6 +116,94 @@ namespace CoreUObject {
      */
     template <auto Member, auto Getter>
     void RegisterReadOnlyProperty(CoreUObject::FReflectionBuilder& Information, Core::FString Name, Core::EPropertyFlags Flags);
+
+    /**
+     * @brief 네이티브 값을 프로퍼티 variant의 대응 저장 타입으로 변환합니다.
+     * @tparam FValue 변환할 네이티브 값 타입입니다.
+     * @param[in] Value 변환할 값입니다.
+     * @return 변환한 variant 값입니다.
+     */
+    template <typename FValue>
+    CoreUObject::FPropertyValue ToPropertyValue(const FValue& Value);
+
+    /**
+     * @brief variant 타입과 Uint8 범위를 검사하여 네이티브 값으로 변환합니다.
+     * @tparam FValue 변환할 네이티브 값 타입입니다.
+     * @param[in] Value 변환할 variant 값입니다.
+     * @return 변환한 값이며, 타입이나 범위가 맞지 않으면 비어 있습니다.
+     */
+    template <typename FValue>
+    std::optional<FValue> FromPropertyValue(const CoreUObject::FPropertyValue& Value);
+
+    /**
+     * @brief setter 또는 멤버 포인터로 값을 씁니다.
+     * @tparam Member 등록할 멤버 포인터입니다.
+     * @tparam Setter 선택적인 setter 포인터이며 nullptr이면 멤버에 직접 씁니다.
+     * @tparam FValue 쓸 값의 타입입니다.
+     * @param[in,out] Object 대상 객체입니다.
+     * @param[in] Value 쓸 값입니다.
+     * @return 쓰기에 성공하면 true입니다.
+     */
+    template <auto Member, auto Setter, typename FValue>
+    bool AssignMemberValue(typename CoreUObject::TMemberPointerTraits<decltype(Member)>::FOwner* Object, const FValue& Value);
+
+    /**
+     * @brief 네이티브 열거형의 값 목록을 조회합니다.
+     * @tparam T 조회할 네이티브 타입입니다.
+     * @return 열거값 목록이며 열거형이 아니면 비어 있습니다.
+     */
+    template <typename T>
+    Core::TArray<CoreUObject::FEnumValue> GetNativeEnumValues();
+
+    /**
+     * @brief 배열 원소 하나를 다루는 프로퍼티를 반환합니다.
+     * @tparam T 원소 타입이며 프로퍼티 저장 타입 또는 리플렉션 값 구조체여야 합니다.
+     * @return 프로세스 수명의 원소 프로퍼티입니다.
+     */
+    template <typename T>
+    const CoreUObject::FProperty* GetArrayElementProperty();
+
+    /**
+     * @brief 배열 타입의 함수 테이블을 반환합니다.
+     * @tparam FArray 네이티브 TArray 타입입니다.
+     * @return 프로세스 수명의 함수 테이블입니다.
+     */
+    template <typename FArray>
+    const CoreUObject::FArrayOps* GetArrayOps();
+
+    /**
+     * @brief 배열의 주소를 불투명 주소 값으로 반환합니다.
+     * @tparam Member 등록할 멤버 포인터입니다.
+     * @tparam Getter 선택적인 getter 포인터이며 const TArray&를 반환해야 합니다.
+     * @param[in] Container 프로퍼티 소유 타입의 유효한 인스턴스 주소입니다.
+     * @return 배열 주소를 담은 variant 값입니다.
+     */
+    template <auto Member, auto Getter>
+    CoreUObject::FPropertyValue ReadArrayProperty(const void* Container);
+
+    /**
+     * @brief 같은 타입의 배열 주소를 받아 setter 또는 멤버 포인터로 배열 전체를 씁니다.
+     * @tparam Member 등록할 멤버 포인터입니다.
+     * @tparam Getter 선택적인 getter 포인터이며 nullptr이면 멤버를 직접 읽습니다.
+     * @tparam Setter 선택적인 setter 포인터이며 nullptr이면 멤버에 직접 씁니다.
+     * @param[in] Container 프로퍼티 소유 타입의 유효한 인스턴스 주소입니다.
+     * @param[in] Value 이 프로퍼티와 같은 배열 타입의 주소를 담은 variant 값입니다.
+     * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
+     */
+    template <auto Member, auto Getter, auto Setter>
+    bool WriteArrayProperty(void* Container, const CoreUObject::FPropertyValue& Value);
+
+    /**
+     * @brief 네이티브 TArray 멤버의 플래그, 읽기·쓰기 함수와 함수 테이블을 등록합니다.
+     * @tparam Member 등록할 멤버 포인터입니다.
+     * @tparam Getter 선택적인 getter 포인터이며 nullptr이면 멤버를 직접 읽습니다.
+     * @tparam Setter 선택적인 setter 포인터이며 nullptr이면 멤버에 직접 씁니다.
+     * @param[in,out] Information 프로퍼티를 추가할 리플렉션 빌더입니다.
+     * @param[in] Name 조회하거나 기록할 이름입니다.
+     * @param[in] Flags 프로퍼티의 편집·직렬화 정책 플래그입니다.
+     */
+    template <auto Member, auto Getter, auto Setter>
+    void RegisterArrayProperty(CoreUObject::FReflectionBuilder& Information, Core::FString Name, Core::EPropertyFlags Flags);
 
 }
 

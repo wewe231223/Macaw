@@ -32,12 +32,6 @@ namespace Renderer {
     class FPostProcessResources {
     public:
         /**
-         * @brief 리플렉션 소유 타입과 선택적 기반 타입의 별칭입니다.
-         */
-        ReflectTypes(FPostProcessResources);
-
-    public:
-        /**
          * @brief 기본 설정으로 FPostProcessResources 객체를 초기화합니다.
          */
         FPostProcessResources();
@@ -47,12 +41,6 @@ namespace Renderer {
         ~FPostProcessResources();
 
     public:
-        /**
-         * @brief 이 타입의 정적 리플렉션 메타데이터를 반환합니다.
-         * @return 리플렉션 시스템이 보관하는 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectStruct(FPostProcessResources);
-
         /**
          * @brief 상수 버퍼·선형 Clamp 샘플러·깊이 비활성 상태와 면 제거 없는 래스터라이저를 생성합니다.
          * @param[in] Device GPU 자원을 생성하거나 조회할 Direct3D 11 장치입니다.
@@ -80,10 +68,6 @@ namespace Renderer {
 
     private:
         /**
-         * @brief 생성된 멤버 등록 함수와 리플렉션 빌더의 접근 권한입니다.
-         */
-        ReflectMembers();
-        /**
          * @brief 입력 컬러·깊이를 읽어 다른 컬러 타깃에 전체 화면 삼각형을 그리고 SRV·RTV 바인딩을 해제합니다.
          * @param[in] Context GPU 명령을 기록하고 읽기·쓰기 상태를 설정할 Direct3D 11 컨텍스트입니다.
          * @param[in] Source 샘플링할 입력 컬러 텍스처이며 Destination과 다른 자원이어야 합니다.
@@ -97,37 +81,31 @@ namespace Renderer {
          * @brief 정점 버퍼 없이 정점 ID로 전체 화면 삼각형을 생성하는 셰이더입니다.
          */
         Microsoft::WRL::ComPtr<ID3D11VertexShader> mVertexShader{};
-        ReflectProperty(mVertexShader, "VertexShader", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 복사·안개·Scene Depth·FXAA 분기를 수행하는 후처리 픽셀 셰이더입니다.
          */
         Microsoft::WRL::ComPtr<ID3D11PixelShader> mPixelShader{};
-        ReflectProperty(mPixelShader, "PixelShader", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief FPostProcessConstants를 픽셀 셰이더 b0에 전달하는 GPU 상수 버퍼입니다.
          */
         Microsoft::WRL::ComPtr<ID3D11Buffer> mConstants{};
-        ReflectProperty(mConstants, "Constants", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief SceneColor를 선형 필터와 가장자리 고정 주소 모드로 읽는 샘플러입니다.
          */
         Microsoft::WRL::ComPtr<ID3D11SamplerState> mSampler{};
-        ReflectProperty(mSampler, "Sampler", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 전체 화면 후처리에서 깊이 검사와 깊이 쓰기를 비활성화하는 상태입니다.
          */
         Microsoft::WRL::ComPtr<ID3D11DepthStencilState> mDepthDisabled{};
-        ReflectProperty(mDepthDisabled, "DepthDisabled", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 전체 화면 삼각형을 면 제거 없이 채우는 래스터라이저 상태입니다.
          */
         Microsoft::WRL::ComPtr<ID3D11RasterizerState> mRasterizer{};
-        ReflectProperty(mRasterizer, "Rasterizer", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
 }

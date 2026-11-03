@@ -18,18 +18,6 @@ namespace Core {
     class FMemory {
     public:
         /**
-         * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
-         */
-        ReflectTypes(FMemory);
-
-    public:
-        /**
-         * @brief 이 타입의 정적 구조체 메타데이터를 반환합니다.
-         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectStruct(FMemory);
-
-        /**
          * @brief 요청한 정렬을 만족하는 힙 블록을 할당하고 사용량을 기록합니다.
          * @param[in] Size 할당할 바이트 수입니다.
          * @param[in] Alignment 요청하는 바이트 정렬입니다.
@@ -58,12 +46,6 @@ namespace Core {
          * @return 현재 UObject 개수와 추적 중인 힙 사용량의 스냅샷입니다.
          */
         static Core::FMemoryStats GetStats();
-
-    private:
-        /**
-         * @brief 생성된 프로퍼티 등록 함수와 빌더 접근 권한입니다.
-         */
-        ReflectMembers();
     };
 
 }

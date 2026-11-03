@@ -24,18 +24,6 @@ namespace Asset {
     class FSequenceBinding {
     public:
         /**
-         * @brief 리플렉션에서 사용할 소유 타입 별칭입니다.
-         */
-        ReflectTypes(FSequenceBinding);
-
-    public:
-        /**
-         * @brief 정적 구조체 메타데이터를 반환합니다.
-         * @return 메타데이터의 비소유 주소입니다.
-         */
-        ReflectStruct(FSequenceBinding);
-
-        /**
          * @brief 씬의 대상과 연결하는 바인딩 ID를 반환합니다.
          * @return 바인딩 ID의 참조입니다.
          */
@@ -92,28 +80,19 @@ namespace Asset {
 
     private:
         /**
-         * @brief 생성된 멤버 등록 함수의 접근 권한입니다.
-         */
-        ReflectMembers();
-
-    private:
-        /**
          * @brief 씬의 대상과 연결하는 바인딩 ID입니다.
          */
         Core::FGuid mId{};
-        ReflectProperty(mId, "Id", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 편집 화면에 표시할 이름입니다.
          */
         Core::FString mName{};
-        ReflectProperty(mName, "Name", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 바인딩이 소유한 트랙 목록입니다.
          */
         Core::TArray<std::unique_ptr<Asset::FSequenceTrack>> mTracks{};
-        ReflectProperty(mTracks, "Tracks", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
 }

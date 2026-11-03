@@ -30,10 +30,11 @@ namespace Engine {
         const Core::FString& GetSlotMaterialPath(Core::Uint32 Slot) const;
         bool SetSlotMaterialPath(Core::Uint32 Slot, const Core::FString& Path);
         void ClearMaterialOverrides();
+        const Core::TArray<Core::FString>& GetSlotMaterialPaths() const;
+        bool SetSlotMaterialPaths(const Core::TArray<Core::FString>& Paths);
 
         Engine::FPrimitiveSceneProxy CreateSceneProxy() const override;
         void UnregisterComponent() override;
-        void Serialize(Core::FArchive& Archive) override;
 
     private:
         ReflectMembers();
@@ -46,10 +47,10 @@ namespace Engine {
         ReflectAccessor(mMaterialPath, GetMaterialPath, SetMaterialPath, "Material", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
 
         Asset::UMaterial* mMaterial{};
-        ReflectProperty(mMaterial, "ResolvedMaterial", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         Core::TArray<Core::FString> mMaterialOverrides{};
-        ReflectProperty(mMaterialOverrides, "MaterialOverrides", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+        // 메시 setter가 오버라이드를 비우므로 메시 경로를 복원한 뒤에 로드합니다.
+        ReflectArrayAccessor(mMaterialOverrides, GetSlotMaterialPaths, SetSlotMaterialPaths, "SlotMaterials", Core::EPropertyFlags::Serialize | Core::EPropertyFlags::SerializeLate);
     };
 
 }

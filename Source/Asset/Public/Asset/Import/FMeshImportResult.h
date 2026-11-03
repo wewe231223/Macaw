@@ -18,18 +18,6 @@ namespace Asset {
     class FMeshImportResult {
     public:
         /**
-         * @brief 리플렉션 소유 타입과 선택적 기반 타입의 별칭입니다.
-         */
-        ReflectTypes(FMeshImportResult);
-
-    public:
-        /**
-         * @brief 이 타입의 정적 리플렉션 메타데이터를 반환합니다.
-         * @return 리플렉션 시스템이 보관하는 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectStruct(FMeshImportResult);
-
-        /**
          * @brief 임포트한 메시 목록을 조회합니다. 메시 병합 옵션을 켜면 항상 하나입니다.
          * @return 결과 객체가 소유하는 메시 목록의 참조입니다.
          */
@@ -64,28 +52,19 @@ namespace Asset {
 
     private:
         /**
-         * @brief 생성된 멤버 등록 함수와 리플렉션 빌더의 접근 권한입니다.
-         */
-        ReflectMembers();
-
-    private:
-        /**
          * @brief 임포트한 메시 목록입니다.
          */
         Core::TArray<Asset::FMeshImportMesh> mMeshes{};
-        ReflectProperty(mMeshes, "Meshes", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 메시 재질 슬롯이 인덱스로 가리키는 원본 재질 설정 목록입니다.
          */
         Core::TArray<Asset::FMeshImportMaterial> mMaterials{};
-        ReflectProperty(mMaterials, "Materials", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 원본 스켈레톤 계층에서 읽은 본 목록입니다.
          */
         Core::TArray<Asset::FMeshImportBone> mBones{};
-        ReflectProperty(mBones, "Bones", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
 }
