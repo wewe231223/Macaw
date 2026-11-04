@@ -1,6 +1,6 @@
 /**
  * @file FFBXImporter.h
- * @brief Autodesk FBX SDK로 원본 FBX 장면을 삼각형·좌수 좌표계로 변환하고 재질과 텍스처 참조를 수집합니다.
+ * @brief Autodesk FBX SDK로 원본 FBX 장면을 삼각형으로 분할해 엔진 좌표계로 변환하고 재질과 텍스처 참조를 수집합니다.
  * @ingroup Asset
  */
 
@@ -14,7 +14,7 @@
 namespace Asset {
 
     /**
-     * @brief Autodesk FBX SDK로 원본 FBX 장면을 삼각형·좌수 좌표계로 변환하고 재질과 텍스처 참조를 수집합니다.
+     * @brief Autodesk FBX SDK로 원본 FBX 장면을 삼각형으로 분할해 엔진 좌표계로 변환하고 재질과 텍스처 참조를 수집합니다.
      * @details 임포트는 ImportSource에서 다음 순서로 진행합니다.
      * 1. 파일을 열어 장면을 읽고 텍스처를 판별한 뒤, 축·단위 변환과 삼각형 분할을 적용합니다.
      * 2. 스켈레톤 옵션이 켜져 있으면 CollectBindPoses로 바인드 포즈를 모으고 ReadSkeleton으로 본 계층을 만듭니다.
@@ -43,7 +43,7 @@ namespace Asset {
 
     private:
         /**
-         * @brief FBX 장면의 노드 메시를 순회해 정점·삼각형·재질 슬롯과 텍스처 참조를 수집합니다.
+         * @brief 파일을 읽어 장면을 엔진 좌표계 기준으로 준비하고, 스켈레톤과 메시를 순서대로 읽어 임포트 결과를 구성합니다.
          * @return 유효한 임포트 결과를 구성하면 true이며 실패하면 Error에 원인을 기록하고 false입니다.
          */
         bool ImportSource() override;
@@ -62,7 +62,8 @@ namespace Asset {
         bool ReadElement(const fbxsdk::FbxLayerElementTemplate<TValue>* Element, int ControlPoint, int Polygon, int PolygonVertex, TValue& Value) const;
 
         /**
-         * @brief FBX 재질의 기본 색상·불투명도·양면 여부와 기본 색상·노멀 텍스처를 읽어 재질 슬롯과 재질 목록에 추가합니다.
+         * @brief FBX 재질의 색상·불투명도·양면 여부·조명 속성과 텍스처를 읽어 결과 재질 목록 끝에 추가합니다.
+         * @details 메시의 재질 슬롯은 ReadMesh가 이 목록의 인덱스를 가리키도록 따로 추가합니다.
          * @param[in] Material 읽을 FBX 재질이며 nullptr이면 기본 재질을 추가합니다.
          * @return 성공하면 true이며 텍스처를 읽지 못하거나 색상이 유효하지 않으면 Error에 원인을 기록하고 false입니다.
          */
@@ -75,7 +76,8 @@ namespace Asset {
          */
         bool FindMaterialIndex(fbxsdk::FbxSurfaceMaterial* Material, Core::Uint32& Index);
         /**
-         * @brief 노드의 전역 변환과 축 변환을 적용해 FBX 메시의 정점·노멀·탄젠트·UV를 대상 메시에 추가하고 재질별 섹션을 구성합니다.
+         * @brief 노드의 전역 변환과 mBasis를 적용해 FBX 메시의 정점·노멀·탄젠트·UV·본 가중치를 대상 메시에 추가하고 재질별 서브메시를 구성합니다.
+         * @details 스킨 메시는 시간 0의 노드 변환 대신 클러스터에 기록된 바인드 시점의 메시 변환을 사용합니다.
          * @param[in] Node 메시를 소유하며 전역 변환을 제공하는 FBX 노드입니다.
          * @param[in] Mesh 읽을 삼각형화된 FBX 메시입니다.
          * @param[in,out] Target 정점과 서브메시를 이어 붙일 결과 메시입니다.
@@ -90,7 +92,7 @@ namespace Asset {
          */
         bool ReadNode(fbxsdk::FbxNode& Node);
         /**
-         * @brief 스켈레톤 속성을 가진 노드를 깊이 우선으로 순회하며 결과 본 목록에 추가합니다.
+         * @brief 스켈레톤 속성을 가졌거나 스킨 클러스터가 링크하는 노드를 깊이 우선으로 순회하며 결과 본 목록에 추가합니다.
          * @param[in] Node 순회를 시작할 FBX 노드입니다.
          * @param[in] ParentIndex 가장 가까운 조상 본의 결과 인덱스이며 없으면 -1입니다.
          * @param[in] ParentBoneGlobal 가장 가까운 조상 본의 엔진 공간 전역 변환이며 없으면 항등 행렬입니다.

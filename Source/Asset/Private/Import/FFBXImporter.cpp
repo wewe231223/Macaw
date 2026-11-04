@@ -594,25 +594,25 @@ namespace Asset {
             return false;
         }
 
-		// FBX Load 의 IOSettings을 생성하고 애니메이션을 비활성화합니다.
+        // 바인드 자세만 사용하므로 애니메이션은 읽지 않습니다. ReadMesh와 ReadSkeleton은 시간 0의 노드 변환을 기준으로 합니다.
         auto* Settings{FbxIOSettings::Create(mManager, IOSROOT)};
         mManager->SetIOSettings(Settings);
         Settings->SetBoolProp(IMP_FBX_ANIMATION, false);
 
-		// FBX Load 의 Importer와 Scene을 생성합니다.
+        // 파일을 읽을 Importer와 읽은 결과를 담을 Scene을 만듭니다. 둘 다 Manager가 소유합니다.
         mImporter = FbxImporter::Create(mManager, "");
         mScene = FbxScene::Create(mManager, "");
 
-		// FBX Load 의 Importer를 초기화하고 제대로 열렸는지, FBX 파일인지 확인합니다.
+        // 파일을 열고 FBX 형식이 맞는지 확인합니다. 확장자만 FBX인 다른 형식의 파일은 여기서 걸러집니다.
         if (!mImporter->Initialize(Core::FilePath::ToUtf8(GetSourcePath()).c_str(), -1, Settings) || !mImporter->IsFBX()) {
             Error = "Cannot open the FBX source: " + Core::FString{mImporter->GetStatus().GetErrorString()};
             return false;
         }
 
-		// Import 중 내장 텍스처 바이트를 이미지 처리기가 보관하도록 콜백을 등록합니다.
+        // Import 중 내장 텍스처 바이트를 이미지 처리기가 보관하도록 콜백을 등록합니다. Import 전에 등록해야 바이트를 받을 수 있습니다.
         mImageProcessor.RegisterEmbeddedCallback(*mManager, *mImporter);
 
-		// FBX Importer 설정이 완료되었으로, FBX Scene을 읽어옵니다.
+        // 파일 내용을 Scene으로 읽어옵니다.
         if (!mImporter->Import(mScene)) {
             Error = "Cannot read the FBX scene: " + Core::FString{mImporter->GetStatus().GetErrorString()};
             return false;
@@ -650,12 +650,11 @@ namespace Asset {
             FbxSystemUnit::m.ConvertScene(mScene);
         }
 
-        // ConvertScene 뒤의 FBX 전역 공간에서 엔진 공간으로: 왼손 좌표계로 바꾸는 Y 반전 → 임포트 이동·회전·스케일 순서로 적용합니다.
+        // 중간 좌표계에서 엔진 공간으로: 왼손 좌표계로 바꾸는 Y 반전 → 임포트 이동·회전·스케일 순서로 적용합니다.
         mBasis = Asset::FMeshImportTransform::MakeFlipY() * Option.GetImportTransform();
 
-        // 같은 FBX Manager를 사용하는 지오메트리 변환 도구를 생성합니다. 생성 시점에는 메시를 변환하지 않습니다.
-        // 아래 Triangulate 호출에서 Scene 내 변환 가능한 지오메트리를 삼각형으로 분할하는 데 사용합니다.
-        // Triangulate의 두 번째 인자 true는 기존 지오메트리를 삼각형으로 변환한 결과로 교체하도록 지정합니다.
+        // Scene의 지오메트리를 삼각형으로 분할합니다. 두 번째 인자 true는 기존 지오메트리를 분할 결과로 교체하도록 지정합니다.
+        // ReadMesh는 삼각형 메시만 받으므로 메시를 읽기 전에 수행해야 합니다.
         FbxGeometryConverter Converter{mManager};
 
         if (!Converter.Triangulate(mScene, true)) {
