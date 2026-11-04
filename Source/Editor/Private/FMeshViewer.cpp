@@ -89,7 +89,7 @@ namespace Editor {
 
         if (mScene != nullptr) {
             Engine::FLightSceneProxy Ambient{};
-            Ambient.mIntensity = 0.25f;
+            Ambient.mIntensity = 0.5f;
             mScene->AddLight(Ambient);
 
             Engine::FLightSceneProxy Directional{};
