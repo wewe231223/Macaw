@@ -207,6 +207,18 @@ namespace Renderer {
         RenderCore::FShadowAtlasView GetShadowAtlasView() const override;
 
         /**
+         * @brief 콘솔에서 조절하는 그림자 렌더링 옵션을 반환합니다.
+         * @return 현재 그림자 렌더링 옵션의 사본입니다.
+         */
+        RenderCore::FShadowSettings GetShadowSettings() const override;
+
+        /**
+         * @brief 콘솔에서 조절하는 그림자 렌더링 옵션을 변경합니다.
+         * @param[in] Settings 다음 뷰부터 적용할 그림자 렌더링 옵션입니다.
+         */
+        void SetShadowSettings(const RenderCore::FShadowSettings& Settings) override;
+
+        /**
          * @brief 변경된 셰이더를 다시 컴파일하고 필요한 GPU 셰이더를 갱신합니다.
          * @return 요청한 처리를 완료하면 true, 실패하면 false입니다.
          */
@@ -384,6 +396,11 @@ namespace Renderer {
          * @brief 그림자 아틀라스와 관련 GPU 자원을 관리하는 소유 객체입니다.
          */
         std::unique_ptr<Renderer::FShadowResources> mShadowResources{};
+
+        /**
+         * @brief 콘솔에서 조절하는 그림자 렌더링 옵션입니다.
+         */
+        RenderCore::FShadowSettings mShadowSettings{};
 
         /**
          * @brief 그림자 아틀라스 타일마다 그림자 생성 메시의 깊이를 기록하는 메시 패스입니다.

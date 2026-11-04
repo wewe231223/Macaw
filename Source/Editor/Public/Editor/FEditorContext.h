@@ -50,6 +50,13 @@ namespace Editor {
     class FEditorContext {
     private:
         /**
+         * @brief r.shadow.* 콘솔 변수를 조회하거나 변경합니다.
+         * @param[in] Name 소문자로 변환한 변수 이름입니다.
+         * @param[in] Value 소문자로 변환한 값이며 비어 있으면 현재 값을 출력합니다.
+         */
+        void ExecuteShadowVariable(const Core::FString& Name, const Core::FString& Value);
+
+        /**
          * @brief 재진입을 제한하는 연산 플래그의 수명을 관리합니다.
          */
         class FOperationScope {

@@ -108,9 +108,9 @@ namespace Engine {
         float mShadowResolutionScale{1.0f};
 
         /**
-         * @brief 그림자 깊이 비교의 상수 바이어스입니다.
+         * @brief 그림자 깊이 비교의 상수 바이어스이며 단위는 그림자 맵 텍셀입니다. 값의 의미는 캐스케이드와 맵의 깊이 범위에 좌우되지 않습니다.
          */
-        float mShadowBias{0.0005f};
+        float mShadowBias{2.0f};
 
         /**
          * @brief 표면 기울기에 따른 그림자 바이어스 배율입니다.
@@ -121,6 +121,16 @@ namespace Engine {
          * @brief 그림자 경계의 선명도 조절값입니다.
          */
         float mShadowSharpen{};
+
+        /**
+         * @brief PCSS 반그림자 계산에 쓰는 점광원·스포트라이트 광원의 반지름(m)입니다.
+         */
+        float mShadowSourceRadius{0.1f};
+
+        /**
+         * @brief PCSS 반그림자 계산에 쓰는 방향광 광원의 각반지름(도)입니다.
+         */
+        float mShadowSourceAngle{1.0f};
 
         /**
          * @brief 방향광 그림자의 캐스케이드 개수입니다.
@@ -135,7 +145,7 @@ namespace Engine {
         /**
          * @brief 각 캐스케이드 구간에서 전환에 사용하는 비율입니다.
          */
-        float mCascadeTransitionFraction{0.1f};
+        float mCascadeTransitionFraction{0.25f};
     };
 
 }

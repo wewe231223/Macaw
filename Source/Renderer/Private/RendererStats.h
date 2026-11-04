@@ -52,6 +52,16 @@ namespace Renderer {
         extern Core::FStat ShadowDroppedLights;
 
         /**
+         * @brief 그림자 맵 생성을 건너뛴 광원 수를 측정하는 통계 항목입니다.
+         */
+        extern Core::FStat ShadowSkippedLights;
+
+        /**
+         * @brief 깊이를 재사용한 그림자 타일 수를 측정하는 통계 항목입니다.
+         */
+        extern Core::FStat ShadowCachedTiles;
+
+        /**
          * @brief 그림자 아틀라스의 전체 바이트 수를 측정하는 통계 항목입니다.
          */
         extern Core::FStat ShadowAtlasBytes;

@@ -19,6 +19,7 @@ namespace Engine {
         Proxy.mCascadeCount = mCascadeCount;
         Proxy.mShadowDistance = mShadowDistance;
         Proxy.mCascadeTransitionFraction = mCascadeTransitionFraction;
+        Proxy.mShadowSourceAngle = mShadowSourceAngle;
 
         return Proxy;
     }
@@ -63,6 +64,21 @@ namespace Engine {
         }
 
         mCascadeTransitionFraction = Fraction;
+        SynchronizeLight();
+
+        return true;
+    }
+
+    float Engine::UDirectionalLightComponent::GetShadowSourceAngle() const {
+        return mShadowSourceAngle;
+    }
+
+    bool Engine::UDirectionalLightComponent::SetShadowSourceAngle(float Angle) {
+        if (!std::isfinite(Angle) || Angle < 0.0f || Angle > 15.0f) {
+            return false;
+        }
+
+        mShadowSourceAngle = Angle;
         SynchronizeLight();
 
         return true;

@@ -17,6 +17,13 @@ namespace RenderCore {
         return {};
     }
 
+    RenderCore::FShadowSettings RenderCore::IRendererModule::GetShadowSettings() const {
+        return {};
+    }
+
+    void RenderCore::IRendererModule::SetShadowSettings(const RenderCore::FShadowSettings&) {
+    }
+
     bool RenderCore::IRendererModule::GetTextBounds(const Core::FString&, Core::FVector2&, Core::FVector2&) const {
         return false;
     }

@@ -403,7 +403,7 @@ namespace Editor {
             ImGui::Text("%u x %u | D24S8 | %u maps", Atlas.mSize, Atlas.mSize, Stats.mShadowMaps);
             ImGui::Text("Resources: %.1f MiB | Allocated tiles: %.1f MiB", Stats.mShadowAtlasBytes / (1024.0 * 1024.0), Stats.mShadowAllocatedBytes / (1024.0 * 1024.0));
             ImGui::Text("Directional: %u | Point: %u | Spot: %u", Stats.mDirectionalLights, Stats.mPointLights, Stats.mSpotLights);
-            ImGui::Text("Reduced: %u | Unallocated lights: %u", Stats.mShadowReducedLights, Stats.mShadowDroppedLights);
+            ImGui::Text("Reduced: %u | Unallocated lights: %u | Skipped lights: %u | Cached tiles: %u", Stats.mShadowReducedLights, Stats.mShadowDroppedLights, Stats.mShadowSkippedLights, Stats.mShadowCachedTiles);
             ImGui::SliderFloat("Zoom", &mShadowAtlasZoom, 1.0f, 8.0f, "%.1fx");
 
             if (Atlas.mTexture != nullptr) {

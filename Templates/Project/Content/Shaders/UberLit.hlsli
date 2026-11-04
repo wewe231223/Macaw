@@ -80,7 +80,7 @@ float4 PixelMain(FPixelInput Input) : SV_TARGET {
 
         [branch]
         if (Light.mShadowInfo.x >= 1.0f && (any(Lighting.mDiffuse != 0.0f) || any(Lighting.mSpecular != 0.0f))) {
-            Visibility = ShadowVisibility(Light, Input.mWorldPosition, Normal, PositionDx, PositionDy);
+            Visibility = ShadowVisibility(Light, Input.mWorldPosition, Normal, PositionDx, PositionDy, Input.mPosition.xy);
         }
 #else
         float Visibility = {1.0f};

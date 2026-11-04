@@ -58,7 +58,7 @@ namespace Engine {
     }
 
     bool Engine::ULightComponent::SetShadowBias(float Bias) {
-        if (!std::isfinite(Bias) || Bias < 0.0f || Bias > 0.1f) {
+        if (!std::isfinite(Bias) || Bias < 0.0f || Bias > 16.0f) {
             return false;
         }
 
@@ -98,6 +98,21 @@ namespace Engine {
         return true;
     }
 
+    float Engine::ULightComponent::GetShadowSourceRadius() const {
+        return mShadowSourceRadius;
+    }
+
+    bool Engine::ULightComponent::SetShadowSourceRadius(float Radius) {
+        if (!std::isfinite(Radius) || Radius < 0.0f || Radius > 10.0f) {
+            return false;
+        }
+
+        mShadowSourceRadius = Radius;
+        SynchronizeLight();
+
+        return true;
+    }
+
     Engine::FLightSceneProxy Engine::ULightComponent::CreateLightProxy() const {
         Engine::FLightSceneProxy Proxy{Engine::ULightComponentBase::CreateLightProxy()};
         Proxy.mCastShadows = mCastShadows;
@@ -106,6 +121,7 @@ namespace Engine {
         Proxy.mShadowBias = mShadowBias;
         Proxy.mShadowSlopeBias = mShadowSlopeBias;
         Proxy.mShadowSharpen = mShadowSharpen;
+        Proxy.mShadowSourceRadius = mShadowSourceRadius;
 
         return Proxy;
     }

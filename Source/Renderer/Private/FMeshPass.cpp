@@ -14,28 +14,6 @@
 
 namespace Renderer {
 
-    namespace {
-        // 경계 상자의 8개 꼭짓점이 모두 같은 클립 평면 밖에 있으면 보이지 않는 것으로 판정합니다.
-        bool IsVisible(const Core::FMatrix& ViewProjection, const Core::FBox& Bounds) {
-            std::array<Core::Uint32, 6> Outside{};
-
-            for (Core::Int32 Index{}; Index < 8; ++Index) {
-                const Core::FVector Point{(Index & 1) ? Bounds.mMaximum.x : Bounds.mMinimum.x, (Index & 2) ? Bounds.mMaximum.y : Bounds.mMinimum.y, (Index & 4) ? Bounds.mMaximum.z : Bounds.mMinimum.z};
-                const Core::FVector4 Clip{Core::FVector4{Point, 1.0f} * ViewProjection};
-                Outside[0] += Clip.x < -Clip.w;
-                Outside[1] += Clip.x > Clip.w;
-                Outside[2] += Clip.y < -Clip.w;
-                Outside[3] += Clip.y > Clip.w;
-                Outside[4] += Clip.z < 0.0f;
-                Outside[5] += Clip.z > Clip.w;
-            }
-
-            return std::none_of(Outside.begin(), Outside.end(), [](Core::Uint32 Count) {
-                return Count == 8;
-            });
-        }
-    }
-
     Renderer::FMeshPass::FMeshPass(Renderer::FRenderer& Renderer, ID3D11Device* Device, ID3D11DeviceContext* Context, const std::array<std::unique_ptr<Asset::UStaticMesh>, 3>& Meshes)
 		: mRenderer{&Renderer},
 		  mDevice{Device},
@@ -44,6 +22,25 @@ namespace Renderer {
     }
 
     Renderer::FMeshPass::~FMeshPass() = default;
+
+    bool Renderer::FMeshPass::IsVisible(const Core::FMatrix& ViewProjection, const Core::FBox& Bounds) {
+        std::array<Core::Uint32, 6> Outside{};
+
+        for (Core::Int32 Index{}; Index < 8; ++Index) {
+            const Core::FVector Point{(Index & 1) ? Bounds.mMaximum.x : Bounds.mMinimum.x, (Index & 2) ? Bounds.mMaximum.y : Bounds.mMinimum.y, (Index & 4) ? Bounds.mMaximum.z : Bounds.mMinimum.z};
+            const Core::FVector4 Clip{Core::FVector4{Point, 1.0f} * ViewProjection};
+            Outside[0] += Clip.x < -Clip.w;
+            Outside[1] += Clip.x > Clip.w;
+            Outside[2] += Clip.y < -Clip.w;
+            Outside[3] += Clip.y > Clip.w;
+            Outside[4] += Clip.z < 0.0f;
+            Outside[5] += Clip.z > Clip.w;
+        }
+
+        return std::none_of(Outside.begin(), Outside.end(), [](Core::Uint32 Count) {
+            return Count == 8;
+        });
+    }
 
     bool Renderer::FMeshPass::BuildCommands(const Renderer::FScene& Scene, const Engine::FSceneViewFamily& Family, const Core::FMatrix& ViewProjection, Core::TArray<Renderer::FMeshDrawCommand>& Commands, Core::Uint32& Primitives) {
         Commands.clear();

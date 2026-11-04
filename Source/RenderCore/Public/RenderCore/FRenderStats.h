@@ -73,6 +73,16 @@ namespace RenderCore {
         Core::Uint32 mShadowReducedLights{};
 
         /**
+         * @brief 화면에 영향을 주지 않아 그림자 맵 생성을 건너뛴 광원 수입니다.
+         */
+        Core::Uint32 mShadowSkippedLights{};
+
+        /**
+         * @brief 캐시된 깊이를 재사용해 다시 그리지 않은 그림자 타일 수입니다.
+         */
+        Core::Uint32 mShadowCachedTiles{};
+
+        /**
          * @brief 그림자 깊이 아틀라스의 전체 바이트 수입니다.
          */
         std::size_t mShadowAtlasBytes{};

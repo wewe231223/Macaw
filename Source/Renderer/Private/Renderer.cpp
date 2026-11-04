@@ -358,7 +358,7 @@ namespace Renderer {
         mContext->DSSetShader(nullptr, nullptr, 0);
 
         if (mShadowResources != nullptr) {
-            if (!mShadowResources->Prepare(mDevice.Get(), mContext.Get(), *Scene, Family, mStats)) {
+            if (!mShadowResources->Prepare(mDevice.Get(), mContext.Get(), *Scene, Family, mShadowSettings, mStats)) {
                 Core::ErrorHandler::Report("Shadow", "Shadow atlas preparation failed", Core::ErrorHandler::EErrorLevel::Error);
             }
 
@@ -444,6 +444,8 @@ namespace Renderer {
         Renderer::RendererStats::ShadowDrawCalls.Add(mStats.mShadowDrawCalls);
         Renderer::RendererStats::ShadowReducedLights.Add(mStats.mShadowReducedLights);
         Renderer::RendererStats::ShadowDroppedLights.Add(mStats.mShadowDroppedLights);
+        Renderer::RendererStats::ShadowSkippedLights.Add(mStats.mShadowSkippedLights);
+        Renderer::RendererStats::ShadowCachedTiles.Add(mStats.mShadowCachedTiles);
         Renderer::RendererStats::ShadowAtlasBytes.Set(static_cast<double>(mStats.mShadowAtlasBytes));
         Renderer::RendererStats::ShadowAllocatedBytes.Set(static_cast<double>(mStats.mShadowAllocatedBytes));
         Renderer::RendererStats::DirectionalLights.Add(mStats.mDirectionalLights);
@@ -548,6 +550,14 @@ namespace Renderer {
 
     RenderCore::FShadowAtlasView Renderer::FRenderer::GetShadowAtlasView() const {
         return mShadowResources != nullptr ? mShadowResources->GetView() : RenderCore::FShadowAtlasView{};
+    }
+
+    RenderCore::FShadowSettings Renderer::FRenderer::GetShadowSettings() const {
+        return mShadowSettings;
+    }
+
+    void Renderer::FRenderer::SetShadowSettings(const RenderCore::FShadowSettings& Settings) {
+        mShadowSettings = Settings;
     }
 
     bool Renderer::FRenderer::ReloadChangedShaders() {
@@ -1322,6 +1332,7 @@ namespace Renderer {
             const Renderer::FShadowTileStamp Stamp{mShadowResources->MakeTileStamp(Index, DepthShaderRevision)};
 
             if (mShadowResources->IsTileCurrent(Index, Stamp)) {
+                ++mStats.mShadowCachedTiles;
                 continue;
             }
 

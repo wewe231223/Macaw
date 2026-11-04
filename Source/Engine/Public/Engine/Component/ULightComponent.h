@@ -79,14 +79,14 @@ namespace Engine {
         bool SetShadowResolutionScale(float Scale);
 
         /**
-         * @brief 그림자 깊이 비교의 상수 바이어스를 반환합니다.
-         * @return 그림자 깊이 비교의 상수 바이어스입니다.
+         * @brief 그림자 깊이 비교의 상수 바이어스를 텍셀 단위로 반환합니다.
+         * @return 그림자 맵 텍셀 단위의 상수 바이어스입니다.
          */
         float GetShadowBias() const;
 
         /**
          * @brief 그림자 깊이 비교의 상수 바이어스를 검증하고 변경합니다.
-         * @param[in] Bias 0 이상 0.1 이하인 유한한 깊이 바이어스입니다.
+         * @param[in] Bias 0 이상 16 이하인 유한한 텍셀 단위 바이어스입니다.
          * @return 입력값을 수락하고 상태를 갱신하면 true이며 잘못된 값이면 false입니다.
          */
         bool SetShadowBias(float Bias);
@@ -116,6 +116,19 @@ namespace Engine {
          * @return 입력값을 수락하고 상태를 갱신하면 true이며 잘못된 값이면 false입니다.
          */
         bool SetShadowSharpen(float Sharpen);
+
+        /**
+         * @brief PCSS 반그림자 계산에 쓰는 광원 반지름을 반환합니다.
+         * @return 점광원·스포트라이트 광원의 반지름(m)입니다.
+         */
+        float GetShadowSourceRadius() const;
+
+        /**
+         * @brief PCSS 반그림자 계산에 쓰는 광원 반지름을 검증하고 변경합니다.
+         * @param[in] Radius 0 이상 10 이하인 유한한 광원 반지름(m)입니다.
+         * @return 입력값을 수락하고 상태를 갱신하면 true이며 잘못된 값이면 false입니다.
+         */
+        bool SetShadowSourceRadius(float Radius);
 
         /**
          * @brief 현재 컴포넌트의 조명·그림자 설정으로 렌더 프록시를 생성합니다.
@@ -149,10 +162,10 @@ namespace Engine {
         ReflectAccessor(mShadowResolutionScale, GetShadowResolutionScale, SetShadowResolutionScale, "ShadowResolutionScale", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
 
         /**
-         * @brief 그림자 깊이 비교의 상수 바이어스입니다.
+         * @brief 그림자 깊이 비교의 상수 바이어스이며 단위는 그림자 맵 텍셀입니다. 값의 의미는 캐스케이드와 맵의 깊이 범위에 좌우되지 않습니다.
          */
-        float mShadowBias{0.0005f};
-        ReflectAccessor(mShadowBias, GetShadowBias, SetShadowBias, "ShadowBias", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
+        float mShadowBias{2.0f};
+        ReflectAccessor(mShadowBias, GetShadowBias, SetShadowBias, "ShadowBiasTexels", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
 
         /**
          * @brief 표면 기울기에 따른 그림자 바이어스 배율입니다.
@@ -165,6 +178,12 @@ namespace Engine {
          */
         float mShadowSharpen{};
         ReflectAccessor(mShadowSharpen, GetShadowSharpen, SetShadowSharpen, "ShadowSharpen", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
+
+        /**
+         * @brief PCSS 반그림자 계산에 쓰는 점광원·스포트라이트 광원의 반지름(m)입니다.
+         */
+        float mShadowSourceRadius{0.1f};
+        ReflectAccessor(mShadowSourceRadius, GetShadowSourceRadius, SetShadowSourceRadius, "ShadowSourceRadius", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
     };
 
 }

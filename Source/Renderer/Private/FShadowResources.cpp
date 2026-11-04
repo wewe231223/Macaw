@@ -6,6 +6,7 @@
 
 #include "FShadowResources.h"
 
+#include "FMeshPass.h"
 #include "FScene.h"
 #include "FScenePrimitive.h"
 #include "CoreUObject/Reflection/NewObject.h"
@@ -67,7 +68,7 @@ namespace Renderer {
         }
     }
 
-    static_assert(sizeof(Renderer::FGpuShadow) == 112);
+    static_assert(sizeof(Renderer::FGpuShadow) == 128);
 
     Core::FMatrix Renderer::FShadowResources::MakeDirectionalMatrix(const Engine::FSceneView& View, const Core::FVector& Direction, float NearDistance, float FarDistance, Core::Uint32 Resolution, std::span<const Core::FBox> CasterBounds) {
         const Core::FVector Forward{View.mForward.Normalized()};
@@ -98,6 +99,29 @@ namespace Renderer {
         Projection(3, 1) = -CenterY / Radius;
 
         return Rotation * Projection;
+    }
+
+    bool Renderer::FShadowResources::AffectsView(const Engine::FLightSceneProxy& Light, std::span<const Core::FBox> Receivers, std::span<const Core::FBox> Casters) {
+        if (Light.mType == Engine::ELightType::Directional) {
+            return !Receivers.empty() && !Casters.empty();
+        }
+
+        const Core::FVector& Center{Light.mPosition};
+        const float Radius{Light.mAttenuationRadius};
+        const Core::FMatrix SpotMatrix{Light.mType == Engine::ELightType::Spot ? Core::FMatrix::LookTo(Center, Light.mDirection, LightUp(Light.mDirection)) * Core::FMatrix::Perspective(std::clamp(Light.mOuterConeAngle * 2.0f, 1.0f, 179.0f), 1.0f, std::min(0.05f, Radius * 0.01f), Radius) : Core::FMatrix{}};
+        const auto IsInRange{[&](const Core::FBox& Bounds) {
+            if (Light.mType == Engine::ELightType::Spot) {
+                return Renderer::FMeshPass::IsVisible(SpotMatrix, Bounds);
+            }
+
+            const float X{std::clamp(Center.x, Bounds.mMinimum.x, Bounds.mMaximum.x) - Center.x};
+            const float Y{std::clamp(Center.y, Bounds.mMinimum.y, Bounds.mMaximum.y) - Center.y};
+            const float Z{std::clamp(Center.z, Bounds.mMinimum.z, Bounds.mMaximum.z) - Center.z};
+
+            return X * X + Y * Y + Z * Z <= Radius * Radius;
+        }};
+
+        return std::any_of(Receivers.begin(), Receivers.end(), IsInRange) && std::any_of(Casters.begin(), Casters.end(), IsInRange);
     }
 
     bool Renderer::FShadowResources::CreateResources(ID3D11Device* Device) {
@@ -160,10 +184,19 @@ namespace Renderer {
         mLightRanges.assign(Scene.GetLights().size(), {});
 
         Core::TArray<Core::FBox> CasterBounds{};
+        Core::TArray<Core::FBox> ReceiverBounds{};
 
         for (const Renderer::FScenePrimitive& Primitive : Scene.GetPrimitives()) {
-            if (Primitive.mProxy.mCastShadow && !Primitive.mProxy.mSprite.has_value() && !Primitive.mProxy.mText.has_value()) {
+            if (Primitive.mProxy.mSprite.has_value() || Primitive.mProxy.mText.has_value()) {
+                continue;
+            }
+
+            if (Primitive.mProxy.mCastShadow) {
                 CasterBounds.push_back(Primitive.mProxy.mBounds);
+            }
+
+            if (Primitive.mProxy.mReceiveShadow && Renderer::FMeshPass::IsVisible(Family.mView.mViewProjection, Primitive.mProxy.mBounds)) {
+                ReceiverBounds.push_back(Primitive.mProxy.mBounds);
             }
         }
 
@@ -190,7 +223,13 @@ namespace Renderer {
                 continue;
             }
 
-            const Core::Uint32 Count{Light.mType == Engine::ELightType::Point ? 6u : Light.mType == Engine::ELightType::Directional ? std::clamp(Light.mCascadeCount, 1u, 4u) : 1u};
+            if (mSettings.mSkipUnseenLights && !AffectsView(Light, ReceiverBounds, CasterBounds)) {
+                ++Stats.mShadowSkippedLights;
+                continue;
+            }
+
+            const Core::Uint32 CascadeCount{mSettings.mCascadeOverride != 0 ? mSettings.mCascadeOverride : Light.mCascadeCount};
+            const Core::Uint32 Count{Light.mType == Engine::ELightType::Point ? 6u : Light.mType == Engine::ELightType::Directional ? std::clamp(CascadeCount, 1u, 4u) : 1u};
             const Core::Uint32 Requested{std::bit_ceil(static_cast<Core::Uint32>(std::clamp(Light.mShadowResolution * Light.mShadowResolutionScale, 64.0f, 8192.0f)))};
             Core::Uint32 Size{Requested};
             Core::TArray<Renderer::FShadowAtlasBlock> Blocks{};
@@ -250,6 +289,12 @@ namespace Renderer {
                     const float BlendStart{Split - (Split - PreviousSplit) * std::clamp(Light.mCascadeTransitionFraction, 0.0f, 0.5f)};
                     Map.mViewProjection = MakeDirectionalMatrix(View, Light.mDirection, PreviousBlend, Split, Resolution, CasterBounds);
                     Map.mCascade = {PreviousSplit, Split, BlendStart, 0.0f};
+
+                    // 회전 행렬이 정규 직교이므로 행 길이가 곧 직교 투영의 축별 배율입니다.
+                    const Core::FMatrix& Matrix{Map.mViewProjection};
+                    const float WidthScale{std::sqrt(Matrix(0, 0) * Matrix(0, 0) + Matrix(1, 0) * Matrix(1, 0) + Matrix(2, 0) * Matrix(2, 0))};
+                    const float DepthScale{std::sqrt(Matrix(0, 2) * Matrix(0, 2) + Matrix(1, 2) * Matrix(1, 2) + Matrix(2, 2) * Matrix(2, 2))};
+                    Map.mSoftness = {std::tan(Light.mShadowSourceAngle * 3.14159265f / 180.0f), WidthScale * 0.5f, 0.0f, 1.0f / DepthScale};
                     PreviousBlend = BlendStart;
                     PreviousSplit = Split;
                 } else {
@@ -258,6 +303,7 @@ namespace Renderer {
                     const float NearPlane{std::min(0.05f, Light.mAttenuationRadius * 0.01f)};
                     const float FieldOfView{Light.mType == Engine::ELightType::Point ? 90.0f : std::clamp(Light.mOuterConeAngle * 2.0f, 1.0f, 179.0f)};
                     Map.mViewProjection = Core::FMatrix::LookTo(Light.mPosition, Direction, LightUp(Direction)) * Core::FMatrix::Perspective(FieldOfView, 1.0f, NearPlane, Light.mAttenuationRadius);
+                    Map.mSoftness = {Light.mShadowSourceRadius, 0.5f / std::tan(FieldOfView * 0.5f * 3.14159265f / 180.0f), NearPlane, Light.mAttenuationRadius};
                 }
 
                 mMaps.push_back(Map);
@@ -281,8 +327,9 @@ namespace Renderer {
         return mMaps.empty() || mShadowBuffer.Upload(Context, mMaps, Error);
     }
 
-    bool Renderer::FShadowResources::Prepare(ID3D11Device* Device, ID3D11DeviceContext* Context, const Renderer::FScene& Scene, const Engine::FSceneViewFamily& Family, RenderCore::FRenderStats& Stats) {
+    bool Renderer::FShadowResources::Prepare(ID3D11Device* Device, ID3D11DeviceContext* Context, const Renderer::FScene& Scene, const Engine::FSceneViewFamily& Family, const RenderCore::FShadowSettings& Settings, RenderCore::FRenderStats& Stats) {
         Unbind(Context);
+        mSettings = Settings;
 
         if (mSampler == nullptr) {
             D3D11_SAMPLER_DESC Sampler{};
@@ -311,6 +358,8 @@ namespace Renderer {
         Stats.mShadowAllocatedBytes = 0;
         Stats.mShadowDroppedLights = 0;
         Stats.mShadowReducedLights = 0;
+        Stats.mShadowSkippedLights = 0;
+        Stats.mShadowCachedTiles = 0;
 
         for (const Engine::FLightSceneProxy& Light : Scene.GetLights()) {
             if (Light.mVisible && Light.mIntensity > 0.0f) {
@@ -354,7 +403,7 @@ namespace Renderer {
     }
 
     bool Renderer::FShadowResources::IsTileCurrent(Core::Uint32 Index, const Renderer::FShadowTileStamp& Stamp) {
-        return mTileCache.Find(MakeTileKey(Index), Stamp) != nullptr;
+        return mSettings.mCacheWholeSceneShadows && mTileCache.Find(MakeTileKey(Index), Stamp) != nullptr;
     }
 
     void Renderer::FShadowResources::CommitTile(Core::Uint32 Index, const Renderer::FShadowTileStamp& Stamp) {
@@ -387,7 +436,7 @@ namespace Renderer {
 
         Context->OMSetRenderTargets(0, nullptr, nullptr);
 
-        const std::array<Core::FVector4, 2> ViewData{{{Family.mView.mLocation, 0.0f}, {Family.mView.mForward, 0.0f}}};
+        const std::array<Core::FVector4, 3> ViewData{{{Family.mView.mLocation, 0.0f}, {Family.mView.mForward, 0.0f}, {static_cast<float>(mSettings.mFilter), static_cast<float>(mSettings.mPCFSize / 2), mSettings.mPCSSMaxFilterTexels, 0.0f}}};
         mViewBuffer.Update(Context, ViewData);
         mEnabled = true;
     }

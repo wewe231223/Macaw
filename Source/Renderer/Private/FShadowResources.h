@@ -17,6 +17,7 @@
 #include "Core/Math/FBox.h"
 #include "RenderCore/FRenderStats.h"
 #include "RenderCore/FShadowAtlasView.h"
+#include "RenderCore/FShadowSettings.h"
 #include "RenderCore/TConstantBuffer.h"
 #include "RenderCore/TStructuredBuffer.h"
 
@@ -51,6 +52,13 @@ namespace Renderer {
          * @brief 캐스케이드의 시작·끝 거리와 혼합 시작 거리, 예약값을 저장합니다.
          */
         Core::FVector4 mCascade{};
+
+        /**
+         * @brief PCSS 계산에 쓰는 광원 크기·타일 UV 배율·근평면·원평면 또는 깊이 범위를 저장합니다.
+         * @details 근평면이 0이면 방향광이며 광원 크기는 각반지름의 탄젠트, UV 배율은 월드 길이당 타일 UV, 마지막 값은 깊이 범위입니다.
+         *          근평면이 0보다 크면 원근 투영이며 광원 크기는 반지름, UV 배율은 단위 거리의 월드 길이당 타일 UV, 마지막 값은 원평면입니다.
+         */
+        Core::FVector4 mSoftness{};
     };
 
     /**
@@ -67,10 +75,11 @@ namespace Renderer {
          * @param[in] Context 명령을 기록할 Direct3D 11 장치 컨텍스트의 비소유 주소입니다.
          * @param[in] Scene 광원과 그림자 생성 프리미티브를 조회할 렌더 장면입니다.
          * @param[in] Family 장면·카메라·출력 타깃·표시 플래그를 묶은 현재 뷰 요청입니다.
+         * @param[in] Settings 캐스케이드 수·캐시·광원 생략·필터를 결정하는 옵션입니다.
          * @param[in,out] Stats 그림자 패스의 할당 결과를 누적할 렌더 통계입니다.
          * @return 필요한 자원 생성과 업로드에 성공하면 true입니다.
          */
-        bool Prepare(ID3D11Device* Device, ID3D11DeviceContext* Context, const Renderer::FScene& Scene, const Engine::FSceneViewFamily& Family, RenderCore::FRenderStats& Stats);
+        bool Prepare(ID3D11Device* Device, ID3D11DeviceContext* Context, const Renderer::FScene& Scene, const Engine::FSceneViewFamily& Family, const RenderCore::FShadowSettings& Settings, RenderCore::FRenderStats& Stats);
 
         /**
          * @brief 깊이 패스가 끝난 아틀라스로 장면 패스의 그림자 샘플링을 활성화합니다.
@@ -117,7 +126,7 @@ namespace Renderer {
          * @brief 아틀라스 타일이 이미 같은 입력으로 그려져 있는지 검사합니다.
          * @param[in] Index GetMaps 기준 그림자 맵 인덱스입니다.
          * @param[in] Stamp MakeTileStamp로 만든 현재 입력 스탬프입니다.
-         * @return 다시 그릴 필요가 없으면 true입니다.
+         * @return 캐시가 켜져 있고 다시 그릴 필요가 없으면 true입니다.
          */
         bool IsTileCurrent(Core::Uint32 Index, const Renderer::FShadowTileStamp& Stamp);
 
@@ -180,6 +189,15 @@ namespace Renderer {
          * @param[in,out] Stats 그림자 패스의 드로·할당 결과를 누적할 렌더 통계입니다.
          */
         void Build(const Renderer::FScene& Scene, const Engine::FSceneViewFamily& Family, RenderCore::FRenderStats& Stats);
+
+        /**
+         * @brief 광원의 그림자 맵이 현재 뷰의 화면에 영향을 줄 수 있는지 검사합니다.
+         * @param[in] Light 검사할 광원입니다.
+         * @param[in] Receivers 카메라에 보이고 그림자를 받는 프리미티브의 월드 경계 상자 목록입니다.
+         * @param[in] Casters 그림자를 만드는 프리미티브의 월드 경계 상자 목록입니다.
+         * @return 유효한 수신 물체와 생성 물체가 모두 광원 범위에 있으면 true입니다.
+         */
+        static bool AffectsView(const Engine::FLightSceneProxy& Light, std::span<const Core::FBox> Receivers, std::span<const Core::FBox> Casters);
 
         /**
          * @brief 구성한 그림자 맵의 샘플링 정보를 GPU 구조화 버퍼에 업로드합니다.
@@ -274,9 +292,14 @@ namespace Renderer {
         RenderCore::TStructuredBuffer<Renderer::FGpuShadow> mShadowBuffer{};
 
         /**
-         * @brief 그림자 캐스케이드 선택에 필요한 카메라 상수 버퍼입니다.
+         * @brief 그림자 캐스케이드 선택에 필요한 카메라와 필터 옵션의 상수 버퍼입니다.
          */
-        RenderCore::TConstantBuffer<std::array<Core::FVector4, 2>> mViewBuffer{};
+        RenderCore::TConstantBuffer<std::array<Core::FVector4, 3>> mViewBuffer{};
+
+        /**
+         * @brief 현재 뷰에 적용 중인 그림자 렌더링 옵션입니다.
+         */
+        RenderCore::FShadowSettings mSettings{};
 
         /**
          * @brief 그림자 깊이를 비교 샘플링하는 샘플러입니다.

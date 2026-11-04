@@ -7,6 +7,7 @@
 #pragma once
 
 #include "RenderCore/FShadowAtlasView.h"
+#include "RenderCore/FShadowSettings.h"
 
 #include "Core/ReflectionMacros.h"
 #include "RenderCore/FRenderStats.h"
@@ -150,6 +151,18 @@ namespace RenderCore {
          * @return 미리보기·깊이 뷰의 비소유 주소와 타일 정보 사본입니다.
          */
         virtual RenderCore::FShadowAtlasView GetShadowAtlasView() const;
+
+        /**
+         * @brief 콘솔에서 조절하는 그림자 렌더링 옵션을 반환합니다.
+         * @return 현재 그림자 렌더링 옵션의 사본입니다.
+         */
+        virtual RenderCore::FShadowSettings GetShadowSettings() const;
+
+        /**
+         * @brief 콘솔에서 조절하는 그림자 렌더링 옵션을 변경합니다.
+         * @param[in] Settings 다음 뷰부터 적용할 그림자 렌더링 옵션입니다.
+         */
+        virtual void SetShadowSettings(const RenderCore::FShadowSettings& Settings);
 
         /**
          * @brief 변경된 셰이더를 다시 컴파일하고 필요한 GPU 셰이더를 갱신합니다.
