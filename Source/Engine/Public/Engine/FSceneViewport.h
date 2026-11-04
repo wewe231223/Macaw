@@ -22,7 +22,6 @@ namespace Engine {
 
     class FViewportClient;
     class FRenderTarget;
-    struct FViewportInput;
 
     /**
      * @brief 뷰포트 클라이언트와 렌더 타깃의 입력 및 그리기 호출을 연결합니다.
@@ -56,13 +55,6 @@ namespace Engine {
          * @param[in] Client 입력과 그리기를 처리할 클라이언트의 비소유 주소입니다.
          */
         void SetClient(Engine::FViewportClient* Client);
-
-        /**
-         * @brief 현재 프레임의 뷰포트 입력을 처리합니다.
-         * @param[in] Input 현재 프레임의 뷰포트 입력 스냅샷입니다.
-         * @param[in] DeltaTime 이전 프레임 이후 경과한 시간(초)입니다.
-         */
-        void Input(const Engine::FViewportInput& Input, float DeltaTime);
 
         /**
          * @brief 뷰포트 또는 패널의 현재 내용을 그립니다.

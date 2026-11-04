@@ -330,24 +330,27 @@ namespace Editor {
             return true;
         }
 
-        if (Input.mRightDown) {
+        const Core::FVector LocalMovement{static_cast<float>(Input.mForward) - static_cast<float>(Input.mBackward), static_cast<float>(Input.mRight) - static_cast<float>(Input.mLeft), 0.0f};
+        const float VerticalMovement{static_cast<float>(Input.mUp) - static_cast<float>(Input.mDown)};
+        const bool Moving{Input.mFocused && (LocalMovement.LengthSquared() > 0.0f || VerticalMovement != 0.0f)};
+
+        if (Input.mRightDown || Moving) {
             const float OrbitDistance{std::max(mCameraLocation.Distance(mOrbitPivot), 0.1f)};
 
-            mCameraRotation.yaw += Input.mDelta.x * mCameraSensitivity;
-            mCameraRotation.pitch = std::clamp(mCameraRotation.pitch - Input.mDelta.y * mCameraSensitivity, -89.0f, 89.0f);
+            if (Input.mRightDown) {
+                mCameraRotation.yaw += Input.mDelta.x * mCameraSensitivity;
+                mCameraRotation.pitch = std::clamp(mCameraRotation.pitch - Input.mDelta.y * mCameraSensitivity, -89.0f, 89.0f);
+            }
 
             const Core::FQuat FlightRotation{mCameraRotation.Quaternion()};
-            const Core::FVector LocalMovement{static_cast<float>(Input.mForward) - static_cast<float>(Input.mBackward), static_cast<float>(Input.mRight) - static_cast<float>(Input.mLeft), 0.0f};
             Core::FVector Movement{FlightRotation * LocalMovement};
-            Movement.z += static_cast<float>(Input.mUp) - static_cast<float>(Input.mDown);
+            Movement.z += VerticalMovement;
 
             mCameraLocation += Movement.Normalized() * std::max(DeltaTime, 0.0f) * mCameraSpeed * (Input.mFast ? 3.0f : 1.0f);
             mOrbitPivot = mCameraLocation + FlightRotation.ForwardVector() * OrbitDistance;
-
-            return true;
         }
 
-        return Input.mAlt || Input.mMiddleDown || (Input.mWheel != 0.0f && Input.mHovered);
+        return Input.mRightDown || Input.mAlt || (Input.mWheel != 0.0f && Input.mHovered);
     }
 
     /**

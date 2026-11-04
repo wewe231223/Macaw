@@ -7,7 +7,6 @@
 #include "Engine/FSceneViewport.h"
 #include "Core/Math/FVector2.h"
 #include "Engine/FRenderTarget.h"
-#include "Engine/FViewportInput.h"
 #include "Engine/FViewportClient.h"
 #include "RenderCore/IRendererModule.h"
 
@@ -47,15 +46,6 @@ namespace Engine {
         }
 
         return mRenderer->ResizeRenderTarget(mTarget.get(), Width, Height);
-    }
-
-    /**
-     * @brief 현재 프레임의 뷰포트 입력을 처리합니다.
-     */
-    void Engine::FSceneViewport::Input(const Engine::FViewportInput& Input, float DeltaTime) {
-        if (mClient != nullptr && mTarget != nullptr) {
-            mClient->Input(this, Input, DeltaTime);
-        }
     }
 
     /**

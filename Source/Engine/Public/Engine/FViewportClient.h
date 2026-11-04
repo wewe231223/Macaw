@@ -17,7 +17,6 @@ namespace Core {
 namespace Engine {
 
     class FSceneViewport;
-    struct FViewportInput;
 
     /**
      * @brief 뷰포트별 입력과 장면 그리기를 구현하는 인터페이스입니다.
@@ -31,14 +30,6 @@ namespace Engine {
         virtual ~FViewportClient();
 
     public:
-        /**
-         * @brief 현재 프레임의 뷰포트 입력을 처리합니다.
-         * @param[in] Input 현재 프레임의 뷰포트 입력 스냅샷입니다.
-         * @param[in,out] Viewport 입력 좌표와 크기를 제공하는 뷰포트입니다.
-         * @param[in] DeltaTime 이전 프레임 이후 경과한 시간(초)입니다.
-         */
-        virtual void Input(Engine::FSceneViewport* Viewport, const Engine::FViewportInput& Input, float DeltaTime) = 0;
-
         /**
          * @brief 뷰포트 또는 패널의 현재 내용을 그립니다.
          * @param[in,out] Viewport 출력 타깃과 크기를 제공하는 뷰포트입니다.

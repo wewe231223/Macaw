@@ -7,6 +7,7 @@
 #pragma once
 
 #include "Engine/FViewportClient.h"
+#include "Core/Input.h"
 #include "Engine/FWorldHandle.h"
 #include "Engine/FSceneView.h"
 
@@ -46,7 +47,7 @@ namespace Engine {
          * @return 요청한 처리를 완료하면 true, 실패하면 false입니다.
          */
         bool CalcSceneView(const Core::FVector2& Size, Engine::FSceneView& View) const;
-        void Input(Engine::FSceneViewport* Viewport, const Engine::FViewportInput& Input, float DeltaTime) override;
+        void ProcessInput(const Core::FInput& Input, float DeltaTime);
         void Draw(Engine::FSceneViewport* Viewport) override;
 
     private:

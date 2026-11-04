@@ -7,6 +7,7 @@
 #pragma once
 
 #include "Editor/FEditorViewportClient.h"
+#include "Core/Input.h"
 #include "Editor/FViewportStatistics.h"
 
 namespace Engine {
@@ -70,14 +71,14 @@ namespace Editor {
          * @pre 활성 ImGui 프레임 안에서 호출해야 합니다.
          * @note 이미지가 표시되지 않을 때에도 진행 중인 드래그의 버튼 해제와 Esc 취소를 처리합니다.
          */
-        void DrawUI(float DeltaTime);
+        void DrawUI(const Core::FInput& Input, float DeltaTime);
 
         /**
          * @brief 뷰포트 타깃 이미지·툴바를 표시하고 입력과 리사이즈를 전달합니다.
          * @param[in] DeltaTime 이전 갱신 이후의 초 단위 시간입니다.
          * @param[in] AllowInput 뷰포트 입력을 받을지 지정합니다.
          */
-        void DrawContents(float DeltaTime, bool AllowInput = true);
+        void DrawContents(const Core::FInput& Input, float DeltaTime, bool AllowInput = true);
 
         /**
          * @brief 뷰포트가 마우스 입력을 캡처 중인지 검사합니다.

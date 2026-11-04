@@ -42,7 +42,7 @@ namespace Engine {
          * @param[in] Input 현재 프레임의 키보드·마우스 입력 상태입니다.
          * @param[in] DeltaTime 이전 갱신 이후의 경과 시간이며 초 단위입니다.
          */
-        void Input(const Engine::FViewportInput& Input, float DeltaTime) override;
+        void Input(const Core::FInput& Input, float DeltaTime) override;
 
     private:
         /**

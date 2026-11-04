@@ -20,6 +20,10 @@ namespace Core {
     struct FRay;
 }
 
+namespace Core {
+    class FInput;
+}
+
 namespace Engine {
 
     class ULevel;
@@ -28,7 +32,6 @@ namespace Engine {
     class FSceneInterface;
     class AStaticMeshActor;
     class UCameraComponent;
-    struct FViewportInput;
     struct FWorldHit;
     enum class EPrimitiveType : Core::Uint8;
 
@@ -198,7 +201,7 @@ namespace Engine {
          * @param[in] DeltaTime 이전 갱신 이후의 경과 시간이며 초 단위입니다.
          * @return 요청한 처리를 완료하면 true, 실패하면 false입니다.
          */
-        bool Input(const Engine::FViewportInput& Input, float DeltaTime);
+        bool Input(const Core::FInput& Input, float DeltaTime);
 
         /**
          * @fn UClass* UWorld::GetClass() const

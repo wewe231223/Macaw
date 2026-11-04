@@ -6,7 +6,7 @@
 
 #include "Engine/ACameraActor.h"
 #include "Engine/Component/UCameraComponent.h"
-#include "Engine/FViewportInput.h"
+#include "Core/Input.h"
 #include "Engine/UWorld.h"
 #include "Core/Math/FRotator.h"
 #include "CoreUObject/Reflection/Cast.h"
@@ -32,27 +32,33 @@ namespace Engine {
         return CoreUObject::Cast<Engine::UCameraComponent>(GetRootComponent());
     }
 
-    void Engine::ACameraActor::Input(const Engine::FViewportInput& Input, float DeltaTime) {
-        Engine::UCameraComponent* Camera{GetCameraComponent()};
+    void Engine::ACameraActor::Input(const Core::FInput& Input, float DeltaTime) {
+        using Core::EInputRoute;
+        using Core::EKey;
 
-        if (Camera == nullptr || GetWorld() == nullptr || GetWorld()->GetPlayState() != Engine::EWorldPlayState::Playing || !HasBegunPlay() || IsPendingDestroy() || !Input.mFocused || !std::isfinite(DeltaTime) || DeltaTime < 0.0f || !std::isfinite(Input.mDelta.x) || !std::isfinite(Input.mDelta.y)) {
+        Engine::UCameraComponent* Camera{GetCameraComponent()};
+        const Core::FVector2 MouseDelta{Input.GetMouseDelta(EInputRoute::Game)};
+
+        if (Camera == nullptr || GetWorld() == nullptr || GetWorld()->GetPlayState() != Engine::EWorldPlayState::Playing || !HasBegunPlay() || IsPendingDestroy() || !Input.IsGameInputEnabled() || !std::isfinite(DeltaTime) || DeltaTime < 0.0f || !std::isfinite(MouseDelta.x) || !std::isfinite(MouseDelta.y)) {
             return;
         }
 
         Core::FTransform Transform{Camera->GetTransform()};
         Core::FRotator Rotation{Transform.mRotation.Rotator()};
 
-        if (Input.mRightDown) {
-            Rotation.yaw += Input.mDelta.x * 0.2f;
-            Rotation.pitch = std::clamp(Rotation.pitch - Input.mDelta.y * 0.2f, -89.0f, 89.0f);
+        if (Input.IsDown(EKey::MouseRight, EInputRoute::Game)) {
+            Rotation.yaw += MouseDelta.x * 0.2f;
+            Rotation.pitch = std::clamp(Rotation.pitch - MouseDelta.y * 0.2f, -89.0f, 89.0f);
             Transform.mRotation = Rotation.Quaternion();
         }
 
-        const Core::FVector Local{static_cast<float>(Input.mForward) - static_cast<float>(Input.mBackward), static_cast<float>(Input.mRight) - static_cast<float>(Input.mLeft), 0.0f};
+        const Core::FVector Local{static_cast<float>(Input.IsDown(EKey::W, EInputRoute::Game)) - static_cast<float>(Input.IsDown(EKey::S, EInputRoute::Game)), static_cast<float>(Input.IsDown(EKey::D, EInputRoute::Game)) - static_cast<float>(Input.IsDown(EKey::A, EInputRoute::Game)), 0.0f};
         Core::FVector Movement{Transform.mRotation * Local};
-        Movement.z += static_cast<float>(Input.mUp) - static_cast<float>(Input.mDown);
-        Transform.mLocation += Movement.Normalized() * DeltaTime * (Input.mFast ? 12.0f : 4.0f);
-        Camera->SetTransform(Transform);
+        Movement.z += static_cast<float>(Input.IsDown(EKey::E, EInputRoute::Game)) - static_cast<float>(Input.IsDown(EKey::Q, EInputRoute::Game));
+        Transform.mLocation += Movement.Normalized() * DeltaTime * (Input.IsDown(EKey::Shift, EInputRoute::Game) ? 12.0f : 4.0f);
+        if (Input.IsDown(EKey::MouseRight, EInputRoute::Game) || Movement.LengthSquared() > 0.0f) {
+            Camera->SetTransform(Transform);
+        }
     }
 
 }

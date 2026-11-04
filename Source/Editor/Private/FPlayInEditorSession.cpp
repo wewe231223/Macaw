@@ -7,6 +7,7 @@
 #include "Editor/FPlayInEditorSession.h"
 #include "Editor/FEditorViewport.h"
 #include "Engine/Engine.h"
+#include "Engine/FProject.h"
 #include "Engine/UWorld.h"
 #include "Engine/ULevel.h"
 #include "Engine/AActor.h"
@@ -33,7 +34,7 @@ namespace Editor {
         return mEngine != nullptr && mContext != nullptr && mViewport != nullptr && !IsActive() && !mEngine->IsDispatching() && !mContext->IsChangingState() && mContext->CanEditWorld() && mContext->GetWorld()->GetPersistentLevel() != nullptr && mContext->GetWorld()->GetActiveCamera() != nullptr && !mViewport->GetClient()->GetGizmo().IsDragging();
     }
 
-    bool Editor::FPlayInEditorSession::Start() {
+    bool Editor::FPlayInEditorSession::Start(Core::FInput* Input) {
         if (!CanStart()) {
             if (!IsActive() && mContext != nullptr && mContext->GetWorld() != nullptr && mContext->GetWorld()->GetActiveCamera() == nullptr) {
                 mContext->AddLog("PIE requires an active world camera");
@@ -100,7 +101,15 @@ namespace Editor {
             Ready = mEngine->SetCurrentWorld(mPlayWorld) && World->BeginPlay() && World->GetPlayState() == Engine::EWorldPlayState::Playing && World->GetActiveCamera() != nullptr && !mStopRequested;
         }
 
+        if (Ready && Input != nullptr && mEngine->GetProject() != nullptr) {
+            Input->SetGameInputEnabled(false);
+            Ready = mGameScript.Start(mEngine->GetProject()->GetAssets()->GetContentRoot(), *Input, Error, [this](const Core::FString& Message) {
+                mContext->AddLog(Message);
+            });
+        }
+
         if (Ready) {
+            mInput = Input;
             mViewport->SetPlayClient(&mGameClient);
             mContext->AddLog("PIE started");
         }
@@ -133,6 +142,13 @@ namespace Editor {
         }
 
         mTransitioning = true;
+        mGameScript.Stop();
+
+        if (mInput != nullptr) {
+            mInput->SetGameInputEnabled(false);
+            mInput = nullptr;
+        }
+
         mViewport->SetPlayClient(nullptr);
         mGameClient.SetWorld({});
         mInspectionContext.Reset();
@@ -177,6 +193,20 @@ namespace Editor {
             }
 
             Stop();
+        }
+    }
+
+    void Editor::FPlayInEditorSession::ProcessInput(float DeltaTime, bool AllowInput) {
+        if (mInput == nullptr) {
+            return;
+        }
+
+        const Engine::UWorld* World{mEngine->GetWorld(mPlayWorld)};
+        const bool Playing{World != nullptr && World->GetPlayState() == Engine::EWorldPlayState::Playing && !mStopRequested};
+        mInput->SetGameInputEnabled(Playing && AllowInput && mViewport->IsPlayInputCaptured());
+
+        if (Playing && !mGameScript.Tick(DeltaTime)) {
+            mGameClient.ProcessInput(*mInput, DeltaTime);
         }
     }
 

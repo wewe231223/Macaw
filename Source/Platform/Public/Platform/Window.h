@@ -7,6 +7,7 @@
 #pragma once
 
 #include "Core/ReflectionMacros.h"
+#include "Core/Input.h"
 #include "Core/Types.h"
 
 #include <Windows.h>
@@ -75,6 +76,9 @@ namespace Platform {
          */
         void SetMessageHandler(FMessageHandler Handler);
 
+        Core::FInput& GetInput();
+        const Core::FInput& GetInput() const;
+
         /**
          * @brief 네이티브 Win32 창 핸들을 반환합니다.
          * @return 네이티브 Win32 창 핸들입니다.
@@ -100,6 +104,8 @@ namespace Platform {
         bool IsMinimized() const;
 
     private:
+        void ProcessInputMessage(HWND Window, UINT Message, WPARAM WParam, LPARAM LParam);
+
         /**
          * @brief 창 메시지를 인스턴스에 전달하고 크기 및 종료 상태를 갱신합니다.
          * @param[in] Window 메시지를 받은 Win32 창입니다.
@@ -135,6 +141,7 @@ namespace Platform {
          * @brief 외부 UI 백엔드에 메시지를 전달하는 콜백입니다.
          */
         FMessageHandler mMessageHandler{};
+        Core::FInput mInput{};
     };
 
 }

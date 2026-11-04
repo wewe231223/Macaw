@@ -196,7 +196,7 @@ namespace Editor {
         }
     }
 
-    void Editor::FMeshViewer::DrawUI(bool Standalone) {
+    void Editor::FMeshViewer::DrawUI(const Core::FInput& Input, bool Standalone) {
         // 열린 에셋이 재임포트되면 본 번호와 재질 슬롯을 새 데이터에 맞춰 다시 만듭니다.
         if (mOpen && mSkeletalMesh != nullptr && mPose.GetMeshRevision() != mSkeletalMesh->GetRevision()) {
             const std::filesystem::path Path{Core::FilePath::FromUtf8(mPath)};
@@ -252,7 +252,7 @@ namespace Editor {
                 ImGui::SameLine();
             }
 
-            DrawPreview();
+            DrawPreview(Input);
         } else {
             mMouseCaptured = false;
         }
@@ -260,7 +260,7 @@ namespace Editor {
         ImGui::End();
     }
 
-    void Editor::FMeshViewer::DrawPreview() {
+    void Editor::FMeshViewer::DrawPreview(const Core::FInput& Input) {
         const ImVec2 Size{ImGui::GetContentRegionAvail()};
 
         if (Size.x < 1.0f || Size.y < 1.0f) {
@@ -285,43 +285,46 @@ namespace Editor {
         ImGui::InvisibleButton("##Preview", Size, ImGuiButtonFlags_MouseButtonLeft | ImGuiButtonFlags_MouseButtonRight | ImGuiButtonFlags_MouseButtonMiddle);
 
         const bool Hovered{ImGui::IsItemHovered()};
-        const ImGuiIO& Input{ImGui::GetIO()};
+        using Core::EKey;
+
+        const Core::FVector2 Mouse{Input.GetMousePosition()};
+        const Core::FVector2 Delta{Input.GetMouseDelta()};
         const Core::FVector2 Extent{Size.x, Size.y};
         const ImVec2 Origin{ImGui::GetItemRectMin()};
         ImGui::GetWindowDrawList()->AddImage(ImTextureRef{static_cast<ImTextureID>(reinterpret_cast<std::uintptr_t>(mTarget->GetNativeTexture()))}, Origin, ImGui::GetItemRectMax());
-        const bool GizmoActive{mSkeletalMesh != nullptr && UpdateBoneGizmo(CalcSceneView(Extent), {Input.MousePos.x - Origin.x, Input.MousePos.y - Origin.y}, Hovered)};
+        const bool GizmoActive{mSkeletalMesh != nullptr && UpdateBoneGizmo(Input, CalcSceneView(Extent), {Mouse.x - Origin.x, Mouse.y - Origin.y}, Hovered)};
 
-        if (!GizmoActive && Hovered && (ImGui::IsMouseClicked(ImGuiMouseButton_Left) || ImGui::IsMouseClicked(ImGuiMouseButton_Right) || ImGui::IsMouseClicked(ImGuiMouseButton_Middle))) {
+        if (!GizmoActive && Hovered && (Input.WasPressed(EKey::MouseLeft) || Input.WasPressed(EKey::MouseRight) || Input.WasPressed(EKey::MouseMiddle))) {
             mMouseCaptured = true;
             ImGui::SetWindowFocus();
         }
 
-        if (!ImGui::IsWindowFocused() || (!Input.MouseDown[0] && !Input.MouseDown[1] && !Input.MouseDown[2])) {
+        if (!ImGui::IsWindowFocused() || (!Input.IsDown(EKey::MouseLeft) && !Input.IsDown(EKey::MouseRight) && !Input.IsDown(EKey::MouseMiddle))) {
             mMouseCaptured = false;
         }
 
         if (mMouseCaptured) {
-            if (Input.MouseDown[2]) {
+            if (Input.IsDown(EKey::MouseMiddle)) {
                 const Core::FQuat Rotation{mRotation.Quaternion()};
-                mCenter += (Rotation.RightVector() * -Input.MouseDelta.x + Rotation.UpVector() * Input.MouseDelta.y) * (mDistance / std::max(Size.y, 1.0f));
+                mCenter += (Rotation.RightVector() * -Delta.x + Rotation.UpVector() * Delta.y) * (mDistance / std::max(Size.y, 1.0f));
             } else {
-                mRotation.yaw += Input.MouseDelta.x * 0.3f;
-                mRotation.pitch = std::clamp(mRotation.pitch - Input.MouseDelta.y * 0.3f, -89.0f, 89.0f);
+                mRotation.yaw += Delta.x * 0.3f;
+                mRotation.pitch = std::clamp(mRotation.pitch - Delta.y * 0.3f, -89.0f, 89.0f);
             }
         }
 
-        if (Hovered && Input.MouseWheel != 0.0f) {
-            mDistance = std::clamp(mDistance * std::exp(-Input.MouseWheel * 0.15f), mRadius * 0.02f, mRadius * 1000.0f);
+        if (Hovered && Input.GetMouseWheel() != 0.0f) {
+            mDistance = std::clamp(mDistance * std::exp(-Input.GetMouseWheel() * 0.15f), mRadius * 0.02f, mRadius * 1000.0f);
         }
 
-        if (Hovered && !Input.WantTextInput && ImGui::IsKeyPressed(ImGuiKey_F)) {
+        if (Hovered && !ImGui::GetIO().WantTextInput && Input.WasPressed(EKey::F)) {
             FrameMesh();
         }
 
-        if (mSkeletalMesh != nullptr && Hovered && !Input.WantTextInput && !mGizmo.IsDragging()) {
-            if (ImGui::IsKeyPressed(ImGuiKey_W)) {
+        if (mSkeletalMesh != nullptr && Hovered && !ImGui::GetIO().WantTextInput && !mGizmo.IsDragging()) {
+            if (Input.WasPressed(EKey::W)) {
                 mGizmoMode = Editor::EGizmoMode::Translate;
-            } else if (ImGui::IsKeyPressed(ImGuiKey_E)) {
+            } else if (Input.WasPressed(EKey::E)) {
                 mGizmoMode = Editor::EGizmoMode::Rotate;
             }
         }
@@ -475,9 +478,11 @@ namespace Editor {
         return Placement;
     }
 
-    bool Editor::FMeshViewer::UpdateBoneGizmo(const Engine::FSceneView& View, const Core::FVector2& Mouse, bool Hovered) {
+    bool Editor::FMeshViewer::UpdateBoneGizmo(const Core::FInput& Input, const Engine::FSceneView& View, const Core::FVector2& Mouse, bool Hovered) {
+        using Core::EKey;
+
         if (mGizmo.IsDragging()) {
-            if (ImGui::IsKeyPressed(ImGuiKey_Escape)) {
+            if (Input.WasPressed(EKey::Escape)) {
                 mGizmo.EndDrag();
 
                 if (mPose.SetLocalTransform(*mSkeletalMesh, mPoseBone, mDragStartLocal)) {
@@ -491,20 +496,20 @@ namespace Editor {
                 ApplyBoneGizmo();
             }
 
-            if (!ImGui::IsMouseDown(ImGuiMouseButton_Left)) {
+            if (!Input.IsDown(EKey::MouseLeft)) {
                 mGizmo.EndDrag();
             }
 
             return true;
         }
 
-        const bool CanHover{Hovered && !mMouseCaptured && !ImGui::IsMouseDown(ImGuiMouseButton_Right) && !ImGui::IsMouseDown(ImGuiMouseButton_Middle)};
+        const bool CanHover{Hovered && !mMouseCaptured && !Input.IsDown(EKey::MouseRight) && !Input.IsDown(EKey::MouseMiddle)};
         const Editor::FGizmoPlacement Placement{GetBonePlacement()};
         const Engine::FHitProxy Hit{CanHover ? mGizmo.HitTest(Mouse, View, Placement) : Engine::FHitProxy{}};
         const Core::Int32 Axis{Hit.mType == Engine::EHitProxyType::GizmoAxis ? Hit.mAxis : -1};
         mGizmo.SetHoveredAxis(Axis);
 
-        if (Axis < 0 || !ImGui::IsMouseClicked(ImGuiMouseButton_Left) || !mGizmo.BeginDrag(Axis, Mouse, View, Placement)) {
+        if (Axis < 0 || !Input.WasPressed(EKey::MouseLeft) || !mGizmo.BeginDrag(Axis, Mouse, View, Placement)) {
             return false;
         }
 

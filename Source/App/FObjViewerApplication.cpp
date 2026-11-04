@@ -141,7 +141,7 @@ namespace App {
                 ImGui::End();
             }
 
-            mViewer->DrawUI(true);
+            mViewer->DrawUI(mPlatform.GetInput(), true);
 
             if (!mError.empty()) {
                 ImGui::OpenPopup("Cannot Open Mesh");

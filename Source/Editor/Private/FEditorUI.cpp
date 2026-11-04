@@ -337,7 +337,7 @@ namespace Editor {
         mPlaceActorsPanel.Draw(DeltaTime);
         mOutlinerPanel.Draw(DeltaTime);
         mDetailsPanel.Draw(DeltaTime);
-        mViewportLayout.DrawUI(DeltaTime);
+        mViewportLayout.DrawUI(mPlatform->GetInput(), DeltaTime);
         mConsolePanel.Draw(DeltaTime);
 
         // 패널을 닫으면 그리기가 멈추므로 프리뷰 값이 월드에 남지 않도록 여기서 복원합니다.
@@ -365,8 +365,10 @@ namespace Editor {
         }
 
         if (mMeshViewer != nullptr) {
-            mMeshViewer->DrawUI();
+            mMeshViewer->DrawUI(mPlatform->GetInput());
         }
+
+        mPlaySession->ProcessInput(DeltaTime, !ImGui::GetIO().WantTextInput && !ImGui::IsPopupOpen(nullptr, ImGuiPopupFlags_AnyPopup));
 
         return true;
     }
@@ -550,7 +552,7 @@ namespace Editor {
             if (Active) {
                 mPlaySession->Stop();
             } else {
-                mPlaySession->Start();
+                mPlaySession->Start(&mPlatform->GetInput());
             }
         }
 
@@ -666,36 +668,38 @@ namespace Editor {
             ImGui::EndMainMenuBar();
         }
 
-        const ImGuiIO& Input{ImGui::GetIO()};
+        using Core::EKey;
 
-        if (Input.KeyCtrl && !Input.WantTextInput && ImGui::IsKeyPressed(ImGuiKey_Comma, false)) {
+        const Core::FInput& Input{mPlatform->GetInput()};
+
+        if (Input.IsDown(EKey::Control) && !ImGui::GetIO().WantTextInput && Input.WasPressed(EKey::Comma)) {
             mSettingsOpen = true;
             mFocusSettings = true;
         }
 
-        if (!Input.WantTextInput && !ImGui::IsPopupOpen(nullptr, ImGuiPopupFlags_AnyPopup)) {
-            if (Input.KeyAlt && ImGui::IsKeyPressed(ImGuiKey_P, false) && mViewportLayout.CanChangeLayout()) {
-                mPlaySession->Start();
-            } else if (mPlaySession->IsActive() && ImGui::IsKeyPressed(ImGuiKey_Escape, false)) {
+        if (!ImGui::GetIO().WantTextInput && !ImGui::IsPopupOpen(nullptr, ImGuiPopupFlags_AnyPopup)) {
+            if (Input.IsDown(EKey::Alt) && Input.WasPressed(EKey::P) && mViewportLayout.CanChangeLayout()) {
+                mPlaySession->Start(&mPlatform->GetInput());
+            } else if (mPlaySession->IsActive() && Input.WasPressed(EKey::Escape)) {
                 mPlaySession->Stop();
             }
         }
 
-        if (Input.KeyCtrl && !Input.WantTextInput && mContext->CanEditWorld()) {
-            if (ImGui::IsKeyPressed(ImGuiKey_S)) {
+        if (Input.IsDown(EKey::Control) && !ImGui::GetIO().WantTextInput && mContext->CanEditWorld()) {
+            if (Input.WasPressed(EKey::S)) {
                 const auto Path{mContext->GetScenePath().empty() ? ChooseFile(true) : mContext->GetScenePath()};
 
                 if (!Path.empty()) {
                     mContext->SaveScene(Path);
                     mRefreshContent = true;
                 }
-            } else if (ImGui::IsKeyPressed(ImGuiKey_O)) {
+            } else if (Input.WasPressed(EKey::O)) {
                 const auto Path{ChooseFile(false)};
 
                 if (!Path.empty() && ConfirmSceneChange()) {
                     mContext->LoadScene(Path);
                 }
-            } else if (ImGui::IsKeyPressed(ImGuiKey_N)) {
+            } else if (Input.WasPressed(EKey::N)) {
                 if (ConfirmSceneChange()) {
                     mContext->NewScene();
                 }

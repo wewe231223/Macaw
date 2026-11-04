@@ -11,9 +11,9 @@
 #include "Engine/FGameViewportClient.h"
 #include "Engine/FProject.h"
 #include "Engine/FSceneViewport.h"
-#include "Engine/FViewportInput.h"
 #include "Platform/Window.h"
 #include "Renderer/Renderer.h"
+#include "Script/GameScript.h"
 
 namespace Game {
 
@@ -50,21 +50,6 @@ namespace Game {
          */
         bool Initialize(const std::filesystem::path& ProjectFile, Core::FString& Error);
         /**
-         * @brief 현재 마우스·키보드 상태를 읽어 이번 프레임의 뷰포트 입력을 만듭니다.
-         * @return 포커스, 마우스 위치·이동량, 버튼과 WASD/QE 이동 키 상태를 담은 입력입니다.
-         * @note 창에 포커스가 없거나 커서 위치를 읽지 못하면 버튼과 키 상태를 채우지 않습니다. 호출 후 누적 휠 값은 0으로 초기화됩니다.
-         */
-        Engine::FViewportInput ReadInput();
-        /**
-         * @brief 마우스 휠을 누적하고 버튼 입력 동안 마우스 캡처를 관리합니다.
-         * @param[in] Window 메시지를 받은 창 핸들입니다.
-         * @param[in] Message Windows 메시지 번호입니다.
-         * @param[in] WParam 메시지의 WPARAM 값입니다.
-         * @param[in] LParam 메시지의 LPARAM 값이며 사용하지 않습니다.
-         * @return 메시지를 직접 처리했으면 true, 기본 처리로 넘길 메시지면 false입니다.
-         */
-        bool HandleMessage(HWND Window, UINT Message, WPARAM WParam, LPARAM LParam);
-        /**
          * @brief 오류를 기록하고 오류 대화상자를 표시합니다.
          * @param[in] Error 보고할 오류 메시지입니다.
          * @return 프로세스 종료 코드로 사용할 1입니다.
@@ -100,6 +85,7 @@ namespace Game {
          * @brief 게임 월드의 입력과 장면 뷰를 처리하는 뷰포트 클라이언트입니다.
          */
         Engine::FGameViewportClient mGameClient{&mEngine};
+        Script::FGameScript mGameScript{};
 
         /**
          * @brief 게임 화면을 그릴 오프스크린 뷰포트이며, 초기화 전에는 비어 있습니다.
@@ -110,31 +96,6 @@ namespace Game {
          * @brief 프레임 경과 시간 측정기입니다.
          */
         Core::FFrameTimer mTimer{};
-
-        /**
-         * @brief 이전 프레임의 클라이언트 좌표 마우스 위치입니다.
-         */
-        Core::FVector2 mPreviousMouse{};
-
-        /**
-         * @brief 다음 입력 읽기 전까지 누적한 마우스 휠 칸 수입니다.
-         */
-        float mWheel{};
-
-        /**
-         * @brief 이전 마우스 위치가 유효해 이동량을 계산할 수 있는지 나타냅니다.
-         */
-        bool mMouseReady{};
-
-        /**
-         * @brief 이전 프레임의 왼쪽 버튼 눌림 상태입니다.
-         */
-        bool mLeftDown{};
-
-        /**
-         * @brief 이전 프레임의 가운데 버튼 눌림 상태입니다.
-         */
-        bool mMiddleDown{};
     };
 
 }

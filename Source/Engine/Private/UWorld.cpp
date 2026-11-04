@@ -14,7 +14,7 @@
 #include "Engine/Component/UStaticMeshComponent.h"
 #include "Engine/Component/UBillboardComponent.h"
 #include "Engine/Component/UCameraComponent.h"
-#include "Engine/FViewportInput.h"
+#include "Core/Input.h"
 #include "Core/Math.h"
 #include "Engine/Component/UPrimitiveComponent.h"
 #include "Engine/AStaticMeshActor.h"
@@ -513,10 +513,10 @@ namespace Engine {
         return Actor != nullptr && !Actor->IsPendingDestroy() ? Actor : nullptr;
     }
 
-    bool Engine::UWorld::Input(const Engine::FViewportInput& Input, float DeltaTime) {
+    bool Engine::UWorld::Input(const Core::FInput& Input, float DeltaTime) {
         Engine::AActor* Actor{GetInputTarget()};
 
-        if ((mWorldType != Engine::EWorldType::Game && mWorldType != Engine::EWorldType::PIE) || mPlayState != Engine::EWorldPlayState::Playing || IsDispatching() || !CanBeginActor() || !Input.mFocused || !std::isfinite(DeltaTime) || DeltaTime < 0.0f || Actor == nullptr || !Actor->HasBegunPlay()) {
+        if ((mWorldType != Engine::EWorldType::Game && mWorldType != Engine::EWorldType::PIE) || mPlayState != Engine::EWorldPlayState::Playing || IsDispatching() || !CanBeginActor() || !Input.IsGameInputEnabled() || !std::isfinite(DeltaTime) || DeltaTime < 0.0f || Actor == nullptr || !Actor->HasBegunPlay()) {
             return false;
         }
 

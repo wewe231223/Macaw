@@ -155,7 +155,7 @@ namespace Engine {
     void Engine::AActor::EndPlay() {
     }
 
-    void Engine::AActor::Input(const Engine::FViewportInput&, float) {
+    void Engine::AActor::Input(const Core::FInput&, float) {
     }
 
     /**

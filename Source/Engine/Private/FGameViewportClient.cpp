@@ -9,7 +9,7 @@
 #include "Engine/UWorld.h"
 #include "Engine/Component/UCameraComponent.h"
 #include "Engine/FSceneViewport.h"
-#include "Engine/FViewportInput.h"
+#include "Core/Input.h"
 #include "Engine/FSceneViewFamily.h"
 #include "RenderCore/IRendererModule.h"
 
@@ -41,7 +41,7 @@ namespace Engine {
         return Camera != nullptr && Camera->GetCameraView(Size, View);
     }
 
-    void Engine::FGameViewportClient::Input(Engine::FSceneViewport*, const Engine::FViewportInput& Input, float DeltaTime) {
+    void Engine::FGameViewportClient::ProcessInput(const Core::FInput& Input, float DeltaTime) {
         Engine::UWorld* World{mEngine != nullptr ? mEngine->GetWorld(mWorld) : nullptr};
 
         if (World != nullptr) {

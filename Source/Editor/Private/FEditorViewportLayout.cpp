@@ -133,7 +133,7 @@ namespace Editor {
         return mQuadView;
     }
 
-    void Editor::FEditorViewportLayout::DrawViewport(Core::Uint32 Index, float DeltaTime, Editor::FEditorViewport*& CapturedViewport) {
+    void Editor::FEditorViewportLayout::DrawViewport(Core::Uint32 Index, const Core::FInput& Input, float DeltaTime, Editor::FEditorViewport*& CapturedViewport) {
         Editor::FEditorViewport* Viewport{GetViewport(Index)};
 
         if (Viewport == nullptr) {
@@ -178,7 +178,7 @@ namespace Editor {
         Editor::EditorStyle::PopViewportToolbar();
         ImGui::Separator();
 
-        Viewport->DrawContents(DeltaTime, AllowInput);
+        Viewport->DrawContents(Input, DeltaTime, AllowInput);
         mVisible[Index] = true;
 
         if (Viewport->IsMouseCaptured()) {
@@ -189,7 +189,7 @@ namespace Editor {
         }
     }
 
-    void Editor::FEditorViewportLayout::DrawUI(float DeltaTime) {
+    void Editor::FEditorViewportLayout::DrawUI(const Core::FInput& Input, float DeltaTime) {
         UpdateViewportContexts();
         mVisible.fill(false);
 
@@ -216,7 +216,7 @@ namespace Editor {
 
                 if (ImGui::BeginChild("ViewportSingle", Available, ImGuiChildFlags_None, Flags)) {
                     ImGui::PushID(static_cast<int>(Index));
-                    DrawViewport(Index, DeltaTime, CapturedViewport);
+                    DrawViewport(Index, Input, DeltaTime, CapturedViewport);
                     ImGui::PopID();
                 }
 
@@ -256,7 +256,7 @@ namespace Editor {
                     ImGui::PushID(static_cast<int>(Index));
 
                     if (ImGui::BeginChild("ViewportPane", Sizes[Index], ImGuiChildFlags_Borders, Flags)) {
-                        DrawViewport(Index, DeltaTime, CapturedViewport);
+                        DrawViewport(Index, Input, DeltaTime, CapturedViewport);
                     }
 
                     ImGui::EndChild();

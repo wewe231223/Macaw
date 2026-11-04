@@ -100,7 +100,7 @@ namespace Editor {
          * @param[in,out] Viewport 입력 좌표와 크기를 제공하는 뷰포트입니다.
          * @param[in] DeltaTime 이전 프레임 이후 경과한 시간(초)입니다.
          */
-        void Input(Engine::FSceneViewport* Viewport, const Engine::FViewportInput& Input, float DeltaTime) override;
+        void Input(Engine::FSceneViewport* Viewport, const Engine::FViewportInput& Input, float DeltaTime);
 
         /**
          * @brief 카메라 뷰로 장면, 그리드와 기즈모를 뷰포트 렌더 타깃에 그립니다.

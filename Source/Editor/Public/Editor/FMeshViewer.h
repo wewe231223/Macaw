@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include "Core/Input.h"
+
 #include "Core/ReflectionMacros.h"
 
 #include "Core/Types.h"
@@ -82,7 +84,7 @@ namespace Editor {
          * @brief 카메라·재질 조작 UI와 미리보기를 표시합니다.
          * @param Standalone 독립 실행용 전체 화면 창이면 true입니다.
          */
-        void DrawUI(bool Standalone = false);
+        void DrawUI(const Core::FInput& Input, bool Standalone = false);
 
         /**
          * @brief 창의 열림 상태를 검사합니다.
@@ -138,7 +140,7 @@ namespace Editor {
          * @param Hovered 마우스가 미리보기 위에 있으면 true입니다.
          * @return 기즈모가 마우스를 사용 중이어서 카메라 조작을 막아야 하면 true입니다.
          */
-        bool UpdateBoneGizmo(const Engine::FSceneView& View, const Core::FVector2& Mouse, bool Hovered);
+        bool UpdateBoneGizmo(const Core::FInput& Input, const Engine::FSceneView& View, const Core::FVector2& Mouse, bool Hovered);
 
         /**
          * @brief 기즈모의 드래그 결과를 선택한 본의 부모 기준 로컬 변환으로 바꾸어 적용합니다.
@@ -148,7 +150,7 @@ namespace Editor {
         /**
          * @brief 카메라 입력을 처리하고 공통 렌더 경로로 메시와 본 보조 선분을 그리며 아이콘·스프라이트·텍스트 표시는 제외합니다.
          */
-        void DrawPreview();
+        void DrawPreview(const Core::FInput& Input);
 
     private:
         /**

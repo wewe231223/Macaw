@@ -8,5 +8,5 @@
   "Script": { "Public": ["CoreUObject"], "Private": ["Engine"] },
   "Renderer": { "Public": ["Engine"], "Private": [] },
   "Platform": { "Public": ["Core"], "Private": ["CoreUObject"] },
-  "Editor": { "Public": ["Engine", "Platform"], "Private": ["Serialization", "Renderer"] }
+  "Editor": { "Public": ["Engine", "Platform", "Script"], "Private": ["Serialization", "Renderer"] }
 }

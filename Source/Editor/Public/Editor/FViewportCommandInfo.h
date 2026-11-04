@@ -38,7 +38,7 @@ namespace Editor {
 
         /**
          * @brief 단축키 문자를 메뉴와 도움말에 사용할 이름으로 변환합니다.
-         * @return 영문 키의 이름, Space 또는 Tab이며 단축키가 없으면 빈 문자열입니다.
+         * @return 영문 키나 숫자의 이름, Space 또는 Tab이며 단축키가 없으면 빈 문자열입니다.
          */
         Core::FString GetShortcutLabel() const;
 
@@ -59,7 +59,7 @@ namespace Editor {
         Editor::EEditorIcon mIcon{};
 
         /**
-         * @brief 영문 대문자, 공백 또는 탭으로 표현하는 단축키이며 0이면 키에 연결하지 않습니다.
+         * @brief 영문 대문자, 숫자, 공백 또는 탭으로 표현하는 단축키이며 널 문자이면 키에 연결하지 않습니다.
          */
         char mShortcut{};
 

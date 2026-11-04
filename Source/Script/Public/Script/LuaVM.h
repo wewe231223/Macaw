@@ -9,7 +9,12 @@
 #include "Core/ReflectionMacros.h"
 
 #include <functional>
+#include <filesystem>
 #include <sol/sol.hpp>
+
+namespace Core {
+    class FInput;
+}
 
 namespace Script {
 
@@ -79,7 +84,8 @@ namespace Script {
          * @param[in] ScriptPath 실행할 Lua 스크립트 파일 경로입니다.
          * @return 요청한 처리를 완료하면 true, 실패하면 false입니다.
          */
-        bool ExecuteFile(const Core::FString& ScriptPath);
+        bool ExecuteFile(const std::filesystem::path& ScriptPath);
+        bool Tick(float DeltaTime);
 
         /**
          * @brief 사용 가능한 Lua 상태가 생성되어 있는지 반환합니다.
@@ -104,12 +110,14 @@ namespace Script {
          * @param[in] Function 스크립트 출력과 진단을 받을 로그 콜백입니다.
          */
         void SetLogFunction(FLogFunction Function);
+        void SetInput(const Core::FInput* Input);
 
     private:
         /**
          * @brief 벡터·회전·액터 등 엔진 타입과 함수를 Lua에 등록합니다.
          */
         void BindEngineAPI();
+        void BindInputAPI();
 
         /**
          * @brief Lua print 출력을 엔진 로그 콜백으로 전달하도록 바인딩합니다.
@@ -140,6 +148,7 @@ namespace Script {
          * @brief 스크립트 출력과 실행 진단을 받는 선택적 로그 콜백입니다.
          */
         FLogFunction mLogFunction{};
+        const Core::FInput* mInput{};
     };
 
 }

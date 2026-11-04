@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include "Core/Input.h"
+
 #include "Core/Types.h"
 #include "Core/ReflectionMacros.h"
 
@@ -71,7 +73,7 @@ namespace Editor {
          * @brief 단일 또는 4분할 뷰포트 UI를 표시합니다.
          * @param[in] DeltaTime 이전 갱신 이후의 초 단위 시간입니다.
          */
-        void DrawUI(float DeltaTime);
+        void DrawUI(const Core::FInput& Input, float DeltaTime);
 
         /**
          * @brief 표시 중인 뷰포트의 렌더 요청을 제출합니다.
@@ -142,7 +144,7 @@ namespace Editor {
          * @param[in] DeltaTime 이전 갱신 이후의 초 단위 시간입니다.
          * @param[in,out] CapturedViewport 입력을 캡처한 뷰포트의 비소유 주소입니다.
          */
-        void DrawViewport(Core::Uint32 Index, float DeltaTime, Editor::FEditorViewport*& CapturedViewport);
+        void DrawViewport(Core::Uint32 Index, const Core::FInput& Input, float DeltaTime, Editor::FEditorViewport*& CapturedViewport);
 
         /**
          * @brief INI 레이아웃 섹션을 엽니다.

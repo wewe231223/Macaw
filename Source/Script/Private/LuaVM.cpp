@@ -4,6 +4,8 @@
  */
 
 #include "Script/LuaVM.h"
+#include "Core/FilePath.h"
+#include "Core/Input.h"
 #include "Core/Stats.h"
 
 #include "Core/Math/FVector.h"
@@ -14,8 +16,11 @@
 
 #include <Windows.h>
 #include <filesystem>
+#include <fstream>
 #include <format>
+#include <iterator>
 #include <luajit.h>
+#include <tuple>
 #include <utility>
 
 namespace Script {
@@ -288,22 +293,49 @@ namespace Script {
         return CheckLuaResult(Result, ChunkName);
     }
 
-    bool Script::FLuaVM::ExecuteFile(const Core::FString& ScriptPath) {
+    bool Script::FLuaVM::ExecuteFile(const std::filesystem::path& ScriptPath) {
         const Core::FScopedStatTimer StatTimer{ExecuteFileTime};
+        const Core::FString Name{Core::FilePath::ToUtf8(ScriptPath)};
 
         if (mState == nullptr) {
-            WriteLog(std::format("[Lua] Cannot execute '{}': VM is not initialized", ScriptPath));
+            WriteLog(std::format("[Lua] Cannot execute '{}': VM is not initialized", Name));
             return false;
         }
 
-        if (!std::filesystem::exists(ScriptPath)) {
-            WriteLog(std::format("[Lua] Script file not found: {}", ScriptPath));
+        std::ifstream File{ScriptPath, std::ios::binary};
+
+        if (!File) {
+            WriteLog(std::format("[Lua] Cannot open script: {}", Name));
             return false;
         }
 
-        sol::protected_function_result Result{mState->safe_script_file(ScriptPath, sol::script_pass_on_error)};
+        Core::FString Source{std::istreambuf_iterator<char>{File}, std::istreambuf_iterator<char>{}};
 
-        return CheckLuaResult(Result, ScriptPath);
+        if (Source.starts_with("\xEF\xBB\xBF")) {
+            Source.erase(0, 3);
+        }
+
+        if (Source.starts_with('#')) {
+            const std::size_t End{Source.find('\n')};
+            Source.erase(0, End);
+        }
+
+        sol::protected_function_result Result{mState->safe_script(Source, sol::script_pass_on_error, "@" + Name)};
+
+        return CheckLuaResult(Result, Name);
+    }
+
+    bool Script::FLuaVM::Tick(float DeltaTime) {
+        const sol::object Callback{mState != nullptr ? (*mState)["Tick"].get<sol::object>() : sol::object{}};
+
+        if (Callback.get_type() != sol::type::function) {
+            return false;
+        }
+
+        const sol::protected_function Function{Callback.as<sol::protected_function>()};
+        sol::protected_function_result Result{Function(DeltaTime)};
+
+        return CheckLuaResult(Result, "Tick");
     }
 
     bool Script::FLuaVM::IsInitialized() const {
@@ -322,6 +354,10 @@ namespace Script {
         mLogFunction = std::move(Function);
     }
 
+    void Script::FLuaVM::SetInput(const Core::FInput* Input) {
+        mInput = Input;
+    }
+
     void Script::FLuaVM::BindEngineAPI() {
         if (mState == nullptr) {
             return;
@@ -331,6 +367,86 @@ namespace Script {
         BindVectorAPI(*mState);
         BindRotatorAPI(*mState);
         BindActorAPI(*mState);
+        BindInputAPI();
+    }
+
+    void Script::FLuaVM::BindInputAPI() {
+        using Core::EInputRoute;
+        using Core::EKey;
+
+        sol::table Input{mState->create_named_table("Input")};
+        Input.set_function("IsDown", [this](EKey Key) {
+            return mInput != nullptr && mInput->IsDown(Key, EInputRoute::Game);
+        });
+        Input.set_function("WasPressed", [this](EKey Key) {
+            return mInput != nullptr && mInput->WasPressed(Key, EInputRoute::Game);
+        });
+        Input.set_function("WasReleased", [this](EKey Key) {
+            return mInput != nullptr && mInput->WasReleased(Key, EInputRoute::Game);
+        });
+        Input.set_function("GetMousePosition", [this]() {
+            const Core::FVector2 Value{mInput != nullptr ? mInput->GetMousePosition(EInputRoute::Game) : Core::FVector2{}};
+
+            return std::tuple{Value.x, Value.y};
+        });
+        Input.set_function("GetMouseDelta", [this]() {
+            const Core::FVector2 Value{mInput != nullptr ? mInput->GetMouseDelta(EInputRoute::Game) : Core::FVector2{}};
+
+            return std::tuple{Value.x, Value.y};
+        });
+        Input.set_function("GetMouseWheel", [this]() {
+            return mInput != nullptr ? mInput->GetMouseWheel(EInputRoute::Game) : 0.0f;
+        });
+
+        sol::table Keys{mState->create_named_table("Key")};
+        const std::pair<const char*, EKey> NamedKeys[]{
+            {"MouseLeft", EKey::MouseLeft},
+            {"MouseRight", EKey::MouseRight},
+            {"MouseMiddle", EKey::MouseMiddle},
+            {"MouseX1", EKey::MouseX1},
+            {"MouseX2", EKey::MouseX2},
+            {"Backspace", EKey::Backspace},
+            {"Tab", EKey::Tab},
+            {"Enter", EKey::Enter},
+            {"Shift", EKey::Shift},
+            {"Control", EKey::Control},
+            {"Alt", EKey::Alt},
+            {"LeftShift", EKey::LeftShift},
+            {"RightShift", EKey::RightShift},
+            {"LeftControl", EKey::LeftControl},
+            {"RightControl", EKey::RightControl},
+            {"LeftAlt", EKey::LeftAlt},
+            {"RightAlt", EKey::RightAlt},
+            {"Escape", EKey::Escape},
+            {"Space", EKey::Space},
+            {"PageUp", EKey::PageUp},
+            {"PageDown", EKey::PageDown},
+            {"Home", EKey::Home},
+            {"End", EKey::End},
+            {"Left", EKey::Left},
+            {"Up", EKey::Up},
+            {"Right", EKey::Right},
+            {"Down", EKey::Down},
+            {"Insert", EKey::Insert},
+            {"Delete", EKey::Delete},
+            {"Comma", EKey::Comma}
+        };
+
+        for (const auto& [Name, Key] : NamedKeys) {
+            Keys[Name] = Key;
+        }
+
+        for (char Letter{'A'}; Letter <= 'Z'; ++Letter) {
+            Keys[Core::FString{Letter}] = static_cast<EKey>(Letter);
+        }
+
+        for (char Digit{'0'}; Digit <= '9'; ++Digit) {
+            Keys[std::format("Digit{}", Digit)] = static_cast<EKey>(Digit);
+        }
+
+        for (Core::Int32 Number{1}; Number <= 24; ++Number) {
+            Keys[std::format("F{}", Number)] = static_cast<EKey>(static_cast<Core::Int32>(EKey::F1) + Number - 1);
+        }
     }
 
     void Script::FLuaVM::BindLoggingAPI() {

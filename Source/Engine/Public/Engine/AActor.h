@@ -13,13 +13,16 @@ namespace Core {
     struct FTransform;
 }
 
+namespace Core {
+    class FInput;
+}
+
 namespace Engine {
 
     class UWorld;
     class ULevel;
     class UActorComponent;
     class USceneComponent;
-    struct FViewportInput;
 
     /**
      * @brief 컴포넌트를 소유하고 루트 컴포넌트를 통해 공간 변환을 제공하는 월드 객체입니다.
@@ -122,7 +125,7 @@ namespace Engine {
          * @param[in] Input 현재 프레임의 키보드·마우스 입력 상태입니다.
          * @param[in] DeltaTime 이전 갱신 이후의 경과 시간이며 초 단위입니다.
          */
-        virtual void Input(const Engine::FViewportInput& Input, float DeltaTime);
+        virtual void Input(const Core::FInput& Input, float DeltaTime);
 
         /**
          * @brief 액터가 실행 시작 전달에 진입했는지 검사합니다.

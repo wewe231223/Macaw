@@ -45,7 +45,7 @@ namespace Game {
 
         while (mPlatform.PumpMessages()) {
             if (mPlatform.IsMinimized()) {
-                mMouseReady = false;
+                mPlatform.GetInput().SetGameInputEnabled(false);
                 mTimer.Tick();
                 MsgWaitForMultipleObjects(0, nullptr, false, 16, QS_ALLINPUT);
                 continue;
@@ -59,7 +59,12 @@ namespace Game {
                 return ReportFailure("Cannot resize the game viewport");
             }
 
-            mViewport->Input(ReadInput(), DeltaTime);
+            mPlatform.GetInput().SetGameInputEnabled(true);
+
+            if (mEngine.GetWorld()->GetPlayState() == Engine::EWorldPlayState::Playing && !mGameScript.Tick(DeltaTime)) {
+                mGameClient.ProcessInput(mPlatform.GetInput(), DeltaTime);
+            }
+
             mEngine.Tick(DeltaTime, false);
 
             Engine::UWorld* World{mEngine.GetWorld()};
@@ -128,80 +133,7 @@ namespace Game {
         }
 
         mViewport = std::make_unique<Engine::FSceneViewport>(&mRenderer, &mGameClient);
-        mPlatform.SetMessageHandler([this](HWND Window, UINT Message, WPARAM WParam, LPARAM LParam) {
-            return HandleMessage(Window, Message, WParam, LParam);
-        });
-
-        return true;
-    }
-
-    /**
-     * @brief 현재 마우스·키보드 상태를 읽어 이번 프레임의 뷰포트 입력을 만듭니다.
-     */
-    Engine::FViewportInput Game::FGameApplication::ReadInput() {
-        Engine::FViewportInput Input{};
-        Input.mFocused = GetForegroundWindow() == mPlatform.GetWindowHandle();
-
-        POINT Mouse{};
-        const bool HasMouse{GetCursorPos(&Mouse) != FALSE && ScreenToClient(mPlatform.GetWindowHandle(), &Mouse) != FALSE};
-        Input.mMouse = {static_cast<float>(Mouse.x), static_cast<float>(Mouse.y)};
-        Input.mHovered = HasMouse && Mouse.x >= 0 && Mouse.y >= 0 && Mouse.x < static_cast<LONG>(mPlatform.GetWidth()) && Mouse.y < static_cast<LONG>(mPlatform.GetHeight());
-
-        if (Input.mFocused && HasMouse) {
-            Input.mDelta = mMouseReady ? Input.mMouse - mPreviousMouse : Core::FVector2{};
-            Input.mLeftDown = (GetAsyncKeyState(VK_LBUTTON) & 0x8000) != 0;
-            Input.mRightDown = (GetAsyncKeyState(VK_RBUTTON) & 0x8000) != 0;
-            Input.mMiddleDown = (GetAsyncKeyState(VK_MBUTTON) & 0x8000) != 0;
-            const bool LeftDown{Input.mLeftDown};
-            Input.mLeftPressed = LeftDown && !mLeftDown;
-            Input.mLeftReleased = !LeftDown && mLeftDown;
-            Input.mMiddlePressed = Input.mMiddleDown && !mMiddleDown;
-            Input.mMiddleReleased = !Input.mMiddleDown && mMiddleDown;
-            Input.mForward = (GetAsyncKeyState('W') & 0x8000) != 0;
-            Input.mBackward = (GetAsyncKeyState('S') & 0x8000) != 0;
-            Input.mLeft = (GetAsyncKeyState('A') & 0x8000) != 0;
-            Input.mRight = (GetAsyncKeyState('D') & 0x8000) != 0;
-            Input.mUp = (GetAsyncKeyState('E') & 0x8000) != 0;
-            Input.mDown = (GetAsyncKeyState('Q') & 0x8000) != 0;
-            Input.mFast = (GetAsyncKeyState(VK_SHIFT) & 0x8000) != 0;
-            Input.mAlt = (GetAsyncKeyState(VK_MENU) & 0x8000) != 0;
-            Input.mControl = (GetAsyncKeyState(VK_CONTROL) & 0x8000) != 0;
-            Input.mEscape = (GetAsyncKeyState(VK_ESCAPE) & 0x8000) != 0;
-            Input.mWheel = mWheel;
-            mLeftDown = LeftDown;
-            mMiddleDown = Input.mMiddleDown;
-        } else {
-            mLeftDown = false;
-            mMiddleDown = false;
-        }
-
-        mMouseReady = Input.mFocused && HasMouse;
-        mPreviousMouse = Input.mMouse;
-        mWheel = 0.0f;
-
-        return Input;
-    }
-
-    /**
-     * @brief 마우스 휠을 누적하고 버튼 입력 동안 마우스 캡처를 관리합니다.
-     */
-    bool Game::FGameApplication::HandleMessage(HWND Window, UINT Message, WPARAM WParam, LPARAM) {
-        if (Message == WM_MOUSEWHEEL) {
-            mWheel += static_cast<float>(GET_WHEEL_DELTA_WPARAM(WParam)) / static_cast<float>(WHEEL_DELTA);
-            return true;
-        }
-
-        if (Message == WM_LBUTTONDOWN || Message == WM_RBUTTONDOWN || Message == WM_MBUTTONDOWN) {
-            SetCapture(Window);
-        } else if ((Message == WM_LBUTTONUP || Message == WM_RBUTTONUP || Message == WM_MBUTTONUP) && (WParam & (MK_LBUTTON | MK_RBUTTON | MK_MBUTTON)) == 0) {
-            ReleaseCapture();
-        } else if (Message == WM_KILLFOCUS) {
-            ReleaseCapture();
-            mMouseReady = false;
-            mWheel = 0.0f;
-        }
-
-        return false;
+        return mGameScript.Start(mProject.GetAssets()->GetContentRoot(), mPlatform.GetInput(), Error);
     }
 
     /**
@@ -219,7 +151,8 @@ namespace Game {
      * @brief 메시지 처리기, 뷰포트, 엔진, 렌더러와 창을 역순으로 정리합니다.
      */
     void Game::FGameApplication::Shutdown() {
-        mPlatform.SetMessageHandler({});
+        mPlatform.GetInput().SetGameInputEnabled(false);
+        mGameScript.Stop();
         mViewport.reset();
         mGameClient.SetWorld({});
         mEngine.Shutdown();

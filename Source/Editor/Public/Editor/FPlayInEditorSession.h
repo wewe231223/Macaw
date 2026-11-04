@@ -8,6 +8,7 @@
 
 #include "Editor/FEditorContext.h"
 #include "Engine/FGameViewportClient.h"
+#include "Script/GameScript.h"
 #include <utility>
 
 namespace Engine {
@@ -57,7 +58,7 @@ namespace Editor {
          * @brief 편집 월드를 복제하여 PIE를 시작하고 뷰포트 입력과 조회 대상을 연결합니다.
          * @return 요청한 처리를 완료하면 true, 실패하면 false입니다.
          */
-        bool Start();
+        bool Start(Core::FInput* Input = nullptr);
 
         /**
          * @brief PIE 실행을 종료하고 복제 월드와 객체 대응표를 정리한 뒤 편집 상태를 복원합니다.
@@ -83,6 +84,7 @@ namespace Editor {
          * @brief PIE 월드의 유효성을 검사하고 지연된 종료 요청을 처리합니다.
          */
         void Update();
+        void ProcessInput(float DeltaTime, bool AllowInput);
 
         /**
          * @brief PIE 월드가 엔진에 유효하게 등록되어 실행 세션이 활성인지 검사합니다.
@@ -153,6 +155,8 @@ namespace Editor {
          * @brief PIE 월드의 활성 카메라와 입력을 처리하는 클라이언트입니다.
          */
         Engine::FGameViewportClient mGameClient;
+        Script::FGameScript mGameScript{};
+        Core::FInput* mInput{};
 
         /**
          * @brief 세션이 생성하여 관리하는 PIE 복제 월드의 핸들입니다.
