@@ -55,6 +55,17 @@ namespace Engine {
         Engine::AActor* GetOwner() const;
 
         /**
+         * @brief 소유 액터가 표시 상태인지 검사합니다.
+         * @return 소유 액터가 없거나 표시 상태이면 true입니다.
+         */
+        bool IsOwnerVisible() const;
+
+        /**
+         * @brief 소유 액터의 표시 여부가 바뀐 뒤 렌더 상태를 갱신하는 확장 지점입니다.
+         */
+        virtual void OnOwnerVisibilityChanged();
+
+        /**
          * @brief 현재 소속되거나 관리하는 월드의 비소유 주소를 반환합니다.
          * @return 조회한 값의 비소유 주소이며, 해당 값이 없으면 nullptr입니다.
          */

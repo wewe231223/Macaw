@@ -146,15 +146,6 @@ namespace Engine {
         MarkRenderStateDirty();
     }
 
-    bool Engine::UBillboardComponent::IsVisible() const {
-        return mVisible;
-    }
-
-    void Engine::UBillboardComponent::SetVisible(bool Visible) {
-        mVisible = Visible;
-        MarkRenderStateDirty();
-    }
-
     Engine::EPrimitiveType Engine::UBillboardComponent::GetPrimitiveType() const {
         return Engine::EPrimitiveType::Plane;
     }
@@ -183,7 +174,7 @@ namespace Engine {
     }
 
     bool Engine::UBillboardComponent::ShouldCreateRenderState() const {
-        return mVisible && mColor.w > 0.0f && (mTexturePath.empty() || mSprite != nullptr);
+        return mColor.w > 0.0f && (mTexturePath.empty() || mSprite != nullptr);
     }
 
     void Engine::UBillboardComponent::OnRegister() {

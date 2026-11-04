@@ -180,6 +180,22 @@ namespace Engine {
         mEditorTickable = EditorTickable;
     }
 
+    bool Engine::AActor::IsVisible() const {
+        return mVisible;
+    }
+
+    void Engine::AActor::SetVisible(bool Visible) {
+        if (mVisible == Visible) {
+            return;
+        }
+
+        mVisible = Visible;
+
+        for (const auto& Component : mComponents) {
+            Component->OnOwnerVisibilityChanged();
+        }
+    }
+
     /**
      * @brief 콜백 중 컴포넌트 추가에 영향받지 않는 핸들 스냅샷을 만듭니다.
      */

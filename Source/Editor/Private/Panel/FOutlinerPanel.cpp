@@ -6,6 +6,7 @@
 
 #include "Editor/Panel/FOutlinerPanel.h"
 #include "Editor/FEditorContext.h"
+#include "EditorStyle.h"
 #include "Engine/AActor.h"
 #include "Engine/UWorld.h"
 #include "Engine/Component/UCameraComponent.h"
@@ -23,6 +24,17 @@ namespace Editor {
     namespace {
         bool MatchesFilter(const ImGuiTextFilter& Filter, const CoreUObject::UObject* Object) {
             return Filter.PassFilter(Object->GetName().c_str()) || Filter.PassFilter(ObjectRow::GetTypeLabel(Object).c_str());
+        }
+
+        bool DrawVisibilityButton(bool ActorVisible) {
+            const float Size{ImGui::GetFontSize()};
+            const bool Pressed{ImGui::InvisibleButton("##Visibility", {Size, Size})};
+            const ImU32 Color{ImGui::GetColorU32(ActorVisible || ImGui::IsItemHovered() ? ImGuiCol_Text : ImGuiCol_TextDisabled)};
+
+            EditorStyle::DrawIcon(ActorVisible ? EditorStyle::EIcon::Visible : EditorStyle::EIcon::Hidden, ImGui::GetItemRectMin(), Size, Color);
+            ImGui::SetItemTooltip("%s", ActorVisible ? "숨기기" : "표시");
+
+            return Pressed;
         }
     }
 
@@ -117,8 +129,9 @@ namespace Editor {
         bool DeleteRequested{};
         constexpr ImGuiTableFlags TableFlags{ImGuiTableFlags_Resizable | ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_ScrollY};
 
-        if (ImGui::BeginTable("Actors", 2, TableFlags, {0.0f, -ImGui::GetTextLineHeightWithSpacing()})) {
+        if (ImGui::BeginTable("Actors", 3, TableFlags, {0.0f, -ImGui::GetTextLineHeightWithSpacing()})) {
             ImGui::TableSetupScrollFreeze(0, 1);
+            ImGui::TableSetupColumn("##Visibility", ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_NoResize | ImGuiTableColumnFlags_NoHide, ImGui::GetFontSize());
             ImGui::TableSetupColumn("Item Label", ImGuiTableColumnFlags_WidthStretch | ImGuiTableColumnFlags_NoHide);
             ImGui::TableSetupColumn("Type", ImGuiTableColumnFlags_WidthFixed, ImGui::CalcTextSize("DirectionalLightActor").x);
             ImGui::TableHeadersRow();
@@ -133,7 +146,37 @@ namespace Editor {
                 ImGui::PushID(Actor);
 
                 const bool Selected{std::find(Selection.begin(), Selection.end(), Handle) != Selection.end()};
+
+                ImGui::TableNextRow();
+                ImGui::TableNextColumn();
+
+                // 행 전체를 덮는 라벨보다 먼저 제출해야 버튼이 클릭을 먼저 받습니다.
+                ImGui::BeginDisabled(!CanEdit);
+
+                if (DrawVisibilityButton(Actor->IsVisible())) {
+                    const bool ActorVisible{!Actor->IsVisible()};
+
+                    // 선택된 행의 버튼은 언리얼처럼 선택된 액터 전체에 적용합니다.
+                    if (Selected) {
+                        for (CoreUObject::FObjectHandle SelectedHandle : Selection) {
+                            if (auto* SelectedActor{CoreUObject::Cast<Engine::AActor>(Context->ResolveObject(SelectedHandle))}) {
+                                SelectedActor->SetVisible(ActorVisible);
+                            }
+                        }
+                    } else {
+                        Actor->SetVisible(ActorVisible);
+                    }
+
+                    Context->MarkSceneDirty();
+                }
+
+                ImGui::EndDisabled();
+
+                const float RowAlpha{ImGui::GetStyle().Alpha * (Actor->IsVisible() ? 1.0f : 0.5f)};
+
+                ImGui::PushStyleVar(ImGuiStyleVar_Alpha, RowAlpha);
                 ObjectRow::DrawLabel(Actor, Selected);
+                ImGui::PopStyleVar();
 
                 if (ImGui::IsItemClicked()) {
                     const auto Anchor{Selection.empty() ? Visible.end() : std::find(Visible.begin(), Visible.end(), Selection.back())};
@@ -177,7 +220,9 @@ namespace Editor {
                     ImGui::EndPopup();
                 }
 
+                ImGui::PushStyleVar(ImGuiStyleVar_Alpha, RowAlpha);
                 ObjectRow::DrawType(Actor);
+                ImGui::PopStyleVar();
                 ImGui::PopID();
             }
 

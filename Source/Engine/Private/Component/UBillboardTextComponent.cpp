@@ -71,17 +71,6 @@ namespace Engine {
         return true;
     }
 
-    bool Engine::UBillboardTextComponent::IsVisible() const {
-        return mVisible;
-    }
-
-    void Engine::UBillboardTextComponent::SetVisible(bool Visible) {
-        if (mVisible != Visible) {
-            mVisible = Visible;
-            MarkRenderStateDirty();
-        }
-    }
-
     Engine::EPrimitiveType Engine::UBillboardTextComponent::GetPrimitiveType() const {
         return Engine::EPrimitiveType::Plane;
     }
@@ -105,7 +94,7 @@ namespace Engine {
     }
 
     bool Engine::UBillboardTextComponent::ShouldCreateRenderState() const {
-        return mVisible && !mText.empty() && mTextColor.w > 0.0f;
+        return !mText.empty() && mTextColor.w > 0.0f;
     }
 
 }

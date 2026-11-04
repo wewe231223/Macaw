@@ -1181,13 +1181,13 @@ namespace Renderer {
             LightIcons.reserve(Scene->GetLights().size() + Scene->GetHeightFogs().size());
 
             for (const Engine::FLightSceneProxy& Light : Scene->GetLights()) {
-                if (Family.mShowFlags.mLightIcons) {
+                if (Family.mShowFlags.mLightIcons && Light.mVisible) {
                     LightIcons.push_back(Light.CreateIconProxy());
                 }
             }
 
             for (const Engine::FHeightFogSceneProxy& Fog : Scene->GetHeightFogs()) {
-                if (Family.mShowFlags.mFogIcons) {
+                if (Family.mShowFlags.mFogIcons && Fog.mVisible) {
                     LightIcons.push_back(Fog.CreateIconProxy());
                 }
             }

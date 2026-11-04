@@ -212,6 +212,7 @@ namespace Editor {
             ImGui::TableSetupColumn("Type", ImGuiTableColumnFlags_WidthFixed, ImGui::CalcTextSize("StaticMeshComponent").x);
 
             ImGui::PushID(Actor);
+            ImGui::TableNextRow();
             ObjectRow::DrawLabel(Actor, Selected == Actor);
 
             if (ImGui::IsItemClicked()) {
@@ -229,6 +230,7 @@ namespace Editor {
             for (CoreUObject::FObjectHandle Handle : Components) {
                 if (CoreUObject::UObject* Component{Context->ResolveObject(Handle)}) {
                     ImGui::PushID(Component);
+                    ImGui::TableNextRow();
                     ObjectRow::DrawLabel(Component, Selected == Component);
 
                     if (ImGui::IsItemClicked()) {

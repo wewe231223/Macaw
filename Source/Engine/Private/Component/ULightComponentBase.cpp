@@ -63,16 +63,6 @@ namespace Engine {
         return true;
     }
 
-    bool Engine::ULightComponentBase::IsVisible() const {
-        return mVisible;
-    }
-
-    bool Engine::ULightComponentBase::SetVisible(bool Visible) {
-        mVisible = Visible;
-        SynchronizeLight();
-        return true;
-    }
-
     Engine::FLightSceneProxy Engine::ULightComponentBase::CreateLightProxy() const {
         Engine::FLightSceneProxy Proxy{};
         Proxy.mId = GetGuid();
@@ -80,7 +70,7 @@ namespace Engine {
         Proxy.mDirection = GetTransform().mRotation.ForwardVector();
         Proxy.mColor = mLightColor;
         Proxy.mIntensity = mIntensity;
-        Proxy.mVisible = mVisible;
+        Proxy.mVisible = IsOwnerVisible();
         Proxy.mIcon = mIcon;
 
         return Proxy;
@@ -115,6 +105,10 @@ namespace Engine {
     }
 
     void Engine::ULightComponentBase::OnRegister() {
+        SynchronizeLight();
+    }
+
+    void Engine::ULightComponentBase::OnOwnerVisibilityChanged() {
         SynchronizeLight();
     }
 

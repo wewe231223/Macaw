@@ -128,18 +128,6 @@ namespace Engine {
         bool SetFogInscatteringColor(const Core::FVector4& Color);
 
         /**
-         * @brief 안개 효과의 컴포넌트 표시 설정을 조회합니다.
-         * @return 효과를 사용하도록 설정했으면 true이며 에디터 아이콘 표시 여부와는 독립적입니다.
-         */
-        bool IsVisible() const;
-        /**
-         * @brief 안개 효과의 활성 여부를 설정하고 장면 프록시를 갱신합니다.
-         * @param[in] Visible 안개 효과를 사용할지 나타냅니다.
-         * @return 설정을 반영하면 항상 true입니다.
-         */
-        bool SetVisible(bool Visible);
-
-        /**
          * @brief 유효한 공간 변환을 적용하고 안개 기준 높이와 아이콘 위치를 장면에 반영합니다.
          * @param[in] Transform 유효한 위치·정규화 회전·비특이 크기를 가진 루트 변환입니다.
          * @return 변환을 수락하면 true이며 유효하지 않으면 false입니다.
@@ -168,6 +156,11 @@ namespace Engine {
          * @brief 월드에 등록된 시점에 아이콘과 안개 프록시를 동기화합니다.
          */
         void OnRegister() override;
+
+        /**
+         * @brief 소유 액터의 표시 여부 변경을 장면 프록시에 동기화합니다.
+         */
+        void OnOwnerVisibilityChanged() override;
         /**
          * @brief 프로젝트의 언리얼 안개 아이콘을 찾고 없으면 실행 파일 또는 저장소의 배포 템플릿에서 로드합니다.
          */
@@ -215,12 +208,6 @@ namespace Engine {
          */
         Core::FVector4 mFogInscatteringColor{0.65f, 0.75f, 0.85f, 1.0f};
         ReflectAccessor(mFogInscatteringColor, GetFogInscatteringColor, SetFogInscatteringColor, "FogInscatteringColor", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
-
-        /**
-         * @brief 안개 효과를 렌더 장면에서 사용할지 나타내며 에디터 아이콘 표시와 독립적입니다.
-         */
-        bool mVisible{true};
-        ReflectAccessor(mVisible, IsVisible, SetVisible, "Visible", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
 
         /**
          * @brief 프로젝트 에셋 또는 대체 텍스처가 소유하는 언리얼 안개 아이콘의 비소유 주소입니다.

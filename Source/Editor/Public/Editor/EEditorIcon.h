@@ -108,7 +108,15 @@ namespace Editor {
         /**
          * @brief 특정 종류로 분류되지 않는 객체를 나타내는 마름모 아이콘입니다.
          */
-        Component
+        Component,
+        /**
+         * @brief 표시 중인 객체를 나타내는 눈 아이콘입니다.
+         */
+        Visible,
+        /**
+         * @brief 숨긴 객체를 나타내는 빗금 친 눈 아이콘입니다.
+         */
+        Hidden
     };
 
 }

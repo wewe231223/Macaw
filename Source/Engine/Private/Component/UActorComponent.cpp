@@ -24,6 +24,13 @@ namespace Engine {
     /**
      * @brief 컴포넌트를 소유한 액터를 반환합니다.
      */
+    bool Engine::UActorComponent::IsOwnerVisible() const {
+        return mOwner == nullptr || mOwner->IsVisible();
+    }
+
+    void Engine::UActorComponent::OnOwnerVisibilityChanged() {
+    }
+
     Engine::AActor* Engine::UActorComponent::GetOwner() const {
         return mOwner;
     }

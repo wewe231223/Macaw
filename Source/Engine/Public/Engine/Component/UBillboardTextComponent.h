@@ -77,18 +77,6 @@ namespace Engine {
          * @return 값이 유효해 적용했으면 true, 거부했으면 false입니다.
          */
         bool SetTextColor(const Core::FVector4& Color);
-
-        /**
-         * @brief 표시 활성 상태인지 검사합니다.
-         * @return 조건을 만족하면 true입니다.
-         */
-        bool IsVisible() const;
-
-        /**
-         * @brief 표시 활성 상태를 설정합니다.
-         * @param[in] Visible 표시를 활성화할지 지정합니다.
-         */
-        void SetVisible(bool Visible);
         Engine::EPrimitiveType GetPrimitiveType() const override;
         const Asset::FMeshData& GetMeshData() const override;
         Engine::FPrimitiveSceneProxy CreateSceneProxy() const override;
@@ -124,12 +112,6 @@ namespace Engine {
          */
         Core::FVector4 mTextColor{1.0f, 1.0f, 1.0f, 1.0f};
         ReflectAccessor(mTextColor, GetTextColor, SetTextColor, "TextColor", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
-
-        /**
-         * @brief 표시 활성 상태입니다.
-         */
-        bool mVisible{true};
-        ReflectAccessor(mVisible, IsVisible, SetVisible, "Visible", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
     };
 
 }

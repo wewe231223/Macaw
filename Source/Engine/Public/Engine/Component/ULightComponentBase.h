@@ -73,19 +73,6 @@ namespace Engine {
         bool SetLightColor(const Core::FVector4& Color);
 
         /**
-         * @brief 광원의 표시 여부를 반환합니다.
-         * @return 광원을 표시하도록 설정했으면 true입니다.
-         */
-        bool IsVisible() const;
-
-        /**
-         * @brief 광원의 표시 여부를 변경하고 렌더 장면에 동기화합니다.
-         * @param[in] Visible 광원을 표시하려면 true입니다.
-         * @return 표시 설정을 반영한 뒤 항상 true를 반환합니다.
-         */
-        bool SetVisible(bool Visible);
-
-        /**
          * @brief 현재 컴포넌트의 조명·그림자 설정으로 렌더 프록시를 생성합니다.
          * @return 렌더 장면에 복사할 광원 상태와 아이콘의 비소유 주소입니다.
          */
@@ -127,6 +114,11 @@ namespace Engine {
         void OnRegister() override;
 
         /**
+         * @brief 소유 액터의 표시 여부 변경을 렌더 장면에 동기화합니다.
+         */
+        void OnOwnerVisibilityChanged() override;
+
+        /**
          * @brief 광원 종류에 맞는 프로젝트 아이콘 또는 대체 아이콘을 로드합니다.
          * @param[in] Assets 아이콘 또는 재질·텍스처를 해석할 에셋 관리자의 비소유 주소입니다.
          */
@@ -144,12 +136,6 @@ namespace Engine {
          */
         Core::FVector4 mLightColor{1.0f, 1.0f, 1.0f, 1.0f};
         ReflectAccessor(mLightColor, GetLightColor, SetLightColor, "LightColor", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
-
-        /**
-         * @brief 광원의 표시 여부입니다.
-         */
-        bool mVisible{true};
-        ReflectAccessor(mVisible, IsVisible, SetVisible, "Visible", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
 
         /**
          * @brief 에디터에 표시할 광원 아이콘 텍스처의 비소유 주소입니다.

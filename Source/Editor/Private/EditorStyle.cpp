@@ -162,6 +162,19 @@ namespace Editor {
             DrawList->AddPolyline(Diamond.data(), static_cast<int>(Diamond.size()), Color, Thickness, ImDrawFlags_Closed);
             break;
         }
+        case EIcon::Visible:
+        case EIcon::Hidden:
+            DrawList->PathLineTo(Point(1.5f, 10.0f));
+            DrawList->PathBezierQuadraticCurveTo(Point(10.0f, 0.5f), Point(18.5f, 10.0f));
+            DrawList->PathBezierQuadraticCurveTo(Point(10.0f, 19.5f), Point(1.5f, 10.0f));
+            DrawList->PathStroke(Color, ImDrawFlags_None, Thickness);
+            DrawList->AddCircleFilled(Point(10.0f, 10.0f), 2.75f * Scale, Color);
+
+            if (Icon == EIcon::Hidden) {
+                Line(3.5f, 16.5f, 16.5f, 3.5f);
+            }
+
+            break;
         }
     }
 

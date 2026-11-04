@@ -121,18 +121,6 @@ namespace Engine {
         void SetScreenAligned(bool ScreenAligned);
 
         /**
-         * @brief 표시 활성 상태인지 검사합니다.
-         * @return 조건을 만족하면 true입니다.
-         */
-        bool IsVisible() const;
-
-        /**
-         * @brief 표시 활성 상태를 설정합니다.
-         * @param[in] Visible 표시를 활성화할지 지정합니다.
-         */
-        void SetVisible(bool Visible);
-
-        /**
          * @brief 빌보드 선택과 경계 계산에 사용하는 기본 도형 종류를 반환합니다.
          * @return 스프라이트 쿼드에 대응하는 평면 도형 종류입니다.
          */
@@ -215,12 +203,6 @@ namespace Engine {
          */
         bool mScreenAligned{true};
         ReflectAccessor(mScreenAligned, IsScreenAligned, SetScreenAligned, "ScreenAligned", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
-
-        /**
-         * @brief 표시 활성 상태입니다.
-         */
-        bool mVisible{true};
-        ReflectAccessor(mVisible, IsVisible, SetVisible, "Visible", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
 
         /**
          * @brief 텍스처의 비소유 주소입니다.

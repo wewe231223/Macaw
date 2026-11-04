@@ -132,15 +132,8 @@ namespace Engine {
         return true;
     }
 
-    bool Engine::UHeightFogComponent::IsVisible() const {
-        return mVisible;
-    }
-
-    bool Engine::UHeightFogComponent::SetVisible(bool Visible) {
-        mVisible = Visible;
+    void Engine::UHeightFogComponent::OnOwnerVisibilityChanged() {
         SynchronizeFog();
-
-        return true;
     }
 
     bool Engine::UHeightFogComponent::SetTransform(const Core::FTransform& Transform) {
@@ -197,7 +190,7 @@ namespace Engine {
         Proxy.mCutoffDistance = mFogCutoffDistance;
         Proxy.mMaxOpacity = mFogMaxOpacity;
         Proxy.mInscatteringColor = mFogInscatteringColor;
-        Proxy.mVisible = mVisible;
+        Proxy.mVisible = IsOwnerVisible();
         Proxy.mIcon = mIcon;
 
         return Proxy;

@@ -148,6 +148,19 @@ namespace Engine {
          */
         void SetEditorTickable(bool EditorTickable);
 
+        /**
+         * @brief 액터의 표시 여부를 반환합니다.
+         * @return 액터와 소유 컴포넌트를 표시하도록 설정했으면 true입니다.
+         */
+        bool IsVisible() const;
+
+        /**
+         * @brief 액터의 표시 여부를 변경하고 소유 컴포넌트의 렌더 상태에 반영합니다.
+         * @param[in] Visible 액터를 표시하려면 true입니다.
+         * @note 렌더링과 에디터 피킹에만 영향을 주며 Tick과 충돌은 그대로 동작합니다.
+         */
+        void SetVisible(bool Visible);
+
     private:
         /**
          * @brief 생성된 프로퍼티 등록 함수와 빌더 접근 권한입니다.
@@ -234,6 +247,12 @@ namespace Engine {
          */
         bool mEditorTickable{};
         ReflectProperty(mEditorTickable, "EditorTickable", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
+
+        /**
+         * @brief 액터와 소유 컴포넌트의 표시 여부이며 아웃라이너에서 변경합니다.
+         */
+        bool mVisible{true};
+        ReflectAccessor(mVisible, IsVisible, SetVisible, "Visible", Core::EPropertyFlags::Serialize);
     };
 
 }

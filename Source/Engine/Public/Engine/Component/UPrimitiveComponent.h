@@ -71,6 +71,11 @@ namespace Engine {
         void UnregisterComponent() override;
 
         /**
+         * @brief 소유 액터의 표시 여부 변경을 프록시 재생성으로 반영합니다.
+         */
+        void OnOwnerVisibilityChanged() override;
+
+        /**
          * @brief 유한하고 유효한 변환을 검증하여 공간 컴포넌트에 적용합니다.
          * @param[in] Transform 적용할 위치, 회전과 스케일입니다.
          * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.

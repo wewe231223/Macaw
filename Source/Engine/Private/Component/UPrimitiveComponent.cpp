@@ -83,6 +83,10 @@ namespace Engine {
     /**
      * @brief 프리미티브 프록시 재생성이 필요함을 표시하고 갱신을 예약합니다.
      */
+    void Engine::UPrimitiveComponent::OnOwnerVisibilityChanged() {
+        MarkRenderStateDirty();
+    }
+
     void Engine::UPrimitiveComponent::MarkRenderStateDirty() {
         mRenderStateDirty = true;
         QueueUpdate();
@@ -116,7 +120,7 @@ namespace Engine {
             return;
         }
 
-        if (!ShouldCreateRenderState()) {
+        if (!IsOwnerVisible() || !ShouldCreateRenderState()) {
             if (mRenderStateCreated) {
                 GetWorld()->GetScene()->RemovePrimitive(GetGuid());
                 mRenderStateCreated = false;

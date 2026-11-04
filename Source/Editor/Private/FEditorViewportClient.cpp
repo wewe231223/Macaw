@@ -410,6 +410,10 @@ namespace Editor {
             const auto* SelectedComponent{CoreUObject::Cast<Engine::UActorComponent>(mContext->GetSelectedObject())};
 
             for (const auto& Actor : World->GetPersistentLevel()->GetActors()) {
+                if (!Actor->IsVisible()) {
+                    continue;
+                }
+
                 const bool Highlight{std::find(SelectedActors.begin(), SelectedActors.end(), Actor->GetHandle()) != SelectedActors.end()};
 
                 if (Highlight && Actor->GetRootComponent() != nullptr) {
@@ -799,6 +803,10 @@ namespace Editor {
         const Core::FVector Up{View.mView(0, 1), View.mView(1, 1), View.mView(2, 1)};
 
         for (const auto& Actor : World->GetPersistentLevel()->GetActors()) {
+            if (!Actor->IsVisible()) {
+                continue;
+            }
+
             for (const auto& Component : Actor->GetComponents()) {
                 if (const auto* Light{CoreUObject::Cast<Engine::ULightComponentBase>(Component.get())}; Light != nullptr && mShowFlags.mLightIcons && !Actor->IsPendingDestroy()) {
                     const Engine::FPrimitiveSceneProxy Proxy{Light->CreateLightProxy().CreateIconProxy()};

@@ -110,7 +110,6 @@ namespace Editor {
     }
 
     void Editor::ObjectRow::DrawLabel(CoreUObject::UObject* Object, bool Selected) {
-        ImGui::TableNextRow();
         ImGui::TableNextColumn();
 
         const float X{ImGui::GetCursorScreenPos().x + ImGui::GetTreeNodeToLabelSpacing()};
