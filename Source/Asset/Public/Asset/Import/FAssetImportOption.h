@@ -47,7 +47,7 @@ namespace Asset {
 
     /**
      * @brief 메시 임포터가 공통으로 따르는 좌표축·변환·메시 구성·재질 임포트 옵션입니다.
-     * @details 축 옵션의 기본값은 언리얼 FBX 임포터의 기본값(Convert Scene 켬, Force Front XAxis 끔)과 같습니다.
+     * @details 원본 좌표계는 옵션과 무관하게 항상 엔진의 Z-Up 왼손 좌표계로 변환하며, Front 축의 기본값은 언리얼 FBX 임포터의 기본값(Force Front XAxis 끔)과 같습니다.
      * 단위 변환은 엔진의 월드 단위가 미터이므로 언리얼과 달리 기본으로 켭니다.
      * @ingroup Asset
      */
@@ -84,12 +84,6 @@ namespace Asset {
         ReflectMembers();
 
     public:
-        /**
-         * @brief 원본 좌표계를 엔진의 Z-Up 왼손 좌표계로 변환합니다. 끄면 원본 축 값에서 Y만 반전합니다.
-         */
-        bool mConvertScene{true};
-        ReflectProperty(mConvertScene, "ConvertScene", Core::EPropertyFlags::Edit);
-
         /**
          * @brief 원본의 Front 축을 엔진의 +X(Forward)로 맞춥니다. 끄면 언리얼과 같이 Front가 +Y가 됩니다.
          */

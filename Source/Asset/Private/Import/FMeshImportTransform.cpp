@@ -32,11 +32,6 @@ namespace Asset {
     }
 
     Core::FMatrix Asset::FMeshImportTransform::MakeYUpConversion(const Asset::FAssetImportOption& Option) {
-        if (!Option.mConvertScene) {
-            // 축 변환을 끄면 FBX 임포터와 같이 원본 축 값에서 Y만 반전합니다.
-            return MakeFlipY();
-        }
-
         // 행 벡터 규약이므로 각 행은 원본 X, Y, Z 축이 엔진 공간에서 향하는 방향입니다.
         // 원본은 Y-Up, Front +Z인 오른손 좌표계(glTF, Maya 기본값)입니다.
         Core::FMatrix Result{};

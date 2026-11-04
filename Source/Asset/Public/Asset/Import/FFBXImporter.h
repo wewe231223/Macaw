@@ -20,6 +20,7 @@ namespace Asset {
      * 2. 스켈레톤 옵션이 켜져 있으면 CollectBindPoses로 바인드 포즈를 모으고 ReadSkeleton으로 본 계층을 만듭니다.
      * 3. ReadNode가 노드 트리를 순회하며 메시마다 ReadMesh를 호출합니다. ReadMesh는 ReadSkinWeights로 제어점별 가중치를 읽고, 삼각형 꼭짓점마다 정점을 만듭니다.
      *
+     * 좌표계 변환은 옵션과 무관하게 항상 수행합니다. 원본 축 → (FbxAxisSystem::ConvertScene) → Z-Up 오른손 중간 좌표계 → (mBasis의 Y 반전) → Z-Up 왼손 엔진 좌표계 순서입니다.
      * 정점과 본은 모두 mBasis를 거쳐 같은 엔진 공간의 바인드 자세로 저장되며, 이 데이터로 USkeletalMesh가 역바인드 행렬을 계산합니다.
      */
     class FFBXImporter final : public Asset::IMeshImporter {
@@ -33,7 +34,7 @@ namespace Asset {
         /**
          * @brief 가져올 원본 FBX 파일 경로와 임포트 옵션을 보관하도록 임포터를 초기화합니다.
          * @param[in] Source 가져올 원본 FBX 파일 경로입니다.
-         * @param[in] Option 좌표축·메시 구성·노멀 처리 방식을 정하는 임포트 옵션입니다.
+         * @param[in] Option Front 축·단위 변환·임포트 변환·메시 구성·노멀 처리 방식을 정하는 임포트 옵션입니다.
          */
         FFBXImporter(std::filesystem::path Source, const Asset::FAssetImportOption& Option);
         /**
@@ -140,7 +141,7 @@ namespace Asset {
         FMaterialIndices mMaterialIndices{};
 
         /**
-         * @brief ConvertScene을 거친 FBX 전역 공간에서 엔진 공간으로 가는 행렬입니다. Y 반전과 임포트 이동·회전·스케일을 포함합니다.
+         * @brief ConvertScene을 거친 Z-Up 오른손 FBX 전역 공간에서 엔진 공간으로 가는 행렬입니다. Y 반전과 임포트 이동·회전·스케일을 포함합니다.
          */
         Core::FMatrix mBasis{};
 

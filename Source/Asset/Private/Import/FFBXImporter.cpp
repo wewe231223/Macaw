@@ -623,26 +623,24 @@ namespace Asset {
 
         const Asset::FAssetImportOption& Option{GetOption()};
 
-        // 언리얼 FBX 임포터의 Convert Scene / Force Front XAxis 옵션과 같은 축 변환을 사용합니다.
-        // 언리얼은 먼저 FBX Scene을 Z-Up 오른손 좌표계로 변환하고, 정점과 방향 벡터를 엔진 데이터로 읽을 때 Y를 반전하여 최종 왼손 좌표계로 옮깁니다.
+        // 원본 좌표계는 옵션과 무관하게 항상 엔진의 Z-Up 왼손 좌표계로 변환하며, 언리얼 FBX 임포터와 같이 두 단계로 나눕니다.
+        // 1. 여기서 Scene을 Z-Up 오른손 중간 좌표계로 변환합니다. 원본 파일의 축 설정이 무엇이든 이 단계 뒤에는 같은 좌표계가 됩니다.
+        // 2. mBasis의 Y 반전으로 중간 좌표계를 왼손 좌표계로 옮깁니다. ReadMesh와 ReadSkeleton이 값을 읽을 때 적용합니다.
         //
-        // 첫 번째 인자 eZAxis는 이 중간 좌표계의 Up이 +Z라는 뜻입니다.
+        // FbxAxisSystem 생성자의 첫 번째 인자 eZAxis는 중간 좌표계의 Up이 +Z라는 뜻입니다.
         // 두 번째 인자는 Up을 제외한 나머지 두 축 중 FBX Front로 사용할 축과 그 부호를 정합니다.
         // X, Y, Z 순서에서 Up을 제외했을 때 eParityEven은 첫 번째 축, eParityOdd는 두 번째 축을 선택합니다.
         // Z-Up에서는 남은 축이 X, Y이므로 eParityEven은 +X, eParityOdd는 +Y, -eParityOdd는 -Y를 의미합니다.
         // Force Front XAxis가 꺼져 있으면 -eParityOdd(Y 반전 후 Front +Y), 켜져 있으면 eParityEven(Front +X)을 사용합니다.
         // 단항 - 연산의 결과는 int이므로 생성자가 받는 EFrontVector 타입으로 명시적으로 변환합니다.
-        //
-        // 세 번째 인자 eRightHanded는 최종 엔진 좌표계가 아니라 이 단계의 FBX 중간 좌표계가 오른손 좌표계라는 뜻입니다.
-        // Assimp 임포터는 같은 결과를 FMeshImportTransform::MakeYUpConversion으로 직접 계산합니다.
-        if (Option.mConvertScene) {
-            const auto Front{Option.mForceFrontXAxis ? FbxAxisSystem::eParityEven : static_cast<FbxAxisSystem::EFrontVector>(-FbxAxisSystem::eParityOdd)};
-            const FbxAxisSystem AxisSystem{FbxAxisSystem::eZAxis, Front, FbxAxisSystem::eRightHanded};
+        // 세 번째 인자 eRightHanded는 최종 엔진 좌표계가 아니라 이 단계의 중간 좌표계가 오른손 좌표계라는 뜻입니다.
+        const auto Front{Option.mForceFrontXAxis ? FbxAxisSystem::eParityEven : static_cast<FbxAxisSystem::EFrontVector>(-FbxAxisSystem::eParityOdd)};
+        const FbxAxisSystem AxisSystem{FbxAxisSystem::eZAxis, Front, FbxAxisSystem::eRightHanded};
 
-            // 언리얼과 같은 ConvertScene을 사용하여 노드의 변환에 축 변환을 반영합니다.
-            // DeepConvertScene으로 왼손 좌표계까지 한 번에 변환하면 삼각형 순서 등도 달라질 수 있으므로 두 단계를 유지합니다.
-            AxisSystem.ConvertScene(mScene);
-        }
+        // ConvertScene은 축 변환을 노드 변환에만 반영하고 컨트롤 포인트는 그대로 두므로, ReadMesh는 노드 전역 변환을 곱해야 변환된 위치를 얻습니다.
+        // DeepConvertScene으로 왼손 좌표계까지 한 번에 변환하면 삼각형 순서 등도 달라질 수 있으므로 두 단계를 유지합니다.
+        // Assimp 임포터는 같은 결과를 FMeshImportTransform::MakeYUpConversion으로 직접 계산합니다.
+        AxisSystem.ConvertScene(mScene);
 
         // Scene의 길이 단위를 원본 FBX에 저장된 단위에서 미터로 변환합니다. FbxSystemUnit::m은 미터 단위입니다.
         // 예를 들어 센티미터 단위 Scene의 100cm 길이가 변환 후에도 1m에 해당하도록 조정합니다. 끄면 원본 수치를 그대로 사용합니다.

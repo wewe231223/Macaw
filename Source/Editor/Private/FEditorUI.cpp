@@ -841,12 +841,8 @@ namespace Editor {
         }
 
         ImGui::SeparatorText("Transform");
-        ImGui::Checkbox("Convert Scene", &mImportOption.mConvertScene);
-        ImGui::SetItemTooltip("Convert the source axis system to the engine Z-up left-handed system.\nWhen off, only the source Y axis is flipped.");
-        ImGui::BeginDisabled(!mImportOption.mConvertScene);
         ImGui::Checkbox("Force Front X Axis", &mImportOption.mForceFrontXAxis);
         ImGui::SetItemTooltip("Make the source front axis face +X.\nWhen off, the front faces +Y like the Unreal FBX importer.");
-        ImGui::EndDisabled();
         ImGui::Checkbox("Convert Scene Unit", &mImportOption.mConvertSceneUnit);
         ImGui::SetItemTooltip("Convert the length unit stored in the source (FBX) to meters.");
 

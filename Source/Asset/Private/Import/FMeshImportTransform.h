@@ -30,7 +30,8 @@ namespace Asset {
 
     public:
         /**
-         * @brief 원본 공간 좌표에서 Y만 반전해 왼손 좌표계로 옮기는 행렬을 만듭니다.
+         * @brief Z-Up 오른손 좌표계의 좌표에서 Y만 반전해 엔진의 Z-Up 왼손 좌표계로 옮기는 행렬을 만듭니다.
+         * @details FBX 임포터가 SDK의 ConvertScene으로 Z-Up 오른손 좌표계까지 옮긴 뒤 마지막 단계로 사용합니다.
          * @return Y 성분의 부호를 바꾸는 행렬입니다.
          */
         static Core::FMatrix MakeFlipY();
@@ -38,7 +39,7 @@ namespace Asset {
         /**
          * @brief Y-Up 오른손 좌표계(Front +Z) 원본을 FBX 임포터와 같은 규칙으로 엔진 좌표계로 옮기는 행렬을 만듭니다.
          * @details FBX 임포터는 SDK의 ConvertScene 뒤에 Y를 반전하며, 이 행렬은 같은 결과를 직접 계산합니다.
-         * @param[in] Option 축 변환 옵션입니다.
+         * @param[in] Option Front 축(mForceFrontXAxis)을 정하는 임포트 옵션입니다.
          * @return 원본 축을 엔진 축으로 옮기는 행렬이며 임포트 이동·회전·스케일은 포함하지 않습니다.
          */
         static Core::FMatrix MakeYUpConversion(const Asset::FAssetImportOption& Option);
