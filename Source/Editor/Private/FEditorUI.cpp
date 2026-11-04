@@ -346,7 +346,9 @@ namespace Editor {
         }
 
         mSequencerPanel.Draw(DeltaTime);
-        GetActiveViewport()->GetStatistics()->DrawPanel(mShowStatistics);
+        Editor::FStatGraphs& StatGraphs{mContext->GetStatGraphs()};
+        GetActiveViewport()->GetStatistics()->DrawPanel(mShowStatistics, StatGraphs);
+        StatGraphs.Draw();
         DrawContent();
         DrawTexturePreview();
         DrawMaterialEditor();

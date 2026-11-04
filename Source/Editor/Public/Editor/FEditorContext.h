@@ -7,6 +7,8 @@
 #pragma once
 
 #include "Core/ReflectionMacros.h"
+#include "Editor/FConsoleCommandRegistry.h"
+#include "Editor/FViewportStatistics.h"
 #include "CoreUObject/FObjectHandle.h"
 #include "CoreUObject/Reflection/FPropertyValue.h"
 #include "Engine/FWorldHandle.h"
@@ -41,6 +43,8 @@ namespace RenderCore {
 
 namespace Editor {
 
+    class FEditorViewport;
+
     /**
      * @brief 명시적인 편집 월드와 선택을 소유하고 패널, 콘솔과 기즈모의 편집 요청을 처리합니다.
      * @ingroup Editor
@@ -49,13 +53,6 @@ namespace Editor {
      */
     class FEditorContext {
     private:
-        /**
-         * @brief r.shadow.* 콘솔 변수를 조회하거나 변경합니다.
-         * @param[in] Name 소문자로 변환한 변수 이름입니다.
-         * @param[in] Value 소문자로 변환한 값이며 비어 있으면 현재 값을 출력합니다.
-         */
-        void ExecuteShadowVariable(const Core::FString& Name, const Core::FString& Value);
-
         /**
          * @brief 재진입을 제한하는 연산 플래그의 수명을 관리합니다.
          */
@@ -498,6 +495,8 @@ namespace Editor {
          * @param[in] Command 실행할 문자열입니다.
          */
         void ExecuteConsoleCommand(const Core::FString& Command);
+        Core::TArray<Core::FString> GetConsoleSuggestions(std::string_view Input) const;
+        Editor::FStatGraphs& GetStatGraphs();
 
         /**
          * @brief 그림자 아틀라스 검사 창의 표시 상태를 반환합니다.
@@ -512,10 +511,10 @@ namespace Editor {
         void SetShadowAtlasOpen(bool Open);
 
         /**
-         * @brief 뷰포트 관련 콘솔 명령을 처리할 콜백을 설정합니다.
-         * @param[in] Handler 콘솔의 뷰포트 명령을 처리할 콜백입니다.
+         * @brief 콘솔 명령이 사용할 뷰포트 제공자를 설정합니다.
+         * @param[in] Provider 명령을 실행할 때 활성 뷰포트를 반환합니다.
          */
-        void SetViewportCommandHandler(std::function<bool(const Core::FString&, Core::FString&)> Handler);
+        void SetConsoleViewportProvider(std::function<Editor::FEditorViewport*()> Provider);
 
         /**
          * @brief 새 액터의 배치 변환을 제공하는 경로를 연결합니다.
@@ -540,6 +539,9 @@ namespace Editor {
         bool SetMaterialOverride(CoreUObject::FObjectHandle Handle, Core::Uint32 Slot, const Core::FString& Path);
 
     private:
+        void RegisterConsoleCommands();
+        void ExecuteAllowTearing(const Editor::FConsoleInvocation& Invocation);
+
         /**
          * @brief PIE 세션이 편집 잠금과 원본·복제 조회 상태를 관리하도록 접근을 허용합니다.
          */
@@ -645,10 +647,9 @@ namespace Editor {
          */
         std::function<Core::FTransform()> mPlacementProvider{};
 
-        /**
-         * @brief 뷰포트 관련 명령의 처리 여부와 결과를 반환하는 콜백입니다.
-         */
-        std::function<bool(const Core::FString&, Core::FString&)> mViewportCommandHandler{};
+        Editor::FConsoleCommandRegistry mConsoleCommands{};
+        Editor::FStatGraphs mStatGraphs{};
+        std::function<Editor::FEditorViewport*()> mConsoleViewportProvider{};
 
         /**
          * @brief 그림자 아틀라스 검사 창의 표시 상태입니다.

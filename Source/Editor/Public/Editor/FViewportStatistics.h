@@ -9,6 +9,8 @@
 #include "Core/ReflectionMacros.h"
 #include "Core/Types.h"
 
+#include <string_view>
+
 namespace Engine {
     class UWorld;
 }
@@ -24,6 +26,23 @@ namespace Core {
 struct ImDrawList;
 
 namespace Editor {
+
+    class FStatGraphs {
+    private:
+        struct FSelection {
+            Core::FString mGroup{};
+            Core::FString mName{};
+        };
+
+    public:
+        Core::FString ExecuteCommand(std::string_view Arguments);
+        void Show(const Core::FString& Group, const Core::FString& Name = {});
+        void Draw();
+
+    private:
+        Core::TArray<Editor::FStatGraphs::FSelection> mSelections{};
+        bool mOpen{};
+    };
 
     /**
      * @brief 프레임 시간, 객체, 메모리와 렌더링 통계를 표시합니다.
@@ -119,7 +138,7 @@ namespace Editor {
          * @brief 검색 가능한 통계 표와 이력 초기화 버튼을 별도 창에 그립니다.
          * @param[in,out] Open 창을 열지 지정하며 그리기 함수에서는 닫기 동작도 반영합니다.
          */
-        void DrawPanel(bool& Open);
+        void DrawPanel(bool& Open, Editor::FStatGraphs& Graphs);
 
         /**
          * @brief 하나 이상의 뷰포트 통계 그룹이 표시되도록 설정됐는지 반환합니다.

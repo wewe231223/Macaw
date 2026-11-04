@@ -10,6 +10,10 @@
 #include "Editor/Panel/FEditorPanel.h"
 
 #include <array>
+#include <memory>
+#include <string_view>
+
+struct ImGuiInputTextCallbackData;
 
 namespace Editor {
 
@@ -18,6 +22,9 @@ namespace Editor {
      * @ingroup Editor
      */
     class FConsolePanel final : public Editor::FEditorPanel {
+    private:
+        class FOutput;
+
     public:
         /**
          * @brief FConsolePanel의 초기 상태와 전달받은 의존성을 구성합니다.
@@ -37,33 +44,35 @@ namespace Editor {
          */
         void AddLog(const Core::FString& Message);
 
-        /**
-         * @brief 수집한 콘솔 로그를 모두 지웁니다.
-         */
-        void Clear();
-
     private:
         /**
          * @brief 패널 고유의 ImGui 위젯과 내용을 그립니다.
          * @param[in] DeltaTime 이전 프레임 이후 경과한 시간(초)입니다.
          */
         void DrawContent(float DeltaTime) override;
+        void DrawSuggestions(float Height);
+        void DrawCommandInput();
+
+        void UpdateSuggestions(std::string_view Input);
+        void BrowseHistory(ImGuiInputTextCallbackData& Data);
+        static int HandleInput(ImGuiInputTextCallbackData* Data);
 
     private:
-        /**
-         * @brief 마지막으로 표시한 로그 모델의 변경 세대입니다.
-         */
-        Core::Uint64 mLastLogRevision{};
+        std::unique_ptr<Editor::FConsolePanel::FOutput> mOutput{};
 
         /**
          * @brief 널 종료된 콘솔 명령 입력 버퍼입니다.
          */
         std::array<char, 512> mConsoleInput{};
 
-        /**
-         * @brief 다음 그리기에서 로그 끝으로 이동할지 여부입니다.
-         */
-        bool mScrollToBottom{};
+        Core::TArray<Core::FString> mCommandHistory{};
+        Core::FString mHistoryDraft{};
+        std::size_t mHistoryPosition{};
+
+        Core::TArray<Core::FString> mSuggestions{};
+        std::size_t mSelectedSuggestion{};
+        bool mScrollToSuggestion{};
+        bool mCompletionRequested{};
     };
 
 }

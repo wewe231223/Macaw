@@ -29,8 +29,6 @@
 #include "Engine/SceneSerializer.h"
 #include "Engine/FWorldCloner.h"
 #include <algorithm>
-#include <charconv>
-#include <optional>
 #include "CoreUObject/FObjectRegistry.h"
 #include "CoreUObject/FPropertyChangedEvent.h"
 #include "CoreUObject/Reflection/Cast.h"
@@ -41,8 +39,6 @@
 #include "Core/Base/ErrorHandler.h"
 
 #include <Windows.h>
-#include <cctype>
-#include <sstream>
 #include <utility>
 
 namespace Editor {
@@ -67,6 +63,7 @@ namespace Editor {
      */
     Editor::FEditorContext::FEditorContext(Engine::UEngine* Engine)
 		: mEngine{Engine} {
+        RegisterConsoleCommands();
     }
 
     /**
@@ -918,223 +915,6 @@ namespace Editor {
      */
     Core::Uint64 Editor::FEditorContext::GetLogRevision() const {
         return mLogRevision;
-    }
-
-    /**
-     * @brief 입력한 콘솔 명령을 해석하여 공통 편집 동작을 실행합니다.
-     */
-    void Editor::FEditorContext::ExecuteConsoleCommand(const Core::FString& Command) {
-        AddLog("> " + Command);
-
-        std::istringstream Input{Command};
-        Core::FString Verb{};
-        Input >> Verb;
-        std::transform(Verb.begin(), Verb.end(), Verb.begin(), [](unsigned char Character) {
-            return static_cast<char>(std::tolower(Character));
-        });
-
-        if (Verb.starts_with("r.shadow.")) {
-            Core::FString Value{};
-            Core::FString Extra{};
-            Input >> Value >> Extra;
-            std::transform(Value.begin(), Value.end(), Value.begin(), [](unsigned char Character) {
-                return static_cast<char>(std::tolower(Character));
-            });
-
-            if (!Extra.empty()) {
-                AddLog("Expected at most one value.");
-            } else {
-                ExecuteShadowVariable(Verb, Value);
-            }
-        } else if (Verb == "shadow") {
-            Core::FString Target{};
-            Core::FString Extra{};
-            Input >> Target >> Extra;
-            std::transform(Target.begin(), Target.end(), Target.begin(), [](unsigned char Character) {
-                return static_cast<char>(std::tolower(Character));
-            });
-
-            if (Target == "atlas" && Extra.empty()) {
-                SetShadowAtlasOpen(true);
-            } else {
-                AddLog("Usage: Shadow Atlas");
-            }
-        } else if (Verb == "clear") {
-            ClearLogs();
-        } else if (Verb == "help") {
-            AddLog("help | clear | spawn plane/cube/sphere | save <Maps/Scene.masset> | load <Maps/Scene.masset>");
-            AddLog("Shadow Atlas | ShowFlag.Shadows [on/off] | stat shadow [on/off]");
-            AddLog("r.shadow.CSM.Count [0-4] | r.shadow.CacheWholeSceneShadows [0/1] | r.shadow.SkipUnseenLights [0/1]");
-            AddLog("r.shadow.Filter [hard/pcf/pcss] | r.shadow.PCF.Size [3/5/7] | r.shadow.PCSS.MaxFilter [1-64]");
-            AddLog("Allow Tearing [on/off/status]");
-
-            if (mViewportCommandHandler) {
-                AddLog("stat <group>/all [on/off] | stat none | stat list | stat reset | View > Statistics");
-            }
-        } else if (Verb == "allow") {
-            Core::FString Feature{};
-            Core::FString State{};
-            Core::FString Extra{};
-            Input >> Feature >> State >> Extra;
-
-            for (Core::FString* Token : {&Feature, &State}) {
-                std::transform(Token->begin(), Token->end(), Token->begin(), [](unsigned char Character) {
-                    return static_cast<char>(std::tolower(Character));
-                });
-            }
-
-            if (Feature != "tearing" || !Extra.empty() || (!State.empty() && State != "on" && State != "off" && State != "status")) {
-                AddLog("Usage: Allow Tearing [on/off/status]");
-                return;
-            }
-
-            RenderCore::IRendererModule* Renderer{mEngine != nullptr ? mEngine->GetRenderer() : nullptr};
-
-            if (Renderer == nullptr) {
-                AddLog("Allow Tearing: renderer is unavailable.");
-                return;
-            }
-
-            if (State == "status") {
-                AddLog(Renderer->IsTearingSupported() ? Renderer->IsTearingAllowed() ? "Allow Tearing: on (VSync off in windowed mode)." : "Allow Tearing: off (VSync on)." : "Allow Tearing: unsupported (VSync on).");
-                return;
-            }
-
-            if (!Renderer->SetAllowTearing(State != "off")) {
-                AddLog("Allow Tearing: unsupported or renderer is not initialized.");
-                return;
-            }
-
-            AddLog(Renderer->IsTearingAllowed() ? "Allow Tearing: on (VSync off in windowed mode)." : "Allow Tearing: off (VSync on).");
-        } else if (Verb == "spawn") {
-            Core::FString Type{};
-            Input >> Type;
-
-            if (Type == "plane" || Type == "cube" || Type == "sphere") {
-                SpawnPrimitive(Type == "plane" ? Engine::EPrimitiveType::Plane : Type == "sphere" ? Engine::EPrimitiveType::Sphere : Engine::EPrimitiveType::Cube);
-            } else {
-                AddLog("Expected plane, cube or sphere.");
-            }
-        } else if (Verb == "save" || Verb == "load") {
-            Core::FString Text{};
-            std::getline(Input >> std::ws, Text);
-
-            const std::filesystem::path Path{Text.empty() ? mScenePath : Core::FilePath::FromUtf8(Text)};
-
-            if (Path.empty()) {
-                AddLog("Specify a scene path.");
-            } else if (Verb == "save") {
-                SaveScene(Path);
-            } else {
-                LoadScene(Path);
-            }
-        } else if (!Verb.empty()) {
-            Core::FString Output{};
-
-            if (mViewportCommandHandler && mViewportCommandHandler(Command, Output)) {
-                if (!Output.empty()) {
-                    AddLog(Output);
-                }
-            } else {
-                AddLog("Unknown command.");
-            }
-        }
-    }
-
-    void Editor::FEditorContext::ExecuteShadowVariable(const Core::FString& Name, const Core::FString& Value) {
-        RenderCore::IRendererModule* Renderer{mEngine != nullptr ? mEngine->GetRenderer() : nullptr};
-
-        if (Renderer == nullptr) {
-            AddLog(Name + ": renderer is unavailable.");
-            return;
-        }
-
-        const auto ParseInteger{[&Value](Core::Uint32 Minimum, Core::Uint32 Maximum) -> std::optional<Core::Uint32> {
-            Core::Uint32 Parsed{};
-            const auto [End, Error]{std::from_chars(Value.data(), Value.data() + Value.size(), Parsed)};
-
-            return Error == std::errc{} && End == Value.data() + Value.size() && Parsed >= Minimum && Parsed <= Maximum ? std::optional<Core::Uint32>{Parsed} : std::nullopt;
-        }};
-
-        RenderCore::FShadowSettings Settings{Renderer->GetShadowSettings()};
-        Core::FString Current{};
-
-        const auto ApplyBool{[&](bool& Field, const char* Usage) {
-            const std::optional<Core::Uint32> Parsed{ParseInteger(0, 1)};
-
-            if (!Value.empty() && !Parsed.has_value()) {
-                AddLog(Usage);
-                return false;
-            }
-
-            Field = Parsed.has_value() ? *Parsed != 0 : Field;
-            Current = Field ? "1" : "0";
-
-            return true;
-        }};
-
-        if (Name == "r.shadow.csm.count") {
-            const std::optional<Core::Uint32> Parsed{ParseInteger(0, 4)};
-
-            if (!Value.empty() && !Parsed.has_value()) {
-                AddLog("Usage: r.shadow.CSM.Count [0-4] (0 uses the light's CascadeCount)");
-                return;
-            }
-
-            Settings.mCascadeOverride = Parsed.value_or(Settings.mCascadeOverride);
-            Current = std::to_string(Settings.mCascadeOverride);
-        } else if (Name == "r.shadow.cachewholesceneshadows" || Name == "r.shadow.cwss") {
-            if (!ApplyBool(Settings.mCacheWholeSceneShadows, "Usage: r.shadow.CacheWholeSceneShadows [0/1]")) {
-                return;
-            }
-        } else if (Name == "r.shadow.skipunseenlights") {
-            if (!ApplyBool(Settings.mSkipUnseenLights, "Usage: r.shadow.SkipUnseenLights [0/1]")) {
-                return;
-            }
-        } else if (Name == "r.shadow.filter") {
-            if (Value == "hard" || Value == "0") {
-                Settings.mFilter = RenderCore::EShadowFilter::Hard;
-            } else if (Value == "pcf" || Value == "1") {
-                Settings.mFilter = RenderCore::EShadowFilter::PCF;
-            } else if (Value == "pcss" || Value == "2") {
-                Settings.mFilter = RenderCore::EShadowFilter::PCSS;
-            } else if (!Value.empty()) {
-                AddLog("Usage: r.shadow.Filter [hard/pcf/pcss]");
-                return;
-            }
-
-            Current = Settings.mFilter == RenderCore::EShadowFilter::Hard ? "hard" : Settings.mFilter == RenderCore::EShadowFilter::PCF ? "pcf" : "pcss";
-        } else if (Name == "r.shadow.pcf.size") {
-            const std::optional<Core::Uint32> Parsed{ParseInteger(3, 7)};
-
-            if (!Value.empty() && (!Parsed.has_value() || *Parsed % 2 == 0)) {
-                AddLog("Usage: r.shadow.PCF.Size [3/5/7]");
-                return;
-            }
-
-            Settings.mPCFSize = Parsed.value_or(Settings.mPCFSize);
-            Current = std::to_string(Settings.mPCFSize);
-        } else if (Name == "r.shadow.pcss.maxfilter") {
-            const std::optional<Core::Uint32> Parsed{ParseInteger(1, 64)};
-
-            if (!Value.empty() && !Parsed.has_value()) {
-                AddLog("Usage: r.shadow.PCSS.MaxFilter [1-64]");
-                return;
-            }
-
-            Settings.mPCSSMaxFilterTexels = static_cast<float>(Parsed.value_or(static_cast<Core::Uint32>(Settings.mPCSSMaxFilterTexels)));
-            Current = std::to_string(static_cast<Core::Uint32>(Settings.mPCSSMaxFilterTexels));
-        } else {
-            AddLog("Unknown shadow variable. Type help for the list.");
-            return;
-        }
-
-        Renderer->SetShadowSettings(Settings);
-        AddLog(Name + " = " + Current);
-    }
-
-    void Editor::FEditorContext::SetViewportCommandHandler(std::function<bool(const Core::FString&, Core::FString&)> Handler) {
-        mViewportCommandHandler = std::move(Handler);
     }
 
     bool Editor::FEditorContext::IsShadowAtlasOpen() const {

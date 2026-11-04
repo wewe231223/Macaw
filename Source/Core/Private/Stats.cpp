@@ -246,6 +246,29 @@ namespace Core {
         return Result;
     }
 
+    Core::TArray<double> Core::FStats::GetHistory(std::string_view Group, std::string_view Name) const {
+        const std::lock_guard Lock{mMutex};
+        const auto Found{std::find_if(mStats.begin(), mStats.end(), [Group, Name](const Core::FStat* Stat) {
+            return Stat->mGroup == Group && Stat->mName == Name;
+        })};
+
+        if (Found == mStats.end()) {
+            return {};
+        }
+
+        const Core::FStat& Stat{**Found};
+        const std::size_t Capacity{Stat.mHistory.size()};
+        const std::size_t Oldest{(Stat.mHistoryIndex + Capacity - Stat.mHistoryCount) % Capacity};
+        Core::TArray<double> Values{};
+        Values.reserve(Stat.mHistoryCount);
+
+        for (std::size_t Index{}; Index < Stat.mHistoryCount; ++Index) {
+            Values.push_back(Stat.mHistory[(Oldest + Index) % Capacity]);
+        }
+
+        return Values;
+    }
+
     void Core::FStats::Register(Core::FStat* Stat) {
         const std::lock_guard Lock{mMutex};
 

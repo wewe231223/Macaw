@@ -20,6 +20,7 @@
       ]
     },
     "imgui-neo-sequencer",
+    "imterm",
     "luajit",
     "nvapi",
     "range-v3",

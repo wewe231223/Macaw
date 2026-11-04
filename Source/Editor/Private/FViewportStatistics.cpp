@@ -11,7 +11,9 @@
 #include <imgui.h>
 #include <algorithm>
 #include <cctype>
+#include <cmath>
 #include <format>
+#include <iomanip>
 #include <sstream>
 
 namespace Editor {
@@ -54,6 +56,189 @@ namespace Editor {
                 return Average ? std::format("{:.2f}", Value) : std::format("{:.0f}", Value);
             }
         }
+
+        void DrawHistory(const Core::FStatSnapshot& Stat) {
+            const Core::TArray<double> History{Core::FStats::Get().GetHistory(Stat.GetGroup(), Stat.GetName())};
+            const bool Bytes{Stat.GetUnit() == Core::EStatUnit::Bytes};
+            const Core::FString Title{std::format("[{}] {}{}", Stat.GetGroup(), Stat.GetName(), Bytes ? " (MiB)" : "")};
+            Core::TArray<float> Values{};
+            Values.reserve(History.size());
+
+            for (const double Value : History) {
+                Values.push_back(static_cast<float>(Bytes ? Value / (1024.0 * 1024.0) : Value));
+            }
+
+            float Minimum{};
+            float Maximum{};
+            Core::FString Summary{"Waiting for a completed frame..."};
+
+            if (!History.empty()) {
+                const auto [Lowest, Highest]{std::minmax_element(History.begin(), History.end())};
+                Minimum = static_cast<float>(Bytes ? *Lowest / (1024.0 * 1024.0) : *Lowest);
+                Maximum = static_cast<float>(Bytes ? *Highest / (1024.0 * 1024.0) : *Highest);
+                Summary = std::format("Now {}   |   Min {}   |   Max {}", FormatValue(History.back(), Stat.GetUnit()), FormatValue(*Lowest, Stat.GetUnit()), FormatValue(*Highest, Stat.GetUnit()));
+            }
+
+            const float Padding{Minimum == Maximum ? std::max(0.0001f, std::abs(Minimum) * 0.01f) : 0.0f};
+            const ImVec2 Size{std::max(1.0f, ImGui::GetContentRegionAvail().x), ImGui::GetFrameHeight() * 4.0f};
+            ImGui::PushID(Stat.GetGroup().c_str());
+            ImGui::PushID(Stat.GetName().c_str());
+            ImGui::TextUnformatted(Title.c_str());
+            ImGui::PushStyleColor(ImGuiCol_PlotLines, ImGui::GetStyleColorVec4(ImGuiCol_CheckMark));
+            ImGui::PlotLines("##History", Values.data(), static_cast<int>(Values.size()), 0, nullptr, Minimum - Padding, Maximum + Padding, Size);
+            ImGui::PopStyleColor();
+            ImGui::TextUnformatted(Summary.c_str());
+            ImGui::Spacing();
+            ImGui::PopID();
+            ImGui::PopID();
+        }
+    }
+
+    Core::FString Editor::FStatGraphs::ExecuteCommand(std::string_view Arguments) {
+        std::istringstream Input{Core::FString{Arguments}};
+        Core::FString Group{};
+        Core::FString Name{};
+        Input >> Group >> std::ws;
+        Group = ToLower(Group);
+
+        if (Input.peek() == '"') {
+            Input >> std::quoted(Name) >> std::ws;
+
+            if (Input.fail() || !Input.eof() || Name.empty()) {
+                return "Usage: stat graph [<group> [<stat name>] | all | clear | off]";
+            }
+        } else {
+            std::getline(Input, Name);
+
+            if (const std::size_t Last{Name.find_last_not_of(" \t\r\n\f\v")}; Last != Core::FString::npos) {
+                Name.resize(Last + 1);
+            }
+        }
+
+        if (Name.empty()) {
+            if (Group.empty()) {
+                if (mSelections.empty()) {
+                    Show("fps");
+                }
+
+                mOpen = true;
+                return "Statistics graphs opened.";
+            }
+
+            if (Group == "all") {
+                Show({});
+                return "Showing all statistics graphs.";
+            }
+
+            if (Group == "clear") {
+                mSelections.clear();
+                return "Statistics graph selection cleared.";
+            }
+
+            if (Group == "off") {
+                mOpen = false;
+                return "Statistics graphs closed.";
+            }
+        }
+
+        if (Group == "shadows") {
+            Group = "shadow";
+        }
+
+        const Core::TArray<Core::FString> Groups{Core::FStats::Get().GetGroups()};
+
+        if (std::find(Groups.begin(), Groups.end(), Group) == Groups.end()) {
+            return std::format("Unknown stat group '{}'. Use 'stat list' for available groups.", Group);
+        }
+
+        if (Name.empty()) {
+            Show(Group);
+            return std::format("Showing graphs for '{}'.", Group);
+        }
+
+        const Core::TArray<Core::FStatSnapshot> Snapshots{Core::FStats::Get().GetSnapshots(Group)};
+        const Core::FString LowerName{ToLower(Name)};
+        auto Found{std::find_if(Snapshots.begin(), Snapshots.end(), [&Name](const Core::FStatSnapshot& Stat) {
+            return Stat.GetName() == Name;
+        })};
+
+        if (Found == Snapshots.end()) {
+            Found = std::find_if(Snapshots.begin(), Snapshots.end(), [&LowerName](const Core::FStatSnapshot& Stat) {
+                return ToLower(Stat.GetName()) == LowerName;
+            });
+        }
+
+        if (Found == Snapshots.end()) {
+            return std::format("Stat '{}' is unavailable in '{}'. Use the name shown in Statistics.", Name, Group);
+        }
+
+        Show(Group, Found->GetName());
+        return std::format("Showing graph for [{}] {}.", Group, Found->GetName());
+    }
+
+    void Editor::FStatGraphs::Show(const Core::FString& Group, const Core::FString& Name) {
+        if (Group.empty()) {
+            mSelections.clear();
+        }
+
+        if (std::none_of(mSelections.begin(), mSelections.end(), [&Group, &Name](const Editor::FStatGraphs::FSelection& Selection) {
+            return Selection.mGroup.empty() || (Selection.mGroup == Group && (Selection.mName.empty() || Selection.mName == Name));
+        })) {
+            mSelections.push_back({Group, Name});
+        }
+
+        mOpen = true;
+    }
+
+    void Editor::FStatGraphs::Draw() {
+        if (!mOpen) {
+            return;
+        }
+
+        ImGui::SetNextWindowSize({640.0f, 540.0f}, ImGuiCond_FirstUseEver);
+
+        if (ImGui::Begin("Statistics Graphs", &mOpen)) {
+            ImGui::TextUnformatted("Last 120 completed frames | Oldest to newest");
+            ImGui::SameLine();
+
+            if (ImGui::SmallButton("Clear graphs")) {
+                mSelections.clear();
+            }
+
+            if (mSelections.empty()) {
+                ImGui::TextUnformatted("Use 'stat graph <group>' or click Graph in the Statistics table.");
+            } else {
+                const Core::TArray<Core::FStatSnapshot> Snapshots{Core::FStats::Get().GetSnapshots()};
+                Core::TArray<const Core::FStatSnapshot*> Visible{};
+
+                for (const Core::FStatSnapshot& Stat : Snapshots) {
+                    if (std::any_of(mSelections.begin(), mSelections.end(), [&Stat](const Editor::FStatGraphs::FSelection& Selection) {
+                        return Selection.mGroup.empty() || (Selection.mGroup == Stat.GetGroup() && (Selection.mName.empty() || Selection.mName == Stat.GetName()));
+                    })) {
+                        Visible.push_back(&Stat);
+                    }
+                }
+
+                if (Visible.empty()) {
+                    ImGui::TextUnformatted("Waiting for a completed frame for the selected stats...");
+                } else {
+                    if (ImGui::BeginChild("HistoryList")) {
+                        ImGuiListClipper Clipper{};
+                        Clipper.Begin(static_cast<int>(Visible.size()));
+
+                        while (Clipper.Step()) {
+                            for (int Index{Clipper.DisplayStart}; Index < Clipper.DisplayEnd; ++Index) {
+                                DrawHistory(*Visible[Index]);
+                            }
+                        }
+                    }
+
+                    ImGui::EndChild();
+                }
+            }
+        }
+
+        ImGui::End();
     }
 
     bool Editor::FViewportStatistics::ExecuteCommand(const Core::FString& Command, Core::FString& Output) {
@@ -156,7 +341,7 @@ namespace Editor {
         return mAllGroups || !mEnabledGroups.empty();
     }
 
-    void Editor::FViewportStatistics::DrawPanel(bool& Open) {
+    void Editor::FViewportStatistics::DrawPanel(bool& Open, Editor::FStatGraphs& Graphs) {
         if (!Open) {
             return;
         }
@@ -179,7 +364,7 @@ namespace Editor {
 
             if (Snapshots.empty()) {
                 ImGui::TextUnformatted("Waiting for a completed frame...");
-            } else if (ImGui::BeginTable("StatValues", 7, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable | ImGuiTableFlags_ScrollY, {0.0f, 0.0f})) {
+            } else if (ImGui::BeginTable("StatValues", 8, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable | ImGuiTableFlags_ScrollY, {0.0f, 0.0f})) {
                 ImGui::TableSetupColumn("Group");
                 ImGui::TableSetupColumn("Stat", ImGuiTableColumnFlags_WidthStretch, 3.0f);
                 ImGui::TableSetupColumn("Value");
@@ -187,6 +372,7 @@ namespace Editor {
                 ImGui::TableSetupColumn("Min");
                 ImGui::TableSetupColumn("Max");
                 ImGui::TableSetupColumn("Samples");
+                ImGui::TableSetupColumn("Graph", ImGuiTableColumnFlags_WidthFixed);
                 ImGui::TableSetupScrollFreeze(0, 1);
                 ImGui::TableHeadersRow();
 
@@ -210,6 +396,16 @@ namespace Editor {
 
                     ImGui::TableNextColumn();
                     ImGui::Text("%llu", static_cast<unsigned long long>(Stat.GetSamples()));
+                    ImGui::TableNextColumn();
+                    ImGui::PushID(Stat.GetGroup().c_str());
+                    ImGui::PushID(Stat.GetName().c_str());
+
+                    if (ImGui::SmallButton("Graph")) {
+                        Graphs.Show(Stat.GetGroup(), Stat.GetName());
+                    }
+
+                    ImGui::PopID();
+                    ImGui::PopID();
                 }
 
                 ImGui::EndTable();

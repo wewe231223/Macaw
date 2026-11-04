@@ -1,0 +1,8 @@
+{
+  "name": "imterm",
+  "version-string": "0.1.0",
+  "description": "Terminal widget for Dear ImGui",
+  "homepage": "https://github.com/Organic-Code/ImTerm",
+  "license": "MIT",
+  "dependencies": ["imgui"]
+}

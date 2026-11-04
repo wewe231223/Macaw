@@ -11,6 +11,7 @@
 
 #include <chrono>
 #include <mutex>
+#include <string_view>
 
 namespace Core {
 
@@ -351,6 +352,7 @@ namespace Core {
          * @return 일치하는 스냅샷의 복사본이며 그룹을 생략하면 전체 목록입니다.
          */
         Core::TArray<Core::FStatSnapshot> GetSnapshots(const Core::FString& Group = {}) const;
+        Core::TArray<double> GetHistory(std::string_view Group, std::string_view Name) const;
 
     private:
         /**
