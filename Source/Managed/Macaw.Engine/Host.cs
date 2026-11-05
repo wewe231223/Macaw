@@ -29,10 +29,13 @@ internal static unsafe class Host {
         }
 
         Log.sApi = Native;
+        Actor.sApi = Native;
         Managed->LoadScripts = &LoadScripts;
         Managed->UnloadScripts = &UnloadScripts;
         Managed->CreateInstance = &CreateInstance;
+        Managed->BeginPlay = &BeginPlay;
         Managed->Tick = &Tick;
+        Managed->EndPlay = &EndPlay;
         Managed->DestroyInstance = &DestroyInstance;
 
         return 1;
@@ -115,7 +118,7 @@ internal static unsafe class Host {
     }
 
     [UnmanagedCallersOnly]
-    private static nint CreateInstance(byte* NameUtf8) {
+    private static nint CreateInstance(byte* NameUtf8, ObjectHandle Owner) {
         try {
             string Name = Marshal.PtrToStringUTF8((nint)NameUtf8)!;
 
@@ -124,17 +127,42 @@ internal static unsafe class Host {
                 return 0;
             }
 
-            return GCHandle.ToIntPtr(GCHandle.Alloc(Activator.CreateInstance(Type)!));
+            var Instance = (ScriptComponent)Activator.CreateInstance(Type)!;
+            Instance.Owner = new Actor(Owner);
+
+            return GCHandle.ToIntPtr(GCHandle.Alloc(Instance));
         } catch (Exception Exception) {
             Log.Info($"C# script could not be created: {Exception}");
             return 0;
         }
     }
 
-    /// <summary>예외가 발생한 인스턴스는 기록 후 비활성화합니다.</summary>
+    private static ScriptComponent GetInstance(nint Handle) => (ScriptComponent)GCHandle.FromIntPtr(Handle).Target!;
+
+    /// <summary>예외가 발생한 인스턴스를 기록 후 비활성화합니다.</summary>
+    private static void Disable(ScriptComponent Instance, Exception Exception) {
+        Instance.mFaulted = true;
+
+        try {
+            Log.Info($"C# script disabled by an exception: {Exception}");
+        } catch {
+        }
+    }
+
+    [UnmanagedCallersOnly]
+    private static void BeginPlay(nint Handle) {
+        ScriptComponent Instance = GetInstance(Handle);
+
+        try {
+            Instance.BeginPlay();
+        } catch (Exception Exception) {
+            Disable(Instance, Exception);
+        }
+    }
+
     [UnmanagedCallersOnly]
     private static void Tick(nint Handle, float DeltaTime) {
-        var Instance = (ScriptComponent)GCHandle.FromIntPtr(Handle).Target!;
+        ScriptComponent Instance = GetInstance(Handle);
 
         if (Instance.mFaulted) {
             return;
@@ -143,12 +171,22 @@ internal static unsafe class Host {
         try {
             Instance.Tick(DeltaTime);
         } catch (Exception Exception) {
-            Instance.mFaulted = true;
+            Disable(Instance, Exception);
+        }
+    }
 
-            try {
-                Log.Info($"C# script disabled by an exception: {Exception}");
-            } catch {
-            }
+    [UnmanagedCallersOnly]
+    private static void EndPlay(nint Handle) {
+        ScriptComponent Instance = GetInstance(Handle);
+
+        if (Instance.mFaulted) {
+            return;
+        }
+
+        try {
+            Instance.EndPlay();
+        } catch (Exception Exception) {
+            Disable(Instance, Exception);
         }
     }
 

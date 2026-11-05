@@ -14,6 +14,7 @@
 #include "Engine/Component/UActorComponent.h"
 #include "CoreUObject/FObjectDuplicationContext.h"
 #include "CoreUObject/Reflection/Cast.h"
+#include "Script/FScriptRuntime.h"
 #include <cmath>
 
 namespace Editor {
@@ -98,14 +99,19 @@ namespace Editor {
                 }
             }
 
+            if (mEngine->GetProject() != nullptr) {
+                Script::FScriptRuntime* Runtime{Script::FScriptRuntime::Get()};
+                Runtime->SetLogFunction([this](const Core::FString& Message) {
+                    mContext->AddLog("[C#] " + Message);
+                });
+                Runtime->BeginSession(mEngine->GetProject()->GetRootPath());
+            }
+
             Ready = mEngine->SetCurrentWorld(mPlayWorld) && World->BeginPlay() && World->GetPlayState() == Engine::EWorldPlayState::Playing && World->GetActiveCamera() != nullptr && !mStopRequested;
         }
 
-        if (Ready && Input != nullptr && mEngine->GetProject() != nullptr) {
+        if (Ready && Input != nullptr) {
             Input->SetGameInputEnabled(false);
-            Ready = mGameScript.Start(mEngine->GetProject()->GetAssets()->GetContentRoot(), *Input, Error, [this](const Core::FString& Message) {
-                mContext->AddLog(Message);
-            });
         }
 
         if (Ready) {
@@ -142,7 +148,6 @@ namespace Editor {
         }
 
         mTransitioning = true;
-        mGameScript.Stop();
 
         if (mInput != nullptr) {
             mInput->SetGameInputEnabled(false);
@@ -156,6 +161,10 @@ namespace Editor {
         if (mEngine->GetWorld(mPlayWorld) != nullptr) {
             mEngine->DestroyWorld(mPlayWorld);
         }
+
+        // 월드와 함께 C# 인스턴스가 해제된 뒤에 언로드해야 수집됩니다.
+        Script::FScriptRuntime::Get()->EndSession();
+        Script::FScriptRuntime::Get()->SetLogFunction({});
 
         const Engine::FWorldHandle Restore{mEngine->GetWorld(mPreviousWorld) != nullptr ? mPreviousWorld : mContext->GetWorldHandle()};
 
@@ -205,7 +214,7 @@ namespace Editor {
         const bool Playing{World != nullptr && World->GetPlayState() == Engine::EWorldPlayState::Playing && !mStopRequested};
         mInput->SetGameInputEnabled(Playing && AllowInput && mViewport->IsPlayInputCaptured());
 
-        if (Playing && !mGameScript.Tick(DeltaTime)) {
+        if (Playing) {
             mGameClient.ProcessInput(*mInput, DeltaTime);
         }
     }

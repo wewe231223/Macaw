@@ -13,7 +13,6 @@
 #include "Engine/FSceneViewport.h"
 #include "Platform/Window.h"
 #include "Renderer/Renderer.h"
-#include "Script/GameScript.h"
 
 namespace Game {
 
@@ -85,7 +84,6 @@ namespace Game {
          * @brief 게임 월드의 입력과 장면 뷰를 처리하는 뷰포트 클라이언트입니다.
          */
         Engine::FGameViewportClient mGameClient{&mEngine};
-        Script::FGameScript mGameScript{};
 
         /**
          * @brief 게임 화면을 그릴 오프스크린 뷰포트이며, 초기화 전에는 비어 있습니다.

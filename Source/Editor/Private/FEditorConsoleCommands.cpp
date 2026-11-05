@@ -4,7 +4,6 @@
 #include "Editor/FEditorViewport.h"
 #include "Engine/EPrimitiveType.h"
 #include "RenderCore/IRendererModule.h"
-#include "Script/FScriptRuntime.h"
 
 #include <algorithm>
 #include <cctype>
@@ -87,43 +86,6 @@ namespace Editor {
             } else {
                 AddLog("Expected plane, cube or sphere.");
             }
-        }});
-
-        // 에디터와 PIE 검사용 컨텍스트가 각각 명령을 등록하므로, 명령을 실행한 컨텍스트의 콘솔로 C# 로그를 보냅니다.
-        const auto BindScriptLog{[this]() {
-            Script::FScriptRuntime::Get()->SetLogFunction([this](const Core::FString& Message) {
-                AddLog("[C#] " + Message);
-            });
-        }};
-        mConsoleCommands.Register({"script load", "<GameScripts.dll>", {}, [this, BindScriptLog](const Editor::FConsoleInvocation& Invocation) {
-            if (Invocation.mArguments.empty()) {
-                AddLog(MakeUsage(Invocation));
-                return;
-            }
-
-            BindScriptLog();
-            Core::FString Error{};
-
-            if (!Script::FScriptRuntime::Get()->LoadScripts(Core::FilePath::FromUtf8(Invocation.mArguments), Error)) {
-                AddLog(Error);
-            }
-        }});
-        mConsoleCommands.Register({"script run", "<Namespace.Class>", {}, [this, BindScriptLog](const Editor::FConsoleInvocation& Invocation) {
-            if (Invocation.mArguments.empty()) {
-                AddLog(MakeUsage(Invocation));
-                return;
-            }
-
-            BindScriptLog();
-            Core::FString Error{};
-
-            if (!Script::FScriptRuntime::Get()->RunOnce(Core::FString{Invocation.mArguments}, 1.0f / 60.0f, Error)) {
-                AddLog(Error);
-            }
-        }});
-        mConsoleCommands.Register({"script unload", {}, {}, [this, BindScriptLog](const Editor::FConsoleInvocation&) {
-            BindScriptLog();
-            AddLog(Script::FScriptRuntime::Get()->UnloadScripts() ? "C# scripts unloaded." : "C# scripts unloaded, but something still references them.");
         }});
 
         mConsoleCommands.Register({"Allow Tearing", "[on/off/status]", {"on", "off", "status"}, [this](const Editor::FConsoleInvocation& Invocation) {

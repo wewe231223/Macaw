@@ -8,7 +8,6 @@
 
 #include "Editor/FEditorContext.h"
 #include "Engine/FGameViewportClient.h"
-#include "Script/GameScript.h"
 #include <utility>
 
 namespace Engine {
@@ -155,7 +154,6 @@ namespace Editor {
          * @brief PIE 월드의 활성 카메라와 입력을 처리하는 클라이언트입니다.
          */
         Engine::FGameViewportClient mGameClient;
-        Script::FGameScript mGameScript{};
         Core::FInput* mInput{};
 
         /**

@@ -5,8 +5,8 @@
   "RenderCore": { "Public": ["Core"], "Private": ["CoreUObject"] },
   "Asset": { "Public": ["CoreUObject", "RenderCore"], "Private": ["Serialization"] },
   "Engine": { "Public": ["CoreUObject", "Asset", "RenderCore"], "Private": ["Serialization"] },
-  "Script": { "Public": ["CoreUObject"], "Private": ["Engine"] },
+  "Script": { "Public": ["CoreUObject", "Engine"], "Private": [] },
   "Renderer": { "Public": ["Engine"], "Private": [] },
   "Platform": { "Public": ["Core"], "Private": ["CoreUObject"] },
-  "Editor": { "Public": ["Engine", "Platform", "Script"], "Private": ["Serialization", "Renderer"] }
+  "Editor": { "Public": ["Engine", "Platform"], "Private": ["Serialization", "Renderer", "Script"] }
 }

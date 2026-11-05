@@ -6,22 +6,25 @@
 
 #include "FGameApplication.h"
 #include "GameReflection.h"
+#include "ScriptReflection.h"
 #include "Core/Base/ErrorHandler.h"
 #include "Core/FilePath.h"
 #include "Core/Stats.h"
 #include "Engine/FWorldContext.h"
 #include "Engine/SceneSerializer.h"
 #include "Engine/UWorld.h"
+#include "Script/FScriptRuntime.h"
 
 #include <algorithm>
 
 namespace Game {
 
     /**
-     * @brief Game 모듈의 리플렉션 타입을 등록합니다.
+     * @brief Game과 Script 모듈의 리플렉션 타입을 등록합니다.
      */
     Game::FGameApplication::FGameApplication() {
         Game::ReflectionModules::RegisterGameTypes();
+        Script::ReflectionModules::RegisterScriptTypes();
     }
 
     /**
@@ -61,7 +64,7 @@ namespace Game {
 
             mPlatform.GetInput().SetGameInputEnabled(true);
 
-            if (mEngine.GetWorld()->GetPlayState() == Engine::EWorldPlayState::Playing && !mGameScript.Tick(DeltaTime)) {
+            if (mEngine.GetWorld()->GetPlayState() == Engine::EWorldPlayState::Playing) {
                 mGameClient.ProcessInput(mPlatform.GetInput(), DeltaTime);
             }
 
@@ -127,13 +130,16 @@ namespace Game {
             return false;
         }
 
+        Script::FScriptRuntime::Get()->BeginSession(mProject.GetRootPath());
+
         if (!mEngine.ReplaceWorld(std::move(Context)) || !mGameClient.SetWorld(mEngine.GetWorldHandle()) || !mEngine.GetWorld()->BeginPlay()) {
             Error = "Cannot start the game world";
             return false;
         }
 
         mViewport = std::make_unique<Engine::FSceneViewport>(&mRenderer, &mGameClient);
-        return mGameScript.Start(mProject.GetAssets()->GetContentRoot(), mPlatform.GetInput(), Error);
+
+        return true;
     }
 
     /**
@@ -152,10 +158,10 @@ namespace Game {
      */
     void Game::FGameApplication::Shutdown() {
         mPlatform.GetInput().SetGameInputEnabled(false);
-        mGameScript.Stop();
         mViewport.reset();
         mGameClient.SetWorld({});
         mEngine.Shutdown();
+        Script::FScriptRuntime::Get()->EndSession();
         mEngine.SetProject(nullptr);
         mRenderer.Shutdown();
         mPlatform.Shutdown();

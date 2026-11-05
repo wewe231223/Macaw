@@ -67,11 +67,10 @@ local function Configure(Name, Kind)
         staticruntime "Off"
         targetdir "Binaries/%{cfg.buildcfg}"
         objdir "Intermediate/%{prj.name}/%{cfg.buildcfg}"
-        defines { "NOMINMAX", "WIN32_LEAN_AND_MEAN", "SOL_LUAJIT=1" }
+        defines { "NOMINMAX", "WIN32_LEAN_AND_MEAN" }
         buildoptions { "/utf-8", "/Zc:preprocessor", "/permissive-" }
         multiprocessorcompile "On"
         warnings "Extra"
-        externalincludedirs { "vcpkg_installed/x64-windows/include/luajit" }
 end
 
 for _, Name in ipairs({ "Core", "CoreUObject", "Serialization", "Asset", "RenderCore", "Engine", "Script", "Renderer", "Platform", "Editor" }) do
@@ -128,7 +127,6 @@ ConfigureRuntimeExecutable("MacawGame", "WindowedApp", "Source/Game")
     files { "Source/App/**.rc", "Macaw.ico" }
     resincludedirs { "." }
     postbuildcommands { '{COPYDIR} "%{wks.location}/Templates/Project/Content" "%{cfg.targetdir}/Templates/Project/Content"' }
-    postbuildcommands { '{COPYFILE} "%{wks.location}/vcpkg_installed/x64-windows/tools/luajit/lua51.dll" "%{cfg.targetdir}/lua51.dll"' }
     postbuildcommands { 'powershell -NoProfile -ExecutionPolicy Bypass -File "%{wks.location}/Scripts/StageGameRuntime.ps1" -RuntimeDirectory "%{cfg.targetdir}" -RedistDirectory "$(VCToolsRedistInstallDir)." -Configuration "%{cfg.buildcfg}"' }
 
 ConfigureRuntimeExecutable("Macaw", "WindowedApp", "Source/App")
@@ -152,7 +150,6 @@ ConfigureRuntimeExecutable("Macaw", "WindowedApp", "Source/App")
     files { "Source/App/**.rc", "Resources/Editor.rc", "Macaw.ico" }
     resincludedirs { "." }
     postbuildcommands { '{COPYDIR} "%{wks.location}/Templates/Project" "%{cfg.targetdir}/Templates/Project"' }
-    postbuildcommands { '{COPYFILE} "%{wks.location}/vcpkg_installed/x64-windows/tools/luajit/lua51.dll" "%{cfg.targetdir}/lua51.dll"' }
     filter "configurations:not ObjViewer*"
         postbuildcommands { 'powershell -NoProfile -ExecutionPolicy Bypass -File "%{wks.location}/Scripts/StageManagedRuntime.ps1" -RuntimeDirectory "%{cfg.targetdir}" -WorkspaceRoot "%{wks.location}." -Configuration "%{cfg.buildcfg}"' }
     filter {}

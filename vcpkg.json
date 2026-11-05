@@ -21,11 +21,9 @@
     },
     "imgui-neo-sequencer",
     "imterm",
-    "luajit",
     "nvapi",
     "range-v3",
     "rapidjson",
-    "sol2",
     "stb",
     "tomlplusplus"
   ]
