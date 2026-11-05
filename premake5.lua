@@ -153,3 +153,6 @@ ConfigureRuntimeExecutable("Macaw", "WindowedApp", "Source/App")
     resincludedirs { "." }
     postbuildcommands { '{COPYDIR} "%{wks.location}/Templates/Project" "%{cfg.targetdir}/Templates/Project"' }
     postbuildcommands { '{COPYFILE} "%{wks.location}/vcpkg_installed/x64-windows/tools/luajit/lua51.dll" "%{cfg.targetdir}/lua51.dll"' }
+    filter "configurations:not ObjViewer*"
+        postbuildcommands { 'powershell -NoProfile -ExecutionPolicy Bypass -File "%{wks.location}/Scripts/StageManagedRuntime.ps1" -RuntimeDirectory "%{cfg.targetdir}" -WorkspaceRoot "%{wks.location}." -Configuration "%{cfg.buildcfg}"' }
+    filter {}
