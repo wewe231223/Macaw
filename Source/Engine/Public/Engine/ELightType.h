@@ -8,6 +8,7 @@
 
 #include "Core/Types.h"
 #include "CoreUObject/Reflection/TNativeEnum.h"
+#include "ELightType.generated.h"
 
 namespace Engine {
 
@@ -15,6 +16,7 @@ namespace Engine {
      * @brief 환경광·방향광·점광원·스포트라이트를 구분합니다.
      * @ingroup Engine
      */
+    UENUM()
     enum class ELightType : Core::Uint8 {
         /**
          * @brief 방향과 위치에 무관한 환경광입니다.
@@ -33,17 +35,5 @@ namespace Engine {
          */
         Spot
     };
-
-    /**
-     * @brief 광원 종류의 정적 열거형 메타데이터를 반환합니다.
-     * @return 등록된 열거형 메타데이터의 비소유 주소입니다.
-     */
-    ReflectEnum(ELightType, Ambient, Directional, Point, Spot);
-
-    /**
-     * @fn UEnum* GetNativeEnum(TNativeEnum<ELightType>)
-     * @brief 타입 태그에 대응하는 광원 종류의 메타데이터를 반환합니다.
-     * @return 등록된 열거형 메타데이터의 비소유 주소입니다.
-     */
 
 }

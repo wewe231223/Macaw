@@ -12,12 +12,14 @@
 
 #include <filesystem>
 #include <span>
+#include "FAssetFile.generated.h"
 
 namespace Asset {
 
     /**
      * @brief Macaw 에셋 파일의 페이로드 종류를 구분합니다.
      */
+    UENUM()
     enum class EAssetType : Core::Uint32 {
         /**
          * @brief 액터·컴포넌트와 월드 참조를 저장하는 장면 에셋입니다.
@@ -41,18 +43,6 @@ namespace Asset {
          */
         Sequence
     };
-
-    /**
-     * @brief 이 열거형의 리플렉션 메타데이터를 반환합니다.
-     * @return 등록된 열거형 메타데이터의 비소유 주소입니다.
-     */
-    ReflectEnum(EAssetType, Scene, Mesh, Texture, Material, SkeletalMesh, Sequence);
-
-    /**
-     * @brief 타입 태그로 EAssetType의 열거형 메타데이터를 조회합니다.
-     * @fn UEnum* GetNativeEnum(TNativeEnum<EAssetType>)
-     * @return 등록된 열거형 메타데이터의 비소유 주소입니다.
-     */
 
     /**
      * @brief 에셋 파일의 종류, 버전, 무결성 검사와 바이너리 입출력를 담당합니다.

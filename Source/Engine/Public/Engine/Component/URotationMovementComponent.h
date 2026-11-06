@@ -8,18 +8,16 @@
 
 #include "Engine/Component/UActorComponent.h"
 #include "Core/Math/FRotator.h"
+#include "URotationMovementComponent.generated.h"
 
 namespace Engine {
 
     /**
      * @brief Game과 PIE 월드에서 소유 액터의 루트를 초당 회전 속도에 따라 로컬 또는 월드 공간으로 회전합니다.
      */
+    UCLASS()
     class URotationMovementComponent final : public Engine::UActorComponent {
-    public:
-        /**
-         * @brief 리플렉션 소유 타입과 선택적 기반 타입의 별칭입니다.
-         */
-        ReflectTypes(URotationMovementComponent, Engine::UActorComponent);
+        GENERATED_BODY()
 
     public:
         /**
@@ -32,12 +30,6 @@ namespace Engine {
         ~URotationMovementComponent() override;
 
     public:
-        /**
-         * @brief 이 타입의 정적 리플렉션 메타데이터를 반환합니다.
-         * @return 리플렉션 시스템이 보관하는 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectClass(URotationMovementComponent);
-
         /**
          * @brief Game 또는 PIE의 실행 시작 상태를 확인한 뒤 축별 속도로 소유 액터의 루트 회전을 갱신합니다.
          * @param[in] DeltaTime 이번 갱신에서 적분할 유한한 초 단위 시간입니다.
@@ -70,21 +62,15 @@ namespace Engine {
 
     private:
         /**
-         * @brief 생성된 멤버 등록 함수와 리플렉션 빌더의 접근 권한입니다.
-         */
-        ReflectMembers();
-
-    private:
-        /**
          * @brief Pitch·Yaw·Roll 축별 초당 회전 각도이며 단위는 도입니다.
          */
+        UPROPERTY(Edit, Serialize, Getter = GetRotationRate, Setter = SetRotationRate)
         Core::FRotator mRotationRate{0.0f, 90.0f, 0.0f};
-        ReflectAccessor(mRotationRate, GetRotationRate, SetRotationRate, "RotationRate", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
         /**
          * @brief true이면 루트의 로컬 축, false이면 월드 축에 회전 증분을 합성합니다.
          */
+        UPROPERTY(Edit, Serialize, Getter = GetRotationInLocalSpace, Setter = SetRotationInLocalSpace)
         bool mRotationInLocalSpace{true};
-        ReflectAccessor(mRotationInLocalSpace, GetRotationInLocalSpace, SetRotationInLocalSpace, "RotationInLocalSpace", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
     };
 
 }

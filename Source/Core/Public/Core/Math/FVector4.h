@@ -10,6 +10,7 @@
 #include "Core/Types.h"
 
 #include <xmmintrin.h>
+#include "FVector4.generated.h"
 
 namespace Core {
 
@@ -23,12 +24,9 @@ namespace Core {
      * @brief 16바이트 정렬 SIMD 저장소를 사용하는 동차 4차원 벡터입니다.
      * @ingroup Core
      */
+    USTRUCT()
     struct alignas(16) FVector4 {
-    public:
-        /**
-         * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
-         */
-        ReflectTypes(FVector4);
+        GENERATED_BODY()
 
     public:
         /**
@@ -92,12 +90,6 @@ namespace Core {
         Core::FVector4& operator=(Core::FVector4&& Other) noexcept = default;
 
     public:
-        /**
-         * @brief 이 타입의 정적 구조체 메타데이터를 반환합니다.
-         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectStruct(FVector4);
-
         /**
          * @brief 동차 행 벡터에 지정한 4×4 행렬을 곱합니다.
          * @param[in] Matrix 적용할 변환 행렬입니다.
@@ -347,12 +339,6 @@ namespace Core {
          */
         bool Equals(const Core::FVector4& Other, float Tolerance = 0.0001f) const;
 
-    private:
-        /**
-         * @brief 생성된 프로퍼티 등록 함수와 빌더 접근 권한입니다.
-         */
-        ReflectMembers();
-
     public:
         /**
          * @brief SIMD 레지스터와 개별 성분을 같은 메모리에 배치합니다.
@@ -370,26 +356,26 @@ namespace Core {
                 /**
                  * @brief X 성분입니다.
                  */
+                UPROPERTY(Edit, Serialize, Name = "X")
                 float x;
-                ReflectProperty(x, "X", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
 
                 /**
                  * @brief Y 성분입니다.
                  */
+                UPROPERTY(Edit, Serialize, Name = "Y")
                 float y;
-                ReflectProperty(y, "Y", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
 
                 /**
                  * @brief Z 성분입니다.
                  */
+                UPROPERTY(Edit, Serialize, Name = "Z")
                 float z;
-                ReflectProperty(z, "Z", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
 
                 /**
                  * @brief W 성분이며, 동차 좌표에서는 위치가 1, 방향이 0입니다.
                  */
+                UPROPERTY(Edit, Serialize, Name = "W")
                 float w;
-                ReflectProperty(w, "W", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
             };
         };
     };

@@ -13,6 +13,7 @@
 #include <filesystem>
 #include <span>
 #include <wrl/client.h>
+#include "UTexture2D.generated.h"
 
 /**
  * @brief 텍스처 변환에 사용하는 DirectXTex 이미지 타입을 참조합니다.
@@ -27,12 +28,9 @@ namespace Asset {
     /**
      * @brief 2차원 텍스처의 CPU 픽셀과 Direct3D 리소스 관리를 담당합니다.
      */
+    UCLASS()
     class UTexture2D final : public Asset::UTexture {
-    public:
-        /**
-         * @brief 리플렉션에서 사용하는 소유 타입과 선택적 부모 타입의 별칭을 선언합니다.
-         */
-        ReflectTypes(UTexture2D, Asset::UTexture);
+        GENERATED_BODY()
 
     public:
         /**
@@ -53,12 +51,6 @@ namespace Asset {
         ~UTexture2D() override;
 
     public:
-        /**
-         * @brief 이 타입의 클래스 메타데이터를 반환합니다.
-         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectClass(UTexture2D);
-
         /**
          * @brief 이미지 파일을 디코딩하여 텍스처 크기·형식·픽셀 데이터를 설정합니다.
          * @param[in] ImagePath 읽을 원본 이미지 파일의 경로입니다.
@@ -231,11 +223,6 @@ namespace Asset {
 
     private:
         /**
-         * @brief 자동 생성된 프로퍼티 등록 코드와 리플렉션 빌더의 접근을 허용합니다.
-         */
-        ReflectMembers();
-
-        /**
          * @brief DirectX 이미지에서 지원 형식의 픽셀과 DDS 데이터를 구성합니다.
          * @param[in,out] SourceImage 변환하거나 복사할 원본 DirectX 이미지입니다.
          * @param[in] SRGB 이미지를 sRGB 색 공간으로 해석할지 나타냅니다.
@@ -352,14 +339,14 @@ namespace Asset {
         /**
          * @brief 픽셀을 sRGB 색 공간으로 해석하는지 나타냅니다.
          */
+        UPROPERTY(Edit, Serialize, Getter = IsSRGB, Setter = SetSRGB)
         bool mSRGB{true};
-        ReflectAccessor(mSRGB, IsSRGB, SetSRGB, "SRGB", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
 
         /**
          * @brief 셰이더 읽기·렌더 타깃·깊이 출력의 사용 용도 비트입니다.
          */
+        UPROPERTY(Edit, Transient, Getter = GetUsage, Setter = SetUsage)
         Asset::ETextureUsage mUsage{Asset::ETextureUsage::ShaderResource};
-        ReflectAccessor(mUsage, GetUsage, SetUsage, "Usage", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Transient);
 
         /**
          * @brief 이 객체가 COM 참조를 보유하는 Direct3D 텍스처입니다.

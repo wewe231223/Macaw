@@ -13,6 +13,7 @@
 #include <d3d11.h>
 #include <array>
 #include <wrl/client.h>
+#include "UMaterial.generated.h"
 
 namespace Asset {
 
@@ -22,12 +23,9 @@ namespace Asset {
     /**
      * @brief 셰이더 경로·기본색·텍스처·양면 정책과 GPU 상수를 관리합니다.
      */
+    UCLASS()
     class UMaterial final : public CoreUObject::UObject {
-    public:
-        /**
-         * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
-         */
-        ReflectTypes(UMaterial, CoreUObject::UObject);
+        GENERATED_BODY()
 
     public:
         /**
@@ -41,12 +39,6 @@ namespace Asset {
         ~UMaterial() override;
 
     public:
-        /**
-         * @brief 이 타입의 정적 리플렉션 메타데이터를 반환합니다.
-         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectClass(UMaterial);
-
         /**
          * @brief Content 기준 머티리얼 셰이더 경로를 반환합니다.
          * @return 이 객체가 보관하는 값의 참조입니다.
@@ -221,34 +213,28 @@ namespace Asset {
 
     private:
         /**
-         * @brief 생성된 멤버 등록 함수와 리플렉션 빌더의 접근 권한입니다.
-         */
-        ReflectMembers();
-
-    private:
-        /**
          * @brief Content 기준 머티리얼 셰이더 경로입니다.
          */
+        UPROPERTY(Edit, Serialize, Name = "Shader", Getter = GetShaderPath, Setter = SetShaderPath)
         Core::FString mShaderPath{"Shaders/Lit.hlsl"};
-        ReflectAccessor(mShaderPath, GetShaderPath, SetShaderPath, "Shader", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
 
         /**
          * @brief 머티리얼의 기본 RGBA 색상입니다.
          */
+        UPROPERTY(Edit, Serialize, Getter = GetBaseColor, Setter = SetBaseColor)
         Core::FVector4 mBaseColor{1.0f, 1.0f, 1.0f, 1.0f};
-        ReflectAccessor(mBaseColor, GetBaseColor, SetBaseColor, "BaseColor", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
 
         /**
          * @brief Content 기준 기본색 텍스처 경로입니다.
          */
+        UPROPERTY(Edit, Serialize, Name = "BaseColorTexture", Getter = GetBaseColorTexturePath, Setter = SetBaseColorTexturePath)
         Core::FString mBaseColorTexturePath{};
-        ReflectAccessor(mBaseColorTexturePath, GetBaseColorTexturePath, SetBaseColorTexturePath, "BaseColorTexture", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
 
         /**
          * @brief Content 상대 노멀 맵 텍스처 경로입니다.
          */
+        UPROPERTY(Edit, Serialize, Name = "NormalMap", Getter = GetNormalMapTexturePath, Setter = SetNormalMapTexturePath)
         Core::FString mNormalMapTexturePath{};
-        ReflectAccessor(mNormalMapTexturePath, GetNormalMapTexturePath, SetNormalMapTexturePath, "NormalMap", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
 
         /**
          * @brief 로드한 노멀 맵 텍스처의 비소유 주소입니다.
@@ -258,59 +244,59 @@ namespace Asset {
         /**
          * @brief 정반사 성분의 밝기 배율입니다.
          */
+        UPROPERTY(Edit, Serialize, Getter = GetSpecularStrength, Setter = SetSpecularStrength)
         float mSpecularStrength{0.35f};
-        ReflectAccessor(mSpecularStrength, GetSpecularStrength, SetSpecularStrength, "SpecularStrength", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
 
         /**
          * @brief 정반사 하이라이트의 지수입니다.
          */
+        UPROPERTY(Edit, Serialize, Getter = GetShininess, Setter = SetShininess)
         float mShininess{32.0f};
-        ReflectAccessor(mShininess, GetShininess, SetShininess, "Shininess", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
 
         /**
          * @brief 노멀 맵의 접선 공간 XY 성분 배율입니다.
          */
+        UPROPERTY(Edit, Serialize, Getter = GetNormalStrength, Setter = SetNormalStrength)
         float mNormalStrength{1.0f};
-        ReflectAccessor(mNormalStrength, GetNormalStrength, SetNormalStrength, "NormalStrength", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
 
         /**
          * @brief 메시의 양면 렌더링 여부입니다.
          */
+        UPROPERTY(Edit, Serialize, Getter = IsTwoSided, Setter = SetTwoSided)
         bool mTwoSided{};
-        ReflectAccessor(mTwoSided, IsTwoSided, SetTwoSided, "TwoSided", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
 
         /**
          * @brief 기본색 텍스처의 비소유 주소입니다.
          */
         Asset::UTexture2D* mBaseColorTexture{};
 
+        UPROPERTY(Edit, Serialize, Getter = GetSpecularColor, Setter = SetSpecularColor)
         Core::FVector4 mSpecularColor{1.0f, 1.0f, 1.0f, 1.0f};
-        ReflectAccessor(mSpecularColor, GetSpecularColor, SetSpecularColor, "SpecularColor", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
 
+        UPROPERTY(Edit, Serialize, Getter = GetAmbientColor, Setter = SetAmbientColor)
         Core::FVector4 mAmbientColor{1.0f, 1.0f, 1.0f, 1.0f};
-        ReflectAccessor(mAmbientColor, GetAmbientColor, SetAmbientColor, "AmbientColor", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
 
+        UPROPERTY(Edit, Serialize, Getter = GetEmissiveColor, Setter = SetEmissiveColor)
         Core::FVector4 mEmissiveColor{0.0f, 0.0f, 0.0f, 1.0f};
-        ReflectAccessor(mEmissiveColor, GetEmissiveColor, SetEmissiveColor, "EmissiveColor", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
 
+        UPROPERTY(Edit, Serialize, Getter = GetReflectionColor, Setter = SetReflectionColor)
         Core::FVector4 mReflectionColor{1.0f, 1.0f, 1.0f, 1.0f};
-        ReflectAccessor(mReflectionColor, GetReflectionColor, SetReflectionColor, "ReflectionColor", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
 
+        UPROPERTY(Edit, Serialize, Getter = GetReflectionStrength, Setter = SetReflectionStrength)
         float mReflectionStrength{};
-        ReflectAccessor(mReflectionStrength, GetReflectionStrength, SetReflectionStrength, "ReflectionStrength", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
 
+        UPROPERTY(Edit, Serialize, Name = "SpecularTexture", Getter = GetSpecularTexturePath, Setter = SetSpecularTexturePath)
         Core::FString mSpecularTexturePath{};
-        ReflectAccessor(mSpecularTexturePath, GetSpecularTexturePath, SetSpecularTexturePath, "SpecularTexture", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
 
         Asset::UTexture2D* mSpecularTexture{};
 
+        UPROPERTY(Edit, Serialize, Name = "EmissiveTexture", Getter = GetEmissiveTexturePath, Setter = SetEmissiveTexturePath)
         Core::FString mEmissiveTexturePath{};
-        ReflectAccessor(mEmissiveTexturePath, GetEmissiveTexturePath, SetEmissiveTexturePath, "EmissiveTexture", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
 
         Asset::UTexture2D* mEmissiveTexture{};
 
+        UPROPERTY(Edit, Serialize, Name = "ReflectionTexture", Getter = GetReflectionTexturePath, Setter = SetReflectionTexturePath)
         Core::FString mReflectionTexturePath{};
-        ReflectAccessor(mReflectionTexturePath, GetReflectionTexturePath, SetReflectionTexturePath, "ReflectionTexture", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
 
         Asset::UTexture2D* mReflectionTexture{};
 

@@ -8,18 +8,16 @@
 
 #include "Engine/Component/UPrimitiveComponent.h"
 #include "Core/Math/FVector4.h"
+#include "UBillboardTextComponent.generated.h"
 
 namespace Engine {
 
     /**
      * @brief 카메라에 정렬한 월드 텍스트를 렌더 장면에 등록합니다.
      */
+    UCLASS()
     class UBillboardTextComponent final : public Engine::UPrimitiveComponent {
-    public:
-        /**
-         * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
-         */
-        ReflectTypes(UBillboardTextComponent, Engine::UPrimitiveComponent);
+        GENERATED_BODY()
 
     public:
         /**
@@ -33,12 +31,6 @@ namespace Engine {
         ~UBillboardTextComponent() override;
 
     public:
-        /**
-         * @brief 이 타입의 정적 리플렉션 메타데이터를 반환합니다.
-         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectClass(UBillboardTextComponent);
-
         /**
          * @brief UTF-8 문자열을 반환합니다.
          * @return 이 객체가 보관하는 값의 참조입니다.
@@ -90,28 +82,22 @@ namespace Engine {
 
     private:
         /**
-         * @brief 생성된 멤버 등록 함수와 리플렉션 빌더의 접근 권한입니다.
-         */
-        ReflectMembers();
-
-    private:
-        /**
          * @brief UTF-8 문자열입니다.
          */
+        UPROPERTY(Edit, Serialize, Getter = GetText, Setter = SetText)
         Core::FString mText{"Text"};
-        ReflectAccessor(mText, GetText, SetText, "Text", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
 
         /**
          * @brief 월드 텍스트의 글자 크기입니다.
          */
+        UPROPERTY(Edit, Serialize, Getter = GetTextSize, Setter = SetTextSize)
         float mTextSize{0.5f};
-        ReflectAccessor(mTextSize, GetTextSize, SetTextSize, "TextSize", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
 
         /**
          * @brief 글자의 RGBA 색상입니다.
          */
+        UPROPERTY(Edit, Serialize, Getter = GetTextColor, Setter = SetTextColor)
         Core::FVector4 mTextColor{1.0f, 1.0f, 1.0f, 1.0f};
-        ReflectAccessor(mTextColor, GetTextColor, SetTextColor, "TextColor", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
     };
 
 }

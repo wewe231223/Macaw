@@ -7,26 +7,18 @@
 #pragma once
 
 #include "Engine/Component/UShapeComponent.h"
+#include "UCapsuleComponent.generated.h"
 
 namespace Engine {
 
     /**
      * @brief Z축 중심 선분과 반구를 가진 캡슐 충돌 컴포넌트입니다.
      */
+    UCLASS()
     class UCapsuleComponent : public Engine::UShapeComponent {
-    public:
-        /**
-         * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
-         */
-        ReflectTypes(UCapsuleComponent, Engine::UShapeComponent);
+        GENERATED_BODY()
 
     public:
-        /**
-         * @brief 이 타입의 정적 리플렉션 메타데이터를 반환합니다.
-         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectClass(UCapsuleComponent);
-
         /**
          * @brief 검사에 사용할 충돌 형상 값을 반환합니다.
          * @return 계산하거나 조회한 값입니다.
@@ -90,24 +82,18 @@ namespace Engine {
         void SetCapsuleRadius(float InRadius);
 
     private:
-        /**
-         * @brief 생성된 멤버 등록 함수와 리플렉션 빌더의 접근 권한입니다.
-         */
-        ReflectMembers();
-
-    private:
         // 반구를 포함한 높이
         /**
          * @brief 반구를 포함한 캡슐 반높이입니다.
          */
+        UPROPERTY(Edit, Serialize, Getter = GetCapsuleHalfHeight, Setter = SetCapsuleHalfHeight)
         float mCapsuleHalfHeight{1.0f};
-        ReflectAccessor(mCapsuleHalfHeight, GetCapsuleHalfHeight, SetCapsuleHalfHeight, "CapsuleHalfHeight", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
 
         /**
          * @brief 캡슐의 로컬 반지름입니다.
          */
+        UPROPERTY(Edit, Serialize, Getter = GetCapsuleRadius, Setter = SetCapsuleRadius)
         float mCapsuleRadius{0.5f};
-        ReflectAccessor(mCapsuleRadius, GetCapsuleRadius, SetCapsuleRadius, "CapsuleRadius", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
     };
 
 }

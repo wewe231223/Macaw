@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Engine/Component/UPrimitiveComponent.h"
+#include "UMeshComponent.generated.h"
 
 namespace Asset {
     class UMaterial;
@@ -8,17 +9,15 @@ namespace Asset {
 
 namespace Engine {
 
+    UCLASS(Abstract)
     class UMeshComponent : public Engine::UPrimitiveComponent {
-    public:
-        ReflectTypes(UMeshComponent, Engine::UPrimitiveComponent);
+        GENERATED_BODY()
 
     public:
         UMeshComponent() = default;
         ~UMeshComponent() override = default;
 
     public:
-        ReflectClass(UMeshComponent, CoreUObject::EClassFlags::Abstract);
-
         virtual bool ResolveMesh() = 0;
 
         const Core::FString& GetMaterialPath() const;
@@ -37,20 +36,18 @@ namespace Engine {
         void UnregisterComponent() override;
 
     private:
-        ReflectMembers();
-
         void OnRegister() override;
         Asset::UMaterial* LoadMaterial(const Core::FString& Path) const;
 
     private:
+        UPROPERTY(Edit, Serialize, Name = "Material", Getter = GetMaterialPath, Setter = SetMaterialPath)
         Core::FString mMaterialPath{};
-        ReflectAccessor(mMaterialPath, GetMaterialPath, SetMaterialPath, "Material", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
 
         Asset::UMaterial* mMaterial{};
 
+        UPROPERTY(Serialize, SerializeLate, Name = "SlotMaterials", Getter = GetSlotMaterialPaths, Setter = SetSlotMaterialPaths)
         Core::TArray<Core::FString> mMaterialOverrides{};
         // 메시 setter가 오버라이드를 비우므로 메시 경로를 복원한 뒤에 로드합니다.
-        ReflectArrayAccessor(mMaterialOverrides, GetSlotMaterialPaths, SetSlotMaterialPaths, "SlotMaterials", Core::EPropertyFlags::Serialize | Core::EPropertyFlags::SerializeLate);
     };
 
 }

@@ -11,12 +11,14 @@
 #include "CoreUObject/Reflection/TNativeEnum.h"
 
 #include <filesystem>
+#include "FMeshImportTexture.generated.h"
 
 namespace Asset {
 
     /**
      * @brief 임포트한 재질 텍스처의 없음·외부 파일·내장 참조 출처를 구분합니다.
      */
+    UENUM()
     enum class EMeshImportTextureSource : Core::Uint8 {
         /**
          * @brief 원본 재질에 해당 텍스처 참조가 없습니다.
@@ -33,20 +35,9 @@ namespace Asset {
     };
 
     /**
-     * @brief 이 타입의 정적 리플렉션 메타데이터를 반환합니다.
-     * @return 리플렉션 시스템이 보관하는 등록된 타입 메타데이터의 비소유 주소입니다.
-     */
-    ReflectEnum(EMeshImportTextureSource, None, ExternalFile, Embedded);
-
-    /**
-     * @fn UEnum* Asset::GetNativeEnum(TNativeEnum<EMeshImportTextureSource>)
-     * @brief 이 타입의 정적 리플렉션 메타데이터를 반환합니다.
-     * @return 리플렉션 시스템이 보관하는 등록된 타입 메타데이터의 비소유 주소입니다.
-     */
-
-    /**
      * @brief 임포터가 이미지 바이트와 원본 장면에서 판별한 텍스처의 형태를 구분합니다.
      */
+    UENUM()
     enum class EMeshImportTextureShape : Core::Uint8 {
         /**
          * @brief 임포터가 형태를 판별하지 않았습니다.
@@ -77,18 +68,6 @@ namespace Asset {
          */
         ImageSequence
     };
-
-    /**
-     * @brief 이 타입의 정적 리플렉션 메타데이터를 반환합니다.
-     * @return 리플렉션 시스템이 보관하는 등록된 타입 메타데이터의 비소유 주소입니다.
-     */
-    ReflectEnum(EMeshImportTextureShape, Unknown, Texture2D, Texture2DArray, TextureCube, Texture3D, Animated, ImageSequence);
-
-    /**
-     * @fn UEnum* Asset::GetNativeEnum(TNativeEnum<EMeshImportTextureShape>)
-     * @brief 이 타입의 정적 리플렉션 메타데이터를 반환합니다.
-     * @return 리플렉션 시스템이 보관하는 등록된 타입 메타데이터의 비소유 주소입니다.
-     */
 
     /**
      * @brief 원본 재질 텍스처가 없는지, 외부 파일인지, 내장 참조인지 구분하는 값 객체입니다.

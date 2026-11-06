@@ -7,6 +7,7 @@
 #pragma once
 
 #include "Engine/Component/UActorComponent.h"
+#include "USubUVComponent.generated.h"
 
 namespace Engine {
 
@@ -15,12 +16,9 @@ namespace Engine {
     /**
      * @brief 같은 액터의 스프라이트 또는 메시 UV를 등록 직후부터 격자 프레임으로 재생합니다.
      */
+    UCLASS()
     class USubUVComponent final : public Engine::UActorComponent {
-    public:
-        /**
-         * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
-         */
-        ReflectTypes(USubUVComponent, Engine::UActorComponent);
+        GENERATED_BODY()
 
     public:
         /**
@@ -34,12 +32,6 @@ namespace Engine {
         ~USubUVComponent() override;
 
     public:
-        /**
-         * @brief 이 타입의 정적 리플렉션 메타데이터를 반환합니다.
-         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectClass(USubUVComponent);
-
         /**
          * @brief 대상 컴포넌트 이름을 반환합니다. 빈 이름은 자동 선택을 뜻합니다.
          * @return 이 객체가 보관하는 값의 참조입니다.
@@ -160,11 +152,6 @@ namespace Engine {
         void UnregisterComponent() override;
 
     private:
-        /**
-         * @brief 생성된 멤버 등록 함수와 리플렉션 빌더의 접근 권한입니다.
-         */
-        ReflectMembers();
-
         void OnRegister() override;
 
         /**
@@ -187,44 +174,44 @@ namespace Engine {
         /**
          * @brief 대상 컴포넌트 이름이며 빈 문자열은 같은 액터에서 자동 선택입니다.
          */
+        UPROPERTY(Edit, Serialize, Name = "TargetComponent", Getter = GetTargetName, Setter = SetTargetName)
         Core::FString mTargetName{};
-        ReflectAccessor(mTargetName, GetTargetName, SetTargetName, "TargetComponent", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
 
         /**
          * @brief 아틀라스의 가로 셀 수입니다.
          */
+        UPROPERTY(Edit, Serialize, Getter = GetColumns, Setter = SetColumns)
         Core::Uint32 mColumns{4};
-        ReflectAccessor(mColumns, GetColumns, SetColumns, "Columns", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
 
         /**
          * @brief 아틀라스의 세로 셀 수입니다.
          */
+        UPROPERTY(Edit, Serialize, Getter = GetRows, Setter = SetRows)
         Core::Uint32 mRows{4};
-        ReflectAccessor(mRows, GetRows, SetRows, "Rows", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
 
         /**
          * @brief 재생할 셀 수이며 0은 전체 격자입니다.
          */
+        UPROPERTY(Edit, Serialize, Getter = GetFrameCount, Setter = SetFrameCount)
         Core::Uint32 mFrameCount{};
-        ReflectAccessor(mFrameCount, GetFrameCount, SetFrameCount, "FrameCount", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
 
         /**
          * @brief 초당 재생 프레임 수입니다.
          */
+        UPROPERTY(Edit, Serialize, Getter = GetFramesPerSecond, Setter = SetFramesPerSecond)
         float mFramesPerSecond{12.0f};
-        ReflectAccessor(mFramesPerSecond, GetFramesPerSecond, SetFramesPerSecond, "FramesPerSecond", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
 
         /**
          * @brief 마지막 프레임 이후 반복 여부입니다.
          */
+        UPROPERTY(Edit, Serialize, Getter = IsLooping, Setter = SetLooping)
         bool mLooping{true};
-        ReflectAccessor(mLooping, IsLooping, SetLooping, "Looping", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
 
         /**
          * @brief SubUV 재생 상태입니다.
          */
+        UPROPERTY(Edit, Serialize, Getter = IsPlaying, Setter = SetPlaying)
         bool mPlaying{true};
-        ReflectAccessor(mPlaying, IsPlaying, SetPlaying, "Playing", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
 
         /**
          * @brief 같은 액터에서 자동 선택하거나 이름으로 지정한 UV 대상의 세대 핸들입니다.

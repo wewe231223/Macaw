@@ -11,6 +11,7 @@
 #include "Editor/FEditorContext.h"
 #include "Editor/FEditorViewport.h"
 #include "Editor/FPlayInEditorSession.h"
+#include "EditorEngine.generated.h"
 
 namespace Platform {
     class FWindowsApplication;
@@ -28,12 +29,9 @@ namespace Editor {
      * @brief 엔진의 월드 실행과 UI 독립 편집 컨텍스트, 뷰포트 및 UI 호스트의 수명을 조합합니다.
      * @ingroup Editor
      */
+    UCLASS(NoFactory)
     class UEditorEngine final : public Engine::UEngine {
-    public:
-        /**
-         * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
-         */
-        ReflectTypes(UEditorEngine, Engine::UEngine);
+        GENERATED_BODY()
 
     public:
         /**
@@ -47,17 +45,6 @@ namespace Editor {
         ~UEditorEngine() override;
 
     public:
-        /**
-         * @brief 이 타입의 정적 클래스 메타데이터를 반환합니다.
-         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectClass(UEditorEngine, CoreUObject::EClassFlags::NoFactory);
-
-        /**
-         * @fn UClass* UEditorEngine::GetClass() const
-         * @brief 객체의 실제 클래스 메타데이터를 반환합니다.
-         * @return 실제 클래스 메타데이터의 비소유 주소입니다.
-         */
         /**
          * @brief UI 없이 엔진과 편집 월드 연결을 초기화합니다.
          * @return 초기화에 성공하면 true입니다.
@@ -125,12 +112,6 @@ namespace Editor {
          * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
          */
         bool WantsExit() const;
-
-    private:
-        /**
-         * @brief 생성된 멤버 등록 함수의 접근 권한입니다.
-         */
-        ReflectMembers();
 
     private:
         /**

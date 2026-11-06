@@ -29,45 +29,45 @@ namespace Script {
          * @param[in] Key 검사할 키입니다.
          * @return 눌려 있으면 true입니다.
          */
+        UFUNCTION()
         static bool IsDown(Core::EKey Key);
-        ReflectFunction(IsDown);
 
         /**
          * @brief 이번 프레임에 키를 눌렀는지 검사합니다.
          * @param[in] Key 검사할 키입니다.
          * @return 이번 프레임에 눌렀으면 true입니다.
          */
+        UFUNCTION()
         static bool WasPressed(Core::EKey Key);
-        ReflectFunction(WasPressed);
 
         /**
          * @brief 이번 프레임에 키를 뗐는지 검사합니다.
          * @param[in] Key 검사할 키입니다.
          * @return 이번 프레임에 뗐으면 true입니다.
          */
+        UFUNCTION()
         static bool WasReleased(Core::EKey Key);
-        ReflectFunction(WasReleased);
 
         /**
          * @brief 마우스 위치를 반환합니다.
          * @return 창 기준 픽셀 위치입니다.
          */
+        UFUNCTION()
         static Core::FVector2 GetMousePosition();
-        ReflectFunction(GetMousePosition);
 
         /**
          * @brief 이번 프레임의 마우스 이동량을 반환합니다.
          * @return 픽셀 단위 이동량입니다.
          */
+        UFUNCTION()
         static Core::FVector2 GetMouseDelta();
-        ReflectFunction(GetMouseDelta);
 
         /**
          * @brief 이번 프레임의 마우스 휠 이동량을 반환합니다.
          * @return 휠 이동량입니다.
          */
+        UFUNCTION()
         static float GetMouseWheel();
-        ReflectFunction(GetMouseWheel);
     };
 
 }

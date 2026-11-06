@@ -10,6 +10,7 @@
 #include "Core/Types.h"
 
 #include <xmmintrin.h>
+#include "FVector2.generated.h"
 
 namespace Core {
 
@@ -20,12 +21,9 @@ namespace Core {
      * @brief 16바이트 정렬 SIMD 저장소를 사용하는 2차원 벡터입니다.
      * @ingroup Core
      */
+    USTRUCT()
     struct alignas(16) FVector2 {
-    public:
-        /**
-         * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
-         */
-        ReflectTypes(FVector2);
+        GENERATED_BODY()
 
     public:
         /**
@@ -80,12 +78,6 @@ namespace Core {
         Core::FVector2& operator=(Core::FVector2&& Other) noexcept = default;
 
     public:
-        /**
-         * @brief 이 타입의 정적 구조체 메타데이터를 반환합니다.
-         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectStruct(FVector2);
-
         /**
          * @brief 대응 성분을 더한 값을 반환합니다.
          * @param[in] Other 더할 값입니다.
@@ -321,12 +313,6 @@ namespace Core {
          */
         bool Equals(const Core::FVector2& Other, float Tolerance = 0.0001f) const;
 
-    private:
-        /**
-         * @brief 생성된 프로퍼티 등록 함수와 빌더 접근 권한입니다.
-         */
-        ReflectMembers();
-
     public:
         /**
          * @brief SIMD 레지스터와 개별 성분을 같은 메모리에 배치합니다.
@@ -344,14 +330,14 @@ namespace Core {
                 /**
                  * @brief X 성분입니다.
                  */
+                UPROPERTY(Edit, Serialize, Name = "X")
                 float x;
-                ReflectProperty(x, "X", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
 
                 /**
                  * @brief Y 성분입니다.
                  */
+                UPROPERTY(Edit, Serialize, Name = "Y")
                 float y;
-                ReflectProperty(y, "Y", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
             };
         };
     };

@@ -9,6 +9,7 @@
 #include "Core/ReflectionMacros.h"
 #include "CoreUObject/FObjectHandle.h"
 #include "CoreUObject/Reflection/TNativeEnum.h"
+#include "FHitProxy.generated.h"
 
 namespace Engine {
 
@@ -16,6 +17,7 @@ namespace Engine {
      * @brief 피킹 결과가 나타내는 선택 대상의 종류입니다.
      * @ingroup Engine
      */
+    UENUM()
     enum class EHitProxyType : Core::Uint8 {
         /**
          * @brief 마우스 위치에 선택 대상이 없습니다.
@@ -31,13 +33,6 @@ namespace Engine {
         GizmoAxis
     };
 
-    ReflectEnum(EHitProxyType, None, Object, GizmoAxis);
-
-    /**
-     * @fn UEnum* StaticEnumEHitProxyType()
-     * @brief 피킹 종류의 정적 열거형 메타데이터를 반환합니다.
-     * @return 등록된 열거형 메타데이터의 비소유 주소입니다.
-     */
     /**
      * @fn UEnum* GetNativeEnum(TNativeEnum<EHitProxyType>)
      * @brief 네이티브 타입 태그에 대응하는 피킹 종류 메타데이터를 반환합니다.

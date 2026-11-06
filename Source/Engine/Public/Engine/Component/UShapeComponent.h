@@ -12,6 +12,7 @@
 #include "Core/TDelegate.h"
 #include "Core/Math/FVector4.h"
 #include "Core/Math/FBox.h"
+#include "UShapeComponent.generated.h"
 
 namespace Engine {
 
@@ -20,13 +21,11 @@ namespace Engine {
     /**
      * @brief 충돌 형상·접촉 이벤트와 에디터 보조 선을 제공하는 기본 컴포넌트입니다.
      */
+    UCLASS(Abstract)
     class UShapeComponent : public Engine::UPrimitiveComponent {
-    public:
-        /**
-         * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
-         */
-        ReflectTypes(UShapeComponent, Engine::UPrimitiveComponent);
+        GENERATED_BODY()
 
+    public:
         /**
          * @brief 겹친 컴포넌트를 전달하는 이벤트 시그니처입니다.
          */
@@ -44,12 +43,6 @@ namespace Engine {
         UShapeComponent();
 
     public:
-        /**
-         * @brief 이 타입의 정적 리플렉션 메타데이터를 반환합니다.
-         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectClass(UShapeComponent, CoreUObject::EClassFlags::Abstract);
-
         /**
          * @brief 컴포넌트 겹침 시작 이벤트를 반환합니다.
          * @return 이 컴포넌트가 소유한 이벤트 델리게이트의 참조입니다.
@@ -163,11 +156,6 @@ namespace Engine {
 
     private:
         /**
-         * @brief 생성된 멤버 등록 함수와 리플렉션 빌더의 접근 권한입니다.
-         */
-        ReflectMembers();
-
-        /**
          * @brief 현재 표시·에셋 상태에서 렌더 프록시를 생성할지 판정합니다.
          * @return 조건을 만족하면 true입니다.
          */
@@ -177,14 +165,14 @@ namespace Engine {
         /**
          * @brief 충돌 도형을 표시할 RGBA 색상입니다.
          */
+        UPROPERTY(Edit, Serialize, Getter = GetShapeColor, Setter = SetShapeColor)
         Core::FVector4 mShapeColor{223.0f / 255.0f, 149.0f / 255.0f, 157.0f / 255.0f, 1.0f};
-        ReflectAccessor(mShapeColor, GetShapeColor, SetShapeColor, "ShapeColor", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
 
         /**
          * @brief 선택한 경우에만 충돌 도형을 표시할지 여부입니다.
          */
+        UPROPERTY(Edit, Serialize, Getter = ShouldDrawOnlyIfSelected, Setter = SetDrawOnlyIfSelected)
         bool mDrawOnlyIfSelected{};
-        ReflectAccessor(mDrawOnlyIfSelected, ShouldDrawOnlyIfSelected, SetDrawOnlyIfSelected, "DrawOnlyIfSelected", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
 
         /**
          * @brief 컴포넌트 겹침 시작 이벤트입니다.

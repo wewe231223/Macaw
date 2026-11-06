@@ -8,6 +8,7 @@
 
 #include "Core/Types.h"
 #include "CoreUObject/Reflection/TNativeEnum.h"
+#include "ESequencePlayState.generated.h"
 
 namespace Engine {
 
@@ -15,6 +16,7 @@ namespace Engine {
      * @brief 시퀀스 플레이어의 재생 상태를 구분합니다.
      * @ingroup Engine
      */
+    UENUM()
     enum class ESequencePlayState : Core::Uint8 {
         /**
          * @brief 재생하지 않으며 다음 재생을 시작 시간부터 진행합니다.
@@ -29,7 +31,5 @@ namespace Engine {
          */
         Paused
     };
-
-    ReflectEnum(ESequencePlayState, Stopped, Playing, Paused);
 
 }

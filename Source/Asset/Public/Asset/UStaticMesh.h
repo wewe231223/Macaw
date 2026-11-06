@@ -15,18 +15,16 @@
 #include <d3d11.h>
 #include <array>
 #include <filesystem>
+#include "UStaticMesh.generated.h"
 
 namespace Asset {
 
     /**
      * @brief CPU 메시 데이터와 Direct3D 정점·인덱스 버퍼 관리를 담당합니다.
      */
+    UCLASS()
     class UStaticMesh final : public CoreUObject::UObject {
-    public:
-        /**
-         * @brief 리플렉션에서 사용하는 소유 타입과 선택적 부모 타입의 별칭을 선언합니다.
-         */
-        ReflectTypes(UStaticMesh, CoreUObject::UObject);
+        GENERATED_BODY()
 
     public:
         /**
@@ -46,12 +44,6 @@ namespace Asset {
         ~UStaticMesh() override;
 
     public:
-        /**
-         * @brief 이 타입의 클래스 메타데이터를 반환합니다.
-         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectClass(UStaticMesh);
-
         /**
          * @brief 외부 메시 파일을 가져와 정점 속성과 인덱스 및 경계를 구성합니다.
          * @param[in] MeshPath 읽을 메시 파일의 경로입니다.
@@ -151,12 +143,6 @@ namespace Asset {
          * @return 현재 보유한 GPU 리소스의 추정 바이트 수를 나타내는 정수 값입니다.
          */
         std::size_t GetResourceBytes() const;
-
-    private:
-        /**
-         * @brief 자동 생성된 프로퍼티 등록 코드와 리플렉션 빌더의 접근을 허용합니다.
-         */
-        ReflectMembers();
 
     private:
         /**

@@ -11,6 +11,7 @@
 #include "Engine/EWorldType.h"
 #include "Engine/EWorldPlayState.h"
 #include "Engine/FWorldHandle.h"
+#include "UWorld.generated.h"
 
 namespace Asset {
     class FAssetManager;
@@ -40,12 +41,9 @@ namespace Engine {
      * @brief 영속 레벨, 렌더 장면과 프레임 말 컴포넌트 갱신을 관리합니다.
      * @ingroup Engine
      */
+    UCLASS(NoFactory)
     class UWorld final : public CoreUObject::UObject {
-    public:
-        /**
-         * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
-         */
-        ReflectTypes(UWorld, CoreUObject::UObject);
+        GENERATED_BODY()
 
     public:
         /**
@@ -94,12 +92,6 @@ namespace Engine {
         ~UWorld() override;
 
     public:
-        /**
-         * @brief 이 타입의 정적 클래스 메타데이터를 반환합니다.
-         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectClass(UWorld, CoreUObject::EClassFlags::NoFactory);
-
         /**
          * @brief 이 월드를 엔진에 등록할 때 발급한 핸들을 반환합니다.
          * @return 엔진 등록 전에는 무효인 월드 핸들입니다.
@@ -156,8 +148,8 @@ namespace Engine {
          * @brief 마지막 실행 시작 이후 누적 게임 시간을 반환합니다.
          * @return Tick과 Step이 실제 진행한 초 단위 시간입니다.
          */
+        UFUNCTION()
         float GetTimeSeconds() const;
-        ReflectFunction(GetTimeSeconds);
 
         /**
          * @brief 마지막 실행 시작 이후 수행한 게임 갱신 횟수를 반환합니다.
@@ -176,15 +168,15 @@ namespace Engine {
          * @param[in] Camera 활성화할 이 월드 소속 카메라이며 nullptr이면 선택을 해제합니다.
          * @return 요청한 처리를 완료하면 true, 실패하면 false입니다.
          */
+        UFUNCTION()
         bool SetActiveCamera(Engine::UCameraComponent* Camera);
-        ReflectFunction(SetActiveCamera);
 
         /**
          * @brief 월드에 등록된 활성 카메라를 핸들로 검증하여 조회합니다.
          * @return 대상의 비소유 주소이며, 없거나 유효하지 않으면 nullptr입니다.
          */
+        UFUNCTION()
         Engine::UCameraComponent* GetActiveCamera() const;
-        ReflectFunction(GetActiveCamera);
 
         /**
          * @brief 월드 소속을 검증하여 입력 대상 액터를 선택하거나 해제합니다.
@@ -270,8 +262,8 @@ namespace Engine {
          * @param[in] Type 기본 프리미티브 종류입니다.
          * @return 조회한 값의 비소유 주소이며, 해당 값이 없으면 nullptr입니다.
          */
+        UFUNCTION()
         Engine::AStaticMeshActor* SpawnPrimitive(Engine::EPrimitiveType Type);
-        ReflectFunction(SpawnPrimitive);
 
         /**
          * @brief 핸들에 해당하는 액터의 컴포넌트를 등록 해제하고 액터를 제거합니다.
@@ -307,24 +299,24 @@ namespace Engine {
          * @param[in] Ignored 건너뛸 액터이며 nullptr이면 모두 검사합니다.
          * @return 찾은 결과이며, 맞은 것이 없으면 액터 핸들이 유효하지 않습니다.
          */
+        UFUNCTION()
         Engine::FWorldHit Raycast(const Core::FVector& Origin, const Core::FVector& Direction, const Engine::AActor* Ignored) const;
-        ReflectFunction(Raycast);
 
         /**
          * @brief 이름으로 살아 있는 액터를 찾습니다.
          * @param[in] Name 아웃라이너에 보이는 액터 이름입니다.
          * @return 찾은 액터의 비소유 주소이며, 없으면 nullptr입니다.
          */
+        UFUNCTION()
         Engine::AActor* FindActor(const Core::FString& Name) const;
-        ReflectFunction(FindActor);
 
         /**
          * @brief 지정한 클래스의 살아 있는 액터를 모두 찾습니다.
          * @param[in] ClassName 파생 클래스를 포함해 찾을 리플렉션 클래스 이름입니다.
          * @return 찾은 액터의 비소유 주소 목록입니다.
          */
+        UFUNCTION(Internal)
         Core::TArray<Engine::AActor*> GetActorsByClassName(const Core::FString& ClassName) const;
-        ReflectFunction(GetActorsByClassName, Internal);
 
         /**
          * @brief 종속 객체를 역순으로 정리하고 여러 번 호출해도 안전한 종료 상태로 만듭니다.
@@ -332,11 +324,6 @@ namespace Engine {
         void Shutdown();
 
     private:
-        /**
-         * @brief 생성된 프로퍼티 등록 함수와 빌더 접근 권한입니다.
-         */
-        ReflectMembers();
-
         /**
          * @brief 컨텍스트가 소유 월드의 종류와 엔진 식별자를 설정하도록 허용합니다.
          */

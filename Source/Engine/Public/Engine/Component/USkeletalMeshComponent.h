@@ -7,6 +7,7 @@
 
 #include "Engine/Component/UMeshComponent.h"
 #include "Engine/FSkeletalMeshPose.h"
+#include "USkeletalMeshComponent.generated.h"
 
 namespace Asset {
     class USkeletalMesh;
@@ -17,9 +18,9 @@ namespace Engine {
     /**
      * @brief 공유 바인드 형상을 객체별 포즈로 변형하여 표시하는 컴포넌트입니다.
      */
+    UCLASS()
     class USkeletalMeshComponent final : public Engine::UMeshComponent {
-    public:
-        ReflectTypes(USkeletalMeshComponent, Engine::UMeshComponent);
+        GENERATED_BODY()
 
     public:
         /**
@@ -32,12 +33,6 @@ namespace Engine {
         ~USkeletalMeshComponent() override;
 
     public:
-        /**
-         * @brief 컴포넌트의 클래스 메타데이터를 반환합니다.
-         * @return 등록된 클래스입니다.
-         */
-        ReflectClass(USkeletalMeshComponent);
-
         /**
          * @brief 기본 프리미티브 구분값을 반환합니다.
          * @return 에셋이 없을 때도 대신 표시하지 않는 Cube 구분값입니다.
@@ -137,8 +132,6 @@ namespace Engine {
         void Serialize(Core::FArchive& Archive) override;
 
     private:
-        ReflectMembers();
-
         /**
          * @brief 메시 경로를 에셋 관리자에서 해석합니다.
          * @param Path Content 상대 경로입니다.
@@ -150,8 +143,8 @@ namespace Engine {
         /**
          * @brief Content 기준 스켈레탈 메시 경로입니다.
          */
+        UPROPERTY(Edit, Serialize, Name = "SkeletalMesh", Getter = GetMeshPath, Setter = SetMeshPath)
         Core::FString mMeshPath{};
-        ReflectAccessor(mMeshPath, GetMeshPath, SetMeshPath, "SkeletalMesh", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
         /**
          * @brief 에셋 관리자가 소유하는 메시입니다.
          */
@@ -159,9 +152,9 @@ namespace Engine {
         /**
          * @brief 객체별 로컬·전역 포즈와 CPU 피킹 형상입니다.
          */
+        UPROPERTY(Serialize, SerializeLate, Name = "BoneLocalTransforms", Getter = GetSerializedPose, Setter = SetSerializedPose, Array)
         Engine::FSkeletalMeshPose mPose{};
         // 메시 setter가 포즈를 초기화하므로 메시 경로를 복원한 뒤에 로드합니다.
-        ReflectArrayAccessor(mPose, GetSerializedPose, SetSerializedPose, "BoneLocalTransforms", Core::EPropertyFlags::Serialize | Core::EPropertyFlags::SerializeLate);
     };
 
 }

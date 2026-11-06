@@ -8,6 +8,7 @@
 
 #include "Core/ReflectionMacros.h"
 #include "Core/Math/FVector.h"
+#include "FRay.generated.h"
 
 namespace Core {
 
@@ -15,12 +16,9 @@ namespace Core {
      * @brief 원점과 방향으로 정의하는 월드 공간 광선입니다.
      * @ingroup Core
      */
+    USTRUCT()
     struct alignas(16) FRay {
-    public:
-        /**
-         * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
-         */
-        ReflectTypes(FRay);
+        GENERATED_BODY()
 
     public:
         /**
@@ -66,30 +64,18 @@ namespace Core {
          */
         Core::FRay& operator=(Core::FRay&& Other) noexcept = default;
 
-    private:
-        /**
-         * @brief 생성된 프로퍼티 등록 함수와 빌더 접근 권한입니다.
-         */
-        ReflectMembers();
-
     public:
-        /**
-         * @brief 이 타입의 정적 구조체 메타데이터를 반환합니다.
-         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectStruct(FRay);
-
         /**
          * @brief 광선 원점입니다.
          */
+        UPROPERTY(Edit, Serialize)
         Core::FVector mOrigin{};
-        ReflectProperty(mOrigin, "Origin", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
 
         /**
          * @brief 광선 진행 방향입니다.
          */
+        UPROPERTY(Edit, Serialize)
         Core::FVector mDirection{1.0f, 0.0f, 0.0f};
-        ReflectProperty(mDirection, "Direction", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
     };
 
 }

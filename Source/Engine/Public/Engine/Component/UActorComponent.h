@@ -8,6 +8,7 @@
 
 #include "Core/ReflectionMacros.h"
 #include "CoreUObject/UObject.h"
+#include "UActorComponent.generated.h"
 
 namespace Engine {
 
@@ -18,12 +19,9 @@ namespace Engine {
      * @brief 소유 액터와 월드 등록 수명을 갖는 컴포넌트의 기반 클래스입니다.
      * @ingroup Engine
      */
+    UCLASS()
     class UActorComponent : public CoreUObject::UObject {
-    public:
-        /**
-         * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
-         */
-        ReflectTypes(UActorComponent, CoreUObject::UObject);
+        GENERATED_BODY()
 
     public:
         /**
@@ -38,22 +36,11 @@ namespace Engine {
 
     public:
         /**
-         * @brief 이 타입의 정적 클래스 메타데이터를 반환합니다.
-         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectClass(UActorComponent);
-
-        /**
-         * @fn UClass* UActorComponent::GetClass() const
-         * @brief 객체의 실제 클래스 메타데이터를 반환합니다.
-         * @return 실제 클래스 메타데이터의 비소유 주소입니다.
-         */
-        /**
          * @brief 컴포넌트를 소유한 액터를 반환합니다.
          * @return 조회한 값의 비소유 주소이며, 해당 값이 없으면 nullptr입니다.
          */
+        UFUNCTION()
         Engine::AActor* GetOwner() const;
-        ReflectFunction(GetOwner);
 
         /**
          * @brief 소유 액터가 표시 상태인지 검사합니다.
@@ -125,10 +112,6 @@ namespace Engine {
         void SetEditorTickable(bool EditorTickable);
 
     private:
-        /**
-         * @brief 생성된 프로퍼티 등록 함수와 빌더 접근 권한입니다.
-         */
-        ReflectMembers();
         virtual void OnRegister();
 
         /**
@@ -178,8 +161,8 @@ namespace Engine {
         /**
          * @brief 정지한 편집 월드에서도 이 객체의 Tick을 허용하는 설정입니다.
          */
+        UPROPERTY(Edit, Serialize)
         bool mEditorTickable{};
-        ReflectProperty(mEditorTickable, "EditorTickable", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
     };
 
 }

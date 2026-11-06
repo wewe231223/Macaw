@@ -1,13 +1,14 @@
-local Reflection = dofile("Scripts/GenerateReflection.lua")
-
-newoption { trigger = "reflection-module", value = "MODULE", description = "Generate reflection for one module" }
-newaction { trigger = "generate-reflection", description = "Generate reflection from property annotations", execute = function() Reflection.Generate(_OPTIONS["reflection-module"]) end }
-
-if _ACTION == "generate-reflection" then
-    return
+local function GetGeneratedDirectory(Module)
+    return "Intermediate/" .. (Module == "App" and "Macaw" or Module) .. "/Generated"
 end
 
-local ReflectedModules = Reflection.Generate()
+-- 헤더 툴은 엔진에 의존하지 않는 단독 실행 파일입니다. 각 모듈은 빌드 전에 이 툴로 자기 generated.h와 등록 코드를 만듭니다.
+local HeaderTool = '"%{wks.location}/Binaries/%{cfg.buildcfg}/MacawHeaderTool.exe" "%{wks.location}."'
+
+local function UseHeaderTool(Module)
+    dependson { "MacawHeaderTool" }
+    prebuildcommands { HeaderTool .. " " .. Module }
+end
 
 workspace "Macaw"
     location "."
@@ -48,9 +49,7 @@ local function AddIncludes(Name, Visited)
         defines { "FBXSDK_SHARED" }
     end
 
-    if ReflectedModules[Name] then
-        includedirs { Reflection.GetGeneratedDirectory(Name) }
-    end
+    includedirs { GetGeneratedDirectory(Name) }
 
     for _, Dependency in ipairs(Modules[Name].Public) do
         AddIncludes(Dependency, Visited)
@@ -73,16 +72,25 @@ local function Configure(Name, Kind)
         warnings "Extra"
 end
 
-for _, Name in ipairs({ "Core", "CoreUObject", "Serialization", "Asset", "RenderCore", "Engine", "Script", "Renderer", "Platform", "Editor" }) do
+Configure("MacawHeaderTool", "ConsoleApp")
+    files { "Source/Programs/MacawHeaderTool/**.h", "Source/Programs/MacawHeaderTool/**.cpp" }
+    -- 빌드마다 모듈 수만큼 실행되므로 Debug 구성에서도 최적화합니다. 디버그 CRT로는 열 배 가까이 느립니다.
+    optimize "Speed"
+    runtime "Release"
+    removedefines { "_DEBUG" }
+    defines { "NDEBUG" }
+
+local ModuleNames = { "Core", "CoreUObject", "Serialization", "Asset", "RenderCore", "Engine", "Script", "Renderer", "Platform", "Editor" }
+
+for _, Name in ipairs(ModuleNames) do
     Configure(Name, "StaticLib")
     files { "Source/" .. Name .. "/Public/**.h", "Source/" .. Name .. "/Private/**.h", "Source/" .. Name .. "/Private/**.cpp" }
     includedirs { "Source/" .. Name .. "/Private" }
+    UseHeaderTool(Name)
 
-    if ReflectedModules[Name] then
-        local GeneratedDirectory = Reflection.GetGeneratedDirectory(Name)
-        files { GeneratedDirectory .. "/**.h", GeneratedDirectory .. "/" .. Name .. "Reflection.cpp" }
-        includedirs { GeneratedDirectory }
-        prebuildcommands { '"' .. _PREMAKE_COMMAND .. '" --file="' .. path.getabsolute("premake5.lua") .. '" generate-reflection --reflection-module=' .. Name }
+    -- Core 타입은 CoreUObject가 등록하므로 Core에는 등록 소스가 없습니다.
+    if Name ~= "Core" then
+        files { GetGeneratedDirectory(Name) .. "/" .. Name .. "Reflection.cpp" }
     end
 
     local Visited = {}
@@ -99,7 +107,7 @@ for _, Name in ipairs({ "Core", "CoreUObject", "Serialization", "Asset", "Render
 end
 
 project "Script"
-    files { Reflection.GetGeneratedDirectory("Script") .. "/ScriptBindings.cpp" }
+    files { GetGeneratedDirectory("Script") .. "/ScriptBindings.cpp" }
 
 -- C# 엔진 API는 솔루션의 C# 프로젝트로 빌드합니다. 생성 바인딩을 쓰므로 Script의 프리빌드 뒤에 빌드합니다.
 externalproject "Macaw.Engine"
@@ -131,10 +139,9 @@ local function ConfigureRuntimeExecutable(Name, Kind, Directory)
 end
 
 ConfigureRuntimeExecutable("MacawGame", "WindowedApp", "Source/Game")
-    local GameGeneratedDirectory = Reflection.GetGeneratedDirectory("Game")
-    files { GameGeneratedDirectory .. "/**.h", GameGeneratedDirectory .. "/GameReflection.cpp" }
-    includedirs { GameGeneratedDirectory }
-    prebuildcommands { '"' .. _PREMAKE_COMMAND .. '" --file="' .. path.getabsolute("premake5.lua") .. '" generate-reflection --reflection-module=Game' }
+    files { GetGeneratedDirectory("Game") .. "/GameReflection.cpp" }
+    includedirs { GetGeneratedDirectory("Game") }
+    UseHeaderTool("Game")
     targetdir "Binaries/%{cfg.buildcfg}/GameRuntime"
     files { "Source/App/**.rc", "Macaw.ico" }
     resincludedirs { "." }
@@ -142,21 +149,14 @@ ConfigureRuntimeExecutable("MacawGame", "WindowedApp", "Source/Game")
     postbuildcommands { 'powershell -NoProfile -ExecutionPolicy Bypass -File "%{wks.location}/Scripts/StageGameRuntime.ps1" -RuntimeDirectory "%{cfg.targetdir}" -RedistDirectory "$(VCToolsRedistInstallDir)." -Configuration "%{cfg.buildcfg}"' }
 
 ConfigureRuntimeExecutable("Macaw", "WindowedApp", "Source/App")
-    for Module, _ in pairs(ReflectedModules) do
-        if Module ~= "Game" then
-            includedirs { Reflection.GetGeneratedDirectory(Module) }
-
-            if Modules[Module] then
-                AddIncludes(Module, {})
-            end
-        end
+    -- 앱 등록 코드는 모든 모듈의 등록 헤더를 포함합니다.
+    for _, Module in ipairs(ModuleNames) do
+        AddIncludes(Module, {})
     end
 
-    local GeneratedDirectory = Reflection.GetGeneratedDirectory("App")
-    files { GeneratedDirectory .. "/**.h", GeneratedDirectory .. "/AppReflection.cpp" }
-    includedirs { GeneratedDirectory }
-    prebuildcommands { '"' .. _PREMAKE_COMMAND .. '" --file="' .. path.getabsolute("premake5.lua") .. '" generate-reflection --reflection-module=App' }
-    AddIncludes("Editor", {})
+    files { GetGeneratedDirectory("App") .. "/AppReflection.cpp" }
+    includedirs { GetGeneratedDirectory("App") }
+    UseHeaderTool("App")
     links { "Editor", "oleaut32" }
     dependson { "MacawGame", "Macaw.Engine" }
     files { "Source/App/**.rc", "Resources/Editor.rc", "Macaw.ico" }

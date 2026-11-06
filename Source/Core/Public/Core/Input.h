@@ -8,6 +8,7 @@
 
 namespace Core {
 
+    UENUM(ScriptOnly)
     enum class EKey : Core::Int32 {
         None = 0,
         MouseLeft = 0x01,
@@ -68,7 +69,6 @@ namespace Core {
         RightAlt = 0xA5,
         Comma = 0xBC
     };
-    ReflectScriptEnum(EKey);
 
     enum class EInputRoute {
         Application,

@@ -8,6 +8,7 @@
 
 #include "Engine/Component/USceneComponent.h"
 #include "Engine/FHeightFogSceneProxy.h"
+#include "UHeightFogComponent.generated.h"
 
 namespace Asset {
     class FAssetManager;
@@ -19,12 +20,9 @@ namespace Engine {
     /**
      * @brief 밀도·높이 감쇠·거리·불투명도·산란 색상을 검증하고 렌더 장면의 안개 프록시를 동기화합니다.
      */
+    UCLASS()
     class UHeightFogComponent final : public Engine::USceneComponent {
-    public:
-        /**
-         * @brief 리플렉션 소유 타입과 선택적 기반 타입의 별칭입니다.
-         */
-        ReflectTypes(UHeightFogComponent, Engine::USceneComponent);
+        GENERATED_BODY()
 
     public:
         /**
@@ -37,12 +35,6 @@ namespace Engine {
         ~UHeightFogComponent() override;
 
     public:
-        /**
-         * @brief 이 타입의 정적 리플렉션 메타데이터를 반환합니다.
-         * @return 리플렉션 시스템이 보관하는 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectClass(UHeightFogComponent);
-
         /**
          * @brief 안개 기준 높이의 밀도를 반환합니다.
          * @return 거리당 안개 밀도이며 기본값은 0.02입니다.
@@ -149,10 +141,6 @@ namespace Engine {
 
     private:
         /**
-         * @brief 생성된 멤버 등록 함수와 리플렉션 빌더의 접근 권한입니다.
-         */
-        ReflectMembers();
-        /**
          * @brief 월드에 등록된 시점에 아이콘과 안개 프록시를 동기화합니다.
          */
         void OnRegister() override;
@@ -170,44 +158,44 @@ namespace Engine {
         /**
          * @brief 기준 높이의 안개 밀도이며 유한한 0~10 범위를 허용합니다.
          */
+        UPROPERTY(Edit, Serialize, Getter = GetFogDensity, Setter = SetFogDensity)
         float mFogDensity{0.02f};
-        ReflectAccessor(mFogDensity, GetFogDensity, SetFogDensity, "FogDensity", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
 
         /**
          * @brief 높이에 따른 지수 밀도 감쇠 계수이며 0~100 범위를 허용합니다.
          */
+        UPROPERTY(Edit, Serialize, Getter = GetFogHeightFalloff, Setter = SetFogHeightFalloff)
         float mFogHeightFalloff{0.2f};
-        ReflectAccessor(mFogHeightFalloff, GetFogHeightFalloff, SetFogHeightFalloff, "FogHeightFalloff", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
 
         /**
          * @brief 카메라부터 안개 적분을 시작하는 월드 거리입니다.
          */
+        UPROPERTY(Edit, Serialize, Getter = GetStartDistance, Setter = SetStartDistance)
         float mStartDistance{};
-        ReflectAccessor(mStartDistance, GetStartDistance, SetStartDistance, "StartDistance", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
 
         /**
          * @brief 안개 적분을 종료하는 월드 거리이며 0이면 거리 제한을 두지 않습니다.
          */
+        UPROPERTY(Edit, Serialize, Getter = GetEndDistance, Setter = SetEndDistance)
         float mEndDistance{1000.0f};
-        ReflectAccessor(mEndDistance, GetEndDistance, SetEndDistance, "EndDistance", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
 
         /**
          * @brief 이 거리보다 먼 물체의 안개를 생략하며 0이면 거리 제한이 없습니다.
          */
+        UPROPERTY(Edit, Serialize, Getter = GetFogCutoffDistance, Setter = SetFogCutoffDistance)
         float mFogCutoffDistance{};
-        ReflectAccessor(mFogCutoffDistance, GetFogCutoffDistance, SetFogCutoffDistance, "FogCutoffDistance", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
 
         /**
          * @brief 최종 안개 불투명도의 0~1 상한입니다.
          */
+        UPROPERTY(Edit, Serialize, Getter = GetFogMaxOpacity, Setter = SetFogMaxOpacity)
         float mFogMaxOpacity{1.0f};
-        ReflectAccessor(mFogMaxOpacity, GetFogMaxOpacity, SetFogMaxOpacity, "FogMaxOpacity", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
 
         /**
          * @brief 장면 색상과 혼합할 기본 산란 색상이며 각 RGBA 채널은 0~1 범위입니다.
          */
+        UPROPERTY(Edit, Serialize, Getter = GetFogInscatteringColor, Setter = SetFogInscatteringColor)
         Core::FVector4 mFogInscatteringColor{0.65f, 0.75f, 0.85f, 1.0f};
-        ReflectAccessor(mFogInscatteringColor, GetFogInscatteringColor, SetFogInscatteringColor, "FogInscatteringColor", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
 
         /**
          * @brief 프로젝트 에셋 또는 대체 텍스처가 소유하는 언리얼 안개 아이콘의 비소유 주소입니다.

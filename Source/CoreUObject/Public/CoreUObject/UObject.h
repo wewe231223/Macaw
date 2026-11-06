@@ -12,6 +12,7 @@
 #include "CoreUObject/FObjectHandle.h"
 
 #include <new>
+#include "UObject.generated.h"
 
 namespace Core {
     class FArchive;
@@ -28,12 +29,9 @@ namespace CoreUObject {
      * @brief GUID, 세대 핸들, 리플렉션과 직렬화를 제공하는 객체의 기반 클래스입니다.
      * @ingroup CoreUObject
      */
+    UCLASS(NoFactory)
     class UObject {
-    public:
-        /**
-         * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
-         */
-        ReflectTypes(UObject);
+        GENERATED_BODY()
 
     public:
         /**
@@ -70,18 +68,6 @@ namespace CoreUObject {
 
     public:
         /**
-         * @brief 최상위 객체 타입의 정적 클래스 메타데이터를 반환합니다.
-         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectRootClass(UObject, CoreUObject::EClassFlags::NoFactory);
-
-        /**
-         * @fn UClass* UObject::GetClass() const
-         * @brief 객체의 실제 클래스 메타데이터를 반환합니다.
-         * @return 실제 클래스 메타데이터의 비소유 주소입니다.
-         */
-
-        /**
          * @brief 리플렉션 상속 관계를 기준으로 객체가 요청한 타입인지 검사합니다.
          * @param[in] Class 검사할 기준 클래스입니다.
          * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
@@ -112,8 +98,8 @@ namespace CoreUObject {
          * @brief 객체 이름을 반환합니다.
          * @return 소유 객체가 유지하는 값의 참조입니다.
          */
+        UFUNCTION()
         const Core::FString& GetName() const;
-        ReflectFunction(GetName);
 
         /**
          * @brief 비어 있지 않은 이름을 검증하여 객체 이름을 변경합니다.
@@ -213,11 +199,6 @@ namespace CoreUObject {
 
     private:
         /**
-         * @brief 생성된 프로퍼티 등록 함수와 빌더 접근 권한입니다.
-         */
-        ReflectMembers();
-
-        /**
          * @brief FObjectRegistry가 객체 핸들을 직접 설정하도록 허용합니다.
          */
         friend class FObjectRegistry;
@@ -226,8 +207,8 @@ namespace CoreUObject {
         /**
          * @brief 장면 저장과 파일 내부 참조 복원에 사용하는 영속 식별자입니다.
          */
+        UPROPERTY(Serialize, ReadOnly, Name = "Id", Getter = GetGuid, Setter = RestoreGuid)
         Core::FGuid mGuid{};
-        ReflectAccessor(mGuid, GetGuid, RestoreGuid, "Id", Core::EPropertyFlags::Serialize | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 레지스트리 슬롯과 세대 핸들입니다.
@@ -237,8 +218,8 @@ namespace CoreUObject {
         /**
          * @brief 객체 이름입니다.
          */
+        UPROPERTY(Edit, Serialize, Getter = GetName, Setter = SetName)
         Core::FName mName{"Object"};
-        ReflectAccessor(mName, GetName, SetName, "Name", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
 
         /**
          * @brief 이름 범위를 구성하는 상위 객체의 세대 핸들입니다.

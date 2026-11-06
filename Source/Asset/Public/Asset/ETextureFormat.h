@@ -8,12 +8,14 @@
 
 #include "Core/Types.h"
 #include "CoreUObject/Reflection/TNativeEnum.h"
+#include "ETextureFormat.generated.h"
 
 namespace Asset {
 
     /**
      * @brief 텍스처의 픽셀 및 깊이·스텐실 저장 형식을 구분합니다.
      */
+    UENUM()
     enum class ETextureFormat : Core::Uint8 {
         /**
          * @brief 각 RGBA 성분을 8비트 정규화 값으로 저장하는 색상 형식입니다.
@@ -44,17 +46,5 @@ namespace Asset {
          */
         D32Float
     };
-
-    /**
-     * @brief 이 열거형의 리플렉션 메타데이터를 반환합니다.
-     * @return 등록된 열거형 메타데이터의 비소유 주소입니다.
-     */
-    ReflectEnum(ETextureFormat, RGBA8, BGRA8, RGBA16Float, RGBA32Float, R32Float, D24S8, D32Float);
-
-    /**
-     * @brief 타입 태그로 ETextureFormat의 열거형 메타데이터를 조회합니다.
-     * @fn UEnum* GetNativeEnum(TNativeEnum<ETextureFormat>)
-     * @return 등록된 열거형 메타데이터의 비소유 주소입니다.
-     */
 
 }

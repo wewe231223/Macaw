@@ -11,6 +11,7 @@
 #include "Script/FScriptField.h"
 
 #include <cstdint>
+#include "UScriptComponent.generated.h"
 
 namespace Script {
 
@@ -18,12 +19,9 @@ namespace Script {
      * @brief 이름으로 지정한 C# ScriptComponent 클래스를 실행 중에 인스턴스화하고 수명 호출을 전달합니다.
      * @note C# 인스턴스는 Game과 PIE의 BeginPlay부터 EndPlay까지만 존재합니다. 편집 월드에서는 만들지 않습니다.
      */
+    UCLASS()
     class UScriptComponent final : public Engine::UActorComponent {
-    public:
-        /**
-         * @brief 리플렉션 소유 타입과 선택적 기반 타입의 별칭입니다.
-         */
-        ReflectTypes(UScriptComponent, Engine::UActorComponent);
+        GENERATED_BODY()
 
     public:
         /**
@@ -37,12 +35,6 @@ namespace Script {
         ~UScriptComponent() override;
 
     public:
-        /**
-         * @brief 이 타입의 정적 리플렉션 메타데이터를 반환합니다.
-         * @return 리플렉션 시스템이 보관하는 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectClass(UScriptComponent);
-
         /**
          * @brief C# 인스턴스를 만들고 BeginPlay를 전달합니다.
          * @note 클래스가 비어 있거나 인스턴스를 만들지 못하면 스크립트 없이 계속 실행합니다.
@@ -92,11 +84,6 @@ namespace Script {
 
     private:
         /**
-         * @brief 생성된 멤버 등록 함수와 리플렉션 빌더의 접근 권한입니다.
-         */
-        ReflectMembers();
-
-        /**
          * @brief 소유 액터의 충돌 도형 이벤트를 C# 인스턴스로 연결합니다.
          */
         void BindOverlapEvents();
@@ -110,14 +97,14 @@ namespace Script {
         /**
          * @brief 네임스페이스를 포함한 C# 클래스 이름입니다.
          */
+        UPROPERTY(Edit, Serialize)
         Core::FString mScriptClass{};
-        ReflectProperty(mScriptClass, "ScriptClass", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
 
         /**
          * @brief 기본값과 다르게 편집한 필드 값입니다.
          */
+        UPROPERTY(Serialize)
         Core::TArray<Script::FScriptField> mFields{};
-        ReflectArray(mFields, "Fields", Core::EPropertyFlags::Serialize);
 
         /**
          * @brief 실행 중인 C# 인스턴스의 핸들이며, 없으면 0입니다.

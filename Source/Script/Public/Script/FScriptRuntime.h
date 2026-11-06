@@ -83,7 +83,7 @@
  * 씬에는 기본값과 달라진 필드만 FScriptField로 저장하고, CreateInstance 후 BeginPlay 전에 넣습니다.
  *
  * @par 바인딩 생성
- * 멤버 함수 선언 뒤에 ReflectFunction(이름)을 쓰면 GenerateReflection.lua가 C++ 썽크(ScriptBindings.cpp)와
+ * 멤버 함수 선언 앞에 UFUNCTION()을 쓰면 MacawHeaderTool이 C++ 썽크(ScriptBindings.cpp)와
  * C# 래퍼(ScriptBindings.g.cs)를 만듭니다. 썽크는 핸들을 객체로 해석하고, 객체가 없으면 0을 반환해 C#에서 예외가 발생합니다.
  * 함수 순서는 생성기가 양쪽에 같게 만들고, 시그니처 해시를 Bootstrap에서 비교합니다.
  * 프로퍼티는 FScriptInterop이 리플렉션으로 읽고 씁니다.

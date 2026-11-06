@@ -8,18 +8,16 @@
 
 #include "Engine/Component/UActorComponent.h"
 #include "Core/Math/FVector.h"
+#include "UProjectileMovementComponent.generated.h"
 
 namespace Engine {
 
     /**
      * @brief Game과 PIE 월드에서 초기 속도·중력·최대 속도에 따라 소유 액터를 이동하는 발사체 컴포넌트입니다.
      */
+    UCLASS()
     class UProjectileMovementComponent final : public Engine::UActorComponent {
-    public:
-        /**
-         * @brief 리플렉션 소유 타입과 선택적 기반 타입의 별칭입니다.
-         */
-        ReflectTypes(UProjectileMovementComponent, Engine::UActorComponent);
+        GENERATED_BODY()
 
     public:
         /**
@@ -32,12 +30,6 @@ namespace Engine {
         ~UProjectileMovementComponent() override;
 
     public:
-        /**
-         * @brief 이 타입의 정적 리플렉션 메타데이터를 반환합니다.
-         * @return 리플렉션 시스템이 보관하는 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectClass(UProjectileMovementComponent);
-
         /**
          * @brief 초기 속도를 필요 시 월드 공간으로 변환하고 최대 속도를 적용하여 정지 상태를 해제합니다.
          */
@@ -130,40 +122,34 @@ namespace Engine {
 
     private:
         /**
-         * @brief 생성된 멤버 등록 함수와 리플렉션 빌더의 접근 권한입니다.
-         */
-        ReflectMembers();
-
-    private:
-        /**
          * @brief 게임 실행 시작 시 적용할 초기 속도이며 월드 단위/초입니다.
          */
+        UPROPERTY(Edit, Serialize, Getter = GetInitialVelocity, Setter = SetInitialVelocity)
         Core::FVector mInitialVelocity{10.0f, 0.0f, 5.0f};
-        ReflectAccessor(mInitialVelocity, GetInitialVelocity, SetInitialVelocity, "InitialVelocity", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
 
         /**
          * @brief 발사체 속도 크기의 상한이며 0이면 제한하지 않습니다.
          */
+        UPROPERTY(Edit, Serialize, Getter = GetMaxSpeed, Setter = SetMaxSpeed)
         float mMaxSpeed{100.0f};
-        ReflectAccessor(mMaxSpeed, GetMaxSpeed, SetMaxSpeed, "MaxSpeed", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
 
         /**
          * @brief 월드 -Z 방향의 기본 중력 9.81에 곱할 0~100 배율입니다.
          */
+        UPROPERTY(Edit, Serialize, Getter = GetGravityScale, Setter = SetGravityScale)
         float mGravityScale{1.0f};
-        ReflectAccessor(mGravityScale, GetGravityScale, SetGravityScale, "GravityScale", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
 
         /**
          * @brief 실행 시작 시 초기 속도를 소유 액터의 루트 회전으로 월드 공간에 변환할지 나타냅니다.
          */
+        UPROPERTY(Edit, Serialize, Getter = GetInitialVelocityInLocalSpace, Setter = SetInitialVelocityInLocalSpace)
         bool mInitialVelocityInLocalSpace{true};
-        ReflectAccessor(mInitialVelocityInLocalSpace, GetInitialVelocityInLocalSpace, SetInitialVelocityInLocalSpace, "InitialVelocityInLocalSpace", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
 
         /**
          * @brief 속도가 충분히 클 때 루트의 전방을 현재 속도 방향에 맞출지 나타냅니다.
          */
+        UPROPERTY(Edit, Serialize, Getter = GetRotationFollowsVelocity, Setter = SetRotationFollowsVelocity)
         bool mRotationFollowsVelocity{true};
-        ReflectAccessor(mRotationFollowsVelocity, GetRotationFollowsVelocity, SetRotationFollowsVelocity, "RotationFollowsVelocity", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
 
         /**
          * @brief 현재 월드 공간 속도이며 실행 시작·중력·속도 제한에 따라 갱신됩니다.

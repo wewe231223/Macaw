@@ -11,12 +11,14 @@
 #include "CoreUObject/Reflection/TNativeEnum.h"
 #include "Core/Math/FVector.h"
 #include "Core/Math/FQuat.h"
+#include "FCollisionShape.generated.h"
 
 namespace Engine {
 
     /**
      * @brief 검사할 충돌 형상 종류입니다.
      */
+    UENUM()
     enum class ECollisionShape : Core::Uint8 {
         /**
          * @brief 충돌 형상을 사용하지 않습니다.
@@ -35,18 +37,6 @@ namespace Engine {
          */
         Capsule
     };
-
-    /**
-     * @brief 해당 열거형의 정적 리플렉션 메타데이터를 반환합니다.
-     * @return 등록된 타입 메타데이터의 비소유 주소입니다.
-     */
-    ReflectEnum(ECollisionShape, None, Box, Sphere, Capsule);
-
-    /**
-     * @fn UEnum* GetNativeEnum(TNativeEnum<ECollisionShape>)
-     * @brief 타입 태그로 충돌 형상 종류의 열거형 메타데이터를 조회합니다.
-     * @return 등록된 열거형 메타데이터의 비소유 주소입니다.
-     */
 
     /**
      * @brief 구·상자·캡슐의 로컬 치수를 담는 충돌 형상 값입니다.

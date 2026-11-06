@@ -9,6 +9,7 @@
 #include "Asset/Sequence/FSequenceBinding.h"
 #include "Asset/Sequence/FSequenceCameraCut.h"
 #include "CoreUObject/UObject.h"
+#include "ULevelSequence.generated.h"
 
 namespace Asset {
 
@@ -16,12 +17,9 @@ namespace Asset {
      * @brief 시네마틱 재생 구간과 바인딩을 저장하는 시퀀스 에셋입니다.
      * @ingroup Asset
      */
+    UCLASS()
     class ULevelSequence final : public CoreUObject::UObject {
-    public:
-        /**
-         * @brief 리플렉션에서 사용할 소유 타입과 부모 타입의 별칭입니다.
-         */
-        ReflectTypes(ULevelSequence, CoreUObject::UObject);
+        GENERATED_BODY()
 
     public:
         /**
@@ -30,12 +28,6 @@ namespace Asset {
         static constexpr Core::Int32 TicksPerSecond{24000};
 
     public:
-        /**
-         * @brief 이 타입의 정적 클래스 메타데이터를 반환합니다.
-         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectClass(ULevelSequence);
-
         /**
          * @brief 편집 화면에 표시할 초당 프레임 수를 반환합니다.
          * @return 양수인 초당 프레임 수입니다.
@@ -134,12 +126,6 @@ namespace Asset {
         Core::Int32 TickToFrame(double Tick) const;
 
         void Serialize(Core::FArchive& Archive) override;
-
-    private:
-        /**
-         * @brief 생성된 프로퍼티 등록 코드와 리플렉션 빌더의 접근을 허용합니다.
-         */
-        ReflectMembers();
 
     private:
         /**

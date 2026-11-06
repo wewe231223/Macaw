@@ -9,6 +9,7 @@
 #include "Core/ReflectionMacros.h"
 #include "Engine/Component/UMeshComponent.h"
 #include "Engine/EPrimitiveType.h"
+#include "UStaticMeshComponent.generated.h"
 
 namespace Engine {
 
@@ -16,12 +17,9 @@ namespace Engine {
      * @brief 기본 프리미티브 또는 정적 메시 에셋을 머티리얼과 함께 표시하는 컴포넌트입니다.
      * @ingroup Engine
      */
+    UCLASS()
     class UStaticMeshComponent final : public Engine::UMeshComponent {
-    public:
-        /**
-         * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
-         */
-        ReflectTypes(UStaticMeshComponent, Engine::UMeshComponent);
+        GENERATED_BODY()
 
     public:
         /**
@@ -35,18 +33,6 @@ namespace Engine {
         ~UStaticMeshComponent() override;
 
     public:
-        /**
-         * @brief 이 타입의 정적 클래스 메타데이터를 반환합니다.
-         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectClass(UStaticMeshComponent);
-
-        /**
-         * @fn UClass* UStaticMeshComponent::GetClass() const
-         * @brief 객체의 실제 클래스 메타데이터를 반환합니다.
-         * @return 실제 클래스 메타데이터의 비소유 주소입니다.
-         */
-
         /**
          * @brief 표시할 프리미티브 메시 종류를 반환합니다.
          * @return 표시할 프리미티브 메시 종류입니다.
@@ -100,11 +86,6 @@ namespace Engine {
 
     private:
         /**
-         * @brief 생성된 프로퍼티 등록 함수와 빌더 접근 권한입니다.
-         */
-        ReflectMembers();
-
-        /**
          * @brief Content 상대 경로의 메시를 에셋 관리자에서 조회합니다.
          * @param[in] Path Content 기준 메시 에셋 경로입니다.
          * @return 캐시된 에셋의 비소유 주소이며, 로드에 실패하면 nullptr입니다.
@@ -115,14 +96,14 @@ namespace Engine {
         /**
          * @brief 프리미티브 메시 종류입니다.
          */
+        UPROPERTY(Edit, Serialize, Getter = GetPrimitiveType, Setter = SetPrimitiveType)
         Engine::EPrimitiveType mPrimitive{Engine::EPrimitiveType::Cube};
-        ReflectAccessor(mPrimitive, GetPrimitiveType, SetPrimitiveType, "Primitive", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
 
         /**
          * @brief 프로젝트 콘텐츠 폴더 기준 메시 에셋의 상대 경로입니다.
          */
+        UPROPERTY(Edit, Serialize, Name = "Mesh", Getter = GetMeshPath, Setter = SetMeshPath)
         Core::FString mMeshPath{};
-        ReflectAccessor(mMeshPath, GetMeshPath, SetMeshPath, "Mesh", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
 
         /**
          * @brief 에셋 관리자가 보유한 정적 메시의 비소유 주소입니다.

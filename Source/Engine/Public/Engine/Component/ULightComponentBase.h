@@ -8,6 +8,7 @@
 
 #include "Engine/Component/USceneComponent.h"
 #include "Engine/FLightSceneProxy.h"
+#include "ULightComponentBase.generated.h"
 
 namespace Asset {
     class FAssetManager;
@@ -21,12 +22,9 @@ namespace Engine {
      * @brief 광원의 색상·밝기·표시 상태와 렌더 장면 등록을 관리합니다.
      * @ingroup Engine
      */
+    UCLASS(NoFactory)
     class ULightComponentBase : public Engine::USceneComponent {
-    public:
-        /**
-         * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
-         */
-        ReflectTypes(ULightComponentBase, Engine::USceneComponent);
+        GENERATED_BODY()
 
     public:
         /**
@@ -40,12 +38,6 @@ namespace Engine {
         ~ULightComponentBase() override;
 
     public:
-        /**
-         * @brief 이 타입의 정적 클래스 메타데이터를 반환합니다.
-         * @return 등록된 클래스 메타데이터의 비소유 주소입니다.
-         */
-        ReflectClass(ULightComponentBase, CoreUObject::EClassFlags::NoFactory);
-
         /**
          * @brief 광원의 밝기 배율을 반환합니다.
          * @return 광원의 밝기 배율입니다.
@@ -104,11 +96,6 @@ namespace Engine {
 
     private:
         /**
-         * @brief 생성된 멤버 등록 함수와 리플렉션 빌더의 접근 권한입니다.
-         */
-        ReflectMembers();
-
-        /**
          * @brief 월드에 등록된 광원의 상태를 렌더 장면과 동기화합니다.
          */
         void OnRegister() override;
@@ -128,14 +115,14 @@ namespace Engine {
         /**
          * @brief 광원의 밝기 배율입니다.
          */
+        UPROPERTY(Edit, Serialize, Getter = GetIntensity, Setter = SetIntensity)
         float mIntensity{1.0f};
-        ReflectAccessor(mIntensity, GetIntensity, SetIntensity, "Intensity", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
 
         /**
          * @brief 광원의 RGBA 색상입니다.
          */
+        UPROPERTY(Edit, Serialize, Getter = GetLightColor, Setter = SetLightColor)
         Core::FVector4 mLightColor{1.0f, 1.0f, 1.0f, 1.0f};
-        ReflectAccessor(mLightColor, GetLightColor, SetLightColor, "LightColor", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
 
         /**
          * @brief 에디터에 표시할 광원 아이콘 텍스처의 비소유 주소입니다.

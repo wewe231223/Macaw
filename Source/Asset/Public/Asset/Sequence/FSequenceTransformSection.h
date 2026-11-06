@@ -10,6 +10,7 @@
 #include "Core/Math/FTransform.h"
 
 #include <array>
+#include "FSequenceTransformSection.generated.h"
 
 namespace Asset {
 
@@ -17,6 +18,7 @@ namespace Asset {
      * @brief 변환 섹션의 채널 순서를 구분합니다.
      * @ingroup Asset
      */
+    UENUM()
     enum class ESequenceTransformChannel : Core::Uint8 {
         /**
          * @brief 위치 X입니다.
@@ -55,8 +57,6 @@ namespace Asset {
          */
         ScaleZ
     };
-
-    ReflectEnum(ESequenceTransformChannel, LocationX, LocationY, LocationZ, RotationPitch, RotationYaw, RotationRoll, ScaleX, ScaleY, ScaleZ);
 
     /**
      * @brief 시간 구간의 위치·회전·스케일 채널을 저장합니다.

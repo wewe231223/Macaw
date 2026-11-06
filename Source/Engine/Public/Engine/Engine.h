@@ -10,6 +10,7 @@
 #include "CoreUObject/UObject.h"
 #include "Engine/EWorldType.h"
 #include "Engine/FWorldHandle.h"
+#include "Engine.generated.h"
 
 namespace CoreUObject {
     class FObjectDuplicationContext;
@@ -29,12 +30,9 @@ namespace Engine {
      * @brief 현재 월드 컨텍스트와 렌더러 연결 및 월드 교체를 관리합니다.
      * @ingroup Engine
      */
+    UCLASS(NoFactory)
     class UEngine : public CoreUObject::UObject {
-    public:
-        /**
-         * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
-         */
-        ReflectTypes(UEngine, CoreUObject::UObject);
+        GENERATED_BODY()
 
     public:
         /**
@@ -48,12 +46,6 @@ namespace Engine {
         ~UEngine() override;
 
     public:
-        /**
-         * @brief 이 타입의 정적 클래스 메타데이터를 반환합니다.
-         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectClass(UEngine, CoreUObject::EClassFlags::NoFactory);
-
         /**
          * @brief 렌더러 없이 초기 편집 월드와 리플렉션 기반을 준비합니다.
          * @return 초기 월드 준비에 성공하면 true이며 이미 초기화되었거나 콜백 처리 중이면 false입니다.
@@ -215,11 +207,6 @@ namespace Engine {
         Engine::FProject* GetProject() const;
 
     private:
-        /**
-         * @brief 생성된 프로퍼티 등록 함수와 빌더 접근 권한입니다.
-         */
-        ReflectMembers();
-
         /**
          * @brief 슬롯 범위와 세대가 일치하는 소유 컨텍스트를 찾습니다.
          * @param[in] Handle 검증할 월드 핸들입니다.

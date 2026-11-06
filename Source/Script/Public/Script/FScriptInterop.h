@@ -76,8 +76,8 @@ namespace Script {
          * @param[in] Object 조회할 객체입니다.
          * @return C#이 가장 가까운 래퍼를 고르는 데 쓰는 이름 목록입니다.
          */
+        UFUNCTION(Internal)
         static Core::FString GetClassChain(CoreUObject::UObject* Object);
-        ReflectFunction(GetClassChain, Internal);
 
         /**
          * @brief 리플렉션 프로퍼티를 읽습니다.
@@ -85,8 +85,8 @@ namespace Script {
          * @param[in] Name 프로퍼티 표시 이름입니다.
          * @return 읽은 값이며, 프로퍼티가 없거나 지원하지 않는 타입이면 태그가 None입니다.
          */
+        UFUNCTION(Internal)
         static Script::FScriptValue GetProperty(CoreUObject::UObject* Object, const Core::FString& Name);
-        ReflectFunction(GetProperty, Internal);
 
         /**
          * @brief 리플렉션 프로퍼티를 씁니다.
@@ -95,8 +95,8 @@ namespace Script {
          * @param[in] Value 값이며, 프로퍼티와 태그가 같아야 합니다.
          * @return 값을 쓰면 true입니다.
          */
+        UFUNCTION(Internal)
         static bool SetProperty(CoreUObject::UObject* Object, const Core::FString& Name, const Script::FScriptValue& Value);
-        ReflectFunction(SetProperty, Internal);
     };
 
 }

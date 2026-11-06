@@ -8,6 +8,7 @@
 
 #include "Core/ReflectionMacros.h"
 #include "Core/Math/FVector.h"
+#include "FBox.generated.h"
 
 namespace Core {
 
@@ -18,12 +19,9 @@ namespace Core {
      * @brief 최솟값과 최댓값으로 정의하는 축 정렬 경계 상자입니다.
      * @ingroup Core
      */
+    USTRUCT()
     struct alignas(16) FBox {
-    public:
-        /**
-         * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
-         */
-        ReflectTypes(FBox);
+        GENERATED_BODY()
 
     public:
         /**
@@ -71,12 +69,6 @@ namespace Core {
 
     public:
         /**
-         * @brief 이 타입의 정적 구조체 메타데이터를 반환합니다.
-         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectStruct(FBox);
-
-        /**
          * @brief 광선이 최대 거리 이내에서 축 정렬 경계 상자와 교차하는지 검사합니다.
          * @param[in] Ray 교차를 검사하거나 역투영 결과를 기록할 광선입니다.
          * @param[in] MaximumDistance 허용할 최대 광선 거리입니다.
@@ -91,24 +83,18 @@ namespace Core {
          */
         Core::FBox Transformed(const Core::FMatrix& Matrix) const;
 
-    private:
-        /**
-         * @brief 생성된 프로퍼티 등록 함수와 빌더 접근 권한입니다.
-         */
-        ReflectMembers();
-
     public:
         /**
          * @brief 축별 최솟값입니다.
          */
+        UPROPERTY(Edit, Serialize)
         Core::FVector mMinimum{};
-        ReflectProperty(mMinimum, "Minimum", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
 
         /**
          * @brief 축별 최댓값입니다.
          */
+        UPROPERTY(Edit, Serialize)
         Core::FVector mMaximum{};
-        ReflectProperty(mMaximum, "Maximum", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
     };
 
 }

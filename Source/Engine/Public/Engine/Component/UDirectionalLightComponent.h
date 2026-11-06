@@ -7,6 +7,7 @@
 #pragma once
 
 #include "Engine/Component/ULightComponent.h"
+#include "UDirectionalLightComponent.generated.h"
 
 namespace Engine {
 
@@ -14,12 +15,9 @@ namespace Engine {
      * @brief 방향광과 캐스케이드 그림자 설정을 관리합니다.
      * @ingroup Engine
      */
+    UCLASS()
     class UDirectionalLightComponent final : public Engine::ULightComponent {
-    public:
-        /**
-         * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
-         */
-        ReflectTypes(UDirectionalLightComponent, Engine::ULightComponent);
+        GENERATED_BODY()
 
     public:
         /**
@@ -33,12 +31,6 @@ namespace Engine {
         ~UDirectionalLightComponent() override;
 
     public:
-        /**
-         * @brief 이 타입의 정적 클래스 메타데이터를 반환합니다.
-         * @return 등록된 클래스 메타데이터의 비소유 주소입니다.
-         */
-        ReflectClass(UDirectionalLightComponent);
-
         /**
          * @brief 방향광 그림자의 캐스케이드 개수를 반환합니다.
          * @return 방향광 그림자의 캐스케이드 개수입니다.
@@ -99,34 +91,28 @@ namespace Engine {
 
     private:
         /**
-         * @brief 생성된 멤버 등록 함수와 리플렉션 빌더의 접근 권한입니다.
-         */
-        ReflectMembers();
-
-    private:
-        /**
          * @brief 방향광 그림자의 캐스케이드 개수입니다.
          */
+        UPROPERTY(Edit, Serialize, Getter = GetCascadeCount, Setter = SetCascadeCount)
         Core::Uint32 mCascadeCount{4};
-        ReflectAccessor(mCascadeCount, GetCascadeCount, SetCascadeCount, "CascadeCount", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
 
         /**
          * @brief 방향광 그림자의 최대 표시 거리입니다.
          */
+        UPROPERTY(Edit, Serialize, Getter = GetShadowDistance, Setter = SetShadowDistance)
         float mShadowDistance{100.0f};
-        ReflectAccessor(mShadowDistance, GetShadowDistance, SetShadowDistance, "ShadowDistance", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
 
         /**
          * @brief 각 캐스케이드 구간에서 전환에 사용하는 비율입니다.
          */
+        UPROPERTY(Edit, Serialize, Getter = GetCascadeTransitionFraction, Setter = SetCascadeTransitionFraction)
         float mCascadeTransitionFraction{0.25f};
-        ReflectAccessor(mCascadeTransitionFraction, GetCascadeTransitionFraction, SetCascadeTransitionFraction, "CascadeTransitionFraction", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
 
         /**
          * @brief PCSS 반그림자 계산에 쓰는 방향광 광원의 각반지름(도)입니다.
          */
+        UPROPERTY(Edit, Serialize, Getter = GetShadowSourceAngle, Setter = SetShadowSourceAngle)
         float mShadowSourceAngle{1.0f};
-        ReflectAccessor(mShadowSourceAngle, GetShadowSourceAngle, SetShadowSourceAngle, "ShadowSourceAngle", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
     };
 
 }

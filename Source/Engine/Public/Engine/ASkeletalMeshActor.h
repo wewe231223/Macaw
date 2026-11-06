@@ -6,6 +6,7 @@
 #pragma once
 
 #include "Engine/AActor.h"
+#include "ASkeletalMeshActor.generated.h"
 
 namespace Engine {
     class USkeletalMeshComponent;
@@ -13,9 +14,9 @@ namespace Engine {
     /**
      * @brief 에디터와 씬 직렬화에서 생성할 수 있는 스켈레탈 메시 액터입니다.
      */
+    UCLASS()
     class ASkeletalMeshActor final : public Engine::AActor {
-    public:
-        ReflectTypes(ASkeletalMeshActor, Engine::AActor);
+        GENERATED_BODY()
 
     public:
         /**
@@ -29,12 +30,6 @@ namespace Engine {
 
     public:
         /**
-         * @brief 액터의 클래스 메타데이터를 반환합니다.
-         * @return 등록된 클래스입니다.
-         */
-        ReflectClass(ASkeletalMeshActor);
-
-        /**
          * @brief 기본 스켈레탈 메시 컴포넌트를 추가합니다.
          * @return 초기화했으면 true입니다.
          */
@@ -45,7 +40,5 @@ namespace Engine {
          */
         Engine::USkeletalMeshComponent* GetSkeletalMeshComponent() const;
 
-    private:
-        ReflectMembers();
     };
 }

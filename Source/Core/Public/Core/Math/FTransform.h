@@ -9,6 +9,7 @@
 #include "Core/ReflectionMacros.h"
 #include "Core/Math/FMatrix.h"
 #include "Core/Math/FQuat.h"
+#include "FTransform.generated.h"
 
 namespace Core {
 
@@ -16,12 +17,9 @@ namespace Core {
      * @brief 위치, 쿼터니언 회전과 축별 스케일을 묶은 공간 변환입니다.
      * @ingroup Core
      */
+    USTRUCT()
     struct alignas(16) FTransform {
-    public:
-        /**
-         * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
-         */
-        ReflectTypes(FTransform);
+        GENERATED_BODY()
 
     public:
         /**
@@ -69,12 +67,6 @@ namespace Core {
         Core::FTransform& operator=(Core::FTransform&& Other) noexcept = default;
 
     public:
-        /**
-         * @brief 이 타입의 정적 구조체 메타데이터를 반환합니다.
-         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectStruct(FTransform);
-
         /**
          * @brief 현재 변환 뒤에 상대 변환을 적용하도록 위치, 회전과 축별 스케일을 합성합니다.
          * @param[in] Other 현재 변환 다음에 적용할 변환입니다.
@@ -199,32 +191,24 @@ namespace Core {
          */
         bool IsValid() const;
 
-    private:
-        /**
-         * @brief 생성된 프로퍼티 등록 함수와 빌더 접근 권한입니다.
-         */
-        ReflectMembers();
-
     public:
         /**
          * @brief 공간상의 위치입니다.
          */
+        UPROPERTY(Edit, Serialize)
         Core::FVector mLocation{};
-        ReflectProperty(mLocation, "Location", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
-
 
         /**
          * @brief 회전 값입니다.
          */
+        UPROPERTY(Edit, Serialize, Getter = GetRotator, Setter = SetRotator)
         Core::FQuat mRotation{};
-        ReflectAccessor(mRotation, GetRotator, SetRotator, "Rotation", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
-
 
         /**
          * @brief 축별 스케일입니다.
          */
+        UPROPERTY(Edit, Serialize)
         Core::FVector mScale{1.0f, 1.0f, 1.0f};
-        ReflectProperty(mScale, "Scale", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
     };
 
 }

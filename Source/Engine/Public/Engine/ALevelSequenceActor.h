@@ -8,6 +8,7 @@
 
 #include "Engine/AActor.h"
 #include "Engine/Sequence/FSequencePlayer.h"
+#include "ALevelSequenceActor.generated.h"
 
 namespace Engine {
 
@@ -15,20 +16,11 @@ namespace Engine {
      * @brief 씬에 배치되어 시퀀스 에셋을 재생하고 바인딩 대상을 연결합니다.
      * @ingroup Engine
      */
+    UCLASS()
     class ALevelSequenceActor final : public Engine::AActor {
-    public:
-        /**
-         * @brief 리플렉션에서 사용하는 소유 타입과 부모 타입의 별칭입니다.
-         */
-        ReflectTypes(ALevelSequenceActor, Engine::AActor);
+        GENERATED_BODY()
 
     public:
-        /**
-         * @brief 이 타입의 클래스 메타데이터를 반환합니다.
-         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectClass(ALevelSequenceActor);
-
         bool InitializeDefaultComponents() override;
 
         void BeginPlay() override;
@@ -70,40 +62,34 @@ namespace Engine {
 
     private:
         /**
-         * @brief 자동 생성된 프로퍼티 등록 코드와 리플렉션 빌더의 접근을 허용합니다.
-         */
-        ReflectMembers();
-
-    private:
-        /**
          * @brief 재생할 시퀀스 에셋의 Content 상대 경로입니다.
          */
+        UPROPERTY(Edit, Serialize, Name = "Sequence")
         Core::FString mSequencePath{};
-        ReflectProperty(mSequencePath, "Sequence", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
 
         /**
          * @brief 게임 시작 시 자동으로 재생할지 나타냅니다.
          */
+        UPROPERTY(Edit, Serialize)
         bool mAutoPlay{true};
-        ReflectProperty(mAutoPlay, "AutoPlay", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
 
         /**
          * @brief 끝에 도달했을 때 처음부터 반복할지 나타냅니다.
          */
+        UPROPERTY(Edit, Serialize)
         bool mLoop{};
-        ReflectProperty(mLoop, "Loop", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
 
         /**
          * @brief 재생이 끝났을 때 대상의 변환을 원래대로 복원할지 나타냅니다.
          */
+        UPROPERTY(Edit, Serialize)
         bool mRestoreOnFinish{};
-        ReflectProperty(mRestoreOnFinish, "RestoreOnFinish", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
 
         /**
          * @brief 시퀀스 바인딩과 씬 객체의 연결 목록입니다.
          */
+        UPROPERTY(Serialize)
         Core::TArray<Engine::FSequenceBindingTarget> mBindingTargets{};
-        ReflectArray(mBindingTargets, "BindingTargets", Core::EPropertyFlags::Serialize);
 
         /**
          * @brief 실행 중 시퀀스를 재생하는 플레이어입니다.

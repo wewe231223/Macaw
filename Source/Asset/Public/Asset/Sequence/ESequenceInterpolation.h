@@ -8,6 +8,7 @@
 
 #include "Core/Types.h"
 #include "CoreUObject/Reflection/TNativeEnum.h"
+#include "ESequenceInterpolation.generated.h"
 
 namespace Asset {
 
@@ -15,6 +16,7 @@ namespace Asset {
      * @brief 시퀀스 키에서 다음 키까지의 보간 방식을 구분합니다.
      * @ingroup Asset
      */
+    UENUM()
     enum class ESequenceInterpolation : Core::Uint8 {
         /**
          * @brief 다음 키까지 현재 키 값을 유지합니다.
@@ -29,7 +31,5 @@ namespace Asset {
          */
         Cubic
     };
-
-    ReflectEnum(ESequenceInterpolation, Constant, Linear, Cubic);
 
 }

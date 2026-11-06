@@ -14,6 +14,7 @@
 #include "RenderCore/TVertexBuffer.h"
 
 #include <array>
+#include "USkeletalMesh.generated.h"
 
 namespace Asset {
 
@@ -27,9 +28,9 @@ namespace Asset {
      *
      * 행 벡터 규약의 최종 위치는 v' = Σ 가중치(i) * (v * 역바인드(i) * 전역(i))이며, 바인드 포즈에서는 스키닝 행렬이 항등 행렬이 되어 v' = v입니다.
      */
+    UCLASS()
     class USkeletalMesh final : public CoreUObject::UObject {
-    public:
-        ReflectTypes(USkeletalMesh, CoreUObject::UObject);
+        GENERATED_BODY()
 
     public:
         /**
@@ -42,12 +43,6 @@ namespace Asset {
         ~USkeletalMesh() override = default;
 
     public:
-        /**
-         * @brief 스켈레탈 메시의 클래스 메타데이터를 반환합니다.
-         * @return 등록된 클래스입니다.
-         */
-        ReflectClass(USkeletalMesh);
-
         /**
          * @brief 형상·부모 순서·가중치를 검증하고 역바인드 행렬을 계산합니다.
          * @param MeshData 바인드 형상입니다.
@@ -131,9 +126,6 @@ namespace Asset {
          * @return 유효한 메시이면 true입니다.
          */
         bool IsValid() const;
-
-    private:
-        ReflectMembers();
 
     private:
         /**
