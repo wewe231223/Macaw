@@ -645,31 +645,7 @@ namespace Editor {
 
         mProcess = nullptr;
 
-        std::ifstream Log{GetScriptsDirectory() / BuildLogPath, std::ios::binary};
-        std::string Line{};
-        std::set<std::string> Seen{};
-        std::size_t Errors{};
-
-        while (std::getline(Log, Line)) {
-            if (!Line.empty() && Line.back() == '\r') {
-                Line.pop_back();
-            }
-
-            const bool Error{Line.find(": error ") != std::string::npos};
-
-            if ((!Error && Line.find(": warning ") == std::string::npos) || !Seen.insert(Line).second) {
-                continue;
-            }
-
-            // MSBuild가 줄 끝에 붙이는 프로젝트 경로를 지웁니다.
-            if (const std::size_t Suffix{Line.rfind(" [")}; Suffix != std::string::npos && Line.ends_with(".csproj]")) {
-                Line.resize(Suffix);
-            }
-
-            Errors += Error ? 1 : 0;
-
-            mContext->AddLog("[C#] " + Line);
-        }
+        const std::size_t Errors{ReportBuildLog(GetScriptsDirectory() / BuildLogPath)};
 
         mCompileErrors = Errors > 0;
         mCatalogDirty = true;
@@ -762,6 +738,96 @@ namespace Editor {
      */
     bool Editor::FScriptBuildService::HasCompileErrors() const {
         return mCompileErrors;
+    }
+
+    /**
+     * @brief 빌드 로그의 오류와 경고를 콘솔에 옮기고 오류 개수를 셉니다.
+     */
+    std::size_t Editor::FScriptBuildService::ReportBuildLog(const std::filesystem::path& LogPath) const {
+        std::ifstream Log{LogPath, std::ios::binary};
+        std::string Line{};
+        std::set<std::string> Seen{};
+        std::size_t Errors{};
+
+        while (std::getline(Log, Line)) {
+            if (!Line.empty() && Line.back() == '\r') {
+                Line.pop_back();
+            }
+
+            const bool Error{Line.find(": error ") != std::string::npos};
+
+            if ((!Error && Line.find(": warning ") == std::string::npos) || !Seen.insert(Line).second) {
+                continue;
+            }
+
+            // MSBuild가 줄 끝에 붙이는 프로젝트 경로를 지웁니다.
+            if (const std::size_t Suffix{Line.rfind(" [")}; Suffix != std::string::npos && Line.ends_with(".csproj]")) {
+                Line.resize(Suffix);
+            }
+
+            Errors += Error ? 1 : 0;
+
+            mContext->AddLog("[C#] " + Line);
+        }
+
+        return Errors;
+    }
+
+    /**
+     * @brief 내보내기용 Release 빌드를 실행하고 끝날 때까지 기다립니다.
+     */
+    bool Editor::FScriptBuildService::BuildForExport(const std::filesystem::path& OutputDirectory, Core::FString& Error) {
+        if (!HasProject()) {
+            Error = "This project has no C# project";
+            return false;
+        }
+
+        // 자동 빌드와 같은 obj 폴더를 쓰므로 진행 중인 빌드를 먼저 끝냅니다.
+        if (mProcess != nullptr) {
+            WaitForSingleObject(mProcess, INFINITE);
+            FinishBuild();
+        }
+
+        WriteGeneratedProps();
+
+        const std::filesystem::path Directory{GetScriptsDirectory()};
+        constexpr const char* ExportLogPath{"obj/MacawExport.log"};
+        std::error_code Code{};
+
+        std::filesystem::create_directories(Directory / "obj", Code);
+        std::filesystem::remove(Directory / ExportLogPath, Code);
+
+        // 역슬래시로 끝나는 인수는 닫는 따옴표를 이스케이프하므로 슬래시 경로를 넘깁니다.
+        SetEnvironmentVariableW(L"DOTNET_CLI_UI_LANGUAGE", L"en");
+
+        std::wstring Command{L"dotnet build GameScripts.csproj -c Release --nologo -v q \"-p:OutputPath=" + std::filesystem::absolute(OutputDirectory).generic_wstring() + L"/\" -fl -flp:LogFile=obj/MacawExport.log;Encoding=UTF-8;Verbosity=minimal;NoSummary"};
+        STARTUPINFOW Startup{};
+        Startup.cb = sizeof(Startup);
+
+        PROCESS_INFORMATION Process{};
+
+        if (!CreateProcessW(nullptr, Command.data(), nullptr, nullptr, FALSE, CREATE_NO_WINDOW, nullptr, Directory.c_str(), &Startup, &Process)) {
+            Error = "Cannot run dotnet. Install the .NET 10 SDK to export C# scripts.";
+            return false;
+        }
+
+        mContext->AddLog("[C#] Building scripts for export...");
+        WaitForSingleObject(Process.hProcess, INFINITE);
+
+        DWORD ExitCode{};
+
+        GetExitCodeProcess(Process.hProcess, &ExitCode);
+        CloseHandle(Process.hThread);
+        CloseHandle(Process.hProcess);
+
+        const std::size_t Errors{ReportBuildLog(Directory / ExportLogPath)};
+
+        if (ExitCode != 0) {
+            Error = Errors > 0 ? "C# scripts have " + std::to_string(Errors) + " compile error(s). Fix them before exporting; see the console." : "dotnet build failed with code " + std::to_string(ExitCode) + ".";
+            return false;
+        }
+
+        return true;
     }
 
 }

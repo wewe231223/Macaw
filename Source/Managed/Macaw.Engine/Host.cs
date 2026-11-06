@@ -83,11 +83,23 @@ internal static unsafe class Host {
         }
     }
 
-    /// <summary>빌드 중 덮어쓸 수 있도록 출력 폴더 전체를 섀도 복사한 뒤 로드합니다. NuGet 의존성도 함께 복사됩니다.</summary>
+    /// <summary>스크립트 어셈블리를 로드합니다. ShadowCopy가 0이 아니면 빌드 중 덮어쓸 수 있도록 출력 폴더 전체를 섀도 복사한 뒤 로드하며, NuGet 의존성도 함께 복사됩니다.</summary>
+    /// <remarks>내보낸 게임은 다시 빌드하지 않고 설치 폴더가 읽기 전용일 수 있으므로 원본을 바로 로드합니다.</remarks>
     [UnmanagedCallersOnly]
-    private static int LoadScripts(byte* PathUtf8) {
+    private static int LoadScripts(byte* PathUtf8, int ShadowCopy) {
         try {
             string Source = Path.GetFullPath(Marshal.PtrToStringUTF8((nint)PathUtf8)!);
+
+            if (ShadowCopy == 0) {
+                var Direct = new ScriptLoadContext(Source);
+                sAssembly = Direct.LoadFromAssemblyPath(Source);
+                sContext = Direct;
+                sShadowDirectory = null;
+                Log.Info($"C# scripts loaded: {Source}");
+
+                return 1;
+            }
+
             string Root = Path.Combine(Path.GetDirectoryName(Source)!, ShadowFolder);
 
             if (sGeneration == 0) {

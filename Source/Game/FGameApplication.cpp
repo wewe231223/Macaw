@@ -136,7 +136,8 @@ namespace Game {
             return false;
         }
 
-        Script::FScriptRuntime::Get()->BeginSession(mProject.GetRootPath());
+        // 내보낸 게임은 스크립트를 다시 빌드하지 않으므로 복사본 없이 바로 로드합니다.
+        Script::FScriptRuntime::Get()->BeginSession(mProject.GetRootPath(), false);
         Script::FScriptInput::SetSource(&mPlatform.GetInput());
 
         if (!mEngine.ReplaceWorld(std::move(Context)) || !mGameClient.SetWorld(mEngine.GetWorldHandle()) || !mEngine.GetWorld()->BeginPlay()) {

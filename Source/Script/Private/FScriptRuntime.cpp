@@ -89,7 +89,7 @@ namespace Script {
             /**
              * @brief 관리 코드의 스크립트 어셈블리 로드 콜백입니다.
              */
-            int(__stdcall* mLoadScripts)(const char*){};
+            int(__stdcall* mLoadScripts)(const char*, int){};
 
             /**
              * @brief 관리 스크립트 컨텍스트의 언로드 콜백입니다.
@@ -379,10 +379,11 @@ namespace Script {
     /**
      * @brief 실행 세션을 시작하고 프로젝트의 스크립트 어셈블리 경로를 정합니다.
      */
-    void Script::FScriptRuntime::BeginSession(const std::filesystem::path& ProjectRoot) {
+    void Script::FScriptRuntime::BeginSession(const std::filesystem::path& ProjectRoot, bool ShadowCopy) {
         EndSession();
 
         mAssembly = GetAssemblyPath(ProjectRoot);
+        mShadowCopy = ShadowCopy;
     }
 
     /**
@@ -418,7 +419,7 @@ namespace Script {
             return false;
         }
 
-        if (mState->mManaged.mLoadScripts(Utf8.c_str()) != 1) {
+        if (mState->mManaged.mLoadScripts(Utf8.c_str(), 1) != 1) {
             WriteLog("Cannot load the script assembly " + Utf8);
 
             return false;
@@ -506,7 +507,7 @@ namespace Script {
 
         if (!std::filesystem::is_regular_file(mAssembly, Code)) {
             Error = "Cannot find the script assembly " + Core::FilePath::ToUtf8(mAssembly);
-        } else if (Initialize(Error) && mState->mManaged.mLoadScripts(Core::FilePath::ToUtf8(mAssembly).c_str()) != 1) {
+        } else if (Initialize(Error) && mState->mManaged.mLoadScripts(Core::FilePath::ToUtf8(mAssembly).c_str(), mShadowCopy ? 1 : 0) != 1) {
             Error = "Cannot load the script assembly " + Core::FilePath::ToUtf8(mAssembly);
         }
 

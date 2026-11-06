@@ -101,7 +101,7 @@ internal unsafe struct NativeApi {
 [StructLayout(LayoutKind.Sequential)]
 internal unsafe struct ManagedApi {
     public nint Size;
-    public delegate* unmanaged<byte*, int> LoadScripts;
+    public delegate* unmanaged<byte*, int, int> LoadScripts;
     public delegate* unmanaged<int> UnloadScripts;
     public delegate* unmanaged<byte*, ObjectHandle, nint> CreateInstance;
     public delegate* unmanaged<nint, void> BeginPlay;

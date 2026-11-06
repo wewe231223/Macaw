@@ -124,6 +124,15 @@ namespace Editor {
          */
         bool HasCompileErrors() const;
 
+        /**
+         * @brief 게임 내보내기용으로 스크립트를 Release 구성으로 빌드하고 끝날 때까지 기다립니다.
+         * @param[in] OutputDirectory 빌드 결과를 둘 폴더입니다. 스크립트 DLL과 NuGet 의존성이 들어갑니다.
+         * @param[out] Error 실패한 이유입니다.
+         * @return 빌드에 성공하면 true입니다.
+         * @note 진행 중인 자동 빌드가 있으면 먼저 끝날 때까지 기다립니다. 내보내기는 한 번 하는 작업이라 에디터를 잠시 멈춥니다.
+         */
+        bool BuildForExport(const std::filesystem::path& OutputDirectory, Core::FString& Error);
+
     private:
         /**
          * @brief 스크립트 프로젝트 폴더를 반환합니다.
@@ -164,6 +173,13 @@ namespace Editor {
          * @brief 끝난 빌드의 종료 코드와 로그를 읽어 결과를 기록합니다.
          */
         void FinishBuild();
+
+        /**
+         * @brief 빌드 로그의 오류와 경고를 콘솔에 옮깁니다.
+         * @param[in] LogPath 읽을 UTF-8 빌드 로그입니다.
+         * @return 오류 개수입니다.
+         */
+        std::size_t ReportBuildLog(const std::filesystem::path& LogPath) const;
 
         /**
          * @brief 어셈블리가 바뀌었으면 클래스 목록을 다시 읽습니다.

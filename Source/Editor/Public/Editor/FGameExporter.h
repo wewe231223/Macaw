@@ -17,6 +17,8 @@ namespace Engine {
 
 namespace Editor {
 
+    class FScriptBuildService;
+
     /**
      * @brief 게임 런타임 실행 파일, DLL, 프로젝트 Content와 템플릿을 하나의 폴더로 복사합니다.
      * @ingroup Editor
@@ -28,12 +30,15 @@ namespace Editor {
          * @param[in] Project 내보낼 프로젝트입니다.
          * @param[in] RuntimeDirectory MacawGame.exe와 런타임 DLL이 있는 폴더입니다.
          * @param[in] Destination 내보낼 폴더입니다. 없으면 생성하고 같은 이름의 파일은 덮어씁니다.
+         * @param[in] Scripts 프로젝트의 C# 스크립트를 빌드할 서비스이며, nullptr이면 스크립트를 내보내지 않습니다.
          * @param[out] Error 실패 원인을 받을 문자열입니다.
          * @return 모든 파일을 복사했으면 true, 검증이나 복사에 실패하면 false입니다.
          * @note 실행 파일은 프로젝트 파일 이름에 .exe를 붙여 복사하고, 프로젝트 파일은 Game.mproject로 복사합니다.
          * @note 시작 장면을 불러올 수 없거나 활성 카메라가 없으면 아무것도 복사하지 않습니다.
+         * @note C# 프로젝트가 있으면 Release로 빌드해 Scripts/bin에 두고, 에디터 옆의 .NET 런타임(dotnet)과 Managed 폴더를 함께 복사합니다.
+         * 컴파일 오류가 있으면 내보내지 않습니다.
          */
-        static bool Export(const Engine::FProject& Project, const std::filesystem::path& RuntimeDirectory, const std::filesystem::path& Destination, Core::FString& Error);
+        static bool Export(const Engine::FProject& Project, const std::filesystem::path& RuntimeDirectory, const std::filesystem::path& Destination, Editor::FScriptBuildService* Scripts, Core::FString& Error);
     };
 
 }

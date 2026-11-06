@@ -90,7 +90,8 @@
  *
  * @par 현재 범위
  * 충돌은 UShapeComponent의 겹침 시작과 끝만 전달합니다. 엔진에 막는 물리가 없으므로 Hit 이벤트는 없습니다.
- * 내보낸 게임(MacawGame)에는 아직 런타임을 배치하지 않으므로, 그곳의 스크립트는 오류 로그만 남기고 실행되지 않습니다.
+ * 게임을 내보내면 스크립트를 Release로 빌드해 Scripts/bin에 두고, .NET 런타임(dotnet)과 Managed 폴더를 실행 파일 옆에 복사합니다.
+ * 내보낸 게임은 스크립트를 다시 빌드하지 않으므로 복사본 없이 어셈블리를 바로 로드합니다.
  */
 
 #pragma once
@@ -190,9 +191,10 @@ namespace Script {
         /**
          * @brief 실행 세션을 시작하고 프로젝트의 스크립트 어셈블리 경로를 정합니다.
          * @param[in] ProjectRoot 프로젝트 루트 폴더입니다.
+         * @param[in] ShadowCopy 어셈블리를 복사본에서 로드할지 지정합니다. 에디터는 세션 중에도 다시 빌드하므로 true, 내보낸 게임은 false입니다.
          * @note 런타임 기동과 로드는 첫 CreateInstance까지 미룹니다.
          */
-        void BeginSession(const std::filesystem::path& ProjectRoot);
+        void BeginSession(const std::filesystem::path& ProjectRoot, bool ShadowCopy = true);
 
         /**
          * @brief 실행 세션을 끝내고 스크립트를 언로드합니다.
@@ -327,6 +329,11 @@ namespace Script {
          * @brief 스크립트 어셈블리가 로드되어 있는지 나타냅니다.
          */
         bool mHasScripts{};
+
+        /**
+         * @brief 이번 세션이 어셈블리를 복사본에서 로드하는지 나타냅니다.
+         */
+        bool mShadowCopy{true};
 
         /**
          * @brief 현재 세션에서 로드에 실패했는지 나타냅니다.

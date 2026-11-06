@@ -871,7 +871,7 @@ namespace Editor {
         } else {
             const auto Runtime{std::filesystem::path{Executable.data()}.parent_path() / "GameRuntime"};
 
-            Exported = Editor::FGameExporter::Export(*mContext->GetProject(), Runtime, Destination, Error);
+            Exported = Editor::FGameExporter::Export(*mContext->GetProject(), Runtime, Destination, &mScriptBuilds, Error);
         }
 
         const Core::FString Message{Exported ? "Exported game to " + Core::FilePath::ToUtf8(Destination) : Error};
