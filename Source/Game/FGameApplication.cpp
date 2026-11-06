@@ -13,6 +13,7 @@
 #include "Engine/FWorldContext.h"
 #include "Engine/SceneSerializer.h"
 #include "Engine/UWorld.h"
+#include "Script/FScriptInput.h"
 #include "Script/FScriptRuntime.h"
 
 #include <algorithm>
@@ -131,6 +132,7 @@ namespace Game {
         }
 
         Script::FScriptRuntime::Get()->BeginSession(mProject.GetRootPath());
+        Script::FScriptInput::SetSource(&mPlatform.GetInput());
 
         if (!mEngine.ReplaceWorld(std::move(Context)) || !mGameClient.SetWorld(mEngine.GetWorldHandle()) || !mEngine.GetWorld()->BeginPlay()) {
             Error = "Cannot start the game world";
@@ -161,6 +163,7 @@ namespace Game {
         mViewport.reset();
         mGameClient.SetWorld({});
         mEngine.Shutdown();
+        Script::FScriptInput::SetSource(nullptr);
         Script::FScriptRuntime::Get()->EndSession();
         mEngine.SetProject(nullptr);
         mRenderer.Shutdown();

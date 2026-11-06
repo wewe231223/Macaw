@@ -52,6 +52,7 @@ namespace Engine {
          * @return 소유 객체가 유지하는 값의 참조입니다.
          */
         const Core::FTransform& GetTransform() const;
+        ReflectFunction(GetTransform);
 
         /**
          * @brief 유한하고 유효한 변환을 검증하여 공간 컴포넌트에 적용합니다.
@@ -59,6 +60,7 @@ namespace Engine {
          * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
          */
         virtual bool SetTransform(const Core::FTransform& Transform);
+        ReflectFunction(SetTransform);
 
         /**
          * @brief 위치, 회전과 스케일이 적용된 월드 행렬을 반환합니다.

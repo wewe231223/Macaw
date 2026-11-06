@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- 에디터가 빌드 전에 이 프로젝트를 여는 엔진의 Managed 폴더 경로를 기록합니다. -->
+  <Import Project="Macaw.Generated.props" Condition="Exists('Macaw.Generated.props')" />
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseAppHost>false</UseAppHost>
+    <OutputPath>bin/</OutputPath>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <!-- NuGet 의존성을 출력 폴더로 복사합니다. -->
+    <EnableDynamicLoading>true</EnableDynamicLoading>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="Macaw.Engine">
+      <HintPath>$(MacawManagedDirectory)Macaw.Engine.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+</Project>

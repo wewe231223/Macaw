@@ -14,6 +14,7 @@
 #include "Engine/Component/UActorComponent.h"
 #include "CoreUObject/FObjectDuplicationContext.h"
 #include "CoreUObject/Reflection/Cast.h"
+#include "Script/FScriptInput.h"
 #include "Script/FScriptRuntime.h"
 #include <cmath>
 
@@ -105,6 +106,7 @@ namespace Editor {
                     mContext->AddLog("[C#] " + Message);
                 });
                 Runtime->BeginSession(mEngine->GetProject()->GetRootPath());
+                Script::FScriptInput::SetSource(Input);
             }
 
             Ready = mEngine->SetCurrentWorld(mPlayWorld) && World->BeginPlay() && World->GetPlayState() == Engine::EWorldPlayState::Playing && World->GetActiveCamera() != nullptr && !mStopRequested;
@@ -163,6 +165,7 @@ namespace Editor {
         }
 
         // 월드와 함께 C# 인스턴스가 해제된 뒤에 언로드해야 수집됩니다.
+        Script::FScriptInput::SetSource(nullptr);
         Script::FScriptRuntime::Get()->EndSession();
         Script::FScriptRuntime::Get()->SetLogFunction({});
 

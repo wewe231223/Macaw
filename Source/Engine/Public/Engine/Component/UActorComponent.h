@@ -53,6 +53,7 @@ namespace Engine {
          * @return 조회한 값의 비소유 주소이며, 해당 값이 없으면 nullptr입니다.
          */
         Engine::AActor* GetOwner() const;
+        ReflectFunction(GetOwner);
 
         /**
          * @brief 소유 액터가 표시 상태인지 검사합니다.

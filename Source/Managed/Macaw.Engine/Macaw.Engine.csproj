@@ -12,5 +12,12 @@
     <ConcurrentGarbageCollection>true</ConcurrentGarbageCollection>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <!-- 솔루션의 x64 구성에서 빌드되며, 에디터 실행 파일 옆의 Managed 폴더로 출력합니다. -->
+    <Platforms>x64</Platforms>
+    <OutputPath>$(MSBuildThisFileDirectory)..\..\..\Binaries\$(Configuration)\Managed\</OutputPath>
   </PropertyGroup>
+  <ItemGroup>
+    <!-- 어노테이션에서 생성한 바인딩입니다. Script 프로젝트의 프리빌드 단계에서 갱신됩니다. -->
+    <Compile Include="..\..\..\Intermediate\Script\Generated\ScriptBindings.g.cs" Link="ScriptBindings.g.cs" />
+  </ItemGroup>
 </Project>

@@ -8,6 +8,7 @@
 #include "Core/FilePath.h"
 #include "Engine/FProject.h"
 #include "Engine/Component/UMeshComponent.h"
+#include "Script/UScriptComponent.h"
 #include "Engine/Component/UStaticMeshComponent.h"
 #include "Engine/Component/USkeletalMeshComponent.h"
 #include "Engine/ASkeletalMeshActor.h"
@@ -720,6 +721,32 @@ namespace Editor {
             return false;
         }
 
+        mDirty = true;
+
+        return true;
+    }
+
+    bool Editor::FEditorContext::SetScriptField(CoreUObject::FObjectHandle Handle, const Script::FScriptField& Field) {
+        auto* Component{CoreUObject::Cast<Script::UScriptComponent>(ResolveObject(Handle))};
+
+        if (!CanEditWorld() || IsChangingState() || mEngine->IsDispatching() || Component == nullptr) {
+            return false;
+        }
+
+        Component->SetField(Field);
+        mDirty = true;
+
+        return true;
+    }
+
+    bool Editor::FEditorContext::RemoveScriptField(CoreUObject::FObjectHandle Handle, const Core::FString& Name) {
+        auto* Component{CoreUObject::Cast<Script::UScriptComponent>(ResolveObject(Handle))};
+
+        if (!CanEditWorld() || IsChangingState() || mEngine->IsDispatching() || Component == nullptr) {
+            return false;
+        }
+
+        Component->RemoveField(Name);
         mDirty = true;
 
         return true;

@@ -36,15 +36,11 @@ if (-not (Test-Path -LiteralPath $HostFxr)) {
     throw "hostfxr $Version was not found in $DotnetRoot."
 }
 
+# Macaw.Engine은 솔루션의 C# 프로젝트가 Managed 폴더로 빌드합니다. 여기서는 결과만 확인합니다.
 $ManagedPath = Join-Path $RuntimePath 'Managed'
-$BuildConfiguration = if ($Configuration.EndsWith('Debug')) { 'Debug' } else { 'Release' }
-$Project = Join-Path $WorkspacePath 'Source/Managed/Macaw.Engine/Macaw.Engine.csproj'
 
-# 빌드 서버가 남으면 상속한 출력 핸들을 붙잡아 상위 MSBuild가 끝나지 않을 수 있으므로 사용하지 않습니다.
-& $DotnetCommand.Source build $Project -c $BuildConfiguration "-p:OutputPath=$ManagedPath/" -v quiet --nologo --disable-build-servers
-
-if ($LASTEXITCODE -ne 0) {
-    throw 'Macaw.Engine failed to build.'
+if (-not (Test-Path -LiteralPath (Join-Path $ManagedPath 'Macaw.Engine.dll'))) {
+    Write-Warning "Macaw.Engine.dll is missing in $ManagedPath. Build the Macaw.Engine project in the solution."
 }
 
 $PrivateRoot = Join-Path $RuntimePath 'dotnet'

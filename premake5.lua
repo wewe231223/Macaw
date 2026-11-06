@@ -98,6 +98,18 @@ for _, Name in ipairs({ "Core", "CoreUObject", "Serialization", "Asset", "Render
     end
 end
 
+project "Script"
+    files { Reflection.GetGeneratedDirectory("Script") .. "/ScriptBindings.cpp" }
+
+-- C# 엔진 API는 솔루션의 C# 프로젝트로 빌드합니다. 생성 바인딩을 쓰므로 Script의 프리빌드 뒤에 빌드합니다.
+externalproject "Macaw.Engine"
+    location "Source/Managed/Macaw.Engine"
+    uuid "6D3F4A52-8B1C-4E7A-9F21-3C5B7D9E1A40"
+    kind "SharedLib"
+    language "C#"
+    dependson { "Script" }
+    configmap { ["ObjViewerDebug"] = "Debug", ["ObjViewerRelease"] = "Release" }
+
 Configure("Shaders", "Utility")
     files { "Templates/Project/Content/Shaders/**.hlsl", "Templates/Project/Content/Shaders/**.hlsli" }
     vpaths { ["*"] = "Templates/Project/Content/Shaders" }
@@ -145,11 +157,12 @@ ConfigureRuntimeExecutable("Macaw", "WindowedApp", "Source/App")
     includedirs { GeneratedDirectory }
     prebuildcommands { '"' .. _PREMAKE_COMMAND .. '" --file="' .. path.getabsolute("premake5.lua") .. '" generate-reflection --reflection-module=App' }
     AddIncludes("Editor", {})
-    links { "Editor" }
-    dependson { "MacawGame" }
+    links { "Editor", "oleaut32" }
+    dependson { "MacawGame", "Macaw.Engine" }
     files { "Source/App/**.rc", "Resources/Editor.rc", "Macaw.ico" }
     resincludedirs { "." }
     postbuildcommands { '{COPYDIR} "%{wks.location}/Templates/Project" "%{cfg.targetdir}/Templates/Project"' }
+    postbuildcommands { '{COPYDIR} "%{wks.location}/Templates/Scripts" "%{cfg.targetdir}/Templates/Scripts"' }
     filter "configurations:not ObjViewer*"
         postbuildcommands { 'powershell -NoProfile -ExecutionPolicy Bypass -File "%{wks.location}/Scripts/StageManagedRuntime.ps1" -RuntimeDirectory "%{cfg.targetdir}" -WorkspaceRoot "%{wks.location}." -Configuration "%{cfg.buildcfg}"' }
     filter {}

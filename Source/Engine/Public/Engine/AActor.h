@@ -63,6 +63,7 @@ namespace Engine {
          * @return 조회한 값의 비소유 주소이며, 해당 값이 없으면 nullptr입니다.
          */
         Engine::UWorld* GetWorld() const;
+        ReflectFunction(GetWorld);
 
         /**
          * @brief 컴포넌트의 소유권을 액터로 옮기고 필요하면 월드에 등록합니다.
@@ -82,6 +83,7 @@ namespace Engine {
          * @return 조회한 값의 비소유 주소이며, 해당 값이 없으면 nullptr입니다.
          */
         Engine::USceneComponent* GetRootComponent() const;
+        ReflectFunction(GetRootComponent);
 
         /**
          * @brief 소유한 공간 컴포넌트를 액터의 루트로 지정합니다.
@@ -96,6 +98,37 @@ namespace Engine {
          * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
          */
         bool SetActorTransform(const Core::FTransform& Transform);
+        ReflectFunction(SetActorTransform);
+
+        /**
+         * @brief 루트 컴포넌트의 변환을 반환합니다.
+         * @return 루트 컴포넌트의 변환이며, 루트가 없으면 기본 변환입니다.
+         */
+        Core::FTransform GetActorTransform() const;
+        ReflectFunction(GetActorTransform);
+
+        /**
+         * @brief 월드에서 이 액터를 제거합니다. 실행 전달 중이면 안전한 시점까지 미룹니다.
+         * @return 제거를 수락하면 true입니다.
+         */
+        bool Destroy();
+        ReflectFunction(Destroy);
+
+        /**
+         * @brief 지정한 클래스의 첫 소유 컴포넌트를 찾습니다.
+         * @param[in] ClassName 파생 클래스를 포함해 찾을 리플렉션 클래스 이름입니다.
+         * @return 찾은 컴포넌트의 비소유 주소이며, 없으면 nullptr입니다.
+         */
+        Engine::UActorComponent* FindComponentByClassName(const Core::FString& ClassName) const;
+        ReflectFunction(FindComponentByClassName, Internal);
+
+        /**
+         * @brief 지정한 클래스의 소유 컴포넌트를 모두 찾습니다.
+         * @param[in] ClassName 파생 클래스를 포함해 찾을 리플렉션 클래스 이름입니다.
+         * @return 찾은 컴포넌트의 비소유 주소 목록입니다.
+         */
+        Core::TArray<Engine::UActorComponent*> GetComponentsByClassName(const Core::FString& ClassName) const;
+        ReflectFunction(GetComponentsByClassName, Internal);
 
         /**
          * @brief 액터의 기본 컴포넌트를 생성하고 루트 컴포넌트를 정합니다.
@@ -156,6 +189,7 @@ namespace Engine {
          * @return 액터와 소유 컴포넌트를 표시하도록 설정했으면 true입니다.
          */
         bool IsVisible() const;
+        ReflectFunction(IsVisible);
 
         /**
          * @brief 액터의 표시 여부를 변경하고 소유 컴포넌트의 렌더 상태에 반영합니다.
@@ -163,6 +197,7 @@ namespace Engine {
          * @note 렌더링과 에디터 피킹에만 영향을 주며 Tick과 충돌은 그대로 동작합니다.
          */
         void SetVisible(bool Visible);
+        ReflectFunction(SetVisible);
 
     private:
         /**

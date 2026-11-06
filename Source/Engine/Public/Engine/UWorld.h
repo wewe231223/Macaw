@@ -18,6 +18,7 @@ namespace Asset {
 
 namespace Core {
     struct FRay;
+    struct FVector;
 }
 
 namespace Core {
@@ -156,6 +157,7 @@ namespace Engine {
          * @return Tick과 Step이 실제 진행한 초 단위 시간입니다.
          */
         float GetTimeSeconds() const;
+        ReflectFunction(GetTimeSeconds);
 
         /**
          * @brief 마지막 실행 시작 이후 수행한 게임 갱신 횟수를 반환합니다.
@@ -175,12 +177,14 @@ namespace Engine {
          * @return 요청한 처리를 완료하면 true, 실패하면 false입니다.
          */
         bool SetActiveCamera(Engine::UCameraComponent* Camera);
+        ReflectFunction(SetActiveCamera);
 
         /**
          * @brief 월드에 등록된 활성 카메라를 핸들로 검증하여 조회합니다.
          * @return 대상의 비소유 주소이며, 없거나 유효하지 않으면 nullptr입니다.
          */
         Engine::UCameraComponent* GetActiveCamera() const;
+        ReflectFunction(GetActiveCamera);
 
         /**
          * @brief 월드 소속을 검증하여 입력 대상 액터를 선택하거나 해제합니다.
@@ -267,6 +271,7 @@ namespace Engine {
          * @return 조회한 값의 비소유 주소이며, 해당 값이 없으면 nullptr입니다.
          */
         Engine::AStaticMeshActor* SpawnPrimitive(Engine::EPrimitiveType Type);
+        ReflectFunction(SpawnPrimitive);
 
         /**
          * @brief 핸들에 해당하는 액터의 컴포넌트를 등록 해제하고 액터를 제거합니다.
@@ -293,7 +298,33 @@ namespace Engine {
          * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
          * @note 입력 방향을 내부에서 정규화합니다. 원점이 유한하지 않거나 방향을 정규화할 수 없으면 실패합니다.
          */
-        bool Raycast(const Core::FRay& Ray, Engine::FWorldHit& Hit) const;
+        bool Raycast(const Core::FRay& Ray, Engine::FWorldHit& Hit, const Engine::AActor* Ignored = nullptr) const;
+
+        /**
+         * @brief 광선과 처음 만나는 메시를 찾아 값으로 반환합니다.
+         * @param[in] Origin 광선 시작점입니다.
+         * @param[in] Direction 광선 방향이며 정규화하지 않아도 됩니다.
+         * @param[in] Ignored 건너뛸 액터이며 nullptr이면 모두 검사합니다.
+         * @return 찾은 결과이며, 맞은 것이 없으면 액터 핸들이 유효하지 않습니다.
+         */
+        Engine::FWorldHit Raycast(const Core::FVector& Origin, const Core::FVector& Direction, const Engine::AActor* Ignored) const;
+        ReflectFunction(Raycast);
+
+        /**
+         * @brief 이름으로 살아 있는 액터를 찾습니다.
+         * @param[in] Name 아웃라이너에 보이는 액터 이름입니다.
+         * @return 찾은 액터의 비소유 주소이며, 없으면 nullptr입니다.
+         */
+        Engine::AActor* FindActor(const Core::FString& Name) const;
+        ReflectFunction(FindActor);
+
+        /**
+         * @brief 지정한 클래스의 살아 있는 액터를 모두 찾습니다.
+         * @param[in] ClassName 파생 클래스를 포함해 찾을 리플렉션 클래스 이름입니다.
+         * @return 찾은 액터의 비소유 주소 목록입니다.
+         */
+        Core::TArray<Engine::AActor*> GetActorsByClassName(const Core::FString& ClassName) const;
+        ReflectFunction(GetActorsByClassName, Internal);
 
         /**
          * @brief 종속 객체를 역순으로 정리하고 여러 번 호출해도 안전한 종료 상태로 만듭니다.
@@ -340,6 +371,11 @@ namespace Engine {
          * @brief 전달 깊이를 줄이고 안전한 경계에서 지연 작업을 처리합니다.
          */
         void FinishDispatch();
+
+        /**
+         * @brief 충돌 도형의 겹침을 갱신하고 시작과 끝 이벤트를 전달합니다.
+         */
+        void UpdateOverlaps();
 
         /**
          * @brief 가장 바깥 전달 범위 이후 종료 요청과 액터 삭제 및 월드 종료를 처리합니다.
@@ -445,6 +481,11 @@ namespace Engine {
          * @brief 중첩된 콜백 전달 범위의 깊이입니다.
          */
         Core::Uint32 mDispatchDepth{};
+
+        /**
+         * @brief 지난 갱신에서 겹쳐 있던 충돌 도형 쌍입니다.
+         */
+        Core::TArray<std::pair<CoreUObject::FObjectHandle, CoreUObject::FObjectHandle>> mOverlaps{};
 
         /**
          * @brief 마지막 BeginPlay 이후 실제 처리한 게임 갱신 횟수입니다.

@@ -113,6 +113,7 @@ namespace CoreUObject {
          * @return 소유 객체가 유지하는 값의 참조입니다.
          */
         const Core::FString& GetName() const;
+        ReflectFunction(GetName);
 
         /**
          * @brief 비어 있지 않은 이름을 검증하여 객체 이름을 변경합니다.

@@ -19,6 +19,7 @@
 #include "FEditorViewportLayout.h"
 #include "Editor/FAssetPicker.h"
 #include "Editor/FImGuiUIScale.h"
+#include "Editor/FScriptBuildService.h"
 #include "FImGuiThemeCatalog.h"
 
 #include <filesystem>
@@ -129,6 +130,16 @@ namespace Editor {
         void ExportGame();
 
         /**
+         * @brief 변경된 C# 스크립트를 먼저 빌드한 뒤 PIE를 시작하도록 요청합니다.
+         */
+        void RequestPlay();
+
+        /**
+         * @brief 기다리던 빌드가 끝났으면 PIE를 시작합니다. 컴파일 오류가 있으면 시작하지 않습니다.
+         */
+        void UpdatePendingPlay();
+
+        /**
          * @brief 기본값과 테마 카탈로그를 준비하고 프로젝트의 저장된 에디터 환경 설정을 복원합니다.
          */
         void InitializeSettings();
@@ -233,6 +244,72 @@ namespace Editor {
          * @brief 현재 콘텐츠 폴더의 상위 경로 탐색 항목을 표시합니다.
          */
         void DrawContentBreadcrumbs();
+
+        /**
+         * @brief 콘텐츠 브라우저의 우클릭 메뉴 항목을 표시합니다.
+         * @note 호출자가 팝업을 연 상태에서 호출합니다. 선택한 항목이 있으면 그 항목을, 없으면 현재 폴더를 대상으로 합니다.
+         */
+        void DrawContentContextMenu();
+
+        /**
+         * @brief 현재 콘텐츠 폴더에 겹치지 않는 이름으로 새 폴더를 만듭니다.
+         */
+        void CreateContentFolder();
+
+        /**
+         * @brief 선택한 항목이나 현재 폴더를 Windows 탐색기에서 보여 줍니다.
+         */
+        void ShowContentInExplorer() const;
+
+        /**
+         * @brief 새 C# 스크립트의 클래스 이름을 묻는 창을 표시합니다.
+         */
+        void DrawNewScriptPopup();
+
+        /**
+         * @brief 콘텐츠 항목에 대한 이름 바꾸기 또는 삭제 작업입니다.
+         */
+        enum class EContentAction {
+            Rename,
+            Delete
+        };
+
+        /**
+         * @brief 선택한 항목에 대한 작업 창을 열고, 이 항목을 참조하는 에셋을 찾아 둡니다.
+         * @param[in] Action 시작할 작업입니다.
+         */
+        void BeginContentAction(EContentAction Action);
+
+        /**
+         * @brief 콘텐츠 항목 경로를 디스크 경로로 바꿉니다.
+         * @param[in] Path Content 기준 상대 경로이거나, 스크립트를 보는 중이면 절대 경로입니다.
+         * @return 디스크 경로입니다.
+         */
+        std::filesystem::path GetContentActionPath(const std::filesystem::path& Path) const;
+
+        /**
+         * @brief 열려 있는 씬이나 편집 중인 머티리얼처럼 지금 바꾸면 안 되는 이유를 찾습니다.
+         * @param[in] Absolute 바꿀 파일이나 폴더의 디스크 경로입니다.
+         * @return 막는 이유이며, 바꿔도 되면 빈 문자열입니다.
+         */
+        Core::FString FindContentActionBlocker(const std::filesystem::path& Absolute) const;
+
+        /**
+         * @brief 이름 바꾸기 또는 삭제 확인 창을 표시합니다.
+         */
+        void DrawContentActionPopup();
+
+        /**
+         * @brief 대상 항목의 이름을 바꿉니다. 스크립트는 파일 안의 클래스 이름도 바꿉니다.
+         * @return 바꾸면 true이며, 실패하면 이유를 남깁니다.
+         */
+        bool RenameContent();
+
+        /**
+         * @brief 대상 항목을 휴지통으로 옮깁니다.
+         * @return 옮기면 true이며, 실패하면 이유를 남깁니다.
+         */
+        bool DeleteContent();
 
         /**
          * @brief 현재 폴더의 하위 폴더·에셋 항목과 드래그 원본을 표시합니다.
@@ -359,6 +436,16 @@ namespace Editor {
          * @brief PIE 제어와 조회를 위한 세션의 비소유 주소입니다.
          */
         Editor::FPlayInEditorSession* mPlaySession{};
+
+        /**
+         * @brief C# 스크립트의 자동 빌드와 클래스 목록을 관리하는 서비스입니다.
+         */
+        Editor::FScriptBuildService mScriptBuilds;
+
+        /**
+         * @brief C# 빌드가 끝나면 PIE를 시작해야 하는지 나타냅니다.
+         */
+        bool mPlayPending{};
 
         /**
          * @brief 단일·4분할 뷰포트 배치 관리자입니다.
@@ -586,6 +673,61 @@ namespace Editor {
          * @brief 선택 에셋의 폴더를 트리에서 펼칠지 여부입니다.
          */
         bool mRevealContentDirectory{true};
+
+        /**
+         * @brief 콘텐츠 브라우저가 Content 대신 C# 스크립트 폴더를 보여 주는지 나타냅니다.
+         */
+        bool mBrowsingScripts{};
+
+        /**
+         * @brief 다음 프레임에 새 C# 스크립트 창을 열지 나타냅니다.
+         */
+        bool mOpenNewScript{};
+
+        /**
+         * @brief 새 C# 스크립트 창에 입력 중인 클래스 이름입니다.
+         */
+        std::array<char, 64> mNewScriptName{};
+
+        /**
+         * @brief 새 C# 스크립트를 만들지 못한 이유입니다.
+         */
+        Core::FString mNewScriptError{};
+
+        /**
+         * @brief 진행 중인 콘텐츠 작업입니다.
+         */
+        EContentAction mContentAction{};
+
+        /**
+         * @brief 다음 프레임에 콘텐츠 작업 창을 열지 나타냅니다.
+         */
+        bool mOpenContentAction{};
+
+        /**
+         * @brief 작업 대상이 스크립트 파일인지 나타냅니다.
+         */
+        bool mContentActionScript{};
+
+        /**
+         * @brief 작업 대상 경로입니다. 형식은 mSelectedContentPath와 같습니다.
+         */
+        std::filesystem::path mContentActionTarget{};
+
+        /**
+         * @brief 이름 바꾸기 창에 입력 중인 이름입니다.
+         */
+        std::array<char, 256> mContentActionName{};
+
+        /**
+         * @brief 작업에 실패한 이유입니다.
+         */
+        Core::FString mContentActionError{};
+
+        /**
+         * @brief 작업 대상을 참조하는 에셋의 Content 기준 경로입니다.
+         */
+        Core::TArray<std::filesystem::path> mContentActionReferences{};
 
         /**
          * @brief 편집 중인 머티리얼의 독립 사본입니다.

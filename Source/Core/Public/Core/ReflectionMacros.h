@@ -117,3 +117,16 @@ namespace CoreUObject {
  * @param Flags 프로퍼티의 편집·직렬화 정책 플래그입니다.
  */
 #define ReflectArrayAccessor(Member, Getter, Setter, Name, Flags)
+
+/**
+ * @brief 바로 앞에 선언한 멤버 함수를 C#에 노출합니다. 내용 없이 생성기만 읽습니다.
+ * @param Name 함수 이름입니다.
+ * @param ... Internal을 넘기면 C# 쪽 접근 수준이 internal이 됩니다.
+ */
+#define ReflectFunction(Name, ...)
+
+/**
+ * @brief 바로 앞에 정의한 열거형을 앞의 E를 뗀 이름으로 C#에 생성합니다. 내용 없이 생성기만 읽습니다.
+ * @param Type 열거형 이름입니다.
+ */
+#define ReflectScriptEnum(Type)

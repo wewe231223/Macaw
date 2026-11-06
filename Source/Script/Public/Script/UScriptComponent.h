@@ -8,6 +8,7 @@
 
 #include "Core/Types.h"
 #include "Engine/Component/UActorComponent.h"
+#include "Script/FScriptField.h"
 
 #include <cstdint>
 
@@ -59,11 +60,51 @@ namespace Script {
          */
         void EndPlay() override;
 
+        /**
+         * @brief 스크립트 클래스가 바뀌면 이전 클래스의 필드 값을 버립니다.
+         * @param[in] Event 변경된 프로퍼티 정보입니다.
+         */
+        void PostEditChangeProperty(const CoreUObject::FPropertyChangedEvent& Event) override;
+
+        /**
+         * @brief 네임스페이스를 포함한 C# 클래스 이름을 반환합니다.
+         * @return 소유 객체가 유지하는 값의 참조입니다.
+         */
+        const Core::FString& GetScriptClass() const;
+
+        /**
+         * @brief 기본값과 다르게 저장된 필드 목록을 반환합니다.
+         * @return 소유 객체가 유지하는 값의 참조입니다.
+         */
+        const Core::TArray<Script::FScriptField>& GetFields() const;
+
+        /**
+         * @brief 필드 값을 저장합니다. 같은 이름이 있으면 교체합니다.
+         * @param[in] Field 저장할 필드입니다.
+         */
+        void SetField(const Script::FScriptField& Field);
+
+        /**
+         * @brief 저장된 필드를 지워 스크립트의 기본값으로 되돌립니다.
+         * @param[in] Name C# 필드 이름입니다.
+         */
+        void RemoveField(const Core::FString& Name);
+
     private:
         /**
          * @brief 생성된 멤버 등록 함수와 리플렉션 빌더의 접근 권한입니다.
          */
         ReflectMembers();
+
+        /**
+         * @brief 소유 액터의 충돌 도형 이벤트를 C# 인스턴스로 연결합니다.
+         */
+        void BindOverlapEvents();
+
+        /**
+         * @brief 충돌 도형에 등록한 이벤트를 모두 해제합니다.
+         */
+        void UnbindOverlapEvents();
 
     private:
         /**
@@ -73,9 +114,40 @@ namespace Script {
         ReflectProperty(mScriptClass, "ScriptClass", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
 
         /**
+         * @brief 기본값과 다르게 편집한 필드 값입니다.
+         */
+        Core::TArray<Script::FScriptField> mFields{};
+        ReflectArray(mFields, "Fields", Core::EPropertyFlags::Serialize);
+
+        /**
          * @brief 실행 중인 C# 인스턴스의 핸들이며, 없으면 0입니다.
          */
         std::intptr_t mInstance{};
+
+        /**
+         * @brief 충돌 도형에 등록한 겹침 이벤트입니다.
+         */
+        struct FOverlapBinding {
+            /**
+             * @brief 충돌 도형의 핸들입니다.
+             */
+            CoreUObject::FObjectHandle mShape{};
+
+            /**
+             * @brief 겹침 시작 이벤트의 등록 번호입니다.
+             */
+            Core::Uint32 mBegin{};
+
+            /**
+             * @brief 겹침 끝 이벤트의 등록 번호입니다.
+             */
+            Core::Uint32 mEnd{};
+        };
+
+        /**
+         * @brief 해제할 겹침 이벤트 목록입니다.
+         */
+        Core::TArray<FOverlapBinding> mOverlapBindings{};
     };
 
 }

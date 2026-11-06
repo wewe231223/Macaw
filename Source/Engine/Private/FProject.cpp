@@ -38,7 +38,8 @@ namespace Engine {
             std::filesystem::copy(TemplateDirectory / "Content", File.parent_path() / "Content", std::filesystem::copy_options::recursive, Code);
         }
 
-        for (const char* Folder : {"Maps", "Meshes", "Textures", "Materials", "Scripts"}) {
+        // C# 스크립트는 Content 밖의 Scripts 폴더에 두므로 Content에는 스크립트 폴더를 만들지 않습니다.
+        for (const char* Folder : {"Maps", "Meshes", "Textures", "Materials"}) {
             if (!Code) {
                 std::filesystem::create_directories(File.parent_path() / "Content" / Folder, Code);
             }

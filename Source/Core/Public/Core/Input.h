@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core/Math/FVector2.h"
+#include "Core/ReflectionMacros.h"
 #include "Core/Types.h"
 
 #include <bitset>
@@ -67,6 +68,7 @@ namespace Core {
         RightAlt = 0xA5,
         Comma = 0xBC
     };
+    ReflectScriptEnum(EKey);
 
     enum class EInputRoute {
         Application,

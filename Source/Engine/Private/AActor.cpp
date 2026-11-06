@@ -12,6 +12,7 @@
 #include "Core/Math/FTransform.h"
 #include "CoreUObject/FObjectRegistry.h"
 #include "CoreUObject/Reflection/Cast.h"
+#include "CoreUObject/Reflection/FReflectionRegistry.h"
 
 #include <algorithm>
 #include <utility>
@@ -127,7 +128,73 @@ namespace Engine {
      * @brief 루트 공간 컴포넌트에 액터의 변환을 적용합니다.
      */
     bool Engine::AActor::SetActorTransform(const Core::FTransform& Transform) {
-        return mRootComponent != nullptr && mRootComponent->SetTransform(Transform);
+        if (mRootComponent == nullptr) {
+            return false;
+        }
+
+        const Core::FTransform Previous{mRootComponent->GetTransform()};
+
+        if (!mRootComponent->SetTransform(Transform)) {
+            return false;
+        }
+
+        // 컴포넌트 변환은 월드 기준이고 계층이 없으므로, 충돌 도형 같은 나머지 컴포넌트를 루트와 함께 옮깁니다.
+        const Core::FQuat Inverse{Previous.mRotation.Inverse()};
+        const Core::FQuat Rotation{Transform.mRotation * Inverse};
+        const auto ScaleRatio{[](float New, float Old) {
+            return Old != 0.0f ? New / Old : 1.0f;
+        }};
+        const Core::FVector Ratio{ScaleRatio(Transform.mScale.x, Previous.mScale.x), ScaleRatio(Transform.mScale.y, Previous.mScale.y), ScaleRatio(Transform.mScale.z, Previous.mScale.z)};
+
+        for (const auto& Component : mComponents) {
+            auto* Scene{CoreUObject::Cast<Engine::USceneComponent>(Component.get())};
+
+            if (Scene == nullptr || Scene == mRootComponent) {
+                continue;
+            }
+
+            Core::FTransform Moved{Scene->GetTransform()};
+            const Core::FVector Local{Inverse.RotateVector(Moved.mLocation - Previous.mLocation)};
+            Moved.mLocation = Transform.mLocation + Transform.mRotation.RotateVector(Core::FVector{Local.x * Ratio.x, Local.y * Ratio.y, Local.z * Ratio.z});
+            Moved.mRotation = Rotation * Moved.mRotation;
+            Moved.mScale = Core::FVector{Moved.mScale.x * Ratio.x, Moved.mScale.y * Ratio.y, Moved.mScale.z * Ratio.z};
+            Scene->SetTransform(Moved);
+        }
+
+        return true;
+    }
+
+    Core::FTransform Engine::AActor::GetActorTransform() const {
+        return mRootComponent != nullptr ? mRootComponent->GetTransform() : Core::FTransform{};
+    }
+
+    bool Engine::AActor::Destroy() {
+        return mWorld != nullptr && mWorld->DestroyActor(GetHandle());
+    }
+
+    Engine::UActorComponent* Engine::AActor::FindComponentByClassName(const Core::FString& ClassName) const {
+        const CoreUObject::UClass* Class{CoreUObject::FReflectionRegistry::FindClass(ClassName)};
+
+        for (const auto& Component : mComponents) {
+            if (Class != nullptr && Component->IsA(Class)) {
+                return Component.get();
+            }
+        }
+
+        return nullptr;
+    }
+
+    Core::TArray<Engine::UActorComponent*> Engine::AActor::GetComponentsByClassName(const Core::FString& ClassName) const {
+        const CoreUObject::UClass* Class{CoreUObject::FReflectionRegistry::FindClass(ClassName)};
+        Core::TArray<Engine::UActorComponent*> Components{};
+
+        for (const auto& Component : mComponents) {
+            if (Class != nullptr && Component->IsA(Class)) {
+                Components.push_back(Component.get());
+            }
+        }
+
+        return Components;
     }
 
     /**

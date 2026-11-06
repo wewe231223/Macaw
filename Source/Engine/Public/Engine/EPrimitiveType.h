@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "Core/ReflectionMacros.h"
 #include "Core/Types.h"
 #include "CoreUObject/Reflection/TNativeEnum.h"
 
@@ -33,6 +34,7 @@ namespace Engine {
          */
         Count
     };
+    ReflectScriptEnum(EPrimitiveType);
 
     /**
      * @brief 이 열거형의 정적 메타데이터를 반환합니다.

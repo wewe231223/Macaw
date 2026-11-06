@@ -1,15 +1,15 @@
 #include "Script/FScriptRuntime.h"
 #include "Core/FilePath.h"
 #include "CoreUObject/FObjectRegistry.h"
-#include "CoreUObject/Reflection/Cast.h"
-#include "Engine/AActor.h"
-#include "Engine/Component/USceneComponent.h"
+#include "Script/FScriptField.h"
+#include "ScriptAbi.h"
 
 #include "ThirdParty/hostfxr.h"
 #include "ThirdParty/coreclr_delegates.h"
 
 #include <Windows.h>
 
+#include <algorithm>
 #include <cstdint>
 #include <cstdio>
 #include <system_error>
@@ -18,20 +18,17 @@
 namespace Script {
 
     namespace {
-        // 엔진 수학 타입은 alignas(16)이므로 경계에서는 정렬 없는 float 배치만 사용합니다.
-        // Source/Managed/Macaw.Engine/Interop.cs의 Transform과 순서가 같아야 합니다.
-        struct FAbiTransform {
-            float mLocation[3]{};
-            float mRotation[4]{};
-            float mScale[3]{};
-        };
 
         // Source/Managed/Macaw.Engine/Interop.cs의 NativeApi와 순서가 같아야 합니다.
         struct FNativeApi {
             std::intptr_t mSize{};
             void(__stdcall* mLog)(const char*){};
-            int(__stdcall* mActorGetTransform)(CoreUObject::FObjectHandle, FAbiTransform*){};
-            int(__stdcall* mActorSetTransform)(CoreUObject::FObjectHandle, const FAbiTransform*){};
+            int(__stdcall* mObjectIsAlive)(CoreUObject::FObjectHandle){};
+            void(__stdcall* mCatalogAddClass)(const char*){};
+            void(__stdcall* mCatalogAddField)(const char*, const char*, const char*){};
+            void* const* mBindings{};
+            std::intptr_t mBindingCount{};
+            std::intptr_t mBindingHash{};
         };
 
         // Source/Managed/Macaw.Engine/Interop.cs의 ManagedApi와 순서가 같아야 합니다.
@@ -44,48 +41,28 @@ namespace Script {
             void(__stdcall* mTick)(std::intptr_t, float){};
             void(__stdcall* mEndPlay)(std::intptr_t){};
             void(__stdcall* mDestroyInstance)(std::intptr_t){};
+            void(__stdcall* mDescribeScripts)(){};
+            int(__stdcall* mSetField)(std::intptr_t, const char*, const char*, const char*){};
+            void(__stdcall* mOverlap)(std::intptr_t, int, CoreUObject::FObjectHandle){};
         };
+
+        // DescribeScripts 호출 동안만 유효한 출력 목록입니다.
+        Core::TArray<Script::FScriptClassInfo>* sCatalogOutput{};
 
         void __stdcall NativeLog(const char* Message) {
             Script::FScriptRuntime::Get()->WriteLog(Message);
         }
 
-        // 파괴 중인 액터와 루트가 없는 액터는 Transform을 다룰 수 없으므로 찾지 못한 것으로 처리합니다.
-        Engine::AActor* ResolveActor(CoreUObject::FObjectHandle Handle) {
-            auto* Actor{CoreUObject::Cast<Engine::AActor>(CoreUObject::FObjectRegistry::Get()->Resolve(Handle))};
-
-            return Actor != nullptr && !Actor->IsPendingDestroy() && Actor->GetRootComponent() != nullptr ? Actor : nullptr;
+        void __stdcall NativeCatalogAddClass(const char* Name) {
+            sCatalogOutput->push_back({Name, {}});
         }
 
-        int __stdcall NativeActorGetTransform(CoreUObject::FObjectHandle Handle, FAbiTransform* Output) {
-            const Engine::AActor* Actor{ResolveActor(Handle)};
-
-            if (Actor == nullptr) {
-                return 0;
-            }
-
-            const Core::FTransform& Transform{Actor->GetRootComponent()->GetTransform()};
-            const Core::FVector& Location{Transform.mLocation};
-            const Core::FQuat& Rotation{Transform.mRotation};
-            const Core::FVector& Scale{Transform.mScale};
-            *Output = {{Location.x, Location.y, Location.z}, {Rotation.x, Rotation.y, Rotation.z, Rotation.w}, {Scale.x, Scale.y, Scale.z}};
-
-            return 1;
+        void __stdcall NativeCatalogAddField(const char* Name, const char* Type, const char* Default) {
+            sCatalogOutput->back().mFields.push_back({Name, Type, Default});
         }
 
-        int __stdcall NativeActorSetTransform(CoreUObject::FObjectHandle Handle, const FAbiTransform* Input) {
-            Engine::AActor* Actor{ResolveActor(Handle)};
-
-            if (Actor == nullptr) {
-                return 0;
-            }
-
-            Core::FTransform Transform{Actor->GetRootComponent()->GetTransform()};
-            Transform.mLocation = Core::FVector{Input->mLocation[0], Input->mLocation[1], Input->mLocation[2]};
-            Transform.mRotation = Core::FQuat{Input->mRotation[0], Input->mRotation[1], Input->mRotation[2], Input->mRotation[3]};
-            Transform.mScale = Core::FVector{Input->mScale[0], Input->mScale[1], Input->mScale[2]};
-
-            return Actor->SetActorTransform(Transform) ? 1 : 0;
+        int __stdcall NativeObjectIsAlive(CoreUObject::FObjectHandle Handle) {
+            return Script::Abi::Resolve<CoreUObject::UObject>(Handle) != nullptr ? 1 : 0;
         }
 
         std::filesystem::path GetExecutableDirectory() {
@@ -208,8 +185,13 @@ namespace Script {
         auto State{std::make_unique<FState>()};
         State->mNative.mSize = sizeof(FNativeApi);
         State->mNative.mLog = &NativeLog;
-        State->mNative.mActorGetTransform = &NativeActorGetTransform;
-        State->mNative.mActorSetTransform = &NativeActorSetTransform;
+        State->mNative.mObjectIsAlive = &NativeObjectIsAlive;
+        State->mNative.mCatalogAddClass = &NativeCatalogAddClass;
+        State->mNative.mCatalogAddField = &NativeCatalogAddField;
+        const Script::Abi::FBindingTable Bindings{Script::Abi::GetBindingTable()};
+        State->mNative.mBindings = Bindings.mThunks;
+        State->mNative.mBindingCount = Bindings.mCount;
+        State->mNative.mBindingHash = Bindings.mHash;
         State->mManaged.mSize = sizeof(FManagedApi);
 
         int(__stdcall* Bootstrap)(FNativeApi*, FManagedApi*){};
@@ -232,7 +214,76 @@ namespace Script {
 
     void Script::FScriptRuntime::BeginSession(const std::filesystem::path& ProjectRoot) {
         EndSession();
-        mAssembly = ProjectRoot / "Scripts/bin/GameScripts.dll";
+        mAssembly = GetAssemblyPath(ProjectRoot);
+    }
+
+    std::filesystem::path Script::FScriptRuntime::GetAssemblyPath(const std::filesystem::path& ProjectRoot) {
+        return ProjectRoot / "Scripts/bin/GameScripts.dll";
+    }
+
+    bool Script::FScriptRuntime::RefreshCatalog(const std::filesystem::path& ProjectRoot) {
+        if (!mAssembly.empty()) {
+            return false;
+        }
+
+        mCatalog.clear();
+
+        const std::filesystem::path Assembly{GetAssemblyPath(ProjectRoot)};
+        const Core::FString Utf8{Core::FilePath::ToUtf8(Assembly)};
+        std::error_code Code{};
+
+        if (!std::filesystem::is_regular_file(Assembly, Code)) {
+            return true;
+        }
+
+        Core::FString Error{};
+
+        if (!Initialize(Error)) {
+            WriteLog(Error);
+            return false;
+        }
+
+        if (mState->mManaged.mLoadScripts(Utf8.c_str()) != 1) {
+            WriteLog("Cannot load the script assembly " + Utf8);
+            return false;
+        }
+
+        sCatalogOutput = &mCatalog;
+        mState->mManaged.mDescribeScripts();
+        sCatalogOutput = nullptr;
+        mState->mManaged.mUnloadScripts();
+
+        return true;
+    }
+
+    const Core::TArray<Script::FScriptClassInfo>& Script::FScriptRuntime::GetCatalog() const {
+        return mCatalog;
+    }
+
+    const Script::FScriptClassInfo* Script::FScriptRuntime::FindClass(const Core::FString& ClassName) const {
+        const auto Position{std::find_if(mCatalog.begin(), mCatalog.end(), [&ClassName](const Script::FScriptClassInfo& Class) {
+            return Class.mName == ClassName;
+        })};
+
+        return Position != mCatalog.end() ? &*Position : nullptr;
+    }
+
+    void Script::FScriptRuntime::SetInstanceField(std::intptr_t Instance, const Script::FScriptField& Field) {
+        Core::FString Value{Field.mValue};
+
+        // 액터 참조는 씬에 GUID로 저장되므로, 복제 월드에서 해석한 핸들을 문자열로 넘깁니다.
+        if (Field.mType == "Actor") {
+            const CoreUObject::UObject* Object{Field.mObject.Resolve()};
+
+            if (Object == nullptr) {
+                return;
+            }
+
+            const CoreUObject::FObjectHandle Handle{Object->GetHandle()};
+            Value = std::to_string(Handle.mIndex) + ":" + std::to_string(Handle.mGeneration);
+        }
+
+        mState->mManaged.mSetField(Instance, Field.mName.c_str(), Field.mType.c_str(), Value.c_str());
     }
 
     void Script::FScriptRuntime::EndSession() {
@@ -288,6 +339,10 @@ namespace Script {
 
     void Script::FScriptRuntime::EndPlayInstance(std::intptr_t Instance) {
         mState->mManaged.mEndPlay(Instance);
+    }
+
+    void Script::FScriptRuntime::OverlapInstance(std::intptr_t Instance, bool Begin, CoreUObject::FObjectHandle Other) {
+        mState->mManaged.mOverlap(Instance, Begin ? 1 : 0, Other);
     }
 
     void Script::FScriptRuntime::DestroyInstance(std::intptr_t Instance) {

@@ -17,6 +17,10 @@
 #include <filesystem>
 #include <functional>
 
+namespace Script {
+    struct FScriptField;
+}
+
 namespace Engine {
     class UEngine;
     class FProject;
@@ -537,6 +541,22 @@ namespace Editor {
          * @return 변경을 적용하면 true입니다.
          */
         bool SetMaterialOverride(CoreUObject::FObjectHandle Handle, Core::Uint32 Slot, const Core::FString& Path);
+
+        /**
+         * @brief C# 스크립트 필드 값을 저장하고 장면을 수정 상태로 표시합니다.
+         * @param Handle 대상 스크립트 컴포넌트입니다.
+         * @param Field 저장할 필드입니다.
+         * @return 변경을 적용하면 true입니다.
+         */
+        bool SetScriptField(CoreUObject::FObjectHandle Handle, const Script::FScriptField& Field);
+
+        /**
+         * @brief 저장된 C# 스크립트 필드를 지우고 장면을 수정 상태로 표시합니다.
+         * @param Handle 대상 스크립트 컴포넌트입니다.
+         * @param Name C# 필드 이름입니다.
+         * @return 변경을 적용하면 true입니다.
+         */
+        bool RemoveScriptField(CoreUObject::FObjectHandle Handle, const Core::FString& Name);
 
     private:
         void RegisterConsoleCommands();

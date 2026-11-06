@@ -2,59 +2,67 @@ using System.Numerics;
 
 namespace Macaw;
 
-/// <summary>엔진 액터를 가리키는 참조입니다. 포인터 대신 핸들만 보관하므로 액터가 파괴되면 접근할 때 예외가 발생합니다.</summary>
-public sealed unsafe class Actor {
-    internal static NativeApi* sApi;
-
-    private readonly ObjectHandle mHandle;
-
-    internal Actor(ObjectHandle Handle) {
-        mHandle = Handle;
-    }
-
+/// <summary>엔진 액터를 가리키는 참조입니다. 함수 대부분은 C++ 어노테이션에서 생성됩니다.</summary>
+public partial class Actor {
     /// <summary>루트 컴포넌트의 위치입니다. 1.0은 1미터입니다.</summary>
     public Vector3 Location {
-        get => GetTransform().Location;
+        get => GetActorTransform().Location;
         set {
-            Transform Transform = GetTransform();
+            Transform Transform = GetActorTransform();
             Transform.Location = value;
-            SetTransform(Transform);
+            ApplyTransform(Transform);
         }
     }
 
     /// <summary>루트 컴포넌트의 회전입니다.</summary>
     public Quaternion Rotation {
-        get => GetTransform().Rotation;
+        get => GetActorTransform().Rotation;
         set {
-            Transform Transform = GetTransform();
+            Transform Transform = GetActorTransform();
             Transform.Rotation = value;
-            SetTransform(Transform);
+            ApplyTransform(Transform);
         }
     }
 
     /// <summary>루트 컴포넌트의 축별 배율입니다.</summary>
     public Vector3 Scale {
-        get => GetTransform().Scale;
+        get => GetActorTransform().Scale;
         set {
-            Transform Transform = GetTransform();
+            Transform Transform = GetActorTransform();
             Transform.Scale = value;
-            SetTransform(Transform);
+            ApplyTransform(Transform);
         }
     }
 
-    private Transform GetTransform() {
-        Transform Transform;
-
-        if (sApi->ActorGetTransform(mHandle, &Transform) == 0) {
-            throw new InvalidOperationException("The actor no longer exists or has no root component.");
-        }
-
-        return Transform;
+    /// <summary>T 타입의 첫 컴포넌트를 찾고, 없으면 null을 반환합니다.</summary>
+    public T? GetComponent<T>() where T : ActorComponent {
+        return (T?)FindComponentByClassName(Bindings.NativeName(typeof(T)));
     }
 
-    private void SetTransform(Transform Transform) {
-        if (sApi->ActorSetTransform(mHandle, &Transform) == 0) {
-            throw new InvalidOperationException("The actor no longer exists or rejected the transform.");
+    /// <summary>T 타입의 모든 컴포넌트를 찾습니다.</summary>
+    public T[] GetComponents<T>() where T : ActorComponent {
+        return GetComponentsByClassName(Bindings.NativeName(typeof(T))).Cast<T>().ToArray();
+    }
+
+    /// <summary>이 액터에 붙은 T 타입의 첫 스크립트를 찾고, 없으면 null을 반환합니다.</summary>
+    public T? GetScript<T>() where T : ScriptComponent {
+        return Host.GetScripts(Handle).OfType<T>().FirstOrDefault();
+    }
+
+    private void ApplyTransform(Transform Transform) {
+        if (!SetActorTransform(Transform)) {
+            throw new InvalidOperationException($"{GetName()} has no root component or rejected the transform.");
         }
+    }
+}
+
+/// <summary>엔진 월드를 가리키는 참조입니다. 함수 대부분은 C++ 어노테이션에서 생성됩니다.</summary>
+public partial class World {
+    /// <summary>광선과 처음 만나는 메시를 찾습니다. 결과의 IsHit으로 맞았는지 확인합니다.</summary>
+    public RaycastHit Raycast(Vector3 Origin, Vector3 Direction) => Raycast(Origin, Direction, null);
+
+    /// <summary>T 타입의 모든 액터를 찾습니다.</summary>
+    public T[] GetActors<T>() where T : Actor {
+        return GetActorsByClassName(Bindings.NativeName(typeof(T))).Cast<T>().ToArray();
     }
 }

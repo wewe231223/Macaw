@@ -17,6 +17,7 @@
 #include "Core/Input.h"
 #include "Core/Math.h"
 #include "Engine/Component/UPrimitiveComponent.h"
+#include "Engine/Component/UShapeComponent.h"
 #include "Engine/AStaticMeshActor.h"
 #include "Engine/ULevel.h"
 #include "Engine/FWorldHit.h"
@@ -31,6 +32,7 @@
 #include "Engine/PrimitiveMesh.h"
 
 #include "CoreUObject/FObjectRegistry.h"
+#include "CoreUObject/Reflection/FReflectionRegistry.h"
 #include "CoreUObject/Reflection/UClass.h"
 
 #include <algorithm>
@@ -279,7 +281,7 @@ namespace Engine {
     /**
      * @brief 월드 프리미티브의 메시를 검사하여 광선에 가장 가까운 충돌을 찾습니다.
      */
-    bool Engine::UWorld::Raycast(const Core::FRay& Ray, Engine::FWorldHit& Hit) const {
+    bool Engine::UWorld::Raycast(const Core::FRay& Ray, Engine::FWorldHit& Hit, const Engine::AActor* Ignored) const {
         const Core::FScopedStatTimer StatTimer{Engine::EngineStats::Raycast};
         Core::FRay NormalizedRay{Ray};
 
@@ -291,7 +293,7 @@ namespace Engine {
         float Closest{std::numeric_limits<float>::max()};
 
         for (const auto& Actor : mPersistentLevel->GetActors()) {
-            if (Actor->IsPendingDestroy()) {
+            if (Actor->IsPendingDestroy() || Actor.get() == Ignored) {
                 continue;
             }
 
@@ -306,6 +308,40 @@ namespace Engine {
         }
 
         return Found;
+    }
+
+    Engine::FWorldHit Engine::UWorld::Raycast(const Core::FVector& Origin, const Core::FVector& Direction, const Engine::AActor* Ignored) const {
+        Engine::FWorldHit Hit{};
+        Raycast(Core::FRay{Origin, Direction}, Hit, Ignored);
+
+        return Hit;
+    }
+
+    Engine::AActor* Engine::UWorld::FindActor(const Core::FString& Name) const {
+        if (mPersistentLevel != nullptr) {
+            for (const auto& Actor : mPersistentLevel->GetActors()) {
+                if (!Actor->IsPendingDestroy() && Actor->GetName() == Name) {
+                    return Actor.get();
+                }
+            }
+        }
+
+        return nullptr;
+    }
+
+    Core::TArray<Engine::AActor*> Engine::UWorld::GetActorsByClassName(const Core::FString& ClassName) const {
+        const CoreUObject::UClass* Class{CoreUObject::FReflectionRegistry::FindClass(ClassName)};
+        Core::TArray<Engine::AActor*> Actors{};
+
+        if (mPersistentLevel != nullptr && Class != nullptr) {
+            for (const auto& Actor : mPersistentLevel->GetActors()) {
+                if (!Actor->IsPendingDestroy() && Actor->IsA(Class)) {
+                    Actors.push_back(Actor.get());
+                }
+            }
+        }
+
+        return Actors;
     }
 
     /**
@@ -558,7 +594,77 @@ namespace Engine {
             }
         }
 
+        if (!EditorTick && !mEndPlayRequested && !mShutdownRequested) {
+            UpdateOverlaps();
+        }
+
         return true;
+    }
+
+    void Engine::UWorld::UpdateOverlaps() {
+        Core::TArray<Engine::UShapeComponent*> Shapes{};
+
+        if (mPersistentLevel != nullptr) {
+            for (const auto& Actor : mPersistentLevel->GetActors()) {
+                if (!Actor->IsPendingDestroy()) {
+                    for (const auto& Component : Actor->GetComponents()) {
+                        if (auto* Shape{CoreUObject::Cast<Engine::UShapeComponent>(Component.get())}) {
+                            Shapes.push_back(Shape);
+                        }
+                    }
+                }
+            }
+        }
+
+        Core::TArray<std::pair<CoreUObject::FObjectHandle, CoreUObject::FObjectHandle>> Current{};
+
+        for (std::size_t First{}; First < Shapes.size(); ++First) {
+            for (std::size_t Second{First + 1}; Second < Shapes.size(); ++Second) {
+                if (Shapes[First]->GetOwner() != Shapes[Second]->GetOwner() && Shapes[First]->IsOverlapping(*Shapes[Second])) {
+                    Current.emplace_back(Shapes[First]->GetHandle(), Shapes[Second]->GetHandle());
+                }
+            }
+        }
+
+        const auto Contains{[](const auto& Pairs, const auto& Pair) {
+            return std::find(Pairs.begin(), Pairs.end(), Pair) != Pairs.end();
+        }};
+        const auto Resolve{[](CoreUObject::FObjectHandle Handle) {
+            return CoreUObject::Cast<Engine::UShapeComponent>(CoreUObject::FObjectRegistry::Get()->Resolve(Handle));
+        }};
+
+        // 이벤트 안에서 액터가 파괴될 수 있으므로 호출할 때마다 핸들을 다시 해석합니다.
+        const auto Previous{std::exchange(mOverlaps, Current)};
+
+        for (const auto& Pair : Previous) {
+            if (!Contains(Current, Pair)) {
+                if (Engine::UShapeComponent* Shape{Resolve(Pair.first)}) {
+                    Shape->OnEndOverlap(Resolve(Pair.second));
+                }
+
+                if (Engine::UShapeComponent* Shape{Resolve(Pair.second)}) {
+                    Shape->OnEndOverlap(Resolve(Pair.first));
+                }
+            }
+        }
+
+        for (const auto& Pair : Current) {
+            if (!Contains(Previous, Pair)) {
+                Engine::UShapeComponent* First{Resolve(Pair.first)};
+                Engine::UShapeComponent* Second{Resolve(Pair.second)};
+
+                if (First != nullptr && Second != nullptr) {
+                    First->OnBeginOverlap(Second);
+                }
+
+                First = Resolve(Pair.first);
+                Second = Resolve(Pair.second);
+
+                if (First != nullptr && Second != nullptr) {
+                    Second->OnBeginOverlap(First);
+                }
+            }
+        }
     }
 
     /**

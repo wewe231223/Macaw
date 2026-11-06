@@ -43,6 +43,8 @@
 #include <imgui_impl_win32.h>
 #include <algorithm>
 #include <array>
+#include <fstream>
+#include <regex>
 
 /**
  * @brief ImGui Win32 백엔드의 외부 메시지 처리 진입점입니다.
@@ -56,6 +58,33 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND Window, UINT M
 
 namespace Editor {
 
+    namespace {
+        // 귀퉁이가 접힌 문서 모양에 C#의 보라색과 "C#" 글자를 그립니다.
+        void DrawScriptIcon(ImDrawList* DrawList, const ImVec2& Origin, float Size) {
+            const float Left{Origin.x + Size * 0.16f};
+            const float Right{Origin.x + Size * 0.84f};
+            const float Top{Origin.y + Size * 0.06f};
+            const float Bottom{Origin.y + Size * 0.94f};
+            const float Fold{Size * 0.2f};
+            const ImU32 Body{IM_COL32(104, 33, 122, 255)};
+            const ImU32 Flap{IM_COL32(155, 79, 180, 255)};
+            const ImVec2 Outline[]{{Left, Top}, {Right - Fold, Top}, {Right, Top + Fold}, {Right, Bottom}, {Left, Bottom}};
+
+            DrawList->AddConvexPolyFilled(Outline, IM_ARRAYSIZE(Outline), Body);
+            DrawList->AddTriangleFilled({Right - Fold, Top}, {Right - Fold, Top + Fold}, {Right, Top + Fold}, Flap);
+
+            const char* Label{"C#"};
+            ImFont* Font{ImGui::GetFont()};
+            const float FontSize{Size * 0.3f};
+            const ImVec2 TextSize{Font->CalcTextSizeA(FontSize, FLT_MAX, 0.0f, Label)};
+            const ImVec2 TextOrigin{(Left + Right - TextSize.x) * 0.5f, (Top + Fold + Bottom - TextSize.y) * 0.5f};
+
+            // 한 픽셀 옆에 한 번 더 그려 글자를 굵게 보이게 합니다.
+            DrawList->AddText(Font, FontSize, TextOrigin, IM_COL32(255, 255, 255, 255), Label);
+            DrawList->AddText(Font, FontSize, {TextOrigin.x + 1.0f, TextOrigin.y}, IM_COL32(255, 255, 255, 255), Label);
+        }
+    }
+
     /**
      * @brief 편집 컨텍스트를 패널에 연결하고 독립 뷰포트의 배치 연결을 구성합니다.
      */
@@ -63,6 +92,7 @@ namespace Editor {
 		: mContext{Context},
 		  mViewport{Viewport},
 		  mPlaySession{PlaySession},
+		  mScriptBuilds{Context},
 		  mViewportLayout{Context, Viewport, PlaySession},
 		  mPlaceActorsPanel{Context},
 		  mOutlinerPanel{Context},
@@ -133,6 +163,10 @@ namespace Editor {
                 return true;
             }
 
+            if (Message == WM_SETFOCUS) {
+                mScriptBuilds.NotifyFocusGained();
+            }
+
             return ImGui_ImplWin32_WndProcHandler(Window, Message, WParam, LParam) != 0;
         });
 
@@ -154,6 +188,7 @@ namespace Editor {
         mAssetCatalog = std::make_unique<Editor::FEditorAssetCatalog>(mContext->GetProject()->GetAssets());
         mThumbnails = std::make_unique<Editor::FAssetThumbnailCache>(mContext->GetProject()->GetAssets(), Renderer);
         mDetailsPanel.SetAssetServices(mAssetCatalog.get(), mThumbnails.get());
+        mDetailsPanel.SetScriptBuildService(&mScriptBuilds);
         mMeshViewer = std::make_unique<Editor::FMeshViewer>(Renderer, mContext->GetProject()->GetAssets());
         mExit = false;
         mRefreshContent = true;
@@ -318,6 +353,8 @@ namespace Editor {
         ImGui::NewFrame();
         mThumbnails->BeginFrame();
         ImportDroppedFiles();
+        mScriptBuilds.Update(!mPlaySession->IsActive());
+        UpdatePendingPlay();
 
         if (mRefreshContent) {
             RefreshContent();
@@ -532,6 +569,14 @@ namespace Editor {
             ImGui::SameLine(0.0f, 12.0f);
             ImGui::AlignTextToFramePadding();
             ImGui::TextDisabled("%s%s%s", mPlaySession->IsActive() ? mPlaySession->IsPaused() ? "[Paused] " : "[Playing] " : "", mContext->GetScenePath().empty() ? "Untitled" : Core::FilePath::ToUtf8(mContext->GetScenePath().filename()).c_str(), mContext->IsSceneDirty() ? " *" : "");
+
+            if (mScriptBuilds.IsBuilding()) {
+                ImGui::SameLine(0.0f, 16.0f);
+                ImGui::TextDisabled("C# 빌드 중...");
+            } else if (mScriptBuilds.HasCompileErrors()) {
+                ImGui::SameLine(0.0f, 16.0f);
+                ImGui::TextColored({1.0f, 0.45f, 0.4f, 1.0f}, "C# 컴파일 오류: 콘솔을 확인하세요");
+            }
         }
 
         ImGui::End();
@@ -540,19 +585,45 @@ namespace Editor {
         Editor::EditorStyle::PopViewportToolbar();
     }
 
+    void Editor::FEditorUI::RequestPlay() {
+        if (mPlaySession->IsActive()) {
+            return;
+        }
+
+        mScriptBuilds.BuildIfChanged();
+        mPlayPending = true;
+        UpdatePendingPlay();
+    }
+
+    void Editor::FEditorUI::UpdatePendingPlay() {
+        if (!mPlayPending || mScriptBuilds.IsBuilding()) {
+            return;
+        }
+
+        mPlayPending = false;
+
+        if (mScriptBuilds.HasCompileErrors()) {
+            mContext->AddLog("PIE canceled: fix the C# compile errors first");
+        } else if (mViewportLayout.CanChangeLayout()) {
+            mPlaySession->Start(&mPlatform->GetInput());
+        }
+    }
+
     void Editor::FEditorUI::DrawPlayControls() {
         ImGui::PushID("PIEControls");
 
         const bool Active{mPlaySession->IsActive()};
         const bool Paused{mPlaySession->IsPaused()};
         const bool CanStart{!Active && mViewportLayout.CanChangeLayout() && mPlaySession->CanStart()};
-        const char* PlayTooltip{Active ? "Stop (Esc)" : CanStart ? "Play (Alt+P)" : "Play requires an active world camera and an idle editor"};
+        const char* PlayTooltip{Active ? "Stop (Esc)" : mPlayPending ? "Waiting for the C# build (click to cancel)" : CanStart ? "Play (Alt+P)" : "Play requires an active world camera and an idle editor"};
 
-        if (Editor::EditorStyle::IconButton("PlayStop", Active ? Editor::EditorStyle::EIcon::Stop : Editor::EditorStyle::EIcon::Play, false, Active || CanStart, false, PlayTooltip)) {
+        if (Editor::EditorStyle::IconButton("PlayStop", Active ? Editor::EditorStyle::EIcon::Stop : Editor::EditorStyle::EIcon::Play, mPlayPending, Active || CanStart, false, PlayTooltip)) {
             if (Active) {
                 mPlaySession->Stop();
+            } else if (mPlayPending) {
+                mPlayPending = false;
             } else {
-                mPlaySession->Start(&mPlatform->GetInput());
+                RequestPlay();
             }
         }
 
@@ -664,6 +735,21 @@ namespace Editor {
                 ImGui::EndMenu();
             }
 
+            if (ImGui::BeginMenu("Scripts", mContext->GetProject() != nullptr)) {
+                if (ImGui::MenuItem("C# 프로젝트 열기")) {
+                    mScriptBuilds.OpenProject();
+                }
+
+                if (ImGui::MenuItem("스크립트 빌드", nullptr, false, mScriptBuilds.HasProject() && !mScriptBuilds.IsBuilding())) {
+                    mScriptBuilds.Rebuild();
+                }
+
+                ImGui::Separator();
+                ImGui::TextDisabled("C# 디버깅: Visual Studio의 프로세스에 연결에서");
+                ImGui::TextDisabled("Macaw.exe를 고르고 코드 형식을 Managed(.NET Core)로 지정합니다.");
+                ImGui::EndMenu();
+            }
+
             DrawSettingsMenu();
             ImGui::EndMainMenuBar();
         }
@@ -679,7 +765,7 @@ namespace Editor {
 
         if (!ImGui::GetIO().WantTextInput && !ImGui::IsPopupOpen(nullptr, ImGuiPopupFlags_AnyPopup)) {
             if (Input.IsDown(EKey::Alt) && Input.WasPressed(EKey::P) && mViewportLayout.CanChangeLayout()) {
-                mPlaySession->Start(&mPlatform->GetInput());
+                RequestPlay();
             } else if (mPlaySession->IsActive() && Input.WasPressed(EKey::Escape)) {
                 mPlaySession->Stop();
             }
@@ -1069,22 +1155,9 @@ namespace Editor {
             const ImVec2 Size{ImGui::GetWindowSize()};
             RegisterContentDropTarget(mContentDirectory, {Minimum.x, Minimum.y, Minimum.x + Size.x, Minimum.y + Size.y});
             ImGui::TextUnformatted(mContext->GetProject()->GetName().c_str());
-            ImGui::BeginDisabled(!mContext->CanEditWorld());
-
-            if (ImGui::Button("Import...")) {
-                ImportAsset();
-            }
-
             ImGui::SameLine();
 
-            if (ImGui::Button("New Material")) {
-                CreateMaterial();
-            }
-
-            ImGui::EndDisabled();
-            ImGui::SameLine();
-
-            if (ImGui::Button("Refresh")) {
+            if (ImGui::SmallButton("Refresh")) {
                 mRefreshContent = true;
             }
 
@@ -1128,17 +1201,431 @@ namespace Editor {
                 ImGui::TableSetColumnIndex(0);
                 ImGui::BeginChild("Content Folders", ImVec2{0.0f, Height});
                 DrawContentTree({});
+
+                // C# 스크립트는 Content 밖의 Scripts 폴더에 있으므로 별도 루트로 보여 줍니다.
+                if (mScriptBuilds.HasProject()) {
+                    const ImGuiTreeNodeFlags ScriptFlags{ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_NoTreePushOnOpen | (mBrowsingScripts ? ImGuiTreeNodeFlags_Selected : 0)};
+                    ImGui::TreeNodeEx("Scripts##ContentScripts", ScriptFlags);
+
+                    if (ImGui::IsItemClicked()) {
+                        mBrowsingScripts = true;
+                        mSelectedContentPath.clear();
+                    }
+                } else {
+                    mBrowsingScripts = false;
+                }
+
                 mRevealContentDirectory = false;
+
+                if (ImGui::BeginPopupContextWindow("ContentFolderMenu")) {
+                    DrawContentContextMenu();
+                    ImGui::EndPopup();
+                }
+
                 ImGui::EndChild();
                 ImGui::TableSetColumnIndex(1);
                 ImGui::BeginChild("Content Files", ImVec2{0.0f, Height});
                 DrawContentEntries();
+
+                if (ImGui::IsWindowFocused() && !ImGui::GetIO().WantTextInput && !mSelectedContentPath.empty() && mContext->CanEditWorld()) {
+                    if (ImGui::IsKeyPressed(ImGuiKey_F2, false)) {
+                        BeginContentAction(EContentAction::Rename);
+                    } else if (ImGui::IsKeyPressed(ImGuiKey_Delete, false)) {
+                        BeginContentAction(EContentAction::Delete);
+                    }
+                }
+
+                if (ImGui::BeginPopupContextWindow("ContentFileMenu")) {
+                    DrawContentContextMenu();
+                    ImGui::EndPopup();
+                }
+
                 ImGui::EndChild();
                 ImGui::EndTable();
             }
+
+            DrawNewScriptPopup();
+            DrawContentActionPopup();
         }
 
         ImGui::End();
+    }
+
+    std::filesystem::path Editor::FEditorUI::GetContentActionPath(const std::filesystem::path& Path) const {
+        return mBrowsingScripts ? Path : mContext->GetProject()->GetAssets()->GetContentRoot() / Path;
+    }
+
+    void Editor::FEditorUI::BeginContentAction(EContentAction Action) {
+        mContentAction = Action;
+        mContentActionTarget = mSelectedContentPath;
+        mContentActionScript = mBrowsingScripts;
+        mContentActionError.clear();
+        mContentActionReferences.clear();
+        mOpenContentAction = true;
+
+        const std::filesystem::path Absolute{GetContentActionPath(mContentActionTarget)};
+        std::error_code Code{};
+        const bool Directory{std::filesystem::is_directory(Absolute, Code)};
+        const Core::FString Name{Core::FilePath::ToUtf8(Directory || mContentActionScript ? mContentActionTarget.filename() : mContentActionTarget.stem())};
+        mContentActionName.fill('\0');
+        std::copy_n(Name.begin(), std::min(Name.size(), mContentActionName.size() - 1), mContentActionName.begin());
+
+        // 에셋은 다른 에셋에 상대 경로 문자열로 저장되고, 스크립트는 씬에 클래스 이름으로 저장됩니다.
+        Core::FString Needle{};
+        std::regex ScriptClass{};
+
+        if (mContentActionScript) {
+            ScriptClass = std::regex{"\"ScriptClass\":\\s*\"([A-Za-z0-9_.]*\\.)?" + Core::FilePath::ToUtf8(mContentActionTarget.stem()) + "\""};
+        } else {
+            Needle = Core::FilePath::ToGenericUtf8(mContentActionTarget) + (Directory ? "/" : "\"");
+            Needle = Directory ? "\"" + Needle : "\"" + Needle;
+        }
+
+        const std::filesystem::path Root{mContext->GetProject()->GetAssets()->GetContentRoot()};
+        std::filesystem::recursive_directory_iterator Iterator{Root, std::filesystem::directory_options::skip_permission_denied, Code};
+        const std::filesystem::recursive_directory_iterator End{};
+
+        for (; !Code && Iterator != End; Iterator.increment(Code)) {
+            const std::filesystem::path Relative{Iterator->path().lexically_relative(Root)};
+            const auto Inside{Relative.lexically_relative(mContentActionTarget)};
+
+            if (!Iterator->is_regular_file(Code) || Core::FilePath::ToLowerExtension(Relative) != L".masset" || (!mContentActionScript && (Relative == mContentActionTarget || (!Inside.empty() && *Inside.begin() != L"..")))) {
+                continue;
+            }
+
+            std::ifstream Input{Iterator->path(), std::ios::binary};
+            const std::string Text{std::istreambuf_iterator<char>{Input}, std::istreambuf_iterator<char>{}};
+
+            if (mContentActionScript ? std::regex_search(Text, ScriptClass) : Text.find(Needle) != std::string::npos) {
+                mContentActionReferences.push_back(Relative);
+            }
+        }
+    }
+
+    Core::FString Editor::FEditorUI::FindContentActionBlocker(const std::filesystem::path& Absolute) const {
+        Asset::FAssetManager* Assets{mContext->GetProject()->GetAssets()};
+        Core::FString Error{};
+        std::error_code Code{};
+        const auto Contains{[&](const std::filesystem::path& Open) {
+            if (Open.empty()) {
+                return false;
+            }
+
+            const std::filesystem::path Resolved{Assets->ResolvePath(Open, Error)};
+            const auto Relative{std::filesystem::weakly_canonical(Resolved, Code).lexically_relative(std::filesystem::weakly_canonical(Absolute, Code))};
+
+            return !Resolved.empty() && !Relative.empty() && *Relative.begin() != L"..";
+        }};
+
+        if (mPlaySession->IsActive() || !mContext->CanEditWorld()) {
+            return "PIE 중에는 바꿀 수 없습니다.";
+        }
+
+        if (Contains(mContext->GetScenePath())) {
+            return "지금 열려 있는 씬입니다. 다른 씬을 연 뒤에 다시 시도하세요.";
+        }
+
+        if (mEditingMaterial != nullptr && Contains(mMaterialPath)) {
+            return "편집 중인 머티리얼입니다. 머티리얼 편집기를 닫은 뒤에 다시 시도하세요.";
+        }
+
+        return {};
+    }
+
+    void Editor::FEditorUI::DrawContentActionPopup() {
+        constexpr const char* RenameName{"Rename Asset"};
+        constexpr const char* DeleteName{"Delete Asset"};
+        const char* PopupName{mContentAction == EContentAction::Rename ? RenameName : DeleteName};
+
+        if (mOpenContentAction) {
+            ImGui::OpenPopup(PopupName);
+            mOpenContentAction = false;
+        }
+
+        if (!ImGui::BeginPopupModal(PopupName, nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+            return;
+        }
+
+        const std::filesystem::path Absolute{GetContentActionPath(mContentActionTarget)};
+        std::error_code Code{};
+        const bool Directory{std::filesystem::is_directory(Absolute, Code)};
+        const Core::FString Display{mContentActionScript ? Core::FilePath::ToUtf8(mContentActionTarget.filename()) : Core::FilePath::ToGenericUtf8(mContentActionTarget)};
+        bool Confirmed{};
+
+        if (mContentAction == EContentAction::Rename) {
+            ImGui::Text("%s의 새 이름", Display.c_str());
+
+            if (ImGui::IsWindowAppearing()) {
+                ImGui::SetKeyboardFocusHere();
+            }
+
+            Confirmed = ImGui::InputText("##ContentRename", mContentActionName.data(), mContentActionName.size(), ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_AutoSelectAll);
+
+            if (mContentActionScript) {
+                ImGui::TextDisabled("파일 안의 클래스 이름도 함께 바꿉니다.");
+            }
+        } else {
+            ImGui::Text("%s%s을(를) 휴지통으로 옮길까요?", Display.c_str(), Directory ? " 폴더와 그 안의 모든 파일" : "");
+        }
+
+        if (!mContentActionReferences.empty()) {
+            ImGui::Spacing();
+            ImGui::TextColored({1.0f, 0.75f, 0.3f, 1.0f}, mContentActionScript ? "다음 씬이 이 스크립트 클래스를 씁니다. 연결이 끊어집니다." : "다음 에셋이 이 경로를 참조합니다. 참조가 끊어집니다.");
+
+            for (std::size_t Index{}; Index < std::min<std::size_t>(mContentActionReferences.size(), 6); ++Index) {
+                ImGui::BulletText("%s", Core::FilePath::ToGenericUtf8(mContentActionReferences[Index]).c_str());
+            }
+
+            if (mContentActionReferences.size() > 6) {
+                ImGui::TextDisabled("외 %zu개", mContentActionReferences.size() - 6);
+            }
+        }
+
+        if (!mContentActionError.empty()) {
+            ImGui::TextColored({1.0f, 0.45f, 0.4f, 1.0f}, "%s", mContentActionError.c_str());
+        }
+
+        ImGui::Spacing();
+        Confirmed |= ImGui::Button(mContentAction == EContentAction::Rename ? "Rename" : "Delete");
+        ImGui::SameLine();
+
+        if (ImGui::Button("Cancel") || ImGui::IsKeyPressed(ImGuiKey_Escape)) {
+            ImGui::CloseCurrentPopup();
+        }
+
+        if (Confirmed && (mContentAction == EContentAction::Rename ? RenameContent() : DeleteContent())) {
+            ImGui::CloseCurrentPopup();
+        }
+
+        ImGui::EndPopup();
+    }
+
+    bool Editor::FEditorUI::RenameContent() {
+        const std::filesystem::path Absolute{GetContentActionPath(mContentActionTarget)};
+        const Core::FString NewName{mContentActionName.data()};
+        std::error_code Code{};
+        const bool Directory{std::filesystem::is_directory(Absolute, Code)};
+
+        if (mContentActionError = FindContentActionBlocker(Absolute); !mContentActionError.empty()) {
+            return false;
+        }
+
+        if (NewName.empty() || NewName.find_first_of("\\/:*?\"<>|") != Core::FString::npos || NewName.back() == '.' || NewName.back() == ' ') {
+            mContentActionError = "이름이 비어 있거나 쓸 수 없는 문자가 들어 있습니다.";
+            return false;
+        }
+
+        // 스크립트는 클래스 이름과 파일 이름이 같아야 하므로 확장자를 떼고 식별자 규칙을 따릅니다.
+        const std::filesystem::path NewFile{mContentActionScript ? std::filesystem::path{Core::FilePath::FromUtf8(NewName.c_str())}.replace_extension(".cs") : Directory ? std::filesystem::path{Core::FilePath::FromUtf8(NewName.c_str())} : std::filesystem::path{Core::FilePath::FromUtf8(NewName.c_str())} += mContentActionTarget.extension()};
+        const std::filesystem::path Destination{Absolute.parent_path() / NewFile};
+        const Core::FString ClassName{Core::FilePath::ToUtf8(NewFile.stem())};
+
+        if (mContentActionScript && !std::regex_match(ClassName, std::regex{"[A-Za-z_][A-Za-z0-9_]*"})) {
+            mContentActionError = "클래스 이름은 영문자나 _로 시작하고 영문자, 숫자, _만 쓸 수 있습니다.";
+            return false;
+        }
+
+        if (Destination == Absolute) {
+            return true;
+        }
+
+        // 대소문자만 바꾸는 경우는 같은 파일로 보이므로 존재 검사를 건너뜁니다.
+        if (std::filesystem::exists(Destination, Code) && !std::filesystem::equivalent(Destination, Absolute, Code)) {
+            mContentActionError = "같은 이름의 항목이 이미 있습니다.";
+            return false;
+        }
+
+        std::filesystem::rename(Absolute, Destination, Code);
+
+        if (Code) {
+            mContentActionError = "이름을 바꾸지 못했습니다: " + Code.message();
+            return false;
+        }
+
+        if (mContentActionScript) {
+            std::ifstream Input{Destination, std::ios::binary};
+            const std::string Text{std::istreambuf_iterator<char>{Input}, std::istreambuf_iterator<char>{}};
+            Input.close();
+            const std::regex Declaration{"\\b(class|struct)(\\s+)" + Core::FilePath::ToUtf8(mContentActionTarget.stem()) + "\\b"};
+            const std::string Renamed{std::regex_replace(Text, Declaration, "$1$2" + ClassName, std::regex_constants::format_first_only)};
+
+            if (Renamed != Text) {
+                std::ofstream{Destination, std::ios::binary} << Renamed;
+            }
+
+            mScriptBuilds.RefreshScriptFiles();
+            mSelectedContentPath = Destination;
+        } else {
+            mSelectedContentPath = mContentActionTarget.parent_path() / NewFile;
+            mRefreshContent = true;
+
+            if (mContentDirectory == mContentActionTarget) {
+                mContentDirectory = mSelectedContentPath;
+            }
+        }
+
+        mContext->AddLog("Renamed " + Core::FilePath::ToGenericUtf8(mContentActionTarget) + " to " + Core::FilePath::ToUtf8(NewFile));
+
+        return true;
+    }
+
+    bool Editor::FEditorUI::DeleteContent() {
+        const std::filesystem::path Absolute{GetContentActionPath(mContentActionTarget)};
+
+        if (mContentActionError = FindContentActionBlocker(Absolute); !mContentActionError.empty()) {
+            return false;
+        }
+
+        // 실수로 지워도 되돌릴 수 있도록 휴지통으로 옮깁니다. 경로 목록은 두 개의 NUL로 끝나야 합니다.
+        std::wstring From{Absolute.native()};
+        From.push_back(L'\0');
+        SHFILEOPSTRUCTW Operation{};
+        Operation.hwnd = mPlatform->GetWindowHandle();
+        Operation.wFunc = FO_DELETE;
+        Operation.pFrom = From.c_str();
+        Operation.fFlags = FOF_ALLOWUNDO | FOF_NOCONFIRMATION | FOF_SILENT | FOF_NOERRORUI;
+
+        if (SHFileOperationW(&Operation) != 0 || Operation.fAnyOperationsAborted) {
+            mContentActionError = "휴지통으로 옮기지 못했습니다. 다른 프로그램이 파일을 쓰고 있는지 확인하세요.";
+            return false;
+        }
+
+        mSelectedContentPath.clear();
+
+        if (mContentActionScript) {
+            mScriptBuilds.RefreshScriptFiles();
+        } else {
+            mRefreshContent = true;
+        }
+
+        mContext->AddLog("Moved " + Core::FilePath::ToGenericUtf8(mContentActionTarget) + " to the Recycle Bin");
+
+        return true;
+    }
+
+    void Editor::FEditorUI::DrawContentContextMenu() {
+        const bool CanEdit{mContext->CanEditWorld()};
+
+        // 스크립트 폴더에는 엔진 에셋을 만들 수 없으므로 에셋 항목을 감춥니다.
+        if (!mBrowsingScripts) {
+            if (ImGui::MenuItem("New Folder", nullptr, false, CanEdit)) {
+                CreateContentFolder();
+            }
+
+            if (ImGui::MenuItem("New Material", nullptr, false, CanEdit)) {
+                CreateMaterial();
+            }
+        }
+
+        if (ImGui::MenuItem("New C# Script...")) {
+            mNewScriptName.fill('\0');
+            mNewScriptError.clear();
+            mOpenNewScript = true;
+        }
+
+        if (!mSelectedContentPath.empty()) {
+            ImGui::Separator();
+
+            if (ImGui::MenuItem("Rename...", "F2", false, CanEdit)) {
+                BeginContentAction(EContentAction::Rename);
+            }
+
+            if (ImGui::MenuItem("Delete", "Del", false, CanEdit)) {
+                BeginContentAction(EContentAction::Delete);
+            }
+        }
+
+        if (!mBrowsingScripts) {
+            ImGui::Separator();
+
+            if (ImGui::MenuItem("Import...", nullptr, false, CanEdit)) {
+                ImportAsset();
+            }
+        }
+
+        ImGui::Separator();
+
+        if (ImGui::MenuItem("Show in Explorer")) {
+            ShowContentInExplorer();
+        }
+
+        if (ImGui::MenuItem("Refresh")) {
+            mRefreshContent = true;
+        }
+    }
+
+    void Editor::FEditorUI::CreateContentFolder() {
+        const std::filesystem::path Root{mContext->GetProject()->GetAssets()->GetContentRoot()};
+        std::filesystem::path Path{mContentDirectory / "NewFolder"};
+        std::error_code Code{};
+
+        for (Core::Uint32 Index{1}; std::filesystem::exists(Root / Path, Code) && !Code; ++Index) {
+            Path = mContentDirectory / ("NewFolder_" + std::to_string(Index));
+        }
+
+        if (Code || !std::filesystem::create_directory(Root / Path, Code)) {
+            mContext->AddLog("Cannot create the folder " + Core::FilePath::ToGenericUtf8(Path));
+            return;
+        }
+
+        mRefreshContent = true;
+        mSelectedContentPath = Path;
+    }
+
+    void Editor::FEditorUI::ShowContentInExplorer() const {
+        std::filesystem::path Target{};
+
+        if (mBrowsingScripts) {
+            Target = !mSelectedContentPath.empty() ? mSelectedContentPath : mContext->GetProject()->GetRootPath() / "Scripts";
+        } else {
+            Target = mContext->GetProject()->GetAssets()->GetContentRoot() / (!mSelectedContentPath.empty() ? mSelectedContentPath : mContentDirectory);
+        }
+
+        std::error_code Code{};
+        Target = std::filesystem::weakly_canonical(Target, Code).make_preferred();
+
+        // 파일은 상위 폴더를 열고 그 파일을 선택하며, 폴더는 그 폴더를 엽니다.
+        const std::wstring Arguments{std::filesystem::is_directory(Target, Code) ? L"\"" + Target.native() + L"\"" : L"/select,\"" + Target.native() + L"\""};
+        ShellExecuteW(nullptr, L"open", L"explorer.exe", Arguments.c_str(), nullptr, SW_SHOWNORMAL);
+    }
+
+    void Editor::FEditorUI::DrawNewScriptPopup() {
+        constexpr const char* PopupName{"New C# Script"};
+
+        if (mOpenNewScript) {
+            ImGui::OpenPopup(PopupName);
+            mOpenNewScript = false;
+        }
+
+        if (!ImGui::BeginPopupModal(PopupName, nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+            return;
+        }
+
+        if (ImGui::IsWindowAppearing()) {
+            ImGui::SetKeyboardFocusHere();
+        }
+
+        const bool Submitted{ImGui::InputTextWithHint("Class Name", "PlayerController", mNewScriptName.data(), mNewScriptName.size(), ImGuiInputTextFlags_EnterReturnsTrue)};
+        ImGui::TextDisabled("Scripts/<Class Name>.cs 파일을 만들고 Visual Studio에서 엽니다.");
+
+        if (!mNewScriptError.empty()) {
+            ImGui::TextColored({1.0f, 0.45f, 0.4f, 1.0f}, "%s", mNewScriptError.c_str());
+        }
+
+        if (ImGui::Button("Create") || Submitted) {
+            if (mScriptBuilds.CreateScript(mNewScriptName.data(), mNewScriptError)) {
+                mBrowsingScripts = true;
+                ImGui::CloseCurrentPopup();
+            }
+        }
+
+        ImGui::SameLine();
+
+        if (ImGui::Button("Cancel") || ImGui::IsKeyPressed(ImGuiKey_Escape)) {
+            ImGui::CloseCurrentPopup();
+        }
+
+        ImGui::EndPopup();
     }
 
     void Editor::FEditorUI::DrawTexturePreview() {
@@ -1225,6 +1712,7 @@ namespace Editor {
 
     void Editor::FEditorUI::NavigateContent(const std::filesystem::path& Directory) {
         if (mContentFolders.contains(Directory)) {
+            mBrowsingScripts = false;
             mContentDirectory = Directory;
             mSelectedContentPath.clear();
             mRevealContentDirectory = true;
@@ -1242,7 +1730,7 @@ namespace Editor {
         const Core::FString Id{Core::FilePath::ToUtf8(Directory)};
         ImGuiTreeNodeFlags Flags{ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_SpanAvailWidth};
 
-        if (Directory == mContentDirectory) {
+        if (Directory == mContentDirectory && !mBrowsingScripts) {
             Flags |= ImGuiTreeNodeFlags_Selected;
         }
 
@@ -1284,6 +1772,20 @@ namespace Editor {
 
     void Editor::FEditorUI::DrawContentBreadcrumbs() {
         ImGui::PushID("Content Path");
+
+        if (mBrowsingScripts) {
+            if (ImGui::SmallButton("Content")) {
+                NavigateContent({});
+            }
+
+            ImGui::SameLine();
+            ImGui::TextUnformatted("|");
+            ImGui::SameLine();
+            ImGui::TextUnformatted("Scripts");
+            ImGui::PopID();
+            return;
+        }
+
         ImGui::BeginDisabled(mContentDirectory.empty());
 
         if (ImGui::SmallButton("Up")) {
@@ -1333,11 +1835,24 @@ namespace Editor {
         Core::TArray<std::filesystem::path> Assets{};
         const auto Folder{mContentFolders.find(mContentDirectory)};
 
-        if (!Recursive && Folder != mContentFolders.end()) {
+        if (!Recursive && Folder != mContentFolders.end() && !mBrowsingScripts) {
             Folders = Folder->second;
         }
 
+        // 스크립트 폴더는 하위 폴더 없이 모든 C# 파일을 한 번에 보여 줍니다.
+        if (mBrowsingScripts) {
+            for (const auto& Path : mScriptBuilds.GetScriptFiles()) {
+                if (Search.PassFilter(Core::FilePath::ToGenericUtf8(Path.filename()).c_str())) {
+                    Assets.push_back(Path);
+                }
+            }
+        }
+
         for (const auto& Path : mAssetPaths) {
+            if (mBrowsingScripts) {
+                break;
+            }
+
             const auto Type{mAssetTypes.find(Path)};
             const auto Relative{Path.lexically_relative(mContentDirectory)};
             const bool InFolder{Recursive ? mContentDirectory.empty() || (!Relative.empty() && *Relative.begin() != L"..") : Path.parent_path() == mContentDirectory};
@@ -1352,7 +1867,7 @@ namespace Editor {
         const int Count{static_cast<int>(Folders.size() + Assets.size())};
 
         if (Count == 0) {
-            ImGui::TextDisabled("No assets match this folder or search.");
+            ImGui::TextDisabled(mBrowsingScripts ? "No C# scripts match this search." : "No assets match this folder or search.");
             return;
         }
 
@@ -1397,7 +1912,8 @@ namespace Editor {
                         const auto Type{mAssetTypes.find(Path)};
                         const bool HasThumbnail{!Directory && Type != mAssetTypes.end() && (Type->second == Asset::EAssetType::Mesh || Type->second == Asset::EAssetType::SkeletalMesh || Type->second == Asset::EAssetType::Material || Type->second == Asset::EAssetType::Texture)};
                         void* Thumbnail{HasThumbnail ? mThumbnails->GetThumbnail(Path, Type->second) : nullptr};
-                        const char* Kind{Directory ? "Folder" : Type == mAssetTypes.end() ? "File" : Type->second == Asset::EAssetType::Mesh ? "Mesh" : Type->second == Asset::EAssetType::SkeletalMesh ? "Skeletal Mesh" : Type->second == Asset::EAssetType::Material ? "Material" : Type->second == Asset::EAssetType::Texture ? "Texture" : Type->second == Asset::EAssetType::Sequence ? "Sequence" : "Scene"};
+                        const bool ScriptFile{mBrowsingScripts && !Directory};
+                        const char* Kind{ScriptFile ? "C# Script" : Directory ? "Folder" : Type == mAssetTypes.end() ? "File" : Type->second == Asset::EAssetType::Mesh ? "Mesh" : Type->second == Asset::EAssetType::SkeletalMesh ? "Skeletal Mesh" : Type->second == Asset::EAssetType::Material ? "Material" : Type->second == Asset::EAssetType::Texture ? "Texture" : Type->second == Asset::EAssetType::Sequence ? "Sequence" : "Scene"};
                         const Core::FString Actual{Core::FilePath::ToGenericUtf8(Path)};
                         const Core::FString Name{Core::FilePath::ToUtf8(Directory ? Path.filename() : Path.stem())};
                         ImGui::PushID(Actual.c_str());
@@ -1411,10 +1927,17 @@ namespace Editor {
                                 if (Directory) {
                                     Requested = Path;
                                     Navigate = true;
+                                } else if (ScriptFile) {
+                                    mScriptBuilds.OpenScriptFile(Path);
                                 } else if (Type != mAssetTypes.end() && mContext->CanEditWorld()) {
                                     OpenContentAsset(Path, Type->second);
                                 }
                             }
+                        }
+
+                        // 우클릭 메뉴가 이 항목을 대상으로 하도록 먼저 선택합니다.
+                        if (ImGui::IsItemClicked(ImGuiMouseButton_Right)) {
+                            mSelectedContentPath = Path;
                         }
 
                         const bool Hovered{ImGui::IsItemHovered()};
@@ -1450,6 +1973,9 @@ namespace Editor {
 
                         if (Thumbnail != nullptr) {
                             ImGui::Image(ImTextureRef{static_cast<ImTextureID>(reinterpret_cast<std::uintptr_t>(Thumbnail))}, {ImageSize, ImageSize});
+                        } else if (ScriptFile) {
+                            DrawScriptIcon(ImGui::GetWindowDrawList(), {Origin.x + ImageOffset, Origin.y + Padding}, ImageSize);
+                            ImGui::Dummy({ImageSize, ImageSize});
                         } else {
                             ImGui::GetWindowDrawList()->AddRectFilled({Origin.x + ImageOffset, Origin.y + Padding}, {Origin.x + ImageOffset + ImageSize, Origin.y + Padding + ImageSize}, Directory ? IM_COL32(79, 65, 34, 255) : IM_COL32(34, 42, 54, 255), 5.0f * Scale);
 
