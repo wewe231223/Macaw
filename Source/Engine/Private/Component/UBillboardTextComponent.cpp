@@ -98,6 +98,20 @@ namespace Engine {
         return true;
     }
 
+    bool Engine::UBillboardTextComponent::GetDepthTest() const {
+        return mDepthTest;
+    }
+
+    bool Engine::UBillboardTextComponent::SetDepthTest(bool DepthTest) {
+        if (mDepthTest != DepthTest) {
+            mDepthTest = DepthTest;
+
+            MarkRenderStateDirty();
+        }
+
+        return true;
+    }
+
     /**
      * @brief 표시할 프리미티브 메시 종류를 반환합니다.
      */
@@ -120,6 +134,7 @@ namespace Engine {
     Engine::FPrimitiveSceneProxy Engine::UBillboardTextComponent::CreateSceneProxy() const {
         Engine::FPrimitiveSceneProxy Proxy{GetGuid(), GetPrimitiveType(), GetWorldMatrix(), GetWorldBounds()};
         Proxy.mText = Engine::FDrawText{{}, mText, mTextColor, mTextSize};
+        Proxy.mText->mDepthTest = mDepthTest;
 
         return Proxy;
     }

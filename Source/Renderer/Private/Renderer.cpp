@@ -1023,7 +1023,7 @@ namespace Renderer {
     }
 
     /**
-     * @brief 깊이 검사 없이 표시할 에디터 텍스트를 마지막 오버레이로 그립니다.
+     * @brief 깊이 검사 없이 표시할 텍스트를 마지막 오버레이로 그립니다.
      */
     void Renderer::FRenderer::DrawOverlayTexts(const Engine::FSceneViewFamily& Family) {
         mContext->RSSetState(mRasterizer.Get());
@@ -1033,6 +1033,23 @@ namespace Renderer {
         }
 
         Core::TArray<Engine::FDrawText> Texts{};
+
+        if (Family.mShowFlags.mPrimitives) {
+            const auto* Scene{static_cast<const Renderer::FScene*>(Family.mScene)};
+
+            for (const Renderer::FScenePrimitive& Primitive : Scene->GetPrimitives()) {
+                const Engine::FPrimitiveSceneProxy& Proxy{Primitive.mProxy};
+
+                if (Proxy.mText.has_value() && !Proxy.mText->mDepthTest) {
+                    Engine::FDrawText Text{*Proxy.mText};
+                    Text.mPosition = Proxy.mWorld.TransformPosition(Text.mPosition);
+                    Text.mScale.x *= Proxy.mWorld.TransformVector({0.0f, 1.0f, 0.0f}).Length();
+                    Text.mScale.y *= Proxy.mWorld.TransformVector({0.0f, 0.0f, 1.0f}).Length();
+
+                    Texts.push_back(std::move(Text));
+                }
+            }
+        }
 
         if (Family.mEditorElements != nullptr) {
             for (const Engine::FDrawText& Text : Family.mEditorElements->GetTexts()) {
@@ -1298,7 +1315,7 @@ namespace Renderer {
 
                 if (Proxy.mSprite.has_value() && Family.mShowFlags.mSprites) {
                     Commands.emplace_back(Depth(Proxy.mWorld.TransformPosition({}), false), FPrimitive{&Proxy});
-                } else if (Proxy.mText.has_value() && Family.mShowFlags.mText) {
+                } else if (Proxy.mText.has_value() && Proxy.mText->mDepthTest && Family.mShowFlags.mText) {
                     Engine::FDrawText Text{*Proxy.mText};
                     Text.mPosition = Proxy.mWorld.TransformPosition(Text.mPosition);
                     Text.mScale.x *= Proxy.mWorld.TransformVector({0.0f, 1.0f, 0.0f}).Length();

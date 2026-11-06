@@ -70,6 +70,9 @@ namespace Engine {
          */
         bool SetTextColor(const Core::FVector4& Color);
 
+        bool GetDepthTest() const;
+        bool SetDepthTest(bool DepthTest);
+
         /**
          * @brief 표시할 프리미티브 메시 종류를 반환합니다.
          * @return 표시할 프리미티브 메시 종류입니다.
@@ -118,6 +121,9 @@ namespace Engine {
          */
         UPROPERTY(Edit, Serialize, Getter = GetTextColor, Setter = SetTextColor)
         Core::FVector4 mTextColor{1.0f, 1.0f, 1.0f, 1.0f};
+
+        UPROPERTY(Edit, Serialize, Getter = GetDepthTest, Setter = SetDepthTest)
+        bool mDepthTest{true};
     };
 
 }
