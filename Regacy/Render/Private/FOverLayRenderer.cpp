@@ -18,6 +18,7 @@ bool FOverLayRenderer::Initialize(ID3D11Device* Device) {
 
     if (!MaskPipeline.Initialize("./Content/Pipeline/SelectionMask.json") || !OutlinePipeline.Initialize("./Content/Pipeline/SelectionOutline.json") || !mSelectionMaskPipeline.Initialize(Device, MaskPipeline) || !mSelectionOutlinePipeline.Initialize(Device, OutlinePipeline) || !mTextRenderer.Initialize(Device) || !mAssetResources.Initialize(Device, false)) {
         Reset();
+
         return false;
     }
 
@@ -191,6 +192,7 @@ bool FOverLayRenderer::PrepareDepth(ID3D11DeviceContext* Context, const FSceneRe
         D3D11_DEPTH_STENCIL_VIEW_DESC ViewDescription{};
 
         Output.mDepthStencilView->GetDesc(&ViewDescription);
+
         Description.Usage = D3D11_USAGE_DEFAULT;
         Description.BindFlags = D3D11_BIND_DEPTH_STENCIL;
         Description.CPUAccessFlags = 0;
@@ -206,6 +208,7 @@ bool FOverLayRenderer::PrepareDepth(ID3D11DeviceContext* Context, const FSceneRe
 
     Context->OMSetRenderTargets(0, nullptr, nullptr);
     Context->CopyResource(Depth.mTexture.Get(), Source.Get());
+
     Depth.mLastUsedFrame = mFrameSerial;
     mCurrentDepth = Depth.mView.Get();
     mCurrentTarget = Output.mTarget;
@@ -223,6 +226,7 @@ bool FOverLayRenderer::PrepareSelectionMask() {
     D3D11_TEXTURE2D_DESC Description{};
 
     Depth.mTexture->GetDesc(&Description);
+
     Description.Format = DXGI_FORMAT_R8_UNORM;
     Description.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
 

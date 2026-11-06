@@ -17,8 +17,16 @@ namespace Asset {
      */
     class FSequenceTransformTrack final : public Asset::FSequenceTrack {
     public:
+        /**
+         * @brief 트랙의 구체 타입을 반환합니다.
+         * @return 트랙 타입입니다.
+         */
         Asset::ESequenceTrackType GetType() const override;
 
+        /**
+         * @brief 아카이브 모드에 따라 트랙 내용을 읽거나 저장합니다.
+         * @param[in,out] Archive 값을 읽거나 쓸 아카이브입니다.
+         */
         void Serialize(Core::FArchive& Archive) override;
 
         /**

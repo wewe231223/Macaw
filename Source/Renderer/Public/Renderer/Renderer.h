@@ -48,6 +48,7 @@ namespace Renderer {
     class FMeshPass;
     class FShadowDepthPass;
     class FBasePass;
+
     enum class EMeshPass : Core::Uint8;
 
     /**
@@ -239,6 +240,7 @@ namespace Renderer {
          * @param[in] Mode 파이프라인에 적용할 조명·와이어프레임·법선 표시 모드입니다.
          * @param[in] Skinned 객체별 본 포즈를 적용하는 변형을 선택하려면 true입니다.
          * @return 대상의 비소유 주소이며, 없거나 유효하지 않으면 nullptr입니다.
+         * @param[in] ReceiveShadows 그림자 수신 셰이더 변형의 사용 여부입니다.
          */
         Renderer::FMaterialPipeline* GetMaterialPipeline(const Asset::UMaterial& Material, Engine::EViewMode Mode = Engine::EViewMode::Lit_Phong, bool Skinned = false, bool ReceiveShadows = true);
 
@@ -263,6 +265,14 @@ namespace Renderer {
         void SetProjectPaths(const std::filesystem::path& ContentRoot, const std::filesystem::path& CacheDirectory);
 
     private:
+        /**
+         * @brief 코드·패스·인스턴싱·스키닝 조합의 GPU 셰이더 인스턴스를 조회합니다.
+         * @param[in] Description 소스·프로필·진입점·매크로를 지정한 셰이더 설명입니다.
+         * @param[in] Pass 변형·입력 레이아웃을 고를 메시 패스입니다.
+         * @param[in] Instanced 인스턴스 정점 스트림을 사용하면 true입니다.
+         * @param[in] Skinned 본 인덱스·가중치 스트림을 사용하면 true입니다.
+         * @return 조합에 대응하는 공유 셰이더 인스턴스입니다.
+         */
         std::shared_ptr<Renderer::FShaderInstance> GetShaderInstance(const RenderCore::FShaderDescription& Description, Renderer::EMeshPass Pass, bool Instanced, bool Skinned);
 
         /**
@@ -376,7 +386,11 @@ namespace Renderer {
         Core::Uint32 SubmitMeshCommands(const Engine::FSceneViewFamily& Family, Renderer::EMeshPass Pass, std::span<const Renderer::FMeshDrawCommand> Commands);
 
     private:
+        /**
+         * @brief 프레임 광원 버퍼와 타일 컬링 자원입니다.
+         */
         std::unique_ptr<Renderer::FLightingResources> mLightingResources{};
+
         /**
          * @brief 장면 컬러·깊이를 읽는 후처리 셰이더와 GPU 상태의 소유 객체입니다.
          */
@@ -432,6 +446,9 @@ namespace Renderer {
          */
         Core::TMap<Core::FString, std::unique_ptr<Renderer::FMaterialPipeline>> mMaterialPipelines{};
 
+        /**
+         * @brief 코드·패스·인스턴싱·스키닝별 GPU 셰이더 캐시입니다.
+         */
         Core::TMap<Core::FString, std::shared_ptr<Renderer::FShaderInstance>> mShaderInstances{};
 
         /**

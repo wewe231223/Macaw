@@ -143,56 +143,69 @@ namespace Editor {
          * @brief 기본값과 테마 카탈로그를 준비하고 프로젝트의 저장된 에디터 환경 설정을 복원합니다.
          */
         void InitializeSettings();
+
         /**
          * @brief 프로젝트의 버전 1 환경 설정을 읽고 실패 원인을 상태 문자열과 에디터 로그에 기록합니다.
          */
         void LoadSettings();
+
         /**
          * @brief 환경 설정을 임시 파일에 기록한 뒤 교체하고 ImGui 배치도 저장합니다.
          * @return 모든 설정을 저장하면 true이며 파일 처리에 실패하면 false입니다.
          */
         bool SaveSettings();
+
         /**
          * @brief 테마·폰트·입력·패널과 네 뷰포트의 환경 설정을 아카이브로 저장하거나 복원합니다.
          * @param[in,out] Archive 모드에 따라 값을 읽거나 쓸 아카이브입니다.
          */
         void SerializeSettings(Serialization::FJsonArchive& Archive);
+
         /**
          * @brief 상단 메뉴에 테마·UI 배율·VSync와 설정 창 열기 항목을 표시합니다.
          */
         void DrawSettingsMenu();
+
         /**
          * @brief 선택한 설정 분류의 편집 UI와 저장·초기화 상태를 표시합니다.
          */
         void DrawSettings();
+
         /**
          * @brief 테마 검색·가져오기와 기본 폰트 크기 등 인터페이스 설정을 편집합니다.
          */
         void DrawInterfaceSettings();
+
         /**
          * @brief 선택한 뷰포트의 카메라·컬러 모드·버퍼 시각화·ShowFlag를 편집합니다.
          */
         void DrawViewportSettings();
+
         /**
          * @brief 선택한 뷰포트의 변환 도구·좌표계·스냅 간격과 기즈모 크기를 편집합니다.
          */
         void DrawGizmoSettings();
+
         /**
          * @brief VSync와 뷰포트별 렌더링 관련 표시 설정을 편집합니다.
          */
         void DrawRenderingSettings();
+
         /**
          * @brief 에디터 패널과 선택한 뷰포트의 통계 그룹 표시 설정을 편집합니다.
          */
         void DrawPanelSettings();
+
         /**
          * @brief 프로젝트 경로와 시작 장면을 표시하고 시작 장면 설정을 저장합니다.
          */
         void DrawProjectSettings();
+
         /**
          * @brief 파일 선택으로 ImThemes TOML을 가져오고 프로젝트 Saved/Themes에 보관합니다.
          */
         void ImportTheme();
+
         /**
          * @brief 에디터 환경 설정·패널·뷰포트·입력·배율을 기본값으로 되돌립니다.
          */
@@ -270,7 +283,14 @@ namespace Editor {
          * @brief 콘텐츠 항목에 대한 이름 바꾸기 또는 삭제 작업입니다.
          */
         enum class EContentAction {
+            /**
+             * @brief 선택 콘텐츠의 이름 변경을 요청합니다.
+             */
             Rename,
+
+            /**
+             * @brief 선택 콘텐츠의 삭제를 요청합니다.
+             */
             Delete
         };
 
@@ -370,6 +390,7 @@ namespace Editor {
          * @param[in] Directory 가져온 에셋을 저장할 Content 폴더입니다.
          */
         void RequestImport(Core::TArray<std::filesystem::path> Sources, const std::filesystem::path& Directory);
+
         /**
          * @brief 원본 파일 목록을 대상 콘텐츠 디렉터리에 가져오고 에셋 목록과 결과 로그를 갱신합니다.
          * @param[in] Sources 가져올 원본 파일 경로 목록입니다.
@@ -377,19 +398,23 @@ namespace Editor {
          * @param[in] Option 메시 원본에 적용할 임포트 옵션입니다.
          */
         void ImportFiles(const Core::TArray<std::filesystem::path>& Sources, const std::filesystem::path& Directory, const Asset::FAssetImportOption& Option);
+
         /**
          * @brief 대기 중인 메시 가져오기 묶음이 있으면 임포트 옵션 모달 창을 그리고, 확인하면 옵션대로 가져옵니다.
          */
         void DrawImportOptions();
+
         /**
          * @brief Windows 드롭 핸들에서 경로와 대상 영역을 수집하여 가져오기를 대기열에 넣고 핸들을 해제합니다.
          * @param[in] Handle 처리 후 DragFinish로 해제할 Windows HDROP 핸들입니다.
          */
         void QueueFileDrop(void* Handle);
+
         /**
          * @brief 대기 중인 파일 드롭 묶음을 꺼내 각 대상 디렉터리로 가져옵니다.
          */
         void ImportDroppedFiles();
+
         /**
          * @brief 콘텐츠 영역을 현재 ImGui 클립 사각형으로 잘라 파일 드롭 대상으로 등록합니다.
          * @param[in] Directory 드롭한 파일을 가져올 Content 폴더입니다.
@@ -496,54 +521,67 @@ namespace Editor {
          * @brief 프로젝트 설정에서 선택·검색할 기본 테마와 가져온 ImThemes 카탈로그입니다.
          */
         Editor::FImGuiThemeCatalog mThemes{};
+
         /**
          * @brief 프로젝트 Saved 폴더의 EditorSettings.json 경로입니다.
          */
         std::filesystem::path mSettingsPath{};
+
         /**
          * @brief 설정 저장·복원·테마 가져오기의 최근 결과 또는 오류 메시지입니다.
          */
         Core::FString mSettingsStatus{};
+
         /**
          * @brief 테마 이름과 작성자를 검색하는 UTF-8 입력 버퍼입니다.
          */
         std::array<char, 256> mThemeFilter{};
+
         /**
          * @brief 프로젝트 시작 장면의 Content 상대 경로를 편집하는 입력 버퍼입니다.
          */
         std::array<char, 1024> mStartupScene{};
+
         /**
          * @brief 테마 카탈로그에서 현재 선택한 항목의 0 기반 인덱스입니다.
          */
         Core::Uint32 mThemeIndex{};
+
         /**
          * @brief 뷰포트별 설정을 편집할 대상의 0 기반 인덱스입니다.
          */
         Core::Uint32 mSettingsViewport{};
+
         /**
          * @brief 설정 창에서 선택한 인터페이스·뷰포트·렌더링 등 분류의 인덱스입니다.
          */
         int mSettingsSection{};
+
         /**
          * @brief DPI와 사용자 배율을 적용하기 전의 기본 폰트 크기이며 10~32 범위입니다.
          */
         float mFontSize{16.0f};
+
         /**
          * @brief 설정 변경 후 자동 저장을 지연하는 남은 초 단위 시간입니다.
          */
         float mSettingsSaveDelay{};
+
         /**
          * @brief 설정 창의 표시 여부입니다.
          */
         bool mSettingsOpen{};
+
         /**
          * @brief 다음 설정 창 표시 시 포커스를 요청할지 나타냅니다.
          */
         bool mFocusSettings{};
+
         /**
          * @brief 프로젝트 설정 파일에 아직 저장하지 않은 환경 설정 변경 여부입니다.
          */
         bool mSettingsDirty{};
+
         /**
          * @brief 테마 또는 폰트가 바뀌어 기준 ImGui 스타일을 다시 적용해야 하는지 나타냅니다.
          */

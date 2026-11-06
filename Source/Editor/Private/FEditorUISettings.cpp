@@ -53,6 +53,7 @@ namespace Editor {
          * @brief 버퍼 시각화를 제외한 컬러 조명·와이어프레임 표시 모드 목록입니다.
          */
         const std::array<Engine::EViewMode, 5> ViewModes{Engine::EViewMode::Lit_Gouraud, Engine::EViewMode::Lit_Lambert, Engine::EViewMode::Lit_Phong, Engine::EViewMode::Unlit, Engine::EViewMode::Wireframe};
+
         /**
          * @brief 컬러 표시 모드 목록과 같은 순서로 보여 줄 설정 UI 이름입니다.
          */
@@ -71,6 +72,7 @@ namespace Editor {
          */
         bool DrawClientFloat(const char* Label, Editor::FEditorViewportClient& Client, float (Editor::FEditorViewportClient::*Getter)() const, bool (Editor::FEditorViewportClient::*Setter)(float), float Minimum, float Maximum, const char* Format) {
             float Value{(Client.*Getter)()};
+
             return ImGui::DragFloat(Label, &Value, Minimum * 0.1f, Minimum, Maximum, Format, ImGuiSliderFlags_AlwaysClamp) && (Client.*Setter)(Value);
         }
 
@@ -92,6 +94,7 @@ namespace Editor {
             Core::Int32 TransformMode{static_cast<Core::Int32>(Client.GetGizmoMode())};
             Core::Int32 Space{static_cast<Core::Int32>(Client.GetGizmoSpace())};
             Engine::FEngineShowFlags Flags{Client.GetShowFlags()};
+
             Archive.Serialize("CameraSpeed", Speed);
             Archive.Serialize("CameraSensitivity", Sensitivity);
             Archive.Serialize("GridSpacing", Spacing);
@@ -164,6 +167,7 @@ namespace Editor {
             }
 
             Core::FString Output{};
+
             Statistics.ExecuteCommand("stat none", Output);
 
             for (const Core::FString& Group : Groups) {
@@ -174,6 +178,9 @@ namespace Editor {
         }
     }
 
+    /**
+     * @brief 기본값과 테마 카탈로그를 준비하고 프로젝트의 저장된 에디터 환경 설정을 복원합니다.
+     */
     void Editor::FEditorUI::InitializeSettings() {
         mThemes = Editor::FImGuiThemeCatalog{};
         mThemeIndex = 0;
@@ -224,9 +231,13 @@ namespace Editor {
         }
 
         LoadSettings();
+
         mAppearanceDirty = true;
     }
 
+    /**
+     * @brief 프로젝트의 버전 1 환경 설정을 읽고 실패 원인을 상태 문자열과 에디터 로그에 기록합니다.
+     */
     void Editor::FEditorUI::LoadSettings() {
         std::error_code Code{};
 
@@ -239,15 +250,18 @@ namespace Editor {
         if (!Archive.Load(mSettingsPath)) {
             mSettingsStatus = Archive.GetError();
             mContext->AddLog(mSettingsStatus);
+
             return;
         }
 
         Core::Uint32 Version{};
+
         Archive.Serialize("Version", Version);
 
         if (Version != 1 || Archive.HasError()) {
             mSettingsStatus = "Cannot load unsupported editor settings";
             mContext->AddLog(mSettingsStatus);
+
             return;
         }
 
@@ -259,6 +273,9 @@ namespace Editor {
         }
     }
 
+    /**
+     * @brief 환경 설정을 임시 파일에 기록한 뒤 교체하고 ImGui 배치도 저장합니다.
+     */
     bool Editor::FEditorUI::SaveSettings() {
         if (mSettingsPath.empty()) {
             return false;
@@ -266,27 +283,37 @@ namespace Editor {
 
         Serialization::FJsonArchive Archive{Core::EArchiveMode::Saving};
         Core::Uint32 Version{1};
+
         Archive.Serialize("Version", Version);
         SerializeSettings(Archive);
 
         std::error_code Code{};
+
         std::filesystem::create_directories(mSettingsPath.parent_path(), Code);
+
         std::filesystem::path Temporary{mSettingsPath};
+
         Temporary += ".tmp";
 
         if (Code || !Archive.Save(Temporary) || !MoveFileExW(Temporary.c_str(), mSettingsPath.c_str(), MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH)) {
             mSettingsStatus = "Cannot save editor settings: " + (Code ? Code.message() : Archive.HasError() ? Archive.GetError() : std::system_category().message(static_cast<int>(GetLastError())));
             mContext->AddLog(mSettingsStatus);
+
             return false;
         }
 
         ImGui::SaveIniSettingsToDisk(mIniPath.c_str());
+
         mSettingsDirty = false;
         mSettingsSaveDelay = 0.0f;
         mSettingsStatus = "Settings saved";
+
         return true;
     }
 
+    /**
+     * @brief 테마·폰트·입력·패널과 네 뷰포트의 환경 설정을 아카이브로 저장하거나 복원합니다.
+     */
     void Editor::FEditorUI::SerializeSettings(Serialization::FJsonArchive& Archive) {
         Core::FString Theme{mThemes.GetName(mThemeIndex)};
         float FontSize{mFontSize};
@@ -304,6 +331,7 @@ namespace Editor {
         float DragThreshold{Input.MouseDragThreshold};
         float RepeatDelay{Input.KeyRepeatDelay};
         float RepeatRate{Input.KeyRepeatRate};
+
         Archive.Serialize("Theme", Theme);
         Archive.Serialize("FontSize", FontSize);
         Archive.Serialize("UIScale", Scale);
@@ -349,6 +377,9 @@ namespace Editor {
         }
     }
 
+    /**
+     * @brief 상단 메뉴에 테마·UI 배율·VSync와 설정 창 열기 항목을 표시합니다.
+     */
     void Editor::FEditorUI::DrawSettingsMenu() {
         if (!ImGui::BeginMenu("Settings")) {
             return;
@@ -371,7 +402,9 @@ namespace Editor {
         }
 
         mSettingsDirty |= mUIScale.DrawMenu();
+
         ImGui::BeginDisabled(!mContext->GetRenderer()->IsTearingSupported());
+
         bool VSync{!mContext->GetRenderer()->IsTearingAllowed()};
 
         if (ImGui::MenuItem("VSync", nullptr, &VSync)) {
@@ -389,6 +422,9 @@ namespace Editor {
         ImGui::EndMenu();
     }
 
+    /**
+     * @brief 선택한 설정 분류의 편집 UI와 저장·초기화 상태를 표시합니다.
+     */
     void Editor::FEditorUI::DrawSettings() {
         if (!mSettingsOpen) {
             return;
@@ -396,12 +432,14 @@ namespace Editor {
 
         const float Scale{mUIScale.GetScale()};
         const ImGuiViewport* Viewport{ImGui::GetMainViewport()};
+
         ImGui::SetNextWindowSize({std::min(820.0f * Scale, Viewport->WorkSize.x * 0.9f), std::min(680.0f * Scale, Viewport->WorkSize.y * 0.9f)}, ImGuiCond_FirstUseEver);
         ImGui::SetNextWindowSizeConstraints({std::min(480.0f * Scale, Viewport->WorkSize.x), std::min(340.0f * Scale, Viewport->WorkSize.y)}, {FLT_MAX, FLT_MAX});
         ImGui::SetNextWindowPos(Viewport->GetWorkCenter(), ImGuiCond_Appearing, {0.5f, 0.5f});
 
         if (mFocusSettings) {
             ImGui::SetNextWindowFocus();
+
             mFocusSettings = false;
         }
 
@@ -501,6 +539,9 @@ namespace Editor {
         }
     }
 
+    /**
+     * @brief 테마 검색·가져오기와 기본 폰트 크기 등 인터페이스 설정을 편집합니다.
+     */
     void Editor::FEditorUI::DrawInterfaceSettings() {
         ImGui::TextDisabled("ImThemes: %u themes", mThemes.GetCount() - 1);
         ImGui::InputTextWithHint("Search", "Filter themes...", mThemeFilter.data(), mThemeFilter.size());
@@ -539,6 +580,7 @@ namespace Editor {
         }
 
         ImGui::SeparatorText("Size");
+
         bool Automatic{mUIScale.GetUserScale() == 0.0f};
 
         if (ImGui::Checkbox("Automatic UI Scale", &Automatic)) {
@@ -546,6 +588,7 @@ namespace Editor {
         }
 
         ImGui::BeginDisabled(Automatic);
+
         float Scale{Automatic ? 1.0f : mUIScale.GetUserScale()};
 
         if (ImGui::SliderFloat("UI Scale", &Scale, 0.75f, 3.0f, "%.2fx", ImGuiSliderFlags_AlwaysClamp)) {
@@ -561,6 +604,7 @@ namespace Editor {
         }
 
         ImGui::SeparatorText("Input & Windows");
+
         ImGuiIO& Input{ImGui::GetIO()};
         bool Navigation{(Input.ConfigFlags & ImGuiConfigFlags_NavEnableKeyboard) != 0};
 
@@ -576,9 +620,14 @@ namespace Editor {
         mSettingsDirty |= ImGui::SliderFloat("Key Repeat Rate", &Input.KeyRepeatRate, 0.02f, 0.3f, "%.2f s", ImGuiSliderFlags_AlwaysClamp);
     }
 
+    /**
+     * @brief 선택한 뷰포트의 카메라·컬러 모드·버퍼 시각화·ShowFlag를 편집합니다.
+     */
     void Editor::FEditorUI::DrawViewportSettings() {
         Editor::FEditorViewportClient& Client{*mViewportLayout.GetViewport(mSettingsViewport)->GetClient()};
+
         ImGui::BeginDisabled(!mViewportLayout.CanChangeLayout());
+
         bool QuadView{mViewportLayout.IsQuadView()};
 
         if (ImGui::Checkbox("Four Viewports", &QuadView)) {
@@ -590,6 +639,7 @@ namespace Editor {
         float Vertical{mViewportLayout.GetVerticalRatio()};
 
         bool SplitChanged{ImGui::SliderFloat("Horizontal Split", &Horizontal, 0.1f, 0.9f, "%.2f", ImGuiSliderFlags_AlwaysClamp)};
+
         SplitChanged |= ImGui::SliderFloat("Vertical Split", &Vertical, 0.1f, 0.9f, "%.2f", ImGuiSliderFlags_AlwaysClamp);
 
         if (SplitChanged) {
@@ -597,6 +647,7 @@ namespace Editor {
         }
 
         ImGui::SeparatorText("Camera");
+
         mSettingsDirty |= DrawClientFloat("Movement Speed", Client, &Editor::FEditorViewportClient::GetCameraSpeed, &Editor::FEditorViewportClient::SetCameraSpeed, 0.1f, 128.0f, "%.2f");
         mSettingsDirty |= DrawClientFloat("Mouse Sensitivity", Client, &Editor::FEditorViewportClient::GetCameraSensitivity, &Editor::FEditorViewportClient::SetCameraSensitivity, 0.01f, 2.0f, "%.3f");
         mSettingsDirty |= DrawClientFloat("Orthographic Width", Client, &Editor::FEditorViewportClient::GetOrthographicWidth, &Editor::FEditorViewportClient::SetOrthographicWidth, 0.01f, 100000.0f, "%.2f");
@@ -606,6 +657,7 @@ namespace Editor {
         float NearClip{Camera.GetNearClip()};
         float FarClip{Camera.GetFarClip()};
         bool ProjectionChanged{ImGui::SliderFloat("Field of View", &FieldOfView, 1.0f, 179.0f, "%.1f degrees", ImGuiSliderFlags_AlwaysClamp)};
+
         ProjectionChanged |= ImGui::DragFloat("Near Clip", &NearClip, 0.01f, 0.001f, FarClip - 0.001f, "%.3f", ImGuiSliderFlags_AlwaysClamp);
         ProjectionChanged |= ImGui::DragFloat("Far Clip", &FarClip, 10.0f, NearClip + 0.001f, 1000000.0f, "%.1f", ImGuiSliderFlags_AlwaysClamp);
 
@@ -615,11 +667,13 @@ namespace Editor {
 
         ImGui::TextWrapped("Camera projection is stored with the scene when you save it.");
         ImGui::SeparatorText("Display");
+
         const auto Current{std::find(ViewModes.begin(), ViewModes.end(), Client.GetColorViewMode())};
         int Mode{Current == ViewModes.end() ? 2 : static_cast<int>(Current - ViewModes.begin())};
 
         if (ImGui::Combo("View Mode", &Mode, ViewModeNames.data(), static_cast<int>(ViewModeNames.size()))) {
             Client.SetViewMode(ViewModes[Mode]);
+
             mSettingsDirty = true;
         }
 
@@ -629,11 +683,13 @@ namespace Editor {
 
         if (ImGui::Combo("Buffer Visualization", &Buffer, BufferNames.data(), static_cast<int>(BufferNames.size()))) {
             Client.SetViewMode(BufferModes[Buffer]);
+
             mSettingsDirty = true;
         }
 
         mSettingsDirty |= DrawClientFloat("Grid Spacing", Client, &Editor::FEditorViewportClient::GetGridSpacing, &Editor::FEditorViewportClient::SetGridSpacing, 0.01f, 1000.0f, "%.2f");
         mSettingsDirty |= DrawClientFloat("Line Thickness", Client, &Editor::FEditorViewportClient::GetLineThickness, &Editor::FEditorViewportClient::SetLineThickness, 0.5f, 10.0f, "%.1f px");
+
         Engine::FEngineShowFlags Flags{Client.GetShowFlags()};
         bool Changed{};
 
@@ -643,15 +699,21 @@ namespace Editor {
 
         if (Changed) {
             Client.SetShowFlags(Flags);
+
             mSettingsDirty = true;
         }
 
         ImGui::EndDisabled();
     }
 
+    /**
+     * @brief 선택한 뷰포트의 변환 도구·좌표계·스냅 간격과 기즈모 크기를 편집합니다.
+     */
     void Editor::FEditorUI::DrawGizmoSettings() {
         Editor::FEditorViewportClient& Client{*mViewportLayout.GetViewport(mSettingsViewport)->GetClient()};
+
         ImGui::BeginDisabled(!Client.CanEditGizmoSettings());
+
         const char* Modes[]{"Select", "Translate", "Rotate", "Scale"};
         const Editor::EViewportCommand Commands[]{Editor::EViewportCommand::Select, Editor::EViewportCommand::Translate, Editor::EViewportCommand::Rotate, Editor::EViewportCommand::Scale};
         int Mode{Client.GetGizmoMode() == Editor::EGizmoMode::None ? 0 : static_cast<int>(Client.GetGizmoMode()) + 1};
@@ -661,6 +723,7 @@ namespace Editor {
         }
 
         ImGui::BeginDisabled(!Client.CanExecuteCommand(Editor::EViewportCommand::WorldSpace));
+
         const char* Spaces[]{"World", "Local"};
         int Space{Client.GetGizmoSpace() == Editor::EGizmoSpace::World ? 0 : 1};
 
@@ -704,9 +767,13 @@ namespace Editor {
         ImGui::EndDisabled();
     }
 
+    /**
+     * @brief VSync와 뷰포트별 렌더링 관련 표시 설정을 편집합니다.
+     */
     void Editor::FEditorUI::DrawRenderingSettings() {
         RenderCore::IRendererModule& Renderer{*mContext->GetRenderer()};
         bool VSync{!Renderer.IsTearingAllowed()};
+
         ImGui::BeginDisabled(!Renderer.IsTearingSupported());
 
         if (ImGui::Checkbox("VSync", &VSync)) {
@@ -727,18 +794,24 @@ namespace Editor {
         ImGui::TextWrapped("View mode, shadows and visibility filters are available under Viewport & Camera for each viewport.");
     }
 
+    /**
+     * @brief 에디터 패널과 선택한 뷰포트의 통계 그룹 표시 설정을 편집합니다.
+     */
     void Editor::FEditorUI::DrawPanelSettings() {
         for (Editor::FEditorPanel* Panel : {static_cast<Editor::FEditorPanel*>(&mPlaceActorsPanel), static_cast<Editor::FEditorPanel*>(&mOutlinerPanel), static_cast<Editor::FEditorPanel*>(&mDetailsPanel), static_cast<Editor::FEditorPanel*>(&mConsolePanel)}) {
             bool Visible{Panel->IsVisible()};
 
             if (ImGui::Checkbox(Panel->GetName().c_str(), &Visible)) {
                 Panel->SetVisible(Visible);
+
                 mSettingsDirty = true;
             }
         }
 
         mSettingsDirty |= ImGui::Checkbox("Statistics Window", &mShowStatistics);
+
         ImGui::SeparatorText("Viewport Statistics Overlay");
+
         Editor::FViewportStatistics& Statistics{*mViewportLayout.GetViewport(mSettingsViewport)->GetStatistics()};
 
         for (const Core::FString& Group : Core::FStats::Get().GetGroups()) {
@@ -746,13 +819,18 @@ namespace Editor {
 
             if (ImGui::Checkbox(Group.c_str(), &Enabled)) {
                 Core::FString Output{};
+
                 mSettingsDirty |= Statistics.ExecuteCommand("stat " + Group + (Enabled ? " on" : " off"), Output);
             }
         }
     }
 
+    /**
+     * @brief 프로젝트 경로와 시작 장면을 표시하고 시작 장면 설정을 저장합니다.
+     */
     void Editor::FEditorUI::DrawProjectSettings() {
         Engine::FProject& Project{*mContext->GetProject()};
+
         ImGui::TextWrapped("Project: %s", Project.GetName().c_str());
         ImGui::TextWrapped("Location: %s", Core::FilePath::ToUtf8(Project.GetFilePath()).c_str());
         ImGui::SeparatorText("Startup Scene");
@@ -761,6 +839,7 @@ namespace Editor {
 
         if (ImGui::Button("Save Startup Scene")) {
             Core::FString Error{};
+
             mSettingsStatus = Project.SetStartupScene(Core::FilePath::FromUtf8(mStartupScene.data()), Error) ? "Startup scene saved" : Error;
         }
 
@@ -770,6 +849,9 @@ namespace Editor {
         ImGui::TextWrapped("Custom themes: %s", Core::FilePath::ToUtf8(mSettingsPath.parent_path() / "Themes").c_str());
     }
 
+    /**
+     * @brief 파일 선택으로 ImThemes TOML을 가져오고 프로젝트 Saved/Themes에 보관합니다.
+     */
     void Editor::FEditorUI::ImportTheme() {
         std::array<wchar_t, 32768> Filename{};
         OPENFILENAMEW Dialog{};
@@ -791,11 +873,13 @@ namespace Editor {
 
         if (!Candidate.Load(Source, Error)) {
             mSettingsStatus = Error;
+
             return;
         }
 
         const std::filesystem::path Target{mSettingsPath.parent_path() / "Themes" / Source.filename()};
         std::error_code Code{};
+
         std::filesystem::create_directories(Target.parent_path(), Code);
 
         const std::filesystem::path CanonicalSource{Code ? std::filesystem::path{} : std::filesystem::weakly_canonical(Source, Code)};
@@ -807,6 +891,7 @@ namespace Editor {
 
         if (Code || !mThemes.Load(Target, Error)) {
             mSettingsStatus = Code ? "Cannot save imported theme: " + Code.message() : Error;
+
             return;
         }
 
@@ -816,6 +901,9 @@ namespace Editor {
         mSettingsStatus = "Theme imported";
     }
 
+    /**
+     * @brief 에디터 환경 설정·패널·뷰포트·입력·배율을 기본값으로 되돌립니다.
+     */
     void Editor::FEditorUI::ResetSettings() {
         mThemeIndex = 0;
         mFontSize = 16.0f;
@@ -827,6 +915,7 @@ namespace Editor {
         mDetailsPanel.SetVisible(true);
         mConsolePanel.SetVisible(true);
         mShowStatistics = false;
+
         ImGuiIO& Input{ImGui::GetIO()};
         Input.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
         Input.ConfigWindowsMoveFromTitleBarOnly = false;
@@ -834,6 +923,7 @@ namespace Editor {
         Input.MouseDragThreshold = 6.0f;
         Input.KeyRepeatDelay = 0.275f;
         Input.KeyRepeatRate = 0.05f;
+
         mViewportLayout.SetQuadView(false);
         mViewportLayout.SetSplitRatios(0.5f, 0.5f);
 
@@ -860,7 +950,9 @@ namespace Editor {
 
             Client.ExecuteCommand(Editor::EViewportCommand::Translate);
             Client.ExecuteCommand(Editor::EViewportCommand::WorldSpace);
+
             Core::FString Output{};
+
             Viewport->GetStatistics()->ExecuteCommand("stat none", Output);
         }
 

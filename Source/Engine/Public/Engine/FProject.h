@@ -36,6 +36,8 @@ namespace Engine {
         Engine::FProject& operator=(const Engine::FProject&) = delete;
 
     public:
+        static Core::Uint32 GetCurrentVersion();
+
         /**
          * @brief 빈 프로젝트 폴더에 템플릿 콘텐츠와 초기 장면 및 설정 파일을 생성합니다.
          * @param[in] ProjectFile 생성하거나 열 프로젝트의 .mproject 파일 경로입니다.
@@ -67,6 +69,8 @@ namespace Engine {
          * @return 요청한 처리를 완료하면 true, 실패하면 false입니다.
          */
         bool SetStartupScene(const std::filesystem::path& Path, Core::FString& Error);
+
+        Core::Uint32 GetVersion() const;
 
         /**
          * @brief 프로젝트의 표시 이름을 반환합니다.
@@ -105,6 +109,8 @@ namespace Engine {
         Asset::FAssetManager* GetAssets() const;
 
     private:
+        Core::Uint32 mVersion{};
+
         /**
          * @brief 프로젝트 설정에 저장된 표시 이름입니다.
          */

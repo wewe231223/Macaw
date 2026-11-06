@@ -24,6 +24,7 @@ namespace Engine {
          * @brief 기본 설정으로 URotationMovementComponent 객체를 초기화합니다.
          */
         URotationMovementComponent();
+
         /**
          * @brief 객체 수명을 끝내고 소유한 자원을 정리합니다.
          */
@@ -41,6 +42,7 @@ namespace Engine {
          * @return Pitch·Yaw·Roll의 도/초 값을 가진 읽기 전용 참조입니다.
          */
         const Core::FRotator& GetRotationRate() const;
+
         /**
          * @brief 유한한 Pitch·Yaw·Roll 회전 속도를 설정합니다.
          * @param[in] Rate Pitch·Yaw·Roll의 유한한 도/초 회전 속도입니다.
@@ -53,6 +55,7 @@ namespace Engine {
          * @return 로컬 공간이면 true이며 월드 공간이면 false입니다.
          */
         bool GetRotationInLocalSpace() const;
+
         /**
          * @brief 회전 증분을 로컬 축 또는 월드 축으로 합성하도록 설정합니다.
          * @param[in] LocalSpace 로컬 공간을 사용하면 true이며 월드 공간을 사용하면 false입니다.
@@ -66,6 +69,7 @@ namespace Engine {
          */
         UPROPERTY(Edit, Serialize, Getter = GetRotationRate, Setter = SetRotationRate)
         Core::FRotator mRotationRate{0.0f, 90.0f, 0.0f};
+
         /**
          * @brief true이면 루트의 로컬 축, false이면 월드 축에 회전 증분을 합성합니다.
          */

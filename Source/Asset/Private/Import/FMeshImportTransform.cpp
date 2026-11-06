@@ -1,9 +1,18 @@
+/**
+ * @file FMeshImportTransform.cpp
+ * @brief 원본 메시 공간의 위치·방향·탄젠트 부호를 엔진 공간으로 옮기는 임포터 공용 변환입니다.
+ * @ingroup Asset
+ */
+
 #include "FMeshImportTransform.h"
 
 #include <cmath>
 
 namespace Asset {
 
+    /**
+     * @brief 원본 메시 공간에서 엔진 공간으로 가는 행렬로 변환을 구성합니다.
+     */
     Asset::FMeshImportTransform::FMeshImportTransform(const Core::FMatrix& SourceToEngine)
 		: mMatrix{SourceToEngine} {
         const float Determinant{mMatrix.Determinant()};
@@ -27,10 +36,16 @@ namespace Asset {
         }
     }
 
+    /**
+     * @brief Z-Up 오른손 좌표계의 좌표에서 Y만 반전해 엔진의 Z-Up 왼손 좌표계로 옮기는 행렬을 만듭니다.
+     */
     Core::FMatrix Asset::FMeshImportTransform::MakeFlipY() {
         return Core::FMatrix::Scale({1.0f, -1.0f, 1.0f});
     }
 
+    /**
+     * @brief Y-Up 오른손 좌표계(Front +Z) 원본을 FBX 임포터와 같은 규칙으로 엔진 좌표계로 옮기는 행렬을 만듭니다.
+     */
     Core::FMatrix Asset::FMeshImportTransform::MakeYUpConversion(const Asset::FAssetImportOption& Option) {
         // 행 벡터 규약이므로 각 행은 원본 X, Y, Z 축이 엔진 공간에서 향하는 방향입니다.
         // 원본은 Y-Up, Front +Z인 오른손 좌표계(glTF, Maya 기본값)입니다.
@@ -55,6 +70,9 @@ namespace Asset {
         return Result;
     }
 
+    /**
+     * @brief 원본 공간 기준 변환을 엔진 공간 기준 변환으로 바꿉니다.
+     */
     bool Asset::FMeshImportTransform::ConvertTransform(const Core::FMatrix& Basis, const Core::FMatrix& Source, Core::FMatrix& Result) {
         Core::FMatrix Inverse{};
 
@@ -65,37 +83,58 @@ namespace Asset {
         // 엔진 좌표를 원본 좌표로 되돌리고, 원본 변환을 적용한 뒤, 다시 엔진 좌표로 옮깁니다.
         // 축 반전이 양쪽에서 상쇄되므로 결과 회전은 다시 행렬식이 양수인 정상 회전이 됩니다.
         Result = Inverse * Source * Basis;
+
         return true;
     }
 
+    /**
+     * @brief 변환이 역행렬을 가져 노멀을 변환할 수 있는지 확인합니다.
+     */
     bool Asset::FMeshImportTransform::IsValid() const {
         return mValid;
     }
 
+    /**
+     * @brief 원본 삼각형의 꼭짓점 순서를 뒤집어야 하는지 확인합니다.
+     */
     bool Asset::FMeshImportTransform::ReversesWinding() const {
         return mReversesWinding;
     }
 
+    /**
+     * @brief 이동을 포함해 위치를 변환합니다.
+     */
     Core::FVector Asset::FMeshImportTransform::TransformPosition(const Core::FVector& Position) const {
         return mMatrix.TransformPosition(Position);
     }
 
+    /**
+     * @brief 이동을 제외하고 표면을 따르는 방향(탄젠트·바이탄젠트)을 변환합니다.
+     */
     Core::FVector Asset::FMeshImportTransform::TransformDirection(const Core::FVector& Direction) const {
         return mMatrix.TransformVector(Direction);
     }
 
+    /**
+     * @brief 역전치 행렬로 노멀을 변환합니다.
+     */
     Core::FVector Asset::FMeshImportTransform::TransformNormal(const Core::FVector& Normal) const {
         return mNormalMatrix.TransformVector(Normal);
     }
 
+    /**
+     * @brief 엔진 공간 노멀과 원본 탄젠트·바이탄젠트로 직교 탄젠트와 부호를 만듭니다.
+     */
     Core::FVector4 Asset::FMeshImportTransform::MakeTangent(const Core::FVector& Normal, const Core::FVector& SourceTangent, const Core::FVector& SourceBitangent, float SourceSign) const {
         const Core::FVector Direction{TransformDirection(SourceTangent)};
+
         // 그람-슈미트 직교화: 탄젠트에서 노멀 방향 성분을 빼서 노멀과 정확히 수직이 되도록 만듭니다.
         Core::FVector Tangent{Direction - Normal * Normal.Dot(Direction)};
 
         if (!Tangent.IsFinite() || !Tangent.Normalize()) {
             // 탄젠트가 없거나 노멀과 평행하면, 노멀과 거의 평행하지 않은 기준 축(기본 Z, 노멀이 Z에 가까우면 Y)과 노멀의 외적을 사용합니다.
             const Core::FVector Axis{std::abs(Normal.z) < 0.99f ? Core::FVector{0.0f, 0.0f, 1.0f} : Core::FVector{0.0f, 1.0f, 0.0f}};
+
             return {Axis.Cross(Normal).Normalized(), 1.0f};
         }
 
@@ -110,6 +149,7 @@ namespace Asset {
         // 바이탄젠트가 없으면 원본 부호를 사용합니다. (M·N) × (M·T)는 원본 외적에 det(M)의 부호를 곱한 방향이고
         // V 반전이 부호를 한 번 더 뒤집으므로, 손 방향이 바뀌는 변환(det < 0)에서는 원본 부호가 그대로 유지됩니다.
         const float Sign{SourceSign < 0.0f ? -1.0f : 1.0f};
+
         return {Tangent, mReversesWinding ? Sign : -Sign};
     }
 

@@ -83,6 +83,7 @@ namespace {
                     if constexpr (HasParallel) {
                         if (Parallel[Axis]) {
                             Valid = _mm_and_ps(Valid, _mm_and_ps(_mm_cmpge_ps(Origin[Axis], Lower), _mm_cmple_ps(Origin[Axis], Upper)));
+
                             continue;
                         }
                     }

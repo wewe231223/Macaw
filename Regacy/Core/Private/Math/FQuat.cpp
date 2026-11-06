@@ -118,6 +118,7 @@ void FQuat::Normalize() {
     if (LengthSquared <= 1e-8f) {
         X = Y = Z = 0.0f;
         W = 1.0f;
+
         return;
     }
 
@@ -139,6 +140,7 @@ FVector FQuat::RotateVector(const FVector& Vector) const {
     Result = VectorSIMD::Add(Result, VectorSIMD::Cross3(RotationVector, TwiceCross));
 
     FVector Output{};
+
     VectorSIMD::StoreFloat3(Output.V, Result);
 
     return Output;

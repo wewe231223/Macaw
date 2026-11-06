@@ -101,11 +101,13 @@ namespace Asset {
          * @return 텍스처 없음·외부 파일·내장 참조 중 하나입니다.
          */
         Asset::EMeshImportTextureSource GetSource() const;
+
         /**
          * @brief 외부 텍스처 파일 경로를 조회합니다.
          * @return 보관 중인 파일 경로의 읽기 전용 참조이며 외부 파일이 아니면 기본값은 빈 경로입니다.
          */
         const std::filesystem::path& GetFilePath() const;
+
         /**
          * @brief 원본 장면 내부의 텍스처 식별 문자열을 조회합니다.
          * @return 내장 텍스처 참조의 읽기 전용 문자열이며 기본값은 빈 문자열입니다.
@@ -123,6 +125,7 @@ namespace Asset {
          * @return 판별하지 않았으면 Unknown입니다.
          */
         Asset::EMeshImportTextureShape GetShape() const;
+
         /**
          * @brief 원본 장면 정보로 판별한 텍스처 형태를 기록합니다.
          * @param[in] Shape 기록할 텍스처 형태입니다.

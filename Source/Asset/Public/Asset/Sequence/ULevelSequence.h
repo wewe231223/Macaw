@@ -125,6 +125,10 @@ namespace Asset {
          */
         Core::Int32 TickToFrame(double Tick) const;
 
+        /**
+         * @brief 아카이브 모드에 따라 값을 읽거나 저장합니다.
+         * @param[in,out] Archive 모드에 따라 값을 읽거나 쓸 아카이브입니다.
+         */
         void Serialize(Core::FArchive& Archive) override;
 
     private:

@@ -35,11 +35,13 @@ namespace Engine {
     class AStaticMeshActor;
     class UCameraComponent;
     struct FWorldHit;
+
     enum class EPrimitiveType : Core::Uint8;
 
     /**
      * @brief 영속 레벨, 렌더 장면과 프레임 말 컴포넌트 갱신을 관리합니다.
      * @ingroup Engine
+     * @note GENERATED_BODY()가 실제 클래스 메타데이터의 비소유 주소를 반환하는 GetClass()를 선언합니다.
      */
     UCLASS(NoFactory)
     class UWorld final : public CoreUObject::UObject {
@@ -200,11 +202,6 @@ namespace Engine {
         bool Input(const Core::FInput& Input, float DeltaTime);
 
         /**
-         * @fn UClass* UWorld::GetClass() const
-         * @brief 객체의 실제 클래스 메타데이터를 반환합니다.
-         * @return 실제 클래스 메타데이터의 비소유 주소입니다.
-         */
-        /**
          * @brief 아직 레벨이 없는 월드에 영속 레벨의 소유권을 연결합니다.
          * @param[in] Level 소유권을 넘겨받을 영속 레벨입니다.
          * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
@@ -289,6 +286,7 @@ namespace Engine {
          * @param[in,out] Hit 교차 성공 시 충돌 위치와 거리를 기록합니다.
          * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
          * @note 입력 방향을 내부에서 정규화합니다. 원점이 유한하지 않거나 방향을 정규화할 수 없으면 실패합니다.
+         * @param[in] Ignored 광선 충돌에서 제외할 액터이며 nullptr이면 제외하지 않습니다.
          */
         bool Raycast(const Core::FRay& Ray, Engine::FWorldHit& Hit, const Engine::AActor* Ignored = nullptr) const;
 

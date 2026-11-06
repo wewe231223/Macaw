@@ -54,6 +54,7 @@ namespace Engine {
      */
     static Asset::FMeshData BuildMesh(Engine::EEditorMesh Type) {
         Asset::FMeshData Mesh{};
+
         if (Type == Engine::EEditorMesh::Arrow) {
             for (Core::Uint32 Index{}; Index < 16; ++Index) {
                 const Core::FAngle A{1_turn * Index / 16.0f};
@@ -62,12 +63,14 @@ namespace Engine {
                 const Core::FVector BottomB{Core::Math::Cos(B) * 2.0f, Core::Math::Sin(B) * 2.0f, 11.0f};
                 const Core::FVector TopA{BottomA.x, BottomA.y, 72.5f};
                 const Core::FVector TopB{BottomB.x, BottomB.y, 72.5f};
+
                 AddTriangle(&Mesh, BottomA, BottomB, TopA);
                 AddTriangle(&Mesh, TopA, BottomB, TopB);
                 AddTriangle(&Mesh, {0.0f, 0.0f, 11.0f}, BottomB, BottomA);
 
                 const Core::FVector ConeA{Core::Math::Cos(A) * 6.5f, Core::Math::Sin(A) * 6.5f, 72.5f};
                 const Core::FVector ConeB{Core::Math::Cos(B) * 6.5f, Core::Math::Sin(B) * 6.5f, 72.5f};
+
                 AddTriangle(&Mesh, ConeA, ConeB, {0.0f, 0.0f, 87.5f});
                 AddTriangle(&Mesh, {0.0f, 0.0f, 72.5f}, ConeB, ConeA);
             }
@@ -90,6 +93,7 @@ namespace Engine {
                     const Core::FVector Q{(74.0f + Core::Math::Cos(D) * 2.0f) * Core::Math::Cos(A), (74.0f + Core::Math::Cos(D) * 2.0f) * Core::Math::Sin(A), Core::Math::Sin(D) * 2.0f};
                     const Core::FVector R{(74.0f + Core::Math::Cos(C) * 2.0f) * Core::Math::Cos(B), (74.0f + Core::Math::Cos(C) * 2.0f) * Core::Math::Sin(B), Core::Math::Sin(C) * 2.0f};
                     const Core::FVector S{(74.0f + Core::Math::Cos(D) * 2.0f) * Core::Math::Cos(B), (74.0f + Core::Math::Cos(D) * 2.0f) * Core::Math::Sin(B), Core::Math::Sin(D) * 2.0f};
+
                     AddTriangle(&Mesh, P, Q, R);
                     AddTriangle(&Mesh, R, Q, S);
                 }
@@ -126,6 +130,7 @@ namespace Engine {
     const Asset::FMeshData& GetEditorMesh(Engine::EEditorMesh Type) {
         if (Type >= Engine::EEditorMesh::Count) {
             static const Asset::FMeshData Empty{};
+
             return Empty;
         }
 

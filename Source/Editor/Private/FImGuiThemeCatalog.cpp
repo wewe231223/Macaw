@@ -141,7 +141,9 @@ namespace Editor {
                 }
 
                 Core::FString Components{Value->substr(5, Value->size() - 6)};
+
                 std::replace(Components.begin(), Components.end(), ',', ' ');
+
                 std::istringstream Input{Components};
                 std::array<float, 4> Channels{};
 
@@ -160,6 +162,7 @@ namespace Editor {
                 for (int Index{}; Index < ImGuiCol_COUNT; ++Index) {
                     if (Name == ImGui::GetStyleColorName(Index)) {
                         Style.Colors[Index] = ImVec4{Channels[0] / 255.0f, Channels[1] / 255.0f, Channels[2] / 255.0f, Channels[3]};
+
                         break;
                     }
                 }
@@ -173,18 +176,27 @@ namespace Editor {
         }
     }
 
+    /**
+     * @brief 기본 설정으로 FImGuiThemeCatalog 객체를 초기화합니다.
+     */
     Editor::FImGuiThemeCatalog::FImGuiThemeCatalog() {
         ImGuiStyle Style{};
+
         ImGui::StyleColorsDark(&Style);
+
         Style.WindowRounding = 3.0f;
         Style.FrameRounding = 3.0f;
         Style.GrabRounding = 3.0f;
+
         mNames.push_back("Macaw Dark");
         mAuthors.push_back("Macaw");
         mDescriptions.push_back("Default editor theme");
         mStyles.push_back(Style);
     }
 
+    /**
+     * @brief ImThemes TOML의 단일 테마 또는 테마 배열을 검증한 뒤 카탈로그에 추가하거나 교체합니다.
+     */
     bool Editor::FImGuiThemeCatalog::Load(const std::filesystem::path& Path, Core::FString& Error) {
         Error.clear();
 
@@ -235,6 +247,7 @@ namespace Editor {
                 }
 
                 ImGuiStyle Style{};
+
                 ImGui::StyleColorsDark(&Style);
                 ReadStyle(*StyleTable, Style);
 
@@ -254,34 +267,55 @@ namespace Editor {
             }
 
             *this = std::move(Candidate);
+
             return true;
         } catch (const std::exception& Exception) {
             Error = "Cannot load ImThemes '" + Core::FilePath::ToUtf8(Path) + "': " + Exception.what();
+
             return false;
         }
     }
 
+    /**
+     * @brief 기본 테마를 포함한 테마 개수를 반환합니다.
+     */
     Core::Uint32 Editor::FImGuiThemeCatalog::GetCount() const {
         return static_cast<Core::Uint32>(mNames.size());
     }
 
+    /**
+     * @brief 이름이 정확히 일치하는 테마 인덱스를 찾습니다.
+     */
     Core::Uint32 Editor::FImGuiThemeCatalog::Find(const Core::FString& Name) const {
         const auto Found{std::find(mNames.begin(), mNames.end(), Name)};
+
         return Found == mNames.end() ? 0 : static_cast<Core::Uint32>(Found - mNames.begin());
     }
 
+    /**
+     * @brief 인덱스에 해당하는 테마 이름을 반환합니다.
+     */
     const Core::FString& Editor::FImGuiThemeCatalog::GetName(Core::Uint32 Index) const {
         return mNames.at(Index);
     }
 
+    /**
+     * @brief 인덱스에 해당하는 테마 작성자를 반환합니다.
+     */
     const Core::FString& Editor::FImGuiThemeCatalog::GetAuthor(Core::Uint32 Index) const {
         return mAuthors.at(Index);
     }
 
+    /**
+     * @brief 인덱스에 해당하는 테마 설명을 반환합니다.
+     */
     const Core::FString& Editor::FImGuiThemeCatalog::GetDescription(Core::Uint32 Index) const {
         return mDescriptions.at(Index);
     }
 
+    /**
+     * @brief 인덱스에 해당하는 배율 적용 전 테마 스타일을 반환합니다.
+     */
     const ImGuiStyle& Editor::FImGuiThemeCatalog::GetStyle(Core::Uint32 Index) const {
         return mStyles.at(Index);
     }

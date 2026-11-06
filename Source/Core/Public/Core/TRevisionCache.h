@@ -241,10 +241,12 @@ namespace Core {
 
         if (Core::FRevisionCacheSettings::sBypass || Position == mEntries.end() || !(Position->second.mStamp == Stamp) || !Position->second.mValue.has_value()) {
             mMisses.Add();
+
             return nullptr;
         }
 
         Position->second.mLastUsed = mFrame;
+
         mHits.Add();
 
         return &*Position->second.mValue;
@@ -259,6 +261,7 @@ namespace Core {
         }
 
         Position->second.mLastUsed = mFrame;
+
         mFailures.Add();
 
         return &Position->second.mFailure;

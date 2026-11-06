@@ -61,6 +61,7 @@ bool FLoadingScreen::LoadLogo(ID3D11Device* Device) {
 
     if (Pixels == nullptr || Width <= 0 || Height <= 0) {
         stbi_image_free(Pixels);
+
         return false;
     }
 
@@ -142,6 +143,7 @@ bool FLoadingScreen::Run(FRenderer& Renderer, IPlatformApplication& Platform, co
         if (!QuitRequested) {
             if (LoadingFinished && Succeeded.load(std::memory_order_acquire)) {
                 Renderer.BeginFrame();
+
                 FrameTaskFinished = LoadingFrameTask(Progress);
             }
 

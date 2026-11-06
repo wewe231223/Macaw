@@ -137,6 +137,7 @@ void FViewportHostWindow::DrawContents() {
     // 한번만 실행
     if (mBHasPendingLayoutSettings) {
         ApplyLayoutSettings();
+
         mBHasPendingLayoutSettings = false;
     }
 

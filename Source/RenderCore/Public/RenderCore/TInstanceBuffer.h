@@ -19,6 +19,12 @@ namespace RenderCore {
     class TInstanceBuffer : public RenderCore::TVertexBuffer<T, Update> {
     protected:
         // 인스턴스 데이터는 원소가 커서 정점 버퍼의 최소 용량을 두지 않습니다.
+
+        /**
+         * @brief 재할당할 때 확보할 원소 수를 정합니다.
+         * @param[in] Count 필요한 원소 수입니다.
+         * @return 기본 구현은 Count 이상의 가장 작은 2의 거듭제곱입니다.
+         */
         Core::Uint64 GetGrowthCapacity(Core::Uint64 Count) const override {
             return RenderCore::FGpuBuffer::GetGrowthCapacity(Count);
         }

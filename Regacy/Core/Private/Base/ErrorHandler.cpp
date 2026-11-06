@@ -230,6 +230,7 @@ namespace ErrorHandler {
 
             std::copy_n(Title.data(), TitleLength, CriticalTitle);
             std::copy_n(Message.data(), MessageLength, CriticalMessage);
+
             CriticalTitle[TitleLength] = '\0';
             CriticalMessage[MessageLength] = '\0';
         }
@@ -243,18 +244,22 @@ namespace ErrorHandler {
         switch (Level) {
             case EErrorLevel::Warning:
                 LevelString = "WARNING";
+
                 break;
 
             case EErrorLevel::Error:
                 LevelString = "ERROR";
+
                 break;
 
             case EErrorLevel::Critical:
                 LevelString = "CRITICAL";
+
                 break;
 
             default:
                 LevelString = "UNKNOWN";
+
                 break;
         }
 

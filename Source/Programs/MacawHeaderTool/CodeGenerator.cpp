@@ -1,3 +1,8 @@
+/**
+ * @file CodeGenerator.cpp
+ * @brief 리플렉션 생성 헤더와 모듈 등록 코드를 구성합니다.
+ */
+
 #include "CodeGenerator.h"
 
 #include <algorithm>
@@ -9,8 +14,17 @@
 
 namespace HeaderTool {
 
+    /**
+     * @brief 이 파일에서 사용하는 내부 보조 기능과 상태를 묶습니다.
+     */
     namespace {
 
+        /**
+         * @brief 문자열 조각 사이에 구분자를 넣어 합칩니다.
+         * @param[in] Parts 구분자로 합칠 문자열 조각입니다.
+         * @param[in] Separator 문자열 사이에 넣을 구분자입니다.
+         * @return 해석·변환한 문자열입니다.
+         */
         std::string Join(const std::vector<std::string>& Parts, const std::string& Separator) {
             std::string Result;
 
@@ -22,12 +36,23 @@ namespace HeaderTool {
         }
 
         // 생성 디렉터리는 항상 Intermediate/<이름>/Generated이므로 세 단계 위가 작업 공간 루트입니다.
+
+        /**
+         * @brief 생성 코드에서 원본 헤더를 포함할 경로를 계산합니다.
+         * @param[in] File 처리할 원본 소스 파일 경로입니다.
+         * @return 해석·변환한 문자열입니다.
+         */
         std::string IncludePath(const std::string& File) {
             const std::size_t Public{File.find("/Public/")};
 
             return Public != std::string::npos ? File.substr(Public + 8) : "../../../" + File;
         }
 
+        /**
+         * @brief 접근자·배열 여부·플래그에 맞는 프로퍼티 등록 호출문을 만듭니다.
+         * @param[in] Property 등록문을 생성할 프로퍼티 정보입니다.
+         * @return 해석·변환한 문자열입니다.
+         */
         std::string PropertyStatement(const FProperty& Property) {
             std::vector<std::string> Pointers{"&ReflectionOwner::" + Property.Member};
 
@@ -48,12 +73,32 @@ namespace HeaderTool {
             return "        CoreUObject::" + Function + "<" + Join(Pointers, ", ") + ">(Information, " + Property.Name + ", " + FlagText + ");";
         }
 
+        /**
+         * @brief 등록할 타입 또는 열거형과 선언 헤더의 연결 정보입니다.
+         */
         struct FEntry {
+            /**
+             * @brief 타입·열거형을 선언한 헤더의 비소유 주소입니다.
+             */
             const FHeader* Header{};
+
+            /**
+             * @brief 등록할 타입 정의이며 열거형 항목이면 nullptr입니다.
+             */
             const FType* Type{};
+
+            /**
+             * @brief 등록할 열거형 정의이며 타입 항목이면 nullptr입니다.
+             */
             const FEnum* Enum{};
         };
 
+        /**
+         * @brief 등록 모듈에 속한 리플렉션 타입과 열거형을 모읍니다.
+         * @param[in] Workspace 원본 헤더와 루트 경로를 가진 작업 공간입니다.
+         * @param[in] Module 생성할 모듈 이름이며 비어 있으면 전체입니다.
+         * @return 등록할 타입·열거형과 선언 헤더 목록입니다.
+         */
         std::vector<FEntry> CollectEntries(const FWorkspace& Workspace, const std::string& Module) {
             std::vector<FEntry> Entries;
 
@@ -78,6 +123,12 @@ namespace HeaderTool {
             return Entries;
         }
 
+        /**
+         * @brief GENERATED_BODY에 들어갈 선언과 등록 함수를 조합합니다.
+         * @param[in,out] Lines 생성한 소스 줄을 추가할 배열입니다.
+         * @param[in] Header 파싱하거나 생성에 참조할 헤더입니다.
+         * @param[in] Type 생성·조회·변환할 타입입니다.
+         */
         void AppendBody(std::vector<std::string>& Lines, const FHeader& Header, const FType& Type) {
             std::vector<std::string> Body{"public:", "    using ReflectionOwner = " + Type.ShortName + ";"};
 
@@ -107,14 +158,23 @@ namespace HeaderTool {
 
     }
 
+    /**
+     * @brief 모듈의 생성 디렉터리를 작업 공간 기준으로 반환합니다.
+     */
     std::string GetGeneratedDirectory(const std::string& Module) {
         return "Intermediate/" + (Module == "App" ? std::string{"Macaw"} : Module) + "/Generated";
     }
 
+    /**
+     * @brief 헤더의 타입을 등록하는 모듈 이름을 반환합니다. Core 타입은 CoreUObject가 등록합니다.
+     */
     std::string GetRegistrationModule(const std::string& SourceModule) {
         return SourceModule == "Core" ? "CoreUObject" : SourceModule;
     }
 
+    /**
+     * @brief 내용이 바뀐 경우에만 CRLF 줄바꿈으로 파일을 씁니다.
+     */
     void WriteIfChanged(const std::string& Root, const std::string& Path, const std::vector<std::string>& Lines) {
         std::string Text;
 
@@ -137,7 +197,9 @@ namespace HeaderTool {
 
         Input.close();
         std::filesystem::create_directories(File.parent_path());
+
         std::ofstream Output{File, std::ios::binary | std::ios::trunc};
+
         Output << Text;
 
         if (!Output) {
@@ -145,6 +207,9 @@ namespace HeaderTool {
         }
     }
 
+    /**
+     * @brief 모듈 디렉터리에 있는 헤더의 generated.h를 씁니다.
+     */
     void WriteGeneratedHeaders(const FWorkspace& Workspace, const std::string& SourceModule) {
         // 모든 모듈의 Generated 폴더가 include 경로에 함께 오르므로 이름이 같으면 다른 모듈의 generated.h를 읽을 수 있습니다.
         std::map<std::string, std::string> AllNames;
@@ -219,6 +284,9 @@ namespace HeaderTool {
         }
     }
 
+    /**
+     * @brief 모듈의 리플렉션 등록 헤더와 소스를 씁니다.
+     */
     void WriteModuleReflection(const FWorkspace& Workspace, const std::string& Module) {
         const std::vector<FEntry> Entries{CollectEntries(Workspace, Module)};
         const std::string Directory{GetGeneratedDirectory(Module)};
@@ -246,12 +314,14 @@ namespace HeaderTool {
                 Source.push_back("    ImplementEnumReflection(" + Entry.Enum->Name + ", " + Join(Values, ", ") + ")");
                 Source.push_back("");
                 Source.push_back("}");
+
                 continue;
             }
 
             const FType& Type{*Entry.Type};
             const std::string Implementation{Type.Kind == ETypeKind::Struct ? "ImplementStructReflection" : (Type.Kind == ETypeKind::RootClass ? "ImplementRootReflection" : "ImplementReflection")};
             const std::string Flags{Type.ClassFlags.empty() ? "" : ", " + Join(Type.ClassFlags, ", ")};
+
             Source.push_back("");
             Source.push_back("namespace " + Type.Namespace + " {");
             Source.push_back("");
@@ -307,6 +377,7 @@ namespace HeaderTool {
         for (const FEntry& Entry : Entries) {
             if (Entry.Enum != nullptr) {
                 Source.push_back("    " + Entry.Enum->Namespace + "::StaticEnum" + Entry.Enum->Name + "();");
+
                 continue;
             }
 

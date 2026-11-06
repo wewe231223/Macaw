@@ -18,6 +18,7 @@ void FViewerToolBar::DrawPanel() {
     for (int Index{}; Index < IM_ARRAYSIZE(RenderModeValues); ++Index) {
         if (mEditorContext->GetRenderModeState() == static_cast<std::size_t>(RenderModeValues[Index])) {
             RenderIndex = Index;
+
             break;
         }
     }

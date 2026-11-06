@@ -21,11 +21,25 @@
 
 namespace Editor {
 
+    /**
+     * @brief 이 파일에서 사용하는 내부 보조 기능과 상태를 묶습니다.
+     */
     namespace {
+        /**
+         * @brief 객체·클래스 이름이 Outliner 필터에 맞는지 검사합니다.
+         * @param[in] Filter 객체·클래스 이름을 검사할 필터입니다.
+         * @param[in] Object 조회하거나 호출할 엔진·COM 객체입니다.
+         * @return 객체·클래스 이름이 필터를 통과하면 true입니다.
+         */
         bool MatchesFilter(const ImGuiTextFilter& Filter, const CoreUObject::UObject* Object) {
             return Filter.PassFilter(Object->GetName().c_str()) || Filter.PassFilter(ObjectRow::GetTypeLabel(Object).c_str());
         }
 
+        /**
+         * @brief 액터 표시 상태 버튼을 그리고 클릭 여부를 반환합니다.
+         * @param[in] ActorVisible 액터의 현재 표시 상태입니다.
+         * @return 표시 전환 버튼을 클릭했으면 true입니다.
+         */
         bool DrawVisibilityButton(bool ActorVisible) {
             const float Size{ImGui::GetFontSize()};
             const bool Pressed{ImGui::InvisibleButton("##Visibility", {Size, Size})};
@@ -55,6 +69,7 @@ namespace Editor {
      */
     void Editor::FOutlinerPanel::DrawContent(float) {
         Editor::FEditorContext* Context{GetEditorContext()};
+
         ImGui::BeginDisabled(!Context->CanEditWorld());
 
         if (ImGui::Button("+ 액터")) {
@@ -211,6 +226,7 @@ namespace Editor {
                 if (ImGui::BeginPopupContextItem("ActorMenu")) {
                     DuplicateRequested = ImGui::MenuItem("Duplicate", nullptr, false, CanEdit) || DuplicateRequested;
                     DeleteRequested = ImGui::MenuItem("Delete", "Del", false, CanEdit) || DeleteRequested;
+
                     ImGui::Separator();
 
                     if (ImGui::MenuItem("Use as PIE Camera", nullptr, false, CanEdit && Context->GetSelectedCamera() != nullptr)) {
@@ -253,6 +269,7 @@ namespace Editor {
         }
 
         const Engine::UCameraComponent* Camera{Context->GetWorld() != nullptr ? Context->GetWorld()->GetActiveCamera() : nullptr};
+
         ImGui::TextDisabled("%zu actors (%zu selected) | PIE Camera: %s", Actors.size(), Selection.size(), Camera != nullptr ? Camera->GetOwner()->GetName().c_str() : "None");
     }
 

@@ -50,11 +50,15 @@ namespace RenderCore {
         }
     }
 
+    /**
+     * @brief 셰이더 경로와 매크로를 정규화하고 컴파일 설명의 유효성을 검사합니다.
+     */
     bool RenderCore::FShaderDescription::Normalize(Core::FString& Diagnostics) {
         Diagnostics.clear();
 
         if (!IsIdentifier(mEntryPoint) || mTargetProfile.empty() || mTargetProfile.find('\0') != Core::FString::npos) {
             Diagnostics = "A shader requires a valid entry point and target profile";
+
             return false;
         }
 
@@ -75,20 +79,26 @@ namespace RenderCore {
 
             if (!IsIdentifier(Macro.mName) || Macro.mValue.find('\0') != Core::FString::npos || (Index > 0 && mMacros[Index - 1].mName == Macro.mName)) {
                 Diagnostics = "Invalid or duplicate shader macro: " + Macro.mName;
+
                 return false;
             }
         }
 
         if (RenderCore::ShaderFile::GetCompilerIdentity().empty()) {
             Diagnostics = "Cannot identify the D3DCompile compiler binary";
+
             return false;
         }
 
         return true;
     }
 
+    /**
+     * @brief 경로·진입점·프로필·매크로·컴파일러를 포함한 셰이더 식별 문자열을 반환합니다.
+     */
     Core::FString RenderCore::FShaderDescription::GetIdentity() const {
         Core::TArray<Core::Uint8> Data{};
+
         RenderCore::ShaderFile::AppendString(Data, "Macaw-D3DCompile-Shader-1");
         RenderCore::ShaderFile::AppendString(Data, RenderCore::ShaderFile::GetCompilerIdentity());
         RenderCore::ShaderFile::AppendString(Data, Core::FilePath::ToGenericUtf8(mSourcePath));
@@ -111,8 +121,12 @@ namespace RenderCore {
         return Core::FString{reinterpret_cast<const char*>(Data.data()), Data.size()};
     }
 
+    /**
+     * @brief 정규화한 셰이더 설명에서 사용하는 캐시 키를 반환합니다.
+     */
     Core::FString RenderCore::FShaderDescription::GetCacheKey() const {
         const Core::FString Identity{GetIdentity()};
+
         return RenderCore::ShaderFile::Hash(std::span<const Core::Uint8>{reinterpret_cast<const Core::Uint8*>(Identity.data()), Identity.size()});
     }
 

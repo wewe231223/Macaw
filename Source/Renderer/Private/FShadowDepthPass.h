@@ -14,6 +14,7 @@ namespace Renderer {
 
     /**
      * @brief 그림자를 드리우는 메시를 깊이 전용 파이프라인으로 아틀라스 타일에 기록하는 메시 패스입니다.
+     * @note 장치·렌더러 연결을 구성하는 FMeshPass 생성자를 상속합니다.
      */
     class FShadowDepthPass final : public Renderer::FMeshPass {
     public:

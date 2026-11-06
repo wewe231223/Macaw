@@ -42,6 +42,7 @@ UPrimitiveComponent* USubUVComponent::GetTargetComponent() const {
 void USubUVComponent::SetTargetMaterialSlot(FName MaterialSlot) {
     if (mTargetMaterialSlot != MaterialSlot) {
         ClearTargetTransform();
+
         mTargetMaterialSlot = MaterialSlot;
     }
 
@@ -72,6 +73,7 @@ void USubUVComponent::SetUVTransform(const FUVTransform& Transform) {
     }
 
     mUVTransform = Transform;
+
     ApplyUVTransform();
 }
 
@@ -89,23 +91,27 @@ void USubUVComponent::Play() {
     }
 
     mPlaying = true;
+
     UpdateUVTransform();
     UpdateTickEnabled();
 }
 
 void USubUVComponent::Pause() {
     mPlaying = false;
+
     UpdateTickEnabled();
 }
 
 void USubUVComponent::Stop() {
     mPlaying = false;
+
     ResetPlaybackState();
     SetElapsedTime(0.0);
 }
 
 void USubUVComponent::Restart() {
     mPlaying = true;
+
     ResetPlaybackState();
     SetElapsedTime(0.0);
 }
@@ -116,6 +122,7 @@ bool USubUVComponent::IsPlaying() const {
 
 void USubUVComponent::SetLooping(bool Looping) {
     mLooping = Looping;
+
     SetElapsedTime(mElapsedTime);
 }
 
@@ -131,6 +138,7 @@ void USubUVComponent::SetElapsedTime(double ElapsedTime) {
     const double Duration{GetDuration()};
 
     mElapsedTime = std::isfinite(Duration) && Duration > 0.0 ? (mLooping ? std::fmod(ElapsedTime, Duration) : (std::min)(ElapsedTime, Duration)) : ElapsedTime;
+
     UpdateUVTransform();
     UpdateTickEnabled();
 }
@@ -160,6 +168,7 @@ void USubUVComponent::TickComponent(float DeltaTime) {
 
     if (GetTargetComponent() == nullptr) {
         UpdateTickEnabled();
+
         return;
     }
 
@@ -206,6 +215,7 @@ void USubUVComponent::Serialize(FArchive& Archive) {
 
     if (Archive.IsLoading()) {
         mElapsedTime = 0.0;
+
         UpdateTickEnabled();
     }
 }

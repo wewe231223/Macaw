@@ -29,6 +29,7 @@ namespace Engine {
          * @brief 기본 설정으로 UHeightFogComponent 객체를 초기화합니다.
          */
         UHeightFogComponent();
+
         /**
          * @brief 소멸 전에 렌더 장면에서 안개를 등록 해제하고 아이콘 자원을 정리합니다.
          */
@@ -40,6 +41,7 @@ namespace Engine {
          * @return 거리당 안개 밀도이며 기본값은 0.02입니다.
          */
         float GetFogDensity() const;
+
         /**
          * @brief 0~10 범위의 유한한 안개 밀도를 설정하고 장면 프록시를 갱신합니다.
          * @param[in] Density 안개 기준 높이에 적용할 유한한 0~10 밀도입니다.
@@ -52,6 +54,7 @@ namespace Engine {
          * @return 높이 감쇠 계수이며 0이면 높이에 따라 밀도가 변하지 않습니다.
          */
         float GetFogHeightFalloff() const;
+
         /**
          * @brief 0~100 범위의 유한한 높이 감쇠 계수를 적용하고 장면을 동기화합니다.
          * @param[in] Falloff 밀도의 높이 감쇠에 사용할 유한한 0~100 계수입니다.
@@ -64,6 +67,7 @@ namespace Engine {
          * @return 0 이상의 월드 거리입니다.
          */
         float GetStartDistance() const;
+
         /**
          * @brief 0 이상의 유한한 안개 시작 거리를 설정하고 장면 프록시를 갱신합니다.
          * @param[in] Distance 0 이상의 유한한 월드 거리입니다.
@@ -76,6 +80,7 @@ namespace Engine {
          * @return 적분 종료 거리이며 0이면 종료 거리 제한이 없습니다.
          */
         float GetEndDistance() const;
+
         /**
          * @brief 안개 적분의 종료 거리를 설정하며 0이면 거리 상한을 해제합니다.
          * @param[in] Distance 0 이상의 유한한 월드 거리입니다.
@@ -88,6 +93,7 @@ namespace Engine {
          * @return 적용 제외 경계 거리이며 0이면 거리로 제외하지 않습니다.
          */
         float GetFogCutoffDistance() const;
+
         /**
          * @brief 이 거리보다 먼 표면의 안개를 생략하도록 설정하며 0이면 제한을 해제합니다.
          * @param[in] Distance 0 이상의 유한한 월드 거리입니다.
@@ -100,6 +106,7 @@ namespace Engine {
          * @return 0~1 범위의 최대 불투명도입니다.
          */
         float GetFogMaxOpacity() const;
+
         /**
          * @brief 0~1 범위의 유한한 최대 안개 불투명도를 적용하고 장면을 갱신합니다.
          * @param[in] Opacity 0~1 범위의 유한한 최대 불투명도입니다.
@@ -112,6 +119,7 @@ namespace Engine {
          * @return 컴포넌트가 보관하는 산란 RGBA 색상의 읽기 전용 참조입니다.
          */
         const Core::FVector4& GetFogInscatteringColor() const;
+
         /**
          * @brief 각 채널이 유한한 0~1 범위인 산란 색상을 적용하고 장면을 갱신합니다.
          * @param[in] Color 적용할 RGBA 색상입니다.
@@ -125,14 +133,17 @@ namespace Engine {
          * @return 변환을 수락하면 true이며 유효하지 않으면 false입니다.
          */
         bool SetTransform(const Core::FTransform& Transform) override;
+
         /**
          * @brief 렌더 장면의 안개와 아이콘 참조를 정리한 뒤 기반 컴포넌트의 등록을 해제합니다.
          */
         void UnregisterComponent() override;
+
         /**
          * @brief 에셋 관리자 변경을 확인하여 아이콘을 확보하고 현재 안개 설정을 렌더 장면에 추가·갱신합니다.
          */
         void SynchronizeFog();
+
         /**
          * @brief 현재 GUID·변환·안개 설정·아이콘을 렌더 장면에 복사할 값으로 구성합니다.
          * @return 컴포넌트의 현재 상태를 가진 안개 프록시 값입니다.
@@ -149,6 +160,7 @@ namespace Engine {
          * @brief 소유 액터의 표시 여부 변경을 장면 프록시에 동기화합니다.
          */
         void OnOwnerVisibilityChanged() override;
+
         /**
          * @brief 프로젝트의 언리얼 안개 아이콘을 찾고 없으면 실행 파일 또는 저장소의 배포 템플릿에서 로드합니다.
          */

@@ -19,9 +19,11 @@ public:
     ReflectReadOnlyProperty(mCenter, "OBB_Center", EPropertyFlags::Serialize | EPropertyFlags::ReadOnly, ReflectSerializer(mCenter));
 
     FVector3 mCenter{};
+
     ReflectProperty(mExtent, "OBB_Extent", EPropertyFlags::Edit | EPropertyFlags::Serialize, ReflectSerializer(mExtent), ReflectEditor("", "Extent"), ReflectRange(0.001f, std::numeric_limits<float>::max()), ReflectSpeed(0.05f));
 
     FVector3 mExtent{1.0f, 1.0f, 1.0f};
+
     ReflectReadOnlyProperty(mOrientation, "OBB_Orientation", EPropertyFlags::Serialize | EPropertyFlags::ReadOnly, ReflectSerializer(mOrientation));
 
     FQuat mOrientation{0.0f, 0.0f, 0.0f, 1.0f};
@@ -36,6 +38,7 @@ public:
 public:
     /// <summary>플레이 초기화에서 메시 기준 충돌 경계를 구성하도록 초기화 호출을 요청합니다.</summary>
     UBoxColliderComponent();
+
     ~UBoxColliderComponent() override = default;
 
 public:
@@ -66,6 +69,7 @@ private:
 
     TObjectRef<UMeshComponent> mMeshComponent{};
     FGuid mPendingMeshComponentGuid{};
+
     ReflectAccessor(mBounds, GetBounds, SetBounds, "Bounds", EPropertyFlags::Edit | EPropertyFlags::Serialize | EPropertyFlags::Inline, ReflectSerializer(mBounds), ReflectEditor("Collision", "Extent"));
 
     FBoxColliderBounds mBounds{};

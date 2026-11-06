@@ -24,12 +24,25 @@
 
 namespace Asset {
 
+    /**
+     * @brief 이 파일에서 사용하는 내부 보조 기능과 상태를 묶습니다.
+     */
     namespace {
 
+        /**
+         * @brief 임포터 벡터의 XYZ 성분을 엔진 벡터로 옮깁니다.
+         * @param[in] Vector 엔진 형식으로 옮길 임포터 벡터입니다.
+         * @return XYZ 성분을 옮긴 엔진 벡터입니다.
+         */
         Core::FVector ToVector(const aiVector3D& Vector) {
             return {Vector.x, Vector.y, Vector.z};
         }
 
+        /**
+         * @brief 임포터 행렬 성분을 엔진 행렬 저장 형식으로 옮깁니다.
+         * @param[in] Matrix 엔진 형식으로 옮길 임포터 행렬입니다.
+         * @return 성분을 옮긴 엔진 행렬입니다.
+         */
         Core::FMatrix ToMatrix(const aiMatrix4x4& Matrix) {
             // Assimp 행렬은 열 벡터 규약(이동이 4번째 열)이므로 전치해서 행 벡터 규약의 행렬로 만듭니다.
             Core::FMatrix Result{};
@@ -45,12 +58,18 @@ namespace Asset {
 
     }
 
+    /**
+     * @brief 가져올 원본 파일 경로와 임포트 옵션을 보관하도록 Assimp 임포터를 초기화합니다.
+     */
     Asset::FAssimpMeshImporter::FAssimpMeshImporter(std::filesystem::path Source, const Asset::FAssetImportOption& Option)
 		: IMeshImporter{std::move(Source), Option} {
     }
 
     Asset::FAssimpMeshImporter::~FAssimpMeshImporter() = default;
 
+    /**
+     * @brief Assimp 재질에서 우선 종류의 텍스처를 찾고 없으면 대체 종류의 텍스처 참조를 읽습니다.
+     */
     Asset::FMeshImportTexture Asset::FAssimpMeshImporter::ReadTexture(const aiMaterial& Material, aiTextureType PrimaryType, aiTextureType FallbackType) const {
         aiString Texture{};
 
@@ -59,6 +78,7 @@ namespace Asset {
         }
 
         Core::FString Reference{Texture.C_Str()};
+
         std::replace(Reference.begin(), Reference.end(), '\\', '/');
 
         if (Reference.starts_with("*") || mScene->GetEmbeddedTexture(Texture.C_Str()) != nullptr) {
@@ -68,6 +88,9 @@ namespace Asset {
         return Asset::FMeshImportTexture{(GetSourceDirectory() / Core::FilePath::FromUtf8(Reference)).lexically_normal()};
     }
 
+    /**
+     * @brief Assimp 메시의 정점과 삼각형을 엔진 공간으로 변환해 대상 메시에 추가하고 서브메시를 구성합니다.
+     */
     bool Asset::FAssimpMeshImporter::ReadMesh(const aiMesh& Source, const Asset::FMeshImportTransform& Transform, Asset::FMeshImportMesh& Target) {
         Asset::FMeshData& MeshData{Target.GetMeshData()};
         Core::FString& Error{GetError()};
@@ -85,6 +108,7 @@ namespace Asset {
 
         if (!Source.HasPositions() || !Source.HasFaces() || Source.mNumVertices > MaximumVertices - VertexCount || Source.mNumFaces > (MaximumIndices - Indices.size()) / 3 || Source.mMaterialIndex >= mScene->mNumMaterials) {
             Error = "The source contains an empty mesh or exceeds mesh buffer limits";
+
             return false;
         }
 
@@ -101,6 +125,7 @@ namespace Asset {
 
         if (UVStride > D3D11_REQ_MULTI_ELEMENT_STRUCTURE_SIZE_IN_BYTES || VertexCount + Source.mNumVertices > MaximumBytes / UVStride) {
             Error = "The source exceeds mesh buffer limits";
+
             return false;
         }
 
@@ -128,6 +153,7 @@ namespace Asset {
 
             if (!Position.IsFinite() || !Normal.IsFinite() || !Normal.Normalize()) {
                 Error = "The source contains invalid vertex attributes";
+
                 return false;
             }
 
@@ -141,11 +167,13 @@ namespace Asset {
 
             if (Source.HasVertexColors(0)) {
                 const aiColor4D& SourceColor{Source.mColors[0][VertexIndex]};
+
                 Color = {SourceColor.r, SourceColor.g, SourceColor.b, SourceColor.a};
             }
 
             if (!Tangent.IsFinite() || !Color.IsFinite()) {
                 Error = "The source contains invalid vertex attributes";
+
                 return false;
             }
 
@@ -162,6 +190,7 @@ namespace Asset {
 
                 if (!UV.IsFinite()) {
                     Error = "The source contains invalid texture coordinates";
+
                     return false;
                 }
 
@@ -174,6 +203,7 @@ namespace Asset {
 
             if (Face.mNumIndices != 3) {
                 Error = "The source contains a face that could not be triangulated";
+
                 return false;
             }
 
@@ -183,6 +213,7 @@ namespace Asset {
 
                 if (Face.mIndices[SourceCorner] >= Source.mNumVertices) {
                     Error = "The source contains an invalid vertex index";
+
                     return false;
                 }
 
@@ -222,17 +253,22 @@ namespace Asset {
         return true;
     }
 
+    /**
+     * @brief 노드와 모든 자식 노드를 깊이 우선으로 순회하며 노드의 메시를 읽습니다.
+     */
     bool Asset::FAssimpMeshImporter::ReadNode(const aiNode& Node, const Core::FMatrix& ParentTransform) {
         // 행 벡터 규약이므로 노드 로컬 변환을 먼저, 부모 전역 변환을 나중에 적용합니다.
         const Core::FMatrix Global{ToMatrix(Node.mTransformation) * ParentTransform};
 
         if (Node.mNumMeshes > 0) {
             auto& Meshes{GetResult().GetMeshes()};
+
             // 노드 전역 변환 뒤에 축 변환과 임포트 이동·회전·스케일(mBasis)을 적용합니다.
             const Asset::FMeshImportTransform Transform{Global * mBasis};
 
             if (!Transform.IsValid()) {
                 GetError() = "The source mesh has a non-invertible node transform";
+
                 return false;
             }
 
@@ -244,6 +280,7 @@ namespace Asset {
             for (Core::Uint32 Index{}; Index < Node.mNumMeshes; ++Index) {
                 if (Node.mMeshes[Index] >= mScene->mNumMeshes) {
                     GetError() = "The source node references an invalid mesh";
+
                     return false;
                 }
 
@@ -262,6 +299,9 @@ namespace Asset {
         return true;
     }
 
+    /**
+     * @brief 메시 노드를 순회하며 메시 본의 오프셋 행렬로 본 이름별 바인드 시점 전역 변환을 모읍니다.
+     */
     bool Asset::FAssimpMeshImporter::CollectBindPoses(const aiNode& Node, const Core::FMatrix& ParentTransform) {
         const Core::FMatrix Global{ToMatrix(Node.mTransformation) * ParentTransform};
 
@@ -286,6 +326,7 @@ namespace Asset {
                 // 따라서 바인드 시점의 본 전역 변환은 Offset⁻¹ × MeshGlobal입니다.
                 if (!ToMatrix(Bone.mOffsetMatrix).TryInverse(InverseOffset)) {
                     GetError() = "The source bone has a non-invertible offset matrix: " + Name;
+
                     return false;
                 }
 
@@ -302,6 +343,9 @@ namespace Asset {
         return true;
     }
 
+    /**
+     * @brief 메시가 참조하는 본 이름과 같은 노드를 깊이 우선으로 순회하며 결과 본 목록에 추가합니다.
+     */
     bool Asset::FAssimpMeshImporter::ReadSkeleton(const aiNode& Node, Core::Int32 ParentIndex, const Core::FMatrix& ParentBoneGlobal) {
         const Core::FString Name{Node.mName.C_Str()};
         Core::Int32 Index{ParentIndex};
@@ -314,12 +358,14 @@ namespace Asset {
 
             if (!Asset::FMeshImportTransform::ConvertTransform(mBasis, BindPose->second, BoneGlobal) || !ParentBoneGlobal.TryInverse(ParentInverse)) {
                 GetError() = "The source skeleton cannot be converted to the engine space";
+
                 return false;
             }
 
             // mTransformation은 직계 부모 노드 기준이라 사이에 일반 노드가 끼면 부모 본 기준과 달라지므로,
             // 전역 변환에서 부모 본의 전역 변환을 되돌려 부모 본 공간 기준의 로컬 변환을 구합니다. 루트 본은 장면 원점 기준입니다.
             Index = static_cast<Core::Int32>(Bones.size());
+
             mBoneIndices.emplace(Name, Index);
             Bones.emplace_back(Name, ParentIndex, BoneGlobal * ParentInverse);
         }
@@ -333,9 +379,13 @@ namespace Asset {
         return true;
     }
 
+    /**
+     * @brief Assimp로 원본 메시 파일을 읽어 정점·삼각형·재질 슬롯과 텍스처 참조를 수집합니다.
+     */
     bool Asset::FAssimpMeshImporter::ImportSource() {
         Core::FString& Error{GetError()};
         const Asset::FAssetImportOption& Option{GetOption()};
+
         mImporter.SetIOHandler(new Asset::FMeshImportIOSystem{});
         mImporter.SetPropertyInteger(AI_CONFIG_PP_SBP_REMOVE, aiPrimitiveType_POINT | aiPrimitiveType_LINE);
         mImporter.SetPropertyBool(AI_CONFIG_PP_FID_IGNORE_TEXTURECOORDS, true);
@@ -343,11 +393,13 @@ namespace Asset {
         // 좌표축 변환·UV 반전·감김 순서는 FBX 임포터와 같은 결과가 나오도록 ReadMesh에서 직접 처리하므로 ConvertToLeftHanded를 쓰지 않습니다.
         // 노드 계층도 직접 순회해야 메시 분리와 스켈레톤 옵션을 따를 수 있으므로 PreTransformVertices를 쓰지 않습니다.
         Core::Uint32 ImportFlags{aiProcess_Triangulate | aiProcess_JoinIdenticalVertices | aiProcess_GenSmoothNormals | aiProcess_CalcTangentSpace | aiProcess_SortByPType | aiProcess_FindInvalidData | aiProcess_ValidateDataStructure};
+
         // GenSmoothNormals와 CalcTangentSpace는 없는 요소만 만들므로, 다시 계산할 요소는 RemoveComponent로 먼저 지웁니다.
         const int RemovedComponents{Option.mNormalImportMethod == Asset::ENormalImportMethod::ComputeNormals ? aiComponent_NORMALS | aiComponent_TANGENTS_AND_BITANGENTS : Option.mNormalImportMethod == Asset::ENormalImportMethod::ImportNormals ? aiComponent_TANGENTS_AND_BITANGENTS : 0};
 
         if (RemovedComponents != 0) {
             mImporter.SetPropertyInteger(AI_CONFIG_PP_RVC_FLAGS, RemovedComponents);
+
             ImportFlags |= aiProcess_RemoveComponent;
         }
 
@@ -355,6 +407,7 @@ namespace Asset {
 
         if (mScene == nullptr || (mScene->mFlags & AI_SCENE_FLAGS_INCOMPLETE) != 0 || !mScene->HasMeshes() || mScene->mRootNode == nullptr) {
             Error = mScene == nullptr ? mImporter.GetErrorString() : "The source contains no complete mesh data";
+
             return false;
         }
 
@@ -379,6 +432,9 @@ namespace Asset {
         return ReadNode(*mScene->mRootNode, {});
     }
 
+    /**
+     * @brief 장면의 Assimp 재질마다 기본 색상·불투명도·양면 여부와 기본 색상·노멀 텍스처를 읽어 재질 목록에 추가합니다.
+     */
     bool Asset::FAssimpMeshImporter::ReadMaterials() {
         Core::TArray<Asset::FMeshImportMaterial>& Materials{GetResult().GetMaterials()};
         Materials.reserve(mScene->mNumMaterials);
@@ -386,16 +442,20 @@ namespace Asset {
         for (Core::Uint32 Index{}; Index < mScene->mNumMaterials; ++Index) {
             const aiMaterial& Material{*mScene->mMaterials[Index]};
             aiString MaterialName{};
+
             Material.Get(AI_MATKEY_NAME, MaterialName);
 
             const Core::FString Name{MaterialName.length == 0 ? "Material_" + std::to_string(Index) : Core::FString{MaterialName.C_Str()}};
             aiColor4D Color{1.0f, 1.0f, 1.0f, 1.0f};
+
             aiGetMaterialColor(&Material, AI_MATKEY_COLOR_DIFFUSE, &Color);
 
             float Opacity{1.0f};
+
             Material.Get(AI_MATKEY_OPACITY, Opacity);
 
             Core::Int32 TwoSided{};
+
             Material.Get(AI_MATKEY_TWOSIDED, TwoSided);
 
             Asset::FMeshImportTexture SpecularTexture{ReadTexture(Material, aiTextureType_SPECULAR, aiTextureType_SPECULAR)};
@@ -403,9 +463,12 @@ namespace Asset {
             Asset::FMeshImportTexture ReflectionTexture{ReadTexture(Material, aiTextureType_REFLECTION, aiTextureType_REFLECTION)};
             const auto ReadColor{[&](const char* Key, Core::Uint32 Type, Core::Uint32 PropertyIndex, const Core::FVector4& Default) {
                 aiColor4D Value{Default.x, Default.y, Default.z, Default.w};
+
                 aiGetMaterialColor(&Material, Key, Type, PropertyIndex, &Value);
+
                 return Core::FVector4{Value.r, Value.g, Value.b, 1.0f};
             }};
+
             const float SpecularDefault{SpecularTexture.GetSource() == Asset::EMeshImportTextureSource::None ? 0.0f : 1.0f};
             const float EmissiveDefault{EmissiveTexture.GetSource() == Asset::EMeshImportTextureSource::None ? 0.0f : 1.0f};
             const Core::FVector4 SpecularColor{ReadColor(AI_MATKEY_COLOR_SPECULAR, {SpecularDefault, SpecularDefault, SpecularDefault, 1.0f})};
@@ -416,13 +479,16 @@ namespace Asset {
             float SpecularStrength{1.0f};
             float Shininess{32.0f};
             float ReflectionStrength{ReflectionTexture.GetSource() == Asset::EMeshImportTextureSource::None ? 0.0f : 1.0f};
+
             Material.Get(AI_MATKEY_SHININESS_STRENGTH, SpecularStrength);
             Material.Get(AI_MATKEY_SHININESS, Shininess);
             Material.Get(AI_MATKEY_REFLECTIVITY, ReflectionStrength);
+
             Asset::FMeshImportMaterial Imported{Name, Core::FVector4{Color.r, Color.g, Color.b, Opacity}, TwoSided != 0, ReadTexture(Material, aiTextureType_BASE_COLOR, aiTextureType_DIFFUSE), ReadTexture(Material, aiTextureType_NORMALS, aiTextureType_HEIGHT)};
 
             if (!Imported.SetLighting(SpecularColor, SpecularStrength, Shininess, AmbientColor, EmissiveColor, ReflectionColor, ReflectionStrength, std::move(SpecularTexture), std::move(EmissiveTexture), std::move(ReflectionTexture))) {
                 GetError() = "The source material contains invalid lighting properties: " + Name;
+
                 return false;
             }
 

@@ -299,6 +299,7 @@ bool FMessageChannel::TryBind(TCallable&& Callable) {
 
     if (mIsDispatching) {
         mPendingHandlers.emplace_back(std::move(Handler));
+
         return true;
     }
 

@@ -31,6 +31,7 @@ namespace {
     void FUndoHistoryStack::Push(FUndoTransaction&& NewTransaction) {
         while (mSize > mCurrent) {
             --mSize;
+
             mBuffer[(mHead + mSize) % mBuffer.size()].reset();
         }
 
@@ -42,6 +43,7 @@ namespace {
         const Uint32 WriteIndex{(mHead + mSize) % static_cast<Uint32>(mBuffer.size())};
 
         mBuffer[WriteIndex].emplace(std::move(NewTransaction));
+
         ++mSize;
         mCurrent = mSize;
     }
@@ -196,10 +198,12 @@ namespace FUndoSystem {
             switch (UndoType) {
                 case EUndoType::Spawn:
                     Record = std::make_unique<FRecordObjectSpawned>(TargetObject->GetGuid(), std::move(CurrentData), TargetObject->GetClass()->GetClassName());
+
                     break;
 
                 case EUndoType::Destroy:
                     Record = std::make_unique<FRecordObjectDestroyed>(TargetObject->GetGuid(), std::move(CurrentData), TargetObject->GetClass()->GetClassName());
+
                     break;
             }
 

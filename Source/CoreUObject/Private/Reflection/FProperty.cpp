@@ -21,7 +21,13 @@
 
 namespace CoreUObject {
 
+    /**
+     * @brief 이 파일에서 사용하는 내부 보조 기능과 상태를 묶습니다.
+     */
     namespace {
+        /**
+         * @brief 과도한 배열 할당을 막는 원소 수 상한입니다.
+         */
         constexpr Core::Uint32 MaximumArrayCount{100000};
     }
 
@@ -83,6 +89,9 @@ namespace CoreUObject {
         return mEnumValues;
     }
 
+    /**
+     * @brief 배열 프로퍼티의 함수 테이블을 반환합니다.
+     */
     const CoreUObject::FArrayOps* CoreUObject::FProperty::GetArrayOps() const {
         return mArrayOps;
     }
@@ -154,9 +163,13 @@ namespace CoreUObject {
         SerializeNamed(mName, Container, Archive);
     }
 
+    /**
+     * @brief 저장 정책 검사를 마친 값을 지정한 이름으로 직렬화합니다.
+     */
     void CoreUObject::FProperty::SerializeNamed(std::string_view Name, void* Container, Core::FArchive& Archive) const {
         if (mArrayOps != nullptr) {
             SerializeArray(Name, Container, Archive);
+
             return;
         }
 
@@ -211,10 +224,14 @@ namespace CoreUObject {
         }
     }
 
+    /**
+     * @brief 배열을 원소 단위로 직렬화합니다. 로드는 작업용 배열을 채운 뒤 한 번에 커밋합니다.
+     */
     void CoreUObject::FProperty::SerializeArray(std::string_view Name, void* Container, Core::FArchive& Archive) const {
         const CoreUObject::FArrayOps& Ops{*mArrayOps};
         const bool Loading{Archive.IsLoading()};
         std::unique_ptr<void, void (*)(void*)> Working{Loading ? Ops.mCreate() : nullptr, Ops.mDestroy};
+
         // 저장 경로는 원소를 읽기만 하므로 getter가 돌려준 주소를 그대로 순회합니다.
         void* Array{Loading ? Working.get() : const_cast<void*>(std::get<const void*>(ReadValue(Container)))};
         Core::Uint32 Count{Loading ? 0 : Ops.mSize(Array)};
@@ -242,6 +259,9 @@ namespace CoreUObject {
         }
     }
 
+    /**
+     * @brief 이 프로퍼티와 하위 원소의 객체 참조에 핸들을 연결합니다.
+     */
     void CoreUObject::FProperty::BindObjectReferences(void* Container, const CoreUObject::FObjectGuidMap& Objects) const {
         if (HasFlag(Core::EPropertyFlags::Transient)) {
             return;
@@ -262,6 +282,7 @@ namespace CoreUObject {
             mStruct->BindObjectReferences(Container, Objects);
         } else if (mType == CoreUObject::EPropertyType::ObjectReference) {
             CoreUObject::FPropertyValue Value{ReadValue(Container)};
+
             std::get<CoreUObject::FObjectReference>(Value).Bind(Objects);
             WriteValue(Container, Value, mLoader);
         }

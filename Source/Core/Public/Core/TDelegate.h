@@ -33,6 +33,7 @@ namespace Core {
          * @return 계산하거나 조회한 값입니다.
          */
         Core::Uint32 Add(const HandlerType& Handler);
+
         // 클래스 멤버 함수 바인딩, 람다로 handler 생성후 목록에 저장, 등록 후 해당 Handle에 대한 번호 return
         /**
          * @brief 인스턴스의 멤버 함수를 델리게이트에 바인딩합니다.
@@ -44,6 +45,7 @@ namespace Core {
          */
         template <typename T, typename... Args>
         Core::Uint32 AddDynamic(T* Instance, void (T::*Func)(Args...));
+
         // Handlers 목록에 있는 함수들 전부 실행
         // Todo : Instance가 중간에 Null이 된 경우 등 예외처리
         /**
@@ -53,6 +55,7 @@ namespace Core {
          */
         template <typename... Args>
         void Broadcast(Args&&... Arguments);
+
         // Handlers 목록에서 HandleNum을 기반으로 해당 Number의 함수만 호출
         // Todo : Instance가 중간에 Null이 된 경우 등 예외처리
         /**
@@ -63,6 +66,7 @@ namespace Core {
          */
         template <typename... Args>
         void Execute(Core::Uint32 HandleNum, Args&&... Arguments);
+
         // Handlers 목록에서 HandleNum을 기반으로 해당 Number의 함수 삭제
         /**
          * @brief 핸들에 해당하는 델리게이트 등록을 제거합니다.
@@ -85,7 +89,9 @@ namespace Core {
     template <typename TSignature>
     Core::Uint32 Core::TDelegate<TSignature>::Add(const HandlerType& Handler) {
         ++mCurrentHandleNum;
+
         mHandlers.emplace(mCurrentHandleNum, Handler);
+
         return mCurrentHandleNum;
     }
 
@@ -95,6 +101,7 @@ namespace Core {
         const HandlerType Handler{[Instance, Func](Args... Arguments) {
             (Instance->*Func)(Arguments...);
         }};
+
         return Add(Handler);
     }
 
@@ -115,6 +122,7 @@ namespace Core {
 
         if (Position != mHandlers.end()) {
             const HandlerType Handler{Position->second};
+
             Handler(Arguments...);
         }
     }

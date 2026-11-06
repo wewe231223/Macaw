@@ -10,6 +10,7 @@ class FRenderer;
 class FRendererScene final : public FSceneInterface {
 public:
     FRendererScene(FRenderer& Renderer, FSceneHandle Handle);
+
     ~FRendererScene() override = default;
     FRendererScene(const FRendererScene&) = delete;
 

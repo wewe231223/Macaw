@@ -21,6 +21,7 @@ int FEngineLoop::Run(IEngineLoopClient& Client, IPlatformApplication& Platform) 
     } catch (...) {
         mRunning = false;
         mClient = nullptr;
+
         throw;
     }
 

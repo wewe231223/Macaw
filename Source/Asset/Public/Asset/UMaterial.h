@@ -184,31 +184,126 @@ namespace Asset {
          */
         void BindConstants(ID3D11DeviceContext* Context, RenderCore::EShaderStage Stages, Core::Uint32 Slot) const;
 
+        /**
+         * @brief 정반사 색상 값을 반환합니다.
+         * @return 저장한 정반사 색상 값 또는 참조입니다.
+         */
         const Core::FVector4& GetSpecularColor() const;
+
+        /**
+         * @brief 정반사 색상 값을 검증해 적용하고 렌더 상태를 갱신합니다.
+         * @param[in] Color 적용하거나 변환할 색상입니다.
+         * @return 값이 유효해 반영되면 true, 유효하지 않으면 false입니다.
+         */
         bool SetSpecularColor(const Core::FVector4& Color);
 
+        /**
+         * @brief 주변광 색상 값을 반환합니다.
+         * @return 저장한 주변광 색상 값 또는 참조입니다.
+         */
         const Core::FVector4& GetAmbientColor() const;
+
+        /**
+         * @brief 주변광 색상 값을 검증해 적용하고 렌더 상태를 갱신합니다.
+         * @param[in] Color 적용하거나 변환할 색상입니다.
+         * @return 값이 유효해 반영되면 true, 유효하지 않으면 false입니다.
+         */
         bool SetAmbientColor(const Core::FVector4& Color);
 
+        /**
+         * @brief 자체 발광 색상 값을 반환합니다.
+         * @return 저장한 자체 발광 색상 값 또는 참조입니다.
+         */
         const Core::FVector4& GetEmissiveColor() const;
+
+        /**
+         * @brief 자체 발광 색상 값을 검증해 적용하고 렌더 상태를 갱신합니다.
+         * @param[in] Color 적용하거나 변환할 색상입니다.
+         * @return 값이 유효해 반영되면 true, 유효하지 않으면 false입니다.
+         */
         bool SetEmissiveColor(const Core::FVector4& Color);
 
+        /**
+         * @brief 환경 반사 색상 값을 반환합니다.
+         * @return 저장한 환경 반사 색상 값 또는 참조입니다.
+         */
         const Core::FVector4& GetReflectionColor() const;
+
+        /**
+         * @brief 환경 반사 색상 값을 검증해 적용하고 렌더 상태를 갱신합니다.
+         * @param[in] Color 적용하거나 변환할 색상입니다.
+         * @return 값이 유효해 반영되면 true, 유효하지 않으면 false입니다.
+         */
         bool SetReflectionColor(const Core::FVector4& Color);
 
+        /**
+         * @brief 환경 반사 세기 값을 반환합니다.
+         * @return 저장한 환경 반사 세기 값 또는 참조입니다.
+         */
         float GetReflectionStrength() const;
+
+        /**
+         * @brief 환경 반사 세기 값을 검증해 적용하고 렌더 상태를 갱신합니다.
+         * @param[in] Strength 새로 적용할 반사 세기입니다.
+         * @return 값이 유효해 반영되면 true, 유효하지 않으면 false입니다.
+         */
         bool SetReflectionStrength(float Strength);
 
+        /**
+         * @brief 정반사 텍스처의 프로젝트 상대 경로 값을 반환합니다.
+         * @return 저장한 정반사 텍스처의 프로젝트 상대 경로 값 또는 참조입니다.
+         */
         const Core::FString& GetSpecularTexturePath() const;
+
+        /**
+         * @brief 정반사 텍스처의 프로젝트 상대 경로 값을 검증해 적용하고 렌더 상태를 갱신합니다.
+         * @param[in] Path 작업에 사용할 파일 또는 프로젝트 상대 에셋 경로입니다.
+         * @return 값이 유효해 반영되면 true, 유효하지 않으면 false입니다.
+         */
         bool SetSpecularTexturePath(const Core::FString& Path);
+
+        /**
+         * @brief 정반사 텍스처 값을 반환합니다.
+         * @return 저장한 정반사 텍스처 값 또는 참조입니다.
+         */
         Asset::UTexture2D* GetSpecularTexture() const;
 
+        /**
+         * @brief 자체 발광 텍스처의 프로젝트 상대 경로 값을 반환합니다.
+         * @return 저장한 자체 발광 텍스처의 프로젝트 상대 경로 값 또는 참조입니다.
+         */
         const Core::FString& GetEmissiveTexturePath() const;
+
+        /**
+         * @brief 자체 발광 텍스처의 프로젝트 상대 경로 값을 검증해 적용하고 렌더 상태를 갱신합니다.
+         * @param[in] Path 작업에 사용할 파일 또는 프로젝트 상대 에셋 경로입니다.
+         * @return 값이 유효해 반영되면 true, 유효하지 않으면 false입니다.
+         */
         bool SetEmissiveTexturePath(const Core::FString& Path);
+
+        /**
+         * @brief 자체 발광 텍스처 값을 반환합니다.
+         * @return 저장한 자체 발광 텍스처 값 또는 참조입니다.
+         */
         Asset::UTexture2D* GetEmissiveTexture() const;
 
+        /**
+         * @brief 환경 반사 텍스처의 프로젝트 상대 경로 값을 반환합니다.
+         * @return 저장한 환경 반사 텍스처의 프로젝트 상대 경로 값 또는 참조입니다.
+         */
         const Core::FString& GetReflectionTexturePath() const;
+
+        /**
+         * @brief 환경 반사 텍스처의 프로젝트 상대 경로 값을 검증해 적용하고 렌더 상태를 갱신합니다.
+         * @param[in] Path 작업에 사용할 파일 또는 프로젝트 상대 에셋 경로입니다.
+         * @return 값이 유효해 반영되면 true, 유효하지 않으면 false입니다.
+         */
         bool SetReflectionTexturePath(const Core::FString& Path);
+
+        /**
+         * @brief 환경 반사 텍스처 값을 반환합니다.
+         * @return 저장한 환경 반사 텍스처 값 또는 참조입니다.
+         */
         Asset::UTexture2D* GetReflectionTexture() const;
 
     private:
@@ -270,34 +365,67 @@ namespace Asset {
          */
         Asset::UTexture2D* mBaseColorTexture{};
 
+        /**
+         * @brief 정반사 색상 값 또는 참조입니다.
+         */
         UPROPERTY(Edit, Serialize, Getter = GetSpecularColor, Setter = SetSpecularColor)
         Core::FVector4 mSpecularColor{1.0f, 1.0f, 1.0f, 1.0f};
 
+        /**
+         * @brief 주변광 색상 값 또는 참조입니다.
+         */
         UPROPERTY(Edit, Serialize, Getter = GetAmbientColor, Setter = SetAmbientColor)
         Core::FVector4 mAmbientColor{1.0f, 1.0f, 1.0f, 1.0f};
 
+        /**
+         * @brief 자체 발광 색상 값 또는 참조입니다.
+         */
         UPROPERTY(Edit, Serialize, Getter = GetEmissiveColor, Setter = SetEmissiveColor)
         Core::FVector4 mEmissiveColor{0.0f, 0.0f, 0.0f, 1.0f};
 
+        /**
+         * @brief 환경 반사 색상 값 또는 참조입니다.
+         */
         UPROPERTY(Edit, Serialize, Getter = GetReflectionColor, Setter = SetReflectionColor)
         Core::FVector4 mReflectionColor{1.0f, 1.0f, 1.0f, 1.0f};
 
+        /**
+         * @brief 환경 반사 세기 값 또는 참조입니다.
+         */
         UPROPERTY(Edit, Serialize, Getter = GetReflectionStrength, Setter = SetReflectionStrength)
         float mReflectionStrength{};
 
+        /**
+         * @brief 정반사 텍스처의 프로젝트 상대 경로 값 또는 참조입니다.
+         */
         UPROPERTY(Edit, Serialize, Name = "SpecularTexture", Getter = GetSpecularTexturePath, Setter = SetSpecularTexturePath)
         Core::FString mSpecularTexturePath{};
 
+        /**
+         * @brief 정반사 텍스처 값 또는 참조입니다.
+         */
         Asset::UTexture2D* mSpecularTexture{};
 
+        /**
+         * @brief 자체 발광 텍스처의 프로젝트 상대 경로 값 또는 참조입니다.
+         */
         UPROPERTY(Edit, Serialize, Name = "EmissiveTexture", Getter = GetEmissiveTexturePath, Setter = SetEmissiveTexturePath)
         Core::FString mEmissiveTexturePath{};
 
+        /**
+         * @brief 자체 발광 텍스처 값 또는 참조입니다.
+         */
         Asset::UTexture2D* mEmissiveTexture{};
 
+        /**
+         * @brief 환경 반사 텍스처의 프로젝트 상대 경로 값 또는 참조입니다.
+         */
         UPROPERTY(Edit, Serialize, Name = "ReflectionTexture", Getter = GetReflectionTexturePath, Setter = SetReflectionTexturePath)
         Core::FString mReflectionTexturePath{};
 
+        /**
+         * @brief 환경 반사 텍스처 값 또는 참조입니다.
+         */
         Asset::UTexture2D* mReflectionTexture{};
 
         /**

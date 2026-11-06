@@ -3,6 +3,7 @@
  * @brief 구형 재질과 정적 메시 썸네일의 GPU 캐시 구현입니다.
  * @ingroup Editor
  */
+
 #include "Editor/FAssetThumbnailCache.h"
 #include "Core/FilePath.h"
 #include "Core/Math/FRotator.h"
@@ -26,6 +27,9 @@
 
 namespace Editor {
 
+    /**
+     * @brief 에셋 관리자와 렌더러를 연결합니다.
+     */
     Editor::FAssetThumbnailCache::FAssetThumbnailCache(Asset::FAssetManager* Assets, RenderCore::IRendererModule* Renderer)
 		: mAssets{Assets},
 		  mRenderer{Renderer},
@@ -37,6 +41,9 @@ namespace Editor {
 
     Editor::FAssetThumbnailCache::~FAssetThumbnailCache() = default;
 
+    /**
+     * @brief UI 프레임 시작 시 생성 예산과 오래된 캐시를 갱신합니다.
+     */
     void Editor::FAssetThumbnailCache::BeginFrame(Core::Uint32 RenderBudget) {
         ++mFrame;
         mRenderBudget = RenderBudget;
@@ -54,16 +61,23 @@ namespace Editor {
         }
     }
 
+    /**
+     * @brief 타깃 주소를 유지하면서 다음 조회에서 썸네일을 갱신하도록 표시합니다.
+     */
     void Editor::FAssetThumbnailCache::Invalidate() {
         ++mGeneration;
     }
 
+    /**
+     * @brief 재질 설정의 변경을 감지할 서명을 만듭니다.
+     */
     std::size_t Editor::FAssetThumbnailCache::MaterialSignature(const Asset::UMaterial* Material) {
         if (Material == nullptr) {
             return 0;
         }
 
         std::size_t Hash{std::hash<Core::FString>{}(Material->GetShaderPath())};
+
         Hash ^= std::hash<Core::FString>{}(Material->GetBaseColorTexturePath()) + 0x9E3779B9 + (Hash << 6) + (Hash >> 2);
         Hash ^= std::hash<Core::FString>{}(Material->GetNormalMapTexturePath()) + 0x9E3779B9 + (Hash << 6) + (Hash >> 2);
 
@@ -78,6 +92,9 @@ namespace Editor {
         return Hash ^ static_cast<std::size_t>(Material->IsTwoSided());
     }
 
+    /**
+     * @brief 메시·재질·텍스처의 표시 자원을 조회합니다.
+     */
     void* Editor::FAssetThumbnailCache::GetThumbnail(const std::filesystem::path& Path, Asset::EAssetType Type) {
         if (mAssets == nullptr || mRenderer == nullptr) {
             return nullptr;
@@ -87,6 +104,7 @@ namespace Editor {
 
         if (Type == Asset::EAssetType::Texture) {
             Asset::UTexture2D* Texture{mAssets->LoadTexture(Path, Error)};
+
             return Texture != nullptr && Texture->CreateResources(static_cast<ID3D11Device*>(mRenderer->GetNativeDevice())) ? Texture->GetShaderResourceView() : nullptr;
         }
 
@@ -94,6 +112,7 @@ namespace Editor {
 
         if (Type == Asset::EAssetType::Material) {
             Asset::UMaterial* Material{Path.empty() ? nullptr : mAssets->LoadMaterial(Path, Error)};
+
             return !Path.empty() && Material == nullptr ? nullptr : Render(Key, mSphere.get(), Material, MaterialSignature(Material) ^ mGeneration);
         }
 
@@ -114,16 +133,23 @@ namespace Editor {
         for (const Asset::FMeshMaterialSlot& Slot : Mesh->GetMeshData().GetMaterialSlots()) {
             Asset::UMaterial* Material{Slot.GetMaterialPath().empty() ? nullptr : mAssets->LoadMaterial(Core::FilePath::FromUtf8(Slot.GetMaterialPath()), Error)};
             const std::size_t Value{MaterialSignature(Material)};
+
             Signature ^= Value + 0x9E3779B9 + (Signature << 6) + (Signature >> 2);
         }
 
         return Render(Key, Mesh, nullptr, Signature);
     }
 
+    /**
+     * @brief 편집 중인 재질을 구에 적용한 미리보기를 조회합니다.
+     */
     void* Editor::FAssetThumbnailCache::GetMaterialPreview(Asset::UMaterial* Material) {
         return mRenderer != nullptr ? Render("@MaterialPreview", mSphere.get(), Material, MaterialSignature(Material) ^ mGeneration) : nullptr;
     }
 
+    /**
+     * @brief 메시 또는 구형 재질을 캐시에 렌더링합니다.
+     */
     void* Editor::FAssetThumbnailCache::Render(const Core::FString& Key, Asset::UStaticMesh* Mesh, Asset::UMaterial* Material, std::size_t Signature) {
         FThumbnail& Thumbnail{mThumbnails[Key]};
         Thumbnail.mLastUsed = mFrame;
@@ -144,12 +170,14 @@ namespace Editor {
             if (mScene != nullptr) {
                 Engine::FLightSceneProxy Ambient{};
                 Ambient.mIntensity = 0.25f;
+
                 mScene->AddLight(Ambient);
 
                 Engine::FLightSceneProxy Directional{};
                 Directional.mType = Engine::ELightType::Directional;
                 Directional.mDirection = Core::FVector{0.35f, 0.6f, -1.0f}.Normalized();
                 Directional.mIntensity = 0.75f;
+
                 mScene->AddLight(Directional);
             }
         }
@@ -196,9 +224,12 @@ namespace Editor {
         View.mView = Core::FMatrix::LookTo(View.mLocation, View.mForward, Rotation.UpVector());
         View.mProjection = Core::FMatrix::Perspective(40.0f, 1.0f, std::max(Radius * 0.001f, 0.00001f), Radius * 10.0f);
         View.mViewProjection = View.mView * View.mProjection;
+
         Engine::FSceneViewFamily Family{mScene.get(), Thumbnail.mTarget.get(), View};
         Family.mShowFlags.mSky = false;
+
         mRenderer->BeginRenderingViewFamily(Family);
+
         Thumbnail.mSignature = Signature;
 
         return Thumbnail.mTarget->GetNativeTexture();

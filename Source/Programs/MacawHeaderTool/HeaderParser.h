@@ -17,9 +17,24 @@ namespace HeaderTool {
      * @brief 리플렉션 타입 종류입니다.
      */
     enum class ETypeKind {
+        /**
+         * @brief 해당 값이나 대상을 지정하지 않은 상태입니다.
+         */
         None,
+
+        /**
+         * @brief 구조체로 전달하는 바인딩 또는 리플렉션 구조체입니다.
+         */
         Struct,
+
+        /**
+         * @brief UObject 파생 리플렉션 클래스입니다.
+         */
         Class,
+
+        /**
+         * @brief 기반 클래스가 없는 최상위 리플렉션 클래스입니다.
+         */
         RootClass
     };
 

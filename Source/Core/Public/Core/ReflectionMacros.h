@@ -24,12 +24,21 @@ namespace CoreUObject {
     template <typename T, typename TMetadata>
     void BuildNativeReflection(TMetadata* Information);
 
+    /**
+     * @brief 필드 포인터와 선택적 접근자로 네이티브 프로퍼티를 등록합니다.
+     */
     template <auto Member, auto Getter = nullptr, auto Setter = nullptr>
     void RegisterProperty(CoreUObject::FReflectionBuilder& Information, Core::FString Name, Core::EPropertyFlags Flags = Core::EPropertyFlags::None);
 
+    /**
+     * @brief 필드 포인터와 선택적 읽기 접근자로 읽기 전용 프로퍼티를 등록합니다.
+     */
     template <auto Member, auto Getter = nullptr>
     void RegisterReadOnlyProperty(CoreUObject::FReflectionBuilder& Information, Core::FString Name, Core::EPropertyFlags Flags = Core::EPropertyFlags::None);
 
+    /**
+     * @brief 배열 필드와 선택적 접근자로 원소 조회·직렬화 함수를 등록합니다.
+     */
     template <auto Member, auto Getter = nullptr, auto Setter = nullptr>
     void RegisterArrayProperty(CoreUObject::FReflectionBuilder& Information, Core::FString Name, Core::EPropertyFlags Flags = Core::EPropertyFlags::None);
 
@@ -71,12 +80,27 @@ namespace CoreUObject {
  */
 #define UFUNCTION(...)
 
+/**
+ * @brief 파일 ID·줄 번호·접미어 토큰을 생성 본문 식별자로 붙입니다.
+ * @param[in] A 식별자 결합에 사용할 A 토큰입니다.
+ * @param[in] B 식별자 결합에 사용할 B 토큰입니다.
+ * @param[in] C 식별자 결합에 사용할 C 토큰입니다.
+ * @param[in] D 식별자 결합에 사용할 D 토큰입니다.
+ */
 #define MACAW_GENERATED_BODY_COMBINE_INNER(A, B, C, D) A##B##C##D
+
+/**
+ * @brief 인자를 먼저 확장한 뒤 생성 본문 식별자로 결합합니다.
+ * @param[in] A 식별자 결합에 사용할 A 토큰입니다.
+ * @param[in] B 식별자 결합에 사용할 B 토큰입니다.
+ * @param[in] C 식별자 결합에 사용할 C 토큰입니다.
+ * @param[in] D 식별자 결합에 사용할 D 토큰입니다.
+ */
 #define MACAW_GENERATED_BODY_COMBINE(A, B, C, D) MACAW_GENERATED_BODY_COMBINE_INNER(A, B, C, D)
 
 /**
  * @brief 헤더 툴이 generated.h에 만든 리플렉션 선언으로 바뀝니다. UCLASS 또는 USTRUCT 본문의 맨 앞에 둡니다.
  * 펼친 뒤의 접근 수준은 class면 private, struct면 public입니다.
- * 헤더의 마지막 #include는 "<헤더 이름>.generated.h"여야 합니다.
+ * 헤더의 마지막 include 지시문은 자기 이름에 .generated.h를 붙인 헤더여야 합니다.
  */
 #define GENERATED_BODY(...) MACAW_GENERATED_BODY_COMBINE(CURRENT_FILE_ID, _, __LINE__, _GENERATED_BODY)

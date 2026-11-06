@@ -224,6 +224,7 @@ void SerializeObjectReference(FArchive& Archive, std::string_view Name, const UO
 
         if (!Guid.empty() && !PendingGuid.Parse(Guid)) {
             Archive.SetError();
+
             return;
         }
 

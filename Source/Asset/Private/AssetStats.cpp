@@ -1,3 +1,9 @@
+/**
+ * @file AssetStats.cpp
+ * @brief 에셋 로드·임포트와 캐시 사용 통계를 정의합니다.
+ * @ingroup Asset
+ */
+
 #include "Asset/AssetStats.h"
 
 namespace Asset {

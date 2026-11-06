@@ -98,7 +98,17 @@ namespace Engine {
          * @return 계산하거나 조회한 값입니다.
          */
         Core::FBox CalcBounds() const;
+
+        /**
+         * @brief 월드 공간의 축 정렬 경계 상자를 반환합니다.
+         * @return 월드 공간의 축 정렬 경계 상자입니다.
+         */
         Core::FBox GetWorldBounds() const override;
+
+        /**
+         * @brief 표시할 프리미티브 메시 종류를 반환합니다.
+         * @return 표시할 프리미티브 메시 종류입니다.
+         */
         Engine::EPrimitiveType GetPrimitiveType() const override;
 
         /**

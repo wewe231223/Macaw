@@ -3,11 +3,11 @@
  * @brief 독립 OBJ 뷰어의 실행과 파일 열기입니다.
  * @ingroup App
  */
+
 #include "FObjViewerApplication.h"
 #include "Core/Stats.h"
 #include "Core/FilePath.h"
 #include "Asset/FAssetManager.h"
-#include "Engine/MaterialMigration.h"
 #include "Editor/FMeshViewer.h"
 
 #include <commdlg.h>
@@ -30,10 +30,16 @@ namespace App {
 
     App::FObjViewerApplication::FObjViewerApplication() = default;
 
+    /**
+     * @brief 뷰어, ImGui와 GPU 자원을 역순으로 정리합니다.
+     */
     App::FObjViewerApplication::~FObjViewerApplication() {
         Shutdown();
     }
 
+    /**
+     * @brief 독립 뷰어의 창과 이벤트 루프를 실행합니다.
+     */
     int App::FObjViewerApplication::Run() {
         if (!mPlatform.Create(L"Macaw OBJ Viewer", 1280, 900)) {
             return 1;
@@ -49,6 +55,7 @@ namespace App {
         const auto Directory{std::filesystem::path{Executable.data()}.parent_path()};
         const auto Content{Directory / "Viewer/Content"};
         std::error_code Code{};
+
         std::filesystem::create_directories(Content, Code);
 
         if (!Code) {
@@ -57,17 +64,11 @@ namespace App {
 
         if (Code) {
             MessageBoxW(mPlatform.GetWindowHandle(), L"Cannot prepare viewer content. Build the application with its project templates.", L"OBJ Viewer", MB_OK | MB_ICONERROR);
+
             return 1;
         }
 
         mAssets = std::make_unique<Asset::FAssetManager>(Content);
-
-        Core::FString MigrationError{};
-
-        if (!Engine::MaterialMigration::Migrate(*mAssets, MigrationError)) {
-            MessageBoxW(mPlatform.GetWindowHandle(), Core::FilePath::FromUtf8(MigrationError).c_str(), L"Material Migration", MB_OK | MB_ICONERROR);
-            return 1;
-        }
 
         mRenderer.SetProjectPaths(Content, Directory / "Viewer/Saved/ShaderCache");
 
@@ -77,6 +78,7 @@ namespace App {
 
         IMGUI_CHECKVERSION();
         ImGui::CreateContext();
+
         mContextCreated = true;
         ImGui::GetIO().IniFilename = nullptr;
         ImGui::GetIO().LogFilename = nullptr;
@@ -110,6 +112,7 @@ namespace App {
         while (mPlatform.PumpMessages()) {
             if (mPlatform.IsMinimized()) {
                 MsgWaitForMultipleObjects(0, nullptr, false, 16, QS_ALLINPUT);
+
                 continue;
             }
 
@@ -169,6 +172,9 @@ namespace App {
         return 0;
     }
 
+    /**
+     * @brief 외부 메시를 뷰어 Content에 임포트하고 엽니다.
+     */
     bool App::FObjViewerApplication::OpenSource(const std::filesystem::path& Source) {
         std::filesystem::path Target{};
 
@@ -181,6 +187,9 @@ namespace App {
         return true;
     }
 
+    /**
+     * @brief 원본 메시 파일을 선택합니다.
+     */
     std::filesystem::path App::FObjViewerApplication::ChooseSource() {
         std::array<wchar_t, 32768> Buffer{};
         OPENFILENAMEW Dialog{};
@@ -195,22 +204,28 @@ namespace App {
         return GetOpenFileNameW(&Dialog) ? std::filesystem::path{Buffer.data()} : std::filesystem::path{};
     }
 
+    /**
+     * @brief ImGui와 렌더러를 안전하게 해제합니다.
+     */
     void App::FObjViewerApplication::Shutdown() {
         mPlatform.SetMessageHandler({});
         mViewer.reset();
 
         if (mDxReady) {
             ImGui_ImplDX11_Shutdown();
+
             mDxReady = false;
         }
 
         if (mWin32Ready) {
             ImGui_ImplWin32_Shutdown();
+
             mWin32Ready = false;
         }
 
         if (mContextCreated) {
             ImGui::DestroyContext();
+
             mContextCreated = false;
         }
 

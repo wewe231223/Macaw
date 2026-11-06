@@ -70,10 +70,16 @@ namespace Engine {
         mWorld->mWorldHandle = Handle;
     }
 
+    /**
+     * @brief 장면의 편집 카메라 상태를 반환합니다.
+     */
     Engine::FEditorCameraState& Engine::FWorldContext::GetEditorCamera() {
         return mEditorCamera;
     }
 
+    /**
+     * @brief 장면의 편집 카메라 상태를 반환합니다.
+     */
     const Engine::FEditorCameraState& Engine::FWorldContext::GetEditorCamera() const {
         return mEditorCamera;
     }

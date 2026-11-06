@@ -17,8 +17,19 @@ namespace RenderCore {
      * @ingroup RenderCore
      */
     enum class EShadowFilter : Core::Uint32 {
+        /**
+         * @brief 깊이를 한 번 비교하는 경계가 선명한 그림자 필터입니다.
+         */
         Hard,
+
+        /**
+         * @brief 주변 깊이 비교 결과를 평균하는 PCF 필터입니다.
+         */
         PCF,
+
+        /**
+         * @brief 차폐물 거리에 따라 반영 영역을 조절하는 PCSS 필터입니다.
+         */
         PCSS
     };
 

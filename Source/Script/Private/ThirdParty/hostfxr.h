@@ -317,9 +317,11 @@ struct hostfxr_dotnet_environment_info
     const char_t* hostfxr_commit_hash;
 
     size_t sdk_count;
+
     const struct hostfxr_dotnet_environment_sdk_info* sdks;
 
     size_t framework_count;
+
     const struct hostfxr_dotnet_environment_framework_info* frameworks;
 };
 
@@ -382,9 +384,11 @@ struct hostfxr_resolve_frameworks_result
     size_t size;
 
     size_t resolved_count;
+
     const struct hostfxr_framework_result* resolved_frameworks;
 
     size_t unresolved_count;
+
     const struct hostfxr_framework_result* unresolved_frameworks;
 };
 

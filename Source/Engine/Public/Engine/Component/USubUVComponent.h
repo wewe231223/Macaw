@@ -148,10 +148,22 @@ namespace Engine {
          * @brief 첫 프레임으로 되감고 SubUV 재생을 멈춥니다.
          */
         void Stop();
+
+        /**
+         * @brief 컴포넌트의 실행 또는 허용된 편집 갱신 시 호출되는 확장 지점입니다.
+         * @param[in] DeltaTime 이번 갱신이 진행하는 초 단위 시간입니다.
+         */
         void Tick(float DeltaTime) override;
+
+        /**
+         * @brief 등록된 렌더 상태와 월드 연결을 해제합니다.
+         */
         void UnregisterComponent() override;
 
     private:
+        /**
+         * @brief 월드에 등록된 컴포넌트가 참조하는 에셋과 렌더 상태를 준비합니다.
+         */
         void OnRegister() override;
 
         /**

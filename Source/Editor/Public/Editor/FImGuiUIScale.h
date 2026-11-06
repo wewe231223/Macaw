@@ -46,12 +46,14 @@ namespace Editor {
          * @param[in] FontSize 10~32 범위의 유한한 기본 폰트 크기입니다.
          */
         void SetBaseStyle(const ImGuiStyle& Style, float FontSize);
+
         /**
          * @brief 자동 배율 0 또는 0.75~3.0 범위의 유한한 사용자 UI 배율을 설정합니다.
          * @param[in] Scale 자동 배율 0 또는 유한한 0.75~3.0 사용자 배율입니다.
          * @return 유효한 값으로 기존 배율이 바뀌면 true이며 같은 값이거나 유효하지 않으면 false입니다.
          */
         bool SetUserScale(float Scale);
+
         /**
          * @brief 사용자가 선택한 UI 배율을 조회합니다.
          * @return 지정한 배율이며 0이면 DPI·창 크기에 따른 자동 배율입니다.

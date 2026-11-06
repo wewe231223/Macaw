@@ -17,6 +17,7 @@ namespace CoreUObject {
         static_assert(std::is_same_v<typename T::ReflectionOwner, T>);
 
         T::StaticClass();
+
         return std::make_unique<T>(std::forward<TArguments>(Arguments)...);
     }
 

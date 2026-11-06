@@ -62,6 +62,7 @@ namespace Editor {
 
         if (!mViewport->Resize(960, 640)) {
             mViewport.reset();
+
             return false;
         }
 
@@ -89,6 +90,9 @@ namespace Editor {
         }
     }
 
+    /**
+     * @brief 뷰포트 이미지 영역 위에 월드와 렌더링 통계를 표시합니다.
+     */
     void Editor::FEditorViewport::DrawStatistics(float DeltaTime, const Engine::UWorld* World, const RenderCore::FRenderStats& Render) {
         if (mImageSize.x < 1.0f || mImageSize.y < 1.0f || mDrawList == nullptr || !mStatistics.IsVisible()) {
             return;
@@ -97,6 +101,9 @@ namespace Editor {
         mStatistics.Draw(DeltaTime, World, Render, mImageOrigin, mImageSize, mDrawList);
     }
 
+    /**
+     * @brief 이 뷰포트가 소유한 통계 표시 객체의 주소를 반환합니다.
+     */
     Editor::FViewportStatistics* Editor::FEditorViewport::GetStatistics() {
         return &mStatistics;
     }
@@ -115,10 +122,16 @@ namespace Editor {
         return &mClient;
     }
 
+    /**
+     * @brief PIE 연결 상태에 따라 현재 사용할 뷰포트 클라이언트를 반환합니다.
+     */
     Engine::FViewportClient* Editor::FEditorViewport::GetActiveClient() {
         return mPlayClient != nullptr ? mPlayClient : &mClient;
     }
 
+    /**
+     * @brief PIE에 사용할 클라이언트를 연결하거나 해제하고 입력 캡처를 초기화합니다.
+     */
     void Editor::FEditorViewport::SetPlayClient(Engine::FViewportClient* Client) {
         mClient.GetGizmo().Cancel();
         mMouseCaptured = false;
@@ -130,6 +143,9 @@ namespace Editor {
         }
     }
 
+    /**
+     * @brief PIE 뷰포트가 마우스와 키보드 입력을 캡처했는지 반환합니다.
+     */
     bool Editor::FEditorViewport::IsPlayInputCaptured() const {
         return mPlayInputCaptured;
     }
@@ -162,10 +178,16 @@ namespace Editor {
         ImGui::End();
     }
 
+    /**
+     * @brief 뷰포트가 마우스 입력을 캡처 중인지 검사합니다.
+     */
     bool Editor::FEditorViewport::IsMouseCaptured() const {
         return mMouseCaptured;
     }
 
+    /**
+     * @brief 기즈모 조작과 마우스·PIE 입력 캡처를 해제합니다.
+     */
     void Editor::FEditorViewport::ReleaseInput() {
         mClient.GetGizmo().Cancel();
         mMouseCaptured = false;
@@ -174,6 +196,9 @@ namespace Editor {
         mDrawList = nullptr;
     }
 
+    /**
+     * @brief 뷰포트 타깃 이미지·툴바를 표시하고 입력과 리사이즈를 전달합니다.
+     */
     void Editor::FEditorViewport::DrawContents(const Core::FInput& Input, float DeltaTime, bool AllowInput) {
         using Core::EKey;
 
@@ -199,9 +224,11 @@ namespace Editor {
 
             if (Available.x >= 1.0f && Available.y >= 1.0f && mViewport->Resize(static_cast<Core::Uint32>(Available.x), static_cast<Core::Uint32>(Available.y))) {
                 Engine::FRenderTarget* Target{mViewport->GetRenderTarget()};
+
                 ImGui::Image(ImTextureRef{static_cast<ImTextureID>(reinterpret_cast<std::uintptr_t>(Target->GetNativeTexture()))}, Available);
 
                 const ImVec2 Origin{ImGui::GetItemRectMin()};
+
                 mImageOrigin = {Origin.x, Origin.y};
                 mImageSize = {Available.x, Available.y};
                 mDrawList = ImGui::GetWindowDrawList();
@@ -215,6 +242,7 @@ namespace Editor {
                         mPlayInputCaptured = false;
                     } else if (Hovered && LeftPressed) {
                         ImGui::SetWindowFocus();
+
                         mPlayInputCaptured = true;
                     } else if (Input.LostFocusThisFrame() || ImGui::GetIO().WantTextInput || !ImGui::IsWindowFocused()) {
                         mPlayInputCaptured = false;
@@ -270,6 +298,7 @@ namespace Editor {
 
                             if (Data[Payload->DataSize - 1] == '\0') {
                                 const std::filesystem::path Path{Core::FilePath::FromUtf8(std::string_view{Data, static_cast<std::size_t>(Payload->DataSize - 1)})};
+
                                 mClient.DropMesh(Path, State.mMouse, mViewport->GetSize());
                             }
                         }
@@ -291,6 +320,7 @@ namespace Editor {
                 }
 
                 const bool Keyboard{State.mFocused && !ImGui::GetIO().WantTextInput && !Input.IsDown(EKey::Control) && !Input.IsDown(EKey::Alt)};
+
                 State.mDelete = Keyboard && Input.WasPressed(EKey::Delete);
                 State.mFocusSelection = Keyboard && Input.WasPressed(EKey::F);
 
@@ -305,6 +335,7 @@ namespace Editor {
                 for (const Editor::FViewportCommandInfo& Info : Editor::FViewportCommandInfo::GetCommands()) {
                     if (Info.mInput != nullptr) {
                         const EKey Key{ShortcutKey(Info.mShortcut)};
+
                         State.*Info.mInput = Keyboard && Key != Core::EKey::None && Input.WasPressed(Key);
                     }
                 }
@@ -333,6 +364,7 @@ namespace Editor {
             State.mLeftDown = Input.IsDown(EKey::MouseLeft);
             State.mMiddleDown = Input.IsDown(EKey::MouseMiddle);
             State.mEscape = Input.WasPressed(EKey::Escape);
+
             mClient.Input(mViewport.get(), State, DeltaTime);
         }
 

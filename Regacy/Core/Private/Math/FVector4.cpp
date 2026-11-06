@@ -139,6 +139,7 @@ FVector4 FVector4::operator*(const float& f) const {
 
 FVector4 FVector4::operator*(const FMatrix& M) const {
     return M.TransformFVector4(*this);
+
     /*return FVector4(
 		X * M[0][0] + Y * M[1][0] + Z * M[2][0] + W * M[3][0],
 		X * M[0][1] + Y * M[1][1] + Z * M[2][1] + W * M[3][1],

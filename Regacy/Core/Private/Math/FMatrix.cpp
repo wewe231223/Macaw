@@ -474,6 +474,7 @@ bool FMatrix::Decompose(FVector& OutScale, FQuat& OutRotation, FVector& OutTrans
     Rotation.SetAxis(0, AxisX);
     Rotation.SetAxis(1, AxisY);
     Rotation.SetAxis(2, AxisZ);
+
     OutRotation = Rotation.ToQuaternion();
     OutTranslation = Translation();
 
@@ -485,6 +486,7 @@ FVector FVector::Transform(const FVector& Position, const FMatrix& Matrix) {
 
     if (!Matrix.TransformCoord(Position, Result)) {
         const float Invalid = std::numeric_limits<float>::quiet_NaN();
+
         return FVector(Invalid, Invalid, Invalid);
     }
 

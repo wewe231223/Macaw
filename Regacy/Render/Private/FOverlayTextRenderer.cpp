@@ -22,6 +22,7 @@ bool FOverlayTextRenderer::Initialize(ID3D11Device* Device) {
 
     if (Device == nullptr || !Pipeline.Initialize("./Content/Pipeline/OverlayText.json") || !mPipeline.Initialize(Device, Pipeline)) {
         Reset();
+
         return false;
     }
 
@@ -36,6 +37,7 @@ bool FOverlayTextRenderer::Initialize(ID3D11Device* Device) {
 
     if (FAILED(Device->CreateSamplerState(&Description, mSampler.GetAddressOf()))) {
         Reset();
+
         return false;
     }
 
@@ -98,13 +100,16 @@ const TArray<FTextVertex>* FOverlayTextRenderer::GetTextGeometry(const FOverlayT
         Entry.mPixelHeight = Data.mPixelHeight;
         Entry.mLetterSpacing = Data.mLetterSpacing;
         Entry.mLineSpacing = Data.mLineSpacing;
+
         Entries.push_back(std::move(Entry));
+
         Found = std::prev(Entries.end());
     }
 
     if (NeedsRebuild) {
         if (!BuildTextGeometry(Font, *Registry, FontHandle, Data.mText, Data.mPixelHeight, Data.mLetterSpacing, Data.mLineSpacing, Found->mVertices)) {
             Entries.erase(Found);
+
             return nullptr;
         }
 

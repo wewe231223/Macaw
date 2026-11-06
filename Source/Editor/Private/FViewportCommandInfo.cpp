@@ -20,10 +20,16 @@ namespace Editor {
         const std::array<Editor::FViewportCommandInfo, 13> CommandInfos{{{Editor::EViewportCommand::Select, "Select", Editor::EEditorIcon::Tools, '1', &Engine::FViewportInput::mSelectMode, true}, {Editor::EViewportCommand::Translate, "Translate", Editor::EEditorIcon::Translate, '2', &Engine::FViewportInput::mTranslateMode, true}, {Editor::EViewportCommand::Rotate, "Rotate", Editor::EEditorIcon::Rotate, '3', &Engine::FViewportInput::mRotateMode, true}, {Editor::EViewportCommand::Scale, "Scale", Editor::EEditorIcon::Scale, '4', &Engine::FViewportInput::mScaleMode, true}, {Editor::EViewportCommand::CycleTransformMode, "Cycle transform mode", Editor::EEditorIcon::Tools, ' ', &Engine::FViewportInput::mCycleGizmo}, {Editor::EViewportCommand::ToggleCoordinateSystem, "World/Local", Editor::EEditorIcon::World, '\t', &Engine::FViewportInput::mToggleSpace}, {Editor::EViewportCommand::WorldSpace, "World", Editor::EEditorIcon::World}, {Editor::EViewportCommand::LocalSpace, "Local", Editor::EEditorIcon::Local}, {Editor::EViewportCommand::ToggleGrid, "Show Grid", Editor::EEditorIcon::Grid}, {Editor::EViewportCommand::ToggleTranslationSnap, "Translation Snap", Editor::EEditorIcon::Grid}, {Editor::EViewportCommand::ToggleRotationSnap, "Rotation Snap", Editor::EEditorIcon::Rotate}, {Editor::EViewportCommand::ToggleScaleSnap, "Scale Snap", Editor::EEditorIcon::Scale}, {Editor::EViewportCommand::ToggleTransformSnap, "Snap", Editor::EEditorIcon::Grid, 'X', &Engine::FViewportInput::mToggleSnap}}};
     }
 
+    /**
+     * @brief 툴바, 메뉴와 입력 매핑에서 공유하는 명령 목록을 반환합니다.
+     */
     std::span<const Editor::FViewportCommandInfo> Editor::FViewportCommandInfo::GetCommands() {
         return CommandInfos;
     }
 
+    /**
+     * @brief 동작 식별자로 공통 명령 정의를 조회합니다.
+     */
     const Editor::FViewportCommandInfo* Editor::FViewportCommandInfo::Find(Editor::EViewportCommand Command) {
         for (const Editor::FViewportCommandInfo& Info : CommandInfos) {
             if (Info.mCommand == Command) {
@@ -34,6 +40,9 @@ namespace Editor {
         return nullptr;
     }
 
+    /**
+     * @brief 단축키 문자를 메뉴와 도움말에 사용할 이름으로 변환합니다.
+     */
     Core::FString Editor::FViewportCommandInfo::GetShortcutLabel() const {
         if (mShortcut == '\0') {
             return {};

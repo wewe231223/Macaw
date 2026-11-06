@@ -33,6 +33,7 @@ public:
 private:
     //Obj 파일 로드
     bool LoadObjFile(const FString& FilePath, FGeometry& OutGeometry);
+
     //한줄 나누기
     static TArray<FString> SplitTokens(const FString& Line);
 

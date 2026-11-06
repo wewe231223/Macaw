@@ -3,6 +3,7 @@
  * @brief 바인드 형상과 본 계층 및 GPU 스킨 가중치를 공유하는 스켈레탈 메시 에셋입니다.
  * @ingroup Asset
  */
+
 #pragma once
 
 #include "Asset/FMeshData.h"
@@ -37,6 +38,7 @@ namespace Asset {
          * @brief 빈 스켈레탈 메시를 생성합니다.
          */
         USkeletalMesh() = default;
+
         /**
          * @brief 공유 GPU 자원을 해제합니다.
          */
@@ -57,16 +59,19 @@ namespace Asset {
          * @return 공유 형상의 읽기 전용 참조입니다.
          */
         const Asset::FMeshData& GetMeshData() const;
+
         /**
          * @brief 이름·부모·로컬 바인드 포즈를 반환합니다.
          * @return 본 목록의 읽기 전용 참조입니다.
          */
         const Core::TArray<Asset::FMeshImportBone>& GetBones() const;
+
         /**
          * @brief 정점별 스킨 가중치를 반환합니다.
          * @return 가중치 목록의 읽기 전용 참조입니다.
          */
         const Core::TArray<Asset::FMeshImportSkinWeight>& GetSkinWeights() const;
+
         /**
          * @brief 메시 공간에서 바인드 시점 본 공간으로 가는 행렬을 반환합니다.
          * @return 본 인덱스순 역바인드 행렬입니다.
@@ -78,22 +83,26 @@ namespace Asset {
          * @return 에셋 수명 동안 주소가 유지되는 형상입니다.
          */
         Asset::UStaticMesh* GetGeometry();
+
         /**
          * @brief 장치에 바인드 형상과 불변 가중치 버퍼를 준비합니다.
          * @param Device 사용할 D3D11 장치입니다.
          * @return 모든 버퍼를 준비하면 true입니다.
          */
         bool CreateResources(ID3D11Device* Device);
+
         /**
          * @brief 형상과 가중치의 GPU 자원을 해제합니다.
          */
         void ReleaseResources();
+
         /**
          * @brief 본 인덱스와 가중치를 담은 정점 버퍼를 입력 슬롯에 연결합니다.
          * @param Context 바인딩할 장치 컨텍스트입니다.
          * @param Slot 입력 슬롯입니다.
          */
         void BindSkinWeights(ID3D11DeviceContext* Context, Core::Uint32 Slot) const;
+
         /**
          * @brief 입력 슬롯의 스킨 가중치 버퍼 연결을 해제합니다.
          * @param Context 바인딩할 장치 컨텍스트입니다.
@@ -106,21 +115,25 @@ namespace Asset {
          * @return 공유 경계 상자입니다.
          */
         const Core::FBox& GetBounds() const;
+
         /**
          * @brief 정점 수를 반환합니다.
          * @return 바인드 형상의 정점 수입니다.
          */
         Core::Uint32 GetVertexCount() const;
+
         /**
          * @brief 인덱스 수를 반환합니다.
          * @return 삼각형 인덱스 수입니다.
          */
         Core::Uint32 GetIndexCount() const;
+
         /**
          * @brief 에셋 데이터의 변경 식별자를 반환합니다.
          * @return 마지막 데이터 교체 시 발급한 개정입니다.
          */
         Core::FRevision GetRevision() const;
+
         /**
          * @brief 스키닝에 필요한 형상과 본 데이터가 있는지 검사합니다.
          * @return 유효한 메시이면 true입니다.
@@ -132,7 +145,14 @@ namespace Asset {
          * @brief BLENDINDICES(uint4)와 BLENDWEIGHT(float4) 입력 하나의 GPU 배치입니다.
          */
         struct FSkinWeightVertex {
+            /**
+             * @brief 정점에 영향을 주는 최대 네 개의 본 인덱스입니다.
+             */
             std::array<Core::Uint32, 4> mBoneIndices{};
+
+            /**
+             * @brief 본 인덱스 순서에 대응하는 정점 스킨 가중치입니다.
+             */
             std::array<float, 4> mWeights{};
         };
 

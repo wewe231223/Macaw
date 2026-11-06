@@ -16,6 +16,9 @@ namespace Engine {
     Engine::URotationMovementComponent::URotationMovementComponent() = default;
     Engine::URotationMovementComponent::~URotationMovementComponent() = default;
 
+    /**
+     * @brief Game 또는 PIE의 실행 시작 상태를 확인한 뒤 축별 속도로 소유 액터의 루트 회전을 갱신합니다.
+     */
     void Engine::URotationMovementComponent::Tick(float DeltaTime) {
         Engine::UWorld* World{GetWorld()};
         Engine::AActor* Owner{GetOwner()};
@@ -26,14 +29,22 @@ namespace Engine {
 
         Core::FTransform Transform{Owner->GetRootComponent()->GetTransform()};
         const Core::FQuat Delta{(mRotationRate * DeltaTime).Normalized().Quaternion()};
+
         Transform.mRotation = (mRotationInLocalSpace ? Transform.mRotation * Delta : Delta * Transform.mRotation).Normalized();
+
         Owner->SetActorTransform(Transform);
     }
 
+    /**
+     * @brief 축별 초당 회전 속도를 반환합니다.
+     */
     const Core::FRotator& Engine::URotationMovementComponent::GetRotationRate() const {
         return mRotationRate;
     }
 
+    /**
+     * @brief 유한한 Pitch·Yaw·Roll 회전 속도를 설정합니다.
+     */
     bool Engine::URotationMovementComponent::SetRotationRate(const Core::FRotator& Rate) {
         if (!Rate.IsFinite()) {
             return false;
@@ -44,10 +55,16 @@ namespace Engine {
         return true;
     }
 
+    /**
+     * @brief 회전 증분을 로컬 축으로 합성하는지 조회합니다.
+     */
     bool Engine::URotationMovementComponent::GetRotationInLocalSpace() const {
         return mRotationInLocalSpace;
     }
 
+    /**
+     * @brief 회전 증분을 로컬 축 또는 월드 축으로 합성하도록 설정합니다.
+     */
     bool Engine::URotationMovementComponent::SetRotationInLocalSpace(bool LocalSpace) {
         mRotationInLocalSpace = LocalSpace;
 

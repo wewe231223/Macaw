@@ -1,3 +1,9 @@
+/**
+ * @file ObjectRow.cpp
+ * @brief Outliner·Details가 공유하는 객체 아이콘·색상·선택 행을 그립니다.
+ * @ingroup Editor
+ */
+
 #include "Panel/ObjectRow.h"
 #include "EditorStyle.h"
 #include "Engine/AActor.h"
@@ -23,7 +29,15 @@
 
 namespace Editor {
 
+    /**
+     * @brief 이 파일에서 사용하는 내부 보조 기능과 상태를 묶습니다.
+     */
     namespace {
+        /**
+         * @brief 컴포넌트의 실제 클래스에 맞는 아이콘을 고릅니다.
+         * @param[in] Component 아이콘을 결정할 컴포넌트입니다.
+         * @return 컴포넌트 종류에 대응하는 아이콘입니다.
+         */
         EditorStyle::EIcon ComponentIcon(CoreUObject::UObject* Component) {
             using EIcon = EditorStyle::EIcon;
 
@@ -67,6 +81,12 @@ namespace Editor {
         }
 
         // 액터의 종류는 대개 루트 컴포넌트가 결정합니다.
+
+        /**
+         * @brief 액터 또는 컴포넌트의 대표 아이콘을 고릅니다.
+         * @param[in] Object 조회하거나 호출할 엔진·COM 객체입니다.
+         * @return 객체를 대표하는 에디터 아이콘입니다.
+         */
         EditorStyle::EIcon ObjectIcon(CoreUObject::UObject* Object) {
             if (CoreUObject::Cast<Engine::ALevelSequenceActor>(Object) != nullptr) {
                 return EditorStyle::EIcon::Sequence;
@@ -81,6 +101,11 @@ namespace Editor {
             return ComponentIcon(Object);
         }
 
+        /**
+         * @brief 객체 종류별 아이콘의 표시 색상을 구합니다.
+         * @param[in] Icon 표시 색상을 구할 아이콘 종류입니다.
+         * @return 현재 테마에서 선택한 아이콘의 32비트 표시 색상입니다.
+         */
         ImU32 IconColor(EditorStyle::EIcon Icon) {
             switch (Icon) {
             case EditorStyle::EIcon::Light:
@@ -99,6 +124,9 @@ namespace Editor {
         }
     }
 
+    /**
+     * @brief 클래스 접두사를 뺀 타입 이름을 만듭니다.
+     */
     Core::FString Editor::ObjectRow::GetTypeLabel(const CoreUObject::UObject* Object) {
         Core::FString Name{Object->GetClass()->GetName()};
 
@@ -109,6 +137,9 @@ namespace Editor {
         return Name;
     }
 
+    /**
+     * @brief 현재 행의 다음 컬럼에 종류별 아이콘과 이름을 표시합니다.
+     */
     void Editor::ObjectRow::DrawLabel(CoreUObject::UObject* Object, bool Selected) {
         ImGui::TableNextColumn();
 
@@ -125,6 +156,9 @@ namespace Editor {
         ImGui::GetWindowDrawList()->AddText({X + Size + ImGui::GetStyle().ItemInnerSpacing.x, Y}, ImGui::GetColorU32(ImGuiCol_Text), Object->GetName().c_str());
     }
 
+    /**
+     * @brief 현재 행의 다음 컬럼에 타입 이름을 표시합니다.
+     */
     void Editor::ObjectRow::DrawType(const CoreUObject::UObject* Object) {
         ImGui::TableNextColumn();
         ImGui::TextDisabled("%s", GetTypeLabel(Object).c_str());

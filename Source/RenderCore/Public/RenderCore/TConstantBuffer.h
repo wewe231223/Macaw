@@ -67,15 +67,30 @@ namespace RenderCore {
         }
 
     protected:
+        /**
+         * @brief 용도별 바인딩 플래그와 부가 플래그를 채웁니다.
+         * @param[in] Description 크기와 사용 방식이 채워진 버퍼 설명입니다.
+         */
         void FillDescription(D3D11_BUFFER_DESC& Description) const override {
             Description.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
         }
 
+        /**
+         * @brief 이 버퍼가 담을 수 있는 최대 원소 수를 반환합니다.
+         * @return 기본 구현은 바이트 크기가 32비트에 들어가는 원소 수입니다.
+         */
         Core::Uint64 GetMaximumCount() const override {
             return 1;
         }
 
     private:
+        /**
+         * @brief 래핑하는 D3D11 버퍼와 원소 용량을 교체합니다.
+         * @param[in] Context GPU 명령을 제출할 D3D11 장치 컨텍스트입니다.
+         * @param[in] Stages 연결하거나 해제할 셰이더 단계입니다.
+         * @param[in] Slot 조회하거나 바꿀 머티리얼 슬롯입니다.
+         * @param[in] Buffer 래핑할 D3D11 버퍼의 COM 소유권입니다.
+         */
         static void SetBuffer(ID3D11DeviceContext* Context, RenderCore::EShaderStage Stages, Core::Uint32 Slot, ID3D11Buffer* Buffer) {
             if (RenderCore::HasStage(Stages, RenderCore::EShaderStage::Vertex)) {
                 Context->VSSetConstantBuffers(Slot, 1, &Buffer);

@@ -29,12 +29,14 @@ namespace Asset {
     template <typename T>
     void Asset::FAssetSerialization::SerializeValues(Serialization::FMemoryArchive& Archive, Core::TArray<T>& Values) {
         Core::Uint32 Count{Archive.IsLoading() ? 0 : static_cast<Core::Uint32>(Values.size())};
+
         Archive.Serialize("Count", Count);
 
         constexpr std::size_t ElementSize{std::is_same_v<T, Core::FVector2> ? 8 : std::is_same_v<T, Core::FVector> ? 12 : sizeof(T)};
 
         if (Archive.HasError() || Count > 16000000 || (Archive.IsLoading() && Count > Archive.GetRemainingBytes() / ElementSize)) {
             Archive.SetError("Invalid mesh element count");
+
             return;
         }
 

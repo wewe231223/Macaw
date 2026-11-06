@@ -63,6 +63,10 @@ namespace RenderCore {
         }
 
     protected:
+        /**
+         * @brief 용도별 바인딩 플래그와 부가 플래그를 채웁니다.
+         * @param[in] Description 크기와 사용 방식이 채워진 버퍼 설명입니다.
+         */
         void FillDescription(D3D11_BUFFER_DESC& Description) const override {
             Description.BindFlags = D3D11_BIND_INDEX_BUFFER;
         }

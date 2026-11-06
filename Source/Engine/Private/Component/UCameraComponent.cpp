@@ -10,10 +10,16 @@
 
 namespace Engine {
 
+    /**
+     * @brief 카메라의 수직 시야각을 도 단위로 반환합니다.
+     */
     float Engine::UCameraComponent::GetFieldOfView() const {
         return mFieldOfView;
     }
 
+    /**
+     * @brief 유효한 범위의 시야각을 검사하여 카메라에 설정합니다.
+     */
     bool Engine::UCameraComponent::SetFieldOfView(float FieldOfView) {
         if (!std::isfinite(FieldOfView) || FieldOfView <= 0.0f || FieldOfView >= 180.0f) {
             return false;
@@ -24,6 +30,9 @@ namespace Engine {
         return true;
     }
 
+    /**
+     * @brief 카메라의 월드 변환과 시야각으로 뷰·투영 행렬을 계산합니다.
+     */
     bool Engine::UCameraComponent::GetCameraView(const Core::FVector2& Size, Engine::FSceneView& View) const {
         if (!std::isfinite(Size.x) || !std::isfinite(Size.y) || Size.x <= 0.0f || Size.y <= 0.0f || !GetTransform().IsValid()) {
             return false;

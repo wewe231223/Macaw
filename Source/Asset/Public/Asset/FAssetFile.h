@@ -37,6 +37,10 @@ namespace Asset {
          * @brief 셰이더·기본색과 텍스처 참조를 가진 재질 에셋입니다.
          */
         Material,
+
+        /**
+         * @brief 본 계층·스킨 가중치를 포함하는 메시 에셋입니다.
+         */
         SkeletalMesh,
         /**
          * @brief 시네마틱 바인딩과 트랙을 저장하는 시퀀스 에셋입니다.

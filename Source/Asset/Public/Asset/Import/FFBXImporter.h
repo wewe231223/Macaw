@@ -37,6 +37,7 @@ namespace Asset {
          * @param[in] Option Front 축·단위 변환·임포트 변환·메시 구성·노멀 처리 방식을 정하는 임포트 옵션입니다.
          */
         FFBXImporter(std::filesystem::path Source, const Asset::FAssetImportOption& Option);
+
         /**
          * @brief FBX SDK 관리자와 그 관리자가 소유한 임포터·장면을 해제합니다.
          */
@@ -69,6 +70,7 @@ namespace Asset {
          * @return 성공하면 true이며 텍스처를 읽지 못하거나 색상이 유효하지 않으면 Error에 원인을 기록하고 false입니다.
          */
         bool ReadMaterial(fbxsdk::FbxSurfaceMaterial* Material);
+
         /**
          * @brief FBX 재질의 결과 재질 인덱스를 찾고 처음 만난 재질이면 읽어서 등록합니다.
          * @param[in] Material 인덱스를 찾을 FBX 재질이며 nullptr이면 기본 재질을 뜻합니다.
@@ -76,6 +78,7 @@ namespace Asset {
          * @return 인덱스를 구하면 true이며 새 재질을 읽지 못하면 false입니다.
          */
         bool FindMaterialIndex(fbxsdk::FbxSurfaceMaterial* Material, Core::Uint32& Index);
+
         /**
          * @brief 노드의 전역 변환과 mBasis를 적용해 FBX 메시의 정점·노멀·탄젠트·UV·본 가중치를 대상 메시에 추가하고 재질별 서브메시를 구성합니다.
          * @details 스킨 메시는 시간 0의 노드 변환 대신 클러스터에 기록된 바인드 시점의 메시 변환을 사용합니다.
@@ -85,6 +88,7 @@ namespace Asset {
          * @return 성공하면 true이며 버퍼 한계를 넘거나 정점 요소가 유효하지 않으면 Error에 원인을 기록하고 false입니다.
          */
         bool ReadMesh(fbxsdk::FbxNode& Node, fbxsdk::FbxMesh& Mesh, Asset::FMeshImportMesh& Target);
+
         /**
          * @brief 노드와 모든 자식 노드를 깊이 우선으로 순회하며 메시를 읽습니다.
          * @details 메시 병합 옵션을 켜면 결과의 첫 메시에, 끄면 메시 노드마다 새 결과 메시에 추가합니다.
@@ -92,6 +96,7 @@ namespace Asset {
          * @return 모든 메시를 읽으면 true이며 하나라도 실패하면 false입니다.
          */
         bool ReadNode(fbxsdk::FbxNode& Node);
+
         /**
          * @brief 스켈레톤 속성을 가졌거나 스킨 클러스터가 링크하는 노드를 깊이 우선으로 순회하며 결과 본 목록에 추가합니다.
          * @param[in] Node 순회를 시작할 FBX 노드입니다.
@@ -100,11 +105,13 @@ namespace Asset {
          * @return 모든 본을 읽으면 true이며 바인드 포즈를 변환할 수 없으면 false입니다.
          */
         bool ReadSkeleton(fbxsdk::FbxNode& Node, Core::Int32 ParentIndex, const Core::FMatrix& ParentBoneGlobal);
+
         /**
          * @brief 장면의 모든 스킨 클러스터를 읽어 링크 노드별 바인드 시점 전역 변환을 모읍니다.
          * @details 클러스터가 링크하는 노드는 스켈레톤 속성이 없어도 본으로 취급합니다.
          */
         void CollectBindPoses();
+
         /**
          * @brief 메시의 스킨 클러스터에서 제어점별 본 가중치를 읽습니다.
          * @param[in] Mesh 가중치를 읽을 FBX 메시입니다.

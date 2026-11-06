@@ -335,6 +335,7 @@ bool UMesh::BuildLODSections(FLODGeometry& Geometry) const {
 
     if (mSections.empty()) {
         Geometry.mSections.push_back({0, 0, 0, IndexCount});
+
         return true;
     }
 
@@ -361,6 +362,7 @@ bool UMesh::BuildLODSections(FLODGeometry& Geometry) const {
         }
 
         Geometry.mSections[It->second].mSourceIndexCount += Section.mIndexCount;
+
         SourceSections.push_back(It->second);
     }
 
@@ -529,6 +531,7 @@ bool UMesh::BuildLODGeometry(FLODGeometry& Geometry) const {
     if (!Geometry.mTriangleSections.empty()) {
         Geometry.mTriangleSections.resize(Geometry.mIndices.size() / 3);
         Geometry.mMaterialBoundaryVertices.resize(Geometry.mPositions.size());
+
         // 서로 다른 재질의 접점만 고정한다. 내부 정점은 이 경계 쪽으로 합칠 수 있다.
         for (Uint32 Vertex{}; Vertex < Geometry.mPositions.size(); ++Vertex) {
             const Uint32 First{Geometry.mFirstCorners[Vertex]};
@@ -542,6 +545,7 @@ bool UMesh::BuildLODGeometry(FLODGeometry& Geometry) const {
             for (Uint32 Corner{Geometry.mNextCorners[First]}; Corner != UINT32_MAX; Corner = Geometry.mNextCorners[Corner]) {
                 if (Geometry.mTriangleSections[Corner / 3] != Section) {
                     Geometry.mMaterialBoundaryVertices[Vertex] = 1;
+
                     break;
                 }
             }
@@ -579,6 +583,7 @@ double UMesh::FLODQuadric::Evaluate(const FVector3& Position, const FVector3& Or
     const double Error{mValues[0] * X * X + mValues[4] * Y * Y + mValues[7] * Z * Z + mValues[9] +
                        2.0 * (mValues[1] * X * Y + mValues[2] * X * Z + mValues[3] * X +
                               mValues[5] * Y * Z + mValues[6] * Y + mValues[8] * Z)};
+
     // 합산 과정에서 생기는 미세한 음수 오차만 보정한다.
     return Error < 0.0 ? 0.0 : Error;
 }
@@ -673,6 +678,7 @@ void UMesh::SimplifyLODGeometry(FLODGeometry& Geometry, Uint32 TargetTriangleCou
         FLODQuadric FaceQuadric{};
 
         FaceQuadric.AddPlane(NX, NY, NZ, D);
+
         State.mQuadrics[I0] += FaceQuadric;
         State.mQuadrics[I1] += FaceQuadric;
         State.mQuadrics[I2] += FaceQuadric;
@@ -759,6 +765,7 @@ void UMesh::SimplifyLODGeometry(FLODGeometry& Geometry, Uint32 TargetTriangleCou
         Section.mFirstIndex = FirstIndex;
         FirstIndex += Section.mIndexCount;
     }
+
     // Corner 번호가 달라졌으므로 생성 중 사용한 인접 목록은 더 이상 참조하지 않는다.
     Geometry.mFirstCorners.clear();
     Geometry.mNextCorners.clear();
@@ -930,6 +937,7 @@ bool UMesh::MakeLODCandidate(Uint64 Key, const FLODGeometry& Geometry, const FLO
     }
 
     const FVector3 NewPosition{P0 * (1.0f - Interpolation) + P1 * Interpolation};
+
     Candidate = {V0, V1, State.mVertexVersions[V0], State.mVertexVersions[V1], Quadric.Evaluate(NewPosition, State.mQuadricOrigin), (P1 - P0).LengthSquared(), Interpolation};
 
     if (!std::isfinite(Candidate.mCost) || !std::isfinite(Candidate.mLengthSquared)) {
@@ -1126,6 +1134,7 @@ bool UMesh::EvaluateLODUVError(const FLODCollapse& Collapse, const FLODGeometry&
 
                     if (Group == Merge.mKeepGroup || Group == Merge.mRemoveGroup) {
                         UVs[Offset] = Merge.mUV;
+
                         break;
                     }
                 }
@@ -1196,6 +1205,7 @@ bool UMesh::EvaluateLODUVError(const FLODCollapse& Collapse, const FLODGeometry&
                             (*UVQuadric)[0] += static_cast<double>(Base.LengthSquared()) / GradientSquared;
                             (*UVQuadric)[1] += 2.0 * (static_cast<double>(Base.X) * Delta.X + static_cast<double>(Base.Y) * Delta.Y) / GradientSquared;
                             (*UVQuadric)[2] += static_cast<double>(Delta.LengthSquared()) / GradientSquared;
+
                             break;
                         }
                     }
@@ -1287,6 +1297,7 @@ void UMesh::ApplyLODCollapse(const FLODCollapse& Collapse, FLODGeometry& Geometr
     }
 
     Geometry.mPositions[Edge.mV0] = Edge.mNewPosition;
+
     // 삭제된 원본 면의 오차도 누적해서 유지한다. 주변 평면을 다시 계산하지 않는다.
     State.mQuadrics[Edge.mV0] += State.mQuadrics[Edge.mV1];
 
@@ -1332,6 +1343,7 @@ void UMesh::ApplyLODCollapse(const FLODCollapse& Collapse, FLODGeometry& Geometr
 
                 if (Group == Merge.mRemoveGroup) {
                     Group = Merge.mKeepGroup;
+
                     break;
                 }
             }
@@ -1344,6 +1356,7 @@ void UMesh::ApplyLODCollapse(const FLODCollapse& Collapse, FLODGeometry& Geometr
         if (I0 == I1 || I1 == I2 || I2 == I0) {
             Geometry.mActiveTriangles[Triangle] = 0;
             --State.mTriangleCount;
+
             continue;
         }
 
@@ -1414,6 +1427,7 @@ UMesh::FLODRenderData UMesh::BuildLODRenderData(const FLODGeometry& Geometry) co
             const FVector3& P0{Geometry.mPositions[Geometry.mIndices[Index]]};
             const FVector3& P1{Geometry.mPositions[Geometry.mIndices[Index + 1]]};
             const FVector3& P2{Geometry.mPositions[Geometry.mIndices[Index + 2]]};
+
             // 정규화 전 외적을 더하면 면적이 큰 삼각형에 더 큰 가중치가 부여된다.
             FaceNormal = (P1 - P0).Cross(P2 - P0);
         }
@@ -1676,6 +1690,7 @@ void UMesh::Reset() {
     mMaterialSlots.clear();
 
     mGeneratedLODs.clear();
+
     ++mRenderRevision;
 }
 
@@ -1769,6 +1784,7 @@ bool FMeshRaycastAccelerationStructure::BuildStructure(UMesh& Mesh) {
 
         DirectX::BoundingBox::CreateFromPoints(TriangleBounds[t], Min, Max);
         Bounds.Expand(TriangleBounds[t]);
+
         mIndexGroups[t] = static_cast<TrisIndex>(t);
     }
 
@@ -1846,6 +1862,7 @@ Uint32 FMeshRaycastAccelerationStructure::MakeChild(TArray<FNode>& BuildNodes, c
             const Uint32 Index = GetBinIndex(Box, Axis);
 
             Bin[Axis][Index].Expand(Box);
+
             ++BinCounts[Axis][Index];
         }
     }

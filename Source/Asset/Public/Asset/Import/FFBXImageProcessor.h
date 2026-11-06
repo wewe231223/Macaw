@@ -32,10 +32,12 @@ namespace Asset {
          * @brief 정규화한 텍스처 경로 키와 FBX에 내장된 원본 바이트의 대응입니다.
          */
         using FEmbeddedData = Core::TMap<Core::FString, Core::TArray<Core::Uint8>>;
+
         /**
          * @brief FBX 파일 텍스처와 형태를 판별한 임포트 텍스처의 대응입니다.
          */
         using FResolvedTextures = Core::TMap<fbxsdk::FbxFileTexture*, Asset::FMeshImportTexture>;
+
         /**
          * @brief FBX 파일 텍스처와 판별에 실패한 원인의 대응입니다.
          */
@@ -49,12 +51,14 @@ namespace Asset {
          * @param[in,out] Importer 콜백을 등록할 FBX 임포터입니다.
          */
         void RegisterEmbeddedCallback(fbxsdk::FbxManager& Manager, fbxsdk::FbxImporter& Importer);
+
         /**
          * @brief Import 이후 장면의 모든 파일 텍스처를 판별해 결과 또는 오류를 기록하고 보관한 내장 바이트를 해제합니다.
          * @param[in] Scene Import를 마친 FBX 장면입니다.
          * @param[in] SourceDirectory 외부 텍스처 파일을 찾을 원본 FBX 파일의 디렉터리입니다.
          */
         void ResolveTextures(const fbxsdk::FbxScene& Scene, const std::filesystem::path& SourceDirectory);
+
         /**
          * @brief 재질 속성에 연결된 파일 텍스처의 판별 결과를 조회하고 재질 슬롯이 받아들이는 형태인지 확인합니다.
          * @param[in] Property 텍스처가 연결된 FBX 재질 속성입니다.
@@ -72,6 +76,7 @@ namespace Asset {
          * @return 슬래시 구분자와 소문자로 정규화한 UTF-8 경로입니다.
          */
         Core::FString TextureKey(Core::FString Path) const;
+
         /**
          * @brief FBX SDK가 넘겨준 내장 미디어 바이트를 판별 없이 mEmbeddedData에 보관합니다.
          * @details 콜백 시점에는 장면 연결과 FbxVideo 속성을 알 수 없으므로 판별과 필터링은 ResolveTextures가 맡습니다.
@@ -89,6 +94,7 @@ namespace Asset {
          * @return 형태의 정적 문자열입니다.
          */
         const char* ShapeName(Asset::EMeshImportTextureShape Shape) const;
+
         /**
          * @brief PNG 청크 헤더만 따라가며 APNG 애니메이션 제어 청크가 있는지 확인합니다.
          * @details WIC는 APNG의 기본 이미지만 단일 프레임으로 읽으므로 애니메이션 여부를 따로 확인해야 합니다.
@@ -97,6 +103,7 @@ namespace Asset {
          * @return 첫 IDAT 앞에 acTL 청크가 있으면 true이며 PNG가 아니거나 읽을 수 없으면 false입니다.
          */
         bool HasPNGAnimation(std::span<const Core::Uint8> Data, const std::filesystem::path& Path) const;
+
         /**
          * @brief DirectXTex 메타데이터의 차원·큐브맵·배열 정보로 텍스처 형태를 정하고 형태별 D3D11 크기 한계를 확인합니다.
          * @param[in] Metadata 이미지 헤더에서 읽은 메타데이터입니다.
@@ -106,6 +113,7 @@ namespace Asset {
          * @return 형태를 정했고 크기가 한계 안이면 true입니다.
          */
         bool ClassifyMetadata(const DirectX::TexMetadata& Metadata, const Core::FString& Name, Asset::EMeshImportTextureShape& Shape, Core::FString& Error) const;
+
         /**
          * @brief DirectXTex가 직접 읽지 않는 형식을 WIC 디코더로 열어 프레임 수와 첫 프레임 크기로 텍스처 형태를 판별합니다.
          * @details 외부 파일은 파일 이름으로 디코더를 열어 WIC가 필요한 헤더만 읽게 하며 픽셀은 복사하지 않습니다.
@@ -116,6 +124,7 @@ namespace Asset {
          * @return 디코더를 열고 첫 프레임 크기가 텍스처 한계 안이면 true입니다.
          */
         bool InspectWICImage(std::span<const Core::Uint8> Data, const std::filesystem::path& Path, Asset::EMeshImportTextureShape& Shape, Core::FString& Error) const;
+
         /**
          * @brief 이미지 헤더 메타데이터만 읽어 픽셀 디코딩 없이 텍스처 형태를 판별합니다.
          * @details 픽셀 디코딩은 FAssetManager가 텍스처 에셋을 만들 때 수행합니다.
@@ -136,6 +145,7 @@ namespace Asset {
          * @return 이미지를 찾으면 true입니다.
          */
         bool LocateTexture(const fbxsdk::FbxFileTexture& Texture, const std::filesystem::path& SourceDirectory, Asset::FMeshImportTexture& Result, Core::FString& Error) const;
+
         /**
          * @brief 텍스처 참조의 내장 바이트 또는 외부 파일의 헤더로 판별한 형태를 기록합니다.
          * @param[in,out] Texture 판별할 텍스처 참조이며 성공하면 형태가 기록됩니다.
@@ -143,12 +153,14 @@ namespace Asset {
          * @return 판별하면 true입니다.
          */
         bool InspectTexture(Asset::FMeshImportTexture& Texture, Core::FString& Error) const;
+
         /**
          * @brief FBX 파일 텍스처에 연결된 FbxVideo 중 이미지 시퀀스로 지정된 것이 있는지 확인합니다.
          * @param[in] Texture 확인할 FBX 파일 텍스처입니다.
          * @return 이미지 시퀀스이면 true입니다.
          */
         bool IsImageSequence(const fbxsdk::FbxFileTexture& Texture) const;
+
         /**
          * @brief FBX 파일 텍스처 하나의 이미지를 찾아 형태를 판별하고 이미지 시퀀스이면 형태를 ImageSequence로 덮어씁니다.
          * @param[in] Texture 판별할 FBX 파일 텍스처입니다.

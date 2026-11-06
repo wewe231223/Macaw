@@ -399,6 +399,7 @@ void FBVH8::Build(const TArray<TNode>& BinaryNodes, TIsLeaf IsLeaf, TAddLeaf Add
 
         if (IsLeaf(Node)) {
             Plan.mCost[1] = Area(Node.BoundingBox) * LeafCost;
+
             return;
         }
 
@@ -436,6 +437,7 @@ void FBVH8::Build(const TArray<TNode>& BinaryNodes, TIsLeaf IsLeaf, TAddLeaf Add
     const auto Gather{[&](auto&& Self, Uint32 Index, Uint8 Count, Uint32* Frontier, Uint32& Size) -> void {
         if (Count == 1) {
             Frontier[Size++] = Index;
+
             return;
         }
 

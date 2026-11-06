@@ -10,6 +10,9 @@
 
 namespace Engine {
 
+    /**
+     * @brief 안개 위치와 아이콘으로 카메라를 향하는 에디터 빌보드 프록시를 구성합니다.
+     */
     Engine::FPrimitiveSceneProxy Engine::FHeightFogSceneProxy::CreateIconProxy() const {
         Engine::FPrimitiveSceneProxy Proxy{};
         Proxy.mId = mId;

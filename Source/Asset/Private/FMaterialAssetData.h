@@ -28,6 +28,7 @@ namespace Asset {
          * @brief 기본 설정으로 FMaterialAssetData 객체를 초기화합니다.
          */
         FMaterialAssetData();
+
         /**
          * @brief 전달받은 설정을 보관하도록 FMaterialAssetData 객체를 초기화합니다.
          * @param[in] Material 읽거나 갱신할 재질입니다.
@@ -40,6 +41,7 @@ namespace Asset {
          * @param[in,out] Archive 모드에 따라 값을 읽거나 쓸 아카이브입니다.
          */
         void Serialize(Serialization::FMemoryArchive& Archive);
+
         /**
          * @brief 저장한 재질 설정을 각 Setter의 검증을 거쳐 런타임 재질에 적용합니다.
          * @param[in,out] Material 읽거나 갱신할 재질입니다.
@@ -47,6 +49,7 @@ namespace Asset {
          * @return 모든 값을 수락하면 true이며 하나라도 유효하지 않으면 Error를 기록하고 false입니다.
          */
         bool ApplyTo(Asset::UMaterial& Material, Core::FString& Error) const;
+
         /**
          * @brief 재질 이름과 비어 있지 않은 셰이더·텍스처 경로가 프로젝트 경계 안에 있는지 검증합니다.
          * @param[in] Assets 경로 경계를 확인하고 에셋을 가져올 프로젝트 에셋 관리자입니다.
@@ -56,20 +59,44 @@ namespace Asset {
         bool ValidateReferences(const Asset::FAssetManager& Assets, Core::FString& Error) const;
 
     private:
+        /**
+         * @brief 정반사 색상 값 또는 참조입니다.
+         */
         Core::FVector4 mSpecularColor{1.0f, 1.0f, 1.0f, 1.0f};
 
+        /**
+         * @brief 주변광 색상 값 또는 참조입니다.
+         */
         Core::FVector4 mAmbientColor{1.0f, 1.0f, 1.0f, 1.0f};
 
+        /**
+         * @brief 자체 발광 색상 값 또는 참조입니다.
+         */
         Core::FVector4 mEmissiveColor{0.0f, 0.0f, 0.0f, 1.0f};
 
+        /**
+         * @brief 환경 반사 색상 값 또는 참조입니다.
+         */
         Core::FVector4 mReflectionColor{1.0f, 1.0f, 1.0f, 1.0f};
 
+        /**
+         * @brief 환경 반사 세기 값 또는 참조입니다.
+         */
         float mReflectionStrength{};
 
+        /**
+         * @brief 정반사 텍스처의 프로젝트 상대 경로 값 또는 참조입니다.
+         */
         Core::FString mSpecularTexturePath{};
 
+        /**
+         * @brief 자체 발광 텍스처의 프로젝트 상대 경로 값 또는 참조입니다.
+         */
         Core::FString mEmissiveTexturePath{};
 
+        /**
+         * @brief 환경 반사 텍스처의 프로젝트 상대 경로 값 또는 참조입니다.
+         */
         Core::FString mReflectionTexturePath{};
 
         /**

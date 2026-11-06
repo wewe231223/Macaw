@@ -8,6 +8,9 @@
 
 namespace Engine {
 
+    /**
+     * @brief 카메라 정렬을 끈 고정 평면 스프라이트를 생성합니다.
+     */
     Engine::USpriteComponent::USpriteComponent() {
         SetScreenAligned(false);
     }

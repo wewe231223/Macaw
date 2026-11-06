@@ -64,6 +64,7 @@ void FBillboardRenderer::Render(ID3D11DeviceContext* Context, FRenderBuffers& Re
         Batch.mDraw.mTexture = Texture;
         Batch.mDraw.mFirstInstance = InstanceCount;
         InstanceCount += Batch.mDraw.mInstanceCount;
+
         mDraws.push_back(Batch.mDraw);
     }
 

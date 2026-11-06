@@ -8,6 +8,7 @@ public:
 
 public:
     USpotLightComponent();
+
     ~USpotLightComponent() override = default;
 
 public:
@@ -37,6 +38,7 @@ private:
     ReflectAccessor(mInnerConeAngle, GetInnerConeAngle, SetInnerConeAngle, "InnerConeAngle", EPropertyFlags::Edit | EPropertyFlags::Serialize, ReflectSerializer(mInnerConeAngle), ReflectEditor("Spot Light", "Inner Cone Angle"), ReflectRange(0.0f, 89.9f), ReflectBounds(nullptr, ReflectBound(GetOuterConeAngle)));
 
     float mInnerConeAngle{30.0f};
+
     ReflectAccessor(mOuterConeAngle, GetOuterConeAngle, SetOuterConeAngle, "OuterConeAngle", EPropertyFlags::Edit | EPropertyFlags::Serialize, ReflectSerializer(mOuterConeAngle), ReflectEditor("Spot Light", "Outer Cone Angle"), ReflectRange(0.0f, 89.9f), ReflectBounds(ReflectBound(GetInnerConeAngle), nullptr));
 
     float mOuterConeAngle{45.0f};

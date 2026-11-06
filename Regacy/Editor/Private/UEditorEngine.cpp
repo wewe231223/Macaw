@@ -53,6 +53,7 @@ void UEditorEngine::Initialize() {
     }
 
     ReflectionModules::RegisterEditor();
+
     mEditorWorldContext = &CreateWorldContext(EWorldType::Editor);
     mEditorContext = std::make_unique<FWorldEditorContext>();
 
@@ -63,6 +64,7 @@ void UEditorEngine::Initialize() {
     mEditorContext->SetWorld(&mEditorWorldContext->GetWorld());
     mEditorContext->InitializeChannels();
     FUndoSystem::Reset();
+
     EditorEngineInstance = this;
 }
 
@@ -73,6 +75,7 @@ void UEditorEngine::Shutdown() {
 
     if (!CanChangeWorldContexts() || mProcessingPIE) {
         Console::AddLog(Console::STDOutHandle, ELogLevel::Warning, ELogCategory::Etc, "Cannot shut down the editor engine during world callbacks.");
+
         return;
     }
 
@@ -172,6 +175,7 @@ void UEditorEngine::ProcessPIERequests() {
 
     if (mPIEState == EPIEState::Stopping || (mPIEWorldContext != nullptr && !mPIEWorldContext->GetWorld().HasBegunPlay())) {
         StopPIE();
+
         return;
     }
 
@@ -186,12 +190,14 @@ void UEditorEngine::StartPIE() {
 
     if (mPIEState == EPIEState::Stopping) {
         ResetPIEState();
+
         return;
     }
 
     if (World == nullptr) {
         Console::AddLog(Console::STDOutHandle, ELogLevel::Error, ELogCategory::Etc, "Failed to clone the editor world for PIE.");
         ResetPIEState();
+
         return;
     }
 
@@ -200,6 +206,7 @@ void UEditorEngine::StartPIE() {
     if (mPIEWorldContext == nullptr) {
         Console::AddLog(Console::STDOutHandle, ELogLevel::Error, ELogCategory::Etc, "Failed to create a PIE world context.");
         ResetPIEState();
+
         return;
     }
 
@@ -264,6 +271,7 @@ bool UEditorEngine::LoadSceneInternal(const std::filesystem::path& ScenePath, bo
 
     if (!FSceneSerializer::Load(mEditorWorldContext->GetWorld(), ScenePath)) {
         Console::AddLog(Console::STDOutHandle, ELogLevel::Error, ELogCategory::Etc, "Failed to load scene: %s", ScenePath.generic_string().c_str());
+
         return false;
     }
 
@@ -290,6 +298,7 @@ bool UEditorEngine::SaveScene(const FString& SceneName) {
 
     if (Name.empty() || Name.has_parent_path() || Name == "." || Name == ".." || SceneName.find_first_of("<>:\"/\\|?*") != FString::npos) {
         Console::AddLog(Console::STDOutHandle, ELogLevel::Error, ELogCategory::Etc, "Invalid scene name: %s", SceneName.c_str());
+
         return false;
     }
 
@@ -307,6 +316,7 @@ bool UEditorEngine::SaveScene(const FString& SceneName) {
 
     if (!FSceneSerializer::Save(mEditorWorldContext->GetWorld(), ScenePath)) {
         Console::AddLog(Console::STDOutHandle, ELogLevel::Error, ELogCategory::Etc, "Failed to save scene: %s", ScenePath.generic_string().c_str());
+
         return false;
     }
 
@@ -325,6 +335,7 @@ bool UEditorEngine::SaveEditorSettings() {
 
     if (!FEditorConfigManager::Get().Flush()) {
         Console::AddLog(Console::STDOutHandle, ELogLevel::Warning, ELogCategory::Etc, "Failed to save editor settings.");
+
         return false;
     }
 
@@ -350,11 +361,13 @@ bool UEditorEngine::InitializeEditor(HWND WindowHandle, UINT Width, UINT Height,
 
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
+
     mImGuiInitialized = true;
     mImGuiPlatformInitialized = ImGui_ImplWin32_Init(static_cast<void*>(WindowHandle));
 
     if (!mImGuiPlatformInitialized) {
         Shutdown();
+
         return false;
     }
 
@@ -362,6 +375,7 @@ bool UEditorEngine::InitializeEditor(HWND WindowHandle, UINT Width, UINT Height,
 
     if (!mImGuiRendererInitialized) {
         Shutdown();
+
         return false;
     }
 
@@ -390,10 +404,12 @@ bool UEditorEngine::InitializeEditor(HWND WindowHandle, UINT Width, UINT Height,
 
     if (!Loaded) {
         Shutdown();
+
         return false;
     }
 
     Stat::ResetFrameStats();
+
     mPresentationReady = true;
 
     return true;
@@ -416,6 +432,7 @@ bool UEditorEngine::InitializeEditorResources(FLoadingProgress& Progress, HWND W
     }
 
     Progress.SetProgress(0.10f, "Creating editor resources");
+
     mThumbnailRenderer = std::make_unique<FAssetThumbnailRenderer>();
     mWorldCommandChannel = std::make_unique<FMessageChannel>(64);
     mEditorUI = std::make_unique<FEditorUIManager>();
@@ -593,6 +610,7 @@ void UEditorEngine::ReleaseEditorResources() {
         }
 
         SaveEditorSettings();
+
         mPresentationReady = false;
     }
 
@@ -614,16 +632,19 @@ void UEditorEngine::ReleaseEditorResources() {
 
     if (mImGuiRendererInitialized) {
         ImGui_ImplDX11_Shutdown();
+
         mImGuiRendererInitialized = false;
     }
 
     if (mImGuiPlatformInitialized) {
         ImGui_ImplWin32_Shutdown();
+
         mImGuiPlatformInitialized = false;
     }
 
     if (mImGuiInitialized) {
         ImGui::DestroyContext();
+
         mImGuiInitialized = false;
     }
 }

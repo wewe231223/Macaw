@@ -28,6 +28,7 @@ namespace CoreUObject {
          */
         Core::TMap<Core::FString, CoreUObject::FRegisteredType>& GetRegisteredTypes() {
             static Core::TMap<Core::FString, CoreUObject::FRegisteredType> Types{};
+
             return Types;
         }
 
@@ -59,6 +60,7 @@ namespace CoreUObject {
          */
         CoreUObject::UStruct* FindType(const Core::FString& Name, CoreUObject::EReflectionType Kind) {
             const auto Position{GetRegisteredTypes().find(Name)};
+
             return Position != GetRegisteredTypes().end() && Position->second.mDefinition.mKind == Kind ? Position->second.mInformation.get() : nullptr;
         }
     }
@@ -159,6 +161,9 @@ namespace CoreUObject {
         return static_cast<CoreUObject::UClass*>(FindType(Name, CoreUObject::EReflectionType::Class));
     }
 
+    /**
+     * @brief 지정한 부모 클래스를 상속한 등록 클래스를 수집합니다.
+     */
     Core::TArray<const CoreUObject::UClass*> CoreUObject::FReflectionRegistry::GetDerivedClasses(const CoreUObject::UClass* Parent) {
         Core::TArray<const CoreUObject::UClass*> Classes{};
 

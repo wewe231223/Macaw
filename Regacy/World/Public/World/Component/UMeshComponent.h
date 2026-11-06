@@ -13,6 +13,7 @@ public:
 
 public:
     UMeshComponent();
+
     ~UMeshComponent() override = default;
 
 public:
@@ -38,6 +39,7 @@ private:
     mutable FMeshPickingProxy mRaycastProxy{};
     mutable Uint64 mRaycastTransformRevision{};
     mutable bool mRaycastTransformInitialized{};
+
     ReflectAccessor(mMeshReference, GetMeshHandle, SetMeshHandle, "MeshHandle", EPropertyFlags::Edit | EPropertyFlags::Serialize | EPropertyFlags::Asset, &SerializeMeshHandleProperty, ReflectEditor("Rendering", "Mesh"), ReflectAsset(UMesh));
 
     FAssetReference mMeshReference{};

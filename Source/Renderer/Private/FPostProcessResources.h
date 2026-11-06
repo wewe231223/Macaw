@@ -38,6 +38,7 @@ namespace Renderer {
          * @brief 기본 설정으로 FPostProcessResources 객체를 초기화합니다.
          */
         FPostProcessResources();
+
         /**
          * @brief 객체 수명을 끝내고 소유한 자원을 정리합니다.
          */
@@ -50,6 +51,7 @@ namespace Renderer {
          * @return 모든 GPU 자원을 생성하면 true이며 하나라도 생성에 실패하면 false입니다.
          */
         bool Initialize(ID3D11Device* Device);
+
         /**
          * @brief 정점·픽셀 바이트 코드로 후처리 셰이더를 생성하고 둘 다 성공한 경우에만 교체합니다.
          * @param[in] Device GPU 자원을 생성하거나 조회할 Direct3D 11 장치입니다.
@@ -58,6 +60,7 @@ namespace Renderer {
          * @return 두 셰이더를 생성하면 true이며 실패하면 기존 셰이더를 유지하고 false입니다.
          */
         bool CreateShaders(ID3D11Device* Device, std::span<const Core::Uint8> VertexCode, std::span<const Core::Uint8> PixelCode);
+
         /**
          * @brief 가시 안개를 교대 타깃에 합성한 뒤 복사·깊이 시각화·FXAA 중 최종 패스를 실행합니다.
          * @param[in] Context GPU 명령을 기록하고 읽기·쓰기 상태를 설정할 Direct3D 11 컨텍스트입니다.

@@ -210,6 +210,7 @@ namespace CoreUObject {
         CoreUObject::TObjectIterator<T> Previous{*this};
 
         ++*this;
+
         return Previous;
     }
 
@@ -222,6 +223,7 @@ namespace CoreUObject {
     bool CoreUObject::TObjectIterator<T>::operator==(const CoreUObject::TObjectIterator<T>& Other) const {
         Get();
         Other.Get();
+
         return mHandles == Other.mHandles && mIndex == Other.mIndex;
     }
 

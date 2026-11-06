@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Editor/Input/FMouseInput.h"
 #include "Editor/Input/Messages/FMousePickRequestMessage.h"
+
 #ifdef OBJ_VIEWER
 #include "Editor/Input/Messages/FMouseCameraRotateRequestMessage.h"
 #include "Editor/Input/Messages/FKeyboardCameraMoveRequestMessage.h"
@@ -87,6 +88,7 @@ void FMouseInput::ProcessWindowMessage(UINT Message, WPARAM WParam, LPARAM LPara
 
         case WM_MOUSEMOVE: {
             const POINT Position{GetMouseX(LParam), GetMouseY(LParam)};
+
             mPosition = Position;
 
             for (std::size_t Side{0}; Side < MAX; ++Side) {
@@ -139,12 +141,15 @@ void FMouseInput::ProcessWindowMessage(UINT Message, WPARAM WParam, LPARAM LPara
         case WM_KILLFOCUS:
         case WM_CANCELMODE:
             mCaptureLost = true;
+
             ResetKeyStates();
+
             break;
 
         case WM_CAPTURECHANGED:
             if ((GetAsyncKeyState(VK_LBUTTON) & 0x8000) != 0 || (GetAsyncKeyState(VK_RBUTTON) & 0x8000) != 0 || (GetAsyncKeyState(VK_MBUTTON) & 0x8000) != 0) {
                 mCaptureLost = true;
+
                 ResetKeyStates();
             }
 
@@ -152,6 +157,7 @@ void FMouseInput::ProcessWindowMessage(UINT Message, WPARAM WParam, LPARAM LPara
 
         case WM_MOUSEWHEEL:
             mPendingWheelSteps += GET_WHEEL_DELTA_WPARAM(WParam) / static_cast<float>(WHEEL_DELTA);
+
             break;
     }
 }

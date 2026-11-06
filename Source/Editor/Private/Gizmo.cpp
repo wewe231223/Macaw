@@ -33,12 +33,16 @@ namespace Editor {
 		  mClient{Client} {
     }
 
+    /**
+     * @brief 선택과 편집 월드에 사용할 컨텍스트를 교체합니다.
+     */
     void Editor::FTransformGizmo::SetEditorContext(Editor::FEditorContext* Context) {
         if (Context == nullptr || Context == mContext) {
             return;
         }
 
         Cancel();
+
         mContext = Context;
         mHasPivot = false;
         mPivotRevision = 0;
@@ -51,6 +55,9 @@ namespace Editor {
         return mClient->GetGizmoSpace() == Editor::EGizmoSpace::Local ? Transform.TransformVectorNoScale(Editor::FGizmoCore::GetUnitAxes()[Index]) : Editor::FGizmoCore::GetUnitAxes()[Index];
     }
 
+    /**
+     * @brief 현재 피벗, 좌표계와 변환 모드로 기즈모 배치를 구성합니다.
+     */
     Editor::FGizmoPlacement Editor::FTransformGizmo::GetPlacement(const Engine::USceneComponent& Target) const {
         Editor::FGizmoPlacement Placement{};
         Placement.mPivot = GetPivot();
@@ -92,6 +99,7 @@ namespace Editor {
         }
 
         const Editor::FGizmoPlacement Placement{GetPlacement(*Target)};
+
         mStartTransform = Target->GetTransform();
         mOriginalPivot = mPivot;
         mHadPivot = mHasPivot && mPivotRevision == mContext->GetSelectionRevision();
@@ -130,6 +138,7 @@ namespace Editor {
 
             if (mDuplicates.empty()) {
                 Cancel();
+
                 return;
             }
 
@@ -138,6 +147,7 @@ namespace Editor {
 
             if (!CaptureTargets()) {
                 Cancel();
+
                 return;
             }
 
@@ -147,6 +157,7 @@ namespace Editor {
         for (const FTargetState& State : mTargets) {
             if (mContext->ResolveObject(State.mObject) == nullptr) {
                 Cancel();
+
                 return;
             }
         }
@@ -167,6 +178,7 @@ namespace Editor {
 
                 if (!mContext->ApplyTransform(State.mObject, Desired, true)) {
                     Cancel();
+
                     return;
                 }
             }
@@ -184,6 +196,7 @@ namespace Editor {
 
             for (Core::Int32 Index{}; Index < 3; ++Index) {
                 const float Value{Primary[Index] + Delta};
+
                 Factors[Index] = ActiveAxis == 7 ? Uniform : Editor::FGizmoCore::Affects(ActiveAxis, Index) && std::abs(Primary[Index]) > 0.000001f ? (Primary[Index] < 0.0f ? std::min(-0.001f, Value) : std::max(0.001f, Value)) / Primary[Index] : 1.0f;
             }
 
@@ -193,6 +206,7 @@ namespace Editor {
 
                 for (Core::Int32 Index{}; Index < 3; ++Index) {
                     const float Value{ActiveAxis == 7 ? Scale[Index] * Uniform : Scale[Index] + (Editor::FGizmoCore::Affects(ActiveAxis, Index) ? Delta : 0.0f)};
+
                     Scale[Index] = Scale[Index] < 0.0f ? std::min(-0.001f, Value) : std::max(0.001f, Value);
                 }
 
@@ -208,6 +222,7 @@ namespace Editor {
 
                 if (!mContext->ApplyTransform(State.mObject, Desired, true)) {
                     Cancel();
+
                     return;
                 }
             }
@@ -233,6 +248,7 @@ namespace Editor {
 
             if (!mContext->ApplyTransform(State.mObject, Desired, true)) {
                 Cancel();
+
                 return;
             }
         }
@@ -261,6 +277,7 @@ namespace Editor {
         const Engine::USceneComponent* Target{GetPrimaryTarget()};
         const Engine::AActor* Actor{Target != nullptr ? Target->GetOwner() : nullptr};
         const Core::Int32 Hovered{Actor != nullptr && mContext->CanEditWorld() && Input.mHovered && !Input.mRightDown && Hit.mType == Engine::EHitProxyType::GizmoAxis && Hit.mObject == Actor->GetHandle() && Hit.mAxis >= 0 && Hit.mAxis <= 7 ? Hit.mAxis : -1};
+
         mCore.SetHoveredAxis(Hovered);
 
         const bool Pressed{Input.mLeftPressed || (Input.mMiddlePressed && mClient->GetGizmoMode() == Editor::EGizmoMode::Translate)};
@@ -302,11 +319,18 @@ namespace Editor {
         return mCore.GetHoveredAxis();
     }
 
+    /**
+     * @brief 현재 변환 작업의 기준 장면 컴포넌트를 조회합니다.
+     */
     Engine::USceneComponent* Editor::FTransformGizmo::GetPrimaryTarget() const {
         const Core::TArray<CoreUObject::FObjectHandle> Targets{mContext->GetTransformTargets()};
+
         return Targets.empty() ? nullptr : CoreUObject::Cast<Engine::USceneComponent>(mContext->ResolveObject(Targets.back()));
     }
 
+    /**
+     * @brief 선택 상태에 대응하는 현재 월드 피벗을 반환합니다.
+     */
     Core::FVector Editor::FTransformGizmo::GetPivot() const {
         if (IsDragging()) {
             return mCore.GetStartPivot() + mCore.GetTranslation();
@@ -317,14 +341,23 @@ namespace Editor {
         return mHasPivot && mPivotRevision == mContext->GetSelectionRevision() ? mPivot : Target != nullptr ? Target->GetTransform().mLocation : Core::FVector{};
     }
 
+    /**
+     * @brief 현재 드래그가 피벗 위치만 변경하는 작업인지 검사합니다.
+     */
     bool Editor::FTransformGizmo::IsPivotDrag() const {
         return IsDragging() && mPivotOnly;
     }
 
+    /**
+     * @brief 이 기즈모의 스냅과 크기 설정을 읽기 전용으로 반환합니다.
+     */
     const Editor::FGizmoSettings* Editor::FTransformGizmo::GetSettings() const {
         return mCore.GetSettings();
     }
 
+    /**
+     * @brief 기존 대상 스냅샷을 비우고 현재 선택된 변환 대상들의 핸들과 변환을 수집합니다.
+     */
     bool Editor::FTransformGizmo::CaptureTargets() {
         mTargets.clear();
 
@@ -339,10 +372,16 @@ namespace Editor {
         return !mTargets.empty();
     }
 
+    /**
+     * @brief 뷰포트 클라이언트가 검증한 설정의 사본을 저장합니다.
+     */
     void Editor::FTransformGizmo::SetSettings(const Editor::FGizmoSettings& Settings) {
         mCore.SetSettings(Settings);
     }
 
+    /**
+     * @brief 기즈모 드래그를 확정하거나 원본 변환과 선택으로 되돌립니다.
+     */
     void Editor::FTransformGizmo::EndDrag(bool Restore) {
         if (IsDragging() && Restore && mContext->GetWorldHandle() == mWorldHandle) {
             const bool SameSelection{mContext->GetSelectionRevision() == mSelectionRevision};

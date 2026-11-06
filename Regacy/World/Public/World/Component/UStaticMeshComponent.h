@@ -18,6 +18,7 @@ public:
 
 public:
     UStaticMeshComponent();
+
     ~UStaticMeshComponent() override = default;
 
 public:

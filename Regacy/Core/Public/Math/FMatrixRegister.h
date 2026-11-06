@@ -59,6 +59,7 @@ public:
      * @return 행렬식입니다.
      */
     float Determinant() const;
+
     // 역행렬
     /**
      * @brief 여인수와 행렬식으로 역행렬을 계산합니다.

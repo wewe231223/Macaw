@@ -14,51 +14,61 @@ namespace {
 
         if (Extension == ".dds") {
             OutExtension = ETextureExtension::DDS;
+
             return true;
         }
 
         if (Extension == ".tga") {
             OutExtension = ETextureExtension::TGA;
+
             return true;
         }
 
         if (Extension == ".bmp") {
             OutExtension = ETextureExtension::BMP;
+
             return true;
         }
 
         if (Extension == ".png") {
             OutExtension = ETextureExtension::PNG;
+
             return true;
         }
 
         if (Extension == ".gif") {
             OutExtension = ETextureExtension::GIF;
+
             return true;
         }
 
         if (Extension == ".tif") {
             OutExtension = ETextureExtension::TIF;
+
             return true;
         }
 
         if (Extension == ".tiff") {
             OutExtension = ETextureExtension::TIFF;
+
             return true;
         }
 
         if (Extension == ".jpg") {
             OutExtension = ETextureExtension::JPG;
+
             return true;
         }
 
         if (Extension == ".jpeg") {
             OutExtension = ETextureExtension::JPEG;
+
             return true;
         }
 
         if (Extension == ".hdr") {
             OutExtension = ETextureExtension::HDR;
+
             return true;
         }
 
@@ -95,6 +105,7 @@ bool UTexture::Initialize(const std::filesystem::path& ImagePath, bool MakeDDS, 
 bool UTexture::InitializeInternal(const std::filesystem::path& ImagePath, ETextureFormat TextureFormat, ETextureExtension TextureExtension, bool BGenerateMipMap, bool MakeDDS) {
     if (!UAsset::Initialize(ImagePath)) {
         ErrorHandler::Report("[ UTexture ]", "Texture image path is invalid: " + ImagePath.string(), ErrorHandler::EErrorLevel::Critical);
+
         return false;
     }
 
@@ -103,6 +114,7 @@ bool UTexture::InitializeInternal(const std::filesystem::path& ImagePath, ETextu
 
     if (TargetFormat == DXGI_FORMAT_UNKNOWN) {
         ErrorHandler::Report("[ UTexture ]", "Unsupported texture format setting: " + Path.string(), ErrorHandler::EErrorLevel::Critical);
+
         return false;
     }
 
@@ -114,15 +126,19 @@ bool UTexture::InitializeInternal(const std::filesystem::path& ImagePath, ETextu
 
     if (TextureExtension == ETextureExtension::DDS) {
         Result = DirectX::LoadFromDDSFile(Path.wstring().c_str(), DirectX::DDS_FLAGS_NONE, &SourceImageMetaData, SourceImage);
+
         ErrorHandler::ReportHRESULT(Result, "[ UTexture ]", "Failed to load DDS texture: " + Path.string(), ErrorHandler::EErrorLevel::Critical);
     } else if (TextureExtension == ETextureExtension::TGA) {
         Result = DirectX::LoadFromTGAFile(Path.wstring().c_str(), DirectX::TGA_FLAGS_NONE, &SourceImageMetaData, SourceImage);
+
         ErrorHandler::ReportHRESULT(Result, "[ UTexture ]", "Failed to load TGA texture: " + Path.string(), ErrorHandler::EErrorLevel::Critical);
     } else if (TextureExtension == ETextureExtension::BMP || TextureExtension == ETextureExtension::PNG || TextureExtension == ETextureExtension::GIF || TextureExtension == ETextureExtension::TIF || TextureExtension == ETextureExtension::TIFF || TextureExtension == ETextureExtension::JPG || TextureExtension == ETextureExtension::JPEG) {
         Result = DirectX::LoadFromWICFile(Path.wstring().c_str(), DirectX::WIC_FLAGS_NONE, &SourceImageMetaData, SourceImage);
+
         ErrorHandler::ReportHRESULT(Result, "[ UTexture ]", "Failed to load WIC texture: " + Path.string(), ErrorHandler::EErrorLevel::Critical);
     } else if (TextureExtension == ETextureExtension::HDR) {
         Result = DirectX::LoadFromHDRFile(Path.wstring().c_str(), &SourceImageMetaData, SourceImage);
+
         ErrorHandler::ReportHRESULT(Result, "[ UTexture ]", "Failed to load HDR texture: " + Path.string(), ErrorHandler::EErrorLevel::Critical);
     } else {
         ErrorHandler::Report("[ UTexture ]", "Unsupported texture extension setting: " + Path.string(), ErrorHandler::EErrorLevel::Critical);

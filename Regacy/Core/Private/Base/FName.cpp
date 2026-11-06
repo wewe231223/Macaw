@@ -325,10 +325,12 @@ private:
         Uint16* HeaderPtr{reinterpret_cast<Uint16*>(&NewEntry)};
 
         *HeaderPtr = static_cast<Uint16>(InValue.mName.length()) << 1;
+
         // Set string
         char* DataPtr{const_cast<char*>(NewEntry.GetName())};
 
         std::memcpy(DataPtr, InValue.mName.data(), InValue.mName.length());
+
         DataPtr[InValue.mName.length()] = '\0'; // null terminator
 
         Uint32 CapacityMask{static_cast<Uint32>(Buckets.size() - 1)};
@@ -368,10 +370,12 @@ private:
         Uint16* HeaderPtr{reinterpret_cast<Uint16*>(&NewEntry)};
 
         *HeaderPtr = static_cast<Uint16>(InValue.mName.length()) << 1;
+
         // Set string
         char* DataPtr{const_cast<char*>(NewEntry.GetName())};
 
         std::memcpy(DataPtr, InValue.mName.data(), InValue.mName.length());
+
         DataPtr[InValue.mName.length()] = '\0'; // null terminator
 
         NewEntry.SetComparisonId(NewHandle);
@@ -384,6 +388,7 @@ private:
     FNameEntryId StoreDisplayValue(const FNameValue& InValue, FNameEntryId InComparisonId, bool BWasAdded) {
         if (BWasAdded) {
             InsertSlot(mDisplayHashBuckets, InValue, InComparisonId);
+
             return InComparisonId;
         }
 
@@ -396,10 +401,12 @@ private:
         Uint16* HeaderPtr{reinterpret_cast<Uint16*>(&NewEntry)};
 
         *HeaderPtr = static_cast<Uint16>(InValue.mName.length()) << 1;
+
         // Set string
         char* DataPtr{const_cast<char*>(NewEntry.GetName())};
 
         std::memcpy(DataPtr, InValue.mName.data(), InValue.mName.length());
+
         DataPtr[InValue.mName.length()] = '\0'; // null terminator
 
         NewEntry.SetComparisonId(InComparisonId);

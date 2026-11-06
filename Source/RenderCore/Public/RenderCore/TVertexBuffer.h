@@ -62,6 +62,7 @@ namespace RenderCore {
             ID3D11Buffer* Buffer{GetBuffer()};
             const UINT Stride{GetStride() * ElementsPerVertex};
             const UINT Offset{};
+
             Context->IASetVertexBuffers(Slot, 1, &Buffer, &Stride, &Offset);
         }
 
@@ -74,14 +75,24 @@ namespace RenderCore {
             ID3D11Buffer* Buffer{};
             const UINT Stride{};
             const UINT Offset{};
+
             Context->IASetVertexBuffers(Slot, 1, &Buffer, &Stride, &Offset);
         }
 
     protected:
+        /**
+         * @brief 용도별 바인딩 플래그와 부가 플래그를 채웁니다.
+         * @param[in] Description 크기와 사용 방식이 채워진 버퍼 설명입니다.
+         */
         void FillDescription(D3D11_BUFFER_DESC& Description) const override {
             Description.BindFlags = D3D11_BIND_VERTEX_BUFFER;
         }
 
+        /**
+         * @brief 재할당할 때 확보할 원소 수를 정합니다.
+         * @param[in] Count 필요한 원소 수입니다.
+         * @return 기본 구현은 Count 이상의 가장 작은 2의 거듭제곱입니다.
+         */
         Core::Uint64 GetGrowthCapacity(Core::Uint64 Count) const override {
             return RenderCore::FGpuBuffer::GetGrowthCapacity(std::max<Core::Uint64>(Count, 256));
         }

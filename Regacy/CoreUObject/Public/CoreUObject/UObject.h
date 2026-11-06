@@ -381,6 +381,7 @@ private:
      * @brief 클래스 기본 객체 여부입니다.
      */
     bool mClassDefaultObject{};
+
     ReflectReadOnlyProperty(mGuid, "Guid", EPropertyFlags::ReadOnly);
 
     /**
@@ -392,12 +393,14 @@ private:
      * @brief 객체 저장소의 슬롯과 세대를 식별하는 등록 핸들입니다.
      */
     FObjectHandle mHandle{};
+
     ReflectReadOnlyProperty(mName, "Name", EPropertyFlags::ReadOnly);
 
     /**
      * @brief 직접 Outer 안에서 사용하는 이름입니다.
      */
     FName mName{};
+
     ReflectReadOnlyProperty(mOuter, "Outer", EPropertyFlags::ReadOnly | EPropertyFlags::Transient | EPropertyFlags::Reference);
 
     /**

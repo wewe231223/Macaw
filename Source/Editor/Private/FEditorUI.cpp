@@ -58,8 +58,18 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND Window, UINT M
 
 namespace Editor {
 
+    /**
+     * @brief 이 파일에서 사용하는 내부 보조 기능과 상태를 묶습니다.
+     */
     namespace {
         // 귀퉁이가 접힌 문서 모양에 C#의 보라색과 "C#" 글자를 그립니다.
+
+        /**
+         * @brief 지정 위치와 크기로 스크립트 컴포넌트 아이콘을 그립니다.
+         * @param[in] DrawList 아이콘을 추가할 ImGui 드로 목록입니다.
+         * @param[in] Origin 아이콘의 화면 좌표입니다.
+         * @param[in] Size 아이콘의 화면상 크기입니다.
+         */
         void DrawScriptIcon(ImDrawList* DrawList, const ImVec2& Origin, float Size) {
             const float Left{Origin.x + Size * 0.16f};
             const float Right{Origin.x + Size * 0.84f};
@@ -117,8 +127,10 @@ namespace Editor {
         }
 
         mPlatform = Platform;
+
         IMGUI_CHECKVERSION();
         ImGui::CreateContext();
+
         mContextCreated = true;
 
         ImGuiIO& Input{ImGui::GetIO()};
@@ -126,7 +138,9 @@ namespace Editor {
 
         const std::filesystem::path Layout{mContext->GetProject()->GetRootPath() / "Saved/EditorLayout.ini"};
         std::error_code LayoutError{};
+
         std::filesystem::create_directories(Layout.parent_path(), LayoutError);
+
         mIniPath = Core::FilePath::ToUtf8(Layout);
         Input.IniFilename = mIniPath.c_str();
         Input.LogFilename = nullptr;
@@ -145,6 +159,7 @@ namespace Editor {
         Style.WindowRounding = 3.0f;
         Style.FrameRounding = 3.0f;
         Style.GrabRounding = 3.0f;
+
         mUIScale.Initialize(16.0f);
         mUIScale.Update(*Platform);
 
@@ -171,6 +186,7 @@ namespace Editor {
         });
 
         mInitialized = true;
+
         ImGui::LoadIniSettingsFromDisk(mIniPath.c_str());
         InitializeSettings();
         InstallEditorIcons();
@@ -192,12 +208,16 @@ namespace Editor {
         mMeshViewer = std::make_unique<Editor::FMeshViewer>(Renderer, mContext->GetProject()->GetAssets());
         mExit = false;
         mRefreshContent = true;
+
         RefreshContent();
         DragAcceptFiles(Platform->GetWindowHandle(), TRUE);
 
         return true;
     }
 
+    /**
+     * @brief 프로젝트의 Editor/Icon 폴더에 없는 언리얼 아이콘과 출처 파일을 배포 템플릿에서 복사합니다.
+     */
     void Editor::FEditorUI::InstallEditorIcons() {
         std::array<wchar_t, 32768> Executable{};
         const DWORD Length{GetModuleFileNameW(nullptr, Executable.data(), static_cast<DWORD>(Executable.size()))};
@@ -211,6 +231,7 @@ namespace Editor {
 
             if (Target.empty()) {
                 mContext->AddLog(Error);
+
                 continue;
             }
 
@@ -226,6 +247,7 @@ namespace Editor {
 
             if (!std::filesystem::is_regular_file(Source, Code)) {
                 mContext->AddLog("Cannot find bundled editor icon: " + Core::FString{Name});
+
                 continue;
             }
 
@@ -291,6 +313,7 @@ namespace Editor {
 
         if (mDxReady) {
             ImGui_ImplDX11_Shutdown();
+
             mDxReady = false;
         }
 
@@ -302,6 +325,7 @@ namespace Editor {
 
         if (mContextCreated) {
             ImGui::DestroyContext();
+
             mContextCreated = false;
         }
 
@@ -369,6 +393,7 @@ namespace Editor {
         BuildLayout();
 
         Editor::FEditorContext* Inspection{mPlaySession->IsActive() ? mPlaySession->GetInspectionContext() : mContext};
+
         mOutlinerPanel.SetEditorContext(Inspection);
         mDetailsPanel.SetEditorContext(Inspection);
         mPlaceActorsPanel.Draw(DeltaTime);
@@ -383,7 +408,9 @@ namespace Editor {
         }
 
         mSequencerPanel.Draw(DeltaTime);
+
         Editor::FStatGraphs& StatGraphs{mContext->GetStatGraphs()};
+
         GetActiveViewport()->GetStatistics()->DrawPanel(mShowStatistics, StatGraphs);
         StatGraphs.Draw();
         DrawContent();
@@ -397,6 +424,7 @@ namespace Editor {
 
             if (mSettingsSaveDelay >= 2.0f) {
                 SaveSettings();
+
                 mSettingsSaveDelay = 0.0f;
             }
         }
@@ -429,6 +457,9 @@ namespace Editor {
         ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
     }
 
+    /**
+     * @brief 그림자 아틀라스 미리보기와 타일별 광원 정보를 그립니다.
+     */
     void Editor::FEditorUI::DrawShadowAtlas() {
         if (!mContext->IsShadowAtlasOpen()) {
             return;
@@ -441,6 +472,7 @@ namespace Editor {
         if (ImGui::Begin("Shadow Atlas", &Open)) {
             const RenderCore::FShadowAtlasView Atlas{mContext->GetRenderer()->GetShadowAtlasView()};
             const RenderCore::FRenderStats Stats{mContext->GetRenderer()->GetStats()};
+
             ImGui::Text("%u x %u | D24S8 | %u maps", Atlas.mSize, Atlas.mSize, Stats.mShadowMaps);
             ImGui::Text("Resources: %.1f MiB | Allocated tiles: %.1f MiB", Stats.mShadowAtlasBytes / (1024.0 * 1024.0), Stats.mShadowAllocatedBytes / (1024.0 * 1024.0));
             ImGui::Text("Directional: %u | Point: %u | Spot: %u", Stats.mDirectionalLights, Stats.mPointLights, Stats.mSpotLights);
@@ -461,6 +493,7 @@ namespace Editor {
                     for (const RenderCore::FShadowAtlasTile& Tile : Atlas.mTiles) {
                         const ImVec2 Minimum{Origin.x + Tile.mRectangle.x * Size, Origin.y + Tile.mRectangle.y * Size};
                         const ImVec2 Maximum{Minimum.x + Tile.mRectangle.z * Size, Minimum.y + Tile.mRectangle.w * Size};
+
                         Draw->AddRect(Minimum, Maximum, IM_COL32(255, 230, 0, 255), 0.0f, 0, 1.5f);
 
                         if (ImGui::IsMouseHoveringRect(Minimum, Maximum)) {
@@ -486,6 +519,9 @@ namespace Editor {
         return mExit;
     }
 
+    /**
+     * @brief 가장 최근 입력을 받은 유효한 뷰포트를 반환합니다.
+     */
     Editor::FEditorViewport* Editor::FEditorUI::GetActiveViewport() const {
         return mViewportLayout.GetActiveViewport();
     }
@@ -498,12 +534,14 @@ namespace Editor {
 
         if (Save) {
             const std::wstring Filename{mContext->GetScenePath().empty() ? L"Scene.masset" : mContext->GetScenePath().filename().wstring()};
+
             std::copy_n(Filename.begin(), std::min(Filename.size(), Buffer.size() - 1), Buffer.begin());
         }
 
         const std::filesystem::path Directory{mContext->GetProject()->GetAssets()->GetContentRoot() / "Maps"};
 
         std::error_code Error{};
+
         std::filesystem::create_directories(Directory, Error);
 
         OPENFILENAMEW Dialog{};
@@ -541,6 +579,7 @@ namespace Editor {
 
             ImGuiID Outliner{};
             const ImGuiID Placement{ImGui::DockBuilderSplitNode(Left, ImGuiDir_Down, 0.55f, nullptr, &Outliner)};
+
             ImGui::DockBuilderDockWindow(mPlaceActorsPanel.GetName().c_str(), Placement);
             ImGui::DockBuilderDockWindow(mOutlinerPanel.GetName().c_str(), Outliner);
             ImGui::DockBuilderDockWindow(mDetailsPanel.GetName().c_str(), Right);
@@ -553,10 +592,14 @@ namespace Editor {
         }
     }
 
+    /**
+     * @brief 프로젝트·장면 작업과 편집 도구를 제공하는 툴바를 그립니다.
+     */
     void Editor::FEditorUI::DrawEditorToolbar() {
         Editor::EditorStyle::PushViewportToolbar();
 
         const float Scale{mUIScale.GetScale()};
+
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{8.0f * Scale, 4.0f * Scale});
         ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
         ImGui::PushStyleColor(ImGuiCol_WindowBg, ImGui::GetStyleColorVec4(ImGuiCol_MenuBarBg));
@@ -585,6 +628,9 @@ namespace Editor {
         Editor::EditorStyle::PopViewportToolbar();
     }
 
+    /**
+     * @brief 변경된 C# 스크립트를 먼저 빌드한 뒤 PIE를 시작하도록 요청합니다.
+     */
     void Editor::FEditorUI::RequestPlay() {
         if (mPlaySession->IsActive()) {
             return;
@@ -592,9 +638,13 @@ namespace Editor {
 
         mScriptBuilds.BuildIfChanged();
         mPlayPending = true;
+
         UpdatePendingPlay();
     }
 
+    /**
+     * @brief 기다리던 빌드가 끝났으면 PIE를 시작합니다. 컴파일 오류가 있으면 시작하지 않습니다.
+     */
     void Editor::FEditorUI::UpdatePendingPlay() {
         if (!mPlayPending || mScriptBuilds.IsBuilding()) {
             return;
@@ -609,6 +659,9 @@ namespace Editor {
         }
     }
 
+    /**
+     * @brief PIE 시작·일시정지·단계 실행·종료 버튼을 그립니다.
+     */
     void Editor::FEditorUI::DrawPlayControls() {
         ImGui::PushID("PIEControls");
 
@@ -725,6 +778,7 @@ namespace Editor {
                     for (const Core::FString& Group : Core::FStats::Get().GetGroups()) {
                         if (ImGui::MenuItem(Group.c_str(), nullptr, Statistics->IsEnabled(Group))) {
                             Core::FString Output{};
+
                             Statistics->ExecuteCommand("stat " + Group, Output);
                         }
                     }
@@ -816,14 +870,19 @@ namespace Editor {
             Error = "Cannot locate the game executable";
         } else {
             const auto Runtime{std::filesystem::path{Executable.data()}.parent_path() / "GameRuntime"};
+
             Exported = Editor::FGameExporter::Export(*mContext->GetProject(), Runtime, Destination, Error);
         }
 
         const Core::FString Message{Exported ? "Exported game to " + Core::FilePath::ToUtf8(Destination) : Error};
+
         mContext->AddLog(Message);
         MessageBoxW(mPlatform->GetWindowHandle(), Core::FilePath::FromUtf8(Message).c_str(), Exported ? L"Game Exported" : L"Cannot Export Game", MB_OK | (Exported ? MB_ICONINFORMATION : MB_ICONERROR));
     }
 
+    /**
+     * @brief 저장하지 않은 장면 변경을 확인하고 전환을 계속할 수 있는지 판정합니다.
+     */
     bool Editor::FEditorUI::ConfirmSceneChange() {
         if (!ConfirmMaterialChange()) {
             return false;
@@ -845,11 +904,15 @@ namespace Editor {
 
         const auto Path{mContext->GetScenePath().empty() ? ChooseFile(true) : mContext->GetScenePath()};
         const bool Saved{!Path.empty() && mContext->SaveScene(Path)};
+
         mRefreshContent = mRefreshContent || Saved;
 
         return Saved;
     }
 
+    /**
+     * @brief 프로젝트 파일 대화상자를 열고 선택한 경로의 전환을 요청합니다.
+     */
     void Editor::FEditorUI::ChooseProject(bool Create) {
         if (!ConfirmSceneChange()) {
             return;
@@ -858,6 +921,9 @@ namespace Editor {
         mContext->RequestProject({}, Create);
     }
 
+    /**
+     * @brief 파일 대화상자에서 고른 메시 또는 이미지를 프로젝트 에셋으로 가져옵니다.
+     */
     void Editor::FEditorUI::ImportAsset() {
         std::array<wchar_t, 32768> Buffer{};
         OPENFILENAMEW Dialog{};
@@ -874,6 +940,9 @@ namespace Editor {
         }
     }
 
+    /**
+     * @brief 원본 파일 목록을 가져오기 요청합니다. 메시가 포함되어 있으면 임포트 옵션 창을 띄우고, 이미지뿐이면 바로 가져옵니다.
+     */
     void Editor::FEditorUI::RequestImport(Core::TArray<std::filesystem::path> Sources, const std::filesystem::path& Directory) {
         if (!mContext->CanEditWorld() || Sources.empty()) {
             return;
@@ -886,6 +955,7 @@ namespace Editor {
         // 이미지 원본만 있으면 받을 옵션이 없으므로 바로 가져옵니다.
         if (!HasMesh) {
             ImportFiles(Sources, Directory, mImportOption);
+
             return;
         }
 
@@ -893,6 +963,9 @@ namespace Editor {
         mPendingImportDirectories.push_back(Directory);
     }
 
+    /**
+     * @brief 대기 중인 메시 가져오기 묶음이 있으면 임포트 옵션 모달 창을 그리고, 확인하면 옵션대로 가져옵니다.
+     */
     void Editor::FEditorUI::DrawImportOptions() {
         static constexpr const char* PopupName{"Import Options"};
 
@@ -916,6 +989,7 @@ namespace Editor {
             mPendingImportDirectories.erase(mPendingImportDirectories.begin());
             ImGui::CloseCurrentPopup();
         }};
+
         constexpr std::size_t ListedSources{8};
 
         ImGui::TextUnformatted(Sources.size() == 1 ? "Importing 1 file:" : ("Importing " + std::to_string(Sources.size()) + " files:").c_str());
@@ -979,12 +1053,15 @@ namespace Editor {
         }
 
         ImGui::Separator();
+
         const bool Valid{mImportOption.IsValid()};
+
         ImGui::BeginDisabled(!Valid);
 
         if (ImGui::Button("Import")) {
             const auto Batch{Sources};
             const auto Directory{mPendingImportDirectories.front()};
+
             Finish();
             ImportFiles(Batch, Directory, mImportOption);
         }
@@ -1010,6 +1087,9 @@ namespace Editor {
         ImGui::EndPopup();
     }
 
+    /**
+     * @brief 원본 파일 목록을 대상 콘텐츠 디렉터리에 가져오고 에셋 목록과 결과 로그를 갱신합니다.
+     */
     void Editor::FEditorUI::ImportFiles(const Core::TArray<std::filesystem::path>& Sources, const std::filesystem::path& Directory, const Asset::FAssetImportOption& Option) {
         if (!mContext->CanEditWorld()) {
             return;
@@ -1027,13 +1107,17 @@ namespace Editor {
 
             if (!Assets->ImportAsset(Source, Destination, Option, Target, Error)) {
                 const Core::FString Failure{"Cannot import '" + Core::FilePath::ToUtf8(Source.filename()) + "': " + Error};
+
                 mContext->AddLog(Failure);
+
                 Failures += (Failures.empty() ? Core::FString{} : "\n") + Failure;
+
                 continue;
             }
 
             ++Imported;
             LastImported = Target;
+
             mContext->AddLog("Imported " + Core::FilePath::ToGenericUtf8(Target));
         }
 
@@ -1042,12 +1126,16 @@ namespace Editor {
             mContentSearch.fill('\0');
             RefreshContent();
             NavigateContent(Imported == 1 ? LastImported.parent_path() : Destination);
+
             mSelectedContentPath = Imported == 1 ? LastImported : LastImported.parent_path();
         }
 
         mContentError = std::move(Failures);
     }
 
+    /**
+     * @brief Windows 드롭 핸들에서 경로와 대상 영역을 수집하여 가져오기를 대기열에 넣고 핸들을 해제합니다.
+     */
     void Editor::FEditorUI::QueueFileDrop(void* Handle) {
         const HDROP Drop{static_cast<HDROP>(Handle)};
         POINT Point{};
@@ -1060,6 +1148,7 @@ namespace Editor {
 
         if (!mInitialized || !mContext->CanEditWorld() || Context == nullptr || !DragQueryPoint(Drop, &Point) || Context->OpenPopupStack.Size != 0) {
             DragFinish(Drop);
+
             return;
         }
 
@@ -1076,12 +1165,14 @@ namespace Editor {
 
             if (Window->WasActive && !Window->Hidden && (Window->Flags & ImGuiWindowFlags_NoMouseInputs) == 0 && Window->OuterRectClipped.Contains(Position)) {
                 Hovered = Window;
+
                 break;
             }
         }
 
         if (Browser == nullptr || Browser->Collapsed || Hovered == nullptr || !ImGui::IsWindowChildOf(Hovered, Browser, false, false)) {
             DragFinish(Drop);
+
             return;
         }
 
@@ -1094,12 +1185,14 @@ namespace Editor {
             if (Position.x >= Bounds.x && Position.y >= Bounds.y && Position.x < Bounds.z && Position.y < Bounds.w) {
                 Directory = mContentDropDirectories[Index - 1];
                 Found = true;
+
                 break;
             }
         }
 
         if (!Found) {
             DragFinish(Drop);
+
             return;
         }
 
@@ -1125,9 +1218,13 @@ namespace Editor {
         }
     }
 
+    /**
+     * @brief 대기 중인 파일 드롭 묶음을 꺼내 각 대상 디렉터리로 가져옵니다.
+     */
     void Editor::FEditorUI::ImportDroppedFiles() {
         auto Files{std::move(mDroppedFiles)};
         auto Directories{std::move(mDropDirectories)};
+
         mDroppedFiles.clear();
         mDropDirectories.clear();
 
@@ -1136,6 +1233,9 @@ namespace Editor {
         }
     }
 
+    /**
+     * @brief 콘텐츠 영역을 현재 ImGui 클립 사각형으로 잘라 파일 드롭 대상으로 등록합니다.
+     */
     void Editor::FEditorUI::RegisterContentDropTarget(const std::filesystem::path& Directory, const Core::FVector4& Bounds) {
         const ImRect Clip{ImGui::GetCurrentWindow()->ClipRect};
         const Core::FVector4 Visible{std::max(Bounds.x, Clip.Min.x), std::max(Bounds.y, Clip.Min.y), std::min(Bounds.z, Clip.Max.x), std::min(Bounds.w, Clip.Max.y)};
@@ -1146,6 +1246,9 @@ namespace Editor {
         }
     }
 
+    /**
+     * @brief 프로젝트 에셋 목록과 생성·가져오기 UI를 그립니다.
+     */
     void Editor::FEditorUI::DrawContent() {
         mContentDropDirectories.clear();
         mContentDropBounds.clear();
@@ -1153,6 +1256,7 @@ namespace Editor {
         if (ImGui::Begin("Content")) {
             const ImVec2 Minimum{ImGui::GetWindowPos()};
             const ImVec2 Size{ImGui::GetWindowSize()};
+
             RegisterContentDropTarget(mContentDirectory, {Minimum.x, Minimum.y, Minimum.x + Size.x, Minimum.y + Size.y});
             ImGui::TextUnformatted(mContext->GetProject()->GetName().c_str());
             ImGui::SameLine();
@@ -1205,6 +1309,7 @@ namespace Editor {
                 // C# 스크립트는 Content 밖의 Scripts 폴더에 있으므로 별도 루트로 보여 줍니다.
                 if (mScriptBuilds.HasProject()) {
                     const ImGuiTreeNodeFlags ScriptFlags{ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_NoTreePushOnOpen | (mBrowsingScripts ? ImGuiTreeNodeFlags_Selected : 0)};
+
                     ImGui::TreeNodeEx("Scripts##ContentScripts", ScriptFlags);
 
                     if (ImGui::IsItemClicked()) {
@@ -1251,10 +1356,16 @@ namespace Editor {
         ImGui::End();
     }
 
+    /**
+     * @brief 콘텐츠 항목 경로를 디스크 경로로 바꿉니다.
+     */
     std::filesystem::path Editor::FEditorUI::GetContentActionPath(const std::filesystem::path& Path) const {
         return mBrowsingScripts ? Path : mContext->GetProject()->GetAssets()->GetContentRoot() / Path;
     }
 
+    /**
+     * @brief 선택한 항목에 대한 작업 창을 열고, 이 항목을 참조하는 에셋을 찾아 둡니다.
+     */
     void Editor::FEditorUI::BeginContentAction(EContentAction Action) {
         mContentAction = Action;
         mContentActionTarget = mSelectedContentPath;
@@ -1267,6 +1378,7 @@ namespace Editor {
         std::error_code Code{};
         const bool Directory{std::filesystem::is_directory(Absolute, Code)};
         const Core::FString Name{Core::FilePath::ToUtf8(Directory || mContentActionScript ? mContentActionTarget.filename() : mContentActionTarget.stem())};
+
         mContentActionName.fill('\0');
         std::copy_n(Name.begin(), std::min(Name.size(), mContentActionName.size() - 1), mContentActionName.begin());
 
@@ -1302,6 +1414,9 @@ namespace Editor {
         }
     }
 
+    /**
+     * @brief 열려 있는 씬이나 편집 중인 머티리얼처럼 지금 바꾸면 안 되는 이유를 찾습니다.
+     */
     Core::FString Editor::FEditorUI::FindContentActionBlocker(const std::filesystem::path& Absolute) const {
         Asset::FAssetManager* Assets{mContext->GetProject()->GetAssets()};
         Core::FString Error{};
@@ -1332,6 +1447,9 @@ namespace Editor {
         return {};
     }
 
+    /**
+     * @brief 이름 바꾸기 또는 삭제 확인 창을 표시합니다.
+     */
     void Editor::FEditorUI::DrawContentActionPopup() {
         constexpr const char* RenameName{"Rename Asset"};
         constexpr const char* DeleteName{"Delete Asset"};
@@ -1339,6 +1457,7 @@ namespace Editor {
 
         if (mOpenContentAction) {
             ImGui::OpenPopup(PopupName);
+
             mOpenContentAction = false;
         }
 
@@ -1386,7 +1505,9 @@ namespace Editor {
         }
 
         ImGui::Spacing();
+
         Confirmed |= ImGui::Button(mContentAction == EContentAction::Rename ? "Rename" : "Delete");
+
         ImGui::SameLine();
 
         if (ImGui::Button("Cancel") || ImGui::IsKeyPressed(ImGuiKey_Escape)) {
@@ -1400,6 +1521,9 @@ namespace Editor {
         ImGui::EndPopup();
     }
 
+    /**
+     * @brief 대상 항목의 이름을 바꿉니다. 스크립트는 파일 안의 클래스 이름도 바꿉니다.
+     */
     bool Editor::FEditorUI::RenameContent() {
         const std::filesystem::path Absolute{GetContentActionPath(mContentActionTarget)};
         const Core::FString NewName{mContentActionName.data()};
@@ -1412,6 +1536,7 @@ namespace Editor {
 
         if (NewName.empty() || NewName.find_first_of("\\/:*?\"<>|") != Core::FString::npos || NewName.back() == '.' || NewName.back() == ' ') {
             mContentActionError = "이름이 비어 있거나 쓸 수 없는 문자가 들어 있습니다.";
+
             return false;
         }
 
@@ -1422,6 +1547,7 @@ namespace Editor {
 
         if (mContentActionScript && !std::regex_match(ClassName, std::regex{"[A-Za-z_][A-Za-z0-9_]*"})) {
             mContentActionError = "클래스 이름은 영문자나 _로 시작하고 영문자, 숫자, _만 쓸 수 있습니다.";
+
             return false;
         }
 
@@ -1432,6 +1558,7 @@ namespace Editor {
         // 대소문자만 바꾸는 경우는 같은 파일로 보이므로 존재 검사를 건너뜁니다.
         if (std::filesystem::exists(Destination, Code) && !std::filesystem::equivalent(Destination, Absolute, Code)) {
             mContentActionError = "같은 이름의 항목이 이미 있습니다.";
+
             return false;
         }
 
@@ -1439,13 +1566,16 @@ namespace Editor {
 
         if (Code) {
             mContentActionError = "이름을 바꾸지 못했습니다: " + Code.message();
+
             return false;
         }
 
         if (mContentActionScript) {
             std::ifstream Input{Destination, std::ios::binary};
             const std::string Text{std::istreambuf_iterator<char>{Input}, std::istreambuf_iterator<char>{}};
+
             Input.close();
+
             const std::regex Declaration{"\\b(class|struct)(\\s+)" + Core::FilePath::ToUtf8(mContentActionTarget.stem()) + "\\b"};
             const std::string Renamed{std::regex_replace(Text, Declaration, "$1$2" + ClassName, std::regex_constants::format_first_only)};
 
@@ -1469,6 +1599,9 @@ namespace Editor {
         return true;
     }
 
+    /**
+     * @brief 대상 항목을 휴지통으로 옮깁니다.
+     */
     bool Editor::FEditorUI::DeleteContent() {
         const std::filesystem::path Absolute{GetContentActionPath(mContentActionTarget)};
 
@@ -1479,6 +1612,7 @@ namespace Editor {
         // 실수로 지워도 되돌릴 수 있도록 휴지통으로 옮깁니다. 경로 목록은 두 개의 NUL로 끝나야 합니다.
         std::wstring From{Absolute.native()};
         From.push_back(L'\0');
+
         SHFILEOPSTRUCTW Operation{};
         Operation.hwnd = mPlatform->GetWindowHandle();
         Operation.wFunc = FO_DELETE;
@@ -1487,6 +1621,7 @@ namespace Editor {
 
         if (SHFileOperationW(&Operation) != 0 || Operation.fAnyOperationsAborted) {
             mContentActionError = "휴지통으로 옮기지 못했습니다. 다른 프로그램이 파일을 쓰고 있는지 확인하세요.";
+
             return false;
         }
 
@@ -1503,6 +1638,9 @@ namespace Editor {
         return true;
     }
 
+    /**
+     * @brief 콘텐츠 브라우저의 우클릭 메뉴 항목을 표시합니다.
+     */
     void Editor::FEditorUI::DrawContentContextMenu() {
         const bool CanEdit{mContext->CanEditWorld()};
 
@@ -1554,6 +1692,9 @@ namespace Editor {
         }
     }
 
+    /**
+     * @brief 현재 콘텐츠 폴더에 겹치지 않는 이름으로 새 폴더를 만듭니다.
+     */
     void Editor::FEditorUI::CreateContentFolder() {
         const std::filesystem::path Root{mContext->GetProject()->GetAssets()->GetContentRoot()};
         std::filesystem::path Path{mContentDirectory / "NewFolder"};
@@ -1565,6 +1706,7 @@ namespace Editor {
 
         if (Code || !std::filesystem::create_directory(Root / Path, Code)) {
             mContext->AddLog("Cannot create the folder " + Core::FilePath::ToGenericUtf8(Path));
+
             return;
         }
 
@@ -1572,6 +1714,9 @@ namespace Editor {
         mSelectedContentPath = Path;
     }
 
+    /**
+     * @brief 선택한 항목이나 현재 폴더를 Windows 탐색기에서 보여 줍니다.
+     */
     void Editor::FEditorUI::ShowContentInExplorer() const {
         std::filesystem::path Target{};
 
@@ -1582,18 +1727,24 @@ namespace Editor {
         }
 
         std::error_code Code{};
+
         Target = std::filesystem::weakly_canonical(Target, Code).make_preferred();
 
         // 파일은 상위 폴더를 열고 그 파일을 선택하며, 폴더는 그 폴더를 엽니다.
         const std::wstring Arguments{std::filesystem::is_directory(Target, Code) ? L"\"" + Target.native() + L"\"" : L"/select,\"" + Target.native() + L"\""};
+
         ShellExecuteW(nullptr, L"open", L"explorer.exe", Arguments.c_str(), nullptr, SW_SHOWNORMAL);
     }
 
+    /**
+     * @brief 새 C# 스크립트의 클래스 이름을 묻는 창을 표시합니다.
+     */
     void Editor::FEditorUI::DrawNewScriptPopup() {
         constexpr const char* PopupName{"New C# Script"};
 
         if (mOpenNewScript) {
             ImGui::OpenPopup(PopupName);
+
             mOpenNewScript = false;
         }
 
@@ -1606,6 +1757,7 @@ namespace Editor {
         }
 
         const bool Submitted{ImGui::InputTextWithHint("Class Name", "PlayerController", mNewScriptName.data(), mNewScriptName.size(), ImGuiInputTextFlags_EnterReturnsTrue)};
+
         ImGui::TextDisabled("Scripts/<Class Name>.cs 파일을 만들고 Visual Studio에서 엽니다.");
 
         if (!mNewScriptError.empty()) {
@@ -1615,6 +1767,7 @@ namespace Editor {
         if (ImGui::Button("Create") || Submitted) {
             if (mScriptBuilds.CreateScript(mNewScriptName.data(), mNewScriptError)) {
                 mBrowsingScripts = true;
+
                 ImGui::CloseCurrentPopup();
             }
         }
@@ -1628,6 +1781,9 @@ namespace Editor {
         ImGui::EndPopup();
     }
 
+    /**
+     * @brief 선택한 텍스처의 미리보기 창을 그립니다.
+     */
     void Editor::FEditorUI::DrawTexturePreview() {
         if (mPreviewTexture == nullptr || !mPreviewTexture->HasResources()) {
             return;
@@ -1635,11 +1791,13 @@ namespace Editor {
 
         bool Open{true};
         const float UIScale{mUIScale.GetScale()};
+
         ImGui::SetNextWindowSize({640.0f * UIScale, 560.0f * UIScale}, ImGuiCond_FirstUseEver);
 
         if (mFocusTexturePreview) {
             ImGui::SetNextWindowFocus();
             ImGui::SetNextWindowCollapsed(false);
+
             mFocusTexturePreview = false;
         }
 
@@ -1656,6 +1814,7 @@ namespace Editor {
                 const float Scale{std::min(Available.x / SizeX, Available.y / SizeY)};
                 const ImVec2 ImageSize{SizeX * Scale, SizeY * Scale};
                 const ImVec2 Origin{ImGui::GetCursorPos()};
+
                 ImGui::SetCursorPos({Origin.x + (Available.x - ImageSize.x) * 0.5f, Origin.y + (Available.y - ImageSize.y) * 0.5f});
                 ImGui::Image(ImTextureRef{static_cast<ImTextureID>(reinterpret_cast<std::uintptr_t>(mPreviewTexture->GetShaderResourceView()))}, ImageSize);
             }
@@ -1669,6 +1828,9 @@ namespace Editor {
         }
     }
 
+    /**
+     * @brief 현재 Content 폴더와 에셋 종류 목록을 다시 읽습니다.
+     */
     void Editor::FEditorUI::RefreshContent() {
         mAssetPaths.clear();
         mAssetTypes.clear();
@@ -1710,6 +1872,9 @@ namespace Editor {
         mRevealContentDirectory = true;
     }
 
+    /**
+     * @brief 콘텐츠 브라우저의 현재 폴더와 선택을 변경합니다.
+     */
     void Editor::FEditorUI::NavigateContent(const std::filesystem::path& Directory) {
         if (mContentFolders.contains(Directory)) {
             mBrowsingScripts = false;
@@ -1719,6 +1884,9 @@ namespace Editor {
         }
     }
 
+    /**
+     * @brief Content 하위 폴더 트리를 재귀적으로 표시합니다.
+     */
     void Editor::FEditorUI::DrawContentTree(const std::filesystem::path& Directory) {
         const auto Entry{mContentFolders.find(Directory)};
 
@@ -1753,6 +1921,7 @@ namespace Editor {
         const bool Open{ImGui::TreeNodeEx(Label.c_str(), Flags)};
         const ImVec2 Minimum{ImGui::GetItemRectMin()};
         const ImVec2 Maximum{ImGui::GetItemRectMax()};
+
         RegisterContentDropTarget(Directory, {Minimum.x, Minimum.y, Maximum.x, Maximum.y});
 
         if (ImGui::IsItemClicked()) {
@@ -1770,6 +1939,9 @@ namespace Editor {
         ImGui::PopID();
     }
 
+    /**
+     * @brief 현재 콘텐츠 폴더의 상위 경로 탐색 항목을 표시합니다.
+     */
     void Editor::FEditorUI::DrawContentBreadcrumbs() {
         ImGui::PushID("Content Path");
 
@@ -1783,6 +1955,7 @@ namespace Editor {
             ImGui::SameLine();
             ImGui::TextUnformatted("Scripts");
             ImGui::PopID();
+
             return;
         }
 
@@ -1816,6 +1989,7 @@ namespace Editor {
             ImGui::SameLine();
 
             const Core::FString Id{Core::FilePath::ToUtf8(Path)};
+
             ImGui::PushID(Id.c_str());
 
             if (ImGui::SmallButton(Label.c_str())) {
@@ -1828,6 +2002,9 @@ namespace Editor {
         ImGui::PopID();
     }
 
+    /**
+     * @brief 현재 폴더의 하위 폴더·에셋 항목과 드래그 원본을 표시합니다.
+     */
     void Editor::FEditorUI::DrawContentEntries() {
         const ImGuiTextFilter Search{mContentSearch.data()};
         const bool Recursive{mContentFilter.has_value() || mContentSearch[0] != '\0'};
@@ -1868,6 +2045,7 @@ namespace Editor {
 
         if (Count == 0) {
             ImGui::TextDisabled(mBrowsingScripts ? "No C# scripts match this search." : "No assets match this folder or search.");
+
             return;
         }
 
@@ -1916,6 +2094,7 @@ namespace Editor {
                         const char* Kind{ScriptFile ? "C# Script" : Directory ? "Folder" : Type == mAssetTypes.end() ? "File" : Type->second == Asset::EAssetType::Mesh ? "Mesh" : Type->second == Asset::EAssetType::SkeletalMesh ? "Skeletal Mesh" : Type->second == Asset::EAssetType::Material ? "Material" : Type->second == Asset::EAssetType::Texture ? "Texture" : Type->second == Asset::EAssetType::Sequence ? "Sequence" : "Scene"};
                         const Core::FString Actual{Core::FilePath::ToGenericUtf8(Path)};
                         const Core::FString Name{Core::FilePath::ToUtf8(Directory ? Path.filename() : Path.stem())};
+
                         ImGui::PushID(Actual.c_str());
 
                         const ImVec2 Origin{ImGui::GetCursorScreenPos()};
@@ -1945,11 +2124,13 @@ namespace Editor {
                         if (Directory) {
                             const ImVec2 Minimum{ImGui::GetItemRectMin()};
                             const ImVec2 Maximum{ImGui::GetItemRectMax()};
+
                             RegisterContentDropTarget(Path, {Minimum.x, Minimum.y, Maximum.x, Maximum.y});
                         }
 
                         if (HasThumbnail && mContext->CanEditWorld() && ImGui::BeginDragDropSource()) {
                             const char* Payload{Type->second == Asset::EAssetType::Mesh || Type->second == Asset::EAssetType::SkeletalMesh ? Editor::EditorAssetDragDrop::MeshPayload : Type->second == Asset::EAssetType::Material ? Editor::EditorAssetDragDrop::MaterialPayload : Editor::EditorAssetDragDrop::TexturePayload};
+
                             ImGui::SetDragDropPayload(Payload, Actual.c_str(), Actual.size() + 1);
 
                             if (Thumbnail != nullptr) {
@@ -1981,6 +2162,7 @@ namespace Editor {
 
                             if (!Compact) {
                                 const ImVec2 TextSize{ImGui::CalcTextSize(Kind)};
+
                                 ImGui::GetWindowDrawList()->AddText({Origin.x + ImageOffset + (ImageSize - TextSize.x) * 0.5f, Origin.y + Padding + (ImageSize - TextSize.y) * 0.5f}, IM_COL32(200, 213, 230, 255), Kind);
                             }
 
@@ -2010,6 +2192,9 @@ namespace Editor {
         }
     }
 
+    /**
+     * @brief 종류에 맞게 선택 에셋을 열거나 액터 배치에 사용합니다.
+     */
     void Editor::FEditorUI::OpenContentAsset(const std::filesystem::path& Path, Asset::EAssetType Type) {
         if (Type == Asset::EAssetType::Scene) {
             if (ConfirmSceneChange()) {
@@ -2050,6 +2235,9 @@ namespace Editor {
         }
     }
 
+    /**
+     * @brief 기본 설정으로 새 머티리얼 에셋을 만듭니다.
+     */
     void Editor::FEditorUI::CreateMaterial() {
         if (!ConfirmMaterialChange()) {
             return;
@@ -2068,14 +2256,19 @@ namespace Editor {
 
         if (Code || !Assets->SaveMaterial(Path, *Material, mMaterialError)) {
             mContext->AddLog(mMaterialError.empty() ? "Cannot create the material" : mMaterialError);
+
             return;
         }
 
         mRefreshContent = true;
         mSelectedContentPath = Path;
+
         OpenContentAsset(Path, Asset::EAssetType::Material);
     }
 
+    /**
+     * @brief 편집 사본을 프로젝트 머티리얼에 저장합니다.
+     */
     bool Editor::FEditorUI::SaveMaterial() {
         if (mEditingMaterial == nullptr || !mContext->GetProject()->GetAssets()->SaveMaterial(mMaterialPath, *mEditingMaterial, mMaterialError)) {
             return false;
@@ -2088,6 +2281,9 @@ namespace Editor {
         return true;
     }
 
+    /**
+     * @brief 미저장 머티리얼을 닫기 전 사용자 선택을 처리합니다.
+     */
     bool Editor::FEditorUI::ConfirmMaterialChange() {
         if (!mMaterialDirty || mEditingMaterial == nullptr) {
             return true;
@@ -2112,6 +2308,9 @@ namespace Editor {
         return true;
     }
 
+    /**
+     * @brief 머티리얼 편집 사본의 텍스처 에셋을 검증하여 교체합니다.
+     */
     bool Editor::FEditorUI::SetMaterialTexture(const Core::FString& Path) {
         Asset::FAssetManager* Assets{mContext->GetProject()->GetAssets()};
 
@@ -2133,6 +2332,9 @@ namespace Editor {
         return true;
     }
 
+    /**
+     * @brief 머티리얼 편집 사본의 셰이더 경로를 검증하여 교체합니다.
+     */
     bool Editor::FEditorUI::SetMaterialShader(const Core::FString& Path) {
         auto Candidate{CoreUObject::NewObject<Asset::UMaterial>()};
         Candidate->SetTwoSided(mEditingMaterial->IsTwoSided());
@@ -2141,6 +2343,7 @@ namespace Editor {
 
         if (!Candidate->SetShaderPath(Path) || Renderer == nullptr || Renderer->GetMaterialPipeline(*Candidate) == nullptr) {
             mMaterialError = "Cannot use this material shader. Check the shader diagnostics in the log.";
+
             return false;
         }
 
@@ -2151,6 +2354,9 @@ namespace Editor {
         return true;
     }
 
+    /**
+     * @brief 편집 중인 머티리얼의 프로퍼티와 저장 상태를 표시합니다.
+     */
     void Editor::FEditorUI::DrawMaterialEditor() {
         if (mEditingMaterial == nullptr) {
             return;
@@ -2203,6 +2409,7 @@ namespace Editor {
 
             std::array<char, 512> ShaderPath{};
             const Core::FString& CurrentShader{mEditingMaterial->GetShaderPath()};
+
             std::copy_n(CurrentShader.begin(), std::min(CurrentShader.size(), ShaderPath.size() - 1), ShaderPath.begin());
 
             if (ImGui::InputText("Shader Path", ShaderPath.data(), ShaderPath.size(), ImGuiInputTextFlags_EnterReturnsTrue)) {
@@ -2239,6 +2446,7 @@ namespace Editor {
                     mEditingMaterial->SetNormalMapTexturePath(Previous);
 
                     Core::FString RestoreError{};
+
                     mEditingMaterial->ResolveTexture(*mContext->GetProject()->GetAssets(), RestoreError);
                 }
             }

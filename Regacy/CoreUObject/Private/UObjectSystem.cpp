@@ -66,9 +66,11 @@ FObjectHandle UObjectSystem::Register(UObject* Object) {
 
     if (!State.mFreeIndices.empty()) {
         Index = State.mFreeIndices.back();
+
         State.mFreeIndices.pop_back();
     } else {
         Index = static_cast<Uint32>(State.mObjectItems.size());
+
         State.mObjectItems.emplace_back();
     }
 
@@ -80,6 +82,7 @@ FObjectHandle UObjectSystem::Register(UObject* Object) {
     Object->SetHandle(Handle);
     State.mGuidToIndexMap.emplace(Object->GetGuid(), Index);
     State.mNames.emplace(FObjectNameKey{Object->GetOuter(), Name}, Handle);
+
     ++State.mObjectCount;
 
     return Handle;
@@ -110,6 +113,7 @@ bool UObjectSystem::TryGet(Uint32 Index, FObjectHandle& Out) {
 
     if (Index >= State.mObjectItems.size() || State.mObjectItems[Index].mObject == nullptr) {
         Out = {};
+
         return false;
     }
 
@@ -128,6 +132,7 @@ void UObjectSystem::Unregister(UObject* Object, FObjectHandle Handle) {
 
     State.mNames.erase(FObjectNameKey{Object->GetOuter(), Object->GetName()});
     State.mGuidToIndexMap.erase(Object->GetGuid());
+
     Item.mObject = nullptr;
     ++Item.mGeneration;
 
@@ -137,6 +142,7 @@ void UObjectSystem::Unregister(UObject* Object, FObjectHandle Handle) {
 
     Object->SetHandle({});
     State.mFreeIndices.push_back(Handle.mIndex);
+
     --State.mObjectCount;
 }
 
@@ -198,6 +204,7 @@ UObject* UObjectSystem::FindObjectByPath(std::string_view Path, const UObject* O
         }
 
         Outer = Object;
+
         Path.remove_prefix(Separator + 1);
     }
 
@@ -348,6 +355,7 @@ void UObjectSystem::DetachInners(UObject* Object) {
 
     if (Object->mOuter != nullptr) {
         std::erase(Object->mOuter->mInnerObjects, Object);
+
         Object->mOuter = nullptr;
     }
 }

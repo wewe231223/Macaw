@@ -20,6 +20,7 @@ namespace Engine {
     class FSceneInterface;
     class FRenderTarget;
     struct FSceneViewFamily;
+
     enum class EPrimitiveType : Core::Uint8;
 }
 

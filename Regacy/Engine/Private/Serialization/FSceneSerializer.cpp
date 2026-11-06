@@ -128,8 +128,10 @@ namespace {
 
         RootTransform.Serialize(WriteRoot);
         RelativeIcon.Serialize(WriteIcon);
+
         Light["Transform"] = RootJson;
         Icon["Transform"] = IconJson;
+
         Light["Parent"].CopyFrom(Icon["Parent"], Allocator);
         Icon["Parent"].CopyFrom(Light["Guid"], Allocator);
         Actor["GuidRootComponent"].CopyFrom(Light["Guid"], Allocator);
@@ -150,6 +152,7 @@ namespace {
             for (rapidjson::Value& Component : Actor["Components"].GetArray()) {
                 if (Component.HasMember("Guid") && Component["Guid"].IsString() && std::string_view{Component["Guid"].GetString()} == Actor["GuidRootComponent"].GetString()) {
                     Root = &Component;
+
                     break;
                 }
             }
@@ -167,6 +170,7 @@ namespace {
                     if ((Type == "UDirectionalLightComponent" || Type == "UPointLightComponent" || Type == "USpotLightComponent") && Component.HasMember("Parent") && Component["Parent"].IsString() && std::string_view{Component["Parent"].GetString()} == (*Root)["Guid"].GetString()) {
                         if (Light != nullptr) {
                             Light = nullptr;
+
                             break;
                         }
 

@@ -30,6 +30,11 @@ namespace Engine {
          * @return 계산하거나 조회한 값입니다.
          */
         Core::FBox CalcLocalBounds() const override;
+
+        /**
+         * @brief 아카이브 모드에 따라 값을 읽거나 저장합니다.
+         * @param[in,out] Archive 모드에 따라 값을 읽거나 쓸 아카이브입니다.
+         */
         void Serialize(Core::FArchive& Archive) override;
 
         /**

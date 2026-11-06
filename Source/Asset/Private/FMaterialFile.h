@@ -40,16 +40,6 @@ namespace Asset {
          * @return 검증과 파일 교체에 성공하면 true입니다.
          */
         static bool Save(const std::filesystem::path& Path, const Asset::FAssetManager& Assets, const Asset::UMaterial& Material, Core::FString& Error);
-
-        /**
-         * @brief 기존 MTL 텍스트 재질을 읽어 셰이더·표면 설정과 프로젝트 상대 텍스처 참조로 복원합니다.
-         * @param[in] Path 읽거나 기록할 파일 시스템 경로입니다.
-         * @param[in,out] Assets 경로 경계를 확인하고 에셋을 가져올 프로젝트 에셋 관리자입니다.
-         * @param[in,out] Material 읽거나 갱신할 재질입니다.
-         * @param[out] Error 실패 원인을 기록할 문자열입니다.
-         * @return 파일을 읽고 설정을 적용하면 true이며 형식·파싱·참조 오류이면 false입니다.
-         */
-        static bool LoadLegacy(const std::filesystem::path& Path, Asset::FAssetManager& Assets, Asset::UMaterial& Material, Core::FString& Error);
     };
 
 }

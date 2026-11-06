@@ -15,6 +15,9 @@
 
 namespace RenderCore {
 
+    /**
+     * @brief 정규화한 설명으로 HLSL을 컴파일하고 바이트코드와 의존성을 수집합니다.
+     */
     bool RenderCore::FShaderCompiler::Compile(const RenderCore::FShaderDescription& Description, RenderCore::FShaderCompilation& Compilation, Core::FString& Diagnostics) const {
         RenderCore::FShaderDescription Normalized{Description};
 
@@ -31,6 +34,7 @@ namespace RenderCore {
 
         if (Source.empty()) {
             Diagnostics = "Shader source is empty: " + Core::FilePath::ToGenericUtf8(Normalized.mSourcePath);
+
             return false;
         }
 
@@ -73,11 +77,13 @@ namespace RenderCore {
 
         if (!RenderCore::ShaderFile::IsSnapshotCurrent(Includes.GetDependencies())) {
             Diagnostics = "Shader dependencies changed during compilation; retry the request: " + SourceName;
+
             return false;
         }
 
         RenderCore::FShaderCompilation Candidate{};
         const auto* Begin{static_cast<const Core::Uint8*>(Code->GetBufferPointer())};
+
         Candidate.mByteCode.assign(Begin, Begin + Code->GetBufferSize());
         Candidate.mDependencies = Includes.GetDependencies();
         Candidate.mBuildTime = BuildTime;

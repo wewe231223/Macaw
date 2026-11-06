@@ -83,6 +83,7 @@ namespace Editor {
         /**
          * @brief 카메라·재질 조작 UI와 미리보기를 표시합니다.
          * @param Standalone 독립 실행용 전체 화면 창이면 true입니다.
+         * @param[in] Input 키·마우스 상태를 조회할 공통 입력입니다.
          */
         void DrawUI(const Core::FInput& Input, bool Standalone = false);
 
@@ -139,6 +140,7 @@ namespace Editor {
          * @param Mouse 미리보기 기준 마우스 픽셀 좌표입니다.
          * @param Hovered 마우스가 미리보기 위에 있으면 true입니다.
          * @return 기즈모가 마우스를 사용 중이어서 카메라 조작을 막아야 하면 true입니다.
+         * @param[in] Input 키·마우스 상태를 조회할 공통 입력입니다.
          */
         bool UpdateBoneGizmo(const Core::FInput& Input, const Engine::FSceneView& View, const Core::FVector2& Mouse, bool Hovered);
 
@@ -149,6 +151,7 @@ namespace Editor {
 
         /**
          * @brief 카메라 입력을 처리하고 공통 렌더 경로로 메시와 본 보조 선분을 그리며 아이콘·스프라이트·텍스트 표시는 제외합니다.
+         * @param[in] Input 키·마우스 상태를 조회할 공통 입력입니다.
          */
         void DrawPreview(const Core::FInput& Input);
 
@@ -182,34 +185,42 @@ namespace Editor {
          * @brief 스켈레탈 미리보기에서 사용하는 공유 에셋입니다.
          */
         Asset::USkeletalMesh* mSkeletalMesh{};
+
         /**
          * @brief 미리보기 객체만의 현재 포즈입니다.
          */
         Engine::FSkeletalMeshPose mPose{};
+
         /**
          * @brief 본 조작에 사용하는 기즈모 표시와 드래그 계산입니다.
          */
         Editor::FGizmoCore mGizmo{};
+
         /**
          * @brief 본 기즈모의 변환 모드입니다.
          */
         Editor::EGizmoMode mGizmoMode{Editor::EGizmoMode::Rotate};
+
         /**
          * @brief 본 기즈모 축의 좌표계입니다.
          */
         Editor::EGizmoSpace mGizmoSpace{Editor::EGizmoSpace::Local};
+
         /**
          * @brief 드래그 시작 시 선택한 본의 전역 변환입니다.
          */
         Core::FMatrix mDragStartGlobal{};
+
         /**
          * @brief 드래그를 취소할 때 복원할 선택한 본의 로컬 변환입니다.
          */
         Core::FMatrix mDragStartLocal{};
+
         /**
          * @brief 기즈모 조작 대상으로 선택한 본입니다.
          */
         Core::Uint32 mPoseBone{};
+
         /**
          * @brief 현재 본 계층을 보조 선분으로 표시할지 지정합니다.
          */

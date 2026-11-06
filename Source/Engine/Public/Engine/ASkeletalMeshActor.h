@@ -3,6 +3,7 @@
  * @brief 스켈레탈 메시 컴포넌트를 루트로 갖는 배치 가능한 액터입니다.
  * @ingroup Engine
  */
+
 #pragma once
 
 #include "Engine/AActor.h"
@@ -23,6 +24,7 @@ namespace Engine {
          * @brief 빈 액터를 생성합니다.
          */
         ASkeletalMeshActor() = default;
+
         /**
          * @brief 소유 컴포넌트를 해제합니다.
          */
@@ -34,6 +36,7 @@ namespace Engine {
          * @return 초기화했으면 true입니다.
          */
         bool InitializeDefaultComponents() override;
+
         /**
          * @brief 루트 메시 컴포넌트를 반환합니다.
          * @return 루트가 해당 타입이 아니면 nullptr입니다.

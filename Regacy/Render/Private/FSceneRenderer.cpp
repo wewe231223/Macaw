@@ -11,6 +11,7 @@ bool FSceneRenderer::Initialize(ID3D11Device* Device) {
 
     if (Device == nullptr || !mTextRenderer.Initialize(Device, 256) || !mBillboardRenderer.Initialize(Device, 64) || !mPostProcessingRenderer.Initialize(Device)) {
         Reset();
+
         return false;
     }
 
@@ -46,6 +47,7 @@ void FSceneRenderer::ReleaseScene(Uint64 SceneId) {
 
 void FSceneRenderer::Reset() {
     ResetScenes();
+
     mTextRenderer = {};
     mBillboardRenderer = {};
     mPostProcessingRenderer.Reset();

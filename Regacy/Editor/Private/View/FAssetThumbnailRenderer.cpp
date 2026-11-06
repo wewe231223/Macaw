@@ -53,6 +53,7 @@ void FAssetThumbnailRenderer::Tick(Uint32 MaxThumbnailCount) {
 
     while (mPendingAssetIndex < mPendingAssetHandles.size() && RenderedThumbnailCount < MaxThumbnailCount) {
         RenderThumbnail(mPendingAssetHandles[mPendingAssetIndex]);
+
         ++mPendingAssetIndex;
         ++RenderedThumbnailCount;
     }
@@ -145,6 +146,7 @@ void FAssetThumbnailRenderer::RenderThumbnail(const FAssetEntry& Entry, FSceneRe
 
         if (!Thumbnail.mSurface->IsValid()) {
             Thumbnail.mSurface.reset();
+
             return;
         }
 

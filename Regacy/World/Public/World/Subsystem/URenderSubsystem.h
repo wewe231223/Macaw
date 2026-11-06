@@ -14,6 +14,7 @@ public:
 
 public:
     URenderSubsystem();
+
     ~URenderSubsystem() override = default;
 
 public:

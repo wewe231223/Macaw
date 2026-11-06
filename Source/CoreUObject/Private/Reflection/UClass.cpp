@@ -130,6 +130,9 @@ namespace CoreUObject {
         }
     }
 
+    /**
+     * @brief 상속된 프로퍼티를 포함하여 객체 참조에 핸들을 연결합니다.
+     */
     void CoreUObject::UClass::BindClassObjectReferences(void* Container, const CoreUObject::FObjectGuidMap& Objects) const {
         for (const CoreUObject::FProperty* Property : mAllProperties) {
             Property->BindObjectReferences(Container, Objects);

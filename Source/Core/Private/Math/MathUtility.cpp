@@ -21,12 +21,20 @@ namespace Core {
      * @fn float Core::Math::ToRadians(float Degrees)
      * @brief 도 단위 각도를 라디안으로 변환합니다.
      */
+
+    /**
+     * @brief 도 단위 각도를 라디안으로 변환합니다.
+     */
     float Core::Math::ToRadians(float Degrees) {
         return Degrees * std::numbers::pi_v<float> / 180.0f;
     }
 
     /**
      * @fn float Core::Math::ToDegrees(float Radians)
+     * @brief 라디안 단위 각도를 도로 변환합니다.
+     */
+
+    /**
      * @brief 라디안 단위 각도를 도로 변환합니다.
      */
     float Core::Math::ToDegrees(float Radians) {
@@ -37,12 +45,20 @@ namespace Core {
      * @fn bool Core::Math::NearlyEqual(float Left, float Right, float Tolerance)
      * @brief 두 스칼라의 차이가 지정한 허용 오차 이내인지 검사합니다.
      */
+
+    /**
+     * @brief 두 스칼라의 차이가 지정한 허용 오차 이내인지 검사합니다.
+     */
     bool Core::Math::NearlyEqual(float Left, float Right, float Tolerance) {
         return std::abs(Left - Right) <= Tolerance;
     }
 
     /**
      * @fn bool Core::Math::IntersectPlane(const Core::FRay& Ray, const Core::FVector& Point, const Core::FVector& Normal, Core::FVector& Hit)
+     * @brief 광선과 평면의 앞쪽 교점을 계산합니다.
+     */
+
+    /**
      * @brief 광선과 평면의 앞쪽 교점을 계산합니다.
      */
     bool Core::Math::IntersectPlane(const Core::FRay& Ray, const Core::FVector& Point, const Core::FVector& Normal, Core::FVector& Hit) {
@@ -65,6 +81,10 @@ namespace Core {
 
     /**
      * @fn bool Core::Math::IntersectTriangle(const Core::FRay& Ray, const Core::FVector& A, const Core::FVector& B, const Core::FVector& C, float& Distance)
+     * @brief 광선과 삼각형의 교차를 검사하여 광선상의 거리를 구합니다.
+     */
+
+    /**
      * @brief 광선과 삼각형의 교차를 검사하여 광선상의 거리를 구합니다.
      */
     bool Core::Math::IntersectTriangle(const Core::FRay& Ray, const Core::FVector& A, const Core::FVector& B, const Core::FVector& C, float& Distance) {
@@ -101,6 +121,10 @@ namespace Core {
      * @fn bool Core::Math::Project(const Core::FVector& Position, const Core::FMatrix& ViewProjection, const Core::FVector2& Size, Core::FVector2& Screen)
      * @brief 월드 위치를 뷰포트 픽셀 좌표로 투영합니다.
      */
+
+    /**
+     * @brief 월드 위치를 뷰포트 픽셀 좌표로 투영합니다.
+     */
     bool Core::Math::Project(const Core::FVector& Position, const Core::FMatrix& ViewProjection, const Core::FVector2& Size, Core::FVector2& Screen) {
         const Core::FVector4 Clip{Core::FVector4{Position, 1.0f} * ViewProjection};
         Core::FVector PositionNdc{};
@@ -118,6 +142,10 @@ namespace Core {
      * @fn bool Core::Math::Deproject(const Core::FVector2& Screen, const Core::FVector2& Size, const Core::FMatrix& ViewProjection, Core::FRay& Ray)
      * @brief 뷰포트 픽셀 좌표에서 월드 공간 피킹 광선을 생성합니다.
      */
+
+    /**
+     * @brief 뷰포트 픽셀 좌표에서 월드 공간 피킹 광선을 생성합니다.
+     */
     bool Core::Math::Deproject(const Core::FVector2& Screen, const Core::FVector2& Size, const Core::FMatrix& ViewProjection, Core::FRay& Ray) {
         Core::FMatrix Inverse{};
 
@@ -127,6 +155,7 @@ namespace Core {
 
         const float X{Screen.x * 2.0f / Size.x - 1.0f};
         const float Y{1.0f - Screen.y * 2.0f / Size.y};
+
         Ray.mOrigin = Inverse.TransformPosition({X, Y, 0.0f});
         Ray.mDirection = Inverse.TransformPosition({X, Y, 1.0f}) - Ray.mOrigin;
 
@@ -135,6 +164,10 @@ namespace Core {
 
     /**
      * @fn float Core::Math::DistanceToSegment(const Core::FVector2& Point, const Core::FVector2& Start, const Core::FVector2& End)
+     * @brief 2차원 점에서 유한 선분까지의 최단 거리를 구합니다.
+     */
+
+    /**
      * @brief 2차원 점에서 유한 선분까지의 최단 거리를 구합니다.
      */
     float Core::Math::DistanceToSegment(const Core::FVector2& Point, const Core::FVector2& Start, const Core::FVector2& End) {

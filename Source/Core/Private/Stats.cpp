@@ -60,42 +60,72 @@ namespace Core {
         std::chrono::steady_clock::time_point PreviousFrameStart{};
     }
 
+    /**
+     * @brief 통계 그룹 이름을 반환합니다.
+     */
     const Core::FString& Core::FStatSnapshot::GetGroup() const {
         return mGroup;
     }
 
+    /**
+     * @brief 통계 항목 이름을 반환합니다.
+     */
     const Core::FString& Core::FStatSnapshot::GetName() const {
         return mName;
     }
 
+    /**
+     * @brief 통계 값의 표시 단위를 반환합니다.
+     */
     Core::EStatUnit Core::FStatSnapshot::GetUnit() const {
         return mUnit;
     }
 
+    /**
+     * @brief 완료된 프레임의 통계 값을 반환합니다.
+     */
     double Core::FStatSnapshot::GetValue() const {
         return mValue;
     }
 
+    /**
+     * @brief 최근 최대 120프레임의 통계 평균값을 반환합니다.
+     */
     double Core::FStatSnapshot::GetAverage() const {
         return mAverage;
     }
 
+    /**
+     * @brief 최근 최대 120프레임의 통계 최솟값을 반환합니다.
+     */
     double Core::FStatSnapshot::GetMinimum() const {
         return mMinimum;
     }
 
+    /**
+     * @brief 최근 최대 120프레임의 통계 최댓값을 반환합니다.
+     */
     double Core::FStatSnapshot::GetMaximum() const {
         return mMaximum;
     }
 
+    /**
+     * @brief 해당 프레임에 반영된 기록 횟수를 반환합니다.
+     */
     Core::Uint64 Core::FStatSnapshot::GetSamples() const {
         return mSamples;
     }
 
+    /**
+     * @brief 집계에 포함된 완료 프레임 수를 반환합니다.
+     */
     std::size_t Core::FStatSnapshot::GetFrameCount() const {
         return mFrameCount;
     }
 
+    /**
+     * @brief 그룹·이름·단위·모드를 설정하고 전역 통계 관리자에 등록합니다.
+     */
     Core::FStat::FStat(Core::FString Group, Core::FString Name, Core::EStatUnit Unit, Core::EStatMode Mode)
 		: mGroup{std::move(Group)},
 		  mName{std::move(Name)},
@@ -108,23 +138,39 @@ namespace Core {
         Core::FStats::Get().Register(this);
     }
 
+    /**
+     * @brief 전역 통계 관리자에서 이 항목과 스냅샷을 등록 해제합니다.
+     */
     Core::FStat::~FStat() {
         Core::FStats::Get().Unregister(this);
     }
 
+    /**
+     * @brief 유한한 값을 현재 통계에 더하고 기록 횟수를 증가시킵니다.
+     */
     void Core::FStat::Add(double Value) {
         Core::FStats::Get().Record(*this, Value, false);
     }
 
+    /**
+     * @brief 현재 통계 값을 유한한 입력값으로 교체하고 기록 횟수를 증가시킵니다.
+     */
     void Core::FStat::Set(double Value) {
         Core::FStats::Get().Record(*this, Value, true);
     }
 
+    /**
+     * @brief 프로세스 전역의 통계 관리자를 반환합니다.
+     */
     Core::FStats& Core::FStats::Get() {
         static Core::FStats Instance{};
+
         return Instance;
     }
 
+    /**
+     * @brief 프레임을 시작하고 누적 통계와 기록 횟수를 초기화합니다.
+     */
     bool Core::FStats::BeginFrame() {
         const std::lock_guard Lock{mMutex};
 
@@ -155,6 +201,9 @@ namespace Core {
         return true;
     }
 
+    /**
+     * @brief 프레임 값을 이력에 저장하고 정렬된 통계 스냅샷을 갱신합니다.
+     */
     bool Core::FStats::EndFrame() {
         const std::lock_guard Lock{mMutex};
 
@@ -166,6 +215,7 @@ namespace Core {
         FrameTime.mSamples = 1;
 
         const Core::FMemoryStats Memory{Core::FMemory::GetStats()};
+
         LiveObjects.mValue = static_cast<double>(Memory.mLiveObjects);
         LiveObjects.mSamples = 1;
         CreatedObjects.mValue = static_cast<double>(Memory.mCreatedObjects);
@@ -174,6 +224,7 @@ namespace Core {
         HeapBytes.mSamples = 1;
         PeakHeapBytes.mValue = static_cast<double>(Memory.mPeakHeapBytes);
         PeakHeapBytes.mSamples = 1;
+
         mSnapshots.clear();
         mSnapshots.reserve(mStats.size());
 
@@ -181,6 +232,7 @@ namespace Core {
             Stat->mHistory[Stat->mHistoryIndex] = Stat->mValue;
             Stat->mHistoryIndex = (Stat->mHistoryIndex + 1) % Stat->mHistory.size();
             Stat->mHistoryCount = std::min(Stat->mHistoryCount + 1, Stat->mHistory.size());
+
             mSnapshots.push_back(MakeSnapshot(*Stat));
         }
 
@@ -194,6 +246,9 @@ namespace Core {
         return true;
     }
 
+    /**
+     * @brief 누적 통계·기록 횟수·이력·스냅샷과 프레임 번호를 초기화합니다.
+     */
     void Core::FStats::Reset() {
         const std::lock_guard Lock{mMutex};
 
@@ -213,11 +268,18 @@ namespace Core {
         PreviousFrameStart = {};
     }
 
+    /**
+     * @brief 마지막 초기화 이후 완료한 통계 프레임 수를 반환합니다.
+     */
     Core::Uint64 Core::FStats::GetFrameNumber() const {
         const std::lock_guard Lock{mMutex};
+
         return mFrameNumber;
     }
 
+    /**
+     * @brief 등록된 통계의 그룹 이름을 중복 없이 정렬하여 반환합니다.
+     */
     Core::TArray<Core::FString> Core::FStats::GetGroups() const {
         const std::lock_guard Lock{mMutex};
         Core::TArray<Core::FString> Groups{};
@@ -233,6 +295,9 @@ namespace Core {
         return Groups;
     }
 
+    /**
+     * @brief 마지막 완료 프레임의 통계 스냅샷을 그룹별로 조회합니다.
+     */
     Core::TArray<Core::FStatSnapshot> Core::FStats::GetSnapshots(const Core::FString& Group) const {
         const std::lock_guard Lock{mMutex};
         Core::TArray<Core::FStatSnapshot> Result{};
@@ -246,6 +311,9 @@ namespace Core {
         return Result;
     }
 
+    /**
+     * @brief 지정한 통계 항목의 최근 기록을 오래된 샘플부터 반환합니다.
+     */
     Core::TArray<double> Core::FStats::GetHistory(std::string_view Group, std::string_view Name) const {
         const std::lock_guard Lock{mMutex};
         const auto Found{std::find_if(mStats.begin(), mStats.end(), [Group, Name](const Core::FStat* Stat) {
@@ -269,6 +337,9 @@ namespace Core {
         return Values;
     }
 
+    /**
+     * @brief 그룹과 이름을 검증한 뒤 통계 항목의 비소유 주소를 등록합니다.
+     */
     void Core::FStats::Register(Core::FStat* Stat) {
         const std::lock_guard Lock{mMutex};
 
@@ -283,6 +354,9 @@ namespace Core {
         mStats.push_back(Stat);
     }
 
+    /**
+     * @brief 통계 항목의 등록과 해당 항목의 완료 프레임 스냅샷을 제거합니다.
+     */
     void Core::FStats::Unregister(Core::FStat* Stat) {
         const std::lock_guard Lock{mMutex};
 
@@ -292,6 +366,9 @@ namespace Core {
         });
     }
 
+    /**
+     * @brief 뮤텍스로 보호하여 유한한 값의 누적 또는 교체를 반영합니다.
+     */
     void Core::FStats::Record(Core::FStat& Stat, double Value, bool Replace) {
         if (!std::isfinite(Value)) {
             return;
@@ -306,6 +383,9 @@ namespace Core {
         }
     }
 
+    /**
+     * @brief 통계 항목의 현재 값과 순환 이력을 스냅샷으로 집계합니다.
+     */
     Core::FStatSnapshot Core::FStats::MakeSnapshot(const Core::FStat& Stat) const {
         Core::FStatSnapshot Snapshot{};
         Snapshot.mGroup = Stat.mGroup;
@@ -321,6 +401,7 @@ namespace Core {
 
             for (std::size_t Index{}; Index < Stat.mHistoryCount; ++Index) {
                 const double Value{Stat.mHistory[Index]};
+
                 Snapshot.mAverage += Value / static_cast<double>(Stat.mHistoryCount);
                 Snapshot.mMinimum = std::min(Snapshot.mMinimum, Value);
                 Snapshot.mMaximum = std::max(Snapshot.mMaximum, Value);
@@ -330,30 +411,51 @@ namespace Core {
         return Snapshot;
     }
 
+    /**
+     * @brief 현재 단조 시계 시각을 측정 시작점으로 저장합니다.
+     */
     Core::FStopwatch::FStopwatch()
 		: mStart{std::chrono::steady_clock::now()} {
     }
 
+    /**
+     * @brief 경과 시간의 기준 시각을 현재 단조 시계 시각으로 재설정합니다.
+     */
     void Core::FStopwatch::Reset() {
         mStart = std::chrono::steady_clock::now();
     }
 
+    /**
+     * @brief 생성 또는 마지막 초기화 이후의 경과 시간을 반환합니다.
+     */
     double Core::FStopwatch::GetElapsedMilliseconds() const {
         return std::chrono::duration<double, std::milli>{std::chrono::steady_clock::now() - mStart}.count();
     }
 
+    /**
+     * @brief 경과 시간을 누적할 항목을 연결하고 범위 시간 측정을 시작합니다.
+     */
     Core::FScopedStatTimer::FScopedStatTimer(Core::FStat& Stat)
 		: mStat{&Stat} {
     }
 
+    /**
+     * @brief 범위의 경과 시간을 지정한 통계 항목에 밀리초 단위로 더합니다.
+     */
     Core::FScopedStatTimer::~FScopedStatTimer() {
         mStat->Add(mWatch.GetElapsedMilliseconds());
     }
 
+    /**
+     * @brief 통계 프레임 시작을 시도하고 직접 시작한 경우 종료 책임을 갖습니다.
+     */
     Core::FScopedStatFrame::FScopedStatFrame()
 		: mOwner{Core::FStats::Get().BeginFrame()} {
     }
 
+    /**
+     * @brief 이 범위가 직접 시작한 통계 프레임의 스냅샷을 확정합니다.
+     */
     Core::FScopedStatFrame::~FScopedStatFrame() {
         if (mOwner) {
             Core::FStats::Get().EndFrame();

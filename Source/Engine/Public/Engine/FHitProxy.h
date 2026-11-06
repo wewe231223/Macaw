@@ -16,6 +16,7 @@ namespace Engine {
     /**
      * @brief 피킹 결과가 나타내는 선택 대상의 종류입니다.
      * @ingroup Engine
+     * @note 헤더 툴이 이 타입의 네이티브 열거형 메타데이터 접근자를 생성합니다.
      */
     UENUM()
     enum class EHitProxyType : Core::Uint8 {
@@ -32,12 +33,6 @@ namespace Engine {
          */
         GizmoAxis
     };
-
-    /**
-     * @fn UEnum* GetNativeEnum(TNativeEnum<EHitProxyType>)
-     * @brief 네이티브 타입 태그에 대응하는 피킹 종류 메타데이터를 반환합니다.
-     * @return 등록된 열거형 메타데이터의 비소유 주소입니다.
-     */
 
     /**
      * @brief CPU 교차 판정으로 찾은 객체 또는 기즈모 축의 선택 정보를 보관합니다.

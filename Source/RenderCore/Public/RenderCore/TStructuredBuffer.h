@@ -64,33 +64,60 @@ namespace RenderCore {
         }
 
     protected:
+        /**
+         * @brief 용도별 바인딩 플래그와 부가 플래그를 채웁니다.
+         * @param[in] Description 크기와 사용 방식이 채워진 버퍼 설명입니다.
+         */
         void FillDescription(D3D11_BUFFER_DESC& Description) const override {
             Description.BindFlags = D3D11_BIND_SHADER_RESOURCE;
             Description.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
             Description.StructureByteStride = GetStride();
         }
 
+        /**
+         * @brief 이 버퍼가 담을 수 있는 최대 원소 수를 반환합니다.
+         * @return 기본 구현은 바이트 크기가 32비트에 들어가는 원소 수입니다.
+         */
         Core::Uint64 GetMaximumCount() const override {
             return std::min<Core::Uint64>(RenderCore::FGpuBuffer::GetMaximumCount(), Core::Uint64{1} << D3D11_REQ_BUFFER_RESOURCE_TEXEL_COUNT_2_TO_EXP);
         }
 
+        /**
+         * @brief 새 버퍼를 가리키는 뷰를 만듭니다.
+         * @param[in] Device 뷰를 만들 장치입니다.
+         * @param[in] Buffer 새로 만든 버퍼입니다.
+         * @param[out] Error 뷰 생성 실패 원인입니다.
+         * @return 성공하면 true이며, 실패하면 기존 뷰를 유지해야 합니다.
+         */
         bool CreateViews(ID3D11Device* Device, ID3D11Buffer* Buffer, Core::FString& Error) override {
             Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> View{};
 
             if (FAILED(Device->CreateShaderResourceView(Buffer, nullptr, View.GetAddressOf()))) {
                 Error = "Structured buffer shader resource view creation failed";
+
                 return false;
             }
 
             mShaderResourceView = std::move(View);
+
             return true;
         }
 
+        /**
+         * @brief 파생 클래스가 소유한 뷰를 해제합니다.
+         */
         void ReleaseViews() override {
             mShaderResourceView.Reset();
         }
 
     private:
+        /**
+         * @brief 구조화 버퍼의 셰이더 리소스 뷰를 교체합니다.
+         * @param[in] Context GPU 명령을 제출할 D3D11 장치 컨텍스트입니다.
+         * @param[in] Stages 연결하거나 해제할 셰이더 단계입니다.
+         * @param[in] Slot 조회하거나 바꿀 머티리얼 슬롯입니다.
+         * @param[in] View 화면 크기와 뷰 투영 행렬입니다.
+         */
         static void SetView(ID3D11DeviceContext* Context, RenderCore::EShaderStage Stages, Core::Uint32 Slot, ID3D11ShaderResourceView* View) {
             if (RenderCore::HasStage(Stages, RenderCore::EShaderStage::Vertex)) {
                 Context->VSSetShaderResources(Slot, 1, &View);

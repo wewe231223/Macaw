@@ -8,7 +8,9 @@ class IWindowsMessageHandler;
 class FWindowsApplication final : public IPlatformApplication {
 public:
     FWindowsApplication() = default;
+
     ~FWindowsApplication() override;
+
     FWindowsApplication(const FWindowsApplication&) = delete;
 
     FWindowsApplication& operator=(const FWindowsApplication&) = delete;

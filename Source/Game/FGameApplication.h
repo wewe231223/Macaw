@@ -26,6 +26,7 @@ namespace Game {
          * @brief Game 모듈의 리플렉션 타입을 등록합니다.
          */
         FGameApplication();
+
         /**
          * @brief 메시지 처리기, 뷰포트, 엔진, 렌더러와 창을 정리합니다.
          */
@@ -48,12 +49,14 @@ namespace Game {
          * @note 시작 장면에 활성 카메라가 없으면 실패합니다.
          */
         bool Initialize(const std::filesystem::path& ProjectFile, Core::FString& Error);
+
         /**
          * @brief 오류를 기록하고 오류 대화상자를 표시합니다.
          * @param[in] Error 보고할 오류 메시지입니다.
          * @return 프로세스 종료 코드로 사용할 1입니다.
          */
         int ReportFailure(const Core::FString& Error) const;
+
         /**
          * @brief 메시지 처리기, 뷰포트, 엔진, 렌더러와 창을 역순으로 정리하며 여러 번 호출해도 안전합니다.
          */

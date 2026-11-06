@@ -1,3 +1,9 @@
+/**
+ * @file FEditorConsoleCommands.cpp
+ * @brief 에디터·렌더링·통계 설정을 콘솔로 조회하고 변경합니다.
+ * @ingroup Editor
+ */
+
 #include "Editor/FEditorContext.h"
 #include "Core/FilePath.h"
 #include "Core/Stats.h"
@@ -15,7 +21,15 @@
 
 namespace Editor {
 
+    /**
+     * @brief 이 파일에서 사용하는 내부 보조 기능과 상태를 묶습니다.
+     */
     namespace {
+        /**
+         * @brief 문자열을 소문자로 변환해 반환합니다.
+         * @param[in] Text 해석·변환·탐색할 원문 문자열입니다.
+         * @return 해석·변환한 문자열입니다.
+         */
         Core::FString Lowercase(std::string_view Text) {
             Core::FString Lower{Text};
             std::transform(Lower.begin(), Lower.end(), Lower.begin(), [](unsigned char Character) {
@@ -25,10 +39,16 @@ namespace Editor {
             return Lower;
         }
 
+        /**
+         * @brief 콘솔 인자에서 공백을 정리한 단일 값을 읽고 잘못된 입력을 거부합니다.
+         * @param[in] Arguments 호출·파싱에 사용할 인자 목록입니다.
+         * @return 유효한 단일 인자이며 잘못된 입력이면 빈 optional입니다.
+         */
         std::optional<Core::FString> ReadConsoleValue(std::string_view Arguments) {
             std::istringstream Input{Core::FString{Arguments}};
             Core::FString Value{};
             Core::FString Extra{};
+
             Input >> Value >> Extra;
 
             if (!Extra.empty()) {
@@ -38,8 +58,14 @@ namespace Editor {
             return Lowercase(Value);
         }
 
+        /**
+         * @brief 콘솔 호출 정보에서 사용법 안내 문자열을 구성합니다.
+         * @param[in] Invocation 명령 이름·사용법·입력·인자입니다.
+         * @return 해석·변환한 문자열입니다.
+         */
         Core::FString MakeUsage(const Editor::FConsoleInvocation& Invocation) {
             Core::FString Usage{"Usage: "};
+
             Usage += Invocation.mName;
 
             if (!Invocation.mUsage.empty()) {
@@ -51,6 +77,9 @@ namespace Editor {
         }
     }
 
+    /**
+     * @brief 편집 기능·렌더 설정·통계 명령을 콘솔에 등록합니다.
+     */
     void Editor::FEditorContext::RegisterConsoleCommands() {
         mConsoleCommands.Register({"clear", {}, {}, [this](const Editor::FConsoleInvocation&) {
             ClearLogs();
@@ -105,6 +134,7 @@ namespace Editor {
 
                 if (!Value) {
                     AddLog("Expected at most one value.");
+
                     return;
                 }
 
@@ -113,6 +143,7 @@ namespace Editor {
 
                 if (Renderer == nullptr) {
                     AddLog(LogName + ": renderer is unavailable.");
+
                     return;
                 }
 
@@ -121,6 +152,7 @@ namespace Editor {
 
                 if (!Current) {
                     AddLog(MakeUsage(Invocation));
+
                     return;
                 }
 
@@ -130,6 +162,7 @@ namespace Editor {
 
             if (!Alias.empty()) {
                 mConsoleCommands.Register(Command);
+
                 Command.mUsage += " (" + Command.mName + " alias)";
                 Command.mName = std::move(Alias);
             }
@@ -207,6 +240,7 @@ namespace Editor {
 
             if (Viewport == nullptr) {
                 AddLog("Viewport is unavailable.");
+
                 return;
             }
 
@@ -249,10 +283,16 @@ namespace Editor {
         });
     }
 
+    /**
+     * @brief 편집 컨텍스트가 소유하는 통계 그래프 창을 반환합니다.
+     */
     Editor::FStatGraphs& Editor::FEditorContext::GetStatGraphs() {
         return mStatGraphs;
     }
 
+    /**
+     * @brief 콘솔 문자열을 공통 편집 동작으로 전달합니다.
+     */
     void Editor::FEditorContext::ExecuteConsoleCommand(const Core::FString& Command) {
         AddLog("> " + Command);
 
@@ -261,19 +301,29 @@ namespace Editor {
         }
     }
 
+    /**
+     * @brief 콘솔 명령에서 입력 접두어에 맞는 후보를 조회합니다.
+     */
     Core::TArray<Core::FString> Editor::FEditorContext::GetConsoleSuggestions(std::string_view Input) const {
         return mConsoleCommands.GetSuggestions(Input);
     }
 
+    /**
+     * @brief 콘솔 명령이 사용할 뷰포트 제공자를 설정합니다.
+     */
     void Editor::FEditorContext::SetConsoleViewportProvider(std::function<Editor::FEditorViewport*()> Provider) {
         mConsoleViewportProvider = std::move(Provider);
     }
 
+    /**
+     * @brief 콘솔 인자로 화면 찢김 허용 설정을 조회하거나 변경합니다.
+     */
     void Editor::FEditorContext::ExecuteAllowTearing(const Editor::FConsoleInvocation& Invocation) {
         const std::optional<Core::FString> State{ReadConsoleValue(Invocation.mArguments)};
 
         if (!State || (!State->empty() && *State != "on" && *State != "off" && *State != "status")) {
             AddLog(MakeUsage(Invocation));
+
             return;
         }
 
@@ -281,16 +331,19 @@ namespace Editor {
 
         if (Renderer == nullptr) {
             AddLog("Allow Tearing: renderer is unavailable.");
+
             return;
         }
 
         if (*State == "status") {
             AddLog(Renderer->IsTearingSupported() ? Renderer->IsTearingAllowed() ? "Allow Tearing: on (VSync off in windowed mode)." : "Allow Tearing: off (VSync on)." : "Allow Tearing: unsupported (VSync on).");
+
             return;
         }
 
         if (!Renderer->SetAllowTearing(*State != "off")) {
             AddLog("Allow Tearing: unsupported or renderer is not initialized.");
+
             return;
         }
 

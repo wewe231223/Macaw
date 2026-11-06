@@ -10,8 +10,10 @@ public:
 
 public:
     FObjectStateChangedMessage() = default;
+
     FObjectStateChangedMessage(const FGuid& InGuid, const std::vector<Uint8>& InData);
     FObjectStateChangedMessage(const FGuid& InGuid, std::vector<Uint8>&& InData) noexcept;
+
     ~FObjectStateChangedMessage() = default;
     FObjectStateChangedMessage(const FObjectStateChangedMessage&) = default;
 
@@ -28,6 +30,7 @@ private:
     ReflectProperty(mTargetGuid, "TargetGuid", EPropertyFlags::None);
 
     FGuid mTargetGuid{};
+
     ReflectProperty(mStateData, "StateData", EPropertyFlags::None);
 
     std::vector<Uint8> mStateData{};

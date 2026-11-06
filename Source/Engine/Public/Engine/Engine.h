@@ -29,6 +29,7 @@ namespace Engine {
     /**
      * @brief 현재 월드 컨텍스트와 렌더러 연결 및 월드 교체를 관리합니다.
      * @ingroup Engine
+     * @note GENERATED_BODY()가 실제 클래스 메타데이터의 비소유 주소를 반환하는 GetClass()를 선언합니다.
      */
     UCLASS(NoFactory)
     class UEngine : public CoreUObject::UObject {
@@ -52,11 +53,6 @@ namespace Engine {
          */
         bool Initialize();
 
-        /**
-         * @fn UClass* UEngine::GetClass() const
-         * @brief 객체의 실제 클래스 메타데이터를 반환합니다.
-         * @return 실제 클래스 메타데이터의 비소유 주소입니다.
-         */
         /**
          * @brief 렌더러를 연결하고 초기 월드 컨텍스트와 장면을 준비합니다.
          * @param[in,out] Renderer 뷰포트 및 엔진이 참조할 렌더러입니다.

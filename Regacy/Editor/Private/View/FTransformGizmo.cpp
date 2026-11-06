@@ -93,6 +93,7 @@ namespace {
         const float LengthSquared{Segment.LengthSquared()};
 
         Parameter = LengthSquared > 0.000001f ? std::clamp(ScreenDot(Point - Start, Segment) / LengthSquared, 0.0f, 1.0f) : 0.0f;
+
         return (Point - (Start + Segment * Parameter)).Length();
     }
 
@@ -142,14 +143,18 @@ namespace {
 
 void FTransformGizmo::Initialize(ID3D11Device* Device, FWorldEditorContext& InEditorContext) {
     UNREFERENCED_PARAMETER(Device);
+
     mEditorContext = &InEditorContext;
+
     RefreshAssetHandles();
 }
 
 void FTransformGizmo::ProcessInput(FKeyboardInput& KeyboardInput, FMouseInput& MouseInput, bool BMouseCapturedByUi, bool BKeyboardCapturedByUi) {
     if (mEditorContext == nullptr || !mEditorContext->IsWorldEditingAllowed()) {
         EndDrag(true);
+
         mHoveredHandle = EHandle::None;
+
         return;
     }
 
@@ -160,6 +165,7 @@ void FTransformGizmo::ProcessInput(FKeyboardInput& KeyboardInput, FMouseInput& M
 
         if (MouseInput.WasCaptureLost() || KeyboardInput.GetKeyState(VK_ESCAPE) == EKeyState::Pressed || mEditorContext->GetWorld() != mDragSession->mWorld || mEditorContext->GetSelectionRevision() != mDragSession->mSelectionRevision) {
             EndDrag(true);
+
             return;
         }
 
@@ -311,6 +317,7 @@ void FTransformGizmo::Update(const FViewMatrices& Camera, const D3D11_VIEWPORT& 
     }
 
     mVisible = true;
+
     RefreshAssetHandles();
     BuildHandles();
 }
@@ -318,6 +325,7 @@ void FTransformGizmo::Update(const FViewMatrices& Camera, const D3D11_VIEWPORT& 
 void FTransformGizmo::BuildHandles() {
     if (mEditorContext->GetGizmoMode() == EGizmoMode::Rotate) {
         BuildRotation();
+
         return;
     }
 
@@ -332,6 +340,7 @@ void FTransformGizmo::BuildHandles() {
 
     if (Handle == EHandle::Uniform && mCubeMesh) {
         const FMatrix World{FMatrix::CreateScale(Radius * 1.6f, Radius * 1.6f, Radius * 1.6f) * mBasis * FMatrix::CreateTranslation(mPivot)};
+
         mMeshes.push_back({World, FMeshSceneData{mCubeMesh, {{FAssetRegistry::Get().ResolveAsset<UMesh>(mCubeMesh)->GetMaterialSlotName(0), GetHandleMaterial(Handle)}}}});
     }
 }
@@ -352,6 +361,7 @@ void FTransformGizmo::BuildAxes() {
 
         const FVector3 Start{mPivot + mAxes[Index] * AxisStart * Unit};
         const FVector3 End{mPivot + mAxes[Index] * Length * Unit};
+
         mPickShapes.push_back({Handle, {Start, End, FVector3{}, FVector3{}}, 2, 8.0f, 2});
 
         const FMatrix World{FMatrix::CreateScale(Unit, Unit, Unit) * Rotations[Index] * mBasis * FMatrix::CreateTranslation(mPivot)};
@@ -380,6 +390,7 @@ void FTransformGizmo::BuildPlanes() {
         const float Far{Scale ? 48.0f : 36.0f};
         const std::array<FVector3, 4> Points{mPivot + (First + Second) * Near * Unit, mPivot + (First * Far + Second * Near) * Unit, mPivot + (First + Second) * Far * Unit, mPivot + (First * Near + Second * Far) * Unit};
         const std::array<FVector3, 4> Triangle{Points[0], Points[1], Points[3], FVector3{}};
+
         AddPolygon(Handle, Scale ? Triangle : Points, Scale ? 3 : 4, GetHandleColor(Handle), 1);
     }
 }
@@ -435,6 +446,7 @@ void FTransformGizmo::AddPolygon(EHandle Handle, const std::array<FVector3, 4>& 
             const float Fraction{static_cast<float>(Index) / 20.0f};
             const FVector3 Start{Points[0] + (Points[1] - Points[0]) * Fraction};
             const FVector3 End{Count == 3 ? Points[0] + (Points[2] - Points[0]) * Fraction : Points[3] + (Points[2] - Points[3]) * Fraction};
+
             mLines.AddLine(Start, End, Fill, 1.5f, ELineDepthMode::Overlay);
         }
     }
@@ -471,6 +483,7 @@ FTransformGizmo::EHandle FTransformGizmo::HitTest(const POINT& Position) const {
 
             for (Uint32 Index{}; Index < EdgeCount; ++Index) {
                 float Parameter{};
+
                 Distance = std::min(Distance, SegmentDistance(Mouse, Points[Index], Points[(Index + 1) % Shape.mCount], Parameter));
             }
         }
@@ -547,8 +560,10 @@ bool FTransformGizmo::BeginDrag(EHandle Handle, const POINT& Position, EMouseSid
 
     FVector2 ScreenPivot{};
     FVector2 ScreenEnd{};
+
     ProjectPoint(mPivot, Session.mCamera, Session.mViewport, ScreenPivot);
     ProjectPoint(mPivot + Axis * 100.0f * mUnitsPerPixel, Session.mCamera, Session.mViewport, ScreenEnd);
+
     Session.mScreenAxis = ScreenEnd - ScreenPivot;
 
     if (Handle == EHandle::Uniform || Handle == EHandle::Screen || Session.mMode == EGizmoMode::Rotate) {
@@ -602,6 +617,7 @@ bool FTransformGizmo::BeginDrag(EHandle Handle, const POINT& Position, EMouseSid
 
         ProjectPoint(mPivot + Session.mStartDirection * RingRadius * mUnitsPerPixel, Session.mCamera, Session.mViewport, ScreenPivot);
         ProjectPoint(mPivot + (Session.mStartDirection * RingRadius + Tangent * 10.0f) * mUnitsPerPixel, Session.mCamera, Session.mViewport, ScreenEnd);
+
         Session.mScreenAxis = ScreenEnd - ScreenPivot;
 
         if (Session.mScreenAxis.LengthSquared() < 0.000001f) {
@@ -632,6 +648,7 @@ void FTransformGizmo::UpdateDrag(const POINT& Position, bool VertexSnap, bool Su
     if (Session.mDuplicatePending && MouseDelta.LengthSquared() > 9.0f) {
         if (!DuplicateSelection()) {
             EndDrag(true);
+
             return;
         }
     }
@@ -639,6 +656,7 @@ void FTransformGizmo::UpdateDrag(const POINT& Position, bool VertexSnap, bool Su
     for (const FTargetState& State : Session.mTargets) {
         if (State.mTarget.Get() == nullptr) {
             EndDrag(true);
+
             return;
         }
     }
@@ -661,6 +679,7 @@ void FTransformGizmo::UpdateDrag(const POINT& Position, bool VertexSnap, bool Su
             }
 
             FVector3 Direction{Intersection - Session.mPivot};
+
             Direction -= Session.mPlaneNormal * Direction.Dot(Session.mPlaneNormal);
 
             if (Direction.LengthSquared() < 0.000001f) {
@@ -671,6 +690,7 @@ void FTransformGizmo::UpdateDrag(const POINT& Position, bool VertexSnap, bool Su
 
             const float SinAngle{Session.mPlaneNormal.Dot(Session.mPreviousDirection.Cross(Direction))};
             const float CosAngle{std::clamp(Session.mPreviousDirection.Dot(Direction), -1.0f, 1.0f)};
+
             Session.mRawAngle += std::atan2(SinAngle, CosAngle);
             Session.mPreviousDirection = Direction;
         }
@@ -766,6 +786,7 @@ void FTransformGizmo::UpdateDrag(const POINT& Position, bool VertexSnap, bool Su
         mSnapPosition = SnappedPosition;
     } else if (Session.mScreenFallback) {
         const Uint32 AxisIndex{Session.mHandle >= EHandle::X && Session.mHandle <= EHandle::Z ? static_cast<Uint32>(Session.mHandle) - 1 : 0};
+
         Delta = Session.mAxes[AxisIndex] * ScreenDot(MouseDelta, Session.mScreenAxis) * Session.mUnitsPerPixel;
     } else {
         FVector3 Intersection{};
@@ -778,6 +799,7 @@ void FTransformGizmo::UpdateDrag(const POINT& Position, bool VertexSnap, bool Su
 
         if (Session.mHandle >= EHandle::X && Session.mHandle <= EHandle::Z) {
             const FVector3 Axis{Session.mAxes[static_cast<Uint32>(Session.mHandle) - 1]};
+
             Delta = Axis * SnapValue(Movement.Dot(Axis), Settings.mGridSize, Settings.mGridSnapEnabled);
         } else if (Session.mHandle == EHandle::Screen) {
             for (Uint32 Index{}; Index < 3; ++Index) {
@@ -806,6 +828,7 @@ void FTransformGizmo::UpdateDrag(const POINT& Position, bool VertexSnap, bool Su
 
     if (Session.mPivotOnly) {
         mEditorContext->SetGizmoPivot(Session.mPivot + Delta);
+
         return;
     }
 
@@ -815,6 +838,7 @@ void FTransformGizmo::UpdateDrag(const POINT& Position, bool VertexSnap, bool Su
 
         if (SurfaceAligned && Settings.mSurfaceAlignRotation) {
             const FVector3 Up{State.mWorld.GetRotationQuaternion().RotateVector(FVector3::UnitZ)};
+
             Desired.SetRotation(AlignDirection(Up, SurfaceNormal) * State.mWorld.GetRotationQuaternion());
         }
 
@@ -904,6 +928,7 @@ bool FTransformGizmo::DuplicateSelection() {
     }
 
     mEditorContext->SetSelectedActors(Duplicates);
+
     Session.mSelectionRevision = mEditorContext->GetSelectionRevision();
     Session.mTargets.clear();
 
@@ -994,6 +1019,7 @@ bool FTransformGizmo::FindVertex(const POINT& MousePosition, FVector3& Position)
             }
 
             std::array<DirectX::XMFLOAT3, 8> Corners{};
+
             MeshComponent->GetWorldOBB().GetCorners(Corners.data());
 
             FVector2 Minimum{std::numeric_limits<float>::max(), std::numeric_limits<float>::max()};
@@ -1005,6 +1031,7 @@ bool FTransformGizmo::FindVertex(const POINT& MousePosition, FVector3& Position)
 
                 if (!ProjectPoint(FVector3{Corner}, Camera, Viewport, Screen)) {
                     AllProjected = false;
+
                     break;
                 }
 
@@ -1108,6 +1135,7 @@ void FTransformGizmo::BuildFeedback(FOverlayRenderData& Overlay) const {
     if (mSnapPosition.has_value()) {
         const float Radius{5.0f * mUnitsPerPixel};
         const FVector3 Vertex{*mSnapPosition};
+
         Overlay.mGizmoLines.AddLine(Vertex - mViewRight * Radius, Vertex + mViewRight * Radius, {1.0f, 0.85f, 0.05f, 1.0f}, 3.0f, ELineDepthMode::Overlay);
         Overlay.mGizmoLines.AddLine(Vertex - mViewUp * Radius, Vertex + mViewUp * Radius, {1.0f, 0.85f, 0.05f, 1.0f}, 3.0f, ELineDepthMode::Overlay);
     }
@@ -1124,6 +1152,7 @@ void FTransformGizmo::BuildFeedback(FOverlayRenderData& Overlay) const {
         const float Radius{RingRadius * mUnitsPerPixel * mSize};
         const FVector3 Start{Session.mStartDirection};
         const FVector3 End{FQuat::CreateFromAxisAngle(Session.mPlaneNormal, Session.mAppliedAngle).RotateVector(Start)};
+
         Overlay.mGizmoLines.AddLine(Session.mPivot, Session.mPivot + Start * Radius, {0.8f, 0.8f, 0.8f, 1.0f}, 1.5f, ELineDepthMode::Overlay);
         Overlay.mGizmoLines.AddLine(Session.mPivot, Session.mPivot + End * Radius, Color, 2.0f, ELineDepthMode::Overlay);
 
@@ -1135,6 +1164,7 @@ void FTransformGizmo::BuildFeedback(FOverlayRenderData& Overlay) const {
             const float SecondAngle{DisplayAngle * static_cast<float>(Index + 1) / Segments};
             const FVector3 First{Session.mPivot + FQuat::CreateFromAxisAngle(Session.mPlaneNormal, FirstAngle).RotateVector(Start) * Radius};
             const FVector3 Second{Session.mPivot + FQuat::CreateFromAxisAngle(Session.mPlaneNormal, SecondAngle).RotateVector(Start) * Radius};
+
             Overlay.mGizmoLines.AddLine(First, Second, Color, 4.0f, ELineDepthMode::Overlay);
             Overlay.mGizmoLines.AddLine(Session.mPivot, Second, {1.0f, 0.85f, 0.05f, 0.15f}, 1.0f, ELineDepthMode::Overlay);
         }
@@ -1153,6 +1183,7 @@ void FTransformGizmo::BuildFeedback(FOverlayRenderData& Overlay) const {
     Label.mText = Text;
     Label.mColor = Color;
     Label.mPixelHeight = 16.0f;
+
     Overlay.mTextDraws.push_back(std::move(Label));
 }
 

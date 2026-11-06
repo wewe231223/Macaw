@@ -16,6 +16,9 @@
 
 namespace Renderer {
 
+    /**
+     * @brief 폰트 아틀라스, 텍스처, 샘플러와 상수 버퍼를 준비합니다.
+     */
     bool Renderer::FTextRenderer::Initialize(ID3D11Device* Device, const std::filesystem::path& FontPath) {
         auto Texture{CoreUObject::NewObject<Asset::UTexture2D>()};
         std::filesystem::path ImagePath{FontPath};
@@ -23,6 +26,7 @@ namespace Renderer {
 
         if (!mAtlas.Load(FontPath) || !Texture->LoadFromFile(ImagePath, false) || Texture->GetSizeX() != mAtlas.GetWidth() || Texture->GetSizeY() != mAtlas.GetHeight() || !Texture->CreateResources(Device)) {
             Core::ErrorHandler::Report("Text", "Cannot load the font atlas", Core::ErrorHandler::EErrorLevel::Error);
+
             return false;
         }
 
@@ -44,6 +48,9 @@ namespace Renderer {
         return true;
     }
 
+    /**
+     * @brief 컴파일한 바이트코드로 셰이더와 입력 레이아웃을 교체합니다.
+     */
     bool Renderer::FTextRenderer::CreateShaders(ID3D11Device* Device, std::span<const Core::Uint8> VertexCode, std::span<const Core::Uint8> PixelCode) {
         Microsoft::WRL::ComPtr<ID3D11VertexShader> Vertex{};
         Microsoft::WRL::ComPtr<ID3D11PixelShader> Pixel{};
@@ -61,6 +68,9 @@ namespace Renderer {
         return true;
     }
 
+    /**
+     * @brief 문자 정점을 공통 동적 버퍼에 업로드하고 텍스트를 그립니다.
+     */
     bool Renderer::FTextRenderer::Draw(ID3D11DeviceContext* Context, const Engine::FDrawText& Text, const Engine::FSceneView& View) {
         if (Text.mText.empty() || Text.mText.size() > 65536 || !std::isfinite(Text.mSize) || Text.mSize <= 0.0f || !Text.mPosition.IsFinite() || !Text.mScale.IsFinite() || !Text.mColor.IsFinite() || Text.mColor.w <= 0.0f || View.mSize.x <= 0.0f || View.mSize.y <= 0.0f) {
             return false;
@@ -121,6 +131,7 @@ namespace Renderer {
 
         if (!mVertices.Upload(Context, Vertices, Error)) {
             Core::ErrorHandler::Report("Text", Error, Core::ErrorHandler::EErrorLevel::Error);
+
             return false;
         }
 
@@ -141,15 +152,22 @@ namespace Renderer {
         Renderer::RendererStats::Triangles.Add(Count / 3);
 
         ID3D11ShaderResourceView* Empty{};
+
         Context->PSSetShaderResources(0, 1, &Empty);
 
         return true;
     }
 
+    /**
+     * @brief 아틀라스와 정점 및 상수 버퍼의 사용량을 반환합니다.
+     */
     std::size_t Renderer::FTextRenderer::GetResourceBytes() const {
         return (mTexture != nullptr ? mTexture->GetResourceBytes() : 0) + mVertices.GetResourceBytes() + sizeof(FTextConstants);
     }
 
+    /**
+     * @brief 문자 평면에서 문자열이 차지하는 경계 사각형을 계산합니다.
+     */
     bool Renderer::FTextRenderer::GetBounds(const Core::FString& Text, Core::FVector2& Minimum, Core::FVector2& Maximum) const {
         if (Text.size() > 65536) {
             return false;

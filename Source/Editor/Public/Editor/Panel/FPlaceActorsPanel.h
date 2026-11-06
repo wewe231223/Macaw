@@ -13,14 +13,48 @@
 
 namespace Editor {
 
+    /**
+     * @brief 액터 배치 목록의 캐시 아이콘 종류입니다.
+     */
     enum class EPlaceActorIcon : Core::Uint8 {
+        /**
+         * @brief 해당 값이나 대상을 지정하지 않은 상태입니다.
+         */
         None,
+
+        /**
+         * @brief 빌보드 액터 아이콘입니다.
+         */
         Billboard,
+
+        /**
+         * @brief 주변광 액터 아이콘입니다.
+         */
         AmbientLight,
+
+        /**
+         * @brief 방향성 광원 액터 아이콘입니다.
+         */
         DirectionalLight,
+
+        /**
+         * @brief 점 광원 액터 아이콘입니다.
+         */
         PointLight,
+
+        /**
+         * @brief 스포트라이트 액터 아이콘입니다.
+         */
         SpotLight,
+
+        /**
+         * @brief 높이 안개 액터 아이콘입니다.
+         */
         HeightFog,
+
+        /**
+         * @brief 아이콘 캐시 크기에 사용할 종류 수입니다.
+         */
         Count
     };
 
@@ -42,7 +76,14 @@ namespace Editor {
         ~FPlaceActorsPanel() override;
 
     public:
+        /**
+         * @brief 액터 배치 아이콘을 다음 갱신 시 다시 생성하도록 표시합니다.
+         */
         void InvalidateIcons();
+
+        /**
+         * @brief 액터 배치 목록의 캐시된 아이콘 텍스처를 해제합니다.
+         */
         void ClearIcons();
 
     private:
@@ -61,6 +102,9 @@ namespace Editor {
          */
         void DrawEntry(const Core::FString& Preset, const Core::FString& Label, const char* Components, Editor::EPlaceActorIcon Icon);
 
+        /**
+         * @brief 프로젝트 에셋과 렌더러에서 액터 배치 아이콘을 준비합니다.
+         */
         void UpdateIcons();
 
     private:
@@ -74,7 +118,14 @@ namespace Editor {
          */
         Core::Int32 mCategory{};
 
+        /**
+         * @brief 배치 목록의 종류별 아이콘 텍스처 캐시입니다.
+         */
         std::array<Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>, static_cast<std::size_t>(Editor::EPlaceActorIcon::Count)> mIcons{};
+
+        /**
+         * @brief 배치 아이콘 캐시의 재생성 필요 여부입니다.
+         */
         bool mIconsDirty{true};
     };
 

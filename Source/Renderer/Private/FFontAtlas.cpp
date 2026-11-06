@@ -46,6 +46,9 @@ namespace Renderer {
         }
     }
 
+    /**
+     * @brief 폰트 아틀라스 JSON에서 글리프·커닝·크기 메트릭을 읽습니다.
+     */
     bool Renderer::FFontAtlas::Load(const std::filesystem::path& Path) {
         std::error_code Error{};
         const auto Size{std::filesystem::file_size(Path, Error)};
@@ -169,6 +172,9 @@ namespace Renderer {
         return true;
     }
 
+    /**
+     * @brief UTF-8 문자열을 코드포인트 배열로 변환합니다.
+     */
     Core::TArray<Core::Uint32> Renderer::FFontAtlas::Decode(const Core::FString& Text) {
         Core::TArray<Core::Uint32> Result{};
 
@@ -178,7 +184,9 @@ namespace Renderer {
 
             if (Length == 0 || Index + Length > Text.size()) {
                 Result.push_back(0xFFFD);
+
                 ++Index;
+
                 continue;
             }
 
@@ -187,19 +195,26 @@ namespace Renderer {
 
             for (std::size_t Offset{1}; Offset < Length; ++Offset) {
                 const Core::Uint8 Byte{static_cast<Core::Uint8>(Text[Index + Offset])};
+
                 Valid = Valid && (Byte & 0xC0) == 0x80;
                 CodePoint = (CodePoint << 6) | (Byte & 0x3F);
             }
 
             const Core::Uint32 Minimum{Length == 1 ? 0u : Length == 2 ? 0x80u : Length == 3 ? 0x800u : 0x10000u};
+
             Valid = Valid && CodePoint >= Minimum && CodePoint <= 0x10FFFF && (CodePoint < 0xD800 || CodePoint > 0xDFFF);
+
             Result.push_back(Valid ? CodePoint : 0xFFFD);
+
             Index += Valid ? Length : 1;
         }
 
         return Result;
     }
 
+    /**
+     * @brief 코드포인트의 글리프를 찾고 없으면 대체 글리프를 반환합니다.
+     */
     const Renderer::FFontGlyph* Renderer::FFontAtlas::FindGlyph(Core::Uint32 CodePoint) const {
         for (Core::Uint32 Candidate : {CodePoint, 0xFFFDu, static_cast<Core::Uint32>('?')}) {
             const auto Position{mGlyphs.find(Candidate)};
@@ -212,11 +227,18 @@ namespace Renderer {
         return nullptr;
     }
 
+    /**
+     * @brief 두 코드포인트 사이에 적용할 수평 간격 보정값을 반환합니다.
+     */
     float Renderer::FFontAtlas::GetKerning(Core::Uint32 First, Core::Uint32 Second) const {
         const auto Position{mKerning.find((static_cast<Core::Uint64>(First) << 32) | Second)};
+
         return Position != mKerning.end() ? Position->second : 0.0f;
     }
 
+    /**
+     * @brief UTF-8 문자열을 디코딩하여 글리프별 삼각형 정점을 생성합니다.
+     */
     Core::TArray<Renderer::FTextVertex> Renderer::FFontAtlas::BuildVertices(const Core::FString& Text) const {
         const Core::TArray<Core::Uint32> CodePoints{Decode(Text)};
         Core::TArray<Renderer::FTextVertex> Vertices{};
@@ -235,6 +257,7 @@ namespace Renderer {
 
             for (std::size_t Index{Start}; Index < End; ++Index) {
                 const auto* Glyph{FindGlyph(CodePoints[Index] == '\t' ? ' ' : CodePoints[Index])};
+
                 Width += Glyph != nullptr ? Glyph->mAdvance * (CodePoints[Index] == '\t' ? 4.0f : 1.0f) : 0.0f;
                 Width += Index + 1 < End ? GetKerning(CodePoints[Index], CodePoints[Index + 1]) : 0.0f;
             }
@@ -253,6 +276,7 @@ namespace Renderer {
                     const Renderer::FTextVertex TopLeft{{Pen + Glyph->mPlane.x, Baseline + Glyph->mPlane.w}, {Glyph->mUV.x, Glyph->mUV.w}};
                     const Renderer::FTextVertex TopRight{{Pen + Glyph->mPlane.z, Baseline + Glyph->mPlane.w}, {Glyph->mUV.z, Glyph->mUV.w}};
                     const Renderer::FTextVertex BottomRight{{Pen + Glyph->mPlane.z, Baseline + Glyph->mPlane.y}, {Glyph->mUV.z, Glyph->mUV.y}};
+
                     Vertices.insert(Vertices.end(), {BottomLeft, TopLeft, TopRight, BottomLeft, TopRight, BottomRight});
                 }
 
@@ -271,14 +295,23 @@ namespace Renderer {
         return Vertices;
     }
 
+    /**
+     * @brief MSDF 거리장의 픽셀 범위를 반환합니다.
+     */
     float Renderer::FFontAtlas::GetDistanceRange() const {
         return mDistanceRange;
     }
 
+    /**
+     * @brief 텍스처 가로 픽셀 수를 반환합니다.
+     */
     Core::Uint32 Renderer::FFontAtlas::GetWidth() const {
         return mWidth;
     }
 
+    /**
+     * @brief 텍스처 세로 픽셀 수를 반환합니다.
+     */
     Core::Uint32 Renderer::FFontAtlas::GetHeight() const {
         return mHeight;
     }

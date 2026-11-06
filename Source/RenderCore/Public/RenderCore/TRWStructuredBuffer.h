@@ -27,6 +27,7 @@ namespace RenderCore {
          */
         void BindOutput(ID3D11DeviceContext* Context, Core::Uint32 Slot) const {
             ID3D11UnorderedAccessView* View{mUnorderedAccessView.Get()};
+
             Context->CSSetUnorderedAccessViews(Slot, 1, &View, nullptr);
         }
 
@@ -37,21 +38,35 @@ namespace RenderCore {
          */
         void UnbindOutput(ID3D11DeviceContext* Context, Core::Uint32 Slot) const {
             ID3D11UnorderedAccessView* View{};
+
             Context->CSSetUnorderedAccessViews(Slot, 1, &View, nullptr);
         }
 
     protected:
+        /**
+         * @brief 용도별 바인딩 플래그와 부가 플래그를 채웁니다.
+         * @param[in] Description 크기와 사용 방식이 채워진 버퍼 설명입니다.
+         */
         void FillDescription(D3D11_BUFFER_DESC& Description) const override {
             FBase::FillDescription(Description);
+
             Description.BindFlags |= D3D11_BIND_UNORDERED_ACCESS;
         }
 
+        /**
+         * @brief 새 버퍼를 가리키는 뷰를 만듭니다.
+         * @param[in] Device 뷰를 만들 장치입니다.
+         * @param[in] Buffer 새로 만든 버퍼입니다.
+         * @param[out] Error 뷰 생성 실패 원인입니다.
+         * @return 성공하면 true이며, 실패하면 기존 뷰를 유지해야 합니다.
+         */
         bool CreateViews(ID3D11Device* Device, ID3D11Buffer* Buffer, Core::FString& Error) override {
             Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView> View{};
 
             // 기반 클래스가 뷰를 교체하기 전에 실패할 수 있는 작업을 끝내 두 뷰가 다른 버퍼를 가리키지 않게 합니다.
             if (FAILED(Device->CreateUnorderedAccessView(Buffer, nullptr, View.GetAddressOf()))) {
                 Error = "Structured buffer unordered access view creation failed";
+
                 return false;
             }
 
@@ -60,15 +75,22 @@ namespace RenderCore {
             }
 
             mUnorderedAccessView = std::move(View);
+
             return true;
         }
 
+        /**
+         * @brief 파생 클래스가 소유한 뷰를 해제합니다.
+         */
         void ReleaseViews() override {
             FBase::ReleaseViews();
             mUnorderedAccessView.Reset();
         }
 
     private:
+        /**
+         * @brief 읽기·쓰기 구조화 버퍼가 공유하는 기본 GPU 버퍼 타입입니다.
+         */
         using FBase = RenderCore::TStructuredBuffer<T, RenderCore::EBufferUpdate::Default>;
 
         /**

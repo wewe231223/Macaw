@@ -25,6 +25,7 @@ void FPropertyPanel::DrawContents() {
 
     if (Actor == nullptr) {
         ImGui::TextDisabled("Select an actor to inspect its components.");
+
         return;
     }
 

@@ -149,6 +149,7 @@ bool FWorldSerializer::SerializeObjectTable(FArchive& Archive, TArray<FActorReco
         FActorRecord& Record{Records[Index]};
 
         Archive.BeginObjectScope(std::to_string(Index));
+
         Valid = SerializeObjectRecord(Archive, Record.mObject, FormatVersion);
         Valid = Valid && (!Archive.SupportsNamedFields() || Archive.HasField("Components"));
 
@@ -168,7 +169,9 @@ bool FWorldSerializer::SerializeObjectTable(FArchive& Archive, TArray<FActorReco
             }
 
             Archive.BeginObjectScope(std::to_string(ComponentIndex));
+
             Valid = SerializeObjectRecord(Archive, Record.mComponents[ComponentIndex], FormatVersion);
+
             Archive.EndObjectScope();
         }
 
@@ -245,6 +248,7 @@ bool FWorldSerializer::RemapObjectTable(const UWorld& SourceWorld, const UWorld&
             }
 
             UsedGuids.insert(Guid);
+
             Record.mGuid = Guid;
 
             return true;
@@ -447,6 +451,7 @@ bool FWorldSerializer::LoadInternal(UWorld& World, FArchive& Archive, const UWor
         std::unique_ptr<AActor> Actor{CreateAndLoadActor(Records[Index], Archive)};
 
         Valid = Actor != nullptr && !Archive.HasError();
+
         Archive.EndObjectScope();
 
         if (Valid) {
@@ -466,6 +471,7 @@ bool FWorldSerializer::InstallActors(UWorld& World, TArray<std::unique_ptr<AActo
     for (const std::unique_ptr<AActor>& Actor : World.mPersistentLevel->mActors) {
         if (!Actor->SetOuter(World.mPersistentLevel.get())) {
             World.ClearActors();
+
             return false;
         }
     }
@@ -474,6 +480,7 @@ bool FWorldSerializer::InstallActors(UWorld& World, TArray<std::unique_ptr<AActo
         for (const std::unique_ptr<AActor>& Actor : World.mPersistentLevel->mActors) {
             if (Actor->GetName().IsNone() == (Pass == 1) && !UObjectSystem::Register(Actor.get()).IsValid()) {
                 World.ClearActors();
+
                 return false;
             }
         }
@@ -484,6 +491,7 @@ bool FWorldSerializer::InstallActors(UWorld& World, TArray<std::unique_ptr<AActo
             for (const std::unique_ptr<UActorComponent>& Component : Actor->GetComponents()) {
                 if (Component->GetName().IsNone() == (Pass == 1) && !UObjectSystem::Register(Component.get()).IsValid()) {
                     World.ClearActors();
+
                     return false;
                 }
             }
@@ -497,6 +505,7 @@ bool FWorldSerializer::InstallActors(UWorld& World, TArray<std::unique_ptr<AActo
     for (const std::unique_ptr<AActor>& Actor : World.mPersistentLevel->mActors) {
         if (!Actor->ResolveLoadedReferences()) {
             World.ClearActors();
+
             return false;
         }
     }

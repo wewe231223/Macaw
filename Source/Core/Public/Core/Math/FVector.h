@@ -221,6 +221,10 @@ namespace Core {
          * @return 연산을 적용한 새 값입니다.
          */
         Core::FVector ProjectedOnPlane(const Core::FVector& Normal) const;
+
+        /**
+         * @brief 지정한 법선을 기준으로 반사한 벡터를 반환합니다.
+         */
         Core::FVector Reflected(const Core::FVector& Normal) const;
 
         /**

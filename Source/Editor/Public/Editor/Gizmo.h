@@ -34,6 +34,9 @@ namespace Editor {
      */
     class FTransformGizmo {
     private:
+        /**
+         * @brief 기즈모 드래그 시작 시 대상 객체의 변환·피벗 상태입니다.
+         */
         struct FTargetState {
         public:
             /**

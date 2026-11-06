@@ -15,14 +15,28 @@
 
 namespace Platform {
 
+    /**
+     * @brief 이 파일에서 사용하는 내부 보조 기능과 상태를 묶습니다.
+     */
     namespace {
 
+        /**
+         * @brief 마우스 버튼 하나라도 눌렸는지 검사합니다.
+         * @param[in] Input 키·마우스 상태를 조회할 공통 입력입니다.
+         * @return 마우스 버튼 하나라도 눌렸으면 true입니다.
+         */
         bool IsMouseDown(const Core::FInput& Input) {
             using Core::EKey;
 
             return Input.IsDown(EKey::MouseLeft) || Input.IsDown(EKey::MouseRight) || Input.IsDown(EKey::MouseMiddle) || Input.IsDown(EKey::MouseX1) || Input.IsDown(EKey::MouseX2);
         }
 
+        /**
+         * @brief Win32 마우스 메시지에서 버튼의 공통 키 코드를 구합니다.
+         * @param[in] Message 처리할 Win32 메시지 코드입니다.
+         * @param[in] WParam Win32 메시지의 키 코드·부가 값입니다.
+         * @return 버튼에 대응하는 공통 키이며 없으면 EKey::None입니다.
+         */
         Core::EKey GetMouseKey(UINT Message, WPARAM WParam) {
             using Core::EKey;
 
@@ -48,6 +62,13 @@ namespace Platform {
             }
         }
 
+        /**
+         * @brief Win32 키 메시지를 공통 키와 좌우 보조키 상태에 반영합니다.
+         * @param[in] Input 키·마우스 상태를 조회할 공통 입력입니다.
+         * @param[in] WParam Win32 메시지의 키 코드·부가 값입니다.
+         * @param[in] LParam Win32 메시지의 추가 상태·좌표 정보입니다.
+         * @param[in] Down 누름 상태이면 true, 해제이면 false입니다.
+         */
         void SetKeyboardKey(Core::FInput& Input, WPARAM WParam, LPARAM LParam, bool Down) {
             using Core::EKey;
 
@@ -61,17 +82,21 @@ namespace Platform {
                 case VK_SHIFT:
                     Input.SetKey(static_cast<EKey>(MapVirtualKeyW((static_cast<UINT>(LParam) >> 16) & 0xFF, MAPVK_VSC_TO_VK_EX)), Down);
                     Input.SetKey(EKey::Shift, Input.IsDown(EKey::LeftShift) || Input.IsDown(EKey::RightShift));
+
                     break;
                 case VK_CONTROL:
                     Input.SetKey(Extended ? EKey::RightControl : EKey::LeftControl, Down);
                     Input.SetKey(EKey::Control, Input.IsDown(EKey::LeftControl) || Input.IsDown(EKey::RightControl));
+
                     break;
                 case VK_MENU:
                     Input.SetKey(Extended ? EKey::RightAlt : EKey::LeftAlt, Down);
                     Input.SetKey(EKey::Alt, Input.IsDown(EKey::LeftAlt) || Input.IsDown(EKey::RightAlt));
+
                     break;
                 default:
                     Input.SetKey(static_cast<EKey>(WParam), Down);
+
                     break;
             }
         }
@@ -117,7 +142,9 @@ namespace Platform {
         }
 
         RECT Rectangle{0, 0, static_cast<LONG>(Width), static_cast<LONG>(Height)};
+
         AdjustWindowRectEx(&Rectangle, WS_OVERLAPPEDWINDOW, false, 0);
+
         mWindow = CreateWindowExW(0, Class.lpszClassName, Title, WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, Rectangle.right - Rectangle.left, Rectangle.bottom - Rectangle.top, nullptr, nullptr, Instance, this);
 
         if (mWindow == nullptr) {
@@ -129,7 +156,9 @@ namespace Platform {
         SendMessageW(mWindow, WM_SETICON, ICON_SMALL, reinterpret_cast<LPARAM>(Class.hIconSm));
 
         RECT Client{};
+
         GetClientRect(mWindow, &Client);
+
         mWidth = static_cast<Core::Uint32>(Client.right);
         mHeight = static_cast<Core::Uint32>(Client.bottom);
 
@@ -148,11 +177,13 @@ namespace Platform {
      */
     bool Platform::FWindowsApplication::PumpMessages() {
         mInput.BeginFrame();
+
         MSG Message{};
 
         while (PeekMessageW(&Message, nullptr, 0, 0, PM_REMOVE)) {
             if (Message.message == WM_QUIT) {
                 mRunning = false;
+
                 break;
             }
 
@@ -185,10 +216,16 @@ namespace Platform {
         mMessageHandler = std::move(Handler);
     }
 
+    /**
+     * @brief 플랫폼 메시지로 갱신하는 공통 입력 상태를 반환합니다.
+     */
     Core::FInput& Platform::FWindowsApplication::GetInput() {
         return mInput;
     }
 
+    /**
+     * @brief 플랫폼 메시지로 갱신하는 공통 입력 상태를 반환합니다.
+     */
     const Core::FInput& Platform::FWindowsApplication::GetInput() const {
         return mInput;
     }
@@ -221,6 +258,9 @@ namespace Platform {
         return mWidth == 0 || mHeight == 0;
     }
 
+    /**
+     * @brief Win32 입력·포커스 메시지를 공통 입력 상태에 반영합니다.
+     */
     void Platform::FWindowsApplication::ProcessInputMessage(HWND Window, UINT Message, WPARAM WParam, LPARAM LParam) {
         const Core::EKey MouseKey{GetMouseKey(Message, WParam)};
 
@@ -246,6 +286,7 @@ namespace Platform {
         switch (Message) {
             case WM_SETFOCUS:
                 mInput.SetFocused(true);
+
                 break;
             case WM_KILLFOCUS:
                 mInput.SetFocused(false);
@@ -257,6 +298,7 @@ namespace Platform {
                 break;
             case WM_CANCELMODE:
                 mInput.ReleaseMouse();
+
                 break;
             case WM_CAPTURECHANGED:
                 if (IsMouseDown(mInput)) {
@@ -269,9 +311,11 @@ namespace Platform {
             case WM_KEYUP:
             case WM_SYSKEYUP:
                 SetKeyboardKey(mInput, WParam, LParam, Message == WM_KEYDOWN || Message == WM_SYSKEYDOWN);
+
                 break;
             case WM_MOUSEMOVE:
                 mInput.SetMousePosition({static_cast<float>(GET_X_LPARAM(LParam)), static_cast<float>(GET_Y_LPARAM(LParam))});
+
                 break;
             case WM_MOUSEWHEEL: {
                 POINT Position{GET_X_LPARAM(LParam), GET_Y_LPARAM(LParam)};
@@ -286,6 +330,7 @@ namespace Platform {
 
                 break;
             }
+
             default:
                 break;
         }
@@ -299,6 +344,7 @@ namespace Platform {
 
         if (Message == WM_NCCREATE) {
             const auto* Creation{reinterpret_cast<const CREATESTRUCTW*>(LParam)};
+
             Application = static_cast<Platform::FWindowsApplication*>(Creation->lpCreateParams);
 
             SetWindowLongPtrW(Window, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(Application));
@@ -327,6 +373,7 @@ namespace Platform {
             if (Message == WM_DESTROY) {
                 Application->mRunning = false;
                 Application->mWindow = nullptr;
+
                 PostQuitMessage(0);
 
                 return 0;

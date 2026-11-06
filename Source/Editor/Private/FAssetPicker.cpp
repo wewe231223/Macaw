@@ -3,6 +3,7 @@
  * @brief 공유 에셋 선택기의 썸네일·검색·드롭 구현입니다.
  * @ingroup Editor
  */
+
 #include "Editor/FAssetPicker.h"
 #include "Editor/FEditorAssetCatalog.h"
 #include "Editor/FAssetThumbnailCache.h"
@@ -14,6 +15,9 @@
 
 namespace Editor {
 
+    /**
+     * @brief 직전 위젯에서 같은 종류의 드롭을 받습니다.
+     */
     bool Editor::FAssetPicker::AcceptDrop(Editor::FEditorAssetCatalog& Catalog, Core::FString& Path, Asset::EAssetType Type) {
         bool Changed{};
 
@@ -36,6 +40,9 @@ namespace Editor {
         return Changed;
     }
 
+    /**
+     * @brief 목록을 검색하여 썸네일과 함께 표시합니다.
+     */
     bool Editor::FAssetPicker::DrawOptions(Editor::FEditorAssetCatalog& Catalog, Editor::FAssetThumbnailCache& Thumbnails, Core::FString& Path, Asset::EAssetType Type, const char* EmptyLabel) {
         if (ImGui::IsWindowAppearing()) {
             mSearch.fill('\0');
@@ -50,6 +57,7 @@ namespace Editor {
 
         if (ImGui::Selectable(EmptyLabel, Path.empty())) {
             Path.clear();
+
             Changed = true;
         }
 
@@ -106,6 +114,9 @@ namespace Editor {
         return Changed;
     }
 
+    /**
+     * @brief 썸네일과 검색 가능한 선택기를 표시합니다.
+     */
     bool Editor::FAssetPicker::Draw(Editor::FEditorAssetCatalog& Catalog, Editor::FAssetThumbnailCache& Thumbnails, const char* Label, Core::FString& Path, Asset::EAssetType Type, const Core::FString& InheritedPath, const char* EmptyLabel, const char* InheritedLabel) {
         ImGui::PushID(Label);
 
@@ -146,12 +157,14 @@ namespace Editor {
         ImGui::SameLine();
 
         const float ComboWidth{std::max(60.0f, ImGui::GetContentRegionAvail().x)};
+
         ImGui::SetNextItemWidth(ComboWidth);
         ImGui::SetNextWindowSizeConstraints({280.0f, 0.0f}, {std::max(480.0f, ComboWidth), 400.0f});
 
         if (ImGui::BeginCombo("##Asset", Name.c_str())) {
             if (DrawOptions(Catalog, Thumbnails, Path, Type, EmptyLabel)) {
                 Changed = true;
+
                 ImGui::CloseCurrentPopup();
             }
 
@@ -159,11 +172,13 @@ namespace Editor {
         }
 
         Changed = AcceptDrop(Catalog, Path, Type) || Changed;
+
         ImGui::SetNextWindowSizeConstraints({280.0f, 0.0f}, {480.0f, 400.0f});
 
         if (ImGui::BeginPopup("##ThumbnailPicker")) {
             if (DrawOptions(Catalog, Thumbnails, Path, Type, EmptyLabel)) {
                 Changed = true;
+
                 ImGui::CloseCurrentPopup();
             }
 

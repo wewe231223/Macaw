@@ -18,6 +18,7 @@ void FMeshPickingProxy::Update(const UMesh* InMesh, const FTransform& Transform)
 
     mReverseWinding = (Scale.mX < 0.0f) ^ (Scale.mY < 0.0f) ^ (Scale.mZ < 0.0f);
     mInverseScale = {1.0f / Scale.mX, 1.0f / Scale.mY, 1.0f / Scale.mZ};
+
     DirectX::XMStoreFloat3(&mPosition, Transform.GetPosition().ToSimpleMath());
     DirectX::XMStoreFloat4(&mRotation, DirectX::XMQuaternionNormalize(Transform.GetRotationQuaternion().ToSimpleMath()));
 }

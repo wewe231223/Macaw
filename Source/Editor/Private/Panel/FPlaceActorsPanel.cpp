@@ -19,21 +19,33 @@
 
 namespace Editor {
 
+    /**
+     * @brief 편집 컨텍스트를 연결하고 액터 배치 패널을 생성합니다.
+     */
     Editor::FPlaceActorsPanel::FPlaceActorsPanel(Editor::FEditorContext* Context)
 		: Editor::FEditorPanel{Context, "Place Actors", true} {
     }
 
     Editor::FPlaceActorsPanel::~FPlaceActorsPanel() = default;
 
+    /**
+     * @brief 액터 배치 아이콘을 다음 갱신 시 다시 생성하도록 표시합니다.
+     */
     void Editor::FPlaceActorsPanel::InvalidateIcons() {
         mIconsDirty = true;
     }
 
+    /**
+     * @brief 액터 배치 목록의 캐시된 아이콘 텍스처를 해제합니다.
+     */
     void Editor::FPlaceActorsPanel::ClearIcons() {
         mIcons = {};
         mIconsDirty = true;
     }
 
+    /**
+     * @brief 프로젝트 에셋과 렌더러에서 액터 배치 아이콘을 준비합니다.
+     */
     void Editor::FPlaceActorsPanel::UpdateIcons() {
         if (!mIconsDirty) {
             return;
@@ -52,6 +64,7 @@ namespace Editor {
         }
 
         static constexpr std::array<const char*, static_cast<std::size_t>(Editor::EPlaceActorIcon::Count)> Paths{nullptr, "Editor/Icon/Pawn_64x.png", "Editor/Icon/SkyLight_64x.png", "Editor/Icon/DirectionalLight_64x.png", "Editor/Icon/PointLight_64x.png", "Editor/Icon/SpotLight_64x.png", "Editor/Icon/ExponentialHeightFog_64x.png"};
+
         mIcons = {};
 
         for (std::size_t Index{1}; Index < Paths.size(); ++Index) {
@@ -66,8 +79,12 @@ namespace Editor {
         mIconsDirty = false;
     }
 
+    /**
+     * @brief 검색·분류와 액터 배치 항목을 패널 안에 그립니다.
+     */
     void Editor::FPlaceActorsPanel::DrawContent(float) {
         UpdateIcons();
+
         const char* Categories[]{"All", "Lights", "Basic", "Visual Effects"};
 
         ImGui::SetNextItemWidth(-1.0f);
@@ -100,12 +117,16 @@ namespace Editor {
 
             const Editor::EPlaceActorIcon Icon{Fog ? Editor::EPlaceActorIcon::HeightFog : Name.find("Directional") != Core::FString::npos ? Editor::EPlaceActorIcon::DirectionalLight : Name.find("Ambient") != Core::FString::npos ? Editor::EPlaceActorIcon::AmbientLight : Name.find("Spot") != Core::FString::npos ? Editor::EPlaceActorIcon::SpotLight : Light ? Editor::EPlaceActorIcon::PointLight : Editor::EPlaceActorIcon::None};
             Core::FString Label{Name.starts_with('A') ? Name.substr(1) : Name};
+
             DrawEntry(Name, Label, Fog ? "HeightFogComponent" : Light ? "LightComponent" : Name.find("Camera") != Core::FString::npos ? "CameraComponent" : "Default components", Icon);
         }
 
         ImGui::EndDisabled();
     }
 
+    /**
+     * @brief 아이콘·설명과 드래그 페이로드를 갖는 액터 프리셋 항목을 그립니다.
+     */
     void Editor::FPlaceActorsPanel::DrawEntry(const Core::FString& Preset, const Core::FString& Label, const char* Components, Editor::EPlaceActorIcon Icon) {
         const ImGuiTextFilter Filter{mSearch.data()};
 

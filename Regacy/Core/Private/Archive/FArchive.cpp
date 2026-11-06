@@ -46,6 +46,7 @@ void FArchive::Serialize(std::string_view Name, FName& Value) {
     if (IsLoading()) {
         if (HasError() || Str.size() >= NameSize) {
             SetError();
+
             return;
         }
 
@@ -82,7 +83,9 @@ bool FArchive::RemapObjectGuid(FGuid& Guid) {
 
     if (Found == mObjectGuidRemapping->end() || !Found->second.IsValid()) {
         SetError();
+
         Guid = {};
+
         return false;
     }
 

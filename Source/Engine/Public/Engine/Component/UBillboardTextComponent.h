@@ -69,9 +69,29 @@ namespace Engine {
          * @return 값이 유효해 적용했으면 true, 거부했으면 false입니다.
          */
         bool SetTextColor(const Core::FVector4& Color);
+
+        /**
+         * @brief 표시할 프리미티브 메시 종류를 반환합니다.
+         * @return 표시할 프리미티브 메시 종류입니다.
+         */
         Engine::EPrimitiveType GetPrimitiveType() const override;
+
+        /**
+         * @brief 메시의 CPU 정점 속성·인덱스 데이터 참조를 반환합니다.
+         * @return 객체가 보유한 데이터의 참조이며 소유 객체의 수명 동안 유효합니다.
+         */
         const Asset::FMeshData& GetMeshData() const override;
+
+        /**
+         * @brief 컴포넌트의 현재 상태를 복사한 프리미티브 프록시를 만듭니다.
+         * @return 현재 상태를 담은 프록시입니다.
+         */
         Engine::FPrimitiveSceneProxy CreateSceneProxy() const override;
+
+        /**
+         * @brief 월드 공간의 축 정렬 경계 상자를 반환합니다.
+         * @return 월드 공간의 축 정렬 경계 상자입니다.
+         */
         Core::FBox GetWorldBounds() const override;
 
         /**

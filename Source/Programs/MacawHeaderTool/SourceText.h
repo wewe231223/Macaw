@@ -36,8 +36,19 @@ namespace HeaderTool {
      * @brief 토큰 종류입니다.
      */
     enum class ETokenKind {
+        /**
+         * @brief 식별자 토큰입니다.
+         */
         Identifier,
+
+        /**
+         * @brief 숫자 리터럴 토큰입니다.
+         */
         Number,
+
+        /**
+         * @brief 연산자·괄호 등 구두점 토큰입니다.
+         */
         Punctuation
     };
 

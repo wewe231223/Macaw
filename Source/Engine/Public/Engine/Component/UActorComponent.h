@@ -112,6 +112,9 @@ namespace Engine {
         void SetEditorTickable(bool EditorTickable);
 
     private:
+        /**
+         * @brief 월드에 등록된 컴포넌트가 참조하는 에셋과 렌더 상태를 준비합니다.
+         */
         virtual void OnRegister();
 
         /**

@@ -67,6 +67,7 @@ void FEditorUIManager::Initialize(FRenderer& Renderer, HWND WindowHandle, FAsset
         })};
 
         mAssetBrowserPanel = AssetBrowserWindow.get();
+
         AddWindow(std::move(AssetBrowserWindow));
     }
 
@@ -79,6 +80,7 @@ void FEditorUIManager::Initialize(FRenderer& Renderer, HWND WindowHandle, FAsset
     }
 
     AddViewerWindow(EditorContext, WindowHandle, ThumbnailRenderer);
+
     mPIEViewportSession = std::make_unique<FPIEViewportSession>(Renderer, mViewportHostWindow);
 }
 
@@ -88,7 +90,9 @@ void FEditorUIManager::InitializeViewer(HWND WindowHandle, FAssetThumbnailRender
     UEditorEngine* Engine{GetEditorEngine()};
 
     ErrorHandler::Report(Engine == nullptr, "FEditorUIManager", "No editor engine is active", ErrorHandler::EErrorLevel::Critical);
+
     mMenuPanel = std::make_unique<FViewerToolBar>(Engine->GetEditorContext());
+
     AddViewerWindow(Engine->GetEditorContext(), WindowHandle, ThumbnailRenderer);
 }
 
@@ -173,6 +177,7 @@ void FEditorUIManager::RenderViews(FRenderer& Renderer, const FRenderScene* Rend
             View.mCamera = Camera;
             View.mSettings = Viewport->GetRenderSettings();
             View.mRenderMode = static_cast<ERenderMode>(EditorContext.GetRenderModeState());
+
             mEditorView.BuildOverlayRenderData(Overlay, Camera, Viewport->GetCameraPosition(), Viewport->GetRenderViewport());
         }
 
@@ -208,6 +213,7 @@ void FEditorUIManager::Tick() {
 
     if (mMaterialEditorPanel != nullptr && mMaterialEditorPanel->IsVisible() && mFocusMaterialEditor) {
         ImGui::SetWindowFocus(mMaterialEditorPanel->GetWindowName());
+
         mFocusMaterialEditor = false;
     }
 
@@ -276,6 +282,7 @@ void FEditorUIManager::AddViewerWindow(FWorldEditorContext& EditorContext, HWND 
 
     mViewerWindow = Window.get();
     mPreviewContext = &EditorContext;
+
     AddWindow(std::move(Window));
 }
 
@@ -283,5 +290,6 @@ void FEditorUIManager::AddViewportHostWindow(ID3D11Device* Device, FWorldEditorC
     std::unique_ptr<FViewportHostWindow> Window{std::make_unique<FViewportHostWindow>(Device, EditorContext)};
 
     mViewportHostWindow = Window.get();
+
     AddWindow(std::move(Window));
 }

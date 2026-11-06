@@ -32,6 +32,9 @@ namespace Renderer {
      */
     Renderer::FScene::~FScene() = default;
 
+    /**
+     * @brief 컴포넌트 GUID를 키로 높이 안개 프록시를 렌더 장면에 추가하거나 교체합니다.
+     */
     void Renderer::FScene::AddHeightFog(const Engine::FHeightFogSceneProxy& Proxy) {
         const auto Existing{std::find_if(mHeightFogs.begin(), mHeightFogs.end(), [&Proxy](const Engine::FHeightFogSceneProxy& Fog) {
             return Fog.mId == Proxy.mId;
@@ -46,6 +49,9 @@ namespace Renderer {
         ++mRevision;
     }
 
+    /**
+     * @brief 지정한 GUID의 높이 안개 프록시를 렌더 장면에서 제거합니다.
+     */
     void Renderer::FScene::RemoveHeightFog(const Core::FGuid& Id) {
         if (std::erase_if(mHeightFogs, [&Id](const Engine::FHeightFogSceneProxy& Fog) {
             return Fog.mId == Id;
@@ -54,19 +60,27 @@ namespace Renderer {
         }
     }
 
+    /**
+     * @brief 현재 렌더 장면에 등록된 높이 안개 프록시 목록을 조회합니다.
+     */
     const Core::TArray<Engine::FHeightFogSceneProxy>& Renderer::FScene::GetHeightFogs() const {
         return mHeightFogs;
     }
 
+    /**
+     * @brief 프록시의 GUID로 렌더 장면에 프리미티브를 추가하거나 교체합니다.
+     */
     void Renderer::FScene::AddPrimitive(const Engine::FPrimitiveSceneProxy& Proxy) {
         // 공유 형상 버퍼 외에 스킨 정점 버퍼도 같은 장치에서 준비합니다.
         if (Proxy.mSkeletalMesh != nullptr && (Proxy.mMesh != Proxy.mSkeletalMesh->GetGeometry() || Proxy.mSkinMatrices.size() != Proxy.mSkeletalMesh->GetBones().size() || !Proxy.mSkeletalMesh->CreateResources(mDevice))) {
             Core::ErrorHandler::Report("SkeletalMesh", "Cannot prepare skeletal mesh resources or pose", Core::ErrorHandler::EErrorLevel::Error);
+
             return;
         }
 
         if (Proxy.mMesh != nullptr && !Proxy.mMesh->CreateResources(mDevice)) {
             Core::ErrorHandler::Report("Mesh", "Cannot create project mesh resources", Core::ErrorHandler::EErrorLevel::Error);
+
             return;
         }
 
@@ -76,6 +90,7 @@ namespace Renderer {
 
         if (Position != mIndices.end()) {
             Renderer::FScenePrimitive& Primitive{mPrimitives[Position->second]};
+
             CasterChanged = CasterChanged || IsShadowCaster(Primitive.mProxy);
             Primitive.mProxy = Proxy;
 
@@ -179,6 +194,9 @@ namespace Renderer {
         return mIdentity;
     }
 
+    /**
+     * @brief 그림자 깊이 결과에 영향을 주는 캐스터 상태의 리비전을 반환합니다.
+     */
     Core::FRevision Renderer::FScene::GetCasterRevision() const {
         Core::FRevision Revision{mCasterRevision};
 
@@ -191,10 +209,16 @@ namespace Renderer {
         return Revision;
     }
 
+    /**
+     * @brief 프록시가 그림자 깊이 패스에 그려지는 캐스터인지 검사합니다.
+     */
     bool Renderer::FScene::IsShadowCaster(const Engine::FPrimitiveSceneProxy& Proxy) {
         return Proxy.mCastShadow && !Proxy.mSprite.has_value() && !Proxy.mText.has_value();
     }
 
+    /**
+     * @brief 누적 변환 업로드 횟수를 반환하고 카운터를 초기화합니다.
+     */
     Core::Uint32 Renderer::FScene::TakeTransformUpdates() const {
         const Core::Uint32 Count{mTransformUpdates};
 
@@ -209,12 +233,14 @@ namespace Renderer {
     void Renderer::FScene::Upload(Renderer::FScenePrimitive& Primitive) {
         if (Primitive.mProxy.mText.has_value() || Primitive.mProxy.mSprite.has_value()) {
             Primitive.mObjectBuffer.Reset();
+
             return;
         }
 
         if (!UploadSkinning(Primitive)) {
             Primitive.mObjectBuffer.Reset();
             Core::ErrorHandler::Report("SkeletalMesh", "Cannot upload skeletal pose", Core::ErrorHandler::EErrorLevel::Error);
+
             return;
         }
 
@@ -237,9 +263,13 @@ namespace Renderer {
         ++mTransformUpdates;
     }
 
+    /**
+     * @brief 객체별 본 행렬과 법선 변환을 구조화 버퍼에 반영합니다.
+     */
     bool Renderer::FScene::UploadSkinning(Renderer::FScenePrimitive& Primitive) {
         if (Primitive.mProxy.mSkeletalMesh == nullptr) {
             Primitive.mSkinBuffer.Reset();
+
             return true;
         }
 
@@ -274,9 +304,13 @@ namespace Renderer {
         }
 
         Primitive.mUploadedPoseRevision = Primitive.mProxy.mPoseRevision;
+
         return true;
     }
 
+    /**
+     * @brief 광원 프록시의 GUID로 렌더 장면에 광원을 추가하거나 교체합니다.
+     */
     void Renderer::FScene::AddLight(const Engine::FLightSceneProxy& Proxy) {
         const auto Position{mLightIndices.find(Proxy.mId)};
 
@@ -290,6 +324,9 @@ namespace Renderer {
         ++mRevision;
     }
 
+    /**
+     * @brief 지정한 GUID의 광원을 렌더 장면에서 제거합니다.
+     */
     void Renderer::FScene::RemoveLight(const Core::FGuid& Id) {
         const auto Position{mLightIndices.find(Id)};
 
@@ -306,9 +343,13 @@ namespace Renderer {
 
         mLights.pop_back();
         mLightIndices.erase(Position);
+
         ++mRevision;
     }
 
+    /**
+     * @brief 장면에 등록된 광원 목록을 반환합니다.
+     */
     const Core::TArray<Engine::FLightSceneProxy>& Renderer::FScene::GetLights() const {
         return mLights;
     }

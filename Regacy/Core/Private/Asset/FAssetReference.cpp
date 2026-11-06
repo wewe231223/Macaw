@@ -30,6 +30,7 @@ void FAssetReference::Assign(FAssetHandle Handle, const IAssetResolver* Resolver
     }
 
     mHandle = Handle;
+
     RefreshIdentity(Resolver);
 }
 

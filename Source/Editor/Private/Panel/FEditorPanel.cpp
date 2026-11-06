@@ -35,6 +35,7 @@ namespace Editor {
 
         if (mFocusRequested) {
             ImGui::SetNextWindowFocus();
+
             mFocusRequested = false;
         }
 
@@ -66,6 +67,9 @@ namespace Editor {
         mVisible = Visible;
     }
 
+    /**
+     * @brief 패널을 표시하고 다음 그리기에서 창에 포커스를 줍니다.
+     */
     void Editor::FEditorPanel::Open() {
         mVisible = true;
         mFocusRequested = true;
@@ -78,6 +82,9 @@ namespace Editor {
         return mContext;
     }
 
+    /**
+     * @brief 패널이 사용할 편집 컨텍스트의 비소유 주소를 교체합니다.
+     */
     void Editor::FEditorPanel::SetEditorContext(Editor::FEditorContext* Context) {
         if (Context != nullptr) {
             mContext = Context;

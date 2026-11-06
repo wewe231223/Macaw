@@ -68,6 +68,7 @@ void FRenderQueue::Build(std::span<const std::shared_ptr<const FMeshDrawCommand>
 
                 if (Transform.mScale.mX != 1.0f || Transform.mScale.mY != 1.0f || Transform.mOffset.mX != 0.0f || Transform.mOffset.mY != 0.0f) {
                     UVIndex = static_cast<Uint32>(mUVTransforms.size());
+
                     mUVTransforms.push_back(Transform);
                 }
             }
@@ -89,6 +90,7 @@ void FRenderQueue::Build(std::span<const std::shared_ptr<const FMeshDrawCommand>
 
         if (Command->mPass == ERenderPass::Opaque) {
             mOpaqueCommands.push_back(FMeshDrawCommandBatch{Command, FirstRecord, Count});
+
             continue;
         }
 

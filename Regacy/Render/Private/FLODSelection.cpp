@@ -29,6 +29,7 @@ FLODSelection SelectMeshLOD(float ScreenSize, float ViewportHeight, Uint32 Avail
 
         if (ScreenSize <= GLODCullPixels / ViewportHeight) {
             Result.mCulled = true;
+
             return Result;
         }
 

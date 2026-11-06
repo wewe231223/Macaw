@@ -95,16 +95,19 @@ void DrawConsoleContents(FConsoleOutputHandle Handle, FStatDisplayFlags& Flags) 
             case ELogLevel::Warning:
                 LevelText = "[Warning]";
                 LevelColor = ImVec4(1.0f, 1.0f, 0.0f, 1.0f);
+
                 break;
 
             case ELogLevel::Error:
                 LevelText = "[Error]";
                 LevelColor = ImVec4(1.0f, 0.0f, 0.0f, 1.0f);
+
                 break;
 
             case ELogLevel::Fatal:
                 LevelText = "[Fatal]";
                 LevelColor = ImVec4(1.0f, 0.0f, 1.0f, 1.0f);
+
                 break;
 
             default:
@@ -137,6 +140,7 @@ void DrawConsoleContents(FConsoleOutputHandle Handle, FStatDisplayFlags& Flags) 
             ImGuiInputTextFlags_EnterReturnsTrue)) {
         if (InputBuf[0] != '\0') {
             ExecuteCommand(Console::STDOutHandle, InputBuf, Flags);
+
             InputBuf[0] = '\0';
 
             ImGui::SetKeyboardFocusHere(-1);

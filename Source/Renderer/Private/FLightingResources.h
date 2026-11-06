@@ -40,6 +40,12 @@ namespace Renderer {
      */
     class FLightingResources {
     public:
+        /**
+         * @brief 타일 광원 컬링에 사용할 컴퓨트 셰이더를 생성합니다.
+         * @param[in] Device GPU 자원을 생성할 D3D11 장치입니다.
+         * @param[in] ComputeCode 컴파일된 컴퓨트 셰이더 바이트코드입니다.
+         * @return 컴퓨트 셰이더 생성에 성공하면 true입니다.
+         */
         bool CreateShaders(ID3D11Device* Device, std::span<const Core::Uint8> ComputeCode);
 
         /**
@@ -80,6 +86,9 @@ namespace Renderer {
          */
         Core::TArray<Renderer::FGpuLight> mLights{};
 
+        /**
+         * @brief 타일별 광원 목록을 계산하는 GPU 컬링 자원입니다.
+         */
         Renderer::FTileLightCulling mCulling{};
 
         /**
@@ -87,6 +96,9 @@ namespace Renderer {
          */
         RenderCore::TStructuredBuffer<Renderer::FGpuLight> mLightBuffer{};
 
+        /**
+         * @brief 타일 목록 대신 전체 광원 목록을 사용할지 나타냅니다.
+         */
         bool mUseGlobalLights{true};
 
         /**

@@ -12,24 +12,33 @@
 
 namespace Core {
 
+    /**
+     * @brief 커밋하지 않은 임시 파일과 스트림을 정리합니다.
+     */
     Core::FAtomicFileWriter::~FAtomicFileWriter() {
         Discard();
     }
 
+    /**
+     * @brief 대상과 같은 폴더에 고유한 임시 파일을 엽니다.
+     */
     bool Core::FAtomicFileWriter::Open(const std::filesystem::path& Path, Core::FString& Error) {
         Error.clear();
         Discard();
 
         if (Path.empty()) {
             Error = "A save path is required";
+
             return false;
         }
 
         std::error_code Code{};
+
         mTarget = std::filesystem::absolute(Path, Code);
 
         if (Code) {
             Error = "Invalid save path: " + Code.message();
+
             return false;
         }
 
@@ -37,32 +46,43 @@ namespace Core {
 
         if (Code) {
             Error = "Cannot create save directory: " + Code.message();
+
             return false;
         }
 
         mTemporary = mTarget;
         mTemporary += Core::FilePath::FromUtf8("." + Core::FGuid{}.ToString() + ".tmp");
+
         mStream.clear();
         mStream.open(mTemporary, std::ios::binary | std::ios::trunc);
 
         if (!mStream.is_open()) {
             Error = "Cannot open temporary save file";
+
             Discard();
+
             return false;
         }
 
         return true;
     }
 
+    /**
+     * @brief 바이너리 모드로 열린 출력 스트림을 반환합니다.
+     */
     std::ostream& Core::FAtomicFileWriter::GetStream() {
         return mStream;
     }
 
+    /**
+     * @brief 기록과 닫기를 검증한 후 임시 파일로 대상을 교체합니다.
+     */
     bool Core::FAtomicFileWriter::Commit(Core::FString& Error) {
         Error.clear();
 
         if (!mStream.is_open()) {
             Error = "No temporary save file is open";
+
             return false;
         }
 
@@ -71,13 +91,17 @@ namespace Core {
 
         if (!mStream) {
             Error = "Cannot write temporary save file";
+
             Discard();
+
             return false;
         }
 
         if (!MoveFileExW(mTemporary.c_str(), mTarget.c_str(), MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH)) {
             Error = "Cannot replace save file";
+
             Discard();
+
             return false;
         }
 
@@ -87,6 +111,9 @@ namespace Core {
         return true;
     }
 
+    /**
+     * @brief 열린 스트림을 닫고 남아 있는 임시 파일을 제거합니다.
+     */
     void Core::FAtomicFileWriter::Discard() {
         if (mStream.is_open()) {
             mStream.close();
@@ -94,6 +121,7 @@ namespace Core {
 
         if (!mTemporary.empty()) {
             std::error_code Code{};
+
             std::filesystem::remove(mTemporary, Code);
             mTemporary.clear();
         }

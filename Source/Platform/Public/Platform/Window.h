@@ -76,7 +76,16 @@ namespace Platform {
          */
         void SetMessageHandler(FMessageHandler Handler);
 
+        /**
+         * @brief 플랫폼 메시지로 갱신하는 공통 입력 상태를 반환합니다.
+         * @return 플랫폼 메시지로 갱신하는 공통 입력 상태입니다.
+         */
         Core::FInput& GetInput();
+
+        /**
+         * @brief 플랫폼 메시지로 갱신하는 공통 입력 상태를 반환합니다.
+         * @return 플랫폼 메시지로 갱신하는 공통 입력 상태입니다.
+         */
         const Core::FInput& GetInput() const;
 
         /**
@@ -104,6 +113,13 @@ namespace Platform {
         bool IsMinimized() const;
 
     private:
+        /**
+         * @brief Win32 입력·포커스 메시지를 공통 입력 상태에 반영합니다.
+         * @param[in] Window 메시지를 받은 Win32 창입니다.
+         * @param[in] Message 처리할 Win32 메시지 코드입니다.
+         * @param[in] WParam Win32 메시지의 키 코드·부가 값입니다.
+         * @param[in] LParam Win32 메시지의 추가 상태·좌표 정보입니다.
+         */
         void ProcessInputMessage(HWND Window, UINT Message, WPARAM WParam, LPARAM LParam);
 
         /**
@@ -141,6 +157,10 @@ namespace Platform {
          * @brief 외부 UI 백엔드에 메시지를 전달하는 콜백입니다.
          */
         FMessageHandler mMessageHandler{};
+
+        /**
+         * @brief 플랫폼 메시지 또는 게임 뷰포트에서 사용하는 공통 입력 상태입니다.
+         */
         Core::FInput mInput{};
     };
 

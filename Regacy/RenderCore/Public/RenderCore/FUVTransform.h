@@ -31,6 +31,7 @@ public:
      * @brief U와 V에 각각 곱할 배율입니다.
      */
     FVector2 mScale{1.0f, 1.0f};
+
     ReflectProperty(mOffset, "UVOffset", EPropertyFlags::Edit | EPropertyFlags::Serialize, ReflectSerializer(mOffset), ReflectEditor("", "UV Offset"), ReflectRange(-100.0f, 100.0f), ReflectSpeed(0.01f));
 
     /**

@@ -70,6 +70,9 @@ namespace Renderer {
 
     static_assert(sizeof(Renderer::FGpuShadow) == 128);
 
+    /**
+     * @brief 캐스케이드 구간과 그림자 생성 물체의 깊이를 포함하는 텍셀 정렬 방향광 행렬을 만듭니다.
+     */
     Core::FMatrix Renderer::FShadowResources::MakeDirectionalMatrix(const Engine::FSceneView& View, const Core::FVector& Direction, float NearDistance, float FarDistance, Core::Uint32 Resolution, std::span<const Core::FBox> CasterBounds) {
         const Core::FVector Forward{View.mForward.Normalized()};
         const Core::FVector Center{View.mLocation + Forward * ((NearDistance + FarDistance) * 0.5f)};
@@ -89,18 +92,23 @@ namespace Renderer {
             for (Core::Uint32 Corner{}; Corner < 8; ++Corner) {
                 const Core::FVector Point{(Corner & 1) ? Bounds.mMaximum.x : Bounds.mMinimum.x, (Corner & 2) ? Bounds.mMaximum.y : Bounds.mMinimum.y, (Corner & 4) ? Bounds.mMaximum.z : Bounds.mMinimum.z};
                 const Core::FVector4 LightPoint{Core::FVector4{Point, 1.0f} * Rotation};
+
                 MinimumZ = std::min(MinimumZ, LightPoint.z - 0.1f);
                 MaximumZ = std::max(MaximumZ, LightPoint.z + 0.1f);
             }
         }
 
         Core::FMatrix Projection{Core::FMatrix::Orthographic(2.0f * Radius, 2.0f * Radius, MinimumZ, MaximumZ)};
+
         Projection(3, 0) = -CenterX / Radius;
         Projection(3, 1) = -CenterY / Radius;
 
         return Rotation * Projection;
     }
 
+    /**
+     * @brief 광원의 그림자 맵이 현재 뷰의 화면에 영향을 줄 수 있는지 검사합니다.
+     */
     bool Renderer::FShadowResources::AffectsView(const Engine::FLightSceneProxy& Light, std::span<const Core::FBox> Receivers, std::span<const Core::FBox> Casters) {
         if (Light.mType == Engine::ELightType::Directional) {
             return !Receivers.empty() && !Casters.empty();
@@ -124,6 +132,9 @@ namespace Renderer {
         return std::any_of(Receivers.begin(), Receivers.end(), IsInRange) && std::any_of(Casters.begin(), Casters.end(), IsInRange);
     }
 
+    /**
+     * @brief 그림자 아틀라스·미리보기·셰이더·버퍼·깊이 상태를 필요할 때 생성합니다.
+     */
     bool Renderer::FShadowResources::CreateResources(ID3D11Device* Device) {
         if (mAtlas != nullptr && mPreview != nullptr && mSampler != nullptr && mViewBuffer.IsCreated() && mPreviewDepthState != nullptr && mPreviewVertexShader != nullptr && mPreviewPixelShader != nullptr) {
             return true;
@@ -176,6 +187,9 @@ namespace Renderer {
         return true;
     }
 
+    /**
+     * @brief 광원 우선순위에 따라 그림자 타일과 캐스케이드·큐브 면 행렬을 구성합니다.
+     */
     void Renderer::FShadowResources::Build(const Renderer::FScene& Scene, const Engine::FSceneViewFamily& Family, RenderCore::FRenderStats& Stats) {
         mAllocator.Reset();
         mMaps.clear();
@@ -220,11 +234,13 @@ namespace Renderer {
 
             if (Light.mType == Engine::ELightType::Directional && HasDirectional) {
                 ++Stats.mShadowDroppedLights;
+
                 continue;
             }
 
             if (mSettings.mSkipUnseenLights && !AffectsView(Light, ReceiverBounds, CasterBounds)) {
                 ++Stats.mShadowSkippedLights;
+
                 continue;
             }
 
@@ -237,6 +253,7 @@ namespace Renderer {
 
             while (Size >= 64) {
                 mAllocator = Saved;
+
                 Blocks.clear();
 
                 for (Core::Uint32 Face{}; Face < Count; ++Face) {
@@ -259,6 +276,7 @@ namespace Renderer {
             if (Blocks.size() != Count) {
                 mAllocator = Saved;
                 ++Stats.mShadowDroppedLights;
+
                 continue;
             }
 
@@ -287,6 +305,7 @@ namespace Renderer {
                     const float Logarithmic{CameraNear * std::pow(FarDistance / CameraNear, Fraction)};
                     const float Split{View.mOrthographic ? Linear : Linear * 0.35f + Logarithmic * 0.65f};
                     const float BlendStart{Split - (Split - PreviousSplit) * std::clamp(Light.mCascadeTransitionFraction, 0.0f, 0.5f)};
+
                     Map.mViewProjection = MakeDirectionalMatrix(View, Light.mDirection, PreviousBlend, Split, Resolution, CasterBounds);
                     Map.mCascade = {PreviousSplit, Split, BlendStart, 0.0f};
 
@@ -294,6 +313,7 @@ namespace Renderer {
                     const Core::FMatrix& Matrix{Map.mViewProjection};
                     const float WidthScale{std::sqrt(Matrix(0, 0) * Matrix(0, 0) + Matrix(1, 0) * Matrix(1, 0) + Matrix(2, 0) * Matrix(2, 0))};
                     const float DepthScale{std::sqrt(Matrix(0, 2) * Matrix(0, 2) + Matrix(1, 2) * Matrix(1, 2) + Matrix(2, 2) * Matrix(2, 2))};
+
                     Map.mSoftness = {std::tan(Light.mShadowSourceAngle * 3.14159265f / 180.0f), WidthScale * 0.5f, 0.0f, 1.0f / DepthScale};
                     PreviousBlend = BlendStart;
                     PreviousSplit = Split;
@@ -302,6 +322,7 @@ namespace Renderer {
                     const Core::FVector Direction{Light.mType == Engine::ELightType::Point ? Directions[Face] : Light.mDirection};
                     const float NearPlane{std::min(0.05f, Light.mAttenuationRadius * 0.01f)};
                     const float FieldOfView{Light.mType == Engine::ELightType::Point ? 90.0f : std::clamp(Light.mOuterConeAngle * 2.0f, 1.0f, 179.0f)};
+
                     Map.mViewProjection = Core::FMatrix::LookTo(Light.mPosition, Direction, LightUp(Direction)) * Core::FMatrix::Perspective(FieldOfView, 1.0f, NearPlane, Light.mAttenuationRadius);
                     Map.mSoftness = {Light.mShadowSourceRadius, 0.5f / std::tan(FieldOfView * 0.5f * 3.14159265f / 180.0f), NearPlane, Light.mAttenuationRadius};
                 }
@@ -309,6 +330,7 @@ namespace Renderer {
                 mMaps.push_back(Map);
                 mBlocks.push_back(Block);
                 mTiles.push_back({Light.mId, {static_cast<float>(Block.mX) / AtlasSize, static_cast<float>(Block.mY) / AtlasSize, static_cast<float>(Block.mSize) / AtlasSize, static_cast<float>(Block.mSize) / AtlasSize}, Face, Resolution});
+
                 Stats.mShadowAllocatedBytes += static_cast<std::size_t>(Block.mSize) * Block.mSize * 4;
             }
         }
@@ -316,6 +338,9 @@ namespace Renderer {
         Stats.mShadowMaps = static_cast<Core::Uint32>(mMaps.size());
     }
 
+    /**
+     * @brief 구성한 그림자 맵의 샘플링 정보를 GPU 구조화 버퍼에 업로드합니다.
+     */
     bool Renderer::FShadowResources::Upload(ID3D11Device* Device, ID3D11DeviceContext* Context) {
         Core::FString Error{};
 
@@ -327,8 +352,12 @@ namespace Renderer {
         return mMaps.empty() || mShadowBuffer.Upload(Context, mMaps, Error);
     }
 
+    /**
+     * @brief 현재 뷰에 필요한 광원별 그림자 타일과 행렬을 구성하고 샘플링 정보를 업로드합니다.
+     */
     bool Renderer::FShadowResources::Prepare(ID3D11Device* Device, ID3D11DeviceContext* Context, const Renderer::FScene& Scene, const Engine::FSceneViewFamily& Family, const RenderCore::FShadowSettings& Settings, RenderCore::FRenderStats& Stats) {
         Unbind(Context);
+
         mSettings = Settings;
 
         if (mSampler == nullptr) {
@@ -350,6 +379,7 @@ namespace Renderer {
         mBlocks.clear();
         mTiles.clear();
         mLightRanges.assign(Scene.GetLights().size(), {});
+
         Stats.mDirectionalLights = 0;
         Stats.mPointLights = 0;
         Stats.mSpotLights = 0;
@@ -377,6 +407,7 @@ namespace Renderer {
 
         if (mMaps.empty()) {
             Stats.mShadowAtlasBytes = mAtlas != nullptr ? mAtlas->GetResourceBytes() + mPreview->GetResourceBytes() : 0;
+
             return true;
         }
 
@@ -385,8 +416,10 @@ namespace Renderer {
             mBlocks.clear();
             mTiles.clear();
             mLightRanges.assign(Scene.GetLights().size(), {});
+
             return false;
         }
+
         Stats.mShadowAtlasBytes = mAtlas->GetResourceBytes() + mPreview->GetResourceBytes();
         mSceneIdentity = Scene.GetIdentity();
         mCasterRevision = Scene.GetCasterRevision();
@@ -394,18 +427,30 @@ namespace Renderer {
         return true;
     }
 
+    /**
+     * @brief 타일 캐시의 프레임을 진행하고 오래 쓰지 않은 항목을 제거합니다.
+     */
     void Renderer::FShadowResources::BeginFrame() {
         mTileCache.BeginFrame();
     }
 
+    /**
+     * @brief 그림자 맵 하나의 깊이 내용을 결정하는 현재 입력 스탬프를 만듭니다.
+     */
     Renderer::FShadowTileStamp Renderer::FShadowResources::MakeTileStamp(Core::Uint32 Index, Core::Uint64 DepthShaderRevision) const {
         return {mBlocks[Index], mMaps[Index].mViewProjection, mCasterRevision, mAtlasRevision, DepthShaderRevision};
     }
 
+    /**
+     * @brief 아틀라스 타일이 이미 같은 입력으로 그려져 있는지 검사합니다.
+     */
     bool Renderer::FShadowResources::IsTileCurrent(Core::Uint32 Index, const Renderer::FShadowTileStamp& Stamp) {
         return mSettings.mCacheWholeSceneShadows && mTileCache.Find(MakeTileKey(Index), Stamp) != nullptr;
     }
 
+    /**
+     * @brief 타일을 다시 그리는 데 성공했음을 기록하고, 같은 아틀라스 영역을 덮어쓰인 다른 항목을 무효화합니다.
+     */
     void Renderer::FShadowResources::CommitTile(Core::Uint32 Index, const Renderer::FShadowTileStamp& Stamp) {
         const Renderer::FShadowAtlasBlock& Block{mBlocks[Index]};
         mTileCache.InvalidateIf([&Block](const Renderer::FShadowTileKey&, const Renderer::FShadowTileStamp& Cached) {
@@ -415,6 +460,9 @@ namespace Renderer {
         mPreviewDirty = true;
     }
 
+    /**
+     * @brief 그림자 맵 하나의 타일을 지울 아틀라스 영역을 반환합니다.
+     */
     Renderer::FPassTarget Renderer::FShadowResources::GetClearTarget(Core::Uint32 Index) const {
         const Renderer::FShadowAtlasBlock& Block{mBlocks[Index]};
         Renderer::FPassTarget Target{};
@@ -425,10 +473,16 @@ namespace Renderer {
         return Target;
     }
 
+    /**
+     * @brief 그림자 맵 하나를 타일 캐시에서 구분하는 키를 만듭니다.
+     */
     Renderer::FShadowTileKey Renderer::FShadowResources::MakeTileKey(Core::Uint32 Index) const {
         return {mSceneIdentity, mTiles[Index].mLightId, mTiles[Index].mFace};
     }
 
+    /**
+     * @brief 깊이 패스가 끝난 아틀라스로 장면 패스의 그림자 샘플링을 활성화합니다.
+     */
     void Renderer::FShadowResources::Finish(ID3D11DeviceContext* Context, const Engine::FSceneViewFamily& Family) {
         if (mMaps.empty()) {
             return;
@@ -437,14 +491,21 @@ namespace Renderer {
         Context->OMSetRenderTargets(0, nullptr, nullptr);
 
         const std::array<Core::FVector4, 3> ViewData{{{Family.mView.mLocation, 0.0f}, {Family.mView.mForward, 0.0f}, {static_cast<float>(mSettings.mFilter), static_cast<float>(mSettings.mPCFSize / 2), mSettings.mPCSSMaxFilterTexels, 0.0f}}};
+
         mViewBuffer.Update(Context, ViewData);
         mEnabled = true;
     }
 
+    /**
+     * @brief Prepare가 구성한 그림자 맵 목록을 반환합니다.
+     */
     std::span<const Renderer::FGpuShadow> Renderer::FShadowResources::GetMaps() const {
         return mMaps;
     }
 
+    /**
+     * @brief 그림자 맵 하나의 깊이를 기록할 아틀라스 타일 타깃을 반환합니다.
+     */
     Renderer::FPassTarget Renderer::FShadowResources::GetTarget(Core::Uint32 Index) const {
         const Core::FVector4& Rectangle{mMaps[Index].mAtlasRectangle};
         Renderer::FPassTarget Target{};
@@ -455,13 +516,18 @@ namespace Renderer {
         return Target;
     }
 
+    /**
+     * @brief 깊이 아틀라스를 색상 미리보기 텍스처로 변환합니다.
+     */
     void Renderer::FShadowResources::RenderPreview(ID3D11DeviceContext* Context) {
         ID3D11RenderTargetView* Target{mPreview->GetRenderTargetView()};
+
         Context->OMSetRenderTargets(1, &Target, nullptr);
         Context->OMSetDepthStencilState(mPreviewDepthState.Get(), 0);
 
         const D3D11_VIEWPORT Viewport{0.0f, 0.0f, 2048.0f, 2048.0f, 0.0f, 1.0f};
         const D3D11_RECT Scissor{0, 0, 2048, 2048};
+
         Context->RSSetViewports(1, &Viewport);
         Context->RSSetScissorRects(1, &Scissor);
         Context->RSSetState(nullptr);
@@ -470,16 +536,22 @@ namespace Renderer {
         Context->PSSetShader(mPreviewPixelShader.Get(), nullptr, 0);
 
         ID3D11ShaderResourceView* Atlas{mAtlas->GetShaderResourceView()};
+
         Context->PSSetShaderResources(5, 1, &Atlas);
         Context->Draw(3, 0);
 
         ID3D11ShaderResourceView* Empty{};
+
         Context->PSSetShaderResources(5, 1, &Empty);
         Context->OMSetRenderTargets(0, nullptr, nullptr);
     }
 
+    /**
+     * @brief 그림자 아틀라스와 샘플링 정보의 셰이더 바인딩을 설정합니다.
+     */
     void Renderer::FShadowResources::Bind(ID3D11DeviceContext* Context) const {
         ID3D11ShaderResourceView* Atlas{mEnabled ? mAtlas->GetShaderResourceView() : nullptr};
+
         Context->PSSetShaderResources(5, 1, &Atlas);
 
         if (mEnabled) {
@@ -489,28 +561,44 @@ namespace Renderer {
         }
 
         ID3D11SamplerState* Sampler{mSampler.Get()};
+
         Context->PSSetSamplers(1, 1, &Sampler);
         mViewBuffer.Bind(Context, RenderCore::EShaderStage::Pixel, 4);
     }
 
+    /**
+     * @brief 그림자 아틀라스와 샘플링 정보의 셰이더 바인딩을 해제합니다.
+     */
     void Renderer::FShadowResources::Unbind(ID3D11DeviceContext* Context) const {
         ID3D11ShaderResourceView* Empty{};
+
         Context->PSSetShaderResources(5, 1, &Empty);
         mShadowBuffer.Unbind(Context, RenderCore::EShaderStage::Pixel, 6);
     }
 
+    /**
+     * @brief 원본 광원별 그림자 맵 구간을 반환합니다.
+     */
     const Core::TArray<std::array<Core::Uint32, 2>>& Renderer::FShadowResources::GetLightRanges() const {
         return mLightRanges;
     }
 
+    /**
+     * @brief 현재 그림자 아틀라스의 미리보기와 타일 정보를 반환합니다.
+     */
     RenderCore::FShadowAtlasView Renderer::FShadowResources::GetView() {
         mPreviewRequested = mPreviewRequested || mEnabled;
+
         return {mEnabled && mPreview != nullptr ? mPreview->GetShaderResourceView() : nullptr, AtlasSize, mTiles, mEnabled ? mAtlas->GetShaderResourceView() : nullptr};
     }
 
+    /**
+     * @brief 요청된 그림자 아틀라스 미리보기를 현재 깊이 자원에서 갱신합니다.
+     */
     void Renderer::FShadowResources::UpdatePreview(ID3D11DeviceContext* Context) {
         if (mPreviewRequested && mPreviewDirty && mPreview != nullptr) {
             RenderPreview(Context);
+
             mPreviewDirty = false;
         }
 

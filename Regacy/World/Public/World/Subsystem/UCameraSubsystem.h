@@ -10,6 +10,7 @@ public:
 
 public:
     UCameraSubsystem();
+
     ~UCameraSubsystem() override = default;
 
 public:

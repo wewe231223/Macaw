@@ -25,29 +25,45 @@ namespace Engine {
 
     Engine::ULightComponentBase::ULightComponentBase() = default;
 
+    /**
+     * @brief 광원을 렌더 장면에서 제거하고 아이콘 자원을 정리합니다.
+     */
     Engine::ULightComponentBase::~ULightComponentBase() {
         UnregisterComponent();
     }
 
+    /**
+     * @brief 광원의 밝기 배율을 반환합니다.
+     */
     float Engine::ULightComponentBase::GetIntensity() const {
         return mIntensity;
     }
 
+    /**
+     * @brief 광원의 밝기 배율을 검증하고 변경합니다.
+     */
     bool Engine::ULightComponentBase::SetIntensity(float Intensity) {
         if (!std::isfinite(Intensity) || Intensity < 0.0f) {
             return false;
         }
 
         mIntensity = Intensity;
+
         SynchronizeLight();
 
         return true;
     }
 
+    /**
+     * @brief 광원의 RGBA 색상을 반환합니다.
+     */
     const Core::FVector4& Engine::ULightComponentBase::GetLightColor() const {
         return mLightColor;
     }
 
+    /**
+     * @brief 광원의 RGBA 색상을 검증하고 변경합니다.
+     */
     bool Engine::ULightComponentBase::SetLightColor(const Core::FVector4& Color) {
         const auto Values{Color.ToArray()};
 
@@ -58,11 +74,15 @@ namespace Engine {
         }
 
         mLightColor = Color;
+
         SynchronizeLight();
 
         return true;
     }
 
+    /**
+     * @brief 현재 컴포넌트의 조명·그림자 설정으로 렌더 프록시를 생성합니다.
+     */
     Engine::FLightSceneProxy Engine::ULightComponentBase::CreateLightProxy() const {
         Engine::FLightSceneProxy Proxy{};
         Proxy.mId = GetGuid();
@@ -76,6 +96,9 @@ namespace Engine {
         return Proxy;
     }
 
+    /**
+     * @brief 아이콘 의존성을 갱신하고 현재 광원 프록시를 월드의 렌더 장면에 반영합니다.
+     */
     void Engine::ULightComponentBase::SynchronizeLight() {
         Asset::FAssetManager* Assets{GetWorld() != nullptr ? GetWorld()->GetAssets() : nullptr};
 
@@ -94,6 +117,9 @@ namespace Engine {
         }
     }
 
+    /**
+     * @brief 월드 변환을 적용하고 렌더 장면의 광원 위치·방향을 갱신합니다.
+     */
     bool Engine::ULightComponentBase::SetTransform(const Core::FTransform& Transform) {
         if (!Engine::USceneComponent::SetTransform(Transform)) {
             return false;
@@ -104,14 +130,23 @@ namespace Engine {
         return true;
     }
 
+    /**
+     * @brief 월드에 등록된 광원의 상태를 렌더 장면과 동기화합니다.
+     */
     void Engine::ULightComponentBase::OnRegister() {
         SynchronizeLight();
     }
 
+    /**
+     * @brief 소유 액터의 표시 여부 변경을 렌더 장면에 동기화합니다.
+     */
     void Engine::ULightComponentBase::OnOwnerVisibilityChanged() {
         SynchronizeLight();
     }
 
+    /**
+     * @brief 렌더 장면의 광원 등록과 아이콘 참조를 해제하고 컴포넌트를 등록 해제합니다.
+     */
     void Engine::ULightComponentBase::UnregisterComponent() {
         if (GetWorld() != nullptr && GetWorld()->GetScene() != nullptr) {
             GetWorld()->GetScene()->RemoveLight(GetGuid());
@@ -123,12 +158,16 @@ namespace Engine {
         Engine::UActorComponent::UnregisterComponent();
     }
 
+    /**
+     * @brief 광원 종류에 맞는 프로젝트 아이콘 또는 대체 아이콘을 로드합니다.
+     */
     void Engine::ULightComponentBase::ResolveIcon(Asset::FAssetManager* Assets) {
         const Engine::ELightType Type{CreateLightProxy().mType};
         const char* Name{Type == Engine::ELightType::Directional ? "DirectionalLight_64x.png" : Type == Engine::ELightType::Ambient ? "SkyLight_64x.png" : Type == Engine::ELightType::Spot ? "SpotLight_64x.png" : "PointLight_64x.png"};
 
         if (Assets != nullptr) {
             Core::FString Error{};
+
             mIcon = Assets->LoadTexture(Core::FString{"Editor/Icon/"} + Name, Error);
         }
 
@@ -153,6 +192,9 @@ namespace Engine {
         }
     }
 
+    /**
+     * @brief 광원의 방향과 선택된 광원의 반경·원뿔 보조선을 제출합니다.
+     */
     void Engine::ULightComponentBase::DrawVisualization(Engine::FPrimitiveDrawInterface& Draw, bool Selected) const {
         const Engine::FLightSceneProxy Proxy{CreateLightProxy()};
         const Core::FVector Color{mLightColor.x, mLightColor.y, mLightColor.z};
@@ -164,6 +206,7 @@ namespace Engine {
 
         if (Proxy.mType == Engine::ELightType::Directional || Proxy.mType == Engine::ELightType::Spot) {
             const Core::FVector End{Position + Forward * 2.0f};
+
             Draw.DrawLine(Position, End, Color, true, 2.0f);
             Draw.DrawLine(End, End - Forward * 0.4f + Right * 0.2f, Color, true, 2.0f);
             Draw.DrawLine(End, End - Forward * 0.4f - Right * 0.2f, Color, true, 2.0f);
@@ -183,6 +226,7 @@ namespace Engine {
                 for (Core::Uint32 Index{}; Index < Segments; ++Index) {
                     const Core::FAngle Start{1_turn * Index / Segments};
                     const Core::FAngle End{1_turn * (Index + 1) / Segments};
+
                     Draw.DrawLine(Position + (Axes[Axis] * Core::Math::Cos(Start) + Axes[(Axis + 1) % 3] * Core::Math::Sin(Start)) * Radius, Position + (Axes[Axis] * Core::Math::Cos(End) + Axes[(Axis + 1) % 3] * Core::Math::Sin(End)) * Radius, Color, true);
                 }
             }
@@ -199,6 +243,7 @@ namespace Engine {
                 const Core::FAngle Start{1_turn * Index / Segments};
                 const Core::FAngle End{1_turn * (Index + 1) / Segments};
                 const Core::FVector Edge{Center + (Right * Core::Math::Cos(Start) + Up * Core::Math::Sin(Start)) * ConeRadius};
+
                 Draw.DrawLine(Edge, Center + (Right * Core::Math::Cos(End) + Up * Core::Math::Sin(End)) * ConeRadius, ConeColor, true);
 
                 if (Index % (Segments / 4) == 0) {

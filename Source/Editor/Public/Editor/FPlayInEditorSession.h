@@ -56,6 +56,7 @@ namespace Editor {
         /**
          * @brief 편집 월드를 복제하여 PIE를 시작하고 뷰포트 입력과 조회 대상을 연결합니다.
          * @return 요청한 처리를 완료하면 true, 실패하면 false입니다.
+         * @param[in] Input 키·마우스 상태를 조회할 공통 입력입니다.
          */
         bool Start(Core::FInput* Input = nullptr);
 
@@ -83,6 +84,12 @@ namespace Editor {
          * @brief PIE 월드의 유효성을 검사하고 지연된 종료 요청을 처리합니다.
          */
         void Update();
+
+        /**
+         * @brief PIE 게임 뷰포트에 프레임 입력과 경과 시간을 전달합니다.
+         * @param[in] DeltaTime 프레임에서 진행할 초 단위 시간입니다.
+         * @param[in] AllowInput 게임 뷰포트 입력 처리를 허용할지 지정합니다.
+         */
         void ProcessInput(float DeltaTime, bool AllowInput);
 
         /**
@@ -154,6 +161,10 @@ namespace Editor {
          * @brief PIE 월드의 활성 카메라와 입력을 처리하는 클라이언트입니다.
          */
         Engine::FGameViewportClient mGameClient;
+
+        /**
+         * @brief 게임 뷰포트로 전달할 프레임 입력의 비소유 주소입니다.
+         */
         Core::FInput* mInput{};
 
         /**

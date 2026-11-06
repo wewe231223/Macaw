@@ -43,6 +43,7 @@ bool FSwapChainRenderSurface::CreateResources(ID3D11Device* Device) {
 
     if (FAILED(BufferResult)) {
         ErrorHandler::ReportHRESULT(BufferResult, "[ FSwapChainRenderSurface ]", "Failed to get swap chain back buffer.", ErrorHandler::EErrorLevel::Warning);
+
         return false;
     }
 
@@ -50,6 +51,7 @@ bool FSwapChainRenderSurface::CreateResources(ID3D11Device* Device) {
 
     if (FAILED(ViewResult)) {
         ErrorHandler::ReportHRESULT(ViewResult, "[ FSwapChainRenderSurface ]", "Failed to create swap chain render target view.", ErrorHandler::EErrorLevel::Warning);
+
         return false;
     }
 

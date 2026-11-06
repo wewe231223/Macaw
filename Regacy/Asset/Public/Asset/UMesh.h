@@ -137,6 +137,7 @@ private:
         TArray<Uint32> mIndices{};
         TArray<Uint32> mRenderIndices{};
         TArray<FMeshSection> mSections{};
+
         // 재질이 하나일 때는 삼각형별 구간과 경계 배열을 만들지 않는다.
         TArray<Uint32> mTriangleSections{};
         TArray<Uint8> mMaterialBoundaryVertices{};
@@ -145,6 +146,7 @@ private:
         TArray<FLODAttributeGroup> mAttributeGroups{};
         TArray<Uint32> mRenderGroups{};
         TArray<Uint32> mVertexGroupCounts{};
+
         // UV만 갈라진 면은 Normal을 함께 계산하고, 원본의 각진 경계는 분리한다.
         TArray<Uint32> mNormalParents{};
         TArray<Uint8> mNormalRanks{};
@@ -177,6 +179,7 @@ private:
 
         // V0는 남길 정점, V1은 제거할 정점이다.
         FEdge mEdge{};
+
         // 공유 면 두 개에서 찾은 대응 관계. 이음매 양쪽을 서로 섞지 않는다.
         std::array<FAttributeMerge, 2> mAttributeMerges{};
         Uint32 mMergeCount{};
@@ -369,6 +372,7 @@ bool UMesh::Make(const std::span<const Uint32>& InIndices, const TAttributes&...
 
         if (InAttribute.mData.empty() || InAttribute.mData.size() > std::numeric_limits<Uint32>::max()) {
             BSuccess = false;
+
             return;
         }
 
@@ -379,6 +383,7 @@ bool UMesh::Make(const std::span<const Uint32>& InIndices, const TAttributes&...
             BFirstAttribute = false;
         } else if (AttributeVertexCount != ExpectedVertexCount) {
             BSuccess = false;
+
             return;
         }
 
@@ -391,6 +396,7 @@ bool UMesh::Make(const std::span<const Uint32>& InIndices, const TAttributes&...
 
     if (!BSuccess) {
         Reset();
+
         return false;
     }
 

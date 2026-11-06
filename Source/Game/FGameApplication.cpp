@@ -52,11 +52,13 @@ namespace Game {
                 mPlatform.GetInput().SetGameInputEnabled(false);
                 mTimer.Tick();
                 MsgWaitForMultipleObjects(0, nullptr, false, 16, QS_ALLINPUT);
+
                 continue;
             }
 
             const Core::FScopedStatFrame StatFrame{};
             const float DeltaTime{std::min(mTimer.Tick(), 0.1f)};
+
             mRenderer.BeginFrame(mPlatform.GetWidth(), mPlatform.GetHeight());
 
             if (!mViewport->Resize(mPlatform.GetWidth(), mPlatform.GetHeight())) {
@@ -108,6 +110,7 @@ namespace Game {
 
         if (!mPlatform.Create(Title.c_str(), 1280, 720)) {
             Error = "Cannot create the game window";
+
             return false;
         }
 
@@ -116,6 +119,7 @@ namespace Game {
 
         if (!mRenderer.Initialize(mPlatform.GetWindowHandle(), mPlatform.GetWidth(), mPlatform.GetHeight()) || !mEngine.Initialize(&mRenderer)) {
             Error = "Cannot initialize the game renderer or engine";
+
             return false;
         }
 
@@ -128,6 +132,7 @@ namespace Game {
 
         if (Context->GetWorld()->GetActiveCamera() == nullptr) {
             Error = "The startup scene requires an active world camera. Set one in the editor and save the scene.";
+
             return false;
         }
 
@@ -136,6 +141,7 @@ namespace Game {
 
         if (!mEngine.ReplaceWorld(std::move(Context)) || !mGameClient.SetWorld(mEngine.GetWorldHandle()) || !mEngine.GetWorld()->BeginPlay()) {
             Error = "Cannot start the game world";
+
             return false;
         }
 

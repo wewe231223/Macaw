@@ -32,6 +32,7 @@ namespace Engine {
     class UCameraComponent;
     class UActorComponent;
     class FWorldContext;
+
     enum class EPrimitiveType : Core::Uint8;
 }
 
@@ -499,7 +500,18 @@ namespace Editor {
          * @param[in] Command 실행할 문자열입니다.
          */
         void ExecuteConsoleCommand(const Core::FString& Command);
+
+        /**
+         * @brief 콘솔 명령에서 입력 접두어에 맞는 후보를 조회합니다.
+         * @param[in] Input 해석할 원본 입력 문자열입니다.
+         * @return 입력에 맞는 자동 완성 목록입니다.
+         */
         Core::TArray<Core::FString> GetConsoleSuggestions(std::string_view Input) const;
+
+        /**
+         * @brief 편집 컨텍스트가 소유하는 통계 그래프 창을 반환합니다.
+         * @return 편집 컨텍스트가 소유하는 통계 그래프 창입니다.
+         */
         Editor::FStatGraphs& GetStatGraphs();
 
         /**
@@ -559,7 +571,15 @@ namespace Editor {
         bool RemoveScriptField(CoreUObject::FObjectHandle Handle, const Core::FString& Name);
 
     private:
+        /**
+         * @brief 편집 기능·렌더 설정·통계 명령을 콘솔에 등록합니다.
+         */
         void RegisterConsoleCommands();
+
+        /**
+         * @brief 콘솔 인자로 화면 찢김 허용 설정을 조회하거나 변경합니다.
+         * @param[in] Invocation 명령 이름·사용법·입력·인자입니다.
+         */
         void ExecuteAllowTearing(const Editor::FConsoleInvocation& Invocation);
 
         /**
@@ -667,8 +687,19 @@ namespace Editor {
          */
         std::function<Core::FTransform()> mPlacementProvider{};
 
+        /**
+         * @brief 편집·렌더·통계 명령 레지스트리입니다.
+         */
         Editor::FConsoleCommandRegistry mConsoleCommands{};
+
+        /**
+         * @brief 콘솔·통계 패널이 공유하는 그래프 창입니다.
+         */
         Editor::FStatGraphs mStatGraphs{};
+
+        /**
+         * @brief 콘솔 명령 대상 뷰포트를 찾는 콜백입니다.
+         */
         std::function<Editor::FEditorViewport*()> mConsoleViewportProvider{};
 
         /**

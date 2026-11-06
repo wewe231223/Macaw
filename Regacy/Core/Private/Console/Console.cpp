@@ -163,6 +163,7 @@ namespace Console {
 
         if (Length < 0) {
             va_end(Args);
+
             return;
         }
 
@@ -206,6 +207,7 @@ namespace Console {
 
         if (Storage == nullptr)
             return;
+
         // lock 수명 짧게
         {
             std::lock_guard<std::mutex> Lock{State.mPendingMutex};

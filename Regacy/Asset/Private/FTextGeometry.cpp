@@ -53,6 +53,7 @@ bool BuildTextGeometry(const UFont& Font, IAssetRegistryMutator& Registry, FAsse
         if (CodePoint == U'\n') {
             PenX = 0.0f;
             BaselineY -= CharacterHeight + LineSpacing;
+
             continue;
         }
 
@@ -77,6 +78,7 @@ bool BuildTextGeometry(const UFont& Font, IAssetRegistryMutator& Registry, FAsse
             Vertex.mSize = FVector2{static_cast<float>(Glyph->mBitmapWidth) * Scale, static_cast<float>(Glyph->mBitmapHeight) * Scale};
             Vertex.mUvMin = Glyph->mUvMin;
             Vertex.mUvMax = Glyph->mUvMax;
+
             Vertices.push_back(Vertex);
         }
 

@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Editor/Input/FKeyboardInput.h"
+
 #ifdef OBJ_VIEWER
 #include "Editor/Input/Messages/FKeyboardCameraMoveRequestMessage.h"
 #endif
@@ -21,6 +22,7 @@ void FKeyboardInput::ProcessWindowMessage(UINT Message, WPARAM WParam, LPARAM LP
 
     if (Message == WM_KILLFOCUS) {
         ResetKeyStates();
+
         return;
     }
 

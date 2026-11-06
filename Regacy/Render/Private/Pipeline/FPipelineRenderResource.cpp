@@ -22,6 +22,7 @@ bool FPipelineRenderResource::Initialize(ID3D11Device* Device, const UPipeline& 
 
     if (FAILED(Device->CreateBlendState(&BlendDescription, mOpaqueBlendState.GetAddressOf()))) {
         Reset();
+
         return false;
     }
 
@@ -32,6 +33,7 @@ bool FPipelineRenderResource::Initialize(ID3D11Device* Device, const UPipeline& 
 
     if (FAILED(Device->CreateBlendState(&BlendDescription, mTranslucentBlendState.GetAddressOf()))) {
         Reset();
+
         return false;
     }
 
@@ -42,6 +44,7 @@ bool FPipelineRenderResource::Initialize(ID3D11Device* Device, const UPipeline& 
 
         if (Description != nullptr && !Make(Device, *Description, mPipelines[Index])) {
             Reset();
+
             return false;
         }
     }
@@ -52,6 +55,7 @@ bool FPipelineRenderResource::Initialize(ID3D11Device* Device, const UPipeline& 
 bool FPipelineRenderResource::Make(ID3D11Device* Device, const FPipelineDescription& Description, FPipelineState& Pipeline) {
     if (Device == nullptr) {
         ErrorHandler::Report("Pipeline::Initialize", "A valid Direct3D device is required to initialize a pipeline.", ErrorHandler::EErrorLevel::Error);
+
         return false;
     }
 
@@ -95,6 +99,7 @@ bool FPipelineRenderResource::Make(ID3D11Device* Device, const FPipelineDescript
         if (FAILED(Result)) {
             ErrorHandler::ReportHRESULT(Result, "Pipeline::Initialize", "Failed to create the input layout.", ErrorHandler::EErrorLevel::Error);
             Reset();
+
             return false;
         }
     } else {
@@ -114,6 +119,7 @@ bool FPipelineRenderResource::Make(ID3D11Device* Device, const FPipelineDescript
     if (FAILED(Result)) {
         ErrorHandler::ReportHRESULT(Result, "Pipeline::Initialize", "Failed to create the rasterizer state.", ErrorHandler::EErrorLevel::Error);
         Reset();
+
         return false;
     }
 
@@ -137,6 +143,7 @@ bool FPipelineRenderResource::Make(ID3D11Device* Device, const FPipelineDescript
     if (FAILED(Result)) {
         ErrorHandler::ReportHRESULT(Result, "Pipeline::Initialize", "Failed to create the depth-stencil state.", ErrorHandler::EErrorLevel::Error);
         Reset();
+
         return false;
     }
 
@@ -144,6 +151,7 @@ bool FPipelineRenderResource::Make(ID3D11Device* Device, const FPipelineDescript
 
     if (FAILED(Device->CreateDepthStencilState(&DepthStencilDesc, Pipeline.mTranslucentDepthStencilState.GetAddressOf()))) {
         Reset();
+
         return false;
     }
 
@@ -168,6 +176,7 @@ bool FPipelineRenderResource::Make(ID3D11Device* Device, const FPipelineDescript
     if (FAILED(Result)) {
         ErrorHandler::ReportHRESULT(Result, "Pipeline::Initialize", "Failed to create the blend state.", ErrorHandler::EErrorLevel::Error);
         Reset();
+
         return false;
     }
 
@@ -181,6 +190,7 @@ bool FPipelineRenderResource::Make(ID3D11Device* Device, const FPipelineDescript
 void FPipelineRenderResource::Bind(ID3D11DeviceContext* Context, ERenderMode Mode, UINT StencilReference) const {
     if (Context == nullptr) {
         ErrorHandler::Report("Pipeline::Bind", "A valid Direct3D device context is required to bind a pipeline.", ErrorHandler::EErrorLevel::Error);
+
         return;
     }
 

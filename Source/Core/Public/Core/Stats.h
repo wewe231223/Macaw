@@ -352,6 +352,13 @@ namespace Core {
          * @return 일치하는 스냅샷의 복사본이며 그룹을 생략하면 전체 목록입니다.
          */
         Core::TArray<Core::FStatSnapshot> GetSnapshots(const Core::FString& Group = {}) const;
+
+        /**
+         * @brief 지정한 통계 항목의 최근 기록을 오래된 샘플부터 반환합니다.
+         * @param[in] Group 조회하거나 표시할 통계 그룹 이름입니다.
+         * @param[in] Name 조회·등록·출력할 대상 이름입니다.
+         * @return 오래된 순서에서 최근 순서로 나열한 통계 샘플입니다.
+         */
         Core::TArray<double> GetHistory(std::string_view Group, std::string_view Name) const;
 
     private:

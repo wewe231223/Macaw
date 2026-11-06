@@ -29,6 +29,7 @@ namespace Renderer {
 
         if (Width == mWidth && Height == mHeight && mColor != nullptr && mDepth != nullptr && mSceneColor != nullptr && mPostProcessColor != nullptr && mColor->HasResources() && mDepth->HasResources() && mSceneColor->HasResources() && mPostProcessColor->HasResources()) {
             Microsoft::WRL::ComPtr<ID3D11Device> ResourceDevice{};
+
             mColor->GetTexture()->GetDevice(ResourceDevice.GetAddressOf());
 
             if (ResourceDevice.Get() == Device) {
@@ -91,22 +92,37 @@ namespace Renderer {
         return mDepth != nullptr ? mDepth->GetDepthStencilView() : nullptr;
     }
 
+    /**
+     * @brief 현재 보유한 GPU 리소스의 추정 바이트 수를 반환합니다.
+     */
     std::size_t Renderer::FDXRenderTarget::GetResourceBytes() const {
         return (mColor != nullptr ? mColor->GetResourceBytes() : 0) + (mDepth != nullptr ? mDepth->GetResourceBytes() : 0) + (mSceneColor != nullptr ? mSceneColor->GetResourceBytes() : 0) + (mPostProcessColor != nullptr ? mPostProcessColor->GetResourceBytes() : 0);
     }
 
+    /**
+     * @brief 장면 드로와 교대 후처리 입력으로 사용하는 컬러 텍스처를 조회합니다.
+     */
     Asset::UTexture2D* Renderer::FDXRenderTarget::GetSceneColor() const {
         return mSceneColor.get();
     }
 
+    /**
+     * @brief 다중 안개 합성에 사용하는 교대 컬러 텍스처를 조회합니다.
+     */
     Asset::UTexture2D* Renderer::FDXRenderTarget::GetPostProcessColor() const {
         return mPostProcessColor.get();
     }
 
+    /**
+     * @brief 에디터와 UI에 표시하는 최종 컬러 텍스처를 조회합니다.
+     */
     Asset::UTexture2D* Renderer::FDXRenderTarget::GetOutputColor() const {
         return mColor.get();
     }
 
+    /**
+     * @brief 깊이 검사와 후처리 샘플링에 공유하는 깊이 텍스처를 조회합니다.
+     */
     Asset::UTexture2D* Renderer::FDXRenderTarget::GetSceneDepth() const {
         return mDepth.get();
     }

@@ -56,6 +56,7 @@ void UBillboardComponent::SetSize(const FVector2& InSize) {
     }
 
     mSize = InSize;
+
     OnRenderStateChanged();
 }
 
@@ -66,6 +67,7 @@ void UBillboardComponent::SetUV(const FVector2& InUVMin, const FVector2& InUVMax
 
     mUvMin = InUVMin;
     mUvMax = InUVMax;
+
     MarkRenderDynamicDataDirty();
 }
 
@@ -75,6 +77,7 @@ void UBillboardComponent::SetColor(const FVector4& InColor) {
     }
 
     mColor = InColor;
+
     MarkRenderStateDirty();
 }
 

@@ -7,6 +7,7 @@
 struct FTransform {
 public:
     FTransform() = default;
+
     FTransform(const FVector3& InPosition, const FRotator& InRotation, const FVector3& InScale);
     FTransform(const FVector3& InPosition, const FQuat& InRotation, const FVector3& InScale);
 

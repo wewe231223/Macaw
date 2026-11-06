@@ -18,6 +18,7 @@ namespace Renderer {
 
     /**
      * @brief 보이는 메시를 머티리얼 파이프라인과 조명으로 장면 타깃에 그리는 메시 패스입니다.
+     * @note 장치·렌더러 연결을 구성하는 FMeshPass 생성자를 상속합니다.
      */
     class FBasePass final : public Renderer::FMeshPass {
     public:

@@ -26,6 +26,7 @@ void UBillboardTextComponent::SetText(const FString& InText) {
     }
 
     mText = InText;
+
     RebuildTextGeometry();
 }
 
@@ -35,6 +36,7 @@ void UBillboardTextComponent::SetColor(const FVector4& InColor) {
     }
 
     mColor = InColor;
+
     MarkRenderStateDirty();
 }
 
@@ -46,6 +48,7 @@ void UBillboardTextComponent::SetCharacterHeight(float InCharacterHeight) {
     }
 
     mCharacterHeight = NewHeight;
+
     RebuildTextGeometry();
 }
 
@@ -55,6 +58,7 @@ void UBillboardTextComponent::SetLetterSpacing(float InLetterSpacing) {
     }
 
     mLetterSpacing = InLetterSpacing;
+
     RebuildTextGeometry();
 }
 
@@ -64,6 +68,7 @@ void UBillboardTextComponent::SetLineSpacing(float InLineSpacing) {
     }
 
     mLineSpacing = InLineSpacing;
+
     RebuildTextGeometry();
 }
 

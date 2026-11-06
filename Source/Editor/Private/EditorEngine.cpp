@@ -59,6 +59,7 @@ namespace Editor {
 
         if (!mContext.SetWorld(GetWorldHandle())) {
             Engine::UEngine::Shutdown();
+
             return false;
         }
 
@@ -77,6 +78,7 @@ namespace Editor {
 
         if (!mContext.SetWorld(GetWorldHandle())) {
             Engine::UEngine::Shutdown();
+
             return false;
         }
 
@@ -93,6 +95,7 @@ namespace Editor {
 
         if (!mViewport.Initialize(Renderer) || !mUI->Initialize(Renderer, Platform)) {
             Shutdown();
+
             return false;
         }
 
@@ -103,6 +106,7 @@ namespace Editor {
 
             if (!mContext.LoadScene(Core::FilePath::FromUtf8(Startup))) {
                 Shutdown();
+
                 return false;
             }
         }
@@ -118,6 +122,7 @@ namespace Editor {
     void Editor::UEditorEngine::Shutdown() {
         if (IsDispatching()) {
             Engine::UEngine::Shutdown();
+
             return;
         }
 
@@ -155,6 +160,9 @@ namespace Editor {
         }
     }
 
+    /**
+     * @brief 에디터 엔진이 소유한 PIE 실행 세션의 주소를 반환합니다.
+     */
     Editor::FPlayInEditorSession* Editor::UEditorEngine::GetPlaySession() {
         return &mPlaySession;
     }

@@ -12,6 +12,7 @@ public:
 
 public:
     USubUVComponent();
+
     ~USubUVComponent() override = default;
 
 public:
@@ -75,16 +76,20 @@ private:
 
     TObjectRef<UPrimitiveComponent> mTargetComponent{};
     FGuid mPendingTargetGuid{};
+
     ReflectAccessor(mTargetMaterialSlot, GetTargetMaterialSlot, SetTargetMaterialSlot, "TargetMaterialSlot", EPropertyFlags::Edit | EPropertyFlags::Serialize, ReflectSerializer(mTargetMaterialSlot), ReflectEditor("UV Animation", "Material Slot"), ReflectOptions(GetTargetMaterialSlots));
 
     FName mTargetMaterialSlot{};
+
     ReflectAccessor(mUVTransform, GetUVTransform, SetUVTransform, "UVTransform", EPropertyFlags::Edit | EPropertyFlags::Serialize | EPropertyFlags::Inline, ReflectSerializer(mUVTransform), ReflectEditor("UV Animation", "UV Transform"), ReflectCondition(CanEditUVTransform));
 
     FUVTransform mUVTransform{};
     double mElapsedTime{};
+
     ReflectReadOnlyAccessor(mPlaying, IsPlaying, "Playing", EPropertyFlags::Serialize | EPropertyFlags::ReadOnly, ReflectSerializer(mPlaying), ReflectSerializationName("bPlaying"));
 
     bool mPlaying{true};
+
     ReflectAccessor(mLooping, IsLooping, SetLooping, "Looping", EPropertyFlags::Edit | EPropertyFlags::Serialize, ReflectSerializer(mLooping), ReflectEditor("UV Animation", "Looping"), ReflectSerializationName("bLooping"));
 
     bool mLooping{true};

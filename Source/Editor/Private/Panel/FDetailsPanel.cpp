@@ -89,15 +89,29 @@ namespace Editor {
         }
 
         // 숫자 변환은 Macaw.Engine의 ScriptFields와 같은 형식이어야 하므로 로캘과 무관한 charconv를 씁니다.
+
+        /**
+         * @brief 스크립트 프로퍼티의 편집 문자열을 실수로 해석합니다.
+         * @param[in] Text 해석·변환·탐색할 원문 문자열입니다.
+         * @return 문자열에서 해석한 실수입니다.
+         */
         float ParseScriptFloat(std::string_view Text) {
             float Value{};
+
             std::from_chars(Text.data(), Text.data() + Text.size(), Value);
+
             return Value;
         }
 
+        /**
+         * @brief 스크립트 프로퍼티 실수를 편집 가능한 문자열로 변환합니다.
+         * @param[in] Value 검사·변환·저장할 값입니다.
+         * @return 편집할 수 있는 실수 문자열입니다.
+         */
         Core::FString FormatScriptFloat(float Value) {
             std::array<char, 64> Buffer{};
             const auto Result{std::to_chars(Buffer.data(), Buffer.data() + Buffer.size(), Value)};
+
             return Core::FString{Buffer.data(), Result.ptr};
         }
 
@@ -115,14 +129,17 @@ namespace Editor {
 
                 if (ImGui::Checkbox(Label, &Current)) {
                     Value = Current ? "true" : "false";
+
                     return true;
                 }
             } else if (Info.mType == "Int") {
                 int Current{};
+
                 std::from_chars(Value.data(), Value.data() + Value.size(), Current);
 
                 if (ImGui::InputInt(Label, &Current)) {
                     Value = std::to_string(Current);
+
                     return true;
                 }
             } else if (Info.mType == "Float") {
@@ -130,6 +147,7 @@ namespace Editor {
 
                 if (ImGui::DragFloat(Label, &Current, 0.025f)) {
                     Value = FormatScriptFloat(Current);
+
                     return true;
                 }
             } else if (Info.mType == "Vector3") {
@@ -138,20 +156,24 @@ namespace Editor {
 
                 for (float& Component : Current) {
                     const std::size_t Space{Rest.find(' ')};
+
                     Component = ParseScriptFloat(Rest.substr(0, Space));
                     Rest = Space != std::string_view::npos ? Rest.substr(Space + 1) : std::string_view{};
                 }
 
                 if (ImGui::DragFloat3(Label, Current.data(), 0.025f)) {
                     Value = FormatScriptFloat(Current[0]) + " " + FormatScriptFloat(Current[1]) + " " + FormatScriptFloat(Current[2]);
+
                     return true;
                 }
             } else if (Info.mType == "String") {
                 std::array<char, 512> Buffer{};
+
                 std::copy_n(Value.begin(), std::min(Value.size(), Buffer.size() - 1), Buffer.begin());
 
                 if (ImGui::InputText(Label, Buffer.data(), Buffer.size(), ImGuiInputTextFlags_EnterReturnsTrue)) {
                     Value = Buffer.data();
+
                     return true;
                 }
             }
@@ -172,21 +194,31 @@ namespace Editor {
      */
     Editor::FDetailsPanel::~FDetailsPanel() = default;
 
+    /**
+     * @brief 브라우저와 공유할 에셋 표시 서비스를 연결합니다.
+     */
     void Editor::FDetailsPanel::SetAssetServices(Editor::FEditorAssetCatalog* Catalog, Editor::FAssetThumbnailCache* Thumbnails) {
         mAssetCatalog = Catalog;
         mThumbnails = Thumbnails;
     }
 
+    /**
+     * @brief C# 프로젝트 생성과 빌드 상태를 제공할 서비스를 연결합니다.
+     */
     void Editor::FDetailsPanel::SetScriptBuildService(Editor::FScriptBuildService* Builds) {
         mScriptBuilds = Builds;
     }
 
+    /**
+     * @brief 스크립트 클래스를 고르는 콤보를 표시합니다.
+     */
     bool Editor::FDetailsPanel::DrawScriptClassPicker(const char* Label, Core::FString& ClassName) {
         bool Changed{};
 
         if (ImGui::BeginCombo(Label, ClassName.empty() ? "None" : ClassName.c_str())) {
             if (ImGui::Selectable("None", ClassName.empty())) {
                 ClassName.clear();
+
                 Changed = true;
             }
 
@@ -203,6 +235,9 @@ namespace Editor {
         return Changed;
     }
 
+    /**
+     * @brief C# 프로젝트 상태와 스크립트의 [Field] 필드를 표시합니다.
+     */
     void Editor::FDetailsPanel::DrawScriptFields(Script::UScriptComponent* Component) {
         Editor::FEditorContext* Context{GetEditorContext()};
         const CoreUObject::FObjectHandle Handle{Component->GetHandle()};
@@ -211,6 +246,7 @@ namespace Editor {
 
         if (mScriptBuilds != nullptr && !mScriptBuilds->HasProject()) {
             ImGui::TextWrapped("이 프로젝트에는 C# 프로젝트가 없습니다. Scripts 메뉴의 \"C# 프로젝트 열기\"로 만들 수 있으며, .NET 10 SDK가 필요합니다. 만든 스크립트는 콘텐츠 브라우저의 Scripts 폴더에서 더블클릭해 엽니다.");
+
             return;
         }
 
@@ -259,6 +295,7 @@ namespace Editor {
                             if (Actor != nullptr && ImGui::Selectable(Actor->GetName().c_str(), Actor == Target)) {
                                 Script::FScriptField Selected{Info.mName, Info.mType};
                                 Selected.mObject = CoreUObject::FObjectReference{Actor};
+
                                 Context->SetScriptField(Handle, Selected);
                             }
                         }
@@ -267,6 +304,7 @@ namespace Editor {
                     }
 
                     ImGui::PopID();
+
                     continue;
                 }
 
@@ -338,9 +376,13 @@ namespace Editor {
         }
     }
 
+    /**
+     * @brief 생성 가능한 컴포넌트의 검색·추가 메뉴를 표시합니다.
+     */
     void Editor::FDetailsPanel::DrawComponentMenu() {
         Editor::FEditorContext* Context{GetEditorContext()};
         const bool CanAdd{Context->CanEditWorld() && Context->GetSelectedActors().size() == 1};
+
         ImGui::BeginDisabled(!CanAdd);
 
         if (ImGui::Button("+ 추가")) {
@@ -379,6 +421,7 @@ namespace Editor {
                 }
 
                 HasEntries = true;
+
                 ImGui::PushID(Class);
                 ImGui::BeginDisabled(!Context->CanAddComponent(Class));
 
@@ -400,6 +443,9 @@ namespace Editor {
         ImGui::Separator();
     }
 
+    /**
+     * @brief 선택한 액터 하나와 그 컴포넌트를 고르는 트리를 표시합니다.
+     */
     void Editor::FDetailsPanel::DrawComponentTree() {
         Editor::FEditorContext* Context{GetEditorContext()};
         Engine::AActor* Actor{Context->GetSelectedActor()};
@@ -529,9 +575,11 @@ namespace Editor {
                 }
 
                 Found = true;
+
                 ImGui::Text("Map %u | %u x %u", Tile.mFace, Tile.mResolution, Tile.mResolution);
 
                 const float Size{std::clamp(ImGui::GetContentRegionAvail().x, 64.0f, 320.0f)};
+
                 ImGui::Image(reinterpret_cast<ImTextureID>(Atlas.mTexture), {Size, Size}, {Tile.mRectangle.x, Tile.mRectangle.y}, {Tile.mRectangle.x + Tile.mRectangle.z, Tile.mRectangle.y + Tile.mRectangle.w});
             }
 
@@ -702,6 +750,7 @@ namespace Editor {
 
                 if (ImGui::InputTextMultiline(Label, TextBuffer.data(), TextBuffer.size(), {0.0f, ImGui::GetTextLineHeight() * 4.0f}, ImGuiInputTextFlags_AllowTabInput)) {
                     *String = TextBuffer.data();
+
                     return true;
                 }
 
@@ -709,6 +758,7 @@ namespace Editor {
             }
 
             std::array<char, 512> Buffer{};
+
             std::copy_n(String->begin(), std::min(String->size(), Buffer.size() - 1), Buffer.begin());
 
             bool Changed{ImGui::InputText(Label, Buffer.data(), Buffer.size(), ImGuiInputTextFlags_EnterReturnsTrue)};
@@ -758,6 +808,7 @@ namespace Editor {
 
                     CoreUObject::FPropertyValue ChildValue{Child->ReadValue(CoreUObject::GetPropertyData(Value))};
                     const bool ReadOnly{Child->HasFlag(Core::EPropertyFlags::ReadOnly)};
+
                     ImGui::BeginDisabled(ReadOnly);
 
                     if (DrawPropertyValue(Child, ChildValue) && !ReadOnly) {
@@ -776,21 +827,29 @@ namespace Editor {
         return false;
     }
 
+    /**
+     * @brief 메시 또는 재질 선택과 드래그 앤 드롭을 표시합니다.
+     */
     bool Editor::FDetailsPanel::DrawAssetPicker(const char* Label, Core::FString& Path, bool Mesh) {
         if (mAssetCatalog == nullptr || mThumbnails == nullptr) {
             ImGui::TextDisabled("%s: %s", Label, Path.c_str());
+
             return false;
         }
 
         return mAssetPicker.Draw(*mAssetCatalog, *mThumbnails, Label, Path, Mesh ? Asset::EAssetType::Mesh : Asset::EAssetType::Material, {}, Mesh ? "Primitive mesh" : "Default material");
     }
 
+    /**
+     * @brief 본 로컬 행렬을 편집하고 씬 변경 상태를 갱신합니다.
+     */
     void Editor::FDetailsPanel::DrawSkeletalPose(Engine::USkeletalMeshComponent* Component) {
         if (!ImGui::CollapsingHeader("Bone Local Pose")) {
             return;
         }
 
         ImGui::BeginDisabled(!GetEditorContext()->CanEditWorld());
+
         const auto& Bones{Component->GetSkeletalMesh()->GetBones()};
 
         for (Core::Uint32 Bone{}; Bone < Bones.size(); ++Bone) {

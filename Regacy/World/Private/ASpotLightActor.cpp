@@ -3,7 +3,9 @@
 
 ASpotLightActor::ASpotLightActor() {
     InitializeClass(StaticClass());
+
     mLightComponent = CreateDefaultComponent<USpotLightComponent>(FName{"Light"});
+
     SetRootComponent(mLightComponent);
 }
 

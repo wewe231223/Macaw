@@ -43,11 +43,13 @@ bool UFunction::Invoke(UObject& Object, std::span<const FPropertyValue> Argument
 
     if (!mInvoker(Object, Arguments, Result)) {
         Result.Reset();
+
         return false;
     }
 
     if (Result.GetType() != mReturnType) {
         Result.Reset();
+
         return false;
     }
 

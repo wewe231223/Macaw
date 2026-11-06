@@ -15,5 +15,13 @@
  * @brief 에디터 실행 파일에만 포함한 스플래시 창 Pretendard 글꼴(Regular·SemiBold·Bold)의 RCDATA 리소스 번호입니다.
  */
 #define MacawSplashRegularFontResource 201
+
+/**
+ * @brief 스플래시 보조 문구용 글꼴의 Win32 리소스 ID입니다.
+ */
 #define MacawSplashSemiBoldFontResource 202
+
+/**
+ * @brief 스플래시 제목용 굵은 글꼴의 Win32 리소스 ID입니다.
+ */
 #define MacawSplashBoldFontResource 203

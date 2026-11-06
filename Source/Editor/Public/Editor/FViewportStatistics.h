@@ -27,20 +27,55 @@ struct ImDrawList;
 
 namespace Editor {
 
+    /**
+     * @brief 선택한 통계 항목의 시간별 기록을 그래프 창에 표시합니다.
+     */
     class FStatGraphs {
     private:
+        /**
+         * @brief 그래프에 표시할 통계 그룹과 선택적 항목 이름입니다.
+         */
         struct FSelection {
+            /**
+             * @brief 그래프로 표시할 통계 그룹 이름입니다.
+             */
             Core::FString mGroup{};
+
+            /**
+             * @brief 콘솔 명령 또는 통계 항목의 이름입니다.
+             */
             Core::FString mName{};
         };
 
     public:
+        /**
+         * @brief 통계 그래프 명령을 해석해 표시 항목과 창 상태를 갱신합니다.
+         * @param[in] Arguments 호출·파싱에 사용할 인자 목록입니다.
+         * @return 그래프 명령의 실행 결과 또는 사용법 안내입니다.
+         */
         Core::FString ExecuteCommand(std::string_view Arguments);
+
+        /**
+         * @brief 통계 그룹 또는 항목을 그래프 표시 목록에 추가하고 창을 엽니다.
+         * @param[in] Group 조회하거나 표시할 통계 그룹 이름입니다.
+         * @param[in] Name 조회·등록·출력할 대상 이름입니다.
+         */
         void Show(const Core::FString& Group, const Core::FString& Name = {});
+
+        /**
+         * @brief 선택한 통계 항목의 기록을 그래프 창에 그립니다.
+         */
         void Draw();
 
     private:
+        /**
+         * @brief 그래프에 표시할 그룹·항목 목록입니다.
+         */
         Core::TArray<Editor::FStatGraphs::FSelection> mSelections{};
+
+        /**
+         * @brief 통계 그래프 창의 표시 여부입니다.
+         */
         bool mOpen{};
     };
 
@@ -137,6 +172,7 @@ namespace Editor {
         /**
          * @brief 검색 가능한 통계 표와 이력 초기화 버튼을 별도 창에 그립니다.
          * @param[in,out] Open 창을 열지 지정하며 그리기 함수에서는 닫기 동작도 반영합니다.
+         * @param[in] Graphs 통계 그래프를 열 때 사용할 공유 창입니다.
          */
         void DrawPanel(bool& Open, Editor::FStatGraphs& Graphs);
 

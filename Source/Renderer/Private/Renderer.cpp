@@ -108,6 +108,9 @@ namespace Renderer {
         Shutdown();
     }
 
+    /**
+     * @brief 프로젝트 콘텐츠의 셰이더 경로와 컴파일 캐시 경로를 설정합니다.
+     */
     void Renderer::FRenderer::SetProjectPaths(const std::filesystem::path& ContentRoot, const std::filesystem::path& CacheDirectory) {
         mShaderDirectory = ContentRoot / "Shaders";
         mShaderManager.SetCacheDirectory(CacheDirectory);
@@ -138,6 +141,9 @@ namespace Renderer {
         return true;
     }
 
+    /**
+     * @brief 장면 파이프라인 없이 창과 스왑체인·장치를 초기화합니다.
+     */
     bool Renderer::FRenderer::InitializeUi(void* WindowHandle, Core::Uint32 Width, Core::Uint32 Height) {
         if (mDevice != nullptr || WindowHandle == nullptr || Width == 0 || Height == 0) {
             Core::ErrorHandler::Fatal("Renderer", "Invalid renderer initialization state");
@@ -146,6 +152,7 @@ namespace Renderer {
         Microsoft::WRL::ComPtr<IDXGIFactory1> TearingFactory{};
         Microsoft::WRL::ComPtr<IDXGIFactory5> TearingFactory5{};
         BOOL TearingSupported{FALSE};
+
         mTearingSupported = SUCCEEDED(CreateDXGIFactory1(IID_PPV_ARGS(TearingFactory.GetAddressOf()))) && SUCCEEDED(TearingFactory.As(&TearingFactory5)) && SUCCEEDED(TearingFactory5->CheckFeatureSupport(DXGI_FEATURE_PRESENT_ALLOW_TEARING, &TearingSupported, sizeof(TearingSupported))) && TearingSupported != FALSE;
 
         DXGI_SWAP_CHAIN_DESC Description{};
@@ -295,6 +302,7 @@ namespace Renderer {
      */
     std::unique_ptr<Engine::FRenderTarget> Renderer::FRenderer::CreateRenderTarget(Core::Uint32 Width, Core::Uint32 Height) {
         auto Target{std::make_unique<Renderer::FDXRenderTarget>()};
+
         return mDevice != nullptr && Target->Resize(mDevice.Get(), Width, Height) ? std::move(Target) : nullptr;
     }
 
@@ -311,6 +319,7 @@ namespace Renderer {
         mContext->OMSetRenderTargets(0, nullptr, nullptr);
 
         ID3D11ShaderResourceView* Empty{};
+
         mContext->PSSetShaderResources(0, 1, &Empty);
 
         return Native->Resize(mDevice.Get(), Width, Height);
@@ -351,6 +360,7 @@ namespace Renderer {
         }
 
         ID3D11ShaderResourceView* Empty{};
+
         mContext->PSSetShaderResources(0, 1, &Empty);
 
         mContext->GSSetShader(nullptr, nullptr, 0);
@@ -372,6 +382,7 @@ namespace Renderer {
         BaseParameters.mTarget.mDepth = Target->GetDepthView();
         BaseParameters.mTarget.mViewport = {0.0f, 0.0f, static_cast<float>(Target->GetWidth()), static_cast<float>(Target->GetHeight()), 0.0f, 1.0f};
         BaseParameters.mViewProjection = Family.mView.mViewProjection;
+
         ClearTarget(BaseParameters.mTarget, ClearColor);
         DrawMeshPass(*mBasePass, *Scene, Family, BaseParameters);
 
@@ -389,6 +400,7 @@ namespace Renderer {
         ID3D11RenderTargetView* RenderTarget{};
 
         const Core::FVector4 LineView{Family.mView.mSize.x, Family.mView.mSize.y, 1.0f / std::max(Family.mView.mSize.x, 1.0f), 1.0f / std::max(Family.mView.mSize.y, 1.0f)};
+
         mLineViewBuffer.Update(mContext.Get(), LineView);
 
         if (Family.mViewMode != Engine::EViewMode::WorldNormal && Family.mViewMode != Engine::EViewMode::SceneDepth) {
@@ -463,9 +475,11 @@ namespace Renderer {
 
         if (mBackBuffer != nullptr && mBackBuffer->HasResources()) {
             ID3D11RenderTargetView* Target{mBackBuffer->GetRenderTargetView()};
+
             mContext->OMSetRenderTargets(1, &Target, nullptr);
 
             constexpr float Clear[]{0.045f, 0.05f, 0.065f, 1.0f};
+
             mContext->ClearRenderTargetView(Target, Clear);
         }
     }
@@ -502,6 +516,7 @@ namespace Renderer {
         }
 
         ID3D11ShaderResourceView* Empty{};
+
         mContext->PSSetShaderResources(0, 1, &Empty);
         mContext->OMSetRenderTargets(0, nullptr, nullptr);
         mContext->CopyResource(mBackBuffer->GetTexture(), Native->GetOutputColor()->GetTexture());
@@ -509,6 +524,9 @@ namespace Renderer {
         return true;
     }
 
+    /**
+     * @brief 비동기 프레젠테이션의 화면 찢김 허용 설정을 변경합니다.
+     */
     bool Renderer::FRenderer::SetAllowTearing(bool Allow) {
         if (mSwapChain == nullptr || (Allow && !mTearingSupported)) {
             return false;
@@ -519,10 +537,16 @@ namespace Renderer {
         return true;
     }
 
+    /**
+     * @brief 화면 찢김을 허용하도록 설정했는지 반환합니다.
+     */
     bool Renderer::FRenderer::IsTearingAllowed() const {
         return mAllowTearing;
     }
 
+    /**
+     * @brief 현재 DXGI 환경이 화면 찢김 허용을 지원하는지 반환합니다.
+     */
     bool Renderer::FRenderer::IsTearingSupported() const {
         return mTearingSupported;
     }
@@ -548,18 +572,30 @@ namespace Renderer {
         return mStats;
     }
 
+    /**
+     * @brief 현재 그림자 아틀라스의 검사 정보를 반환합니다.
+     */
     RenderCore::FShadowAtlasView Renderer::FRenderer::GetShadowAtlasView() const {
         return mShadowResources != nullptr ? mShadowResources->GetView() : RenderCore::FShadowAtlasView{};
     }
 
+    /**
+     * @brief 콘솔에서 조절하는 그림자 렌더링 옵션을 반환합니다.
+     */
     RenderCore::FShadowSettings Renderer::FRenderer::GetShadowSettings() const {
         return mShadowSettings;
     }
 
+    /**
+     * @brief 콘솔에서 조절하는 그림자 렌더링 옵션을 변경합니다.
+     */
     void Renderer::FRenderer::SetShadowSettings(const RenderCore::FShadowSettings& Settings) {
         mShadowSettings = Settings;
     }
 
+    /**
+     * @brief 변경된 셰이더를 다시 컴파일하고 필요한 GPU 셰이더를 갱신합니다.
+     */
     bool Renderer::FRenderer::ReloadChangedShaders() {
         if (mDevice == nullptr) {
             return false;
@@ -568,6 +604,7 @@ namespace Renderer {
         Core::TArray<std::shared_ptr<const RenderCore::FShader>> ChangedShaders{};
         Core::FString Diagnostics{};
         const bool Success{mShaderManager.ReloadChanged(ChangedShaders, Diagnostics)};
+
         mShadersDirty = mShadersDirty || !ChangedShaders.empty();
 
         if (!Diagnostics.empty()) {
@@ -580,6 +617,7 @@ namespace Renderer {
             for (auto Iterator{mMaterialPipelines.begin()}; Iterator != mMaterialPipelines.end();) {
                 if (Iterator->second == nullptr) {
                     Iterator = mMaterialPipelines.erase(Iterator);
+
                     continue;
                 }
 
@@ -587,6 +625,7 @@ namespace Renderer {
 
                 if (!Iterator->second->IsCurrent() && !Iterator->second->CreateResources(mDevice.Get(), Error)) {
                     Core::ErrorHandler::Report("Material", Error, Core::ErrorHandler::EErrorLevel::Warning);
+
                     PipelinesReady = false;
                 }
 
@@ -597,6 +636,9 @@ namespace Renderer {
         return Success && (!mShadersDirty || CreateShaders()) && PipelinesReady;
     }
 
+    /**
+     * @brief 폰트 메트릭으로 텍스트의 로컬 평면 경계를 계산합니다.
+     */
     bool Renderer::FRenderer::GetTextBounds(const Core::FString& Text, Core::FVector2& Minimum, Core::FVector2& Maximum) const {
         return mTextRenderer != nullptr && mTextRenderer->GetBounds(Text, Minimum, Maximum);
     }
@@ -607,6 +649,7 @@ namespace Renderer {
     bool Renderer::FRenderer::Compile(const char* Source, const char* Entry, const char* Target, std::shared_ptr<const RenderCore::FShader>& Code) {
         RenderCore::FShaderDescription Description{};
         const bool EngineFirst{std::string_view{Source} == LineShader || std::string_view{Source} == "Sprite.hlsl" || std::string_view{Source} == "PostProcess.hlsl" || std::string_view{Source} == "Sky.hlsl" || std::string_view{Source} == "Grid.hlsl" || std::string_view{Source} == "TileLightCulling.hlsl" || std::string_view{Source} == "Depth.hlsl"};
+
         Description.mSourcePath = FindTextContent(mShaderDirectory.parent_path(), std::filesystem::path{"Shaders"} / Source, EngineFirst);
         Description.mIncludeDirectories = {mShaderDirectory};
         Description.mEntryPoint = Entry;
@@ -621,6 +664,7 @@ namespace Renderer {
         Core::LoadingStatus::ReportFile("Loading", Description.mSourcePath);
 
         Core::FString Diagnostics{};
+
         Code = mShaderManager.Load(Description, Diagnostics);
 
         if (!Diagnostics.empty()) {
@@ -630,6 +674,9 @@ namespace Renderer {
         return Code != nullptr;
     }
 
+    /**
+     * @brief 장면 렌더링에 사용할 셰이더와 입력 레이아웃을 생성합니다.
+     */
     bool Renderer::FRenderer::CreateShaders() {
         std::shared_ptr<const RenderCore::FShader> VertexCode{};
         std::shared_ptr<const RenderCore::FShader> PixelCode{};
@@ -649,6 +696,7 @@ namespace Renderer {
 
         if (FAILED(mDevice->CreateVertexShader(VertexCode->GetByteCode().data(), VertexCode->GetByteCode().size(), nullptr, LineVertex.GetAddressOf())) || FAILED(mDevice->CreatePixelShader(PixelCode->GetByteCode().data(), PixelCode->GetByteCode().size(), nullptr, LinePixel.GetAddressOf())) || FAILED(mDevice->CreateInputLayout(LineElements.data(), static_cast<UINT>(LineElements.size()), VertexCode->GetByteCode().data(), VertexCode->GetByteCode().size(), LineLayout.GetAddressOf()))) {
             Core::ErrorHandler::Report("Renderer", "Line pipeline allocation failed", Core::ErrorHandler::EErrorLevel::Error);
+
             return false;
         }
 
@@ -663,6 +711,7 @@ namespace Renderer {
 
         if (FAILED(mDevice->CreateVertexShader(VertexCode->GetByteCode().data(), VertexCode->GetByteCode().size(), nullptr, GizmoVertex.GetAddressOf())) || FAILED(mDevice->CreatePixelShader(PixelCode->GetByteCode().data(), PixelCode->GetByteCode().size(), nullptr, GizmoPixel.GetAddressOf())) || FAILED(mDevice->CreateInputLayout(OverlayElements.data(), static_cast<UINT>(OverlayElements.size()), VertexCode->GetByteCode().data(), VertexCode->GetByteCode().size(), OverlayLayout.GetAddressOf()))) {
             Core::ErrorHandler::Report("Renderer", "Gizmo pipeline allocation failed", Core::ErrorHandler::EErrorLevel::Error);
+
             return false;
         }
 
@@ -694,6 +743,7 @@ namespace Renderer {
 
         if (!Compile("Depth.hlsl", "ClearMain", "vs_5_0", VertexCode) || FAILED(mDevice->CreateVertexShader(VertexCode->GetByteCode().data(), VertexCode->GetByteCode().size(), nullptr, DepthClearVertex.GetAddressOf()))) {
             Core::ErrorHandler::Report("Renderer", "Depth clear shader allocation failed", Core::ErrorHandler::EErrorLevel::Error);
+
             return false;
         }
 
@@ -863,6 +913,7 @@ namespace Renderer {
         Depth.DepthEnable = false;
         Depth.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
         Depth.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;
+
         Core::ErrorHandler::ReportHRESULT(mDevice->CreateDepthStencilState(&Depth, mDepthDisabled.GetAddressOf()), "Renderer", "Depth state allocation failed", Core::ErrorHandler::EErrorLevel::Critical);
 
         return true;
@@ -891,6 +942,7 @@ namespace Renderer {
 
         if (!mLineBuffer.Upload(mContext.Get(), mLineVertices, Error)) {
             Core::ErrorHandler::Fatal("Renderer", Error);
+
             return;
         }
 
@@ -930,6 +982,9 @@ namespace Renderer {
         return true;
     }
 
+    /**
+     * @brief 깊이 검사 단계에 해당하는 에디터 메시들을 GPU에 제출합니다.
+     */
     void Renderer::FRenderer::DrawMeshes(const Engine::FPrimitiveDrawInterface* Elements, bool DepthTest) {
         mContext->RSSetState(mRasterizer.Get());
 
@@ -954,17 +1009,22 @@ namespace Renderer {
             }
 
             const Renderer::FEditorMeshConstants Constants{Draw.mWorld, {Draw.mColor.x, Draw.mColor.y, Draw.mColor.z, Draw.mColor.w}};
+
             mEditorMeshBuffer.Update(mContext.Get(), Constants);
 
             Mesh->BindPositions(mContext.Get());
             mContext->DrawIndexed(Mesh->GetIndexCount(), 0, 0);
             Renderer::RendererStats::Triangles.Add(Mesh->GetIndexCount() / 3);
+
             ++mStats.mDrawCalls;
         }
 
         mContext->OMSetBlendState(nullptr, nullptr, 0xFFFFFFFFu);
     }
 
+    /**
+     * @brief 깊이 검사 없이 표시할 에디터 텍스트를 마지막 오버레이로 그립니다.
+     */
     void Renderer::FRenderer::DrawOverlayTexts(const Engine::FSceneViewFamily& Family) {
         mContext->RSSetState(mRasterizer.Get());
 
@@ -1006,6 +1066,9 @@ namespace Renderer {
         mContext->OMSetBlendState(nullptr, nullptr, 0xFFFFFFFFu);
     }
 
+    /**
+     * @brief 코드·패스·인스턴싱·스키닝 조합의 GPU 셰이더 인스턴스를 조회합니다.
+     */
     std::shared_ptr<Renderer::FShaderInstance> Renderer::FRenderer::GetShaderInstance(const RenderCore::FShaderDescription& Description, Renderer::EMeshPass Pass, bool Instanced, bool Skinned) {
         Core::FString Diagnostics{};
         std::shared_ptr<const RenderCore::FShader> Code{mShaderManager.Load(Description, Diagnostics)};
@@ -1024,6 +1087,7 @@ namespace Renderer {
 
         if (!Shader->CreateResources(mDevice.Get(), Diagnostics)) {
             Core::ErrorHandler::Report("Shader", Diagnostics, Core::ErrorHandler::EErrorLevel::Warning);
+
             return nullptr;
         }
 
@@ -1034,6 +1098,9 @@ namespace Renderer {
         return Shader;
     }
 
+    /**
+     * @brief 머티리얼별 GPU 파이프라인을 반환합니다.
+     */
     Renderer::FMaterialPipeline* Renderer::FRenderer::GetMaterialPipeline(const Asset::UMaterial& Material, Engine::EViewMode Mode, bool Skinned, bool ReceiveShadows) {
         const std::filesystem::path RelativePath{Core::FilePath::FromUtf8(Material.GetShaderPath()).lexically_normal()};
         Core::FString ShaderPath{Core::FilePath::ToGenericUtf8(RelativePath)};
@@ -1086,6 +1153,7 @@ namespace Renderer {
             PixelDescription.mMacros.push_back({"WORLD_NORMAL", "1"});
         } else {
             const char* Model{PixelMode == Engine::EViewMode::Lit_Gouraud ? "LIGHTING_MODEL_GOURAUD" : PixelMode == Engine::EViewMode::Lit_Lambert ? "LIGHTING_MODEL_LAMBERT" : "LIGHTING_MODEL_PHONG"};
+
             PixelDescription.mMacros.push_back({Model, "1"});
         }
 
@@ -1111,6 +1179,7 @@ namespace Renderer {
 
         if (Vertex != nullptr && Pixel != nullptr) {
             Pipeline = std::make_unique<Renderer::FMaterialPipeline>(Renderer::EMeshPass::BasePass, std::move(Vertex), std::move(Pixel), Material.IsTwoSided(), !Skinned, Skinned);
+
             Core::FString Diagnostics{};
 
             if (!Pipeline->CreateResources(mDevice.Get(), Diagnostics)) {
@@ -1120,14 +1189,22 @@ namespace Renderer {
         }
 
         Renderer::FMaterialPipeline* Result{Pipeline.get()};
+
         mMaterialPipelines.emplace(Key, std::move(Pipeline));
+
         return Result;
     }
 
+    /**
+     * @brief 머티리얼이 없는 메시가 사용할 기본 머티리얼을 반환합니다.
+     */
     Asset::UMaterial* Renderer::FRenderer::GetDefaultMaterial() const {
         return mDefaultMaterial.get();
     }
 
+    /**
+     * @brief 그림자 아틀라스 깊이 패스에 사용할 깊이 전용 파이프라인을 반환합니다.
+     */
     Renderer::FMaterialPipeline* Renderer::FRenderer::GetDepthPipeline(bool Skinned) {
         const Core::FString Key{Skinned ? "shaders/depth.hlsl|depth|skinned" : "shaders/depth.hlsl|depth"};
         const auto Existing{mMaterialPipelines.find(Key)};
@@ -1158,6 +1235,7 @@ namespace Renderer {
 
         if (Vertex != nullptr) {
             Pipeline = std::make_unique<Renderer::FMaterialPipeline>(Renderer::EMeshPass::ShadowDepth, std::move(Vertex), nullptr, true, !Skinned, Skinned);
+
             Core::FString Diagnostics{};
 
             if (!Pipeline->CreateResources(mDevice.Get(), Diagnostics)) {
@@ -1173,6 +1251,9 @@ namespace Renderer {
         return Result;
     }
 
+    /**
+     * @brief 월드 글자와 스프라이트를 함께 깊이 역순으로 정렬하여 투명 영역을 합성합니다.
+     */
     void Renderer::FRenderer::DrawTranslucency(const Engine::FSceneViewFamily& Family, bool EditorIcons) {
         using FPrimitive = std::variant<const Engine::FPrimitiveSceneProxy*, Engine::FDrawText>;
         using FCommand = std::pair<float, FPrimitive>;
@@ -1181,6 +1262,7 @@ namespace Renderer {
         const auto Depth{[&Family](const Core::FVector& Position, bool ScreenSpace) {
             const Core::FVector4 Clip{Core::FVector4{Position, 1.0f} * Family.mView.mViewProjection};
             const float Value{ScreenSpace ? Position.z : Clip.w > 0.0f ? Clip.z / Clip.w : -1.0f};
+
             return std::isfinite(Value) ? Value : -1.0f;
         }};
 
@@ -1188,6 +1270,7 @@ namespace Renderer {
 
         if (EditorIcons && Family.mEditorElements != nullptr && (Family.mShowFlags.mLightIcons || Family.mShowFlags.mFogIcons)) {
             const auto* Scene{static_cast<const Renderer::FScene*>(Family.mScene)};
+
             LightIcons.reserve(Scene->GetLights().size() + Scene->GetHeightFogs().size());
 
             for (const Engine::FLightSceneProxy& Light : Scene->GetLights()) {
@@ -1222,6 +1305,7 @@ namespace Renderer {
                     Text.mScale.y *= Proxy.mWorld.TransformVector({0.0f, 0.0f, 1.0f}).Length();
 
                     const float Value{Depth(Text.mPosition, Text.mScreenSpace)};
+
                     Commands.emplace_back(Value, FPrimitive{std::move(Text)});
                 }
             }
@@ -1247,9 +1331,11 @@ namespace Renderer {
 
             if (const auto* Sprite{std::get_if<const Engine::FPrimitiveSceneProxy*>(&Command.second)}) {
                 mContext->RSSetState(Family.mViewMode == Engine::EViewMode::Wireframe ? mWireframeRasterizer.Get() : mRasterizer.Get());
+
                 Drawn = mSpriteRenderer != nullptr && mSpriteRenderer->Draw(mContext.Get(), **Sprite, Family.mView);
             } else {
                 mContext->RSSetState(mRasterizer.Get());
+
                 Drawn = mTextRenderer != nullptr && mTextRenderer->Draw(mContext.Get(), std::get<Engine::FDrawText>(Command.second), Family.mView);
             }
 
@@ -1262,6 +1348,9 @@ namespace Renderer {
         mContext->OMSetBlendState(nullptr, nullptr, 0xFFFFFFFFu);
     }
 
+    /**
+     * @brief 장면 패스의 타일 조명 자원과 그림자 아틀라스를 업로드·바인딩합니다.
+     */
     bool Renderer::FRenderer::PrepareLighting(const Engine::FSceneViewFamily& Family) {
         const auto* Scene{static_cast<const Renderer::FScene*>(Family.mScene)};
 
@@ -1272,6 +1361,9 @@ namespace Renderer {
         return mLightingResources != nullptr && mLightingResources->Upload(mDevice.Get(), mContext.Get(), Scene->GetLights(), Family.mView, mShadowResources != nullptr ? std::span<const std::array<Core::Uint32, 2>>{mShadowResources->GetLightRanges()} : std::span<const std::array<Core::Uint32, 2>>{});
     }
 
+    /**
+     * @brief 조명과 그림자 샘플링에 사용한 셰이더 리소스 바인딩을 해제합니다.
+     */
     void Renderer::FRenderer::FinishLighting() {
         if (mShadowResources != nullptr) {
             mShadowResources->Unbind(mContext.Get());
@@ -1282,6 +1374,9 @@ namespace Renderer {
         }
     }
 
+    /**
+     * @brief 패스 타깃의 색상과 깊이·스텐실을 지웁니다.
+     */
     void Renderer::FRenderer::ClearTarget(const Renderer::FPassTarget& Target, const float* Color) {
         if (Target.mScissor.has_value()) {
             if (Target.mDepth == nullptr) {
@@ -1312,6 +1407,9 @@ namespace Renderer {
         }
     }
 
+    /**
+     * @brief 그림자 맵마다 캐시된 아틀라스 타일이 현재 상태와 다를 때만 타일을 지우고 깊이를 다시 그립니다.
+     */
     void Renderer::FRenderer::DrawShadowDepths(const Renderer::FScene& Scene, const Engine::FSceneViewFamily& Family) {
         const std::span<const Renderer::FGpuShadow> Maps{mShadowResources->GetMaps()};
         const Renderer::FMaterialPipeline* DepthPipeline{Maps.empty() ? nullptr : GetDepthPipeline()};
@@ -1320,11 +1418,13 @@ namespace Renderer {
         for (const Renderer::FScenePrimitive& Primitive : Scene.GetPrimitives()) {
             if (Primitive.mProxy.mSkeletalMesh != nullptr) {
                 HasSkinned = true;
+
                 break;
             }
         }
 
         const Renderer::FMaterialPipeline* SkinDepthPipeline{!Maps.empty() && HasSkinned ? GetDepthPipeline(true) : nullptr};
+
         // 두 깊이 셰이더 중 하나만 바뀌어도 이전 실루엣을 캐시에서 재사용하지 않습니다.
         const Core::Uint64 DepthShaderRevision{std::max(DepthPipeline != nullptr ? DepthPipeline->GetVertexRevision() : 0, SkinDepthPipeline != nullptr ? SkinDepthPipeline->GetVertexRevision() : 0)};
 
@@ -1333,6 +1433,7 @@ namespace Renderer {
 
             if (mShadowResources->IsTileCurrent(Index, Stamp)) {
                 ++mStats.mShadowCachedTiles;
+
                 continue;
             }
 
@@ -1348,6 +1449,9 @@ namespace Renderer {
         }
     }
 
+    /**
+     * @brief 메시 패스 인스턴스가 만든 드로 목록을 패스 타깃에 그립니다.
+     */
     bool Renderer::FRenderer::DrawMeshPass(Renderer::FMeshPass& Pass, const Renderer::FScene& Scene, const Engine::FSceneViewFamily& Family, const Renderer::FMeshPassParameters& Parameters) {
         static Core::FStat OpaquePassTime{"render", "Opaque mesh pass CPU (inclusive)", Core::EStatUnit::Milliseconds};
         static Core::FStat ShadowPassTime{"shadow", "Shadow depth pass CPU (inclusive)", Core::EStatUnit::Milliseconds};
@@ -1356,6 +1460,7 @@ namespace Renderer {
 
         const Renderer::FPassTarget& Target{Parameters.mTarget};
         ID3D11RenderTargetView* Color{Target.mColor};
+
         mContext->OMSetRenderTargets(Color != nullptr ? 1u : 0u, Color != nullptr ? &Color : nullptr, Target.mDepth);
         mContext->RSSetViewports(1, &Target.mViewport);
 
@@ -1375,6 +1480,7 @@ namespace Renderer {
 
         if (NeedsLighting && !PrepareLighting(Family)) {
             FinishLighting();
+
             return false;
         }
 
@@ -1384,18 +1490,23 @@ namespace Renderer {
 
         if (Built) {
             const Core::Uint32 DrawCalls{SubmitMeshCommands(Family, Pass.GetType(), Commands)};
+
             (BasePass ? mStats.mDrawCalls : mStats.mShadowDrawCalls) += DrawCalls;
             mStats.mVisiblePrimitives += BasePass ? Primitives : 0u;
         }
 
         if (BasePass) {
             FinishLighting();
+
             mStats.mTransformUpdates += Scene.TakeTransformUpdates();
         }
 
         return Built;
     }
 
+    /**
+     * @brief 정렬된 드로 목록을 상태 변경을 줄여 제출하고 인스턴스를 묶어 그립니다.
+     */
     Core::Uint32 Renderer::FRenderer::SubmitMeshCommands(const Engine::FSceneViewFamily& Family, Renderer::EMeshPass Pass, std::span<const Renderer::FMeshDrawCommand> Commands) {
         const bool BasePass{Pass == Renderer::EMeshPass::BasePass};
 
@@ -1459,11 +1570,13 @@ namespace Renderer {
 
             if (Command.mMaterial != nullptr && LastMaterial != Command.mMaterial) {
                 Renderer::RendererStats::MaterialBinds.Add();
+
                 Asset::UTexture2D* Texture{Command.mMaterial->GetBaseColorTexture()};
                 ID3D11ShaderResourceView* Resource{Texture != nullptr ? Texture->GetShaderResourceView() : mDefaultMaterialTexture->GetShaderResourceView()};
                 ID3D11SamplerState* Sampler{mMaterialSampler.Get()};
 
                 Command.mMaterial->BindConstants(mContext.Get(), RenderCore::EShaderStage::Vertex | RenderCore::EShaderStage::Pixel, 2);
+
                 Asset::UTexture2D* NormalTexture{Command.mMaterial->GetNormalMapTexture()};
                 ID3D11ShaderResourceView* NormalResource{NormalTexture != nullptr ? NormalTexture->GetShaderResourceView() : nullptr};
 
@@ -1473,10 +1586,12 @@ namespace Renderer {
 
                 const std::array<Asset::UTexture2D*, 3> LightingTextures{Command.mMaterial->GetSpecularTexture(), Command.mMaterial->GetEmissiveTexture(), Command.mMaterial->GetReflectionTexture()};
                 const std::array<ID3D11ShaderResourceView*, 3> LightingResources{LightingTextures[0] != nullptr ? LightingTextures[0]->GetShaderResourceView() : nullptr, LightingTextures[1] != nullptr ? LightingTextures[1]->GetShaderResourceView() : nullptr, LightingTextures[2] != nullptr ? LightingTextures[2]->GetShaderResourceView() : nullptr};
+
                 mContext->PSSetShaderResources(7, static_cast<UINT>(LightingResources.size()), LightingResources.data());
 
                 mContext->VSSetSamplers(0, 1, &Sampler);
                 mContext->PSSetSamplers(0, 1, &Sampler);
+
                 LastMaterial = Command.mMaterial;
             }
 
@@ -1486,6 +1601,7 @@ namespace Renderer {
                 }
 
                 Command.mMesh->Bind(mContext.Get());
+
                 LastMesh = Command.mMesh;
             }
 
@@ -1512,11 +1628,13 @@ namespace Renderer {
 
         if (BasePass) {
             ID3D11ShaderResourceView* Empty{};
+
             mContext->PSSetShaderResources(0, 1, &Empty);
             mContext->VSSetShaderResources(1, 1, &Empty);
             mContext->PSSetShaderResources(1, 1, &Empty);
 
             const std::array<ID3D11ShaderResourceView*, 3> EmptyLightingResources{};
+
             mContext->PSSetShaderResources(7, static_cast<UINT>(EmptyLightingResources.size()), EmptyLightingResources.data());
         }
 

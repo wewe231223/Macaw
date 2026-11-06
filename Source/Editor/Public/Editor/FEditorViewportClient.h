@@ -320,6 +320,7 @@ namespace Editor {
          * @return 월드 단위의 정사영 폭입니다.
          */
         float GetOrthographicWidth() const;
+
         /**
          * @brief 0.01~100000 범위의 유한한 정사영 가로 폭을 적용합니다.
          * @param[in] Width 유한한 0.01~100000 범위의 정사영 가로 폭입니다.
@@ -418,6 +419,7 @@ namespace Editor {
          * @brief 장면의 Lit 또는 Wireframe 표시 모드입니다.
          */
         Engine::EViewMode mViewMode{Engine::EViewMode::Lit};
+
         /**
          * @brief Normal·Depth 시각화에서 Scene Color로 복귀할 때 사용할 마지막 컬러 조명 모드입니다.
          */

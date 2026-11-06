@@ -8,6 +8,7 @@ public:
 
 public:
     UUVScrollComponent();
+
     ~UUVScrollComponent() override = default;
 
 public:

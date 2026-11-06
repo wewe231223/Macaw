@@ -17,6 +17,9 @@
 
 namespace Engine {
 
+    /**
+     * @brief 액터의 기본 컴포넌트를 생성하고 루트 컴포넌트를 정합니다.
+     */
     bool Engine::ACameraActor::InitializeDefaultComponents() {
         if (!GetComponents().empty()) {
             return false;
@@ -28,10 +31,16 @@ namespace Engine {
         return AddComponent(std::move(Camera));
     }
 
+    /**
+     * @brief 이 액터에 소속된 카메라 컴포넌트를 조회합니다.
+     */
     Engine::UCameraComponent* Engine::ACameraActor::GetCameraComponent() const {
         return CoreUObject::Cast<Engine::UCameraComponent>(GetRootComponent());
     }
 
+    /**
+     * @brief 뷰포트 입력을 받아 프레임 시간에 따라 액터의 동작을 갱신합니다.
+     */
     void Engine::ACameraActor::Input(const Core::FInput& Input, float DeltaTime) {
         using Core::EInputRoute;
         using Core::EKey;
@@ -56,6 +65,7 @@ namespace Engine {
         Core::FVector Movement{Transform.mRotation * Local};
         Movement.z += static_cast<float>(Input.IsDown(EKey::E, EInputRoute::Game)) - static_cast<float>(Input.IsDown(EKey::Q, EInputRoute::Game));
         Transform.mLocation += Movement.Normalized() * DeltaTime * (Input.IsDown(EKey::Shift, EInputRoute::Game) ? 12.0f : 4.0f);
+
         if (Input.IsDown(EKey::MouseRight, EInputRoute::Game) || Movement.LengthSquared() > 0.0f) {
             Camera->SetTransform(Transform);
         }

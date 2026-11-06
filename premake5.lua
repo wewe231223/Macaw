@@ -116,7 +116,7 @@ externalproject "Macaw.Engine"
     kind "SharedLib"
     language "C#"
     dependson { "Script" }
-    configmap { ["ObjViewerDebug"] = "Debug", ["ObjViewerRelease"] = "Release" }
+    configmap { ["x64"] = "x64", ["ObjViewerDebug"] = "Debug", ["ObjViewerRelease"] = "Release" }
 
 Configure("Shaders", "Utility")
     files { "Templates/Project/Content/Shaders/**.hlsl", "Templates/Project/Content/Shaders/**.hlsli" }

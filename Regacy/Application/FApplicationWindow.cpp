@@ -47,6 +47,7 @@ LRESULT CALLBACK FApplication::ExternalDropWindowProcedure(HWND WindowHandle, UI
 
     if (Message == WM_DROPFILES && Application != nullptr) {
         Application->QueueExternalFileDrops(WindowHandle, reinterpret_cast<HDROP>(WParam));
+
         return 0;
     }
 
@@ -207,6 +208,7 @@ LRESULT FApplication::ProcessWindowMessage(HWND WindowHandle, UINT Message, WPAR
     switch (Message) {
         case WM_ENTERSIZEMOVE: {
             mWindowState.mInMoveLoop = true;
+
             return 0;
         }
 
@@ -316,6 +318,7 @@ LRESULT FApplication::ProcessWindowMessage(HWND WindowHandle, UINT Message, WPAR
             const HDROP DropHandle{reinterpret_cast<HDROP>(WParam)};
 
             QueueExternalFileDrops(WindowHandle, DropHandle);
+
             return 0;
         }
 

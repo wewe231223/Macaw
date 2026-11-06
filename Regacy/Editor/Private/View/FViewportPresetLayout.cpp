@@ -7,24 +7,30 @@ FViewportPresetLayout::FViewportPresetLayout(EViewportLayoutPreset InPreset) {
 
 void FViewportPresetLayout::SetPreset(EViewportLayoutPreset InPreset) {
     Reset();
+
     mPreset = InPreset < EViewportLayoutPreset::Count ? InPreset : EViewportLayoutPreset::Single;
 
     switch (mPreset) {
         case EViewportLayoutPreset::Single:
             mViewportCount = 1;
             mRoot = &mViewportRegions[0];
+
             break;
 
         case EViewportLayoutPreset::TwoTopBottom:
             mViewportCount = 2;
             mRoot = AddTopBottomSplitter(&mViewportRegions[0], &mViewportRegions[1]);
+
             SetDrawOrder({static_cast<SSplitter*>(mRoot)});
+
             break;
 
         case EViewportLayoutPreset::TwoLeftRight:
             mViewportCount = 2;
             mRoot = AddLeftRightSplitter(&mViewportRegions[0], &mViewportRegions[1]);
+
             SetDrawOrder({static_cast<SSplitter*>(mRoot)});
+
             break;
 
         case EViewportLayoutPreset::ThreeLeftOneRightTwo: {
@@ -33,7 +39,9 @@ void FViewportPresetLayout::SetPreset(EViewportLayoutPreset InPreset) {
             SSplitter* Right{AddTopBottomSplitter(&mViewportRegions[1], &mViewportRegions[2])};
 
             mRoot = AddLeftRightSplitter(&mViewportRegions[0], Right);
+
             SetDrawOrder({static_cast<SSplitter*>(mRoot), Right});
+
             break;
         }
 
@@ -43,7 +51,9 @@ void FViewportPresetLayout::SetPreset(EViewportLayoutPreset InPreset) {
             SSplitter* Left{AddTopBottomSplitter(&mViewportRegions[0], &mViewportRegions[1])};
 
             mRoot = AddLeftRightSplitter(Left, &mViewportRegions[2]);
+
             SetDrawOrder({static_cast<SSplitter*>(mRoot), Left});
+
             break;
         }
 
@@ -53,7 +63,9 @@ void FViewportPresetLayout::SetPreset(EViewportLayoutPreset InPreset) {
             SSplitter* Bottom{AddLeftRightSplitter(&mViewportRegions[1], &mViewportRegions[2])};
 
             mRoot = AddTopBottomSplitter(&mViewportRegions[0], Bottom);
+
             SetDrawOrder({static_cast<SSplitter*>(mRoot), Bottom});
+
             break;
         }
 
@@ -63,7 +75,9 @@ void FViewportPresetLayout::SetPreset(EViewportLayoutPreset InPreset) {
             SSplitter* Top{AddLeftRightSplitter(&mViewportRegions[0], &mViewportRegions[1])};
 
             mRoot = AddTopBottomSplitter(Top, &mViewportRegions[2]);
+
             SetDrawOrder({static_cast<SSplitter*>(mRoot), Top});
+
             break;
         }
 
@@ -75,7 +89,9 @@ void FViewportPresetLayout::SetPreset(EViewportLayoutPreset InPreset) {
             SSplitter* Bottom{AddLeftRightSplitter(&mViewportRegions[2], &mViewportRegions[3], 0.5f, &mSharedGridRatio)};
 
             mRoot = AddTopBottomSplitter(Top, Bottom);
+
             SetDrawOrder({static_cast<SSplitter*>(mRoot), Top, Bottom});
+
             break;
         }
 
@@ -85,7 +101,9 @@ void FViewportPresetLayout::SetPreset(EViewportLayoutPreset InPreset) {
             SWindow* Right{BuildTopBottomThree(1, 2, 3)};
 
             mRoot = AddLeftRightSplitter(&mViewportRegions[0], Right);
+
             SetDrawOrder({static_cast<SSplitter*>(mRoot), mSplitters[1].get(), mSplitters[0].get()});
+
             break;
         }
 
@@ -95,7 +113,9 @@ void FViewportPresetLayout::SetPreset(EViewportLayoutPreset InPreset) {
             SWindow* Left{BuildTopBottomThree(0, 1, 2)};
 
             mRoot = AddLeftRightSplitter(Left, &mViewportRegions[3]);
+
             SetDrawOrder({static_cast<SSplitter*>(mRoot), mSplitters[1].get(), mSplitters[0].get()});
+
             break;
         }
 
@@ -105,7 +125,9 @@ void FViewportPresetLayout::SetPreset(EViewportLayoutPreset InPreset) {
             SWindow* Bottom{BuildLeftRightThree(1, 2, 3)};
 
             mRoot = AddTopBottomSplitter(&mViewportRegions[0], Bottom);
+
             SetDrawOrder({static_cast<SSplitter*>(mRoot), mSplitters[1].get(), mSplitters[0].get()});
+
             break;
         }
 
@@ -115,13 +137,16 @@ void FViewportPresetLayout::SetPreset(EViewportLayoutPreset InPreset) {
             SWindow* Top{BuildLeftRightThree(0, 1, 2)};
 
             mRoot = AddTopBottomSplitter(Top, &mViewportRegions[3]);
+
             SetDrawOrder({static_cast<SSplitter*>(mRoot), mSplitters[1].get(), mSplitters[0].get()});
+
             break;
         }
 
         default:
             mViewportCount = 1;
             mRoot = &mViewportRegions[0];
+
             break;
     }
 

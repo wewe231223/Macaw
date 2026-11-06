@@ -12,7 +12,6 @@
 #include "Core/ReflectionMacros.h"
 
 #include <filesystem>
-#include <functional>
 #include <memory>
 
 namespace Asset {
@@ -27,10 +26,6 @@ namespace Asset {
      * @brief 프로젝트 콘텐츠 경로와 메시·텍스처 에셋의 로드 및 캐시를 담당합니다.
      */
     class FAssetManager {
-    public:
-        using FMaterialReferenceMigrator = std::function<bool(Core::FString&, bool&, Core::FString&)>;
-        using FAssetReferenceMigrator = bool (*)(Asset::EAssetType, Core::TArray<Core::Uint8>&, const Asset::FAssetManager::FMaterialReferenceMigrator&, bool&, Core::FString&);
-
     public:
         /**
          * @brief 전달받은 설정과 의존성으로 FAssetManager의 초기 상태를 구성합니다.
@@ -67,6 +62,11 @@ namespace Asset {
          */
         Core::FString GetMeshPath(const Asset::UStaticMesh* Mesh) const;
 
+        /**
+         * @brief 캐시에 등록된 스켈레탈 메시의 프로젝트 상대 경로를 반환합니다.
+         * @param[in] Mesh 조회·저장·포즈 계산에 사용할 메시입니다.
+         * @return 캐시 경로이며 등록하지 않은 메시이면 빈 문자열입니다.
+         */
         Core::FString GetSkeletalMeshPath(const Asset::USkeletalMesh* Mesh) const;
 
         /**
@@ -107,6 +107,12 @@ namespace Asset {
          */
         Asset::UStaticMesh* LoadMesh(const std::filesystem::path& Path, Core::FString& Error);
 
+        /**
+         * @brief 스켈레탈 메시 파일에서 본·스킨 가중치·기하 데이터를 읽어 캐시에 등록합니다.
+         * @param[in] Path 작업에 사용할 파일 또는 프로젝트 상대 에셋 경로입니다.
+         * @param[out] Error 실패 원인을 받을 문자열입니다.
+         * @return 로드한 메시의 비소유 주소이며 실패하면 nullptr입니다.
+         */
         Asset::USkeletalMesh* LoadSkeletalMesh(const std::filesystem::path& Path, Core::FString& Error);
 
         /**
@@ -177,13 +183,6 @@ namespace Asset {
         bool SaveMaterial(const std::filesystem::path& Path, const Asset::UMaterial& Material, Core::FString& Error);
 
         /**
-         * @brief 이전 MTL 재질을 바이너리 에셋으로 이전하고 메시·장면의 재질 참조를 갱신합니다.
-         * @param[out] Error 실패 원인을 기록할 문자열입니다.
-         * @return 이전할 재질이 없거나 이전을 완료하면 true이며 실패하면 Error에 원인을 기록하고 false입니다.
-         */
-        bool MigrateMaterials(Asset::FAssetManager::FAssetReferenceMigrator MigrateReferences, Core::FString& Error);
-
-        /**
          * @brief 검증한 CPU 메시 데이터를 바이너리 에셋 파일로 저장합니다.
          * @param[in] Path 저장할 메시 에셋의 경로입니다.
          * @param[in] Mesh 읽거나 직렬화할 메시 데이터입니다.
@@ -192,6 +191,13 @@ namespace Asset {
          */
         bool SaveMesh(const std::filesystem::path& Path, const Asset::UStaticMesh& Mesh, Core::FString& Error);
 
+        /**
+         * @brief 스켈레탈 메시의 기하·본 계층·스킨 가중치를 에셋 파일에 저장합니다.
+         * @param[in] Path 작업에 사용할 파일 또는 프로젝트 상대 에셋 경로입니다.
+         * @param[in] Mesh 조회·저장·포즈 계산에 사용할 메시입니다.
+         * @param[out] Error 실패 원인을 받을 문자열입니다.
+         * @return 검증과 파일 저장에 성공하면 true입니다.
+         */
         bool SaveSkeletalMesh(const std::filesystem::path& Path, const Asset::USkeletalMesh& Mesh, Core::FString& Error);
 
         /**
@@ -265,6 +271,9 @@ namespace Asset {
          */
         Core::TMap<Core::FString, std::unique_ptr<Asset::UStaticMesh>> mMeshes{};
 
+        /**
+         * @brief 프로젝트 상대 경로별로 소유하는 스켈레탈 메시 캐시입니다.
+         */
         Core::TMap<Core::FString, std::unique_ptr<Asset::USkeletalMesh>> mSkeletalMeshes{};
 
         /**

@@ -70,6 +70,10 @@ namespace Engine {
          * @return 객체가 보유한 데이터의 참조이며 소유 객체의 수명 동안 유효합니다.
          */
         const Asset::FMeshData& GetMeshData() const override;
+
+        /**
+         * @brief 등록된 렌더 상태와 월드 연결을 해제합니다.
+         */
         void UnregisterComponent() override;
 
         /**

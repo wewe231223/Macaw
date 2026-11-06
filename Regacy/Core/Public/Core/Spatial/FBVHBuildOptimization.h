@@ -61,6 +61,7 @@ namespace BVH8 {
 
             if (Node.mLeft == std::numeric_limits<Uint32>::max()) {
                 Cost[1] = 0;
+
                 return Cost;
             }
 
@@ -107,11 +108,13 @@ namespace BVH8 {
 
             if (Node.mLeft == std::numeric_limits<Uint32>::max()) {
                 Costs[Root] = 0;
+
                 return;
             }
 
             Self(Self, Node.mLeft);
             Self(Self, Node.mRight);
+
             Node.BoundingBox = MergeBuildBounds(Candidate[Node.mLeft].BoundingBox, Candidate[Node.mRight].BoundingBox);
             Costs[Root] = BuildArea(Node.BoundingBox) + Costs[Node.mLeft] + Costs[Node.mRight];
 
@@ -152,6 +155,7 @@ namespace BVH8 {
                 if (Rest == 0) {
                     Bounds[Mask] = Candidate[Index].BoundingBox;
                     Best[Mask] = Costs[Index];
+
                     continue;
                 }
 

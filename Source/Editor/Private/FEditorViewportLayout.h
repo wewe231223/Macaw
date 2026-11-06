@@ -72,6 +72,7 @@ namespace Editor {
         /**
          * @brief 단일 또는 4분할 뷰포트 UI를 표시합니다.
          * @param[in] DeltaTime 이전 갱신 이후의 초 단위 시간입니다.
+         * @param[in] Input 키·마우스 상태를 조회할 공통 입력입니다.
          */
         void DrawUI(const Core::FInput& Input, float DeltaTime);
 
@@ -143,6 +144,7 @@ namespace Editor {
          * @param[in] Index 0 기반 뷰포트 슬롯입니다.
          * @param[in] DeltaTime 이전 갱신 이후의 초 단위 시간입니다.
          * @param[in,out] CapturedViewport 입력을 캡처한 뷰포트의 비소유 주소입니다.
+         * @param[in] Input 키·마우스 상태를 조회할 공통 입력입니다.
          */
         void DrawViewport(Core::Uint32 Index, const Core::FInput& Input, float DeltaTime, Editor::FEditorViewport*& CapturedViewport);
 

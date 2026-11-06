@@ -57,12 +57,17 @@ namespace Engine {
             for (Core::Int32 Index{1}; Index <= Segments; ++Index) {
                 const Core::FAngle Angle{StartAngle + Step * Index};
                 const Core::FVector Point{C + U * (Core::Math::Cos(Angle) * R) + V * (Core::Math::Sin(Angle) * R)};
+
                 DrawInterface.DrawLine(Prev, Point, Color, true);
+
                 Prev = Point;
             }
         }
     }
 
+    /**
+     * @brief 전달된 설정과 기본값으로 UShapeComponent 객체를 생성합니다.
+     */
     Engine::UShapeComponent::UShapeComponent() {
         mOnComponentBeginOverlap.Add([](Engine::UPrimitiveComponent*, Engine::AActor*, Engine::UPrimitiveComponent*) {
             std::clog << "BeginOverlap\n";
@@ -73,22 +78,37 @@ namespace Engine {
         });
     }
 
+    /**
+     * @brief 겹침 시작 델리게이트를 호출합니다.
+     */
     void Engine::UShapeComponent::OnBeginOverlap(Engine::UShapeComponent* Other) {
         mOnComponentBeginOverlap.Broadcast(this, Other ? Other->GetOwner() : nullptr, Other);
     }
 
+    /**
+     * @brief 겹침 종료 델리게이트를 호출합니다.
+     */
     void Engine::UShapeComponent::OnEndOverlap(Engine::UShapeComponent* Other) {
         mOnComponentEndOverlap.Broadcast(this, Other ? Other->GetOwner() : nullptr, Other);
     }
 
+    /**
+     * @brief 적중 액터·컴포넌트와 충돌 정보를 델리게이트로 전달합니다.
+     */
     void Engine::UShapeComponent::OnHit(Engine::AActor* OtherActor, Engine::UPrimitiveComponent* OtherComp, const Engine::FHitResult& Hit) {
         mOnComponentHit.Broadcast(this, OtherActor, OtherComp, Hit);
     }
 
+    /**
+     * @brief 현재 표시·에셋 상태에서 렌더 프록시를 생성할지 판정합니다.
+     */
     bool Engine::UShapeComponent::ShouldCreateRenderState() const {
         return false;
     }
 
+    /**
+     * @brief 충돌 형상을 선택 강조 색상 또는 기본 색상의 선으로 수집합니다.
+     */
     void Engine::UShapeComponent::DrawDebug(Engine::FPrimitiveDrawInterface& DrawInterface, bool Highlight) const {
         Engine::FCollisionShape Shape{GetCollisionShape()};
         Core::FVector Pos{GetTransform().mLocation};
@@ -155,6 +175,9 @@ namespace Engine {
         }
     }
 
+    /**
+     * @brief 두 컴포넌트의 월드 충돌 형상이 겹치는지 검사합니다.
+     */
     bool Engine::UShapeComponent::IsOverlapping(const Engine::UShapeComponent& Other) const {
         if (&Other == this || !BoundsOverlap(CalcBounds(), Other.CalcBounds())) {
             return false;
@@ -163,6 +186,9 @@ namespace Engine {
         return Engine::Collision::Overlap(GetCollisionShape(), GetTransform().mLocation, GetTransform().mRotation, Other.GetCollisionShape(), Other.GetTransform().mLocation, Other.GetTransform().mRotation);
     }
 
+    /**
+     * @brief 두 형상의 월드 접촉 법선·깊이·위치를 계산합니다.
+     */
     bool Engine::UShapeComponent::ComputeContact(const Engine::UShapeComponent& Other, Engine::FCollisionContact& OutContact) const {
         if (&Other == this || !BoundsOverlap(CalcBounds(), Other.CalcBounds())) {
             return false;
@@ -171,43 +197,74 @@ namespace Engine {
         return Engine::Collision::Overlap(GetCollisionShape(), GetTransform().mLocation, GetTransform().mRotation, Other.GetCollisionShape(), Other.GetTransform().mLocation, Other.GetTransform().mRotation, &OutContact);
     }
 
+    /**
+     * @brief 선택한 경우에만 보조 충돌 도형을 그릴지 검사합니다.
+     */
     bool Engine::UShapeComponent::ShouldDrawOnlyIfSelected() const {
         return mDrawOnlyIfSelected;
     }
 
+    /**
+     * @brief 충돌 형상에 적용할 최대 절대 축 스케일을 반환합니다.
+     */
     float Engine::UShapeComponent::GetShapeScale() const {
         Core::FVector Scale{GetTransform().mScale};
+
         return std::min({ std::abs(Scale.x), std::abs(Scale.y), std::abs(Scale.z) });
     }
 
+    /**
+     * @brief 컴포넌트 겹침 시작 이벤트를 반환합니다.
+     */
     Engine::UShapeComponent::FOverlapDelegate& Engine::UShapeComponent::GetOnComponentBeginOverlap() {
         return mOnComponentBeginOverlap;
     }
 
+    /**
+     * @brief 컴포넌트 겹침 종료 이벤트를 반환합니다.
+     */
     Engine::UShapeComponent::FOverlapDelegate& Engine::UShapeComponent::GetOnComponentEndOverlap() {
         return mOnComponentEndOverlap;
     }
 
+    /**
+     * @brief 컴포넌트 충돌 이벤트를 반환합니다.
+     */
     Engine::UShapeComponent::FHitDelegate& Engine::UShapeComponent::GetOnComponentHit() {
         return mOnComponentHit;
     }
 
+    /**
+     * @brief 컴포넌트 변환을 적용한 월드 충돌 경계를 계산합니다.
+     */
     Core::FBox Engine::UShapeComponent::CalcBounds() const {
         return CalcLocalBounds().Transformed(GetWorldMatrix());
     }
 
+    /**
+     * @brief 월드 공간의 축 정렬 경계 상자를 반환합니다.
+     */
     Core::FBox Engine::UShapeComponent::GetWorldBounds() const {
         return CalcBounds();
     }
 
+    /**
+     * @brief 표시할 프리미티브 메시 종류를 반환합니다.
+     */
     Engine::EPrimitiveType Engine::UShapeComponent::GetPrimitiveType() const {
         return Engine::EPrimitiveType::Cube;
     }
 
+    /**
+     * @brief 충돌 도형을 표시할 RGBA 색상을 반환합니다.
+     */
     const Core::FVector4& Engine::UShapeComponent::GetShapeColor() const {
         return mShapeColor;
     }
 
+    /**
+     * @brief 충돌 도형을 표시할 RGBA 색상을 설정합니다.
+     */
     bool Engine::UShapeComponent::SetShapeColor(const Core::FVector4& Color) {
         if (!std::isfinite(Color.x) || !std::isfinite(Color.y) || !std::isfinite(Color.z) || !std::isfinite(Color.w)) {
             return false;
@@ -218,6 +275,9 @@ namespace Engine {
         return true;
     }
 
+    /**
+     * @brief 선택한 경우에만 충돌 도형을 표시할지 여부를 설정합니다.
+     */
     void Engine::UShapeComponent::SetDrawOnlyIfSelected(bool DrawOnlyIfSelected) {
         mDrawOnlyIfSelected = DrawOnlyIfSelected;
     }

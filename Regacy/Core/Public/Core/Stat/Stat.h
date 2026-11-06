@@ -738,6 +738,7 @@ namespace Stat {
      * @return 정적 표시 문자열. 유효하지 않은 값이면 Unknown 문자열.
      */
     const char* GetRenderPreparationStageName(ERenderPreparationStage Stage);
+
     // 태그 이름을 문자열로 반환하는 헬퍼 함수
     /**
      * @brief 메모리 태그의 표시 이름을 조회한다.

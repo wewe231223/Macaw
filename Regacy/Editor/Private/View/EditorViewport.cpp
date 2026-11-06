@@ -38,6 +38,7 @@ namespace {
                 MinimumX = MaximumX = Point.mX;
                 MinimumY = MaximumY = Point.mY;
                 HasPoint = true;
+
                 return;
             }
 
@@ -317,7 +318,9 @@ void EditorViewport::BuildOverlayRenderData(FOverlayRenderData& Overlay, const F
     }
 
     BuildBounds(Overlay.mGuides, Camera, DepthMode);
+
     Overlay.mGridFade = FVector4{FadeCenter.mX, FadeCenter.mY, 450.0f, 550.0f};
+
     BuildSelectionNameTag(Overlay);
 }
 
@@ -371,5 +374,6 @@ void EditorViewport::BuildSelectionNameTag(FOverlayRenderData& Overlay) {
     Data.mWorldAnchor = HasBounds ? (Minimum + Maximum) * 0.5f : Origin;
     Data.mWorldBoundsExtent = HasBounds ? (Maximum - Minimum) * 0.5f : FVector3{};
     Data.mText = Actor->GetGuid().ToString();
+
     Overlay.mTextDraws.push_back(std::move(Data));
 }

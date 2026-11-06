@@ -33,14 +33,23 @@ namespace Core {
         return mMode == Core::EArchiveMode::Loading;
     }
 
+    /**
+     * @brief 객체 GUID를 재매핑하는 복제용 아카이브인지 반환합니다.
+     */
     bool Core::FArchive::IsDuplicating() const {
         return mObjectGuidRemapping != nullptr;
     }
 
+    /**
+     * @brief 객체 복제에 사용할 GUID 대응표의 비소유 주소를 설정합니다.
+     */
     void Core::FArchive::SetObjectGuidRemapping(const Core::TMap<Core::FGuid, Core::FGuid, Core::FGuidHash>* Remapping) {
         mObjectGuidRemapping = Remapping;
     }
 
+    /**
+     * @brief 객체 GUID를 직렬화하고 로드 시 복제용 GUID 재매핑을 적용합니다.
+     */
     void Core::FArchive::SerializeObjectGuid(std::string_view Name, Core::FGuid& Value) {
         Serialize(Name, Value);
 
@@ -49,6 +58,9 @@ namespace Core {
         }
     }
 
+    /**
+     * @brief 복제 범위 안의 객체 참조만 복제 대상의 GUID로 변환합니다.
+     */
     void Core::FArchive::RemapWeakObjectReference(Core::FGuid& Value) {
         if (mObjectGuidRemapping == nullptr) {
             return;
@@ -61,6 +73,9 @@ namespace Core {
         }
     }
 
+    /**
+     * @brief 등록된 GUID 대응표로 객체 참조를 복제 대상의 GUID로 변환합니다.
+     */
     bool Core::FArchive::RemapObjectReference(Core::FGuid& Value) {
         if (mObjectGuidRemapping == nullptr || !Value.IsValid()) {
             return true;
@@ -70,6 +85,7 @@ namespace Core {
 
         if (Position == mObjectGuidRemapping->end() || !Position->second.IsValid()) {
             SetError("Object reference is outside the duplication graph");
+
             return false;
         }
 
@@ -106,6 +122,7 @@ namespace Core {
      */
     void Core::FArchive::Serialize(std::string_view Name, Core::Uint64& Value) {
         Core::FString Text{std::to_string(Value)};
+
         Serialize(Name, Text);
 
         if (IsLoading()) {
@@ -122,6 +139,7 @@ namespace Core {
      */
     void Core::FArchive::Serialize(std::string_view Name, Core::FGuid& Value) {
         Core::FString Text{Value.ToString()};
+
         Serialize(Name, Text);
 
         if (IsLoading() && !HasError() && !Core::FGuid::Parse(Text, Value)) {
@@ -218,6 +236,7 @@ namespace Core {
             Serialize("Location", Value.mLocation);
 
             Core::FRotator Rotation{Value.GetRotator()};
+
             Serialize("Rotation", Rotation);
 
             if (IsLoading() && !Value.SetRotator(Rotation)) {

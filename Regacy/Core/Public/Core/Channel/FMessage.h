@@ -254,6 +254,7 @@ void FMessage::TryEmplace(Args&&... Arguments) {
         mType = &T::StaticTypeInfo();
         mData = Value;
         mDestroyFunction = &FMessage::DestroyHeap<T>;
+
         // 포인터 교체만 하면 되니까 움직일 필요가 없다.
         mMoveFunction = nullptr;
         mHeapAllocated = true;

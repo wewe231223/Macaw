@@ -3,7 +3,9 @@
 
 APointLightActor::APointLightActor() {
     InitializeClass(StaticClass());
+
     mLightComponent = CreateDefaultComponent<UPointLightComponent>(FName{"Light"});
+
     SetRootComponent(mLightComponent);
 }
 

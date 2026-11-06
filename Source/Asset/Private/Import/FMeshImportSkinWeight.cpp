@@ -1,3 +1,9 @@
+/**
+ * @file FMeshImportSkinWeight.cpp
+ * @brief 정점 하나에 영향을 주는 본 인덱스와 가중치입니다.
+ * @ingroup Asset
+ */
+
 #include "Asset/Import/FMeshImportSkinWeight.h"
 
 #include <algorithm>
@@ -5,14 +11,21 @@
 
 namespace Asset {
 
+    /**
+     * @brief 정점에 영향을 주는 본 인덱스와 대응 가중치를 저장합니다.
+     */
     Asset::FMeshImportSkinWeight::FMeshImportSkinWeight(const std::array<Core::Uint32, MaxInfluences>& BoneIndices, const std::array<float, MaxInfluences>& Weights)
 		: mBoneIndices{BoneIndices},
 		  mWeights{Weights} {
     }
 
+    /**
+     * @brief 본 인덱스와 가중치 목록에서 정점 가중치를 만듭니다.
+     */
     Asset::FMeshImportSkinWeight Asset::FMeshImportSkinWeight::FromInfluences(Core::TArray<std::pair<Core::Uint32, float>> Influences) {
         // 여러 클러스터가 같은 본을 가리킬 수 있으므로 본 인덱스로 정렬해 같은 본의 가중치를 합칩니다.
         std::sort(Influences.begin(), Influences.end());
+
         Core::TArray<std::pair<Core::Uint32, float>> Merged{};
 
         for (const auto& [Bone, Weight] : Influences) {
@@ -53,10 +66,16 @@ namespace Asset {
         return Result;
     }
 
+    /**
+     * @brief 영향을 주는 본 인덱스를 조회합니다.
+     */
     const std::array<Core::Uint32, Asset::FMeshImportSkinWeight::MaxInfluences>& Asset::FMeshImportSkinWeight::GetBoneIndices() const {
         return mBoneIndices;
     }
 
+    /**
+     * @brief 본별 가중치를 조회합니다.
+     */
     const std::array<float, Asset::FMeshImportSkinWeight::MaxInfluences>& Asset::FMeshImportSkinWeight::GetWeights() const {
         return mWeights;
     }

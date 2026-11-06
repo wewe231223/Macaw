@@ -47,7 +47,18 @@ namespace Engine {
          * @return 요청한 처리를 완료하면 true, 실패하면 false입니다.
          */
         bool CalcSceneView(const Core::FVector2& Size, Engine::FSceneView& View) const;
+
+        /**
+         * @brief 게임 뷰포트가 연결된 월드에 프레임 입력을 전달합니다.
+         * @param[in] Input 키·마우스 상태를 조회할 공통 입력입니다.
+         * @param[in] DeltaTime 프레임에서 진행할 초 단위 시간입니다.
+         */
         void ProcessInput(const Core::FInput& Input, float DeltaTime);
+
+        /**
+         * @brief 뷰포트 또는 패널의 현재 내용을 그립니다.
+         * @param[in] Viewport 출력 타깃과 크기를 제공하는 뷰포트입니다.
+         */
         void Draw(Engine::FSceneViewport* Viewport) override;
 
     private:

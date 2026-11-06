@@ -31,6 +31,12 @@ namespace Asset {
          * @brief 영향이 없는 정점의 가중치를 생성합니다.
          */
         FMeshImportSkinWeight() = default;
+
+        /**
+         * @brief 정점에 영향을 주는 본 인덱스와 대응 가중치를 저장합니다.
+         * @param[in] BoneIndices 영향 슬롯별 본 인덱스 배열입니다.
+         * @param[in] Weights 본 영향 슬롯별 스킨 가중치입니다.
+         */
         FMeshImportSkinWeight(const std::array<Core::Uint32, MaxInfluences>& BoneIndices, const std::array<float, MaxInfluences>& Weights);
 
     public:

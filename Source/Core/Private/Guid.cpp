@@ -19,11 +19,15 @@ namespace Core {
      */
     Core::FGuid::FGuid() {
         GUID Native{};
+
         Core::ErrorHandler::ReportHRESULT(CoCreateGuid(&Native), "UUID", "UUID creation failed", Core::ErrorHandler::EErrorLevel::Critical);
 
         mBytes = std::bit_cast<std::array<Core::Uint8, 16>>(Native);
     }
 
+    /**
+     * @brief 어떤 객체도 가리키지 않는 빈 GUID를 반환합니다.
+     */
     Core::FGuid Core::FGuid::Null() {
         Core::FGuid Result{};
         Result.mBytes.fill(0);

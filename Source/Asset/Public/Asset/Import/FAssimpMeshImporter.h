@@ -31,6 +31,7 @@ namespace Asset {
          * @param[in] Option 좌표축·메시 구성·노멀 처리 방식을 정하는 임포트 옵션입니다.
          */
         FAssimpMeshImporter(std::filesystem::path Source, const Asset::FAssetImportOption& Option);
+
         /**
          * @brief Assimp 임포터와 읽어 들인 장면을 해제합니다.
          */
@@ -51,6 +52,7 @@ namespace Asset {
          * @return 텍스처가 없으면 None, 장면 내장 텍스처이면 Embedded, 그 외에는 원본 디렉터리 기준 외부 파일 참조입니다.
          */
         Asset::FMeshImportTexture ReadTexture(const aiMaterial& Material, aiTextureType PrimaryType, aiTextureType FallbackType) const;
+
         /**
          * @brief 노드와 모든 자식 노드를 깊이 우선으로 순회하며 노드의 메시를 읽습니다.
          * @details 메시 병합 옵션을 켜면 결과의 첫 메시에, 끄면 메시를 가진 노드마다 새 결과 메시에 추가합니다.
@@ -59,6 +61,7 @@ namespace Asset {
          * @return 모든 메시를 읽으면 true이며 하나라도 실패하면 Error에 원인을 기록하고 false입니다.
          */
         bool ReadNode(const aiNode& Node, const Core::FMatrix& ParentTransform);
+
         /**
          * @brief Assimp 메시의 정점과 삼각형을 엔진 공간으로 변환해 대상 메시에 추가하고 서브메시를 구성합니다.
          * @param[in] Source 읽을 Assimp 메시입니다.
@@ -67,6 +70,7 @@ namespace Asset {
          * @return 성공하면 true이며 빈 메시이거나 버퍼 한계를 넘으면 Error에 원인을 기록하고 false입니다.
          */
         bool ReadMesh(const aiMesh& Source, const Asset::FMeshImportTransform& Transform, Asset::FMeshImportMesh& Target);
+
         /**
          * @brief 메시 노드를 순회하며 메시 본의 오프셋 행렬로 본 이름별 바인드 시점 전역 변환을 모읍니다.
          * @param[in] Node 순회를 시작할 Assimp 노드입니다.
@@ -74,6 +78,7 @@ namespace Asset {
          * @return 모든 오프셋 행렬을 되돌릴 수 있으면 true이며 실패하면 Error에 원인을 기록하고 false입니다.
          */
         bool CollectBindPoses(const aiNode& Node, const Core::FMatrix& ParentTransform);
+
         /**
          * @brief 메시가 참조하는 본 이름과 같은 노드를 깊이 우선으로 순회하며 결과 본 목록에 추가합니다.
          * @param[in] Node 순회를 시작할 Assimp 노드입니다.
@@ -82,6 +87,7 @@ namespace Asset {
          * @return 모든 본을 읽으면 true이며 바인드 포즈를 변환할 수 없으면 false입니다.
          */
         bool ReadSkeleton(const aiNode& Node, Core::Int32 ParentIndex, const Core::FMatrix& ParentBoneGlobal);
+
         /**
          * @brief 장면의 Assimp 재질마다 기본 색상·불투명도·양면 여부와 기본 색상·노멀 텍스처를 읽어 재질 목록에 추가합니다.
          * @return 성공하면 true이며 조명 속성이 유효하지 않으면 Error에 원인을 기록하고 false입니다.

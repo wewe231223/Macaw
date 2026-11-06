@@ -49,12 +49,18 @@ namespace Engine {
         Shutdown();
     }
 
+    /**
+     * @brief 현재 월드에서 사용할 프로젝트와 에셋 관리자를 연결합니다.
+     */
     void Engine::UEngine::SetProject(Engine::FProject* Project) {
         if (!mInitialized && !IsDispatching()) {
             mProject = Project;
         }
     }
 
+    /**
+     * @brief 현재 연결된 프로젝트의 비소유 주소를 반환합니다.
+     */
     Engine::FProject* Engine::UEngine::GetProject() const {
         return mProject;
     }
@@ -69,12 +75,14 @@ namespace Engine {
 
         Engine::ReflectionModules::RegisterEngine();
         StaticClass();
+
         mInitialized = true;
         mShutdownRequested = false;
         mCurrentWorld = CreateWorld(Engine::EWorldType::Editor);
 
         if (!mCurrentWorld.IsValid()) {
             Shutdown();
+
             return false;
         }
 
@@ -109,6 +117,7 @@ namespace Engine {
 
         if (!Initialize()) {
             mRenderer = nullptr;
+
             return false;
         }
 
@@ -121,6 +130,7 @@ namespace Engine {
     void Engine::UEngine::Shutdown() {
         if (IsDispatching()) {
             mShutdownRequested = true;
+
             return;
         }
 
@@ -150,6 +160,7 @@ namespace Engine {
 
         if (mShutdownRequested) {
             Shutdown();
+
             return;
         }
 
@@ -252,6 +263,7 @@ namespace Engine {
 
         const Core::Uint64 Generation{NextWorldGeneration.fetch_add(1, std::memory_order_relaxed)};
         const Engine::FWorldHandle Handle{Index, Generation};
+
         Context->SetHandle(Handle);
 
         if (Index == mWorldContexts.size()) {
@@ -274,6 +286,7 @@ namespace Engine {
         }
 
         mUpdating = true;
+
         Context->GetWorld()->Shutdown();
         mWorldContexts[Handle.GetIndex()].reset();
         mUpdating = false;
@@ -300,6 +313,7 @@ namespace Engine {
 
         if (Context == nullptr || IsDispatching()) {
             Error = "Source world is invalid or dispatching";
+
             return {};
         }
 
@@ -313,7 +327,9 @@ namespace Engine {
 
         if (mShutdownRequested) {
             Shutdown();
+
             Error = "World duplication was cancelled by shutdown";
+
             return {};
         }
 
@@ -325,6 +341,7 @@ namespace Engine {
 
         if (!Handle.IsValid()) {
             Error = "Could not attach the duplicated world";
+
             return {};
         }
 
@@ -353,6 +370,7 @@ namespace Engine {
      */
     Engine::UWorld* Engine::UEngine::GetWorld(Engine::FWorldHandle Handle) const {
         const Engine::FWorldContext* Context{FindContext(Handle)};
+
         return Context != nullptr ? Context->GetWorld() : nullptr;
     }
 
@@ -377,6 +395,7 @@ namespace Engine {
     bool Engine::UEngine::DestroyActor(CoreUObject::FObjectHandle Handle) {
         Engine::AActor* Actor{CoreUObject::Cast<Engine::AActor>(CoreUObject::FObjectRegistry::Get()->Resolve(Handle))};
         Engine::UWorld* World{Actor != nullptr ? Actor->GetWorld() : nullptr};
+
         return World != nullptr && GetWorld(World->GetWorldHandle()) == World && World->DestroyActor(Handle);
     }
 

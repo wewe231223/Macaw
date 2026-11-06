@@ -53,7 +53,9 @@ namespace Core {
          */
         void Append(std::span<char> Buffer, std::size_t& Length, std::string_view Text) {
             const std::size_t Count{std::min(Text.size(), Buffer.size() - Length - 1)};
+
             std::copy_n(Text.begin(), Count, Buffer.begin() + Length);
+
             Length += Count;
             Buffer[Length] = '\0';
         }
@@ -79,6 +81,7 @@ namespace Core {
 
             if (File != INVALID_HANDLE_VALUE) {
                 DWORD Written{};
+
                 WriteFile(File, Buffer.data(), static_cast<DWORD>(Length), &Written, nullptr);
                 FlushFileBuffers(File);
                 CloseHandle(File);
@@ -110,6 +113,7 @@ namespace Core {
             }
 
             std::error_code Error{};
+
             std::filesystem::create_directories("Log", Error);
 
             if (Error) {
@@ -117,6 +121,7 @@ namespace Core {
             }
 
             const auto Now{std::chrono::system_clock::now()};
+
             LogFile.open(std::format("Log/log_{:%Y%m%d_%H%M%S}_{}.txt", Now, GetCurrentProcessId()), std::ios::out | std::ios::app);
         }
 
@@ -176,6 +181,10 @@ namespace Core {
      * @fn void Core::ErrorHandler::Initialize()
      * @brief 프로세스 예외 종료와 메모리 할당 실패 처리기를 설치합니다.
      */
+
+    /**
+     * @brief 프로세스 예외 종료와 메모리 할당 실패 처리기를 설치합니다.
+     */
     void Core::ErrorHandler::Initialize() {
         std::set_terminate(HandleUnexpectedTermination);
         std::set_new_handler(HandleAllocationFailure);
@@ -183,6 +192,10 @@ namespace Core {
 
     /**
      * @fn void Core::ErrorHandler::Report(std::string_view Title, std::string_view Message, Core::ErrorHandler::EErrorLevel Level, const std::source_location& Location)
+     * @brief 심각도와 호출 위치를 포함하여 오류를 기록하고 Critical이면 프로그램을 중단합니다.
+     */
+
+    /**
      * @brief 심각도와 호출 위치를 포함하여 오류를 기록하고 Critical이면 프로그램을 중단합니다.
      */
     void Core::ErrorHandler::Report(std::string_view Title, std::string_view Message, Core::ErrorHandler::EErrorLevel Level, const std::source_location& Location) {
@@ -200,6 +213,7 @@ namespace Core {
 
             std::copy_n(Title.begin(), TitleLength, CriticalTitle.begin());
             std::copy_n(Message.begin(), MessageLength, CriticalMessage.begin());
+
             CriticalTitle[TitleLength] = '\0';
             CriticalMessage[MessageLength] = '\0';
         }
@@ -229,6 +243,10 @@ namespace Core {
      * @fn void Core::ErrorHandler::Report(bool Condition, std::string_view Title, std::string_view Message, Core::ErrorHandler::EErrorLevel Level, const std::source_location& Location)
      * @brief 심각도와 호출 위치를 포함하여 오류를 기록하고 Critical이면 프로그램을 중단합니다.
      */
+
+    /**
+     * @brief 심각도와 호출 위치를 포함하여 오류를 기록하고 Critical이면 프로그램을 중단합니다.
+     */
     void Core::ErrorHandler::Report(bool Condition, std::string_view Title, std::string_view Message, Core::ErrorHandler::EErrorLevel Level, const std::source_location& Location) {
         if (Condition) {
             Core::ErrorHandler::Report(Title, Message, Level, Location);
@@ -237,6 +255,10 @@ namespace Core {
 
     /**
      * @fn void Core::ErrorHandler::ReportHRESULT(HRESULT Result, std::string_view Title, std::string_view Message, Core::ErrorHandler::EErrorLevel Level, const std::source_location& Location)
+     * @brief 실패한 HRESULT에 시스템 오류 문자열을 붙여 보고합니다.
+     */
+
+    /**
      * @brief 실패한 HRESULT에 시스템 오류 문자열을 붙여 보고합니다.
      */
     void Core::ErrorHandler::ReportHRESULT(HRESULT Result, std::string_view Title, std::string_view Message, Core::ErrorHandler::EErrorLevel Level, const std::source_location& Location) {
@@ -249,6 +271,10 @@ namespace Core {
      * @fn void Core::ErrorHandler::ReportWin32(DWORD ErrorCode, std::string_view Title, std::string_view Message, Core::ErrorHandler::EErrorLevel Level, const std::source_location& Location)
      * @brief 0이 아닌 Win32 오류 코드에 시스템 오류 문자열을 붙여 보고합니다.
      */
+
+    /**
+     * @brief 0이 아닌 Win32 오류 코드에 시스템 오류 문자열을 붙여 보고합니다.
+     */
     void Core::ErrorHandler::ReportWin32(DWORD ErrorCode, std::string_view Title, std::string_view Message, Core::ErrorHandler::EErrorLevel Level, const std::source_location& Location) {
         if (ErrorCode != ERROR_SUCCESS) {
             Core::ErrorHandler::ReportHRESULT(HRESULT_FROM_WIN32(ErrorCode), Title, Message, Level, Location);
@@ -257,6 +283,10 @@ namespace Core {
 
     /**
      * @fn [[noreturn]] void Core::ErrorHandler::Fatal(std::string_view Title, std::string_view Message, const std::source_location& Location)
+     * @brief 치명적 오류를 기록한 뒤 프로그램을 종료하며 호출자로 돌아오지 않습니다.
+     */
+
+    /**
      * @brief 치명적 오류를 기록한 뒤 프로그램을 종료하며 호출자로 돌아오지 않습니다.
      */
     [[noreturn]] void Core::ErrorHandler::Fatal(std::string_view Title, std::string_view Message, const std::source_location& Location) {

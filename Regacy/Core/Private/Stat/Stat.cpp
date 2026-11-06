@@ -168,14 +168,18 @@ void Stat::BeginFrame() {
         State.mStats.mRenderPreparationSamples = State.mCurrentRenderPreparationSamples;
         State.mStats.mWorldTick = State.mCurrentWorldTick;
         ++State.mStats.mSystem.mFrameCount;
+
         AccumulateAverages(State);
+
         State.mFrameWindowSeconds += Frame.mDeltaSeconds;
         ++State.mFrameWindowCount;
 
         if (State.mFrameWindowSeconds > 0.0 && (Frame.mFramesPerSecond == 0.0 || State.mFrameWindowSeconds >= 0.5)) {
             Frame.mFramesPerSecond = static_cast<double>(State.mFrameWindowCount) / State.mFrameWindowSeconds;
             Frame.mAverageFrameMilliseconds = State.mFrameWindowSeconds * 1000.0 / static_cast<double>(State.mFrameWindowCount);
+
             PublishAverages(State);
+
             State.mFrameWindowSeconds = 0.0;
             State.mFrameWindowCount = 0;
         }
@@ -202,6 +206,7 @@ void Stat::EndFrame() {
     }
 
     RecordExclusiveTime(State, std::chrono::steady_clock::now());
+
     State.mFrameActive = false;
     State.mFramePending = true;
 }
@@ -327,6 +332,7 @@ Stat::FScopedSystemStatTimer::FScopedSystemStatTimer(ESystemStatStage Stage)
         FStatState& State{GetStatState()};
 
         RecordExclusiveTime(State, mStartTime);
+
         State.mCurrentStage = mStage;
     }
 }
@@ -338,6 +344,7 @@ Stat::FScopedSystemStatTimer::~FScopedSystemStatTimer() {
         const auto CurrentTime{std::chrono::steady_clock::now()};
 
         RecordExclusiveTime(State, CurrentTime);
+
         State.mCurrentStage = mPreviousStage;
 
         const double Milliseconds{std::chrono::duration<double, std::milli>{CurrentTime - mStartTime}.count()};
@@ -362,6 +369,7 @@ Stat::FScopedPickingStatTimer::~FScopedPickingStatTimer() {
     const double Milliseconds{std::chrono::duration<double, std::milli>{std::chrono::steady_clock::now() - mStartTime}.count()};
 
     GetStatState().mPickingTimerActive = false;
+
     RecordPickingTime(Milliseconds);
 }
 
@@ -375,6 +383,7 @@ Stat::FScopedWorldTickStatTimer::FScopedWorldTickStatTimer(std::size_t ActorTick
 
     if (State.mActiveWorldTickStats != nullptr) {
         State.mActiveWorldTickStats->mActorTickCount += ActorTickCount;
+
         return;
     }
 
@@ -433,6 +442,7 @@ Stat::FScopedRenderPreparationStatTimer::~FScopedRenderPreparationStatTimer() {
 
 void Stat::RecordAllocation(std::size_t Size, EMemoryTag Tag) {
     FMemoryStats& Stats{GetStatState().mStats.mMemory};
+
     // 전체 메모리 통계 갱신
     Stats.mAllocatedBytes += Size;
     ++Stats.mActiveAllocationCount;
@@ -451,6 +461,7 @@ void Stat::RecordAllocation(std::size_t Size, EMemoryTag Tag) {
 
 void Stat::RecordDeallocation(std::size_t Size, EMemoryTag Tag) {
     FMemoryStats& Stats{GetStatState().mStats.mMemory};
+
     // 전체 메모리 통계 감소
     Stats.mAllocatedBytes -= Size;
     --Stats.mActiveAllocationCount;

@@ -50,6 +50,7 @@ void FReflectedDetails::DrawProperty(const void* Container, const FProperty& Fie
 
     if (!Property->CanEdit(Container)) {
         Context.DrawDisabledText(DisplayName);
+
         return;
     }
 

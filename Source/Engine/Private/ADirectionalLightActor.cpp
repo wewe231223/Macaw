@@ -14,6 +14,9 @@ namespace Engine {
     Engine::ADirectionalLightActor::ADirectionalLightActor() = default;
     Engine::ADirectionalLightActor::~ADirectionalLightActor() = default;
 
+    /**
+     * @brief 액터 종류에 맞는 기본 광원 컴포넌트를 생성하고 루트에 연결합니다.
+     */
     bool Engine::ADirectionalLightActor::InitializeDefaultComponents() {
         if (!GetComponents().empty()) {
             return false;
@@ -25,6 +28,9 @@ namespace Engine {
         return AddComponent(std::move(Component));
     }
 
+    /**
+     * @brief 액터의 기본 광원 컴포넌트를 조회합니다.
+     */
     Engine::UDirectionalLightComponent* Engine::ADirectionalLightActor::GetLightComponent() const {
         return CoreUObject::Cast<Engine::UDirectionalLightComponent>(GetRootComponent());
     }

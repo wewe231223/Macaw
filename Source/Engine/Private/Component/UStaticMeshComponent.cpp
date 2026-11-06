@@ -41,16 +41,23 @@ namespace Engine {
 
         if (mPrimitive != Type) {
             mPrimitive = Type;
+
             MarkRenderStateDirty();
         }
 
         return true;
     }
 
+    /**
+     * @brief 이 컴포넌트에 설정된 프로젝트 상대 메시 에셋 경로를 반환합니다.
+     */
     const Core::FString& Engine::UStaticMeshComponent::GetMeshPath() const {
         return mMeshPath;
     }
 
+    /**
+     * @brief 프로젝트의 메시 에셋 경로를 검증하고 컴포넌트의 렌더 상태를 갱신합니다.
+     */
     bool Engine::UStaticMeshComponent::SetMeshPath(const Core::FString& Path) {
         if (Path.find('\0') != Core::FString::npos) {
             return false;
@@ -85,16 +92,23 @@ namespace Engine {
 
             mMeshPath = Path;
             mStaticMesh = Mesh;
+
             MarkRenderStateDirty();
         }
 
         return true;
     }
 
+    /**
+     * @brief 프리미티브가 사용하는 정적 메시의 비소유 주소를 반환합니다.
+     */
     Asset::UStaticMesh* Engine::UStaticMeshComponent::GetStaticMesh() const {
         return mStaticMesh;
     }
 
+    /**
+     * @brief 메시의 CPU 정점 속성·인덱스 데이터 참조를 반환합니다.
+     */
     const Asset::FMeshData& Engine::UStaticMeshComponent::GetMeshData() const {
         if (mStaticMesh != nullptr) {
             return mStaticMesh->GetMeshData();
@@ -109,28 +123,42 @@ namespace Engine {
         return EmptyMesh;
     }
 
+    /**
+     * @brief 등록된 렌더 상태와 월드 연결을 해제합니다.
+     */
     void Engine::UStaticMeshComponent::UnregisterComponent() {
         Engine::UWorld::FDispatchScope Scope{GetWorld()};
 
         Engine::UMeshComponent::UnregisterComponent();
+
         mStaticMesh = nullptr;
     }
 
+    /**
+     * @brief 저장된 메시 경로를 에셋 관리자에서 해석하고 렌더 상태를 갱신합니다.
+     */
     bool Engine::UStaticMeshComponent::ResolveMesh() {
         Asset::UStaticMesh* Mesh{LoadMesh(mMeshPath)};
 
         if (mStaticMesh != Mesh) {
             mStaticMesh = Mesh;
+
             MarkRenderStateDirty();
         }
 
         return mMeshPath.empty() || mStaticMesh != nullptr;
     }
 
+    /**
+     * @brief 현재 표시·에셋 상태에서 렌더 프록시를 생성할지 판정합니다.
+     */
     bool Engine::UStaticMeshComponent::ShouldCreateRenderState() const {
         return mMeshPath.empty() || mStaticMesh != nullptr;
     }
 
+    /**
+     * @brief Content 상대 경로의 메시를 에셋 관리자에서 조회합니다.
+     */
     Asset::UStaticMesh* Engine::UStaticMeshComponent::LoadMesh(const Core::FString& Path) const {
         Asset::FAssetManager* Assets{GetWorld() != nullptr ? GetWorld()->GetAssets() : nullptr};
 

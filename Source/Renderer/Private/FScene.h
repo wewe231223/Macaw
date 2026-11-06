@@ -61,11 +61,13 @@ namespace Renderer {
          * @param[in] Proxy 장면에 복사할 높이 안개 프록시입니다.
          */
         void AddHeightFog(const Engine::FHeightFogSceneProxy& Proxy) override;
+
         /**
          * @brief 지정한 GUID의 높이 안개 프록시를 렌더 장면에서 제거합니다.
          * @param[in] Id 제거할 안개 컴포넌트의 GUID입니다.
          */
         void RemoveHeightFog(const Core::FGuid& Id) override;
+
         /**
          * @brief 현재 렌더 장면에 등록된 높이 안개 프록시 목록을 조회합니다.
          * @return 장면이 소유하는 안개 프록시 목록의 읽기 전용 참조입니다.

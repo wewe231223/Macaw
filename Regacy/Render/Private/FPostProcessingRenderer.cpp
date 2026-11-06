@@ -13,6 +13,7 @@ bool FPostProcessingRenderer::Initialize(ID3D11Device* Device) {
 
     if (!mVertexShader.Initialize(Device, VertexDescription) || !mPixelShader.Initialize(Device, PixelDescription)) {
         Reset();
+
         return false;
     }
 
@@ -55,6 +56,7 @@ bool FPostProcessingRenderer::Initialize(ID3D11Device* Device) {
 
     if (FAILED(Device->CreateRasterizerState(&RasterizerDescription, mRasterizerState.GetAddressOf())) || FAILED(Device->CreateBlendState(&BlendDescription, mBlendState.GetAddressOf())) || FAILED(Device->CreateDepthStencilState(&DepthDescription, mDepthStencilState.GetAddressOf())) || FAILED(Device->CreateSamplerState(&SamplerDescription, mSamplerState.GetAddressOf())) || !mConstants.Initialize(Device, BufferDescription)) {
         Reset();
+
         return false;
     }
 

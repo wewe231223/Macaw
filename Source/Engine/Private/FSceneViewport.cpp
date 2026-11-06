@@ -27,6 +27,9 @@ namespace Engine {
      */
     Engine::FSceneViewport::~FSceneViewport() = default;
 
+    /**
+     * @brief 이 장면 뷰포트가 입력과 그리기를 전달할 클라이언트를 교체합니다.
+     */
     void Engine::FSceneViewport::SetClient(Engine::FViewportClient* Client) {
         mClient = Client;
     }

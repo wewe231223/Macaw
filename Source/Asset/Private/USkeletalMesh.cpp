@@ -3,6 +3,7 @@
  * @brief 본 데이터 검증과 공유 바인드 형상 및 GPU 스킨 가중치를 관리합니다.
  * @ingroup Asset
  */
+
 #include "Asset/USkeletalMesh.h"
 
 #include <cmath>
@@ -12,6 +13,9 @@
 
 namespace Asset {
 
+    /**
+     * @brief 형상·부모 순서·가중치를 검증하고 역바인드 행렬을 계산합니다.
+     */
     bool Asset::USkeletalMesh::SetMeshData(Asset::FMeshData MeshData, Core::TArray<Asset::FMeshImportBone> Bones, Core::TArray<Asset::FMeshImportSkinWeight> SkinWeights) {
         if (Bones.empty() || Bones.size() > 100000 || SkinWeights.size() != MeshData.GetPositions().size() || SkinWeights.size() > 16000000) {
             return false;
@@ -19,6 +23,7 @@ namespace Asset {
 
         Core::TArray<Core::FMatrix> GlobalBindPoses{};
         Core::TArray<Core::FMatrix> InverseBindPoses{};
+
         GlobalBindPoses.reserve(Bones.size());
         InverseBindPoses.reserve(Bones.size());
 
@@ -33,6 +38,7 @@ namespace Asset {
             }
 
             const Core::FMatrix Global{Parent < 0 ? Bone.GetBindPose() : Bone.GetBindPose() * GlobalBindPoses[static_cast<std::size_t>(Parent)]};
+
             // 역바인드 행렬은 메시 공간의 바인드 정점을 이 본의 로컬 공간으로 옮깁니다. 본을 기준으로 한 정점의 상대 위치를 얻는 단계입니다.
             Core::FMatrix Inverse{};
 
@@ -73,29 +79,48 @@ namespace Asset {
         mSkinWeights = std::move(SkinWeights);
         mInverseBindPoses = std::move(InverseBindPoses);
         mRevision = Core::FRevision::Next();
+
         return true;
     }
 
+    /**
+     * @brief 바인드 포즈의 CPU 형상을 반환합니다.
+     */
     const Asset::FMeshData& Asset::USkeletalMesh::GetMeshData() const {
         return mGeometry.GetMeshData();
     }
 
+    /**
+     * @brief 이름·부모·로컬 바인드 포즈를 반환합니다.
+     */
     const Core::TArray<Asset::FMeshImportBone>& Asset::USkeletalMesh::GetBones() const {
         return mBones;
     }
 
+    /**
+     * @brief 정점별 스킨 가중치를 반환합니다.
+     */
     const Core::TArray<Asset::FMeshImportSkinWeight>& Asset::USkeletalMesh::GetSkinWeights() const {
         return mSkinWeights;
     }
 
+    /**
+     * @brief 메시 공간에서 바인드 시점 본 공간으로 가는 행렬을 반환합니다.
+     */
     const Core::TArray<Core::FMatrix>& Asset::USkeletalMesh::GetInverseBindPoses() const {
         return mInverseBindPoses;
     }
 
+    /**
+     * @brief 공통 메시 드로 경로가 사용할 바인드 형상을 반환합니다.
+     */
     Asset::UStaticMesh* Asset::USkeletalMesh::GetGeometry() {
         return &mGeometry;
     }
 
+    /**
+     * @brief 장치에 바인드 형상과 불변 가중치 버퍼를 준비합니다.
+     */
     bool Asset::USkeletalMesh::CreateResources(ID3D11Device* Device) {
         if (Device == nullptr || !IsValid() || !mGeometry.CreateResources(Device)) {
             return false;
@@ -108,6 +133,7 @@ namespace Asset {
 
         // 임포트 클래스의 메모리 배치와 무관하게 uint4, float4 순으로 입력을 만듭니다.
         static_assert(sizeof(FSkinWeightVertex) == sizeof(Core::Uint32) * 4 + sizeof(float) * 4);
+
         Core::TArray<FSkinWeightVertex> Vertices{};
         Vertices.resize(mSkinWeights.size());
 
@@ -125,38 +151,63 @@ namespace Asset {
         }
 
         mSkinWeightBuffer = std::move(Buffer);
+
         return true;
     }
 
+    /**
+     * @brief 형상과 가중치의 GPU 자원을 해제합니다.
+     */
     void Asset::USkeletalMesh::ReleaseResources() {
         mGeometry.ReleaseResources();
         mSkinWeightBuffer.Reset();
     }
 
+    /**
+     * @brief 본 인덱스와 가중치를 담은 정점 버퍼를 입력 슬롯에 연결합니다.
+     */
     void Asset::USkeletalMesh::BindSkinWeights(ID3D11DeviceContext* Context, Core::Uint32 Slot) const {
         mSkinWeightBuffer.Bind(Context, Slot);
     }
 
+    /**
+     * @brief 입력 슬롯의 스킨 가중치 버퍼 연결을 해제합니다.
+     */
     void Asset::USkeletalMesh::UnbindSkinWeights(ID3D11DeviceContext* Context, Core::Uint32 Slot) {
         FSkinWeightBuffer::Unbind(Context, Slot);
     }
 
+    /**
+     * @brief 바인드 형상의 로컬 경계를 반환합니다.
+     */
     const Core::FBox& Asset::USkeletalMesh::GetBounds() const {
         return mGeometry.GetBounds();
     }
 
+    /**
+     * @brief 정점 수를 반환합니다.
+     */
     Core::Uint32 Asset::USkeletalMesh::GetVertexCount() const {
         return mGeometry.GetVertexCount();
     }
 
+    /**
+     * @brief 인덱스 수를 반환합니다.
+     */
     Core::Uint32 Asset::USkeletalMesh::GetIndexCount() const {
         return mGeometry.GetIndexCount();
     }
 
+    /**
+     * @brief 에셋 데이터의 변경 식별자를 반환합니다.
+     */
     Core::FRevision Asset::USkeletalMesh::GetRevision() const {
         return mRevision;
     }
 
+    /**
+     * @brief 스키닝에 필요한 형상과 본 데이터가 있는지 검사합니다.
+     */
     bool Asset::USkeletalMesh::IsValid() const {
         return mGeometry.IsValid() && !mBones.empty() && mSkinWeights.size() == GetVertexCount() && mInverseBindPoses.size() == mBones.size();
     }

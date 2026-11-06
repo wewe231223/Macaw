@@ -74,6 +74,7 @@ bool FViewerPanel::OpenViewerFile(const std::filesystem::path& FilePath) {
 
     if ((Extension == ".mtl" || Extension == ".material") && FAssetRegistry::Get().ResolveAsset<UMesh>(mMeshHandle) != nullptr && FAssetRegistry::Get().ResolveAsset<UMaterial>(Handle) != nullptr) {
         SetMaterial(Handle);
+
         return true;
     }
 
@@ -170,6 +171,7 @@ void FViewerPanel::DrawMenuBar() {
 void FViewerPanel::DrawProperties() {
     if (FAssetRegistry::TryGet() == nullptr) {
         mPropertyEditor.DrawDisabledText("Asset registry unavailable");
+
         return;
     }
 

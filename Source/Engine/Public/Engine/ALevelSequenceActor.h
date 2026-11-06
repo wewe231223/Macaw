@@ -21,12 +21,26 @@ namespace Engine {
         GENERATED_BODY()
 
     public:
+        /**
+         * @brief 액터의 기본 컴포넌트를 생성하고 루트 컴포넌트를 정합니다.
+         * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
+         */
         bool InitializeDefaultComponents() override;
 
+        /**
+         * @brief 액터의 게임 실행 시작 시 호출되는 확장 지점입니다.
+         */
         void BeginPlay() override;
 
+        /**
+         * @brief 액터의 실행 또는 허용된 편집 갱신 시 호출되는 확장 지점입니다.
+         * @param[in] DeltaTime 이번 갱신이 진행하는 초 단위 시간입니다.
+         */
         void Tick(float DeltaTime) override;
 
+        /**
+         * @brief 액터의 게임 실행 종료 시 호출되는 확장 지점입니다.
+         */
         void EndPlay() override;
 
         /**

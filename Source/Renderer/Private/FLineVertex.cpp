@@ -9,6 +9,9 @@
 
 namespace Renderer {
 
+    /**
+     * @brief 선분의 월드 끝점·픽셀 두께·색상을 GPU 인스턴스로 변환합니다.
+     */
     Renderer::FLineVertex::FLineVertex(const Engine::FDrawLine& Line)
 		: mStartAndWidth{Line.mStart, Line.mThickness},
 		  mEnd{Line.mEnd, 0.0f},

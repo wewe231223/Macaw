@@ -14,6 +14,9 @@ namespace Engine {
     Engine::AExponentionFogActor::AExponentionFogActor() = default;
     Engine::AExponentionFogActor::~AExponentionFogActor() = default;
 
+    /**
+     * @brief 빈 액터에 HeightFogComponent를 생성하고 루트 컴포넌트로 추가합니다.
+     */
     bool Engine::AExponentionFogActor::InitializeDefaultComponents() {
         if (!GetComponents().empty()) {
             return false;
@@ -25,6 +28,9 @@ namespace Engine {
         return AddComponent(std::move(Component));
     }
 
+    /**
+     * @brief 안개 액터의 루트에 연결된 높이 안개 컴포넌트를 조회합니다.
+     */
     Engine::UHeightFogComponent* Engine::AExponentionFogActor::GetFogComponent() const {
         return CoreUObject::Cast<Engine::UHeightFogComponent>(GetRootComponent());
     }

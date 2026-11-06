@@ -159,6 +159,7 @@ namespace Editor {
 
                 Engine::FEngineShowFlags Flags{Client->GetShowFlags()};
                 bool Changed{ImGui::Checkbox("Primitives", &Flags.mPrimitives)};
+
                 Changed = ImGui::Checkbox("Sprites / Billboards", &Flags.mSprites) || Changed;
                 Changed = ImGui::Checkbox("Text", &Flags.mText) || Changed;
                 Changed = ImGui::Checkbox("Light Icons", &Flags.mLightIcons) || Changed;
@@ -171,6 +172,7 @@ namespace Editor {
                 Changed = ImGui::Checkbox("Bounding Boxes (AABB)", &Flags.mBounds) || Changed;
                 Changed = ImGui::Checkbox("Grid", &Flags.mGrid) || Changed;
                 Changed = ImGui::Checkbox("World Axes", &Flags.mAxes) || Changed;
+
                 ImGui::Separator();
 
                 float Thickness{Client->GetLineThickness()};
@@ -182,6 +184,7 @@ namespace Editor {
                 if (ImGui::MenuItem("Use Defaults")) {
                     Flags = {};
                     Changed = true;
+
                     Client->SetLineThickness(1.5f);
                 }
 
@@ -215,6 +218,7 @@ namespace Editor {
                 float NearClip{Camera.GetNearClip()};
                 float FarClip{Camera.GetFarClip()};
                 bool ProjectionChanged{ImGui::SliderFloat("FOV", &FieldOfView, 1.0f, 179.0f, "%.1f")};
+
                 ProjectionChanged = ImGui::InputFloat("Near Clip", &NearClip) || ProjectionChanged;
                 ProjectionChanged = ImGui::InputFloat("Far Clip", &FarClip) || ProjectionChanged;
 
@@ -231,6 +235,10 @@ namespace Editor {
     /**
      * @fn void Editor::ViewportToolbar::Draw(Editor::FEditorViewportClient* Client)
      * @brief 공통 스타일로 툴바와 드롭다운을 구성하고 입력을 클라이언트 명령으로 전달합니다.
+     */
+
+    /**
+     * @brief 아이콘 버튼과 메뉴를 표시하고 사용자 요청을 클라이언트의 공통 명령 경로로 전달합니다.
      */
     void Editor::ViewportToolbar::Draw(Editor::FEditorViewportClient* Client) {
         ImGui::PushID("ViewportToolbar");
@@ -263,6 +271,7 @@ namespace Editor {
 
             const Editor::FViewportCommandInfo* Cycle{Editor::FViewportCommandInfo::Find(Editor::EViewportCommand::CycleTransformMode)};
             const Core::FString Shortcut{Cycle->GetShortcutLabel()};
+
             ImGui::TextDisabled("%s: %s", Shortcut.c_str(), Cycle->mLabel);
             ImGui::EndPopup();
         }

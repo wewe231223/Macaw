@@ -160,6 +160,11 @@ namespace Renderer {
          * @return GPU 뷰의 비소유 주소와 타일 정보 사본입니다.
          */
         RenderCore::FShadowAtlasView GetView();
+
+        /**
+         * @brief 요청된 그림자 아틀라스 미리보기를 현재 깊이 자원에서 갱신합니다.
+         * @param[in] Context GPU 명령을 제출할 D3D11 장치 컨텍스트입니다.
+         */
         void UpdatePreview(ID3D11DeviceContext* Context);
 
         /**
@@ -316,7 +321,14 @@ namespace Renderer {
          */
         bool mEnabled{};
 
+        /**
+         * @brief 현재 프레임의 그림자 미리보기 요청 상태입니다.
+         */
         bool mPreviewRequested{};
+
+        /**
+         * @brief 그림자 미리보기 재생성 필요 여부입니다.
+         */
         bool mPreviewDirty{true};
     };
 

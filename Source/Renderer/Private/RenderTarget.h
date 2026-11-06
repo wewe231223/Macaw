@@ -76,16 +76,19 @@ namespace Renderer {
          * @return 렌더 타깃이 소유하는 장면 컬러의 비소유 주소이며 할당 전에는 nullptr입니다.
          */
         Asset::UTexture2D* GetSceneColor() const;
+
         /**
          * @brief 다중 안개 합성에 사용하는 교대 컬러 텍스처를 조회합니다.
          * @return 렌더 타깃이 소유하는 중간 컬러의 비소유 주소이며 할당 전에는 nullptr입니다.
          */
         Asset::UTexture2D* GetPostProcessColor() const;
+
         /**
          * @brief 에디터와 UI에 표시하는 최종 컬러 텍스처를 조회합니다.
          * @return 렌더 타깃이 소유하는 최종 컬러의 비소유 주소이며 할당 전에는 nullptr입니다.
          */
         Asset::UTexture2D* GetOutputColor() const;
+
         /**
          * @brief 깊이 검사와 후처리 샘플링에 공유하는 깊이 텍스처를 조회합니다.
          * @return 렌더 타깃이 소유하는 깊이 텍스처의 비소유 주소이며 할당 전에는 nullptr입니다.
@@ -114,6 +117,7 @@ namespace Renderer {
          * @brief 후처리 입력 컬러와 다중 안개 합성의 교대 출력으로 사용하는 텍스처입니다.
          */
         std::unique_ptr<Asset::UTexture2D> mSceneColor{};
+
         /**
          * @brief 다중 안개를 읽기·쓰기 충돌 없이 합성하기 위한 교대 컬러 텍스처입니다.
          */

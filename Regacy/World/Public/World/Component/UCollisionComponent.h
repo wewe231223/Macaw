@@ -12,6 +12,7 @@ public:
 
 public:
     UCollisionComponent();
+
     ~UCollisionComponent() override = default;
 
 public:

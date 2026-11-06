@@ -8,6 +8,7 @@ public:
 
 public:
     UDirectionalLightComponent();
+
     ~UDirectionalLightComponent() override = default;
 
 public:

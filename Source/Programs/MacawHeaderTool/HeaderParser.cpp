@@ -1,3 +1,8 @@
+/**
+ * @file HeaderParser.cpp
+ * @brief 리플렉션 표시를 파싱하고 선언·포함 순서 규칙을 검사합니다.
+ */
+
 #include "HeaderParser.h"
 
 #include <algorithm>
@@ -7,41 +12,122 @@
 
 namespace HeaderTool {
 
+    /**
+     * @brief 이 파일에서 사용하는 내부 보조 기능과 상태를 묶습니다.
+     */
     namespace {
 
+        /**
+         * @brief 허용하는 리플렉션 표시 이름입니다.
+         */
         constexpr std::string_view sAnnotations[]{"UCLASS", "USTRUCT", "UENUM", "UPROPERTY", "UFUNCTION", "GENERATED_BODY"};
+
+        /**
+         * @brief 교체해야 하는 이전 리플렉션 매크로 이름입니다.
+         */
         constexpr std::string_view sLegacyAnnotations[]{"ReflectTypes", "ReflectClass", "ReflectRootClass", "ReflectStruct", "ReflectMembers", "ReflectProperty", "ReflectAccessor", "ReflectSetter", "ReflectReadOnlyProperty", "ReflectReadOnlyAccessor", "ReflectArray", "ReflectArrayAccessor", "ReflectFunction", "ReflectEnum", "ReflectScriptEnum"};
+
+        /**
+         * @brief 허용하는 프로퍼티 플래그 이름입니다.
+         */
         constexpr std::string_view sPropertyFlags[]{"Edit", "Serialize", "ReadOnly", "Transient", "SerializeLate"};
+
+        /**
+         * @brief 허용하는 클래스 플래그 이름입니다.
+         */
         constexpr std::string_view sClassFlags[]{"Abstract", "NoFactory"};
 
+        /**
+         * @brief 고정 문자열 배열에 지정한 값이 있는지 검사합니다.
+         * @tparam Count 고정 배열의 원소 수입니다.
+         * @param[in] Values 검사하거나 ABI에 저장할 배열입니다.
+         * @param[in] Value 검사·변환·저장할 값입니다.
+         * @return 배열에 일치하는 문자열이 있으면 true입니다.
+         */
         template <std::size_t Count>
         bool Contains(const std::string_view (&Values)[Count], std::string_view Value) {
             return std::find(std::begin(Values), std::end(Values), Value) != std::end(Values);
         }
 
+        /**
+         * @brief 네임스페이스 이름과 본문 토큰 범위입니다.
+         */
         struct FNamespace {
+            /**
+             * @brief 본문 범위를 기록한 네임스페이스의 이름입니다.
+             */
             std::string Name;
+
+            /**
+             * @brief 네임스페이스 본문의 여는 중괄호 토큰 위치입니다.
+             */
             std::size_t Opening{};
+
+            /**
+             * @brief 본문 또는 인자의 닫는 토큰 위치입니다.
+             */
             std::size_t Closing{};
         };
 
+        /**
+         * @brief 리플렉션 지정자의 이름과 선택적 값입니다.
+         */
         struct FArgument {
+            /**
+             * @brief 리플렉션 지정자 이름입니다.
+             */
             std::string Key;
+
+            /**
+             * @brief 등호 뒤의 원문 지정자 값입니다.
+             */
             std::string Value;
         };
 
+        /**
+         * @brief 리플렉션 표시의 이름·토큰 범위·원문 인자입니다.
+         */
         struct FAnnotation {
+            /**
+             * @brief UCLASS·UPROPERTY 등 리플렉션 표시의 이름입니다.
+             */
             std::string Name;
+
+            /**
+             * @brief 표시 이름의 토큰 위치입니다.
+             */
             std::size_t Token{};
+
+            /**
+             * @brief 본문 또는 인자의 닫는 토큰 위치입니다.
+             */
             std::size_t Closing{};
+
+            /**
+             * @brief 표시의 괄호 안에서 분리한 원문 인자입니다.
+             */
             std::vector<std::string> Arguments;
         };
 
+        /**
+         * @brief 범위 안의 토큰이 식별자인지 검사합니다.
+         * @param[in] Source 원문·마스크·토큰을 제공하는 소스입니다.
+         * @param[in] Index 처리할 원소 또는 토큰의 인덱스입니다.
+         * @return 범위 안의 토큰이 식별자이면 true입니다.
+         */
         bool IsIdentifier(const FSourceFile& Source, std::size_t Index) {
             return Index < Source.Tokens.size() && Source.Tokens[Index].Kind == ETokenKind::Identifier;
         }
 
         // 괄호 안을 깊이 0의 쉼표로 나누어 원문 조각을 돌려줍니다.
+
+        /**
+         * @brief 괄호 내부를 중첩 깊이 0의 쉼표로 나누어 원문 인자를 수집합니다.
+         * @param[in] Source 원문·마스크·토큰을 제공하는 소스입니다.
+         * @param[in] Opening 여는 괄호 토큰 위치입니다.
+         * @param[in] Closing 닫는 괄호 토큰 위치입니다.
+         * @return 공백을 정리한 원문 인자 목록입니다.
+         */
         std::vector<std::string> ReadArguments(const FSourceFile& Source, std::size_t Opening, std::size_t Closing) {
             std::vector<std::string> Arguments;
             std::size_t First{Opening + 1};
@@ -70,6 +156,11 @@ namespace HeaderTool {
             return Arguments;
         }
 
+        /**
+         * @brief 리플렉션 지정자를 첫 등호 기준으로 이름과 값으로 나눕니다.
+         * @param[in] Text 해석·변환·탐색할 원문 문자열입니다.
+         * @return 지정자 이름과 선택적인 값입니다.
+         */
         FArgument SplitSpecifier(const std::string& Text) {
             const std::size_t Equal{Text.find('=')};
 
@@ -80,6 +171,11 @@ namespace HeaderTool {
             return {Trim(std::string_view{Text}.substr(0, Equal)), Trim(std::string_view{Text}.substr(Equal + 1))};
         }
 
+        /**
+         * @brief 타입의 const·마지막 참조 기호를 제거하고 공백을 정리합니다.
+         * @param[in] Text 해석·변환·탐색할 원문 문자열입니다.
+         * @return 해석·변환한 문자열입니다.
+         */
         std::string NormalizeType(std::string_view Text) {
             std::string Type{Trim(RemoveWord(Text, "const"))};
 
@@ -90,11 +186,17 @@ namespace HeaderTool {
             return Trim(Type);
         }
 
+        /**
+         * @brief 텍스트에서 블록·줄 주석을 제거합니다.
+         * @param[in] Text 해석·변환·탐색할 원문 문자열입니다.
+         * @return 해석·변환한 문자열입니다.
+         */
         std::string StripComments(std::string Text) {
             std::size_t Position{};
 
             while ((Position = Text.find("/*", Position)) != std::string::npos) {
                 const std::size_t Finish{Text.find("*/", Position + 2)};
+
                 Text.erase(Position, Finish == std::string::npos ? std::string::npos : Finish + 2 - Position);
             }
 
@@ -107,6 +209,11 @@ namespace HeaderTool {
             return Text;
         }
 
+        /**
+         * @brief 열거형 값에 붙은 UMETA 표시와 인자를 제거합니다.
+         * @param[in] Text 해석·변환·탐색할 원문 문자열입니다.
+         * @return 해석·변환한 문자열입니다.
+         */
         std::string StripMeta(std::string Text) {
             std::size_t Position{};
 
@@ -129,6 +236,11 @@ namespace HeaderTool {
             return Trim(Text);
         }
 
+        /**
+         * @brief 식별자에 사용할 수 없는 문자를 밑줄로 바꿉니다.
+         * @param[in] Text 해석·변환·탐색할 원문 문자열입니다.
+         * @return 해석·변환한 문자열입니다.
+         */
         std::string Sanitize(std::string Text) {
             for (char& Character : Text) {
                 if (!IsIdentifierCharacter(Character)) {
@@ -139,6 +251,11 @@ namespace HeaderTool {
             return Text;
         }
 
+        /**
+         * @brief 필드의 m 접두어를 제거해 기본 프로퍼티 이름을 구합니다.
+         * @param[in] Member 프로퍼티 이름을 유도할 필드 이름입니다.
+         * @return 해석·변환한 문자열입니다.
+         */
         std::string DerivedName(const std::string& Member) {
             if (Member.size() > 1 && Member[0] == 'm' && std::isupper(static_cast<unsigned char>(Member[1]))) {
                 return Member.substr(1);
@@ -147,12 +264,22 @@ namespace HeaderTool {
             return Member;
         }
 
+        /**
+         * @brief 헤더의 리플렉션 표시를 읽어 타입·프로퍼티·함수·열거형 정보를 구성합니다.
+         */
         class FHeaderParser {
         public:
+            /**
+             * @brief 파싱할 헤더와 원본 소스·토큰을 연결합니다.
+             * @param[in] Header 파싱하거나 생성에 참조할 헤더입니다.
+             */
             explicit FHeaderParser(FHeader& Header)
                 : mHeader{Header}, mSource{Header.Source} {
             }
 
+            /**
+             * @brief 타입과 리플렉션 표시를 읽고 generated.h 포함 규칙을 검증합니다.
+             */
             void Parse() {
                 ReadNamespaces();
                 ReadDefinitions();
@@ -186,16 +313,26 @@ namespace HeaderTool {
                 }
 
                 const std::string Stem{std::filesystem::path{mSource.Path}.stem().string()};
+
                 mHeader.GeneratedName = Stem + ".generated.h";
                 mHeader.FileId = "MACAW_" + Sanitize(mSource.Module) + "_" + Sanitize(Stem) + "_h";
+
                 CheckGeneratedInclude();
             }
 
         private:
+            /**
+             * @brief 진단에 넣을 이름을 작은따옴표로 감쌉니다.
+             * @param[in] Text 해석·변환·탐색할 원문 문자열입니다.
+             * @return 해석·변환한 문자열입니다.
+             */
             static std::string Quote(const std::string& Text) {
                 return "'" + Text + "'";
             }
 
+            /**
+             * @brief 이름이 있는 네임스페이스와 토큰 범위를 수집합니다.
+             */
             void ReadNamespaces() {
                 for (std::size_t Index{}; Index < mSource.Tokens.size(); ++Index) {
                     if (!mSource.Is(Index, "namespace") || !IsIdentifier(mSource, Index + 1)) {
@@ -216,6 +353,11 @@ namespace HeaderTool {
                 }
             }
 
+            /**
+             * @brief 토큰 위치를 포함하는 중첩 네임스페이스 이름을 조합합니다.
+             * @param[in] Index 처리할 원소 또는 토큰의 인덱스입니다.
+             * @return 해석·변환한 문자열입니다.
+             */
             std::string NamespaceAt(std::size_t Index) const {
                 std::string Result;
 
@@ -228,6 +370,11 @@ namespace HeaderTool {
                 return Result;
             }
 
+            /**
+             * @brief 타입 키워드 앞에 템플릿 매개변수 목록이 있는지 검사합니다.
+             * @param[in] Keyword 템플릿 여부를 검사할 타입 키워드 위치입니다.
+             * @return 템플릿 매개변수 목록이 앞에 있으면 true입니다.
+             */
             bool IsTemplateHead(std::size_t Keyword) const {
                 if (Keyword == 0 || !mSource.Is(Keyword - 1, ">")) {
                     return false;
@@ -246,6 +393,9 @@ namespace HeaderTool {
                 return false;
             }
 
+            /**
+             * @brief 클래스·구조체 정의와 본문 범위를 수집합니다.
+             */
             void ReadDefinitions() {
                 const std::vector<FToken>& Tokens{mSource.Tokens};
 
@@ -290,14 +440,22 @@ namespace HeaderTool {
                     }
 
                     const FType* Outer{Type.Outer >= 0 ? &mHeader.Types[static_cast<std::size_t>(Type.Outer)] : nullptr};
+
                     Type.Name = Outer != nullptr ? Outer->Name + "::" + Type.ShortName : Type.ShortName;
                     Type.Template = IsTemplateHead(Index) || (Outer != nullptr && Outer->Template);
                     Type.Super = ReadSuper(NameIndex + 1, Opening);
+
                     mHeader.Types.push_back(std::move(Type));
                     mKeywords.push_back(Index);
                 }
             }
 
+            /**
+             * @brief 타입 선언에서 지원하는 단일 기반 클래스 이름을 읽습니다.
+             * @param[in] Index 처리할 원소 또는 토큰의 인덱스입니다.
+             * @param[in] Opening 여는 괄호 토큰 위치입니다.
+             * @return 정규화한 기반 클래스 이름이며 상속이 없으면 빈 문자열입니다.
+             */
             std::string ReadSuper(std::size_t Index, std::size_t Opening) const {
                 if (mSource.Is(Index, "final")) {
                     ++Index;
@@ -318,6 +476,7 @@ namespace HeaderTool {
 
                 for (; Last < Opening; ++Last) {
                     const std::string& Text{mSource.Tokens[Last].Text};
+
                     Depth += (Text == "<" || Text == "(") ? 1 : ((Text == ">" || Text == ")") ? -1 : 0);
 
                     if (Text == "," && Depth == 0) {
@@ -328,6 +487,10 @@ namespace HeaderTool {
                 return mSource.TextBetween(Index, Last);
             }
 
+            /**
+             * @brief 리플렉션 표시와 인자를 수집하고 이전 매크로 사용을 거부합니다.
+             * @return 검증한 리플렉션 표시 목록입니다.
+             */
             std::vector<FAnnotation> ReadAnnotations() const {
                 std::vector<FAnnotation> Annotations;
 
@@ -344,7 +507,9 @@ namespace HeaderTool {
 
                     if (Contains(sAnnotations, Token.Text)) {
                         const std::size_t Closing{mSource.FindClosing(Index + 1)};
+
                         Annotations.push_back({Token.Text, Index, Closing, ReadArguments(mSource, Index + 1, Closing)});
+
                         Index = Closing;
                     }
                 }
@@ -352,6 +517,11 @@ namespace HeaderTool {
                 return Annotations;
             }
 
+            /**
+             * @brief 토큰 위치를 본문에 포함하는 가장 안쪽 타입을 찾습니다.
+             * @param[in] Index 처리할 원소 또는 토큰의 인덱스입니다.
+             * @return 위치를 포함하는 가장 안쪽 타입이며 없으면 nullptr입니다.
+             */
             FType* OwnerAt(std::size_t Index) {
                 FType* Owner{};
 
@@ -364,6 +534,11 @@ namespace HeaderTool {
                 return Owner;
             }
 
+            /**
+             * @brief 표시가 속한 타입을 찾고 리플렉션 대상으로 선언되었는지 검사합니다.
+             * @param[in] Annotation 해석할 리플렉션 표시·토큰 범위입니다.
+             * @return 리플렉션 표시를 소유한 타입 참조입니다.
+             */
             FType& ReflectedOwner(const FAnnotation& Annotation) {
                 FType* Owner{OwnerAt(Annotation.Token)};
 
@@ -378,6 +553,10 @@ namespace HeaderTool {
                 return *Owner;
             }
 
+            /**
+             * @brief 리플렉션 표시를 타입 정의에 연결하고 종류와 플래그를 기록합니다.
+             * @param[in] Annotation 해석할 리플렉션 표시·토큰 범위입니다.
+             */
             void ReadType(const FAnnotation& Annotation) {
                 const auto Found{std::find(mKeywords.begin(), mKeywords.end(), Annotation.Closing + 1)};
 
@@ -399,6 +578,7 @@ namespace HeaderTool {
                     }
 
                     Type.Kind = ETypeKind::Struct;
+
                     return;
                 }
 
@@ -413,6 +593,10 @@ namespace HeaderTool {
                 }
             }
 
+            /**
+             * @brief GENERATED_BODY 위치를 소유 타입에 기록하고 중복을 검사합니다.
+             * @param[in] Annotation 해석할 리플렉션 표시·토큰 범위입니다.
+             */
             void ReadGeneratedBody(const FAnnotation& Annotation) {
                 FType& Owner{ReflectedOwner(Annotation)};
 
@@ -427,6 +611,10 @@ namespace HeaderTool {
                 Owner.GeneratedBodyLine = mSource.LineAt(mSource.Tokens[Annotation.Token].Offset);
             }
 
+            /**
+             * @brief 필드와 지정자를 읽어 접근자·직렬화·배열 등록 정보를 구성합니다.
+             * @param[in] Annotation 해석할 리플렉션 표시·토큰 범위입니다.
+             */
             void ReadProperty(const FAnnotation& Annotation) {
                 FType& Owner{ReflectedOwner(Annotation)};
                 const std::size_t First{Annotation.Closing + 1};
@@ -453,6 +641,7 @@ namespace HeaderTool {
 
                 FProperty Property;
                 Property.Member = mSource.Tokens[Index - 1].Text;
+
                 const std::string Type{mSource.TextBetween(First, Index - 1)};
 
                 if (Type.empty() || ContainsWord(Type, "static")) {
@@ -500,6 +689,10 @@ namespace HeaderTool {
                 Owner.Properties.push_back(std::move(Property));
             }
 
+            /**
+             * @brief 노출 함수의 타입·매개변수·지정자를 읽고 바인딩 제약을 검사합니다.
+             * @param[in] Annotation 해석할 리플렉션 표시·토큰 범위입니다.
+             */
             void ReadFunction(const FAnnotation& Annotation) {
                 const FType* Owner{OwnerAt(Annotation.Token)};
 
@@ -517,6 +710,7 @@ namespace HeaderTool {
 
                 for (; Opening < mSource.Tokens.size(); ++Opening) {
                     const std::string& Text{mSource.Tokens[Opening].Text};
+
                     Angles += Text == "<" ? 1 : (Text == ">" ? -1 : 0);
 
                     if (Angles == 0 && Text == "(") {
@@ -547,6 +741,7 @@ namespace HeaderTool {
                 }
 
                 std::string Return{mSource.MaskBetween(First, Opening - 1)};
+
                 Function.Static = ContainsWord(Return, "static");
 
                 for (std::string_view Keyword : {"static", "virtual", "inline", "explicit"}) {
@@ -583,6 +778,10 @@ namespace HeaderTool {
                 mHeader.Functions.push_back(std::move(Function));
             }
 
+            /**
+             * @brief 열거형 표시와 값을 읽어 네이티브·C# 노출 정보를 구성합니다.
+             * @param[in] Annotation 해석할 리플렉션 표시·토큰 범위입니다.
+             */
             void ReadEnum(const FAnnotation& Annotation) {
                 if (OwnerAt(Annotation.Token) != nullptr) {
                     mSource.Fail(Annotation.Token, "UENUM() must be at namespace scope");
@@ -622,6 +821,7 @@ namespace HeaderTool {
                 }
 
                 Enum.Name = mSource.Tokens[Index].Text;
+
                 std::size_t Opening{Index + 1};
 
                 if (mSource.Is(Opening, ":")) {
@@ -647,6 +847,7 @@ namespace HeaderTool {
 
                 for (std::size_t Entry{Opening + 1}; Entry <= Closing; ++Entry) {
                     const std::string& Text{mSource.Tokens[Entry].Text};
+
                     Depth += Text == "(" ? 1 : (Text == ")" ? -1 : 0);
 
                     if (Entry != Closing && (Text != "," || Depth != 0)) {
@@ -699,6 +900,10 @@ namespace HeaderTool {
             }
 
             // 뒤에 오는 헤더의 generated.h가 CURRENT_FILE_ID를 덮어쓰므로 첫 리플렉션 타입 앞의 마지막 #include여야 합니다.
+
+            /**
+             * @brief 첫 리플렉션 타입 앞의 마지막 include가 자기 generated.h인지 검증합니다.
+             */
             void CheckGeneratedInclude() const {
                 std::string Last;
                 int LastLine{};
@@ -707,7 +912,9 @@ namespace HeaderTool {
 
                 while (Position < mSource.Text.size()) {
                     std::size_t End{mSource.Text.find('\n', Position)};
+
                     End = End == std::string::npos ? mSource.Text.size() : End;
+
                     const std::string Text{Trim(std::string_view{mSource.Text}.substr(Position, End - Position))};
                     const std::string Directive{Text.starts_with("#") ? Trim(std::string_view{Text}.substr(1)) : std::string{}};
                     const std::string Target{Directive.starts_with("include") ? Trim(std::string_view{Directive}.substr(7)) : std::string{}};
@@ -734,6 +941,10 @@ namespace HeaderTool {
                 }
             }
 
+            /**
+             * @brief 첫 리플렉션 표시의 줄 번호를 기록합니다.
+             * @param[in] Annotation 해석할 리플렉션 표시·토큰 범위입니다.
+             */
             void NoteReflected(const FAnnotation& Annotation) {
                 const int Line{mSource.LineAt(mSource.Tokens[Annotation.Token].Offset)};
 
@@ -742,23 +953,49 @@ namespace HeaderTool {
                 }
             }
 
+            /**
+             * @brief 파싱 결과를 기록할 헤더 참조입니다.
+             */
             FHeader& mHeader;
+
+            /**
+             * @brief 파싱할 원문·마스크·토큰의 참조입니다.
+             */
             const FSourceFile& mSource;
+
+            /**
+             * @brief 네임스페이스 이름·토큰 범위 목록입니다.
+             */
             std::vector<FNamespace> mNamespaces;
+
+            /**
+             * @brief 클래스·구조체 시작 키워드의 토큰 위치입니다.
+             */
             std::vector<std::size_t> mKeywords;
+
+            /**
+             * @brief 첫 리플렉션 표시의 줄 번호입니다.
+             */
             int mFirstReflectedLine{};
         };
 
     }
 
+    /**
+     * @brief 헤더를 파싱합니다.
+     */
     std::unique_ptr<FHeader> ParseHeader(FSourceFile Source) {
         auto Header{std::make_unique<FHeader>()};
         Header->Source = std::move(Source);
+
         FHeaderParser{*Header}.Parse();
 
         return Header;
     }
 
+    /**
+     * @brief 소스 파일에 리플렉션 어노테이션이 없는지 검사합니다.
+     */
     void CheckSourceFile(const FSourceFile& Source) {
         for (std::size_t Index{}; Index < Source.Tokens.size(); ++Index) {
             const FToken& Token{Source.Tokens[Index]};

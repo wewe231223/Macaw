@@ -19,6 +19,7 @@ EMaterialShader UMaterial::GetShader() const {
 void UMaterial::SetShader(EMaterialShader Shader) {
     if (mShader != Shader) {
         mShader = Shader;
+
         MarkGPUDataDirty();
     }
 }

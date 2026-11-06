@@ -70,6 +70,7 @@ namespace Editor {
          * @param[in] DeltaTime 현재 프레임의 초 단위 경과 시간입니다.
          * @pre 활성 ImGui 프레임 안에서 호출해야 합니다.
          * @note 이미지가 표시되지 않을 때에도 진행 중인 드래그의 버튼 해제와 Esc 취소를 처리합니다.
+         * @param[in] Input 키·마우스 상태를 조회할 공통 입력입니다.
          */
         void DrawUI(const Core::FInput& Input, float DeltaTime);
 
@@ -77,6 +78,7 @@ namespace Editor {
          * @brief 뷰포트 타깃 이미지·툴바를 표시하고 입력과 리사이즈를 전달합니다.
          * @param[in] DeltaTime 이전 갱신 이후의 초 단위 시간입니다.
          * @param[in] AllowInput 뷰포트 입력을 받을지 지정합니다.
+         * @param[in] Input 키·마우스 상태를 조회할 공통 입력입니다.
          */
         void DrawContents(const Core::FInput& Input, float DeltaTime, bool AllowInput = true);
 

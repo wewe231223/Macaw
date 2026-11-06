@@ -10,6 +10,9 @@
 
 namespace Engine {
 
+    /**
+     * @brief 렌더링과 피킹이 공유하는 쿼드의 로컬 XY에서 월드로의 행렬을 계산합니다.
+     */
     Core::FMatrix MakeSpriteWorld(const Core::FMatrix& World, const Engine::FDrawSprite& Sprite, const Engine::FSceneView& View) {
         Core::FMatrix Result{};
         const float HorizontalScale{World.TransformVector({0.0f, 1.0f, 0.0f}).Length()};

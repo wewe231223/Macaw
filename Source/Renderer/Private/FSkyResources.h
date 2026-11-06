@@ -33,6 +33,7 @@ namespace Renderer {
          * @brief 기본 설정으로 FSkyResources 객체를 초기화합니다.
          */
         FSkyResources();
+
         /**
          * @brief 객체 수명을 끝내고 소유한 자원을 정리합니다.
          */
@@ -47,6 +48,7 @@ namespace Renderer {
          * @note 파노라마를 읽지 못하면 경고만 보고하고 true를 반환하며 Render는 아무것도 그리지 않습니다.
          */
         bool Initialize(ID3D11Device* Device, const std::filesystem::path& PanoramaPath);
+
         /**
          * @brief 정점·픽셀 바이트 코드로 하늘 셰이더를 생성하고 둘 다 성공한 경우에만 교체합니다.
          * @param[in] Device GPU 자원을 생성할 Direct3D 11 장치입니다.
@@ -55,6 +57,7 @@ namespace Renderer {
          * @return 두 셰이더를 생성하면 true이며 실패하면 기존 셰이더를 유지하고 false입니다.
          */
         bool CreateShaders(ID3D11Device* Device, std::span<const Core::Uint8> VertexCode, std::span<const Core::Uint8> PixelCode);
+
         /**
          * @brief 불투명 패스의 깊이가 비어 있는 픽셀에만 하늘을 그립니다.
          * @param[in] Context GPU 명령을 기록할 Direct3D 11 컨텍스트입니다.

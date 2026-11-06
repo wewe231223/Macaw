@@ -70,6 +70,7 @@ namespace BVH8 {
                         const Uint32 Lane = std::countr_zero(Mask);
 
                         Entry = {Node.Children[Lane], Distances[Lane]};
+
                         continue;
                     }
 
@@ -81,9 +82,11 @@ namespace BVH8 {
 
                         if (First.Distance <= Second.Distance) {
                             Push(Second);
+
                             Entry = First;
                         } else {
                             Push(First);
+
                             Entry = Second;
                         }
 
@@ -114,6 +117,7 @@ namespace BVH8 {
                             Push(Children[i - 1]);
 
                         Entry = Children[0];
+
                         continue;
                     }
                 }
@@ -121,6 +125,7 @@ namespace BVH8 {
 
             if (!Overflow.empty()) {
                 Entry = Overflow.back();
+
                 Overflow.pop_back();
             } else if (StackSize != 0)
                 Entry = Stack[--StackSize];

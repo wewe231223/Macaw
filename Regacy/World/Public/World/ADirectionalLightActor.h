@@ -8,6 +8,7 @@ public:
 
 public:
     ADirectionalLightActor();
+
     ~ADirectionalLightActor() override = default;
 
 public:

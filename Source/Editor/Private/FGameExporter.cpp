@@ -69,6 +69,7 @@ namespace Editor {
 
         if (Project.GetAssets() == nullptr || Destination.empty()) {
             Error = "Open a project and choose an export folder";
+
             return false;
         }
 
@@ -78,6 +79,7 @@ namespace Editor {
 
             if (!std::filesystem::is_regular_file(Runtime / "MacawGame.exe")) {
                 Error = "The game executable is missing. Build Macaw before exporting.";
+
                 return false;
             }
 
@@ -90,6 +92,7 @@ namespace Editor {
 
             if (Scene->GetWorld()->GetActiveCamera() == nullptr) {
                 Error = "The startup scene requires an active world camera. Set one in the editor and save the scene.";
+
                 return false;
             }
 
@@ -116,6 +119,7 @@ namespace Editor {
             return true;
         } catch (const std::filesystem::filesystem_error& Exception) {
             Error = "Cannot export the game: " + Core::FString{Exception.what()};
+
             return false;
         }
     }

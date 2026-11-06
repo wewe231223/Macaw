@@ -20,18 +20,69 @@ namespace Script {
      * @brief 프로퍼티 값의 종류입니다. Macaw.ScriptValueTag와 순서가 같아야 합니다.
      */
     enum class EScriptValueTag : Core::Int32 {
+        /**
+         * @brief 해당 값이나 대상을 지정하지 않은 상태입니다.
+         */
         None,
+
+        /**
+         * @brief 불리언 값입니다.
+         */
         Bool,
+
+        /**
+         * @brief 부호 있는 32비트 정수입니다.
+         */
         Int,
+
+        /**
+         * @brief 부호 없는 32비트 정수입니다.
+         */
         Uint,
+
+        /**
+         * @brief 부호 없는 64비트 정수입니다.
+         */
         Uint64,
+
+        /**
+         * @brief 32비트 실수입니다.
+         */
         Float,
+
+        /**
+         * @brief UTF-8 문자열 값입니다.
+         */
         String,
+
+        /**
+         * @brief 실수 성분 두 개의 벡터입니다.
+         */
         Vector2,
+
+        /**
+         * @brief 실수 성분 세 개의 벡터입니다.
+         */
         Vector3,
+
+        /**
+         * @brief 실수 성분 네 개의 벡터입니다.
+         */
         Vector4,
+
+        /**
+         * @brief 회전 쿼터니언입니다.
+         */
         Quaternion,
+
+        /**
+         * @brief 위치·회전·스케일 변환입니다.
+         */
         Transform,
+
+        /**
+         * @brief 엔진 객체 핸들입니다.
+         */
         Object
     };
 

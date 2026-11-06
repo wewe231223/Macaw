@@ -3,7 +3,9 @@
 
 ADirectionalLightActor::ADirectionalLightActor() {
     InitializeClass(StaticClass());
+
     mLightComponent = CreateDefaultComponent<UDirectionalLightComponent>(FName{"Light"});
+
     SetRootComponent(mLightComponent);
 }
 

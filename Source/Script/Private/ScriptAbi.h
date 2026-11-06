@@ -19,6 +19,9 @@
 #include <cstdint>
 #include <type_traits>
 
+/**
+ * @brief 네이티브·관리 경계의 정렬·문자열·객체 표현을 변환합니다.
+ */
 namespace Script::Abi {
 
     /**
@@ -178,6 +181,7 @@ namespace Script::Abi {
 
         if constexpr (std::is_same_v<T, CoreUObject::UObject>) {
             const auto* Actor{CoreUObject::Cast<Engine::AActor>(Object)};
+
             return Actor != nullptr && Actor->IsPendingDestroy() ? nullptr : Object;
         } else {
             T* Typed{CoreUObject::Cast<T>(Object)};
@@ -203,6 +207,7 @@ namespace Script::Abi {
     bool ResolveArgument(CoreUObject::FObjectHandle Handle, T*& Object) {
         if (!Handle.IsValid()) {
             Object = nullptr;
+
             return true;
         }
 

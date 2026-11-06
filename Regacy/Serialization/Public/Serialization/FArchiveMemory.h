@@ -23,6 +23,7 @@ public:
      * @param InBytes 저장 결과를 받을 외부 배열입니다. 기존 내용은 지우지 않습니다.
      */
     FArchiveMemory(TArray<Uint8>& InBytes);
+
     // Load
     /**
      * @brief 상수 바이트 배열을 처음부터 읽는 로드 아카이브를 생성합니다.

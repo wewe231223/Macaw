@@ -110,6 +110,7 @@ UScriptStruct* FReflectionRegistry::DefineStruct(FName Name, const FNativeType* 
     Definition.mKind = EDefinitionKind::Struct;
     Definition.mValueType = ValueType;
     Definition.mStructBuilder = Builder;
+
     State.mDefinitions.emplace(Name, Definition);
     State.mFields.emplace(Name, std::move(Owner));
 
@@ -145,6 +146,7 @@ UEnum* FReflectionRegistry::DefineEnum(FName Name, const FNativeType* ValueType,
     Definition.mKind = EDefinitionKind::Enum;
     Definition.mValueType = ValueType;
     Definition.mEnumBuilder = Builder;
+
     State.mDefinitions.emplace(Name, Definition);
     State.mFields.emplace(Name, std::move(Owner));
 

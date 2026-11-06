@@ -122,6 +122,9 @@ namespace Editor {
         bool DrawAssetPicker(const char* Label, Core::FString& Path, bool Mesh);
 
     private:
+        /**
+         * @brief Details 컴포넌트 검색 입력 버퍼입니다.
+         */
         std::array<char, 128> mComponentSearch{};
 
         /**

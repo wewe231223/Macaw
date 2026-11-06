@@ -48,6 +48,7 @@ bool FWindowsApplication::Initialize(HINSTANCE Instance, int ShowCommand, IWindo
 
     if (mWindowHandle == nullptr) {
         Shutdown();
+
         return false;
     }
 
@@ -64,11 +65,13 @@ void FWindowsApplication::Shutdown() {
 
     if (mWindowHandle != nullptr) {
         DestroyWindow(mWindowHandle);
+
         mWindowHandle = nullptr;
     }
 
     if (mClassRegistered) {
         UnregisterClassW(WindowClass, mInstance);
+
         mClassRegistered = false;
     }
 
@@ -83,6 +86,7 @@ bool FWindowsApplication::PumpMessages() {
         if (Message.message == WM_QUIT) {
             mExitRequested = true;
             mExitCode = static_cast<int>(Message.wParam);
+
             return false;
         }
 
@@ -111,6 +115,7 @@ LRESULT CALLBACK FWindowsApplication::WindowProcedure(HWND WindowHandle, UINT Me
 
         Application = static_cast<FWindowsApplication*>(Creation->lpCreateParams);
         Application->mWindowHandle = WindowHandle;
+
         SetWindowLongPtrW(WindowHandle, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(Application));
     }
 
@@ -124,6 +129,7 @@ LRESULT CALLBACK FWindowsApplication::WindowProcedure(HWND WindowHandle, UINT Me
         PostQuitMessage(0);
     } else if (Message == WM_NCDESTROY) {
         SetWindowLongPtrW(WindowHandle, GWLP_USERDATA, 0);
+
         Application->mWindowHandle = nullptr;
     }
 

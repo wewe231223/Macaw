@@ -244,6 +244,7 @@ bool FAssetRegistry::RemoveAsset(FAssetHandle Handle) {
     Entry->mPersistentGuid = {};
     Entry->mAssetType = EAssetType::END;
     Entry->mHandle = FAssetHandle{Handle.mId, Handle.mGeneration + 1};
+
     mFreeHandles.push_back(Entry->mHandle);
 
     return true;
@@ -501,6 +502,7 @@ FAssetReference FAssetRegistry::MakeReference(FAssetHandle Handle) const {
     FAssetReference Reference{};
 
     Reference.Assign(Handle, this);
+
     return Reference;
 }
 
@@ -546,6 +548,7 @@ FAssetHandle FAssetRegistry::RegisterImportedAsset(const std::filesystem::path& 
     }
 
     Asset->SetAssetName(Entry->mAssetPath.mPath);
+
     Entry->mAsset = std::move(Asset);
 
     return Handle;
@@ -947,6 +950,7 @@ bool FAssetRegistry::LoadMaterial(FAssetEntry& Entry) {
 
     Material->SetAssetName(Entry.mAssetPath.mPath);
     Material->Finalize(this);
+
     Entry.mAsset = std::move(Material);
 
     return true;
@@ -1172,6 +1176,7 @@ FAssetHandle FAssetRegistry::AllocateHandle() {
         const FAssetHandle Handle{mFreeHandles.back()};
 
         mFreeHandles.pop_back();
+
         return Handle;
     }
 

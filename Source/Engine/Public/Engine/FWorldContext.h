@@ -62,6 +62,9 @@ namespace Engine {
         const Engine::FEditorCameraState& GetEditorCamera() const;
 
     private:
+        /**
+         * @brief 엔진이 월드 컨텍스트의 수명과 내부 갱신을 관리하도록 허용합니다.
+         */
         friend class UEngine;
 
         /**

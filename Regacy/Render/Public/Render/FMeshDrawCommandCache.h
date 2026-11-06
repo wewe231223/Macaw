@@ -76,6 +76,7 @@ Uint32 FMeshDrawCommandCache::GetOrCreateCommand(const FMeshDrawCommandKey& Key,
 
     if (Command == nullptr || *Command == nullptr) {
         Entry.mCommand.Invalidate();
+
         return UINT32_MAX;
     }
 
@@ -86,6 +87,7 @@ Uint32 FMeshDrawCommandCache::GetOrCreateCommand(const FMeshDrawCommandKey& Key,
 
         Entry.mLastUsedUpdate = mUpdateSerial;
         Entry.mCommandIndex = static_cast<Uint32>(mCommands.size());
+
         mCommands.push_back(*Command);
     } else {
         mCommands[Entry.mCommandIndex] = *Command;

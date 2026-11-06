@@ -134,17 +134,20 @@ void FPropertyEditorContext::DrawTransform(const char* Label, const FTransform& 
 
     if (ImGui::DragFloat3("Position", &Position.X, 0.1f)) {
         Transform.SetPosition(Position);
+
         Changed = true;
     }
 
     if (ImGui::DragFloat3("Rotation", &Rotation.Pitch, 0.5f)) {
         RotationState.SetRotation(Rotation);
         Transform.SetRotation(Rotation);
+
         Changed = true;
     }
 
     if (ImGui::DragFloat3("Scale", &Scale.X, 0.05f, 0.001f, FLT_MAX)) {
         Transform.SetScale(FVector::Max(Scale, FVector{0.001f, 0.001f, 0.001f}));
+
         Changed = true;
     }
 
@@ -184,6 +187,7 @@ void FPropertyEditorContext::DrawAssetPicker(const char* Label, const UClass& As
 
     if (Registry == nullptr) {
         ImGui::TextDisabled("%s: Asset registry unavailable", Label);
+
         return;
     }
 

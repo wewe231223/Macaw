@@ -54,6 +54,9 @@ namespace Engine {
         Shutdown();
     }
 
+    /**
+     * @brief 월드의 에셋 로드에 사용할 관리자의 비소유 주소를 설정합니다.
+     */
     void Engine::UWorld::SetAssets(Asset::FAssetManager* Assets) {
         if (mAssets == Assets) {
             return;
@@ -85,6 +88,9 @@ namespace Engine {
         }
     }
 
+    /**
+     * @brief 프로젝트의 에셋 관리자를 비소유 주소로 반환합니다.
+     */
     Asset::FAssetManager* Engine::UWorld::GetAssets() const {
         return mAssets;
     }
@@ -242,6 +248,7 @@ namespace Engine {
         }
 
         Actor->mPendingDestroy = true;
+
         mPendingActors.push_back(Handle);
         FlushPendingActors();
 
@@ -310,13 +317,20 @@ namespace Engine {
         return Found;
     }
 
+    /**
+     * @brief 광선과 처음 만나는 메시를 찾아 값으로 반환합니다.
+     */
     Engine::FWorldHit Engine::UWorld::Raycast(const Core::FVector& Origin, const Core::FVector& Direction, const Engine::AActor* Ignored) const {
         Engine::FWorldHit Hit{};
+
         Raycast(Core::FRay{Origin, Direction}, Hit, Ignored);
 
         return Hit;
     }
 
+    /**
+     * @brief 이름으로 살아 있는 액터를 찾습니다.
+     */
     Engine::AActor* Engine::UWorld::FindActor(const Core::FString& Name) const {
         if (mPersistentLevel != nullptr) {
             for (const auto& Actor : mPersistentLevel->GetActors()) {
@@ -329,6 +343,9 @@ namespace Engine {
         return nullptr;
     }
 
+    /**
+     * @brief 지정한 클래스의 살아 있는 액터를 모두 찾습니다.
+     */
     Core::TArray<Engine::AActor*> Engine::UWorld::GetActorsByClassName(const Core::FString& ClassName) const {
         const CoreUObject::UClass* Class{CoreUObject::FReflectionRegistry::FindClass(ClassName)};
         Core::TArray<Engine::AActor*> Actors{};
@@ -350,11 +367,14 @@ namespace Engine {
     void Engine::UWorld::Shutdown() {
         if (IsDispatching()) {
             mShutdownRequested = true;
+
             return;
         }
 
         mShutdownRequested = false;
+
         EndPlay();
+
         mShuttingDown = true;
 
         if (mPersistentLevel != nullptr) {
@@ -446,6 +466,7 @@ namespace Engine {
     void Engine::UWorld::EndPlay() {
         if (mDispatchDepth != 0) {
             mEndPlayRequested = true;
+
             return;
         }
 
@@ -475,6 +496,7 @@ namespace Engine {
      */
     bool Engine::UWorld::Tick(float DeltaTime) {
         const bool EditorTick{mPlayState == Engine::EWorldPlayState::Stopped && (mWorldType == Engine::EWorldType::Editor || mWorldType == Engine::EWorldType::EditorPreview)};
+
         return (mPlayState == Engine::EWorldPlayState::Playing || EditorTick) && TickActors(DeltaTime, EditorTick);
     }
 
@@ -519,6 +541,9 @@ namespace Engine {
         return mDispatchDepth != 0 || mFlushing;
     }
 
+    /**
+     * @brief 월드 소속을 검증하여 활성 카메라를 선택하거나 해제합니다.
+     */
     bool Engine::UWorld::SetActiveCamera(Engine::UCameraComponent* Camera) {
         if (!CanAddActor() || (Camera != nullptr && (Camera->GetWorld() != this || !ContainsObject(Camera)))) {
             return false;
@@ -529,11 +554,18 @@ namespace Engine {
         return true;
     }
 
+    /**
+     * @brief 월드에 등록된 활성 카메라를 핸들로 검증하여 조회합니다.
+     */
     Engine::UCameraComponent* Engine::UWorld::GetActiveCamera() const {
         auto* Camera{CoreUObject::Cast<Engine::UCameraComponent>(CoreUObject::FObjectRegistry::Get()->Resolve(mActiveCamera))};
+
         return Camera != nullptr && Camera->GetWorld() == this && ContainsObject(Camera) ? Camera : nullptr;
     }
 
+    /**
+     * @brief 월드 소속을 검증하여 입력 대상 액터를 선택하거나 해제합니다.
+     */
     bool Engine::UWorld::SetInputTarget(Engine::AActor* Actor) {
         if (!CanAddActor() || (Actor != nullptr && !ContainsObject(Actor))) {
             return false;
@@ -544,11 +576,18 @@ namespace Engine {
         return true;
     }
 
+    /**
+     * @brief 월드의 뷰포트 입력을 받을 액터를 핸들로 검증하여 조회합니다.
+     */
     Engine::AActor* Engine::UWorld::GetInputTarget() const {
         Engine::AActor* Actor{ResolveActor(mInputTarget)};
+
         return Actor != nullptr && !Actor->IsPendingDestroy() ? Actor : nullptr;
     }
 
+    /**
+     * @brief 뷰포트 입력을 받아 프레임 시간에 따라 액터의 동작을 갱신합니다.
+     */
     bool Engine::UWorld::Input(const Core::FInput& Input, float DeltaTime) {
         Engine::AActor* Actor{GetInputTarget()};
 
@@ -601,6 +640,9 @@ namespace Engine {
         return true;
     }
 
+    /**
+     * @brief 충돌 도형의 겹침을 갱신하고 시작과 끝 이벤트를 전달합니다.
+     */
     void Engine::UWorld::UpdateOverlaps() {
         Core::TArray<Engine::UShapeComponent*> Shapes{};
 
@@ -672,6 +714,7 @@ namespace Engine {
      */
     void Engine::UWorld::FinishDispatch() {
         --mDispatchDepth;
+
         FlushPendingActors();
     }
 
@@ -753,6 +796,7 @@ namespace Engine {
      */
     Engine::AActor* Engine::UWorld::ResolveActor(CoreUObject::FObjectHandle Handle) const {
         Engine::AActor* Actor{CoreUObject::Cast<Engine::AActor>(CoreUObject::FObjectRegistry::Get()->Resolve(Handle))};
+
         return Actor != nullptr && Actor->GetWorld() == this ? Actor : nullptr;
     }
 

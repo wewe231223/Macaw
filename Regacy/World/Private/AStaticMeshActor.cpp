@@ -3,7 +3,9 @@
 
 AStaticMeshActor::AStaticMeshActor() {
     InitializeClass(StaticClass());
+
     mStaticMeshComponent = CreateDefaultComponent<UStaticMeshComponent>(FName{"Mesh"});
+
     SetRootComponent(mStaticMeshComponent);
 }
 

@@ -36,6 +36,7 @@ public:
 
 public:
     UFont();
+
     ~UFont() override = default;
 
 public:
