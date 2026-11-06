@@ -226,13 +226,49 @@ namespace Editor {
      * @brief PIE 월드의 유효성을 검사하고 지연된 종료 요청을 처리합니다.
      */
     void Editor::FPlayInEditorSession::Update() {
+        if (!IsActive() || mTransitioning || mEngine->IsDispatching()) {
+            return;
+        }
+
         const Engine::UWorld* World{mEngine->GetWorld(mPlayWorld)};
 
-        if (IsActive() && !mTransitioning && !mEngine->IsDispatching() && (mStopRequested || World == nullptr || World->GetPlayState() == Engine::EWorldPlayState::Stopped || World->GetActiveCamera() == nullptr)) {
+        if (mStopRequested || World == nullptr || World->GetPlayState() == Engine::EWorldPlayState::Stopped || World->GetActiveCamera() == nullptr) {
             if (World != nullptr && World->GetActiveCamera() == nullptr) {
                 mContext->AddLog("PIE stopped because its active camera was removed");
             }
 
+            Stop();
+
+            return;
+        }
+
+        Engine::FWorldHandle Replacement{};
+        Core::FString Error{};
+        bool Ready{true};
+
+        mTransitioning = true;
+
+        const bool Changed{mEngine->ProcessSceneTransition(mPlayWorld, Replacement, Error)};
+
+        if (Changed) {
+            mPlayWorld = Replacement;
+            mObjectPairs.clear();
+            mInspectionContext.Reset();
+
+            Ready = mInspectionContext.SetWorld(mPlayWorld) && mGameClient.SetWorld(mPlayWorld);
+
+            if (!Ready && Error.empty()) {
+                Error = "Cannot connect the new PIE scene";
+            }
+        }
+
+        mTransitioning = false;
+
+        if (!Error.empty()) {
+            mContext->AddLog("Scene transition failed: " + Error);
+        }
+
+        if (Changed && (!Ready || !Error.empty() || mStopRequested)) {
             Stop();
         }
     }

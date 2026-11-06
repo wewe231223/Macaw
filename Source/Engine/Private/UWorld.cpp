@@ -5,6 +5,8 @@
  */
 
 #include "Engine/UWorld.h"
+#include "Asset/FAssetManager.h"
+#include "Core/FilePath.h"
 #include "Engine/Component/UHeightFogComponent.h"
 #include "Engine/EngineStats.h"
 #include "Engine/Component/ULightComponentBase.h"
@@ -52,6 +54,24 @@ namespace Engine {
      */
     Engine::UWorld::~UWorld() {
         Shutdown();
+    }
+
+    bool Engine::UWorld::OpenScene(const Core::FString& ScenePath) {
+        if ((mWorldType != Engine::EWorldType::Game && mWorldType != Engine::EWorldType::PIE) || !mWorldHandle.IsValid() || !CanBeginActor() || mAssets == nullptr || ScenePath.empty() || ScenePath.find('\0') != Core::FString::npos) {
+            return false;
+        }
+
+        Core::FString Error{};
+        const auto Path{mAssets->ResolvePath(Core::FilePath::FromUtf8(ScenePath), Error)};
+        std::error_code Code{};
+
+        if (Path.empty() || !std::filesystem::is_regular_file(Path, Code)) {
+            return false;
+        }
+
+        mPendingScenePath = ScenePath;
+
+        return true;
     }
 
     /**
@@ -464,6 +484,8 @@ namespace Engine {
      * @brief 시작된 액터와 컴포넌트의 실행을 종료합니다.
      */
     void Engine::UWorld::EndPlay() {
+        mPendingScenePath.clear();
+
         if (mDispatchDepth != 0) {
             mEndPlayRequested = true;
 

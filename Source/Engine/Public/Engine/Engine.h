@@ -173,6 +173,8 @@ namespace Engine {
          */
         bool ReplaceWorld(std::unique_ptr<Engine::FWorldContext> Context);
 
+        bool ProcessSceneTransition(Engine::FWorldHandle Source, Engine::FWorldHandle& Replacement, Core::FString& Error);
+
         /**
          * @brief 월드 교체 시 증가하는 컨텍스트 세대를 반환합니다.
          * @return 월드 교체 시 증가하는 컨텍스트 세대입니다.

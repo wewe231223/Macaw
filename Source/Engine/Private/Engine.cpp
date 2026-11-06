@@ -5,6 +5,8 @@
  */
 
 #include "Engine/Engine.h"
+#include "Core/FilePath.h"
+#include "Engine/SceneSerializer.h"
 #include "Engine/EngineStats.h"
 #include "Engine/ULevel.h"
 #include "Engine/FProject.h"
@@ -464,6 +466,89 @@ namespace Engine {
 
         mCurrentWorld = Replacement;
         ++mWorldGeneration;
+
+        return true;
+    }
+
+    bool Engine::UEngine::ProcessSceneTransition(Engine::FWorldHandle Source, Engine::FWorldHandle& Replacement, Core::FString& Error) {
+        Replacement = {};
+        Error.clear();
+
+        Engine::UWorld* World{GetWorld(Source)};
+
+        if (!mInitialized || mShutdownRequested || IsDispatching() || World == nullptr || !World->CanBeginActor() || World->mPendingScenePath.empty()) {
+            return false;
+        }
+
+        const Core::FString ScenePath{std::exchange(World->mPendingScenePath, Core::FString{})};
+        Asset::FAssetManager* Assets{World->GetAssets()};
+        const auto Path{Assets != nullptr ? Assets->ResolvePath(Core::FilePath::FromUtf8(ScenePath), Error) : std::filesystem::path{}};
+
+        if (Path.empty()) {
+            if (Error.empty()) {
+                Error = "Scene transition requires project assets";
+            }
+
+            return false;
+        }
+
+        const bool Paused{World->GetPlayState() == Engine::EWorldPlayState::Paused};
+        const bool Current{mCurrentWorld == Source};
+
+        mUpdating = true;
+
+        auto Context{Engine::FSceneSerializer::Load(Path, Error, Assets, World->GetWorldType())};
+
+        mUpdating = false;
+
+        if (mShutdownRequested || Context == nullptr) {
+            if (Error.empty()) {
+                Error = "Scene transition was cancelled by shutdown";
+            }
+
+            return false;
+        }
+
+        if (Context->GetWorld()->GetActiveCamera() == nullptr) {
+            Error = "Scene transition requires an active camera in the destination scene";
+
+            return false;
+        }
+
+        const Engine::FWorldHandle Handle{RegisterWorld(std::move(Context))};
+
+        if (!Handle.IsValid()) {
+            Error = "Could not attach the destination scene";
+
+            return false;
+        }
+
+        if (!DestroyWorld(Source)) {
+            DestroyWorld(Handle);
+            Error = "Could not release the previous scene";
+
+            return false;
+        }
+
+        Replacement = Handle;
+
+        if (Current) {
+            SetCurrentWorld(Handle);
+        }
+
+        Engine::UWorld* NextWorld{GetWorld(Handle)};
+
+        mUpdating = true;
+
+        const bool Started{!mShutdownRequested && NextWorld->BeginPlay() && NextWorld->GetPlayState() == Engine::EWorldPlayState::Playing && NextWorld->GetActiveCamera() != nullptr && !mShutdownRequested};
+
+        mUpdating = false;
+
+        if (!Started) {
+            Error = "The destination scene could not start";
+        } else if (Paused) {
+            NextWorld->SetPaused(true);
+        }
 
         return true;
     }

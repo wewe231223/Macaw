@@ -73,6 +73,22 @@ namespace Game {
 
             mEngine.Tick(DeltaTime, false);
 
+            Engine::FWorldHandle Replacement{};
+            Core::FString TransitionError{};
+            const bool SceneChanged{mEngine.ProcessSceneTransition(mEngine.GetWorldHandle(), Replacement, TransitionError)};
+
+            if (SceneChanged && !mGameClient.SetWorld(Replacement)) {
+                return ReportFailure("Cannot connect the new game scene");
+            }
+
+            if (!TransitionError.empty()) {
+                if (SceneChanged) {
+                    return ReportFailure(TransitionError);
+                }
+
+                Core::ErrorHandler::Report("Scene transition", TransitionError, Core::ErrorHandler::EErrorLevel::Warning);
+            }
+
             Engine::UWorld* World{mEngine.GetWorld()};
 
             if (World == nullptr || World->GetActiveCamera() == nullptr) {

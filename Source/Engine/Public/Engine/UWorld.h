@@ -30,6 +30,7 @@ namespace Engine {
 
     class ULevel;
     class AActor;
+    class UEngine;
     class FWorldContext;
     class FSceneInterface;
     class AStaticMeshActor;
@@ -111,6 +112,9 @@ namespace Engine {
          * @return 시작, 실행, 일시정지 또는 종료 상태입니다.
          */
         Engine::EWorldPlayState GetPlayState() const;
+
+        UFUNCTION()
+        bool OpenScene(const Core::FString& ScenePath);
 
         /**
          * @brief 정지 상태의 Game 또는 PIE 월드에서 게임 생명주기를 시작합니다.
@@ -322,6 +326,8 @@ namespace Engine {
         void Shutdown();
 
     private:
+        friend class UEngine;
+
         /**
          * @brief 컨텍스트가 소유 월드의 종류와 엔진 식별자를 설정하도록 허용합니다.
          */
@@ -407,6 +413,8 @@ namespace Engine {
         Engine::AActor* ResolveActor(CoreUObject::FObjectHandle Handle) const;
 
     private:
+        Core::FString mPendingScenePath{};
+
         /**
          * @brief 활성 카메라 컴포넌트의 비소유 객체 핸들입니다.
          */
