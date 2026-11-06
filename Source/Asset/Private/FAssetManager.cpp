@@ -360,6 +360,9 @@ namespace Asset {
 		: mContentRoot{std::filesystem::absolute(ContentRoot).lexically_normal()} {
     }
 
+    /**
+     * @brief 객체의 수명을 끝내고 소유한 자원을 정리합니다.
+     */
     Asset::FAssetManager::~FAssetManager() = default;
 
     /**

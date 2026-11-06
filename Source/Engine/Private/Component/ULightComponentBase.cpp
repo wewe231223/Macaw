@@ -23,6 +23,9 @@ using namespace Core::Literals;
 
 namespace Engine {
 
+    /**
+     * @brief ULightComponentBase의 기본 상태를 초기화합니다.
+     */
     Engine::ULightComponentBase::ULightComponentBase() = default;
 
     /**

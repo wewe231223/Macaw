@@ -141,6 +141,9 @@ namespace Platform {
         }
     }
 
+    /**
+     * @brief 자원이 없는 빈 캔버스를 구성합니다.
+     */
     Platform::FSplashCanvas::FSplashCanvas() = default;
 
     /**

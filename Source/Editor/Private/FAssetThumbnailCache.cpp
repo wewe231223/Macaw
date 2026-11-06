@@ -39,6 +39,9 @@ namespace Editor {
         mCube->SetMeshData(Engine::GetPrimitiveMesh(Engine::EPrimitiveType::Cube));
     }
 
+    /**
+     * @brief 장면과 썸네일 GPU 자원을 해제합니다.
+     */
     Editor::FAssetThumbnailCache::~FAssetThumbnailCache() = default;
 
     /**

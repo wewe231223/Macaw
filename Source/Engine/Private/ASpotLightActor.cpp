@@ -11,7 +11,14 @@
 
 namespace Engine {
 
+    /**
+     * @brief ASpotLightActor의 기본 상태를 초기화합니다.
+     */
     Engine::ASpotLightActor::ASpotLightActor() = default;
+
+    /**
+     * @brief ASpotLightActor 객체의 수명을 끝내고 소유 자원을 정리합니다.
+     */
     Engine::ASpotLightActor::~ASpotLightActor() = default;
 
     /**

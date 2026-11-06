@@ -84,6 +84,9 @@ namespace Platform {
         }
     }
 
+    /**
+     * @brief 표시하지 않은 상태로 스플래시 창을 구성합니다.
+     */
     Platform::FSplashWindow::FSplashWindow() = default;
 
     /**

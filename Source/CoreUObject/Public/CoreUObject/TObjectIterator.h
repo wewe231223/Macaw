@@ -154,16 +154,25 @@ namespace CoreUObject {
         std::shared_ptr<const Core::TArray<CoreUObject::FObjectHandle>> mHandles{};
     };
 
+    /**
+     * @brief 타입 및 Outer 필터의 스냅샷을 만듭니다.
+     */
     template <typename T>
     CoreUObject::TObjectIterator<T>::TObjectIterator(const CoreUObject::UObject* Outer, bool IncludeDerived)
 		: mHandles{std::make_shared<const Core::TArray<CoreUObject::FObjectHandle>>(CoreUObject::FObjectRegistry::Get()->GetObjects(T::StaticClass(), Outer, IncludeDerived))} {
     }
 
+    /**
+     * @brief 기존 스냅샷에서 반복자를 만듭니다.
+     */
     template <typename T>
     CoreUObject::TObjectIterator<T>::TObjectIterator(std::shared_ptr<const Core::TArray<CoreUObject::FObjectHandle>> Handles)
 		: mHandles{std::move(Handles)} {
     }
 
+    /**
+     * @brief 현재 객체를 반환합니다.
+     */
     template <typename T>
     T* CoreUObject::TObjectIterator<T>::Get() const {
         while (mHandles != nullptr && mIndex < mHandles->size()) {
@@ -179,21 +188,33 @@ namespace CoreUObject {
         return nullptr;
     }
 
+    /**
+     * @brief 현재 객체를 반환합니다.
+     */
     template <typename T>
     T* CoreUObject::TObjectIterator<T>::operator*() const {
         return Get();
     }
 
+    /**
+     * @brief 현재 객체의 멤버에 접근합니다.
+     */
     template <typename T>
     T* CoreUObject::TObjectIterator<T>::operator->() const {
         return Get();
     }
 
+    /**
+     * @brief 남은 유효 객체를 검사합니다.
+     */
     template <typename T>
     CoreUObject::TObjectIterator<T>::operator bool() const {
         return Get() != nullptr;
     }
 
+    /**
+     * @brief 다음 살아 있는 객체로 이동합니다.
+     */
     template <typename T>
     CoreUObject::TObjectIterator<T>& CoreUObject::TObjectIterator<T>::operator++() {
         if (mHandles != nullptr && mIndex < mHandles->size()) {
@@ -205,6 +226,9 @@ namespace CoreUObject {
         return *this;
     }
 
+    /**
+     * @brief 이동 전 반복자를 보관하고 전진합니다.
+     */
     template <typename T>
     CoreUObject::TObjectIterator<T> CoreUObject::TObjectIterator<T>::operator++(int) {
         CoreUObject::TObjectIterator<T> Previous{*this};
@@ -214,11 +238,17 @@ namespace CoreUObject {
         return Previous;
     }
 
+    /**
+     * @brief 끝 센티널과 비교합니다.
+     */
     template <typename T>
     bool CoreUObject::TObjectIterator<T>::operator==(std::default_sentinel_t) const {
         return Get() == nullptr;
     }
 
+    /**
+     * @brief 반복자의 위치를 비교합니다.
+     */
     template <typename T>
     bool CoreUObject::TObjectIterator<T>::operator==(const CoreUObject::TObjectIterator<T>& Other) const {
         Get();
@@ -227,16 +257,25 @@ namespace CoreUObject {
         return mHandles == Other.mHandles && mIndex == Other.mIndex;
     }
 
+    /**
+     * @brief 필터에 일치하는 객체를 수집합니다.
+     */
     template <typename T>
     CoreUObject::TObjectRange<T>::TObjectRange(const CoreUObject::UObject* Outer, bool IncludeDerived)
 		: mHandles{std::make_shared<const Core::TArray<CoreUObject::FObjectHandle>>(CoreUObject::FObjectRegistry::Get()->GetObjects(T::StaticClass(), Outer, IncludeDerived))} {
     }
 
+    /**
+     * @brief 범위 시작을 반환합니다.
+     */
     template <typename T>
     CoreUObject::TObjectIterator<T> CoreUObject::TObjectRange<T>::begin() const {
         return CoreUObject::TObjectIterator<T>{mHandles};
     }
 
+    /**
+     * @brief 범위 끝을 반환합니다.
+     */
     template <typename T>
     std::default_sentinel_t CoreUObject::TObjectRange<T>::end() const {
         return {};

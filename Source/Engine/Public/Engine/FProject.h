@@ -36,6 +36,10 @@ namespace Engine {
         Engine::FProject& operator=(const Engine::FProject&) = delete;
 
     public:
+        /**
+         * @brief 현재 엔진이 지원하는 프로젝트 설정 파일의 버전을 반환합니다.
+         * @return 읽고 쓸 수 있는 .mproject 저장 형식 버전입니다.
+         */
         static Core::Uint32 GetCurrentVersion();
 
         /**
@@ -70,6 +74,10 @@ namespace Engine {
          */
         bool SetStartupScene(const std::filesystem::path& Path, Core::FString& Error);
 
+        /**
+         * @brief 마지막으로 연 프로젝트 설정의 버전을 반환합니다.
+         * @return 프로젝트 파일에서 읽은 버전이며 열기 전에는 0입니다.
+         */
         Core::Uint32 GetVersion() const;
 
         /**
@@ -109,6 +117,9 @@ namespace Engine {
         Asset::FAssetManager* GetAssets() const;
 
     private:
+        /**
+         * @brief 마지막으로 연 프로젝트 파일의 저장 형식 버전이며 초기값은 0입니다.
+         */
         Core::Uint32 mVersion{};
 
         /**

@@ -28,6 +28,9 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND Window, UINT M
 
 namespace App {
 
+    /**
+     * @brief 비어 있는 독립 뷰어 호스트를 구성합니다.
+     */
     App::FObjViewerApplication::FObjViewerApplication() = default;
 
     /**

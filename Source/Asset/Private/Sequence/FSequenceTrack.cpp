@@ -8,6 +8,9 @@
 
 namespace Asset {
 
+    /**
+     * @brief 파생 트랙을 기반 타입으로 해제할 수 있게 합니다.
+     */
     Asset::FSequenceTrack::~FSequenceTrack() = default;
 
 }

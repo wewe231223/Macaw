@@ -12,10 +12,19 @@
 
 namespace Engine {
 
+    /**
+     * @brief FProject의 초기 상태를 구성합니다.
+     */
     Engine::FProject::FProject() = default;
 
+    /**
+     * @brief 객체의 수명을 끝내고 소유한 자원을 정리합니다.
+     */
     Engine::FProject::~FProject() = default;
 
+    /**
+     * @brief 현재 엔진이 지원하는 프로젝트 설정 파일의 버전을 반환합니다.
+     */
     Core::Uint32 Engine::FProject::GetCurrentVersion() {
         return 2;
     }
@@ -204,6 +213,9 @@ namespace Engine {
         return true;
     }
 
+    /**
+     * @brief 마지막으로 연 프로젝트 설정의 버전을 반환합니다.
+     */
     Core::Uint32 Engine::FProject::GetVersion() const {
         return mVersion;
     }

@@ -13,7 +13,14 @@
 
 namespace Engine {
 
+    /**
+     * @brief 기본 설정으로 URotationMovementComponent 객체를 초기화합니다.
+     */
     Engine::URotationMovementComponent::URotationMovementComponent() = default;
+
+    /**
+     * @brief 객체 수명을 끝내고 소유한 자원을 정리합니다.
+     */
     Engine::URotationMovementComponent::~URotationMovementComponent() = default;
 
     /**

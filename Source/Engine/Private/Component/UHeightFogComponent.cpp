@@ -17,6 +17,9 @@
 
 namespace Engine {
 
+    /**
+     * @brief 기본 설정으로 UHeightFogComponent 객체를 초기화합니다.
+     */
     Engine::UHeightFogComponent::UHeightFogComponent() = default;
 
     /**

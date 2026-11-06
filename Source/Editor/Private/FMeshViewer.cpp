@@ -36,6 +36,9 @@ namespace Editor {
 		  mAssets{Assets} {
     }
 
+    /**
+     * @brief 미리보기 장면과 렌더 타깃을 해제합니다.
+     */
     Editor::FMeshViewer::~FMeshViewer() = default;
 
     /**

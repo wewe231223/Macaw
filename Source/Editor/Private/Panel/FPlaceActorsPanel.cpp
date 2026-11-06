@@ -26,6 +26,9 @@ namespace Editor {
 		: Editor::FEditorPanel{Context, "Place Actors", true} {
     }
 
+    /**
+     * @brief FPlaceActorsPanel 객체의 수명을 끝내고 소유 자원을 정리합니다.
+     */
     Editor::FPlaceActorsPanel::~FPlaceActorsPanel() = default;
 
     /**

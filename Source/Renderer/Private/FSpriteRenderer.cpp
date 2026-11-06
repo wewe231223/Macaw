@@ -15,7 +15,14 @@
 
 namespace Renderer {
 
+    /**
+     * @brief 전달된 설정과 기본값으로 FSpriteRenderer 객체를 생성합니다.
+     */
     Renderer::FSpriteRenderer::FSpriteRenderer() = default;
+
+    /**
+     * @brief 기본 소멸자이며, GPU 자원은 ComPtr 멤버가 해제합니다.
+     */
     Renderer::FSpriteRenderer::~FSpriteRenderer() = default;
 
     /**

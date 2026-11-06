@@ -19,7 +19,14 @@
 
 namespace Engine {
 
+    /**
+     * @brief 전달된 설정과 기본값으로 UBillboardComponent 객체를 생성합니다.
+     */
     Engine::UBillboardComponent::UBillboardComponent() = default;
+
+    /**
+     * @brief 기본 소멸자이며, 렌더 장면 등록 해제는 UPrimitiveComponent 소멸자가 처리합니다.
+     */
     Engine::UBillboardComponent::~UBillboardComponent() = default;
 
     /**

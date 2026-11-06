@@ -89,7 +89,14 @@ namespace Renderer {
         constexpr std::size_t BC7BlockBytes{16};
     }
 
+    /**
+     * @brief 기본 설정으로 FSkyResources 객체를 초기화합니다.
+     */
     Renderer::FSkyResources::FSkyResources() = default;
+
+    /**
+     * @brief 객체 수명을 끝내고 소유한 자원을 정리합니다.
+     */
     Renderer::FSkyResources::~FSkyResources() = default;
 
     /**

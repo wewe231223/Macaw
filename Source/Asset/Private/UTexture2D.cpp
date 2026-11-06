@@ -15,6 +15,9 @@
 
 namespace Asset {
 
+    /**
+     * @brief UTexture2D의 초기 상태를 구성합니다.
+     */
     Asset::UTexture2D::UTexture2D() = default;
 
     /**
@@ -24,6 +27,9 @@ namespace Asset {
         LoadFromFile(ImagePath, SRGB);
     }
 
+    /**
+     * @brief 객체의 수명을 끝내고 소유한 자원을 정리합니다.
+     */
     Asset::UTexture2D::~UTexture2D() = default;
 
     /**

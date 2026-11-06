@@ -12,6 +12,9 @@
 
 namespace Asset {
 
+    /**
+     * @brief 기본 설정으로 FMaterialAssetData 객체를 초기화합니다.
+     */
     Asset::FMaterialAssetData::FMaterialAssetData() = default;
 
     /**

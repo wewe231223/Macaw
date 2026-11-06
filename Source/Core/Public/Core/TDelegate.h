@@ -86,6 +86,9 @@ namespace Core {
         Core::Uint32 mCurrentHandleNum{};
     };
 
+    /**
+     * @brief 호출 함수를 델리게이트에 추가하고 해제에 사용할 핸들을 반환합니다.
+     */
     template <typename TSignature>
     Core::Uint32 Core::TDelegate<TSignature>::Add(const HandlerType& Handler) {
         ++mCurrentHandleNum;
@@ -95,6 +98,9 @@ namespace Core {
         return mCurrentHandleNum;
     }
 
+    /**
+     * @brief 인스턴스의 멤버 함수를 델리게이트에 바인딩합니다.
+     */
     template <typename TSignature>
     template <typename T, typename... Args>
     Core::Uint32 Core::TDelegate<TSignature>::AddDynamic(T* Instance, void (T::*Func)(Args...)) {
@@ -105,6 +111,9 @@ namespace Core {
         return Add(Handler);
     }
 
+    /**
+     * @brief 등록 목록의 사본에 있는 모든 함수를 인수와 함께 호출합니다.
+     */
     template <typename TSignature>
     template <typename... Args>
     void Core::TDelegate<TSignature>::Broadcast(Args&&... Arguments) {
@@ -115,6 +124,9 @@ namespace Core {
         }
     }
 
+    /**
+     * @brief 지정 핸들이 유효하면 해당 함수를 인수와 함께 호출합니다.
+     */
     template <typename TSignature>
     template <typename... Args>
     void Core::TDelegate<TSignature>::Execute(Core::Uint32 HandleNum, Args&&... Arguments) {
@@ -127,6 +139,9 @@ namespace Core {
         }
     }
 
+    /**
+     * @brief 핸들에 해당하는 델리게이트 등록을 제거합니다.
+     */
     template <typename TSignature>
     void Core::TDelegate<TSignature>::RemoveHandler(Core::Uint32 HandleNumber) {
         mHandlers.erase(HandleNumber);

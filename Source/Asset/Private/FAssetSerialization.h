@@ -26,6 +26,9 @@ namespace Asset {
         static void SerializeValues(Serialization::FMemoryArchive& Archive, Core::TArray<T>& Values);
     };
 
+    /**
+     * @brief 배열의 개수와 원소를 직렬화하고 로드할 개수와 남은 바이트를 검증합니다.
+     */
     template <typename T>
     void Asset::FAssetSerialization::SerializeValues(Serialization::FMemoryArchive& Archive, Core::TArray<T>& Values) {
         Core::Uint32 Count{Archive.IsLoading() ? 0 : static_cast<Core::Uint32>(Values.size())};

@@ -65,6 +65,9 @@ namespace Asset {
 		: IMeshImporter{std::move(Source), Option} {
     }
 
+    /**
+     * @brief Assimp 임포터와 읽어 들인 장면을 해제합니다.
+     */
     Asset::FAssimpMeshImporter::~FAssimpMeshImporter() = default;
 
     /**

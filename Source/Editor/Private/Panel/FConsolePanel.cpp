@@ -106,10 +106,16 @@ namespace Editor {
         std::size_t mLogCount{};
     };
 
+    /**
+     * @brief 콘솔 로그를 그릴 ImTerm 터미널과 필터 상태를 준비합니다.
+     */
     Editor::FConsolePanel::FOutput::FOutput() {
         mTerminal.filter_hint() = "Filter output";
     }
 
+    /**
+     * @brief 편집 로그와 필터를 예약된 UI 높이에 맞춰 그립니다.
+     */
     void Editor::FConsolePanel::FOutput::Draw(const Editor::FEditorContext& Context, float ReservedHeight, bool ShowFilter) {
         SyncLogs(Context);
 
@@ -123,6 +129,9 @@ namespace Editor {
         mTerminal.DrawOutput(ReservedHeight, ShowFilter);
     }
 
+    /**
+     * @brief 편집 컨텍스트의 로그 변경분을 콘솔 터미널에 반영합니다.
+     */
     void Editor::FConsolePanel::FOutput::SyncLogs(const Editor::FEditorContext& Context) {
         const Core::Uint64 Revision{Context.GetLogRevision()};
 

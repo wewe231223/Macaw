@@ -219,14 +219,23 @@ namespace Core {
         Core::FStat mFailures;
     };
 
+    /**
+     * @brief 항목을 축출할지 판단합니다.
+     */
     inline bool Core::FNoEviction::ShouldEvict(Core::Uint64, Core::Uint64) const {
         return false;
     }
 
+    /**
+     * @brief 마지막 사용 이후 허용 프레임 수를 넘겼는지 판단합니다.
+     */
     inline bool Core::FFrameAgeEviction::ShouldEvict(Core::Uint64 LastUsed, Core::Uint64 Frame) const {
         return Frame > LastUsed + mMaxAge;
     }
 
+    /**
+     * @brief 통계 이름과 축출 정책으로 빈 캐시를 만듭니다.
+     */
     template <typename TKey, typename TStamp, typename TValue, typename THash, typename TEviction>
     Core::TRevisionCache<TKey, TStamp, TValue, THash, TEviction>::TRevisionCache(const Core::FString& StatName, TEviction Eviction)
 		: mEviction{std::move(Eviction)},
@@ -235,6 +244,9 @@ namespace Core {
 		  mFailures{"cache", StatName + " failures"} {
     }
 
+    /**
+     * @brief 같은 스탬프로 성공한 결과를 조회합니다.
+     */
     template <typename TKey, typename TStamp, typename TValue, typename THash, typename TEviction>
     TValue* Core::TRevisionCache<TKey, TStamp, TValue, THash, TEviction>::Find(const TKey& Key, const TStamp& Stamp) {
         const auto Position{mEntries.find(Key)};
@@ -252,6 +264,9 @@ namespace Core {
         return &*Position->second.mValue;
     }
 
+    /**
+     * @brief 같은 스탬프로 실패한 기록을 조회합니다.
+     */
     template <typename TKey, typename TStamp, typename TValue, typename THash, typename TEviction>
     const Core::FString* Core::TRevisionCache<TKey, TStamp, TValue, THash, TEviction>::FindFailure(const TKey& Key, const TStamp& Stamp) {
         const auto Position{mEntries.find(Key)};
@@ -267,6 +282,9 @@ namespace Core {
         return &Position->second.mFailure;
     }
 
+    /**
+     * @brief 결과를 만드는 데 성공했을 때 스탬프와 함께 기록합니다.
+     */
     template <typename TKey, typename TStamp, typename TValue, typename THash, typename TEviction>
     TValue& Core::TRevisionCache<TKey, TStamp, TValue, THash, TEviction>::Commit(const TKey& Key, const TStamp& Stamp, TValue Value) {
         FEntry& Entry{mEntries[Key]};
@@ -278,6 +296,9 @@ namespace Core {
         return *Entry.mValue;
     }
 
+    /**
+     * @brief 결과를 만들지 못했을 때 스탬프와 원인을 기록합니다.
+     */
     template <typename TKey, typename TStamp, typename TValue, typename THash, typename TEviction>
     void Core::TRevisionCache<TKey, TStamp, TValue, THash, TEviction>::CommitFailure(const TKey& Key, const TStamp& Stamp, Core::FString Reason) {
         FEntry& Entry{mEntries[Key]};
@@ -287,6 +308,9 @@ namespace Core {
         Entry.mLastUsed = mFrame;
     }
 
+    /**
+     * @brief 조건에 맞는 항목을 제거합니다.
+     */
     template <typename TKey, typename TStamp, typename TValue, typename THash, typename TEviction>
     template <typename TPredicate>
     void Core::TRevisionCache<TKey, TStamp, TValue, THash, TEviction>::InvalidateIf(TPredicate Predicate) {
@@ -295,6 +319,9 @@ namespace Core {
         });
     }
 
+    /**
+     * @brief 프레임을 진행하고 축출 정책에 해당하는 항목을 제거합니다.
+     */
     template <typename TKey, typename TStamp, typename TValue, typename THash, typename TEviction>
     void Core::TRevisionCache<TKey, TStamp, TValue, THash, TEviction>::BeginFrame() {
         ++mFrame;
@@ -303,11 +330,17 @@ namespace Core {
         });
     }
 
+    /**
+     * @brief 모든 항목을 제거합니다.
+     */
     template <typename TKey, typename TStamp, typename TValue, typename THash, typename TEviction>
     void Core::TRevisionCache<TKey, TStamp, TValue, THash, TEviction>::Clear() {
         mEntries.clear();
     }
 
+    /**
+     * @brief 보관 중인 항목 수를 반환합니다.
+     */
     template <typename TKey, typename TStamp, typename TValue, typename THash, typename TEviction>
     std::size_t Core::TRevisionCache<TKey, TStamp, TValue, THash, TEviction>::GetCount() const {
         return mEntries.size();

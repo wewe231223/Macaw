@@ -26,6 +26,9 @@ namespace Asset {
 		: mSourcePath{std::move(Source)}, mOption{Option} {
     }
 
+    /**
+     * @brief 객체 수명을 끝내고 소유한 자원을 정리합니다.
+     */
     Asset::IMeshImporter::~IMeshImporter() = default;
 
     /**

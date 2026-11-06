@@ -24,6 +24,9 @@ namespace Renderer {
 		  mPixelShader{std::move(PixelShader)} {
     }
 
+    /**
+     * @brief 기본 소멸자이며, GPU 자원은 ComPtr 멤버가 해제합니다.
+     */
     Renderer::FMaterialPipeline::~FMaterialPipeline() = default;
 
     /**

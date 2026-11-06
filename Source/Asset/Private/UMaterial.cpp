@@ -41,8 +41,14 @@ namespace Asset {
         }
     }
 
+    /**
+     * @brief 전달된 설정과 기본값으로 UMaterial 객체를 생성합니다.
+     */
     Asset::UMaterial::UMaterial() = default;
 
+    /**
+     * @brief 기본 소멸자이며, GPU 상수 버퍼는 ComPtr 멤버가 해제합니다.
+     */
     Asset::UMaterial::~UMaterial() = default;
 
     /**

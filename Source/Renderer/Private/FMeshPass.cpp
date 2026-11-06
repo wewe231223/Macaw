@@ -30,6 +30,9 @@ namespace Renderer {
 		  mMeshes{&Meshes} {
     }
 
+    /**
+     * @brief 객체 수명을 끝냅니다.
+     */
     Renderer::FMeshPass::~FMeshPass() = default;
 
     /**

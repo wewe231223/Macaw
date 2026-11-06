@@ -250,8 +250,14 @@ namespace Script {
         FManagedApi mManaged{};
     };
 
+    /**
+     * @brief 프로세스 수명 동안 유지되는 런타임 상태를 구성합니다.
+     */
     Script::FScriptRuntime::FScriptRuntime() = default;
 
+    /**
+     * @brief 런타임 상태를 정리합니다.
+     */
     Script::FScriptRuntime::~FScriptRuntime() = default;
 
     /**

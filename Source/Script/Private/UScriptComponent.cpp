@@ -18,6 +18,9 @@
 
 namespace Script {
 
+    /**
+     * @brief 클래스가 지정되지 않은 컴포넌트를 구성합니다.
+     */
     Script::UScriptComponent::UScriptComponent() = default;
 
     /**

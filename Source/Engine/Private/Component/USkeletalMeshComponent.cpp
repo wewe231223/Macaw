@@ -25,6 +25,9 @@ namespace Engine {
         SetEditorTickable(true);
     }
 
+    /**
+     * @brief 컴포넌트를 파괴합니다.
+     */
     USkeletalMeshComponent::~USkeletalMeshComponent() = default;
 
     /**
