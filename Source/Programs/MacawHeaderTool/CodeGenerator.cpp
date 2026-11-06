@@ -146,18 +146,29 @@ namespace HeaderTool {
     }
 
     void WriteGeneratedHeaders(const FWorkspace& Workspace, const std::string& SourceModule) {
-        std::map<std::string, std::string> Written;
+        // 모든 모듈의 Generated 폴더가 include 경로에 함께 오르므로 이름이 같으면 다른 모듈의 generated.h를 읽을 수 있습니다.
+        std::map<std::string, std::string> AllNames;
+
+        for (const auto& Header : Workspace.Headers) {
+            if (!Header->NeedsGeneratedHeader) {
+                continue;
+            }
+
+            const auto [Existing, Inserted]{AllNames.emplace(Header->GeneratedName, Header->Source.Path)};
+
+            if (!Inserted) {
+                throw FHeaderToolError{Header->Source.Path, 0, "Reflected header file names must be unique across all modules; " + Existing->second + " also generates " + Header->GeneratedName};
+            }
+        }
+
+        std::set<std::string> Written;
 
         for (const auto& Header : Workspace.Headers) {
             if (Header->Source.Module != SourceModule || !Header->NeedsGeneratedHeader) {
                 continue;
             }
 
-            const auto [Existing, Inserted]{Written.emplace(Header->GeneratedName, Header->Source.Path)};
-
-            if (!Inserted) {
-                throw FHeaderToolError{Header->Source.Path, 0, "Reflected headers in one module need distinct file names; " + Existing->second + " also generates " + Header->GeneratedName};
-            }
+            Written.insert(Header->GeneratedName);
 
             std::vector<std::string> Lines{"// MacawHeaderTool이 " + Header->Source.Path + "에서 생성한 파일입니다. 직접 수정하지 마세요.", "#pragma once", "", "#include \"Core/ReflectionMacros.h\""};
             const bool HasEnums{std::any_of(Header->Enums.begin(), Header->Enums.end(), [](const FEnum& Enum) { return Enum.Reflect; })};
@@ -193,6 +204,18 @@ namespace HeaderTool {
             }
 
             WriteIfChanged(Workspace.Root, GetGeneratedDirectory(SourceModule) + "/" + Header->GeneratedName, Lines);
+        }
+
+        // 리플렉션을 지운 헤더나 삭제·이름 변경된 헤더의 generated.h는 남아 있으면 옛 선언이 계속 include될 수 있으므로 지웁니다.
+        const std::filesystem::path Directory{std::filesystem::path{Workspace.Root} / GetGeneratedDirectory(SourceModule)};
+        std::error_code Code;
+
+        for (const auto& Entry : std::filesystem::directory_iterator{Directory, Code}) {
+            const std::string Name{Entry.path().filename().string()};
+
+            if (Entry.is_regular_file(Code) && Name.ends_with(".generated.h") && !Written.contains(Name)) {
+                std::filesystem::remove(Entry.path(), Code);
+            }
         }
     }
 
