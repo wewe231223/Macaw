@@ -16,6 +16,7 @@ namespace Core {
 namespace Engine {
 
     struct FSceneView;
+    struct FMinimalViewInfo;
 
     /**
      * @brief 시야각 설정과 월드 변환으로부터 카메라 뷰 생성을 담당합니다.
@@ -37,6 +38,12 @@ namespace Engine {
          * @return 요청한 처리를 완료하면 true, 실패하면 false입니다.
          */
         bool SetFieldOfView(float FieldOfView);
+
+        /**
+         * @brief 카메라의 현재 월드 변환과 시야각으로 시점 값을 만듭니다.
+         * @return 카메라 관리자가 블렌드에 사용할 시점 값입니다.
+         */
+        Engine::FMinimalViewInfo GetCameraViewInfo() const;
 
         /**
          * @brief 카메라의 월드 변환과 시야각으로 뷰·투영 행렬을 계산합니다.

@@ -5,6 +5,7 @@
  */
 
 #include "Engine/Component/UCameraComponent.h"
+#include "Engine/FMinimalViewInfo.h"
 #include "Engine/FSceneView.h"
 #include <cmath>
 
@@ -30,26 +31,20 @@ namespace Engine {
         return true;
     }
 
+    Engine::FMinimalViewInfo Engine::UCameraComponent::GetCameraViewInfo() const {
+        Engine::FMinimalViewInfo ViewInfo{};
+        ViewInfo.mLocation = GetTransform().mLocation;
+        ViewInfo.mRotation = GetTransform().mRotation;
+        ViewInfo.mFieldOfView = mFieldOfView;
+
+        return ViewInfo;
+    }
+
     /**
      * @brief 카메라의 월드 변환과 시야각으로 뷰·투영 행렬을 계산합니다.
      */
     bool Engine::UCameraComponent::GetCameraView(const Core::FVector2& Size, Engine::FSceneView& View) const {
-        if (!std::isfinite(Size.x) || !std::isfinite(Size.y) || Size.x <= 0.0f || Size.y <= 0.0f || !GetTransform().IsValid()) {
-            return false;
-        }
-
-        const Core::FTransform& Transform{GetTransform()};
-        Engine::FSceneView CameraView{};
-        CameraView.mLocation = Transform.mLocation;
-        CameraView.mForward = Transform.mRotation.ForwardVector();
-        CameraView.mSize = Size;
-        CameraView.mFieldOfView = mFieldOfView;
-        CameraView.mView = Core::FMatrix::LookTo(CameraView.mLocation, CameraView.mForward, Transform.mRotation.UpVector());
-        CameraView.mProjection = Core::FMatrix::Perspective(mFieldOfView, Size.x / Size.y, 0.05f, 10000.0f);
-        CameraView.mViewProjection = CameraView.mView * CameraView.mProjection;
-        View = CameraView;
-
-        return true;
+        return GetTransform().IsValid() && GetCameraViewInfo().CalcSceneView(Size, View);
     }
 
 }

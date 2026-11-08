@@ -9,7 +9,7 @@
 #include "Engine/Component/UPrimitiveComponent.h"
 #include "Engine/Collision/FCollisionShape.h"
 #include "Engine/Collision/FHitResult.h"
-#include "Core/TDelegate.h"
+#include "CoreUObject/TDelegate.h"
 #include "Core/Math/FVector4.h"
 #include "Core/Math/FBox.h"
 #include "UShapeComponent.generated.h"
@@ -29,12 +29,12 @@ namespace Engine {
         /**
          * @brief 겹친 컴포넌트를 전달하는 이벤트 시그니처입니다.
          */
-        using FOverlapDelegate = Core::TDelegate<void(Engine::UPrimitiveComponent*, Engine::AActor*, Engine::UPrimitiveComponent*)>;
+        using FOverlapDelegate = CoreUObject::TDelegate<Engine::UPrimitiveComponent*, Engine::AActor*, Engine::UPrimitiveComponent*>;
 
         /**
          * @brief 충돌한 액터·컴포넌트·충돌 정보를 전달하는 이벤트 시그니처입니다.
          */
-        using FHitDelegate = Core::TDelegate<void(Engine::UPrimitiveComponent*, Engine::AActor*, Engine::UPrimitiveComponent*, const Engine::FHitResult&)>;
+        using FHitDelegate = CoreUObject::TDelegate<Engine::UPrimitiveComponent*, Engine::AActor*, Engine::UPrimitiveComponent*, const Engine::FHitResult&>;
 
     public:
         /**

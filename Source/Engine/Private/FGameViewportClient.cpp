@@ -8,6 +8,7 @@
 #include "Engine/Engine.h"
 #include "Engine/UWorld.h"
 #include "Engine/Component/UCameraComponent.h"
+#include "Engine/APlayerCameraManager.h"
 #include "Engine/FSceneViewport.h"
 #include "Core/Input.h"
 #include "Engine/FSceneViewFamily.h"
@@ -49,6 +50,12 @@ namespace Engine {
      */
     bool Engine::FGameViewportClient::CalcSceneView(const Core::FVector2& Size, Engine::FSceneView& View) const {
         const Engine::UWorld* World{mEngine != nullptr ? mEngine->GetWorld(mWorld) : nullptr};
+        const Engine::APlayerCameraManager* CameraManager{World != nullptr ? World->GetPlayerCameraManager() : nullptr};
+
+        if (CameraManager != nullptr && CameraManager->HasCameraCache()) {
+            return CameraManager->GetCameraCacheView().CalcSceneView(Size, View);
+        }
+
         const Engine::UCameraComponent* Camera{World != nullptr ? World->GetActiveCamera() : nullptr};
 
         return Camera != nullptr && Camera->GetCameraView(Size, View);

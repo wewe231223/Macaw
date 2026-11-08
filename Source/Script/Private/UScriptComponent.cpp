@@ -98,10 +98,10 @@ namespace Script {
 
         for (const auto& Component : GetOwner()->GetComponents()) {
             if (auto* Shape{CoreUObject::Cast<Engine::UShapeComponent>(Component.get())}) {
-                const Core::Uint32 Begin{Shape->GetOnComponentBeginOverlap().Add([Notify](Engine::UPrimitiveComponent*, Engine::AActor* Other, Engine::UPrimitiveComponent*) {
+                const CoreUObject::FDelegateHandle Begin{Shape->GetOnComponentBeginOverlap().Add([Notify](Engine::UPrimitiveComponent*, Engine::AActor* Other, Engine::UPrimitiveComponent*) {
                     Notify(true, Other);
                 })};
-                const Core::Uint32 End{Shape->GetOnComponentEndOverlap().Add([Notify](Engine::UPrimitiveComponent*, Engine::AActor* Other, Engine::UPrimitiveComponent*) {
+                const CoreUObject::FDelegateHandle End{Shape->GetOnComponentEndOverlap().Add([Notify](Engine::UPrimitiveComponent*, Engine::AActor* Other, Engine::UPrimitiveComponent*) {
                     Notify(false, Other);
                 })};
                 mOverlapBindings.push_back({Shape->GetHandle(), Begin, End});
@@ -115,8 +115,8 @@ namespace Script {
     void Script::UScriptComponent::UnbindOverlapEvents() {
         for (const FOverlapBinding& Binding : mOverlapBindings) {
             if (auto* Shape{CoreUObject::Cast<Engine::UShapeComponent>(CoreUObject::FObjectRegistry::Get()->Resolve(Binding.mShape))}) {
-                Shape->GetOnComponentBeginOverlap().RemoveHandler(Binding.mBegin);
-                Shape->GetOnComponentEndOverlap().RemoveHandler(Binding.mEnd);
+                Shape->GetOnComponentBeginOverlap().Remove(Binding.mBegin);
+                Shape->GetOnComponentEndOverlap().Remove(Binding.mEnd);
             }
         }
 

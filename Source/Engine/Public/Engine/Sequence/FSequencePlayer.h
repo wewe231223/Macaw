@@ -185,6 +185,11 @@ namespace Engine {
         CoreUObject::FObjectHandle mBaseCamera{};
 
         /**
+         * @brief 첫 카메라 컷을 적용하기 전 플레이어 카메라 관리자의 뷰 타깃 핸들입니다.
+         */
+        CoreUObject::FObjectHandle mBaseViewTarget{};
+
+        /**
          * @brief 현재 카메라 컷이 활성화한 카메라 핸들입니다.
          */
         CoreUObject::FObjectHandle mCutCamera{};

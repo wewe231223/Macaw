@@ -35,6 +35,7 @@ namespace Engine {
     class FSceneInterface;
     class AStaticMeshActor;
     class UCameraComponent;
+    class APlayerCameraManager;
     struct FWorldHit;
 
     enum class EPrimitiveType : Core::Uint8;
@@ -204,6 +205,14 @@ namespace Engine {
          * @return 요청한 처리를 완료하면 true, 실패하면 false입니다.
          */
         bool Input(const Core::FInput& Input, float DeltaTime);
+
+        /**
+         * @brief 실행 중인 월드의 카메라 관리자를 반환합니다.
+         * @return 카메라 관리자의 비소유 주소이며, 실행 중이 아니면 nullptr입니다.
+         * @note Game·PIE 월드의 BeginPlay에서 만들고 EndPlay에서 해제합니다.
+         */
+        UFUNCTION()
+        Engine::APlayerCameraManager* GetPlayerCameraManager() const;
 
         /**
          * @brief 아직 레벨이 없는 월드에 영속 레벨의 소유권을 연결합니다.
@@ -419,6 +428,11 @@ namespace Engine {
          * @brief 활성 카메라 컴포넌트의 비소유 객체 핸들입니다.
          */
         CoreUObject::FObjectHandle mActiveCamera{};
+
+        /**
+         * @brief 실행 중에만 영속 레벨에 존재하는 카메라 관리자 액터의 핸들입니다.
+         */
+        CoreUObject::FObjectHandle mPlayerCameraManager{};
 
         /**
          * @brief 프로젝트 에셋을 조회할 관리자의 비소유 주소입니다.

@@ -653,6 +653,12 @@ namespace Editor {
      * @brief 편집 월드를 지정한 장면 파일로 저장하고 변경 표시를 해제합니다.
      */
     bool Editor::FEditorContext::SaveScene(const std::filesystem::path& Path) {
+        if (mPlayLocked) {
+            AddLog("Stop PIE before saving the scene");
+
+            return false;
+        }
+
         if (!CanEditWorld() || Path.empty() || mChangingState || mEditingProperty || mEngine->IsDispatching()) {
             return false;
         }

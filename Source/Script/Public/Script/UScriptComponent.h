@@ -7,6 +7,7 @@
 #pragma once
 
 #include "Core/Types.h"
+#include "CoreUObject/TDelegate.h"
 #include "Engine/Component/UActorComponent.h"
 #include "Script/FScriptField.h"
 
@@ -123,12 +124,12 @@ namespace Script {
             /**
              * @brief 겹침 시작 이벤트의 등록 번호입니다.
              */
-            Core::Uint32 mBegin{};
+            CoreUObject::FDelegateHandle mBegin{};
 
             /**
              * @brief 겹침 끝 이벤트의 등록 번호입니다.
              */
-            Core::Uint32 mEnd{};
+            CoreUObject::FDelegateHandle mEnd{};
         };
 
         /**

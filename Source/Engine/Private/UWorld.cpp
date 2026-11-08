@@ -16,6 +16,7 @@
 #include "Engine/Component/UStaticMeshComponent.h"
 #include "Engine/Component/UBillboardComponent.h"
 #include "Engine/Component/UCameraComponent.h"
+#include "Engine/APlayerCameraManager.h"
 #include "Core/Input.h"
 #include "Core/Math.h"
 #include "Engine/Component/UPrimitiveComponent.h"
@@ -405,6 +406,7 @@ namespace Engine {
         mDirtyComponents.clear();
         mActiveCamera = {};
         mInputTarget = {};
+        mPlayerCameraManager = {};
         mPersistentLevel.reset();
         mScene.reset();
     }
@@ -463,6 +465,17 @@ namespace Engine {
         mTimeSeconds = 0.0f;
         mTickCount = 0;
 
+        // 스크립트가 BeginPlay에서 카메라 관리자를 찾을 수 있도록 액터보다 먼저 만듭니다.
+        if (auto CameraManager{CoreUObject::NewObject<Engine::APlayerCameraManager>()}; CameraManager != nullptr && CameraManager->InitializeDefaultComponents() && mPersistentLevel != nullptr) {
+            CameraManager->SetName("PlayerCameraManager");
+
+            const CoreUObject::FObjectHandle Handle{CameraManager->GetHandle()};
+
+            if (mPersistentLevel->AddActor(std::move(CameraManager))) {
+                mPlayerCameraManager = Handle;
+            }
+        }
+
         const auto Handles{GetActorHandles()};
 
         for (const CoreUObject::FObjectHandle Handle : Handles) {
@@ -473,6 +486,17 @@ namespace Engine {
             if (Engine::AActor* Actor{ResolveActor(Handle)}) {
                 Actor->DispatchBeginPlay();
             }
+        }
+
+        // 스크립트가 BeginPlay에서 뷰 타깃을 정하지 않았으면 편집기에서 지정한 활성 카메라를 씁니다.
+        if (Engine::APlayerCameraManager* CameraManager{GetPlayerCameraManager()}) {
+            if (CameraManager->GetViewTarget() == nullptr) {
+                if (const Engine::UCameraComponent* Camera{GetActiveCamera()}) {
+                    CameraManager->SetViewTarget(Camera->GetOwner());
+                }
+            }
+
+            CameraManager->UpdateCamera(0.0f);
         }
 
         mPlayState = Engine::EWorldPlayState::Playing;
@@ -510,6 +534,8 @@ namespace Engine {
             }
         }
 
+        DestroyActor(mPlayerCameraManager);
+        mPlayerCameraManager = {};
         mPlayState = Engine::EWorldPlayState::Stopped;
     }
 
@@ -607,6 +633,10 @@ namespace Engine {
         return Actor != nullptr && !Actor->IsPendingDestroy() ? Actor : nullptr;
     }
 
+    Engine::APlayerCameraManager* Engine::UWorld::GetPlayerCameraManager() const {
+        return CoreUObject::Cast<Engine::APlayerCameraManager>(ResolveActor(mPlayerCameraManager));
+    }
+
     /**
      * @brief 뷰포트 입력을 받아 프레임 시간에 따라 액터의 동작을 갱신합니다.
      */
@@ -657,6 +687,11 @@ namespace Engine {
 
         if (!EditorTick && !mEndPlayRequested && !mShutdownRequested) {
             UpdateOverlaps();
+        }
+
+        // 카메라는 이번 프레임의 이동과 겹침 처리가 모두 끝난 뒤에 갱신합니다.
+        if (Engine::APlayerCameraManager* CameraManager{GetPlayerCameraManager()}; !EditorTick && !mEndPlayRequested && !mShutdownRequested && CameraManager != nullptr) {
+            CameraManager->UpdateCamera(DeltaTime);
         }
 
         return true;

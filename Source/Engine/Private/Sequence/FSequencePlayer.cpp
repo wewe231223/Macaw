@@ -17,6 +17,7 @@
 #include "Engine/Component/UCameraComponent.h"
 #include "Engine/Component/USceneComponent.h"
 #include "Engine/ULevel.h"
+#include "Engine/APlayerCameraManager.h"
 #include "Engine/UWorld.h"
 
 #include <algorithm>
@@ -102,6 +103,7 @@ namespace Engine {
         mWorld = nullptr;
         mBindings.clear();
         mBaseCamera = {};
+        mBaseViewTarget = {};
         mCutCamera = {};
         mCameraCaptured = false;
         mTick = 0.0;
@@ -236,7 +238,13 @@ namespace Engine {
 
         if (mCameraCaptured && mWorld != nullptr) {
             mWorld->SetActiveCamera(CoreUObject::Cast<Engine::UCameraComponent>(CoreUObject::FObjectRegistry::Get()->Resolve(mBaseCamera)));
+
+            if (Engine::APlayerCameraManager* CameraManager{mWorld->GetPlayerCameraManager()}) {
+                CameraManager->SetViewTarget(CoreUObject::Cast<Engine::AActor>(CoreUObject::FObjectRegistry::Get()->Resolve(mBaseViewTarget)));
+            }
         }
+
+        mBaseViewTarget = {};
 
         mCameraCaptured = false;
         mCutCamera = {};
@@ -348,7 +356,21 @@ namespace Engine {
             const Engine::UCameraComponent* Active{mWorld->GetActiveCamera()};
 
             mBaseCamera = Active != nullptr ? Active->GetHandle() : CoreUObject::FObjectHandle{};
+
+            if (const Engine::APlayerCameraManager* CameraManager{mWorld->GetPlayerCameraManager()}) {
+                const Engine::AActor* ViewTarget{CameraManager->GetViewTarget()};
+
+                mBaseViewTarget = ViewTarget != nullptr ? ViewTarget->GetHandle() : CoreUObject::FObjectHandle{};
+            }
+
             mCameraCaptured = true;
+        }
+
+        // 실행 중이면 게임 뷰포트가 카메라 관리자의 시점으로 그리므로 뷰 타깃도 컷 카메라로 바꿉니다.
+        if (Engine::APlayerCameraManager* CameraManager{mWorld->GetPlayerCameraManager()}) {
+            if (CameraManager->GetViewTarget() != Camera->GetOwner()) {
+                CameraManager->SetViewTarget(Camera->GetOwner());
+            }
         }
 
         mWorld->SetActiveCamera(Camera);
