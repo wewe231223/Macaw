@@ -1,0 +1,99 @@
+#define LIGHTING_MODEL_PHONG 1
+#define MACAW_RECEIVE_SHADOWS 1
+#include "PixelLighting.hlsli"
+
+cbuffer DeferredConstants : register(b0) {
+    row_major float4x4 InverseViewProjection;
+    float2 InverseSize;
+    uint ViewMode;
+    uint Padding;
+};
+
+Texture2D<float4> SurfaceColor : register(t11);
+Texture2D<float4> SurfaceNormal : register(t12);
+Texture2D<float4> SurfaceSpecular : register(t13);
+Texture2D<float4> SurfaceEmission : register(t14);
+Texture2D<float4> SurfaceAmbient : register(t15);
+Texture2D<float4> SurfaceReflection : register(t16);
+Texture2D<float> SceneDepth : register(t17);
+Texture2D<uint2> SceneStencil : register(t18);
+
+static const uint SurfaceStencil = {2};
+static const uint PrelitStencil = {4};
+static const uint GouraudView = {2};
+static const uint LambertView = {3};
+static const uint UnlitView = {4};
+static const uint WorldNormalView = {5};
+
+float4 VertexMain(uint VertexId : SV_VertexID) : SV_POSITION {
+    const float2 UV = {float2((VertexId << 1) & 2, VertexId & 2)};
+
+    return float4(UV * float2(2.0f, -2.0f) + float2(-1.0f, 1.0f), 0.0f, 1.0f);
+}
+
+float3 ReconstructWorld(float2 Ndc, float Depth) {
+    const float4 World = {mul(float4(Ndc, Depth, 1.0f), InverseViewProjection)};
+
+    return World.xyz / World.w;
+}
+
+void GetReceiverOffsets(float2 Ndc, float Depth, float3 Position, float3 PlaneNormal, out float3 PositionDx, out float3 PositionDy) {
+    const float4 Plane = {float4(PlaneNormal, -dot(PlaneNormal, Position))};
+    const float4 ClipPlane = {mul(InverseViewProjection, Plane)};
+    const float2 Step = {InverseSize * float2(2.0f, -2.0f)};
+    const float2 DepthStep = {abs(ClipPlane.z) > 0.0000001f ? -ClipPlane.xy * Step / ClipPlane.z : 0.0f};
+    PositionDx = ReconstructWorld(Ndc + float2(Step.x, 0.0f), saturate(Depth + DepthStep.x)) - Position;
+    PositionDy = ReconstructWorld(Ndc + float2(0.0f, Step.y), saturate(Depth + DepthStep.y)) - Position;
+}
+
+float4 PixelMain(float4 Pixel : SV_POSITION) : SV_TARGET {
+    const int3 Texel = {int3(int2(Pixel.xy), 0)};
+    const uint Stencil = {SceneStencil.Load(Texel).g};
+
+    if ((Stencil & (SurfaceStencil | PrelitStencil)) == 0) {
+        discard;
+    }
+
+    const float4 Color = {SurfaceColor.Load(Texel)};
+
+    if ((Stencil & PrelitStencil) != 0 || ViewMode == UnlitView) {
+        return Color;
+    }
+
+    const float4 NormalData = {SurfaceNormal.Load(Texel)};
+    const float3 Normal = {SafeNormal(NormalData.xyz)};
+
+    if (ViewMode == WorldNormalView) {
+        return float4(Normal * 0.5f + 0.5f, 1.0f);
+    }
+
+    if (NormalData.w < 0.0f) {
+        return Color;
+    }
+
+    const float4 Emission = {SurfaceEmission.Load(Texel)};
+    const float4 Ambient = {SurfaceAmbient.Load(Texel)};
+    if (ViewMode == GouraudView) {
+        return float4(Color.rgb * Ambient.rgb + Emission.rgb, Color.a);
+    }
+
+    const float4 Specular = {SurfaceSpecular.Load(Texel)};
+    const float4 Reflection = {SurfaceReflection.Load(Texel)};
+    const float Depth = {SceneDepth.Load(Texel)};
+    const float2 Ndc = {Pixel.xy * InverseSize * float2(2.0f, -2.0f) + float2(-1.0f, 1.0f)};
+    const float3 Position = {ReconstructWorld(Ndc, Depth)};
+    const bool ReceiveShadows = {Specular.w > 0.0f};
+    float3 PositionDx = {0.0f, 0.0f, 0.0f};
+    float3 PositionDy = {0.0f, 0.0f, 0.0f};
+
+    [branch]
+    if (ReceiveShadows) {
+        GetReceiverOffsets(Ndc, Depth, Position, float3(Emission.w, Ambient.w, Reflection.w), PositionDx, PositionDy);
+    }
+
+    const float2 SpecularParameters = {float2(ViewMode == LambertView ? 0.0f : 1.0f, NormalData.w)};
+    const FLighting Total = {AccumulatePixelLighting(Pixel.xy, Position, Normal, Ambient.rgb, SpecularParameters, ReceiveShadows, PositionDx, PositionDy)};
+    const float3 Lit = {Color.rgb * Total.mDiffuse + Total.mSpecular * Specular.rgb + Emission.rgb + Total.mAmbient * Reflection.rgb};
+
+    return float4(Lit, Color.a);
+}

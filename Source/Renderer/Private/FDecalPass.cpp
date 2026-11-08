@@ -13,20 +13,11 @@
 namespace Renderer {
 
     bool Renderer::FDecalPass::Initialize(ID3D11Device* Device) {
-        D3D11_DEPTH_STENCIL_DESC Mark{};
-        Mark.DepthEnable = true;
-        Mark.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
-        Mark.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;
-        Mark.StencilEnable = true;
-        Mark.StencilReadMask = 1;
-        Mark.StencilWriteMask = 1;
-        Mark.FrontFace = {D3D11_STENCIL_OP_KEEP, D3D11_STENCIL_OP_KEEP, D3D11_STENCIL_OP_REPLACE, D3D11_COMPARISON_ALWAYS};
-        Mark.BackFace = Mark.FrontFace;
-
-        D3D11_DEPTH_STENCIL_DESC Test{Mark};
-        Test.DepthEnable = false;
+        D3D11_DEPTH_STENCIL_DESC Test{};
+        Test.DepthFunc = D3D11_COMPARISON_ALWAYS;
         Test.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
-        Test.StencilWriteMask = 0;
+        Test.StencilEnable = true;
+        Test.StencilReadMask = Renderer::GBuffer::ReceivesDecals;
         Test.FrontFace = {D3D11_STENCIL_OP_KEEP, D3D11_STENCIL_OP_KEEP, D3D11_STENCIL_OP_KEEP, D3D11_COMPARISON_EQUAL};
         Test.BackFace = Test.FrontFace;
 
@@ -45,7 +36,7 @@ namespace Renderer {
 
         Core::FString Error{};
 
-        return mConstants.Create(Device, Error) && SUCCEEDED(Device->CreateDepthStencilState(&Mark, mMarkReceiver.GetAddressOf())) && SUCCEEDED(Device->CreateDepthStencilState(&Test, mTestReceiver.GetAddressOf())) && SUCCEEDED(Device->CreateRasterizerState(&Rasterizer, mRasterizer.GetAddressOf())) && SUCCEEDED(Device->CreateSamplerState(&Sampler, mSampler.GetAddressOf()));
+        return mConstants.Create(Device, Error) && SUCCEEDED(Device->CreateDepthStencilState(&Test, mTestReceiver.GetAddressOf())) && SUCCEEDED(Device->CreateRasterizerState(&Rasterizer, mRasterizer.GetAddressOf())) && SUCCEEDED(Device->CreateSamplerState(&Sampler, mSampler.GetAddressOf()));
     }
 
     bool Renderer::FDecalPass::CreateShaders(ID3D11Device* Device, std::span<const Core::Uint8> VertexCode, std::span<const Core::Uint8> PixelCode) {
@@ -62,11 +53,7 @@ namespace Renderer {
         return true;
     }
 
-    void Renderer::FDecalPass::MarkReceiver(ID3D11DeviceContext* Context, bool ReceivesDecals) const {
-        Context->OMSetDepthStencilState(mMarkReceiver.Get(), ReceivesDecals ? 1u : 0u);
-    }
-
-    Core::Uint32 Renderer::FDecalPass::Render(ID3D11Device* Device, ID3D11DeviceContext* Context, Renderer::FDXRenderTarget& Target, const Engine::FSceneView& View, std::span<const Engine::FDecalSceneProxy> Decals, ID3D11BlendState* AlphaBlend) {
+    Core::Uint32 Renderer::FDecalPass::Render(ID3D11Device* Device, ID3D11DeviceContext* Context, const Renderer::FDXRenderTarget& Target, const Engine::FSceneView& View, std::span<const Engine::FDecalSceneProxy> Decals, ID3D11BlendState* AlphaBlend) {
         FConstants Constants{};
 
         if (!View.mViewProjection.TryInverse(Constants.mInverseViewProjection)) {
@@ -77,12 +64,12 @@ namespace Renderer {
         const Core::Uint32 Height{Target.GetHeight()};
         Constants.mScreenAndOpacity = {1.0f / static_cast<float>(Width), 1.0f / static_cast<float>(Height), 0.0f, 0.0f};
 
-        ID3D11RenderTargetView* Color{Target.GetSceneColor()->GetRenderTargetView()};
+        ID3D11RenderTargetView* Color{Target.GetGBuffer().front()->GetRenderTargetView()};
         ID3D11ShaderResourceView* Depth{Target.GetSceneDepth()->GetShaderResourceView()};
         ID3D11SamplerState* Sampler{mSampler.Get()};
 
         Context->OMSetRenderTargets(1, &Color, Target.GetReadOnlyDepthView());
-        Context->OMSetDepthStencilState(mTestReceiver.Get(), 1);
+        Context->OMSetDepthStencilState(mTestReceiver.Get(), Renderer::GBuffer::ReceivesDecals);
         Context->OMSetBlendState(AlphaBlend, nullptr, 0xFFFFFFFFu);
         Context->RSSetState(mRasterizer.Get());
         Context->IASetInputLayout(nullptr);
@@ -115,8 +102,7 @@ namespace Renderer {
 
         const std::array<ID3D11ShaderResourceView*, 2> Empty{};
         Context->PSSetShaderResources(0, static_cast<UINT>(Empty.size()), Empty.data());
-        Context->OMSetRenderTargets(1, &Color, Target.GetDepthView());
-        Context->OMSetBlendState(nullptr, nullptr, 0xFFFFFFFFu);
+        Context->OMSetRenderTargets(0, nullptr, nullptr);
 
         return DrawCalls;
     }

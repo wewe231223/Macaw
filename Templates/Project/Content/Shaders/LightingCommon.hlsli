@@ -73,13 +73,13 @@ float3 MappedNormal(float3 Normal, float4 Tangent, float3 Sampled) {
  * @param[in] Normal 월드 공간 표면 법선입니다.
  * @return 그림자 가시성을 곱하기 전의 RGB 조명 성분입니다.
  */
-FLighting EvaluateLight(FLight Light, float3 Position, float3 Normal) {
+FLighting EvaluateLight(FLight Light, float3 Position, float3 Normal, float3 AmbientTint, float2 SpecularParameters) {
     FLighting Result = {(FLighting)0};
     float3 Radiance = {Light.mColorAndIntensity.rgb * Light.mColorAndIntensity.w};
     uint Type = {(uint)Light.mDirectionAndType.w};
 
     if (Type == 0) {
-        Result.mDiffuse = Radiance * AmbientColor.rgb;
+        Result.mDiffuse = Radiance * AmbientTint;
         Result.mAmbient = Radiance;
         return Result;
     }
@@ -115,11 +115,15 @@ FLighting EvaluateLight(FLight Light, float3 Position, float3 Normal) {
 #if defined(LIGHTING_MODEL_PHONG) || defined(LIGHTING_MODEL_GOURAUD)
     float3 V = {SafeNormal(CameraAndLightCount.xyz - Position)};
     float3 H = {SafeNormal(L + V)};
-    float Specular = {Diffuse > 0.0f ? pow(saturate(dot(Normal, H)), SurfaceParameters.y) * SurfaceParameters.x : 0.0f};
+    float Specular = {Diffuse > 0.0f && SpecularParameters.x > 0.0f ? pow(saturate(dot(Normal, H)), SpecularParameters.y) * SpecularParameters.x : 0.0f};
     Result.mSpecular = Radiance * (Attenuation * Specular);
 #endif
 
     return Result;
+}
+
+FLighting EvaluateLight(FLight Light, float3 Position, float3 Normal) {
+    return EvaluateLight(Light, Position, Normal, AmbientColor.rgb, SurfaceParameters.xy);
 }
 
 #endif

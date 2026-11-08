@@ -29,15 +29,13 @@ namespace Renderer {
         bool Initialize(ID3D11Device* Device);
         bool CreateShaders(ID3D11Device* Device, std::span<const Core::Uint8> VertexCode, std::span<const Core::Uint8> PixelCode);
 
-        void MarkReceiver(ID3D11DeviceContext* Context, bool ReceivesDecals) const;
-        Core::Uint32 Render(ID3D11Device* Device, ID3D11DeviceContext* Context, Renderer::FDXRenderTarget& Target, const Engine::FSceneView& View, std::span<const Engine::FDecalSceneProxy> Decals, ID3D11BlendState* AlphaBlend);
+        Core::Uint32 Render(ID3D11Device* Device, ID3D11DeviceContext* Context, const Renderer::FDXRenderTarget& Target, const Engine::FSceneView& View, std::span<const Engine::FDecalSceneProxy> Decals, ID3D11BlendState* AlphaBlend);
 
     private:
         static D3D11_RECT GetScissor(const Core::FMatrix& DecalToClip, Core::Uint32 Width, Core::Uint32 Height);
 
     private:
         RenderCore::TConstantBuffer<FConstants> mConstants{};
-        Microsoft::WRL::ComPtr<ID3D11DepthStencilState> mMarkReceiver{};
         Microsoft::WRL::ComPtr<ID3D11DepthStencilState> mTestReceiver{};
         Microsoft::WRL::ComPtr<ID3D11RasterizerState> mRasterizer{};
         Microsoft::WRL::ComPtr<ID3D11SamplerState> mSampler{};

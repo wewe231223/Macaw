@@ -10,6 +10,8 @@
 #include "Core/Math/FMatrix.h"
 #include "FPassTarget.h"
 
+#include <span>
+
 namespace Renderer {
 
     /**
@@ -21,6 +23,7 @@ namespace Renderer {
          * @brief 패스 결과를 기록할 출력 타깃입니다.
          */
         Renderer::FPassTarget mTarget{};
+        std::span<ID3D11RenderTargetView* const> mColorAttachments{};
 
         /**
          * @brief 정점 변환과 프러스텀 컬링에 함께 사용하는 월드→클립 행렬입니다.

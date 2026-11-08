@@ -1,6 +1,6 @@
 /**
  * @file FBasePass.cpp
- * @brief 보이는 메시를 머티리얼 파이프라인과 조명으로 장면 타깃에 그리는 메시 패스입니다.
+ * @brief 보이는 메시의 표면과 깊이를 G-buffer에 기록하는 메시 패스입니다.
  * @ingroup Renderer
  */
 
@@ -15,7 +15,7 @@
 namespace Renderer {
 
     /**
-     * @brief 머티리얼과 조명을 바인딩하는 기본 패스 종류를 반환합니다.
+     * @brief 표면과 깊이를 기록하는 기본 패스 종류를 반환합니다.
      */
     Renderer::EMeshPass Renderer::FBasePass::GetType() const {
         return Renderer::EMeshPass::BasePass;

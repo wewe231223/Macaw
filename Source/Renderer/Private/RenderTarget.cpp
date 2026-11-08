@@ -7,6 +7,8 @@
 #include "RenderTarget.h"
 #include "CoreUObject/Reflection/NewObject.h"
 
+#include <algorithm>
+
 namespace Renderer {
 
     /**
@@ -27,7 +29,9 @@ namespace Renderer {
             return false;
         }
 
-        if (Width == mWidth && Height == mHeight && mColor != nullptr && mDepth != nullptr && mSceneColor != nullptr && mPostProcessColor != nullptr && mReadOnlyDepthView != nullptr && mColor->HasResources() && mDepth->HasResources() && mSceneColor->HasResources() && mPostProcessColor->HasResources()) {
+        if (Width == mWidth && Height == mHeight && mColor != nullptr && mDepth != nullptr && mSceneColor != nullptr && mPostProcessColor != nullptr && mReadOnlyDepthView != nullptr && mStencilResource != nullptr && mColor->HasResources() && mDepth->HasResources() && mSceneColor->HasResources() && mPostProcessColor->HasResources() && std::all_of(mGBuffer.begin(), mGBuffer.end(), [](const std::unique_ptr<Asset::UTexture2D>& Attachment) {
+            return Attachment != nullptr && Attachment->HasResources();
+        })) {
             Microsoft::WRL::ComPtr<ID3D11Device> ResourceDevice{};
 
             mColor->GetTexture()->GetDevice(ResourceDevice.GetAddressOf());
@@ -50,14 +54,31 @@ namespace Renderer {
         Depth->GetDepthStencilView()->GetDesc(&ReadOnlyDescription);
         ReadOnlyDescription.Flags = D3D11_DSV_READ_ONLY_DEPTH | D3D11_DSV_READ_ONLY_STENCIL;
         Microsoft::WRL::ComPtr<ID3D11DepthStencilView> ReadOnlyDepthView{};
+        D3D11_SHADER_RESOURCE_VIEW_DESC StencilDescription{};
+        StencilDescription.Format = DXGI_FORMAT_X24_TYPELESS_G8_UINT;
+        StencilDescription.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+        StencilDescription.Texture2D.MipLevels = 1;
+        Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> StencilResource{};
 
-        if (FAILED(Device->CreateDepthStencilView(Depth->GetTexture(), &ReadOnlyDescription, ReadOnlyDepthView.GetAddressOf()))) {
+        if (FAILED(Device->CreateDepthStencilView(Depth->GetTexture(), &ReadOnlyDescription, ReadOnlyDepthView.GetAddressOf())) || FAILED(Device->CreateShaderResourceView(Depth->GetTexture(), &StencilDescription, StencilResource.GetAddressOf()))) {
             return false;
+        }
+
+        std::array<std::unique_ptr<Asset::UTexture2D>, Renderer::GBuffer::AttachmentCount> GBuffer{};
+
+        for (auto& Attachment : GBuffer) {
+            Attachment = CoreUObject::NewObject<Asset::UTexture2D>();
+
+            if (!Attachment->Configure(Width, Height, Asset::ETextureFormat::RGBA16Float, Asset::ETextureUsage::ShaderResource | Asset::ETextureUsage::RenderTarget) || !Attachment->CreateResources(Device)) {
+                return false;
+            }
         }
 
         mColor = std::move(Color);
         mDepth = std::move(Depth);
         mReadOnlyDepthView = std::move(ReadOnlyDepthView);
+        mStencilResource = std::move(StencilResource);
+        mGBuffer = std::move(GBuffer);
         mSceneColor = std::move(SceneColor);
         mPostProcessColor = std::move(PostProcessColor);
 
@@ -106,11 +127,25 @@ namespace Renderer {
         return mReadOnlyDepthView.Get();
     }
 
+    ID3D11ShaderResourceView* Renderer::FDXRenderTarget::GetStencilResource() const {
+        return mStencilResource.Get();
+    }
+
+    const std::array<std::unique_ptr<Asset::UTexture2D>, Renderer::GBuffer::AttachmentCount>& Renderer::FDXRenderTarget::GetGBuffer() const {
+        return mGBuffer;
+    }
+
     /**
      * @brief 현재 보유한 GPU 리소스의 추정 바이트 수를 반환합니다.
      */
     std::size_t Renderer::FDXRenderTarget::GetResourceBytes() const {
-        return (mColor != nullptr ? mColor->GetResourceBytes() : 0) + (mDepth != nullptr ? mDepth->GetResourceBytes() : 0) + (mSceneColor != nullptr ? mSceneColor->GetResourceBytes() : 0) + (mPostProcessColor != nullptr ? mPostProcessColor->GetResourceBytes() : 0);
+        std::size_t Bytes{(mColor != nullptr ? mColor->GetResourceBytes() : 0) + (mDepth != nullptr ? mDepth->GetResourceBytes() : 0) + (mSceneColor != nullptr ? mSceneColor->GetResourceBytes() : 0) + (mPostProcessColor != nullptr ? mPostProcessColor->GetResourceBytes() : 0)};
+
+        for (const auto& Attachment : mGBuffer) {
+            Bytes += Attachment != nullptr ? Attachment->GetResourceBytes() : 0;
+        }
+
+        return Bytes;
     }
 
     /**

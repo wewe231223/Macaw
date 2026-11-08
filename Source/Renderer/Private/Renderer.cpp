@@ -31,6 +31,7 @@
 #include "FShadowDepthPass.h"
 #include "FBasePass.h"
 #include "FDecalPass.h"
+#include "FDeferredLightingPass.h"
 #include "FMaterialPipeline.h"
 #include "FShaderInstance.h"
 #include "FLightingResources.h"
@@ -228,6 +229,7 @@ namespace Renderer {
         mShadowDepthPass.reset();
         mBasePass.reset();
         mDecalPass.reset();
+        mDeferredLightingPass.reset();
         mMaterialPipelines.clear();
         mShaderInstances.clear();
         mLightingResources.reset();
@@ -250,6 +252,7 @@ namespace Renderer {
         mWireframeRasterizer.Reset();
         mScissorRasterizer.Reset();
         mDepthEnabled.Reset();
+        mGBufferDepth.Reset();
         mDepthReadOnly.Reset();
         mDepthDisabled.Reset();
         mDepthAlways.Reset();
@@ -376,31 +379,49 @@ namespace Renderer {
 
             DrawShadowDepths(*Scene, Family);
             mShadowResources->Finish(mContext.Get(), Family);
+            mShadowResources->Bind(mContext.Get());
         }
 
         constexpr float ClearColor[]{0.065f, 0.078f, 0.10f, 1.0f};
+        const Renderer::FPassTarget SceneTarget{Target->GetSceneColor()->GetRenderTargetView(), Target->GetDepthView(), {0.0f, 0.0f, static_cast<float>(Target->GetWidth()), static_cast<float>(Target->GetHeight()), 0.0f, 1.0f}};
         Renderer::FMeshPassParameters BaseParameters{};
-        BaseParameters.mTarget.mColor = Target->GetSceneColor()->GetRenderTargetView();
-        BaseParameters.mTarget.mDepth = Target->GetDepthView();
-        BaseParameters.mTarget.mViewport = {0.0f, 0.0f, static_cast<float>(Target->GetWidth()), static_cast<float>(Target->GetHeight()), 0.0f, 1.0f};
+        BaseParameters.mTarget.mDepth = SceneTarget.mDepth;
+        BaseParameters.mTarget.mViewport = SceneTarget.mViewport;
         BaseParameters.mViewProjection = Family.mView.mViewProjection;
+        std::array<ID3D11RenderTargetView*, Renderer::GBuffer::AttachmentCount> Attachments{};
 
-        ClearTarget(BaseParameters.mTarget, ClearColor);
-        const bool DrawDecals{Family.mShowFlags.mPrimitives && !Scene->GetDecals().empty() && Family.mViewMode != Engine::EViewMode::Wireframe && Family.mViewMode != Engine::EViewMode::WorldNormal && Family.mViewMode != Engine::EViewMode::SceneDepth};
-
-        if (DrawMeshPass(*mBasePass, *Scene, Family, BaseParameters, DrawDecals) && DrawDecals) {
-            mStats.mDrawCalls += mDecalPass->Render(mDevice.Get(), mContext.Get(), *Target, Family.mView, Scene->GetDecals(), mOverlayBlend.Get());
+        for (std::size_t Index{}; Index < Attachments.size(); ++Index) {
+            Attachments[Index] = Target->GetGBuffer()[Index]->GetRenderTargetView();
         }
 
+        BaseParameters.mColorAttachments = Attachments;
+
+        ClearTarget(SceneTarget, ClearColor);
+        const bool DrawDecals{Family.mShowFlags.mPrimitives && !Scene->GetDecals().empty() && Family.mViewMode != Engine::EViewMode::Wireframe && Family.mViewMode != Engine::EViewMode::WorldNormal && Family.mViewMode != Engine::EViewMode::SceneDepth};
+        const bool NeedsLighting{Family.mViewMode != Engine::EViewMode::Unlit && Family.mViewMode != Engine::EViewMode::WorldNormal};
+
+        if ((!NeedsLighting || PrepareLighting(Family)) && DrawMeshPass(*mBasePass, *Scene, Family, BaseParameters, DrawDecals)) {
+            if (DrawDecals) {
+                mStats.mDrawCalls += mDecalPass->Render(mDevice.Get(), mContext.Get(), *Target, Family.mView, Scene->GetDecals(), mOverlayBlend.Get());
+            }
+
+            if (Family.mViewMode != Engine::EViewMode::SceneDepth) {
+                mStats.mDrawCalls += mDeferredLightingPass->Render(mContext.Get(), *Target, SceneTarget, Family, mRasterizer.Get());
+            }
+        }
+
+        FinishLighting();
+        mContext->OMSetRenderTargets(1, &SceneTarget.mColor, SceneTarget.mDepth);
+
         if (Family.mShowFlags.mSky && !Family.mView.mOrthographic && Family.mViewMode != Engine::EViewMode::Wireframe && Family.mViewMode != Engine::EViewMode::WorldNormal && Family.mViewMode != Engine::EViewMode::SceneDepth) {
-            mStats.mDrawCalls += mSkyResources->Render(mContext.Get(), BaseParameters.mTarget, Family.mView);
+            mStats.mDrawCalls += mSkyResources->Render(mContext.Get(), SceneTarget, Family.mView);
         }
 
         // 빌보드와 아이콘이 그리드 위에 혼합되도록 반투명 패스보다 먼저 그립니다. SceneDepth는 후처리가 색상을 덮어쓰므로 후처리 뒤에 그립니다.
         const bool DrawGrid{Family.mGridSpacing > 0.0f};
 
         if (DrawGrid && Family.mViewMode != Engine::EViewMode::SceneDepth) {
-            mStats.mDrawCalls += mGridResources->Render(mContext.Get(), BaseParameters.mTarget, Family.mView, Family.mGridSpacing);
+            mStats.mDrawCalls += mGridResources->Render(mContext.Get(), SceneTarget, Family.mView, Family.mGridSpacing);
         }
 
         ID3D11RenderTargetView* RenderTarget{};
@@ -417,7 +438,7 @@ namespace Renderer {
         RenderTarget = Target->GetRenderTargetView();
 
         if (DrawGrid && Family.mViewMode == Engine::EViewMode::SceneDepth) {
-            Renderer::FPassTarget OutputTarget{BaseParameters.mTarget};
+            Renderer::FPassTarget OutputTarget{SceneTarget};
             OutputTarget.mColor = RenderTarget;
             mStats.mDrawCalls += mGridResources->Render(mContext.Get(), OutputTarget, Family.mView, Family.mGridSpacing);
         }
@@ -660,7 +681,7 @@ namespace Renderer {
      */
     bool Renderer::FRenderer::Compile(const char* Source, const char* Entry, const char* Target, std::shared_ptr<const RenderCore::FShader>& Code) {
         RenderCore::FShaderDescription Description{};
-        const bool EngineFirst{std::string_view{Source} == LineShader || std::string_view{Source} == GizmoShader || std::string_view{Source} == "Sprite.hlsl" || std::string_view{Source} == "PostProcess.hlsl" || std::string_view{Source} == "Decal.hlsl" || std::string_view{Source} == "Sky.hlsl" || std::string_view{Source} == "Grid.hlsl" || std::string_view{Source} == "TileLightCulling.hlsl" || std::string_view{Source} == "Depth.hlsl"};
+        const bool EngineFirst{std::string_view{Source} == LineShader || std::string_view{Source} == GizmoShader || std::string_view{Source} == "Sprite.hlsl" || std::string_view{Source} == "PostProcess.hlsl" || std::string_view{Source} == "Decal.hlsl" || std::string_view{Source} == "DeferredLighting.hlsl" || std::string_view{Source} == "Sky.hlsl" || std::string_view{Source} == "Grid.hlsl" || std::string_view{Source} == "TileLightCulling.hlsl" || std::string_view{Source} == "Depth.hlsl"};
 
         Description.mSourcePath = FindTextContent(mShaderDirectory.parent_path(), std::filesystem::path{"Shaders"} / Source, EngineFirst);
         Description.mIncludeDirectories = {mShaderDirectory};
@@ -743,6 +764,10 @@ namespace Renderer {
             return false;
         }
 
+        if (!Compile("DeferredLighting.hlsl", "VertexMain", "vs_5_0", VertexCode) || !Compile("DeferredLighting.hlsl", "PixelMain", "ps_5_0", PixelCode) || !mDeferredLightingPass->CreateShaders(mDevice.Get(), VertexCode->GetByteCode(), PixelCode->GetByteCode())) {
+            return false;
+        }
+
         if (!Compile("Sky.hlsl", "VertexMain", "vs_5_0", VertexCode) || !Compile("Sky.hlsl", "PixelMain", "ps_5_0", PixelCode) || !mSkyResources->CreateShaders(mDevice.Get(), VertexCode->GetByteCode(), PixelCode->GetByteCode())) {
             return false;
         }
@@ -811,6 +836,7 @@ namespace Renderer {
         mShadowDepthPass = std::make_unique<Renderer::FShadowDepthPass>(*this, mDevice.Get(), mContext.Get(), mMeshes);
         mBasePass = std::make_unique<Renderer::FBasePass>(*this, mDevice.Get(), mContext.Get(), mMeshes);
         mDecalPass = std::make_unique<Renderer::FDecalPass>();
+        mDeferredLightingPass = std::make_unique<Renderer::FDeferredLightingPass>();
         mTextRenderer = std::make_unique<Renderer::FTextRenderer>();
         mSpriteRenderer = std::make_unique<Renderer::FSpriteRenderer>();
         mPostProcessResources = std::make_unique<Renderer::FPostProcessResources>();
@@ -821,7 +847,7 @@ namespace Renderer {
             return false;
         }
 
-        if (!mDecalPass->Initialize(mDevice.Get())) {
+        if (!mDecalPass->Initialize(mDevice.Get()) || !mDeferredLightingPass->Initialize(mDevice.Get())) {
             return false;
         }
 
@@ -916,6 +942,16 @@ namespace Renderer {
 
         if (FAILED(mDevice->CreateDepthStencilState(&Depth, mDepthEnabled.GetAddressOf()))) {
             Core::ErrorHandler::Fatal("Renderer", "Depth state allocation failed");
+        }
+
+        D3D11_DEPTH_STENCIL_DESC GBufferDepth{Depth};
+        GBufferDepth.StencilEnable = true;
+        GBufferDepth.StencilWriteMask = Renderer::GBuffer::ReceivesDecals | Renderer::GBuffer::Surface | Renderer::GBuffer::Prelit;
+        GBufferDepth.FrontFace = {D3D11_STENCIL_OP_KEEP, D3D11_STENCIL_OP_KEEP, D3D11_STENCIL_OP_REPLACE, D3D11_COMPARISON_ALWAYS};
+        GBufferDepth.BackFace = GBufferDepth.FrontFace;
+
+        if (FAILED(mDevice->CreateDepthStencilState(&GBufferDepth, mGBufferDepth.GetAddressOf()))) {
+            return false;
         }
 
         Depth.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
@@ -1165,6 +1201,7 @@ namespace Renderer {
         const std::filesystem::path VertexSource{FindTextContent(mShaderDirectory.parent_path(), Skinned ? "Shaders/SkinnedMesh.vs.hlsl" : "Shaders/StaticMesh.vs.hlsl", true)};
         const bool Builtin{ShaderPath == "shaders/lit.hlsl" || ShaderPath == "shaders/unlit.hlsl" || ShaderPath == "shaders/mesh.hlsl"};
         const bool OverridePixel{Mode == Engine::EViewMode::Unlit || Mode == Engine::EViewMode::WorldNormal};
+        const bool WritesGBuffer{Builtin || OverridePixel};
         const std::filesystem::path PixelSource{FindTextContent(mShaderDirectory.parent_path(), OverridePixel ? std::filesystem::path{"Shaders/Lit.hlsl"} : RelativePath, Builtin || OverridePixel)};
         RenderCore::FShaderDescription VertexDescription{};
         VertexDescription.mSourcePath = VertexSource;
@@ -1185,6 +1222,10 @@ namespace Renderer {
         PixelDescription.mIncludeDirectories = {PixelSource.parent_path(), VertexSource.parent_path(), mShaderDirectory};
         PixelDescription.mEntryPoint = "PixelMain";
         PixelDescription.mTargetProfile = "ps_5_0";
+
+        if (WritesGBuffer) {
+            PixelDescription.mMacros.push_back({"MACAW_GBUFFER", "1"});
+        }
 
         if (PixelMode == Engine::EViewMode::Unlit) {
             PixelDescription.mMacros.push_back({"MACAW_UNLIT", "1"});
@@ -1217,7 +1258,7 @@ namespace Renderer {
         std::unique_ptr<Renderer::FMaterialPipeline> Pipeline{};
 
         if (Vertex != nullptr && Pixel != nullptr) {
-            Pipeline = std::make_unique<Renderer::FMaterialPipeline>(Renderer::EMeshPass::BasePass, std::move(Vertex), std::move(Pixel), Material.IsTwoSided(), !Skinned, Skinned);
+            Pipeline = std::make_unique<Renderer::FMaterialPipeline>(Renderer::EMeshPass::BasePass, std::move(Vertex), std::move(Pixel), Material.IsTwoSided(), !Skinned, Skinned, WritesGBuffer);
 
             Core::FString Diagnostics{};
 
@@ -1393,10 +1434,6 @@ namespace Renderer {
     bool Renderer::FRenderer::PrepareLighting(const Engine::FSceneViewFamily& Family) {
         const auto* Scene{static_cast<const Renderer::FScene*>(Family.mScene)};
 
-        if (mShadowResources != nullptr) {
-            mShadowResources->Bind(mContext.Get());
-        }
-
         return mLightingResources != nullptr && mLightingResources->Upload(mDevice.Get(), mContext.Get(), Scene->GetLights(), Family.mView, mShadowResources != nullptr ? std::span<const std::array<Core::Uint32, 2>>{mShadowResources->GetLightRanges()} : std::span<const std::array<Core::Uint32, 2>>{});
     }
 
@@ -1498,9 +1535,7 @@ namespace Renderer {
         const Core::FScopedStatTimer StatTimer{BasePass ? OpaquePassTime : ShadowPassTime};
 
         const Renderer::FPassTarget& Target{Parameters.mTarget};
-        ID3D11RenderTargetView* Color{Target.mColor};
-
-        mContext->OMSetRenderTargets(Color != nullptr ? 1u : 0u, Color != nullptr ? &Color : nullptr, Target.mDepth);
+        mContext->OMSetRenderTargets(static_cast<UINT>(Parameters.mColorAttachments.size()), Parameters.mColorAttachments.data(), Target.mDepth);
         mContext->RSSetViewports(1, &Target.mViewport);
 
         if (Target.mScissor.has_value()) {
@@ -1515,14 +1550,6 @@ namespace Renderer {
         mViewBuffer.Update(mContext.Get(), Parameters.mViewProjection);
         mViewBuffer.Bind(mContext.Get(), RenderCore::EShaderStage::Vertex | RenderCore::EShaderStage::Pixel, 1);
 
-        const bool NeedsLighting{BasePass && Family.mViewMode != Engine::EViewMode::Unlit && Family.mViewMode != Engine::EViewMode::WorldNormal};
-
-        if (NeedsLighting && !PrepareLighting(Family)) {
-            FinishLighting();
-
-            return false;
-        }
-
         Core::TArray<Renderer::FMeshDrawCommand> Commands{};
         Core::Uint32 Primitives{};
         const bool Built{Pass.BuildCommands(Scene, Family, Parameters.mViewProjection, Commands, Primitives)};
@@ -1535,8 +1562,6 @@ namespace Renderer {
         }
 
         if (BasePass) {
-            FinishLighting();
-
             mStats.mTransformUpdates += Scene.TakeTransformUpdates();
         }
 
@@ -1571,7 +1596,7 @@ namespace Renderer {
         Renderer::FMaterialPipeline* LastPipeline{};
         Asset::UMaterial* LastMaterial{};
         Asset::UStaticMesh* LastMesh{};
-        std::optional<bool> LastDecalReceiver{};
+        Core::Uint32 LastStencil{};
         Core::Uint32 DrawCalls{};
 
         for (std::size_t First{}; First < Commands.size();) {
@@ -1591,9 +1616,14 @@ namespace Renderer {
 
             const Core::Uint32 InstanceCount{static_cast<Core::Uint32>(End - First)};
 
-            if (MarkDecalReceivers && LastDecalReceiver != ReceivesDecals) {
-                mDecalPass->MarkReceiver(mContext.Get(), ReceivesDecals);
-                LastDecalReceiver = ReceivesDecals;
+            if (BasePass) {
+                const Core::Uint32 SurfaceStencil{Command.mPipeline->WritesGBuffer() ? Renderer::GBuffer::Surface : Renderer::GBuffer::Prelit};
+                const Core::Uint32 Stencil{SurfaceStencil | (MarkDecalReceivers && ReceivesDecals ? Renderer::GBuffer::ReceivesDecals : 0u)};
+
+                if (LastStencil != Stencil) {
+                    mContext->OMSetDepthStencilState(mGBufferDepth.Get(), Stencil);
+                    LastStencil = Stencil;
+                }
             }
 
             if (Command.mPipeline->IsSkinned()) {

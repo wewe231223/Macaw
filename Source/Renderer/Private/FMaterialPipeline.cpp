@@ -15,11 +15,12 @@ namespace Renderer {
     /**
      * @brief 전달된 설정과 기본값으로 FMaterialPipeline 객체를 생성합니다.
      */
-    Renderer::FMaterialPipeline::FMaterialPipeline(Renderer::EMeshPass Pass, std::shared_ptr<Renderer::FShaderInstance> VertexShader, std::shared_ptr<Renderer::FShaderInstance> PixelShader, bool TwoSided, bool Instanced, bool Skinned)
+    Renderer::FMaterialPipeline::FMaterialPipeline(Renderer::EMeshPass Pass, std::shared_ptr<Renderer::FShaderInstance> VertexShader, std::shared_ptr<Renderer::FShaderInstance> PixelShader, bool TwoSided, bool Instanced, bool Skinned, bool WritesGBuffer)
 		: mPass{Pass},
 		  mSkinned{Skinned},
 		  mTwoSided{TwoSided},
 		  mInstanced{Instanced && !Skinned},
+		  mWritesGBuffer{WritesGBuffer},
 		  mVertexShader{std::move(VertexShader)},
 		  mPixelShader{std::move(PixelShader)} {
     }
@@ -55,6 +56,10 @@ namespace Renderer {
      */
     bool Renderer::FMaterialPipeline::IsSkinned() const {
         return mSkinned;
+    }
+
+    bool Renderer::FMaterialPipeline::WritesGBuffer() const {
+        return mWritesGBuffer;
     }
 
     /**

@@ -49,6 +49,7 @@ namespace Renderer {
     class FShadowDepthPass;
     class FBasePass;
     class FDecalPass;
+    class FDeferredLightingPass;
 
     enum class EMeshPass : Core::Uint8;
 
@@ -427,6 +428,7 @@ namespace Renderer {
          */
         std::unique_ptr<Renderer::FBasePass> mBasePass{};
         std::unique_ptr<Renderer::FDecalPass> mDecalPass{};
+        std::unique_ptr<Renderer::FDeferredLightingPass> mDeferredLightingPass{};
 
         /**
          * @brief 머티리얼이 없는 메시 드로에 사용할 기본 머티리얼의 소유 객체입니다.
@@ -562,6 +564,7 @@ namespace Renderer {
          * @brief 깊이 검사가 켜진 깊이 상태입니다.
          */
         Microsoft::WRL::ComPtr<ID3D11DepthStencilState> mDepthEnabled{};
+        Microsoft::WRL::ComPtr<ID3D11DepthStencilState> mGBufferDepth{};
 
         /**
          * @brief 깊이를 쓰지 않는 깊이 검사 상태입니다.

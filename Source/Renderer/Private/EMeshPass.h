@@ -22,7 +22,7 @@ namespace Renderer {
          */
         ShadowDepth,
         /**
-         * @brief 보이는 메시를 머티리얼과 조명으로 장면 색상·깊이 타깃에 그립니다.
+         * @brief 보이는 메시의 표면과 깊이를 G-buffer에 기록합니다.
          */
         BasePass
     };

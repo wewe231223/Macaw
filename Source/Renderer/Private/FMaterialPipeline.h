@@ -30,7 +30,7 @@ namespace Renderer {
          * @param[in] Instanced 메시 인스턴스의 월드 행렬을 정점 입력으로 사용하려면 true입니다.
          * @param[in] Skinned 본 인덱스·가중치 입력을 사용하는 스키닝 파이프라인이면 true입니다.
          */
-        FMaterialPipeline(Renderer::EMeshPass Pass, std::shared_ptr<Renderer::FShaderInstance> VertexShader, std::shared_ptr<Renderer::FShaderInstance> PixelShader, bool TwoSided, bool Instanced = false, bool Skinned = false);
+        FMaterialPipeline(Renderer::EMeshPass Pass, std::shared_ptr<Renderer::FShaderInstance> VertexShader, std::shared_ptr<Renderer::FShaderInstance> PixelShader, bool TwoSided, bool Instanced = false, bool Skinned = false, bool WritesGBuffer = false);
 
         /**
          * @brief 기본 소멸자이며, GPU 자원은 ComPtr 멤버가 해제합니다.
@@ -61,6 +61,7 @@ namespace Renderer {
          * @return 스키닝 입력을 사용하면 true입니다.
          */
         bool IsSkinned() const;
+        bool WritesGBuffer() const;
 
         /**
          * @brief GPU 파이프라인을 만들 때 사용한 정점 셰이더의 리비전을 반환합니다.
@@ -102,6 +103,7 @@ namespace Renderer {
          * @brief 인스턴스 월드 행렬을 사용하는 메시 파이프라인인지 나타냅니다.
          */
         bool mInstanced{};
+        bool mWritesGBuffer{};
 
         /**
          * @brief 메시용 정점 셰이더입니다.
