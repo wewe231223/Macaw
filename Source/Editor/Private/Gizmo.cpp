@@ -259,14 +259,16 @@ namespace Editor {
      */
     bool Editor::FTransformGizmo::Input(const Engine::FViewportInput& Input, const Engine::FSceneView& View, const Engine::FHitProxy& Hit) {
         if (IsDragging()) {
-            if (Input.mEscape || mContext->GetWorldHandle() != mWorldHandle || !mContext->CanEditWorld() || mContext->GetSelectionRevision() != mSelectionRevision) {
+            if (mContext->GetWorldHandle() != mWorldHandle || !mContext->CanEditWorld() || mContext->GetSelectionRevision() != mSelectionRevision) {
                 Cancel();
+            } else if (Input.mEscape) {
+                EndDrag(EDragEnd::CancelKeepDuplicates);
             } else if (mPivotOnly ? Input.mMiddleReleased || !Input.mMiddleDown : Input.mLeftReleased || !Input.mLeftDown) {
                 if (mPivotOnly ? Input.mMiddleReleased : Input.mLeftReleased) {
                     UpdateDrag(&Input);
                 }
 
-                EndDrag(false);
+                EndDrag(EDragEnd::Commit);
             } else {
                 UpdateDrag(&Input);
             }
@@ -302,7 +304,7 @@ namespace Editor {
      * @brief 진행 중인 기즈모 드래그를 취소하고 가능한 경우 시작 변환을 복원합니다.
      */
     void Editor::FTransformGizmo::Cancel() {
-        EndDrag(true);
+        EndDrag(EDragEnd::Cancel);
     }
 
     /**
@@ -382,8 +384,8 @@ namespace Editor {
     /**
      * @brief 기즈모 드래그를 확정하거나 원본 변환과 선택으로 되돌립니다.
      */
-    void Editor::FTransformGizmo::EndDrag(bool Restore) {
-        if (IsDragging() && Restore && mContext->GetWorldHandle() == mWorldHandle) {
+    void Editor::FTransformGizmo::EndDrag(EDragEnd Result) {
+        if (IsDragging() && Result != EDragEnd::Commit && mContext->GetWorldHandle() == mWorldHandle) {
             const bool SameSelection{mContext->GetSelectionRevision() == mSelectionRevision};
 
             for (const FTargetState& State : mTargets) {
@@ -391,8 +393,10 @@ namespace Editor {
             }
 
             if (!mDuplicates.empty() && mContext->GetWorld() != nullptr) {
-                for (CoreUObject::FObjectHandle Handle : mDuplicates) {
-                    mContext->GetWorld()->DestroyActor(Handle);
+                if (Result == EDragEnd::Cancel) {
+                    for (CoreUObject::FObjectHandle Handle : mDuplicates) {
+                        mContext->GetWorld()->DestroyActor(Handle);
+                    }
                 }
 
                 if (SameSelection) {

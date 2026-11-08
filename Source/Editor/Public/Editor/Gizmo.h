@@ -34,6 +34,12 @@ namespace Editor {
      */
     class FTransformGizmo {
     private:
+        enum class EDragEnd {
+            Commit,
+            Cancel,
+            CancelKeepDuplicates
+        };
+
         /**
          * @brief 기즈모 드래그 시작 시 대상 객체의 변환·피벗 상태입니다.
          */
@@ -171,9 +177,9 @@ namespace Editor {
 
         /**
          * @brief 기즈모 드래그를 확정하거나 원본 변환과 선택으로 되돌립니다.
-         * @param[in] Restore 원본 변환과 선택을 복원하여 취소할지 여부입니다.
+         * @param[in] Result 드래그 확정 또는 취소 시 복제본 처리 방식입니다.
          */
-        void EndDrag(bool Restore);
+        void EndDrag(EDragEnd Result);
 
         /**
          * @brief 현재 변환 작업의 기준 장면 컴포넌트를 조회합니다.
@@ -225,7 +231,7 @@ namespace Editor {
         Core::TArray<CoreUObject::FObjectHandle> mOriginalSelection{};
 
         /**
-         * @brief 이번 Alt 드래그에서 생성하여 취소 시 제거할 액터 핸들입니다.
+         * @brief 이번 Alt 드래그에서 생성한 액터 핸들입니다.
          */
         Core::TArray<CoreUObject::FObjectHandle> mDuplicates{};
 
