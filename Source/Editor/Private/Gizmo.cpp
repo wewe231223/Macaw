@@ -162,7 +162,7 @@ namespace Editor {
             }
         }
 
-        if (!mCore.UpdateDrag(Input->mMouse)) {
+        if (mDuplicatePending || !mCore.UpdateDrag(Input->mMouse)) {
             return;
         }
 
@@ -388,8 +388,10 @@ namespace Editor {
         if (IsDragging() && Result != EDragEnd::Commit && mContext->GetWorldHandle() == mWorldHandle) {
             const bool SameSelection{mContext->GetSelectionRevision() == mSelectionRevision};
 
-            for (const FTargetState& State : mTargets) {
-                mContext->ApplyTransform(State.mObject, State.mTransform);
+            if (!mDuplicatePending) {
+                for (const FTargetState& State : mTargets) {
+                    mContext->ApplyTransform(State.mObject, State.mTransform);
+                }
             }
 
             if (!mDuplicates.empty() && mContext->GetWorld() != nullptr) {
