@@ -851,26 +851,6 @@ namespace Editor {
     }
 
     /**
-     * @brief 본 로컬 변환을 편집하고 씬을 변경 상태로 표시합니다.
-     */
-    bool Editor::FEditorContext::SetBoneLocalTransform(CoreUObject::FObjectHandle Handle, Core::Uint32 Bone, const Core::FMatrix& Transform) {
-        if (!CanEditWorld() || IsChangingState() || mEngine->IsDispatching()) {
-            return false;
-        }
-
-        auto* Component{CoreUObject::Cast<Engine::USkeletalMeshComponent>(ResolveObject(Handle))};
-
-        if (Component == nullptr || !Component->SetBoneLocalTransform(Bone, Transform)) {
-            return false;
-        }
-
-        // 포즈도 씬에 저장되는 편집 데이터이므로 저장 안내에 반영합니다.
-        mDirty = true;
-
-        return true;
-    }
-
-    /**
      * @brief 장면 파일을 새 컨텍스트에 읽고 편집 대상 월드만 교체합니다.
      */
     bool Editor::FEditorContext::LoadScene(const std::filesystem::path& Path) {

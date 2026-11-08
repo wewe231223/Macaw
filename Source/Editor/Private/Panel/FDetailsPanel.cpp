@@ -10,8 +10,6 @@
 #include "Engine/AActor.h"
 #include "Engine/Component/UActorComponent.h"
 #include "Engine/Component/UMeshComponent.h"
-#include "Engine/Component/USkeletalMeshComponent.h"
-#include "Asset/USkeleton.h"
 #include "Engine/Component/ULightComponent.h"
 #include "RenderCore/IRendererModule.h"
 #include "Engine/FProject.h"
@@ -607,7 +605,6 @@ namespace Editor {
         }
 
         auto* Component{Context->ResolveObject(Handle) == Object ? CoreUObject::Cast<Engine::UMeshComponent>(Object) : nullptr};
-        auto* Skeletal{Context->ResolveObject(Handle) == Object ? CoreUObject::Cast<Engine::USkeletalMeshComponent>(Object) : nullptr};
 
         if (Component != nullptr && Component->GetStaticMesh() != nullptr) {
             const Core::FString& Override{Component->GetMaterialPath()};
@@ -646,10 +643,6 @@ namespace Editor {
             }
 
             ImGui::EndDisabled();
-        }
-
-        if (Skeletal != nullptr && Skeletal->GetSkeletalMesh() != nullptr && Skeletal->GetSkeleton() != nullptr && Skeletal->GetPose().GetRevision().IsValid()) {
-            DrawSkeletalPose(Skeletal);
         }
 
         if (auto* ScriptComponent{Context->ResolveObject(Handle) == Object ? CoreUObject::Cast<Script::UScriptComponent>(Object) : nullptr}) {
@@ -861,56 +854,6 @@ namespace Editor {
         }
 
         return mAssetPicker.Draw(*mAssetCatalog, *mThumbnails, Label, Path, Mesh ? Asset::EAssetType::Mesh : Asset::EAssetType::Material, {}, Mesh ? "Primitive mesh" : "Default material");
-    }
-
-    /**
-     * @brief 본 로컬 행렬을 편집하고 씬 변경 상태를 갱신합니다.
-     */
-    void Editor::FDetailsPanel::DrawSkeletalPose(Engine::USkeletalMeshComponent* Component) {
-        if (!ImGui::CollapsingHeader("Bone Local Pose")) {
-            return;
-        }
-
-        ImGui::BeginDisabled(!GetEditorContext()->CanEditWorld());
-
-        const auto& Bones{Component->GetSkeleton()->GetBones()};
-
-        for (Core::Uint32 Bone{}; Bone < Bones.size(); ++Bone) {
-            ImGui::PushID(static_cast<int>(Bone));
-
-            if (ImGui::TreeNode(Bones[Bone].GetName().c_str())) {
-                // 적용 뒤 자식 포즈와 CPU 경계 및 그림자가 함께 갱신됩니다.
-                Core::FMatrix Transform{Component->GetPose().GetLocalTransforms()[Bone]};
-                bool Changed{};
-
-                for (Core::Int32 Row{}; Row < 4; ++Row) {
-                    std::array<float, 4> Values{Transform(Row, 0), Transform(Row, 1), Transform(Row, 2), Transform(Row, 3)};
-
-                    if (ImGui::DragFloat4(DrawFieldLabel(std::to_string(Row).c_str()).c_str(), Values.data(), 0.025f)) {
-                        for (Core::Int32 Column{}; Column < 4; ++Column) {
-                            Transform(Row, Column) = Values[static_cast<std::size_t>(Column)];
-                        }
-
-                        Changed = true;
-                    }
-                }
-
-                if (ImGui::Button("Reset Bone")) {
-                    Transform = Bones[Bone].GetBindPose();
-                    Changed = true;
-                }
-
-                if (Changed) {
-                    GetEditorContext()->SetBoneLocalTransform(Component->GetHandle(), Bone, Transform);
-                }
-
-                ImGui::TreePop();
-            }
-
-            ImGui::PopID();
-        }
-
-        ImGui::EndDisabled();
     }
 
 }
