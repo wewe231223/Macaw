@@ -1073,12 +1073,11 @@ namespace Editor {
      * @brief 장면의 Lit 또는 Wireframe 표시 모드를 설정합니다.
      */
     void Editor::FEditorViewportClient::SetViewMode(Engine::EViewMode Mode) {
-        if (Mode == Engine::EViewMode::Lit_Phong || Mode == Engine::EViewMode::Lit_Gouraud || Mode == Engine::EViewMode::Lit_Lambert || Mode == Engine::EViewMode::Unlit || Mode == Engine::EViewMode::WorldNormal || Mode == Engine::EViewMode::SceneDepth || Mode == Engine::EViewMode::Wireframe) {
+        if (Engine::IsBufferVisualization(Mode)) {
             mViewMode = Mode;
-
-            if (Mode != Engine::EViewMode::WorldNormal && Mode != Engine::EViewMode::SceneDepth) {
-                mColorViewMode = Mode;
-            }
+        } else if (Mode == Engine::EViewMode::Lit_Phong || Mode == Engine::EViewMode::Lit_Gouraud || Mode == Engine::EViewMode::Lit_Lambert || Mode == Engine::EViewMode::Unlit || Mode == Engine::EViewMode::Wireframe) {
+            mViewMode = Mode;
+            mColorViewMode = Mode;
         }
     }
 

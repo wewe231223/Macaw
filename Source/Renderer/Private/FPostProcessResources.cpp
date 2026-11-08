@@ -84,7 +84,7 @@ namespace Renderer {
 
         Asset::UTexture2D* Source{Target.GetSceneColor()};
         Core::Uint32 DrawCalls{};
-        const bool Visualization{Family.mViewMode == Engine::EViewMode::WorldNormal || Family.mViewMode == Engine::EViewMode::SceneDepth};
+        const bool Visualization{Engine::IsBufferVisualization(Family.mViewMode)};
 
         if (!Visualization && Family.mShowFlags.mFog) {
             for (const Engine::FHeightFogSceneProxy& Fog : Fogs) {

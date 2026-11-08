@@ -397,10 +397,13 @@ namespace Renderer {
         BaseParameters.mColorAttachments = Attachments;
 
         ClearTarget(SceneTarget, ClearColor);
-        const bool DrawDecals{Family.mShowFlags.mPrimitives && !Scene->GetDecals().empty() && Family.mViewMode != Engine::EViewMode::Wireframe && Family.mViewMode != Engine::EViewMode::SceneDepth};
+        const bool Visualization{Engine::IsBufferVisualization(Family.mViewMode)};
+        const bool ShowDecals{!Visualization || Family.mViewMode == Engine::EViewMode::WorldNormal || Family.mViewMode == Engine::EViewMode::BaseColor || Family.mViewMode == Engine::EViewMode::BaseColorAlpha};
+        const bool DrawDecals{Family.mShowFlags.mPrimitives && !Scene->GetDecals().empty() && ShowDecals && Family.mViewMode != Engine::EViewMode::Wireframe};
+        const bool MarkDecalReceivers{DrawDecals || Family.mViewMode == Engine::EViewMode::SceneStencil};
         const bool NeedsLighting{Family.mViewMode != Engine::EViewMode::Unlit && Family.mViewMode != Engine::EViewMode::WorldNormal};
 
-        if ((!NeedsLighting || PrepareLighting(Family)) && DrawMeshPass(*mBasePass, *Scene, Family, BaseParameters, DrawDecals)) {
+        if ((!NeedsLighting || PrepareLighting(Family)) && DrawMeshPass(*mBasePass, *Scene, Family, BaseParameters, MarkDecalReceivers)) {
             if (DrawDecals) {
                 mStats.mDrawCalls += mDecalPass->Render(mDevice.Get(), mContext.Get(), *Target, Family, Scene->GetDecals());
             }
@@ -413,7 +416,7 @@ namespace Renderer {
         FinishLighting();
         mContext->OMSetRenderTargets(1, &SceneTarget.mColor, SceneTarget.mDepth);
 
-        if (Family.mShowFlags.mSky && !Family.mView.mOrthographic && Family.mViewMode != Engine::EViewMode::Wireframe && Family.mViewMode != Engine::EViewMode::WorldNormal && Family.mViewMode != Engine::EViewMode::SceneDepth) {
+        if (Family.mShowFlags.mSky && !Family.mView.mOrthographic && Family.mViewMode != Engine::EViewMode::Wireframe && !Visualization) {
             mStats.mDrawCalls += mSkyResources->Render(mContext.Get(), SceneTarget, Family.mView);
         }
 
@@ -430,7 +433,7 @@ namespace Renderer {
 
         mLineViewBuffer.Update(mContext.Get(), LineView);
 
-        if (Family.mViewMode != Engine::EViewMode::WorldNormal && Family.mViewMode != Engine::EViewMode::SceneDepth) {
+        if (!Visualization) {
             DrawTranslucency(Family, false);
         }
 
@@ -1181,6 +1184,10 @@ namespace Renderer {
      * @brief 머티리얼별 GPU 파이프라인을 반환합니다.
      */
     Renderer::FMaterialPipeline* Renderer::FRenderer::GetMaterialPipeline(const Asset::UMaterial& Material, Engine::EViewMode Mode, bool Skinned, bool ReceiveShadows) {
+        if (Engine::IsBufferVisualization(Mode) && Mode != Engine::EViewMode::WorldNormal && Mode != Engine::EViewMode::SceneDepth) {
+            Mode = Engine::EViewMode::Lit_Phong;
+        }
+
         const std::filesystem::path RelativePath{Core::FilePath::FromUtf8(Material.GetShaderPath()).lexically_normal()};
         Core::FString ShaderPath{Core::FilePath::ToGenericUtf8(RelativePath)};
         std::transform(ShaderPath.begin(), ShaderPath.end(), ShaderPath.begin(), [](unsigned char Character) {

@@ -5,6 +5,7 @@
  */
 
 #include "ViewportToolbar.h"
+#include "BufferVisualization.h"
 #include "EditorStyle.h"
 #include "Editor/FEditorViewportClient.h"
 #include "Editor/FViewportCommandInfo.h"
@@ -122,9 +123,10 @@ namespace Editor {
             const std::array<const char*, 5> Names{"Lit_Gouraud", "Lit_Lambert", "Lit_Phong", "Unlit", "Wireframe"};
             const auto Current{std::find(Modes.begin(), Modes.end(), Client->GetColorViewMode())};
             const std::size_t Index{Current != Modes.end() ? static_cast<std::size_t>(Current - Modes.begin()) : 2};
-            const std::array<Engine::EViewMode, 3> Buffers{Client->GetColorViewMode(), Engine::EViewMode::WorldNormal, Engine::EViewMode::SceneDepth};
-            const std::array<const char*, 3> BufferNames{"Scene Color", "World Normal", "Scene Depth"};
-            const std::size_t BufferIndex{Client->GetViewMode() == Engine::EViewMode::WorldNormal ? 1u : Client->GetViewMode() == Engine::EViewMode::SceneDepth ? 2u : 0u};
+            const auto& Buffers{Editor::BufferVisualization::Modes};
+            const auto& BufferNames{Editor::BufferVisualization::Names};
+            const auto SelectedBuffer{std::find(Buffers.begin(), Buffers.end(), Client->GetViewMode())};
+            const std::size_t BufferIndex{SelectedBuffer == Buffers.end() ? 0u : static_cast<std::size_t>(SelectedBuffer - Buffers.begin())};
             const char* Preview{BufferIndex == 0 ? Names[Index] : BufferNames[BufferIndex]};
 
             ImGui::SetNextItemWidth(175.0f * Scale);
@@ -141,7 +143,7 @@ namespace Editor {
                 if (ImGui::BeginMenu("Buffer Visualization")) {
                     for (std::size_t Buffer{}; Buffer < Buffers.size(); ++Buffer) {
                         if (ImGui::MenuItem(BufferNames[Buffer], nullptr, Buffer == BufferIndex)) {
-                            Client->SetViewMode(Buffers[Buffer]);
+                            Client->SetViewMode(Buffer == 0 ? Client->GetColorViewMode() : Buffers[Buffer]);
                         }
                     }
 

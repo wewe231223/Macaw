@@ -5,6 +5,7 @@
  */
 
 #include "FEditorUI.h"
+#include "BufferVisualization.h"
 #include "Core/FilePath.h"
 #include "Core/Stats.h"
 #include "Editor/FEditorContext.h"
@@ -677,12 +678,13 @@ namespace Editor {
             mSettingsDirty = true;
         }
 
-        const std::array<const char*, 3> BufferNames{"Scene Color", "World Normal", "Scene Depth"};
-        const std::array<Engine::EViewMode, 3> BufferModes{Client.GetColorViewMode(), Engine::EViewMode::WorldNormal, Engine::EViewMode::SceneDepth};
-        int Buffer{Client.GetViewMode() == Engine::EViewMode::WorldNormal ? 1 : Client.GetViewMode() == Engine::EViewMode::SceneDepth ? 2 : 0};
+        const auto& BufferNames{Editor::BufferVisualization::Names};
+        const auto& BufferModes{Editor::BufferVisualization::Modes};
+        const auto SelectedBuffer{std::find(BufferModes.begin(), BufferModes.end(), Client.GetViewMode())};
+        int Buffer{SelectedBuffer == BufferModes.end() ? 0 : static_cast<int>(SelectedBuffer - BufferModes.begin())};
 
         if (ImGui::Combo("Buffer Visualization", &Buffer, BufferNames.data(), static_cast<int>(BufferNames.size()))) {
-            Client.SetViewMode(BufferModes[Buffer]);
+            Client.SetViewMode(Buffer == 0 ? Client.GetColorViewMode() : BufferModes[Buffer]);
 
             mSettingsDirty = true;
         }
