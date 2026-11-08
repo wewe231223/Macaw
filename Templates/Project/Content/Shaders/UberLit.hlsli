@@ -87,11 +87,7 @@ FGBufferOutput PixelMain(FPixelInput Input) {
     Output.mReflection.rgb = Surface.mReflectionTint;
 
 #if defined(MACAW_RECEIVE_SHADOWS)
-    const float3 PlaneNormal = {normalize(cross(ddx(Input.mWorldPosition), ddy(Input.mWorldPosition)))};
     Output.mSpecular.w = 1.0f;
-    Output.mEmission.w = PlaneNormal.x;
-    Output.mAmbient.w = PlaneNormal.y;
-    Output.mReflection.w = PlaneNormal.z;
 #endif
 #endif
 
@@ -109,7 +105,7 @@ float4 PixelMain(FPixelInput Input) : SV_TARGET {
 #if defined(LIGHTING_MODEL_GOURAUD)
     const FLighting Total = {Input.mDiffuse, Input.mSpecular, Input.mAmbient};
 #else
-    const FLighting Total = {AccumulatePixelLighting(Input.mPosition.xy, Input.mWorldPosition, Surface.mNormal, AmbientColor.rgb, SurfaceParameters.xy, true, ddx(Input.mWorldPosition), ddy(Input.mWorldPosition))};
+    const FLighting Total = {AccumulatePixelLighting(Input.mPosition.xy, Input.mWorldPosition, Surface.mNormal, AmbientColor.rgb, SurfaceParameters.xy, true)};
 #endif
 
     const float3 Color = {Surface.mColor.rgb * Total.mDiffuse + Total.mSpecular * Surface.mSpecularTint + Surface.mEmissive + Total.mAmbient * Surface.mReflectionTint};

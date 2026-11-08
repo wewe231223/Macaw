@@ -81,7 +81,7 @@ namespace Renderer {
          * @brief 드로에 사용할 셰이더·입력 레이아웃·래스터 상태를 바인딩합니다.
          * @param[in] Context 파이프라인을 바인딩할 Direct3D 11 장치 컨텍스트입니다.
          */
-        void Bind(ID3D11DeviceContext* Context) const;
+        void Bind(ID3D11DeviceContext* Context, ID3D11RasterizerState* Rasterizer = nullptr) const;
 
     private:
         /**

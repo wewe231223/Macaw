@@ -5,6 +5,7 @@
  */
 
 #include "Engine/Component/ULightComponent.h"
+#include "Core/Archive.h"
 
 #include <cmath>
 
@@ -82,44 +83,32 @@ namespace Engine {
         return true;
     }
 
-    /**
-     * @brief 그림자 깊이 비교의 상수 바이어스를 텍셀 단위로 반환합니다.
-     */
-    float Engine::ULightComponent::GetShadowBias() const {
-        return mShadowBias;
+    Engine::EShadowBiasPreset Engine::ULightComponent::GetShadowBiasPreset() const {
+        return mShadowBiasPreset;
     }
 
-    /**
-     * @brief 그림자 깊이 비교의 상수 바이어스를 검증하고 변경합니다.
-     */
-    bool Engine::ULightComponent::SetShadowBias(float Bias) {
-        if (!std::isfinite(Bias) || Bias < 0.0f || Bias > 16.0f) {
+    bool Engine::ULightComponent::SetShadowBiasPreset(Engine::EShadowBiasPreset Preset) {
+        if (static_cast<Core::Uint32>(Preset) >= Engine::ShadowBiasPresetCount) {
             return false;
         }
 
-        mShadowBias = Bias;
+        mShadowBiasPreset = Preset;
 
         SynchronizeLight();
 
         return true;
     }
 
-    /**
-     * @brief 표면 기울기에 따른 그림자 바이어스 배율을 반환합니다.
-     */
-    float Engine::ULightComponent::GetShadowSlopeBias() const {
-        return mShadowSlopeBias;
+    Engine::EShadowBiasPreset Engine::ULightComponent::GetShadowSlopeBiasPreset() const {
+        return mShadowSlopeBiasPreset;
     }
 
-    /**
-     * @brief 표면 기울기에 따른 그림자 바이어스 배율을 검증하고 변경합니다.
-     */
-    bool Engine::ULightComponent::SetShadowSlopeBias(float Bias) {
-        if (!std::isfinite(Bias) || Bias < 0.0f || Bias > 16.0f) {
+    bool Engine::ULightComponent::SetShadowSlopeBiasPreset(Engine::EShadowBiasPreset Preset) {
+        if (static_cast<Core::Uint32>(Preset) >= Engine::ShadowBiasPresetCount) {
             return false;
         }
 
-        mShadowSlopeBias = Bias;
+        mShadowSlopeBiasPreset = Preset;
 
         SynchronizeLight();
 
@@ -178,12 +167,20 @@ namespace Engine {
         Proxy.mCastShadows = mCastShadows;
         Proxy.mShadowResolution = mShadowResolution;
         Proxy.mShadowResolutionScale = mShadowResolutionScale;
-        Proxy.mShadowBias = mShadowBias;
-        Proxy.mShadowSlopeBias = mShadowSlopeBias;
+        Proxy.mShadowBiasPreset = mShadowBiasPreset;
+        Proxy.mShadowSlopeBiasPreset = mShadowSlopeBiasPreset;
         Proxy.mShadowSharpen = mShadowSharpen;
         Proxy.mShadowSourceRadius = mShadowSourceRadius;
 
         return Proxy;
+    }
+
+    void Engine::ULightComponent::Serialize(Core::FArchive& Archive) {
+        Engine::ULightComponentBase::Serialize(Archive);
+
+        if (Archive.IsLoading() && !Archive.HasError() && Archive.HasField("ShadowBiasPreset") && !Archive.HasField("ShadowSlopeBiasPreset")) {
+            SetShadowSlopeBiasPreset(mShadowBiasPreset);
+        }
     }
 
 }

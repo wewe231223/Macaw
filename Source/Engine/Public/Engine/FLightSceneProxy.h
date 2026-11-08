@@ -11,6 +11,7 @@
 #include "Core/Math/FVector.h"
 #include "Core/Math/FVector4.h"
 #include "Engine/ELightType.h"
+#include "Engine/EShadowBiasPreset.h"
 
 namespace Asset {
     class UTexture2D;
@@ -107,15 +108,8 @@ namespace Engine {
          */
         float mShadowResolutionScale{1.0f};
 
-        /**
-         * @brief 그림자 깊이 비교의 상수 바이어스이며 단위는 그림자 맵 텍셀입니다. 값의 의미는 캐스케이드와 맵의 깊이 범위에 좌우되지 않습니다.
-         */
-        float mShadowBias{2.0f};
-
-        /**
-         * @brief 표면 기울기에 따른 그림자 바이어스 배율입니다.
-         */
-        float mShadowSlopeBias{1.0f};
+        Engine::EShadowBiasPreset mShadowBiasPreset{Engine::DefaultShadowBiasPreset};
+        Engine::EShadowBiasPreset mShadowSlopeBiasPreset{Engine::DefaultShadowBiasPreset};
 
         /**
          * @brief 그림자 경계의 선명도 조절값입니다.

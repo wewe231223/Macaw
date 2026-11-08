@@ -37,15 +37,6 @@ float3 ReconstructWorld(float2 Ndc, float Depth) {
     return World.xyz / World.w;
 }
 
-void GetReceiverOffsets(float2 Ndc, float Depth, float3 Position, float3 PlaneNormal, out float3 PositionDx, out float3 PositionDy) {
-    const float4 Plane = {float4(PlaneNormal, -dot(PlaneNormal, Position))};
-    const float4 ClipPlane = {mul(InverseViewProjection, Plane)};
-    const float2 Step = {InverseSize * float2(2.0f, -2.0f)};
-    const float2 DepthStep = {abs(ClipPlane.z) > 0.0000001f ? -ClipPlane.xy * Step / ClipPlane.z : 0.0f};
-    PositionDx = ReconstructWorld(Ndc + float2(Step.x, 0.0f), saturate(Depth + DepthStep.x)) - Position;
-    PositionDy = ReconstructWorld(Ndc + float2(0.0f, Step.y), saturate(Depth + DepthStep.y)) - Position;
-}
-
 float4 PixelMain(float4 Pixel : SV_POSITION) : SV_TARGET {
     const int3 Texel = {int3(int2(Pixel.xy), 0)};
     const uint Stencil = {SceneStencil.Load(Texel).g};
@@ -83,16 +74,8 @@ float4 PixelMain(float4 Pixel : SV_POSITION) : SV_TARGET {
     const float2 Ndc = {Pixel.xy * InverseSize * float2(2.0f, -2.0f) + float2(-1.0f, 1.0f)};
     const float3 Position = {ReconstructWorld(Ndc, Depth)};
     const bool ReceiveShadows = {Specular.w > 0.0f};
-    float3 PositionDx = {0.0f, 0.0f, 0.0f};
-    float3 PositionDy = {0.0f, 0.0f, 0.0f};
-
-    [branch]
-    if (ReceiveShadows) {
-        GetReceiverOffsets(Ndc, Depth, Position, float3(Emission.w, Ambient.w, Reflection.w), PositionDx, PositionDy);
-    }
-
     const float2 SpecularParameters = {float2(ViewMode == LambertView ? 0.0f : 1.0f, NormalData.w)};
-    const FLighting Total = {AccumulatePixelLighting(Pixel.xy, Position, Normal, Ambient.rgb, SpecularParameters, ReceiveShadows, PositionDx, PositionDy)};
+    const FLighting Total = {AccumulatePixelLighting(Pixel.xy, Position, Normal, Ambient.rgb, SpecularParameters, ReceiveShadows)};
     const float3 Lit = {Color.rgb * Total.mDiffuse + Total.mSpecular * Specular.rgb + Emission.rgb + Total.mAmbient * Reflection.rgb};
 
     return float4(Lit, Color.a);

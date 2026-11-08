@@ -26,6 +26,7 @@
 #include "CoreUObject/Reflection/UClass.h"
 #include "CoreUObject/Reflection/Cast.h"
 #include "CoreUObject/Reflection/FReflectionRegistry.h"
+#include "CoreUObject/Reflection/NativeReflection.h"
 #include "Editor/FScriptBuildService.h"
 #include "Script/FScriptField.h"
 #include "Script/FScriptRuntime.h"
@@ -37,6 +38,7 @@
 #include <array>
 #include <cctype>
 #include <charconv>
+#include <format>
 #include <string>
 #include <string_view>
 
@@ -659,17 +661,30 @@ namespace Editor {
         const char* Label{Property->GetName().c_str()};
 
         if (Property->GetType() == CoreUObject::EPropertyType::Enum) {
+            const bool ShadowBias{Property->GetNativeType() == CoreUObject::GetNativeType<Engine::EShadowBiasPreset>()};
+            const bool SlopeBias{ShadowBias && Property->GetName() == "ShadowSlopeBiasPreset"};
+            const char* FieldLabel{ShadowBias ? (SlopeBias ? "Slope-Scaled Bias Preset" : "Depth Bias Preset") : Label};
             Core::Int32 Number{std::get<Core::Int32>(Value)};
             const auto& Choices{Property->GetEnumValues()};
             const auto Current{std::find_if(Choices.begin(), Choices.end(), [Number](const CoreUObject::FEnumValue& Choice) {
                 return Choice.mValue == Number;
             })};
+            const auto FormatChoice{[ShadowBias, SlopeBias](const CoreUObject::FEnumValue& Choice) {
+                if (!ShadowBias) {
+                    return Choice.mName;
+                }
+
+                return SlopeBias ? std::format("Level {} ({:.2f})", Choice.mValue, static_cast<float>(Choice.mValue) * Engine::ShadowSlopeBiasStep) : std::format("Level {} ({})", Choice.mValue, Choice.mValue * Engine::ShadowDepthBiasStep);
+            }};
+            const Core::FString Preview{Current != Choices.end() ? FormatChoice(*Current) : "Invalid"};
 
             bool Changed{};
 
-            if (ImGui::BeginCombo(DrawFieldLabel(Label).c_str(), Current != Choices.end() ? Current->mName.c_str() : "Invalid")) {
+            if (ImGui::BeginCombo(DrawFieldLabel(FieldLabel).c_str(), Preview.c_str())) {
                 for (const CoreUObject::FEnumValue& Choice : Choices) {
-                    if (ImGui::Selectable(Choice.mName.c_str(), Number == Choice.mValue)) {
+                    const Core::FString Option{FormatChoice(Choice)};
+
+                    if (ImGui::Selectable(Option.c_str(), Number == Choice.mValue)) {
                         Number = Choice.mValue;
                         Changed = true;
                     }

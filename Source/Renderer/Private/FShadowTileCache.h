@@ -11,6 +11,7 @@
 #include "Core/Guid.h"
 #include "Core/Math/FMatrix.h"
 #include "Core/TRevisionCache.h"
+#include "Engine/EShadowBiasPreset.h"
 #include "FShadowAtlasAllocator.h"
 
 #include <variant>
@@ -61,7 +62,6 @@ namespace Renderer {
 
     /**
      * @brief 아틀라스 타일의 깊이 내용을 결정하는 입력 묶음입니다.
-     * @details 바이어스처럼 샘플링에만 쓰이는 값은 깊이 내용과 무관하므로 포함하지 않습니다.
      */
     struct FShadowTileStamp {
     public:
@@ -97,6 +97,8 @@ namespace Renderer {
          * @brief 깊이를 기록한 깊이 전용 정점 셰이더의 리비전입니다.
          */
         Core::Uint64 mDepthShader{};
+        Engine::EShadowBiasPreset mBiasPreset{Engine::DefaultShadowBiasPreset};
+        Engine::EShadowBiasPreset mSlopeBiasPreset{Engine::DefaultShadowBiasPreset};
     };
 
     /**

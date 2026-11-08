@@ -66,6 +66,10 @@ namespace Renderer {
         Core::FVector LightUp(const Core::FVector& Direction) {
             return std::abs(Direction.z) > 0.95f ? Core::FVector{0.0f, 1.0f, 0.0f} : Core::FVector{0.0f, 0.0f, 1.0f};
         }
+
+        Engine::EShadowBiasPreset ValidBiasPreset(Engine::EShadowBiasPreset Preset) {
+            return static_cast<Core::Uint32>(Preset) < Engine::ShadowBiasPresetCount ? Preset : Engine::DefaultShadowBiasPreset;
+        }
     }
 
     static_assert(sizeof(Renderer::FGpuShadow) == 128);
@@ -193,7 +197,7 @@ namespace Renderer {
     void Renderer::FShadowResources::Build(const Renderer::FScene& Scene, const Engine::FSceneViewFamily& Family, RenderCore::FRenderStats& Stats) {
         mAllocator.Reset();
         mMaps.clear();
-        mBlocks.clear();
+        mTileDepths.clear();
         mTiles.clear();
         mLightRanges.assign(Scene.GetLights().size(), {});
 
@@ -291,13 +295,16 @@ namespace Renderer {
             const float FarDistance{std::max(CameraNear + 0.01f, std::min(CameraFar, Light.mShadowDistance))};
             float PreviousSplit{CameraNear};
             float PreviousBlend{CameraNear};
+            const Engine::EShadowBiasPreset BiasPreset{ValidBiasPreset(Light.mShadowBiasPreset)};
+            const Engine::EShadowBiasPreset SlopeBiasPreset{ValidBiasPreset(Light.mShadowSlopeBiasPreset)};
 
             for (Core::Uint32 Face{}; Face < Count; ++Face) {
                 const Renderer::FShadowAtlasBlock& Block{Blocks[Face]};
                 const Core::Uint32 Resolution{Block.mSize - Guard * 2};
                 Renderer::FGpuShadow Map{};
                 Map.mAtlasRectangle = {static_cast<float>(Block.mX + Guard) / AtlasSize, static_cast<float>(Block.mY + Guard) / AtlasSize, static_cast<float>(Resolution) / AtlasSize, static_cast<float>(Resolution) / AtlasSize};
-                Map.mParameters = {Light.mShadowBias, Light.mShadowSlopeBias, Light.mShadowSharpen, 1.0f / AtlasSize};
+                Map.mSharpen = Light.mShadowSharpen;
+                Map.mInverseAtlasSize = 1.0f / AtlasSize;
 
                 if (Light.mType == Engine::ELightType::Directional) {
                     const float Fraction{static_cast<float>(Face + 1) / Count};
@@ -328,7 +335,7 @@ namespace Renderer {
                 }
 
                 mMaps.push_back(Map);
-                mBlocks.push_back(Block);
+                mTileDepths.push_back({Block, BiasPreset, SlopeBiasPreset});
                 mTiles.push_back({Light.mId, {static_cast<float>(Block.mX) / AtlasSize, static_cast<float>(Block.mY) / AtlasSize, static_cast<float>(Block.mSize) / AtlasSize, static_cast<float>(Block.mSize) / AtlasSize}, Face, Resolution});
 
                 Stats.mShadowAllocatedBytes += static_cast<std::size_t>(Block.mSize) * Block.mSize * 4;
@@ -376,7 +383,7 @@ namespace Renderer {
 
         mEnabled = false;
         mMaps.clear();
-        mBlocks.clear();
+        mTileDepths.clear();
         mTiles.clear();
         mLightRanges.assign(Scene.GetLights().size(), {});
 
@@ -413,7 +420,7 @@ namespace Renderer {
 
         if (!CreateResources(Device) || !Upload(Device, Context)) {
             mMaps.clear();
-            mBlocks.clear();
+            mTileDepths.clear();
             mTiles.clear();
             mLightRanges.assign(Scene.GetLights().size(), {});
 
@@ -438,7 +445,9 @@ namespace Renderer {
      * @brief 그림자 맵 하나의 깊이 내용을 결정하는 현재 입력 스탬프를 만듭니다.
      */
     Renderer::FShadowTileStamp Renderer::FShadowResources::MakeTileStamp(Core::Uint32 Index, Core::Uint64 DepthShaderRevision) const {
-        return {mBlocks[Index], mMaps[Index].mViewProjection, mCasterRevision, mAtlasRevision, DepthShaderRevision};
+        const FTileDepth& Tile{mTileDepths[Index]};
+
+        return {Tile.mBlock, mMaps[Index].mViewProjection, mCasterRevision, mAtlasRevision, DepthShaderRevision, Tile.mBiasPreset, Tile.mSlopeBiasPreset};
     }
 
     /**
@@ -452,7 +461,7 @@ namespace Renderer {
      * @brief 타일을 다시 그리는 데 성공했음을 기록하고, 같은 아틀라스 영역을 덮어쓰인 다른 항목을 무효화합니다.
      */
     void Renderer::FShadowResources::CommitTile(Core::Uint32 Index, const Renderer::FShadowTileStamp& Stamp) {
-        const Renderer::FShadowAtlasBlock& Block{mBlocks[Index]};
+        const Renderer::FShadowAtlasBlock& Block{Stamp.mBlock};
         mTileCache.InvalidateIf([&Block](const Renderer::FShadowTileKey&, const Renderer::FShadowTileStamp& Cached) {
             return Cached.mBlock.Overlaps(Block);
         });
@@ -464,7 +473,7 @@ namespace Renderer {
      * @brief 그림자 맵 하나의 타일을 지울 아틀라스 영역을 반환합니다.
      */
     Renderer::FPassTarget Renderer::FShadowResources::GetClearTarget(Core::Uint32 Index) const {
-        const Renderer::FShadowAtlasBlock& Block{mBlocks[Index]};
+        const Renderer::FShadowAtlasBlock& Block{mTileDepths[Index].mBlock};
         Renderer::FPassTarget Target{};
         Target.mDepth = mAtlas->GetDepthStencilView();
         Target.mViewport = {static_cast<float>(Block.mX), static_cast<float>(Block.mY), static_cast<float>(Block.mSize), static_cast<float>(Block.mSize), 0.0f, 1.0f};

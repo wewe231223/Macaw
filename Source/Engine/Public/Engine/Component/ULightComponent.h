@@ -7,6 +7,7 @@
 #pragma once
 
 #include "Engine/Component/ULightComponentBase.h"
+#include "Engine/EShadowBiasPreset.h"
 #include "ULightComponent.generated.h"
 
 namespace Engine {
@@ -70,31 +71,10 @@ namespace Engine {
          */
         bool SetShadowResolutionScale(float Scale);
 
-        /**
-         * @brief 그림자 깊이 비교의 상수 바이어스를 텍셀 단위로 반환합니다.
-         * @return 그림자 맵 텍셀 단위의 상수 바이어스입니다.
-         */
-        float GetShadowBias() const;
-
-        /**
-         * @brief 그림자 깊이 비교의 상수 바이어스를 검증하고 변경합니다.
-         * @param[in] Bias 0 이상 16 이하인 유한한 텍셀 단위 바이어스입니다.
-         * @return 입력값을 수락하고 상태를 갱신하면 true이며 잘못된 값이면 false입니다.
-         */
-        bool SetShadowBias(float Bias);
-
-        /**
-         * @brief 표면 기울기에 따른 그림자 바이어스 배율을 반환합니다.
-         * @return 표면 기울기에 따른 그림자 바이어스 배율입니다.
-         */
-        float GetShadowSlopeBias() const;
-
-        /**
-         * @brief 표면 기울기에 따른 그림자 바이어스 배율을 검증하고 변경합니다.
-         * @param[in] Bias 0 이상 16 이하인 유한한 기울기 바이어스입니다.
-         * @return 입력값을 수락하고 상태를 갱신하면 true이며 잘못된 값이면 false입니다.
-         */
-        bool SetShadowSlopeBias(float Bias);
+        Engine::EShadowBiasPreset GetShadowBiasPreset() const;
+        bool SetShadowBiasPreset(Engine::EShadowBiasPreset Preset);
+        Engine::EShadowBiasPreset GetShadowSlopeBiasPreset() const;
+        bool SetShadowSlopeBiasPreset(Engine::EShadowBiasPreset Preset);
 
         /**
          * @brief 그림자 경계의 선명도 조절값을 반환합니다.
@@ -127,6 +107,7 @@ namespace Engine {
          * @return 렌더 장면에 복사할 광원 상태와 아이콘의 비소유 주소입니다.
          */
         Engine::FLightSceneProxy CreateLightProxy() const override;
+        void Serialize(Core::FArchive& Archive) override;
 
     private:
         /**
@@ -147,17 +128,11 @@ namespace Engine {
         UPROPERTY(Edit, Serialize, Getter = GetShadowResolutionScale, Setter = SetShadowResolutionScale)
         float mShadowResolutionScale{1.0f};
 
-        /**
-         * @brief 그림자 깊이 비교의 상수 바이어스이며 단위는 그림자 맵 텍셀입니다. 값의 의미는 캐스케이드와 맵의 깊이 범위에 좌우되지 않습니다.
-         */
-        UPROPERTY(Edit, Serialize, Name = "ShadowBiasTexels", Getter = GetShadowBias, Setter = SetShadowBias)
-        float mShadowBias{2.0f};
+        UPROPERTY(Edit, Serialize, Getter = GetShadowBiasPreset, Setter = SetShadowBiasPreset)
+        Engine::EShadowBiasPreset mShadowBiasPreset{Engine::DefaultShadowBiasPreset};
 
-        /**
-         * @brief 표면 기울기에 따른 그림자 바이어스 배율입니다.
-         */
-        UPROPERTY(Edit, Serialize, Getter = GetShadowSlopeBias, Setter = SetShadowSlopeBias)
-        float mShadowSlopeBias{1.0f};
+        UPROPERTY(Edit, Serialize, Getter = GetShadowSlopeBiasPreset, Setter = SetShadowSlopeBiasPreset)
+        Engine::EShadowBiasPreset mShadowSlopeBiasPreset{Engine::DefaultShadowBiasPreset};
 
         /**
          * @brief 그림자 경계의 선명도 조절값입니다.

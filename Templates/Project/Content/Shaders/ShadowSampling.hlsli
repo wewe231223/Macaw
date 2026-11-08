@@ -22,10 +22,9 @@ struct FShadowMap {
      */
     float4 mAtlasRectangle;
 
-    /**
-     * @brief 깊이 바이어스·기울기 바이어스·선명도·아틀라스 역크기입니다.
-     */
-    float4 mParameters;
+    float mSharpen;
+    float mInverseAtlasSize;
+    float2 mPadding;
 
     /**
      * @brief 캐스케이드 시작·끝 거리와 혼합 시작 거리, 예약값입니다.
@@ -84,35 +83,22 @@ static const float2 ShadowPoisson[16] = {
 };
 
 /**
- * @brief 탭 위치 방향의 수신 평면 깊이 변화를 반영해 비교 깊이를 보정합니다.
- * @param[in] Reference 탭 보정 전의 비교 깊이입니다.
- * @param[in] Gradient 타일 UV당 수신 평면의 깊이 변화입니다.
- * @param[in] TileOffset 탭의 타일 UV 오프셋입니다.
- * @return 보정한 비교 깊이입니다.
- */
-float ShadowPlaneDepth(float Reference, float2 Gradient, float2 TileOffset) {
-    return Reference + dot(Gradient, TileOffset);
-}
-
-/**
  * @brief 비교 샘플러로 지정한 반경의 Poisson 원반을 평균합니다.
  * @param[in] AtlasUV 필터 중심의 아틀라스 UV입니다.
  * @param[in] Reference 필터 중심의 비교 깊이입니다.
- * @param[in] Gradient 타일 UV당 수신 평면의 깊이 변화입니다.
  * @param[in] Radius 아틀라스 UV 단위의 필터 반경입니다.
  * @param[in] Rotation 탭 패턴의 픽셀별 회전 행렬입니다.
- * @param[in] Map 타일 영역을 가진 그림자 맵 정보입니다.
  * @param[in] MinimumUV 타일 안쪽의 최소 아틀라스 UV입니다.
  * @param[in] MaximumUV 타일 안쪽의 최대 아틀라스 UV입니다.
  * @return 평균 가시성입니다.
  */
-float FilterPoissonShadow(float2 AtlasUV, float Reference, float2 Gradient, float Radius, float2x2 Rotation, FShadowMap Map, float2 MinimumUV, float2 MaximumUV) {
+float FilterPoissonShadow(float2 AtlasUV, float Reference, float Radius, float2x2 Rotation, float2 MinimumUV, float2 MaximumUV) {
     float Visibility = {0.0f};
 
     [loop]
     for (uint Tap = {0}; Tap < 16; ++Tap) {
         float2 Offset = {mul(Rotation, ShadowPoisson[Tap]) * Radius};
-        Visibility += ShadowAtlas.SampleCmpLevelZero(ShadowSampler, clamp(AtlasUV + Offset, MinimumUV, MaximumUV), ShadowPlaneDepth(Reference, Gradient, Offset / Map.mAtlasRectangle.zw));
+        Visibility += ShadowAtlas.SampleCmpLevelZero(ShadowSampler, clamp(AtlasUV + Offset, MinimumUV, MaximumUV), Reference);
     }
 
     return Visibility / 16.0f;
@@ -121,17 +107,15 @@ float FilterPoissonShadow(float2 AtlasUV, float Reference, float2 Gradient, floa
 /**
  * @brief 가림 물체를 탐색해 광원 크기와 거리 비로 반그림자 폭을 정하고 가변 반경으로 필터링합니다.
  * @param[in] AtlasUV 필터 중심의 아틀라스 UV입니다.
- * @param[in] ReceiverDepth 바이어스를 적용하기 전 수신면의 투영 깊이입니다.
- * @param[in] Reference 필터 중심의 비교 깊이입니다.
- * @param[in] Gradient 타일 UV당 수신 평면의 깊이 변화입니다.
+ * @param[in] ReceiverDepth 수신면의 투영 깊이입니다.
  * @param[in] PixelPosition 탭 회전에 쓰는 화면 픽셀 위치입니다.
  * @param[in] Map 광원 크기와 타일 영역을 가진 그림자 맵 정보입니다.
  * @param[in] MinimumUV 타일 안쪽의 최소 아틀라스 UV입니다.
  * @param[in] MaximumUV 타일 안쪽의 최대 아틀라스 UV입니다.
  * @return 평균 가시성이며 주변에 가림 물체가 없으면 1입니다.
  */
-float FilterPCSS(float2 AtlasUV, float ReceiverDepth, float Reference, float2 Gradient, float2 PixelPosition, FShadowMap Map, float2 MinimumUV, float2 MaximumUV) {
-    float Texel = {Map.mParameters.w};
+float FilterPCSS(float2 AtlasUV, float ReceiverDepth, float2 PixelPosition, FShadowMap Map, float2 MinimumUV, float2 MaximumUV) {
+    float Texel = {Map.mInverseAtlasSize};
     float MaximumRadius = {Texel * ShadowFilter.z};
     float NearPlane = {Map.mSoftness.z};
     float FarPlane = {Map.mSoftness.w};
@@ -155,7 +139,7 @@ float FilterPCSS(float2 AtlasUV, float ReceiverDepth, float Reference, float2 Gr
         float2 TapUV = {clamp(AtlasUV + Offset, MinimumUV, MaximumUV)};
         float Depth = {ShadowAtlas.Load(int3(TapUV * AtlasSize, 0))};
 
-        if (Depth < ShadowPlaneDepth(Reference, Gradient, Offset / Map.mAtlasRectangle.zw)) {
+        if (Depth < ReceiverDepth) {
             BlockerSum += Depth;
             BlockerCount += 1.0f;
         }
@@ -170,22 +154,18 @@ float FilterPCSS(float2 AtlasUV, float ReceiverDepth, float Reference, float2 Gr
     float PenumbraTile = {Perspective ? Map.mSoftness.x * (ReceiverDistance - BlockerDistance) / max(BlockerDistance, 0.0001f) * Map.mSoftness.y / ReceiverDistance : Map.mSoftness.x * (ReceiverDistance - BlockerDistance) * Map.mSoftness.y};
     float Radius = {clamp(PenumbraTile * Map.mAtlasRectangle.z, Texel, MaximumRadius)};
 
-    return FilterPoissonShadow(AtlasUV, Reference, Gradient, Radius, Rotation, Map, MinimumUV, MaximumUV);
+    return FilterPoissonShadow(AtlasUV, ReceiverDepth, Radius, Rotation, MinimumUV, MaximumUV);
 }
 
 /**
- * @brief 수신 표면의 기울기 바이어스와 선택한 필터로 그림자 맵 하나를 샘플링합니다.
+ * @brief 선택한 필터로 그림자 맵 하나를 샘플링합니다.
  * @param[in] Index 그림자 맵 구조화 버퍼의 0 기반 인덱스입니다.
  * @param[in] Position 조명을 평가할 월드 공간 위치입니다.
- * @param[in] Normal 월드 공간 표면 법선입니다.
- * @param[in] LightDirection 표면에서 광원을 향하는 단위 방향입니다.
- * @param[in] PositionDx 화면 X축에 대한 월드 위치 미분입니다.
- * @param[in] PositionDy 화면 Y축에 대한 월드 위치 미분입니다.
  * @param[in] PixelPosition PCSS 탭 회전에 쓰는 화면 픽셀 위치입니다.
  * @param[in] FilterScale PCF 탭 간격의 배율이며 캐스케이드 전환 구간에서 다음 맵의 월드 필터 폭으로 맞출 때 1보다 커집니다.
  * @return 0은 완전한 그림자, 1은 완전한 가시 상태인 계수이며 맵 밖은 1입니다.
  */
-float SampleShadowMap(uint Index, float3 Position, float3 Normal, float3 LightDirection, float3 PositionDx, float3 PositionDy, float2 PixelPosition, float FilterScale) {
+float SampleShadowMap(uint Index, float3 Position, float2 PixelPosition, float FilterScale) {
     FShadowMap Map = {ShadowMaps[Index]};
     float4 Clip = {mul(float4(Position, 1.0f), Map.mViewProjection)};
 
@@ -200,71 +180,46 @@ float SampleShadowMap(uint Index, float3 Position, float3 Normal, float3 LightDi
         return 1.0f;
     }
 
-    float Cosine = {saturate(dot(Normal, LightDirection))};
-    float Slope = {min(sqrt(saturate(1.0f - Cosine * Cosine)) / max(Cosine, 0.05f), 16.0f)};
-    float4 ClipDx = {mul(float4(Position + PositionDx, 1.0f), Map.mViewProjection)};
-    float4 ClipDy = {mul(float4(Position + PositionDy, 1.0f), Map.mViewProjection)};
-    float3 ProjectedDx = {ClipDx.xyz / ClipDx.w - Projected};
-    float3 ProjectedDy = {ClipDy.xyz / ClipDy.w - Projected};
-    float2 UVdx = {ProjectedDx.xy * float2(0.5f, -0.5f)};
-    float2 UVdy = {ProjectedDy.xy * float2(0.5f, -0.5f)};
-    float Depthdx = {ProjectedDx.z};
-    float Depthdy = {ProjectedDy.z};
-    float Determinant = {UVdx.x * UVdy.y - UVdx.y * UVdy.x};
-    float2 Gradient = {abs(Determinant) > 0.00000001f ? float2(Depthdx * UVdy.y - Depthdy * UVdx.y, Depthdy * UVdx.x - Depthdx * UVdy.x) / Determinant : 0.0f};
-    float ReceiverSlope = {(abs(Gradient.x) + abs(Gradient.y)) * Map.mParameters.w / Map.mAtlasRectangle.z};
-    // 한 텍셀의 월드 폭을 그림자 깊이로 환산하므로, 값의 의미가 캐스케이드 크기와 맵의 깊이 범위에 좌우되지 않습니다.
-    float NearPlane = {Map.mSoftness.z};
-    float FarPlane = {Map.mSoftness.w};
-    float TexelWorld = {Map.mParameters.w / (Map.mAtlasRectangle.z * Map.mSoftness.y)};
-    float TexelDepth = {NearPlane > 0.0f ? TexelWorld * (FarPlane - Projected.z * (FarPlane - NearPlane)) / (FarPlane - NearPlane) : TexelWorld / FarPlane};
-    float Bias = {Map.mParameters.x * TexelDepth + Map.mParameters.y * max(ReceiverSlope * 1.5f, Slope * TexelDepth)};
     float2 AtlasUV = {Map.mAtlasRectangle.xy + UV * Map.mAtlasRectangle.zw};
-    float Texel = {Map.mParameters.w};
+    float Texel = {Map.mInverseAtlasSize};
     float2 MinimumUV = {Map.mAtlasRectangle.xy + Texel * 0.5f};
     float2 MaximumUV = {Map.mAtlasRectangle.xy + Map.mAtlasRectangle.zw - Texel * 0.5f};
     uint Filter = {(uint)ShadowFilter.x};
-    float Reference = {Projected.z - Bias};
 
     if (Filter == SHADOW_FILTER_HARD) {
-        return Reference <= ShadowAtlas.Load(int3(clamp(AtlasUV, MinimumUV, MaximumUV) / Texel, 0)) ? 1.0f : 0.0f;
+        return Projected.z <= ShadowAtlas.Load(int3(clamp(AtlasUV, MinimumUV, MaximumUV) / Texel, 0)) ? 1.0f : 0.0f;
     }
 
     float Visibility = {0.0f};
 
     if (Filter == SHADOW_FILTER_PCSS) {
-        Visibility = FilterPCSS(AtlasUV, Projected.z, Reference, Gradient, PixelPosition, Map, MinimumUV, MaximumUV);
+        Visibility = FilterPCSS(AtlasUV, Projected.z, PixelPosition, Map, MinimumUV, MaximumUV);
     } else {
         int Radius = {(int)ShadowFilter.y};
-        // 1텍셀 간격의 3×3까지는 Bias의 수신 기울기 항으로 충분하고, 더 넓은 필터는 탭마다 수신 평면을 따라갑니다.
-        float2 TapGradient = {Radius > 1 ? Gradient : Gradient * saturate(FilterScale - 1.0f)};
 
         [loop]
         for (int Y = {-Radius}; Y <= Radius; ++Y) {
             [loop]
             for (int X = {-Radius}; X <= Radius; ++X) {
                 float2 Offset = {float2(X, Y) * Texel * FilterScale};
-                Visibility += ShadowAtlas.SampleCmpLevelZero(ShadowSampler, clamp(AtlasUV + Offset, MinimumUV, MaximumUV), ShadowPlaneDepth(Reference, TapGradient, Offset / Map.mAtlasRectangle.zw));
+                Visibility += ShadowAtlas.SampleCmpLevelZero(ShadowSampler, clamp(AtlasUV + Offset, MinimumUV, MaximumUV), Projected.z);
             }
         }
 
         Visibility /= (float)((2 * Radius + 1) * (2 * Radius + 1));
     }
 
-    return saturate((Visibility - 0.5f) * (1.0f + Map.mParameters.z) + 0.5f);
+    return saturate((Visibility - 0.5f) * (1.0f + Map.mSharpen) + 0.5f);
 }
 
 /**
  * @brief 광원 종류에 맞는 그림자 면·캐스케이드를 선택하고 전환 구간을 혼합합니다.
  * @param[in] Light 평가할 광원의 GPU 정보입니다.
  * @param[in] Position 조명을 평가할 월드 공간 위치입니다.
- * @param[in] Normal 월드 공간 표면 법선입니다.
- * @param[in] PositionDx 화면 X축에 대한 월드 위치 미분입니다.
- * @param[in] PositionDy 화면 Y축에 대한 월드 위치 미분입니다.
  * @param[in] PixelPosition PCSS 탭 회전에 쓰는 화면 픽셀 위치입니다.
  * @return 광원의 그림자 가시성 계수이며 그림자가 없으면 1입니다.
  */
-float ShadowVisibility(FLight Light, float3 Position, float3 Normal, float3 PositionDx, float3 PositionDy, float2 PixelPosition) {
+float ShadowVisibility(FLight Light, float3 Position, float2 PixelPosition) {
     if (Light.mShadowInfo.x < 1.0f) {
         return 1.0f;
     }
@@ -272,7 +227,6 @@ float ShadowVisibility(FLight Light, float3 Position, float3 Normal, float3 Posi
     uint Start = {(uint)Light.mShadowInfo.x - 1};
     uint Count = {(uint)Light.mShadowInfo.y};
     uint Type = {(uint)Light.mDirectionAndType.w};
-    float3 L = {Type >= 2 ? SafeNormal(Light.mPositionAndRadius.xyz - Position) : -Light.mDirectionAndType.xyz};
 
     if (Type == 1) {
         float Depth = {dot(Position - ShadowCamera.xyz, ShadowForward.xyz)};
@@ -282,20 +236,20 @@ float ShadowVisibility(FLight Light, float3 Position, float3 Normal, float3 Posi
 
             if (Depth <= Map.mCascade.y) {
                 if (Depth <= Map.mCascade.z || Map.mCascade.y <= Map.mCascade.z) {
-                    return SampleShadowMap(Start + Cascade, Position, Normal, L, PositionDx, PositionDy, PixelPosition, 1.0f);
+                    return SampleShadowMap(Start + Cascade, Position, PixelPosition, 1.0f);
                 }
 
                 float Blend = {smoothstep(Map.mCascade.z, Map.mCascade.y, Depth)};
 
                 if (Cascade + 1 >= Count) {
-                    return lerp(SampleShadowMap(Start + Cascade, Position, Normal, L, PositionDx, PositionDy, PixelPosition, 1.0f), 1.0f, Blend);
+                    return lerp(SampleShadowMap(Start + Cascade, Position, PixelPosition, 1.0f), 1.0f, Blend);
                 }
 
                 // 값만 섞으면 맵마다 다른 월드 필터 폭이 전환 구간에서 급변하므로, 현재 맵의 필터 폭도 다음 맵의 폭까지 함께 넓힙니다.
                 FShadowMap NextMap = {ShadowMaps[Start + Cascade + 1]};
                 float TexelRatio = {clamp((Map.mSoftness.y * Map.mAtlasRectangle.z) / (NextMap.mSoftness.y * NextMap.mAtlasRectangle.z), 1.0f, 4.0f)};
-                float Current = {SampleShadowMap(Start + Cascade, Position, Normal, L, PositionDx, PositionDy, PixelPosition, lerp(1.0f, TexelRatio, Blend))};
-                float Next = {SampleShadowMap(Start + Cascade + 1, Position, Normal, L, PositionDx, PositionDy, PixelPosition, 1.0f)};
+                float Current = {SampleShadowMap(Start + Cascade, Position, PixelPosition, lerp(1.0f, TexelRatio, Blend))};
+                float Next = {SampleShadowMap(Start + Cascade + 1, Position, PixelPosition, 1.0f)};
 
                 return lerp(Current, Next, Blend);
             }
@@ -319,5 +273,5 @@ float ShadowVisibility(FLight Light, float3 Position, float3 Normal, float3 Posi
         }
     }
 
-    return SampleShadowMap(Start + Face, Position, Normal, L, PositionDx, PositionDy, PixelPosition, 1.0f);
+    return SampleShadowMap(Start + Face, Position, PixelPosition, 1.0f);
 }

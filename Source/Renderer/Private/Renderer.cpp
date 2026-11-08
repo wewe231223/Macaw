@@ -843,6 +843,10 @@ namespace Renderer {
         mSkyResources = std::make_unique<Renderer::FSkyResources>();
         mGridResources = std::make_unique<Renderer::FGridResources>();
 
+        if (!mShadowDepthPass->Initialize()) {
+            return false;
+        }
+
         D3D11_BLEND_DESC Blend{};
         Blend.RenderTarget[0] = {true, D3D11_BLEND_SRC_ALPHA, D3D11_BLEND_INV_SRC_ALPHA, D3D11_BLEND_OP_ADD, D3D11_BLEND_ONE, D3D11_BLEND_INV_SRC_ALPHA, D3D11_BLEND_OP_ADD, D3D11_COLOR_WRITE_ENABLE_ALL};
 
@@ -1518,6 +1522,7 @@ namespace Renderer {
             Renderer::FMeshPassParameters ShadowParameters{};
             ShadowParameters.mTarget = mShadowResources->GetTarget(Index);
             ShadowParameters.mViewProjection = Maps[Index].mViewProjection;
+            ShadowParameters.mRasterizer = mShadowDepthPass->GetRasterizer(Stamp.mBiasPreset, Stamp.mSlopeBiasPreset);
 
             if (DepthPipeline != nullptr && DrawMeshPass(*mShadowDepthPass, Scene, Family, ShadowParameters)) {
                 mShadowResources->CommitTile(Index, Stamp);
@@ -1555,7 +1560,8 @@ namespace Renderer {
         const bool Built{Pass.BuildCommands(Scene, Family, Parameters.mViewProjection, Commands, Primitives)};
 
         if (Built) {
-            const Core::Uint32 DrawCalls{SubmitMeshCommands(Family, Pass.GetType(), Commands, MarkDecalReceivers)};
+            ID3D11RasterizerState* Rasterizer{BasePass && Family.mViewMode == Engine::EViewMode::Wireframe ? mWireframeRasterizer.Get() : Parameters.mRasterizer};
+            const Core::Uint32 DrawCalls{SubmitMeshCommands(Rasterizer, Pass.GetType(), Commands, MarkDecalReceivers)};
 
             (BasePass ? mStats.mDrawCalls : mStats.mShadowDrawCalls) += DrawCalls;
             mStats.mVisiblePrimitives += BasePass ? Primitives : 0u;
@@ -1571,7 +1577,7 @@ namespace Renderer {
     /**
      * @brief 정렬된 드로 목록을 상태 변경을 줄여 제출하고 인스턴스를 묶어 그립니다.
      */
-    Core::Uint32 Renderer::FRenderer::SubmitMeshCommands(const Engine::FSceneViewFamily& Family, Renderer::EMeshPass Pass, std::span<const Renderer::FMeshDrawCommand> Commands, bool MarkDecalReceivers) {
+    Core::Uint32 Renderer::FRenderer::SubmitMeshCommands(ID3D11RasterizerState* Rasterizer, Renderer::EMeshPass Pass, std::span<const Renderer::FMeshDrawCommand> Commands, bool MarkDecalReceivers) {
         const bool BasePass{Pass == Renderer::EMeshPass::BasePass};
 
         if (std::any_of(Commands.begin(), Commands.end(), [](const Renderer::FMeshDrawCommand& Command) {
@@ -1638,11 +1644,7 @@ namespace Renderer {
                     Renderer::RendererStats::PipelineBinds.Add();
                 }
 
-                Command.mPipeline->Bind(mContext.Get());
-
-                if (BasePass && Family.mViewMode == Engine::EViewMode::Wireframe) {
-                    mContext->RSSetState(mWireframeRasterizer.Get());
-                }
+                Command.mPipeline->Bind(mContext.Get(), Rasterizer);
 
                 LastPipeline = Command.mPipeline;
                 LastMaterial = nullptr;

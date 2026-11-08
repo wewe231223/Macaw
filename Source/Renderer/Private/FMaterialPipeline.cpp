@@ -107,7 +107,7 @@ namespace Renderer {
     /**
      * @brief 드로에 사용할 셰이더·입력 레이아웃·래스터 상태를 바인딩합니다.
      */
-    void Renderer::FMaterialPipeline::Bind(ID3D11DeviceContext* Context) const {
+    void Renderer::FMaterialPipeline::Bind(ID3D11DeviceContext* Context, ID3D11RasterizerState* Rasterizer) const {
         mVertexShader->Bind(Context);
 
         if (mPixelShader != nullptr) {
@@ -116,7 +116,7 @@ namespace Renderer {
             Context->PSSetShader(nullptr, nullptr, 0);
         }
 
-        Context->RSSetState(mRasterizer.Get());
+        Context->RSSetState(Rasterizer != nullptr ? Rasterizer : mRasterizer.Get());
     }
 
 }

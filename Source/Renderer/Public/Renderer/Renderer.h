@@ -25,6 +25,7 @@
 #include "Renderer/FLineVertex.h"
 
 #include <d3d11.h>
+#include <array>
 #include <span>
 #include <wrl/client.h>
 
@@ -380,12 +381,12 @@ namespace Renderer {
 
         /**
          * @brief 정렬된 드로 목록을 상태 변경을 줄여 제출하고 인스턴스를 묶어 그립니다.
-         * @param[in] Family 와이어프레임 여부를 정할 현재 뷰 요청입니다.
+         * @param[in] Rasterizer 메시 파이프라인의 래스터 상태를 덮어쓸 상태입니다.
          * @param[in] Pass 머티리얼 바인딩과 통계 대상을 정할 메시 패스 종류입니다.
          * @param[in] Commands 메시 패스가 만든 정렬된 드로 목록입니다.
          * @return 제출한 드로 호출 수입니다.
          */
-        Core::Uint32 SubmitMeshCommands(const Engine::FSceneViewFamily& Family, Renderer::EMeshPass Pass, std::span<const Renderer::FMeshDrawCommand> Commands, bool MarkDecalReceivers);
+        Core::Uint32 SubmitMeshCommands(ID3D11RasterizerState* Rasterizer, Renderer::EMeshPass Pass, std::span<const Renderer::FMeshDrawCommand> Commands, bool MarkDecalReceivers);
 
     private:
         /**

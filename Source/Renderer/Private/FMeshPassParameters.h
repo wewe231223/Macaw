@@ -29,6 +29,7 @@ namespace Renderer {
          * @brief 정점 변환과 프러스텀 컬링에 함께 사용하는 월드→클립 행렬입니다.
          */
         Core::FMatrix mViewProjection{};
+        ID3D11RasterizerState* mRasterizer{};
     };
 
 }

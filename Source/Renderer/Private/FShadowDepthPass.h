@@ -7,6 +7,10 @@
 #pragma once
 
 #include "FMeshPass.h"
+#include "Engine/EShadowBiasPreset.h"
+
+#include <array>
+#include <wrl/client.h>
 
 namespace Renderer {
 
@@ -21,6 +25,9 @@ namespace Renderer {
         using Renderer::FMeshPass::FMeshPass;
 
     public:
+        bool Initialize();
+        ID3D11RasterizerState* GetRasterizer(Engine::EShadowBiasPreset DepthPreset, Engine::EShadowBiasPreset SlopePreset) const;
+
         /**
          * @brief 깊이 전용 입력 레이아웃을 쓰는 그림자 깊이 패스 종류를 반환합니다.
          * @return EMeshPass::ShadowDepth입니다.
@@ -57,6 +64,7 @@ namespace Renderer {
          * @brief 이번 패스의 모든 드로가 공유하는 깊이 전용 파이프라인입니다.
          */
         Renderer::FMaterialPipeline* mPipeline{};
+        std::array<std::array<Microsoft::WRL::ComPtr<ID3D11RasterizerState>, Engine::ShadowBiasPresetCount>, Engine::ShadowBiasPresetCount> mRasterizers{};
     };
 
 }

@@ -43,10 +43,9 @@ namespace Renderer {
          */
         Core::FVector4 mAtlasRectangle{};
 
-        /**
-         * @brief 깊이 바이어스·기울기 바이어스·선명도·아틀라스 역크기를 저장합니다.
-         */
-        Core::FVector4 mParameters{};
+        float mSharpen{};
+        float mInverseAtlasSize{};
+        float mPadding[2]{};
 
         /**
          * @brief 캐스케이드의 시작·끝 거리와 혼합 시작 거리, 예약값을 저장합니다.
@@ -67,6 +66,13 @@ namespace Renderer {
      * @ingroup Renderer
      */
     class FShadowResources {
+    private:
+        struct FTileDepth {
+            Renderer::FShadowAtlasBlock mBlock{};
+            Engine::EShadowBiasPreset mBiasPreset{Engine::DefaultShadowBiasPreset};
+            Engine::EShadowBiasPreset mSlopeBiasPreset{Engine::DefaultShadowBiasPreset};
+        };
+
     public:
         /**
          * @brief 현재 뷰에 필요한 광원별 그림자 타일과 행렬을 구성하고 샘플링 정보를 업로드합니다.
@@ -118,7 +124,7 @@ namespace Renderer {
          * @brief 그림자 맵 하나의 깊이 내용을 결정하는 현재 입력 스탬프를 만듭니다.
          * @param[in] Index GetMaps 기준 그림자 맵 인덱스입니다.
          * @param[in] DepthShaderRevision 깊이를 그릴 깊이 전용 정점 셰이더의 리비전입니다.
-         * @return 블록·광원 행렬·캐스터·아틀라스·셰이더 리비전을 묶은 스탬프입니다.
+         * @return 블록·광원 행렬·캐스터·아틀라스·셰이더 리비전과 바이어스 프리셋을 묶은 스탬프입니다.
          */
         Renderer::FShadowTileStamp MakeTileStamp(Core::Uint32 Index, Core::Uint64 DepthShaderRevision) const;
 
@@ -247,9 +253,9 @@ namespace Renderer {
         Core::TArray<Renderer::FGpuShadow> mMaps{};
 
         /**
-         * @brief mMaps와 같은 순서로 저장한 보호 여백 포함 아틀라스 블록입니다.
+         * @brief mMaps와 같은 순서로 저장한 아틀라스 블록과 깊이 기록 설정입니다.
          */
-        Core::TArray<Renderer::FShadowAtlasBlock> mBlocks{};
+        Core::TArray<FTileDepth> mTileDepths{};
 
         /**
          * @brief Prepare가 그림자 맵을 구성한 장면의 고유 번호입니다.
