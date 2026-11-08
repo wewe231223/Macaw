@@ -13,9 +13,13 @@
 #include "CoreUObject/FObjectHandle.h"
 #include "Engine/EViewTargetBlendFunction.h"
 #include "Engine/FMinimalViewInfo.h"
+#include "Engine/UCameraModifier.h"
+#include <memory>
 #include "APlayerCameraManager.generated.h"
 
 namespace Engine {
+
+    class UCameraShakeModifier;
 
     /**
      * @brief 뷰 타깃에서 매 프레임 카메라 시점을 계산하고 캐시하는 카메라 관리자입니다.
@@ -23,6 +27,9 @@ namespace Engine {
      *          뷰 타깃 액터의 첫 UCameraComponent를 시점으로 쓰고, 카메라가 없으면 액터 변환을 씁니다.
      *          월드가 액터 Tick을 모두 마친 뒤 갱신하므로 이번 프레임의 이동이 반영됩니다. 게임 뷰포트는
      *          캐시가 있으면 이 시점으로 그리고, 없으면 월드의 활성 카메라로 그립니다.
+     *
+     *          시점을 확정하는 순서는 뷰 타깃 시점 계산, 뷰 타깃 블렌드, 카메라 모디파이어 적용, 캐시 저장입니다.
+     *          기본으로 UCameraShakeModifier가 하나 추가되어 있습니다.
      * @ingroup Engine
      */
     UCLASS(NoFactory)
@@ -112,7 +119,64 @@ namespace Engine {
          */
         const Engine::FMinimalViewInfo& GetCameraCacheView() const;
 
+        /**
+         * @brief 기본 카메라 셰이크 모디파이어를 만들어 추가합니다.
+         * @return 추가했으면 true입니다.
+         */
+        bool InitializeDefaultComponents() override;
+
+        /**
+         * @brief 이미 만든 모디파이어의 소유권을 넘겨받아 추가합니다.
+         * @param[in] Modifier 추가할 모디파이어이며 다른 카메라 관리자에 추가된 적이 없어야 합니다.
+         * @return 추가한 모디파이어의 비소유 주소이며, AddedToCamera가 거부하면 nullptr입니다.
+         */
+        Engine::UCameraModifier* AddCameraModifier(std::unique_ptr<Engine::UCameraModifier> Modifier);
+
+        /**
+         * @brief 지정한 클래스의 모디파이어를 만들어 추가합니다.
+         * @param[in] Class UCameraModifier 파생이고 팩터리가 있는 클래스입니다.
+         * @return 추가한 모디파이어의 비소유 주소이며, 만들 수 없거나 거부되면 nullptr입니다.
+         */
+        Engine::UCameraModifier* AddNewCameraModifier(const CoreUObject::UClass* Class);
+
+        /**
+         * @brief 모디파이어를 목록에서 빼고 해제합니다.
+         * @param[in] Modifier 뺄 모디파이어입니다.
+         * @return 목록에 있어서 뺐으면 true입니다.
+         * @note ModifyCamera 안에서 불러도 되며, 그 경우 이번 갱신이 끝난 뒤에 해제합니다.
+         */
+        UFUNCTION()
+        bool RemoveCameraModifier(Engine::UCameraModifier* Modifier);
+
+        /**
+         * @brief 지정한 클래스의 첫 모디파이어를 찾습니다.
+         * @param[in] Class 찾을 클래스이며 파생 클래스도 일치합니다.
+         * @return 모디파이어의 비소유 주소이며, 없으면 nullptr입니다.
+         */
+        Engine::UCameraModifier* FindCameraModifierByClass(const CoreUObject::UClass* Class) const;
+
+        /**
+         * @brief 기본으로 추가되는 카메라 셰이크 모디파이어를 반환합니다.
+         * @return 모디파이어의 비소유 주소이며, 제거했으면 nullptr입니다.
+         */
+        UFUNCTION()
+        Engine::UCameraShakeModifier* GetCameraShakeModifier() const;
+
     private:
+        /**
+         * @brief 모디파이어를 적용하기 전의 시점에 모디파이어를 적용해 캐시를 확정합니다.
+         * @param[in] DeltaTime 이번 갱신의 초 단위 시간입니다.
+         * @param[in] HasBaseView mBaseView를 계산했으면 true입니다.
+         */
+        void FinishUpdate(float DeltaTime, bool HasBaseView);
+
+        /**
+         * @brief 켜진 모디파이어를 Priority 순서로 시점에 적용합니다.
+         * @param[in] DeltaTime 이번 갱신의 초 단위 시간입니다.
+         * @param[in,out] ViewInfo 고칠 시점입니다.
+         */
+        void ApplyCameraModifiers(float DeltaTime, Engine::FMinimalViewInfo& ViewInfo);
+
         /**
          * @brief 핸들을 이 월드에 살아 있는 액터로 해석합니다.
          * @param[in] Handle 해석할 액터 핸들입니다.
@@ -170,6 +234,12 @@ namespace Engine {
         bool mBlending{};
 
         /**
+        /**
+         * @brief 모디파이어를 적용하기 전의 시점이며, 새 블렌드의 출발점으로 씁니다.
+         */
+        Engine::FMinimalViewInfo mBaseView{};
+
+        /**
          * @brief 마지막으로 계산한 시점입니다.
          */
         Engine::FMinimalViewInfo mCache{};
@@ -184,6 +254,21 @@ namespace Engine {
          */
         UPROPERTY(Edit)
         float mDefaultFieldOfView{60.0f};
+
+        /**
+         * @brief 적용 순서대로 정렬하는 모디파이어 목록입니다.
+         */
+        Core::TArray<std::unique_ptr<Engine::UCameraModifier>> mModifiers{};
+
+        /**
+         * @brief 적용 중에 제거되어 갱신이 끝난 뒤 해제할 모디파이어입니다.
+         */
+        Core::TArray<std::unique_ptr<Engine::UCameraModifier>> mRemovedModifiers{};
+
+        /**
+         * @brief 기본 카메라 셰이크 모디파이어입니다.
+         */
+        Engine::UCameraShakeModifier* mCameraShake{};
     };
 
 }

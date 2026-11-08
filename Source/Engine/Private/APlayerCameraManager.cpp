@@ -1,6 +1,8 @@
 #include "Engine/APlayerCameraManager.h"
 #include "Engine/UWorld.h"
 #include "Engine/Component/UCameraComponent.h"
+#include "Engine/UCameraShakeModifier.h"
+#include "CoreUObject/Reflection/NewObject.h"
 #include "Core/Math/FTransform.h"
 #include "CoreUObject/FObjectRegistry.h"
 #include "CoreUObject/Reflection/Cast.h"
@@ -63,7 +65,7 @@ namespace Engine {
             mViewTarget = {};
         }
 
-        mBlendFrom = mCache;
+        mBlendFrom = mBaseView;
         mPendingViewTarget = Target->GetHandle();
         mBlendTime = BlendTime;
         mBlendElapsed = 0.0f;
@@ -108,12 +110,13 @@ namespace Engine {
 
                 const float Alpha{std::clamp(mBlendElapsed / mBlendTime, 0.0f, 1.0f)};
 
-                mCache = mBlendFrom.Blend(To, EvaluateBlend(mBlendFunction, Alpha));
-                mHasCache = true;
+                mBaseView = mBlendFrom.Blend(To, EvaluateBlend(mBlendFunction, Alpha));
 
                 if (Alpha >= 1.0f) {
                     FinishBlend();
                 }
+
+                FinishUpdate(DeltaTime, true);
 
                 return;
             }
@@ -123,7 +126,16 @@ namespace Engine {
 
         const Engine::AActor* Target{ResolveTarget(mViewTarget)};
 
-        mHasCache = Target != nullptr && CalcViewTargetPOV(Target, mCache);
+        FinishUpdate(DeltaTime, Target != nullptr && CalcViewTargetPOV(Target, mBaseView));
+    }
+
+    void Engine::APlayerCameraManager::FinishUpdate(float DeltaTime, bool HasBaseView) {
+        mHasCache = HasBaseView;
+
+        if (mHasCache) {
+            mCache = mBaseView;
+            ApplyCameraModifiers(DeltaTime, mCache);
+        }
     }
 
     bool Engine::APlayerCameraManager::HasCameraCache() const {
@@ -173,6 +185,112 @@ namespace Engine {
 
         mPendingViewTarget = {};
         mBlending = false;
+    }
+
+    bool Engine::APlayerCameraManager::InitializeDefaultComponents() {
+        if (!Engine::AActor::InitializeDefaultComponents()) {
+            return false;
+        }
+
+        if (mCameraShake == nullptr) {
+            auto Shake{CoreUObject::NewObject<Engine::UCameraShakeModifier>()};
+            Shake->SetName("CameraShakeModifier");
+            mCameraShake = static_cast<Engine::UCameraShakeModifier*>(AddCameraModifier(std::move(Shake)));
+        }
+
+        return mCameraShake != nullptr;
+    }
+
+    Engine::UCameraModifier* Engine::APlayerCameraManager::AddCameraModifier(std::unique_ptr<Engine::UCameraModifier> Modifier) {
+        if (Modifier == nullptr || Modifier->GetCameraOwner() != nullptr || !Modifier->AddedToCamera(this)) {
+            return nullptr;
+        }
+
+        Engine::UCameraModifier* Added{Modifier.get()};
+
+        mModifiers.push_back(std::move(Modifier));
+
+        return Added;
+    }
+
+    Engine::UCameraModifier* Engine::APlayerCameraManager::AddNewCameraModifier(const CoreUObject::UClass* Class) {
+        if (Class == nullptr || !Class->IsChildOf(Engine::UCameraModifier::StaticClass()) || !Class->CanCreate()) {
+            return nullptr;
+        }
+
+        std::unique_ptr<CoreUObject::UObject> Object{Class->CreateInstance()};
+
+        if (CoreUObject::Cast<Engine::UCameraModifier>(Object.get()) == nullptr) {
+            return nullptr;
+        }
+
+        return AddCameraModifier(std::unique_ptr<Engine::UCameraModifier>{static_cast<Engine::UCameraModifier*>(Object.release())});
+    }
+
+    bool Engine::APlayerCameraManager::RemoveCameraModifier(Engine::UCameraModifier* Modifier) {
+        const auto Found{std::find_if(mModifiers.begin(), mModifiers.end(), [Modifier](const auto& Entry) {
+            return Entry.get() == Modifier;
+        })};
+
+        if (Modifier == nullptr || Found == mModifiers.end()) {
+            return false;
+        }
+
+        if (Modifier == mCameraShake) {
+            mCameraShake = nullptr;
+        }
+
+        // 적용 중인 모디파이어가 자신을 빼도 해제는 이번 갱신이 끝난 뒤에 합니다.
+        mRemovedModifiers.push_back(std::move(*Found));
+        mModifiers.erase(Found);
+
+        return true;
+    }
+
+    Engine::UCameraModifier* Engine::APlayerCameraManager::FindCameraModifierByClass(const CoreUObject::UClass* Class) const {
+        for (const auto& Modifier : mModifiers) {
+            if (Class != nullptr && Modifier->GetClass()->IsChildOf(Class)) {
+                return Modifier.get();
+            }
+        }
+
+        return nullptr;
+    }
+
+    Engine::UCameraShakeModifier* Engine::APlayerCameraManager::GetCameraShakeModifier() const {
+        return mCameraShake;
+    }
+
+    void Engine::APlayerCameraManager::ApplyCameraModifiers(float DeltaTime, Engine::FMinimalViewInfo& ViewInfo) {
+        std::stable_sort(mModifiers.begin(), mModifiers.end(), [](const auto& Left, const auto& Right) {
+            return Left->GetPriority() < Right->GetPriority();
+        });
+
+        Core::TArray<Engine::UCameraModifier*> Snapshot{};
+        Snapshot.reserve(mModifiers.size());
+
+        for (const auto& Modifier : mModifiers) {
+            Snapshot.push_back(Modifier.get());
+        }
+
+        for (Engine::UCameraModifier* Modifier : Snapshot) {
+            // 앞 순서의 모디파이어가 빼낸 모디파이어는 건너뜁니다.
+            const bool Present{std::any_of(mModifiers.begin(), mModifiers.end(), [Modifier](const auto& Entry) {
+                return Entry.get() == Modifier;
+            })};
+
+            if (!Present || Modifier->IsDisabled()) {
+                continue;
+            }
+
+            Modifier->UpdateAlpha(DeltaTime);
+
+            if (!Modifier->IsDisabled() && Modifier->ModifyCamera(DeltaTime, ViewInfo)) {
+                break;
+            }
+        }
+
+        mRemovedModifiers.clear();
     }
 
 }

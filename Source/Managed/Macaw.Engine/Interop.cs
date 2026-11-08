@@ -111,4 +111,7 @@ internal unsafe struct ManagedApi {
     public delegate* unmanaged<void> DescribeScripts;
     public delegate* unmanaged<nint, byte*, byte*, byte*, int> SetField;
     public delegate* unmanaged<nint, int, ObjectHandle, void> Overlap;
+    public delegate* unmanaged<byte*, ObjectHandle, nint> CreateModifier;
+    public delegate* unmanaged<nint, float, MinimalViewInfo*, int> ModifyCamera;
+    public delegate* unmanaged<nint, void> DestroyModifier;
 }

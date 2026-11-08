@@ -9,6 +9,7 @@
 #include "CoreUObject/FObjectRegistry.h"
 #include "Script/FScriptField.h"
 #include "ScriptAbi.h"
+#include "Engine/FMinimalViewInfo.h"
 
 #include "ThirdParty/hostfxr.h"
 #include "ThirdParty/coreclr_delegates.h"
@@ -16,6 +17,7 @@
 #include <Windows.h>
 
 #include <algorithm>
+#include <cmath>
 #include <cstdint>
 #include <cstdio>
 #include <system_error>
@@ -74,6 +76,15 @@ namespace Script {
              */
             std::intptr_t mBindingHash{};
         };
+
+        // Source/Managed/Macaw.Engine/ScriptCameraModifier.cs의 MinimalViewInfo와 배치가 같아야 합니다.
+        struct FViewInfoAbi {
+            Script::Abi::FVector3 mLocation{};
+            Script::Abi::FQuat mRotation{};
+            float mFieldOfView{};
+        };
+
+        static_assert(sizeof(FViewInfoAbi) == 32);
 
         // Source/Managed/Macaw.Engine/Interop.cs의 ManagedApi와 순서가 같아야 합니다.
 
@@ -135,6 +146,21 @@ namespace Script {
              * @brief 관리 인스턴스 겹침 이벤트 전달 호출입니다.
              */
             void(__stdcall* mOverlap)(std::intptr_t, int, CoreUObject::FObjectHandle){};
+
+            /**
+             * @brief 클래스 이름·엔진 모디파이어로 카메라 모디파이어 인스턴스를 만드는 콜백입니다.
+             */
+            std::intptr_t(__stdcall* mCreateModifier)(const char*, CoreUObject::FObjectHandle){};
+
+            /**
+             * @brief 관리 모디파이어 ModifyCamera 호출입니다.
+             */
+            int(__stdcall* mModifyCamera)(std::intptr_t, float, FViewInfoAbi*){};
+
+            /**
+             * @brief 관리 모디파이어 GCHandle 해제 호출입니다.
+             */
+            void(__stdcall* mDestroyModifier)(std::intptr_t){};
         };
 
         // DescribeScripts 호출 동안만 유효한 출력 목록입니다.
@@ -560,6 +586,40 @@ namespace Script {
      */
     void Script::FScriptRuntime::OverlapInstance(std::intptr_t Instance, bool Begin, CoreUObject::FObjectHandle Other) {
         mState->mManaged.mOverlap(Instance, Begin ? 1 : 0, Other);
+    }
+
+    std::intptr_t Script::FScriptRuntime::CreateModifierInstance(const Core::FString& ClassName, CoreUObject::FObjectHandle Modifier) {
+        return EnsureScripts() ? mState->mManaged.mCreateModifier(ClassName.c_str(), Modifier) : 0;
+    }
+
+    bool Script::FScriptRuntime::ModifyCameraInstance(std::intptr_t Instance, float DeltaTime, Engine::FMinimalViewInfo& ViewInfo) {
+        FViewInfoAbi View{};
+        View.mLocation = {ViewInfo.mLocation.x, ViewInfo.mLocation.y, ViewInfo.mLocation.z};
+        View.mRotation = {ViewInfo.mRotation.x, ViewInfo.mRotation.y, ViewInfo.mRotation.z, ViewInfo.mRotation.w};
+        View.mFieldOfView = ViewInfo.mFieldOfView;
+
+        const bool Stop{mState->mManaged.mModifyCamera(Instance, DeltaTime, &View) != 0};
+        const Core::FVector Location{View.mLocation.x, View.mLocation.y, View.mLocation.z};
+        const Core::FQuat Rotation{View.mRotation.x, View.mRotation.y, View.mRotation.z, View.mRotation.w};
+
+        // 스크립트가 잘못된 값을 돌려주면 그 값만 버립니다.
+        if (Location.IsFinite()) {
+            ViewInfo.mLocation = Location;
+        }
+
+        if (Rotation.IsFinite() && View.mRotation.x * View.mRotation.x + View.mRotation.y * View.mRotation.y + View.mRotation.z * View.mRotation.z + View.mRotation.w * View.mRotation.w > 1e-8f) {
+            ViewInfo.mRotation = Rotation.Normalized();
+        }
+
+        if (std::isfinite(View.mFieldOfView) && View.mFieldOfView > 0.0f && View.mFieldOfView < 180.0f) {
+            ViewInfo.mFieldOfView = View.mFieldOfView;
+        }
+
+        return Stop;
+    }
+
+    void Script::FScriptRuntime::DestroyModifierInstance(std::intptr_t Instance) {
+        mState->mManaged.mDestroyModifier(Instance);
     }
 
     /**

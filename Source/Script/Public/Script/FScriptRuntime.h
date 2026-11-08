@@ -104,6 +104,10 @@
 #include <functional>
 #include <memory>
 
+namespace Engine {
+    struct FMinimalViewInfo;
+}
+
 namespace Script {
 
     struct FScriptField;
@@ -242,6 +246,29 @@ namespace Script {
          * @param[in] Other 상대 액터이며, 파괴되어 없으면 유효하지 않은 핸들입니다.
          */
         void OverlapInstance(std::intptr_t Instance, bool Begin, CoreUObject::FObjectHandle Other);
+
+        /**
+         * @brief 클래스 이름으로 C# 카메라 모디파이어 인스턴스를 만들고 AddedToCamera를 호출합니다.
+         * @param[in] ClassName 네임스페이스를 포함한 ScriptCameraModifier 파생 클래스 이름입니다.
+         * @param[in] Modifier 인스턴스와 연결할 엔진 모디파이어입니다.
+         * @return 인스턴스 핸들이며, 만들지 못하면 0입니다.
+         */
+        std::intptr_t CreateModifierInstance(const Core::FString& ClassName, CoreUObject::FObjectHandle Modifier);
+
+        /**
+         * @brief C# 모디파이어의 ModifyCamera를 호출합니다.
+         * @param[in] Instance CreateModifierInstance가 반환한 유효한 핸들입니다.
+         * @param[in] DeltaTime 이번 갱신의 초 단위 시간입니다.
+         * @param[in,out] ViewInfo 고칠 시점이며, 유한하지 않은 결과 값은 버립니다.
+         * @return 뒤 순서의 모디파이어를 건너뛰려면 true입니다.
+         */
+        bool ModifyCameraInstance(std::intptr_t Instance, float DeltaTime, Engine::FMinimalViewInfo& ViewInfo);
+
+        /**
+         * @brief C# 모디파이어 인스턴스를 해제합니다.
+         * @param[in] Instance CreateModifierInstance가 반환한 유효한 핸들입니다.
+         */
+        void DestroyModifierInstance(std::intptr_t Instance);
 
         /**
          * @brief 씬에 저장된 값을 인스턴스의 필드에 넣습니다.

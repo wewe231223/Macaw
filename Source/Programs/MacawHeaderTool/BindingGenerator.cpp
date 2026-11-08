@@ -224,10 +224,10 @@ namespace HeaderTool {
         /**
          * @brief C# 엔진 객체 래퍼 계층의 시작 타입인지 검사합니다.
          * @param[in] Name 조회·등록·출력할 대상 이름입니다.
-         * @return Actor·Component·World 래퍼 시작 타입이면 true입니다.
+         * @return Actor·Component·World·CameraModifier 래퍼 시작 타입이면 true입니다.
          */
         bool IsWrapperRoot(const std::string& Name) {
-            return Name == "AActor" || Name == "UActorComponent" || Name == "UWorld";
+            return Name == "AActor" || Name == "UActorComponent" || Name == "UWorld" || Name == "UCameraModifier";
         }
 
         /**
@@ -277,7 +277,7 @@ namespace HeaderTool {
 
         private:
             /**
-             * @brief Actor·Component·World 계층에서 C# 래퍼 대상 클래스를 수집합니다.
+             * @brief Actor·Component·World·CameraModifier 계층에서 C# 래퍼 대상 클래스를 수집합니다.
              */
             void CollectWrapperClasses() {
                 for (const auto& Header : mWorkspace.Headers) {
@@ -414,7 +414,7 @@ namespace HeaderTool {
 
                 if (ScriptClass.empty()) {
                     if (!Function.Static || !Owner.ShortName.starts_with("FScript")) {
-                        throw FHeaderToolError{Function.File, 0, Function.Label + ": " + "Only static functions on FScript* classes or AActor, UActorComponent and UWorld classes can be bound"};
+                        throw FHeaderToolError{Function.File, 0, Function.Label + ": " + "Only static functions on FScript* classes or AActor, UActorComponent, UWorld and UCameraModifier classes can be bound"};
                     }
 
                     ScriptClass = StripPrefix(Owner.ShortName, "FScript");

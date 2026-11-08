@@ -65,6 +65,9 @@ internal static unsafe class Host {
         Managed->DescribeScripts = &DescribeScripts;
         Managed->SetField = &SetField;
         Managed->Overlap = &Overlap;
+        Managed->CreateModifier = &CreateModifier;
+        Managed->ModifyCamera = &ModifyCamera;
+        Managed->DestroyModifier = &DestroyModifier;
 
         return 1;
     }
@@ -347,6 +350,79 @@ internal static unsafe class Host {
         } catch (Exception Exception) {
             Disable(Instance, Exception);
         }
+    }
+
+    private static readonly Dictionary<ObjectHandle, ScriptCameraModifier> sModifiers = new();
+
+    /// <summary>엔진 모디파이어에 연결된 C# 모디파이어를 찾습니다.</summary>
+    internal static ScriptCameraModifier? FindModifier(ObjectHandle Modifier) {
+        return sModifiers.TryGetValue(Modifier, out ScriptCameraModifier? Instance) ? Instance : null;
+    }
+
+    /// <summary>카메라 관리자에 추가된 T 타입 C# 모디파이어 중 첫 번째를 찾습니다.</summary>
+    internal static T? FindModifierOf<T>(PlayerCameraManager CameraManager) where T : ScriptCameraModifier {
+        foreach (ScriptCameraModifier Instance in sModifiers.Values) {
+            if (Instance is T Found && Instance.Modifier.GetCameraOwner() is { } Owner && Owner.Handle.Equals(CameraManager.Handle)) {
+                return Found;
+            }
+        }
+
+        return null;
+    }
+
+    private static ScriptCameraModifier GetModifier(nint Handle) => (ScriptCameraModifier)GCHandle.FromIntPtr(Handle).Target!;
+
+    [UnmanagedCallersOnly]
+    private static nint CreateModifier(byte* NameUtf8, ObjectHandle Modifier) {
+        try {
+            string Name = Marshal.PtrToStringUTF8((nint)NameUtf8)!;
+
+            if (sAssembly?.GetType(Name) is not { } Type || !Type.IsAssignableTo(typeof(ScriptCameraModifier)) || Type.IsAbstract) {
+                Log.Info($"C# camera modifier class not found: {Name}");
+                return 0;
+            }
+
+            var Instance = (ScriptCameraModifier)Activator.CreateInstance(Type)!;
+            Instance.Modifier = (CameraModifier)Bindings.Wrap(Modifier)!;
+            sModifiers[Modifier] = Instance;
+
+            try {
+                Instance.AddedToCamera();
+            } catch (Exception Exception) {
+                Instance.mFaulted = true;
+                Log.Info($"C# camera modifier disabled by an exception: {Exception}");
+            }
+
+            return GCHandle.ToIntPtr(GCHandle.Alloc(Instance));
+        } catch (Exception Exception) {
+            Log.Info($"C# camera modifier could not be created: {Exception}");
+            return 0;
+        }
+    }
+
+    [UnmanagedCallersOnly]
+    private static int ModifyCamera(nint Handle, float DeltaTime, MinimalViewInfo* View) {
+        ScriptCameraModifier Instance = GetModifier(Handle);
+
+        if (Instance.mFaulted) {
+            return 0;
+        }
+
+        try {
+            return Instance.ModifyCamera(DeltaTime, ref *View) ? 1 : 0;
+        } catch (Exception Exception) {
+            Instance.mFaulted = true;
+            Log.Info($"C# camera modifier disabled by an exception: {Exception}");
+            return 0;
+        }
+    }
+
+    [UnmanagedCallersOnly]
+    private static void DestroyModifier(nint Handle) {
+        ScriptCameraModifier Instance = GetModifier(Handle);
+
+        sModifiers.Remove(Instance.Modifier.Handle);
+        GCHandle.FromIntPtr(Handle).Free();
     }
 
     [UnmanagedCallersOnly]
