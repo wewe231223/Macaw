@@ -5,6 +5,7 @@
  */
 
 #include "Editor/FMeshViewer.h"
+#include "FBonePreview.h"
 #include "Core/FilePath.h"
 #include "Core/Math/FBox.h"
 #include "Core/Math/FQuat.h"
@@ -416,7 +417,7 @@ namespace Editor {
         const Engine::FSceneView InputView{CalcSceneView(Extent)};
         const Core::FVector2 PreviewMouse{Mouse.x - Origin.x, Mouse.y - Origin.y};
         const bool GizmoActive{mPoseBone && UpdateBoneGizmo(*mPoseBone, Input, InputView, PreviewMouse, Hovered)};
-        const Core::TArray<Editor::FMeshViewer::FBoneShape> BoneShapes{mSkeleton != nullptr && mShowBones ? BuildBoneShapes() : Core::TArray<Editor::FMeshViewer::FBoneShape>{}};
+        const Core::TArray<Editor::FBoneShape> BoneShapes{mSkeleton != nullptr && mShowBones ? Editor::BuildBoneShapes(mSkeleton->GetBones(), mPose.GetGlobalTransforms(), mRadius) : Core::TArray<Editor::FBoneShape>{}};
         const bool CanPickBone{Hovered && !mMouseCaptured && !GizmoActive && !BoneShapes.empty()};
         const bool LeftClick{Input.WasPressed(EKey::MouseLeft) && !Input.IsDown(EKey::MouseRight) && !Input.IsDown(EKey::MouseMiddle)};
         const bool PickedBone{CanPickBone && LeftClick && PickBone(InputView, PreviewMouse, BoneShapes)};
@@ -464,7 +465,7 @@ namespace Editor {
 
         Engine::FPrimitiveDrawInterface Bones{};
 
-        for (const Editor::FMeshViewer::FBoneShape& Shape : BoneShapes) {
+        for (const Editor::FBoneShape& Shape : BoneShapes) {
             const float Gray{Shape.mMesh == Engine::EEditorMesh::Sphere ? 0.76f : 0.66f};
             const Core::FVector4 Color{Shape.mBone == mPoseBone ? Core::FVector4{0.26f, 0.66f, 1.0f, 1.0f} : Core::FVector4{Gray, Gray, Gray, 1.0f}};
 
@@ -591,66 +592,14 @@ namespace Editor {
         }
     }
 
-    Core::TArray<Editor::FMeshViewer::FBoneShape> Editor::FMeshViewer::BuildBoneShapes() const {
-        const auto& Bones{mSkeleton->GetBones()};
-        const auto& Transforms{mPose.GetGlobalTransforms()};
-        const float MaxJointRadius{mRadius * 0.019f};
-        const float MinJointRadius{MaxJointRadius * 0.12f};
-        const float MaxBoneHalfWidth{mRadius * 0.05f};
-        Core::TArray<float> JointRadii{};
-        JointRadii.resize(Bones.size(), MaxJointRadius);
-
-        Core::TArray<Editor::FMeshViewer::FBoneShape> Shapes{};
-        Shapes.reserve(Bones.size() * 2);
-
-        for (Core::Uint32 Bone{}; Bone < Bones.size(); ++Bone) {
-            const Core::Int32 ParentIndex{Bones[Bone].GetParentIndex()};
-
-            if (ParentIndex < 0) {
-                continue;
-            }
-
-            const Core::Uint32 Parent{static_cast<Core::Uint32>(ParentIndex)};
-            const Core::FVector Start{Transforms[Parent].TransformPosition({})};
-            const Core::FVector Offset{Transforms[Bone].TransformPosition({}) - Start};
-            const float Length{Offset.Length()};
-
-            if (!std::isfinite(Length) || Length <= MaxJointRadius * 0.01f) {
-                continue;
-            }
-
-            const float JointRadius{std::clamp(Length * 0.052f, MinJointRadius, MaxJointRadius)};
-            JointRadii[Bone] = std::min(JointRadii[Bone], JointRadius);
-            JointRadii[Parent] = std::min(JointRadii[Parent], JointRadius);
-
-            const float HalfWidth{std::min(Length * 0.105f, MaxBoneHalfWidth)};
-            const Core::FVector Axis{Offset / Length};
-            const Core::FVector Up{std::abs(Axis.z) < 0.8f ? Core::FVector{0.0f, 0.0f, 1.0f} : Core::FVector{0.0f, 1.0f, 0.0f}};
-            const Core::FMatrix Rotation{Core::FMatrix::LookTo({}, Axis, Up).Transposed()};
-            const Core::FMatrix World{Core::FMatrix::Scale({HalfWidth, HalfWidth, Length}) * Rotation * Core::FMatrix::Translation(Start)};
-
-            Shapes.push_back({Engine::EEditorMesh::BoneOctahedron, World, Parent});
-        }
-
-        for (Core::Uint32 Bone{}; Bone < Bones.size(); ++Bone) {
-            const Core::FVector Joint{Transforms[Bone].TransformPosition({})};
-            const float Diameter{JointRadii[Bone] * 2.0f};
-            const Core::FMatrix World{Core::FMatrix::Scale({Diameter, Diameter, Diameter}) * Core::FMatrix::Translation(Joint)};
-
-            Shapes.push_back({Engine::EEditorMesh::Sphere, World, Bone});
-        }
-
-        return Shapes;
-    }
-
-    bool Editor::FMeshViewer::PickBone(const Engine::FSceneView& View, const Core::FVector2& Mouse, const Core::TArray<Editor::FMeshViewer::FBoneShape>& Shapes) {
+    bool Editor::FMeshViewer::PickBone(const Engine::FSceneView& View, const Core::FVector2& Mouse, const Core::TArray<Editor::FBoneShape>& Shapes) {
         Core::FRay Ray{};
 
         if (!View.Deproject(Mouse, Ray)) {
             return false;
         }
 
-        const Editor::FMeshViewer::FBoneShape* Hit{};
+        const Editor::FBoneShape* Hit{};
         float Closest{std::numeric_limits<float>::max()};
 
         for (auto Shape{Shapes.rbegin()}; Shape != Shapes.rend(); ++Shape) {

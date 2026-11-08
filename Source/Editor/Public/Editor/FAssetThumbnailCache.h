@@ -15,6 +15,7 @@ namespace Asset {
     class FAssetManager;
     class UStaticMesh;
     class UMaterial;
+    class USkeleton;
 }
 
 namespace Engine {
@@ -108,7 +109,7 @@ namespace Editor {
          * @param Signature 에셋 설정의 서명입니다.
          * @return 캐시 렌더 타깃의 SRV 주소입니다.
          */
-        void* Render(const Core::FString& Key, Asset::UStaticMesh* Mesh, Asset::UMaterial* Material, std::size_t Signature);
+        void* Render(const Core::FString& Key, Asset::UStaticMesh* Mesh, Asset::UMaterial* Material, std::size_t Signature, const Asset::USkeleton* Skeleton = nullptr);
 
         /**
          * @brief 재질 설정의 변경을 감지할 서명을 만듭니다.

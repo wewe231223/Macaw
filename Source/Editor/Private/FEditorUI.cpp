@@ -2091,7 +2091,7 @@ namespace Editor {
                         const bool Directory{static_cast<std::size_t>(Index) < Folders.size()};
                         const auto& Path{Directory ? Folders[Index] : Assets[Index - Folders.size()]};
                         const auto Type{mAssetTypes.find(Path)};
-                        const bool HasThumbnail{!Directory && Type != mAssetTypes.end() && (Type->second == Asset::EAssetType::Mesh || Type->second == Asset::EAssetType::SkeletalMesh || Type->second == Asset::EAssetType::Material || Type->second == Asset::EAssetType::Texture)};
+                        const bool HasThumbnail{!Directory && Type != mAssetTypes.end() && (Type->second == Asset::EAssetType::Mesh || Type->second == Asset::EAssetType::SkeletalMesh || Type->second == Asset::EAssetType::Skeleton || Type->second == Asset::EAssetType::Material || Type->second == Asset::EAssetType::Texture)};
                         void* Thumbnail{HasThumbnail ? mThumbnails->GetThumbnail(Path, Type->second) : nullptr};
                         const bool ScriptFile{mBrowsingScripts && !Directory};
                         const char* Kind{ScriptFile ? "C# Script" : Directory ? "Folder" : Type == mAssetTypes.end() ? "File" : Type->second == Asset::EAssetType::Mesh ? "Mesh" : Type->second == Asset::EAssetType::SkeletalMesh ? "Skeletal Mesh" : Type->second == Asset::EAssetType::Skeleton ? "Skeleton" : Type->second == Asset::EAssetType::Material ? "Material" : Type->second == Asset::EAssetType::Texture ? "Texture" : Type->second == Asset::EAssetType::Sequence ? "Sequence" : "Scene"};
@@ -2131,9 +2131,7 @@ namespace Editor {
                             RegisterContentDropTarget(Path, {Minimum.x, Minimum.y, Maximum.x, Maximum.y});
                         }
 
-                        const bool CanDragAsset{HasThumbnail || (!Directory && Type != mAssetTypes.end() && Type->second == Asset::EAssetType::Skeleton)};
-
-                        if (CanDragAsset && mContext->CanEditWorld() && ImGui::BeginDragDropSource()) {
+                        if (HasThumbnail && mContext->CanEditWorld() && ImGui::BeginDragDropSource()) {
                             const char* Payload{Type->second == Asset::EAssetType::Mesh || Type->second == Asset::EAssetType::SkeletalMesh ? Editor::EditorAssetDragDrop::MeshPayload : Type->second == Asset::EAssetType::Skeleton ? Editor::EditorAssetDragDrop::SkeletonPayload : Type->second == Asset::EAssetType::Material ? Editor::EditorAssetDragDrop::MaterialPayload : Editor::EditorAssetDragDrop::TexturePayload};
 
                             ImGui::SetDragDropPayload(Payload, Actual.c_str(), Actual.size() + 1);

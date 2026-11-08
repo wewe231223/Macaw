@@ -43,18 +43,12 @@ namespace Engine {
 }
 
 namespace Editor {
+    struct FBoneShape;
 
     /**
      * @brief 편집 월드와 분리한 렌더 장면, 카메라와 재질 미리보기를 소유합니다.
      */
     class FMeshViewer {
-    private:
-        struct FBoneShape {
-            Engine::EEditorMesh mMesh{Engine::EEditorMesh::Count};
-            Core::FMatrix mWorld{};
-            Core::Uint32 mBone{};
-        };
-
     public:
         /**
          * @brief 렌더러와 프로젝트 에셋 관리자를 연결합니다.
@@ -132,8 +126,7 @@ namespace Editor {
          */
         void DrawBoneNode(Core::Uint32 Bone, const Core::TArray<Core::TArray<Core::Uint32>>& Children);
 
-        Core::TArray<Editor::FMeshViewer::FBoneShape> BuildBoneShapes() const;
-        bool PickBone(const Engine::FSceneView& View, const Core::FVector2& Mouse, const Core::TArray<Editor::FMeshViewer::FBoneShape>& Shapes);
+        bool PickBone(const Engine::FSceneView& View, const Core::FVector2& Mouse, const Core::TArray<Editor::FBoneShape>& Shapes);
 
         /**
          * @brief 현재 궤도 카메라의 렌더링과 입력 해석에 쓸 뷰를 계산합니다.

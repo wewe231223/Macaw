@@ -19,6 +19,7 @@ namespace Asset {
     public:
         bool SetBones(Core::TArray<Asset::FMeshImportBone> Bones);
         const Core::TArray<Asset::FMeshImportBone>& GetBones() const;
+        const Core::TArray<Core::FMatrix>& GetGlobalBindPoses() const;
         const Core::TArray<Core::FMatrix>& GetInverseBindPoses() const;
 
         Core::FRevision GetRevision() const;
@@ -26,6 +27,7 @@ namespace Asset {
 
     private:
         Core::TArray<Asset::FMeshImportBone> mBones{};
+        Core::TArray<Core::FMatrix> mGlobalBindPoses{};
         Core::TArray<Core::FMatrix> mInverseBindPoses{};
         Core::FRevision mRevision{};
     };

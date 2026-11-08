@@ -34,6 +34,7 @@ namespace Asset {
         }
 
         mBones = std::move(Bones);
+        mGlobalBindPoses = std::move(GlobalBindPoses);
         mInverseBindPoses = std::move(InverseBindPoses);
         mRevision = Core::FRevision::Next();
 
@@ -42,6 +43,10 @@ namespace Asset {
 
     const Core::TArray<Asset::FMeshImportBone>& USkeleton::GetBones() const {
         return mBones;
+    }
+
+    const Core::TArray<Core::FMatrix>& USkeleton::GetGlobalBindPoses() const {
+        return mGlobalBindPoses;
     }
 
     const Core::TArray<Core::FMatrix>& USkeleton::GetInverseBindPoses() const {

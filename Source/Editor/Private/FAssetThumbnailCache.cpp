@@ -5,6 +5,7 @@
  */
 
 #include "Editor/FAssetThumbnailCache.h"
+#include "FBonePreview.h"
 #include "Core/FilePath.h"
 #include "Core/Math/FRotator.h"
 #include "Core/Math/FQuat.h"
@@ -14,9 +15,11 @@
 #include "Engine/FPrimitiveSceneProxy.h"
 #include "Engine/FLightSceneProxy.h"
 #include "Engine/FSceneViewFamily.h"
+#include "Engine/FPrimitiveDrawInterface.h"
 #include "Engine/PrimitiveMesh.h"
 #include "Asset/UStaticMesh.h"
 #include "Asset/USkeletalMesh.h"
+#include "Asset/USkeleton.h"
 #include "Asset/UMaterial.h"
 #include "Asset/UTexture2D.h"
 #include "RenderCore/IRendererModule.h"
@@ -119,6 +122,12 @@ namespace Editor {
             return !Path.empty() && Material == nullptr ? nullptr : Render(Key, mSphere.get(), Material, MaterialSignature(Material) ^ mGeneration);
         }
 
+        if (Type == Asset::EAssetType::Skeleton) {
+            const Asset::USkeleton* Skeleton{Path.empty() ? nullptr : mAssets->LoadSkeleton(Path, Error)};
+
+            return Skeleton != nullptr ? Render(Key, nullptr, nullptr, mGeneration ^ static_cast<std::size_t>(Skeleton->GetRevision().GetValue()), Skeleton) : nullptr;
+        }
+
         if (Type != Asset::EAssetType::Mesh && Type != Asset::EAssetType::SkeletalMesh) {
             return nullptr;
         }
@@ -153,7 +162,7 @@ namespace Editor {
     /**
      * @brief 메시 또는 구형 재질을 캐시에 렌더링합니다.
      */
-    void* Editor::FAssetThumbnailCache::Render(const Core::FString& Key, Asset::UStaticMesh* Mesh, Asset::UMaterial* Material, std::size_t Signature) {
+    void* Editor::FAssetThumbnailCache::Render(const Core::FString& Key, Asset::UStaticMesh* Mesh, Asset::UMaterial* Material, std::size_t Signature, const Asset::USkeleton* Skeleton) {
         FThumbnail& Thumbnail{mThumbnails[Key]};
         Thumbnail.mLastUsed = mFrame;
 
@@ -185,7 +194,7 @@ namespace Editor {
             }
         }
 
-        if (mScene == nullptr || Mesh == nullptr || !Mesh->CreateResources(static_cast<ID3D11Device*>(mRenderer->GetNativeDevice()))) {
+        if (mScene == nullptr || (Mesh != nullptr && !Mesh->CreateResources(static_cast<ID3D11Device*>(mRenderer->GetNativeDevice())))) {
             return nullptr;
         }
 
@@ -197,22 +206,41 @@ namespace Editor {
             return nullptr;
         }
 
-        Engine::FPrimitiveSceneProxy Proxy{};
-        Proxy.mId = mPrimitiveId;
-        Proxy.mMesh = Mesh;
-        Proxy.mBounds = Mesh->GetBounds();
-        Proxy.mMaterial = Material;
+        Core::FBox Bounds{};
 
-        Core::FString Error{};
+        if (Skeleton != nullptr) {
+            mScene->RemovePrimitive(mPrimitiveId);
 
-        for (const Asset::FMeshMaterialSlot& Slot : Mesh->GetMeshData().GetMaterialSlots()) {
-            Proxy.mMaterials.push_back(mAssets != nullptr && !Slot.GetMaterialPath().empty() ? mAssets->LoadMaterial(Core::FilePath::FromUtf8(Slot.GetMaterialPath()), Error) : nullptr);
+            const auto& Transforms{Skeleton->GetGlobalBindPoses()};
+            const Core::FVector FirstJoint{Transforms.front().TransformPosition({})};
+
+            Bounds = Core::FBox{FirstJoint, FirstJoint};
+
+            for (const Core::FMatrix& Transform : Transforms) {
+                const Core::FVector Joint{Transform.TransformPosition({})};
+
+                Bounds.mMinimum = Bounds.mMinimum.Min(Joint);
+                Bounds.mMaximum = Bounds.mMaximum.Max(Joint);
+            }
+        } else {
+            Engine::FPrimitiveSceneProxy Proxy{};
+            Proxy.mId = mPrimitiveId;
+            Proxy.mMesh = Mesh;
+            Proxy.mBounds = Mesh->GetBounds();
+            Proxy.mMaterial = Material;
+
+            Core::FString Error{};
+
+            for (const Asset::FMeshMaterialSlot& Slot : Mesh->GetMeshData().GetMaterialSlots()) {
+                Proxy.mMaterials.push_back(mAssets != nullptr && !Slot.GetMaterialPath().empty() ? mAssets->LoadMaterial(Core::FilePath::FromUtf8(Slot.GetMaterialPath()), Error) : nullptr);
+            }
+
+            Bounds = Proxy.mBounds;
+            mScene->AddPrimitive(Proxy);
         }
 
-        mScene->AddPrimitive(Proxy);
-
-        const Core::FVector Center{(Mesh->GetBounds().mMinimum + Mesh->GetBounds().mMaximum) * 0.5f};
-        const float Radius{std::max(Mesh->GetBounds().mMinimum.Distance(Mesh->GetBounds().mMaximum) * 0.5f, 0.01f)};
+        const Core::FVector Center{(Bounds.mMinimum + Bounds.mMaximum) * 0.5f};
+        const float Radius{std::max(Bounds.mMinimum.Distance(Bounds.mMaximum) * 0.5f, 0.01f)};
 
         if (!std::isfinite(Radius)) {
             return nullptr;
@@ -230,6 +258,18 @@ namespace Editor {
 
         Engine::FSceneViewFamily Family{mScene.get(), Thumbnail.mTarget.get(), View};
         Family.mShowFlags.mSky = false;
+
+        Engine::FPrimitiveDrawInterface Bones{};
+
+        if (Skeleton != nullptr) {
+            for (const Editor::FBoneShape& Shape : Editor::BuildBoneShapes(Skeleton->GetBones(), Skeleton->GetGlobalBindPoses(), Radius)) {
+                const Core::FVector4 Color{Shape.mMesh == Engine::EEditorMesh::Sphere ? Core::FVector4{0.88f, 0.92f, 1.0f, 1.0f} : Core::FVector4{0.49f, 0.7f, 0.9f, 1.0f}};
+
+                Bones.DrawMesh({Shape.mMesh, Shape.mWorld, Color});
+            }
+
+            Family.mBackgroundOverlay = &Bones;
+        }
 
         mRenderer->BeginRenderingViewFamily(Family);
 
