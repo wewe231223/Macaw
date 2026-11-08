@@ -12,6 +12,7 @@
 #include "Editor/FEditorViewport.h"
 #include "Editor/FPlayInEditorSession.h"
 #include "Platform/Window.h"
+#include "Platform/WindowResources.h"
 #include "RenderCore/IRendererModule.h"
 #include "Engine/FProject.h"
 #include "Asset/FAssetFile.h"
@@ -45,6 +46,7 @@
 #include <array>
 #include <fstream>
 #include <regex>
+#include <span>
 
 /**
  * @brief ImGui Win32 백엔드의 외부 메시지 처리 진입점입니다.
@@ -65,24 +67,24 @@ namespace Editor {
         struct FContentIcon {
             std::string_view mKind{};
             const char* mTooltip{};
-            const wchar_t* mPath{};
+            WORD mResourceId{};
             Editor::EditorStyle::EIcon mFallback{};
             ImU32 mTint{IM_COL32_WHITE};
         };
 
-        constexpr FContentIcon FileIcon{"File", "파일", L"AssetIcons/Default_64x.png", Editor::EditorStyle::EIcon::Component};
+        constexpr FContentIcon FileIcon{"File", "파일", MacawContentFileIconResource, Editor::EditorStyle::EIcon::Component};
         constexpr FContentIcon ContentIcons[]{
             FileIcon,
-            {"Folder", "폴더", L"Folders/Folder_Base_256x.png", Editor::EditorStyle::EIcon::Component, IM_COL32(255, 208, 111, 255)},
-            {"C# Script", "C# 스크립트", L"AssetIcons/Class_64x.png", Editor::EditorStyle::EIcon::Tools, IM_COL32(216, 179, 255, 255)},
-            {"Mesh", "메시", L"AssetIcons/StaticMesh_64x.png", Editor::EditorStyle::EIcon::Local},
-            {"Skeletal Mesh", "스켈레탈 메시", L"AssetIcons/SkeletalMesh_64x.png", Editor::EditorStyle::EIcon::Skeleton},
-            {"Skeleton", "스켈레톤", L"AssetIcons/Skeleton_64x.png", Editor::EditorStyle::EIcon::Skeleton},
-            {"Material", "머티리얼", L"AssetIcons/Material_64x.png", Editor::EditorStyle::EIcon::Grid},
-            {"Texture", "텍스처", L"AssetIcons/Texture2D_64x.png", Editor::EditorStyle::EIcon::Sprite},
-            {"Sequence", "시퀀스", L"AssetIcons/LevelSequence_64x.png", Editor::EditorStyle::EIcon::Sequence},
-            {"Animation Sequence", "애니메이션 시퀀스", L"AssetIcons/AnimSequence_64x.png", Editor::EditorStyle::EIcon::Sequence},
-            {"Scene", "씬", L"AssetIcons/World_64x.png", Editor::EditorStyle::EIcon::World}
+            {"Folder", "폴더", MacawContentFolderIconResource, Editor::EditorStyle::EIcon::Component, IM_COL32(255, 208, 111, 255)},
+            {"C# Script", "C# 스크립트", MacawContentScriptIconResource, Editor::EditorStyle::EIcon::Tools, IM_COL32(216, 179, 255, 255)},
+            {"Mesh", "메시", MacawContentMeshIconResource, Editor::EditorStyle::EIcon::Local},
+            {"Skeletal Mesh", "스켈레탈 메시", MacawContentSkeletalMeshIconResource, Editor::EditorStyle::EIcon::Skeleton},
+            {"Skeleton", "스켈레톤", MacawContentSkeletonIconResource, Editor::EditorStyle::EIcon::Skeleton},
+            {"Material", "머티리얼", MacawContentMaterialIconResource, Editor::EditorStyle::EIcon::Grid},
+            {"Texture", "텍스처", MacawContentTextureIconResource, Editor::EditorStyle::EIcon::Sprite},
+            {"Sequence", "시퀀스", MacawContentSequenceIconResource, Editor::EditorStyle::EIcon::Sequence},
+            {"Animation Sequence", "애니메이션 시퀀스", MacawContentAnimationSequenceIconResource, Editor::EditorStyle::EIcon::Sequence},
+            {"Scene", "씬", MacawContentSceneIconResource, Editor::EditorStyle::EIcon::World}
         };
 
         const FContentIcon& GetContentIcon(std::string_view Kind) {
@@ -93,42 +95,6 @@ namespace Editor {
             }
 
             return FileIcon;
-        }
-
-        std::filesystem::path FindUnrealContentIcons() {
-            constexpr const wchar_t* SlateIcons{L"Engine/Content/Editor/Slate/Icons"};
-            std::array<wchar_t, 32768> Buffer{};
-            std::error_code Error{};
-            const DWORD OverrideLength{GetEnvironmentVariableW(L"UE5_ROOT", Buffer.data(), static_cast<DWORD>(Buffer.size()))};
-
-            if (OverrideLength > 0 && OverrideLength < Buffer.size()) {
-                const std::filesystem::path Icons{std::filesystem::path{Buffer.data()} / SlateIcons};
-
-                return std::filesystem::is_directory(Icons, Error) ? Icons : std::filesystem::path{};
-            }
-
-            const DWORD ProgramFilesLength{GetEnvironmentVariableW(L"ProgramFiles", Buffer.data(), static_cast<DWORD>(Buffer.size()))};
-
-            if (ProgramFilesLength == 0 || ProgramFilesLength >= Buffer.size()) {
-                return {};
-            }
-
-            const std::filesystem::path EpicGames{std::filesystem::path{Buffer.data()} / L"Epic Games"};
-
-            for (std::filesystem::directory_iterator Entry{EpicGames, Error}, End{}; !Error && Entry != End; Entry.increment(Error)) {
-                if (!Entry->path().filename().native().starts_with(L"UE_5.")) {
-                    continue;
-                }
-
-                const std::filesystem::path Icons{Entry->path() / SlateIcons};
-                std::error_code IconError{};
-
-                if (std::filesystem::is_directory(Icons, IconError)) {
-                    return Icons;
-                }
-            }
-
-            return {};
         }
 
         void DrawContentImage(float Size, void* Thumbnail, ID3D11ShaderResourceView* Resource, const FContentIcon& Icon) {
@@ -327,19 +293,28 @@ namespace Editor {
     }
 
     void Editor::FEditorUI::LoadContentIcons(RenderCore::IRendererModule* Renderer) {
-        const std::filesystem::path Directory{FindUnrealContentIcons()};
         auto* Device{static_cast<ID3D11Device*>(Renderer->GetNativeDevice())};
 
-        if (Directory.empty() || Device == nullptr) {
+        if (Device == nullptr) {
             return;
         }
 
+        const HMODULE Module{GetModuleHandleW(nullptr)};
+        const std::filesystem::path ImageName{L"ContentIcon.png"};
+
         for (const FContentIcon& Icon : ContentIcons) {
-            const std::filesystem::path Path{Directory / Icon.mPath};
-            std::error_code Error{};
+            const HRSRC Resource{FindResourceW(Module, MAKEINTRESOURCEW(Icon.mResourceId), RT_RCDATA)};
+            const HGLOBAL Data{Resource != nullptr ? LoadResource(Module, Resource) : nullptr};
+            const auto* Bytes{Data != nullptr ? static_cast<const Core::Uint8*>(LockResource(Data)) : nullptr};
+
+            if (Bytes == nullptr) {
+                continue;
+            }
+
+            const std::span<const Core::Uint8> Image{Bytes, SizeofResource(Module, Resource)};
             Asset::UTexture2D Texture{};
 
-            if (std::filesystem::is_regular_file(Path, Error) && Texture.LoadFromFile(Path, false) && Texture.CreateResources(Device)) {
+            if (Texture.LoadFromMemory(Image, ImageName, false) && Texture.CreateResources(Device)) {
                 mContentIcons.try_emplace(Icon.mKind, Texture.GetShaderResourceView());
             }
         }

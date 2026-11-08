@@ -25,3 +25,16 @@
  * @brief 스플래시 제목용 굵은 글꼴의 Win32 리소스 ID입니다.
  */
 #define MacawSplashBoldFontResource 203
+
+#define MacawContentFileIconResource 301
+#define MacawContentFolderIconResource 302
+#define MacawContentScriptIconResource 303
+#define MacawContentMeshIconResource 304
+#define MacawContentSkeletalMeshIconResource 305
+#define MacawContentSkeletonIconResource 306
+#define MacawContentMaterialIconResource 307
+#define MacawContentTextureIconResource 308
+#define MacawContentSequenceIconResource 309
+#define MacawContentAnimationSequenceIconResource 310
+#define MacawContentSceneIconResource 311
+#define MacawContentIconNoticeResource 312
