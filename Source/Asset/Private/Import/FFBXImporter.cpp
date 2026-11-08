@@ -279,7 +279,7 @@ namespace Asset {
             MeshGlobal = MeshBindPose;
         }
 
-        // 메시 로컬 공간의 정점을 엔진 공간으로 옮기는 최종 변환입니다. 전역 변환 뒤에 Y 반전과 임포트 이동·회전·스케일(mBasis)을 적용합니다.
+        // 메시 로컬 공간의 정점을 엔진 공간으로 옮기는 최종 변환입니다. 전역 변환 뒤에 임포트 이동·회전·스케일(mBasis)을 적용합니다.
         // 스킨 메시의 정점은 여기서 바인드 자세 그대로 엔진 공간에 구워지며, 포즈 변형은 런타임에 스키닝 행렬이 맡습니다.
         const Asset::FMeshImportTransform Transform{ToMatrix(MeshGlobal * Geometry) * mBasis};
 
@@ -397,8 +397,8 @@ namespace Asset {
 
             // 삼각형의 세 꼭짓점을 하나씩 정점으로 만듭니다.
             for (int Corner{}; Corner < 3; ++Corner) {
-                // FBX의 CCW 앞면은 손 방향이 바뀌는 변환(Y 반전) 뒤에도 화면에서 CCW로 보이므로, 엔진의 CW 앞면에 맞게 꼭짓점을 역순(2, 1, 0)으로 읽습니다.
-                // 노드가 거울 변환이면 두 반전이 상쇄되어 원래 순서를 유지합니다.
+                // DeepConvertScene이 왼손 좌표계로 바꾸면서 폴리곤 꼭짓점 순서도 이미 엔진의 앞면 방향에 맞춰 두었습니다.
+                // 노드나 임포트 변환이 거울 변환(행렬식 음수)일 때만 앞면이 뒤집히므로 꼭짓점을 역순(2, 1, 0)으로 읽습니다.
                 const int SourceCorner{Transform.ReversesWinding() ? 2 - Corner : Corner};
 
                 // 이 꼭짓점이 가리키는 컨트롤 포인트(위치 정점) 인덱스입니다. 여러 삼각형이 같은 컨트롤 포인트를 공유할 수 있습니다.
@@ -419,7 +419,7 @@ namespace Asset {
                     return false;
                 }
 
-                // 위치는 이동을 포함한 전체 변환(노드 변환, Y 반전, 임포트 변환)으로 엔진 공간에 옮깁니다.
+                // 위치는 이동을 포함한 전체 변환(노드 변환, 임포트 변환)으로 엔진 공간에 옮깁니다.
                 const Core::FVector Position{Transform.TransformPosition(ToVector(Mesh.GetControlPointAt(ControlPoint)))};
 
                 // 요소가 없을 때의 기본값입니다. 탄젠트·바이탄젠트는 0 벡터, 정점 색상은 흰색입니다.
@@ -724,33 +724,34 @@ namespace Asset {
 
         const Asset::FAssetImportOption& Option{GetOption()};
 
-        // 원본 좌표계는 옵션과 무관하게 항상 엔진의 Z-Up 왼손 좌표계로 변환하며, 언리얼 FBX 임포터와 같이 두 단계로 나눕니다.
-        // 1. 여기서 Scene을 Z-Up 오른손 중간 좌표계로 변환합니다. 원본 파일의 축 설정이 무엇이든 이 단계 뒤에는 같은 좌표계가 됩니다.
-        // 2. mBasis의 Y 반전으로 중간 좌표계를 왼손 좌표계로 옮깁니다. ReadMesh와 ReadSkeleton이 값을 읽을 때 적용합니다.
-        //
-        // FbxAxisSystem 생성자의 첫 번째 인자 eZAxis는 중간 좌표계의 Up이 +Z라는 뜻입니다.
-        // 두 번째 인자는 Up을 제외한 나머지 두 축 중 FBX Front로 사용할 축과 그 부호를 정합니다.
-        // X, Y, Z 순서에서 Up을 제외했을 때 eParityEven은 첫 번째 축, eParityOdd는 두 번째 축을 선택합니다.
-        // Z-Up에서는 남은 축이 X, Y이므로 eParityEven은 +X, eParityOdd는 +Y, -eParityOdd는 -Y를 의미합니다.
-        // Force Front XAxis가 꺼져 있으면 -eParityOdd(Y 반전 후 Front +Y), 켜져 있으면 eParityEven(Front +X)을 사용합니다.
-        // 단항 - 연산의 결과는 int이므로 생성자가 받는 EFrontVector 타입으로 명시적으로 변환합니다.
-        // 세 번째 인자 eRightHanded는 최종 엔진 좌표계가 아니라 이 단계의 중간 좌표계가 오른손 좌표계라는 뜻입니다.
-        const auto Front{Option.mForceFrontXAxis ? FbxAxisSystem::eParityEven : static_cast<FbxAxisSystem::EFrontVector>(-FbxAxisSystem::eParityOdd)};
-        const FbxAxisSystem AxisSystem{FbxAxisSystem::eZAxis, Front, FbxAxisSystem::eRightHanded};
+        // 3ds Max가 넣는 FbxRoot 더미 노드를 지워 본 계층과 전역 변환에 끼어들지 않게 합니다.
+        FbxRootNodeUtility::RemoveAllFbxRoots(mScene);
 
-        // ConvertScene은 축 변환을 노드 변환에만 반영하고 컨트롤 포인트는 그대로 두므로, ReadMesh는 노드 전역 변환을 곱해야 변환된 위치를 얻습니다.
-        // DeepConvertScene으로 왼손 좌표계까지 한 번에 변환하면 삼각형 순서 등도 달라질 수 있으므로 두 단계를 유지합니다.
-        // Assimp 임포터는 같은 결과를 FMeshImportTransform::MakeYUpConversion으로 직접 계산합니다.
-        AxisSystem.ConvertScene(mScene);
+        // 원본 좌표계는 옵션과 무관하게 항상 엔진의 Z-Up 왼손 좌표계로 변환합니다.
+        // DeepConvertScene은 노드 변환뿐 아니라 컨트롤 포인트·노멀·폴리곤 순서·바인드 포즈·클러스터·애니메이션 커브까지 변환하므로,
+        // 이후 ReadMesh, ReadSkeleton, ReadAnimations가 읽는 값은 모두 이미 엔진 좌표계이며 축을 다시 뒤집지 않습니다.
+        //
+        // FbxAxisSystem 생성자의 첫 번째 인자 eZAxis는 Up이 +Z라는 뜻입니다.
+        // 두 번째 인자는 Up을 제외한 나머지 두 축 중 Front로 사용할 축을 정하며, Z-Up에서는 eParityEven이 +X, eParityOdd가 +Y입니다.
+        // Force Front XAxis가 꺼져 있으면 언리얼 FBX 임포터와 같이 Front가 +Y, 켜져 있으면 +X입니다.
+        const auto Front{Option.mForceFrontXAxis ? FbxAxisSystem::eParityEven : FbxAxisSystem::eParityOdd};
+        const FbxAxisSystem AxisSystem{FbxAxisSystem::eZAxis, Front, FbxAxisSystem::eLeftHanded};
+
+        if (mScene->GetGlobalSettings().GetAxisSystem() != AxisSystem) {
+            AxisSystem.DeepConvertScene(mScene);
+        }
 
         // Scene의 길이 단위를 원본 FBX에 저장된 단위에서 미터로 변환합니다. FbxSystemUnit::m은 미터 단위입니다.
         // 예를 들어 센티미터 단위 Scene의 100cm 길이가 변환 후에도 1m에 해당하도록 조정합니다. 끄면 원본 수치를 그대로 사용합니다.
-        if (Option.mConvertSceneUnit) {
+        if (Option.mConvertSceneUnit && mScene->GetGlobalSettings().GetSystemUnit() != FbxSystemUnit::m) {
             FbxSystemUnit::m.ConvertScene(mScene);
         }
 
-        // 중간 좌표계에서 엔진 공간으로: 왼손 좌표계로 바꾸는 Y 반전 → 임포트 이동·회전·스케일 순서로 적용합니다.
-        mBasis = Asset::FMeshImportTransform::MakeFlipY() * Option.GetImportTransform();
+        // 변환 전에 평가해 둔 전역 변환 캐시가 남지 않도록 평가기를 초기화합니다.
+        mScene->GetAnimationEvaluator()->Reset();
+
+        // 장면이 이미 엔진 좌표계이므로 엔진 공간에서 적용할 임포트 이동·회전·스케일만 남습니다.
+        mBasis = Option.GetImportTransform();
 
         // Scene의 지오메트리를 삼각형으로 분할합니다. 두 번째 인자 true는 기존 지오메트리를 분할 결과로 교체하도록 지정합니다.
         // ReadMesh는 삼각형 메시만 받으므로 메시를 읽기 전에 수행해야 합니다.

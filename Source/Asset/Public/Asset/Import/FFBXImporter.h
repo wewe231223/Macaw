@@ -23,8 +23,9 @@ namespace Asset {
      *
      * 애니메이션 본 트랙은 ReadSkeleton과 같은 방법으로 계산합니다. 같은 시각의 본 전역 변환에 부모 본 전역 변환의 역을 곱하므로, 사이에 일반 노드가 끼어 있어도 바인드 포즈와 같은 부모 본 기준을 따릅니다.
      *
-     * 좌표계 변환은 옵션과 무관하게 항상 수행합니다. 원본 축 → (FbxAxisSystem::ConvertScene) → Z-Up 오른손 중간 좌표계 → (mBasis의 Y 반전) → Z-Up 왼손 엔진 좌표계 순서입니다.
-     * 정점과 본은 모두 mBasis를 거쳐 같은 엔진 공간의 바인드 자세로 저장되며, 이 데이터로 USkeletalMesh가 역바인드 행렬을 계산합니다.
+     * 좌표계 변환은 옵션과 무관하게 항상 수행합니다. FbxRoot 더미 노드를 지운 뒤 FbxAxisSystem::DeepConvertScene으로 장면 전체(노드, 정점, 노멀, 폴리곤 순서, 클러스터, 애니메이션)를
+     * Z-Up 왼손 엔진 좌표계로 바꾸고 단위를 미터로 맞춥니다. 이후 읽는 값은 모두 엔진 좌표계이며, mBasis에는 임포트 이동·회전·스케일만 남습니다.
+     * 본의 로컬 축은 원본 그대로 유지되므로(예: Mixamo 본은 로컬 Y가 뼈 방향), 본 로컬 변환은 원본 DCC의 축 규약을 따릅니다.
      */
     class FFBXImporter final : public Asset::IMeshImporter {
     private:
@@ -166,12 +167,12 @@ namespace Asset {
         FMaterialIndices mMaterialIndices{};
 
         /**
-         * @brief ConvertScene을 거친 Z-Up 오른손 FBX 전역 공간에서 엔진 공간으로 가는 행렬입니다. Y 반전과 임포트 이동·회전·스케일을 포함합니다.
+         * @brief DeepConvertScene을 거친 FBX 전역 공간(이미 엔진 좌표계)에 적용할 임포트 이동·회전·스케일 행렬입니다.
          */
         Core::FMatrix mBasis{};
 
         /**
-         * @brief 스킨 클러스터 링크 노드별 바인드 시점 전역 변환이며 ConvertScene 뒤의 FBX 전역 공간 기준입니다.
+         * @brief 스킨 클러스터 링크 노드별 바인드 시점 전역 변환이며 DeepConvertScene 뒤의 FBX 전역 공간 기준입니다.
          */
         Core::TMap<fbxsdk::FbxNode*, Core::FMatrix> mBindPoses{};
 
