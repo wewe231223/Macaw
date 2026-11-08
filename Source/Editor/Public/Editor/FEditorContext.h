@@ -593,11 +593,7 @@ namespace Editor {
          */
         void AssignSelection(const Core::TArray<CoreUObject::FObjectHandle>& Actors, CoreUObject::FObjectHandle Object);
 
-        /**
-         * @brief 월드 편집, 재진입과 디스패치 상태를 확인하여 액터 생성 가능 여부를 반환합니다.
-         * @return 생성 연산을 시작할 수 있으면 true입니다.
-         */
-        bool CanSpawnActor() const;
+        bool CanModifyScene() const;
 
         /**
          * @brief 새 액터에 배치 변환을 적용하고 실패하면 생성한 액터를 제거합니다.

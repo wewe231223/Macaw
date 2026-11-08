@@ -787,10 +787,7 @@ namespace Editor {
                     }
                 }
 
-                // PIE 중에는 편집 월드가 잠겨 저장할 수 없으므로 메뉴도 비활성화합니다.
-                const bool CanSave{!mPlaySession->IsActive()};
-
-                if (ImGui::MenuItem("Save Scene", "Ctrl+S", false, CanSave)) {
+                if (ImGui::MenuItem("Save Scene", "Ctrl+S", false)) {
                     const auto Path{mContext->GetScenePath().empty() ? ChooseFile(true) : mContext->GetScenePath()};
 
                     if (!Path.empty()) {
@@ -799,7 +796,7 @@ namespace Editor {
                     }
                 }
 
-                if (ImGui::MenuItem("Save Scene As...", nullptr, false, CanSave)) {
+                if (ImGui::MenuItem("Save Scene As...", nullptr, false)) {
                     const auto Path{ChooseFile(true)};
 
                     if (!Path.empty()) {
@@ -808,7 +805,7 @@ namespace Editor {
                     }
                 }
 
-                if (ImGui::MenuItem("Set Current Scene as Startup", nullptr, false, CanSave && !mContext->GetScenePath().empty())) {
+                if (ImGui::MenuItem("Set Current Scene as Startup", nullptr, false, !mContext->GetScenePath().empty())) {
                     Core::FString Error{};
 
                     if (!mContext->SaveScene(mContext->GetScenePath()) || !mContext->GetProject()->SetStartupScene(mContext->GetScenePath(), Error)) {

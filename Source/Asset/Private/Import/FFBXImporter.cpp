@@ -437,7 +437,7 @@ namespace Asset {
                 // 노멀은 역전치 행렬로 변환하고 단위 길이로 정규화합니다. 길이가 0이면 정규화에 실패합니다.
                 Core::FVector Normal{Transform.TransformNormal(ToVector(SourceNormal))};
 
-                if (!Normal.IsFinite() || !Normal.Normalize()) {
+                if (!Normal.Normalize()) {
                     Error = "The FBX mesh contains an invalid normal";
 
                     return false;
@@ -760,9 +760,7 @@ namespace Asset {
         const auto Front{Option.mForceFrontXAxis ? FbxAxisSystem::eParityEven : FbxAxisSystem::eParityOdd};
         const FbxAxisSystem AxisSystem{FbxAxisSystem::eZAxis, Front, FbxAxisSystem::eLeftHanded};
 
-        if (mScene->GetGlobalSettings().GetAxisSystem() != AxisSystem) {
-            AxisSystem.DeepConvertScene(mScene);
-        }
+        AxisSystem.DeepConvertScene(mScene);
 
         // Scene의 길이 단위를 원본 FBX에 저장된 단위에서 미터로 변환합니다. FbxSystemUnit::m은 미터 단위입니다.
         // 예를 들어 센티미터 단위 Scene의 100cm 길이가 변환 후에도 1m에 해당하도록 조정합니다. 끄면 원본 수치를 그대로 사용합니다.
@@ -831,10 +829,6 @@ namespace Asset {
             Asset::FAnimDataModel DataModel{};
             bool Animated{};
 
-            if (Stack == nullptr) {
-                continue;
-            }
-
             if (!ReadAnimationStack(*Stack, DataModel, Animated)) {
                 GetError() = "Cannot read the FBX animation stack '" + Core::FString{Stack->GetName()} + "': " + GetError();
 
@@ -856,11 +850,6 @@ namespace Asset {
             Core::FString Name{Stacks.size() == 1 || StackName.empty() ? Base : Base + "_" + StackName};
 
             GetResult().GetAnimations().emplace_back(std::move(Name), std::move(DataModel));
-        }
-
-        // 다른 스택 평가에 영향이 없도록 첫 스택을 현재 스택으로 되돌립니다.
-        if (StackCount > 0) {
-            mScene->SetCurrentAnimationStack(mScene->GetSrcObject<FbxAnimStack>(0));
         }
 
         return true;

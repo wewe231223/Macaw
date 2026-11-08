@@ -76,7 +76,7 @@ namespace Editor {
     Engine::FHitProxy Editor::FTransformGizmo::HitTest(const Core::FVector2& Mouse, const Engine::FSceneView& View) const {
         const Engine::USceneComponent* Target{GetPrimaryTarget()};
 
-        if (!mContext->CanEditWorld() || Target == nullptr || Target->GetOwner() == nullptr) {
+        if (!mContext->CanEditWorld() || Target == nullptr) {
             return {};
         }
 
@@ -86,27 +86,21 @@ namespace Editor {
     /**
      * @brief 선택 축과 대상의 시작 변환을 저장하고 드래그 평면을 구성합니다.
      */
-    bool Editor::FTransformGizmo::BeginDrag(Core::Int32 Axis, const Engine::FViewportInput* Input, const Engine::FSceneView& View) {
-        Engine::USceneComponent* Target{GetPrimaryTarget()};
-
-        if (Input == nullptr || Target == nullptr || Target->GetOwner() == nullptr || !mContext->CanEditWorld() || Axis < 0 || Axis > 7) {
-            return false;
-        }
-
+    bool Editor::FTransformGizmo::BeginDrag(Core::Int32 Axis, const Engine::USceneComponent& Target, const Engine::FViewportInput& Input, const Engine::FSceneView& View) {
         if (!CaptureTargets()) {
             return false;
         }
 
-        const Editor::FGizmoPlacement Placement{GetPlacement(*Target)};
+        const Editor::FGizmoPlacement Placement{GetPlacement(Target)};
 
-        mStartTransform = Target->GetTransform();
+        mStartTransform = Target.GetTransform();
         mOriginalPivot = mPivot;
         mHadPivot = mHasPivot && mPivotRevision == mContext->GetSelectionRevision();
-        mPivotOnly = Input->mMiddlePressed && Placement.mMode == Editor::EGizmoMode::Translate;
-        mDuplicationState = Input->mAlt && !mPivotOnly && Placement.mMode == Editor::EGizmoMode::Translate ? EDuplicationState::Pending : EDuplicationState::None;
+        mPivotOnly = Input.mMiddlePressed && Placement.mMode == Editor::EGizmoMode::Translate;
+        mDuplicationState = Input.mAlt && !mPivotOnly && Placement.mMode == Editor::EGizmoMode::Translate ? EDuplicationState::Pending : EDuplicationState::None;
         mSelectionRevision = mContext->GetSelectionRevision();
 
-        if (!mCore.BeginDrag(Axis, Input->mMouse, View, Placement)) {
+        if (!mCore.BeginDrag(Axis, Input.mMouse, View, Placement)) {
             return false;
         }
 
@@ -275,7 +269,7 @@ namespace Editor {
 
         const bool Pressed{Input.mLeftPressed || (Input.mMiddlePressed && mClient->GetGizmoMode() == Editor::EGizmoMode::Translate)};
 
-        return Pressed && Hovered >= 0 && BeginDrag(Hovered, &Input, View);
+        return Pressed && Hovered >= 0 && BeginDrag(Hovered, *Target, Input, View);
     }
 
     /**
@@ -284,7 +278,7 @@ namespace Editor {
     void Editor::FTransformGizmo::Draw(const Engine::FSceneView& View, Engine::FPrimitiveDrawInterface& DrawInterface) {
         const Engine::USceneComponent* Target{GetPrimaryTarget()};
 
-        if (Target != nullptr && Target->GetOwner() != nullptr && mContext->CanEditWorld()) {
+        if (Target != nullptr && mContext->CanEditWorld()) {
             mCore.BuildHandles(View, GetPlacement(*Target), DrawInterface);
         }
 

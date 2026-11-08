@@ -131,7 +131,7 @@ namespace Asset {
         // 그람-슈미트 직교화: 탄젠트에서 노멀 방향 성분을 빼서 노멀과 정확히 수직이 되도록 만듭니다.
         Core::FVector Tangent{Direction - Normal * Normal.Dot(Direction)};
 
-        if (!Tangent.IsFinite() || !Tangent.Normalize()) {
+        if (!Tangent.Normalize()) {
             // 탄젠트가 없거나 노멀과 평행하면, 노멀과 거의 평행하지 않은 기준 축(기본 Z, 노멀이 Z에 가까우면 Y)과 노멀의 외적을 사용합니다.
             const Core::FVector Axis{std::abs(Normal.z) < 0.99f ? Core::FVector{0.0f, 0.0f, 1.0f} : Core::FVector{0.0f, 1.0f, 0.0f}};
 

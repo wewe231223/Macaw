@@ -76,7 +76,7 @@ namespace Editor {
      * @brief 명시적인 편집 월드 연결을 변경합니다.
      */
     bool Editor::FEditorContext::SetWorld(Engine::FWorldHandle Handle) {
-        if (mPlayLocked || mEngine == nullptr || mEngine->GetWorld(Handle) == nullptr || mChangingState || mEditingProperty || mEngine->IsDispatching()) {
+        if (mPlayLocked || IsChangingState() || mEngine == nullptr || mEngine->GetWorld(Handle) == nullptr || mEngine->IsDispatching()) {
             return false;
         }
 
@@ -95,7 +95,7 @@ namespace Editor {
      * @brief UI와 월드 사이의 비소유 편집 연결을 해제합니다.
      */
     void Editor::FEditorContext::Reset() {
-        if (mPlayLocked || mChangingState || mEditingProperty) {
+        if (mPlayLocked || IsChangingState()) {
             return;
         }
 
@@ -131,6 +131,10 @@ namespace Editor {
         const Engine::UWorld* World{GetWorld()};
 
         return !mPlayLocked && World != nullptr && (World->GetWorldType() == Engine::EWorldType::Editor || World->GetWorldType() == Engine::EWorldType::EditorPreview) && World->GetPlayState() == Engine::EWorldPlayState::Stopped;
+    }
+
+    bool Editor::FEditorContext::CanModifyScene() const {
+        return CanEditWorld() && !IsChangingState() && !mEngine->IsDispatching();
     }
 
     /**
@@ -201,7 +205,7 @@ namespace Editor {
      * @brief 유효한 액터를 선택하고 프로퍼티 편집 대상으로 지정합니다.
      */
     bool Editor::FEditorContext::SelectActor(CoreUObject::FObjectHandle Handle) {
-        return CoreUObject::Cast<Engine::AActor>(ResolveObject(Handle)) != nullptr && SetSelection({Handle}, Handle);
+        return SetSelection({Handle}, Handle);
     }
 
     /**
@@ -234,32 +238,27 @@ namespace Editor {
      * @brief 요청 대상이 유효한지 확인하고 선택을 적용합니다.
      */
     bool Editor::FEditorContext::SetSelection(const Core::TArray<CoreUObject::FObjectHandle>& Actors, CoreUObject::FObjectHandle Object) {
-        if (mPlayLocked || mChangingState || mEditingProperty) {
+        if (mPlayLocked || IsChangingState()) {
             return false;
         }
 
         FOperationScope Scope{&mChangingState};
-        Core::TArray<CoreUObject::FObjectHandle> Valid{};
 
-        for (CoreUObject::FObjectHandle Handle : Actors) {
-            const auto* Actor{CoreUObject::Cast<Engine::AActor>(ResolveObject(Handle))};
+        for (auto Position{Actors.begin()}; Position != Actors.end(); ++Position) {
+            const CoreUObject::FObjectHandle Handle{*Position};
 
-            if (Actor == nullptr || Actor->IsPendingDestroy() || std::find(Valid.begin(), Valid.end(), Handle) != Valid.end()) {
+            if (CoreUObject::Cast<Engine::AActor>(ResolveObject(Handle)) == nullptr || std::find(Actors.begin(), Position, Handle) != Position) {
                 return false;
             }
-
-            Valid.push_back(Handle);
         }
 
         if (Object.IsValid() && ResolveObject(Object) == nullptr) {
             return false;
         }
 
-        if (mSelectedActors == Valid && mSelectedObject == Object) {
-            return true;
+        if (mSelectedActors != Actors || mSelectedObject != Object) {
+            AssignSelection(Actors, Object);
         }
-
-        AssignSelection(Valid, Object);
 
         return true;
     }
@@ -277,9 +276,13 @@ namespace Editor {
      * @brief 선택한 액터를 월드 소속과 함께 검증합니다.
      */
     Engine::AActor* Editor::FEditorContext::GetSelectedActor() const {
-        const Core::TArray<CoreUObject::FObjectHandle> Actors{GetSelectedActors()};
+        for (auto Position{mSelectedActors.rbegin()}; Position != mSelectedActors.rend(); ++Position) {
+            if (auto* Actor{CoreUObject::Cast<Engine::AActor>(ResolveObject(*Position))}) {
+                return Actor;
+            }
+        }
 
-        return Actors.empty() ? nullptr : CoreUObject::Cast<Engine::AActor>(ResolveObject(Actors.back()));
+        return nullptr;
     }
 
     /**
@@ -293,7 +296,7 @@ namespace Editor {
      * @brief 지정한 기본 메시 종류의 액터를 생성하여 영속 레벨에 추가합니다.
      */
     Engine::AStaticMeshActor* Editor::FEditorContext::SpawnPrimitive(Engine::EPrimitiveType Type) {
-        if (!CanSpawnActor()) {
+        if (!CanModifyScene()) {
             return nullptr;
         }
 
@@ -320,7 +323,7 @@ namespace Editor {
      * @brief 편집 월드에 기본 카메라 액터를 생성합니다.
      */
     Engine::ACameraActor* Editor::FEditorContext::SpawnCamera() {
-        if (!CanSpawnActor()) {
+        if (!CanModifyScene()) {
             return nullptr;
         }
 
@@ -350,7 +353,7 @@ namespace Editor {
      * @brief 배치 위치에 빌보드 텍스트 액터를 생성하고 선택합니다.
      */
     Engine::AActor* Editor::FEditorContext::SpawnText() {
-        if (!CanSpawnActor()) {
+        if (!CanModifyScene()) {
             return nullptr;
         }
 
@@ -388,7 +391,7 @@ namespace Editor {
      * @brief 배치 위치에 텍스처 빌보드 액터를 생성하고 선택과 장면 변경 상태를 갱신합니다.
      */
     Engine::AActor* Editor::FEditorContext::SpawnBillboard(const Core::FString& SpritePath) {
-        if (!CanSpawnActor()) {
+        if (!CanModifyScene()) {
             return nullptr;
         }
 
@@ -425,13 +428,6 @@ namespace Editor {
     }
 
     /**
-     * @brief 월드 편집, 재진입과 디스패치 상태를 확인하여 액터 생성 가능 여부를 반환합니다.
-     */
-    bool Editor::FEditorContext::CanSpawnActor() const {
-        return CanEditWorld() && !mChangingState && !mEditingProperty && !mEngine->IsDispatching();
-    }
-
-    /**
      * @brief 새 액터에 배치 변환을 적용하고 실패하면 생성한 액터를 제거합니다.
      */
     bool Editor::FEditorContext::ApplySpawnPlacement(Engine::AActor* Actor, const Core::FTransform& Placement) {
@@ -463,7 +459,7 @@ namespace Editor {
      * @brief 현재 선택 액터와 편집 상태에서 해당 컴포넌트를 생성할 수 있는지 검사합니다.
      */
     bool Editor::FEditorContext::CanAddComponent(const CoreUObject::UClass* Class) const {
-        return CanEditWorld() && !mChangingState && !mEditingProperty && !mEngine->IsDispatching() && GetSelectedActors().size() == 1 && Class != nullptr && Class != Engine::UActorComponent::StaticClass() && Class->IsChildOf(Engine::UActorComponent::StaticClass()) && Class->CanCreate();
+        return CanModifyScene() && GetSelectedActors().size() == 1 && Class != nullptr && Class != Engine::UActorComponent::StaticClass() && Class->IsChildOf(Engine::UActorComponent::StaticClass()) && Class->CanCreate();
     }
 
     /**
@@ -551,7 +547,7 @@ namespace Editor {
     bool Editor::FEditorContext::UseSelectedCamera() {
         Engine::UCameraComponent* Camera{GetSelectedCamera()};
 
-        if (!CanEditWorld() || mChangingState || mEditingProperty || mEngine->IsDispatching() || Camera == nullptr) {
+        if (!CanModifyScene() || Camera == nullptr) {
             return false;
         }
 
@@ -568,7 +564,7 @@ namespace Editor {
      * @brief 현재 선택한 액터를 제거하고 관련 선택 상태를 초기화합니다.
      */
     bool Editor::FEditorContext::DestroySelectedActor() {
-        if (!CanEditWorld() || mChangingState || mEditingProperty || mEngine->IsDispatching()) {
+        if (!CanModifyScene()) {
             return false;
         }
 
@@ -659,7 +655,7 @@ namespace Editor {
             return false;
         }
 
-        if (!CanEditWorld() || Path.empty() || mChangingState || mEditingProperty || mEngine->IsDispatching()) {
+        if (Path.empty() || !CanModifyScene()) {
             return false;
         }
 
@@ -708,7 +704,7 @@ namespace Editor {
             return false;
         }
 
-        if (Previous.IsValid() && mEngine->GetWorld(Previous) != nullptr && !mEngine->DestroyWorld(Previous)) {
+        if (mEngine->GetWorld(Previous) != nullptr && !mEngine->DestroyWorld(Previous)) {
             mEngine->DestroyWorld(Replacement);
 
             return false;
@@ -801,7 +797,7 @@ namespace Editor {
      * @brief 슬롯 재질을 변경하고 장면을 수정 상태로 표시합니다.
      */
     bool Editor::FEditorContext::SetMaterialOverride(CoreUObject::FObjectHandle Handle, Core::Uint32 Slot, const Core::FString& Path) {
-        if (!CanEditWorld() || IsChangingState() || mEngine->IsDispatching()) {
+        if (!CanModifyScene()) {
             return false;
         }
 
@@ -822,7 +818,7 @@ namespace Editor {
     bool Editor::FEditorContext::SetScriptField(CoreUObject::FObjectHandle Handle, const Script::FScriptField& Field) {
         auto* Component{CoreUObject::Cast<Script::UScriptComponent>(ResolveObject(Handle))};
 
-        if (!CanEditWorld() || IsChangingState() || mEngine->IsDispatching() || Component == nullptr) {
+        if (!CanModifyScene() || Component == nullptr) {
             return false;
         }
 
@@ -839,7 +835,7 @@ namespace Editor {
     bool Editor::FEditorContext::RemoveScriptField(CoreUObject::FObjectHandle Handle, const Core::FString& Name) {
         auto* Component{CoreUObject::Cast<Script::UScriptComponent>(ResolveObject(Handle))};
 
-        if (!CanEditWorld() || IsChangingState() || mEngine->IsDispatching() || Component == nullptr) {
+        if (!CanModifyScene() || Component == nullptr) {
             return false;
         }
 
@@ -854,7 +850,7 @@ namespace Editor {
      * @brief 장면 파일을 새 컨텍스트에 읽고 편집 대상 월드만 교체합니다.
      */
     bool Editor::FEditorContext::LoadScene(const std::filesystem::path& Path) {
-        if (!CanEditWorld() || Path.empty() || mChangingState || mEditingProperty || mEngine->IsDispatching()) {
+        if (Path.empty() || !CanModifyScene()) {
             return false;
         }
 
@@ -890,7 +886,7 @@ namespace Editor {
      * @brief 빈 편집 월드로 교체하고 선택 및 장면 파일 상태를 초기화합니다.
      */
     bool Editor::FEditorContext::NewScene() {
-        if (!CanEditWorld() || mChangingState || mEditingProperty || mEngine->IsDispatching()) {
+        if (!CanModifyScene()) {
             return false;
         }
 
@@ -933,7 +929,7 @@ namespace Editor {
      * @brief 지정한 변환에 메시 에셋 액터를 생성하고 선택합니다.
      */
     Engine::AStaticMeshActor* Editor::FEditorContext::SpawnMesh(const std::filesystem::path& Path, const Core::FTransform& Placement) {
-        if (!CanSpawnActor() || !Placement.IsValid()) {
+        if (!CanModifyScene() || !Placement.IsValid()) {
             return nullptr;
         }
 
@@ -976,7 +972,7 @@ namespace Editor {
      * @brief 지정 위치에 스켈레탈 메시 액터를 배치하고 선택합니다.
      */
     Engine::ASkeletalMeshActor* Editor::FEditorContext::SpawnSkeletalMesh(const std::filesystem::path& Path, const Core::FTransform& Placement) {
-        if (!CanSpawnActor() || !Placement.IsValid() || GetProject() == nullptr) {
+        if (!CanModifyScene() || !Placement.IsValid() || GetProject() == nullptr) {
             return nullptr;
         }
 
@@ -1083,7 +1079,7 @@ namespace Editor {
         Core::TArray<CoreUObject::FObjectHandle> Result{};
 
         for (CoreUObject::FObjectHandle Handle : mSelectedActors) {
-            if (const auto* Actor{CoreUObject::Cast<Engine::AActor>(ResolveObject(Handle))}; Actor != nullptr && !Actor->IsPendingDestroy()) {
+            if (CoreUObject::Cast<Engine::AActor>(ResolveObject(Handle)) != nullptr) {
                 Result.push_back(Handle);
             }
         }
@@ -1146,7 +1142,7 @@ namespace Editor {
      * @brief 현재 선택 액터들을 새 GUID로 복제하고 복제본들을 선택합니다.
      */
     Core::TArray<CoreUObject::FObjectHandle> Editor::FEditorContext::DuplicateSelectedActors() {
-        if (!CanEditWorld() || mChangingState || mEditingProperty || mEngine->IsDispatching()) {
+        if (!CanModifyScene()) {
             return {};
         }
 
@@ -1187,7 +1183,7 @@ namespace Editor {
      * @brief 지정한 프리셋의 액터를 생성·배치하고 선택과 장면 변경 상태를 갱신합니다.
      */
     Engine::AActor* Editor::FEditorContext::SpawnActorPreset(const Core::FString& Preset, const Core::FTransform& Placement) {
-        if (!CanSpawnActor() || GetWorld() == nullptr || !Placement.IsValid()) {
+        if (!CanModifyScene() || !Placement.IsValid()) {
             return nullptr;
         }
 

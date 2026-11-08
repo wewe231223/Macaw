@@ -154,7 +154,7 @@ namespace Asset {
             const Core::FVector Position{Transform.TransformPosition(ToVector(Source.mVertices[VertexIndex]))};
             Core::FVector Normal{Transform.TransformNormal(Source.HasNormals() ? ToVector(Source.mNormals[VertexIndex]) : Core::FVector{0.0f, 1.0f, 0.0f})};
 
-            if (!Position.IsFinite() || !Normal.IsFinite() || !Normal.Normalize()) {
+            if (!Position.IsFinite() || !Normal.Normalize()) {
                 Error = "The source contains invalid vertex attributes";
 
                 return false;

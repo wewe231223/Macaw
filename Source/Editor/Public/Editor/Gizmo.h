@@ -167,7 +167,7 @@ namespace Editor {
          * @param[in] View 입력 해석이나 그리기에 사용할 카메라 뷰입니다.
          * @return 드래그 대상과 시작 상태를 준비하면 true입니다.
          */
-        bool BeginDrag(Core::Int32 Axis, const Engine::FViewportInput* Input, const Engine::FSceneView& View);
+        bool BeginDrag(Core::Int32 Axis, const Engine::USceneComponent& Target, const Engine::FViewportInput& Input, const Engine::FSceneView& View);
 
         /**
          * @brief 마우스 이동량을 활성 모드의 변환으로 바꾸어 선택한 액터에 적용합니다.
