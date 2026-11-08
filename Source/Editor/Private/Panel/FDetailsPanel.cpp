@@ -88,6 +88,21 @@ namespace Editor {
             return !Property->HasFlag(Core::EPropertyFlags::Transient) && (Property->HasFlag(Core::EPropertyFlags::Edit) || Property->HasFlag(Core::EPropertyFlags::ReadOnly));
         }
 
+        Core::FString DrawFieldLabel(const char* Label, float TrailingWidth = 0.0f) {
+            const float LabelEnd{ImGui::GetCursorPosX() + std::max(1.0f, ImGui::GetContentRegionAvail().x * 0.4f)};
+
+            ImGui::AlignTextToFramePadding();
+            ImGui::PushTextWrapPos(LabelEnd);
+            ImGui::TextUnformatted(Label);
+            ImGui::PopTextWrapPos();
+
+            ImGui::SameLine();
+            ImGui::SetCursorPosX(LabelEnd + ImGui::GetStyle().ItemInnerSpacing.x);
+            ImGui::SetNextItemWidth(std::max(1.0f, ImGui::GetContentRegionAvail().x - TrailingWidth));
+
+            return Core::FString{"##"} + Label;
+        }
+
         // 숫자 변환은 Macaw.Engine의 ScriptFields와 같은 형식이어야 하므로 로캘과 무관한 charconv를 씁니다.
 
         /**
@@ -121,9 +136,7 @@ namespace Editor {
          * @param[in,out] Value 문자열로 변환된 값입니다.
          * @return 값이 바뀌면 true입니다.
          */
-        bool DrawScriptFieldValue(const Script::FScriptFieldInfo& Info, Core::FString& Value) {
-            const char* Label{Info.mName.c_str()};
-
+        bool DrawScriptFieldValue(const Script::FScriptFieldInfo& Info, const char* Label, Core::FString& Value) {
             if (Info.mType == "Bool") {
                 bool Current{Value == "true"};
 
@@ -284,7 +297,7 @@ namespace Editor {
                 if (Info.mType == "Actor") {
                     const CoreUObject::UObject* Target{Field != nullptr ? Field->mObject.Resolve() : nullptr};
 
-                    if (ImGui::BeginCombo(Info.mName.c_str(), Target != nullptr ? Target->GetName().c_str() : "(없음)")) {
+                    if (ImGui::BeginCombo(DrawFieldLabel(Info.mName.c_str()).c_str(), Target != nullptr ? Target->GetName().c_str() : "(없음)")) {
                         if (ImGui::Selectable("(없음)", Target == nullptr)) {
                             Context->RemoveScriptField(Handle, Info.mName);
                         }
@@ -308,7 +321,12 @@ namespace Editor {
                     continue;
                 }
 
-                if (DrawScriptFieldValue(Info, Value)) {
+                const char* ResetLabel{"기본값"};
+                const ImGuiStyle& Style{ImGui::GetStyle()};
+                const float ResetWidth{Field != nullptr ? ImGui::CalcTextSize(ResetLabel).x + Style.FramePadding.x * 2.0f + Style.ItemSpacing.x : 0.0f};
+                const Core::FString InputLabel{DrawFieldLabel(Info.mName.c_str(), ResetWidth)};
+
+                if (DrawScriptFieldValue(Info, InputLabel.c_str(), Value)) {
                     if (Value == Info.mDefault) {
                         Context->RemoveScriptField(Handle, Info.mName);
                     } else {
@@ -319,7 +337,7 @@ namespace Editor {
                 if (Field != nullptr) {
                     ImGui::SameLine();
 
-                    if (ImGui::SmallButton("기본값")) {
+                    if (ImGui::SmallButton(ResetLabel)) {
                         Context->RemoveScriptField(Handle, Info.mName);
                     }
                 }
@@ -656,7 +674,7 @@ namespace Editor {
 
             bool Changed{};
 
-            if (ImGui::BeginCombo(Label, Current != Choices.end() ? Current->mName.c_str() : "Invalid")) {
+            if (ImGui::BeginCombo(DrawFieldLabel(Label).c_str(), Current != Choices.end() ? Current->mName.c_str() : "Invalid")) {
                 for (const CoreUObject::FEnumValue& Choice : Choices) {
                     if (ImGui::Selectable(Choice.mName.c_str(), Number == Choice.mValue)) {
                         Number = Choice.mValue;
@@ -675,7 +693,7 @@ namespace Editor {
         if (auto* Vector2{std::get_if<Core::FVector2>(&Value)}) {
             auto Values{Vector2->ToArray()};
 
-            if (ImGui::DragFloat2(Label, Values.data(), 0.025f)) {
+            if (ImGui::DragFloat2(DrawFieldLabel(Label).c_str(), Values.data(), 0.025f)) {
                 *Vector2 = {Values[0], Values[1]};
 
                 return true;
@@ -683,7 +701,8 @@ namespace Editor {
         } else if (auto* Vector4{std::get_if<Core::FVector4>(&Value)}) {
             auto Values{Vector4->ToArray()};
 
-            const bool Changed{Property->GetName().ends_with("Color") ? ImGui::ColorEdit4(Label, Values.data()) : ImGui::DragFloat4(Label, Values.data(), 0.025f)};
+            const Core::FString InputLabel{DrawFieldLabel(Label)};
+            const bool Changed{Property->GetName().ends_with("Color") ? ImGui::ColorEdit4(InputLabel.c_str(), Values.data()) : ImGui::DragFloat4(InputLabel.c_str(), Values.data(), 0.025f)};
 
             if (Changed) {
                 *Vector4 = {Values[0], Values[1], Values[2], Values[3]};
@@ -697,7 +716,7 @@ namespace Editor {
                 for (Core::Int32 Row{}; Row < 4; ++Row) {
                     std::array<float, 4> Values{(*Matrix)(Row, 0), (*Matrix)(Row, 1), (*Matrix)(Row, 2), (*Matrix)(Row, 3)};
 
-                    if (ImGui::DragFloat4(std::to_string(Row).c_str(), Values.data(), 0.025f)) {
+                    if (ImGui::DragFloat4(DrawFieldLabel(std::to_string(Row).c_str()).c_str(), Values.data(), 0.025f)) {
                         for (Core::Int32 Column{}; Column < 4; ++Column) {
                             (*Matrix)(Row, Column) = Values[static_cast<std::size_t>(Column)];
                         }
@@ -713,7 +732,7 @@ namespace Editor {
         } else if (auto* Vector{std::get_if<Core::FVector>(&Value)}) {
             auto Values{Vector->ToArray()};
 
-            if (ImGui::DragFloat3(Label, Values.data(), 0.025f, 0.0f, 0.0f, "%.3f")) {
+            if (ImGui::DragFloat3(DrawFieldLabel(Label).c_str(), Values.data(), 0.025f, 0.0f, 0.0f, "%.3f")) {
                 *Vector = {Values[0], Values[1], Values[2]};
 
                 return true;
@@ -721,14 +740,14 @@ namespace Editor {
         } else if (auto* Rotation{std::get_if<Core::FRotator>(&Value)}) {
             auto Values{Rotation->ToArray()};
 
-            if (ImGui::DragFloat3(Label, Values.data(), 0.25f, 0.0f, 0.0f, "%.2f")) {
+            if (ImGui::DragFloat3(DrawFieldLabel(Label).c_str(), Values.data(), 0.25f, 0.0f, 0.0f, "%.2f")) {
                 *Rotation = {Values[0], Values[1], Values[2]};
 
                 return true;
             }
         } else if (auto* String{std::get_if<Core::FString>(&Value)}) {
             if (Property->GetName() == "ScriptClass") {
-                return DrawScriptClassPicker(Label, *String);
+                return DrawScriptClassPicker(DrawFieldLabel(Label).c_str(), *String);
             }
 
             if (Property->GetName() == "SkeletalMesh" && mAssetCatalog != nullptr && mThumbnails != nullptr) {
@@ -748,7 +767,7 @@ namespace Editor {
                 TextBuffer.resize(std::max<std::size_t>(4096, String->size() + 1024));
                 std::copy(String->begin(), String->end(), TextBuffer.begin());
 
-                if (ImGui::InputTextMultiline(Label, TextBuffer.data(), TextBuffer.size(), {0.0f, ImGui::GetTextLineHeight() * 4.0f}, ImGuiInputTextFlags_AllowTabInput)) {
+                if (ImGui::InputTextMultiline(DrawFieldLabel(Label).c_str(), TextBuffer.data(), TextBuffer.size(), {0.0f, ImGui::GetTextLineHeight() * 4.0f}, ImGuiInputTextFlags_AllowTabInput)) {
                     *String = TextBuffer.data();
 
                     return true;
@@ -761,7 +780,7 @@ namespace Editor {
 
             std::copy_n(String->begin(), std::min(String->size(), Buffer.size() - 1), Buffer.begin());
 
-            bool Changed{ImGui::InputText(Label, Buffer.data(), Buffer.size(), ImGuiInputTextFlags_EnterReturnsTrue)};
+            bool Changed{ImGui::InputText(DrawFieldLabel(Label).c_str(), Buffer.data(), Buffer.size(), ImGuiInputTextFlags_EnterReturnsTrue)};
 
             if (Changed) {
                 *String = Buffer.data();
@@ -782,15 +801,15 @@ namespace Editor {
 
             return Changed;
         } else if (auto* Boolean{std::get_if<bool>(&Value)}) {
-            return ImGui::Checkbox(Label, Boolean);
+            return ImGui::Checkbox(DrawFieldLabel(Label).c_str(), Boolean);
         } else if (auto* FloatValue{std::get_if<float>(&Value)}) {
-            return ImGui::DragFloat(Label, FloatValue, 0.025f);
+            return ImGui::DragFloat(DrawFieldLabel(Label).c_str(), FloatValue, 0.025f);
         } else if (auto* IntegerValue{std::get_if<Core::Int32>(&Value)}) {
-            return ImGui::InputInt(Label, IntegerValue);
+            return ImGui::InputInt(DrawFieldLabel(Label).c_str(), IntegerValue);
         } else if (auto* UnsignedValue{std::get_if<Core::Uint32>(&Value)}) {
-            return ImGui::InputScalar(Label, ImGuiDataType_U32, UnsignedValue);
+            return ImGui::InputScalar(DrawFieldLabel(Label).c_str(), ImGuiDataType_U32, UnsignedValue);
         } else if (auto* Unsigned64Value{std::get_if<Core::Uint64>(&Value)}) {
-            return ImGui::InputScalar(Label, ImGuiDataType_U64, Unsigned64Value);
+            return ImGui::InputScalar(DrawFieldLabel(Label).c_str(), ImGuiDataType_U64, Unsigned64Value);
         } else if (auto* Guid{std::get_if<Core::FGuid>(&Value)}) {
             ImGui::TextDisabled("%s", Label);
             ImGui::TextWrapped("%s", Guid->ToString().c_str());
@@ -863,7 +882,7 @@ namespace Editor {
                 for (Core::Int32 Row{}; Row < 4; ++Row) {
                     std::array<float, 4> Values{Transform(Row, 0), Transform(Row, 1), Transform(Row, 2), Transform(Row, 3)};
 
-                    if (ImGui::DragFloat4(std::to_string(Row).c_str(), Values.data(), 0.025f)) {
+                    if (ImGui::DragFloat4(DrawFieldLabel(std::to_string(Row).c_str()).c_str(), Values.data(), 0.025f)) {
                         for (Core::Int32 Column{}; Column < 4; ++Column) {
                             Transform(Row, Column) = Values[static_cast<std::size_t>(Column)];
                         }
