@@ -5,7 +5,6 @@
  */
 
 #include "Editor/Gizmo.h"
-#include "Engine/UWorld.h"
 #include "Editor/FEditorViewportClient.h"
 #include "Engine/Component/USceneComponent.h"
 #include "Engine/FWorldContext.h"
@@ -104,11 +103,8 @@ namespace Editor {
         mOriginalPivot = mPivot;
         mHadPivot = mHasPivot && mPivotRevision == mContext->GetSelectionRevision();
         mPivotOnly = Input->mMiddlePressed && Placement.mMode == Editor::EGizmoMode::Translate;
-        mDuplicatePending = Input->mAlt && !mPivotOnly && Placement.mMode == Editor::EGizmoMode::Translate;
-        mOriginalSelection = mContext->GetSelectedActors();
-        mOriginalObject = mContext->GetSelectedObject() != nullptr ? mContext->GetSelectedObject()->GetHandle() : CoreUObject::FObjectHandle{};
+        mDuplicationState = Input->mAlt && !mPivotOnly && Placement.mMode == Editor::EGizmoMode::Translate ? EDuplicationState::Pending : EDuplicationState::None;
         mSelectionRevision = mContext->GetSelectionRevision();
-        mDuplicates.clear();
 
         if (!mCore.BeginDrag(Axis, Input->mMouse, View, Placement)) {
             return false;
@@ -133,15 +129,14 @@ namespace Editor {
             return;
         }
 
-        if (mDuplicatePending && MouseDelta.x * MouseDelta.x + MouseDelta.y * MouseDelta.y > 9.0f) {
-            mDuplicates = mContext->DuplicateSelectedActors();
-
-            if (mDuplicates.empty()) {
+        if (mDuplicationState == EDuplicationState::Pending && MouseDelta.x * MouseDelta.x + MouseDelta.y * MouseDelta.y > 9.0f) {
+            if (mContext->DuplicateSelectedActors().empty()) {
                 Cancel();
 
                 return;
             }
 
+            mDuplicationState = EDuplicationState::Completed;
             mSelectionRevision = mContext->GetSelectionRevision();
             mPivotRevision = mSelectionRevision;
 
@@ -150,8 +145,6 @@ namespace Editor {
 
                 return;
             }
-
-            mDuplicatePending = false;
         }
 
         for (const FTargetState& State : mTargets) {
@@ -162,7 +155,7 @@ namespace Editor {
             }
         }
 
-        if (mDuplicatePending || !mCore.UpdateDrag(Input->mMouse)) {
+        if (mDuplicationState == EDuplicationState::Pending || !mCore.UpdateDrag(Input->mMouse)) {
             return;
         }
 
@@ -259,16 +252,14 @@ namespace Editor {
      */
     bool Editor::FTransformGizmo::Input(const Engine::FViewportInput& Input, const Engine::FSceneView& View, const Engine::FHitProxy& Hit) {
         if (IsDragging()) {
-            if (mContext->GetWorldHandle() != mWorldHandle || !mContext->CanEditWorld() || mContext->GetSelectionRevision() != mSelectionRevision) {
+            if (Input.mEscape || mContext->GetWorldHandle() != mWorldHandle || !mContext->CanEditWorld() || mContext->GetSelectionRevision() != mSelectionRevision) {
                 Cancel();
-            } else if (Input.mEscape) {
-                EndDrag(EDragEnd::CancelKeepDuplicates);
             } else if (mPivotOnly ? Input.mMiddleReleased || !Input.mMiddleDown : Input.mLeftReleased || !Input.mLeftDown) {
                 if (mPivotOnly ? Input.mMiddleReleased : Input.mLeftReleased) {
                     UpdateDrag(&Input);
                 }
 
-                EndDrag(EDragEnd::Commit);
+                EndDrag();
             } else {
                 UpdateDrag(&Input);
             }
@@ -304,7 +295,21 @@ namespace Editor {
      * @brief 진행 중인 기즈모 드래그를 취소하고 가능한 경우 시작 변환을 복원합니다.
      */
     void Editor::FTransformGizmo::Cancel() {
-        EndDrag(EDragEnd::Cancel);
+        if (IsDragging() && mDuplicationState == EDuplicationState::None && mContext->GetWorldHandle() == mWorldHandle) {
+            const bool SameSelection{mContext->GetSelectionRevision() == mSelectionRevision};
+
+            for (const FTargetState& State : mTargets) {
+                mContext->ApplyTransform(State.mObject, State.mTransform);
+            }
+
+            if (SameSelection) {
+                mHasPivot = mHadPivot;
+                mPivot = mOriginalPivot;
+                mPivotRevision = mContext->GetSelectionRevision();
+            }
+        }
+
+        EndDrag();
     }
 
     /**
@@ -382,43 +387,11 @@ namespace Editor {
     }
 
     /**
-     * @brief 기즈모 드래그를 확정하거나 원본 변환과 선택으로 되돌립니다.
+     * @brief 기즈모 드래그를 종료하고 임시 상태를 비웁니다.
      */
-    void Editor::FTransformGizmo::EndDrag(EDragEnd Result) {
-        if (IsDragging() && Result != EDragEnd::Commit && mContext->GetWorldHandle() == mWorldHandle) {
-            const bool SameSelection{mContext->GetSelectionRevision() == mSelectionRevision};
-
-            if (!mDuplicatePending) {
-                for (const FTargetState& State : mTargets) {
-                    mContext->ApplyTransform(State.mObject, State.mTransform);
-                }
-            }
-
-            if (!mDuplicates.empty() && mContext->GetWorld() != nullptr) {
-                if (Result == EDragEnd::Cancel) {
-                    for (CoreUObject::FObjectHandle Handle : mDuplicates) {
-                        mContext->GetWorld()->DestroyActor(Handle);
-                    }
-                }
-
-                if (SameSelection) {
-                    mContext->SetSelectedActors(mOriginalSelection);
-
-                    if (mOriginalSelection.size() == 1 && mContext->ResolveObject(mOriginalObject) != nullptr) {
-                        mContext->SelectObject(mOriginalObject);
-                    }
-                }
-            }
-
-            if (SameSelection) {
-                mHasPivot = mHadPivot;
-                mPivot = mOriginalPivot;
-                mPivotRevision = mContext->GetSelectionRevision();
-            }
-        }
-
+    void Editor::FTransformGizmo::EndDrag() {
         mTargets.clear();
-        mDuplicates.clear();
+        mDuplicationState = EDuplicationState::None;
         mCore.EndDrag();
     }
 

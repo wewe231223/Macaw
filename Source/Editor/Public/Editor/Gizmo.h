@@ -34,10 +34,10 @@ namespace Editor {
      */
     class FTransformGizmo {
     private:
-        enum class EDragEnd {
-            Commit,
-            Cancel,
-            CancelKeepDuplicates
+        enum class EDuplicationState {
+            None,
+            Pending,
+            Completed
         };
 
         /**
@@ -176,10 +176,9 @@ namespace Editor {
         void UpdateDrag(const Engine::FViewportInput* Input);
 
         /**
-         * @brief 기즈모 드래그를 확정하거나 원본 변환과 선택으로 되돌립니다.
-         * @param[in] Result 드래그 확정 또는 취소 시 복제본 처리 방식입니다.
+         * @brief 기즈모 드래그를 종료하고 임시 상태를 비웁니다.
          */
-        void EndDrag(EDragEnd Result);
+        void EndDrag();
 
         /**
          * @brief 현재 변환 작업의 기준 장면 컴포넌트를 조회합니다.
@@ -226,21 +225,6 @@ namespace Editor {
         Core::TArray<FTargetState> mTargets{};
 
         /**
-         * @brief Alt 복제 드래그를 취소할 때 복원할 원본 액터 선택입니다.
-         */
-        Core::TArray<CoreUObject::FObjectHandle> mOriginalSelection{};
-
-        /**
-         * @brief 이번 Alt 드래그에서 생성한 액터 핸들입니다.
-         */
-        Core::TArray<CoreUObject::FObjectHandle> mDuplicates{};
-
-        /**
-         * @brief 복제 취소 시 원래 컴포넌트 선택까지 복원할 객체 핸들입니다.
-         */
-        CoreUObject::FObjectHandle mOriginalObject{};
-
-        /**
          * @brief 선택 변경을 감지하거나 드래그 시작 시 선택을 검증하는 세대 값입니다.
          */
         Core::Uint64 mSelectionRevision{};
@@ -276,9 +260,9 @@ namespace Editor {
         bool mPivotOnly{};
 
         /**
-         * @brief Alt 이동 드래그가 3픽셀을 넘을 때 액터를 복제할지 여부입니다.
+         * @brief Alt 이동 드래그의 복제 진행 상태입니다.
          */
-        bool mDuplicatePending{};
+        EDuplicationState mDuplicationState{};
     };
 
 }
