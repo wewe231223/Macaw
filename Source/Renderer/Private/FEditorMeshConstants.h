@@ -29,9 +29,11 @@ namespace Renderer {
          * @brief 에디터 메시 픽셀 셰이더에 전달할 RGB 색상과 알파 값입니다.
          */
         std::array<float, 4> mColor{};
+
+        std::array<float, 4> mShading{};
     };
 
-    static_assert(std::is_standard_layout_v<Renderer::FEditorMeshConstants> && std::is_trivially_copyable_v<Renderer::FEditorMeshConstants> && sizeof(Renderer::FEditorMeshConstants) == 80);
-    static_assert(offsetof(Renderer::FEditorMeshConstants, mWorld) == 0 && offsetof(Renderer::FEditorMeshConstants, mColor) == 64);
+    static_assert(std::is_standard_layout_v<Renderer::FEditorMeshConstants> && std::is_trivially_copyable_v<Renderer::FEditorMeshConstants> && sizeof(Renderer::FEditorMeshConstants) == 96);
+    static_assert(offsetof(Renderer::FEditorMeshConstants, mWorld) == 0 && offsetof(Renderer::FEditorMeshConstants, mColor) == 64 && offsetof(Renderer::FEditorMeshConstants, mShading) == 80);
 
 }

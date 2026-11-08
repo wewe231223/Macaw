@@ -16,6 +16,8 @@ cbuffer EditorMeshConstants : register(b0) {
      * @brief 드로에 적용할 RGBA 색상입니다.
      */
     float4 Color;
+
+    float Shaded;
 };
 #include "ViewConstants.hlsli"
 /**
@@ -36,6 +38,8 @@ struct FOutput {
      * @brief 래스터라이저에 전달하거나 픽셀 단계에서 읽는 투영 위치입니다.
      */
     float4 mPosition : SV_POSITION;
+
+    float3 mWorldPosition : TEXCOORD0;
 };
 
 /**
@@ -44,8 +48,9 @@ struct FOutput {
  * @return 래스터라이저에 전달할 정점 출력입니다.
  */
 FOutput VertexMain(FInput Input) {
-    FOutput Output = {float4(0, 0, 0, 0)};
-    Output.mPosition = mul(mul(float4(Input.mPosition, 1), World), ViewProjection);
+    const float4 WorldPosition = {mul(float4(Input.mPosition, 1.0f), World)};
+    FOutput Output = {mul(WorldPosition, ViewProjection), WorldPosition.xyz};
+
     return Output;
 }
 
@@ -53,6 +58,13 @@ FOutput VertexMain(FInput Input) {
  * @brief 드로 상수 또는 텍스처의 RGBA 색상을 출력합니다.
  * @return 출력 타깃에 기록할 RGBA 색상입니다.
  */
-float4 PixelMain() : SV_TARGET {
+float4 PixelMain(FOutput Input) : SV_TARGET {
+    if (Shaded > 0.0f) {
+        const float3 Normal = {normalize(cross(ddx(Input.mWorldPosition), ddy(Input.mWorldPosition)))};
+        const float Lighting = {abs(dot(Normal, float3(0.30f, 0.40f, 0.8660254f)))};
+
+        return float4(Color.rgb * (0.50f + 0.50f * Lighting), Color.a);
+    }
+
     return Color;
 }

@@ -424,6 +424,12 @@ namespace Renderer {
             DrawLines(Family.mEditorElements, true);
         }
 
+        if (Family.mBackgroundOverlay != nullptr) {
+            mContext->ClearDepthStencilView(Target->GetDepthView(), D3D11_CLEAR_DEPTH, 1.0f, 0);
+            DrawMeshes(Family.mBackgroundOverlay, false);
+            DrawLines(Family.mBackgroundOverlay, false);
+        }
+
         if (Family.mEditorElements != nullptr) {
             mContext->ClearDepthStencilView(Target->GetDepthView(), D3D11_CLEAR_DEPTH, 1.0f, 0);
             DrawMeshes(Family.mEditorElements, false);
@@ -648,7 +654,7 @@ namespace Renderer {
      */
     bool Renderer::FRenderer::Compile(const char* Source, const char* Entry, const char* Target, std::shared_ptr<const RenderCore::FShader>& Code) {
         RenderCore::FShaderDescription Description{};
-        const bool EngineFirst{std::string_view{Source} == LineShader || std::string_view{Source} == "Sprite.hlsl" || std::string_view{Source} == "PostProcess.hlsl" || std::string_view{Source} == "Sky.hlsl" || std::string_view{Source} == "Grid.hlsl" || std::string_view{Source} == "TileLightCulling.hlsl" || std::string_view{Source} == "Depth.hlsl"};
+        const bool EngineFirst{std::string_view{Source} == LineShader || std::string_view{Source} == GizmoShader || std::string_view{Source} == "Sprite.hlsl" || std::string_view{Source} == "PostProcess.hlsl" || std::string_view{Source} == "Sky.hlsl" || std::string_view{Source} == "Grid.hlsl" || std::string_view{Source} == "TileLightCulling.hlsl" || std::string_view{Source} == "Depth.hlsl"};
 
         Description.mSourcePath = FindTextContent(mShaderDirectory.parent_path(), std::filesystem::path{"Shaders"} / Source, EngineFirst);
         Description.mIncludeDirectories = {mShaderDirectory};
@@ -1008,7 +1014,8 @@ namespace Renderer {
                 continue;
             }
 
-            const Renderer::FEditorMeshConstants Constants{Draw.mWorld, {Draw.mColor.x, Draw.mColor.y, Draw.mColor.z, Draw.mColor.w}};
+            const bool Shaded{Draw.mMesh == Engine::EEditorMesh::Sphere || Draw.mMesh == Engine::EEditorMesh::BoneOctahedron};
+            const Renderer::FEditorMeshConstants Constants{Draw.mWorld, {Draw.mColor.x, Draw.mColor.y, Draw.mColor.z, Draw.mColor.w}, {Shaded ? 1.0f : 0.0f}};
 
             mEditorMeshBuffer.Update(mContext.Get(), Constants);
 

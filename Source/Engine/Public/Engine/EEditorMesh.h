@@ -46,6 +46,9 @@ namespace Engine {
          * @brief 중앙 균일 스케일 핸들의 상자 메시입니다.
          */
         Cube,
+        Sphere,
+        BoneOctahedron,
+
         /**
          * @brief 고정 에디터 메시 종류의 개수이며 실제 형상이나 그리기 요청이 없음을 나타냅니다.
          */

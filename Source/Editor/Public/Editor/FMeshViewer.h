@@ -17,11 +17,13 @@
 #include "Core/Math/FVector2.h"
 #include "Core/Math/FMatrix.h"
 #include "Editor/FGizmoCore.h"
+#include "Engine/EEditorMesh.h"
 #include "Engine/FSceneView.h"
 #include "Engine/EViewMode.h"
 #include "Engine/FSkeletalMeshPose.h"
 
 #include <filesystem>
+#include <optional>
 
 namespace Asset {
     class FAssetManager;
@@ -45,6 +47,13 @@ namespace Editor {
      * @brief 편집 월드와 분리한 렌더 장면, 카메라와 재질 미리보기를 소유합니다.
      */
     class FMeshViewer {
+    private:
+        struct FBoneShape {
+            Engine::EEditorMesh mMesh{Engine::EEditorMesh::Count};
+            Core::FMatrix mWorld{};
+            Core::Uint32 mBone{};
+        };
+
     public:
         /**
          * @brief 렌더러와 프로젝트 에셋 관리자를 연결합니다.
@@ -121,6 +130,9 @@ namespace Editor {
          */
         void DrawBoneNode(Core::Uint32 Bone, const Core::TArray<Core::TArray<Core::Uint32>>& Children);
 
+        Core::TArray<Editor::FMeshViewer::FBoneShape> BuildBoneShapes() const;
+        bool PickBone(const Engine::FSceneView& View, const Core::FVector2& Mouse, const Core::TArray<Editor::FMeshViewer::FBoneShape>& Shapes);
+
         /**
          * @brief 현재 궤도 카메라의 렌더링과 입력 해석에 쓸 뷰를 계산합니다.
          * @param Size 미리보기의 픽셀 크기입니다.
@@ -132,7 +144,7 @@ namespace Editor {
          * @brief 선택한 본의 현재 전역 포즈로 기즈모 배치를 구성합니다.
          * @return 공통 코어에 전달할 기즈모 배치입니다.
          */
-        Editor::FGizmoPlacement GetBonePlacement() const;
+        Editor::FGizmoPlacement GetBonePlacement(Core::Uint32 Bone) const;
 
         /**
          * @brief 기즈모의 호버와 드래그 입력을 처리합니다.
@@ -142,15 +154,15 @@ namespace Editor {
          * @return 기즈모가 마우스를 사용 중이어서 카메라 조작을 막아야 하면 true입니다.
          * @param[in] Input 키·마우스 상태를 조회할 공통 입력입니다.
          */
-        bool UpdateBoneGizmo(const Core::FInput& Input, const Engine::FSceneView& View, const Core::FVector2& Mouse, bool Hovered);
+        bool UpdateBoneGizmo(Core::Uint32 Bone, const Core::FInput& Input, const Engine::FSceneView& View, const Core::FVector2& Mouse, bool Hovered);
 
         /**
          * @brief 기즈모의 드래그 결과를 선택한 본의 부모 기준 로컬 변환으로 바꾸어 적용합니다.
          */
-        void ApplyBoneGizmo();
+        void ApplyBoneGizmo(Core::Uint32 Bone);
 
         /**
-         * @brief 카메라 입력을 처리하고 공통 렌더 경로로 메시와 본 보조 선분을 그리며 아이콘·스프라이트·텍스트 표시는 제외합니다.
+         * @brief 카메라 입력을 처리하고 공통 렌더 경로로 메시와 본 도형을 그리며 아이콘·스프라이트·텍스트 표시는 제외합니다.
          * @param[in] Input 키·마우스 상태를 조회할 공통 입력입니다.
          */
         void DrawPreview(const Core::FInput& Input);
@@ -219,10 +231,10 @@ namespace Editor {
         /**
          * @brief 기즈모 조작 대상으로 선택한 본입니다.
          */
-        Core::Uint32 mPoseBone{};
+        std::optional<Core::Uint32> mPoseBone{};
 
         /**
-         * @brief 현재 본 계층을 보조 선분으로 표시할지 지정합니다.
+         * @brief 현재 본 계층을 보조 도형으로 표시할지 지정합니다.
          */
         bool mShowBones{true};
 
