@@ -42,7 +42,7 @@ namespace Editor {
      * @brief 편집 월드와 뷰포트 상태가 PIE 시작 조건을 만족하는지 검사합니다.
      */
     bool Editor::FPlayInEditorSession::CanStart() const {
-        return mEngine != nullptr && mContext != nullptr && mViewport != nullptr && !IsActive() && !mEngine->IsDispatching() && !mContext->IsChangingState() && mContext->CanEditWorld() && mContext->GetWorld()->GetPersistentLevel() != nullptr && mContext->GetWorld()->GetActiveCamera() != nullptr && !mViewport->GetClient()->GetGizmo().IsDragging();
+        return mEngine != nullptr && mContext != nullptr && mViewport != nullptr && !IsActive() && !mEngine->IsDispatching() && !mContext->IsChangingState() && !mContext->IsSceneEditActive() && mContext->CanEditWorld() && mContext->GetWorld()->GetPersistentLevel() != nullptr && mContext->GetWorld()->GetActiveCamera() != nullptr && !mViewport->GetClient()->GetGizmo().IsDragging();
     }
 
     /**

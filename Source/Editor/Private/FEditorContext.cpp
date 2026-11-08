@@ -29,6 +29,8 @@
 #include "Engine/Component/USceneComponent.h"
 #include "Engine/SceneSerializer.h"
 #include "Engine/FWorldCloner.h"
+#include "Engine/FWorldSerializer.h"
+#include "Serialization/MemoryArchive.h"
 #include <algorithm>
 #include "CoreUObject/FObjectRegistry.h"
 #include "CoreUObject/FPropertyChangedEvent.h"
@@ -43,6 +45,23 @@
 #include <utility>
 
 namespace Editor {
+
+    Editor::FEditorContext::FSceneEditScope::FSceneEditScope(Editor::FEditorContext& Context)
+		: mContext{Context},
+		  mToken{Context.BeginSceneEdit()} {
+    }
+
+    Editor::FEditorContext::FSceneEditScope::~FSceneEditScope() {
+        mContext.EndSceneEdit(mToken);
+    }
+
+    bool Editor::FEditorContext::FSceneEditCommand::Undo(Editor::FEditorContext& Context) const {
+        return Context.RestoreSceneMemento(mBefore);
+    }
+
+    bool Editor::FEditorContext::FSceneEditCommand::Redo(Editor::FEditorContext& Context) const {
+        return Context.RestoreSceneMemento(mAfter);
+    }
 
     /**
      * @brief 범위 동안 재진입 제한 플래그를 설정합니다.
@@ -86,7 +105,8 @@ namespace Editor {
 
         AssignSelection({}, {});
         mScenePath.clear();
-        mDirty = false;
+        ClearSceneHistory();
+        mSavedSceneRevision = mSceneRevision;
 
         return true;
     }
@@ -105,7 +125,8 @@ namespace Editor {
 
         mWorld = {};
         mScenePath.clear();
-        mDirty = false;
+        ClearSceneHistory();
+        mSavedSceneRevision = mSceneRevision;
 
         ClearLogs();
     }
@@ -135,6 +156,222 @@ namespace Editor {
 
     bool Editor::FEditorContext::CanModifyScene() const {
         return CanEditWorld() && !IsChangingState() && !mEngine->IsDispatching();
+    }
+
+    Core::Uint64 Editor::FEditorContext::BeginSceneEdit() {
+        if (IsSceneEditActive() || !CanModifyScene()) {
+            return {};
+        }
+
+        FOperationScope Scope{&mChangingState};
+        RestorePreview();
+
+        FSceneMemento State{};
+
+        if (!CaptureSceneMemento(State)) {
+            return {};
+        }
+
+        mPendingSceneEdit = std::move(State);
+        mSceneEditToken = ++mSceneEditSerial;
+
+        return mSceneEditToken;
+    }
+
+    void Editor::FEditorContext::EndSceneEdit(Core::Uint64 Token) {
+        if (Token == 0 || Token != mSceneEditToken) {
+            return;
+        }
+
+        const bool Changed{mSceneEditChanged};
+        FSceneMemento Before{std::exchange(mPendingSceneEdit, {})};
+        mSceneEditToken = 0;
+        mSceneEditChanged = false;
+
+        if (!Changed) {
+            return;
+        }
+
+        FOperationScope Scope{&mChangingState};
+        RestorePreview();
+
+        FSceneMemento After{};
+
+        if (!CaptureSceneMemento(After)) {
+            ClearSceneHistory();
+
+            return;
+        }
+
+        if (Before.mBytes == After.mBytes) {
+            return;
+        }
+
+        mSceneHistory.resize(mSceneHistoryPosition);
+        mSceneHistory.push_back({std::move(Before), std::move(After), mSceneRevision, Token});
+        mSceneRevision = Token;
+        mSceneHistoryPosition = mSceneHistory.size();
+        TrimSceneHistory();
+    }
+
+    bool Editor::FEditorContext::IsSceneEditActive() const {
+        return mSceneEditToken != 0;
+    }
+
+    bool Editor::FEditorContext::CanUndo() const {
+        return mSceneHistoryPosition != 0 && !IsSceneEditActive() && CanModifyScene();
+    }
+
+    bool Editor::FEditorContext::CanRedo() const {
+        return mSceneHistoryPosition < mSceneHistory.size() && !IsSceneEditActive() && CanModifyScene();
+    }
+
+    bool Editor::FEditorContext::Undo() {
+        if (!CanUndo()) {
+            return false;
+        }
+
+        const FSceneEditCommand& Command{mSceneHistory[mSceneHistoryPosition - 1]};
+
+        if (!Command.Undo(*this)) {
+            return false;
+        }
+
+        --mSceneHistoryPosition;
+        mSceneRevision = Command.mBeforeRevision;
+
+        return true;
+    }
+
+    bool Editor::FEditorContext::Redo() {
+        if (!CanRedo()) {
+            return false;
+        }
+
+        const FSceneEditCommand& Command{mSceneHistory[mSceneHistoryPosition]};
+
+        if (!Command.Redo(*this)) {
+            return false;
+        }
+
+        ++mSceneHistoryPosition;
+        mSceneRevision = Command.mAfterRevision;
+
+        return true;
+    }
+
+    bool Editor::FEditorContext::CaptureSceneMemento(FSceneMemento& State) {
+        Serialization::FMemoryArchive Archive{State.mBytes};
+        Engine::FWorldSerializer::Serialize(Archive, mEngine->GetWorldContext(mWorld));
+
+        if (Archive.HasError()) {
+            AddLog("Cannot capture scene history: " + Archive.GetError());
+
+            return false;
+        }
+
+        for (CoreUObject::FObjectHandle Handle : GetSelectedActors()) {
+            State.mSelectedActors.push_back(ResolveObject(Handle)->GetGuid());
+        }
+
+        if (const CoreUObject::UObject* Object{GetSelectedObject()}) {
+            State.mSelectedObject = Object->GetGuid();
+        }
+
+        return true;
+    }
+
+    bool Editor::FEditorContext::RestoreSceneMemento(const FSceneMemento& State) {
+        FOperationScope Scope{&mChangingState};
+        Engine::UWorld* Previous{GetWorld()};
+        auto Context{std::make_unique<Engine::FWorldContext>(Previous->GetWorldType())};
+        Engine::UWorld* World{Context->GetWorld()};
+        World->SetAssets(Previous->GetAssets());
+        Context->GetEditorCamera() = mEngine->GetWorldContext(mWorld)->GetEditorCamera();
+
+        Serialization::FMemoryArchive Archive{State.mBytes};
+        Engine::FWorldSerializer::Serialize(Archive, Context.get());
+
+        if (Archive.HasError() || Archive.GetRemainingBytes() != 0) {
+            AddLog(Archive.HasError() ? "Cannot restore scene history: " + Archive.GetError() : "Cannot restore scene history: unread data");
+
+            return false;
+        }
+
+        Core::TArray<CoreUObject::FObjectHandle> SelectedActors{};
+        CoreUObject::FObjectHandle SelectedObject{};
+        Core::TMap<Core::FGuid, CoreUObject::FObjectHandle, Core::FGuidHash> Actors{};
+
+        for (const auto& Actor : World->GetPersistentLevel()->GetActors()) {
+            Actors.emplace(Actor->GetGuid(), Actor->GetHandle());
+
+            if (Actor->GetGuid() == State.mSelectedObject) {
+                SelectedObject = Actor->GetHandle();
+            }
+
+            for (const auto& Component : Actor->GetComponents()) {
+                if (Component->GetGuid() == State.mSelectedObject) {
+                    SelectedObject = Component->GetHandle();
+                }
+            }
+        }
+
+        for (const Core::FGuid& Guid : State.mSelectedActors) {
+            if (const auto Position{Actors.find(Guid)}; Position != Actors.end()) {
+                SelectedActors.push_back(Position->second);
+            }
+        }
+
+        RestorePreview();
+
+        if (!ReplaceWorld(std::move(Context))) {
+            AddLog("Cannot replace the editor world for scene history");
+
+            return false;
+        }
+
+        AssignSelection(SelectedActors, SelectedObject);
+
+        return true;
+    }
+
+    void Editor::FEditorContext::NoteSceneEdit() {
+        if (IsSceneEditActive()) {
+            mSceneEditChanged = true;
+        } else {
+            ClearSceneHistory();
+        }
+    }
+
+    void Editor::FEditorContext::ClearSceneHistory() {
+        mSceneHistory.clear();
+        mPendingSceneEdit = {};
+        mSceneHistoryPosition = 0;
+        mSceneEditToken = 0;
+        mSceneEditChanged = false;
+        mSceneRevision = ++mSceneEditSerial;
+    }
+
+    void Editor::FEditorContext::TrimSceneHistory() {
+        constexpr std::size_t MaxEntries{128};
+        constexpr std::size_t MaxBytes{64 * 1024 * 1024};
+        std::size_t First{mSceneHistory.size() - 1};
+        std::size_t Bytes{mSceneHistory[First].mBefore.mBytes.size() + mSceneHistory[First].mAfter.mBytes.size()};
+
+        while (First != 0 && mSceneHistory.size() - First < MaxEntries && Bytes < MaxBytes) {
+            const FSceneEditCommand& Previous{mSceneHistory[First - 1]};
+            const std::size_t Size{Previous.mBefore.mBytes.size() + Previous.mAfter.mBytes.size()};
+
+            if (Size > MaxBytes - Bytes) {
+                break;
+            }
+
+            Bytes += Size;
+            --First;
+        }
+
+        mSceneHistory.erase(mSceneHistory.begin(), mSceneHistory.begin() + static_cast<std::ptrdiff_t>(First));
+        mSceneHistoryPosition -= First;
     }
 
     /**
@@ -300,6 +537,7 @@ namespace Editor {
             return nullptr;
         }
 
+        FSceneEditScope Edit{*this};
         FOperationScope Scope{&mChangingState};
         const Core::FTransform Placement{mPlacementProvider ? mPlacementProvider() : Core::FTransform{}};
         Engine::UWorld* World{GetWorld()};
@@ -327,6 +565,7 @@ namespace Editor {
             return nullptr;
         }
 
+        FSceneEditScope Edit{*this};
         FOperationScope Scope{&mChangingState};
         const Core::FTransform Placement{mPlacementProvider ? mPlacementProvider() : Core::FTransform{}};
         Engine::UWorld* World{GetWorld()};
@@ -357,6 +596,7 @@ namespace Editor {
             return nullptr;
         }
 
+        FSceneEditScope Edit{*this};
         FOperationScope Scope{&mChangingState};
         Engine::UWorld* World{GetWorld()};
         Engine::AActor* Actor{World != nullptr ? World->SpawnActor(Engine::AActor::StaticClass()) : nullptr};
@@ -395,6 +635,7 @@ namespace Editor {
             return nullptr;
         }
 
+        FSceneEditScope Edit{*this};
         FOperationScope Scope{&mChangingState};
         Engine::UWorld* World{GetWorld()};
         Engine::AActor* Actor{World != nullptr ? World->SpawnActor(Engine::AActor::StaticClass()) : nullptr};
@@ -450,7 +691,7 @@ namespace Editor {
     void Editor::FEditorContext::CompleteActorSpawn(Engine::AActor* Actor, const char* Action) {
         AssignSelection({Actor->GetHandle()}, Actor->GetHandle());
 
-        mDirty = true;
+        NoteSceneEdit();
 
         AddLog(Action + Actor->GetName());
     }
@@ -470,6 +711,7 @@ namespace Editor {
             return nullptr;
         }
 
+        FSceneEditScope Edit{*this};
         FOperationScope Scope{&mChangingState};
         Engine::AActor* Actor{GetSelectedActor()};
         const CoreUObject::FObjectHandle ActorHandle{Actor->GetHandle()};
@@ -507,6 +749,8 @@ namespace Editor {
             return nullptr;
         }
 
+        NoteSceneEdit();
+
         auto* Added{CoreUObject::Cast<Engine::UActorComponent>(ResolveObject(ComponentHandle))};
 
         if (Added == nullptr) {
@@ -514,8 +758,6 @@ namespace Editor {
         }
 
         AssignSelection({ActorHandle}, ComponentHandle);
-
-        mDirty = true;
 
         AddLog("Added " + Name);
 
@@ -551,13 +793,37 @@ namespace Editor {
             return false;
         }
 
-        if (!GetWorld()->SetActiveCamera(Camera) || !GetWorld()->SetInputTarget(Camera->GetOwner())) {
+        FSceneEditScope Edit{*this};
+
+        if (!GetWorld()->SetActiveCamera(Camera)) {
             return false;
         }
 
-        mDirty = true;
+        NoteSceneEdit();
 
-        return true;
+        return GetWorld()->SetInputTarget(Camera->GetOwner());
+    }
+
+    bool Editor::FEditorContext::SetActorsVisible(const Core::TArray<CoreUObject::FObjectHandle>& Actors, bool Visible) {
+        if (!CanModifyScene()) {
+            return false;
+        }
+
+        FSceneEditScope Edit{*this};
+        bool Changed{};
+
+        for (CoreUObject::FObjectHandle Handle : Actors) {
+            if (auto* Actor{CoreUObject::Cast<Engine::AActor>(ResolveObject(Handle))}; Actor != nullptr && Actor->IsVisible() != Visible) {
+                Actor->SetVisible(Visible);
+                Changed = true;
+            }
+        }
+
+        if (Changed) {
+            NoteSceneEdit();
+        }
+
+        return Changed;
     }
 
     /**
@@ -574,6 +840,7 @@ namespace Editor {
             return false;
         }
 
+        FSceneEditScope Edit{*this};
         FOperationScope Scope{&mChangingState};
         Engine::UWorld* World{GetWorld()};
         bool Removed{};
@@ -585,7 +852,7 @@ namespace Editor {
         if (Removed) {
             AssignSelection({}, {});
 
-            mDirty = true;
+            NoteSceneEdit();
 
             AddLog("Deleted selected actors");
         }
@@ -610,6 +877,7 @@ namespace Editor {
             return false;
         }
 
+        FSceneEditScope Edit{*this};
         FOperationScope Editing{&mEditingProperty};
         Engine::UWorld* World{GetWorld()};
         Engine::UWorld::FDispatchScope Scope{World};
@@ -628,7 +896,7 @@ namespace Editor {
 
         Object->PostEditChangeProperty(CoreUObject::FPropertyChangedEvent{Property, Interactive});
 
-        mDirty = true;
+        NoteSceneEdit();
 
         return true;
     }
@@ -655,7 +923,7 @@ namespace Editor {
             return false;
         }
 
-        if (Path.empty() || !CanModifyScene()) {
+        if (Path.empty() || IsSceneEditActive() || !CanModifyScene()) {
             return false;
         }
 
@@ -683,7 +951,7 @@ namespace Editor {
         }
 
         mScenePath = ScenePath;
-        mDirty = false;
+        mSavedSceneRevision = mSceneRevision;
 
         AddLog("Saved " + Core::FilePath::ToUtf8(ScenePath));
 
@@ -696,6 +964,23 @@ namespace Editor {
     bool Editor::FEditorContext::ReplaceScene(std::unique_ptr<Engine::FWorldContext> Context, const std::filesystem::path& Path) {
         RestorePreview();
 
+        if (!ReplaceWorld(std::move(Context))) {
+            return false;
+        }
+
+        AssignSelection({}, {});
+        mScenePath = Path;
+        ClearSceneHistory();
+        mSavedSceneRevision = mSceneRevision;
+
+        if (mCameraRestorer) {
+            mCameraRestorer(mEngine->GetWorldContext(mWorld)->GetEditorCamera());
+        }
+
+        return true;
+    }
+
+    bool Editor::FEditorContext::ReplaceWorld(std::unique_ptr<Engine::FWorldContext> Context) {
         const Engine::FWorldHandle Previous{mWorld};
         const Engine::FWorldHandle Current{mEngine->GetWorldHandle()};
         const Engine::FWorldHandle Replacement{mEngine->RegisterWorld(std::move(Context))};
@@ -716,15 +1001,6 @@ namespace Editor {
 
         mWorld = Replacement;
 
-        AssignSelection({}, {});
-
-        mScenePath = Path;
-        mDirty = false;
-
-        if (mCameraRestorer) {
-            mCameraRestorer(mEngine->GetWorldContext(mWorld)->GetEditorCamera());
-        }
-
         return true;
     }
 
@@ -732,7 +1008,7 @@ namespace Editor {
      * @brief 프로퍼티 편집을 거치지 않은 장면 변경을 수정 상태로 표시합니다.
      */
     void Editor::FEditorContext::MarkSceneDirty() {
-        mDirty = true;
+        ClearSceneHistory();
     }
 
     /**
@@ -801,13 +1077,14 @@ namespace Editor {
             return false;
         }
 
+        FSceneEditScope Edit{*this};
         auto* Component{CoreUObject::Cast<Engine::UMeshComponent>(ResolveObject(Handle))};
 
         if (Component == nullptr || !Component->SetSlotMaterialPath(Slot, Path)) {
             return false;
         }
 
-        mDirty = true;
+        NoteSceneEdit();
 
         return true;
     }
@@ -822,9 +1099,9 @@ namespace Editor {
             return false;
         }
 
+        FSceneEditScope Edit{*this};
         Component->SetField(Field);
-
-        mDirty = true;
+        NoteSceneEdit();
 
         return true;
     }
@@ -839,9 +1116,9 @@ namespace Editor {
             return false;
         }
 
+        FSceneEditScope Edit{*this};
         Component->RemoveField(Name);
-
-        mDirty = true;
+        NoteSceneEdit();
 
         return true;
     }
@@ -850,7 +1127,7 @@ namespace Editor {
      * @brief 장면 파일을 새 컨텍스트에 읽고 편집 대상 월드만 교체합니다.
      */
     bool Editor::FEditorContext::LoadScene(const std::filesystem::path& Path) {
-        if (Path.empty() || !CanModifyScene()) {
+        if (Path.empty() || IsSceneEditActive() || !CanModifyScene()) {
             return false;
         }
 
@@ -886,7 +1163,7 @@ namespace Editor {
      * @brief 빈 편집 월드로 교체하고 선택 및 장면 파일 상태를 초기화합니다.
      */
     bool Editor::FEditorContext::NewScene() {
-        if (!CanModifyScene()) {
+        if (IsSceneEditActive() || !CanModifyScene()) {
             return false;
         }
 
@@ -908,7 +1185,7 @@ namespace Editor {
     bool Editor::FEditorContext::IsSceneDirty() const {
         const Engine::FWorldContext* Context{mEngine != nullptr ? mEngine->GetWorldContext(mWorld) : nullptr};
 
-        return mDirty || (Context != nullptr && mCameraProvider && Context->GetEditorCamera() != mCameraProvider());
+        return mSceneEditChanged || mSceneRevision != mSavedSceneRevision || (Context != nullptr && mCameraProvider && Context->GetEditorCamera() != mCameraProvider());
     }
 
     /**
@@ -933,6 +1210,7 @@ namespace Editor {
             return nullptr;
         }
 
+        FSceneEditScope Edit{*this};
         FOperationScope Scope{&mChangingState};
         Engine::FProject* Project{GetProject()};
         Core::FString Error{};
@@ -976,6 +1254,7 @@ namespace Editor {
             return nullptr;
         }
 
+        FSceneEditScope Edit{*this};
         FOperationScope Scope{&mChangingState};
         Core::FString Error{};
         Asset::FAssetManager* Assets{GetProject()->GetAssets()};
@@ -1146,6 +1425,7 @@ namespace Editor {
             return {};
         }
 
+        FSceneEditScope Edit{*this};
         Core::FString Error{};
         Core::TArray<CoreUObject::FObjectHandle> Copies{};
 
@@ -1158,7 +1438,7 @@ namespace Editor {
         if (!Copies.empty()) {
             SetSelectedActors(Copies);
 
-            mDirty = true;
+            NoteSceneEdit();
         } else if (!Error.empty()) {
             AddLog(Error);
         }
@@ -1187,6 +1467,7 @@ namespace Editor {
             return nullptr;
         }
 
+        FSceneEditScope Edit{*this};
         FOperationScope Scope{&mChangingState};
         Engine::UWorld* World{GetWorld()};
         const bool Primitive{Preset == "Cube" || Preset == "Sphere" || Preset == "Plane"};

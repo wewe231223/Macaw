@@ -435,6 +435,7 @@ namespace Editor {
 
         mUIScale.Update(*mPlatform);
         ImGui::NewFrame();
+        mDetailsPanel.FinishInactiveSceneEdit();
         mThumbnails->BeginFrame();
         ImportDroppedFiles();
         mScriptBuilds.Update(!mPlaySession->IsActive());
@@ -459,6 +460,7 @@ namespace Editor {
         mPlaceActorsPanel.Draw(DeltaTime);
         mOutlinerPanel.Draw(DeltaTime);
         mDetailsPanel.Draw(DeltaTime);
+        mDetailsPanel.FinishInactiveSceneEdit();
         mViewportLayout.DrawUI(mPlatform->GetInput(), DeltaTime);
         mConsolePanel.Draw(DeltaTime);
 
@@ -787,7 +789,9 @@ namespace Editor {
                     }
                 }
 
-                if (ImGui::MenuItem("Save Scene", "Ctrl+S", false)) {
+                const bool CanSave{!mContext->IsSceneEditActive()};
+
+                if (ImGui::MenuItem("Save Scene", "Ctrl+S", false, CanSave)) {
                     const auto Path{mContext->GetScenePath().empty() ? ChooseFile(true) : mContext->GetScenePath()};
 
                     if (!Path.empty()) {
@@ -796,7 +800,7 @@ namespace Editor {
                     }
                 }
 
-                if (ImGui::MenuItem("Save Scene As...", nullptr, false)) {
+                if (ImGui::MenuItem("Save Scene As...", nullptr, false, CanSave)) {
                     const auto Path{ChooseFile(true)};
 
                     if (!Path.empty()) {
@@ -805,7 +809,7 @@ namespace Editor {
                     }
                 }
 
-                if (ImGui::MenuItem("Set Current Scene as Startup", nullptr, false, !mContext->GetScenePath().empty())) {
+                if (ImGui::MenuItem("Set Current Scene as Startup", nullptr, false, CanSave && !mContext->GetScenePath().empty())) {
                     Core::FString Error{};
 
                     if (!mContext->SaveScene(mContext->GetScenePath()) || !mContext->GetProject()->SetStartupScene(mContext->GetScenePath(), Error)) {
@@ -824,6 +828,18 @@ namespace Editor {
 
                 if (ImGui::MenuItem("Exit") && ConfirmSceneChange()) {
                     mExit = true;
+                }
+
+                ImGui::EndMenu();
+            }
+
+            if (ImGui::BeginMenu("Edit")) {
+                if (ImGui::MenuItem("Undo", "Ctrl+Z", false, mContext->CanUndo())) {
+                    mContext->Undo();
+                }
+
+                if (ImGui::MenuItem("Redo", "Ctrl+Y / Ctrl+Shift+Z", false, mContext->CanRedo())) {
+                    mContext->Redo();
                 }
 
                 ImGui::EndMenu();
@@ -886,6 +902,18 @@ namespace Editor {
         }
 
         if (Input.IsDown(EKey::Control) && !ImGui::GetIO().WantTextInput && mContext->CanEditWorld()) {
+            const ImGuiWindow* Focused{ImGui::GetCurrentContext()->NavWindow};
+            const ImGuiWindow* Root{Focused != nullptr ? Focused->RootWindow : nullptr};
+            const bool SceneFocused{Root != nullptr && (Root == ImGui::FindWindowByName(mViewport->GetName().c_str()) || Root == ImGui::FindWindowByName(mOutlinerPanel.GetName().c_str()) || Root == ImGui::FindWindowByName(mDetailsPanel.GetName().c_str()) || Root == ImGui::FindWindowByName(mPlaceActorsPanel.GetName().c_str()))};
+
+            if (SceneFocused && !ImGui::IsPopupOpen(nullptr, ImGuiPopupFlags_AnyPopup)) {
+                if (Input.WasPressed(EKey::Y) || (Input.WasPressed(EKey::Z) && Input.IsDown(EKey::Shift))) {
+                    mContext->Redo();
+                } else if (Input.WasPressed(EKey::Z)) {
+                    mContext->Undo();
+                }
+            }
+
             if (Input.WasPressed(EKey::S)) {
                 const auto Path{mContext->GetScenePath().empty() ? ChooseFile(true) : mContext->GetScenePath()};
 

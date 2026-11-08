@@ -171,18 +171,7 @@ namespace Editor {
                 if (DrawVisibilityButton(Actor->IsVisible())) {
                     const bool ActorVisible{!Actor->IsVisible()};
 
-                    // 선택된 행의 버튼은 언리얼처럼 선택된 액터 전체에 적용합니다.
-                    if (Selected) {
-                        for (CoreUObject::FObjectHandle SelectedHandle : Selection) {
-                            if (auto* SelectedActor{CoreUObject::Cast<Engine::AActor>(Context->ResolveObject(SelectedHandle))}) {
-                                SelectedActor->SetVisible(ActorVisible);
-                            }
-                        }
-                    } else {
-                        Actor->SetVisible(ActorVisible);
-                    }
-
-                    Context->MarkSceneDirty();
+                    Context->SetActorsVisible(Selected ? Selection : Core::TArray<CoreUObject::FObjectHandle>{Handle}, ActorVisible);
                 }
 
                 ImGui::EndDisabled();

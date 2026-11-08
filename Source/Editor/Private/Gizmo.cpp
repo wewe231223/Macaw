@@ -87,6 +87,8 @@ namespace Editor {
      * @brief 선택 축과 대상의 시작 변환을 저장하고 드래그 평면을 구성합니다.
      */
     bool Editor::FTransformGizmo::BeginDrag(Core::Int32 Axis, const Engine::USceneComponent& Target, const Engine::FViewportInput& Input, const Engine::FSceneView& View) {
+        mContext->RestorePreview();
+
         if (!CaptureTargets()) {
             return false;
         }
@@ -105,6 +107,7 @@ namespace Editor {
         }
 
         mWorldHandle = mContext->GetWorldHandle();
+        mSceneEditToken = mPivotOnly ? 0 : mContext->BeginSceneEdit();
 
         return true;
     }
@@ -246,7 +249,7 @@ namespace Editor {
      */
     bool Editor::FTransformGizmo::Input(const Engine::FViewportInput& Input, const Engine::FSceneView& View, const Engine::FHitProxy& Hit) {
         if (IsDragging()) {
-            if (Input.mEscape || mContext->GetWorldHandle() != mWorldHandle || !mContext->CanEditWorld() || mContext->GetSelectionRevision() != mSelectionRevision) {
+            if (mContext->GetWorldHandle() != mWorldHandle || !mContext->CanEditWorld() || mContext->GetSelectionRevision() != mSelectionRevision) {
                 Cancel();
             } else if (mPivotOnly ? Input.mMiddleReleased || !Input.mMiddleDown : Input.mLeftReleased || !Input.mLeftDown) {
                 if (mPivotOnly ? Input.mMiddleReleased : Input.mLeftReleased) {
@@ -384,9 +387,13 @@ namespace Editor {
      * @brief 기즈모 드래그를 종료하고 임시 상태를 비웁니다.
      */
     void Editor::FTransformGizmo::EndDrag() {
+        const Core::Uint64 Token{mSceneEditToken};
+
         mTargets.clear();
         mDuplicationState = EDuplicationState::None;
+        mSceneEditToken = 0;
         mCore.EndDrag();
+        mContext->EndSceneEdit(Token);
     }
 
 }

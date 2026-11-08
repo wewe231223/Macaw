@@ -58,6 +58,34 @@ namespace Editor {
      */
     class FEditorContext {
     private:
+        struct FSceneMemento {
+            Core::TArray<Core::Uint8> mBytes{};
+            Core::TArray<Core::FGuid> mSelectedActors{};
+            Core::FGuid mSelectedObject{};
+        };
+
+        struct FSceneEditCommand {
+            bool Undo(FEditorContext& Context) const;
+            bool Redo(FEditorContext& Context) const;
+
+            FSceneMemento mBefore{};
+            FSceneMemento mAfter{};
+            Core::Uint64 mBeforeRevision{};
+            Core::Uint64 mAfterRevision{};
+        };
+
+        class FSceneEditScope {
+        public:
+            explicit FSceneEditScope(FEditorContext& Context);
+            ~FSceneEditScope();
+            FSceneEditScope(const FSceneEditScope&) = delete;
+            FSceneEditScope& operator=(const FSceneEditScope&) = delete;
+
+        private:
+            FEditorContext& mContext;
+            Core::Uint64 mToken{};
+        };
+
         /**
          * @brief 재진입을 제한하는 연산 플래그의 수명을 관리합니다.
          */
@@ -151,6 +179,15 @@ namespace Editor {
          * @return 검사 조건을 만족하면 true, 그렇지 않으면 false입니다.
          */
         bool IsChangingState() const;
+
+        Core::Uint64 BeginSceneEdit();
+        void EndSceneEdit(Core::Uint64 Token);
+        bool IsSceneEditActive() const;
+
+        bool CanUndo() const;
+        bool CanRedo() const;
+        bool Undo();
+        bool Redo();
 
         /**
          * @brief 엔진의 렌더러를 조회합니다.
@@ -318,6 +355,7 @@ namespace Editor {
          * @return 삭제 요청을 수락하면 true입니다.
          */
         bool DestroySelectedActor();
+        bool SetActorsVisible(const Core::TArray<CoreUObject::FObjectHandle>& Actors, bool Visible);
 
         /**
          * @brief 객체 소속과 프로퍼티 편집 권한을 검사합니다.
@@ -617,6 +655,13 @@ namespace Editor {
          * @return 교체에 성공하면 true입니다.
          */
         bool ReplaceScene(std::unique_ptr<Engine::FWorldContext> Context, const std::filesystem::path& Path);
+        bool ReplaceWorld(std::unique_ptr<Engine::FWorldContext> Context);
+
+        bool CaptureSceneMemento(FSceneMemento& State);
+        bool RestoreSceneMemento(const FSceneMemento& State);
+        void NoteSceneEdit();
+        void ClearSceneHistory();
+        void TrimSceneHistory();
 
     private:
         /**
@@ -644,10 +689,14 @@ namespace Editor {
          */
         std::filesystem::path mScenePath{};
 
-        /**
-         * @brief 저장 이후 장면이 변경되었는지 여부입니다.
-         */
-        bool mDirty{};
+        Core::TArray<FSceneEditCommand> mSceneHistory{};
+        FSceneMemento mPendingSceneEdit{};
+        std::size_t mSceneHistoryPosition{};
+        Core::Uint64 mSceneEditSerial{};
+        Core::Uint64 mSceneEditToken{};
+        Core::Uint64 mSceneRevision{};
+        Core::Uint64 mSavedSceneRevision{};
+        bool mSceneEditChanged{};
 
         /**
          * @brief 선택과 월드 변경의 재진입 제한입니다.

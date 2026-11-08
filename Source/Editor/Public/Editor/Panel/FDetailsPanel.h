@@ -56,8 +56,11 @@ namespace Editor {
          * @param Builds 스크립트 빌드 서비스입니다.
          */
         void SetScriptBuildService(Editor::FScriptBuildService* Builds);
+        void FinishInactiveSceneEdit();
 
     private:
+        void BeginItemSceneEdit();
+
         /**
          * @brief C# 프로젝트 상태와 스크립트의 [Field] 필드를 표시합니다.
          * @param Component 표시할 스크립트 컴포넌트입니다.
@@ -136,6 +139,8 @@ namespace Editor {
          * @brief 썸네일과 드롭다운을 표시하는 선택기입니다.
          */
         Editor::FAssetPicker mAssetPicker{};
+        Core::Uint64 mSceneEditToken{};
+        Core::Uint32 mSceneEditItem{};
     };
 
 }

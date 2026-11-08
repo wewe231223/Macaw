@@ -285,7 +285,6 @@ namespace Editor {
 
                 State.mAlt = Input.IsDown(EKey::Alt);
                 State.mWheel = Input.GetMouseWheel();
-                State.mEscape = Input.WasPressed(EKey::Escape);
 
                 bool AssetDrag{};
 
@@ -359,11 +358,10 @@ namespace Editor {
             mPlayInputCaptured = false;
         }
 
-        if (!Submitted && mClient.GetGizmo().IsDragging() && ((mClient.GetGizmo().IsPivotDrag() ? !Input.IsDown(EKey::MouseMiddle) : !Input.IsDown(EKey::MouseLeft)) || Input.WasPressed(EKey::Escape))) {
+        if (!Submitted && mClient.GetGizmo().IsDragging() && (mClient.GetGizmo().IsPivotDrag() ? !Input.IsDown(EKey::MouseMiddle) : !Input.IsDown(EKey::MouseLeft))) {
             Engine::FViewportInput State{};
             State.mLeftDown = Input.IsDown(EKey::MouseLeft);
             State.mMiddleDown = Input.IsDown(EKey::MouseMiddle);
-            State.mEscape = Input.WasPressed(EKey::Escape);
 
             mClient.Input(mViewport.get(), State, DeltaTime);
         }

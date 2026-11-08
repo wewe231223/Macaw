@@ -83,11 +83,6 @@ namespace Engine {
         bool mFocusSelection{};
 
         /**
-         * @brief 취소 키 입력입니다.
-         */
-        bool mEscape{};
-
-        /**
          * @brief 삭제 키 입력입니다.
          */
         bool mDelete{};

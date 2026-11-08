@@ -34,6 +34,7 @@
 #include "Panel/ObjectRow.h"
 
 #include <imgui.h>
+#include <imgui_internal.h>
 #include <algorithm>
 #include <array>
 #include <cctype>
@@ -327,6 +328,8 @@ namespace Editor {
                 const Core::FString InputLabel{DrawFieldLabel(Info.mName.c_str(), ResetWidth)};
 
                 if (DrawScriptFieldValue(Info, InputLabel.c_str(), Value)) {
+                    BeginItemSceneEdit();
+
                     if (Value == Info.mDefault) {
                         Context->RemoveScriptField(Handle, Info.mName);
                     } else {
@@ -391,6 +394,26 @@ namespace Editor {
 
                 ImGui::PopID();
             }
+        }
+    }
+
+    void Editor::FDetailsPanel::FinishInactiveSceneEdit() {
+        if (mSceneEditToken == 0 || (IsVisible() && ImGui::GetActiveID() == mSceneEditItem && GetEditorContext()->IsSceneEditActive())) {
+            return;
+        }
+
+        GetEditorContext()->EndSceneEdit(mSceneEditToken);
+        mSceneEditToken = 0;
+        mSceneEditItem = 0;
+    }
+
+    void Editor::FDetailsPanel::BeginItemSceneEdit() {
+        FinishInactiveSceneEdit();
+        const ImGuiID Item{ImGui::GetActiveID()};
+
+        if (mSceneEditToken == 0 && Item != 0) {
+            mSceneEditToken = GetEditorContext()->BeginSceneEdit();
+            mSceneEditItem = Item;
         }
     }
 
@@ -565,6 +588,7 @@ namespace Editor {
                     ImGui::BeginDisabled(ReadOnly);
 
                     if (DrawPropertyValue(Property, Value) && !ReadOnly) {
+                        BeginItemSceneEdit();
                         Context->EditProperty(Handle, Property, Value, ImGui::IsMouseDown(ImGuiMouseButton_Left));
                     }
 

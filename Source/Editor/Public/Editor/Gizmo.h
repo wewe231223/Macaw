@@ -213,6 +213,7 @@ namespace Editor {
          * @brief 드래그 시작 시 편집 대상 월드의 세대 핸들입니다.
          */
         Engine::FWorldHandle mWorldHandle{};
+        Core::Uint64 mSceneEditToken{};
 
         /**
          * @brief 드래그 시작 시 대상 변환입니다.
