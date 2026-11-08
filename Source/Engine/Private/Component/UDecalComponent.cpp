@@ -20,33 +20,36 @@ namespace Engine {
     }
 
     bool Engine::UDecalComponent::SetTexturePath(const Core::FString& Path) {
-        if (Path.find('\0') != Core::FString::npos) {
-            return false;
-        }
+        return SetDecalTexturePath(Path, false);
+    }
 
-        const std::filesystem::path AssetPath{Core::FilePath::FromUtf8(Path).lexically_normal()};
+    const Core::FString& Engine::UDecalComponent::GetNormalMapPath() const {
+        return mNormalMapPath;
+    }
 
-        if (!Path.empty() && (AssetPath.has_root_path() || AssetPath.begin() == AssetPath.end() || *AssetPath.begin() == L".." || !AssetPath.has_filename() || AssetPath == L".")) {
-            return false;
-        }
-
-        const Core::FString TexturePath{Core::FilePath::ToGenericUtf8(AssetPath)};
-        Asset::UTexture2D* Texture{LoadTexture(TexturePath)};
-
-        if (!TexturePath.empty() && Texture == nullptr && GetWorld() != nullptr && GetWorld()->GetAssets() != nullptr) {
-            return false;
-        }
-
-        mTexturePath = TexturePath;
-        mTexture = Texture;
-        SynchronizeDecal();
-
-        return true;
+    bool Engine::UDecalComponent::SetNormalMapPath(const Core::FString& Path) {
+        return SetDecalTexturePath(Path, true);
     }
 
     void Engine::UDecalComponent::ResolveTexture() {
-        mTexture = LoadTexture(mTexturePath);
+        mTexture = LoadTexture(mTexturePath, false);
+        mNormalMap = LoadTexture(mNormalMapPath, true);
         SynchronizeDecal();
+    }
+
+    float Engine::UDecalComponent::GetNormalStrength() const {
+        return mNormalStrength;
+    }
+
+    bool Engine::UDecalComponent::SetNormalStrength(float Strength) {
+        if (!std::isfinite(Strength) || Strength < 0.0f || Strength > 8.0f) {
+            return false;
+        }
+
+        mNormalStrength = Strength;
+        SynchronizeDecal();
+
+        return true;
     }
 
     const Core::FVector& Engine::UDecalComponent::GetExtent() const {
@@ -112,6 +115,7 @@ namespace Engine {
         }
 
         mTexture = nullptr;
+        mNormalMap = nullptr;
         Engine::UActorComponent::UnregisterComponent();
     }
 
@@ -125,20 +129,47 @@ namespace Engine {
         const Core::FMatrix DecalToWorld{GetDecalToWorld()};
         Core::FMatrix WorldToDecal{};
 
-        if (mTexture == nullptr || mOpacity <= 0.0f || !IsOwnerVisible() || !DecalToWorld.TryInverse(WorldToDecal)) {
+        const bool HasNormal{mNormalMap != nullptr && mNormalStrength > 0.0f};
+
+        if ((mTexture == nullptr && !HasNormal) || mOpacity <= 0.0f || !IsOwnerVisible() || !DecalToWorld.TryInverse(WorldToDecal)) {
             Scene->RemoveDecal(GetGuid());
 
             return;
         }
 
-        Scene->AddDecal({GetGuid(), DecalToWorld, WorldToDecal, mTexture, mOpacity, mSortOrder});
+        Scene->AddDecal({GetGuid(), DecalToWorld, WorldToDecal, mTexture, mOpacity, mSortOrder, mNormalMap, mNormalStrength});
     }
 
     void Engine::UDecalComponent::OnRegister() {
         ResolveTexture();
     }
 
-    Asset::UTexture2D* Engine::UDecalComponent::LoadTexture(const Core::FString& Path) const {
+    bool Engine::UDecalComponent::SetDecalTexturePath(const Core::FString& Path, bool NormalMap) {
+        if (Path.find('\0') != Core::FString::npos) {
+            return false;
+        }
+
+        const std::filesystem::path AssetPath{Core::FilePath::FromUtf8(Path).lexically_normal()};
+
+        if (!Path.empty() && (AssetPath.has_root_path() || AssetPath.begin() == AssetPath.end() || *AssetPath.begin() == L".." || !AssetPath.has_filename() || AssetPath == L".")) {
+            return false;
+        }
+
+        const Core::FString TexturePath{Core::FilePath::ToGenericUtf8(AssetPath)};
+        Asset::UTexture2D* Texture{LoadTexture(TexturePath, NormalMap)};
+
+        if (!TexturePath.empty() && Texture == nullptr && GetWorld() != nullptr && GetWorld()->GetAssets() != nullptr) {
+            return false;
+        }
+
+        (NormalMap ? mNormalMapPath : mTexturePath) = TexturePath;
+        (NormalMap ? mNormalMap : mTexture) = Texture;
+        SynchronizeDecal();
+
+        return true;
+    }
+
+    Asset::UTexture2D* Engine::UDecalComponent::LoadTexture(const Core::FString& Path, bool NormalMap) const {
         Asset::FAssetManager* Assets{GetWorld() != nullptr ? GetWorld()->GetAssets() : nullptr};
 
         if (Assets == nullptr || Path.empty()) {
@@ -146,7 +177,8 @@ namespace Engine {
         }
 
         Core::FString Error{};
-        Asset::UTexture2D* Texture{Assets->LoadTexture(Core::FilePath::FromUtf8(Path), Error)};
+        const std::filesystem::path AssetPath{Core::FilePath::FromUtf8(Path)};
+        Asset::UTexture2D* Texture{NormalMap ? Assets->LoadNormalMap(AssetPath, Error) : Assets->LoadTexture(AssetPath, Error)};
 
         if (Texture == nullptr) {
             Core::ErrorHandler::Report("Decal", "Cannot load texture '" + Path + "': " + Error, Core::ErrorHandler::EErrorLevel::Warning);

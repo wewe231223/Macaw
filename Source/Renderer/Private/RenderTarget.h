@@ -76,6 +76,7 @@ namespace Renderer {
         ID3D11DepthStencilView* GetReadOnlyDepthView() const;
         ID3D11ShaderResourceView* GetStencilResource() const;
         const std::array<std::unique_ptr<Asset::UTexture2D>, Renderer::GBuffer::AttachmentCount>& GetGBuffer() const;
+        Asset::UTexture2D* GetDecalNormalSource(ID3D11Device* Device, bool Accumulated);
 
         /**
          * @brief 장면 드로와 교대 후처리 입력으로 사용하는 컬러 텍스처를 조회합니다.
@@ -139,6 +140,8 @@ namespace Renderer {
         Microsoft::WRL::ComPtr<ID3D11DepthStencilView> mReadOnlyDepthView{};
         Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> mStencilResource{};
         std::array<std::unique_ptr<Asset::UTexture2D>, Renderer::GBuffer::AttachmentCount> mGBuffer{};
+        std::unique_ptr<Asset::UTexture2D> mDecalNormalSource{};
+        std::unique_ptr<Asset::UTexture2D> mDecalNormalHistory{};
 
         /**
          * @brief 가로 픽셀 수입니다.

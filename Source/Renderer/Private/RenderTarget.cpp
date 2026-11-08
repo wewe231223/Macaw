@@ -79,6 +79,8 @@ namespace Renderer {
         mReadOnlyDepthView = std::move(ReadOnlyDepthView);
         mStencilResource = std::move(StencilResource);
         mGBuffer = std::move(GBuffer);
+        mDecalNormalSource.reset();
+        mDecalNormalHistory.reset();
         mSceneColor = std::move(SceneColor);
         mPostProcessColor = std::move(PostProcessColor);
 
@@ -135,6 +137,22 @@ namespace Renderer {
         return mGBuffer;
     }
 
+    Asset::UTexture2D* Renderer::FDXRenderTarget::GetDecalNormalSource(ID3D11Device* Device, bool Accumulated) {
+        auto& NormalSource{Accumulated ? mDecalNormalHistory : mDecalNormalSource};
+
+        if (NormalSource == nullptr) {
+            auto Source{CoreUObject::NewObject<Asset::UTexture2D>()};
+
+            if (!Source->Configure(mWidth, mHeight, mGBuffer[Renderer::GBuffer::NormalAttachment]->GetFormat(), Asset::ETextureUsage::ShaderResource) || !Source->CreateResources(Device)) {
+                return nullptr;
+            }
+
+            NormalSource = std::move(Source);
+        }
+
+        return NormalSource.get();
+    }
+
     /**
      * @brief 현재 보유한 GPU 리소스의 추정 바이트 수를 반환합니다.
      */
@@ -144,6 +162,9 @@ namespace Renderer {
         for (const auto& Attachment : mGBuffer) {
             Bytes += Attachment != nullptr ? Attachment->GetResourceBytes() : 0;
         }
+
+        Bytes += mDecalNormalSource != nullptr ? mDecalNormalSource->GetResourceBytes() : 0;
+        Bytes += mDecalNormalHistory != nullptr ? mDecalNormalHistory->GetResourceBytes() : 0;
 
         return Bytes;
     }

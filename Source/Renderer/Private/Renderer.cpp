@@ -397,12 +397,12 @@ namespace Renderer {
         BaseParameters.mColorAttachments = Attachments;
 
         ClearTarget(SceneTarget, ClearColor);
-        const bool DrawDecals{Family.mShowFlags.mPrimitives && !Scene->GetDecals().empty() && Family.mViewMode != Engine::EViewMode::Wireframe && Family.mViewMode != Engine::EViewMode::WorldNormal && Family.mViewMode != Engine::EViewMode::SceneDepth};
+        const bool DrawDecals{Family.mShowFlags.mPrimitives && !Scene->GetDecals().empty() && Family.mViewMode != Engine::EViewMode::Wireframe && Family.mViewMode != Engine::EViewMode::SceneDepth};
         const bool NeedsLighting{Family.mViewMode != Engine::EViewMode::Unlit && Family.mViewMode != Engine::EViewMode::WorldNormal};
 
         if ((!NeedsLighting || PrepareLighting(Family)) && DrawMeshPass(*mBasePass, *Scene, Family, BaseParameters, DrawDecals)) {
             if (DrawDecals) {
-                mStats.mDrawCalls += mDecalPass->Render(mDevice.Get(), mContext.Get(), *Target, Family.mView, Scene->GetDecals(), mOverlayBlend.Get());
+                mStats.mDrawCalls += mDecalPass->Render(mDevice.Get(), mContext.Get(), *Target, Family, Scene->GetDecals());
             }
 
             if (Family.mViewMode != Engine::EViewMode::SceneDepth) {
@@ -843,11 +843,18 @@ namespace Renderer {
         mSkyResources = std::make_unique<Renderer::FSkyResources>();
         mGridResources = std::make_unique<Renderer::FGridResources>();
 
+        D3D11_BLEND_DESC Blend{};
+        Blend.RenderTarget[0] = {true, D3D11_BLEND_SRC_ALPHA, D3D11_BLEND_INV_SRC_ALPHA, D3D11_BLEND_OP_ADD, D3D11_BLEND_ONE, D3D11_BLEND_INV_SRC_ALPHA, D3D11_BLEND_OP_ADD, D3D11_COLOR_WRITE_ENABLE_ALL};
+
+        if (FAILED(mDevice->CreateBlendState(&Blend, mOverlayBlend.GetAddressOf())) || !mDecalPass->Initialize(mDevice.Get(), Blend)) {
+            return false;
+        }
+
         if (!mPostProcessResources->Initialize(mDevice.Get())) {
             return false;
         }
 
-        if (!mDecalPass->Initialize(mDevice.Get()) || !mDeferredLightingPass->Initialize(mDevice.Get())) {
+        if (!mDeferredLightingPass->Initialize(mDevice.Get())) {
             return false;
         }
 
@@ -887,13 +894,6 @@ namespace Renderer {
         Sampler.MaxLOD = D3D11_FLOAT32_MAX;
 
         if (FAILED(mDevice->CreateSamplerState(&Sampler, mMaterialSampler.GetAddressOf()))) {
-            return false;
-        }
-
-        D3D11_BLEND_DESC Blend{};
-        Blend.RenderTarget[0] = {true, D3D11_BLEND_SRC_ALPHA, D3D11_BLEND_INV_SRC_ALPHA, D3D11_BLEND_OP_ADD, D3D11_BLEND_ONE, D3D11_BLEND_INV_SRC_ALPHA, D3D11_BLEND_OP_ADD, D3D11_COLOR_WRITE_ENABLE_ALL};
-
-        if (FAILED(mDevice->CreateBlendState(&Blend, mOverlayBlend.GetAddressOf()))) {
             return false;
         }
 

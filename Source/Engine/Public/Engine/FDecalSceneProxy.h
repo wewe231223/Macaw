@@ -16,6 +16,8 @@ namespace Engine {
         Asset::UTexture2D* mTexture{};
         float mOpacity{1.0f};
         Core::Int32 mSortOrder{};
+        Asset::UTexture2D* mNormalMap{};
+        float mNormalStrength{1.0f};
     };
 
 }

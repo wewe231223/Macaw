@@ -755,7 +755,9 @@ namespace Editor {
                 return DrawAssetPicker(Label, *String, true);
             }
 
-            if (mAssetCatalog != nullptr && mThumbnails != nullptr && (Property->GetName() == "Material" || Property->GetName() == "Texture" || Property->GetName() == "Sprite")) {
+            const bool TextureProperty{Property->GetName() == "Texture" || Property->GetName() == "NormalMap" || Property->GetName() == "Sprite"};
+
+            if (mAssetCatalog != nullptr && mThumbnails != nullptr && (Property->GetName() == "Material" || TextureProperty)) {
                 return mAssetPicker.Draw(*mAssetCatalog, *mThumbnails, Property->GetName() == "Material" ? "All Slots Override" : Label, *String, Property->GetName() == "Material" ? Asset::EAssetType::Material : Asset::EAssetType::Texture, {}, Property->GetName() == "Material" ? "Use mesh materials" : Property->GetName() == "Sprite" ? "Default atlas" : "None");
             }
 
@@ -783,7 +785,7 @@ namespace Editor {
                 *String = Buffer.data();
             }
 
-            const char* AssetPayload{Property->GetName() == "Material" ? Editor::EditorAssetDragDrop::MaterialPayload : Property->GetName() == "Texture" || Property->GetName() == "Sprite" ? Editor::EditorAssetDragDrop::TexturePayload : Property->GetName() == "Mesh" ? Editor::EditorAssetDragDrop::MeshPayload : nullptr};
+            const char* AssetPayload{Property->GetName() == "Material" ? Editor::EditorAssetDragDrop::MaterialPayload : TextureProperty ? Editor::EditorAssetDragDrop::TexturePayload : Property->GetName() == "Mesh" ? Editor::EditorAssetDragDrop::MeshPayload : nullptr};
 
             if (AssetPayload != nullptr && ImGui::BeginDragDropTarget()) {
                 const ImGuiPayload* Payload{ImGui::AcceptDragDropPayload(AssetPayload)};
