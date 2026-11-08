@@ -62,6 +62,19 @@ namespace Editor {
      * @brief 이 파일에서 사용하는 내부 보조 기능과 상태를 묶습니다.
      */
     namespace {
+        // 콘텐츠 브라우저 타일 툴팁에 표시할 에셋 종류의 한글 이름입니다. 타일 본문의 영문 종류 이름은 그대로 둡니다.
+        const char* GetKindTooltip(std::string_view Kind) {
+            static constexpr std::array<std::pair<std::string_view, const char*>, 11> Names{{{"C# Script", "C# 스크립트"}, {"Folder", "폴더"}, {"File", "파일"}, {"Mesh", "메시"}, {"Skeletal Mesh", "스켈레탈 메시"}, {"Skeleton", "스켈레톤"}, {"Material", "머티리얼"}, {"Texture", "텍스처"}, {"Sequence", "시퀀스"}, {"Animation Sequence", "애니메이션 시퀀스"}, {"Scene", "씬"}}};
+
+            for (const auto& [English, Korean] : Names) {
+                if (English == Kind) {
+                    return Korean;
+                }
+            }
+
+            return Kind.data();
+        }
+
         // 귀퉁이가 접힌 문서 모양에 C#의 보라색과 "C#" 글자를 그립니다.
 
         /**
@@ -497,7 +510,7 @@ namespace Editor {
                         Draw->AddRect(Minimum, Maximum, IM_COL32(255, 230, 0, 255), 0.0f, 0, 1.5f);
 
                         if (ImGui::IsMouseHoveringRect(Minimum, Maximum)) {
-                            ImGui::SetTooltip("Map %u | %u x %u", Tile.mFace, Tile.mResolution, Tile.mResolution);
+                            ImGui::SetTooltip("맵 %u | %u x %u", Tile.mFace, Tile.mResolution, Tile.mResolution);
                         }
                     }
                 }
@@ -668,7 +681,7 @@ namespace Editor {
         const bool Active{mPlaySession->IsActive()};
         const bool Paused{mPlaySession->IsPaused()};
         const bool CanStart{!Active && mViewportLayout.CanChangeLayout() && mPlaySession->CanStart()};
-        const char* PlayTooltip{Active ? "Stop (Esc)" : mPlayPending ? "Waiting for the C# build (click to cancel)" : CanStart ? "Play (Alt+P)" : "Play requires an active world camera and an idle editor"};
+        const char* PlayTooltip{Active ? "중지 (Esc)" : mPlayPending ? "C# 빌드를 기다리는 중 (클릭하면 취소)" : CanStart ? "플레이 (Alt+P)" : "플레이하려면 활성 월드 카메라가 있고 에디터가 다른 작업 중이 아니어야 합니다"};
 
         if (Editor::EditorStyle::IconButton("PlayStop", Active ? Editor::EditorStyle::EIcon::Stop : Editor::EditorStyle::EIcon::Play, mPlayPending, Active || CanStart, false, PlayTooltip)) {
             if (Active) {
@@ -682,13 +695,13 @@ namespace Editor {
 
         ImGui::SameLine(0.0f, 4.0f);
 
-        if (Editor::EditorStyle::IconButton("PauseResume", Paused ? Editor::EditorStyle::EIcon::Play : Editor::EditorStyle::EIcon::Pause, Paused, Active, false, Paused ? "Resume" : "Pause")) {
+        if (Editor::EditorStyle::IconButton("PauseResume", Paused ? Editor::EditorStyle::EIcon::Play : Editor::EditorStyle::EIcon::Pause, Paused, Active, false, Paused ? "재개" : "일시 정지")) {
             mPlaySession->SetPaused(!Paused);
         }
 
         ImGui::SameLine(0.0f, 4.0f);
 
-        if (Editor::EditorStyle::IconButton("Step", Editor::EditorStyle::EIcon::Step, false, Active && Paused, false, "Advance 1 Tick")) {
+        if (Editor::EditorStyle::IconButton("Step", Editor::EditorStyle::EIcon::Step, false, Active && Paused, false, "1틱 진행")) {
             mPlaySession->Step();
         }
 
@@ -1011,9 +1024,9 @@ namespace Editor {
 
         ImGui::SeparatorText("Transform");
         ImGui::Checkbox("Force Front X Axis", &mImportOption.mForceFrontXAxis);
-        ImGui::SetItemTooltip("Make the source front axis face +X.\nWhen off, the front faces +Y like the Unreal FBX importer.");
+        ImGui::SetItemTooltip("원본의 앞쪽 축이 +X를 향하도록 맞춥니다.\n끄면 언리얼 FBX 임포터와 같이 앞쪽이 +Y를 향합니다.");
         ImGui::Checkbox("Convert Scene Unit", &mImportOption.mConvertSceneUnit);
-        ImGui::SetItemTooltip("Convert the length unit stored in the source (FBX) to meters.");
+        ImGui::SetItemTooltip("원본(FBX)에 기록된 길이 단위를 미터로 변환합니다.");
 
         std::array<float, 3> Translation{mImportOption.mImportTranslation.x, mImportOption.mImportTranslation.y, mImportOption.mImportTranslation.z};
         std::array<float, 3> Rotation{mImportOption.mImportRotation.pitch, mImportOption.mImportRotation.yaw, mImportOption.mImportRotation.roll};
@@ -1026,14 +1039,14 @@ namespace Editor {
             mImportOption.mImportRotation = {Rotation[0], Rotation[1], Rotation[2]};
         }
 
-        ImGui::SetItemTooltip("Pitch, Yaw, Roll in degrees.");
+        ImGui::SetItemTooltip("Pitch, Yaw, Roll 순서의 각도(도)입니다.");
         ImGui::DragFloat("Import Uniform Scale", &mImportOption.mImportUniformScale, 0.01f, 0.001f, 1000.0f, "%.3f");
 
         ImGui::SeparatorText("Mesh");
         ImGui::Checkbox("Combine Meshes", &mImportOption.mCombineMeshes);
-        ImGui::SetItemTooltip("Merge every mesh in the file into one mesh asset.\nWhen off, each mesh node becomes its own mesh asset.");
+        ImGui::SetItemTooltip("파일의 모든 메시를 하나의 메시 에셋으로 합칩니다.\n끄면 메시 노드마다 별도의 메시 에셋을 만듭니다.");
         ImGui::Checkbox("Import Skeleton", &mImportOption.mImportSkeleton);
-        ImGui::SetItemTooltip("Read the bone hierarchy, bind pose and per-vertex bone weights when the source has a skeleton.\nThe mesh is saved as a skeletal mesh asset and can be placed or opened in the mesh viewer.");
+        ImGui::SetItemTooltip("원본에 스켈레톤이 있으면 본 계층, 바인드 포즈, 정점별 본 가중치를 읽습니다.\n메시는 스켈레탈 메시 에셋으로 저장되며 배치하거나 메시 뷰어에서 열 수 있습니다.");
 
         static constexpr std::array<const char*, 3> NormalMethods{"Compute Normals", "Import Normals", "Import Normals and Tangents"};
         int NormalMethod{static_cast<int>(mImportOption.mNormalImportMethod)};
@@ -1044,7 +1057,7 @@ namespace Editor {
 
         ImGui::SeparatorText("Material");
         ImGui::Checkbox("Import Materials", &mImportOption.mImportMaterials);
-        ImGui::SetItemTooltip("Create material assets from the source materials.\nWhen off, mesh slots use the default material.");
+        ImGui::SetItemTooltip("원본 재질로 머티리얼 에셋을 만듭니다.\n끄면 메시 슬롯이 기본 머티리얼을 사용합니다.");
         ImGui::BeginDisabled(!mImportOption.mImportMaterials);
         ImGui::Checkbox("Import Textures", &mImportOption.mImportTextures);
         ImGui::EndDisabled();
@@ -2147,7 +2160,7 @@ namespace Editor {
                         if (Hovered) {
                             ImGui::BeginTooltip();
                             ImGui::TextUnformatted(Core::FilePath::ToGenericUtf8(Path).c_str());
-                            ImGui::TextDisabled("%s", Kind);
+                            ImGui::TextDisabled("%s", GetKindTooltip(Kind));
                             ImGui::EndTooltip();
                         }
 

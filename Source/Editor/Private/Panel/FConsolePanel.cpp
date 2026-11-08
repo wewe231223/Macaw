@@ -259,7 +259,7 @@ namespace Editor {
             RunClicked = ImGui::Button("Run", {RunWidth, 0.0f});
 
             ImGui::EndDisabled();
-            ImGui::SetItemTooltip("Run (Enter)\nCommand history (Up / Down)\nSuggestions (Ctrl+Up / Ctrl+Down, Tab)");
+            ImGui::SetItemTooltip("실행 (Enter)\n명령 기록 (Up / Down)\n추천 명령 (Ctrl+Up / Ctrl+Down, Tab)");
             ImGui::SameLine(InputX, 0.0f);
         }
 

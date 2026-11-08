@@ -37,7 +37,8 @@ namespace Editor {
                 const bool Selected{Client->IsCommandChecked(Command)};
                 const bool Enabled{Client->CanExecuteCommand(Command)};
                 const Core::FString Shortcut{Info.GetShortcutLabel()};
-                const Core::FString Tooltip{Core::FString{Info.mLabel} + " (" + Shortcut + ")"};
+                const char* TooltipName{Command == Editor::EViewportCommand::Translate ? "이동" : Command == Editor::EViewportCommand::Rotate ? "회전" : Command == Editor::EViewportCommand::Scale ? "크기 조절" : Info.mLabel};
+                const Core::FString Tooltip{Core::FString{TooltipName} + " (" + Shortcut + ")"};
                 const bool Pressed{Menu ? Command == Editor::EViewportCommand::Select ? ImGui::MenuItem(Info.mLabel, Shortcut.c_str(), Selected, Enabled) : Editor::EditorStyle::IconMenuItem(Info.mLabel, Info.mIcon, Selected, Enabled) : Editor::EditorStyle::IconButton(Info.mLabel, Info.mIcon, Selected, Enabled, false, Tooltip.c_str())};
 
                 Drawn = true;
@@ -248,7 +249,7 @@ namespace Editor {
         ImGui::BeginGroup();
         DrawViewSettings(Client);
 
-        if (Editor::EditorStyle::IconButton("Transform Tools", Editor::EditorStyle::EIcon::Tools, ImGui::IsPopupOpen("TransformTools"), true, true)) {
+        if (Editor::EditorStyle::IconButton("Transform Tools", Editor::EditorStyle::EIcon::Tools, ImGui::IsPopupOpen("TransformTools"), true, true, "변환 도구")) {
             ImGui::OpenPopup("TransformTools");
         }
 
@@ -283,7 +284,7 @@ namespace Editor {
         ImGui::SameLine(0.0f, 6.0f);
 
         const bool WorldSpace{Client->IsCommandChecked(Editor::EViewportCommand::WorldSpace)};
-        const char* CoordinateTooltip{Client->GetGizmoMode() == Editor::EGizmoMode::Scale ? "Local Space\nScaling uses local axes." : WorldSpace ? "World Space (click to switch)" : "Local Space (click to switch)"};
+        const char* CoordinateTooltip{Client->GetGizmoMode() == Editor::EGizmoMode::Scale ? "로컬 좌표계\n크기 조절은 로컬 축을 사용합니다." : WorldSpace ? "월드 좌표계 (클릭하면 전환)" : "로컬 좌표계 (클릭하면 전환)"};
 
         if (Editor::EditorStyle::IconButton("Coordinate System", WorldSpace ? Editor::EditorStyle::EIcon::World : Editor::EditorStyle::EIcon::Local, false, Client->CanExecuteCommand(Editor::EViewportCommand::ToggleCoordinateSystem), false, CoordinateTooltip)) {
             Client->ExecuteCommand(Editor::EViewportCommand::ToggleCoordinateSystem);
@@ -291,7 +292,7 @@ namespace Editor {
 
         ImGui::SameLine(0.0f, 6.0f);
 
-        if (Editor::EditorStyle::IconButton("Grid Settings", Editor::EditorStyle::EIcon::Grid, ImGui::IsPopupOpen("GridSettings"), true, true)) {
+        if (Editor::EditorStyle::IconButton("Grid Settings", Editor::EditorStyle::EIcon::Grid, ImGui::IsPopupOpen("GridSettings"), true, true, "그리드 설정")) {
             ImGui::OpenPopup("GridSettings");
         }
 

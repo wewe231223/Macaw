@@ -428,7 +428,7 @@ namespace Editor {
      * @brief 재생 컨트롤과 시퀀스 설정 위젯을 그립니다.
      */
     void Editor::FSequencerPanel::DrawToolbar(Engine::ALevelSequenceActor* Actor, Asset::ULevelSequence* Sequence) {
-        if (Editor::EditorStyle::IconButton("SequenceJumpStart", Editor::EditorStyle::EIcon::JumpStart, false, true, false, "Go to start")) {
+        if (Editor::EditorStyle::IconButton("SequenceJumpStart", Editor::EditorStyle::EIcon::JumpStart, false, true, false, "처음으로 이동")) {
             SeekPreview(Sequence->GetStartTick());
         }
 
@@ -436,7 +436,7 @@ namespace Editor {
 
         const bool Playing{mPreviewActive && mPlayer.GetState() == Engine::ESequencePlayState::Playing};
 
-        if (Editor::EditorStyle::IconButton("SequencePlayPause", Playing ? Editor::EditorStyle::EIcon::Pause : Editor::EditorStyle::EIcon::Play, false, true, false, Playing ? "Pause" : "Play")) {
+        if (Editor::EditorStyle::IconButton("SequencePlayPause", Playing ? Editor::EditorStyle::EIcon::Pause : Editor::EditorStyle::EIcon::Play, false, true, false, Playing ? "일시 정지" : "재생")) {
             if (Playing) {
                 mPlayer.Pause();
             } else {
@@ -447,14 +447,14 @@ namespace Editor {
 
         ImGui::SameLine();
 
-        if (Editor::EditorStyle::IconButton("SequenceStop", Editor::EditorStyle::EIcon::Stop, false, true, false, "Stop and restore")) {
+        if (Editor::EditorStyle::IconButton("SequenceStop", Editor::EditorStyle::EIcon::Stop, false, true, false, "정지 후 원래 상태로 복원")) {
             RestorePreview();
             RebindPlayer(Actor, Sequence);
         }
 
         ImGui::SameLine();
 
-        if (Editor::EditorStyle::IconButton("SequenceJumpEnd", Editor::EditorStyle::EIcon::JumpEnd, false, true, false, "Go to end")) {
+        if (Editor::EditorStyle::IconButton("SequenceJumpEnd", Editor::EditorStyle::EIcon::JumpEnd, false, true, false, "끝으로 이동")) {
             SeekPreview(Sequence->GetEndTick());
         }
 

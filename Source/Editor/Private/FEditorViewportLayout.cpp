@@ -205,7 +205,7 @@ namespace Editor {
 
         ImGui::SameLine(LayoutButtonX);
 
-        if (Editor::EditorStyle::IconButton("ViewportLayout", mQuadView ? Editor::EditorStyle::EIcon::Maximize : Editor::EditorStyle::EIcon::QuadView, false, true, false, mQuadView ? "Maximize Viewport" : "Switch to Four Viewports")) {
+        if (Editor::EditorStyle::IconButton("ViewportLayout", mQuadView ? Editor::EditorStyle::EIcon::Maximize : Editor::EditorStyle::EIcon::QuadView, false, true, false, mQuadView ? "뷰포트 최대화" : "4분할 뷰포트로 전환")) {
             mActiveViewport = Index;
 
             SetQuadView(!mQuadView);
