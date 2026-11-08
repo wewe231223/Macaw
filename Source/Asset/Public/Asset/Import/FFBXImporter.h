@@ -111,8 +111,8 @@ namespace Asset {
         bool ReadSkeleton(fbxsdk::FbxNode& Node, Core::Int32 ParentIndex, const Core::FMatrix& ParentBoneGlobal);
 
         /**
-         * @brief 장면의 모든 스킨 클러스터를 읽어 링크 노드별 바인드 시점 전역 변환을 모읍니다.
-         * @details 클러스터가 링크하는 노드는 스켈레톤 속성이 없어도 본으로 취급합니다.
+         * @brief 장면의 스킨 클러스터와 바인드 포즈 객체(FbxPose)에서 노드별 바인드 시점 전역 변환을 모읍니다.
+         * @details 클러스터가 링크하는 노드는 스켈레톤 속성이 없어도 본으로 취급합니다. 바인드 포즈 값은 FbxPose를 클러스터보다 우선합니다.
          */
         void CollectBindPoses();
 
@@ -175,6 +175,11 @@ namespace Asset {
          * @brief 스킨 클러스터 링크 노드별 바인드 시점 전역 변환이며 DeepConvertScene 뒤의 FBX 전역 공간 기준입니다.
          */
         Core::TMap<fbxsdk::FbxNode*, Core::FMatrix> mBindPoses{};
+
+        /**
+         * @brief IsBindPose인 FbxPose에 기록된 노드별 바인드 시점 전역 변환이며 DeepConvertScene 뒤의 FBX 전역 공간 기준입니다.
+         */
+        Core::TMap<fbxsdk::FbxNode*, Core::FMatrix> mPoseBindPoses{};
 
         /**
          * @brief 본으로 읽은 FBX 노드별 결과 본 인덱스입니다.

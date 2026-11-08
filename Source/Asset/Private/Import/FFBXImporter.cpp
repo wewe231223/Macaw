@@ -561,8 +561,9 @@ namespace Asset {
             auto& Bones{GetResult().GetBones()};
             Core::FMatrix ParentInverse{};
 
-            // 클러스터가 있으면 클러스터의 바인드 시점 링크 변환을, 없으면(가중치가 없는 본) 애니메이션 커브를 무시한 기본 전역 변환을 사용합니다.
-            const Core::FMatrix SourceGlobal{BindPose != mBindPoses.end() ? BindPose->second : ToMatrix(Node.EvaluateGlobalTransform(FBXSDK_TIME_INFINITE))};
+            // 바인드 포즈는 FbxPose → 클러스터 링크 변환 → 애니메이션을 무시한 기본 전역 변환 순서로 찾습니다.
+            const auto PoseBindPose{mPoseBindPoses.find(&Node)};
+            const Core::FMatrix SourceGlobal{PoseBindPose != mPoseBindPoses.end() ? PoseBindPose->second : BindPose != mBindPoses.end() ? BindPose->second : ToMatrix(Node.EvaluateGlobalTransform(FBXSDK_TIME_INFINITE))};
 
             // FBX 전역 공간의 본 변환을 정점과 같은 엔진 공간의 변환으로 바꿉니다.
             if (!Asset::FMeshImportTransform::ConvertTransform(mBasis, SourceGlobal, BoneGlobal) || !ParentBoneGlobal.TryInverse(ParentInverse)) {
@@ -616,6 +617,28 @@ namespace Asset {
                         Cluster->GetTransformLinkMatrix(LinkGlobal);
                         mBindPoses.emplace(Link, ToMatrix(LinkGlobal));
                     }
+                }
+            }
+        }
+
+        // 장면의 바인드 포즈 객체(FbxPose)는 가중치가 없는 본까지 바인드 시점의 전역 변환을 담으므로 클러스터보다 먼저 사용합니다.
+        // 바인드 포즈가 아닌 Rest 포즈는 건너뛰며, 여러 바인드 포즈에 같은 노드가 있으면 먼저 나온 값을 사용합니다.
+        for (int PoseIndex{}; PoseIndex < mScene->GetPoseCount(); ++PoseIndex) {
+            FbxPose* Pose{mScene->GetPose(PoseIndex)};
+
+            if (!Pose->IsBindPose()) {
+                continue;
+            }
+
+            for (int Item{}; Item < Pose->GetCount(); ++Item) {
+                FbxNode* Node{Pose->GetNode(Item)};
+
+                if (Node != nullptr && !mPoseBindPoses.contains(Node)) {
+                    const FbxMatrix& Matrix{Pose->GetMatrix(Item)};
+                    FbxAMatrix Global{};
+
+                    std::copy_n(static_cast<const double*>(Matrix), 16, static_cast<double*>(Global));
+                    mPoseBindPoses.emplace(Node, ToMatrix(Global));
                 }
             }
         }
