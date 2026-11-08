@@ -1,6 +1,6 @@
 /**
  * @file USkeletalMesh.h
- * @brief 바인드 형상과 본 계층 및 GPU 스킨 가중치를 공유하는 스켈레탈 메시 에셋입니다.
+ * @brief 바인드 형상과 GPU 스킨 가중치를 공유하는 스켈레탈 메시 에셋입니다.
  * @ingroup Asset
  */
 
@@ -8,7 +8,6 @@
 
 #include "Asset/FMeshData.h"
 #include "Asset/UStaticMesh.h"
-#include "Asset/Import/FMeshImportBone.h"
 #include "Asset/Import/FMeshImportSkinWeight.h"
 #include "Core/FRevision.h"
 #include "CoreUObject/UObject.h"
@@ -20,9 +19,9 @@
 namespace Asset {
 
     /**
-     * @brief 불변 바인드 형상과 본 데이터를 소유하며 현재 포즈는 각 컴포넌트가 관리합니다.
+     * @brief 불변 바인드 형상과 가중치를 소유하며 현재 포즈는 각 컴포넌트가 관리합니다.
      * @details 스키닝 데이터는 다음 순서로 흐릅니다.
-     * 1. SetMeshData가 로컬 바인드 포즈를 누적해 역바인드 행렬을 계산합니다.
+     * 1. USkeleton이 로컬 바인드 포즈를 누적해 역바인드 행렬을 계산합니다.
      * 2. FSkeletalMeshPose가 현재 로컬 포즈를 누적해 전역 포즈를 구하고, 스키닝 행렬(역바인드 * 전역)을 계산합니다.
      * 3. USkeletalMeshComponent가 스키닝 행렬을 씬 프록시에 복사하고, FScene::UploadSkinning이 본 팔레트로 GPU에 올립니다.
      * 4. 정점 셰이더(Skinning.hlsl)가 가중치로 섞은 행렬을 적용해 정점을 현재 포즈로 옮깁니다.
@@ -46,13 +45,12 @@ namespace Asset {
 
     public:
         /**
-         * @brief 형상·부모 순서·가중치를 검증하고 역바인드 행렬을 계산합니다.
+         * @brief 형상과 가중치를 검증하고 저장합니다.
          * @param MeshData 바인드 형상입니다.
-         * @param Bones 부모가 자식보다 앞선 본 목록입니다.
          * @param SkinWeights 정점별 최대 네 본의 영향입니다.
          * @return 모든 데이터가 유효해 교체했으면 true입니다.
          */
-        bool SetMeshData(Asset::FMeshData MeshData, Core::TArray<Asset::FMeshImportBone> Bones, Core::TArray<Asset::FMeshImportSkinWeight> SkinWeights);
+        bool SetMeshData(Asset::FMeshData MeshData, Core::TArray<Asset::FMeshImportSkinWeight> SkinWeights);
 
         /**
          * @brief 바인드 포즈의 CPU 형상을 반환합니다.
@@ -61,22 +59,12 @@ namespace Asset {
         const Asset::FMeshData& GetMeshData() const;
 
         /**
-         * @brief 이름·부모·로컬 바인드 포즈를 반환합니다.
-         * @return 본 목록의 읽기 전용 참조입니다.
-         */
-        const Core::TArray<Asset::FMeshImportBone>& GetBones() const;
-
-        /**
          * @brief 정점별 스킨 가중치를 반환합니다.
          * @return 가중치 목록의 읽기 전용 참조입니다.
          */
         const Core::TArray<Asset::FMeshImportSkinWeight>& GetSkinWeights() const;
 
-        /**
-         * @brief 메시 공간에서 바인드 시점 본 공간으로 가는 행렬을 반환합니다.
-         * @return 본 인덱스순 역바인드 행렬입니다.
-         */
-        const Core::TArray<Core::FMatrix>& GetInverseBindPoses() const;
+        Core::Uint32 GetSkinMatrixCount() const;
 
         /**
          * @brief 공통 메시 드로 경로가 사용할 바인드 형상을 반환합니다.
@@ -135,7 +123,7 @@ namespace Asset {
         Core::FRevision GetRevision() const;
 
         /**
-         * @brief 스키닝에 필요한 형상과 본 데이터가 있는지 검사합니다.
+         * @brief 스키닝에 필요한 형상과 가중치가 있는지 검사합니다.
          * @return 유효한 메시이면 true입니다.
          */
         bool IsValid() const;
@@ -168,19 +156,11 @@ namespace Asset {
         Asset::UStaticMesh mGeometry{};
 
         /**
-         * @brief 부모 인덱스와 로컬 바인드 포즈입니다.
-         */
-        Core::TArray<Asset::FMeshImportBone> mBones{};
-
-        /**
          * @brief 정점별 정규화한 본 영향입니다.
          */
         Core::TArray<Asset::FMeshImportSkinWeight> mSkinWeights{};
 
-        /**
-         * @brief 메시 공간 기준 전역 바인드 포즈의 역행렬입니다.
-         */
-        Core::TArray<Core::FMatrix> mInverseBindPoses{};
+        Core::Uint32 mSkinMatrixCount{};
 
         /**
          * @brief 바인드 데이터 개정입니다.

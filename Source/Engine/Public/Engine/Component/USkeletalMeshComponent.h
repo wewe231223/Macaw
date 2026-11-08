@@ -12,6 +12,7 @@
 
 namespace Asset {
     class USkeletalMesh;
+    class USkeleton;
 }
 
 namespace Engine {
@@ -71,6 +72,10 @@ namespace Engine {
          * @return 경로가 유효하고 가능한 경우 로드했으면 true입니다.
          */
         bool SetMeshPath(const Core::FString& Path);
+
+        Asset::USkeleton* GetSkeleton() const;
+        const Core::FString& GetSkeletonPath() const;
+        bool SetSkeletonPath(const Core::FString& Path);
 
         /**
          * @brief 저장된 에셋 경로와 현재 에셋 개정을 해석합니다.
@@ -154,6 +159,7 @@ namespace Engine {
          * @return 로드 실패 시 nullptr입니다.
          */
         Asset::USkeletalMesh* LoadMesh(const Core::FString& Path) const;
+        Asset::USkeleton* LoadSkeleton(const Core::FString& Path) const;
 
     private:
         /**
@@ -162,10 +168,16 @@ namespace Engine {
         UPROPERTY(Edit, Serialize, Name = "SkeletalMesh", Getter = GetMeshPath, Setter = SetMeshPath)
         Core::FString mMeshPath{};
 
+        UPROPERTY(Edit, Serialize, Name = "Skeleton", Getter = GetSkeletonPath, Setter = SetSkeletonPath)
+        Core::FString mSkeletonPath{};
+
         /**
          * @brief 에셋 관리자가 소유하는 메시입니다.
          */
         Asset::USkeletalMesh* mSkeletalMesh{};
+        Asset::USkeleton* mSkeleton{};
+        Core::FRevision mMeshRevision{};
+        Core::FRevision mSkeletonRevision{};
 
         /**
          * @brief 객체별 로컬·전역 포즈와 CPU 피킹 형상입니다.

@@ -19,6 +19,7 @@
 #include "Engine/FSceneViewFamily.h"
 #include "Asset/UStaticMesh.h"
 #include "Asset/USkeletalMesh.h"
+#include "Asset/USkeleton.h"
 #include "Engine/FPrimitiveDrawInterface.h"
 #include "Engine/EditorMesh.h"
 #include "Engine/MeshPicking.h"
@@ -66,9 +67,12 @@ namespace Editor {
 
         Asset::USkeletalMesh* Skeletal{Type == Asset::EAssetType::SkeletalMesh ? mAssets->LoadSkeletalMesh(Path, Error) : nullptr};
         Asset::UStaticMesh* Mesh{Skeletal != nullptr ? Skeletal->GetGeometry() : Type == Asset::EAssetType::Mesh ? mAssets->LoadMesh(Path, Error) : nullptr};
+        const Core::FString MeshPath{Core::FilePath::ToGenericUtf8(Path)};
+        const Core::FString SkeletonPath{Skeletal != nullptr && MeshPath == mPath ? mSkeletonPath : Core::FString{}};
+        Asset::USkeleton* Skeleton{Skeletal == nullptr ? nullptr : SkeletonPath.empty() ? mAssets->FindLegacySkeleton(Path) : mAssets->LoadSkeleton(Core::FilePath::FromUtf8(SkeletonPath), Error)};
         Engine::FSkeletalMeshPose Pose{};
 
-        if (Skeletal != nullptr && (!Pose.Reset(*Skeletal) || !Skeletal->CreateResources(static_cast<ID3D11Device*>(mRenderer->GetNativeDevice())))) {
+        if (Skeleton != nullptr && (!Pose.Reset(*Skeletal, *Skeleton) || !Skeletal->CreateResources(static_cast<ID3D11Device*>(mRenderer->GetNativeDevice())))) {
             Error = "Cannot prepare skeletal mesh pose or resources";
 
             return false;
@@ -122,12 +126,16 @@ namespace Editor {
 
         mMesh = Mesh;
         mSkeletalMesh = Skeletal;
+        mSkeleton = Skeleton;
+        mSkeletonPath = SkeletonPath;
+        mMeshRevision = Mesh->GetRevision();
+        mSkeletonRevision = Skeleton != nullptr ? Skeleton->GetRevision() : Core::FRevision{};
         mPose = std::move(Pose);
         mPoseBone.reset();
         mGizmo.EndDrag();
         mMaterials = std::move(Materials);
         mMaterialPaths.assign(mMaterials.size(), Core::FString{});
-        mPath = Core::FilePath::ToGenericUtf8(Path);
+        mPath = MeshPath;
         mError.clear();
         mOpen = true;
         mMouseCaptured = false;
@@ -153,7 +161,7 @@ namespace Editor {
             return;
         }
 
-        const Core::FBox& Bounds{mSkeletalMesh != nullptr ? mPose.GetMeshData().GetBounds() : mMesh->GetBounds()};
+        const Core::FBox& Bounds{mPose.GetRevision().IsValid() ? mPose.GetMeshData().GetBounds() : mMesh->GetBounds()};
 
         mCenter = (Bounds.mMinimum + Bounds.mMaximum) * 0.5f;
         mRadius = std::max(Bounds.mMinimum.Distance(Bounds.mMaximum) * 0.5f, 0.01f);
@@ -168,10 +176,15 @@ namespace Editor {
         Engine::FPrimitiveSceneProxy Proxy{};
         Proxy.mId = mPrimitiveId;
         Proxy.mMesh = mMesh;
-        Proxy.mBounds = mSkeletalMesh != nullptr ? mPose.GetMeshData().GetBounds() : mMesh->GetBounds();
-        Proxy.mSkeletalMesh = mSkeletalMesh;
-        Proxy.mSkinMatrices = mPose.GetSkinMatrices();
-        Proxy.mPoseRevision = mPose.GetRevision();
+        Proxy.mBounds = mMesh->GetBounds();
+
+        if (mPose.GetRevision().IsValid()) {
+            Proxy.mBounds = mPose.GetMeshData().GetBounds();
+            Proxy.mSkeletalMesh = mSkeletalMesh;
+            Proxy.mSkinMatrices = mPose.GetSkinMatrices();
+            Proxy.mPoseRevision = mPose.GetRevision();
+        }
+
         Proxy.mMaterials = mMaterials;
 
         mScene->AddPrimitive(Proxy);
@@ -234,12 +247,66 @@ namespace Editor {
         }
     }
 
+    void Editor::FMeshViewer::DrawSkeletonPicker() {
+        const char* Label{mSkeletonPath.empty() ? mSkeleton == nullptr ? "None" : "Embedded Skeleton" : mSkeletonPath.c_str()};
+
+        if (!ImGui::BeginCombo("Skeleton", Label)) {
+            return;
+        }
+
+        Core::FString SelectedPath{mSkeletonPath};
+        Core::FString Error{};
+
+        if (ImGui::Selectable("Default", SelectedPath.empty())) {
+            SelectedPath.clear();
+        }
+
+        for (const auto& Candidate : mAssets->GetAssetPaths(Error)) {
+            Asset::EAssetType Type{};
+
+            if (Asset::FAssetFile::GetType(mAssets->ResolvePath(Candidate, Error), Type, Error) && Type == Asset::EAssetType::Skeleton) {
+                const Core::FString Relative{Core::FilePath::ToGenericUtf8(Candidate)};
+
+                if (ImGui::Selectable(Relative.c_str(), Relative == SelectedPath)) {
+                    SelectedPath = Relative;
+                }
+            }
+        }
+
+        ImGui::EndCombo();
+
+        if (SelectedPath == mSkeletonPath) {
+            return;
+        }
+
+        Error.clear();
+
+        Asset::USkeleton* Skeleton{SelectedPath.empty() ? mAssets->FindLegacySkeleton(Core::FilePath::FromUtf8(mPath)) : mAssets->LoadSkeleton(Core::FilePath::FromUtf8(SelectedPath), Error)};
+        Engine::FSkeletalMeshPose Pose{};
+
+        if ((!SelectedPath.empty() && Skeleton == nullptr) || (Skeleton != nullptr && !Pose.Reset(*mSkeletalMesh, *Skeleton))) {
+            mError = Error.empty() ? "Cannot prepare the skeleton preview pose" : std::move(Error);
+
+            return;
+        }
+
+        mSkeleton = Skeleton;
+        mSkeletonPath = std::move(SelectedPath);
+        mSkeletonRevision = Skeleton != nullptr ? Skeleton->GetRevision() : Core::FRevision{};
+        mPose = std::move(Pose);
+        mPoseBone.reset();
+        mGizmo.EndDrag();
+        mError.clear();
+
+        UpdateScene();
+    }
+
     /**
      * @brief 카메라·재질 조작 UI와 미리보기를 표시합니다.
      */
     void Editor::FMeshViewer::DrawUI(const Core::FInput& Input, bool Standalone) {
         // 열린 에셋이 재임포트되면 본 번호와 재질 슬롯을 새 데이터에 맞춰 다시 만듭니다.
-        if (mOpen && mSkeletalMesh != nullptr && mPose.GetMeshRevision() != mSkeletalMesh->GetRevision()) {
+        if (mOpen && ((mMesh != nullptr && mMeshRevision != mMesh->GetRevision()) || (mSkeleton != nullptr && mSkeletonRevision != mSkeleton->GetRevision()))) {
             const std::filesystem::path Path{Core::FilePath::FromUtf8(mPath)};
             Core::FString Error{};
 
@@ -283,14 +350,18 @@ namespace Editor {
             }
 
             ImGui::SameLine();
-            ImGui::TextDisabled(mSkeletalMesh != nullptr ? "Click bone | Drag: orbit | Middle: pan | Wheel: zoom | F: frame | W/E: move/rotate" : "Drag: orbit | Middle: pan | Wheel: zoom | F: frame");
+            ImGui::TextDisabled(mSkeleton != nullptr ? "Click bone | Drag: orbit | Middle: pan | Wheel: zoom | F: frame | W/E: move/rotate" : "Drag: orbit | Middle: pan | Wheel: zoom | F: frame");
             DrawMaterials();
+
+            if (mSkeletalMesh != nullptr) {
+                DrawSkeletonPicker();
+            }
 
             if (!mError.empty()) {
                 ImGui::TextWrapped("%s", mError.c_str());
             }
 
-            if (mSkeletalMesh != nullptr) {
+            if (mSkeleton != nullptr) {
                 DrawPose();
                 ImGui::SameLine();
             }
@@ -345,7 +416,7 @@ namespace Editor {
         const Engine::FSceneView InputView{CalcSceneView(Extent)};
         const Core::FVector2 PreviewMouse{Mouse.x - Origin.x, Mouse.y - Origin.y};
         const bool GizmoActive{mPoseBone && UpdateBoneGizmo(*mPoseBone, Input, InputView, PreviewMouse, Hovered)};
-        const Core::TArray<Editor::FMeshViewer::FBoneShape> BoneShapes{mSkeletalMesh != nullptr && mShowBones ? BuildBoneShapes() : Core::TArray<Editor::FMeshViewer::FBoneShape>{}};
+        const Core::TArray<Editor::FMeshViewer::FBoneShape> BoneShapes{mSkeleton != nullptr && mShowBones ? BuildBoneShapes() : Core::TArray<Editor::FMeshViewer::FBoneShape>{}};
         const bool CanPickBone{Hovered && !mMouseCaptured && !GizmoActive && !BoneShapes.empty()};
         const bool LeftClick{Input.WasPressed(EKey::MouseLeft) && !Input.IsDown(EKey::MouseRight) && !Input.IsDown(EKey::MouseMiddle)};
         const bool PickedBone{CanPickBone && LeftClick && PickBone(InputView, PreviewMouse, BoneShapes)};
@@ -381,7 +452,7 @@ namespace Editor {
             FrameMesh();
         }
 
-        if (mSkeletalMesh != nullptr && Hovered && !ImGui::GetIO().WantTextInput && !mGizmo.IsDragging()) {
+        if (mSkeleton != nullptr && Hovered && !ImGui::GetIO().WantTextInput && !mGizmo.IsDragging()) {
             if (Input.WasPressed(EKey::W)) {
                 mGizmoMode = Editor::EGizmoMode::Translate;
             } else if (Input.WasPressed(EKey::E)) {
@@ -427,7 +498,7 @@ namespace Editor {
         const float Scale{ImGui::GetStyle().FontScaleMain * ImGui::GetStyle().FontScaleDpi};
 
         if (ImGui::BeginChild("Skeleton", {320.0f * Scale, 0.0f}, ImGuiChildFlags_Borders)) {
-            const auto& Bones{mSkeletalMesh->GetBones()};
+            const auto& Bones{mSkeleton->GetBones()};
 
             ImGui::Text("Bones: %zu", Bones.size());
             ImGui::Checkbox("Show Bones", &mShowBones);
@@ -481,14 +552,14 @@ namespace Editor {
 
             ImGui::BeginDisabled(!mPoseBone);
 
-            if (ImGui::Button("Reset Bone") && mPoseBone && mPose.SetLocalTransform(*mSkeletalMesh, *mPoseBone, Bones[*mPoseBone].GetBindPose())) {
+            if (ImGui::Button("Reset Bone") && mPoseBone && mPose.SetLocalTransform(*mSkeletalMesh, *mSkeleton, *mPoseBone, Bones[*mPoseBone].GetBindPose())) {
                 UpdateScene();
             }
 
             ImGui::EndDisabled();
             ImGui::SameLine();
 
-            if (ImGui::Button("Reset Bind Pose") && mPose.Reset(*mSkeletalMesh)) {
+            if (ImGui::Button("Reset Bind Pose") && mPose.Reset(*mSkeletalMesh, *mSkeleton)) {
                 UpdateScene();
             }
         }
@@ -504,7 +575,7 @@ namespace Editor {
         const ImGuiTreeNodeFlags Flags{ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_DefaultOpen | (Bone == mPoseBone ? ImGuiTreeNodeFlags_Selected : 0) | (BoneChildren.empty() ? ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen : 0)};
 
         // 본 이름은 중복될 수 있으므로 번호를 트리 노드 식별자로 사용합니다.
-        const bool Open{ImGui::TreeNodeEx(reinterpret_cast<void*>(static_cast<std::uintptr_t>(Bone)), Flags, "%s", mSkeletalMesh->GetBones()[Bone].GetName().c_str())};
+        const bool Open{ImGui::TreeNodeEx(reinterpret_cast<void*>(static_cast<std::uintptr_t>(Bone)), Flags, "%s", mSkeleton->GetBones()[Bone].GetName().c_str())};
 
         if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen()) {
             mGizmo.EndDrag();
@@ -521,7 +592,7 @@ namespace Editor {
     }
 
     Core::TArray<Editor::FMeshViewer::FBoneShape> Editor::FMeshViewer::BuildBoneShapes() const {
-        const auto& Bones{mSkeletalMesh->GetBones()};
+        const auto& Bones{mSkeleton->GetBones()};
         const auto& Transforms{mPose.GetGlobalTransforms()};
         const float MaxJointRadius{mRadius * 0.019f};
         const float MinJointRadius{MaxJointRadius * 0.12f};
@@ -650,7 +721,7 @@ namespace Editor {
             if (Input.WasPressed(EKey::Escape)) {
                 mGizmo.EndDrag();
 
-                if (mPose.SetLocalTransform(*mSkeletalMesh, Bone, mDragStartLocal)) {
+                if (mPose.SetLocalTransform(*mSkeletalMesh, *mSkeleton, Bone, mDragStartLocal)) {
                     UpdateScene();
                 }
 
@@ -699,7 +770,7 @@ namespace Editor {
             Delta = Core::FMatrix::Translation(-Pivot) * Core::FMatrix::Rotation(mGizmo.GetRotation()) * Core::FMatrix::Translation(Pivot);
         }
 
-        const Core::Int32 Parent{mSkeletalMesh->GetBones()[Bone].GetParentIndex()};
+        const Core::Int32 Parent{mSkeleton->GetBones()[Bone].GetParentIndex()};
         Core::FMatrix ParentInverse{Core::FMatrix::Identity()};
 
         if (Parent >= 0 && !mPose.GetGlobalTransforms()[static_cast<std::size_t>(Parent)].TryInverse(ParentInverse)) {
@@ -716,7 +787,7 @@ namespace Editor {
 
         Local(3, 3) = 1.0f;
 
-        if (mPose.SetLocalTransform(*mSkeletalMesh, Bone, Local)) {
+        if (mPose.SetLocalTransform(*mSkeletalMesh, *mSkeleton, Bone, Local)) {
             UpdateScene();
         }
     }

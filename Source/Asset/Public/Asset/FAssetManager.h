@@ -18,6 +18,7 @@ namespace Asset {
 
     class UStaticMesh;
     class USkeletalMesh;
+    class USkeleton;
     class UTexture2D;
     class UMaterial;
     class ULevelSequence;
@@ -114,6 +115,8 @@ namespace Asset {
          * @return 로드한 메시의 비소유 주소이며 실패하면 nullptr입니다.
          */
         Asset::USkeletalMesh* LoadSkeletalMesh(const std::filesystem::path& Path, Core::FString& Error);
+        Asset::USkeleton* LoadSkeleton(const std::filesystem::path& Path, Core::FString& Error);
+        Asset::USkeleton* FindLegacySkeleton(const std::filesystem::path& MeshPath) const;
 
         /**
          * @brief 텍스처 에셋을 캐시에서 조회하거나 파일에서 로드하여 보관합니다.
@@ -199,6 +202,7 @@ namespace Asset {
          * @return 검증과 파일 저장에 성공하면 true입니다.
          */
         bool SaveSkeletalMesh(const std::filesystem::path& Path, const Asset::USkeletalMesh& Mesh, Core::FString& Error);
+        bool SaveSkeleton(const std::filesystem::path& Path, const Asset::USkeleton& Skeleton, Core::FString& Error);
 
         /**
          * @brief 텍스처의 크기·형식·색 공간과 이미지 데이터를 에셋 파일로 저장합니다.
@@ -275,6 +279,8 @@ namespace Asset {
          * @brief 프로젝트 상대 경로별로 소유하는 스켈레탈 메시 캐시입니다.
          */
         Core::TMap<Core::FString, std::unique_ptr<Asset::USkeletalMesh>> mSkeletalMeshes{};
+        Core::TMap<Core::FString, std::unique_ptr<Asset::USkeleton>> mSkeletons{};
+        Core::TMap<Core::FString, std::unique_ptr<Asset::USkeleton>> mLegacySkeletons{};
 
         /**
          * @brief 정규화한 상대 경로별로 소유하는 텍스처 에셋 캐시입니다.

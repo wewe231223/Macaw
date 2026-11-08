@@ -10,6 +10,7 @@
 #include "Asset/FAssetFile.h"
 #include "Asset/UStaticMesh.h"
 #include "Asset/USkeletalMesh.h"
+#include "Asset/USkeleton.h"
 #include "Asset/UTexture2D.h"
 #include "Asset/UMaterial.h"
 #include "Asset/Sequence/ULevelSequence.h"
@@ -270,30 +271,11 @@ namespace Asset {
             Archive.EndArray();
         }
 
-        /**
-         * @brief 메시 기하와 본 계층·스킨 가중치를 함께 직렬화합니다.
-         * @param[in,out] Archive 메시 데이터를 읽거나 쓸 아카이브입니다.
-         * @param[in] Mesh 조회·저장·포즈 계산에 사용할 메시입니다.
-         * @param[in] Bones 본 계층·바인드 변환 목록입니다.
-         * @param[in] SkinWeights 정점별 본 인덱스·가중치입니다.
-         */
-        void SerializeSkeletalMesh(Serialization::FMemoryArchive& Archive, Asset::FMeshData& Mesh, Core::TArray<Asset::FMeshImportBone>& Bones, Core::TArray<Asset::FMeshImportSkinWeight>& SkinWeights) {
-            Core::Uint32 Version{1};
-
-            Archive.Serialize("SkeletalMeshVersion", Version);
-
-            if (Archive.HasError() || Version != 1) {
-                Archive.SetError("Unsupported skeletal mesh version");
-
-                return;
-            }
-
-            SerializeMesh(Archive, Mesh);
-
+        void SerializeBones(Serialization::FMemoryArchive& Archive, Core::TArray<Asset::FMeshImportBone>& Bones) {
             Core::Uint32 BoneCount{Archive.IsLoading() ? 0 : static_cast<Core::Uint32>(Bones.size())};
 
-            if (Archive.HasError() || !Archive.BeginArray("Bones", BoneCount) || BoneCount == 0 || (Archive.IsLoading() && BoneCount > Archive.GetRemainingBytes() / 72)) {
-                Archive.SetError("Invalid skeletal mesh bone count");
+            if (Archive.HasError() || !Archive.BeginArray("Bones", BoneCount) || BoneCount == 0 || BoneCount > Asset::MaxSkeletonBones || (Archive.IsLoading() && BoneCount > Archive.GetRemainingBytes() / 72)) {
+                Archive.SetError("Invalid skeleton bone count");
 
                 return;
             }
@@ -318,6 +300,38 @@ namespace Asset {
             }
 
             Archive.EndArray();
+        }
+
+        void SerializeSkeleton(Serialization::FMemoryArchive& Archive, Core::TArray<Asset::FMeshImportBone>& Bones) {
+            Core::Uint32 Version{1};
+
+            Archive.Serialize("SkeletonVersion", Version);
+
+            if (Archive.HasError() || Version != 1) {
+                Archive.SetError("Unsupported skeleton version");
+
+                return;
+            }
+
+            SerializeBones(Archive, Bones);
+        }
+
+        void SerializeSkeletalMesh(Serialization::FMemoryArchive& Archive, Asset::FMeshData& Mesh, Core::TArray<Asset::FMeshImportSkinWeight>& SkinWeights, Core::TArray<Asset::FMeshImportBone>* LegacyBones = nullptr) {
+            Core::Uint32 Version{2};
+
+            Archive.Serialize("SkeletalMeshVersion", Version);
+
+            if (Archive.HasError() || (Version != 2 && (Version != 1 || LegacyBones == nullptr))) {
+                Archive.SetError("Unsupported skeletal mesh version");
+
+                return;
+            }
+
+            SerializeMesh(Archive, Mesh);
+
+            if (Version == 1) {
+                SerializeBones(Archive, *LegacyBones);
+            }
 
             Core::Uint32 VertexCount{Archive.IsLoading() ? 0 : static_cast<Core::Uint32>(SkinWeights.size())};
 
@@ -580,14 +594,14 @@ namespace Asset {
 
         Serialization::FMemoryArchive Archive{static_cast<const Core::TArray<Core::Uint8>&>(Payload)};
         Asset::FMeshData Data{};
-        Core::TArray<Asset::FMeshImportBone> Bones{};
+        Core::TArray<Asset::FMeshImportBone> LegacyBones{};
         Core::TArray<Asset::FMeshImportSkinWeight> SkinWeights{};
 
-        SerializeSkeletalMesh(Archive, Data, Bones, SkinWeights);
+        SerializeSkeletalMesh(Archive, Data, SkinWeights, &LegacyBones);
 
         auto Mesh{CoreUObject::NewObject<Asset::USkeletalMesh>()};
 
-        if (Archive.HasError() || Archive.GetRemainingBytes() != 0 || !Mesh->SetMeshData(std::move(Data), std::move(Bones), std::move(SkinWeights))) {
+        if (Archive.HasError() || Archive.GetRemainingBytes() != 0 || !Mesh->SetMeshData(std::move(Data), std::move(SkinWeights))) {
             Error = Archive.HasError() ? Archive.GetError() : "Invalid skeletal mesh asset data";
 
             return nullptr;
@@ -596,9 +610,72 @@ namespace Asset {
         Asset::USkeletalMesh* Result{Mesh.get()};
 
         Mesh->SetName(Core::FilePath::ToUtf8(Path.stem()));
+
+        if (!LegacyBones.empty()) {
+            auto Skeleton{CoreUObject::NewObject<Asset::USkeleton>()};
+
+            if (!Skeleton->SetBones(std::move(LegacyBones))) {
+                Error = "Invalid embedded skeleton data";
+
+                return nullptr;
+            }
+
+            Skeleton->SetName(Mesh->GetName());
+            mLegacySkeletons.emplace(Key, std::move(Skeleton));
+        }
+
         mSkeletalMeshes.emplace(Key, std::move(Mesh));
 
         return Result;
+    }
+
+    Asset::USkeleton* Asset::FAssetManager::LoadSkeleton(const std::filesystem::path& Path, Core::FString& Error) {
+        const Core::FString Key{CacheKey(GetRelativePath(Path, Error))};
+
+        if (Key.empty()) {
+            return nullptr;
+        }
+
+        const auto Existing{mSkeletons.find(Key)};
+
+        if (Existing != mSkeletons.end()) {
+            Asset::AssetStats::AssetCacheHits.Add();
+
+            return Existing->second.get();
+        }
+
+        Core::TArray<Core::Uint8> Payload{};
+
+        if (!Asset::FAssetFile::Load(ResolvePath(Path, Error), Asset::EAssetType::Skeleton, Payload, Error)) {
+            return nullptr;
+        }
+
+        Serialization::FMemoryArchive Archive{static_cast<const Core::TArray<Core::Uint8>&>(Payload)};
+        Core::TArray<Asset::FMeshImportBone> Bones{};
+
+        SerializeSkeleton(Archive, Bones);
+
+        auto Skeleton{CoreUObject::NewObject<Asset::USkeleton>()};
+
+        if (Archive.HasError() || Archive.GetRemainingBytes() != 0 || !Skeleton->SetBones(std::move(Bones))) {
+            Error = Archive.HasError() ? Archive.GetError() : "Invalid skeleton asset data";
+
+            return nullptr;
+        }
+
+        Asset::USkeleton* Result{Skeleton.get()};
+
+        Skeleton->SetName(Core::FilePath::ToUtf8(Path.stem()));
+        mSkeletons.emplace(Key, std::move(Skeleton));
+
+        return Result;
+    }
+
+    Asset::USkeleton* Asset::FAssetManager::FindLegacySkeleton(const std::filesystem::path& MeshPath) const {
+        Core::FString Error{};
+        const auto Existing{mLegacySkeletons.find(CacheKey(GetRelativePath(MeshPath, Error)))};
+
+        return Existing != mLegacySkeletons.end() ? Existing->second.get() : nullptr;
     }
 
     /**
@@ -727,10 +804,9 @@ namespace Asset {
         Core::TArray<Core::Uint8> Payload{};
         Serialization::FMemoryArchive Archive{Payload};
         Asset::FMeshData Data{Mesh.GetMeshData()};
-        Core::TArray<Asset::FMeshImportBone> Bones{Mesh.GetBones()};
         Core::TArray<Asset::FMeshImportSkinWeight> SkinWeights{Mesh.GetSkinWeights()};
 
-        SerializeSkeletalMesh(Archive, Data, Bones, SkinWeights);
+        SerializeSkeletalMesh(Archive, Data, SkinWeights);
 
         if (Archive.HasError()) {
             Error = Archive.GetError();
@@ -744,8 +820,46 @@ namespace Asset {
 
         const auto Existing{mSkeletalMeshes.find(CacheKey(GetRelativePath(Path, Error)))};
 
-        if (Existing != mSkeletalMeshes.end() && Existing->second.get() != &Mesh && !Existing->second->SetMeshData(std::move(Data), std::move(Bones), std::move(SkinWeights))) {
+        if (Existing != mSkeletalMeshes.end() && Existing->second.get() != &Mesh && !Existing->second->SetMeshData(std::move(Data), std::move(SkinWeights))) {
             Error = "Cannot update the cached skeletal mesh";
+
+            return false;
+        }
+
+        return true;
+    }
+
+    bool Asset::FAssetManager::SaveSkeleton(const std::filesystem::path& Path, const Asset::USkeleton& Skeleton, Core::FString& Error) {
+        const auto Target{ResolvePath(Path, Error)};
+
+        if (Target.empty() || !Skeleton.IsValid()) {
+            if (Error.empty()) {
+                Error = "Cannot save an invalid skeleton";
+            }
+
+            return false;
+        }
+
+        Core::TArray<Core::Uint8> Payload{};
+        Serialization::FMemoryArchive Archive{Payload};
+        Core::TArray<Asset::FMeshImportBone> Bones{Skeleton.GetBones()};
+
+        SerializeSkeleton(Archive, Bones);
+
+        if (Archive.HasError()) {
+            Error = Archive.GetError();
+
+            return false;
+        }
+
+        if (!Asset::FAssetFile::Save(Target, Asset::EAssetType::Skeleton, Payload, Error)) {
+            return false;
+        }
+
+        const auto Existing{mSkeletons.find(CacheKey(GetRelativePath(Path, Error)))};
+
+        if (Existing != mSkeletons.end() && Existing->second.get() != &Skeleton && !Existing->second->SetBones(std::move(Bones))) {
+            Error = "Cannot update the cached skeleton";
 
             return false;
         }
@@ -866,6 +980,8 @@ namespace Asset {
             }};
             RemoveCache(mMaterials);
             RemoveCache(mMeshes);
+            RemoveCache(mSkeletalMeshes);
+            RemoveCache(mSkeletons);
             RemoveCache(mNormalMaps);
             RemoveCache(mTextures);
 
@@ -899,6 +1015,30 @@ namespace Asset {
                 Error = "Cannot import mesh source '" + Core::FilePath::ToUtf8(Source) + "': " + Error;
 
                 return false;
+            }
+        }
+
+        const bool HasSkeleton{Option.mImportSkeleton && !Imported.GetBones().empty()};
+
+        if (HasSkeleton) {
+            auto Skeleton{CoreUObject::NewObject<Asset::USkeleton>()};
+
+            if (!Skeleton->SetBones(std::move(Imported.GetBones()))) {
+                Error = "Invalid imported skeleton data";
+
+                return false;
+            }
+
+            const auto SkeletonTarget{UniqueAssetPath(Destination.parent_path(), Core::FilePath::ToUtf8(Destination.stem()) + "_Skeleton", Error)};
+
+            if (SkeletonTarget.empty() || !SaveSkeleton(SkeletonTarget, *Skeleton, Error)) {
+                return false;
+            }
+
+            if (Imported.GetMeshes().empty()) {
+                Target = SkeletonTarget;
+
+                return true;
             }
         }
 
@@ -1020,7 +1160,7 @@ namespace Asset {
                 return false;
             }
 
-            if (Option.mImportSkeleton && !Imported.GetBones().empty()) {
+            if (HasSkeleton) {
                 auto Mesh{CoreUObject::NewObject<Asset::USkeletalMesh>()};
                 Core::TArray<Asset::FMeshImportSkinWeight> SkinWeights{ImportedMesh.GetSkinWeights()};
 
@@ -1028,7 +1168,7 @@ namespace Asset {
                     SkinWeights.resize(Data.GetPositions().size());
                 }
 
-                if (!Mesh->SetMeshData(std::move(Data), Imported.GetBones(), std::move(SkinWeights))) {
+                if (!Mesh->SetMeshData(std::move(Data), std::move(SkinWeights))) {
                     Error = "Invalid imported skeletal mesh data: " + ImportedMesh.GetName();
 
                     return false;

@@ -29,6 +29,7 @@ namespace Asset {
     class FAssetManager;
     class UStaticMesh;
     class USkeletalMesh;
+    class USkeleton;
     class UMaterial;
 }
 
@@ -117,6 +118,7 @@ namespace Editor {
          * @brief 슬롯별 임시 재질 선택 UI를 표시합니다.
          */
         void DrawMaterials();
+        void DrawSkeletonPicker();
 
         /**
          * @brief 미리보기 옆에 본 계층 선택·기즈모 설정·포즈 복원 패널을 표시합니다.
@@ -197,6 +199,10 @@ namespace Editor {
          * @brief 스켈레탈 미리보기에서 사용하는 공유 에셋입니다.
          */
         Asset::USkeletalMesh* mSkeletalMesh{};
+        Asset::USkeleton* mSkeleton{};
+        Core::FString mSkeletonPath{};
+        Core::FRevision mMeshRevision{};
+        Core::FRevision mSkeletonRevision{};
 
         /**
          * @brief 미리보기 객체만의 현재 포즈입니다.

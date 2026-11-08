@@ -104,7 +104,7 @@ namespace Renderer {
      */
     void Renderer::FScene::AddPrimitive(const Engine::FPrimitiveSceneProxy& Proxy) {
         // 공유 형상 버퍼 외에 스킨 정점 버퍼도 같은 장치에서 준비합니다.
-        if (Proxy.mSkeletalMesh != nullptr && (Proxy.mMesh != Proxy.mSkeletalMesh->GetGeometry() || Proxy.mSkinMatrices.size() != Proxy.mSkeletalMesh->GetBones().size() || !Proxy.mSkeletalMesh->CreateResources(mDevice))) {
+        if (Proxy.mSkeletalMesh != nullptr && (Proxy.mMesh != Proxy.mSkeletalMesh->GetGeometry() || Proxy.mSkinMatrices.size() < Proxy.mSkeletalMesh->GetSkinMatrixCount() || !Proxy.mSkeletalMesh->CreateResources(mDevice))) {
             Core::ErrorHandler::Report("SkeletalMesh", "Cannot prepare skeletal mesh resources or pose", Core::ErrorHandler::EErrorLevel::Error);
 
             return;

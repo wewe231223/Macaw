@@ -11,7 +11,7 @@
 #include "Engine/Component/UActorComponent.h"
 #include "Engine/Component/UMeshComponent.h"
 #include "Engine/Component/USkeletalMeshComponent.h"
-#include "Asset/USkeletalMesh.h"
+#include "Asset/USkeleton.h"
 #include "Engine/Component/ULightComponent.h"
 #include "RenderCore/IRendererModule.h"
 #include "Engine/FProject.h"
@@ -648,7 +648,7 @@ namespace Editor {
             ImGui::EndDisabled();
         }
 
-        if (Skeletal != nullptr && Skeletal->GetSkeletalMesh() != nullptr) {
+        if (Skeletal != nullptr && Skeletal->GetSkeletalMesh() != nullptr && Skeletal->GetSkeleton() != nullptr && Skeletal->GetPose().GetRevision().IsValid()) {
             DrawSkeletalPose(Skeletal);
         }
 
@@ -752,6 +752,10 @@ namespace Editor {
 
             if (Property->GetName() == "SkeletalMesh" && mAssetCatalog != nullptr && mThumbnails != nullptr) {
                 return mAssetPicker.Draw(*mAssetCatalog, *mThumbnails, Label, *String, Asset::EAssetType::SkeletalMesh, {}, "None");
+            }
+
+            if (Property->GetName() == "Skeleton" && mAssetCatalog != nullptr && mThumbnails != nullptr) {
+                return mAssetPicker.Draw(*mAssetCatalog, *mThumbnails, Label, *String, Asset::EAssetType::Skeleton, {}, "None");
             }
 
             if (Property->GetName() == "Mesh") {
@@ -869,7 +873,7 @@ namespace Editor {
 
         ImGui::BeginDisabled(!GetEditorContext()->CanEditWorld());
 
-        const auto& Bones{Component->GetSkeletalMesh()->GetBones()};
+        const auto& Bones{Component->GetSkeleton()->GetBones()};
 
         for (Core::Uint32 Bone{}; Bone < Bones.size(); ++Bone) {
             ImGui::PushID(static_cast<int>(Bone));

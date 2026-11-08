@@ -6,6 +6,7 @@
 
 #include "Engine/Component/USkeletalMeshComponent.h"
 #include "Asset/USkeletalMesh.h"
+#include "Asset/USkeleton.h"
 #include "Asset/FAssetManager.h"
 #include "Core/Archive.h"
 #include "Core/FilePath.h"
@@ -17,6 +18,23 @@
 #include <utility>
 
 namespace Engine {
+    namespace {
+        bool IsAssetPath(const Core::FString& Path) {
+            const std::filesystem::path AssetPath{Core::FilePath::FromUtf8(Path)};
+
+            if (Path.find('\0') != Core::FString::npos || (!Path.empty() && (AssetPath.has_root_path() || AssetPath.extension() != L".masset"))) {
+                return false;
+            }
+
+            for (const auto& Part : AssetPath) {
+                if (Part == L"..") {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+    }
 
     /**
      * @brief 에디터에서도 에셋 변경을 감지하는 컴포넌트를 생성합니다.
@@ -57,7 +75,7 @@ namespace Engine {
      */
     const Asset::FMeshData& USkeletalMeshComponent::GetMeshData() const {
         // 피킹이 실제 보이는 표면과 일치하도록 에셋의 바인드 형상이 아니라 현재 포즈로 변형한 형상을 반환합니다.
-        return mPose.GetMeshData();
+        return mSkeletalMesh != nullptr && !mPose.GetRevision().IsValid() ? mSkeletalMesh->GetMeshData() : mPose.GetMeshData();
     }
 
     /**
@@ -71,16 +89,8 @@ namespace Engine {
      * @brief 에셋 경로를 설정하고 포즈를 초기화합니다.
      */
     bool USkeletalMeshComponent::SetMeshPath(const Core::FString& Path) {
-        const std::filesystem::path AssetPath{Core::FilePath::FromUtf8(Path)};
-
-        if (Path.find('\0') != Core::FString::npos || (!Path.empty() && (AssetPath.has_root_path() || AssetPath.extension() != L".masset"))) {
+        if (!IsAssetPath(Path)) {
             return false;
-        }
-
-        for (const auto& Part : AssetPath) {
-            if (Part == L"..") {
-                return false;
-            }
         }
 
         if (mMeshPath == Path && (Path.empty() || mSkeletalMesh != nullptr)) {
@@ -109,40 +119,75 @@ namespace Engine {
         return true;
     }
 
+    Asset::USkeleton* USkeletalMeshComponent::GetSkeleton() const {
+        return mSkeleton;
+    }
+
+    const Core::FString& USkeletalMeshComponent::GetSkeletonPath() const {
+        return mSkeletonPath;
+    }
+
+    bool USkeletalMeshComponent::SetSkeletonPath(const Core::FString& Path) {
+        if (!IsAssetPath(Path)) {
+            return false;
+        }
+
+        if (mSkeletonPath == Path && (Path.empty() || mSkeleton != nullptr)) {
+            return true;
+        }
+
+        if (!Path.empty() && GetWorld() != nullptr && GetWorld()->GetAssets() != nullptr && LoadSkeleton(Path) == nullptr) {
+            return false;
+        }
+
+        mSkeletonPath = Path;
+        mSkeleton = nullptr;
+        mPose = Engine::FSkeletalMeshPose{};
+
+        ResolveMesh();
+        MarkRenderStateDirty();
+
+        return true;
+    }
+
     /**
      * @brief 저장된 에셋 경로와 현재 에셋 개정을 해석합니다.
      */
     bool USkeletalMeshComponent::ResolveMesh() {
         Asset::USkeletalMesh* Mesh{LoadMesh(mMeshPath)};
+        Asset::USkeleton* Skeleton{LoadSkeleton(mSkeletonPath)};
+        const Core::FRevision MeshRevision{Mesh != nullptr ? Mesh->GetRevision() : Core::FRevision{}};
+        const Core::FRevision SkeletonRevision{Skeleton != nullptr ? Skeleton->GetRevision() : Core::FRevision{}};
 
-        if (Mesh != mSkeletalMesh || (Mesh != nullptr && mPose.GetMeshRevision() != Mesh->GetRevision())) {
-            const bool MeshReimported{Mesh != nullptr && mPose.GetMeshRevision().IsValid() && mPose.GetMeshRevision() != Mesh->GetRevision()};
+        if (Mesh != mSkeletalMesh || Skeleton != mSkeleton || MeshRevision != mMeshRevision || SkeletonRevision != mSkeletonRevision) {
+            const bool Reimported{(mMeshRevision.IsValid() && MeshRevision != mMeshRevision) || (mSkeletonRevision.IsValid() && SkeletonRevision != mSkeletonRevision)};
 
             mSkeletalMesh = Mesh;
+            mSkeleton = Skeleton;
+            mMeshRevision = MeshRevision;
+            mSkeletonRevision = SkeletonRevision;
             mPose.Invalidate();
 
-            if (Mesh != nullptr) {
+            if (Mesh != nullptr && Skeleton != nullptr) {
                 bool PoseReady{false};
 
-                if (!MeshReimported && !mPose.GetLocalTransforms().empty()) {
-                    PoseReady = mPose.Recalculate(*Mesh);
+                if (!Reimported && !mPose.GetLocalTransforms().empty()) {
+                    PoseReady = mPose.Recalculate(*Mesh, *Skeleton);
 
                     if (!PoseReady) {
-                        Core::ErrorHandler::Report("SkeletalMesh", "Stored pose does not match the skeletal mesh; using bind pose", Core::ErrorHandler::EErrorLevel::Warning);
+                        Core::ErrorHandler::Report("SkeletalMesh", "Stored pose does not match the skeleton; using bind pose", Core::ErrorHandler::EErrorLevel::Warning);
                     }
                 }
 
-                if (!PoseReady && !mPose.Reset(*Mesh)) {
-                    mSkeletalMesh = nullptr;
-
-                    return false;
+                if (!PoseReady && !mPose.Reset(*Mesh, *Skeleton)) {
+                    mPose = Engine::FSkeletalMeshPose{};
                 }
             }
 
             MarkRenderStateDirty();
         }
 
-        return mMeshPath.empty() || mSkeletalMesh != nullptr;
+        return (mMeshPath.empty() || mSkeletalMesh != nullptr) && (mSkeletonPath.empty() || mSkeleton != nullptr);
     }
 
     /**
@@ -156,7 +201,7 @@ namespace Engine {
      * @brief 본 하나의 부모 기준 변환을 변경합니다.
      */
     bool USkeletalMeshComponent::SetBoneLocalTransform(Core::Uint32 Bone, const Core::FMatrix& Transform) {
-        if (mSkeletalMesh == nullptr || !mPose.SetLocalTransform(*mSkeletalMesh, Bone, Transform)) {
+        if (mSkeletalMesh == nullptr || mSkeleton == nullptr || !mPose.SetLocalTransform(*mSkeletalMesh, *mSkeleton, Bone, Transform)) {
             return false;
         }
 
@@ -170,7 +215,7 @@ namespace Engine {
      * @brief 전체 로컬 포즈를 변경합니다.
      */
     bool USkeletalMeshComponent::SetLocalPose(const Core::TArray<Core::FMatrix>& Transforms) {
-        const bool Updated{mSkeletalMesh != nullptr ? mPose.SetLocalTransforms(*mSkeletalMesh, Transforms) : mPose.SetLocalTransforms(Transforms)};
+        const bool Updated{mSkeletalMesh != nullptr && mSkeleton != nullptr ? mPose.SetLocalTransforms(*mSkeletalMesh, *mSkeleton, Transforms) : mPose.SetLocalTransforms(Transforms)};
 
         if (!Updated) {
             return false;
@@ -185,7 +230,7 @@ namespace Engine {
      * @brief 모든 본을 바인드 포즈로 복원합니다.
      */
     bool USkeletalMeshComponent::ResetPose() {
-        if (mSkeletalMesh == nullptr || !mPose.Reset(*mSkeletalMesh)) {
+        if (mSkeletalMesh == nullptr || mSkeleton == nullptr || !mPose.Reset(*mSkeletalMesh, *mSkeleton)) {
             return false;
         }
 
@@ -198,7 +243,7 @@ namespace Engine {
      * @brief 에셋과 포즈가 준비되었는지 검사합니다.
      */
     bool USkeletalMeshComponent::ShouldCreateRenderState() const {
-        return mSkeletalMesh != nullptr && mPose.GetMeshRevision() == mSkeletalMesh->GetRevision() && mPose.GetSkinMatrices().size() == mSkeletalMesh->GetBones().size();
+        return mSkeletalMesh != nullptr;
     }
 
     /**
@@ -210,6 +255,9 @@ namespace Engine {
         Engine::UMeshComponent::UnregisterComponent();
 
         mSkeletalMesh = nullptr;
+        mSkeleton = nullptr;
+        mMeshRevision = Core::FRevision{};
+        mSkeletonRevision = Core::FRevision{};
         mPose.Invalidate();
     }
 
@@ -219,7 +267,7 @@ namespace Engine {
     void USkeletalMeshComponent::Tick(float DeltaTime) {
         Engine::UMeshComponent::Tick(DeltaTime);
 
-        if (mSkeletalMesh != nullptr && mPose.GetMeshRevision() != mSkeletalMesh->GetRevision()) {
+        if ((mSkeletalMesh != nullptr && mMeshRevision != mSkeletalMesh->GetRevision()) || (mSkeleton != nullptr && mSkeletonRevision != mSkeleton->GetRevision())) {
             ResolveMesh();
         }
     }
@@ -244,16 +292,39 @@ namespace Engine {
         return Mesh;
     }
 
+    Asset::USkeleton* USkeletalMeshComponent::LoadSkeleton(const Core::FString& Path) const {
+        Asset::FAssetManager* Assets{GetWorld() != nullptr ? GetWorld()->GetAssets() : nullptr};
+
+        if (Assets == nullptr) {
+            return nullptr;
+        }
+
+        if (Path.empty()) {
+            return mMeshPath.empty() ? nullptr : Assets->FindLegacySkeleton(Core::FilePath::FromUtf8(mMeshPath));
+        }
+
+        Core::FString Error{};
+        Asset::USkeleton* Skeleton{Assets->LoadSkeleton(Core::FilePath::FromUtf8(Path), Error)};
+
+        if (Skeleton == nullptr) {
+            Core::ErrorHandler::Report("Skeleton", "Cannot load skeleton '" + Path + "': " + Error, Core::ErrorHandler::EErrorLevel::Warning);
+        }
+
+        return Skeleton;
+    }
+
     /**
      * @brief 현재 포즈와 재질을 복사한 프록시를 생성합니다.
      */
     Engine::FPrimitiveSceneProxy Engine::USkeletalMeshComponent::CreateSceneProxy() const {
         Engine::FPrimitiveSceneProxy Proxy{Engine::UMeshComponent::CreateSceneProxy()};
-        Proxy.mSkeletalMesh = mSkeletalMesh;
 
-        // 렌더러는 프록시에 복사한 스키닝 행렬만 읽으며, 개정이 같으면 FScene::UploadSkinning이 업로드를 건너뜁니다.
-        Proxy.mSkinMatrices = mPose.GetSkinMatrices();
-        Proxy.mPoseRevision = mPose.GetRevision();
+        if (mPose.GetRevision().IsValid()) {
+            // 렌더러는 프록시에 복사한 스키닝 행렬만 읽으며, 개정이 같으면 FScene::UploadSkinning이 업로드를 건너뜁니다.
+            Proxy.mSkeletalMesh = mSkeletalMesh;
+            Proxy.mSkinMatrices = mPose.GetSkinMatrices();
+            Proxy.mPoseRevision = mPose.GetRevision();
+        }
 
         return Proxy;
     }
@@ -289,7 +360,9 @@ namespace Engine {
         Engine::UMeshComponent::Serialize(Archive);
 
         if (Archive.IsLoading()) {
-            if (!Archive.HasError() && mSkeletalMesh != nullptr) {
+            if (!Archive.HasError()) {
+                mMeshRevision = Core::FRevision{};
+                mSkeletonRevision = Core::FRevision{};
                 ResolveMesh();
             }
 

@@ -203,7 +203,7 @@ namespace Asset {
             return Mesh.GetMeshData().GetPositions().empty();
         });
 
-        if (Meshes.empty()) {
+        if (Meshes.empty() && (!mOption.mImportSkeleton || mResult.GetBones().empty())) {
             Error = "The source contains no static mesh triangles";
 
             return false;

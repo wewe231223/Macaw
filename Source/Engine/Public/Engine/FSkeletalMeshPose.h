@@ -12,6 +12,7 @@
 
 namespace Asset {
     class USkeletalMesh;
+    class USkeleton;
 }
 
 namespace Engine {
@@ -32,14 +33,14 @@ namespace Engine {
          * @param Mesh 사용할 메시입니다.
          * @return 유효한 포즈를 만들면 true입니다.
          */
-        bool Reset(const Asset::USkeletalMesh& Mesh);
+        bool Reset(const Asset::USkeletalMesh& Mesh, const Asset::USkeleton& Skeleton);
 
         /**
          * @brief 로컬 포즈와 스켈레톤으로 스킨 행렬·변형 정점·경계를 다시 계산합니다.
          * @param[in] Mesh 조회·저장·포즈 계산에 사용할 메시입니다.
          * @return 현재 메시를 사용해 포즈를 재계산했으면 true입니다.
          */
-        bool Recalculate(const Asset::USkeletalMesh& Mesh);
+        bool Recalculate(const Asset::USkeletalMesh& Mesh, const Asset::USkeleton& Skeleton);
 
         /**
          * @brief 스켈레탈 포즈의 계산 결과를 다시 만들도록 표시합니다.
@@ -52,7 +53,7 @@ namespace Engine {
          * @param LocalTransforms 부모 본 기준 행렬입니다.
          * @return 반영에 성공하면 true이며, 검증에 실패하면 기존 포즈를 유지합니다.
          */
-        bool SetLocalTransforms(const Asset::USkeletalMesh& Mesh, const Core::TArray<Core::FMatrix>& LocalTransforms);
+        bool SetLocalTransforms(const Asset::USkeletalMesh& Mesh, const Asset::USkeleton& Skeleton, const Core::TArray<Core::FMatrix>& LocalTransforms);
 
         /**
          * @brief 본별 로컬 변환을 검증해 저장하고 이전 메시 계산 결과를 무효화합니다.
@@ -68,7 +69,7 @@ namespace Engine {
          * @param Transform 부모 본 기준 행렬입니다.
          * @return 적용했으면 true입니다.
          */
-        bool SetLocalTransform(const Asset::USkeletalMesh& Mesh, Core::Uint32 Bone, const Core::FMatrix& Transform);
+        bool SetLocalTransform(const Asset::USkeletalMesh& Mesh, const Asset::USkeleton& Skeleton, Core::Uint32 Bone, const Core::FMatrix& Transform);
 
         /**
          * @brief 로컬 포즈를 반환합니다.
@@ -100,12 +101,6 @@ namespace Engine {
          */
         Core::FRevision GetRevision() const;
 
-        /**
-         * @brief 계산에 사용한 에셋의 개정을 반환합니다.
-         * @return 재임포트 감지에 사용할 개정입니다.
-         */
-        Core::FRevision GetMeshRevision() const;
-
     private:
         /**
          * @brief 부모 본 기준 현재 변환입니다.
@@ -132,10 +127,6 @@ namespace Engine {
          */
         Core::FRevision mRevision{};
 
-        /**
-         * @brief 계산 원본의 데이터 개정입니다.
-         */
-        Core::FRevision mMeshRevision{};
     };
 
 }

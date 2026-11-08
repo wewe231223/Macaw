@@ -39,13 +39,14 @@ namespace Asset {
         Material,
 
         /**
-         * @brief 본 계층·스킨 가중치를 포함하는 메시 에셋입니다.
+         * @brief 스킨 가중치를 포함하는 메시 에셋입니다.
          */
         SkeletalMesh,
         /**
          * @brief 시네마틱 바인딩과 트랙을 저장하는 시퀀스 에셋입니다.
          */
-        Sequence
+        Sequence,
+        Skeleton
     };
 
     /**
