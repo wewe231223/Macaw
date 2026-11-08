@@ -18,6 +18,7 @@
 #include "Asset/FAssetFile.h"
 #include "Asset/UTexture2D.h"
 #include "Asset/UMaterial.h"
+#include "Asset/Animation/UAnimSequence.h"
 #include "Asset/Import/IMeshImporter.h"
 #include "Engine/Component/ULightComponentBase.h"
 #include "Engine/UWorld.h"
@@ -44,6 +45,7 @@
 #include <imgui_impl_win32.h>
 #include <algorithm>
 #include <array>
+#include <format>
 #include <fstream>
 #include <regex>
 #include <span>
@@ -1088,7 +1090,11 @@ namespace Editor {
         ImGui::DragFloat("Import Uniform Scale", &mImportOption.mImportUniformScale, 0.01f, 0.001f, 1000.0f, "%.3f");
 
         ImGui::SeparatorText("Mesh");
+        ImGui::Checkbox("Import Mesh", &mImportOption.mImportMesh);
+        ImGui::SetItemTooltip("메시와 재질을 가져옵니다.\n끄면 스켈레톤이나 애니메이션만 가져옵니다.");
+        ImGui::BeginDisabled(!mImportOption.mImportMesh);
         ImGui::Checkbox("Combine Meshes", &mImportOption.mCombineMeshes);
+        ImGui::EndDisabled();
         ImGui::SetItemTooltip("파일의 모든 메시를 하나의 메시 에셋으로 합칩니다.\n끄면 메시 노드마다 별도의 메시 에셋을 만듭니다.");
         ImGui::Checkbox("Import Skeleton", &mImportOption.mImportSkeleton);
         ImGui::SetItemTooltip("원본에 스켈레톤이 있으면 본 계층, 바인드 포즈, 정점별 본 가중치를 읽습니다.\n메시는 스켈레탈 메시 에셋으로 저장되며 배치하거나 메시 뷰어에서 열 수 있습니다.");
@@ -1105,6 +1111,37 @@ namespace Editor {
         ImGui::SetItemTooltip("원본 재질로 머티리얼 에셋을 만듭니다.\n끄면 메시 슬롯이 기본 머티리얼을 사용합니다.");
         ImGui::BeginDisabled(!mImportOption.mImportMaterials);
         ImGui::Checkbox("Import Textures", &mImportOption.mImportTextures);
+        ImGui::EndDisabled();
+
+        ImGui::SeparatorText("Animation");
+        ImGui::Checkbox("Import Animations", &mImportOption.mImportAnimations);
+        ImGui::SetItemTooltip("FBX의 애니메이션 스택마다 본 트랙을 재샘플링해 애니메이션 시퀀스 에셋을 만듭니다.\n애니메이션을 적용할 스켈레톤을 임포트할 때와 같은 축, 단위, 변환 옵션을 사용하세요.");
+        ImGui::BeginDisabled(!mImportOption.mImportAnimations);
+
+        static constexpr std::array<const char*, 3> AnimationLengths{"Exported Time", "Animated Key", "Set Range"};
+        int AnimationLength{static_cast<int>(mImportOption.mAnimationLength)};
+
+        if (ImGui::Combo("Animation Length", &AnimationLength, AnimationLengths.data(), static_cast<int>(AnimationLengths.size()))) {
+            mImportOption.mAnimationLength = static_cast<Asset::EAnimationLengthImportType>(AnimationLength);
+        }
+
+        ImGui::SetItemTooltip("Exported Time: 애니메이션 스택에 기록된 시간 구간을 사용합니다.\nAnimated Key: 애니메이션 키가 있는 구간을 사용합니다.\nSet Range: 아래에 지정한 프레임 구간을 사용합니다.");
+
+        if (mImportOption.mAnimationLength == Asset::EAnimationLengthImportType::SetRange) {
+            std::array<int, 2> Range{mImportOption.mFrameImportRangeStart, mImportOption.mFrameImportRangeEnd};
+
+            if (ImGui::DragInt2("Frame Import Range", Range.data(), 1.0f)) {
+                mImportOption.mFrameImportRangeStart = Range[0];
+                mImportOption.mFrameImportRangeEnd = Range[1];
+            }
+        }
+
+        ImGui::DragInt("Custom Sample Rate", &mImportOption.mCustomSampleRate, 1.0f, 0, 1000, mImportOption.mCustomSampleRate == 0 ? "Source" : "%d fps");
+        ImGui::SetItemTooltip("0이면 원본 장면의 프레임 레이트를 사용합니다(없으면 30 fps).");
+        ImGui::Checkbox("Snap To Closest Frame Boundary", &mImportOption.mSnapToClosestFrameBoundary);
+        ImGui::SetItemTooltip("시작과 끝 시간을 가장 가까운 프레임 경계에 맞춥니다.");
+        ImGui::Checkbox("Remove Redundant Keys", &mImportOption.mRemoveRedundantKeys);
+        ImGui::SetItemTooltip("값이 변하지 않는 위치, 회전, 스케일 채널은 키 하나만 저장합니다.");
         ImGui::EndDisabled();
 
         if (std::any_of(Sources.begin(), Sources.end(), [](const std::filesystem::path& Source) {
@@ -1330,15 +1367,15 @@ namespace Editor {
             DrawContentBreadcrumbs();
             ImGui::SetNextItemWidth(120.0f);
 
-            const char* FilterName{!mContentFilter.has_value() ? "All Assets" : *mContentFilter == Asset::EAssetType::Mesh ? "Meshes" : *mContentFilter == Asset::EAssetType::SkeletalMesh ? "Skeletal Meshes" : *mContentFilter == Asset::EAssetType::Skeleton ? "Skeletons" : *mContentFilter == Asset::EAssetType::Material ? "Materials" : *mContentFilter == Asset::EAssetType::Texture ? "Textures" : *mContentFilter == Asset::EAssetType::Sequence ? "Sequences" : "Scenes"};
+            const char* FilterName{!mContentFilter.has_value() ? "All Assets" : *mContentFilter == Asset::EAssetType::Mesh ? "Meshes" : *mContentFilter == Asset::EAssetType::SkeletalMesh ? "Skeletal Meshes" : *mContentFilter == Asset::EAssetType::Skeleton ? "Skeletons" : *mContentFilter == Asset::EAssetType::Material ? "Materials" : *mContentFilter == Asset::EAssetType::Texture ? "Textures" : *mContentFilter == Asset::EAssetType::Sequence ? "Sequences" : *mContentFilter == Asset::EAssetType::AnimSequence ? "Animation Sequences" : "Scenes"};
 
             if (ImGui::BeginCombo("##AssetType", FilterName)) {
                 if (ImGui::Selectable("All Assets", !mContentFilter.has_value())) {
                     mContentFilter.reset();
                 }
 
-                for (Asset::EAssetType Type : {Asset::EAssetType::Mesh, Asset::EAssetType::SkeletalMesh, Asset::EAssetType::Skeleton, Asset::EAssetType::Material, Asset::EAssetType::Texture, Asset::EAssetType::Scene, Asset::EAssetType::Sequence}) {
-                    const char* Name{Type == Asset::EAssetType::Mesh ? "Meshes" : Type == Asset::EAssetType::SkeletalMesh ? "Skeletal Meshes" : Type == Asset::EAssetType::Skeleton ? "Skeletons" : Type == Asset::EAssetType::Material ? "Materials" : Type == Asset::EAssetType::Texture ? "Textures" : Type == Asset::EAssetType::Sequence ? "Sequences" : "Scenes"};
+                for (Asset::EAssetType Type : {Asset::EAssetType::Mesh, Asset::EAssetType::SkeletalMesh, Asset::EAssetType::Skeleton, Asset::EAssetType::Material, Asset::EAssetType::Texture, Asset::EAssetType::Scene, Asset::EAssetType::Sequence, Asset::EAssetType::AnimSequence}) {
+                    const char* Name{Type == Asset::EAssetType::Mesh ? "Meshes" : Type == Asset::EAssetType::SkeletalMesh ? "Skeletal Meshes" : Type == Asset::EAssetType::Skeleton ? "Skeletons" : Type == Asset::EAssetType::Material ? "Materials" : Type == Asset::EAssetType::Texture ? "Textures" : Type == Asset::EAssetType::Sequence ? "Sequences" : Type == Asset::EAssetType::AnimSequence ? "Animation Sequences" : "Scenes"};
 
                     if (ImGui::Selectable(Name, mContentFilter == Type)) {
                         mContentFilter = Type;
@@ -2152,7 +2189,7 @@ namespace Editor {
                         const bool HasThumbnail{!Directory && Type != mAssetTypes.end() && (Type->second == Asset::EAssetType::Mesh || Type->second == Asset::EAssetType::SkeletalMesh || Type->second == Asset::EAssetType::Skeleton || Type->second == Asset::EAssetType::Material || Type->second == Asset::EAssetType::Texture)};
                         void* Thumbnail{HasThumbnail ? mThumbnails->GetThumbnail(Path, Type->second) : nullptr};
                         const bool ScriptFile{mBrowsingScripts && !Directory};
-                        const char* Kind{ScriptFile ? "C# Script" : Directory ? "Folder" : Type == mAssetTypes.end() ? "File" : Type->second == Asset::EAssetType::Mesh ? "Mesh" : Type->second == Asset::EAssetType::SkeletalMesh ? "Skeletal Mesh" : Type->second == Asset::EAssetType::Skeleton ? "Skeleton" : Type->second == Asset::EAssetType::Material ? "Material" : Type->second == Asset::EAssetType::Texture ? "Texture" : Type->second == Asset::EAssetType::Sequence ? "Sequence" : "Scene"};
+                        const char* Kind{ScriptFile ? "C# Script" : Directory ? "Folder" : Type == mAssetTypes.end() ? "File" : Type->second == Asset::EAssetType::Mesh ? "Mesh" : Type->second == Asset::EAssetType::SkeletalMesh ? "Skeletal Mesh" : Type->second == Asset::EAssetType::Skeleton ? "Skeleton" : Type->second == Asset::EAssetType::Material ? "Material" : Type->second == Asset::EAssetType::Texture ? "Texture" : Type->second == Asset::EAssetType::Sequence ? "Sequence" : Type->second == Asset::EAssetType::AnimSequence ? "Animation Sequence" : "Scene"};
                         const Core::FString Actual{Core::FilePath::ToGenericUtf8(Path)};
                         const Core::FString Name{Core::FilePath::ToUtf8(Directory ? Path.filename() : Path.stem())};
                         const FContentIcon& Icon{GetContentIcon(Kind)};
@@ -2276,6 +2313,28 @@ namespace Editor {
             } else {
                 mContext->AddLog(Error.empty() ? "Cannot preview the texture" : Error);
             }
+        } else if (Type == Asset::EAssetType::AnimSequence) {
+            // 재생 기능이 생기기 전까지는 임포트 결과를 확인할 수 있도록 시간 정보와 트랙 요약을 로그로 출력합니다.
+            Core::FString Error{};
+            const Asset::UAnimSequence* Sequence{mContext->GetProject()->GetAssets()->LoadAnimSequence(Path, Error)};
+
+            if (Sequence == nullptr) {
+                mContext->AddLog(Error.empty() ? "Cannot load the animation sequence" : Error);
+
+                return;
+            }
+
+            const Asset::FAnimDataModel& Model{Sequence->GetDataModel()};
+            std::size_t AnimatedChannels{};
+            std::size_t ConstantChannels{};
+
+            for (const Asset::FBoneAnimationTrack& Track : Model.GetBoneAnimationTracks()) {
+                for (const std::size_t Count : {Track.mInternalTrack.mPosKeys.size(), Track.mInternalTrack.mRotKeys.size(), Track.mInternalTrack.mScaleKeys.size()}) {
+                    (Count == 1 ? ConstantChannels : AnimatedChannels) += 1;
+                }
+            }
+
+            mContext->AddLog(std::format("Animation '{}': {} frames at {:.3f} fps ({:.3f} s), {} tracks, {} animated / {} constant channels", Core::FilePath::ToUtf8(Path.stem()), Model.GetNumberOfFrames(), Model.GetFrameRate().AsDecimal(), Model.GetPlayLength(), Model.GetBoneAnimationTracks().size(), AnimatedChannels, ConstantChannels));
         }
     }
 

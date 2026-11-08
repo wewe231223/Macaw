@@ -260,6 +260,14 @@ namespace Core {
         Core::FQuat GetQuaternion() const;
 
         /**
+         * @brief 아핀 행렬을 위치·회전·스케일로 분해합니다.
+         * @details 행렬식이 음수이면 GetQuaternion과 같이 가장 큰 스케일 축의 부호를 뒤집습니다.
+         * @param[out] Result 분해한 변환을 받을 출력 값입니다.
+         * @return 전단·투영이 없고 모든 축의 크기가 유효해 분해했으면 true입니다.
+         */
+        bool TryGetTransform(Core::FTransform& Result) const;
+
+        /**
          * @brief 역행렬의 유효성을 검사하고 계산 가능한 경우 결과에 기록합니다.
          * @param[out] Result 역행렬을 받을 출력 값입니다.
          * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.

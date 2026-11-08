@@ -6,6 +6,7 @@
 
 #include "Asset/Import/FFBXImporter.h"
 #include "Core/FilePath.h"
+#include "Core/Math/FTransform.h"
 #include "FMeshImportTransform.h"
 
 #include <algorithm>
@@ -269,9 +270,9 @@ namespace Asset {
         Geometry.SetR(Node.GetGeometricRotation(FbxNode::eSourcePivot));
         Geometry.SetS(Node.GetGeometricScaling(FbxNode::eSourcePivot));
 
-        // 메시의 전역 변환입니다. 애니메이션은 끄므로 시간 0의 노드 변환을 사용합니다.
+        // 메시의 전역 변환입니다. 애니메이션을 함께 읽어도 커브를 무시하도록 FBXSDK_TIME_INFINITE로 기본(애니메이션 없는) 노드 변환을 평가합니다.
         // 스킨 메시는 본 바인드 포즈(클러스터 링크 변환)와 같은 자세가 되도록 클러스터에 기록된 바인드 시점의 메시 변환을 사용합니다.
-        FbxAMatrix MeshGlobal{Node.EvaluateGlobalTransform(FBXSDK_TIME_ZERO)};
+        FbxAMatrix MeshGlobal{Node.EvaluateGlobalTransform(FBXSDK_TIME_INFINITE)};
         Core::TArray<Asset::FMeshImportSkinWeight> ControlPointWeights{};
 
         if (FbxAMatrix MeshBindPose{}; GetOption().mImportSkeleton && ReadSkinWeights(Mesh, ControlPointWeights, MeshBindPose)) {
@@ -560,8 +561,8 @@ namespace Asset {
             auto& Bones{GetResult().GetBones()};
             Core::FMatrix ParentInverse{};
 
-            // 클러스터가 있으면 클러스터의 바인드 시점 링크 변환을, 없으면(가중치가 없는 본) 시간 0의 전역 변환을 사용합니다.
-            const Core::FMatrix SourceGlobal{BindPose != mBindPoses.end() ? BindPose->second : ToMatrix(Node.EvaluateGlobalTransform(FBXSDK_TIME_ZERO))};
+            // 클러스터가 있으면 클러스터의 바인드 시점 링크 변환을, 없으면(가중치가 없는 본) 애니메이션 커브를 무시한 기본 전역 변환을 사용합니다.
+            const Core::FMatrix SourceGlobal{BindPose != mBindPoses.end() ? BindPose->second : ToMatrix(Node.EvaluateGlobalTransform(FBXSDK_TIME_INFINITE))};
 
             // FBX 전역 공간의 본 변환을 정점과 같은 엔진 공간의 변환으로 바꿉니다.
             if (!Asset::FMeshImportTransform::ConvertTransform(mBasis, SourceGlobal, BoneGlobal) || !ParentBoneGlobal.TryInverse(ParentInverse)) {
@@ -578,6 +579,7 @@ namespace Asset {
 
             // ReadSkinWeights가 클러스터의 링크 노드를 결과 본 인덱스로 바꿀 때 사용합니다.
             mBoneIndices.emplace(&Node, Index);
+            mBoneNodes.push_back(&Node);
             Bones.emplace_back(Core::FString{Node.GetName()}, ParentIndex, BoneGlobal * ParentInverse);
         }
 
@@ -595,7 +597,7 @@ namespace Asset {
      */
     void Asset::FFBXImporter::CollectBindPoses() {
         // FBX의 스킨 구조는 지오메트리 → 스킨 디포머(FbxSkin) → 클러스터(FbxCluster) 순이며, 클러스터 하나가 본 하나에 대응합니다.
-        // 시간 0의 자세는 바인드 자세와 다를 수 있으므로, 스킨을 묶은 시점의 값이 기록된 클러스터 행렬을 본 순회 전에 모아 둡니다.
+        // 기본 자세는 바인드 자세와 다를 수 있으므로, 스킨을 묶은 시점의 값이 기록된 클러스터 행렬을 본 순회 전에 모아 둡니다.
         for (int GeometryIndex{}; GeometryIndex < mScene->GetGeometryCount(); ++GeometryIndex) {
             FbxGeometry* Geometry{mScene->GetGeometry(GeometryIndex)};
 
@@ -690,11 +692,11 @@ namespace Asset {
             return false;
         }
 
-        // 바인드 자세만 사용하므로 애니메이션은 읽지 않습니다. ReadMesh와 ReadSkeleton은 시간 0의 노드 변환을 기준으로 합니다.
+        // 애니메이션 옵션을 켰을 때만 애니메이션 스택과 커브를 읽습니다. ReadMesh와 ReadSkeleton은 커브와 무관한 기본 노드 변환을 기준으로 합니다.
         auto* Settings{FbxIOSettings::Create(mManager, IOSROOT)};
 
         mManager->SetIOSettings(Settings);
-        Settings->SetBoolProp(IMP_FBX_ANIMATION, false);
+        Settings->SetBoolProp(IMP_FBX_ANIMATION, GetOption().mImportAnimations);
 
         // 파일을 읽을 Importer와 읽은 결과를 담을 Scene을 만듭니다. 둘 다 Manager가 소유합니다.
         mImporter = FbxImporter::Create(mManager, "");
@@ -768,12 +770,13 @@ namespace Asset {
         }
 
         // 메시를 병합하면 모든 메시 노드가 이어 붙을 결과 메시 하나를 원본 파일 이름으로 미리 만듭니다.
-        if (Option.mCombineMeshes) {
+        if (Option.mImportMesh && Option.mCombineMeshes) {
             GetResult().GetMeshes().emplace_back(Core::FilePath::ToUtf8(GetSourcePath().stem()));
         }
 
         // 스켈레톤은 메시보다 먼저 읽어야 ReadMesh가 클러스터 링크 노드를 결과 본 인덱스로 바꿀 수 있습니다.
-        if (Option.mImportSkeleton) {
+        // 애니메이션 트랙도 본 계층을 기준으로 계산하므로 스켈레톤 에셋을 만들지 않더라도 본 목록을 읽습니다.
+        if (Option.mImportSkeleton || Option.mImportAnimations) {
             // 바인드 포즈 수집 → 본 계층 구성 순서입니다. 클러스터가 링크한 노드를 알아야 ReadSkeleton이 본을 판별할 수 있습니다.
             CollectBindPoses();
 
@@ -783,7 +786,241 @@ namespace Asset {
         }
 
         // 루트 노드부터 Scene 트리를 재귀적으로 순회하며 모든 메시를 결과 메시에 추가합니다.
-        return ReadNode(*mScene->GetRootNode());
+        if (Option.mImportMesh && !ReadNode(*mScene->GetRootNode())) {
+            return false;
+        }
+
+        return !Option.mImportAnimations || ReadAnimations();
+    }
+
+    bool Asset::FFBXImporter::ReadAnimations() {
+        // 본이 없으면 재샘플링할 트랙이 없습니다. 형상 애니메이션(모프 타깃 등)은 지원하지 않습니다.
+        if (mBoneNodes.empty()) {
+            return true;
+        }
+
+        const int StackCount{mScene->GetSrcObjectCount<FbxAnimStack>()};
+        Core::TArray<std::pair<Core::FString, Asset::FAnimDataModel>> Stacks{};
+
+        for (int StackIndex{}; StackIndex < StackCount; ++StackIndex) {
+            FbxAnimStack* Stack{mScene->GetSrcObject<FbxAnimStack>(StackIndex)};
+            Asset::FAnimDataModel DataModel{};
+            bool Animated{};
+
+            if (Stack == nullptr) {
+                continue;
+            }
+
+            if (!ReadAnimationStack(*Stack, DataModel, Animated)) {
+                GetError() = "Cannot read the FBX animation stack '" + Core::FString{Stack->GetName()} + "': " + GetError();
+
+                return false;
+            }
+
+            // 언리얼과 같이 애니메이션 커브가 없는 스택은 시퀀스를 만들지 않습니다.
+            if (Animated) {
+                Stacks.emplace_back(Core::FString{Stack->GetName()}, std::move(DataModel));
+            }
+        }
+
+        // 언리얼 FBX 임포터와 같이 유효한 스택이 하나이면 파일 이름을, 여러 개이면 파일 이름_스택 이름을 시퀀스 이름으로 사용합니다.
+        // 메시와 함께 가져오면 메시 에셋과 구분되도록 _Anim을 붙입니다.
+        const Core::FString FileName{Core::FilePath::ToUtf8(GetSourcePath().stem())};
+        const Core::FString Base{GetOption().mImportMesh ? FileName + "_Anim" : FileName};
+
+        for (auto& [StackName, DataModel] : Stacks) {
+            Core::FString Name{Stacks.size() == 1 || StackName.empty() ? Base : Base + "_" + StackName};
+
+            GetResult().GetAnimations().emplace_back(std::move(Name), std::move(DataModel));
+        }
+
+        // 다른 스택 평가에 영향이 없도록 첫 스택을 현재 스택으로 되돌립니다.
+        if (StackCount > 0) {
+            mScene->SetCurrentAnimationStack(mScene->GetSrcObject<FbxAnimStack>(0));
+        }
+
+        return true;
+    }
+
+    bool Asset::FFBXImporter::ReadAnimationStack(FbxAnimStack& Stack, Asset::FAnimDataModel& DataModel, bool& Animated) {
+        const Asset::FAssetImportOption& Option{GetOption()};
+        FbxNode* Root{mScene->GetRootNode()};
+
+        Animated = false;
+
+        // 평가기가 이 스택의 커브를 사용하도록 현재 스택으로 지정합니다. 지정하면 평가기 캐시도 초기화됩니다.
+        mScene->SetCurrentAnimationStack(&Stack);
+
+        // 루트 노드의 GetAnimationInterval은 자식 노드까지 포함해 레이어별 커브의 시간 구간을 구합니다.
+        // 본 사이의 일반 노드(Blender의 Armature 등)가 움직여도 본 전역 변환이 바뀌므로 장면 전체를 기준으로 판단합니다.
+        FbxTimeSpan AnimatedSpan{};
+
+        for (int LayerIndex{}; LayerIndex < Stack.GetMemberCount<FbxAnimLayer>(); ++LayerIndex) {
+            FbxTimeSpan LayerSpan{};
+
+            if (Root->GetAnimationInterval(LayerSpan, &Stack, LayerIndex)) {
+                if (Animated) {
+                    AnimatedSpan.UnionAssignment(LayerSpan);
+                } else {
+                    AnimatedSpan = LayerSpan;
+                }
+
+                Animated = true;
+            }
+        }
+
+        if (!Animated) {
+            return true;
+        }
+
+        // 샘플레이트: 지정한 레이트 → 장면의 시간 모드 → 30 순서입니다.
+        double Rate{static_cast<double>(Option.mCustomSampleRate)};
+
+        if (Rate <= 0.0) {
+            const FbxGlobalSettings& Settings{mScene->GetGlobalSettings()};
+            const FbxTime::EMode Mode{Settings.GetTimeMode()};
+
+            Rate = Mode == FbxTime::eCustom ? Settings.GetCustomFrameRate() : FbxTime::GetFrameRate(Mode);
+        }
+
+        Asset::FFrameRate FrameRate{Asset::FFrameRate::FromDecimal(Rate)};
+
+        if (!FrameRate.IsValid()) {
+            FrameRate = {30, 1};
+        }
+
+        const double Interval{FrameRate.AsInterval()};
+
+        // 재샘플링 구간입니다. ExportedTime은 스택에 기록된 구간을 쓰고, 비어 있으면 키가 있는 구간으로 대신합니다.
+        double Start{};
+        double End{};
+
+        switch (Option.mAnimationLength) {
+            case Asset::EAnimationLengthImportType::ExportedTime: {
+                const FbxTimeSpan Exported{Stack.GetLocalTimeSpan()};
+                const bool UseExported{Exported.GetDuration() > FbxTime{0}};
+
+                Start = (UseExported ? Exported.GetStart() : AnimatedSpan.GetStart()).GetSecondDouble();
+                End = (UseExported ? Exported.GetStop() : AnimatedSpan.GetStop()).GetSecondDouble();
+
+                break;
+            }
+            case Asset::EAnimationLengthImportType::AnimatedKey:
+                Start = AnimatedSpan.GetStart().GetSecondDouble();
+                End = AnimatedSpan.GetStop().GetSecondDouble();
+
+                break;
+            case Asset::EAnimationLengthImportType::SetRange:
+                Start = FrameRate.AsSeconds(static_cast<double>(Option.mFrameImportRangeStart));
+                End = FrameRate.AsSeconds(static_cast<double>(Option.mFrameImportRangeEnd));
+
+                break;
+        }
+
+        if (!std::isfinite(Start) || !std::isfinite(End) || End < Start) {
+            GetError() = "The animation time range is invalid";
+
+            return false;
+        }
+
+        // 프레임 경계에 맞추면 시작을 가장 가까운 프레임으로 옮기고, 길이를 정수 프레임으로 반올림합니다.
+        // 맞추지 않으면 원래 시작에서 출발해 끝을 덮도록 프레임 수를 올림합니다.
+        double Frames{(End - Start) / Interval};
+
+        if (Option.mSnapToClosestFrameBoundary) {
+            Start = std::round(Start / Interval) * Interval;
+            Frames = std::round(Frames);
+        } else {
+            Frames = std::ceil(Frames - 0.0001);
+        }
+
+        // 키가 하나뿐인 포즈 클립도 재생 길이가 0이 되지 않도록 최소 한 프레임을 둡니다.
+        Frames = std::max(Frames, 1.0);
+
+        if (Frames > static_cast<double>(Asset::FAnimDataModel::MaxFrames)) {
+            GetError() = "The animation has too many frames";
+
+            return false;
+        }
+
+        const auto NumberOfFrames{static_cast<Core::Uint32>(Frames)};
+        const std::size_t Keys{static_cast<std::size_t>(NumberOfFrames) + 1};
+        const auto& Bones{GetResult().GetBones()};
+        auto& Tracks{DataModel.GetBoneAnimationTracks()};
+
+        DataModel.SetFrameRate(FrameRate);
+        DataModel.SetNumberOfFrames(NumberOfFrames);
+        Tracks.resize(Bones.size());
+
+        for (std::size_t Bone{}; Bone < Bones.size(); ++Bone) {
+            Tracks[Bone].mName = Bones[Bone].GetName();
+            Tracks[Bone].mInternalTrack.mPosKeys.reserve(Keys);
+            Tracks[Bone].mInternalTrack.mRotKeys.reserve(Keys);
+            Tracks[Bone].mInternalTrack.mScaleKeys.reserve(Keys);
+        }
+
+        Core::TArray<Core::FMatrix> Globals(Bones.size());
+
+        for (std::size_t Key{}; Key < Keys; ++Key) {
+            // 누적 오차가 없도록 매 키의 시간을 시작 시간에서 다시 계산합니다.
+            FbxTime Time{};
+
+            Time.SetSecondDouble(Start + static_cast<double>(Key) * Interval);
+
+            // 부모가 항상 자식보다 앞에 있으므로 Globals[Parent]는 같은 시각에 이미 계산되어 있습니다.
+            for (std::size_t Bone{}; Bone < Bones.size(); ++Bone) {
+                const Core::Int32 Parent{Bones[Bone].GetParentIndex()};
+                Core::FMatrix ParentInverse{};
+                Core::FTransform Local{};
+
+                // ReadSkeleton과 같이 원본 전역 변환을 엔진 공간으로 옮긴 뒤, 부모 본의 전역 변환을 되돌려 부모 본 기준 로컬 변환을 구합니다.
+                if (!Asset::FMeshImportTransform::ConvertTransform(mBasis, ToMatrix(mBoneNodes[Bone]->EvaluateGlobalTransform(Time)), Globals[Bone]) || (Parent >= 0 && !Globals[static_cast<std::size_t>(Parent)].TryInverse(ParentInverse))) {
+                    GetError() = "The animated transform cannot be converted to the engine space: " + Bones[Bone].GetName();
+
+                    return false;
+                }
+
+                if (!(Parent < 0 ? Globals[Bone] : Globals[Bone] * ParentInverse).TryGetTransform(Local)) {
+                    GetError() = "The animated local transform has shear or zero scale: " + Bones[Bone].GetName();
+
+                    return false;
+                }
+
+                Asset::FRawAnimSequenceTrack& Track{Tracks[Bone].mInternalTrack};
+
+                // 보간이 짧은 경로를 따르도록 직전 키와 같은 반구로 회전 부호를 맞춥니다.
+                if (!Track.mRotKeys.empty() && Track.mRotKeys.back().Dot(Local.mRotation) < 0.0f) {
+                    Local.mRotation = -Local.mRotation;
+                }
+
+                Track.mPosKeys.push_back(Local.mLocation);
+                Track.mRotKeys.push_back(Local.mRotation);
+                Track.mScaleKeys.push_back(Local.mScale);
+            }
+        }
+
+        // 값이 변하지 않는 채널은 언리얼과 같이 키 하나만 남깁니다.
+        if (Option.mRemoveRedundantKeys) {
+            const auto Compress{[](auto& Channel) {
+                const auto& First{Channel.front()};
+                const bool Constant{std::all_of(Channel.begin() + 1, Channel.end(), [&First](const auto& Value) {
+                    return Value.Equals(First, 0.0001f);
+                })};
+
+                if (Constant) {
+                    Channel.resize(1);
+                    Channel.shrink_to_fit();
+                }
+            }};
+
+            for (Asset::FBoneAnimationTrack& Track : Tracks) {
+                Compress(Track.mInternalTrack.mPosKeys);
+                Compress(Track.mInternalTrack.mRotKeys);
+                Compress(Track.mInternalTrack.mScaleKeys);
+            }
+        }
+
+        return DataModel.Validate(GetError());
     }
 
 }

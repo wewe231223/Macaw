@@ -22,7 +22,10 @@ namespace Asset {
      * @brief 옵션 값이 임포트에 사용할 수 있는지 확인합니다.
      */
     bool Asset::FAssetImportOption::IsValid() const {
-        return mImportTranslation.IsFinite() && std::isfinite(mImportRotation.pitch) && std::isfinite(mImportRotation.yaw) && std::isfinite(mImportRotation.roll) && std::isfinite(mImportUniformScale) && std::abs(mImportUniformScale) > 1.0e-6f;
+        const bool ValidTransform{mImportTranslation.IsFinite() && std::isfinite(mImportRotation.pitch) && std::isfinite(mImportRotation.yaw) && std::isfinite(mImportRotation.roll) && std::isfinite(mImportUniformScale) && std::abs(mImportUniformScale) > 1.0e-6f};
+        const bool ValidAnimation{!mImportAnimations || (mCustomSampleRate >= 0 && mCustomSampleRate <= 1000 && (mAnimationLength != Asset::EAnimationLengthImportType::SetRange || mFrameImportRangeEnd > mFrameImportRangeStart))};
+
+        return ValidTransform && ValidAnimation;
     }
 
 }

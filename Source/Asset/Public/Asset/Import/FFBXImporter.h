@@ -19,6 +19,9 @@ namespace Asset {
      * 1. 파일을 열어 장면을 읽고 텍스처를 판별한 뒤, 축·단위 변환과 삼각형 분할을 적용합니다.
      * 2. 스켈레톤 옵션이 켜져 있으면 CollectBindPoses로 바인드 포즈를 모으고 ReadSkeleton으로 본 계층을 만듭니다.
      * 3. ReadNode가 노드 트리를 순회하며 메시마다 ReadMesh를 호출합니다. ReadMesh는 ReadSkinWeights로 제어점별 가중치를 읽고, 삼각형 꼭짓점마다 정점을 만듭니다.
+     * 4. 애니메이션 옵션이 켜져 있으면 ReadAnimations가 스택마다 본의 로컬 변환을 일정 간격으로 재샘플링합니다.
+     *
+     * 애니메이션 본 트랙은 ReadSkeleton과 같은 방법으로 계산합니다. 같은 시각의 본 전역 변환에 부모 본 전역 변환의 역을 곱하므로, 사이에 일반 노드가 끼어 있어도 바인드 포즈와 같은 부모 본 기준을 따릅니다.
      *
      * 좌표계 변환은 옵션과 무관하게 항상 수행합니다. 원본 축 → (FbxAxisSystem::ConvertScene) → Z-Up 오른손 중간 좌표계 → (mBasis의 Y 반전) → Z-Up 왼손 엔진 좌표계 순서입니다.
      * 정점과 본은 모두 mBasis를 거쳐 같은 엔진 공간의 바인드 자세로 저장되며, 이 데이터로 USkeletalMesh가 역바인드 행렬을 계산합니다.
@@ -113,6 +116,21 @@ namespace Asset {
         void CollectBindPoses();
 
         /**
+         * @brief 장면의 애니메이션 스택마다 본 트랙을 재샘플링해 결과 애니메이션에 추가합니다.
+         * @return 모든 유효한 스택을 변환했으면 true입니다.
+         */
+        bool ReadAnimations();
+
+        /**
+         * @brief 애니메이션 스택 하나를 옵션에 따른 구간과 레이트로 재샘플링합니다.
+         * @param[in] Stack 장면의 현재 스택으로 지정할 애니메이션 스택입니다.
+         * @param[out] DataModel 재샘플링한 트랙과 시간 정보입니다.
+         * @param[out] Animated 스택에 애니메이션 커브가 있으면 true입니다. 없으면 결과를 쓰지 않고 성공을 반환합니다.
+         * @return 오류 없이 처리했으면 true입니다.
+         */
+        bool ReadAnimationStack(fbxsdk::FbxAnimStack& Stack, Asset::FAnimDataModel& DataModel, bool& Animated);
+
+        /**
          * @brief 메시의 스킨 클러스터에서 제어점별 본 가중치를 읽습니다.
          * @param[in] Mesh 가중치를 읽을 FBX 메시입니다.
          * @param[out] Weights 제어점 수와 같은 길이의 가중치를 기록할 대상이며 스킨이 없으면 비웁니다.
@@ -161,6 +179,11 @@ namespace Asset {
          * @brief 본으로 읽은 FBX 노드별 결과 본 인덱스입니다.
          */
         Core::TMap<fbxsdk::FbxNode*, Core::Int32> mBoneIndices{};
+
+        /**
+         * @brief 결과 본 인덱스 순서의 원본 노드입니다. 애니메이션을 재샘플링할 때 본별 노드를 찾는 데 사용합니다.
+         */
+        Core::TArray<fbxsdk::FbxNode*> mBoneNodes{};
     };
 
 }

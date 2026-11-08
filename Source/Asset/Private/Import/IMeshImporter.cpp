@@ -187,7 +187,7 @@ namespace Asset {
         mSourceDirectory = mSourcePath.parent_path();
 
         if (!mOption.IsValid()) {
-            Error = "The import transform options are invalid";
+            Error = "The import transform or animation options are invalid";
 
             return false;
         }
@@ -203,8 +203,11 @@ namespace Asset {
             return Mesh.GetMeshData().GetPositions().empty();
         });
 
-        if (Meshes.empty() && (!mOption.mImportSkeleton || mResult.GetBones().empty())) {
-            Error = "The source contains no static mesh triangles";
+        const bool HasSkeleton{mOption.mImportSkeleton && !mResult.GetBones().empty()};
+        const bool HasAnimations{mOption.mImportAnimations && !mResult.GetAnimations().empty()};
+
+        if (Meshes.empty() && !HasSkeleton && !HasAnimations) {
+            Error = mOption.mImportMesh ? "The source contains no static mesh triangles" : "The source contains no skeleton or animation to import";
 
             return false;
         }

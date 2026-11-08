@@ -22,6 +22,7 @@ namespace Asset {
     class UTexture2D;
     class UMaterial;
     class ULevelSequence;
+    class UAnimSequence;
 
     /**
      * @brief 프로젝트 콘텐츠 경로와 메시·텍스처 에셋의 로드 및 캐시를 담당합니다.
@@ -119,6 +120,14 @@ namespace Asset {
         Asset::USkeleton* FindLegacySkeleton(const std::filesystem::path& MeshPath) const;
 
         /**
+         * @brief 애니메이션 시퀀스 에셋을 캐시에서 조회하거나 파일에서 로드하여 보관합니다.
+         * @param[in] Path 불러올 시퀀스 에셋의 경로입니다.
+         * @param[out] Error 실패 원인을 받을 오류 문자열입니다.
+         * @return 캐시된 에셋의 비소유 주소이며, 로드에 실패하면 nullptr입니다.
+         */
+        Asset::UAnimSequence* LoadAnimSequence(const std::filesystem::path& Path, Core::FString& Error);
+
+        /**
          * @brief 텍스처 에셋을 캐시에서 조회하거나 파일에서 로드하여 보관합니다.
          * @param[in] Path 불러올 텍스처 에셋 또는 이미지 파일의 경로입니다.
          * @param[out] Error 실패 원인을 받을 오류 문자열입니다.
@@ -205,6 +214,15 @@ namespace Asset {
         bool SaveSkeleton(const std::filesystem::path& Path, const Asset::USkeleton& Skeleton, Core::FString& Error);
 
         /**
+         * @brief 애니메이션 시퀀스의 트랙과 시간 정보를 에셋 파일에 저장하고 같은 경로의 캐시 객체를 갱신합니다.
+         * @param[in] Path 저장할 시퀀스 에셋의 경로입니다.
+         * @param[in] Sequence 저장할 시퀀스입니다.
+         * @param[out] Error 실패 원인을 받을 문자열입니다.
+         * @return 검증과 파일 저장에 성공하면 true입니다.
+         */
+        bool SaveAnimSequence(const std::filesystem::path& Path, const Asset::UAnimSequence& Sequence, Core::FString& Error);
+
+        /**
          * @brief 텍스처의 크기·형식·색 공간과 이미지 데이터를 에셋 파일로 저장합니다.
          * @param[in] Path 저장할 텍스처 에셋의 경로입니다.
          * @param[in] Texture 데이터를 읽거나 뷰를 생성할 텍스처이며 소유권을 이전하지 않습니다.
@@ -281,6 +299,11 @@ namespace Asset {
         Core::TMap<Core::FString, std::unique_ptr<Asset::USkeletalMesh>> mSkeletalMeshes{};
         Core::TMap<Core::FString, std::unique_ptr<Asset::USkeleton>> mSkeletons{};
         Core::TMap<Core::FString, std::unique_ptr<Asset::USkeleton>> mLegacySkeletons{};
+
+        /**
+         * @brief 프로젝트 상대 경로별로 소유하는 애니메이션 시퀀스 캐시입니다.
+         */
+        Core::TMap<Core::FString, std::unique_ptr<Asset::UAnimSequence>> mAnimSequences{};
 
         /**
          * @brief 정규화한 상대 경로별로 소유하는 텍스처 에셋 캐시입니다.

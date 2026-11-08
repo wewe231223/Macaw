@@ -36,6 +36,25 @@ namespace Asset {
     };
 
     /**
+     * @brief 애니메이션 스택에서 재샘플링할 시간 구간을 정하는 방법입니다. 언리얼 EFBXAnimationLengthImportType과 같습니다.
+     */
+    UENUM()
+    enum class EAnimationLengthImportType : Core::Uint8 {
+        /**
+         * @brief 스택에 기록된 로컬 시간 구간을 사용합니다. 구간이 비어 있으면 키가 있는 구간을 사용합니다.
+         */
+        ExportedTime = 0,
+        /**
+         * @brief 실제 애니메이션 키가 있는 구간을 사용합니다.
+         */
+        AnimatedKey = 1,
+        /**
+         * @brief 옵션에 지정한 프레임 구간을 사용합니다.
+         */
+        SetRange = 2
+    };
+
+    /**
      * @brief 메시 임포터가 공통으로 따르는 좌표축·변환·메시 구성·재질 임포트 옵션입니다.
      * @details 원본 좌표계는 옵션과 무관하게 항상 엔진의 Z-Up 왼손 좌표계로 변환하며, Front 축의 기본값은 언리얼 FBX 임포터의 기본값(Force Front XAxis 끔)과 같습니다.
      * 단위 변환은 엔진의 월드 단위가 미터이므로 언리얼과 달리 기본으로 켭니다.
@@ -96,6 +115,12 @@ namespace Asset {
         bool mCombineMeshes{true};
 
         /**
+         * @brief 메시와 재질을 가져옵니다. 끄면 스켈레톤이나 애니메이션만 가져옵니다.
+         */
+        UPROPERTY(Edit)
+        bool mImportMesh{true};
+
+        /**
          * @brief 원본에 스켈레톤 계층이 있으면 본 이름·부모·바인드 포즈와 정점별 본 인덱스·가중치를 함께 읽습니다.
          */
         UPROPERTY(Edit)
@@ -118,6 +143,48 @@ namespace Asset {
          */
         UPROPERTY(Edit)
         bool mImportTextures{true};
+
+        /**
+         * @brief 원본의 애니메이션 스택마다 본 트랙을 재샘플링해 애니메이션 시퀀스 에셋을 만듭니다.
+         */
+        UPROPERTY(Edit)
+        bool mImportAnimations{false};
+
+        /**
+         * @brief 재샘플링할 시간 구간을 정하는 방법입니다.
+         */
+        UPROPERTY(Edit)
+        Asset::EAnimationLengthImportType mAnimationLength{Asset::EAnimationLengthImportType::ExportedTime};
+
+        /**
+         * @brief SetRange일 때 가져올 첫 프레임입니다. 샘플레이트 기준 프레임 번호입니다.
+         */
+        UPROPERTY(Edit)
+        Core::Int32 mFrameImportRangeStart{};
+
+        /**
+         * @brief SetRange일 때 가져올 마지막 프레임입니다. 샘플레이트 기준 프레임 번호입니다.
+         */
+        UPROPERTY(Edit)
+        Core::Int32 mFrameImportRangeEnd{};
+
+        /**
+         * @brief 재샘플링 레이트입니다. 0이면 원본 장면의 프레임 레이트를 사용하고, 그것도 없으면 30입니다.
+         */
+        UPROPERTY(Edit)
+        Core::Int32 mCustomSampleRate{};
+
+        /**
+         * @brief 시작·끝 시간을 가장 가까운 프레임 경계로 맞춥니다.
+         */
+        UPROPERTY(Edit)
+        bool mSnapToClosestFrameBoundary{true};
+
+        /**
+         * @brief 값이 변하지 않는 위치·회전·스케일 채널을 키 하나로 줄입니다.
+         */
+        UPROPERTY(Edit)
+        bool mRemoveRedundantKeys{true};
     };
 
 }

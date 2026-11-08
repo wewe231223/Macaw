@@ -50,4 +50,12 @@ namespace Asset {
         return mBones;
     }
 
+    Core::TArray<Asset::FMeshImportAnimation>& Asset::FMeshImportResult::GetAnimations() {
+        return mAnimations;
+    }
+
+    const Core::TArray<Asset::FMeshImportAnimation>& Asset::FMeshImportResult::GetAnimations() const {
+        return mAnimations;
+    }
+
 }

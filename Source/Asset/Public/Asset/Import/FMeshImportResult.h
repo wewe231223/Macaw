@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "Asset/Import/FMeshImportAnimation.h"
 #include "Asset/Import/FMeshImportBone.h"
 #include "Asset/Import/FMeshImportMaterial.h"
 #include "Asset/Import/FMeshImportMesh.h"
@@ -53,6 +54,18 @@ namespace Asset {
          */
         const Core::TArray<Asset::FMeshImportBone>& GetBones() const;
 
+        /**
+         * @brief 애니메이션 임포트 옵션을 켰을 때 읽은 애니메이션 스택 목록을 조회합니다.
+         * @return 결과 객체가 소유하는 애니메이션 목록의 참조입니다.
+         */
+        Core::TArray<Asset::FMeshImportAnimation>& GetAnimations();
+
+        /**
+         * @brief 애니메이션 임포트 옵션을 켰을 때 읽은 애니메이션 스택 목록을 조회합니다.
+         * @return 결과 객체가 소유하는 애니메이션 목록의 참조입니다.
+         */
+        const Core::TArray<Asset::FMeshImportAnimation>& GetAnimations() const;
+
     private:
         /**
          * @brief 임포트한 메시 목록입니다.
@@ -68,6 +81,11 @@ namespace Asset {
          * @brief 원본 스켈레톤 계층에서 읽은 본 목록입니다.
          */
         Core::TArray<Asset::FMeshImportBone> mBones{};
+
+        /**
+         * @brief 원본 애니메이션 스택마다 재샘플링한 결과입니다.
+         */
+        Core::TArray<Asset::FMeshImportAnimation> mAnimations{};
     };
 
 }

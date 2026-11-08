@@ -1,0 +1,65 @@
+/**
+ * @file UAnimSequence.h
+ * @brief 본별 키 트랙을 일정 간격으로 저장한 애니메이션 클립 에셋입니다.
+ * @ingroup Asset
+ */
+
+#pragma once
+
+#include "Asset/Animation/FAnimDataModel.h"
+#include "Asset/Animation/UAnimSequenceBase.h"
+#include "Core/FRevision.h"
+#include "UAnimSequence.generated.h"
+
+namespace Asset {
+
+    /**
+     * @brief 임포트한 본 트랙과 프레임 레이트를 소유하는 애니메이션 클립입니다.
+     */
+    UCLASS()
+    class UAnimSequence final : public Asset::UAnimSequenceBase {
+        GENERATED_BODY()
+
+    public:
+        UAnimSequence() = default;
+
+        ~UAnimSequence() override = default;
+
+    public:
+        /**
+         * @brief 데이터를 검증하고 교체합니다.
+         * @param[in] DataModel 새 트랙과 시간 정보입니다.
+         * @param[out] Error 검증 실패 이유입니다.
+         * @return 유효해 교체했으면 true이며, 실패하면 기존 데이터를 유지합니다.
+         */
+        bool SetDataModel(Asset::FAnimDataModel DataModel, Core::FString& Error);
+
+        /**
+         * @brief 트랙과 시간 정보를 반환합니다.
+         * @return 읽기 전용 데이터입니다.
+         */
+        const Asset::FAnimDataModel& GetDataModel() const;
+
+        double GetPlayLength() const override;
+
+        bool IsValid() const override;
+
+        /**
+         * @brief 데이터 변경 식별자를 반환합니다.
+         * @return 마지막으로 데이터를 교체할 때 발급한 개정입니다.
+         */
+        Core::FRevision GetRevision() const;
+
+    private:
+        /**
+         * @brief 본 트랙과 시간 정보입니다.
+         */
+        Asset::FAnimDataModel mDataModel{};
+
+        /**
+         * @brief 데이터 개정입니다.
+         */
+        Core::FRevision mRevision{};
+    };
+
+}

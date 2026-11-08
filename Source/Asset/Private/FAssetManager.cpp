@@ -14,6 +14,7 @@
 #include "Asset/UTexture2D.h"
 #include "Asset/UMaterial.h"
 #include "Asset/Sequence/ULevelSequence.h"
+#include "Asset/Animation/UAnimSequence.h"
 #include "FMaterialFile.h"
 #include "CoreUObject/Reflection/NewObject.h"
 #include "Serialization/JsonArchive.h"
@@ -314,6 +315,91 @@ namespace Asset {
             }
 
             SerializeBones(Archive, Bones);
+        }
+
+        void SerializeAnimSequence(Serialization::FMemoryArchive& Archive, Asset::FAnimDataModel& Model) {
+            Core::Uint32 Version{1};
+
+            Archive.Serialize("AnimSequenceVersion", Version);
+
+            if (Archive.HasError() || Version != 1) {
+                Archive.SetError("Unsupported animation sequence version");
+
+                return;
+            }
+
+            Asset::FFrameRate FrameRate{Model.GetFrameRate()};
+            Core::Uint32 Frames{Model.GetNumberOfFrames()};
+
+            Archive.Serialize("FrameRateNumerator", FrameRate.mNumerator);
+            Archive.Serialize("FrameRateDenominator", FrameRate.mDenominator);
+            Archive.Serialize("NumberOfFrames", Frames);
+
+            if (Archive.HasError() || !FrameRate.IsValid() || Frames == 0 || Frames > Asset::FAnimDataModel::MaxFrames) {
+                Archive.SetError("Invalid animation sequence timing");
+
+                return;
+            }
+
+            const std::size_t Keys{static_cast<std::size_t>(Frames) + 1};
+            auto& Tracks{Model.GetBoneAnimationTracks()};
+            Core::Uint32 TrackCount{Archive.IsLoading() ? 0 : static_cast<Core::Uint32>(Tracks.size())};
+
+            // 트랙 하나는 최소한 이름 길이와 세 채널의 키 수, 키 하나씩(12 + 16 + 12바이트)을 가집니다.
+            constexpr std::size_t MinimumTrackBytes{sizeof(Core::Uint32) * 4 + 40};
+
+            if (!Archive.BeginArray("Tracks", TrackCount) || TrackCount == 0 || TrackCount > Asset::FAnimDataModel::MaxTracks || (Archive.IsLoading() && TrackCount > Archive.GetRemainingBytes() / MinimumTrackBytes)) {
+                Archive.SetError("Invalid animation sequence track count");
+
+                return;
+            }
+
+            if (Archive.IsLoading()) {
+                Tracks.assign(TrackCount, {});
+            }
+
+            // 채널마다 키 수를 먼저 기록하며, 키 수는 1 또는 프레임 수 + 1만 허용합니다.
+            const auto SerializeChannel{[&Archive, Keys](std::string_view Name, auto& Channel, std::size_t KeyBytes) {
+                Core::Uint32 Count{Archive.IsLoading() ? 0 : static_cast<Core::Uint32>(Channel.size())};
+
+                if (!Archive.BeginArray(Name, Count) || (Count != 1 && Count != Keys) || (Archive.IsLoading() && Count > Archive.GetRemainingBytes() / KeyBytes)) {
+                    Archive.SetError("Invalid animation sequence key count");
+
+                    return;
+                }
+
+                if (Archive.IsLoading()) {
+                    Channel.resize(Count);
+                }
+
+                for (auto& Key : Channel) {
+                    if (Archive.HasError()) {
+                        break;
+                    }
+
+                    Archive.Serialize("Key", Key);
+                }
+
+                Archive.EndArray();
+            }};
+
+            for (Asset::FBoneAnimationTrack& Track : Tracks) {
+                if (Archive.HasError()) {
+                    break;
+                }
+
+                Archive.Serialize("Name", Track.mName);
+                SerializeChannel("PosKeys", Track.mInternalTrack.mPosKeys, sizeof(float) * 3);
+                SerializeChannel("RotKeys", Track.mInternalTrack.mRotKeys, sizeof(float) * 4);
+                SerializeChannel("ScaleKeys", Track.mInternalTrack.mScaleKeys, sizeof(float) * 3);
+            }
+
+            Archive.EndArray();
+
+            if (Archive.IsLoading()) {
+                Model.SetFrameRate(FrameRate);
+                Model.SetNumberOfFrames(Frames);
+            }
         }
 
         void SerializeSkeletalMesh(Serialization::FMemoryArchive& Archive, Asset::FMeshData& Mesh, Core::TArray<Asset::FMeshImportSkinWeight>& SkinWeights, Core::TArray<Asset::FMeshImportBone>* LegacyBones = nullptr) {
@@ -678,6 +764,52 @@ namespace Asset {
         return Existing != mLegacySkeletons.end() ? Existing->second.get() : nullptr;
     }
 
+    Asset::UAnimSequence* Asset::FAssetManager::LoadAnimSequence(const std::filesystem::path& Path, Core::FString& Error) {
+        const Core::FString Key{CacheKey(GetRelativePath(Path, Error))};
+
+        if (Key.empty()) {
+            return nullptr;
+        }
+
+        const auto Existing{mAnimSequences.find(Key)};
+
+        if (Existing != mAnimSequences.end()) {
+            Asset::AssetStats::AssetCacheHits.Add();
+
+            return Existing->second.get();
+        }
+
+        Core::TArray<Core::Uint8> Payload{};
+
+        if (!Asset::FAssetFile::Load(ResolvePath(Path, Error), Asset::EAssetType::AnimSequence, Payload, Error)) {
+            return nullptr;
+        }
+
+        Serialization::FMemoryArchive Archive{static_cast<const Core::TArray<Core::Uint8>&>(Payload)};
+        Asset::FAnimDataModel Model{};
+
+        SerializeAnimSequence(Archive, Model);
+
+        if (Archive.HasError() || Archive.GetRemainingBytes() != 0) {
+            Error = Archive.HasError() ? Archive.GetError() : "Invalid animation sequence asset data";
+
+            return nullptr;
+        }
+
+        auto Sequence{CoreUObject::NewObject<Asset::UAnimSequence>()};
+
+        if (!Sequence->SetDataModel(std::move(Model), Error)) {
+            return nullptr;
+        }
+
+        Asset::UAnimSequence* Result{Sequence.get()};
+
+        Sequence->SetName(Core::FilePath::ToUtf8(Path.stem()));
+        mAnimSequences.emplace(Key, std::move(Sequence));
+
+        return Result;
+    }
+
     /**
      * @brief 텍스처 에셋을 캐시에서 조회하거나 파일에서 로드하여 보관합니다.
      */
@@ -867,6 +999,42 @@ namespace Asset {
         return true;
     }
 
+    bool Asset::FAssetManager::SaveAnimSequence(const std::filesystem::path& Path, const Asset::UAnimSequence& Sequence, Core::FString& Error) {
+        const auto Target{ResolvePath(Path, Error)};
+
+        if (Target.empty() || !Sequence.IsValid()) {
+            if (Error.empty()) {
+                Error = "Cannot save an invalid animation sequence";
+            }
+
+            return false;
+        }
+
+        Core::TArray<Core::Uint8> Payload{};
+        Serialization::FMemoryArchive Archive{Payload};
+        Asset::FAnimDataModel Model{Sequence.GetDataModel()};
+
+        SerializeAnimSequence(Archive, Model);
+
+        if (Archive.HasError()) {
+            Error = Archive.GetError();
+
+            return false;
+        }
+
+        if (!Asset::FAssetFile::Save(Target, Asset::EAssetType::AnimSequence, Payload, Error)) {
+            return false;
+        }
+
+        const auto Existing{mAnimSequences.find(CacheKey(GetRelativePath(Path, Error)))};
+
+        if (Existing != mAnimSequences.end() && Existing->second.get() != &Sequence && !Existing->second->SetDataModel(std::move(Model), Error)) {
+            return false;
+        }
+
+        return true;
+    }
+
     /**
      * @brief 텍스처의 크기·형식·색 공간과 이미지 데이터를 에셋 파일로 저장합니다.
      */
@@ -982,6 +1150,7 @@ namespace Asset {
             RemoveCache(mMeshes);
             RemoveCache(mSkeletalMeshes);
             RemoveCache(mSkeletons);
+            RemoveCache(mAnimSequences);
             RemoveCache(mNormalMaps);
             RemoveCache(mTextures);
 
@@ -1018,7 +1187,13 @@ namespace Asset {
             }
         }
 
+        // 메시 옵션을 끄면 원본에 메시가 있어도 스켈레톤과 애니메이션만 가져옵니다.
+        if (!Option.mImportMesh) {
+            Imported.GetMeshes().clear();
+        }
+
         const bool HasSkeleton{Option.mImportSkeleton && !Imported.GetBones().empty()};
+        std::filesystem::path SkeletonTarget{};
 
         if (HasSkeleton) {
             auto Skeleton{CoreUObject::NewObject<Asset::USkeleton>()};
@@ -1029,17 +1204,51 @@ namespace Asset {
                 return false;
             }
 
-            const auto SkeletonTarget{UniqueAssetPath(Destination.parent_path(), Core::FilePath::ToUtf8(Destination.stem()) + "_Skeleton", Error)};
+            SkeletonTarget = UniqueAssetPath(Destination.parent_path(), Core::FilePath::ToUtf8(Destination.stem()) + "_Skeleton", Error);
 
             if (SkeletonTarget.empty() || !SaveSkeleton(SkeletonTarget, *Skeleton, Error)) {
                 return false;
             }
+        }
 
-            if (Imported.GetMeshes().empty()) {
-                Target = SkeletonTarget;
+        // 애니메이션 시퀀스는 스켈레톤을 참조하지 않으며, 본 트랙을 이름으로 저장해 Animations 폴더에 클립마다 하나씩 만듭니다.
+        std::filesystem::path FirstAnimationTarget{};
 
-                return true;
+        if (Option.mImportAnimations) {
+            const auto AnimationDirectory{Destination.parent_path() / "Animations"};
+
+            for (Asset::FMeshImportAnimation& Animation : Imported.GetAnimations()) {
+                auto Sequence{CoreUObject::NewObject<Asset::UAnimSequence>()};
+
+                if (!Sequence->SetDataModel(std::move(Animation.GetDataModel()), Error)) {
+                    Error = "Invalid imported animation '" + Animation.GetName() + "': " + Error;
+
+                    return false;
+                }
+
+                const auto AnimationTarget{UniqueAssetPath(AnimationDirectory, AssetFileName(Animation.GetName(), "Animation"), Error)};
+
+                if (AnimationTarget.empty() || !SaveAnimSequence(AnimationTarget, *Sequence, Error)) {
+                    return false;
+                }
+
+                if (FirstAnimationTarget.empty()) {
+                    FirstAnimationTarget = AnimationTarget;
+                }
             }
+        }
+
+        // 메시가 없으면 스켈레톤을, 스켈레톤도 없으면 첫 애니메이션을 대표 에셋으로 선택합니다.
+        if (Imported.GetMeshes().empty()) {
+            Target = !SkeletonTarget.empty() ? SkeletonTarget : FirstAnimationTarget;
+
+            if (Target.empty()) {
+                Error = "The source contains nothing to import with the selected options";
+
+                return false;
+            }
+
+            return true;
         }
 
         const auto& Materials{Imported.GetMaterials()};

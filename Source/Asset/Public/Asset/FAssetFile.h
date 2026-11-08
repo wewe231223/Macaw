@@ -46,7 +46,11 @@ namespace Asset {
          * @brief 시네마틱 바인딩과 트랙을 저장하는 시퀀스 에셋입니다.
          */
         Sequence,
-        Skeleton
+        Skeleton,
+        /**
+         * @brief 본별 키 트랙을 저장하는 애니메이션 시퀀스 에셋입니다. 값이 파일에 기록되므로 항상 끝에 추가합니다.
+         */
+        AnimSequence
     };
 
     /**
