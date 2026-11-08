@@ -62,49 +62,98 @@ namespace Editor {
      * @brief 이 파일에서 사용하는 내부 보조 기능과 상태를 묶습니다.
      */
     namespace {
-        // 콘텐츠 브라우저 타일 툴팁에 표시할 에셋 종류의 한글 이름입니다. 타일 본문의 영문 종류 이름은 그대로 둡니다.
-        const char* GetKindTooltip(std::string_view Kind) {
-            static constexpr std::array<std::pair<std::string_view, const char*>, 11> Names{{{"C# Script", "C# 스크립트"}, {"Folder", "폴더"}, {"File", "파일"}, {"Mesh", "메시"}, {"Skeletal Mesh", "스켈레탈 메시"}, {"Skeleton", "스켈레톤"}, {"Material", "머티리얼"}, {"Texture", "텍스처"}, {"Sequence", "시퀀스"}, {"Animation Sequence", "애니메이션 시퀀스"}, {"Scene", "씬"}}};
+        struct FContentIcon {
+            std::string_view mKind{};
+            const char* mTooltip{};
+            const wchar_t* mPath{};
+            Editor::EditorStyle::EIcon mFallback{};
+            ImU32 mTint{IM_COL32_WHITE};
+        };
 
-            for (const auto& [English, Korean] : Names) {
-                if (English == Kind) {
-                    return Korean;
+        constexpr FContentIcon FileIcon{"File", "파일", L"AssetIcons/Default_64x.png", Editor::EditorStyle::EIcon::Component};
+        constexpr FContentIcon ContentIcons[]{
+            FileIcon,
+            {"Folder", "폴더", L"Folders/Folder_Base_256x.png", Editor::EditorStyle::EIcon::Component, IM_COL32(255, 208, 111, 255)},
+            {"C# Script", "C# 스크립트", L"AssetIcons/Class_64x.png", Editor::EditorStyle::EIcon::Tools, IM_COL32(216, 179, 255, 255)},
+            {"Mesh", "메시", L"AssetIcons/StaticMesh_64x.png", Editor::EditorStyle::EIcon::Local},
+            {"Skeletal Mesh", "스켈레탈 메시", L"AssetIcons/SkeletalMesh_64x.png", Editor::EditorStyle::EIcon::Skeleton},
+            {"Skeleton", "스켈레톤", L"AssetIcons/Skeleton_64x.png", Editor::EditorStyle::EIcon::Skeleton},
+            {"Material", "머티리얼", L"AssetIcons/Material_64x.png", Editor::EditorStyle::EIcon::Grid},
+            {"Texture", "텍스처", L"AssetIcons/Texture2D_64x.png", Editor::EditorStyle::EIcon::Sprite},
+            {"Sequence", "시퀀스", L"AssetIcons/LevelSequence_64x.png", Editor::EditorStyle::EIcon::Sequence},
+            {"Animation Sequence", "애니메이션 시퀀스", L"AssetIcons/AnimSequence_64x.png", Editor::EditorStyle::EIcon::Sequence},
+            {"Scene", "씬", L"AssetIcons/World_64x.png", Editor::EditorStyle::EIcon::World}
+        };
+
+        const FContentIcon& GetContentIcon(std::string_view Kind) {
+            for (const FContentIcon& Icon : ContentIcons) {
+                if (Icon.mKind == Kind) {
+                    return Icon;
                 }
             }
 
-            return Kind.data();
+            return FileIcon;
         }
 
-        // 귀퉁이가 접힌 문서 모양에 C#의 보라색과 "C#" 글자를 그립니다.
+        std::filesystem::path FindUnrealContentIcons() {
+            constexpr const wchar_t* SlateIcons{L"Engine/Content/Editor/Slate/Icons"};
+            std::array<wchar_t, 32768> Buffer{};
+            std::error_code Error{};
+            const DWORD OverrideLength{GetEnvironmentVariableW(L"UE5_ROOT", Buffer.data(), static_cast<DWORD>(Buffer.size()))};
 
-        /**
-         * @brief 지정 위치와 크기로 스크립트 컴포넌트 아이콘을 그립니다.
-         * @param[in] DrawList 아이콘을 추가할 ImGui 드로 목록입니다.
-         * @param[in] Origin 아이콘의 화면 좌표입니다.
-         * @param[in] Size 아이콘의 화면상 크기입니다.
-         */
-        void DrawScriptIcon(ImDrawList* DrawList, const ImVec2& Origin, float Size) {
-            const float Left{Origin.x + Size * 0.16f};
-            const float Right{Origin.x + Size * 0.84f};
-            const float Top{Origin.y + Size * 0.06f};
-            const float Bottom{Origin.y + Size * 0.94f};
-            const float Fold{Size * 0.2f};
-            const ImU32 Body{IM_COL32(104, 33, 122, 255)};
-            const ImU32 Flap{IM_COL32(155, 79, 180, 255)};
-            const ImVec2 Outline[]{{Left, Top}, {Right - Fold, Top}, {Right, Top + Fold}, {Right, Bottom}, {Left, Bottom}};
+            if (OverrideLength > 0 && OverrideLength < Buffer.size()) {
+                const std::filesystem::path Icons{std::filesystem::path{Buffer.data()} / SlateIcons};
 
-            DrawList->AddConvexPolyFilled(Outline, IM_ARRAYSIZE(Outline), Body);
-            DrawList->AddTriangleFilled({Right - Fold, Top}, {Right - Fold, Top + Fold}, {Right, Top + Fold}, Flap);
+                return std::filesystem::is_directory(Icons, Error) ? Icons : std::filesystem::path{};
+            }
 
-            const char* Label{"C#"};
-            ImFont* Font{ImGui::GetFont()};
-            const float FontSize{Size * 0.3f};
-            const ImVec2 TextSize{Font->CalcTextSizeA(FontSize, FLT_MAX, 0.0f, Label)};
-            const ImVec2 TextOrigin{(Left + Right - TextSize.x) * 0.5f, (Top + Fold + Bottom - TextSize.y) * 0.5f};
+            const DWORD ProgramFilesLength{GetEnvironmentVariableW(L"ProgramFiles", Buffer.data(), static_cast<DWORD>(Buffer.size()))};
 
-            // 한 픽셀 옆에 한 번 더 그려 글자를 굵게 보이게 합니다.
-            DrawList->AddText(Font, FontSize, TextOrigin, IM_COL32(255, 255, 255, 255), Label);
-            DrawList->AddText(Font, FontSize, {TextOrigin.x + 1.0f, TextOrigin.y}, IM_COL32(255, 255, 255, 255), Label);
+            if (ProgramFilesLength == 0 || ProgramFilesLength >= Buffer.size()) {
+                return {};
+            }
+
+            const std::filesystem::path EpicGames{std::filesystem::path{Buffer.data()} / L"Epic Games"};
+
+            for (std::filesystem::directory_iterator Entry{EpicGames, Error}, End{}; !Error && Entry != End; Entry.increment(Error)) {
+                if (!Entry->path().filename().native().starts_with(L"UE_5.")) {
+                    continue;
+                }
+
+                const std::filesystem::path Icons{Entry->path() / SlateIcons};
+                std::error_code IconError{};
+
+                if (std::filesystem::is_directory(Icons, IconError)) {
+                    return Icons;
+                }
+            }
+
+            return {};
+        }
+
+        void DrawContentImage(float Size, void* Thumbnail, ID3D11ShaderResourceView* Resource, const FContentIcon& Icon) {
+            if (Thumbnail != nullptr) {
+                ImGui::Image(ImTextureRef{static_cast<ImTextureID>(reinterpret_cast<std::uintptr_t>(Thumbnail))}, {Size, Size});
+
+                return;
+            }
+
+            const float IconSize{Size * 0.8f};
+            const float Inset{(Size - IconSize) * 0.5f};
+            const ImVec2 Cursor{ImGui::GetCursorScreenPos()};
+            const ImVec2 Origin{Cursor.x + Inset, Cursor.y + Inset};
+            ImDrawList* DrawList{ImGui::GetWindowDrawList()};
+
+            if (Resource != nullptr) {
+                DrawList->AddImage(ImTextureRef{static_cast<ImTextureID>(reinterpret_cast<std::uintptr_t>(Resource))}, Origin, {Origin.x + IconSize, Origin.y + IconSize}, {0.0f, 0.0f}, {1.0f, 1.0f}, Icon.mTint);
+            } else if (Icon.mKind == "Folder") {
+                DrawList->AddRectFilled({Origin.x, Origin.y + IconSize * 0.22f}, {Origin.x + IconSize * 0.45f, Origin.y + IconSize * 0.45f}, Icon.mTint, IconSize * 0.04f);
+                DrawList->AddRectFilled({Origin.x, Origin.y + IconSize * 0.33f}, {Origin.x + IconSize, Origin.y + IconSize * 0.83f}, Icon.mTint, IconSize * 0.05f);
+            } else {
+                Editor::EditorStyle::DrawIcon(Icon.mFallback, Origin, IconSize, Icon.mTint);
+            }
+
+            ImGui::Dummy({Size, Size});
         }
     }
 
@@ -203,6 +252,7 @@ namespace Editor {
         ImGui::LoadIniSettingsFromDisk(mIniPath.c_str());
         InitializeSettings();
         InstallEditorIcons();
+        LoadContentIcons(Renderer);
 
         if (mContext->GetWorld() != nullptr && mContext->GetWorld()->GetPersistentLevel() != nullptr) {
             for (const auto& Actor : mContext->GetWorld()->GetPersistentLevel()->GetActors()) {
@@ -276,6 +326,25 @@ namespace Editor {
         }
     }
 
+    void Editor::FEditorUI::LoadContentIcons(RenderCore::IRendererModule* Renderer) {
+        const std::filesystem::path Directory{FindUnrealContentIcons()};
+        auto* Device{static_cast<ID3D11Device*>(Renderer->GetNativeDevice())};
+
+        if (Directory.empty() || Device == nullptr) {
+            return;
+        }
+
+        for (const FContentIcon& Icon : ContentIcons) {
+            const std::filesystem::path Path{Directory / Icon.mPath};
+            std::error_code Error{};
+            Asset::UTexture2D Texture{};
+
+            if (std::filesystem::is_regular_file(Path, Error) && Texture.LoadFromFile(Path, false) && Texture.CreateResources(Device)) {
+                mContentIcons.try_emplace(Icon.mKind, Texture.GetShaderResourceView());
+            }
+        }
+    }
+
     /**
      * @brief 종속 객체를 역순으로 정리하고 여러 번 호출해도 안전한 종료 상태로 만듭니다.
      */
@@ -303,6 +372,7 @@ namespace Editor {
         mContentDropDirectories.clear();
         mContentDropBounds.clear();
         mPlaceActorsPanel.ClearIcons();
+        mContentIcons.clear();
         mMeshViewer.reset();
         mDetailsPanel.SetAssetServices(nullptr, nullptr);
         mThumbnails.reset();
@@ -2110,6 +2180,9 @@ namespace Editor {
                         const char* Kind{ScriptFile ? "C# Script" : Directory ? "Folder" : Type == mAssetTypes.end() ? "File" : Type->second == Asset::EAssetType::Mesh ? "Mesh" : Type->second == Asset::EAssetType::SkeletalMesh ? "Skeletal Mesh" : Type->second == Asset::EAssetType::Skeleton ? "Skeleton" : Type->second == Asset::EAssetType::Material ? "Material" : Type->second == Asset::EAssetType::Texture ? "Texture" : Type->second == Asset::EAssetType::Sequence ? "Sequence" : "Scene"};
                         const Core::FString Actual{Core::FilePath::ToGenericUtf8(Path)};
                         const Core::FString Name{Core::FilePath::ToUtf8(Directory ? Path.filename() : Path.stem())};
+                        const FContentIcon& Icon{GetContentIcon(Kind)};
+                        const auto CachedIcon{mContentIcons.find(Icon.mKind)};
+                        ID3D11ShaderResourceView* Resource{CachedIcon != mContentIcons.end() ? CachedIcon->second.Get() : nullptr};
 
                         ImGui::PushID(Actual.c_str());
 
@@ -2149,10 +2222,7 @@ namespace Editor {
 
                             ImGui::SetDragDropPayload(Payload, Actual.c_str(), Actual.size() + 1);
 
-                            if (Thumbnail != nullptr) {
-                                ImGui::Image(ImTextureRef{static_cast<ImTextureID>(reinterpret_cast<std::uintptr_t>(Thumbnail))}, {64.0f * Scale, 64.0f * Scale});
-                            }
-
+                            DrawContentImage(64.0f * Scale, Thumbnail, Resource, Icon);
                             ImGui::TextUnformatted(Name.c_str());
                             ImGui::EndDragDropSource();
                         }
@@ -2160,31 +2230,14 @@ namespace Editor {
                         if (Hovered) {
                             ImGui::BeginTooltip();
                             ImGui::TextUnformatted(Core::FilePath::ToGenericUtf8(Path).c_str());
-                            ImGui::TextDisabled("%s", GetKindTooltip(Kind));
+                            ImGui::TextDisabled("%s", Icon.mTooltip);
                             ImGui::EndTooltip();
                         }
 
                         const ImVec2 Next{ImGui::GetCursorScreenPos()};
 
                         ImGui::SetCursorScreenPos({Origin.x + ImageOffset, Origin.y + Padding});
-
-                        if (Thumbnail != nullptr) {
-                            ImGui::Image(ImTextureRef{static_cast<ImTextureID>(reinterpret_cast<std::uintptr_t>(Thumbnail))}, {ImageSize, ImageSize});
-                        } else if (ScriptFile) {
-                            DrawScriptIcon(ImGui::GetWindowDrawList(), {Origin.x + ImageOffset, Origin.y + Padding}, ImageSize);
-                            ImGui::Dummy({ImageSize, ImageSize});
-                        } else {
-                            ImGui::GetWindowDrawList()->AddRectFilled({Origin.x + ImageOffset, Origin.y + Padding}, {Origin.x + ImageOffset + ImageSize, Origin.y + Padding + ImageSize}, Directory ? IM_COL32(79, 65, 34, 255) : IM_COL32(34, 42, 54, 255), 5.0f * Scale);
-
-                            if (!Compact) {
-                                const ImVec2 TextSize{ImGui::CalcTextSize(Kind)};
-
-                                ImGui::GetWindowDrawList()->AddText({Origin.x + ImageOffset + (ImageSize - TextSize.x) * 0.5f, Origin.y + Padding + (ImageSize - TextSize.y) * 0.5f}, IM_COL32(200, 213, 230, 255), Kind);
-                            }
-
-                            ImGui::Dummy({ImageSize, ImageSize});
-                        }
-
+                        DrawContentImage(ImageSize, Thumbnail, Resource, Icon);
                         ImGui::SetCursorScreenPos({Origin.x + TextX, Origin.y + TypeY});
                         ImGui::TextDisabled("%s", Kind);
                         ImGui::SetCursorScreenPos({Origin.x + TextX, Origin.y + NameY});

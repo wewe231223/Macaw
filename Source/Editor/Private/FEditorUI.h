@@ -24,6 +24,8 @@
 
 #include <filesystem>
 #include <optional>
+#include <string_view>
+#include <wrl/client.h>
 
 namespace Asset {
     class UTexture2D;
@@ -117,6 +119,7 @@ namespace Editor {
          * @note 기존 파일을 유지하며 원본 탐색이나 복사에 실패하면 에디터 로그에 원인을 기록합니다.
          */
         void InstallEditorIcons();
+        void LoadContentIcons(RenderCore::IRendererModule* Renderer);
 
         /**
          * @brief 장면 파일과 패널 표시 메뉴를 그립니다.
@@ -801,6 +804,8 @@ namespace Editor {
          * @brief 재질·메시 썸네일과 재질 편집 미리보기의 공유 캐시입니다.
          */
         std::unique_ptr<Editor::FAssetThumbnailCache> mThumbnails{};
+
+        Core::TMap<std::string_view, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>> mContentIcons{};
 
         /**
          * @brief 재질 에디터의 텍스처 선택기입니다.
