@@ -110,6 +110,7 @@ namespace Engine {
          * @brief 프리미티브의 그림자 수신 여부입니다.
          */
         bool mReceiveShadow{true};
+        bool mReceivesDecals{true};
     };
 
 }

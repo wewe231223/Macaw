@@ -71,6 +71,8 @@ namespace Renderer {
          */
         ID3D11DepthStencilView* GetDepthView() const;
 
+        ID3D11DepthStencilView* GetReadOnlyDepthView() const;
+
         /**
          * @brief 장면 드로와 교대 후처리 입력으로 사용하는 컬러 텍스처를 조회합니다.
          * @return 렌더 타깃이 소유하는 장면 컬러의 비소유 주소이며 할당 전에는 nullptr입니다.
@@ -130,6 +132,7 @@ namespace Renderer {
          * @brief 깊이 스텐실 뷰입니다.
          */
         std::unique_ptr<Asset::UTexture2D> mDepth{};
+        Microsoft::WRL::ComPtr<ID3D11DepthStencilView> mReadOnlyDepthView{};
 
         /**
          * @brief 가로 픽셀 수입니다.

@@ -67,6 +67,38 @@ namespace Renderer {
         return mHeightFogs;
     }
 
+    void Renderer::FScene::AddDecal(const Engine::FDecalSceneProxy& Proxy) {
+        const auto Existing{std::find_if(mDecals.begin(), mDecals.end(), [&Proxy](const Engine::FDecalSceneProxy& Decal) {
+            return Decal.mId == Proxy.mId;
+        })};
+
+        if (Existing != mDecals.end()) {
+            if (Existing->mSortOrder == Proxy.mSortOrder) {
+                *Existing = Proxy;
+
+                return;
+            }
+
+            mDecals.erase(Existing);
+        }
+
+        const auto Position{std::upper_bound(mDecals.begin(), mDecals.end(), Proxy.mSortOrder, [](Core::Int32 SortOrder, const Engine::FDecalSceneProxy& Decal) {
+            return SortOrder < Decal.mSortOrder;
+        })};
+
+        mDecals.insert(Position, Proxy);
+    }
+
+    void Renderer::FScene::RemoveDecal(const Core::FGuid& Id) {
+        std::erase_if(mDecals, [&Id](const Engine::FDecalSceneProxy& Decal) {
+            return Decal.mId == Id;
+        });
+    }
+
+    const Core::TArray<Engine::FDecalSceneProxy>& Renderer::FScene::GetDecals() const {
+        return mDecals;
+    }
+
     /**
      * @brief 프록시의 GUID로 렌더 장면에 프리미티브를 추가하거나 교체합니다.
      */

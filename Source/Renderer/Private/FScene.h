@@ -13,6 +13,7 @@
 #include "FScenePrimitive.h"
 #include "Engine/FLightSceneProxy.h"
 #include "Engine/FHeightFogSceneProxy.h"
+#include "Engine/FDecalSceneProxy.h"
 
 #include <d3d11.h>
 #include <wrl/client.h>
@@ -73,6 +74,10 @@ namespace Renderer {
          * @return 장면이 소유하는 안개 프록시 목록의 읽기 전용 참조입니다.
          */
         const Core::TArray<Engine::FHeightFogSceneProxy>& GetHeightFogs() const;
+
+        void AddDecal(const Engine::FDecalSceneProxy& Proxy) override;
+        void RemoveDecal(const Core::FGuid& Id) override;
+        const Core::TArray<Engine::FDecalSceneProxy>& GetDecals() const;
 
         /**
          * @copydoc Engine::FSceneInterface::AddPrimitive
@@ -163,6 +168,8 @@ namespace Renderer {
          * @brief 컴포넌트 GUID별로 추가·갱신되는 높이 안개 프록시 목록입니다.
          */
         Core::TArray<Engine::FHeightFogSceneProxy> mHeightFogs{};
+
+        Core::TArray<Engine::FDecalSceneProxy> mDecals{};
 
         /**
          * @brief 광원 GUID를 조밀한 광원 배열의 인덱스에 연결합니다.

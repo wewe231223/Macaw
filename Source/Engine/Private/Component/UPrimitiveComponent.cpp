@@ -165,6 +165,7 @@ namespace Engine {
         Proxy.mUVOffset = mUVOffset;
         Proxy.mCastShadow = mCastShadow;
         Proxy.mReceiveShadow = mReceiveShadow;
+        Proxy.mReceivesDecals = mReceivesDecals;
 
         return Proxy;
     }
@@ -266,6 +267,15 @@ namespace Engine {
      */
     bool Engine::UPrimitiveComponent::GetReceiveShadow() const {
         return mReceiveShadow;
+    }
+
+    bool Engine::UPrimitiveComponent::GetReceivesDecals() const {
+        return mReceivesDecals;
+    }
+
+    void Engine::UPrimitiveComponent::SetReceivesDecals(bool ReceivesDecals) {
+        mReceivesDecals = ReceivesDecals;
+        MarkRenderStateDirty();
     }
 
     /**

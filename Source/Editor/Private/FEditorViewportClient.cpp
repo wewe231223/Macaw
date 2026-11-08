@@ -7,6 +7,7 @@
 #include "Editor/FEditorViewportClient.h"
 #include "Engine/Component/UCameraComponent.h"
 #include "Engine/Component/UHeightFogComponent.h"
+#include "Engine/Component/UDecalComponent.h"
 #include "Engine/Component/ULightComponentBase.h"
 #include "RenderCore/IRendererModule.h"
 #include "Core/Math.h"
@@ -494,6 +495,24 @@ namespace Editor {
                         const Core::FVector Location{Fog->GetTransform().mLocation};
 
                         mDrawInterface.DrawBox(Core::FBox{Location - Core::FVector{0.5f, 0.5f, 0.5f}, Location + Core::FVector{0.5f, 0.5f, 0.5f}}, {1.0f, 0.65f, 0.15f}, true, mLineThickness);
+                    }
+
+                    if (const auto* Decal{CoreUObject::Cast<Engine::UDecalComponent>(Component.get())}; Decal != nullptr && Highlight) {
+                        const Core::FMatrix DecalToWorld{Decal->GetDecalToWorld()};
+                        const Core::FVector Color{1.0f, 0.65f, 0.15f};
+                        std::array<Core::FVector, 8> Corners{};
+
+                        for (std::size_t Corner{}; Corner < Corners.size(); ++Corner) {
+                            Corners[Corner] = DecalToWorld.TransformPosition({(Corner & 1u) != 0 ? 1.0f : -1.0f, (Corner & 2u) != 0 ? 1.0f : -1.0f, (Corner & 4u) != 0 ? 1.0f : -1.0f});
+                        }
+
+                        for (std::size_t Corner{}; Corner < Corners.size(); ++Corner) {
+                            for (std::size_t Axis{1}; Axis < Corners.size(); Axis <<= 1) {
+                                if ((Corner & Axis) == 0) {
+                                    mDrawInterface.DrawLine(Corners[Corner], Corners[Corner | Axis], Color, true, mLineThickness);
+                                }
+                            }
+                        }
                     }
 
                     const auto* Shape{CoreUObject::Cast<Engine::UShapeComponent>(Component.get())};
@@ -1209,6 +1228,10 @@ namespace Editor {
             Location = Hit.mPosition;
         } else {
             Core::Math::IntersectPlane(Ray, mViewType == Editor::EEditorViewportType::Perspective ? Core::FVector{} : mOrbitPivot, mViewType == Editor::EEditorViewportType::Perspective ? Core::FVector{0.0f, 0.0f, 1.0f} : View.mForward, Location);
+        }
+
+        if (Preset == "ADecalActor") {
+            return mContext->SpawnActorPreset(Preset, Core::FTransform{Location, Ray.mDirection.Rotation().Quaternion(), {1.0f, 1.0f, 1.0f}}) != nullptr;
         }
 
         const bool Light{Preset.find("Light") != Core::FString::npos};

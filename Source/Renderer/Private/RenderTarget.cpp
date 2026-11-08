@@ -27,7 +27,7 @@ namespace Renderer {
             return false;
         }
 
-        if (Width == mWidth && Height == mHeight && mColor != nullptr && mDepth != nullptr && mSceneColor != nullptr && mPostProcessColor != nullptr && mColor->HasResources() && mDepth->HasResources() && mSceneColor->HasResources() && mPostProcessColor->HasResources()) {
+        if (Width == mWidth && Height == mHeight && mColor != nullptr && mDepth != nullptr && mSceneColor != nullptr && mPostProcessColor != nullptr && mReadOnlyDepthView != nullptr && mColor->HasResources() && mDepth->HasResources() && mSceneColor->HasResources() && mPostProcessColor->HasResources()) {
             Microsoft::WRL::ComPtr<ID3D11Device> ResourceDevice{};
 
             mColor->GetTexture()->GetDevice(ResourceDevice.GetAddressOf());
@@ -46,8 +46,18 @@ namespace Renderer {
             return false;
         }
 
+        D3D11_DEPTH_STENCIL_VIEW_DESC ReadOnlyDescription{};
+        Depth->GetDepthStencilView()->GetDesc(&ReadOnlyDescription);
+        ReadOnlyDescription.Flags = D3D11_DSV_READ_ONLY_DEPTH | D3D11_DSV_READ_ONLY_STENCIL;
+        Microsoft::WRL::ComPtr<ID3D11DepthStencilView> ReadOnlyDepthView{};
+
+        if (FAILED(Device->CreateDepthStencilView(Depth->GetTexture(), &ReadOnlyDescription, ReadOnlyDepthView.GetAddressOf()))) {
+            return false;
+        }
+
         mColor = std::move(Color);
         mDepth = std::move(Depth);
+        mReadOnlyDepthView = std::move(ReadOnlyDepthView);
         mSceneColor = std::move(SceneColor);
         mPostProcessColor = std::move(PostProcessColor);
 
@@ -90,6 +100,10 @@ namespace Renderer {
      */
     ID3D11DepthStencilView* Renderer::FDXRenderTarget::GetDepthView() const {
         return mDepth != nullptr ? mDepth->GetDepthStencilView() : nullptr;
+    }
+
+    ID3D11DepthStencilView* Renderer::FDXRenderTarget::GetReadOnlyDepthView() const {
+        return mReadOnlyDepthView.Get();
     }
 
     /**

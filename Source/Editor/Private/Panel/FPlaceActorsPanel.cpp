@@ -113,15 +113,16 @@ namespace Editor {
             const Core::FString& Name{Class->GetName()};
             const bool Light{Name.find("Light") != Core::FString::npos};
             const bool Fog{Name.find("Fog") != Core::FString::npos};
+            const bool Decal{Name == "ADecalActor"};
 
-            if ((mCategory == 1 && !Light) || (mCategory == 2 && (Light || Fog)) || (mCategory == 3 && !Fog)) {
+            if ((mCategory == 1 && !Light) || (mCategory == 2 && (Light || Fog || Decal)) || (mCategory == 3 && !(Fog || Decal))) {
                 continue;
             }
 
             const Editor::EPlaceActorIcon Icon{Fog ? Editor::EPlaceActorIcon::HeightFog : Name.find("Directional") != Core::FString::npos ? Editor::EPlaceActorIcon::DirectionalLight : Name.find("Ambient") != Core::FString::npos ? Editor::EPlaceActorIcon::AmbientLight : Name.find("Spot") != Core::FString::npos ? Editor::EPlaceActorIcon::SpotLight : Light ? Editor::EPlaceActorIcon::PointLight : Editor::EPlaceActorIcon::None};
             Core::FString Label{Name.starts_with('A') ? Name.substr(1) : Name};
 
-            DrawEntry(Name, Label, Fog ? "HeightFogComponent" : Light ? "LightComponent" : Name.find("Camera") != Core::FString::npos ? "CameraComponent" : "Default components", Icon);
+            DrawEntry(Name, Label, Decal ? "DecalComponent" : Fog ? "HeightFogComponent" : Light ? "LightComponent" : Name.find("Camera") != Core::FString::npos ? "CameraComponent" : "Default components", Icon);
         }
 
         ImGui::EndDisabled();

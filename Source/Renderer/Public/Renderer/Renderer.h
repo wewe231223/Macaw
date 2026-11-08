@@ -48,6 +48,7 @@ namespace Renderer {
     class FMeshPass;
     class FShadowDepthPass;
     class FBasePass;
+    class FDecalPass;
 
     enum class EMeshPass : Core::Uint8;
 
@@ -374,7 +375,7 @@ namespace Renderer {
          * @param[in] Parameters 출력 타깃과 뷰 투영 행렬입니다.
          * @return 패스에 필요한 파이프라인과 조명을 준비해 드로 목록을 제출했으면 true입니다.
          */
-        bool DrawMeshPass(Renderer::FMeshPass& Pass, const Renderer::FScene& Scene, const Engine::FSceneViewFamily& Family, const Renderer::FMeshPassParameters& Parameters);
+        bool DrawMeshPass(Renderer::FMeshPass& Pass, const Renderer::FScene& Scene, const Engine::FSceneViewFamily& Family, const Renderer::FMeshPassParameters& Parameters, bool MarkDecalReceivers = false);
 
         /**
          * @brief 정렬된 드로 목록을 상태 변경을 줄여 제출하고 인스턴스를 묶어 그립니다.
@@ -383,7 +384,7 @@ namespace Renderer {
          * @param[in] Commands 메시 패스가 만든 정렬된 드로 목록입니다.
          * @return 제출한 드로 호출 수입니다.
          */
-        Core::Uint32 SubmitMeshCommands(const Engine::FSceneViewFamily& Family, Renderer::EMeshPass Pass, std::span<const Renderer::FMeshDrawCommand> Commands);
+        Core::Uint32 SubmitMeshCommands(const Engine::FSceneViewFamily& Family, Renderer::EMeshPass Pass, std::span<const Renderer::FMeshDrawCommand> Commands, bool MarkDecalReceivers);
 
     private:
         /**
@@ -425,6 +426,7 @@ namespace Renderer {
          * @brief 보이는 메시를 머티리얼과 조명으로 장면 타깃에 그리는 메시 패스입니다.
          */
         std::unique_ptr<Renderer::FBasePass> mBasePass{};
+        std::unique_ptr<Renderer::FDecalPass> mDecalPass{};
 
         /**
          * @brief 머티리얼이 없는 메시 드로에 사용할 기본 머티리얼의 소유 객체입니다.

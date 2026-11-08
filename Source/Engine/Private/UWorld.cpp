@@ -8,6 +8,7 @@
 #include "Asset/FAssetManager.h"
 #include "Core/FilePath.h"
 #include "Engine/Component/UHeightFogComponent.h"
+#include "Engine/Component/UDecalComponent.h"
 #include "Engine/EngineStats.h"
 #include "Engine/Component/ULightComponentBase.h"
 
@@ -97,6 +98,10 @@ namespace Engine {
                         Sprite->ResolveTexture();
                     }
 
+                    if (auto* Decal{CoreUObject::Cast<Engine::UDecalComponent>(Component.get())}) {
+                        Decal->ResolveTexture();
+                    }
+
                     if (auto* Light{CoreUObject::Cast<Engine::ULightComponentBase>(Component.get())}) {
                         Light->SynchronizeLight();
                     }
@@ -178,6 +183,10 @@ namespace Engine {
 
                     if (auto* Fog{CoreUObject::Cast<Engine::UHeightFogComponent>(Component.get())}) {
                         Fog->SynchronizeFog();
+                    }
+
+                    if (auto* Decal{CoreUObject::Cast<Engine::UDecalComponent>(Component.get())}) {
+                        Decal->SynchronizeDecal();
                     }
 
                     if (auto* Primitive{CoreUObject::Cast<Engine::UPrimitiveComponent>(Component.get())}) {

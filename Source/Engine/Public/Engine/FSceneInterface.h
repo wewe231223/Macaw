@@ -19,6 +19,7 @@ namespace Engine {
     struct FPrimitiveSceneProxy;
     struct FLightSceneProxy;
     struct FHeightFogSceneProxy;
+    struct FDecalSceneProxy;
 
     /**
      * @brief 엔진이 렌더 장면의 프리미티브를 추가, 갱신, 제거하는 추상 인터페이스입니다.
@@ -55,6 +56,9 @@ namespace Engine {
          * @param[in] Id 제거할 안개 컴포넌트의 GUID입니다.
          */
         virtual void RemoveHeightFog(const Core::FGuid& Id);
+
+        virtual void AddDecal(const Engine::FDecalSceneProxy& Proxy);
+        virtual void RemoveDecal(const Core::FGuid& Id);
 
         /**
          * @brief 프록시의 GUID로 렌더 장면에 프리미티브를 추가하거나 교체합니다.

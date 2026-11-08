@@ -30,6 +30,7 @@
 #include "FMeshDrawCommand.h"
 #include "FShadowDepthPass.h"
 #include "FBasePass.h"
+#include "FDecalPass.h"
 #include "FMaterialPipeline.h"
 #include "FShaderInstance.h"
 #include "FLightingResources.h"
@@ -226,6 +227,7 @@ namespace Renderer {
 
         mShadowDepthPass.reset();
         mBasePass.reset();
+        mDecalPass.reset();
         mMaterialPipelines.clear();
         mShaderInstances.clear();
         mLightingResources.reset();
@@ -384,7 +386,11 @@ namespace Renderer {
         BaseParameters.mViewProjection = Family.mView.mViewProjection;
 
         ClearTarget(BaseParameters.mTarget, ClearColor);
-        DrawMeshPass(*mBasePass, *Scene, Family, BaseParameters);
+        const bool DrawDecals{Family.mShowFlags.mPrimitives && !Scene->GetDecals().empty() && Family.mViewMode != Engine::EViewMode::Wireframe && Family.mViewMode != Engine::EViewMode::WorldNormal && Family.mViewMode != Engine::EViewMode::SceneDepth};
+
+        if (DrawMeshPass(*mBasePass, *Scene, Family, BaseParameters, DrawDecals) && DrawDecals) {
+            mStats.mDrawCalls += mDecalPass->Render(mDevice.Get(), mContext.Get(), *Target, Family.mView, Scene->GetDecals(), mOverlayBlend.Get());
+        }
 
         if (Family.mShowFlags.mSky && !Family.mView.mOrthographic && Family.mViewMode != Engine::EViewMode::Wireframe && Family.mViewMode != Engine::EViewMode::WorldNormal && Family.mViewMode != Engine::EViewMode::SceneDepth) {
             mStats.mDrawCalls += mSkyResources->Render(mContext.Get(), BaseParameters.mTarget, Family.mView);
@@ -654,7 +660,7 @@ namespace Renderer {
      */
     bool Renderer::FRenderer::Compile(const char* Source, const char* Entry, const char* Target, std::shared_ptr<const RenderCore::FShader>& Code) {
         RenderCore::FShaderDescription Description{};
-        const bool EngineFirst{std::string_view{Source} == LineShader || std::string_view{Source} == GizmoShader || std::string_view{Source} == "Sprite.hlsl" || std::string_view{Source} == "PostProcess.hlsl" || std::string_view{Source} == "Sky.hlsl" || std::string_view{Source} == "Grid.hlsl" || std::string_view{Source} == "TileLightCulling.hlsl" || std::string_view{Source} == "Depth.hlsl"};
+        const bool EngineFirst{std::string_view{Source} == LineShader || std::string_view{Source} == GizmoShader || std::string_view{Source} == "Sprite.hlsl" || std::string_view{Source} == "PostProcess.hlsl" || std::string_view{Source} == "Decal.hlsl" || std::string_view{Source} == "Sky.hlsl" || std::string_view{Source} == "Grid.hlsl" || std::string_view{Source} == "TileLightCulling.hlsl" || std::string_view{Source} == "Depth.hlsl"};
 
         Description.mSourcePath = FindTextContent(mShaderDirectory.parent_path(), std::filesystem::path{"Shaders"} / Source, EngineFirst);
         Description.mIncludeDirectories = {mShaderDirectory};
@@ -733,6 +739,10 @@ namespace Renderer {
             return false;
         }
 
+        if (!Compile("Decal.hlsl", "VertexMain", "vs_5_0", VertexCode) || !Compile("Decal.hlsl", "PixelMain", "ps_5_0", PixelCode) || !mDecalPass->CreateShaders(mDevice.Get(), VertexCode->GetByteCode(), PixelCode->GetByteCode())) {
+            return false;
+        }
+
         if (!Compile("Sky.hlsl", "VertexMain", "vs_5_0", VertexCode) || !Compile("Sky.hlsl", "PixelMain", "ps_5_0", PixelCode) || !mSkyResources->CreateShaders(mDevice.Get(), VertexCode->GetByteCode(), PixelCode->GetByteCode())) {
             return false;
         }
@@ -800,6 +810,7 @@ namespace Renderer {
         mShadowResources = std::make_unique<Renderer::FShadowResources>();
         mShadowDepthPass = std::make_unique<Renderer::FShadowDepthPass>(*this, mDevice.Get(), mContext.Get(), mMeshes);
         mBasePass = std::make_unique<Renderer::FBasePass>(*this, mDevice.Get(), mContext.Get(), mMeshes);
+        mDecalPass = std::make_unique<Renderer::FDecalPass>();
         mTextRenderer = std::make_unique<Renderer::FTextRenderer>();
         mSpriteRenderer = std::make_unique<Renderer::FSpriteRenderer>();
         mPostProcessResources = std::make_unique<Renderer::FPostProcessResources>();
@@ -807,6 +818,10 @@ namespace Renderer {
         mGridResources = std::make_unique<Renderer::FGridResources>();
 
         if (!mPostProcessResources->Initialize(mDevice.Get())) {
+            return false;
+        }
+
+        if (!mDecalPass->Initialize(mDevice.Get())) {
             return false;
         }
 
@@ -1476,7 +1491,7 @@ namespace Renderer {
     /**
      * @brief 메시 패스 인스턴스가 만든 드로 목록을 패스 타깃에 그립니다.
      */
-    bool Renderer::FRenderer::DrawMeshPass(Renderer::FMeshPass& Pass, const Renderer::FScene& Scene, const Engine::FSceneViewFamily& Family, const Renderer::FMeshPassParameters& Parameters) {
+    bool Renderer::FRenderer::DrawMeshPass(Renderer::FMeshPass& Pass, const Renderer::FScene& Scene, const Engine::FSceneViewFamily& Family, const Renderer::FMeshPassParameters& Parameters, bool MarkDecalReceivers) {
         static Core::FStat OpaquePassTime{"render", "Opaque mesh pass CPU (inclusive)", Core::EStatUnit::Milliseconds};
         static Core::FStat ShadowPassTime{"shadow", "Shadow depth pass CPU (inclusive)", Core::EStatUnit::Milliseconds};
         const bool BasePass{Pass.GetType() == Renderer::EMeshPass::BasePass};
@@ -1513,7 +1528,7 @@ namespace Renderer {
         const bool Built{Pass.BuildCommands(Scene, Family, Parameters.mViewProjection, Commands, Primitives)};
 
         if (Built) {
-            const Core::Uint32 DrawCalls{SubmitMeshCommands(Family, Pass.GetType(), Commands)};
+            const Core::Uint32 DrawCalls{SubmitMeshCommands(Family, Pass.GetType(), Commands, MarkDecalReceivers)};
 
             (BasePass ? mStats.mDrawCalls : mStats.mShadowDrawCalls) += DrawCalls;
             mStats.mVisiblePrimitives += BasePass ? Primitives : 0u;
@@ -1531,7 +1546,7 @@ namespace Renderer {
     /**
      * @brief 정렬된 드로 목록을 상태 변경을 줄여 제출하고 인스턴스를 묶어 그립니다.
      */
-    Core::Uint32 Renderer::FRenderer::SubmitMeshCommands(const Engine::FSceneViewFamily& Family, Renderer::EMeshPass Pass, std::span<const Renderer::FMeshDrawCommand> Commands) {
+    Core::Uint32 Renderer::FRenderer::SubmitMeshCommands(const Engine::FSceneViewFamily& Family, Renderer::EMeshPass Pass, std::span<const Renderer::FMeshDrawCommand> Commands, bool MarkDecalReceivers) {
         const bool BasePass{Pass == Renderer::EMeshPass::BasePass};
 
         if (std::any_of(Commands.begin(), Commands.end(), [](const Renderer::FMeshDrawCommand& Command) {
@@ -1556,19 +1571,30 @@ namespace Renderer {
         Renderer::FMaterialPipeline* LastPipeline{};
         Asset::UMaterial* LastMaterial{};
         Asset::UStaticMesh* LastMesh{};
+        std::optional<bool> LastDecalReceiver{};
         Core::Uint32 DrawCalls{};
 
         for (std::size_t First{}; First < Commands.size();) {
             const Renderer::FMeshDrawCommand& Command{Commands[First]};
+            const bool ReceivesDecals{Command.mPrimitive->mProxy.mReceivesDecals};
             std::size_t End{First + 1};
 
             if (Command.mPipeline->IsInstanced()) {
                 while (End < Commands.size() && Commands[End].mPipeline == Command.mPipeline && Commands[End].mMaterial == Command.mMaterial && Commands[End].mMesh == Command.mMesh && Commands[End].mFirstIndex == Command.mFirstIndex && Commands[End].mIndexCount == Command.mIndexCount) {
+                    if (MarkDecalReceivers && Commands[End].mPrimitive->mProxy.mReceivesDecals != ReceivesDecals) {
+                        break;
+                    }
+
                     ++End;
                 }
             }
 
             const Core::Uint32 InstanceCount{static_cast<Core::Uint32>(End - First)};
+
+            if (MarkDecalReceivers && LastDecalReceiver != ReceivesDecals) {
+                mDecalPass->MarkReceiver(mContext.Get(), ReceivesDecals);
+                LastDecalReceiver = ReceivesDecals;
+            }
 
             if (Command.mPipeline->IsSkinned()) {
                 // 같은 형상을 공유해도 객체마다 본 팔레트를 다시 바인딩합니다.

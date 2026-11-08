@@ -37,4 +37,10 @@ namespace Engine {
     void Engine::FSceneInterface::RemoveHeightFog(const Core::FGuid&) {
     }
 
+    void Engine::FSceneInterface::AddDecal(const Engine::FDecalSceneProxy&) {
+    }
+
+    void Engine::FSceneInterface::RemoveDecal(const Core::FGuid&) {
+    }
+
 }

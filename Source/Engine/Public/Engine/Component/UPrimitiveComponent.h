@@ -172,6 +172,9 @@ namespace Engine {
          */
         bool SetReceiveShadow(bool ReceiveShadow);
 
+        bool GetReceivesDecals() const;
+        void SetReceivesDecals(bool ReceivesDecals);
+
     private:
         /**
          * @brief 같은 컴포넌트를 중복 예약하지 않고 월드의 갱신 큐에 넣습니다.
@@ -195,6 +198,9 @@ namespace Engine {
          */
         UPROPERTY(Edit, Serialize, Getter = GetReceiveShadow, Setter = SetReceiveShadow)
         bool mReceiveShadow{true};
+
+        UPROPERTY(Edit, Serialize, Getter = GetReceivesDecals, Setter = SetReceivesDecals)
+        bool mReceivesDecals{true};
 
         /**
          * @brief 변환 업로드가 필요한지 여부입니다.
