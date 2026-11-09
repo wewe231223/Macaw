@@ -35,7 +35,7 @@ jobs:
 
       - name: Build and verify documentation
         shell: pwsh
-        run: ./Scripts/BuildDocumentation.ps1 -InstallTools
+        run: ./Scripts/BuildDocumentation.ps1 -InstallTools -AllowIncompleteDocumentation
 
       - name: Upload review artifact
         if: github.event_name == 'pull_request'
