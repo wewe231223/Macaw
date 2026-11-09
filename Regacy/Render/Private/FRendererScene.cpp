@@ -33,6 +33,7 @@ const FRenderScene& FRendererScene::GetRenderScene() const {
 
 void FRendererScene::Reset(Uint64 Generation) {
     mHandle.mGeneration = Generation;
+
     ResetRenderData();
 }
 

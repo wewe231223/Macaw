@@ -22,12 +22,6 @@ namespace Engine {
     struct FHitResult {
     public:
         /**
-         * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
-         */
-        ReflectTypes(FHitResult);
-
-    public:
-        /**
          * @brief 전달된 설정과 기본값으로 FHitResult 객체를 생성합니다.
          */
         FHitResult() = default;
@@ -39,12 +33,6 @@ namespace Engine {
         explicit FHitResult(float InTime);
 
     public:
-        /**
-         * @brief 이 타입의 정적 리플렉션 메타데이터를 반환합니다.
-         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectStruct(FHitResult);
-
         /**
          * @brief 추적 시작·끝 위치와 빈 충돌 결과를 초기화합니다.
          */
@@ -78,96 +66,76 @@ namespace Engine {
          */
         static Engine::FHitResult GetReversedHit(const Engine::FHitResult& Hit, Engine::UPrimitiveComponent* MovedComponent, Engine::AActor* MovedActor);
 
-    private:
-        /**
-         * @brief 생성된 멤버 등록 함수와 리플렉션 빌더의 접근 권한입니다.
-         */
-        ReflectMembers();
-
     public:
         /**
          * @brief 충돌한 삼각형의 인덱스입니다.
          */
         Core::Int32 mFaceIndex{-1};
-        ReflectProperty(mFaceIndex, "FaceIndex", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 전체 추적 거리에서 적중한 비율입니다.
          */
         float mTime{1.0f};
-        ReflectProperty(mTime, "Time", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 추적 시작점부터 적중점까지의 거리입니다.
          */
         float mDistance{FLT_MAX};
-        ReflectProperty(mDistance, "Distance", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 충돌 시 이동 도형의 위치입니다.
          */
         Core::FVector mLocation{};
-        ReflectProperty(mLocation, "Location", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 표면 위 실제 충돌점입니다.
          */
         Core::FVector mImpactPoint{};
-        ReflectProperty(mImpactPoint, "ImpactPoint", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 충돌면의 단위 법선입니다.
          */
         Core::FVector mNormal{};
-        ReflectProperty(mNormal, "Normal", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 적중 표면의 단위 법선입니다.
          */
         Core::FVector mImpactNormal{};
-        ReflectProperty(mImpactNormal, "ImpactNormal", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 추적 시작 위치입니다.
          */
         Core::FVector mTraceStart{};
-        ReflectProperty(mTraceStart, "TraceStart", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 추적 끝 위치입니다.
          */
         Core::FVector mTraceEnd{};
-        ReflectProperty(mTraceEnd, "TraceEnd", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 초기 겹침을 해소할 침투 깊이입니다.
          */
         float mPenetrationDepth{};
-        ReflectProperty(mPenetrationDepth, "PenetrationDepth", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 이동을 차단하는 충돌 여부입니다.
          */
         bool mBlockingHit{};
-        ReflectProperty(mBlockingHit, "BlockingHit", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 추적 시작부터 겹친 상태입니다.
          */
         bool mStartPenetrating{};
-        ReflectProperty(mStartPenetrating, "StartPenetrating", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 적중 컴포넌트의 비소유 주소입니다.
          */
         Engine::UPrimitiveComponent* mHitComponent{};
-        ReflectProperty(mHitComponent, "HitComponent", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 적중 액터의 비소유 주소입니다.
          */
         Engine::AActor* mHitActor{};
-        ReflectProperty(mHitActor, "HitActor", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
 }

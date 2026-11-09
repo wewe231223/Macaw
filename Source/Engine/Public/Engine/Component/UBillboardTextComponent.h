@@ -8,18 +8,16 @@
 
 #include "Engine/Component/UPrimitiveComponent.h"
 #include "Core/Math/FVector4.h"
+#include "UBillboardTextComponent.generated.h"
 
 namespace Engine {
 
     /**
      * @brief 카메라에 정렬한 월드 텍스트를 렌더 장면에 등록합니다.
      */
+    UCLASS()
     class UBillboardTextComponent final : public Engine::UPrimitiveComponent {
-    public:
-        /**
-         * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
-         */
-        ReflectTypes(UBillboardTextComponent, Engine::UPrimitiveComponent);
+        GENERATED_BODY()
 
     public:
         /**
@@ -33,12 +31,6 @@ namespace Engine {
         ~UBillboardTextComponent() override;
 
     public:
-        /**
-         * @brief 이 타입의 정적 리플렉션 메타데이터를 반환합니다.
-         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectClass(UBillboardTextComponent);
-
         /**
          * @brief UTF-8 문자열을 반환합니다.
          * @return 이 객체가 보관하는 값의 참조입니다.
@@ -78,20 +70,31 @@ namespace Engine {
          */
         bool SetTextColor(const Core::FVector4& Color);
 
-        /**
-         * @brief 표시 활성 상태인지 검사합니다.
-         * @return 조건을 만족하면 true입니다.
-         */
-        bool IsVisible() const;
+        bool GetDepthTest() const;
+        bool SetDepthTest(bool DepthTest);
 
         /**
-         * @brief 표시 활성 상태를 설정합니다.
-         * @param[in] Visible 표시를 활성화할지 지정합니다.
+         * @brief 표시할 프리미티브 메시 종류를 반환합니다.
+         * @return 표시할 프리미티브 메시 종류입니다.
          */
-        void SetVisible(bool Visible);
         Engine::EPrimitiveType GetPrimitiveType() const override;
+
+        /**
+         * @brief 메시의 CPU 정점 속성·인덱스 데이터 참조를 반환합니다.
+         * @return 객체가 보유한 데이터의 참조이며 소유 객체의 수명 동안 유효합니다.
+         */
         const Asset::FMeshData& GetMeshData() const override;
+
+        /**
+         * @brief 컴포넌트의 현재 상태를 복사한 프리미티브 프록시를 만듭니다.
+         * @return 현재 상태를 담은 프록시입니다.
+         */
         Engine::FPrimitiveSceneProxy CreateSceneProxy() const override;
+
+        /**
+         * @brief 월드 공간의 축 정렬 경계 상자를 반환합니다.
+         * @return 월드 공간의 축 정렬 경계 상자입니다.
+         */
         Core::FBox GetWorldBounds() const override;
 
         /**
@@ -102,34 +105,25 @@ namespace Engine {
 
     private:
         /**
-         * @brief 생성된 멤버 등록 함수와 리플렉션 빌더의 접근 권한입니다.
-         */
-        ReflectMembers();
-
-    private:
-        /**
          * @brief UTF-8 문자열입니다.
          */
+        UPROPERTY(Edit, Serialize, Getter = GetText, Setter = SetText)
         Core::FString mText{"Text"};
-        ReflectAccessor(mText, GetText, SetText, "Text", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
 
         /**
          * @brief 월드 텍스트의 글자 크기입니다.
          */
+        UPROPERTY(Edit, Serialize, Getter = GetTextSize, Setter = SetTextSize)
         float mTextSize{0.5f};
-        ReflectAccessor(mTextSize, GetTextSize, SetTextSize, "TextSize", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
 
         /**
          * @brief 글자의 RGBA 색상입니다.
          */
+        UPROPERTY(Edit, Serialize, Getter = GetTextColor, Setter = SetTextColor)
         Core::FVector4 mTextColor{1.0f, 1.0f, 1.0f, 1.0f};
-        ReflectAccessor(mTextColor, GetTextColor, SetTextColor, "TextColor", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
 
-        /**
-         * @brief 표시 활성 상태입니다.
-         */
-        bool mVisible{true};
-        ReflectAccessor(mVisible, IsVisible, SetVisible, "Visible", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
+        UPROPERTY(Edit, Serialize, Getter = GetDepthTest, Setter = SetDepthTest)
+        bool mDepthTest{true};
     };
 
 }

@@ -14,7 +14,9 @@ class UDirectionalLightComponent;
 class FPreviewScene final {
 public:
     FPreviewScene() = default;
+
     ~FPreviewScene();
+
     FPreviewScene(const FPreviewScene&) = delete;
 
     FPreviewScene& operator=(const FPreviewScene&) = delete;

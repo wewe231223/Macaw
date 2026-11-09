@@ -13,6 +13,7 @@ void FBillboardSceneProxy::GetDynamicMeshElements(FDynamicPrimitiveDrawInterface
 
     Data.mUvMin = {mData.mUvMin.mX * UV.mScale.mX + UV.mOffset.mX, mData.mUvMin.mY * UV.mScale.mY + UV.mOffset.mY};
     Data.mUvMax = {mData.mUvMax.mX * UV.mScale.mX + UV.mOffset.mX, mData.mUvMax.mY * UV.mScale.mY + UV.mOffset.mY};
+
     DrawInterface.DrawBillboard(Data, GetTransform().mWorld);
 }
 

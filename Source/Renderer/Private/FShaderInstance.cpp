@@ -1,3 +1,9 @@
+/**
+ * @file FShaderInstance.cpp
+ * @brief 공유 코드에서 패스·인스턴싱·스키닝 변형의 D3D11 셰이더 자원을 관리합니다.
+ * @ingroup Renderer
+ */
+
 #include "FShaderInstance.h"
 
 #include "FObjectConstants.h"
@@ -6,6 +12,9 @@
 
 namespace Renderer {
 
+    /**
+     * @brief 공유 셰이더 코드와 패스·인스턴싱·스키닝 변형을 연결합니다.
+     */
     Renderer::FShaderInstance::FShaderInstance(std::shared_ptr<const RenderCore::FShader> Code, Renderer::EMeshPass Pass, bool Instanced, bool Skinned)
 		: mCode{std::move(Code)},
 		  mPass{Pass},
@@ -13,18 +22,30 @@ namespace Renderer {
 		  mSkinned{Skinned} {
     }
 
+    /**
+     * @brief GPU 자원이 존재하고 코드의 최신 리비전을 반영했는지 검사합니다.
+     */
     bool Renderer::FShaderInstance::IsCurrent() const {
         return HasResources() && mRevision == mCode->GetRevision();
     }
 
+    /**
+     * @brief 셰이더 단계에 필요한 GPU 셰이더와 입력 레이아웃이 있는지 검사합니다.
+     */
     bool Renderer::FShaderInstance::HasResources() const {
         return mVertexShader != nullptr ? mInputLayout != nullptr : mPixelShader != nullptr;
     }
 
+    /**
+     * @brief GPU 자원에 반영한 셰이더 코드 리비전을 반환합니다.
+     */
     Core::Uint64 Renderer::FShaderInstance::GetRevision() const {
         return mRevision;
     }
 
+    /**
+     * @brief 최신 코드로 D3D11 셰이더와 필요한 정점 입력 레이아웃을 생성합니다.
+     */
     bool Renderer::FShaderInstance::CreateResources(ID3D11Device* Device, Core::FString& Error) {
         Error.clear();
 
@@ -34,6 +55,7 @@ namespace Renderer {
 
         if (Device == nullptr || mCode == nullptr) {
             Error = "Invalid shader instance";
+
             return false;
         }
 
@@ -45,16 +67,19 @@ namespace Renderer {
 
             if (FAILED(Device->CreatePixelShader(Bytes.data(), Bytes.size(), nullptr, Pixel.GetAddressOf()))) {
                 Error = "Cannot create the pixel shader";
+
                 return false;
             }
 
             mPixelShader = std::move(Pixel);
             mRevision = mCode->GetRevision();
+
             return true;
         }
 
         if (!mCode->GetDescription().mTargetProfile.starts_with("vs_")) {
             Error = "Unsupported shader instance stage";
+
             return false;
         }
 
@@ -89,15 +114,20 @@ namespace Renderer {
 
         if (FAILED(Device->CreateVertexShader(Bytes.data(), Bytes.size(), nullptr, Vertex.GetAddressOf())) || FAILED(Device->CreateInputLayout(Elements.data(), static_cast<UINT>(Elements.size()), Bytes.data(), Bytes.size(), Layout.GetAddressOf()))) {
             Error = "Cannot create the vertex shader or input layout";
+
             return false;
         }
 
         mVertexShader = std::move(Vertex);
         mInputLayout = std::move(Layout);
         mRevision = mCode->GetRevision();
+
         return true;
     }
 
+    /**
+     * @brief GPU 셰이더와 필요한 정점 입력 레이아웃을 연결합니다.
+     */
     void Renderer::FShaderInstance::Bind(ID3D11DeviceContext* Context) const {
         if (mVertexShader != nullptr) {
             Context->VSSetShader(mVertexShader.Get(), nullptr, 0);

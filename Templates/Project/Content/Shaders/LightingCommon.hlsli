@@ -2,36 +2,7 @@
 #define MacawLightingCommonIncluded
 
 #include "MaterialCommon.hlsli"
-
-/**
- * @brief GPU 타일 조명 계산에 사용하는 광원 정보입니다.
- */
-struct FLight {
-    /**
-     * @brief 광원의 월드 위치 XYZ와 영향 반경 W입니다.
-     */
-    float4 mPositionAndRadius;
-
-    /**
-     * @brief 광원 방향 XYZ와 종류 번호 W입니다.
-     */
-    float4 mDirectionAndType;
-
-    /**
-     * @brief 광원의 RGB 색상과 밝기 배율 W입니다.
-     */
-    float4 mColorAndIntensity;
-
-    /**
-     * @brief 감쇠 지수와 내부·외부 반각의 코사인, 예약값입니다.
-     */
-    float4 mFalloffAndCones;
-
-    /**
-     * @brief 그림자 맵의 1 기반 시작 인덱스·개수와 예약값이며 시작값 0은 그림자 없음입니다.
-     */
-    float4 mShadowInfo;
-};
+#include "LightData.hlsli"
 
 /**
  * @brief 분리하여 누적하는 RGB 확산·정반사 조명 결과입니다.
@@ -59,7 +30,7 @@ cbuffer LightingConstants : register(b3) {
     float4 CameraAndLightCount;
 
     /**
-     * @brief 타일 열·행 개수, 한 변의 픽셀 수와 예약값입니다.
+     * @brief 타일 열·행 개수, 한 변의 픽셀 수와 광원 개수이며 마지막 값의 최상위 비트는 전체 광원 순회 여부입니다.
      */
     uint4 TileDimensions;
 };
@@ -102,13 +73,13 @@ float3 MappedNormal(float3 Normal, float4 Tangent, float3 Sampled) {
  * @param[in] Normal 월드 공간 표면 법선입니다.
  * @return 그림자 가시성을 곱하기 전의 RGB 조명 성분입니다.
  */
-FLighting EvaluateLight(FLight Light, float3 Position, float3 Normal) {
+FLighting EvaluateLight(FLight Light, float3 Position, float3 Normal, float3 AmbientTint, float2 SpecularParameters) {
     FLighting Result = {(FLighting)0};
     float3 Radiance = {Light.mColorAndIntensity.rgb * Light.mColorAndIntensity.w};
     uint Type = {(uint)Light.mDirectionAndType.w};
 
     if (Type == 0) {
-        Result.mDiffuse = Radiance * AmbientColor.rgb;
+        Result.mDiffuse = Radiance * AmbientTint;
         Result.mAmbient = Radiance;
         return Result;
     }
@@ -144,11 +115,15 @@ FLighting EvaluateLight(FLight Light, float3 Position, float3 Normal) {
 #if defined(LIGHTING_MODEL_PHONG) || defined(LIGHTING_MODEL_GOURAUD)
     float3 V = {SafeNormal(CameraAndLightCount.xyz - Position)};
     float3 H = {SafeNormal(L + V)};
-    float Specular = {Diffuse > 0.0f ? pow(saturate(dot(Normal, H)), SurfaceParameters.y) * SurfaceParameters.x : 0.0f};
+    float Specular = {Diffuse > 0.0f && SpecularParameters.x > 0.0f ? pow(saturate(dot(Normal, H)), SpecularParameters.y) * SpecularParameters.x : 0.0f};
     Result.mSpecular = Radiance * (Attenuation * Specular);
 #endif
 
     return Result;
+}
+
+FLighting EvaluateLight(FLight Light, float3 Position, float3 Normal) {
+    return EvaluateLight(Light, Position, Normal, AmbientColor.rgb, SurfaceParameters.xy);
 }
 
 #endif

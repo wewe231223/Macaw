@@ -59,18 +59,27 @@ namespace Editor {
          */
         std::filesystem::path RecentProjectsFile() {
             const std::filesystem::path Directory{KnownFolder(FOLDERID_LocalAppData)};
+
             return Directory.empty() ? std::filesystem::path{} : Directory / "Macaw/RecentProjects.txt";
         }
     }
 
+    /**
+     * @brief 전달된 설정과 기본값으로 FProjectBrowser 객체를 생성합니다.
+     */
     Editor::FProjectBrowser::FProjectBrowser() {
         const Core::FString Location{Core::FilePath::ToUtf8(KnownFolder(FOLDERID_Documents) / "Macaw Projects")};
+
         std::copy_n(Location.data(), std::min(Location.size(), mLocation.size() - 1), mLocation.data());
 
         const Core::FString Name{"NewProject"};
+
         std::copy(Name.begin(), Name.end(), mProjectName.begin());
     }
 
+    /**
+     * @brief 프로젝트 선택 화면의 이벤트·그리기 루프를 실행합니다.
+     */
     bool Editor::FProjectBrowser::Show(Platform::FWindowsApplication& Platform, Renderer::FRenderer& Renderer, std::filesystem::path& ProjectFile, bool& Create, const Core::FString& Error) {
         mCreatePage = Create;
         mSubmitted = false;
@@ -120,6 +129,7 @@ namespace Editor {
         Style.Colors[ImGuiCol_Button] = ImVec4{0.11f, 0.31f, 0.48f, 1.0f};
         Style.Colors[ImGuiCol_ButtonHovered] = ImVec4{0.15f, 0.43f, 0.63f, 1.0f};
         Style.Colors[ImGuiCol_ButtonActive] = ImVec4{0.10f, 0.36f, 0.55f, 1.0f};
+
         mUIScale.Initialize(18.0f);
         mUIScale.Update(Platform);
 
@@ -134,6 +144,7 @@ namespace Editor {
             while (!mSubmitted && Platform.PumpMessages()) {
                 if (Platform.IsMinimized()) {
                     MsgWaitForMultipleObjects(0, nullptr, false, 16, QS_ALLINPUT);
+
                     continue;
                 }
 
@@ -175,9 +186,13 @@ namespace Editor {
         return mSubmitted;
     }
 
+    /**
+     * @brief 프로젝트 열기·생성 페이지와 오류 상태를 표시합니다.
+     */
     void Editor::FProjectBrowser::Draw(Platform::FWindowsApplication& Platform, const Core::FString& Error) {
         const float Scale{mUIScale.GetScale()};
         const ImGuiViewport* Viewport{ImGui::GetMainViewport()};
+
         ImGui::SetNextWindowPos(Viewport->WorkPos);
         ImGui::SetNextWindowSize(Viewport->WorkSize);
         ImGui::Begin("Project Browser", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings);
@@ -200,6 +215,7 @@ namespace Editor {
         ImGui::Separator();
 
         const float Width{std::min(960.0f * Scale, ImGui::GetContentRegionAvail().x)};
+
         ImGui::SetCursorPosX(ImGui::GetCursorPosX() + (ImGui::GetContentRegionAvail().x - Width) * 0.5f);
         ImGui::BeginChild("Project Content", ImVec2{Width, 0.0f});
 
@@ -219,6 +235,9 @@ namespace Editor {
         ImGui::End();
     }
 
+    /**
+     * @brief 기존 프로젝트 열기 UI를 표시합니다.
+     */
     void Editor::FProjectBrowser::DrawOpenProject(Platform::FWindowsApplication& Platform) {
         const float Scale{mUIScale.GetScale()};
 
@@ -264,6 +283,9 @@ namespace Editor {
         ImGui::EndDisabled();
     }
 
+    /**
+     * @brief 프로젝트 이름과 폴더를 지정하는 생성 UI를 표시합니다.
+     */
     void Editor::FProjectBrowser::DrawNewProject(Platform::FWindowsApplication& Platform) {
         const float Scale{mUIScale.GetScale()};
 
@@ -314,11 +336,18 @@ namespace Editor {
         ImGui::EndDisabled();
     }
 
+    /**
+     * @brief 입력 이름과 폴더로 구성한 프로젝트 파일 경로를 반환합니다.
+     */
     std::filesystem::path Editor::FProjectBrowser::GetNewProjectFile() const {
         const std::filesystem::path Name{Core::FilePath::FromUtf8(mProjectName.data())};
+
         return Core::FilePath::FromUtf8(mLocation.data()) / Name / (Name.wstring() + L".mproject");
     }
 
+    /**
+     * @brief 프로젝트 이름이 파일 이름으로 사용 가능한지 검사합니다.
+     */
     bool Editor::FProjectBrowser::IsProjectNameValid() const {
         const Core::FString Name{mProjectName.data()};
 
@@ -335,6 +364,9 @@ namespace Editor {
         return true;
     }
 
+    /**
+     * @brief 최근 프로젝트 목록을 디스크에서 읽습니다.
+     */
     void Editor::FProjectBrowser::LoadRecentProjects() {
         mRecentProjects.clear();
 
@@ -351,6 +383,9 @@ namespace Editor {
         }
     }
 
+    /**
+     * @brief 최근 사용한 프로젝트 목록에 경로를 기록합니다.
+     */
     void Editor::FProjectBrowser::RememberProject(const std::filesystem::path& ProjectFile) {
         Editor::FProjectBrowser Browser{};
         Browser.LoadRecentProjects();

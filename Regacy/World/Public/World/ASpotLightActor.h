@@ -8,6 +8,7 @@ public:
 
 public:
     ASpotLightActor();
+
     ~ASpotLightActor() override = default;
 
 public:

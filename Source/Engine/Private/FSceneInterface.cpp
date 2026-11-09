@@ -13,16 +13,34 @@ namespace Engine {
      */
     Engine::FSceneInterface::~FSceneInterface() = default;
 
+    /**
+     * @brief 광원 프록시의 GUID로 렌더 장면에 광원을 추가하거나 교체합니다.
+     */
     void Engine::FSceneInterface::AddLight(const Engine::FLightSceneProxy&) {
     }
 
+    /**
+     * @brief 지정한 GUID의 광원을 렌더 장면에서 제거합니다.
+     */
     void Engine::FSceneInterface::RemoveLight(const Core::FGuid&) {
     }
 
+    /**
+     * @brief 컴포넌트 GUID를 키로 높이 안개 프록시를 렌더 장면에 추가하거나 교체합니다.
+     */
     void Engine::FSceneInterface::AddHeightFog(const Engine::FHeightFogSceneProxy&) {
     }
 
+    /**
+     * @brief 지정한 GUID의 높이 안개 프록시를 렌더 장면에서 제거합니다.
+     */
     void Engine::FSceneInterface::RemoveHeightFog(const Core::FGuid&) {
+    }
+
+    void Engine::FSceneInterface::AddDecal(const Engine::FDecalSceneProxy&) {
+    }
+
+    void Engine::FSceneInterface::RemoveDecal(const Core::FGuid&) {
     }
 
 }

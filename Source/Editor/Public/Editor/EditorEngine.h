@@ -11,6 +11,7 @@
 #include "Editor/FEditorContext.h"
 #include "Editor/FEditorViewport.h"
 #include "Editor/FPlayInEditorSession.h"
+#include "EditorEngine.generated.h"
 
 namespace Platform {
     class FWindowsApplication;
@@ -28,12 +29,9 @@ namespace Editor {
      * @brief 엔진의 월드 실행과 UI 독립 편집 컨텍스트, 뷰포트 및 UI 호스트의 수명을 조합합니다.
      * @ingroup Editor
      */
+    UCLASS(NoFactory)
     class UEditorEngine final : public Engine::UEngine {
-    public:
-        /**
-         * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
-         */
-        ReflectTypes(UEditorEngine, Engine::UEngine);
+        GENERATED_BODY()
 
     public:
         /**
@@ -47,17 +45,6 @@ namespace Editor {
         ~UEditorEngine() override;
 
     public:
-        /**
-         * @brief 이 타입의 정적 클래스 메타데이터를 반환합니다.
-         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectClass(UEditorEngine, CoreUObject::EClassFlags::NoFactory);
-
-        /**
-         * @fn UClass* UEditorEngine::GetClass() const
-         * @brief 객체의 실제 클래스 메타데이터를 반환합니다.
-         * @return 실제 클래스 메타데이터의 비소유 주소입니다.
-         */
         /**
          * @brief UI 없이 엔진과 편집 월드 연결을 초기화합니다.
          * @return 초기화에 성공하면 true입니다.
@@ -128,34 +115,24 @@ namespace Editor {
 
     private:
         /**
-         * @brief 생성된 멤버 등록 함수의 접근 권한입니다.
-         */
-        ReflectMembers();
-
-    private:
-        /**
          * @brief 명시적인 편집 월드, 선택과 공통 편집 경로입니다.
          */
         Editor::FEditorContext mContext;
-        ReflectProperty(mContext, "Context", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 카메라와 기즈모 상태를 가진 클라이언트 및 컬러 타깃을 소유한 독립 뷰포트입니다.
          */
         Editor::FEditorViewport mViewport;
-        ReflectProperty(mViewport, "Viewport", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 에디터 엔진이 소유한 PIE 실행 세션입니다.
          */
         Editor::FPlayInEditorSession mPlaySession;
-        ReflectProperty(mPlaySession, "PlaySession", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 편집 모델을 표시하는 UI 호스트입니다.
          */
         std::unique_ptr<Editor::FEditorUI> mUI{};
-        ReflectProperty(mUI, "UI", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
 }

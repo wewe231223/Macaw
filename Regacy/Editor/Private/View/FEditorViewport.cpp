@@ -90,6 +90,7 @@ FEditorViewport::FEditorViewport(FViewportId InViewportId, ID3D11Device* InDevic
         const EOrthographicView InitialViews[]{EOrthographicView::Front, EOrthographicView::Top, EOrthographicView::Front, EOrthographicView::Right};
 
         mOrthographicView = InitialViews[std::min<std::size_t>(mViewportId, std::size(InitialViews) - 1)];
+
         ApplyOrthographicView();
     }
 
@@ -147,6 +148,7 @@ bool FEditorViewport::Draw(const FRect& Rect, const ImVec2& MainViewportPosition
             mRenderTop = ImagePosition.y - MainViewportPosition.y;
             mDisplayRect = {{static_cast<Int32>(ImagePosition.x), static_cast<Int32>(ImagePosition.y)}, {static_cast<Int32>(ImagePosition.x + ImageSize.x), static_cast<Int32>(ImagePosition.y + ImageSize.y)}};
             mBVisible = true;
+
             ResizeRenderSurface();
 
             ImGui::InvisibleButton("##SceneSurface", ImageSize, ImGuiButtonFlags_MouseButtonLeft | ImGuiButtonFlags_MouseButtonRight | ImGuiButtonFlags_MouseButtonMiddle);
@@ -193,6 +195,7 @@ bool FEditorViewport::DrawMenuBar() {
     if (mMode == EMode::PIE) {
         ImGui::TextUnformatted("PIE | Click to control | Shift+F1: release | Esc: stop");
         ImGui::EndMenuBar();
+
         return false;
     }
 
@@ -209,6 +212,7 @@ bool FEditorViewport::DrawMenuBar() {
 
         if (ImGui::Selectable("Perspective", BPerspectiveSelected)) {
             SetProjectionType(EProjectionType::Perspective);
+
             BActivated = true;
         }
 
@@ -223,6 +227,7 @@ bool FEditorViewport::DrawMenuBar() {
 
             if (ImGui::Selectable(GetOrthographicViewName(View), BSelected)) {
                 SetOrthographicView(View);
+
                 BActivated = true;
             }
 
@@ -238,7 +243,9 @@ bool FEditorViewport::DrawMenuBar() {
 
     if (ImGui::BeginMenu("Post Processing")) {
         ImGui::Checkbox("FXAA", &mRenderSettings.mPostProcessing.mFXAA);
+
         BActivated = true;
+
         ImGui::EndMenu();
     }
 
@@ -313,6 +320,7 @@ bool FEditorViewport::TryCalculateDropPosition(const ImVec2& ScreenPosition, FVe
 
     if (World != nullptr && Camera.mView.TryInverse(CameraWorld) && World->GetPickingSubsystem().Raycast(FRay{RayOrigin.ToSimpleMath(), RayDirection.ToSimpleMath()}, FWorldRaycastQuery{}, Hit, EPickingTarget::Primitives, &CameraWorld)) {
         OutPosition = Hit.mPosition;
+
         return true;
     }
 
@@ -321,6 +329,7 @@ bool FEditorViewport::TryCalculateDropPosition(const ImVec2& ScreenPosition, FVe
 
         if (TargetDistance >= 0.0f) {
             OutPosition = RayOrigin + RayDirection * TargetDistance;
+
             return true;
         }
     }
@@ -330,6 +339,7 @@ bool FEditorViewport::TryCalculateDropPosition(const ImVec2& ScreenPosition, FVe
 
         if (GroundDistance >= 0.0f && GroundDistance <= mFarPlane) {
             OutPosition = RayOrigin + RayDirection * GroundDistance;
+
             return true;
         }
     }
@@ -381,6 +391,7 @@ void FEditorViewport::ProcessInput(EditorViewport& SharedEditorViewport, FKeyboa
     if (mMode == EMode::PIE || !mEditorContext->IsWorldEditingAllowed()) {
         KeyboardInput.ConsumeViewportNavigation(DeltaTime, true);
         MouseInput.Reset();
+
         return;
     }
 
@@ -397,6 +408,7 @@ void FEditorViewport::ProcessInput(EditorViewport& SharedEditorViewport, FKeyboa
     }
 
     const bool BBlockTools{BInputBlocked || !mBVisible || !mBFocused || !BHasCamera || ImGui::GetIO().WantTextInput || MouseInput.IsWorldDragActive(Right)};
+
     SharedEditorViewport.ProcessInput(KeyboardInput, MouseInput, BBlockMouse, BBlockTools);
 
     const FViewportMouseNavigationInput MouseNavigation{MouseInput.DispatchPendingViewportCommands(static_cast<Int32>(mRenderLeft), static_cast<Int32>(mRenderTop), mWidth, mHeight, Camera.mViewProjection, Camera.mView, BBlockMouse || mEditorContext->IsGizmoInteracting())};
@@ -594,6 +606,7 @@ void FEditorViewport::SetProjectionType(EProjectionType InProjectionType) {
         mPerspectiveCameraPosition = mCameraPosition;
         mPerspectiveCameraRotation = mCameraRotation;
         mProjectionType = EProjectionType::Orthographic;
+
         ApplyOrthographicView();
     }
 
@@ -608,7 +621,9 @@ void FEditorViewport::SetOrthographicView(EOrthographicView InView) {
 
     mProjectionType = EProjectionType::Orthographic;
     mOrthographicView = InView;
+
     ApplyOrthographicView();
+
     mRenderSettings.mBRenderSky = false;
 }
 
@@ -670,10 +685,12 @@ bool FEditorViewport::DrawGizmoToolbar() {
 
     const EGizmoMode Mode{mEditorContext->GetGizmoMode()};
     const bool Local{Mode == EGizmoMode::Scale || mEditorContext->GetGizmoCoordinateSpace() == EGizmoCoordinateSpace::Local};
+
     ImGui::BeginDisabled(Mode == EGizmoMode::Scale);
 
     if (ImGui::SmallButton(Local ? "Local" : "World")) {
         mEditorContext->SetGizmoCoordinateSpace(Local ? EGizmoCoordinateSpace::World : EGizmoCoordinateSpace::Local);
+
         Activated = true;
     }
 
@@ -683,6 +700,7 @@ bool FEditorViewport::DrawGizmoToolbar() {
 
     if (ImGui::SmallButton("Snap")) {
         ImGui::OpenPopup("GizmoSnapping");
+
         Activated = true;
     }
 
@@ -691,17 +709,24 @@ bool FEditorViewport::DrawGizmoToolbar() {
 
     if (ImGui::BeginPopup("GizmoSnapping")) {
         Changed = ImGui::Checkbox("Move", &Settings.mGridSnapEnabled) || Changed;
+
         ImGui::SameLine();
         ImGui::SetNextItemWidth(95.0f);
+
         Changed = ImGui::InputFloat("##MoveStep", &Settings.mGridSize, 0.0f, 0.0f, "%.3f") || Changed;
         Changed = ImGui::Checkbox("Rotate", &Settings.mRotationSnapEnabled) || Changed;
+
         ImGui::SameLine();
         ImGui::SetNextItemWidth(95.0f);
+
         Changed = ImGui::InputFloat("##RotationStep", &Settings.mRotationSnapDegrees, 0.0f, 0.0f, "%.1f deg") || Changed;
         Changed = ImGui::Checkbox("Scale", &Settings.mScaleSnapEnabled) || Changed;
+
         ImGui::SameLine();
         ImGui::SetNextItemWidth(95.0f);
+
         Changed = ImGui::InputFloat("##ScaleStep", &Settings.mScaleSnapStep, 0.0f, 0.0f, "%.3f") || Changed;
+
         ImGui::Separator();
         ImGui::TextDisabled("X: toggle current tool snap");
         ImGui::EndPopup();
@@ -711,21 +736,29 @@ bool FEditorViewport::DrawGizmoToolbar() {
 
     if (ImGui::SmallButton("Options")) {
         ImGui::OpenPopup("GizmoOptions");
+
         Activated = true;
     }
 
     if (ImGui::BeginPopup("GizmoOptions")) {
         Changed = ImGui::Checkbox("Surface snap (Z)", &Settings.mSurfaceSnapEnabled) || Changed;
+
         ImGui::BeginDisabled(!Settings.mSurfaceSnapEnabled);
+
         Changed = ImGui::Checkbox("Align to surface", &Settings.mSurfaceAlignRotation) || Changed;
+
         ImGui::SetNextItemWidth(110.0f);
+
         Changed = ImGui::DragFloat("Surface offset", &Settings.mSurfaceSnapOffset, 0.01f, -1000.0f, 1000.0f, "%.3f") || Changed;
+
         ImGui::EndDisabled();
         ImGui::SetNextItemWidth(110.0f);
+
         Changed = ImGui::SliderFloat("Gizmo size", &Settings.mGizmoSize, 0.5f, 2.0f, "%.1f") || Changed;
 
         if (ImGui::MenuItem("Reset temporary pivot", nullptr, false, mEditorContext->HasGizmoPivot())) {
             mEditorContext->ResetGizmoPivot();
+
             Activated = true;
         }
 

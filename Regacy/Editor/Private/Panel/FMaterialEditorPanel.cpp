@@ -33,6 +33,7 @@ void FMaterialEditorPanel::OpenMaterial(FAssetHandle MaterialHandle) {
 
     mMaterialHandle = MaterialHandle;
     mPreviewDirty = true;
+
     SetVisible(true);
 }
 
@@ -62,6 +63,7 @@ void FMaterialEditorPanel::DrawContents() {
 
     if (Material == nullptr) {
         ImGui::TextDisabled("Material unavailable.");
+
         return;
     }
 

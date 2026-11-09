@@ -1,97 +1,116 @@
 /**
  * @file UberLit.hlsli
- * @brief 타일 광원·노멀 맵·그림자를 조합하는 공통 메시 픽셀 셰이더입니다.
+ * @brief 재질을 평가해 G-buffer 또는 단일 컬러 출력으로 기록합니다.
  */
 
 #include "LightingCommon.hlsli"
 
-#if defined(MACAW_RECEIVE_SHADOWS) && !defined(LIGHTING_MODEL_GOURAUD) && !defined(MACAW_UNLIT) && !defined(WORLD_NORMAL)
-#include "ShadowSampling.hlsli"
+#if !defined(MACAW_GBUFFER)
+#include "PixelLighting.hlsli"
 #endif
 
-/**
- * @brief 행 우선 타일별 광원 인덱스 시작 위치와 개수입니다.
- */
-StructuredBuffer<uint2> TileRanges : register(t3);
+struct FSurfaceMaterial {
+    float4 mColor;
+    float3 mNormal;
+    float3 mSpecularTint;
+    float3 mEmissive;
+    float3 mReflectionTint;
+};
 
-/**
- * @brief 타일별로 연속 저장한 광원 배열의 인덱스입니다.
- */
-StructuredBuffer<uint> TileLightIndices : register(t4);
+FSurfaceMaterial ReadSurfaceMaterial(FPixelInput Input) {
+    FSurfaceMaterial Surface = {(FSurfaceMaterial)0};
+    Surface.mColor = BaseColor * Input.mColor * BaseColorTexture.Sample(MaterialSampler, Input.mUV);
+    Surface.mNormal = SafeNormal(Input.mNormal);
 
-/**
- * @brief 재질·노멀 맵과 선택한 조명 모드·타일 광원·그림자를 조합합니다.
- * @param[in] Input 현재 단계에 전달된 정점 또는 픽셀 입력입니다.
- * @return 출력 타깃에 기록할 RGBA 색상입니다.
- */
-float4 PixelMain(FPixelInput Input) : SV_TARGET {
-    float4 Surface = {BaseColor * Input.mColor * BaseColorTexture.Sample(MaterialSampler, Input.mUV)};
-    float3 Normal = {SafeNormal(Input.mNormal)};
-#ifdef HAS_NORMAL_MAP
-    Normal = MappedNormal(Normal, Input.mTangent, NormalMapTexture.Sample(MaterialSampler, Input.mUV).xyz);
+#if defined(HAS_NORMAL_MAP)
+    Surface.mNormal = MappedNormal(Surface.mNormal, Input.mTangent, NormalMapTexture.Sample(MaterialSampler, Input.mUV).xyz);
 #endif
-#if defined(WORLD_NORMAL)
-    return float4(Normal * 0.5f + 0.5f, 1.0f);
-#elif defined(MACAW_UNLIT)
-    return Surface;
-#else
-    FLighting Total = {(FLighting)0};
-    float3 SpecularTint = {SpecularColor.rgb};
-    float3 Emissive = {EmissiveColor.rgb};
+
+#if !defined(MACAW_UNLIT) && !defined(WORLD_NORMAL)
+    Surface.mSpecularTint = SpecularColor.rgb;
+    Surface.mEmissive = EmissiveColor.rgb;
 
     if (TextureFlags.x > 0.0f) {
-        SpecularTint *= SpecularTexture.Sample(MaterialSampler, Input.mUV).rgb;
+        Surface.mSpecularTint *= SpecularTexture.Sample(MaterialSampler, Input.mUV).rgb;
     }
 
     if (TextureFlags.y > 0.0f) {
-        Emissive *= EmissiveTexture.Sample(MaterialSampler, Input.mUV).rgb;
+        Surface.mEmissive *= EmissiveTexture.Sample(MaterialSampler, Input.mUV).rgb;
     }
-
-#if defined(LIGHTING_MODEL_GOURAUD)
-    Total.mDiffuse = Input.mDiffuse;
-    Total.mSpecular = Input.mSpecular;
-    Total.mAmbient = Input.mAmbient;
-#else
-#if defined(MACAW_RECEIVE_SHADOWS)
-    float3 PositionDx = {ddx(Input.mWorldPosition)};
-    float3 PositionDy = {ddy(Input.mWorldPosition)};
-#endif
-    uint2 Tile = {min((uint2)Input.mPosition.xy / TileDimensions.z, TileDimensions.xy - 1)};
-    uint2 Range = {TileRanges[Tile.y * TileDimensions.x + Tile.x]};
-    for (uint Offset = {0}; Offset < Range.y; ++Offset) {
-        FLight Light = {Lights[TileLightIndices[Range.x + Offset]]};
-        FLighting Lighting = {EvaluateLight(Light, Input.mWorldPosition, Normal)};
-#if defined(MACAW_RECEIVE_SHADOWS)
-        float Visibility = {ShadowVisibility(Light, Input.mWorldPosition, Normal, PositionDx, PositionDy)};
-#else
-        float Visibility = {1.0f};
-#endif
-        Total.mDiffuse += Lighting.mDiffuse * Visibility;
-        Total.mSpecular += Lighting.mSpecular * Visibility;
-        Total.mAmbient += Lighting.mAmbient;
-    }
-#endif
-
-    float3 Reflection = {float3(0.0f, 0.0f, 0.0f)};
 
 #if defined(LIGHTING_MODEL_PHONG) || defined(LIGHTING_MODEL_GOURAUD)
-    float3 Environment = {Total.mAmbient};
+    Surface.mReflectionTint = ReflectionColor.rgb * SurfaceParameters.w;
 
     if (TextureFlags.z > 0.0f) {
-        float3 V = {SafeNormal(CameraAndLightCount.xyz - Input.mWorldPosition)};
-        float3 R = {reflect(-V, Normal)};
-        float2 ReflectionUV = {float2(atan2(R.y, R.x) * 0.159154943f + 0.5f, acos(clamp(R.z, -1.0f, 1.0f)) * 0.318309886f)};
+        const float3 ViewDirection = {SafeNormal(CameraAndLightCount.xyz - Input.mWorldPosition)};
+        const float3 Reflected = {reflect(-ViewDirection, Surface.mNormal)};
+        float2 ReflectionUV = {float2(atan2(Reflected.y, Reflected.x) * 0.159154943f + 0.5f, acos(clamp(Reflected.z, -1.0f, 1.0f)) * 0.318309886f)};
         uint2 ReflectionSize = {uint2(0, 0)};
         ReflectionTexture.GetDimensions(ReflectionSize.x, ReflectionSize.y);
 
-        float PoleMargin = {0.5f / max((float)ReflectionSize.y, 1.0f)};
+        const float PoleMargin = {0.5f / max((float)ReflectionSize.y, 1.0f)};
         ReflectionUV.y = clamp(ReflectionUV.y, PoleMargin, 1.0f - PoleMargin);
-        Environment = ReflectionTexture.SampleLevel(MaterialSampler, ReflectionUV, 0).rgb;
+        Surface.mEmissive += ReflectionTexture.SampleLevel(MaterialSampler, ReflectionUV, 0).rgb * Surface.mReflectionTint;
+        Surface.mReflectionTint = 0.0f;
     }
-
-    Reflection = Environment * ReflectionColor.rgb * SurfaceParameters.w;
+#endif
 #endif
 
-    return float4(Surface.rgb * Total.mDiffuse + Total.mSpecular * SpecularTint + Emissive + Reflection, Surface.a);
+    return Surface;
+}
+
+#if defined(MACAW_GBUFFER)
+struct FGBufferOutput {
+    float4 mColor : SV_TARGET0;
+    float4 mNormal : SV_TARGET1;
+    float4 mSpecular : SV_TARGET2;
+    float4 mEmission : SV_TARGET3;
+    float4 mAmbient : SV_TARGET4;
+    float4 mReflection : SV_TARGET5;
+};
+
+FGBufferOutput PixelMain(FPixelInput Input) {
+    const FSurfaceMaterial Surface = {ReadSurfaceMaterial(Input)};
+    FGBufferOutput Output = {(FGBufferOutput)0};
+    Output.mColor = Surface.mColor;
+    Output.mNormal = float4(Surface.mNormal, SurfaceParameters.y);
+
+#if defined(MACAW_UNLIT)
+    Output.mNormal.w = -1.0f;
+#elif defined(LIGHTING_MODEL_GOURAUD)
+    Output.mAmbient.rgb = Input.mDiffuse;
+    Output.mEmission.rgb = Surface.mEmissive + Input.mSpecular * Surface.mSpecularTint + Input.mAmbient * Surface.mReflectionTint;
+#elif !defined(WORLD_NORMAL)
+    Output.mSpecular.rgb = Surface.mSpecularTint * SurfaceParameters.x;
+    Output.mEmission.rgb = Surface.mEmissive;
+    Output.mAmbient.rgb = AmbientColor.rgb;
+    Output.mReflection.rgb = Surface.mReflectionTint;
+
+#if defined(MACAW_RECEIVE_SHADOWS)
+    Output.mSpecular.w = 1.0f;
+#endif
+#endif
+
+    return Output;
+}
+#else
+float4 PixelMain(FPixelInput Input) : SV_TARGET {
+    const FSurfaceMaterial Surface = {ReadSurfaceMaterial(Input)};
+
+#if defined(WORLD_NORMAL)
+    return float4(Surface.mNormal * 0.5f + 0.5f, 1.0f);
+#elif defined(MACAW_UNLIT)
+    return Surface.mColor;
+#else
+#if defined(LIGHTING_MODEL_GOURAUD)
+    const FLighting Total = {Input.mDiffuse, Input.mSpecular, Input.mAmbient};
+#else
+    const FLighting Total = {AccumulatePixelLighting(Input.mPosition.xy, Input.mWorldPosition, Surface.mNormal, AmbientColor.rgb, SurfaceParameters.xy, true)};
+#endif
+
+    const float3 Color = {Surface.mColor.rgb * Total.mDiffuse + Total.mSpecular * Surface.mSpecularTint + Surface.mEmissive + Total.mAmbient * Surface.mReflectionTint};
+
+    return float4(Color, Surface.mColor.a);
 #endif
 }
+#endif

@@ -7,18 +7,16 @@
 #pragma once
 
 #include "Engine/Component/UBillboardComponent.h"
+#include "USpriteComponent.generated.h"
 
 namespace Engine {
 
     /**
      * @brief 카메라 방향과 독립적으로 로컬 YZ 평면에 표시하는 텍스처 스프라이트입니다.
      */
+    UCLASS()
     class USpriteComponent final : public Engine::UBillboardComponent {
-    public:
-        /**
-         * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
-         */
-        ReflectTypes(USpriteComponent, Engine::UBillboardComponent);
+        GENERATED_BODY()
 
     public:
         /**
@@ -31,18 +29,6 @@ namespace Engine {
          */
         ~USpriteComponent() override;
 
-    public:
-        /**
-         * @brief 이 타입의 정적 리플렉션 메타데이터를 반환합니다.
-         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectClass(USpriteComponent);
-
-    private:
-        /**
-         * @brief 생성된 멤버 등록 함수와 리플렉션 빌더의 접근 권한입니다.
-         */
-        ReflectMembers();
     };
 
 }

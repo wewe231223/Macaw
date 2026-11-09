@@ -5,6 +5,7 @@
  */
 
 #include "Editor/FGameExporter.h"
+#include "Editor/FScriptBuildService.h"
 #include "Core/FilePath.h"
 #include "Engine/FProject.h"
 #include "Engine/FWorldContext.h"
@@ -64,11 +65,12 @@ namespace Editor {
     /**
      * @brief 시작 장면을 검증한 뒤 게임 런타임과 프로젝트 파일을 내보낼 폴더에 복사합니다.
      */
-    bool Editor::FGameExporter::Export(const Engine::FProject& Project, const std::filesystem::path& RuntimeDirectory, const std::filesystem::path& Destination, Core::FString& Error) {
+    bool Editor::FGameExporter::Export(const Engine::FProject& Project, const std::filesystem::path& RuntimeDirectory, const std::filesystem::path& Destination, Editor::FScriptBuildService* Scripts, Core::FString& Error) {
         Error.clear();
 
         if (Project.GetAssets() == nullptr || Destination.empty()) {
             Error = "Open a project and choose an export folder";
+
             return false;
         }
 
@@ -78,6 +80,7 @@ namespace Editor {
 
             if (!std::filesystem::is_regular_file(Runtime / "MacawGame.exe")) {
                 Error = "The game executable is missing. Build Macaw before exporting.";
+
                 return false;
             }
 
@@ -90,7 +93,27 @@ namespace Editor {
 
             if (Scene->GetWorld()->GetActiveCamera() == nullptr) {
                 Error = "The startup scene requires an active world camera. Set one in the editor and save the scene.";
+
                 return false;
+            }
+
+            // 게임 런타임은 에디터 실행 파일 아래 GameRuntime 폴더에 있고, .NET 런타임과 Macaw.Engine은 에디터 옆에 배치됩니다.
+            const bool HasScripts{Scripts != nullptr && Scripts->HasProject()};
+            const auto EditorDirectory{Runtime.parent_path()};
+
+            if (HasScripts) {
+                if (!std::filesystem::is_regular_file(EditorDirectory / "Managed/Macaw.Engine.dll") || !std::filesystem::is_directory(EditorDirectory / "dotnet")) {
+                    Error = "The C# runtime is missing next to the editor. Build the Macaw.Engine project before exporting.";
+
+                    return false;
+                }
+
+                // 지운 스크립트나 패키지가 남지 않도록 이전 내보내기의 스크립트 출력을 비우고 다시 빌드합니다.
+                std::filesystem::remove_all(Output / "Scripts");
+
+                if (!Scripts->BuildForExport(Output / "Scripts/bin", Error)) {
+                    return false;
+                }
             }
 
             Core::TArray<std::filesystem::path> Libraries{};
@@ -113,9 +136,15 @@ namespace Editor {
                 CopyFile(Library, Output / Library.filename());
             }
 
+            if (HasScripts) {
+                CopyDirectory(EditorDirectory / "dotnet", Output / "dotnet");
+                CopyDirectory(EditorDirectory / "Managed", Output / "Managed");
+            }
+
             return true;
         } catch (const std::filesystem::filesystem_error& Exception) {
             Error = "Cannot export the game: " + Core::FString{Exception.what()};
+
             return false;
         }
     }

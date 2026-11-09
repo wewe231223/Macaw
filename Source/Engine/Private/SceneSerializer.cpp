@@ -18,10 +18,12 @@ namespace Engine {
      */
     bool Engine::FSceneSerializer::Save(const std::filesystem::path& Path, Engine::FWorldContext* Context, Core::FString& Error) {
         Serialization::FJsonArchive Archive{Core::EArchiveMode::Saving};
+
         Serialize(Archive, Context);
 
         if (Archive.HasError()) {
             Error = Archive.GetError();
+
             return false;
         }
 
@@ -51,6 +53,7 @@ namespace Engine {
         auto Context{std::make_unique<Engine::FWorldContext>(Type)};
         Context->GetWorld()->SetAssets(Assets);
         Serialize(Archive, Context.get());
+
         Error = Archive.GetError();
 
         return Archive.HasError() ? nullptr : std::move(Context);

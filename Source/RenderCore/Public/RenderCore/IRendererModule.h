@@ -7,6 +7,7 @@
 #pragma once
 
 #include "RenderCore/FShadowAtlasView.h"
+#include "RenderCore/FShadowSettings.h"
 
 #include "Core/ReflectionMacros.h"
 #include "RenderCore/FRenderStats.h"
@@ -19,6 +20,7 @@ namespace Engine {
     class FSceneInterface;
     class FRenderTarget;
     struct FSceneViewFamily;
+
     enum class EPrimitiveType : Core::Uint8;
 }
 
@@ -35,23 +37,11 @@ namespace RenderCore {
     class IRendererModule {
     public:
         /**
-         * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
-         */
-        ReflectTypes(IRendererModule);
-
-    public:
-        /**
          * @brief 객체의 수명을 끝내고 소유한 리소스를 정리합니다.
          */
         virtual ~IRendererModule();
 
     public:
-        /**
-         * @brief 이 타입의 정적 구조체 메타데이터를 반환합니다.
-         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectStruct(IRendererModule);
-
         /**
          * @brief Direct3D 11 장치, 스왑 체인과 렌더 파이프라인을 준비합니다.
          * @param[in] WindowHandle 렌더링할 네이티브 Win32 창 핸들입니다.
@@ -164,6 +154,18 @@ namespace RenderCore {
         virtual RenderCore::FShadowAtlasView GetShadowAtlasView() const;
 
         /**
+         * @brief 콘솔에서 조절하는 그림자 렌더링 옵션을 반환합니다.
+         * @return 현재 그림자 렌더링 옵션의 사본입니다.
+         */
+        virtual RenderCore::FShadowSettings GetShadowSettings() const;
+
+        /**
+         * @brief 콘솔에서 조절하는 그림자 렌더링 옵션을 변경합니다.
+         * @param[in] Settings 다음 뷰부터 적용할 그림자 렌더링 옵션입니다.
+         */
+        virtual void SetShadowSettings(const RenderCore::FShadowSettings& Settings);
+
+        /**
          * @brief 변경된 셰이더를 다시 컴파일하고 필요한 GPU 셰이더를 갱신합니다.
          * @return 요청한 처리를 완료하면 true, 실패하면 false입니다.
          */
@@ -177,12 +179,6 @@ namespace RenderCore {
          * @return 조건을 만족하면 true입니다.
          */
         virtual bool GetTextBounds(const Core::FString& Text, Core::FVector2& Minimum, Core::FVector2& Maximum) const;
-
-    private:
-        /**
-         * @brief 생성된 프로퍼티 등록 함수와 빌더 접근 권한입니다.
-         */
-        ReflectMembers();
     };
 
 }

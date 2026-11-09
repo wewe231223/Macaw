@@ -30,6 +30,7 @@ bool FMaterialBuffer::Initialize(ID3D11Device* Device, Uint32 MaxMaterialCount) 
 
     if (FAILED(Device->CreateShaderResourceView(mBuffer.Get(), &ViewDescription, mSrv.GetAddressOf()))) {
         Reset();
+
         return false;
     }
 
@@ -79,6 +80,7 @@ bool FMaterialBuffer::Synchronize(ID3D11DeviceContext* Context) {
         if (Position == mMaterials.end()) {
             if (mFreeIndices.empty()) {
                 Complete = false;
+
                 continue;
             }
 
@@ -87,6 +89,7 @@ bool FMaterialBuffer::Synchronize(ID3D11DeviceContext* Context) {
             Entry.mHandle = Handle;
 
             Entry.mIndex = mFreeIndices.back();
+
             mFreeIndices.pop_back();
 
             Position = mMaterials.emplace(Material->GetGuid(), std::move(Entry)).first;
@@ -111,6 +114,7 @@ bool FMaterialBuffer::Synchronize(ID3D11DeviceContext* Context) {
         Box.right = Box.left + MaterialGpuStride;
         Box.bottom = 1;
         Box.back = 1;
+
         Context->UpdateSubresource(mBuffer.Get(), 0, &Box, Slot.mData.data(), 0, 0);
 
         Entry.mStamp = Stamp;
@@ -149,6 +153,7 @@ ID3D11ShaderResourceView* FMaterialBuffer::GetSRV() const {
 
 void FMaterialBuffer::ReleaseMaterial(FMaterialEntry& Entry) {
     mFreeIndices.push_back(Entry.mIndex);
+
     ++mRevision;
 }
 
@@ -157,5 +162,6 @@ void FMaterialBuffer::Reset() {
     mFreeIndices.clear();
     mSrv.Reset();
     mBuffer.Reset();
+
     ++mRevision;
 }

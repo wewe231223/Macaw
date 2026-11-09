@@ -408,6 +408,7 @@ bool WriteMemberProperty(void* Container, const FPropertyValue& Value) {
 
     if constexpr (std::is_same_v<decltype(Setter), std::nullptr_t>) {
         Object.*Member = *Typed;
+
         return true;
     } else {
         return ApplyPropertySetter([&Object, Typed]() {
@@ -426,6 +427,7 @@ void SerializeMemberProperty(void* Container, FArchive& Archive, const FProperty
     if constexpr (requires { FValue::StaticStruct(); }) {
         if (Property.HasAnyFlags(EPropertyFlags::Inline)) {
             SerializeScriptStructProperties(FValue::StaticStruct(), &(Object.*Member), Archive, true);
+
             return;
         }
     }

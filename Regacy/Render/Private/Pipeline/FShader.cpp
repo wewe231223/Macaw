@@ -11,6 +11,7 @@ using Microsoft::WRL::ComPtr;
 bool FShader::Initialize(ID3D11Device* Device, const FShaderDescription& Description) {
     if (Device == nullptr) {
         ErrorHandler::Report("Shader::Initialize", "A valid Direct3D device is required to initialize a shader.", ErrorHandler::EErrorLevel::Error);
+
         return false;
     }
 
@@ -46,14 +47,17 @@ bool FShader::Initialize(ID3D11Device* Device, const FShaderDescription& Descrip
     switch (mStage) {
         case EShaderStage::Vertex:
             Result = Device->CreateVertexShader(ShaderBlob->GetBufferPointer(), ShaderBlob->GetBufferSize(), nullptr, mVertexShader.GetAddressOf());
+
             break;
 
         case EShaderStage::Pixel:
             Result = Device->CreatePixelShader(ShaderBlob->GetBufferPointer(), ShaderBlob->GetBufferSize(), nullptr, mPixelShader.GetAddressOf());
+
             break;
 
         case EShaderStage::Geometry:
             Result = Device->CreateGeometryShader(ShaderBlob->GetBufferPointer(), ShaderBlob->GetBufferSize(), nullptr, mGeometryShader.GetAddressOf());
+
             break;
 
         default:
@@ -65,6 +69,7 @@ bool FShader::Initialize(ID3D11Device* Device, const FShaderDescription& Descrip
     if (FAILED(Result)) {
         ErrorHandler::ReportHRESULT(Result, "Shader::Initialize", "Failed to create the Direct3D shader.", ErrorHandler::EErrorLevel::Error);
         FShader::Reset();
+
         return false;
     }
 

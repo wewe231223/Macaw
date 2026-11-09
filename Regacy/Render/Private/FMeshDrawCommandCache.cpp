@@ -59,6 +59,7 @@ bool operator<(const FMeshDrawCommandKey& Left, const FMeshDrawCommandKey& Right
 
 void FMeshDrawCommandCache::BeginUpdate() {
     ++mUpdateSerial;
+
     mCommands.clear();
 }
 

@@ -85,10 +85,11 @@ UEngine::SynchronizeWorld()가 갱신을 반영하고, 렌더러는 복사된 FP
 
 \section ApiReflection 리플렉션과 직렬화
 
-`Scripts/GenerateReflection.lua`는 `ReflectTypes`, `ReflectClass`, `ReflectStruct`, `ReflectProperty` 등의
-선언을 읽어 모듈별 등록 코드를 `Intermediate/<모듈>/Generated/`에 생성합니다.
-앱 등록 코드는 `Intermediate/Macaw/Generated/`에 생성합니다.
-생성은 Premake 프로젝트 생성 시와 모듈 prebuild 단계에서 실행합니다.
+`MacawHeaderTool`(`Source/Programs/MacawHeaderTool`)은 헤더의 `UCLASS`, `USTRUCT`, `UENUM`, `UPROPERTY`,
+`UFUNCTION`, `GENERATED_BODY` 표시를 읽어 헤더마다 `<헤더 이름>.generated.h`를, 모듈마다 등록 코드를
+`Intermediate/<모듈>/Generated/`에 생성합니다. 앱 등록 코드는 `Intermediate/Macaw/Generated/`에 생성합니다.
+리플렉션 타입이 있는 헤더는 첫 리플렉션 타입 앞의 마지막 `#include`로 자기 generated.h를 포함해야 합니다.
+생성은 각 모듈의 prebuild 단계에서 실행하므로 헤더를 고친 뒤 Premake를 다시 실행할 필요가 없습니다.
 
 UObject의 Serialize()는 클래스 메타데이터를 통해 프로퍼티를 직렬화합니다.
 `EPropertyFlags::Serialize`가 설정되고 `Transient`가 없는 프로퍼티가 저장 대상입니다.
@@ -232,6 +233,10 @@ Windows 창과 메시지 처리입니다.
 실행 진입점과 애플리케이션 수명입니다.
 \defgroup Game Game
 에디터 없이 프로젝트의 시작 장면을 실행하는 게임 런타임입니다.
+\defgroup Script Script
+CoreCLR 호스팅, C# 스크립트 수명과 네이티브 바인딩입니다.
+\defgroup HeaderTool HeaderTool
+리플렉션 헤더 분석과 C++·C# 바인딩 코드 생성입니다.
 */
 
 /**
@@ -281,7 +286,7 @@ Windows 창과 메시지 처리입니다.
 
 /**
  * @namespace Script
- * @brief Lua 실행 환경·프로퍼티 바인딩과 코루틴 스케줄러를 제공합니다.
+ * @brief .NET 런타임 호스팅과 C# 스크립트를 액터에 연결하는 컴포넌트를 제공합니다.
  */
 
 /**
@@ -302,18 +307,6 @@ Windows 창과 메시지 처리입니다.
  */
 
 /**
- * @file Source/Engine/Public/Engine/MaterialMigration.h
- * @brief 에셋 마이그레이션에 장면 참조 갱신을 연결합니다.
- * @ingroup Engine
- */
-
-/**
- * @file Source/Engine/Private/MaterialMigration.cpp
- * @brief 장면 JSON에서 이전 머티리얼 참조를 갱신합니다.
- * @ingroup Engine
- */
-
-/**
  * @namespace Asset
  * @brief 에셋 타입·파일·캐시와 외부 에셋 임포트를 제공합니다.
  */
@@ -321,58 +314,6 @@ Windows 창과 메시지 처리입니다.
 /**
  * @namespace Asset::AssetStats
  * @brief 에셋 로드·임포트와 캐시 적중 통계입니다.
- */
-
-/**
- * @namespace Engine::MaterialMigration
- * @brief 에셋 이전 과정에서 장면의 머티리얼 참조를 갱신합니다.
- */
-
-/**
- * @typedef Asset::FAssetManager::FMaterialReferenceMigrator
- * @brief 머티리얼 경로를 이전하고 치환 여부와 오류를 반환하는 작업입니다.
- */
-
-/**
- * @typedef Asset::FAssetManager::FAssetReferenceMigrator
- * @brief 상위 모듈이 에셋 페이로드의 머티리얼 참조를 갱신하는 함수입니다.
- */
-
-/**
- * @fn bool Asset::FAssetManager::MigrateMaterials(Asset::FAssetManager::FAssetReferenceMigrator MigrateReferences, Core::FString& Error)
- * @param[in] MigrateReferences 장면 등 상위 모듈이 소유한 페이로드의 참조 갱신 함수입니다.
- */
-
-/**
- * @fn bool Engine::MaterialMigration::Migrate(Asset::FAssetManager& Assets, Core::FString& Error)
- * @brief 메시·머티리얼 에셋과 장면의 이전 재질 참조를 함께 갱신합니다.
- * @param[in,out] Assets 프로젝트 콘텐츠의 에셋 관리자입니다.
- * @param[out] Error 실패 원인을 기록합니다.
- * @return 마이그레이션을 완료하거나 이전할 재질이 없으면 true입니다.
- */
-
-/**
- * @fn bool Engine::MaterialMigration::MigrateAssetReferences(Asset::EAssetType Type, Core::TArray<Core::Uint8>& Payload, const Asset::FAssetManager::FMaterialReferenceMigrator& MigrateReference, bool& Changed, Core::FString& Error)
- * @brief 장면 페이로드의 머티리얼 참조를 갱신하고 JSON을 다시 기록합니다.
- * @param[in] Type 페이로드가 저장된 에셋 종류입니다.
- * @param[in,out] Payload 검사하고 갱신할 장면 데이터입니다.
- * @param[in] MigrateReference 머티리얼 경로를 갱신하는 작업입니다.
- * @param[in,out] Changed 참조를 치환하면 true로 설정합니다.
- * @param[out] Error 실패 원인을 기록합니다.
- * @return 참조 검사와 갱신을 완료하면 true입니다.
- */
-
-/**
- * @fn bool Engine::MaterialMigration::MigrateSceneReferences(rapidjson::Value& Value, rapidjson::Document::AllocatorType& Allocator, const Asset::FAssetManager::FMaterialReferenceMigrator& MigrateReference, bool& Changed, Core::FString& Error, bool MaterialReference, Core::Uint32 Depth)
- * @brief 장면 JSON을 깊이 제한 안에서 순회하며 Material·SlotMaterials 참조를 치환합니다.
- * @param[in,out] Value 재귀 순회하며 갱신할 JSON 값입니다.
- * @param[in,out] Allocator 문자열 치환에 사용할 할당자입니다.
- * @param[in] MigrateReference 머티리얼 경로를 갱신하는 작업입니다.
- * @param[in,out] Changed 참조를 치환하면 true로 설정합니다.
- * @param[out] Error 실패 원인을 기록합니다.
- * @param[in] MaterialReference 현재 문자열이 머티리얼 경로인지 나타냅니다.
- * @param[in] Depth 현재 JSON 순회 깊이입니다.
- * @return 전체 순회를 완료하면 true입니다.
  */
 
 /**

@@ -22,12 +22,6 @@ namespace Renderer {
     class FMaterialPipeline {
     public:
         /**
-         * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
-         */
-        ReflectTypes(FMaterialPipeline);
-
-    public:
-        /**
          * @brief 전달된 설정과 기본값으로 FMaterialPipeline 객체를 생성합니다.
          * @param[in] Pass 입력 레이아웃·래스터 상태를 결정하는 메시 패스입니다.
          * @param[in] VertexShader 공유 정점 셰이더와 입력 레이아웃입니다.
@@ -36,7 +30,7 @@ namespace Renderer {
          * @param[in] Instanced 메시 인스턴스의 월드 행렬을 정점 입력으로 사용하려면 true입니다.
          * @param[in] Skinned 본 인덱스·가중치 입력을 사용하는 스키닝 파이프라인이면 true입니다.
          */
-        FMaterialPipeline(Renderer::EMeshPass Pass, std::shared_ptr<Renderer::FShaderInstance> VertexShader, std::shared_ptr<Renderer::FShaderInstance> PixelShader, bool TwoSided, bool Instanced = false, bool Skinned = false);
+        FMaterialPipeline(Renderer::EMeshPass Pass, std::shared_ptr<Renderer::FShaderInstance> VertexShader, std::shared_ptr<Renderer::FShaderInstance> PixelShader, bool TwoSided, bool Instanced = false, bool Skinned = false, bool WritesGBuffer = false);
 
         /**
          * @brief 기본 소멸자이며, GPU 자원은 ComPtr 멤버가 해제합니다.
@@ -44,12 +38,6 @@ namespace Renderer {
         ~FMaterialPipeline();
 
     public:
-        /**
-         * @brief 이 타입의 정적 리플렉션 메타데이터를 반환합니다.
-         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectStruct(FMaterialPipeline);
-
         /**
          * @brief GPU 파이프라인이 현재 셰이더 개정과 일치하는지 검사합니다.
          * @return 조건을 만족하면 true입니다.
@@ -73,6 +61,7 @@ namespace Renderer {
          * @return 스키닝 입력을 사용하면 true입니다.
          */
         bool IsSkinned() const;
+        bool WritesGBuffer() const;
 
         /**
          * @brief GPU 파이프라인을 만들 때 사용한 정점 셰이더의 리비전을 반환합니다.
@@ -92,56 +81,44 @@ namespace Renderer {
          * @brief 드로에 사용할 셰이더·입력 레이아웃·래스터 상태를 바인딩합니다.
          * @param[in] Context 파이프라인을 바인딩할 Direct3D 11 장치 컨텍스트입니다.
          */
-        void Bind(ID3D11DeviceContext* Context) const;
-
-    private:
-        /**
-         * @brief 생성된 멤버 등록 함수와 리플렉션 빌더의 접근 권한입니다.
-         */
-        ReflectMembers();
+        void Bind(ID3D11DeviceContext* Context, ID3D11RasterizerState* Rasterizer = nullptr) const;
 
     private:
         /**
          * @brief 입력 레이아웃·래스터 상태를 결정한 메시 패스입니다.
          */
         Renderer::EMeshPass mPass{};
-        ReflectProperty(mPass, "Pass", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 스킨 정점 입력과 객체별 본 팔레트를 사용하는지 나타냅니다.
          */
         bool mSkinned{};
-        ReflectProperty(mSkinned, "Skinned", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 메시 양면 렌더링 여부입니다.
          */
         bool mTwoSided{};
-        ReflectProperty(mTwoSided, "TwoSided", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 인스턴스 월드 행렬을 사용하는 메시 파이프라인인지 나타냅니다.
          */
         bool mInstanced{};
-        ReflectProperty(mInstanced, "Instanced", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+        bool mWritesGBuffer{};
 
         /**
          * @brief 메시용 정점 셰이더입니다.
          */
         std::shared_ptr<Renderer::FShaderInstance> mVertexShader{};
-        ReflectProperty(mVertexShader, "VertexShader", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 메시용 픽셀 셰이더입니다.
          */
         std::shared_ptr<Renderer::FShaderInstance> mPixelShader{};
-        ReflectProperty(mPixelShader, "PixelShader", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 면 채우기와 뒷면 제거를 제어하는 래스터라이저입니다.
          */
         Microsoft::WRL::ComPtr<ID3D11RasterizerState> mRasterizer{};
-        ReflectProperty(mRasterizer, "Rasterizer", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
 }

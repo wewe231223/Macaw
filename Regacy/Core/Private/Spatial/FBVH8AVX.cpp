@@ -37,6 +37,7 @@ namespace {
 
                     Near = _mm256_max_ps(Near, _mm256_mul_ps(_mm256_sub_ps(NearBound, Origin[Axis]), Inverse[Axis]));
                     Far = _mm256_min_ps(Far, _mm256_mul_ps(_mm256_sub_ps(FarBound, Origin[Axis]), Inverse[Axis]));
+
                     continue;
                 }
 
@@ -45,6 +46,7 @@ namespace {
                 if constexpr (HasParallel) {
                     if (Parallel[Axis]) {
                         Valid = _mm256_and_ps(Valid, _mm256_and_ps(_mm256_cmp_ps(Origin[Axis], Lower, _CMP_GE_OQ), _mm256_cmp_ps(Origin[Axis], Upper, _CMP_LE_OQ)));
+
                         continue;
                     }
                 }

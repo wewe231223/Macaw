@@ -26,6 +26,7 @@ public:
      * @pre 패널 사용 중에는 활성 엔진의 에셋 서비스가 존재해야 합니다.
      */
     FViewerPanel(HWND InputWindowHandle, FMessageChannel::FSender InEditorToWorldSender, FWorldEditorContext& InEditorContext, FAssetThumbnailRenderer* InThumbnailRenderer);
+
     ~FViewerPanel() override = default;
 
     FViewerPanel(const FViewerPanel&) = delete;

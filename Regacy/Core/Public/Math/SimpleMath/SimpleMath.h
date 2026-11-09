@@ -124,6 +124,7 @@ namespace DirectX {
             // Comparison operators
 #if (__cplusplus >= 202002L)
             bool operator==(const Rectangle&) const = default;
+
             auto operator<=>(const Rectangle&) const = default;
 #else
             bool operator==(const Rectangle& r) const noexcept {
@@ -708,6 +709,7 @@ namespace DirectX {
 
             // Comparison operators
             bool operator==(const Vector4& V) const noexcept;
+
             bool operator!=(const Vector4& V) const noexcept;
 
             // Assignment operators
@@ -877,11 +879,13 @@ namespace DirectX {
 
             // Comparison operators
             bool operator==(const Matrix& M) const noexcept;
+
             bool operator!=(const Matrix& M) const noexcept;
 
             // Assignment operators
             Matrix& operator=(const XMFLOAT3X3& M) noexcept;
             Matrix& operator=(const XMFLOAT4X3& M) noexcept;
+
             Matrix& operator+=(const Matrix& M) noexcept;
             Matrix& operator-=(const Matrix& M) noexcept;
             Matrix& operator*=(const Matrix& M) noexcept;
@@ -1044,6 +1048,7 @@ namespace DirectX {
         DIRECTX_TOOLKIT_API Matrix operator*(float S, const Matrix& M) noexcept;
         DIRECTX_TOOLKIT_API Matrix operator/(const Matrix& M, float S) noexcept;
         DIRECTX_TOOLKIT_API Matrix operator/(const Matrix& M1, const Matrix& M2) noexcept;
+
         // Element-wise divide
         DIRECTX_TOOLKIT_API Matrix operator/(float S, const Matrix& M) noexcept;
 
@@ -1105,6 +1110,7 @@ namespace DirectX {
 
             // Comparison operators
             bool operator==(const Plane& p) const noexcept;
+
             bool operator!=(const Plane& p) const noexcept;
 
             // Assignment operators
@@ -1150,6 +1156,7 @@ namespace DirectX {
 
             static void Transform(const Plane& plane, const Quaternion& rotation, Plane& result) noexcept;
             static Plane Transform(const Plane& plane, const Quaternion& rotation) noexcept;
+
             // Input quaternion must be the inverse transpose of the transformation
         };
 
@@ -1208,6 +1215,7 @@ namespace DirectX {
 
             // Comparison operators
             bool operator==(const Quaternion& q) const noexcept;
+
             bool operator!=(const Quaternion& q) const noexcept;
 
             // Assignment operators
@@ -1366,6 +1374,7 @@ namespace DirectX {
 
             // Comparison operators
             bool operator==(const Color& c) const noexcept;
+
             bool operator!=(const Color& c) const noexcept;
 
             // Assignment operators
@@ -1380,6 +1389,7 @@ namespace DirectX {
 
             Color& operator=(const DirectX::PackedVector::XMCOLOR& Packed) noexcept;
             Color& operator=(const DirectX::PackedVector::XMUBYTEN4& Packed) noexcept;
+
             Color& operator+=(const Color& c) noexcept;
             Color& operator-=(const Color& c) noexcept;
             Color& operator*=(const Color& c) noexcept;
@@ -1498,6 +1508,7 @@ namespace DirectX {
 
             // Comparison operators
             bool operator==(const Ray& r) const noexcept;
+
             bool operator!=(const Ray& r) const noexcept;
 
             // Ray operations
@@ -1600,9 +1611,11 @@ namespace DirectX {
             // Comparison operators
 #if (__cplusplus >= 202002L)
             bool operator==(const Viewport&) const = default;
+
             auto operator<=>(const Viewport&) const = default;
 #else
             bool operator==(const Viewport& vp) const noexcept;
+
             bool operator!=(const Viewport& vp) const noexcept;
 #endif
 

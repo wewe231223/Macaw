@@ -55,6 +55,7 @@ template <typename T>
 void SerializeNativeValue(FArchive& Archive, std::string_view Name, T& Value) {
     if constexpr (std::is_enum_v<T>) {
         Int64 Number{static_cast<Int64>(Value)};
+
         Archive.Serialize(Name, Number);
 
         if (Archive.IsLoading()) {
@@ -62,6 +63,7 @@ void SerializeNativeValue(FArchive& Archive, std::string_view Name, T& Value) {
         }
     } else if constexpr (std::is_same_v<T, std::filesystem::path>) {
         FString Path{Value.generic_string()};
+
         Archive.Serialize(Name, Path);
 
         if (Archive.IsLoading()) {
@@ -75,6 +77,7 @@ void SerializeNativeValue(FArchive& Archive, std::string_view Name, T& Value) {
         Archive.EndObjectScope();
     } else if constexpr (!std::is_same_v<T, FString> && requires { typename T::value_type; Value.resize(std::size_t{}); Value.size(); Value.begin(); }) {
         std::size_t Size{Value.size()};
+
         Archive.BeginArrayScope(Name, Size);
 
         if (Archive.IsLoading()) {
@@ -104,6 +107,7 @@ bool ApplyPropertySetter(TSetter&& Setter) {
         return Setter();
     } else {
         Setter();
+
         return true;
     }
 }

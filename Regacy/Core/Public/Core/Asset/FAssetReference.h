@@ -9,6 +9,7 @@ class IAssetResolver;
 class FAssetReference {
 public:
     FAssetReference() = default;
+
     FAssetReference(const FGuid& Guid, const FAssetPath& Path);
 
 public:

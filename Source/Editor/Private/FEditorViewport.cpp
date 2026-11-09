@@ -18,20 +18,20 @@
 namespace Editor {
 
     /**
-     * @brief UI와 독립적인 단축키 정의를 ImGui 입력으로 연결하는 보조 함수를 제공합니다.
+     * @brief 뷰포트 단축키 정의를 공용 입력 키로 연결합니다.
      */
     namespace {
         /**
-         * @brief 공통 명령에 정의된 단축키 문자를 ImGui 키 식별자로 변환합니다.
-         * @param[in] Shortcut 영문 대문자, 공백 또는 탭으로 표현한 단축키입니다.
-         * @return 대응하는 ImGui 키이며 지원하지 않는 문자나 0이면 ImGuiKey_None입니다.
+         * @brief 공통 명령에 정의된 단축키 문자를 입력 키 식별자로 변환합니다.
+         * @param[in] Shortcut 영문 대문자, 숫자, 공백 또는 탭으로 표현한 단축키입니다.
+         * @return 대응하는 입력 키이며 지원하지 않는 문자나 0이면 Core::EKey::None입니다.
          */
-        ImGuiKey ShortcutKey(char Shortcut) {
-            if (Shortcut >= 'A' && Shortcut <= 'Z') {
-                return static_cast<ImGuiKey>(ImGuiKey_A + Shortcut - 'A');
+        Core::EKey ShortcutKey(char Shortcut) {
+            if ((Shortcut >= 'A' && Shortcut <= 'Z') || (Shortcut >= '0' && Shortcut <= '9')) {
+                return static_cast<Core::EKey>(Shortcut);
             }
 
-            return Shortcut == ' ' ? ImGuiKey_Space : Shortcut == '\t' ? ImGuiKey_Tab : ImGuiKey_None;
+            return Shortcut == ' ' ? Core::EKey::Space : Shortcut == '\t' ? Core::EKey::Tab : Core::EKey::None;
         }
     }
 
@@ -62,6 +62,7 @@ namespace Editor {
 
         if (!mViewport->Resize(960, 640)) {
             mViewport.reset();
+
             return false;
         }
 
@@ -89,6 +90,9 @@ namespace Editor {
         }
     }
 
+    /**
+     * @brief 뷰포트 이미지 영역 위에 월드와 렌더링 통계를 표시합니다.
+     */
     void Editor::FEditorViewport::DrawStatistics(float DeltaTime, const Engine::UWorld* World, const RenderCore::FRenderStats& Render) {
         if (mImageSize.x < 1.0f || mImageSize.y < 1.0f || mDrawList == nullptr || !mStatistics.IsVisible()) {
             return;
@@ -97,6 +101,9 @@ namespace Editor {
         mStatistics.Draw(DeltaTime, World, Render, mImageOrigin, mImageSize, mDrawList);
     }
 
+    /**
+     * @brief 이 뷰포트가 소유한 통계 표시 객체의 주소를 반환합니다.
+     */
     Editor::FViewportStatistics* Editor::FEditorViewport::GetStatistics() {
         return &mStatistics;
     }
@@ -115,10 +122,16 @@ namespace Editor {
         return &mClient;
     }
 
+    /**
+     * @brief PIE 연결 상태에 따라 현재 사용할 뷰포트 클라이언트를 반환합니다.
+     */
     Engine::FViewportClient* Editor::FEditorViewport::GetActiveClient() {
         return mPlayClient != nullptr ? mPlayClient : &mClient;
     }
 
+    /**
+     * @brief PIE에 사용할 클라이언트를 연결하거나 해제하고 입력 캡처를 초기화합니다.
+     */
     void Editor::FEditorViewport::SetPlayClient(Engine::FViewportClient* Client) {
         mClient.GetGizmo().Cancel();
         mMouseCaptured = false;
@@ -130,6 +143,9 @@ namespace Editor {
         }
     }
 
+    /**
+     * @brief PIE 뷰포트가 마우스와 키보드 입력을 캡처했는지 반환합니다.
+     */
     bool Editor::FEditorViewport::IsPlayInputCaptured() const {
         return mPlayInputCaptured;
     }
@@ -152,9 +168,9 @@ namespace Editor {
      * @brief 장면 타깃을 표시하고 뷰포트 입력 및 크기 변경을 전달합니다.
      * @note 이미지가 표시되지 않을 때에도 진행 중인 드래그의 종료 입력을 전달합니다.
      */
-    void Editor::FEditorViewport::DrawUI(float DeltaTime) {
+    void Editor::FEditorViewport::DrawUI(const Core::FInput& Input, float DeltaTime) {
         if (ImGui::Begin(mName.c_str(), nullptr, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoNavInputs)) {
-            DrawContents(DeltaTime);
+            DrawContents(Input, DeltaTime);
         } else {
             ReleaseInput();
         }
@@ -162,10 +178,16 @@ namespace Editor {
         ImGui::End();
     }
 
+    /**
+     * @brief 뷰포트가 마우스 입력을 캡처 중인지 검사합니다.
+     */
     bool Editor::FEditorViewport::IsMouseCaptured() const {
         return mMouseCaptured;
     }
 
+    /**
+     * @brief 기즈모 조작과 마우스·PIE 입력 캡처를 해제합니다.
+     */
     void Editor::FEditorViewport::ReleaseInput() {
         mClient.GetGizmo().Cancel();
         mMouseCaptured = false;
@@ -174,7 +196,12 @@ namespace Editor {
         mDrawList = nullptr;
     }
 
-    void Editor::FEditorViewport::DrawContents(float DeltaTime, bool AllowInput) {
+    /**
+     * @brief 뷰포트 타깃 이미지·툴바를 표시하고 입력과 리사이즈를 전달합니다.
+     */
+    void Editor::FEditorViewport::DrawContents(const Core::FInput& Input, float DeltaTime, bool AllowInput) {
+        using Core::EKey;
+
         mImageSize = {};
         mDrawList = nullptr;
 
@@ -197,24 +224,45 @@ namespace Editor {
 
             if (Available.x >= 1.0f && Available.y >= 1.0f && mViewport->Resize(static_cast<Core::Uint32>(Available.x), static_cast<Core::Uint32>(Available.y))) {
                 Engine::FRenderTarget* Target{mViewport->GetRenderTarget()};
+
                 ImGui::Image(ImTextureRef{static_cast<ImTextureID>(reinterpret_cast<std::uintptr_t>(Target->GetNativeTexture()))}, Available);
 
                 const ImVec2 Origin{ImGui::GetItemRectMin()};
+
                 mImageOrigin = {Origin.x, Origin.y};
                 mImageSize = {Available.x, Available.y};
                 mDrawList = ImGui::GetWindowDrawList();
 
-                const ImGuiIO& Input{ImGui::GetIO()};
+                const bool Hovered{AllowInput && ImGui::IsItemHovered()};
+                const bool LeftPressed{Input.WasPressed(EKey::MouseLeft)};
+                const bool Blocked{!AllowInput || !Input.IsFocused() || ImGui::IsPopupOpen(nullptr, ImGuiPopupFlags_AnyPopup)};
+
+                if (mPlayClient != nullptr) {
+                    if (Blocked || (Input.IsDown(EKey::Shift) && Input.WasPressed(EKey::F1))) {
+                        mPlayInputCaptured = false;
+                    } else if (Hovered && LeftPressed) {
+                        ImGui::SetWindowFocus();
+
+                        mPlayInputCaptured = true;
+                    } else if (Input.LostFocusThisFrame() || ImGui::GetIO().WantTextInput || !ImGui::IsWindowFocused()) {
+                        mPlayInputCaptured = false;
+                    }
+
+                    return;
+                }
+
+                const Core::FVector2 Mouse{Input.GetMousePosition()};
+                const Core::FVector2 Delta{Input.GetMouseDelta()};
                 Engine::FViewportInput State{};
                 const float ScaleX{Target->GetWidth() / Available.x};
                 const float ScaleY{Target->GetHeight() / Available.y};
 
-                State.mMouse = {(Input.MousePos.x - Origin.x) * ScaleX, (Input.MousePos.y - Origin.y) * ScaleY};
-                State.mDelta = {Input.MouseDelta.x * ScaleX, Input.MouseDelta.y * ScaleY};
+                State.mMouse = {(Mouse.x - Origin.x) * ScaleX, (Mouse.y - Origin.y) * ScaleY};
+                State.mDelta = {Delta.x * ScaleX, Delta.y * ScaleY};
 
-                State.mHovered = AllowInput && ImGui::IsItemHovered();
+                State.mHovered = Hovered;
 
-                if (State.mHovered && (ImGui::IsMouseClicked(ImGuiMouseButton_Left) || ImGui::IsMouseClicked(ImGuiMouseButton_Right) || ImGui::IsMouseClicked(ImGuiMouseButton_Middle))) {
+                if (Hovered && (LeftPressed || Input.WasPressed(EKey::MouseRight) || Input.WasPressed(EKey::MouseMiddle))) {
                     ImGui::SetWindowFocus();
 
                     if (!mMouseCaptured) {
@@ -224,24 +272,23 @@ namespace Editor {
                     mMouseCaptured = true;
                 }
 
-                State.mFocused = AllowInput && ImGui::IsWindowFocused() && !ImGui::IsPopupOpen(nullptr, ImGuiPopupFlags_AnyPopup);
+                State.mFocused = !Blocked && ImGui::IsWindowFocused();
 
-                State.mLeftPressed = ImGui::IsMouseClicked(ImGuiMouseButton_Left);
-                State.mLeftDown = ImGui::IsMouseDown(ImGuiMouseButton_Left);
-                State.mLeftReleased = ImGui::IsMouseReleased(ImGuiMouseButton_Left);
-                State.mRightDown = ImGui::IsMouseDown(ImGuiMouseButton_Right);
-                State.mMiddleDown = ImGui::IsMouseDown(ImGuiMouseButton_Middle);
-                State.mMiddlePressed = ImGui::IsMouseClicked(ImGuiMouseButton_Middle);
-                State.mMiddleReleased = ImGui::IsMouseReleased(ImGuiMouseButton_Middle);
-                State.mControl = Input.KeyCtrl;
+                State.mLeftPressed = LeftPressed;
+                State.mLeftDown = Input.IsDown(EKey::MouseLeft);
+                State.mLeftReleased = Input.WasReleased(EKey::MouseLeft);
+                State.mRightDown = Input.IsDown(EKey::MouseRight);
+                State.mMiddleDown = Input.IsDown(EKey::MouseMiddle);
+                State.mMiddlePressed = Input.WasPressed(EKey::MouseMiddle);
+                State.mMiddleReleased = Input.WasReleased(EKey::MouseMiddle);
+                State.mControl = Input.IsDown(EKey::Control);
 
-                State.mAlt = Input.KeyAlt;
-                State.mWheel = Input.MouseWheel;
-                State.mEscape = ImGui::IsKeyPressed(ImGuiKey_Escape);
+                State.mAlt = Input.IsDown(EKey::Alt);
+                State.mWheel = Input.GetMouseWheel();
 
                 bool AssetDrag{};
 
-                if (AllowInput && mPlayClient == nullptr && ImGui::BeginDragDropTarget()) {
+                if (AllowInput && ImGui::BeginDragDropTarget()) {
                     if (const ImGuiPayload* Payload{ImGui::AcceptDragDropPayload(Editor::EditorAssetDragDrop::MeshPayload, ImGuiDragDropFlags_AcceptBeforeDelivery)}) {
                         AssetDrag = true;
 
@@ -250,6 +297,7 @@ namespace Editor {
 
                             if (Data[Payload->DataSize - 1] == '\0') {
                                 const std::filesystem::path Path{Core::FilePath::FromUtf8(std::string_view{Data, static_cast<std::size_t>(Payload->DataSize - 1)})};
+
                                 mClient.DropMesh(Path, State.mMouse, mViewport->GetSize());
                             }
                         }
@@ -270,64 +318,55 @@ namespace Editor {
                     ImGui::EndDragDropTarget();
                 }
 
-                if (mPlayClient != nullptr) {
-                    if (Input.KeyShift && ImGui::IsKeyPressed(ImGuiKey_F1, false)) {
-                        mPlayInputCaptured = false;
-                    } else if (State.mHovered && State.mLeftPressed) {
-                        ImGui::SetWindowFocus();
-                        State.mFocused = true;
-                        mPlayInputCaptured = true;
-                        State.mDelta = {};
-                    } else if (!State.mFocused) {
-                        mPlayInputCaptured = false;
-                    }
+                const bool Keyboard{State.mFocused && !ImGui::GetIO().WantTextInput && !Input.IsDown(EKey::Control) && !Input.IsDown(EKey::Alt)};
 
-                    State.mFocused = State.mFocused && mPlayInputCaptured;
-                }
+                State.mDelete = Keyboard && Input.WasPressed(EKey::Delete);
+                State.mFocusSelection = Keyboard && Input.WasPressed(EKey::F);
 
-                const bool Keyboard{State.mFocused && !Input.WantTextInput && !Input.KeyCtrl && !Input.KeyAlt};
-                State.mDelete = Keyboard && ImGui::IsKeyPressed(ImGuiKey_Delete, false);
-                State.mFocusSelection = Keyboard && ImGui::IsKeyPressed(ImGuiKey_F, false);
-
-                State.mForward = Keyboard && ImGui::IsKeyDown(ImGuiKey_W);
-                State.mBackward = Keyboard && ImGui::IsKeyDown(ImGuiKey_S);
-                State.mLeft = Keyboard && ImGui::IsKeyDown(ImGuiKey_A);
-                State.mRight = Keyboard && ImGui::IsKeyDown(ImGuiKey_D);
-                State.mUp = Keyboard && ImGui::IsKeyDown(ImGuiKey_E);
-                State.mDown = Keyboard && ImGui::IsKeyDown(ImGuiKey_Q);
-                State.mFast = Input.KeyShift;
+                State.mForward = Keyboard && Input.IsDown(EKey::W);
+                State.mBackward = Keyboard && Input.IsDown(EKey::S);
+                State.mLeft = Keyboard && Input.IsDown(EKey::A);
+                State.mRight = Keyboard && Input.IsDown(EKey::D);
+                State.mUp = Keyboard && Input.IsDown(EKey::E);
+                State.mDown = Keyboard && Input.IsDown(EKey::Q);
+                State.mFast = Input.IsDown(EKey::Shift);
 
                 for (const Editor::FViewportCommandInfo& Info : Editor::FViewportCommandInfo::GetCommands()) {
-                    if (mPlayClient == nullptr && Info.mInput != nullptr) {
-                        const ImGuiKey Key{ShortcutKey(Info.mShortcut)};
-                        State.*Info.mInput = Keyboard && Key != ImGuiKey_None && ImGui::IsKeyPressed(Key, false);
+                    if (Info.mInput != nullptr) {
+                        const EKey Key{ShortcutKey(Info.mShortcut)};
+
+                        State.*Info.mInput = Keyboard && Key != Core::EKey::None && Input.WasPressed(Key);
                     }
                 }
 
                 if (!AssetDrag && AllowInput) {
-                    if (!mMouseCaptured && mPlayClient == nullptr) {
+                    if (!mMouseCaptured) {
                         State.mLeftDown = false;
                         State.mRightDown = false;
                         State.mMiddleDown = false;
                         State.mDelta = {};
                     }
 
-                    mViewport->Input(State, DeltaTime);
+                    mClient.Input(mViewport.get(), State, DeltaTime);
                 }
 
                 Submitted = true;
             }
         }
 
-        if (!Submitted && mClient.GetGizmo().IsDragging() && ((mClient.GetGizmo().IsPivotDrag() ? !ImGui::IsMouseDown(ImGuiMouseButton_Middle) : !ImGui::IsMouseDown(ImGuiMouseButton_Left)) || ImGui::IsKeyPressed(ImGuiKey_Escape))) {
-            Engine::FViewportInput State{};
-            State.mLeftDown = ImGui::IsMouseDown(ImGuiMouseButton_Left);
-            State.mMiddleDown = ImGui::IsMouseDown(ImGuiMouseButton_Middle);
-            State.mEscape = ImGui::IsKeyPressed(ImGuiKey_Escape);
-            mViewport->Input(State, DeltaTime);
+        if (!Submitted) {
+            mPlayInputCaptured = false;
         }
 
-        if (!ImGui::IsMouseDown(ImGuiMouseButton_Left) && !ImGui::IsMouseDown(ImGuiMouseButton_Right) && !ImGui::IsMouseDown(ImGuiMouseButton_Middle)) {
+        if (!Submitted && mClient.GetGizmo().IsDragging() && (mClient.GetGizmo().IsPivotDrag() ? !Input.IsDown(EKey::MouseMiddle) : !Input.IsDown(EKey::MouseLeft))) {
+            Engine::FViewportInput State{};
+            State.mLeftDown = Input.IsDown(EKey::MouseLeft);
+            State.mMiddleDown = Input.IsDown(EKey::MouseMiddle);
+
+            mClient.Input(mViewport.get(), State, DeltaTime);
+        }
+
+        if (!Input.IsDown(EKey::MouseLeft) && !Input.IsDown(EKey::MouseRight) && !Input.IsDown(EKey::MouseMiddle)) {
             mMouseCaptured = false;
         }
     }

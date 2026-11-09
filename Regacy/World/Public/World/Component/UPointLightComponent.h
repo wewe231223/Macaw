@@ -8,6 +8,7 @@ public:
 
 public:
     UPointLightComponent();
+
     ~UPointLightComponent() override = default;
 
 public:

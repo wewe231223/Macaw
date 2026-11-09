@@ -9,6 +9,7 @@
 #include "Core/ReflectionMacros.h"
 #include "Engine/Component/USceneComponent.h"
 #include "Core/Math/FVector2.h"
+#include "UPrimitiveComponent.generated.h"
 
 namespace Asset {
     struct FMeshData;
@@ -28,12 +29,9 @@ namespace Engine {
      * @brief 장면 프록시 생성과 지연된 렌더 상태 및 변환 갱신을 제공하는 기반 클래스입니다.
      * @ingroup Engine
      */
+    UCLASS(Abstract)
     class UPrimitiveComponent : public Engine::USceneComponent {
-    public:
-        /**
-         * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
-         */
-        ReflectTypes(UPrimitiveComponent, Engine::USceneComponent);
+        GENERATED_BODY()
 
     public:
         /**
@@ -48,18 +46,6 @@ namespace Engine {
 
     public:
         /**
-         * @brief 이 타입의 정적 클래스 메타데이터를 반환합니다.
-         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectClass(UPrimitiveComponent, CoreUObject::EClassFlags::Abstract);
-
-        /**
-         * @fn UClass* UPrimitiveComponent::GetClass() const
-         * @brief 객체의 실제 클래스 메타데이터를 반환합니다.
-         * @return 실제 클래스 메타데이터의 비소유 주소입니다.
-         */
-
-        /**
          * @brief 컴포넌트를 월드에 연결하고 필요한 렌더 상태를 등록합니다.
          * @param[in,out] World 컴포넌트를 등록할 월드입니다.
          */
@@ -69,6 +55,11 @@ namespace Engine {
          * @brief 등록된 렌더 상태와 월드 연결을 해제합니다.
          */
         void UnregisterComponent() override;
+
+        /**
+         * @brief 소유 액터의 표시 여부 변경을 프록시 재생성으로 반영합니다.
+         */
+        void OnOwnerVisibilityChanged() override;
 
         /**
          * @brief 유한하고 유효한 변환을 검증하여 공간 컴포넌트에 적용합니다.
@@ -181,11 +172,8 @@ namespace Engine {
          */
         bool SetReceiveShadow(bool ReceiveShadow);
 
-    private:
-        /**
-         * @brief 생성된 프로퍼티 등록 함수와 빌더 접근 권한입니다.
-         */
-        ReflectMembers();
+        bool GetReceivesDecals() const;
+        void SetReceivesDecals(bool ReceivesDecals);
 
     private:
         /**
@@ -198,55 +186,51 @@ namespace Engine {
          * @brief 프록시 전체 재생성이 필요한지 여부입니다.
          */
         bool mRenderStateDirty{true};
-        ReflectProperty(mRenderStateDirty, "RenderStateDirty", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 프리미티브의 그림자 생성 여부입니다.
          */
+        UPROPERTY(Edit, Serialize, Getter = GetCastShadow, Setter = SetCastShadow)
         bool mCastShadow{true};
-        ReflectAccessor(mCastShadow, GetCastShadow, SetCastShadow, "CastShadow", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
 
         /**
          * @brief 프리미티브의 그림자 수신 여부입니다.
          */
+        UPROPERTY(Edit, Serialize, Getter = GetReceiveShadow, Setter = SetReceiveShadow)
         bool mReceiveShadow{true};
-        ReflectAccessor(mReceiveShadow, GetReceiveShadow, SetReceiveShadow, "ReceiveShadow", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
+
+        UPROPERTY(Edit, Serialize, Getter = GetReceivesDecals, Setter = SetReceivesDecals)
+        bool mReceivesDecals{true};
 
         /**
          * @brief 변환 업로드가 필요한지 여부입니다.
          */
         bool mRenderTransformDirty{};
-        ReflectProperty(mRenderTransformDirty, "RenderTransformDirty", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 월드 갱신 큐에 이미 등록되었는지 여부입니다.
          */
         bool mQueued{};
-        ReflectProperty(mQueued, "Queued", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 렌더 장면에 프록시가 생성되었는지 여부입니다.
          */
         bool mRenderStateCreated{};
-        ReflectProperty(mRenderStateCreated, "RenderStateCreated", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 기본 UV에 곱할 셀 크기입니다.
          */
         Core::FVector2 mUVScale{1.0f, 1.0f};
-        ReflectProperty(mUVScale, "UVScale", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 기본 UV에 더할 셀 원점입니다.
          */
         Core::FVector2 mUVOffset{};
-        ReflectProperty(mUVOffset, "UVOffset", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 현재 UV 변환을 제어하는 컴포넌트 핸들입니다.
          */
         CoreUObject::FObjectHandle mUVSource{};
-        ReflectProperty(mUVSource, "UVSource", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
 }

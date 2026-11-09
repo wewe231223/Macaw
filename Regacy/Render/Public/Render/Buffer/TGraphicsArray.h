@@ -103,6 +103,7 @@ bool TGraphicsArray<T, BAutoResize, BDynamic>::Initialize(ID3D11Device* Device, 
 
     if (!CreateSRV(Device, mBuffer.GetBuffer(), InCapacity, mSrv)) {
         Reset();
+
         return false;
     }
 
@@ -113,6 +114,7 @@ bool TGraphicsArray<T, BAutoResize, BDynamic>::Initialize(ID3D11Device* Device, 
 
         if (!BUploaded) {
             Reset();
+
             return false;
         }
 
@@ -126,6 +128,7 @@ template <typename T, bool BAutoResize, bool BDynamic>
 bool TGraphicsArray<T, BAutoResize, BDynamic>::UploadDiscard(ID3D11Device* Device, ID3D11DeviceContext* Context, std::span<const T> Values) requires(BDynamic) {
     if (Values.empty()) {
         mCount = 0;
+
         return true;
     }
 
@@ -150,6 +153,7 @@ bool TGraphicsArray<T, BAutoResize, BDynamic>::Upload(ID3D11Device* Device, ID3D
 
     if (Values.empty()) {
         mCount = 0;
+
         return true;
     }
 
@@ -320,6 +324,7 @@ bool TGraphicsArray<T, BAutoResize, BDynamic>::EnsureCapacity(ID3D11Device* Devi
     while (NewCapacity < RequiredCapacity) {
         if (NewCapacity > UINT32_MAX / 2) {
             NewCapacity = RequiredCapacity;
+
             break;
         }
 

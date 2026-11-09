@@ -142,7 +142,7 @@ FPixelInput BuildPixelInput(FMeshVertexInput Input) {
     Normal = MappedNormal(Normal, Output.mTangent, NormalMapTexture.SampleLevel(MaterialSampler, Output.mUV, 0).xyz);
 #endif
 
-    for (uint Index = {0}; Index < (uint)CameraAndLightCount.w; ++Index) {
+    for (uint Index = {0}; Index < (TileDimensions.w & 0x7fffffffu); ++Index) {
         FLighting Lighting = {EvaluateLight(Lights[Index], Output.mWorldPosition, Normal)};
         Output.mDiffuse += Lighting.mDiffuse;
         Output.mSpecular += Lighting.mSpecular;

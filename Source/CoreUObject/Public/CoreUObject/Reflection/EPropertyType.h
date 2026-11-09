@@ -84,6 +84,18 @@ namespace CoreUObject {
          */
         Enum,
         /**
+         * @brief GUID로 저장하는 UObject 약한 참조입니다.
+         */
+        ObjectReference,
+        /**
+         * @brief 원소 프로퍼티로 순회하는 TArray입니다.
+         */
+        Array,
+        /**
+         * @brief 원소 주소를 컨테이너로 순회하는 값 구조체 배열 원소입니다.
+         */
+        Struct,
+        /**
          * @brief 일반 variant 값으로 변환할 수 없는 네이티브 타입입니다.
          */
         Opaque

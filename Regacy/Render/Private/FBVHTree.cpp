@@ -13,6 +13,7 @@ bool FBVHNode::IsLeaf() const {
 void FBVHTree::Register(Uint32 ObjectIndex, const DirectX::BoundingBox& Bounds) {
     if (ObjectIndex < mRegisteredObjects.size() && mRegisteredObjects[ObjectIndex]) {
         UpdateBounds(ObjectIndex, Bounds);
+
         return;
     }
 
@@ -145,6 +146,7 @@ void FBVHTree::Refit(std::span<const Uint32> ChangedIndices) {
             FBVHNode& Node{mNodes[NodeIndex]};
 
             DirectX::BoundingBox::CreateMerged(Node.mBounds, mNodes[Node.mLeftChild].mBounds, mNodes[Node.mRightChild].mBounds);
+
             NodeIndex = Node.mParentIndex;
         }
     }
@@ -270,6 +272,7 @@ Int32 FBVHTree::BuildRecursive(std::span<const DirectX::BoundingBox> Bounds, std
 
     mNodes[NodeIndex].mLeftChild = Left;
     mNodes[NodeIndex].mRightChild = Right;
+
     DirectX::BoundingBox::CreateMerged(mNodes[NodeIndex].mBounds, mNodes[Left].mBounds, mNodes[Right].mBounds);
 
     return NodeIndex;

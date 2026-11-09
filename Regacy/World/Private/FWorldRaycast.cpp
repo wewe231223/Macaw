@@ -72,7 +72,9 @@ bool RaycastBox(const DirectX::BoundingOrientedBox& Box, const FRay& Ray, FWorld
     DirectX::XMFLOAT3 WorldNormal{};
 
     Normal[Axis] = Coordinates[Axis] < 0.0f ? -1.0f : 1.0f;
+
     DirectX::XMStoreFloat3(&WorldNormal, DirectX::XMVector3Rotate(DirectX::XMVectorSet(Normal[0], Normal[1], Normal[2], 0.0f), Rotation));
+
     OutHit.mDistance = Distance;
     OutHit.mPosition = Position;
     OutHit.mNormal = FVector3{WorldNormal};

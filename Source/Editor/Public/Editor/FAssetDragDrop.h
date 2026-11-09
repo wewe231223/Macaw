@@ -21,6 +21,9 @@ namespace Editor {
          * @brief 메시 에셋 경로를 전달하는 드래그 페이로드 식별자입니다.
          */
         inline constexpr char MeshPayload[]{"MACAW_MESH_ASSET"};
+        inline constexpr char SkeletonPayload[]{"MACAW_SKELETON_ASSET"};
+
+        inline constexpr char AnimSequencePayload[]{"MACAW_ANIM_SEQUENCE_ASSET"};
 
         /**
          * @brief 머티리얼 에셋 경로를 전달하는 드래그 페이로드 식별자입니다.

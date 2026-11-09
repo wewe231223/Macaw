@@ -26,6 +26,7 @@ void FArchiveMemory::SerializeBytes(void* Value, std::size_t Size) {
 
         if (Size > mWriteBytes->max_size() - CurrentSize) {
             SetError();
+
             return;
         }
 
@@ -34,10 +35,12 @@ void FArchiveMemory::SerializeBytes(void* Value, std::size_t Size) {
     } else if (IsLoading()) {
         if (Size > GetRemainingBytes()) {
             SetError();
+
             return;
         }
 
         std::memcpy(Value, mReadBytes->data() + mReadOffset, Size);
+
         mReadOffset += Size;
     }
 }
@@ -71,6 +74,7 @@ void FArchiveMemory::Serialize(std::string_view Name, bool& Value) {
     if (IsLoading() && !HasError()) {
         if (Byte > 1) {
             SetError();
+
             return;
         }
 
@@ -86,6 +90,7 @@ void FArchiveMemory::Serialize(std::string_view Name, FString& Value) {
     if (IsSaving()) {
         if (Value.size() > std::numeric_limits<Uint32>::max()) {
             SetError();
+
             return;
         }
 
@@ -100,6 +105,7 @@ void FArchiveMemory::Serialize(std::string_view Name, FString& Value) {
 
         if (HasError() || StringLength > GetRemainingBytes()) {
             SetError();
+
             return;
         }
 
@@ -117,6 +123,7 @@ void FArchiveMemory::EndObjectScope() {
 void FArchiveMemory::BeginArrayScope(std::string_view Name, std::size_t& ArraySize) {
     if (IsSaving() && ArraySize > std::numeric_limits<Uint32>::max()) {
         SetError();
+
         return;
     }
 
@@ -127,7 +134,9 @@ void FArchiveMemory::BeginArrayScope(std::string_view Name, std::size_t& ArraySi
     if (IsLoading()) {
         if (HasError() || Size > GetRemainingBytes()) {
             SetError();
+
             ArraySize = 0;
+
             return;
         }
 

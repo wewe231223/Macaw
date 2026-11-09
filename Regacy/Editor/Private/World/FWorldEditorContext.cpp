@@ -56,6 +56,7 @@ void FWorldEditorContext::OnWorldChanged(UWorld& World, EWorldChange Change, AAc
         mWorld = nullptr;
     } else if (Change == EWorldChange::ActorRemoving && IsActorSelected(Actor)) {
         TArray<AActor*> Remaining{GetSelectedActors()};
+
         std::erase(Remaining, Actor);
         SetSelectedActors(Remaining);
     }
@@ -135,13 +136,16 @@ void FWorldEditorContext::SetSelectedActor(AActor* Actor) {
 
     if (Actor == nullptr) {
         ClearSelection();
+
         return;
     }
 
     mSelectedActor.Set(Actor);
     mSelectedComponent.Set(Actor->GetRootComponent());
     mSelectedActors = {TObjectRef<AActor>{Actor}};
+
     ResetGizmoPivot();
+
     ++mSelectionRevision;
 }
 
@@ -152,13 +156,16 @@ void FWorldEditorContext::SetSelectedComponent(UActorComponent* Component) {
 
     if (Component == nullptr || Component->GetOwner() == nullptr) {
         ClearSelection();
+
         return;
     }
 
     mSelectedActor.Set(Component->GetOwner());
     mSelectedComponent.Set(Component);
     mSelectedActors = {TObjectRef<AActor>{Component->GetOwner()}};
+
     ResetGizmoPivot();
+
     ++mSelectionRevision;
 }
 
@@ -167,6 +174,7 @@ void FWorldEditorContext::ClearSelection() {
     mSelectedActor.Reset();
     mSelectedActors.clear();
     ResetGizmoPivot();
+
     ++mSelectionRevision;
 }
 
@@ -201,6 +209,7 @@ void FWorldEditorContext::SetSelectedActors(const TArray<AActor*>& Actors) {
     }
 
     ResetGizmoPivot();
+
     ++mSelectionRevision;
 }
 
@@ -580,6 +589,7 @@ void FWorldEditorContext::HandleSpawnComponent(const FMessageSpawnComponent& Mes
 
         if (Component == nullptr) {
             mWorld->DestroyActor(Actor);
+
             continue;
         }
 
@@ -596,6 +606,7 @@ void FWorldEditorContext::HandleSpawnComponent(const FMessageSpawnComponent& Mes
 
             if (LightProxy == nullptr || !LightProxy->AttachToComponent(Actor->GetRootComponent())) {
                 mWorld->DestroyActor(Actor);
+
                 continue;
             }
 

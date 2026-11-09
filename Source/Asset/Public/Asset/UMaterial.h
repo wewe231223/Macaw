@@ -8,9 +8,12 @@
 
 #include "CoreUObject/UObject.h"
 #include "Core/Math/FVector4.h"
+#include "RenderCore/TConstantBuffer.h"
 
 #include <d3d11.h>
+#include <array>
 #include <wrl/client.h>
+#include "UMaterial.generated.h"
 
 namespace Asset {
 
@@ -20,12 +23,9 @@ namespace Asset {
     /**
      * @brief 셰이더 경로·기본색·텍스처·양면 정책과 GPU 상수를 관리합니다.
      */
+    UCLASS()
     class UMaterial final : public CoreUObject::UObject {
-    public:
-        /**
-         * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
-         */
-        ReflectTypes(UMaterial, CoreUObject::UObject);
+        GENERATED_BODY()
 
     public:
         /**
@@ -39,12 +39,6 @@ namespace Asset {
         ~UMaterial() override;
 
     public:
-        /**
-         * @brief 이 타입의 정적 리플렉션 메타데이터를 반환합니다.
-         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectClass(UMaterial);
-
         /**
          * @brief Content 기준 머티리얼 셰이더 경로를 반환합니다.
          * @return 이 객체가 보관하는 값의 참조입니다.
@@ -183,149 +177,266 @@ namespace Asset {
         void ReleaseResources();
 
         /**
-         * @brief GPU 상수 버퍼를 반환합니다.
-         * @return GPU 자원의 비소유 주소이며, 아직 생성하지 않았으면 nullptr입니다.
+         * @brief GPU 상수 버퍼를 지정한 셰이더 단계에 연결합니다.
+         * @param[in] Context 바인딩할 장치 컨텍스트입니다.
+         * @param[in] Stages 연결할 셰이더 단계입니다.
+         * @param[in] Slot 상수 버퍼 슬롯(b 레지스터)입니다.
          */
-        ID3D11Buffer* GetConstantBuffer() const;
+        void BindConstants(ID3D11DeviceContext* Context, RenderCore::EShaderStage Stages, Core::Uint32 Slot) const;
 
+        /**
+         * @brief 정반사 색상 값을 반환합니다.
+         * @return 저장한 정반사 색상 값 또는 참조입니다.
+         */
         const Core::FVector4& GetSpecularColor() const;
+
+        /**
+         * @brief 정반사 색상 값을 검증해 적용하고 렌더 상태를 갱신합니다.
+         * @param[in] Color 적용하거나 변환할 색상입니다.
+         * @return 값이 유효해 반영되면 true, 유효하지 않으면 false입니다.
+         */
         bool SetSpecularColor(const Core::FVector4& Color);
 
+        /**
+         * @brief 주변광 색상 값을 반환합니다.
+         * @return 저장한 주변광 색상 값 또는 참조입니다.
+         */
         const Core::FVector4& GetAmbientColor() const;
+
+        /**
+         * @brief 주변광 색상 값을 검증해 적용하고 렌더 상태를 갱신합니다.
+         * @param[in] Color 적용하거나 변환할 색상입니다.
+         * @return 값이 유효해 반영되면 true, 유효하지 않으면 false입니다.
+         */
         bool SetAmbientColor(const Core::FVector4& Color);
 
+        /**
+         * @brief 자체 발광 색상 값을 반환합니다.
+         * @return 저장한 자체 발광 색상 값 또는 참조입니다.
+         */
         const Core::FVector4& GetEmissiveColor() const;
+
+        /**
+         * @brief 자체 발광 색상 값을 검증해 적용하고 렌더 상태를 갱신합니다.
+         * @param[in] Color 적용하거나 변환할 색상입니다.
+         * @return 값이 유효해 반영되면 true, 유효하지 않으면 false입니다.
+         */
         bool SetEmissiveColor(const Core::FVector4& Color);
 
+        /**
+         * @brief 환경 반사 색상 값을 반환합니다.
+         * @return 저장한 환경 반사 색상 값 또는 참조입니다.
+         */
         const Core::FVector4& GetReflectionColor() const;
+
+        /**
+         * @brief 환경 반사 색상 값을 검증해 적용하고 렌더 상태를 갱신합니다.
+         * @param[in] Color 적용하거나 변환할 색상입니다.
+         * @return 값이 유효해 반영되면 true, 유효하지 않으면 false입니다.
+         */
         bool SetReflectionColor(const Core::FVector4& Color);
 
+        /**
+         * @brief 환경 반사 세기 값을 반환합니다.
+         * @return 저장한 환경 반사 세기 값 또는 참조입니다.
+         */
         float GetReflectionStrength() const;
+
+        /**
+         * @brief 환경 반사 세기 값을 검증해 적용하고 렌더 상태를 갱신합니다.
+         * @param[in] Strength 새로 적용할 반사 세기입니다.
+         * @return 값이 유효해 반영되면 true, 유효하지 않으면 false입니다.
+         */
         bool SetReflectionStrength(float Strength);
 
+        /**
+         * @brief 정반사 텍스처의 프로젝트 상대 경로 값을 반환합니다.
+         * @return 저장한 정반사 텍스처의 프로젝트 상대 경로 값 또는 참조입니다.
+         */
         const Core::FString& GetSpecularTexturePath() const;
+
+        /**
+         * @brief 정반사 텍스처의 프로젝트 상대 경로 값을 검증해 적용하고 렌더 상태를 갱신합니다.
+         * @param[in] Path 작업에 사용할 파일 또는 프로젝트 상대 에셋 경로입니다.
+         * @return 값이 유효해 반영되면 true, 유효하지 않으면 false입니다.
+         */
         bool SetSpecularTexturePath(const Core::FString& Path);
+
+        /**
+         * @brief 정반사 텍스처 값을 반환합니다.
+         * @return 저장한 정반사 텍스처 값 또는 참조입니다.
+         */
         Asset::UTexture2D* GetSpecularTexture() const;
 
+        /**
+         * @brief 자체 발광 텍스처의 프로젝트 상대 경로 값을 반환합니다.
+         * @return 저장한 자체 발광 텍스처의 프로젝트 상대 경로 값 또는 참조입니다.
+         */
         const Core::FString& GetEmissiveTexturePath() const;
+
+        /**
+         * @brief 자체 발광 텍스처의 프로젝트 상대 경로 값을 검증해 적용하고 렌더 상태를 갱신합니다.
+         * @param[in] Path 작업에 사용할 파일 또는 프로젝트 상대 에셋 경로입니다.
+         * @return 값이 유효해 반영되면 true, 유효하지 않으면 false입니다.
+         */
         bool SetEmissiveTexturePath(const Core::FString& Path);
+
+        /**
+         * @brief 자체 발광 텍스처 값을 반환합니다.
+         * @return 저장한 자체 발광 텍스처 값 또는 참조입니다.
+         */
         Asset::UTexture2D* GetEmissiveTexture() const;
 
-        const Core::FString& GetReflectionTexturePath() const;
-        bool SetReflectionTexturePath(const Core::FString& Path);
-        Asset::UTexture2D* GetReflectionTexture() const;
-
-    private:
         /**
-         * @brief 생성된 멤버 등록 함수와 리플렉션 빌더의 접근 권한입니다.
+         * @brief 환경 반사 텍스처의 프로젝트 상대 경로 값을 반환합니다.
+         * @return 저장한 환경 반사 텍스처의 프로젝트 상대 경로 값 또는 참조입니다.
          */
-        ReflectMembers();
+        const Core::FString& GetReflectionTexturePath() const;
+
+        /**
+         * @brief 환경 반사 텍스처의 프로젝트 상대 경로 값을 검증해 적용하고 렌더 상태를 갱신합니다.
+         * @param[in] Path 작업에 사용할 파일 또는 프로젝트 상대 에셋 경로입니다.
+         * @return 값이 유효해 반영되면 true, 유효하지 않으면 false입니다.
+         */
+        bool SetReflectionTexturePath(const Core::FString& Path);
+
+        /**
+         * @brief 환경 반사 텍스처 값을 반환합니다.
+         * @return 저장한 환경 반사 텍스처 값 또는 참조입니다.
+         */
+        Asset::UTexture2D* GetReflectionTexture() const;
 
     private:
         /**
          * @brief Content 기준 머티리얼 셰이더 경로입니다.
          */
+        UPROPERTY(Edit, Serialize, Name = "Shader", Getter = GetShaderPath, Setter = SetShaderPath)
         Core::FString mShaderPath{"Shaders/Lit.hlsl"};
-        ReflectAccessor(mShaderPath, GetShaderPath, SetShaderPath, "Shader", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
 
         /**
          * @brief 머티리얼의 기본 RGBA 색상입니다.
          */
+        UPROPERTY(Edit, Serialize, Getter = GetBaseColor, Setter = SetBaseColor)
         Core::FVector4 mBaseColor{1.0f, 1.0f, 1.0f, 1.0f};
-        ReflectAccessor(mBaseColor, GetBaseColor, SetBaseColor, "BaseColor", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
 
         /**
          * @brief Content 기준 기본색 텍스처 경로입니다.
          */
+        UPROPERTY(Edit, Serialize, Name = "BaseColorTexture", Getter = GetBaseColorTexturePath, Setter = SetBaseColorTexturePath)
         Core::FString mBaseColorTexturePath{};
-        ReflectAccessor(mBaseColorTexturePath, GetBaseColorTexturePath, SetBaseColorTexturePath, "BaseColorTexture", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
 
         /**
          * @brief Content 상대 노멀 맵 텍스처 경로입니다.
          */
+        UPROPERTY(Edit, Serialize, Name = "NormalMap", Getter = GetNormalMapTexturePath, Setter = SetNormalMapTexturePath)
         Core::FString mNormalMapTexturePath{};
-        ReflectAccessor(mNormalMapTexturePath, GetNormalMapTexturePath, SetNormalMapTexturePath, "NormalMap", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
 
         /**
          * @brief 로드한 노멀 맵 텍스처의 비소유 주소입니다.
          */
         Asset::UTexture2D* mNormalMapTexture{};
-        ReflectProperty(mNormalMapTexture, "ResolvedNormalMap", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 정반사 성분의 밝기 배율입니다.
          */
+        UPROPERTY(Edit, Serialize, Getter = GetSpecularStrength, Setter = SetSpecularStrength)
         float mSpecularStrength{0.35f};
-        ReflectAccessor(mSpecularStrength, GetSpecularStrength, SetSpecularStrength, "SpecularStrength", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
 
         /**
          * @brief 정반사 하이라이트의 지수입니다.
          */
+        UPROPERTY(Edit, Serialize, Getter = GetShininess, Setter = SetShininess)
         float mShininess{32.0f};
-        ReflectAccessor(mShininess, GetShininess, SetShininess, "Shininess", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
 
         /**
          * @brief 노멀 맵의 접선 공간 XY 성분 배율입니다.
          */
+        UPROPERTY(Edit, Serialize, Getter = GetNormalStrength, Setter = SetNormalStrength)
         float mNormalStrength{1.0f};
-        ReflectAccessor(mNormalStrength, GetNormalStrength, SetNormalStrength, "NormalStrength", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
 
         /**
          * @brief 메시의 양면 렌더링 여부입니다.
          */
+        UPROPERTY(Edit, Serialize, Getter = IsTwoSided, Setter = SetTwoSided)
         bool mTwoSided{};
-        ReflectAccessor(mTwoSided, IsTwoSided, SetTwoSided, "TwoSided", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
 
         /**
          * @brief 기본색 텍스처의 비소유 주소입니다.
          */
         Asset::UTexture2D* mBaseColorTexture{};
-        ReflectProperty(mBaseColorTexture, "ResolvedBaseColorTexture", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
+        /**
+         * @brief 정반사 색상 값 또는 참조입니다.
+         */
+        UPROPERTY(Edit, Serialize, Getter = GetSpecularColor, Setter = SetSpecularColor)
         Core::FVector4 mSpecularColor{1.0f, 1.0f, 1.0f, 1.0f};
-        ReflectAccessor(mSpecularColor, GetSpecularColor, SetSpecularColor, "SpecularColor", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
 
+        /**
+         * @brief 주변광 색상 값 또는 참조입니다.
+         */
+        UPROPERTY(Edit, Serialize, Getter = GetAmbientColor, Setter = SetAmbientColor)
         Core::FVector4 mAmbientColor{1.0f, 1.0f, 1.0f, 1.0f};
-        ReflectAccessor(mAmbientColor, GetAmbientColor, SetAmbientColor, "AmbientColor", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
 
+        /**
+         * @brief 자체 발광 색상 값 또는 참조입니다.
+         */
+        UPROPERTY(Edit, Serialize, Getter = GetEmissiveColor, Setter = SetEmissiveColor)
         Core::FVector4 mEmissiveColor{0.0f, 0.0f, 0.0f, 1.0f};
-        ReflectAccessor(mEmissiveColor, GetEmissiveColor, SetEmissiveColor, "EmissiveColor", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
 
+        /**
+         * @brief 환경 반사 색상 값 또는 참조입니다.
+         */
+        UPROPERTY(Edit, Serialize, Getter = GetReflectionColor, Setter = SetReflectionColor)
         Core::FVector4 mReflectionColor{1.0f, 1.0f, 1.0f, 1.0f};
-        ReflectAccessor(mReflectionColor, GetReflectionColor, SetReflectionColor, "ReflectionColor", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
 
+        /**
+         * @brief 환경 반사 세기 값 또는 참조입니다.
+         */
+        UPROPERTY(Edit, Serialize, Getter = GetReflectionStrength, Setter = SetReflectionStrength)
         float mReflectionStrength{};
-        ReflectAccessor(mReflectionStrength, GetReflectionStrength, SetReflectionStrength, "ReflectionStrength", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
 
+        /**
+         * @brief 정반사 텍스처의 프로젝트 상대 경로 값 또는 참조입니다.
+         */
+        UPROPERTY(Edit, Serialize, Name = "SpecularTexture", Getter = GetSpecularTexturePath, Setter = SetSpecularTexturePath)
         Core::FString mSpecularTexturePath{};
-        ReflectAccessor(mSpecularTexturePath, GetSpecularTexturePath, SetSpecularTexturePath, "SpecularTexture", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
 
+        /**
+         * @brief 정반사 텍스처 값 또는 참조입니다.
+         */
         Asset::UTexture2D* mSpecularTexture{};
-        ReflectProperty(mSpecularTexture, "ResolvedSpecularTexture", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
+        /**
+         * @brief 자체 발광 텍스처의 프로젝트 상대 경로 값 또는 참조입니다.
+         */
+        UPROPERTY(Edit, Serialize, Name = "EmissiveTexture", Getter = GetEmissiveTexturePath, Setter = SetEmissiveTexturePath)
         Core::FString mEmissiveTexturePath{};
-        ReflectAccessor(mEmissiveTexturePath, GetEmissiveTexturePath, SetEmissiveTexturePath, "EmissiveTexture", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
 
+        /**
+         * @brief 자체 발광 텍스처 값 또는 참조입니다.
+         */
         Asset::UTexture2D* mEmissiveTexture{};
-        ReflectProperty(mEmissiveTexture, "ResolvedEmissiveTexture", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
+        /**
+         * @brief 환경 반사 텍스처의 프로젝트 상대 경로 값 또는 참조입니다.
+         */
+        UPROPERTY(Edit, Serialize, Name = "ReflectionTexture", Getter = GetReflectionTexturePath, Setter = SetReflectionTexturePath)
         Core::FString mReflectionTexturePath{};
-        ReflectAccessor(mReflectionTexturePath, GetReflectionTexturePath, SetReflectionTexturePath, "ReflectionTexture", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
 
+        /**
+         * @brief 환경 반사 텍스처 값 또는 참조입니다.
+         */
         Asset::UTexture2D* mReflectionTexture{};
-        ReflectProperty(mReflectionTexture, "ResolvedReflectionTexture", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief GPU 상수 버퍼입니다.
          */
-        Microsoft::WRL::ComPtr<ID3D11Buffer> mConstantBuffer{};
-        ReflectProperty(mConstantBuffer, "ConstantBuffer", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+        RenderCore::TConstantBuffer<std::array<float, 28>> mConstantBuffer{};
 
         /**
          * @brief GPU 상수 버퍼 갱신 필요 여부입니다.
          */
         bool mConstantsDirty{true};
-        ReflectProperty(mConstantsDirty, "ConstantsDirty", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
 }

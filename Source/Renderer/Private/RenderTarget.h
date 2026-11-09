@@ -9,7 +9,9 @@
 #include "Core/ReflectionMacros.h"
 #include "Engine/FRenderTarget.h"
 #include "Asset/UTexture2D.h"
+#include "GBuffer.h"
 
+#include <array>
 #include <d3d11.h>
 #include <wrl/client.h>
 
@@ -22,12 +24,6 @@ namespace Renderer {
     class FDXRenderTarget final : public Engine::FRenderTarget {
     public:
         /**
-         * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
-         */
-        ReflectTypes(FDXRenderTarget, Engine::FRenderTarget);
-
-    public:
-        /**
          * @brief FDXRenderTarget의 초기 상태와 전달받은 의존성을 구성합니다.
          */
         FDXRenderTarget();
@@ -38,12 +34,6 @@ namespace Renderer {
         ~FDXRenderTarget() override;
 
     public:
-        /**
-         * @brief 이 타입의 정적 구조체 메타데이터를 반환합니다.
-         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectStruct(FDXRenderTarget);
-
         /**
          * @brief 새 크기에 맞추어 렌더 타깃 리소스를 생성하거나 교체합니다.
          * @param[in,out] Device 리소스 생성에 사용할 Direct3D 11 장치입니다.
@@ -83,21 +73,29 @@ namespace Renderer {
          */
         ID3D11DepthStencilView* GetDepthView() const;
 
+        ID3D11DepthStencilView* GetReadOnlyDepthView() const;
+        ID3D11ShaderResourceView* GetStencilResource() const;
+        const std::array<std::unique_ptr<Asset::UTexture2D>, Renderer::GBuffer::AttachmentCount>& GetGBuffer() const;
+        Asset::UTexture2D* GetDecalNormalSource(ID3D11Device* Device, bool Accumulated);
+
         /**
          * @brief 장면 드로와 교대 후처리 입력으로 사용하는 컬러 텍스처를 조회합니다.
          * @return 렌더 타깃이 소유하는 장면 컬러의 비소유 주소이며 할당 전에는 nullptr입니다.
          */
         Asset::UTexture2D* GetSceneColor() const;
+
         /**
          * @brief 다중 안개 합성에 사용하는 교대 컬러 텍스처를 조회합니다.
          * @return 렌더 타깃이 소유하는 중간 컬러의 비소유 주소이며 할당 전에는 nullptr입니다.
          */
         Asset::UTexture2D* GetPostProcessColor() const;
+
         /**
          * @brief 에디터와 UI에 표시하는 최종 컬러 텍스처를 조회합니다.
          * @return 렌더 타깃이 소유하는 최종 컬러의 비소유 주소이며 할당 전에는 nullptr입니다.
          */
         Asset::UTexture2D* GetOutputColor() const;
+
         /**
          * @brief 깊이 검사와 후처리 샘플링에 공유하는 깊이 텍스처를 조회합니다.
          * @return 렌더 타깃이 소유하는 깊이 텍스처의 비소유 주소이며 할당 전에는 nullptr입니다.
@@ -112,12 +110,6 @@ namespace Renderer {
 
     private:
         /**
-         * @brief 생성된 프로퍼티 등록 함수와 빌더 접근 권한입니다.
-         */
-        ReflectMembers();
-
-    private:
-        /**
          * @brief UI 표시용 셰이더 리소스 뷰가 참조하는 컬러 텍스처입니다.
          */
         /**
@@ -127,18 +119,16 @@ namespace Renderer {
          * @brief UI 샘플링에 사용할 셰이더 리소스 뷰입니다.
          */
         std::unique_ptr<Asset::UTexture2D> mColor{};
-        ReflectProperty(mColor, "Color", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 후처리 입력 컬러와 다중 안개 합성의 교대 출력으로 사용하는 텍스처입니다.
          */
         std::unique_ptr<Asset::UTexture2D> mSceneColor{};
-        ReflectProperty(mSceneColor, "SceneColor", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+
         /**
          * @brief 다중 안개를 읽기·쓰기 충돌 없이 합성하기 위한 교대 컬러 텍스처입니다.
          */
         std::unique_ptr<Asset::UTexture2D> mPostProcessColor{};
-        ReflectProperty(mPostProcessColor, "PostProcessColor", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 깊이 텍스처입니다.
@@ -147,20 +137,21 @@ namespace Renderer {
          * @brief 깊이 스텐실 뷰입니다.
          */
         std::unique_ptr<Asset::UTexture2D> mDepth{};
-        ReflectProperty(mDepth, "Depth", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
-
+        Microsoft::WRL::ComPtr<ID3D11DepthStencilView> mReadOnlyDepthView{};
+        Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> mStencilResource{};
+        std::array<std::unique_ptr<Asset::UTexture2D>, Renderer::GBuffer::AttachmentCount> mGBuffer{};
+        std::unique_ptr<Asset::UTexture2D> mDecalNormalSource{};
+        std::unique_ptr<Asset::UTexture2D> mDecalNormalHistory{};
 
         /**
          * @brief 가로 픽셀 수입니다.
          */
         Core::Uint32 mWidth{};
-        ReflectProperty(mWidth, "Width", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 세로 픽셀 수입니다.
          */
         Core::Uint32 mHeight{};
-        ReflectProperty(mHeight, "Height", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
 }

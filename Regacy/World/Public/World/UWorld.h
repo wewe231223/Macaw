@@ -79,6 +79,7 @@ private:
     public:
         explicit FLifecycleScope(UWorld& World);
         ~FLifecycleScope();
+
         FLifecycleScope(const FLifecycleScope&) = delete;
 
         FLifecycleScope& operator=(const FLifecycleScope&) = delete;
@@ -92,10 +93,13 @@ private:
     public:
         /// <summary>World가 있으면 보호할 콜백 범위의 호출 깊이를 증가시킵니다.</summary>
         explicit FActorDispatchScope(UWorld* World);
+
         /// <summary>콜백 범위를 벗어날 때 호출 깊이를 복원합니다.</summary>
         ~FActorDispatchScope();
+
         /// <summary>호출 깊이 복원이 중복되지 않도록 복사를 금지합니다.</summary>
         FActorDispatchScope(const FActorDispatchScope&) = delete;
+
         /// <summary>보호 중인 World가 바뀌지 않도록 복사 대입을 금지합니다.</summary>
         FActorDispatchScope& operator=(const FActorDispatchScope&) = delete;
 
@@ -118,6 +122,7 @@ public:
     const ULevel& GetPersistentLevel() const;
 
     void BeginPlay();
+
     /// <summary>World의 플레이를 종료하며 콜백이나 Tick 처리 중에는 종료 요청을 보류합니다.</summary>
     void EndPlay(EEndPlayReason Reason = EEndPlayReason::RemovedFromWorld);
     bool HasBegunPlay() const;
@@ -138,8 +143,10 @@ public:
 
     /// <summary>런타임 타입 정보로 Actor를 생성하고 생성 완료 단계까지 처리합니다.</summary>
     AActor* SpawnActor(const UClass& Type, const FTransform& Transform = {});
+
     /// <summary>런타임 타입 정보로 Actor를 생성하고 구성 완료 단계는 보류합니다.</summary>
     AActor* SpawnActorDeferred(const UClass& Type, const FTransform& Transform = {});
+
     /// <summary>구성 콜백과 컴포넌트 등록을 수행하고 플레이 중이면 BeginPlay까지 진행합니다.</summary>
     bool FinishSpawningActor(AActor* Actor, const FTransform& Transform);
 
@@ -205,21 +212,27 @@ private:
     bool IsDeferringLifecycleChanges() const;
     void ProcessPendingLifecycleChanges();
     void ClearActors();
+
     /// <summary>종료 이유에 따라 Actor를 파괴 상태로 전환하고 메모리 해제를 예약합니다.</summary>
     bool DestroyActorInternal(AActor* Actor, EEndPlayReason Reason);
     void RegisterTickActor(AActor* Actor);
     void UnregisterTickActor(AActor* Actor);
+
     /// <summary>컴포넌트를 World의 독립적인 Tick 목록에 추가합니다.</summary>
     void RegisterTickComponent(UActorComponent* Component);
+
     /// <summary>컴포넌트를 Tick 목록에서 제외하고 순회 중이면 빈 항목으로 남깁니다.</summary>
     void UnregisterTickComponent(UActorComponent* Component);
     void RegisterTickFunction(FTickFunction& TickFunction, TArray<FTickFunction*>& TickFunctions);
     void UnregisterTickFunction(FTickFunction& TickFunction, TArray<FTickFunction*>& TickFunctions, EStateFlag CompactionFlag);
     void CompactTickFunctions(TArray<FTickFunction*>& TickFunctions, EStateFlag CompactionFlag);
+
     /// <summary>Tick 순회를 종료하고 Actor와 컴포넌트 목록의 빈 항목을 정리합니다.</summary>
     void FinishTicks();
+
     /// <summary>Actor 소유권을 Level로 옮기고 객체 등록과 World 연결을 수행합니다.</summary>
     AActor* AddActorInternal(std::unique_ptr<AActor> InActor);
+
     /// <summary>복원한 Actor의 PostLoad와 컴포넌트 등록 및 필요한 플레이 시작을 처리합니다.</summary>
     void InitializeLoadedActor(AActor& Actor);
     bool CompleteActorRegistration(AActor& Actor);
@@ -237,6 +250,7 @@ private:
     std::unique_ptr<ULevel> mPersistentLevel{};
     EWorldType mWorldType{EWorldType::Editor};
     TStateFlags<EStateFlag> mState{};
+
     // 안전한 시점까지 보류한 플레이 종료 요청의 이유입니다.
     EEndPlayReason mEndPlayReason{EEndPlayReason::RemovedFromWorld};
     std::size_t mActorDispatchDepth{};

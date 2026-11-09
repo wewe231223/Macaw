@@ -97,6 +97,7 @@ public:
 
 public:
     UPickingSubsystem();
+
     ~UPickingSubsystem() override = default;
 
 public:

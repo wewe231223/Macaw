@@ -10,6 +10,10 @@
 #include "Editor/Panel/FEditorPanel.h"
 
 #include <array>
+#include <memory>
+#include <string_view>
+
+struct ImGuiInputTextCallbackData;
 
 namespace Editor {
 
@@ -18,11 +22,8 @@ namespace Editor {
      * @ingroup Editor
      */
     class FConsolePanel final : public Editor::FEditorPanel {
-    public:
-        /**
-         * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
-         */
-        ReflectTypes(FConsolePanel, Editor::FEditorPanel);
+    private:
+        class FOutput;
 
     public:
         /**
@@ -38,21 +39,10 @@ namespace Editor {
 
     public:
         /**
-         * @brief 이 타입의 정적 구조체 메타데이터를 반환합니다.
-         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectStruct(FConsolePanel);
-
-        /**
          * @brief 콘솔 패널에 메시지를 추가하고 스크롤 갱신을 요청합니다.
          * @param[in] Message 보고할 오류 내용입니다.
          */
         void AddLog(const Core::FString& Message);
-
-        /**
-         * @brief 수집한 콘솔 로그를 모두 지웁니다.
-         */
-        void Clear();
 
     private:
         /**
@@ -61,30 +51,81 @@ namespace Editor {
          */
         void DrawContent(float DeltaTime) override;
 
-    private:
         /**
-         * @brief 생성된 프로퍼티 등록 함수와 빌더 접근 권한입니다.
+         * @brief 선택·스크롤 상태를 반영해 자동 완성 후보 목록을 그립니다.
+         * @param[in] Height 픽셀 높이 또는 예약할 UI 높이입니다.
          */
-        ReflectMembers();
+        void DrawSuggestions(float Height);
+
+        /**
+         * @brief 자동 완성과 명령 기록 탐색을 지원하는 콘솔 입력란을 그립니다.
+         */
+        void DrawCommandInput();
+
+        /**
+         * @brief 현재 입력에 맞는 자동 완성 후보와 선택 위치를 갱신합니다.
+         * @param[in] Input 해석할 원본 입력 문자열입니다.
+         */
+        void UpdateSuggestions(std::string_view Input);
+
+        /**
+         * @brief 위·아래 방향키에 따라 명령 기록과 편집 중이던 입력을 복원합니다.
+         * @param[in] Data ImGui 입력 콜백 데이터입니다.
+         */
+        void BrowseHistory(ImGuiInputTextCallbackData& Data);
+
+        /**
+         * @brief ImGui 입력 콜백을 자동 완성과 명령 기록 처리에 연결합니다.
+         * @param[in] Data ImGui 입력 콜백 데이터입니다.
+         * @return ImGui 입력 콜백의 처리 결과입니다.
+         */
+        static int HandleInput(ImGuiInputTextCallbackData* Data);
 
     private:
         /**
-         * @brief 마지막으로 표시한 로그 모델의 변경 세대입니다.
+         * @brief 콘솔 로그 출력·필터 구현 객체입니다.
          */
-        Core::Uint64 mLastLogRevision{};
-        ReflectProperty(mLastLogRevision, "LastLogRevision", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+        std::unique_ptr<Editor::FConsolePanel::FOutput> mOutput{};
 
         /**
          * @brief 널 종료된 콘솔 명령 입력 버퍼입니다.
          */
         std::array<char, 512> mConsoleInput{};
-        ReflectProperty(mConsoleInput, "ConsoleInput", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
-         * @brief 다음 그리기에서 로그 끝으로 이동할지 여부입니다.
+         * @brief 실행한 콘솔 입력의 최근 기록입니다.
          */
-        bool mScrollToBottom{};
-        ReflectProperty(mScrollToBottom, "ScrollToBottom", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+        Core::TArray<Core::FString> mCommandHistory{};
+
+        /**
+         * @brief 기록 탐색 전에 편집하던 입력입니다.
+         */
+        Core::FString mHistoryDraft{};
+
+        /**
+         * @brief 현재 탐색하는 명령 기록 위치입니다.
+         */
+        std::size_t mHistoryPosition{};
+
+        /**
+         * @brief 현재 입력과 일치하는 자동 완성 목록입니다.
+         */
+        Core::TArray<Core::FString> mSuggestions{};
+
+        /**
+         * @brief 선택한 자동 완성 후보 인덱스입니다.
+         */
+        std::size_t mSelectedSuggestion{};
+
+        /**
+         * @brief 선택한 후보가 보이도록 스크롤할지 나타냅니다.
+         */
+        bool mScrollToSuggestion{};
+
+        /**
+         * @brief 입력 콜백의 자동 완성 적용 요청입니다.
+         */
+        bool mCompletionRequested{};
     };
 
 }

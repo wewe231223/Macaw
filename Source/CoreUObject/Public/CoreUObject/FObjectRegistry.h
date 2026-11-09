@@ -22,12 +22,6 @@ namespace CoreUObject {
      * @ingroup CoreUObject
      */
     class FObjectRegistry {
-    public:
-        /**
-         * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
-         */
-        ReflectTypes(FObjectRegistry);
-
     private:
         /**
          * @brief 객체 주소와 슬롯 재사용 세대를 보관하는 레지스트리 항목입니다.
@@ -36,35 +30,14 @@ namespace CoreUObject {
         struct FSlot {
         public:
             /**
-             * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
-             */
-            ReflectTypes(FSlot);
-
-        public:
-            /**
-             * @brief 이 타입의 정적 구조체 메타데이터를 반환합니다.
-             * @return 등록된 타입 메타데이터의 비소유 주소입니다.
-             */
-            ReflectStruct(FSlot);
-
-        private:
-            /**
-             * @brief 생성된 프로퍼티 등록 함수와 빌더 접근 권한입니다.
-             */
-            ReflectMembers();
-
-        public:
-            /**
              * @brief 슬롯에 등록된 객체의 비소유 주소입니다.
              */
             CoreUObject::UObject* mObject{};
-            ReflectProperty(mObject, "Object", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
             /**
              * @brief 슬롯 재사용을 구분하는 세대입니다.
              */
             Core::Uint32 mGeneration{1};
-            ReflectProperty(mGeneration, "Generation", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
         };
 
     private:
@@ -90,12 +63,6 @@ namespace CoreUObject {
         CoreUObject::FObjectRegistry& operator=(const CoreUObject::FObjectRegistry&) = delete;
 
     public:
-        /**
-         * @brief 이 타입의 정적 구조체 메타데이터를 반환합니다.
-         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectStruct(FObjectRegistry);
-
         /**
          * @brief 프로세스 수명 동안 유지되는 전역 객체 레지스트리를 반환합니다.
          * @return 객체를 소유하지 않는 전역 레지스트리의 주소입니다.
@@ -135,11 +102,6 @@ namespace CoreUObject {
 
     private:
         /**
-         * @brief 생성된 프로퍼티 등록 함수와 빌더 접근 권한입니다.
-         */
-        ReflectMembers();
-
-        /**
          * @brief UObject의 생성과 소멸에서 전역 등록 상태를 관리하도록 허용합니다.
          */
         friend class UObject;
@@ -162,19 +124,16 @@ namespace CoreUObject {
          * @brief 객체 주소와 세대 슬롯 목록입니다.
          */
         Core::TArray<FSlot> mSlots{};
-        ReflectProperty(mSlots, "Slots", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 재사용 가능한 슬롯 인덱스 목록입니다.
          */
         Core::TArray<Core::Uint32> mFreeSlots{};
-        ReflectProperty(mFreeSlots, "FreeSlots", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 현재 전역 레지스트리에 등록된 객체의 개수입니다.
          */
         std::size_t mObjectCount{};
-        ReflectProperty(mObjectCount, "ObjectCount", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
 }

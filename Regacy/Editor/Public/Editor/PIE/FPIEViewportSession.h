@@ -32,6 +32,7 @@ public:
      */
     FPIEViewportSession(FRenderer& Renderer, FViewportHostWindow* Host);
     ~FPIEViewportSession();
+
     FPIEViewportSession(const FPIEViewportSession&) = delete;
 
     FPIEViewportSession& operator=(const FPIEViewportSession&) = delete;

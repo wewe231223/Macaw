@@ -21,30 +21,12 @@ namespace Core {
     struct FNoEviction {
     public:
         /**
-         * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
-         */
-        ReflectTypes(FNoEviction);
-
-    public:
-        /**
-         * @brief 이 타입의 정적 구조체 메타데이터를 반환합니다.
-         * @return 등록된 구조체 메타데이터의 비소유 주소입니다.
-         */
-        ReflectStruct(FNoEviction);
-
-        /**
          * @brief 항목을 축출할지 판단합니다.
          * @param[in] LastUsed 항목을 마지막으로 조회하거나 기록한 프레임입니다.
          * @param[in] Frame 현재 프레임입니다.
          * @return 항상 false입니다.
          */
         bool ShouldEvict(Core::Uint64 LastUsed, Core::Uint64 Frame) const;
-
-    private:
-        /**
-         * @brief 생성된 멤버 등록 함수와 리플렉션 빌더의 접근 권한입니다.
-         */
-        ReflectMembers();
     };
 
     /**
@@ -53,18 +35,6 @@ namespace Core {
     struct FFrameAgeEviction {
     public:
         /**
-         * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
-         */
-        ReflectTypes(FFrameAgeEviction);
-
-    public:
-        /**
-         * @brief 이 타입의 정적 구조체 메타데이터를 반환합니다.
-         * @return 등록된 구조체 메타데이터의 비소유 주소입니다.
-         */
-        ReflectStruct(FFrameAgeEviction);
-
-        /**
          * @brief 마지막 사용 이후 허용 프레임 수를 넘겼는지 판단합니다.
          * @param[in] LastUsed 항목을 마지막으로 조회하거나 기록한 프레임입니다.
          * @param[in] Frame 현재 프레임입니다.
@@ -72,43 +42,17 @@ namespace Core {
          */
         bool ShouldEvict(Core::Uint64 LastUsed, Core::Uint64 Frame) const;
 
-    private:
-        /**
-         * @brief 생성된 멤버 등록 함수와 리플렉션 빌더의 접근 권한입니다.
-         */
-        ReflectMembers();
-
     public:
         /**
          * @brief 조회하지 않아도 유지할 최대 프레임 수입니다.
          */
         Core::Uint64 mMaxAge{};
-        ReflectProperty(mMaxAge, "MaxAge", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
     /**
      * @brief 모든 TRevisionCache에 적용하는 디버그 설정입니다.
      */
     struct FRevisionCacheSettings {
-    public:
-        /**
-         * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
-         */
-        ReflectTypes(FRevisionCacheSettings);
-
-    public:
-        /**
-         * @brief 이 타입의 정적 구조체 메타데이터를 반환합니다.
-         * @return 등록된 구조체 메타데이터의 비소유 주소입니다.
-         */
-        ReflectStruct(FRevisionCacheSettings);
-
-    private:
-        /**
-         * @brief 생성된 멤버 등록 함수와 리플렉션 빌더의 접근 권한입니다.
-         */
-        ReflectMembers();
-
     public:
         /**
          * @brief true이면 모든 캐시 조회가 미스로 처리되어 매번 결과를 다시 만듭니다.
@@ -126,47 +70,24 @@ namespace Core {
     struct TRevisionCacheEntry {
     public:
         /**
-         * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
-         */
-        ReflectTypes(TRevisionCacheEntry);
-
-    public:
-        /**
-         * @brief 이 타입의 정적 리플렉션 메타데이터를 반환합니다.
-         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectTemplate(TRevisionCacheEntry);
-
-    private:
-        /**
-         * @brief 생성된 멤버 등록 함수와 리플렉션 빌더의 접근 권한입니다.
-         */
-        ReflectMembers();
-
-    public:
-        /**
          * @brief 결과를 만들 때 사용한 입력 스탬프입니다.
          */
         TStamp mStamp{};
-        ReflectProperty(mStamp, "Stamp", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 성공한 결과이며, 실패 항목은 비어 있습니다.
          */
         std::optional<TValue> mValue{};
-        ReflectProperty(mValue, "Value", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 실패 항목의 원인입니다.
          */
         Core::FString mFailure{};
-        ReflectProperty(mFailure, "Failure", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 항목을 마지막으로 조회하거나 기록한 캐시 프레임입니다.
          */
         Core::Uint64 mLastUsed{};
-        ReflectProperty(mLastUsed, "LastUsed", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
     /**
@@ -182,12 +103,6 @@ namespace Core {
      */
     template <typename TKey, typename TStamp, typename TValue, typename THash, typename TEviction>
     class TRevisionCache {
-    public:
-        /**
-         * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
-         */
-        ReflectTypes(TRevisionCache);
-
     private:
         /**
          * @brief 한 키의 스탬프와 성공 결과 또는 실패 원인입니다.
@@ -214,12 +129,6 @@ namespace Core {
         TRevisionCache& operator=(const TRevisionCache&) = delete;
 
     public:
-        /**
-         * @brief 이 타입의 정적 리플렉션 메타데이터를 반환합니다.
-         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectTemplate(TRevisionCache);
-
         /**
          * @brief 같은 스탬프로 성공한 결과를 조회합니다.
          * @param[in] Key 조회할 키입니다.
@@ -280,56 +189,53 @@ namespace Core {
 
     private:
         /**
-         * @brief 생성된 멤버 등록 함수와 리플렉션 빌더의 접근 권한입니다.
-         */
-        ReflectMembers();
-
-    private:
-        /**
          * @brief 키별 스탬프와 결과입니다.
          */
         Core::TMap<TKey, FEntry, THash> mEntries{};
-        ReflectProperty(mEntries, "Entries", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 오래된 항목을 축출할 정책입니다.
          */
         TEviction mEviction{};
-        ReflectProperty(mEviction, "Eviction", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief BeginFrame마다 증가하는 캐시 프레임 번호입니다.
          */
         Core::Uint64 mFrame{};
-        ReflectProperty(mFrame, "Frame", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 같은 스탬프의 결과를 재사용한 조회 수입니다.
          */
         Core::FStat mHits;
-        ReflectProperty(mHits, "Hits", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 결과가 없거나 스탬프가 달라 다시 만들어야 한 조회 수입니다.
          */
         Core::FStat mMisses;
-        ReflectProperty(mMisses, "Misses", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 같은 스탬프의 실패 기록을 재사용한 조회 수입니다.
          */
         Core::FStat mFailures;
-        ReflectProperty(mFailures, "Failures", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
+    /**
+     * @brief 항목을 축출할지 판단합니다.
+     */
     inline bool Core::FNoEviction::ShouldEvict(Core::Uint64, Core::Uint64) const {
         return false;
     }
 
+    /**
+     * @brief 마지막 사용 이후 허용 프레임 수를 넘겼는지 판단합니다.
+     */
     inline bool Core::FFrameAgeEviction::ShouldEvict(Core::Uint64 LastUsed, Core::Uint64 Frame) const {
         return Frame > LastUsed + mMaxAge;
     }
 
+    /**
+     * @brief 통계 이름과 축출 정책으로 빈 캐시를 만듭니다.
+     */
     template <typename TKey, typename TStamp, typename TValue, typename THash, typename TEviction>
     Core::TRevisionCache<TKey, TStamp, TValue, THash, TEviction>::TRevisionCache(const Core::FString& StatName, TEviction Eviction)
 		: mEviction{std::move(Eviction)},
@@ -338,21 +244,29 @@ namespace Core {
 		  mFailures{"cache", StatName + " failures"} {
     }
 
+    /**
+     * @brief 같은 스탬프로 성공한 결과를 조회합니다.
+     */
     template <typename TKey, typename TStamp, typename TValue, typename THash, typename TEviction>
     TValue* Core::TRevisionCache<TKey, TStamp, TValue, THash, TEviction>::Find(const TKey& Key, const TStamp& Stamp) {
         const auto Position{mEntries.find(Key)};
 
         if (Core::FRevisionCacheSettings::sBypass || Position == mEntries.end() || !(Position->second.mStamp == Stamp) || !Position->second.mValue.has_value()) {
             mMisses.Add();
+
             return nullptr;
         }
 
         Position->second.mLastUsed = mFrame;
+
         mHits.Add();
 
         return &*Position->second.mValue;
     }
 
+    /**
+     * @brief 같은 스탬프로 실패한 기록을 조회합니다.
+     */
     template <typename TKey, typename TStamp, typename TValue, typename THash, typename TEviction>
     const Core::FString* Core::TRevisionCache<TKey, TStamp, TValue, THash, TEviction>::FindFailure(const TKey& Key, const TStamp& Stamp) {
         const auto Position{mEntries.find(Key)};
@@ -362,11 +276,15 @@ namespace Core {
         }
 
         Position->second.mLastUsed = mFrame;
+
         mFailures.Add();
 
         return &Position->second.mFailure;
     }
 
+    /**
+     * @brief 결과를 만드는 데 성공했을 때 스탬프와 함께 기록합니다.
+     */
     template <typename TKey, typename TStamp, typename TValue, typename THash, typename TEviction>
     TValue& Core::TRevisionCache<TKey, TStamp, TValue, THash, TEviction>::Commit(const TKey& Key, const TStamp& Stamp, TValue Value) {
         FEntry& Entry{mEntries[Key]};
@@ -378,6 +296,9 @@ namespace Core {
         return *Entry.mValue;
     }
 
+    /**
+     * @brief 결과를 만들지 못했을 때 스탬프와 원인을 기록합니다.
+     */
     template <typename TKey, typename TStamp, typename TValue, typename THash, typename TEviction>
     void Core::TRevisionCache<TKey, TStamp, TValue, THash, TEviction>::CommitFailure(const TKey& Key, const TStamp& Stamp, Core::FString Reason) {
         FEntry& Entry{mEntries[Key]};
@@ -387,6 +308,9 @@ namespace Core {
         Entry.mLastUsed = mFrame;
     }
 
+    /**
+     * @brief 조건에 맞는 항목을 제거합니다.
+     */
     template <typename TKey, typename TStamp, typename TValue, typename THash, typename TEviction>
     template <typename TPredicate>
     void Core::TRevisionCache<TKey, TStamp, TValue, THash, TEviction>::InvalidateIf(TPredicate Predicate) {
@@ -395,6 +319,9 @@ namespace Core {
         });
     }
 
+    /**
+     * @brief 프레임을 진행하고 축출 정책에 해당하는 항목을 제거합니다.
+     */
     template <typename TKey, typename TStamp, typename TValue, typename THash, typename TEviction>
     void Core::TRevisionCache<TKey, TStamp, TValue, THash, TEviction>::BeginFrame() {
         ++mFrame;
@@ -403,17 +330,20 @@ namespace Core {
         });
     }
 
+    /**
+     * @brief 모든 항목을 제거합니다.
+     */
     template <typename TKey, typename TStamp, typename TValue, typename THash, typename TEviction>
     void Core::TRevisionCache<TKey, TStamp, TValue, THash, TEviction>::Clear() {
         mEntries.clear();
     }
 
+    /**
+     * @brief 보관 중인 항목 수를 반환합니다.
+     */
     template <typename TKey, typename TStamp, typename TValue, typename THash, typename TEviction>
     std::size_t Core::TRevisionCache<TKey, TStamp, TValue, THash, TEviction>::GetCount() const {
         return mEntries.size();
     }
 
 }
-
-#include "TRevisionCacheEntryReflection.generated.h"
-#include "TRevisionCacheReflection.generated.h"

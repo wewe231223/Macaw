@@ -62,6 +62,7 @@ UActorComponent* AActor::CreateComponent(const UClass& Type, FName DefaultCompon
 
     if (mWorld != nullptr && mWorld->IsDeferringLifecycleChanges()) {
         mWorld->mPendingLifecycleRequests.push_back({UWorld::ELifecycleRequestType::AddComponent, ComponentPtr, std::move(NewComponent)});
+
         return ComponentPtr;
     }
 
@@ -130,6 +131,7 @@ void AActor::SetWorld(UWorld* InWorld, bool NotifyAdded) {
         }
 
         OnRemovedFromWorld();
+
         mWorld = nullptr;
     }
 
@@ -255,6 +257,7 @@ void AActor::DispatchBeginPlay() {
     }
 
     mLifecyclePhase = ELifecyclePhase::None;
+
     UpdateTickRegistration();
 }
 
@@ -494,6 +497,7 @@ void AActor::Serialize(FArchive& Archive) {
     if (Archive.HasError() || (Archive.IsLoading() && ArraySize != mComponents.size())) {
         Archive.SetError();
         Archive.EndArrayScope();
+
         return;
     }
 
@@ -519,6 +523,7 @@ void AActor::InitializeComponents() {
     const UWorld::FLifecycleScope Lifecycle{*mWorld};
 
     mLifecyclePhase = ELifecyclePhase::InitializingComponents;
+
     PreInitializeComponents();
 
     for (const std::unique_ptr<UActorComponent>& Component : mComponents) {
@@ -632,6 +637,7 @@ bool AActor::CompleteConstruction(const FTransform& Transform) {
     const bool HadRootComponent{mRootComponent != nullptr};
 
     mConstructionState = EConstructionState::Constructing;
+
     SetActorTransform(Transform);
     OnConstruction(Transform);
 
@@ -644,6 +650,7 @@ bool AActor::CompleteConstruction(const FTransform& Transform) {
 
 void AActor::CompleteRegistration() {
     mConstructionState = EConstructionState::Finished;
+
     RegisterAllComponents();
 }
 

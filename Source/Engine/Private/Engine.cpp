@@ -5,6 +5,8 @@
  */
 
 #include "Engine/Engine.h"
+#include "Core/FilePath.h"
+#include "Engine/SceneSerializer.h"
 #include "Engine/EngineStats.h"
 #include "Engine/ULevel.h"
 #include "Engine/FProject.h"
@@ -49,12 +51,18 @@ namespace Engine {
         Shutdown();
     }
 
+    /**
+     * @brief 현재 월드에서 사용할 프로젝트와 에셋 관리자를 연결합니다.
+     */
     void Engine::UEngine::SetProject(Engine::FProject* Project) {
         if (!mInitialized && !IsDispatching()) {
             mProject = Project;
         }
     }
 
+    /**
+     * @brief 현재 연결된 프로젝트의 비소유 주소를 반환합니다.
+     */
     Engine::FProject* Engine::UEngine::GetProject() const {
         return mProject;
     }
@@ -69,12 +77,14 @@ namespace Engine {
 
         Engine::ReflectionModules::RegisterEngine();
         StaticClass();
+
         mInitialized = true;
         mShutdownRequested = false;
         mCurrentWorld = CreateWorld(Engine::EWorldType::Editor);
 
         if (!mCurrentWorld.IsValid()) {
             Shutdown();
+
             return false;
         }
 
@@ -109,6 +119,7 @@ namespace Engine {
 
         if (!Initialize()) {
             mRenderer = nullptr;
+
             return false;
         }
 
@@ -121,6 +132,7 @@ namespace Engine {
     void Engine::UEngine::Shutdown() {
         if (IsDispatching()) {
             mShutdownRequested = true;
+
             return;
         }
 
@@ -150,6 +162,7 @@ namespace Engine {
 
         if (mShutdownRequested) {
             Shutdown();
+
             return;
         }
 
@@ -252,6 +265,7 @@ namespace Engine {
 
         const Core::Uint64 Generation{NextWorldGeneration.fetch_add(1, std::memory_order_relaxed)};
         const Engine::FWorldHandle Handle{Index, Generation};
+
         Context->SetHandle(Handle);
 
         if (Index == mWorldContexts.size()) {
@@ -274,6 +288,7 @@ namespace Engine {
         }
 
         mUpdating = true;
+
         Context->GetWorld()->Shutdown();
         mWorldContexts[Handle.GetIndex()].reset();
         mUpdating = false;
@@ -300,6 +315,7 @@ namespace Engine {
 
         if (Context == nullptr || IsDispatching()) {
             Error = "Source world is invalid or dispatching";
+
             return {};
         }
 
@@ -313,7 +329,9 @@ namespace Engine {
 
         if (mShutdownRequested) {
             Shutdown();
+
             Error = "World duplication was cancelled by shutdown";
+
             return {};
         }
 
@@ -325,6 +343,7 @@ namespace Engine {
 
         if (!Handle.IsValid()) {
             Error = "Could not attach the duplicated world";
+
             return {};
         }
 
@@ -353,6 +372,7 @@ namespace Engine {
      */
     Engine::UWorld* Engine::UEngine::GetWorld(Engine::FWorldHandle Handle) const {
         const Engine::FWorldContext* Context{FindContext(Handle)};
+
         return Context != nullptr ? Context->GetWorld() : nullptr;
     }
 
@@ -377,6 +397,7 @@ namespace Engine {
     bool Engine::UEngine::DestroyActor(CoreUObject::FObjectHandle Handle) {
         Engine::AActor* Actor{CoreUObject::Cast<Engine::AActor>(CoreUObject::FObjectRegistry::Get()->Resolve(Handle))};
         Engine::UWorld* World{Actor != nullptr ? Actor->GetWorld() : nullptr};
+
         return World != nullptr && GetWorld(World->GetWorldHandle()) == World && World->DestroyActor(Handle);
     }
 
@@ -445,6 +466,89 @@ namespace Engine {
 
         mCurrentWorld = Replacement;
         ++mWorldGeneration;
+
+        return true;
+    }
+
+    bool Engine::UEngine::ProcessSceneTransition(Engine::FWorldHandle Source, Engine::FWorldHandle& Replacement, Core::FString& Error) {
+        Replacement = {};
+        Error.clear();
+
+        Engine::UWorld* World{GetWorld(Source)};
+
+        if (!mInitialized || mShutdownRequested || IsDispatching() || World == nullptr || !World->CanBeginActor() || World->mPendingScenePath.empty()) {
+            return false;
+        }
+
+        const Core::FString ScenePath{std::exchange(World->mPendingScenePath, Core::FString{})};
+        Asset::FAssetManager* Assets{World->GetAssets()};
+        const auto Path{Assets != nullptr ? Assets->ResolvePath(Core::FilePath::FromUtf8(ScenePath), Error) : std::filesystem::path{}};
+
+        if (Path.empty()) {
+            if (Error.empty()) {
+                Error = "Scene transition requires project assets";
+            }
+
+            return false;
+        }
+
+        const bool Paused{World->GetPlayState() == Engine::EWorldPlayState::Paused};
+        const bool Current{mCurrentWorld == Source};
+
+        mUpdating = true;
+
+        auto Context{Engine::FSceneSerializer::Load(Path, Error, Assets, World->GetWorldType())};
+
+        mUpdating = false;
+
+        if (mShutdownRequested || Context == nullptr) {
+            if (Error.empty()) {
+                Error = "Scene transition was cancelled by shutdown";
+            }
+
+            return false;
+        }
+
+        if (Context->GetWorld()->GetActiveCamera() == nullptr) {
+            Error = "Scene transition requires an active camera in the destination scene";
+
+            return false;
+        }
+
+        const Engine::FWorldHandle Handle{RegisterWorld(std::move(Context))};
+
+        if (!Handle.IsValid()) {
+            Error = "Could not attach the destination scene";
+
+            return false;
+        }
+
+        if (!DestroyWorld(Source)) {
+            DestroyWorld(Handle);
+            Error = "Could not release the previous scene";
+
+            return false;
+        }
+
+        Replacement = Handle;
+
+        if (Current) {
+            SetCurrentWorld(Handle);
+        }
+
+        Engine::UWorld* NextWorld{GetWorld(Handle)};
+
+        mUpdating = true;
+
+        const bool Started{!mShutdownRequested && NextWorld->BeginPlay() && NextWorld->GetPlayState() == Engine::EWorldPlayState::Playing && NextWorld->GetActiveCamera() != nullptr && !mShutdownRequested};
+
+        mUpdating = false;
+
+        if (!Started) {
+            Error = "The destination scene could not start";
+        } else if (Paused) {
+            NextWorld->SetPaused(true);
+        }
 
         return true;
     }

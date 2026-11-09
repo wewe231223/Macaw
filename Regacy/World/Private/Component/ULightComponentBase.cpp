@@ -12,6 +12,7 @@ void ULightComponentBase::SetLightColor(const FVector3& InLightColor) {
     }
 
     mLightColor = InLightColor;
+
     MarkRenderStateDirty();
 }
 
@@ -27,6 +28,7 @@ void ULightComponentBase::SetIntensity(float InIntensity) {
     }
 
     mIntensity = Intensity;
+
     MarkRenderStateDirty();
 }
 
@@ -40,6 +42,7 @@ void ULightComponentBase::SetVisible(bool BInVisible) {
     }
 
     mBVisible = BInVisible;
+
     MarkRenderStateDirty();
 }
 

@@ -23,12 +23,6 @@ namespace Asset {
     class FMeshImportSkinWeight {
     public:
         /**
-         * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
-         */
-        ReflectTypes(FMeshImportSkinWeight);
-
-    public:
-        /**
          * @brief 정점 하나가 가질 수 있는 최대 본 영향 수입니다.
          */
         static constexpr std::size_t MaxInfluences{4};
@@ -37,15 +31,15 @@ namespace Asset {
          * @brief 영향이 없는 정점의 가중치를 생성합니다.
          */
         FMeshImportSkinWeight() = default;
+
+        /**
+         * @brief 정점에 영향을 주는 본 인덱스와 대응 가중치를 저장합니다.
+         * @param[in] BoneIndices 영향 슬롯별 본 인덱스 배열입니다.
+         * @param[in] Weights 본 영향 슬롯별 스킨 가중치입니다.
+         */
         FMeshImportSkinWeight(const std::array<Core::Uint32, MaxInfluences>& BoneIndices, const std::array<float, MaxInfluences>& Weights);
 
     public:
-        /**
-         * @brief 이 타입의 정적 구조체 메타데이터를 반환합니다.
-         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectStruct(FMeshImportSkinWeight);
-
         /**
          * @brief 본 인덱스와 가중치 목록에서 정점 가중치를 만듭니다.
          * @details 같은 본의 가중치는 합치고, 0 이하이거나 유한하지 않은 가중치는 버린 뒤 큰 순서로 MaxInfluences개를 골라 정규화합니다.
@@ -68,22 +62,14 @@ namespace Asset {
 
     private:
         /**
-         * @brief 생성된 프로퍼티 등록 함수와 빌더 접근 권한입니다.
-         */
-        ReflectMembers();
-
-    private:
-        /**
          * @brief 결과 본 목록 기준 본 인덱스입니다.
          */
         std::array<Core::Uint32, 4> mBoneIndices{};
-        ReflectProperty(mBoneIndices, "BoneIndices", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 본별 가중치입니다.
          */
         std::array<float, 4> mWeights{};
-        ReflectProperty(mWeights, "Weights", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
 }

@@ -85,6 +85,7 @@ void UWorld::ProcessPendingLifecycleChanges() {
                 AActor* Actor{static_cast<AActor*>(Request.mTarget)};
 
                 FinishSpawningActor(Actor, Request.mTransform);
+
                 break;
             }
 
@@ -94,19 +95,23 @@ void UWorld::ProcessPendingLifecycleChanges() {
                 AActor* Actor{Component->GetOwner()};
 
                 Actor->InstallComponent(std::move(Owner));
+
                 break;
             }
 
             case ELifecycleRequestType::RegisterComponent:
                 static_cast<UActorComponent*>(Request.mTarget)->RegisterComponent(this);
+
                 break;
             case ELifecycleRequestType::UnregisterComponent:
                 static_cast<UActorComponent*>(Request.mTarget)->UnregisterComponent();
+
                 break;
             case ELifecycleRequestType::AdvanceComponent: {
                 UActorComponent* Component{static_cast<UActorComponent*>(Request.mTarget)};
 
                 Component->GetOwner()->OnComponentRegistered(*Component);
+
                 break;
             }
 
@@ -114,6 +119,7 @@ void UWorld::ProcessPendingLifecycleChanges() {
                 AActor* Actor{static_cast<AActor*>(Request.mTarget)};
 
                 DestroyActorInternal(Actor, Request.mReason);
+
                 break;
             }
 
@@ -121,6 +127,7 @@ void UWorld::ProcessPendingLifecycleChanges() {
                 UActorComponent* Component{static_cast<UActorComponent*>(Request.mTarget)};
 
                 Component->ApplyDestruction(Request.mPromoteChildren);
+
                 break;
             }
             }
@@ -161,6 +168,7 @@ void UWorld::Initialize(EWorldType WorldType) {
     mWorldType = WorldType;
     mTime.Reset();
     mPersistentLevel = NewObject<ULevel>(*this);
+
     ErrorHandler::Report(!UObjectSystem::Register(mPersistentLevel.get()).IsValid(), "UWorld", "Cannot register persistent level", ErrorHandler::EErrorLevel::Critical);
     mState.Set(EStateFlag::Initialized);
     InitializeSubsystems();
@@ -175,6 +183,7 @@ void UWorld::CleanupWorld() {
 
     if (!mState.IsSet(EStateFlag::Initialized)) {
         BindScene({});
+
         return;
     }
 
@@ -287,6 +296,7 @@ void UWorld::EndPlay(EEndPlayReason Reason) {
     if (mState.IsSet(EStateFlag::BeginningPlay) || mState.IsSet(EStateFlag::Ticking) || mActorDispatchDepth > 0 || IsDeferringLifecycleChanges() || mState.IsSet(EStateFlag::ProcessingLifecycleRequests)) {
         mState.Set(EStateFlag::EndPlayRequested);
         mEndPlayReason = Reason;
+
         return;
     }
 
@@ -433,6 +443,7 @@ void UWorld::FlushPendingDestroyActors() {
         mPersistentLevel->mActors.erase(std::prev(Iterator.base()));
         Actor->SetWorld(nullptr);
         UObjectSystem::Unregister(Actor, Actor->GetHandle());
+
         RemovedAnyActor = true;
     }
 
@@ -567,11 +578,13 @@ bool UWorld::SendSceneUpdates() {
     }
 
     GetRenderSubsystem().BuildSceneUpdates(mSceneUpdates);
+
     mSceneUpdates.mSceneHandle = Handle;
     mSceneUpdates.mFullSnapshot = FullSnapshot;
 
     if (!Scene->ApplyUpdates(mSceneUpdates)) {
         mAppliedSceneHandle = {};
+
         return false;
     }
 
@@ -586,6 +599,7 @@ void UWorld::BuildOverlayRenderData(FOverlayRenderData& Overlay, FObjectHandle S
 
 void UWorld::MarkStructureDirty() {
     ++mStructureRevision;
+
     NotifyWorldChanged(EWorldChange::StructureChanged);
 }
 
@@ -610,6 +624,7 @@ void UWorld::Tick(ETickType TickType, float DeltaTime) {
 
     if ((EffectiveTickType == ETickType::Game || EffectiveTickType == ETickType::Paused) && !mState.IsSet(EStateFlag::HasBegunPlay)) {
         FlushPendingDestroyActors();
+
         return;
     }
 
@@ -695,6 +710,7 @@ void UWorld::RegisterTickFunction(FTickFunction& TickFunction, TArray<FTickFunct
     }
 
     TickFunctions.push_back(&TickFunction);
+
     TickFunction.mTickIndex = TickFunctions.size() - 1;
 }
 
@@ -709,6 +725,7 @@ void UWorld::UnregisterTickFunction(FTickFunction& TickFunction, TArray<FTickFun
 
     if (mState.IsSet(EStateFlag::Ticking)) {
         TickFunctions[Index] = nullptr;
+
         mState.Set(CompactionFlag);
     } else {
         if (Index + 1 < TickFunctions.size()) {
@@ -797,6 +814,7 @@ AActor* UWorld::AddActorInternal(std::unique_ptr<AActor> InActor) {
     if (IsDeferringLifecycleChanges()) {
         Actor->SetWorld(this, false);
         mPendingLifecycleRequests.push_back({ELifecycleRequestType::AddActor, Actor, std::move(InActor)});
+
         return Actor;
     }
 

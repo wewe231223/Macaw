@@ -11,7 +11,9 @@ void UEngineSubsystem::Initialize(UEngine* Engine) {
     }
 
     ErrorHandler::Report(GetOuter() != Engine, "UEngineSubsystem", "Subsystem owner must match its Outer", ErrorHandler::EErrorLevel::Critical);
+
     mInitialized = true;
+
     OnInitialize();
 }
 
@@ -21,6 +23,7 @@ void UEngineSubsystem::Deinitialize() {
     }
 
     OnDeinitialize();
+
     mInitialized = false;
 }
 

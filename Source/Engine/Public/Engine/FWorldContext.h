@@ -23,12 +23,6 @@ namespace Engine {
     class FWorldContext {
     public:
         /**
-         * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
-         */
-        ReflectTypes(FWorldContext);
-
-    public:
-        /**
          * @brief FWorldContext의 초기 상태와 전달받은 의존성을 구성합니다.
          */
         /**
@@ -43,12 +37,6 @@ namespace Engine {
         ~FWorldContext();
 
     public:
-        /**
-         * @brief 이 타입의 정적 구조체 메타데이터를 반환합니다.
-         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectStruct(FWorldContext);
-
         /**
          * @brief 현재 소속되거나 관리하는 월드의 비소유 주소를 반환합니다.
          * @return 조회한 값의 비소유 주소이며, 해당 값이 없으면 nullptr입니다.
@@ -75,9 +63,8 @@ namespace Engine {
 
     private:
         /**
-         * @brief 생성된 프로퍼티 등록 함수와 빌더 접근 권한입니다.
+         * @brief 엔진이 월드 컨텍스트의 수명과 내부 갱신을 관리하도록 허용합니다.
          */
-        ReflectMembers();
         friend class UEngine;
 
         /**
@@ -91,19 +78,16 @@ namespace Engine {
          * @brief 컨텍스트가 소유한 월드입니다.
          */
         std::unique_ptr<Engine::UWorld> mWorld{};
-        ReflectProperty(mWorld, "World", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 컨텍스트와 소유 월드가 함께 사용하는 엔진 발급 식별자입니다.
          */
         Engine::FWorldHandle mHandle{};
-        ReflectProperty(mHandle, "Handle", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 장면 파일에 저장하는 원근 편집 카메라입니다.
          */
         Engine::FEditorCameraState mEditorCamera{};
-        ReflectProperty(mEditorCamera, "EditorCamera", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
 }

@@ -7,8 +7,6 @@
 #pragma once
 
 #include "Core/Literals/FDimension.h"
-#include "Core/ReflectionMacros.h"
-#include "Core/Reflection/EPropertyFlags.h"
 
 #include <cmath>
 #include <compare>
@@ -21,18 +19,12 @@ namespace Core {
      * @details 값은 항상 SI 기본 단위(m, kg, s, rad)로 저장하며 단위 변환은 리터럴로 만들 때와
      *          같은 차원의 단위로 나눠 꺼낼 때만 일어납니다.
      * @tparam D 물리량의 차원입니다.
-     * @tparam T 값을 저장할 스칼라 타입입니다. 리플렉션 생성기가 기본 템플릿 인자를 지원하지 않으므로
-     *           float 기반 별칭은 QuantityTypes.h를 사용합니다.
+     * @tparam T 값을 저장할 스칼라 타입입니다. float 기반 별칭은 QuantityTypes.h를 사용합니다.
      * @ingroup Core
      */
     template <Core::FDimension D, typename T>
     struct TQuantity {
     public:
-        /**
-         * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
-         */
-        ReflectTypes(TQuantity);
-
         /**
          * @brief 값을 저장하는 스칼라 타입입니다.
          */
@@ -44,12 +36,6 @@ namespace Core {
         static constexpr Core::FDimension Dimension = D;
 
     public:
-        /**
-         * @brief 이 타입의 정적 리플렉션 메타데이터를 반환합니다.
-         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectTemplate(TQuantity);
-
         /**
          * @brief 값이 0인 물리량을 구성합니다.
          */
@@ -63,6 +49,7 @@ namespace Core {
         static constexpr Core::TQuantity<D, T> FromBase(T Value) {
             Core::TQuantity<D, T> Result;
             Result.mValue = Value;
+
             return Result;
         }
 
@@ -119,6 +106,7 @@ namespace Core {
          */
         constexpr Core::TQuantity<D, T>& operator+=(const Core::TQuantity<D, T>& Other) {
             mValue += Other.mValue;
+
             return *this;
         }
 
@@ -129,6 +117,7 @@ namespace Core {
          */
         constexpr Core::TQuantity<D, T>& operator-=(const Core::TQuantity<D, T>& Other) {
             mValue -= Other.mValue;
+
             return *this;
         }
 
@@ -139,6 +128,7 @@ namespace Core {
          */
         constexpr Core::TQuantity<D, T>& operator*=(T Scale) {
             mValue *= Scale;
+
             return *this;
         }
 
@@ -149,20 +139,15 @@ namespace Core {
          */
         constexpr Core::TQuantity<D, T>& operator/=(T Scale) {
             mValue /= Scale;
+
             return *this;
         }
 
     private:
         /**
-         * @brief 생성된 멤버 등록 함수와 리플렉션 빌더의 접근 권한입니다.
-         */
-        ReflectMembers();
-
-        /**
          * @brief SI 기본 단위로 저장한 값입니다.
          */
         T mValue{};
-        ReflectProperty(mValue, "Value", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
     };
 
     /**
@@ -196,6 +181,10 @@ namespace Core {
      */
     template <Core::FDimension D, typename T, typename S>
         requires std::is_arithmetic_v<S>
+
+    /**
+     * @brief 물리량에 스칼라 값을 곱합니다.
+     */
     constexpr Core::TQuantity<D, T> operator*(Core::TQuantity<D, T> Value, S Scale) {
         return Value *= static_cast<T>(Scale);
     }
@@ -208,6 +197,10 @@ namespace Core {
      */
     template <Core::FDimension D, typename T, typename S>
         requires std::is_arithmetic_v<S>
+
+    /**
+     * @brief 스칼라 값에 물리량을 곱합니다.
+     */
     constexpr Core::TQuantity<D, T> operator*(S Scale, Core::TQuantity<D, T> Value) {
         return Value *= static_cast<T>(Scale);
     }
@@ -220,6 +213,10 @@ namespace Core {
      */
     template <Core::FDimension D, typename T, typename S>
         requires std::is_arithmetic_v<S>
+
+    /**
+     * @brief 물리량을 스칼라 값으로 나눕니다.
+     */
     constexpr Core::TQuantity<D, T> operator/(Core::TQuantity<D, T> Value, S Scale) {
         return Value /= static_cast<T>(Scale);
     }
@@ -232,6 +229,10 @@ namespace Core {
      */
     template <Core::FDimension D, typename T, typename S>
         requires std::is_arithmetic_v<S>
+
+    /**
+     * @brief 스칼라 값을 물리량으로 나눠 역차원 물리량을 만듭니다.
+     */
     constexpr Core::TQuantity<Core::Dim::None - D, T> operator/(S Scale, Core::TQuantity<D, T> Value) {
         return Core::TQuantity<Core::Dim::None - D, T>::FromBase(static_cast<T>(Scale) / Value.GetBase());
     }
@@ -323,11 +324,13 @@ namespace Core {
          */
         template <Core::FDimension D, typename T>
             requires (D.IsEven())
+
+        /**
+         * @brief 모든 차원 지수가 짝수인 물리량의 제곱근을 반환합니다.
+         */
         Core::TQuantity<D.Half(), T> Sqrt(Core::TQuantity<D, T> Value) {
             return Core::TQuantity<D.Half(), T>::FromBase(std::sqrt(Value.GetBase()));
         }
     }
 
 }
-
-#include "TQuantityReflection.generated.h"

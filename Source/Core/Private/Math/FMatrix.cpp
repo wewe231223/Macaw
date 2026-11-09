@@ -13,6 +13,7 @@
 #include "Math/SimdMath.h"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <limits>
 
@@ -147,8 +148,12 @@ namespace Core {
         return Result;
     }
 
+    /**
+     * @brief 지정한 가로·세로 범위와 깊이 구간의 정사영 행렬을 만듭니다.
+     */
     Core::FMatrix Core::FMatrix::Orthographic(float Width, float Height, float NearPlane, float FarPlane) {
         Core::FMatrix Result{};
+
         Result(0, 0) = 2.0f / Width;
         Result(1, 1) = 2.0f / Height;
         Result(2, 2) = 1.0f / (FarPlane - NearPlane);
@@ -332,6 +337,7 @@ namespace Core {
             }
 
             const __m128 Size{_mm_sqrt_ps(SizeSquared)};
+
             Scales[Row] = _mm_cvtss_f32(Size);
             Rotation.mRows[Row] = _mm_div_ps(Axis, Size);
         }
@@ -345,6 +351,7 @@ namespace Core {
         if (Determinant < 0.0f) {
             const auto Largest{std::max_element(Scales.begin(), Scales.end())};
             const auto Row{static_cast<std::size_t>(Largest - Scales.begin())};
+
             Rotation.mRows[Row] = _mm_xor_ps(Rotation.mRows[Row], _mm_set1_ps(-0.0f));
         }
 
@@ -353,19 +360,61 @@ namespace Core {
 
         if (Trace > 0.0f) {
             const float Scale{2.0f * std::sqrt(Trace + 1.0f)};
+
             Result = {(Rotation.mRows[1].m128_f32[2] - Rotation.mRows[2].m128_f32[1]) / Scale, (Rotation.mRows[2].m128_f32[0] - Rotation.mRows[0].m128_f32[2]) / Scale, (Rotation.mRows[0].m128_f32[1] - Rotation.mRows[1].m128_f32[0]) / Scale, Scale * 0.25f};
         } else if (Rotation.mRows[0].m128_f32[0] > Rotation.mRows[1].m128_f32[1] && Rotation.mRows[0].m128_f32[0] > Rotation.mRows[2].m128_f32[2]) {
             const float Scale{2.0f * std::sqrt(1.0f + Rotation.mRows[0].m128_f32[0] - Rotation.mRows[1].m128_f32[1] - Rotation.mRows[2].m128_f32[2])};
+
             Result = {Scale * 0.25f, (Rotation.mRows[0].m128_f32[1] + Rotation.mRows[1].m128_f32[0]) / Scale, (Rotation.mRows[0].m128_f32[2] + Rotation.mRows[2].m128_f32[0]) / Scale, (Rotation.mRows[1].m128_f32[2] - Rotation.mRows[2].m128_f32[1]) / Scale};
         } else if (Rotation.mRows[1].m128_f32[1] > Rotation.mRows[2].m128_f32[2]) {
             const float Scale{2.0f * std::sqrt(1.0f + Rotation.mRows[1].m128_f32[1] - Rotation.mRows[0].m128_f32[0] - Rotation.mRows[2].m128_f32[2])};
+
             Result = {(Rotation.mRows[0].m128_f32[1] + Rotation.mRows[1].m128_f32[0]) / Scale, Scale * 0.25f, (Rotation.mRows[1].m128_f32[2] + Rotation.mRows[2].m128_f32[1]) / Scale, (Rotation.mRows[2].m128_f32[0] - Rotation.mRows[0].m128_f32[2]) / Scale};
         } else {
             const float Scale{2.0f * std::sqrt(1.0f + Rotation.mRows[2].m128_f32[2] - Rotation.mRows[0].m128_f32[0] - Rotation.mRows[1].m128_f32[1])};
+
             Result = {(Rotation.mRows[0].m128_f32[2] + Rotation.mRows[2].m128_f32[0]) / Scale, (Rotation.mRows[1].m128_f32[2] + Rotation.mRows[2].m128_f32[1]) / Scale, Scale * 0.25f, (Rotation.mRows[0].m128_f32[1] - Rotation.mRows[1].m128_f32[0]) / Scale};
         }
 
         return Result.Normalized();
+    }
+
+    bool Core::FMatrix::TryGetTransform(Core::FTransform& Result) const {
+        if (!IsFinite() || std::abs(mRows[0].m128_f32[3]) > 0.0001f || std::abs(mRows[1].m128_f32[3]) > 0.0001f || std::abs(mRows[2].m128_f32[3]) > 0.0001f || std::abs(mRows[3].m128_f32[3] - 1.0f) > 0.0001f) {
+            return false;
+        }
+
+        std::array<float, 3> Scales{};
+        std::array<__m128, 3> Axes{};
+
+        for (Core::Int32 Row{}; Row < 3; ++Row) {
+            const float Size{std::sqrt(_mm_cvtss_f32(Core::Math::Simd::Dot<3>(mRows[Row], mRows[Row])))};
+
+            if (!std::isfinite(Size) || Size <= std::numeric_limits<float>::min()) {
+                return false;
+            }
+
+            Scales[static_cast<std::size_t>(Row)] = Size;
+            Axes[static_cast<std::size_t>(Row)] = _mm_div_ps(mRows[Row], _mm_set1_ps(Size));
+        }
+
+        // 축을 정규화한 3×3 행렬의 행렬식이 ±1이 아니면 전단이 있어 위치·회전·스케일로 나타낼 수 없습니다.
+        const float Determinant{_mm_cvtss_f32(Core::Math::Simd::Dot<3>(Core::Math::Simd::Cross3(Axes[0], Axes[1]), Axes[2]))};
+
+        if (!std::isfinite(Determinant) || std::abs(Determinant * Determinant - 1.0f) > 0.0001f) {
+            return false;
+        }
+
+        // GetQuaternion이 같은 축을 뒤집어 회전을 구하므로, 스케일에도 같은 부호를 옮겨야 원래 행렬이 복원됩니다.
+        if (Determinant < 0.0f) {
+            const auto Largest{std::max_element(Scales.begin(), Scales.end())};
+
+            *Largest = -*Largest;
+        }
+
+        Result = Core::FTransform{Origin(), GetQuaternion(), Core::FVector{Scales[0], Scales[1], Scales[2]}};
+
+        return Result.IsValid();
     }
 
     /**
@@ -407,12 +456,14 @@ namespace Core {
             const __m128 Denominator{_mm_set1_ps(Divisor)};
             const __m128 WorkingPivot{_mm_div_ps(Working.mRows[Column], Denominator)};
             const __m128 InversePivot{_mm_div_ps(Inverse.mRows[Column], Denominator)};
+
             Working.mRows[Column] = WorkingPivot;
             Inverse.mRows[Column] = InversePivot;
 
             for (Core::Int32 Row{}; Row < 4; ++Row) {
                 if (Row != Column) {
                     const __m128 Factor{_mm_set1_ps(Working.mRows[Row].m128_f32[Column])};
+
                     Working.mRows[Row] = _mm_sub_ps(Working.mRows[Row], _mm_mul_ps(Factor, WorkingPivot));
                     Inverse.mRows[Row] = _mm_sub_ps(Inverse.mRows[Row], _mm_mul_ps(Factor, InversePivot));
                 }
@@ -433,6 +484,7 @@ namespace Core {
      */
     Core::FMatrix Core::FMatrix::Transposed() const {
         Core::FMatrix Result{*this};
+
         _MM_TRANSPOSE4_PS(Result.mRows[0], Result.mRows[1], Result.mRows[2], Result.mRows[3]);
 
         return Result;
@@ -449,6 +501,7 @@ namespace Core {
         for (std::size_t Index{}; Index < Columns.size(); ++Index) {
             const Core::Int32 A{Columns[Index][0]};
             const Core::Int32 B{Columns[Index][1]};
+
             Upper[Index] = static_cast<double>(mRows[0].m128_f32[A]) * mRows[1].m128_f32[B] - static_cast<double>(mRows[0].m128_f32[B]) * mRows[1].m128_f32[A];
             Lower[Index] = static_cast<double>(mRows[2].m128_f32[A]) * mRows[3].m128_f32[B] - static_cast<double>(mRows[2].m128_f32[B]) * mRows[3].m128_f32[A];
         }

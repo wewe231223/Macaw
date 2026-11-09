@@ -1,3 +1,9 @@
+/**
+ * @file UMeshComponent.cpp
+ * @brief 메시의 공통 머티리얼 참조와 슬롯별 덮어쓰기를 관리합니다.
+ * @ingroup Engine
+ */
+
 #include "Engine/Component/UMeshComponent.h"
 #include "Asset/FAssetManager.h"
 #include "Asset/UMaterial.h"
@@ -10,10 +16,16 @@
 
 namespace Engine {
 
+    /**
+     * @brief 전체 덮어쓰기 머티리얼의 프로젝트 상대 경로를 반환합니다.
+     */
     const Core::FString& Engine::UMeshComponent::GetMaterialPath() const {
         return mMaterialPath;
     }
 
+    /**
+     * @brief 전체 덮어쓰기 머티리얼 경로를 검증·해석하고 렌더 상태를 갱신합니다.
+     */
     bool Engine::UMeshComponent::SetMaterialPath(const Core::FString& Path) {
         if (Path.find('\0') != Core::FString::npos) {
             return false;
@@ -43,26 +55,37 @@ namespace Engine {
 
         mMaterialPath = Path;
         mMaterial = Material;
+
         MarkRenderStateDirty();
 
         return true;
     }
 
+    /**
+     * @brief 메시 전체에 적용할 덮어쓰기 머티리얼의 비소유 주소를 반환합니다.
+     */
     Asset::UMaterial* Engine::UMeshComponent::GetMaterial() const {
         return mMaterial;
     }
 
+    /**
+     * @brief 저장한 전체 덮어쓰기 머티리얼 경로를 에셋 참조로 해석합니다.
+     */
     bool Engine::UMeshComponent::ResolveMaterial() {
         Asset::UMaterial* Material{LoadMaterial(mMaterialPath)};
 
         if (mMaterial != Material) {
             mMaterial = Material;
+
             MarkRenderStateDirty();
         }
 
         return mMaterialPath.empty() || mMaterial != nullptr;
     }
 
+    /**
+     * @brief 컴포넌트의 현재 상태를 복사한 프리미티브 프록시를 만듭니다.
+     */
     Engine::FPrimitiveSceneProxy Engine::UMeshComponent::CreateSceneProxy() const {
         Asset::UStaticMesh* Mesh{GetStaticMesh()};
 
@@ -78,11 +101,18 @@ namespace Engine {
         return Proxy;
     }
 
+    /**
+     * @brief 지정 슬롯의 덮어쓰기 머티리얼 경로를 반환합니다.
+     */
     const Core::FString& Engine::UMeshComponent::GetSlotMaterialPath(Core::Uint32 Slot) const {
         static const Core::FString Empty{};
+
         return Slot < mMaterialOverrides.size() ? mMaterialOverrides[Slot] : Empty;
     }
 
+    /**
+     * @brief 전체 덮어쓰기·슬롯 덮어쓰기·메시 기본값 순으로 슬롯 머티리얼을 구합니다.
+     */
     Asset::UMaterial* Engine::UMeshComponent::GetSlotMaterial(Core::Uint32 Slot) const {
         Asset::UStaticMesh* Mesh{GetStaticMesh()};
 
@@ -97,6 +127,9 @@ namespace Engine {
         return Mesh != nullptr && Slot < Mesh->GetMeshData().GetMaterialSlots().size() ? LoadMaterial(Mesh->GetMeshData().GetMaterialSlots()[Slot].GetMaterialPath()) : nullptr;
     }
 
+    /**
+     * @brief 지정 슬롯의 머티리얼 경로를 검증해 덮어쓰기에 반영합니다.
+     */
     bool Engine::UMeshComponent::SetSlotMaterialPath(Core::Uint32 Slot, const Core::FString& Path) {
         Asset::UStaticMesh* Mesh{GetStaticMesh()};
 
@@ -121,50 +154,46 @@ namespace Engine {
         }
 
         mMaterialOverrides[Slot] = Path;
+
         MarkRenderStateDirty();
 
         return true;
     }
 
-    void Engine::UMeshComponent::Serialize(Core::FArchive& Archive) {
-        Engine::UPrimitiveComponent::Serialize(Archive);
+    /**
+     * @brief 슬롯별 머티리얼 덮어쓰기 경로 배열을 반환합니다.
+     */
+    const Core::TArray<Core::FString>& Engine::UMeshComponent::GetSlotMaterialPaths() const {
+        return mMaterialOverrides;
+    }
 
-        if (Archive.HasError() || (Archive.IsLoading() && !Archive.HasField("SlotMaterials"))) {
-            return;
-        }
-
-        Core::Uint32 Count{Archive.IsLoading() ? 0 : static_cast<Core::Uint32>(mMaterialOverrides.size())};
-
-        if (!Archive.BeginArray("SlotMaterials", Count)) {
-            return;
-        }
-
-        if (Archive.IsLoading()) {
-            mMaterialOverrides.resize(Count);
-        }
-
-        for (Core::Uint32 Slot{}; Slot < Count && !Archive.HasError(); ++Slot) {
-            Archive.Serialize(std::to_string(Slot), mMaterialOverrides[Slot]);
-
-            const auto Path{Core::FilePath::FromUtf8(mMaterialOverrides[Slot])};
-            bool Valid{mMaterialOverrides[Slot].find('\0') == Core::FString::npos && (Path.empty() || (!Path.has_root_path() && Path.extension() == L".masset"))};
+    /**
+     * @brief 슬롯별 머티리얼 경로 배열을 검증해 덮어쓰기를 교체합니다.
+     */
+    bool Engine::UMeshComponent::SetSlotMaterialPaths(const Core::TArray<Core::FString>& Paths) {
+        for (const Core::FString& Override : Paths) {
+            const auto Path{Core::FilePath::FromUtf8(Override)};
+            bool Valid{Override.find('\0') == Core::FString::npos && (Path.empty() || (!Path.has_root_path() && Path.extension() == L".masset"))};
 
             for (const auto& Part : Path) {
                 Valid = Valid && Part != L"..";
             }
 
             if (!Valid) {
-                Archive.SetError("Invalid slot material reference");
+                return false;
             }
         }
 
-        Archive.EndArray();
+        mMaterialOverrides = Paths;
 
-        if (Archive.IsLoading()) {
-            MarkRenderStateDirty();
-        }
+        MarkRenderStateDirty();
+
+        return true;
     }
 
+    /**
+     * @brief 월드의 에셋 관리자에서 지정한 머티리얼을 조회합니다.
+     */
     Asset::UMaterial* Engine::UMeshComponent::LoadMaterial(const Core::FString& Path) const {
         Asset::FAssetManager* Assets{GetWorld() != nullptr ? GetWorld()->GetAssets() : nullptr};
 
@@ -182,11 +211,17 @@ namespace Engine {
         return Material;
     }
 
+    /**
+     * @brief 월드에 등록된 컴포넌트가 참조하는 에셋과 렌더 상태를 준비합니다.
+     */
     void Engine::UMeshComponent::OnRegister() {
         ResolveMesh();
         ResolveMaterial();
     }
 
+    /**
+     * @brief 슬롯별 머티리얼 경로를 비우고 렌더 상태를 갱신 대상으로 표시합니다.
+     */
     void Engine::UMeshComponent::ClearMaterialOverrides() {
         if (!mMaterialOverrides.empty()) {
             mMaterialOverrides.clear();
@@ -194,10 +229,14 @@ namespace Engine {
         }
     }
 
+    /**
+     * @brief 등록된 렌더 상태와 월드 연결을 해제합니다.
+     */
     void Engine::UMeshComponent::UnregisterComponent() {
         Engine::UWorld::FDispatchScope Scope{GetWorld()};
 
         Engine::UPrimitiveComponent::UnregisterComponent();
+
         mMaterial = nullptr;
     }
 

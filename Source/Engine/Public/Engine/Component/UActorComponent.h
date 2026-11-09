@@ -8,6 +8,7 @@
 
 #include "Core/ReflectionMacros.h"
 #include "CoreUObject/UObject.h"
+#include "UActorComponent.generated.h"
 
 namespace Engine {
 
@@ -18,12 +19,9 @@ namespace Engine {
      * @brief 소유 액터와 월드 등록 수명을 갖는 컴포넌트의 기반 클래스입니다.
      * @ingroup Engine
      */
+    UCLASS()
     class UActorComponent : public CoreUObject::UObject {
-    public:
-        /**
-         * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
-         */
-        ReflectTypes(UActorComponent, CoreUObject::UObject);
+        GENERATED_BODY()
 
     public:
         /**
@@ -38,21 +36,22 @@ namespace Engine {
 
     public:
         /**
-         * @brief 이 타입의 정적 클래스 메타데이터를 반환합니다.
-         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectClass(UActorComponent);
-
-        /**
-         * @fn UClass* UActorComponent::GetClass() const
-         * @brief 객체의 실제 클래스 메타데이터를 반환합니다.
-         * @return 실제 클래스 메타데이터의 비소유 주소입니다.
-         */
-        /**
          * @brief 컴포넌트를 소유한 액터를 반환합니다.
          * @return 조회한 값의 비소유 주소이며, 해당 값이 없으면 nullptr입니다.
          */
+        UFUNCTION()
         Engine::AActor* GetOwner() const;
+
+        /**
+         * @brief 소유 액터가 표시 상태인지 검사합니다.
+         * @return 소유 액터가 없거나 표시 상태이면 true입니다.
+         */
+        bool IsOwnerVisible() const;
+
+        /**
+         * @brief 소유 액터의 표시 여부가 바뀐 뒤 렌더 상태를 갱신하는 확장 지점입니다.
+         */
+        virtual void OnOwnerVisibilityChanged();
 
         /**
          * @brief 현재 소속되거나 관리하는 월드의 비소유 주소를 반환합니다.
@@ -114,9 +113,8 @@ namespace Engine {
 
     private:
         /**
-         * @brief 생성된 프로퍼티 등록 함수와 빌더 접근 권한입니다.
+         * @brief 월드에 등록된 컴포넌트가 참조하는 에셋과 렌더 상태를 준비합니다.
          */
-        ReflectMembers();
         virtual void OnRegister();
 
         /**
@@ -152,25 +150,22 @@ namespace Engine {
          * @brief 컴포넌트를 소유한 액터입니다.
          */
         Engine::AActor* mOwner{};
-        ReflectProperty(mOwner, "Owner", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 등록된 월드이며, 등록 전에는 nullptr입니다.
          */
         Engine::UWorld* mWorld{};
-        ReflectProperty(mWorld, "World", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 컴포넌트가 시작 전달에 진입하여 아직 종료되지 않았는지 나타냅니다.
          */
         bool mHasBegunPlay{};
-        ReflectProperty(mHasBegunPlay, "HasBegunPlay", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 정지한 편집 월드에서도 이 객체의 Tick을 허용하는 설정입니다.
          */
+        UPROPERTY(Edit, Serialize)
         bool mEditorTickable{};
-        ReflectProperty(mEditorTickable, "EditorTickable", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
     };
 
 }

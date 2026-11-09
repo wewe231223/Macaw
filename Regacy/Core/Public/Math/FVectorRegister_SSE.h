@@ -348,6 +348,7 @@ namespace VectorSIMD {
     template <int X, int Y, int Z, int W>
     inline FVectorRegister Shuffle(FVectorRegister A, FVectorRegister B) {
         return _mm_shuffle_ps(A, B, _MM_SHUFFLE(W, Z, Y, X));
+
         // 입력: Shuffle<0, 1, 2, 3>(A, B)  결과: [A0, A1, B2, B3]
     }
 
@@ -364,6 +365,7 @@ namespace VectorSIMD {
     template <int X, int Y, int Z, int W>
     inline FVectorRegister Swizzle(FVectorRegister A) {
         return _mm_shuffle_ps(A, A, _MM_SHUFFLE(W, Z, Y, X));
+
         // A = [10, 20, 30, 40], Swizzle<0, 0, 0, 0>(A),  [10, 10, 10, 10]
     }
 

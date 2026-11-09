@@ -14,6 +14,9 @@
 
 namespace Editor {
 
+    /**
+     * @brief 현재 ImGui 스타일과 기본 글꼴 크기를 배율 적용의 기준으로 저장합니다.
+     */
     void Editor::FImGuiUIScale::Initialize(float FontSize) {
         ImGuiIO& Input{ImGui::GetIO()};
         Input.ConfigDpiScaleFonts = false;
@@ -27,6 +30,9 @@ namespace Editor {
         mAppliedScale = 0.0f;
     }
 
+    /**
+     * @brief 현재 창의 DPI·크기와 사용자 설정에 맞춰 ImGui 배율을 갱신합니다.
+     */
     void Editor::FImGuiUIScale::Update(const Platform::FWindowsApplication& Platform) {
         if (Platform.IsMinimized()) {
             return;
@@ -41,12 +47,16 @@ namespace Editor {
         }
 
         ImGuiStyle& Style{ImGui::GetStyle()};
+
         Style = mBaseStyle;
         Style.ScaleAllSizes(Scale);
         Style.FontScaleMain = Scale;
         mAppliedScale = Scale;
     }
 
+    /**
+     * @brief 자동·사용자 UI 배율을 선택하는 메뉴를 그립니다.
+     */
     bool Editor::FImGuiUIScale::DrawMenu() {
         if (!ImGui::BeginMenu("UI Scale")) {
             return false;
@@ -70,9 +80,13 @@ namespace Editor {
         }
 
         ImGui::EndMenu();
+
         return Changed;
     }
 
+    /**
+     * @brief 10~32 범위의 폰트 크기로 배율 적용 전 스타일을 교체하고 다음 프레임의 배율 재적용을 예약합니다.
+     */
     void Editor::FImGuiUIScale::SetBaseStyle(const ImGuiStyle& Style, float FontSize) {
         if (!std::isfinite(FontSize) || FontSize < 10.0f || FontSize > 32.0f) {
             return;
@@ -85,20 +99,31 @@ namespace Editor {
         mAppliedScale = 0.0f;
     }
 
+    /**
+     * @brief 자동 배율 0 또는 0.75~3.0 범위의 유한한 사용자 UI 배율을 설정합니다.
+     */
     bool Editor::FImGuiUIScale::SetUserScale(float Scale) {
         if (!std::isfinite(Scale) || (Scale != 0.0f && (Scale < 0.75f || Scale > 3.0f))) {
             return false;
         }
 
         const bool Changed{mUserScale != Scale};
+
         mUserScale = Scale;
+
         return Changed;
     }
 
+    /**
+     * @brief 사용자가 선택한 UI 배율을 조회합니다.
+     */
     float Editor::FImGuiUIScale::GetUserScale() const {
         return mUserScale;
     }
 
+    /**
+     * @brief 현재 ImGui 스타일에 적용한 최종 배율을 반환합니다.
+     */
     float Editor::FImGuiUIScale::GetScale() const {
         return mAppliedScale;
     }

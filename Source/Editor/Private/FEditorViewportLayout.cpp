@@ -20,16 +20,25 @@
 
 namespace Editor {
 
+    /**
+     * @brief 전달된 설정과 기본값으로 FEditorViewportLayout 객체를 생성합니다.
+     */
     Editor::FEditorViewportLayout::FEditorViewportLayout(Editor::FEditorContext* Context, Editor::FEditorViewport* Viewport, Editor::FPlayInEditorSession* PlaySession)
 		: mContext{Context},
 		  mViewport{Viewport},
 		  mPlaySession{PlaySession} {
     }
 
+    /**
+     * @brief ImGui 설정 핸들러 등록을 해제하고 정사영 뷰포트를 정리합니다.
+     */
     Editor::FEditorViewportLayout::~FEditorViewportLayout() {
         Shutdown();
     }
 
+    /**
+     * @brief Top·Front·Right 정사영 뷰포트를 생성하고 ImGui 설정 핸들러를 등록합니다.
+     */
     bool Editor::FEditorViewportLayout::Initialize(RenderCore::IRendererModule* Renderer) {
         if (Renderer == nullptr || mContext == nullptr || mViewport == nullptr || mPlaySession == nullptr || mOrthographicViewports[0] != nullptr) {
             return false;
@@ -43,6 +52,7 @@ namespace Editor {
 
             if (!mOrthographicViewports[Index]->Initialize(Renderer)) {
                 Shutdown();
+
                 return false;
             }
         }
@@ -55,12 +65,16 @@ namespace Editor {
             Handler.ReadOpenFn = ReadSettingsOpen;
             Handler.ReadLineFn = ReadSettingsLine;
             Handler.WriteAllFn = WriteSettings;
+
             ImGui::AddSettingsHandler(&Handler);
         }
 
         return true;
     }
 
+    /**
+     * @brief 입력 캡처를 해제하고 소유 뷰포트 자원을 정리합니다.
+     */
     void Editor::FEditorViewportLayout::Shutdown() {
         if (ImGui::GetCurrentContext() != nullptr) {
             ImGuiSettingsHandler* Handler{ImGui::FindSettingsHandler("MacawViewport")};
@@ -82,14 +96,23 @@ namespace Editor {
         mVerticalRatio = 0.5f;
     }
 
+    /**
+     * @brief 0 기반 슬롯에 해당하는 뷰포트를 조회합니다.
+     */
     Editor::FEditorViewport* Editor::FEditorViewportLayout::GetViewport(Core::Uint32 Index) const {
         return Index == 0 ? mViewport : Index <= mOrthographicViewports.size() ? mOrthographicViewports[Index - 1].get() : nullptr;
     }
 
+    /**
+     * @brief 가장 최근 입력을 받은 유효한 뷰포트를 반환합니다.
+     */
     Editor::FEditorViewport* Editor::FEditorViewportLayout::GetActiveViewport() const {
         return mPlaySession->IsActive() ? mViewport : GetViewport(mActiveViewport);
     }
 
+    /**
+     * @brief 현재 편집 또는 PIE 컨텍스트를 각 뷰포트에 연결합니다.
+     */
     void Editor::FEditorViewportLayout::UpdateViewportContexts() {
         Editor::FEditorContext* Context{mPlaySession->IsActive() ? mPlaySession->GetInspectionContext() : mContext};
 
@@ -100,6 +123,9 @@ namespace Editor {
         }
     }
 
+    /**
+     * @brief 입력 캡처나 PIE 상태가 레이아웃 변경을 허용하는지 검사합니다.
+     */
     bool Editor::FEditorViewportLayout::CanChangeLayout() const {
         if (mPlaySession->IsActive()) {
             return false;
@@ -116,6 +142,9 @@ namespace Editor {
         return true;
     }
 
+    /**
+     * @brief 활성 뷰를 보존하며 단일·4분할 레이아웃을 전환합니다.
+     */
     void Editor::FEditorViewportLayout::SetQuadView(bool QuadView) {
         if (!CanChangeLayout() || mQuadView == QuadView) {
             return;
@@ -129,11 +158,17 @@ namespace Editor {
         }
     }
 
+    /**
+     * @brief 4분할 레이아웃 여부인지 검사합니다.
+     */
     bool Editor::FEditorViewportLayout::IsQuadView() const {
         return mQuadView;
     }
 
-    void Editor::FEditorViewportLayout::DrawViewport(Core::Uint32 Index, float DeltaTime, Editor::FEditorViewport*& CapturedViewport) {
+    /**
+     * @brief 한 뷰포트의 UI를 표시하고 입력을 캡처한 뷰를 갱신합니다.
+     */
+    void Editor::FEditorViewportLayout::DrawViewport(Core::Uint32 Index, const Core::FInput& Input, float DeltaTime, Editor::FEditorViewport*& CapturedViewport) {
         Editor::FEditorViewport* Viewport{GetViewport(Index)};
 
         if (Viewport == nullptr) {
@@ -160,6 +195,7 @@ namespace Editor {
 
                 if (ImGui::Selectable(Names[Type], Client->GetViewType() == ViewType)) {
                     Client->SetViewType(ViewType);
+
                     mActiveViewport = Index;
                 }
             }
@@ -169,8 +205,9 @@ namespace Editor {
 
         ImGui::SameLine(LayoutButtonX);
 
-        if (Editor::EditorStyle::IconButton("ViewportLayout", mQuadView ? Editor::EditorStyle::EIcon::Maximize : Editor::EditorStyle::EIcon::QuadView, false, true, false, mQuadView ? "Maximize Viewport" : "Switch to Four Viewports")) {
+        if (Editor::EditorStyle::IconButton("ViewportLayout", mQuadView ? Editor::EditorStyle::EIcon::Maximize : Editor::EditorStyle::EIcon::QuadView, false, true, false, mQuadView ? "뷰포트 최대화" : "4분할 뷰포트로 전환")) {
             mActiveViewport = Index;
+
             SetQuadView(!mQuadView);
         }
 
@@ -178,7 +215,8 @@ namespace Editor {
         Editor::EditorStyle::PopViewportToolbar();
         ImGui::Separator();
 
-        Viewport->DrawContents(DeltaTime, AllowInput);
+        Viewport->DrawContents(Input, DeltaTime, AllowInput);
+
         mVisible[Index] = true;
 
         if (Viewport->IsMouseCaptured()) {
@@ -189,7 +227,10 @@ namespace Editor {
         }
     }
 
-    void Editor::FEditorViewportLayout::DrawUI(float DeltaTime) {
+    /**
+     * @brief 단일 또는 4분할 뷰포트 UI를 표시합니다.
+     */
+    void Editor::FEditorViewportLayout::DrawUI(const Core::FInput& Input, float DeltaTime) {
         UpdateViewportContexts();
         mVisible.fill(false);
 
@@ -200,6 +241,7 @@ namespace Editor {
 
             if (Viewport != nullptr && Viewport->IsMouseCaptured()) {
                 CapturedViewport = Viewport;
+
                 break;
             }
         }
@@ -216,7 +258,7 @@ namespace Editor {
 
                 if (ImGui::BeginChild("ViewportSingle", Available, ImGuiChildFlags_None, Flags)) {
                     ImGui::PushID(static_cast<int>(Index));
-                    DrawViewport(Index, DeltaTime, CapturedViewport);
+                    DrawViewport(Index, Input, DeltaTime, CapturedViewport);
                     ImGui::PopID();
                 }
 
@@ -230,6 +272,7 @@ namespace Editor {
                 float Top{std::clamp(Size.y * mVerticalRatio, MinimumHeight, Size.y - MinimumHeight)};
                 float Right{Size.x - Left};
                 const bool CanResize{CapturedViewport == nullptr};
+
                 ImGui::BeginDisabled(!CanResize);
                 ImGui::SetCursorScreenPos({Origin.x + Left, Origin.y});
 
@@ -256,7 +299,7 @@ namespace Editor {
                     ImGui::PushID(static_cast<int>(Index));
 
                     if (ImGui::BeginChild("ViewportPane", Sizes[Index], ImGuiChildFlags_Borders, Flags)) {
-                        DrawViewport(Index, DeltaTime, CapturedViewport);
+                        DrawViewport(Index, Input, DeltaTime, CapturedViewport);
                     }
 
                     ImGui::EndChild();
@@ -279,6 +322,9 @@ namespace Editor {
         }
     }
 
+    /**
+     * @brief 표시 중인 뷰포트의 렌더 요청을 제출합니다.
+     */
     void Editor::FEditorViewportLayout::Draw(float DeltaTime) {
         UpdateViewportContexts();
 
@@ -297,14 +343,23 @@ namespace Editor {
         }
     }
 
+    /**
+     * @brief 분할 비율을 반환합니다.
+     */
     float Editor::FEditorViewportLayout::GetHorizontalRatio() const {
         return mHorizontalRatio;
     }
 
+    /**
+     * @brief 분할 비율을 반환합니다.
+     */
     float Editor::FEditorViewportLayout::GetVerticalRatio() const {
         return mVerticalRatio;
     }
 
+    /**
+     * @brief 유효한 분할 비율을 적용합니다.
+     */
     bool Editor::FEditorViewportLayout::SetSplitRatios(float Horizontal, float Vertical) {
         if (!std::isfinite(Horizontal) || !std::isfinite(Vertical) || Horizontal < 0.01f || Horizontal > 0.99f || Vertical < 0.01f || Vertical > 0.99f) {
             return false;
@@ -322,10 +377,16 @@ namespace Editor {
         return true;
     }
 
+    /**
+     * @brief INI 레이아웃 섹션을 엽니다.
+     */
     void* Editor::FEditorViewportLayout::ReadSettingsOpen(ImGuiContext*, ImGuiSettingsHandler* Handler, const char* Name) {
         return std::strcmp(Name, "Layout") == 0 ? Handler->UserData : nullptr;
     }
 
+    /**
+     * @brief 검증한 INI 레이아웃 값을 읽습니다.
+     */
     void Editor::FEditorViewportLayout::ReadSettingsLine(ImGuiContext*, ImGuiSettingsHandler*, void* Entry, const char* Line) {
         auto* Layout{static_cast<Editor::FEditorViewportLayout*>(Entry)};
         float Ratio{};
@@ -343,8 +404,12 @@ namespace Editor {
         }
     }
 
+    /**
+     * @brief 분할 비율과 뷰 모드를 INI에 씁니다.
+     */
     void Editor::FEditorViewportLayout::WriteSettings(ImGuiContext*, ImGuiSettingsHandler* Handler, ImGuiTextBuffer* Buffer) {
         const auto* Layout{static_cast<const Editor::FEditorViewportLayout*>(Handler->UserData)};
+
         Buffer->appendf("[MacawViewport][Layout]\nHorizontalRatio=%.9g\nVerticalRatio=%.9g\nQuadView=%d\nSingleViewport=%u\n\n", Layout->mHorizontalRatio, Layout->mVerticalRatio, Layout->mQuadView ? 1 : 0, Layout->mSingleViewport);
     }
 

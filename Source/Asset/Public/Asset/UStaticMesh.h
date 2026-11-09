@@ -8,23 +8,22 @@
 
 #include "CoreUObject/UObject.h"
 #include "Asset/FMeshData.h"
-#include "Core/FRevision.h"
+#include "RenderCore/TIndexBuffer.h"
+#include "RenderCore/TVertexBuffer.h"
 
 #include <d3d11.h>
+#include <array>
 #include <filesystem>
-#include <wrl/client.h>
+#include "UStaticMesh.generated.h"
 
 namespace Asset {
 
     /**
      * @brief CPU 메시 데이터와 Direct3D 정점·인덱스 버퍼 관리를 담당합니다.
      */
+    UCLASS()
     class UStaticMesh final : public CoreUObject::UObject {
-    public:
-        /**
-         * @brief 리플렉션에서 사용하는 소유 타입과 선택적 부모 타입의 별칭을 선언합니다.
-         */
-        ReflectTypes(UStaticMesh, CoreUObject::UObject);
+        GENERATED_BODY()
 
     public:
         /**
@@ -44,12 +43,6 @@ namespace Asset {
         ~UStaticMesh() override;
 
     public:
-        /**
-         * @brief 이 타입의 클래스 메타데이터를 반환합니다.
-         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectClass(UStaticMesh);
-
         /**
          * @brief 외부 메시 파일을 가져와 정점 속성과 인덱스 및 경계를 구성합니다.
          * @param[in] MeshPath 읽을 메시 파일의 경로입니다.
@@ -127,46 +120,16 @@ namespace Asset {
         bool HasResources() const;
 
         /**
-         * @brief 메시 데이터를 교체할 때마다 새로 받는 리비전을 반환합니다.
-         * @return 현재 메시 데이터의 리비전입니다.
+         * @brief 위치·법선·UV·색상 버퍼를 입력 슬롯 0~3에, 인덱스 버퍼를 함께 연결합니다.
+         * @param[in] Context 바인딩할 장치 컨텍스트입니다.
          */
-        Core::FRevision GetRevision() const;
+        void Bind(ID3D11DeviceContext* Context) const;
 
         /**
-         * @brief 정점 위치 GPU 버퍼의 비소유 주소를 반환합니다.
-         * @return GPU 자원의 비소유 주소이며, 아직 생성하지 않았으면 nullptr입니다.
+         * @brief 위치 버퍼만 입력 슬롯 0에, 인덱스 버퍼를 함께 연결합니다.
+         * @param[in] Context 바인딩할 장치 컨텍스트입니다.
          */
-        ID3D11Buffer* GetPositionBuffer() const;
-
-        /**
-         * @brief 법선과 탄젠트 GPU 버퍼의 비소유 주소를 반환합니다.
-         * @return GPU 자원의 비소유 주소이며, 아직 생성하지 않았으면 nullptr입니다.
-         */
-        ID3D11Buffer* GetTangentBuffer() const;
-
-        /**
-         * @brief UV 채널을 담은 GPU 버퍼의 비소유 주소를 반환합니다.
-         * @return GPU 자원의 비소유 주소이며, 아직 생성하지 않았으면 nullptr입니다.
-         */
-        ID3D11Buffer* GetUVBuffer() const;
-
-        /**
-         * @brief 정점 색상 GPU 버퍼의 비소유 주소를 반환합니다.
-         * @return GPU 자원의 비소유 주소이며, 아직 생성하지 않았으면 nullptr입니다.
-         */
-        ID3D11Buffer* GetColorBuffer() const;
-
-        /**
-         * @brief 삼각형 인덱스 GPU 버퍼의 비소유 주소를 반환합니다.
-         * @return GPU 자원의 비소유 주소이며, 아직 생성하지 않았으면 nullptr입니다.
-         */
-        ID3D11Buffer* GetIndexBuffer() const;
-
-        /**
-         * @brief 정점 하나의 모든 UV 채널이 차지하는 바이트 수를 반환합니다.
-         * @return 정점 하나의 모든 UV 채널이 차지하는 바이트 수를 나타내는 정수 값입니다.
-         */
-        Core::Uint32 GetUVStride() const;
+        void BindPositions(ID3D11DeviceContext* Context) const;
 
         /**
          * @brief 현재 보유한 GPU 리소스의 추정 바이트 수를 반환합니다.
@@ -174,89 +137,43 @@ namespace Asset {
          */
         std::size_t GetResourceBytes() const;
 
-        /**
-         * @brief 정점 하나의 위치 데이터가 차지하는 바이트 수를 반환합니다.
-         * @return 정점 하나의 위치 데이터가 차지하는 바이트 수를 나타내는 정수 값입니다.
-         */
-        static Core::Uint32 GetPositionStride();
-
-        /**
-         * @brief 정점 하나의 법선·탄젠트 데이터가 차지하는 바이트 수를 반환합니다.
-         * @return 정점 하나의 법선·탄젠트 데이터가 차지하는 바이트 수를 나타내는 정수 값입니다.
-         */
-        static Core::Uint32 GetTangentStride();
-
-        /**
-         * @brief 정점 하나의 색상 데이터가 차지하는 바이트 수를 반환합니다.
-         * @return 정점 하나의 색상 데이터가 차지하는 바이트 수를 나타내는 정수 값입니다.
-         */
-        static Core::Uint32 GetColorStride();
-
     private:
         /**
-         * @brief 자동 생성된 프로퍼티 등록 코드와 리플렉션 빌더의 접근을 허용합니다.
+         * @brief 원소 타입 T를 담는 불변 정점 버퍼입니다.
          */
-        ReflectMembers();
-
-        /**
-         * @brief 크기와 입력을 검증하여 초기 데이터가 있는 GPU 버퍼를 생성합니다.
-         * @param[in] Device GPU 리소스를 생성할 Direct3D 장치의 비소유 주소입니다.
-         * @param[in] Data 버퍼 초기 데이터의 주소입니다.
-         * @param[in] Bytes 직렬화할 바이트 수입니다.
-         * @param[in] BindFlags 생성할 Direct3D 버퍼의 바인딩 용도입니다.
-         * @param[out] Buffer 생성한 GPU 버퍼를 받을 COM 소유 참조입니다.
-         * @return 요청한 처리를 완료하면 true, 실패하면 false입니다.
-         */
-        static bool CreateBuffer(ID3D11Device* Device, const void* Data, std::size_t Bytes, Core::Uint32 BindFlags, Microsoft::WRL::ComPtr<ID3D11Buffer>& Buffer);
+        template <typename T>
+        using TMeshVertexBuffer = RenderCore::TVertexBuffer<T, RenderCore::EBufferUpdate::Immutable>;
 
     private:
         /**
          * @brief 메시의 CPU 정점 속성·인덱스·경계 데이터입니다.
          */
         Asset::FMeshData mMeshData{};
-        ReflectProperty(mMeshData, "MeshData", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
-
-        /**
-         * @brief 메시 데이터를 교체할 때마다 새로 받는 리비전입니다.
-         */
-        Core::FRevision mRevision{Core::FRevision::Next()};
-        ReflectProperty(mRevision, "Revision", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 정점 위치를 보관하는 소유 GPU 버퍼입니다.
          */
-        Microsoft::WRL::ComPtr<ID3D11Buffer> mPositionBuffer{};
-        ReflectProperty(mPositionBuffer, "PositionBuffer", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+        TMeshVertexBuffer<std::array<float, 3>> mPositionBuffer{};
 
         /**
          * @brief 정점 법선과 탄젠트를 보관하는 소유 GPU 버퍼입니다.
          */
-        Microsoft::WRL::ComPtr<ID3D11Buffer> mTangentBuffer{};
-        ReflectProperty(mTangentBuffer, "TangentBuffer", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+        TMeshVertexBuffer<std::array<float, 7>> mTangentBuffer{};
 
         /**
-         * @brief 정점별 UV 채널을 보관하는 소유 GPU 버퍼입니다.
+         * @brief 정점별 UV 채널을 보관하는 소유 GPU 버퍼이며 정점 하나가 채널 수만큼의 원소를 차지합니다.
          */
-        Microsoft::WRL::ComPtr<ID3D11Buffer> mUVBuffer{};
-        ReflectProperty(mUVBuffer, "UVBuffer", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+        TMeshVertexBuffer<std::array<float, 2>> mUVBuffer{};
 
         /**
          * @brief 정점 색상을 보관하는 소유 GPU 버퍼입니다.
          */
-        Microsoft::WRL::ComPtr<ID3D11Buffer> mColorBuffer{};
-        ReflectProperty(mColorBuffer, "ColorBuffer", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+        TMeshVertexBuffer<std::array<float, 4>> mColorBuffer{};
 
         /**
          * @brief 삼각형 인덱스를 보관하는 소유 GPU 버퍼입니다.
          */
-        Microsoft::WRL::ComPtr<ID3D11Buffer> mIndexBuffer{};
-        ReflectProperty(mIndexBuffer, "IndexBuffer", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
-
-        /**
-         * @brief 현재 보유한 GPU 리소스의 추정 바이트 수입니다.
-         */
-        std::size_t mResourceBytes{};
-        ReflectProperty(mResourceBytes, "ResourceBytes", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+        RenderCore::TIndexBuffer<Core::Uint32> mIndexBuffer{};
     };
 
 }

@@ -12,6 +12,9 @@
 
 namespace Asset {
 
+    /**
+     * @brief 텍스처의 저장 가능한 이미지와 메타데이터를 복사합니다.
+     */
     Asset::FTextureAssetData::FTextureAssetData(const Asset::UTexture2D& Texture)
 		: mWidth{Texture.GetSizeX()},
 		  mHeight{Texture.GetSizeY()},
@@ -25,6 +28,9 @@ namespace Asset {
         }
     }
 
+    /**
+     * @brief 크기, 포맷, 색 공간, DDS 여부와 이미지 바이트를 같은 순서로 직렬화합니다.
+     */
     void Asset::FTextureAssetData::Serialize(Serialization::FMemoryArchive& Archive) {
         Archive.Serialize("Width", mWidth);
         Archive.Serialize("Height", mHeight);
@@ -34,11 +40,15 @@ namespace Asset {
         Archive.Serialize("ImageData", mImageData);
     }
 
+    /**
+     * @brief 포맷과 이미지 메타데이터를 검증하여 텍스처에 적용합니다.
+     */
     bool Asset::FTextureAssetData::ApplyTo(Asset::UTexture2D& Texture, Core::FString& Error) const {
         Error.clear();
 
         if (mFormat >= static_cast<Core::Uint32>(Asset::ETextureFormat::D24S8)) {
             Error = "Invalid texture asset data";
+
             return false;
         }
 
@@ -47,6 +57,7 @@ namespace Asset {
 
         if (!Loaded || Texture.GetSizeX() != mWidth || Texture.GetSizeY() != mHeight || Texture.GetFormat() != static_cast<Asset::ETextureFormat>(mFormat)) {
             Error = "Invalid texture image data";
+
             return false;
         }
 

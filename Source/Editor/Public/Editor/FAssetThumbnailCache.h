@@ -15,6 +15,7 @@ namespace Asset {
     class FAssetManager;
     class UStaticMesh;
     class UMaterial;
+    class USkeleton;
 }
 
 namespace Engine {
@@ -31,36 +32,12 @@ namespace Editor {
      * @brief 렌더 타깃을 유지하며 보이는 에셋의 썸네일을 프레임 예산 안에서 갱신합니다.
      */
     class FAssetThumbnailCache {
-    public:
-        /**
-         * @brief 리플렉션 소유 타입입니다.
-         */
-        ReflectTypes(FAssetThumbnailCache);
-
     private:
         /**
          * @brief 캐시한 렌더 타깃과 마지막 사용·갱신 정보를 보관합니다.
          */
         struct FThumbnail {
-        public:
-            /**
-             * @brief 리플렉션 소유 타입입니다.
-             */
-            ReflectTypes(FThumbnail);
-
-        public:
-            /**
-             * @brief 정적 메타데이터를 반환합니다.
-             * @return 등록한 구조체 정보입니다.
-             */
-            ReflectStruct(FThumbnail);
-
         private:
-            /**
-             * @brief 자동 멤버 등록 접근을 허용합니다.
-             */
-            ReflectMembers();
-
             /**
              * @brief 캐시가 렌더 타깃을 갱신하도록 허용합니다.
              */
@@ -71,19 +48,16 @@ namespace Editor {
              * @brief 썸네일 전용 렌더 타깃입니다.
              */
             std::unique_ptr<Engine::FRenderTarget> mTarget{};
-            ReflectProperty(mTarget, "Target", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
             /**
              * @brief 마지막으로 렌더링한 에셋 설정의 서명입니다.
              */
             std::size_t mSignature{};
-            ReflectProperty(mSignature, "Signature", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
             /**
              * @brief 마지막 사용 프레임입니다.
              */
             Core::Uint64 mLastUsed{};
-            ReflectProperty(mLastUsed, "LastUsed", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
         };
 
     public:
@@ -100,12 +74,6 @@ namespace Editor {
         ~FAssetThumbnailCache();
 
     public:
-        /**
-         * @brief 정적 메타데이터를 반환합니다.
-         * @return 등록한 구조체 정보입니다.
-         */
-        ReflectStruct(FAssetThumbnailCache);
-
         /**
          * @brief UI 프레임 시작 시 생성 예산과 오래된 캐시를 갱신합니다.
          * @param RenderBudget 이번 프레임에 새로 그릴 최대 썸네일 수입니다.
@@ -134,11 +102,6 @@ namespace Editor {
 
     private:
         /**
-         * @brief 자동 멤버 등록 접근을 허용합니다.
-         */
-        ReflectMembers();
-
-        /**
          * @brief 메시 또는 구형 재질을 캐시에 렌더링합니다.
          * @param Key 캐시 키입니다.
          * @param Mesh 렌더링할 메시입니다.
@@ -146,7 +109,7 @@ namespace Editor {
          * @param Signature 에셋 설정의 서명입니다.
          * @return 캐시 렌더 타깃의 SRV 주소입니다.
          */
-        void* Render(const Core::FString& Key, Asset::UStaticMesh* Mesh, Asset::UMaterial* Material, std::size_t Signature);
+        void* Render(const Core::FString& Key, Asset::UStaticMesh* Mesh, Asset::UMaterial* Material, std::size_t Signature, const Asset::USkeleton* Skeleton = nullptr);
 
         /**
          * @brief 재질 설정의 변경을 감지할 서명을 만듭니다.
@@ -160,61 +123,51 @@ namespace Editor {
          * @brief 프로젝트 에셋 관리자입니다.
          */
         Asset::FAssetManager* mAssets{};
-        ReflectProperty(mAssets, "Assets", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 미리보기 렌더러입니다.
          */
         RenderCore::IRendererModule* mRenderer{};
-        ReflectProperty(mRenderer, "Renderer", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 썸네일만 그리는 독립 장면입니다.
          */
         std::unique_ptr<Engine::FSceneInterface> mScene{};
-        ReflectProperty(mScene, "Scene", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 재질 미리보기에 사용할 구 메시입니다.
          */
         std::unique_ptr<Asset::UStaticMesh> mSphere{};
-        ReflectProperty(mSphere, "Sphere", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 빈 메시 선택기의 기본 큐브입니다.
          */
         std::unique_ptr<Asset::UStaticMesh> mCube{};
-        ReflectProperty(mCube, "Cube", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 경로별 썸네일입니다.
          */
         Core::TMap<Core::FString, FThumbnail> mThumbnails{};
-        ReflectProperty(mThumbnails, "Thumbnails", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 장면에서 재사용할 프리미티브 식별자입니다.
          */
         Core::FGuid mPrimitiveId{};
-        ReflectProperty(mPrimitiveId, "PrimitiveId", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 목록 갱신에 따른 캐시 세대입니다.
          */
         std::size_t mGeneration{1};
-        ReflectProperty(mGeneration, "Generation", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 현재 UI 프레임입니다.
          */
         Core::Uint64 mFrame{};
-        ReflectProperty(mFrame, "Frame", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 남은 썸네일 생성 예산입니다.
          */
         Core::Uint32 mRenderBudget{4};
-        ReflectProperty(mRenderBudget, "RenderBudget", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
 }

@@ -8,6 +8,7 @@
 
 #include "Core/ReflectionMacros.h"
 #include "CoreUObject/UObject.h"
+#include "ULevel.generated.h"
 
 namespace Engine {
 
@@ -18,12 +19,9 @@ namespace Engine {
      * @brief 월드에 속한 액터의 소유권과 컴포넌트 등록 수명을 관리합니다.
      * @ingroup Engine
      */
+    UCLASS(NoFactory)
     class ULevel final : public CoreUObject::UObject {
-    public:
-        /**
-         * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
-         */
-        ReflectTypes(ULevel, CoreUObject::UObject);
+        GENERATED_BODY()
 
     public:
         /**
@@ -37,19 +35,6 @@ namespace Engine {
         ~ULevel() override;
 
     public:
-        /**
-         * @brief 이 타입의 정적 클래스 메타데이터를 반환합니다.
-         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectClass(ULevel, CoreUObject::EClassFlags::NoFactory);
-
-        /**
-         * @fn UClass* ULevel::GetClass() const
-         * @brief 객체의 실제 클래스 메타데이터를 반환합니다.
-         * @return 실제 클래스 메타데이터의 비소유 주소입니다.
-         */
-
-
         /**
          * @brief 검증한 액터의 소유권을 레벨로 옮기고 컴포넌트를 월드에 등록합니다.
          * @param[in] Actor 추가할 액터의 소유권입니다.
@@ -71,11 +56,6 @@ namespace Engine {
         const Core::TArray<std::unique_ptr<Engine::AActor>>& GetActors() const;
 
     private:
-        /**
-         * @brief 생성된 프로퍼티 등록 함수와 빌더 접근 권한입니다.
-         */
-        ReflectMembers();
-
         /**
          * @brief 객체가 소속된 월드 연결을 지정합니다.
          * @param[in] World 연결할 월드이며, nullptr이면 연결을 해제합니다.
@@ -99,13 +79,11 @@ namespace Engine {
          * @brief 레벨이 속한 월드입니다.
          */
         Engine::UWorld* mWorld{};
-        ReflectProperty(mWorld, "World", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 레벨이 소유한 액터 목록입니다.
          */
         Core::TArray<std::unique_ptr<Engine::AActor>> mActors{};
-        ReflectProperty(mActors, "Actors", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
 }

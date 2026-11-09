@@ -21,12 +21,6 @@ namespace Asset {
     class FMeshImportMesh {
     public:
         /**
-         * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
-         */
-        ReflectTypes(FMeshImportMesh);
-
-    public:
-        /**
          * @brief 빈 메시를 생성합니다.
          */
         FMeshImportMesh() = default;
@@ -39,12 +33,6 @@ namespace Asset {
 
     public:
         /**
-         * @brief 이 타입의 정적 구조체 메타데이터를 반환합니다.
-         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectStruct(FMeshImportMesh);
-
-        /**
          * @brief 메시 이름을 조회합니다.
          * @return 원본에서 가져온 메시 이름의 읽기 전용 참조입니다.
          */
@@ -55,6 +43,7 @@ namespace Asset {
          * @return 메시가 소유하는 메시 데이터의 참조입니다.
          */
         Asset::FMeshData& GetMeshData();
+
         /**
          * @brief 메시의 정점·인덱스·서브메시·재질 슬롯을 조회합니다.
          * @return 메시가 소유하는 메시 데이터의 참조입니다.
@@ -95,34 +84,24 @@ namespace Asset {
 
     private:
         /**
-         * @brief 생성된 프로퍼티 등록 함수와 빌더 접근 권한입니다.
-         */
-        ReflectMembers();
-
-    private:
-        /**
          * @brief 원본 노드 또는 파일에서 가져온 메시 이름입니다.
          */
         Core::FString mName{};
-        ReflectProperty(mName, "Name", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 엔진 공간으로 변환한 정점·인덱스·서브메시·재질 슬롯입니다.
          */
         Asset::FMeshData mMeshData{};
-        ReflectProperty(mMeshData, "MeshData", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 재질 슬롯별 결과 재질 인덱스입니다.
          */
         Core::TArray<Core::Uint32> mMaterialIndices{};
-        ReflectProperty(mMaterialIndices, "MaterialIndices", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 정점별 본 가중치이며 스킨이 없는 메시이면 비어 있습니다.
          */
         Core::TArray<Asset::FMeshImportSkinWeight> mSkinWeights{};
-        ReflectProperty(mSkinWeights, "SkinWeights", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
 }

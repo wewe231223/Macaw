@@ -9,6 +9,7 @@ public:
 
 public:
     USurfaceOpaque();
+
     ~USurfaceOpaque() override = default;
     USurfaceOpaque(const USurfaceOpaque&) = delete;
 

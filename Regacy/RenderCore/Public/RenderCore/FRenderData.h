@@ -30,18 +30,21 @@ public:
      * @brief 글리프 사각형 왼쪽 위의 로컬 위치입니다.
      */
     FVector2 mLocalPosition{};
+
     ReflectProperty(mSize, "Size", EPropertyFlags::Serialize, ReflectSerializer(mSize));
 
     /**
      * @brief 글리프 사각형의 가로·세로 크기입니다.
      */
     FVector2 mSize{};
+
     ReflectProperty(mUvMin, "UvMin", EPropertyFlags::Serialize, ReflectSerializer(mUvMin));
 
     /**
      * @brief 글리프 아틀라스 영역의 최소 UV 좌표입니다.
      */
     FVector2 mUvMin{};
+
     ReflectProperty(mUvMax, "UvMax", EPropertyFlags::Serialize, ReflectSerializer(mUvMax));
 
     /**
@@ -193,12 +196,14 @@ public:
      * @brief 렌더 타깃을 지울 때 사용할 RGBA 배경 색상입니다.
      */
     FVector4 mClearColor{0.2f, 0.2f, 0.7f, 1.0f};
+
     ReflectProperty(mBRenderSky, "BRenderSky", EPropertyFlags::Serialize, ReflectSerializer(mBRenderSky));
 
     /**
      * @brief 하늘 렌더링을 활성화할지 여부입니다.
      */
     bool mBRenderSky{true};
+
     ReflectProperty(mPostProcessing, "PostProcessing", EPropertyFlags::Serialize, ReflectSerializer(mPostProcessing));
 
     /**

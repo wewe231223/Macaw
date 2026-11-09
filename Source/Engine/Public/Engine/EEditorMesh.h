@@ -8,6 +8,7 @@
 
 #include "Core/Types.h"
 #include "CoreUObject/Reflection/TNativeEnum.h"
+#include "EEditorMesh.generated.h"
 
 namespace Engine {
 
@@ -15,6 +16,7 @@ namespace Engine {
      * @brief 렌더러의 고정 GPU 메시와 CPU 피킹 형상을 함께 식별하는 에디터 메시 종류입니다.
      * @ingroup Engine
      */
+    UENUM()
     enum class EEditorMesh : Core::Uint8 {
         /**
          * @brief 이동용 원통 축과 원뿔 화살촉 메시입니다.
@@ -44,22 +46,13 @@ namespace Engine {
          * @brief 중앙 균일 스케일 핸들의 상자 메시입니다.
          */
         Cube,
+        Sphere,
+        BoneOctahedron,
+
         /**
          * @brief 고정 에디터 메시 종류의 개수이며 실제 형상이나 그리기 요청이 없음을 나타냅니다.
          */
-        Count
+        Count UMETA(Hidden)
     };
-
-    /**
-     * @brief 고정 에디터 메시 열거형의 정적 메타데이터를 반환합니다.
-     * @return 등록된 열거형 메타데이터의 비소유 주소입니다.
-     */
-    ReflectEnum(EEditorMesh, Arrow, Hammer, Ring, HalfRing, Quad, Triangle, Cube);
-
-    /**
-     * @fn UEnum* GetNativeEnum(TNativeEnum<EEditorMesh>)
-     * @brief 타입 태그를 통해 에디터 메시 열거형의 메타데이터를 조회합니다.
-     * @return 등록된 열거형 메타데이터의 비소유 주소입니다.
-     */
 
 }

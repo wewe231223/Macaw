@@ -14,6 +14,7 @@ void UPrimitiveComponent::SetVisible(bool BInVisible) {
     }
 
     mBVisible = BInVisible;
+
     OnRenderStateChanged();
 }
 
@@ -120,6 +121,7 @@ bool UPrimitiveComponent::SetUVTransform(FName MaterialSlot, const FUVTransform&
 
         Entry.mTransform = Transform;
         Entry.mSourceHandle = SourceHandle;
+
         MarkRenderDynamicDataDirty();
 
         return true;

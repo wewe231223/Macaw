@@ -29,6 +29,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
     if (Length == 0 || Length >= Executable.size()) {
         CoUninitialize();
+
         return 1;
     }
 
@@ -39,6 +40,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
     if (Arguments == nullptr) {
         CoUninitialize();
+
         return 1;
     }
 
@@ -58,6 +60,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
     if (ValidArguments) {
         Game::FGameApplication Application{};
+
         Result = Application.Run(ProjectFile);
     } else {
         Core::ErrorHandler::Report("Game", "Usage: MacawGame.exe [--project Project.mproject]", Core::ErrorHandler::EErrorLevel::Error);

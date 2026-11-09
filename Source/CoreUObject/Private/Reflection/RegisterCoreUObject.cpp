@@ -9,6 +9,9 @@
 
 namespace CoreUObject {
 
+    /**
+     * @brief Core와 CoreUObject의 생성된 리플렉션 등록을 실행합니다.
+     */
     void CoreUObject::ReflectionModules::RegisterCoreUObject() {
         CoreUObject::ReflectionModules::RegisterCoreUObjectTypes();
     }

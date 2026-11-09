@@ -15,15 +15,20 @@
 
 namespace Renderer {
 
+    /**
+     * @brief 전달된 설정과 기본값으로 FSpriteRenderer 객체를 생성합니다.
+     */
     Renderer::FSpriteRenderer::FSpriteRenderer() = default;
+
+    /**
+     * @brief 기본 소멸자이며, GPU 자원은 ComPtr 멤버가 해제합니다.
+     */
     Renderer::FSpriteRenderer::~FSpriteRenderer() = default;
 
+    /**
+     * @brief 스프라이트 셰이더, 정점 버퍼와 상수 버퍼를 생성합니다.
+     */
     bool Renderer::FSpriteRenderer::Initialize(ID3D11Device* Device) {
-        D3D11_BUFFER_DESC Buffer{};
-        Buffer.ByteWidth = sizeof(FConstants);
-        Buffer.Usage = D3D11_USAGE_DEFAULT;
-        Buffer.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-
         D3D11_SAMPLER_DESC Sampler{};
         Sampler.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
         Sampler.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
@@ -31,7 +36,9 @@ namespace Renderer {
         Sampler.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
         Sampler.MaxLOD = D3D11_FLOAT32_MAX;
 
-        if (FAILED(Device->CreateBuffer(&Buffer, nullptr, mConstants.GetAddressOf())) || FAILED(Device->CreateSamplerState(&Sampler, mSampler.GetAddressOf()))) {
+        Core::FString Error{};
+
+        if (!mConstants.Create(Device, Error) || FAILED(Device->CreateSamplerState(&Sampler, mSampler.GetAddressOf()))) {
             return false;
         }
 
@@ -46,6 +53,7 @@ namespace Renderer {
                 const float Radius{0.25f + 0.6f * (static_cast<float>(Frame) / 15.0f)};
                 const bool Visible{Horizontal * Horizontal + Vertical * Vertical <= Radius * Radius};
                 const std::size_t Offset{(static_cast<std::size_t>(Y) * 128 + X) * 4};
+
                 Pixels[Offset] = static_cast<Core::Uint8>(64 + Frame * 12);
                 Pixels[Offset + 1] = static_cast<Core::Uint8>(220 - Frame * 8);
                 Pixels[Offset + 2] = 240;
@@ -58,6 +66,9 @@ namespace Renderer {
         return mDefaultAtlas->SetPixels(128, 128, Asset::ETextureFormat::RGBA8, std::move(Pixels)) && mDefaultAtlas->CreateResources(Device);
     }
 
+    /**
+     * @brief 컴파일된 바이트코드로 정점·픽셀 셰이더를 생성하고 성공 시 교체합니다.
+     */
     bool Renderer::FSpriteRenderer::CreateShaders(ID3D11Device* Device, std::span<const Core::Uint8> VertexCode, std::span<const Core::Uint8> PixelCode) {
         Microsoft::WRL::ComPtr<ID3D11VertexShader> Vertex{};
         Microsoft::WRL::ComPtr<ID3D11PixelShader> Pixel{};
@@ -72,6 +83,9 @@ namespace Renderer {
         return true;
     }
 
+    /**
+     * @brief 쿼드 정렬과 UV 변환을 반영하여 텍스처 스프라이트를 그립니다.
+     */
     bool Renderer::FSpriteRenderer::Draw(ID3D11DeviceContext* Context, const Engine::FPrimitiveSceneProxy& Proxy, const Engine::FSceneView& View) {
         if (!Proxy.mSprite.has_value() || mVertexShader == nullptr || mPixelShader == nullptr) {
             return false;
@@ -80,6 +94,7 @@ namespace Renderer {
         const Engine::FDrawSprite& Sprite{*Proxy.mSprite};
         Asset::UTexture2D* Texture{Sprite.mTexture != nullptr ? Sprite.mTexture : mDefaultAtlas.get()};
         Microsoft::WRL::ComPtr<ID3D11Device> Device{};
+
         Context->GetDevice(Device.GetAddressOf());
 
         if (Texture == nullptr || (!Texture->HasResources() && !Texture->CreateResources(Device.Get()))) {
@@ -87,9 +102,9 @@ namespace Renderer {
         }
 
         const FConstants Constants{Engine::MakeSpriteWorld(Proxy.mWorld, Sprite, View) * View.mViewProjection, {Proxy.mUVScale.x, Proxy.mUVScale.y, Proxy.mUVOffset.x, Proxy.mUVOffset.y}, Sprite.mColor};
-        Context->UpdateSubresource(mConstants.Get(), 0, nullptr, &Constants, 0, 0);
 
-        ID3D11Buffer* Buffer{mConstants.Get()};
+        mConstants.Update(Context, Constants);
+
         ID3D11ShaderResourceView* Resource{Texture->GetShaderResourceView()};
         ID3D11SamplerState* Sampler{mSampler.Get()};
 
@@ -97,19 +112,22 @@ namespace Renderer {
         Context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
         Context->VSSetShader(mVertexShader.Get(), nullptr, 0);
         Context->PSSetShader(mPixelShader.Get(), nullptr, 0);
-        Context->VSSetConstantBuffers(0, 1, &Buffer);
-        Context->PSSetConstantBuffers(0, 1, &Buffer);
+        mConstants.Bind(Context, RenderCore::EShaderStage::Vertex | RenderCore::EShaderStage::Pixel, 0);
         Context->PSSetShaderResources(0, 1, &Resource);
         Context->PSSetSamplers(0, 1, &Sampler);
         Context->Draw(6, 0);
         Renderer::RendererStats::Triangles.Add(2.0);
 
         ID3D11ShaderResourceView* Empty{};
+
         Context->PSSetShaderResources(0, 1, &Empty);
 
         return true;
     }
 
+    /**
+     * @brief 소유한 GPU 버퍼와 텍스처의 추정 바이트 수를 반환합니다.
+     */
     std::size_t Renderer::FSpriteRenderer::GetResourceBytes() const {
         return sizeof(FConstants) + (mDefaultAtlas != nullptr ? mDefaultAtlas->GetResourceBytes() : 0);
     }

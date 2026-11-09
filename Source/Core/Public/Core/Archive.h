@@ -37,12 +37,6 @@ namespace Core {
     class FArchive {
     public:
         /**
-         * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
-         */
-        ReflectTypes(FArchive);
-
-    public:
-        /**
          * @brief FArchive의 초기 상태와 전달받은 의존성을 구성합니다.
          * @param[in] Mode 로드 또는 저장 모드입니다.
          */
@@ -54,12 +48,6 @@ namespace Core {
         virtual ~FArchive();
 
     public:
-        /**
-         * @brief 이 타입의 정적 구조체 메타데이터를 반환합니다.
-         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectStruct(FArchive);
-
         /**
          * @brief 아카이브가 로드 모드인지 검사합니다.
          * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
@@ -91,6 +79,13 @@ namespace Core {
          * @return 요청한 처리를 완료하면 true, 실패하면 false입니다.
          */
         bool RemapObjectReference(Core::FGuid& Value);
+
+        /**
+         * @brief 복제 범위 안의 객체 참조만 복제 대상의 GUID로 변환합니다.
+         * @param[in,out] Value 변환할 참조이며 복제 범위 밖이면 그대로 유지합니다.
+         * @note 사라졌거나 함께 복제되지 않은 대상을 허용하는 약한 참조에 사용합니다.
+         */
+        void RemapWeakObjectReference(Core::FGuid& Value);
 
         /**
          * @brief 아카이브에 오류 메시지가 기록되어 있는지 검사합니다.
@@ -256,28 +251,19 @@ namespace Core {
 
     private:
         /**
-         * @brief 생성된 프로퍼티 등록 함수와 빌더 접근 권한입니다.
-         */
-        ReflectMembers();
-
-    private:
-        /**
          * @brief 현재 동작 모드입니다.
          */
         Core::EArchiveMode mMode{};
-        ReflectProperty(mMode, "Mode", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 복제 시 원본 GUID를 새 GUID로 변환하는 비소유 대응표입니다.
          */
         const Core::TMap<Core::FGuid, Core::FGuid, Core::FGuidHash>* mObjectGuidRemapping{};
-        ReflectProperty(mObjectGuidRemapping, "ObjectGuidRemapping", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 처음 발생한 오류 메시지입니다.
          */
         Core::FString mError{};
-        ReflectProperty(mError, "Error", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
 }

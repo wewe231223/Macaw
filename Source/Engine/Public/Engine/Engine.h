@@ -10,6 +10,7 @@
 #include "CoreUObject/UObject.h"
 #include "Engine/EWorldType.h"
 #include "Engine/FWorldHandle.h"
+#include "Engine.generated.h"
 
 namespace CoreUObject {
     class FObjectDuplicationContext;
@@ -28,13 +29,11 @@ namespace Engine {
     /**
      * @brief 현재 월드 컨텍스트와 렌더러 연결 및 월드 교체를 관리합니다.
      * @ingroup Engine
+     * @note GENERATED_BODY()가 실제 클래스 메타데이터의 비소유 주소를 반환하는 GetClass()를 선언합니다.
      */
+    UCLASS(NoFactory)
     class UEngine : public CoreUObject::UObject {
-    public:
-        /**
-         * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
-         */
-        ReflectTypes(UEngine, CoreUObject::UObject);
+        GENERATED_BODY()
 
     public:
         /**
@@ -49,22 +48,11 @@ namespace Engine {
 
     public:
         /**
-         * @brief 이 타입의 정적 클래스 메타데이터를 반환합니다.
-         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectClass(UEngine, CoreUObject::EClassFlags::NoFactory);
-
-        /**
          * @brief 렌더러 없이 초기 편집 월드와 리플렉션 기반을 준비합니다.
          * @return 초기 월드 준비에 성공하면 true이며 이미 초기화되었거나 콜백 처리 중이면 false입니다.
          */
         bool Initialize();
 
-        /**
-         * @fn UClass* UEngine::GetClass() const
-         * @brief 객체의 실제 클래스 메타데이터를 반환합니다.
-         * @return 실제 클래스 메타데이터의 비소유 주소입니다.
-         */
         /**
          * @brief 렌더러를 연결하고 초기 월드 컨텍스트와 장면을 준비합니다.
          * @param[in,out] Renderer 뷰포트 및 엔진이 참조할 렌더러입니다.
@@ -185,6 +173,8 @@ namespace Engine {
          */
         bool ReplaceWorld(std::unique_ptr<Engine::FWorldContext> Context);
 
+        bool ProcessSceneTransition(Engine::FWorldHandle Source, Engine::FWorldHandle& Replacement, Core::FString& Error);
+
         /**
          * @brief 월드 교체 시 증가하는 컨텍스트 세대를 반환합니다.
          * @return 월드 교체 시 증가하는 컨텍스트 세대입니다.
@@ -216,11 +206,6 @@ namespace Engine {
 
     private:
         /**
-         * @brief 생성된 프로퍼티 등록 함수와 빌더 접근 권한입니다.
-         */
-        ReflectMembers();
-
-        /**
          * @brief 슬롯 범위와 세대가 일치하는 소유 컨텍스트를 찾습니다.
          * @param[in] Handle 검증할 월드 핸들입니다.
          * @return 컨텍스트의 비소유 주소이며 검증에 실패하면 nullptr입니다.
@@ -240,49 +225,41 @@ namespace Engine {
          * @details 복수 컨텍스트를 슬롯별로 소유하며 현재 편집 대상은 mCurrentWorld 핸들로 선택합니다.
          */
         Core::TArray<std::unique_ptr<Engine::FWorldContext>> mWorldContexts{};
-        ReflectProperty(mWorldContexts, "WorldContexts", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 기존 편집 경로가 참조하는 현재 월드의 비소유 핸들입니다.
          */
         Engine::FWorldHandle mCurrentWorld{};
-        ReflectProperty(mCurrentWorld, "CurrentWorld", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 연결된 렌더러의 비소유 주소입니다.
          */
         RenderCore::IRendererModule* mRenderer{};
-        ReflectProperty(mRenderer, "Renderer", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 월드 교체 시 증가하는 컨텍스트 세대입니다.
          */
         Core::Uint64 mWorldGeneration{};
-        ReflectProperty(mWorldGeneration, "WorldGeneration", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 초기화가 완료되어 월드를 생성할 수 있는지 나타냅니다.
          */
         bool mInitialized{};
-        ReflectProperty(mInitialized, "Initialized", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 월드와 에셋 접근에 사용할 프로젝트의 비소유 주소입니다.
          */
         Engine::FProject* mProject{};
-        ReflectProperty(mProject, "Project", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 갱신이나 복제 및 정리 도중 엔진 변경의 재진입을 막습니다.
          */
         bool mUpdating{};
-        ReflectProperty(mUpdating, "Updating", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 안전한 갱신 경계에서 처리할 엔진 종료 요청입니다.
          */
         bool mShutdownRequested{};
-        ReflectProperty(mShutdownRequested, "ShutdownRequested", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
 }

@@ -7,6 +7,8 @@
 #pragma once
 
 #include "Engine/Component/ULightComponentBase.h"
+#include "Engine/EShadowBiasPreset.h"
+#include "ULightComponent.generated.h"
 
 namespace Engine {
 
@@ -14,12 +16,9 @@ namespace Engine {
      * @brief 광원의 그림자 생성 여부와 해상도·바이어스 설정을 관리합니다.
      * @ingroup Engine
      */
+    UCLASS(NoFactory)
     class ULightComponent : public Engine::ULightComponentBase {
-    public:
-        /**
-         * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
-         */
-        ReflectTypes(ULightComponent, Engine::ULightComponentBase);
+        GENERATED_BODY()
 
     public:
         /**
@@ -33,12 +32,6 @@ namespace Engine {
         ~ULightComponent() override;
 
     public:
-        /**
-         * @brief 이 타입의 정적 클래스 메타데이터를 반환합니다.
-         * @return 등록된 클래스 메타데이터의 비소유 주소입니다.
-         */
-        ReflectClass(ULightComponent, CoreUObject::EClassFlags::NoFactory);
-
         /**
          * @brief 광원의 그림자 생성 여부를 반환합니다.
          * @return 광원의 그림자 생성 여부입니다.
@@ -78,31 +71,10 @@ namespace Engine {
          */
         bool SetShadowResolutionScale(float Scale);
 
-        /**
-         * @brief 그림자 깊이 비교의 상수 바이어스를 반환합니다.
-         * @return 그림자 깊이 비교의 상수 바이어스입니다.
-         */
-        float GetShadowBias() const;
-
-        /**
-         * @brief 그림자 깊이 비교의 상수 바이어스를 검증하고 변경합니다.
-         * @param[in] Bias 0 이상 0.1 이하인 유한한 깊이 바이어스입니다.
-         * @return 입력값을 수락하고 상태를 갱신하면 true이며 잘못된 값이면 false입니다.
-         */
-        bool SetShadowBias(float Bias);
-
-        /**
-         * @brief 표면 기울기에 따른 그림자 바이어스 배율을 반환합니다.
-         * @return 표면 기울기에 따른 그림자 바이어스 배율입니다.
-         */
-        float GetShadowSlopeBias() const;
-
-        /**
-         * @brief 표면 기울기에 따른 그림자 바이어스 배율을 검증하고 변경합니다.
-         * @param[in] Bias 0 이상 16 이하인 유한한 기울기 바이어스입니다.
-         * @return 입력값을 수락하고 상태를 갱신하면 true이며 잘못된 값이면 false입니다.
-         */
-        bool SetShadowSlopeBias(float Bias);
+        Engine::EShadowBiasPreset GetShadowBiasPreset() const;
+        bool SetShadowBiasPreset(Engine::EShadowBiasPreset Preset);
+        Engine::EShadowBiasPreset GetShadowSlopeBiasPreset() const;
+        bool SetShadowSlopeBiasPreset(Engine::EShadowBiasPreset Preset);
 
         /**
          * @brief 그림자 경계의 선명도 조절값을 반환합니다.
@@ -118,53 +90,61 @@ namespace Engine {
         bool SetShadowSharpen(float Sharpen);
 
         /**
+         * @brief PCSS 반그림자 계산에 쓰는 광원 반지름을 반환합니다.
+         * @return 점광원·스포트라이트 광원의 반지름(m)입니다.
+         */
+        float GetShadowSourceRadius() const;
+
+        /**
+         * @brief PCSS 반그림자 계산에 쓰는 광원 반지름을 검증하고 변경합니다.
+         * @param[in] Radius 0 이상 10 이하인 유한한 광원 반지름(m)입니다.
+         * @return 입력값을 수락하고 상태를 갱신하면 true이며 잘못된 값이면 false입니다.
+         */
+        bool SetShadowSourceRadius(float Radius);
+
+        /**
          * @brief 현재 컴포넌트의 조명·그림자 설정으로 렌더 프록시를 생성합니다.
          * @return 렌더 장면에 복사할 광원 상태와 아이콘의 비소유 주소입니다.
          */
         Engine::FLightSceneProxy CreateLightProxy() const override;
-
-    private:
-        /**
-         * @brief 생성된 멤버 등록 함수와 리플렉션 빌더의 접근 권한입니다.
-         */
-        ReflectMembers();
+        void Serialize(Core::FArchive& Archive) override;
 
     private:
         /**
          * @brief 광원의 그림자 생성 여부입니다.
          */
+        UPROPERTY(Edit, Serialize, Getter = GetCastShadows, Setter = SetCastShadows)
         bool mCastShadows{true};
-        ReflectAccessor(mCastShadows, GetCastShadows, SetCastShadows, "CastShadows", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
 
         /**
          * @brief 기본 그림자 맵의 한 변 해상도입니다.
          */
+        UPROPERTY(Edit, Serialize, Getter = GetShadowResolution, Setter = SetShadowResolution)
         Core::Uint32 mShadowResolution{1024};
-        ReflectAccessor(mShadowResolution, GetShadowResolution, SetShadowResolution, "ShadowResolution", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
 
         /**
          * @brief 그림자 해상도 배율입니다.
          */
+        UPROPERTY(Edit, Serialize, Getter = GetShadowResolutionScale, Setter = SetShadowResolutionScale)
         float mShadowResolutionScale{1.0f};
-        ReflectAccessor(mShadowResolutionScale, GetShadowResolutionScale, SetShadowResolutionScale, "ShadowResolutionScale", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
 
-        /**
-         * @brief 그림자 깊이 비교의 상수 바이어스입니다.
-         */
-        float mShadowBias{0.0005f};
-        ReflectAccessor(mShadowBias, GetShadowBias, SetShadowBias, "ShadowBias", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
+        UPROPERTY(Edit, Serialize, Getter = GetShadowBiasPreset, Setter = SetShadowBiasPreset)
+        Engine::EShadowBiasPreset mShadowBiasPreset{Engine::DefaultShadowBiasPreset};
 
-        /**
-         * @brief 표면 기울기에 따른 그림자 바이어스 배율입니다.
-         */
-        float mShadowSlopeBias{1.0f};
-        ReflectAccessor(mShadowSlopeBias, GetShadowSlopeBias, SetShadowSlopeBias, "ShadowSlopeBias", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
+        UPROPERTY(Edit, Serialize, Getter = GetShadowSlopeBiasPreset, Setter = SetShadowSlopeBiasPreset)
+        Engine::EShadowBiasPreset mShadowSlopeBiasPreset{Engine::DefaultShadowBiasPreset};
 
         /**
          * @brief 그림자 경계의 선명도 조절값입니다.
          */
+        UPROPERTY(Edit, Serialize, Getter = GetShadowSharpen, Setter = SetShadowSharpen)
         float mShadowSharpen{};
-        ReflectAccessor(mShadowSharpen, GetShadowSharpen, SetShadowSharpen, "ShadowSharpen", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
+
+        /**
+         * @brief PCSS 반그림자 계산에 쓰는 점광원·스포트라이트 광원의 반지름(m)입니다.
+         */
+        UPROPERTY(Edit, Serialize, Getter = GetShadowSourceRadius, Setter = SetShadowSourceRadius)
+        float mShadowSourceRadius{0.1f};
     };
 
 }

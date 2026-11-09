@@ -6,8 +6,6 @@
 
 #pragma once
 
-#include "Core/ReflectionMacros.h"
-
 #include "CoreUObject/FObjectRegistry.h"
 #include "CoreUObject/UObject.h"
 #include "CoreUObject/Reflection/UClass.h"
@@ -33,10 +31,6 @@ namespace CoreUObject {
     template <typename T>
     class TObjectIterator {
     public:
-        /**
-         * @brief 리플렉션 소유 타입의 별칭입니다.
-         */
-        ReflectTypes(TObjectIterator);
         static_assert(std::derived_from<std::remove_const_t<T>, CoreUObject::UObject>);
 
     public:
@@ -55,12 +49,6 @@ namespace CoreUObject {
         explicit TObjectIterator(std::shared_ptr<const Core::TArray<CoreUObject::FObjectHandle>> Handles);
 
     public:
-        /**
-         * @brief 정적 타입 메타데이터를 반환합니다.
-         * @return 등록된 구조체 메타데이터입니다.
-         */
-        ReflectTemplate(TObjectIterator);
-
         /**
          * @brief 현재 객체를 반환합니다.
          * @return 현재 객체이며, 끝에 도달하면 nullptr입니다.
@@ -113,12 +101,6 @@ namespace CoreUObject {
 
     private:
         /**
-         * @brief 생성된 리플렉션 멤버 등록 함수의 접근을 허용합니다.
-         */
-        ReflectMembers();
-
-    private:
-        /**
          * @brief 범위가 같은 핸들 스냅샷을 공유하도록 허용합니다.
          */
         friend class TObjectRange<T>;
@@ -128,13 +110,11 @@ namespace CoreUObject {
          * @brief 순회 대상의 세대 핸들 스냅샷입니다.
          */
         std::shared_ptr<const Core::TArray<CoreUObject::FObjectHandle>> mHandles{};
-        ReflectProperty(mHandles, "Handles", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 소멸한 객체를 건너뛴 현재 위치입니다.
          */
         mutable std::size_t mIndex{};
-        ReflectProperty(mIndex, "Index", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
     /**
@@ -144,10 +124,6 @@ namespace CoreUObject {
     template <typename T>
     class TObjectRange {
     public:
-        /**
-         * @brief 리플렉션 소유 타입의 별칭입니다.
-         */
-        ReflectTypes(TObjectRange);
         static_assert(std::derived_from<std::remove_const_t<T>, CoreUObject::UObject>);
 
     public:
@@ -159,12 +135,6 @@ namespace CoreUObject {
         explicit TObjectRange(const CoreUObject::UObject* Outer = nullptr, bool IncludeDerived = true);
 
     public:
-        /**
-         * @brief 정적 타입 메타데이터를 반환합니다.
-         * @return 등록된 구조체 메타데이터입니다.
-         */
-        ReflectTemplate(TObjectRange);
-
         /**
          * @brief 범위 시작을 반환합니다.
          * @return 스냅샷을 공유하는 반복자입니다.
@@ -179,28 +149,30 @@ namespace CoreUObject {
 
     private:
         /**
-         * @brief 생성된 리플렉션 멤버 등록 함수의 접근을 허용합니다.
-         */
-        ReflectMembers();
-
-    private:
-        /**
          * @brief 시작 반복자들 사이에 공유하는 핸들 스냅샷입니다.
          */
         std::shared_ptr<const Core::TArray<CoreUObject::FObjectHandle>> mHandles{};
-        ReflectProperty(mHandles, "Handles", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
+    /**
+     * @brief 타입 및 Outer 필터의 스냅샷을 만듭니다.
+     */
     template <typename T>
     CoreUObject::TObjectIterator<T>::TObjectIterator(const CoreUObject::UObject* Outer, bool IncludeDerived)
 		: mHandles{std::make_shared<const Core::TArray<CoreUObject::FObjectHandle>>(CoreUObject::FObjectRegistry::Get()->GetObjects(T::StaticClass(), Outer, IncludeDerived))} {
     }
 
+    /**
+     * @brief 기존 스냅샷에서 반복자를 만듭니다.
+     */
     template <typename T>
     CoreUObject::TObjectIterator<T>::TObjectIterator(std::shared_ptr<const Core::TArray<CoreUObject::FObjectHandle>> Handles)
 		: mHandles{std::move(Handles)} {
     }
 
+    /**
+     * @brief 현재 객체를 반환합니다.
+     */
     template <typename T>
     T* CoreUObject::TObjectIterator<T>::Get() const {
         while (mHandles != nullptr && mIndex < mHandles->size()) {
@@ -216,21 +188,33 @@ namespace CoreUObject {
         return nullptr;
     }
 
+    /**
+     * @brief 현재 객체를 반환합니다.
+     */
     template <typename T>
     T* CoreUObject::TObjectIterator<T>::operator*() const {
         return Get();
     }
 
+    /**
+     * @brief 현재 객체의 멤버에 접근합니다.
+     */
     template <typename T>
     T* CoreUObject::TObjectIterator<T>::operator->() const {
         return Get();
     }
 
+    /**
+     * @brief 남은 유효 객체를 검사합니다.
+     */
     template <typename T>
     CoreUObject::TObjectIterator<T>::operator bool() const {
         return Get() != nullptr;
     }
 
+    /**
+     * @brief 다음 살아 있는 객체로 이동합니다.
+     */
     template <typename T>
     CoreUObject::TObjectIterator<T>& CoreUObject::TObjectIterator<T>::operator++() {
         if (mHandles != nullptr && mIndex < mHandles->size()) {
@@ -242,43 +226,59 @@ namespace CoreUObject {
         return *this;
     }
 
+    /**
+     * @brief 이동 전 반복자를 보관하고 전진합니다.
+     */
     template <typename T>
     CoreUObject::TObjectIterator<T> CoreUObject::TObjectIterator<T>::operator++(int) {
         CoreUObject::TObjectIterator<T> Previous{*this};
 
         ++*this;
+
         return Previous;
     }
 
+    /**
+     * @brief 끝 센티널과 비교합니다.
+     */
     template <typename T>
     bool CoreUObject::TObjectIterator<T>::operator==(std::default_sentinel_t) const {
         return Get() == nullptr;
     }
 
+    /**
+     * @brief 반복자의 위치를 비교합니다.
+     */
     template <typename T>
     bool CoreUObject::TObjectIterator<T>::operator==(const CoreUObject::TObjectIterator<T>& Other) const {
         Get();
         Other.Get();
+
         return mHandles == Other.mHandles && mIndex == Other.mIndex;
     }
 
+    /**
+     * @brief 필터에 일치하는 객체를 수집합니다.
+     */
     template <typename T>
     CoreUObject::TObjectRange<T>::TObjectRange(const CoreUObject::UObject* Outer, bool IncludeDerived)
 		: mHandles{std::make_shared<const Core::TArray<CoreUObject::FObjectHandle>>(CoreUObject::FObjectRegistry::Get()->GetObjects(T::StaticClass(), Outer, IncludeDerived))} {
     }
 
+    /**
+     * @brief 범위 시작을 반환합니다.
+     */
     template <typename T>
     CoreUObject::TObjectIterator<T> CoreUObject::TObjectRange<T>::begin() const {
         return CoreUObject::TObjectIterator<T>{mHandles};
     }
 
+    /**
+     * @brief 범위 끝을 반환합니다.
+     */
     template <typename T>
     std::default_sentinel_t CoreUObject::TObjectRange<T>::end() const {
         return {};
     }
 
 }
-
-#include "TObjectIteratorReflection.generated.h"
-
-#include "TObjectRangeReflection.generated.h"

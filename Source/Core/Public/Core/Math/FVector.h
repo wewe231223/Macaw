@@ -10,6 +10,7 @@
 #include "Core/ReflectionMacros.h"
 
 #include <xmmintrin.h>
+#include "FVector.generated.h"
 
 namespace Core {
 
@@ -22,7 +23,10 @@ namespace Core {
      * @brief 16바이트 정렬 SIMD 저장소를 사용하는 3차원 벡터입니다.
      * @ingroup Core
      */
+    USTRUCT()
     struct alignas(16) FVector {
+        GENERATED_BODY()
+
     private:
         /**
          * @brief FBox가 내부 SIMD 저장소에 직접 접근하도록 허용합니다.
@@ -38,12 +42,6 @@ namespace Core {
          * @brief FQuat가 내부 SIMD 저장소에 직접 접근하도록 허용합니다.
          */
         friend struct FQuat;
-
-    public:
-        /**
-         * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
-         */
-        ReflectTypes(FVector);
 
     public:
         /**
@@ -99,12 +97,6 @@ namespace Core {
         Core::FVector& operator=(Core::FVector&& Other) noexcept = default;
 
     public:
-        /**
-         * @brief 이 타입의 정적 구조체 메타데이터를 반환합니다.
-         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectStruct(FVector);
-
         /**
          * @brief 대응 성분을 더한 값을 반환합니다.
          * @param[in] Other 더할 값입니다.
@@ -229,6 +221,10 @@ namespace Core {
          * @return 연산을 적용한 새 값입니다.
          */
         Core::FVector ProjectedOnPlane(const Core::FVector& Normal) const;
+
+        /**
+         * @brief 지정한 법선을 기준으로 반사한 벡터를 반환합니다.
+         */
         Core::FVector Reflected(const Core::FVector& Normal) const;
 
         /**
@@ -362,12 +358,6 @@ namespace Core {
          */
         std::array<float, 3> ToArray() const;
 
-    private:
-        /**
-         * @brief 생성된 프로퍼티 등록 함수와 빌더 접근 권한입니다.
-         */
-        ReflectMembers();
-
     public:
         /**
          * @brief SIMD 레지스터와 개별 성분을 같은 메모리에 배치합니다.
@@ -377,7 +367,6 @@ namespace Core {
              * @brief 저장된 값입니다.
              */
             __m128 mValue{};
-            ReflectProperty(mValue, "Value", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
             /**
              * @brief SIMD 저장소와 겹쳐 배치한 개별 스칼라 성분입니다.
@@ -386,22 +375,20 @@ namespace Core {
                 /**
                  * @brief X 성분입니다.
                  */
+                UPROPERTY(Edit, Serialize, Name = "X")
                 float x;
-                ReflectProperty(x, "X", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
-
 
                 /**
                  * @brief Y 성분입니다.
                  */
+                UPROPERTY(Edit, Serialize, Name = "Y")
                 float y;
-                ReflectProperty(y, "Y", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
-
 
                 /**
                  * @brief Z 성분입니다.
                  */
+                UPROPERTY(Edit, Serialize, Name = "Z")
                 float z;
-                ReflectProperty(z, "Z", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
             };
         };
     };

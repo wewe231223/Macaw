@@ -10,6 +10,7 @@
 #include "Core/ReflectionMacros.h"
 
 #include <xmmintrin.h>
+#include "FRotator.generated.h"
 
 namespace Core {
 
@@ -23,12 +24,9 @@ namespace Core {
      * @brief 도 단위의 Pitch, Yaw, Roll로 표현하는 오일러 회전입니다.
      * @ingroup Core
      */
+    USTRUCT()
     struct alignas(16) FRotator {
-    public:
-        /**
-         * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
-         */
-        ReflectTypes(FRotator);
+        GENERATED_BODY()
 
     public:
         /**
@@ -90,12 +88,6 @@ namespace Core {
         Core::FRotator& operator=(Core::FRotator&& Other) noexcept = default;
 
     public:
-        /**
-         * @brief 이 타입의 정적 구조체 메타데이터를 반환합니다.
-         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectStruct(FRotator);
-
         /**
          * @brief 대응 성분을 더한 값을 반환합니다.
          * @param[in] Other 더할 값입니다.
@@ -262,12 +254,6 @@ namespace Core {
          */
         std::array<float, 3> ToArray() const;
 
-    private:
-        /**
-         * @brief 생성된 프로퍼티 등록 함수와 빌더 접근 권한입니다.
-         */
-        ReflectMembers();
-
     public:
         /**
          * @brief SIMD 레지스터와 개별 성분을 같은 메모리에 배치합니다.
@@ -277,7 +263,6 @@ namespace Core {
              * @brief 저장된 값입니다.
              */
             __m128 mValue{};
-            ReflectProperty(mValue, "Value", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
             /**
              * @brief SIMD 저장소와 겹쳐 배치한 개별 스칼라 성분입니다.
@@ -286,22 +271,20 @@ namespace Core {
                 /**
                  * @brief Y축 주위 Pitch 각도(도)입니다.
                  */
+                UPROPERTY(Edit, Serialize, Name = "Pitch")
                 float pitch;
-                ReflectProperty(pitch, "Pitch", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
-
 
                 /**
                  * @brief Z축 주위 Yaw 각도(도)입니다.
                  */
+                UPROPERTY(Edit, Serialize, Name = "Yaw")
                 float yaw;
-                ReflectProperty(yaw, "Yaw", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
-
 
                 /**
                  * @brief X축 주위 Roll 각도(도)입니다.
                  */
+                UPROPERTY(Edit, Serialize, Name = "Roll")
                 float roll;
-                ReflectProperty(roll, "Roll", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
             };
         };
     };

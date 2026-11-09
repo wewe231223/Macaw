@@ -99,6 +99,7 @@ bool UPipeline::InitializeModes(const std::array<std::filesystem::path, static_c
 
             if (!HasNormal) {
                 EnabledModes[Index] = false;
+
                 continue;
             }
 
@@ -125,6 +126,7 @@ bool UPipeline::InitializeModes(const std::array<std::filesystem::path, static_c
     }
 
     Reset();
+
     mDescriptions = std::move(Descriptions);
     mEnabledModes = EnabledModes;
     mPrimaryIndex = LitIndex;
@@ -172,6 +174,7 @@ bool UPipeline::LoadPipelineDescription(const std::filesystem::path& Path, FPipe
 
     if (File == nullptr) {
         ErrorHandler::Report("Pipeline::LoadPipelineDescription", "Failed to open the pipeline option file.", ErrorHandler::EErrorLevel::Critical);
+
         return false;
     }
 
@@ -186,6 +189,7 @@ bool UPipeline::LoadPipelineDescription(const std::filesystem::path& Path, FPipe
 
     if (Root.HasParseError() || !Root.IsObject()) {
         ErrorHandler::Report("Pipeline::LoadPipelineDescription", "Failed to parse the pipeline option file as a JSON object.", ErrorHandler::EErrorLevel::Error);
+
         return false;
     }
 
@@ -262,6 +266,7 @@ bool UPipeline::LoadPipelineDescription(const std::filesystem::path& Path, FPipe
     for (const rapidjson::Value& Element : InputLayout->GetArray()) {
         if (!Element.IsObject()) {
             ErrorHandler::Report("Pipeline::LoadPipelineDescription", "Each input-layout element must be a JSON object.", ErrorHandler::EErrorLevel::Error);
+
             return false;
         }
 

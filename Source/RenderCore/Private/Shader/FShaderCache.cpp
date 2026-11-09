@@ -89,6 +89,7 @@ namespace RenderCore {
                 Dependency.mPath = Core::FilePath::FromUtf8(Path);
                 Dependency.mExists = Exists != 0;
                 Dependency.mWriteTime = DecodeTime(WriteTime);
+
                 Candidate.mDependencies.push_back(std::move(Dependency));
             }
 
@@ -99,20 +100,30 @@ namespace RenderCore {
             }
 
             Candidate.mByteCode.assign(Data.begin() + Position, Data.end());
+
             Compilation = std::move(Candidate);
 
             return true;
         }
     }
 
+    /**
+     * @brief 전달받은 설정과 의존성으로 FShaderCache의 초기 상태를 구성합니다.
+     */
     RenderCore::FShaderCache::FShaderCache(std::filesystem::path Directory)
 		: mDirectory{std::move(Directory)} {
     }
 
+    /**
+     * @brief 캐시 키에 대응하는 셰이더 캐시 파일 경로를 반환합니다.
+     */
     std::filesystem::path RenderCore::FShaderCache::GetPath(const Core::FString& CacheKey) const {
         return mDirectory / (CacheKey + ".Shader");
     }
 
+    /**
+     * @brief 캐시의 체크섬·셰이더 식별자·의존성을 검증하여 컴파일 결과를 읽습니다.
+     */
     bool RenderCore::FShaderCache::Load(const RenderCore::FShaderDescription& Description, RenderCore::FShaderCompilation& Compilation, Core::FString& Diagnostics) const {
         RenderCore::FShaderDescription Normalized{Description};
 
@@ -124,6 +135,7 @@ namespace RenderCore {
 
         if (Key.empty()) {
             Diagnostics = "Cannot compute shader cache key";
+
             return false;
         }
 
@@ -137,6 +149,7 @@ namespace RenderCore {
 
         if (Data.size() <= ChecksumSize) {
             Diagnostics = "Invalid shader cache: " + Core::FilePath::ToGenericUtf8(Path);
+
             return false;
         }
 
@@ -146,15 +159,20 @@ namespace RenderCore {
 
         if (RenderCore::ShaderFile::Hash(Payload) != ExpectedChecksum || !ReadCompilation(Payload, Normalized.GetIdentity(), Candidate) || !IsCurrent(Candidate)) {
             Diagnostics = "Invalid or outdated shader cache: " + Core::FilePath::ToGenericUtf8(Path);
+
             return false;
         }
 
         Compilation = std::move(Candidate);
+
         Diagnostics.clear();
 
         return true;
     }
 
+    /**
+     * @brief 컴파일 결과와 의존성 및 체크섬을 캐시 파일에 저장합니다.
+     */
     bool RenderCore::FShaderCache::Save(const RenderCore::FShaderDescription& Description, const RenderCore::FShaderCompilation& Compilation, Core::FString& Diagnostics) const {
         RenderCore::FShaderDescription Normalized{Description};
 
@@ -164,6 +182,7 @@ namespace RenderCore {
 
         if (Compilation.mByteCode.empty() || Compilation.mDependencies.empty() || Compilation.mDependencies.size() > MaxDependencies) {
             Diagnostics = "Cannot cache an empty or oversized shader compilation";
+
             return false;
         }
 
@@ -171,10 +190,12 @@ namespace RenderCore {
 
         if (Key.empty()) {
             Diagnostics = "Cannot compute shader cache key";
+
             return false;
         }
 
         Core::TArray<Core::Uint8> Payload{};
+
         RenderCore::ShaderFile::AppendString(Payload, "Macaw.Shader");
         RenderCore::ShaderFile::AppendUint64(Payload, FormatVersion);
         RenderCore::ShaderFile::AppendString(Payload, Normalized.GetIdentity());
@@ -195,31 +216,37 @@ namespace RenderCore {
 
         if (Checksum.size() != ChecksumSize || Payload.size() > 64 * 1024 * 1024 - ChecksumSize) {
             Diagnostics = "Cannot serialize shader cache";
+
             return false;
         }
 
         std::error_code Error{};
+
         std::filesystem::create_directories(mDirectory, Error);
 
         if (Error) {
             Diagnostics = "Cannot create shader cache directory: " + Core::FilePath::ToGenericUtf8(mDirectory);
+
             return false;
         }
 
         const std::filesystem::path Path{GetPath(Key)};
         static std::atomic<Core::Uint64> Sequence{};
         std::filesystem::path Temporary{Path};
+
         Temporary += L"." + std::to_wstring(GetCurrentProcessId()) + L"." + std::to_wstring(GetTickCount64()) + L"." + std::to_wstring(Sequence.fetch_add(1)) + L".tmp";
 
         const HANDLE File{CreateFileW(Temporary.c_str(), GENERIC_WRITE, 0, nullptr, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, nullptr)};
 
         if (File == INVALID_HANDLE_VALUE) {
             Diagnostics = "Cannot create shader cache: " + Core::FilePath::ToGenericUtf8(Temporary);
+
             return false;
         }
 
         DWORD Written{};
         bool Success{WriteFile(File, Checksum.data(), static_cast<DWORD>(Checksum.size()), &Written, nullptr) != FALSE && Written == Checksum.size()};
+
         Success = Success && WriteFile(File, Payload.data(), static_cast<DWORD>(Payload.size()), &Written, nullptr) != FALSE && Written == Payload.size();
         Success = Success && FlushFileBuffers(File) != FALSE;
 
@@ -227,7 +254,9 @@ namespace RenderCore {
 
         if (!Success || !Closed || !MoveFileExW(Temporary.c_str(), Path.c_str(), MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH)) {
             DeleteFileW(Temporary.c_str());
+
             Diagnostics = "Cannot replace shader cache: " + Core::FilePath::ToGenericUtf8(Path);
+
             return false;
         }
 
@@ -236,6 +265,9 @@ namespace RenderCore {
         return true;
     }
 
+    /**
+     * @brief 컴파일 결과의 소스·include 의존성이 디스크의 현재 상태와 일치하는지 검사합니다.
+     */
     bool RenderCore::FShaderCache::IsCurrent(const RenderCore::FShaderCompilation& Compilation) const {
         if (Compilation.mByteCode.empty() || Compilation.mDependencies.empty()) {
             return false;

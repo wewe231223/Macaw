@@ -153,13 +153,14 @@ $GraphLines.Add('}')
 foreach ($ApplicationPath in @('Source/App', 'Source/Game')) {
     $InputPaths.Add((GetDoxygenPath (Join-Path $RepositoryRoot $ApplicationPath)))
 }
+$InputPaths.Add((GetDoxygenPath (Join-Path $RepositoryRoot 'Source/Programs')))
 $InputPaths.Add((GetDoxygenPath (Join-Path $RepositoryRoot 'Docs/ApiReference.dox')))
 $IncludePaths.Add((GetDoxygenPath $RepositoryRoot))
 
 $PreviousPath = $env:PATH
 Push-Location -LiteralPath $RepositoryRoot
 try {
-    $env:PATH = (Split-Path -Parent $Dot) + [IO.Path]::PathSeparator + $PreviousPath
+    $env:PATH = $PSHOME + [IO.Path]::PathSeparator + (Split-Path -Parent $Dot) + [IO.Path]::PathSeparator + $PreviousPath
     $Revision = (& git rev-parse HEAD | Out-String).Trim()
     if ($LASTEXITCODE -ne 0 -or $Revision -notmatch '^[0-9a-f]{40}$') {
         throw 'Could not identify the source revision.'
@@ -210,6 +211,47 @@ try {
     $Configuration += "`nDOT_PATH = " + (GetDoxygenPath (Split-Path -Parent $Dot))
     $Configuration += "`nHTML_EXTRA_STYLESHEET = " + (GetDoxygenPath $ThemePath)
     $Configuration += "`nWARN_LOGFILE = " + (GetDoxygenPath (Join-Path $OutputDirectory 'DoxygenWarnings.log')) + "`n"
+    $FilterPath = Join-Path $PSScriptRoot 'FilterDocumentation.ps1'
+    $FilterDirectory = Join-Path $OutputDirectory 'Filter'
+    $FilterInputDirectory = Join-Path $FilterDirectory 'Input'
+    New-Item -ItemType Directory -Path $FilterInputDirectory -Force | Out-Null
+    foreach ($SourceFile in Get-ChildItem -LiteralPath (Join-Path $RepositoryRoot 'Source') -Filter '*.cpp' -File -Recurse | Where-Object { $_.FullName -notmatch '[/\\](ThirdParty|Externals)[/\\]' }) {
+        $RelativePath = [IO.Path]::GetRelativePath($RepositoryRoot, $SourceFile.FullName)
+        $FilteredPath = Join-Path $FilterInputDirectory $RelativePath
+        New-Item -ItemType Directory -Path (Split-Path -Parent $FilteredPath) -Force | Out-Null
+        & $FilterPath -SourcePath $SourceFile.FullName -OutputPath $FilteredPath
+    }
+    if ($IsWindows) {
+        $FilterCommand = 'MacawDocumentationFilter.cmd'
+        $FilterReader = @'
+@echo off
+setlocal
+set "MacawDocumentationSource=%~f1"
+set "MacawDocumentationSource=%MacawDocumentationSource:@@Root@@\=%"
+type "@@Input@@\%MacawDocumentationSource%"
+'@
+        $FilterReader = $FilterReader.Replace('@@Root@@', $RepositoryRoot.Replace('/', '\')).Replace('@@Input@@', $FilterInputDirectory.Replace('/', '\'))
+        [IO.File]::WriteAllText((Join-Path $FilterDirectory $FilterCommand), ($FilterReader -replace '\r?\n', "`r`n"), [Text.ASCIIEncoding]::new())
+        $env:PATH = $FilterDirectory + [IO.Path]::PathSeparator + $env:PATH
+    } else {
+        $FilterReaderPath = Join-Path $FilterDirectory 'ReadInput.sh'
+        $ShellQuote = "'" + '"' + "'" + '"' + "'"
+        $ShellRoot = "'" + $RepositoryRoot.Replace("'", $ShellQuote) + "'"
+        $ShellInput = "'" + $FilterInputDirectory.Replace("'", $ShellQuote) + "'"
+        $FilterReader = @'
+#!/bin/sh
+Root=@@Root@@
+Input=@@Input@@
+File="$1"
+File="${File#"$Root/"}"
+exec cat "$Input/$File"
+'@
+        $FilterReader = $FilterReader.Replace('@@Root@@', $ShellRoot).Replace('@@Input@@', $ShellInput)
+        [IO.File]::WriteAllText($FilterReaderPath, ($FilterReader -replace '\r\n', "`n"), [Text.UTF8Encoding]::new($false))
+        $FilterCommand = 'sh "' + $FilterReaderPath + '"'
+    }
+    $Configuration += 'FILTER_PATTERNS = "' + ('*.cpp=' + $FilterCommand).Replace('"', '\"') + '"' + "`n"
+    $Configuration += 'PREDEFINED += "__stdcall= "' + "`n"
     $ConfigurationPath = Join-Path $OutputDirectory 'Doxyfile'
     Set-Content -LiteralPath $ConfigurationPath -Value $Configuration -Encoding utf8
     Write-Host "Building Macaw documentation ($BuildLabel) with Doxygen $DoxygenVersion."
@@ -273,7 +315,7 @@ try {
             }
         }
     }
-    $SourceFiles = @(Get-ChildItem -LiteralPath (Join-Path $RepositoryRoot 'Source') -Recurse -File | Where-Object { $_.Extension -in @('.h', '.cpp') })
+    $SourceFiles = @(Get-ChildItem -LiteralPath (Join-Path $RepositoryRoot 'Source') -Recurse -File | Where-Object { $_.Extension -in @('.h', '.cpp') -and $_.FullName -notmatch '[/\\](ThirdParty|Externals)[/\\]' })
     foreach ($SourceFile in $SourceFiles) {
         if (-not $DocumentedFiles.Contains($SourceFile.FullName)) {
             $MissingDocumentation.Add("Missing source file: $($SourceFile.FullName)")

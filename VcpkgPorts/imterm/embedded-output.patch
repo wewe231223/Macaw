@@ -1,0 +1,181 @@
+diff --git a/include/imterm/terminal.hpp b/include/imterm/terminal.hpp
+index a4e38cd..45a0199 100644
+--- a/include/imterm/terminal.hpp
++++ b/include/imterm/terminal.hpp
+@@ -24,6 +24,7 @@
+ #include <utility>
+ #include <optional>
+ #include <array>
++#include <memory>
+ #include <imgui.h>
+
+ #include "utils.hpp"
+@@ -112,6 +113,7 @@ namespace ImTerm {
+ 		// returns true if the terminal thinks it should still be displayed next frame, false if it thinks it should be hidden
+ 		// return value is true except if a command required a close, or if the "escape" key was pressed.
+ 		bool show(const std::vector<config_panels>& panels_order = DEFAULT_ORDER) noexcept;
++		void DrawOutput(float ReservedHeight, bool ShowFilter) noexcept;
+
+ 		// returns the command line history
+ 		const std::vector<std::string>& get_history() const noexcept {
+@@ -332,7 +334,7 @@ namespace ImTerm {
+
+ 		void display_settings_bar(const std::vector<config_panels>& panels_order) noexcept;
+
+-		void display_messages() noexcept;
++		void display_messages(float ReservedHeight = -1.0f) noexcept;
+
+ 		void display_command_line() noexcept;
+
+diff --git a/include/imterm/terminal.tpp b/include/imterm/terminal.tpp
+index 7a9b285..5971799 100644
+--- a/include/imterm/terminal.tpp
++++ b/include/imterm/terminal.tpp
+@@ -23,6 +23,7 @@
+ #include <map>
+ #include <optional>
+ #include <iterator>
++#include <limits>
+ #include <algorithm>
+ #ifdef IMTERM_ENABLE_REGEX
+ #include <regex>
+@@ -61,7 +62,7 @@ namespace details {
+ 	template <typename TerminalHelper>
+ 	std::enable_if_t<!misc::is_detected_v<get_length_method, TerminalHelper>, unsigned long>
+ 	constexpr get_length(std::shared_ptr<TerminalHelper>&, std::string_view str) {
+-		return str.size();
++		return static_cast<unsigned long>(str.size());
+ 	}
+
+ 	template <typename T>
+@@ -78,10 +79,10 @@ namespace details {
+ 	assign_terminal(TerminalHelper& helper, terminal <TerminalHelper>& terminal) {}
+
+ 	// simple as in "non regex"
+-	inline std::map<std::string::const_iterator, std::pair<unsigned long, std::optional<theme::constexpr_color>>>
++	inline std::map<std::string::const_iterator, std::pair<std::size_t, std::optional<theme::constexpr_color>>>
+ 	simple_colors_split(std::string_view filter, const message& msg, const std::optional<theme::constexpr_color>& matching_text_color) {
+
+-		std::map<std::string::const_iterator, std::pair<unsigned long, std::optional<theme::constexpr_color>>> colors;
++		std::map<std::string::const_iterator, std::pair<std::size_t, std::optional<theme::constexpr_color>>> colors;
+ 		if (filter.empty()) {
+ 			colors.emplace(msg.value.cbegin() + msg.color_end, std::pair{msg.value.size() - msg.color_end, std::optional<theme::constexpr_color>{}});
+ 			colors.emplace(msg.value.cbegin() + msg.color_beg, std::pair{msg.color_end - msg.color_beg, std::optional<theme::constexpr_color>{}});
+@@ -96,9 +97,13 @@ namespace details {
+
+ 		auto distance = static_cast<unsigned long>(std::distance(msg.value.cbegin(), it));
+ 		if (distance > msg.color_beg) {
+-			colors.emplace(msg.value.cbegin(), std::pair{msg.color_beg, std::optional<theme::constexpr_color>{}});
++			if (msg.color_beg != 0) {
++				colors.emplace(msg.value.cbegin(), std::pair{msg.color_beg, std::optional<theme::constexpr_color>{}});
++			}
+ 			if (distance > msg.color_end) {
+-				colors.emplace(msg.value.cbegin() + msg.color_beg, std::pair{msg.color_end - msg.color_beg, std::optional<theme::constexpr_color>{}});
++				if (msg.color_end != msg.color_beg) {
++					colors.emplace(msg.value.cbegin() + msg.color_beg, std::pair{msg.color_end - msg.color_beg, std::optional<theme::constexpr_color>{}});
++				}
+ 				colors.emplace(msg.value.cbegin() + msg.color_end, std::pair{distance - msg.color_end, std::optional<theme::constexpr_color>{}});
+ 			} else {
+ 				colors.emplace(msg.value.cbegin() + msg.color_beg, std::pair{distance - msg.color_beg, std::optional<theme::constexpr_color>{}});
+@@ -143,13 +148,13 @@ namespace details {
+ 	}
+
+ #ifdef IMTERM_ENABLE_REGEX
+-	inline std::map<std::string::const_iterator, std::pair<unsigned long, std::optional<theme::constexpr_color>>>
++	inline std::map<std::string::const_iterator, std::pair<std::size_t, std::optional<theme::constexpr_color>>>
+ 	regex_colors_split(std::string_view filter, const message& msg, const std::optional<theme::constexpr_color>& matching_text_color) {
+ 		auto make_pair = [](auto len, std::optional<theme::constexpr_color> color = {}) {
+ 			return std::pair{static_cast<unsigned long>(len), color};
+ 		};
+
+-		std::map<std::string::const_iterator, std::pair<unsigned long, std::optional<theme::constexpr_color>>> colors;
++		std::map<std::string::const_iterator, std::pair<std::size_t, std::optional<theme::constexpr_color>>> colors;
+ 		if (filter.empty()) {
+ 			colors.emplace(msg.value.cbegin() + msg.color_end, make_pair(msg.value.size() - msg.color_end));
+ 			colors.emplace(msg.value.cbegin() + msg.color_beg, make_pair(msg.color_end - msg.color_beg));
+@@ -393,6 +398,7 @@ void terminal<TerminalHelper>::clear() {
+ 	m_flush_bit = true;
+ 	try_lock();
+ 	m_logs.clear();
++	m_last_size = 0u;
+ 	m_current_log_oldest_idx = 0u;
+ 	try_unlock();
+ }
+@@ -556,7 +562,7 @@ void terminal<TerminalHelper>::display_settings_bar(const std::vector<config_pan
+
+ 			ImGui::PushItemWidth(size);
+ 			if (ImGui::InputTextWithHint("##terminal:settings:text_filter", m_filter_hint->data(), m_log_text_filter_buffer.data(), m_log_text_filter_buffer.size())) {
+-				m_log_text_filter_buffer_usage = misc::strnlen(m_log_text_filter_buffer.data(), m_log_text_filter_buffer.size());
++				m_log_text_filter_buffer_usage = misc::strnlen(m_log_text_filter_buffer.data(), static_cast<unsigned>(m_log_text_filter_buffer.size()));
+ 			}
+ 			ImGui::PopItemWidth();
+
+@@ -623,15 +629,30 @@ void terminal<TerminalHelper>::display_settings_bar(const std::vector<config_pan
+ }
+
+ template <typename TerminalHelper>
+-void terminal<TerminalHelper>::display_messages() noexcept {
++void terminal<TerminalHelper>::DrawOutput(float ReservedHeight, bool ShowFilter) noexcept {
++	if (ShowFilter) {
++		static const std::vector<config_panels> Panels{config_panels::long_filter};
++		display_settings_bar(Panels);
++	}
++
++	try_lock();
++	display_messages(ReservedHeight);
++	try_unlock();
++}
++
++template <typename TerminalHelper>
++void terminal<TerminalHelper>::display_messages(float ReservedHeight) noexcept {
+
+ 	ImVec2 avail_space = ImGui::GetContentRegionAvail();
+-	float commandline_height = ImGui::CalcTextSize("a").y + ImGui::GetStyle().FramePadding.y * 4.f;
+-	if (avail_space.y > commandline_height) {
++	const bool Embedded{ReservedHeight >= 0.0f};
++	const float commandline_height{Embedded ? ReservedHeight : ImGui::CalcTextSize("a").y + ImGui::GetStyle().FramePadding.y * 4.f};
++	if (Embedded || avail_space.y > commandline_height) {
+
+ 		int style_push_count = try_push_style(ImGuiCol_ChildBg, m_colors.message_panel);
+-		if (ImGui::BeginChild("terminal:logs_window", ImVec2(avail_space.x, avail_space.y - commandline_height), false,
+-		                      ImGuiWindowFlags_HorizontalScrollbar | ImGuiWindowFlags_NoTitleBar)) {
++		const ImVec2 Size{avail_space.x, Embedded ? -ReservedHeight : avail_space.y - commandline_height};
++		const ImGuiChildFlags ChildFlags{Embedded ? ImGuiChildFlags_Borders : ImGuiChildFlags_None};
++		const ImGuiWindowFlags Flags{ImGuiWindowFlags_NoTitleBar | (m_autowrap ? ImGuiWindowFlags_None : ImGuiWindowFlags_HorizontalScrollbar)};
++		if (ImGui::BeginChild("terminal:logs_window", Size, ChildFlags, Flags)) {
+
+ 			unsigned traced_count = 0;
+ 			void (*text_formatted) (const char*, ...);
+@@ -651,7 +672,7 @@ void terminal<TerminalHelper>::display_messages() noexcept {
+ 					return;
+ 				}
+
+-				std::map<std::string::const_iterator, std::pair<unsigned long, std::optional<theme::constexpr_color>>> colors;
++				std::map<std::string::const_iterator, std::pair<std::size_t, std::optional<theme::constexpr_color>>> colors;
+ #ifdef IMTERM_ENABLE_REGEX
+ 				if (m_regex_search) {
+ 					try {
+@@ -696,7 +717,7 @@ void terminal<TerminalHelper>::display_messages() noexcept {
+ 					}
+ 					if (color.second.first != 0) {
+                         const int pop = try_push_style(ImGuiCol_Text, color.second.second);
+-                        text_formatted("%.*s", color.second.first, &*color.first);
++                        text_formatted("%.*s", static_cast<int>(color.second.first), &*color.first);
+                         ImGui::PopStyleColor(pop);
+                         ImGui::SameLine(0.f, 0.f);
+ 					}
+@@ -824,12 +845,12 @@ void terminal<TerminalHelper>::handle_unfocus() noexcept {
+ 	};
+
+ 	if (m_previously_active_id == m_input_text_id && ImGui::GetActiveID() != m_input_text_id) {
+-		if (ImGui::IsKeyPressedMap(ImGuiKey_Enter)) {
++		if (ImGui::IsKeyPressed(ImGuiKey_Enter)) {
+ 			call_command();
+ 			m_should_take_focus = true;
+ 			clear_frame();
+
+-		} else if (ImGui::IsKeyPressedMap(ImGuiKey_Escape)) {
++		} else if (ImGui::IsKeyPressed(ImGuiKey_Escape)) {
+ 			if (m_buffer_usage == 0u && m_previous_buffer_usage == 0u) {
+ 				m_should_show_next_frame = false; // should hide on next frames
+ 			} else {

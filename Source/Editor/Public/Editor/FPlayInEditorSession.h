@@ -24,12 +24,6 @@ namespace Editor {
     class FPlayInEditorSession {
     public:
         /**
-         * @brief 리플렉션에서 사용하는 소유 타입과 선택적 부모 타입의 별칭을 선언합니다.
-         */
-        ReflectTypes(FPlayInEditorSession);
-
-    public:
-        /**
          * @brief 전달받은 설정과 의존성으로 FPlayInEditorSession의 초기 상태를 구성합니다.
          * @param[in] Engine 월드 조회와 실행을 제공할 엔진의 비소유 주소입니다.
          * @param[in] Context PIE 원본 월드를 가진 에디터 컨텍스트입니다.
@@ -54,12 +48,6 @@ namespace Editor {
 
     public:
         /**
-         * @brief 이 타입의 구조체 메타데이터를 반환합니다.
-         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectStruct(FPlayInEditorSession);
-
-        /**
          * @brief 편집 월드와 뷰포트 상태가 PIE 시작 조건을 만족하는지 검사합니다.
          * @return 검사 조건을 만족하면 true, 그렇지 않으면 false입니다.
          */
@@ -68,8 +56,9 @@ namespace Editor {
         /**
          * @brief 편집 월드를 복제하여 PIE를 시작하고 뷰포트 입력과 조회 대상을 연결합니다.
          * @return 요청한 처리를 완료하면 true, 실패하면 false입니다.
+         * @param[in] Input 키·마우스 상태를 조회할 공통 입력입니다.
          */
-        bool Start();
+        bool Start(Core::FInput* Input = nullptr);
 
         /**
          * @brief PIE 실행을 종료하고 복제 월드와 객체 대응표를 정리한 뒤 편집 상태를 복원합니다.
@@ -95,6 +84,13 @@ namespace Editor {
          * @brief PIE 월드의 유효성을 검사하고 지연된 종료 요청을 처리합니다.
          */
         void Update();
+
+        /**
+         * @brief PIE 게임 뷰포트에 프레임 입력과 경과 시간을 전달합니다.
+         * @param[in] DeltaTime 프레임에서 진행할 초 단위 시간입니다.
+         * @param[in] AllowInput 게임 뷰포트 입력 처리를 허용할지 지정합니다.
+         */
+        void ProcessInput(float DeltaTime, bool AllowInput);
 
         /**
          * @brief PIE 월드가 엔진에 유효하게 등록되어 실행 세션이 활성인지 검사합니다.
@@ -142,70 +138,59 @@ namespace Editor {
 
     private:
         /**
-         * @brief 자동 생성된 프로퍼티 등록 코드와 리플렉션 빌더의 접근을 허용합니다.
-         */
-        ReflectMembers();
-
-    private:
-        /**
          * @brief 월드 조회와 실행을 제공하는 엔진의 비소유 주소입니다.
          */
         Engine::UEngine* mEngine{};
-        ReflectProperty(mEngine, "Engine", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 원본 편집 월드의 선택과 상태를 제공하는 비소유 컨텍스트입니다.
          */
         Editor::FEditorContext* mContext{};
-        ReflectProperty(mContext, "Context", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief PIE 입력과 장면 출력을 연결할 편집 뷰포트의 비소유 주소입니다.
          */
         Editor::FEditorViewport* mViewport{};
-        ReflectProperty(mViewport, "Viewport", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief PIE 복제 객체의 선택과 조회를 위한 별도 컨텍스트입니다.
          */
         Editor::FEditorContext mInspectionContext;
-        ReflectProperty(mInspectionContext, "InspectionContext", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief PIE 월드의 활성 카메라와 입력을 처리하는 클라이언트입니다.
          */
         Engine::FGameViewportClient mGameClient;
-        ReflectProperty(mGameClient, "GameClient", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+
+        /**
+         * @brief 게임 뷰포트로 전달할 프레임 입력의 비소유 주소입니다.
+         */
+        Core::FInput* mInput{};
 
         /**
          * @brief 세션이 생성하여 관리하는 PIE 복제 월드의 핸들입니다.
          */
         Engine::FWorldHandle mPlayWorld{};
-        ReflectProperty(mPlayWorld, "PlayWorld", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief PIE 종료 후 복원할 이전 현재 월드의 핸들입니다.
          */
         Engine::FWorldHandle mPreviousWorld{};
-        ReflectProperty(mPreviousWorld, "PreviousWorld", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 원본 편집 객체와 PIE 복제 객체 핸들의 대응 목록입니다.
          */
         Core::TArray<std::pair<CoreUObject::FObjectHandle, CoreUObject::FObjectHandle>> mObjectPairs{};
-        ReflectProperty(mObjectPairs, "ObjectPairs", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief PIE 시작 또는 종료 도중의 재진입을 막는 플래그입니다.
          */
         bool mTransitioning{};
-        ReflectProperty(mTransitioning, "Transitioning", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 콜백 처리가 끝난 안전한 시점에 PIE를 종료할지 나타냅니다.
          */
         bool mStopRequested{};
-        ReflectProperty(mStopRequested, "StopRequested", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
 }

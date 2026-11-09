@@ -136,7 +136,7 @@ try {
         throw 'Could not restore project dependencies.'
     }
 
-    Write-Host '[4/4] Generating reflection code and the Visual Studio solution...'
+    Write-Host '[4/4] Generating the Visual Studio solution...'
     & $Premake "--file=$(Join-Path $WorkspaceRoot 'premake5.lua')" $Generator
     if ($LASTEXITCODE -ne 0) {
         throw 'Project generation failed.'

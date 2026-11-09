@@ -15,6 +15,7 @@ void USceneComponent::SetRelativeTransform(const FTransform& Transform) {
     }
 
     mTransform = Transform;
+
     UpdateComponentTransform();
 }
 
@@ -50,6 +51,7 @@ void USceneComponent::SetAbsolute(bool AbsoluteLocation, bool AbsoluteRotation, 
     mAbsoluteLocation = AbsoluteLocation;
     mAbsoluteRotation = AbsoluteRotation;
     mAbsoluteScale = AbsoluteScale;
+
     UpdateComponentTransform();
 }
 

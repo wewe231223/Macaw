@@ -30,7 +30,9 @@ static NvAPI_Status ApplyNvidiaLoadBalance(NvDRSSessionHandle Session) {
         NVDRS_PROFILE Information{};
 
         Information.version = NVDRS_PROFILE_VER;
+
         wcscpy_s(reinterpret_cast<wchar_t*>(Information.profileName), NVAPI_UNICODE_STRING_MAX, ProfileName.c_str());
+
         Status = NvAPI_DRS_CreateProfile(Session, &Information, &Profile);
 
         if (Status != NVAPI_OK) {
@@ -38,6 +40,7 @@ static NvAPI_Status ApplyNvidiaLoadBalance(NvDRSSessionHandle Session) {
         }
 
         wcscpy_s(reinterpret_cast<wchar_t*>(Application.appName), NVAPI_UNICODE_STRING_MAX, ExecutableName.c_str());
+
         Status = NvAPI_DRS_CreateApplication(Session, Profile, &Application);
     }
 

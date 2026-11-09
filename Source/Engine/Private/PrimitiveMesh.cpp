@@ -45,14 +45,17 @@ namespace Engine {
         Core::TArray<Core::FVector>& Normals{Mesh.GetNormals()};
         Core::TArray<Core::FVector4>& Tangents{Mesh.GetTangents()};
         Core::TArray<Core::Uint32>& Indices{Mesh.GetIndices()};
+
         Mesh.GetUVChannels().resize(1);
 
         Core::TArray<Core::FVector2>& UVs{Mesh.GetUVChannels().front()};
 
         if (Type == Engine::EPrimitiveType::Plane) {
             Positions = {{-0.5f, -0.5f, 0.0f}, {0.5f, -0.5f, 0.0f}, {0.5f, 0.5f, 0.0f}, {-0.5f, 0.5f, 0.0f}};
+
             Normals.assign(4, {0.0f, 0.0f, 1.0f});
             Tangents.assign(4, {1.0f, 0.0f, 0.0f, 1.0f});
+
             UVs = {{0.0f, 0.0f}, {1.0f, 0.0f}, {1.0f, 1.0f}, {0.0f, 1.0f}};
             Indices = {0, 1, 2, 0, 2, 3};
 
@@ -129,6 +132,7 @@ namespace Engine {
      */
     const Asset::FMeshData& GetPrimitiveMesh(Engine::EPrimitiveType Type) {
         static const std::array<Asset::FMeshData, 3> Meshes{Engine::BuildPrimitive(Engine::EPrimitiveType::Plane), Engine::BuildPrimitive(Engine::EPrimitiveType::Cube), Engine::BuildPrimitive(Engine::EPrimitiveType::Sphere)};
+
         return Meshes[static_cast<std::size_t>(Type)];
     }
 

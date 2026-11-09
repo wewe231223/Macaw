@@ -146,6 +146,7 @@ void FRenderScene::ApplyPrimitiveUpdate(FPrimitiveSceneUpdate& Update) {
 
         if (Position != mObjectLookup.end()) {
             ObjectIndex = Position->second;
+
             UpdateObject(ObjectIndex, *Update.mProxy);
         } else {
             ObjectIndex = AddObject(*Update.mProxy);
@@ -167,10 +168,12 @@ Uint32 FRenderScene::AddObject(const FPrimitiveSceneProxy& Proxy) {
         }
 
         ObjectIndex = static_cast<Uint32>(mObjects.size());
+
         mObjects.emplace_back();
         mObjectTransforms.emplace_back();
     } else {
         ObjectIndex = mFreeObjects.back();
+
         mFreeObjects.pop_back();
     }
 
@@ -192,6 +195,7 @@ void FRenderScene::UpdateObject(Uint32 ObjectIndex, const FPrimitiveSceneProxy& 
 
     if (Object.mOwnerHandle != Proxy.GetOwnerHandle()) {
         Object.mOwnerHandle = Proxy.GetOwnerHandle();
+
         RecordObjectChange(ObjectIndex);
     }
 
@@ -225,6 +229,7 @@ void FRenderScene::RemoveObject(Uint32 ObjectIndex) {
     }
 
     Object.mActive = false;
+
     mObjects[ObjectIndex].mProxy.reset();
 
     Object.mStaticMeshes = {};
@@ -247,6 +252,7 @@ void FRenderScene::RecordObjectChange(Uint32 ObjectIndex) {
 void FRenderScene::CommitObjectChanges() {
     if (mObjectsChanged) {
         ++mRevision;
+
         std::sort(mChangedObjects.begin(), mChangedObjects.end());
         mChangedObjects.erase(std::unique(mChangedObjects.begin(), mChangedObjects.end()), mChangedObjects.end());
 
@@ -298,6 +304,7 @@ void FRenderScene::RefreshStaticMeshes(const FMaterialBuffer& Materials, FRender
 
         if (Registry == nullptr) {
             Primitive.mStaticMeshes.Invalidate();
+
             continue;
         }
 

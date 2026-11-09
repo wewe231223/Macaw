@@ -26,6 +26,7 @@ public:
 
 public:
     UMaterial();
+
     ~UMaterial() override = default;
     UMaterial(const UMaterial&) = delete;
 
@@ -40,6 +41,7 @@ public:
 
     virtual void BuildGPUData(FMaterialGPUSlot& OutSlot) const = 0;
     virtual FMaterialChunkSignature BuildChunkSignature() const = 0;
+
     virtual void Finalize(const IAssetRegistry* Registry);
     virtual EMaterialBlendMode GetBlendMode() const;
 

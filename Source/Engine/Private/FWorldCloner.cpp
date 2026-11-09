@@ -76,6 +76,7 @@ namespace Engine {
             for (const CoreUObject::UObject* Object : Objects) {
                 if (!Object->GetGuid().IsValid() || !Remapping.emplace(Object->GetGuid(), Core::FGuid{}).second) {
                     Error = "Duplicate or invalid source identity";
+
                     return false;
                 }
             }
@@ -98,12 +99,14 @@ namespace Engine {
             for (CoreUObject::UObject* Copy : Copies) {
                 if (!Objects.emplace(Copy->GetGuid(), Copy).second) {
                     Error = "Duplicate identity in cloned objects";
+
                     return false;
                 }
             }
 
             if (Originals.size() != Copies.size()) {
                 Error = "Duplicated object count does not match the source";
+
                 return false;
             }
 
@@ -113,6 +116,7 @@ namespace Engine {
 
                 if (Copy == Objects.end() || !Duplication.Add(Original, Copy->second)) {
                     Error = "Cannot reconnect duplicated object";
+
                     return false;
                 }
             }
@@ -135,6 +139,7 @@ namespace Engine {
 
         if (Duplication == nullptr || Type > Engine::EWorldType::EditorPreview || SourceWorld == nullptr || SourceWorld->IsDispatching() || SourceWorld->GetPersistentLevel() == nullptr) {
             Error = "Source world or target world type is invalid";
+
             return nullptr;
         }
 
@@ -159,6 +164,7 @@ namespace Engine {
 
         if (Writer.HasError() || CollectObjects(SourceWorld) != Originals || !SourceWorld->mPendingActors.empty() || SourceWorld->mShutdownRequested || SourceWorld->mEndPlayRequested) {
             Error = Writer.HasError() ? Writer.GetError() : "Source world changed during serialization";
+
             return nullptr;
         }
 
@@ -179,11 +185,13 @@ namespace Engine {
         for (const auto& [Original, Duplicate] : Objects.GetObjects()) {
             if (!Duplicate->PostDuplicate(Original, &Objects)) {
                 Error = "Duplicate fixup failed: " + Original->GetClass()->GetName();
+
                 return nullptr;
             }
 
             if (!World->mPendingActors.empty() || World->mShutdownRequested || World->mEndPlayRequested || !SourceWorld->mPendingActors.empty() || SourceWorld->mShutdownRequested || SourceWorld->mEndPlayRequested) {
                 Error = "Duplicate fixup requested world teardown";
+
                 return nullptr;
             }
         }
@@ -193,11 +201,15 @@ namespace Engine {
         return Context;
     }
 
+    /**
+     * @brief 지정 월드에 액터들과 소유 컴포넌트를 새 식별자로 복제합니다.
+     */
     Core::TArray<CoreUObject::FObjectHandle> Engine::FWorldCloner::DuplicateActors(Engine::UWorld* World, const Core::TArray<CoreUObject::FObjectHandle>& Actors, Core::FString& Error) {
         Error.clear();
 
         if (World == nullptr || !World->CanAddActor() || World->IsDispatching() || Actors.empty()) {
             Error = "Invalid actor duplication request";
+
             return {};
         }
 
@@ -209,6 +221,7 @@ namespace Engine {
 
             if (Source == nullptr || Source->GetWorld() != World || Source->IsPendingDestroy()) {
                 Error = "Invalid source actor";
+
                 return {};
             }
 
@@ -232,6 +245,7 @@ namespace Engine {
 
         if (Writer.HasError() || CollectObjects(Sources) != Originals || !World->mPendingActors.empty() || !World->CanAddActor() || World->mEndPlayRequested) {
             Error = Writer.HasError() ? Writer.GetError() : "Source actors changed during serialization";
+
             return {};
         }
 
@@ -258,11 +272,13 @@ namespace Engine {
         for (const auto& [Original, Duplicate] : Objects.GetObjects()) {
             if (!Duplicate->PostDuplicate(Original, &Objects)) {
                 Error = "Actor reference fixup failed";
+
                 return {};
             }
 
             if (!World->mPendingActors.empty() || !World->CanAddActor() || World->mEndPlayRequested) {
                 Error = "Actor duplication requested world teardown";
+
                 return {};
             }
         }

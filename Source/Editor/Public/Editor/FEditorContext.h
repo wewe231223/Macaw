@@ -7,6 +7,8 @@
 #pragma once
 
 #include "Core/ReflectionMacros.h"
+#include "Editor/FConsoleCommandRegistry.h"
+#include "Editor/FViewportStatistics.h"
 #include "CoreUObject/FObjectHandle.h"
 #include "CoreUObject/Reflection/FPropertyValue.h"
 #include "Engine/FWorldHandle.h"
@@ -14,6 +16,10 @@
 
 #include <filesystem>
 #include <functional>
+
+namespace Script {
+    struct FScriptField;
+}
 
 namespace Engine {
     class UEngine;
@@ -26,6 +32,7 @@ namespace Engine {
     class UCameraComponent;
     class UActorComponent;
     class FWorldContext;
+
     enum class EPrimitiveType : Core::Uint8;
 }
 
@@ -41,6 +48,8 @@ namespace RenderCore {
 
 namespace Editor {
 
+    class FEditorViewport;
+
     /**
      * @brief 명시적인 편집 월드와 선택을 소유하고 패널, 콘솔과 기즈모의 편집 요청을 처리합니다.
      * @ingroup Editor
@@ -48,23 +57,39 @@ namespace Editor {
      * 별개입니다.
      */
     class FEditorContext {
-    public:
-        /**
-         * @brief 리플렉션에서 사용할 소유 타입 별칭입니다.
-         */
-        ReflectTypes(FEditorContext);
-
     private:
+        struct FSceneMemento {
+            Core::TArray<Core::Uint8> mBytes{};
+            Core::TArray<Core::FGuid> mSelectedActors{};
+            Core::FGuid mSelectedObject{};
+        };
+
+        struct FSceneEditCommand {
+            bool Undo(FEditorContext& Context) const;
+            bool Redo(FEditorContext& Context) const;
+
+            FSceneMemento mBefore{};
+            FSceneMemento mAfter{};
+            Core::Uint64 mBeforeRevision{};
+            Core::Uint64 mAfterRevision{};
+        };
+
+        class FSceneEditScope {
+        public:
+            explicit FSceneEditScope(FEditorContext& Context);
+            ~FSceneEditScope();
+            FSceneEditScope(const FSceneEditScope&) = delete;
+            FSceneEditScope& operator=(const FSceneEditScope&) = delete;
+
+        private:
+            FEditorContext& mContext;
+            Core::Uint64 mToken{};
+        };
+
         /**
          * @brief 재진입을 제한하는 연산 플래그의 수명을 관리합니다.
          */
         class FOperationScope {
-        public:
-            /**
-             * @brief 리플렉션에서 사용할 소유 타입 별칭입니다.
-             */
-            ReflectTypes(FOperationScope);
-
         public:
             /**
              * @brief 연산 플래그를 설정합니다.
@@ -88,25 +113,11 @@ namespace Editor {
              */
             FOperationScope& operator=(const FOperationScope&) = delete;
 
-        public:
-            /**
-             * @brief 정적 구조체 메타데이터를 반환합니다.
-             * @return 메타데이터의 비소유 주소입니다.
-             */
-            ReflectStruct(FOperationScope);
-
-        private:
-            /**
-             * @brief 생성된 멤버 등록 함수의 접근 권한입니다.
-             */
-            ReflectMembers();
-
         private:
             /**
              * @brief 이 범위가 관리하는 플래그의 비소유 주소입니다.
              */
             bool* mFlag{};
-            ReflectProperty(mFlag, "Flag", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
         };
 
     public:
@@ -133,12 +144,6 @@ namespace Editor {
         Editor::FEditorContext& operator=(const Editor::FEditorContext&) = delete;
 
     public:
-        /**
-         * @brief 정적 구조체 메타데이터를 반환합니다.
-         * @return 메타데이터의 비소유 주소입니다.
-         */
-        ReflectStruct(FEditorContext);
-
         /**
          * @brief 편집 대상을 연결하고 선택과 장면 상태를 초기화합니다.
          * @param[in] Handle 같은 엔진이 소유한 월드입니다.
@@ -174,6 +179,15 @@ namespace Editor {
          * @return 검사 조건을 만족하면 true, 그렇지 않으면 false입니다.
          */
         bool IsChangingState() const;
+
+        Core::Uint64 BeginSceneEdit();
+        void EndSceneEdit(Core::Uint64 Token);
+        bool IsSceneEditActive() const;
+
+        bool CanUndo() const;
+        bool CanRedo() const;
+        bool Undo();
+        bool Redo();
 
         /**
          * @brief 엔진의 렌더러를 조회합니다.
@@ -341,6 +355,7 @@ namespace Editor {
          * @return 삭제 요청을 수락하면 true입니다.
          */
         bool DestroySelectedActor();
+        bool SetActorsVisible(const Core::TArray<CoreUObject::FObjectHandle>& Actors, bool Visible);
 
         /**
          * @brief 객체 소속과 프로퍼티 편집 권한을 검사합니다.
@@ -404,6 +419,47 @@ namespace Editor {
         bool IsSceneDirty() const;
 
         /**
+         * @brief 프로퍼티 편집을 거치지 않은 장면 변경을 수정 상태로 표시합니다.
+         */
+        void MarkSceneDirty();
+
+        /**
+         * @brief 시퀀서 프리뷰가 월드에 쓴 값을 되돌리는 콜백을 설정합니다.
+         * @param[in] Restorer 저장, 장면 교체와 PIE 시작 전에 호출할 콜백이며 비어 있으면 해제합니다.
+         */
+        void SetPreviewRestorer(std::function<void()> Restorer);
+
+        /**
+         * @brief 시퀀서 프리뷰가 월드에 쓴 값을 되돌립니다.
+         */
+        void RestorePreview();
+
+        /**
+         * @brief 시퀀스 액터를 시퀀서에서 여는 콜백을 설정합니다.
+         * @param[in] Opener 시퀀스 액터의 핸들을 받아 패널을 여는 콜백이며 비어 있으면 해제합니다.
+         */
+        void SetSequencerOpener(std::function<void(CoreUObject::FObjectHandle)> Opener);
+
+        /**
+         * @brief 객체가 시퀀스 액터이면 시퀀서에서 엽니다.
+         * @param[in] Handle 열 객체의 핸들입니다.
+         * @return 시퀀서를 열었으면 true이며 시퀀스 액터가 아니거나 콜백이 없으면 false입니다.
+         */
+        bool OpenInSequencer(CoreUObject::FObjectHandle Handle);
+
+        /**
+         * @brief 원근 편집 뷰포트가 대신 사용할 시퀀서 프리뷰 카메라를 설정합니다.
+         * @param[in] Camera 사용할 카메라 컴포넌트의 핸들이며 비어 있으면 편집 카메라로 돌아갑니다.
+         */
+        void SetPreviewCamera(CoreUObject::FObjectHandle Camera);
+
+        /**
+         * @brief 시퀀서 프리뷰 카메라를 조회합니다.
+         * @return 살아 있는 카메라의 비소유 주소이며 없으면 nullptr입니다.
+         */
+        Engine::UCameraComponent* GetPreviewCamera() const;
+
+        /**
          * @brief 현재 연결된 프로젝트의 비소유 주소를 반환합니다.
          * @return 대상의 비소유 주소이며, 없거나 유효하지 않으면 nullptr입니다.
          */
@@ -431,15 +487,6 @@ namespace Editor {
          * @return 생성한 액터이며 실패하면 nullptr입니다.
          */
         Engine::ASkeletalMeshActor* SpawnSkeletalMesh(const std::filesystem::path& Path, const Core::FTransform& Placement);
-
-        /**
-         * @brief 본 로컬 변환을 편집하고 씬을 변경 상태로 표시합니다.
-         * @param Handle 컴포넌트 핸들입니다.
-         * @param Bone 본 번호입니다.
-         * @param Transform 부모 기준 변환입니다.
-         * @return 적용하면 true입니다.
-         */
-        bool SetBoneLocalTransform(CoreUObject::FObjectHandle Handle, Core::Uint32 Bone, const Core::FMatrix& Transform);
 
         /**
          * @brief 애플리케이션에 프로젝트 전환을 요청할 콜백을 설정합니다.
@@ -484,6 +531,19 @@ namespace Editor {
         void ExecuteConsoleCommand(const Core::FString& Command);
 
         /**
+         * @brief 콘솔 명령에서 입력 접두어에 맞는 후보를 조회합니다.
+         * @param[in] Input 해석할 원본 입력 문자열입니다.
+         * @return 입력에 맞는 자동 완성 목록입니다.
+         */
+        Core::TArray<Core::FString> GetConsoleSuggestions(std::string_view Input) const;
+
+        /**
+         * @brief 편집 컨텍스트가 소유하는 통계 그래프 창을 반환합니다.
+         * @return 편집 컨텍스트가 소유하는 통계 그래프 창입니다.
+         */
+        Editor::FStatGraphs& GetStatGraphs();
+
+        /**
          * @brief 그림자 아틀라스 검사 창의 표시 상태를 반환합니다.
          * @return 검사 창이 열려 있으면 true입니다.
          */
@@ -496,10 +556,10 @@ namespace Editor {
         void SetShadowAtlasOpen(bool Open);
 
         /**
-         * @brief 뷰포트 관련 콘솔 명령을 처리할 콜백을 설정합니다.
-         * @param[in] Handler 콘솔의 뷰포트 명령을 처리할 콜백입니다.
+         * @brief 콘솔 명령이 사용할 뷰포트 제공자를 설정합니다.
+         * @param[in] Provider 명령을 실행할 때 활성 뷰포트를 반환합니다.
          */
-        void SetViewportCommandHandler(std::function<bool(const Core::FString&, Core::FString&)> Handler);
+        void SetConsoleViewportProvider(std::function<Editor::FEditorViewport*()> Provider);
 
         /**
          * @brief 새 액터의 배치 변환을 제공하는 경로를 연결합니다.
@@ -523,16 +583,38 @@ namespace Editor {
          */
         bool SetMaterialOverride(CoreUObject::FObjectHandle Handle, Core::Uint32 Slot, const Core::FString& Path);
 
+        /**
+         * @brief C# 스크립트 필드 값을 저장하고 장면을 수정 상태로 표시합니다.
+         * @param Handle 대상 스크립트 컴포넌트입니다.
+         * @param Field 저장할 필드입니다.
+         * @return 변경을 적용하면 true입니다.
+         */
+        bool SetScriptField(CoreUObject::FObjectHandle Handle, const Script::FScriptField& Field);
+
+        /**
+         * @brief 저장된 C# 스크립트 필드를 지우고 장면을 수정 상태로 표시합니다.
+         * @param Handle 대상 스크립트 컴포넌트입니다.
+         * @param Name C# 필드 이름입니다.
+         * @return 변경을 적용하면 true입니다.
+         */
+        bool RemoveScriptField(CoreUObject::FObjectHandle Handle, const Core::FString& Name);
+
     private:
+        /**
+         * @brief 편집 기능·렌더 설정·통계 명령을 콘솔에 등록합니다.
+         */
+        void RegisterConsoleCommands();
+
+        /**
+         * @brief 콘솔 인자로 화면 찢김 허용 설정을 조회하거나 변경합니다.
+         * @param[in] Invocation 명령 이름·사용법·입력·인자입니다.
+         */
+        void ExecuteAllowTearing(const Editor::FConsoleInvocation& Invocation);
+
         /**
          * @brief PIE 세션이 편집 잠금과 원본·복제 조회 상태를 관리하도록 접근을 허용합니다.
          */
         friend class FPlayInEditorSession;
-
-        /**
-         * @brief 리플렉션 등록 함수의 접근 권한입니다.
-         */
-        ReflectMembers();
 
         /**
          * @brief 재진입을 차단하고 단일·다중 선택 대상을 공통 검증하여 적용합니다.
@@ -549,11 +631,7 @@ namespace Editor {
          */
         void AssignSelection(const Core::TArray<CoreUObject::FObjectHandle>& Actors, CoreUObject::FObjectHandle Object);
 
-        /**
-         * @brief 월드 편집, 재진입과 디스패치 상태를 확인하여 액터 생성 가능 여부를 반환합니다.
-         * @return 생성 연산을 시작할 수 있으면 true입니다.
-         */
-        bool CanSpawnActor() const;
+        bool CanModifyScene() const;
 
         /**
          * @brief 새 액터에 배치 변환을 적용하고 실패하면 생성한 액터를 제거합니다.
@@ -577,115 +655,133 @@ namespace Editor {
          * @return 교체에 성공하면 true입니다.
          */
         bool ReplaceScene(std::unique_ptr<Engine::FWorldContext> Context, const std::filesystem::path& Path);
+        bool ReplaceWorld(std::unique_ptr<Engine::FWorldContext> Context);
+
+        bool CaptureSceneMemento(FSceneMemento& State);
+        bool RestoreSceneMemento(const FSceneMemento& State);
+        void NoteSceneEdit();
+        void ClearSceneHistory();
+        void TrimSceneHistory();
 
     private:
         /**
          * @brief 월드의 소유권과 렌더러를 제공하는 엔진의 비소유 주소입니다.
          */
         Engine::UEngine* mEngine{};
-        ReflectProperty(mEngine, "Engine", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief PIE 실행 중 원본 편집 상태의 수정을 제한하는 플래그입니다.
          */
         bool mPlayLocked{};
-        ReflectProperty(mPlayLocked, "PlayLocked", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 엔진의 현재 실행 대상과 독립적인 편집 월드 핸들입니다.
          */
         Engine::FWorldHandle mWorld{};
-        ReflectProperty(mWorld, "World", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 프로퍼티 편집 대상의 세대 핸들입니다.
          */
         CoreUObject::FObjectHandle mSelectedObject{};
-        ReflectProperty(mSelectedObject, "SelectedObject", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 현재 장면 파일 경로입니다.
          */
         std::filesystem::path mScenePath{};
-        ReflectProperty(mScenePath, "ScenePath", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
-        /**
-         * @brief 저장 이후 장면이 변경되었는지 여부입니다.
-         */
-        bool mDirty{};
-        ReflectProperty(mDirty, "Dirty", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+        Core::TArray<FSceneEditCommand> mSceneHistory{};
+        FSceneMemento mPendingSceneEdit{};
+        std::size_t mSceneHistoryPosition{};
+        Core::Uint64 mSceneEditSerial{};
+        Core::Uint64 mSceneEditToken{};
+        Core::Uint64 mSceneRevision{};
+        Core::Uint64 mSavedSceneRevision{};
+        bool mSceneEditChanged{};
 
         /**
          * @brief 선택과 월드 변경의 재진입 제한입니다.
          */
         bool mChangingState{};
-        ReflectProperty(mChangingState, "ChangingState", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 프로퍼티 변경 알림의 재진입 제한입니다.
          */
         bool mEditingProperty{};
-        ReflectProperty(mEditingProperty, "EditingProperty", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief UI 수명과 독립적으로 유지할 콘솔 로그입니다.
          */
         Core::TArray<Core::FString> mLogs{};
-        ReflectProperty(mLogs, "Logs", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 로그 추가와 초기화를 구분하는 변경 세대입니다.
          */
         Core::Uint64 mLogRevision{};
-        ReflectProperty(mLogRevision, "LogRevision", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 활성 뷰포트 등에 따른 새 액터의 배치 변환 제공자입니다.
          */
         std::function<Core::FTransform()> mPlacementProvider{};
-        ReflectProperty(mPlacementProvider, "PlacementProvider", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
-         * @brief 뷰포트 관련 명령의 처리 여부와 결과를 반환하는 콜백입니다.
+         * @brief 편집·렌더·통계 명령 레지스트리입니다.
          */
-        std::function<bool(const Core::FString&, Core::FString&)> mViewportCommandHandler{};
-        ReflectProperty(mViewportCommandHandler, "ViewportCommandHandler", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+        Editor::FConsoleCommandRegistry mConsoleCommands{};
+
+        /**
+         * @brief 콘솔·통계 패널이 공유하는 그래프 창입니다.
+         */
+        Editor::FStatGraphs mStatGraphs{};
+
+        /**
+         * @brief 콘솔 명령 대상 뷰포트를 찾는 콜백입니다.
+         */
+        std::function<Editor::FEditorViewport*()> mConsoleViewportProvider{};
 
         /**
          * @brief 그림자 아틀라스 검사 창의 표시 상태입니다.
          */
         bool mShadowAtlasOpen{};
-        ReflectProperty(mShadowAtlasOpen, "ShadowAtlasOpen", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 마지막 항목을 주 대상으로 사용하는 편집 월드의 액터 선택 집합입니다.
          */
         Core::TArray<CoreUObject::FObjectHandle> mSelectedActors{};
-        ReflectProperty(mSelectedActors, "SelectedActors", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 선택 변경을 감지하거나 드래그 시작 시 선택을 검증하는 세대 값입니다.
          */
         Core::Uint64 mSelectionRevision{};
-        ReflectProperty(mSelectionRevision, "SelectionRevision", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 프로젝트 생성 또는 열기를 애플리케이션에 전달하는 콜백입니다.
          */
         std::function<void(const std::filesystem::path&, bool)> mProjectRequestHandler{};
-        ReflectProperty(mProjectRequestHandler, "ProjectRequestHandler", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 저장할 원근 편집 카메라의 조회 함수입니다.
          */
         std::function<Engine::FEditorCameraState()> mCameraProvider{};
-        ReflectProperty(mCameraProvider, "CameraProvider", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 장면 교체 후 원근 카메라를 적용하는 함수입니다.
          */
         std::function<void(const Engine::FEditorCameraState&)> mCameraRestorer{};
-        ReflectProperty(mCameraRestorer, "CameraRestorer", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+
+        /**
+         * @brief 시퀀서 프리뷰가 월드에 쓴 값을 되돌리는 함수입니다.
+         */
+        std::function<void()> mPreviewRestorer{};
+
+        /**
+         * @brief 시퀀스 액터를 시퀀서에서 여는 함수입니다.
+         */
+        std::function<void(CoreUObject::FObjectHandle)> mSequencerOpener{};
+
+        /**
+         * @brief 원근 편집 뷰포트가 대신 사용할 시퀀서 프리뷰 카메라의 핸들입니다.
+         */
+        CoreUObject::FObjectHandle mPreviewCamera{};
     };
 
 }

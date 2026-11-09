@@ -30,6 +30,16 @@ namespace Engine {
      */
     namespace {
         /**
+         * @brief 장면의 모든 객체를 만든 뒤 객체 참조 프로퍼티에 핸들을 연결합니다.
+         * @param[in] Objects 이 장면에서 읽은 객체의 대응표입니다.
+         */
+        void BindObjectReferences(const CoreUObject::FObjectGuidMap& Objects) {
+            for (const auto& Entry : Objects) {
+                Entry.second->GetClass()->BindClassObjectReferences(Entry.second, Objects);
+            }
+        }
+
+        /**
          * @brief 월드의 활성 카메라와 입력 대상 참조를 저장하거나 검증하여 복원합니다.
          * @param[in,out] Archive 모드에 따라 값을 읽거나 쓸 아카이브입니다.
          * @param[in] World 참조를 저장하거나 복원할 월드입니다.
@@ -47,6 +57,7 @@ namespace Engine {
 
                 CoreUObject::UObject* Object{Index == 0 ? static_cast<CoreUObject::UObject*>(World->GetActiveCamera()) : World->GetInputTarget()};
                 Core::FString Reference{Object != nullptr ? Object->GetGuid().ToString() : Core::FString{}};
+
                 Archive.Serialize(Name, Reference);
 
                 if (!Archive.IsLoading() || Archive.HasError()) {
@@ -62,6 +73,7 @@ namespace Engine {
 
                     if (!Parsed || Position == Objects->end() || !World->ContainsObject(Position->second) || (Index == 0 ? CoreUObject::Cast<Engine::UCameraComponent>(Position->second) == nullptr : CoreUObject::Cast<Engine::AActor>(Position->second) == nullptr)) {
                         Archive.SetError(Core::FString{"Invalid world reference: "} + Name);
+
                         return;
                     }
 
@@ -82,10 +94,12 @@ namespace Engine {
          */
         void SerializeHeader(Core::FArchive& Archive, CoreUObject::UObject* Object, Core::TMap<Core::FGuid, CoreUObject::UObject*, Core::FGuidHash>* Objects) {
             Core::FString ClassName{Object->GetClass()->GetName()};
+
             Archive.Serialize("Class", ClassName);
 
             if (ClassName != Object->GetClass()->GetName()) {
                 Archive.SetError("Unexpected object class: " + ClassName);
+
                 return;
             }
 
@@ -105,6 +119,7 @@ namespace Engine {
          */
         std::unique_ptr<CoreUObject::UObject> CreateSerializedObject(Core::FArchive& Archive, Core::TMap<Core::FGuid, CoreUObject::UObject*, Core::FGuidHash>* Objects, const CoreUObject::UClass* Expected) {
             Core::FString ClassName{};
+
             Archive.Serialize("Class", ClassName);
 
             if (ClassName == "ABillboardTextActor") {
@@ -175,6 +190,7 @@ namespace Engine {
 
             if (!Archive.IsLoading() || Archive.HasField("RootComponent")) {
                 Core::FString Root{Actor->GetRootComponent() != nullptr ? Actor->GetRootComponent()->GetGuid().ToString() : Core::FString{}};
+
                 Archive.Serialize("RootComponent", Root);
 
                 if (Archive.IsLoading() && !Archive.HasError()) {
@@ -188,6 +204,7 @@ namespace Engine {
 
                         if (!Parsed || Position == Objects->end() || (Component = CoreUObject::Cast<Engine::USceneComponent>(Position->second)) == nullptr || Component->GetOwner() != Actor) {
                             Archive.SetError("Invalid root component reference");
+
                             return;
                         }
                     }
@@ -223,11 +240,13 @@ namespace Engine {
 
                     if (Object != nullptr && !Archive.HasError()) {
                         std::unique_ptr<Engine::AActor> Actor{static_cast<Engine::AActor*>(Object.release())};
+
                         SerializeComponents(Archive, Actor.get(), Objects);
                         Actors.push_back(std::move(Actor));
                     }
                 } else {
                     Engine::AActor* Actor{Sources[Index]};
+
                     SerializeHeader(Archive, Actor, Objects);
                     SerializeComponents(Archive, Actor, Objects);
                 }
@@ -239,21 +258,27 @@ namespace Engine {
         }
     }
 
+    /**
+     * @brief 월드의 액터·컴포넌트와 활성 카메라·입력 대상 참조를 직렬화합니다.
+     */
     void Engine::FWorldSerializer::Serialize(Core::FArchive& Archive, const Engine::FWorldContext* Context) {
         Engine::UWorld* World{Context != nullptr ? Context->GetWorld() : nullptr};
 
         if (World == nullptr || (World->IsDispatching() && !Archive.IsDuplicating()) || World->GetPersistentLevel() == nullptr) {
             Archive.SetError("Cannot serialize an invalid world or a world during dispatch");
+
             return;
         }
 
         Engine::UWorld::FDispatchScope Scope{World};
         Core::TMap<Core::FGuid, CoreUObject::UObject*, Core::FGuidHash> Objects{};
         Core::Uint32 Version{1};
+
         Archive.Serialize("Version", Version);
 
         if (Version != 1) {
             Archive.SetError("Unsupported scene version");
+
             return;
         }
 
@@ -287,6 +312,7 @@ namespace Engine {
                 for (auto& Actor : Actors) {
                     if (!Level->AddActor(std::move(Actor))) {
                         Archive.SetError("Actor ownership is invalid");
+
                         break;
                     }
                 }
@@ -296,30 +322,49 @@ namespace Engine {
         }
 
         SerializeWorldReferences(Archive, World, &Objects);
+
+        if (Archive.IsLoading() && !Archive.HasError()) {
+            BindObjectReferences(Objects);
+        }
+
         Archive.EndObject();
     }
 
+    /**
+     * @brief 액터 목록과 소유 컴포넌트 및 객체 식별자를 아카이브에 저장합니다.
+     */
     void Engine::FWorldSerializer::SaveActors(Core::FArchive& Archive, const Core::TArray<Engine::AActor*>& Actors) {
         if (Archive.IsLoading()) {
             Archive.SetError("Actor writer is not saving");
+
             return;
         }
 
         Core::TMap<Core::FGuid, CoreUObject::UObject*, Core::FGuidHash> Objects{};
         Core::TArray<std::unique_ptr<Engine::AActor>> Loaded{};
+
         SerializeActors(Archive, Actors, Loaded, &Objects);
     }
 
+    /**
+     * @brief 아카이브에서 액터와 컴포넌트를 생성하고 내부 객체 참조를 복원합니다.
+     */
     Core::TArray<std::unique_ptr<Engine::AActor>> Engine::FWorldSerializer::LoadActors(Core::FArchive& Archive) {
         if (!Archive.IsLoading()) {
             Archive.SetError("Actor reader is not loading");
+
             return {};
         }
 
         Core::TMap<Core::FGuid, CoreUObject::UObject*, Core::FGuidHash> Objects{};
         Core::TArray<std::unique_ptr<Engine::AActor>> Actors{};
         const Core::TArray<Engine::AActor*> Sources{};
+
         SerializeActors(Archive, Sources, Actors, &Objects);
+
+        if (!Archive.HasError()) {
+            BindObjectReferences(Objects);
+        }
 
         return Actors;
     }

@@ -21,12 +21,6 @@ namespace RenderCore {
     class FShader {
     public:
         /**
-         * @brief 리플렉션에서 사용하는 소유 타입과 선택적 부모 타입의 별칭을 선언합니다.
-         */
-        ReflectTypes(FShader);
-
-    public:
-        /**
          * @brief 전달받은 설정과 의존성으로 FShader의 초기 상태를 구성합니다.
          * @param[in] Description 소스 경로·진입점·프로필·매크로 등의 컴파일 설정입니다.
          * @param[in] CacheKey 캐시 파일을 구분하는 셰이더 해시 키입니다.
@@ -61,12 +55,6 @@ namespace RenderCore {
         RenderCore::FShader& operator=(RenderCore::FShader&&) = delete;
 
     public:
-        /**
-         * @brief 이 타입의 구조체 메타데이터를 반환합니다.
-         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectStruct(FShader);
-
         /**
          * @brief 셰이더의 정규화된 컴파일 설명을 반환합니다.
          * @return 객체가 보유한 데이터의 참조이며 소유 객체의 수명 동안 유효합니다.
@@ -105,11 +93,6 @@ namespace RenderCore {
 
     private:
         /**
-         * @brief 자동 생성된 프로퍼티 등록 코드와 리플렉션 빌더의 접근을 허용합니다.
-         */
-        ReflectMembers();
-
-        /**
          * @brief 셰이더 관리자가 컴파일 결과를 교체하도록 접근을 허용합니다.
          */
         friend class FShaderManager;
@@ -126,31 +109,26 @@ namespace RenderCore {
          * @brief 셰이더 컴파일 경로와 진입점·프로필·매크로 설정입니다.
          */
         RenderCore::FShaderDescription mDescription{};
-        ReflectProperty(mDescription, "Description", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 셰이더 설명과 컴파일러 정보를 구분하는 캐시 키입니다.
          */
         Core::FString mCacheKey{};
-        ReflectProperty(mCacheKey, "CacheKey", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 이전에 받은 참조의 수명도 유지하는 불변 컴파일 결과입니다.
          */
         std::shared_ptr<const RenderCore::FShaderCompilation> mCompilation{};
-        ReflectProperty(mCompilation, "Compilation", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 생성과 성공한 컴파일 결과 교체마다 Core::FRevision에서 새로 받는 갱신 세대입니다.
          */
         Core::Uint64 mRevision{};
-        ReflectProperty(mRevision, "Revision", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 현재 바이트코드를 디스크 캐시에서 불러왔는지 나타냅니다.
          */
         bool mLoadedFromCache{};
-        ReflectProperty(mLoadedFromCache, "LoadedFromCache", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
 }

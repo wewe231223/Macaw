@@ -19,6 +19,7 @@ UObject::UObject()
 
 UObject::~UObject() {
     mDestroying = true;
+
     UObjectSystem::Unregister(this, mHandle);
     UObjectSystem::DetachInners(this);
 }
@@ -169,6 +170,7 @@ const UFunction* UObject::FindFunction(FName Name) const {
 bool UObject::ProcessEvent(const UFunction* Function, std::span<const FPropertyValue> Arguments, FPropertyValue& Result) {
     if (Function == nullptr) {
         Result.Reset();
+
         return false;
     }
 

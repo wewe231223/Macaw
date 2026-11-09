@@ -19,85 +19,57 @@ namespace CoreUObject {
     struct FReflectionDefinition {
     public:
         /**
-         * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
-         */
-        ReflectTypes(FReflectionDefinition);
-
-    public:
-        /**
-         * @brief 이 타입의 정적 구조체 메타데이터를 반환합니다.
-         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectStruct(FReflectionDefinition);
-
-        /**
          * @brief 종류, 네이티브 타입, 부모, 플래그, 팩터리와 빌더가 모두 같은지 검사합니다.
          * @param[in] Other 비교할 상대 값입니다.
          * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
          */
         bool operator==(const CoreUObject::FReflectionDefinition& Other) const;
 
-    private:
-        /**
-         * @brief 생성된 프로퍼티 등록 함수와 빌더 접근 권한입니다.
-         */
-        ReflectMembers();
-
     public:
         /**
          * @brief 등록 메타데이터 종류입니다.
          */
         CoreUObject::EReflectionType mKind{};
-        ReflectProperty(mKind, "Kind", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 네이티브 타입 식별 메타데이터입니다.
          */
         const CoreUObject::FNativeType* mNativeType{};
-        ReflectProperty(mNativeType, "NativeType", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 부모 클래스 메타데이터를 반환하는 함수입니다.
          */
         CoreUObject::UClass* (*mParent)(){};
-        ReflectProperty(mParent, "Parent", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 동작 정책 비트 플래그입니다.
          */
         CoreUObject::EClassFlags mFlags{};
-        ReflectProperty(mFlags, "Flags", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 객체 생성 팩터리입니다.
          */
         CoreUObject::FReflectionRegistry::FFactory mFactory{};
-        ReflectProperty(mFactory, "Factory", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
-
 
         /**
          * @brief 클래스 멤버 등록 콜백입니다.
          */
         CoreUObject::FReflectionRegistry::FClassBuilder mClassBuilder{};
-        ReflectProperty(mClassBuilder, "ClassBuilder", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 구조체 멤버 등록 콜백입니다.
          */
         CoreUObject::FReflectionRegistry::FStructBuilder mStructBuilder{};
-        ReflectProperty(mStructBuilder, "StructBuilder", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 열거값 등록 콜백입니다.
          */
         CoreUObject::FReflectionRegistry::FEnumBuilder mEnumBuilder{};
-        ReflectProperty(mEnumBuilder, "EnumBuilder", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 부모 구조체 메타데이터입니다.
          */
         const CoreUObject::UScriptStruct* mStructParent{};
-        ReflectProperty(mStructParent, "StructParent", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
 }

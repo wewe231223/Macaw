@@ -13,6 +13,7 @@ public:
 
 public:
     UPrimitiveComponent();
+
     ~UPrimitiveComponent() override = default;
 
 public:
@@ -56,6 +57,7 @@ public:
 
 private:
     TArray<FPrimitiveUVTransform> mUVTransforms{};
+
     ReflectAccessor(mBVisible, IsVisible, SetVisible, "bVisible", EPropertyFlags::Edit | EPropertyFlags::Serialize, ReflectSerializer(mBVisible), ReflectEditor("Rendering", "Visible"));
 
     bool mBVisible{true};

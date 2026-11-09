@@ -66,6 +66,7 @@ bool FJsonFile::Save(const std::filesystem::path& FilePath, const rapidjson::Doc
 
         if (!WriteFile(File, Buffer.GetString() + Offset, Size, &Written, nullptr) || Written == 0) {
             Saved = false;
+
             break;
         }
 

@@ -7,26 +7,18 @@
 #pragma once
 
 #include "Engine/Component/UShapeComponent.h"
+#include "UBoxComponent.generated.h"
 
 namespace Engine {
 
     /**
      * @brief 로컬 반길이로 정의한 상자 충돌 컴포넌트입니다.
      */
+    UCLASS()
     class UBoxComponent : public Engine::UShapeComponent {
-    public:
-        /**
-         * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
-         */
-        ReflectTypes(UBoxComponent, Engine::UShapeComponent);
+        GENERATED_BODY()
 
     public:
-        /**
-         * @brief 이 타입의 정적 리플렉션 메타데이터를 반환합니다.
-         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectClass(UBoxComponent);
-
         /**
          * @brief 검사에 사용할 충돌 형상 값을 반환합니다.
          * @return 계산하거나 조회한 값입니다.
@@ -59,16 +51,10 @@ namespace Engine {
 
     private:
         /**
-         * @brief 생성된 멤버 등록 함수와 리플렉션 빌더의 접근 권한입니다.
-         */
-        ReflectMembers();
-
-    private:
-        /**
          * @brief 상자의 로컬 축별 반길이입니다.
          */
+        UPROPERTY(Edit, Serialize, Getter = GetBoxExtent, Setter = SetBoxExtent)
         Core::FVector mBoxExtent{0.5f, 0.5f, 0.5f};
-        ReflectAccessor(mBoxExtent, GetBoxExtent, SetBoxExtent, "BoxExtent", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
     };
 
 }

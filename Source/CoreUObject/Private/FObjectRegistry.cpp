@@ -25,6 +25,7 @@ namespace CoreUObject {
      */
     CoreUObject::FObjectRegistry* CoreUObject::FObjectRegistry::Get() {
         static CoreUObject::FObjectRegistry Registry{};
+
         return &Registry;
     }
 
@@ -40,9 +41,11 @@ namespace CoreUObject {
 
         if (mFreeSlots.empty()) {
             Index = static_cast<Core::Uint32>(mSlots.size());
+
             mSlots.push_back(FSlot{});
         } else {
             Index = mFreeSlots.back();
+
             mFreeSlots.pop_back();
         }
 
@@ -93,6 +96,9 @@ namespace CoreUObject {
         return mObjectCount;
     }
 
+    /**
+     * @brief 동일 Outer 범위에서 FName이 같은 첫 유효 객체를 조회합니다.
+     */
     CoreUObject::UObject* CoreUObject::FObjectRegistry::FindObject(const Core::FName& Name, const CoreUObject::UObject* Outer) const {
         for (const FSlot& Slot : mSlots) {
             if (Slot.mObject != nullptr && Slot.mObject->GetFName() == Name && Slot.mObject->GetOuter() == Outer) {
@@ -103,6 +109,9 @@ namespace CoreUObject {
         return nullptr;
     }
 
+    /**
+     * @brief 타입과 Outer 범위에 일치하는 객체의 세대 핸들을 스냅샷으로 수집합니다.
+     */
     Core::TArray<CoreUObject::FObjectHandle> CoreUObject::FObjectRegistry::GetObjects(const CoreUObject::UClass* Class, const CoreUObject::UObject* Outer, bool IncludeDerived) const {
         Core::TArray<CoreUObject::FObjectHandle> Objects{};
 

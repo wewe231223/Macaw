@@ -11,6 +11,7 @@ bool FRenderBuffers::Initialize(ID3D11Device* Device, ID3D11DeviceContext* Conte
 
     if (Device == nullptr || Context == nullptr || !InitializeConstantBuffer(Device, mViewConstants, sizeof(FViewConstants)) || !InitializeConstantBuffer(Device, mOrientationAxisConstants, sizeof(FViewConstants)) || !mLights.Initialize(Device, Context, 16) || !mDrawRecords.Initialize(Device, Context, 128) || !mLocalTransforms.Initialize(Device, Context, 16) || !mUVTransforms.Initialize(Device, Context, 16)) {
         Reset();
+
         return false;
     }
 
@@ -308,6 +309,7 @@ bool FRenderBuffers::UpdateSceneTransforms(ID3D11Device* Device, ID3D11DeviceCon
         Buffers.mResourceView = std::move(ResourceView);
         Buffers.mCapacity = Capacity;
         Buffers.mAppliedRevision.Invalidate();
+
         FullUpload = true;
     }
 
@@ -330,6 +332,7 @@ bool FRenderBuffers::UpdateSceneTransforms(ID3D11Device* Device, ID3D11DeviceCon
 
         if (!Buffers.mTransforms.Update(Context, Transforms.data() + ObjectIndex, static_cast<Uint32>((End - Begin) * sizeof(FMatrix)), ObjectIndex * sizeof(FMatrix))) {
             Buffers.mAppliedRevision.Invalidate();
+
             return false;
         }
 

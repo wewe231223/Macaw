@@ -10,8 +10,6 @@
 #include "Engine/AActor.h"
 #include "Engine/Component/UActorComponent.h"
 #include "Engine/Component/UMeshComponent.h"
-#include "Engine/Component/USkeletalMeshComponent.h"
-#include "Asset/USkeletalMesh.h"
 #include "Engine/Component/ULightComponent.h"
 #include "RenderCore/IRendererModule.h"
 #include "Engine/FProject.h"
@@ -28,11 +26,22 @@
 #include "CoreUObject/Reflection/UClass.h"
 #include "CoreUObject/Reflection/Cast.h"
 #include "CoreUObject/Reflection/FReflectionRegistry.h"
+#include "CoreUObject/Reflection/NativeReflection.h"
+#include "Editor/FScriptBuildService.h"
+#include "Script/FScriptField.h"
+#include "Script/FScriptRuntime.h"
+#include "Script/UScriptComponent.h"
+#include "Panel/ObjectRow.h"
 
 #include <imgui.h>
+#include <imgui_internal.h>
 #include <algorithm>
 #include <array>
 #include <cctype>
+#include <charconv>
+#include <format>
+#include <string>
+#include <string_view>
 
 namespace Editor {
 
@@ -79,6 +88,112 @@ namespace Editor {
         bool IsVisibleProperty(const CoreUObject::FProperty* Property) {
             return !Property->HasFlag(Core::EPropertyFlags::Transient) && (Property->HasFlag(Core::EPropertyFlags::Edit) || Property->HasFlag(Core::EPropertyFlags::ReadOnly));
         }
+
+        Core::FString DrawFieldLabel(const char* Label, float TrailingWidth = 0.0f) {
+            const float LabelEnd{ImGui::GetCursorPosX() + std::max(1.0f, ImGui::GetContentRegionAvail().x * 0.4f)};
+
+            ImGui::AlignTextToFramePadding();
+            ImGui::PushTextWrapPos(LabelEnd);
+            ImGui::TextUnformatted(Label);
+            ImGui::PopTextWrapPos();
+
+            ImGui::SameLine();
+            ImGui::SetCursorPosX(LabelEnd + ImGui::GetStyle().ItemInnerSpacing.x);
+            ImGui::SetNextItemWidth(std::max(1.0f, ImGui::GetContentRegionAvail().x - TrailingWidth));
+
+            return Core::FString{"##"} + Label;
+        }
+
+        // 숫자 변환은 Macaw.Engine의 ScriptFields와 같은 형식이어야 하므로 로캘과 무관한 charconv를 씁니다.
+
+        /**
+         * @brief 스크립트 프로퍼티의 편집 문자열을 실수로 해석합니다.
+         * @param[in] Text 해석·변환·탐색할 원문 문자열입니다.
+         * @return 문자열에서 해석한 실수입니다.
+         */
+        float ParseScriptFloat(std::string_view Text) {
+            float Value{};
+
+            std::from_chars(Text.data(), Text.data() + Text.size(), Value);
+
+            return Value;
+        }
+
+        /**
+         * @brief 스크립트 프로퍼티 실수를 편집 가능한 문자열로 변환합니다.
+         * @param[in] Value 검사·변환·저장할 값입니다.
+         * @return 편집할 수 있는 실수 문자열입니다.
+         */
+        Core::FString FormatScriptFloat(float Value) {
+            std::array<char, 64> Buffer{};
+            const auto Result{std::to_chars(Buffer.data(), Buffer.data() + Buffer.size(), Value)};
+
+            return Core::FString{Buffer.data(), Result.ptr};
+        }
+
+        /**
+         * @brief 타입 태그에 맞는 위젯으로 C# 필드 값을 표시합니다.
+         * @param[in] Info 필드 정보입니다.
+         * @param[in,out] Value 문자열로 변환된 값입니다.
+         * @return 값이 바뀌면 true입니다.
+         */
+        bool DrawScriptFieldValue(const Script::FScriptFieldInfo& Info, const char* Label, Core::FString& Value) {
+            if (Info.mType == "Bool") {
+                bool Current{Value == "true"};
+
+                if (ImGui::Checkbox(Label, &Current)) {
+                    Value = Current ? "true" : "false";
+
+                    return true;
+                }
+            } else if (Info.mType == "Int") {
+                int Current{};
+
+                std::from_chars(Value.data(), Value.data() + Value.size(), Current);
+
+                if (ImGui::InputInt(Label, &Current)) {
+                    Value = std::to_string(Current);
+
+                    return true;
+                }
+            } else if (Info.mType == "Float") {
+                float Current{ParseScriptFloat(Value)};
+
+                if (ImGui::DragFloat(Label, &Current, 0.025f)) {
+                    Value = FormatScriptFloat(Current);
+
+                    return true;
+                }
+            } else if (Info.mType == "Vector3") {
+                std::array<float, 3> Current{};
+                std::string_view Rest{Value};
+
+                for (float& Component : Current) {
+                    const std::size_t Space{Rest.find(' ')};
+
+                    Component = ParseScriptFloat(Rest.substr(0, Space));
+                    Rest = Space != std::string_view::npos ? Rest.substr(Space + 1) : std::string_view{};
+                }
+
+                if (ImGui::DragFloat3(Label, Current.data(), 0.025f)) {
+                    Value = FormatScriptFloat(Current[0]) + " " + FormatScriptFloat(Current[1]) + " " + FormatScriptFloat(Current[2]);
+
+                    return true;
+                }
+            } else if (Info.mType == "String") {
+                std::array<char, 512> Buffer{};
+
+                std::copy_n(Value.begin(), std::min(Value.size(), Buffer.size() - 1), Buffer.begin());
+
+                if (ImGui::InputText(Label, Buffer.data(), Buffer.size(), ImGuiInputTextFlags_EnterReturnsTrue)) {
+                    Value = Buffer.data();
+
+                    return true;
+                }
+            }
+
+            return false;
+        }
     }
 
     /**
@@ -93,9 +208,169 @@ namespace Editor {
      */
     Editor::FDetailsPanel::~FDetailsPanel() = default;
 
+    /**
+     * @brief 브라우저와 공유할 에셋 표시 서비스를 연결합니다.
+     */
     void Editor::FDetailsPanel::SetAssetServices(Editor::FEditorAssetCatalog* Catalog, Editor::FAssetThumbnailCache* Thumbnails) {
         mAssetCatalog = Catalog;
         mThumbnails = Thumbnails;
+    }
+
+    /**
+     * @brief C# 프로젝트 생성과 빌드 상태를 제공할 서비스를 연결합니다.
+     */
+    void Editor::FDetailsPanel::SetScriptBuildService(Editor::FScriptBuildService* Builds) {
+        mScriptBuilds = Builds;
+    }
+
+    /**
+     * @brief 스크립트 클래스를 고르는 콤보를 표시합니다.
+     */
+    bool Editor::FDetailsPanel::DrawScriptClassPicker(const char* Label, Core::FString& ClassName) {
+        bool Changed{};
+
+        if (ImGui::BeginCombo(Label, ClassName.empty() ? "None" : ClassName.c_str())) {
+            if (ImGui::Selectable("None", ClassName.empty())) {
+                ClassName.clear();
+
+                Changed = true;
+            }
+
+            for (const Script::FScriptClassInfo& Class : Script::FScriptRuntime::Get()->GetCatalog()) {
+                if (ImGui::Selectable(Class.mName.c_str(), Class.mName == ClassName)) {
+                    ClassName = Class.mName;
+                    Changed = true;
+                }
+            }
+
+            ImGui::EndCombo();
+        }
+
+        return Changed;
+    }
+
+    /**
+     * @brief C# 프로젝트 상태와 스크립트의 [Field] 필드를 표시합니다.
+     */
+    void Editor::FDetailsPanel::DrawScriptFields(Script::UScriptComponent* Component) {
+        Editor::FEditorContext* Context{GetEditorContext()};
+        const CoreUObject::FObjectHandle Handle{Component->GetHandle()};
+
+        ImGui::SeparatorText("C# Script");
+
+        if (mScriptBuilds != nullptr && !mScriptBuilds->HasProject()) {
+            ImGui::TextWrapped("이 프로젝트에는 C# 프로젝트가 없습니다. Scripts 메뉴의 \"C# 프로젝트 열기\"로 만들 수 있으며, .NET 10 SDK가 필요합니다. 만든 스크립트는 콘텐츠 브라우저의 Scripts 폴더에서 더블클릭해 엽니다.");
+
+            return;
+        }
+
+        const Core::FString& ClassName{Component->GetScriptClass()};
+
+        if (ClassName.empty()) {
+            return;
+        }
+
+        const Script::FScriptClassInfo* Class{Script::FScriptRuntime::Get()->FindClass(ClassName)};
+
+        if (Class == nullptr) {
+            ImGui::TextColored({1.0f, 0.75f, 0.3f, 1.0f}, "빌드된 스크립트에 %s 클래스가 없습니다.", ClassName.c_str());
+        }
+
+        // 그리는 도중 값이 바뀔 수 있으므로 저장된 필드는 복사해서 순회합니다.
+        const Core::TArray<Script::FScriptField> Saved{Component->GetFields()};
+        const auto FindSaved{[&Saved](const Script::FScriptFieldInfo& Info) -> const Script::FScriptField* {
+            const auto Position{std::find_if(Saved.begin(), Saved.end(), [&Info](const Script::FScriptField& Field) {
+                return Field.mName == Info.mName && Field.mType == Info.mType;
+            })};
+
+            return Position != Saved.end() ? &*Position : nullptr;
+        }};
+
+        ImGui::BeginDisabled(!Context->CanEditWorld());
+
+        if (Class != nullptr) {
+            for (const Script::FScriptFieldInfo& Info : Class->mFields) {
+                const Script::FScriptField* Field{FindSaved(Info)};
+                Core::FString Value{Field != nullptr ? Field->mValue : Info.mDefault};
+
+                ImGui::PushID(Info.mName.c_str());
+
+                if (Info.mType == "Actor") {
+                    const CoreUObject::UObject* Target{Field != nullptr ? Field->mObject.Resolve() : nullptr};
+
+                    if (ImGui::BeginCombo(DrawFieldLabel(Info.mName.c_str()).c_str(), Target != nullptr ? Target->GetName().c_str() : "(없음)")) {
+                        if (ImGui::Selectable("(없음)", Target == nullptr)) {
+                            Context->RemoveScriptField(Handle, Info.mName);
+                        }
+
+                        for (const CoreUObject::FObjectHandle ActorHandle : Context->GetActorHandles()) {
+                            const CoreUObject::UObject* Actor{Context->ResolveObject(ActorHandle)};
+
+                            if (Actor != nullptr && ImGui::Selectable(Actor->GetName().c_str(), Actor == Target)) {
+                                Script::FScriptField Selected{Info.mName, Info.mType};
+                                Selected.mObject = CoreUObject::FObjectReference{Actor};
+
+                                Context->SetScriptField(Handle, Selected);
+                            }
+                        }
+
+                        ImGui::EndCombo();
+                    }
+
+                    ImGui::PopID();
+
+                    continue;
+                }
+
+                const char* ResetLabel{"기본값"};
+                const ImGuiStyle& Style{ImGui::GetStyle()};
+                const float ResetWidth{Field != nullptr ? ImGui::CalcTextSize(ResetLabel).x + Style.FramePadding.x * 2.0f + Style.ItemSpacing.x : 0.0f};
+                const Core::FString InputLabel{DrawFieldLabel(Info.mName.c_str(), ResetWidth)};
+
+                if (DrawScriptFieldValue(Info, InputLabel.c_str(), Value)) {
+                    BeginItemSceneEdit();
+
+                    if (Value == Info.mDefault) {
+                        Context->RemoveScriptField(Handle, Info.mName);
+                    } else {
+                        Context->SetScriptField(Handle, {Info.mName, Info.mType, Value});
+                    }
+                }
+
+                if (Field != nullptr) {
+                    ImGui::SameLine();
+
+                    if (ImGui::SmallButton(ResetLabel)) {
+                        Context->RemoveScriptField(Handle, Info.mName);
+                    }
+                }
+
+                ImGui::PopID();
+            }
+        }
+
+        // 스크립트에서 이름이나 타입이 바뀐 값은 지우기 전까지 보존합니다.
+        for (const Script::FScriptField& Field : Saved) {
+            const bool Known{Class != nullptr && std::any_of(Class->mFields.begin(), Class->mFields.end(), [&Field](const Script::FScriptFieldInfo& Info) {
+                return Info.mName == Field.mName && Info.mType == Field.mType;
+            })};
+
+            if (Known) {
+                continue;
+            }
+
+            ImGui::PushID(Field.mName.c_str());
+            ImGui::TextColored({1.0f, 0.75f, 0.3f, 1.0f}, "%s (%s) = %s", Field.mName.c_str(), Field.mType.c_str(), Field.mValue.c_str());
+            ImGui::SameLine();
+
+            if (ImGui::SmallButton("지우기")) {
+                Context->RemoveScriptField(Handle, Field.mName);
+            }
+
+            ImGui::PopID();
+        }
+
+        ImGui::EndDisabled();
     }
 
     /**
@@ -105,6 +380,7 @@ namespace Editor {
         Editor::FEditorContext* Context{GetEditorContext()};
 
         DrawComponentMenu();
+        DrawComponentTree();
 
         const auto Objects{Context->GetDetailsObjects()};
 
@@ -121,9 +397,33 @@ namespace Editor {
         }
     }
 
+    void Editor::FDetailsPanel::FinishInactiveSceneEdit() {
+        if (mSceneEditToken == 0 || (IsVisible() && ImGui::GetActiveID() == mSceneEditItem && GetEditorContext()->IsSceneEditActive())) {
+            return;
+        }
+
+        GetEditorContext()->EndSceneEdit(mSceneEditToken);
+        mSceneEditToken = 0;
+        mSceneEditItem = 0;
+    }
+
+    void Editor::FDetailsPanel::BeginItemSceneEdit() {
+        FinishInactiveSceneEdit();
+        const ImGuiID Item{ImGui::GetActiveID()};
+
+        if (mSceneEditToken == 0 && Item != 0) {
+            mSceneEditToken = GetEditorContext()->BeginSceneEdit();
+            mSceneEditItem = Item;
+        }
+    }
+
+    /**
+     * @brief 생성 가능한 컴포넌트의 검색·추가 메뉴를 표시합니다.
+     */
     void Editor::FDetailsPanel::DrawComponentMenu() {
         Editor::FEditorContext* Context{GetEditorContext()};
         const bool CanAdd{Context->CanEditWorld() && Context->GetSelectedActors().size() == 1};
+
         ImGui::BeginDisabled(!CanAdd);
 
         if (ImGui::Button("+ 추가")) {
@@ -162,6 +462,7 @@ namespace Editor {
                 }
 
                 HasEntries = true;
+
                 ImGui::PushID(Class);
                 ImGui::BeginDisabled(!Context->CanAddComponent(Class));
 
@@ -178,6 +479,73 @@ namespace Editor {
             }
 
             ImGui::EndPopup();
+        }
+
+        ImGui::Separator();
+    }
+
+    /**
+     * @brief 선택한 액터 하나와 그 컴포넌트를 고르는 트리를 표시합니다.
+     */
+    void Editor::FDetailsPanel::DrawComponentTree() {
+        Editor::FEditorContext* Context{GetEditorContext()};
+        Engine::AActor* Actor{Context->GetSelectedActor()};
+
+        if (Actor == nullptr || Context->GetSelectedActors().size() != 1) {
+            return;
+        }
+
+        const CoreUObject::FObjectHandle ActorHandle{Actor->GetHandle()};
+        const CoreUObject::UObject* Selected{Context->GetSelectedObject()};
+        Core::TArray<CoreUObject::FObjectHandle> Components{};
+
+        for (const auto& Component : Actor->GetComponents()) {
+            Components.push_back(Component->GetHandle());
+        }
+
+        // 컴포넌트가 많으면 프로퍼티 영역을 밀어내지 않도록 트리 안에서 스크롤합니다.
+        constexpr std::size_t MaxVisibleRows{8};
+        const float RowHeight{ImGui::GetFontSize() + ImGui::GetStyle().CellPadding.y * 2.0f};
+        const float Height{static_cast<float>(std::min(Components.size() + 1, MaxVisibleRows)) * RowHeight + 4.0f};
+        constexpr ImGuiTableFlags TableFlags{ImGuiTableFlags_Resizable | ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersOuter | ImGuiTableFlags_ScrollY};
+
+        if (ImGui::BeginTable("ComponentTree", 2, TableFlags, {0.0f, Height})) {
+            ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthStretch | ImGuiTableColumnFlags_NoHide);
+            ImGui::TableSetupColumn("Type", ImGuiTableColumnFlags_WidthFixed, ImGui::CalcTextSize("StaticMeshComponent").x);
+
+            ImGui::PushID(Actor);
+            ImGui::TableNextRow();
+            ObjectRow::DrawLabel(Actor, Selected == Actor);
+
+            if (ImGui::IsItemClicked()) {
+                Context->SelectObject(ActorHandle);
+            }
+
+            if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
+                Context->OpenInSequencer(ActorHandle);
+            }
+
+            ObjectRow::DrawType(Actor);
+            ImGui::PopID();
+            ImGui::Indent();
+
+            for (CoreUObject::FObjectHandle Handle : Components) {
+                if (CoreUObject::UObject* Component{Context->ResolveObject(Handle)}) {
+                    ImGui::PushID(Component);
+                    ImGui::TableNextRow();
+                    ObjectRow::DrawLabel(Component, Selected == Component);
+
+                    if (ImGui::IsItemClicked()) {
+                        Context->SelectObject(Handle);
+                    }
+
+                    ObjectRow::DrawType(Component);
+                    ImGui::PopID();
+                }
+            }
+
+            ImGui::Unindent();
+            ImGui::EndTable();
         }
 
         ImGui::Separator();
@@ -220,6 +588,7 @@ namespace Editor {
                     ImGui::BeginDisabled(ReadOnly);
 
                     if (DrawPropertyValue(Property, Value) && !ReadOnly) {
+                        BeginItemSceneEdit();
                         Context->EditProperty(Handle, Property, Value, ImGui::IsMouseDown(ImGuiMouseButton_Left));
                     }
 
@@ -248,9 +617,11 @@ namespace Editor {
                 }
 
                 Found = true;
+
                 ImGui::Text("Map %u | %u x %u", Tile.mFace, Tile.mResolution, Tile.mResolution);
 
                 const float Size{std::clamp(ImGui::GetContentRegionAvail().x, 64.0f, 320.0f)};
+
                 ImGui::Image(reinterpret_cast<ImTextureID>(Atlas.mTexture), {Size, Size}, {Tile.mRectangle.x, Tile.mRectangle.y}, {Tile.mRectangle.x + Tile.mRectangle.z, Tile.mRectangle.y + Tile.mRectangle.w});
             }
 
@@ -260,7 +631,6 @@ namespace Editor {
         }
 
         auto* Component{Context->ResolveObject(Handle) == Object ? CoreUObject::Cast<Engine::UMeshComponent>(Object) : nullptr};
-        auto* Skeletal{Context->ResolveObject(Handle) == Object ? CoreUObject::Cast<Engine::USkeletalMeshComponent>(Object) : nullptr};
 
         if (Component != nullptr && Component->GetStaticMesh() != nullptr) {
             const Core::FString& Override{Component->GetMaterialPath()};
@@ -301,8 +671,8 @@ namespace Editor {
             ImGui::EndDisabled();
         }
 
-        if (Skeletal != nullptr && Skeletal->GetSkeletalMesh() != nullptr) {
-            DrawSkeletalPose(Skeletal);
+        if (auto* ScriptComponent{Context->ResolveObject(Handle) == Object ? CoreUObject::Cast<Script::UScriptComponent>(Object) : nullptr}) {
+            DrawScriptFields(ScriptComponent);
         }
 
         ImGui::PopID();
@@ -315,17 +685,30 @@ namespace Editor {
         const char* Label{Property->GetName().c_str()};
 
         if (Property->GetType() == CoreUObject::EPropertyType::Enum) {
+            const bool ShadowBias{Property->GetNativeType() == CoreUObject::GetNativeType<Engine::EShadowBiasPreset>()};
+            const bool SlopeBias{ShadowBias && Property->GetName() == "ShadowSlopeBiasPreset"};
+            const char* FieldLabel{ShadowBias ? (SlopeBias ? "Slope-Scaled Bias Preset" : "Depth Bias Preset") : Label};
             Core::Int32 Number{std::get<Core::Int32>(Value)};
             const auto& Choices{Property->GetEnumValues()};
             const auto Current{std::find_if(Choices.begin(), Choices.end(), [Number](const CoreUObject::FEnumValue& Choice) {
                 return Choice.mValue == Number;
             })};
+            const auto FormatChoice{[ShadowBias, SlopeBias](const CoreUObject::FEnumValue& Choice) {
+                if (!ShadowBias) {
+                    return Choice.mName;
+                }
+
+                return SlopeBias ? std::format("Level {} ({:.2f})", Choice.mValue, static_cast<float>(Choice.mValue) * Engine::ShadowSlopeBiasStep) : std::format("Level {} ({})", Choice.mValue, Choice.mValue * Engine::ShadowDepthBiasStep);
+            }};
+            const Core::FString Preview{Current != Choices.end() ? FormatChoice(*Current) : "Invalid"};
 
             bool Changed{};
 
-            if (ImGui::BeginCombo(Label, Current != Choices.end() ? Current->mName.c_str() : "Invalid")) {
+            if (ImGui::BeginCombo(DrawFieldLabel(FieldLabel).c_str(), Preview.c_str())) {
                 for (const CoreUObject::FEnumValue& Choice : Choices) {
-                    if (ImGui::Selectable(Choice.mName.c_str(), Number == Choice.mValue)) {
+                    const Core::FString Option{FormatChoice(Choice)};
+
+                    if (ImGui::Selectable(Option.c_str(), Number == Choice.mValue)) {
                         Number = Choice.mValue;
                         Changed = true;
                     }
@@ -342,7 +725,7 @@ namespace Editor {
         if (auto* Vector2{std::get_if<Core::FVector2>(&Value)}) {
             auto Values{Vector2->ToArray()};
 
-            if (ImGui::DragFloat2(Label, Values.data(), 0.025f)) {
+            if (ImGui::DragFloat2(DrawFieldLabel(Label).c_str(), Values.data(), 0.025f)) {
                 *Vector2 = {Values[0], Values[1]};
 
                 return true;
@@ -350,7 +733,8 @@ namespace Editor {
         } else if (auto* Vector4{std::get_if<Core::FVector4>(&Value)}) {
             auto Values{Vector4->ToArray()};
 
-            const bool Changed{Property->GetName() == "LightColor" ? ImGui::ColorEdit4(Label, Values.data()) : ImGui::DragFloat4(Label, Values.data(), 0.025f)};
+            const Core::FString InputLabel{DrawFieldLabel(Label)};
+            const bool Changed{Property->GetName().ends_with("Color") ? ImGui::ColorEdit4(InputLabel.c_str(), Values.data()) : ImGui::DragFloat4(InputLabel.c_str(), Values.data(), 0.025f)};
 
             if (Changed) {
                 *Vector4 = {Values[0], Values[1], Values[2], Values[3]};
@@ -364,7 +748,7 @@ namespace Editor {
                 for (Core::Int32 Row{}; Row < 4; ++Row) {
                     std::array<float, 4> Values{(*Matrix)(Row, 0), (*Matrix)(Row, 1), (*Matrix)(Row, 2), (*Matrix)(Row, 3)};
 
-                    if (ImGui::DragFloat4(std::to_string(Row).c_str(), Values.data(), 0.025f)) {
+                    if (ImGui::DragFloat4(DrawFieldLabel(std::to_string(Row).c_str()).c_str(), Values.data(), 0.025f)) {
                         for (Core::Int32 Column{}; Column < 4; ++Column) {
                             (*Matrix)(Row, Column) = Values[static_cast<std::size_t>(Column)];
                         }
@@ -380,7 +764,7 @@ namespace Editor {
         } else if (auto* Vector{std::get_if<Core::FVector>(&Value)}) {
             auto Values{Vector->ToArray()};
 
-            if (ImGui::DragFloat3(Label, Values.data(), 0.025f, 0.0f, 0.0f, "%.3f")) {
+            if (ImGui::DragFloat3(DrawFieldLabel(Label).c_str(), Values.data(), 0.025f, 0.0f, 0.0f, "%.3f")) {
                 *Vector = {Values[0], Values[1], Values[2]};
 
                 return true;
@@ -388,21 +772,35 @@ namespace Editor {
         } else if (auto* Rotation{std::get_if<Core::FRotator>(&Value)}) {
             auto Values{Rotation->ToArray()};
 
-            if (ImGui::DragFloat3(Label, Values.data(), 0.25f, 0.0f, 0.0f, "%.2f")) {
+            if (ImGui::DragFloat3(DrawFieldLabel(Label).c_str(), Values.data(), 0.25f, 0.0f, 0.0f, "%.2f")) {
                 *Rotation = {Values[0], Values[1], Values[2]};
 
                 return true;
             }
         } else if (auto* String{std::get_if<Core::FString>(&Value)}) {
+            if (Property->GetName() == "ScriptClass") {
+                return DrawScriptClassPicker(DrawFieldLabel(Label).c_str(), *String);
+            }
+
             if (Property->GetName() == "SkeletalMesh" && mAssetCatalog != nullptr && mThumbnails != nullptr) {
                 return mAssetPicker.Draw(*mAssetCatalog, *mThumbnails, Label, *String, Asset::EAssetType::SkeletalMesh, {}, "None");
+            }
+
+            if (Property->GetName() == "Skeleton" && mAssetCatalog != nullptr && mThumbnails != nullptr) {
+                return mAssetPicker.Draw(*mAssetCatalog, *mThumbnails, Label, *String, Asset::EAssetType::Skeleton, {}, "None");
+            }
+
+            if (Property->GetName() == "Animation" && mAssetCatalog != nullptr && mThumbnails != nullptr) {
+                return mAssetPicker.Draw(*mAssetCatalog, *mThumbnails, Label, *String, Asset::EAssetType::AnimSequence, {}, "None");
             }
 
             if (Property->GetName() == "Mesh") {
                 return DrawAssetPicker(Label, *String, true);
             }
 
-            if (mAssetCatalog != nullptr && mThumbnails != nullptr && (Property->GetName() == "Material" || Property->GetName() == "Texture" || Property->GetName() == "Sprite")) {
+            const bool TextureProperty{Property->GetName() == "Texture" || Property->GetName() == "NormalMap" || Property->GetName() == "Sprite"};
+
+            if (mAssetCatalog != nullptr && mThumbnails != nullptr && (Property->GetName() == "Material" || TextureProperty)) {
                 return mAssetPicker.Draw(*mAssetCatalog, *mThumbnails, Property->GetName() == "Material" ? "All Slots Override" : Label, *String, Property->GetName() == "Material" ? Asset::EAssetType::Material : Asset::EAssetType::Texture, {}, Property->GetName() == "Material" ? "Use mesh materials" : Property->GetName() == "Sprite" ? "Default atlas" : "None");
             }
 
@@ -411,8 +809,9 @@ namespace Editor {
                 TextBuffer.resize(std::max<std::size_t>(4096, String->size() + 1024));
                 std::copy(String->begin(), String->end(), TextBuffer.begin());
 
-                if (ImGui::InputTextMultiline(Label, TextBuffer.data(), TextBuffer.size(), {0.0f, ImGui::GetTextLineHeight() * 4.0f}, ImGuiInputTextFlags_AllowTabInput)) {
+                if (ImGui::InputTextMultiline(DrawFieldLabel(Label).c_str(), TextBuffer.data(), TextBuffer.size(), {0.0f, ImGui::GetTextLineHeight() * 4.0f}, ImGuiInputTextFlags_AllowTabInput)) {
                     *String = TextBuffer.data();
+
                     return true;
                 }
 
@@ -420,15 +819,16 @@ namespace Editor {
             }
 
             std::array<char, 512> Buffer{};
+
             std::copy_n(String->begin(), std::min(String->size(), Buffer.size() - 1), Buffer.begin());
 
-            bool Changed{ImGui::InputText(Label, Buffer.data(), Buffer.size(), ImGuiInputTextFlags_EnterReturnsTrue)};
+            bool Changed{ImGui::InputText(DrawFieldLabel(Label).c_str(), Buffer.data(), Buffer.size(), ImGuiInputTextFlags_EnterReturnsTrue)};
 
             if (Changed) {
                 *String = Buffer.data();
             }
 
-            const char* AssetPayload{Property->GetName() == "Material" ? Editor::EditorAssetDragDrop::MaterialPayload : Property->GetName() == "Texture" || Property->GetName() == "Sprite" ? Editor::EditorAssetDragDrop::TexturePayload : Property->GetName() == "Mesh" ? Editor::EditorAssetDragDrop::MeshPayload : nullptr};
+            const char* AssetPayload{Property->GetName() == "Material" ? Editor::EditorAssetDragDrop::MaterialPayload : TextureProperty ? Editor::EditorAssetDragDrop::TexturePayload : Property->GetName() == "Mesh" ? Editor::EditorAssetDragDrop::MeshPayload : nullptr};
 
             if (AssetPayload != nullptr && ImGui::BeginDragDropTarget()) {
                 const ImGuiPayload* Payload{ImGui::AcceptDragDropPayload(AssetPayload)};
@@ -443,18 +843,21 @@ namespace Editor {
 
             return Changed;
         } else if (auto* Boolean{std::get_if<bool>(&Value)}) {
-            return ImGui::Checkbox(Label, Boolean);
+            return ImGui::Checkbox(DrawFieldLabel(Label).c_str(), Boolean);
         } else if (auto* FloatValue{std::get_if<float>(&Value)}) {
-            return ImGui::DragFloat(Label, FloatValue, 0.025f);
+            return ImGui::DragFloat(DrawFieldLabel(Label).c_str(), FloatValue, 0.025f);
         } else if (auto* IntegerValue{std::get_if<Core::Int32>(&Value)}) {
-            return ImGui::InputInt(Label, IntegerValue);
+            return ImGui::InputInt(DrawFieldLabel(Label).c_str(), IntegerValue);
         } else if (auto* UnsignedValue{std::get_if<Core::Uint32>(&Value)}) {
-            return ImGui::InputScalar(Label, ImGuiDataType_U32, UnsignedValue);
+            return ImGui::InputScalar(DrawFieldLabel(Label).c_str(), ImGuiDataType_U32, UnsignedValue);
         } else if (auto* Unsigned64Value{std::get_if<Core::Uint64>(&Value)}) {
-            return ImGui::InputScalar(Label, ImGuiDataType_U64, Unsigned64Value);
+            return ImGui::InputScalar(DrawFieldLabel(Label).c_str(), ImGuiDataType_U64, Unsigned64Value);
         } else if (auto* Guid{std::get_if<Core::FGuid>(&Value)}) {
             ImGui::TextDisabled("%s", Label);
             ImGui::TextWrapped("%s", Guid->ToString().c_str());
+        } else if (auto* Reference{std::get_if<CoreUObject::FObjectReference>(&Value)}) {
+            ImGui::TextDisabled("%s", Label);
+            ImGui::TextWrapped("%s", Reference->GetGuid().ToString().c_str());
         } else if (const CoreUObject::UStruct* Struct{Property->GetStruct()}) {
             bool Changed{};
 
@@ -466,6 +869,7 @@ namespace Editor {
 
                     CoreUObject::FPropertyValue ChildValue{Child->ReadValue(CoreUObject::GetPropertyData(Value))};
                     const bool ReadOnly{Child->HasFlag(Core::EPropertyFlags::ReadOnly)};
+
                     ImGui::BeginDisabled(ReadOnly);
 
                     if (DrawPropertyValue(Child, ChildValue) && !ReadOnly) {
@@ -484,59 +888,17 @@ namespace Editor {
         return false;
     }
 
+    /**
+     * @brief 메시 또는 재질 선택과 드래그 앤 드롭을 표시합니다.
+     */
     bool Editor::FDetailsPanel::DrawAssetPicker(const char* Label, Core::FString& Path, bool Mesh) {
         if (mAssetCatalog == nullptr || mThumbnails == nullptr) {
             ImGui::TextDisabled("%s: %s", Label, Path.c_str());
+
             return false;
         }
 
         return mAssetPicker.Draw(*mAssetCatalog, *mThumbnails, Label, Path, Mesh ? Asset::EAssetType::Mesh : Asset::EAssetType::Material, {}, Mesh ? "Primitive mesh" : "Default material");
-    }
-
-    void Editor::FDetailsPanel::DrawSkeletalPose(Engine::USkeletalMeshComponent* Component) {
-        if (!ImGui::CollapsingHeader("Bone Local Pose")) {
-            return;
-        }
-
-        ImGui::BeginDisabled(!GetEditorContext()->CanEditWorld());
-        const auto& Bones{Component->GetSkeletalMesh()->GetBones()};
-
-        for (Core::Uint32 Bone{}; Bone < Bones.size(); ++Bone) {
-            ImGui::PushID(static_cast<int>(Bone));
-
-            if (ImGui::TreeNode(Bones[Bone].GetName().c_str())) {
-                // 적용 뒤 자식 포즈와 CPU 경계 및 그림자가 함께 갱신됩니다.
-                Core::FMatrix Transform{Component->GetPose().GetLocalTransforms()[Bone]};
-                bool Changed{};
-
-                for (Core::Int32 Row{}; Row < 4; ++Row) {
-                    std::array<float, 4> Values{Transform(Row, 0), Transform(Row, 1), Transform(Row, 2), Transform(Row, 3)};
-
-                    if (ImGui::DragFloat4(std::to_string(Row).c_str(), Values.data(), 0.025f)) {
-                        for (Core::Int32 Column{}; Column < 4; ++Column) {
-                            Transform(Row, Column) = Values[static_cast<std::size_t>(Column)];
-                        }
-
-                        Changed = true;
-                    }
-                }
-
-                if (ImGui::Button("Reset Bone")) {
-                    Transform = Bones[Bone].GetBindPose();
-                    Changed = true;
-                }
-
-                if (Changed) {
-                    GetEditorContext()->SetBoneLocalTransform(Component->GetHandle(), Bone, Transform);
-                }
-
-                ImGui::TreePop();
-            }
-
-            ImGui::PopID();
-        }
-
-        ImGui::EndDisabled();
     }
 
 }

@@ -36,6 +36,7 @@ bool FMeshRenderResource::Initialize(ID3D11Device* Device, const UMesh& Mesh, bo
 
             if (Level > 0 && Data == Mesh.GetVertexData(Attribute) && Indices.data() == Mesh.GetIndices().data()) {
                 LOD.mVertices[Index] = Buffers.front().mVertices[Index];
+
                 continue;
             }
 

@@ -21,6 +21,7 @@ UBoxColliderComponent::UBoxColliderComponent() {
 void UBoxColliderComponent::SetMeshComponent(UMeshComponent* InMeshComponent) {
     mMeshComponent.Set(InMeshComponent);
     mPendingMeshComponentGuid = {};
+
     BuildBoundsFromMesh();
 }
 
@@ -97,6 +98,7 @@ void UBoxColliderComponent::SetExtent(const FVector3& InExtent) {
     FBoxColliderBounds Bounds{mBounds};
 
     Bounds.mExtent = InExtent;
+
     SetBounds(Bounds);
 }
 
@@ -186,6 +188,7 @@ void UBoxColliderComponent::SetBounds(const FBoxColliderBounds& Bounds) {
 
     mBounds = Bounds;
     mBounds.mExtent = FVector3{(std::max)(0.001f, Bounds.mExtent.mX), (std::max)(0.001f, Bounds.mExtent.mY), (std::max)(0.001f, Bounds.mExtent.mZ)};
+
     SetPickingBox(mBounds.ToNative());
 }
 

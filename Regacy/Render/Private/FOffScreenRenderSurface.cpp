@@ -5,7 +5,9 @@
 
 void FOffScreenRenderSurface::Initialize(ID3D11Device* Device, std::uint32_t Width, std::uint32_t Height, DXGI_FORMAT ColorFormat) {
     Reset();
+
     mColorFormat = ColorFormat;
+
     Resize(Device, Width, Height);
 }
 
@@ -28,6 +30,7 @@ bool FOffScreenRenderSurface::Resize(ID3D11Device* Device, std::uint32_t Width, 
 
 void FOffScreenRenderSurface::Reset() {
     FSceneRenderSurface::Reset();
+
     mColorFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
 }
 

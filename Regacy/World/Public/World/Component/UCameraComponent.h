@@ -16,6 +16,7 @@ public:
 
 public:
     UCameraComponent();
+
     ~UCameraComponent() override = default;
 
 public:
@@ -59,12 +60,15 @@ private:
     ReflectAccessor(mFov, GetFOV, SetFOV, "FOV", EPropertyFlags::Edit | EPropertyFlags::Serialize, ReflectSerializer(mFov), ReflectEditor("Camera", "FOV"), ReflectRange(0.01f, 3.13f));
 
     float mFov{1.0472f}; // 약 60도, 라디안
+
     ReflectAccessor(mAspectRatio, GetAspectRatio, SetAspectRatio, "AspectRatio", EPropertyFlags::Edit | EPropertyFlags::Serialize, ReflectSerializer(mAspectRatio), ReflectEditor("Camera", "Aspect Ratio"), ReflectRange(0.01f, std::numeric_limits<float>::max()));
 
     float mAspectRatio{16.0f / 9.0f};
+
     ReflectAccessor(mNearPlane, GetNearPlane, SetNearPlane, "NearPlane", EPropertyFlags::Edit | EPropertyFlags::Serialize, ReflectSerializer(mNearPlane), ReflectEditor("Camera", "Near Plane"), ReflectRange(0.001f, std::numeric_limits<float>::max()));
 
     float mNearPlane{0.1f};
+
     ReflectAccessor(mFarPlane, GetFarPlane, SetFarPlane, "FarPlane", EPropertyFlags::Edit | EPropertyFlags::Serialize, ReflectSerializer(mFarPlane), ReflectEditor("Camera", "Far Plane"), ReflectRange(0.001f, std::numeric_limits<float>::max()));
 
     float mFarPlane{1000.0f};

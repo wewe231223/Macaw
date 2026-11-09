@@ -13,6 +13,7 @@
 #include "FScenePrimitive.h"
 #include "Engine/FLightSceneProxy.h"
 #include "Engine/FHeightFogSceneProxy.h"
+#include "Engine/FDecalSceneProxy.h"
 
 #include <d3d11.h>
 #include <wrl/client.h>
@@ -24,12 +25,6 @@ namespace Renderer {
      * @ingroup Renderer
      */
     class FScene final : public Engine::FSceneInterface {
-    public:
-        /**
-         * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
-         */
-        ReflectTypes(FScene, Engine::FSceneInterface);
-
     public:
         /**
          * @brief FScene의 초기 상태와 전달받은 의존성을 구성합니다.
@@ -44,12 +39,6 @@ namespace Renderer {
         ~FScene() override;
 
     public:
-        /**
-         * @brief 이 타입의 정적 구조체 메타데이터를 반환합니다.
-         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectStruct(FScene);
-
         /**
          * @brief 광원 프록시의 GUID로 렌더 장면에 광원을 추가하거나 교체합니다.
          * @param[in] Proxy 장면에 복사할 광원 상태입니다.
@@ -73,16 +62,22 @@ namespace Renderer {
          * @param[in] Proxy 장면에 복사할 높이 안개 프록시입니다.
          */
         void AddHeightFog(const Engine::FHeightFogSceneProxy& Proxy) override;
+
         /**
          * @brief 지정한 GUID의 높이 안개 프록시를 렌더 장면에서 제거합니다.
          * @param[in] Id 제거할 안개 컴포넌트의 GUID입니다.
          */
         void RemoveHeightFog(const Core::FGuid& Id) override;
+
         /**
          * @brief 현재 렌더 장면에 등록된 높이 안개 프록시 목록을 조회합니다.
          * @return 장면이 소유하는 안개 프록시 목록의 읽기 전용 참조입니다.
          */
         const Core::TArray<Engine::FHeightFogSceneProxy>& GetHeightFogs() const;
+
+        void AddDecal(const Engine::FDecalSceneProxy& Proxy) override;
+        void RemoveDecal(const Core::FGuid& Id) override;
+        const Core::TArray<Engine::FDecalSceneProxy>& GetDecals() const;
 
         /**
          * @copydoc Engine::FSceneInterface::AddPrimitive
@@ -136,8 +131,8 @@ namespace Renderer {
 
         /**
          * @brief 그림자 깊이 결과에 영향을 주는 캐스터 상태의 리비전을 반환합니다.
-         * @details 그림자를 드리우는 메시 프리미티브의 추가·제거·변환·프록시 교체와, 그 프리미티브가 쓰는 메시 데이터의 교체를 모두 반영합니다.
-         * 모든 리비전이 전역에서 증가하므로 최댓값을 취하면 어떤 변경이든 값이 커집니다.
+         * @details 그림자를 드리우는 메시 프리미티브의 추가·제거·변환·프록시 교체를 반영합니다.
+         * 캐시에 올라간 메시 에셋은 내용이 바뀌지 않으므로, 메시가 바뀌는 경우는 프록시 교체뿐입니다.
          * @return 캐스터 상태가 바뀔 때마다 커지는 리비전입니다.
          */
         Core::FRevision GetCasterRevision() const;
@@ -165,78 +160,61 @@ namespace Renderer {
 
     private:
         /**
-         * @brief 생성된 프로퍼티 등록 함수와 빌더 접근 권한입니다.
-         */
-        ReflectMembers();
-
-    private:
-        /**
          * @brief 등록된 광원 프록시 목록입니다.
          */
         Core::TArray<Engine::FLightSceneProxy> mLights{};
-        ReflectProperty(mLights, "Lights", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 컴포넌트 GUID별로 추가·갱신되는 높이 안개 프록시 목록입니다.
          */
         Core::TArray<Engine::FHeightFogSceneProxy> mHeightFogs{};
-        ReflectProperty(mHeightFogs, "HeightFogs", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+
+        Core::TArray<Engine::FDecalSceneProxy> mDecals{};
 
         /**
          * @brief 광원 GUID를 조밀한 광원 배열의 인덱스에 연결합니다.
          */
         Core::TMap<Core::FGuid, std::size_t, Core::FGuidHash> mLightIndices{};
-        ReflectProperty(mLightIndices, "LightIndices", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 장면의 GPU 자원 생성에 사용할 Direct3D 장치의 비소유 주소입니다.
          */
         ID3D11Device* mDevice{};
-        ReflectProperty(mDevice, "Device", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief Direct3D 11 즉시 컨텍스트입니다.
          */
         ID3D11DeviceContext* mContext{};
-        ReflectProperty(mContext, "Context", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
-
 
         /**
          * @brief 장면이 소유한 렌더 프리미티브입니다.
          */
         Core::TArray<Renderer::FScenePrimitive> mPrimitives{};
-        ReflectProperty(mPrimitives, "Primitives", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 프리미티브 GUID에서 밀집 배열 인덱스로의 조회 맵입니다.
          */
         Core::TMap<Core::FGuid, std::size_t, Core::FGuidHash> mIndices{};
-        ReflectProperty(mIndices, "Indices", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
-
 
         /**
          * @brief 프리미티브 추가·제거 또는 변환 갱신 시 증가하는 장면 개정 번호입니다.
          */
         Core::Uint64 mRevision{};
-        ReflectProperty(mRevision, "Revision", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 소비 전 누적된 객체 상수 버퍼 갱신 수입니다.
          */
         mutable Core::Uint32 mTransformUpdates{};
-        ReflectProperty(mTransformUpdates, "TransformUpdates", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 장면 생성 시 발급한 고유 번호입니다.
          */
         Core::FRevision mIdentity{Core::FRevision::Next()};
-        ReflectProperty(mIdentity, "Identity", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 그림자 캐스터 프리미티브가 추가·제거·변경될 때 새로 받는 리비전입니다.
          */
         Core::FRevision mCasterRevision{Core::FRevision::Next()};
-        ReflectProperty(mCasterRevision, "CasterRevision", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
 }

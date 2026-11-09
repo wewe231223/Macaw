@@ -8,6 +8,7 @@
 
 #include "Engine/Component/USceneComponent.h"
 #include "Engine/FLightSceneProxy.h"
+#include "ULightComponentBase.generated.h"
 
 namespace Asset {
     class FAssetManager;
@@ -21,12 +22,9 @@ namespace Engine {
      * @brief 광원의 색상·밝기·표시 상태와 렌더 장면 등록을 관리합니다.
      * @ingroup Engine
      */
+    UCLASS(NoFactory)
     class ULightComponentBase : public Engine::USceneComponent {
-    public:
-        /**
-         * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
-         */
-        ReflectTypes(ULightComponentBase, Engine::USceneComponent);
+        GENERATED_BODY()
 
     public:
         /**
@@ -40,12 +38,6 @@ namespace Engine {
         ~ULightComponentBase() override;
 
     public:
-        /**
-         * @brief 이 타입의 정적 클래스 메타데이터를 반환합니다.
-         * @return 등록된 클래스 메타데이터의 비소유 주소입니다.
-         */
-        ReflectClass(ULightComponentBase, CoreUObject::EClassFlags::NoFactory);
-
         /**
          * @brief 광원의 밝기 배율을 반환합니다.
          * @return 광원의 밝기 배율입니다.
@@ -71,19 +63,6 @@ namespace Engine {
          * @return 입력값을 수락하고 상태를 갱신하면 true이며 잘못된 값이면 false입니다.
          */
         bool SetLightColor(const Core::FVector4& Color);
-
-        /**
-         * @brief 광원의 표시 여부를 반환합니다.
-         * @return 광원을 표시하도록 설정했으면 true입니다.
-         */
-        bool IsVisible() const;
-
-        /**
-         * @brief 광원의 표시 여부를 변경하고 렌더 장면에 동기화합니다.
-         * @param[in] Visible 광원을 표시하려면 true입니다.
-         * @return 표시 설정을 반영한 뒤 항상 true를 반환합니다.
-         */
-        bool SetVisible(bool Visible);
 
         /**
          * @brief 현재 컴포넌트의 조명·그림자 설정으로 렌더 프록시를 생성합니다.
@@ -117,14 +96,14 @@ namespace Engine {
 
     private:
         /**
-         * @brief 생성된 멤버 등록 함수와 리플렉션 빌더의 접근 권한입니다.
-         */
-        ReflectMembers();
-
-        /**
          * @brief 월드에 등록된 광원의 상태를 렌더 장면과 동기화합니다.
          */
         void OnRegister() override;
+
+        /**
+         * @brief 소유 액터의 표시 여부 변경을 렌더 장면에 동기화합니다.
+         */
+        void OnOwnerVisibilityChanged() override;
 
         /**
          * @brief 광원 종류에 맞는 프로젝트 아이콘 또는 대체 아이콘을 로드합니다.
@@ -136,38 +115,29 @@ namespace Engine {
         /**
          * @brief 광원의 밝기 배율입니다.
          */
+        UPROPERTY(Edit, Serialize, Getter = GetIntensity, Setter = SetIntensity)
         float mIntensity{1.0f};
-        ReflectAccessor(mIntensity, GetIntensity, SetIntensity, "Intensity", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
 
         /**
          * @brief 광원의 RGBA 색상입니다.
          */
+        UPROPERTY(Edit, Serialize, Getter = GetLightColor, Setter = SetLightColor)
         Core::FVector4 mLightColor{1.0f, 1.0f, 1.0f, 1.0f};
-        ReflectAccessor(mLightColor, GetLightColor, SetLightColor, "LightColor", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
-
-        /**
-         * @brief 광원의 표시 여부입니다.
-         */
-        bool mVisible{true};
-        ReflectAccessor(mVisible, IsVisible, SetVisible, "Visible", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
 
         /**
          * @brief 에디터에 표시할 광원 아이콘 텍스처의 비소유 주소입니다.
          */
         Asset::UTexture2D* mIcon{};
-        ReflectProperty(mIcon, "Icon", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 현재 아이콘을 제공한 에셋 관리자의 비소유 주소입니다.
          */
         Asset::FAssetManager* mIconAssets{};
-        ReflectProperty(mIconAssets, "IconAssets", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 프로젝트에서 아이콘을 찾지 못했을 때 직접 로드한 대체 텍스처의 소유 객체입니다.
          */
         std::unique_ptr<Asset::UTexture2D> mFallbackIcon{};
-        ReflectProperty(mFallbackIcon, "FallbackIcon", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
 }

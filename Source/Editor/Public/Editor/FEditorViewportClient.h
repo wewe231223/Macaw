@@ -38,12 +38,6 @@ namespace Editor {
     class FEditorViewportClient final : public Engine::FViewportClient {
     public:
         /**
-         * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
-         */
-        ReflectTypes(FEditorViewportClient, Engine::FViewportClient);
-
-    public:
-        /**
          * @brief FEditorViewportClient의 초기 상태와 전달받은 의존성을 구성합니다.
          * @param[in,out] Context 패널이 조회하고 편집할 에디터 컨텍스트입니다.
          */
@@ -55,12 +49,6 @@ namespace Editor {
         ~FEditorViewportClient() override;
 
     public:
-        /**
-         * @brief 이 타입의 정적 구조체 메타데이터를 반환합니다.
-         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectStruct(FEditorViewportClient);
-
         /**
          * @brief 기즈모의 진행 중인 변환을 취소하고 공유할 편집 컨텍스트를 변경합니다.
          * @param[in] Context 새 비소유 컨텍스트이며 nullptr이면 기존 연결을 유지합니다.
@@ -112,7 +100,7 @@ namespace Editor {
          * @param[in,out] Viewport 입력 좌표와 크기를 제공하는 뷰포트입니다.
          * @param[in] DeltaTime 이전 프레임 이후 경과한 시간(초)입니다.
          */
-        void Input(Engine::FSceneViewport* Viewport, const Engine::FViewportInput& Input, float DeltaTime) override;
+        void Input(Engine::FSceneViewport* Viewport, const Engine::FViewportInput& Input, float DeltaTime);
 
         /**
          * @brief 카메라 뷰로 장면, 그리드와 기즈모를 뷰포트 렌더 타깃에 그립니다.
@@ -332,6 +320,7 @@ namespace Editor {
          * @return 월드 단위의 정사영 폭입니다.
          */
         float GetOrthographicWidth() const;
+
         /**
          * @brief 0.01~100000 범위의 유한한 정사영 가로 폭을 적용합니다.
          * @param[in] Width 유한한 0.01~100000 범위의 정사영 가로 폭입니다.
@@ -397,147 +386,119 @@ namespace Editor {
 
     private:
         /**
-         * @brief 생성된 프로퍼티 등록 함수와 빌더 접근 권한입니다.
-         */
-        ReflectMembers();
-
-    private:
-        /**
          * @brief 연결된 공통 편집 컨텍스트입니다.
          */
         Editor::FEditorContext* mContext{};
-        ReflectProperty(mContext, "Context", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 에디터 카메라의 월드 위치입니다.
          */
         Core::FVector mCameraLocation{-7.0f, -9.0f, 6.0f};
-        ReflectProperty(mCameraLocation, "CameraLocation", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 에디터 카메라의 도 단위 회전입니다.
          */
         Core::FRotator mCameraRotation{-26.0f, 50.0f, 0.0f};
-        ReflectProperty(mCameraRotation, "CameraRotation", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 카메라 오빗의 월드 중심점입니다.
          */
         Core::FVector mOrbitPivot{};
-        ReflectProperty(mOrbitPivot, "OrbitPivot", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 카메라 이동 속도입니다.
          */
         float mCameraSpeed{4.0f};
-        ReflectProperty(mCameraSpeed, "CameraSpeed", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 마우스 이동 1픽셀당 카메라 회전 각도입니다.
          */
         float mCameraSensitivity{0.2f};
-        ReflectProperty(mCameraSensitivity, "CameraSensitivity", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 장면의 Lit 또는 Wireframe 표시 모드입니다.
          */
         Engine::EViewMode mViewMode{Engine::EViewMode::Lit};
-        ReflectProperty(mViewMode, "ViewMode", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+
         /**
          * @brief Normal·Depth 시각화에서 Scene Color로 복귀할 때 사용할 마지막 컬러 조명 모드입니다.
          */
         Engine::EViewMode mColorViewMode{Engine::EViewMode::Lit};
-        ReflectProperty(mColorViewMode, "ColorViewMode", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 뷰포트별 장면·보조 표시 필터입니다.
          */
         Engine::FEngineShowFlags mShowFlags{};
-        ReflectProperty(mShowFlags, "ShowFlags", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 축과 AABB 선의 픽셀 두께입니다.
          */
         float mLineThickness{1.5f};
-        ReflectProperty(mLineThickness, "LineThickness", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 그리드 선 사이의 월드 거리입니다.
          */
         float mGridSpacing{1.0f};
-        ReflectProperty(mGridSpacing, "GridSpacing", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 원근 또는 정사영 뷰 방향입니다.
          */
         Editor::EEditorViewportType mViewType{Editor::EEditorViewportType::Perspective};
-        ReflectProperty(mViewType, "ViewType", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 정사영 전환 전 원근 카메라 위치입니다.
          */
         Core::FVector mPerspectiveLocation{-7.0f, -9.0f, 6.0f};
-        ReflectProperty(mPerspectiveLocation, "PerspectiveLocation", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 정사영 전환 전 원근 카메라 회전입니다.
          */
         Core::FRotator mPerspectiveRotation{-26.0f, 50.0f, 0.0f};
-        ReflectProperty(mPerspectiveRotation, "PerspectiveRotation", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 정사영 전환 전 원근 카메라 피벗입니다.
          */
         Core::FVector mPerspectivePivot{};
-        ReflectProperty(mPerspectivePivot, "PerspectivePivot", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 정사영 가로 가시 범위의 월드 길이입니다.
          */
         float mOrthographicWidth{20.0f};
-        ReflectProperty(mOrthographicWidth, "OrthographicWidth", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 원근 카메라의 수직 시야각입니다.
          */
         float mFieldOfView{60.0f};
-        ReflectProperty(mFieldOfView, "FieldOfView", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 원근 투영의 근평면 거리입니다.
          */
         float mNearClip{0.05f};
-        ReflectProperty(mNearClip, "NearClip", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 원근 투영의 원평면 거리입니다.
          */
         float mFarClip{10000.0f};
-        ReflectProperty(mFarClip, "FarClip", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 클라이언트가 소유하며 기즈모와 UI가 함께 조회하는 변환 모드입니다.
          */
         Editor::EGizmoMode mGizmoMode{Editor::EGizmoMode::Translate};
-        ReflectProperty(mGizmoMode, "GizmoMode", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 클라이언트가 소유하는 기즈모 좌표계이며 스케일 모드에서는 로컬입니다.
          */
         Editor::EGizmoSpace mGizmoSpace{Editor::EGizmoSpace::World};
-        ReflectProperty(mGizmoSpace, "GizmoSpace", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 뷰포트 변환 편집 기즈모입니다.
          */
         Editor::FTransformGizmo mGizmo;
-        ReflectProperty(mGizmo, "Gizmo", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 현재 프레임의 에디터 보조 선분 수집기입니다.
          */
         Engine::FPrimitiveDrawInterface mDrawInterface{};
-        ReflectProperty(mDrawInterface, "DrawInterface", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
 }

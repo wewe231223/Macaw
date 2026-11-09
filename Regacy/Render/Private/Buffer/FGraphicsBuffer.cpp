@@ -50,6 +50,7 @@ bool FGraphicsBuffer::Update(ID3D11DeviceContext* Context, const void* Data, Uin
 
     if (DestinationOffset == 0 && InByteSize == mDescription.mByteSize) {
         Context->UpdateSubresource(mBuffer.Get(), 0, nullptr, Data, 0, 0);
+
         return true;
     }
 

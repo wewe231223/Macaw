@@ -24,6 +24,19 @@ namespace Engine {
     /**
      * @brief 컴포넌트를 소유한 액터를 반환합니다.
      */
+    bool Engine::UActorComponent::IsOwnerVisible() const {
+        return mOwner == nullptr || mOwner->IsVisible();
+    }
+
+    /**
+     * @brief 소유 액터의 표시 여부가 바뀐 뒤 렌더 상태를 갱신하는 확장 지점입니다.
+     */
+    void Engine::UActorComponent::OnOwnerVisibilityChanged() {
+    }
+
+    /**
+     * @brief 컴포넌트를 소유한 액터를 반환합니다.
+     */
     Engine::AActor* Engine::UActorComponent::GetOwner() const {
         return mOwner;
     }
@@ -40,6 +53,7 @@ namespace Engine {
      */
     void Engine::UActorComponent::SetOwner(Engine::AActor* Owner) {
         SetOuter(Owner);
+
         mOwner = Owner;
     }
 
@@ -60,6 +74,7 @@ namespace Engine {
         }
 
         mWorld = World;
+
         OnRegister();
 
         if (mOwner != nullptr && mOwner->HasBegunPlay() && World->CanBeginActor()) {
@@ -74,6 +89,7 @@ namespace Engine {
         Engine::UWorld::FDispatchScope Scope{mWorld};
 
         DispatchEndPlay();
+
         mWorld = nullptr;
     }
 
@@ -84,6 +100,9 @@ namespace Engine {
         return mWorld != nullptr;
     }
 
+    /**
+     * @brief 월드에 등록된 컴포넌트가 참조하는 에셋과 렌더 상태를 준비합니다.
+     */
     void Engine::UActorComponent::OnRegister() {
     }
 
@@ -112,10 +131,16 @@ namespace Engine {
         return mHasBegunPlay;
     }
 
+    /**
+     * @brief 정지한 편집 월드에서도 Tick을 허용하는지 반환합니다.
+     */
     bool Engine::UActorComponent::IsEditorTickable() const {
         return mEditorTickable;
     }
 
+    /**
+     * @brief 정지한 편집 월드에서의 Tick 허용 여부를 설정합니다.
+     */
     void Engine::UActorComponent::SetEditorTickable(bool EditorTickable) {
         mEditorTickable = EditorTickable;
     }
@@ -126,6 +151,7 @@ namespace Engine {
     void Engine::UActorComponent::DispatchBeginPlay() {
         if (!mHasBegunPlay && mWorld != nullptr && mOwner != nullptr && !mOwner->IsPendingDestroy()) {
             mHasBegunPlay = true;
+
             BeginPlay();
         }
     }
@@ -146,6 +172,7 @@ namespace Engine {
     void Engine::UActorComponent::DispatchEndPlay() {
         if (mHasBegunPlay) {
             mHasBegunPlay = false;
+
             EndPlay();
         }
     }

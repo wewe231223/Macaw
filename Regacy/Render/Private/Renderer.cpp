@@ -42,6 +42,7 @@ bool FRenderer::Create(HWND WindowHandle, UINT Width, UINT Height) {
     auto BackBuffer{std::make_unique<FSwapChainRenderSurface>()};
 
     BackBuffer->Initialize(mDevice.Get(), mSwapChain.Get());
+
     mBackBufferSurface = std::move(BackBuffer);
 
 #ifdef _DEBUG
@@ -84,6 +85,7 @@ ID3D11DeviceContext* FRenderer::GetDeviceContext() const {
 
 void FRenderer::BeginFrame() {
     ++mFrameSerial;
+
     mSceneRenderer.BeginFrame(mFrameSerial);
     mOverLayRenderer.BeginFrame(mFrameSerial);
 
@@ -298,6 +300,7 @@ bool FRenderer::CreateDeviceAndSwapChain(HWND WindowHandle) {
 
     if (FAILED(Result)) {
         ErrorHandler::ReportHRESULT(Result, "[ FRenderer ]", "Failed to create Direct3D device and swap chain.", ErrorHandler::EErrorLevel::Warning);
+
         return false;
     }
 

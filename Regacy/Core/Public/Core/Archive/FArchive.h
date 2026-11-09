@@ -317,6 +317,7 @@ void FArchive::Serialize(std::string_view Name, TArray<T>& ArrayValue) {
 
     if (HasError()) {
         EndArrayScope();
+
         return;
     }
 

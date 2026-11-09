@@ -38,6 +38,7 @@ void FMeshRenderer::Draw(const FRenderContext& Context, const TArray<FMeshDrawCo
 
         if (BoundPipeline == nullptr || !(*BoundPipeline == Pipeline)) {
             Pipeline.Bind(DeviceContext, Mode == ERenderMode::Outline ? 1u : 0u);
+
             BoundPipeline = &Pipeline;
             ++mLastDrawStats.mPipelineBindCount;
         }
@@ -51,6 +52,7 @@ void FMeshRenderer::Draw(const FRenderContext& Context, const TArray<FMeshDrawCo
         if (!TexturesBound || BoundTextures != Textures) {
             DeviceContext->VSSetShaderResources(3, static_cast<UINT>(Textures.size()), Textures.data());
             DeviceContext->PSSetShaderResources(3, static_cast<UINT>(Textures.size()), Textures.data());
+
             BoundTextures = Textures;
             TexturesBound = true;
             ++mLastDrawStats.mTextureBindCount;
@@ -66,6 +68,7 @@ void FMeshRenderer::Draw(const FRenderContext& Context, const TArray<FMeshDrawCo
             constexpr std::array<Uint32, 4> Offsets{};
 
             DeviceContext->IASetVertexBuffers(0, static_cast<UINT>(Vertices.size()), Vertices.data(), Command.mVertexStrides.data(), Offsets.data());
+
             BoundVertices = Vertices;
             BoundStrides = Command.mVertexStrides;
             VerticesBound = true;
@@ -73,7 +76,9 @@ void FMeshRenderer::Draw(const FRenderContext& Context, const TArray<FMeshDrawCo
         }
 
         DeviceContext->DrawInstanced(Command.mState.mIndexCount, Batch.mRecordCount, Command.mState.mFirstIndex, Batch.mFirstRecord);
+
         ++mLastDrawStats.mDrawCallCount;
+
         Stat::RecordLODStats(Command.mState.mLODLevel, static_cast<Uint64>(Command.mState.mIndexCount / 3) * Batch.mRecordCount, static_cast<Uint64>(Command.mState.mOriginalIndexCount / 3) * Batch.mRecordCount, 1);
     }
 }

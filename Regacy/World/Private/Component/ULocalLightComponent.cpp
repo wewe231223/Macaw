@@ -14,11 +14,13 @@ void ULocalLightComponent::SetAttenuationRadius(float InAttenuationRadius) {
     }
 
     mAttenuationRadius = Radius;
+
     MarkRenderStateDirty();
 }
 
 void ULocalLightComponent::BuildLightShaderParameters(FLightShaderParameters& OutParameters) const {
     Super::BuildLightShaderParameters(OutParameters);
+
     OutParameters.mAttenuationRadius = GetAttenuationRadius();
 }
 

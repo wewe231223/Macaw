@@ -8,6 +8,7 @@ public:
 
 public:
     AStaticMeshActor();
+
     ~AStaticMeshActor() override = default;
 
 public:

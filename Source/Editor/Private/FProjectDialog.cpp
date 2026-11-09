@@ -14,6 +14,9 @@
 
 namespace Editor {
 
+    /**
+     * @brief 프로젝트 생성 또는 열기 대화상자로 선택한 파일 경로를 반환합니다.
+     */
     std::filesystem::path Editor::FProjectDialog::Choose(void* Owner, bool Create) {
         std::array<wchar_t, 32768> Buffer{};
         OPENFILENAMEW Dialog{};
@@ -35,6 +38,9 @@ namespace Editor {
         return Create ? Selected.parent_path() / Selected.stem() / Selected.filename() : Selected;
     }
 
+    /**
+     * @brief 소유 창이 지정된 폴더 선택 대화상자를 열고 선택 경로를 반환합니다.
+     */
     std::filesystem::path Editor::FProjectDialog::ChooseDirectory(void* Owner) {
         const HRESULT Initialized{CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED)};
 
@@ -47,6 +53,7 @@ namespace Editor {
 
         if (SUCCEEDED(CoCreateInstance(CLSID_FileOpenDialog, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(Dialog.GetAddressOf())))) {
             FILEOPENDIALOGOPTIONS Options{};
+
             Dialog->GetOptions(&Options);
             Dialog->SetOptions(Options | FOS_PICKFOLDERS | FOS_FORCEFILESYSTEM | FOS_PATHMUSTEXIST | FOS_NOCHANGEDIR);
             Dialog->SetTitle(L"Choose Project Location");
@@ -57,6 +64,7 @@ namespace Editor {
 
                 if (SUCCEEDED(Dialog->GetResult(Item.GetAddressOf())) && SUCCEEDED(Item->GetDisplayName(SIGDN_FILESYSPATH, &Path))) {
                     Selected = Path;
+
                     CoTaskMemFree(Path);
                 }
             }

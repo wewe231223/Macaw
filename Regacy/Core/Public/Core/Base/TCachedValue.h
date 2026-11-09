@@ -116,6 +116,7 @@ bool TCachedValue<TValue, TStamp>::Update(TValue Value, const TStamp& Stamp) req
     }
 
     Invalidate();
+
     mValue = std::move(Value);
     mStamp = Stamp;
     mValid = true;

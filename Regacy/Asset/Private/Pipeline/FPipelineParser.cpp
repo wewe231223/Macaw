@@ -4,6 +4,7 @@
 const rapidjson::Value* GetObject(const rapidjson::Value& Parent, const char* Name) {
     if (!Parent.IsObject() || !Parent.HasMember(Name) || !Parent[Name].IsObject()) {
         ErrorHandler::Report("GetObject", "A required JSON object is missing or invalid.", ErrorHandler::EErrorLevel::Error);
+
         return nullptr;
     }
 
@@ -13,6 +14,7 @@ const rapidjson::Value* GetObject(const rapidjson::Value& Parent, const char* Na
 const rapidjson::Value* GetArray(const rapidjson::Value& Parent, const char* Name) {
     if (!Parent.IsObject() || !Parent.HasMember(Name) || !Parent[Name].IsArray()) {
         ErrorHandler::Report("GetArray", "A required JSON array is missing or invalid.", ErrorHandler::EErrorLevel::Error);
+
         return nullptr;
     }
 
@@ -22,6 +24,7 @@ const rapidjson::Value* GetArray(const rapidjson::Value& Parent, const char* Nam
 const char* GetString(const rapidjson::Value& Parent, const char* Name) {
     if (!Parent.IsObject() || !Parent.HasMember(Name) || !Parent[Name].IsString()) {
         ErrorHandler::Report("GetString", "A required JSON string is missing or invalid.", ErrorHandler::EErrorLevel::Error);
+
         return nullptr;
     }
 
@@ -31,6 +34,7 @@ const char* GetString(const rapidjson::Value& Parent, const char* Name) {
 const char* GetString(const rapidjson::Value& Parent, const char* Name, const char* DefaultValue) {
     if (!Parent.IsObject()) {
         ErrorHandler::Report("GetString", "The parent JSON value is not an object.", ErrorHandler::EErrorLevel::Error);
+
         return DefaultValue;
     }
 
@@ -40,6 +44,7 @@ const char* GetString(const rapidjson::Value& Parent, const char* Name, const ch
 
     if (!Parent[Name].IsString()) {
         ErrorHandler::Report("GetString", "The JSON value is not a string.", ErrorHandler::EErrorLevel::Error);
+
         return DefaultValue;
     }
 
@@ -49,6 +54,7 @@ const char* GetString(const rapidjson::Value& Parent, const char* Name, const ch
 bool GetBool(const rapidjson::Value& Parent, const char* Name, bool DefaultValue) {
     if (!Parent.IsObject()) {
         ErrorHandler::Report("GetBool", "The parent JSON value is not an object.", ErrorHandler::EErrorLevel::Error);
+
         return DefaultValue;
     }
 
@@ -58,6 +64,7 @@ bool GetBool(const rapidjson::Value& Parent, const char* Name, bool DefaultValue
 
     if (!Parent[Name].IsBool()) {
         ErrorHandler::Report("GetBool", "The JSON value is not a Boolean.", ErrorHandler::EErrorLevel::Error);
+
         return DefaultValue;
     }
 
@@ -67,6 +74,7 @@ bool GetBool(const rapidjson::Value& Parent, const char* Name, bool DefaultValue
 unsigned int GetUint(const rapidjson::Value& Parent, const char* Name, unsigned int DefaultValue) {
     if (!Parent.IsObject()) {
         ErrorHandler::Report("GetUint", "The parent JSON value is not an object.", ErrorHandler::EErrorLevel::Error);
+
         return DefaultValue;
     }
 
@@ -76,6 +84,7 @@ unsigned int GetUint(const rapidjson::Value& Parent, const char* Name, unsigned 
 
     if (!Parent[Name].IsUint()) {
         ErrorHandler::Report("GetUint", "The JSON value is not an unsigned integer.", ErrorHandler::EErrorLevel::Error);
+
         return DefaultValue;
     }
 
@@ -85,6 +94,7 @@ unsigned int GetUint(const rapidjson::Value& Parent, const char* Name, unsigned 
 unsigned int GetUint(const rapidjson::Value& Parent, const char* Name) {
     if (!Parent.IsObject() || !Parent.HasMember(Name) || !Parent[Name].IsUint()) {
         ErrorHandler::Report("GetUint", "A required JSON unsigned integer is missing or invalid.", ErrorHandler::EErrorLevel::Error);
+
         return 0;
     }
 

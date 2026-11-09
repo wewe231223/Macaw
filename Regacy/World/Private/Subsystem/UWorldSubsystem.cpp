@@ -10,6 +10,7 @@ void UWorldSubsystem::Initialize(UWorld* World) {
 
     this->mWorld = World;
     mBInitialized = true;
+
     OnInitialize();
 }
 
@@ -19,6 +20,7 @@ void UWorldSubsystem::Deinitialize() {
     }
 
     OnDeinitialize();
+
     mBInitialized = false;
     mWorld = nullptr;
 }

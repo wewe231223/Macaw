@@ -20,6 +20,8 @@ namespace Renderer {
         Core::FStat ShadowDrawCalls{"shadow", "Shadow draw calls"};
         Core::FStat ShadowReducedLights{"shadow", "Reduced lights (sum of views)"};
         Core::FStat ShadowDroppedLights{"shadow", "Unallocated lights (sum of views)"};
+        Core::FStat ShadowSkippedLights{"shadow", "Skipped lights (sum of views)"};
+        Core::FStat ShadowCachedTiles{"shadow", "Cached tiles (sum of views)"};
         Core::FStat ShadowAtlasBytes{"shadow", "Atlas resources (last view)", Core::EStatUnit::Bytes, Core::EStatMode::Gauge};
         Core::FStat ShadowAllocatedBytes{"shadow", "Allocated tiles (last view)", Core::EStatUnit::Bytes, Core::EStatMode::Gauge};
         Core::FStat DirectionalLights{"shadow", "Directional lights (sum of views)"};

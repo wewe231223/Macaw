@@ -126,6 +126,7 @@ void DrawStatOverlay(const ImVec2& Min, const ImVec2& Max, FStatDisplayFlags Sta
             const double RoundedShareTenths{TotalMilliseconds > 0.0 ? std::round(CumulativeMilliseconds * 1000.0 / TotalMilliseconds) : 0.0};
 
             AddRow(Rows, RowCount, Stat::GetSystemStageName(static_cast<Stat::ESystemStatStage>(Index)), 0, TextColor, "%.3f / %.1f%%", (RoundedMicroseconds - PreviousMicroseconds) / 1000.0, (RoundedShareTenths - PreviousShareTenths) / 10.0);
+
             PreviousMicroseconds = RoundedMicroseconds;
             PreviousShareTenths = RoundedShareTenths;
 
@@ -146,6 +147,7 @@ void DrawStatOverlay(const ImVec2& Min, const ImVec2& Max, FStatDisplayFlags Sta
                     const double DetailMilliseconds{Snapshot.mRenderPreparationSamples[DetailIndex].mTotalMilliseconds};
 
                     DetailedMilliseconds += DetailMilliseconds;
+
                     AddRow(Rows, RowCount, Stat::GetRenderPreparationStageName(static_cast<Stat::ERenderPreparationStage>(DetailIndex)), 1, MutedColor, "%.3f / %.1f%%", DetailMilliseconds, TotalMilliseconds > 0.0 ? DetailMilliseconds * 100.0 / TotalMilliseconds : 0.0);
                 }
 
@@ -216,6 +218,7 @@ void DrawStatOverlay(const ImVec2& Min, const ImVec2& Max, FStatDisplayFlags Sta
 
     if (StatFlags.mBShowRender) {
         DrawScrollableStatOverlay(Min, Max, Rows, RowCount, FontSize);
+
         return;
     }
 
@@ -285,6 +288,7 @@ void DrawStatOverlay(const ImVec2& Min, const ImVec2& Max, FStatDisplayFlags Sta
         DrawList.PushClipRect(ImVec2{ValueLeft, Y}, ImVec2{Right, Y + LineHeight}, true);
         DrawShadowedText(DrawList, ImVec2{ValueLeft, Y}, Row.mColor, Row.mValue.data(), FontSize);
         DrawList.PopClipRect();
+
         Y += LineHeight;
         ++DrawnRows;
     }

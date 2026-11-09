@@ -54,6 +54,7 @@ namespace Asset {
 
             if (Code || Path.extension() != L".masset" || FileSize < HeaderSize || FileSize - HeaderSize > MaximumPayload) {
                 Error = "Cannot read asset file or invalid asset size";
+
                 return false;
             }
 
@@ -62,13 +63,15 @@ namespace Asset {
             std::array<char, 8> Magic{};
             Core::Uint32 Version{};
             Core::Uint32 TypeValue{};
+
             Input.read(Magic.data(), Magic.size());
             Input.read(reinterpret_cast<char*>(&Version), sizeof(Version));
             Input.read(reinterpret_cast<char*>(&TypeValue), sizeof(TypeValue));
             Input.read(reinterpret_cast<char*>(&Size), sizeof(Size));
 
-            if (!Input || Magic != AssetMagic || Version != AssetVersion || TypeValue < static_cast<Core::Uint32>(Asset::EAssetType::Scene) || TypeValue > static_cast<Core::Uint32>(Asset::EAssetType::SkeletalMesh) || Size == 0 || Size != FileSize - HeaderSize) {
+            if (!Input || Magic != AssetMagic || Version != AssetVersion || TypeValue < static_cast<Core::Uint32>(Asset::EAssetType::Scene) || TypeValue > static_cast<Core::Uint32>(Asset::EAssetType::AnimSequence) || Size == 0 || Size != FileSize - HeaderSize) {
                 Error = "Invalid asset header, version or type";
+
                 return false;
             }
 
@@ -78,6 +81,9 @@ namespace Asset {
         }
     }
 
+    /**
+     * @brief 에셋 파일 헤더를 검사하여 저장된 에셋 종류를 읽습니다.
+     */
     bool Asset::FAssetFile::GetType(const std::filesystem::path& Path, Asset::EAssetType& Type, Core::FString& Error) {
         std::ifstream Input{};
         Core::Uint64 Size{};
@@ -85,11 +91,15 @@ namespace Asset {
         return ReadHeader(Path, Input, Type, Size, Error);
     }
 
+    /**
+     * @brief 에셋 종류와 페이로드 및 무결성 해시를 파일로 저장합니다.
+     */
     bool Asset::FAssetFile::Save(const std::filesystem::path& Path, Asset::EAssetType Type, std::span<const Core::Uint8> Payload, Core::FString& Error) {
         Error.clear();
 
-        if (Path.extension() != L".masset" || Payload.empty() || Payload.size() > MaximumPayload || Type < Asset::EAssetType::Scene || Type > Asset::EAssetType::SkeletalMesh) {
+        if (Path.extension() != L".masset" || Payload.empty() || Payload.size() > MaximumPayload || Type < Asset::EAssetType::Scene || Type > Asset::EAssetType::AnimSequence) {
             Error = "Invalid asset path, type or payload";
+
             return false;
         }
 
@@ -98,6 +108,7 @@ namespace Asset {
 
         if (Code) {
             Error = "Invalid asset path: " + Code.message();
+
             return false;
         }
 
@@ -106,6 +117,7 @@ namespace Asset {
 
         if (GetType(Target, ExistingType, ExistingError) && ExistingType != Type) {
             Error = "Cannot overwrite an asset with a different asset type";
+
             return false;
         }
 
@@ -127,6 +139,9 @@ namespace Asset {
         return Writer.Commit(Error);
     }
 
+    /**
+     * @brief 에셋 종류와 데이터 무결성을 검사하여 페이로드를 읽습니다.
+     */
     bool Asset::FAssetFile::Load(const std::filesystem::path& Path, Asset::EAssetType Type, Core::TArray<Core::Uint8>& Payload, Core::FString& Error) {
         Core::LoadingStatus::ReportFile("Loading", Path);
 
@@ -140,6 +155,7 @@ namespace Asset {
 
         if (ActualType != Type) {
             Error = "The asset type does not match the requested type";
+
             return false;
         }
 
@@ -149,6 +165,7 @@ namespace Asset {
 
         if (!Input) {
             Error = "Truncated asset payload";
+
             return false;
         }
 

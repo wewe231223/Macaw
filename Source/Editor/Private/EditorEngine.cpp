@@ -15,10 +15,6 @@
 #include "Engine/EPrimitiveType.h"
 #include "Engine/FProject.h"
 
-#include <algorithm>
-#include <cctype>
-#include <sstream>
-
 namespace Editor {
 
     /**
@@ -33,37 +29,8 @@ namespace Editor {
             return Core::FTransform{mUI->GetActiveViewport()->GetClient()->GetPlacementLocation(), {}, {1.0f, 1.0f, 1.0f}};
         });
 
-        mContext.SetViewportCommandHandler([this](const Core::FString& Command, Core::FString& Output) {
-            std::istringstream Input{Command};
-            Core::FString Verb{};
-            Core::FString State{};
-            Core::FString Extra{};
-            Input >> Verb >> State >> Extra;
-            std::transform(Verb.begin(), Verb.end(), Verb.begin(), [](unsigned char Character) {
-                return static_cast<char>(std::tolower(Character));
-            });
-
-            std::transform(State.begin(), State.end(), State.begin(), [](unsigned char Character) {
-                return static_cast<char>(std::tolower(Character));
-            });
-
-            if (Verb == "showflag.shadows" || Verb == "showflag.fog" || Verb == "showflag.fxaa") {
-                if (!Extra.empty() || (!State.empty() && State != "on" && State != "off" && State != "0" && State != "1")) {
-                    Output = "Usage: " + Verb + " [on/off]";
-                    return true;
-                }
-
-                Editor::FEditorViewportClient* Client{mUI->GetActiveViewport()->GetClient()};
-                Engine::FEngineShowFlags Flags{Client->GetShowFlags()};
-                bool& Enabled{Verb == "showflag.fog" ? Flags.mFog : Verb == "showflag.fxaa" ? Flags.mFXAA : Flags.mShadows};
-                Enabled = State.empty() ? !Enabled : State == "on" || State == "1";
-                Client->SetShowFlags(Flags);
-                Output = Verb + (Enabled ? ": on" : ": off");
-
-                return true;
-            }
-
-            return mUI->GetActiveViewport()->GetStatistics()->ExecuteCommand(Command, Output);
+        mContext.SetConsoleViewportProvider([this]() {
+            return mUI->GetActiveViewport();
         });
 
         mContext.SetCameraHandlers([this]() {
@@ -92,6 +59,7 @@ namespace Editor {
 
         if (!mContext.SetWorld(GetWorldHandle())) {
             Engine::UEngine::Shutdown();
+
             return false;
         }
 
@@ -110,6 +78,7 @@ namespace Editor {
 
         if (!mContext.SetWorld(GetWorldHandle())) {
             Engine::UEngine::Shutdown();
+
             return false;
         }
 
@@ -126,6 +95,7 @@ namespace Editor {
 
         if (!mViewport.Initialize(Renderer) || !mUI->Initialize(Renderer, Platform)) {
             Shutdown();
+
             return false;
         }
 
@@ -136,6 +106,7 @@ namespace Editor {
 
             if (!mContext.LoadScene(Core::FilePath::FromUtf8(Startup))) {
                 Shutdown();
+
                 return false;
             }
         }
@@ -151,6 +122,7 @@ namespace Editor {
     void Editor::UEditorEngine::Shutdown() {
         if (IsDispatching()) {
             Engine::UEngine::Shutdown();
+
             return;
         }
 
@@ -188,6 +160,9 @@ namespace Editor {
         }
     }
 
+    /**
+     * @brief 에디터 엔진이 소유한 PIE 실행 세션의 주소를 반환합니다.
+     */
     Editor::FPlayInEditorSession* Editor::UEditorEngine::GetPlaySession() {
         return &mPlaySession;
     }

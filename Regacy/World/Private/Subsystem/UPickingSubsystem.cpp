@@ -86,6 +86,7 @@ FWorldRaycastAccelerationStructure::FProxy FWorldRaycastAccelerationStructure::M
             }
 
             DirectX::BoundingBox MeshBounds{};
+
             DirectX::BoundingBox::CreateFromPoints(MeshBounds, 8, Corners, sizeof(Corners[0]));
             DirectX::BoundingBox::CreateMerged(Bounds, Bounds, MeshBounds);
         }
@@ -247,6 +248,7 @@ bool FWorldRaycastAccelerationStructure::BuildStructure(const TArray<TObjectRef<
 
         if (!AreBoundsFinite(Box)) {
             Clear();
+
             return false;
         }
 
@@ -256,6 +258,7 @@ bool FWorldRaycastAccelerationStructure::BuildStructure(const TArray<TObjectRef<
 
     if (Items.empty()) {
         mBuilt = true;
+
         return true;
     }
 
@@ -299,6 +302,7 @@ void FWorldRaycastAccelerationStructure::InsertComponent(UPrimitiveComponent* Co
 
     if (!AreBoundsFinite(Box)) {
         mLocalBoxes.erase(Key);
+
         return;
     }
 
@@ -325,6 +329,7 @@ void FWorldRaycastAccelerationStructure::UpdateComponent(UPrimitiveComponent* Co
 
     if (It == mLeafIndices.end()) {
         InsertComponent(Component);
+
         return;
     }
 
@@ -335,6 +340,7 @@ void FWorldRaycastAccelerationStructure::UpdateComponent(UPrimitiveComponent* Co
 
     if (!AreBoundsFinite(Box)) {
         RemoveComponent(Component);
+
         return;
     }
 
@@ -376,6 +382,7 @@ Uint32 FWorldRaycastAccelerationStructure::MakeChild(TArray<FNode>& BuildNodes, 
     if (Count == 1) {
         BuildNodes[NodeIndex].BoundingBox = Items[First].BoundingBox;
         BuildNodes[NodeIndex].mComponent = Items[First].mComponent;
+
         return NodeIndex;
     }
 
@@ -400,6 +407,7 @@ Uint32 FWorldRaycastAccelerationStructure::MakeChild(TArray<FNode>& BuildNodes, 
             const Uint32 Index{GetBinIndex(Box, Axis)};
 
             Bin[Axis][Index].Expand(Box);
+
             ++BinCounts[Axis][Index];
         }
     }
@@ -578,6 +586,7 @@ void FWorldRaycastAccelerationStructure::WarmupRaycast() const {
             float Distance{std::numeric_limits<float>::max()};
 
             FWorldRaycastHit Hit{};
+
             RaycastProxy(Proxy, Ray, Distance, Hit, &Camera);
 
             if (Index % 4 == 0) {
@@ -660,6 +669,7 @@ bool UPickingSubsystem::Raycast(const FRay& Ray, const FWorldRaycastQuery& Query
     const Stat::FScopedPickingStatTimer PickingTimer{};
 
     SynchronizeProxies();
+
     return mRaycastAccelerationStructure.Raycast(Ray, Query, OutHit, Target, CameraWorld);
 }
 

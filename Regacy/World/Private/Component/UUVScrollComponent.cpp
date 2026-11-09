@@ -16,6 +16,7 @@ void UUVScrollComponent::SetScrollSpeed(const FVector2& Speed) {
     mOffsetBase = CalculateUVTransform().mOffset;
     mSpeedChangeTime = GetElapsedTime();
     mScrollSpeed = Speed;
+
     UpdateUVTransform();
     UpdateTickEnabled();
 }

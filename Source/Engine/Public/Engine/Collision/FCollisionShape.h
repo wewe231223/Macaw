@@ -11,12 +11,14 @@
 #include "CoreUObject/Reflection/TNativeEnum.h"
 #include "Core/Math/FVector.h"
 #include "Core/Math/FQuat.h"
+#include "FCollisionShape.generated.h"
 
 namespace Engine {
 
     /**
      * @brief 검사할 충돌 형상 종류입니다.
      */
+    UENUM()
     enum class ECollisionShape : Core::Uint8 {
         /**
          * @brief 충돌 형상을 사용하지 않습니다.
@@ -37,34 +39,10 @@ namespace Engine {
     };
 
     /**
-     * @brief 해당 열거형의 정적 리플렉션 메타데이터를 반환합니다.
-     * @return 등록된 타입 메타데이터의 비소유 주소입니다.
-     */
-    ReflectEnum(ECollisionShape, None, Box, Sphere, Capsule);
-
-    /**
-     * @fn UEnum* GetNativeEnum(TNativeEnum<ECollisionShape>)
-     * @brief 타입 태그로 충돌 형상 종류의 열거형 메타데이터를 조회합니다.
-     * @return 등록된 열거형 메타데이터의 비소유 주소입니다.
-     */
-
-    /**
      * @brief 구·상자·캡슐의 로컬 치수를 담는 충돌 형상 값입니다.
      */
     struct FCollisionShape {
     public:
-        /**
-         * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
-         */
-        ReflectTypes(FCollisionShape);
-
-    public:
-        /**
-         * @brief 이 타입의 정적 리플렉션 메타데이터를 반환합니다.
-         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectStruct(FCollisionShape);
-
         /**
          * @brief 축별 반길이로 상자 충돌 형상을 만듭니다.
          * @param[in] HalfExtent 상자의 로컬 축별 반길이입니다.
@@ -131,34 +109,24 @@ namespace Engine {
 
     private:
         /**
-         * @brief 생성된 멤버 등록 함수와 리플렉션 빌더의 접근 권한입니다.
-         */
-        ReflectMembers();
-
-    private:
-        /**
          * @brief 충돌 형상의 종류입니다.
          */
         Engine::ECollisionShape mShapeType{Engine::ECollisionShape::None};
-        ReflectProperty(mShapeType, "ShapeType", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 상자의 로컬 축별 반길이입니다.
          */
         Core::FVector mBoxHalfExtent{};
-        ReflectProperty(mBoxHalfExtent, "BoxHalfExtent", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 충돌 형상의 반지름입니다.
          */
         float mRadius{};
-        ReflectProperty(mRadius, "Radius", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 반구를 포함한 캡슐 반높이입니다.
          */
         float mHalfHeight{};
-        ReflectProperty(mHalfHeight, "HalfHeight", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
     /**
@@ -166,18 +134,6 @@ namespace Engine {
      */
     struct FCollisionContact {
     public:
-        /**
-         * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
-         */
-        ReflectTypes(FCollisionContact);
-
-    public:
-        /**
-         * @brief 이 타입의 정적 리플렉션 메타데이터를 반환합니다.
-         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectStruct(FCollisionContact);
-
         /**
          * @brief 충돌면의 단위 법선을 반환합니다.
          * @return 이 객체가 보관하는 값의 참조입니다.
@@ -216,40 +172,25 @@ namespace Engine {
 
     private:
         /**
-         * @brief 생성된 멤버 등록 함수와 리플렉션 빌더의 접근 권한입니다.
-         */
-        ReflectMembers();
-
-    private:
-        /**
          * @brief 충돌면의 단위 법선입니다.
          */
         Core::FVector mNormal{};
-        ReflectProperty(mNormal, "Normal", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 초기 겹침을 해소할 침투 깊이입니다.
          */
         float mPenetrationDepth{};
-        ReflectProperty(mPenetrationDepth, "PenetrationDepth", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 월드 접촉점입니다.
          */
         Core::FVector mPoint{};
-        ReflectProperty(mPoint, "Point", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
     /**
      * @brief 월드 캡슐의 중심 선분 두 끝점과 반지름입니다.
      */
     struct FCapsuleSegment {
-    public:
-        /**
-         * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
-         */
-        ReflectTypes(FCapsuleSegment);
-
     public:
         /**
          * @brief 전달된 설정과 기본값으로 FCapsuleSegment 객체를 생성합니다.
@@ -265,12 +206,6 @@ namespace Engine {
         FCapsuleSegment(Core::FVector InA, Core::FVector InB, float InRadius);
 
     public:
-        /**
-         * @brief 이 타입의 정적 리플렉션 메타데이터를 반환합니다.
-         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectStruct(FCapsuleSegment);
-
         /**
          * @brief 캡슐 중심 선분의 시작점을 반환합니다.
          * @return 이 객체가 보관하는 값의 참조입니다.
@@ -309,40 +244,25 @@ namespace Engine {
 
     private:
         /**
-         * @brief 생성된 멤버 등록 함수와 리플렉션 빌더의 접근 권한입니다.
-         */
-        ReflectMembers();
-
-    private:
-        /**
          * @brief 캡슐 중심 선분의 시작점입니다.
          */
         Core::FVector mA{};
-        ReflectProperty(mA, "A", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 캡슐 중심 선분의 끝점입니다.
          */
         Core::FVector mB{};
-        ReflectProperty(mB, "B", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 충돌 형상의 반지름입니다.
          */
         float mRadius{};
-        ReflectProperty(mRadius, "Radius", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
     /**
      * @brief 월드 중심·직교 기저·반길이로 표현한 회전 상자입니다.
      */
     struct FOrientedBox {
-    public:
-        /**
-         * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
-         */
-        ReflectTypes(FOrientedBox);
-
     public:
         /**
          * @brief 전달된 설정과 기본값으로 FOrientedBox 객체를 생성합니다.
@@ -358,12 +278,6 @@ namespace Engine {
         FOrientedBox(Core::FVector InCenter, std::array<Core::FVector, 3> InAxis, Core::FVector InExtent);
 
     public:
-        /**
-         * @brief 이 타입의 정적 리플렉션 메타데이터를 반환합니다.
-         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectStruct(FOrientedBox);
-
         /**
          * @brief 월드 중심 위치를 반환합니다.
          * @return 이 객체가 보관하는 값의 참조입니다.
@@ -402,40 +316,25 @@ namespace Engine {
 
     private:
         /**
-         * @brief 생성된 멤버 등록 함수와 리플렉션 빌더의 접근 권한입니다.
-         */
-        ReflectMembers();
-
-    private:
-        /**
          * @brief 월드 중심 위치입니다.
          */
         Core::FVector mCenter{};
-        ReflectProperty(mCenter, "Center", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 회전 상자의 세 기저 축입니다.
          */
         std::array<Core::FVector, 3> mAxis{};
-        ReflectProperty(mAxis, "Axis", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 각 축의 반길이입니다.
          */
         Core::FVector mExtent{};
-        ReflectProperty(mExtent, "Extent", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
     /**
      * @brief 스윕 대상의 충돌 형상과 월드 위치·회전입니다.
      */
     struct FSweepTarget {
-    public:
-        /**
-         * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
-         */
-        ReflectTypes(FSweepTarget);
-
     public:
         /**
          * @brief 전달된 설정과 기본값으로 FSweepTarget 객체를 생성합니다.
@@ -451,12 +350,6 @@ namespace Engine {
         FSweepTarget(Engine::FCollisionShape InShape, Core::FVector InPos, Core::FQuat InRot);
 
     public:
-        /**
-         * @brief 이 타입의 정적 리플렉션 메타데이터를 반환합니다.
-         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectStruct(FSweepTarget);
-
         /**
          * @brief 충돌 형상을 반환합니다.
          * @return 이 객체가 보관하는 값의 참조입니다.
@@ -495,28 +388,19 @@ namespace Engine {
 
     private:
         /**
-         * @brief 생성된 멤버 등록 함수와 리플렉션 빌더의 접근 권한입니다.
-         */
-        ReflectMembers();
-
-    private:
-        /**
          * @brief 충돌 형상입니다.
          */
         Engine::FCollisionShape mShape{};
-        ReflectProperty(mShape, "Shape", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 월드 위치입니다.
          */
         Core::FVector mPos{};
-        ReflectProperty(mPos, "Pos", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 월드 회전입니다.
          */
         Core::FQuat mRot{};
-        ReflectProperty(mRot, "Rot", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
     /**
@@ -524,18 +408,6 @@ namespace Engine {
      */
     struct FSweepResult {
     public:
-        /**
-         * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
-         */
-        ReflectTypes(FSweepResult);
-
-    public:
-        /**
-         * @brief 이 타입의 정적 리플렉션 메타데이터를 반환합니다.
-         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectStruct(FSweepResult);
-
         /**
          * @brief 이동을 차단하는 충돌 여부를 반환합니다.
          * @return 조건을 만족하면 true입니다.
@@ -598,40 +470,29 @@ namespace Engine {
 
     private:
         /**
-         * @brief 생성된 멤버 등록 함수와 리플렉션 빌더의 접근 권한입니다.
-         */
-        ReflectMembers();
-
-    private:
-        /**
          * @brief 이동을 차단하는 충돌 여부입니다.
          */
         bool mBlockingHit{};
-        ReflectProperty(mBlockingHit, "BlockingHit", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 추적 시작부터 겹친 상태입니다.
          */
         bool mStartPenetrating{};
-        ReflectProperty(mStartPenetrating, "StartPenetrating", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 전체 추적 거리에서 적중한 비율입니다.
          */
         float mTime{1.0f};
-        ReflectProperty(mTime, "Time", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 적중한 스윕 대상의 인덱스입니다.
          */
         Core::Int32 mTargetIndex{-1};
-        ReflectProperty(mTargetIndex, "TargetIndex", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 충돌 접촉 정보입니다.
          */
         Engine::FCollisionContact mContact{};
-        ReflectProperty(mContact, "Contact", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
     /**

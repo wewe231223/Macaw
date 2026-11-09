@@ -21,6 +21,7 @@ bool FPreviewScene::Initialize(FRenderer& Renderer) {
     }
 
     Reset();
+
     mRenderer = &Renderer;
     mRegistryGeneration = Generation;
     mWorld.Initialize(EWorldType::Preview);
@@ -31,6 +32,7 @@ bool FPreviewScene::Initialize(FRenderer& Renderer) {
 
     if (MeshActor == nullptr || LightActor == nullptr) {
         Reset();
+
         return false;
     }
 
@@ -39,6 +41,7 @@ bool FPreviewScene::Initialize(FRenderer& Renderer) {
 
     if (mMesh == nullptr || mLight == nullptr) {
         Reset();
+
         return false;
     }
 
@@ -46,6 +49,7 @@ bool FPreviewScene::Initialize(FRenderer& Renderer) {
 
     if (!mWorld.FinishSpawningActor(MeshActor, FTransform{}) || !mWorld.FinishSpawningActor(LightActor, FTransform{})) {
         Reset();
+
         return false;
     }
 

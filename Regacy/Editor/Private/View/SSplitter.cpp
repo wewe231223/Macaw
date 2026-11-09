@@ -45,6 +45,7 @@ void SSplitterH::DragTo(FPoint Point) {
 void SSplitterH::UpdateLayout() {
     if (mFirst == nullptr || mSecond == nullptr) {
         mHandleRect = {};
+
         return;
     }
 
@@ -81,6 +82,7 @@ void SSplitterV::DragTo(FPoint Point) {
 void SSplitterV::UpdateLayout() {
     if (mFirst == nullptr || mSecond == nullptr) {
         mHandleRect = {};
+
         return;
     }
 

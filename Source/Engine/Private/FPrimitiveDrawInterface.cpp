@@ -24,6 +24,9 @@ namespace Engine {
         mLines.push_back(Engine::FDrawLine{Start, End, Color, DepthTest, Thickness});
     }
 
+    /**
+     * @brief AABB의 열두 모서리를 지정한 픽셀 두께의 선분으로 수집합니다.
+     */
     void Engine::FPrimitiveDrawInterface::DrawBox(const Core::FBox& Bounds, const Core::FVector& Color, bool DepthTest, float Thickness) {
         for (Core::Int32 Corner{}; Corner < 8; ++Corner) {
             const Core::FVector Start{(Corner & 1) != 0 ? Bounds.mMaximum.x : Bounds.mMinimum.x, (Corner & 2) != 0 ? Bounds.mMaximum.y : Bounds.mMinimum.y, (Corner & 4) != 0 ? Bounds.mMaximum.z : Bounds.mMinimum.z};
@@ -35,6 +38,7 @@ namespace Engine {
 
                 const Core::Int32 Other{Corner | (1 << Axis)};
                 const Core::FVector End{(Other & 1) != 0 ? Bounds.mMaximum.x : Bounds.mMinimum.x, (Other & 2) != 0 ? Bounds.mMaximum.y : Bounds.mMinimum.y, (Other & 4) != 0 ? Bounds.mMaximum.z : Bounds.mMinimum.z};
+
                 DrawLine(Start, End, Color, DepthTest, Thickness);
             }
         }
@@ -56,18 +60,30 @@ namespace Engine {
         return mLines;
     }
 
+    /**
+     * @brief 깊이 검사와 우선순위를 가진 에디터 메시 그리기 요청을 추가합니다.
+     */
     void Engine::FPrimitiveDrawInterface::DrawMesh(const Engine::FDrawMesh& Mesh) {
         mMeshes.push_back(Mesh);
     }
 
+    /**
+     * @brief 이번 프레임의 에디터 메시 그리기 요청들을 반환합니다.
+     */
     const Core::TArray<Engine::FDrawMesh>& Engine::FPrimitiveDrawInterface::GetMeshes() const {
         return mMeshes;
     }
 
+    /**
+     * @brief 이번 프레임에 표시할 텍스트 요청을 수집합니다.
+     */
     void Engine::FPrimitiveDrawInterface::DrawString(const Engine::FDrawText& Text) {
         mTexts.push_back(Text);
     }
 
+    /**
+     * @brief 현재 프레임의 텍스트 요청 목록을 반환합니다.
+     */
     const Core::TArray<Engine::FDrawText>& Engine::FPrimitiveDrawInterface::GetTexts() const {
         return mTexts;
     }

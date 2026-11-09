@@ -8,9 +8,14 @@
 
 #include "Core/ReflectionMacros.h"
 #include "CoreUObject/UObject.h"
+#include "AActor.generated.h"
 
 namespace Core {
     struct FTransform;
+}
+
+namespace Core {
+    class FInput;
 }
 
 namespace Engine {
@@ -19,18 +24,14 @@ namespace Engine {
     class ULevel;
     class UActorComponent;
     class USceneComponent;
-    struct FViewportInput;
 
     /**
      * @brief 컴포넌트를 소유하고 루트 컴포넌트를 통해 공간 변환을 제공하는 월드 객체입니다.
      * @ingroup Engine
      */
+    UCLASS()
     class AActor : public CoreUObject::UObject {
-    public:
-        /**
-         * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
-         */
-        ReflectTypes(AActor, CoreUObject::UObject);
+        GENERATED_BODY()
 
     public:
         /**
@@ -45,20 +46,10 @@ namespace Engine {
 
     public:
         /**
-         * @brief 이 타입의 정적 클래스 메타데이터를 반환합니다.
-         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectClass(AActor);
-
-        /**
-         * @fn UClass* AActor::GetClass() const
-         * @brief 객체의 실제 클래스 메타데이터를 반환합니다.
-         * @return 실제 클래스 메타데이터의 비소유 주소입니다.
-         */
-        /**
          * @brief 현재 소속되거나 관리하는 월드의 비소유 주소를 반환합니다.
          * @return 조회한 값의 비소유 주소이며, 해당 값이 없으면 nullptr입니다.
          */
+        UFUNCTION()
         Engine::UWorld* GetWorld() const;
 
         /**
@@ -78,6 +69,7 @@ namespace Engine {
          * @brief 액터 변환을 제공하는 루트 컴포넌트의 비소유 주소를 반환합니다.
          * @return 조회한 값의 비소유 주소이며, 해당 값이 없으면 nullptr입니다.
          */
+        UFUNCTION()
         Engine::USceneComponent* GetRootComponent() const;
 
         /**
@@ -92,7 +84,38 @@ namespace Engine {
          * @param[in] Transform 적용할 위치, 회전과 스케일입니다.
          * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
          */
+        UFUNCTION()
         bool SetActorTransform(const Core::FTransform& Transform);
+
+        /**
+         * @brief 루트 컴포넌트의 변환을 반환합니다.
+         * @return 루트 컴포넌트의 변환이며, 루트가 없으면 기본 변환입니다.
+         */
+        UFUNCTION()
+        Core::FTransform GetActorTransform() const;
+
+        /**
+         * @brief 월드에서 이 액터를 제거합니다. 실행 전달 중이면 안전한 시점까지 미룹니다.
+         * @return 제거를 수락하면 true입니다.
+         */
+        UFUNCTION()
+        bool Destroy();
+
+        /**
+         * @brief 지정한 클래스의 첫 소유 컴포넌트를 찾습니다.
+         * @param[in] ClassName 파생 클래스를 포함해 찾을 리플렉션 클래스 이름입니다.
+         * @return 찾은 컴포넌트의 비소유 주소이며, 없으면 nullptr입니다.
+         */
+        UFUNCTION(Internal)
+        Engine::UActorComponent* FindComponentByClassName(const Core::FString& ClassName) const;
+
+        /**
+         * @brief 지정한 클래스의 소유 컴포넌트를 모두 찾습니다.
+         * @param[in] ClassName 파생 클래스를 포함해 찾을 리플렉션 클래스 이름입니다.
+         * @return 찾은 컴포넌트의 비소유 주소 목록입니다.
+         */
+        UFUNCTION(Internal)
+        Core::TArray<Engine::UActorComponent*> GetComponentsByClassName(const Core::FString& ClassName) const;
 
         /**
          * @brief 액터의 기본 컴포넌트를 생성하고 루트 컴포넌트를 정합니다.
@@ -122,7 +145,7 @@ namespace Engine {
          * @param[in] Input 현재 프레임의 키보드·마우스 입력 상태입니다.
          * @param[in] DeltaTime 이전 갱신 이후의 경과 시간이며 초 단위입니다.
          */
-        virtual void Input(const Engine::FViewportInput& Input, float DeltaTime);
+        virtual void Input(const Core::FInput& Input, float DeltaTime);
 
         /**
          * @brief 액터가 실행 시작 전달에 진입했는지 검사합니다.
@@ -148,12 +171,22 @@ namespace Engine {
          */
         void SetEditorTickable(bool EditorTickable);
 
-    private:
         /**
-         * @brief 생성된 프로퍼티 등록 함수와 빌더 접근 권한입니다.
+         * @brief 액터의 표시 여부를 반환합니다.
+         * @return 액터와 소유 컴포넌트를 표시하도록 설정했으면 true입니다.
          */
-        ReflectMembers();
+        UFUNCTION()
+        bool IsVisible() const;
 
+        /**
+         * @brief 액터의 표시 여부를 변경하고 소유 컴포넌트의 렌더 상태에 반영합니다.
+         * @param[in] Visible 액터를 표시하려면 true입니다.
+         * @note 렌더링과 에디터 피킹에만 영향을 주며 Tick과 충돌은 그대로 동작합니다.
+         */
+        UFUNCTION()
+        void SetVisible(bool Visible);
+
+    private:
         /**
          * @brief 객체가 소속된 월드 연결을 지정합니다.
          * @param[in] World 연결할 월드이며, nullptr이면 연결을 해제합니다.
@@ -198,49 +231,48 @@ namespace Engine {
          * @brief 액터가 속한 월드이며, 레벨에 추가되기 전에는 nullptr입니다.
          */
         Engine::UWorld* mWorld{};
-        ReflectProperty(mWorld, "World", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 액터가 소유한 컴포넌트 목록입니다.
          */
         Core::TArray<std::unique_ptr<Engine::UActorComponent>> mComponents{};
-        ReflectProperty(mComponents, "Components", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 액터 변환을 제공하는 루트 컴포넌트의 비소유 주소입니다.
          */
         Engine::USceneComponent* mRootComponent{};
-        ReflectProperty(mRootComponent, "RootComponent", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 액터가 시작 전달에 진입하여 아직 종료되지 않았는지 나타냅니다.
          */
         bool mHasBegunPlay{};
-        ReflectProperty(mHasBegunPlay, "HasBegunPlay", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 액터 자체의 BeginPlay 호출 여부이며 부분 시작 시 EndPlay 짝을 구분합니다.
          */
         bool mBeginPlayCalled{};
-        ReflectProperty(mBeginPlayCalled, "BeginPlayCalled", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 안전한 전달 경계에서 액터를 제거하도록 예약한 상태입니다.
          */
         bool mPendingDestroy{};
-        ReflectProperty(mPendingDestroy, "PendingDestroy", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 월드 연결 변경 중 재진입에 의한 컴포넌트 변경을 제한합니다.
          */
         bool mChangingWorld{};
-        ReflectProperty(mChangingWorld, "ChangingWorld", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 정지한 편집 월드에서도 이 객체의 Tick을 허용하는 설정입니다.
          */
+        UPROPERTY(Edit, Serialize)
         bool mEditorTickable{};
-        ReflectProperty(mEditorTickable, "EditorTickable", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
+
+        /**
+         * @brief 액터와 소유 컴포넌트의 표시 여부이며 아웃라이너에서 변경합니다.
+         */
+        UPROPERTY(Serialize, Getter = IsVisible, Setter = SetVisible)
+        bool mVisible{true};
     };
 
 }

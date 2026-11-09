@@ -15,6 +15,7 @@ FPropertyValue::FPropertyValue(const FPropertyValue& Other)
 FPropertyValue& FPropertyValue::operator=(const FPropertyValue& Other) {
     if (this != &Other) {
         FPropertyValue Copy{Other};
+
         *this = std::move(Copy);
     }
 
@@ -29,6 +30,7 @@ FPropertyValue::FPropertyValue(FPropertyValue&& Other) noexcept
 FPropertyValue& FPropertyValue::operator=(FPropertyValue&& Other) noexcept {
     if (this != &Other) {
         Reset();
+
         mType = std::exchange(Other.mType, nullptr);
         mData = std::exchange(Other.mData, nullptr);
     }

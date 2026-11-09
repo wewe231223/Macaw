@@ -8,6 +8,7 @@ public:
 
 public:
     ULocalLightComponent();
+
     ~ULocalLightComponent() override = default;
 
 public:

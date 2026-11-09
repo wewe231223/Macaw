@@ -32,6 +32,7 @@ void USpotLightComponent::SetInnerConeAngle(float InInnerConeAngle) {
     }
 
     mInnerConeAngle = Angle;
+
     MarkRenderStateDirty();
 }
 
@@ -43,11 +44,13 @@ void USpotLightComponent::SetOuterConeAngle(float InOuterConeAngle) {
     }
 
     mOuterConeAngle = Angle;
+
     MarkRenderStateDirty();
 }
 
 void USpotLightComponent::BuildLightShaderParameters(FLightShaderParameters& OutParameters) const {
     Super::BuildLightShaderParameters(OutParameters);
+
     OutParameters.mInnerConeCos = std::cos(ToRadians(mInnerConeAngle));
     OutParameters.mOuterConeCos = std::cos(ToRadians(mOuterConeAngle));
 }
@@ -58,6 +61,7 @@ void USpotLightComponent::Serialize(FArchive& Archive) {
     if (Archive.IsLoading()) {
         mOuterConeAngle = std::isfinite(mOuterConeAngle) ? std::clamp(mOuterConeAngle, MinimumConeAngle, MaximumConeAngle) : MaximumConeAngle;
         mInnerConeAngle = std::isfinite(mInnerConeAngle) ? std::clamp(mInnerConeAngle, MinimumConeAngle, mOuterConeAngle) : MinimumConeAngle;
+
         MarkRenderStateDirty();
     }
 }

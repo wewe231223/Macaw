@@ -92,6 +92,7 @@ namespace Core {
          * @return 외적을 x·y·z에 저장하고 w를 0으로 만든 SIMD 값입니다.
          */
         __m128 __vectorcall Cross3(__m128 Left, __m128 Right);
+
         /**
          * @brief x·y·z·w 순서의 두 쿼터니언에 Hamilton 곱을 적용합니다.
          * @param[in] Left 왼쪽 쿼터니언입니다.
@@ -99,6 +100,7 @@ namespace Core {
          * @return Left와 Right의 곱을 x·y·z·w에 저장한 쿼터니언입니다.
          */
         __m128 __vectorcall MultiplyQuaternion(__m128 Left, __m128 Right);
+
         /**
          * @brief 단위 쿼터니언으로 SIMD 벡터의 앞 세 성분을 회전합니다.
          * @param[in] Vector 회전할 벡터이며 w 성분은 유지합니다.
@@ -106,6 +108,7 @@ namespace Core {
          * @return 회전된 벡터를 저장한 SIMD 값입니다.
          */
         __m128 __vectorcall RotateVector(__m128 Vector, __m128 Rotation);
+
         /**
          * @brief 동차 행 벡터에 네 SIMD 행으로 저장한 행렬을 곱합니다.
          * @param[in] Vector 변환할 x·y·z·w 동차 벡터입니다.
@@ -122,6 +125,7 @@ namespace Core {
     template <std::size_t Index>
     __m128 Core::Math::Simd::Splat(__m128 Value) {
         static_assert(Index < 4);
+
         return _mm_shuffle_ps(Value, Value, _MM_SHUFFLE(Index, Index, Index, Index));
     }
 
@@ -159,6 +163,7 @@ namespace Core {
         static_assert(Components >= 2 && Components <= 4);
 
         constexpr int Mask{(1 << Components) - 1};
+
         return (_mm_movemask_ps(_mm_cmpeq_ps(Left, Right)) & Mask) == Mask;
     }
 
@@ -199,10 +204,12 @@ namespace Core {
         static_assert(Components >= 2 && Components <= 4);
 
         const __m128 Mask{_mm_castsi128_ps(_mm_set_epi32(Components == 4 ? -1 : 0, Components >= 3 ? -1 : 0, -1, -1))};
+
         Value = _mm_and_ps(Value, Mask);
 
         if (!Core::Math::Simd::IsFinite<Components>(Value)) {
             Value = _mm_setzero_ps();
+
             return false;
         }
 
@@ -213,6 +220,7 @@ namespace Core {
 
         if (Scale == 0.0f) {
             Value = _mm_setzero_ps();
+
             return false;
         }
 
@@ -221,6 +229,7 @@ namespace Core {
 
         if (static_cast<double>(Scale) * _mm_cvtss_f32(Size) <= 0.000001) {
             Value = _mm_setzero_ps();
+
             return false;
         }
 

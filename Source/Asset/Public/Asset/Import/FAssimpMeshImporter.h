@@ -26,28 +26,16 @@ namespace Asset {
     class FAssimpMeshImporter final : public Asset::IMeshImporter {
     public:
         /**
-         * @brief 리플렉션 소유 타입과 선택적 기반 타입의 별칭입니다.
-         */
-        ReflectTypes(FAssimpMeshImporter, Asset::IMeshImporter);
-
-    public:
-        /**
          * @brief 가져올 원본 파일 경로와 임포트 옵션을 보관하도록 Assimp 임포터를 초기화합니다.
          * @param[in] Source 가져올 원본 메시 파일 경로입니다.
          * @param[in] Option 좌표축·메시 구성·노멀 처리 방식을 정하는 임포트 옵션입니다.
          */
         FAssimpMeshImporter(std::filesystem::path Source, const Asset::FAssetImportOption& Option);
+
         /**
          * @brief Assimp 임포터와 읽어 들인 장면을 해제합니다.
          */
         ~FAssimpMeshImporter() override;
-
-    public:
-        /**
-         * @brief 이 타입의 정적 리플렉션 메타데이터를 반환합니다.
-         * @return 리플렉션 시스템이 보관하는 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectStruct(FAssimpMeshImporter);
 
     private:
         /**
@@ -64,6 +52,7 @@ namespace Asset {
          * @return 텍스처가 없으면 None, 장면 내장 텍스처이면 Embedded, 그 외에는 원본 디렉터리 기준 외부 파일 참조입니다.
          */
         Asset::FMeshImportTexture ReadTexture(const aiMaterial& Material, aiTextureType PrimaryType, aiTextureType FallbackType) const;
+
         /**
          * @brief 노드와 모든 자식 노드를 깊이 우선으로 순회하며 노드의 메시를 읽습니다.
          * @details 메시 병합 옵션을 켜면 결과의 첫 메시에, 끄면 메시를 가진 노드마다 새 결과 메시에 추가합니다.
@@ -72,6 +61,7 @@ namespace Asset {
          * @return 모든 메시를 읽으면 true이며 하나라도 실패하면 Error에 원인을 기록하고 false입니다.
          */
         bool ReadNode(const aiNode& Node, const Core::FMatrix& ParentTransform);
+
         /**
          * @brief Assimp 메시의 정점과 삼각형을 엔진 공간으로 변환해 대상 메시에 추가하고 서브메시를 구성합니다.
          * @param[in] Source 읽을 Assimp 메시입니다.
@@ -80,6 +70,7 @@ namespace Asset {
          * @return 성공하면 true이며 빈 메시이거나 버퍼 한계를 넘으면 Error에 원인을 기록하고 false입니다.
          */
         bool ReadMesh(const aiMesh& Source, const Asset::FMeshImportTransform& Transform, Asset::FMeshImportMesh& Target);
+
         /**
          * @brief 메시 노드를 순회하며 메시 본의 오프셋 행렬로 본 이름별 바인드 시점 전역 변환을 모읍니다.
          * @param[in] Node 순회를 시작할 Assimp 노드입니다.
@@ -87,6 +78,7 @@ namespace Asset {
          * @return 모든 오프셋 행렬을 되돌릴 수 있으면 true이며 실패하면 Error에 원인을 기록하고 false입니다.
          */
         bool CollectBindPoses(const aiNode& Node, const Core::FMatrix& ParentTransform);
+
         /**
          * @brief 메시가 참조하는 본 이름과 같은 노드를 깊이 우선으로 순회하며 결과 본 목록에 추가합니다.
          * @param[in] Node 순회를 시작할 Assimp 노드입니다.
@@ -95,47 +87,38 @@ namespace Asset {
          * @return 모든 본을 읽으면 true이며 바인드 포즈를 변환할 수 없으면 false입니다.
          */
         bool ReadSkeleton(const aiNode& Node, Core::Int32 ParentIndex, const Core::FMatrix& ParentBoneGlobal);
+
         /**
          * @brief 장면의 Assimp 재질마다 기본 색상·불투명도·양면 여부와 기본 색상·노멀 텍스처를 읽어 재질 목록에 추가합니다.
          * @return 성공하면 true이며 조명 속성이 유효하지 않으면 Error에 원인을 기록하고 false입니다.
          */
         bool ReadMaterials();
 
-        /**
-         * @brief 생성된 멤버 등록 함수와 리플렉션 빌더의 접근 권한입니다.
-         */
-        ReflectMembers();
-
     private:
         /**
          * @brief 원본 파일을 읽고 읽어 들인 장면의 수명을 소유하는 Assimp 임포터입니다.
          */
         Assimp::Importer mImporter{};
-        ReflectProperty(mImporter, "Importer", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief mImporter가 소유하는 읽어 들인 장면의 비소유 주소입니다.
          */
         const aiScene* mScene{};
-        ReflectProperty(mScene, "Scene", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 원본 전역 공간에서 엔진 공간으로 가는 행렬입니다. 축 변환과 임포트 이동·회전·스케일을 포함합니다.
          */
         Core::FMatrix mBasis{};
-        ReflectProperty(mBasis, "Basis", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 메시 본 이름별 바인드 시점 전역 변환이며 원본 전역 공간 기준입니다.
          */
         Core::TMap<Core::FString, Core::FMatrix> mBindPoses{};
-        ReflectProperty(mBindPoses, "BindPoses", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 본으로 읽은 노드 이름별 결과 본 인덱스입니다.
          */
         Core::TMap<Core::FString, Core::Int32> mBoneIndices{};
-        ReflectProperty(mBoneIndices, "BoneIndices", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
 }

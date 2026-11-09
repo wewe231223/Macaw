@@ -53,6 +53,7 @@ namespace Core {
         if (Direction.Normalize()) {
             const float HalfAngle{Radians * 0.5f};
             const __m128 Vector{_mm_mul_ps(Direction.mValue, _mm_set1_ps(std::sin(HalfAngle)))};
+
             *this = Core::FQuat{_mm_add_ps(Vector, _mm_set_ps(std::cos(HalfAngle), 0.0f, 0.0f, 0.0f))};
         }
     }
@@ -131,6 +132,7 @@ namespace Core {
     bool Core::FQuat::Normalize() {
         if (!Core::Math::Simd::Normalize<4>(mValue)) {
             *this = Core::FQuat{};
+
             return false;
         }
 
@@ -177,6 +179,7 @@ namespace Core {
         if (Cosine <= 0.9995f) {
             const float Angle{std::acos(std::clamp(Cosine, 0.0f, 1.0f))};
             const float Sine{std::sin(Angle)};
+
             StartWeight = std::sin((1.0f - Alpha) * Angle) / Sine;
             EndWeight = std::sin(Alpha * Angle) / Sine;
         }
@@ -206,6 +209,7 @@ namespace Core {
 
         const Core::FVector Vector{Unit.x, Unit.y, Unit.z};
         const float Sine{Vector.Length()};
+
         Axis = Sine > 0.000001f ? Vector / Sine : Core::FVector{1.0f, 0.0f, 0.0f};
         Radians = 2.0f * std::atan2(Sine, Unit.w);
     }

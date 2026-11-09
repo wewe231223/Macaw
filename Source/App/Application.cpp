@@ -51,12 +51,14 @@ namespace App {
 
         if (!BrowseProjects({}, false)) {
             Shutdown();
+
             return 0;
         }
 
         while (mPlatform.PumpMessages() && !mEngine.WantsExit()) {
             if (mPlatform.IsMinimized()) {
                 MsgWaitForMultipleObjects(0, nullptr, false, 16, QS_ALLINPUT);
+
                 continue;
             }
 
@@ -100,6 +102,9 @@ namespace App {
         mPlatform.Shutdown();
     }
 
+    /**
+     * @brief 프로젝트 선택 화면을 반복 표시하고 선택한 프로젝트를 엽니다.
+     */
     bool App::FApplication::BrowseProjects(std::filesystem::path Path, bool Create) {
         Editor::FProjectBrowser Browser{};
         Core::FString Error{};
@@ -113,6 +118,9 @@ namespace App {
         return false;
     }
 
+    /**
+     * @brief 메인 창 대신 스플래시 창을 띄운 채 프로젝트를 불러오고, 끝나면 메인 창을 다시 표시합니다.
+     */
     bool App::FApplication::OpenProject(const std::filesystem::path& Path, bool Create, Core::FString& Error) {
         const HWND Window{mPlatform.GetWindowHandle()};
         Platform::FSplashWindow Splash{};
@@ -137,6 +145,9 @@ namespace App {
         return Loaded;
     }
 
+    /**
+     * @brief 현재 실행을 정리하고 프로젝트를 생성하거나 열어 시작 장면을 연결합니다.
+     */
     bool App::FApplication::LoadProject(const std::filesystem::path& Path, bool Create, Core::FString& Error) {
         Core::LoadingStatus::BeginStage(Create ? "Creating project from template..." : "Opening project...", 0.0f);
 
@@ -168,6 +179,7 @@ namespace App {
 
         const std::u8string Name{reinterpret_cast<const char8_t*>(mProject->GetName().data()), mProject->GetName().size()};
         const std::wstring Title{L"Macaw - " + std::filesystem::path{Name}.wstring()};
+
         SetWindowTextW(mPlatform.GetWindowHandle(), Title.c_str());
         Editor::FProjectBrowser::RememberProject(mProject->GetFilePath());
         mTimer.Tick();

@@ -126,6 +126,7 @@ void Quaternion::LookRotation(const Vector3& forward, const Vector3& up, Quatern
     if (XMVector3NearEqual(XMVector3LengthSq(C), g_XMZero, g_XMEpsilon)) {
         // forward and up are co-linear
         result = q1;
+
         return;
     }
 
@@ -175,6 +176,7 @@ RECT Viewport::ComputeDisplayArea(DXGI_SCALING scaling, UINT backBufferWidth, UI
             rct.left = 0;
             rct.right = outputWidth;
             rct.bottom = outputHeight;
+
             break;
 
         case 2 /*DXGI_SCALING_ASPECT_RATIO_STRETCH*/:
@@ -219,6 +221,7 @@ RECT Viewport::ComputeDisplayArea(DXGI_SCALING scaling, UINT backBufferWidth, UI
             rct.left = 0;
             rct.right = std::min<LONG>(static_cast<LONG>(backBufferWidth), outputWidth);
             rct.bottom = std::min<LONG>(static_cast<LONG>(backBufferHeight), outputHeight);
+
             break;
     }
 

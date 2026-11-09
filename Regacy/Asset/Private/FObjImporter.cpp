@@ -93,6 +93,7 @@ bool FObjImporter::ImportMesh(const std::filesystem::path& SourcePath, bool Flip
         const Uint32 Count{Geometry.mSubMeshIndexCounts[SectionIndex]};
 
         Data.mSections.push_back(FMeshSection{FirstIndex, Count, SlotIndex, 0});
+
         FirstIndex += Count;
     }
 
@@ -113,6 +114,7 @@ bool FObjImporter::LoadObjFile(const FString& FilePath, FGeometry& OutGeometry) 
 
     if (!File.is_open()) {
         Console::AddLog(Console::STDOutHandle, ELogLevel::Error, ELogCategory::Etc, "[ObjImporter] Obj Load Failed. Can not Open File");
+
         return false;
     }
 
@@ -152,6 +154,7 @@ bool FObjImporter::LoadObjFile(const FString& FilePath, FGeometry& OutGeometry) 
 
             //각 x,y,z에 좌표계 변환
             Pos = FVector{Pos.Dot(mPositionCoordTransX), Pos.Dot(mPositionCoordTransY), Pos.Dot(mPositionCoordTransZ)};
+
             ObjInfo.mPositions.push_back(Pos);
 
             FColor4 Color{FColor4(1.f, 1.f, 1.f, 1.f)};
@@ -173,6 +176,7 @@ bool FObjImporter::LoadObjFile(const FString& FilePath, FGeometry& OutGeometry) 
             FVector Normal{FVector{std::stof(Tokens[1].c_str()), std::stof(Tokens[2].c_str()), std::stof(Tokens[3].c_str())}};
 
             Normal = FVector{Normal.Dot(mPositionCoordTransX), Normal.Dot(mPositionCoordTransY), Normal.Dot(mPositionCoordTransZ)};
+
             ObjInfo.mNormals.push_back(Normal);
         } else if (Tag == "vt") // vt u v
         {
@@ -191,6 +195,7 @@ bool FObjImporter::LoadObjFile(const FString& FilePath, FGeometry& OutGeometry) 
 
             if (Material != CurrentMaterial && TempFaceCount != 0) {
                 ObjInfo.mSubMesh.push_back(TempFaceCount);
+
                 TempFaceCount = 0;
             }
 
@@ -280,6 +285,7 @@ bool FObjImporter::LoadObjFile(const FString& FilePath, FGeometry& OutGeometry) 
 bool FObjImporter::BuildGeometry(const FObjInfo& ObjInfo, FGeometry& OutGeometry) const {
     if (ObjInfo.mPositions.empty() || ObjInfo.mFaceVerticesPolygon.empty()) {
         Console::AddLog(Console::STDOutHandle, ELogLevel::Error, ELogCategory::Etc, "Obj Load Failed. No geometry data to build.");
+
         return false;
     }
 
@@ -328,6 +334,7 @@ bool FObjImporter::BuildGeometry(const FObjInfo& ObjInfo, FGeometry& OutGeometry
 
     if (OutGeometry.mPositions.empty() || OutGeometry.mIndices.empty()) {
         Console::AddLog(Console::STDOutHandle, ELogLevel::Error, ELogCategory::Etc, "Obj Load Failed. Resulting geometry is empty.");
+
         return false;
     }
 
@@ -349,6 +356,7 @@ bool FObjImporter::BuildPolygonGeometry(const FObjInfo& ObjInfo, FGeometry& OutG
     //남은 정점이 3개만 남는다면 인덱스 버퍼를 채우고 종료합니다.
     if (ObjInfo.mPositions.empty() || ObjInfo.mFaceVerticesPolygon.empty()) {
         Console::AddLog(Console::STDOutHandle, ELogLevel::Error, ELogCategory::Etc, "Obj Load Failed. No geometry data to build.");
+
         return false;
     }
 
@@ -455,7 +463,9 @@ bool FObjImporter::BuildPolygonGeometry(const FObjInfo& ObjInfo, FGeometry& OutG
             //내적값이 음수라면 오목
             if (DotResult < -ConvexityEpsilon) {
                 FaceVertexIndex = (FaceVertexIndex + 1) % FaceVertics.size();
+
                 Console::AddLog(Console::STDOutHandle, ELogLevel::Log, ELogCategory::Etc, "[Load OBJ File] Has Concave Vertex");
+
                 continue;
             }
 
@@ -489,13 +499,16 @@ bool FObjImporter::BuildPolygonGeometry(const FObjInfo& ObjInfo, FGeometry& OutG
                     NCVector.Cross(OCVector).Dot(FaceNormal) > ConvexityEpsilon &&
                     PNVector.Cross(ONVector).Dot(FaceNormal) > ConvexityEpsilon) {
                     OtherVertexCheck = true;
+
                     break;
                 }
             }
 
             if (OtherVertexCheck) {
                 FaceVertexIndex = (FaceVertexIndex + 1) % FaceVertics.size();
+
                 Console::AddLog(Console::STDOutHandle, ELogLevel::Log, ELogCategory::Etc, "[Load OBJ File] Vertex located inside the triangle");
+
                 continue;
             }
 
@@ -545,6 +558,7 @@ bool FObjImporter::BuildPolygonGeometry(const FObjInfo& ObjInfo, FGeometry& OutG
 
     if (OutGeometry.mPositions.empty() || OutGeometry.mIndices.empty()) {
         Console::AddLog(Console::STDOutHandle, ELogLevel::Error, ELogCategory::Etc, "Obj Load Failed. Resulting geometry is empty.");
+
         return false;
     }
 
@@ -574,6 +588,7 @@ void FObjImporter::AddPNTIArray(const FFaceVertex& TargetVertex, const FObjInfo&
     if (ExistingEntry != CacheMap.end()) {
         //이미 같은 조합의 정점이 있다면 새로 만들지 않고 인덱스만 재사용한다.
         OutGeometry.mIndices.push_back(ExistingEntry->second);
+
         return;
     }
 
@@ -714,6 +729,7 @@ bool FObjImporter::LoadMaterialFile(const std::filesystem::path& MtlPath, const 
 
             if (Name.size() >= NameSize) {
                 OutMaterials.clear();
+
                 return false;
             }
 
@@ -724,6 +740,7 @@ bool FObjImporter::LoadMaterialFile(const std::filesystem::path& MtlPath, const 
 
             if ((HasCurrentParameters && CurrentName == MaterialName) || std::ranges::any_of(OutMaterials, MatchesName)) {
                 OutMaterials.clear();
+
                 return false;
             }
 
@@ -734,6 +751,7 @@ bool FObjImporter::LoadMaterialFile(const std::filesystem::path& MtlPath, const 
             CurrentParameters = {};
             CurrentName = Name.c_str();
             HasCurrentParameters = true;
+
             continue;
         }
 
@@ -822,6 +840,7 @@ bool FObjImporter::LoadMaterialFile(const std::filesystem::path& MtlPath, const 
 
         if (!std::isfinite(Parameters.mDiffuse.mW)) {
             OutMaterials.clear();
+
             return false;
         }
 

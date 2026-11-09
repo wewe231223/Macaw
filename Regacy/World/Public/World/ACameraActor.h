@@ -8,6 +8,7 @@ public:
 
 public:
     ACameraActor();
+
     ~ACameraActor() override = default;
 
 public:

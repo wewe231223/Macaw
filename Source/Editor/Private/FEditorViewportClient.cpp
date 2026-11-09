@@ -5,7 +5,9 @@
  */
 
 #include "Editor/FEditorViewportClient.h"
+#include "Engine/Component/UCameraComponent.h"
 #include "Engine/Component/UHeightFogComponent.h"
+#include "Engine/Component/UDecalComponent.h"
 #include "Engine/Component/ULightComponentBase.h"
 #include "RenderCore/IRendererModule.h"
 #include "Core/Math.h"
@@ -63,6 +65,9 @@ namespace Editor {
      */
     Editor::FEditorViewportClient::~FEditorViewportClient() = default;
 
+    /**
+     * @brief 기즈모의 진행 중인 변환을 취소하고 공유할 편집 컨텍스트를 변경합니다.
+     */
     void Editor::FEditorViewportClient::SetEditorContext(Editor::FEditorContext* Context) {
         if (Context == nullptr || Context == mContext) {
             return;
@@ -83,30 +88,39 @@ namespace Editor {
         switch (Command) {
         case Editor::EViewportCommand::ToggleGrid:
             mShowFlags.mGrid = !mShowFlags.mGrid;
+
             return true;
         case Editor::EViewportCommand::Select:
             SetGizmoMode(Editor::EGizmoMode::None);
+
             break;
         case Editor::EViewportCommand::Translate:
             SetGizmoMode(Editor::EGizmoMode::Translate);
+
             break;
         case Editor::EViewportCommand::Rotate:
             SetGizmoMode(Editor::EGizmoMode::Rotate);
+
             break;
         case Editor::EViewportCommand::Scale:
             SetGizmoMode(Editor::EGizmoMode::Scale);
+
             break;
         case Editor::EViewportCommand::WorldSpace:
             SetGizmoSpace(Editor::EGizmoSpace::World);
+
             break;
         case Editor::EViewportCommand::LocalSpace:
             SetGizmoSpace(Editor::EGizmoSpace::Local);
+
             break;
         case Editor::EViewportCommand::ToggleCoordinateSystem:
             SetGizmoSpace(mGizmoSpace == Editor::EGizmoSpace::World ? Editor::EGizmoSpace::Local : Editor::EGizmoSpace::World);
+
             break;
         case Editor::EViewportCommand::CycleTransformMode:
             SetGizmoMode(mGizmoMode == Editor::EGizmoMode::Translate ? Editor::EGizmoMode::Rotate : mGizmoMode == Editor::EGizmoMode::Rotate ? Editor::EGizmoMode::Scale : Editor::EGizmoMode::Translate);
+
             break;
         case Editor::EViewportCommand::ToggleTranslationSnap:
         case Editor::EViewportCommand::ToggleRotationSnap:
@@ -211,6 +225,7 @@ namespace Editor {
                 }
 
                 ModeRequested = ModeRequested || ModeCommand;
+
                 ExecuteCommand(Info.mCommand);
             }
         }
@@ -228,6 +243,7 @@ namespace Editor {
 
         if (Input.mDelete && Input.mFocused) {
             mContext->DestroySelectedActor();
+
             return;
         }
 
@@ -273,6 +289,7 @@ namespace Editor {
 
                 const float PixelScale{(PreviousWidth - mOrthographicWidth) / std::max(Size.x, 1.0f)};
                 const Core::FVector Offset{Rotation.RightVector() * ((Input.mMouse.x - Size.x * 0.5f) * PixelScale) + Rotation.UpVector() * ((Size.y * 0.5f - Input.mMouse.y) * PixelScale)};
+
                 mCameraLocation += Offset;
                 mOrbitPivot += Offset;
             }
@@ -280,6 +297,7 @@ namespace Editor {
             if (Input.mRightDown || Input.mMiddleDown) {
                 const float PixelScale{mOrthographicWidth / std::max(Size.x, 1.0f)};
                 const Core::FVector Offset{(Rotation.RightVector() * -Input.mDelta.x + Rotation.UpVector() * Input.mDelta.y) * PixelScale};
+
                 mCameraLocation += Offset;
                 mOrbitPivot += Offset;
 
@@ -301,6 +319,7 @@ namespace Editor {
             const float Distance{std::max(mCameraLocation.Distance(mOrbitPivot), 1.0f)};
             const float PixelScale{2.0f * Distance * Core::Math::Tan(30_deg) / std::max(Size.y, 1.0f)};
             const Core::FVector Pan{Rotation * Core::FVector{0.0f, -Input.mDelta.x, Input.mDelta.y} * PixelScale};
+
             mCameraLocation += Pan;
             mOrbitPivot += Pan;
 
@@ -313,6 +332,7 @@ namespace Editor {
 
             if (Forward.Normalize()) {
                 const Core::FRotator Facing{Forward.Rotation()};
+
                 mCameraRotation.yaw = Facing.yaw;
                 mCameraRotation.pitch = std::clamp(Facing.pitch, -89.0f, 89.0f);
             }
@@ -329,24 +349,27 @@ namespace Editor {
             return true;
         }
 
-        if (Input.mRightDown) {
+        const Core::FVector LocalMovement{static_cast<float>(Input.mForward) - static_cast<float>(Input.mBackward), static_cast<float>(Input.mRight) - static_cast<float>(Input.mLeft), 0.0f};
+        const float VerticalMovement{static_cast<float>(Input.mUp) - static_cast<float>(Input.mDown)};
+        const bool Moving{Input.mFocused && (LocalMovement.LengthSquared() > 0.0f || VerticalMovement != 0.0f)};
+
+        if (Input.mRightDown || Moving) {
             const float OrbitDistance{std::max(mCameraLocation.Distance(mOrbitPivot), 0.1f)};
 
-            mCameraRotation.yaw += Input.mDelta.x * mCameraSensitivity;
-            mCameraRotation.pitch = std::clamp(mCameraRotation.pitch - Input.mDelta.y * mCameraSensitivity, -89.0f, 89.0f);
+            if (Input.mRightDown) {
+                mCameraRotation.yaw += Input.mDelta.x * mCameraSensitivity;
+                mCameraRotation.pitch = std::clamp(mCameraRotation.pitch - Input.mDelta.y * mCameraSensitivity, -89.0f, 89.0f);
+            }
 
             const Core::FQuat FlightRotation{mCameraRotation.Quaternion()};
-            const Core::FVector LocalMovement{static_cast<float>(Input.mForward) - static_cast<float>(Input.mBackward), static_cast<float>(Input.mRight) - static_cast<float>(Input.mLeft), 0.0f};
             Core::FVector Movement{FlightRotation * LocalMovement};
-            Movement.z += static_cast<float>(Input.mUp) - static_cast<float>(Input.mDown);
+            Movement.z += VerticalMovement;
 
             mCameraLocation += Movement.Normalized() * std::max(DeltaTime, 0.0f) * mCameraSpeed * (Input.mFast ? 3.0f : 1.0f);
             mOrbitPivot = mCameraLocation + FlightRotation.ForwardVector() * OrbitDistance;
-
-            return true;
         }
 
-        return Input.mAlt || Input.mMiddleDown || (Input.mWheel != 0.0f && Input.mHovered);
+        return Input.mRightDown || Input.mAlt || (Input.mWheel != 0.0f && Input.mHovered);
     }
 
     /**
@@ -366,14 +389,17 @@ namespace Editor {
 
         const Core::FVector Location{Light != nullptr ? Light->GetTransform().mLocation : Fog != nullptr ? Fog->GetTransform().mLocation : Core::FVector{}};
         const Core::FBox Bounds{Component != nullptr ? CalcComponentBounds(Component, CalcSceneView(Size)) : Core::FBox{Location - Core::FVector{0.5f, 0.5f, 0.5f}, Location + Core::FVector{0.5f, 0.5f, 0.5f}}};
+
         mOrbitPivot = Bounds.mMinimum.Lerp(Bounds.mMaximum, 0.5f);
 
         const float Radius{Bounds.mMinimum.Distance(Bounds.mMaximum) * 0.5f};
 
         if (mViewType != Editor::EEditorViewportType::Perspective) {
             const float Aspect{std::max(Size.x, 1.0f) / std::max(Size.y, 1.0f)};
+
             mOrthographicWidth = std::clamp(Radius * 2.4f * std::max(Aspect, 1.0f), 0.1f, 10000.0f);
             mCameraLocation = mOrbitPivot - mCameraRotation.Vector() * 5000.0f;
+
             return;
         }
 
@@ -397,22 +423,12 @@ namespace Editor {
 
         mDrawInterface.Clear();
 
-        if (mShowFlags.mGrid) {
-            const float Spacing{mGridSpacing};
-            const float Extent{50.0f * Spacing};
-
-            for (Core::Int32 Index{-50}; Index <= 50; ++Index) {
-                const float Offset{Index * Spacing};
-                const Core::FVector Color{Index % 10 == 0 ? Core::FVector{0.22f, 0.25f, 0.30f} : Core::FVector{0.13f, 0.15f, 0.19f}};
-                mDrawInterface.DrawLine({Offset, -Extent, 0.0f}, {Offset, Extent, 0.0f}, Color, true);
-                mDrawInterface.DrawLine({-Extent, Offset, 0.0f}, {Extent, Offset, 0.0f}, Color, true);
-            }
-        }
-
         if (mShowFlags.mAxes) {
-            mDrawInterface.DrawLine({}, {2.0f, 0.0f, 0.0f}, {1.0f, 0.25f, 0.2f}, true, mLineThickness);
-            mDrawInterface.DrawLine({}, {0.0f, 2.0f, 0.0f}, {0.3f, 0.9f, 0.4f}, true, mLineThickness);
-            mDrawInterface.DrawLine({}, {0.0f, 0.0f, 2.0f}, {0.3f, 0.55f, 1.0f}, true, mLineThickness);
+            constexpr float AxisLength{1000.0f};
+
+            mDrawInterface.DrawLine({-AxisLength, 0.0f, 0.0f}, {AxisLength, 0.0f, 0.0f}, {1.0f, 0.25f, 0.2f}, true, mLineThickness);
+            mDrawInterface.DrawLine({0.0f, -AxisLength, 0.0f}, {0.0f, AxisLength, 0.0f}, {0.3f, 0.9f, 0.4f}, true, mLineThickness);
+            mDrawInterface.DrawLine({0.0f, 0.0f, -AxisLength}, {0.0f, 0.0f, AxisLength}, {0.3f, 0.55f, 1.0f}, true, mLineThickness);
         }
 
         if (World->GetPersistentLevel() != nullptr) {
@@ -420,6 +436,10 @@ namespace Editor {
             const auto* SelectedComponent{CoreUObject::Cast<Engine::UActorComponent>(mContext->GetSelectedObject())};
 
             for (const auto& Actor : World->GetPersistentLevel()->GetActors()) {
+                if (!Actor->IsVisible()) {
+                    continue;
+                }
+
                 const bool Highlight{std::find(SelectedActors.begin(), SelectedActors.end(), Actor->GetHandle()) != SelectedActors.end()};
 
                 if (Highlight && Actor->GetRootComponent() != nullptr) {
@@ -463,6 +483,7 @@ namespace Editor {
 
                     if (Primitive != nullptr && Primitive->ShouldCreateRenderState() && (mShowFlags.mBounds || Highlight)) {
                         const bool DepthTest{!Highlight || CoreUObject::Cast<Engine::UBillboardComponent>(Primitive) != nullptr || CoreUObject::Cast<Engine::UBillboardTextComponent>(Primitive) != nullptr};
+
                         mDrawInterface.DrawBox(CalcComponentBounds(Primitive, View), Highlight ? Core::FVector{1.0f, 0.65f, 0.15f} : Core::FVector{0.25f, 0.8f, 0.95f}, DepthTest, mLineThickness);
                     }
 
@@ -472,7 +493,26 @@ namespace Editor {
 
                     if (const auto* Fog{CoreUObject::Cast<Engine::UHeightFogComponent>(Component.get())}; Fog != nullptr && Highlight) {
                         const Core::FVector Location{Fog->GetTransform().mLocation};
+
                         mDrawInterface.DrawBox(Core::FBox{Location - Core::FVector{0.5f, 0.5f, 0.5f}, Location + Core::FVector{0.5f, 0.5f, 0.5f}}, {1.0f, 0.65f, 0.15f}, true, mLineThickness);
+                    }
+
+                    if (const auto* Decal{CoreUObject::Cast<Engine::UDecalComponent>(Component.get())}; Decal != nullptr && Highlight) {
+                        const Core::FMatrix DecalToWorld{Decal->GetDecalToWorld()};
+                        const Core::FVector Color{1.0f, 0.65f, 0.15f};
+                        std::array<Core::FVector, 8> Corners{};
+
+                        for (std::size_t Corner{}; Corner < Corners.size(); ++Corner) {
+                            Corners[Corner] = DecalToWorld.TransformPosition({(Corner & 1u) != 0 ? 1.0f : -1.0f, (Corner & 2u) != 0 ? 1.0f : -1.0f, (Corner & 4u) != 0 ? 1.0f : -1.0f});
+                        }
+
+                        for (std::size_t Corner{}; Corner < Corners.size(); ++Corner) {
+                            for (std::size_t Axis{1}; Axis < Corners.size(); Axis <<= 1) {
+                                if ((Corner & Axis) == 0) {
+                                    mDrawInterface.DrawLine(Corners[Corner], Corners[Corner | Axis], Color, true, mLineThickness);
+                                }
+                            }
+                        }
                     }
 
                     const auto* Shape{CoreUObject::Cast<Engine::UShapeComponent>(Component.get())};
@@ -486,7 +526,8 @@ namespace Editor {
 
         mGizmo.Draw(View, mDrawInterface);
 
-        const Engine::FSceneViewFamily Family{World->GetScene(), Viewport->GetRenderTarget(), View, &mDrawInterface, mViewMode, mShowFlags};
+        const Engine::FSceneViewFamily Family{World->GetScene(), Viewport->GetRenderTarget(), View, &mDrawInterface, mViewMode, mShowFlags, mShowFlags.mGrid ? mGridSpacing : 0.0f};
+
         mContext->GetRenderer()->BeginRenderingViewFamily(Family);
     }
 
@@ -494,6 +535,15 @@ namespace Editor {
      * @brief 현재 카메라와 뷰포트 크기로 뷰·투영 행렬을 계산합니다.
      */
     Engine::FSceneView Editor::FEditorViewportClient::CalcSceneView(const Core::FVector2& Size) const {
+        // 시퀀서 프리뷰 중에는 원근 뷰가 카메라 컷의 시점을 그대로 보여 줍니다.
+        if (const Engine::UCameraComponent* PreviewCamera{mViewType == Editor::EEditorViewportType::Perspective && mContext != nullptr ? mContext->GetPreviewCamera() : nullptr}; PreviewCamera != nullptr) {
+            Engine::FSceneView PreviewView{};
+
+            if (PreviewCamera->GetCameraView(Size, PreviewView)) {
+                return PreviewView;
+            }
+        }
+
         const Core::FQuat Rotation{mCameraRotation.Quaternion()};
 
         Engine::FSceneView View{};
@@ -507,6 +557,7 @@ namespace Editor {
         View.mView = Core::FMatrix::LookTo(mCameraLocation, View.mForward, Rotation.UpVector());
 
         const float Aspect{std::max(Size.x, 1.0f) / std::max(Size.y, 1.0f)};
+
         View.mProjection = View.mOrthographic ? Core::FMatrix::Orthographic(mOrthographicWidth, mOrthographicWidth / Aspect, 0.05f, 10000.0f) : Core::FMatrix::Perspective(mFieldOfView, Aspect, mNearClip, mFarClip);
         View.mViewProjection = View.mView * View.mProjection;
 
@@ -534,6 +585,7 @@ namespace Editor {
             const Editor::EEditorViewportType Type{mViewType};
 
             mViewType = Editor::EEditorViewportType::Perspective;
+
             SetViewType(Type);
         }
     }
@@ -543,11 +595,15 @@ namespace Editor {
      */
     void Editor::FEditorViewportClient::SetCamera(const Core::FVector& Location, const Core::FRotator& Rotation) {
         SetViewType(Editor::EEditorViewportType::Perspective);
+
         mCameraLocation = Location;
         mCameraRotation = Rotation;
         mOrbitPivot = Location + Rotation.Vector() * 10.0f;
     }
 
+    /**
+     * @brief 원근 또는 정사영 뷰 방향을 설정합니다.
+     */
     void Editor::FEditorViewportClient::SetViewType(Editor::EEditorViewportType Type) {
         if (Type < Editor::EEditorViewportType::Perspective || Type > Editor::EEditorViewportType::Right || mViewType == Type || mGizmo.IsDragging()) {
             return;
@@ -565,27 +621,34 @@ namespace Editor {
             mCameraLocation = mPerspectiveLocation;
             mCameraRotation = mPerspectiveRotation;
             mOrbitPivot = mPerspectivePivot;
+
             return;
         }
 
         switch (Type) {
         case Editor::EEditorViewportType::Top:
             mCameraRotation = {-90.0f, 0.0f, 0.0f};
+
             break;
         case Editor::EEditorViewportType::Bottom:
             mCameraRotation = {90.0f, 0.0f, 0.0f};
+
             break;
         case Editor::EEditorViewportType::Front:
             mCameraRotation = {0.0f, 180.0f, 0.0f};
+
             break;
         case Editor::EEditorViewportType::Back:
             mCameraRotation = {};
+
             break;
         case Editor::EEditorViewportType::Left:
             mCameraRotation = {0.0f, -90.0f, 0.0f};
+
             break;
         case Editor::EEditorViewportType::Right:
             mCameraRotation = {0.0f, 90.0f, 0.0f};
+
             break;
         default:
             break;
@@ -594,10 +657,16 @@ namespace Editor {
         mCameraLocation = mOrbitPivot - mCameraRotation.Vector() * 5000.0f;
     }
 
+    /**
+     * @brief 원근 또는 정사영 뷰 방향을 반환합니다.
+     */
     Editor::EEditorViewportType Editor::FEditorViewportClient::GetViewType() const {
         return mViewType;
     }
 
+    /**
+     * @brief 현재 뷰 방향의 표시 이름을 반환합니다.
+     */
     const char* Editor::FEditorViewportClient::GetViewTypeName() const {
         switch (mViewType) {
         case Editor::EEditorViewportType::Top:
@@ -617,6 +686,9 @@ namespace Editor {
         }
     }
 
+    /**
+     * @brief 활성 뷰포트의 기본 배치 위치를 반환합니다.
+     */
     Core::FVector Editor::FEditorViewportClient::GetPlacementLocation() const {
         return mViewType == Editor::EEditorViewportType::Perspective ? mCameraLocation + mCameraRotation.Vector() * 6.0f : mOrbitPivot;
     }
@@ -628,16 +700,26 @@ namespace Editor {
         return mCameraLocation;
     }
 
+    /**
+     * @brief 편집 카메라의 현재 오일러 회전을 반환합니다.
+     */
     const Core::FRotator& Editor::FEditorViewportClient::GetCameraRotation() const {
         return mCameraRotation;
     }
 
+    /**
+     * @brief 정사영 전환 중에도 보관한 원근 카메라를 반환합니다.
+     */
     Engine::FEditorCameraState Editor::FEditorViewportClient::GetPerspectiveCamera() const {
         Engine::FEditorCameraState State{};
         State.Set(mViewType == Editor::EEditorViewportType::Perspective ? mCameraLocation : mPerspectiveLocation, mViewType == Editor::EEditorViewportType::Perspective ? mCameraRotation : mPerspectiveRotation, mFieldOfView, mNearClip, mFarClip);
+
         return State;
     }
 
+    /**
+     * @brief 원근 카메라를 복원합니다.
+     */
     bool Editor::FEditorViewportClient::SetPerspectiveCamera(const Engine::FEditorCameraState& State) {
         if (!State.IsValid()) {
             return false;
@@ -666,14 +748,23 @@ namespace Editor {
         return mGizmo;
     }
 
+    /**
+     * @brief 이 뷰포트의 기즈모 스냅과 크기 설정을 읽기 전용으로 조회합니다.
+     */
     const Editor::FGizmoSettings* Editor::FEditorViewportClient::GetGizmoSettings() const {
         return mGizmo.GetSettings();
     }
 
+    /**
+     * @brief 기즈모 도구와 설정을 변경할 수 있는지 검사합니다.
+     */
     bool Editor::FEditorViewportClient::CanEditGizmoSettings() const {
         return !mGizmo.IsDragging() && mContext->CanEditWorld();
     }
 
+    /**
+     * @brief 편집 가능 여부와 값의 범위를 검증하여 기즈모 수치 설정을 변경합니다.
+     */
     bool Editor::FEditorViewportClient::SetGizmoSetting(Editor::EGizmoSetting Setting, float Value) {
         if (!CanEditGizmoSettings() || !std::isfinite(Value)) {
             return false;
@@ -700,6 +791,7 @@ namespace Editor {
             break;
         case Editor::EGizmoSetting::Size:
             Settings.mSize = std::clamp(Value, 0.5f, 2.0f);
+
             break;
         default:
             return false;
@@ -710,18 +802,24 @@ namespace Editor {
         return true;
     }
 
+    /**
+     * @brief 실행 검사를 통과한 스냅 전환 명령을 기즈모 설정에 반영합니다.
+     */
     bool Editor::FEditorViewportClient::ToggleGizmoSetting(Editor::EViewportCommand Command) {
         Editor::FGizmoSettings Settings{*mGizmo.GetSettings()};
 
         switch (Command) {
         case Editor::EViewportCommand::ToggleTranslationSnap:
             Settings.mTranslationSnap = !Settings.mTranslationSnap;
+
             break;
         case Editor::EViewportCommand::ToggleRotationSnap:
             Settings.mRotationSnap = !Settings.mRotationSnap;
+
             break;
         case Editor::EViewportCommand::ToggleScaleSnap:
             Settings.mScaleSnap = !Settings.mScaleSnap;
+
             break;
         case Editor::EViewportCommand::ToggleTransformSnap:
             return mGizmoMode == Editor::EGizmoMode::Translate ? ToggleGizmoSetting(Editor::EViewportCommand::ToggleTranslationSnap) : mGizmoMode == Editor::EGizmoMode::Rotate ? ToggleGizmoSetting(Editor::EViewportCommand::ToggleRotationSnap) : mGizmoMode == Editor::EGizmoMode::Scale && ToggleGizmoSetting(Editor::EViewportCommand::ToggleScaleSnap);
@@ -800,6 +898,10 @@ namespace Editor {
         const Core::FVector Up{View.mView(0, 1), View.mView(1, 1), View.mView(2, 1)};
 
         for (const auto& Actor : World->GetPersistentLevel()->GetActors()) {
+            if (!Actor->IsVisible()) {
+                continue;
+            }
+
             for (const auto& Component : Actor->GetComponents()) {
                 if (const auto* Light{CoreUObject::Cast<Engine::ULightComponentBase>(Component.get())}; Light != nullptr && mShowFlags.mLightIcons && !Actor->IsPendingDestroy()) {
                     const Engine::FPrimitiveSceneProxy Proxy{Light->CreateLightProxy().CreateIconProxy()};
@@ -811,6 +913,7 @@ namespace Editor {
 
                 if (const auto* Fog{CoreUObject::Cast<Engine::UHeightFogComponent>(Component.get())}; Fog != nullptr && mShowFlags.mFogIcons && !Actor->IsPendingDestroy()) {
                     const Engine::FPrimitiveSceneProxy Proxy{Fog->CreateFogProxy().CreateIconProxy()};
+
                     if (Engine::RaycastMesh(&Engine::GetPrimitiveMesh(Engine::EPrimitiveType::Plane), Engine::MakeSpriteWorld(Proxy.mWorld, *Proxy.mSprite, View), Ray, Closest)) {
                         Result = {Engine::EHitProxyType::Object, Fog->GetHandle()};
                     }
@@ -872,9 +975,13 @@ namespace Editor {
         return Result;
     }
 
+    /**
+     * @brief 텍스트·Billboard의 뷰 정렬을 반영한 월드 AABB를 계산합니다.
+     */
     Core::FBox Editor::FEditorViewportClient::CalcComponentBounds(const Engine::UPrimitiveComponent* Component, const Engine::FSceneView& View) const {
         if (const auto* Sprite{CoreUObject::Cast<Engine::UBillboardComponent>(Component)}) {
             const Engine::FPrimitiveSceneProxy Proxy{Sprite->CreateSceneProxy()};
+
             return Core::FBox{{-0.5f, -0.5f, -0.001f}, {0.5f, 0.5f, 0.001f}}.Transformed(Engine::MakeSpriteWorld(Proxy.mWorld, *Proxy.mSprite, View));
         }
 
@@ -899,6 +1006,9 @@ namespace Editor {
         return {Center - Extent, Center + Extent};
     }
 
+    /**
+     * @brief 드롭한 메시 에셋을 뷰포트 위치에 배치합니다.
+     */
     bool Editor::FEditorViewportClient::DropMesh(const std::filesystem::path& Path, const Core::FVector2& Position, const Core::FVector2& Size) {
         Engine::UWorld* World{mContext->GetWorld()};
         Engine::FProject* Project{mContext->GetProject()};
@@ -929,6 +1039,7 @@ namespace Editor {
 
         if (!Asset::FAssetFile::GetType(Assets->ResolvePath(Path, Error), Type, Error)) {
             mContext->AddLog(Error);
+
             return false;
         }
 
@@ -938,6 +1049,7 @@ namespace Editor {
 
         if (Mesh == nullptr) {
             mContext->AddLog(Error);
+
             return false;
         }
 
@@ -946,39 +1058,61 @@ namespace Editor {
         }
 
         const Core::FTransform Placement{Location, {}, {1.0f, 1.0f, 1.0f}};
+
         return Skeletal != nullptr ? mContext->SpawnSkeletalMesh(Path, Placement) != nullptr : mContext->SpawnMesh(Path, Placement) != nullptr;
     }
 
+    /**
+     * @brief 장면의 Lit 또는 Wireframe 표시 모드를 반환합니다.
+     */
     Engine::EViewMode Editor::FEditorViewportClient::GetViewMode() const {
         return mViewMode;
     }
 
+    /**
+     * @brief 장면의 Lit 또는 Wireframe 표시 모드를 설정합니다.
+     */
     void Editor::FEditorViewportClient::SetViewMode(Engine::EViewMode Mode) {
-        if (Mode == Engine::EViewMode::Lit_Phong || Mode == Engine::EViewMode::Lit_Gouraud || Mode == Engine::EViewMode::Lit_Lambert || Mode == Engine::EViewMode::Unlit || Mode == Engine::EViewMode::WorldNormal || Mode == Engine::EViewMode::SceneDepth || Mode == Engine::EViewMode::Wireframe) {
+        if (Engine::IsBufferVisualization(Mode)) {
             mViewMode = Mode;
-            if (Mode != Engine::EViewMode::WorldNormal && Mode != Engine::EViewMode::SceneDepth) {
-                mColorViewMode = Mode;
-            }
+        } else if (Mode == Engine::EViewMode::Lit_Phong || Mode == Engine::EViewMode::Lit_Gouraud || Mode == Engine::EViewMode::Lit_Lambert || Mode == Engine::EViewMode::Unlit || Mode == Engine::EViewMode::Wireframe) {
+            mViewMode = Mode;
+            mColorViewMode = Mode;
         }
     }
 
+    /**
+     * @brief 버퍼 시각화에서 Color로 돌아갈 때 사용할 마지막 컬러 표시 모드를 반환합니다.
+     */
     Engine::EViewMode Editor::FEditorViewportClient::GetColorViewMode() const {
         return mColorViewMode;
     }
 
+    /**
+     * @brief 뷰포트별 장면·보조 표시 필터를 반환합니다.
+     */
     const Engine::FEngineShowFlags& Editor::FEditorViewportClient::GetShowFlags() const {
         return mShowFlags;
     }
 
+    /**
+     * @brief 진행 중인 기즈모 조작을 취소하고 이 뷰포트의 표시 필터를 교체합니다.
+     */
     void Editor::FEditorViewportClient::SetShowFlags(const Engine::FEngineShowFlags& Flags) {
         mGizmo.Cancel();
         mShowFlags = Flags;
     }
 
+    /**
+     * @brief 축과 AABB 선의 픽셀 두께를 반환합니다.
+     */
     float Editor::FEditorViewportClient::GetLineThickness() const {
         return mLineThickness;
     }
 
+    /**
+     * @brief 축과 AABB 선의 픽셀 두께를 설정합니다.
+     */
     bool Editor::FEditorViewportClient::SetLineThickness(float Thickness) {
         if (!std::isfinite(Thickness) || Thickness < 0.5f || Thickness > 10.0f) {
             return false;
@@ -989,10 +1123,16 @@ namespace Editor {
         return true;
     }
 
+    /**
+     * @brief 그리드 선 사이의 월드 거리를 반환합니다.
+     */
     float Editor::FEditorViewportClient::GetGridSpacing() const {
         return mGridSpacing;
     }
 
+    /**
+     * @brief 그리드 선 사이의 월드 거리를 설정합니다.
+     */
     bool Editor::FEditorViewportClient::SetGridSpacing(float Spacing) {
         if (!std::isfinite(Spacing) || Spacing < 0.01f || Spacing > 1000.0f) {
             return false;
@@ -1003,10 +1143,16 @@ namespace Editor {
         return true;
     }
 
+    /**
+     * @brief 마우스 이동 1픽셀당 카메라 회전 각도를 반환합니다.
+     */
     float Editor::FEditorViewportClient::GetCameraSensitivity() const {
         return mCameraSensitivity;
     }
 
+    /**
+     * @brief 마우스 이동 1픽셀당 카메라 회전 각도를 설정합니다.
+     */
     bool Editor::FEditorViewportClient::SetCameraSensitivity(float Sensitivity) {
         if (!std::isfinite(Sensitivity) || Sensitivity < 0.01f || Sensitivity > 2.0f) {
             return false;
@@ -1017,10 +1163,16 @@ namespace Editor {
         return true;
     }
 
+    /**
+     * @brief 자유 시점 카메라의 기본 이동 속도를 반환합니다.
+     */
     float Editor::FEditorViewportClient::GetCameraSpeed() const {
         return mCameraSpeed;
     }
 
+    /**
+     * @brief 자유 시점 카메라의 기본 이동 속도를 설정합니다.
+     */
     bool Editor::FEditorViewportClient::SetCameraSpeed(float Speed) {
         if (!std::isfinite(Speed) || Speed < 0.1f || Speed > 128.0f) {
             return false;
@@ -1031,19 +1183,29 @@ namespace Editor {
         return true;
     }
 
+    /**
+     * @brief 정사영 뷰의 가로 가시 범위를 반환합니다.
+     */
     float Editor::FEditorViewportClient::GetOrthographicWidth() const {
         return mOrthographicWidth;
     }
 
+    /**
+     * @brief 0.01~100000 범위의 유한한 정사영 가로 폭을 적용합니다.
+     */
     bool Editor::FEditorViewportClient::SetOrthographicWidth(float Width) {
         if (!std::isfinite(Width) || Width < 0.01f || Width > 100000.0f) {
             return false;
         }
 
         mOrthographicWidth = Width;
+
         return true;
     }
 
+    /**
+     * @brief 드롭한 액터 프리셋을 광선 적중점이나 배치 평면에 생성합니다.
+     */
     bool Editor::FEditorViewportClient::DropActor(const Core::FString& Preset, const Core::FVector2& Position, const Core::FVector2& Size) {
         Engine::UWorld* World{mContext->GetWorld()};
 
@@ -1065,6 +1227,10 @@ namespace Editor {
             Location = Hit.mPosition;
         } else {
             Core::Math::IntersectPlane(Ray, mViewType == Editor::EEditorViewportType::Perspective ? Core::FVector{} : mOrbitPivot, mViewType == Editor::EEditorViewportType::Perspective ? Core::FVector{0.0f, 0.0f, 1.0f} : View.mForward, Location);
+        }
+
+        if (Preset == "ADecalActor") {
+            return mContext->SpawnActorPreset(Preset, Core::FTransform{Location, Ray.mDirection.Rotation().Quaternion(), {1.0f, 1.0f, 1.0f}}) != nullptr;
         }
 
         const bool Light{Preset.find("Light") != Core::FString::npos};

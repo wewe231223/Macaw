@@ -50,6 +50,7 @@ void FComponentDetails::DrawAttachmentActions(USceneComponent& Component, IPrope
 
     if (Actor->GetRootComponent() == &Component) {
         Context.DrawDisabledText("Root Component");
+
         return;
     }
 

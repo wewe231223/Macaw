@@ -1,3 +1,9 @@
+/**
+ * @file FMeshPass.cpp
+ * @brief 장면 프리미티브를 선별해 정렬된 메시 드로 목록을 만드는 메시 패스의 기반 클래스입니다.
+ * @ingroup Renderer
+ */
+
 #include "FMeshPass.h"
 
 #include "FScene.h"
@@ -14,28 +20,9 @@
 
 namespace Renderer {
 
-    namespace {
-        // 경계 상자의 8개 꼭짓점이 모두 같은 클립 평면 밖에 있으면 보이지 않는 것으로 판정합니다.
-        bool IsVisible(const Core::FMatrix& ViewProjection, const Core::FBox& Bounds) {
-            std::array<Core::Uint32, 6> Outside{};
-
-            for (Core::Int32 Index{}; Index < 8; ++Index) {
-                const Core::FVector Point{(Index & 1) ? Bounds.mMaximum.x : Bounds.mMinimum.x, (Index & 2) ? Bounds.mMaximum.y : Bounds.mMinimum.y, (Index & 4) ? Bounds.mMaximum.z : Bounds.mMinimum.z};
-                const Core::FVector4 Clip{Core::FVector4{Point, 1.0f} * ViewProjection};
-                Outside[0] += Clip.x < -Clip.w;
-                Outside[1] += Clip.x > Clip.w;
-                Outside[2] += Clip.y < -Clip.w;
-                Outside[3] += Clip.y > Clip.w;
-                Outside[4] += Clip.z < 0.0f;
-                Outside[5] += Clip.z > Clip.w;
-            }
-
-            return std::none_of(Outside.begin(), Outside.end(), [](Core::Uint32 Count) {
-                return Count == 8;
-            });
-        }
-    }
-
+    /**
+     * @brief 파이프라인 조회와 메시 자원 생성에 사용할 렌더러 의존성을 보관합니다.
+     */
     Renderer::FMeshPass::FMeshPass(Renderer::FRenderer& Renderer, ID3D11Device* Device, ID3D11DeviceContext* Context, const std::array<std::unique_ptr<Asset::UStaticMesh>, 3>& Meshes)
 		: mRenderer{&Renderer},
 		  mDevice{Device},
@@ -43,10 +30,40 @@ namespace Renderer {
 		  mMeshes{&Meshes} {
     }
 
+    /**
+     * @brief 객체 수명을 끝냅니다.
+     */
     Renderer::FMeshPass::~FMeshPass() = default;
 
+    /**
+     * @brief 경계 상자의 8개 꼭짓점이 모두 같은 클립 평면 밖에 있지 않은지 검사합니다.
+     */
+    bool Renderer::FMeshPass::IsVisible(const Core::FMatrix& ViewProjection, const Core::FBox& Bounds) {
+        std::array<Core::Uint32, 6> Outside{};
+
+        for (Core::Int32 Index{}; Index < 8; ++Index) {
+            const Core::FVector Point{(Index & 1) ? Bounds.mMaximum.x : Bounds.mMinimum.x, (Index & 2) ? Bounds.mMaximum.y : Bounds.mMinimum.y, (Index & 4) ? Bounds.mMaximum.z : Bounds.mMinimum.z};
+            const Core::FVector4 Clip{Core::FVector4{Point, 1.0f} * ViewProjection};
+
+            Outside[0] += Clip.x < -Clip.w;
+            Outside[1] += Clip.x > Clip.w;
+            Outside[2] += Clip.y < -Clip.w;
+            Outside[3] += Clip.y > Clip.w;
+            Outside[4] += Clip.z < 0.0f;
+            Outside[5] += Clip.z > Clip.w;
+        }
+
+        return std::none_of(Outside.begin(), Outside.end(), [](Core::Uint32 Count) {
+            return Count == 8;
+        });
+    }
+
+    /**
+     * @brief 패스 정책으로 프리미티브를 선별하고 파이프라인·머티리얼·메시 순으로 정렬된 드로 목록을 만듭니다.
+     */
     bool Renderer::FMeshPass::BuildCommands(const Renderer::FScene& Scene, const Engine::FSceneViewFamily& Family, const Core::FMatrix& ViewProjection, Core::TArray<Renderer::FMeshDrawCommand>& Commands, Core::Uint32& Primitives) {
         Commands.clear();
+
         Primitives = 0;
 
         if (!BeginCommands(Family)) {
@@ -62,15 +79,16 @@ namespace Renderer {
 
             Asset::UStaticMesh* Mesh{Primitive.mProxy.mMesh != nullptr ? Primitive.mProxy.mMesh : (*mMeshes)[static_cast<std::size_t>(Primitive.mProxy.mPrimitive)].get()};
 
-            if (Primitive.mProxy.mSkeletalMesh != nullptr && (Primitive.mSkinView == nullptr || !Primitive.mProxy.mSkeletalMesh->CreateResources(mDevice))) {
+            if (Primitive.mProxy.mSkeletalMesh != nullptr && (!Primitive.mSkinBuffer.IsCreated() || !Primitive.mProxy.mSkeletalMesh->CreateResources(mDevice))) {
                 continue;
             }
 
-            if (Mesh == nullptr || (!Mesh->HasResources() && !Mesh->CreateResources(mDevice)) || Primitive.mObjectBuffer == nullptr) {
+            if (Mesh == nullptr || (!Mesh->HasResources() && !Mesh->CreateResources(mDevice)) || !Primitive.mObjectBuffer.IsCreated()) {
                 continue;
             }
 
             AddCommands(Primitive, *Mesh, Family, Commands);
+
             ++Primitives;
         }
 

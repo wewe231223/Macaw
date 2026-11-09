@@ -11,6 +11,7 @@
 
 #include <chrono>
 #include <mutex>
+#include <string_view>
 
 namespace Core {
 
@@ -63,23 +64,11 @@ namespace Core {
     class FStatSnapshot {
     public:
         /**
-         * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
-         */
-        ReflectTypes(FStatSnapshot);
-
-    public:
-        /**
          * @brief FStatSnapshot의 기본 상태를 초기화합니다.
          */
         FStatSnapshot() = default;
 
     public:
-        /**
-         * @brief 이 타입의 정적 구조체 메타데이터를 반환합니다.
-         * @return 등록된 구조체 메타데이터의 비소유 주소입니다.
-         */
-        ReflectStruct(FStatSnapshot);
-
         /**
          * @brief 통계 그룹 이름을 반환합니다.
          * @return 스냅샷이 소유한 그룹 이름의 참조입니다.
@@ -140,65 +129,51 @@ namespace Core {
          */
         friend class FStats;
 
-        /**
-         * @brief 생성된 멤버 등록 함수와 리플렉션 빌더의 접근 권한입니다.
-         */
-        ReflectMembers();
-
     private:
         /**
          * @brief 통계 항목의 그룹 이름입니다.
          */
         Core::FString mGroup{};
-        ReflectProperty(mGroup, "Group", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 그룹 내 통계 항목 이름입니다.
          */
         Core::FString mName{};
-        ReflectProperty(mName, "Name", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 통계 값의 표시 단위입니다.
          */
         Core::EStatUnit mUnit{};
-        ReflectProperty(mUnit, "Unit", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 완료된 프레임의 통계 값입니다.
          */
         double mValue{};
-        ReflectProperty(mValue, "Value", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 최근 최대 120프레임의 평균값입니다.
          */
         double mAverage{};
-        ReflectProperty(mAverage, "Average", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 최근 최대 120프레임의 최솟값입니다.
          */
         double mMinimum{};
-        ReflectProperty(mMinimum, "Minimum", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 최근 최대 120프레임의 최댓값입니다.
          */
         double mMaximum{};
-        ReflectProperty(mMaximum, "Maximum", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 완료 프레임에서 유한한 값으로 반영한 기록 횟수입니다.
          */
         Core::Uint64 mSamples{};
-        ReflectProperty(mSamples, "Samples", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 집계에 포함된 완료 프레임 수입니다.
          */
         std::size_t mFrameCount{};
-        ReflectProperty(mFrameCount, "FrameCount", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
     /**
@@ -206,12 +181,6 @@ namespace Core {
      * @ingroup Core
      */
     class FStat {
-    public:
-        /**
-         * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
-         */
-        ReflectTypes(FStat);
-
     public:
         /**
          * @brief 그룹·이름·단위·모드를 설정하고 전역 통계 관리자에 등록합니다.
@@ -254,12 +223,6 @@ namespace Core {
 
     public:
         /**
-         * @brief 이 타입의 정적 구조체 메타데이터를 반환합니다.
-         * @return 등록된 구조체 메타데이터의 비소유 주소입니다.
-         */
-        ReflectStruct(FStat);
-
-        /**
          * @brief 유한한 값을 현재 통계에 더하고 기록 횟수를 증가시킵니다.
          * @param[in] Value 기록할 유한한 통계 값입니다.
          */
@@ -277,65 +240,51 @@ namespace Core {
          */
         friend class FStats;
 
-        /**
-         * @brief 생성된 멤버 등록 함수와 리플렉션 빌더의 접근 권한입니다.
-         */
-        ReflectMembers();
-
     private:
         /**
          * @brief 통계 항목의 그룹 이름입니다.
          */
         Core::FString mGroup{};
-        ReflectProperty(mGroup, "Group", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 그룹 내 통계 항목 이름입니다.
          */
         Core::FString mName{};
-        ReflectProperty(mName, "Name", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 통계 값의 표시 단위입니다.
          */
         Core::EStatUnit mUnit{};
-        ReflectProperty(mUnit, "Unit", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 프레임 시작 시 값의 초기화 여부를 정하는 기록 모드입니다.
          */
         Core::EStatMode mMode{};
-        ReflectProperty(mMode, "Mode", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 현재 프레임의 누적값 또는 최근에 기록한 유지값입니다.
          */
         double mValue{};
-        ReflectProperty(mValue, "Value", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 해당 프레임에 반영된 기록 횟수입니다.
          */
         Core::Uint64 mSamples{};
-        ReflectProperty(mSamples, "Samples", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 최근 최대 120프레임의 값을 저장하는 순환 이력입니다.
          */
         std::array<double, 120> mHistory{};
-        ReflectProperty(mHistory, "History", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 다음 완료 프레임 값을 기록할 순환 이력 위치입니다.
          */
         std::size_t mHistoryIndex{};
-        ReflectProperty(mHistoryIndex, "HistoryIndex", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 순환 이력에 저장한 유효 프레임 수입니다.
          */
         std::size_t mHistoryCount{};
-        ReflectProperty(mHistoryCount, "HistoryCount", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
     /**
@@ -343,12 +292,6 @@ namespace Core {
      * @ingroup Core
      */
     class FStats {
-    public:
-        /**
-         * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
-         */
-        ReflectTypes(FStats);
-
     private:
         /**
          * @brief FStats의 기본 상태를 초기화합니다.
@@ -368,12 +311,6 @@ namespace Core {
         Core::FStats& operator=(const Core::FStats& Other) = delete;
 
     public:
-        /**
-         * @brief 이 타입의 정적 구조체 메타데이터를 반환합니다.
-         * @return 등록된 구조체 메타데이터의 비소유 주소입니다.
-         */
-        ReflectStruct(FStats);
-
         /**
          * @brief 프로세스 전역의 통계 관리자를 반환합니다.
          * @return 정적 수명을 갖는 통계 관리자의 참조입니다.
@@ -416,16 +353,19 @@ namespace Core {
          */
         Core::TArray<Core::FStatSnapshot> GetSnapshots(const Core::FString& Group = {}) const;
 
+        /**
+         * @brief 지정한 통계 항목의 최근 기록을 오래된 샘플부터 반환합니다.
+         * @param[in] Group 조회하거나 표시할 통계 그룹 이름입니다.
+         * @param[in] Name 조회·등록·출력할 대상 이름입니다.
+         * @return 오래된 순서에서 최근 순서로 나열한 통계 샘플입니다.
+         */
+        Core::TArray<double> GetHistory(std::string_view Group, std::string_view Name) const;
+
     private:
         /**
          * @brief 통계 항목이 전역 관리자의 등록·기록 함수를 호출하도록 허용합니다.
          */
         friend class FStat;
-
-        /**
-         * @brief 생성된 멤버 등록 함수와 리플렉션 빌더의 접근 권한입니다.
-         */
-        ReflectMembers();
 
         /**
          * @brief 그룹과 이름을 검증한 뒤 통계 항목의 비소유 주소를 등록합니다.
@@ -459,37 +399,31 @@ namespace Core {
          * @brief 통계 등록·기록·조회와 프레임 경계 처리를 보호하는 뮤텍스입니다.
          */
         mutable std::mutex mMutex{};
-        ReflectProperty(mMutex, "Mutex", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 현재 수명이 유지되는 등록 통계 항목의 비소유 주소 목록입니다.
          */
         Core::TArray<Core::FStat*> mStats{};
-        ReflectProperty(mStats, "Stats", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 마지막 완료 프레임의 그룹·이름순 통계 스냅샷입니다.
          */
         Core::TArray<Core::FStatSnapshot> mSnapshots{};
-        ReflectProperty(mSnapshots, "Snapshots", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 현재 통계 프레임을 시작한 단조 시계 시각입니다.
          */
         std::chrono::steady_clock::time_point mFrameStart{};
-        ReflectProperty(mFrameStart, "FrameStart", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 마지막 초기화 이후 완료한 통계 프레임 수입니다.
          */
         Core::Uint64 mFrameNumber{};
-        ReflectProperty(mFrameNumber, "FrameNumber", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 통계 프레임을 시작한 뒤 아직 종료하지 않았는지 나타냅니다.
          */
         bool mInFrame{};
-        ReflectProperty(mInFrame, "InFrame", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
     /**
@@ -499,23 +433,11 @@ namespace Core {
     class FStopwatch {
     public:
         /**
-         * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
-         */
-        ReflectTypes(FStopwatch);
-
-    public:
-        /**
          * @brief 현재 단조 시계 시각을 측정 시작점으로 저장합니다.
          */
         FStopwatch();
 
     public:
-        /**
-         * @brief 이 타입의 정적 구조체 메타데이터를 반환합니다.
-         * @return 등록된 구조체 메타데이터의 비소유 주소입니다.
-         */
-        ReflectStruct(FStopwatch);
-
         /**
          * @brief 경과 시간의 기준 시각을 현재 단조 시계 시각으로 재설정합니다.
          */
@@ -529,16 +451,9 @@ namespace Core {
 
     private:
         /**
-         * @brief 생성된 멤버 등록 함수와 리플렉션 빌더의 접근 권한입니다.
-         */
-        ReflectMembers();
-
-    private:
-        /**
          * @brief 경과 시간 측정의 기준이 되는 단조 시계 시각입니다.
          */
         std::chrono::steady_clock::time_point mStart{};
-        ReflectProperty(mStart, "Start", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
     /**
@@ -546,12 +461,6 @@ namespace Core {
      * @ingroup Core
      */
     class FScopedStatTimer {
-    public:
-        /**
-         * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
-         */
-        ReflectTypes(FScopedStatTimer);
-
     public:
         /**
          * @brief 경과 시간을 누적할 항목을 연결하고 범위 시간 측정을 시작합니다.
@@ -588,31 +497,16 @@ namespace Core {
          */
         Core::FScopedStatTimer& operator=(Core::FScopedStatTimer&& Other) = delete;
 
-    public:
-        /**
-         * @brief 이 타입의 정적 구조체 메타데이터를 반환합니다.
-         * @return 등록된 구조체 메타데이터의 비소유 주소입니다.
-         */
-        ReflectStruct(FScopedStatTimer);
-
-    private:
-        /**
-         * @brief 생성된 멤버 등록 함수와 리플렉션 빌더의 접근 권한입니다.
-         */
-        ReflectMembers();
-
     private:
         /**
          * @brief 범위의 경과 시간을 누적할 통계 항목의 비소유 주소입니다.
          */
         Core::FStat* mStat{};
-        ReflectProperty(mStat, "Stat", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 범위 시작부터의 경과 시간을 측정하는 시계입니다.
          */
         Core::FStopwatch mWatch{};
-        ReflectProperty(mWatch, "Watch", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
     /**
@@ -620,12 +514,6 @@ namespace Core {
      * @ingroup Core
      */
     class FScopedStatFrame {
-    public:
-        /**
-         * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
-         */
-        ReflectTypes(FScopedStatFrame);
-
     public:
         /**
          * @brief 통계 프레임 시작을 시도하고 직접 시작한 경우 종료 책임을 갖습니다.
@@ -661,25 +549,11 @@ namespace Core {
          */
         Core::FScopedStatFrame& operator=(Core::FScopedStatFrame&& Other) = delete;
 
-    public:
-        /**
-         * @brief 이 타입의 정적 구조체 메타데이터를 반환합니다.
-         * @return 등록된 구조체 메타데이터의 비소유 주소입니다.
-         */
-        ReflectStruct(FScopedStatFrame);
-
-    private:
-        /**
-         * @brief 생성된 멤버 등록 함수와 리플렉션 빌더의 접근 권한입니다.
-         */
-        ReflectMembers();
-
     private:
         /**
          * @brief 이 범위가 통계 프레임을 직접 시작하여 종료 책임을 갖는지 나타냅니다.
          */
         bool mOwner{};
-        ReflectProperty(mOwner, "Owner", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
 }

@@ -19,11 +19,11 @@
         "win32-binding"
       ]
     },
-    "luajit",
+    "imgui-neo-sequencer",
+    "imterm",
     "nvapi",
     "range-v3",
     "rapidjson",
-    "sol2",
     "stb",
     "tomlplusplus"
   ]

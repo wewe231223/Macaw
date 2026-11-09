@@ -20,6 +20,7 @@ void FStaticMeshSceneProxy::DrawStaticElements(FStaticPrimitiveDrawInterface& Dr
         Batch.mMeshHandle = mMeshData.mMeshHandle;
         Batch.mMaterialOverrides = mMeshData.mMaterialOverrides;
         Batch.mLODLevel = Level;
+
         DrawInterface.GetMeshElements(Batch.mMeshHandle, Level, Batch.mElements);
 
         if (!Batch.mElements.empty()) {

@@ -90,14 +90,23 @@ namespace CoreUObject {
         return true;
     }
 
+    /**
+     * @brief 문자열 비교 없이 사용할 공유 이름 식별자를 반환합니다.
+     */
     const Core::FName& CoreUObject::UObject::GetFName() const {
         return mName;
     }
 
+    /**
+     * @brief 세대 핸들로 Outer를 조회하며 소멸한 객체는 nullptr로 처리합니다.
+     */
     CoreUObject::UObject* CoreUObject::UObject::GetOuter() const {
         return CoreUObject::FObjectRegistry::Get()->Resolve(mOuter);
     }
 
+    /**
+     * @brief 자기 참조와 순환 참조를 거부하고 Outer의 세대 핸들을 설정합니다.
+     */
     bool CoreUObject::UObject::SetOuter(CoreUObject::UObject* Outer) {
         for (const CoreUObject::UObject* Ancestor{Outer}; Ancestor != nullptr; Ancestor = Ancestor->GetOuter()) {
             if (Ancestor == this) {
@@ -110,6 +119,9 @@ namespace CoreUObject {
         return true;
     }
 
+    /**
+     * @brief 살아 있는 Outer의 이름을 점으로 연결한 객체 경로를 만듭니다.
+     */
     Core::FString CoreUObject::UObject::GetPathName() const {
         Core::FString Path{GetName()};
 
@@ -126,6 +138,7 @@ namespace CoreUObject {
     void CoreUObject::UObject::Serialize(Core::FArchive& Archive) {
         if (!Archive.IsLoading() || Archive.HasField("Id")) {
             Core::FGuid Guid{mGuid};
+
             Archive.SerializeObjectGuid("Id", Guid);
 
             if (Archive.IsLoading() && !Archive.HasError() && !RestoreGuid(Guid)) {

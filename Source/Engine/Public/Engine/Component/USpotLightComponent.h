@@ -7,6 +7,7 @@
 #pragma once
 
 #include "Engine/Component/UPointLightComponent.h"
+#include "USpotLightComponent.generated.h"
 
 namespace Engine {
 
@@ -14,12 +15,9 @@ namespace Engine {
      * @brief 내부·외부 원뿔각으로 제한되는 스포트라이트를 관리합니다.
      * @ingroup Engine
      */
+    UCLASS()
     class USpotLightComponent final : public Engine::UPointLightComponent {
-    public:
-        /**
-         * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
-         */
-        ReflectTypes(USpotLightComponent, Engine::UPointLightComponent);
+        GENERATED_BODY()
 
     public:
         /**
@@ -33,12 +31,6 @@ namespace Engine {
         ~USpotLightComponent() override;
 
     public:
-        /**
-         * @brief 이 타입의 정적 클래스 메타데이터를 반환합니다.
-         * @return 등록된 클래스 메타데이터의 비소유 주소입니다.
-         */
-        ReflectClass(USpotLightComponent);
-
         /**
          * @brief 현재 컴포넌트의 조명·그림자 설정으로 렌더 프록시를 생성합니다.
          * @return 렌더 장면에 복사할 광원 상태와 아이콘의 비소유 주소입니다.
@@ -75,22 +67,16 @@ namespace Engine {
 
     private:
         /**
-         * @brief 생성된 멤버 등록 함수와 리플렉션 빌더의 접근 권한입니다.
-         */
-        ReflectMembers();
-
-    private:
-        /**
          * @brief 스포트라이트 내부 원뿔의 반각(도)입니다.
          */
+        UPROPERTY(Edit, Serialize, Getter = GetInnerConeAngle, Setter = SetInnerConeAngle)
         float mInnerConeAngle{20.0f};
-        ReflectAccessor(mInnerConeAngle, GetInnerConeAngle, SetInnerConeAngle, "InnerConeAngle", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
 
         /**
          * @brief 스포트라이트 외부 원뿔의 반각(도)입니다.
          */
+        UPROPERTY(Edit, Serialize, Getter = GetOuterConeAngle, Setter = SetOuterConeAngle)
         float mOuterConeAngle{35.0f};
-        ReflectAccessor(mOuterConeAngle, GetOuterConeAngle, SetOuterConeAngle, "OuterConeAngle", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
     };
 
 }

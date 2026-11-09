@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include "Core/Input.h"
+
 #include "Core/Types.h"
 #include "Core/ReflectionMacros.h"
 
@@ -32,12 +34,6 @@ namespace Editor {
     class FEditorViewportLayout {
     public:
         /**
-         * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
-         */
-        ReflectTypes(FEditorViewportLayout);
-
-    public:
-        /**
          * @brief 전달된 설정과 기본값으로 FEditorViewportLayout 객체를 생성합니다.
          * @param[in] Context 뷰포트가 편집할 에디터 컨텍스트입니다.
          * @param[in] Viewport 기본 원근 뷰포트의 비소유 주소입니다.
@@ -62,12 +58,6 @@ namespace Editor {
 
     public:
         /**
-         * @brief 이 타입의 정적 리플렉션 메타데이터를 반환합니다.
-         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectStruct(FEditorViewportLayout);
-
-        /**
          * @brief Top·Front·Right 정사영 뷰포트를 생성하고 ImGui 설정 핸들러를 등록합니다.
          * @param[in] Renderer 뷰포트 자원을 생성할 렌더 모듈입니다.
          * @return 성공하면 true, 실패하면 false입니다.
@@ -82,8 +72,9 @@ namespace Editor {
         /**
          * @brief 단일 또는 4분할 뷰포트 UI를 표시합니다.
          * @param[in] DeltaTime 이전 갱신 이후의 초 단위 시간입니다.
+         * @param[in] Input 키·마우스 상태를 조회할 공통 입력입니다.
          */
-        void DrawUI(float DeltaTime);
+        void DrawUI(const Core::FInput& Input, float DeltaTime);
 
         /**
          * @brief 표시 중인 뷰포트의 렌더 요청을 제출합니다.
@@ -144,11 +135,6 @@ namespace Editor {
 
     private:
         /**
-         * @brief 생성된 멤버 등록 함수와 리플렉션 빌더의 접근 권한입니다.
-         */
-        ReflectMembers();
-
-        /**
          * @brief 현재 편집 또는 PIE 컨텍스트를 각 뷰포트에 연결합니다.
          */
         void UpdateViewportContexts();
@@ -158,8 +144,9 @@ namespace Editor {
          * @param[in] Index 0 기반 뷰포트 슬롯입니다.
          * @param[in] DeltaTime 이전 갱신 이후의 초 단위 시간입니다.
          * @param[in,out] CapturedViewport 입력을 캡처한 뷰포트의 비소유 주소입니다.
+         * @param[in] Input 키·마우스 상태를 조회할 공통 입력입니다.
          */
-        void DrawViewport(Core::Uint32 Index, float DeltaTime, Editor::FEditorViewport*& CapturedViewport);
+        void DrawViewport(Core::Uint32 Index, const Core::FInput& Input, float DeltaTime, Editor::FEditorViewport*& CapturedViewport);
 
         /**
          * @brief INI 레이아웃 섹션을 엽니다.
@@ -192,61 +179,51 @@ namespace Editor {
          * @brief 편집 월드와 선택 상태를 제공하는 컨텍스트입니다.
          */
         Editor::FEditorContext* mContext{};
-        ReflectProperty(mContext, "Context", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 기본 원근 뷰포트의 비소유 주소입니다.
          */
         Editor::FEditorViewport* mViewport{};
-        ReflectProperty(mViewport, "Viewport", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief PIE 생명주기를 제공하는 세션입니다.
          */
         Editor::FPlayInEditorSession* mPlaySession{};
-        ReflectProperty(mPlaySession, "PlaySession", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 4분할에 쓰는 정사영 뷰포트 소유 배열입니다.
          */
         std::array<std::unique_ptr<Editor::FEditorViewport>, 3> mOrthographicViewports{};
-        ReflectProperty(mOrthographicViewports, "OrthographicViewports", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 현재 프레임에 표시한 뷰포트 슬롯 배열입니다.
          */
         std::array<bool, 4> mVisible{};
-        ReflectProperty(mVisible, "Visible", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 마지막 입력을 받은 활성 뷰포트입니다.
          */
         Core::Uint32 mActiveViewport{};
-        ReflectProperty(mActiveViewport, "ActiveViewport", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 단일 레이아웃에 표시할 뷰포트입니다.
          */
         Core::Uint32 mSingleViewport{};
-        ReflectProperty(mSingleViewport, "SingleViewport", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 4분할 레이아웃 여부입니다.
          */
         bool mQuadView{};
-        ReflectProperty(mQuadView, "QuadView", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 4분할 가로 분할 비율입니다.
          */
         float mHorizontalRatio{0.5f};
-        ReflectProperty(mHorizontalRatio, "HorizontalRatio", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 4분할 세로 분할 비율입니다.
          */
         float mVerticalRatio{0.5f};
-        ReflectProperty(mVerticalRatio, "VerticalRatio", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
 }

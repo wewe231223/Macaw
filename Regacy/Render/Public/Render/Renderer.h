@@ -22,6 +22,7 @@ struct FSceneUpdateBatch;
 class FRenderer {
 public:
     FRenderer() = default;
+
     ~FRenderer();
 
     FRenderer(const FRenderer&) = delete;

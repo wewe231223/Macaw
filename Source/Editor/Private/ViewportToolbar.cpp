@@ -5,6 +5,7 @@
  */
 
 #include "ViewportToolbar.h"
+#include "BufferVisualization.h"
 #include "EditorStyle.h"
 #include "Editor/FEditorViewportClient.h"
 #include "Editor/FViewportCommandInfo.h"
@@ -36,7 +37,8 @@ namespace Editor {
                 const bool Selected{Client->IsCommandChecked(Command)};
                 const bool Enabled{Client->CanExecuteCommand(Command)};
                 const Core::FString Shortcut{Info.GetShortcutLabel()};
-                const Core::FString Tooltip{Core::FString{Info.mLabel} + " (" + Shortcut + ")"};
+                const char* TooltipName{Command == Editor::EViewportCommand::Translate ? "이동" : Command == Editor::EViewportCommand::Rotate ? "회전" : Command == Editor::EViewportCommand::Scale ? "크기 조절" : Info.mLabel};
+                const Core::FString Tooltip{Core::FString{TooltipName} + " (" + Shortcut + ")"};
                 const bool Pressed{Menu ? Command == Editor::EViewportCommand::Select ? ImGui::MenuItem(Info.mLabel, Shortcut.c_str(), Selected, Enabled) : Editor::EditorStyle::IconMenuItem(Info.mLabel, Info.mIcon, Selected, Enabled) : Editor::EditorStyle::IconButton(Info.mLabel, Info.mIcon, Selected, Enabled, false, Tooltip.c_str())};
 
                 Drawn = true;
@@ -122,9 +124,10 @@ namespace Editor {
             const std::array<const char*, 5> Names{"Lit_Gouraud", "Lit_Lambert", "Lit_Phong", "Unlit", "Wireframe"};
             const auto Current{std::find(Modes.begin(), Modes.end(), Client->GetColorViewMode())};
             const std::size_t Index{Current != Modes.end() ? static_cast<std::size_t>(Current - Modes.begin()) : 2};
-            const std::array<Engine::EViewMode, 3> Buffers{Client->GetColorViewMode(), Engine::EViewMode::WorldNormal, Engine::EViewMode::SceneDepth};
-            const std::array<const char*, 3> BufferNames{"Scene Color", "World Normal", "Scene Depth"};
-            const std::size_t BufferIndex{Client->GetViewMode() == Engine::EViewMode::WorldNormal ? 1u : Client->GetViewMode() == Engine::EViewMode::SceneDepth ? 2u : 0u};
+            const auto& Buffers{Editor::BufferVisualization::Modes};
+            const auto& BufferNames{Editor::BufferVisualization::Names};
+            const auto SelectedBuffer{std::find(Buffers.begin(), Buffers.end(), Client->GetViewMode())};
+            const std::size_t BufferIndex{SelectedBuffer == Buffers.end() ? 0u : static_cast<std::size_t>(SelectedBuffer - Buffers.begin())};
             const char* Preview{BufferIndex == 0 ? Names[Index] : BufferNames[BufferIndex]};
 
             ImGui::SetNextItemWidth(175.0f * Scale);
@@ -141,7 +144,7 @@ namespace Editor {
                 if (ImGui::BeginMenu("Buffer Visualization")) {
                     for (std::size_t Buffer{}; Buffer < Buffers.size(); ++Buffer) {
                         if (ImGui::MenuItem(BufferNames[Buffer], nullptr, Buffer == BufferIndex)) {
-                            Client->SetViewMode(Buffers[Buffer]);
+                            Client->SetViewMode(Buffer == 0 ? Client->GetColorViewMode() : Buffers[Buffer]);
                         }
                     }
 
@@ -159,10 +162,12 @@ namespace Editor {
 
                 Engine::FEngineShowFlags Flags{Client->GetShowFlags()};
                 bool Changed{ImGui::Checkbox("Primitives", &Flags.mPrimitives)};
+
                 Changed = ImGui::Checkbox("Sprites / Billboards", &Flags.mSprites) || Changed;
                 Changed = ImGui::Checkbox("Text", &Flags.mText) || Changed;
                 Changed = ImGui::Checkbox("Light Icons", &Flags.mLightIcons) || Changed;
                 Changed = ImGui::Checkbox("Shadows", &Flags.mShadows) || Changed;
+                Changed = ImGui::Checkbox("Sky", &Flags.mSky) || Changed;
                 Changed = ImGui::Checkbox("Fog", &Flags.mFog) || Changed;
                 Changed = ImGui::Checkbox("FXAA", &Flags.mFXAA) || Changed;
                 Changed = ImGui::Checkbox("Fog Icons", &Flags.mFogIcons) || Changed;
@@ -170,6 +175,7 @@ namespace Editor {
                 Changed = ImGui::Checkbox("Bounding Boxes (AABB)", &Flags.mBounds) || Changed;
                 Changed = ImGui::Checkbox("Grid", &Flags.mGrid) || Changed;
                 Changed = ImGui::Checkbox("World Axes", &Flags.mAxes) || Changed;
+
                 ImGui::Separator();
 
                 float Thickness{Client->GetLineThickness()};
@@ -181,6 +187,7 @@ namespace Editor {
                 if (ImGui::MenuItem("Use Defaults")) {
                     Flags = {};
                     Changed = true;
+
                     Client->SetLineThickness(1.5f);
                 }
 
@@ -214,6 +221,7 @@ namespace Editor {
                 float NearClip{Camera.GetNearClip()};
                 float FarClip{Camera.GetFarClip()};
                 bool ProjectionChanged{ImGui::SliderFloat("FOV", &FieldOfView, 1.0f, 179.0f, "%.1f")};
+
                 ProjectionChanged = ImGui::InputFloat("Near Clip", &NearClip) || ProjectionChanged;
                 ProjectionChanged = ImGui::InputFloat("Far Clip", &FarClip) || ProjectionChanged;
 
@@ -231,13 +239,17 @@ namespace Editor {
      * @fn void Editor::ViewportToolbar::Draw(Editor::FEditorViewportClient* Client)
      * @brief 공통 스타일로 툴바와 드롭다운을 구성하고 입력을 클라이언트 명령으로 전달합니다.
      */
+
+    /**
+     * @brief 아이콘 버튼과 메뉴를 표시하고 사용자 요청을 클라이언트의 공통 명령 경로로 전달합니다.
+     */
     void Editor::ViewportToolbar::Draw(Editor::FEditorViewportClient* Client) {
         ImGui::PushID("ViewportToolbar");
         Editor::EditorStyle::PushViewportToolbar();
         ImGui::BeginGroup();
         DrawViewSettings(Client);
 
-        if (Editor::EditorStyle::IconButton("Transform Tools", Editor::EditorStyle::EIcon::Tools, ImGui::IsPopupOpen("TransformTools"), true, true)) {
+        if (Editor::EditorStyle::IconButton("Transform Tools", Editor::EditorStyle::EIcon::Tools, ImGui::IsPopupOpen("TransformTools"), true, true, "변환 도구")) {
             ImGui::OpenPopup("TransformTools");
         }
 
@@ -262,6 +274,7 @@ namespace Editor {
 
             const Editor::FViewportCommandInfo* Cycle{Editor::FViewportCommandInfo::Find(Editor::EViewportCommand::CycleTransformMode)};
             const Core::FString Shortcut{Cycle->GetShortcutLabel()};
+
             ImGui::TextDisabled("%s: %s", Shortcut.c_str(), Cycle->mLabel);
             ImGui::EndPopup();
         }
@@ -271,7 +284,7 @@ namespace Editor {
         ImGui::SameLine(0.0f, 6.0f);
 
         const bool WorldSpace{Client->IsCommandChecked(Editor::EViewportCommand::WorldSpace)};
-        const char* CoordinateTooltip{Client->GetGizmoMode() == Editor::EGizmoMode::Scale ? "Local Space\nScaling uses local axes." : WorldSpace ? "World Space (click to switch)" : "Local Space (click to switch)"};
+        const char* CoordinateTooltip{Client->GetGizmoMode() == Editor::EGizmoMode::Scale ? "로컬 좌표계\n크기 조절은 로컬 축을 사용합니다." : WorldSpace ? "월드 좌표계 (클릭하면 전환)" : "로컬 좌표계 (클릭하면 전환)"};
 
         if (Editor::EditorStyle::IconButton("Coordinate System", WorldSpace ? Editor::EditorStyle::EIcon::World : Editor::EditorStyle::EIcon::Local, false, Client->CanExecuteCommand(Editor::EViewportCommand::ToggleCoordinateSystem), false, CoordinateTooltip)) {
             Client->ExecuteCommand(Editor::EViewportCommand::ToggleCoordinateSystem);
@@ -279,7 +292,7 @@ namespace Editor {
 
         ImGui::SameLine(0.0f, 6.0f);
 
-        if (Editor::EditorStyle::IconButton("Grid Settings", Editor::EditorStyle::EIcon::Grid, ImGui::IsPopupOpen("GridSettings"), true, true)) {
+        if (Editor::EditorStyle::IconButton("Grid Settings", Editor::EditorStyle::EIcon::Grid, ImGui::IsPopupOpen("GridSettings"), true, true, "그리드 설정")) {
             ImGui::OpenPopup("GridSettings");
         }
 

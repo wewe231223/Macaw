@@ -15,6 +15,7 @@ void UFlipBookComponent::SetSubImage(Int32 Columns, Int32 Rows, Int32 TotalFrame
     mRows = (std::max)(1, Rows);
     mTotalFrames = static_cast<Int32>(std::clamp<Int64>(TotalFrames, 1, (std::min)(static_cast<Int64>(mColumns) * mRows, static_cast<Int64>(std::numeric_limits<Int32>::max()))));
     mCurrentFrame = std::clamp(mCurrentFrame, 0, mTotalFrames - 1);
+
     SetFrameRate(FrameRate);
     SetLooping(Looping);
 }
@@ -28,11 +29,13 @@ void UFlipBookComponent::SetFrameRate(float FrameRate) {
 
     mCurrentFrame = static_cast<Int32>((std::min)(std::floor(FramePosition), static_cast<double>(mTotalFrames - 1)));
     mFrameRate = FrameRate;
+
     SetElapsedTime(mFrameRate > 0.0f ? FramePosition / mFrameRate : 0.0);
 }
 
 void UFlipBookComponent::SetCurrentFrame(Int32 Frame) {
     mCurrentFrame = std::clamp(Frame, 0, mTotalFrames - 1);
+
     SetElapsedTime(mFrameRate > 0.0f ? static_cast<double>(mCurrentFrame) / mFrameRate : 0.0);
 }
 
@@ -65,6 +68,7 @@ void UFlipBookComponent::Serialize(FArchive& Archive) {
 
     if (Archive.IsLoading()) {
         mCurrentFrame = 0;
+
         SetSubImage(mColumns, mRows, mTotalFrames, std::isfinite(mFrameRate) && mFrameRate >= 0.0f ? mFrameRate : 0.0f, IsLooping());
     }
 }

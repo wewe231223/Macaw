@@ -8,12 +8,15 @@
 
 #include "Core/Types.h"
 #include "Core/ReflectionMacros.h"
+#include "CoreUObject/Reflection/TNativeEnum.h"
+#include "EEditorViewportType.generated.h"
 
 namespace Editor {
 
     /**
      * @brief 원근 및 여섯 정사영 카메라 방향입니다.
      */
+    UENUM()
     enum class EEditorViewportType : Core::Uint8 {
         /**
          * @brief 자유 이동하는 원근 카메라 뷰입니다.
@@ -44,17 +47,5 @@ namespace Editor {
          */
         Right
     };
-
-    /**
-     * @brief 해당 열거형의 정적 리플렉션 메타데이터를 반환합니다.
-     * @return 등록된 타입 메타데이터의 비소유 주소입니다.
-     */
-    ReflectEnum(EEditorViewportType, Perspective, Top, Bottom, Front, Back, Left, Right);
-
-    /**
-     * @fn UEnum* GetNativeEnum(TNativeEnum<EEditorViewportType>)
-     * @brief 타입 태그로 뷰 방향의 열거형 메타데이터를 조회합니다.
-     * @return 등록된 열거형 메타데이터의 비소유 주소입니다.
-     */
 
 }

@@ -30,23 +30,11 @@ namespace Editor {
     class FProjectBrowser {
     public:
         /**
-         * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
-         */
-        ReflectTypes(FProjectBrowser);
-
-    public:
-        /**
          * @brief 전달된 설정과 기본값으로 FProjectBrowser 객체를 생성합니다.
          */
         FProjectBrowser();
 
     public:
-        /**
-         * @brief 이 타입의 정적 리플렉션 메타데이터를 반환합니다.
-         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectStruct(FProjectBrowser);
-
         /**
          * @brief 프로젝트 선택 화면의 이벤트·그리기 루프를 실행합니다.
          * @param[in] Platform 창과 플랫폼 입력을 제공하는 객체입니다.
@@ -101,53 +89,41 @@ namespace Editor {
          */
         bool IsProjectNameValid() const;
 
-        /**
-         * @brief 생성된 멤버 등록 함수와 리플렉션 빌더의 접근 권한입니다.
-         */
-        ReflectMembers();
-
     private:
         /**
          * @brief 에디터 ImGui 스타일의 화면 배율 관리자입니다.
          */
         Editor::FImGuiUIScale mUIScale{};
-        ReflectProperty(mUIScale, "UIScale", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 프로젝트 이름 입력 버퍼입니다.
          */
         std::array<char, 256> mProjectName{};
-        ReflectProperty(mProjectName, "ProjectName", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 프로젝트 생성 폴더의 UTF-8 입력 버퍼입니다.
          */
         std::array<char, 4096> mLocation{};
-        ReflectProperty(mLocation, "Location", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 최근 사용한 프로젝트 경로 목록입니다.
          */
         std::vector<std::filesystem::path> mRecentProjects{};
-        ReflectProperty(mRecentProjects, "RecentProjects", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 열기 또는 생성할 프로젝트 파일 경로입니다.
          */
         std::filesystem::path mSelectedFile{};
-        ReflectProperty(mSelectedFile, "SelectedFile", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 프로젝트 생성 화면 표시 여부입니다.
          */
         bool mCreatePage{};
-        ReflectProperty(mCreatePage, "CreatePage", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 프로젝트 선택 완료 여부입니다.
          */
         bool mSubmitted{};
-        ReflectProperty(mSubmitted, "Submitted", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
 }

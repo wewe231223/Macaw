@@ -5,6 +5,7 @@
 
 double FDynamicBVH8::FBounds::Area() const {
     const double X = static_cast<double>(Max[0]) - Min[0], Y = static_cast<double>(Max[1]) - Min[1], Z = static_cast<double>(Max[2]) - Min[2];
+
     return 2.0 * (X * Y + Y * Z + Z * X);
 }
 
@@ -26,6 +27,7 @@ FDynamicBVH8::FBounds FDynamicBVH8::FBounds::FromBox(const DirectX::BoundingBox&
     for (Uint32 i = 0; i < 3; ++i) {
         Result.Min[i] = C[i] - E[i];
         Result.Max[i] = C[i] + E[i];
+
         ErrorHandler::Report(!std::isfinite(Result.Min[i]) || !std::isfinite(Result.Max[i]) || E[i] < 0, "FDynamicBVH8", "Invalid dynamic BVH bounds", ErrorHandler::EErrorLevel::Critical);
     }
 
@@ -91,6 +93,7 @@ void FDynamicBVH8::InitializeParents() {
             const auto Bounds = ReadBounds(Index, Lane);
 
             WriteChild(Index, Lane, Child, Bounds);
+
             mBounds[Index] = FBounds::Merge(mBounds[Index], Bounds);
 
             if (!(Child & BVH8::LeafBit))
@@ -256,6 +259,7 @@ FDynamicBVH8::FInsertion FDynamicBVH8::FindInsertion(const FBounds& LeafBounds) 
     };
 
     Push(mRootReference, {}, mBounds[mRootReference & BVH8::IndexMask], 0.0, 0);
+
     Best.Candidate = mCandidates.front();
 
     Uint32 BestHeight = UINT32_MAX, BestSubtreeHeight = UINT32_MAX;
@@ -288,6 +292,7 @@ FDynamicBVH8::FInsertion FDynamicBVH8::FindInsertion(const FBounds& LeafBounds) 
 
         if (mCounts[Index] < 8 && DescendCost <= Best.Cost) {
             Best = {Candidate, DescendCost, true};
+
             continue;
         }
 
@@ -313,6 +318,7 @@ void FDynamicBVH8::Insert(Uint32 Leaf, const DirectX::BoundingBox& Box) {
         const Uint32 Root = AllocateNode();
 
         mCounts[Root] = 1;
+
         WriteChild(Root, 0, LeafRef, LeafBounds);
         Refresh(Root);
 
@@ -331,6 +337,7 @@ void FDynamicBVH8::Insert(Uint32 Leaf, const DirectX::BoundingBox& Box) {
         const Uint32 Index = AllocateNode();
 
         mCounts[Index] = 2;
+
         WriteChild(Index, 0, Best.Ref, Best.Bounds);
         WriteChild(Index, 1, LeafRef, LeafBounds);
 
@@ -361,6 +368,7 @@ void FDynamicBVH8::Remove(Uint32 Leaf) {
 
     if (Last == 0) {
         Clear();
+
         return;
     }
 
@@ -373,6 +381,7 @@ void FDynamicBVH8::Remove(Uint32 Leaf) {
             WriteChild(Grandparent.Node, Grandparent.Lane, Child, Bounds);
             FreeNode(Index);
             RefitAncestors(Grandparent.Node);
+
             return;
         }
 
@@ -381,6 +390,7 @@ void FDynamicBVH8::Remove(Uint32 Leaf) {
 
             mParents[ChildIndex] = {};
             mRootReference = Child;
+
             FreeNode(Index);
 
             return;

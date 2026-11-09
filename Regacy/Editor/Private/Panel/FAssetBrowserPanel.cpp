@@ -46,6 +46,7 @@ bool FAssetBrowserPanel::HandleExternalFileDrop(const std::filesystem::path& Fil
 
     if (Extension != ".obj") {
         Console::AddLog(Console::STDOutHandle, ELogLevel::Warning, ELogCategory::Etc, "Only OBJ files can be dropped into the Asset Browser: %s", FilePath.generic_string().c_str());
+
         return true;
     }
 
@@ -57,6 +58,7 @@ bool FAssetBrowserPanel::HandleExternalFileDrop(const std::filesystem::path& Fil
         }
 
         mSelectedAsset = ImportedHandle;
+
         Console::AddLog(Console::STDOutHandle, ELogLevel::Log, ELogCategory::Etc, "Imported dropped OBJ into %s: %s", mSelectedFolder.c_str(), FilePath.generic_string().c_str());
     } else {
         Console::AddLog(Console::STDOutHandle, ELogLevel::Error, ELogCategory::Etc, "Failed to import dropped OBJ into %s: %s", mSelectedFolder.c_str(), FilePath.generic_string().c_str());

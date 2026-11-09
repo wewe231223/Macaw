@@ -1,3 +1,9 @@
+/**
+ * @file FFBXImageProcessor.cpp
+ * @brief FBX 장면의 파일 텍스처를 내장 바이트나 외부 파일에서 찾아 형태를 판별하고 재질 슬롯 정책을 적용합니다.
+ * @ingroup Asset
+ */
+
 #include "Asset/Import/FFBXImageProcessor.h"
 #include "Core/FilePath.h"
 
@@ -15,6 +21,9 @@ using namespace fbxsdk;
 
 namespace Asset {
 
+    /**
+     * @brief Import 중 FBX SDK가 만나는 내장 미디어 바이트를 이 처리기에 보관하도록 임포터에 콜백을 등록합니다.
+     */
     void Asset::FFBXImageProcessor::RegisterEmbeddedCallback(FbxManager& Manager, FbxImporter& Importer) {
         auto* Callback{FbxEmbeddedFileCallback::Create(&Manager, "")};
 
@@ -31,6 +40,9 @@ namespace Asset {
         Importer.SetEmbeddedFileReadCallback(Callback);
     }
 
+    /**
+     * @brief Import 이후 장면의 모든 파일 텍스처를 판별해 결과 또는 오류를 기록하고 보관한 내장 바이트를 해제합니다.
+     */
     void Asset::FFBXImageProcessor::ResolveTextures(const FbxScene& Scene, const std::filesystem::path& SourceDirectory) {
         // Import가 끝나면 텍스처와 FbxVideo의 연결, FbxVideo 속성, 내장 바이트를 모두 알 수 있으므로 파일 텍스처마다 한 번씩 판별합니다.
         // 판별 실패는 바로 임포트를 실패시키지 않고 mTextureErrors에 기록해 두며, 재질 속성에서 그 텍스처를 실제로 읽을 때 ReadTexture가 보고합니다.
@@ -53,6 +65,9 @@ namespace Asset {
         mEmbeddedData.clear();
     }
 
+    /**
+     * @brief 재질 속성에 연결된 파일 텍스처의 판별 결과를 조회하고 재질 슬롯이 받아들이는 형태인지 확인합니다.
+     */
     bool Asset::FFBXImageProcessor::ReadTexture(FbxProperty Property, std::span<const Asset::EMeshImportTextureShape> Accepted, Asset::FMeshImportTexture& Result, Core::FString& Error) const {
         // 재질에 이 속성이 없으면 텍스처가 없는 슬롯으로 보고 성공합니다.
         if (!Property.IsValid()) {
@@ -62,6 +77,7 @@ namespace Asset {
         // 여러 텍스처를 섞는 레이어드 텍스처는 단일 텍스처 슬롯으로 표현할 수 없습니다.
         if (Property.GetSrcObjectCount<FbxLayeredTexture>() != 0) {
             Error = "Layered FBX material textures are not supported";
+
             return false;
         }
 
@@ -75,6 +91,7 @@ namespace Asset {
         // ResolveTextures가 미뤄 둔 판별 실패를 이 텍스처가 실제로 쓰이는 지금 보고합니다.
         if (const auto Failed{mTextureErrors.find(Texture)}; Failed != mTextureErrors.end()) {
             Error = Failed->second;
+
             return false;
         }
 
@@ -85,6 +102,7 @@ namespace Asset {
         // 장면의 모든 파일 텍스처는 성공이나 실패 중 하나로 기록되므로, 여기에 오면 ResolveTextures 호출이 빠진 것입니다.
         if (Resolved == mTextures.end()) {
             Error = "FBX material texture was not resolved: " + Name;
+
             return false;
         }
 
@@ -93,19 +111,28 @@ namespace Asset {
 
         if (std::find(Accepted.begin(), Accepted.end(), Shape) == Accepted.end()) {
             Error = Core::FString{"This material slot does not support FBX texture shape '"} + ShapeName(Shape) + "': " + Name;
+
             return false;
         }
 
         Result = Resolved->second;
+
         return true;
     }
 
+    /**
+     * @brief 텍스처 경로를 구분자와 대소문자에 무관하게 비교할 수 있는 키로 정규화합니다.
+     */
     Core::FString Asset::FFBXImageProcessor::TextureKey(Core::FString Path) const {
         // FBX에 기록된 경로와 콜백이 넘긴 경로는 구분자와 대소문자가 다를 수 있으므로 슬래시와 소문자로 맞춥니다.
         std::replace(Path.begin(), Path.end(), '\\', '/');
+
         return Core::FilePath::ToGenericUtf8(Core::FilePath::ToLower(Core::FilePath::FromUtf8(Path).lexically_normal()));
     }
 
+    /**
+     * @brief FBX SDK가 넘겨준 내장 미디어 바이트를 판별 없이 mEmbeddedData에 보관합니다.
+     */
     FbxCallback::State Asset::FFBXImageProcessor::StoreEmbeddedData(FbxClassId DataHint, const char* FileName, const void* Buffer, std::size_t Size) {
         // 무효한 인수는 실패를 반환합니다.
         if (FileName == nullptr || Buffer == nullptr || Size == 0) {
@@ -126,6 +153,9 @@ namespace Asset {
         return FbxCallback::eHandled;
     }
 
+    /**
+     * @brief 오류 메시지에 쓸 텍스처 형태 이름을 반환합니다.
+     */
     const char* Asset::FFBXImageProcessor::ShapeName(Asset::EMeshImportTextureShape Shape) const {
         switch (Shape) {
         case Asset::EMeshImportTextureShape::Texture2D:
@@ -145,6 +175,9 @@ namespace Asset {
         }
     }
 
+    /**
+     * @brief PNG 청크 헤더만 따라가며 APNG 애니메이션 제어 청크가 있는지 확인합니다.
+     */
     bool Asset::FFBXImageProcessor::HasPNGAnimation(std::span<const Core::Uint8> Data, const std::filesystem::path& Path) const {
         std::ifstream Stream{};
 
@@ -161,6 +194,7 @@ namespace Asset {
         const auto Read{[&](std::size_t Offset, std::span<Core::Uint8> Out) {
             if (Data.empty()) {
                 Stream.seekg(static_cast<std::streamoff>(Offset));
+
                 return static_cast<bool>(Stream.read(reinterpret_cast<char*>(Out.data()), static_cast<std::streamsize>(Out.size())));
             }
 
@@ -169,6 +203,7 @@ namespace Asset {
             }
 
             std::copy_n(Data.begin() + static_cast<std::ptrdiff_t>(Offset), Out.size(), Out.begin());
+
             return true;
         }};
 
@@ -195,12 +230,16 @@ namespace Asset {
 
             // 길이는 빅엔디언이며 데이터 길이만 담으므로 길이·타입·CRC 12바이트를 더해 다음 청크로 넘어갑니다.
             const std::size_t Length{(static_cast<std::size_t>(Header[0]) << 24) | (static_cast<std::size_t>(Header[1]) << 16) | (static_cast<std::size_t>(Header[2]) << 8) | Header[3]};
+
             Offset += Length + 12;
         }
 
         return false;
     }
 
+    /**
+     * @brief DirectXTex 메타데이터의 차원·큐브맵·배열 정보로 텍스처 형태를 정하고 형태별 D3D11 크기 한계를 확인합니다.
+     */
     bool Asset::FFBXImageProcessor::ClassifyMetadata(const DirectX::TexMetadata& Metadata, const Core::FString& Name, Asset::EMeshImportTextureShape& Shape, Core::FString& Error) const {
         std::size_t Limit{};
         std::size_t LayerLimit{1};
@@ -221,6 +260,7 @@ namespace Asset {
         } else {
             // 1D 텍스처는 재질 텍스처로 쓰지 않습니다.
             Error = "Unsupported FBX texture image dimension: " + Name;
+
             return false;
         }
 
@@ -230,18 +270,23 @@ namespace Asset {
         if (Metadata.width == 0 || Metadata.height == 0 || Metadata.width > Limit || Metadata.height > Limit || Depth > Limit || Metadata.arraySize == 0 || Metadata.arraySize > LayerLimit) {
             Shape = Asset::EMeshImportTextureShape::Unknown;
             Error = "FBX texture image dimensions exceed texture limits: " + Name;
+
             return false;
         }
 
         return true;
     }
 
+    /**
+     * @brief DirectXTex가 직접 읽지 않는 형식을 WIC 디코더로 열어 프레임 수와 첫 프레임 크기로 텍스처 형태를 판별합니다.
+     */
     bool Asset::FFBXImageProcessor::InspectWICImage(std::span<const Core::Uint8> Data, const std::filesystem::path& Path, Asset::EMeshImportTextureShape& Shape, Core::FString& Error) const {
         const Core::FString Name{Core::FilePath::ToUtf8(Path)};
 
         // WIC 메모리 API는 UINT 크기만 받습니다.
         if (Data.size() > std::numeric_limits<UINT>::max()) {
             Error = "FBX texture image exceeds decoder limits: " + Name;
+
             return false;
         }
 
@@ -250,6 +295,7 @@ namespace Asset {
 
         if (FAILED(InitializeResult) && InitializeResult != RPC_E_CHANGED_MODE) {
             Error = "Cannot initialize the FBX image decoder: " + Name;
+
             return false;
         }
 
@@ -294,8 +340,12 @@ namespace Asset {
         return true;
     }
 
+    /**
+     * @brief 이미지 헤더 메타데이터만 읽어 픽셀 디코딩 없이 텍스처 형태를 판별합니다.
+     */
     bool Asset::FFBXImageProcessor::InspectImage(std::span<const Core::Uint8> Data, const std::filesystem::path& Path, Asset::EMeshImportTextureShape& Shape, Core::FString& Error) const {
         const Core::FString Name{Core::FilePath::ToUtf8(Path)};
+
         Shape = Asset::EMeshImportTextureShape::Unknown;
 
         const std::wstring Extension{Core::FilePath::ToLowerExtension(Path)};
@@ -338,6 +388,7 @@ namespace Asset {
 
         if (FAILED(Result)) {
             Error = "Unsupported or invalid FBX texture image: " + Name;
+
             return false;
         }
 
@@ -345,6 +396,9 @@ namespace Asset {
         return ClassifyMetadata(Metadata, Name, Shape, Error);
     }
 
+    /**
+     * @brief FBX 파일 텍스처의 이미지를 내장 바이트에서 찾고 없으면 원본 디렉터리 기준 외부 파일에서 찾습니다.
+     */
     bool Asset::FFBXImageProcessor::LocateTexture(const FbxFileTexture& Texture, const std::filesystem::path& SourceDirectory, Asset::FMeshImportTexture& Result, Core::FString& Error) const {
         const Core::FString FileName{Texture.GetFileName()};
         const Core::FString RelativeName{Texture.GetRelativeFileName()};
@@ -354,6 +408,7 @@ namespace Asset {
             if (const auto Embedded{mEmbeddedData.find(TextureKey(Name))}; !Name.empty() && Embedded != mEmbeddedData.end()) {
                 // mEmbeddedData는 ResolveTextures 끝에 비우므로 바이트를 복사해 결과에 담습니다.
                 Result = Asset::FMeshImportTexture::FromEmbedded(Embedded->first, Embedded->second);
+
                 return true;
             }
         }
@@ -367,19 +422,26 @@ namespace Asset {
 
             if (std::filesystem::is_regular_file(Candidate, Code) && !Code) {
                 Result = Asset::FMeshImportTexture{Candidate.lexically_normal()};
+
                 return true;
             }
         }
 
         Error = "Cannot find FBX material texture: " + (RelativeName.empty() ? FileName : RelativeName);
+
         return false;
     }
 
+    /**
+     * @brief 텍스처 참조의 내장 바이트 또는 외부 파일의 헤더로 판별한 형태를 기록합니다.
+     */
     bool Asset::FFBXImageProcessor::InspectTexture(Asset::FMeshImportTexture& Texture, Core::FString& Error) const {
         auto Shape{Asset::EMeshImportTextureShape::Unknown};
         const bool Embedded{Texture.GetSource() == Asset::EMeshImportTextureSource::Embedded};
+
         // 외부 파일은 바이트를 넘기지 않아 InspectImage가 파일에서 헤더만 읽게 합니다.
         const std::span<const Core::Uint8> Data{Embedded ? std::span<const Core::Uint8>{Texture.GetEmbeddedData()} : std::span<const Core::Uint8>{}};
+
         // 내장 텍스처도 확장자로 디코더를 고르므로 내장 참조 이름을 경로로 넘깁니다.
         const std::filesystem::path Path{Embedded ? Core::FilePath::FromUtf8(Texture.GetEmbeddedReference()) : Texture.GetFilePath()};
 
@@ -388,9 +450,13 @@ namespace Asset {
         }
 
         Texture.SetShape(Shape);
+
         return true;
     }
 
+    /**
+     * @brief FBX 파일 텍스처에 연결된 FbxVideo 중 이미지 시퀀스로 지정된 것이 있는지 확인합니다.
+     */
     bool Asset::FFBXImageProcessor::IsImageSequence(const FbxFileTexture& Texture) const {
         // 시퀀스 여부는 이미지 바이트가 아니라 텍스처에 연결된 FbxVideo의 속성입니다.
         for (int Index{}; Index < Texture.GetSrcObjectCount<FbxVideo>(); ++Index) {
@@ -402,6 +468,9 @@ namespace Asset {
         return false;
     }
 
+    /**
+     * @brief FBX 파일 텍스처 하나의 이미지를 찾아 형태를 판별하고 이미지 시퀀스이면 형태를 ImageSequence로 덮어씁니다.
+     */
     bool Asset::FFBXImageProcessor::ResolveTexture(const FbxFileTexture& Texture, const std::filesystem::path& SourceDirectory, Asset::FMeshImportTexture& Result, Core::FString& Error) const {
         // 이미지를 찾은 뒤 헤더로 형태를 판별합니다. 어느 단계든 실패하면 Error에 원인이 남습니다.
         if (!LocateTexture(Texture, SourceDirectory, Result, Error) || !InspectTexture(Result, Error)) {

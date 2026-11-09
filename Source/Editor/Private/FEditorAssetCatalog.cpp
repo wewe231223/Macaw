@@ -3,6 +3,7 @@
  * @brief 실제 Content 경로를 사용하는 에셋 목록의 구현입니다.
  * @ingroup Editor
  */
+
 #include "Editor/FEditorAssetCatalog.h"
 #include "Core/FilePath.h"
 #include "Asset/FAssetManager.h"
@@ -11,27 +12,45 @@
 
 namespace Editor {
 
+    /**
+     * @brief 에셋 항목을 만듭니다.
+     */
     Editor::FEditorAssetEntry::FEditorAssetEntry(std::filesystem::path Path, std::optional<Asset::EAssetType> Type)
 		: mPath{std::move(Path)},
 		  mType{Type} {
     }
 
+    /**
+     * @brief 실제 참조 경로를 반환합니다.
+     */
     const std::filesystem::path& Editor::FEditorAssetEntry::GetPath() const {
         return mPath;
     }
 
+    /**
+     * @brief 에셋 종류를 반환합니다.
+     */
     std::optional<Asset::EAssetType> Editor::FEditorAssetEntry::GetType() const {
         return mType;
     }
 
+    /**
+     * @brief 프로젝트 관리자를 연결합니다.
+     */
     Editor::FEditorAssetCatalog::FEditorAssetCatalog(Asset::FAssetManager* Assets)
 		: mAssets{Assets} {
     }
 
+    /**
+     * @brief 비교용 경로 키를 만듭니다.
+     */
     Core::FString Editor::FEditorAssetCatalog::MakeKey(const std::filesystem::path& Path) {
         return Core::FilePath::ToGenericUtf8(Core::FilePath::ToLower(Path.lexically_normal()));
     }
 
+    /**
+     * @brief Content의 폴더와 파일을 다시 읽습니다.
+     */
     bool Editor::FEditorAssetCatalog::Refresh(Core::FString& Error) {
         Error.clear();
         mEntries.clear();
@@ -40,6 +59,7 @@ namespace Editor {
 
         if (mAssets == nullptr) {
             Error = "The asset catalog requires an open project";
+
             return false;
         }
 
@@ -103,21 +123,34 @@ namespace Editor {
         return !Code;
     }
 
+    /**
+     * @brief 현재 항목들을 반환합니다.
+     */
     const Core::TArray<Editor::FEditorAssetEntry>& Editor::FEditorAssetCatalog::GetEntries() const {
         return mEntries;
     }
 
+    /**
+     * @brief 표시 폴더들을 반환합니다.
+     */
     const Core::TArray<std::filesystem::path>& Editor::FEditorAssetCatalog::GetDirectories() const {
         return mDirectories;
     }
 
+    /**
+     * @brief 실제 경로에 해당하는 항목을 조회합니다.
+     */
     const Editor::FEditorAssetEntry* Editor::FEditorAssetCatalog::Find(const std::filesystem::path& Path) const {
         Core::FString Error{};
         const Core::FString Relative{mAssets != nullptr ? mAssets->GetRelativePath(Path, Error) : Core::FString{}};
         const auto Position{mIndices.find(MakeKey(Core::FilePath::FromUtf8(Relative)))};
+
         return Position == mIndices.end() ? nullptr : &mEntries[Position->second];
     }
 
+    /**
+     * @brief 프로젝트 에셋 관리자를 반환합니다.
+     */
     Asset::FAssetManager* Editor::FEditorAssetCatalog::GetAssets() const {
         return mAssets;
     }

@@ -14,14 +14,23 @@
 
 namespace Asset {
 
+    /**
+     * @brief 기본 Assimp 파일 시스템으로 파일의 존재 여부를 검사합니다.
+     */
     bool Asset::FMeshImportIOSystem::Exists(const char* File) const {
         return mDefaultIOSystem.Exists(File);
     }
 
+    /**
+     * @brief 기본 Assimp 파일 시스템의 경로 구분자를 반환합니다.
+     */
     char Asset::FMeshImportIOSystem::getOsSeparator() const {
         return mDefaultIOSystem.getOsSeparator();
     }
 
+    /**
+     * @brief 파일을 열고 읽기용 MTL이면 Prfl 행을 제거한 메모리 스트림을 생성합니다.
+     */
     Assimp::IOStream* Asset::FMeshImportIOSystem::Open(const char* File, const char* Mode) {
         if (File == nullptr || Mode == nullptr) {
             return nullptr;
@@ -53,6 +62,7 @@ namespace Asset {
         while (std::getline(Input, Line)) {
             std::istringstream Values{Line};
             Core::FString Keyword{};
+
             Values >> Keyword;
 
             if (Keyword != "Prfl") {
@@ -75,10 +85,16 @@ namespace Asset {
         return Stream;
     }
 
+    /**
+     * @brief Assimp 스트림을 삭제하고 스트림이 소유한 메모리를 해제합니다.
+     */
     void Asset::FMeshImportIOSystem::Close(Assimp::IOStream* Stream) {
         delete Stream;
     }
 
+    /**
+     * @brief 기본 Assimp 파일 시스템으로 두 경로가 같은지 비교합니다.
+     */
     bool Asset::FMeshImportIOSystem::ComparePaths(const char* First, const char* Second) const {
         return mDefaultIOSystem.ComparePaths(First, Second);
     }

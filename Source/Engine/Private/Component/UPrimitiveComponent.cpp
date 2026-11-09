@@ -83,8 +83,16 @@ namespace Engine {
     /**
      * @brief 프리미티브 프록시 재생성이 필요함을 표시하고 갱신을 예약합니다.
      */
+    void Engine::UPrimitiveComponent::OnOwnerVisibilityChanged() {
+        MarkRenderStateDirty();
+    }
+
+    /**
+     * @brief 프리미티브 프록시 재생성이 필요함을 표시하고 갱신을 예약합니다.
+     */
     void Engine::UPrimitiveComponent::MarkRenderStateDirty() {
         mRenderStateDirty = true;
+
         QueueUpdate();
     }
 
@@ -93,6 +101,7 @@ namespace Engine {
      */
     void Engine::UPrimitiveComponent::MarkRenderTransformDirty() {
         mRenderTransformDirty = true;
+
         QueueUpdate();
     }
 
@@ -102,6 +111,7 @@ namespace Engine {
     void Engine::UPrimitiveComponent::QueueUpdate() {
         if (!mQueued && GetWorld() != nullptr) {
             mQueued = true;
+
             GetWorld()->EnqueueRenderUpdate(GetHandle());
         }
     }
@@ -116,9 +126,10 @@ namespace Engine {
             return;
         }
 
-        if (!ShouldCreateRenderState()) {
+        if (!IsOwnerVisible() || !ShouldCreateRenderState()) {
             if (mRenderStateCreated) {
                 GetWorld()->GetScene()->RemovePrimitive(GetGuid());
+
                 mRenderStateCreated = false;
             }
 
@@ -132,6 +143,7 @@ namespace Engine {
 
         if (mRenderStateDirty || !mRenderStateCreated) {
             Scene->AddPrimitive(CreateSceneProxy());
+
             mRenderStateCreated = true;
         } else if (mRenderTransformDirty) {
             const Engine::FPrimitiveSceneProxy Proxy{CreateSceneProxy()};
@@ -153,14 +165,21 @@ namespace Engine {
         Proxy.mUVOffset = mUVOffset;
         Proxy.mCastShadow = mCastShadow;
         Proxy.mReceiveShadow = mReceiveShadow;
+        Proxy.mReceivesDecals = mReceivesDecals;
 
         return Proxy;
     }
 
+    /**
+     * @brief 프리미티브가 사용하는 정적 메시의 비소유 주소를 반환합니다.
+     */
     Asset::UStaticMesh* Engine::UPrimitiveComponent::GetStaticMesh() const {
         return nullptr;
     }
 
+    /**
+     * @brief 메시의 CPU 정점 속성·인덱스 데이터 참조를 반환합니다.
+     */
     const Asset::FMeshData& Engine::UPrimitiveComponent::GetMeshData() const {
         return Engine::GetPrimitiveMesh(GetPrimitiveType());
     }
@@ -172,10 +191,16 @@ namespace Engine {
         return GetMeshData().GetBounds().Transformed(GetWorldMatrix());
     }
 
+    /**
+     * @brief 현재 표시·에셋 상태에서 렌더 프록시를 생성할지 판정합니다.
+     */
     bool Engine::UPrimitiveComponent::ShouldCreateRenderState() const {
         return true;
     }
 
+    /**
+     * @brief 다른 살아 있는 제어자의 변환을 덮어쓰지 않고 UV 배율과 오프셋을 적용합니다.
+     */
     bool Engine::UPrimitiveComponent::SetUVTransform(const Core::FVector2& Scale, const Core::FVector2& Offset, CoreUObject::FObjectHandle Source) {
         if (!std::isfinite(Scale.x) || !std::isfinite(Scale.y) || !std::isfinite(Offset.x) || !std::isfinite(Offset.y) || CoreUObject::FObjectRegistry::Get()->Resolve(Source) == nullptr || (mUVSource != Source && CoreUObject::FObjectRegistry::Get()->Resolve(mUVSource) != nullptr)) {
             return false;
@@ -185,46 +210,82 @@ namespace Engine {
             mUVScale = Scale;
             mUVOffset = Offset;
             mUVSource = Source;
+
             MarkRenderStateDirty();
         }
 
         return true;
     }
 
+    /**
+     * @brief 요청한 제어자가 설정한 UV만 기본 변환으로 복원합니다.
+     */
     void Engine::UPrimitiveComponent::ClearUVTransform(CoreUObject::FObjectHandle Source) {
         if (mUVSource == Source) {
             mUVScale = {1.0f, 1.0f};
             mUVOffset = {};
             mUVSource = {};
+
             MarkRenderStateDirty();
         }
     }
 
+    /**
+     * @brief 기본 UV에 곱할 셀 크기를 반환합니다.
+     */
     const Core::FVector2& Engine::UPrimitiveComponent::GetUVScale() const {
         return mUVScale;
     }
 
+    /**
+     * @brief 기본 UV에 더할 셀 원점을 반환합니다.
+     */
     const Core::FVector2& Engine::UPrimitiveComponent::GetUVOffset() const {
         return mUVOffset;
     }
 
+    /**
+     * @brief 프리미티브의 그림자 생성 여부를 반환합니다.
+     */
     bool Engine::UPrimitiveComponent::GetCastShadow() const {
         return mCastShadow;
     }
 
+    /**
+     * @brief 프리미티브의 그림자 생성 여부를 검증하고 변경합니다.
+     */
     bool Engine::UPrimitiveComponent::SetCastShadow(bool CastShadow) {
         mCastShadow = CastShadow;
+
         MarkRenderStateDirty();
+
         return true;
     }
 
+    /**
+     * @brief 프리미티브의 그림자 수신 여부를 반환합니다.
+     */
     bool Engine::UPrimitiveComponent::GetReceiveShadow() const {
         return mReceiveShadow;
     }
 
+    bool Engine::UPrimitiveComponent::GetReceivesDecals() const {
+        return mReceivesDecals;
+    }
+
+    void Engine::UPrimitiveComponent::SetReceivesDecals(bool ReceivesDecals) {
+        mReceivesDecals = ReceivesDecals;
+        MarkRenderStateDirty();
+    }
+
+    /**
+     * @brief 프리미티브의 그림자 수신 여부를 검증하고 변경합니다.
+     */
     bool Engine::UPrimitiveComponent::SetReceiveShadow(bool ReceiveShadow) {
         mReceiveShadow = ReceiveShadow;
+
         MarkRenderStateDirty();
+
         return true;
     }
 

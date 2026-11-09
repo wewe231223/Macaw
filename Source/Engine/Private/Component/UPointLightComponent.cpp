@@ -10,9 +10,19 @@
 
 namespace Engine {
 
+    /**
+     * @brief UPointLightComponent의 기본 상태를 초기화합니다.
+     */
     Engine::UPointLightComponent::UPointLightComponent() = default;
+
+    /**
+     * @brief UPointLightComponent 객체의 수명을 끝내고 소유 자원을 정리합니다.
+     */
     Engine::UPointLightComponent::~UPointLightComponent() = default;
 
+    /**
+     * @brief 현재 컴포넌트의 조명·그림자 설정으로 렌더 프록시를 생성합니다.
+     */
     Engine::FLightSceneProxy Engine::UPointLightComponent::CreateLightProxy() const {
         Engine::FLightSceneProxy Proxy{Engine::ULightComponent::CreateLightProxy()};
         Proxy.mType = Engine::ELightType::Point;
@@ -22,31 +32,45 @@ namespace Engine {
         return Proxy;
     }
 
+    /**
+     * @brief 점광원·스포트라이트의 영향 반경을 반환합니다.
+     */
     float Engine::UPointLightComponent::GetAttenuationRadius() const {
         return mAttenuationRadius;
     }
 
+    /**
+     * @brief 점광원·스포트라이트의 영향 반경을 검증하고 변경합니다.
+     */
     bool Engine::UPointLightComponent::SetAttenuationRadius(float AttenuationRadius) {
         if (!std::isfinite(AttenuationRadius) || AttenuationRadius <= 0.0f) {
             return false;
         }
 
         mAttenuationRadius = AttenuationRadius;
+
         SynchronizeLight();
 
         return true;
     }
 
+    /**
+     * @brief 거리에 따른 광원 감쇠 지수를 반환합니다.
+     */
     float Engine::UPointLightComponent::GetLightFalloffExponent() const {
         return mLightFalloffExponent;
     }
 
+    /**
+     * @brief 거리에 따른 광원 감쇠 지수를 검증하고 변경합니다.
+     */
     bool Engine::UPointLightComponent::SetLightFalloffExponent(float LightFalloffExponent) {
         if (!std::isfinite(LightFalloffExponent) || LightFalloffExponent < 0.0f) {
             return false;
         }
 
         mLightFalloffExponent = LightFalloffExponent;
+
         SynchronizeLight();
 
         return true;

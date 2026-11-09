@@ -10,6 +10,9 @@
 
 namespace Engine {
 
+    /**
+     * @brief 광원 아이콘을 에디터 빌보드 프리미티브로 구성합니다.
+     */
     Engine::FPrimitiveSceneProxy Engine::FLightSceneProxy::CreateIconProxy() const {
         Engine::FPrimitiveSceneProxy Proxy{};
         Proxy.mId = mId;

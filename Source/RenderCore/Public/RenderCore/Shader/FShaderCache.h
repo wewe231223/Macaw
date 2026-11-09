@@ -17,24 +17,12 @@ namespace RenderCore {
     class FShaderCache {
     public:
         /**
-         * @brief 리플렉션에서 사용하는 소유 타입과 선택적 부모 타입의 별칭을 선언합니다.
-         */
-        ReflectTypes(FShaderCache);
-
-    public:
-        /**
          * @brief 전달받은 설정과 의존성으로 FShaderCache의 초기 상태를 구성합니다.
          * @param[in] Directory 이후 셰이더 캐시에 사용할 폴더 경로입니다.
          */
         explicit FShaderCache(std::filesystem::path Directory = "Intermediate/ShaderCache");
 
     public:
-        /**
-         * @brief 이 타입의 구조체 메타데이터를 반환합니다.
-         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectStruct(FShaderCache);
-
         /**
          * @brief 캐시 키에 대응하는 셰이더 캐시 파일 경로를 반환합니다.
          * @param[in] CacheKey 캐시 파일을 구분하는 셰이더 해시 키입니다.
@@ -69,16 +57,9 @@ namespace RenderCore {
 
     private:
         /**
-         * @brief 자동 생성된 프로퍼티 등록 코드와 리플렉션 빌더의 접근을 허용합니다.
-         */
-        ReflectMembers();
-
-    private:
-        /**
          * @brief 컴파일된 셰이더의 캐시 파일을 읽고 쓰는 폴더입니다.
          */
         std::filesystem::path mDirectory{};
-        ReflectProperty(mDirectory, "Directory", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
 }

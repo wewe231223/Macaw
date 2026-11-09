@@ -8,6 +8,7 @@
 
 #include "Core/ReflectionMacros.h"
 #include "Engine/AActor.h"
+#include "AStaticMeshActor.generated.h"
 
 namespace Engine {
 
@@ -17,12 +18,9 @@ namespace Engine {
      * @brief 기본 UStaticMeshComponent를 생성하는 프리미티브 액터입니다.
      * @ingroup Engine
      */
+    UCLASS()
     class AStaticMeshActor final : public Engine::AActor {
-    public:
-        /**
-         * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
-         */
-        ReflectTypes(AStaticMeshActor, Engine::AActor);
+        GENERATED_BODY()
 
     public:
         /**
@@ -37,18 +35,6 @@ namespace Engine {
 
     public:
         /**
-         * @brief 이 타입의 정적 클래스 메타데이터를 반환합니다.
-         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectClass(AStaticMeshActor);
-
-        /**
-         * @fn UClass* AStaticMeshActor::GetClass() const
-         * @brief 객체의 실제 클래스 메타데이터를 반환합니다.
-         * @return 실제 클래스 메타데이터의 비소유 주소입니다.
-         */
-
-        /**
          * @brief 액터의 기본 컴포넌트를 생성하고 루트 컴포넌트를 정합니다.
          * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
          */
@@ -60,11 +46,6 @@ namespace Engine {
          */
         Engine::UStaticMeshComponent* GetStaticMeshComponent() const;
 
-    private:
-        /**
-         * @brief 생성된 프로퍼티 등록 함수와 빌더 접근 권한입니다.
-         */
-        ReflectMembers();
     };
 
 }

@@ -17,6 +17,7 @@ FPIEViewportSession::FPIEViewportSession(FRenderer& Renderer, FViewportHostWindo
     UEditorEngine* Engine{GetEditorEngine()};
 
     ErrorHandler::Report(Engine == nullptr, "FPIEViewportSession", "No editor engine is active", ErrorHandler::EErrorLevel::Critical);
+
     mWindowViewport = std::make_unique<FEditorViewport>(0, Renderer.GetDevice(), Engine->GetEditorContext());
 }
 
@@ -29,6 +30,7 @@ bool FPIEViewportSession::RequestStart() {
 
     if (Engine == nullptr) {
         ResetViewport();
+
         return false;
     }
 
@@ -50,6 +52,7 @@ bool FPIEViewportSession::SetTargetViewport(std::optional<FViewportId> ViewportI
 
     if (Engine == nullptr) {
         ResetViewport();
+
         return false;
     }
 
@@ -71,6 +74,7 @@ void FPIEViewportSession::SelectViewport() {
 
     if (Engine == nullptr) {
         ResetViewport();
+
         return;
     }
 
@@ -79,6 +83,7 @@ void FPIEViewportSession::SelectViewport() {
 
         if (mViewport == nullptr) {
             Engine->RequestStopPIE();
+
             return;
         }
 
@@ -110,11 +115,13 @@ void FPIEViewportSession::Synchronize() {
 
     if (Engine == nullptr) {
         ResetViewport();
+
         return;
     }
 
     if (!Engine->HasPIESession()) {
         ResetViewport();
+
         return;
     }
 
@@ -144,6 +151,7 @@ void FPIEViewportSession::DrawControls() {
 
     if (Engine == nullptr) {
         ResetViewport();
+
         return;
     }
 
@@ -226,6 +234,7 @@ void FPIEViewportSession::BeginFrame() {
 
     if (Engine == nullptr) {
         ResetViewport();
+
         return;
     }
 
@@ -245,6 +254,7 @@ void FPIEViewportSession::DrawWindow() {
 
     if (Engine == nullptr) {
         ResetViewport();
+
         return;
     }
 
@@ -385,6 +395,7 @@ bool FPIEViewportSession::ProcessInput(FKeyboardInput& KeyboardInput, FMouseInpu
 
     if (Engine == nullptr) {
         ResetViewport();
+
         return false;
     }
 
@@ -444,6 +455,7 @@ bool FPIEViewportSession::ProcessInput(FKeyboardInput& KeyboardInput, FMouseInpu
     if (Focused) {
         KeyboardInput.ConsumeViewportNavigation(DeltaTime, true);
         MouseInput.Reset();
+
         return true;
     }
 
@@ -467,6 +479,7 @@ UCameraComponent* FPIEViewportSession::EnsureCamera(UWorld& World) {
 
     if (Actor == nullptr) {
         Engine->RequestStopPIE();
+
         return nullptr;
     }
 
@@ -475,6 +488,7 @@ UCameraComponent* FPIEViewportSession::EnsureCamera(UWorld& World) {
     if (Camera == nullptr) {
         World.DestroyActor(Actor);
         Engine->RequestStopPIE();
+
         return nullptr;
     }
 
@@ -537,6 +551,7 @@ bool FPIEViewportSession::BuildCamera(UWorld& World, FViewMatrices& Camera) {
     const D3D11_VIEWPORT& Viewport{mViewport->GetRenderViewport()};
 
     Component->SetAspectRatio(Viewport.Width / Viewport.Height);
+
     Camera.mView = Component->GetViewMatrix();
     Camera.mProjection = Component->GetProjectionMatrix();
     Camera.mViewProjection = Camera.mView * Camera.mProjection;
@@ -554,6 +569,7 @@ void FPIEViewportSession::Render() {
 
     if (Engine == nullptr) {
         ResetViewport();
+
         return;
     }
 
@@ -583,6 +599,7 @@ void FPIEViewportSession::Render() {
     View.mSettings = mViewport->GetRenderSettings();
     View.mSettings.mBRenderSky = true;
     View.mRenderMode = ERenderMode::Lit;
+
     mRenderer.RenderView(View, *Scene);
 }
 

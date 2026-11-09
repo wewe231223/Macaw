@@ -11,6 +11,7 @@ void VectorSIMD::StoreFloat3(float* Ptr, FVectorRegister V) {
     alignas(16) float Temp[4]{};
 
     _mm_store_ps(Temp, V);
+
     Ptr[0] = Temp[0];
     Ptr[1] = Temp[1];
     Ptr[2] = Temp[2];

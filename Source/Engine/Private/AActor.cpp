@@ -12,6 +12,7 @@
 #include "Core/Math/FTransform.h"
 #include "CoreUObject/FObjectRegistry.h"
 #include "CoreUObject/Reflection/Cast.h"
+#include "CoreUObject/Reflection/FReflectionRegistry.h"
 
 #include <algorithm>
 #include <utility>
@@ -48,6 +49,7 @@ namespace Engine {
         Engine::UWorld::FDispatchScope Scope{mWorld};
 
         mChangingWorld = true;
+
         DispatchEndPlay();
 
         for (const auto& Component : mComponents) {
@@ -127,7 +129,88 @@ namespace Engine {
      * @brief 루트 공간 컴포넌트에 액터의 변환을 적용합니다.
      */
     bool Engine::AActor::SetActorTransform(const Core::FTransform& Transform) {
-        return mRootComponent != nullptr && mRootComponent->SetTransform(Transform);
+        if (mRootComponent == nullptr) {
+            return false;
+        }
+
+        const Core::FTransform Previous{mRootComponent->GetTransform()};
+
+        if (!mRootComponent->SetTransform(Transform)) {
+            return false;
+        }
+
+        // 컴포넌트 변환은 월드 기준이고 계층이 없으므로, 충돌 도형 같은 나머지 컴포넌트를 루트와 함께 옮깁니다.
+        const Core::FQuat Inverse{Previous.mRotation.Inverse()};
+        const Core::FQuat Rotation{Transform.mRotation * Inverse};
+        const auto ScaleRatio{[](float New, float Old) {
+            return Old != 0.0f ? New / Old : 1.0f;
+        }};
+
+        const Core::FVector Ratio{ScaleRatio(Transform.mScale.x, Previous.mScale.x), ScaleRatio(Transform.mScale.y, Previous.mScale.y), ScaleRatio(Transform.mScale.z, Previous.mScale.z)};
+
+        for (const auto& Component : mComponents) {
+            auto* Scene{CoreUObject::Cast<Engine::USceneComponent>(Component.get())};
+
+            if (Scene == nullptr || Scene == mRootComponent) {
+                continue;
+            }
+
+            Core::FTransform Moved{Scene->GetTransform()};
+            const Core::FVector Local{Inverse.RotateVector(Moved.mLocation - Previous.mLocation)};
+
+            Moved.mLocation = Transform.mLocation + Transform.mRotation.RotateVector(Core::FVector{Local.x * Ratio.x, Local.y * Ratio.y, Local.z * Ratio.z});
+            Moved.mRotation = Rotation * Moved.mRotation;
+            Moved.mScale = Core::FVector{Moved.mScale.x * Ratio.x, Moved.mScale.y * Ratio.y, Moved.mScale.z * Ratio.z};
+
+            Scene->SetTransform(Moved);
+        }
+
+        return true;
+    }
+
+    /**
+     * @brief 루트 컴포넌트의 변환을 반환합니다.
+     */
+    Core::FTransform Engine::AActor::GetActorTransform() const {
+        return mRootComponent != nullptr ? mRootComponent->GetTransform() : Core::FTransform{};
+    }
+
+    /**
+     * @brief 월드에서 이 액터를 제거합니다. 실행 전달 중이면 안전한 시점까지 미룹니다.
+     */
+    bool Engine::AActor::Destroy() {
+        return mWorld != nullptr && mWorld->DestroyActor(GetHandle());
+    }
+
+    /**
+     * @brief 지정한 클래스의 첫 소유 컴포넌트를 찾습니다.
+     */
+    Engine::UActorComponent* Engine::AActor::FindComponentByClassName(const Core::FString& ClassName) const {
+        const CoreUObject::UClass* Class{CoreUObject::FReflectionRegistry::FindClass(ClassName)};
+
+        for (const auto& Component : mComponents) {
+            if (Class != nullptr && Component->IsA(Class)) {
+                return Component.get();
+            }
+        }
+
+        return nullptr;
+    }
+
+    /**
+     * @brief 지정한 클래스의 소유 컴포넌트를 모두 찾습니다.
+     */
+    Core::TArray<Engine::UActorComponent*> Engine::AActor::GetComponentsByClassName(const Core::FString& ClassName) const {
+        const CoreUObject::UClass* Class{CoreUObject::FReflectionRegistry::FindClass(ClassName)};
+        Core::TArray<Engine::UActorComponent*> Components{};
+
+        for (const auto& Component : mComponents) {
+            if (Class != nullptr && Component->IsA(Class)) {
+                Components.push_back(Component.get());
+            }
+        }
+
+        return Components;
     }
 
     /**
@@ -155,7 +238,10 @@ namespace Engine {
     void Engine::AActor::EndPlay() {
     }
 
-    void Engine::AActor::Input(const Engine::FViewportInput&, float) {
+    /**
+     * @brief 뷰포트 입력을 받아 프레임 시간에 따라 액터의 동작을 갱신합니다.
+     */
+    void Engine::AActor::Input(const Core::FInput&, float) {
     }
 
     /**
@@ -172,12 +258,40 @@ namespace Engine {
         return mPendingDestroy;
     }
 
+    /**
+     * @brief 정지한 편집 월드에서도 Tick을 허용하는지 반환합니다.
+     */
     bool Engine::AActor::IsEditorTickable() const {
         return mEditorTickable;
     }
 
+    /**
+     * @brief 정지한 편집 월드에서의 Tick 허용 여부를 설정합니다.
+     */
     void Engine::AActor::SetEditorTickable(bool EditorTickable) {
         mEditorTickable = EditorTickable;
+    }
+
+    /**
+     * @brief 액터의 표시 여부를 반환합니다.
+     */
+    bool Engine::AActor::IsVisible() const {
+        return mVisible;
+    }
+
+    /**
+     * @brief 액터의 표시 여부를 변경하고 소유 컴포넌트의 렌더 상태에 반영합니다.
+     */
+    void Engine::AActor::SetVisible(bool Visible) {
+        if (mVisible == Visible) {
+            return;
+        }
+
+        mVisible = Visible;
+
+        for (const auto& Component : mComponents) {
+            Component->OnOwnerVisibilityChanged();
+        }
     }
 
     /**
@@ -218,6 +332,7 @@ namespace Engine {
 
         if (!mPendingDestroy && mWorld->CanBeginActor()) {
             mBeginPlayCalled = true;
+
             BeginPlay();
         }
     }
@@ -262,6 +377,7 @@ namespace Engine {
 
         if (mBeginPlayCalled) {
             mBeginPlayCalled = false;
+
             EndPlay();
         }
 

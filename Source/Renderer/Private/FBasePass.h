@@ -1,6 +1,6 @@
 /**
  * @file FBasePass.h
- * @brief 보이는 메시를 머티리얼 파이프라인과 조명으로 장면 타깃에 그리는 메시 패스입니다.
+ * @brief 보이는 메시의 표면과 깊이를 G-buffer에 기록하는 메시 패스입니다.
  * @ingroup Renderer
  */
 
@@ -17,27 +17,16 @@ namespace Renderer {
     class FMaterialPipeline;
 
     /**
-     * @brief 보이는 메시를 머티리얼 파이프라인과 조명으로 장면 타깃에 그리는 메시 패스입니다.
+     * @brief 보이는 메시의 표면과 깊이를 G-buffer에 기록하는 메시 패스입니다.
+     * @note 장치·렌더러 연결을 구성하는 FMeshPass 생성자를 상속합니다.
      */
     class FBasePass final : public Renderer::FMeshPass {
-    public:
-        /**
-         * @brief 리플렉션 소유 타입과 선택적 기반 타입의 별칭입니다.
-         */
-        ReflectTypes(FBasePass, Renderer::FMeshPass);
-
     public:
         using Renderer::FMeshPass::FMeshPass;
 
     public:
         /**
-         * @brief 이 타입의 정적 구조체 메타데이터를 반환합니다.
-         * @return 등록된 구조체 메타데이터의 비소유 주소입니다.
-         */
-        ReflectStruct(FBasePass);
-
-        /**
-         * @brief 머티리얼과 조명을 바인딩하는 기본 패스 종류를 반환합니다.
+         * @brief 표면과 깊이를 기록하는 기본 패스 종류를 반환합니다.
          * @return EMeshPass::BasePass입니다.
          */
         Renderer::EMeshPass GetType() const override;
@@ -69,17 +58,9 @@ namespace Renderer {
 
     private:
         /**
-         * @brief 생성된 멤버 등록 함수와 리플렉션 빌더의 접근 권한입니다.
-         */
-        ReflectMembers();
-
-    private:
-        /**
          * @brief 머티리얼이 없거나 준비에 실패한 SubMesh가 쓰는 기본 머티리얼입니다.
          */
         Asset::UMaterial* mDefaultMaterial{};
-        ReflectProperty(mDefaultMaterial, "DefaultMaterial", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
-
     };
 
 }

@@ -22,17 +22,12 @@ namespace Asset {
      * @brief 원본 파일에서 메시 데이터와 재질 참조를 가져오는 임포터의 공통 인터페이스입니다.
      */
     class IMeshImporter {
-    public:
-        /**
-         * @brief 리플렉션 소유 타입과 선택적 기반 타입의 별칭입니다.
-         */
-        ReflectTypes(IMeshImporter);
-
     private:
         /**
          * @brief 원본 경로로 구체 메시 임포터를 생성하는 팩토리 함수 포인터입니다.
          */
         using FImporterFactory = std::unique_ptr<Asset::IMeshImporter> (*)(const std::filesystem::path&, const Asset::FAssetImportOption&);
+
         /**
          * @brief 소문자 확장자와 그 확장자를 처리하는 임포터 팩토리의 쌍입니다.
          */
@@ -51,18 +46,27 @@ namespace Asset {
          */
         virtual ~IMeshImporter();
 
+        /**
+         * @brief 단일 사용 임포터 상태의 복사 생성을 금지합니다.
+         */
         IMeshImporter(const Asset::IMeshImporter&) = delete;
+
+        /**
+         * @brief 단일 사용 임포터 상태의 복사 대입을 금지합니다.
+         */
         Asset::IMeshImporter& operator=(const Asset::IMeshImporter&) = delete;
+
+        /**
+         * @brief SDK 자원과 콜백 주소를 유지하도록 이동 생성을 금지합니다.
+         */
         IMeshImporter(Asset::IMeshImporter&&) = delete;
+
+        /**
+         * @brief SDK 자원과 콜백 주소를 유지하도록 이동 대입을 금지합니다.
+         */
         Asset::IMeshImporter& operator=(Asset::IMeshImporter&&) = delete;
 
     public:
-        /**
-         * @brief 이 타입의 정적 리플렉션 메타데이터를 반환합니다.
-         * @return 리플렉션 시스템이 보관하는 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectStruct(IMeshImporter);
-
         /**
          * @brief 원본 파일 확장자에 맞는 메시 임포터를 생성합니다.
          * @param[in] Source 가져올 원본 메시 파일 경로입니다.
@@ -101,21 +105,25 @@ namespace Asset {
          * @return Import 시작 후에는 절대 경로로 정규화된 원본 경로의 읽기 전용 참조입니다.
          */
         const std::filesystem::path& GetSourcePath() const;
+
         /**
          * @brief 원본 파일이 위치한 디렉터리를 조회합니다.
          * @return 상대 텍스처 경로를 해석할 기준 디렉터리의 읽기 전용 참조입니다.
          */
         const std::filesystem::path& GetSourceDirectory() const;
+
         /**
          * @brief 임포터가 따르는 임포트 옵션을 조회합니다.
          * @return 생성 시 전달받은 옵션의 읽기 전용 참조입니다.
          */
         const Asset::FAssetImportOption& GetOption() const;
+
         /**
          * @brief 파생 임포터가 채울 임포트 결과를 조회합니다.
          * @return 메시 데이터와 재질 목록을 기록할 결과 객체의 참조입니다.
          */
         Asset::FMeshImportResult& GetResult();
+
         /**
          * @brief 파생 임포터가 실패 원인을 기록할 문자열을 조회합니다.
          * @return Import 실패 시 호출자에게 전달할 오류 문자열의 참조입니다.
@@ -129,6 +137,7 @@ namespace Asset {
          * @return 등록된 팩토리이며 지원하지 않는 확장자이면 nullptr입니다.
          */
         static FImporterFactory FindFactory(const std::filesystem::path& Source);
+
         /**
          * @brief Assimp 기반 메시 임포터를 생성합니다.
          * @param[in] Source 가져올 원본 메시 파일 경로입니다.
@@ -136,6 +145,7 @@ namespace Asset {
          * @return 새로 생성한 FAssimpMeshImporter입니다.
          */
         static std::unique_ptr<Asset::IMeshImporter> CreateAssimp(const std::filesystem::path& Source, const Asset::FAssetImportOption& Option);
+
         /**
          * @brief FBX SDK 기반 메시 임포터를 생성합니다.
          * @param[in] Source 가져올 원본 FBX 파일 경로입니다.
@@ -150,47 +160,36 @@ namespace Asset {
          */
         virtual bool ImportSource() = 0;
 
-        /**
-         * @brief 생성된 멤버 등록 함수와 리플렉션 빌더의 접근 권한입니다.
-         */
-        ReflectMembers();
-
     private:
         /**
          * @brief 가져올 원본 메시 파일 경로입니다.
          */
         std::filesystem::path mSourcePath{};
-        ReflectProperty(mSourcePath, "SourcePath", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 상대 텍스처 경로를 해석할 원본 파일의 디렉터리입니다.
          */
         std::filesystem::path mSourceDirectory{};
-        ReflectProperty(mSourceDirectory, "SourceDirectory", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 좌표축·메시 구성·노멀 처리 방식을 정하는 임포트 옵션입니다.
          */
         Asset::FAssetImportOption mOption{};
-        ReflectProperty(mOption, "Option", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 파생 임포터가 채우는 메시 데이터와 재질 목록입니다.
          */
         Asset::FMeshImportResult mResult{};
-        ReflectProperty(mResult, "Result", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 파생 임포터가 기록한 실패 원인입니다.
          */
         Core::FString mError{};
-        ReflectProperty(mError, "Error", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 임포터를 한 번만 사용하도록 Import 호출 여부를 기록합니다.
          */
         bool mImportStarted{};
-        ReflectProperty(mImportStarted, "ImportStarted", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
 }

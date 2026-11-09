@@ -8,6 +8,7 @@ public:
 
 public:
     APointLightActor();
+
     ~APointLightActor() override = default;
 
 public:

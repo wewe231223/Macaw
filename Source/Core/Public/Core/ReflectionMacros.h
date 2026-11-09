@@ -6,8 +6,6 @@
 
 #pragma once
 
-#include <type_traits>
-
 #include "Core/Types.h"
 #include "Core/Reflection/EPropertyFlags.h"
 
@@ -27,88 +25,82 @@ namespace CoreUObject {
     void BuildNativeReflection(TMetadata* Information);
 
     /**
-     * @brief 템플릿 특수화의 구조체 메타데이터를 한 번 등록합니다.
-     * @tparam T 적용할 네이티브 타입입니다.
-     * @param[in] Name 조회하거나 기록할 이름입니다.
-     * @return 조회한 값의 비소유 주소이며, 해당 값이 없으면 nullptr입니다.
+     * @brief 필드 포인터와 선택적 접근자로 네이티브 프로퍼티를 등록합니다.
      */
-    template <typename T>
-    CoreUObject::UScriptStruct* DefineTemplateStruct(const char* Name);
-
     template <auto Member, auto Getter = nullptr, auto Setter = nullptr>
     void RegisterProperty(CoreUObject::FReflectionBuilder& Information, Core::FString Name, Core::EPropertyFlags Flags = Core::EPropertyFlags::None);
 
+    /**
+     * @brief 필드 포인터와 선택적 읽기 접근자로 읽기 전용 프로퍼티를 등록합니다.
+     */
     template <auto Member, auto Getter = nullptr>
     void RegisterReadOnlyProperty(CoreUObject::FReflectionBuilder& Information, Core::FString Name, Core::EPropertyFlags Flags = Core::EPropertyFlags::None);
+
+    /**
+     * @brief 배열 필드와 선택적 접근자로 원소 조회·직렬화 함수를 등록합니다.
+     */
+    template <auto Member, auto Getter = nullptr, auto Setter = nullptr>
+    void RegisterArrayProperty(CoreUObject::FReflectionBuilder& Information, Core::FString Name, Core::EPropertyFlags Flags = Core::EPropertyFlags::None);
 
 }
 
 /**
- * @brief 리플렉션의 소유 타입과 선택적인 부모 타입 별칭을 선언합니다.
- * @param Type 리플렉션할 소유 타입입니다.
+ * @brief 다음 class 정의를 UObject 파생 리플렉션 클래스로 표시합니다. 부모가 없으면 최상위 클래스입니다.
+ * @param ... Abstract, NoFactory 같은 EClassFlags 값 이름입니다.
  */
-#define ReflectTypes(Type, ...) using ReflectionOwner = Type __VA_OPT__(; using Super = __VA_ARGS__)
-/**
- * @brief 최상위 UObject 타입의 정적 및 가상 클래스 조회 함수를 선언합니다.
- * @param Type 리플렉션할 소유 타입입니다.
- */
-#define ReflectRootClass(Type, ...) static_assert(std::is_same_v<ReflectionOwner, Type>); static CoreUObject::UClass* StaticClass(); virtual CoreUObject::UClass* GetClass() const
-/**
- * @brief UObject 파생 타입의 정적 및 가상 클래스 조회 함수를 선언합니다.
- * @param Type 리플렉션할 소유 타입입니다.
- */
-#define ReflectClass(Type, ...) static_assert(std::is_same_v<ReflectionOwner, Type>); static CoreUObject::UClass* StaticClass(); CoreUObject::UClass* GetClass() const override
-/**
- * @brief 일반 네이티브 타입의 정적 구조체 메타데이터 조회 함수를 선언합니다.
- * @param Type 리플렉션할 소유 타입입니다.
- */
-#define ReflectStruct(Type) static_assert(std::is_same_v<ReflectionOwner, Type>); static CoreUObject::UScriptStruct* StaticStruct()
-/**
- * @brief 템플릿 타입의 정적 구조체 메타데이터 조회 함수를 선언합니다.
- * @param Type 리플렉션할 소유 타입입니다.
- */
-#define ReflectTemplate(Type) ReflectStruct(Type)
-/**
- * @brief 생성된 멤버 등록 함수와 네이티브 빌더에 필요한 접근 권한을 선언합니다.
- */
-#define ReflectMembers() template <typename T, typename TMetadata> friend void CoreUObject::BuildNativeReflection(TMetadata* Information); static void RegisterReflectionMembers(CoreUObject::FReflectionBuilder& Information)
+#define UCLASS(...)
 
 /**
- * @brief 생성기가 직접 읽고 쓰는 멤버 프로퍼티와 정책을 표시합니다.
- * @param Member 리플렉션 생성기에 전달할 인수입니다.
- * @param Name 조회하거나 기록할 이름입니다.
- * @param Flags 프로퍼티의 편집·직렬화 정책 플래그입니다.
+ * @brief 다음 class 또는 struct 정의를 리플렉션 구조체로 표시합니다.
  */
-#define ReflectProperty(Member, Name, Flags)
+#define USTRUCT(...)
+
 /**
- * @brief 생성기가 getter와 setter를 호출하는 프로퍼티를 표시합니다.
- * @param Member 리플렉션 생성기에 전달할 인수입니다.
- * @param Getter 리플렉션 생성기에 전달할 인수입니다.
- * @param Setter 리플렉션 생성기에 전달할 인수입니다.
- * @param Name 조회하거나 기록할 이름입니다.
- * @param Flags 프로퍼티의 편집·직렬화 정책 플래그입니다.
+ * @brief 다음 열거형을 표시합니다. 네임스페이스 범위에 있어야 합니다.
+ * @param ... 비우면 리플렉션만, Script는 리플렉션과 C# 열거형, ScriptOnly는 C# 열거형만 만듭니다.
  */
-#define ReflectAccessor(Member, Getter, Setter, Name, Flags)
+#define UENUM(...)
+
 /**
- * @brief 직접 읽기와 지정한 setter를 사용하는 프로퍼티를 표시합니다.
- * @param Member 리플렉션 생성기에 전달할 인수입니다.
- * @param Setter 리플렉션 생성기에 전달할 인수입니다.
- * @param Name 조회하거나 기록할 이름입니다.
- * @param Flags 프로퍼티의 편집·직렬화 정책 플래그입니다.
+ * @brief UENUM 값의 지정자입니다. Hidden 값은 리플렉션에서 빠집니다.
  */
-#define ReflectSetter(Member, Setter, Name, Flags)
+#define UMETA(...)
+
 /**
- * @brief 직접 읽기 및 로드 전용 직접 쓰기를 사용하는 읽기 전용 프로퍼티를 표시합니다.
- * @param Member 리플렉션 생성기에 전달할 인수입니다.
- * @param Name 조회하거나 기록할 이름입니다.
- * @param Flags 프로퍼티의 편집·직렬화 정책 플래그입니다.
+ * @brief 다음 멤버 변수를 프로퍼티로 표시합니다.
+ * @param ... Edit, Serialize, ReadOnly, Transient, SerializeLate 플래그와 Getter = 함수, Setter = 함수,
+ * Name = "이름", Array 지정자입니다. 이름을 생략하면 멤버 이름에서 앞의 m을 뗀 이름을 씁니다.
+ * TArray 멤버는 Array를 적지 않아도 배열 프로퍼티가 됩니다.
  */
-#define ReflectReadOnlyProperty(Member, Name, Flags)
+#define UPROPERTY(...)
+
 /**
- * @brief getter로 읽고 로드할 때만 멤버에 쓰는 프로퍼티를 표시합니다.
- * @param Member 리플렉션 생성기에 전달할 인수입니다.
- * @param Getter 리플렉션 생성기에 전달할 인수입니다.
- * @param Name 조회하거나 기록할 이름입니다.
- * @param Flags 프로퍼티의 편집·직렬화 정책 플래그입니다.
+ * @brief 다음 멤버 함수를 C#에 노출합니다.
+ * @param ... Internal을 넘기면 C# 쪽 접근 수준이 internal이 됩니다.
  */
-#define ReflectReadOnlyAccessor(Member, Getter, Name, Flags)
+#define UFUNCTION(...)
+
+/**
+ * @brief 파일 ID·줄 번호·접미어 토큰을 생성 본문 식별자로 붙입니다.
+ * @param[in] A 식별자 결합에 사용할 A 토큰입니다.
+ * @param[in] B 식별자 결합에 사용할 B 토큰입니다.
+ * @param[in] C 식별자 결합에 사용할 C 토큰입니다.
+ * @param[in] D 식별자 결합에 사용할 D 토큰입니다.
+ */
+#define MACAW_GENERATED_BODY_COMBINE_INNER(A, B, C, D) A##B##C##D
+
+/**
+ * @brief 인자를 먼저 확장한 뒤 생성 본문 식별자로 결합합니다.
+ * @param[in] A 식별자 결합에 사용할 A 토큰입니다.
+ * @param[in] B 식별자 결합에 사용할 B 토큰입니다.
+ * @param[in] C 식별자 결합에 사용할 C 토큰입니다.
+ * @param[in] D 식별자 결합에 사용할 D 토큰입니다.
+ */
+#define MACAW_GENERATED_BODY_COMBINE(A, B, C, D) MACAW_GENERATED_BODY_COMBINE_INNER(A, B, C, D)
+
+/**
+ * @brief 헤더 툴이 generated.h에 만든 리플렉션 선언으로 바뀝니다. UCLASS 또는 USTRUCT 본문의 맨 앞에 둡니다.
+ * 펼친 뒤의 접근 수준은 class면 private, struct면 public입니다.
+ * 헤더의 마지막 include 지시문은 자기 이름에 .generated.h를 붙인 헤더여야 합니다.
+ */
+#define GENERATED_BODY(...) MACAW_GENERATED_BODY_COMBINE(CURRENT_FILE_ID, _, __LINE__, _GENERATED_BODY)

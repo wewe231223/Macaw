@@ -8,12 +8,14 @@
 
 #include "Core/Types.h"
 #include "CoreUObject/Reflection/TNativeEnum.h"
+#include "ETextureUsage.generated.h"
 
 namespace Asset {
 
     /**
      * @brief GPU 텍스처를 읽거나 출력에 사용할 용도를 비트 플래그로 나타냅니다.
      */
+    UENUM()
     enum class ETextureUsage : Core::Uint8 {
         /**
          * @brief GPU 사용 용도를 지정하지 않은 상태입니다.
@@ -32,18 +34,6 @@ namespace Asset {
          */
         DepthStencil = 4
     };
-
-    /**
-     * @brief 이 열거형의 리플렉션 메타데이터를 반환합니다.
-     * @return 등록된 열거형 메타데이터의 비소유 주소입니다.
-     */
-    ReflectEnum(ETextureUsage, None, ShaderResource, RenderTarget, DepthStencil);
-
-    /**
-     * @brief 타입 태그로 ETextureUsage의 열거형 메타데이터를 조회합니다.
-     * @fn UEnum* GetNativeEnum(TNativeEnum<ETextureUsage>)
-     * @return 등록된 열거형 메타데이터의 비소유 주소입니다.
-     */
 
     /**
      * @brief 텍스처 사용 용도 플래그를 비트 OR로 결합합니다.

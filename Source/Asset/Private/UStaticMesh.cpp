@@ -17,19 +17,35 @@
 
 namespace Asset {
 
+    /**
+     * @brief UStaticMesh의 초기 상태를 구성합니다.
+     */
     Asset::UStaticMesh::UStaticMesh() = default;
 
+    /**
+     * @brief 전달받은 설정과 의존성으로 UStaticMesh의 초기 상태를 구성합니다.
+     */
     Asset::UStaticMesh::UStaticMesh(const std::filesystem::path& MeshPath) {
         LoadFromFile(MeshPath);
     }
 
+    /**
+     * @brief 객체의 수명을 끝내고 소유한 자원을 정리합니다.
+     */
     Asset::UStaticMesh::~UStaticMesh() = default;
 
+    /**
+     * @brief 외부 메시 파일을 가져와 정점 속성과 인덱스 및 경계를 구성합니다.
+     */
     bool Asset::UStaticMesh::LoadFromFile(const std::filesystem::path& MeshPath) {
         Core::FString Error{};
+
         return LoadFromFile(MeshPath, Error);
     }
 
+    /**
+     * @brief 메시 파일을 읽고 지정된 에셋 관리자로 재질과 텍스처를 해석합니다.
+     */
     bool Asset::UStaticMesh::LoadFromFile(const std::filesystem::path& MeshPath, Core::FString& Error) {
         Asset::FMeshImportResult Imported{};
 
@@ -44,12 +60,16 @@ namespace Asset {
         // 기본 옵션은 메시를 병합하므로 결과 메시는 항상 하나입니다.
         if (!SetMeshData(std::move(Imported.GetMeshes().front().GetMeshData()))) {
             Error = "The source contains invalid vertex attributes or mesh sections";
+
             return false;
         }
 
         return true;
     }
 
+    /**
+     * @brief CPU 메시 데이터의 유효성과 경계를 검사하여 교체하고 GPU 버퍼를 해제합니다.
+     */
     bool Asset::UStaticMesh::SetMeshData(Asset::FMeshData MeshData) {
         // 파일 임포트 외에 에셋 로드와 직접 생성한 메시에도 동일한 데이터 규칙을 적용합니다.
         if (!Asset::IMeshImporter::ValidateMeshData(MeshData)) {
@@ -57,48 +77,64 @@ namespace Asset {
         }
 
         mMeshData = std::move(MeshData);
-        mRevision = Core::FRevision::Next();
+
         ReleaseResources();
 
         return true;
     }
 
+    /**
+     * @brief 메시의 CPU 정점 속성·인덱스 데이터 참조를 반환합니다.
+     */
     const Asset::FMeshData& Asset::UStaticMesh::GetMeshData() const {
         return mMeshData;
     }
 
+    /**
+     * @brief 메시의 로컬 공간 경계 상자를 반환합니다.
+     */
     const Core::FBox& Asset::UStaticMesh::GetBounds() const {
         return mMeshData.GetBounds();
     }
 
+    /**
+     * @brief 메시의 정점 개수를 반환합니다.
+     */
     Core::Uint32 Asset::UStaticMesh::GetVertexCount() const {
         return static_cast<Core::Uint32>(mMeshData.GetPositions().size());
     }
 
+    /**
+     * @brief 메시의 인덱스 개수를 반환합니다.
+     */
     Core::Uint32 Asset::UStaticMesh::GetIndexCount() const {
         return static_cast<Core::Uint32>(mMeshData.GetIndices().size());
     }
 
+    /**
+     * @brief 메시에 포함된 UV 채널 수를 반환합니다.
+     */
     Core::Uint32 Asset::UStaticMesh::GetUVChannelCount() const {
         return static_cast<Core::Uint32>(mMeshData.GetUVChannels().size());
     }
 
+    /**
+     * @brief CPU 메시의 정점·인덱스·속성 배열이 렌더링 조건을 만족하는지 검사합니다.
+     */
     bool Asset::UStaticMesh::IsValid() const {
         return !mMeshData.GetPositions().empty() && !mMeshData.GetIndices().empty();
     }
 
+    /**
+     * @brief 현재 CPU 데이터를 사용하여 Direct3D 리소스를 생성합니다.
+     */
     bool Asset::UStaticMesh::CreateResources(ID3D11Device* Device) {
         if (Device == nullptr || !IsValid()) {
             return false;
         }
 
-        if (HasResources()) {
-            Microsoft::WRL::ComPtr<ID3D11Device> ResourceDevice{};
-            mPositionBuffer->GetDevice(ResourceDevice.GetAddressOf());
-
-            if (ResourceDevice.Get() == Device) {
-                return true;
-            }
+        if (HasResources() && mPositionBuffer.IsCreatedOn(Device)) {
+            return true;
         }
 
         const std::size_t VertexCount{mMeshData.GetPositions().size()};
@@ -107,6 +143,7 @@ namespace Asset {
         Core::TArray<std::array<float, 7>> Tangents{};
         Core::TArray<std::array<float, 2>> UVs{};
         Core::TArray<std::array<float, 4>> Colors{};
+
         Positions.reserve(VertexCount);
         Tangents.reserve(VertexCount);
         UVs.reserve(VertexCount * ChannelCount);
@@ -119,104 +156,83 @@ namespace Asset {
             const Core::FVector Axis{std::abs(Normal.z) < 0.99f ? Core::FVector{0.0f, 0.0f, 1.0f} : Core::FVector{0.0f, 1.0f, 0.0f}};
             const Core::FVector DefaultTangent{Axis.Cross(Normal).Normalized()};
             const Core::FVector4 Tangent{mMeshData.GetTangents().empty() ? Core::FVector4{DefaultTangent, 1.0f} : mMeshData.GetTangents()[Index]};
+
             Tangents.push_back({Normal.x, Normal.y, Normal.z, Tangent.x, Tangent.y, Tangent.z, Tangent.w});
 
             const Core::FVector4 Color{mMeshData.GetColors().empty() ? Core::FVector4{1.0f, 1.0f, 1.0f, 1.0f} : mMeshData.GetColors()[Index]};
+
             Colors.push_back({Color.x, Color.y, Color.z, Color.w});
 
             for (std::size_t Channel{}; Channel < ChannelCount; ++Channel) {
                 const Core::FVector2 UV{GetUVChannelCount() == 0 ? Core::FVector2{} : mMeshData.GetUVChannels()[Channel][Index]};
+
                 UVs.push_back({UV.x, UV.y});
             }
         }
 
-        std::array<Microsoft::WRL::ComPtr<ID3D11Buffer>, 5> Buffers{};
+        // 다섯 버퍼를 모두 만든 뒤에 교체하여 실패해도 기존 자원을 유지합니다.
+        TMeshVertexBuffer<std::array<float, 3>> PositionBuffer{};
+        TMeshVertexBuffer<std::array<float, 7>> TangentBuffer{};
+        TMeshVertexBuffer<std::array<float, 2>> UVBuffer{};
+        TMeshVertexBuffer<std::array<float, 4>> ColorBuffer{};
+        RenderCore::TIndexBuffer<Core::Uint32> IndexBuffer{};
+        Core::FString Error{};
 
-        if (!CreateBuffer(Device, Positions.data(), Positions.size() * GetPositionStride(), D3D11_BIND_VERTEX_BUFFER, Buffers[0]) || !CreateBuffer(Device, Tangents.data(), Tangents.size() * GetTangentStride(), D3D11_BIND_VERTEX_BUFFER, Buffers[1]) || !CreateBuffer(Device, UVs.data(), UVs.size() * sizeof(std::array<float, 2>), D3D11_BIND_VERTEX_BUFFER, Buffers[2]) || !CreateBuffer(Device, Colors.data(), Colors.size() * GetColorStride(), D3D11_BIND_VERTEX_BUFFER, Buffers[3]) || !CreateBuffer(Device, mMeshData.GetIndices().data(), mMeshData.GetIndices().size() * sizeof(Core::Uint32), D3D11_BIND_INDEX_BUFFER, Buffers[4])) {
+        if (!PositionBuffer.Create(Device, Positions, Error) || !TangentBuffer.Create(Device, Tangents, Error) || !UVBuffer.Create(Device, UVs, Error) || !ColorBuffer.Create(Device, Colors, Error) || !IndexBuffer.Create(Device, mMeshData.GetIndices(), Error)) {
             return false;
         }
 
-        mPositionBuffer = std::move(Buffers[0]);
-        mTangentBuffer = std::move(Buffers[1]);
-        mUVBuffer = std::move(Buffers[2]);
-        mColorBuffer = std::move(Buffers[3]);
-        mIndexBuffer = std::move(Buffers[4]);
-        mResourceBytes = VertexCount * (static_cast<std::size_t>(GetPositionStride()) + GetTangentStride() + GetUVStride() + GetColorStride()) + mMeshData.GetIndices().size() * sizeof(Core::Uint32);
+        mPositionBuffer = std::move(PositionBuffer);
+        mTangentBuffer = std::move(TangentBuffer);
+        mUVBuffer = std::move(UVBuffer);
+        mColorBuffer = std::move(ColorBuffer);
+        mIndexBuffer = std::move(IndexBuffer);
 
         return true;
     }
 
+    /**
+     * @brief 소유한 GPU 리소스와 뷰를 해제하고 메모리 집계를 초기화합니다.
+     */
     void Asset::UStaticMesh::ReleaseResources() {
         mPositionBuffer.Reset();
         mTangentBuffer.Reset();
         mUVBuffer.Reset();
         mColorBuffer.Reset();
         mIndexBuffer.Reset();
-        mResourceBytes = 0;
     }
 
+    /**
+     * @brief 사용할 수 있는 GPU 리소스를 보유하는지 검사합니다.
+     */
     bool Asset::UStaticMesh::HasResources() const {
-        return mPositionBuffer != nullptr && mTangentBuffer != nullptr && mUVBuffer != nullptr && mColorBuffer != nullptr && mIndexBuffer != nullptr;
+        return mPositionBuffer.IsCreated() && mTangentBuffer.IsCreated() && mUVBuffer.IsCreated() && mColorBuffer.IsCreated() && mIndexBuffer.IsCreated();
     }
 
-    Core::FRevision Asset::UStaticMesh::GetRevision() const {
-        return mRevision;
+    /**
+     * @brief 위치·법선·UV·색상 버퍼를 입력 슬롯 0~3에, 인덱스 버퍼를 함께 연결합니다.
+     */
+    void Asset::UStaticMesh::Bind(ID3D11DeviceContext* Context) const {
+        mPositionBuffer.Bind(Context, 0);
+        mTangentBuffer.Bind(Context, 1);
+        mUVBuffer.Bind(Context, 2, std::max<Core::Uint32>(1, GetUVChannelCount()));
+        mColorBuffer.Bind(Context, 3);
+        mIndexBuffer.Bind(Context);
     }
 
-    ID3D11Buffer* Asset::UStaticMesh::GetPositionBuffer() const {
-        return mPositionBuffer.Get();
+    /**
+     * @brief 위치 버퍼만 입력 슬롯 0에, 인덱스 버퍼를 함께 연결합니다.
+     */
+    void Asset::UStaticMesh::BindPositions(ID3D11DeviceContext* Context) const {
+        mPositionBuffer.Bind(Context, 0);
+        mIndexBuffer.Bind(Context);
     }
 
-    ID3D11Buffer* Asset::UStaticMesh::GetTangentBuffer() const {
-        return mTangentBuffer.Get();
-    }
-
-    ID3D11Buffer* Asset::UStaticMesh::GetUVBuffer() const {
-        return mUVBuffer.Get();
-    }
-
-    ID3D11Buffer* Asset::UStaticMesh::GetColorBuffer() const {
-        return mColorBuffer.Get();
-    }
-
-    ID3D11Buffer* Asset::UStaticMesh::GetIndexBuffer() const {
-        return mIndexBuffer.Get();
-    }
-
-    Core::Uint32 Asset::UStaticMesh::GetUVStride() const {
-        return static_cast<Core::Uint32>(std::max<Core::Uint32>(1, GetUVChannelCount()) * sizeof(float) * 2);
-    }
-
+    /**
+     * @brief 현재 보유한 GPU 리소스의 추정 바이트 수를 반환합니다.
+     */
     std::size_t Asset::UStaticMesh::GetResourceBytes() const {
-        return mResourceBytes;
-    }
-
-    Core::Uint32 Asset::UStaticMesh::GetPositionStride() {
-        return sizeof(std::array<float, 3>);
-    }
-
-    Core::Uint32 Asset::UStaticMesh::GetTangentStride() {
-        return sizeof(std::array<float, 7>);
-    }
-
-    Core::Uint32 Asset::UStaticMesh::GetColorStride() {
-        return sizeof(std::array<float, 4>);
-    }
-
-    bool Asset::UStaticMesh::CreateBuffer(ID3D11Device* Device, const void* Data, std::size_t Bytes, Core::Uint32 BindFlags, Microsoft::WRL::ComPtr<ID3D11Buffer>& Buffer) {
-        if (Device == nullptr || Data == nullptr || Bytes == 0 || Bytes > std::numeric_limits<UINT>::max()) {
-            return false;
-        }
-
-        D3D11_BUFFER_DESC Description{};
-        Description.ByteWidth = static_cast<UINT>(Bytes);
-        Description.Usage = D3D11_USAGE_IMMUTABLE;
-        Description.BindFlags = BindFlags;
-
-        D3D11_SUBRESOURCE_DATA InitialData{};
-        InitialData.pSysMem = Data;
-
-        return SUCCEEDED(Device->CreateBuffer(&Description, &InitialData, Buffer.GetAddressOf()));
+        return mPositionBuffer.GetResourceBytes() + mTangentBuffer.GetResourceBytes() + mUVBuffer.GetResourceBytes() + mColorBuffer.GetResourceBytes() + mIndexBuffer.GetResourceBytes();
     }
 
 }

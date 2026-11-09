@@ -18,12 +18,6 @@ namespace RenderCore {
     class FShaderManager {
     public:
         /**
-         * @brief 리플렉션에서 사용하는 소유 타입과 선택적 부모 타입의 별칭을 선언합니다.
-         */
-        ReflectTypes(FShaderManager);
-
-    public:
-        /**
          * @brief 전달받은 설정과 의존성으로 FShaderManager의 초기 상태를 구성합니다.
          * @param[in] CacheDirectory 컴파일된 셰이더의 캐시 파일을 보관할 폴더입니다.
          */
@@ -55,12 +49,6 @@ namespace RenderCore {
         RenderCore::FShaderManager& operator=(RenderCore::FShaderManager&&) = delete;
 
     public:
-        /**
-         * @brief 이 타입의 구조체 메타데이터를 반환합니다.
-         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectStruct(FShaderManager);
-
         /**
          * @brief 셰이더를 메모리 캐시에서 조회하거나 디스크 캐시·컴파일로 준비합니다.
          * @param[in] Description 소스 경로·진입점·프로필·매크로 등의 컴파일 설정입니다.
@@ -97,11 +85,6 @@ namespace RenderCore {
 
     private:
         /**
-         * @brief 자동 생성된 프로퍼티 등록 코드와 리플렉션 빌더의 접근을 허용합니다.
-         */
-        ReflectMembers();
-
-        /**
          * @brief 유효한 캐시를 먼저 조회하고 사용할 수 없으면 셰이더를 컴파일합니다.
          * @param[in] Description 소스 경로·진입점·프로필·매크로 등의 컴파일 설정입니다.
          * @param[out] Compilation 셰이더 바이트코드와 의존성을 포함하는 컴파일 결과입니다.
@@ -116,19 +99,16 @@ namespace RenderCore {
          * @brief HLSL 컴파일과 의존성 수집을 수행하는 컴파일러입니다.
          */
         RenderCore::FShaderCompiler mCompiler{};
-        ReflectProperty(mCompiler, "Compiler", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 셰이더 컴파일 결과의 디스크 캐시입니다.
          */
         RenderCore::FShaderCache mCache{};
-        ReflectProperty(mCache, "Cache", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 정규화한 식별 문자열별로 공유 소유하는 셰이더 목록입니다.
          */
         Core::TMap<Core::FString, std::shared_ptr<RenderCore::FShader>> mShaders{};
-        ReflectProperty(mShaders, "Shaders", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
 }

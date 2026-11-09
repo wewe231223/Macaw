@@ -9,12 +9,15 @@ public:
 
 public:
     ULightComponent();
+
     ~ULightComponent() override = default;
 
 public:
     ReflectClass(ULightComponent, EClassFlags::Abstract);
     ReflectFunction(GetLightType);
+
     virtual ELightType GetLightType() const = 0;
+
     virtual void BuildLightShaderParameters(FLightShaderParameters& OutParameters) const;
 
     bool ShouldCreateRenderState() const override;

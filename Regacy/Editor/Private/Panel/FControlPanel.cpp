@@ -207,6 +207,7 @@ void FControlPanel::DrawPanel() {
                 }
 
                 BHasVisibleType = true;
+
                 ImGui::PushID(TypeName.ToString().c_str());
 
                 const std::size_t ComponentCount{TypeState.mComponents.size()};
@@ -266,6 +267,7 @@ void FControlPanel::DrawPanel() {
     for (int Index{0}; Index < IM_ARRAYSIZE(RenderModeValues); ++Index) {
         if (mEditorContext->GetRenderModeState() == static_cast<std::size_t>(RenderModeValues[Index])) {
             RenderIndex = Index;
+
             break;
         }
     }

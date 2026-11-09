@@ -25,6 +25,7 @@ namespace CoreUObject {
      */
     CoreUObject::UObject* CoreUObject::FObjectDuplicationContext::FindDuplicate(const CoreUObject::UObject* Source) const {
         const auto Position{mObjects.find(Source)};
+
         return Position != mObjects.end() ? Position->second : nullptr;
     }
 

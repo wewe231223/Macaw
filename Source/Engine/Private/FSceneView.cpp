@@ -12,6 +12,9 @@
 
 namespace Engine {
 
+    /**
+     * @brief 뷰포트 픽셀 좌표를 월드 공간의 정규화된 광선으로 역투영합니다.
+     */
     bool Engine::FSceneView::Deproject(const Core::FVector2& Position, Core::FRay& Ray) const {
         if (!mOrthographic) {
             return Core::Math::Deproject(Position, mSize, mViewProjection, Ray);
@@ -26,6 +29,7 @@ namespace Engine {
         const float NearPlane{-mProjection(3, 2) / mProjection(2, 2)};
         const Core::FVector Right{mView(0, 0), mView(1, 0), mView(2, 0)};
         const Core::FVector Up{mView(0, 1), mView(1, 1), mView(2, 1)};
+
         Ray.mOrigin = mLocation + Right * X + Up * Y + mForward * NearPlane;
         Ray.mDirection = mForward;
 

@@ -6,6 +6,7 @@
 
 #include "CoreUObject/Reflection/FProperty.h"
 #include "Core/Archive.h"
+#include "CoreUObject/Reflection/FArrayOps.h"
 #include "CoreUObject/Reflection/FEnumValue.h"
 #include "CoreUObject/Reflection/EPropertyType.h"
 #include "Core/Reflection/EPropertyFlags.h"
@@ -14,14 +15,26 @@
 #include "Core/Base/ErrorHandler.h"
 
 #include <algorithm>
+#include <memory>
+#include <string>
 #include <utility>
 
 namespace CoreUObject {
 
     /**
+     * @brief 이 파일에서 사용하는 내부 보조 기능과 상태를 묶습니다.
+     */
+    namespace {
+        /**
+         * @brief 과도한 배열 할당을 막는 원소 수 상한입니다.
+         */
+        constexpr Core::Uint32 MaximumArrayCount{100000};
+    }
+
+    /**
      * @brief FProperty의 초기 상태와 전달받은 의존성을 구성합니다.
      */
-    CoreUObject::FProperty::FProperty(Core::FString Name, CoreUObject::EPropertyType Type, Core::EPropertyFlags Flags, FReader Reader, FWriter Writer, const CoreUObject::UStruct* Struct, Core::TArray<CoreUObject::FEnumValue> Values, FWriter Loader, const CoreUObject::FNativeType* NativeType)
+    CoreUObject::FProperty::FProperty(Core::FString Name, CoreUObject::EPropertyType Type, Core::EPropertyFlags Flags, FReader Reader, FWriter Writer, const CoreUObject::UStruct* Struct, Core::TArray<CoreUObject::FEnumValue> Values, FWriter Loader, const CoreUObject::FNativeType* NativeType, const CoreUObject::FArrayOps* ArrayOps)
 		: mName{std::move(Name)},
 		  mType{Type},
 		  mFlags{Flags},
@@ -30,7 +43,8 @@ namespace CoreUObject {
 		  mLoader{Loader != nullptr ? Loader : Writer},
 		  mStruct{Struct},
 		  mEnumValues{std::move(Values)},
-		  mNativeType{NativeType} {
+		  mNativeType{NativeType},
+		  mArrayOps{ArrayOps} {
     }
 
     /**
@@ -73,6 +87,13 @@ namespace CoreUObject {
      */
     const Core::TArray<CoreUObject::FEnumValue>& CoreUObject::FProperty::GetEnumValues() const {
         return mEnumValues;
+    }
+
+    /**
+     * @brief 배열 프로퍼티의 함수 테이블을 반환합니다.
+     */
+    const CoreUObject::FArrayOps* CoreUObject::FProperty::GetArrayOps() const {
+        return mArrayOps;
     }
 
     /**
@@ -139,18 +160,59 @@ namespace CoreUObject {
             return;
         }
 
+        SerializeNamed(mName, Container, Archive);
+    }
+
+    /**
+     * @brief 저장 정책 검사를 마친 값을 지정한 이름으로 직렬화합니다.
+     */
+    void CoreUObject::FProperty::SerializeNamed(std::string_view Name, void* Container, Core::FArchive& Archive) const {
+        if (mArrayOps != nullptr) {
+            SerializeArray(Name, Container, Archive);
+
+            return;
+        }
+
+        if (mType == CoreUObject::EPropertyType::Struct) {
+            if (Archive.BeginObject(Name)) {
+                mStruct->SerializeProperties(Container, Archive);
+
+                Archive.EndObject();
+            }
+
+            return;
+        }
+
         CoreUObject::FPropertyValue Value{ReadValue(Container)};
 
         if (mStruct != nullptr) {
-            if (Archive.BeginObject(mName)) {
+            if (Archive.BeginObject(Name)) {
                 mStruct->SerializeProperties(CoreUObject::GetPropertyData(Value), Archive);
 
                 Archive.EndObject();
             }
         } else {
-            std::visit([&Archive, this](auto& Typed) {
-                if constexpr (!std::is_same_v<std::remove_cvref_t<decltype(Typed)>, const void*>) {
-                    Archive.Serialize(mName, Typed);
+            std::visit([&Archive, Name, this](auto& Typed) {
+                using FTyped = std::remove_cvref_t<decltype(Typed)>;
+
+                if constexpr (std::is_same_v<FTyped, CoreUObject::FObjectReference>) {
+                    // 빈 참조는 FGuid 형식으로 읽을 수 없으므로 월드 참조와 같이 빈 문자열로 저장합니다.
+                    Core::FGuid Guid{Typed.GetGuid()};
+                    Core::FString Text{Guid.IsValid() ? Guid.ToString() : Core::FString{}};
+                    Archive.Serialize(Name, Text);
+
+                    if (Archive.IsLoading() && !Archive.HasError()) {
+                        Guid = Core::FGuid::Null();
+
+                        if (!Text.empty() && !Core::FGuid::Parse(Text, Guid)) {
+                            Archive.SetError("Invalid object reference: " + mName);
+                        } else {
+                            Archive.RemapWeakObjectReference(Guid);
+                            Typed = CoreUObject::FObjectReference{Guid};
+                        }
+                    }
+                } else if constexpr (!std::is_same_v<FTyped, const void*>) {
+                    Archive.Serialize(Name, Typed);
                 } else {
                     Archive.SetError("Cannot serialize opaque property: " + mName);
                 }
@@ -159,6 +221,70 @@ namespace CoreUObject {
 
         if (Archive.IsLoading() && !Archive.HasError() && !WriteValue(Container, Value, mLoader)) {
             Archive.SetError("Property validation failed: " + mName);
+        }
+    }
+
+    /**
+     * @brief 배열을 원소 단위로 직렬화합니다. 로드는 작업용 배열을 채운 뒤 한 번에 커밋합니다.
+     */
+    void CoreUObject::FProperty::SerializeArray(std::string_view Name, void* Container, Core::FArchive& Archive) const {
+        const CoreUObject::FArrayOps& Ops{*mArrayOps};
+        const bool Loading{Archive.IsLoading()};
+        std::unique_ptr<void, void (*)(void*)> Working{Loading ? Ops.mCreate() : nullptr, Ops.mDestroy};
+
+        // 저장 경로는 원소를 읽기만 하므로 getter가 돌려준 주소를 그대로 순회합니다.
+        void* Array{Loading ? Working.get() : const_cast<void*>(std::get<const void*>(ReadValue(Container)))};
+        Core::Uint32 Count{Loading ? 0 : Ops.mSize(Array)};
+
+        if (!Archive.BeginArray(Name, Count)) {
+            return;
+        }
+
+        if (Count > MaximumArrayCount) {
+            Archive.SetError("Array exceeds the element limit: " + mName);
+        } else {
+            if (Loading) {
+                Ops.mResize(Array, Count);
+            }
+
+            for (Core::Uint32 Index{}; Index < Count && !Archive.HasError(); ++Index) {
+                Ops.mElement->SerializeNamed(std::to_string(Index), Ops.mAt(Array, Index), Archive);
+            }
+        }
+
+        Archive.EndArray();
+
+        if (Loading && !Archive.HasError() && !WriteValue(Container, CoreUObject::FPropertyValue{static_cast<const void*>(Array)}, mLoader)) {
+            Archive.SetError("Property validation failed: " + mName);
+        }
+    }
+
+    /**
+     * @brief 이 프로퍼티와 하위 원소의 객체 참조에 핸들을 연결합니다.
+     */
+    void CoreUObject::FProperty::BindObjectReferences(void* Container, const CoreUObject::FObjectGuidMap& Objects) const {
+        if (HasFlag(Core::EPropertyFlags::Transient)) {
+            return;
+        }
+
+        if (mArrayOps != nullptr) {
+            const CoreUObject::EPropertyType ElementType{mArrayOps->mElement->GetType()};
+
+            if (ElementType == CoreUObject::EPropertyType::ObjectReference || ElementType == CoreUObject::EPropertyType::Struct) {
+                // 핸들은 영속 상태가 아닌 캐시이므로 setter를 거치지 않고 원소를 직접 갱신합니다.
+                void* Array{const_cast<void*>(std::get<const void*>(ReadValue(Container)))};
+
+                for (Core::Uint32 Index{}, Count{mArrayOps->mSize(Array)}; Index < Count; ++Index) {
+                    mArrayOps->mElement->BindObjectReferences(mArrayOps->mAt(Array, Index), Objects);
+                }
+            }
+        } else if (mType == CoreUObject::EPropertyType::Struct) {
+            mStruct->BindObjectReferences(Container, Objects);
+        } else if (mType == CoreUObject::EPropertyType::ObjectReference) {
+            CoreUObject::FPropertyValue Value{ReadValue(Container)};
+
+            std::get<CoreUObject::FObjectReference>(Value).Bind(Objects);
+            WriteValue(Container, Value, mLoader);
         }
     }
 

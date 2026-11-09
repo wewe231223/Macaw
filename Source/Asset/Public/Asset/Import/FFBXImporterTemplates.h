@@ -10,6 +10,9 @@
 
 namespace Asset {
 
+    /**
+     * @brief 레이어 요소의 매핑·참조 모드에 따라 다각형 정점의 값을 읽습니다.
+     */
     template <typename TValue>
     bool Asset::FFBXImporter::ReadElement(const fbxsdk::FbxLayerElementTemplate<TValue>* Element, int ControlPoint, int Polygon, int PolygonVertex, TValue& Value) const {
         if (Element == nullptr) {
@@ -23,12 +26,15 @@ namespace Asset {
         switch (Element->GetMappingMode()) {
         case fbxsdk::FbxLayerElement::eByControlPoint:
             Index = ControlPoint;
+
             break;
         case fbxsdk::FbxLayerElement::eByPolygonVertex:
             Index = PolygonVertex;
+
             break;
         case fbxsdk::FbxLayerElement::eByPolygon:
             Index = Polygon;
+
             break;
         case fbxsdk::FbxLayerElement::eAllSame:
             break;
@@ -52,6 +58,7 @@ namespace Asset {
         }
 
         Value = Element->GetDirectArray().GetAt(Index);
+
         return true;
     }
 

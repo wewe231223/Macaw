@@ -112,14 +112,17 @@ namespace Serialization {
 
         if (!Writer.Open(Path, Error)) {
             SetError(Error);
+
             return false;
         }
 
         const Core::FString Text{ToString()};
+
         Writer.GetStream().write(Text.data(), static_cast<std::streamsize>(Text.size()));
 
         if (!Writer.Commit(Error)) {
             SetError(Error);
+
             return false;
         }
 

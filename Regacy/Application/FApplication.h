@@ -14,6 +14,7 @@ private:
     struct FWindowState {
         // 메뉴 클릭 영역과 창 드래그 영역을 구분하는 메뉴 오른쪽 끝 X 좌표입니다.
         int mMenuHitRight{900};
+
         // 사용자가 창을 이동하거나 크기를 조절하는 중인지 나타냅니다.
         bool mInMoveLoop{};
     };

@@ -21,6 +21,7 @@ int FApplication::Run(HINSTANCE Instance, int ShowCommand) {
         }
     } catch (...) {
         Shutdown();
+
         throw;
     }
 

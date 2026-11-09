@@ -22,6 +22,7 @@ void UActorComponent::SetOwner(AActor* InOwner) {
     }
 
     mOwner = InOwner;
+
     SetOuter(InOwner);
     UpdateTickRegistration();
 }
@@ -108,6 +109,7 @@ void UActorComponent::MarkRenderDynamicDataDirty() {
 
     if (!mState.IsSet(EStateFlag::RenderStateCreated)) {
         MarkRenderStateDirty();
+
         return;
     }
 
@@ -169,11 +171,13 @@ void UActorComponent::Activate() {
     }
 
     mBActive = true;
+
     SetTickEnabled(true);
 }
 
 void UActorComponent::Deactivate() {
     mBActive = false;
+
     SetTickEnabled(false);
 }
 
@@ -266,6 +270,7 @@ void UActorComponent::RegisterComponent(UWorld* World) {
 
     if (World->IsDeferringLifecycleChanges()) {
         World->mPendingLifecycleRequests.push_back({UWorld::ELifecycleRequestType::RegisterComponent, this});
+
         return;
     }
 
@@ -299,6 +304,7 @@ void UActorComponent::UnregisterComponent() {
 
     if (World != nullptr && World->IsDeferringLifecycleChanges()) {
         World->mPendingLifecycleRequests.push_back({UWorld::ELifecycleRequestType::UnregisterComponent, this});
+
         return;
     }
 
@@ -317,6 +323,7 @@ void UActorComponent::UnregisterComponent() {
     mState.Clear(EStateFlag::Registered);
     UpdateTickRegistration();
     OnUnregister();
+
     mParentWorld = nullptr;
     mState.Clear(EStateFlag::Unregistering);
 }
@@ -369,6 +376,7 @@ bool UActorComponent::DeferComponentDestruction(bool BPromoteChildren) {
     if (World != nullptr && World->IsDeferringLifecycleChanges()) {
         mState.Set(EStateFlag::DestroyRequested);
         World->mPendingLifecycleRequests.push_back({UWorld::ELifecycleRequestType::DestroyComponent, this, {}, {}, EEndPlayReason::Destroyed, BPromoteChildren});
+
         return true;
     }
 

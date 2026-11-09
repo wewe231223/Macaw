@@ -16,26 +16,21 @@ namespace CoreUObject {
     class UObject;
 }
 
-namespace Engine {
-    class USkeletalMeshComponent;
+namespace Script {
+    class UScriptComponent;
 }
 
 namespace Editor {
 
     class FEditorAssetCatalog;
     class FAssetThumbnailCache;
+    class FScriptBuildService;
 
     /**
      * @brief 선택한 객체의 리플렉션 프로퍼티를 표시하고 편집합니다.
      * @ingroup Editor
      */
     class FDetailsPanel final : public Editor::FEditorPanel {
-    public:
-        /**
-         * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
-         */
-        ReflectTypes(FDetailsPanel, Editor::FEditorPanel);
-
     public:
         /**
          * @brief FDetailsPanel의 초기 상태와 전달받은 의존성을 구성합니다.
@@ -50,19 +45,36 @@ namespace Editor {
 
     public:
         /**
-         * @brief 이 타입의 정적 구조체 메타데이터를 반환합니다.
-         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectStruct(FDetailsPanel);
-
-        /**
          * @brief 브라우저와 공유할 에셋 표시 서비스를 연결합니다.
          * @param Catalog 프로젝트 표시 목록입니다.
          * @param Thumbnails 썸네일 캐시입니다.
          */
         void SetAssetServices(Editor::FEditorAssetCatalog* Catalog, Editor::FAssetThumbnailCache* Thumbnails);
 
+        /**
+         * @brief C# 프로젝트 생성과 빌드 상태를 제공할 서비스를 연결합니다.
+         * @param Builds 스크립트 빌드 서비스입니다.
+         */
+        void SetScriptBuildService(Editor::FScriptBuildService* Builds);
+        void FinishInactiveSceneEdit();
+
     private:
+        void BeginItemSceneEdit();
+
+        /**
+         * @brief C# 프로젝트 상태와 스크립트의 [Field] 필드를 표시합니다.
+         * @param Component 표시할 스크립트 컴포넌트입니다.
+         */
+        void DrawScriptFields(Script::UScriptComponent* Component);
+
+        /**
+         * @brief 스크립트 클래스를 고르는 콤보를 표시합니다.
+         * @param Label 위젯 이름입니다.
+         * @param ClassName 선택한 클래스 이름입니다.
+         * @return 선택이 바뀌면 true입니다.
+         */
+        bool DrawScriptClassPicker(const char* Label, Core::FString& ClassName);
+
         /**
          * @brief 패널 고유의 ImGui 위젯과 내용을 그립니다.
          * @param[in] DeltaTime 이전 프레임 이후 경과한 시간(초)입니다.
@@ -75,10 +87,9 @@ namespace Editor {
         void DrawComponentMenu();
 
         /**
-         * @brief 본 로컬 행렬을 편집하고 씬 변경 상태를 갱신합니다.
-         * @param Component 편집할 스켈레탈 메시 컴포넌트입니다.
+         * @brief 선택한 액터 하나와 그 컴포넌트를 고르는 트리를 표시합니다.
          */
-        void DrawSkeletalPose(Engine::USkeletalMeshComponent* Component);
+        void DrawComponentTree();
 
         /**
          * @brief 객체 타입의 편집 가능한 리플렉션 프로퍼티를 순회하여 표시합니다.
@@ -105,31 +116,31 @@ namespace Editor {
 
     private:
         /**
-         * @brief 생성된 프로퍼티 등록 함수와 빌더 접근 권한입니다.
+         * @brief Details 컴포넌트 검색 입력 버퍼입니다.
          */
-        ReflectMembers();
-
-    private:
         std::array<char, 128> mComponentSearch{};
-        ReflectProperty(mComponentSearch, "ComponentSearch", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 브라우저와 동일한 에셋 목록입니다.
          */
         Editor::FEditorAssetCatalog* mAssetCatalog{};
-        ReflectProperty(mAssetCatalog, "AssetCatalog", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 브라우저와 동일한 썸네일 캐시입니다.
          */
         Editor::FAssetThumbnailCache* mThumbnails{};
-        ReflectProperty(mThumbnails, "Thumbnails", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+
+        /**
+         * @brief C# 프로젝트 생성과 빌드 상태를 제공하는 서비스의 비소유 주소입니다.
+         */
+        Editor::FScriptBuildService* mScriptBuilds{};
 
         /**
          * @brief 썸네일과 드롭다운을 표시하는 선택기입니다.
          */
         Editor::FAssetPicker mAssetPicker{};
-        ReflectProperty(mAssetPicker, "AssetPicker", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+        Core::Uint64 mSceneEditToken{};
+        Core::Uint32 mSceneEditItem{};
     };
 
 }

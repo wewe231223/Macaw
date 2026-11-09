@@ -10,11 +10,14 @@
 #include "Asset/FAssetFile.h"
 #include "Asset/UStaticMesh.h"
 #include "Asset/USkeletalMesh.h"
+#include "Asset/USkeleton.h"
 #include "Asset/UTexture2D.h"
 #include "Asset/UMaterial.h"
+#include "Asset/Sequence/ULevelSequence.h"
+#include "Asset/Animation/UAnimSequence.h"
 #include "FMaterialFile.h"
-#include "FMaterialAssetData.h"
 #include "CoreUObject/Reflection/NewObject.h"
+#include "Serialization/JsonArchive.h"
 #include "Serialization/MemoryArchive.h"
 #include "FAssetSerialization.h"
 #include "FTextureAssetData.h"
@@ -24,9 +27,7 @@
 
 #include <algorithm>
 #include <array>
-#include <fstream>
 #include <limits>
-#include <sstream>
 #include <utility>
 
 namespace Asset {
@@ -44,26 +45,18 @@ namespace Asset {
             return Core::FilePath::ToGenericUtf8(Core::FilePath::ToLower(Core::FilePath::FromUtf8(Relative)));
         }
 
-        /**
-         * @brief 텍스트 파일에 이전 재질 형식의 shader 지시자가 있는지 검사합니다.
-         * @param[in] Path 읽거나 기록할 파일 시스템 경로입니다.
-         * @return shader 키워드가 발견되면 true이며 그렇지 않으면 false입니다.
-         */
-        bool IsLegacyMaterialAsset(const std::filesystem::path& Path) {
-            std::ifstream Input{Path};
-            Core::FString Line{};
+        // 캐시에 올라간 에셋 객체는 바꾸지 않으므로, 같은 경로에 다른 객체가 이미 있으면 저장을 거부합니다.
+        template <typename TCache, typename TAsset>
+        bool CheckCacheSlot(const TCache& Cache, const Core::FString& Key, const TAsset* Asset, Core::FString& Error) {
+            const auto Existing{Cache.find(Key)};
 
-            while (std::getline(Input, Line)) {
-                std::istringstream Values{Line};
-                Core::FString Keyword{};
-                Values >> Keyword;
+            if (Existing != Cache.end() && Existing->second.get() != Asset) {
+                Error = "Another asset is already loaded at this path";
 
-                if (Keyword == "shader") {
-                    return true;
-                }
+                return false;
             }
 
-            return false;
+            return true;
         }
 
         /**
@@ -112,7 +105,9 @@ namespace Asset {
         std::filesystem::path UniqueAssetPath(const std::filesystem::path& Directory, const Core::FString& Name, Core::FString& Error) {
             const auto Base{Core::FilePath::FromUtf8(Name)};
             auto Target{Directory / Base};
+
             Target += L".masset";
+
             std::error_code Code{};
 
             for (Core::Uint32 Index{1}; std::filesystem::exists(Target, Code) && !Code; ++Index) {
@@ -121,6 +116,7 @@ namespace Asset {
 
             if (Code) {
                 Error = "Cannot choose an asset filename: " + Code.message();
+
                 return {};
             }
 
@@ -160,6 +156,7 @@ namespace Asset {
 
                 if (Embedded) {
                     auto Image{CoreUObject::NewObject<Asset::UTexture2D>()};
+
                     Imported = Image->LoadFromMemory(Texture.GetEmbeddedData(), Source) && Assets.SaveTexture(Target, *Image, Error);
 
                     if (!Imported && Error.empty()) {
@@ -171,6 +168,7 @@ namespace Asset {
 
                 if (!Imported) {
                     Error = "Cannot import material texture '" + Core::FilePath::ToUtf8(Source) + "': " + Error;
+
                     return false;
                 }
 
@@ -200,10 +198,12 @@ namespace Asset {
             Asset::FAssetSerialization::SerializeValues(Archive, Mesh.GetColors());
 
             Core::Uint32 Channels{Archive.IsLoading() ? 0 : static_cast<Core::Uint32>(Mesh.GetUVChannels().size())};
+
             Archive.Serialize("UVChannels", Channels);
 
             if (Archive.HasError() || Channels > 8) {
                 Archive.SetError("Invalid mesh UV channel count");
+
                 return;
             }
 
@@ -222,10 +222,12 @@ namespace Asset {
             }
 
             Core::Uint32 ExtensionVersion{1};
+
             Archive.Serialize("SectionsVersion", ExtensionVersion);
 
             if (ExtensionVersion != 1) {
                 Archive.SetError("Unsupported mesh section version");
+
                 return;
             }
 
@@ -233,6 +235,7 @@ namespace Asset {
 
             if (!Archive.BeginArray("MaterialSlots", SlotCount) || (Archive.IsLoading() && SlotCount > Archive.GetRemainingBytes() / 8)) {
                 Archive.SetError("Invalid mesh material slot count");
+
                 return;
             }
 
@@ -243,6 +246,7 @@ namespace Asset {
             for (Core::Uint32 Index{}; Index < SlotCount && !Archive.HasError(); ++Index) {
                 Core::FString Name{Archive.IsLoading() ? Core::FString{} : Mesh.GetMaterialSlots()[Index].GetName()};
                 Core::FString Path{Archive.IsLoading() ? Core::FString{} : Mesh.GetMaterialSlots()[Index].GetMaterialPath()};
+
                 Archive.Serialize("Name", Name);
                 Archive.Serialize("Material", Path);
 
@@ -257,6 +261,7 @@ namespace Asset {
 
             if (!Archive.BeginArray("SubMeshes", SectionCount) || (Archive.IsLoading() && SectionCount > Archive.GetRemainingBytes() / 12)) {
                 Archive.SetError("Invalid submesh count");
+
                 return;
             }
 
@@ -268,6 +273,7 @@ namespace Asset {
                 Core::Uint32 First{Archive.IsLoading() ? 0 : Mesh.GetSubMeshes()[Index].GetFirstIndex()};
                 Core::Uint32 Count{Archive.IsLoading() ? 0 : Mesh.GetSubMeshes()[Index].GetIndexCount()};
                 Core::Uint32 Slot{Archive.IsLoading() ? 0 : Mesh.GetSubMeshes()[Index].GetMaterialIndex()};
+
                 Archive.Serialize("FirstIndex", First);
                 Archive.Serialize("IndexCount", Count);
                 Archive.Serialize("MaterialIndex", Slot);
@@ -280,20 +286,12 @@ namespace Asset {
             Archive.EndArray();
         }
 
-        void SerializeSkeletalMesh(Serialization::FMemoryArchive& Archive, Asset::FMeshData& Mesh, Core::TArray<Asset::FMeshImportBone>& Bones, Core::TArray<Asset::FMeshImportSkinWeight>& SkinWeights) {
-            Core::Uint32 Version{1};
-            Archive.Serialize("SkeletalMeshVersion", Version);
-
-            if (Archive.HasError() || Version != 1) {
-                Archive.SetError("Unsupported skeletal mesh version");
-                return;
-            }
-
-            SerializeMesh(Archive, Mesh);
+        void SerializeBones(Serialization::FMemoryArchive& Archive, Core::TArray<Asset::FMeshImportBone>& Bones) {
             Core::Uint32 BoneCount{Archive.IsLoading() ? 0 : static_cast<Core::Uint32>(Bones.size())};
 
-            if (Archive.HasError() || !Archive.BeginArray("Bones", BoneCount) || BoneCount == 0 || (Archive.IsLoading() && BoneCount > Archive.GetRemainingBytes() / 72)) {
-                Archive.SetError("Invalid skeletal mesh bone count");
+            if (Archive.HasError() || !Archive.BeginArray("Bones", BoneCount) || BoneCount == 0 || BoneCount > Asset::MaxSkeletonBones || (Archive.IsLoading() && BoneCount > Archive.GetRemainingBytes() / 72)) {
+                Archive.SetError("Invalid skeleton bone count");
+
                 return;
             }
 
@@ -306,6 +304,7 @@ namespace Asset {
                 Core::FString Name{Archive.IsLoading() ? Core::FString{} : Bones[Index].GetName()};
                 Core::Int32 Parent{Archive.IsLoading() ? -1 : Bones[Index].GetParentIndex()};
                 Core::FMatrix BindPose{Archive.IsLoading() ? Core::FMatrix{} : Bones[Index].GetBindPose()};
+
                 Archive.Serialize("Name", Name);
                 Archive.Serialize("ParentIndex", Parent);
                 Archive.Serialize("BindPose", BindPose);
@@ -316,13 +315,133 @@ namespace Asset {
             }
 
             Archive.EndArray();
+        }
+
+        void SerializeSkeleton(Serialization::FMemoryArchive& Archive, Core::TArray<Asset::FMeshImportBone>& Bones) {
+            Core::Uint32 Version{1};
+
+            Archive.Serialize("SkeletonVersion", Version);
+
+            if (Archive.HasError() || Version != 1) {
+                Archive.SetError("Unsupported skeleton version");
+
+                return;
+            }
+
+            SerializeBones(Archive, Bones);
+        }
+
+        void SerializeAnimSequence(Serialization::FMemoryArchive& Archive, Asset::FAnimDataModel& Model) {
+            Core::Uint32 Version{1};
+
+            Archive.Serialize("AnimSequenceVersion", Version);
+
+            if (Archive.HasError() || Version != 1) {
+                Archive.SetError("Unsupported animation sequence version");
+
+                return;
+            }
+
+            Asset::FFrameRate FrameRate{Model.GetFrameRate()};
+            Core::Uint32 Frames{Model.GetNumberOfFrames()};
+
+            Archive.Serialize("FrameRateNumerator", FrameRate.mNumerator);
+            Archive.Serialize("FrameRateDenominator", FrameRate.mDenominator);
+            Archive.Serialize("NumberOfFrames", Frames);
+
+            if (Archive.HasError() || !FrameRate.IsValid() || Frames == 0 || Frames > Asset::FAnimDataModel::MaxFrames) {
+                Archive.SetError("Invalid animation sequence timing");
+
+                return;
+            }
+
+            const std::size_t Keys{static_cast<std::size_t>(Frames) + 1};
+            auto& Tracks{Model.GetBoneAnimationTracks()};
+            Core::Uint32 TrackCount{Archive.IsLoading() ? 0 : static_cast<Core::Uint32>(Tracks.size())};
+
+            // 트랙 하나는 최소한 이름 길이와 세 채널의 키 수, 키 하나씩(12 + 16 + 12바이트)을 가집니다.
+            constexpr std::size_t MinimumTrackBytes{sizeof(Core::Uint32) * 4 + 40};
+
+            if (!Archive.BeginArray("Tracks", TrackCount) || TrackCount == 0 || TrackCount > Asset::FAnimDataModel::MaxTracks || (Archive.IsLoading() && TrackCount > Archive.GetRemainingBytes() / MinimumTrackBytes)) {
+                Archive.SetError("Invalid animation sequence track count");
+
+                return;
+            }
+
+            if (Archive.IsLoading()) {
+                Tracks.assign(TrackCount, {});
+            }
+
+            // 채널마다 키 수를 먼저 기록하며, 키 수는 1 또는 프레임 수 + 1만 허용합니다.
+            const auto SerializeChannel{[&Archive, Keys](std::string_view Name, auto& Channel, std::size_t KeyBytes) {
+                Core::Uint32 Count{Archive.IsLoading() ? 0 : static_cast<Core::Uint32>(Channel.size())};
+
+                if (!Archive.BeginArray(Name, Count) || (Count != 1 && Count != Keys) || (Archive.IsLoading() && Count > Archive.GetRemainingBytes() / KeyBytes)) {
+                    Archive.SetError("Invalid animation sequence key count");
+
+                    return;
+                }
+
+                if (Archive.IsLoading()) {
+                    Channel.resize(Count);
+                }
+
+                for (auto& Key : Channel) {
+                    if (Archive.HasError()) {
+                        break;
+                    }
+
+                    Archive.Serialize("Key", Key);
+                }
+
+                Archive.EndArray();
+            }};
+
+            for (Asset::FBoneAnimationTrack& Track : Tracks) {
+                if (Archive.HasError()) {
+                    break;
+                }
+
+                Archive.Serialize("Name", Track.mName);
+                SerializeChannel("PosKeys", Track.mInternalTrack.mPosKeys, sizeof(float) * 3);
+                SerializeChannel("RotKeys", Track.mInternalTrack.mRotKeys, sizeof(float) * 4);
+                SerializeChannel("ScaleKeys", Track.mInternalTrack.mScaleKeys, sizeof(float) * 3);
+            }
+
+            Archive.EndArray();
+
+            if (Archive.IsLoading()) {
+                Model.SetFrameRate(FrameRate);
+                Model.SetNumberOfFrames(Frames);
+            }
+        }
+
+        void SerializeSkeletalMesh(Serialization::FMemoryArchive& Archive, Asset::FMeshData& Mesh, Core::TArray<Asset::FMeshImportSkinWeight>& SkinWeights, Core::TArray<Asset::FMeshImportBone>* LegacyBones = nullptr) {
+            Core::Uint32 Version{2};
+
+            Archive.Serialize("SkeletalMeshVersion", Version);
+
+            if (Archive.HasError() || (Version != 2 && (Version != 1 || LegacyBones == nullptr))) {
+                Archive.SetError("Unsupported skeletal mesh version");
+
+                return;
+            }
+
+            SerializeMesh(Archive, Mesh);
+
+            if (Version == 1) {
+                SerializeBones(Archive, *LegacyBones);
+            }
 
             Core::Uint32 VertexCount{Archive.IsLoading() ? 0 : static_cast<Core::Uint32>(SkinWeights.size())};
+
             Archive.Serialize("SkinWeightCount", VertexCount);
+
             constexpr std::size_t WeightBytes{Asset::FMeshImportSkinWeight::MaxInfluences * (sizeof(Core::Uint32) + sizeof(float))};
 
             if (Archive.HasError() || VertexCount != Mesh.GetPositions().size() || VertexCount > 16000000 || (Archive.IsLoading() && VertexCount > Archive.GetRemainingBytes() / WeightBytes)) {
                 Archive.SetError("Invalid skeletal mesh skin weight count");
+
                 return;
             }
 
@@ -346,87 +465,30 @@ namespace Asset {
             }
         }
 
-        /**
-         * @brief MTL 참조를 새 재질 에셋 경로로 치환하고 필요한 재질을 임시 디렉터리에 준비합니다.
-         * @param[in,out] Reference 장면의 머티리얼 참조이며, 이전하면 새 에셋 경로로 바뀝니다.
-         * @param[in,out] Assets 경로 경계를 확인하고 에셋을 가져올 프로젝트 에셋 관리자입니다.
-         * @param[in] Materials 이전 재질 경로에서 새 재질 에셋 경로로의 대응표입니다.
-         * @param[in] Directory 이전한 머티리얼을 임시로 저장할 폴더입니다.
-         * @param[in,out] Targets 임시 파일을 최종 위치로 옮길 때 사용할 재질 에셋 경로 목록입니다.
-         * @param[in,out] Changed 참조가 치환되면 true로 갱신할 변경 상태입니다.
-         * @param[out] Error 실패 원인을 기록할 문자열입니다.
-         * @return 변환이 필요 없거나 변환 준비를 완료하면 true이며 충돌·참조 오류이면 false입니다.
-         */
-        bool MigrateMaterialReference(Core::FString& Reference, Asset::FAssetManager& Assets, const Core::TMap<Core::FString, Core::FString>& Materials, const std::filesystem::path& Directory, Core::TArray<std::filesystem::path>& Targets, bool& Changed, Core::FString& Error) {
-            const auto Path{Core::FilePath::FromUtf8(Reference)};
-
-            if (Path.extension() != L".mtl") {
-                return true;
-            }
-
-            const Core::FString Key{CacheKey(Assets.GetRelativePath(Path, Error))};
-            const auto Position{Materials.find(Key)};
-
-            if (Key.empty() || Position == Materials.end()) {
-                Error = "Cannot migrate material reference: " + Reference;
-                return false;
-            }
-
-            const auto Target{Assets.ResolvePath(Core::FilePath::FromUtf8(Position->second), Error)};
-            std::error_code Code{};
-            const bool Exists{!Target.empty() && std::filesystem::exists(Target, Code)};
-
-            if (Target.empty() || Code) {
-                Error = "Cannot inspect material reference migration target: " + Reference;
-                return false;
-            }
-
-            if (Exists) {
-                auto Legacy{CoreUObject::NewObject<Asset::UMaterial>()};
-                Core::TArray<Core::Uint8> Actual{};
-
-                if (!Asset::FMaterialFile::LoadLegacy(Assets.ResolvePath(Path, Error), Assets, *Legacy, Error) || !Asset::FAssetFile::Load(Target, Asset::EAssetType::Material, Actual, Error)) {
-                    return false;
-                }
-
-                Core::TArray<Core::Uint8> Expected{};
-                Serialization::FMemoryArchive Writer{Expected};
-                Asset::FMaterialAssetData Data{*Legacy};
-                Data.Serialize(Writer);
-
-                if (Writer.HasError() || Expected != Actual) {
-                    Error = "Material migration target conflicts with the legacy material: " + Position->second;
-                    return false;
-                }
-            } else if (std::find(Targets.begin(), Targets.end(), Target) == Targets.end()) {
-                auto Legacy{CoreUObject::NewObject<Asset::UMaterial>()};
-                const auto Staged{Directory / (std::to_string(Targets.size()) + ".masset")};
-
-                if (!Asset::FMaterialFile::LoadLegacy(Assets.ResolvePath(Path, Error), Assets, *Legacy, Error) || !Asset::FMaterialFile::Save(Staged, Assets, *Legacy, Error)) {
-                    return false;
-                }
-
-                Targets.push_back(Target);
-            }
-
-            Reference = Position->second;
-            Changed = true;
-
-            return true;
-        }
-
     }
 
+    /**
+     * @brief 전달받은 설정과 의존성으로 FAssetManager의 초기 상태를 구성합니다.
+     */
     Asset::FAssetManager::FAssetManager(std::filesystem::path ContentRoot)
 		: mContentRoot{std::filesystem::absolute(ContentRoot).lexically_normal()} {
     }
 
+    /**
+     * @brief 객체의 수명을 끝내고 소유한 자원을 정리합니다.
+     */
     Asset::FAssetManager::~FAssetManager() = default;
 
+    /**
+     * @brief 에셋 경로의 기준이 되는 콘텐츠 폴더를 반환합니다.
+     */
     const std::filesystem::path& Asset::FAssetManager::GetContentRoot() const {
         return mContentRoot;
     }
 
+    /**
+     * @brief 이 관리자가 보유한 메시의 경로를 조회합니다.
+     */
     Core::FString Asset::FAssetManager::GetMeshPath(const Asset::UStaticMesh* Mesh) const {
         for (const auto& Entry : mMeshes) {
             if (Entry.second.get() == Mesh) {
@@ -437,6 +499,9 @@ namespace Asset {
         return {};
     }
 
+    /**
+     * @brief 캐시에 등록된 스켈레탈 메시의 프로젝트 상대 경로를 반환합니다.
+     */
     Core::FString Asset::FAssetManager::GetSkeletalMeshPath(const Asset::USkeletalMesh* Mesh) const {
         for (const auto& Entry : mSkeletalMeshes) {
             if (Entry.second.get() == Mesh) {
@@ -447,6 +512,9 @@ namespace Asset {
         return {};
     }
 
+    /**
+     * @brief 이 관리자의 캐시에서 텍스처에 대응하는 에셋 경로를 조회합니다.
+     */
     Core::FString Asset::FAssetManager::GetTexturePath(const Asset::UTexture2D* Texture) const {
         for (const auto& Entry : mTextures) {
             if (Entry.second.get() == Texture) {
@@ -457,11 +525,15 @@ namespace Asset {
         return {};
     }
 
+    /**
+     * @brief 콘텐츠 폴더를 벗어나는 경로를 거부하고 정규화된 절대 경로를 반환합니다.
+     */
     std::filesystem::path Asset::FAssetManager::ResolvePath(const std::filesystem::path& Path, Core::FString& Error) const {
         Error.clear();
 
         if (Path.empty() || (Path.has_root_name() && !Path.is_absolute())) {
             Error = "An asset path is required";
+
             return {};
         }
 
@@ -471,6 +543,7 @@ namespace Asset {
 
         if (Code || Root.empty() || Resolved.empty()) {
             Error = "Cannot resolve the project asset path";
+
             return {};
         }
 
@@ -485,12 +558,16 @@ namespace Asset {
 
         if (RootPart != Root.end() || PathPart == Resolved.end()) {
             Error = "Assets must be inside the current project's Content folder";
+
             return {};
         }
 
         return Resolved;
     }
 
+    /**
+     * @brief 경로가 콘텐츠 폴더 안에 있는지 검증하고 UTF-8 상대 경로를 반환합니다.
+     */
     Core::FString Asset::FAssetManager::GetRelativePath(const std::filesystem::path& Path, Core::FString& Error) const {
         const auto Resolved{ResolvePath(Path, Error)};
 
@@ -503,12 +580,16 @@ namespace Asset {
 
         if (Code) {
             Error = "Cannot make a project relative asset path";
+
             return {};
         }
 
         return Core::FilePath::ToGenericUtf8(Relative);
     }
 
+    /**
+     * @brief 콘텐츠 폴더 아래의 .masset 파일을 찾아 상대 경로순으로 반환합니다.
+     */
     Core::TArray<std::filesystem::path> Asset::FAssetManager::GetAssetPaths(Core::FString& Error) const {
         Error.clear();
 
@@ -540,6 +621,9 @@ namespace Asset {
         return Paths;
     }
 
+    /**
+     * @brief 메시 에셋을 캐시에서 조회하거나 파일에서 로드하여 보관합니다.
+     */
     Asset::UStaticMesh* Asset::FAssetManager::LoadMesh(const std::filesystem::path& Path, Core::FString& Error) {
         const Core::FScopedStatTimer StatTimer{Asset::AssetStats::MeshLoad};
         const Core::FString Key{CacheKey(GetRelativePath(Path, Error))};
@@ -552,6 +636,7 @@ namespace Asset {
 
         if (Existing != mMeshes.end()) {
             Asset::AssetStats::AssetCacheHits.Add();
+
             return Existing->second.get();
         }
 
@@ -563,12 +648,14 @@ namespace Asset {
 
         Serialization::FMemoryArchive Archive{static_cast<const Core::TArray<Core::Uint8>&>(Payload)};
         Asset::FMeshData Data{};
+
         SerializeMesh(Archive, Data);
 
         auto Mesh{CoreUObject::NewObject<Asset::UStaticMesh>()};
 
         if (Archive.HasError() || Archive.GetRemainingBytes() != 0 || !Mesh->SetMeshData(std::move(Data))) {
             Error = Archive.HasError() ? Archive.GetError() : "Invalid mesh asset data";
+
             return nullptr;
         }
 
@@ -580,6 +667,9 @@ namespace Asset {
         return Result;
     }
 
+    /**
+     * @brief 스켈레탈 메시 파일에서 본·스킨 가중치·기하 데이터를 읽어 캐시에 등록합니다.
+     */
     Asset::USkeletalMesh* Asset::FAssetManager::LoadSkeletalMesh(const std::filesystem::path& Path, Core::FString& Error) {
         const Core::FScopedStatTimer StatTimer{Asset::AssetStats::MeshLoad};
         const Core::FString Key{CacheKey(GetRelativePath(Path, Error))};
@@ -592,6 +682,7 @@ namespace Asset {
 
         if (Existing != mSkeletalMeshes.end()) {
             Asset::AssetStats::AssetCacheHits.Add();
+
             return Existing->second.get();
         }
 
@@ -603,22 +694,139 @@ namespace Asset {
 
         Serialization::FMemoryArchive Archive{static_cast<const Core::TArray<Core::Uint8>&>(Payload)};
         Asset::FMeshData Data{};
-        Core::TArray<Asset::FMeshImportBone> Bones{};
+        Core::TArray<Asset::FMeshImportBone> LegacyBones{};
         Core::TArray<Asset::FMeshImportSkinWeight> SkinWeights{};
-        SerializeSkeletalMesh(Archive, Data, Bones, SkinWeights);
+
+        SerializeSkeletalMesh(Archive, Data, SkinWeights, &LegacyBones);
+
         auto Mesh{CoreUObject::NewObject<Asset::USkeletalMesh>()};
 
-        if (Archive.HasError() || Archive.GetRemainingBytes() != 0 || !Mesh->SetMeshData(std::move(Data), std::move(Bones), std::move(SkinWeights))) {
+        if (Archive.HasError() || Archive.GetRemainingBytes() != 0 || !Mesh->SetMeshData(std::move(Data), std::move(SkinWeights))) {
             Error = Archive.HasError() ? Archive.GetError() : "Invalid skeletal mesh asset data";
+
             return nullptr;
         }
 
         Asset::USkeletalMesh* Result{Mesh.get()};
+
         Mesh->SetName(Core::FilePath::ToUtf8(Path.stem()));
+
+        if (!LegacyBones.empty()) {
+            auto Skeleton{CoreUObject::NewObject<Asset::USkeleton>()};
+
+            if (!Skeleton->SetBones(std::move(LegacyBones))) {
+                Error = "Invalid embedded skeleton data";
+
+                return nullptr;
+            }
+
+            Skeleton->SetName(Mesh->GetName());
+            mLegacySkeletons.emplace(Key, std::move(Skeleton));
+        }
+
         mSkeletalMeshes.emplace(Key, std::move(Mesh));
+
         return Result;
     }
 
+    Asset::USkeleton* Asset::FAssetManager::LoadSkeleton(const std::filesystem::path& Path, Core::FString& Error) {
+        const Core::FString Key{CacheKey(GetRelativePath(Path, Error))};
+
+        if (Key.empty()) {
+            return nullptr;
+        }
+
+        const auto Existing{mSkeletons.find(Key)};
+
+        if (Existing != mSkeletons.end()) {
+            Asset::AssetStats::AssetCacheHits.Add();
+
+            return Existing->second.get();
+        }
+
+        Core::TArray<Core::Uint8> Payload{};
+
+        if (!Asset::FAssetFile::Load(ResolvePath(Path, Error), Asset::EAssetType::Skeleton, Payload, Error)) {
+            return nullptr;
+        }
+
+        Serialization::FMemoryArchive Archive{static_cast<const Core::TArray<Core::Uint8>&>(Payload)};
+        Core::TArray<Asset::FMeshImportBone> Bones{};
+
+        SerializeSkeleton(Archive, Bones);
+
+        auto Skeleton{CoreUObject::NewObject<Asset::USkeleton>()};
+
+        if (Archive.HasError() || Archive.GetRemainingBytes() != 0 || !Skeleton->SetBones(std::move(Bones))) {
+            Error = Archive.HasError() ? Archive.GetError() : "Invalid skeleton asset data";
+
+            return nullptr;
+        }
+
+        Asset::USkeleton* Result{Skeleton.get()};
+
+        Skeleton->SetName(Core::FilePath::ToUtf8(Path.stem()));
+        mSkeletons.emplace(Key, std::move(Skeleton));
+
+        return Result;
+    }
+
+    Asset::USkeleton* Asset::FAssetManager::FindLegacySkeleton(const std::filesystem::path& MeshPath) const {
+        Core::FString Error{};
+        const auto Existing{mLegacySkeletons.find(CacheKey(GetRelativePath(MeshPath, Error)))};
+
+        return Existing != mLegacySkeletons.end() ? Existing->second.get() : nullptr;
+    }
+
+    Asset::UAnimSequence* Asset::FAssetManager::LoadAnimSequence(const std::filesystem::path& Path, Core::FString& Error) {
+        const Core::FString Key{CacheKey(GetRelativePath(Path, Error))};
+
+        if (Key.empty()) {
+            return nullptr;
+        }
+
+        const auto Existing{mAnimSequences.find(Key)};
+
+        if (Existing != mAnimSequences.end()) {
+            Asset::AssetStats::AssetCacheHits.Add();
+
+            return Existing->second.get();
+        }
+
+        Core::TArray<Core::Uint8> Payload{};
+
+        if (!Asset::FAssetFile::Load(ResolvePath(Path, Error), Asset::EAssetType::AnimSequence, Payload, Error)) {
+            return nullptr;
+        }
+
+        Serialization::FMemoryArchive Archive{static_cast<const Core::TArray<Core::Uint8>&>(Payload)};
+        Asset::FAnimDataModel Model{};
+
+        SerializeAnimSequence(Archive, Model);
+
+        if (Archive.HasError() || Archive.GetRemainingBytes() != 0) {
+            Error = Archive.HasError() ? Archive.GetError() : "Invalid animation sequence asset data";
+
+            return nullptr;
+        }
+
+        auto Sequence{CoreUObject::NewObject<Asset::UAnimSequence>()};
+
+        if (!Sequence->SetDataModel(std::move(Model), Error)) {
+            return nullptr;
+        }
+
+        Asset::UAnimSequence* Result{Sequence.get()};
+
+        Sequence->SetName(Core::FilePath::ToUtf8(Path.stem()));
+        mAnimSequences.emplace(Key, std::move(Sequence));
+
+        return Result;
+    }
+
+    /**
+     * @brief 텍스처 에셋을 캐시에서 조회하거나 파일에서 로드하여 보관합니다.
+     */
     Asset::UTexture2D* Asset::FAssetManager::LoadTexture(const std::filesystem::path& Path, Core::FString& Error) {
         const Core::FScopedStatTimer StatTimer{Asset::AssetStats::TextureLoad};
         const Core::FString Key{CacheKey(GetRelativePath(Path, Error))};
@@ -631,6 +839,7 @@ namespace Asset {
 
         if (Existing != mTextures.end()) {
             Asset::AssetStats::AssetCacheHits.Add();
+
             return Existing->second.get();
         }
 
@@ -645,6 +854,7 @@ namespace Asset {
 
             if (!Texture->LoadFromFile(Source)) {
                 Error = "Cannot load the material texture";
+
                 return nullptr;
             }
 
@@ -669,6 +879,7 @@ namespace Asset {
 
         if (Archive.HasError() || Archive.GetRemainingBytes() != 0) {
             Error = Archive.HasError() ? Archive.GetError() : "Invalid texture asset data";
+
             return nullptr;
         }
 
@@ -683,6 +894,9 @@ namespace Asset {
         return Result;
     }
 
+    /**
+     * @brief 검증한 CPU 메시 데이터를 바이너리 에셋 파일로 저장합니다.
+     */
     bool Asset::FAssetManager::SaveMesh(const std::filesystem::path& Path, const Asset::UStaticMesh& Mesh, Core::FString& Error) {
         const auto Target{ResolvePath(Path, Error)};
 
@@ -697,10 +911,16 @@ namespace Asset {
         Core::TArray<Core::Uint8> Payload{};
         Serialization::FMemoryArchive Archive{Payload};
         Asset::FMeshData Data{Mesh.GetMeshData()};
+
         SerializeMesh(Archive, Data);
 
         if (Archive.HasError()) {
             Error = Archive.GetError();
+
+            return false;
+        }
+
+        if (!CheckCacheSlot(mMeshes, CacheKey(GetRelativePath(Path, Error)), &Mesh, Error)) {
             return false;
         }
 
@@ -708,15 +928,12 @@ namespace Asset {
             return false;
         }
 
-        const auto Existing{mMeshes.find(CacheKey(GetRelativePath(Path, Error)))};
-
-        if (Existing != mMeshes.end() && Existing->second.get() != &Mesh) {
-            Existing->second->SetMeshData(Mesh.GetMeshData());
-        }
-
         return true;
     }
 
+    /**
+     * @brief 스켈레탈 메시의 기하·본 계층·스킨 가중치를 에셋 파일에 저장합니다.
+     */
     bool Asset::FAssetManager::SaveSkeletalMesh(const std::filesystem::path& Path, const Asset::USkeletalMesh& Mesh, Core::FString& Error) {
         const auto Target{ResolvePath(Path, Error)};
 
@@ -731,12 +948,17 @@ namespace Asset {
         Core::TArray<Core::Uint8> Payload{};
         Serialization::FMemoryArchive Archive{Payload};
         Asset::FMeshData Data{Mesh.GetMeshData()};
-        Core::TArray<Asset::FMeshImportBone> Bones{Mesh.GetBones()};
         Core::TArray<Asset::FMeshImportSkinWeight> SkinWeights{Mesh.GetSkinWeights()};
-        SerializeSkeletalMesh(Archive, Data, Bones, SkinWeights);
+
+        SerializeSkeletalMesh(Archive, Data, SkinWeights);
 
         if (Archive.HasError()) {
             Error = Archive.GetError();
+
+            return false;
+        }
+
+        if (!CheckCacheSlot(mSkeletalMeshes, CacheKey(GetRelativePath(Path, Error)), &Mesh, Error)) {
             return false;
         }
 
@@ -744,16 +966,80 @@ namespace Asset {
             return false;
         }
 
-        const auto Existing{mSkeletalMeshes.find(CacheKey(GetRelativePath(Path, Error)))};
+        return true;
+    }
 
-        if (Existing != mSkeletalMeshes.end() && Existing->second.get() != &Mesh && !Existing->second->SetMeshData(std::move(Data), std::move(Bones), std::move(SkinWeights))) {
-            Error = "Cannot update the cached skeletal mesh";
+    bool Asset::FAssetManager::SaveSkeleton(const std::filesystem::path& Path, const Asset::USkeleton& Skeleton, Core::FString& Error) {
+        const auto Target{ResolvePath(Path, Error)};
+
+        if (Target.empty() || !Skeleton.IsValid()) {
+            if (Error.empty()) {
+                Error = "Cannot save an invalid skeleton";
+            }
+
+            return false;
+        }
+
+        Core::TArray<Core::Uint8> Payload{};
+        Serialization::FMemoryArchive Archive{Payload};
+        Core::TArray<Asset::FMeshImportBone> Bones{Skeleton.GetBones()};
+
+        SerializeSkeleton(Archive, Bones);
+
+        if (Archive.HasError()) {
+            Error = Archive.GetError();
+
+            return false;
+        }
+
+        if (!CheckCacheSlot(mSkeletons, CacheKey(GetRelativePath(Path, Error)), &Skeleton, Error)) {
+            return false;
+        }
+
+        if (!Asset::FAssetFile::Save(Target, Asset::EAssetType::Skeleton, Payload, Error)) {
             return false;
         }
 
         return true;
     }
 
+    bool Asset::FAssetManager::SaveAnimSequence(const std::filesystem::path& Path, const Asset::UAnimSequence& Sequence, Core::FString& Error) {
+        const auto Target{ResolvePath(Path, Error)};
+
+        if (Target.empty() || !Sequence.IsValid()) {
+            if (Error.empty()) {
+                Error = "Cannot save an invalid animation sequence";
+            }
+
+            return false;
+        }
+
+        Core::TArray<Core::Uint8> Payload{};
+        Serialization::FMemoryArchive Archive{Payload};
+        Asset::FAnimDataModel Model{Sequence.GetDataModel()};
+
+        SerializeAnimSequence(Archive, Model);
+
+        if (Archive.HasError()) {
+            Error = Archive.GetError();
+
+            return false;
+        }
+
+        if (!CheckCacheSlot(mAnimSequences, CacheKey(GetRelativePath(Path, Error)), &Sequence, Error)) {
+            return false;
+        }
+
+        if (!Asset::FAssetFile::Save(Target, Asset::EAssetType::AnimSequence, Payload, Error)) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * @brief 텍스처의 크기·형식·색 공간과 이미지 데이터를 에셋 파일로 저장합니다.
+     */
     bool Asset::FAssetManager::SaveTexture(const std::filesystem::path& Path, const Asset::UTexture2D& Texture, Core::FString& Error) {
         const auto Target{ResolvePath(Path, Error)};
 
@@ -772,6 +1058,11 @@ namespace Asset {
 
         if (Archive.HasError()) {
             Error = Archive.GetError();
+
+            return false;
+        }
+
+        if (!CheckCacheSlot(mTextures, CacheKey(GetRelativePath(Path, Error)), &Texture, Error)) {
             return false;
         }
 
@@ -779,19 +1070,19 @@ namespace Asset {
             return false;
         }
 
-        const auto Existing{mTextures.find(CacheKey(GetRelativePath(Path, Error)))};
-
-        if (Existing != mTextures.end() && Existing->second.get() != &Texture) {
-            return Data.ApplyTo(*Existing->second, Error);
-        }
-
         return true;
     }
 
+    /**
+     * @brief 기본 임포트 옵션으로 외부 에셋을 새 폴더에 가져오고 생성한 에셋 경로를 반환합니다.
+     */
     bool Asset::FAssetManager::ImportAsset(const std::filesystem::path& Source, const std::filesystem::path& Directory, std::filesystem::path& ImportedPath, Core::FString& Error) {
         return ImportAsset(Source, Directory, Asset::FAssetImportOption{}, ImportedPath, Error);
     }
 
+    /**
+     * @brief 임포트 옵션을 따라 외부 에셋을 새 폴더에 가져오고 생성한 주 에셋 경로를 반환합니다.
+     */
     bool Asset::FAssetManager::ImportAsset(const std::filesystem::path& Source, const std::filesystem::path& Directory, const Asset::FAssetImportOption& Option, std::filesystem::path& ImportedPath, Core::FString& Error) {
         Error.clear();
         ImportedPath.clear();
@@ -801,6 +1092,7 @@ namespace Asset {
 
         if (!Texture && !Asset::IMeshImporter::IsSupported(Source)) {
             Error = "Unsupported import file type: " + Core::FilePath::ToUtf8(Source.filename());
+
             return false;
         }
 
@@ -814,6 +1106,7 @@ namespace Asset {
 
         if (!std::filesystem::is_regular_file(Source, Code) || Code) {
             Error = "Cannot read the import source";
+
             return false;
         }
 
@@ -821,6 +1114,7 @@ namespace Asset {
 
         if (Code) {
             Error = "Cannot create the import destination: " + Code.message();
+
             return false;
         }
 
@@ -831,37 +1125,39 @@ namespace Asset {
         for (Core::Uint32 Index{}; !std::filesystem::create_directory(Folder, Code); ++Index) {
             if (Code && Code != std::errc::file_exists) {
                 Error = "Cannot create the import folder: " + Code.message();
+
                 return false;
             }
 
             Code.clear();
+
             Folder = Parent / (Base.wstring() + L"_" + std::to_wstring(Index + 1));
         }
 
+        // 새로 만든 폴더라도 지운 에셋의 캐시가 같은 경로에 남아 있을 수 있으므로 먼저 은퇴시킵니다.
+        RetireAssets(Folder);
+
         Asset::FAssetImportScope Scope{Folder};
         auto Target{Folder / Base};
+
         Target += L".masset";
 
         if (!(Texture ? ImportTexture(Source, Target, Error) : ImportMesh(Source, Target, Option, Error))) {
-            const Core::FString Prefix{CacheKey(Core::FilePath::ToGenericUtf8(Folder.lexically_relative(mContentRoot))) + "/"};
-            const auto RemoveCache{[&Prefix](auto& Cache) {
-                std::erase_if(Cache, [&Prefix](const auto& Entry) {
-                    return Entry.first.starts_with(Prefix);
-                });
-            }};
-            RemoveCache(mMaterials);
-            RemoveCache(mMeshes);
-            RemoveCache(mNormalMaps);
-            RemoveCache(mTextures);
+            RetireAssets(Folder);
+
             return false;
         }
 
         ImportedPath = Target.lexically_relative(mContentRoot);
+
         Scope.Commit();
 
         return true;
     }
 
+    /**
+     * @brief 원본 메시와 재질·외부 텍스처를 임포트 옵션에 따라 프로젝트 에셋으로 가져와 메시 참조를 저장합니다.
+     */
     bool Asset::FAssetManager::ImportMesh(const std::filesystem::path& Source, std::filesystem::path& Target, const Asset::FAssetImportOption& Option, Core::FString& Error) {
         const Core::FScopedStatTimer StatTimer{Asset::AssetStats::MeshImport};
         const auto Destination{ResolvePath(Target, Error)};
@@ -877,14 +1173,80 @@ namespace Asset {
 
             if (!Importer->Import(Imported, Error)) {
                 Error = "Cannot import mesh source '" + Core::FilePath::ToUtf8(Source) + "': " + Error;
+
                 return false;
             }
+        }
+
+        // 메시 옵션을 끄면 원본에 메시가 있어도 스켈레톤과 애니메이션만 가져옵니다.
+        if (!Option.mImportMesh) {
+            Imported.GetMeshes().clear();
+        }
+
+        const bool HasSkeleton{Option.mImportSkeleton && !Imported.GetBones().empty()};
+        std::filesystem::path SkeletonTarget{};
+
+        if (HasSkeleton) {
+            auto Skeleton{CoreUObject::NewObject<Asset::USkeleton>()};
+
+            if (!Skeleton->SetBones(std::move(Imported.GetBones()))) {
+                Error = "Invalid imported skeleton data";
+
+                return false;
+            }
+
+            SkeletonTarget = UniqueAssetPath(Destination.parent_path(), Core::FilePath::ToUtf8(Destination.stem()) + "_Skeleton", Error);
+
+            if (SkeletonTarget.empty() || !SaveSkeleton(SkeletonTarget, *Skeleton, Error)) {
+                return false;
+            }
+        }
+
+        // 애니메이션 시퀀스는 스켈레톤을 참조하지 않으며, 본 트랙을 이름으로 저장해 Animations 폴더에 클립마다 하나씩 만듭니다.
+        std::filesystem::path FirstAnimationTarget{};
+
+        if (Option.mImportAnimations) {
+            const auto AnimationDirectory{Destination.parent_path() / "Animations"};
+
+            for (Asset::FMeshImportAnimation& Animation : Imported.GetAnimations()) {
+                auto Sequence{CoreUObject::NewObject<Asset::UAnimSequence>()};
+
+                if (!Sequence->SetDataModel(std::move(Animation.GetDataModel()), Error)) {
+                    Error = "Invalid imported animation '" + Animation.GetName() + "': " + Error;
+
+                    return false;
+                }
+
+                const auto AnimationTarget{UniqueAssetPath(AnimationDirectory, AssetFileName(Animation.GetName(), "Animation"), Error)};
+
+                if (AnimationTarget.empty() || !SaveAnimSequence(AnimationTarget, *Sequence, Error)) {
+                    return false;
+                }
+
+                if (FirstAnimationTarget.empty()) {
+                    FirstAnimationTarget = AnimationTarget;
+                }
+            }
+        }
+
+        // 메시가 없으면 스켈레톤을, 스켈레톤도 없으면 첫 애니메이션을 대표 에셋으로 선택합니다.
+        if (Imported.GetMeshes().empty()) {
+            Target = !SkeletonTarget.empty() ? SkeletonTarget : FirstAnimationTarget;
+
+            if (Target.empty()) {
+                Error = "The source contains nothing to import with the selected options";
+
+                return false;
+            }
+
+            return true;
         }
 
         const auto& Materials{Imported.GetMaterials()};
         const auto MaterialDirectory{Destination.parent_path() / "Materials"};
         const auto TextureDirectory{Destination.parent_path() / "Textures"};
         Core::TMap<Core::FString, Core::FString> Textures{};
+
         // 결과 재질별로 저장한 머티리얼 에셋 경로입니다. 여러 메시가 같은 재질을 쓰면 한 번만 저장하고, 쓰이지 않는 재질은 저장하지 않습니다.
         Core::TMap<Core::Uint32, Core::FString> MaterialPaths{};
 
@@ -895,6 +1257,7 @@ namespace Asset {
 
             if (!Material->SetBaseColor(SourceMaterial.GetBaseColor())) {
                 Error = "Invalid imported material color: " + SourceMaterial.GetName();
+
                 return false;
             }
 
@@ -902,6 +1265,7 @@ namespace Asset {
 
             if (!Material->SetSpecularColor(SourceMaterial.GetSpecularColor()) || !Material->SetSpecularStrength(SourceMaterial.GetSpecularStrength()) || !Material->SetShininess(SourceMaterial.GetShininess()) || !Material->SetAmbientColor(SourceMaterial.GetAmbientColor()) || !Material->SetEmissiveColor(SourceMaterial.GetEmissiveColor()) || !Material->SetReflectionColor(SourceMaterial.GetReflectionColor()) || !Material->SetReflectionStrength(SourceMaterial.GetReflectionStrength())) {
                 Error = "Invalid imported material lighting: " + SourceMaterial.GetName();
+
                 return false;
             }
 
@@ -910,6 +1274,7 @@ namespace Asset {
             Core::FString SpecularPath{};
             Core::FString EmissivePath{};
             Core::FString ReflectionPath{};
+
             // 텍스처 임포트 옵션을 끄면 텍스처 경로를 비워 둔 채 머티리얼의 색상·조명 값만 저장합니다.
             const auto ReadTexture{[&](const Asset::FMeshImportTexture& Texture, Core::FString& TexturePath) {
                 return !Option.mImportTextures || ImportMeshTexture(*this, Texture, TextureDirectory, Textures, TexturePath, Error);
@@ -921,6 +1286,7 @@ namespace Asset {
 
             if (!Material->SetBaseColorTexturePath(BaseColorPath) || !Material->SetNormalMapTexturePath(NormalMapPath)) {
                 Error = "Invalid imported material texture path: " + SourceMaterial.GetName();
+
                 return false;
             }
 
@@ -930,6 +1296,7 @@ namespace Asset {
 
             if (!Material->SetSpecularTexturePath(SpecularPath) || !Material->SetEmissiveTexturePath(EmissivePath) || !Material->SetReflectionTexturePath(ReflectionPath)) {
                 Error = "Invalid imported material texture path: " + SourceMaterial.GetName();
+
                 return false;
             }
 
@@ -940,6 +1307,7 @@ namespace Asset {
             }
 
             MaterialPath = GetRelativePath(MaterialTarget, Error);
+
             return !MaterialPath.empty();
         }};
 
@@ -952,6 +1320,7 @@ namespace Asset {
 
             if (MaterialIndices.size() != Data.GetMaterialSlots().size()) {
                 Error = "Imported materials do not match the mesh material slots";
+
                 return false;
             }
 
@@ -960,6 +1329,7 @@ namespace Asset {
 
                 if (MaterialIndex >= Materials.size()) {
                     Error = "An imported mesh slot references an invalid material";
+
                     return false;
                 }
 
@@ -990,7 +1360,7 @@ namespace Asset {
                 return false;
             }
 
-            if (Option.mImportSkeleton && !Imported.GetBones().empty()) {
+            if (HasSkeleton) {
                 auto Mesh{CoreUObject::NewObject<Asset::USkeletalMesh>()};
                 Core::TArray<Asset::FMeshImportSkinWeight> SkinWeights{ImportedMesh.GetSkinWeights()};
 
@@ -998,8 +1368,9 @@ namespace Asset {
                     SkinWeights.resize(Data.GetPositions().size());
                 }
 
-                if (!Mesh->SetMeshData(std::move(Data), Imported.GetBones(), std::move(SkinWeights))) {
+                if (!Mesh->SetMeshData(std::move(Data), std::move(SkinWeights))) {
                     Error = "Invalid imported skeletal mesh data: " + ImportedMesh.GetName();
+
                     return false;
                 }
 
@@ -1011,6 +1382,7 @@ namespace Asset {
 
                 if (!Mesh->SetMeshData(std::move(Data))) {
                     Error = "Invalid imported mesh sections: " + ImportedMesh.GetName();
+
                     return false;
                 }
 
@@ -1027,18 +1399,58 @@ namespace Asset {
         return true;
     }
 
+    /**
+     * @brief 외부 이미지를 읽어 프로젝트의 텍스처 에셋 파일로 저장합니다.
+     */
     bool Asset::FAssetManager::ImportTexture(const std::filesystem::path& Source, const std::filesystem::path& Target, Core::FString& Error) {
         const Core::FScopedStatTimer StatTimer{Asset::AssetStats::TextureImport};
         auto Texture{CoreUObject::NewObject<Asset::UTexture2D>()};
 
         if (!Texture->LoadFromFile(Source)) {
             Error = "Cannot import texture source";
+
             return false;
         }
 
         return SaveTexture(Target, *Texture, Error);
     }
 
+    void Asset::FAssetManager::RetireAssets(const std::filesystem::path& Path) {
+        Core::FString Error{};
+        const Core::FString Relative{GetRelativePath(Path, Error)};
+
+        if (Relative.empty()) {
+            return;
+        }
+
+        // 콘텐츠 루트 자체를 가리키면 모든 항목이 대상입니다.
+        const Core::FString Key{Relative == "." ? Core::FString{} : CacheKey(Relative)};
+        const auto Retire{[this, &Key](auto& Cache) {
+            std::erase_if(Cache, [this, &Key](auto& Entry) {
+                if (!Key.empty() && Entry.first != Key && !Entry.first.starts_with(Key + "/")) {
+                    return false;
+                }
+
+                mRetired.push_back(std::move(Entry.second));
+
+                return true;
+            });
+        }};
+
+        Retire(mMeshes);
+        Retire(mSkeletalMeshes);
+        Retire(mSkeletons);
+        Retire(mLegacySkeletons);
+        Retire(mAnimSequences);
+        Retire(mTextures);
+        Retire(mNormalMaps);
+        Retire(mMaterials);
+        Retire(mSequences);
+    }
+
+    /**
+     * @brief 재질 에셋과 텍스처 참조를 로드하여 캐시에 보관합니다.
+     */
     Asset::UMaterial* Asset::FAssetManager::LoadMaterial(const std::filesystem::path& Path, Core::FString& Error) {
         const Core::FScopedStatTimer StatTimer{Asset::AssetStats::MaterialLoad};
         const Core::FString Key{CacheKey(GetRelativePath(Path, Error))};
@@ -1051,6 +1463,7 @@ namespace Asset {
 
         if (Existing != mMaterials.end()) {
             Asset::AssetStats::AssetCacheHits.Add();
+
             return Existing->second.get();
         }
 
@@ -1067,6 +1480,113 @@ namespace Asset {
         return Result;
     }
 
+    /**
+     * @brief 시퀀스 에셋을 로드하여 캐시에 보관합니다.
+     */
+    Asset::ULevelSequence* Asset::FAssetManager::LoadSequence(const std::filesystem::path& Path, Core::FString& Error) {
+        const Core::FString Key{CacheKey(GetRelativePath(Path, Error))};
+
+        if (Key.empty()) {
+            return nullptr;
+        }
+
+        const auto Existing{mSequences.find(Key)};
+
+        if (Existing != mSequences.end()) {
+            Asset::AssetStats::AssetCacheHits.Add();
+
+            return Existing->second.get();
+        }
+
+        Core::TArray<Core::Uint8> Payload{};
+
+        if (!Asset::FAssetFile::Load(ResolvePath(Path, Error), Asset::EAssetType::Sequence, Payload, Error)) {
+            return nullptr;
+        }
+
+        Serialization::FJsonArchive Archive{Core::EArchiveMode::Loading};
+
+        if (!Archive.Parse(Core::FString{reinterpret_cast<const char*>(Payload.data()), Payload.size()})) {
+            Error = Archive.GetError();
+
+            return nullptr;
+        }
+
+        auto Sequence{CoreUObject::NewObject<Asset::ULevelSequence>()};
+        Sequence->Serialize(Archive);
+
+        if (Archive.HasError()) {
+            Error = Archive.GetError();
+
+            return nullptr;
+        }
+
+        Asset::ULevelSequence* Result{Sequence.get()};
+
+        mSequences.emplace(Key, std::move(Sequence));
+
+        return Result;
+    }
+
+    /**
+     * @brief Sequences 폴더에 빈 시퀀스 에셋을 만들고 캐시에 보관합니다.
+     */
+    Asset::ULevelSequence* Asset::FAssetManager::CreateSequence(const Core::FString& Name, std::filesystem::path& Path, Core::FString& Error) {
+        const auto Directory{mContentRoot / "Sequences"};
+        std::error_code Code{};
+
+        std::filesystem::create_directories(Directory, Code);
+
+        if (Code) {
+            Error = "Cannot create the sequence folder: " + Code.message();
+
+            return nullptr;
+        }
+
+        const auto Target{UniqueAssetPath(Directory, AssetFileName(Name, "Sequence"), Error)};
+        auto Sequence{CoreUObject::NewObject<Asset::ULevelSequence>()};
+
+        if (Target.empty() || !SaveSequence(Target, *Sequence, Error)) {
+            return nullptr;
+        }
+
+        Path = Target.lexically_relative(mContentRoot);
+
+        Asset::ULevelSequence* Result{Sequence.get()};
+
+        mSequences.emplace(CacheKey(GetRelativePath(Target, Error)), std::move(Sequence));
+
+        return Result;
+    }
+
+    /**
+     * @brief 시퀀스를 에셋 파일로 저장합니다.
+     */
+    bool Asset::FAssetManager::SaveSequence(const std::filesystem::path& Path, Asset::ULevelSequence& Sequence, Core::FString& Error) {
+        const auto Target{ResolvePath(Path, Error)};
+
+        if (Target.empty()) {
+            return false;
+        }
+
+        Serialization::FJsonArchive Archive{Core::EArchiveMode::Saving};
+
+        Sequence.Serialize(Archive);
+
+        if (Archive.HasError()) {
+            Error = Archive.GetError();
+
+            return false;
+        }
+
+        const Core::FString Payload{Archive.ToString()};
+
+        return Asset::FAssetFile::Save(Target, Asset::EAssetType::Sequence, std::span<const Core::Uint8>{reinterpret_cast<const Core::Uint8*>(Payload.data()), Payload.size()}, Error);
+    }
+
+    /**
+     * @brief 머티리얼을 안전하게 저장하고 같은 경로의 캐시 객체를 갱신합니다.
+     */
     bool Asset::FAssetManager::SaveMaterial(const std::filesystem::path& Path, const Asset::UMaterial& Material, Core::FString& Error) {
         const auto Target{ResolvePath(Path, Error)};
         auto Candidate{CoreUObject::NewObject<Asset::UMaterial>()};
@@ -1084,6 +1604,9 @@ namespace Asset {
         return true;
     }
 
+    /**
+     * @brief 캐시 객체의 주소를 유지하면서 파일의 최신 설정을 다시 적용합니다.
+     */
     bool Asset::FAssetManager::ReloadMaterial(const std::filesystem::path& Path, Core::FString& Error) {
         const Core::FString Key{CacheKey(GetRelativePath(Path, Error))};
 
@@ -1106,6 +1629,9 @@ namespace Asset {
         return ApplyMaterialSettings(*Existing->second, *Candidate, Error);
     }
 
+    /**
+     * @brief 캐시 객체의 주소를 유지하면서 머티리얼 설정과 텍스처 참조를 갱신합니다.
+     */
     bool Asset::FAssetManager::ApplyMaterialSettings(Asset::UMaterial& Target, const Asset::UMaterial& Source, Core::FString& Error) {
         Target.SetName(Source.GetName());
         Target.SetShaderPath(Source.GetShaderPath());
@@ -1128,6 +1654,9 @@ namespace Asset {
         return Target.ResolveTexture(*this, Error);
     }
 
+    /**
+     * @brief 노멀 맵을 선형 색상으로 로드하고 전용 캐시에 보관합니다.
+     */
     Asset::UTexture2D* Asset::FAssetManager::LoadNormalMap(const std::filesystem::path& Path, Core::FString& Error) {
         const Core::FString Key{CacheKey(GetRelativePath(Path, Error))};
 
@@ -1152,6 +1681,7 @@ namespace Asset {
 
         if (!Data.ApplyTo(*Texture, Error) || !Texture->SetSRGB(false)) {
             Error = "Cannot create a linear normal map: " + Error;
+
             return nullptr;
         }
 
@@ -1160,227 +1690,6 @@ namespace Asset {
         mNormalMaps.emplace(Key, std::move(Texture));
 
         return Result;
-    }
-
-    bool Asset::FAssetManager::MigrateMaterials(Asset::FAssetManager::FAssetReferenceMigrator MigrateReferences, Core::FString& Error) {
-        Error.clear();
-
-        Core::TArray<std::filesystem::path> LegacyPaths{};
-        Core::TArray<std::filesystem::path> AssetPaths{};
-        std::error_code Code{};
-        std::filesystem::recursive_directory_iterator Iterator{mContentRoot, Code};
-        const std::filesystem::recursive_directory_iterator End{};
-
-        while (!Code && Iterator != End) {
-            if (Iterator->is_symlink(Code)) {
-                Iterator.disable_recursion_pending();
-            } else if (!Code && Iterator->is_regular_file(Code)) {
-                const auto& Path{Iterator->path()};
-
-                if (Path.extension() == L".mtl") {
-                    LegacyPaths.push_back(Path);
-                } else if (Path.extension() == L".masset") {
-                    AssetPaths.push_back(Path);
-                }
-            }
-
-            if (!Code) {
-                Iterator.increment(Code);
-            }
-        }
-
-        if (Code) {
-            Error = "Cannot enumerate materials for migration: " + Code.message();
-            return false;
-        }
-
-        if (LegacyPaths.empty()) {
-            return true;
-        }
-
-        std::sort(LegacyPaths.begin(), LegacyPaths.end());
-        std::sort(AssetPaths.begin(), AssetPaths.end());
-
-        const auto Directory{mContentRoot.parent_path() / "Intermediate/MaterialMigration" / Core::FilePath::FromUtf8(Core::FGuid{}.ToString())};
-        Asset::FAssetImportScope Scope{Directory};
-        Core::TMap<Core::FString, Core::FString> Materials{};
-        Core::TArray<std::filesystem::path> Targets{};
-
-        for (const auto& Legacy : LegacyPaths) {
-            const auto Source{ResolvePath(Legacy, Error)};
-
-            if (Source.empty()) {
-                return false;
-            }
-
-            auto Target{Source};
-            Target.replace_extension(L".masset");
-            const Core::FString Relative{GetRelativePath(Target, Error)};
-
-            if (Relative.empty()) {
-                return false;
-            }
-
-            Materials.emplace(CacheKey(GetRelativePath(Source, Error)), Relative);
-
-            if (!IsLegacyMaterialAsset(Source)) {
-                continue;
-            }
-
-            const bool Exists{std::filesystem::exists(Target, Code)};
-
-            if (Code) {
-                Error = "Cannot inspect material migration target: " + Code.message();
-                return false;
-            }
-
-            if (Exists) {
-                Asset::EAssetType Type{};
-
-                if (!Asset::FAssetFile::GetType(Target, Type, Error) || Type != Asset::EAssetType::Material) {
-                    Error = "Material migration target already contains another asset: " + Relative;
-                    return false;
-                }
-
-                auto Material{CoreUObject::NewObject<Asset::UMaterial>()};
-
-                if (!Asset::FMaterialFile::Load(Target, *this, *Material, Error)) {
-                    return false;
-                }
-
-                continue;
-            }
-
-            auto Material{CoreUObject::NewObject<Asset::UMaterial>()};
-            const auto Staged{Directory / (std::to_string(Targets.size()) + ".masset")};
-
-            if (!Asset::FMaterialFile::LoadLegacy(Source, *this, *Material, Error) || !Asset::FMaterialFile::Save(Staged, *this, *Material, Error)) {
-                Error = "Cannot migrate material '" + Core::FilePath::ToUtf8(Legacy) + "': " + Error;
-                return false;
-            }
-
-            Targets.push_back(Target);
-        }
-
-        for (const auto& Path : AssetPaths) {
-            Asset::EAssetType Type{};
-
-            if (!Asset::FAssetFile::GetType(Path, Type, Error)) {
-                return false;
-            }
-
-            if (Type != Asset::EAssetType::Mesh && Type != Asset::EAssetType::Scene) {
-                continue;
-            }
-
-            Core::TArray<Core::Uint8> Payload{};
-
-            if (ResolvePath(Path, Error).empty() || !Asset::FAssetFile::Load(Path, Type, Payload, Error)) {
-                return false;
-            }
-
-            bool Changed{};
-
-            if (Type == Asset::EAssetType::Mesh) {
-                Serialization::FMemoryArchive Reader{static_cast<const Core::TArray<Core::Uint8>&>(Payload)};
-                Asset::FMeshData Data{};
-                SerializeMesh(Reader, Data);
-
-                if (Reader.HasError() || Reader.GetRemainingBytes() != 0) {
-                    Error = Reader.HasError() ? Reader.GetError() : "Invalid mesh data during material migration";
-                    return false;
-                }
-
-                for (auto& Slot : Data.GetMaterialSlots()) {
-                    Core::FString Reference{Slot.GetMaterialPath()};
-
-                    if (!MigrateMaterialReference(Reference, *this, Materials, Directory, Targets, Changed, Error)) {
-                        return false;
-                    }
-
-                    Slot = Asset::FMeshMaterialSlot{Slot.GetName(), std::move(Reference)};
-                }
-
-                if (Changed) {
-                    auto Mesh{CoreUObject::NewObject<Asset::UStaticMesh>()};
-
-                    if (!Mesh->SetMeshData(Data)) {
-                        Error = "Invalid mesh settings during material migration";
-                        return false;
-                    }
-
-                    Payload.clear();
-                    Serialization::FMemoryArchive Writer{Payload};
-                    SerializeMesh(Writer, Data);
-
-                    if (Writer.HasError()) {
-                        Error = Writer.GetError();
-                        return false;
-                    }
-                }
-            } else {
-                if (!MigrateReferences) {
-                    Error = "A reference migrator is required for scene material migration";
-                    return false;
-                }
-
-                const Asset::FAssetManager::FMaterialReferenceMigrator MigrateReference{[this, &Materials, &Directory, &Targets](Core::FString& Reference, bool& Replaced, Core::FString& ReferenceError) {
-                    return MigrateMaterialReference(Reference, *this, Materials, Directory, Targets, Replaced, ReferenceError);
-                }};
-
-                if (!MigrateReferences(Type, Payload, MigrateReference, Changed, Error)) {
-                    return false;
-                }
-            }
-
-            if (Changed) {
-                const auto Staged{Directory / (std::to_string(Targets.size()) + ".masset")};
-                const auto Backup{Directory / "Backup" / Staged.filename()};
-                std::filesystem::create_directories(Backup.parent_path(), Code);
-
-                if (!Code) {
-                    std::filesystem::copy_file(Path, Backup, Code);
-                }
-
-                if (Code || !Asset::FAssetFile::Save(Staged, Type, Payload, Error)) {
-                    Error = Code ? "Cannot back up material references: " + Code.message() : Error;
-                    return false;
-                }
-
-                Targets.push_back(Path);
-            }
-        }
-
-        for (std::size_t Index{}; Index < Targets.size(); ++Index) {
-            const auto Staged{Directory / (std::to_string(Index) + ".masset")};
-            Asset::EAssetType Type{};
-            Core::TArray<Core::Uint8> Payload{};
-
-            if (Asset::FAssetFile::GetType(Staged, Type, Error) && Asset::FAssetFile::Load(Staged, Type, Payload, Error) && Asset::FAssetFile::Save(Targets[Index], Type, Payload, Error)) {
-                continue;
-            }
-
-            const Core::FString Failure{Error};
-
-            for (std::size_t Previous{}; Previous < Index; ++Previous) {
-                const auto Backup{Directory / "Backup" / (std::to_string(Previous) + ".masset")};
-
-                if (!std::filesystem::exists(Backup, Code)) {
-                    continue;
-                }
-
-                if (!Asset::FAssetFile::GetType(Backup, Type, Error) || !Asset::FAssetFile::Load(Backup, Type, Payload, Error) || !Asset::FAssetFile::Save(Targets[Previous], Type, Payload, Error)) {
-                    Scope.Commit();
-                    Error = Failure + "; cannot restore material references. Backups: " + Core::FilePath::ToUtf8(Directory);
-                    return false;
-                }
-            }
-
-            Error = Failure;
-            return false;
-        }
-
-        return true;
     }
 
 }

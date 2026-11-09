@@ -15,22 +15,40 @@
 
 namespace Asset {
 
+    /**
+     * @brief UTexture2D의 초기 상태를 구성합니다.
+     */
     Asset::UTexture2D::UTexture2D() = default;
 
+    /**
+     * @brief 전달받은 설정과 의존성으로 UTexture2D의 초기 상태를 구성합니다.
+     */
     Asset::UTexture2D::UTexture2D(const std::filesystem::path& ImagePath, bool SRGB) {
         LoadFromFile(ImagePath, SRGB);
     }
 
+    /**
+     * @brief 객체의 수명을 끝내고 소유한 자원을 정리합니다.
+     */
     Asset::UTexture2D::~UTexture2D() = default;
 
+    /**
+     * @brief DDS 데이터를 읽어 이미지 형식과 크기 및 CPU 이미지 데이터를 설정합니다.
+     */
     bool Asset::UTexture2D::SetDDSData(std::span<const Core::Uint8> Data, bool SRGB) {
         return LoadFromMemory(Data, L"Image.dds", SRGB);
     }
 
+    /**
+     * @brief 보존 중인 DDS 형식의 이미지 바이트 배열을 반환합니다.
+     */
     const Core::TArray<Core::Uint8>& Asset::UTexture2D::GetDDSData() const {
         return mDDSData;
     }
 
+    /**
+     * @brief 이미지 파일을 디코딩하여 텍스처 크기·형식·픽셀 데이터를 설정합니다.
+     */
     bool Asset::UTexture2D::LoadFromFile(const std::filesystem::path& ImagePath, bool SRGB) {
         Core::LoadingStatus::ReportFile("Importing", ImagePath);
 
@@ -43,9 +61,13 @@ namespace Asset {
         }
 
         Core::TArray<Core::Uint8> Data(static_cast<std::size_t>(Size));
+
         return Input.read(reinterpret_cast<char*>(Data.data()), static_cast<std::streamsize>(Data.size())) && LoadFromMemory(Data, ImagePath, SRGB);
     }
 
+    /**
+     * @brief 메모리의 이미지 바이트를 디코딩하여 텍스처 크기·형식·픽셀 데이터를 설정합니다.
+     */
     bool Asset::UTexture2D::LoadFromMemory(std::span<const Core::Uint8> Data, const std::filesystem::path& ImagePath, bool SRGB) {
         if (Data.empty()) {
             return false;
@@ -78,6 +100,9 @@ namespace Asset {
         return SUCCEEDED(Result) && SetImageData(SourceImage, SRGB);
     }
 
+    /**
+     * @brief 크기·형식·용도·색 공간을 검증하여 텍스처 생성 구성을 설정합니다.
+     */
     bool Asset::UTexture2D::Configure(Core::Uint32 SizeX, Core::Uint32 SizeY, Asset::ETextureFormat Format, Asset::ETextureUsage Usage, bool SRGB) {
         if (!IsValidSize(SizeX, SizeY) || !ValidateUsage(Format, Usage, SRGB)) {
             return false;
@@ -88,6 +113,7 @@ namespace Asset {
         }
 
         ReleaseResources();
+
         mSizeX = SizeX;
         mSizeY = SizeY;
         mMipLevels = 1;
@@ -101,6 +127,9 @@ namespace Asset {
         return true;
     }
 
+    /**
+     * @brief 크기와 형식에 맞는 CPU 픽셀 데이터를 검증하여 교체합니다.
+     */
     bool Asset::UTexture2D::SetPixels(Core::Uint32 SizeX, Core::Uint32 SizeY, Asset::ETextureFormat Format, Core::TArray<Core::Uint8> Pixels) {
         const bool SRGB{mSRGB && (Format == Asset::ETextureFormat::RGBA8 || Format == Asset::ETextureFormat::BGRA8)};
 
@@ -123,35 +152,57 @@ namespace Asset {
         mDDSData = Core::TArray<Core::Uint8>{};
         mSRGB = SRGB;
         mExternalResource = false;
+
         ReleaseResources();
 
         return true;
     }
 
+    /**
+     * @brief 텍스처의 가로 픽셀 수를 반환합니다.
+     */
     Core::Uint32 Asset::UTexture2D::GetSizeX() const {
         return mSizeX;
     }
 
+    /**
+     * @brief 텍스처의 세로 픽셀 수를 반환합니다.
+     */
     Core::Uint32 Asset::UTexture2D::GetSizeY() const {
         return mSizeY;
     }
 
+    /**
+     * @brief 텍스처의 밉 레벨 수를 반환합니다.
+     */
     Core::Uint32 Asset::UTexture2D::GetMipLevels() const {
         return mMipLevels;
     }
 
+    /**
+     * @brief 텍스처의 픽셀 또는 깊이 형식을 반환합니다.
+     */
     Asset::ETextureFormat Asset::UTexture2D::GetFormat() const {
         return mFormat;
     }
 
+    /**
+     * @brief CPU 메모리에 보관한 픽셀 바이트 배열을 반환합니다.
+     */
     const Core::TArray<Core::Uint8>& Asset::UTexture2D::GetPixels() const {
         return mPixels;
     }
 
+    /**
+     * @brief 텍스처를 sRGB 색 공간으로 해석하는지 반환합니다.
+     */
     bool Asset::UTexture2D::IsSRGB() const {
         return mSRGB;
     }
 
+    /**
+     * @brief 현재 텍스처 형식과 용도에 맞는지 검증하여 sRGB 설정을 변경합니다.
+     */
     bool Asset::UTexture2D::SetSRGB(bool SRGB) {
         if (!ValidateUsage(mFormat, mUsage, SRGB) || (mExternalResource && mSRGB != SRGB)) {
             return false;
@@ -160,20 +211,28 @@ namespace Asset {
         if (mSRGB != SRGB) {
             if (!mDDSData.empty()) {
                 DirectX::ScratchImage SourceImage{};
+
                 return SUCCEEDED(DirectX::LoadFromDDSMemory(mDDSData.data(), mDDSData.size(), DirectX::DDS_FLAGS_NONE, nullptr, SourceImage)) && SetImageData(SourceImage, SRGB);
             }
 
             mSRGB = SRGB;
+
             ReleaseResources();
         }
 
         return true;
     }
 
+    /**
+     * @brief 텍스처에 설정된 GPU 사용 용도 플래그를 반환합니다.
+     */
     Asset::ETextureUsage Asset::UTexture2D::GetUsage() const {
         return mUsage;
     }
 
+    /**
+     * @brief 현재 형식·색 공간과 호환되는 GPU 사용 용도 플래그를 설정합니다.
+     */
     bool Asset::UTexture2D::SetUsage(Asset::ETextureUsage Usage) {
         if (!ValidateUsage(mFormat, Usage, mSRGB) || (mExternalResource && mUsage != Usage)) {
             return false;
@@ -181,16 +240,23 @@ namespace Asset {
 
         if (mUsage != Usage) {
             mUsage = Usage;
+
             ReleaseResources();
         }
 
         return true;
     }
 
+    /**
+     * @brief 크기·형식·용도와 픽셀 또는 연결된 리소스 구성이 유효한지 검사합니다.
+     */
     bool Asset::UTexture2D::IsValid() const {
         return IsValidSize(mSizeX, mSizeY) && ValidateUsage(mFormat, mUsage, mSRGB);
     }
 
+    /**
+     * @brief 현재 CPU 데이터를 사용하여 Direct3D 리소스를 생성합니다.
+     */
     bool Asset::UTexture2D::CreateResources(ID3D11Device* Device) {
         if (Device == nullptr || !IsValid()) {
             return false;
@@ -198,6 +264,7 @@ namespace Asset {
 
         if (HasResources()) {
             Microsoft::WRL::ComPtr<ID3D11Device> ResourceDevice{};
+
             mTexture->GetDevice(ResourceDevice.GetAddressOf());
 
             if (ResourceDevice.Get() == Device) {
@@ -263,6 +330,9 @@ namespace Asset {
         return true;
     }
 
+    /**
+     * @brief 외부 Direct3D 텍스처에 COM 참조를 유지하고 지정 용도의 뷰를 생성합니다.
+     */
     bool Asset::UTexture2D::AttachResource(ID3D11Texture2D* Texture, Asset::ETextureUsage Usage) {
         if (Texture == nullptr) {
             return false;
@@ -273,6 +343,7 @@ namespace Asset {
         }
 
         D3D11_TEXTURE2D_DESC Description{};
+
         Texture->GetDesc(&Description);
 
         Asset::ETextureFormat Format{};
@@ -284,6 +355,7 @@ namespace Asset {
         case DXGI_FORMAT_R8G8B8A8_UNORM_SRGB:
             Format = Asset::ETextureFormat::RGBA8;
             SRGB = Description.Format == DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+
             break;
 
         case DXGI_FORMAT_B8G8R8A8_TYPELESS:
@@ -291,28 +363,34 @@ namespace Asset {
         case DXGI_FORMAT_B8G8R8A8_UNORM_SRGB:
             Format = Asset::ETextureFormat::BGRA8;
             SRGB = Description.Format == DXGI_FORMAT_B8G8R8A8_UNORM_SRGB;
+
             break;
 
         case DXGI_FORMAT_R16G16B16A16_FLOAT:
             Format = Asset::ETextureFormat::RGBA16Float;
+
             break;
 
         case DXGI_FORMAT_R32G32B32A32_FLOAT:
             Format = Asset::ETextureFormat::RGBA32Float;
+
             break;
 
         case DXGI_FORMAT_R32_FLOAT:
             Format = Asset::ETextureFormat::R32Float;
+
             break;
 
         case DXGI_FORMAT_R24G8_TYPELESS:
         case DXGI_FORMAT_D24_UNORM_S8_UINT:
             Format = Asset::ETextureFormat::D24S8;
+
             break;
 
         case DXGI_FORMAT_R32_TYPELESS:
         case DXGI_FORMAT_D32_FLOAT:
             Format = Asset::ETextureFormat::D32Float;
+
             break;
 
         default:
@@ -326,6 +404,7 @@ namespace Asset {
         }
 
         Microsoft::WRL::ComPtr<ID3D11Device> Device{};
+
         Texture->GetDevice(Device.GetAddressOf());
 
         Microsoft::WRL::ComPtr<ID3D11Texture2D> Resource{Texture};
@@ -355,6 +434,9 @@ namespace Asset {
         return true;
     }
 
+    /**
+     * @brief 소유한 GPU 리소스와 뷰를 해제하고 메모리 집계를 초기화합니다.
+     */
     void Asset::UTexture2D::ReleaseResources() {
         mDepthStencilView.Reset();
         mRenderTargetView.Reset();
@@ -363,30 +445,51 @@ namespace Asset {
         mResourceBytes = 0;
     }
 
+    /**
+     * @brief 사용할 수 있는 GPU 리소스를 보유하는지 검사합니다.
+     */
     bool Asset::UTexture2D::HasResources() const {
         return mTexture != nullptr && ((mUsage & Asset::ETextureUsage::ShaderResource) == Asset::ETextureUsage::None || mShaderResourceView != nullptr) && ((mUsage & Asset::ETextureUsage::RenderTarget) == Asset::ETextureUsage::None || mRenderTargetView != nullptr) && ((mUsage & Asset::ETextureUsage::DepthStencil) == Asset::ETextureUsage::None || mDepthStencilView != nullptr);
     }
 
+    /**
+     * @brief Direct3D 2차원 텍스처의 비소유 주소를 반환합니다.
+     */
     ID3D11Texture2D* Asset::UTexture2D::GetTexture() const {
         return mTexture.Get();
     }
 
+    /**
+     * @brief 셰이더에서 읽을 리소스 뷰의 비소유 주소를 반환합니다.
+     */
     ID3D11ShaderResourceView* Asset::UTexture2D::GetShaderResourceView() const {
         return mShaderResourceView.Get();
     }
 
+    /**
+     * @brief 렌더 타깃 출력 뷰의 비소유 주소를 반환합니다.
+     */
     ID3D11RenderTargetView* Asset::UTexture2D::GetRenderTargetView() const {
         return mRenderTargetView.Get();
     }
 
+    /**
+     * @brief 깊이·스텐실 출력 뷰의 비소유 주소를 반환합니다.
+     */
     ID3D11DepthStencilView* Asset::UTexture2D::GetDepthStencilView() const {
         return mDepthStencilView.Get();
     }
 
+    /**
+     * @brief 현재 보유한 GPU 리소스의 추정 바이트 수를 반환합니다.
+     */
     std::size_t Asset::UTexture2D::GetResourceBytes() const {
         return mResourceBytes;
     }
 
+    /**
+     * @brief DirectX 이미지에서 지원 형식의 픽셀과 DDS 데이터를 구성합니다.
+     */
     bool Asset::UTexture2D::SetImageData(DirectX::ScratchImage& SourceImage, bool SRGB) {
         const DirectX::TexMetadata& Metadata{SourceImage.GetMetadata()};
 
@@ -420,6 +523,7 @@ namespace Asset {
         case DXGI_FORMAT_B8G8R8A8_UNORM:
         case DXGI_FORMAT_B8G8R8A8_UNORM_SRGB:
             Format = Asset::ETextureFormat::BGRA8;
+
             break;
 
         case DXGI_FORMAT_R16_FLOAT:
@@ -427,16 +531,19 @@ namespace Asset {
         case DXGI_FORMAT_R11G11B10_FLOAT:
         case DXGI_FORMAT_R16G16B16A16_FLOAT:
             Format = Asset::ETextureFormat::RGBA16Float;
+
             break;
 
         case DXGI_FORMAT_R32G32_FLOAT:
         case DXGI_FORMAT_R32G32B32_FLOAT:
         case DXGI_FORMAT_R32G32B32A32_FLOAT:
             Format = Asset::ETextureFormat::RGBA32Float;
+
             break;
 
         case DXGI_FORMAT_R32_FLOAT:
             Format = Asset::ETextureFormat::R32Float;
+
             break;
 
         default:
@@ -487,6 +594,7 @@ namespace Asset {
         Core::TArray<Core::Uint8> DDSData{DDSBytes, DDSBytes + DDSBlob.GetBufferSize()};
 
         ReleaseResources();
+
         mSizeX = static_cast<Core::Uint32>(MipChain.GetMetadata().width);
         mSizeY = static_cast<Core::Uint32>(MipChain.GetMetadata().height);
         mMipLevels = static_cast<Core::Uint32>(MipChain.GetMetadata().mipLevels);
@@ -499,14 +607,23 @@ namespace Asset {
         return true;
     }
 
+    /**
+     * @brief 가로·세로 크기가 Direct3D 텍스처의 허용 범위에 있는지 검사합니다.
+     */
     bool Asset::UTexture2D::IsValidSize(Core::Uint32 SizeX, Core::Uint32 SizeY) {
         return SizeX > 0 && SizeY > 0 && SizeX <= D3D11_REQ_TEXTURE2D_U_OR_V_DIMENSION && SizeY <= D3D11_REQ_TEXTURE2D_U_OR_V_DIMENSION;
     }
 
+    /**
+     * @brief 지정한 형식이 깊이 또는 깊이·스텐실 형식인지 검사합니다.
+     */
     bool Asset::UTexture2D::IsDepthFormat(Asset::ETextureFormat Format) {
         return Format == Asset::ETextureFormat::D24S8 || Format == Asset::ETextureFormat::D32Float;
     }
 
+    /**
+     * @brief 픽셀 형식·용도 플래그·sRGB 설정의 조합이 지원되는지 검사합니다.
+     */
     bool Asset::UTexture2D::ValidateUsage(Asset::ETextureFormat Format, Asset::ETextureUsage Usage, bool SRGB) {
         const Core::Uint8 Flags{static_cast<Core::Uint8>(Usage)};
 
@@ -517,6 +634,9 @@ namespace Asset {
         return IsDepthFormat(Format) ? (Usage & Asset::ETextureUsage::RenderTarget) == Asset::ETextureUsage::None : (Usage & Asset::ETextureUsage::DepthStencil) == Asset::ETextureUsage::None;
     }
 
+    /**
+     * @brief 텍스처 형식의 픽셀 하나가 차지하는 바이트 수를 반환합니다.
+     */
     Core::Uint32 Asset::UTexture2D::GetBytesPerPixel(Asset::ETextureFormat Format) {
         switch (Format) {
         case Asset::ETextureFormat::RGBA8:
@@ -537,8 +657,12 @@ namespace Asset {
         }
     }
 
+    /**
+     * @brief 텍스처 용도 플래그를 Direct3D 바인딩 플래그로 변환합니다.
+     */
     Core::Uint32 Asset::UTexture2D::GetBindFlags(Asset::ETextureUsage Usage) {
         Core::Uint32 Flags{};
+
         Flags |= (Usage & Asset::ETextureUsage::ShaderResource) != Asset::ETextureUsage::None ? D3D11_BIND_SHADER_RESOURCE : 0;
         Flags |= (Usage & Asset::ETextureUsage::RenderTarget) != Asset::ETextureUsage::None ? D3D11_BIND_RENDER_TARGET : 0;
         Flags |= (Usage & Asset::ETextureUsage::DepthStencil) != Asset::ETextureUsage::None ? D3D11_BIND_DEPTH_STENCIL : 0;
@@ -546,6 +670,9 @@ namespace Asset {
         return Flags;
     }
 
+    /**
+     * @brief 픽셀 형식과 색 공간에 대응하는 Direct3D 리소스 형식을 반환합니다.
+     */
     DXGI_FORMAT Asset::UTexture2D::GetResourceFormat(Asset::ETextureFormat Format, bool SRGB) {
         switch (Format) {
         case Asset::ETextureFormat::RGBA8:
@@ -574,6 +701,9 @@ namespace Asset {
         }
     }
 
+    /**
+     * @brief 픽셀·깊이 형식과 색 공간에 대응하는 셰이더 리소스 뷰 형식을 반환합니다.
+     */
     DXGI_FORMAT Asset::UTexture2D::GetShaderResourceFormat(Asset::ETextureFormat Format, bool SRGB) {
         if (Format == Asset::ETextureFormat::D24S8) {
             return DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
@@ -586,6 +716,9 @@ namespace Asset {
         return GetResourceFormat(Format, SRGB);
     }
 
+    /**
+     * @brief 깊이 형식에 대응하는 Direct3D 깊이·스텐실 뷰 형식을 반환합니다.
+     */
     DXGI_FORMAT Asset::UTexture2D::GetDepthStencilFormat(Asset::ETextureFormat Format) {
         if (Format == Asset::ETextureFormat::D24S8) {
             return DXGI_FORMAT_D24_UNORM_S8_UINT;
@@ -594,9 +727,13 @@ namespace Asset {
         return Format == Asset::ETextureFormat::D32Float ? DXGI_FORMAT_D32_FLOAT : DXGI_FORMAT_UNKNOWN;
     }
 
+    /**
+     * @brief 텍스처 용도에 따라 셰이더 리소스·렌더 타깃·깊이 뷰를 생성합니다.
+     */
     bool Asset::UTexture2D::CreateViews(ID3D11Device* Device, ID3D11Texture2D* Texture, Asset::ETextureFormat Format, Asset::ETextureUsage Usage, bool SRGB, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>& ShaderResourceView, Microsoft::WRL::ComPtr<ID3D11RenderTargetView>& RenderTargetView, Microsoft::WRL::ComPtr<ID3D11DepthStencilView>& DepthStencilView) {
         if ((Usage & Asset::ETextureUsage::ShaderResource) != Asset::ETextureUsage::None) {
             D3D11_TEXTURE2D_DESC TextureDescription{};
+
             Texture->GetDesc(&TextureDescription);
 
             D3D11_SHADER_RESOURCE_VIEW_DESC Description{};

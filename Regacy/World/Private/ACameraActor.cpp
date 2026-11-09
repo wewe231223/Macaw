@@ -3,7 +3,9 @@
 
 ACameraActor::ACameraActor() {
     InitializeClass(StaticClass());
+
     mCameraComponent = CreateDefaultComponent<UCameraComponent>(FName{"Camera"});
+
     SetRootComponent(mCameraComponent);
 }
 

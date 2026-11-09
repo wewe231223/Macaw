@@ -9,6 +9,8 @@
 #include "Core/ReflectionMacros.h"
 #include "Core/Types.h"
 
+#include <string_view>
+
 namespace Engine {
     class UWorld;
 }
@@ -26,16 +28,63 @@ struct ImDrawList;
 namespace Editor {
 
     /**
+     * @brief 선택한 통계 항목의 시간별 기록을 그래프 창에 표시합니다.
+     */
+    class FStatGraphs {
+    private:
+        /**
+         * @brief 그래프에 표시할 통계 그룹과 선택적 항목 이름입니다.
+         */
+        struct FSelection {
+            /**
+             * @brief 그래프로 표시할 통계 그룹 이름입니다.
+             */
+            Core::FString mGroup{};
+
+            /**
+             * @brief 콘솔 명령 또는 통계 항목의 이름입니다.
+             */
+            Core::FString mName{};
+        };
+
+    public:
+        /**
+         * @brief 통계 그래프 명령을 해석해 표시 항목과 창 상태를 갱신합니다.
+         * @param[in] Arguments 호출·파싱에 사용할 인자 목록입니다.
+         * @return 그래프 명령의 실행 결과 또는 사용법 안내입니다.
+         */
+        Core::FString ExecuteCommand(std::string_view Arguments);
+
+        /**
+         * @brief 통계 그룹 또는 항목을 그래프 표시 목록에 추가하고 창을 엽니다.
+         * @param[in] Group 조회하거나 표시할 통계 그룹 이름입니다.
+         * @param[in] Name 조회·등록·출력할 대상 이름입니다.
+         */
+        void Show(const Core::FString& Group, const Core::FString& Name = {});
+
+        /**
+         * @brief 선택한 통계 항목의 기록을 그래프 창에 그립니다.
+         */
+        void Draw();
+
+    private:
+        /**
+         * @brief 그래프에 표시할 그룹·항목 목록입니다.
+         */
+        Core::TArray<Editor::FStatGraphs::FSelection> mSelections{};
+
+        /**
+         * @brief 통계 그래프 창의 표시 여부입니다.
+         */
+        bool mOpen{};
+    };
+
+    /**
      * @brief 프레임 시간, 객체, 메모리와 렌더링 통계를 표시합니다.
      * @ingroup Editor
      */
     class FViewportStatistics {
     public:
-        /**
-         * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
-         */
-        ReflectTypes(FViewportStatistics);
-
         /**
          * @brief 뷰포트 통계의 표시 그룹을 비트 플래그로 구분합니다.
          */
@@ -99,12 +148,6 @@ namespace Editor {
 
     public:
         /**
-         * @brief 이 타입의 정적 구조체 메타데이터를 반환합니다.
-         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectStruct(FViewportStatistics);
-
-        /**
          * @brief stat 그룹 표시·목록·이력 초기화 명령을 처리합니다.
          * @param[in] Command 처리할 콘솔 명령 문자열입니다.
          * @param[out] Output 명령 처리 결과 또는 사용법을 받을 문자열입니다.
@@ -129,8 +172,9 @@ namespace Editor {
         /**
          * @brief 검색 가능한 통계 표와 이력 초기화 버튼을 별도 창에 그립니다.
          * @param[in,out] Open 창을 열지 지정하며 그리기 함수에서는 닫기 동작도 반영합니다.
+         * @param[in] Graphs 통계 그래프를 열 때 사용할 공유 창입니다.
          */
-        void DrawPanel(bool& Open);
+        void DrawPanel(bool& Open, Editor::FStatGraphs& Graphs);
 
         /**
          * @brief 하나 이상의 뷰포트 통계 그룹이 표시되도록 설정됐는지 반환합니다.
@@ -151,28 +195,19 @@ namespace Editor {
 
     private:
         /**
-         * @brief 생성된 프로퍼티 등록 함수와 빌더 접근 권한입니다.
-         */
-        ReflectMembers();
-
-    private:
-        /**
          * @brief 기본 표시 상태와 다르게 처리할 통계 그룹 이름 목록입니다.
          */
         Core::TArray<Core::FString> mEnabledGroups{};
-        ReflectProperty(mEnabledGroups, "EnabledGroups", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 기본적으로 모든 통계 그룹을 켜고 예외 목록을 적용할지 나타냅니다.
          */
         bool mAllGroups{};
-        ReflectProperty(mAllGroups, "AllGroups", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 통계 패널의 그룹·항목 이름 검색 버퍼입니다.
          */
         std::array<char, 128> mFilter{};
-        ReflectProperty(mFilter, "Filter", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
 }

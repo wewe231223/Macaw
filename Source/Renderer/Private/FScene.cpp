@@ -32,6 +32,9 @@ namespace Renderer {
      */
     Renderer::FScene::~FScene() = default;
 
+    /**
+     * @brief 컴포넌트 GUID를 키로 높이 안개 프록시를 렌더 장면에 추가하거나 교체합니다.
+     */
     void Renderer::FScene::AddHeightFog(const Engine::FHeightFogSceneProxy& Proxy) {
         const auto Existing{std::find_if(mHeightFogs.begin(), mHeightFogs.end(), [&Proxy](const Engine::FHeightFogSceneProxy& Fog) {
             return Fog.mId == Proxy.mId;
@@ -46,6 +49,9 @@ namespace Renderer {
         ++mRevision;
     }
 
+    /**
+     * @brief 지정한 GUID의 높이 안개 프록시를 렌더 장면에서 제거합니다.
+     */
     void Renderer::FScene::RemoveHeightFog(const Core::FGuid& Id) {
         if (std::erase_if(mHeightFogs, [&Id](const Engine::FHeightFogSceneProxy& Fog) {
             return Fog.mId == Id;
@@ -54,19 +60,59 @@ namespace Renderer {
         }
     }
 
+    /**
+     * @brief 현재 렌더 장면에 등록된 높이 안개 프록시 목록을 조회합니다.
+     */
     const Core::TArray<Engine::FHeightFogSceneProxy>& Renderer::FScene::GetHeightFogs() const {
         return mHeightFogs;
     }
 
+    void Renderer::FScene::AddDecal(const Engine::FDecalSceneProxy& Proxy) {
+        const auto Existing{std::find_if(mDecals.begin(), mDecals.end(), [&Proxy](const Engine::FDecalSceneProxy& Decal) {
+            return Decal.mId == Proxy.mId;
+        })};
+
+        if (Existing != mDecals.end()) {
+            if (Existing->mSortOrder == Proxy.mSortOrder) {
+                *Existing = Proxy;
+
+                return;
+            }
+
+            mDecals.erase(Existing);
+        }
+
+        const auto Position{std::upper_bound(mDecals.begin(), mDecals.end(), Proxy.mSortOrder, [](Core::Int32 SortOrder, const Engine::FDecalSceneProxy& Decal) {
+            return SortOrder < Decal.mSortOrder;
+        })};
+
+        mDecals.insert(Position, Proxy);
+    }
+
+    void Renderer::FScene::RemoveDecal(const Core::FGuid& Id) {
+        std::erase_if(mDecals, [&Id](const Engine::FDecalSceneProxy& Decal) {
+            return Decal.mId == Id;
+        });
+    }
+
+    const Core::TArray<Engine::FDecalSceneProxy>& Renderer::FScene::GetDecals() const {
+        return mDecals;
+    }
+
+    /**
+     * @brief 프록시의 GUID로 렌더 장면에 프리미티브를 추가하거나 교체합니다.
+     */
     void Renderer::FScene::AddPrimitive(const Engine::FPrimitiveSceneProxy& Proxy) {
         // 공유 형상 버퍼 외에 스킨 정점 버퍼도 같은 장치에서 준비합니다.
-        if (Proxy.mSkeletalMesh != nullptr && (Proxy.mMesh != Proxy.mSkeletalMesh->GetGeometry() || Proxy.mSkinMatrices.size() != Proxy.mSkeletalMesh->GetBones().size() || !Proxy.mSkeletalMesh->CreateResources(mDevice))) {
+        if (Proxy.mSkeletalMesh != nullptr && (Proxy.mMesh != Proxy.mSkeletalMesh->GetGeometry() || Proxy.mSkinMatrices.size() < Proxy.mSkeletalMesh->GetSkinMatrixCount() || !Proxy.mSkeletalMesh->CreateResources(mDevice))) {
             Core::ErrorHandler::Report("SkeletalMesh", "Cannot prepare skeletal mesh resources or pose", Core::ErrorHandler::EErrorLevel::Error);
+
             return;
         }
 
         if (Proxy.mMesh != nullptr && !Proxy.mMesh->CreateResources(mDevice)) {
             Core::ErrorHandler::Report("Mesh", "Cannot create project mesh resources", Core::ErrorHandler::EErrorLevel::Error);
+
             return;
         }
 
@@ -76,6 +122,7 @@ namespace Renderer {
 
         if (Position != mIndices.end()) {
             Renderer::FScenePrimitive& Primitive{mPrimitives[Position->second]};
+
             CasterChanged = CasterChanged || IsShadowCaster(Primitive.mProxy);
             Primitive.mProxy = Proxy;
 
@@ -179,22 +226,23 @@ namespace Renderer {
         return mIdentity;
     }
 
+    /**
+     * @brief 그림자 깊이 결과에 영향을 주는 캐스터 상태의 리비전을 반환합니다.
+     */
     Core::FRevision Renderer::FScene::GetCasterRevision() const {
-        Core::FRevision Revision{mCasterRevision};
-
-        for (const Renderer::FScenePrimitive& Primitive : mPrimitives) {
-            if (IsShadowCaster(Primitive.mProxy) && Primitive.mProxy.mMesh != nullptr && Primitive.mProxy.mMesh->GetRevision().GetValue() > Revision.GetValue()) {
-                Revision = Primitive.mProxy.mMesh->GetRevision();
-            }
-        }
-
-        return Revision;
+        return mCasterRevision;
     }
 
+    /**
+     * @brief 프록시가 그림자 깊이 패스에 그려지는 캐스터인지 검사합니다.
+     */
     bool Renderer::FScene::IsShadowCaster(const Engine::FPrimitiveSceneProxy& Proxy) {
         return Proxy.mCastShadow && !Proxy.mSprite.has_value() && !Proxy.mText.has_value();
     }
 
+    /**
+     * @brief 누적 변환 업로드 횟수를 반환하고 카운터를 초기화합니다.
+     */
     Core::Uint32 Renderer::FScene::TakeTransformUpdates() const {
         const Core::Uint32 Count{mTransformUpdates};
 
@@ -209,12 +257,14 @@ namespace Renderer {
     void Renderer::FScene::Upload(Renderer::FScenePrimitive& Primitive) {
         if (Primitive.mProxy.mText.has_value() || Primitive.mProxy.mSprite.has_value()) {
             Primitive.mObjectBuffer.Reset();
+
             return;
         }
 
         if (!UploadSkinning(Primitive)) {
             Primitive.mObjectBuffer.Reset();
             Core::ErrorHandler::Report("SkeletalMesh", "Cannot upload skeletal pose", Core::ErrorHandler::EErrorLevel::Error);
+
             return;
         }
 
@@ -226,34 +276,29 @@ namespace Renderer {
             Core::ErrorHandler::Fatal("Renderer", "Singular render transform");
         }
 
-        if (Primitive.mObjectBuffer == nullptr) {
-            D3D11_BUFFER_DESC Description{};
-            Description.ByteWidth = sizeof(Renderer::FObjectConstants);
-            Description.Usage = D3D11_USAGE_DEFAULT;
-            Description.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+        Core::FString Error{};
 
-            D3D11_SUBRESOURCE_DATA Data{};
-            Data.pSysMem = &Constants;
-
-            if (FAILED(mDevice->CreateBuffer(&Description, &Data, Primitive.mObjectBuffer.GetAddressOf()))) {
-                Core::ErrorHandler::Fatal("Renderer", "Object buffer allocation failed");
-            }
-        } else {
-            mContext->UpdateSubresource(Primitive.mObjectBuffer.Get(), 0, nullptr, &Constants, 0, 0);
+        if (!Primitive.mObjectBuffer.Create(mDevice, Error)) {
+            Core::ErrorHandler::Fatal("Renderer", "Object buffer allocation failed");
         }
+
+        Primitive.mObjectBuffer.Update(mContext, Constants);
 
         ++mTransformUpdates;
     }
 
+    /**
+     * @brief 객체별 본 행렬과 법선 변환을 구조화 버퍼에 반영합니다.
+     */
     bool Renderer::FScene::UploadSkinning(Renderer::FScenePrimitive& Primitive) {
         if (Primitive.mProxy.mSkeletalMesh == nullptr) {
             Primitive.mSkinBuffer.Reset();
-            Primitive.mSkinView.Reset();
+
             return true;
         }
 
         // 프록시가 다시 만들어져도 포즈가 그대로이면 다시 올리지 않습니다.
-        if (Primitive.mSkinView != nullptr && Primitive.mProxy.mPoseRevision.IsValid() && Primitive.mUploadedPoseRevision == Primitive.mProxy.mPoseRevision) {
+        if (Primitive.mSkinBuffer.IsCreated() && Primitive.mProxy.mPoseRevision.IsValid() && Primitive.mUploadedPoseRevision == Primitive.mProxy.mPoseRevision) {
             return true;
         }
 
@@ -276,44 +321,20 @@ namespace Renderer {
             return false;
         }
 
-        // 버퍼가 없으면 Existing.ByteWidth가 0으로 남아 아래에서 새로 만듭니다. 크기가 같으면 기존 버퍼의 내용만 갱신합니다.
-        const UINT Bytes{static_cast<UINT>(Bones.size() * sizeof(Bones[0]))};
-        D3D11_BUFFER_DESC Existing{};
+        Core::FString Error{};
 
-        if (Primitive.mSkinBuffer != nullptr) {
-            Primitive.mSkinBuffer->GetDesc(&Existing);
-        }
-
-        if (Existing.ByteWidth == Bytes) {
-            mContext->UpdateSubresource(Primitive.mSkinBuffer.Get(), 0, nullptr, Bones.data(), 0, 0);
-        } else {
-            D3D11_BUFFER_DESC Description{};
-            Description.ByteWidth = Bytes;
-            Description.Usage = D3D11_USAGE_DEFAULT;
-            Description.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-            Description.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
-            Description.StructureByteStride = sizeof(Bones[0]);
-            D3D11_SUBRESOURCE_DATA Data{};
-            Data.pSysMem = Bones.data();
-            Microsoft::WRL::ComPtr<ID3D11Buffer> Buffer{};
-            Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> View{};
-            D3D11_SHADER_RESOURCE_VIEW_DESC ViewDescription{};
-            ViewDescription.Format = DXGI_FORMAT_UNKNOWN;
-            ViewDescription.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
-            ViewDescription.Buffer.NumElements = static_cast<UINT>(Bones.size());
-
-            if (FAILED(mDevice->CreateBuffer(&Description, &Data, Buffer.GetAddressOf())) || FAILED(mDevice->CreateShaderResourceView(Buffer.Get(), &ViewDescription, View.GetAddressOf()))) {
-                return false;
-            }
-
-            Primitive.mSkinBuffer = std::move(Buffer);
-            Primitive.mSkinView = std::move(View);
+        if (!Primitive.mSkinBuffer.Upload(mContext, Bones, Error)) {
+            return false;
         }
 
         Primitive.mUploadedPoseRevision = Primitive.mProxy.mPoseRevision;
+
         return true;
     }
 
+    /**
+     * @brief 광원 프록시의 GUID로 렌더 장면에 광원을 추가하거나 교체합니다.
+     */
     void Renderer::FScene::AddLight(const Engine::FLightSceneProxy& Proxy) {
         const auto Position{mLightIndices.find(Proxy.mId)};
 
@@ -327,6 +348,9 @@ namespace Renderer {
         ++mRevision;
     }
 
+    /**
+     * @brief 지정한 GUID의 광원을 렌더 장면에서 제거합니다.
+     */
     void Renderer::FScene::RemoveLight(const Core::FGuid& Id) {
         const auto Position{mLightIndices.find(Id)};
 
@@ -343,9 +367,13 @@ namespace Renderer {
 
         mLights.pop_back();
         mLightIndices.erase(Position);
+
         ++mRevision;
     }
 
+    /**
+     * @brief 장면에 등록된 광원 목록을 반환합니다.
+     */
     const Core::TArray<Engine::FLightSceneProxy>& Renderer::FScene::GetLights() const {
         return mLights;
     }

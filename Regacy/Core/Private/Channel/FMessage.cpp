@@ -55,7 +55,9 @@ void FMessage::MoveFrom(FMessage&& Other) noexcept {
 
     if (mHeapAllocated) {
         mData = std::exchange(Other.mData, nullptr);
+
         Other.ClearMetadata();
+
         return;
     }
 

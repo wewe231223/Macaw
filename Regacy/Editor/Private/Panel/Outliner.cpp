@@ -42,6 +42,7 @@ void FOutlinerPanel::DrawContents() {
 
     if (bVisibleDirty) {
         RebuildVisibleItems();
+
         bVisibleDirty = false;
     }
 
@@ -183,6 +184,7 @@ void FOutlinerPanel::DrawActor(AActor& Actor) {
     ImGui::TableSetColumnIndex(0);
 
     ImGui::PushID(Label.c_str());
+
     // ImGui::PushID(&Actor);
 
     ImGuiTreeNodeFlags Flags{

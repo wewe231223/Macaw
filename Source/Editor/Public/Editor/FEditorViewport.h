@@ -7,6 +7,7 @@
 #pragma once
 
 #include "Editor/FEditorViewportClient.h"
+#include "Core/Input.h"
 #include "Editor/FViewportStatistics.h"
 
 namespace Engine {
@@ -26,12 +27,6 @@ namespace Editor {
      * @note 편집 컨텍스트와 렌더러는 비소유 의존성이며 이 뷰포트가 사용하는 동안 유지되어야 합니다.
      */
     class FEditorViewport {
-    public:
-        /**
-         * @brief 리플렉션에서 사용할 소유 타입 별칭입니다.
-         */
-        ReflectTypes(FEditorViewport);
-
     public:
         /**
          * @brief 공유 편집 컨텍스트와 창 이름으로 독립 뷰포트의 초기 상태를 구성합니다.
@@ -58,12 +53,6 @@ namespace Editor {
 
     public:
         /**
-         * @brief 이 타입의 정적 구조체 메타데이터를 반환합니다.
-         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectStruct(FEditorViewport);
-
-        /**
          * @brief ImGui 초기화와 별도로 장면 뷰포트와 초기 컬러 타깃을 준비합니다.
          * @param[in,out] Renderer 컬러 렌더 타깃을 제공할 비소유 렌더러입니다.
          * @return 준비에 성공하면 true이며 렌더러가 없거나 이미 초기화했거나 타깃 생성에 실패하면 false입니다.
@@ -81,15 +70,17 @@ namespace Editor {
          * @param[in] DeltaTime 현재 프레임의 초 단위 경과 시간입니다.
          * @pre 활성 ImGui 프레임 안에서 호출해야 합니다.
          * @note 이미지가 표시되지 않을 때에도 진행 중인 드래그의 버튼 해제와 Esc 취소를 처리합니다.
+         * @param[in] Input 키·마우스 상태를 조회할 공통 입력입니다.
          */
-        void DrawUI(float DeltaTime);
+        void DrawUI(const Core::FInput& Input, float DeltaTime);
 
         /**
          * @brief 뷰포트 타깃 이미지·툴바를 표시하고 입력과 리사이즈를 전달합니다.
          * @param[in] DeltaTime 이전 갱신 이후의 초 단위 시간입니다.
          * @param[in] AllowInput 뷰포트 입력을 받을지 지정합니다.
+         * @param[in] Input 키·마우스 상태를 조회할 공통 입력입니다.
          */
-        void DrawContents(float DeltaTime, bool AllowInput = true);
+        void DrawContents(const Core::FInput& Input, float DeltaTime, bool AllowInput = true);
 
         /**
          * @brief 뷰포트가 마우스 입력을 캡처 중인지 검사합니다.
@@ -166,70 +157,54 @@ namespace Editor {
 
     private:
         /**
-         * @brief 생성된 프로퍼티 등록 함수와 빌더 접근 권한입니다.
-         */
-        ReflectMembers();
-
-    private:
-        /**
          * @brief ImGui 창과 도킹에서 다른 뷰포트와 구분하는 이름입니다.
          */
         Core::FString mName{};
-        ReflectProperty(mName, "Name", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 이 뷰포트만의 카메라, 변환 명령과 기즈모 상태를 소유합니다.
          */
         Editor::FEditorViewportClient mClient;
-        ReflectProperty(mClient, "Client", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief PIE 중 입력과 뷰를 제공하는 클라이언트의 비소유 주소입니다.
          */
         Engine::FViewportClient* mPlayClient{};
-        ReflectProperty(mPlayClient, "PlayClient", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief PIE 뷰포트가 입력 캡처를 소유하는지 나타냅니다.
          */
         bool mPlayInputCaptured{};
-        ReflectProperty(mPlayInputCaptured, "PlayInputCaptured", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 프레임 및 리소스 통계의 뷰포트 표시 상태입니다.
          */
         Editor::FViewportStatistics mStatistics{};
-        ReflectProperty(mStatistics, "Statistics", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 뷰포트 이미지의 화면상 좌측 상단 좌표입니다.
          */
         Core::FVector2 mImageOrigin{};
-        ReflectProperty(mImageOrigin, "ImageOrigin", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 현재 표시한 뷰포트 이미지의 픽셀 크기입니다.
          */
         Core::FVector2 mImageSize{};
-        ReflectProperty(mImageSize, "ImageSize", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 현재 프레임 통계 오버레이용 ImGui 그리기 목록입니다.
          */
         ImDrawList* mDrawList{};
-        ReflectProperty(mDrawList, "DrawList", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 뷰포트의 마우스 입력 캡처 상태입니다.
          */
         bool mMouseCaptured{};
-        ReflectProperty(mMouseCaptured, "MouseCaptured", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 컬러 타깃을 소유하고 입력, 그리기와 CPU 피킹을 클라이언트에 연결합니다.
          */
         std::unique_ptr<Engine::FSceneViewport> mViewport{};
-        ReflectProperty(mViewport, "Viewport", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
 }

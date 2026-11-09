@@ -24,11 +24,6 @@ namespace Renderer {
     struct FLineVertex {
     public:
         /**
-         * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
-         */
-        ReflectTypes(FLineVertex);
-
-        /**
          * @brief 선분의 월드 끝점·픽셀 두께·색상을 GPU 인스턴스로 변환합니다.
          * @param[in] Line 변환할 선분의 끝점·색상·두께입니다.
          */
@@ -36,35 +31,19 @@ namespace Renderer {
 
     public:
         /**
-         * @brief 이 타입의 정적 리플렉션 메타데이터를 반환합니다.
-         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectStruct(FLineVertex);
-
-    private:
-        /**
-         * @brief 생성된 멤버 등록 함수와 리플렉션 빌더의 접근 권한입니다.
-         */
-        ReflectMembers();
-
-    public:
-        /**
          * @brief 시작점 XYZ와 픽셀 두께 W입니다.
          */
         Core::FVector4 mStartAndWidth{};
-        ReflectProperty(mStartAndWidth, "StartAndWidth", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 선분의 끝점입니다.
          */
         Core::FVector4 mEnd{};
-        ReflectProperty(mEnd, "End", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 표시할 RGBA 색상입니다.
          */
         Core::FVector4 mColor{};
-        ReflectProperty(mColor, "Color", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
     static_assert(std::is_standard_layout_v<Renderer::FLineVertex> && std::is_trivially_copyable_v<Renderer::FLineVertex> && sizeof(Renderer::FLineVertex) == 48);

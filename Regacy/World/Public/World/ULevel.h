@@ -31,6 +31,7 @@ private:
 
 private:
     UWorld& mWorld;
+
     ReflectReadOnlyProperty(mActors, "Actors", EPropertyFlags::ReadOnly | EPropertyFlags::Owned);
 
     TArray<std::unique_ptr<AActor>> mActors{};

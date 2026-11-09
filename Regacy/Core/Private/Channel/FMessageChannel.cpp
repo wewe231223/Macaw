@@ -8,6 +8,7 @@ FMessageChannel::FSender FMessageChannel::GetSender() noexcept {
 FMessageDispatchResult FMessageChannel::Dispatch() {
     if (mIsDispatching) {
         mRedispatchRequested = true;
+
         return {.mDeferred = true};
     }
 
@@ -41,10 +42,12 @@ FMessageDispatchResult FMessageChannel::Dispatch() {
 
             if (Handler == nullptr) {
                 ++Result.mUnhandledCount;
+
                 continue;
             }
 
             Handler->Invoke(Message);
+
             ++Result.mDispatchedCount;
         }
 

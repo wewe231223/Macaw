@@ -19,6 +19,7 @@
 
 #pragma once
 #include "imgui.h"      // IMGUI_IMPL_API
+
 #ifndef IMGUI_DISABLE
 
 // Follow "Getting Started" link and check examples/ folder to learn about using backends!

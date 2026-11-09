@@ -1,6 +1,6 @@
 /**
  * @file FOutlinerPanel.h
- * @brief 월드의 액터와 컴포넌트 계층 및 선택 상태를 표시합니다.
+ * @brief 월드의 액터 목록과 선택 상태를 표시합니다.
  * @ingroup Editor
  */
 
@@ -9,19 +9,15 @@
 #include "Core/ReflectionMacros.h"
 #include "Editor/Panel/FEditorPanel.h"
 
+#include <array>
+
 namespace Editor {
 
     /**
-     * @brief 월드의 액터와 컴포넌트 계층 및 선택 상태를 표시합니다.
+     * @brief 월드의 액터 목록과 선택 상태를 표시합니다.
      * @ingroup Editor
      */
     class FOutlinerPanel final : public Editor::FEditorPanel {
-    public:
-        /**
-         * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
-         */
-        ReflectTypes(FOutlinerPanel, Editor::FEditorPanel);
-
     public:
         /**
          * @brief FOutlinerPanel의 초기 상태와 전달받은 의존성을 구성합니다.
@@ -34,13 +30,6 @@ namespace Editor {
          */
         ~FOutlinerPanel() override;
 
-    public:
-        /**
-         * @brief 이 타입의 정적 구조체 메타데이터를 반환합니다.
-         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectStruct(FOutlinerPanel);
-
     private:
         /**
          * @brief 패널 고유의 ImGui 위젯과 내용을 그립니다.
@@ -50,9 +39,9 @@ namespace Editor {
 
     private:
         /**
-         * @brief 생성된 프로퍼티 등록 함수와 빌더 접근 권한입니다.
+         * @brief 액터의 이름과 타입을 거르는 검색어 버퍼입니다.
          */
-        ReflectMembers();
+        std::array<char, 128> mSearch{};
     };
 
 }

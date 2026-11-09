@@ -7,6 +7,7 @@
 #pragma once
 
 #include "Engine/AActor.h"
+#include "ACameraActor.generated.h"
 
 namespace Engine {
 
@@ -15,20 +16,15 @@ namespace Engine {
     /**
      * @brief 카메라 컴포넌트를 갖고 이동·회전 입력을 처리하는 액터를 담당합니다.
      */
+    UCLASS()
     class ACameraActor : public Engine::AActor {
-    public:
-        /**
-         * @brief 리플렉션에서 사용하는 소유 타입과 선택적 부모 타입의 별칭을 선언합니다.
-         */
-        ReflectTypes(ACameraActor, Engine::AActor);
+        GENERATED_BODY()
 
     public:
         /**
-         * @brief 이 타입의 클래스 메타데이터를 반환합니다.
-         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
+         * @brief 액터의 기본 컴포넌트를 생성하고 루트 컴포넌트를 정합니다.
+         * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
          */
-        ReflectClass(ACameraActor);
-
         bool InitializeDefaultComponents() override;
 
         /**
@@ -42,13 +38,8 @@ namespace Engine {
          * @param[in] Input 현재 프레임의 키보드·마우스 입력 상태입니다.
          * @param[in] DeltaTime 이전 갱신 이후의 경과 시간이며 초 단위입니다.
          */
-        void Input(const Engine::FViewportInput& Input, float DeltaTime) override;
+        void Input(const Core::FInput& Input, float DeltaTime) override;
 
-    private:
-        /**
-         * @brief 자동 생성된 프로퍼티 등록 코드와 리플렉션 빌더의 접근을 허용합니다.
-         */
-        ReflectMembers();
     };
 
 }

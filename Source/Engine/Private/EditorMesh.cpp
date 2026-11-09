@@ -54,6 +54,7 @@ namespace Engine {
      */
     static Asset::FMeshData BuildMesh(Engine::EEditorMesh Type) {
         Asset::FMeshData Mesh{};
+
         if (Type == Engine::EEditorMesh::Arrow) {
             for (Core::Uint32 Index{}; Index < 16; ++Index) {
                 const Core::FAngle A{1_turn * Index / 16.0f};
@@ -62,12 +63,14 @@ namespace Engine {
                 const Core::FVector BottomB{Core::Math::Cos(B) * 2.0f, Core::Math::Sin(B) * 2.0f, 11.0f};
                 const Core::FVector TopA{BottomA.x, BottomA.y, 72.5f};
                 const Core::FVector TopB{BottomB.x, BottomB.y, 72.5f};
+
                 AddTriangle(&Mesh, BottomA, BottomB, TopA);
                 AddTriangle(&Mesh, TopA, BottomB, TopB);
                 AddTriangle(&Mesh, {0.0f, 0.0f, 11.0f}, BottomB, BottomA);
 
                 const Core::FVector ConeA{Core::Math::Cos(A) * 6.5f, Core::Math::Sin(A) * 6.5f, 72.5f};
                 const Core::FVector ConeB{Core::Math::Cos(B) * 6.5f, Core::Math::Sin(B) * 6.5f, 72.5f};
+
                 AddTriangle(&Mesh, ConeA, ConeB, {0.0f, 0.0f, 87.5f});
                 AddTriangle(&Mesh, {0.0f, 0.0f, 72.5f}, ConeB, ConeA);
             }
@@ -90,12 +93,28 @@ namespace Engine {
                     const Core::FVector Q{(74.0f + Core::Math::Cos(D) * 2.0f) * Core::Math::Cos(A), (74.0f + Core::Math::Cos(D) * 2.0f) * Core::Math::Sin(A), Core::Math::Sin(D) * 2.0f};
                     const Core::FVector R{(74.0f + Core::Math::Cos(C) * 2.0f) * Core::Math::Cos(B), (74.0f + Core::Math::Cos(C) * 2.0f) * Core::Math::Sin(B), Core::Math::Sin(C) * 2.0f};
                     const Core::FVector S{(74.0f + Core::Math::Cos(D) * 2.0f) * Core::Math::Cos(B), (74.0f + Core::Math::Cos(D) * 2.0f) * Core::Math::Sin(B), Core::Math::Sin(D) * 2.0f};
+
                     AddTriangle(&Mesh, P, Q, R);
                     AddTriangle(&Mesh, R, Q, S);
                 }
             }
         } else if (Type == Engine::EEditorMesh::Cube) {
             Mesh = Engine::GetPrimitiveMesh(Engine::EPrimitiveType::Cube);
+        } else if (Type == Engine::EEditorMesh::Sphere) {
+            Mesh = Engine::GetPrimitiveMesh(Engine::EPrimitiveType::Sphere);
+        } else if (Type == Engine::EEditorMesh::BoneOctahedron) {
+            constexpr float Shoulder{0.16f};
+            const Core::FVector Head{};
+            const Core::FVector Tail{0.0f, 0.0f, 1.0f};
+            const std::array<Core::FVector, 4> Corners{{{1.0f, 0.0f, Shoulder}, {0.0f, 1.0f, Shoulder}, {-1.0f, 0.0f, Shoulder}, {0.0f, -1.0f, Shoulder}}};
+
+            for (std::size_t Index{}; Index < Corners.size(); ++Index) {
+                const Core::FVector& A{Corners[Index]};
+                const Core::FVector& B{Corners[(Index + 1) % Corners.size()]};
+
+                AddTriangle(&Mesh, A, Head, B);
+                AddTriangle(&Mesh, A, B, Tail);
+            }
         } else {
             AddTriangle(&Mesh, {}, {1.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f});
 
@@ -126,10 +145,11 @@ namespace Engine {
     const Asset::FMeshData& GetEditorMesh(Engine::EEditorMesh Type) {
         if (Type >= Engine::EEditorMesh::Count) {
             static const Asset::FMeshData Empty{};
+
             return Empty;
         }
 
-        static const std::array<Asset::FMeshData, static_cast<std::size_t>(Engine::EEditorMesh::Count)> Meshes{BuildMesh(Engine::EEditorMesh::Arrow), BuildMesh(Engine::EEditorMesh::Hammer), BuildMesh(Engine::EEditorMesh::Ring), BuildMesh(Engine::EEditorMesh::HalfRing), BuildMesh(Engine::EEditorMesh::Quad), BuildMesh(Engine::EEditorMesh::Triangle), BuildMesh(Engine::EEditorMesh::Cube)};
+        static const std::array<Asset::FMeshData, static_cast<std::size_t>(Engine::EEditorMesh::Count)> Meshes{BuildMesh(Engine::EEditorMesh::Arrow), BuildMesh(Engine::EEditorMesh::Hammer), BuildMesh(Engine::EEditorMesh::Ring), BuildMesh(Engine::EEditorMesh::HalfRing), BuildMesh(Engine::EEditorMesh::Quad), BuildMesh(Engine::EEditorMesh::Triangle), BuildMesh(Engine::EEditorMesh::Cube), BuildMesh(Engine::EEditorMesh::Sphere), BuildMesh(Engine::EEditorMesh::BoneOctahedron)};
 
         return Meshes[static_cast<std::size_t>(Type)];
     }

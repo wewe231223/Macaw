@@ -103,4 +103,13 @@ namespace CoreUObject {
         }
     }
 
+    /**
+     * @brief 선언 프로퍼티에 포함된 객체 참조에 핸들을 연결합니다.
+     */
+    void CoreUObject::UStruct::BindObjectReferences(void* Container, const CoreUObject::FObjectGuidMap& Objects) const {
+        for (const CoreUObject::FProperty* Property : mProperties) {
+            Property->BindObjectReferences(Container, Objects);
+        }
+    }
+
 }

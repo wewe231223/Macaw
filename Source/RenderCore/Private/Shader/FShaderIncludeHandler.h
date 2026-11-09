@@ -20,12 +20,6 @@ namespace RenderCore {
      * @class ID3DInclude
      */
     class FShaderIncludeHandler final : public ID3DInclude {
-    public:
-        /**
-         * @brief 리플렉션에서 사용하는 소유 타입과 선택적 부모 타입의 별칭을 선언합니다.
-         */
-        ReflectTypes(FShaderIncludeHandler);
-
     private:
         /**
          * @brief 열린 include 파일의 경로와 컴파일러에 전달할 버퍼입니다.
@@ -33,34 +27,14 @@ namespace RenderCore {
         struct FOpenFile {
         public:
             /**
-             * @brief 리플렉션에서 사용하는 소유 타입과 선택적 부모 타입의 별칭을 선언합니다.
-             */
-            ReflectTypes(FOpenFile);
-
-        public:
-            /**
-             * @brief 이 타입의 구조체 메타데이터를 반환합니다.
-             * @return 등록된 타입 메타데이터의 비소유 주소입니다.
-             */
-            ReflectStruct(FOpenFile);
-
-            /**
              * @brief 열린 include 파일의 정규화된 경로입니다.
              */
             std::filesystem::path mPath{};
-            ReflectProperty(mPath, "Path", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
             /**
              * @brief 열린 include 파일의 내용을 소유하는 바이트 배열입니다.
              */
             Core::TArray<Core::Uint8> mData{};
-            ReflectProperty(mData, "Data", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
-
-        private:
-            /**
-             * @brief 자동 생성된 프로퍼티 등록 코드와 리플렉션 빌더의 접근을 허용합니다.
-             */
-            ReflectMembers();
         };
 
     public:
@@ -73,12 +47,6 @@ namespace RenderCore {
         FShaderIncludeHandler(const RenderCore::FShaderDescription& Description, const void* RootData, const RenderCore::FShaderDependency& RootDependency);
 
     public:
-        /**
-         * @brief 이 타입의 구조체 메타데이터를 반환합니다.
-         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectStruct(FShaderIncludeHandler);
-
         /**
          * @brief 부모 파일과 include 경로에서 요청한 파일을 찾아 버퍼와 의존성을 보관합니다.
          * @param[in] IncludeType 로컬 또는 시스템 include 탐색 종류입니다.
@@ -111,11 +79,6 @@ namespace RenderCore {
 
     private:
         /**
-         * @brief 자동 생성된 프로퍼티 등록 코드와 리플렉션 빌더의 접근을 허용합니다.
-         */
-        ReflectMembers();
-
-        /**
          * @brief 파일의 의존성을 등록하고 이미 등록된 상태와 충돌하는지 검사합니다.
          * @param[in] Dependency 파일의 경로·존재 여부·크기·수정 시각 스냅샷입니다.
          * @return 요청한 처리를 완료하면 true, 실패하면 false입니다.
@@ -127,31 +90,26 @@ namespace RenderCore {
          * @brief include 탐색 설정을 제공하는 셰이더 설명의 비소유 주소입니다.
          */
         const RenderCore::FShaderDescription* mDescription{};
-        ReflectProperty(mDescription, "Description", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 최상위 셰이더 소스 버퍼의 비소유 주소입니다.
          */
         const void* mRootData{};
-        ReflectProperty(mRootData, "RootData", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 소스 및 include 파일의 존재·크기·수정 시각 스냅샷입니다.
          */
         Core::TArray<RenderCore::FShaderDependency> mDependencies{};
-        ReflectProperty(mDependencies, "Dependencies", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 컴파일러에 전달한 데이터 주소별로 소유하는 include 파일 버퍼입니다.
          */
         Core::TMap<const void*, FOpenFile> mOpenFiles{};
-        ReflectProperty(mOpenFiles, "OpenFiles", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief include 탐색 또는 파일 읽기 실패의 진단 문자열입니다.
          */
         Core::FString mDiagnostics{};
-        ReflectProperty(mDiagnostics, "Diagnostics", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
 }

@@ -36,6 +36,7 @@ protected:
     ReflectReadOnlyProperty(mAssetPath, "AssetPath", EPropertyFlags::Serialize | EPropertyFlags::ReadOnly, ReflectSerializer(mAssetPath));
 
     std::filesystem::path mAssetPath{};
+
     ReflectReadOnlyProperty(mAssetName, "AssetName", EPropertyFlags::Serialize | EPropertyFlags::ReadOnly, ReflectSerializer(mAssetName));
 
     FString mAssetName{};

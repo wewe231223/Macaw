@@ -12,8 +12,14 @@
 
 namespace Asset {
 
+    /**
+     * @brief 기본 설정으로 FMaterialAssetData 객체를 초기화합니다.
+     */
     Asset::FMaterialAssetData::FMaterialAssetData() = default;
 
+    /**
+     * @brief 전달받은 설정을 보관하도록 FMaterialAssetData 객체를 초기화합니다.
+     */
     Asset::FMaterialAssetData::FMaterialAssetData(const Asset::UMaterial& Material)
 		: mSpecularColor{Material.GetSpecularColor()},
 		  mAmbientColor{Material.GetAmbientColor()},
@@ -34,12 +40,17 @@ namespace Asset {
 		  mTwoSided{Material.IsTwoSided()} {
     }
 
+    /**
+     * @brief 재질 설정을 바이너리 아카이브에 기록하거나 읽고 지원하지 않는 버전을 거부합니다.
+     */
     void Asset::FMaterialAssetData::Serialize(Serialization::FMemoryArchive& Archive) {
         Core::Uint32 Version{2};
+
         Archive.Serialize("Version", Version);
 
         if (Archive.HasError() || (Version != 1 && Version != 2)) {
             Archive.SetError("Unsupported material asset version");
+
             return;
         }
 
@@ -65,18 +76,26 @@ namespace Asset {
         }
     }
 
+    /**
+     * @brief 저장한 재질 설정을 각 Setter의 검증을 거쳐 런타임 재질에 적용합니다.
+     */
     bool Asset::FMaterialAssetData::ApplyTo(Asset::UMaterial& Material, Core::FString& Error) const {
         if (!Material.SetName(mName) || !Material.SetShaderPath(mShaderPath) || !Material.SetBaseColor(mBaseColor) || !Material.SetBaseColorTexturePath(mBaseColorTexturePath) || !Material.SetNormalMapTexturePath(mNormalMapTexturePath) || !Material.SetSpecularStrength(mSpecularStrength) || !Material.SetShininess(mShininess) || !Material.SetNormalStrength(mNormalStrength) || !Material.SetTwoSided(mTwoSided) || !Material.SetSpecularColor(mSpecularColor) || !Material.SetAmbientColor(mAmbientColor) || !Material.SetEmissiveColor(mEmissiveColor) || !Material.SetReflectionColor(mReflectionColor) || !Material.SetReflectionStrength(mReflectionStrength) || !Material.SetSpecularTexturePath(mSpecularTexturePath) || !Material.SetEmissiveTexturePath(mEmissiveTexturePath) || !Material.SetReflectionTexturePath(mReflectionTexturePath)) {
             Error = "Invalid material asset settings";
+
             return false;
         }
 
         return true;
     }
 
+    /**
+     * @brief 재질 이름과 비어 있지 않은 셰이더·텍스처 경로가 프로젝트 경계 안에 있는지 검증합니다.
+     */
     bool Asset::FMaterialAssetData::ValidateReferences(const Asset::FAssetManager& Assets, Core::FString& Error) const {
         if (mName.empty() || mName.size() > 255 || mName.find('\0') != Core::FString::npos) {
             Error = "Invalid material asset name";
+
             return false;
         }
 

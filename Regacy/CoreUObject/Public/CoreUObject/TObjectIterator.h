@@ -222,6 +222,7 @@ namespace UObjectSystem {
     TObjectIterator<TObject>& TObjectIterator<TObject>::operator++() {
         if (mCurrentIndex < mEndIndex) {
             ++mCurrentIndex;
+
             AdvanceToNextValidObject();
         }
 
@@ -245,6 +246,7 @@ namespace UObjectSystem {
                 if (Object != nullptr && Object->GetClass()->IsChildOf(TObject::StaticClass())) {
                     mCurrentIndex = Index;
                     mHandle = Handle;
+
                     return *this;
                 }
             }

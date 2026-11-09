@@ -16,6 +16,9 @@
 
 namespace Renderer {
 
+    /**
+     * @brief 폰트 아틀라스, 텍스처, 샘플러와 상수 버퍼를 준비합니다.
+     */
     bool Renderer::FTextRenderer::Initialize(ID3D11Device* Device, const std::filesystem::path& FontPath) {
         auto Texture{CoreUObject::NewObject<Asset::UTexture2D>()};
         std::filesystem::path ImagePath{FontPath};
@@ -23,13 +26,9 @@ namespace Renderer {
 
         if (!mAtlas.Load(FontPath) || !Texture->LoadFromFile(ImagePath, false) || Texture->GetSizeX() != mAtlas.GetWidth() || Texture->GetSizeY() != mAtlas.GetHeight() || !Texture->CreateResources(Device)) {
             Core::ErrorHandler::Report("Text", "Cannot load the font atlas", Core::ErrorHandler::EErrorLevel::Error);
+
             return false;
         }
-
-        D3D11_BUFFER_DESC Constants{};
-        Constants.ByteWidth = sizeof(FTextConstants);
-        Constants.Usage = D3D11_USAGE_DEFAULT;
-        Constants.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 
         D3D11_SAMPLER_DESC Sampler{};
         Sampler.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
@@ -38,7 +37,9 @@ namespace Renderer {
         Sampler.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
         Sampler.MaxLOD = D3D11_FLOAT32_MAX;
 
-        if (FAILED(Device->CreateBuffer(&Constants, nullptr, mConstants.GetAddressOf())) || FAILED(Device->CreateSamplerState(&Sampler, mSampler.GetAddressOf()))) {
+        Core::FString Error{};
+
+        if (!mConstants.Create(Device, Error) || FAILED(Device->CreateSamplerState(&Sampler, mSampler.GetAddressOf()))) {
             return false;
         }
 
@@ -47,6 +48,9 @@ namespace Renderer {
         return true;
     }
 
+    /**
+     * @brief 컴파일한 바이트코드로 셰이더와 입력 레이아웃을 교체합니다.
+     */
     bool Renderer::FTextRenderer::CreateShaders(ID3D11Device* Device, std::span<const Core::Uint8> VertexCode, std::span<const Core::Uint8> PixelCode) {
         Microsoft::WRL::ComPtr<ID3D11VertexShader> Vertex{};
         Microsoft::WRL::ComPtr<ID3D11PixelShader> Pixel{};
@@ -64,6 +68,9 @@ namespace Renderer {
         return true;
     }
 
+    /**
+     * @brief 문자 정점을 공통 동적 버퍼에 업로드하고 텍스트를 그립니다.
+     */
     bool Renderer::FTextRenderer::Draw(ID3D11DeviceContext* Context, const Engine::FDrawText& Text, const Engine::FSceneView& View) {
         if (Text.mText.empty() || Text.mText.size() > 65536 || !std::isfinite(Text.mSize) || Text.mSize <= 0.0f || !Text.mPosition.IsFinite() || !Text.mScale.IsFinite() || !Text.mColor.IsFinite() || Text.mColor.w <= 0.0f || View.mSize.x <= 0.0f || View.mSize.y <= 0.0f) {
             return false;
@@ -122,42 +129,45 @@ namespace Renderer {
         const Core::Uint32 Count{static_cast<Core::Uint32>(Vertices.size())};
         Core::FString Error{};
 
-        if (!mVertices.Upload(Context, std::as_bytes(std::span{Vertices}), sizeof(Renderer::FTextVertex), std::max(Count, 256u), Error)) {
+        if (!mVertices.Upload(Context, Vertices, Error)) {
             Core::ErrorHandler::Report("Text", Error, Core::ErrorHandler::EErrorLevel::Error);
+
             return false;
         }
 
-        Context->UpdateSubresource(mConstants.Get(), 0, nullptr, &Constants, 0, 0);
+        mConstants.Update(Context, Constants);
 
-        ID3D11Buffer* VertexBuffer{mVertices.GetBuffer()};
-        ID3D11Buffer* ConstantBuffer{mConstants.Get()};
         ID3D11ShaderResourceView* Atlas{mTexture->GetShaderResourceView()};
         ID3D11SamplerState* Sampler{mSampler.Get()};
-        const UINT Stride{sizeof(Renderer::FTextVertex)};
-        const UINT Offset{};
 
         Context->IASetInputLayout(mLayout.Get());
         Context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-        Context->IASetVertexBuffers(0, 1, &VertexBuffer, &Stride, &Offset);
+        mVertices.Bind(Context, 0);
         Context->VSSetShader(mVertexShader.Get(), nullptr, 0);
         Context->PSSetShader(mPixelShader.Get(), nullptr, 0);
-        Context->VSSetConstantBuffers(0, 1, &ConstantBuffer);
-        Context->PSSetConstantBuffers(0, 1, &ConstantBuffer);
+        mConstants.Bind(Context, RenderCore::EShaderStage::Vertex | RenderCore::EShaderStage::Pixel, 0);
         Context->PSSetShaderResources(0, 1, &Atlas);
         Context->PSSetSamplers(0, 1, &Sampler);
         Context->Draw(Count, 0);
         Renderer::RendererStats::Triangles.Add(Count / 3);
 
         ID3D11ShaderResourceView* Empty{};
+
         Context->PSSetShaderResources(0, 1, &Empty);
 
         return true;
     }
 
+    /**
+     * @brief 아틀라스와 정점 및 상수 버퍼의 사용량을 반환합니다.
+     */
     std::size_t Renderer::FTextRenderer::GetResourceBytes() const {
         return (mTexture != nullptr ? mTexture->GetResourceBytes() : 0) + mVertices.GetResourceBytes() + sizeof(FTextConstants);
     }
 
+    /**
+     * @brief 문자 평면에서 문자열이 차지하는 경계 사각형을 계산합니다.
+     */
     bool Renderer::FTextRenderer::GetBounds(const Core::FString& Text, Core::FVector2& Minimum, Core::FVector2& Maximum) const {
         if (Text.size() > 65536) {
             return false;

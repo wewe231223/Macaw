@@ -8,6 +8,7 @@
 
 #include "Engine/Component/UPrimitiveComponent.h"
 #include "Engine/FDrawSprite.h"
+#include "UBillboardComponent.generated.h"
 
 namespace Asset {
     class UTexture;
@@ -18,12 +19,9 @@ namespace Engine {
     /**
      * @brief 카메라를 향하는 텍스처 스프라이트이며 비활성 정렬 시 로컬 YZ 평면을 사용합니다.
      */
+    UCLASS()
     class UBillboardComponent : public Engine::UPrimitiveComponent {
-    public:
-        /**
-         * @brief 리플렉션 소유 타입과 선택적 부모 타입의 별칭입니다.
-         */
-        ReflectTypes(UBillboardComponent, Engine::UPrimitiveComponent);
+        GENERATED_BODY()
 
     public:
         /**
@@ -37,12 +35,6 @@ namespace Engine {
         ~UBillboardComponent() override;
 
     public:
-        /**
-         * @brief 이 타입의 정적 리플렉션 메타데이터를 반환합니다.
-         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectClass(UBillboardComponent);
-
         /**
          * @brief 빌보드에 할당된 Sprite 텍스처를 반환합니다.
          * @return 에셋 관리자가 소유한 텍스처의 비소유 주소이며 미할당 또는 해석 실패 시 nullptr입니다.
@@ -121,18 +113,6 @@ namespace Engine {
         void SetScreenAligned(bool ScreenAligned);
 
         /**
-         * @brief 표시 활성 상태인지 검사합니다.
-         * @return 조건을 만족하면 true입니다.
-         */
-        bool IsVisible() const;
-
-        /**
-         * @brief 표시 활성 상태를 설정합니다.
-         * @param[in] Visible 표시를 활성화할지 지정합니다.
-         */
-        void SetVisible(bool Visible);
-
-        /**
          * @brief 빌보드 선택과 경계 계산에 사용하는 기본 도형 종류를 반환합니다.
          * @return 스프라이트 쿼드에 대응하는 평면 도형 종류입니다.
          */
@@ -175,11 +155,6 @@ namespace Engine {
 
     private:
         /**
-         * @brief 생성된 멤버 등록 함수와 리플렉션 빌더의 접근 권한입니다.
-         */
-        ReflectMembers();
-
-        /**
          * @brief 월드에 등록할 때 저장된 Sprite 경로를 해석하고 렌더 상태 갱신을 예약합니다.
          */
         void OnRegister() override;
@@ -195,38 +170,31 @@ namespace Engine {
         /**
          * @brief Content 기준 텍스처 에셋 경로이며 빈 경로는 기본 아틀라스입니다.
          */
+        UPROPERTY(Edit, Serialize, Name = "Sprite", Getter = GetTexturePath, Setter = SetTexturePath)
         Core::FString mTexturePath{};
-        ReflectAccessor(mTexturePath, GetTexturePath, SetTexturePath, "Sprite", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
 
         /**
          * @brief 로컬 쿼드의 가로·세로 월드 크기입니다.
          */
+        UPROPERTY(Edit, Serialize, Getter = GetSize, Setter = SetSize)
         Core::FVector2 mSize{2.0f, 2.0f};
-        ReflectAccessor(mSize, GetSize, SetSize, "Size", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
 
         /**
          * @brief 표시할 RGBA 색상입니다.
          */
+        UPROPERTY(Edit, Serialize, Getter = GetColor, Setter = SetColor)
         Core::FVector4 mColor{1.0f, 1.0f, 1.0f, 1.0f};
-        ReflectAccessor(mColor, GetColor, SetColor, "Color", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
 
         /**
          * @brief 카메라의 오른쪽·위쪽 축에 쿼드를 맞출지 여부입니다.
          */
+        UPROPERTY(Edit, Serialize, Getter = IsScreenAligned, Setter = SetScreenAligned)
         bool mScreenAligned{true};
-        ReflectAccessor(mScreenAligned, IsScreenAligned, SetScreenAligned, "ScreenAligned", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
-
-        /**
-         * @brief 표시 활성 상태입니다.
-         */
-        bool mVisible{true};
-        ReflectAccessor(mVisible, IsVisible, SetVisible, "Visible", Core::EPropertyFlags::Edit | Core::EPropertyFlags::Serialize);
 
         /**
          * @brief 텍스처의 비소유 주소입니다.
          */
         Asset::UTexture* mSprite{};
-        ReflectProperty(mSprite, "ResolvedSprite", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
     };
 
 }

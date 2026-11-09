@@ -12,29 +12,28 @@
 #include "Core/ReflectionMacros.h"
 
 #include <filesystem>
-#include <functional>
 #include <memory>
+
+namespace CoreUObject {
+
+    class UObject;
+
+}
 
 namespace Asset {
 
     class UStaticMesh;
     class USkeletalMesh;
+    class USkeleton;
     class UTexture2D;
     class UMaterial;
+    class ULevelSequence;
+    class UAnimSequence;
 
     /**
      * @brief 프로젝트 콘텐츠 경로와 메시·텍스처 에셋의 로드 및 캐시를 담당합니다.
      */
     class FAssetManager {
-    public:
-        using FMaterialReferenceMigrator = std::function<bool(Core::FString&, bool&, Core::FString&)>;
-        using FAssetReferenceMigrator = bool (*)(Asset::EAssetType, Core::TArray<Core::Uint8>&, const Asset::FAssetManager::FMaterialReferenceMigrator&, bool&, Core::FString&);
-
-        /**
-         * @brief 리플렉션에서 사용하는 소유 타입과 선택적 부모 타입의 별칭을 선언합니다.
-         */
-        ReflectTypes(FAssetManager);
-
     public:
         /**
          * @brief 전달받은 설정과 의존성으로 FAssetManager의 초기 상태를 구성합니다.
@@ -59,12 +58,6 @@ namespace Asset {
 
     public:
         /**
-         * @brief 이 타입의 구조체 메타데이터를 반환합니다.
-         * @return 등록된 타입 메타데이터의 비소유 주소입니다.
-         */
-        ReflectStruct(FAssetManager);
-
-        /**
          * @brief 에셋 경로의 기준이 되는 콘텐츠 폴더를 반환합니다.
          * @return 객체가 보유한 데이터의 참조이며 소유 객체의 수명 동안 유효합니다.
          */
@@ -77,6 +70,11 @@ namespace Asset {
          */
         Core::FString GetMeshPath(const Asset::UStaticMesh* Mesh) const;
 
+        /**
+         * @brief 캐시에 등록된 스켈레탈 메시의 프로젝트 상대 경로를 반환합니다.
+         * @param[in] Mesh 조회·저장·포즈 계산에 사용할 메시입니다.
+         * @return 캐시 경로이며 등록하지 않은 메시이면 빈 문자열입니다.
+         */
         Core::FString GetSkeletalMeshPath(const Asset::USkeletalMesh* Mesh) const;
 
         /**
@@ -117,7 +115,23 @@ namespace Asset {
          */
         Asset::UStaticMesh* LoadMesh(const std::filesystem::path& Path, Core::FString& Error);
 
+        /**
+         * @brief 스켈레탈 메시 파일에서 본·스킨 가중치·기하 데이터를 읽어 캐시에 등록합니다.
+         * @param[in] Path 작업에 사용할 파일 또는 프로젝트 상대 에셋 경로입니다.
+         * @param[out] Error 실패 원인을 받을 문자열입니다.
+         * @return 로드한 메시의 비소유 주소이며 실패하면 nullptr입니다.
+         */
         Asset::USkeletalMesh* LoadSkeletalMesh(const std::filesystem::path& Path, Core::FString& Error);
+        Asset::USkeleton* LoadSkeleton(const std::filesystem::path& Path, Core::FString& Error);
+        Asset::USkeleton* FindLegacySkeleton(const std::filesystem::path& MeshPath) const;
+
+        /**
+         * @brief 애니메이션 시퀀스 에셋을 캐시에서 조회하거나 파일에서 로드하여 보관합니다.
+         * @param[in] Path 불러올 시퀀스 에셋의 경로입니다.
+         * @param[out] Error 실패 원인을 받을 오류 문자열입니다.
+         * @return 캐시된 에셋의 비소유 주소이며, 로드에 실패하면 nullptr입니다.
+         */
+        Asset::UAnimSequence* LoadAnimSequence(const std::filesystem::path& Path, Core::FString& Error);
 
         /**
          * @brief 텍스처 에셋을 캐시에서 조회하거나 파일에서 로드하여 보관합니다.
@@ -144,6 +158,32 @@ namespace Asset {
         Asset::UMaterial* LoadMaterial(const std::filesystem::path& Path, Core::FString& Error);
 
         /**
+         * @brief 시퀀스 에셋을 로드하여 캐시에 보관합니다.
+         * @param[in] Path 프로젝트 시퀀스 경로입니다.
+         * @param[out] Error 실패 원인입니다.
+         * @return 캐시 소유 시퀀스의 비소유 주소이며 실패하면 nullptr입니다.
+         */
+        Asset::ULevelSequence* LoadSequence(const std::filesystem::path& Path, Core::FString& Error);
+
+        /**
+         * @brief Sequences 폴더에 빈 시퀀스 에셋을 만들고 캐시에 보관합니다.
+         * @param[in] Name 파일 이름으로 사용할 이름이며 중복되면 번호를 붙입니다.
+         * @param[out] Path 생성한 에셋의 Content 상대 경로입니다.
+         * @param[out] Error 실패 원인입니다.
+         * @return 캐시 소유 시퀀스의 비소유 주소이며 실패하면 nullptr입니다.
+         */
+        Asset::ULevelSequence* CreateSequence(const Core::FString& Name, std::filesystem::path& Path, Core::FString& Error);
+
+        /**
+         * @brief 시퀀스를 에셋 파일로 저장합니다.
+         * @param[in] Path 프로젝트 시퀀스 경로입니다.
+         * @param[in] Sequence 저장할 시퀀스입니다.
+         * @param[out] Error 실패 원인입니다.
+         * @return 저장에 성공하면 true입니다.
+         */
+        bool SaveSequence(const std::filesystem::path& Path, Asset::ULevelSequence& Sequence, Core::FString& Error);
+
+        /**
          * @brief 캐시 객체의 주소를 유지하면서 파일의 최신 설정을 다시 적용합니다.
          * @param[in] Path 다시 읽을 프로젝트 머티리얼 경로입니다.
          * @param[out] Error 실패 원인입니다.
@@ -161,13 +201,6 @@ namespace Asset {
         bool SaveMaterial(const std::filesystem::path& Path, const Asset::UMaterial& Material, Core::FString& Error);
 
         /**
-         * @brief 이전 MTL 재질을 바이너리 에셋으로 이전하고 메시·장면의 재질 참조를 갱신합니다.
-         * @param[out] Error 실패 원인을 기록할 문자열입니다.
-         * @return 이전할 재질이 없거나 이전을 완료하면 true이며 실패하면 Error에 원인을 기록하고 false입니다.
-         */
-        bool MigrateMaterials(Asset::FAssetManager::FAssetReferenceMigrator MigrateReferences, Core::FString& Error);
-
-        /**
          * @brief 검증한 CPU 메시 데이터를 바이너리 에셋 파일로 저장합니다.
          * @param[in] Path 저장할 메시 에셋의 경로입니다.
          * @param[in] Mesh 읽거나 직렬화할 메시 데이터입니다.
@@ -176,7 +209,24 @@ namespace Asset {
          */
         bool SaveMesh(const std::filesystem::path& Path, const Asset::UStaticMesh& Mesh, Core::FString& Error);
 
+        /**
+         * @brief 스켈레탈 메시의 기하·본 계층·스킨 가중치를 에셋 파일에 저장합니다.
+         * @param[in] Path 작업에 사용할 파일 또는 프로젝트 상대 에셋 경로입니다.
+         * @param[in] Mesh 조회·저장·포즈 계산에 사용할 메시입니다.
+         * @param[out] Error 실패 원인을 받을 문자열입니다.
+         * @return 검증과 파일 저장에 성공하면 true입니다.
+         */
         bool SaveSkeletalMesh(const std::filesystem::path& Path, const Asset::USkeletalMesh& Mesh, Core::FString& Error);
+        bool SaveSkeleton(const std::filesystem::path& Path, const Asset::USkeleton& Skeleton, Core::FString& Error);
+
+        /**
+         * @brief 애니메이션 시퀀스의 트랙과 시간 정보를 에셋 파일에 저장하고 같은 경로의 캐시 객체를 갱신합니다.
+         * @param[in] Path 저장할 시퀀스 에셋의 경로입니다.
+         * @param[in] Sequence 저장할 시퀀스입니다.
+         * @param[out] Error 실패 원인을 받을 문자열입니다.
+         * @return 검증과 파일 저장에 성공하면 true입니다.
+         */
+        bool SaveAnimSequence(const std::filesystem::path& Path, const Asset::UAnimSequence& Sequence, Core::FString& Error);
 
         /**
          * @brief 텍스처의 크기·형식·색 공간과 이미지 데이터를 에셋 파일로 저장합니다.
@@ -217,6 +267,14 @@ namespace Asset {
          */
         bool ImportTexture(const std::filesystem::path& Source, const std::filesystem::path& Target, Core::FString& Error);
 
+        /**
+         * @brief 지정한 경로와 그 아래 경로의 캐시 항목을 은퇴시켜 다음 로드가 새 객체를 만들게 합니다.
+         * @details 캐시에 올라간 에셋 객체는 내용을 바꾸지 않으므로, 파일을 지우거나 옮긴 뒤 같은 경로를 다시 쓰려면 먼저 은퇴시켜야 합니다.
+         * 은퇴한 객체는 매니저가 소멸할 때까지 살아 있어 기존 참조가 끊기지 않습니다.
+         * @param[in] Path 은퇴시킬 에셋 파일 또는 폴더 경로입니다.
+         */
+        void RetireAssets(const std::filesystem::path& Path);
+
     private:
         /**
          * @brief 원본 메시와 재질·외부 텍스처를 임포트 옵션에 따라 프로젝트 에셋으로 가져와 메시 참조를 저장합니다.
@@ -238,44 +296,53 @@ namespace Asset {
          */
         bool ApplyMaterialSettings(Asset::UMaterial& Target, const Asset::UMaterial& Source, Core::FString& Error);
 
-        /**
-         * @brief 자동 생성된 프로퍼티 등록 코드와 리플렉션 빌더의 접근을 허용합니다.
-         */
-        ReflectMembers();
-
     private:
         /**
          * @brief 에셋 접근을 제한하는 프로젝트 콘텐츠 폴더의 절대 경로입니다.
          */
         std::filesystem::path mContentRoot{};
-        ReflectProperty(mContentRoot, "ContentRoot", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 정규화한 상대 경로별로 소유하는 메시 에셋 캐시입니다.
          */
         Core::TMap<Core::FString, std::unique_ptr<Asset::UStaticMesh>> mMeshes{};
-        ReflectProperty(mMeshes, "Meshes", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
+        /**
+         * @brief 프로젝트 상대 경로별로 소유하는 스켈레탈 메시 캐시입니다.
+         */
         Core::TMap<Core::FString, std::unique_ptr<Asset::USkeletalMesh>> mSkeletalMeshes{};
-        ReflectProperty(mSkeletalMeshes, "SkeletalMeshes", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+        Core::TMap<Core::FString, std::unique_ptr<Asset::USkeleton>> mSkeletons{};
+        Core::TMap<Core::FString, std::unique_ptr<Asset::USkeleton>> mLegacySkeletons{};
+
+        /**
+         * @brief 프로젝트 상대 경로별로 소유하는 애니메이션 시퀀스 캐시입니다.
+         */
+        Core::TMap<Core::FString, std::unique_ptr<Asset::UAnimSequence>> mAnimSequences{};
 
         /**
          * @brief 정규화한 상대 경로별로 소유하는 텍스처 에셋 캐시입니다.
          */
         Core::TMap<Core::FString, std::unique_ptr<Asset::UTexture2D>> mTextures{};
-        ReflectProperty(mTextures, "Textures", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 정규화한 상대 경로별로 소유하는 머티리얼 캐시입니다.
          */
         Core::TMap<Core::FString, std::unique_ptr<Asset::UTexture2D>> mNormalMaps{};
-        ReflectProperty(mNormalMaps, "NormalMaps", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
 
         /**
          * @brief 경로별로 캐시한 머티리얼의 소유 저장소입니다.
          */
         Core::TMap<Core::FString, std::unique_ptr<Asset::UMaterial>> mMaterials{};
-        ReflectProperty(mMaterials, "Materials", Core::EPropertyFlags::Transient | Core::EPropertyFlags::ReadOnly);
+
+        /**
+         * @brief 경로별로 캐시한 시퀀스의 소유 저장소입니다.
+         */
+        Core::TMap<Core::FString, std::unique_ptr<Asset::ULevelSequence>> mSequences{};
+
+        /**
+         * @brief 경로 캐시에서 빠졌지만 기존 참조를 위해 매니저 수명 동안 유지하는 에셋 객체입니다.
+         */
+        Core::TArray<std::unique_ptr<CoreUObject::UObject>> mRetired{};
     };
 
 }
