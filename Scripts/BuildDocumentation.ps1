@@ -336,6 +336,7 @@ exec cat "$Input/$File"
     $LandingPage = $LandingPage.Replace('@@ModuleRows@@', ($ModuleRows -join "`n")).Replace('@@ModuleCount@@', [string]$ModuleCount).Replace('@@ProjectCount@@', [string]$ProjectCount).Replace('@@Revision@@', $Revision)
     Set-Content -LiteralPath (Join-Path $SiteDirectory 'index.html') -Value $LandingPage -Encoding utf8
     Copy-Item -LiteralPath (Join-Path $RepositoryRoot 'Docs/Documentation.css') -Destination $SiteDirectory
+    Copy-Item -LiteralPath (Join-Path $RepositoryRoot 'Docs/macaw-engine-atlas.html') -Destination $SiteDirectory
     Copy-Item -LiteralPath $ThemeLicensePath -Destination $SiteDirectory
     Set-Content -LiteralPath (Join-Path $SiteDirectory '.nojekyll') -Value '' -NoNewline -Encoding utf8
     $BuildInformation = [ordered]@{
