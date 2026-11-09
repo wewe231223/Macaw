@@ -1,4 +1,4 @@
-param([switch]$InstallTools)
+param([switch]$InstallTools, [switch]$AllowIncompleteDocumentation)
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
@@ -211,6 +211,10 @@ try {
     $Configuration += "`nDOT_PATH = " + (GetDoxygenPath (Split-Path -Parent $Dot))
     $Configuration += "`nHTML_EXTRA_STYLESHEET = " + (GetDoxygenPath $ThemePath)
     $Configuration += "`nWARN_LOGFILE = " + (GetDoxygenPath (Join-Path $OutputDirectory 'DoxygenWarnings.log')) + "`n"
+    if ($AllowIncompleteDocumentation) {
+        $Configuration += "WARN_IF_UNDOCUMENTED = NO`nWARN_IF_UNDOC_ENUM_VAL = NO`nWARN_IF_INCOMPLETE_DOC = NO`nWARN_NO_PARAMDOC = NO`n"
+    }
+
     $FilterPath = Join-Path $PSScriptRoot 'FilterDocumentation.ps1'
     $FilterDirectory = Join-Path $OutputDirectory 'Filter'
     $FilterInputDirectory = Join-Path $FilterDirectory 'Input'
@@ -321,7 +325,7 @@ exec cat "$Input/$File"
             $MissingDocumentation.Add("Missing source file: $($SourceFile.FullName)")
         }
     }
-    if ($MissingDocumentation.Count -gt 0) {
+    if ($MissingDocumentation.Count -gt 0 -and -not $AllowIncompleteDocumentation) {
         throw ("Undocumented source entities:`n" + ($MissingDocumentation -join "`n"))
     }
     $Coverage = [ordered]@{ SourceFiles = $SourceFiles.Count; DocumentedFiles = $DocumentedFiles.Count; Members = $MemberCounts; EnumValues = $EnumValueCount; Undocumented = $MissingDocumentation.Count }

@@ -234,7 +234,6 @@ namespace Engine {
         bool mBlending{};
 
         /**
-        /**
          * @brief 모디파이어를 적용하기 전의 시점이며, 새 블렌드의 출발점으로 씁니다.
          */
         Engine::FMinimalViewInfo mBaseView{};

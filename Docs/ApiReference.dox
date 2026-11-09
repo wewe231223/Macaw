@@ -204,10 +204,12 @@ pwsh -File Scripts/BuildDocumentation.ps1 -InstallTools
 \endcode
 
 결과는 `Build/Documentation/Site/index.html`에서 확인합니다.
-문서 빌드는 미문서화 API, 누락한 인수·반환값 설명과 문서 오류가 있으면 실패합니다.
+기본 문서 빌드는 미문서화 API, 누락한 인수·반환값 설명과 문서 오류가 있으면 실패합니다.
 파일·타입·함수·별칭·열거값·데이터 멤버·매크로의 설명은 원본 소스에 유지합니다.
 수정하는 헤더와 구현 파일은 CRLF 줄 끝을 사용합니다.
-GitHub Actions의 Documentation 워크플로는 PR에서 검증하고 기본 브랜치에서 GitHub Pages로 배포합니다.
+GitHub Actions의 Documentation 워크플로는 `-AllowIncompleteDocumentation` 옵션으로 문서가 덜 작성된 상태에서도 사이트를 생성합니다.
+문서화 범위는 `DocumentationCoverage.json`에 기록하며 문서 문법 오류는 빌드 실패로 처리합니다.
+PR에서는 미리보기 산출물을 만들고 기본 브랜치에서는 GitHub Pages로 배포합니다.
 
 상위 문서와 모듈 의존성은 <a href="../index.html">Macaw Documentation</a>에서 확인합니다.
 
