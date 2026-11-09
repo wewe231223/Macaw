@@ -45,6 +45,20 @@ namespace Asset {
             return Core::FilePath::ToGenericUtf8(Core::FilePath::ToLower(Core::FilePath::FromUtf8(Relative)));
         }
 
+        // 캐시에 올라간 에셋 객체는 바꾸지 않으므로, 같은 경로에 다른 객체가 이미 있으면 저장을 거부합니다.
+        template <typename TCache, typename TAsset>
+        bool CheckCacheSlot(const TCache& Cache, const Core::FString& Key, const TAsset* Asset, Core::FString& Error) {
+            const auto Existing{Cache.find(Key)};
+
+            if (Existing != Cache.end() && Existing->second.get() != Asset) {
+                Error = "Another asset is already loaded at this path";
+
+                return false;
+            }
+
+            return true;
+        }
+
         /**
          * @brief 파일명 금지 문자·끝 공백과 점·Windows 예약 이름을 정리합니다.
          * @param[in] Name 조회하거나 지정할 이름입니다.
@@ -906,14 +920,12 @@ namespace Asset {
             return false;
         }
 
-        if (!Asset::FAssetFile::Save(Target, Asset::EAssetType::Mesh, Payload, Error)) {
+        if (!CheckCacheSlot(mMeshes, CacheKey(GetRelativePath(Path, Error)), &Mesh, Error)) {
             return false;
         }
 
-        const auto Existing{mMeshes.find(CacheKey(GetRelativePath(Path, Error)))};
-
-        if (Existing != mMeshes.end() && Existing->second.get() != &Mesh) {
-            Existing->second->SetMeshData(Mesh.GetMeshData());
+        if (!Asset::FAssetFile::Save(Target, Asset::EAssetType::Mesh, Payload, Error)) {
+            return false;
         }
 
         return true;
@@ -946,15 +958,11 @@ namespace Asset {
             return false;
         }
 
-        if (!Asset::FAssetFile::Save(Target, Asset::EAssetType::SkeletalMesh, Payload, Error)) {
+        if (!CheckCacheSlot(mSkeletalMeshes, CacheKey(GetRelativePath(Path, Error)), &Mesh, Error)) {
             return false;
         }
 
-        const auto Existing{mSkeletalMeshes.find(CacheKey(GetRelativePath(Path, Error)))};
-
-        if (Existing != mSkeletalMeshes.end() && Existing->second.get() != &Mesh && !Existing->second->SetMeshData(std::move(Data), std::move(SkinWeights))) {
-            Error = "Cannot update the cached skeletal mesh";
-
+        if (!Asset::FAssetFile::Save(Target, Asset::EAssetType::SkeletalMesh, Payload, Error)) {
             return false;
         }
 
@@ -984,15 +992,11 @@ namespace Asset {
             return false;
         }
 
-        if (!Asset::FAssetFile::Save(Target, Asset::EAssetType::Skeleton, Payload, Error)) {
+        if (!CheckCacheSlot(mSkeletons, CacheKey(GetRelativePath(Path, Error)), &Skeleton, Error)) {
             return false;
         }
 
-        const auto Existing{mSkeletons.find(CacheKey(GetRelativePath(Path, Error)))};
-
-        if (Existing != mSkeletons.end() && Existing->second.get() != &Skeleton && !Existing->second->SetBones(std::move(Bones))) {
-            Error = "Cannot update the cached skeleton";
-
+        if (!Asset::FAssetFile::Save(Target, Asset::EAssetType::Skeleton, Payload, Error)) {
             return false;
         }
 
@@ -1022,13 +1026,11 @@ namespace Asset {
             return false;
         }
 
-        if (!Asset::FAssetFile::Save(Target, Asset::EAssetType::AnimSequence, Payload, Error)) {
+        if (!CheckCacheSlot(mAnimSequences, CacheKey(GetRelativePath(Path, Error)), &Sequence, Error)) {
             return false;
         }
 
-        const auto Existing{mAnimSequences.find(CacheKey(GetRelativePath(Path, Error)))};
-
-        if (Existing != mAnimSequences.end() && Existing->second.get() != &Sequence && !Existing->second->SetDataModel(std::move(Model), Error)) {
+        if (!Asset::FAssetFile::Save(Target, Asset::EAssetType::AnimSequence, Payload, Error)) {
             return false;
         }
 
@@ -1060,14 +1062,12 @@ namespace Asset {
             return false;
         }
 
-        if (!Asset::FAssetFile::Save(Target, Asset::EAssetType::Texture, Payload, Error)) {
+        if (!CheckCacheSlot(mTextures, CacheKey(GetRelativePath(Path, Error)), &Texture, Error)) {
             return false;
         }
 
-        const auto Existing{mTextures.find(CacheKey(GetRelativePath(Path, Error)))};
-
-        if (Existing != mTextures.end() && Existing->second.get() != &Texture) {
-            return Data.ApplyTo(*Existing->second, Error);
+        if (!Asset::FAssetFile::Save(Target, Asset::EAssetType::Texture, Payload, Error)) {
+            return false;
         }
 
         return true;
@@ -1134,25 +1134,16 @@ namespace Asset {
             Folder = Parent / (Base.wstring() + L"_" + std::to_wstring(Index + 1));
         }
 
+        // 새로 만든 폴더라도 지운 에셋의 캐시가 같은 경로에 남아 있을 수 있으므로 먼저 은퇴시킵니다.
+        RetireAssets(Folder);
+
         Asset::FAssetImportScope Scope{Folder};
         auto Target{Folder / Base};
 
         Target += L".masset";
 
         if (!(Texture ? ImportTexture(Source, Target, Error) : ImportMesh(Source, Target, Option, Error))) {
-            const Core::FString Prefix{CacheKey(Core::FilePath::ToGenericUtf8(Folder.lexically_relative(mContentRoot))) + "/"};
-            const auto RemoveCache{[&Prefix](auto& Cache) {
-                std::erase_if(Cache, [&Prefix](const auto& Entry) {
-                    return Entry.first.starts_with(Prefix);
-                });
-            }};
-            RemoveCache(mMaterials);
-            RemoveCache(mMeshes);
-            RemoveCache(mSkeletalMeshes);
-            RemoveCache(mSkeletons);
-            RemoveCache(mAnimSequences);
-            RemoveCache(mNormalMaps);
-            RemoveCache(mTextures);
+            RetireAssets(Folder);
 
             return false;
         }
@@ -1422,6 +1413,39 @@ namespace Asset {
         }
 
         return SaveTexture(Target, *Texture, Error);
+    }
+
+    void Asset::FAssetManager::RetireAssets(const std::filesystem::path& Path) {
+        Core::FString Error{};
+        const Core::FString Relative{GetRelativePath(Path, Error)};
+
+        if (Relative.empty()) {
+            return;
+        }
+
+        // 콘텐츠 루트 자체를 가리키면 모든 항목이 대상입니다.
+        const Core::FString Key{Relative == "." ? Core::FString{} : CacheKey(Relative)};
+        const auto Retire{[this, &Key](auto& Cache) {
+            std::erase_if(Cache, [this, &Key](auto& Entry) {
+                if (!Key.empty() && Entry.first != Key && !Entry.first.starts_with(Key + "/")) {
+                    return false;
+                }
+
+                mRetired.push_back(std::move(Entry.second));
+
+                return true;
+            });
+        }};
+
+        Retire(mMeshes);
+        Retire(mSkeletalMeshes);
+        Retire(mSkeletons);
+        Retire(mLegacySkeletons);
+        Retire(mAnimSequences);
+        Retire(mTextures);
+        Retire(mNormalMaps);
+        Retire(mMaterials);
+        Retire(mSequences);
     }
 
     /**

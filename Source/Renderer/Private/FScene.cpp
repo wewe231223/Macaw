@@ -230,15 +230,7 @@ namespace Renderer {
      * @brief 그림자 깊이 결과에 영향을 주는 캐스터 상태의 리비전을 반환합니다.
      */
     Core::FRevision Renderer::FScene::GetCasterRevision() const {
-        Core::FRevision Revision{mCasterRevision};
-
-        for (const Renderer::FScenePrimitive& Primitive : mPrimitives) {
-            if (IsShadowCaster(Primitive.mProxy) && Primitive.mProxy.mMesh != nullptr && Primitive.mProxy.mMesh->GetRevision().GetValue() > Revision.GetValue()) {
-                Revision = Primitive.mProxy.mMesh->GetRevision();
-            }
-        }
-
-        return Revision;
+        return mCasterRevision;
     }
 
     /**

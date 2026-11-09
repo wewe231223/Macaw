@@ -147,7 +147,7 @@ namespace Engine {
         void UnregisterComponent() override;
 
         /**
-         * @brief 재임포트에 따른 포즈·버퍼 갱신을 예약하고, 플레이 중이면 애니메이션 포즈를 갱신합니다.
+         * @brief 플레이 중이면 애니메이션 포즈를 갱신합니다.
          * @param DeltaTime 프레임 경과 시간입니다.
          */
         void Tick(float DeltaTime) override;
@@ -245,8 +245,6 @@ namespace Engine {
          */
         Asset::USkeletalMesh* mSkeletalMesh{};
         Asset::USkeleton* mSkeleton{};
-        Core::FRevision mMeshRevision{};
-        Core::FRevision mSkeletonRevision{};
 
         /**
          * @brief 객체별 로컬·전역 포즈와 CPU 피킹 형상입니다.

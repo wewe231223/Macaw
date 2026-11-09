@@ -53,7 +53,6 @@ namespace Asset {
         mSkinWeightBuffer.Reset();
         mSkinWeights = std::move(SkinWeights);
         mSkinMatrixCount = SkinMatrixCount;
-        mRevision = Core::FRevision::Next();
 
         return true;
     }
@@ -161,13 +160,6 @@ namespace Asset {
      */
     Core::Uint32 Asset::USkeletalMesh::GetIndexCount() const {
         return mGeometry.GetIndexCount();
-    }
-
-    /**
-     * @brief 에셋 데이터의 변경 식별자를 반환합니다.
-     */
-    Core::FRevision Asset::USkeletalMesh::GetRevision() const {
-        return mRevision;
     }
 
     /**

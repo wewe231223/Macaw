@@ -1709,6 +1709,13 @@ namespace Editor {
             mScriptBuilds.RefreshScriptFiles();
             mSelectedContentPath = Destination;
         } else {
+            // 옛 경로의 캐시 객체는 바뀌지 않으므로 은퇴시켜, 나중에 같은 경로를 다시 쓸 때 새로 로드하게 합니다.
+            mContext->GetProject()->GetAssets()->RetireAssets(Absolute);
+
+            if (mMeshViewer != nullptr) {
+                mMeshViewer->CloseRetired(Absolute);
+            }
+
             mSelectedContentPath = mContentActionTarget.parent_path() / NewFile;
             mRefreshContent = true;
 
@@ -1753,6 +1760,13 @@ namespace Editor {
         if (mContentActionScript) {
             mScriptBuilds.RefreshScriptFiles();
         } else {
+            // 지운 에셋을 참조하던 객체는 살려 두고, 같은 경로에 다시 임포트하면 새 객체를 로드하게 합니다.
+            mContext->GetProject()->GetAssets()->RetireAssets(Absolute);
+
+            if (mMeshViewer != nullptr) {
+                mMeshViewer->CloseRetired(Absolute);
+            }
+
             mRefreshContent = true;
         }
 

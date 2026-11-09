@@ -156,27 +156,22 @@ namespace Engine {
     }
 
     /**
-     * @brief 저장된 에셋 경로와 현재 에셋 개정을 해석합니다.
+     * @brief 저장된 에셋 경로를 해석합니다.
      */
     bool USkeletalMeshComponent::ResolveMesh() {
         Asset::USkeletalMesh* Mesh{LoadMesh(mMeshPath)};
         Asset::USkeleton* Skeleton{LoadSkeleton(mSkeletonPath)};
-        const Core::FRevision MeshRevision{Mesh != nullptr ? Mesh->GetRevision() : Core::FRevision{}};
-        const Core::FRevision SkeletonRevision{Skeleton != nullptr ? Skeleton->GetRevision() : Core::FRevision{}};
 
-        if (Mesh != mSkeletalMesh || Skeleton != mSkeleton || MeshRevision != mMeshRevision || SkeletonRevision != mSkeletonRevision) {
-            const bool Reimported{(mMeshRevision.IsValid() && MeshRevision != mMeshRevision) || (mSkeletonRevision.IsValid() && SkeletonRevision != mSkeletonRevision)};
-
+        // 캐시에 올라간 에셋은 내용이 바뀌지 않으므로 객체가 같으면 다시 해석할 필요가 없습니다.
+        if (Mesh != mSkeletalMesh || Skeleton != mSkeleton) {
             mSkeletalMesh = Mesh;
             mSkeleton = Skeleton;
-            mMeshRevision = MeshRevision;
-            mSkeletonRevision = SkeletonRevision;
             mPose.Invalidate();
 
             if (Mesh != nullptr && Skeleton != nullptr) {
                 bool PoseReady{false};
 
-                if (!Reimported && !mPose.GetLocalTransforms().empty()) {
+                if (!mPose.GetLocalTransforms().empty()) {
                     PoseReady = mPose.Recalculate(*Mesh, *Skeleton);
 
                     if (!PoseReady) {
@@ -266,20 +261,14 @@ namespace Engine {
 
         mSkeletalMesh = nullptr;
         mSkeleton = nullptr;
-        mMeshRevision = Core::FRevision{};
-        mSkeletonRevision = Core::FRevision{};
         mPose.Invalidate();
     }
 
     /**
-     * @brief 재임포트에 따른 포즈·버퍼 갱신을 예약합니다.
+     * @brief 재생 중인 애니메이션을 진행합니다.
      */
     void USkeletalMeshComponent::Tick(float DeltaTime) {
         Engine::UMeshComponent::Tick(DeltaTime);
-
-        if ((mSkeletalMesh != nullptr && mMeshRevision != mSkeletalMesh->GetRevision()) || (mSkeleton != nullptr && mSkeletonRevision != mSkeleton->GetRevision())) {
-            ResolveMesh();
-        }
 
         // 에디터 월드는 BeginPlay를 받지 않으므로 애니메이션은 PIE와 게임에서만 진행됩니다.
         if (HasBegunPlay()) {
@@ -496,8 +485,9 @@ namespace Engine {
 
         if (Archive.IsLoading()) {
             if (!Archive.HasError()) {
-                mMeshRevision = Core::FRevision{};
-                mSkeletonRevision = Core::FRevision{};
+                // 경로가 같아도 읽어 온 포즈를 다시 적용해야 하므로 에셋 참조를 비워 강제로 다시 해석합니다.
+                mSkeletalMesh = nullptr;
+                mSkeleton = nullptr;
                 ResolveMesh();
             }
 

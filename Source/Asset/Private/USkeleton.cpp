@@ -41,7 +41,6 @@ namespace Asset {
         mGlobalBindPoses = std::move(GlobalBindPoses);
         mInverseBindPoses = std::move(InverseBindPoses);
         mReferencePose = std::move(ReferencePose);
-        mRevision = Core::FRevision::Next();
 
         return true;
     }
@@ -60,10 +59,6 @@ namespace Asset {
 
     const Core::TArray<Core::FTransform>& USkeleton::GetReferencePose() const {
         return mReferencePose;
-    }
-
-    Core::FRevision USkeleton::GetRevision() const {
-        return mRevision;
     }
 
     bool USkeleton::IsValid() const {

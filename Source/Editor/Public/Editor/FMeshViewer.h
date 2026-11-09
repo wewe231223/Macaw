@@ -98,6 +98,13 @@ namespace Editor {
         bool IsOpen() const;
 
         /**
+         * @brief 열린 메시나 스켈레톤이 지정한 경로 아래에 있으면 뷰어를 닫습니다.
+         * @details 에셋을 지우거나 옮겨 캐시에서 은퇴시킬 때 호출해, 옛 에셋을 계속 편집하지 않게 합니다.
+         * @param[in] Path 은퇴시킨 에셋 파일 또는 폴더 경로입니다.
+         */
+        void CloseRetired(const std::filesystem::path& Path);
+
+        /**
          * @brief 전체 메시가 보이도록 카메라를 배치합니다.
          */
         void FrameMesh();
@@ -194,8 +201,6 @@ namespace Editor {
         Asset::USkeletalMesh* mSkeletalMesh{};
         Asset::USkeleton* mSkeleton{};
         Core::FString mSkeletonPath{};
-        Core::FRevision mMeshRevision{};
-        Core::FRevision mSkeletonRevision{};
 
         /**
          * @brief 미리보기 객체만의 현재 포즈입니다.

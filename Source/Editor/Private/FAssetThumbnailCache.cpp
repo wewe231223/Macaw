@@ -27,6 +27,7 @@
 #include <algorithm>
 #include <bit>
 #include <cmath>
+#include <functional>
 
 namespace Editor {
 
@@ -125,7 +126,8 @@ namespace Editor {
         if (Type == Asset::EAssetType::Skeleton) {
             const Asset::USkeleton* Skeleton{Path.empty() ? nullptr : mAssets->LoadSkeleton(Path, Error)};
 
-            return Skeleton != nullptr ? Render(Key, nullptr, nullptr, mGeneration ^ static_cast<std::size_t>(Skeleton->GetRevision().GetValue()), Skeleton) : nullptr;
+            // 캐시에 올라간 에셋은 내용이 바뀌지 않고 은퇴한 객체도 해제되지 않으므로, 객체 주소가 곧 내용의 식별자입니다.
+            return Skeleton != nullptr ? Render(Key, nullptr, nullptr, mGeneration ^ std::hash<const void*>{}(Skeleton), Skeleton) : nullptr;
         }
 
         if (Type != Asset::EAssetType::Mesh && Type != Asset::EAssetType::SkeletalMesh) {
@@ -140,7 +142,7 @@ namespace Editor {
             return nullptr;
         }
 
-        std::size_t Signature{mGeneration ^ static_cast<std::size_t>(Mesh->GetRevision().GetValue())};
+        std::size_t Signature{mGeneration ^ std::hash<const void*>{}(Mesh)};
 
         for (const Asset::FMeshMaterialSlot& Slot : Mesh->GetMeshData().GetMaterialSlots()) {
             Asset::UMaterial* Material{Slot.GetMaterialPath().empty() ? nullptr : mAssets->LoadMaterial(Core::FilePath::FromUtf8(Slot.GetMaterialPath()), Error)};

@@ -9,7 +9,6 @@
 #include "Asset/FMeshData.h"
 #include "Asset/UStaticMesh.h"
 #include "Asset/Import/FMeshImportSkinWeight.h"
-#include "Core/FRevision.h"
 #include "CoreUObject/UObject.h"
 #include "RenderCore/TVertexBuffer.h"
 
@@ -117,12 +116,6 @@ namespace Asset {
         Core::Uint32 GetIndexCount() const;
 
         /**
-         * @brief 에셋 데이터의 변경 식별자를 반환합니다.
-         * @return 마지막 데이터 교체 시 발급한 개정입니다.
-         */
-        Core::FRevision GetRevision() const;
-
-        /**
          * @brief 스키닝에 필요한 형상과 가중치가 있는지 검사합니다.
          * @return 유효한 메시이면 true입니다.
          */
@@ -161,11 +154,6 @@ namespace Asset {
         Core::TArray<Asset::FMeshImportSkinWeight> mSkinWeights{};
 
         Core::Uint32 mSkinMatrixCount{};
-
-        /**
-         * @brief 바인드 데이터 개정입니다.
-         */
-        Core::FRevision mRevision{};
 
         /**
          * @brief BLENDINDICES와 BLENDWEIGHT 입력의 공유 불변 버퍼입니다.

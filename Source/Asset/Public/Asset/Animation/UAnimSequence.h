@@ -8,7 +8,6 @@
 
 #include "Asset/Animation/FAnimDataModel.h"
 #include "Asset/Animation/UAnimSequenceBase.h"
-#include "Core/FRevision.h"
 #include "Core/Math/FTransform.h"
 #include "UAnimSequence.generated.h"
 
@@ -55,22 +54,12 @@ namespace Asset {
 
         bool IsValid() const override;
 
-        /**
-         * @brief 데이터 변경 식별자를 반환합니다.
-         * @return 마지막으로 데이터를 교체할 때 발급한 개정입니다.
-         */
-        Core::FRevision GetRevision() const;
-
     private:
         /**
          * @brief 본 트랙과 시간 정보입니다.
          */
         Asset::FAnimDataModel mDataModel{};
 
-        /**
-         * @brief 데이터 개정입니다.
-         */
-        Core::FRevision mRevision{};
     };
 
 }

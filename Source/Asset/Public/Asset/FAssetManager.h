@@ -14,6 +14,12 @@
 #include <filesystem>
 #include <memory>
 
+namespace CoreUObject {
+
+    class UObject;
+
+}
+
 namespace Asset {
 
     class UStaticMesh;
@@ -261,6 +267,14 @@ namespace Asset {
          */
         bool ImportTexture(const std::filesystem::path& Source, const std::filesystem::path& Target, Core::FString& Error);
 
+        /**
+         * @brief 지정한 경로와 그 아래 경로의 캐시 항목을 은퇴시켜 다음 로드가 새 객체를 만들게 합니다.
+         * @details 캐시에 올라간 에셋 객체는 내용을 바꾸지 않으므로, 파일을 지우거나 옮긴 뒤 같은 경로를 다시 쓰려면 먼저 은퇴시켜야 합니다.
+         * 은퇴한 객체는 매니저가 소멸할 때까지 살아 있어 기존 참조가 끊기지 않습니다.
+         * @param[in] Path 은퇴시킬 에셋 파일 또는 폴더 경로입니다.
+         */
+        void RetireAssets(const std::filesystem::path& Path);
+
     private:
         /**
          * @brief 원본 메시와 재질·외부 텍스처를 임포트 옵션에 따라 프로젝트 에셋으로 가져와 메시 참조를 저장합니다.
@@ -324,6 +338,11 @@ namespace Asset {
          * @brief 경로별로 캐시한 시퀀스의 소유 저장소입니다.
          */
         Core::TMap<Core::FString, std::unique_ptr<Asset::ULevelSequence>> mSequences{};
+
+        /**
+         * @brief 경로 캐시에서 빠졌지만 기존 참조를 위해 매니저 수명 동안 유지하는 에셋 객체입니다.
+         */
+        Core::TArray<std::unique_ptr<CoreUObject::UObject>> mRetired{};
     };
 
 }

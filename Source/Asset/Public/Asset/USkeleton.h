@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Asset/Import/FMeshImportBone.h"
-#include "Core/FRevision.h"
 #include "Core/Math/FTransform.h"
 #include "CoreUObject/UObject.h"
 #include "USkeleton.generated.h"
@@ -29,7 +28,6 @@ namespace Asset {
          */
         const Core::TArray<Core::FTransform>& GetReferencePose() const;
 
-        Core::FRevision GetRevision() const;
         bool IsValid() const;
 
     private:
@@ -37,6 +35,5 @@ namespace Asset {
         Core::TArray<Core::FMatrix> mGlobalBindPoses{};
         Core::TArray<Core::FMatrix> mInverseBindPoses{};
         Core::TArray<Core::FTransform> mReferencePose{};
-        Core::FRevision mRevision{};
     };
 }

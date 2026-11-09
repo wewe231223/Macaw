@@ -8,7 +8,6 @@
 
 #include "CoreUObject/UObject.h"
 #include "Asset/FMeshData.h"
-#include "Core/FRevision.h"
 #include "RenderCore/TIndexBuffer.h"
 #include "RenderCore/TVertexBuffer.h"
 
@@ -121,12 +120,6 @@ namespace Asset {
         bool HasResources() const;
 
         /**
-         * @brief 메시 데이터를 교체할 때마다 새로 받는 리비전을 반환합니다.
-         * @return 현재 메시 데이터의 리비전입니다.
-         */
-        Core::FRevision GetRevision() const;
-
-        /**
          * @brief 위치·법선·UV·색상 버퍼를 입력 슬롯 0~3에, 인덱스 버퍼를 함께 연결합니다.
          * @param[in] Context 바인딩할 장치 컨텍스트입니다.
          */
@@ -156,11 +149,6 @@ namespace Asset {
          * @brief 메시의 CPU 정점 속성·인덱스·경계 데이터입니다.
          */
         Asset::FMeshData mMeshData{};
-
-        /**
-         * @brief 메시 데이터를 교체할 때마다 새로 받는 리비전입니다.
-         */
-        Core::FRevision mRevision{Core::FRevision::Next()};
 
         /**
          * @brief 정점 위치를 보관하는 소유 GPU 버퍼입니다.

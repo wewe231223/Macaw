@@ -129,8 +129,6 @@ namespace Editor {
         mSkeletalMesh = Skeletal;
         mSkeleton = Skeleton;
         mSkeletonPath = SkeletonPath;
-        mMeshRevision = Mesh->GetRevision();
-        mSkeletonRevision = Skeleton != nullptr ? Skeleton->GetRevision() : Core::FRevision{};
         mPose = std::move(Pose);
         mPoseBone.reset();
         mGizmo.EndDrag();
@@ -152,6 +150,31 @@ namespace Editor {
      */
     bool Editor::FMeshViewer::IsOpen() const {
         return mOpen;
+    }
+
+    void Editor::FMeshViewer::CloseRetired(const std::filesystem::path& Path) {
+        if (!mOpen || mAssets == nullptr) {
+            return;
+        }
+
+        Core::FString Error{};
+        const auto Normalize{[this, &Error](const std::filesystem::path& Target) {
+            return Core::FilePath::ToGenericUtf8(Core::FilePath::ToLower(Core::FilePath::FromUtf8(mAssets->GetRelativePath(Target, Error))));
+        }};
+        const Core::FString Root{Normalize(Path)};
+        const auto Contains{[&](const Core::FString& Open) {
+            if (Open.empty() || Root.empty()) {
+                return false;
+            }
+
+            const Core::FString Relative{Normalize(Core::FilePath::FromUtf8(Open))};
+
+            return Root == "." || Relative == Root || Relative.starts_with(Root + "/");
+        }};
+
+        if (Contains(mPath) || Contains(mSkeletonPath)) {
+            mOpen = false;
+        }
     }
 
     /**
@@ -293,7 +316,6 @@ namespace Editor {
 
         mSkeleton = Skeleton;
         mSkeletonPath = std::move(SelectedPath);
-        mSkeletonRevision = Skeleton != nullptr ? Skeleton->GetRevision() : Core::FRevision{};
         mPose = std::move(Pose);
         mPoseBone.reset();
         mGizmo.EndDrag();
@@ -306,17 +328,6 @@ namespace Editor {
      * @brief 카메라·재질 조작 UI와 미리보기를 표시합니다.
      */
     void Editor::FMeshViewer::DrawUI(const Core::FInput& Input, bool Standalone) {
-        // 열린 에셋이 재임포트되면 본 번호와 재질 슬롯을 새 데이터에 맞춰 다시 만듭니다.
-        if (mOpen && ((mMesh != nullptr && mMeshRevision != mMesh->GetRevision()) || (mSkeleton != nullptr && mSkeletonRevision != mSkeleton->GetRevision()))) {
-            const std::filesystem::path Path{Core::FilePath::FromUtf8(mPath)};
-            Core::FString Error{};
-
-            if (!Open(Path, Error)) {
-                mOpen = false;
-                mError = std::move(Error);
-            }
-        }
-
         if (!mOpen || mMesh == nullptr) {
             return;
         }

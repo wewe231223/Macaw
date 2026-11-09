@@ -77,7 +77,6 @@ namespace Asset {
         }
 
         mMeshData = std::move(MeshData);
-        mRevision = Core::FRevision::Next();
 
         ReleaseResources();
 
@@ -208,13 +207,6 @@ namespace Asset {
      */
     bool Asset::UStaticMesh::HasResources() const {
         return mPositionBuffer.IsCreated() && mTangentBuffer.IsCreated() && mUVBuffer.IsCreated() && mColorBuffer.IsCreated() && mIndexBuffer.IsCreated();
-    }
-
-    /**
-     * @brief 메시 데이터를 교체할 때마다 새로 받는 리비전을 반환합니다.
-     */
-    Core::FRevision Asset::UStaticMesh::GetRevision() const {
-        return mRevision;
     }
 
     /**

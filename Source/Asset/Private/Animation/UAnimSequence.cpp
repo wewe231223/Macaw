@@ -12,7 +12,6 @@ namespace Asset {
         }
 
         mDataModel = std::move(DataModel);
-        mRevision = Core::FRevision::Next();
 
         return true;
     }
@@ -65,10 +64,6 @@ namespace Asset {
 
     bool UAnimSequence::IsValid() const {
         return !mDataModel.GetBoneAnimationTracks().empty();
-    }
-
-    Core::FRevision UAnimSequence::GetRevision() const {
-        return mRevision;
     }
 
 }
