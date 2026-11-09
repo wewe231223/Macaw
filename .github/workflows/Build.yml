@@ -39,7 +39,7 @@ jobs:
           } else {
               'Macaw.sln'
           }
-          & $MSBuild $Solution /m /nologo /verbosity:minimal /p:Configuration=${{ matrix.Configuration }} /p:Platform=x64 /p:VcpkgManifestInstall=false
+          & $MSBuild $Solution /restore /m /nologo /verbosity:minimal /p:Configuration=${{ matrix.Configuration }} /p:Platform=x64 /p:VcpkgManifestInstall=false
           if ($LASTEXITCODE -ne 0) {
               exit $LASTEXITCODE
           }

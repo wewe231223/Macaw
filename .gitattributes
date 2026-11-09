@@ -1,3 +1,4 @@
 Source/**/*.h text eol=crlf
 Source/**/*.cpp text eol=crlf
 *.bat text eol=crlf
+VcpkgPorts/**/*.patch text eol=lf
