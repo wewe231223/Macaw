@@ -10,6 +10,7 @@ namespace Asset {
 
         Core::TArray<Core::FMatrix> GlobalBindPoses{};
         Core::TArray<Core::FMatrix> InverseBindPoses{};
+        Core::TArray<Core::FTransform> ReferencePose(Bones.size());
 
         GlobalBindPoses.reserve(Bones.size());
         InverseBindPoses.reserve(Bones.size());
@@ -31,11 +32,15 @@ namespace Asset {
 
             GlobalBindPoses.push_back(Global);
             InverseBindPoses.push_back(Inverse);
+
+            // 애니메이션이 트랙 없는 본에 쓰도록 부모 본 기준 바인드 포즈를 위치·회전·스케일로 분해해 둡니다.
+            Bone.GetBindPose().TryGetTransform(ReferencePose[Index]);
         }
 
         mBones = std::move(Bones);
         mGlobalBindPoses = std::move(GlobalBindPoses);
         mInverseBindPoses = std::move(InverseBindPoses);
+        mReferencePose = std::move(ReferencePose);
         mRevision = Core::FRevision::Next();
 
         return true;
@@ -51,6 +56,10 @@ namespace Asset {
 
     const Core::TArray<Core::FMatrix>& USkeleton::GetInverseBindPoses() const {
         return mInverseBindPoses;
+    }
+
+    const Core::TArray<Core::FTransform>& USkeleton::GetReferencePose() const {
+        return mReferencePose;
     }
 
     Core::FRevision USkeleton::GetRevision() const {

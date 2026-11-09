@@ -790,6 +790,10 @@ namespace Editor {
                 return mAssetPicker.Draw(*mAssetCatalog, *mThumbnails, Label, *String, Asset::EAssetType::Skeleton, {}, "None");
             }
 
+            if (Property->GetName() == "Animation" && mAssetCatalog != nullptr && mThumbnails != nullptr) {
+                return mAssetPicker.Draw(*mAssetCatalog, *mThumbnails, Label, *String, Asset::EAssetType::AnimSequence, {}, "None");
+            }
+
             if (Property->GetName() == "Mesh") {
                 return DrawAssetPicker(Label, *String, true);
             }

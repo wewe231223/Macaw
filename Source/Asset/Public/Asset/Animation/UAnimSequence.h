@@ -9,6 +9,7 @@
 #include "Asset/Animation/FAnimDataModel.h"
 #include "Asset/Animation/UAnimSequenceBase.h"
 #include "Core/FRevision.h"
+#include "Core/Math/FTransform.h"
 #include "UAnimSequence.generated.h"
 
 namespace Asset {
@@ -39,6 +40,16 @@ namespace Asset {
          * @return 읽기 전용 데이터입니다.
          */
         const Asset::FAnimDataModel& GetDataModel() const;
+
+        /**
+         * @brief 지정한 시간의 트랙별 로컬 변환을 샘플링합니다.
+         * @details 앞뒤 키 사이를 위치·스케일은 선형 보간, 회전은 구면 선형 보간합니다. 키가 하나인 채널은 그 값을 그대로 씁니다.
+         * 반복 재생이면 시간을 재생 길이로 나눈 나머지를 쓰고, 아니면 0과 재생 길이 사이로 제한합니다.
+         * @param[in] Time 초 단위 재생 시간입니다.
+         * @param[in] Looping 반복 재생 여부입니다.
+         * @param[out] OutTrackPose 트랙 순서의 로컬 변환이며 트랙 수만큼 크기를 맞춥니다.
+         */
+        void GetTrackPose(double Time, bool Looping, Core::TArray<Core::FTransform>& OutTrackPose) const;
 
         double GetPlayLength() const override;
 

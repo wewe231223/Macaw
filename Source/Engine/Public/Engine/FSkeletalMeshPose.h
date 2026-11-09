@@ -63,6 +63,16 @@ namespace Engine {
         bool SetLocalTransforms(Core::TArray<Core::FMatrix> LocalTransforms);
 
         /**
+         * @brief 애니메이션이 만든 로컬 포즈로 전역 행렬과 스키닝 행렬만 다시 계산합니다.
+         * @details 매 프레임 호출하므로 행렬 검증과 CPU 변형 형상·경계 갱신을 생략합니다. 피킹 형상과 경계는 마지막으로 계산한 값을 유지합니다.
+         * @param[in] Mesh 스키닝 행렬 수를 정하는 메시입니다.
+         * @param[in] Skeleton 부모 인덱스와 역바인드 행렬을 제공하는 스켈레톤입니다.
+         * @param[in] LocalTransforms 본 인덱스 순서의 부모 본 기준 변환입니다.
+         * @return 본 수가 스켈레톤과 같아 적용했으면 true입니다.
+         */
+        bool SetAnimatedLocalTransforms(const Asset::USkeletalMesh& Mesh, const Asset::USkeleton& Skeleton, Core::TArray<Core::FMatrix> LocalTransforms);
+
+        /**
          * @brief 본 하나의 로컬 변환을 교체합니다.
          * @param Mesh 사용할 에셋입니다.
          * @param Bone 본 인덱스입니다.

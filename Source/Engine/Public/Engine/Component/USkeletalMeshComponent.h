@@ -8,14 +8,20 @@
 
 #include "Engine/Component/UMeshComponent.h"
 #include "Engine/FSkeletalMeshPose.h"
+
+#include <memory>
 #include "USkeletalMeshComponent.generated.h"
 
 namespace Asset {
+    class UAnimSequence;
     class USkeletalMesh;
     class USkeleton;
 }
 
 namespace Engine {
+
+    class UAnimInstance;
+    class UAnimSingleNodeInstance;
 
     /**
      * @brief 공유 바인드 형상을 객체별 포즈로 변형하여 표시하는 컴포넌트입니다.
@@ -141,10 +147,43 @@ namespace Engine {
         void UnregisterComponent() override;
 
         /**
-         * @brief 재임포트에 따른 포즈·버퍼 갱신을 예약합니다.
+         * @brief 재임포트에 따른 포즈·버퍼 갱신을 예약하고, 플레이 중이면 애니메이션 포즈를 갱신합니다.
          * @param DeltaTime 프레임 경과 시간입니다.
          */
         void Tick(float DeltaTime) override;
+
+        /**
+         * @brief 지정한 애니메이션 에셋이 있으면 재생을 시작합니다.
+         */
+        void BeginPlay() override;
+
+        /**
+         * @brief 애니메이션 인스턴스를 해제하고 마지막 포즈를 유지합니다.
+         */
+        void EndPlay() override;
+
+        /**
+         * @brief 단일 노드 애니메이션 인스턴스로 시퀀스 하나를 재생합니다.
+         * @details 언리얼 PlayAnimation과 같이 AnimationSingleNode 모드로 바꾸고 시퀀스를 지정한 뒤 재생을 시작합니다. 포즈는 플레이 중 Tick에서만 갱신됩니다.
+         * @param[in] Sequence 재생할 시퀀스입니다. 에셋 관리자가 소유합니다.
+         * @param[in] Looping 반복 재생 여부입니다.
+         */
+        void PlayAnimation(const Asset::UAnimSequence* Sequence, bool Looping);
+
+        /**
+         * @brief 현재 애니메이션 인스턴스를 반환합니다.
+         * @return 재생 중이 아니면 nullptr입니다.
+         */
+        Engine::UAnimInstance* GetAnimInstance() const;
+
+        const Core::FString& GetAnimationPath() const;
+        bool SetAnimationPath(const Core::FString& Path);
+
+        bool IsLooping() const;
+        void SetLooping(bool Looping);
+
+        float GetPlayRate() const;
+        void SetPlayRate(float PlayRate);
 
         /**
          * @brief 프로퍼티를 직렬화하고 로드한 포즈를 에셋에 다시 연결합니다.
@@ -160,6 +199,13 @@ namespace Engine {
          */
         Asset::USkeletalMesh* LoadMesh(const Core::FString& Path) const;
         Asset::USkeleton* LoadSkeleton(const Core::FString& Path) const;
+        Asset::UAnimSequence* LoadAnimation(const Core::FString& Path) const;
+
+        /**
+         * @brief 애니메이션 인스턴스를 갱신하고 결과 포즈를 스키닝 행렬에 반영합니다.
+         * @param DeltaTime 프레임 경과 시간입니다.
+         */
+        void TickAnimation(float DeltaTime);
 
     private:
         /**
@@ -170,6 +216,29 @@ namespace Engine {
 
         UPROPERTY(Edit, Serialize, Name = "Skeleton", Getter = GetSkeletonPath, Setter = SetSkeletonPath)
         Core::FString mSkeletonPath{};
+
+        /**
+         * @brief 플레이를 시작하면 재생할 Content 기준 애니메이션 시퀀스 경로입니다.
+         */
+        UPROPERTY(Edit, Serialize, Name = "Animation", Getter = GetAnimationPath, Setter = SetAnimationPath)
+        Core::FString mAnimationPath{};
+
+        /**
+         * @brief 애니메이션을 반복 재생할지 여부입니다.
+         */
+        UPROPERTY(Edit, Serialize, Name = "Looping", Getter = IsLooping, Setter = SetLooping)
+        bool mLooping{true};
+
+        /**
+         * @brief 애니메이션 재생 속도 배율입니다.
+         */
+        UPROPERTY(Edit, Serialize, Name = "PlayRate", Getter = GetPlayRate, Setter = SetPlayRate)
+        float mPlayRate{1.0f};
+
+        /**
+         * @brief 플레이 중에만 존재하는 애니메이션 인스턴스입니다. 저장하지 않습니다.
+         */
+        std::unique_ptr<Engine::UAnimInstance> mAnimInstance{};
 
         /**
          * @brief 에셋 관리자가 소유하는 메시입니다.

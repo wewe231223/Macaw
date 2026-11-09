@@ -2254,8 +2254,11 @@ namespace Editor {
                             RegisterContentDropTarget(Path, {Minimum.x, Minimum.y, Maximum.x, Maximum.y});
                         }
 
-                        if (HasThumbnail && mContext->CanEditWorld() && ImGui::BeginDragDropSource()) {
-                            const char* Payload{Type->second == Asset::EAssetType::Mesh || Type->second == Asset::EAssetType::SkeletalMesh ? Editor::EditorAssetDragDrop::MeshPayload : Type->second == Asset::EAssetType::Skeleton ? Editor::EditorAssetDragDrop::SkeletonPayload : Type->second == Asset::EAssetType::Material ? Editor::EditorAssetDragDrop::MaterialPayload : Editor::EditorAssetDragDrop::TexturePayload};
+                        // 애니메이션 시퀀스는 썸네일이 없지만 Details의 Animation 필드에 놓을 수 있도록 끌기를 허용합니다.
+                        const bool AnimSequence{!Directory && Type != mAssetTypes.end() && Type->second == Asset::EAssetType::AnimSequence};
+
+                        if ((HasThumbnail || AnimSequence) && mContext->CanEditWorld() && ImGui::BeginDragDropSource()) {
+                            const char* Payload{AnimSequence ? Editor::EditorAssetDragDrop::AnimSequencePayload : Type->second == Asset::EAssetType::Mesh || Type->second == Asset::EAssetType::SkeletalMesh ? Editor::EditorAssetDragDrop::MeshPayload : Type->second == Asset::EAssetType::Skeleton ? Editor::EditorAssetDragDrop::SkeletonPayload : Type->second == Asset::EAssetType::Material ? Editor::EditorAssetDragDrop::MaterialPayload : Editor::EditorAssetDragDrop::TexturePayload};
 
                             ImGui::SetDragDropPayload(Payload, Actual.c_str(), Actual.size() + 1);
 

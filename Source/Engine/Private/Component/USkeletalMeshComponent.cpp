@@ -14,7 +14,12 @@
 #include "Engine/EPrimitiveType.h"
 #include "Engine/FPrimitiveSceneProxy.h"
 #include "Engine/UWorld.h"
+#include "Engine/Animation/UAnimSingleNodeInstance.h"
+#include "Asset/Animation/UAnimSequence.h"
+#include "CoreUObject/Reflection/Cast.h"
+#include "CoreUObject/Reflection/NewObject.h"
 
+#include <cmath>
 #include <utility>
 
 namespace Engine {
@@ -184,6 +189,11 @@ namespace Engine {
                 }
             }
 
+            // 애니메이션 인스턴스의 트랙 → 본 매핑은 스켈레톤 본 순서에 묶여 있으므로, 메시·스켈레톤이 바뀌면 다시 초기화해 매핑을 비웁니다.
+            if (mAnimInstance != nullptr) {
+                mAnimInstance->InitializeAnimation(this);
+            }
+
             MarkRenderStateDirty();
         }
 
@@ -270,6 +280,114 @@ namespace Engine {
         if ((mSkeletalMesh != nullptr && mMeshRevision != mSkeletalMesh->GetRevision()) || (mSkeleton != nullptr && mSkeletonRevision != mSkeleton->GetRevision())) {
             ResolveMesh();
         }
+
+        // 에디터 월드는 BeginPlay를 받지 않으므로 애니메이션은 PIE와 게임에서만 진행됩니다.
+        if (HasBegunPlay()) {
+            TickAnimation(DeltaTime);
+        }
+    }
+
+    void USkeletalMeshComponent::BeginPlay() {
+        Engine::UMeshComponent::BeginPlay();
+
+        if (!mAnimationPath.empty()) {
+            if (const Asset::UAnimSequence* Sequence{LoadAnimation(mAnimationPath)}) {
+                PlayAnimation(Sequence, mLooping);
+            }
+        }
+    }
+
+    void USkeletalMeshComponent::EndPlay() {
+        mAnimInstance.reset();
+
+        Engine::UMeshComponent::EndPlay();
+    }
+
+    void USkeletalMeshComponent::PlayAnimation(const Asset::UAnimSequence* Sequence, bool Looping) {
+        auto* SingleNode{CoreUObject::Cast<Engine::UAnimSingleNodeInstance>(mAnimInstance.get())};
+
+        // 언리얼의 AnimationSingleNode 모드와 같이 단일 노드 인스턴스가 아니면 새로 만듭니다.
+        if (SingleNode == nullptr) {
+            auto Instance{CoreUObject::NewObject<Engine::UAnimSingleNodeInstance>()};
+
+            SingleNode = Instance.get();
+            mAnimInstance = std::move(Instance);
+            mAnimInstance->InitializeAnimation(this);
+        }
+
+        mLooping = Looping;
+        SingleNode->SetAnimation(Sequence);
+        SingleNode->SetPlayRate(mPlayRate);
+        SingleNode->Play(Looping);
+    }
+
+    Engine::UAnimInstance* USkeletalMeshComponent::GetAnimInstance() const {
+        return mAnimInstance.get();
+    }
+
+    const Core::FString& USkeletalMeshComponent::GetAnimationPath() const {
+        return mAnimationPath;
+    }
+
+    bool USkeletalMeshComponent::SetAnimationPath(const Core::FString& Path) {
+        if (!IsAssetPath(Path)) {
+            return false;
+        }
+
+        mAnimationPath = Path;
+
+        // 플레이 중에 바꾸면 새 애니메이션을 바로 재생하고, 비우면 레퍼런스 포즈를 출력합니다.
+        if (HasBegunPlay()) {
+            PlayAnimation(Path.empty() ? nullptr : LoadAnimation(Path), mLooping);
+        }
+
+        return true;
+    }
+
+    bool USkeletalMeshComponent::IsLooping() const {
+        return mLooping;
+    }
+
+    void USkeletalMeshComponent::SetLooping(bool Looping) {
+        mLooping = Looping;
+
+        if (auto* SingleNode{CoreUObject::Cast<Engine::UAnimSingleNodeInstance>(mAnimInstance.get())}) {
+            SingleNode->SetLooping(Looping);
+        }
+    }
+
+    float USkeletalMeshComponent::GetPlayRate() const {
+        return mPlayRate;
+    }
+
+    void USkeletalMeshComponent::SetPlayRate(float PlayRate) {
+        mPlayRate = std::isfinite(PlayRate) ? PlayRate : 1.0f;
+
+        if (auto* SingleNode{CoreUObject::Cast<Engine::UAnimSingleNodeInstance>(mAnimInstance.get())}) {
+            SingleNode->SetPlayRate(mPlayRate);
+        }
+    }
+
+    void USkeletalMeshComponent::TickAnimation(float DeltaTime) {
+        if (mAnimInstance == nullptr || mSkeletalMesh == nullptr || mSkeleton == nullptr) {
+            return;
+        }
+
+        mAnimInstance->UpdateAnimation(DeltaTime);
+
+        const Core::TArray<Core::FTransform>& Pose{mAnimInstance->GetPose()};
+        Core::TArray<Core::FMatrix> Locals{};
+
+        Locals.reserve(Pose.size());
+
+        for (const Core::FTransform& Transform : Pose) {
+            Locals.push_back(Transform.ToMatrix());
+        }
+
+        // 스키닝 행렬만 다시 계산하고 피킹 형상과 경계는 갱신하지 않습니다. 프록시를 다시 만들어 새 스키닝 행렬을 렌더러에 넘깁니다.
+        if (mPose.SetAnimatedLocalTransforms(*mSkeletalMesh, *mSkeleton, std::move(Locals))) {
+            MarkRenderStateDirty();
+        }
     }
 
     /**
@@ -311,6 +429,23 @@ namespace Engine {
         }
 
         return Skeleton;
+    }
+
+    Asset::UAnimSequence* USkeletalMeshComponent::LoadAnimation(const Core::FString& Path) const {
+        Asset::FAssetManager* Assets{GetWorld() != nullptr ? GetWorld()->GetAssets() : nullptr};
+
+        if (Assets == nullptr || Path.empty()) {
+            return nullptr;
+        }
+
+        Core::FString Error{};
+        Asset::UAnimSequence* Sequence{Assets->LoadAnimSequence(Core::FilePath::FromUtf8(Path), Error)};
+
+        if (Sequence == nullptr) {
+            Core::ErrorHandler::Report("Animation", "Cannot load animation '" + Path + "': " + Error, Core::ErrorHandler::EErrorLevel::Warning);
+        }
+
+        return Sequence;
     }
 
     /**

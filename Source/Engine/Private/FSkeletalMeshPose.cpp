@@ -8,6 +8,7 @@
 #include "Asset/USkeletalMesh.h"
 #include "Asset/USkeleton.h"
 
+#include <algorithm>
 #include <cmath>
 #include <utility>
 
@@ -117,6 +118,30 @@ namespace Engine {
         mGlobalTransforms = std::move(Globals);
         mSkinMatrices = std::move(Skins);
         mMeshData = std::move(Deformed);
+        mRevision = Core::FRevision::Next();
+
+        return true;
+    }
+
+    bool FSkeletalMeshPose::SetAnimatedLocalTransforms(const Asset::USkeletalMesh& Mesh, const Asset::USkeleton& Skeleton, Core::TArray<Core::FMatrix> LocalTransforms) {
+        const auto& Bones{Skeleton.GetBones()};
+
+        if (LocalTransforms.size() != Bones.size()) {
+            return false;
+        }
+
+        mGlobalTransforms.resize(Bones.size());
+        mSkinMatrices.resize(std::max<std::size_t>(Bones.size(), Mesh.GetSkinMatrixCount()), Core::FMatrix::Identity());
+
+        // 부모가 항상 자식보다 앞에 있으므로 한 번의 순회로 전역 행렬과 스키닝 행렬을 구합니다.
+        for (std::size_t Index{}; Index < Bones.size(); ++Index) {
+            const Core::Int32 Parent{Bones[Index].GetParentIndex()};
+
+            mGlobalTransforms[Index] = Parent < 0 ? LocalTransforms[Index] : LocalTransforms[Index] * mGlobalTransforms[static_cast<std::size_t>(Parent)];
+            mSkinMatrices[Index] = Skeleton.GetInverseBindPoses()[Index] * mGlobalTransforms[Index];
+        }
+
+        mLocalTransforms = std::move(LocalTransforms);
         mRevision = Core::FRevision::Next();
 
         return true;
