@@ -240,6 +240,15 @@ namespace Editor {
         mAssetCatalog = std::make_unique<Editor::FEditorAssetCatalog>(mContext->GetProject()->GetAssets());
         mThumbnails = std::make_unique<Editor::FAssetThumbnailCache>(mContext->GetProject()->GetAssets(), Renderer);
         mDetailsPanel.SetAssetServices(mAssetCatalog.get(), mThumbnails.get());
+        mDetailsPanel.SetAssetNavigation([this]() {
+            return mSelectedContentPath;
+        }, [this](const std::filesystem::path& Path) {
+            mContentFilter.reset();
+            mContentSearch.fill('\0');
+            NavigateContent(Path.parent_path());
+            mSelectedContentPath = Path;
+            ImGui::SetWindowFocus("Content");
+        });
         mDetailsPanel.SetScriptBuildService(&mScriptBuilds);
         mMeshViewer = std::make_unique<Editor::FMeshViewer>(Renderer, mContext->GetProject()->GetAssets());
         mBlendSpaceEditor = std::make_unique<Editor::FBlendSpaceEditor>(mContext->GetProject()->GetAssets(), mAssetCatalog.get(), mThumbnails.get());
@@ -365,6 +374,7 @@ namespace Editor {
         mAnimGraphEditor.reset();
         mDetailsPanel.SetAnimGraphOpener({});
         mDetailsPanel.SetAssetServices(nullptr, nullptr);
+        mDetailsPanel.SetAssetNavigation({}, {});
         mThumbnails.reset();
         mAssetCatalog.reset();
         mContentSearch.fill('\0');

@@ -117,7 +117,7 @@ namespace Editor {
     /**
      * @brief 썸네일과 검색 가능한 선택기를 표시합니다.
      */
-    bool Editor::FAssetPicker::Draw(Editor::FEditorAssetCatalog& Catalog, Editor::FAssetThumbnailCache& Thumbnails, const char* Label, Core::FString& Path, Asset::EAssetType Type, const Core::FString& InheritedPath, const char* EmptyLabel, const char* InheritedLabel) {
+    bool Editor::FAssetPicker::Draw(Editor::FEditorAssetCatalog& Catalog, Editor::FAssetThumbnailCache& Thumbnails, const char* Label, Core::FString& Path, Asset::EAssetType Type, const Core::FString& InheritedPath, const char* EmptyLabel, const char* InheritedLabel, bool ShowLabel) {
         ImGui::PushID(Label);
 
         const Core::FString Effective{Path.empty() ? InheritedPath : Path};
@@ -128,35 +128,39 @@ namespace Editor {
             Name += " (" + Core::FString{InheritedLabel} + ")";
         }
 
-        ImGui::TextUnformatted(Label);
+        if (ShowLabel) {
+            ImGui::TextUnformatted(Label);
+        }
 
-        const bool Visible{ImGui::IsRectVisible({52.0f, 52.0f})};
-        void* Thumbnail{Visible && (!Effective.empty() || Type != Asset::EAssetType::Texture) ? Thumbnails.GetThumbnail(Core::FilePath::FromUtf8(Effective), Type) : nullptr};
+        bool Changed{};
+        const float ImageSize{ShowLabel ? 48.0f : 34.0f};
 
-        if (Thumbnail != nullptr) {
-            if (ImGui::ImageButton("##Thumbnail", ImTextureRef{static_cast<ImTextureID>(reinterpret_cast<std::uintptr_t>(Thumbnail))}, {48.0f, 48.0f})) {
+        if (ShowLabel || ImGui::GetContentRegionAvail().x > ImageSize + 66.0f) {
+            const bool Visible{ImGui::IsRectVisible({ImageSize, ImageSize})};
+            void* Thumbnail{Visible && (!Effective.empty() || Type != Asset::EAssetType::Texture) ? Thumbnails.GetThumbnail(Core::FilePath::FromUtf8(Effective), Type) : nullptr};
+            const bool Open{Thumbnail != nullptr ? ImGui::ImageButton("##Thumbnail", ImTextureRef{static_cast<ImTextureID>(reinterpret_cast<std::uintptr_t>(Thumbnail))}, {ImageSize, ImageSize}) : ImGui::Button("...##Thumbnail", {ImageSize + 6.0f, ImageSize + 6.0f})};
+
+            if (Open) {
                 ImGui::OpenPopup("##ThumbnailPicker");
             }
-        } else if (ImGui::Button("...##Thumbnail", {54.0f, 54.0f})) {
-            ImGui::OpenPopup("##ThumbnailPicker");
-        }
 
-        bool Changed{AcceptDrop(Catalog, Path, Type)};
+            Changed = AcceptDrop(Catalog, Path, Type);
 
-        if (ImGui::IsItemHovered() && !Effective.empty()) {
-            ImGui::BeginTooltip();
-            ImGui::TextUnformatted(Display.c_str());
+            if (ImGui::IsItemHovered() && !Effective.empty()) {
+                ImGui::BeginTooltip();
+                ImGui::TextUnformatted(Display.c_str());
 
-            if (Thumbnail != nullptr) {
-                ImGui::Image(ImTextureRef{static_cast<ImTextureID>(reinterpret_cast<std::uintptr_t>(Thumbnail))}, {144.0f, 144.0f});
+                if (Thumbnail != nullptr) {
+                    ImGui::Image(ImTextureRef{static_cast<ImTextureID>(reinterpret_cast<std::uintptr_t>(Thumbnail))}, {144.0f, 144.0f});
+                }
+
+                ImGui::EndTooltip();
             }
 
-            ImGui::EndTooltip();
+            ImGui::SameLine();
         }
 
-        ImGui::SameLine();
-
-        const float ComboWidth{std::max(60.0f, ImGui::GetContentRegionAvail().x)};
+        const float ComboWidth{std::max(1.0f, ImGui::GetContentRegionAvail().x)};
 
         ImGui::SetNextItemWidth(ComboWidth);
         ImGui::SetNextWindowSizeConstraints({280.0f, 0.0f}, {std::max(480.0f, ComboWidth), 400.0f});

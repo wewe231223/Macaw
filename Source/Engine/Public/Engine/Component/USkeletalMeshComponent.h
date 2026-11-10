@@ -259,6 +259,7 @@ namespace Engine {
          */
         UPROPERTY(Edit, Serialize, Name = "AnimClass", Getter = GetAnimClass, Setter = SetAnimClass)
         Core::FString mAnimClass{};
+        Core::FString mInactiveAnimGraph{};
 
         /**
          * @brief 플레이를 시작하면 재생할 Content 기준 애니메이션 시퀀스 경로입니다.

@@ -140,10 +140,10 @@ namespace Editor {
     /**
      * @brief 현재 행의 다음 컬럼에 종류별 아이콘과 이름을 표시합니다.
      */
-    void Editor::ObjectRow::DrawLabel(CoreUObject::UObject* Object, bool Selected) {
+    void Editor::ObjectRow::DrawLabel(CoreUObject::UObject* Object, bool Selected, float Indent) {
         ImGui::TableNextColumn();
 
-        const float X{ImGui::GetCursorScreenPos().x + ImGui::GetTreeNodeToLabelSpacing()};
+        const float X{ImGui::GetCursorScreenPos().x + ImGui::GetTreeNodeToLabelSpacing() + Indent};
 
         // 라벨 없는 잎 노드로 행 전체의 선택 영역을 만들고 아이콘과 이름을 덧그립니다.
         ImGui::TreeNodeEx("##Row", ImGuiTreeNodeFlags_SpanAllColumns | ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen | (Selected ? ImGuiTreeNodeFlags_Selected : 0));

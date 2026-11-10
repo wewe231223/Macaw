@@ -9,12 +9,16 @@
 #include "Core/ReflectionMacros.h"
 #include "Editor/Panel/FEditorPanel.h"
 #include "CoreUObject/Reflection/FPropertyValue.h"
+#include "CoreUObject/FObjectHandle.h"
 #include "Editor/FAssetPicker.h"
 
 #include <functional>
+#include <optional>
+#include <string_view>
 
 namespace CoreUObject {
     class FProperty;
+    class UClass;
     class UObject;
 }
 
@@ -23,6 +27,9 @@ namespace Script {
 }
 
 namespace Engine {
+    class AActor;
+    class ULightComponent;
+    class UMeshComponent;
     class USkeletalMeshComponent;
 }
 
@@ -37,6 +44,15 @@ namespace Editor {
      * @ingroup Editor
      */
     class FDetailsPanel final : public Editor::FEditorPanel {
+    private:
+        struct FDetailRow {
+            const CoreUObject::FProperty* mProperty{};
+            Core::TArray<CoreUObject::FObjectHandle> mTargets{};
+            std::string_view mCategory{};
+            Core::FString mLabel{};
+            bool mAdvanced{};
+        };
+
     public:
         /**
          * @brief FDetailsPanel의 초기 상태와 전달받은 의존성을 구성합니다.
@@ -56,6 +72,7 @@ namespace Editor {
          * @param Thumbnails 썸네일 캐시입니다.
          */
         void SetAssetServices(Editor::FEditorAssetCatalog* Catalog, Editor::FAssetThumbnailCache* Thumbnails);
+        void SetAssetNavigation(std::function<std::filesystem::path()> Selection, std::function<void(const std::filesystem::path&)> Browse);
 
         /**
          * @brief C# 프로젝트 생성과 빌드 상태를 제공할 서비스를 연결합니다.
@@ -72,6 +89,18 @@ namespace Editor {
 
     private:
         void BeginItemSceneEdit();
+        void DrawToolbar(Core::TArray<CoreUObject::FObjectHandle>& Targets);
+        bool MatchesSearch(std::string_view Category, std::string_view Label, std::string_view Name = {}) const;
+        bool BeginCategory(const char* Label, bool DefaultOpen = true) const;
+        void BeginPropertyRow(const char* Label) const;
+        void DrawPropertyRow(const FDetailRow& Row);
+        void DrawTransform(const FDetailRow& Row);
+        void DrawAnimationMode(const FDetailRow& Row);
+        void EditProperty(const FDetailRow& Row, const CoreUObject::FPropertyValue& Value, bool Interactive);
+        bool IsModified(const FDetailRow& Row);
+        std::optional<CoreUObject::FPropertyValue> GetDefaultValue(const CoreUObject::UClass* Class, const CoreUObject::FProperty* Property);
+        void DrawMaterialSlots(Engine::UMeshComponent* Component);
+        void DrawShadowMaps(const Engine::ULightComponent* Light);
 
         /**
          * @brief C# 프로젝트 상태와 스크립트의 [Field] 필드를 표시합니다.
@@ -88,18 +117,10 @@ namespace Editor {
         bool DrawScriptClassPicker(const char* Label, Core::FString& ClassName);
 
         /**
-         * @brief 생성할 수 있는 UAnimInstance 파생 클래스를 고르는 콤보를 표시합니다.
-         * @param Label 위젯 이름입니다.
-         * @param ClassName 선택한 클래스 이름이며 비어 있으면 단일 노드 재생입니다.
-         * @return 선택이 바뀌면 true입니다.
-         */
-        bool DrawAnimClassPicker(const char* Label, Core::FString& ClassName);
-
-        /**
          * @brief 스켈레탈 메시 컴포넌트가 가진 AnimClass 인스턴스의 설정을 표시하고 편집합니다.
          * @param Component 표시할 컴포넌트입니다.
          */
-        void DrawAnimInstance(Engine::USkeletalMeshComponent* Component);
+        void DrawAnimInstance(const Core::TArray<CoreUObject::FObjectHandle>& Targets);
 
         /**
          * @brief 패널 고유의 ImGui 위젯과 내용을 그립니다.
@@ -110,18 +131,18 @@ namespace Editor {
         /**
          * @brief 생성 가능한 컴포넌트의 검색·추가 메뉴를 표시합니다.
          */
-        void DrawComponentMenu();
+        void DrawComponentMenu(bool CanAdd);
 
         /**
          * @brief 선택한 액터 하나와 그 컴포넌트를 고르는 트리를 표시합니다.
          */
-        void DrawComponentTree();
+        void DrawComponentTree(Engine::AActor* Actor, CoreUObject::FObjectHandle Selected);
 
         /**
          * @brief 객체 타입의 편집 가능한 리플렉션 프로퍼티를 순회하여 표시합니다.
          * @param[in,out] Object 대상 객체입니다.
          */
-        void DrawReflectedObject(CoreUObject::UObject* Object);
+        void DrawReflectedObjects(const Core::TArray<CoreUObject::FObjectHandle>& Targets);
 
         /**
          * @brief 프로퍼티 타입에 맞는 편집 위젯을 표시하고 변경한 값을 돌려줍니다.
@@ -129,7 +150,7 @@ namespace Editor {
          * @param[in,out] Value 프로퍼티 타입에 대응하는 variant 값입니다.
          * @return 조건을 만족하거나 작업이 성공하면 true, 그렇지 않으면 false입니다.
          */
-        bool DrawPropertyValue(const CoreUObject::FProperty* Property, CoreUObject::FPropertyValue& Value);
+        bool DrawPropertyValue(const CoreUObject::FProperty* Property, CoreUObject::FPropertyValue& Value, const char* Label);
 
         /**
          * @brief 메시 또는 재질 선택과 드래그 앤 드롭을 표시합니다.
@@ -138,9 +159,19 @@ namespace Editor {
          * @param Mesh 메시 선택기이면 true입니다.
          * @return 선택 경로가 변경되면 true입니다.
          */
-        bool DrawAssetPicker(const char* Label, Core::FString& Path, bool Mesh);
+        bool DrawAssetPicker(const char* Label, Core::FString& Path, Asset::EAssetType Type, const char* EmptyLabel, const Core::FString& InheritedPath = {});
 
     private:
+        Core::TMap<const CoreUObject::UClass*, Core::TMap<const CoreUObject::FProperty*, CoreUObject::FPropertyValue>> mDefaultValues{};
+        Core::TArray<CoreUObject::FObjectHandle> mLockedTargets{};
+        Editor::FEditorContext* mLockedContext{};
+        std::array<char, 192> mPropertySearch{};
+        std::optional<bool> mExpandCategories{};
+        bool mOnlyModified{};
+        bool mShowAdvanced{};
+        std::function<std::filesystem::path()> mGetSelectedAsset{};
+        std::function<void(const std::filesystem::path&)> mBrowseAsset{};
+
         /**
          * @brief Details 컴포넌트 검색 입력 버퍼입니다.
          */

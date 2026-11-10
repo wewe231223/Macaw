@@ -32,7 +32,7 @@ namespace Editor {
          * @param[in] Selected 행을 선택 색상으로 강조할지 지정합니다.
          * @note 행은 호출자가 ImGui::TableNextRow()로 시작합니다. 클릭 검사는 호출 직후 ImGui::IsItemClicked()로 수행합니다.
          */
-        void DrawLabel(CoreUObject::UObject* Object, bool Selected);
+        void DrawLabel(CoreUObject::UObject* Object, bool Selected, float Indent = 0.0f);
 
         /**
          * @brief 현재 행의 다음 컬럼에 타입 이름을 표시합니다.

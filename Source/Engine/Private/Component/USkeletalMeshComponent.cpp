@@ -324,6 +324,10 @@ namespace Engine {
             return true;
         }
 
+        if (const auto* Graph{CoreUObject::Cast<Engine::UAnimGraphInstance>(mAnimInstance.get())}) {
+            mInactiveAnimGraph = Graph->GetAnimGraph();
+        }
+
         mAnimClass = ClassName;
         mAnimInstance.reset();
 
@@ -355,6 +359,11 @@ namespace Engine {
         mAnimInstance.reset(Instance);
         mAnimInstance->SetName("AnimInstance");
         mAnimInstance->SetOuter(this);
+
+        if (auto* Graph{CoreUObject::Cast<Engine::UAnimGraphInstance>(Instance)}; Graph != nullptr && !mInactiveAnimGraph.empty()) {
+            Graph->SetAnimGraph(mInactiveAnimGraph);
+            mInactiveAnimGraph.clear();
+        }
 
         return true;
     }
@@ -581,7 +590,19 @@ namespace Engine {
      * @brief 프로퍼티를 직렬화하고 로드한 포즈를 에셋에 다시 연결합니다.
      */
     void Engine::USkeletalMeshComponent::Serialize(Core::FArchive& Archive) {
+        if (Archive.IsLoading()) {
+            mInactiveAnimGraph.clear();
+        }
+
         Engine::UMeshComponent::Serialize(Archive);
+
+        if (!Archive.HasError() && (!Archive.IsLoading() || Archive.HasField("InactiveAnimGraph"))) {
+            Archive.Serialize("InactiveAnimGraph", mInactiveAnimGraph);
+
+            if (Archive.IsLoading() && !IsAssetPath(mInactiveAnimGraph)) {
+                Archive.SetError("Invalid inactive animation graph path");
+            }
+        }
 
         // AnimClass 인스턴스의 설정 값은 AnimInstance 객체 안에 저장합니다. 식별자와 이름 같은 UObject 공통 프로퍼티는 저장하지 않습니다.
         // 읽을 때는 AnimClass setter가 이미 인스턴스를 만들었습니다.
