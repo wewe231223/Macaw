@@ -883,15 +883,10 @@ namespace Editor {
                 return DrawAnimClassPicker(DrawFieldLabel(Label).c_str(), *String);
             }
 
-            // 애니메이션 인스턴스 설정처럼 이름이 Animation이나 BlendSpace로 끝나는 경로 프로퍼티에는 해당 종류의 에셋 선택기를 씁니다.
             const std::string_view PropertyName{Property->GetName()};
 
-            if (PropertyName.ends_with("Animation") && mAssetCatalog != nullptr && mThumbnails != nullptr) {
+            if (PropertyName == "Animation" && mAssetCatalog != nullptr && mThumbnails != nullptr) {
                 return mAssetPicker.Draw(*mAssetCatalog, *mThumbnails, Label, *String, Asset::EAssetType::AnimSequence, {}, "None");
-            }
-
-            if (PropertyName.ends_with("BlendSpace") && mAssetCatalog != nullptr && mThumbnails != nullptr) {
-                return mAssetPicker.Draw(*mAssetCatalog, *mThumbnails, Label, *String, Asset::EAssetType::BlendSpace, {}, "None");
             }
 
             if (PropertyName.ends_with("AnimGraph") && mAssetCatalog != nullptr && mThumbnails != nullptr) {
