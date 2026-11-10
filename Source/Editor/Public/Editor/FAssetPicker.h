@@ -38,6 +38,7 @@ namespace Editor {
          * @return 선택 또는 드롭으로 경로를 바꾸면 true입니다.
          */
         bool Draw(Editor::FEditorAssetCatalog& Catalog, Editor::FAssetThumbnailCache& Thumbnails, const char* Label, Core::FString& Path, Asset::EAssetType Type, const Core::FString& InheritedPath = {}, const char* EmptyLabel = "None", const char* InheritedLabel = "Mesh");
+        bool DrawCompact(Editor::FEditorAssetCatalog& Catalog, Editor::FAssetThumbnailCache& Thumbnails, const char* Label, const char* DisplayName, Core::FString& Path, Asset::EAssetType Type);
 
     private:
         /**

@@ -15,6 +15,9 @@
 #include "Asset/UMaterial.h"
 #include "Asset/Sequence/ULevelSequence.h"
 #include "Asset/Animation/UAnimSequence.h"
+#include "Asset/Animation/UBlendSpace1D.h"
+#include "Asset/Animation/UAnimGraph.h"
+#include "Core/Base/ErrorHandler.h"
 #include "FMaterialFile.h"
 #include "CoreUObject/Reflection/NewObject.h"
 #include "Serialization/JsonArchive.h"
@@ -1446,6 +1449,8 @@ namespace Asset {
         Retire(mNormalMaps);
         Retire(mMaterials);
         Retire(mSequences);
+        Retire(mBlendSpaces);
+        Retire(mAnimGraphs);
     }
 
     /**
@@ -1582,6 +1587,286 @@ namespace Asset {
         const Core::FString Payload{Archive.ToString()};
 
         return Asset::FAssetFile::Save(Target, Asset::EAssetType::Sequence, std::span<const Core::Uint8>{reinterpret_cast<const Core::Uint8*>(Payload.data()), Payload.size()}, Error);
+    }
+
+    Asset::UBlendSpace* Asset::FAssetManager::LoadBlendSpace(const std::filesystem::path& Path, Core::FString& Error) {
+        const Core::FString Key{CacheKey(GetRelativePath(Path, Error))};
+
+        if (Key.empty()) {
+            return nullptr;
+        }
+
+        const auto Existing{mBlendSpaces.find(Key)};
+
+        if (Existing != mBlendSpaces.end()) {
+            Asset::AssetStats::AssetCacheHits.Add();
+
+            return Existing->second.get();
+        }
+
+        Core::TArray<Core::Uint8> Payload{};
+
+        if (!Asset::FAssetFile::Load(ResolvePath(Path, Error), Asset::EAssetType::BlendSpace, Payload, Error)) {
+            return nullptr;
+        }
+
+        Serialization::FJsonArchive Archive{Core::EArchiveMode::Loading};
+
+        if (!Archive.Parse(Core::FString{reinterpret_cast<const char*>(Payload.data()), Payload.size()})) {
+            Error = Archive.GetError();
+
+            return nullptr;
+        }
+
+        // 파일에 기록한 클래스 이름으로 1D·2D 같은 파생 타입을 고릅니다. 지금은 1D만 있습니다.
+        Core::FString ClassName{};
+
+        Archive.Serialize("Class", ClassName);
+
+        if (Archive.HasError() || ClassName != "BlendSpace1D") {
+            Error = Archive.HasError() ? Archive.GetError() : "Unsupported blend space class: " + ClassName;
+
+            return nullptr;
+        }
+
+        std::unique_ptr<Asset::UBlendSpace> BlendSpace{CoreUObject::NewObject<Asset::UBlendSpace1D>()};
+
+        BlendSpace->Serialize(Archive);
+
+        if (Archive.HasError()) {
+            Error = Archive.GetError();
+
+            return nullptr;
+        }
+
+        BlendSpace->SetName(Core::FilePath::ToUtf8(Path.stem()));
+        ResolveBlendSpace(*BlendSpace);
+
+        Asset::UBlendSpace* Result{BlendSpace.get()};
+
+        mBlendSpaces.emplace(Key, std::move(BlendSpace));
+
+        return Result;
+    }
+
+    Asset::UBlendSpace* Asset::FAssetManager::CreateBlendSpace1D(const std::filesystem::path& Directory, const Core::FString& Name, std::filesystem::path& Path, Core::FString& Error) {
+        // 콘텐츠 루트 자체는 ResolvePath가 에셋 경로로 받지 않으므로 직접 씁니다.
+        const auto Folder{Directory.empty() || Directory == L"." ? mContentRoot : ResolvePath(Directory, Error)};
+
+        if (Folder.empty()) {
+            return nullptr;
+        }
+
+        const auto Target{UniqueAssetPath(Folder, AssetFileName(Name, "BlendSpace"), Error)};
+
+        if (Target.empty()) {
+            return nullptr;
+        }
+
+        std::unique_ptr<Asset::UBlendSpace> BlendSpace{CoreUObject::NewObject<Asset::UBlendSpace1D>()};
+
+        BlendSpace->SetName(Core::FilePath::ToUtf8(Target.stem()));
+
+        if (!SaveBlendSpace(Target, *BlendSpace, Error)) {
+            return nullptr;
+        }
+
+        const Core::FString Relative{GetRelativePath(Target, Error)};
+
+        if (Relative.empty()) {
+            return nullptr;
+        }
+
+        Path = Core::FilePath::FromUtf8(Relative);
+
+        Asset::UBlendSpace* Result{BlendSpace.get()};
+
+        mBlendSpaces.emplace(CacheKey(Relative), std::move(BlendSpace));
+
+        return Result;
+    }
+
+    bool Asset::FAssetManager::SaveBlendSpace(const std::filesystem::path& Path, Asset::UBlendSpace& BlendSpace, Core::FString& Error) {
+        const auto Target{ResolvePath(Path, Error)};
+
+        if (Target.empty()) {
+            return false;
+        }
+
+        const Core::FString Key{CacheKey(GetRelativePath(Target, Error))};
+
+        if (Key.empty()) {
+            return false;
+        }
+
+        Serialization::FJsonArchive Archive{Core::EArchiveMode::Saving};
+        Core::FString ClassName{"BlendSpace1D"};
+
+        Archive.Serialize("Class", ClassName);
+        BlendSpace.Serialize(Archive);
+
+        if (Archive.HasError()) {
+            Error = Archive.GetError();
+
+            return false;
+        }
+
+        const Core::FString Payload{Archive.ToString()};
+
+        if (!Asset::FAssetFile::Save(Target, Asset::EAssetType::BlendSpace, std::span<const Core::Uint8>{reinterpret_cast<const Core::Uint8*>(Payload.data()), Payload.size()}, Error)) {
+            return false;
+        }
+
+        if (const auto Existing{mBlendSpaces.find(Key)}; Existing != mBlendSpaces.end()) {
+            Existing->second->CopyFrom(BlendSpace);
+        }
+
+        return true;
+    }
+
+    bool Asset::FAssetManager::ResolveBlendSpace(Asset::UBlendSpace& BlendSpace) {
+        bool Resolved{true};
+
+        for (std::size_t Index{}; Index < BlendSpace.GetSamples().size(); ++Index) {
+            const Core::FString AnimationPath{BlendSpace.GetSamples()[Index].mAnimationPath};
+            const Asset::UAnimSequence* Animation{};
+
+            if (!AnimationPath.empty()) {
+                Core::FString Error{};
+
+                Animation = LoadAnimSequence(Core::FilePath::FromUtf8(AnimationPath), Error);
+
+                if (Animation == nullptr) {
+                    Core::ErrorHandler::Report("BlendSpace", "Cannot load sample animation '" + AnimationPath + "' of blend space '" + BlendSpace.GetName() + "': " + Error, Core::ErrorHandler::EErrorLevel::Warning);
+                    Resolved = false;
+                }
+            }
+
+            BlendSpace.SetSampleAnimation(static_cast<Core::Int32>(Index), AnimationPath, Animation);
+        }
+
+        return Resolved;
+    }
+
+    Asset::UAnimGraph* Asset::FAssetManager::LoadAnimGraph(const std::filesystem::path& Path, Core::FString& Error) {
+        const Core::FString Key{CacheKey(GetRelativePath(Path, Error))};
+
+        if (Key.empty()) {
+            return nullptr;
+        }
+
+        const auto Existing{mAnimGraphs.find(Key)};
+
+        if (Existing != mAnimGraphs.end()) {
+            Asset::AssetStats::AssetCacheHits.Add();
+
+            return Existing->second.get();
+        }
+
+        Core::TArray<Core::Uint8> Payload{};
+
+        if (!Asset::FAssetFile::Load(ResolvePath(Path, Error), Asset::EAssetType::AnimGraph, Payload, Error)) {
+            return nullptr;
+        }
+
+        Serialization::FJsonArchive Archive{Core::EArchiveMode::Loading};
+
+        if (!Archive.Parse(Core::FString{reinterpret_cast<const char*>(Payload.data()), Payload.size()})) {
+            Error = Archive.GetError();
+
+            return nullptr;
+        }
+
+        auto Graph{CoreUObject::NewObject<Asset::UAnimGraph>()};
+
+        Graph->Serialize(Archive);
+
+        if (Archive.HasError()) {
+            Error = Archive.GetError();
+
+            return nullptr;
+        }
+
+        Graph->SetName(Core::FilePath::ToUtf8(Path.stem()));
+
+        Asset::UAnimGraph* Result{Graph.get()};
+
+        mAnimGraphs.emplace(Key, std::move(Graph));
+
+        return Result;
+    }
+
+    Asset::UAnimGraph* Asset::FAssetManager::CreateAnimGraph(const std::filesystem::path& Directory, const Core::FString& Name, std::filesystem::path& Path, Core::FString& Error) {
+        // 콘텐츠 루트 자체는 ResolvePath가 에셋 경로로 받지 않으므로 직접 씁니다.
+        const auto Folder{Directory.empty() || Directory == L"." ? mContentRoot : ResolvePath(Directory, Error)};
+
+        if (Folder.empty()) {
+            return nullptr;
+        }
+
+        const auto Target{UniqueAssetPath(Folder, AssetFileName(Name, "AnimGraph"), Error)};
+
+        if (Target.empty()) {
+            return nullptr;
+        }
+
+        auto Graph{CoreUObject::NewObject<Asset::UAnimGraph>()};
+
+        Graph->SetName(Core::FilePath::ToUtf8(Target.stem()));
+
+        if (!SaveAnimGraph(Target, *Graph, Error)) {
+            return nullptr;
+        }
+
+        const Core::FString Relative{GetRelativePath(Target, Error)};
+
+        if (Relative.empty()) {
+            return nullptr;
+        }
+
+        Path = Core::FilePath::FromUtf8(Relative);
+
+        Asset::UAnimGraph* Result{Graph.get()};
+
+        mAnimGraphs.emplace(CacheKey(Relative), std::move(Graph));
+
+        return Result;
+    }
+
+    bool Asset::FAssetManager::SaveAnimGraph(const std::filesystem::path& Path, Asset::UAnimGraph& Graph, Core::FString& Error) {
+        const auto Target{ResolvePath(Path, Error)};
+
+        if (Target.empty()) {
+            return false;
+        }
+
+        const Core::FString Key{CacheKey(GetRelativePath(Target, Error))};
+
+        if (Key.empty()) {
+            return false;
+        }
+
+        Serialization::FJsonArchive Archive{Core::EArchiveMode::Saving};
+
+        Graph.Serialize(Archive);
+
+        if (Archive.HasError()) {
+            Error = Archive.GetError();
+
+            return false;
+        }
+
+        const Core::FString Payload{Archive.ToString()};
+
+        if (!Asset::FAssetFile::Save(Target, Asset::EAssetType::AnimGraph, std::span<const Core::Uint8>{reinterpret_cast<const Core::Uint8*>(Payload.data()), Payload.size()}, Error)) {
+            return false;
+        }
+
+        if (const auto Existing{mAnimGraphs.find(Key)}; Existing != mAnimGraphs.end()) {
+            Existing->second->CopyFrom(Graph);
+        }
+
+        return true;
     }
 
     /**

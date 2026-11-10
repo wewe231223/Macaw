@@ -29,6 +29,8 @@ namespace Asset {
     class UMaterial;
     class ULevelSequence;
     class UAnimSequence;
+    class UBlendSpace;
+    class UAnimGraph;
 
     /**
      * @brief 프로젝트 콘텐츠 경로와 메시·텍스처 에셋의 로드 및 캐시를 담당합니다.
@@ -182,6 +184,68 @@ namespace Asset {
          * @return 저장에 성공하면 true입니다.
          */
         bool SaveSequence(const std::filesystem::path& Path, Asset::ULevelSequence& Sequence, Core::FString& Error);
+
+        /**
+         * @brief 블렌드 스페이스 에셋을 로드하고 샘플 시퀀스를 해석해 캐시에 보관합니다.
+         * @details 로드하지 못한 샘플 시퀀스는 경고만 남기고 비워 둡니다. 블렌드 스페이스는 머티리얼처럼 캐시된 객체를 직접 편집합니다.
+         * @param[in] Path 프로젝트 블렌드 스페이스 경로입니다.
+         * @param[out] Error 실패 원인입니다.
+         * @return 캐시 소유 블렌드 스페이스의 비소유 주소이며 실패하면 nullptr입니다.
+         */
+        Asset::UBlendSpace* LoadBlendSpace(const std::filesystem::path& Path, Core::FString& Error);
+
+        /**
+         * @brief 지정한 폴더에 빈 1D 블렌드 스페이스 에셋을 만들고 캐시에 보관합니다.
+         * @param[in] Directory Content 기준 폴더입니다.
+         * @param[in] Name 파일 이름으로 사용할 이름이며 중복되면 번호를 붙입니다.
+         * @param[out] Path 생성한 에셋의 Content 상대 경로입니다.
+         * @param[out] Error 실패 원인입니다.
+         * @return 캐시 소유 블렌드 스페이스의 비소유 주소이며 실패하면 nullptr입니다.
+         */
+        Asset::UBlendSpace* CreateBlendSpace1D(const std::filesystem::path& Directory, const Core::FString& Name, std::filesystem::path& Path, Core::FString& Error);
+
+        /**
+         * @brief 블렌드 스페이스를 에셋 파일로 저장합니다. 샘플은 시퀀스 경로만 저장합니다.
+         * @param[in] Path 프로젝트 블렌드 스페이스 경로입니다.
+         * @param[in] BlendSpace 저장할 블렌드 스페이스입니다.
+         * @param[out] Error 실패 원인입니다.
+         * @return 저장에 성공하면 true입니다.
+         */
+        bool SaveBlendSpace(const std::filesystem::path& Path, Asset::UBlendSpace& BlendSpace, Core::FString& Error);
+
+        /**
+         * @brief 블렌드 스페이스 샘플의 시퀀스 경로를 다시 해석합니다.
+         * @param[in,out] BlendSpace 해석할 블렌드 스페이스입니다.
+         * @return 경로가 있는 모든 샘플을 해석했으면 true이며, 실패한 샘플의 시퀀스는 nullptr가 됩니다.
+         */
+        bool ResolveBlendSpace(Asset::UBlendSpace& BlendSpace);
+
+        /**
+         * @brief 애니메이션 그래프 에셋을 로드해 캐시에 보관합니다. 그래프는 머티리얼처럼 캐시된 객체를 직접 편집합니다.
+         * @param[in] Path 프로젝트 그래프 경로입니다.
+         * @param[out] Error 실패 원인입니다.
+         * @return 캐시 소유 그래프의 비소유 주소이며 실패하면 nullptr입니다.
+         */
+        Asset::UAnimGraph* LoadAnimGraph(const std::filesystem::path& Path, Core::FString& Error);
+
+        /**
+         * @brief 지정한 폴더에 빈 애니메이션 그래프 에셋을 만들고 캐시에 보관합니다.
+         * @param[in] Directory Content 기준 폴더입니다.
+         * @param[in] Name 파일 이름으로 사용할 이름이며 중복되면 번호를 붙입니다.
+         * @param[out] Path 생성한 에셋의 Content 상대 경로입니다.
+         * @param[out] Error 실패 원인입니다.
+         * @return 캐시 소유 그래프의 비소유 주소이며 실패하면 nullptr입니다.
+         */
+        Asset::UAnimGraph* CreateAnimGraph(const std::filesystem::path& Directory, const Core::FString& Name, std::filesystem::path& Path, Core::FString& Error);
+
+        /**
+         * @brief 애니메이션 그래프를 에셋 파일로 저장합니다.
+         * @param[in] Path 프로젝트 그래프 경로입니다.
+         * @param[in] Graph 저장할 그래프입니다.
+         * @param[out] Error 실패 원인입니다.
+         * @return 저장에 성공하면 true입니다.
+         */
+        bool SaveAnimGraph(const std::filesystem::path& Path, Asset::UAnimGraph& Graph, Core::FString& Error);
 
         /**
          * @brief 캐시 객체의 주소를 유지하면서 파일의 최신 설정을 다시 적용합니다.
@@ -338,6 +402,16 @@ namespace Asset {
          * @brief 경로별로 캐시한 시퀀스의 소유 저장소입니다.
          */
         Core::TMap<Core::FString, std::unique_ptr<Asset::ULevelSequence>> mSequences{};
+
+        /**
+         * @brief 경로별로 캐시한 블렌드 스페이스의 소유 저장소입니다.
+         */
+        Core::TMap<Core::FString, std::unique_ptr<Asset::UBlendSpace>> mBlendSpaces{};
+
+        /**
+         * @brief 경로별로 캐시한 애니메이션 그래프의 소유 저장소입니다.
+         */
+        Core::TMap<Core::FString, std::unique_ptr<Asset::UAnimGraph>> mAnimGraphs{};
 
         /**
          * @brief 경로 캐시에서 빠졌지만 기존 참조를 위해 매니저 수명 동안 유지하는 에셋 객체입니다.

@@ -11,6 +11,8 @@
 #include "CoreUObject/Reflection/FPropertyValue.h"
 #include "Editor/FAssetPicker.h"
 
+#include <functional>
+
 namespace CoreUObject {
     class FProperty;
     class UObject;
@@ -18,6 +20,10 @@ namespace CoreUObject {
 
 namespace Script {
     class UScriptComponent;
+}
+
+namespace Engine {
+    class USkeletalMeshComponent;
 }
 
 namespace Editor {
@@ -56,6 +62,12 @@ namespace Editor {
          * @param Builds 스크립트 빌드 서비스입니다.
          */
         void SetScriptBuildService(Editor::FScriptBuildService* Builds);
+
+        /**
+         * @brief Anim Instance 항목의 "Anim Graph 열기" 버튼이 호출할 함수를 연결합니다.
+         * @param Opener Anim Graph 패널을 여는 함수입니다.
+         */
+        void SetAnimGraphOpener(std::function<void()> Opener);
         void FinishInactiveSceneEdit();
 
     private:
@@ -74,6 +86,20 @@ namespace Editor {
          * @return 선택이 바뀌면 true입니다.
          */
         bool DrawScriptClassPicker(const char* Label, Core::FString& ClassName);
+
+        /**
+         * @brief 생성할 수 있는 UAnimInstance 파생 클래스를 고르는 콤보를 표시합니다.
+         * @param Label 위젯 이름입니다.
+         * @param ClassName 선택한 클래스 이름이며 비어 있으면 단일 노드 재생입니다.
+         * @return 선택이 바뀌면 true입니다.
+         */
+        bool DrawAnimClassPicker(const char* Label, Core::FString& ClassName);
+
+        /**
+         * @brief 스켈레탈 메시 컴포넌트가 가진 AnimClass 인스턴스의 설정을 표시하고 편집합니다.
+         * @param Component 표시할 컴포넌트입니다.
+         */
+        void DrawAnimInstance(Engine::USkeletalMeshComponent* Component);
 
         /**
          * @brief 패널 고유의 ImGui 위젯과 내용을 그립니다.
@@ -139,6 +165,11 @@ namespace Editor {
          * @brief 썸네일과 드롭다운을 표시하는 선택기입니다.
          */
         Editor::FAssetPicker mAssetPicker{};
+
+        /**
+         * @brief Anim Graph 패널을 여는 함수입니다.
+         */
+        std::function<void()> mAnimGraphOpener{};
         Core::Uint64 mSceneEditToken{};
         Core::Uint32 mSceneEditItem{};
     };

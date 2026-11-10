@@ -11,6 +11,9 @@
 #include "Engine/Component/UActorComponent.h"
 #include "Engine/Component/UMeshComponent.h"
 #include "Engine/Component/ULightComponent.h"
+#include "Engine/Component/USkeletalMeshComponent.h"
+#include "Engine/Animation/UAnimInstance.h"
+#include "Engine/Animation/UAnimSingleNodeInstance.h"
 #include "RenderCore/IRendererModule.h"
 #include "Engine/FProject.h"
 #include "Asset/FAssetManager.h"
@@ -247,6 +250,88 @@ namespace Editor {
         }
 
         return Changed;
+    }
+
+    void Editor::FDetailsPanel::SetAnimGraphOpener(std::function<void()> Opener) {
+        mAnimGraphOpener = std::move(Opener);
+    }
+
+    bool Editor::FDetailsPanel::DrawAnimClassPicker(const char* Label, Core::FString& ClassName) {
+        bool Changed{};
+
+        if (ImGui::BeginCombo(Label, ClassName.empty() ? "None (Animation 재생)" : ClassName.c_str())) {
+            if (ImGui::Selectable("None (Animation 재생)", ClassName.empty())) {
+                ClassName.clear();
+
+                Changed = true;
+            }
+
+            for (const CoreUObject::UClass* Class : CoreUObject::FReflectionRegistry::GetDerivedClasses(Engine::UAnimInstance::StaticClass())) {
+                // 단일 노드 인스턴스는 Animation 재생 전용이므로 고를 수 없습니다.
+                if (!Class->CanCreate() || Class == Engine::UAnimSingleNodeInstance::StaticClass()) {
+                    continue;
+                }
+
+                if (ImGui::Selectable(Class->GetName().c_str(), Class->GetName() == ClassName)) {
+                    ClassName = Class->GetName();
+                    Changed = true;
+                }
+            }
+
+            ImGui::EndCombo();
+        }
+
+        return Changed;
+    }
+
+    void Editor::FDetailsPanel::DrawAnimInstance(Engine::USkeletalMeshComponent* Component) {
+        Editor::FEditorContext* Context{GetEditorContext()};
+        Engine::UAnimInstance* Instance{Component->GetAnimInstance()};
+
+        ImGui::SeparatorText("Anim Instance");
+
+        if (mAnimGraphOpener && ImGui::Button("Anim Graph 열기")) {
+            mAnimGraphOpener();
+        }
+
+        if (Component->GetAnimClass().empty() || Instance == nullptr || Instance->GetClass()->GetName() != Component->GetAnimClass()) {
+            ImGui::TextDisabled("AnimClass를 지정하면 인스턴스 설정이 여기에 표시됩니다.");
+
+            return;
+        }
+
+        const CoreUObject::FObjectHandle Handle{Instance->GetHandle()};
+
+        ImGui::PushID(Instance);
+
+        // 인스턴스의 Outer는 컴포넌트이므로 에디터 컨텍스트가 월드 객체로 편집하며, 값은 컴포넌트와 함께 저장되고 실행 취소됩니다.
+        for (const CoreUObject::UClass* Class{Instance->GetClass()}; Class != nullptr && Class->IsChildOf(Engine::UAnimInstance::StaticClass()); Class = Class->GetSuperClass()) {
+            for (const CoreUObject::FProperty* Property : Class->GetProperties()) {
+                if (!IsVisibleProperty(Property)) {
+                    continue;
+                }
+
+                CoreUObject::FPropertyValue Value{Property->ReadValue(Instance)};
+                const bool ReadOnly{!Context->CanEditProperty(Handle, Property)};
+
+                ImGui::BeginDisabled(ReadOnly);
+
+                if (DrawPropertyValue(Property, Value) && !ReadOnly) {
+                    BeginItemSceneEdit();
+                    Context->EditProperty(Handle, Property, Value, ImGui::IsMouseDown(ImGuiMouseButton_Left));
+                }
+
+                ImGui::EndDisabled();
+
+                if (Context->ResolveObject(Handle) != Instance) {
+                    ImGui::PopID();
+
+                    return;
+                }
+            }
+        }
+
+        ImGui::PopID();
     }
 
     /**
@@ -675,6 +760,10 @@ namespace Editor {
             DrawScriptFields(ScriptComponent);
         }
 
+        if (auto* SkeletalMesh{Context->ResolveObject(Handle) == Object ? CoreUObject::Cast<Engine::USkeletalMeshComponent>(Object) : nullptr}) {
+            DrawAnimInstance(SkeletalMesh);
+        }
+
         ImGui::PopID();
     }
 
@@ -790,8 +879,23 @@ namespace Editor {
                 return mAssetPicker.Draw(*mAssetCatalog, *mThumbnails, Label, *String, Asset::EAssetType::Skeleton, {}, "None");
             }
 
-            if (Property->GetName() == "Animation" && mAssetCatalog != nullptr && mThumbnails != nullptr) {
+            if (Property->GetName() == "AnimClass") {
+                return DrawAnimClassPicker(DrawFieldLabel(Label).c_str(), *String);
+            }
+
+            // 애니메이션 인스턴스 설정처럼 이름이 Animation이나 BlendSpace로 끝나는 경로 프로퍼티에는 해당 종류의 에셋 선택기를 씁니다.
+            const std::string_view PropertyName{Property->GetName()};
+
+            if (PropertyName.ends_with("Animation") && mAssetCatalog != nullptr && mThumbnails != nullptr) {
                 return mAssetPicker.Draw(*mAssetCatalog, *mThumbnails, Label, *String, Asset::EAssetType::AnimSequence, {}, "None");
+            }
+
+            if (PropertyName.ends_with("BlendSpace") && mAssetCatalog != nullptr && mThumbnails != nullptr) {
+                return mAssetPicker.Draw(*mAssetCatalog, *mThumbnails, Label, *String, Asset::EAssetType::BlendSpace, {}, "None");
+            }
+
+            if (PropertyName.ends_with("AnimGraph") && mAssetCatalog != nullptr && mThumbnails != nullptr) {
+                return mAssetPicker.Draw(*mAssetCatalog, *mThumbnails, Label, *String, Asset::EAssetType::AnimGraph, {}, "None");
             }
 
             if (Property->GetName() == "Mesh") {

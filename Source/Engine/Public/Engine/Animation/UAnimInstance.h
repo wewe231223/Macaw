@@ -7,28 +7,37 @@
 #pragma once
 
 #include "Core/Math/FTransform.h"
+#include "Core/Math/FVector.h"
 #include "CoreUObject/UObject.h"
 #include "UAnimInstance.generated.h"
 
 namespace Asset {
     class UAnimSequence;
+    class UBlendSpace;
     class USkeleton;
 }
 
 namespace Engine {
 
     class USkeletalMeshComponent;
+    struct FAnimNode_Base;
+    struct FAnimNodeValue;
 
     /**
-     * @brief 컴포넌트 하나의 애니메이션 변수와 포즈 계산을 맡습니다.
-     * @details 언리얼 UAnimInstance와 같이 컴포넌트가 매 Tick UpdateAnimation을 호출하면 NativeUpdateAnimation으로 상태를 갱신하고,
-     * NativeEvaluateAnimation으로 본 인덱스 순서의 로컬 포즈를 만듭니다. 포즈는 스켈레톤의 레퍼런스 포즈(USkeleton::GetReferencePose)에서 시작하며, 기본 구현은 그대로 출력합니다.
+     * @brief 컴포넌트 하나의 애니메이션 변수와 노드 그래프를 소유하고 포즈를 계산합니다.
+     * @details 언리얼 UAnimInstance와 같이 컴포넌트가 매 Tick UpdateAnimation을 호출하면 다음 순서로 진행합니다.
+     * 1. NativeUpdateAnimation이 변수(예: 속도)를 갱신합니다.
+     * 2. 루트 노드(mRootNode)부터 Update를 전파해 재생 시간과 블렌드 가중치를 갱신합니다.
+     * 3. 스켈레톤의 레퍼런스 포즈에서 시작해 NativeEvaluateAnimation이 포즈를 계산합니다. 기본 구현은 루트 노드를 Evaluate합니다.
      *
-     * 애니메이션 시퀀스는 스켈레톤을 참조하지 않고 트랙을 본 이름으로 가리키므로, 시퀀스 트랙을 스켈레톤 본 인덱스로 바꾸는 표를 만들어 둡니다.
-     * 스켈레톤에 없는 트랙은 무시하고, 트랙이 없는 본은 레퍼런스 포즈를 유지합니다.
+     * 파생 클래스는 노드를 멤버로 두고 NativeInitializeAnimation에서 노드를 연결한 뒤 mRootNode를 지정합니다.
+     * UPROPERTY(Edit, Serialize) 멤버는 컴포넌트에 저장되어 에셋 경로 같은 설정을 받습니다.
+     *
+     * 애니메이션 시퀀스는 스켈레톤을 참조하지 않고 트랙을 본 이름으로 가리키므로, 시퀀스마다 트랙을 스켈레톤 본 인덱스로 바꾸는 표를 만들어 둡니다.
+     * 스켈레톤에 없는 트랙은 무시하고, 트랙이 없는 본은 레퍼런스 포즈를 유지합니다. 캐시된 시퀀스는 바뀌지 않으므로 표는 시퀀스 주소로 찾습니다.
      *
      * 스켈레톤은 저장하지 않고 소유 컴포넌트에서 조회합니다. 컴포넌트가 메시나 스켈레톤이 바뀐 것을 감지하면 InitializeAnimation을 다시 호출하고,
-     * 이때 매핑 표를 비웁니다. 평가할 시퀀스를 바꿀 때는 파생 클래스가 ResetTrackMapping으로 표를 비웁니다.
+     * 이때 매핑 표를 비우고 그래프를 다시 만듭니다.
      */
     UCLASS()
     class UAnimInstance : public CoreUObject::UObject {
@@ -41,14 +50,14 @@ namespace Engine {
 
     public:
         /**
-         * @brief 소유 컴포넌트를 연결하고 매핑 표를 비운 뒤 NativeInitializeAnimation을 호출합니다.
-         * @details 컴포넌트의 메시나 스켈레톤이 바뀔 때마다 다시 호출되며, 재생 위치 같은 파생 클래스의 상태는 유지합니다.
+         * @brief 소유 컴포넌트를 연결하고 매핑 표를 비운 뒤 그래프를 만들고 초기화합니다.
+         * @details NativeInitializeAnimation을 호출한 뒤 루트 노드부터 Initialize를 전파합니다. 컴포넌트의 메시나 스켈레톤이 바뀔 때와 설정을 편집할 때 다시 호출됩니다.
          * @param[in] Owner 이 인스턴스를 소유하는 컴포넌트입니다.
          */
         void InitializeAnimation(Engine::USkeletalMeshComponent* Owner);
 
         /**
-         * @brief 상태를 갱신한 뒤 현재 포즈를 계산합니다.
+         * @brief 변수와 그래프를 갱신한 뒤 현재 포즈를 계산합니다.
          * @param[in] DeltaSeconds 지난 프레임 이후 경과 시간입니다.
          */
         void UpdateAnimation(float DeltaSeconds);
@@ -65,23 +74,30 @@ namespace Engine {
          */
         Engine::USkeletalMeshComponent* GetOwningComponent() const;
 
-    protected:
         /**
-         * @brief 초기화할 때 한 번 호출됩니다.
+         * @brief 그래프의 루트 노드를 반환합니다. 시각화 도구가 그래프를 찾을 때 씁니다.
+         * @return 그래프가 없으면 nullptr입니다.
          */
-        virtual void NativeInitializeAnimation();
+        Engine::FAnimNode_Base* GetRootNode() const;
 
         /**
-         * @brief 매 프레임 포즈 계산 전에 호출되어 재생 시간 같은 상태를 갱신합니다.
-         * @param[in] DeltaSeconds 지난 프레임 이후 경과 시간입니다.
+         * @brief UpdateAnimation을 호출할 때마다 1씩 늘어나는 번호를 반환합니다.
+         * @return 노드가 이번 갱신에서 Update를 받았는지 판단하는 번호입니다.
          */
-        virtual void NativeUpdateAnimation(float DeltaSeconds);
+        Core::Uint64 GetUpdateCounter() const;
 
         /**
-         * @brief 레퍼런스 포즈로 채운 포즈를 받아 이번 프레임의 포즈로 바꿉니다.
-         * @param[in,out] Pose 스켈레톤 본 인덱스 순서의 로컬 변환입니다.
+         * @brief 소유 컴포넌트의 월드 위치 변화로 구한 속도를 반환합니다.
+         * @details 언리얼의 TryGetPawnOwner()->GetVelocity()를 대신합니다. 이 엔진에는 폰 이동 컴포넌트가 없으므로 위치 변화를 씁니다.
+         * @return 월드 단위/초 속도이며 첫 갱신에서는 0입니다.
          */
-        virtual void NativeEvaluateAnimation(Core::TArray<Core::FTransform>& Pose);
+        const Core::FVector& GetOwnerVelocity() const;
+
+        /**
+         * @brief 스켈레톤의 레퍼런스 포즈를 반환합니다.
+         * @param[out] OutPose 스켈레톤 본 인덱스 순서의 로컬 변환이며, 스켈레톤이 없으면 비웁니다.
+         */
+        void GetReferencePose(Core::TArray<Core::FTransform>& OutPose) const;
 
         /**
          * @brief 시퀀스를 지정한 시간으로 샘플링해 트랙이 있는 본의 변환을 덮어씁니다.
@@ -93,16 +109,72 @@ namespace Engine {
         void EvaluateSequence(const Asset::UAnimSequence& Sequence, double Time, bool Looping, Core::TArray<Core::FTransform>& Pose);
 
         /**
-         * @brief 트랙 → 본 매핑 표를 비워 다음 EvaluateSequence가 새로 만들게 합니다.
-         * @details 평가할 시퀀스를 바꿀 때 호출합니다. 스켈레톤이 바뀔 때는 InitializeAnimation이 호출합니다.
+         * @brief 리플렉션 프로퍼티가 아닌 실행 중 변수를 시각화 도구에 보이도록 반환합니다.
+         * @details 그래프 에셋의 변수처럼 클래스에 고정되지 않은 변수를 위한 확장 지점이며, 기본 구현은 아무것도 추가하지 않습니다.
+         * @param[out] OutValues 값을 뒤에 추가합니다.
          */
-        void ResetTrackMapping();
+        virtual void GetDebugVariables(Core::TArray<Engine::FAnimNodeValue>& OutValues);
+
+        /**
+         * @brief 시각화 도구가 노드를 놓을 위치를 반환합니다.
+         * @details 그래프 에셋에서 만든 인스턴스는 에디터에서 배치한 위치를 돌려줍니다. 기본 구현은 위치가 없어 자동 배치합니다.
+         * @param[in] Node 노드이며 nullptr이면 Output Pose 노드입니다.
+         * @param[out] X 캔버스 X 위치입니다.
+         * @param[out] Y 캔버스 Y 위치입니다.
+         * @return 위치가 있으면 true입니다.
+         */
+        virtual bool GetNodeLayout(const Engine::FAnimNode_Base* Node, float& X, float& Y) const;
+
+        /**
+         * @brief 편집한 설정을 반영하도록 그래프를 다시 만듭니다.
+         * @param[in] Event 변경된 프로퍼티 정보입니다.
+         */
+        void PostEditChangeProperty(const CoreUObject::FPropertyChangedEvent& Event) override;
+
+    protected:
+        /**
+         * @brief 초기화할 때 한 번 호출됩니다. 파생 클래스는 여기서 에셋을 로드하고 노드를 연결한 뒤 mRootNode를 지정합니다.
+         */
+        virtual void NativeInitializeAnimation();
+
+        /**
+         * @brief 매 프레임 그래프 갱신 전에 호출되어 변수를 갱신합니다.
+         * @param[in] DeltaSeconds 지난 프레임 이후 경과 시간입니다.
+         */
+        virtual void NativeUpdateAnimation(float DeltaSeconds);
+
+        /**
+         * @brief 레퍼런스 포즈로 채운 포즈를 받아 이번 프레임의 포즈로 바꿉니다.
+         * @details 기본 구현은 루트 노드가 있으면 Evaluate한 결과를 씁니다.
+         * @param[in,out] Pose 스켈레톤 본 인덱스 순서의 로컬 변환입니다.
+         */
+        virtual void NativeEvaluateAnimation(Core::TArray<Core::FTransform>& Pose);
 
         /**
          * @brief 포즈 계산에 쓰는 스켈레톤을 반환합니다.
          * @return 소유 컴포넌트의 현재 스켈레톤이며 없으면 nullptr입니다.
          */
         const Asset::USkeleton* GetSkeleton() const;
+
+        /**
+         * @brief 소유 컴포넌트의 월드 에셋 관리자로 시퀀스를 로드합니다.
+         * @param[in] Path Content 기준 경로이며 비어 있으면 nullptr를 반환합니다.
+         * @return 실패하면 경고를 남기고 nullptr를 반환합니다.
+         */
+        const Asset::UAnimSequence* LoadAnimSequence(const Core::FString& Path) const;
+
+        /**
+         * @brief 소유 컴포넌트의 월드 에셋 관리자로 블렌드 스페이스를 로드합니다.
+         * @param[in] Path Content 기준 경로이며 비어 있으면 nullptr를 반환합니다.
+         * @return 실패하면 경고를 남기고 nullptr를 반환합니다.
+         */
+        const Asset::UBlendSpace* LoadBlendSpace(const Core::FString& Path) const;
+
+    protected:
+        /**
+         * @brief 그래프의 시작 노드입니다. 파생 클래스가 소유한 노드를 가리킵니다.
+         */
+        Engine::FAnimNode_Base* mRootNode{};
 
     private:
         /**
@@ -111,10 +183,10 @@ namespace Engine {
         Engine::USkeletalMeshComponent* mOwner{};
 
         /**
-         * @brief 시퀀스 트랙 인덱스별 스켈레톤 본 인덱스이며 스켈레톤에 없는 트랙은 -1입니다.
-         * @details 비어 있으면 다음 EvaluateSequence에서 새로 만듭니다. 시퀀스나 스켈레톤이 바뀌면 ResetTrackMapping으로 비웁니다.
+         * @brief 시퀀스별로 트랙 인덱스를 스켈레톤 본 인덱스로 바꾸는 표이며, 스켈레톤에 없는 트랙은 -1입니다.
+         * @details 시퀀스를 처음 평가할 때 만들고, 스켈레톤이 바뀌면 InitializeAnimation이 비웁니다.
          */
-        Core::TArray<Core::Int32> mTrackToBone{};
+        Core::TMap<const Asset::UAnimSequence*, Core::TArray<Core::Int32>> mTrackToBone{};
 
         /**
          * @brief 샘플링 결과를 담는 트랙 순서의 임시 포즈입니다.
@@ -125,6 +197,26 @@ namespace Engine {
          * @brief 마지막으로 계산한 본 인덱스 순서의 포즈입니다.
          */
         Core::TArray<Core::FTransform> mPose{};
+
+        /**
+         * @brief 갱신 번호입니다.
+         */
+        Core::Uint64 mUpdateCounter{};
+
+        /**
+         * @brief 소유 컴포넌트의 속도입니다.
+         */
+        Core::FVector mOwnerVelocity{};
+
+        /**
+         * @brief 이전 갱신의 소유 컴포넌트 월드 위치입니다.
+         */
+        Core::FVector mLastOwnerLocation{};
+
+        /**
+         * @brief mLastOwnerLocation이 유효한지 여부입니다.
+         */
+        bool mHasLastOwnerLocation{};
     };
 
 }

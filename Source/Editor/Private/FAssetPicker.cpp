@@ -22,7 +22,7 @@ namespace Editor {
         bool Changed{};
 
         if (ImGui::BeginDragDropTarget()) {
-            const char* PayloadType{Type == Asset::EAssetType::Mesh || Type == Asset::EAssetType::SkeletalMesh ? Editor::EditorAssetDragDrop::MeshPayload : Type == Asset::EAssetType::Skeleton ? Editor::EditorAssetDragDrop::SkeletonPayload : Type == Asset::EAssetType::AnimSequence ? Editor::EditorAssetDragDrop::AnimSequencePayload : Type == Asset::EAssetType::Material ? Editor::EditorAssetDragDrop::MaterialPayload : Editor::EditorAssetDragDrop::TexturePayload};
+            const char* PayloadType{Type == Asset::EAssetType::Mesh || Type == Asset::EAssetType::SkeletalMesh ? Editor::EditorAssetDragDrop::MeshPayload : Type == Asset::EAssetType::Skeleton ? Editor::EditorAssetDragDrop::SkeletonPayload : Type == Asset::EAssetType::AnimSequence ? Editor::EditorAssetDragDrop::AnimSequencePayload : Type == Asset::EAssetType::BlendSpace ? Editor::EditorAssetDragDrop::BlendSpacePayload : Type == Asset::EAssetType::AnimGraph ? Editor::EditorAssetDragDrop::AnimGraphPayload : Type == Asset::EAssetType::Material ? Editor::EditorAssetDragDrop::MaterialPayload : Editor::EditorAssetDragDrop::TexturePayload};
 
             if (const ImGuiPayload* Payload{ImGui::AcceptDragDropPayload(PayloadType)}; Payload != nullptr && Payload->Data != nullptr && Payload->DataSize > 1 && static_cast<const char*>(Payload->Data)[Payload->DataSize - 1] == '\0') {
                 const Core::FString Candidate{static_cast<const char*>(Payload->Data), static_cast<std::size_t>(Payload->DataSize - 1)};
@@ -186,6 +186,30 @@ namespace Editor {
         }
 
         ImGui::PopID();
+
+        return Changed;
+    }
+
+    bool Editor::FAssetPicker::DrawCompact(Editor::FEditorAssetCatalog& Catalog, Editor::FAssetThumbnailCache& Thumbnails, const char* Label, const char* DisplayName, Core::FString& Path, Asset::EAssetType Type) {
+        bool Changed{};
+
+        ImGui::SetNextItemWidth(-1.0f);
+        ImGui::SetNextWindowSizeConstraints({280.0f, 0.0f}, {std::max(480.0f, ImGui::GetContentRegionAvail().x), 400.0f});
+
+        if (ImGui::BeginCombo(Label, DisplayName)) {
+            if (DrawOptions(Catalog, Thumbnails, Path, Type, "None")) {
+                Changed = true;
+                ImGui::CloseCurrentPopup();
+            }
+
+            ImGui::EndCombo();
+        }
+
+        Changed = AcceptDrop(Catalog, Path, Type) || Changed;
+
+        if (!Path.empty()) {
+            ImGui::SetItemTooltip("%s", Path.c_str());
+        }
 
         return Changed;
     }

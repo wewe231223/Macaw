@@ -16,6 +16,7 @@
 #include "Editor/Panel/FConsolePanel.h"
 #include "Editor/Panel/FPlaceActorsPanel.h"
 #include "Editor/Panel/FSequencerPanel.h"
+#include "Editor/Panel/FAnimGraphPanel.h"
 #include "FEditorViewportLayout.h"
 #include "Editor/FAssetPicker.h"
 #include "Editor/FImGuiUIScale.h"
@@ -50,6 +51,8 @@ namespace Editor {
     class FEditorViewport;
     class FPlayInEditorSession;
     class FMeshViewer;
+    class FBlendSpaceEditor;
+    class FAnimGraphEditor;
     class FEditorAssetCatalog;
     class FAssetThumbnailCache;
 
@@ -352,6 +355,16 @@ namespace Editor {
         void CreateMaterial();
 
         /**
+         * @brief 현재 콘텐츠 폴더에 빈 1D 블렌드 스페이스를 만들고 편집 창으로 엽니다.
+         */
+        void CreateBlendSpace();
+
+        /**
+         * @brief 현재 콘텐츠 폴더에 빈 애니메이션 그래프를 만들고 편집 창으로 엽니다.
+         */
+        void CreateAnimGraph();
+
+        /**
          * @brief 편집 중인 머티리얼의 프로퍼티와 저장 상태를 표시합니다.
          */
         void DrawMaterialEditor();
@@ -509,6 +522,11 @@ namespace Editor {
          * @brief 시퀀스 타임라인 편집 패널입니다.
          */
         Editor::FSequencerPanel mSequencerPanel;
+
+        /**
+         * @brief 선택한 스켈레탈 메시 컴포넌트의 애니메이션 노드 그래프를 보여 주는 패널입니다.
+         */
+        Editor::FAnimGraphPanel mAnimGraphPanel;
 
         /**
          * @brief ImGui 설정 파일 경로입니다.
@@ -794,6 +812,16 @@ namespace Editor {
          * @brief 편집 월드와 분리한 정적 메시 미리보기 창입니다.
          */
         std::unique_ptr<Editor::FMeshViewer> mMeshViewer{};
+
+        /**
+         * @brief 블렌드 스페이스 에셋 편집 창입니다.
+         */
+        std::unique_ptr<Editor::FBlendSpaceEditor> mBlendSpaceEditor{};
+
+        /**
+         * @brief 애니메이션 그래프 에셋 편집 창입니다.
+         */
+        std::unique_ptr<Editor::FAnimGraphEditor> mAnimGraphEditor{};
 
         /**
          * @brief 브라우저와 Details가 공유하는 실제 에셋 목록입니다.

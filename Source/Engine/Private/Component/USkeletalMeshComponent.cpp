@@ -15,9 +15,14 @@
 #include "Engine/FPrimitiveSceneProxy.h"
 #include "Engine/UWorld.h"
 #include "Engine/Animation/UAnimSingleNodeInstance.h"
+#include "Engine/Animation/UAnimGraphInstance.h"
+#include "Engine/Animation/FAnimNode_AssetPlayerBase.h"
 #include "Asset/Animation/UAnimSequence.h"
 #include "CoreUObject/Reflection/Cast.h"
 #include "CoreUObject/Reflection/NewObject.h"
+#include "CoreUObject/Reflection/FProperty.h"
+#include "CoreUObject/Reflection/FReflectionRegistry.h"
+#include "CoreUObject/Reflection/UClass.h"
 
 #include <cmath>
 #include <utility>
@@ -279,7 +284,14 @@ namespace Engine {
     void USkeletalMeshComponent::BeginPlay() {
         Engine::UMeshComponent::BeginPlay();
 
-        if (!mAnimationPath.empty()) {
+        // AnimClass가 있으면 그 그래프를 처음 상태로 초기화해 재생하고, 없으면 Animation 시퀀스를 단일 노드로 재생합니다.
+        if (!mAnimClass.empty()) {
+            if (mAnimInstance == nullptr) {
+                CreateAnimClassInstance();
+            }
+
+            InitializeAnimClassInstance();
+        } else if (!mAnimationPath.empty()) {
             if (const Asset::UAnimSequence* Sequence{LoadAnimation(mAnimationPath)}) {
                 PlayAnimation(Sequence, mLooping);
             }
@@ -287,9 +299,71 @@ namespace Engine {
     }
 
     void USkeletalMeshComponent::EndPlay() {
-        mAnimInstance.reset();
+        // AnimClass 인스턴스는 설정 값을 담고 있으므로 남겨 둡니다.
+        if (mAnimClass.empty()) {
+            mAnimInstance.reset();
+        }
 
         Engine::UMeshComponent::EndPlay();
+    }
+
+    const Core::FString& USkeletalMeshComponent::GetAnimClass() const {
+        return mAnimClass;
+    }
+
+    bool USkeletalMeshComponent::SetAnimClass(const Core::FString& ClassName) {
+        if (!ClassName.empty()) {
+            const CoreUObject::UClass* Class{CoreUObject::FReflectionRegistry::FindClass(ClassName)};
+
+            if (Class == nullptr || !Class->IsChildOf(Engine::UAnimInstance::StaticClass()) || !Class->CanCreate()) {
+                return false;
+            }
+        }
+
+        if (mAnimClass == ClassName && (ClassName.empty() || (mAnimInstance != nullptr && mAnimInstance->GetClass()->GetName() == ClassName))) {
+            return true;
+        }
+
+        mAnimClass = ClassName;
+        mAnimInstance.reset();
+
+        if (!ClassName.empty()) {
+            CreateAnimClassInstance();
+            InitializeAnimClassInstance();
+        } else if (HasBegunPlay() && !mAnimationPath.empty()) {
+            PlayAnimation(LoadAnimation(mAnimationPath), mLooping);
+        }
+
+        return true;
+    }
+
+    bool USkeletalMeshComponent::CreateAnimClassInstance() {
+        const CoreUObject::UClass* Class{mAnimClass.empty() ? nullptr : CoreUObject::FReflectionRegistry::FindClass(mAnimClass)};
+
+        if (Class == nullptr || !Class->IsChildOf(Engine::UAnimInstance::StaticClass())) {
+            return false;
+        }
+
+        std::unique_ptr<CoreUObject::UObject> Object{Class->CreateInstance()};
+        auto* Instance{CoreUObject::Cast<Engine::UAnimInstance>(Object.get())};
+
+        if (Instance == nullptr) {
+            return false;
+        }
+
+        Object.release();
+        mAnimInstance.reset(Instance);
+        mAnimInstance->SetName("AnimInstance");
+        mAnimInstance->SetOuter(this);
+
+        return true;
+    }
+
+    void USkeletalMeshComponent::InitializeAnimClassInstance() {
+        // 에셋은 월드의 에셋 관리자로 로드하므로, 월드에 등록되기 전이면 ResolveMesh가 메시를 해석할 때 초기화합니다.
+        if (mAnimInstance != nullptr && GetWorld() != nullptr) {
+            mAnimInstance->InitializeAnimation(this);
+        }
     }
 
     void USkeletalMeshComponent::PlayAnimation(const Asset::UAnimSequence* Sequence, bool Looping) {
@@ -312,6 +386,32 @@ namespace Engine {
 
     Engine::UAnimInstance* USkeletalMeshComponent::GetAnimInstance() const {
         return mAnimInstance.get();
+    }
+
+    bool USkeletalMeshComponent::SetAnimGraphFloat(const Core::FString& Name, float Value) {
+        auto* Instance{CoreUObject::Cast<Engine::UAnimGraphInstance>(mAnimInstance.get())};
+
+        return Instance != nullptr && Instance->SetFloatVariable(Name, Value);
+    }
+
+    bool USkeletalMeshComponent::RestartAnimGraphPlayer(Core::Int32 NodeId) {
+        auto* Instance{CoreUObject::Cast<Engine::UAnimGraphInstance>(mAnimInstance.get())};
+        auto* Player{Instance != nullptr ? Instance->FindAssetPlayer(NodeId) : nullptr};
+
+        if (Player == nullptr) {
+            return false;
+        }
+
+        Player->Initialize(*Instance);
+
+        return true;
+    }
+
+    bool USkeletalMeshComponent::IsAnimGraphPlayerFinished(Core::Int32 NodeId) const {
+        const auto* Instance{CoreUObject::Cast<Engine::UAnimGraphInstance>(mAnimInstance.get())};
+        const auto* Player{Instance != nullptr ? Instance->FindAssetPlayer(NodeId) : nullptr};
+
+        return Player != nullptr && Player->IsFinished();
     }
 
     const Core::FString& USkeletalMeshComponent::GetAnimationPath() const {
@@ -482,6 +582,29 @@ namespace Engine {
      */
     void Engine::USkeletalMeshComponent::Serialize(Core::FArchive& Archive) {
         Engine::UMeshComponent::Serialize(Archive);
+
+        // AnimClass 인스턴스의 설정 값은 AnimInstance 객체 안에 저장합니다. 식별자와 이름 같은 UObject 공통 프로퍼티는 저장하지 않습니다.
+        // 읽을 때는 AnimClass setter가 이미 인스턴스를 만들었습니다.
+        Engine::UAnimInstance* Instance{!mAnimClass.empty() && mAnimInstance != nullptr && mAnimInstance->GetClass()->GetName() == mAnimClass ? mAnimInstance.get() : nullptr};
+
+        if (Instance != nullptr && !Archive.HasError() && (!Archive.IsLoading() || Archive.HasField("AnimInstance")) && Archive.BeginObject("AnimInstance")) {
+            for (const bool Late : {false, true}) {
+                for (const CoreUObject::UClass* Class{Instance->GetClass()}; Class != nullptr && Class->IsChildOf(Engine::UAnimInstance::StaticClass()); Class = Class->GetSuperClass()) {
+                    for (const CoreUObject::FProperty* Property : Class->GetProperties()) {
+                        if (Property->HasFlag(Core::EPropertyFlags::Serialize) && Property->HasFlag(Core::EPropertyFlags::SerializeLate) == Late) {
+                            Property->SerializeValue(Instance, Archive);
+                        }
+                    }
+                }
+            }
+
+            Archive.EndObject();
+
+            // 읽은 설정으로 그래프를 다시 만듭니다. 메시가 없으면 아래 ResolveMesh가 다시 초기화하지 않습니다.
+            if (Archive.IsLoading() && !Archive.HasError()) {
+                InitializeAnimClassInstance();
+            }
+        }
 
         if (Archive.IsLoading()) {
             if (!Archive.HasError()) {

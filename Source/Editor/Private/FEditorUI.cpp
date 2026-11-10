@@ -31,6 +31,8 @@
 #include "Engine/FWorldContext.h"
 #include "Editor/FAssetDragDrop.h"
 #include "Editor/FMeshViewer.h"
+#include "FBlendSpaceEditor.h"
+#include "FAnimGraphEditor.h"
 #include "Editor/FEditorAssetCatalog.h"
 #include "Editor/FAssetThumbnailCache.h"
 #include "Editor/FGameExporter.h"
@@ -86,6 +88,8 @@ namespace Editor {
             {"Texture", "텍스처", MacawContentTextureIconResource, Editor::EditorStyle::EIcon::Sprite},
             {"Sequence", "시퀀스", MacawContentSequenceIconResource, Editor::EditorStyle::EIcon::Sequence},
             {"Animation Sequence", "애니메이션 시퀀스", MacawContentAnimationSequenceIconResource, Editor::EditorStyle::EIcon::Sequence},
+            {"Blend Space", "블렌드 스페이스", MacawContentAnimationSequenceIconResource, Editor::EditorStyle::EIcon::Sequence, IM_COL32(120, 214, 236, 255)},
+            {"Anim Graph", "애니메이션 그래프", MacawContentAnimationSequenceIconResource, Editor::EditorStyle::EIcon::Sequence, IM_COL32(150, 165, 255, 255)},
             {"Scene", "씬", MacawContentSceneIconResource, Editor::EditorStyle::EIcon::World}
         };
 
@@ -138,7 +142,8 @@ namespace Editor {
 		  mOutlinerPanel{Context},
 		  mDetailsPanel{Context},
 		  mConsolePanel{Context},
-		  mSequencerPanel{Context} {
+		  mSequencerPanel{Context},
+		  mAnimGraphPanel{Context} {
     }
 
     /**
@@ -237,6 +242,11 @@ namespace Editor {
         mDetailsPanel.SetAssetServices(mAssetCatalog.get(), mThumbnails.get());
         mDetailsPanel.SetScriptBuildService(&mScriptBuilds);
         mMeshViewer = std::make_unique<Editor::FMeshViewer>(Renderer, mContext->GetProject()->GetAssets());
+        mBlendSpaceEditor = std::make_unique<Editor::FBlendSpaceEditor>(mContext->GetProject()->GetAssets(), mAssetCatalog.get(), mThumbnails.get());
+        mAnimGraphEditor = std::make_unique<Editor::FAnimGraphEditor>(mContext->GetProject()->GetAssets(), mAssetCatalog.get(), mThumbnails.get());
+        mDetailsPanel.SetAnimGraphOpener([this]() {
+            mAnimGraphPanel.Open();
+        });
         mExit = false;
         mRefreshContent = true;
 
@@ -351,6 +361,9 @@ namespace Editor {
         mPlaceActorsPanel.ClearIcons();
         mContentIcons.clear();
         mMeshViewer.reset();
+        mBlendSpaceEditor.reset();
+        mAnimGraphEditor.reset();
+        mDetailsPanel.SetAnimGraphOpener({});
         mDetailsPanel.SetAssetServices(nullptr, nullptr);
         mThumbnails.reset();
         mAssetCatalog.reset();
@@ -470,6 +483,8 @@ namespace Editor {
         }
 
         mSequencerPanel.Draw(DeltaTime);
+        mAnimGraphPanel.SetEditorContext(Inspection);
+        mAnimGraphPanel.Draw(DeltaTime);
 
         Editor::FStatGraphs& StatGraphs{mContext->GetStatGraphs()};
 
@@ -493,6 +508,14 @@ namespace Editor {
 
         if (mMeshViewer != nullptr) {
             mMeshViewer->DrawUI(mPlatform->GetInput());
+        }
+
+        if (mBlendSpaceEditor != nullptr) {
+            mBlendSpaceEditor->Draw();
+        }
+
+        if (mAnimGraphEditor != nullptr) {
+            mAnimGraphEditor->Draw();
         }
 
         mPlaySession->ProcessInput(DeltaTime, !ImGui::GetIO().WantTextInput && !ImGui::IsPopupOpen(nullptr, ImGuiPopupFlags_AnyPopup));
@@ -647,6 +670,7 @@ namespace Editor {
             ImGui::DockBuilderDockWindow(mDetailsPanel.GetName().c_str(), Right);
             ImGui::DockBuilderDockWindow(mConsolePanel.GetName().c_str(), Bottom);
             ImGui::DockBuilderDockWindow(mSequencerPanel.GetName().c_str(), Bottom);
+            ImGui::DockBuilderDockWindow(mAnimGraphPanel.GetName().c_str(), Bottom);
             ImGui::DockBuilderDockWindow("Content", Bottom);
             ImGui::DockBuilderDockWindow(mViewport->GetName().c_str(), Center);
 
@@ -848,6 +872,14 @@ namespace Editor {
             if (ImGui::BeginMenu("View")) {
                 ImGui::MenuItem("Statistics", nullptr, &mShowStatistics);
 
+                if (ImGui::MenuItem("Anim Graph", nullptr, mAnimGraphPanel.IsVisible())) {
+                    if (mAnimGraphPanel.IsVisible()) {
+                        mAnimGraphPanel.SetVisible(false);
+                    } else {
+                        mAnimGraphPanel.Open();
+                    }
+                }
+
                 if (ImGui::BeginMenu("Stat Overlay")) {
                     Editor::FViewportStatistics* Statistics{GetActiveViewport()->GetStatistics()};
 
@@ -914,7 +946,7 @@ namespace Editor {
                 }
             }
 
-            if (Input.WasPressed(EKey::S)) {
+            if (Input.WasPressed(EKey::S) && (mAnimGraphEditor == nullptr || !mAnimGraphEditor->IsFocused()) && (mBlendSpaceEditor == nullptr || !mBlendSpaceEditor->IsFocused())) {
                 const auto Path{mContext->GetScenePath().empty() ? ChooseFile(true) : mContext->GetScenePath()};
 
                 if (!Path.empty()) {
@@ -1392,15 +1424,15 @@ namespace Editor {
             DrawContentBreadcrumbs();
             ImGui::SetNextItemWidth(120.0f);
 
-            const char* FilterName{!mContentFilter.has_value() ? "All Assets" : *mContentFilter == Asset::EAssetType::Mesh ? "Meshes" : *mContentFilter == Asset::EAssetType::SkeletalMesh ? "Skeletal Meshes" : *mContentFilter == Asset::EAssetType::Skeleton ? "Skeletons" : *mContentFilter == Asset::EAssetType::Material ? "Materials" : *mContentFilter == Asset::EAssetType::Texture ? "Textures" : *mContentFilter == Asset::EAssetType::Sequence ? "Sequences" : *mContentFilter == Asset::EAssetType::AnimSequence ? "Animation Sequences" : "Scenes"};
+            const char* FilterName{!mContentFilter.has_value() ? "All Assets" : *mContentFilter == Asset::EAssetType::Mesh ? "Meshes" : *mContentFilter == Asset::EAssetType::SkeletalMesh ? "Skeletal Meshes" : *mContentFilter == Asset::EAssetType::Skeleton ? "Skeletons" : *mContentFilter == Asset::EAssetType::Material ? "Materials" : *mContentFilter == Asset::EAssetType::Texture ? "Textures" : *mContentFilter == Asset::EAssetType::Sequence ? "Sequences" : *mContentFilter == Asset::EAssetType::AnimSequence ? "Animation Sequences" : *mContentFilter == Asset::EAssetType::BlendSpace ? "Blend Spaces" : *mContentFilter == Asset::EAssetType::AnimGraph ? "Anim Graphs" : "Scenes"};
 
             if (ImGui::BeginCombo("##AssetType", FilterName)) {
                 if (ImGui::Selectable("All Assets", !mContentFilter.has_value())) {
                     mContentFilter.reset();
                 }
 
-                for (Asset::EAssetType Type : {Asset::EAssetType::Mesh, Asset::EAssetType::SkeletalMesh, Asset::EAssetType::Skeleton, Asset::EAssetType::Material, Asset::EAssetType::Texture, Asset::EAssetType::Scene, Asset::EAssetType::Sequence, Asset::EAssetType::AnimSequence}) {
-                    const char* Name{Type == Asset::EAssetType::Mesh ? "Meshes" : Type == Asset::EAssetType::SkeletalMesh ? "Skeletal Meshes" : Type == Asset::EAssetType::Skeleton ? "Skeletons" : Type == Asset::EAssetType::Material ? "Materials" : Type == Asset::EAssetType::Texture ? "Textures" : Type == Asset::EAssetType::Sequence ? "Sequences" : Type == Asset::EAssetType::AnimSequence ? "Animation Sequences" : "Scenes"};
+                for (Asset::EAssetType Type : {Asset::EAssetType::Mesh, Asset::EAssetType::SkeletalMesh, Asset::EAssetType::Skeleton, Asset::EAssetType::Material, Asset::EAssetType::Texture, Asset::EAssetType::Scene, Asset::EAssetType::Sequence, Asset::EAssetType::AnimSequence, Asset::EAssetType::BlendSpace, Asset::EAssetType::AnimGraph}) {
+                    const char* Name{Type == Asset::EAssetType::Mesh ? "Meshes" : Type == Asset::EAssetType::SkeletalMesh ? "Skeletal Meshes" : Type == Asset::EAssetType::Skeleton ? "Skeletons" : Type == Asset::EAssetType::Material ? "Materials" : Type == Asset::EAssetType::Texture ? "Textures" : Type == Asset::EAssetType::Sequence ? "Sequences" : Type == Asset::EAssetType::AnimSequence ? "Animation Sequences" : Type == Asset::EAssetType::BlendSpace ? "Blend Spaces" : Type == Asset::EAssetType::AnimGraph ? "Anim Graphs" : "Scenes"};
 
                     if (ImGui::Selectable(Name, mContentFilter == Type)) {
                         mContentFilter = Type;
@@ -1716,6 +1748,14 @@ namespace Editor {
                 mMeshViewer->CloseRetired(Absolute);
             }
 
+            if (mBlendSpaceEditor != nullptr) {
+                mBlendSpaceEditor->CloseRetired(Absolute);
+            }
+
+            if (mAnimGraphEditor != nullptr) {
+                mAnimGraphEditor->CloseRetired(Absolute);
+            }
+
             mSelectedContentPath = mContentActionTarget.parent_path() / NewFile;
             mRefreshContent = true;
 
@@ -1767,6 +1807,14 @@ namespace Editor {
                 mMeshViewer->CloseRetired(Absolute);
             }
 
+            if (mBlendSpaceEditor != nullptr) {
+                mBlendSpaceEditor->CloseRetired(Absolute);
+            }
+
+            if (mAnimGraphEditor != nullptr) {
+                mAnimGraphEditor->CloseRetired(Absolute);
+            }
+
             mRefreshContent = true;
         }
 
@@ -1789,6 +1837,14 @@ namespace Editor {
 
             if (ImGui::MenuItem("New Material", nullptr, false, CanEdit)) {
                 CreateMaterial();
+            }
+
+            if (ImGui::MenuItem("New Blend Space 1D", nullptr, false, CanEdit)) {
+                CreateBlendSpace();
+            }
+
+            if (ImGui::MenuItem("New Anim Graph", nullptr, false, CanEdit)) {
+                CreateAnimGraph();
             }
         }
 
@@ -2228,7 +2284,7 @@ namespace Editor {
                         const bool HasThumbnail{!Directory && Type != mAssetTypes.end() && (Type->second == Asset::EAssetType::Mesh || Type->second == Asset::EAssetType::SkeletalMesh || Type->second == Asset::EAssetType::Skeleton || Type->second == Asset::EAssetType::Material || Type->second == Asset::EAssetType::Texture)};
                         void* Thumbnail{HasThumbnail ? mThumbnails->GetThumbnail(Path, Type->second) : nullptr};
                         const bool ScriptFile{mBrowsingScripts && !Directory};
-                        const char* Kind{ScriptFile ? "C# Script" : Directory ? "Folder" : Type == mAssetTypes.end() ? "File" : Type->second == Asset::EAssetType::Mesh ? "Mesh" : Type->second == Asset::EAssetType::SkeletalMesh ? "Skeletal Mesh" : Type->second == Asset::EAssetType::Skeleton ? "Skeleton" : Type->second == Asset::EAssetType::Material ? "Material" : Type->second == Asset::EAssetType::Texture ? "Texture" : Type->second == Asset::EAssetType::Sequence ? "Sequence" : Type->second == Asset::EAssetType::AnimSequence ? "Animation Sequence" : "Scene"};
+                        const char* Kind{ScriptFile ? "C# Script" : Directory ? "Folder" : Type == mAssetTypes.end() ? "File" : Type->second == Asset::EAssetType::Mesh ? "Mesh" : Type->second == Asset::EAssetType::SkeletalMesh ? "Skeletal Mesh" : Type->second == Asset::EAssetType::Skeleton ? "Skeleton" : Type->second == Asset::EAssetType::Material ? "Material" : Type->second == Asset::EAssetType::Texture ? "Texture" : Type->second == Asset::EAssetType::Sequence ? "Sequence" : Type->second == Asset::EAssetType::AnimSequence ? "Animation Sequence" : Type->second == Asset::EAssetType::BlendSpace ? "Blend Space" : Type->second == Asset::EAssetType::AnimGraph ? "Anim Graph" : "Scene"};
                         const Core::FString Actual{Core::FilePath::ToGenericUtf8(Path)};
                         const Core::FString Name{Core::FilePath::ToUtf8(Directory ? Path.filename() : Path.stem())};
                         const FContentIcon& Icon{GetContentIcon(Kind)};
@@ -2270,9 +2326,11 @@ namespace Editor {
 
                         // 애니메이션 시퀀스는 썸네일이 없지만 Details의 Animation 필드에 놓을 수 있도록 끌기를 허용합니다.
                         const bool AnimSequence{!Directory && Type != mAssetTypes.end() && Type->second == Asset::EAssetType::AnimSequence};
+                        const bool BlendSpace{!Directory && Type != mAssetTypes.end() && Type->second == Asset::EAssetType::BlendSpace};
+                        const bool AnimGraph{!Directory && Type != mAssetTypes.end() && Type->second == Asset::EAssetType::AnimGraph};
 
-                        if ((HasThumbnail || AnimSequence) && mContext->CanEditWorld() && ImGui::BeginDragDropSource()) {
-                            const char* Payload{AnimSequence ? Editor::EditorAssetDragDrop::AnimSequencePayload : Type->second == Asset::EAssetType::Mesh || Type->second == Asset::EAssetType::SkeletalMesh ? Editor::EditorAssetDragDrop::MeshPayload : Type->second == Asset::EAssetType::Skeleton ? Editor::EditorAssetDragDrop::SkeletonPayload : Type->second == Asset::EAssetType::Material ? Editor::EditorAssetDragDrop::MaterialPayload : Editor::EditorAssetDragDrop::TexturePayload};
+                        if ((HasThumbnail || AnimSequence || BlendSpace || AnimGraph) && mContext->CanEditWorld() && ImGui::BeginDragDropSource()) {
+                            const char* Payload{AnimSequence ? Editor::EditorAssetDragDrop::AnimSequencePayload : BlendSpace ? Editor::EditorAssetDragDrop::BlendSpacePayload : AnimGraph ? Editor::EditorAssetDragDrop::AnimGraphPayload : Type->second == Asset::EAssetType::Mesh || Type->second == Asset::EAssetType::SkeletalMesh ? Editor::EditorAssetDragDrop::MeshPayload : Type->second == Asset::EAssetType::Skeleton ? Editor::EditorAssetDragDrop::SkeletonPayload : Type->second == Asset::EAssetType::Material ? Editor::EditorAssetDragDrop::MaterialPayload : Editor::EditorAssetDragDrop::TexturePayload};
 
                             ImGui::SetDragDropPayload(Payload, Actual.c_str(), Actual.size() + 1);
 
@@ -2355,6 +2413,18 @@ namespace Editor {
             } else {
                 mContext->AddLog(Error.empty() ? "Cannot preview the texture" : Error);
             }
+        } else if (Type == Asset::EAssetType::AnimGraph) {
+            Core::FString Error{};
+
+            if (mAnimGraphEditor != nullptr && !mAnimGraphEditor->Open(Path, Error)) {
+                mContext->AddLog(Error.empty() ? "Cannot open the anim graph" : Error);
+            }
+        } else if (Type == Asset::EAssetType::BlendSpace) {
+            Core::FString Error{};
+
+            if (mBlendSpaceEditor != nullptr && !mBlendSpaceEditor->Open(Path, Error)) {
+                mContext->AddLog(Error.empty() ? "Cannot open the blend space" : Error);
+            }
         } else if (Type == Asset::EAssetType::AnimSequence) {
             // 재생 기능이 생기기 전까지는 임포트 결과를 확인할 수 있도록 시간 정보와 트랙 요약을 로그로 출력합니다.
             Core::FString Error{};
@@ -2409,6 +2479,38 @@ namespace Editor {
         mSelectedContentPath = Path;
 
         OpenContentAsset(Path, Asset::EAssetType::Material);
+    }
+
+    void Editor::FEditorUI::CreateAnimGraph() {
+        Core::FString Error{};
+        std::filesystem::path Path{};
+
+        if (mContext->GetProject()->GetAssets()->CreateAnimGraph(mContentDirectory, "AnimGraph", Path, Error) == nullptr) {
+            mContext->AddLog(Error.empty() ? "Cannot create the anim graph" : Error);
+
+            return;
+        }
+
+        mRefreshContent = true;
+        mSelectedContentPath = Path;
+
+        OpenContentAsset(Path, Asset::EAssetType::AnimGraph);
+    }
+
+    void Editor::FEditorUI::CreateBlendSpace() {
+        Core::FString Error{};
+        std::filesystem::path Path{};
+
+        if (mContext->GetProject()->GetAssets()->CreateBlendSpace1D(mContentDirectory, "BlendSpace", Path, Error) == nullptr) {
+            mContext->AddLog(Error.empty() ? "Cannot create the blend space" : Error);
+
+            return;
+        }
+
+        mRefreshContent = true;
+        mSelectedContentPath = Path;
+
+        OpenContentAsset(Path, Asset::EAssetType::BlendSpace);
     }
 
     /**

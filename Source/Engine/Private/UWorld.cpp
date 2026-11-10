@@ -161,7 +161,14 @@ namespace Engine {
 
         const auto* Component{CoreUObject::Cast<Engine::UActorComponent>(Object)};
 
-        return Component != nullptr && Component->GetOwner() != nullptr && ContainsObject(Component->GetOwner());
+        if (Component != nullptr) {
+            return Component->GetOwner() != nullptr && ContainsObject(Component->GetOwner());
+        }
+
+        // 컴포넌트가 소유하는 하위 객체(예: 애니메이션 인스턴스)는 Outer 컴포넌트가 월드에 있으면 월드에 속합니다.
+        const CoreUObject::UObject* Outer{Object->GetOuter()};
+
+        return Outer != nullptr && CoreUObject::Cast<Engine::UActorComponent>(Outer) != nullptr && ContainsObject(Outer);
     }
 
     /**

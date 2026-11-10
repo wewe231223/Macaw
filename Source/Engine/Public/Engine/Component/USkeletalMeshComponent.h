@@ -172,9 +172,34 @@ namespace Engine {
 
         /**
          * @brief 현재 애니메이션 인스턴스를 반환합니다.
-         * @return 재생 중이 아니면 nullptr입니다.
+         * @details AnimClass를 지정했으면 에디터에서도 항상 그 클래스의 인스턴스가 있으며, 설정 값을 담고 시각화 도구가 그래프를 표시합니다.
+         * AnimClass가 비어 있으면 플레이 중 단일 노드 인스턴스만 있습니다.
+         * @return 없으면 nullptr입니다.
          */
         Engine::UAnimInstance* GetAnimInstance() const;
+
+        UFUNCTION()
+        bool SetAnimGraphFloat(const Core::FString& Name, float Value);
+
+        UFUNCTION()
+        bool RestartAnimGraphPlayer(Core::Int32 NodeId);
+
+        UFUNCTION()
+        bool IsAnimGraphPlayerFinished(Core::Int32 NodeId) const;
+
+        /**
+         * @brief 애니메이션 인스턴스 클래스 이름을 반환합니다.
+         * @return UAnimInstance 파생 클래스 이름이며, 비어 있으면 Animation 시퀀스를 단일 노드로 재생합니다.
+         */
+        const Core::FString& GetAnimClass() const;
+
+        /**
+         * @brief 애니메이션 인스턴스 클래스를 바꾸고 그 클래스의 인스턴스를 새로 만듭니다.
+         * @details 언리얼의 AnimClass(애니메이션 블루프린트)에 대응합니다. 클래스를 바꾸면 이전 인스턴스의 설정 값은 버립니다.
+         * @param[in] ClassName 생성할 수 있는 UAnimInstance 파생 클래스 이름이거나 빈 문자열입니다.
+         * @return 클래스가 유효해 적용했으면 true입니다.
+         */
+        bool SetAnimClass(const Core::FString& ClassName);
 
         const Core::FString& GetAnimationPath() const;
         bool SetAnimationPath(const Core::FString& Path);
@@ -202,6 +227,17 @@ namespace Engine {
         Asset::UAnimSequence* LoadAnimation(const Core::FString& Path) const;
 
         /**
+         * @brief AnimClass의 인스턴스를 새로 만들고 Outer를 이 컴포넌트로 지정합니다.
+         * @return AnimClass가 비어 있거나 생성할 수 없으면 false입니다.
+         */
+        bool CreateAnimClassInstance();
+
+        /**
+         * @brief AnimClass 인스턴스를 초기화합니다. 월드가 없으면 에셋을 로드할 수 없으므로 등록 뒤 ResolveMesh가 다시 호출합니다.
+         */
+        void InitializeAnimClassInstance();
+
+        /**
          * @brief 애니메이션 인스턴스를 갱신하고 결과 포즈를 스키닝 행렬에 반영합니다.
          * @param DeltaTime 프레임 경과 시간입니다.
          */
@@ -216,6 +252,13 @@ namespace Engine {
 
         UPROPERTY(Edit, Serialize, Name = "Skeleton", Getter = GetSkeletonPath, Setter = SetSkeletonPath)
         Core::FString mSkeletonPath{};
+
+        /**
+         * @brief 애니메이션 그래프를 만드는 UAnimInstance 파생 클래스 이름입니다. 비어 있으면 Animation을 단일 노드로 재생합니다.
+         * @details 인스턴스의 Serialize 프로퍼티는 이 컴포넌트를 저장할 때 AnimInstance 객체 안에 함께 저장합니다.
+         */
+        UPROPERTY(Edit, Serialize, Name = "AnimClass", Getter = GetAnimClass, Setter = SetAnimClass)
+        Core::FString mAnimClass{};
 
         /**
          * @brief 플레이를 시작하면 재생할 Content 기준 애니메이션 시퀀스 경로입니다.
@@ -236,7 +279,8 @@ namespace Engine {
         float mPlayRate{1.0f};
 
         /**
-         * @brief 플레이 중에만 존재하는 애니메이션 인스턴스입니다. 저장하지 않습니다.
+         * @brief 애니메이션 인스턴스입니다. AnimClass가 있으면 항상 존재하고, 없으면 플레이 중 단일 노드 인스턴스만 존재합니다.
+         * @details Outer는 이 컴포넌트이므로 에디터는 인스턴스를 월드 객체로 편집할 수 있습니다.
          */
         std::unique_ptr<Engine::UAnimInstance> mAnimInstance{};
 

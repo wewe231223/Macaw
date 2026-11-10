@@ -1,8 +1,6 @@
 #include "Engine/Animation/UAnimSingleNodeInstance.h"
 #include "Asset/Animation/UAnimSequence.h"
 
-#include <cmath>
-
 namespace Engine {
 
     UAnimSingleNodeInstance::UAnimSingleNodeInstance() = default;
@@ -10,18 +8,22 @@ namespace Engine {
     UAnimSingleNodeInstance::~UAnimSingleNodeInstance() = default;
 
     void UAnimSingleNodeInstance::SetAnimation(const Asset::UAnimSequence* Sequence) {
-        mSequence = Sequence;
-        mPosition = 0.0;
-        ResetTrackMapping();
+        mPlayer.mSequence = Sequence;
+        mPlayer.Restart();
     }
 
     const Asset::UAnimSequence* UAnimSingleNodeInstance::GetAnimation() const {
-        return mSequence;
+        return mPlayer.mSequence;
     }
 
     void UAnimSingleNodeInstance::Play(bool Looping) {
-        mLooping = Looping;
+        mPlayer.mLoop = Looping;
         mPlaying = true;
+
+        // 반복하지 않는 재생이 끝난 뒤 다시 재생하면 처음부터 시작합니다.
+        if (mPlayer.IsFinished()) {
+            mPlayer.Restart();
+        }
     }
 
     void UAnimSingleNodeInstance::Stop() {
@@ -33,47 +35,33 @@ namespace Engine {
     }
 
     void UAnimSingleNodeInstance::SetLooping(bool Looping) {
-        mLooping = Looping;
+        mPlayer.mLoop = Looping;
     }
 
     void UAnimSingleNodeInstance::SetPlayRate(float PlayRate) {
-        mPlayRate = PlayRate;
+        mPlayer.mPlayRate = PlayRate;
     }
 
     void UAnimSingleNodeInstance::SetPosition(double Time) {
-        mPosition = Time;
+        mPlayer.SetAccumulatedTime(Time);
     }
 
     double UAnimSingleNodeInstance::GetPosition() const {
-        return mPosition;
+        return mPlayer.GetAccumulatedTime();
     }
 
-    void UAnimSingleNodeInstance::NativeUpdateAnimation(float DeltaSeconds) {
-        if (!mPlaying || mSequence == nullptr) {
-            return;
-        }
+    void UAnimSingleNodeInstance::NativeInitializeAnimation() {
+        mPlayer.mName = "Single Node";
+        mRootNode = &mPlayer;
+    }
 
-        const double Length{mSequence->GetPlayLength()};
-
-        mPosition += static_cast<double>(DeltaSeconds) * static_cast<double>(mPlayRate);
-
-        // 반복 재생이면 위치를 [0, 길이)로 감아 오차가 쌓이지 않게 하고, 아니면 끝에서 멈춥니다.
-        if (mLooping && Length > 0.0) {
-            mPosition = std::fmod(mPosition, Length);
-
-            if (mPosition < 0.0) {
-                mPosition += Length;
-            }
-        } else if ((mPlayRate > 0.0f && mPosition >= Length) || (mPlayRate < 0.0f && mPosition <= 0.0)) {
-            mPosition = mPlayRate > 0.0f ? Length : 0.0;
+    void UAnimSingleNodeInstance::NativeUpdateAnimation(float) {
+        // 반복하지 않는 재생은 플레이어가 끝에서 멈추면 재생 상태도 끝냅니다.
+        if (mPlayer.IsFinished()) {
             mPlaying = false;
         }
-    }
 
-    void UAnimSingleNodeInstance::NativeEvaluateAnimation(Core::TArray<Core::FTransform>& Pose) {
-        if (mSequence != nullptr) {
-            EvaluateSequence(*mSequence, mPosition, mLooping, Pose);
-        }
+        mPlayer.SetPaused(!mPlaying);
     }
 
 }

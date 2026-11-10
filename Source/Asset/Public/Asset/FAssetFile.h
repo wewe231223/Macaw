@@ -50,7 +50,15 @@ namespace Asset {
         /**
          * @brief 본별 키 트랙을 저장하는 애니메이션 시퀀스 에셋입니다. 값이 파일에 기록되므로 항상 끝에 추가합니다.
          */
-        AnimSequence
+        AnimSequence,
+        /**
+         * @brief 축 설정과 샘플 시퀀스 경로를 저장하는 블렌드 스페이스 에셋입니다.
+         */
+        BlendSpace,
+        /**
+         * @brief 노드·링크·변수를 저장하는 애니메이션 그래프 에셋입니다.
+         */
+        AnimGraph
     };
 
     /**
