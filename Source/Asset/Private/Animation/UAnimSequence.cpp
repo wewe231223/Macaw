@@ -20,6 +20,10 @@ namespace Asset {
         return mDataModel;
     }
 
+    const Core::FString& UAnimSequence::GetAssetPath() const {
+        return mAssetPath;
+    }
+
     void UAnimSequence::GetTrackPose(double Time, bool Looping, Core::TArray<Core::FTransform>& OutTrackPose) const {
         const auto& Tracks{mDataModel.GetBoneAnimationTracks()};
         const double Length{mDataModel.GetPlayLength()};

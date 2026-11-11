@@ -1,11 +1,16 @@
 #include "Asset/Animation/UBlendSpace.h"
 #include "Asset/Animation/UAnimSequence.h"
+#include "Asset/FAssetManager.h"
 #include "Core/Archive.h"
+#include "Core/Base/ErrorHandler.h"
+#include "Core/FilePath.h"
 
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <iterator>
 #include <string>
+#include <utility>
 
 namespace Asset {
 
@@ -17,16 +22,20 @@ namespace Asset {
         }
     }
 
-    const Asset::FBlendParameter& UBlendSpace::GetBlendParameter(Core::Uint32 Axis) const {
-        return mBlendParameters[std::min<Core::Uint32>(Axis, 2)];
+    const Asset::FBlendParameter& UBlendSpace::GetBlendParameter(Asset::EBlendSpaceAxis Axis) const {
+        const auto AxisIndex{static_cast<std::size_t>(Axis)};
+
+        return mBlendParameters[std::min(AxisIndex, std::size(mBlendParameters) - 1)];
     }
 
-    bool UBlendSpace::SetBlendParameter(Core::Uint32 Axis, const Asset::FBlendParameter& Parameter) {
-        if (Axis >= GetNumAxes() || !IsValidParameter(Parameter)) {
+    bool UBlendSpace::SetBlendParameter(Asset::EBlendSpaceAxis Axis, const Asset::FBlendParameter& Parameter) {
+        const auto AxisIndex{static_cast<std::size_t>(Axis)};
+
+        if (AxisIndex >= GetNumAxes() || AxisIndex >= std::size(mBlendParameters) || !IsValidParameter(Parameter)) {
             return false;
         }
 
-        mBlendParameters[Axis] = Parameter;
+        mBlendParameters[AxisIndex] = Parameter;
 
         return true;
     }
@@ -35,12 +44,13 @@ namespace Asset {
         return mSamples;
     }
 
-    Core::Int32 UBlendSpace::AddSample(const Core::FString& AnimationPath, const Asset::UAnimSequence* Animation, const Core::FVector& SampleValue) {
+    Core::Int32 UBlendSpace::AddSample(const Asset::UAnimSequence* Animation, const Core::FVector& SampleValue) {
         if (mSamples.size() >= MaxSamples || !SampleValue.IsFinite()) {
             return -1;
         }
 
-        mSamples.push_back({AnimationPath, Animation, SampleValue});
+        mSamples.push_back({Animation, SampleValue});
+        RebuildSampleOrder();
 
         return static_cast<Core::Int32>(mSamples.size() - 1);
     }
@@ -51,16 +61,16 @@ namespace Asset {
         }
 
         mSamples.erase(mSamples.begin() + Index);
+        RebuildSampleOrder();
 
         return true;
     }
 
-    bool UBlendSpace::SetSampleAnimation(Core::Int32 Index, const Core::FString& AnimationPath, const Asset::UAnimSequence* Animation) {
+    bool UBlendSpace::SetSampleAnimation(Core::Int32 Index, const Asset::UAnimSequence* Animation) {
         if (Index < 0 || static_cast<std::size_t>(Index) >= mSamples.size()) {
             return false;
         }
 
-        mSamples[static_cast<std::size_t>(Index)].mAnimationPath = AnimationPath;
         mSamples[static_cast<std::size_t>(Index)].mAnimation = Animation;
 
         return true;
@@ -72,6 +82,7 @@ namespace Asset {
         }
 
         mSamples[static_cast<std::size_t>(Index)].mSampleValue = SampleValue;
+        RebuildSampleOrder();
 
         return true;
     }
@@ -79,10 +90,10 @@ namespace Asset {
     Core::FVector UBlendSpace::ClampInput(const Core::FVector& Input) const {
         std::array<float, 3> Values{Input.ToArray()};
 
-        for (Core::Uint32 Axis{}; Axis < 3; ++Axis) {
-            const float Value{std::isfinite(Values[Axis]) ? Values[Axis] : 0.0f};
+        for (std::size_t AxisIndex{}; AxisIndex < Values.size(); ++AxisIndex) {
+            const float Value{std::isfinite(Values[AxisIndex]) ? Values[AxisIndex] : 0.0f};
 
-            Values[Axis] = Axis < GetNumAxes() ? std::clamp(Value, mBlendParameters[Axis].mMin, mBlendParameters[Axis].mMax) : 0.0f;
+            Values[AxisIndex] = AxisIndex < GetNumAxes() ? std::clamp(Value, mBlendParameters[AxisIndex].mMin, mBlendParameters[AxisIndex].mMax) : 0.0f;
         }
 
         return {Values[0], Values[1], Values[2]};
@@ -122,12 +133,15 @@ namespace Asset {
 
     void UBlendSpace::CopyFrom(const Asset::UBlendSpace& Source) {
         if (this != &Source) {
+            auto Samples{Source.mSamples};
+
             std::copy_n(Source.mBlendParameters, std::size(mBlendParameters), mBlendParameters);
-            mSamples = Source.mSamples;
+            mSamples = std::move(Samples);
+            RebuildSampleOrder();
         }
     }
 
-    void UBlendSpace::Serialize(Core::FArchive& Archive) {
+    void UBlendSpace::Serialize(Core::FArchive& Archive, Asset::FAssetManager& Assets) {
         Core::Uint32 Version{BlendSpaceFormatVersion};
 
         Archive.Serialize("FormatVersion", Version);
@@ -155,12 +169,12 @@ namespace Asset {
             return;
         }
 
-        for (Core::Uint32 Axis{}; Axis < Count && !Archive.HasError(); ++Axis) {
-            if (!Archive.BeginObject(std::to_string(Axis))) {
+        for (Core::Uint32 AxisIndex{}; AxisIndex < Count && !Archive.HasError(); ++AxisIndex) {
+            if (!Archive.BeginObject(std::to_string(AxisIndex))) {
                 break;
             }
 
-            Asset::FBlendParameter Parameter{mBlendParameters[Axis]};
+            Asset::FBlendParameter Parameter{mBlendParameters[AxisIndex]};
 
             Archive.Serialize("Name", Parameter.mDisplayName);
             Archive.Serialize("Min", Parameter.mMin);
@@ -175,7 +189,7 @@ namespace Asset {
                 if (!IsValidParameter(Parameter)) {
                     Archive.SetError("Invalid blend space axis range");
                 } else {
-                    mBlendParameters[Axis] = Parameter;
+                    mBlendParameters[AxisIndex] = Parameter;
                 }
             }
 
@@ -194,6 +208,8 @@ namespace Asset {
             return;
         }
 
+        Core::TArray<Asset::FBlendSample> LoadedSamples{};
+
         if (Archive.IsLoading()) {
             if (Count > MaxSamples) {
                 Archive.SetError("Too many blend space samples");
@@ -202,29 +218,46 @@ namespace Asset {
                 return;
             }
 
-            mSamples.assign(Count, Asset::FBlendSample{});
+            LoadedSamples.resize(Count);
         }
+
+        auto& Samples{Archive.IsLoading() ? LoadedSamples : mSamples};
 
         for (Core::Uint32 Index{}; Index < Count && !Archive.HasError(); ++Index) {
             if (!Archive.BeginObject(std::to_string(Index))) {
                 break;
             }
 
-            Asset::FBlendSample& Sample{mSamples[Index]};
+            Asset::FBlendSample& Sample{Samples[Index]};
 
-            Archive.Serialize("Animation", Sample.mAnimationPath);
+            Core::FString AnimationPath{Sample.mAnimation != nullptr ? Sample.mAnimation->GetAssetPath() : Core::FString{}};
+            Archive.Serialize("Animation", AnimationPath);
             Archive.Serialize("X", Sample.mSampleValue.x);
             Archive.Serialize("Y", Sample.mSampleValue.y);
             Archive.Serialize("Z", Sample.mSampleValue.z);
 
-            if (Archive.IsLoading() && !Archive.HasError() && !Sample.mSampleValue.IsFinite()) {
-                Archive.SetError("Invalid blend space sample value");
+            if (Archive.IsLoading() && !Archive.HasError()) {
+                if (!Sample.mSampleValue.IsFinite()) {
+                    Archive.SetError("Invalid blend space sample value");
+                } else if (!AnimationPath.empty()) {
+                    Core::FString AnimationError{};
+                    Sample.mAnimation = Assets.LoadAnimSequence(Core::FilePath::FromUtf8(AnimationPath), AnimationError);
+
+                    if (Sample.mAnimation == nullptr) {
+                        Core::ErrorHandler::Report("BlendSpace", "Cannot load sample animation '" + AnimationPath + "' of blend space '" + GetName() + "': " + AnimationError, Core::ErrorHandler::EErrorLevel::Warning);
+                    }
+                }
             }
 
             Archive.EndObject();
         }
 
         Archive.EndArray();
+
+        if (Archive.IsLoading() && !Archive.HasError()) {
+            mSamples = std::move(LoadedSamples);
+            RebuildSampleOrder();
+        }
     }
 
 }

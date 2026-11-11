@@ -24,6 +24,8 @@ namespace Engine {
         mOwnerVelocity = {};
         mHasLastOwnerLocation = false;
 
+        mDebugVisits.clear();
+        mCurrentDebugVisit = -1;
         NativeInitializeAnimation();
 
         if (mRootNode != nullptr) {
@@ -43,15 +45,14 @@ namespace Engine {
             mHasLastOwnerLocation = true;
         }
 
+        mDebugVisits.clear();
+        mCurrentDebugVisit = -1;
+        mUpdatedNodes.clear();
         NativeUpdateAnimation(DeltaSeconds);
 
-        ++mUpdateCounter;
-
         if (mRootNode != nullptr) {
-            const Engine::FAnimationUpdateContext Context{*this, DeltaSeconds, mUpdateCounter};
-
-            mRootNode->RecordUpdate(Context);
-            mRootNode->Update(Context);
+            const Engine::FAnimationUpdateContext Context{*this, DeltaSeconds};
+            UpdateNode(*mRootNode, Context);
         }
 
         if (GetSkeleton() == nullptr) {
@@ -63,6 +64,16 @@ namespace Engine {
         // 트랙이 없는 본은 스켈레톤의 레퍼런스 포즈를 그대로 씁니다.
         GetReferencePose(mPose);
         NativeEvaluateAnimation(mPose);
+    }
+
+    void UAnimInstance::UpdateNode(Engine::FAnimNode_Base& Node, const Engine::FAnimationUpdateContext& Context) {
+        if (mUpdatedNodes.emplace(&Node, true).second) {
+            Node.Update(Context);
+        }
+    }
+
+    void UAnimInstance::ResetNodeUpdate(Engine::FAnimNode_Base& Node) {
+        mUpdatedNodes.erase(&Node);
     }
 
     const Core::TArray<Core::FTransform>& UAnimInstance::GetPose() const {
@@ -77,8 +88,23 @@ namespace Engine {
         return mRootNode;
     }
 
-    Core::Uint64 UAnimInstance::GetUpdateCounter() const {
-        return mUpdateCounter;
+    const Core::TArray<Engine::FAnimNodeVisit>& UAnimInstance::GetDebugVisits() const {
+        return mDebugVisits;
+    }
+
+    void UAnimInstance::BeginDebugVisit(const Engine::FAnimNode_Base& Node, const Engine::FPoseLink* Link, float Weight) {
+        mDebugVisits.push_back({&Node, Link, Weight, mCurrentDebugVisit});
+        mCurrentDebugVisit = static_cast<Core::Int32>(mDebugVisits.size() - 1);
+    }
+
+    void UAnimInstance::EndDebugVisit() {
+        mCurrentDebugVisit = mDebugVisits[static_cast<std::size_t>(mCurrentDebugVisit)].mParentIndex;
+    }
+
+    void UAnimInstance::RecordDebugSample(const Engine::FAnimNode_Base& Node, Core::Int32 SampleIndex, float Weight) {
+        if (mCurrentDebugVisit >= 0) {
+            mDebugVisits.push_back({&Node, nullptr, Weight, mCurrentDebugVisit, SampleIndex});
+        }
     }
 
     const Core::FVector& UAnimInstance::GetOwnerVelocity() const {
@@ -110,7 +136,9 @@ namespace Engine {
 
         Engine::FPoseContext Output{*this};
 
+        BeginDebugVisit(*mRootNode, nullptr, 1.0f);
         mRootNode->Evaluate(Output);
+        EndDebugVisit();
 
         // 노드가 스켈레톤과 다른 길이의 포즈를 만들지 않도록 길이가 맞을 때만 받아들입니다.
         if (Output.mPose.size() == Pose.size()) {
@@ -168,7 +196,19 @@ namespace Engine {
         }
     }
 
+    bool UAnimInstance::GetBoolVariable(const Core::FString&) const {
+        return false;
+    }
+
+    bool UAnimInstance::HasGraphVariable(const Core::FString&, bool) const {
+        return false;
+    }
+
     void UAnimInstance::GetDebugVariables(Core::TArray<Engine::FAnimNodeValue>&) {
+    }
+
+    float UAnimInstance::GetFloatVariable(const Core::FString&) const {
+        return 0.0f;
     }
 
     bool UAnimInstance::GetNodeLayout(const Engine::FAnimNode_Base*, float&, float&) const {

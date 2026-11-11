@@ -7,6 +7,7 @@
 #pragma once
 
 #include "Core/FRevision.h"
+#include "Asset/Animation/FAnimStateMachineData.h"
 #include "CoreUObject/UObject.h"
 
 #include "UAnimGraph.generated.h"
@@ -120,6 +121,11 @@ namespace Asset {
     /**
      * @brief 노드 파라미터를 묶을 수 있는 실수 변수입니다.
      */
+    enum class EAnimGraphVariableType : Core::Uint8 {
+        Float,
+        Bool
+    };
+
     struct FAnimGraphVariable {
     public:
         /**
@@ -136,6 +142,8 @@ namespace Asset {
          * @brief 값의 출처입니다.
          */
         Asset::EAnimGraphVariableSource mSource{Asset::EAnimGraphVariableSource::Manual};
+        Asset::EAnimGraphVariableType mType{Asset::EAnimGraphVariableType::Float};
+        bool mBoolDefault{};
     };
 
     struct FAnimGraphVariableGetter {
@@ -293,6 +301,10 @@ namespace Asset {
 
         Core::FRevision GetRevision() const;
 
+        Asset::FAnimStateMachineData* FindStateMachine(Core::Int32 NodeId);
+        const Asset::FAnimStateMachineData* FindStateMachine(Core::Int32 NodeId) const;
+        void SynchronizeVariables(const Core::TArray<Asset::FAnimGraphVariable>& Variables);
+
         /**
          * @brief 노드·링크·변수를 읽거나 저장합니다.
          * @param[in,out] Archive 저장하거나 읽을 아카이브입니다.
@@ -302,9 +314,12 @@ namespace Asset {
     private:
         const Asset::FAnimGraphVariableGetter* ResolveGetter(const Asset::FAnimGraphParameter& Binding) const;
         void SerializeVariableGetters(Core::FArchive& Archive);
+        void SerializeStateMachines(Core::FArchive& Archive);
+        void UpdateChildVariables(const Core::FString& OldName, const Core::FString& NewName);
 
     private:
         Core::FRevision mRevision{};
+        Core::TMap<Core::Int32, Asset::FAnimStateMachineData> mStateMachines{};
 
         /**
          * @brief 배치한 노드입니다.

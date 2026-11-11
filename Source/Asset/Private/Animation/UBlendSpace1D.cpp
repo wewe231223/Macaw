@@ -2,59 +2,58 @@
 #include "Asset/Animation/UAnimSequence.h"
 
 #include <algorithm>
+#include <functional>
+#include <iterator>
+#include <numeric>
+#include <span>
+#include <utility>
 
 namespace Asset {
 
     void UBlendSpace1D::GetSamplesToBlend(const Core::FVector& Input, Core::TArray<Asset::FBlendSampleWeight>& OutWeights) const {
         OutWeights.clear();
 
-        // 시퀀스가 해석된 샘플만 X 오름차순으로 늘어놓습니다. 안정 정렬이므로 X가 같으면 먼저 추가한 샘플이 앞에 옵니다.
-        Core::TArray<Core::Int32> Sorted{};
+        const auto& Samples{GetSamples()};
+        const std::span<const Core::Int32> Sorted{mSortedSampleIndices.data(), Samples.size()};
+        const auto IsUsable{[&Samples](Core::Int32 Index) {
+            const Asset::UAnimSequence* Animation{Samples[static_cast<std::size_t>(Index)].mAnimation};
 
-        Sorted.reserve(mSamples.size());
-
-        for (std::size_t Index{}; Index < mSamples.size(); ++Index) {
-            if (mSamples[Index].mAnimation != nullptr && mSamples[Index].mAnimation->IsValid()) {
-                Sorted.push_back(static_cast<Core::Int32>(Index));
-            }
-        }
-
-        if (Sorted.empty()) {
-            return;
-        }
-
-        std::stable_sort(Sorted.begin(), Sorted.end(), [this](Core::Int32 Left, Core::Int32 Right) {
-            return mSamples[static_cast<std::size_t>(Left)].mSampleValue.x < mSamples[static_cast<std::size_t>(Right)].mSampleValue.x;
-        });
-
-        const float X{ClampInput(Input).x};
-        const auto ValueOf{[this](Core::Int32 Index) {
-            return mSamples[static_cast<std::size_t>(Index)].mSampleValue.x;
+            return Animation != nullptr && Animation->IsValid();
         }};
 
-        if (X <= ValueOf(Sorted.front())) {
-            OutWeights.push_back({Sorted.front(), 1.0f});
+        const auto First{std::ranges::find_if(Sorted, IsUsable)};
+
+        if (First == Sorted.end()) {
+            return;
+        }
+
+        const auto SampleX{[&Samples](Core::Int32 Index) {
+            return Samples[static_cast<std::size_t>(Index)].mSampleValue.x;
+        }};
+
+        const float X{ClampInput(Input).x};
+
+        if (X <= SampleX(*First)) {
+            OutWeights.push_back({*First, 1.0f});
 
             return;
         }
 
-        if (X >= ValueOf(Sorted.back())) {
-            OutWeights.push_back({Sorted.back(), 1.0f});
+        const auto Last{std::find_if(Sorted.rbegin(), Sorted.rend(), IsUsable)};
+
+        if (X >= SampleX(*Last)) {
+            OutWeights.push_back({*Last, 1.0f});
 
             return;
         }
 
         // X를 사이에 둔 두 샘플을 찾아 거리 비율로 섞습니다. 앞의 두 검사로 X는 처음과 마지막 샘플 사이에 있습니다.
-        std::size_t Upper{1};
-
-        while (Upper + 1 < Sorted.size() && ValueOf(Sorted[Upper]) < X) {
-            ++Upper;
-        }
-
-        const Core::Int32 Low{Sorted[Upper - 1]};
-        const Core::Int32 High{Sorted[Upper]};
-        const float Range{ValueOf(High) - ValueOf(Low)};
-        const float Alpha{Range > 0.0f ? std::clamp((X - ValueOf(Low)) / Range, 0.0f, 1.0f) : 0.0f};
+        const auto Split{std::ranges::lower_bound(First, Last.base(), X, std::ranges::less{}, SampleX)};
+        const Core::Int32 Low{*std::find_if(std::make_reverse_iterator(Split), Sorted.rend(), IsUsable)};
+        const Core::Int32 High{*std::find_if(Split, Last.base(), IsUsable)};
+        const float LowX{SampleX(Low)};
+        const float Range{SampleX(High) - LowX};
+        const float Alpha{Range > 0.0f ? std::clamp((X - LowX) / Range, 0.0f, 1.0f) : 0.0f};
 
         if (Alpha < 1.0f) {
             OutWeights.push_back({Low, 1.0f - Alpha});
@@ -67,6 +66,16 @@ namespace Asset {
 
     Core::Uint32 UBlendSpace1D::GetNumAxes() const {
         return 1;
+    }
+
+    void UBlendSpace1D::RebuildSampleOrder() {
+        const auto& Samples{GetSamples()};
+        const std::span<Core::Int32> Sorted{mSortedSampleIndices.data(), Samples.size()};
+
+        std::iota(Sorted.begin(), Sorted.end(), Core::Int32{});
+        std::ranges::sort(Sorted, std::ranges::less{}, [&Samples](Core::Int32 Index) {
+            return std::pair{Samples[static_cast<std::size_t>(Index)].mSampleValue.x, Index};
+        });
     }
 
 }

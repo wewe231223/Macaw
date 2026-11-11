@@ -5,6 +5,7 @@
 #include <cmath>
 #include <limits>
 #include <string>
+#include <utility>
 
 namespace Asset {
 
@@ -67,7 +68,7 @@ namespace Asset {
     }
 
     Core::Int32 UAnimGraph::AddNode(const Core::FString& Type, const Core::FString& Name, float X, float Y) {
-        if (mNodes.size() >= MaxNodes) {
+        if (mNodes.size() >= MaxNodes || mNextNodeId == std::numeric_limits<Core::Int32>::max() || !std::isfinite(X) || !std::isfinite(Y)) {
             return -2;
         }
 
@@ -78,6 +79,11 @@ namespace Asset {
         Node.mName = Name;
         Node.mX = X;
         Node.mY = Y;
+
+        if (Type == "StateMachine") {
+            mStateMachines.try_emplace(Node.mId);
+        }
+
         mNodes.push_back(std::move(Node));
 
         return mNodes.back().mId;
@@ -92,6 +98,7 @@ namespace Asset {
             return false;
         }
 
+        mStateMachines.erase(Id);
         mNodes.erase(Found);
         std::erase_if(mLinks, [Id](const Asset::FAnimGraphLink& Link) {
             return Link.mFromNode == Id || Link.mToNode == Id;
@@ -191,6 +198,7 @@ namespace Asset {
         }
 
         mVariables.push_back(Variable);
+        UpdateChildVariables({}, {});
 
         return true;
     }
@@ -226,6 +234,8 @@ namespace Asset {
             }
         }
 
+        UpdateChildVariables(OldName, Variable.mName);
+
         return true;
     }
 
@@ -234,7 +244,7 @@ namespace Asset {
             return false;
         }
 
-        const Core::FString& Name{mVariables[static_cast<std::size_t>(Index)].mName};
+        const Core::FString Name{mVariables[static_cast<std::size_t>(Index)].mName};
 
         std::erase_if(mVariableGetters, [&Name](const Asset::FAnimGraphVariableGetter& Getter) {
             return Getter.mVariable == Name;
@@ -247,6 +257,7 @@ namespace Asset {
         }
 
         mVariables.erase(mVariables.begin() + Index);
+        UpdateChildVariables(Name, {});
 
         return true;
     }
@@ -274,7 +285,7 @@ namespace Asset {
 
     Core::Int32 UAnimGraph::AddVariableGetter(const Core::FString& Variable, float X, float Y) {
         if (mVariableGetters.size() >= MaxNodes || mNextGetterId == std::numeric_limits<Core::Int32>::max() || !std::isfinite(X) || !std::isfinite(Y) || std::none_of(mVariables.begin(), mVariables.end(), [&Variable](const Asset::FAnimGraphVariable& Entry) {
-            return Entry.mName == Variable;
+            return Entry.mName == Variable && Entry.mType == Asset::EAnimGraphVariableType::Float;
         })) {
             return -1;
         }
@@ -330,6 +341,16 @@ namespace Asset {
     }
 
     void UAnimGraph::CopyFrom(const Asset::UAnimGraph& Source) {
+        if (this == &Source) {
+            return;
+        }
+
+        mStateMachines.clear();
+
+        for (const auto& [Id, Machine] : Source.mStateMachines) {
+            mStateMachines[Id].CopyFrom(Machine);
+        }
+
         mNodes = Source.mNodes;
         mLinks = Source.mLinks;
         mVariables = Source.mVariables;
@@ -339,6 +360,151 @@ namespace Asset {
         mOutputX = Source.mOutputX;
         mOutputY = Source.mOutputY;
         mRevision = Core::FRevision::Next();
+    }
+
+    Asset::FAnimStateMachineData* UAnimGraph::FindStateMachine(Core::Int32 NodeId) {
+        return const_cast<Asset::FAnimStateMachineData*>(std::as_const(*this).FindStateMachine(NodeId));
+    }
+
+    const Asset::FAnimStateMachineData* UAnimGraph::FindStateMachine(Core::Int32 NodeId) const {
+        const auto Found{mStateMachines.find(NodeId)};
+
+        return Found != mStateMachines.end() ? &Found->second : nullptr;
+    }
+
+    void UAnimGraph::SynchronizeVariables(const Core::TArray<Asset::FAnimGraphVariable>& Variables) {
+        mVariables = Variables;
+        UpdateChildVariables({}, {});
+    }
+
+    void UAnimGraph::UpdateChildVariables(const Core::FString& OldName, const Core::FString& NewName) {
+        const auto HasFloat{[this](const Core::FString& Name) {
+            return std::any_of(mVariables.begin(), mVariables.end(), [&Name](const auto& Variable) {
+                return Variable.mName == Name && Variable.mType == Asset::EAnimGraphVariableType::Float;
+            });
+        }};
+
+        std::erase_if(mVariableGetters, [&HasFloat](const auto& Getter) {
+            return !HasFloat(Getter.mVariable);
+        });
+
+        for (auto& Node : mNodes) {
+            std::erase_if(Node.mParameters, [&HasFloat](const auto& Parameter) {
+                return Parameter.mName.ends_with(BindingSuffix) && !HasFloat(Parameter.mValue);
+            });
+        }
+
+        for (auto& [Id, Machine] : mStateMachines) {
+            for (const auto& State : Machine.GetStates()) {
+                if (State.mGraph == nullptr) {
+                    continue;
+                }
+
+                if (!OldName.empty()) {
+                    const auto& Variables{State.mGraph->GetVariables()};
+                    const auto Found{std::find_if(Variables.begin(), Variables.end(), [&OldName](const auto& Variable) {
+                        return Variable.mName == OldName;
+                    })};
+
+                    if (Found != Variables.end()) {
+                        const Core::Int32 Index{static_cast<Core::Int32>(Found - Variables.begin())};
+
+                        if (NewName.empty()) {
+                            State.mGraph->RemoveVariable(Index);
+                        } else {
+                            auto Variable{*Found};
+                            Variable.mName = NewName;
+                            State.mGraph->SetVariable(Index, Variable);
+                        }
+                    }
+                }
+
+                State.mGraph->SynchronizeVariables(mVariables);
+            }
+
+            for (const auto& Transition : Machine.GetTransitions()) {
+                Machine.FindTransition(Transition.mId)->mRule.RenameVariable(OldName, NewName);
+            }
+        }
+    }
+
+    void UAnimGraph::SerializeStateMachines(Core::FArchive& Archive) {
+        if (Archive.HasError()) {
+            return;
+        }
+
+        if (Archive.IsLoading()) {
+            mStateMachines.clear();
+
+            if (!Archive.HasField("StateMachines")) {
+                if (std::any_of(mNodes.begin(), mNodes.end(), [](const auto& Node) {
+                    return Node.mType == "StateMachine";
+                })) {
+                    Archive.SetError("Missing animation state machine data");
+                }
+
+                return;
+            }
+        }
+
+        static thread_local Core::Uint32 Depth{};
+
+        if (Depth >= 16) {
+            Archive.SetError("Animation state machine nesting limit exceeded");
+
+            return;
+        }
+
+        Core::Uint32 Count{static_cast<Core::Uint32>(mStateMachines.size())};
+
+        if (!Archive.BeginArray("StateMachines", Count)) {
+            return;
+        }
+
+        if (Count > MaxNodes) {
+            Archive.SetError("Too many animation state machines");
+        }
+
+        Core::TArray<Core::Int32> Ids{};
+
+        if (!Archive.IsLoading()) {
+            for (const auto& [Id, Machine] : mStateMachines) {
+                Ids.push_back(Id);
+            }
+
+            std::sort(Ids.begin(), Ids.end());
+        }
+
+        ++Depth;
+
+        for (Core::Uint32 Index{}; Index < Count && !Archive.HasError(); ++Index) {
+            if (!Archive.BeginObject(std::to_string(Index))) {
+                break;
+            }
+
+            Core::Int32 Id{Archive.IsLoading() ? -1 : Ids[Index]};
+            Archive.Serialize("Node", Id);
+            const auto* Node{FindNode(Id)};
+
+            if (Node == nullptr || Node->mType != "StateMachine" || (Archive.IsLoading() && mStateMachines.contains(Id))) {
+                Archive.SetError("Invalid or duplicate state machine node");
+            } else {
+                mStateMachines[Id].Serialize(Archive);
+            }
+
+            Archive.EndObject();
+        }
+
+        --Depth;
+        Archive.EndArray();
+
+        if (!Archive.HasError()) {
+            for (const auto& Node : mNodes) {
+                if (Node.mType == "StateMachine" && !mStateMachines.contains(Node.mId)) {
+                    Archive.SetError("Missing animation state machine data");
+                }
+            }
+        }
     }
 
     Core::FRevision UAnimGraph::GetRevision() const {
@@ -428,6 +594,18 @@ namespace Asset {
             Archive.Serialize("Name", Variable.mName);
             Archive.Serialize("Default", Variable.mDefault);
             Archive.Serialize("Source", Source);
+
+            if (!Archive.IsLoading() || Archive.HasField("Type")) {
+                Core::Uint32 Type{static_cast<Core::Uint32>(Variable.mType)};
+                Archive.Serialize("Type", Type);
+                Archive.Serialize("BoolDefault", Variable.mBoolDefault);
+
+                if (Type > static_cast<Core::Uint32>(Asset::EAnimGraphVariableType::Bool)) {
+                    Archive.SetError("Invalid anim graph variable type");
+                } else {
+                    Variable.mType = static_cast<Asset::EAnimGraphVariableType>(Type);
+                }
+            }
 
             if (LoadLegacyGetters && Archive.HasField("GetterX") && Archive.HasField("GetterY")) {
                 float X{};
@@ -539,6 +717,8 @@ namespace Asset {
 
         Archive.EndArray();
 
+        SerializeStateMachines(Archive);
+
         if (!Archive.IsLoading() || Archive.HasError()) {
             return;
         }
@@ -552,7 +732,7 @@ namespace Asset {
         for (std::size_t Index{}; Index < mNodes.size(); ++Index) {
             const Core::Int32 Id{mNodes[Index].mId};
 
-            if (Id < 0 || std::any_of(mNodes.begin(), mNodes.begin() + static_cast<std::ptrdiff_t>(Index), [Id](const Asset::FAnimGraphNode& Node) {
+            if (Id < 0 || Id == std::numeric_limits<Core::Int32>::max() || std::any_of(mNodes.begin(), mNodes.begin() + static_cast<std::ptrdiff_t>(Index), [Id](const Asset::FAnimGraphNode& Node) {
                 return Node.mId == Id;
             })) {
                 Archive.SetError("Invalid or duplicate anim graph node id");
@@ -566,6 +746,8 @@ namespace Asset {
         for (const Asset::FAnimGraphLink& Link : Links) {
             Connect(Link.mFromNode, Link.mToNode, Link.mToPin);
         }
+
+        UpdateChildVariables({}, {});
     }
 
 }

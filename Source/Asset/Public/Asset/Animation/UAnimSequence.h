@@ -13,6 +13,8 @@
 
 namespace Asset {
 
+    class FAssetManager;
+
     /**
      * @brief 임포트한 본 트랙과 프레임 레이트를 소유하는 애니메이션 클립입니다.
      */
@@ -39,6 +41,8 @@ namespace Asset {
          * @return 읽기 전용 데이터입니다.
          */
         const Asset::FAnimDataModel& GetDataModel() const;
+        const Core::FString& GetAssetPath() const;
+
 
         /**
          * @brief 지정한 시간의 트랙별 로컬 변환을 샘플링합니다.
@@ -55,10 +59,14 @@ namespace Asset {
         bool IsValid() const override;
 
     private:
+        friend class Asset::FAssetManager;
+
         /**
          * @brief 본 트랙과 시간 정보입니다.
          */
         Asset::FAnimDataModel mDataModel{};
+
+        Core::FString mAssetPath{};
 
     };
 

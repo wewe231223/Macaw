@@ -214,13 +214,6 @@ namespace Asset {
         bool SaveBlendSpace(const std::filesystem::path& Path, Asset::UBlendSpace& BlendSpace, Core::FString& Error);
 
         /**
-         * @brief 블렌드 스페이스 샘플의 시퀀스 경로를 다시 해석합니다.
-         * @param[in,out] BlendSpace 해석할 블렌드 스페이스입니다.
-         * @return 경로가 있는 모든 샘플을 해석했으면 true이며, 실패한 샘플의 시퀀스는 nullptr가 됩니다.
-         */
-        bool ResolveBlendSpace(Asset::UBlendSpace& BlendSpace);
-
-        /**
          * @brief 애니메이션 그래프 에셋을 로드해 캐시에 보관합니다. 그래프는 머티리얼처럼 캐시된 객체를 직접 편집합니다.
          * @param[in] Path 프로젝트 그래프 경로입니다.
          * @param[out] Error 실패 원인입니다.

@@ -27,11 +27,12 @@ namespace Engine {
 
         void Evaluate(Engine::FPoseContext& Output) override;
 
-        const char* GetNodeType() const override;
+        const Core::FString& GetNodeType() const override;
 
         void GetPoseInputs(Core::TArray<Engine::FAnimNodePoseInput>& OutInputs) override;
 
         void GetDebugValues(Core::TArray<Engine::FAnimNodeValue>& OutValues) override;
+        void GetValueInputs(Core::TArray<Engine::FAnimNodeValueInput>& OutInputs) override;
 
         /**
          * @brief 마지막 Update에서 쓴 Alpha를 반환합니다.
@@ -51,19 +52,11 @@ namespace Engine {
         Engine::FPoseLink mB{};
 
         /**
-         * @brief B의 비율입니다. mAlphaBinding이 있으면 매 Update에서 그 값으로 덮어씁니다.
+         * @brief B의 비율입니다. mAlphaInput이 연결되면 매 Update에서 값 노드의 출력으로 갱신합니다.
          */
         float mAlpha{};
 
-        /**
-         * @brief Alpha를 읽어 올 인스턴스 변수입니다. 언리얼의 핀 바인딩에 해당합니다.
-         */
-        const float* mAlphaBinding{};
-
-        /**
-         * @brief 시각화 도구에 보일 바인딩 변수 이름입니다.
-         */
-        Core::FString mAlphaBindingName{};
+        Engine::FAnimFloatLink mAlphaInput{};
 
     private:
         /**

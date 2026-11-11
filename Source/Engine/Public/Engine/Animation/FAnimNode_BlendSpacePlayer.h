@@ -24,9 +24,10 @@ namespace Engine {
 
         void Evaluate(Engine::FPoseContext& Output) override;
 
-        const char* GetNodeType() const override;
+        const Core::FString& GetNodeType() const override;
 
         void GetDebugValues(Core::TArray<Engine::FAnimNodeValue>& OutValues) override;
+        void GetValueInputs(Core::TArray<Engine::FAnimNodeValueInput>& OutInputs) override;
 
         /**
          * @brief 마지막 Update에서 쓴 입력에 대한 가중치 합성 길이를 반환합니다.
@@ -53,19 +54,11 @@ namespace Engine {
         const Asset::UBlendSpace* mBlendSpace{};
 
         /**
-         * @brief X 축 입력입니다. mXBinding이 있으면 매 Update에서 그 값으로 덮어씁니다.
+         * @brief X 축 입력입니다. mXInput이 연결되면 매 Update에서 값 노드의 출력으로 갱신합니다.
          */
         float mX{};
 
-        /**
-         * @brief X를 읽어 올 인스턴스 변수입니다. 언리얼의 핀 바인딩에 해당합니다.
-         */
-        const float* mXBinding{};
-
-        /**
-         * @brief 시각화 도구에 보일 바인딩 변수 이름입니다.
-         */
-        Core::FString mXBindingName{};
+        Engine::FAnimFloatLink mXInput{};
 
     private:
         /**

@@ -24,7 +24,7 @@ namespace Engine {
 
         void Evaluate(Engine::FPoseContext& Output) override;
 
-        const char* GetNodeType() const override;
+        const Core::FString& GetNodeType() const override;
 
         void GetDebugValues(Core::TArray<Engine::FAnimNodeValue>& OutValues) override;
 

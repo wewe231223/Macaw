@@ -403,9 +403,15 @@ namespace Engine {
         return Instance != nullptr && Instance->SetFloatVariable(Name, Value);
     }
 
-    bool USkeletalMeshComponent::RestartAnimGraphPlayer(Core::Int32 NodeId) {
+    bool USkeletalMeshComponent::SetAnimGraphBool(const Core::FString& Name, bool Value) {
         auto* Instance{CoreUObject::Cast<Engine::UAnimGraphInstance>(mAnimInstance.get())};
-        auto* Player{Instance != nullptr ? Instance->FindAssetPlayer(NodeId) : nullptr};
+
+        return Instance != nullptr && Instance->SetBoolVariable(Name, Value);
+    }
+
+    bool USkeletalMeshComponent::RestartAnimGraphPlayer(const Core::FString& Name) {
+        auto* Instance{CoreUObject::Cast<Engine::UAnimGraphInstance>(mAnimInstance.get())};
+        auto* Player{Instance != nullptr ? Instance->FindAssetPlayer(Name) : nullptr};
 
         if (Player == nullptr) {
             return false;
@@ -416,9 +422,9 @@ namespace Engine {
         return true;
     }
 
-    bool USkeletalMeshComponent::IsAnimGraphPlayerFinished(Core::Int32 NodeId) const {
+    bool USkeletalMeshComponent::IsAnimGraphPlayerFinished(const Core::FString& Name) const {
         const auto* Instance{CoreUObject::Cast<Engine::UAnimGraphInstance>(mAnimInstance.get())};
-        const auto* Player{Instance != nullptr ? Instance->FindAssetPlayer(NodeId) : nullptr};
+        const auto* Player{Instance != nullptr ? Instance->FindAssetPlayer(Name) : nullptr};
 
         return Player != nullptr && Player->IsFinished();
     }

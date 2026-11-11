@@ -7,6 +7,9 @@
 #pragma once
 
 #include "Asset/Animation/UBlendSpace.h"
+
+#include <array>
+
 #include "UBlendSpace1D.generated.h"
 
 namespace Asset {
@@ -29,6 +32,12 @@ namespace Asset {
         void GetSamplesToBlend(const Core::FVector& Input, Core::TArray<Asset::FBlendSampleWeight>& OutWeights) const override;
 
         Core::Uint32 GetNumAxes() const override;
+
+    private:
+        void RebuildSampleOrder() override;
+
+    private:
+        std::array<Core::Int32, MaxSamples> mSortedSampleIndices{};
     };
 
 }

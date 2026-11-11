@@ -5,7 +5,6 @@
 
 #include <algorithm>
 #include <cmath>
-#include <format>
 
 namespace Engine {
 
@@ -17,9 +16,7 @@ namespace Engine {
     }
 
     void FAnimNode_BlendSpacePlayer::Update(const Engine::FAnimationUpdateContext& Context) {
-        if (mXBinding != nullptr) {
-            mX = *mXBinding;
-        }
+        mX = mXInput.Evaluate(Context, mX);
 
         if (mBlendSpace == nullptr) {
             mSampleWeights.clear();
@@ -63,6 +60,7 @@ namespace Engine {
             }
 
             const double Time{mNormalizedTime * Animation->GetPlayLength()};
+            AnimInstance.RecordDebugSample(*this, Weight.mSampleIndex, Weight.mWeight);
 
             if (First) {
                 AnimInstance.EvaluateSequence(*Animation, Time, mLoop, Output.mPose);
@@ -79,42 +77,29 @@ namespace Engine {
         }
     }
 
-    const char* FAnimNode_BlendSpacePlayer::GetNodeType() const {
-        return "Blend Space Player";
+    void FAnimNode_BlendSpacePlayer::GetValueInputs(Core::TArray<Engine::FAnimNodeValueInput>& OutInputs) {
+        OutInputs.push_back({"X", &mXInput});
+    }
+
+    const Core::FString& FAnimNode_BlendSpacePlayer::GetNodeType() const {
+        static const Core::FString Type{"Blend Space Player"};
+
+        return Type;
     }
 
     void FAnimNode_BlendSpacePlayer::GetDebugValues(Core::TArray<Engine::FAnimNodeValue>& OutValues) {
         Engine::FAnimNodeValue BlendSpace{};
 
         BlendSpace.mName = "Blend Space";
-        BlendSpace.mText = mBlendSpace != nullptr ? mBlendSpace->GetName() : "(없음)";
+        BlendSpace.mValue = mBlendSpace != nullptr ? mBlendSpace->GetName() : "(없음)";
         OutValues.push_back(std::move(BlendSpace));
 
         Engine::FAnimNodeValue X{};
-        const Asset::FBlendParameter* Parameter{mBlendSpace != nullptr ? &mBlendSpace->GetBlendParameter(0) : nullptr};
+        const Asset::FBlendParameter* Parameter{mBlendSpace != nullptr ? &mBlendSpace->GetBlendParameter(Asset::EBlendSpaceAxis::X) : nullptr};
 
-        X.mName = Parameter != nullptr ? "X (" + Parameter->mDisplayName + ")" : "X";
-        X.mType = Engine::EAnimNodeValueType::Float;
-        X.mFloat = &mX;
-        X.mMin = Parameter != nullptr ? Parameter->mMin : 0.0f;
-        X.mMax = Parameter != nullptr ? Parameter->mMax : 0.0f;
-        X.mBinding = mXBinding != nullptr ? mXBindingName : Core::FString{};
-        X.mBindingParameter = "X";
+        X.mName = "X";
+        X.mValue = Engine::FAnimNodeFloatValue{&mX, Parameter != nullptr ? Parameter->mMin : 0.0f, Parameter != nullptr ? Parameter->mMax : 0.0f};
         OutValues.push_back(std::move(X));
-
-        // 샘플별 가중치를 "Walk @ 1.50 : 50%"처럼 보여 줍니다.
-        for (const Asset::FBlendSampleWeight& Weight : mSampleWeights) {
-            if (mBlendSpace == nullptr || Weight.mSampleIndex < 0 || static_cast<std::size_t>(Weight.mSampleIndex) >= mBlendSpace->GetSamples().size()) {
-                continue;
-            }
-
-            const Asset::FBlendSample& Sample{mBlendSpace->GetSamples()[static_cast<std::size_t>(Weight.mSampleIndex)]};
-            Engine::FAnimNodeValue Entry{};
-
-            Entry.mName = std::format("Sample {}", Weight.mSampleIndex);
-            Entry.mText = std::format("{} @ {:.2f} : {:.0f}%", Sample.mAnimation != nullptr ? Sample.mAnimation->GetName() : "?", Sample.mSampleValue.x, Weight.mWeight * 100.0f);
-            OutValues.push_back(std::move(Entry));
-        }
 
         GetPlayerDebugValues(OutValues);
     }

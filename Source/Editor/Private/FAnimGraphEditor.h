@@ -30,10 +30,27 @@ namespace Editor {
     /**
      * @brief 언리얼 AnimGraph 편집기처럼 노드를 배치하고 포즈 핀을 연결해 그래프 에셋을 만듭니다.
      * @details 캔버스 빈 곳을 우클릭하면 노드를 추가하고, 출력 핀(Pose)을 다른 노드의 입력 핀으로 끌어 연결하며, 선택 후 Delete로 지웁니다.
-     * 입력 핀 하나에는 링크가 하나만 연결되고, 순환 연결은 거부합니다. 오른쪽에서 선택한 노드의 파라미터를 편집하고, 실수 파라미터는 그래프 변수에 묶을 수 있습니다.
+     * 입력 핀 하나에는 링크가 하나만 연결되고, 순환 연결은 거부합니다.
      * 편집은 사본에 하고, 파일 저장에 성공하면 캐시된 원본에 적용합니다.
      */
     class FAnimGraphEditor {
+    private:
+        enum class EGraphView {
+            Pose,
+            Machine,
+            Rule
+        };
+
+        struct FGraphView {
+            Asset::UAnimGraph* mGraph{};
+            EGraphView mMode{};
+            Core::Int32 mMachine{-1};
+            Core::Int32 mTransition{-1};
+            Core::Int32 mSelection{-2};
+            Core::FString mLabel{"AnimGraph"};
+            Core::FString mKey{"Root"};
+        };
+
     public:
         /**
          * @brief 에셋 관리자와 선택기 서비스를 연결하고 노드 에디터 컨텍스트를 만듭니다.
@@ -73,6 +90,11 @@ namespace Editor {
         void CloseRetired(const std::filesystem::path& Path);
 
         bool IsFocused() const;
+        bool OpenStateMachine(Core::Int32 NodeId);
+        bool OpenState(Core::Int32 StateId);
+        bool OpenTransitionRule(Core::Int32 TransitionId);
+        bool NavigateBack();
+        bool NavigateTo(std::size_t Depth);
 
     private:
         void Close();
@@ -101,6 +123,15 @@ namespace Editor {
          * @brief 선택한 노드의 이름과 파라미터를 그립니다.
          */
         void DrawSelection();
+        void DrawNavigation();
+        void DrawStateMachine();
+        void DrawTransitionRule();
+        void DrawMachineSelection();
+        void DrawRuleSelection();
+        Core::FString GetViewLabel(const FGraphView& View, const FGraphView* Parent) const;
+        void Navigate(Asset::UAnimGraph* Graph, EGraphView Mode, Core::Int32 Machine, Core::Int32 Transition, const Core::FString& Label);
+        void ActivateView(const FGraphView& View);
+        void ClearGraphContexts();
 
     private:
         /**
@@ -131,7 +162,11 @@ namespace Editor {
         /**
          * @brief 편집 사본입니다.
          */
-        std::unique_ptr<Asset::UAnimGraph> mEditing{};
+        std::unique_ptr<Asset::UAnimGraph> mRootEditing{};
+        Asset::UAnimGraph* mEditing{};
+        FGraphView mView{};
+        Core::TArray<FGraphView> mNavigation{};
+        Core::TMap<Core::FString, ax::NodeEditor::EditorContext*> mGraphContexts{};
 
         std::uintptr_t mContextNode{};
 

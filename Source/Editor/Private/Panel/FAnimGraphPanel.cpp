@@ -1,7 +1,11 @@
 #include "Editor/Panel/FAnimGraphPanel.h"
 #include "Editor/FEditorContext.h"
 #include "Engine/AActor.h"
+#include "Asset/Animation/UBlendSpace.h"
+#include "Asset/Animation/UAnimSequence.h"
 #include "Engine/Animation/FAnimNode_Base.h"
+#include "Engine/Animation/FAnimNode_BlendSpacePlayer.h"
+#include "Engine/Animation/FAnimValueNode.h"
 #include "Engine/Animation/UAnimGraphInstance.h"
 #include "Engine/Animation/UAnimInstance.h"
 #include "Engine/Component/USkeletalMeshComponent.h"
@@ -44,16 +48,26 @@ namespace Editor {
             Core::Uint64 mTarget{};
             Core::Uint64 mGetterKey{};
             const Asset::FAnimGraphVariableGetter* mGetter{};
-            std::size_t mVariable{};
+            const Engine::FAnimValueNode_Base* mValueNode{};
             Core::FString mParameter{};
             float mValue{};
+        };
+
+        struct FAnimNodeValueDisplay {
+        public:
+            Core::FString mName{};
+            Core::FString mFloatLabel{};
+            const Engine::FAnimValueNode_Base* mValueNode{};
+            const Asset::FAnimGraphVariableGetter* mGetter{};
         };
 
         // 플레이할 때마다 노드 객체가 새로 만들어져도 같은 노드에 같은 값이 나오는 식별자입니다. 아래 8비트는 핀 번호로 씁니다.
         // 그래프 에셋 노드는 에셋 안의 식별자로, C++ 인스턴스의 멤버 노드는 인스턴스 안의 오프셋과 클래스 이름으로 만듭니다.
         Core::Uint64 NodeKey(const Engine::UAnimInstance& Instance, const Engine::FAnimNode_Base* Node) {
-            if (Node->mGraphNodeId >= 0) {
-                return ((static_cast<Core::Uint64>(Node->mGraphNodeId) + 1) << 8) | (Core::Uint64{1} << 56);
+            if (const auto* Graph{CoreUObject::Cast<Engine::UAnimGraphInstance>(&Instance)}) {
+                if (const Core::Uint64 Key{Graph->GetNodeKey(Node)}; Key != 0) {
+                    return (Key << 8) | (Core::Uint64{1} << 56);
+                }
             }
 
             const auto Base{reinterpret_cast<std::uintptr_t>(&Instance)};
@@ -251,6 +265,7 @@ namespace Editor {
         }
 
         // 그래프 에셋 변수처럼 리플렉션 프로퍼티가 아닌 실행 중 변수입니다.
+        const auto* Graph{CoreUObject::Cast<Engine::UAnimGraphInstance>(&Instance)};
         Core::TArray<Engine::FAnimNodeValue> RuntimeVariables{};
 
         Instance.GetDebugVariables(RuntimeVariables);
@@ -259,23 +274,31 @@ namespace Editor {
             ImGui::SeparatorText("Graph Variables");
         }
 
-        for (Engine::FAnimNodeValue& Variable : RuntimeVariables) {
+        for (const Engine::FAnimNodeValue& Variable : RuntimeVariables) {
             HasVariables = true;
 
             ImGui::PushID(Variable.mName.c_str());
 
-            if (Variable.mType == Engine::EAnimNodeValueType::Float && Variable.mFloat != nullptr) {
-                if (Playing && Variable.mBinding.empty()) {
-                    ImGui::SetNextItemWidth(-1.0f);
-                    ImGui::DragFloat("##Value", Variable.mFloat, 0.01f, 0.0f, 0.0f, (Variable.mName + ": %.3f").c_str());
-                } else {
-                    ImGui::Text("%s: %.3f", Variable.mName.c_str(), *Variable.mFloat);
+            if (const Engine::FAnimNodeFloatValue* Float{std::get_if<Engine::FAnimNodeFloatValue>(&Variable.mValue)}; Float != nullptr && Float->mValue != nullptr) {
+                const bool OwnerSpeed{Graph != nullptr && Graph->GetVariableSource(Variable.mName) == Asset::EAnimGraphVariableSource::OwnerSpeed};
 
-                    if (!Variable.mBinding.empty()) {
+                if (Playing && !OwnerSpeed) {
+                    ImGui::SetNextItemWidth(-1.0f);
+                    ImGui::DragFloat("##Value", Float->mValue, 0.01f, 0.0f, 0.0f, (Variable.mName + ": %.3f").c_str());
+                } else {
+                    ImGui::Text("%s: %.3f", Variable.mName.c_str(), *Float->mValue);
+
+                    if (OwnerSpeed) {
                         ImGui::SameLine();
-                        ImGui::TextDisabled("<- %s", Variable.mBinding.c_str());
+                        ImGui::TextDisabled("<- Owner Speed");
                     }
                 }
+            }
+
+            if (bool* const* Bool{std::get_if<bool*>(&Variable.mValue)}; Bool != nullptr && *Bool != nullptr) {
+                ImGui::BeginDisabled(!Playing);
+                ImGui::Checkbox(Variable.mName.c_str(), *Bool);
+                ImGui::EndDisabled();
             }
 
             ImGui::PopID();
@@ -290,7 +313,6 @@ namespace Editor {
 
             ImGui::SeparatorText("Owner");
             ImGui::Text("Velocity: %.2f, %.2f, %.2f", Velocity.x, Velocity.y, Velocity.z);
-            ImGui::Text("Update: %llu", static_cast<unsigned long long>(Instance.GetUpdateCounter()));
         } else {
             ImGui::Spacing();
             ImGui::TextWrapped("설정은 Details 패널의 Anim Instance 항목에서 편집합니다.");
@@ -366,14 +388,68 @@ namespace Editor {
         Engine::FAnimNode_Base* Root{Instance.GetRootNode()};
         const auto* Graph{CoreUObject::Cast<Engine::UAnimGraphInstance>(&Instance)};
         const Core::Uint64 GraphKey{Graph != nullptr ? (static_cast<Core::Uint64>(std::hash<Core::FString>{}(Graph->GetAnimGraph())) & 0xFFFFF) << 39 : 0};
-        Core::TArray<Engine::FAnimNodeValue> Variables{};
         Core::TArray<FFloatLink> FloatLinks{};
+        Core::TMap<const Engine::FAnimValueNode_Base*, Core::Uint64> ValueNodeKeys{};
 
-        Instance.GetDebugVariables(Variables);
+        Core::TMap<const Engine::FAnimNode_Base*, float> NodeWeights{};
+        Core::TMap<const Engine::FPoseLink*, float> LinkWeights{};
+        Core::TMap<const Engine::FAnimNode_Base*, Core::TArray<Asset::FBlendSampleWeight>> SampleWeights{};
 
-        const Core::Uint64 Counter{Instance.GetUpdateCounter()};
-        const auto WeightOf{[Playing, Counter](const Engine::FAnimNode_Base* Node) {
-            return Playing && Node != nullptr ? std::clamp(Node->GetDebugWeight(Counter), 0.0f, 1.0f) : 0.0f;
+        if (Playing) {
+            const auto& Visits{Instance.GetDebugVisits()};
+            Core::TArray<float> Weights{};
+            Core::TArray<float> SampleTotals{};
+
+            Weights.resize(Visits.size());
+            SampleTotals.resize(Visits.size());
+
+            for (const Engine::FAnimNodeVisit& Visit : Visits) {
+                if (Visit.mSampleIndex >= 0) {
+                    SampleTotals[static_cast<std::size_t>(Visit.mParentIndex)] += Visit.mWeight;
+                }
+            }
+
+            for (std::size_t Index{}; Index < Visits.size(); ++Index) {
+                const Engine::FAnimNodeVisit& Visit{Visits[Index]};
+                float Weight{Visit.mWeight};
+
+                if (Visit.mParentIndex >= 0) {
+                    const std::size_t Parent{static_cast<std::size_t>(Visit.mParentIndex)};
+                    Weight *= Weights[Parent];
+
+                    if (Visit.mSampleIndex >= 0) {
+                        Weight /= SampleTotals[Parent];
+                    }
+                }
+
+                Weights[Index] = Weight;
+
+                if (Visit.mSampleIndex >= 0) {
+                    auto& Samples{SampleWeights[Visit.mNode]};
+                    const auto Existing{std::find_if(Samples.begin(), Samples.end(), [&Visit](const Asset::FBlendSampleWeight& Sample) {
+                        return Sample.mSampleIndex == Visit.mSampleIndex;
+                    })};
+
+                    if (Existing != Samples.end()) {
+                        Existing->mWeight += Weight;
+                    } else {
+                        Samples.push_back({Visit.mSampleIndex, Weight});
+                    }
+
+                    continue;
+                }
+
+                NodeWeights[Visit.mNode] += Weight;
+
+                if (Visit.mLink != nullptr) {
+                    LinkWeights[Visit.mLink] += Weight;
+                }
+            }
+        }
+
+        const auto WeightOf{[](const auto& Weights, const auto* Item) {
+            const auto Weight{Weights.find(Item)};
+            return Weight != Weights.end() ? std::clamp(Weight->second, 0.0f, 1.0f) : 0.0f;
         }};
         const auto LinkColor{[](float Weight) {
             return Weight > 0.0f ? Mix(InactiveColor, ActiveColor, 0.35f + 0.65f * Weight) : InactiveColor;
@@ -396,7 +472,7 @@ namespace Editor {
         const ImVec4 FloatColor{Editor::FAnimGraphNodeBuilder::FloatColor()};
 
         // Output Pose 노드입니다. 루트 노드의 포즈가 최종 포즈가 됩니다.
-        ed::PushStyleColor(ed::StyleColor_NodeBorder, Root != nullptr && WeightOf(Root) > 0.0f ? ActiveColor : InactiveColor);
+        ed::PushStyleColor(ed::StyleColor_NodeBorder, Root != nullptr && WeightOf(NodeWeights, Root) > 0.0f ? ActiveColor : InactiveColor);
         OutputBuilder.FitHeader("Output Pose", "Output Pose");
         OutputBuilder.FitPins("Result");
         OutputBuilder.Begin(ed::NodeId{static_cast<std::uintptr_t>(OutputKey)}, 160.0f);
@@ -407,25 +483,46 @@ namespace Editor {
 
         for (Engine::FAnimNode_Base* Node : Nodes) {
             const Core::Uint64 Key{NodeKey(Instance, Node)};
-            const float Weight{WeightOf(Node)};
-            const char* Type{Node->GetNodeType()};
+            const float Weight{WeightOf(NodeWeights, Node)};
+            const auto* BlendSpacePlayer{dynamic_cast<const Engine::FAnimNode_BlendSpacePlayer*>(Node)};
+            const char* Type{Node->GetNodeType().c_str()};
             const char* Title{Node->mName.empty() ? Type : Node->mName.c_str()};
             const Core::FString WeightText{Playing ? std::format("{:.0f}%", Weight * 100.0f) : Core::FString{}};
             Core::TArray<Engine::FAnimNodePoseInput> Inputs{};
+            Core::TArray<Engine::FAnimNodeValueInput> ValueInputs{};
             Core::TArray<Engine::FAnimNodeValue> Values{};
             Core::TArray<Core::FString> InputLabels{};
+            Core::TArray<FAnimNodeValueDisplay> Displays{};
             Editor::FAnimGraphNodeBuilder Builder{};
 
             Node->GetPoseInputs(Inputs);
+            Node->GetValueInputs(ValueInputs);
             Node->GetDebugValues(Values);
-            Core::TArray<Core::Int32> VariableIndices{};
 
-            VariableIndices.resize(Values.size(), -1);
+            const auto RecordedSamples{SampleWeights.find(Node)};
+
+            if (BlendSpacePlayer != nullptr && BlendSpacePlayer->mBlendSpace != nullptr && RecordedSamples != SampleWeights.end()) {
+                const auto& Samples{BlendSpacePlayer->mBlendSpace->GetSamples()};
+
+                for (const Asset::FBlendSampleWeight& SampleWeight : RecordedSamples->second) {
+                    if (SampleWeight.mSampleIndex < 0 || static_cast<std::size_t>(SampleWeight.mSampleIndex) >= Samples.size()) {
+                        continue;
+                    }
+
+                    const Asset::FBlendSample& Sample{Samples[static_cast<std::size_t>(SampleWeight.mSampleIndex)]};
+                    Engine::FAnimNodeValue Entry{};
+                    Entry.mName = std::format("Sample {}", SampleWeight.mSampleIndex);
+                    Entry.mValue = std::format("{} @ {:.2f} : {:.0f}%", Sample.mAnimation != nullptr ? Sample.mAnimation->GetName() : "?", Sample.mSampleValue.x, SampleWeight.mWeight * 100.0f);
+                    Values.push_back(std::move(Entry));
+                }
+            }
+
+            Displays.resize(Values.size());
             InputLabels.reserve(Inputs.size());
             Builder.FitHeader(Title, Type);
 
             for (const Engine::FAnimNodePoseInput& Input : Inputs) {
-                InputLabels.push_back(Playing ? std::format("{}  {:.0f}%", Input.mName, Input.mWeight * 100.0f) : Input.mName);
+                InputLabels.push_back(Playing ? std::format("{}  {:.0f}%", Input.mName, WeightOf(LinkWeights, Input.mLink) * 100.0f) : Input.mName);
                 Builder.FitPins(InputLabels.back().c_str(), InputLabels.size() == 1 ? "Pose" : nullptr);
             }
 
@@ -438,39 +535,50 @@ namespace Editor {
             }
 
             for (std::size_t Index{}; Index < Values.size(); ++Index) {
-                Engine::FAnimNodeValue& Value{Values[Index]};
+                const Engine::FAnimNodeValue& Value{Values[Index]};
+                FAnimNodeValueDisplay& Display{Displays[Index]};
 
-                if (Value.mType == Engine::EAnimNodeValueType::Float && Value.mFloat != nullptr) {
-                    Value.mText = std::format("{:.3f}", *Value.mFloat);
+                Display.mName = Value.mName;
 
-                    if (!Value.mBinding.empty()) {
-                        const auto Variable{std::find_if(Variables.begin(), Variables.end(), [&Value](const Engine::FAnimNodeValue& Candidate) {
-                            return Candidate.mName == Value.mBinding && Candidate.mFloat != nullptr;
-                        })};
+                if (const Engine::FAnimNodeFloatValue* Float{std::get_if<Engine::FAnimNodeFloatValue>(&Value.mValue)}; Float != nullptr && Float->mValue != nullptr) {
+                    const bool BlendSpaceX{BlendSpacePlayer != nullptr && Float->mValue == &BlendSpacePlayer->mX};
 
-                        if (Variable != Variables.end()) {
-                            VariableIndices[Index] = static_cast<Core::Int32>(Variable - Variables.begin());
-                            Value.mText = Playing ? Value.mName + "  " + Value.mText : Value.mName;
-                            Builder.FitPins(Value.mText.c_str());
+                    if (BlendSpaceX && BlendSpacePlayer->mBlendSpace != nullptr) {
+                        const auto& Axis{BlendSpacePlayer->mBlendSpace->GetBlendParameter(Asset::EBlendSpaceAxis::X)};
+                        Display.mName = std::format("{} ({})", Value.mName, Axis.mDisplayName);
+                    }
 
-                            continue;
-                        }
+                    Display.mFloatLabel = std::format("{:.3f}", *Float->mValue);
+                    const auto Input{std::find_if(ValueInputs.begin(), ValueInputs.end(), [&Value](const Engine::FAnimNodeValueInput& Candidate) {
+                        return Candidate.mName == Value.mName;
+                    })};
 
-                        Value.mText += " <- " + Value.mBinding;
-                    } else if (Playing) {
-                        const Core::FString WidgetText{Value.mName + ": " + Value.mText};
+                    if (Input != ValueInputs.end()) {
+                        Display.mValueNode = Input->mLink->GetLinkedNode();
+                    }
+
+                    if (Display.mValueNode != nullptr) {
+                        Display.mGetter = Graph != nullptr ? Graph->GetSourceGetter(Display.mValueNode) : nullptr;
+                        Display.mFloatLabel = Playing ? Display.mName + "  " + Display.mFloatLabel : Display.mName;
+                        Builder.FitPins(Display.mFloatLabel.c_str());
+                        continue;
+                    }
+
+                    if (Playing) {
+                        const Core::FString WidgetText{Display.mName + ": " + Display.mFloatLabel};
 
                         Builder.FitText(WidgetText.c_str(), 2.0f * Style.FramePadding.x);
 
                         continue;
                     }
-                } else if (Value.mType == Engine::EAnimNodeValueType::Bool && Value.mBool != nullptr) {
+                } else if (bool* const* Bool{std::get_if<bool*>(&Value.mValue)}; Bool != nullptr && *Bool != nullptr) {
                     Builder.FitText(Value.mName.c_str(), ImGui::GetFrameHeight() + Style.ItemInnerSpacing.x);
 
                     continue;
                 }
 
-                Builder.FitProperty(Value.mName.c_str(), Value.mText.c_str());
+                const Core::FString* Text{std::get_if<Core::FString>(&Value.mValue)};
+                Builder.FitProperty(Display.mName.c_str(), Text != nullptr ? Text->c_str() : Display.mFloatLabel.c_str());
             }
 
             ed::PushStyleColor(ed::StyleColor_NodeBorder, Mix(ed::GetStyle().Colors[ed::StyleColor_NodeBorder], ActiveColor, 0.55f * Weight));
@@ -492,15 +600,17 @@ namespace Editor {
             }
 
             for (std::size_t Index{}; Index < Values.size(); ++Index) {
-                if (VariableIndices[Index] >= 0) {
+                const FAnimNodeValueDisplay& Display{Displays[Index]};
+
+                if (Display.mValueNode != nullptr) {
                     const Engine::FAnimNodeValue& Value{Values[Index]};
                     const Core::Uint64 Pin{FloatInputBit | InputPinKey(Key, Index)};
-                    const std::size_t Variable{static_cast<std::size_t>(VariableIndices[Index])};
-                    const Asset::FAnimGraphVariableGetter* Getter{Graph != nullptr && Value.mBindingParameter != nullptr ? Graph->GetVariableGetter(Node->mGraphNodeId, Value.mBindingParameter) : nullptr};
-                    const Core::Uint64 GetterKey{GetterBit | GraphKey | (Getter != nullptr ? SavedGetterBit | ((static_cast<Core::Uint64>(Getter->mId) + 1) << 8) : ((static_cast<Core::Uint64>(Variable) + 1) << 8))};
+                    const Asset::FAnimGraphVariableGetter* Getter{Display.mGetter};
+                    const Core::Uint64 ValueKey{ValueNodeKeys.try_emplace(Display.mValueNode, ValueNodeKeys.size() + 1).first->second};
+                    const Core::Uint64 GetterKey{GetterBit | GraphKey | (Graph != nullptr ? SavedGetterBit | (Graph->GetValueNodeKey(Display.mValueNode) << 8) : ValueKey << 8)};
 
-                    Builder.InputPin(ed::PinId{static_cast<std::uintptr_t>(Pin)}, Value.mText.c_str(), true, FloatColor);
-                    FloatLinks.push_back({Pin, Key, GetterKey, Getter, Variable, Value.mName, *Value.mFloat});
+                    Builder.InputPin(ed::PinId{static_cast<std::uintptr_t>(Pin)}, Display.mFloatLabel.c_str(), true, FloatColor);
+                    FloatLinks.push_back({Pin, Key, GetterKey, Getter, Display.mValueNode, Display.mName, *std::get<Engine::FAnimNodeFloatValue>(Value.mValue).mValue});
                 }
             }
 
@@ -517,31 +627,34 @@ namespace Editor {
             }
 
             for (std::size_t Index{}; Index < Values.size(); ++Index) {
-                if (VariableIndices[Index] >= 0) {
+                const FAnimNodeValueDisplay& Display{Displays[Index]};
+
+                if (Display.mValueNode != nullptr) {
                     continue;
                 }
 
-                Engine::FAnimNodeValue& Value{Values[Index]};
+                const Engine::FAnimNodeValue& Value{Values[Index]};
                 ImGui::PushID(Value.mName.c_str());
 
-                if (Value.mType == Engine::EAnimNodeValueType::Float && Value.mFloat != nullptr) {
-                    if (!Value.mBinding.empty() || !Playing) {
-                        Builder.DrawProperty(Value.mName.c_str(), Value.mText.c_str(), !Value.mBinding.empty());
+                if (const Engine::FAnimNodeFloatValue* Float{std::get_if<Engine::FAnimNodeFloatValue>(&Value.mValue)}; Float != nullptr && Float->mValue != nullptr) {
+                    if (!Playing) {
+                        Builder.DrawProperty(Display.mName.c_str(), Display.mFloatLabel.c_str());
                     } else {
                         ImGui::SetNextItemWidth(Builder.GetWidth());
 
-                        if (Value.mMin < Value.mMax) {
-                            ImGui::SliderFloat("##Value", Value.mFloat, Value.mMin, Value.mMax, (Value.mName + ": %.3f").c_str());
+                        if (Float->mMin < Float->mMax) {
+                            ImGui::SliderFloat("##Value", Float->mValue, Float->mMin, Float->mMax, (Display.mName + ": %.3f").c_str());
                         } else {
-                            ImGui::DragFloat("##Value", Value.mFloat, 0.01f, 0.0f, 0.0f, (Value.mName + ": %.3f").c_str());
+                            ImGui::DragFloat("##Value", Float->mValue, 0.01f, 0.0f, 0.0f, (Display.mName + ": %.3f").c_str());
                         }
                     }
-                } else if (Value.mType == Engine::EAnimNodeValueType::Bool && Value.mBool != nullptr) {
-                    ImGui::BeginDisabled(!Playing || !Value.mBinding.empty());
-                    ImGui::Checkbox(Value.mName.c_str(), Value.mBool);
+                } else if (bool* const* Bool{std::get_if<bool*>(&Value.mValue)}; Bool != nullptr && *Bool != nullptr) {
+                    ImGui::BeginDisabled(!Playing);
+                    ImGui::Checkbox(Value.mName.c_str(), *Bool);
                     ImGui::EndDisabled();
                 } else {
-                    Builder.DrawProperty(Value.mName.c_str(), Value.mText.c_str());
+                    const Core::FString* Text{std::get_if<Core::FString>(&Value.mValue)};
+                    Builder.DrawProperty(Value.mName.c_str(), Text != nullptr ? Text->c_str() : "");
                 }
 
                 ImGui::PopID();
@@ -555,7 +668,6 @@ namespace Editor {
         std::unordered_set<Core::Uint64> DrawnGetters{};
 
         for (const FFloatLink& Link : FloatLinks) {
-            const Engine::FAnimNodeValue& Variable{Variables[Link.mVariable]};
             const Core::Uint64 Key{Link.mGetterKey};
 
             if (!DrawnGetters.insert(Key).second) {
@@ -570,8 +682,8 @@ namespace Editor {
                 Placed = true;
             }
 
-            const Core::FString Value{std::format("{:.3f}", *Variable.mFloat)};
-            Editor::FAnimGraphNodeBuilder::DrawFloatGetter(ed::NodeId{static_cast<std::uintptr_t>(Key)}, ed::PinId{static_cast<std::uintptr_t>(OutputPinKey(Key))}, Variable.mName.c_str(), Value.c_str(), true);
+            const Core::FString Value{std::format("{:.3f}", Link.mValue)};
+            Editor::FAnimGraphNodeBuilder::DrawFloatGetter(ed::NodeId{static_cast<std::uintptr_t>(Key)}, ed::PinId{static_cast<std::uintptr_t>(OutputPinKey(Key))}, Link.mValueNode->GetDisplayName().c_str(), Value.c_str(), true);
         }
 
         for (const FFloatLink& Link : FloatLinks) {
@@ -589,7 +701,7 @@ namespace Editor {
 
             if (Link != FloatLinks.end()) {
                 ed::Suspend();
-                ImGui::SetTooltip("%s -> %s  %.3f", Variables[Link->mVariable].mName.c_str(), Link->mParameter.c_str(), Link->mValue);
+                ImGui::SetTooltip("%s -> %s  %.3f", Link->mValueNode->GetDisplayName().c_str(), Link->mParameter.c_str(), Link->mValue);
                 ed::Resume();
             }
         }
@@ -609,7 +721,7 @@ namespace Editor {
         }};
 
         if (Root != nullptr) {
-            DrawLink(OutputKey, OutputPinKey(NodeKey(Instance, Root)), OutputKey, WeightOf(Root));
+            DrawLink(OutputKey, OutputPinKey(NodeKey(Instance, Root)), OutputKey, WeightOf(NodeWeights, Root));
         }
 
         for (Engine::FAnimNode_Base* Node : Nodes) {
@@ -620,7 +732,7 @@ namespace Editor {
 
             for (std::size_t Pin{}; Pin < Inputs.size(); ++Pin) {
                 if (Engine::FAnimNode_Base* Linked{Inputs[Pin].mLink->mLinkedNode}) {
-                    const float Weight{Playing ? std::clamp(Inputs[Pin].mLink->GetDebugWeight(Counter), 0.0f, 1.0f) : 0.0f};
+                    const float Weight{WeightOf(LinkWeights, Inputs[Pin].mLink)};
 
                     DrawLink(InputPinKey(Key, Pin), OutputPinKey(NodeKey(Instance, Linked)), InputPinKey(Key, Pin), Weight);
                 }

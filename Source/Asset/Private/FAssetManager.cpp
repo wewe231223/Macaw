@@ -782,7 +782,8 @@ namespace Asset {
     }
 
     Asset::UAnimSequence* Asset::FAssetManager::LoadAnimSequence(const std::filesystem::path& Path, Core::FString& Error) {
-        const Core::FString Key{CacheKey(GetRelativePath(Path, Error))};
+        Core::FString RelativePath{GetRelativePath(Path, Error)};
+        const Core::FString Key{CacheKey(RelativePath)};
 
         if (Key.empty()) {
             return nullptr;
@@ -822,6 +823,7 @@ namespace Asset {
         Asset::UAnimSequence* Result{Sequence.get()};
 
         Sequence->SetName(Core::FilePath::ToUtf8(Path.stem()));
+        Sequence->mAssetPath = std::move(RelativePath);
         mAnimSequences.emplace(Key, std::move(Sequence));
 
         return Result;
@@ -1630,17 +1632,15 @@ namespace Asset {
         }
 
         std::unique_ptr<Asset::UBlendSpace> BlendSpace{CoreUObject::NewObject<Asset::UBlendSpace1D>()};
+        BlendSpace->SetName(Core::FilePath::ToUtf8(Path.stem()));
 
-        BlendSpace->Serialize(Archive);
+        BlendSpace->Serialize(Archive, *this);
 
         if (Archive.HasError()) {
             Error = Archive.GetError();
 
             return nullptr;
         }
-
-        BlendSpace->SetName(Core::FilePath::ToUtf8(Path.stem()));
-        ResolveBlendSpace(*BlendSpace);
 
         Asset::UBlendSpace* Result{BlendSpace.get()};
 
@@ -1703,7 +1703,7 @@ namespace Asset {
         Core::FString ClassName{"BlendSpace1D"};
 
         Archive.Serialize("Class", ClassName);
-        BlendSpace.Serialize(Archive);
+        BlendSpace.Serialize(Archive, *this);
 
         if (Archive.HasError()) {
             Error = Archive.GetError();
@@ -1722,30 +1722,6 @@ namespace Asset {
         }
 
         return true;
-    }
-
-    bool Asset::FAssetManager::ResolveBlendSpace(Asset::UBlendSpace& BlendSpace) {
-        bool Resolved{true};
-
-        for (std::size_t Index{}; Index < BlendSpace.GetSamples().size(); ++Index) {
-            const Core::FString AnimationPath{BlendSpace.GetSamples()[Index].mAnimationPath};
-            const Asset::UAnimSequence* Animation{};
-
-            if (!AnimationPath.empty()) {
-                Core::FString Error{};
-
-                Animation = LoadAnimSequence(Core::FilePath::FromUtf8(AnimationPath), Error);
-
-                if (Animation == nullptr) {
-                    Core::ErrorHandler::Report("BlendSpace", "Cannot load sample animation '" + AnimationPath + "' of blend space '" + BlendSpace.GetName() + "': " + Error, Core::ErrorHandler::EErrorLevel::Warning);
-                    Resolved = false;
-                }
-            }
-
-            BlendSpace.SetSampleAnimation(static_cast<Core::Int32>(Index), AnimationPath, Animation);
-        }
-
-        return Resolved;
     }
 
     Asset::UAnimGraph* Asset::FAssetManager::LoadAnimGraph(const std::filesystem::path& Path, Core::FString& Error) {

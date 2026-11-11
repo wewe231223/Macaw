@@ -3,6 +3,7 @@
 #include "Engine/Animation/FAnimNode_BlendSpacePlayer.h"
 #include "Engine/Animation/FAnimNode_SequencePlayer.h"
 #include "Engine/Animation/FAnimNode_TwoWayBlend.h"
+#include "Engine/Animation/FAnimNode_StateMachine.h"
 
 #include <algorithm>
 #include <charconv>
@@ -43,8 +44,6 @@ namespace Engine {
                 auto Node{std::make_unique<Engine::FAnimNode_TwoWayBlend>()};
 
                 Node->mAlpha = Context.GetFloat("Alpha");
-                Node->mAlphaBinding = Context.GetBinding("Alpha");
-                Node->mAlphaBindingName = Context.GetBindingName("Alpha");
 
                 return std::unique_ptr<Engine::FAnimNode_Base>{std::move(Node)};
             }});
@@ -54,12 +53,14 @@ namespace Engine {
 
                 Node->mBlendSpace = Context.mLoadBlendSpace ? Context.mLoadBlendSpace(Context.GetString("BlendSpace")) : nullptr;
                 Node->mX = Context.GetFloat("X");
-                Node->mXBinding = Context.GetBinding("X");
-                Node->mXBindingName = Context.GetBindingName("X");
                 Node->mPlayRate = Context.GetFloat("PlayRate");
                 Node->mLoop = Context.GetBool("Loop");
 
                 return std::unique_ptr<Engine::FAnimNode_Base>{std::move(Node)};
+            }});
+
+            Types.push_back({"StateMachine", "State Machine", {}, {}, [](const Engine::FAnimGraphNodeBuildContext&) {
+                return std::make_unique<Engine::FAnimNode_StateMachine>();
             }});
 
             return Types;
@@ -99,18 +100,6 @@ namespace Engine {
         const Core::FString* Default{FindDefault(mParameters, Name)};
 
         return Default != nullptr ? *Default : Core::FString{};
-    }
-
-    Core::FString FAnimGraphNodeBuildContext::GetBindingName(const Core::FString& Name) const {
-        const Core::FString* Value{mNode != nullptr ? mNode->FindParameter(Name + ".Binding") : nullptr};
-
-        return Value != nullptr ? *Value : Core::FString{};
-    }
-
-    const float* FAnimGraphNodeBuildContext::GetBinding(const Core::FString& Name) const {
-        const Core::FString Variable{GetBindingName(Name)};
-
-        return !Variable.empty() && mFindVariable ? mFindVariable(Variable) : nullptr;
     }
 
     const Core::TArray<Engine::FAnimGraphNodeType>& FAnimGraphNodeRegistry::GetNodeTypes() {

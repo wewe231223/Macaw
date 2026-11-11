@@ -58,23 +58,19 @@ namespace Engine {
         Engine::FAnimNodeValue Time{};
 
         Time.mName = "Time";
-        Time.mText = std::format("{:.2f} / {:.2f} s{}", mInternalTime, Length, mFinished ? " (끝)" : "");
+        Time.mValue = std::format("{:.2f} / {:.2f} s{}", mInternalTime, Length, mFinished ? " (끝)" : "");
         OutValues.push_back(std::move(Time));
 
         Engine::FAnimNodeValue PlayRate{};
 
         PlayRate.mName = "Play Rate";
-        PlayRate.mType = Engine::EAnimNodeValueType::Float;
-        PlayRate.mFloat = &mPlayRate;
-        PlayRate.mMin = -3.0f;
-        PlayRate.mMax = 3.0f;
+        PlayRate.mValue = Engine::FAnimNodeFloatValue{&mPlayRate, -3.0f, 3.0f};
         OutValues.push_back(std::move(PlayRate));
 
         Engine::FAnimNodeValue Loop{};
 
         Loop.mName = "Loop";
-        Loop.mType = Engine::EAnimNodeValueType::Bool;
-        Loop.mBool = &mLoop;
+        Loop.mValue = &mLoop;
         OutValues.push_back(std::move(Loop));
     }
 

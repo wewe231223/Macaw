@@ -133,10 +133,11 @@ namespace Editor {
 
         Config.SettingsFile = nullptr;
         mEditor = ed::CreateEditor(&Config);
+        mGraphContexts.emplace("Initial", mEditor);
     }
 
     FAnimGraphEditor::~FAnimGraphEditor() {
-        ed::DestroyEditor(mEditor);
+        ClearGraphContexts();
     }
 
     bool FAnimGraphEditor::Open(const std::filesystem::path& Path, Core::FString& Error) {
@@ -146,7 +147,10 @@ namespace Editor {
             return false;
         }
 
-        mEditing = CoreUObject::NewObject<Asset::UAnimGraph>();
+        mNavigation.clear();
+        ClearGraphContexts();
+        mRootEditing = CoreUObject::NewObject<Asset::UAnimGraph>();
+        mEditing = mRootEditing.get();
         mEditing->CopyFrom(*Source);
         mEditing->SetName(Source->GetName());
         mContextNode = 0;
@@ -160,12 +164,9 @@ namespace Editor {
         mError.clear();
 
         // 다른 그래프의 노드가 남지 않도록 노드 에디터 컨텍스트를 새로 만듭니다.
-        ed::DestroyEditor(mEditor);
-
-        ed::Config Config{};
-
-        Config.SettingsFile = nullptr;
-        mEditor = ed::CreateEditor(&Config);
+        mView = {};
+        mView.mGraph = mEditing;
+        ActivateView(mView);
         ImGui::SetWindowFocus(WindowId);
 
         return true;
@@ -193,7 +194,9 @@ namespace Editor {
 
     void FAnimGraphEditor::Close() {
         mOpen = false;
-        mEditing.reset();
+        mEditing = nullptr;
+        mNavigation.clear();
+        mRootEditing.reset();
     }
 
     bool FAnimGraphEditor::Save() {
@@ -201,7 +204,7 @@ namespace Editor {
             return false;
         }
 
-        if (!mAssets->SaveAnimGraph(mPath, *mEditing, mError)) {
+        if (!mAssets->SaveAnimGraph(mPath, *mRootEditing, mError)) {
             return false;
         }
 
@@ -216,7 +219,7 @@ namespace Editor {
             return;
         }
 
-        const Core::FString Title{std::format("Anim Graph - {}{}{}", mEditing->GetName(), mDirty ? " *" : "", WindowId)};
+        const Core::FString Title{std::format("Anim Graph - {}{}{}", mRootEditing->GetName(), mDirty ? " *" : "", WindowId)};
         bool Visible{true};
 
         ImGui::SetNextWindowSize({1180.0f, 680.0f}, ImGuiCond_FirstUseEver);
@@ -236,10 +239,9 @@ namespace Editor {
             ImGui::TextColored({1.0f, 0.45f, 0.4f, 1.0f}, "%s", mError.c_str());
         }
 
-        if (Expanded && ImGui::BeginTable("AnimGraphEditorLayout", 3, ImGuiTableFlags_Resizable | ImGuiTableFlags_BordersInnerV, ImGui::GetContentRegionAvail())) {
+        if (Expanded && ImGui::BeginTable("AnimGraphEditorLayout", 2, ImGuiTableFlags_Resizable | ImGuiTableFlags_BordersInnerV, ImGui::GetContentRegionAvail())) {
             ImGui::TableSetupColumn("Variables", ImGuiTableColumnFlags_WidthFixed, 230.0f);
             ImGui::TableSetupColumn("Graph", ImGuiTableColumnFlags_WidthStretch);
-            ImGui::TableSetupColumn("Details", ImGuiTableColumnFlags_WidthFixed, 280.0f);
             ImGui::TableNextRow();
 
             ImGui::TableSetColumnIndex(0);
@@ -250,14 +252,16 @@ namespace Editor {
 
             ImGui::EndChild();
             ImGui::TableSetColumnIndex(1);
-            DrawGraph();
-            ImGui::TableSetColumnIndex(2);
+            DrawNavigation();
 
-            if (ImGui::BeginChild("Details")) {
-                DrawSelection();
+            if (mView.mMode == EGraphView::Machine) {
+                DrawStateMachine();
+            } else if (mView.mMode == EGraphView::Rule) {
+                DrawTransitionRule();
+            } else {
+                DrawGraph();
             }
 
-            ImGui::EndChild();
             ImGui::EndTable();
         }
 
@@ -276,7 +280,7 @@ namespace Editor {
         ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, TextHeight * 0.3f);
         ImGui::TextUnformatted("Variables");
         ImGui::SameLine();
-        ImGui::TextDisabled("%zu", mEditing->GetVariables().size());
+        ImGui::TextDisabled("%zu", mRootEditing->GetVariables().size());
 
         ImGui::SetNextItemWidth(std::max(1.0f, ImGui::GetContentRegionAvail().x - AddWidth - Style.ItemSpacing.x));
         const bool AddFromName{ImGui::InputTextWithHint("##NewVariable", "새 변수 이름", mNewVariable.data(), mNewVariable.size(), ImGuiInputTextFlags_EnterReturnsTrue)};
@@ -285,7 +289,7 @@ namespace Editor {
         bool Added{};
 
         if (ImGui::Button("+ 추가", {AddWidth, 0.0f}) || AddFromName) {
-            Added = mEditing->AddVariable({mNewVariable.data(), 0.0f, Asset::EAnimGraphVariableSource::Manual});
+            Added = mRootEditing->AddVariable({mNewVariable.data(), 0.0f, Asset::EAnimGraphVariableSource::Manual});
 
             if (Added) {
                 mNewVariable.fill('\0');
@@ -306,7 +310,7 @@ namespace Editor {
             ImGui::PushStyleColor(ImGuiCol_ChildBg, {0.11f, 0.14f, 0.18f, 1.0f});
             ImGui::PushStyleColor(ImGuiCol_Border, {0.29f, 0.35f, 0.43f, 0.55f});
 
-            for (std::size_t Index{}; Index < mEditing->GetVariables().size(); ++Index) {
+            for (std::size_t Index{}; Index < mRootEditing->GetVariables().size(); ++Index) {
                 if (DrawVariable(Index, SaveRequested)) {
                     Remove = static_cast<Core::Int32>(Index);
                 }
@@ -324,7 +328,7 @@ namespace Editor {
         ImGui::PopStyleVar();
 
         if (Remove >= 0) {
-            mEditing->RemoveVariable(Remove);
+            mRootEditing->RemoveVariable(Remove);
             mDirty = true;
         }
     }
@@ -340,7 +344,7 @@ namespace Editor {
             const float FrameHeight{ImGui::GetFrameHeight()};
             const float GetWidth{ImGui::CalcTextSize("Get").x + 2.0f * Style.FramePadding.x};
             const float NameWidth{std::max(1.0f, Width - FrameHeight - GetWidth - 2.0f * Style.ItemSpacing.x)};
-            Asset::FAnimGraphVariable Variable{mEditing->GetVariables()[Index]};
+            Asset::FAnimGraphVariable Variable{mRootEditing->GetVariables()[Index]};
             std::array<char, 64> Name{};
             bool Changed{};
 
@@ -407,10 +411,24 @@ namespace Editor {
             }
 
             ImGui::SetNextItemWidth(-1.0f);
-            Changed |= ImGui::DragFloat("##Default", &Variable.mDefault, 0.01f, 0.0f, 0.0f, "%.3f");
+
+            if (Variable.mType == Asset::EAnimGraphVariableType::Bool) {
+                Changed |= ImGui::Checkbox("##Default", &Variable.mBoolDefault);
+                Variable.mSource = Asset::EAnimGraphVariableSource::Manual;
+            } else {
+                Changed |= ImGui::DragFloat("##Default", &Variable.mDefault, 0.01f, 0.0f, 0.0f, "%.3f");
+            }
+
+            int Type{static_cast<int>(Variable.mType)};
+            const char* Types[]{"Float", "Bool"};
+
+            if (ImGui::Combo("Type", &Type, Types, 2)) {
+                Variable.mType = static_cast<Asset::EAnimGraphVariableType>(Type);
+                Changed = true;
+            }
 
             if (Changed) {
-                if (mEditing->SetVariable(static_cast<Core::Int32>(Index), Variable)) {
+                if (mRootEditing->SetVariable(static_cast<Core::Int32>(Index), Variable)) {
                     mDirty = true;
                     mError.clear();
                 } else {
@@ -736,6 +754,7 @@ namespace Editor {
         // 캔버스 좌표에서 마우스 위치를 기억해 두고, 팝업은 노드 에디터를 잠시 멈춘 화면 좌표에서 그립니다.
         const ImVec2 CanvasMouse{ImGui::GetMousePos()};
         ed::NodeId ContextNode{};
+        Core::Int32 OpenMachineId{-1};
 
         ed::Suspend();
 
@@ -759,6 +778,7 @@ namespace Editor {
         if (ed::ShowNodeContextMenu(&ContextNode)) {
             mContextNode = ContextNode.Get();
             mSelectedNode = DecodeNode(mContextNode);
+            ed::SelectNode(ContextNode);
             ImGui::OpenPopup("AnimGraphNodeMenu");
         } else if (ed::ShowBackgroundContextMenu()) {
             mCreateX = CanvasMouse.x;
@@ -787,10 +807,30 @@ namespace Editor {
             ImGui::EndPopup();
         }
 
+        ImGui::SetNextWindowSizeConstraints({360.0f, 0.0f}, {500.0f, ImGui::GetIO().DisplaySize.y});
+
         if (ImGui::BeginPopup("AnimGraphNodeMenu")) {
             const Core::Int32 Id{DecodeNode(mContextNode)};
             const Core::Int32 Getter{DecodeGetter(mContextNode)};
             const bool CanDelete{mEditing->FindVariableGetter(Getter) != nullptr || mEditing->FindNode(Id) != nullptr};
+            mSelectedNode = Id;
+            ImGui::PushItemWidth(220.0f);
+
+            if (const auto* Variable{mEditing->FindVariableGetter(Getter)}) {
+                ImGui::SeparatorText("Variable Getter");
+                ImGui::Text("Variable: %s", Variable->mVariable.c_str());
+            } else if (Id == Asset::UAnimGraph::OutputNodeId) {
+                ImGui::SeparatorText("Output Pose");
+            } else {
+                DrawSelection();
+            }
+
+            ImGui::PopItemWidth();
+            ImGui::Separator();
+
+            if (const auto* Node{mEditing->FindNode(Id)}; Node != nullptr && Node->mType == "StateMachine" && ImGui::MenuItem("Open State Machine")) {
+                OpenMachineId = Id;
+            }
 
             if (ImGui::MenuItem("삭제", "Delete", false, CanDelete)) {
                 mDirty |= Getter >= 0 ? mEditing->RemoveVariableGetter(Getter) : mEditing->RemoveNode(Id);
@@ -816,7 +856,6 @@ namespace Editor {
 
         ed::Resume();
 
-        // 선택한 노드가 하나이면 오른쪽에서 편집합니다.
         std::array<ed::NodeId, 2> Selected{};
         const int SelectedCount{ed::GetSelectedNodes(Selected.data(), static_cast<int>(Selected.size()))};
 
@@ -856,12 +895,20 @@ namespace Editor {
             mFitRequested = true;
         }
 
+        const std::uintptr_t DoubleClickedKey{ed::GetDoubleClickedNode().Get()};
+        const Core::Int32 DoubleClicked{DecodeNode(DoubleClickedKey)};
+        const auto* OpenNode{mEditing->FindNode(DoubleClicked)};
+        const bool OpenMachine{(DoubleClickedKey & GetterBit) == 0 && OpenNode != nullptr && OpenNode->mType == "StateMachine"};
         ed::End();
         ed::SetCurrentEditor(nullptr);
+
+        if (OpenMachineId >= 0 || OpenMachine) {
+            OpenStateMachine(OpenMachineId >= 0 ? OpenMachineId : DoubleClicked);
+        }
     }
 
     void FAnimGraphEditor::DrawSelection() {
-        ImGui::SeparatorText("Details");
+        ImGui::SeparatorText("Node Properties");
 
         Asset::FAnimGraphNode* Node{mEditing->FindNode(mSelectedNode)};
 
@@ -889,7 +936,9 @@ namespace Editor {
             return;
         }
 
-        ImGui::SeparatorText("Parameters");
+        if (!Type->mParameters.empty()) {
+            ImGui::SeparatorText("Parameters");
+        }
 
         for (const Engine::FAnimGraphParameterInfo& Info : Type->mParameters) {
             const Core::FString* Stored{Node->FindParameter(Info.mName)};
@@ -917,7 +966,7 @@ namespace Editor {
                             }
 
                             for (const Asset::FAnimGraphVariable& Variable : mEditing->GetVariables()) {
-                                if (ImGui::Selectable(Variable.mName.c_str(), SelectedBinding == Variable.mName) && SelectedBinding != Variable.mName) {
+                                if (Variable.mType == Asset::EAnimGraphVariableType::Float && ImGui::Selectable(Variable.mName.c_str(), SelectedBinding == Variable.mName) && SelectedBinding != Variable.mName) {
                                     Node->SetParameter(BindingKey, Variable.mName);
                                     mDirty = true;
                                 }

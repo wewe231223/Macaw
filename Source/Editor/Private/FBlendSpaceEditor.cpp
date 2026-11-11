@@ -59,7 +59,7 @@ namespace Editor {
                 return Prefix < Name.size() ? Name.substr(Prefix) : Name;
             }
 
-            return Sample.mAnimationPath.empty() ? Core::FString{"(없음)"} : Core::FilePath::ToUtf8(Core::FilePath::FromUtf8(Sample.mAnimationPath).stem());
+            return "(없음)";
         }
     }
 
@@ -91,7 +91,7 @@ namespace Editor {
         mDraggingPreview = false;
         mRevealSample = false;
 
-        const Asset::FBlendParameter& Parameter{mEditing->GetBlendParameter(0)};
+        const Asset::FBlendParameter& Parameter{mEditing->GetBlendParameter(Asset::EBlendSpaceAxis::X)};
 
         mPreviewInput = std::clamp(mPreviewInput, Parameter.mMin, Parameter.mMax);
         ImGui::SetWindowFocus(WindowId);
@@ -145,7 +145,7 @@ namespace Editor {
 
 
     float FBlendSpaceEditor::Snap(float Value, bool Free) const {
-        const Asset::FBlendParameter& Parameter{mEditing->GetBlendParameter(0)};
+        const Asset::FBlendParameter& Parameter{mEditing->GetBlendParameter(Asset::EBlendSpaceAxis::X)};
         float Result{std::clamp(Value, Parameter.mMin, Parameter.mMax)};
 
         if (mSnapToGrid && !Free) {
@@ -160,7 +160,7 @@ namespace Editor {
     void FBlendSpaceEditor::AddSampleAt(const Core::FString& AnimationPath, float Value) {
         Core::FString Error{};
         const Asset::UAnimSequence* Animation{AnimationPath.empty() || mAssets == nullptr ? nullptr : mAssets->LoadAnimSequence(Core::FilePath::FromUtf8(AnimationPath), Error)};
-        const Core::Int32 Index{mEditing->AddSample(AnimationPath, Animation, {Value, 0.0f, 0.0f})};
+        const Core::Int32 Index{mEditing->AddSample(Animation, {Value, 0.0f, 0.0f})};
 
         if (Index < 0) {
             mError = "샘플 수가 한도에 도달했습니다.";
@@ -238,7 +238,7 @@ namespace Editor {
     void FBlendSpaceEditor::DrawAxis() {
         ImGui::SeparatorText("Axis");
 
-        Asset::FBlendParameter Parameter{mEditing->GetBlendParameter(0)};
+        Asset::FBlendParameter Parameter{mEditing->GetBlendParameter(Asset::EBlendSpaceAxis::X)};
         std::array<char, 64> Name{};
 
         std::copy_n(Parameter.mDisplayName.begin(), std::min(Parameter.mDisplayName.size(), Name.size() - 1), Name.begin());
@@ -252,7 +252,7 @@ namespace Editor {
         if (Changed) {
             Parameter.mDisplayName = Name.data();
 
-            if (mEditing->SetBlendParameter(0, Parameter)) {
+            if (mEditing->SetBlendParameter(Asset::EBlendSpaceAxis::X, Parameter)) {
                 mDirty = true;
                 mError.clear();
                 mPreviewInput = std::clamp(mPreviewInput, Parameter.mMin, Parameter.mMax);
@@ -277,7 +277,7 @@ namespace Editor {
 
         ImGui::EndDisabled();
 
-        const Asset::FBlendParameter& Parameter{mEditing->GetBlendParameter(0)};
+        const Asset::FBlendParameter& Parameter{mEditing->GetBlendParameter(Asset::EBlendSpaceAxis::X)};
         const auto& Samples{mEditing->GetSamples()};
         const std::size_t CommonPrefix{CommonNamePrefix(Samples)};
         const float RowHeight{ImGui::GetFrameHeight() + 2.0f * ImGui::GetStyle().CellPadding.y};
@@ -302,7 +302,7 @@ namespace Editor {
                 }
 
                 if (ImGui::TableSetColumnIndex(0)) {
-                    Core::FString AnimationPath{Sample.mAnimationPath};
+                    Core::FString AnimationPath{Sample.mAnimation != nullptr ? Sample.mAnimation->GetAssetPath() : Core::FString{}};
                     const Core::FString Name{SampleName(Sample, CommonPrefix)};
 
                     if (mCatalog != nullptr && mThumbnails != nullptr) {
@@ -310,7 +310,7 @@ namespace Editor {
                             Core::FString Error{};
                             const Asset::UAnimSequence* Animation{AnimationPath.empty() ? nullptr : mAssets->LoadAnimSequence(Core::FilePath::FromUtf8(AnimationPath), Error)};
 
-                            mEditing->SetSampleAnimation(static_cast<Core::Int32>(Index), AnimationPath, Animation);
+                            mEditing->SetSampleAnimation(static_cast<Core::Int32>(Index), Animation);
                             mSelectedSample = static_cast<Core::Int32>(Index);
                             mDirty = true;
                             mError = Error;
@@ -359,7 +359,7 @@ namespace Editor {
     }
 
     void FBlendSpaceEditor::DrawCanvas() {
-        const Asset::FBlendParameter& Parameter{mEditing->GetBlendParameter(0)};
+        const Asset::FBlendParameter& Parameter{mEditing->GetBlendParameter(Asset::EBlendSpaceAxis::X)};
         const auto& Samples{mEditing->GetSamples()};
         const ImGuiIO& IO{ImGui::GetIO()};
 
@@ -540,9 +540,10 @@ namespace Editor {
         std::array<Core::TArray<ImVec2>, 2> LabelBounds{};
 
         for (const Core::Int32 Index : Order) {
-            const Asset::FBlendSample& Sample{Samples[static_cast<std::size_t>(Index)]};
+            const auto SampleIndex{static_cast<std::size_t>(Index)};
+            const Asset::FBlendSample& Sample{Samples[SampleIndex]};
             const float X{ToScreen(Sample.mSampleValue.x)};
-            const float Weight{SampleWeights[static_cast<std::size_t>(Index)]};
+            const float Weight{SampleWeights[SampleIndex]};
             const bool Highlight{Priority(Index) == 2};
             const float Radius{TextHeight * (Highlight ? 0.49f : 0.36f)};
             const ImU32 Fill{Weight > 0.0f ? ActiveColor : Sample.mAnimation == nullptr ? IM_COL32(200, 90, 80, 255) : SampleColor};

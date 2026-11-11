@@ -13,6 +13,8 @@
 
 namespace Engine {
     struct FAnimNode_AssetPlayerBase;
+    struct FAnimValueNode_Base;
+    struct FAnimGraphNodeBuildContext;
 
     /**
      * @brief 그래프 에셋의 변수 하나가 실행 중에 갖는 값입니다.
@@ -25,7 +27,7 @@ namespace Engine {
         Core::FString mName{};
 
         /**
-         * @brief 현재 값입니다. 노드 바인딩이 이 주소를 읽습니다.
+         * @brief 현재 값입니다. 변수 Getter가 이 값을 읽습니다.
          */
         float mValue{};
 
@@ -33,6 +35,8 @@ namespace Engine {
          * @brief 값의 출처입니다.
          */
         Asset::EAnimGraphVariableSource mSource{Asset::EAnimGraphVariableSource::Manual};
+        Asset::EAnimGraphVariableType mType{};
+        bool mBoolValue{};
     };
 
 }
@@ -74,15 +78,25 @@ namespace Engine {
          * @param[in] Name 변수 이름입니다.
          * @return 변수가 없으면 0입니다.
          */
-        float GetFloatVariable(const Core::FString& Name) const;
-        Engine::FAnimNode_AssetPlayerBase* FindAssetPlayer(Core::Int32 NodeId) const;
+        float GetFloatVariable(const Core::FString& Name) const override;
+        bool SetBoolVariable(const Core::FString& Name, bool Value);
+        bool GetBoolVariable(const Core::FString& Name) const override;
+        bool HasGraphVariable(const Core::FString& Name, bool IsBool) const override;
+        Asset::EAnimGraphVariableSource GetVariableSource(const Core::FString& Name) const;
+
+        Engine::FAnimNode_AssetPlayerBase* FindAssetPlayer(const Core::FString& Name) const;
 
         void GetDebugVariables(Core::TArray<Engine::FAnimNodeValue>& OutValues) override;
 
         bool GetNodeLayout(const Engine::FAnimNode_Base* Node, float& X, float& Y) const override;
-        const Asset::FAnimGraphVariableGetter* GetVariableGetter(Core::Int32 NodeId, const Core::FString& Parameter) const;
+        const Asset::FAnimGraphNode* GetSourceNode(const Engine::FAnimNode_Base* Node) const;
+        const Asset::FAnimGraphVariableGetter* GetSourceGetter(const Engine::FAnimValueNode_Base* Node) const;
+        Core::Uint64 GetNodeKey(const Engine::FAnimNode_Base* Node) const;
+        Core::Uint64 GetValueNodeKey(const Engine::FAnimValueNode_Base* Node) const;
 
-    protected:
+    private:
+        Engine::FAnimNode_Base* BuildGraph(const Asset::UAnimGraph& Source, const Engine::FAnimGraphNodeBuildContext& BaseContext, Core::Uint32 Depth);
+
         void NativeInitializeAnimation() override;
 
         void NativeUpdateAnimation(float DeltaSeconds) override;
@@ -101,20 +115,13 @@ namespace Engine {
          * @brief 그래프에서 만든 노드입니다.
          */
         Core::TArray<std::unique_ptr<Engine::FAnimNode_Base>> mNodes{};
+        Core::TArray<std::unique_ptr<Engine::FAnimValueNode_Base>> mValueNodes{};
+        Core::TArray<const Asset::FAnimGraphNode*> mNodeSources{};
+        Core::TArray<const Asset::UAnimGraph*> mNodeGraphs{};
+        Core::TArray<const Asset::FAnimGraphVariableGetter*> mGetterSources{};
 
         /**
-         * @brief mNodes와 같은 순서의 캔버스 위치입니다. X, Y 순서로 저장합니다.
-         */
-        Core::TArray<float> mNodePositions{};
-
-        /**
-         * @brief Output 노드의 캔버스 위치입니다.
-         */
-        float mOutputX{};
-        float mOutputY{};
-
-        /**
-         * @brief 그래프 변수입니다. 노드 바인딩이 원소 주소를 가리키므로 그래프를 다시 만들 때만 크기를 바꿉니다.
+         * @brief 그래프 변수입니다.
          */
         Core::TArray<Engine::FAnimGraphRuntimeVariable> mVariables{};
     };

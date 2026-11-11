@@ -16,15 +16,17 @@ namespace Engine {
         }
     }
 
-    const char* FAnimNode_SequencePlayer::GetNodeType() const {
-        return "Sequence Player";
+    const Core::FString& FAnimNode_SequencePlayer::GetNodeType() const {
+        static const Core::FString Type{"Sequence Player"};
+
+        return Type;
     }
 
     void FAnimNode_SequencePlayer::GetDebugValues(Core::TArray<Engine::FAnimNodeValue>& OutValues) {
         Engine::FAnimNodeValue Sequence{};
 
         Sequence.mName = "Sequence";
-        Sequence.mText = mSequence != nullptr ? mSequence->GetName() : "(없음)";
+        Sequence.mValue = mSequence != nullptr ? mSequence->GetName() : "(없음)";
         OutValues.push_back(std::move(Sequence));
 
         GetPlayerDebugValues(OutValues);

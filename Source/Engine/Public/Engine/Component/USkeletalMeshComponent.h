@@ -182,10 +182,13 @@ namespace Engine {
         bool SetAnimGraphFloat(const Core::FString& Name, float Value);
 
         UFUNCTION()
-        bool RestartAnimGraphPlayer(Core::Int32 NodeId);
+        bool SetAnimGraphBool(const Core::FString& Name, bool Value);
 
         UFUNCTION()
-        bool IsAnimGraphPlayerFinished(Core::Int32 NodeId) const;
+        bool RestartAnimGraphPlayer(const Core::FString& Name);
+
+        UFUNCTION()
+        bool IsAnimGraphPlayerFinished(const Core::FString& Name) const;
 
         /**
          * @brief 애니메이션 인스턴스 클래스 이름을 반환합니다.

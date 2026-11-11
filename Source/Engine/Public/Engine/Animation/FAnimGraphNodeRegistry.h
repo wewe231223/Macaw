@@ -80,7 +80,7 @@ namespace Engine {
     };
 
     /**
-     * @brief 노드 하나를 만들 때 필요한 데이터와 에셋·변수 조회 함수입니다.
+     * @brief 노드 하나를 만들 때 필요한 데이터와 에셋 조회 함수입니다.
      */
     struct FAnimGraphNodeBuildContext {
     public:
@@ -105,20 +105,6 @@ namespace Engine {
          */
         Core::FString GetString(const Core::FString& Name) const;
 
-        /**
-         * @brief 파라미터를 묶은 그래프 변수 이름을 반환합니다.
-         * @param[in] Name 파라미터 이름입니다.
-         * @return 묶은 변수가 없으면 빈 문자열입니다.
-         */
-        Core::FString GetBindingName(const Core::FString& Name) const;
-
-        /**
-         * @brief 파라미터를 묶은 그래프 변수의 값 주소를 반환합니다.
-         * @param[in] Name 파라미터 이름입니다.
-         * @return 묶은 변수가 없거나 찾지 못하면 nullptr입니다.
-         */
-        const float* GetBinding(const Core::FString& Name) const;
-
     public:
         /**
          * @brief 만들 노드의 저장 데이터입니다.
@@ -139,11 +125,6 @@ namespace Engine {
          * @brief 블렌드 스페이스 경로를 로드합니다.
          */
         std::function<const Asset::UBlendSpace*(const Core::FString&)> mLoadBlendSpace{};
-
-        /**
-         * @brief 그래프 변수 이름으로 값 주소를 찾습니다. 주소는 인스턴스가 그래프를 다시 만들 때까지 유효합니다.
-         */
-        std::function<const float*(const Core::FString&)> mFindVariable{};
     };
 
     /**

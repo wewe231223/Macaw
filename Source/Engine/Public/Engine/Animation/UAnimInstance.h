@@ -22,6 +22,17 @@ namespace Engine {
     class USkeletalMeshComponent;
     struct FAnimNode_Base;
     struct FAnimNodeValue;
+    struct FPoseLink;
+    struct FAnimationUpdateContext;
+
+    struct FAnimNodeVisit {
+    public:
+        const Engine::FAnimNode_Base* mNode{};
+        const Engine::FPoseLink* mLink{};
+        float mWeight{};
+        Core::Int32 mParentIndex{-1};
+        Core::Int32 mSampleIndex{-1};
+    };
 
     /**
      * @brief 컴포넌트 하나의 애니메이션 변수와 노드 그래프를 소유하고 포즈를 계산합니다.
@@ -61,6 +72,8 @@ namespace Engine {
          * @param[in] DeltaSeconds 지난 프레임 이후 경과 시간입니다.
          */
         void UpdateAnimation(float DeltaSeconds);
+        void UpdateNode(Engine::FAnimNode_Base& Node, const Engine::FAnimationUpdateContext& Context);
+        void ResetNodeUpdate(Engine::FAnimNode_Base& Node);
 
         /**
          * @brief 마지막으로 계산한 포즈를 반환합니다.
@@ -80,11 +93,10 @@ namespace Engine {
          */
         Engine::FAnimNode_Base* GetRootNode() const;
 
-        /**
-         * @brief UpdateAnimation을 호출할 때마다 1씩 늘어나는 번호를 반환합니다.
-         * @return 노드가 이번 갱신에서 Update를 받았는지 판단하는 번호입니다.
-         */
-        Core::Uint64 GetUpdateCounter() const;
+        const Core::TArray<Engine::FAnimNodeVisit>& GetDebugVisits() const;
+        void BeginDebugVisit(const Engine::FAnimNode_Base& Node, const Engine::FPoseLink* Link, float Weight);
+        void EndDebugVisit();
+        void RecordDebugSample(const Engine::FAnimNode_Base& Node, Core::Int32 SampleIndex, float Weight);
 
         /**
          * @brief 소유 컴포넌트의 월드 위치 변화로 구한 속도를 반환합니다.
@@ -114,6 +126,9 @@ namespace Engine {
          * @param[out] OutValues 값을 뒤에 추가합니다.
          */
         virtual void GetDebugVariables(Core::TArray<Engine::FAnimNodeValue>& OutValues);
+        virtual float GetFloatVariable(const Core::FString& Name) const;
+        virtual bool GetBoolVariable(const Core::FString& Name) const;
+        virtual bool HasGraphVariable(const Core::FString& Name, bool IsBool) const;
 
         /**
          * @brief 시각화 도구가 노드를 놓을 위치를 반환합니다.
@@ -199,11 +214,6 @@ namespace Engine {
         Core::TArray<Core::FTransform> mPose{};
 
         /**
-         * @brief 갱신 번호입니다.
-         */
-        Core::Uint64 mUpdateCounter{};
-
-        /**
          * @brief 소유 컴포넌트의 속도입니다.
          */
         Core::FVector mOwnerVelocity{};
@@ -217,6 +227,10 @@ namespace Engine {
          * @brief mLastOwnerLocation이 유효한지 여부입니다.
          */
         bool mHasLastOwnerLocation{};
+
+        Core::TArray<Engine::FAnimNodeVisit> mDebugVisits{};
+        Core::Int32 mCurrentDebugVisit{-1};
+        Core::TMap<Engine::FAnimNode_Base*, bool> mUpdatedNodes{};
     };
 
 }
