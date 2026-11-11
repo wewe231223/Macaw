@@ -1,0 +1,8 @@
+{
+  "Id": "ThirdPerson",
+  "Name": "Third Person",
+  "Description": "A third-person character with movement, jumping and a follow camera in a simple blockout level.",
+  "RequiresScripts": true,
+  "Preview": "Preview.png",
+  "BaseTemplate": "Project"
+}

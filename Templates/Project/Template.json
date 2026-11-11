@@ -1,0 +1,6 @@
+{
+  "Id": "Default",
+  "Name": "Default",
+  "Description": "A minimal scene with a cube and a camera. Start with an empty Content workspace.",
+  "RequiresScripts": false
+}

@@ -47,7 +47,8 @@ namespace App {
             Core::ErrorHandler::Fatal("Application", "Cannot locate the project templates");
         }
 
-        mTemplateDirectory = std::filesystem::path{Executable.data()}.parent_path() / "Templates/Project";
+        mTemplatesDirectory = std::filesystem::path{Executable.data()}.parent_path() / "Templates";
+        mTemplateDirectory = mTemplatesDirectory / "Project";
 
         if (!BrowseProjects({}, false)) {
             Shutdown();
@@ -109,7 +110,7 @@ namespace App {
         Editor::FProjectBrowser Browser{};
         Core::FString Error{};
 
-        while (Browser.Show(mPlatform, mRenderer, Path, Create, Error)) {
+        while (Browser.Show(mPlatform, mRenderer, Path, Create, mTemplatesDirectory, mTemplateDirectory, Error)) {
             if (OpenProject(Path, Create, Error)) {
                 return true;
             }

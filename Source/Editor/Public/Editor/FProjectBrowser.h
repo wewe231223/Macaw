@@ -9,6 +9,7 @@
 #include "Core/ReflectionMacros.h"
 #include "Core/Types.h"
 #include "Editor/FImGuiUIScale.h"
+#include "Editor/FProjectTemplatePicker.h"
 
 #include <array>
 #include <filesystem>
@@ -44,7 +45,7 @@ namespace Editor {
          * @param[in] Error 화면에 표시할 이전 오류 메시지입니다.
          * @return 프로젝트를 골랐으면 true, 사용자가 창을 닫았으면 false입니다.
          */
-        bool Show(Platform::FWindowsApplication& Platform, Renderer::FRenderer& Renderer, std::filesystem::path& ProjectFile, bool& Create, const Core::FString& Error);
+        bool Show(Platform::FWindowsApplication& Platform, Renderer::FRenderer& Renderer, std::filesystem::path& ProjectFile, bool& Create, const std::filesystem::path& TemplatesDirectory, std::filesystem::path& TemplateDirectory, const Core::FString& Error);
 
         /**
          * @brief 최근 사용한 프로젝트 목록에 경로를 기록합니다.
@@ -58,7 +59,7 @@ namespace Editor {
          * @param[in] Platform 창과 플랫폼 입력을 제공하는 객체입니다.
          * @param[in] Error 화면에 표시할 오류 메시지입니다.
          */
-        void Draw(Platform::FWindowsApplication& Platform, const Core::FString& Error);
+        void Draw(Platform::FWindowsApplication& Platform, Renderer::FRenderer& Renderer, const Core::FString& Error);
 
         /**
          * @brief 기존 프로젝트 열기 UI를 표시합니다.
@@ -70,7 +71,7 @@ namespace Editor {
          * @brief 프로젝트 이름과 폴더를 지정하는 생성 UI를 표시합니다.
          * @param[in] Platform 창과 플랫폼 입력을 제공하는 객체입니다.
          */
-        void DrawNewProject(Platform::FWindowsApplication& Platform);
+        void DrawNewProject(Platform::FWindowsApplication& Platform, void* Device);
 
         /**
          * @brief 최근 프로젝트 목록을 디스크에서 읽습니다.
@@ -94,6 +95,8 @@ namespace Editor {
          * @brief 에디터 ImGui 스타일의 화면 배율 관리자입니다.
          */
         Editor::FImGuiUIScale mUIScale{};
+        Editor::FProjectTemplatePicker mTemplatePicker{};
+        Core::FString mTemplateError{};
 
         /**
          * @brief 프로젝트 이름 입력 버퍼입니다.

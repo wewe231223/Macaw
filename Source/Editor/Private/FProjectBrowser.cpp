@@ -80,10 +80,11 @@ namespace Editor {
     /**
      * @brief 프로젝트 선택 화면의 이벤트·그리기 루프를 실행합니다.
      */
-    bool Editor::FProjectBrowser::Show(Platform::FWindowsApplication& Platform, Renderer::FRenderer& Renderer, std::filesystem::path& ProjectFile, bool& Create, const Core::FString& Error) {
+    bool Editor::FProjectBrowser::Show(Platform::FWindowsApplication& Platform, Renderer::FRenderer& Renderer, std::filesystem::path& ProjectFile, bool& Create, const std::filesystem::path& TemplatesDirectory, std::filesystem::path& TemplateDirectory, const Core::FString& Error) {
         mCreatePage = Create;
         mSubmitted = false;
         mSelectedFile = ProjectFile;
+        mTemplatePicker.Load(TemplatesDirectory, TemplateDirectory, mTemplateError);
 
         if (Create && !ProjectFile.empty()) {
             const Core::FString Name{Core::FilePath::ToUtf8(ProjectFile.stem())};
@@ -153,7 +154,7 @@ namespace Editor {
                 ImGui_ImplWin32_NewFrame();
                 mUIScale.Update(Platform);
                 ImGui::NewFrame();
-                Draw(Platform, Error);
+                Draw(Platform, Renderer, Error);
                 ImGui::Render();
                 Renderer.BeginUiRender();
                 ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
@@ -181,6 +182,10 @@ namespace Editor {
         if (mSubmitted) {
             Create = mCreatePage;
             ProjectFile = mSelectedFile;
+
+            if (Create) {
+                TemplateDirectory = mTemplatePicker.GetSelectedDirectory();
+            }
         }
 
         return mSubmitted;
@@ -189,7 +194,7 @@ namespace Editor {
     /**
      * @brief 프로젝트 열기·생성 페이지와 오류 상태를 표시합니다.
      */
-    void Editor::FProjectBrowser::Draw(Platform::FWindowsApplication& Platform, const Core::FString& Error) {
+    void Editor::FProjectBrowser::Draw(Platform::FWindowsApplication& Platform, Renderer::FRenderer& Renderer, const Core::FString& Error) {
         const float Scale{mUIScale.GetScale()};
         const ImGuiViewport* Viewport{ImGui::GetMainViewport()};
 
@@ -226,7 +231,7 @@ namespace Editor {
         }
 
         if (mCreatePage) {
-            DrawNewProject(Platform);
+            DrawNewProject(Platform, Renderer.GetNativeDevice());
         } else {
             DrawOpenProject(Platform);
         }
@@ -286,17 +291,17 @@ namespace Editor {
     /**
      * @brief 프로젝트 이름과 폴더를 지정하는 생성 UI를 표시합니다.
      */
-    void Editor::FProjectBrowser::DrawNewProject(Platform::FWindowsApplication& Platform) {
+    void Editor::FProjectBrowser::DrawNewProject(Platform::FWindowsApplication& Platform, void* Device) {
         const float Scale{mUIScale.GetScale()};
 
         ImGui::TextUnformatted("Create a new project");
-        ImGui::BeginChild("Default Template", ImVec2{0.0f, 140.0f * Scale}, ImGuiChildFlags_Borders);
-        ImGui::PushFont(nullptr, 24.0f);
-        ImGui::TextUnformatted("Default");
-        ImGui::PopFont();
-        ImGui::TextWrapped("A minimal starting scene with a cube and a camera.");
-        ImGui::TextWrapped("Includes project shaders and a Content folder for your assets.");
-        ImGui::EndChild();
+        mTemplatePicker.Draw(Device);
+
+        if (!mTemplateError.empty()) {
+            ImGui::TextColored({1.0f, 0.48f, 0.42f, 1.0f}, "%s", mTemplateError.c_str());
+        }
+
+        ImGui::Spacing();
         ImGui::TextUnformatted("Project name");
         ImGui::SetNextItemWidth(-1.0f);
         ImGui::InputText("##ProjectName", mProjectName.data(), mProjectName.size());
@@ -326,7 +331,7 @@ namespace Editor {
             ImGui::TextWrapped("Enter a valid project name and an absolute location.");
         }
 
-        ImGui::BeginDisabled(!ValidName || !ValidLocation);
+        ImGui::BeginDisabled(!ValidName || !ValidLocation || !mTemplateError.empty() || mTemplatePicker.GetSelectedDirectory().empty());
 
         if (ImGui::Button("Create Project", ImVec2{220.0f * Scale, 44.0f * Scale})) {
             mSelectedFile = GetNewProjectFile();

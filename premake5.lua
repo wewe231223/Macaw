@@ -161,8 +161,7 @@ ConfigureRuntimeExecutable("Macaw", "WindowedApp", "Source/App")
     dependson { "MacawGame", "Macaw.Engine" }
     files { "Source/App/**.rc", "Resources/Editor.rc", "Macaw.ico" }
     resincludedirs { "." }
-    postbuildcommands { '{COPYDIR} "%{wks.location}/Templates/Project" "%{cfg.targetdir}/Templates/Project"' }
-    postbuildcommands { '{COPYDIR} "%{wks.location}/Templates/Scripts" "%{cfg.targetdir}/Templates/Scripts"' }
+    postbuildcommands { 'powershell -NoProfile -ExecutionPolicy Bypass -File "%{wks.location}/Scripts/StageProjectTemplates.ps1" -RuntimeDirectory "%{cfg.targetdir}" -WorkspaceRoot "%{wks.location}."' }
     filter "configurations:not ObjViewer*"
         postbuildcommands { 'powershell -NoProfile -ExecutionPolicy Bypass -File "%{wks.location}/Scripts/StageManagedRuntime.ps1" -RuntimeDirectory "%{cfg.targetdir}" -WorkspaceRoot "%{wks.location}." -Configuration "%{cfg.buildcfg}"' }
     filter {}

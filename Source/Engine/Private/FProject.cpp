@@ -12,6 +12,63 @@
 
 namespace Engine {
 
+    namespace {
+        bool CollectTemplateLayers(const std::filesystem::path& Directory, Core::TArray<std::filesystem::path>& Layers, Core::FString& Error, Core::Uint32 Depth) {
+            if (Depth >= 8) {
+                Error = "Project template inheritance is cyclic or too deep";
+
+                return false;
+            }
+
+            std::error_code Code{};
+            const auto Canonical{std::filesystem::canonical(Directory, Code)};
+
+            if (Code || !std::filesystem::is_regular_file(Canonical / "Template.mproject", Code)) {
+                Error = "Cannot find a project template: " + Core::FilePath::ToUtf8(Directory);
+
+                return false;
+            }
+
+            const auto Manifest{Canonical / "Template.json"};
+
+            if (std::filesystem::exists(Manifest, Code)) {
+                Serialization::FJsonArchive Archive{Core::EArchiveMode::Loading};
+
+                if (!Archive.Load(Manifest)) {
+                    Error = Archive.GetError();
+
+                    return false;
+                }
+
+                if (Archive.HasField("BaseTemplate")) {
+                    Core::FString Base{};
+                    Archive.Serialize("BaseTemplate", Base);
+                    const std::filesystem::path BasePath{Core::FilePath::FromUtf8(Base)};
+
+                    if (Archive.HasError() || Base.empty() || BasePath.has_root_path() || BasePath.has_parent_path() || BasePath == "." || BasePath == "..") {
+                        Error = "Invalid base project template";
+
+                        return false;
+                    }
+
+                    if (!CollectTemplateLayers(Canonical.parent_path() / BasePath, Layers, Error, Depth + 1)) {
+                        return false;
+                    }
+                }
+            }
+
+            if (Code) {
+                Error = "Cannot read project template metadata: " + Code.message();
+
+                return false;
+            }
+
+            Layers.push_back(Canonical);
+
+            return true;
+        }
+    }
+
     /**
      * @brief FProject의 초기 상태를 구성합니다.
      */
@@ -50,10 +107,34 @@ namespace Engine {
             return false;
         }
 
+        Core::TArray<std::filesystem::path> Layers{};
+
+        if (!CollectTemplateLayers(TemplateDirectory, Layers, Error, 0)) {
+            return false;
+        }
+
         std::filesystem::create_directories(File.parent_path() / "Content", Code);
 
-        if (!Code) {
-            std::filesystem::copy(TemplateDirectory / "Content", File.parent_path() / "Content", std::filesystem::copy_options::recursive, Code);
+        for (const auto& Layer : Layers) {
+            if (Code) {
+                break;
+            }
+
+            std::filesystem::copy(Layer / "Content", File.parent_path() / "Content", std::filesystem::copy_options::recursive | std::filesystem::copy_options::overwrite_existing, Code);
+
+            if (!Code && std::filesystem::exists(Layer / "Scripts", Code)) {
+                std::filesystem::create_directories(File.parent_path() / "Scripts", Code);
+
+                if (!Code) {
+                    std::filesystem::copy(Layer / "Scripts", File.parent_path() / "Scripts", std::filesystem::copy_options::recursive | std::filesystem::copy_options::overwrite_existing, Code);
+                }
+            }
+
+            for (const char* Name : {"README.md", ".gitignore"}) {
+                if (!Code && std::filesystem::exists(Layer / Name, Code)) {
+                    std::filesystem::copy_file(Layer / Name, File.parent_path() / Name, std::filesystem::copy_options::overwrite_existing, Code);
+                }
+            }
         }
 
         // C# 스크립트는 Content 밖의 Scripts 폴더에 두므로 Content에는 스크립트 폴더를 만들지 않습니다.

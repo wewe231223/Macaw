@@ -386,5 +386,6 @@ imgui.ini
 /Binaries/
 /Intermediate/
 /Saved/
+!Templates/ThirdPerson/Scripts/GameScripts.slnx
 !/Regacy/Core/Public/Core/Debug/
 !/Regacy/Core/Public/Core/Debug/**

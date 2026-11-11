@@ -100,6 +100,7 @@ namespace App {
          * @brief 새 프로젝트에 복사할 템플릿의 기준 폴더입니다.
          */
         std::filesystem::path mTemplateDirectory{};
+        std::filesystem::path mTemplatesDirectory{};
 
         /**
          * @brief 다음 안전한 전환 시점에 처리할 프로젝트 파일 경로입니다.
