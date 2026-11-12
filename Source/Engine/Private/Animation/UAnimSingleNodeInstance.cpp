@@ -8,6 +8,7 @@ namespace Engine {
     UAnimSingleNodeInstance::~UAnimSingleNodeInstance() = default;
 
     void UAnimSingleNodeInstance::SetAnimation(const Asset::UAnimSequence* Sequence) {
+        ResetRootMotion();
         mPlayer.mSequence = Sequence;
         mPlayer.Restart();
     }
@@ -27,6 +28,7 @@ namespace Engine {
     }
 
     void UAnimSingleNodeInstance::Stop() {
+        ResetRootMotion();
         mPlaying = false;
     }
 
@@ -43,6 +45,7 @@ namespace Engine {
     }
 
     void UAnimSingleNodeInstance::SetPosition(double Time) {
+        ResetRootMotion();
         mPlayer.SetAccumulatedTime(Time);
     }
 

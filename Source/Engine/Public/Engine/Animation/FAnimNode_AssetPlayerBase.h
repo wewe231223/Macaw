@@ -46,6 +46,10 @@ namespace Engine {
          */
         bool IsFinished() const;
 
+        double GetPreviousAssetTime() const;
+        double GetAssetTimeDelta() const;
+        Core::FTransform GetRootMotionDelta() const override;
+
         /**
          * @brief 재생 위치를 재생 방향의 시작으로 되돌립니다.
          */
@@ -65,6 +69,7 @@ namespace Engine {
          * @param[out] OutValues 값을 뒤에 추가합니다.
          */
         void GetPlayerDebugValues(Core::TArray<Engine::FAnimNodeValue>& OutValues);
+        void SetRootMotionDelta(const Core::FTransform& Delta);
 
     public:
         /**
@@ -87,6 +92,11 @@ namespace Engine {
          * @brief 반복하지 않는 재생이 끝에 도달했는지 여부입니다.
          */
         bool mFinished{};
+
+    private:
+        double mPreviousTime{};
+        double mAssetTimeDelta{};
+        Core::FTransform mRootMotionDelta{};
     };
 
 }

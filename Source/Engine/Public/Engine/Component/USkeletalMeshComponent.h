@@ -7,6 +7,7 @@
 #pragma once
 
 #include "Engine/Component/UMeshComponent.h"
+#include "Engine/Animation/UAnimInstance.h"
 #include "Engine/FSkeletalMeshPose.h"
 
 #include <memory>
@@ -213,6 +214,29 @@ namespace Engine {
         float GetPlayRate() const;
         void SetPlayRate(float PlayRate);
 
+        Engine::ERootMotionMode GetSingleNodeRootMotionMode() const;
+
+        void SetSingleNodeRootMotionMode(Engine::ERootMotionMode Mode);
+
+        Engine::ERootMotionMode GetRootMotionMode() const;
+
+        void SetRootMotionMode(Engine::ERootMotionMode Mode);
+
+        UFUNCTION()
+        Core::Int32 GetRootMotionModeValue() const;
+
+        UFUNCTION()
+        bool SetRootMotionModeValue(Core::Int32 Mode);
+
+        UFUNCTION()
+        bool IsRootMotionAppliedToActor() const;
+
+        UFUNCTION()
+        void SetApplyRootMotionToActor(bool Apply);
+
+        UFUNCTION()
+        Core::FTransform ConsumeRootMotion();
+
         /**
          * @brief 프로퍼티를 직렬화하고 로드한 포즈를 에셋에 다시 연결합니다.
          * @param Archive 저장 또는 복원할 아카이브입니다.
@@ -245,6 +269,7 @@ namespace Engine {
          * @param DeltaTime 프레임 경과 시간입니다.
          */
         void TickAnimation(float DeltaTime);
+        void ApplyRootMotion(const Core::FTransform& Delta);
 
     private:
         /**
@@ -281,6 +306,12 @@ namespace Engine {
          */
         UPROPERTY(Edit, Serialize, Name = "PlayRate", Getter = GetPlayRate, Setter = SetPlayRate)
         float mPlayRate{1.0f};
+
+        UPROPERTY(Edit, Serialize, Name = "SingleNodeRootMotionMode", Getter = GetSingleNodeRootMotionMode, Setter = SetSingleNodeRootMotionMode)
+        Engine::ERootMotionMode mSingleNodeRootMotionMode{Engine::ERootMotionMode::NoRootMotionExtraction};
+
+        UPROPERTY(Edit, Serialize, Name = "ApplyRootMotionToActor", Getter = IsRootMotionAppliedToActor, Setter = SetApplyRootMotionToActor)
+        bool mApplyRootMotionToActor{true};
 
         /**
          * @brief 애니메이션 인스턴스입니다. AnimClass가 있으면 항상 존재하고, 없으면 플레이 중 단일 노드 인스턴스만 존재합니다.

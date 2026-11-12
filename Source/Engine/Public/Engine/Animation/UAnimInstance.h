@@ -19,6 +19,13 @@ namespace Asset {
 
 namespace Engine {
 
+    UENUM()
+    enum class ERootMotionMode : Core::Uint8 {
+        NoRootMotionExtraction,
+        IgnoreRootMotion,
+        RootMotionFromEverything
+    };
+
     class USkeletalMeshComponent;
     struct FAnimNode_Base;
     struct FAnimNodeValue;
@@ -54,6 +61,14 @@ namespace Engine {
     class UAnimInstance : public CoreUObject::UObject {
         GENERATED_BODY()
 
+    private:
+        struct FSequenceBoneMapping {
+            Core::TArray<Core::Int32> mTrackToBone{};
+            Core::FString mRootMotionBone{};
+            Core::Int32 mRootTrack{-1};
+            Core::Int32 mRootBone{-1};
+        };
+
     public:
         UAnimInstance();
 
@@ -80,6 +95,15 @@ namespace Engine {
          * @return 스켈레톤 본 인덱스 순서의 부모 본 기준 변환이며, 스켈레톤이 없으면 비어 있습니다.
          */
         const Core::TArray<Core::FTransform>& GetPose() const;
+
+        Engine::ERootMotionMode GetRootMotionMode() const;
+
+        void SetRootMotionMode(Engine::ERootMotionMode Mode);
+
+        Core::FTransform ExtractSequenceRootMotion(const Asset::UAnimSequence& Sequence, double StartTime, double DeltaTime, bool Looping);
+        Core::FTransform GetRootMotionDelta() const;
+        Core::FTransform ConsumeExtractedRootMotion();
+        void ResetRootMotion();
 
         /**
          * @brief 소유 컴포넌트를 반환합니다.
@@ -192,6 +216,15 @@ namespace Engine {
         Engine::FAnimNode_Base* mRootNode{};
 
     private:
+        const FSequenceBoneMapping& GetSequenceBoneMapping(const Asset::UAnimSequence& Sequence);
+
+    private:
+        UPROPERTY(Edit, Serialize, Name = "RootMotionMode", Getter = GetRootMotionMode, Setter = SetRootMotionMode)
+        Engine::ERootMotionMode mRootMotionMode{Engine::ERootMotionMode::NoRootMotionExtraction};
+
+        Core::FTransform mRootMotionDelta{};
+        Core::FTransform mExtractedRootMotion{};
+
         /**
          * @brief 이 인스턴스를 소유하는 컴포넌트입니다. 컴포넌트가 인스턴스보다 오래 살아 있습니다.
          */
@@ -201,7 +234,7 @@ namespace Engine {
          * @brief 시퀀스별로 트랙 인덱스를 스켈레톤 본 인덱스로 바꾸는 표이며, 스켈레톤에 없는 트랙은 -1입니다.
          * @details 시퀀스를 처음 평가할 때 만들고, 스켈레톤이 바뀌면 InitializeAnimation이 비웁니다.
          */
-        Core::TMap<const Asset::UAnimSequence*, Core::TArray<Core::Int32>> mTrackToBone{};
+        Core::TMap<const Asset::UAnimSequence*, FSequenceBoneMapping> mTrackToBone{};
 
         /**
          * @brief 샘플링 결과를 담는 트랙 순서의 임시 포즈입니다.

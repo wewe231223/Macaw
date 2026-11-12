@@ -6,6 +6,16 @@
 
 namespace Asset {
 
+    namespace {
+        Core::FTransform SampleAnimationTrack(const Asset::FRawAnimSequenceTrack& Track, std::size_t Key, std::size_t NextKey, float Alpha) {
+            return {Track.mPosKeys.size() == 1 ? Track.mPosKeys[0] : Track.mPosKeys[Key] + (Track.mPosKeys[NextKey] - Track.mPosKeys[Key]) * Alpha, Track.mRotKeys.size() == 1 ? Track.mRotKeys[0] : Track.mRotKeys[Key].Slerp(Track.mRotKeys[NextKey], Alpha), Track.mScaleKeys.size() == 1 ? Track.mScaleKeys[0] : Track.mScaleKeys[Key] + (Track.mScaleKeys[NextKey] - Track.mScaleKeys[Key]) * Alpha};
+        }
+
+        Core::FTransform ComposeRootMotion(const Core::FTransform& A, const Core::FTransform& B) {
+            return {A.mLocation + A.mRotation.RotateVector(B.mLocation), (A.mRotation * B.mRotation).Normalized(), {1.0f, 1.0f, 1.0f}};
+        }
+    }
+
     bool UAnimSequence::SetDataModel(Asset::FAnimDataModel DataModel, Core::FString& Error) {
         if (!DataModel.Validate(Error)) {
             return false;
@@ -24,6 +34,143 @@ namespace Asset {
         return mAssetPath;
     }
 
+    bool UAnimSequence::IsRootMotionEnabled() const {
+        return mEnableRootMotion;
+    }
+
+    void UAnimSequence::SetRootMotionEnabled(bool Enabled) {
+        mEnableRootMotion = Enabled;
+    }
+
+    Asset::ERootMotionRootLock UAnimSequence::GetRootMotionRootLock() const {
+        return mRootMotionRootLock;
+    }
+
+    void UAnimSequence::SetRootMotionRootLock(Asset::ERootMotionRootLock RootLock) {
+        if (RootLock >= Asset::ERootMotionRootLock::RefPose && RootLock <= Asset::ERootMotionRootLock::Zero) {
+            mRootMotionRootLock = RootLock;
+        }
+    }
+
+    bool UAnimSequence::IsRootLockForced() const {
+        return mForceRootLock;
+    }
+
+    void UAnimSequence::SetForceRootLock(bool Forced) {
+        mForceRootLock = Forced;
+    }
+
+    const Core::FString& UAnimSequence::GetRootMotionBone() const {
+        return mRootMotionBone;
+    }
+
+    bool UAnimSequence::SetRootMotionBone(const Core::FString& BoneName) {
+        if (BoneName.find('\0') != Core::FString::npos) {
+            return false;
+        }
+
+        mRootMotionBone = BoneName;
+
+        return true;
+    }
+
+    Core::FTransform UAnimSequence::SampleTrackTransform(std::size_t TrackIndex, double Time) const {
+        const auto& Tracks{mDataModel.GetBoneAnimationTracks()};
+
+        if (TrackIndex >= Tracks.size()) {
+            return {};
+        }
+
+        Time = std::clamp(std::isfinite(Time) ? Time : 0.0, 0.0, GetPlayLength());
+
+        const double Frame{Time * mDataModel.GetFrameRate().AsDecimal()};
+        const std::size_t LastKey{mDataModel.GetNumberOfFrames()};
+        const std::size_t Key{std::min(static_cast<std::size_t>(Frame), LastKey)};
+        const std::size_t NextKey{std::min(Key + 1, LastKey)};
+        const float Alpha{static_cast<float>(std::clamp(Frame - static_cast<double>(Key), 0.0, 1.0))};
+
+        return SampleAnimationTrack(Tracks[TrackIndex].mInternalTrack, Key, NextKey, Alpha);
+    }
+
+    Core::FTransform UAnimSequence::GetRootTrackTransform(Core::Int32 TrackIndex, double Time) const {
+        return TrackIndex >= 0 ? SampleTrackTransform(static_cast<std::size_t>(TrackIndex), Time) : Core::FTransform{};
+    }
+
+    Core::FTransform UAnimSequence::GetRootLockTransform(Core::Int32 TrackIndex, const Core::FTransform& ReferencePose) const {
+        switch (mRootMotionRootLock) {
+        case Asset::ERootMotionRootLock::RefPose:
+            return ReferencePose;
+        case Asset::ERootMotionRootLock::AnimFirstFrame:
+            return GetRootTrackTransform(TrackIndex, 0.0);
+        case Asset::ERootMotionRootLock::Zero:
+            return {};
+        }
+
+        return ReferencePose;
+    }
+
+    Core::FTransform UAnimSequence::ExtractRootMotionFromRange(Core::Int32 TrackIndex, double StartTime, double EndTime) const {
+        if (TrackIndex < 0 || static_cast<std::size_t>(TrackIndex) >= mDataModel.GetBoneAnimationTracks().size() || !std::isfinite(StartTime) || !std::isfinite(EndTime)) {
+            return {};
+        }
+
+        const Core::FTransform Start{GetRootTrackTransform(TrackIndex, StartTime)};
+        const Core::FTransform End{GetRootTrackTransform(TrackIndex, EndTime)};
+        const Core::FQuat Inverse{Start.mRotation.Inverse()};
+
+        return {Inverse.RotateVector(End.mLocation - Start.mLocation), (Inverse * End.mRotation).Normalized(), {1.0f, 1.0f, 1.0f}};
+    }
+
+    Core::FTransform UAnimSequence::ExtractRootMotion(Core::Int32 TrackIndex, double StartTime, double DeltaTime, bool Looping) const {
+        const double Length{GetPlayLength()};
+
+        if (Length <= 0.0 || !std::isfinite(StartTime) || !std::isfinite(DeltaTime) || DeltaTime == 0.0) {
+            return {};
+        }
+
+        if (!Looping) {
+            return ExtractRootMotionFromRange(TrackIndex, StartTime, StartTime + DeltaTime);
+        }
+
+        StartTime = std::fmod(StartTime, Length);
+
+        if (StartTime < 0.0) {
+            StartTime += Length;
+        }
+
+        const bool Forward{DeltaTime > 0.0};
+        const double FirstDistance{Forward ? Length - StartTime : StartTime};
+        double Remaining{std::abs(DeltaTime)};
+
+        if (Remaining <= FirstDistance) {
+            return ExtractRootMotionFromRange(TrackIndex, StartTime, StartTime + DeltaTime);
+        }
+
+        Core::FTransform Result{ExtractRootMotionFromRange(TrackIndex, StartTime, Forward ? Length : 0.0)};
+        Remaining -= FirstDistance;
+
+        double Cycles{std::floor(Remaining / Length)};
+
+        if (!std::isfinite(Cycles)) {
+            return {};
+        }
+
+        Core::FTransform Cycle{ExtractRootMotionFromRange(TrackIndex, Forward ? 0.0 : Length, Forward ? Length : 0.0)};
+
+        while (Cycles >= 1.0) {
+            if (std::fmod(Cycles, 2.0) >= 1.0) {
+                Result = ComposeRootMotion(Result, Cycle);
+            }
+
+            Cycle = ComposeRootMotion(Cycle, Cycle);
+            Cycles = std::floor(Cycles * 0.5);
+        }
+
+        const double Tail{std::fmod(Remaining, Length)};
+
+        return ComposeRootMotion(Result, ExtractRootMotionFromRange(TrackIndex, Forward ? 0.0 : Length, Forward ? Tail : Length - Tail));
+    }
+
     void UAnimSequence::GetTrackPose(double Time, bool Looping, Core::TArray<Core::FTransform>& OutTrackPose) const {
         const auto& Tracks{mDataModel.GetBoneAnimationTracks()};
         const double Length{mDataModel.GetPlayLength()};
@@ -33,6 +180,8 @@ namespace Asset {
         if (Tracks.empty()) {
             return;
         }
+
+        Time = std::isfinite(Time) ? Time : 0.0;
 
         // 반복 재생이면 [0, 길이) 범위로 감고, 아니면 [0, 길이]로 제한합니다.
         if (Looping && Length > 0.0) {
@@ -45,20 +194,14 @@ namespace Asset {
             Time = std::clamp(Time, 0.0, Length);
         }
 
-        // 키 격자에서 앞 키와 보간 비율을 구합니다. 마지막 키는 재생 길이 시점이므로 뒤 키는 마지막 키를 넘지 않습니다.
         const double Frame{Time * mDataModel.GetFrameRate().AsDecimal()};
         const std::size_t LastKey{mDataModel.GetNumberOfFrames()};
         const std::size_t Key{std::min(static_cast<std::size_t>(Frame), LastKey)};
         const std::size_t NextKey{std::min(Key + 1, LastKey)};
-        const float Alpha{static_cast<float>(Frame - static_cast<double>(Key))};
+        const float Alpha{static_cast<float>(std::clamp(Frame - static_cast<double>(Key), 0.0, 1.0))};
 
         for (std::size_t Index{}; Index < Tracks.size(); ++Index) {
-            const Asset::FRawAnimSequenceTrack& Track{Tracks[Index].mInternalTrack};
-            Core::FTransform& Out{OutTrackPose[Index]};
-
-            Out.mLocation = Track.mPosKeys.size() == 1 ? Track.mPosKeys[0] : Track.mPosKeys[Key] + (Track.mPosKeys[NextKey] - Track.mPosKeys[Key]) * Alpha;
-            Out.mRotation = Track.mRotKeys.size() == 1 ? Track.mRotKeys[0] : Track.mRotKeys[Key].Slerp(Track.mRotKeys[NextKey], Alpha);
-            Out.mScale = Track.mScaleKeys.size() == 1 ? Track.mScaleKeys[0] : Track.mScaleKeys[Key] + (Track.mScaleKeys[NextKey] - Track.mScaleKeys[Key]) * Alpha;
+            OutTrackPose[Index] = SampleAnimationTrack(Tracks[Index].mInternalTrack, Key, NextKey, Alpha);
         }
     }
 

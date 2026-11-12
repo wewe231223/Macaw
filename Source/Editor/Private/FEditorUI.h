@@ -176,6 +176,7 @@ namespace Editor {
          * @brief 선택한 설정 분류의 편집 UI와 저장·초기화 상태를 표시합니다.
          */
         void DrawSettings();
+        void DrawAnimSequenceSettings();
 
         /**
          * @brief 테마 검색·가져오기와 기본 폰트 크기 등 인터페이스 설정을 편집합니다.
@@ -592,6 +593,13 @@ namespace Editor {
          * @brief 설정 창의 표시 여부입니다.
          */
         bool mSettingsOpen{};
+
+        bool mAnimSequenceOpen{};
+        bool mAnimSequenceRootMotion{};
+        bool mAnimSequenceForceRootLock{};
+        int mAnimSequenceRootLock{1};
+        std::array<char, 1024> mAnimSequenceRootBone{};
+        std::filesystem::path mAnimSequencePath{};
 
         /**
          * @brief 다음 설정 창 표시 시 포커스를 요청할지 나타냅니다.

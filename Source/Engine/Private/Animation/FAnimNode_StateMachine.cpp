@@ -306,4 +306,21 @@ namespace Engine {
         return mTarget >= 0 && mBlendDuration > 0.0f ? std::clamp(mBlendElapsed / mBlendDuration, 0.0f, 1.0f) : 1.0f;
     }
 
+    Core::FTransform FAnimNode_StateMachine::GetRootMotionDelta() const {
+        if (mCurrent < 0) {
+            return {};
+        }
+
+        const Engine::FAnimNode_Base* Current{mStates[static_cast<std::size_t>(mCurrent)].mPose.mLinkedNode};
+        const Core::FTransform Source{Current != nullptr ? Current->GetRootMotionDelta() : Core::FTransform{}};
+
+        if (mTarget < 0) {
+            return Source;
+        }
+
+        const Engine::FAnimNode_Base* Target{mStates[static_cast<std::size_t>(mTarget)].mPose.mLinkedNode};
+
+        return Engine::FAnimationRuntime::BlendTransforms(Source, Target != nullptr ? Target->GetRootMotionDelta() : Core::FTransform{}, 1.0f - GetBlendAlpha());
+    }
+
 }

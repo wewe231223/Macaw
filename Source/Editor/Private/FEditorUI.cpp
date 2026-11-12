@@ -429,6 +429,8 @@ namespace Editor {
         mMaterialDirty = false;
         mPlatform = nullptr;
         mSettingsOpen = false;
+        mAnimSequenceOpen = false;
+        mAnimSequencePath.clear();
         mFocusSettings = false;
         mSettingsDirty = false;
 
@@ -527,6 +529,8 @@ namespace Editor {
         if (mAnimGraphEditor != nullptr) {
             mAnimGraphEditor->Draw();
         }
+
+        DrawAnimSequenceSettings();
 
         mPlaySession->ProcessInput(DeltaTime, !ImGui::GetIO().WantTextInput && !ImGui::IsPopupOpen(nullptr, ImGuiPopupFlags_AnyPopup));
 
@@ -2447,6 +2451,12 @@ namespace Editor {
             }
 
             const Asset::FAnimDataModel& Model{Sequence->GetDataModel()};
+            mAnimSequencePath = Path;
+            mAnimSequenceOpen = true;
+            mAnimSequenceRootMotion = Sequence->IsRootMotionEnabled();
+            mAnimSequenceForceRootLock = Sequence->IsRootLockForced();
+            mAnimSequenceRootLock = static_cast<int>(Sequence->GetRootMotionRootLock());
+            strncpy_s(mAnimSequenceRootBone.data(), mAnimSequenceRootBone.size(), Sequence->GetRootMotionBone().c_str(), _TRUNCATE);
             std::size_t AnimatedChannels{};
             std::size_t ConstantChannels{};
 
@@ -2458,6 +2468,60 @@ namespace Editor {
 
             mContext->AddLog(std::format("Animation '{}': {} frames at {:.3f} fps ({:.3f} s), {} tracks, {} animated / {} constant channels", Core::FilePath::ToUtf8(Path.stem()), Model.GetNumberOfFrames(), Model.GetFrameRate().AsDecimal(), Model.GetPlayLength(), Model.GetBoneAnimationTracks().size(), AnimatedChannels, ConstantChannels));
         }
+    }
+
+    void FEditorUI::DrawAnimSequenceSettings() {
+        if (!mAnimSequenceOpen || mContext->GetProject() == nullptr) {
+            return;
+        }
+
+        ImGui::SetNextWindowSize({480.0f, 280.0f}, ImGuiCond_FirstUseEver);
+
+        if (ImGui::Begin("Animation Sequence", &mAnimSequenceOpen)) {
+            ImGui::TextUnformatted(Core::FilePath::ToGenericUtf8(mAnimSequencePath).c_str());
+            ImGui::Separator();
+            ImGui::BeginDisabled(!mContext->CanEditWorld());
+            ImGui::Checkbox("Enable Root Motion", &mAnimSequenceRootMotion);
+            ImGui::Combo("Root Motion Root Lock", &mAnimSequenceRootLock, "Ref Pose\0Anim First Frame\0Zero\0");
+            ImGui::Checkbox("Force Root Lock", &mAnimSequenceForceRootLock);
+            ImGui::InputText("Root Bone", mAnimSequenceRootBone.data(), mAnimSequenceRootBone.size());
+            ImGui::TextDisabled("Empty: use the skeleton's single root bone.");
+
+            if (ImGui::Button("Save")) {
+                Core::FString Error{};
+                Asset::FAssetManager* Assets{mContext->GetProject()->GetAssets()};
+                Asset::UAnimSequence* Sequence{Assets->LoadAnimSequence(mAnimSequencePath, Error)};
+
+                if (Sequence != nullptr) {
+                    const bool PreviousEnabled{Sequence->IsRootMotionEnabled()};
+                    const bool PreviousForced{Sequence->IsRootLockForced()};
+                    const Asset::ERootMotionRootLock PreviousLock{Sequence->GetRootMotionRootLock()};
+                    const Core::FString PreviousBone{Sequence->GetRootMotionBone()};
+
+                    Sequence->SetRootMotionEnabled(mAnimSequenceRootMotion);
+                    Sequence->SetForceRootLock(mAnimSequenceForceRootLock);
+                    Sequence->SetRootMotionRootLock(static_cast<Asset::ERootMotionRootLock>(mAnimSequenceRootLock));
+                    Sequence->SetRootMotionBone(mAnimSequenceRootBone.data());
+
+                    if (!Assets->SaveAnimSequence(mAnimSequencePath, *Sequence, Error)) {
+                        Sequence->SetRootMotionEnabled(PreviousEnabled);
+                        Sequence->SetForceRootLock(PreviousForced);
+                        Sequence->SetRootMotionRootLock(PreviousLock);
+                        Sequence->SetRootMotionBone(PreviousBone);
+                    } else {
+                        mContext->AddLog("Saved animation root motion settings");
+                    }
+                }
+
+                if (!Error.empty()) {
+                    mContext->AddLog(Error);
+                }
+            }
+
+            ImGui::EndDisabled();
+        }
+
+        ImGui::End();
     }
 
     /**

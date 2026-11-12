@@ -4,6 +4,17 @@
 
 namespace Engine {
 
+    Core::FTransform FAnimationRuntime::AccumulateRootMotion(const Core::FTransform& A, const Core::FTransform& B) {
+        return {A.mLocation + A.mRotation.RotateVector(B.mLocation), (A.mRotation * B.mRotation).Normalized(), {1.0f, 1.0f, 1.0f}};
+    }
+
+    Core::FTransform FAnimationRuntime::ApplyRootMotionToTransform(const Core::FTransform& RootMotion, const Core::FTransform& ComponentTransform, const Core::FTransform& ActorTransform) {
+        const Core::FQuat Rotation{(ComponentTransform.mRotation * RootMotion.mRotation * ComponentTransform.mRotation.Inverse()).Normalized()};
+        const Core::FVector Scaled{RootMotion.mLocation.x * ComponentTransform.mScale.x, RootMotion.mLocation.y * ComponentTransform.mScale.y, RootMotion.mLocation.z * ComponentTransform.mScale.z};
+
+        return {ComponentTransform.mLocation + ComponentTransform.mRotation.RotateVector(Scaled) + Rotation.RotateVector(ActorTransform.mLocation - ComponentTransform.mLocation), (Rotation * ActorTransform.mRotation).Normalized(), ActorTransform.mScale};
+    }
+
     Core::FTransform FAnimationRuntime::BlendTransforms(const Core::FTransform& A, const Core::FTransform& B, float WeightOfA) {
         const float Alpha{1.0f - WeightOfA};
 

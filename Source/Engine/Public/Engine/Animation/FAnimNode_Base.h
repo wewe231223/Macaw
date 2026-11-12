@@ -215,6 +215,7 @@ namespace Engine {
          * @param[in,out] Output 레퍼런스 포즈로 채운 컨텍스트이며 결과로 덮어씁니다.
          */
         virtual void Evaluate(Engine::FPoseContext& Output);
+        virtual Core::FTransform GetRootMotionDelta() const;
 
         /**
          * @brief 노드 종류의 표시 이름을 반환합니다.

@@ -5,8 +5,14 @@
 namespace Engine {
 
     void FAnimNode_SequencePlayer::Update(const Engine::FAnimationUpdateContext& Context) {
+        SetRootMotionDelta({});
+
         if (!mPaused) {
             AdvanceTime(Context.GetDeltaTime(), GetCurrentAssetLength());
+
+            if (mSequence != nullptr) {
+                SetRootMotionDelta(Context.GetAnimInstance().ExtractSequenceRootMotion(*mSequence, GetPreviousAssetTime(), GetAssetTimeDelta(), mLoop));
+            }
         }
     }
 

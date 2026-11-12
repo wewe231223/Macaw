@@ -17,6 +17,8 @@
 #include "Engine/Animation/UAnimSingleNodeInstance.h"
 #include "Engine/Animation/UAnimGraphInstance.h"
 #include "Engine/Animation/FAnimNode_AssetPlayerBase.h"
+#include "Engine/Animation/FAnimationRuntime.h"
+#include "Engine/AActor.h"
 #include "Asset/Animation/UAnimSequence.h"
 #include "CoreUObject/Reflection/Cast.h"
 #include "CoreUObject/Reflection/NewObject.h"
@@ -299,6 +301,10 @@ namespace Engine {
     }
 
     void USkeletalMeshComponent::EndPlay() {
+        if (mAnimInstance != nullptr) {
+            mAnimInstance->ResetRootMotion();
+        }
+
         // AnimClass 인스턴스는 설정 값을 담고 있으므로 남겨 둡니다.
         if (mAnimClass.empty()) {
             mAnimInstance.reset();
@@ -385,6 +391,7 @@ namespace Engine {
             SingleNode = Instance.get();
             mAnimInstance = std::move(Instance);
             mAnimInstance->InitializeAnimation(this);
+            SingleNode->SetRootMotionMode(mSingleNodeRootMotionMode);
         }
 
         mLooping = Looping;
@@ -418,6 +425,7 @@ namespace Engine {
         }
 
         Player->Initialize(*Instance);
+        Instance->ResetRootMotion();
 
         return true;
     }
@@ -491,7 +499,85 @@ namespace Engine {
         // 스키닝 행렬만 다시 계산하고 피킹 형상과 경계는 갱신하지 않습니다. 프록시를 다시 만들어 새 스키닝 행렬을 렌더러에 넘깁니다.
         if (mPose.SetAnimatedLocalTransforms(*mSkeletalMesh, *mSkeleton, std::move(Locals))) {
             MarkRenderStateDirty();
+
+            if (mApplyRootMotionToActor) {
+                ApplyRootMotion(mAnimInstance->ConsumeExtractedRootMotion());
+            }
+        } else {
+            mAnimInstance->ResetRootMotion();
         }
+    }
+
+    Engine::ERootMotionMode USkeletalMeshComponent::GetSingleNodeRootMotionMode() const {
+        return mSingleNodeRootMotionMode;
+    }
+
+    void USkeletalMeshComponent::SetSingleNodeRootMotionMode(Engine::ERootMotionMode Mode) {
+        if (Mode < Engine::ERootMotionMode::NoRootMotionExtraction || Mode > Engine::ERootMotionMode::RootMotionFromEverything) {
+            return;
+        }
+
+        mSingleNodeRootMotionMode = Mode;
+
+        if (auto* SingleNode{CoreUObject::Cast<Engine::UAnimSingleNodeInstance>(mAnimInstance.get())}) {
+            SingleNode->SetRootMotionMode(Mode);
+        }
+    }
+
+    bool USkeletalMeshComponent::IsRootMotionAppliedToActor() const {
+        return mApplyRootMotionToActor;
+    }
+
+    Engine::ERootMotionMode USkeletalMeshComponent::GetRootMotionMode() const {
+        return mAnimInstance != nullptr ? mAnimInstance->GetRootMotionMode() : mSingleNodeRootMotionMode;
+    }
+
+    void USkeletalMeshComponent::SetRootMotionMode(Engine::ERootMotionMode Mode) {
+        if (mAnimInstance != nullptr) {
+            mAnimInstance->SetRootMotionMode(Mode);
+        }
+
+        if (mAnimInstance == nullptr || CoreUObject::Cast<Engine::UAnimSingleNodeInstance>(mAnimInstance.get()) != nullptr) {
+            SetSingleNodeRootMotionMode(Mode);
+        }
+    }
+
+    Core::Int32 USkeletalMeshComponent::GetRootMotionModeValue() const {
+        return static_cast<Core::Int32>(GetRootMotionMode());
+    }
+
+    bool USkeletalMeshComponent::SetRootMotionModeValue(Core::Int32 Mode) {
+        if (Mode < static_cast<Core::Int32>(Engine::ERootMotionMode::NoRootMotionExtraction) || Mode > static_cast<Core::Int32>(Engine::ERootMotionMode::RootMotionFromEverything)) {
+            return false;
+        }
+
+        SetRootMotionMode(static_cast<Engine::ERootMotionMode>(Mode));
+
+        return true;
+    }
+
+    void USkeletalMeshComponent::SetApplyRootMotionToActor(bool Apply) {
+        if (mApplyRootMotionToActor != Apply) {
+            mApplyRootMotionToActor = Apply;
+
+            if (mAnimInstance != nullptr) {
+                mAnimInstance->ResetRootMotion();
+            }
+        }
+    }
+
+    Core::FTransform USkeletalMeshComponent::ConsumeRootMotion() {
+        return mAnimInstance != nullptr ? mAnimInstance->ConsumeExtractedRootMotion() : Core::FTransform{};
+    }
+
+    void USkeletalMeshComponent::ApplyRootMotion(const Core::FTransform& Delta) {
+        Engine::AActor* Owner{GetOwner()};
+
+        if (Owner == nullptr || (Delta.mLocation.LengthSquared() <= 1.e-12f && Delta.mRotation.Equals(Core::FQuat{}))) {
+            return;
+        }
+
+        Owner->SetActorTransform(Engine::FAnimationRuntime::ApplyRootMotionToTransform(Delta, GetTransform(), Owner->GetActorTransform()));
     }
 
     /**

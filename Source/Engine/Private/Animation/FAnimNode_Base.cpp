@@ -67,6 +67,10 @@ namespace Engine {
     void FAnimNode_Base::Evaluate(Engine::FPoseContext&) {
     }
 
+    Core::FTransform FAnimNode_Base::GetRootMotionDelta() const {
+        return {};
+    }
+
     void FAnimNode_Base::GetPoseInputs(Core::TArray<Engine::FAnimNodePoseInput>&) {
     }
 

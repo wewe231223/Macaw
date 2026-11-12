@@ -25,6 +25,8 @@ namespace Engine {
          * @return 섞은 변환입니다.
          */
         static Core::FTransform BlendTransforms(const Core::FTransform& A, const Core::FTransform& B, float WeightOfA);
+        static Core::FTransform AccumulateRootMotion(const Core::FTransform& A, const Core::FTransform& B);
+        static Core::FTransform ApplyRootMotionToTransform(const Core::FTransform& RootMotion, const Core::FTransform& ComponentTransform, const Core::FTransform& ActorTransform);
 
         /**
          * @brief 포즈 두 개를 본마다 섞습니다.

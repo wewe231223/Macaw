@@ -39,6 +39,7 @@ namespace Engine {
          * @return 0과 1 사이로 제한한 값입니다.
          */
         float GetBlendAlpha() const;
+        Core::FTransform GetRootMotionDelta() const override;
 
     public:
         /**

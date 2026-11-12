@@ -72,4 +72,19 @@ namespace Engine {
         return mBlendAlpha;
     }
 
+    Core::FTransform FAnimNode_TwoWayBlend::GetRootMotionDelta() const {
+        const Core::FTransform A{mA.mLinkedNode != nullptr && mBlendAlpha < 1.0f - RelevantWeightThreshold ? mA.mLinkedNode->GetRootMotionDelta() : Core::FTransform{}};
+        const Core::FTransform B{mB.mLinkedNode != nullptr && mBlendAlpha > RelevantWeightThreshold ? mB.mLinkedNode->GetRootMotionDelta() : Core::FTransform{}};
+
+        if (mBlendAlpha <= RelevantWeightThreshold) {
+            return A;
+        }
+
+        if (mBlendAlpha >= 1.0f - RelevantWeightThreshold) {
+            return B;
+        }
+
+        return Engine::FAnimationRuntime::BlendTransforms(A, B, 1.0f - mBlendAlpha);
+    }
+
 }

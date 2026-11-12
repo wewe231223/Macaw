@@ -7,9 +7,12 @@
 #include "Core/Base/ErrorHandler.h"
 #include "Engine/UWorld.h"
 #include "Engine/Animation/FAnimNode_Base.h"
+#include "Engine/Animation/FAnimationRuntime.h"
 #include "Engine/Component/USkeletalMeshComponent.h"
 
 #include <algorithm>
+#include <cmath>
+#include <utility>
 
 namespace Engine {
 
@@ -23,6 +26,7 @@ namespace Engine {
         mPose.clear();
         mOwnerVelocity = {};
         mHasLastOwnerLocation = false;
+        ResetRootMotion();
 
         mDebugVisits.clear();
         mCurrentDebugVisit = -1;
@@ -34,6 +38,9 @@ namespace Engine {
     }
 
     void UAnimInstance::UpdateAnimation(float DeltaSeconds) {
+        DeltaSeconds = std::isfinite(DeltaSeconds) ? std::max(DeltaSeconds, 0.0f) : 0.0f;
+        mRootMotionDelta = {};
+
         if (mOwner != nullptr) {
             const Core::FVector Location{mOwner->GetWorldMatrix().Origin()};
 
@@ -57,6 +64,7 @@ namespace Engine {
 
         if (GetSkeleton() == nullptr) {
             mPose.clear();
+            mExtractedRootMotion = {};
 
             return;
         }
@@ -64,6 +72,13 @@ namespace Engine {
         // 트랙이 없는 본은 스켈레톤의 레퍼런스 포즈를 그대로 씁니다.
         GetReferencePose(mPose);
         NativeEvaluateAnimation(mPose);
+
+        if (mRootMotionMode == Engine::ERootMotionMode::RootMotionFromEverything && mRootNode != nullptr) {
+            mRootMotionDelta = mRootNode->GetRootMotionDelta();
+            mExtractedRootMotion = Engine::FAnimationRuntime::AccumulateRootMotion(mExtractedRootMotion, mRootMotionDelta);
+        } else {
+            mExtractedRootMotion = {};
+        }
     }
 
     void UAnimInstance::UpdateNode(Engine::FAnimNode_Base& Node, const Engine::FAnimationUpdateContext& Context) {
@@ -78,6 +93,50 @@ namespace Engine {
 
     const Core::TArray<Core::FTransform>& UAnimInstance::GetPose() const {
         return mPose;
+    }
+
+    Engine::ERootMotionMode UAnimInstance::GetRootMotionMode() const {
+        return mRootMotionMode;
+    }
+
+    void UAnimInstance::SetRootMotionMode(Engine::ERootMotionMode Mode) {
+        if (Mode >= Engine::ERootMotionMode::NoRootMotionExtraction && Mode <= Engine::ERootMotionMode::RootMotionFromEverything && mRootMotionMode != Mode) {
+            mRootMotionMode = Mode;
+            ResetRootMotion();
+        }
+    }
+
+    Core::FTransform UAnimInstance::GetRootMotionDelta() const {
+        return mRootMotionDelta;
+    }
+
+    Core::FTransform UAnimInstance::ConsumeExtractedRootMotion() {
+        return std::exchange(mExtractedRootMotion, Core::FTransform{});
+    }
+
+    void UAnimInstance::ResetRootMotion() {
+        mRootMotionDelta = {};
+        mExtractedRootMotion = {};
+    }
+
+    Core::FTransform UAnimInstance::ExtractSequenceRootMotion(const Asset::UAnimSequence& Sequence, double StartTime, double DeltaTime, bool Looping) {
+        const Asset::USkeleton* Skeleton{GetSkeleton()};
+
+        if (mRootMotionMode == Engine::ERootMotionMode::NoRootMotionExtraction || !Sequence.IsRootMotionEnabled() || Skeleton == nullptr || DeltaTime == 0.0) {
+            return {};
+        }
+
+        const FSequenceBoneMapping& Mapping{GetSequenceBoneMapping(Sequence)};
+
+        if (Mapping.mRootTrack < 0 || Mapping.mRootBone < 0) {
+            return {};
+        }
+
+        const Core::FTransform Delta{Sequence.ExtractRootMotion(Mapping.mRootTrack, StartTime, DeltaTime, Looping)};
+        const Core::FTransform Lock{Sequence.GetRootLockTransform(Mapping.mRootTrack, Skeleton->GetReferencePose()[static_cast<std::size_t>(Mapping.mRootBone)])};
+        const Core::FQuat Rotation{(Lock.mRotation * Delta.mRotation * Lock.mRotation.Inverse()).Normalized()};
+
+        return {Lock.mRotation.RotateVector(Delta.mLocation) + Lock.mLocation - Rotation.RotateVector(Lock.mLocation), Rotation, {1.0f, 1.0f, 1.0f}};
     }
 
     Engine::USkeletalMeshComponent* UAnimInstance::GetOwningComponent() const {
@@ -153,37 +212,8 @@ namespace Engine {
             return;
         }
 
-        auto Mapping{mTrackToBone.find(&Sequence)};
-
-        // 시퀀스를 처음 평가할 때 트랙 이름을 본 인덱스로 바꾸는 표를 만듭니다. 스켈레톤이 바뀌면 InitializeAnimation이 표를 비웁니다.
-        if (Mapping == mTrackToBone.end()) {
-            const auto& Bones{Skeleton->GetBones()};
-            const auto& Tracks{Sequence.GetDataModel().GetBoneAnimationTracks()};
-            Core::TMap<Core::FString, Core::Int32> BoneIndices{};
-            Core::TArray<Core::Int32> TrackToBone(Tracks.size(), -1);
-            std::size_t Matched{};
-
-            BoneIndices.reserve(Bones.size());
-
-            for (std::size_t Index{}; Index < Bones.size(); ++Index) {
-                BoneIndices.emplace(Bones[Index].GetName(), static_cast<Core::Int32>(Index));
-            }
-
-            for (std::size_t Track{}; Track < Tracks.size(); ++Track) {
-                if (const auto Found{BoneIndices.find(Tracks[Track].mName)}; Found != BoneIndices.end()) {
-                    TrackToBone[Track] = Found->second;
-                    ++Matched;
-                }
-            }
-
-            if (Matched == 0) {
-                Core::ErrorHandler::Report("Animation", "No track of animation '" + Sequence.GetName() + "' matches a bone of the skeleton", Core::ErrorHandler::EErrorLevel::Warning);
-            }
-
-            Mapping = mTrackToBone.emplace(&Sequence, std::move(TrackToBone)).first;
-        }
-
-        const Core::TArray<Core::Int32>& TrackToBone{Mapping->second};
+        const FSequenceBoneMapping& Mapping{GetSequenceBoneMapping(Sequence)};
+        const Core::TArray<Core::Int32>& TrackToBone{Mapping.mTrackToBone};
 
         Sequence.GetTrackPose(Time, Looping, mTrackPose);
 
@@ -194,6 +224,67 @@ namespace Engine {
                 Pose[static_cast<std::size_t>(Bone)] = mTrackPose[Track];
             }
         }
+
+        if (Mapping.mRootTrack >= 0 && Mapping.mRootBone >= 0 && (Sequence.IsRootLockForced() || (Sequence.IsRootMotionEnabled() && mRootMotionMode != Engine::ERootMotionMode::NoRootMotionExtraction))) {
+            const std::size_t RootBone{static_cast<std::size_t>(Mapping.mRootBone)};
+            const Core::FTransform Lock{Sequence.GetRootLockTransform(Mapping.mRootTrack, Skeleton->GetReferencePose()[RootBone])};
+
+            Pose[RootBone].mLocation = Lock.mLocation;
+            Pose[RootBone].mRotation = Lock.mRotation;
+        }
+    }
+
+    const UAnimInstance::FSequenceBoneMapping& UAnimInstance::GetSequenceBoneMapping(const Asset::UAnimSequence& Sequence) {
+        auto Mapping{mTrackToBone.find(&Sequence)};
+
+        if (Mapping != mTrackToBone.end() && Mapping->second.mRootMotionBone == Sequence.GetRootMotionBone()) {
+            return Mapping->second;
+        }
+
+        FSequenceBoneMapping Data{};
+
+        Data.mRootMotionBone = Sequence.GetRootMotionBone();
+
+        if (const Asset::USkeleton* Skeleton{GetSkeleton()}) {
+            const auto& Bones{Skeleton->GetBones()};
+            const auto& Tracks{Sequence.GetDataModel().GetBoneAnimationTracks()};
+            Core::TMap<Core::FString, Core::Int32> BoneIndices{};
+            std::size_t Matched{};
+            Core::Int32 RootCount{};
+
+            Data.mTrackToBone.assign(Tracks.size(), -1);
+            BoneIndices.reserve(Bones.size());
+
+            for (std::size_t Index{}; Index < Bones.size(); ++Index) {
+                BoneIndices.emplace(Bones[Index].GetName(), static_cast<Core::Int32>(Index));
+
+                if (Bones[Index].GetParentIndex() < 0 && (Data.mRootMotionBone.empty() || Bones[Index].GetName() == Data.mRootMotionBone)) {
+                    Data.mRootBone = static_cast<Core::Int32>(Index);
+                    ++RootCount;
+                }
+            }
+
+            if (RootCount != 1) {
+                Data.mRootBone = -1;
+            }
+
+            for (std::size_t Track{}; Track < Tracks.size(); ++Track) {
+                if (const auto Found{BoneIndices.find(Tracks[Track].mName)}; Found != BoneIndices.end()) {
+                    Data.mTrackToBone[Track] = Found->second;
+                    ++Matched;
+
+                    if (Found->second == Data.mRootBone) {
+                        Data.mRootTrack = static_cast<Core::Int32>(Track);
+                    }
+                }
+            }
+
+            if (Matched == 0) {
+                Core::ErrorHandler::Report("Animation", "No track of animation '" + Sequence.GetName() + "' matches a bone of the skeleton", Core::ErrorHandler::EErrorLevel::Warning);
+            }
+        }
+
+        return mTrackToBone.insert_or_assign(&Sequence, std::move(Data)).first->second;
     }
 
     bool UAnimInstance::GetBoolVariable(const Core::FString&) const {

@@ -16,6 +16,7 @@ namespace Engine {
     }
 
     void FAnimNode_BlendSpacePlayer::Update(const Engine::FAnimationUpdateContext& Context) {
+        SetRootMotionDelta({});
         mX = mXInput.Evaluate(Context, mX);
 
         if (mBlendSpace == nullptr) {
@@ -33,6 +34,36 @@ namespace Engine {
         mInternalTime = mNormalizedTime * mBlendedLength;
         AdvanceTime(Context.GetDeltaTime(), mBlendedLength);
         mNormalizedTime = mBlendedLength > 0.0 ? std::clamp(mInternalTime / mBlendedLength, 0.0, 1.0) : 0.0;
+
+        if (mBlendedLength <= 0.0 || GetAssetTimeDelta() == 0.0) {
+            return;
+        }
+
+        const double PreviousPhase{GetPreviousAssetTime() / mBlendedLength};
+        const double PhaseDelta{GetAssetTimeDelta() / mBlendedLength};
+        const auto& Samples{mBlendSpace->GetSamples()};
+        Core::FTransform RootMotion{};
+        float Accumulated{};
+
+        for (const Asset::FBlendSampleWeight& Weight : mSampleWeights) {
+            if (Weight.mSampleIndex < 0 || static_cast<std::size_t>(Weight.mSampleIndex) >= Samples.size() || Weight.mWeight <= 0.0f) {
+                continue;
+            }
+
+            const Asset::UAnimSequence* Sequence{Samples[static_cast<std::size_t>(Weight.mSampleIndex)].mAnimation};
+
+            if (Sequence == nullptr) {
+                continue;
+            }
+
+            const double Length{Sequence->GetPlayLength()};
+            const Core::FTransform Delta{Context.GetAnimInstance().ExtractSequenceRootMotion(*Sequence, PreviousPhase * Length, PhaseDelta * Length, mLoop)};
+
+            Accumulated += Weight.mWeight;
+            RootMotion = Engine::FAnimationRuntime::BlendTransforms(RootMotion, Delta, 1.0f - Weight.mWeight / Accumulated);
+        }
+
+        SetRootMotionDelta(RootMotion);
     }
 
     void FAnimNode_BlendSpacePlayer::Evaluate(Engine::FPoseContext& Output) {

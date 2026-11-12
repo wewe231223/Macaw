@@ -334,12 +334,12 @@ namespace Asset {
             SerializeBones(Archive, Bones);
         }
 
-        void SerializeAnimSequence(Serialization::FMemoryArchive& Archive, Asset::FAnimDataModel& Model) {
-            Core::Uint32 Version{1};
+        void SerializeAnimSequence(Serialization::FMemoryArchive& Archive, Asset::FAnimDataModel& Model, bool& EnableRootMotion, Asset::ERootMotionRootLock& RootLock, bool& ForceRootLock, Core::FString& RootBone) {
+            Core::Uint32 Version{2};
 
             Archive.Serialize("AnimSequenceVersion", Version);
 
-            if (Archive.HasError() || Version != 1) {
+            if (Archive.HasError() || (Version != 1 && Version != 2)) {
                 Archive.SetError("Unsupported animation sequence version");
 
                 return;
@@ -412,6 +412,23 @@ namespace Asset {
             }
 
             Archive.EndArray();
+
+            if (Version >= 2) {
+                Core::Uint32 Lock{static_cast<Core::Uint32>(RootLock)};
+
+                Archive.Serialize("EnableRootMotion", EnableRootMotion);
+                Archive.Serialize("RootMotionRootLock", Lock);
+                Archive.Serialize("ForceRootLock", ForceRootLock);
+                Archive.Serialize("RootMotionBone", RootBone);
+
+                if (Lock > static_cast<Core::Uint32>(Asset::ERootMotionRootLock::Zero) || RootBone.find('\0') != Core::FString::npos) {
+                    Archive.SetError("Invalid root motion settings");
+
+                    return;
+                }
+
+                RootLock = static_cast<Asset::ERootMotionRootLock>(Lock);
+            }
 
             if (Archive.IsLoading()) {
                 Model.SetFrameRate(FrameRate);
@@ -805,8 +822,12 @@ namespace Asset {
 
         Serialization::FMemoryArchive Archive{static_cast<const Core::TArray<Core::Uint8>&>(Payload)};
         Asset::FAnimDataModel Model{};
+        bool EnableRootMotion{};
+        Asset::ERootMotionRootLock RootLock{Asset::ERootMotionRootLock::AnimFirstFrame};
+        bool ForceRootLock{};
+        Core::FString RootBone{};
 
-        SerializeAnimSequence(Archive, Model);
+        SerializeAnimSequence(Archive, Model, EnableRootMotion, RootLock, ForceRootLock, RootBone);
 
         if (Archive.HasError() || Archive.GetRemainingBytes() != 0) {
             Error = Archive.HasError() ? Archive.GetError() : "Invalid animation sequence asset data";
@@ -822,6 +843,10 @@ namespace Asset {
 
         Asset::UAnimSequence* Result{Sequence.get()};
 
+        Sequence->SetRootMotionEnabled(EnableRootMotion);
+        Sequence->SetRootMotionRootLock(RootLock);
+        Sequence->SetForceRootLock(ForceRootLock);
+        Sequence->SetRootMotionBone(RootBone);
         Sequence->SetName(Core::FilePath::ToUtf8(Path.stem()));
         Sequence->mAssetPath = std::move(RelativePath);
         mAnimSequences.emplace(Key, std::move(Sequence));
@@ -1022,8 +1047,12 @@ namespace Asset {
         Core::TArray<Core::Uint8> Payload{};
         Serialization::FMemoryArchive Archive{Payload};
         Asset::FAnimDataModel Model{Sequence.GetDataModel()};
+        bool EnableRootMotion{Sequence.IsRootMotionEnabled()};
+        Asset::ERootMotionRootLock RootLock{Sequence.GetRootMotionRootLock()};
+        bool ForceRootLock{Sequence.IsRootLockForced()};
+        Core::FString RootBone{Sequence.GetRootMotionBone()};
 
-        SerializeAnimSequence(Archive, Model);
+        SerializeAnimSequence(Archive, Model, EnableRootMotion, RootLock, ForceRootLock, RootBone);
 
         if (Archive.HasError()) {
             Error = Archive.GetError();

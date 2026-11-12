@@ -30,6 +30,7 @@ namespace Engine {
         Core::Int32 GetCurrentState() const;
         Core::Int32 GetTargetState() const;
         float GetBlendAlpha() const;
+        Core::FTransform GetRootMotionDelta() const override;
 
     private:
         Core::Int32 FindStateIndex(Core::Int32 Id) const;
