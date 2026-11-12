@@ -172,6 +172,12 @@ namespace Engine {
         void PlayAnimation(const Asset::UAnimSequence* Sequence, bool Looping);
 
         /**
+         * @brief 애니메이션 인스턴스를 갱신하고 결과 포즈를 스키닝 행렬에 반영합니다.
+         * @param DeltaTime 프레임 경과 시간입니다.
+         */
+        void TickAnimation(float DeltaTime);
+
+        /**
          * @brief 현재 애니메이션 인스턴스를 반환합니다.
          * @details AnimClass를 지정했으면 에디터에서도 항상 그 클래스의 인스턴스가 있으며, 설정 값을 담고 시각화 도구가 그래프를 표시합니다.
          * AnimClass가 비어 있으면 플레이 중 단일 노드 인스턴스만 있습니다.
@@ -264,11 +270,6 @@ namespace Engine {
          */
         void InitializeAnimClassInstance();
 
-        /**
-         * @brief 애니메이션 인스턴스를 갱신하고 결과 포즈를 스키닝 행렬에 반영합니다.
-         * @param DeltaTime 프레임 경과 시간입니다.
-         */
-        void TickAnimation(float DeltaTime);
         void ApplyRootMotion(const Core::FTransform& Delta);
 
     private:

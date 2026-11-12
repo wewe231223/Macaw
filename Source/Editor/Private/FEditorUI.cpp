@@ -18,9 +18,9 @@
 #include "Asset/FAssetFile.h"
 #include "Asset/UTexture2D.h"
 #include "Asset/UMaterial.h"
-#include "Asset/Animation/UAnimSequence.h"
 #include "Asset/Import/IMeshImporter.h"
 #include "Engine/Component/ULightComponentBase.h"
+#include "Engine/Component/USkeletalMeshComponent.h"
 #include "Engine/UWorld.h"
 #include "Engine/ULevel.h"
 #include "Engine/AActor.h"
@@ -33,6 +33,7 @@
 #include "Editor/FMeshViewer.h"
 #include "FBlendSpaceEditor.h"
 #include "FAnimGraphEditor.h"
+#include "FAnimSequenceEditor.h"
 #include "Editor/FEditorAssetCatalog.h"
 #include "Editor/FAssetThumbnailCache.h"
 #include "Editor/FGameExporter.h"
@@ -253,6 +254,7 @@ namespace Editor {
         mMeshViewer = std::make_unique<Editor::FMeshViewer>(Renderer, mContext->GetProject()->GetAssets());
         mBlendSpaceEditor = std::make_unique<Editor::FBlendSpaceEditor>(mContext->GetProject()->GetAssets(), mAssetCatalog.get(), mThumbnails.get());
         mAnimGraphEditor = std::make_unique<Editor::FAnimGraphEditor>(mContext->GetProject()->GetAssets(), mAssetCatalog.get(), mThumbnails.get());
+        mAnimSequenceEditor = std::make_unique<Editor::FAnimSequenceEditor>(Renderer, mContext->GetProject()->GetAssets(), mAssetCatalog.get(), mThumbnails.get());
         mDetailsPanel.SetAnimGraphOpener([this]() {
             mAnimGraphPanel.Open();
         });
@@ -372,6 +374,7 @@ namespace Editor {
         mMeshViewer.reset();
         mBlendSpaceEditor.reset();
         mAnimGraphEditor.reset();
+        mAnimSequenceEditor.reset();
         mDetailsPanel.SetAnimGraphOpener({});
         mDetailsPanel.SetAssetServices(nullptr, nullptr);
         mDetailsPanel.SetAssetNavigation({}, {});
@@ -429,8 +432,6 @@ namespace Editor {
         mMaterialDirty = false;
         mPlatform = nullptr;
         mSettingsOpen = false;
-        mAnimSequenceOpen = false;
-        mAnimSequencePath.clear();
         mFocusSettings = false;
         mSettingsDirty = false;
 
@@ -530,7 +531,9 @@ namespace Editor {
             mAnimGraphEditor->Draw();
         }
 
-        DrawAnimSequenceSettings();
+        if (mAnimSequenceEditor != nullptr) {
+            mAnimSequenceEditor->Draw(DeltaTime, mContext->CanEditWorld());
+        }
 
         mPlaySession->ProcessInput(DeltaTime, !ImGui::GetIO().WantTextInput && !ImGui::IsPopupOpen(nullptr, ImGuiPopupFlags_AnyPopup));
 
@@ -960,7 +963,7 @@ namespace Editor {
                 }
             }
 
-            if (Input.WasPressed(EKey::S) && (mAnimGraphEditor == nullptr || !mAnimGraphEditor->IsFocused()) && (mBlendSpaceEditor == nullptr || !mBlendSpaceEditor->IsFocused())) {
+            if (Input.WasPressed(EKey::S) && (mAnimGraphEditor == nullptr || !mAnimGraphEditor->IsFocused()) && (mBlendSpaceEditor == nullptr || !mBlendSpaceEditor->IsFocused()) && (mAnimSequenceEditor == nullptr || !mAnimSequenceEditor->IsFocused())) {
                 const auto Path{mContext->GetScenePath().empty() ? ChooseFile(true) : mContext->GetScenePath()};
 
                 if (!Path.empty()) {
@@ -1770,6 +1773,10 @@ namespace Editor {
                 mAnimGraphEditor->CloseRetired(Absolute);
             }
 
+            if (mAnimSequenceEditor != nullptr) {
+                mAnimSequenceEditor->CloseRetired(Absolute);
+            }
+
             mSelectedContentPath = mContentActionTarget.parent_path() / NewFile;
             mRefreshContent = true;
 
@@ -1827,6 +1834,10 @@ namespace Editor {
 
             if (mAnimGraphEditor != nullptr) {
                 mAnimGraphEditor->CloseRetired(Absolute);
+            }
+
+            if (mAnimSequenceEditor != nullptr) {
+                mAnimSequenceEditor->CloseRetired(Absolute);
             }
 
             mRefreshContent = true;
@@ -2439,89 +2450,21 @@ namespace Editor {
             if (mBlendSpaceEditor != nullptr && !mBlendSpaceEditor->Open(Path, Error)) {
                 mContext->AddLog(Error.empty() ? "Cannot open the blend space" : Error);
             }
-        } else if (Type == Asset::EAssetType::AnimSequence) {
-            // 재생 기능이 생기기 전까지는 임포트 결과를 확인할 수 있도록 시간 정보와 트랙 요약을 로그로 출력합니다.
+        } else if (Type == Asset::EAssetType::AnimSequence && mAnimSequenceEditor != nullptr) {
             Core::FString Error{};
-            const Asset::UAnimSequence* Sequence{mContext->GetProject()->GetAssets()->LoadAnimSequence(Path, Error)};
+            const bool WasOpen{mAnimSequenceEditor->IsOpen()};
 
-            if (Sequence == nullptr) {
-                mContext->AddLog(Error.empty() ? "Cannot load the animation sequence" : Error);
+            if (!mAnimSequenceEditor->Open(Path, Error)) {
+                mContext->AddLog(Error.empty() ? "Cannot open the animation sequence" : Error);
+            } else if (!WasOpen) {
+                Engine::AActor* Actor{mContext->GetSelectedActor()};
+                auto* Component{Actor != nullptr ? CoreUObject::Cast<Engine::USkeletalMeshComponent>(Actor->GetRootComponent()) : nullptr};
 
-                return;
-            }
-
-            const Asset::FAnimDataModel& Model{Sequence->GetDataModel()};
-            mAnimSequencePath = Path;
-            mAnimSequenceOpen = true;
-            mAnimSequenceRootMotion = Sequence->IsRootMotionEnabled();
-            mAnimSequenceForceRootLock = Sequence->IsRootLockForced();
-            mAnimSequenceRootLock = static_cast<int>(Sequence->GetRootMotionRootLock());
-            strncpy_s(mAnimSequenceRootBone.data(), mAnimSequenceRootBone.size(), Sequence->GetRootMotionBone().c_str(), _TRUNCATE);
-            std::size_t AnimatedChannels{};
-            std::size_t ConstantChannels{};
-
-            for (const Asset::FBoneAnimationTrack& Track : Model.GetBoneAnimationTracks()) {
-                for (const std::size_t Count : {Track.mInternalTrack.mPosKeys.size(), Track.mInternalTrack.mRotKeys.size(), Track.mInternalTrack.mScaleKeys.size()}) {
-                    (Count == 1 ? ConstantChannels : AnimatedChannels) += 1;
+                if (Component != nullptr) {
+                    mAnimSequenceEditor->SetPreviewMesh(Component->GetMeshPath(), Component->GetSkeletonPath());
                 }
             }
-
-            mContext->AddLog(std::format("Animation '{}': {} frames at {:.3f} fps ({:.3f} s), {} tracks, {} animated / {} constant channels", Core::FilePath::ToUtf8(Path.stem()), Model.GetNumberOfFrames(), Model.GetFrameRate().AsDecimal(), Model.GetPlayLength(), Model.GetBoneAnimationTracks().size(), AnimatedChannels, ConstantChannels));
         }
-    }
-
-    void FEditorUI::DrawAnimSequenceSettings() {
-        if (!mAnimSequenceOpen || mContext->GetProject() == nullptr) {
-            return;
-        }
-
-        ImGui::SetNextWindowSize({480.0f, 280.0f}, ImGuiCond_FirstUseEver);
-
-        if (ImGui::Begin("Animation Sequence", &mAnimSequenceOpen)) {
-            ImGui::TextUnformatted(Core::FilePath::ToGenericUtf8(mAnimSequencePath).c_str());
-            ImGui::Separator();
-            ImGui::BeginDisabled(!mContext->CanEditWorld());
-            ImGui::Checkbox("Enable Root Motion", &mAnimSequenceRootMotion);
-            ImGui::Combo("Root Motion Root Lock", &mAnimSequenceRootLock, "Ref Pose\0Anim First Frame\0Zero\0");
-            ImGui::Checkbox("Force Root Lock", &mAnimSequenceForceRootLock);
-            ImGui::InputText("Root Bone", mAnimSequenceRootBone.data(), mAnimSequenceRootBone.size());
-            ImGui::TextDisabled("Empty: use the skeleton's single root bone.");
-
-            if (ImGui::Button("Save")) {
-                Core::FString Error{};
-                Asset::FAssetManager* Assets{mContext->GetProject()->GetAssets()};
-                Asset::UAnimSequence* Sequence{Assets->LoadAnimSequence(mAnimSequencePath, Error)};
-
-                if (Sequence != nullptr) {
-                    const bool PreviousEnabled{Sequence->IsRootMotionEnabled()};
-                    const bool PreviousForced{Sequence->IsRootLockForced()};
-                    const Asset::ERootMotionRootLock PreviousLock{Sequence->GetRootMotionRootLock()};
-                    const Core::FString PreviousBone{Sequence->GetRootMotionBone()};
-
-                    Sequence->SetRootMotionEnabled(mAnimSequenceRootMotion);
-                    Sequence->SetForceRootLock(mAnimSequenceForceRootLock);
-                    Sequence->SetRootMotionRootLock(static_cast<Asset::ERootMotionRootLock>(mAnimSequenceRootLock));
-                    Sequence->SetRootMotionBone(mAnimSequenceRootBone.data());
-
-                    if (!Assets->SaveAnimSequence(mAnimSequencePath, *Sequence, Error)) {
-                        Sequence->SetRootMotionEnabled(PreviousEnabled);
-                        Sequence->SetForceRootLock(PreviousForced);
-                        Sequence->SetRootMotionRootLock(PreviousLock);
-                        Sequence->SetRootMotionBone(PreviousBone);
-                    } else {
-                        mContext->AddLog("Saved animation root motion settings");
-                    }
-                }
-
-                if (!Error.empty()) {
-                    mContext->AddLog(Error);
-                }
-            }
-
-            ImGui::EndDisabled();
-        }
-
-        ImGui::End();
     }
 
     /**

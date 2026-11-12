@@ -53,6 +53,7 @@ namespace Editor {
     class FMeshViewer;
     class FBlendSpaceEditor;
     class FAnimGraphEditor;
+    class FAnimSequenceEditor;
     class FEditorAssetCatalog;
     class FAssetThumbnailCache;
 
@@ -176,7 +177,6 @@ namespace Editor {
          * @brief 선택한 설정 분류의 편집 UI와 저장·초기화 상태를 표시합니다.
          */
         void DrawSettings();
-        void DrawAnimSequenceSettings();
 
         /**
          * @brief 테마 검색·가져오기와 기본 폰트 크기 등 인터페이스 설정을 편집합니다.
@@ -594,13 +594,6 @@ namespace Editor {
          */
         bool mSettingsOpen{};
 
-        bool mAnimSequenceOpen{};
-        bool mAnimSequenceRootMotion{};
-        bool mAnimSequenceForceRootLock{};
-        int mAnimSequenceRootLock{1};
-        std::array<char, 1024> mAnimSequenceRootBone{};
-        std::filesystem::path mAnimSequencePath{};
-
         /**
          * @brief 다음 설정 창 표시 시 포커스를 요청할지 나타냅니다.
          */
@@ -830,6 +823,8 @@ namespace Editor {
          * @brief 애니메이션 그래프 에셋 편집 창입니다.
          */
         std::unique_ptr<Editor::FAnimGraphEditor> mAnimGraphEditor{};
+
+        std::unique_ptr<Editor::FAnimSequenceEditor> mAnimSequenceEditor{};
 
         /**
          * @brief 브라우저와 Details가 공유하는 실제 에셋 목록입니다.
