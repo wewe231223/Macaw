@@ -20,6 +20,7 @@ namespace Renderer {
      */
     struct FEditorMeshConstants {
     public:
+
         /**
          * @brief 에디터 메시 정점 셰이더가 로컬 위치를 변환하는 월드 행렬입니다.
          */
@@ -30,6 +31,9 @@ namespace Renderer {
          */
         std::array<float, 4> mColor{};
 
+        /**
+         * @brief 에디터 메시의 조명·표면 셰이딩 파라미터입니다.
+         */
         std::array<float, 4> mShading{};
     };
 

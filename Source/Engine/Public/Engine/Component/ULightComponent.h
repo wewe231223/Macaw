@@ -21,6 +21,7 @@ namespace Engine {
         GENERATED_BODY()
 
     public:
+
         /**
          * @brief ULightComponent의 기본 상태를 초기화합니다.
          */
@@ -32,6 +33,7 @@ namespace Engine {
         ~ULightComponent() override;
 
     public:
+
         /**
          * @brief 광원의 그림자 생성 여부를 반환합니다.
          * @return 광원의 그림자 생성 여부입니다.
@@ -71,9 +73,30 @@ namespace Engine {
          */
         bool SetShadowResolutionScale(float Scale);
 
+        /**
+         * @brief 그림자 깊이 바이어스 프리셋을 반환합니다.
+         * @return 현재 깊이 바이어스 단계입니다.
+         */
         Engine::EShadowBiasPreset GetShadowBiasPreset() const;
+
+        /**
+         * @brief 유효한 깊이 바이어스 단계를 설정하고 조명 프록시를 갱신합니다.
+         * @param Preset 유효 범위 안의 그림자 바이어스 단계입니다.
+         * @return 프리셋 값이 유효하면 true입니다.
+         */
         bool SetShadowBiasPreset(Engine::EShadowBiasPreset Preset);
+
+        /**
+         * @brief 그림자 경사 바이어스 프리셋을 반환합니다.
+         * @return 현재 경사 바이어스 단계입니다.
+         */
         Engine::EShadowBiasPreset GetShadowSlopeBiasPreset() const;
+
+        /**
+         * @brief 유효한 경사 바이어스 단계를 설정하고 조명 프록시를 갱신합니다.
+         * @param Preset 유효 범위 안의 그림자 바이어스 단계입니다.
+         * @return 프리셋 값이 유효하면 true입니다.
+         */
         bool SetShadowSlopeBiasPreset(Engine::EShadowBiasPreset Preset);
 
         /**
@@ -110,6 +133,7 @@ namespace Engine {
         void Serialize(Core::FArchive& Archive) override;
 
     private:
+
         /**
          * @brief 광원의 그림자 생성 여부입니다.
          */
@@ -128,9 +152,15 @@ namespace Engine {
         UPROPERTY(Edit, Serialize, Getter = GetShadowResolutionScale, Setter = SetShadowResolutionScale)
         float mShadowResolutionScale{1.0f};
 
+        /**
+         * @brief 그림자 깊이 바이어스 단계입니다.
+         */
         UPROPERTY(Edit, Serialize, Getter = GetShadowBiasPreset, Setter = SetShadowBiasPreset)
         Engine::EShadowBiasPreset mShadowBiasPreset{Engine::DefaultShadowBiasPreset};
 
+        /**
+         * @brief 그림자 경사 바이어스 단계입니다.
+         */
         UPROPERTY(Edit, Serialize, Getter = GetShadowSlopeBiasPreset, Setter = SetShadowSlopeBiasPreset)
         Engine::EShadowBiasPreset mShadowSlopeBiasPreset{Engine::DefaultShadowBiasPreset};
 

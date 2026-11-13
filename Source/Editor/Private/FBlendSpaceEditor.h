@@ -34,6 +34,7 @@ namespace Editor {
      */
     class FBlendSpaceEditor {
     public:
+
         /**
          * @brief 에셋 관리자와 선택기 서비스를 연결합니다.
          * @param[in] Assets 프로젝트 에셋 관리자이며 창보다 오래 살아 있어야 합니다.
@@ -42,9 +43,13 @@ namespace Editor {
          */
         FBlendSpaceEditor(Asset::FAssetManager* Assets, Editor::FEditorAssetCatalog* Catalog, Editor::FAssetThumbnailCache* Thumbnails);
 
+        /**
+         * @brief 객체의 수명을 끝내고 소유한 리소스를 정리합니다.
+         */
         ~FBlendSpaceEditor();
 
     public:
+
         /**
          * @brief 블렌드 스페이스를 열어 편집 사본을 만듭니다. 저장하지 않은 변경은 버립니다.
          * @param[in] Path Content 기준 경로입니다.
@@ -69,9 +74,18 @@ namespace Editor {
          * @return 열려 있으면 true입니다.
          */
         bool IsOpen() const;
+
+        /**
+         * @brief 에디터 창 또는 그 하위 창이 현재 입력 포커스를 갖는지 확인합니다.
+         * @return 해당 에디터에 포커스가 있으면 true입니다.
+         */
         bool IsFocused() const;
 
     private:
+
+        /**
+         * @brief 블렌드 공간 편집과 샘플 선택 상태를 정리하고 창을 닫습니다.
+         */
         void Close();
 
         /**
@@ -84,6 +98,10 @@ namespace Editor {
          * @brief 축 캔버스를 그리고 샘플 끌기·미리보기·추가·삭제 입력을 처리합니다.
          */
         void DrawCanvas();
+
+        /**
+         * @brief 블렌드 샘플의 표시·이름·선택 관련 메뉴를 표시합니다.
+         */
         void DrawSampleMenus();
 
         /**
@@ -112,6 +130,7 @@ namespace Editor {
         float Snap(float Value, bool Free) const;
 
     private:
+
         /**
          * @brief 프로젝트 에셋 관리자입니다.
          */
@@ -176,7 +195,15 @@ namespace Editor {
          * @brief 샘플을 격자에 맞출지 여부입니다.
          */
         bool mSnapToGrid{true};
+
+        /**
+         * @brief 샘플 지점에 이름을 표시할지 여부입니다.
+         */
         bool mShowSampleNames{true};
+
+        /**
+         * @brief 선택한 샘플이 목록에 보이도록 스크롤할지 여부입니다.
+         */
         bool mRevealSample{};
 
         /**

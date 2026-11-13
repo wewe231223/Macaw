@@ -17,6 +17,7 @@ namespace Engine {
      */
     struct FAnimNode_TwoWayBlend : public Engine::FAnimNode_Base {
     public:
+
         /**
          * @brief 이보다 작은 가중치는 0으로 보고 해당 입력을 건너뜁니다.
          */
@@ -32,6 +33,11 @@ namespace Engine {
         void GetPoseInputs(Core::TArray<Engine::FAnimNodePoseInput>& OutInputs) override;
 
         void GetDebugValues(Core::TArray<Engine::FAnimNodeValue>& OutValues) override;
+
+        /**
+         * @brief 노드가 제공하는 값 입력 이름과 연결 주소를 수집합니다.
+         * @param OutInputs 값 입력 이름과 비소유 링크 주소를 추가할 출력 배열입니다.
+         */
         void GetValueInputs(Core::TArray<Engine::FAnimNodeValueInput>& OutInputs) override;
 
         /**
@@ -39,9 +45,15 @@ namespace Engine {
          * @return 0과 1 사이로 제한한 값입니다.
          */
         float GetBlendAlpha() const;
+
+        /**
+         * @brief 최근 갱신에서 계산한 루트 모션 증분을 반환합니다.
+         * @return 노드 또는 인스턴스의 이동·회전 증분이며 없으면 항등 변환입니다.
+         */
         Core::FTransform GetRootMotionDelta() const override;
 
     public:
+
         /**
          * @brief 첫 번째 입력 포즈입니다.
          */
@@ -57,9 +69,13 @@ namespace Engine {
          */
         float mAlpha{};
 
+        /**
+         * @brief 두 포즈의 블렌드 가중치를 공급하는 Float 입력입니다.
+         */
         Engine::FAnimFloatLink mAlphaInput{};
 
     private:
+
         /**
          * @brief 마지막 Update에서 0과 1 사이로 제한한 Alpha입니다.
          */

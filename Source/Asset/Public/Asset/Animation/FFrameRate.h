@@ -16,6 +16,7 @@ namespace Asset {
      */
     struct FFrameRate {
     public:
+
         /**
          * @brief 초당 프레임 수를 실수로 근사한 분수로 만듭니다.
          * @param[in] FramesPerSecond 양수인 초당 프레임 수입니다.
@@ -48,9 +49,15 @@ namespace Asset {
          */
         bool IsValid() const;
 
+        /**
+         * @brief 프레임률의 분자와 분모가 같은지 비교합니다.
+         * @param Other 비교하거나 복사할 상대 객체입니다.
+         * @return 두 프레임률의 저장 값이 같으면 true입니다.
+         */
         bool operator==(const Asset::FFrameRate& Other) const = default;
 
     public:
+
         /**
          * @brief 분자입니다. 정수 레이트에서는 초당 프레임 수입니다.
          */

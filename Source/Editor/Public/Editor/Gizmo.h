@@ -34,9 +34,26 @@ namespace Editor {
      */
     class FTransformGizmo {
     private:
+
+        /**
+         * @brief Alt 드래그 중 복제 요청의 대기와 완료 상태입니다.
+         * @ingroup Editor
+         */
         enum class EDuplicationState {
+
+            /**
+             * @brief 복제 요청이 없는 상태입니다.
+             */
             None,
+
+            /**
+             * @brief 드래그 이동을 기다리는 복제 요청입니다.
+             */
             Pending,
+
+            /**
+             * @brief 이번 드래그에서 복제를 마친 상태입니다.
+             */
             Completed
         };
 
@@ -45,6 +62,7 @@ namespace Editor {
          */
         struct FTargetState {
         public:
+
             /**
              * @brief 드래그를 시작할 때 기록한 공간 컴포넌트의 전역 세대 핸들입니다.
              */
@@ -57,6 +75,7 @@ namespace Editor {
         };
 
     public:
+
         /**
          * @brief FTransformGizmo의 초기 상태와 전달받은 의존성을 구성합니다.
          * @param[in,out] Context 패널이 조회하고 편집할 에디터 컨텍스트입니다.
@@ -66,6 +85,7 @@ namespace Editor {
         FTransformGizmo(Editor::FEditorContext* Context, const Editor::FEditorViewportClient* Client);
 
     public:
+
         /**
          * @brief 선택과 편집 월드에 사용할 컨텍스트를 교체합니다.
          * @param[in] Context 선택과 변환 편집에 사용할 에디터 컨텍스트입니다.
@@ -133,6 +153,7 @@ namespace Editor {
         Core::Int32 GetHoveredAxis() const;
 
     private:
+
         /**
          * @brief 편집 권한과 값의 범위를 검증한 뷰포트 클라이언트에 설정 저장을 허용합니다.
          */
@@ -165,6 +186,7 @@ namespace Editor {
          * @param[in] Axis 드래그를 시작할 기즈모 축 번호입니다.
          * @param[in] Input 마우스 시작 위치, 누른 버튼과 복제 키 상태를 제공합니다.
          * @param[in] View 입력 해석이나 그리기에 사용할 카메라 뷰입니다.
+         * @param Target 드래그 시작 변환을 기록할 대상 컴포넌트입니다.
          * @return 드래그 대상과 시작 상태를 준비하면 true입니다.
          */
         bool BeginDrag(Core::Int32 Axis, const Engine::USceneComponent& Target, const Engine::FViewportInput& Input, const Engine::FSceneView& View);
@@ -194,6 +216,7 @@ namespace Editor {
         Editor::FGizmoPlacement GetPlacement(const Engine::USceneComponent& Target) const;
 
     private:
+
         /**
          * @brief 핸들 표시, 교차 판정과 드래그 계산을 맡는 공통 코어입니다.
          */
@@ -213,6 +236,10 @@ namespace Editor {
          * @brief 드래그 시작 시 편집 대상 월드의 세대 핸들입니다.
          */
         Engine::FWorldHandle mWorldHandle{};
+
+        /**
+         * @brief 현재 장면 편집 범위를 종료할 토큰이며 비활성 시 0입니다.
+         */
         Core::Uint64 mSceneEditToken{};
 
         /**

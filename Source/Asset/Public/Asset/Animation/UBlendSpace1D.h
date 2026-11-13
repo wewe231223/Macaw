@@ -24,8 +24,15 @@ namespace Asset {
         GENERATED_BODY()
 
     public:
+
+        /**
+         * @brief UBlendSpace1D의 초기 상태와 의존성을 구성합니다.
+         */
         UBlendSpace1D() = default;
 
+        /**
+         * @brief 객체의 수명을 끝내고 소유한 리소스를 정리합니다.
+         */
         ~UBlendSpace1D() override = default;
 
     public:
@@ -34,9 +41,17 @@ namespace Asset {
         Core::Uint32 GetNumAxes() const override;
 
     private:
+
+        /**
+         * @brief 파라미터 순으로 샘플 조회 캐시를 재구성합니다.
+         */
         void RebuildSampleOrder() override;
 
     private:
+
+        /**
+         * @brief 파라미터 순으로 정렬한 샘플 인덱스 캐시입니다.
+         */
         std::array<Core::Int32, MaxSamples> mSortedSampleIndices{};
     };
 

@@ -31,6 +31,7 @@ namespace Engine {
      */
     struct FPrimitiveSceneProxy {
     public:
+
         /**
          * @brief 렌더 프리미티브의 영속 식별자입니다.
          */
@@ -110,6 +111,10 @@ namespace Engine {
          * @brief 프리미티브의 그림자 수신 여부입니다.
          */
         bool mReceiveShadow{true};
+
+        /**
+         * @brief 이 프리미티브가 데칼을 받는지 여부입니다.
+         */
         bool mReceivesDecals{true};
     };
 

@@ -1,3 +1,9 @@
+/**
+ * @file FAnimNode_SequencePlayer.cpp
+ * @brief 시퀀스 하나를 재생 위치에서 샘플링해 포즈로 출력합니다.
+ * @ingroup Engine
+ */
+
 #include "Engine/Animation/FAnimNode_SequencePlayer.h"
 #include "Asset/Animation/UAnimSequence.h"
 #include "Engine/Animation/UAnimInstance.h"

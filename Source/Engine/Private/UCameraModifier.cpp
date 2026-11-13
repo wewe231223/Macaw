@@ -1,3 +1,9 @@
+/**
+ * @file UCameraModifier.cpp
+ * @brief 카메라 관리자가 확정한 시점을 그리기 직전에 고치는 카메라 모디파이어의 기반 클래스입니다.
+ * @ingroup Engine
+ */
+
 #include "Engine/UCameraModifier.h"
 #include "Engine/APlayerCameraManager.h"
 #include "Engine/FMinimalViewInfo.h"

@@ -1,3 +1,9 @@
+/**
+ * @file USkeleton.cpp
+ * @brief 본 계층, 로컬 기준 포즈, 전역 바인드·역바인드 행렬을 공유하는 스켈레톤 에셋입니다.
+ * @ingroup Asset
+ */
+
 #include "Asset/USkeleton.h"
 
 #include <utility>

@@ -60,6 +60,7 @@ namespace Renderer {
      */
     class FRenderer final : public RenderCore::IRendererModule {
     public:
+
         /**
          * @brief FRenderer의 초기 상태와 전달받은 의존성을 구성합니다.
          */
@@ -82,6 +83,7 @@ namespace Renderer {
         Renderer::FRenderer& operator=(const Renderer::FRenderer&) = delete;
 
     public:
+
         /**
          * @brief Direct3D 11 장치, 스왑 체인과 렌더 파이프라인을 준비합니다.
          * @param[in] WindowHandle 렌더링할 네이티브 Win32 창 핸들입니다.
@@ -268,6 +270,7 @@ namespace Renderer {
         void SetProjectPaths(const std::filesystem::path& ContentRoot, const std::filesystem::path& CacheDirectory);
 
     private:
+
         /**
          * @brief 코드·패스·인스턴싱·스키닝 조합의 GPU 셰이더 인스턴스를 조회합니다.
          * @param[in] Description 소스·프로필·진입점·매크로를 지정한 셰이더 설명입니다.
@@ -375,6 +378,7 @@ namespace Renderer {
          * @param[in] Scene 그릴 프리미티브와 광원을 가진 렌더 장면입니다.
          * @param[in] Family 표시 모드와 표시 플래그를 가진 현재 뷰 요청입니다.
          * @param[in] Parameters 출력 타깃과 뷰 투영 행렬입니다.
+         * @param MarkDecalReceivers 데칼 수신 여부를 스텐실 상태에 반영할지 여부입니다.
          * @return 패스에 필요한 파이프라인과 조명을 준비해 드로 목록을 제출했으면 true입니다.
          */
         bool DrawMeshPass(Renderer::FMeshPass& Pass, const Renderer::FScene& Scene, const Engine::FSceneViewFamily& Family, const Renderer::FMeshPassParameters& Parameters, bool MarkDecalReceivers = false);
@@ -384,11 +388,13 @@ namespace Renderer {
          * @param[in] Rasterizer 메시 파이프라인의 래스터 상태를 덮어쓸 상태입니다.
          * @param[in] Pass 머티리얼 바인딩과 통계 대상을 정할 메시 패스 종류입니다.
          * @param[in] Commands 메시 패스가 만든 정렬된 드로 목록입니다.
+         * @param MarkDecalReceivers 명령의 데칼 수신 여부를 스텐실에 기록할지 여부입니다.
          * @return 제출한 드로 호출 수입니다.
          */
         Core::Uint32 SubmitMeshCommands(ID3D11RasterizerState* Rasterizer, Renderer::EMeshPass Pass, std::span<const Renderer::FMeshDrawCommand> Commands, bool MarkDecalReceivers);
 
     private:
+
         /**
          * @brief 프레임 광원 버퍼와 타일 컬링 자원입니다.
          */
@@ -428,7 +434,15 @@ namespace Renderer {
          * @brief 보이는 메시를 머티리얼과 조명으로 장면 타깃에 그리는 메시 패스입니다.
          */
         std::unique_ptr<Renderer::FBasePass> mBasePass{};
+
+        /**
+         * @brief 데칼 투영 패스의 소유 포인터입니다.
+         */
         std::unique_ptr<Renderer::FDecalPass> mDecalPass{};
+
+        /**
+         * @brief GBuffer 조명 합성 패스의 소유 포인터입니다.
+         */
         std::unique_ptr<Renderer::FDeferredLightingPass> mDeferredLightingPass{};
 
         /**
@@ -565,6 +579,10 @@ namespace Renderer {
          * @brief 깊이 검사가 켜진 깊이 상태입니다.
          */
         Microsoft::WRL::ComPtr<ID3D11DepthStencilState> mDepthEnabled{};
+
+        /**
+         * @brief GBuffer 기록 시 사용할 깊이·스텐실 상태입니다.
+         */
         Microsoft::WRL::ComPtr<ID3D11DepthStencilState> mGBufferDepth{};
 
         /**

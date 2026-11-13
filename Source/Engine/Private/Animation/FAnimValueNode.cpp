@@ -1,3 +1,9 @@
+/**
+ * @file FAnimValueNode.cpp
+ * @brief 애니메이션 값 노드와 자료형을 검증하는 입력 연결을 제공합니다.
+ * @ingroup Engine
+ */
+
 #include "Engine/Animation/FAnimValueNode.h"
 #include "Engine/Animation/FAnimNode_Base.h"
 #include "Engine/Animation/UAnimInstance.h"

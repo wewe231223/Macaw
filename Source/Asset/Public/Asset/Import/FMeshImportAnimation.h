@@ -15,6 +15,10 @@ namespace Asset {
      */
     class FMeshImportAnimation {
     public:
+
+        /**
+         * @brief FMeshImportAnimation의 초기 상태와 의존성을 구성합니다.
+         */
         FMeshImportAnimation() = default;
 
         /**
@@ -25,6 +29,7 @@ namespace Asset {
         FMeshImportAnimation(Core::FString Name, Asset::FAnimDataModel DataModel);
 
     public:
+
         /**
          * @brief 원본 애니메이션 스택 이름을 반환합니다.
          * @return 스택 이름입니다.
@@ -44,6 +49,7 @@ namespace Asset {
         Asset::FAnimDataModel& GetDataModel();
 
     private:
+
         /**
          * @brief 원본 애니메이션 스택 이름입니다.
          */

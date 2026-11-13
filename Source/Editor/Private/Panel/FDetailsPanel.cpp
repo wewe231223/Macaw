@@ -56,6 +56,12 @@ namespace Editor {
      * @brief Details 패널에서 사용하는 컴포넌트 표시 이름 변환입니다.
      */
     namespace {
+
+        /**
+         * @brief 내부 식별자를 사람이 읽기 쉬운 표시 이름으로 변환합니다.
+         * @param Name 조회하거나 표시할 이름입니다.
+         * @return 공백과 이름 규칙을 반영한 표시 문자열입니다.
+         */
         Core::FString DisplayName(std::string_view Name) {
             Core::FString Label{};
 
@@ -72,6 +78,12 @@ namespace Editor {
             return Label;
         }
 
+        /**
+         * @brief 선언 클래스와 프로퍼티 이름에 맞는 표시 분류를 선택합니다.
+         * @param Owner 새 상태에 복사할 변수 정의를 가진 소유 그래프입니다.
+         * @param Name 조회하거나 표시할 이름입니다.
+         * @return 정적 분류 이름 또는 메타데이터의 문자열 뷰입니다.
+         */
         std::string_view DetailCategory(const CoreUObject::UClass* Owner, std::string_view Name) {
             if (Name == "Transform") {
                 return "Transform";
@@ -122,6 +134,11 @@ namespace Editor {
             return Owner == CoreUObject::UObject::StaticClass() || Owner == Engine::AActor::StaticClass() || Owner == Engine::UActorComponent::StaticClass() ? "General" : "Settings";
         }
 
+        /**
+         * @brief 리플렉션 메타데이터와 이름 규칙으로 프로퍼티 표시 이름을 만듭니다.
+         * @param Property 표시·직렬화·조회할 프로퍼티 메타데이터입니다.
+         * @return 상세 패널에 표시할 이름입니다.
+         */
         Core::FString PropertyLabel(const CoreUObject::FProperty* Property) {
             const Core::FString& Name{Property->GetName()};
 
@@ -144,10 +161,20 @@ namespace Editor {
             return DisplayName(Name);
         }
 
+        /**
+         * @brief 프로퍼티 이름에 따른 고급 항목 분류를 확인합니다.
+         * @param Name 조회하거나 표시할 이름입니다.
+         * @return 고급 표시 필터의 대상이면 true입니다.
+         */
         bool IsAdvancedProperty(std::string_view Name) {
             return Name == "EditorTickable" || Name.starts_with("Shadow") || Name == "ReceivesDecals";
         }
 
+        /**
+         * @brief 선택 객체가 액터 또는 컴포넌트일 때 소유 액터를 찾습니다.
+         * @param Object 외부에서 수명을 보장하는 에셋 객체입니다.
+         * @return 비소유 액터 포인터이며 해당하지 않으면 nullptr입니다.
+         */
         Engine::AActor* GetOwningActor(CoreUObject::UObject* Object) {
             if (auto* Actor{CoreUObject::Cast<Engine::AActor>(Object)}) {
                 return Actor;
@@ -158,6 +185,12 @@ namespace Editor {
             return Component != nullptr ? Component->GetOwner() : nullptr;
         }
 
+        /**
+         * @brief 프로퍼티 variant의 형식과 실제 값을 비교합니다.
+         * @param First 비교할 첫 번째 프로퍼티 값입니다.
+         * @param Second 비교할 두 번째 프로퍼티 값입니다.
+         * @return 형식과 값이 같으면 true입니다.
+         */
         bool EqualValues(const CoreUObject::FPropertyValue& First, const CoreUObject::FPropertyValue& Second) {
             return std::visit([&Second](const auto& Value) {
                 using FValue = std::decay_t<decltype(Value)>;
@@ -179,6 +212,12 @@ namespace Editor {
             }, First);
         }
 
+        /**
+         * @brief 프로퍼티 variant의 현재 형식에 맞춰 상세 편집 값을 직렬화합니다.
+         * @param Archive 저장·로드 방향과 오류 상태를 제공하는 아카이브입니다.
+         * @param Value 표시·비교하거나 적용할 값입니다.
+         * @return 지원하는 형식의 직렬화가 성공하면 true입니다.
+         */
         bool ArchiveDetailValue(Serialization::FJsonArchive& Archive, CoreUObject::FPropertyValue& Value) {
             if (Archive.IsLoading() && !Archive.HasField("Value")) {
                 return false;
@@ -195,10 +234,18 @@ namespace Editor {
             }, Value);
         }
 
+        /**
+         * @brief 프로퍼티 기본값 복원 버튼을 표시합니다.
+         * @return 버튼을 눌렀으면 true입니다.
+         */
         bool DrawResetButton() {
             return Editor::EditorStyle::IconButton("Reset to Default", Editor::EditorStyle::EIcon::Rotate);
         }
 
+        /**
+         * @brief 이름·값 열을 사용하는 상세 프로퍼티 표를 시작합니다.
+         * @return 표가 시작되어 행을 그릴 수 있으면 true입니다.
+         */
         bool BeginPropertyTable() {
             constexpr ImGuiTableFlags Flags{ImGuiTableFlags_Resizable | ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_SizingStretchProp};
 
@@ -241,6 +288,12 @@ namespace Editor {
             return !Property->HasFlag(Core::EPropertyFlags::Transient) && (Property->HasFlag(Core::EPropertyFlags::Edit) || Property->HasFlag(Core::EPropertyFlags::ReadOnly));
         }
 
+        /**
+         * @brief 필드 이름을 사용 가능한 너비에 맞춰 표시합니다.
+         * @param Label UI 항목의 표시 이름입니다.
+         * @param TrailingWidth 이름 뒤 위젯에 남겨 둘 너비(픽셀)입니다.
+         * @return 위젯 구분에 사용할 필드 이름 문자열입니다.
+         */
         Core::FString DrawFieldLabel(const char* Label, float TrailingWidth = 0.0f) {
             const float LabelEnd{ImGui::GetCursorPosX() + std::max(1.0f, ImGui::GetContentRegionAvail().x * 0.4f)};
 
@@ -287,6 +340,7 @@ namespace Editor {
          * @brief 타입 태그에 맞는 위젯으로 C# 필드 값을 표시합니다.
          * @param[in] Info 필드 정보입니다.
          * @param[in,out] Value 문자열로 변환된 값입니다.
+         * @param Label 필드 입력 위젯의 ImGui 이름입니다.
          * @return 값이 바뀌면 true입니다.
          */
         bool DrawScriptFieldValue(const Script::FScriptFieldInfo& Info, const char* Label, Core::FString& Value) {

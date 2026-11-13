@@ -1,3 +1,9 @@
+/**
+ * @file UBlendSpace.cpp
+ * @brief 입력 좌표에 따라 샘플 애니메이션의 가중치를 계산하는 에셋의 기반입니다.
+ * @ingroup Asset
+ */
+
 #include "Asset/Animation/UBlendSpace.h"
 #include "Asset/Animation/UAnimSequence.h"
 #include "Asset/FAssetManager.h"
@@ -14,9 +20,21 @@
 
 namespace Asset {
 
+    /**
+     * @brief 입력 좌표에 따라 샘플 애니메이션의 가중치를 계산하는 에셋의 기반의 파일 내부 보조 구현입니다.
+     */
     namespace {
+
+        /**
+         * @brief 직렬화하는 블렌드 공간 파일 형식 버전입니다.
+         */
         constexpr Core::Uint32 BlendSpaceFormatVersion{1};
 
+        /**
+         * @brief 블렌드 축의 이름·범위·격자 설정이 유효한지 확인합니다.
+         * @param Parameter 조회하거나 연결할 파라미터 이름 또는 인덱스입니다.
+         * @return 유한하고 일관된 파라미터 설정이면 true입니다.
+         */
         bool IsValidParameter(const Asset::FBlendParameter& Parameter) {
             return std::isfinite(Parameter.mMin) && std::isfinite(Parameter.mMax) && Parameter.mMin < Parameter.mMax && Parameter.mGridDivisions >= 1 && Parameter.mGridDivisions <= 100;
         }

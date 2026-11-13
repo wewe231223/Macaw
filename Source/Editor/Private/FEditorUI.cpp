@@ -69,15 +69,47 @@ namespace Editor {
      * @brief 이 파일에서 사용하는 내부 보조 기능과 상태를 묶습니다.
      */
     namespace {
+
+        /**
+         * @brief 콘텐츠 종류별 리소스 아이콘, 대체 글리프와 표시 색상입니다.
+         * @ingroup Editor
+         */
         struct FContentIcon {
+
+            /**
+             * @brief 콘텐츠 종류를 식별하는 문자열입니다.
+             */
             std::string_view mKind{};
+
+            /**
+             * @brief 아이콘의 마우스 오버 설명입니다.
+             */
             const char* mTooltip{};
+
+            /**
+             * @brief 실행 파일에 포함된 아이콘 이미지 리소스 ID입니다.
+             */
             WORD mResourceId{};
+
+            /**
+             * @brief 리소스 이미지가 없을 때 사용할 아이콘 글리프입니다.
+             */
             Editor::EditorStyle::EIcon mFallback{};
+
+            /**
+             * @brief 아이콘에 곱할 표시 색상입니다.
+             */
             ImU32 mTint{IM_COL32_WHITE};
         };
 
+        /**
+         * @brief 알 수 없는 파일 종류에 사용할 기본 아이콘입니다.
+         */
         constexpr FContentIcon FileIcon{"File", "파일", MacawContentFileIconResource, Editor::EditorStyle::EIcon::Component};
+
+        /**
+         * @brief 콘텐츠 종류별 아이콘 메타데이터 목록입니다.
+         */
         constexpr FContentIcon ContentIcons[]{
             FileIcon,
             {"Folder", "폴더", MacawContentFolderIconResource, Editor::EditorStyle::EIcon::Component, IM_COL32(255, 208, 111, 255)},
@@ -94,6 +126,11 @@ namespace Editor {
             {"Scene", "씬", MacawContentSceneIconResource, Editor::EditorStyle::EIcon::World}
         };
 
+        /**
+         * @brief 콘텐츠 종류에 대응하는 아이콘 메타데이터를 조회합니다.
+         * @param Kind 콘텐츠 종류 문자열입니다.
+         * @return 정적 아이콘 항목의 참조이며 모르는 종류는 기본 파일 아이콘입니다.
+         */
         const FContentIcon& GetContentIcon(std::string_view Kind) {
             for (const FContentIcon& Icon : ContentIcons) {
                 if (Icon.mKind == Kind) {
@@ -104,6 +141,13 @@ namespace Editor {
             return FileIcon;
         }
 
+        /**
+         * @brief 썸네일·리소스 아이콘·대체 글리프 중 사용 가능한 이미지를 표시합니다.
+         * @param Size 출력 또는 표시 영역 크기(픽셀)입니다.
+         * @param Thumbnail 캐시에서 제공한 썸네일 네이티브 텍스처 핸들입니다.
+         * @param Resource 썸네일이 없을 때 사용할 GPU 아이콘 리소스입니다.
+         * @param Icon 리소스가 없을 때 사용할 대체 아이콘 정보입니다.
+         */
         void DrawContentImage(float Size, void* Thumbnail, ID3D11ShaderResourceView* Resource, const FContentIcon& Icon) {
             if (Thumbnail != nullptr) {
                 ImGui::Image(ImTextureRef{static_cast<ImTextureID>(reinterpret_cast<std::uintptr_t>(Thumbnail))}, {Size, Size});

@@ -32,6 +32,7 @@ namespace Asset {
         GENERATED_BODY()
 
     public:
+
         /**
          * @brief 빈 스켈레탈 메시를 생성합니다.
          */
@@ -43,6 +44,7 @@ namespace Asset {
         ~USkeletalMesh() override = default;
 
     public:
+
         /**
          * @brief 형상과 가중치를 검증하고 저장합니다.
          * @param MeshData 바인드 형상입니다.
@@ -63,6 +65,10 @@ namespace Asset {
          */
         const Core::TArray<Asset::FMeshImportSkinWeight>& GetSkinWeights() const;
 
+        /**
+         * @brief 스키닝 가중치가 요구하는 본 행렬 수를 반환합니다.
+         * @return GPU 스키닝에 필요한 행렬 개수입니다.
+         */
         Core::Uint32 GetSkinMatrixCount() const;
 
         /**
@@ -122,10 +128,12 @@ namespace Asset {
         bool IsValid() const;
 
     private:
+
         /**
          * @brief BLENDINDICES(uint4)와 BLENDWEIGHT(float4) 입력 하나의 GPU 배치입니다.
          */
         struct FSkinWeightVertex {
+
             /**
              * @brief 정점에 영향을 주는 최대 네 개의 본 인덱스입니다.
              */
@@ -143,6 +151,7 @@ namespace Asset {
         using FSkinWeightBuffer = RenderCore::TVertexBuffer<FSkinWeightVertex, RenderCore::EBufferUpdate::Immutable>;
 
     private:
+
         /**
          * @brief 정적 메시와 공유하는 버퍼 구현이며 위치는 바인드 포즈를 유지합니다.
          */
@@ -153,6 +162,9 @@ namespace Asset {
          */
         Core::TArray<Asset::FMeshImportSkinWeight> mSkinWeights{};
 
+        /**
+         * @brief GPU 스키닝에서 참조할 본 행렬 수입니다.
+         */
         Core::Uint32 mSkinMatrixCount{};
 
         /**

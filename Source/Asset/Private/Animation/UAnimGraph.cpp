@@ -1,3 +1,9 @@
+/**
+ * @file UAnimGraph.cpp
+ * @brief 노드·링크·변수로 이루어진 애니메이션 그래프 에셋입니다.
+ * @ingroup Asset
+ */
+
 #include "Asset/Animation/UAnimGraph.h"
 #include "Core/Archive.h"
 
@@ -9,8 +15,19 @@
 
 namespace Asset {
 
+    /**
+     * @brief 노드·링크·변수로 이루어진 애니메이션 그래프 에셋의 파일 내부 보조 구현입니다.
+     */
     namespace {
+
+        /**
+         * @brief 직렬화하는 애니메이션 그래프 파일 형식 버전입니다.
+         */
         constexpr Core::Uint32 AnimGraphFormatVersion{1};
+
+        /**
+         * @brief 노드 파라미터와 변수 Getter 연결을 저장하는 키 접미사입니다.
+         */
         constexpr std::string_view BindingSuffix{".Binding"};
     }
 

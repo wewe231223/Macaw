@@ -36,6 +36,7 @@ namespace Script {
          * @brief 관리 코드가 호출할 네이티브 로그·객체·카탈로그·바인딩 함수 테이블입니다.
          */
         struct FNativeApi {
+
             /**
              * @brief ABI 호환성 검사에 쓰는 테이블 바이트 크기입니다.
              */
@@ -78,9 +79,26 @@ namespace Script {
         };
 
         // Source/Managed/Macaw.Engine/ScriptCameraModifier.cs의 MinimalViewInfo와 배치가 같아야 합니다.
+
+        /**
+         * @brief 네이티브와 관리 코드 사이에서 공유하는 카메라 위치·회전·시야각 배치입니다.
+         * @ingroup Script
+         */
         struct FViewInfoAbi {
+
+            /**
+             * @brief 관리 코드 ABI로 전달하는 카메라 월드 위치입니다.
+             */
             Script::Abi::FVector3 mLocation{};
+
+            /**
+             * @brief 관리 코드 ABI로 전달하는 카메라 회전 쿼터니언입니다.
+             */
             Script::Abi::FQuat mRotation{};
+
+            /**
+             * @brief 수직 시야각(도)입니다.
+             */
             float mFieldOfView{};
         };
 
@@ -92,6 +110,7 @@ namespace Script {
          * @brief 네이티브가 호출할 관리 코드의 스크립트 수명·필드·이벤트 함수 테이블입니다.
          */
         struct FManagedApi {
+
             /**
              * @brief ABI 호환성 검사에 쓰는 테이블 바이트 크기입니다.
              */
@@ -265,6 +284,7 @@ namespace Script {
      * @brief CoreCLR 경계에서 교환하는 네이티브·관리 함수 테이블입니다.
      */
     struct Script::FScriptRuntime::FState {
+
         /**
          * @brief 관리 코드에 전달할 로그·객체·바인딩 호출 테이블입니다.
          */

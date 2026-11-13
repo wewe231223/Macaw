@@ -1,3 +1,9 @@
+/**
+ * @file UAnimGraphInstance.cpp
+ * @brief 에디터에서 만든 UAnimGraph 에셋을 실행합니다.
+ * @ingroup Engine
+ */
+
 #include "Engine/Animation/UAnimGraphInstance.h"
 #include "Asset/FAssetManager.h"
 #include "Core/FilePath.h"

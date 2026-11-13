@@ -1,3 +1,9 @@
+/**
+ * @file FAnimDataModel.cpp
+ * @brief 시퀀스의 원시 트랙·키프레임과 프레임률 데이터를 관리합니다.
+ * @ingroup Asset
+ */
+
 #include "Asset/Animation/FAnimDataModel.h"
 
 #include <unordered_set>

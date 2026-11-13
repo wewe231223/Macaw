@@ -58,31 +58,108 @@ namespace Editor {
      */
     class FEditorContext {
     private:
+
+        /**
+         * @brief 장면의 직렬화 바이트와 선택 객체 GUID를 보관하는 복원 데이터입니다.
+         * @ingroup Editor
+         */
         struct FSceneMemento {
+
+            /**
+             * @brief 장면을 직렬화한 바이트 배열입니다.
+             */
             Core::TArray<Core::Uint8> mBytes{};
+
+            /**
+             * @brief 복원할 선택 액터 GUID 목록입니다.
+             */
             Core::TArray<Core::FGuid> mSelectedActors{};
+
+            /**
+             * @brief 복원할 상세 선택 객체 GUID입니다.
+             */
             Core::FGuid mSelectedObject{};
         };
 
+        /**
+         * @brief 장면 변경 전후의 스냅샷과 리비전을 보관하는 실행 취소 명령입니다.
+         * @ingroup Editor
+         */
         struct FSceneEditCommand {
+
+            /**
+             * @brief 직전 장면 편집 명령의 변경 전 스냅샷을 복원합니다.
+             * @param Context 장면을 조회·복원·편집할 에디터 컨텍스트입니다.
+             * @return 장면 복원에 성공했으면 true입니다.
+             */
             bool Undo(FEditorContext& Context) const;
+
+            /**
+             * @brief 다음 장면 편집 명령의 변경 후 스냅샷을 복원합니다.
+             * @param Context 장면을 조회·복원·편집할 에디터 컨텍스트입니다.
+             * @return 장면 복원에 성공했으면 true입니다.
+             */
             bool Redo(FEditorContext& Context) const;
 
+            /**
+             * @brief 명령 적용 전 장면 스냅샷입니다.
+             */
             FSceneMemento mBefore{};
+
+            /**
+             * @brief 명령 적용 후 장면 스냅샷입니다.
+             */
             FSceneMemento mAfter{};
+
+            /**
+             * @brief 명령 적용 전 장면 리비전입니다.
+             */
             Core::Uint64 mBeforeRevision{};
+
+            /**
+             * @brief 명령 적용 후 장면 리비전입니다.
+             */
             Core::Uint64 mAfterRevision{};
         };
 
+        /**
+         * @brief 생성부터 소멸까지의 장면 변경을 하나의 실행 취소 작업으로 묶는 범위 객체입니다.
+         * @ingroup Editor
+         */
         class FSceneEditScope {
         public:
+
+            /**
+             * @brief 장면 편집 범위를 시작하고 소멸 시 종료할 토큰을 보관합니다.
+             * @param Context 장면을 조회·복원·편집할 에디터 컨텍스트입니다.
+             */
             explicit FSceneEditScope(FEditorContext& Context);
+
+            /**
+             * @brief 객체의 수명을 끝내고 소유한 리소스를 정리합니다.
+             */
             ~FSceneEditScope();
+
+            /**
+             * @brief 소유 리소스와 편집 상태의 복사 생성을 금지합니다.
+             */
             FSceneEditScope(const FSceneEditScope&) = delete;
+
+            /**
+             * @brief 소유 리소스와 편집 상태의 복사 대입을 금지합니다.
+             */
             FSceneEditScope& operator=(const FSceneEditScope&) = delete;
 
         private:
+
+            /**
+             * @brief 편집 범위가 참조하는 에디터 컨텍스트입니다.
+             */
             FEditorContext& mContext;
+
+            /**
+             * @brief 이 범위가 시작한 장면 편집 토큰입니다.
+             */
             Core::Uint64 mToken{};
         };
 
@@ -91,6 +168,7 @@ namespace Editor {
          */
         class FOperationScope {
         public:
+
             /**
              * @brief 연산 플래그를 설정합니다.
              * @param[in,out] Flag 범위 동안 설정할 플래그입니다.
@@ -114,6 +192,7 @@ namespace Editor {
             FOperationScope& operator=(const FOperationScope&) = delete;
 
         private:
+
             /**
              * @brief 이 범위가 관리하는 플래그의 비소유 주소입니다.
              */
@@ -121,6 +200,7 @@ namespace Editor {
         };
 
     public:
+
         /**
          * @brief 편집에 사용할 엔진을 연결합니다.
          * @param[in,out] Engine 컨텍스트보다 오래 유지할 엔진입니다.
@@ -144,6 +224,7 @@ namespace Editor {
         Editor::FEditorContext& operator=(const Editor::FEditorContext&) = delete;
 
     public:
+
         /**
          * @brief 편집 대상을 연결하고 선택과 장면 상태를 초기화합니다.
          * @param[in] Handle 같은 엔진이 소유한 월드입니다.
@@ -180,13 +261,46 @@ namespace Editor {
          */
         bool IsChangingState() const;
 
+        /**
+         * @brief 실행 취소용 변경 전 스냅샷을 확보하고 편집 범위를 시작합니다.
+         * @return 이 범위를 종료할 토큰이며 새 범위를 시작하지 못하면 0입니다.
+         */
         Core::Uint64 BeginSceneEdit();
+
+        /**
+         * @brief 일치하는 토큰의 편집을 종료하고 변경 전후를 실행 취소 이력에 기록합니다.
+         * @param Token BeginSceneEdit가 반환한 편집 범위 토큰입니다.
+         */
         void EndSceneEdit(Core::Uint64 Token);
+
+        /**
+         * @brief 장면 편집 범위가 진행 중인지 확인합니다.
+         * @return 유효한 편집 토큰이 활성화되어 있으면 true입니다.
+         */
         bool IsSceneEditActive() const;
 
+        /**
+         * @brief 실행 취소할 장면 편집 명령이 있는지 확인합니다.
+         * @return 현재 장면을 수정할 수 있고 취소할 명령이 있으면 true입니다.
+         */
         bool CanUndo() const;
+
+        /**
+         * @brief 다시 실행할 장면 편집 명령이 있는지 확인합니다.
+         * @return 현재 장면을 수정할 수 있고 다시 실행할 명령이 있으면 true입니다.
+         */
         bool CanRedo() const;
+
+        /**
+         * @brief 직전 장면 편집 명령의 변경 전 스냅샷을 복원합니다.
+         * @return 장면 복원에 성공했으면 true입니다.
+         */
         bool Undo();
+
+        /**
+         * @brief 다음 장면 편집 명령의 변경 후 스냅샷을 복원합니다.
+         * @return 장면 복원에 성공했으면 true입니다.
+         */
         bool Redo();
 
         /**
@@ -355,6 +469,13 @@ namespace Editor {
          * @return 삭제 요청을 수락하면 true입니다.
          */
         bool DestroySelectedActor();
+
+        /**
+         * @brief 대상 액터들의 가시성을 변경하고 실행 취소 이력에 반영합니다.
+         * @param Actors 가시성을 변경할 액터 핸들 목록입니다.
+         * @param Visible 설정할 액터 가시성입니다.
+         * @return 액터의 가시성을 변경했으면 true입니다.
+         */
         bool SetActorsVisible(const Core::TArray<CoreUObject::FObjectHandle>& Actors, bool Visible);
 
         /**
@@ -600,6 +721,7 @@ namespace Editor {
         bool RemoveScriptField(CoreUObject::FObjectHandle Handle, const Core::FString& Name);
 
     private:
+
         /**
          * @brief 편집 기능·렌더 설정·통계 명령을 콘솔에 등록합니다.
          */
@@ -631,6 +753,10 @@ namespace Editor {
          */
         void AssignSelection(const Core::TArray<CoreUObject::FObjectHandle>& Actors, CoreUObject::FObjectHandle Object);
 
+        /**
+         * @brief 현재 실행·전환 상태에서 에디터 장면을 수정할 수 있는지 확인합니다.
+         * @return 장면 수정을 허용하는 상태이면 true입니다.
+         */
         bool CanModifyScene() const;
 
         /**
@@ -655,15 +781,45 @@ namespace Editor {
          * @return 교체에 성공하면 true입니다.
          */
         bool ReplaceScene(std::unique_ptr<Engine::FWorldContext> Context, const std::filesystem::path& Path);
+
+        /**
+         * @brief 새 월드 컨텍스트로 장면을 교체하고 에디터 참조를 갱신합니다.
+         * @param Context 장면을 조회·복원·편집할 에디터 컨텍스트입니다.
+         * @return 월드 교체에 성공했으면 true입니다.
+         */
         bool ReplaceWorld(std::unique_ptr<Engine::FWorldContext> Context);
 
+        /**
+         * @brief 현재 장면과 선택 GUID를 복원용 스냅샷에 기록합니다.
+         * @param State 준비·저장·복원할 상태 데이터입니다.
+         * @return 스냅샷을 만들었으면 true입니다.
+         */
         bool CaptureSceneMemento(FSceneMemento& State);
+
+        /**
+         * @brief 스냅샷에서 장면을 다시 만들고 GUID로 선택 상태를 복원합니다.
+         * @param State 준비·저장·복원할 상태 데이터입니다.
+         * @return 장면과 선택을 복원했으면 true입니다.
+         */
         bool RestoreSceneMemento(const FSceneMemento& State);
+
+        /**
+         * @brief 진행 중인 편집에 변경을 표시하거나 장면 리비전을 갱신합니다.
+         */
         void NoteSceneEdit();
+
+        /**
+         * @brief 실행 취소 이력과 진행 중인 장면 편집 상태를 초기화합니다.
+         */
         void ClearSceneHistory();
+
+        /**
+         * @brief 실행 취소 이력의 보관 한도를 초과하는 오래된 명령을 제거합니다.
+         */
         void TrimSceneHistory();
 
     private:
+
         /**
          * @brief 월드의 소유권과 렌더러를 제공하는 엔진의 비소유 주소입니다.
          */
@@ -689,13 +845,44 @@ namespace Editor {
          */
         std::filesystem::path mScenePath{};
 
+        /**
+         * @brief 실행 취소·다시 실행할 장면 편집 명령 목록입니다.
+         */
         Core::TArray<FSceneEditCommand> mSceneHistory{};
+
+        /**
+         * @brief 진행 중인 장면 편집의 변경 전 스냅샷입니다.
+         */
         FSceneMemento mPendingSceneEdit{};
+
+        /**
+         * @brief 다음 다시 실행 명령의 위치이며 앞쪽 명령은 적용된 상태입니다.
+         */
         std::size_t mSceneHistoryPosition{};
+
+        /**
+         * @brief 편집 토큰 발급용 단조 증가 번호입니다.
+         */
         Core::Uint64 mSceneEditSerial{};
+
+        /**
+         * @brief 현재 장면 편집 범위를 종료할 토큰이며 비활성 시 0입니다.
+         */
         Core::Uint64 mSceneEditToken{};
+
+        /**
+         * @brief 현재 장면 내용의 리비전입니다.
+         */
         Core::Uint64 mSceneRevision{};
+
+        /**
+         * @brief 마지막 저장 시점의 장면 리비전입니다.
+         */
         Core::Uint64 mSavedSceneRevision{};
+
+        /**
+         * @brief 진행 중인 편집에서 장면 변경이 보고되었는지 여부입니다.
+         */
         bool mSceneEditChanged{};
 
         /**

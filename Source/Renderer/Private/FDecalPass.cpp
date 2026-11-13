@@ -1,3 +1,9 @@
+/**
+ * @file FDecalPass.cpp
+ * @brief 깊이로 복원한 표면에 데칼을 투영하고 GBuffer의 색상·노멀을 갱신합니다.
+ * @ingroup Renderer
+ */
+
 #include "FDecalPass.h"
 
 #include "Core/Math/FBox.h"

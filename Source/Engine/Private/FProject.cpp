@@ -12,7 +12,19 @@
 
 namespace Engine {
 
+    /**
+     * @brief 프로젝트 설정 파일, 시작 장면과 에셋 관리를 담당하는 파일 내부 보조 구현입니다.
+     */
     namespace {
+
+        /**
+         * @brief 템플릿 상속 관계를 따라 적용할 원본 디렉터리들을 수집합니다.
+         * @param Directory 검색하거나 로드할 템플릿 디렉터리입니다.
+         * @param Layers 상속 순서로 적용할 템플릿 디렉터리 출력 목록입니다.
+         * @param Error 실패 원인을 기록할 출력 문자열입니다.
+         * @param Depth 탐색할 상위 보기의 깊이 또는 노드 배치 깊이입니다.
+         * @return 상속 관계를 유효하게 해석했으면 true이며 실패 원인은 Error에 기록합니다.
+         */
         bool CollectTemplateLayers(const std::filesystem::path& Directory, Core::TArray<std::filesystem::path>& Layers, Core::FString& Error, Core::Uint32 Depth) {
             if (Depth >= 8) {
                 Error = "Project template inheritance is cyclic or too deep";

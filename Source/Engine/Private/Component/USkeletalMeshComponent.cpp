@@ -30,7 +30,17 @@
 #include <utility>
 
 namespace Engine {
+
+    /**
+     * @brief 공유 바인드 형상을 객체별 포즈로 변형하여 표시하는 컴포넌트의 파일 내부 보조 구현입니다.
+     */
     namespace {
+
+        /**
+         * @brief 저장 가능한 상대 에셋 경로 형식인지 검사합니다.
+         * @param Path 처리할 에셋 또는 파일 경로입니다.
+         * @return 허용된 상대 경로이면 true입니다.
+         */
         bool IsAssetPath(const Core::FString& Path) {
             const std::filesystem::path AssetPath{Core::FilePath::FromUtf8(Path)};
 

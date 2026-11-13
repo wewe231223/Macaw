@@ -22,6 +22,7 @@ namespace Engine {
      */
     struct FAnimationUpdateContext {
     public:
+
         /**
          * @brief 그래프 루트에 전달할 컨텍스트를 만듭니다.
          * @param[in] AnimInstance 그래프를 소유한 인스턴스입니다.
@@ -30,6 +31,7 @@ namespace Engine {
         FAnimationUpdateContext(Engine::UAnimInstance& AnimInstance, float DeltaTime);
 
     public:
+
         /**
          * @brief 그래프를 소유한 인스턴스를 반환합니다.
          * @return 인스턴스의 참조입니다.
@@ -43,6 +45,7 @@ namespace Engine {
         float GetDeltaTime() const;
 
     private:
+
         /**
          * @brief 그래프를 소유한 인스턴스입니다.
          */
@@ -61,6 +64,7 @@ namespace Engine {
      */
     struct FPoseContext {
     public:
+
         /**
          * @brief 레퍼런스 포즈로 채운 컨텍스트를 만듭니다.
          * @param[in] AnimInstance 포즈를 계산하는 인스턴스입니다.
@@ -68,6 +72,7 @@ namespace Engine {
         explicit FPoseContext(Engine::UAnimInstance& AnimInstance);
 
     public:
+
         /**
          * @brief 포즈를 계산하는 인스턴스를 반환합니다.
          * @return 인스턴스의 참조입니다.
@@ -80,12 +85,14 @@ namespace Engine {
         void ResetToReferencePose();
 
     public:
+
         /**
          * @brief 스켈레톤 본 인덱스 순서의 로컬 변환입니다. 스켈레톤이 없으면 비어 있습니다.
          */
         Core::TArray<Core::FTransform> mPose{};
 
     private:
+
         /**
          * @brief 포즈를 계산하는 인스턴스입니다.
          */
@@ -98,6 +105,7 @@ namespace Engine {
      */
     struct FPoseLink {
     public:
+
         /**
          * @brief 연결된 노드를 초기화합니다.
          * @param[in] AnimInstance 그래프를 소유한 인스턴스입니다.
@@ -113,10 +121,12 @@ namespace Engine {
         /**
          * @brief 연결된 노드의 포즈를 계산합니다.
          * @param[in,out] Output 레퍼런스 포즈로 채운 컨텍스트이며 노드가 결과로 덮어씁니다.
+         * @param Weight 디버그 방문 기록에 전달할 부모 대비 포즈 기여 가중치입니다.
          */
         void Evaluate(Engine::FPoseContext& Output, float Weight = 1.0f);
 
     public:
+
         /**
          * @brief 연결된 노드입니다. 노드는 인스턴스가 소유합니다.
          */
@@ -128,6 +138,7 @@ namespace Engine {
      */
     struct FAnimNodePoseInput {
     public:
+
         /**
          * @brief 핀 이름입니다.
          */
@@ -139,14 +150,34 @@ namespace Engine {
         Engine::FPoseLink* mLink{};
     };
 
+    /**
+     * @brief 애니메이션 노드의 값 입력 이름과 비소유 연결 포인터입니다.
+     * @ingroup Engine
+     */
     struct FAnimNodeValueInput {
     public:
+
+        /**
+         * @brief 노드 에디터에 표시할 값 입력 이름입니다.
+         */
         Core::FString mName{};
+
+        /**
+         * @brief 해당 노드가 소유하는 값 입력 연결의 주소입니다.
+         */
         Engine::FAnimValueLink_Base* mLink{};
     };
 
+    /**
+     * @brief 디버그 표시와 편집에 사용할 Float 값의 비소유 포인터입니다.
+     * @ingroup Engine
+     */
     struct FAnimNodeFloatValue {
     public:
+
+        /**
+         * @brief 외부에서 소유하는 Float 값의 주소입니다.
+         */
         float* mValue{};
 
         /**
@@ -165,11 +196,15 @@ namespace Engine {
      */
     struct FAnimNodeValue {
     public:
+
         /**
          * @brief 값 이름입니다.
          */
         Core::FString mName{};
 
+        /**
+         * @brief 문자열 값 또는 외부 Float·Bool 값 포인터를 보관하는 디버그 값입니다.
+         */
         std::variant<Core::FString, Engine::FAnimNodeFloatValue, bool*> mValue{};
     };
 
@@ -182,8 +217,15 @@ namespace Engine {
      */
     struct FAnimNode_Base {
     public:
+
+        /**
+         * @brief FAnimNode_Base의 초기 상태와 의존성을 구성합니다.
+         */
         FAnimNode_Base() = default;
 
+        /**
+         * @brief 객체의 수명을 끝내고 소유한 리소스를 정리합니다.
+         */
         virtual ~FAnimNode_Base() = default;
 
         /**
@@ -198,6 +240,7 @@ namespace Engine {
         Engine::FAnimNode_Base& operator=(const Engine::FAnimNode_Base&) = delete;
 
     public:
+
         /**
          * @brief 인스턴스를 초기화할 때 한 번 호출되어 재생 상태를 처음으로 되돌리고 입력 노드에 전파합니다.
          * @param[in] AnimInstance 그래프를 소유한 인스턴스입니다.
@@ -215,6 +258,11 @@ namespace Engine {
          * @param[in,out] Output 레퍼런스 포즈로 채운 컨텍스트이며 결과로 덮어씁니다.
          */
         virtual void Evaluate(Engine::FPoseContext& Output);
+
+        /**
+         * @brief 최근 갱신에서 계산한 루트 모션 증분을 반환합니다.
+         * @return 노드 또는 인스턴스의 이동·회전 증분이며 없으면 항등 변환입니다.
+         */
         virtual Core::FTransform GetRootMotionDelta() const;
 
         /**
@@ -228,6 +276,11 @@ namespace Engine {
          * @param[out] OutInputs 입력 핀을 뒤에 추가합니다.
          */
         virtual void GetPoseInputs(Core::TArray<Engine::FAnimNodePoseInput>& OutInputs);
+
+        /**
+         * @brief 노드가 제공하는 값 입력 이름과 연결 주소를 수집합니다.
+         * @param OutInputs 값 입력 이름과 비소유 링크 주소를 추가할 출력 배열입니다.
+         */
         virtual void GetValueInputs(Core::TArray<Engine::FAnimNodeValueInput>& OutInputs);
 
         /**
@@ -237,6 +290,7 @@ namespace Engine {
         virtual void GetDebugValues(Core::TArray<Engine::FAnimNodeValue>& OutValues);
 
     public:
+
         /**
          * @brief 시각화 도구에 보이는 노드 이름입니다. 비어 있으면 노드 종류를 표시합니다.
          */

@@ -21,6 +21,7 @@ namespace App {
      */
     class FApplication {
     public:
+
         /**
          * @brief FApplication의 초기 상태와 전달받은 의존성을 구성합니다.
          */
@@ -32,6 +33,7 @@ namespace App {
         ~FApplication();
 
     public:
+
         /**
          * @brief 창과 렌더러·에디터를 초기화하고 종료 요청까지 프레임 루프를 실행합니다.
          * @return 정상 종료 시 0입니다.
@@ -39,6 +41,7 @@ namespace App {
         int Run();
 
     private:
+
         /**
          * @brief 종속 객체를 역순으로 정리하고 여러 번 호출해도 안전한 종료 상태로 만듭니다.
          */
@@ -71,6 +74,7 @@ namespace App {
         bool LoadProject(const std::filesystem::path& Path, bool Create, Core::FString& Error);
 
     private:
+
         /**
          * @brief Windows 창과 메시지 처리 객체입니다.
          */
@@ -100,6 +104,10 @@ namespace App {
          * @brief 새 프로젝트에 복사할 템플릿의 기준 폴더입니다.
          */
         std::filesystem::path mTemplateDirectory{};
+
+        /**
+         * @brief 프로젝트 생성에 사용할 템플릿 루트 디렉터리입니다.
+         */
         std::filesystem::path mTemplatesDirectory{};
 
         /**

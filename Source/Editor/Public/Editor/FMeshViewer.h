@@ -50,6 +50,7 @@ namespace Editor {
      */
     class FMeshViewer {
     public:
+
         /**
          * @brief 렌더러와 프로젝트 에셋 관리자를 연결합니다.
          * @param Renderer 렌더러의 비소유 주소입니다.
@@ -76,6 +77,7 @@ namespace Editor {
         Editor::FMeshViewer& operator=(const Editor::FMeshViewer& Other) = delete;
 
     public:
+
         /**
          * @brief 에셋을 독립 미리보기 장면에 엽니다.
          * @param Path Content 기준 또는 절대 메시 에셋 경로입니다.
@@ -110,6 +112,7 @@ namespace Editor {
         void FrameMesh();
 
     private:
+
         /**
          * @brief 현재 메시와 슬롯별 재질을 미리보기 장면에 반영합니다.
          */
@@ -119,6 +122,10 @@ namespace Editor {
          * @brief 슬롯별 임시 재질 선택 UI를 표시합니다.
          */
         void DrawMaterials();
+
+        /**
+         * @brief 스켈레탈 메시의 미리보기 스켈레톤 선택기를 표시합니다.
+         */
         void DrawSkeletonPicker();
 
         /**
@@ -133,6 +140,13 @@ namespace Editor {
          */
         void DrawBoneNode(Core::Uint32 Bone, const Core::TArray<Core::TArray<Core::Uint32>>& Children);
 
+        /**
+         * @brief 마우스 위치의 광선과 본 표시 도형을 비교하여 선택 본을 갱신합니다.
+         * @param View 표시할 그래프 보기 또는 장면 뷰입니다.
+         * @param Mouse 뷰포트 기준 마우스 좌표(픽셀)입니다.
+         * @param Shapes 본 선택에 사용할 도형 목록입니다.
+         * @return 선택할 본 도형과 교차했으면 true입니다.
+         */
         bool PickBone(const Engine::FSceneView& View, const Core::FVector2& Mouse, const Core::TArray<Editor::FBoneShape>& Shapes);
 
         /**
@@ -144,6 +158,7 @@ namespace Editor {
 
         /**
          * @brief 선택한 본의 현재 전역 포즈로 기즈모 배치를 구성합니다.
+         * @param Bone 월드 위치·회전을 계산할 스켈레톤 본 인덱스입니다.
          * @return 공통 코어에 전달할 기즈모 배치입니다.
          */
         Editor::FGizmoPlacement GetBonePlacement(Core::Uint32 Bone) const;
@@ -153,6 +168,7 @@ namespace Editor {
          * @param View 입력 해석에 사용할 카메라 뷰입니다.
          * @param Mouse 미리보기 기준 마우스 픽셀 좌표입니다.
          * @param Hovered 마우스가 미리보기 위에 있으면 true입니다.
+         * @param Bone 입력으로 조작할 스켈레톤 본 인덱스입니다.
          * @return 기즈모가 마우스를 사용 중이어서 카메라 조작을 막아야 하면 true입니다.
          * @param[in] Input 키·마우스 상태를 조회할 공통 입력입니다.
          */
@@ -160,6 +176,7 @@ namespace Editor {
 
         /**
          * @brief 기즈모의 드래그 결과를 선택한 본의 부모 기준 로컬 변환으로 바꾸어 적용합니다.
+         * @param Bone 기즈모 변환을 적용할 스켈레톤 본 인덱스입니다.
          */
         void ApplyBoneGizmo(Core::Uint32 Bone);
 
@@ -170,6 +187,7 @@ namespace Editor {
         void DrawPreview(const Core::FInput& Input);
 
     private:
+
         /**
          * @brief 렌더러의 비소유 주소입니다.
          */
@@ -199,7 +217,15 @@ namespace Editor {
          * @brief 스켈레탈 미리보기에서 사용하는 공유 에셋입니다.
          */
         Asset::USkeletalMesh* mSkeletalMesh{};
+
+        /**
+         * @brief 에셋 관리자가 소유하는 미리보기 스켈레톤입니다.
+         */
         Asset::USkeleton* mSkeleton{};
+
+        /**
+         * @brief 스켈레톤 에셋 경로입니다.
+         */
         Core::FString mSkeletonPath{};
 
         /**

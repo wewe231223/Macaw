@@ -23,6 +23,7 @@ namespace Renderer {
      */
     struct FShadowTileKey {
     public:
+
         /**
          * @brief 두 키가 같은 그림자 맵을 가리키는지 비교합니다.
          * @param[in] Other 비교할 키입니다.
@@ -31,6 +32,7 @@ namespace Renderer {
         bool operator==(const Renderer::FShadowTileKey& Other) const = default;
 
     public:
+
         /**
          * @brief 그림자 맵을 소유한 장면의 고유 번호입니다.
          */
@@ -52,6 +54,7 @@ namespace Renderer {
      */
     struct FShadowTileKeyHash {
     public:
+
         /**
          * @brief 장면 번호·광원 GUID·면 번호를 섞어 해시를 계산합니다.
          * @param[in] Key 해시할 키입니다.
@@ -65,6 +68,7 @@ namespace Renderer {
      */
     struct FShadowTileStamp {
     public:
+
         /**
          * @brief 두 스탬프의 모든 입력이 같은지 비교합니다.
          * @param[in] Other 비교할 스탬프입니다.
@@ -73,6 +77,7 @@ namespace Renderer {
         bool operator==(const Renderer::FShadowTileStamp& Other) const = default;
 
     public:
+
         /**
          * @brief 깊이를 기록한 보호 여백 포함 아틀라스 블록입니다.
          */
@@ -97,7 +102,15 @@ namespace Renderer {
          * @brief 깊이를 기록한 깊이 전용 정점 셰이더의 리비전입니다.
          */
         Core::Uint64 mDepthShader{};
+
+        /**
+         * @brief 타일을 그릴 때 사용할 깊이 바이어스 단계입니다.
+         */
         Engine::EShadowBiasPreset mBiasPreset{Engine::DefaultShadowBiasPreset};
+
+        /**
+         * @brief 타일을 그릴 때 사용할 경사 바이어스 단계입니다.
+         */
         Engine::EShadowBiasPreset mSlopeBiasPreset{Engine::DefaultShadowBiasPreset};
     };
 

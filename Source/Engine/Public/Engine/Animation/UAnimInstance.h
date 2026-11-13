@@ -19,10 +19,26 @@ namespace Asset {
 
 namespace Engine {
 
+    /**
+     * @brief 시퀀스에서 루트 모션을 추출하고 소비자에게 전달하는 방식입니다.
+     * @ingroup Engine
+     */
     UENUM()
     enum class ERootMotionMode : Core::Uint8 {
+
+        /**
+         * @brief 루트 모션을 추출하지 않고 애니메이션 포즈를 유지합니다.
+         */
         NoRootMotionExtraction,
+
+        /**
+         * @brief 루트 모션을 포즈에서 추출하되 액터 적용용으로 누적하지 않습니다.
+         */
         IgnoreRootMotion,
+
+        /**
+         * @brief 평가한 포즈의 루트 모션을 블렌딩하고 소비용으로 누적합니다.
+         */
         RootMotionFromEverything
     };
 
@@ -32,12 +48,36 @@ namespace Engine {
     struct FPoseLink;
     struct FAnimationUpdateContext;
 
+    /**
+     * @brief 포즈 그래프 평가 중 방문한 노드, 부모 방문과 샘플별 가중치입니다.
+     * @ingroup Engine
+     */
     struct FAnimNodeVisit {
     public:
+
+        /**
+         * @brief 애니메이션 인스턴스가 소유하는 방문 포즈 노드입니다.
+         */
         const Engine::FAnimNode_Base* mNode{};
+
+        /**
+         * @brief 방문에 사용한 포즈 연결의 비소유 포인터입니다.
+         */
         const Engine::FPoseLink* mLink{};
+
+        /**
+         * @brief 최종 포즈에 기여하는 방문 가중치입니다.
+         */
         float mWeight{};
+
+        /**
+         * @brief 부모 방문 인덱스이며 루트 방문은 -1입니다.
+         */
         Core::Int32 mParentIndex{-1};
+
+        /**
+         * @brief 샘플 기반 노드의 샘플 인덱스이며 해당하지 않으면 -1입니다.
+         */
         Core::Int32 mSampleIndex{-1};
     };
 
@@ -62,19 +102,48 @@ namespace Engine {
         GENERATED_BODY()
 
     private:
+
+        /**
+         * @brief 시퀀스 트랙을 현재 스켈레톤 본에 대응시키고 루트 모션 트랙을 캐시합니다.
+         * @ingroup Engine
+         */
         struct FSequenceBoneMapping {
+
+            /**
+             * @brief 시퀀스 트랙별 스켈레톤 본 인덱스이며 미대응 트랙은 -1입니다.
+             */
             Core::TArray<Core::Int32> mTrackToBone{};
+
+            /**
+             * @brief 루트 모션을 추출할 본 이름이며 빈 값은 기본 루트를 사용합니다.
+             */
             Core::FString mRootMotionBone{};
+
+            /**
+             * @brief 루트 모션을 추출할 시퀀스 트랙 인덱스이며 없으면 -1입니다.
+             */
             Core::Int32 mRootTrack{-1};
+
+            /**
+             * @brief 루트 모션 트랙이 대응하는 스켈레톤 본 인덱스이며 없으면 -1입니다.
+             */
             Core::Int32 mRootBone{-1};
         };
 
     public:
+
+        /**
+         * @brief UAnimInstance의 초기 상태와 의존성을 구성합니다.
+         */
         UAnimInstance();
 
+        /**
+         * @brief 객체의 수명을 끝내고 소유한 리소스를 정리합니다.
+         */
         ~UAnimInstance() override;
 
     public:
+
         /**
          * @brief 소유 컴포넌트를 연결하고 매핑 표를 비운 뒤 그래프를 만들고 초기화합니다.
          * @details NativeInitializeAnimation을 호출한 뒤 루트 노드부터 Initialize를 전파합니다. 컴포넌트의 메시나 스켈레톤이 바뀔 때와 설정을 편집할 때 다시 호출됩니다.
@@ -87,7 +156,18 @@ namespace Engine {
          * @param[in] DeltaSeconds 지난 프레임 이후 경과 시간입니다.
          */
         void UpdateAnimation(float DeltaSeconds);
+
+        /**
+         * @brief 이번 갱신에서 아직 처리하지 않은 노드만 갱신합니다.
+         * @param Node 조회·연결·갱신할 노드입니다.
+         * @param Context 노드 갱신 시간과 가중치를 제공하는 컨텍스트입니다.
+         */
         void UpdateNode(Engine::FAnimNode_Base& Node, const Engine::FAnimationUpdateContext& Context);
+
+        /**
+         * @brief 지정 노드를 이번 갱신에서 다시 평가할 수 있도록 기록을 해제합니다.
+         * @param Node 조회·연결·갱신할 노드입니다.
+         */
         void ResetNodeUpdate(Engine::FAnimNode_Base& Node);
 
         /**
@@ -96,13 +176,43 @@ namespace Engine {
          */
         const Core::TArray<Core::FTransform>& GetPose() const;
 
+        /**
+         * @brief 루트 모션 추출·전달 정책을 반환합니다.
+         * @return 현재 루트 모션 모드입니다.
+         */
         Engine::ERootMotionMode GetRootMotionMode() const;
 
+        /**
+         * @brief 루트 모션 추출·전달 정책을 변경합니다.
+         * @param Mode 설정할 동작 또는 표시 모드입니다.
+         */
         void SetRootMotionMode(Engine::ERootMotionMode Mode);
 
+        /**
+         * @brief 현재 스켈레톤 매핑과 루트 모션 정책에 따라 시퀀스 구간을 추출합니다.
+         * @param Sequence 시간 범위와 프레임률을 제공하는 시퀀스입니다.
+         * @param StartTime 구간 시작 시각(초)입니다.
+         * @param DeltaTime 루트 모션을 추출할 시간 길이(초)이며 음수는 역방향입니다.
+         * @param Looping 끝점을 넘어 반복할지 여부입니다.
+         * @return 허용된 구간의 루트 모션이며 추출하지 않으면 항등 변환입니다.
+         */
         Core::FTransform ExtractSequenceRootMotion(const Asset::UAnimSequence& Sequence, double StartTime, double DeltaTime, bool Looping);
+
+        /**
+         * @brief 최근 갱신에서 계산한 루트 모션 증분을 반환합니다.
+         * @return 노드 또는 인스턴스의 이동·회전 증분이며 없으면 항등 변환입니다.
+         */
         Core::FTransform GetRootMotionDelta() const;
+
+        /**
+         * @brief 소비 전까지 누적한 루트 모션을 반환하고 누적값을 초기화합니다.
+         * @return 소비한 루트 모션 변환입니다.
+         */
         Core::FTransform ConsumeExtractedRootMotion();
+
+        /**
+         * @brief 최근 증분과 소비 전 누적 루트 모션을 항등 변환으로 초기화합니다.
+         */
         void ResetRootMotion();
 
         /**
@@ -117,9 +227,31 @@ namespace Engine {
          */
         Engine::FAnimNode_Base* GetRootNode() const;
 
+        /**
+         * @brief 최근 포즈 갱신의 노드 방문 기록을 반환합니다.
+         * @return 인스턴스 소유 배열의 읽기 전용 참조입니다.
+         */
         const Core::TArray<Engine::FAnimNodeVisit>& GetDebugVisits() const;
+
+        /**
+         * @brief 부모 방문과 가중치를 연결하여 포즈 노드 방문 기록을 시작합니다.
+         * @param Node 조회·연결·갱신할 노드입니다.
+         * @param Link 해당 방문을 발생시킨 비소유 포즈 연결입니다.
+         * @param Weight 최종 포즈에 기여하는 가중치입니다.
+         */
         void BeginDebugVisit(const Engine::FAnimNode_Base& Node, const Engine::FPoseLink* Link, float Weight);
+
+        /**
+         * @brief 현재 방문 기록을 종료하고 부모 방문으로 돌아갑니다.
+         */
         void EndDebugVisit();
+
+        /**
+         * @brief 샘플 기반 노드가 사용한 샘플 인덱스와 가중치를 기록합니다.
+         * @param Node 조회·연결·갱신할 노드입니다.
+         * @param SampleIndex 샘플 기반 노드에서 사용한 샘플 인덱스입니다.
+         * @param Weight 최종 포즈에 기여하는 가중치입니다.
+         */
         void RecordDebugSample(const Engine::FAnimNode_Base& Node, Core::Int32 SampleIndex, float Weight);
 
         /**
@@ -150,8 +282,27 @@ namespace Engine {
          * @param[out] OutValues 값을 뒤에 추가합니다.
          */
         virtual void GetDebugVariables(Core::TArray<Engine::FAnimNodeValue>& OutValues);
+
+        /**
+         * @brief 이름에 대응하는 Float 그래프 변수 값을 조회합니다.
+         * @param Name 조회하거나 설정할 그래프 변수 이름입니다.
+         * @return 현재 변수 값이며 유효한 변수가 없으면 0입니다.
+         */
         virtual float GetFloatVariable(const Core::FString& Name) const;
+
+        /**
+         * @brief 이름에 대응하는 Bool 그래프 변수 값을 조회합니다.
+         * @param Name 조회하거나 설정할 그래프 변수 이름입니다.
+         * @return 현재 변수 값이며 유효한 변수가 없으면 false입니다.
+         */
         virtual bool GetBoolVariable(const Core::FString& Name) const;
+
+        /**
+         * @brief 지정한 이름과 Float·Bool 형식의 그래프 변수가 있는지 확인합니다.
+         * @param Name 조회하거나 설정할 그래프 변수 이름입니다.
+         * @param IsBool Bool 변수를 조회하면 true, Float 변수이면 false입니다.
+         * @return 이름과 형식이 모두 일치하면 true입니다.
+         */
         virtual bool HasGraphVariable(const Core::FString& Name, bool IsBool) const;
 
         /**
@@ -171,6 +322,7 @@ namespace Engine {
         void PostEditChangeProperty(const CoreUObject::FPropertyChangedEvent& Event) override;
 
     protected:
+
         /**
          * @brief 초기화할 때 한 번 호출됩니다. 파생 클래스는 여기서 에셋을 로드하고 노드를 연결한 뒤 mRootNode를 지정합니다.
          */
@@ -210,19 +362,37 @@ namespace Engine {
         const Asset::UBlendSpace* LoadBlendSpace(const Core::FString& Path) const;
 
     protected:
+
         /**
          * @brief 그래프의 시작 노드입니다. 파생 클래스가 소유한 노드를 가리킵니다.
          */
         Engine::FAnimNode_Base* mRootNode{};
 
     private:
+
+        /**
+         * @brief 시퀀스 트랙과 현재 스켈레톤 본의 대응을 조회하거나 생성합니다.
+         * @param Sequence 시간 범위와 프레임률을 제공하는 시퀀스입니다.
+         * @return 인스턴스가 소유하는 매핑 캐시 참조입니다.
+         */
         const FSequenceBoneMapping& GetSequenceBoneMapping(const Asset::UAnimSequence& Sequence);
 
     private:
+
+        /**
+         * @brief 루트 모션 추출·전달 방식입니다.
+         */
         UPROPERTY(Edit, Serialize, Name = "RootMotionMode", Getter = GetRootMotionMode, Setter = SetRootMotionMode)
         Engine::ERootMotionMode mRootMotionMode{Engine::ERootMotionMode::NoRootMotionExtraction};
 
+        /**
+         * @brief 최근 갱신에서 계산한 루트 모션 증분입니다.
+         */
         Core::FTransform mRootMotionDelta{};
+
+        /**
+         * @brief 소비 전까지 누적한 루트 모션 변환입니다.
+         */
         Core::FTransform mExtractedRootMotion{};
 
         /**
@@ -261,8 +431,19 @@ namespace Engine {
          */
         bool mHasLastOwnerLocation{};
 
+        /**
+         * @brief 이번 갱신에서 방문한 포즈 노드와 가중치 기록입니다.
+         */
         Core::TArray<Engine::FAnimNodeVisit> mDebugVisits{};
+
+        /**
+         * @brief 현재 기록 중인 방문 인덱스이며 비활성 시 -1입니다.
+         */
         Core::Int32 mCurrentDebugVisit{-1};
+
+        /**
+         * @brief 동일 갱신에서 중복 평가하지 않도록 기록하는 포즈 노드 집합입니다.
+         */
         Core::TMap<Engine::FAnimNode_Base*, bool> mUpdatedNodes{};
     };
 

@@ -34,6 +34,7 @@ namespace Engine {
         GENERATED_BODY()
 
     public:
+
         /**
          * @brief UPrimitiveComponent의 초기 상태와 전달받은 의존성을 구성합니다.
          */
@@ -45,6 +46,7 @@ namespace Engine {
         ~UPrimitiveComponent() override;
 
     public:
+
         /**
          * @brief 컴포넌트를 월드에 연결하고 필요한 렌더 상태를 등록합니다.
          * @param[in,out] World 컴포넌트를 등록할 월드입니다.
@@ -172,16 +174,27 @@ namespace Engine {
          */
         bool SetReceiveShadow(bool ReceiveShadow);
 
+        /**
+         * @brief 프리미티브의 데칼 수신 설정을 반환합니다.
+         * @return 데칼을 받도록 설정되어 있으면 true입니다.
+         */
         bool GetReceivesDecals() const;
+
+        /**
+         * @brief 데칼 수신 여부를 설정하고 렌더 상태에 반영합니다.
+         * @param ReceivesDecals 데칼 수신 여부입니다.
+         */
         void SetReceivesDecals(bool ReceivesDecals);
 
     private:
+
         /**
          * @brief 같은 컴포넌트를 중복 예약하지 않고 월드의 갱신 큐에 넣습니다.
          */
         void QueueUpdate();
 
     private:
+
         /**
          * @brief 프록시 전체 재생성이 필요한지 여부입니다.
          */
@@ -199,6 +212,9 @@ namespace Engine {
         UPROPERTY(Edit, Serialize, Getter = GetReceiveShadow, Setter = SetReceiveShadow)
         bool mReceiveShadow{true};
 
+        /**
+         * @brief 이 프리미티브가 데칼을 받는지 여부입니다.
+         */
         UPROPERTY(Edit, Serialize, Getter = GetReceivesDecals, Setter = SetReceivesDecals)
         bool mReceivesDecals{true};
 

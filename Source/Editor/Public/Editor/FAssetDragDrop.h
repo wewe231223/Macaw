@@ -12,6 +12,7 @@ namespace Editor {
      * @brief 에셋 브라우저와 선택기가 공유하는 드래그 페이로드 식별자입니다.
      */
     namespace EditorAssetDragDrop {
+
         /**
          * @brief 액터 프리셋을 뷰포트로 전달하는 ImGui 드래그 페이로드 이름입니다.
          */
@@ -21,10 +22,25 @@ namespace Editor {
          * @brief 메시 에셋 경로를 전달하는 드래그 페이로드 식별자입니다.
          */
         inline constexpr char MeshPayload[]{"MACAW_MESH_ASSET"};
+
+        /**
+         * @brief 스켈레톤 에셋의 ImGui 드래그 페이로드 식별자입니다.
+         */
         inline constexpr char SkeletonPayload[]{"MACAW_SKELETON_ASSET"};
 
+        /**
+         * @brief 애니메이션 시퀀스 에셋의 ImGui 드래그 페이로드 식별자입니다.
+         */
         inline constexpr char AnimSequencePayload[]{"MACAW_ANIM_SEQUENCE_ASSET"};
+
+        /**
+         * @brief 블렌드 공간 에셋의 ImGui 드래그 페이로드 식별자입니다.
+         */
         inline constexpr char BlendSpacePayload[]{"MACAW_BLEND_SPACE_ASSET"};
+
+        /**
+         * @brief 애니메이션 그래프 에셋의 ImGui 드래그 페이로드 식별자입니다.
+         */
         inline constexpr char AnimGraphPayload[]{"MACAW_ANIM_GRAPH_ASSET"};
 
         /**

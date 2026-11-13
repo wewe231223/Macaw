@@ -5,10 +5,14 @@ namespace Macaw;
 
 /// <summary>엔진 객체를 가리키는 참조의 기반 클래스입니다. 포인터 대신 핸들만 보관하므로 객체가 파괴되면 접근할 때 예외가 발생합니다.</summary>
 public abstract unsafe partial class EngineObject : IEquatable<EngineObject> {
+
+    /// <summary>네이티브가 소유하는 엔진 API 함수 테이블의 비소유 포인터입니다.</summary>
     internal static NativeApi* sApi;
 
+    /// <summary>래퍼가 참조하는 엔진 객체의 인덱스·세대 핸들입니다.</summary>
     internal readonly ObjectHandle Handle;
 
+    /// <summary>엔진 객체의 수명 소유권 없이 전달받은 핸들을 보관합니다.</summary>
     internal EngineObject(ObjectHandle Handle) {
         this.Handle = Handle;
     }
@@ -137,20 +141,28 @@ public abstract unsafe partial class EngineObject : IEquatable<EngineObject> {
         }
     }
 
+    /// <summary>래퍼의 네이티브 객체 인덱스와 세대가 같은지 비교합니다.</summary>
     public bool Equals(EngineObject? Other) => Other is not null && Handle.Equals(Other.Handle);
 
+    /// <summary>상대가 같은 네이티브 객체를 가리키는 래퍼인지 비교합니다.</summary>
     public override bool Equals(object? Other) => Other is EngineObject Object && Equals(Object);
 
+    /// <summary>객체 핸들의 인덱스와 세대로 해시를 계산합니다.</summary>
     public override int GetHashCode() => Handle.GetHashCode();
 
+    /// <summary>두 래퍼의 null 상태와 엔진 객체 핸들을 비교합니다.</summary>
     public static bool operator ==(EngineObject? Left, EngineObject? Right) => Left is null ? Right is null : Left.Equals(Right);
 
+    /// <summary>두 래퍼가 서로 다른 엔진 객체를 가리키는지 비교합니다.</summary>
     public static bool operator !=(EngineObject? Left, EngineObject? Right) => !(Left == Right);
 
+    /// <summary>살아 있는 객체는 클래스·이름을, 파괴된 객체는 파괴 상태를 표시합니다.</summary>
     public override string ToString() => IsValid ? $"{GetType().Name}({GetName()})" : $"{GetType().Name}(destroyed)";
 
     /// <summary>래퍼가 생성되지 않은 엔진 클래스를 가리킵니다.</summary>
     internal sealed class Untyped : EngineObject {
+
+        /// <summary>구체적인 바인딩이 없는 엔진 객체를 핸들 기반 래퍼로 구성합니다.</summary>
         public Untyped(ObjectHandle Handle) : base(Handle) { }
     }
 }

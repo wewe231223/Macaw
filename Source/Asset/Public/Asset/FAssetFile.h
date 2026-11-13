@@ -21,18 +21,22 @@ namespace Asset {
      */
     UENUM()
     enum class EAssetType : Core::Uint32 {
+
         /**
          * @brief 액터·컴포넌트와 월드 참조를 저장하는 장면 에셋입니다.
          */
         Scene = 1,
+
         /**
          * @brief 정점 속성과 인덱스를 저장하는 메시 에셋입니다.
          */
         Mesh,
+
         /**
          * @brief 픽셀 데이터와 텍스처 설정을 저장하는 이미지 에셋입니다.
          */
         Texture,
+
         /**
          * @brief 셰이더·기본색과 텍스처 참조를 가진 재질 에셋입니다.
          */
@@ -42,19 +46,27 @@ namespace Asset {
          * @brief 스킨 가중치를 포함하는 메시 에셋입니다.
          */
         SkeletalMesh,
+
         /**
          * @brief 시네마틱 바인딩과 트랙을 저장하는 시퀀스 에셋입니다.
          */
         Sequence,
+
+        /**
+         * @brief 공유 본 계층과 기준 포즈를 저장하는 스켈레톤 에셋입니다.
+         */
         Skeleton,
+
         /**
          * @brief 본별 키 트랙을 저장하는 애니메이션 시퀀스 에셋입니다. 값이 파일에 기록되므로 항상 끝에 추가합니다.
          */
         AnimSequence,
+
         /**
          * @brief 축 설정과 샘플 시퀀스 경로를 저장하는 블렌드 스페이스 에셋입니다.
          */
         BlendSpace,
+
         /**
          * @brief 노드·링크·변수를 저장하는 애니메이션 그래프 에셋입니다.
          */
@@ -66,6 +78,7 @@ namespace Asset {
      */
     class FAssetFile {
     public:
+
         /**
          * @brief 에셋 파일 헤더를 검사하여 저장된 에셋 종류를 읽습니다.
          * @param[in] Path 헤더를 읽을 에셋 파일의 경로입니다.

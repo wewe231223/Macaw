@@ -1,3 +1,9 @@
+/**
+ * @file UCameraShakeModifier.cpp
+ * @brief 사인파 진동으로 카메라를 흔드는 기본 카메라 모디파이어입니다.
+ * @ingroup Engine
+ */
+
 #include "Engine/UCameraShakeModifier.h"
 #include "Engine/FMinimalViewInfo.h"
 #include "Core/Math/FQuat.h"

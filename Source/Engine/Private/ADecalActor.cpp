@@ -1,3 +1,9 @@
+/**
+ * @file ADecalActor.cpp
+ * @brief 데칼 컴포넌트를 루트로 소유하는 장면 액터입니다.
+ * @ingroup Engine
+ */
+
 #include "Engine/ADecalActor.h"
 
 #include "CoreUObject/Reflection/Cast.h"

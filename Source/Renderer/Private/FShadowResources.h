@@ -33,6 +33,7 @@ namespace Renderer {
      */
     struct FGpuShadow {
     public:
+
         /**
          * @brief 월드 좌표를 그림자 클립 공간으로 변환하는 행렬입니다.
          */
@@ -43,8 +44,19 @@ namespace Renderer {
          */
         Core::FVector4 mAtlasRectangle{};
 
+        /**
+         * @brief 그림자 필터 결과의 경계 선명도입니다.
+         */
         float mSharpen{};
+
+        /**
+         * @brief 그림자 아틀라스 한 변 크기의 역수입니다.
+         */
         float mInverseAtlasSize{};
+
+        /**
+         * @brief CPU와 셰이더 상수 배치의 정렬을 맞추는 패딩입니다.
+         */
         float mPadding[2]{};
 
         /**
@@ -67,13 +79,31 @@ namespace Renderer {
      */
     class FShadowResources {
     private:
+
+        /**
+         * @brief 그림자 타일 블록과 깊이·경사 바이어스 프리셋을 묶는 렌더 요청입니다.
+         * @ingroup Renderer
+         */
         struct FTileDepth {
+
+            /**
+             * @brief 그림자 아틀라스에서 할당한 타일 블록입니다.
+             */
             Renderer::FShadowAtlasBlock mBlock{};
+
+            /**
+             * @brief 타일을 그릴 때 사용할 깊이 바이어스 단계입니다.
+             */
             Engine::EShadowBiasPreset mBiasPreset{Engine::DefaultShadowBiasPreset};
+
+            /**
+             * @brief 타일을 그릴 때 사용할 경사 바이어스 단계입니다.
+             */
             Engine::EShadowBiasPreset mSlopeBiasPreset{Engine::DefaultShadowBiasPreset};
         };
 
     public:
+
         /**
          * @brief 현재 뷰에 필요한 광원별 그림자 타일과 행렬을 구성하고 샘플링 정보를 업로드합니다.
          * @details 깊이는 그리지 않으며, 렌더러가 GetMaps와 GetTarget으로 타일마다 깊이 패스를 그린 뒤 Finish를 호출합니다.
@@ -186,6 +216,7 @@ namespace Renderer {
         static Core::FMatrix MakeDirectionalMatrix(const Engine::FSceneView& View, const Core::FVector& Direction, float NearDistance, float FarDistance, Core::Uint32 Resolution, std::span<const Core::FBox> CasterBounds);
 
     private:
+
         /**
          * @brief 그림자 아틀라스·미리보기·셰이더·버퍼·깊이 상태를 필요할 때 생성합니다.
          * @param[in] Device GPU 자원 생성에 사용할 Direct3D 장치의 비소유 주소입니다.
@@ -232,6 +263,7 @@ namespace Renderer {
         void RenderPreview(ID3D11DeviceContext* Context);
 
     private:
+
         /**
          * @brief 그림자 깊이를 저장하는 아틀라스 텍스처의 소유 객체입니다.
          */

@@ -287,6 +287,16 @@ CoreCLR 호스팅, C# 스크립트 수명과 네이티브 바인딩입니다.
  */
 
 /**
+ * @namespace ax
+ * @brief 노드 그래프 편집에 사용하는 외부 라이브러리의 타입을 참조합니다.
+ */
+
+/**
+ * @namespace ax::NodeEditor
+ * @brief ImGui 노드 편집기의 컨텍스트와 노드·핀·링크 식별자를 참조합니다.
+ */
+
+/**
  * @namespace Script
  * @brief .NET 런타임 호스팅과 C# 스크립트를 액터에 연결하는 컴포넌트를 제공합니다.
  */

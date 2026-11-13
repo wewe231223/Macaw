@@ -25,7 +25,19 @@ namespace Renderer {
         using Renderer::FMeshPass::FMeshPass;
 
     public:
+
+        /**
+         * @brief 깊이·경사 바이어스 단계의 모든 조합에 대한 래스터라이저를 만듭니다.
+         * @return 모든 GPU 상태를 생성했으면 true입니다.
+         */
         bool Initialize();
+
+        /**
+         * @brief 깊이·경사 바이어스 조합에 대응하는 래스터라이저를 반환합니다.
+         * @param DepthPreset 깊이 바이어스 프리셋 단계입니다.
+         * @param SlopePreset 경사 바이어스 프리셋 단계입니다.
+         * @return 패스가 소유하는 비소유 GPU 상태 포인터입니다.
+         */
         ID3D11RasterizerState* GetRasterizer(Engine::EShadowBiasPreset DepthPreset, Engine::EShadowBiasPreset SlopePreset) const;
 
         /**
@@ -35,6 +47,7 @@ namespace Renderer {
         Renderer::EMeshPass GetType() const override;
 
     protected:
+
         /**
          * @brief 모든 드로가 공유할 깊이 전용 파이프라인을 조회합니다.
          * @param[in] Family 현재 뷰 요청입니다.
@@ -60,10 +73,15 @@ namespace Renderer {
         void AddCommands(const Renderer::FScenePrimitive& Primitive, Asset::UStaticMesh& Mesh, const Engine::FSceneViewFamily& Family, Core::TArray<Renderer::FMeshDrawCommand>& Commands) override;
 
     private:
+
         /**
          * @brief 이번 패스의 모든 드로가 공유하는 깊이 전용 파이프라인입니다.
          */
         Renderer::FMaterialPipeline* mPipeline{};
+
+        /**
+         * @brief 깊이·경사 바이어스 프리셋 조합별 래스터라이저 상태 캐시입니다.
+         */
         std::array<std::array<Microsoft::WRL::ComPtr<ID3D11RasterizerState>, Engine::ShadowBiasPresetCount>, Engine::ShadowBiasPresetCount> mRasterizers{};
     };
 

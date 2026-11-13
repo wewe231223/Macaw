@@ -1,3 +1,9 @@
+/**
+ * @file FDeferredLightingPass.cpp
+ * @brief GBuffer를 읽어 조명 결과 또는 선택한 버퍼 시각화를 출력합니다.
+ * @ingroup Renderer
+ */
+
 #include "FDeferredLightingPass.h"
 
 #include "Engine/FSceneViewFamily.h"

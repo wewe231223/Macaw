@@ -20,11 +20,19 @@ namespace Asset {
         GENERATED_BODY()
 
     public:
+
+        /**
+         * @brief UAnimationAsset의 초기 상태와 의존성을 구성합니다.
+         */
         UAnimationAsset() = default;
 
+        /**
+         * @brief 객체의 수명을 끝내고 소유한 리소스를 정리합니다.
+         */
         ~UAnimationAsset() override = default;
 
     public:
+
         /**
          * @brief 재생 길이를 초 단위로 반환합니다.
          * @return 에셋의 재생 길이입니다.

@@ -19,12 +19,14 @@ namespace Editor {
      */
     class FAssetPicker {
     public:
+
         /**
          * @brief 빈 검색 상태를 구성합니다.
          */
         FAssetPicker() = default;
 
     public:
+
         /**
          * @brief 썸네일과 검색 가능한 선택기를 표시합니다.
          * @param Catalog 표시 목록입니다.
@@ -35,12 +37,25 @@ namespace Editor {
          * @param InheritedPath 오버라이드가 없을 때 사용하는 실제 에셋 경로입니다.
          * @param EmptyLabel 기본값 선택의 설명입니다.
          * @param InheritedLabel 상속 경로의 출처 설명입니다.
+         * @param ShowLabel 선택기 앞에 위젯 이름을 표시할지 여부입니다.
          * @return 선택 또는 드롭으로 경로를 바꾸면 true입니다.
          */
         bool Draw(Editor::FEditorAssetCatalog& Catalog, Editor::FAssetThumbnailCache& Thumbnails, const char* Label, Core::FString& Path, Asset::EAssetType Type, const Core::FString& InheritedPath = {}, const char* EmptyLabel = "None", const char* InheritedLabel = "Mesh", bool ShowLabel = true);
+
+        /**
+         * @brief 현재 에셋, 선택 메뉴와 드래그 앤 드롭을 포함한 작은 에셋 선택기를 표시합니다.
+         * @param Catalog 외부에서 소유하는 에셋 목록입니다.
+         * @param Thumbnails UI에 사용할 썸네일 캐시입니다.
+         * @param Label UI 항목의 표시 이름입니다.
+         * @param DisplayName 선택기에서 현재 에셋에 사용할 표시 이름입니다.
+         * @param Path 처리할 에셋 또는 파일 경로입니다.
+         * @param Type 처리할 에셋 또는 노드 종류입니다.
+         * @return 선택한 에셋 경로가 바뀌었으면 true입니다.
+         */
         bool DrawCompact(Editor::FEditorAssetCatalog& Catalog, Editor::FAssetThumbnailCache& Thumbnails, const char* Label, const char* DisplayName, Core::FString& Path, Asset::EAssetType Type);
 
     private:
+
         /**
          * @brief 목록을 검색하여 썸네일과 함께 표시합니다.
          * @param Catalog 에셋 목록입니다.
@@ -62,6 +77,7 @@ namespace Editor {
         static bool AcceptDrop(Editor::FEditorAssetCatalog& Catalog, Core::FString& Path, Asset::EAssetType Type);
 
     private:
+
         /**
          * @brief 현재 열린 선택기의 검색 문자열입니다.
          */

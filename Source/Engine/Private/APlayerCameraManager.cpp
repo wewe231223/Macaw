@@ -1,3 +1,9 @@
+/**
+ * @file APlayerCameraManager.cpp
+ * @brief 뷰 타깃에서 매 프레임 카메라 시점을 계산하고 캐시하는 카메라 관리자입니다.
+ * @ingroup Engine
+ */
+
 #include "Engine/APlayerCameraManager.h"
 #include "Engine/UWorld.h"
 #include "Engine/Component/UCameraComponent.h"
@@ -11,7 +17,17 @@
 
 namespace Engine {
 
+    /**
+     * @brief 뷰 타깃에서 매 프레임 카메라 시점을 계산하고 캐시하는 카메라 관리자의 파일 내부 보조 구현입니다.
+     */
     namespace {
+
+        /**
+         * @brief 뷰 타깃 전환 방식에 맞게 정규화된 블렌드 가중치를 계산합니다.
+         * @param Function 뷰 타깃 전환 가중치 함수 종류입니다.
+         * @param Alpha 0~1의 보간 가중치입니다.
+         * @return 전환 곡선을 적용한 가중치입니다.
+         */
         float EvaluateBlend(Engine::EViewTargetBlendFunction Function, float Alpha) {
             switch (Function) {
                 case Engine::EViewTargetBlendFunction::Cubic:

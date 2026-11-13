@@ -30,15 +30,24 @@ namespace Engine {
 
         double GetCurrentAssetLength() const override;
 
+        /**
+         * @brief 시퀀스 시간의 진행을 일시 정지하거나 재개합니다.
+         * @param Paused 시퀀스 시간 진행을 멈출지 여부입니다.
+         */
         void SetPaused(bool Paused);
 
     public:
+
         /**
          * @brief 재생할 시퀀스입니다. 에셋 관리자가 소유합니다.
          */
         const Asset::UAnimSequence* mSequence{};
 
     private:
+
+        /**
+         * @brief 시퀀스 시간 진행을 일시 정지할지 여부입니다.
+         */
         bool mPaused{};
     };
 

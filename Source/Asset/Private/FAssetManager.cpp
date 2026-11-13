@@ -39,6 +39,7 @@ namespace Asset {
      * @brief 이 구현 파일에서만 사용하는 내부 상태와 보조 함수입니다.
      */
     namespace {
+
         /**
          * @brief 에셋 상대 경로를 대소문자 구분 없이 조회할 캐시 키로 변환합니다.
          * @param[in] Relative 캐시 키로 변환할 프로젝트 상대 에셋 경로입니다.
@@ -50,6 +51,15 @@ namespace Asset {
 
         // 캐시에 올라간 에셋 객체는 바꾸지 않으므로, 같은 경로에 다른 객체가 이미 있으면 저장을 거부합니다.
         template <typename TCache, typename TAsset>
+
+        /**
+         * @brief 동일 경로의 캐시가 저장하려는 에셋과 충돌하는지 검사합니다.
+         * @param Cache 동일 종류 에셋의 경로별 캐시입니다.
+         * @param Key 조회하거나 저장할 캐시 키입니다.
+         * @param Asset 캐시 충돌 여부를 비교할 에셋 포인터입니다.
+         * @param Error 실패 원인을 기록할 출력 문자열입니다.
+         * @return 슬롯이 비었거나 같은 에셋이면 true이며 충돌 시 Error에 원인을 기록합니다.
+         */
         bool CheckCacheSlot(const TCache& Cache, const Core::FString& Key, const TAsset* Asset, Core::FString& Error) {
             const auto Existing{Cache.find(Key)};
 
@@ -289,6 +299,11 @@ namespace Asset {
             Archive.EndArray();
         }
 
+        /**
+         * @brief 본 이름·부모·바인드 변환을 바이너리 아카이브에 직렬화합니다.
+         * @param Archive 저장·로드 방향과 오류 상태를 제공하는 아카이브입니다.
+         * @param Bones 부모 인덱스와 바인드 변환을 가진 본 배열입니다.
+         */
         void SerializeBones(Serialization::FMemoryArchive& Archive, Core::TArray<Asset::FMeshImportBone>& Bones) {
             Core::Uint32 BoneCount{Archive.IsLoading() ? 0 : static_cast<Core::Uint32>(Bones.size())};
 
@@ -320,6 +335,11 @@ namespace Asset {
             Archive.EndArray();
         }
 
+        /**
+         * @brief 스켈레톤 본 배열을 바이너리 아카이브에 직렬화합니다.
+         * @param Archive 저장·로드 방향과 오류 상태를 제공하는 아카이브입니다.
+         * @param Bones 부모 인덱스와 바인드 변환을 가진 본 배열입니다.
+         */
         void SerializeSkeleton(Serialization::FMemoryArchive& Archive, Core::TArray<Asset::FMeshImportBone>& Bones) {
             Core::Uint32 Version{1};
 
@@ -334,6 +354,15 @@ namespace Asset {
             SerializeBones(Archive, Bones);
         }
 
+        /**
+         * @brief 시퀀스 모델과 루트 모션 추출·고정 설정을 바이너리 아카이브에 직렬화합니다.
+         * @param Archive 저장·로드 방향과 오류 상태를 제공하는 아카이브입니다.
+         * @param Model 시퀀스 키프레임과 트랙 데이터입니다.
+         * @param EnableRootMotion 루트 모션 추출 허용 설정입니다.
+         * @param RootLock 시퀀스의 루트 본 고정 기준입니다.
+         * @param ForceRootLock 추출 여부와 별개인 루트 고정 설정입니다.
+         * @param RootBone 루트 모션 추출 대상 본 이름입니다.
+         */
         void SerializeAnimSequence(Serialization::FMemoryArchive& Archive, Asset::FAnimDataModel& Model, bool& EnableRootMotion, Asset::ERootMotionRootLock& RootLock, bool& ForceRootLock, Core::FString& RootBone) {
             Core::Uint32 Version{2};
 
@@ -436,6 +465,13 @@ namespace Asset {
             }
         }
 
+        /**
+         * @brief 메시와 스키닝 가중치를 직렬화하고 구형 본 데이터 읽기를 지원합니다.
+         * @param Archive 저장·로드 방향과 오류 상태를 제공하는 아카이브입니다.
+         * @param Mesh 호출자가 수명을 보장하는 미리보기 메시입니다.
+         * @param SkinWeights 정점별 본 인덱스·가중치 배열입니다.
+         * @param LegacyBones 구형 파일의 본 데이터를 받을 선택 출력 배열입니다.
+         */
         void SerializeSkeletalMesh(Serialization::FMemoryArchive& Archive, Asset::FMeshData& Mesh, Core::TArray<Asset::FMeshImportSkinWeight>& SkinWeights, Core::TArray<Asset::FMeshImportBone>* LegacyBones = nullptr) {
             Core::Uint32 Version{2};
 

@@ -1,3 +1,9 @@
+/**
+ * @file FMinimalViewInfo.cpp
+ * @brief 카메라 위치·회전·시야각과 전환 블렌딩을 계산합니다.
+ * @ingroup Engine
+ */
+
 #include "Engine/FMinimalViewInfo.h"
 #include "Engine/FSceneView.h"
 #include "Core/Math/FMatrix.h"

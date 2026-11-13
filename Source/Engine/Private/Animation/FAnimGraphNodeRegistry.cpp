@@ -1,3 +1,9 @@
+/**
+ * @file FAnimGraphNodeRegistry.cpp
+ * @brief 애니메이션 그래프 노드의 형식·파라미터와 생성 콜백을 등록합니다.
+ * @ingroup Engine
+ */
+
 #include "Engine/Animation/FAnimGraphNodeRegistry.h"
 #include "Asset/Animation/UAnimGraph.h"
 #include "Engine/Animation/FAnimNode_BlendSpacePlayer.h"
@@ -11,7 +17,17 @@
 
 namespace Engine {
 
+    /**
+     * @brief 애니메이션 그래프 노드의 형식·파라미터와 생성 콜백을 등록하는 파일 내부 보조 구현입니다.
+     */
     namespace {
+
+        /**
+         * @brief 이름에 대응하는 노드 파라미터 기본값을 찾습니다.
+         * @param Parameters 노드 파라미터 정의 목록이며 없으면 nullptr입니다.
+         * @param Name 조회하거나 표시할 이름입니다.
+         * @return 파라미터 배열 소유의 문자열 포인터이며 없으면 nullptr입니다.
+         */
         const Core::FString* FindDefault(const Core::TArray<Engine::FAnimGraphParameterInfo>* Parameters, const Core::FString& Name) {
             if (Parameters == nullptr) {
                 return nullptr;
@@ -24,6 +40,10 @@ namespace Engine {
             return Found != Parameters->end() ? &Found->mDefault : nullptr;
         }
 
+        /**
+         * @brief 기본 애니메이션 노드 종류와 파라미터·생성 콜백을 구성합니다.
+         * @return 레지스트리에 등록할 노드 종류 목록입니다.
+         */
         Core::TArray<Engine::FAnimGraphNodeType> CreateNodeTypes() {
             Core::TArray<Engine::FAnimGraphNodeType> Types{};
 

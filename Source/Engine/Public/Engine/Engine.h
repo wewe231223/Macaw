@@ -36,6 +36,7 @@ namespace Engine {
         GENERATED_BODY()
 
     public:
+
         /**
          * @brief UEngine의 초기 상태와 전달받은 의존성을 구성합니다.
          */
@@ -47,6 +48,7 @@ namespace Engine {
         ~UEngine() override;
 
     public:
+
         /**
          * @brief 렌더러 없이 초기 편집 월드와 리플렉션 기반을 준비합니다.
          * @return 초기 월드 준비에 성공하면 true이며 이미 초기화되었거나 콜백 처리 중이면 false입니다.
@@ -173,6 +175,13 @@ namespace Engine {
          */
         bool ReplaceWorld(std::unique_ptr<Engine::FWorldContext> Context);
 
+        /**
+         * @brief 예약된 장면을 로드하고 안전한 시점에 기존 월드를 교체합니다.
+         * @param Source 장면 전환 요청을 가진 원본 월드 핸들입니다.
+         * @param Replacement 교체 후 월드 핸들을 받을 출력 값입니다.
+         * @param Error 실패 원인을 기록할 출력 문자열입니다.
+         * @return 전환 처리에 성공하면 true이며 새 핸들은 Replacement에 기록합니다.
+         */
         bool ProcessSceneTransition(Engine::FWorldHandle Source, Engine::FWorldHandle& Replacement, Core::FString& Error);
 
         /**
@@ -205,6 +214,7 @@ namespace Engine {
         Engine::FProject* GetProject() const;
 
     private:
+
         /**
          * @brief 슬롯 범위와 세대가 일치하는 소유 컨텍스트를 찾습니다.
          * @param[in] Handle 검증할 월드 핸들입니다.
@@ -220,6 +230,7 @@ namespace Engine {
         Engine::FWorldHandle AdoptWorld(std::unique_ptr<Engine::FWorldContext> Context);
 
     private:
+
         /**
          * @brief 월드를 각각 소유하는 컨텍스트 슬롯입니다.
          * @details 복수 컨텍스트를 슬롯별로 소유하며 현재 편집 대상은 mCurrentWorld 핸들로 선택합니다.

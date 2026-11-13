@@ -31,6 +31,7 @@ namespace Editor {
          * @param[in] Object 표시할 액터 또는 컴포넌트입니다.
          * @param[in] Selected 행을 선택 색상으로 강조할지 지정합니다.
          * @note 행은 호출자가 ImGui::TableNextRow()로 시작합니다. 클릭 검사는 호출 직후 ImGui::IsItemClicked()로 수행합니다.
+         * @param Indent 행 이름 앞에 적용할 가로 들여쓰기(픽셀)입니다.
          */
         void DrawLabel(CoreUObject::UObject* Object, bool Selected, float Indent = 0.0f);
 

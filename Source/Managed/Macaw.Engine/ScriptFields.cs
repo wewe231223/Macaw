@@ -6,6 +6,7 @@ namespace Macaw;
 
 /// <summary>[Field] 필드를 찾고 씬에 저장되는 문자열 값으로 변환합니다. 형식은 FDetailsPanel.cpp의 변환과 같아야 합니다.</summary>
 internal static class ScriptFields {
+
     /// <summary>ScriptComponent까지 올라가며 [Field] 필드를 파생 클래스 먼저 나열합니다.</summary>
     public static IEnumerable<FieldInfo> Enumerate(Type Type) {
         for (Type? Current = Type; Current != null && Current != typeof(ScriptComponent); Current = Current.BaseType) {
@@ -42,6 +43,7 @@ internal static class ScriptFields {
         return Type == typeof(Vector3) ? "Vector3" : null;
     }
 
+    /// <summary>지원하는 필드 값을 문화권에 독립적인 장면 저장 문자열로 변환합니다.</summary>
     public static string Format(object? Value) {
         return Value switch {
             bool Boolean => Boolean ? "true" : "false",
@@ -53,6 +55,7 @@ internal static class ScriptFields {
         };
     }
 
+    /// <summary>형식 태그에 따라 저장 문자열을 값으로 해석하며 잘못된 숫자 형식은 예외를 전달합니다.</summary>
     public static object? Parse(string Tag, string Value) {
         switch (Tag) {
             case "Actor":

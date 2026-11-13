@@ -1,3 +1,9 @@
+/**
+ * @file FProjectTemplatePicker.cpp
+ * @brief 프로젝트 템플릿 목록과 미리보기 이미지를 읽고 선택 UI를 제공합니다.
+ * @ingroup Editor
+ */
+
 #include "Editor/FProjectTemplatePicker.h"
 #include "Asset/UTexture2D.h"
 #include "Core/FilePath.h"

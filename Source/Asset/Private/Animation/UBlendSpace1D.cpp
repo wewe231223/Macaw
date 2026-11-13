@@ -1,3 +1,9 @@
+/**
+ * @file UBlendSpace1D.cpp
+ * @brief X 축 하나에 샘플을 늘어놓고, 입력 양옆의 두 샘플을 거리 비율로 섞습니다.
+ * @ingroup Asset
+ */
+
 #include "Asset/Animation/UBlendSpace1D.h"
 #include "Asset/Animation/UAnimSequence.h"
 

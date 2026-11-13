@@ -27,12 +27,14 @@ namespace Engine {
      */
     class FSceneInterface {
     public:
+
         /**
          * @brief 객체의 수명을 끝내고 소유한 리소스를 정리합니다.
          */
         virtual ~FSceneInterface();
 
     public:
+
         /**
          * @brief 광원 프록시의 GUID로 렌더 장면에 광원을 추가하거나 교체합니다.
          * @param[in] Proxy 장면에 복사할 광원 상태입니다.
@@ -57,7 +59,16 @@ namespace Engine {
          */
         virtual void RemoveHeightFog(const Core::FGuid& Id);
 
+        /**
+         * @brief GUID가 같은 데칼 프록시를 갱신하거나 새로 등록합니다.
+         * @param Proxy 등록·갱신할 데칼 렌더 프록시입니다.
+         */
         virtual void AddDecal(const Engine::FDecalSceneProxy& Proxy);
+
+        /**
+         * @brief GUID로 장면의 데칼 프록시를 제거합니다.
+         * @param Id 조회 또는 변경할 항목 ID입니다.
+         */
         virtual void RemoveDecal(const Core::FGuid& Id);
 
         /**

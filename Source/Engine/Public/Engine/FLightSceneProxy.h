@@ -27,6 +27,7 @@ namespace Engine {
      */
     struct FLightSceneProxy {
     public:
+
         /**
          * @brief 광원 아이콘을 에디터 빌보드 프리미티브로 구성합니다.
          * @return 광원 GUID와 위치·아이콘을 가진 프리미티브 프록시입니다.
@@ -108,7 +109,14 @@ namespace Engine {
          */
         float mShadowResolutionScale{1.0f};
 
+        /**
+         * @brief 그림자 깊이 바이어스 단계입니다.
+         */
         Engine::EShadowBiasPreset mShadowBiasPreset{Engine::DefaultShadowBiasPreset};
+
+        /**
+         * @brief 그림자 경사 바이어스 단계입니다.
+         */
         Engine::EShadowBiasPreset mShadowSlopeBiasPreset{Engine::DefaultShadowBiasPreset};
 
         /**

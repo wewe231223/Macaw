@@ -6,6 +6,7 @@ namespace Macaw;
 /// <summary>카메라 관리자가 그릴 시점입니다. 엔진의 FMinimalViewInfo와 같은 값이며 배치가 고정되어 있습니다.</summary>
 [StructLayout(LayoutKind.Sequential)]
 public struct MinimalViewInfo {
+
     /// <summary>카메라의 월드 위치이며 미터 단위입니다.</summary>
     public Vector3 Location;
 
@@ -22,6 +23,7 @@ public struct MinimalViewInfo {
 /// 효과는 Alpha로 세기를 조절해야 켜고 끌 때 부드럽게 바뀝니다.
 /// </summary>
 public abstract class ScriptCameraModifier {
+
     /// <summary>예외가 발생해 더 이상 호출하지 않는 인스턴스인지 나타냅니다.</summary>
     internal bool mFaulted;
 
@@ -41,7 +43,9 @@ public abstract class ScriptCameraModifier {
     public virtual bool ModifyCamera(float DeltaTime, ref MinimalViewInfo View) => false;
 }
 
+/// <summary>카메라 관리자에 사용자 C# 모디파이어를 추가·조회하는 편의 API를 제공합니다.</summary>
 public partial class PlayerCameraManager {
+
     /// <summary>T 타입 C# 모디파이어를 만들어 추가합니다. 클래스를 찾지 못하면 null입니다.</summary>
     public T? AddCameraModifier<T>(int Priority = 127) where T : ScriptCameraModifier {
         CameraModifier? Added = CameraModifiers.AddModifier(this, typeof(T).FullName!, Priority);

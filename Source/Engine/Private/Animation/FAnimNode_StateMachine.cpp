@@ -1,3 +1,9 @@
+/**
+ * @file FAnimNode_StateMachine.cpp
+ * @brief 상태별 포즈를 갱신하고 조건에 따른 전이와 루트 모션 블렌딩을 수행합니다.
+ * @ingroup Engine
+ */
+
 #include "Engine/Animation/FAnimNode_StateMachine.h"
 #include "Asset/Animation/UAnimGraph.h"
 #include "Engine/Animation/FAnimNode_AssetPlayerBase.h"
@@ -12,9 +18,22 @@
 
 namespace Engine {
 
+    /**
+     * @brief 상태별 포즈를 갱신하고 조건에 따른 전이와 루트 모션 블렌딩을 수행하는 파일 내부 보조 구현입니다.
+     */
     namespace {
+
+        /**
+         * @brief 전이 조건의 평가 실패·Float·Bool 결과를 구분하는 값 형식입니다.
+         */
         using FRuleValue = std::variant<std::monostate, float, bool>;
 
+        /**
+         * @brief 상태 포즈 그래프에서 지정 이름의 에셋 플레이어를 찾습니다.
+         * @param Root 해당 상태 또는 그래프의 비소유 루트 포즈 노드입니다.
+         * @param Name 실행 그래프에서 찾을 에셋 플레이어 이름입니다.
+         * @return 실행 그래프 소유의 플레이어이며 없으면 nullptr입니다.
+         */
         Engine::FAnimNode_AssetPlayerBase* FindStatePlayer(Engine::FAnimNode_Base* Root, const Core::FString& Name) {
             Core::TArray<Engine::FAnimNode_Base*> Pending{Root};
             Core::TArray<Engine::FAnimNode_Base*> Visited{};
@@ -49,6 +68,17 @@ namespace Engine {
             return Found;
         }
 
+        /**
+         * @brief 입력 노드를 재귀 평가하고 결과를 캐시하여 전이 조건 값을 계산합니다.
+         * @param Graph 열거나 평가할 그래프입니다.
+         * @param Id 조회 또는 변경할 항목 ID입니다.
+         * @param Context 시간과 인스턴스를 제공하는 애니메이션 갱신 컨텍스트입니다.
+         * @param Root 해당 상태 또는 그래프의 비소유 루트 포즈 노드입니다.
+         * @param StateTime 현재 상태의 경과 시간(초)입니다.
+         * @param Cache 동일 종류 에셋의 경로별 캐시입니다.
+         * @param Depth 탐색할 상위 보기의 깊이 또는 노드 배치 깊이입니다.
+         * @return Float 또는 Bool 값이며 평가할 수 없으면 monostate입니다.
+         */
         FRuleValue EvaluateRuleNode(const Asset::FAnimTransitionGraph& Graph, Core::Int32 Id, const Engine::FAnimationUpdateContext& Context, Engine::FAnimNode_Base* Root, float StateTime, Core::TMap<Core::Int32, FRuleValue>& Cache, Core::Uint32 Depth) {
             if (Depth >= Asset::UAnimGraph::MaxNodes) {
                 return {};

@@ -1,3 +1,9 @@
+/**
+ * @file FAnimSequenceEditor.cpp
+ * @brief 애니메이션 시퀀스의 복사본을 편집하고 독립 뷰어에서 재생하는 에디터입니다.
+ * @ingroup Editor
+ */
+
 #include "FAnimSequenceEditor.h"
 
 #include "FAnimationPreviewScene.h"
@@ -19,9 +25,21 @@
 
 using namespace Editor;
 
+/**
+ * @brief 애니메이션 시퀀스의 복사본을 편집하고 독립 뷰어에서 재생하는 에디터의 파일 내부 보조 구현입니다.
+ */
 namespace {
+
+    /**
+     * @brief 표시 이름과 무관하게 창 상태를 유지하는 ImGui 창 ID입니다.
+     */
     constexpr char WindowId[]{"###AnimSequenceEditor"};
 
+    /**
+     * @brief 시퀀스의 루트 모션 추출·고정 설정을 복사합니다.
+     * @param Source 복사하거나 읽을 원본 데이터입니다.
+     * @param Target 복사하거나 그릴 렌더 타깃입니다.
+     */
     void CopySettings(const Asset::UAnimSequence& Source, Asset::UAnimSequence& Target) {
         Target.SetRootMotionEnabled(Source.IsRootMotionEnabled());
         Target.SetForceRootLock(Source.IsRootLockForced());
@@ -29,6 +47,12 @@ namespace {
         Target.SetRootMotionBone(Source.GetRootMotionBone());
     }
 
+    /**
+     * @brief 시퀀스 파일 이름을 주어진 목록 너비에 맞는 표시 문자열로 만듭니다.
+     * @param Path 처리할 에셋 또는 파일 경로입니다.
+     * @param Width 출력 또는 UI 영역의 너비(픽셀)입니다.
+     * @return 목록에 표시할 애니메이션 이름입니다.
+     */
     Core::FString GetAnimationLabel(const std::filesystem::path& Path, float Width) {
         const Core::FString Name{Core::FilePath::ToUtf8(Path.stem())};
 

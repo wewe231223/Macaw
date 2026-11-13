@@ -23,6 +23,7 @@ namespace Engine {
      */
     struct FSceneViewFamily {
     public:
+
         /**
          * @brief 연결된 렌더 장면입니다.
          */
@@ -58,6 +59,9 @@ namespace Engine {
          */
         float mGridSpacing{};
 
+        /**
+         * @brief 깊이 테스트와 함께 배경에 그릴 외부 소유 오버레이입니다.
+         */
         const Engine::FPrimitiveDrawInterface* mBackgroundOverlay{};
     };
 

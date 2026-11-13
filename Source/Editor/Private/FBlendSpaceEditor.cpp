@@ -1,3 +1,9 @@
+/**
+ * @file FBlendSpaceEditor.cpp
+ * @brief 블렌드 스페이스 하나를 편집 사본으로 열어 축 범위와 샘플(시퀀스·위치)을 편집하고 저장합니다.
+ * @ingroup Editor
+ */
+
 #include "FBlendSpaceEditor.h"
 #include "Asset/FAssetManager.h"
 #include "Asset/Animation/UAnimSequence.h"
@@ -18,9 +24,22 @@
 
 namespace Editor {
 
+    /**
+     * @brief 블렌드 스페이스 하나를 편집 사본으로 열어 축 범위와 샘플(시퀀스·위치)을 편집하고 저장하는 파일 내부 보조 구현입니다.
+     */
     namespace {
+
+        /**
+         * @brief 표시 이름과 무관하게 창 상태를 유지하는 ImGui 창 ID입니다.
+         */
         constexpr char WindowId[]{"###BlendSpaceEditor"};
 
+        /**
+         * @brief 정규화한 경로가 지정 루트 내부에 속하는지 검사합니다.
+         * @param Path 처리할 에셋 또는 파일 경로입니다.
+         * @param Root 해당 상태 또는 그래프의 비소유 루트 포즈 노드입니다.
+         * @return 경로가 루트 또는 그 하위에 있으면 true입니다.
+         */
         bool IsUnder(const std::filesystem::path& Path, const std::filesystem::path& Root) {
             const auto Relative{Path.lexically_normal().lexically_relative(Root.lexically_normal())};
 
@@ -28,6 +47,12 @@ namespace Editor {
         }
 
         // 시퀀스가 지정된 샘플 이름들이 공유하는 접두어의 길이를 마지막 밑줄 다음까지로 구합니다. 샘플이 둘 미만이면 0입니다.
+
+        /**
+         * @brief 샘플 에셋 이름들의 공통 접두사 길이를 계산합니다.
+         * @param Samples 표시 이름을 비교할 블렌드 샘플 목록입니다.
+         * @return 표시 이름에서 생략할 공통 문자 수입니다.
+         */
         std::size_t CommonNamePrefix(const Core::TArray<Asset::FBlendSample>& Samples) {
             Core::TArray<Core::FString> Names{};
 
@@ -52,6 +77,12 @@ namespace Editor {
             return Cut == Core::FString::npos ? 0 : Cut + 1;
         }
 
+        /**
+         * @brief 샘플 경로에서 공통 접두사를 생략한 표시 이름을 만듭니다.
+         * @param Sample 표시 이름을 만들 샘플입니다.
+         * @param Prefix 이름에서 생략할 공통 접두사 길이입니다.
+         * @return 샘플 목록에 표시할 이름입니다.
+         */
         Core::FString SampleName(const Asset::FBlendSample& Sample, std::size_t Prefix = 0) {
             if (Sample.mAnimation != nullptr) {
                 const Core::FString& Name{Sample.mAnimation->GetName()};

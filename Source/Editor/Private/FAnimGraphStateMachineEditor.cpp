@@ -1,3 +1,9 @@
+/**
+ * @file FAnimGraphStateMachineEditor.cpp
+ * @brief 상태 머신과 전이 조건의 노드 편집 UI를 구현합니다.
+ * @ingroup Editor
+ */
+
 #include "FAnimGraphEditor.h"
 #include "FAnimGraphNodeBuilder.h"
 #include "Asset/Animation/UAnimGraph.h"
@@ -16,18 +22,45 @@ namespace Editor {
 
     namespace ed = ax::NodeEditor;
 
+    /**
+     * @brief 상태 머신과 전이 조건의 노드 편집 UI를 구현하는 파일 내부 보조 구현입니다.
+     */
     namespace {
+
+        /**
+         * @brief Bool 조건 핀의 표시 색상입니다.
+         */
         constexpr ImVec4 BoolColor{0.82f, 0.24f, 0.28f, 1.0f};
+
+        /**
+         * @brief 상태 노드의 표시 색상입니다.
+         */
         constexpr ImVec4 StateColor{0.45f, 0.72f, 1.0f, 1.0f};
 
+        /**
+         * @brief 상태 ID를 상태 편집기 노드 키로 인코딩합니다.
+         * @param Id 조회 또는 변경할 항목 ID입니다.
+         * @return 상태를 식별하는 노드 키입니다.
+         */
         std::uintptr_t StateNodeKey(Core::Int32 Id) {
             return (static_cast<std::uintptr_t>(Id) + 2) * 16;
         }
 
+        /**
+         * @brief 상태 편집기 키에서 상태 ID를 복원합니다.
+         * @param Key 해석할 노드 편집기 식별 키입니다.
+         * @return 원본 상태 ID입니다.
+         */
         Core::Int32 StateNodeId(std::uintptr_t Key) {
             return Key >= 32 ? static_cast<Core::Int32>(Key / 16 - 2) : -1;
         }
 
+        /**
+         * @brief 문자열을 ImGui 입력 버퍼로 편집하고 변경 결과를 반영합니다.
+         * @param Label UI 항목의 표시 이름입니다.
+         * @param Value 표시·비교하거나 적용할 값입니다.
+         * @return 입력 문자열이 변경되었으면 true입니다.
+         */
         bool EditString(const char* Label, Core::FString& Value) {
             std::array<char, 256> Buffer{};
             std::copy_n(Value.begin(), std::min(Value.size(), Buffer.size() - 1), Buffer.begin());

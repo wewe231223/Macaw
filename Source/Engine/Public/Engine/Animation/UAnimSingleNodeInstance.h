@@ -21,11 +21,19 @@ namespace Engine {
         GENERATED_BODY()
 
     public:
+
+        /**
+         * @brief UAnimSingleNodeInstance의 초기 상태와 의존성을 구성합니다.
+         */
         UAnimSingleNodeInstance();
 
+        /**
+         * @brief 객체의 수명을 끝내고 소유한 리소스를 정리합니다.
+         */
         ~UAnimSingleNodeInstance() override;
 
     public:
+
         /**
          * @brief 재생할 시퀀스를 바꾸고 재생 위치를 처음으로 되돌립니다.
          * @param[in] Sequence 재생할 시퀀스이며 nullptr이면 레퍼런스 포즈를 출력합니다.
@@ -85,6 +93,7 @@ namespace Engine {
         void NativeUpdateAnimation(float DeltaSeconds) override;
 
     private:
+
         /**
          * @brief 그래프의 유일한 노드입니다. 시퀀스·반복 여부·재생 위치를 가집니다.
          */

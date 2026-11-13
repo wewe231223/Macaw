@@ -1,3 +1,9 @@
+/**
+ * @file UScriptCameraModifier.cpp
+ * @brief C# 카메라 모디파이어 콜백을 네이티브 카메라 평가에 연결합니다.
+ * @ingroup Script
+ */
+
 #include "Script/UScriptCameraModifier.h"
 #include "Script/FScriptRuntime.h"
 #include "Engine/APlayerCameraManager.h"

@@ -1,3 +1,9 @@
+/**
+ * @file FAnimGraphEditor.cpp
+ * @brief 언리얼 AnimGraph 편집기처럼 노드를 배치하고 포즈 핀을 연결해 그래프 에셋을 만듭니다.
+ * @ingroup Editor
+ */
+
 #include "FAnimGraphEditor.h"
 #include "FAnimGraphNodeBuilder.h"
 #include "Asset/FAssetManager.h"
@@ -24,47 +30,121 @@ namespace ed = ax::NodeEditor;
 
 namespace Editor {
 
+    /**
+     * @brief 언리얼 AnimGraph 편집기처럼 노드를 배치하고 포즈 핀을 연결해 그래프 에셋을 만듭니다.
+     */
     namespace {
+
+        /**
+         * @brief 표시 이름과 무관하게 창 상태를 유지하는 ImGui 창 ID입니다.
+         */
         constexpr char WindowId[]{"###AnimGraphEditor"};
+
+        /**
+         * @brief 그래프 변수의 ImGui 드래그 페이로드 식별자입니다.
+         */
         constexpr char VariablePayload[]{"MACAW_ANIM_GRAPH_VARIABLE"};
 
         // 노드 에디터 식별자 규칙입니다. 그래프 노드는 (식별자 + 1) << 8이고, 그 아래 8비트는 핀입니다.
         // 0xFF는 출력 핀, 1~254는 입력 핀 순서 + 1입니다. Output 노드와 그 입력 핀은 그래프 노드와 겹치지 않는 작은 값입니다.
         // 링크는 받는 입력 핀 하나에 하나뿐이므로 입력 핀 식별자를 링크 식별자로도 씁니다.
+
+        /**
+         * @brief 최종 출력 노드의 예약 키입니다.
+         */
         constexpr std::uintptr_t OutputNode{1};
+
+        /**
+         * @brief 최종 출력 노드의 입력 핀 키입니다.
+         */
         constexpr std::uintptr_t OutputInputPin{1};
+
+        /**
+         * @brief 출력 핀을 입력 핀·노드 키와 구분하는 비트입니다.
+         */
         constexpr std::uintptr_t OutputPinBits{0xFF};
+
+        /**
+         * @brief 변수 Getter 노드를 다른 키와 구분하는 비트입니다.
+         */
         constexpr std::uintptr_t GetterBit{std::uintptr_t{1} << 61};
+
+        /**
+         * @brief Float 값 입력 핀을 다른 키와 구분하는 비트입니다.
+         */
         constexpr std::uintptr_t FloatInputBit{std::uintptr_t{1} << 60};
 
+        /**
+         * @brief 변수 Getter ID를 편집기 노드 키로 인코딩합니다.
+         * @param Id 조회 또는 변경할 항목 ID입니다.
+         * @return Getter 노드를 식별하는 키입니다.
+         */
         std::uintptr_t GetterKey(Core::Int32 Id) {
             return GetterBit | ((static_cast<std::uintptr_t>(Id) + 1) << 8);
         }
 
+        /**
+         * @brief 노드 편집기 키에서 변수 Getter ID를 복원합니다.
+         * @param Key 해석할 노드 편집기 식별 키입니다.
+         * @return 원본 Getter ID입니다.
+         */
         Core::Int32 DecodeGetter(std::uintptr_t Key) {
             return (Key & GetterBit) != 0 ? static_cast<Core::Int32>(((Key & ~GetterBit) >> 8) - 1) : -1;
         }
 
+        /**
+         * @brief 원본 또는 실행 노드를 편집기에서 식별할 키로 변환합니다.
+         * @param Id 조회 또는 변경할 항목 ID입니다.
+         * @return 노드를 식별하는 편집기 키입니다.
+         */
         std::uintptr_t NodeKey(Core::Int32 Id) {
             return Id == Asset::UAnimGraph::OutputNodeId ? OutputNode : (static_cast<std::uintptr_t>(Id) + 1) << 8;
         }
 
+        /**
+         * @brief 노드 키와 입력 번호를 편집기 입력 핀 키로 인코딩합니다.
+         * @param Node 키로 변환하거나 조회할 노드 ID입니다.
+         * @param Pin 대상 입력 핀 번호이며 첫 입력은 0입니다.
+         * @return 입력 핀을 식별하는 키입니다.
+         */
         std::uintptr_t InputPinKey(Core::Int32 Node, Core::Int32 Pin) {
             return Node == Asset::UAnimGraph::OutputNodeId ? OutputInputPin : NodeKey(Node) | static_cast<std::uintptr_t>(Pin + 1);
         }
 
+        /**
+         * @brief 노드 키를 편집기 출력 핀 키로 인코딩합니다.
+         * @param Node 키로 변환하거나 조회할 노드 ID입니다.
+         * @return 출력 핀을 식별하는 키입니다.
+         */
         std::uintptr_t OutputPinKey(Core::Int32 Node) {
             return NodeKey(Node) | OutputPinBits;
         }
 
+        /**
+         * @brief 노드 ID와 파라미터 번호를 Float 입력 핀 키로 인코딩합니다.
+         * @param Node 키로 변환하거나 조회할 노드 ID입니다.
+         * @param Parameter 조회하거나 연결할 파라미터 이름 또는 인덱스입니다.
+         * @return 다른 노드·핀 종류와 구분되는 편집기 키입니다.
+         */
         std::uintptr_t FloatInputKey(Core::Int32 Node, std::size_t Parameter) {
             return FloatInputBit | InputPinKey(Node, static_cast<Core::Int32>(Parameter));
         }
 
+        /**
+         * @brief 파라미터가 Float 값 노드 연결을 지원하는지 확인합니다.
+         * @param Info 등록된 노드 파라미터 메타데이터입니다.
+         * @return Float 연결을 허용하는 파라미터이면 true입니다.
+         */
         bool IsBindableFloat(const Engine::FAnimGraphParameterInfo& Info) {
             return Info.mType == Engine::EAnimGraphParameterType::Float && Info.mBindable;
         }
 
+        /**
+         * @brief 노드의 파라미터 번호에 해당하는 연결 가능한 Float 입력을 찾습니다.
+         * @param Node 조회·연결·갱신할 노드입니다.
+         * @param Parameter 조회하거나 연결할 파라미터 이름 또는 인덱스입니다.
+         * @return 레지스트리 소유의 파라미터 메타데이터이며 없으면 nullptr입니다.
+         */
         const Engine::FAnimGraphParameterInfo* FindFloatInput(const Asset::FAnimGraphNode* Node, Core::Int32 Parameter) {
             const Engine::FAnimGraphNodeType* Type{Node != nullptr ? Engine::FAnimGraphNodeRegistry::Find(Node->mType) : nullptr};
 
@@ -77,13 +157,34 @@ namespace Editor {
             return IsBindableFloat(Info) ? &Info : nullptr;
         }
 
+        /**
+         * @brief 노드 편집기 핀 키에서 복원한 노드 ID, 핀 번호와 입출력 방향입니다.
+         * @ingroup Editor
+         */
         struct FPinRef {
         public:
+
+            /**
+             * @brief 핀 키에서 복원한 포즈 노드 ID입니다.
+             */
             Core::Int32 mNode{};
+
+            /**
+             * @brief 노드 내부 입력 핀 번호입니다.
+             */
             Core::Int32 mPin{};
+
+            /**
+             * @brief 출력 핀이면 true, 입력 핀이면 false입니다.
+             */
             bool mOutput{};
         };
 
+        /**
+         * @brief 편집기 핀 키에서 노드·핀 번호·입출력 방향을 복원합니다.
+         * @param Key 해석할 노드 편집기 식별 키입니다.
+         * @return 해석한 핀 정보입니다.
+         */
         FPinRef DecodePin(std::uintptr_t Key) {
             if (Key == OutputInputPin) {
                 return {Asset::UAnimGraph::OutputNodeId, 0, false};
@@ -94,6 +195,11 @@ namespace Editor {
             return {static_cast<Core::Int32>((Key >> 8) - 1), Low == OutputPinBits ? 0 : static_cast<Core::Int32>(Low) - 1, Low == OutputPinBits};
         }
 
+        /**
+         * @brief 노드 편집기 키에서 원본 노드 ID를 복원합니다.
+         * @param Key 해석할 노드 편집기 식별 키입니다.
+         * @return 원본 노드 ID입니다.
+         */
         Core::Int32 DecodeNode(std::uintptr_t Key) {
             if ((Key & GetterBit) != 0) {
                 return -2;
@@ -102,17 +208,35 @@ namespace Editor {
             return Key == OutputNode ? Asset::UAnimGraph::OutputNodeId : static_cast<Core::Int32>((Key >> 8) - 1);
         }
 
+        /**
+         * @brief 정규화한 경로가 지정 루트 내부에 속하는지 검사합니다.
+         * @param Path 처리할 에셋 또는 파일 경로입니다.
+         * @param Root 해당 상태 또는 그래프의 비소유 루트 포즈 노드입니다.
+         * @return 경로가 루트 또는 그 하위에 있으면 true입니다.
+         */
         bool IsUnder(const std::filesystem::path& Path, const std::filesystem::path& Root) {
             const auto Relative{Path.lexically_normal().lexically_relative(Root.lexically_normal())};
 
             return !Relative.empty() && *Relative.begin() != L"..";
         }
 
+        /**
+         * @brief Float 값을 노드 UI에서 읽기 쉬운 문자열로 변환합니다.
+         * @param Value 표시·비교하거나 적용할 값입니다.
+         * @return 표시용 숫자 문자열입니다.
+         */
         Core::FString FormatFloat(float Value) {
             return std::format("{}", Value);
         }
 
         // 노드 본문에 보일 파라미터 요약입니다. 경로는 파일 이름만 보여 줍니다.
+
+        /**
+         * @brief 저장된 값 또는 기본값으로 노드 파라미터의 표시 문자열을 만듭니다.
+         * @param Info 등록된 노드 파라미터 메타데이터입니다.
+         * @param Node 조회·연결·갱신할 노드입니다.
+         * @return 속성 UI에 표시할 값 문자열입니다.
+         */
         Core::FString DisplayParameterValue(const Engine::FAnimGraphParameterInfo& Info, const Asset::FAnimGraphNode& Node) {
             const Core::FString* Value{Node.FindParameter(Info.mName)};
             const Core::FString Text{Value != nullptr ? *Value : Info.mDefault};

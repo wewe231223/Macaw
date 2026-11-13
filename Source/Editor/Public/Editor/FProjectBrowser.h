@@ -30,12 +30,14 @@ namespace Editor {
      */
     class FProjectBrowser {
     public:
+
         /**
          * @brief 전달된 설정과 기본값으로 FProjectBrowser 객체를 생성합니다.
          */
         FProjectBrowser();
 
     public:
+
         /**
          * @brief 프로젝트 선택 화면의 이벤트·그리기 루프를 실행합니다.
          * @param[in] Platform 창과 플랫폼 입력을 제공하는 객체입니다.
@@ -43,6 +45,8 @@ namespace Editor {
          * @param[in,out] ProjectFile 처음 선택할 프로젝트 경로이며, 사용자가 고른 프로젝트 파일 경로를 받습니다.
          * @param[in,out] Create 새 프로젝트 생성 여부이며, 사용자의 선택을 받습니다.
          * @param[in] Error 화면에 표시할 이전 오류 메시지입니다.
+         * @param TemplatesDirectory 새 프로젝트 템플릿을 검색할 루트 디렉터리입니다.
+         * @param TemplateDirectory 사용자가 선택한 템플릿 디렉터리를 받을 출력 경로입니다.
          * @return 프로젝트를 골랐으면 true, 사용자가 창을 닫았으면 false입니다.
          */
         bool Show(Platform::FWindowsApplication& Platform, Renderer::FRenderer& Renderer, std::filesystem::path& ProjectFile, bool& Create, const std::filesystem::path& TemplatesDirectory, std::filesystem::path& TemplateDirectory, const Core::FString& Error);
@@ -54,10 +58,12 @@ namespace Editor {
         static void RememberProject(const std::filesystem::path& ProjectFile);
 
     private:
+
         /**
          * @brief 프로젝트 열기·생성 페이지와 오류 상태를 표시합니다.
          * @param[in] Platform 창과 플랫폼 입력을 제공하는 객체입니다.
          * @param[in] Error 화면에 표시할 오류 메시지입니다.
+         * @param Renderer 템플릿 미리보기의 GPU 장치를 제공하는 렌더러입니다.
          */
         void Draw(Platform::FWindowsApplication& Platform, Renderer::FRenderer& Renderer, const Core::FString& Error);
 
@@ -70,6 +76,7 @@ namespace Editor {
         /**
          * @brief 프로젝트 이름과 폴더를 지정하는 생성 UI를 표시합니다.
          * @param[in] Platform 창과 플랫폼 입력을 제공하는 객체입니다.
+         * @param Device 템플릿 미리보기 텍스처를 생성할 네이티브 D3D11 장치이며 없으면 nullptr입니다.
          */
         void DrawNewProject(Platform::FWindowsApplication& Platform, void* Device);
 
@@ -91,11 +98,20 @@ namespace Editor {
         bool IsProjectNameValid() const;
 
     private:
+
         /**
          * @brief 에디터 ImGui 스타일의 화면 배율 관리자입니다.
          */
         Editor::FImGuiUIScale mUIScale{};
+
+        /**
+         * @brief 프로젝트 생성 템플릿의 목록과 선택 상태입니다.
+         */
         Editor::FProjectTemplatePicker mTemplatePicker{};
+
+        /**
+         * @brief 템플릿 검색·로드 중 발생한 오류 메시지입니다.
+         */
         Core::FString mTemplateError{};
 
         /**

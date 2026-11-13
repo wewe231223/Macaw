@@ -1,3 +1,9 @@
+/**
+ * @file FAnimNode_TwoWayBlend.cpp
+ * @brief 입력 A와 B를 Alpha 비율로 섞습니다. Alpha가 0이면 A, 1이면 B입니다.
+ * @ingroup Engine
+ */
+
 #include "Engine/Animation/FAnimNode_TwoWayBlend.h"
 #include "Engine/Animation/FAnimationRuntime.h"
 

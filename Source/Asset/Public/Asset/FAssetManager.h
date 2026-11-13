@@ -37,6 +37,7 @@ namespace Asset {
      */
     class FAssetManager {
     public:
+
         /**
          * @brief 전달받은 설정과 의존성으로 FAssetManager의 초기 상태를 구성합니다.
          * @param[in] ContentRoot 프로젝트 에셋 경로의 기준 콘텐츠 폴더입니다.
@@ -59,6 +60,7 @@ namespace Asset {
         Asset::FAssetManager& operator=(const Asset::FAssetManager&) = delete;
 
     public:
+
         /**
          * @brief 에셋 경로의 기준이 되는 콘텐츠 폴더를 반환합니다.
          * @return 객체가 보유한 데이터의 참조이며 소유 객체의 수명 동안 유효합니다.
@@ -124,7 +126,20 @@ namespace Asset {
          * @return 로드한 메시의 비소유 주소이며 실패하면 nullptr입니다.
          */
         Asset::USkeletalMesh* LoadSkeletalMesh(const std::filesystem::path& Path, Core::FString& Error);
+
+        /**
+         * @brief 스켈레톤을 캐시에서 찾거나 파일에서 읽어 캐시에 보관합니다.
+         * @param Path 처리할 에셋 또는 파일 경로입니다.
+         * @param Error 실패 원인을 기록할 출력 문자열입니다.
+         * @return 관리자가 소유하는 스켈레톤이며 실패하면 nullptr입니다.
+         */
         Asset::USkeleton* LoadSkeleton(const std::filesystem::path& Path, Core::FString& Error);
+
+        /**
+         * @brief 구형 메시 경로에 대응하여 분리된 스켈레톤 캐시를 조회합니다.
+         * @param MeshPath 미리보기 메시의 에셋 경로입니다.
+         * @return 캐시 소유의 비소유 포인터이며 없으면 nullptr입니다.
+         */
         Asset::USkeleton* FindLegacySkeleton(const std::filesystem::path& MeshPath) const;
 
         /**
@@ -274,6 +289,14 @@ namespace Asset {
          * @return 검증과 파일 저장에 성공하면 true입니다.
          */
         bool SaveSkeletalMesh(const std::filesystem::path& Path, const Asset::USkeletalMesh& Mesh, Core::FString& Error);
+
+        /**
+         * @brief 검증한 스켈레톤을 지정한 에셋 파일에 저장합니다.
+         * @param Path 처리할 에셋 또는 파일 경로입니다.
+         * @param Skeleton 호출자가 수명을 보장하는 스켈레톤입니다.
+         * @param Error 실패 원인을 기록할 출력 문자열입니다.
+         * @return 저장에 성공하면 true이며 실패 원인은 Error에 기록합니다.
+         */
         bool SaveSkeleton(const std::filesystem::path& Path, const Asset::USkeleton& Skeleton, Core::FString& Error);
 
         /**
@@ -333,6 +356,7 @@ namespace Asset {
         void RetireAssets(const std::filesystem::path& Path);
 
     private:
+
         /**
          * @brief 원본 메시와 재질·외부 텍스처를 임포트 옵션에 따라 프로젝트 에셋으로 가져와 메시 참조를 저장합니다.
          * @param[in] Source 임포트할 원본 메시 파일 경로입니다.
@@ -354,6 +378,7 @@ namespace Asset {
         bool ApplyMaterialSettings(Asset::UMaterial& Target, const Asset::UMaterial& Source, Core::FString& Error);
 
     private:
+
         /**
          * @brief 에셋 접근을 제한하는 프로젝트 콘텐츠 폴더의 절대 경로입니다.
          */
@@ -368,7 +393,15 @@ namespace Asset {
          * @brief 프로젝트 상대 경로별로 소유하는 스켈레탈 메시 캐시입니다.
          */
         Core::TMap<Core::FString, std::unique_ptr<Asset::USkeletalMesh>> mSkeletalMeshes{};
+
+        /**
+         * @brief 경로별로 로드한 스켈레톤의 소유 캐시입니다.
+         */
         Core::TMap<Core::FString, std::unique_ptr<Asset::USkeleton>> mSkeletons{};
+
+        /**
+         * @brief 구형 스켈레탈 메시에서 분리한 스켈레톤의 소유 캐시입니다.
+         */
         Core::TMap<Core::FString, std::unique_ptr<Asset::USkeleton>> mLegacySkeletons{};
 
         /**

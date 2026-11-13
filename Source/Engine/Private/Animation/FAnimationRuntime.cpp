@@ -1,3 +1,9 @@
+/**
+ * @file FAnimationRuntime.cpp
+ * @brief 본 포즈 블렌딩과 루트 모션 변환 계산을 제공합니다.
+ * @ingroup Engine
+ */
+
 #include "Engine/Animation/FAnimationRuntime.h"
 
 #include <algorithm>

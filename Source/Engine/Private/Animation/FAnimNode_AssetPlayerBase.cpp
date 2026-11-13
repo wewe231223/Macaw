@@ -1,3 +1,9 @@
+/**
+ * @file FAnimNode_AssetPlayerBase.cpp
+ * @brief 재생 속도·반복 여부와 재생 위치를 관리하는 에셋 플레이어의 기반입니다.
+ * @ingroup Engine
+ */
+
 #include "Engine/Animation/FAnimNode_AssetPlayerBase.h"
 
 #include <algorithm>

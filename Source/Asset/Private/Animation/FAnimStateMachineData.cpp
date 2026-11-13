@@ -1,3 +1,9 @@
+/**
+ * @file FAnimStateMachineData.cpp
+ * @brief 상태별 포즈 그래프와 전이 조건을 보관하고 직렬화하는 상태 머신 에셋 데이터입니다.
+ * @ingroup Asset
+ */
+
 #include "Asset/Animation/FAnimStateMachineData.h"
 #include "Asset/Animation/UAnimGraph.h"
 #include "Core/Archive.h"

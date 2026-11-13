@@ -1,3 +1,9 @@
+/**
+ * @file UDecalComponent.cpp
+ * @brief 박스 영역에 색상·노멀 텍스처를 투영하고 데칼 프록시를 장면과 동기화합니다.
+ * @ingroup Engine
+ */
+
 #include "Engine/Component/UDecalComponent.h"
 
 #include "Asset/FAssetManager.h"

@@ -20,6 +20,7 @@ namespace Engine {
         GENERATED_BODY()
 
     public:
+
         /**
          * @brief 전달된 설정과 기본값으로 UBillboardTextComponent 객체를 생성합니다.
          */
@@ -31,6 +32,7 @@ namespace Engine {
         ~UBillboardTextComponent() override;
 
     public:
+
         /**
          * @brief UTF-8 문자열을 반환합니다.
          * @return 이 객체가 보관하는 값의 참조입니다.
@@ -70,7 +72,17 @@ namespace Engine {
          */
         bool SetTextColor(const Core::FVector4& Color);
 
+        /**
+         * @brief 빌보드 텍스트의 깊이 테스트 사용 여부를 반환합니다.
+         * @return 장면 깊이를 비교하면 true입니다.
+         */
         bool GetDepthTest() const;
+
+        /**
+         * @brief 빌보드 텍스트의 깊이 테스트 사용 여부를 변경합니다.
+         * @param DepthTest 장면 깊이와 비교할지 여부입니다.
+         * @return 설정을 적용하면 true입니다.
+         */
         bool SetDepthTest(bool DepthTest);
 
         /**
@@ -104,6 +116,7 @@ namespace Engine {
         bool ShouldCreateRenderState() const override;
 
     private:
+
         /**
          * @brief UTF-8 문자열입니다.
          */
@@ -122,6 +135,9 @@ namespace Engine {
         UPROPERTY(Edit, Serialize, Getter = GetTextColor, Setter = SetTextColor)
         Core::FVector4 mTextColor{1.0f, 1.0f, 1.0f, 1.0f};
 
+        /**
+         * @brief 빌보드 텍스트를 장면 깊이와 비교할지 여부입니다.
+         */
         UPROPERTY(Edit, Serialize, Getter = GetDepthTest, Setter = SetDepthTest)
         bool mDepthTest{true};
     };

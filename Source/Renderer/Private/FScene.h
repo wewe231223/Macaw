@@ -26,6 +26,7 @@ namespace Renderer {
      */
     class FScene final : public Engine::FSceneInterface {
     public:
+
         /**
          * @brief FScene의 초기 상태와 전달받은 의존성을 구성합니다.
          * @param[in,out] Device 리소스 생성에 사용할 Direct3D 11 장치입니다.
@@ -39,6 +40,7 @@ namespace Renderer {
         ~FScene() override;
 
     public:
+
         /**
          * @brief 광원 프록시의 GUID로 렌더 장면에 광원을 추가하거나 교체합니다.
          * @param[in] Proxy 장면에 복사할 광원 상태입니다.
@@ -75,8 +77,22 @@ namespace Renderer {
          */
         const Core::TArray<Engine::FHeightFogSceneProxy>& GetHeightFogs() const;
 
+        /**
+         * @brief GUID가 같은 데칼 프록시를 갱신하거나 새로 등록합니다.
+         * @param Proxy 등록·갱신할 데칼 렌더 프록시입니다.
+         */
         void AddDecal(const Engine::FDecalSceneProxy& Proxy) override;
+
+        /**
+         * @brief GUID로 장면의 데칼 프록시를 제거합니다.
+         * @param Id 조회 또는 변경할 항목 ID입니다.
+         */
         void RemoveDecal(const Core::FGuid& Id) override;
+
+        /**
+         * @brief 장면에 등록된 데칼 프록시 목록을 반환합니다.
+         * @return 장면 소유 배열의 읽기 전용 참조입니다.
+         */
         const Core::TArray<Engine::FDecalSceneProxy>& GetDecals() const;
 
         /**
@@ -138,6 +154,7 @@ namespace Renderer {
         Core::FRevision GetCasterRevision() const;
 
     private:
+
         /**
          * @brief 프리미티브의 객체 상수 버퍼를 현재 프록시 값으로 갱신합니다.
          * @param[in,out] Primitive 상수 버퍼를 갱신할 프리미티브입니다.
@@ -159,6 +176,7 @@ namespace Renderer {
         static bool IsShadowCaster(const Engine::FPrimitiveSceneProxy& Proxy);
 
     private:
+
         /**
          * @brief 등록된 광원 프록시 목록입니다.
          */
@@ -169,6 +187,9 @@ namespace Renderer {
          */
         Core::TArray<Engine::FHeightFogSceneProxy> mHeightFogs{};
 
+        /**
+         * @brief 장면에 등록된 데칼 프록시 목록입니다.
+         */
         Core::TArray<Engine::FDecalSceneProxy> mDecals{};
 
         /**

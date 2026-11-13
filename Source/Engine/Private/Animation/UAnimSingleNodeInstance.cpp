@@ -1,3 +1,9 @@
+/**
+ * @file UAnimSingleNodeInstance.cpp
+ * @brief USkeletalMeshComponent::PlayAnimation이 사용하는, 시퀀스 하나의 재생 시간·반복·속도를 관리하는 인스턴스입니다.
+ * @ingroup Engine
+ */
+
 #include "Engine/Animation/UAnimSingleNodeInstance.h"
 #include "Asset/Animation/UAnimSequence.h"
 

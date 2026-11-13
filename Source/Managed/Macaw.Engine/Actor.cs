@@ -4,6 +4,7 @@ namespace Macaw;
 
 /// <summary>엔진 액터를 가리키는 참조입니다. 함수 대부분은 C++ 어노테이션에서 생성됩니다.</summary>
 public partial class Actor {
+
     /// <summary>루트 컴포넌트의 위치입니다. 1.0은 1미터입니다.</summary>
     public Vector3 Location {
         get => GetActorTransform().Location;
@@ -49,6 +50,7 @@ public partial class Actor {
         return Host.GetScripts(Handle).OfType<T>().FirstOrDefault();
     }
 
+    /// <summary>변환을 액터에 적용하며 루트가 없거나 값이 거부되면 예외를 발생시킵니다.</summary>
     private void ApplyTransform(Transform Transform) {
         if (!SetActorTransform(Transform)) {
             throw new InvalidOperationException($"{GetName()} has no root component or rejected the transform.");
@@ -58,6 +60,7 @@ public partial class Actor {
 
 /// <summary>엔진 월드를 가리키는 참조입니다. 함수 대부분은 C++ 어노테이션에서 생성됩니다.</summary>
 public partial class World {
+
     /// <summary>광선과 처음 만나는 메시를 찾습니다. 결과의 IsHit으로 맞았는지 확인합니다.</summary>
     public RaycastHit Raycast(Vector3 Origin, Vector3 Direction) => Raycast(Origin, Direction, null);
 

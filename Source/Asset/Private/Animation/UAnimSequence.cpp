@@ -1,3 +1,9 @@
+/**
+ * @file UAnimSequence.cpp
+ * @brief 임포트한 본 트랙과 프레임 레이트를 소유하는 애니메이션 클립입니다.
+ * @ingroup Asset
+ */
+
 #include "Asset/Animation/UAnimSequence.h"
 
 #include <algorithm>
@@ -6,11 +12,29 @@
 
 namespace Asset {
 
+    /**
+     * @brief 임포트한 본 트랙과 프레임 레이트를 소유하는 애니메이션 클립의 파일 내부 보조 구현입니다.
+     */
     namespace {
+
+        /**
+         * @brief 두 키 사이의 위치·회전·크기를 보간합니다.
+         * @param Track 보간할 원시 애니메이션 트랙입니다.
+         * @param Key 보간 구간의 시작 키 인덱스입니다.
+         * @param NextKey 보간 구간의 다음 키 인덱스입니다.
+         * @param Alpha 0~1의 보간 가중치입니다.
+         * @return 보간한 트랙 로컬 변환입니다.
+         */
         Core::FTransform SampleAnimationTrack(const Asset::FRawAnimSequenceTrack& Track, std::size_t Key, std::size_t NextKey, float Alpha) {
             return {Track.mPosKeys.size() == 1 ? Track.mPosKeys[0] : Track.mPosKeys[Key] + (Track.mPosKeys[NextKey] - Track.mPosKeys[Key]) * Alpha, Track.mRotKeys.size() == 1 ? Track.mRotKeys[0] : Track.mRotKeys[Key].Slerp(Track.mRotKeys[NextKey], Alpha), Track.mScaleKeys.size() == 1 ? Track.mScaleKeys[0] : Track.mScaleKeys[Key] + (Track.mScaleKeys[NextKey] - Track.mScaleKeys[Key]) * Alpha};
         }
 
+        /**
+         * @brief 연속한 두 루트 모션 변환을 적용 순서에 맞게 합성합니다.
+         * @param A 먼저 적용하거나 비교할 변환입니다.
+         * @param B 다음으로 적용하거나 비교할 변환입니다.
+         * @return A 다음 B를 적용하는 루트 모션 변환입니다.
+         */
         Core::FTransform ComposeRootMotion(const Core::FTransform& A, const Core::FTransform& B) {
             return {A.mLocation + A.mRotation.RotateVector(B.mLocation), (A.mRotation * B.mRotation).Normalized(), {1.0f, 1.0f, 1.0f}};
         }

@@ -1,3 +1,9 @@
+/**
+ * @file FAnimGraphNodeBuilder.cpp
+ * @brief 노드 하나를 헤더 → 핀 행 → 본문 순서로 그립니다.
+ * @ingroup Editor
+ */
+
 #include "FAnimGraphNodeBuilder.h"
 
 #include <algorithm>
@@ -9,16 +15,56 @@ namespace ed = ax::NodeEditor;
 
 namespace Editor {
 
+    /**
+     * @brief 노드 하나를 헤더 → 핀 행 → 본문 순서로 그립니다.
+     */
     namespace {
+
+        /**
+         * @brief 노드 핀 아이콘 크기(픽셀)입니다.
+         */
         constexpr float IconSize{16.0f};
+
+        /**
+         * @brief 핀 아이콘과 이름 사이 간격(픽셀)입니다.
+         */
         constexpr float IconSpacing{6.0f};
+
+        /**
+         * @brief 노드 머리글 내부 여백(픽셀)입니다.
+         */
         constexpr float HeaderInset{12.0f};
+
+        /**
+         * @brief 노드 속성 열 사이 간격(픽셀)입니다.
+         */
         constexpr float PropertySpacing{14.0f};
+
+        /**
+         * @brief 노드 제목의 표시 색상입니다.
+         */
         constexpr ImVec4 TitleColor{0.94f, 0.96f, 1.0f, 1.0f};
+
+        /**
+         * @brief 노드 보조 정보의 표시 색상입니다.
+         */
         constexpr ImVec4 SecondaryColor{0.62f, 0.68f, 0.77f, 1.0f};
+
+        /**
+         * @brief 노드 값의 표시 색상입니다.
+         */
         constexpr ImVec4 ValueColor{0.86f, 0.90f, 0.96f, 1.0f};
+
+        /**
+         * @brief 변수에 연결된 속성의 강조 색상입니다.
+         */
         constexpr ImVec4 BindingColor{0.50f, 0.81f, 1.0f, 1.0f};
 
+        /**
+         * @brief 노드 종류에 맞는 머리글 강조 색상을 선택합니다.
+         * @param Type 처리할 에셋 또는 노드 종류입니다.
+         * @return 종류별 UI 색상입니다.
+         */
         ImVec4 TypeColor(std::string_view Type) {
             if (Type == "Sequence Player") {
                 return {0.40f, 0.80f, 0.59f, 1.0f};
@@ -39,6 +85,11 @@ namespace Editor {
             return {0.67f, 0.61f, 0.96f, 1.0f};
         }
 
+        /**
+         * @brief 핀 이름과 아이콘을 함께 표시할 너비를 계산합니다.
+         * @param Label UI 항목의 표시 이름입니다.
+         * @return 필요한 너비(픽셀)입니다.
+         */
         float PinWidth(const char* Label) {
             return ImGui::CalcTextSize(Label).x + IconSpacing + IconSize;
         }

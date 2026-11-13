@@ -1,3 +1,9 @@
+/**
+ * @file UAnimInstance.cpp
+ * @brief 컴포넌트 하나의 애니메이션 변수와 노드 그래프를 소유하고 포즈를 계산합니다.
+ * @ingroup Engine
+ */
+
 #include "Engine/Animation/UAnimInstance.h"
 #include "Asset/FAssetManager.h"
 #include "Asset/USkeleton.h"

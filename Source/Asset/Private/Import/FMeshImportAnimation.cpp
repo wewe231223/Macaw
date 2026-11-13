@@ -1,3 +1,9 @@
+/**
+ * @file FMeshImportAnimation.cpp
+ * @brief 임포트한 애니메이션 트랙과 시퀀스 메타데이터를 보관합니다.
+ * @ingroup Asset
+ */
+
 #include "Asset/Import/FMeshImportAnimation.h"
 
 #include <utility>

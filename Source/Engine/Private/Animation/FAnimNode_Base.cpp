@@ -1,3 +1,9 @@
+/**
+ * @file FAnimNode_Base.cpp
+ * @brief 애니메이션 그래프 노드의 기반입니다.
+ * @ingroup Engine
+ */
+
 #include "Engine/Animation/FAnimNode_Base.h"
 #include "Engine/Animation/UAnimInstance.h"
 

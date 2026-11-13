@@ -1,3 +1,9 @@
+/**
+ * @file FAnimNode_BlendSpacePlayer.cpp
+ * @brief 입력 X로 블렌드 스페이스의 샘플 가중치를 구하고, 샘플 포즈를 그 가중치로 섞어 출력합니다.
+ * @ingroup Engine
+ */
+
 #include "Engine/Animation/FAnimNode_BlendSpacePlayer.h"
 #include "Asset/Animation/UAnimSequence.h"
 #include "Engine/Animation/FAnimationRuntime.h"

@@ -1,3 +1,9 @@
+/**
+ * @file FFrameRate.cpp
+ * @brief 분자·분모 기반의 애니메이션 프레임률과 시간 변환을 제공합니다.
+ * @ingroup Asset
+ */
+
 #include "Asset/Animation/FFrameRate.h"
 
 #include <cmath>

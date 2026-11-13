@@ -7,13 +7,18 @@ namespace Macaw;
 
 /// <summary>사용자 스크립트를 언로드할 수 있도록 담는 수집형 로드 컨텍스트입니다.</summary>
 internal sealed class ScriptLoadContext : AssemblyLoadContext {
+
+    /// <summary>스크립트 어셈블리 기준으로 관리·네이티브 의존성 경로를 해석합니다.</summary>
     private readonly AssemblyDependencyResolver mResolver;
 
+    /// <summary>메인 스크립트 경로를 기준으로 언로드 가능한 의존성 해석기를 구성합니다.</summary>
     public ScriptLoadContext(string MainAssembly) : base("GameScripts", isCollectible: true) {
         mResolver = new AssemblyDependencyResolver(MainAssembly);
     }
 
     // null을 돌려주면 기본 컨텍스트로 해석되므로 Macaw.Engine과 프레임워크 타입을 공유합니다.
+
+    /// <summary>Macaw.Engine은 기본 컨텍스트와 공유하고 스크립트 의존성은 전용 컨텍스트에 로드합니다.</summary>
     protected override Assembly? Load(AssemblyName Name) {
         if (Name.Name == typeof(Host).Assembly.GetName().Name) {
             return null;
@@ -24,6 +29,7 @@ internal sealed class ScriptLoadContext : AssemblyLoadContext {
         return Path != null ? LoadFromAssemblyPath(Path) : null;
     }
 
+    /// <summary>스크립트의 네이티브 의존성을 해석하며 경로가 없으면 0을 반환합니다.</summary>
     protected override nint LoadUnmanagedDll(string Name) {
         string? Path = mResolver.ResolveUnmanagedDllToPath(Name);
 
@@ -33,12 +39,23 @@ internal sealed class ScriptLoadContext : AssemblyLoadContext {
 
 /// <summary>엔진이 호출하는 진입점입니다. 예외가 네이티브로 넘어가면 프로세스가 종료되므로 모든 진입점에서 잡습니다.</summary>
 internal static unsafe class Host {
+
+    /// <summary>빌드 출력을 잠그지 않도록 스크립트를 복사할 하위 폴더 이름입니다.</summary>
     private const string ShadowFolder = ".Loaded";
 
+    /// <summary>현재 스크립트 세대를 소유하는 수집형 로드 컨텍스트입니다.</summary>
     private static ScriptLoadContext? sContext;
+
+    /// <summary>현재 세대의 사용자 스크립트 어셈블리입니다.</summary>
     private static Assembly? sAssembly;
+
+    /// <summary>현재 세대의 섀도 복사 경로이며 원본 직접 로드 시 null입니다.</summary>
     private static string? sShadowDirectory;
+
+    /// <summary>프로세스 안에서 섀도 복사 디렉터리를 구분하는 세대 번호입니다.</summary>
     private static int sGeneration;
+
+    /// <summary>소유 액터 핸들별로 생성된 스크립트 인스턴스를 보관합니다.</summary>
     private static readonly Dictionary<ObjectHandle, List<ScriptComponent>> sScripts = new();
 
     /// <summary>액터에 붙은 살아 있는 스크립트 목록을 반환합니다.</summary>
@@ -46,6 +63,7 @@ internal static unsafe class Host {
         return sScripts.TryGetValue(Owner, out List<ScriptComponent>? Scripts) ? Scripts : Array.Empty<ScriptComponent>();
     }
 
+    /// <summary>네이티브·관리 함수 테이블의 크기와 바인딩 해시를 검증하여 연결하며 성공하면 1을 반환합니다.</summary>
     [UnmanagedCallersOnly]
     public static int Bootstrap(NativeApi* Native, ManagedApi* Managed) {
         if (Native->Size != sizeof(NativeApi) || Managed->Size != sizeof(ManagedApi) || Native->BindingCount != Bindings.Count || (uint)Native->BindingHash != Bindings.Hash) {
@@ -72,6 +90,7 @@ internal static unsafe class Host {
         return 1;
     }
 
+    /// <summary>의존성 파일과 하위 폴더를 복사하되 지정한 섀도 폴더는 제외합니다.</summary>
     private static void CopyDirectory(string Source, string Destination, string Excluded) {
         System.IO.Directory.CreateDirectory(Destination);
 
@@ -127,6 +146,8 @@ internal static unsafe class Host {
     }
 
     // 지역 변수가 컨텍스트를 붙잡지 않도록 분리합니다.
+
+    /// <summary>강한 참조를 해제하여 스크립트 언로드를 시작하고 수집 확인용 약한 참조를 반환합니다.</summary>
     [MethodImpl(MethodImplOptions.NoInlining)]
     private static WeakReference BeginUnload() {
         var Weak = new WeakReference(sContext);
@@ -166,6 +187,7 @@ internal static unsafe class Host {
         }
     }
 
+    /// <summary>이름으로 스크립트 인스턴스를 생성하여 액터에 연결하고 GCHandle을 반환하며 실패하면 0입니다.</summary>
     [UnmanagedCallersOnly]
     private static nint CreateInstance(byte* NameUtf8, ObjectHandle Owner) {
         try {
@@ -192,6 +214,7 @@ internal static unsafe class Host {
         }
     }
 
+    /// <summary>문자열을 NUL로 끝나는 UTF-8 버퍼로 고정하여 콜백 동안만 포인터를 제공합니다.</summary>
     private static void CallWithUtf8(string Text, Action<nint> Call) {
         byte[] Bytes = System.Text.Encoding.UTF8.GetBytes(Text + "\0");
 
@@ -200,14 +223,17 @@ internal static unsafe class Host {
         }
     }
 
+    /// <summary>스크립트 클래스 이름을 네이티브 카탈로그에 추가합니다.</summary>
     private static void AddClass(string Name) {
         CallWithUtf8(Name, Text => EngineObject.sApi->CatalogAddClass((byte*)Text));
     }
 
+    /// <summary>필드 이름·형식 태그·기본값을 UTF-8로 네이티브 카탈로그에 전달합니다.</summary>
     private static void AddField(string Name, string Tag, string Value) {
         CallWithUtf8(Name, NameText => CallWithUtf8(Tag, TagText => CallWithUtf8(Value, ValueText => EngineObject.sApi->CatalogAddField((byte*)NameText, (byte*)TagText, (byte*)ValueText))));
     }
 
+    /// <summary>어셈블리 타입을 나열하며 일부 의존성 로드 실패 시 로드된 타입만 반환합니다.</summary>
     private static Type[] GetLoadableTypes(Assembly Assembly) {
         try {
             return Assembly.GetTypes();
@@ -276,6 +302,7 @@ internal static unsafe class Host {
         }
     }
 
+    /// <summary>유효한 GCHandle에서 스크립트 인스턴스를 조회합니다.</summary>
     private static ScriptComponent GetInstance(nint Handle) => (ScriptComponent)GCHandle.FromIntPtr(Handle).Target!;
 
     /// <summary>예외가 발생한 인스턴스를 기록 후 비활성화합니다.</summary>
@@ -288,6 +315,7 @@ internal static unsafe class Host {
         }
     }
 
+    /// <summary>스크립트의 BeginPlay를 호출하며 예외 발생 시 인스턴스를 비활성화합니다.</summary>
     [UnmanagedCallersOnly]
     private static void BeginPlay(nint Handle) {
         ScriptComponent Instance = GetInstance(Handle);
@@ -299,6 +327,7 @@ internal static unsafe class Host {
         }
     }
 
+    /// <summary>활성 스크립트의 Tick과 코루틴을 갱신하며 예외는 비활성화로 처리합니다.</summary>
     [UnmanagedCallersOnly]
     private static void Tick(nint Handle, float DeltaTime) {
         ScriptComponent Instance = GetInstance(Handle);
@@ -315,6 +344,7 @@ internal static unsafe class Host {
         }
     }
 
+    /// <summary>모든 코루틴을 중지하고 오류 없는 스크립트의 EndPlay를 호출합니다.</summary>
     [UnmanagedCallersOnly]
     private static void EndPlay(nint Handle) {
         ScriptComponent Instance = GetInstance(Handle);
@@ -331,6 +361,7 @@ internal static unsafe class Host {
         }
     }
 
+    /// <summary>액터 겹침의 시작·종료 콜백을 호출하며 상대 파괴 시 종료 인수는 null일 수 있습니다.</summary>
     [UnmanagedCallersOnly]
     private static void Overlap(nint Handle, int Begin, ObjectHandle Other) {
         ScriptComponent Instance = GetInstance(Handle);
@@ -352,6 +383,7 @@ internal static unsafe class Host {
         }
     }
 
+    /// <summary>네이티브 모디파이어 핸들별로 연결한 C# 인스턴스를 보관합니다.</summary>
     private static readonly Dictionary<ObjectHandle, ScriptCameraModifier> sModifiers = new();
 
     /// <summary>엔진 모디파이어에 연결된 C# 모디파이어를 찾습니다.</summary>
@@ -370,8 +402,10 @@ internal static unsafe class Host {
         return null;
     }
 
+    /// <summary>유효한 GCHandle에서 카메라 모디파이어 인스턴스를 조회합니다.</summary>
     private static ScriptCameraModifier GetModifier(nint Handle) => (ScriptCameraModifier)GCHandle.FromIntPtr(Handle).Target!;
 
+    /// <summary>이름으로 C# 모디파이어를 만들어 네이티브 래퍼에 연결하며 실패하면 0을 반환합니다.</summary>
     [UnmanagedCallersOnly]
     private static nint CreateModifier(byte* NameUtf8, ObjectHandle Modifier) {
         try {
@@ -400,6 +434,7 @@ internal static unsafe class Host {
         }
     }
 
+    /// <summary>공유 ABI 시점을 C# 모디파이어에 전달하며 후속 적용 중단 요청이면 1을 반환합니다.</summary>
     [UnmanagedCallersOnly]
     private static int ModifyCamera(nint Handle, float DeltaTime, MinimalViewInfo* View) {
         ScriptCameraModifier Instance = GetModifier(Handle);
@@ -417,6 +452,7 @@ internal static unsafe class Host {
         }
     }
 
+    /// <summary>모디파이어 인스턴스를 등록 목록에서 빼고 GCHandle의 소유 참조를 해제합니다.</summary>
     [UnmanagedCallersOnly]
     private static void DestroyModifier(nint Handle) {
         ScriptCameraModifier Instance = GetModifier(Handle);
@@ -425,6 +461,7 @@ internal static unsafe class Host {
         GCHandle.FromIntPtr(Handle).Free();
     }
 
+    /// <summary>액터별 목록에서 스크립트를 제거하고 GCHandle의 소유 참조를 해제합니다.</summary>
     [UnmanagedCallersOnly]
     private static void DestroyInstance(nint Handle) {
         ScriptComponent Instance = GetInstance(Handle);
@@ -441,6 +478,8 @@ internal static unsafe class Host {
     }
 
     // 다른 프로세스가 사용 중인 폴더는 지울 수 없으므로 실패를 무시합니다.
+
+    /// <summary>언로드한 섀도 복사 디렉터리를 정리하며 파일 사용·권한 오류는 무시합니다.</summary>
     private static void DeleteDirectory(string? Directory) {
         try {
             if (Directory != null && System.IO.Directory.Exists(Directory)) {

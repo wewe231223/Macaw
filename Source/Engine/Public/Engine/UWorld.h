@@ -50,12 +50,14 @@ namespace Engine {
         GENERATED_BODY()
 
     public:
+
         /**
          * @brief 중첩 콜백 동안 객체 해제를 지연하는 월드 전달 범위입니다.
          * @note 가장 바깥 범위가 끝나면 지연된 종료와 액터 삭제를 처리합니다.
          */
         class FDispatchScope {
         public:
+
             /**
              * @brief 월드의 콜백 전달 깊이를 증가시킵니다.
              * @param[in] World 보호할 월드의 비소유 주소이며 nullptr이면 아무 작업도 하지 않습니다.
@@ -78,6 +80,7 @@ namespace Engine {
             FDispatchScope& operator=(const FDispatchScope&) = delete;
 
         private:
+
             /**
              * @brief 전달 깊이를 관리하는 월드의 비소유 주소입니다.
              */
@@ -85,6 +88,7 @@ namespace Engine {
         };
 
     public:
+
         /**
          * @brief UWorld의 초기 상태와 전달받은 의존성을 구성합니다.
          */
@@ -96,6 +100,7 @@ namespace Engine {
         ~UWorld() override;
 
     public:
+
         /**
          * @brief 이 월드를 엔진에 등록할 때 발급한 핸들을 반환합니다.
          * @return 엔진 등록 전에는 무효인 월드 핸들입니다.
@@ -114,6 +119,11 @@ namespace Engine {
          */
         Engine::EWorldPlayState GetPlayState() const;
 
+        /**
+         * @brief 현재 월드의 다음 장면 전환을 예약합니다.
+         * @param ScenePath 열도록 예약할 장면 파일 경로입니다.
+         * @return 장면 전환 요청을 접수했으면 true입니다.
+         */
         UFUNCTION()
         bool OpenScene(const Core::FString& ScenePath);
 
@@ -335,6 +345,10 @@ namespace Engine {
         void Shutdown();
 
     private:
+
+        /**
+         * @brief 내부 상태를 구성·직렬화하는 UEngine에 접근을 허용합니다.
+         */
         friend class UEngine;
 
         /**
@@ -422,6 +436,10 @@ namespace Engine {
         Engine::AActor* ResolveActor(CoreUObject::FObjectHandle Handle) const;
 
     private:
+
+        /**
+         * @brief 안전한 월드 교체 시점에 열도록 예약한 장면 경로입니다.
+         */
         Core::FString mPendingScenePath{};
 
         /**

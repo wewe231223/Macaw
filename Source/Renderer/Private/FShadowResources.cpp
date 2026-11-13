@@ -23,6 +23,7 @@ namespace Renderer {
      * @brief 그림자 내장 셰이더와 아틀라스 구성에 사용하는 내부 도우미입니다.
      */
     namespace {
+
         /**
          * @brief Direct3D 11에서 지원하는 그림자 아틀라스 한 변의 최대 픽셀 수입니다.
          */
@@ -67,6 +68,11 @@ namespace Renderer {
             return std::abs(Direction.z) > 0.95f ? Core::FVector{0.0f, 1.0f, 0.0f} : Core::FVector{0.0f, 0.0f, 1.0f};
         }
 
+        /**
+         * @brief 그림자 바이어스 프리셋 범위를 검증하고 잘못된 값은 기본값으로 대체합니다.
+         * @param Preset 유효 범위 안의 그림자 바이어스 단계입니다.
+         * @return 유효한 프리셋 단계입니다.
+         */
         Engine::EShadowBiasPreset ValidBiasPreset(Engine::EShadowBiasPreset Preset) {
             return static_cast<Core::Uint32>(Preset) < Engine::ShadowBiasPresetCount ? Preset : Engine::DefaultShadowBiasPreset;
         }

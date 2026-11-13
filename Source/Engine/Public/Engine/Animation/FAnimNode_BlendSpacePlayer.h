@@ -27,6 +27,11 @@ namespace Engine {
         const Core::FString& GetNodeType() const override;
 
         void GetDebugValues(Core::TArray<Engine::FAnimNodeValue>& OutValues) override;
+
+        /**
+         * @brief 노드가 제공하는 값 입력 이름과 연결 주소를 수집합니다.
+         * @param OutInputs 값 입력 이름과 비소유 링크 주소를 추가할 출력 배열입니다.
+         */
         void GetValueInputs(Core::TArray<Engine::FAnimNodeValueInput>& OutInputs) override;
 
         /**
@@ -48,6 +53,7 @@ namespace Engine {
         double GetNormalizedTime() const;
 
     public:
+
         /**
          * @brief 재생할 블렌드 스페이스입니다. 에셋 관리자가 소유합니다.
          */
@@ -58,9 +64,13 @@ namespace Engine {
          */
         float mX{};
 
+        /**
+         * @brief 블렌드 공간 X 파라미터를 공급하는 Float 입력입니다.
+         */
         Engine::FAnimFloatLink mXInput{};
 
     private:
+
         /**
          * @brief 모든 샘플이 공유하는 0~1 재생 위치입니다.
          */

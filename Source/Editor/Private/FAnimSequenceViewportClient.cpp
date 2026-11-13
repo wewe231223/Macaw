@@ -1,3 +1,9 @@
+/**
+ * @file FAnimSequenceViewportClient.cpp
+ * @brief 애니메이션 뷰어의 이미지 표시, 카메라 입력과 오버레이를 연결합니다.
+ * @ingroup Editor
+ */
+
 #include "FAnimSequenceViewportClient.h"
 
 #include "FAnimationPreviewScene.h"

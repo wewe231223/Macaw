@@ -15,10 +15,30 @@ namespace Asset {
     class FAssetManager;
     class UAnimSequence;
 
+    /**
+     * @brief 블렌드 공간 파라미터를 지정하는 축과 축 개수입니다.
+     * @ingroup Asset
+     */
     enum class EBlendSpaceAxis : Core::Uint8 {
+
+        /**
+         * @brief 첫 번째 블렌드 파라미터 축입니다.
+         */
         X,
+
+        /**
+         * @brief 두 번째 블렌드 파라미터 축입니다.
+         */
         Y,
+
+        /**
+         * @brief 세 번째 블렌드 파라미터 축입니다.
+         */
         Z,
+
+        /**
+         * @brief 축 개수이며 파라미터 축으로 사용하지 않습니다.
+         */
         Max
     };
 
@@ -27,6 +47,7 @@ namespace Asset {
      */
     struct FBlendParameter {
     public:
+
         /**
          * @brief 에디터에 표시하는 축 이름입니다. 예를 들어 Speed입니다.
          */
@@ -54,6 +75,7 @@ namespace Asset {
      */
     struct FBlendSample {
     public:
+
         /**
          * @brief 경로를 해석한 시퀀스입니다. 에셋 관리자가 소유하며 저장하지 않습니다.
          */
@@ -70,6 +92,7 @@ namespace Asset {
      */
     struct FBlendSampleWeight {
     public:
+
         /**
          * @brief UBlendSpace::GetSamples 안의 샘플 순서입니다.
          */
@@ -90,17 +113,26 @@ namespace Asset {
         GENERATED_BODY()
 
     public:
+
         /**
          * @brief 한 블렌드 스페이스가 가질 수 있는 최대 샘플 수입니다.
          */
         static constexpr Core::Uint32 MaxSamples{64};
 
     public:
+
+        /**
+         * @brief UBlendSpace의 초기 상태와 의존성을 구성합니다.
+         */
         UBlendSpace() = default;
 
+        /**
+         * @brief 객체의 수명을 끝내고 소유한 리소스를 정리합니다.
+         */
         ~UBlendSpace() override = default;
 
     public:
+
         /**
          * @brief 입력 좌표에서 섞을 샘플과 가중치를 계산합니다.
          * @param[in] Input 블렌드 스페이스 좌표입니다. 축 범위로 제한해 씁니다.
@@ -186,15 +218,21 @@ namespace Asset {
          */
         bool IsValid() const override;
 
+        /**
+         * @brief 블렌드 축과 샘플 목록을 복사하고 파라미터 순서 캐시를 다시 만듭니다.
+         * @param Source 복사하거나 읽을 원본 데이터입니다.
+         */
         void CopyFrom(const Asset::UBlendSpace& Source);
 
         /**
          * @brief 축 설정과 샘플의 경로·위치를 읽거나 저장합니다. 해석한 시퀀스는 저장하지 않습니다.
          * @param[in,out] Archive 저장하거나 읽을 아카이브입니다.
+         * @param Assets 샘플 시퀀스 참조를 해석할 에셋 관리자입니다.
          */
         void Serialize(Core::FArchive& Archive, Asset::FAssetManager& Assets);
 
     protected:
+
         /**
          * @brief 입력 좌표를 축 범위로 제한합니다.
          * @param[in] Input 블렌드 스페이스 좌표입니다.
@@ -203,9 +241,14 @@ namespace Asset {
         Core::FVector ClampInput(const Core::FVector& Input) const;
 
     private:
+
+        /**
+         * @brief 파라미터 순으로 샘플 조회 캐시를 재구성합니다.
+         */
         virtual void RebuildSampleOrder() = 0;
 
     private:
+
         /**
          * @brief 축별 설정입니다. 파생 클래스는 GetNumAxes만큼만 씁니다.
          */

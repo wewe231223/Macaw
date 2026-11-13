@@ -1,3 +1,9 @@
+/**
+ * @file FAnimGraphPanel.cpp
+ * @brief 애니메이션 인스턴스의 노드 그래프를 언리얼 AnimGraph처럼 오른쪽의 Output Pose로 모이는 노드와 링크로 그립니다.
+ * @ingroup Editor
+ */
+
 #include "Editor/Panel/FAnimGraphPanel.h"
 #include "Editor/FEditorContext.h"
 #include "Engine/AActor.h"
@@ -27,42 +33,142 @@ namespace ed = ax::NodeEditor;
 
 namespace Editor {
 
+    /**
+     * @brief 애니메이션 인스턴스의 노드 그래프를 언리얼 AnimGraph처럼 오른쪽의 Output Pose로 모이는 노드와 링크로 그립니다.
+     */
     namespace {
         // Output Pose 노드, 그 입력 핀, 루트에서 들어오는 링크는 다른 식별자와 겹치지 않는 1을 씁니다(노드·핀·링크는 서로 다른 식별자 공간입니다).
+
+        /**
+         * @brief 최종 포즈 출력 노드의 예약 키입니다.
+         */
         constexpr Core::Uint64 OutputKey{1};
+
+        /**
+         * @brief 출력 핀을 입력 핀·노드 키와 구분하는 비트입니다.
+         */
         constexpr Core::Uint64 OutputPinBits{0xFF};
+
+        /**
+         * @brief Float 값 입력 핀을 다른 키와 구분하는 비트입니다.
+         */
         constexpr Core::Uint64 FloatInputBit{Core::Uint64{1} << 60};
+
+        /**
+         * @brief 변수 Getter 노드를 다른 키와 구분하는 비트입니다.
+         */
         constexpr Core::Uint64 GetterBit{Core::Uint64{1} << 61};
+
+        /**
+         * @brief 저장된 Getter ID를 임시 실행 키와 구분하는 비트입니다.
+         */
         constexpr Core::Uint64 SavedGetterBit{Core::Uint64{1} << 59};
 
+        /**
+         * @brief 실행 그래프 열 사이 간격(픽셀)입니다.
+         */
         constexpr float ColumnSpacing{340.0f};
+
+        /**
+         * @brief 실행 그래프 행 사이 간격(픽셀)입니다.
+         */
         constexpr float RowSpacing{260.0f};
+
+        /**
+         * @brief 실행 그래프 노드의 최소 너비(픽셀)입니다.
+         */
         constexpr float MinNodeWidth{230.0f};
 
+        /**
+         * @brief 활성 포즈 경로의 표시 색상입니다.
+         */
         constexpr ImVec4 ActiveColor{0.96f, 0.77f, 0.40f, 1.0f};
+
+        /**
+         * @brief 비활성 포즈 경로의 표시 색상입니다.
+         */
         constexpr ImVec4 InactiveColor{0.33f, 0.40f, 0.51f, 1.0f};
 
+        /**
+         * @brief 실행 그래프에서 Float 입력과 변수 Getter 사이에 표시할 링크입니다.
+         * @ingroup Editor
+         */
         struct FFloatLink {
         public:
+
+            /**
+             * @brief 연결 대상 입력 핀의 노드 편집기 키입니다.
+             */
             Core::Uint64 mInput{};
+
+            /**
+             * @brief 값 입력을 소유하는 대상 노드의 편집기 키입니다.
+             */
             Core::Uint64 mTarget{};
+
+            /**
+             * @brief Getter 노드를 표시할 노드 편집기 키입니다.
+             */
             Core::Uint64 mGetterKey{};
+
+            /**
+             * @brief 원본 그래프가 소유하는 변수 Getter입니다.
+             */
             const Asset::FAnimGraphVariableGetter* mGetter{};
+
+            /**
+             * @brief 애니메이션 인스턴스가 소유하는 실행 값 노드입니다.
+             */
             const Engine::FAnimValueNode_Base* mValueNode{};
+
+            /**
+             * @brief 연결한 노드 파라미터 이름입니다.
+             */
             Core::FString mParameter{};
+
+            /**
+             * @brief 이 입력에서 현재 평가한 Float 값입니다.
+             */
             float mValue{};
         };
 
+        /**
+         * @brief 실행 중인 값 입력의 표시 이름과 원본 Getter 연결입니다.
+         * @ingroup Editor
+         */
         struct FAnimNodeValueDisplay {
         public:
+
+            /**
+             * @brief 실행 값 입력의 표시 이름입니다.
+             */
             Core::FString mName{};
+
+            /**
+             * @brief Float 입력의 현재 값을 표시할 문자열입니다.
+             */
             Core::FString mFloatLabel{};
+
+            /**
+             * @brief 애니메이션 인스턴스가 소유하는 실행 값 노드입니다.
+             */
             const Engine::FAnimValueNode_Base* mValueNode{};
+
+            /**
+             * @brief 원본 그래프가 소유하는 변수 Getter입니다.
+             */
             const Asset::FAnimGraphVariableGetter* mGetter{};
         };
 
         // 플레이할 때마다 노드 객체가 새로 만들어져도 같은 노드에 같은 값이 나오는 식별자입니다. 아래 8비트는 핀 번호로 씁니다.
         // 그래프 에셋 노드는 에셋 안의 식별자로, C++ 인스턴스의 멤버 노드는 인스턴스 안의 오프셋과 클래스 이름으로 만듭니다.
+
+        /**
+         * @brief 원본 또는 실행 노드를 편집기에서 식별할 키로 변환합니다.
+         * @param Instance 노드의 원본 대응과 식별 키를 제공하는 인스턴스입니다.
+         * @param Node 조회·연결·갱신할 노드입니다.
+         * @return 노드를 식별하는 편집기 키입니다.
+         */
         Core::Uint64 NodeKey(const Engine::UAnimInstance& Instance, const Engine::FAnimNode_Base* Node) {
             if (const auto* Graph{CoreUObject::Cast<Engine::UAnimGraphInstance>(&Instance)}) {
                 if (const Core::Uint64 Key{Graph->GetNodeKey(Node)}; Key != 0) {
@@ -83,18 +189,41 @@ namespace Editor {
             return (static_cast<Core::Uint64>(Address) << 8) | (Core::Uint64{1} << 62);
         }
 
+        /**
+         * @brief 노드 키와 입력 번호를 편집기 입력 핀 키로 인코딩합니다.
+         * @param Node 키로 변환하거나 조회할 노드 ID입니다.
+         * @param Index 대상 배열의 항목 인덱스입니다.
+         * @return 입력 핀을 식별하는 키입니다.
+         */
         Core::Uint64 InputPinKey(Core::Uint64 Node, std::size_t Index) {
             return Node | static_cast<Core::Uint64>(Index + 1);
         }
 
+        /**
+         * @brief 노드 키를 편집기 출력 핀 키로 인코딩합니다.
+         * @param Node 키로 변환하거나 조회할 노드 ID입니다.
+         * @return 출력 핀을 식별하는 키입니다.
+         */
         Core::Uint64 OutputPinKey(Core::Uint64 Node) {
             return Node | OutputPinBits;
         }
 
+        /**
+         * @brief 두 UI 색상을 가중치로 선형 보간합니다.
+         * @param From 연결을 시작할 원본 항목 ID입니다.
+         * @param To 연결할 대상 항목 ID입니다.
+         * @param Alpha 0~1의 보간 가중치입니다.
+         * @return 보간한 RGBA 색상입니다.
+         */
         ImVec4 Mix(const ImVec4& From, const ImVec4& To, float Alpha) {
             return {From.x + (To.x - From.x) * Alpha, From.y + (To.y - From.y) * Alpha, From.z + (To.z - From.z) * Alpha, From.w + (To.w - From.w) * Alpha};
         }
 
+        /**
+         * @brief 포즈 연결을 순회하여 중복 없는 실행 노드 목록을 수집합니다.
+         * @param Node 조회·연결·갱신할 노드입니다.
+         * @param Nodes 발견한 비소유 실행 노드를 추가할 배열입니다.
+         */
         void CollectNodes(Engine::FAnimNode_Base* Node, Core::TArray<Engine::FAnimNode_Base*>& Nodes) {
             if (Node == nullptr || std::find(Nodes.begin(), Nodes.end(), Node) != Nodes.end()) {
                 return;
@@ -111,6 +240,13 @@ namespace Editor {
             }
         }
 
+        /**
+         * @brief 포즈 연결을 따라 노드별 표시 열 깊이를 계산합니다.
+         * @param Node 조회·연결·갱신할 노드입니다.
+         * @param Depth 탐색할 상위 보기의 깊이 또는 노드 배치 깊이입니다.
+         * @param Depths 노드별 표시 깊이를 기록할 맵입니다.
+         * @param Guard 잘못된 연결 순회에 대한 깊이 제한입니다.
+         */
         void AssignDepth(Engine::FAnimNode_Base* Node, Core::Int32 Depth, Core::TMap<Engine::FAnimNode_Base*, Core::Int32>& Depths, Core::Int32 Guard) {
             // 순환 연결이 있어도 멈추도록 깊이를 노드 수로 제한합니다.
             if (Node == nullptr || Guard < 0) {

@@ -64,6 +64,7 @@ namespace Editor {
      */
     class FEditorUI {
     public:
+
         /**
          * @brief UI가 참조할 편집 경로와 뷰포트를 연결합니다.
          * @param[in,out] Context 패널이 공유하는 비소유 편집 컨텍스트입니다.
@@ -78,6 +79,7 @@ namespace Editor {
         ~FEditorUI();
 
     public:
+
         /**
          * @brief 독립 뷰포트를 배치할 창의 ImGui 백엔드를 준비합니다.
          * @param[in,out] Renderer ImGui 표시 리소스를 제공하는 렌더러입니다.
@@ -118,11 +120,17 @@ namespace Editor {
         Editor::FEditorViewport* GetActiveViewport() const;
 
     private:
+
         /**
          * @brief 프로젝트의 Editor/Icon 폴더에 없는 언리얼 아이콘과 출처 파일을 배포 템플릿에서 복사합니다.
          * @note 기존 파일을 유지하며 원본 탐색이나 복사에 실패하면 에디터 로그에 원인을 기록합니다.
          */
         void InstallEditorIcons();
+
+        /**
+         * @brief 실행 파일의 콘텐츠 아이콘 이미지를 GPU 텍스처로 로드합니다.
+         * @param Renderer 외부에서 소유하는 렌더러 서비스입니다.
+         */
         void LoadContentIcons(RenderCore::IRendererModule* Renderer);
 
         /**
@@ -290,6 +298,7 @@ namespace Editor {
          * @brief 콘텐츠 항목에 대한 이름 바꾸기 또는 삭제 작업입니다.
          */
         enum class EContentAction {
+
             /**
              * @brief 선택 콘텐츠의 이름 변경을 요청합니다.
              */
@@ -464,6 +473,7 @@ namespace Editor {
         std::filesystem::path ChooseFile(bool Save);
 
     private:
+
         /**
          * @brief 패널이 공유하는 편집 컨텍스트의 비소유 주소입니다.
          */
@@ -824,6 +834,9 @@ namespace Editor {
          */
         std::unique_ptr<Editor::FAnimGraphEditor> mAnimGraphEditor{};
 
+        /**
+         * @brief 애니메이션 시퀀스 편집기의 소유 포인터입니다.
+         */
         std::unique_ptr<Editor::FAnimSequenceEditor> mAnimSequenceEditor{};
 
         /**
@@ -836,6 +849,9 @@ namespace Editor {
          */
         std::unique_ptr<Editor::FAssetThumbnailCache> mThumbnails{};
 
+        /**
+         * @brief 콘텐츠 종류별 GPU 아이콘 리소스의 소유 캐시입니다.
+         */
         Core::TMap<std::string_view, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>> mContentIcons{};
 
         /**

@@ -1,3 +1,9 @@
+/**
+ * @file FAnimSequenceTimeline.cpp
+ * @brief 시퀀스의 프레임 눈금, 탐색 구간과 재생 조작 UI를 관리합니다.
+ * @ingroup Editor
+ */
+
 #include "FAnimSequenceTimeline.h"
 
 #include "FAnimationPreviewScene.h"
@@ -13,19 +19,68 @@
 
 using namespace Editor;
 
+/**
+ * @brief 시퀀스의 프레임 눈금, 탐색 구간과 재생 조작 UI를 관리하는 파일 내부 보조 구현입니다.
+ */
 namespace {
 
+    /**
+     * @brief 애니메이션 재생 조작 버튼에 그릴 아이콘 종류입니다.
+     * @ingroup Editor
+     */
     enum class ETransportIcon {
+
+        /**
+         * @brief 시퀀스 시작으로 이동합니다.
+         */
         ToStart,
+
+        /**
+         * @brief 이전 프레임으로 이동합니다.
+         */
         PreviousFrame,
+
+        /**
+         * @brief 역방향 재생을 시작합니다.
+         */
         PlayReverse,
+
+        /**
+         * @brief 현재 시각에서 일시 정지합니다.
+         */
         Pause,
+
+        /**
+         * @brief 정방향 재생을 시작합니다.
+         */
         Play,
+
+        /**
+         * @brief 다음 프레임으로 이동합니다.
+         */
         NextFrame,
+
+        /**
+         * @brief 시퀀스 끝으로 이동합니다.
+         */
         ToEnd,
+
+        /**
+         * @brief 반복 재생을 전환합니다.
+         */
         Loop
     };
 
+    /**
+     * @brief 방향과 채움 방식에 맞는 재생 아이콘 삼각형을 그립니다.
+     * @param DrawList 도형을 기록할 ImGui 그리기 목록입니다.
+     * @param Center 아이콘 또는 카메라 중심 좌표입니다.
+     * @param Width 출력 또는 UI 영역의 너비(픽셀)입니다.
+     * @param Height 출력 또는 UI 영역의 높이(픽셀)입니다.
+     * @param Right 삼각형이 오른쪽을 향하면 true입니다.
+     * @param Filled 삼각형 내부를 채울지 여부입니다.
+     * @param Color 도형 또는 텍스트의 표시 색상입니다.
+     */
     void DrawTriangle(ImDrawList* DrawList, const ImVec2& Center, float Width, float Height, bool Right, bool Filled, ImU32 Color) {
         const float Direction{Right ? 1.0f : -1.0f};
         const ImVec2 A{Center.x + Direction * Width * 0.5f, Center.y};
@@ -39,10 +94,27 @@ namespace {
         }
     }
 
+    /**
+     * @brief 재생 아이콘의 수직 막대를 그립니다.
+     * @param DrawList 도형을 기록할 ImGui 그리기 목록입니다.
+     * @param X 에디터 배치의 X 좌표입니다.
+     * @param Y 에디터 배치의 Y 좌표입니다.
+     * @param Width 출력 또는 UI 영역의 너비(픽셀)입니다.
+     * @param Height 출력 또는 UI 영역의 높이(픽셀)입니다.
+     * @param Color 도형 또는 텍스트의 표시 색상입니다.
+     */
     void DrawBar(ImDrawList* DrawList, float X, float Y, float Width, float Height, ImU32 Color) {
         DrawList->AddRectFilled({X - Width * 0.5f, Y - Height * 0.5f}, {X + Width * 0.5f, Y + Height * 0.5f}, Color);
     }
 
+    /**
+     * @brief 재생 조작 종류에 대응하는 벡터 도형 아이콘을 그립니다.
+     * @param DrawList 도형을 기록할 ImGui 그리기 목록입니다.
+     * @param Icon 리소스가 없을 때 사용할 대체 아이콘 정보입니다.
+     * @param Center 아이콘 또는 카메라 중심 좌표입니다.
+     * @param Size 출력 또는 표시 영역 크기(픽셀)입니다.
+     * @param Color 도형 또는 텍스트의 표시 색상입니다.
+     */
     void DrawTransportIcon(ImDrawList* DrawList, ETransportIcon Icon, const ImVec2& Center, float Size, ImU32 Color) {
         const float BarWidth{std::max(1.5f, std::round(Size * 0.14f))};
 
@@ -90,6 +162,14 @@ namespace {
         }
     }
 
+    /**
+     * @brief 재생 조작 아이콘 버튼과 툴팁을 표시합니다.
+     * @param Id 조회 또는 변경할 항목 ID입니다.
+     * @param Icon 리소스가 없을 때 사용할 대체 아이콘 정보입니다.
+     * @param Active 현재 조작 상태를 강조 표시할지 여부입니다.
+     * @param Tooltip 버튼에 표시할 마우스 오버 설명입니다.
+     * @return 버튼을 눌렀으면 true입니다.
+     */
     bool TransportButton(const char* Id, ETransportIcon Icon, bool Active, const char* Tooltip) {
         const float Size{ImGui::GetFrameHeight()};
         const bool Pressed{ImGui::InvisibleButton(Id, {Size, Size})};
