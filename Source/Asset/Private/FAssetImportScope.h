@@ -9,6 +9,7 @@
 #include "Core/ReflectionMacros.h"
 
 #include <filesystem>
+#include <vector>
 
 namespace Asset {
 
@@ -17,6 +18,8 @@ namespace Asset {
      */
     class FAssetImportScope {
     public:
+        FAssetImportScope() = default;
+
         /**
          * @brief 소유할 새 디렉터리 경로를 저장합니다.
          * @param Directory 이번 작업이 새로 만든 전용 경로입니다.
@@ -42,6 +45,8 @@ namespace Asset {
         Asset::FAssetImportScope& operator=(const Asset::FAssetImportScope& Other) = delete;
 
     public:
+        void TrackFile(std::filesystem::path Path);
+
         /**
          * @brief 임포트가 완성되어 의존 에셋을 유지하도록 표시합니다.
          */
@@ -52,6 +57,8 @@ namespace Asset {
          * @brief 이번 임포트만 사용하는 의존 에셋 디렉터리입니다.
          */
         std::filesystem::path mDirectory{};
+
+        std::vector<std::filesystem::path> mFiles{};
 
         /**
          * @brief 메시 에셋 저장까지 성공했는지 여부입니다.

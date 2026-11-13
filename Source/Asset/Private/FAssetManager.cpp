@@ -1154,6 +1154,21 @@ namespace Asset {
 
         const Core::FString Name{AssetFileName(Core::FilePath::ToUtf8(Source.stem()), "Asset")};
         const auto Base{Core::FilePath::FromUtf8(Name)};
+
+        if (!Texture && !Option.mImportMesh && !Option.mImportSkeleton && Option.mImportAnimations) {
+            auto Target{Parent / Base};
+
+            Target += L".masset";
+
+            if (!ImportMesh(Source, Target, Option, Error)) {
+                return false;
+            }
+
+            ImportedPath = Target.lexically_relative(mContentRoot);
+
+            return true;
+        }
+
         auto Folder{Parent / Base};
 
         for (Core::Uint32 Index{}; !std::filesystem::create_directory(Folder, Code); ++Index) {
@@ -1236,11 +1251,12 @@ namespace Asset {
             }
         }
 
-        // 애니메이션 시퀀스는 스켈레톤을 참조하지 않으며, 본 트랙을 이름으로 저장해 Animations 폴더에 클립마다 하나씩 만듭니다.
         std::filesystem::path FirstAnimationTarget{};
 
         if (Option.mImportAnimations) {
-            const auto AnimationDirectory{Destination.parent_path() / "Animations"};
+            const bool AnimationOnly{!Option.mImportMesh && !Option.mImportSkeleton};
+            const auto AnimationDirectory{AnimationOnly ? Destination.parent_path() : Destination.parent_path() / "Animations"};
+            Asset::FAssetImportScope AnimationScope{};
 
             for (Asset::FMeshImportAnimation& Animation : Imported.GetAnimations()) {
                 auto Sequence{CoreUObject::NewObject<Asset::UAnimSequence>()};
@@ -1253,7 +1269,16 @@ namespace Asset {
 
                 const auto AnimationTarget{UniqueAssetPath(AnimationDirectory, AssetFileName(Animation.GetName(), "Animation"), Error)};
 
-                if (AnimationTarget.empty() || !SaveAnimSequence(AnimationTarget, *Sequence, Error)) {
+                if (AnimationTarget.empty()) {
+                    return false;
+                }
+
+                if (AnimationOnly) {
+                    RetireAssets(AnimationTarget);
+                    AnimationScope.TrackFile(AnimationTarget);
+                }
+
+                if (!SaveAnimSequence(AnimationTarget, *Sequence, Error)) {
                     return false;
                 }
 
@@ -1261,6 +1286,8 @@ namespace Asset {
                     FirstAnimationTarget = AnimationTarget;
                 }
             }
+
+            AnimationScope.Commit();
         }
 
         // 메시가 없으면 스켈레톤을, 스켈레톤도 없으면 첫 애니메이션을 대표 에셋으로 선택합니다.

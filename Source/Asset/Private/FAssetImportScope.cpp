@@ -24,8 +24,18 @@ namespace Asset {
         if (!mCommitted) {
             std::error_code Code{};
 
-            std::filesystem::remove_all(mDirectory, Code);
+            for (const std::filesystem::path& Path : mFiles) {
+                std::filesystem::remove(Path, Code);
+            }
+
+            if (!mDirectory.empty()) {
+                std::filesystem::remove_all(mDirectory, Code);
+            }
         }
+    }
+
+    void Asset::FAssetImportScope::TrackFile(std::filesystem::path Path) {
+        mFiles.push_back(std::move(Path));
     }
 
     /**

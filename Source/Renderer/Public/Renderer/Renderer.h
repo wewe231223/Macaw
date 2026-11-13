@@ -487,7 +487,7 @@ namespace Renderer {
         Microsoft::WRL::ComPtr<ID3D11Device> mDevice{};
 
         /**
-         * @brief Direct3D 11 즉시 컨텍스트입니다.
+         * @brief Direct3D 11 컨텍스트입니다.
          */
         Microsoft::WRL::ComPtr<ID3D11DeviceContext> mContext{};
 
