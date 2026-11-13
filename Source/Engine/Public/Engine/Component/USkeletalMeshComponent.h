@@ -102,6 +102,14 @@ namespace Engine {
         bool SetSkeletonPath(const Core::FString& Path);
 
         /**
+         * @brief EditorPreview 월드에 한해 경로 로드 없이 메시·스켈레톤 포인터를 연결합니다.
+         * @param Mesh 호출자가 수명을 보장하는 미리보기 메시입니다.
+         * @param Skeleton 호출자가 수명을 보장하는 스켈레톤입니다.
+         * @return 월드와 에셋 조합이 유효하면 true이며 호출자가 에셋 수명을 보장해야 합니다.
+         */
+        bool SetPreviewAssets(Asset::USkeletalMesh* Mesh, Asset::USkeleton* Skeleton);
+
+        /**
          * @brief 저장된 에셋 경로와 현재 에셋 개정을 해석합니다.
          * @return 에셋과 포즈를 준비했으면 true입니다.
          */
@@ -464,6 +472,11 @@ namespace Engine {
          * @brief 에셋 관리자가 소유하거나 미리보기 호출자가 수명을 보장하는 스켈레톤입니다.
          */
         Asset::USkeleton* mSkeleton{};
+
+        /**
+         * @brief EditorPreview 월드에서 경로 해석 대신 직접 에셋 참조를 유지하는지 여부입니다.
+         */
+        bool mPreviewAssets{};
 
         /**
          * @brief 객체별 로컬·전역 포즈와 CPU 피킹 형상입니다.

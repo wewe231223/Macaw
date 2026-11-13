@@ -12,9 +12,11 @@ namespace Asset {
     class UAnimSequence;
 }
 
-namespace Editor {
+namespace Viewer {
+    class FAnimationViewerContent;
+}
 
-    class FAnimationPreviewScene;
+namespace Editor {
 
     /**
      * @brief 시퀀스의 프레임 눈금, 탐색 구간과 재생 조작 UI를 관리합니다.
@@ -43,36 +45,36 @@ namespace Editor {
 
         /**
          * @brief 시간 눈금, 현재 프레임과 재생 조작 막대를 표시합니다.
-         * @param Preview 재생·포즈를 조작할 애니메이션 미리보기 장면입니다.
+         * @param Preview 재생·포즈를 조작할 애니메이션 뷰어 콘텐츠입니다.
          * @param Sequence 시간 범위와 프레임률을 제공하는 시퀀스입니다.
          * @param Height 출력 또는 UI 영역의 높이(픽셀)입니다.
          */
-        void Draw(Editor::FAnimationPreviewScene& Preview, const Asset::UAnimSequence& Sequence, float Height);
+        void Draw(Viewer::FAnimationViewerContent& Preview, const Asset::UAnimSequence& Sequence, float Height);
 
         /**
          * @brief 재생을 정지하고 지정 방향으로 시퀀스 한 프레임을 이동합니다.
-         * @param Preview 재생·포즈를 조작할 애니메이션 미리보기 장면입니다.
+         * @param Preview 재생·포즈를 조작할 애니메이션 뷰어 콘텐츠입니다.
          * @param Sequence 시간 범위와 프레임률을 제공하는 시퀀스입니다.
          * @param Direction 음수는 이전, 양수는 다음 프레임입니다.
          */
-        void StepFrame(Editor::FAnimationPreviewScene& Preview, const Asset::UAnimSequence& Sequence, Core::Int32 Direction);
+        void StepFrame(Viewer::FAnimationViewerContent& Preview, const Asset::UAnimSequence& Sequence, Core::Int32 Direction);
 
     private:
 
         /**
          * @brief 프레임 눈금과 현재 시각을 표시하고 스크러빙 입력을 처리합니다.
-         * @param Preview 재생·포즈를 조작할 애니메이션 미리보기 장면입니다.
+         * @param Preview 재생·포즈를 조작할 애니메이션 뷰어 콘텐츠입니다.
          * @param Sequence 시간 범위와 프레임률을 제공하는 시퀀스입니다.
          * @param Height 출력 또는 UI 영역의 높이(픽셀)입니다.
          */
-        void DrawTimeArea(Editor::FAnimationPreviewScene& Preview, const Asset::UAnimSequence& Sequence, float Height);
+        void DrawTimeArea(Viewer::FAnimationViewerContent& Preview, const Asset::UAnimSequence& Sequence, float Height);
 
         /**
          * @brief 처음·끝·프레임 이동, 순·역재생과 반복 조작 UI를 표시합니다.
-         * @param Preview 재생·포즈를 조작할 애니메이션 미리보기 장면입니다.
+         * @param Preview 재생·포즈를 조작할 애니메이션 뷰어 콘텐츠입니다.
          * @param Sequence 시간 범위와 프레임률을 제공하는 시퀀스입니다.
          */
-        void DrawTransportBar(Editor::FAnimationPreviewScene& Preview, const Asset::UAnimSequence& Sequence);
+        void DrawTransportBar(Viewer::FAnimationViewerContent& Preview, const Asset::UAnimSequence& Sequence);
 
     private:
 

@@ -1,4 +1,10 @@
-#include "FAnimationPreviewScene.h"
+/**
+ * @file FAnimationViewerContent.cpp
+ * @brief 미리보기 월드에서 스켈레탈 메시와 단일 시퀀스를 재생하는 뷰어 콘텐츠입니다.
+ * @ingroup Viewer
+ */
+
+#include "Viewer/FAnimationViewerContent.h"
 
 #include "Asset/Animation/UAnimSequence.h"
 #include "Asset/FAssetManager.h"
@@ -18,60 +24,44 @@
 #include <cmath>
 #include <d3d11.h>
 
-using namespace Editor;
+using namespace Viewer;
 
-FAnimationPreviewScene::FAnimationPreviewScene(RenderCore::IRendererModule* Renderer, Asset::FAssetManager* Assets)
+FAnimationViewerContent::FAnimationViewerContent(RenderCore::IRendererModule* Renderer, Asset::FAssetManager* Assets)
 	: mRenderer{Renderer},
 	  mAssets{Assets} {
 }
 
-FAnimationPreviewScene::~FAnimationPreviewScene() = default;
+FAnimationViewerContent::~FAnimationViewerContent() = default;
 
-bool FAnimationPreviewScene::SetMesh(const Core::FString& MeshPath, const Core::FString& SkeletonPath, Core::FString& Error) {
+bool FAnimationViewerContent::SetMesh(Asset::USkeletalMesh* Mesh, Asset::USkeleton* Skeleton, Core::FString& Error) {
     Error.clear();
 
-    if (MeshPath.empty()) {
+    if (Mesh == nullptr) {
         mComponent = nullptr;
-        mWorldContext.reset();
+        mScene.reset();
         mBounds = {};
 
         return true;
     }
 
-    if (mAssets == nullptr) {
+    if (Skeleton == nullptr) {
         Error = "Select a skeletal mesh for the preview.";
 
         return false;
     }
 
-    auto Context{std::make_unique<Engine::FWorldContext>(Engine::EWorldType::EditorPreview)};
-    Engine::UWorld* World{Context->GetWorld()};
-    World->SetAssets(mAssets);
+    auto Scene{std::make_unique<Viewer::FPreviewScene>(mRenderer, mAssets)};
 
-    if (mRenderer != nullptr) {
-        auto Scene{mRenderer->AllocateScene()};
-
-        if (Scene == nullptr || !World->AttachScene(std::move(Scene))) {
-            Error = "Cannot create the animation preview scene.";
-
-            return false;
-        }
-
-        Engine::FLightSceneProxy Ambient{};
-        Ambient.mIntensity = 0.5f;
-        World->GetScene()->AddLight(Ambient);
-
-        Engine::FLightSceneProxy Directional{};
-        Directional.mType = Engine::ELightType::Directional;
-        Directional.mDirection = Core::FVector{0.35f, 0.6f, -1.0f}.Normalized();
-        Directional.mIntensity = 0.8f;
-        World->GetScene()->AddLight(Directional);
+    if (!Scene->Initialize(Error)) {
+        return false;
     }
+
+    Engine::UWorld* World{Scene->GetWorld()};
 
     auto* Actor{CoreUObject::Cast<Engine::ASkeletalMeshActor>(World->SpawnActor(Engine::ASkeletalMeshActor::StaticClass()))};
     Engine::USkeletalMeshComponent* Component{Actor != nullptr ? Actor->GetSkeletalMeshComponent() : nullptr};
 
-    if (Component == nullptr || !Component->SetMeshPath(MeshPath) || !Component->SetSkeletonPath(SkeletonPath) || Component->GetSkeletalMesh() == nullptr || Component->GetSkeleton() == nullptr || !Component->GetPose().GetRevision().IsValid()) {
+    if (Component == nullptr || !Component->SetPreviewAssets(Mesh, Skeleton) || Component->GetSkeletalMesh() == nullptr || Component->GetSkeleton() == nullptr || !Component->GetPose().GetRevision().IsValid()) {
         Error = "Cannot prepare this mesh and skeleton. Select a compatible skeleton.";
 
         return false;
@@ -86,7 +76,7 @@ bool FAnimationPreviewScene::SetMesh(const Core::FString& MeshPath, const Core::
     const double Position{GetPosition()};
     const bool Playing{IsPlaying()};
 
-    mWorldContext = std::move(Context);
+    mScene = std::move(Scene);
     mComponent = Component;
     mComponent->SetApplyRootMotionToActor(false);
     SetAnimation(mSequence);
@@ -99,7 +89,7 @@ bool FAnimationPreviewScene::SetMesh(const Core::FString& MeshPath, const Core::
     return true;
 }
 
-void FAnimationPreviewScene::SetAnimation(const Asset::UAnimSequence* Sequence) {
+void FAnimationViewerContent::SetAnimation(const Asset::UAnimSequence* Sequence) {
     mSequence = Sequence;
 
     if (mComponent == nullptr) {
@@ -114,7 +104,7 @@ void FAnimationPreviewScene::SetAnimation(const Asset::UAnimSequence* Sequence) 
     Seek(0.0);
 }
 
-void FAnimationPreviewScene::Play() {
+void FAnimationViewerContent::Play() {
     Engine::UAnimSingleNodeInstance* Instance{GetInstance()};
 
     if (Instance == nullptr || mSequence == nullptr) {
@@ -129,13 +119,13 @@ void FAnimationPreviewScene::Play() {
     Instance->Play(mLooping);
 }
 
-void FAnimationPreviewScene::Pause() {
+void FAnimationViewerContent::Pause() {
     if (Engine::UAnimSingleNodeInstance* Instance{GetInstance()}) {
         Instance->Stop();
     }
 }
 
-void FAnimationPreviewScene::Seek(double Time) {
+void FAnimationViewerContent::Seek(double Time) {
     if (Engine::UAnimSingleNodeInstance* Instance{GetInstance()}) {
         Instance->Stop();
         Instance->SetPosition(Time);
@@ -143,7 +133,7 @@ void FAnimationPreviewScene::Seek(double Time) {
     }
 }
 
-void FAnimationPreviewScene::Tick(float DeltaTime) {
+void FAnimationViewerContent::Tick(float DeltaTime) {
     Engine::UAnimSingleNodeInstance* Instance{GetInstance()};
 
     if (Instance == nullptr || !Instance->IsPlaying()) {
@@ -161,7 +151,7 @@ void FAnimationPreviewScene::Tick(float DeltaTime) {
     SynchronizeScene();
 }
 
-void FAnimationPreviewScene::RefreshPose() {
+void FAnimationViewerContent::RefreshPose() {
     Engine::UAnimSingleNodeInstance* Instance{GetInstance()};
 
     if (Instance == nullptr) {
@@ -175,7 +165,7 @@ void FAnimationPreviewScene::RefreshPose() {
     SynchronizeScene();
 }
 
-void FAnimationPreviewScene::SetLooping(bool Looping) {
+void FAnimationViewerContent::SetLooping(bool Looping) {
     mLooping = Looping;
 
     if (Engine::UAnimSingleNodeInstance* Instance{GetInstance()}) {
@@ -183,7 +173,7 @@ void FAnimationPreviewScene::SetLooping(bool Looping) {
     }
 }
 
-void FAnimationPreviewScene::SetPlayRate(float PlayRate) {
+void FAnimationViewerContent::SetPlayRate(float PlayRate) {
     mPlayRate = std::isfinite(PlayRate) ? std::clamp(PlayRate, -4.0f, 4.0f) : 1.0f;
 
     if (Engine::UAnimSingleNodeInstance* Instance{GetInstance()}) {
@@ -191,7 +181,7 @@ void FAnimationPreviewScene::SetPlayRate(float PlayRate) {
     }
 }
 
-void FAnimationPreviewScene::SetPreviewMode(Core::Int32 Mode) {
+void FAnimationViewerContent::SetPreviewMode(Core::Int32 Mode) {
     mPreviewMode = std::clamp(Mode, 0, 2);
 
     if (mComponent != nullptr) {
@@ -200,7 +190,7 @@ void FAnimationPreviewScene::SetPreviewMode(Core::Int32 Mode) {
     }
 }
 
-void FAnimationPreviewScene::UpdateRootMotion() {
+void FAnimationViewerContent::UpdateRootMotion() {
     Engine::UAnimSingleNodeInstance* Instance{GetInstance()};
 
     if (Instance == nullptr || mComponent->GetOwner() == nullptr) {
@@ -217,7 +207,7 @@ void FAnimationPreviewScene::UpdateRootMotion() {
     Instance->ResetRootMotion();
 }
 
-void FAnimationPreviewScene::SynchronizeScene() {
+void FAnimationViewerContent::SynchronizeScene() {
     const Core::FBox& BindBounds{mComponent->GetSkeletalMesh()->GetBounds()};
     const Core::FMatrix World{mComponent->GetWorldMatrix()};
 
@@ -237,46 +227,60 @@ void FAnimationPreviewScene::SynchronizeScene() {
     }
 }
 
-const Core::FBox& FAnimationPreviewScene::GetBounds() const {
+const Core::FBox& FAnimationViewerContent::GetBounds() const {
     return mBounds;
 }
 
-Engine::UAnimSingleNodeInstance* FAnimationPreviewScene::GetInstance() const {
+Engine::UAnimSingleNodeInstance* FAnimationViewerContent::GetInstance() const {
     return mComponent != nullptr ? CoreUObject::Cast<Engine::UAnimSingleNodeInstance>(mComponent->GetAnimInstance()) : nullptr;
 }
 
-bool FAnimationPreviewScene::IsReady() const {
+bool FAnimationViewerContent::IsReady() const {
     return mComponent != nullptr && mSequence != nullptr;
 }
 
-bool FAnimationPreviewScene::IsPlaying() const {
+bool FAnimationViewerContent::IsPlaying() const {
     const Engine::UAnimSingleNodeInstance* Instance{GetInstance()};
 
     return Instance != nullptr && Instance->IsPlaying();
 }
 
-double FAnimationPreviewScene::GetPosition() const {
+double FAnimationViewerContent::GetPosition() const {
     const Engine::UAnimSingleNodeInstance* Instance{GetInstance()};
 
     return Instance != nullptr ? Instance->GetPosition() : 0.0;
 }
 
-float FAnimationPreviewScene::GetPlayRate() const {
+float FAnimationViewerContent::GetPlayRate() const {
     return mPlayRate;
 }
 
-bool FAnimationPreviewScene::IsLooping() const {
+bool FAnimationViewerContent::IsLooping() const {
     return mLooping;
 }
 
-Core::Int32 FAnimationPreviewScene::GetPreviewMode() const {
+Core::Int32 FAnimationViewerContent::GetPreviewMode() const {
     return mPreviewMode;
 }
 
-Engine::UWorld* FAnimationPreviewScene::GetWorld() const {
-    return mWorldContext != nullptr ? mWorldContext->GetWorld() : nullptr;
+Engine::UWorld* FAnimationViewerContent::GetWorld() const {
+    return mScene != nullptr ? mScene->GetWorld() : nullptr;
 }
 
-Engine::USkeletalMeshComponent* FAnimationPreviewScene::GetComponent() const {
+Engine::USkeletalMeshComponent* FAnimationViewerContent::GetComponent() const {
     return mComponent;
+}
+
+Engine::FSceneInterface* FAnimationViewerContent::GetScene() const {
+    return mScene != nullptr ? mScene->GetScene() : nullptr;
+}
+
+Viewer::EViewerPrepareResult FAnimationViewerContent::PrepareCapture(const Viewer::FViewerCaptureState& State, Core::FString& Error) {
+    if (Viewer::IViewerContent::PrepareCapture(State, Error) != Viewer::EViewerPrepareResult::Ready) {
+        return Viewer::EViewerPrepareResult::Failed;
+    }
+
+    Seek(State.GetTime());
+
+    return Viewer::EViewerPrepareResult::Ready;
 }

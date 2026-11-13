@@ -6,7 +6,7 @@
 
 #include "FAnimSequenceEditor.h"
 
-#include "FAnimationPreviewScene.h"
+#include "Viewer/FAnimationViewerContent.h"
 #include "FAnimSequenceViewportClient.h"
 #include "Asset/Animation/UAnimSequence.h"
 #include "Asset/FAssetManager.h"
@@ -134,8 +134,9 @@ bool FAnimSequenceEditor::OpenNow(const std::filesystem::path& Path, Core::FStri
     const bool Playing{mPreview != nullptr && mPreview->IsPlaying()};
 
     if (mPreview == nullptr) {
-        mPreview = std::make_unique<Editor::FAnimationPreviewScene>(mRenderer, mAssets);
-        mViewport = std::make_unique<Editor::FAnimSequenceViewportClient>(mRenderer, mPreview.get());
+        auto Preview{std::make_unique<Viewer::FAnimationViewerContent>(mRenderer, mAssets)};
+        mPreview = Preview.get();
+        mViewport = std::make_unique<Editor::FAnimSequenceViewportClient>(mRenderer, std::move(Preview));
     }
 
     mPreview->SetAnimation(Editing.get());
@@ -151,7 +152,12 @@ bool FAnimSequenceEditor::OpenNow(const std::filesystem::path& Path, Core::FStri
     mOpen = true;
     strncpy_s(mRootBone.data(), mRootBone.size(), mEditing->GetRootMotionBone().c_str(), _TRUNCATE);
 
-    if (mPreview->GetComponent() == nullptr && !mMeshPath.empty()) {
+    Core::FString SavedMesh{};
+    Core::FString SavedSkeleton{};
+
+    if (mThumbnails != nullptr && mThumbnails->GetAnimationPreview(mPath, SavedMesh, SavedSkeleton)) {
+        SetPreviewMesh(SavedMesh, SavedSkeleton);
+    } else if (!mMeshPath.empty()) {
         SetPreviewMesh(mMeshPath, mSkeletonPath);
     }
 
@@ -172,11 +178,18 @@ bool FAnimSequenceEditor::SetPreviewMesh(const Core::FString& MeshPath, const Co
         return false;
     }
 
-    if (!mPreview->SetMesh(mMeshPath, mSkeletonPath, mError)) {
+    Asset::USkeletalMesh* Mesh{mMeshPath.empty() ? nullptr : mAssets->LoadSkeletalMesh(Core::FilePath::FromUtf8(mMeshPath), mError)};
+    Asset::USkeleton* Skeleton{mSkeletonPath.empty() ? mMeshPath.empty() ? nullptr : mAssets->FindLegacySkeleton(Core::FilePath::FromUtf8(mMeshPath)) : mAssets->LoadSkeleton(Core::FilePath::FromUtf8(mSkeletonPath), mError)};
+
+    if ((!mMeshPath.empty() && Mesh == nullptr) || !mPreview->SetMesh(Mesh, Skeleton, mError)) {
         return false;
     }
 
     mViewport->FrameMesh();
+
+    if (mThumbnails != nullptr && !mPath.empty()) {
+        mThumbnails->SetAnimationPreview(mPath, mMeshPath, mSkeletonPath, mError);
+    }
 
     return true;
 }
@@ -278,8 +291,8 @@ void FAnimSequenceEditor::RefreshAssets() {
     Engine::USkeletalMeshComponent* Component{mPreview->GetComponent()};
 
     if (Component != nullptr) {
-        const auto* Mesh{mAssets->LoadSkeletalMesh(Core::FilePath::FromUtf8(Component->GetMeshPath()), Error)};
-        const auto* Skeleton{Component->GetSkeletonPath().empty() ? mAssets->FindLegacySkeleton(Core::FilePath::FromUtf8(Component->GetMeshPath())) : mAssets->LoadSkeleton(Core::FilePath::FromUtf8(Component->GetSkeletonPath()), Error)};
+        const auto* Mesh{mAssets->LoadSkeletalMesh(Core::FilePath::FromUtf8(mMeshPath), Error)};
+        const auto* Skeleton{mSkeletonPath.empty() ? mAssets->FindLegacySkeleton(Core::FilePath::FromUtf8(Component->GetMeshPath())) : mAssets->LoadSkeleton(Core::FilePath::FromUtf8(mSkeletonPath), Error)};
 
         if (Mesh != Component->GetSkeletalMesh() || Skeleton != Component->GetSkeleton()) {
             SetPreviewMesh(mMeshPath, mSkeletonPath);
@@ -290,7 +303,7 @@ void FAnimSequenceEditor::RefreshAssets() {
 void FAnimSequenceEditor::Draw(float DeltaTime, bool CanSave) {
     if (!mOpen || mEditing == nullptr) {
         mViewport.reset();
-        mPreview.reset();
+        mPreview = nullptr;
         mEditing.reset();
         mSource = nullptr;
 

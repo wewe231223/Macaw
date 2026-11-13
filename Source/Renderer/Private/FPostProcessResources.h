@@ -34,6 +34,7 @@ namespace Renderer {
      */
     class FPostProcessResources {
     public:
+
         /**
          * @brief 기본 설정으로 FPostProcessResources 객체를 초기화합니다.
          */
@@ -45,6 +46,7 @@ namespace Renderer {
         ~FPostProcessResources();
 
     public:
+
         /**
          * @brief 상수 버퍼·선형 Clamp 샘플러·깊이 비활성 상태와 면 제거 없는 래스터라이저를 생성합니다.
          * @param[in] Device GPU 자원을 생성하거나 조회할 Direct3D 11 장치입니다.
@@ -72,7 +74,16 @@ namespace Renderer {
          */
         Core::Uint32 Render(ID3D11DeviceContext* Context, Renderer::FDXRenderTarget& Target, const Engine::FSceneViewFamily& Family, std::span<const Engine::FHeightFogSceneProxy> Fogs);
 
+        /**
+         * @brief 원본 텍스처를 목적 텍스처의 출력 영역에 샘플링하여 그립니다.
+         * @param Context 드로·복사 명령을 제출할 D3D11 장치 컨텍스트입니다.
+         * @param Source 복사하거나 읽을 원본 데이터입니다.
+         * @param Destination 렌더 결과를 기록할 출력 텍스처입니다.
+         */
+        void RenderTexture(ID3D11DeviceContext* Context, const Asset::UTexture2D& Source, Asset::UTexture2D& Destination);
+
     private:
+
         /**
          * @brief 입력 컬러·깊이를 읽어 다른 컬러 타깃에 전체 화면 삼각형을 그리고 SRV·RTV 바인딩을 해제합니다.
          * @param[in] Context GPU 명령을 기록하고 읽기·쓰기 상태를 설정할 Direct3D 11 컨텍스트입니다.
@@ -80,9 +91,10 @@ namespace Renderer {
          * @param[in] Destination 후처리 결과를 기록할 컬러 텍스처이며 Source와 다른 자원이어야 합니다.
          * @param[in] Depth ShaderResourceView로 읽을 장면 깊이 텍스처입니다.
          */
-        void Draw(ID3D11DeviceContext* Context, Asset::UTexture2D* Source, Asset::UTexture2D* Destination, Asset::UTexture2D* Depth);
+        void Draw(ID3D11DeviceContext* Context, const Asset::UTexture2D* Source, Asset::UTexture2D* Destination, const Asset::UTexture2D* Depth);
 
     private:
+
         /**
          * @brief 정점 버퍼 없이 정점 ID로 전체 화면 삼각형을 생성하는 셰이더입니다.
          */

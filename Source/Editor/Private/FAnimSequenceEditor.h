@@ -23,9 +23,12 @@ namespace RenderCore {
     class IRendererModule;
 }
 
+namespace Viewer {
+    class FAnimationViewerContent;
+}
+
 namespace Editor {
 
-    class FAnimationPreviewScene;
     class FAnimSequenceViewportClient;
     class FAssetThumbnailCache;
     class FEditorAssetCatalog;
@@ -190,7 +193,11 @@ namespace Editor {
          * @brief 원본을 보존하면서 설정을 편집할 시퀀스 복사본입니다.
          */
         std::unique_ptr<Asset::UAnimSequence> mEditing{};
-        std::unique_ptr<Editor::FAnimationPreviewScene> mPreview{};
+
+        /**
+         * @brief 뷰포트의 공통 뷰어가 소유하는 애니메이션 콘텐츠입니다.
+         */
+        Viewer::FAnimationViewerContent* mPreview{};
 
         /**
          * @brief 애니메이션 표시와 입력을 담당하는 뷰포트 클라이언트의 소유 포인터입니다.

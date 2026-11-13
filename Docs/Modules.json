@@ -4,6 +4,7 @@
   "CoreUObject": "UObject 수명, GUID·세대 핸들, 객체 레지스트리와 네이티브 리플렉션",
   "Asset": "에셋 타입·캐시, 바이너리 파일 입출력과 메시·텍스처 임포트",
   "RenderCore": "렌더러 수명·프레임 제출 인터페이스와 렌더링 통계",
+  "Viewer": "독립 에셋 미리보기 장면, 공통 궤도 카메라·Fit과 썸네일 이미지 촬영",
   "Serialization": "RapidJSON 기반 아카이브와 JSON 파일 입출력",
   "ImGui": "편집 UI와 Windows·Direct3D 11 백엔드",
   "Renderer": "Direct3D 11 장치, GPU 메시·상수 버퍼, 렌더 장면과 출력 타깃",

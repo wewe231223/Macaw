@@ -6,27 +6,34 @@
 
 #pragma once
 
-#include "Core/Math/FRotator.h"
-#include "Core/Math/FVector.h"
-#include "Engine/FViewportClient.h"
+#include "Viewer/FAssetViewer.h"
 
-#include <memory>
-
-namespace RenderCore {
-    class IRendererModule;
+namespace Viewer {
+    class FAnimationViewerContent;
 }
 
 namespace Editor {
 
-    class FAnimationPreviewScene;
-
-    class FAnimSequenceViewportClient final : public Engine::FViewportClient {
+    /**
+     * @brief 애니메이션 뷰어의 이미지 표시, 카메라 입력과 오버레이를 연결합니다.
+     * @ingroup Editor
+     */
+    class FAnimSequenceViewportClient {
     public:
-        FAnimSequenceViewportClient(RenderCore::IRendererModule* Renderer, Editor::FAnimationPreviewScene* Scene);
-        ~FAnimSequenceViewportClient() override;
+
+        /**
+         * @brief 애니메이션 콘텐츠를 공통 뷰어로 이전하고 뷰포트 표시 상태를 구성합니다.
+         * @param Renderer 외부에서 소유하는 렌더러 서비스입니다.
+         * @param Scene 소유권을 이전할 애니메이션 콘텐츠입니다.
+         */
+        FAnimSequenceViewportClient(RenderCore::IRendererModule* Renderer, std::unique_ptr<Viewer::FAnimationViewerContent> Scene);
+
+        /**
+         * @brief 객체의 수명을 끝내고 소유한 리소스를 정리합니다.
+         */
+        ~FAnimSequenceViewportClient();
 
     public:
-        void Draw(Engine::FSceneViewport* Viewport) override;
 
         /**
          * @brief 뷰어 이미지와 표시 옵션을 그리고 마우스 카메라 입력을 전달합니다.
@@ -35,12 +42,12 @@ namespace Editor {
         void DrawUI(const Core::FVector2& Size);
 
         /**
-         * @brief 현재 표시 옵션과 본 오버레이를 반영하여 독립 미리보기 장면을 렌더링합니다.
+         * @brief 현재 표시 옵션과 본 오버레이를 반영하여 공통 뷰어를 렌더링합니다.
          */
         void Render();
 
         /**
-         * @brief 현재 미리보기 메시의 경계에 카메라 중심과 거리를 맞춥니다.
+         * @brief 다음 뷰포트 표시에서 현재 메시 경계에 카메라를 맞추도록 요청합니다.
          */
         void FrameMesh();
 
@@ -53,17 +60,16 @@ namespace Editor {
         void SetDisplay(bool ShowBones, bool ShowGrid, bool Wireframe);
 
     private:
-        RenderCore::IRendererModule* mRenderer{};
 
         /**
-         * @brief 에디터가 소유하는 애니메이션 미리보기 장면의 비소유 포인터입니다.
+         * @brief 카메라·렌더 타깃·촬영을 담당하는 공통 에셋 뷰어입니다.
          */
-        Editor::FAnimationPreviewScene* mScene{};
-        std::unique_ptr<Engine::FSceneViewport> mViewport{};
-        Core::FVector mCenter{};
-        Core::FRotator mRotation{-20.0f, 45.0f, 0.0f};
-        float mRadius{1.0f};
-        float mDistance{3.0f};
+        Viewer::FAssetViewer mViewer;
+
+        /**
+         * @brief 공통 뷰어가 소유하는 애니메이션 콘텐츠의 비소유 포인터입니다.
+         */
+        Viewer::FAnimationViewerContent* mScene{};
 
         /**
          * @brief 본 오버레이 표시 여부입니다.
@@ -79,6 +85,10 @@ namespace Editor {
          * @brief 와이어프레임 표시 여부입니다.
          */
         bool mWireframe{};
-    };
 
+        /**
+         * @brief 다음 표시에서 에셋 경계에 카메라를 맞출지 여부입니다.
+         */
+        bool mNeedsFit{true};
+    };
 }

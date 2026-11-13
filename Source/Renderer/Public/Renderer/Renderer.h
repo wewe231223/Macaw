@@ -130,6 +130,25 @@ namespace Renderer {
         std::unique_ptr<Engine::FRenderTarget> CreateRenderTarget(Core::Uint32 Width, Core::Uint32 Height) override;
 
         /**
+         * @brief 렌더 타깃의 최종 컬러를 별도 GPU 텍스처로 복사합니다.
+         * @param Target 촬영할 장면 렌더 타깃입니다.
+         * @param Error 실패 원인을 기록할 출력 문자열입니다.
+         * @return 호출자가 소유하는 컬러 텍스처이며 실패하면 nullptr입니다.
+         */
+        std::unique_ptr<Asset::UTexture2D> CaptureRenderTarget(const Engine::FRenderTarget& Target, Core::FString& Error) override;
+
+        /**
+         * @brief 원본 텍스처를 지정한 픽셀 영역에 맞춰 별도 RGBA8 GPU 이미지로 촬영합니다.
+         * @param Texture 복사·표시할 텍스처입니다.
+         * @param Width 출력 또는 UI 영역의 너비(픽셀)입니다.
+         * @param Height 출력 또는 UI 영역의 높이(픽셀)입니다.
+         * @param Region 출력 이미지의 X, Y, 너비, 높이(픽셀)입니다.
+         * @param Error 실패 원인을 기록할 출력 문자열입니다.
+         * @return 호출자가 소유하는 출력 텍스처이며 실패하면 nullptr이고 Error에 원인을 기록합니다.
+         */
+        std::unique_ptr<Asset::UTexture2D> CaptureTexture(const Asset::UTexture2D& Texture, Core::Uint32 Width, Core::Uint32 Height, const Core::FVector4& Region, Core::FString& Error) override;
+
+        /**
          * @brief 기존 오프스크린 렌더 타깃을 새 픽셀 크기로 변경합니다.
          * @param[in,out] Target 크기를 바꿀 렌더 타깃입니다.
          * @param[in] Width 렌더 타깃의 가로 픽셀 수입니다.

@@ -80,7 +80,7 @@ Configure("MacawHeaderTool", "ConsoleApp")
     removedefines { "_DEBUG" }
     defines { "NDEBUG" }
 
-local ModuleNames = { "Core", "CoreUObject", "Serialization", "Asset", "RenderCore", "Engine", "Script", "Renderer", "Platform", "Editor" }
+local ModuleNames = { "Core", "CoreUObject", "Serialization", "Asset", "RenderCore", "Engine", "Script", "Renderer", "Platform", "Viewer", "Editor" }
 
 for _, Name in ipairs(ModuleNames) do
     Configure(Name, "StaticLib")

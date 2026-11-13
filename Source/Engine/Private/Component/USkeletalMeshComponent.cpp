@@ -115,7 +115,7 @@ namespace Engine {
             return false;
         }
 
-        if (mMeshPath == Path && (Path.empty() || mSkeletalMesh != nullptr)) {
+        if (!mPreviewAssets && mMeshPath == Path && (Path.empty() || mSkeletalMesh != nullptr)) {
             return true;
         }
 
@@ -132,6 +132,7 @@ namespace Engine {
             mPose = Engine::FSkeletalMeshPose{};
         }
 
+        mPreviewAssets = false;
         mMeshPath = Path;
         mSkeletalMesh = nullptr;
 
@@ -154,7 +155,7 @@ namespace Engine {
             return false;
         }
 
-        if (mSkeletonPath == Path && (Path.empty() || mSkeleton != nullptr)) {
+        if (!mPreviewAssets && mSkeletonPath == Path && (Path.empty() || mSkeleton != nullptr)) {
             return true;
         }
 
@@ -162,6 +163,7 @@ namespace Engine {
             return false;
         }
 
+        mPreviewAssets = false;
         mSkeletonPath = Path;
         mSkeleton = nullptr;
         mPose = Engine::FSkeletalMeshPose{};
@@ -172,10 +174,38 @@ namespace Engine {
         return true;
     }
 
+    bool USkeletalMeshComponent::SetPreviewAssets(Asset::USkeletalMesh* Mesh, Asset::USkeleton* Skeleton) {
+        Engine::FSkeletalMeshPose Pose{};
+
+        if (GetWorld() == nullptr || GetWorld()->GetWorldType() != Engine::EWorldType::EditorPreview || Mesh == nullptr || Skeleton == nullptr || !Pose.Reset(*Mesh, *Skeleton)) {
+            return false;
+        }
+
+        ClearMaterialOverrides();
+        mMeshPath.clear();
+        mSkeletonPath.clear();
+        mSkeletalMesh = Mesh;
+        mSkeleton = Skeleton;
+        mPose = std::move(Pose);
+        mPreviewAssets = true;
+
+        if (mAnimInstance != nullptr) {
+            mAnimInstance->InitializeAnimation(this);
+        }
+
+        MarkRenderStateDirty();
+
+        return true;
+    }
+
     /**
      * @brief 저장된 에셋 경로를 해석합니다.
      */
     bool USkeletalMeshComponent::ResolveMesh() {
+        if (mPreviewAssets) {
+            return mSkeletalMesh != nullptr && mSkeleton != nullptr;
+        }
+
         Asset::USkeletalMesh* Mesh{LoadMesh(mMeshPath)};
         Asset::USkeleton* Skeleton{LoadSkeleton(mSkeletonPath)};
 
@@ -276,6 +306,7 @@ namespace Engine {
 
         Engine::UMeshComponent::UnregisterComponent();
 
+        mPreviewAssets = false;
         mSkeletalMesh = nullptr;
         mSkeleton = nullptr;
         mPose.Invalidate();
@@ -693,6 +724,7 @@ namespace Engine {
      */
     void Engine::USkeletalMeshComponent::Serialize(Core::FArchive& Archive) {
         if (Archive.IsLoading()) {
+            mPreviewAssets = false;
             mInactiveAnimGraph.clear();
         }
 

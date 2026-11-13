@@ -45,6 +45,10 @@ namespace RenderCore {
     class IRendererModule;
 }
 
+namespace Viewer {
+    class FAssetViewer;
+}
+
 namespace Editor {
 
     class FEditorContext;
@@ -668,6 +672,11 @@ namespace Editor {
          * @brief 미리보기에 사용하는 에셋 관리자 소유 텍스처의 비소유 주소입니다.
          */
         Asset::UTexture2D* mPreviewTexture{};
+
+        /**
+         * @brief 텍스처 표시·확대에 사용하는 공통 뷰어의 소유 포인터입니다.
+         */
+        std::unique_ptr<Viewer::FAssetViewer> mTextureViewer{};
 
         /**
          * @brief 미리볼 텍스처의 Content 상대 경로입니다.

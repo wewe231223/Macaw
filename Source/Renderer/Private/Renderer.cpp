@@ -22,6 +22,7 @@
 #include "RenderCore/FRenderStats.h"
 #include "FObjectConstants.h"
 #include "Asset/UStaticMesh.h"
+#include "Asset/UTexture2D.h"
 #include "CoreUObject/Reflection/NewObject.h"
 #include "Core/Base/ErrorHandler.h"
 #include "RenderTarget.h"
@@ -314,6 +315,57 @@ namespace Renderer {
     /**
      * @brief 기존 오프스크린 렌더 타깃을 새 픽셀 크기로 변경합니다.
      */
+    std::unique_ptr<Asset::UTexture2D> FRenderer::CaptureRenderTarget(const Engine::FRenderTarget& Target, Core::FString& Error) {
+        const auto* Native{dynamic_cast<const Renderer::FDXRenderTarget*>(&Target)};
+
+        if (Native == nullptr || Native->GetOutputColor() == nullptr || mContext == nullptr) {
+            Error = "Invalid render target capture";
+
+            return nullptr;
+        }
+
+        auto Texture{CoreUObject::NewObject<Asset::UTexture2D>()};
+
+        if (!Texture->Configure(Target.GetWidth(), Target.GetHeight(), Asset::ETextureFormat::RGBA8, Asset::ETextureUsage::ShaderResource) || !Texture->CreateResources(mDevice.Get())) {
+            Error = "Cannot allocate the captured image";
+
+            return nullptr;
+        }
+
+        mContext->OMSetRenderTargets(0, nullptr, nullptr);
+        mContext->CopyResource(Texture->GetTexture(), Native->GetOutputColor()->GetTexture());
+
+        return Texture;
+    }
+
+    std::unique_ptr<Asset::UTexture2D> FRenderer::CaptureTexture(const Asset::UTexture2D& Source, Core::Uint32 Width, Core::Uint32 Height, const Core::FVector4& Region, Core::FString& Error) {
+        if (mContext == nullptr || mPostProcessResources == nullptr || !Source.HasResources() || !std::isfinite(Region.x) || !std::isfinite(Region.y) || !std::isfinite(Region.z) || !std::isfinite(Region.w) || Region.x < 0.0f || Region.y < 0.0f || Region.z <= 0.0f || Region.w <= 0.0f || Region.x + Region.z > static_cast<float>(Width) + 0.01f || Region.y + Region.w > static_cast<float>(Height) + 0.01f) {
+            Error = "Invalid texture capture";
+
+            return nullptr;
+        }
+
+        auto Texture{CoreUObject::NewObject<Asset::UTexture2D>()};
+
+        if (!Texture->Configure(Width, Height, Asset::ETextureFormat::RGBA8, Asset::ETextureUsage::ShaderResource | Asset::ETextureUsage::RenderTarget) || !Texture->CreateResources(mDevice.Get())) {
+            Error = "Cannot allocate the texture capture";
+
+            return nullptr;
+        }
+
+        constexpr float ClearColor[]{0.065f, 0.078f, 0.10f, 1.0f};
+        const D3D11_VIEWPORT Viewport{Region.x, Region.y, Region.z, Region.w, 0.0f, 1.0f};
+
+        mContext->GSSetShader(nullptr, nullptr, 0);
+        mContext->HSSetShader(nullptr, nullptr, 0);
+        mContext->DSSetShader(nullptr, nullptr, 0);
+        mContext->ClearRenderTargetView(Texture->GetRenderTargetView(), ClearColor);
+        mContext->RSSetViewports(1, &Viewport);
+        mPostProcessResources->RenderTexture(mContext.Get(), Source, *Texture);
+
+        return Texture;
+    }
+
     bool Renderer::FRenderer::ResizeRenderTarget(Engine::FRenderTarget* Target, Core::Uint32 Width, Core::Uint32 Height) {
         auto* Native{dynamic_cast<Renderer::FDXRenderTarget*>(Target)};
 

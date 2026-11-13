@@ -6,7 +6,7 @@
 
 #include "FAnimSequenceTimeline.h"
 
-#include "FAnimationPreviewScene.h"
+#include "Viewer/FAnimationViewerContent.h"
 #include "Asset/Animation/UAnimSequence.h"
 
 #include <algorithm>
@@ -200,7 +200,7 @@ void FAnimSequenceTimeline::Reset(const Asset::UAnimSequence& Sequence) {
     ++mSequenceRevision;
 }
 
-void FAnimSequenceTimeline::Draw(Editor::FAnimationPreviewScene& Preview, const Asset::UAnimSequence& Sequence, float Height) {
+void FAnimSequenceTimeline::Draw(Viewer::FAnimationViewerContent& Preview, const Asset::UAnimSequence& Sequence, float Height) {
     ImGui::PushStyleColor(ImGuiCol_ChildBg, IM_COL32(24, 24, 24, 255));
 
     if (ImGui::BeginChild("##AnimationTimeline", {0.0f, Height}, ImGuiChildFlags_Borders, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse)) {
@@ -213,7 +213,7 @@ void FAnimSequenceTimeline::Draw(Editor::FAnimationPreviewScene& Preview, const 
     ImGui::PopStyleColor();
 }
 
-void FAnimSequenceTimeline::DrawTimeArea(Editor::FAnimationPreviewScene& Preview, const Asset::UAnimSequence& Sequence, float Height) {
+void FAnimSequenceTimeline::DrawTimeArea(Viewer::FAnimationViewerContent& Preview, const Asset::UAnimSequence& Sequence, float Height) {
     if (!ImGui::BeginChild("##AnimationTimeArea", {0.0f, Height}, ImGuiChildFlags_None, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse)) {
         ImGui::EndChild();
 
@@ -247,7 +247,7 @@ void FAnimSequenceTimeline::DrawTimeArea(Editor::FAnimationPreviewScene& Preview
     ImGui::EndChild();
 }
 
-void FAnimSequenceTimeline::StepFrame(Editor::FAnimationPreviewScene& Preview, const Asset::UAnimSequence& Sequence, Core::Int32 Direction) {
+void FAnimSequenceTimeline::StepFrame(Viewer::FAnimationViewerContent& Preview, const Asset::UAnimSequence& Sequence, Core::Int32 Direction) {
     const double Rate{Sequence.GetDataModel().GetFrameRate().AsDecimal()};
     const double Frame{Preview.GetPosition() * Rate};
     const double Next{Direction < 0 ? std::ceil(Frame - 0.00001) - 1.0 : std::floor(Frame + 0.00001) + 1.0};
@@ -255,7 +255,7 @@ void FAnimSequenceTimeline::StepFrame(Editor::FAnimationPreviewScene& Preview, c
     Preview.Seek(Next / Rate);
 }
 
-void FAnimSequenceTimeline::DrawTransportBar(Editor::FAnimationPreviewScene& Preview, const Asset::UAnimSequence& Sequence) {
+void FAnimSequenceTimeline::DrawTransportBar(Viewer::FAnimationViewerContent& Preview, const Asset::UAnimSequence& Sequence) {
     const ImGuiStyle& Style{ImGui::GetStyle()};
     const float Height{ImGui::GetFrameHeight() + Style.WindowPadding.y};
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{Style.WindowPadding.x, Style.WindowPadding.y * 0.5f});

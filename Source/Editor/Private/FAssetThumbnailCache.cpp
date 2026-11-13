@@ -1,276 +1,396 @@
 /**
  * @file FAssetThumbnailCache.cpp
- * @brief 구형 재질과 정적 메시 썸네일의 GPU 캐시 구현입니다.
+ * @brief 공통 에셋 뷰어에서 촬영한 이미지를 캐시하고 변경된 에셋의 생성을 예약합니다.
  * @ingroup Editor
  */
 
 #include "Editor/FAssetThumbnailCache.h"
-#include "FBonePreview.h"
-#include "Core/FilePath.h"
-#include "Core/Math/FRotator.h"
-#include "Core/Math/FQuat.h"
-#include "CoreUObject/Reflection/NewObject.h"
-#include "Asset/FAssetManager.h"
-#include "Engine/FSceneInterface.h"
-#include "Engine/FPrimitiveSceneProxy.h"
-#include "Engine/FLightSceneProxy.h"
-#include "Engine/FSceneViewFamily.h"
-#include "Engine/FPrimitiveDrawInterface.h"
-#include "Engine/PrimitiveMesh.h"
+#include "Viewer/FMeshViewerContent.h"
+#include "Viewer/FAnimationViewerContent.h"
 #include "Asset/UStaticMesh.h"
 #include "Asset/USkeletalMesh.h"
 #include "Asset/USkeleton.h"
 #include "Asset/UMaterial.h"
 #include "Asset/UTexture2D.h"
-#include "RenderCore/IRendererModule.h"
+#include "Asset/Animation/UAnimSequence.h"
+#include "CoreUObject/Reflection/Cast.h"
+#include "CoreUObject/Reflection/NewObject.h"
+#include "Engine/PrimitiveMesh.h"
+
+#include "Asset/FAssetManager.h"
+#include "Core/FilePath.h"
+#include "Serialization/JsonArchive.h"
 
 #include <algorithm>
 #include <bit>
-#include <cmath>
 #include <functional>
 
-namespace Editor {
+using namespace Editor;
 
-    /**
-     * @brief 에셋 관리자와 렌더러를 연결합니다.
-     */
-    Editor::FAssetThumbnailCache::FAssetThumbnailCache(Asset::FAssetManager* Assets, RenderCore::IRendererModule* Renderer)
-		: mAssets{Assets},
-		  mRenderer{Renderer},
-		  mSphere{CoreUObject::NewObject<Asset::UStaticMesh>()},
-		  mCube{CoreUObject::NewObject<Asset::UStaticMesh>()} {
-        mSphere->SetMeshData(Engine::GetPrimitiveMesh(Engine::EPrimitiveType::Sphere));
-        mCube->SetMeshData(Engine::GetPrimitiveMesh(Engine::EPrimitiveType::Cube));
+FAssetThumbnailCache::FThumbnail::FThumbnail() = default;
+FAssetThumbnailCache::FThumbnail::~FThumbnail() = default;
+
+FAssetThumbnailCache::FPendingThumbnail::FPendingThumbnail(const Core::FString& Key, const std::filesystem::path& Path, CoreUObject::UObject* Object, Asset::EAssetType Type, std::size_t Signature)
+	: mKey{Key},
+	  mPath{Path},
+	  mObject{Object},
+	  mType{Type},
+	  mSignature{Signature} {
+}
+
+FAssetThumbnailCache::FAssetThumbnailCache(Asset::FAssetManager* Assets, RenderCore::IRendererModule* Renderer)
+	: mAssets{Assets},
+	  mRenderer{Renderer},
+	  mDefaultMesh{CoreUObject::NewObject<Asset::UStaticMesh>()},
+	  mDefaultMaterial{CoreUObject::NewObject<Asset::UMaterial>()},
+	  mCaptureViewer{Renderer, Assets},
+	  mMaterialViewer{Renderer, Assets} {
+    mDefaultMesh->SetMeshData(Engine::GetPrimitiveMesh(Engine::EPrimitiveType::Cube));
+    LoadPreviewSettings();
+}
+
+FAssetThumbnailCache::~FAssetThumbnailCache() = default;
+
+void FAssetThumbnailCache::BeginFrame() {
+    ++mFrame;
+
+    mRetiredCaptures.clear();
+
+    while (mThumbnails.size() >= 128) {
+        const auto Oldest{std::min_element(mThumbnails.begin(), mThumbnails.end(), [](const auto& First, const auto& Second) {
+            return First.second.mLastUsed < Second.second.mLastUsed;
+        })};
+
+        if (Oldest == mThumbnails.end() || Oldest->second.mLastUsed + 1 >= mFrame) {
+            break;
+        }
+
+        mThumbnails.erase(Oldest);
     }
 
-    /**
-     * @brief 장면과 썸네일 GPU 자원을 해제합니다.
-     */
-    Editor::FAssetThumbnailCache::~FAssetThumbnailCache() = default;
+    ProcessRequests();
+}
 
-    /**
-     * @brief UI 프레임 시작 시 오래된 캐시를 정리합니다.
-     */
-    void Editor::FAssetThumbnailCache::BeginFrame() {
-        ++mFrame;
+void FAssetThumbnailCache::Invalidate() {
+    ++mGeneration;
+    mRequests.clear();
+    mWorkerActive = false;
+    mCaptureViewer.Close();
 
-        while (mThumbnails.size() >= 128) {
-            const auto Oldest{std::min_element(mThumbnails.begin(), mThumbnails.end(), [](const auto& First, const auto& Second) {
-                return First.second.mLastUsed < Second.second.mLastUsed;
-            })};
+    for (auto& [Key, Thumbnail] : mThumbnails) {
+        Thumbnail.mQueued = false;
+    }
+}
 
-            if (Oldest == mThumbnails.end() || Oldest->second.mLastUsed + 1 >= mFrame) {
-                break;
+
+Core::FString FAssetThumbnailCache::MakeKey(const std::filesystem::path& Path, Asset::EAssetType Type) const {
+    if (Path.empty()) {
+        return "@Default" + std::to_string(static_cast<Core::Uint32>(Type));
+    }
+
+    Core::FString Error{};
+
+    return Core::FilePath::ToGenericUtf8(Core::FilePath::ToLower(Core::FilePath::FromUtf8(mAssets->GetRelativePath(Path, Error))));
+}
+
+void* FAssetThumbnailCache::GetThumbnail(const std::filesystem::path& Path, Asset::EAssetType Type) {
+    if (mAssets == nullptr || mRenderer == nullptr || !Viewer::FAssetViewer::Supports(Type)) {
+        return nullptr;
+    }
+
+    const Core::FString Key{MakeKey(Path, Type)};
+    FThumbnail& Thumbnail{mThumbnails[Key]};
+    Thumbnail.mLastUsed = mFrame;
+    Core::FString Error{};
+    CoreUObject::UObject* Object{LoadAsset(Path, Type, Error)};
+
+    if (Object == nullptr) {
+        return Thumbnail.mCapture != nullptr ? Thumbnail.mCapture->GetNativeTexture() : nullptr;
+    }
+    Core::FString MeshPath{};
+    Core::FString SkeletonPath{};
+
+    GetAnimationPreview(Path, MeshPath, SkeletonPath);
+    const std::size_t Signature{mGeneration ^ AssetSignature(Object, Type) ^ std::hash<Core::FString>{}(MeshPath) ^ std::hash<Core::FString>{}(SkeletonPath)};
+
+    if ((!Thumbnail.mHasSignature || Thumbnail.mSignature != Signature) && (!Thumbnail.mFailed || Thumbnail.mFailedSignature != Signature) && (!Thumbnail.mQueued || Thumbnail.mPendingSignature != Signature)) {
+        Thumbnail.mPendingSignature = Signature;
+        Thumbnail.mQueued = true;
+        mRequests.emplace_back(Key, Path, Object, Type, Signature);
+    }
+
+    return Thumbnail.mCapture != nullptr ? Thumbnail.mCapture->GetNativeTexture() : nullptr;
+}
+
+void FAssetThumbnailCache::ProcessRequests() {
+    while (!mRequests.empty()) {
+        const FPendingThumbnail& Pending{mRequests.front()};
+        const auto Found{mThumbnails.find(Pending.mKey)};
+
+        if (Found == mThumbnails.end() || !Found->second.mQueued || Found->second.mPendingSignature != Pending.mSignature) {
+            mWorkerActive = false;
+            mRequests.pop_front();
+
+            continue;
+        }
+
+        FThumbnail& Thumbnail{Found->second};
+        Core::FString Error{};
+        const bool Opened{mWorkerActive || BindCaptureAsset(Pending, Error)};
+        Viewer::EViewerPrepareResult Prepared{Viewer::EViewerPrepareResult::Failed};
+
+        if (Opened) {
+            mWorkerActive = true;
+            Prepared = mCaptureViewer.PrepareCapture(Error);
+        }
+
+        if (Prepared == Viewer::EViewerPrepareResult::Pending) {
+            break;
+        }
+
+        std::unique_ptr<Viewer::FViewerCapture> Capture{};
+
+        if (Prepared == Viewer::EViewerPrepareResult::Ready && mCaptureViewer.Resize(256, 256) && mCaptureViewer.Fit()) {
+            Capture = mCaptureViewer.Capture(Error);
+        }
+
+        if (Capture != nullptr) {
+            if (Thumbnail.mCapture != nullptr) {
+                mRetiredCaptures.push_back(std::move(Thumbnail.mCapture));
             }
 
-            mThumbnails.erase(Oldest);
+            Thumbnail.mCapture = std::move(Capture);
+            Thumbnail.mSignature = Pending.mSignature;
+            Thumbnail.mHasSignature = true;
+            Thumbnail.mFailed = false;
+        } else {
+            Thumbnail.mFailedSignature = Pending.mSignature;
+            Thumbnail.mFailed = true;
         }
+
+        Thumbnail.mQueued = false;
+        mWorkerActive = false;
+        mRequests.pop_front();
     }
+}
 
-    /**
-     * @brief 타깃 주소를 유지하면서 다음 조회에서 썸네일을 갱신하도록 표시합니다.
-     */
-    void Editor::FAssetThumbnailCache::Invalidate() {
-        ++mGeneration;
-    }
+void* FAssetThumbnailCache::GetMaterialPreview(Asset::UMaterial* Material) {
+    FThumbnail& Thumbnail{mThumbnails["@MaterialPreview"]};
+    Thumbnail.mLastUsed = mFrame;
+    const std::size_t Signature{MaterialSignature(Material) ^ mGeneration};
 
-    /**
-     * @brief 재질 설정의 변경을 감지할 서명을 만듭니다.
-     */
-    std::size_t Editor::FAssetThumbnailCache::MaterialSignature(const Asset::UMaterial* Material) {
-        if (Material == nullptr) {
-            return 0;
-        }
-
-        std::size_t Hash{std::hash<Core::FString>{}(Material->GetShaderPath())};
-
-        Hash ^= std::hash<Core::FString>{}(Material->GetBaseColorTexturePath()) + 0x9E3779B9 + (Hash << 6) + (Hash >> 2);
-        Hash ^= std::hash<Core::FString>{}(Material->GetNormalMapTexturePath()) + 0x9E3779B9 + (Hash << 6) + (Hash >> 2);
-
-        for (const float Value : {Material->GetSpecularStrength(), Material->GetShininess(), Material->GetNormalStrength()}) {
-            Hash ^= std::bit_cast<Core::Uint32>(Value) + 0x9E3779B9 + (Hash << 6) + (Hash >> 2);
-        }
-
-        for (float Value : Material->GetBaseColor().ToArray()) {
-            Hash ^= std::bit_cast<Core::Uint32>(Value) + 0x9E3779B9 + (Hash << 6) + (Hash >> 2);
-        }
-
-        return Hash ^ static_cast<std::size_t>(Material->IsTwoSided());
-    }
-
-    /**
-     * @brief 메시·재질·텍스처의 표시 자원을 조회합니다.
-     */
-    void* Editor::FAssetThumbnailCache::GetThumbnail(const std::filesystem::path& Path, Asset::EAssetType Type) {
-        if (mAssets == nullptr || mRenderer == nullptr) {
-            return nullptr;
-        }
-
+    if (mRenderer != nullptr && (!Thumbnail.mHasSignature || Thumbnail.mSignature != Signature) && (!Thumbnail.mFailed || Thumbnail.mFailedSignature != Signature)) {
         Core::FString Error{};
+        std::unique_ptr<Viewer::FViewerCapture> Capture{};
 
-        if (Type == Asset::EAssetType::Texture) {
-            Asset::UTexture2D* Texture{mAssets->LoadTexture(Path, Error)};
-
-            return Texture != nullptr && Texture->CreateResources(static_cast<ID3D11Device*>(mRenderer->GetNativeDevice())) ? Texture->GetShaderResourceView() : nullptr;
+        if (mMaterialViewer.SetAsset(Material != nullptr ? Material : mDefaultMaterial.get(), Asset::EAssetType::Material) && mMaterialViewer.Resize(256, 256) && mMaterialViewer.Fit()) {
+            Capture = mMaterialViewer.Capture(Error);
         }
 
-        const Core::FString Key{Path.empty() ? Type == Asset::EAssetType::Mesh ? "@DefaultMesh" : "@DefaultMaterial" : Core::FilePath::ToGenericUtf8(Core::FilePath::ToLower(Core::FilePath::FromUtf8(mAssets->GetRelativePath(Path, Error))))};
+        if (Capture != nullptr) {
+            if (Thumbnail.mCapture != nullptr) {
+                mRetiredCaptures.push_back(std::move(Thumbnail.mCapture));
+            }
 
-        if (Type == Asset::EAssetType::Material) {
-            Asset::UMaterial* Material{Path.empty() ? nullptr : mAssets->LoadMaterial(Path, Error)};
-
-            return !Path.empty() && Material == nullptr ? nullptr : Render(Key, mSphere.get(), Material, MaterialSignature(Material) ^ mGeneration);
+            Thumbnail.mCapture = std::move(Capture);
+            Thumbnail.mSignature = Signature;
+            Thumbnail.mHasSignature = true;
+            Thumbnail.mFailed = false;
+        } else {
+            Thumbnail.mFailedSignature = Signature;
+            Thumbnail.mFailed = true;
         }
+    }
 
-        if (Type == Asset::EAssetType::Skeleton) {
-            const Asset::USkeleton* Skeleton{Path.empty() ? nullptr : mAssets->LoadSkeleton(Path, Error)};
+    return Thumbnail.mCapture != nullptr ? Thumbnail.mCapture->GetNativeTexture() : nullptr;
+}
 
-            // 캐시에 올라간 에셋은 내용이 바뀌지 않고 은퇴한 객체도 해제되지 않으므로, 객체 주소가 곧 내용의 식별자입니다.
-            return Skeleton != nullptr ? Render(Key, nullptr, nullptr, mGeneration ^ std::hash<const void*>{}(Skeleton), Skeleton) : nullptr;
+bool FAssetThumbnailCache::SetAnimationPreview(const std::filesystem::path& Path, const Core::FString& MeshPath, const Core::FString& SkeletonPath, Core::FString& Error) {
+    Error.clear();
+    const Core::FString Key{MakeKey(Path, Asset::EAssetType::AnimSequence)};
+    const auto Found{mAnimationPreviews.find(Key)};
+
+    if (Found != mAnimationPreviews.end() && Found->second.first == MeshPath && Found->second.second == SkeletonPath) {
+        return true;
+    }
+
+    if (MeshPath.empty()) {
+        mAnimationPreviews.erase(Key);
+    } else {
+        mAnimationPreviews[Key] = {MeshPath, SkeletonPath};
+    }
+
+    Invalidate();
+
+    if (!SavePreviewSettings()) {
+        Error = "Cannot save animation preview settings";
+
+        return false;
+    }
+
+    return true;
+}
+
+bool FAssetThumbnailCache::GetAnimationPreview(const std::filesystem::path& Path, Core::FString& MeshPath, Core::FString& SkeletonPath) const {
+    const auto Found{mAnimationPreviews.find(MakeKey(Path, Asset::EAssetType::AnimSequence))};
+
+    if (Found == mAnimationPreviews.end()) {
+        return false;
+    }
+
+    MeshPath = Found->second.first;
+    SkeletonPath = Found->second.second;
+
+    return true;
+}
+
+void FAssetThumbnailCache::LoadPreviewSettings() {
+    if (mAssets == nullptr) {
+        return;
+    }
+
+    Serialization::FJsonArchive Archive{Core::EArchiveMode::Loading};
+    const std::filesystem::path Path{mAssets->GetContentRoot().parent_path() / "Saved/ViewerPreviews.json"};
+    Core::Uint32 Count{};
+
+    if (!Archive.Load(Path) || !Archive.BeginArray("Animations", Count) || Count > 10000) {
+        return;
+    }
+
+    for (Core::Uint32 Index{}; Index < Count; ++Index) {
+        if (Archive.BeginObject(std::to_string(Index))) {
+            Core::FString AssetPath{};
+            Core::FString MeshPath{};
+            Core::FString SkeletonPath{};
+            Archive.Serialize("Asset", AssetPath);
+            Archive.Serialize("Mesh", MeshPath);
+            Archive.Serialize("Skeleton", SkeletonPath);
+            Archive.EndObject();
+
+            if (!AssetPath.empty() && !MeshPath.empty()) {
+                mAnimationPreviews[AssetPath] = {MeshPath, SkeletonPath};
+            }
         }
+    }
 
-        if (Type != Asset::EAssetType::Mesh && Type != Asset::EAssetType::SkeletalMesh) {
-            return nullptr;
-        }
+    Archive.EndArray();
+}
 
-        // 썸네일은 바인드 포즈를 표시하므로 동일한 공유 형상으로 그릴 수 있습니다.
-        Asset::USkeletalMesh* Skeletal{Type == Asset::EAssetType::SkeletalMesh && !Path.empty() ? mAssets->LoadSkeletalMesh(Path, Error) : nullptr};
-        Asset::UStaticMesh* Mesh{Skeletal != nullptr ? Skeletal->GetGeometry() : Type == Asset::EAssetType::SkeletalMesh ? nullptr : Path.empty() ? mCube.get() : mAssets->LoadMesh(Path, Error)};
+bool FAssetThumbnailCache::SavePreviewSettings() {
+    if (mAssets == nullptr) {
+        return false;
+    }
 
-        if (Mesh == nullptr) {
-            return nullptr;
-        }
+    Serialization::FJsonArchive Archive{Core::EArchiveMode::Saving};
+    Core::Uint32 Count{static_cast<Core::Uint32>(mAnimationPreviews.size())};
+    Archive.BeginArray("Animations", Count);
+    Core::Uint32 Index{};
 
-        std::size_t Signature{mGeneration ^ std::hash<const void*>{}(Mesh)};
+    for (const auto& [Key, Preview] : mAnimationPreviews) {
+        Archive.BeginObject(std::to_string(Index++));
+        Core::FString AssetPath{Key};
+        Core::FString MeshPath{Preview.first};
+        Core::FString SkeletonPath{Preview.second};
+        Archive.Serialize("Asset", AssetPath);
+        Archive.Serialize("Mesh", MeshPath);
+        Archive.Serialize("Skeleton", SkeletonPath);
+        Archive.EndObject();
+    }
 
+    Archive.EndArray();
+
+    return Archive.Save(mAssets->GetContentRoot().parent_path() / "Saved/ViewerPreviews.json");
+}
+
+std::size_t FAssetThumbnailCache::MaterialSignature(const Asset::UMaterial* Material) {
+    if (Material == nullptr) {
+        return 0;
+    }
+
+    std::size_t Hash{std::hash<Core::FString>{}(Material->GetShaderPath())};
+
+    Hash ^= std::hash<Core::FString>{}(Material->GetBaseColorTexturePath()) + 0x9E3779B9 + (Hash << 6) + (Hash >> 2);
+    Hash ^= std::hash<Core::FString>{}(Material->GetNormalMapTexturePath()) + 0x9E3779B9 + (Hash << 6) + (Hash >> 2);
+
+    for (const float Value : {Material->GetSpecularStrength(), Material->GetShininess(), Material->GetNormalStrength()}) {
+        Hash ^= std::bit_cast<Core::Uint32>(Value) + 0x9E3779B9 + (Hash << 6) + (Hash >> 2);
+    }
+
+    for (float Value : Material->GetBaseColor().ToArray()) {
+        Hash ^= std::bit_cast<Core::Uint32>(Value) + 0x9E3779B9 + (Hash << 6) + (Hash >> 2);
+    }
+
+    return Hash ^ static_cast<std::size_t>(Material->IsTwoSided());
+}
+
+CoreUObject::UObject* FAssetThumbnailCache::LoadAsset(const std::filesystem::path& Path, Asset::EAssetType Type, Core::FString& Error) {
+    switch (Type) {
+    case Asset::EAssetType::Mesh:
+        return Path.empty() ? mDefaultMesh.get() : mAssets->LoadMesh(Path, Error);
+    case Asset::EAssetType::SkeletalMesh:
+        return mAssets->LoadSkeletalMesh(Path, Error);
+    case Asset::EAssetType::Material:
+        return Path.empty() ? mDefaultMaterial.get() : mAssets->LoadMaterial(Path, Error);
+    case Asset::EAssetType::Skeleton:
+        return mAssets->LoadSkeleton(Path, Error);
+    case Asset::EAssetType::Texture:
+        return mAssets->LoadTexture(Path, Error);
+    case Asset::EAssetType::AnimSequence:
+        return mAssets->LoadAnimSequence(Path, Error);
+    default:
+        return nullptr;
+    }
+}
+
+std::size_t FAssetThumbnailCache::AssetSignature(CoreUObject::UObject* Object, Asset::EAssetType Type) {
+    std::size_t Signature{std::hash<const void*>{}(Object) ^ static_cast<std::size_t>(Type)};
+
+    if (auto* Material{CoreUObject::Cast<Asset::UMaterial>(Object)}) {
+        Signature ^= MaterialSignature(Material);
+    }
+
+    auto* Skeletal{CoreUObject::Cast<Asset::USkeletalMesh>(Object)};
+    Asset::UStaticMesh* Mesh{Skeletal != nullptr ? Skeletal->GetGeometry() : CoreUObject::Cast<Asset::UStaticMesh>(Object)};
+    Core::FString Error{};
+
+    if (Mesh != nullptr) {
         for (const Asset::FMeshMaterialSlot& Slot : Mesh->GetMeshData().GetMaterialSlots()) {
             Asset::UMaterial* Material{Slot.GetMaterialPath().empty() ? nullptr : mAssets->LoadMaterial(Core::FilePath::FromUtf8(Slot.GetMaterialPath()), Error)};
             const std::size_t Value{MaterialSignature(Material)};
-
             Signature ^= Value + 0x9E3779B9 + (Signature << 6) + (Signature >> 2);
         }
-
-        return Render(Key, Mesh, nullptr, Signature);
     }
 
-    /**
-     * @brief 편집 중인 재질을 구에 적용한 미리보기를 조회합니다.
-     */
-    void* Editor::FAssetThumbnailCache::GetMaterialPreview(Asset::UMaterial* Material) {
-        return mRenderer != nullptr ? Render("@MaterialPreview", mSphere.get(), Material, MaterialSignature(Material) ^ mGeneration) : nullptr;
+    return Signature;
+}
+
+bool FAssetThumbnailCache::BindCaptureAsset(const FPendingThumbnail& Pending, Core::FString& Error) {
+    if (!mCaptureViewer.SetAsset(Pending.mObject, Pending.mType)) {
+        Error = mCaptureViewer.GetError();
+
+        return false;
     }
 
-    /**
-     * @brief 메시 또는 구형 재질을 캐시에 렌더링합니다.
-     */
-    void* Editor::FAssetThumbnailCache::Render(const Core::FString& Key, Asset::UStaticMesh* Mesh, Asset::UMaterial* Material, std::size_t Signature, const Asset::USkeleton* Skeleton) {
-        FThumbnail& Thumbnail{mThumbnails[Key]};
-        Thumbnail.mLastUsed = mFrame;
+    if (Pending.mType == Asset::EAssetType::SkeletalMesh) {
+        auto* Content{static_cast<Viewer::FMeshViewerContent*>(mCaptureViewer.GetContent())};
 
-        if (Thumbnail.mTarget != nullptr && Thumbnail.mSignature == Signature) {
-            return Thumbnail.mTarget->GetNativeTexture();
-        }
-
-        if (mScene == nullptr) {
-            mScene = mRenderer->AllocateScene();
-
-            if (mScene != nullptr) {
-                Engine::FLightSceneProxy Ambient{};
-                Ambient.mIntensity = 0.25f;
-
-                mScene->AddLight(Ambient);
-
-                Engine::FLightSceneProxy Directional{};
-                Directional.mType = Engine::ELightType::Directional;
-                Directional.mDirection = Core::FVector{0.35f, 0.6f, -1.0f}.Normalized();
-                Directional.mIntensity = 0.75f;
-
-                mScene->AddLight(Directional);
-            }
-        }
-
-        if (mScene == nullptr || (Mesh != nullptr && !Mesh->CreateResources(static_cast<ID3D11Device*>(mRenderer->GetNativeDevice())))) {
-            return nullptr;
-        }
-
-        if (Thumbnail.mTarget == nullptr) {
-            Thumbnail.mTarget = mRenderer->CreateRenderTarget(256, 256);
-        }
-
-        if (Thumbnail.mTarget == nullptr) {
-            return nullptr;
-        }
-
-        Core::FBox Bounds{};
-
-        if (Skeleton != nullptr) {
-            mScene->RemovePrimitive(mPrimitiveId);
-
-            const auto& Transforms{Skeleton->GetGlobalBindPoses()};
-            const Core::FVector FirstJoint{Transforms.front().TransformPosition({})};
-
-            Bounds = Core::FBox{FirstJoint, FirstJoint};
-
-            for (const Core::FMatrix& Transform : Transforms) {
-                const Core::FVector Joint{Transform.TransformPosition({})};
-
-                Bounds.mMinimum = Bounds.mMinimum.Min(Joint);
-                Bounds.mMaximum = Bounds.mMaximum.Max(Joint);
-            }
-        } else {
-            Engine::FPrimitiveSceneProxy Proxy{};
-            Proxy.mId = mPrimitiveId;
-            Proxy.mMesh = Mesh;
-            Proxy.mBounds = Mesh->GetBounds();
-            Proxy.mMaterial = Material;
-
-            Core::FString Error{};
-
-            for (const Asset::FMeshMaterialSlot& Slot : Mesh->GetMeshData().GetMaterialSlots()) {
-                Proxy.mMaterials.push_back(mAssets != nullptr && !Slot.GetMaterialPath().empty() ? mAssets->LoadMaterial(Core::FilePath::FromUtf8(Slot.GetMaterialPath()), Error) : nullptr);
-            }
-
-            Bounds = Proxy.mBounds;
-            mScene->AddPrimitive(Proxy);
-        }
-
-        const Core::FVector Center{(Bounds.mMinimum + Bounds.mMaximum) * 0.5f};
-        const float Radius{std::max(Bounds.mMinimum.Distance(Bounds.mMaximum) * 0.5f, 0.01f)};
-
-        if (!std::isfinite(Radius)) {
-            return nullptr;
-        }
-
-        const Core::FQuat Rotation{Core::FRotator{-25.0f, 45.0f, 0.0f}.Quaternion()};
-        Engine::FSceneView View{};
-        View.mSize = {256.0f, 256.0f};
-        View.mFieldOfView = 40.0f;
-        View.mForward = Rotation.ForwardVector();
-        View.mLocation = Center - View.mForward * Radius * 3.3f;
-        View.mView = Core::FMatrix::LookTo(View.mLocation, View.mForward, Rotation.UpVector());
-        View.mProjection = Core::FMatrix::Perspective(40.0f, 1.0f, std::max(Radius * 0.001f, 0.00001f), Radius * 10.0f);
-        View.mViewProjection = View.mView * View.mProjection;
-
-        Engine::FSceneViewFamily Family{mScene.get(), Thumbnail.mTarget.get(), View};
-        Family.mShowFlags.mSky = false;
-
-        Engine::FPrimitiveDrawInterface Bones{};
-
-        if (Skeleton != nullptr) {
-            for (const Editor::FBoneShape& Shape : Editor::BuildBoneShapes(Skeleton->GetBones(), Skeleton->GetGlobalBindPoses(), Radius)) {
-                const Core::FVector4 Color{Shape.mMesh == Engine::EEditorMesh::Sphere ? Core::FVector4{0.88f, 0.92f, 1.0f, 1.0f} : Core::FVector4{0.49f, 0.7f, 0.9f, 1.0f}};
-
-                Bones.DrawMesh({Shape.mMesh, Shape.mWorld, Color});
-            }
-
-            Family.mBackgroundOverlay = &Bones;
-        }
-
-        mRenderer->BeginRenderingViewFamily(Family);
-
-        Thumbnail.mSignature = Signature;
-
-        return Thumbnail.mTarget->GetNativeTexture();
+        return Content->SetSkeleton(mAssets->FindLegacySkeleton(Pending.mPath));
     }
 
+    if (Pending.mType == Asset::EAssetType::AnimSequence) {
+        Core::FString MeshPath{};
+        Core::FString SkeletonPath{};
+
+        if (!GetAnimationPreview(Pending.mPath, MeshPath, SkeletonPath)) {
+            return false;
+        }
+
+        Asset::USkeletalMesh* Mesh{mAssets->LoadSkeletalMesh(Core::FilePath::FromUtf8(MeshPath), Error)};
+        Asset::USkeleton* Skeleton{SkeletonPath.empty() ? mAssets->FindLegacySkeleton(Core::FilePath::FromUtf8(MeshPath)) : mAssets->LoadSkeleton(Core::FilePath::FromUtf8(SkeletonPath), Error)};
+        auto* Content{static_cast<Viewer::FAnimationViewerContent*>(mCaptureViewer.GetContent())};
+
+        return Mesh != nullptr && Content->SetMesh(Mesh, Skeleton, Error);
+    }
+
+    return true;
 }

@@ -14,6 +14,7 @@
 
 namespace Asset {
     struct FMeshData;
+    class UTexture2D;
 }
 
 namespace Engine {
@@ -26,6 +27,7 @@ namespace Engine {
 
 namespace Core {
     struct FVector2;
+    struct FVector4;
 }
 
 namespace RenderCore {
@@ -36,12 +38,14 @@ namespace RenderCore {
      */
     class IRendererModule {
     public:
+
         /**
          * @brief 객체의 수명을 끝내고 소유한 리소스를 정리합니다.
          */
         virtual ~IRendererModule();
 
     public:
+
         /**
          * @brief Direct3D 11 장치, 스왑 체인과 렌더 파이프라인을 준비합니다.
          * @param[in] WindowHandle 렌더링할 네이티브 Win32 창 핸들입니다.
@@ -77,6 +81,25 @@ namespace RenderCore {
          * @return 생성한 객체의 단독 소유권이며, 실패하면 nullptr입니다.
          */
         virtual std::unique_ptr<Engine::FRenderTarget> CreateRenderTarget(Core::Uint32 Width, Core::Uint32 Height) = 0;
+
+        /**
+         * @brief 렌더 타깃의 최종 컬러만 별도 GPU 텍스처로 복사합니다.
+         * @param Target 복사하거나 그릴 렌더 타깃입니다.
+         * @param Error 실패 원인을 기록할 출력 문자열입니다.
+         * @return 호출자가 소유하는 캡처 텍스처이며 실패하면 nullptr이고 Error에 원인을 기록합니다.
+         */
+        virtual std::unique_ptr<Asset::UTexture2D> CaptureRenderTarget(const Engine::FRenderTarget& Target, Core::FString& Error) = 0;
+
+        /**
+         * @brief 원본 텍스처를 지정한 픽셀 영역에 맞춰 별도 RGBA8 GPU 이미지로 촬영합니다.
+         * @param Texture 복사·표시할 텍스처입니다.
+         * @param Width 출력 또는 UI 영역의 너비(픽셀)입니다.
+         * @param Height 출력 또는 UI 영역의 높이(픽셀)입니다.
+         * @param Region 출력 이미지의 X, Y, 너비, 높이(픽셀)입니다.
+         * @param Error 실패 원인을 기록할 출력 문자열입니다.
+         * @return 호출자가 소유하는 출력 텍스처이며 실패하면 nullptr이고 Error에 원인을 기록합니다.
+         */
+        virtual std::unique_ptr<Asset::UTexture2D> CaptureTexture(const Asset::UTexture2D& Texture, Core::Uint32 Width, Core::Uint32 Height, const Core::FVector4& Region, Core::FString& Error) = 0;
 
         /**
          * @brief 기존 오프스크린 렌더 타깃을 새 픽셀 크기로 변경합니다.

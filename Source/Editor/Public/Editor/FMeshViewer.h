@@ -7,6 +7,7 @@
 #pragma once
 
 #include "Core/Input.h"
+#include "Viewer/FAssetViewer.h"
 
 #include "Core/ReflectionMacros.h"
 
@@ -42,8 +43,12 @@ namespace Engine {
     class FRenderTarget;
 }
 
+namespace Viewer {
+    class FBoneShape;
+    class FMeshViewerContent;
+}
+
 namespace Editor {
-    struct FBoneShape;
 
     /**
      * @brief 편집 월드와 분리한 렌더 장면, 카메라와 재질 미리보기를 소유합니다.
@@ -147,7 +152,7 @@ namespace Editor {
          * @param Shapes 본 선택에 사용할 도형 목록입니다.
          * @return 선택할 본 도형과 교차했으면 true입니다.
          */
-        bool PickBone(const Engine::FSceneView& View, const Core::FVector2& Mouse, const Core::TArray<Editor::FBoneShape>& Shapes);
+        bool PickBone(const Engine::FSceneView& View, const Core::FVector2& Mouse, const Core::TArray<Viewer::FBoneShape>& Shapes);
 
         /**
          * @brief 현재 궤도 카메라의 렌더링과 입력 해석에 쓸 뷰를 계산합니다.
@@ -189,24 +194,24 @@ namespace Editor {
     private:
 
         /**
-         * @brief 렌더러의 비소유 주소입니다.
-         */
-        RenderCore::IRendererModule* mRenderer{};
-
-        /**
          * @brief 프로젝트 에셋 관리자의 비소유 주소입니다.
          */
         Asset::FAssetManager* mAssets{};
 
         /**
-         * @brief 편집 월드와 분리한 미리보기 장면입니다.
+         * @brief 카메라·렌더 타깃·촬영을 담당하는 공통 에셋 뷰어입니다.
          */
-        std::unique_ptr<Engine::FSceneInterface> mScene{};
+        Viewer::FAssetViewer mViewer;
 
         /**
-         * @brief 미리보기 전용 렌더 타깃입니다.
+         * @brief 공통 뷰어가 소유하는 메시 콘텐츠의 비소유 포인터입니다.
          */
-        std::unique_ptr<Engine::FRenderTarget> mTarget{};
+        Viewer::FMeshViewerContent* mContent{};
+
+        /**
+         * @brief 다음 표시에서 에셋 경계에 카메라를 맞출지 여부입니다.
+         */
+        bool mNeedsFit{true};
 
         /**
          * @brief 현재 메시의 비소유 주소입니다.
@@ -227,11 +232,6 @@ namespace Editor {
          * @brief 스켈레톤 에셋 경로입니다.
          */
         Core::FString mSkeletonPath{};
-
-        /**
-         * @brief 미리보기 객체만의 현재 포즈입니다.
-         */
-        Engine::FSkeletalMeshPose mPose{};
 
         /**
          * @brief 본 조작에 사용하는 기즈모 표시와 드래그 계산입니다.
@@ -269,19 +269,9 @@ namespace Editor {
         bool mShowBones{true};
 
         /**
-         * @brief 현재 슬롯별 미리보기 재질의 비소유 주소입니다.
-         */
-        Core::TArray<Asset::UMaterial*> mMaterials{};
-
-        /**
          * @brief 미리보기 슬롯별 오버라이드 경로입니다.
          */
         Core::TArray<Core::FString> mMaterialPaths{};
-
-        /**
-         * @brief 미리보기 프리미티브의 식별자입니다.
-         */
-        Core::FGuid mPrimitiveId{};
 
         /**
          * @brief 미리보기 에셋의 표시 경로입니다.
@@ -292,26 +282,6 @@ namespace Editor {
          * @brief 최근 미리보기 실패의 설명입니다.
          */
         Core::FString mError{};
-
-        /**
-         * @brief 카메라 회전의 도 단위 값입니다.
-         */
-        Core::FRotator mRotation{-20.0f, 45.0f, 0.0f};
-
-        /**
-         * @brief 궤도 카메라의 중심입니다.
-         */
-        Core::FVector mCenter{};
-
-        /**
-         * @brief 중심에서 카메라까지의 거리입니다.
-         */
-        float mDistance{10.0f};
-
-        /**
-         * @brief 메시 경계 구의 반지름입니다.
-         */
-        float mRadius{1.0f};
 
         /**
          * @brief 뷰어의 표시 모드입니다.

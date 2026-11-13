@@ -5,6 +5,7 @@
  */
 
 #include "FEditorUI.h"
+#include "Viewer/FAssetViewer.h"
 #include "Core/Stats.h"
 #include "Core/FilePath.h"
 #include "EditorStyle.h"
@@ -468,6 +469,7 @@ namespace Editor {
         mContentError.clear();
         mRevealContentDirectory = true;
         mPreviewTexture = nullptr;
+        mTextureViewer.reset();
         mPreviewTexturePath.clear();
         mFocusTexturePreview = false;
         mEditingMaterial = nullptr;
@@ -2071,14 +2073,22 @@ namespace Editor {
             const ImVec2 Available{ImGui::GetContentRegionAvail()};
 
             if (Available.x > 0.0f && Available.y > 0.0f) {
-                const float SizeX{static_cast<float>(mPreviewTexture->GetSizeX())};
-                const float SizeY{static_cast<float>(mPreviewTexture->GetSizeY())};
-                const float Scale{std::min(Available.x / SizeX, Available.y / SizeY)};
-                const ImVec2 ImageSize{SizeX * Scale, SizeY * Scale};
+                if (mTextureViewer == nullptr) {
+                    mTextureViewer = std::make_unique<Viewer::FAssetViewer>(mContext->GetRenderer(), mContext->GetProject()->GetAssets());
+                }
+
+                if (mTextureViewer->GetContent() == nullptr) {
+                    Core::FString Error{};
+                    mTextureViewer->SetAsset(mPreviewTexture, Asset::EAssetType::Texture);
+                }
+
+                mTextureViewer->Resize(static_cast<Core::Uint32>(Available.x), static_cast<Core::Uint32>(Available.y));
+                mTextureViewer->Fit(1.0f);
+                const Core::FVector4 Rect{mTextureViewer->GetImageRect()};
                 const ImVec2 Origin{ImGui::GetCursorPos()};
 
-                ImGui::SetCursorPos({Origin.x + (Available.x - ImageSize.x) * 0.5f, Origin.y + (Available.y - ImageSize.y) * 0.5f});
-                ImGui::Image(ImTextureRef{static_cast<ImTextureID>(reinterpret_cast<std::uintptr_t>(mPreviewTexture->GetShaderResourceView()))}, ImageSize);
+                ImGui::SetCursorPos({Origin.x + Rect.x, Origin.y + Rect.y});
+                ImGui::Image(ImTextureRef{static_cast<ImTextureID>(reinterpret_cast<std::uintptr_t>(mTextureViewer->GetNativeTexture()))}, {Rect.z, Rect.w});
             }
         }
 
@@ -2086,6 +2096,7 @@ namespace Editor {
 
         if (!Open) {
             mPreviewTexture = nullptr;
+            mTextureViewer.reset();
             mPreviewTexturePath.clear();
         }
     }
@@ -2350,7 +2361,7 @@ namespace Editor {
                         const bool Directory{static_cast<std::size_t>(Index) < Folders.size()};
                         const auto& Path{Directory ? Folders[Index] : Assets[Index - Folders.size()]};
                         const auto Type{mAssetTypes.find(Path)};
-                        const bool HasThumbnail{!Directory && Type != mAssetTypes.end() && (Type->second == Asset::EAssetType::Mesh || Type->second == Asset::EAssetType::SkeletalMesh || Type->second == Asset::EAssetType::Skeleton || Type->second == Asset::EAssetType::Material || Type->second == Asset::EAssetType::Texture)};
+                        const bool HasThumbnail{!Directory && Type != mAssetTypes.end() && Viewer::FAssetViewer::Supports(Type->second)};
                         void* Thumbnail{HasThumbnail ? mThumbnails->GetThumbnail(Path, Type->second) : nullptr};
                         const bool ScriptFile{mBrowsingScripts && !Directory};
                         const char* Kind{ScriptFile ? "C# Script" : Directory ? "Folder" : Type == mAssetTypes.end() ? "File" : Type->second == Asset::EAssetType::Mesh ? "Mesh" : Type->second == Asset::EAssetType::SkeletalMesh ? "Skeletal Mesh" : Type->second == Asset::EAssetType::Skeleton ? "Skeleton" : Type->second == Asset::EAssetType::Material ? "Material" : Type->second == Asset::EAssetType::Texture ? "Texture" : Type->second == Asset::EAssetType::Sequence ? "Sequence" : Type->second == Asset::EAssetType::AnimSequence ? "Animation Sequence" : Type->second == Asset::EAssetType::BlendSpace ? "Blend Space" : Type->second == Asset::EAssetType::AnimGraph ? "Anim Graph" : "Scene"};
@@ -2475,6 +2486,7 @@ namespace Editor {
             Asset::UTexture2D* Texture{mContext->GetProject()->GetAssets()->LoadTexture(Path, Error)};
 
             if (Texture != nullptr && Texture->CreateResources(static_cast<ID3D11Device*>(mContext->GetRenderer()->GetNativeDevice()))) {
+                mTextureViewer.reset();
                 mPreviewTexture = Texture;
                 mPreviewTexturePath = Path;
                 mFocusTexturePreview = true;
@@ -2501,10 +2513,12 @@ namespace Editor {
             if (!mAnimSequenceEditor->Open(Path, Error)) {
                 mContext->AddLog(Error.empty() ? "Cannot open the animation sequence" : Error);
             } else if (!WasOpen) {
+                Core::FString PreviewMesh{};
+                Core::FString PreviewSkeleton{};
                 Engine::AActor* Actor{mContext->GetSelectedActor()};
                 auto* Component{Actor != nullptr ? CoreUObject::Cast<Engine::USkeletalMeshComponent>(Actor->GetRootComponent()) : nullptr};
 
-                if (Component != nullptr) {
+                if (Component != nullptr && !mThumbnails->GetAnimationPreview(Path, PreviewMesh, PreviewSkeleton)) {
                     mAnimSequenceEditor->SetPreviewMesh(Component->GetMeshPath(), Component->GetSkeletonPath());
                 }
             }
