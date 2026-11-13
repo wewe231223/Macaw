@@ -49,11 +49,10 @@ namespace Editor {
     Editor::FAssetThumbnailCache::~FAssetThumbnailCache() = default;
 
     /**
-     * @brief UI 프레임 시작 시 생성 예산과 오래된 캐시를 갱신합니다.
+     * @brief UI 프레임 시작 시 오래된 캐시를 정리합니다.
      */
-    void Editor::FAssetThumbnailCache::BeginFrame(Core::Uint32 RenderBudget) {
+    void Editor::FAssetThumbnailCache::BeginFrame() {
         ++mFrame;
-        mRenderBudget = RenderBudget;
 
         while (mThumbnails.size() >= 128) {
             const auto Oldest{std::min_element(mThumbnails.begin(), mThumbnails.end(), [](const auto& First, const auto& Second) {
@@ -171,12 +170,6 @@ namespace Editor {
         if (Thumbnail.mTarget != nullptr && Thumbnail.mSignature == Signature) {
             return Thumbnail.mTarget->GetNativeTexture();
         }
-
-        if (mRenderBudget == 0) {
-            return Thumbnail.mTarget != nullptr ? Thumbnail.mTarget->GetNativeTexture() : nullptr;
-        }
-
-        --mRenderBudget;
 
         if (mScene == nullptr) {
             mScene = mRenderer->AllocateScene();

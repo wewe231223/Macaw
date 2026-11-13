@@ -29,7 +29,7 @@ namespace RenderCore {
 namespace Editor {
 
     /**
-     * @brief 렌더 타깃을 유지하며 보이는 에셋의 썸네일을 프레임 예산 안에서 갱신합니다.
+     * @brief 렌더 타깃을 유지하며 보이는 에셋의 썸네일을 갱신합니다.
      */
     class FAssetThumbnailCache {
     private:
@@ -75,10 +75,9 @@ namespace Editor {
 
     public:
         /**
-         * @brief UI 프레임 시작 시 생성 예산과 오래된 캐시를 갱신합니다.
-         * @param RenderBudget 이번 프레임에 새로 그릴 최대 썸네일 수입니다.
+         * @brief UI 프레임 시작 시 오래된 캐시를 정리합니다.
          */
-        void BeginFrame(Core::Uint32 RenderBudget = 4);
+        void BeginFrame();
 
         /**
          * @brief 타깃 주소를 유지하면서 다음 조회에서 썸네일을 갱신하도록 표시합니다.
@@ -164,10 +163,6 @@ namespace Editor {
          */
         Core::Uint64 mFrame{};
 
-        /**
-         * @brief 남은 썸네일 생성 예산입니다.
-         */
-        Core::Uint32 mRenderBudget{4};
     };
 
 }
