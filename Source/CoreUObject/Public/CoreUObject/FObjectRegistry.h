@@ -128,7 +128,7 @@ namespace CoreUObject {
         /**
          * @brief 재사용 가능한 슬롯 인덱스 목록입니다.
          */
-        Core::TArray<Core::Index_t> mFreeSlots{};
+        Core::TArray<Core::Int32> mFreeSlots{};
 
         /**
          * @brief 현재 전역 레지스트리에 등록된 객체의 개수입니다.

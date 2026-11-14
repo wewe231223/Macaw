@@ -109,7 +109,7 @@ namespace Editor {
          * @param[in] Axis 검사할 축의 인덱스입니다.
          * @return 조건을 만족하면 true입니다.
          */
-        static bool Affects(Core::Int32 Handle, Core::Index_t Axis);
+        static bool Affects(Core::Int32 Handle, Core::Int32 Axis);
 
         /**
          * @brief 핸들의 CPU 레이 교차 판정으로 마우스가 가리키는 핸들을 구합니다.
@@ -128,7 +128,7 @@ namespace Editor {
          * @param[in] Placement 드래그 시작 시점의 위치, 축과 모드입니다.
          * @return 드래그 상태를 준비하면 true입니다.
          */
-        bool BeginDrag(Core::Index_t Axis, const Core::FVector2& Mouse, const Engine::FSceneView& View, const Editor::FGizmoPlacement& Placement);
+        bool BeginDrag(Core::Int32 Axis, const Core::FVector2& Mouse, const Engine::FSceneView& View, const Editor::FGizmoPlacement& Placement);
 
         /**
          * @brief 마우스 위치를 활성 모드의 이동량, 회전량 또는 스케일 변화량으로 바꿉니다.
@@ -166,19 +166,19 @@ namespace Editor {
          * @brief 드래그 중인 핸들 인덱스를 반환합니다.
          * @return 드래그 중인 핸들 인덱스, 없으면 -1입니다.
          */
-        Core::Index_t GetActiveAxis() const;
+        Core::Int32 GetActiveAxis() const;
 
         /**
          * @brief 마우스가 가리키는 핸들 인덱스를 반환합니다.
          * @return 마우스가 가리키는 핸들 인덱스, 없으면 -1입니다.
          */
-        Core::Index_t GetHoveredAxis() const;
+        Core::Int32 GetHoveredAxis() const;
 
         /**
          * @brief 강조할 호버 핸들을 지정합니다.
          * @param[in] Axis 마우스가 가리키는 핸들 인덱스, 없으면 -1입니다.
          */
-        void SetHoveredAxis(Core::Index_t Axis);
+        void SetHoveredAxis(Core::Int32 Axis);
 
         /**
          * @brief 드래그 시작 시 고정한 변환 모드를 반환합니다.
@@ -247,12 +247,12 @@ namespace Editor {
         /**
          * @brief 마우스가 가리키는 핸들 인덱스, 없으면 -1입니다.
          */
-        Core::Index_t mHoveredAxis{-1};
+        Core::Int32 mHoveredAxis{-1};
 
         /**
          * @brief 드래그 중인 핸들 인덱스, 없으면 -1입니다.
          */
-        Core::Index_t mActiveAxis{-1};
+        Core::Int32 mActiveAxis{-1};
 
         /**
          * @brief 드래그 시작 시 카메라 뷰입니다.

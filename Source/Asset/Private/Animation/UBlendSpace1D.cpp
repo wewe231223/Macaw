@@ -21,8 +21,8 @@ namespace Asset {
         OutWeights.clear();
 
         const auto& Samples{GetSamples()};
-        const std::span<const Core::Index_t> Sorted{mSortedSampleIndices.data(), Samples.size()};
-        const auto IsUsable{[&Samples](Core::Index_t Index) {
+        const std::span<const Core::Int32> Sorted{mSortedSampleIndices.data(), Samples.size()};
+        const auto IsUsable{[&Samples](Core::Int32 Index) {
             const Asset::UAnimSequence* Animation{Samples[Index].mAnimation};
 
             return Animation != nullptr && Animation->IsValid();
@@ -34,7 +34,7 @@ namespace Asset {
             return;
         }
 
-        const auto SampleX{[&Samples](Core::Index_t Index) {
+        const auto SampleX{[&Samples](Core::Int32 Index) {
             return Samples[Index].mSampleValue.x;
         }};
 
@@ -56,8 +56,8 @@ namespace Asset {
 
         // X를 사이에 둔 두 샘플을 찾아 거리 비율로 섞습니다. 앞의 두 검사로 X는 처음과 마지막 샘플 사이에 있습니다.
         const auto Split{std::ranges::lower_bound(First, Last.base(), X, std::ranges::less{}, SampleX)};
-        const Core::Index_t Low{static_cast<Core::Index_t>(*std::find_if(std::make_reverse_iterator(Split), Sorted.rend(), IsUsable))};
-        const Core::Index_t High{static_cast<Core::Index_t>(*std::find_if(Split, Last.base(), IsUsable))};
+        const Core::Int32 Low{static_cast<Core::Int32>(*std::find_if(std::make_reverse_iterator(Split), Sorted.rend(), IsUsable))};
+        const Core::Int32 High{static_cast<Core::Int32>(*std::find_if(Split, Last.base(), IsUsable))};
         const float LowX{SampleX(Low)};
         const float Range{SampleX(High) - LowX};
         const float Alpha{Range > 0.0f ? std::clamp((X - LowX) / Range, 0.0f, 1.0f) : 0.0f};
@@ -77,10 +77,10 @@ namespace Asset {
 
     void UBlendSpace1D::RebuildSampleOrder() {
         const auto& Samples{GetSamples()};
-        const std::span<Core::Index_t> Sorted{mSortedSampleIndices.data(), Samples.size()};
+        const std::span<Core::Int32> Sorted{mSortedSampleIndices.data(), Samples.size()};
 
-        std::iota(Sorted.begin(), Sorted.end(), Core::Index_t{});
-        std::ranges::sort(Sorted, std::ranges::less{}, [&Samples](Core::Index_t Index) {
+        std::iota(Sorted.begin(), Sorted.end(), Core::Int32{});
+        std::ranges::sort(Sorted, std::ranges::less{}, [&Samples](Core::Int32 Index) {
             return std::pair{Samples[Index].mSampleValue.x, Index};
         });
     }

@@ -188,7 +188,7 @@ namespace Serialization {
         Core::Index_t Index{};
         const auto Parsed{std::from_chars(Name.data(), Name.data() + Name.size(), Index)};
 
-        return Parsed.ec == std::errc{} && Parsed.ptr == Name.data() + Name.size() && Index >= 0 && static_cast<rapidjson::SizeType>(Index) < Parent->Size();
+        return Parsed.ec == std::errc{} && Parsed.ptr == Name.data() + Name.size() && Index < Parent->Size();
     }
 
     /**
@@ -376,15 +376,15 @@ namespace Serialization {
             Core::Index_t Index{};
             const auto Parsed{std::from_chars(Name.data(), Name.data() + Name.size(), Index)};
 
-            if (Parsed.ec != std::errc{} || Parsed.ptr != Name.data() + Name.size() || Index < 0) {
+            if (Parsed.ec != std::errc{} || Parsed.ptr != Name.data() + Name.size()) {
                 return nullptr;
             }
 
-            if (Create && static_cast<rapidjson::SizeType>(Index) == Parent->Size()) {
+            if (Create && Index == Parent->Size()) {
                 Parent->PushBack(rapidjson::Value{}, mDocument.GetAllocator());
             }
 
-            if (static_cast<rapidjson::SizeType>(Index) < Parent->Size()) {
+            if (Index < Parent->Size()) {
                 return &(*Parent)[static_cast<rapidjson::SizeType>(Index)];
             }
         }

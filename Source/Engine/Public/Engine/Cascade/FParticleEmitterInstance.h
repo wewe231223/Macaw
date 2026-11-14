@@ -80,8 +80,8 @@ namespace Engine {
         Engine::UParticleEmitter* GetTemplate() const;
 
         Engine::UParticleLODLevel* GetCurrentLODLevel() const;
-        Core::Index_t GetCurrentLODIndex() const;
-        bool SetCurrentLODIndex(Core::Index_t Index);
+        Core::Int32 GetCurrentLODIndex() const;
+        bool SetCurrentLODIndex(Core::Int32 Index);
 
         bool UpdateTransforms();
         bool GetUseLocalSpace() const;
@@ -99,7 +99,7 @@ namespace Engine {
         /**
          * @brief 기본 파티클을 생성하고 활성 Spawn 모듈로 초기화합니다.
          * @param[in] SpawnTime FSpawnContext에 전달할 생성 시간 값입니다.
-         * @return 생성한 파티클의 인덱스이며 초기화된 원본 배치가 없으면 -1입니다.
+         * @return 생성한 파티클의 인덱스이며 생성할 수 없으면 Core::Index_t의 최댓값입니다.
          * @throws std::length_error 지원할 수 있는 최대 파티클 수에 도달한 경우입니다.
          * @note 추가 데이터는 0으로 초기화합니다. Spawn 모듈을 실행하는 동안 파티클 생성·삭제·버퍼 재할당을 호출하지 않아야 합니다.
          */
@@ -203,7 +203,7 @@ namespace Engine {
 
         Core::TArray<CoreUObject::TObjectRef<Engine::UParticleLODLevel>> mLODLevels{};
         Core::TArray<Core::TArray<CoreUObject::TObjectRef<Engine::UParticleModule>>> mLODModules{};
-        Core::Index_t mCurrentLODIndex{-1};
+        Core::Int32 mCurrentLODIndex{-1};
 
         Core::FMatrix mEmitterToSimulation{};
         Core::FMatrix mSimulationToWorld{};

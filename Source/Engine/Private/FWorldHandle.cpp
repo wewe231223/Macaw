@@ -12,7 +12,7 @@ namespace Engine {
     /**
      * @brief 슬롯과 세대를 조합하여 핸들을 구성합니다.
      */
-    Engine::FWorldHandle::FWorldHandle(Core::Index_t Index, Core::Uint64 Generation)
+    Engine::FWorldHandle::FWorldHandle(Core::Int32 Index, Core::Uint64 Generation)
 		: mIndex{Index},
 		  mGeneration{Generation} {
     }
@@ -27,7 +27,7 @@ namespace Engine {
     /**
      * @brief 월드 컨텍스트의 슬롯을 반환합니다.
      */
-    Core::Index_t Engine::FWorldHandle::GetIndex() const {
+    Core::Int32 Engine::FWorldHandle::GetIndex() const {
         return mIndex;
     }
 

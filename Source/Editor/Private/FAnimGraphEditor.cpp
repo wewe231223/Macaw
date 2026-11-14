@@ -146,7 +146,7 @@ namespace Editor {
          * @param Parameter 조회하거나 연결할 파라미터 이름 또는 인덱스입니다.
          * @return 레지스트리 소유의 파라미터 메타데이터이며 없으면 nullptr입니다.
          */
-        const Engine::FAnimGraphParameterInfo* FindFloatInput(const Asset::FAnimGraphNode* Node, Core::Index_t Parameter) {
+        const Engine::FAnimGraphParameterInfo* FindFloatInput(const Asset::FAnimGraphNode* Node, Core::Int32 Parameter) {
             const Engine::FAnimGraphNodeType* Type{Node != nullptr ? Engine::FAnimGraphNodeRegistry::Find(Node->mType) : nullptr};
 
             if (Type == nullptr || Parameter < 0 || static_cast<std::size_t>(Parameter) >= Type->mParameters.size()) {
@@ -173,7 +173,7 @@ namespace Editor {
             /**
              * @brief 노드 내부 입력 핀 번호입니다.
              */
-            Core::Index_t mPin{};
+            Core::Int32 mPin{};
 
             /**
              * @brief 출력 핀이면 true, 입력 핀이면 false입니다.
@@ -568,7 +568,7 @@ namespace Editor {
         return Remove;
     }
 
-    Core::Index_t FAnimGraphEditor::FindVariableIndex(const Core::FString& Name) const {
+    Core::Int32 FAnimGraphEditor::FindVariableIndex(const Core::FString& Name) const {
         const auto& Variables{mEditing->GetVariables()};
         const auto Found{std::find_if(Variables.begin(), Variables.end(), [&Name](const Asset::FAnimGraphVariable& Variable) {
             return Variable.mName == Name;
@@ -608,7 +608,7 @@ namespace Editor {
         }
 
         for (const Asset::FAnimGraphVariableGetter& Getter : mEditing->GetVariableGetters()) {
-            const Core::Index_t Index{static_cast<Core::Index_t>(FindVariableIndex(Getter.mVariable))};
+            const Core::Int32 Index{FindVariableIndex(Getter.mVariable)};
 
             if (Index < 0) {
                 continue;

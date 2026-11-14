@@ -160,14 +160,14 @@ namespace Engine {
 
     void UAnimInstance::BeginDebugVisit(const Engine::FAnimNode_Base& Node, const Engine::FPoseLink* Link, float Weight) {
         mDebugVisits.push_back({&Node, Link, Weight, mCurrentDebugVisit});
-        mCurrentDebugVisit = static_cast<Core::Index_t>(mDebugVisits.size() - 1);
+        mCurrentDebugVisit = static_cast<Core::Int32>(mDebugVisits.size() - 1);
     }
 
     void UAnimInstance::EndDebugVisit() {
         mCurrentDebugVisit = mDebugVisits[static_cast<Core::Index_t>(mCurrentDebugVisit)].mParentIndex;
     }
 
-    void UAnimInstance::RecordDebugSample(const Engine::FAnimNode_Base& Node, Core::Index_t SampleIndex, float Weight) {
+    void UAnimInstance::RecordDebugSample(const Engine::FAnimNode_Base& Node, Core::Int32 SampleIndex, float Weight) {
         if (mCurrentDebugVisit >= 0) {
             mDebugVisits.push_back({&Node, nullptr, Weight, mCurrentDebugVisit, SampleIndex});
         }
@@ -225,7 +225,7 @@ namespace Engine {
         Sequence.GetTrackPose(Time, Looping, mTrackPose);
 
         for (Core::Index_t Track{}; Track < std::min(mTrackPose.size(), TrackToBone.size()); ++Track) {
-            const Core::Index_t Bone{static_cast<Core::Index_t>(TrackToBone[Track])};
+            const Core::Int32 Bone{TrackToBone[Track]};
 
             if (Bone >= 0 && Bone < Pose.size()) {
                 Pose[Bone] = mTrackPose[Track];
@@ -233,7 +233,7 @@ namespace Engine {
         }
 
         if (Mapping.mRootTrack >= 0 && Mapping.mRootBone >= 0 && (Sequence.IsRootLockForced() || (Sequence.IsRootMotionEnabled() && mRootMotionMode != Engine::ERootMotionMode::NoRootMotionExtraction))) {
-            const Core::Index_t RootBone{Mapping.mRootBone};
+            const Core::Int32 RootBone{Mapping.mRootBone};
             const Core::FTransform Lock{Sequence.GetRootLockTransform(Mapping.mRootTrack, Skeleton->GetReferencePose()[RootBone])};
 
             Pose[RootBone].mLocation = Lock.mLocation;
@@ -267,7 +267,7 @@ namespace Engine {
                 BoneIndices.emplace(Bones[Index].GetName(), Index);
 
                 if (Bones[Index].GetParentIndex() < 0 && (Data.mRootMotionBone.empty() || Bones[Index].GetName() == Data.mRootMotionBone)) {
-                    Data.mRootBone = Index;
+                    Data.mRootBone = static_cast<Core::Int32>(Index);
                     ++RootCount;
                 }
             }
@@ -278,11 +278,11 @@ namespace Engine {
 
             for (Core::Index_t Track{}; Track < Tracks.size(); ++Track) {
                 if (const auto Found{BoneIndices.find(Tracks[Track].mName)}; Found != BoneIndices.end()) {
-                    Data.mTrackToBone[Track] = Found->second;
+                    Data.mTrackToBone[Track] = static_cast<Core::Int32>(Found->second);
                     ++Matched;
 
                     if (Found->second == Data.mRootBone) {
-                        Data.mRootTrack = Track;
+                        Data.mRootTrack = static_cast<Core::Int32>(Track);
                     }
                 }
             }

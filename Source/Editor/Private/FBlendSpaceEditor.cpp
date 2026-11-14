@@ -192,7 +192,7 @@ namespace Editor {
     void FBlendSpaceEditor::AddSampleAt(const Core::FString& AnimationPath, float Value) {
         Core::FString Error{};
         const Asset::UAnimSequence* Animation{AnimationPath.empty() || mAssets == nullptr ? nullptr : mAssets->LoadAnimSequence(Core::FilePath::FromUtf8(AnimationPath), Error)};
-        const Core::Index_t Index{mEditing->AddSample(Animation, {Value, 0.0f, 0.0f})};
+        const Core::Int32 Index{mEditing->AddSample(Animation, {Value, 0.0f, 0.0f})};
 
         if (Index < 0) {
             mError = "샘플 수가 한도에 도달했습니다.";
@@ -313,7 +313,7 @@ namespace Editor {
         const auto& Samples{mEditing->GetSamples()};
         const std::size_t CommonPrefix{CommonNamePrefix(Samples)};
         const float RowHeight{ImGui::GetFrameHeight() + 2.0f * ImGui::GetStyle().CellPadding.y};
-        Core::Index_t Remove{-1};
+        Core::Int32 Remove{-1};
 
         if (ImGui::BeginTable("SampleList", 3, ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersInnerH | ImGuiTableFlags_SizingStretchProp | ImGuiTableFlags_ScrollY, ImGui::GetContentRegionAvail())) {
             ImGui::TableSetupColumn("Animation", ImGuiTableColumnFlags_WidthStretch, 3.0f);
@@ -437,7 +437,7 @@ namespace Editor {
         }
 
         // 마우스 아래 샘플을 찾습니다. 축 근처에서 가장 가까운 마름모를 고릅니다.
-        Core::Index_t Hovered{-1};
+        Core::Int32 Hovered{-1};
         float HoveredDistance{TextHeight * 0.75f};
 
         if (CanvasHovered && std::abs(Mouse.y - AxisY) < TextHeight) {

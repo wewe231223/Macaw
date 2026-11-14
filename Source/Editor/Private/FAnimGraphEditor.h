@@ -235,7 +235,7 @@ namespace Editor {
          * @param Name 찾을 그래프 변수 이름입니다.
          * @return 변수 인덱스이며 없으면 -1입니다.
          */
-        Core::Index_t FindVariableIndex(const Core::FString& Name) const;
+        Core::Int32 FindVariableIndex(const Core::FString& Name) const;
 
         /**
          * @brief 선택한 노드의 이름과 파라미터를 그립니다.

@@ -265,7 +265,7 @@ namespace Engine {
         }
 
         const Core::Uint64 Generation{NextWorldGeneration.fetch_add(1, std::memory_order_relaxed)};
-        const Engine::FWorldHandle Handle{Index, Generation};
+        const Engine::FWorldHandle Handle{static_cast<Core::Int32>(Index), Generation};
 
         Context->SetHandle(Handle);
 

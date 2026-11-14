@@ -65,7 +65,7 @@ namespace Engine {
         // 부모가 자식보다 앞에 있으므로 Globals[Parent]는 이 시점에 항상 계산되어 있습니다.
         for (Core::Index_t Index{}; Index < LocalTransforms.size(); ++Index) {
             const Core::FMatrix& Local{LocalTransforms[Index]};
-            const Core::Index_t Parent{static_cast<Core::Index_t>(Skeleton.GetBones()[Index].GetParentIndex())};
+            const Core::Int32 Parent{static_cast<Core::Int32>(Skeleton.GetBones()[Index].GetParentIndex())};
             const Core::FMatrix Global{Parent < 0 ? Local : Local * Globals[Parent]};
 
             // 스키닝 행렬: 바인드 정점을 역바인드 행렬로 본 공간에 옮긴 뒤, 현재 전역 포즈로 다시 메시 공간에 옮깁니다.
@@ -136,7 +136,7 @@ namespace Engine {
 
         // 부모가 항상 자식보다 앞에 있으므로 한 번의 순회로 전역 행렬과 스키닝 행렬을 구합니다.
         for (Core::Index_t Index{}; Index < Bones.size(); ++Index) {
-            const Core::Index_t Parent{static_cast<Core::Index_t>(Bones[Index].GetParentIndex())};
+            const Core::Int32 Parent{static_cast<Core::Int32>(Bones[Index].GetParentIndex())};
 
             mGlobalTransforms[Index] = Parent < 0 ? LocalTransforms[Index] : LocalTransforms[Index] * mGlobalTransforms[Parent];
             mSkinMatrices[Index] = Skeleton.GetInverseBindPoses()[Index] * mGlobalTransforms[Index];

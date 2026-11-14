@@ -549,9 +549,9 @@ namespace Asset {
     /**
      * @brief 스켈레톤 속성을 가졌거나 스킨 클러스터가 링크하는 노드를 깊이 우선으로 순회하며 결과 본 목록에 추가합니다.
      */
-    bool Asset::FFBXImporter::ReadSkeleton(FbxNode& Node, Core::Index_t ParentIndex, const Core::FMatrix& ParentBoneGlobal) {
+    bool Asset::FFBXImporter::ReadSkeleton(FbxNode& Node, Core::Int32 ParentIndex, const Core::FMatrix& ParentBoneGlobal) {
         // 이 노드가 본이 아니면 부모 본의 인덱스와 전역 변환을 그대로 자식에게 넘깁니다.
-        Core::Index_t Index{ParentIndex};
+        Core::Int32 Index{ParentIndex};
         Core::FMatrix BoneGlobal{ParentBoneGlobal};
 
         // 스켈레톤 속성을 가졌거나 스킨 클러스터가 링크하는 노드를 본으로 추가합니다.
@@ -983,7 +983,7 @@ namespace Asset {
 
             // 부모가 항상 자식보다 앞에 있으므로 Globals[Parent]는 같은 시각에 이미 계산되어 있습니다.
             for (Core::Index_t Bone{}; Bone < Bones.size(); ++Bone) {
-                const Core::Index_t Parent{static_cast<Core::Index_t>(Bones[Bone].GetParentIndex())};
+                const Core::Int32 Parent{static_cast<Core::Int32>(Bones[Bone].GetParentIndex())};
                 Core::FMatrix ParentInverse{};
                 Core::FTransform Local{};
 

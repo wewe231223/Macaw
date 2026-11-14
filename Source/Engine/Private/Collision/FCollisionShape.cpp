@@ -770,14 +770,14 @@ namespace Engine {
     /**
      * @brief 적중한 스윕 대상의 인덱스를 반환합니다.
      */
-    Core::Index_t Engine::FSweepResult::GetTargetIndex() const {
+    Core::Int32 Engine::FSweepResult::GetTargetIndex() const {
         return mTargetIndex;
     }
 
     /**
      * @brief 적중한 스윕 대상의 인덱스를 설정합니다.
      */
-    void Engine::FSweepResult::SetTargetIndex(Core::Index_t Value) {
+    void Engine::FSweepResult::SetTargetIndex(Core::Int32 Value) {
         mTargetIndex = Value;
     }
 

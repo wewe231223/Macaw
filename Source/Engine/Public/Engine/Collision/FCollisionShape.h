@@ -448,13 +448,13 @@ namespace Engine {
          * @brief 적중한 스윕 대상의 인덱스를 반환합니다.
          * @return 계산하거나 조회한 값입니다.
          */
-        Core::Index_t GetTargetIndex() const;
+        Core::Int32 GetTargetIndex() const;
 
         /**
          * @brief 적중한 스윕 대상의 인덱스를 설정합니다.
          * @param[in] Value 설정하거나 읽을 값입니다.
          */
-        void SetTargetIndex(Core::Index_t Value);
+        void SetTargetIndex(Core::Int32 Value);
 
         /**
          * @brief 충돌 접촉 정보를 반환합니다.
@@ -487,7 +487,7 @@ namespace Engine {
         /**
          * @brief 적중한 스윕 대상의 인덱스입니다.
          */
-        Core::Index_t mTargetIndex{-1};
+        Core::Int32 mTargetIndex{-1};
 
         /**
          * @brief 충돌 접촉 정보입니다.

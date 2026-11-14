@@ -15,7 +15,7 @@ namespace Asset {
     /**
      * @brief 정점에 영향을 주는 본 인덱스와 대응 가중치를 저장합니다.
      */
-    Asset::FMeshImportSkinWeight::FMeshImportSkinWeight(const std::array<Core::Index_t, MaxInfluences>& BoneIndices, const std::array<float, MaxInfluences>& Weights)
+    Asset::FMeshImportSkinWeight::FMeshImportSkinWeight(const std::array<Core::Uint32, MaxInfluences>& BoneIndices, const std::array<float, MaxInfluences>& Weights)
 		: mBoneIndices{BoneIndices},
 		  mWeights{Weights} {
     }
@@ -60,7 +60,7 @@ namespace Asset {
 
         // 버린 영향만큼 줄어든 합을 1로 다시 맞춥니다.
         for (Core::Index_t Index{}; Index < Count; ++Index) {
-            Result.mBoneIndices[Index] = Merged[Index].first;
+            Result.mBoneIndices[Index] = static_cast<Core::Uint32>(Merged[Index].first);
             Result.mWeights[Index] = Merged[Index].second / Total;
         }
 
@@ -70,7 +70,7 @@ namespace Asset {
     /**
      * @brief 영향을 주는 본 인덱스를 조회합니다.
      */
-    const std::array<Core::Index_t, Asset::FMeshImportSkinWeight::MaxInfluences>& Asset::FMeshImportSkinWeight::GetBoneIndices() const {
+    const std::array<Core::Uint32, Asset::FMeshImportSkinWeight::MaxInfluences>& Asset::FMeshImportSkinWeight::GetBoneIndices() const {
         return mBoneIndices;
     }
 

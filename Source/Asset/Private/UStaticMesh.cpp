@@ -176,7 +176,7 @@ namespace Asset {
         TMeshVertexBuffer<std::array<float, 7>> TangentBuffer{};
         TMeshVertexBuffer<std::array<float, 2>> UVBuffer{};
         TMeshVertexBuffer<std::array<float, 4>> ColorBuffer{};
-        RenderCore::TIndexBuffer<Core::Index_t> IndexBuffer{};
+        RenderCore::TIndexBuffer<Core::Uint32> IndexBuffer{};
         Core::FString Error{};
 
         if (!PositionBuffer.Create(Device, Positions, Error) || !TangentBuffer.Create(Device, Tangents, Error) || !UVBuffer.Create(Device, UVs, Error) || !ColorBuffer.Create(Device, Colors, Error) || !IndexBuffer.Create(Device, mMeshData.GetIndices(), Error)) {

@@ -59,7 +59,7 @@ void FParticleEmitterInstance::InitParameters(UParticleEmitter* Template) {
  * @brief 기존 파티클을 비우고 원본 정의의 배치와 모듈별 인스턴스 페이로드를 준비합니다.
  */
 void FParticleEmitterInstance::Init() {
-    const Index_t LODIndex{mCurrentLODIndex >= 0 ? mCurrentLODIndex : 0};
+    const Int32 LODIndex{mCurrentLODIndex >= 0 ? mCurrentLODIndex : 0};
 
     ResetRuntimeData();
 
@@ -119,11 +119,11 @@ UParticleLODLevel* FParticleEmitterInstance::GetCurrentLODLevel() const {
     return mCurrentLODIndex >= 0 && static_cast<std::size_t>(mCurrentLODIndex) < mLODLevels.size() ? mLODLevels[mCurrentLODIndex].Get() : nullptr;
 }
 
-Index_t FParticleEmitterInstance::GetCurrentLODIndex() const {
+Int32 FParticleEmitterInstance::GetCurrentLODIndex() const {
     return mCurrentLODIndex;
 }
 
-bool FParticleEmitterInstance::SetCurrentLODIndex(Index_t Index) {
+bool FParticleEmitterInstance::SetCurrentLODIndex(Int32 Index) {
     if (Index < 0 || static_cast<std::size_t>(Index) >= mLODLevels.size() || !mLODLevels[Index].IsValid()) {
         return false;
     }
@@ -220,11 +220,11 @@ Index_t FParticleEmitterInstance::SpawnParticle(float SpawnTime, const FVector& 
     const UParticleLODLevel* LODLevel{GetCurrentLODLevel()};
 
     if (mParticleStride == 0 || LODLevel == nullptr || !LODLevel->GetEnabled()) {
-        return -1;
+        return std::numeric_limits<Index_t>::max();
     }
 
     if (!InitialLocation.IsFinite() || !InitialVelocity.IsFinite()) {
-        return -1;
+        return std::numeric_limits<Index_t>::max();
     }
 
     constexpr Uint32 MaximumCapacity{static_cast<Uint32>(std::numeric_limits<Index_t>::max())};
@@ -300,14 +300,14 @@ void FParticleEmitterInstance::ClearParticles() {
  * @brief 활성 레코드 시작에 생성한 기본 파티클을 반환합니다.
  */
 FBaseParticle* FParticleEmitterInstance::GetParticle(Index_t Index) {
-    return Index >= 0 && static_cast<Uint32>(Index) < mParticleCount ? reinterpret_cast<FBaseParticle*>(mParticleData.get() + static_cast<std::size_t>(Index) * mParticleStride) : nullptr;
+    return Index < mParticleCount ? reinterpret_cast<FBaseParticle*>(mParticleData.get() + static_cast<std::size_t>(Index) * mParticleStride) : nullptr;
 }
 
 /**
  * @brief 활성 레코드 시작에 생성한 기본 파티클을 읽기 전용으로 반환합니다.
  */
 const FBaseParticle* FParticleEmitterInstance::GetParticle(Index_t Index) const {
-    return Index >= 0 && static_cast<Uint32>(Index) < mParticleCount ? reinterpret_cast<const FBaseParticle*>(mParticleData.get() + static_cast<std::size_t>(Index) * mParticleStride) : nullptr;
+    return Index < mParticleCount ? reinterpret_cast<const FBaseParticle*>(mParticleData.get() + static_cast<std::size_t>(Index) * mParticleStride) : nullptr;
 }
 
 /**

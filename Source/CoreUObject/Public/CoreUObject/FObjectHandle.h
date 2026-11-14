@@ -36,7 +36,7 @@ namespace CoreUObject {
         /**
          * @brief 레지스트리 슬롯 인덱스입니다.
          */
-        Core::Index_t mIndex{-1};
+        Core::Int32 mIndex{-1};
 
         /**
          * @brief 슬롯 재사용을 구분하는 세대입니다.

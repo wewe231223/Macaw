@@ -51,7 +51,7 @@ namespace Editor {
     /**
      * @brief 선택한 좌표 공간에 맞는 기즈모 단위 축을 구합니다.
      */
-    Core::FVector Editor::FTransformGizmo::GetAxis(const Core::FTransform& Transform, Core::Index_t Index) const {
+    Core::FVector Editor::FTransformGizmo::GetAxis(const Core::FTransform& Transform, Core::Int32 Index) const {
         return mClient->GetGizmoSpace() == Editor::EGizmoSpace::Local ? Transform.TransformVectorNoScale(Editor::FGizmoCore::GetUnitAxes()[Index]) : Editor::FGizmoCore::GetUnitAxes()[Index];
     }
 
@@ -64,7 +64,7 @@ namespace Editor {
         Placement.mMode = mClient->GetGizmoMode();
         Placement.mOwner = CoreUObject::MakeObjectRef(Target.GetOwner());
 
-        for (Core::Index_t Index{}; Index < 3; ++Index) {
+        for (Core::Int32 Index{}; Index < 3; ++Index) {
             Placement.mAxes[Index] = GetAxis(Target.GetTransform(), Index);
         }
 
@@ -87,7 +87,7 @@ namespace Editor {
     /**
      * @brief 선택 축과 대상의 시작 변환을 저장하고 드래그 평면을 구성합니다.
      */
-    bool Editor::FTransformGizmo::BeginDrag(Core::Index_t Axis, const Engine::USceneComponent& Target, const Engine::FViewportInput& Input, const Engine::FSceneView& View) {
+    bool Editor::FTransformGizmo::BeginDrag(Core::Int32 Axis, const Engine::USceneComponent& Target, const Engine::FViewportInput& Input, const Engine::FSceneView& View) {
         mContext->RestorePreview();
 
         if (!CaptureTargets()) {
@@ -178,14 +178,14 @@ namespace Editor {
         }
 
         if (mCore.GetDragMode() == Editor::EGizmoMode::Scale) {
-            const Core::Index_t ActiveAxis{static_cast<Core::Index_t>(mCore.GetActiveAxis())};
+            const Core::Int32 ActiveAxis{static_cast<Core::Int32>(mCore.GetActiveAxis())};
             const std::array<Core::FVector, 3>& DragAxes{mCore.GetDragAxes()};
             const float Delta{mCore.GetScaleDelta()};
             const float Uniform{std::max(0.001f, 1.0f + Delta)};
             const auto Primary{mStartTransform.mScale.ToArray()};
             std::array<float, 3> Factors{1.0f, 1.0f, 1.0f};
 
-            for (Core::Index_t Index{}; Index < 3; ++Index) {
+            for (Core::Int32 Index{}; Index < 3; ++Index) {
                 const float Value{Primary[Index] + Delta};
 
                 Factors[Index] = ActiveAxis == 7 ? Uniform : Editor::FGizmoCore::Affects(ActiveAxis, Index) && std::abs(Primary[Index]) > 0.000001f ? (Primary[Index] < 0.0f ? std::min(-0.001f, Value) : std::max(0.001f, Value)) / Primary[Index] : 1.0f;
@@ -195,7 +195,7 @@ namespace Editor {
                 Core::FTransform Desired{State.mTransform};
                 auto Scale{Desired.mScale.ToArray()};
 
-                for (Core::Index_t Index{}; Index < 3; ++Index) {
+                for (Core::Int32 Index{}; Index < 3; ++Index) {
                     const float Value{ActiveAxis == 7 ? Scale[Index] * Uniform : Scale[Index] + (Editor::FGizmoCore::Affects(ActiveAxis, Index) ? Delta : 0.0f)};
 
                     Scale[Index] = Scale[Index] < 0.0f ? std::min(-0.001f, Value) : std::max(0.001f, Value);
@@ -207,7 +207,7 @@ namespace Editor {
 
                 Desired.mLocation = StartPivot;
 
-                for (Core::Index_t Index{}; Index < 3; ++Index) {
+                for (Core::Int32 Index{}; Index < 3; ++Index) {
                     Desired.mLocation += DragAxes[Index] * Offset.Dot(DragAxes[Index]) * Factors[Index];
                 }
 
@@ -320,7 +320,7 @@ namespace Editor {
     /**
      * @brief 마우스가 가리키는 축 인덱스, 없으면 -1을 반환합니다.
      */
-    Core::Index_t Editor::FTransformGizmo::GetHoveredAxis() const {
+    Core::Int32 Editor::FTransformGizmo::GetHoveredAxis() const {
         return mCore.GetHoveredAxis();
     }
 

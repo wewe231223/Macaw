@@ -436,7 +436,7 @@ namespace HeaderTool {
 
                     for (Core::Index_t Outer{}; Outer < mHeader.Types.size(); ++Outer) {
                         if (Opening > mHeader.Types[Outer].Opening && Opening < mHeader.Types[Outer].Closing) {
-                            Type.Outer = Outer;
+                            Type.Outer = static_cast<Core::Int32>(Outer);
                         }
                     }
 

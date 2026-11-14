@@ -79,7 +79,7 @@ namespace Renderer {
         mNodes[Index].mChildren = {First, First + 1, First + 2, First + 3};
         mNodes[Index].mSplit = true;
 
-        for (Core::Index_t Child{}; Child < 4; ++Child) {
+        for (Core::Uint32 Child{}; Child < 4; ++Child) {
             mNodes.push_back({{Node.mBlock.mX + (Child & 1) * Half, Node.mBlock.mY + (Child >> 1) * Half, Half}});
         }
 

@@ -284,9 +284,9 @@ namespace Asset {
             }
 
             for (Core::Index_t Index{}; Index < SectionCount && !Archive.HasError(); ++Index) {
-                Core::Index_t First{static_cast<Core::Index_t>(Archive.IsLoading() ? 0 : Mesh.GetSubMeshes()[Index].GetFirstIndex())};
+                Core::Uint32 First{static_cast<Core::Uint32>(Archive.IsLoading() ? 0 : Mesh.GetSubMeshes()[Index].GetFirstIndex())};
                 Core::Uint32 Count{Archive.IsLoading() ? 0 : Mesh.GetSubMeshes()[Index].GetIndexCount()};
-                Core::Index_t Slot{static_cast<Core::Index_t>(Archive.IsLoading() ? 0 : Mesh.GetSubMeshes()[Index].GetMaterialIndex())};
+                Core::Uint32 Slot{static_cast<Core::Uint32>(Archive.IsLoading() ? 0 : Mesh.GetSubMeshes()[Index].GetMaterialIndex())};
 
                 Archive.Serialize("FirstIndex", First);
                 Archive.Serialize("IndexCount", Count);
@@ -321,7 +321,7 @@ namespace Asset {
 
             for (Core::Index_t Index{}; Index < BoneCount && !Archive.HasError(); ++Index) {
                 Core::FString Name{Archive.IsLoading() ? Core::FString{} : Bones[Index].GetName()};
-                Core::Index_t Parent{static_cast<Core::Index_t>(Archive.IsLoading() ? -1 : Bones[Index].GetParentIndex())};
+                Core::Int32 Parent{static_cast<Core::Int32>(Archive.IsLoading() ? -1 : Bones[Index].GetParentIndex())};
                 Core::FMatrix BindPose{Archive.IsLoading() ? Core::FMatrix{} : Bones[Index].GetBindPose()};
 
                 Archive.Serialize("Name", Name);
@@ -508,7 +508,7 @@ namespace Asset {
             }
 
             for (Core::Index_t Vertex{}; Vertex < VertexCount && !Archive.HasError(); ++Vertex) {
-                std::array<Core::Index_t, Asset::FMeshImportSkinWeight::MaxInfluences> BoneIndices{Archive.IsLoading() ? std::array<Core::Index_t, Asset::FMeshImportSkinWeight::MaxInfluences>{} : SkinWeights[Vertex].GetBoneIndices()};
+                std::array<Core::Uint32, Asset::FMeshImportSkinWeight::MaxInfluences> BoneIndices{Archive.IsLoading() ? std::array<Core::Uint32, Asset::FMeshImportSkinWeight::MaxInfluences>{} : SkinWeights[Vertex].GetBoneIndices()};
                 std::array<float, Asset::FMeshImportSkinWeight::MaxInfluences> Weights{Archive.IsLoading() ? std::array<float, Asset::FMeshImportSkinWeight::MaxInfluences>{} : SkinWeights[Vertex].GetWeights()};
 
                 for (Core::Index_t Influence{}; Influence < Asset::FMeshImportSkinWeight::MaxInfluences; ++Influence) {

@@ -119,7 +119,7 @@ namespace Editor {
     }
 
     void FAnimGraphEditor::DrawNavigation() {
-        Core::Index_t Destination{-1};
+        Core::Int32 Destination{-1};
         const float Height{ImGui::GetFrameHeight() + ImGui::GetStyle().ScrollbarSize + 4.0f};
 
         if (ImGui::BeginChild("GraphNavigation", {0.0f, Height}, ImGuiChildFlags_None, ImGuiWindowFlags_HorizontalScrollbar)) {
@@ -138,7 +138,7 @@ namespace Editor {
                 ImGui::BeginDisabled(Current);
 
                 if (ImGui::Button(Label.c_str())) {
-                    Destination = Index;
+                    Destination = static_cast<Core::Int32>(Index);
                 }
 
                 ImGui::EndDisabled();

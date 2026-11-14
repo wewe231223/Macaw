@@ -31,7 +31,7 @@ namespace HeaderTool {
             {"float", "float"},
             {"int", "int"},
             {"Core::Int32", "int"},
-            {"Core::Index_t", "int"},
+            {"Core::Index_t", "nuint"},
             {"Core::Uint32", "uint"},
             {"Core::Uint64", "ulong"},
         };

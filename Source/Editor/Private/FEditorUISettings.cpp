@@ -468,7 +468,7 @@ namespace Editor {
                     DrawInterfaceSettings();
                 } else if (mSettingsSection == 1 || mSettingsSection == 2 || mSettingsSection == 4) {
                     const std::array<const char*, 4> Names{"Viewport 1", "Viewport 2", "Viewport 3", "Viewport 4"};
-                    Core::Index_t Selected{mSettingsViewport};
+                    Core::Int32 Selected{static_cast<Core::Int32>(mSettingsViewport)};
 
                     if (ImGui::Combo("Viewport", &Selected, Names.data(), static_cast<int>(Names.size()))) {
                         mSettingsViewport = static_cast<Core::Index_t>(Selected);

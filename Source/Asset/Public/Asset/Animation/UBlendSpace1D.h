@@ -53,7 +53,7 @@ namespace Asset {
         /**
          * @brief 파라미터 순으로 정렬한 샘플 인덱스 캐시입니다.
          */
-        std::array<Core::Index_t, MaxSamples> mSortedSampleIndices{};
+        std::array<Core::Int32, MaxSamples> mSortedSampleIndices{};
     };
 
 }

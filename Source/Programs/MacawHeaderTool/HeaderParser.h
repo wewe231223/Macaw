@@ -131,7 +131,7 @@ namespace HeaderTool {
         /**
          * @brief 바로 바깥 타입의 번호입니다. 없으면 -1입니다.
          */
-        Core::Index_t Outer{-1};
+        Core::Int32 Outer{-1};
 
         /**
          * @brief 템플릿이거나 템플릿 안에 있으면 true입니다.

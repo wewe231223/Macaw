@@ -24,7 +24,7 @@ namespace Engine {
      * @param[in] C 삼각형의 셋째 정점입니다.
      */
     static void AddTriangle(Asset::FMeshData* Mesh, const Core::FVector& A, const Core::FVector& B, const Core::FVector& C) {
-        const Core::Index_t Base{static_cast<Core::Index_t>(static_cast<Core::Uint32>(Mesh->GetPositions().size()))};
+        const Core::Uint32 Base{static_cast<Core::Uint32>(Mesh->GetPositions().size())};
         const Core::FVector Normal{(B - A).Cross(C - A).Normalized()};
 
         Mesh->GetPositions().insert(Mesh->GetPositions().end(), {A, B, C});

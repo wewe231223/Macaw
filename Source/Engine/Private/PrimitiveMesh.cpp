@@ -45,7 +45,7 @@ namespace Engine {
         Core::TArray<Core::FVector>& Positions{Mesh.GetPositions()};
         Core::TArray<Core::FVector>& Normals{Mesh.GetNormals()};
         Core::TArray<Core::FVector4>& Tangents{Mesh.GetTangents()};
-        Core::TArray<Core::Index_t>& Indices{Mesh.GetIndices()};
+        Core::TArray<Core::Uint32>& Indices{Mesh.GetIndices()};
 
         Mesh.GetUVChannels().resize(1);
 
@@ -67,7 +67,7 @@ namespace Engine {
             for (const Core::FVector& Normal : FaceNormals) {
                 const Core::FVector Up{std::abs(Normal.z) > 0.5f ? Core::FVector{0.0f, 1.0f, 0.0f} : Core::FVector{0.0f, 0.0f, 1.0f}};
                 const Core::FVector Right{Up.Cross(Normal)};
-                const Core::Index_t Base{static_cast<Core::Index_t>(static_cast<Core::Uint32>(Positions.size()))};
+                const Core::Uint32 Base{static_cast<Core::Uint32>(Positions.size())};
 
                 Positions.insert(Positions.end(), {(Normal - Right - Up) * 0.5f, (Normal + Right - Up) * 0.5f, (Normal + Right + Up) * 0.5f, (Normal - Right + Up) * 0.5f});
                 Normals.insert(Normals.end(), 4, Normal);
@@ -113,8 +113,8 @@ namespace Engine {
 
             for (Core::Index_t Ring{}; Ring < Rings; ++Ring) {
                 for (Core::Index_t Segment{}; Segment < Segments; ++Segment) {
-                    const Core::Index_t A{static_cast<Core::Index_t>(Ring * (Segments + 1) + Segment)};
-                    const Core::Index_t B{static_cast<Core::Index_t>(A + Segments + 1)};
+                    const Core::Uint32 A{static_cast<Core::Uint32>(Ring * (Segments + 1) + Segment)};
+                    const Core::Uint32 B{static_cast<Core::Uint32>(A + Segments + 1)};
 
                     Indices.insert(Indices.end(), {A, B, A + 1, A + 1, B, B + 1});
                 }

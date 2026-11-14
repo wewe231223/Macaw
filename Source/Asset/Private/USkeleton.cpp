@@ -24,9 +24,9 @@ namespace Asset {
 
         for (Core::Index_t Index{}; Index < Bones.size(); ++Index) {
             const Asset::FMeshImportBone& Bone{Bones[Index]};
-            const Core::Index_t Parent{static_cast<Core::Index_t>(Bone.GetParentIndex())};
+            const Core::Int32 Parent{static_cast<Core::Int32>(Bone.GetParentIndex())};
 
-            if (Parent < -1 || Parent >= Index || Bone.GetName().find('\0') != Core::FString::npos || !Bone.GetBindPose().IsFinite()) {
+            if (Parent < -1 || (Parent >= 0 && static_cast<Core::Index_t>(Parent) >= Index) || Bone.GetName().find('\0') != Core::FString::npos || !Bone.GetBindPose().IsFinite()) {
                 return false;
             }
 

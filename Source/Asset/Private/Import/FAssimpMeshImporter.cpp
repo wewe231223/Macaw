@@ -107,7 +107,7 @@ namespace Asset {
         Core::TArray<Core::FVector4>& Tangents{MeshData.GetTangents()};
         Core::TArray<Core::TArray<Core::FVector2>>& UVChannels{MeshData.GetUVChannels()};
         Core::TArray<Core::FVector4>& Colors{MeshData.GetColors()};
-        Core::TArray<Core::Index_t>& Indices{MeshData.GetIndices()};
+        Core::TArray<Core::Uint32>& Indices{MeshData.GetIndices()};
         const std::size_t VertexCount{Positions.size()};
 
         if (!Source.HasPositions() || !Source.HasFaces() || Source.mNumVertices > MaximumVertices - VertexCount || Source.mNumFaces > (MaximumIndices - Indices.size()) / 3 || Source.mMaterialIndex >= mScene->mNumMaterials) {
@@ -350,9 +350,9 @@ namespace Asset {
     /**
      * @brief 메시가 참조하는 본 이름과 같은 노드를 깊이 우선으로 순회하며 결과 본 목록에 추가합니다.
      */
-    bool Asset::FAssimpMeshImporter::ReadSkeleton(const aiNode& Node, Core::Index_t ParentIndex, const Core::FMatrix& ParentBoneGlobal) {
+    bool Asset::FAssimpMeshImporter::ReadSkeleton(const aiNode& Node, Core::Int32 ParentIndex, const Core::FMatrix& ParentBoneGlobal) {
         const Core::FString Name{Node.mName.C_Str()};
-        Core::Index_t Index{ParentIndex};
+        Core::Int32 Index{ParentIndex};
         Core::FMatrix BoneGlobal{ParentBoneGlobal};
 
         // 메시의 본이 참조하는 노드만 본으로 추가합니다. 사이에 끼인 일반 노드는 건너뛰고 가장 가까운 조상 본을 부모로 연결합니다.

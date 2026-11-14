@@ -223,6 +223,8 @@ namespace {
         auto Emitter{NewObject<UParticleEmitter>()};
         auto Instance{Emitter->CreateInstance(Owner)};
         Require(Instance->SpawnParticle(0.0f, {1.0f, 2.0f, 3.0f}, {4.0f, 5.0f, 6.0f}) == 0, "Spawn before invalid transform update");
+        const Index_t WideIndex{static_cast<Index_t>(std::numeric_limits<Uint32>::max()) + 1};
+        Require(Instance->GetParticle(WideIndex) == nullptr && static_cast<const FParticleEmitterInstance&>(*Instance).GetParticle(WideIndex) == nullptr, "Reject particle indices beyond the 32-bit range without truncation");
         const FMatrix OriginalEmitterToSimulation{Instance->GetEmitterToSimulation()};
         const FMatrix OriginalSimulationToWorld{Instance->GetSimulationToWorld()};
 
@@ -234,7 +236,7 @@ namespace {
         Owner.SetTransform({});
         Require(Instance->UpdateTransforms(), "Recover after invalid owner transform");
         const float Invalid{std::numeric_limits<float>::infinity()};
-        Require(Instance->SpawnParticle(0.0f, {Invalid, 0.0f, 0.0f}, {}) == -1 && Instance->SpawnParticle(0.0f, {}, {0.0f, Invalid, 0.0f}) == -1 && Instance->GetParticleCount() == 1, "Reject non-finite spawn data without allocating particles");
+        Require(Instance->SpawnParticle(0.0f, {Invalid, 0.0f, 0.0f}, {}) == std::numeric_limits<Index_t>::max() && Instance->SpawnParticle(0.0f, {}, {0.0f, Invalid, 0.0f}) == std::numeric_limits<Index_t>::max() && Instance->GetParticleCount() == 1, "Reject non-finite spawn data without allocating particles");
         const FVector Extreme{std::numeric_limits<float>::max(), 0.0f, 0.0f};
         Require(Instance->SpawnParticle(0.0f, Extreme, Extreme) == 1, "Spawn finite data near floating-point limits");
         Emitter->GetLODLevel(0)->GetRequiredModule()->SetUseLocalSpace(true);

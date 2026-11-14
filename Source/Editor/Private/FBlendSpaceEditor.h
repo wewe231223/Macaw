@@ -179,12 +179,12 @@ namespace Editor {
         /**
          * @brief 선택한 샘플 순서이며 없으면 -1입니다.
          */
-        Core::Index_t mSelectedSample{-1};
+        Core::Int32 mSelectedSample{-1};
 
         /**
          * @brief 끌고 있는 샘플 순서이며 없으면 -1입니다.
          */
-        Core::Index_t mDraggingSample{-1};
+        Core::Int32 mDraggingSample{-1};
 
         /**
          * @brief 미리보기 입력을 끌고 있는지 여부입니다.

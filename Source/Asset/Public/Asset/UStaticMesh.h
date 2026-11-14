@@ -174,7 +174,7 @@ namespace Asset {
         /**
          * @brief 삼각형 인덱스를 보관하는 소유 GPU 버퍼입니다.
          */
-        RenderCore::TIndexBuffer<Core::Index_t> mIndexBuffer{};
+        RenderCore::TIndexBuffer<Core::Uint32> mIndexBuffer{};
     };
 
 }

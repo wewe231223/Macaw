@@ -447,7 +447,7 @@ namespace Editor {
                 Core::TArray<Core::TArray<Core::Index_t>> Children(Bones.size());
 
                 for (Core::Index_t Index{}; Index < Bones.size(); ++Index) {
-                    const Core::Index_t Parent{static_cast<Core::Index_t>(Bones[Index].GetParentIndex())};
+                    const Core::Int32 Parent{static_cast<Core::Int32>(Bones[Index].GetParentIndex())};
 
                     if (Parent >= 0) {
                         Children[Parent].push_back(Index);
@@ -617,7 +617,7 @@ namespace Editor {
         const bool CanHover{Hovered && !mMouseCaptured && !Input.IsDown(EKey::MouseRight) && !Input.IsDown(EKey::MouseMiddle)};
         const Editor::FGizmoPlacement Placement{GetBonePlacement(Bone)};
         const Engine::FHitProxy Hit{CanHover ? mGizmo.HitTest(Mouse, View, Placement) : Engine::FHitProxy{}};
-        const Core::Index_t Axis{static_cast<Core::Index_t>(Hit.mType == Engine::EHitProxyType::GizmoAxis ? Hit.mAxis : -1)};
+        const Core::Int32 Axis{static_cast<Core::Int32>(Hit.mType == Engine::EHitProxyType::GizmoAxis ? Hit.mAxis : -1)};
 
         mGizmo.SetHoveredAxis(Axis);
 
@@ -645,7 +645,7 @@ namespace Editor {
             Delta = Core::FMatrix::Translation(-Pivot) * Core::FMatrix::Rotation(mGizmo.GetRotation()) * Core::FMatrix::Translation(Pivot);
         }
 
-        const Core::Index_t Parent{static_cast<Core::Index_t>(mSkeleton->GetBones()[Bone].GetParentIndex())};
+        const Core::Int32 Parent{static_cast<Core::Int32>(mSkeleton->GetBones()[Bone].GetParentIndex())};
         Core::FMatrix ParentInverse{Core::FMatrix::Identity()};
 
         if (Parent >= 0 && !mContent->GetPose().GetGlobalTransforms()[Parent].TryInverse(ParentInverse)) {

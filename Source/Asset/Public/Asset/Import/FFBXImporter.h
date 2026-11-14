@@ -109,7 +109,7 @@ namespace Asset {
          * @param[in] ParentBoneGlobal 가장 가까운 조상 본의 엔진 공간 전역 변환이며 없으면 항등 행렬입니다.
          * @return 모든 본을 읽으면 true이며 바인드 포즈를 변환할 수 없으면 false입니다.
          */
-        bool ReadSkeleton(fbxsdk::FbxNode& Node, Core::Index_t ParentIndex, const Core::FMatrix& ParentBoneGlobal);
+        bool ReadSkeleton(fbxsdk::FbxNode& Node, Core::Int32 ParentIndex, const Core::FMatrix& ParentBoneGlobal);
 
         /**
          * @brief 장면의 스킨 클러스터와 바인드 포즈 객체(FbxPose)에서 노드별 바인드 시점 전역 변환을 모읍니다.

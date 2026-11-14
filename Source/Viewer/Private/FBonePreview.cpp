@@ -47,13 +47,13 @@ namespace Viewer {
         Shapes.reserve(Bones.size() * 2);
 
         for (Core::Index_t Bone{}; Bone < Bones.size(); ++Bone) {
-            const Core::Index_t ParentIndex{static_cast<Core::Index_t>(Bones[Bone].GetParentIndex())};
+            const Core::Int32 ParentIndex{static_cast<Core::Int32>(Bones[Bone].GetParentIndex())};
 
             if (ParentIndex < 0) {
                 continue;
             }
 
-            const Core::Index_t Parent{ParentIndex};
+            const Core::Index_t Parent{static_cast<Core::Index_t>(ParentIndex)};
             const Core::FVector Start{Transforms[Parent].TransformPosition({})};
             const Core::FVector Offset{Transforms[Bone].TransformPosition({}) - Start};
             const float Length{Offset.Length()};

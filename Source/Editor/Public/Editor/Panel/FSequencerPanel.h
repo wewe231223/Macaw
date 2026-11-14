@@ -39,12 +39,12 @@ namespace Editor {
             /**
              * @brief 키가 속한 바인딩의 순서이며 음수이면 선택이 없습니다.
              */
-            Core::Index_t mBinding{-1};
+            Core::Int32 mBinding{-1};
 
             /**
              * @brief 키가 속한 채널의 순서입니다.
              */
-            Core::Index_t mChannel{};
+            Core::Int32 mChannel{};
 
             /**
              * @brief 키의 시간이며 틱 단위입니다.
@@ -139,7 +139,7 @@ namespace Editor {
          * @param[in] Label 줄에 표시할 이름입니다.
          * @param[in] Channel 그릴 채널입니다.
          */
-        void DrawChannelRow(const Asset::ULevelSequence* Sequence, Core::Index_t Binding, Core::Index_t ChannelId, const char* Label, const Asset::FSequenceChannel& Channel);
+        void DrawChannelRow(const Asset::ULevelSequence* Sequence, Core::Int32 Binding, Core::Int32 ChannelId, const char* Label, const Asset::FSequenceChannel& Channel);
 
         /**
          * @brief 키 마커를 그리고 클릭하면 선택과 드래그를 시작합니다.
@@ -150,7 +150,7 @@ namespace Editor {
          * @param[in] Index 줄 안에서 키를 구분하는 번호입니다.
          * @return 키 위에 마우스가 있으면 true입니다.
          */
-        bool DrawKeyMarker(const Asset::ULevelSequence* Sequence, Core::Index_t Binding, Core::Index_t ChannelId, Core::Int32 Tick, Core::Index_t Index);
+        bool DrawKeyMarker(const Asset::ULevelSequence* Sequence, Core::Int32 Binding, Core::Int32 ChannelId, Core::Int32 Tick, Core::Int32 Index);
 
         /**
          * @brief 선택한 바인딩의 현재 변환으로 현재 프레임에 키를 찍습니다.
@@ -231,7 +231,7 @@ namespace Editor {
         /**
          * @brief 키를 찍고 제거할 바인딩의 순서입니다.
          */
-        Core::Index_t mActiveBinding{};
+        Core::Int32 mActiveBinding{};
 
         /**
          * @brief 키 드래그를 시작한 프레임입니다.

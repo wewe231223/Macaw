@@ -37,7 +37,7 @@ namespace Engine {
                     continue;
                 }
 
-                const Core::Int32 Other{Corner | (1 << Axis)};
+                const Core::Index_t Other{Corner | (Core::Index_t{1} << Axis)};
                 const Core::FVector End{(Other & 1) != 0 ? Bounds.mMaximum.x : Bounds.mMinimum.x, (Other & 2) != 0 ? Bounds.mMaximum.y : Bounds.mMinimum.y, (Other & 4) != 0 ? Bounds.mMaximum.z : Bounds.mMinimum.z};
 
                 DrawLine(Start, End, Color, DepthTest, Thickness);

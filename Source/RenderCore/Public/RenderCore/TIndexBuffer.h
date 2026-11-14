@@ -17,11 +17,11 @@ namespace RenderCore {
 
     /**
      * @brief 입력 조립 단계가 읽는 인덱스 버퍼입니다.
-     * @tparam T 인덱스 타입이며 std::uint16_t, Core::Uint32 또는 Core::Index_t여야 합니다.
+     * @tparam T 인덱스 타입이며 std::uint16_t 또는 Core::Uint32여야 합니다.
      * @tparam Update CPU 데이터를 기록하는 방식입니다.
      */
     template <typename T, RenderCore::EBufferUpdate Update = RenderCore::EBufferUpdate::Immutable>
-        requires(std::same_as<T, std::uint16_t> || std::same_as<T, Core::Uint32> || std::same_as<T, Core::Index_t>)
+        requires(std::same_as<T, std::uint16_t> || std::same_as<T, Core::Uint32>)
     class TIndexBuffer : public RenderCore::FGpuBuffer {
     public:
         /**
